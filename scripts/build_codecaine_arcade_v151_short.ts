@@ -48,7 +48,10 @@ const VIEW_W = 1920;
 const VIEW_H = 972;
 
 const ROOT_DIR = "/tmp/fm_codecaine_arcade_short";
-const HOME = process.platform === "darwin" ? "/private/tmp/fm_codecaine_arcade_short/home" : "/tmp/fm_codecaine_arcade_short/home";
+const HOME =
+  process.platform === "darwin"
+    ? "/private/tmp/fm_codecaine_arcade_short/home"
+    : "/tmp/fm_codecaine_arcade_short/home";
 const DATA = `${ROOT_DIR}/data`;
 const GRAVE = `${ROOT_DIR}/grave`;
 const ZDOT = `${ROOT_DIR}/zdot`;
@@ -66,17 +69,33 @@ type SceneSpec = {
 
 function run(args: string[]): string {
   const result = Bun.spawnSync(args, { stdout: "pipe", stderr: "pipe" });
-  if (result.exitCode !== 0) throw new Error(`${args[0]} failed:\n${result.stderr.toString().slice(-4000)}`);
+  if (result.exitCode !== 0)
+    throw new Error(
+      `${args[0]} failed:\n${result.stderr.toString().slice(-4000)}`,
+    );
   return result.stdout.toString();
 }
 
 function duration(file: string): number {
-  const value = Number(run([FFPROBE, "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file]).trim());
-  if (!Number.isFinite(value) || value <= 0) throw new Error(`Invalid duration: ${file}`);
+  const value = Number(
+    run([
+      FFPROBE,
+      "-v",
+      "error",
+      "-show_entries",
+      "format=duration",
+      "-of",
+      "csv=p=0",
+      file,
+    ]).trim(),
+  );
+  if (!Number.isFinite(value) || value <= 0)
+    throw new Error(`Invalid duration: ${file}`);
   return value;
 }
 
-const esc = (text: string) => text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+const esc = (text: string) =>
+  text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 
 function seedArcadeWorkspace() {
   rmSync(ROOT_DIR, { recursive: true, force: true });
@@ -84,12 +103,20 @@ function seedArcadeWorkspace() {
   seedDemoWorkspace(HOME, join(ROOT_DIR, "frames"));
 
   const studioDir = join(HOME, "Codecaine_Arcade_v1.5.1");
-  mkdirSync(join(studioDir, "01_Adventures_of_Caine_Remaster"), { recursive: true });
-  mkdirSync(join(studioDir, "02_Dr_Codecaine_3D_Capsules"), { recursive: true });
+  mkdirSync(join(studioDir, "01_Adventures_of_Caine_Remaster"), {
+    recursive: true,
+  });
+  mkdirSync(join(studioDir, "02_Dr_Codecaine_3D_Capsules"), {
+    recursive: true,
+  });
   mkdirSync(join(studioDir, "03_CyberMunch_Math_Deluxe"), { recursive: true });
-  mkdirSync(join(studioDir, "04_CyberFrog_CyberSki_CyberWing"), { recursive: true });
+  mkdirSync(join(studioDir, "04_CyberFrog_CyberSki_CyberWing"), {
+    recursive: true,
+  });
   mkdirSync(join(studioDir, "05_CyberMouse_Trap_Deluxe"), { recursive: true });
-  mkdirSync(join(studioDir, "06_67_SVG_Icon_Packs_v1.5.1"), { recursive: true });
+  mkdirSync(join(studioDir, "06_67_SVG_Icon_Packs_v1.5.1"), {
+    recursive: true,
+  });
 
   writeFileSync(
     join(studioDir, "Adventures_of_Caine_Engine.ts"),
@@ -150,7 +177,12 @@ function seedArcadeWorkspace() {
  * Injects an Apple Keynote-style floating glass callout banner inside the live recorded viewport
  * so every game and enhancement scene looks like an official Cupertino 6K XDR showcase film.
  */
-async function showKeynoteHud(c: Cdp, title: string, subtitle: string, pill = " M4 ULTRA · 6K XDR · 120HZ") {
+async function showKeynoteHud(
+  c: Cdp,
+  title: string,
+  subtitle: string,
+  pill = " M4 ULTRA · 6K XDR · 120HZ",
+) {
   await c.eval(`(() => {
     let el = document.getElementById("apple-keynote-hud");
     if (!el) {
@@ -256,7 +288,8 @@ const sceneSpecs: SceneSpec[] = [
     badge: "01 / 10 · #1 CROWN JEWEL: ADVENTURES OF CAINE REMASTER",
     title: "ADVENTURES OF CAINE\nREMASTER (120HZ).",
     label: "💎 100 PUZZLE CHAMBERS · 👻 AI GHOST SOLVER · 🔮 MAGIC EGG SHOTS",
-    extra: "Collect Emerald Heart Framers, Encase Enemies in Eggs & Summon the AI Ghost Guide",
+    extra:
+      "Collect Emerald Heart Framers, Encase Enemies in Eggs & Summon the AI Ghost Guide",
     bullets: [
       "💎 #1 Flagship Game: 100 Tactical Chambers Across 10 Sectors",
       "👻 Press H for Holographic AI Mathematical Path Solver",
@@ -324,8 +357,10 @@ const sceneSpecs: SceneSpec[] = [
     id: "02_adventures_of_caine_generator_and_architect",
     badge: "02 / 10 · ADVENTURES OF CAINE: SEED GENERATOR & ARCHITECT",
     title: "10 SECTORS, RANDOM\nSEEDS & ARCHITECT.",
-    label: "🗺️ 10-SECTOR CAMPAIGN · 🎲 PROCEDURAL GENERATOR · 🛠️ LEVEL ARCHITECT",
-    extra: "Infinite Mathematically Verified Puzzle Seeds & Full In-Game Level Editor",
+    label:
+      "🗺️ 10-SECTOR CAMPAIGN · 🎲 PROCEDURAL GENERATOR · 🛠️ LEVEL ARCHITECT",
+    extra:
+      "Infinite Mathematically Verified Puzzle Seeds & Full In-Game Level Editor",
     bullets: [
       "🗺️ 10-Sector Campaign Map & 100-Chamber Selector",
       "🎲 Infinite Procedural Seed Generator With Math Verification",
@@ -383,7 +418,8 @@ const sceneSpecs: SceneSpec[] = [
     badge: "03 / 10 · CODECAINE DR. CODECAINE ARCADE",
     title: "DR. CODECAINE\n3D CAPSULE ARCADE.",
     label: "💊 GLOSSY 3D CAPSULES · 🦠 PATHOGEN AI · 🎵 FEVER & CHILL SYNTH",
-    extra: "Two-Tone Vitamin Capsules, Gravity Cascade Combos & Polyphonic WebAudio Tracks",
+    extra:
+      "Two-Tone Vitamin Capsules, Gravity Cascade Combos & Polyphonic WebAudio Tracks",
     bullets: [
       "💊 Glossy 3D Two-Tone Capsules With Ghost Projection & Hold Slot",
       "🦠 Animated Red, Yellow & Blue Pathogens in Magnified Petri Dish",
@@ -425,7 +461,8 @@ const sceneSpecs: SceneSpec[] = [
     badge: "04 / 10 · CODECAINE CYBERMUNCH MATH DELUXE",
     title: "CYBERMUNCH MATH\nDELUXE (6×5 GRID).",
     label: "🧮 MULTIPLES, FACTORS & PRIMES · 👾 5 TROGGLE AI PERSONALITIES",
-    extra: "Chomp Target Equations Across a 6×5 Neon Grid While Outsmarting Troggles",
+    extra:
+      "Chomp Target Equations Across a 6×5 Neon Grid While Outsmarting Troggles",
     bullets: [
       "🧮 5 Modes: Multiples, Factors, Primes, Equalities & Inequalities",
       "👾 5 Troggle AI Types: Reggie, Bashful, Helper, Worker & Smarty",
@@ -472,7 +509,8 @@ const sceneSpecs: SceneSpec[] = [
     badge: "05 / 10 · CODECAINE CYBERFROG DELUXE",
     title: "CYBERFROG DELUXE\nHIGHWAY & RIVER.",
     label: "🐸 NEON SUPERCAR LANES · 🪵 CYBER LOGS & DIVING TURTLES",
-    extra: "Hop Multi-Lane Neon Traffic & Ride Cyber-River Logs into All 5 Harmonic Docks",
+    extra:
+      "Hop Multi-Lane Neon Traffic & Ride Cyber-River Logs into All 5 Harmonic Docks",
     bullets: [
       "🐸 Multi-Lane Cyber Supercar Highway & Neon River Physics",
       "🐢 Submerging Cyber-Turtles, Floating Logs & Bonus Flies",
@@ -517,7 +555,8 @@ const sceneSpecs: SceneSpec[] = [
     badge: "06 / 10 · CYBERSKI DELUXE & CYBERWING DELUXE",
     title: "CYBERSKI DELUXE &\nCYBERWING DELUXE.",
     label: "⛷️ ALPINE SLALOM & YETI CHASE · 🦅 NEON SKYLINE FLYER",
-    extra: "Carve Slalom Gates, Launch 360° Ramp Tricks & Soar Through Plasma Pillars",
+    extra:
+      "Carve Slalom Gates, Launch 360° Ramp Tricks & Soar Through Plasma Pillars",
     bullets: [
       "⛷️ CyberSki Deluxe: Slalom, Freeride, Trick Ramps & Cyber-Yeti",
       "🦅 CyberWing Deluxe: Classic, Cyber Dash, Night Ops & Zen Modes",
@@ -570,7 +609,8 @@ const sceneSpecs: SceneSpec[] = [
     badge: "07 / 10 · CODECAINE CYBERMOUSE TRAP DELUXE",
     title: "CYBERMOUSE TRAP\nDELUXE (20 STAGES).",
     label: "🧀 PUSH-BLOCK CAT TRAPPING · 🐱 TURN CATS INTO BONUS CHEESE",
-    extra: "Shift Whole Rows of Blocks to Box In Chasing Cyber-Cats Across 20 Stages",
+    extra:
+      "Shift Whole Rows of Blocks to Box In Chasing Cyber-Cats Across 20 Stages",
     bullets: [
       "🧀 Push Movable Block Walls to Trap Chasing Cyber-Cats",
       "🐱 Trapped Cats Transform into High-Point Bonus Cheese",
@@ -609,7 +649,8 @@ const sceneSpecs: SceneSpec[] = [
     badge: "08 / 10 · TYPING CODECAINE EDITION, CYBERCHOMP & TETROGRID",
     title: "TYPING CODECAINE,\nCHOMP & TETROGRID.",
     label: "⌨️ CYBERTYPE v2.0 · 🟡 CYBERCHOMP ARCADE · 🧱 TETROGRID ULTRA",
-    extra: "18-Lesson Touch Typing & Code Sprint + 4 Ghost AIs & 7-Bag SRS Block Engine",
+    extra:
+      "18-Lesson Touch Typing & Code Sprint + 4 Ghost AIs & 7-Bag SRS Block Engine",
     bullets: [
       "⌨️ Typing Codecaine Edition: 18 Lessons, Code Sprint & Bug Invaders",
       "🟡 CyberChomp Arcade: Crimson, Pulse, Glitch & Amber Ghost AI",
@@ -681,7 +722,8 @@ const sceneSpecs: SceneSpec[] = [
     badge: "09 / 10 · CODECAINE BROS., JOKER ROYALE & YACHT DICE ROYALE",
     title: "CODECAINE BROS.,\nJOKERS & YACHT DICE.",
     label: "🍄 CODECAINE BROS. · 🃏 JOKER ROYALE DELUXE · 🎲 YACHT DICE ROYALE",
-    extra: "POW Block Shockwaves, 30+ Holographic Poker Jokers & 3D Tactile Yacht Dice",
+    extra:
+      "POW Block Shockwaves, 30+ Holographic Poker Jokers & 3D Tactile Yacht Dice",
     bullets: [
       "🍄 Codecaine Bros. Arcade: POW Shockwaves, Co-Op & 2P Battle",
       "🃏 Joker Royale Deluxe, Blackjack Royale VIP & Texas Hold'em",
@@ -739,8 +781,10 @@ const sceneSpecs: SceneSpec[] = [
     id: "10_v151_file_manager_67_icons_and_release_cta",
     badge: "10 / 10 · FILE MANAGER v1.5.1: 67 ICON PACKS & 25 DOWNLOADS",
     title: "67 ICON PACKS, 4.5:1\nCONTRAST & v1.5.1.",
-    label: "🕹️ BUILT-IN ARCADE HUB · 🎨 67 SVG ICON PACKS · ⬇️ 25 PLATFORM BUILDS",
-    extra: "18 New Icon Packs, Commodore 64 & Synthwave 4.5:1 Contrast & 66 Mac .app Bundles",
+    label:
+      "🕹️ BUILT-IN ARCADE HUB · 🎨 67 SVG ICON PACKS · ⬇️ 25 PLATFORM BUILDS",
+    extra:
+      "18 New Icon Packs, Commodore 64 & Synthwave 4.5:1 Contrast & 66 Mac .app Bundles",
     bullets: [
       "🕹️ Play All 24 Games Inside File Manager or as Native .app Bundles",
       "🎨 67 SVG Icon Packs (+18 New: Game Boy, Classic OS, Pop-Art, Clay 3D)",
@@ -749,7 +793,9 @@ const sceneSpecs: SceneSpec[] = [
     say: "And inside Codecaine File Manager version one point five point one, launch all twenty-four games from the built-in Arcade Hub, explore sixty-seven S V G system icon packs including eighteen brand-new retro and art packs, and enjoy upgraded four-point-five-to-one contrast in Commodore 64 and Synthwave '84. All twenty-five cross-platform release downloads are live now on GitHub!",
     record: async (c) => {
       await closeGameStage(c);
-      await c.click("#status-views button >> Icons", { pause: 350 }).catch(() => {});
+      await c
+        .click("#status-views button >> Icons", { pause: 350 })
+        .catch(() => {});
 
       await c.eval(`(async () => {
         const tm = await import('/ui/themes.js');
@@ -862,12 +908,18 @@ ${
 }`;
 }
 
-function notesMarkdown(seconds: number, tempo: number, sceneMarks: Array<{ at: number; scene: SceneSpec }>): string {
+function notesMarkdown(
+  seconds: number,
+  tempo: number,
+  sceneMarks: Array<{ at: number; scene: SceneSpec }>,
+): string {
   const fmt = (sec: number) => {
     const s = Math.floor(sec);
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   };
-  const stamps = sceneMarks.map((m, i) => `${fmt(i === 0 ? 0 : m.at)} ${m.scene.label}`).join("\n");
+  const stamps = sceneMarks
+    .map((m, i) => `${fmt(i === 0 ? 0 : m.at)} ${m.scene.label}`)
+    .join("\n");
   return `# Codecaine Arcade Suite & File Manager v1.5.1 on Mac Studio M4 Ultra 6K XDR — Starring Adventures of Caine Remaster, Dr. Codecaine, CyberMunch, CyberFrog, CyberSki, CyberWing & Mouse Trap (Short, ${fmt(seconds)})
 
 ## Video Files (100% Freshly Recorded at Highest Quality CRF 14, Zero Reused Clips)
@@ -926,12 +978,18 @@ async function main() {
   seedArcadeWorkspace();
 
   // 1. Generate fresh voice narration for all 10 scenes
-  const narrated: Array<{ scene: SceneSpec; audio: string; seconds: number }> = [];
+  const narrated: Array<{ scene: SceneSpec; audio: string; seconds: number }> =
+    [];
   for (const scene of sceneSpecs) {
     const audio = join(WORK, `${scene.id}.wav`);
     if (!existsSync(audio)) {
       console.log(`🎙️  Narrating ${scene.id}...`);
-      const narration = await narrate(scene.id, scene.say, join(WORK, "audio"), { rate: "+6%", gap: 0.20 });
+      const narration = await narrate(
+        scene.id,
+        scene.say,
+        join(WORK, "audio"),
+        { rate: "+6%", gap: 0.2 },
+      );
       const seconds = Math.max(4.0, duration(narration) - 0.85);
       run([
         FFMPEG,
@@ -958,7 +1016,9 @@ async function main() {
   const total = narrated.reduce((sum, item) => sum + item.seconds, 0);
   // Target ~168-174s (< 180s 3-minute YouTube Short cap)
   const tempo = Math.max(1, total / 170);
-  console.log(`⏱️  Total narration ${total.toFixed(2)}s; pace factor ${tempo.toFixed(3)}x -> target ${(total / tempo).toFixed(1)}s`);
+  console.log(
+    `⏱️  Total narration ${total.toFixed(2)}s; pace factor ${tempo.toFixed(3)}x -> target ${(total / tempo).toFixed(1)}s`,
+  );
 
   // 2. Start live File Manager server and a same-origin static server for /Users/codecaine/Downloads/public_html/apps
   const gameServer = Bun.serve({
@@ -994,9 +1054,13 @@ async function main() {
           let html = Bun.file(filePath);
           return new Response(html, { headers: { "Content-Type": mime } });
         }
-        return new Response(Bun.file(filePath), { headers: { "Content-Type": mime } });
+        return new Response(Bun.file(filePath), {
+          headers: { "Content-Type": mime },
+        });
       }
-      return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { "Content-Type": "application/json" },
+      });
     },
   });
 
@@ -1035,7 +1099,12 @@ async function main() {
     await sleep(200);
   }
 
-  const recBrowser = await Cdp.launch(CDP_REC_PORT, join(WORK, "chrome-rec"), VIEW_W, VIEW_H);
+  const recBrowser = await Cdp.launch(
+    CDP_REC_PORT,
+    join(WORK, "chrome-rec"),
+    VIEW_W,
+    VIEW_H,
+  );
   const rawClips: Map<string, string> = new Map();
 
   try {
@@ -1057,7 +1126,12 @@ async function main() {
         onStageHost = true;
       }
       const clipPath = join(WORK, `${scene.id}_raw.mp4`);
-      if (existsSync(clipPath) && Bun.file(clipPath).size > 100_000 && !scene.id.startsWith("01_") && !scene.id.startsWith("02_")) {
+      if (
+        existsSync(clipPath) &&
+        Bun.file(clipPath).size > 100_000 &&
+        !scene.id.startsWith("01_") &&
+        !scene.id.startsWith("02_")
+      ) {
         console.log(`⏭️  Resuming: keeping recorded scene ${scene.id}`);
         rawClips.set(scene.id, clipPath);
         continue;
@@ -1066,7 +1140,11 @@ async function main() {
       await recBrowser.startRecording();
       await scene.record(recBrowser);
       await sleep(300);
-      await recBrowser.stopRecording(clipPath, join(WORK, `frames_${scene.id}`), item.seconds / tempo);
+      await recBrowser.stopRecording(
+        clipPath,
+        join(WORK, `frames_${scene.id}`),
+        item.seconds / tempo,
+      );
       rawClips.set(scene.id, clipPath);
     }
   } finally {
@@ -1080,7 +1158,12 @@ async function main() {
   }
 
   // 3. Render vertical 1080x1920 Apple Mac Studio M4 Ultra 6K XDR overlays and composite each segment at CRF 14
-  const ovlBrowser = await Cdp.launch(CDP_OVL_PORT, join(WORK, "chrome-ovl"), 1080, 1920);
+  const ovlBrowser = await Cdp.launch(
+    CDP_OVL_PORT,
+    join(WORK, "chrome-ovl"),
+    1080,
+    1920,
+  );
   const segments: string[] = [];
   const sceneMarks: Array<{ at: number; scene: SceneSpec }> = [];
   let at = 0;
@@ -1097,7 +1180,9 @@ async function main() {
       const png = join(WORK, `${scene.id}.png`);
       writeFileSync(html, overlay(scene, index));
       await ovlBrowser.goto(`file://${html}`, null);
-      await ovlBrowser.send("Emulation.setDefaultBackgroundColorOverride", { color: { r: 0, g: 0, b: 0, a: 0 } });
+      await ovlBrowser.send("Emulation.setDefaultBackgroundColorOverride", {
+        color: { r: 0, g: 0, b: 0, a: 0 },
+      });
       const screenshot = await ovlBrowser.send("Page.captureScreenshot", {
         format: "png",
         captureBeyondViewport: false,
@@ -1155,7 +1240,10 @@ async function main() {
   }
 
   const list = join(WORK, "concat.txt");
-  writeFileSync(list, segments.map((file) => `file '${file}'`).join("\n") + "\n");
+  writeFileSync(
+    list,
+    segments.map((file) => `file '${file}'`).join("\n") + "\n",
+  );
   run([
     FFMPEG,
     "-hide_banner",
@@ -1197,7 +1285,9 @@ async function main() {
   const notes = notesMarkdown(finalSeconds, tempo, sceneMarks);
   writeFileSync(NOTES, notes);
   writeFileSync(join(WORK, "upload-guide.txt"), notes);
-  console.log(`✅ Built fresh Codecaine Arcade & v1.5.1 Enhancements Short: ${OUTPUT} (${finalSeconds.toFixed(2)}s)`);
+  console.log(
+    `✅ Built fresh Codecaine Arcade & v1.5.1 Enhancements Short: ${OUTPUT} (${finalSeconds.toFixed(2)}s)`,
+  );
   console.log(`📝 Wrote ${NOTES}`);
 }
 

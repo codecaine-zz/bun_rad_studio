@@ -1,5 +1,13 @@
 // Folder tabs for the main file pane: open multiple folders at once, switch between them, duplicate, or close tabs.
-import { $, activeIconPackStyle, h, clear, announce, iconFor, placeIconFor } from "./dom.js";
+import {
+  $,
+  activeIconPackStyle,
+  h,
+  clear,
+  announce,
+  iconFor,
+  placeIconFor,
+} from "./dom.js";
 import { attachDropTarget } from "./dnd.js";
 import { showMenu } from "./menus.js";
 import { state, on, emit, currentPath, inTrash } from "./state.js";
@@ -13,7 +21,9 @@ import { baseName } from "./util.js";
 let nextTabSeq = 1;
 
 function cloneLoc(loc) {
-  return loc?.kind === "trash" ? { kind: "trash" } : { kind: "folder", path: loc?.path || state.home || "" };
+  return loc?.kind === "trash"
+    ? { kind: "trash" }
+    : { kind: "folder", path: loc?.path || state.home || "" };
 }
 
 function tabLabel(loc) {
@@ -46,7 +56,8 @@ function ensureInitialTab() {
 
 function saveCurrentTabSnapshot() {
   ensureInitialTab();
-  const cur = state.tabs.find((t) => t.id === state.activeTabId) ?? state.tabs[0];
+  const cur =
+    state.tabs.find((t) => t.id === state.activeTabId) ?? state.tabs[0];
   if (!cur) return;
   cur.location = cloneLoc(state.location);
   cur.history = [...state.history];
@@ -74,7 +85,8 @@ async function activateTabObject(tab) {
   state.kindFilter = tab.kindFilter || "all";
   state.tagFilter = tab.tagFilter || "";
   const qfInput = $("#quick-filter");
-  if (qfInput && qfInput.value !== state.quickFilter) qfInput.value = state.quickFilter;
+  if (qfInput && qfInput.value !== state.quickFilter)
+    qfInput.value = state.quickFilter;
   const qfClear = $("#quick-filter-clear");
   if (qfClear) qfClear.hidden = !state.quickFilter;
   emit("view");
@@ -99,13 +111,24 @@ export async function switchTab(tabId) {
 export async function openNewTab(folderPath) {
   ensureInitialTab();
   saveCurrentTabSnapshot();
-  const loc = typeof folderPath === "string" && folderPath.trim()
-    ? { kind: "folder", path: folderPath.trim() }
-    : inTrash()
-      ? { kind: "trash" }
-      : { kind: "folder", path: currentPath() || state.home };
+  const loc =
+    typeof folderPath === "string" && folderPath.trim()
+      ? { kind: "folder", path: folderPath.trim() }
+      : inTrash()
+        ? { kind: "trash" }
+        : { kind: "folder", path: currentPath() || state.home };
   const id = nextTabSeq++;
-  const tab = { id, location: loc, history: [], future: [], selection: [], quickFilter: "", kindFilter: "all", tagFilter: "", scrollTop: 0 };
+  const tab = {
+    id,
+    location: loc,
+    history: [],
+    future: [],
+    selection: [],
+    quickFilter: "",
+    kindFilter: "all",
+    tagFilter: "",
+    scrollTop: 0,
+  };
   state.tabs.push(tab);
   await activateTabObject(tab);
   announce(`Opened new tab for ${tabLabel(loc)}.`);
@@ -167,7 +190,10 @@ export async function closeTab(tabId = state.activeTabId) {
 export async function closeOtherTabs(keepTabId = state.activeTabId) {
   ensureInitialTab();
   if (state.tabs.length <= 1) return;
-  const keep = state.tabs.find((t) => t.id === keepTabId) ?? state.tabs.find((t) => t.id === state.activeTabId) ?? state.tabs[0];
+  const keep =
+    state.tabs.find((t) => t.id === keepTabId) ??
+    state.tabs.find((t) => t.id === state.activeTabId) ??
+    state.tabs[0];
   if (!keep) return;
   saveCurrentTabSnapshot();
   if (!Array.isArray(state.closedTabs)) state.closedTabs = [];
@@ -182,7 +208,8 @@ export async function closeOtherTabs(keepTabId = state.activeTabId) {
       });
     }
   }
-  if (state.closedTabs.length > 20) state.closedTabs.splice(0, state.closedTabs.length - 20);
+  if (state.closedTabs.length > 20)
+    state.closedTabs.splice(0, state.closedTabs.length - 20);
   state.tabs = [keep];
   if (state.activeTabId !== keep.id) {
     await activateTabObject(keep);
@@ -196,7 +223,8 @@ export async function cycleTab(delta = 1) {
   ensureInitialTab();
   if (state.tabs.length <= 1) return;
   const idx = state.tabs.findIndex((t) => t.id === state.activeTabId);
-  const nextIdx = ((idx < 0 ? 0 : idx) + delta + state.tabs.length) % state.tabs.length;
+  const nextIdx =
+    ((idx < 0 ? 0 : idx) + delta + state.tabs.length) % state.tabs.length;
   await switchTab(state.tabs[nextIdx].id);
 }
 
@@ -228,7 +256,8 @@ export function renderTabs() {
   const bar = $("#tabbar");
   if (!bar) return;
   ensureInitialTab();
-  const active = state.tabs.find((t) => t.id === state.activeTabId) ?? state.tabs[0];
+  const active =
+    state.tabs.find((t) => t.id === state.activeTabId) ?? state.tabs[0];
   if (active && (state.location.kind === "trash" || state.location.path)) {
     active.location = cloneLoc(state.location);
     active.history = [...state.history];
@@ -242,57 +271,118 @@ export function renderTabs() {
     const defaultIcon = isTrash ? "🗑️" : "📁";
     const icon = isTrash
       ? placeIconFor("recycle", "Recycle Bin", undefined, defaultIcon)
-      : (activeIconPackStyle() === "default" ? defaultIcon : iconFor(label, true));
-    const item = h("div", {
-      class: `fm-tab${isCurrent ? " active" : ""}`,
-      role: "tab",
-      "aria-selected": isCurrent ? "true" : "false",
-      dataset: { tabId: String(tab.id), path: tab.location?.path || "" },
-      oncontextmenu: (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const folderPath = !isTrash ? (tab.location?.path || "") : "";
-        showMenu([
-          { label: "Switch to tab", icon: "📂", disabled: isCurrent, action: () => switchTab(tab.id) },
-          { label: "Duplicate tab", icon: "⧉", action: () => duplicateTab(tab.id) },
-          ...(folderPath ? [
-            { label: isFavorite(folderPath) ? "Remove from Favorites" : "Add to Favorites", icon: "⭐", action: () => toggleFavorite(folderPath) },
-            { label: "Copy folder path", icon: "🔗", action: () => copyPathOf([{ path: folderPath }]) },
-          ] : []),
-          { separator: true },
-          { label: "Reopen closed tab", icon: "↺", disabled: !(state.closedTabs && state.closedTabs.length > 0), action: () => reopenClosedTab() },
-          { label: "Close tab", icon: "✕", disabled: state.tabs.length <= 1, action: () => closeTab(tab.id) },
-          { label: "Close other tabs", icon: "🧹", disabled: state.tabs.length <= 1, action: () => closeOtherTabs(tab.id) },
-        ], { x: e.clientX, y: e.clientY, label: `${label} tab` });
-      },
-    },
-      h("button", {
-        type: "button",
-        class: "fm-tab-select",
-        title: tabTitle(tab.location),
-        "aria-label": `${label} tab`,
-        onclick: () => switchTab(tab.id),
-        onauxclick: (e) => {
-          if (e.button === 1 && state.tabs.length > 1) {
-            e.preventDefault();
-            closeTab(tab.id);
-          }
+      : activeIconPackStyle() === "default"
+        ? defaultIcon
+        : iconFor(label, true);
+    const item = h(
+      "div",
+      {
+        class: `fm-tab${isCurrent ? " active" : ""}`,
+        role: "tab",
+        "aria-selected": isCurrent ? "true" : "false",
+        dataset: { tabId: String(tab.id), path: tab.location?.path || "" },
+        oncontextmenu: (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const folderPath = !isTrash ? tab.location?.path || "" : "";
+          showMenu(
+            [
+              {
+                label: "Switch to tab",
+                icon: "📂",
+                disabled: isCurrent,
+                action: () => switchTab(tab.id),
+              },
+              {
+                label: "Duplicate tab",
+                icon: "⧉",
+                action: () => duplicateTab(tab.id),
+              },
+              ...(folderPath
+                ? [
+                    {
+                      label: isFavorite(folderPath)
+                        ? "Remove from Favorites"
+                        : "Add to Favorites",
+                      icon: "⭐",
+                      action: () => toggleFavorite(folderPath),
+                    },
+                    {
+                      label: "Copy folder path",
+                      icon: "🔗",
+                      action: () => copyPathOf([{ path: folderPath }]),
+                    },
+                  ]
+                : []),
+              { separator: true },
+              {
+                label: "Reopen closed tab",
+                icon: "↺",
+                disabled: !(state.closedTabs && state.closedTabs.length > 0),
+                action: () => reopenClosedTab(),
+              },
+              {
+                label: "Close tab",
+                icon: "✕",
+                disabled: state.tabs.length <= 1,
+                action: () => closeTab(tab.id),
+              },
+              {
+                label: "Close other tabs",
+                icon: "🧹",
+                disabled: state.tabs.length <= 1,
+                action: () => closeOtherTabs(tab.id),
+              },
+            ],
+            { x: e.clientX, y: e.clientY, label: `${label} tab` },
+          );
         },
       },
-        h("span", { class: "fm-tab-icon", "aria-hidden": "true", dataset: { tabIcon: isTrash ? "recycle" : "folder", tabName: label, defaultIcon } }, icon),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "fm-tab-select",
+          title: tabTitle(tab.location),
+          "aria-label": `${label} tab`,
+          onclick: () => switchTab(tab.id),
+          onauxclick: (e) => {
+            if (e.button === 1 && state.tabs.length > 1) {
+              e.preventDefault();
+              closeTab(tab.id);
+            }
+          },
+        },
+        h(
+          "span",
+          {
+            class: "fm-tab-icon",
+            "aria-hidden": "true",
+            dataset: {
+              tabIcon: isTrash ? "recycle" : "folder",
+              tabName: label,
+              defaultIcon,
+            },
+          },
+          icon,
+        ),
         h("span", { class: "fm-tab-label" }, label),
       ),
       state.tabs.length > 1
-        ? h("button", {
-            type: "button",
-            class: "fm-tab-close",
-            title: `Close the ${label} tab${hintOf("nav.closeTab")}`,
-            "aria-label": `Close ${label} tab`,
-            onclick: (e) => {
-              e.stopPropagation();
-              closeTab(tab.id);
+        ? h(
+            "button",
+            {
+              type: "button",
+              class: "fm-tab-close",
+              title: `Close the ${label} tab${hintOf("nav.closeTab")}`,
+              "aria-label": `Close ${label} tab`,
+              onclick: (e) => {
+                e.stopPropagation();
+                closeTab(tab.id);
+              },
             },
-          }, "×")
+            "×",
+          )
         : null,
     );
     if (!isTrash && tab.location?.path) {
@@ -301,20 +391,28 @@ export function renderTabs() {
     bar.append(item);
   }
   bar.append(
-    h("button", {
-      type: "button",
-      class: "fm-tab-btn fm-tab-dup",
-      title: `Duplicate the current folder tab so you can browse from here in a second tab${hintOf("nav.duplicateTab")}`,
-      "aria-label": "Duplicate current folder tab",
-      onclick: () => duplicateTab(),
-    }, "⧉"),
-    h("button", {
-      type: "button",
-      class: "fm-tab-btn fm-tab-add",
-      title: `Open a new folder tab in the current folder${hintOf("nav.newTab")}`,
-      "aria-label": "Open a new folder tab",
-      onclick: () => openNewTab(),
-    }, "+"),
+    h(
+      "button",
+      {
+        type: "button",
+        class: "fm-tab-btn fm-tab-dup",
+        title: `Duplicate the current folder tab so you can browse from here in a second tab${hintOf("nav.duplicateTab")}`,
+        "aria-label": "Duplicate current folder tab",
+        onclick: () => duplicateTab(),
+      },
+      "⧉",
+    ),
+    h(
+      "button",
+      {
+        type: "button",
+        class: "fm-tab-btn fm-tab-add",
+        title: `Open a new folder tab in the current folder${hintOf("nav.newTab")}`,
+        "aria-label": "Open a new folder tab",
+        onclick: () => openNewTab(),
+      },
+      "+",
+    ),
   );
 }
 
@@ -322,21 +420,25 @@ export function wireTabs() {
   const bar = $("#tabbar");
   bar?.addEventListener("keydown", async (e) => {
     if (e.isComposing || e.keyCode === 229) return;
-    const tabEl = e.target instanceof Element ? e.target.closest(".fm-tab") : null;
+    const tabEl =
+      e.target instanceof Element ? e.target.closest(".fm-tab") : null;
     if (!tabEl || state.tabs.length <= 1) return;
     const curId = Number(tabEl.dataset.tabId);
     const idx = state.tabs.findIndex((t) => t.id === curId);
     if (idx < 0) return;
     let nextIdx = -1;
     if (e.key === "ArrowRight") nextIdx = (idx + 1) % state.tabs.length;
-    else if (e.key === "ArrowLeft") nextIdx = (idx - 1 + state.tabs.length) % state.tabs.length;
+    else if (e.key === "ArrowLeft")
+      nextIdx = (idx - 1 + state.tabs.length) % state.tabs.length;
     else if (e.key === "Home") nextIdx = 0;
     else if (e.key === "End") nextIdx = state.tabs.length - 1;
     if (nextIdx >= 0) {
       e.preventDefault();
       const nextTab = state.tabs[nextIdx];
       await switchTab(nextTab.id);
-      bar.querySelector(`.fm-tab[data-tab-id="${nextTab.id}"] .fm-tab-select`)?.focus();
+      bar
+        .querySelector(`.fm-tab[data-tab-id="${nextTab.id}"] .fm-tab-select`)
+        ?.focus();
     }
   });
   on("view", renderTabs);

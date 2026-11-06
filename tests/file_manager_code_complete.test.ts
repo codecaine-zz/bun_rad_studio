@@ -1,15 +1,40 @@
 import { describe, expect, test } from "bun:test";
-import { acceptEdit, buildIndex, complete, createSnippetSession, expandSnippet, matchScore, newLineEdit, shouldAutoOpen, signatureAt, snippetPreview } from "../resources/file_manager/ui/codeLogic.js";
+import {
+  acceptEdit,
+  buildIndex,
+  complete,
+  createSnippetSession,
+  expandSnippet,
+  matchScore,
+  newLineEdit,
+  shouldAutoOpen,
+  signatureAt,
+  snippetPreview,
+} from "../resources/file_manager/ui/codeLogic.js";
 
 // The code-completion and snippet engines have no page in them, so they are tested on text alone.
-function items(lang: string, text: string, opts: { manual?: boolean; others?: string[]; recent?: string[] } = {}): string[] | null {
+function items(
+  lang: string,
+  text: string,
+  opts: { manual?: boolean; others?: string[]; recent?: string[] } = {},
+): string[] | null {
   const index = buildIndex(text, lang, text.length);
   const others = (opts.others ?? []).map((o) => buildIndex(o, lang));
-  const r = complete({ text, caret: text.length, lang, index, others, manual: opts.manual, recent: opts.recent });
+  const r = complete({
+    text,
+    caret: text.length,
+    lang,
+    index,
+    others,
+    manual: opts.manual,
+    recent: opts.recent,
+  });
   return r ? r.items.map((i: any) => i.label) : null;
 }
-const first = (lang: string, text: string, opts = {}) => items(lang, text, opts)?.[0];
-const has = (lang: string, text: string, label: string, opts = {}) => expect(items(lang, text, opts)).toContain(label);
+const first = (lang: string, text: string, opts = {}) =>
+  items(lang, text, opts)?.[0];
+const has = (lang: string, text: string, label: string, opts = {}) =>
+  expect(items(lang, text, opts)).toContain(label);
 
 describe("ranking", () => {
   test("a prefix beats camelCase initials, which beat letters in order, and no match is -1", () => {
@@ -26,7 +51,9 @@ describe("ranking", () => {
   test("names accepted lately come first among equals", () => {
     const text = "const alphaOne = 1;\nconst alphaTwo = 2;\nalpha";
     expect(first("javascript", text)).toBe("alphaOne");
-    expect(first("javascript", text, { recent: ["alphaTwo"] })).toBe("alphaTwo");
+    expect(first("javascript", text, { recent: ["alphaTwo"] })).toBe(
+      "alphaTwo",
+    );
   });
 
   test("the word being typed is not offered back to you as a member", () => {
@@ -41,8 +68,12 @@ describe("what is offered, by language", () => {
     has("javascript", "const s = 'x';\ns.sta", "startsWith");
     has("javascript", "const xs = [1];\nxs.fi", "filter");
     has("typescript", "function alpha() {}\nconst beta = 1;\nal", "alpha");
-    expect(first("javascript", "fooB", { others: ["function fooBarBaz() {}"] })).toBe("fooBarBaz");
-    expect(items("typescript", "class A {\n  count = 1;\n  inc() { this.co")).toEqual(["count"]);
+    expect(
+      first("javascript", "fooB", { others: ["function fooBarBaz() {}"] }),
+    ).toBe("fooBarBaz");
+    expect(
+      items("typescript", "class A {\n  count = 1;\n  inc() { this.co"),
+    ).toEqual(["count"]);
   });
 
   test("Python, Go, Rust, PHP, Ruby, Swift, Kotlin", () => {
@@ -51,7 +82,11 @@ describe("what is offered, by language", () => {
     has("python", "name = 'x'\nname.up", "upper");
     has("go", 'import "fmt"\nfunc main() {\n\tfmt.Pr', "Println");
     has("go", "func main() {\n\tstrings.Spl", "Split");
-    has("rust", 'fn main() {\n    let s = String::from("a");\n    s.to_', "to_string");
+    has(
+      "rust",
+      'fn main() {\n    let s = String::from("a");\n    s.to_',
+      "to_string",
+    );
     has("rust", "fn main() { let s = String::ne", "new");
     has("php", "<?php\n$arr = [1];\narray_ma", "array_map");
     has("ruby", "xs = [1, 2]\nxs.ma", "map");
@@ -63,28 +98,66 @@ describe("what is offered, by language", () => {
   test("Java, C#, C and C++ know their standard members and the types of locals", () => {
     has("java", "class A {\n  void f() {\n    System.", "currentTimeMillis");
     has("java", "class A {\n  void f() {\n    System.out.", "println");
-    expect(items("java", 'class A {\n  void f() {\n    String s = "x";\n    s.sub')).toEqual(["substring"]);
-    expect(items("java", "import java.util.*;\nclass A {\n  void f() {\n    List<String> xs = new ArrayList<>();\n    xs.ad")).toEqual(["add", "addAll"]);
-    expect(items("csharp", "class A {\n  void F() {\n    var l = new List<int>();\n    l.Ad")).toEqual(["Add", "AddRange"]);
-    expect(items("csharp", 'class A {\n  void F() {\n    string s = "a";\n    s.Sub')).toEqual(["Substring"]);
+    expect(
+      items("java", 'class A {\n  void f() {\n    String s = "x";\n    s.sub'),
+    ).toEqual(["substring"]);
+    expect(
+      items(
+        "java",
+        "import java.util.*;\nclass A {\n  void f() {\n    List<String> xs = new ArrayList<>();\n    xs.ad",
+      ),
+    ).toEqual(["add", "addAll"]);
+    expect(
+      items(
+        "csharp",
+        "class A {\n  void F() {\n    var l = new List<int>();\n    l.Ad",
+      ),
+    ).toEqual(["Add", "AddRange"]);
+    expect(
+      items(
+        "csharp",
+        'class A {\n  void F() {\n    string s = "a";\n    s.Sub',
+      ),
+    ).toEqual(["Substring"]);
     has("csharp", "class A { void F() { Console.Wr", "WriteLine");
-    expect(items("c", "struct P {\n  int x;\n  int y;\n};\nvoid f(struct P *p) {\n  p->")).toEqual(["x", "y"]);
+    expect(
+      items(
+        "c",
+        "struct P {\n  int x;\n  int y;\n};\nvoid f(struct P *p) {\n  p->",
+      ),
+    ).toEqual(["x", "y"]);
     has("c", "#include <stdio.h>\nint main() {\n  prin", "printf");
-    expect(items("cpp", "#include <vector>\nint main() {\n  std::vector<int> v;\n  v.pu")).toEqual(["push_back"]);
+    expect(
+      items(
+        "cpp",
+        "#include <vector>\nint main() {\n  std::vector<int> v;\n  v.pu",
+      ),
+    ).toEqual(["push_back"]);
   });
 
   test("Shell, SQL, HTML, CSS, JSON, YAML and TOML", () => {
     has("shell", "ech", "echo");
     has("sql", "SELE", "SELECT");
-    has("sql", "CREATE TABLE users (\n  id INTEGER,\n  email TEXT\n);\nSELECT users.em", "email");
+    has(
+      "sql",
+      "CREATE TABLE users (\n  id INTEGER,\n  email TEXT\n);\nSELECT users.em",
+      "email",
+    );
     expect(items("html", "<di")?.slice(0, 2)).toEqual(["div", "audio"]);
     has("html", "<a hr", "href");
-    expect(items("html", '<input type="te')?.slice(0, 2)).toEqual(["tel", "text"]);
+    expect(items("html", '<input type="te')?.slice(0, 2)).toEqual([
+      "tel",
+      "text",
+    ]);
     expect(items("html", "<div><span>x</span></")).toEqual(["div"]);
     has("css", "a { col", "color");
     has("css", "a { display: fl", "flex");
-    expect(items("css", ":root { --main: red; }\na { color: var(--ma")).toEqual(["var(--main)"]);
-    expect(items("json", '{\n  "alpha": 1,\n  "beta": {\n    "al')).toEqual(["alpha"]);
+    expect(items("css", ":root { --main: red; }\na { color: var(--ma")).toEqual(
+      ["var(--main)"],
+    );
+    expect(items("json", '{\n  "alpha": 1,\n  "beta": {\n    "al')).toEqual([
+      "alpha",
+    ]);
     has("json", '{"a": tr', "true");
     has("yaml", "name: x\nna", "name");
     has("toml", "[a]\nnam", "name");
@@ -92,7 +165,9 @@ describe("what is offered, by language", () => {
 
   test("plain text and Markdown stay quiet unless asked, and comments and strings never complete", () => {
     expect(items("plain", "hello world hel")).toBeNull();
-    expect(items("plain", "hello world hel", { manual: true })).toEqual(["hello"]);
+    expect(items("plain", "hello world hel", { manual: true })).toEqual([
+      "hello",
+    ]);
     expect(items("javascript", "// con")).toBeNull();
     expect(items("javascript", "const s = 'con")).toBeNull();
     expect(items("python", "# pri")).toBeNull();
@@ -100,7 +175,8 @@ describe("what is offered, by language", () => {
 });
 
 describe("when the list opens by itself", () => {
-  const auto = (lang: string, text: string) => shouldAutoOpen(text, text.length, lang);
+  const auto = (lang: string, text: string) =>
+    shouldAutoOpen(text, text.length, lang);
   test("after two identifier characters, and after . :: ->", () => {
     expect(auto("javascript", "co")).toBe(true);
     expect(auto("javascript", "c")).toBe(false);
@@ -120,41 +196,92 @@ describe("when the list opens by itself", () => {
 
 describe("accepting a suggestion", () => {
   const run = (lang: string, text: string, pick: (i: any) => boolean) => {
-    const r = complete({ text, caret: text.length, lang, index: buildIndex(text, lang, text.length), manual: true })!;
+    const r = complete({
+      text,
+      caret: text.length,
+      lang,
+      index: buildIndex(text, lang, text.length),
+      manual: true,
+    })!;
     return acceptEdit(r, r.items.find(pick), text, text.length);
   };
   test("a function gets () with the caret inside when it takes arguments, after it when it takes none", () => {
-    expect(run("javascript", "function foo(a, b) {}\nfo", (i) => i.label === "foo")).toMatchObject({ from: 22, to: 24, insert: "foo()", caret: 4 });
-    expect(run("javascript", "function bar() {}\nba", (i) => i.label === "bar")).toMatchObject({ insert: "bar()", caret: 5 });
+    expect(
+      run("javascript", "function foo(a, b) {}\nfo", (i) => i.label === "foo"),
+    ).toMatchObject({ from: 22, to: 24, insert: "foo()", caret: 4 });
+    expect(
+      run("javascript", "function bar() {}\nba", (i) => i.label === "bar"),
+    ).toMatchObject({ insert: "bar()", caret: 5 });
   });
   test("no () is added when one is already there, or for a plain name", () => {
     const text = "function foo(a) {}\nfo(1)";
-    const r = complete({ text, caret: 21, lang: "javascript", index: buildIndex(text, "javascript"), manual: true })!;
-    expect(acceptEdit(r, r.items.find((i: any) => i.label === "foo"), text, 21).insert).toBe("foo");
-    expect(run("javascript", "const total = 1;\ntot", (i) => i.label === "total").insert).toBe("total");
+    const r = complete({
+      text,
+      caret: 21,
+      lang: "javascript",
+      index: buildIndex(text, "javascript"),
+      manual: true,
+    })!;
+    expect(
+      acceptEdit(
+        r,
+        r.items.find((i: any) => i.label === "foo"),
+        text,
+        21,
+      ).insert,
+    ).toBe("foo");
+    expect(
+      run("javascript", "const total = 1;\ntot", (i) => i.label === "total")
+        .insert,
+    ).toBe("total");
   });
   test("a snippet is handed back as text for the snippet engine", () => {
     const text = "for";
-    const r = complete({ text, caret: 3, lang: "javascript", index: buildIndex(text, "javascript"), manual: true })!;
-    const edit = acceptEdit(r, r.items.find((i: any) => i.kind === "snippet"), text, 3);
+    const r = complete({
+      text,
+      caret: 3,
+      lang: "javascript",
+      index: buildIndex(text, "javascript"),
+      manual: true,
+    })!;
+    const edit = acceptEdit(
+      r,
+      r.items.find((i: any) => i.kind === "snippet"),
+      text,
+      3,
+    );
     expect(edit.snippet).toContain("$1");
     expect(edit.insert).toBe("");
   });
 });
 
 describe("signature help", () => {
-  const sig = (lang: string, text: string) => signatureAt(text, text.length, lang, buildIndex(text, lang));
+  const sig = (lang: string, text: string) =>
+    signatureAt(text, text.length, lang, buildIndex(text, lang));
   test("names the call, its parameters and the one being typed", () => {
-    expect(sig("javascript", "function add(a, b) {}\nadd(1, ")).toMatchObject({ name: "add", params: ["a", "b"], active: 1 });
-    expect(sig("python", "def f(x, y=2):\n  pass\nf(1,")).toMatchObject({ params: ["x", "y=2"], active: 1 });
-    expect(sig("javascript", "Math.max(")).toMatchObject({ name: "Math.max", detail: "built-in" });
+    expect(sig("javascript", "function add(a, b) {}\nadd(1, ")).toMatchObject({
+      name: "add",
+      params: ["a", "b"],
+      active: 1,
+    });
+    expect(sig("python", "def f(x, y=2):\n  pass\nf(1,")).toMatchObject({
+      params: ["x", "y=2"],
+      active: 1,
+    });
+    expect(sig("javascript", "Math.max(")).toMatchObject({
+      name: "Math.max",
+      detail: "built-in",
+    });
     expect(sig("javascript", "const x = 1;")).toBeNull();
   });
 });
 
 describe("the snippet engine", () => {
   test("expands stops, defaults, mirrors and indentation", () => {
-    const e = expandSnippet("for (let ${1:i} = 0; $1 < ${2:n}; $1++) {\n\t$0\n}", { indent: "  ", unit: "  " });
+    const e = expandSnippet(
+      "for (let ${1:i} = 0; $1 < ${2:n}; $1++) {\n\t$0\n}",
+      { indent: "  ", unit: "  " },
+    );
     expect(e.text).toBe("for (let i = 0; i < n; i++) {\n    \n  }");
     expect(e.stops.map((s) => s.n)).toEqual([1, 2, 0]);
     expect(e.stops[0]!.ranges.length).toBe(3);
@@ -186,7 +313,8 @@ describe("the snippet engine", () => {
     expect(text).toBe("a-a-b-a");
     text = "xyz-a-b-a";
     const edits = s.change(text, 0, 1, 3);
-    for (const ed of edits) text = text.slice(0, ed.from) + ed.insert + text.slice(ed.to);
+    for (const ed of edits)
+      text = text.slice(0, ed.from) + ed.insert + text.slice(ed.to);
     expect(text).toBe("xyz-xyz-b-xyz");
     expect(s.current()).toEqual({ start: 0, end: 3 });
   });
@@ -198,7 +326,9 @@ describe("the snippet engine", () => {
         count++;
         const e = expandSnippet(sn.body);
         expect(e.text.length, `${lang}:${sn.prefix}`).toBeGreaterThan(0);
-        for (const st of e.stops) for (const r of st.ranges) expect(r.end).toBeLessThanOrEqual(e.text.length);
+        for (const st of e.stops)
+          for (const r of st.ranges)
+            expect(r.end).toBeLessThanOrEqual(e.text.length);
       }
     }
     expect(count).toBeGreaterThan(150);
@@ -214,7 +344,14 @@ describe("speed", () => {
     expect(performance.now() - t).toBeLessThan(150);
     t = performance.now();
     let r: any;
-    for (let i = 0; i < 20; i++) r = complete({ text, caret: text.length, lang: "typescript", index, others: [] });
+    for (let i = 0; i < 20; i++)
+      r = complete({
+        text,
+        caret: text.length,
+        lang: "typescript",
+        index,
+        others: [],
+      });
     expect((performance.now() - t) / 20).toBeLessThan(20);
     expect(r.items[0].label).toBe("value0");
   });
@@ -229,7 +366,9 @@ describe("speed", () => {
 describe("typing helpers that completion relies on", () => {
   test("Enter on an empty line does not add a level of indentation", () => {
     const text = "fn main() {\n\tx()\n}\n";
-    expect(newLineEdit(text, text.length, text.length, "v", "\t").insert).toBe("\n");
+    expect(newLineEdit(text, text.length, text.length, "v", "\t").insert).toBe(
+      "\n",
+    );
     expect(newLineEdit("a(", 2, 2, "javascript", "  ").insert).toBe("\n  ");
     expect(newLineEdit("  a", 3, 3, "javascript", "  ").insert).toBe("\n  ");
   });

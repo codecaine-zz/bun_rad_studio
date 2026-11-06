@@ -19,7 +19,9 @@ import {
 import * as path from "node:path";
 import * as fs from "node:fs";
 
-export function createRipStudio(options: { fullscreen?: boolean; theme?: string; graveyardDir?: string } = {}): SimpleWindow {
+export function createRipStudio(
+  options: { fullscreen?: boolean; theme?: string; graveyardDir?: string } = {},
+): SimpleWindow {
   const graveyardDir = getGraveyardDir(options.graveyardDir);
 
   const win = newSimpleWindow(
@@ -31,7 +33,7 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
       theme: options.theme || getSavedTheme() || "midnight",
       autoSaveState: true,
       fullscreen: options.fullscreen ?? true,
-    }
+    },
   );
 
   let currentItems: GraveyardItem[] = [];
@@ -49,7 +51,9 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
   win.addButton("btn_refresh", "🔄 Refresh Graveyard");
   win.addButton("btn_center", "Center");
   win.endRow();
-  win.addCaption("Safe & Ergonomic Alternative to rm -- Native Bun Filesystem Quarantine & Undo Engine");
+  win.addCaption(
+    "Safe & Ergonomic Alternative to rm -- Native Bun Filesystem Quarantine & Undo Engine",
+  );
 
   // -----------------------------------------------------------------------------------------------
   // 2. Graveyard Telemetry Cards
@@ -60,7 +64,10 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
   win.addLabel("lbl_metric_size", "Total Size: 0 B");
   win.addLabel("lbl_metric_today", "Buried Today: 0");
   const homeDir = process.env.HOME || "";
-  const displayGraveyard = homeDir && graveyardDir.startsWith(homeDir) ? "~" + graveyardDir.slice(homeDir.length) : graveyardDir;
+  const displayGraveyard =
+    homeDir && graveyardDir.startsWith(homeDir)
+      ? "~" + graveyardDir.slice(homeDir.length)
+      : graveyardDir;
   win.addLabel("lbl_metric_path", `Graveyard: ${displayGraveyard}`);
   win.endRow();
   win.endGroupBox();
@@ -71,7 +78,12 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
   win.beginGroupBox("Safe Burial & Pre-Deletion Inspection");
   win.beginRow();
   win.addLabel("lbl_target_input", "Target Path:");
-  win.addInput("txt_bury_target", "", "Path to file or folder to safely bury...", { width: 320 });
+  win.addInput(
+    "txt_bury_target",
+    "",
+    "Path to file or folder to safely bury...",
+    { width: 320 },
+  );
   win.addButton("btn_browse_file", "📄 Browse File...");
   win.addButton("btn_browse_folder", "📁 Browse Folder...");
   win.addButton("btn_inspect_target", "🔍 Inspect Target");
@@ -93,11 +105,21 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
   win.addButton("btn_filter_files", "📄 Files Only");
   win.addButton("btn_filter_dirs", "📁 Directories Only");
   win.addLabel("lbl_search_filter", "Search:");
-  win.addInput("txt_search_filter", "", "Filter by name or original path...", { width: 220 });
+  win.addInput("txt_search_filter", "", "Filter by name or original path...", {
+    width: 220,
+  });
   win.addButton("btn_search_go", "Filter");
   win.endRow();
 
-  const tableHeaders = ["ID", "Name", "Type", "Size", "Buried Date", "Original Path", "Status"];
+  const tableHeaders = [
+    "ID",
+    "Name",
+    "Type",
+    "Size",
+    "Buried Date",
+    "Original Path",
+    "Status",
+  ];
   win.addTable("tbl_graveyard", tableHeaders, [], { height: 260 });
   win.endGroupBox();
 
@@ -134,19 +156,29 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
   // Table click & hidden IPC input for row selection
   const handleItemSelect = (itemId: string | number) => {
     if (!itemId) return;
-    const found = currentItems.find((it) => it.id === String(itemId) || it.name === String(itemId));
+    const found = currentItems.find(
+      (it) => it.id === String(itemId) || it.name === String(itemId),
+    );
     if (found) {
       selectedItem = found;
-      win.setText("lbl_selected_name", `Selected: [${found.type.toUpperCase()}] ${found.name}`);
+      win.setText(
+        "lbl_selected_name",
+        `Selected: [${found.type.toUpperCase()}] ${found.name}`,
+      );
       win.setText(
         "lbl_selected_stats",
-        `Size: ${found.humanSize} | Perms: ${found.permStr} | SHA-256: ${found.sha256 ? found.sha256.slice(0, 16) + "..." : "—"}`
+        `Size: ${found.humanSize} | Perms: ${found.permStr} | SHA-256: ${found.sha256 ? found.sha256.slice(0, 16) + "..." : "—"}`,
       );
-      logConsole(`[Selected] ${found.name} (Original: ${found.originalPath})`, 1);
+      logConsole(
+        `[Selected] ${found.name} (Original: ${found.originalPath})`,
+        1,
+      );
     }
   };
 
-  win.bindControlEvent("sel_item_ipc", "change", (_, itemId) => handleItemSelect(itemId));
+  win.bindControlEvent("sel_item_ipc", "change", (_, itemId) =>
+    handleItemSelect(itemId),
+  );
   win.onClick("tbl_graveyard", (_, itemId) => handleItemSelect(itemId));
 
   // Helper: Console logging
@@ -170,20 +202,23 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
       items = items.filter((it) => it.type === "directory");
     }
 
-    const search = (win.getValue("txt_search_filter") || "").toLowerCase().trim();
+    const search = (win.getValue("txt_search_filter") || "")
+      .toLowerCase()
+      .trim();
     if (search) {
       items = items.filter(
         (it) =>
           it.name.toLowerCase().includes(search) ||
           it.originalPath.toLowerCase().includes(search) ||
-          it.id.toLowerCase().includes(search)
+          it.id.toLowerCase().includes(search),
       );
     }
 
     currentItems = items;
 
     const rows = items.map((it) => {
-      const icon = it.type === "directory" ? "📁" : it.type === "symlink" ? "🔗" : "📄";
+      const icon =
+        it.type === "directory" ? "📁" : it.type === "symlink" ? "🔗" : "📄";
       const dateStr = it.buriedAt.replace("T", " ").slice(0, 19);
       return [
         it.id,
@@ -197,7 +232,10 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
     });
 
     win.setTableData("tbl_graveyard", tableHeaders, rows);
-    win.setText("lbl_status_msg", `Status: Displaying ${items.length} buried item(s)`);
+    win.setText(
+      "lbl_status_msg",
+      `Status: Displaying ${items.length} buried item(s)`,
+    );
   }
 
   // -----------------------------------------------------------------------------------------------
@@ -262,7 +300,9 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
   win.onClick("btn_browse_file", async () => {
     logConsole("[Browse File] Opening native file dialog...", 1);
     try {
-      const selected = await win.openFileDialog("Select File to Safely Bury or Inspect");
+      const selected = await win.openFileDialog(
+        "Select File to Safely Bury or Inspect",
+      );
       if (selected) {
         win.setValue("txt_bury_target", selected);
         win.toast(`Selected file: ${path.basename(selected)}`);
@@ -271,12 +311,23 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
         const item = result.items[0];
         if (item) {
           if (item.isProtected) {
-            win.setText("lbl_inspect_status", `⛔ PROTECTED: ${item.protectedReason}`);
+            win.setText(
+              "lbl_inspect_status",
+              `⛔ PROTECTED: ${item.protectedReason}`,
+            );
           } else if (!item.exists) {
-            win.setText("lbl_inspect_status", `⚠️ Missing: Target does not exist on disk`);
+            win.setText(
+              "lbl_inspect_status",
+              `⚠️ Missing: Target does not exist on disk`,
+            );
           } else {
-            const note = item.warning ? ` (${item.warning})` : " (Safe to bury)";
-            win.setText("lbl_inspect_status", `✓ [${item.type.toUpperCase()}] Size: ${item.humanSize} | Files: ${item.fileCount}${note}`);
+            const note = item.warning
+              ? ` (${item.warning})`
+              : " (Safe to bury)";
+            win.setText(
+              "lbl_inspect_status",
+              `✓ [${item.type.toUpperCase()}] Size: ${item.humanSize} | Files: ${item.fileCount}${note}`,
+            );
           }
         }
       } else {
@@ -291,7 +342,9 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
   win.onClick("btn_browse_folder", async () => {
     logConsole("[Browse Folder] Opening native folder dialog...", 1);
     try {
-      const selected = await win.openFolderDialog("Select Folder / Directory to Safely Bury or Inspect");
+      const selected = await win.openFolderDialog(
+        "Select Folder / Directory to Safely Bury or Inspect",
+      );
       if (selected) {
         win.setValue("txt_bury_target", selected);
         win.toast(`Selected directory: ${path.basename(selected)}`);
@@ -300,12 +353,23 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
         const item = result.items[0];
         if (item) {
           if (item.isProtected) {
-            win.setText("lbl_inspect_status", `⛔ PROTECTED: ${item.protectedReason}`);
+            win.setText(
+              "lbl_inspect_status",
+              `⛔ PROTECTED: ${item.protectedReason}`,
+            );
           } else if (!item.exists) {
-            win.setText("lbl_inspect_status", `⚠️ Missing: Target does not exist on disk`);
+            win.setText(
+              "lbl_inspect_status",
+              `⚠️ Missing: Target does not exist on disk`,
+            );
           } else {
-            const note = item.warning ? ` (${item.warning})` : " (Safe to bury)";
-            win.setText("lbl_inspect_status", `✓ [${item.type.toUpperCase()}] Size: ${item.humanSize} | Files: ${item.fileCount}${note}`);
+            const note = item.warning
+              ? ` (${item.warning})`
+              : " (Safe to bury)";
+            win.setText(
+              "lbl_inspect_status",
+              `✓ [${item.type.toUpperCase()}] Size: ${item.humanSize} | Files: ${item.fileCount}${note}`,
+            );
           }
         }
       } else {
@@ -334,14 +398,23 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
     }
 
     if (item.isProtected) {
-      win.setText("lbl_inspect_status", `⛔ PROTECTED: ${item.protectedReason}`);
-      logConsole(`[Inspect ⛔ PROTECTED] ${target}: ${item.protectedReason}`, 3);
+      win.setText(
+        "lbl_inspect_status",
+        `⛔ PROTECTED: ${item.protectedReason}`,
+      );
+      logConsole(
+        `[Inspect ⛔ PROTECTED] ${target}: ${item.protectedReason}`,
+        3,
+      );
       win.toast("Target is a protected system directory!");
       return;
     }
 
     if (!item.exists) {
-      win.setText("lbl_inspect_status", `⚠️ Missing: Target does not exist on disk`);
+      win.setText(
+        "lbl_inspect_status",
+        `⚠️ Missing: Target does not exist on disk`,
+      );
       logConsole(`[Inspect ⚠️ Missing] ${target} does not exist.`, 2);
       return;
     }
@@ -349,11 +422,11 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
     const note = item.warning ? ` (${item.warning})` : " (Safe to bury)";
     win.setText(
       "lbl_inspect_status",
-      `✓ [${item.type.toUpperCase()}] Size: ${item.humanSize} | Files: ${item.fileCount}${note}`
+      `✓ [${item.type.toUpperCase()}] Size: ${item.humanSize} | Files: ${item.fileCount}${note}`,
     );
     logConsole(
       `[Inspect ✓] Target: ${item.name} | Type: ${item.type} | Size: ${item.humanSize} | Files: ${item.fileCount}${note}`,
-      item.warning ? 2 : 1
+      item.warning ? 2 : 1,
     );
     win.toast(`Inspected: ${item.name} (${item.humanSize})`);
   });
@@ -371,10 +444,18 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
 
     const buriedItem = result.buriedItems[0];
     if (buriedItem) {
-      logConsole(`[Bury ✓] Successfully buried '${buriedItem.name}' (${buriedItem.humanSize}) into graveyard.`, 1);
-      win.toast(`Buried '${buriedItem.name}' safely. Undo with Unbury anytime.`);
+      logConsole(
+        `[Bury ✓] Successfully buried '${buriedItem.name}' (${buriedItem.humanSize}) into graveyard.`,
+        1,
+      );
+      win.toast(
+        `Buried '${buriedItem.name}' safely. Undo with Unbury anytime.`,
+      );
       win.setValue("txt_bury_target", "");
-      win.setText("lbl_inspect_status", `✓ Buried '${buriedItem.name}' into graveyard.`);
+      win.setText(
+        "lbl_inspect_status",
+        `✓ Buried '${buriedItem.name}' into graveyard.`,
+      );
       refreshGraveyard();
     }
 
@@ -392,12 +473,18 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
       return;
     }
 
-    logConsole(`[Unbury] Restoring '${selectedItem.name}' to ${selectedItem.originalPath}...`, 1);
+    logConsole(
+      `[Unbury] Restoring '${selectedItem.name}' to ${selectedItem.originalPath}...`,
+      1,
+    );
     const result = unburyTargetsSync([selectedItem.id], { graveyardDir });
 
     const restoredItem = result.restoredItems[0];
     if (restoredItem) {
-      logConsole(`[Unbury ✓] Restored '${restoredItem.name}' to ${restoredItem.originalPath}`, 1);
+      logConsole(
+        `[Unbury ✓] Restored '${restoredItem.name}' to ${restoredItem.originalPath}`,
+        1,
+      );
       win.toast(`Restored '${restoredItem.name}' successfully!`);
       selectedItem = null;
       win.setText("lbl_selected_name", "Selected Item: (None Selected)");
@@ -420,7 +507,10 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
     const restoredItem = result.restoredItems[0];
     const failedRestore = result.failed[0];
     if (restoredItem) {
-      logConsole(`[Unbury ✓] Restored '${restoredItem.name}' to ${restoredItem.originalPath}`, 1);
+      logConsole(
+        `[Unbury ✓] Restored '${restoredItem.name}' to ${restoredItem.originalPath}`,
+        1,
+      );
       win.toast(`Restored '${restoredItem.name}' successfully!`);
       refreshGraveyard();
     } else if (failedRestore) {
@@ -436,11 +526,20 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
       return;
     }
 
-    logConsole(`[Decompose] Permanently deleting '${selectedItem.name}' from graveyard...`, 2);
-    const result = decomposeGraveyardSync({ graveyardDir, targets: [selectedItem.id] });
+    logConsole(
+      `[Decompose] Permanently deleting '${selectedItem.name}' from graveyard...`,
+      2,
+    );
+    const result = decomposeGraveyardSync({
+      graveyardDir,
+      targets: [selectedItem.id],
+    });
 
     if (result.deletedCount > 0) {
-      logConsole(`[Decompose ✓] Permanently purged '${selectedItem.name}' (${result.freedHumanSize} freed).`, 1);
+      logConsole(
+        `[Decompose ✓] Permanently purged '${selectedItem.name}' (${result.freedHumanSize} freed).`,
+        1,
+      );
       win.toast(`Permanently deleted '${selectedItem.name}'.`);
       selectedItem = null;
       win.setText("lbl_selected_name", "Selected Item: (None Selected)");
@@ -453,7 +552,10 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
   win.onClick("btn_decompose_all", () => {
     logConsole("[Decompose All] Emptying entire graveyard...", 2);
     const result = decomposeGraveyardSync({ graveyardDir, all: true });
-    logConsole(`[Decompose All ✓] Purged ${result.deletedCount} items, freed ${result.freedHumanSize}.`, 1);
+    logConsole(
+      `[Decompose All ✓] Purged ${result.deletedCount} items, freed ${result.freedHumanSize}.`,
+      1,
+    );
     win.toast(`Graveyard emptied. Freed ${result.freedHumanSize}.`);
     selectedItem = null;
     refreshGraveyard();
@@ -477,22 +579,34 @@ export function createRipStudio(options: { fullscreen?: boolean; theme?: string;
     }
 
     if (!fs.existsSync(selectedItem.graveyardPath)) {
-      logConsole(`[Preview Error] Payload missing at ${selectedItem.graveyardPath}`, 3);
+      logConsole(
+        `[Preview Error] Payload missing at ${selectedItem.graveyardPath}`,
+        3,
+      );
       return;
     }
 
     try {
       if (selectedItem.type === "directory") {
         const files = fs.readdirSync(selectedItem.graveyardPath);
-        const preview = files.slice(0, 30).map((f) => `  ├── ${f}`).join("\n");
+        const preview = files
+          .slice(0, 30)
+          .map((f) => `  ├── ${f}`)
+          .join("\n");
         logConsole(
           `--- [Directory Contents: ${selectedItem.name}] ---\n${preview}${files.length > 30 ? "\n  └── ... (truncated)" : ""}`,
-          1
+          1,
         );
       } else {
         const content = fs.readFileSync(selectedItem.graveyardPath, "utf-8");
-        const snippet = content.length > 2500 ? content.slice(0, 2500) + "\n... (truncated)" : content;
-        logConsole(`--- [File Preview: ${selectedItem.name}] ---\n${snippet}`, 1);
+        const snippet =
+          content.length > 2500
+            ? content.slice(0, 2500) + "\n... (truncated)"
+            : content;
+        logConsole(
+          `--- [File Preview: ${selectedItem.name}] ---\n${snippet}`,
+          1,
+        );
       }
       win.toast(`Loaded preview for ${selectedItem.name}`);
     } catch (e: any) {
@@ -1076,7 +1190,9 @@ export function generateRipStudioHtml(): string {
  * HTTP Web Server for Rip Studio Pro Workstation
  * Enables interactive browser testing via browser_subagent and remote web usage.
  */
-export function startRipStudioServer(options: { port?: number; host?: string; graveyardDir?: string } = {}) {
+export function startRipStudioServer(
+  options: { port?: number; host?: string; graveyardDir?: string } = {},
+) {
   const requestedPort = options.port ?? (Number(process.env.PORT) || 0);
   const hostname = options.host ?? "127.0.0.1";
   const graveyardDir = getGraveyardDir(options.graveyardDir);
@@ -1092,7 +1208,8 @@ export function startRipStudioServer(options: { port?: number; host?: string; gr
     const url = new URL(req.url);
     const __blocked = guardLocalRequest(req);
     if (__blocked) return __blocked;
-    if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+    if (req.method === "OPTIONS")
+      return new Response(null, { headers: corsHeaders });
 
     if (url.pathname === "/" || url.pathname === "/index.html") {
       return new Response(win.generateHtml(), {
@@ -1118,7 +1235,10 @@ export function startRipStudioServer(options: { port?: number; host?: string; gr
 
     if (url.pathname === "/api/browse") {
       const type = url.searchParams.get("type") || "file";
-      const title = type === "folder" ? "Select Folder to Safely Bury or Inspect" : "Select File to Safely Bury or Inspect";
+      const title =
+        type === "folder"
+          ? "Select Folder to Safely Bury or Inspect"
+          : "Select File to Safely Bury or Inspect";
       let selectedPath: string | null = null;
       try {
         if (type === "folder") {
@@ -1130,14 +1250,20 @@ export function startRipStudioServer(options: { port?: number; host?: string; gr
         selectedPath = null;
       }
       if (!selectedPath) {
-        return Response.json({ success: false, cancelled: true }, { headers: corsHeaders });
+        return Response.json(
+          { success: false, cancelled: true },
+          { headers: corsHeaders },
+        );
       }
-      return Response.json({
-        success: true,
-        path: selectedPath,
-        name: path.basename(selectedPath),
-        type,
-      }, { headers: corsHeaders });
+      return Response.json(
+        {
+          success: true,
+          path: selectedPath,
+          name: path.basename(selectedPath),
+          type,
+        },
+        { headers: corsHeaders },
+      );
     }
 
     if (url.pathname === "/api/preview") {
@@ -1145,31 +1271,46 @@ export function startRipStudioServer(options: { port?: number; host?: string; gr
       const items = seanceGraveyard({ graveyardDir, all: true });
       const item = items.find((it) => it.id === id || it.name === id);
       if (!item) {
-        return Response.json({ error: "Item not found in graveyard" }, { status: 404, headers: corsHeaders });
+        return Response.json(
+          { error: "Item not found in graveyard" },
+          { status: 404, headers: corsHeaders },
+        );
       }
       if (!fs.existsSync(item.graveyardPath)) {
-        return Response.json({ error: `Payload missing on disk: ${item.graveyardPath}` }, { status: 404, headers: corsHeaders });
+        return Response.json(
+          { error: `Payload missing on disk: ${item.graveyardPath}` },
+          { status: 404, headers: corsHeaders },
+        );
       }
       try {
         if (item.type === "directory") {
           const files = fs.readdirSync(item.graveyardPath);
-          return Response.json({
-            type: "directory",
-            name: item.name,
-            files: files.slice(0, 50),
-            totalFiles: files.length,
-          }, { headers: corsHeaders });
+          return Response.json(
+            {
+              type: "directory",
+              name: item.name,
+              files: files.slice(0, 50),
+              totalFiles: files.length,
+            },
+            { headers: corsHeaders },
+          );
         } else {
           const content = fs.readFileSync(item.graveyardPath, "utf-8");
-          return Response.json({
-            type: "file",
-            name: item.name,
-            content: content.slice(0, 4000),
-            truncated: content.length > 4000,
-          }, { headers: corsHeaders });
+          return Response.json(
+            {
+              type: "file",
+              name: item.name,
+              content: content.slice(0, 4000),
+              truncated: content.length > 4000,
+            },
+            { headers: corsHeaders },
+          );
         }
       } catch (e: any) {
-        return Response.json({ error: e.message }, { status: 500, headers: corsHeaders });
+        return Response.json(
+          { error: e.message },
+          { status: 500, headers: corsHeaders },
+        );
       }
     }
 
@@ -1180,33 +1321,49 @@ export function startRipStudioServer(options: { port?: number; host?: string; gr
         writeClipboardSync(text);
         return Response.json({ success: true }, { headers: corsHeaders });
       } catch (e: any) {
-        return Response.json({ error: e.message }, { status: 500, headers: corsHeaders });
+        return Response.json(
+          { error: e.message },
+          { status: 500, headers: corsHeaders },
+        );
       }
     }
 
     if (url.pathname === "/api/bury" && req.method === "POST") {
       try {
         const body = (await req.json()) as { targets: string[] };
-        const buryResult = await buryTargets(body.targets || [], { graveyardDir });
+        const buryResult = await buryTargets(body.targets || [], {
+          graveyardDir,
+        });
         return Response.json(buryResult, { headers: corsHeaders });
       } catch (e: any) {
-        return Response.json({ error: e.message }, { status: 400, headers: corsHeaders });
+        return Response.json(
+          { error: e.message },
+          { status: 400, headers: corsHeaders },
+        );
       }
     }
 
     if (url.pathname === "/api/unbury" && req.method === "POST") {
       try {
         const body = (await req.json()) as { targets?: string[] };
-        const unburyResult = await unburyTargets(body.targets, { graveyardDir });
+        const unburyResult = await unburyTargets(body.targets, {
+          graveyardDir,
+        });
         return Response.json(unburyResult, { headers: corsHeaders });
       } catch (e: any) {
-        return Response.json({ error: e.message }, { status: 400, headers: corsHeaders });
+        return Response.json(
+          { error: e.message },
+          { status: 400, headers: corsHeaders },
+        );
       }
     }
 
     if (url.pathname === "/api/decompose" && req.method === "POST") {
       try {
-        const body = (await req.json()) as { targets?: string[]; all?: boolean };
+        const body = (await req.json()) as {
+          targets?: string[];
+          all?: boolean;
+        };
         const decomposeResult = await decomposeGraveyard({
           graveyardDir,
           targets: body.targets,
@@ -1214,7 +1371,10 @@ export function startRipStudioServer(options: { port?: number; host?: string; gr
         });
         return Response.json(decomposeResult, { headers: corsHeaders });
       } catch (e: any) {
-        return Response.json({ error: e.message }, { status: 400, headers: corsHeaders });
+        return Response.json(
+          { error: e.message },
+          { status: 400, headers: corsHeaders },
+        );
       }
     }
 
@@ -1241,7 +1401,9 @@ export function startRipStudioServer(options: { port?: number; host?: string; gr
   }
 
   const resolvedPort = server.port;
-  console.log(`⚡ Rip Studio Pro server online: http://${hostname}:${resolvedPort}`);
+  console.log(
+    `⚡ Rip Studio Pro server online: http://${hostname}:${resolvedPort}`,
+  );
   return {
     server,
     port: resolvedPort,
@@ -1255,7 +1417,10 @@ if (import.meta.main) {
     const specifiedPort = Number(process.env.PORT);
     let serverObj: any;
     if (specifiedPort) {
-      serverObj = startRipStudioServer({ port: specifiedPort, host: "127.0.0.1" });
+      serverObj = startRipStudioServer({
+        port: specifiedPort,
+        host: "127.0.0.1",
+      });
     } else {
       try {
         serverObj = startRipStudioServer({ port: 3899, host: "127.0.0.1" });
@@ -1264,7 +1429,9 @@ if (import.meta.main) {
       }
     }
     console.log(`READY:${serverObj.port}`);
-    console.log(`\n⚡ Rip Studio Pro server online: http://127.0.0.1:${serverObj.port}\n`);
+    console.log(
+      `\n⚡ Rip Studio Pro server online: http://127.0.0.1:${serverObj.port}\n`,
+    );
     setInterval(() => {}, 60000);
   } else {
     try {
@@ -1280,7 +1447,9 @@ if (import.meta.main) {
       }
     } catch {}
     const win = createRipStudio({ fullscreen: true });
-    console.log("⚡ Launching Rip Studio Pro (Safe & Ergonomic Alternative to rm)...");
+    console.log(
+      "⚡ Launching Rip Studio Pro (Safe & Ergonomic Alternative to rm)...",
+    );
     win.run();
   }
 }

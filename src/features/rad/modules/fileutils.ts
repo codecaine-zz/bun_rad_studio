@@ -57,7 +57,8 @@ export interface WalkOptions {
 }
 
 /** Hash algorithms supported by {@link hashFile}. */
-export type FileHashAlgorithm = "md5" | "sha1" | "sha256" | "sha512" | "blake2b256";
+export type FileHashAlgorithm =
+  "md5" | "sha1" | "sha256" | "sha512" | "blake2b256";
 
 const BYTE_UNITS = ["B", "KB", "MB", "GB", "TB", "PB", "EB"] as const;
 
@@ -73,7 +74,10 @@ export async function ensureDir(dirPath: string): Promise<void> {
   try {
     await mkdir(dirPath, { recursive: true });
   } catch (err: any) {
-    if (err.code !== "EEXIST") throw new Error(`[fileutils.ensureDir] Cannot create ${dirPath}: ${err.message}`);
+    if (err.code !== "EEXIST")
+      throw new Error(
+        `[fileutils.ensureDir] Cannot create ${dirPath}: ${err.message}`,
+      );
   }
 }
 
@@ -89,7 +93,10 @@ export async function ensureDir(dirPath: string): Promise<void> {
  * ```
  */
 export function formatBytes(bytes: number, decimals = 1): string {
-  if (!Number.isFinite(bytes)) throw new Error(`[fileutils.formatBytes] Expected finite number, got ${bytes}`);
+  if (!Number.isFinite(bytes))
+    throw new Error(
+      `[fileutils.formatBytes] Expected finite number, got ${bytes}`,
+    );
   const sign = bytes < 0 ? "-" : "";
   let size = Math.abs(bytes);
   if (size < 1024) return `${sign}${size} B`;
@@ -113,7 +120,10 @@ export function formatBytes(bytes: number, decimals = 1): string {
  */
 export function parseBytes(input: string): number {
   const m = /^\s*(-?\d+(?:\.\d+)?)\s*([kmgtpe]?)(i?b)?\s*$/i.exec(input);
-  if (!m) throw new Error(`[fileutils.parseBytes] Unrecognized size string: "${input}"`);
+  if (!m)
+    throw new Error(
+      `[fileutils.parseBytes] Unrecognized size string: "${input}"`,
+    );
   const power = m[2] ? "BKMGTPE".indexOf(m[2].toUpperCase()) : 0;
   return Math.round(Number(m[1]) * 1024 ** power);
 }
@@ -128,7 +138,9 @@ export function parseBytes(input: string): number {
  * await fileutils.fileSizeHuman("./package.json"); // e.g. "1.4 KB"
  * ```
  */
-export async function fileSizeHuman(bytesOrPath: number | string): Promise<string> {
+export async function fileSizeHuman(
+  bytesOrPath: number | string,
+): Promise<string> {
   if (typeof bytesOrPath === "number") return formatBytes(bytesOrPath);
   try {
     return formatBytes((await stat(bytesOrPath)).size);
@@ -205,7 +217,10 @@ export async function fileInfo(path: string): Promise<FileInfo | null> {
  * const css = await fileutils.readText("./theme.css", "");
  * ```
  */
-export async function readText(filePath: string, fallback?: string): Promise<string> {
+export async function readText(
+  filePath: string,
+  fallback?: string,
+): Promise<string> {
   const file = Bun.file(filePath);
   if (await file.exists()) return file.text();
   if (fallback !== undefined) return fallback;
@@ -221,7 +236,10 @@ export async function readText(filePath: string, fallback?: string): Promise<str
  * await fileutils.writeFileAtomic("./state.json", JSON.stringify(state));
  * ```
  */
-export async function writeFileAtomic(filePath: string, data: string | Uint8Array): Promise<number> {
+export async function writeFileAtomic(
+  filePath: string,
+  data: string | Uint8Array,
+): Promise<number> {
   await ensureDir(dirname(filePath));
   const tmp = `${filePath}.tmp-${process.pid}-${crypto.randomUUID().slice(0, 8)}`;
   try {
@@ -230,7 +248,9 @@ export async function writeFileAtomic(filePath: string, data: string | Uint8Arra
     return written;
   } catch (err: any) {
     await rm(tmp, { force: true });
-    throw new Error(`[fileutils.writeFileAtomic] Failed writing ${filePath}: ${err.message}`);
+    throw new Error(
+      `[fileutils.writeFileAtomic] Failed writing ${filePath}: ${err.message}`,
+    );
   }
 }
 
@@ -242,7 +262,11 @@ export async function writeFileAtomic(filePath: string, data: string | Uint8Arra
  * await fileutils.writeText("./out/report.md", "# Report", { atomic: true });
  * ```
  */
-export async function writeText(filePath: string, text: string, options: { atomic?: boolean } = {}): Promise<number> {
+export async function writeText(
+  filePath: string,
+  text: string,
+  options: { atomic?: boolean } = {},
+): Promise<number> {
   if (options.atomic) return writeFileAtomic(filePath, text);
   await ensureDir(dirname(filePath));
   return Bun.write(filePath, text);
@@ -256,7 +280,11 @@ export async function writeText(filePath: string, text: string, options: { atomi
  * await fileutils.saveJson("./config.json", { port: 8080 });
  * ```
  */
-export async function saveJson(filePath: string, data: unknown, pretty = true): Promise<void> {
+export async function saveJson(
+  filePath: string,
+  data: unknown,
+  pretty = true,
+): Promise<void> {
   const content = pretty ? JSON.stringify(data, null, 2) : JSON.stringify(data);
   await writeFileAtomic(filePath, content);
 }
@@ -279,7 +307,9 @@ export async function loadJson<T>(filePath: string, fallback?: T): Promise<T> {
     return (await file.json()) as T;
   } catch (err: any) {
     if (fallback !== undefined) return fallback;
-    throw new Error(`[fileutils] Failed to load JSON from ${filePath}: ${err.message}`);
+    throw new Error(
+      `[fileutils] Failed to load JSON from ${filePath}: ${err.message}`,
+    );
   }
 }
 
@@ -299,7 +329,9 @@ export async function readJsonl<T = unknown>(filePath: string): Promise<T[]> {
     try {
       out.push(JSON.parse(line) as T);
     } catch (err: any) {
-      throw new Error(`[fileutils.readJsonl] ${filePath}:${i + 1} invalid JSON: ${err.message}`);
+      throw new Error(
+        `[fileutils.readJsonl] ${filePath}:${i + 1} invalid JSON: ${err.message}`,
+      );
     }
   });
   return out;
@@ -312,7 +344,10 @@ export async function readJsonl<T = unknown>(filePath: string): Promise<T[]> {
  * await fileutils.writeJsonl("./events.jsonl", [{ type: "start" }, { type: "stop" }]);
  * ```
  */
-export async function writeJsonl(filePath: string, records: unknown[]): Promise<void> {
+export async function writeJsonl(
+  filePath: string,
+  records: unknown[],
+): Promise<void> {
   const body = records.map((r) => JSON.stringify(r)).join("\n");
   await writeFileAtomic(filePath, records.length ? `${body}\n` : "");
 }
@@ -324,7 +359,10 @@ export async function writeJsonl(filePath: string, records: unknown[]): Promise<
  * await fileutils.appendJsonl("./audit.jsonl", { at: Date.now(), action: "login" });
  * ```
  */
-export async function appendJsonl(filePath: string, record: unknown): Promise<void> {
+export async function appendJsonl(
+  filePath: string,
+  record: unknown,
+): Promise<void> {
   await ensureDir(dirname(filePath));
   await appendFile(filePath, `${JSON.stringify(record)}\n`, "utf-8");
 }
@@ -352,7 +390,10 @@ export async function readLines(filePath: string): Promise<string[]> {
  * await fileutils.writeLines("./todo.txt", ["buy milk", "ship v2"]);
  * ```
  */
-export async function writeLines(filePath: string, lines: string[]): Promise<void> {
+export async function writeLines(
+  filePath: string,
+  lines: string[],
+): Promise<void> {
   await ensureDir(dirname(filePath));
   await Bun.write(filePath, lines.join("\n"));
 }
@@ -365,7 +406,10 @@ export async function writeLines(filePath: string, lines: string[]): Promise<voi
  * await fileutils.appendLine("./app.log", `[${new Date().toISOString()}] boot`);
  * ```
  */
-export async function appendLine(filePath: string, line: string): Promise<void> {
+export async function appendLine(
+  filePath: string,
+  line: string,
+): Promise<void> {
   await appendLines(filePath, [line]);
 }
 
@@ -376,7 +420,10 @@ export async function appendLine(filePath: string, line: string): Promise<void> 
  * await fileutils.appendLines("./app.log", ["a", "b", "c"]);
  * ```
  */
-export async function appendLines(filePath: string, lines: string[]): Promise<void> {
+export async function appendLines(
+  filePath: string,
+  lines: string[],
+): Promise<void> {
   if (lines.length === 0) return;
   await ensureDir(dirname(filePath));
   const file = Bun.file(filePath);
@@ -454,9 +501,18 @@ export async function moveFile(src: string, dest: string): Promise<void> {
  * await fileutils.copyDir("./public", "./dist/public");
  * ```
  */
-export async function copyDir(srcDir: string, destDir: string, overwrite = true): Promise<void> {
-  if (!(await isDir(srcDir))) throw new Error(`[fileutils.copyDir] Source is not a directory: ${srcDir}`);
-  await cp(srcDir, destDir, { recursive: true, force: overwrite, errorOnExist: false });
+export async function copyDir(
+  srcDir: string,
+  destDir: string,
+  overwrite = true,
+): Promise<void> {
+  if (!(await isDir(srcDir)))
+    throw new Error(`[fileutils.copyDir] Source is not a directory: ${srcDir}`);
+  await cp(srcDir, destDir, {
+    recursive: true,
+    force: overwrite,
+    errorOnExist: false,
+  });
 }
 
 /**
@@ -497,7 +553,10 @@ export async function makeTempDir(prefix = "rad-"): Promise<string> {
  * }); // 1
  * ```
  */
-export async function withTempDir<T>(fn: (dir: string) => Promise<T> | T, prefix = "rad-"): Promise<T> {
+export async function withTempDir<T>(
+  fn: (dir: string) => Promise<T> | T,
+  prefix = "rad-",
+): Promise<T> {
   const dir = await makeTempDir(prefix);
   try {
     return await fn(dir);
@@ -515,9 +574,13 @@ export async function withTempDir<T>(fn: (dir: string) => Promise<T> | T, prefix
  * const digest = await fileutils.hashFile("./release.tar.gz", "sha512");
  * ```
  */
-export async function hashFile(filePath: string, algorithm: FileHashAlgorithm = "sha256"): Promise<string> {
+export async function hashFile(
+  filePath: string,
+  algorithm: FileHashAlgorithm = "sha256",
+): Promise<string> {
   const file = Bun.file(filePath);
-  if (!(await file.exists())) throw new Error(`[fileutils.hashFile] File not found: ${filePath}`);
+  if (!(await file.exists()))
+    throw new Error(`[fileutils.hashFile] File not found: ${filePath}`);
   const hasher = new Bun.CryptoHasher(algorithm);
   for await (const chunk of file.stream()) hasher.update(chunk);
   return hasher.digest("hex");
@@ -532,7 +595,11 @@ export async function hashFile(filePath: string, algorithm: FileHashAlgorithm = 
  * fileutils.parseCsvString('id,note\n1,"multi\nline"'); // [["id","note"],["1","multi\nline"]]
  * ```
  */
-export function parseCsvString(csvText: string, delimiter = ",", options: CsvParseOptions = {}): string[][] {
+export function parseCsvString(
+  csvText: string,
+  delimiter = ",",
+  options: CsvParseOptions = {},
+): string[][] {
   const trim = options.trim ?? true;
   const skipEmpty = options.skipEmptyLines ?? true;
   const rows: string[][] = [];
@@ -579,7 +646,8 @@ export function parseCsvString(csvText: string, delimiter = ",", options: CsvPar
 export function formatCsvString(rows: CsvCell[][], delimiter = ","): string {
   const encode = (raw: CsvCell): string => {
     const val = raw === null || raw === undefined ? "" : String(raw);
-    const needsQuotes = val.includes(delimiter) || /["\r\n]/.test(val) || val !== val.trim();
+    const needsQuotes =
+      val.includes(delimiter) || /["\r\n]/.test(val) || val !== val.trim();
     return needsQuotes ? `"${val.replace(/"/g, '""')}"` : val;
   };
   return rows.map((row) => row.map(encode).join(delimiter)).join("\n");
@@ -596,7 +664,9 @@ export function formatCsvString(rows: CsvCell[][], delimiter = ","): string {
 export function csvToObjects(rows: string[][]): Record<string, string>[] {
   const [header, ...body] = rows;
   if (!header) return [];
-  return body.map((r) => Object.fromEntries(header.map((h, i) => [h, r[i] ?? ""])));
+  return body.map((r) =>
+    Object.fromEntries(header.map((h, i) => [h, r[i] ?? ""])),
+  );
 }
 
 /**
@@ -607,7 +677,10 @@ export function csvToObjects(rows: string[][]): Record<string, string>[] {
  * fileutils.objectsToCsv([{ id: 1, name: "Ada" }]); // [["id","name"],[1,"Ada"]]
  * ```
  */
-export function objectsToCsv(records: Record<string, CsvCell>[], columns?: string[]): CsvCell[][] {
+export function objectsToCsv(
+  records: Record<string, CsvCell>[],
+  columns?: string[],
+): CsvCell[][] {
   const cols = columns ?? [...new Set(records.flatMap((r) => Object.keys(r)))];
   return [cols, ...records.map((r) => cols.map((c) => r[c]))];
 }
@@ -620,7 +693,11 @@ export function objectsToCsv(records: Record<string, CsvCell>[], columns?: strin
  * const rows = await fileutils.readCsv("./sales.csv");
  * ```
  */
-export async function readCsv(filePath: string, delimiter = ",", options: CsvParseOptions = {}): Promise<string[][]> {
+export async function readCsv(
+  filePath: string,
+  delimiter = ",",
+  options: CsvParseOptions = {},
+): Promise<string[][]> {
   const file = Bun.file(filePath);
   if (!(await file.exists())) {
     throw new Error(`[fileutils] CSV file not found: ${filePath}`);
@@ -635,7 +712,11 @@ export async function readCsv(filePath: string, delimiter = ",", options: CsvPar
  * await fileutils.writeCsv("./out.csv", [["a", "b"], [1, 2]]);
  * ```
  */
-export async function writeCsv(filePath: string, rows: CsvCell[][], delimiter = ","): Promise<void> {
+export async function writeCsv(
+  filePath: string,
+  rows: CsvCell[][],
+  delimiter = ",",
+): Promise<void> {
   await ensureDir(dirname(filePath));
   await Bun.write(filePath, formatCsvString(rows, delimiter));
 }
@@ -647,7 +728,10 @@ export async function writeCsv(filePath: string, rows: CsvCell[][], delimiter = 
  * const users = await fileutils.readCsvObjects("./users.csv"); // [{ id: "1", name: "Ada" }, ...]
  * ```
  */
-export async function readCsvObjects(filePath: string, delimiter = ","): Promise<Record<string, string>[]> {
+export async function readCsvObjects(
+  filePath: string,
+  delimiter = ",",
+): Promise<Record<string, string>[]> {
   return csvToObjects(await readCsv(filePath, delimiter));
 }
 
@@ -662,7 +746,7 @@ export async function writeCsvObjects(
   filePath: string,
   records: Record<string, CsvCell>[],
   columns?: string[],
-  delimiter = ","
+  delimiter = ",",
 ): Promise<void> {
   await writeCsv(filePath, objectsToCsv(records, columns), delimiter);
 }
@@ -679,7 +763,7 @@ export async function writeCsvObjects(
 export async function walkFiles(
   dirPath: string,
   filter?: (path: string) => boolean,
-  options: WalkOptions = {}
+  options: WalkOptions = {},
 ): Promise<string[]> {
   return walkDepth(dirPath, filter, options, 0);
 }
@@ -688,7 +772,7 @@ async function walkDepth(
   dirPath: string,
   filter: ((path: string) => boolean) | undefined,
   options: WalkOptions,
-  depth: number
+  depth: number,
 ): Promise<string[]> {
   const results: string[] = [];
   let entries;
@@ -701,9 +785,12 @@ async function walkDepth(
     const fullPath = join(dirPath, entry.name);
     if (entry.isDirectory()) {
       if (options.skipDirs?.includes(entry.name)) continue;
-      if (options.includeDirs && (!filter || filter(fullPath))) results.push(fullPath);
+      if (options.includeDirs && (!filter || filter(fullPath)))
+        results.push(fullPath);
       if (options.maxDepth === undefined || depth < options.maxDepth) {
-        results.push(...(await walkDepth(fullPath, filter, options, depth + 1)));
+        results.push(
+          ...(await walkDepth(fullPath, filter, options, depth + 1)),
+        );
       }
     } else if (entry.isFile() && (!filter || filter(fullPath))) {
       results.push(fullPath);
@@ -721,7 +808,14 @@ async function walkDepth(
  */
 export async function dirSize(dirPath: string): Promise<number> {
   const files = await walkFiles(dirPath);
-  const sizes = await Promise.all(files.map((f) => stat(f).then((s) => s.size, () => 0)));
+  const sizes = await Promise.all(
+    files.map((f) =>
+      stat(f).then(
+        (s) => s.size,
+        () => 0,
+      ),
+    ),
+  );
   return sizes.reduce((a, b) => a + b, 0);
 }
 

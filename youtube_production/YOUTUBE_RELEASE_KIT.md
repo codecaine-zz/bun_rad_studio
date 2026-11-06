@@ -1,6 +1,7 @@
 # 🎬 Codecaine File Manager — Official YouTube Release Kit
 
 ## 🏆 Top 5 High-CTR YouTube Video Titles
+
 1. **The File Manager That Replaced 10 Apps (Cross-Platform & 100% Private)**
 2. **Codecaine File Manager: The Ultimate Developer Workstation (Built on Bun 1.4.2)**
 3. **Why This Free Open-Source File Manager Destroys Default Explorer & Finder**
@@ -19,6 +20,7 @@ Discover **Codecaine File Manager**, the all-in-one developer workstation and fi
 ---
 
 ### ⏱️ Video Chapters & Timestamps
+
 0:00 INTRODUCTION: The Ultimate Developer Workstation
 0:21 GETTING STARTED: First-Time Install: Windows & *Nix
 0:57 CHAPTER 01: Home Dashboard & Quick Launch
@@ -42,6 +44,7 @@ Discover **Codecaine File Manager**, the all-in-one developer workstation and fi
 ---
 
 ### ⚡ Key Features Highlighted
+
 - 🚀 **Built on Bun v1.4.2**: Blazing fast runtime with instant startup and zero lag across macOS, Windows, and Linux.
 - 🪟 **First-Time Windows Setup**: Simple `bun install` with automatic Microsoft Edge WebView2 runtime detection and patching.
 - 🗂️ **Dual-Pane Productivity**: Side-by-side folder navigation with F5/F6 copy/move and collision protection.
@@ -59,6 +62,7 @@ Discover **Codecaine File Manager**, the all-in-one developer workstation and fi
 ### 🚀 Quick Start / Installation
 
 #### Windows 10/11:
+
 ```powershell
 # 1. Clone repository
 git clone https://github.com/codecaine-zz/bun_rad_studio.git
@@ -74,6 +78,7 @@ bun run app:files
 ```
 
 #### macOS & Linux:
+
 ```bash
 # 1. Clone repository
 git clone https://github.com/codecaine-zz/bun_rad_studio.git
@@ -87,6 +92,7 @@ bun run app:files
 ---
 
 ### 🏷️ YouTube Search Tags & Keywords
+
 ```
 codecaine file manager, bun 1.4.2, bun rad studio, developer workstation, file manager macos, file manager windows, dual pane file manager, open source file manager, bun runtime, sqlite studio, postgres studio, developer productivity tools, privacy file manager, ffmpeg batch converter, argon2id vault, tokei lines of code, subfinder recon, linux file manager, windows file manager
 ```
@@ -94,7 +100,9 @@ codecaine file manager, bun 1.4.2, bun rad studio, developer workstation, file m
 ---
 
 ### 🎥 ScreenFlow Production Stems & Assets
+
 If you want to edit or customize this video further inside **ScreenFlow**:
+
 - **Master Render**: `youtube_production/codecaine_file_manager_youtube_demo.mp4`
 - **High-Res Thumbnail**: `youtube_production/youtube_thumbnail.png` (1280x720)
 - **Live Screen Recordings** (real mouse/keyboard action, no HUD): `youtube_production/live/live_*.mp4`

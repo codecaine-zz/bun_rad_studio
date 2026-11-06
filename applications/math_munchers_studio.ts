@@ -1,7 +1,7 @@
 import { injectGameMasterFx } from "../src/shared/gameMasterFx";
 /**
  * 👾 Codecaine CyberMunch Math Deluxe — Cyber Legends Arcade Studio
- * 
+ *
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
  * - Authentic procedural math matrix grid (Multiples, Factors, Primes, Equalities, Inequalities)
@@ -80,7 +80,9 @@ export function generateMathMunchersStudioHtml(): string {
   const assetsDir = getMathMunchersAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Codecaine CyberMunch Math Deluxe</h1>";
+  let html = existsSync(indexPath)
+    ? readFileSync(indexPath, "utf8")
+    : "<h1>Codecaine CyberMunch Math Deluxe</h1>";
 
   const storagePolyfill = `
   <script>
@@ -149,9 +151,17 @@ ${getWindowShortcutsScript()}
 /**
  * Starts the Bun.serve server hosting Math Munchers.
  */
-export function startMathMunchersServer(options: MathMunchersServerOptions = {}) {
+export function startMathMunchersServer(
+  options: MathMunchersServerOptions = {},
+) {
   return startStaticStudioServer(
-    { app: "math_munchers_studio", name: "Codecaine CyberMunch Math Deluxe — Cyber Legends Arcade", version: "1.0.0", assetsDir: getMathMunchersAssetsDir(), generateHtml: generateMathMunchersStudioHtml },
+    {
+      app: "math_munchers_studio",
+      name: "Codecaine CyberMunch Math Deluxe — Cyber Legends Arcade",
+      version: "1.0.0",
+      assetsDir: getMathMunchersAssetsDir(),
+      generateHtml: generateMathMunchersStudioHtml,
+    },
     options,
   );
 }
@@ -159,7 +169,9 @@ export function startMathMunchersServer(options: MathMunchersServerOptions = {})
 /**
  * Creates the complete native desktop instance of CyberMunch Math Deluxe.
  */
-export function createMathMunchersStudio(options: MathMunchersStudioOptions = {}): MathMunchersStudioInstance {
+export function createMathMunchersStudio(
+  options: MathMunchersStudioOptions = {},
+): MathMunchersStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1240);
@@ -191,7 +203,8 @@ export function createMathMunchersStudio(options: MathMunchersStudioOptions = {}
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -211,11 +224,15 @@ export function createMathMunchersStudio(options: MathMunchersStudioOptions = {}
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -225,16 +242,24 @@ export function createMathMunchersStudio(options: MathMunchersStudioOptions = {}
         });
 
         webview.setHTML(html);
-        console.log(`⚡ Desktop window open (Fullscreen: ${fullscreen ? 'Enabled' : 'Disabled'}).`);
+        console.log(
+          `⚡ Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`,
+        );
 
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -251,10 +276,13 @@ if (process.argv.includes("--server")) {
   const port = parseInt(process.env.PORT || "0", 10);
   const srv = startMathMunchersServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`⚡ Math Munchers Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `⚡ Math Munchers Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
+  const fullscreen =
+    !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
   const app = createMathMunchersStudio({ fullscreen });
   await app.run();
   process.exit(0);

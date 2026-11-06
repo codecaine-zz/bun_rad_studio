@@ -58,7 +58,9 @@ export function set(key: string, value: string | number | boolean): void {
 export function requireEnv(key: string): string {
   const val = process.env[key];
   if (val === undefined || val.trim() === "") {
-    throw new Error(`[envutils] Required environment variable "${key}" is not set`);
+    throw new Error(
+      `[envutils] Required environment variable "${key}" is not set`,
+    );
   }
   return val;
 }
@@ -77,7 +79,10 @@ export function parseEnvString(content: string): Record<string, string> {
     if (eqIdx === -1) continue;
     const key = trimmed.slice(0, eqIdx).trim();
     let val = trimmed.slice(eqIdx + 1).trim();
-    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+    if (
+      (val.startsWith('"') && val.endsWith('"')) ||
+      (val.startsWith("'") && val.endsWith("'"))
+    ) {
       val = val.slice(1, -1);
     }
     process.env[key] = val;
@@ -90,7 +95,9 @@ export function parseEnvString(content: string): Record<string, string> {
 /**
  * Loads `.env` variables from a file path (if it exists on disk) or directly from a raw `.env` string.
  */
-export async function loadEnv(contentOrPath: string): Promise<Record<string, string>> {
+export async function loadEnv(
+  contentOrPath: string,
+): Promise<Record<string, string>> {
   const file = Bun.file(contentOrPath);
   if (await file.exists()) {
     const text = await file.text();
@@ -103,7 +110,10 @@ export async function loadEnv(contentOrPath: string): Promise<Record<string, str
 /**
  * Expands `$VAR` and `${VAR}` placeholders in `template` using `customEnv` or `process.env`.
  */
-export function expandVars(template: string, customEnv?: Record<string, string>): string {
+export function expandVars(
+  template: string,
+  customEnv?: Record<string, string>,
+): string {
   const envSource = customEnv || (process.env as Record<string, string>);
   return template.replace(/\$\{?([A-Za-z0-9_]+)\}?/g, (match, varName) => {
     return envSource[varName] !== undefined ? envSource[varName] : match;

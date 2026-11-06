@@ -13,12 +13,22 @@ import * as nodePath from "path";
 import type { FmContext } from "./fmCore";
 import { FmError } from "./fmPaths";
 import { detectManagers, resolveTool, toolStatus } from "./fmToolDetect";
-import { HOMEBREW_INSTALL_COMMAND, TOOLS, TOOL_IDS, type ToolId } from "./fmTools";
+import {
+  HOMEBREW_INSTALL_COMMAND,
+  TOOLS,
+  TOOL_IDS,
+  type ToolId,
+} from "./fmTools";
 
 /** Supported POSIX package managers for the interactive terminal helper-tool setup script. */
 export type SetupManager = "brew" | "apt" | "dnf" | "pacman";
 const PACKAGE_NAME = /^[A-Za-z0-9][A-Za-z0-9@+._/-]*$/;
-const NAMES: Record<SetupManager, string> = { brew: "Homebrew", apt: "apt", dnf: "dnf", pacman: "pacman" };
+const NAMES: Record<SetupManager, string> = {
+  brew: "Homebrew",
+  apt: "apt",
+  dnf: "dnf",
+  pacman: "pacman",
+};
 
 /** Available package manager option offered for one-click terminal setup on macOS or Linux. */
 export interface SetupChoice {
@@ -65,11 +75,19 @@ export interface SetupPlan {
 }
 
 /** Quotes text for a POSIX shell: inside single quotes, with each single quote written as '\'' . */
-export const shellQuote = (s: string): string => `'${s.replaceAll("'", `'\\''`)}'`;
+export const shellQuote = (s: string): string =>
+  `'${s.replaceAll("'", `'\\''`)}'`;
 
-const hasPackage = (ctx: FmContext, manager: SetupManager, id: ToolId): boolean => {
+const hasPackage = (
+  ctx: FmContext,
+  manager: SetupManager,
+  id: ToolId,
+): boolean => {
   const def = TOOLS[id];
-  return def[manager].split(" ").some(Boolean) && !(manager === "brew" && def.brewCask && ctx.platform !== "darwin");
+  return (
+    def[manager].split(" ").some(Boolean) &&
+    !(manager === "brew" && def.brewCask && ctx.platform !== "darwin")
+  );
 };
 
 /** The package managers this computer can use for setup, with what each one involves. */
@@ -77,8 +95,21 @@ export function setupChoices(ctx: FmContext): SetupChoice[] {
   if (ctx.platform !== "darwin" && ctx.platform !== "linux") return [];
   const found = detectManagers(ctx);
   const out: SetupChoice[] = [];
-  if (ctx.platform === "linux") for (const id of ["apt", "dnf", "pacman"] as const) if (found[id]) out.push({ id, name: NAMES[id], needsPassword: true, installsItself: false });
-  out.push({ id: "brew", name: NAMES.brew, needsPassword: !found.brew, installsItself: !found.brew });
+  if (ctx.platform === "linux")
+    for (const id of ["apt", "dnf", "pacman"] as const)
+      if (found[id])
+        out.push({
+          id,
+          name: NAMES[id],
+          needsPassword: true,
+          installsItself: false,
+        });
+  out.push({
+    id: "brew",
+    name: NAMES.brew,
+    needsPassword: !found.brew,
+    installsItself: !found.brew,
+  });
   return out;
 }
 
@@ -87,15 +118,34 @@ export async function setupOptions(ctx: FmContext): Promise<SetupOptions> {
   const choices = setupChoices(ctx);
   const status = await toolStatus(ctx);
   const tools: SetupTool[] = status.tools.map((t) => ({
-    id: t.id, name: t.name, what: t.what, size: TOOLS[t.id].size ?? "", installed: t.installed, optional: t.optional, autoInstall: t.plan.auto,
-    packages: Object.fromEntries(choices.map((c) => [c.id, hasPackage(ctx, c.id, t.id)])),
+    id: t.id,
+    name: t.name,
+    what: t.what,
+    size: TOOLS[t.id].size ?? "",
+    installed: t.installed,
+    optional: t.optional,
+    autoInstall: t.plan.auto,
+    packages: Object.fromEntries(
+      choices.map((c) => [c.id, hasPackage(ctx, c.id, t.id)]),
+    ),
   }));
-  return { platform: ctx.platform, choices, defaultManager: choices[0]?.id ?? null, tools };
+  return {
+    platform: ctx.platform,
+    choices,
+    defaultManager: choices[0]?.id ?? null,
+    tools,
+  };
 }
 
 /** The script text. Each item is a display name and its package names (validated by the caller). */
-export function setupScript(manager: SetupManager, items: Array<{ name: string; packages: string[]; cask?: boolean }>): string {
-  const lines = items.map((i) => `${i.cask ? "try_cask" : "try"} ${shellQuote(i.name)} ${i.packages.map(shellQuote).join(" ")}`);
+export function setupScript(
+  manager: SetupManager,
+  items: Array<{ name: string; packages: string[]; cask?: boolean }>,
+): string {
+  const lines = items.map(
+    (i) =>
+      `${i.cask ? "try_cask" : "try"} ${shellQuote(i.name)} ${i.packages.map(shellQuote).join(" ")}`,
+  );
   const head = `#!/bin/bash
 # Made by Codecaine File Manager. It installs the helper programs the File Manager uses, with ${NAMES[manager]}.
 # Every step is written out below, and nothing here changes anything else on your computer${manager === "brew" ? " except adding Homebrew to your shell settings" : ""}.
@@ -168,19 +218,54 @@ else
   echo "Go back to Codecaine File Manager and press Check again to see what is still missing."
 fi
 `;
-  return head + (manager === "brew" ? brew : system[manager]) + lines.join("\n") + "\n" + tail;
+  return (
+    head +
+    (manager === "brew" ? brew : system[manager]) +
+    lines.join("\n") +
+    "\n" +
+    tail
+  );
 }
 
 /** Works out what to install, writes the script into the app's data folder and says what to type to run it. */
-export async function planSetup(ctx: FmContext, input: { tools?: unknown; manager?: unknown }): Promise<SetupPlan> {
+export async function planSetup(
+  ctx: FmContext,
+  input: { tools?: unknown; manager?: unknown },
+): Promise<SetupPlan> {
   const choices = setupChoices(ctx);
-  if (!choices.length) throw new FmError("NOT_SUPPORTED", "This one-click setup is for macOS and Linux. On Windows the install buttons use winget or Scoop.");
-  const choice = input.manager === undefined || input.manager === null || input.manager === "" ? choices[0]! : choices.find((c) => c.id === input.manager);
-  if (!choice) throw new FmError("BAD_REQUEST", `That package manager isn't available here. Choose one of: ${choices.map((c) => c.name).join(", ")}.`);
+  if (!choices.length)
+    throw new FmError(
+      "NOT_SUPPORTED",
+      "This one-click setup is for macOS and Linux. On Windows the install buttons use winget or Scoop.",
+    );
+  const choice =
+    input.manager === undefined ||
+    input.manager === null ||
+    input.manager === ""
+      ? choices[0]!
+      : choices.find((c) => c.id === input.manager);
+  if (!choice)
+    throw new FmError(
+      "BAD_REQUEST",
+      `That package manager isn't available here. Choose one of: ${choices.map((c) => c.name).join(", ")}.`,
+    );
   const manager = choice.id;
-  const defaultTools = ctx.platform === "darwin" && process.arch === "arm64" ? TOOL_IDS : TOOL_IDS.filter((id) => id !== "ollama");
-  const asked = input.tools === undefined || input.tools === "all" ? defaultTools : (Array.isArray(input.tools) ? input.tools : [input.tools]).filter((t): t is ToolId => typeof t === "string" && (TOOL_IDS as string[]).includes(t));
-  if (!asked.length) throw new FmError("UNKNOWN_TOOL", "Choose at least one program to install.");
+  const defaultTools =
+    ctx.platform === "darwin" && process.arch === "arm64"
+      ? TOOL_IDS
+      : TOOL_IDS.filter((id) => id !== "ollama");
+  const asked =
+    input.tools === undefined || input.tools === "all"
+      ? defaultTools
+      : (Array.isArray(input.tools) ? input.tools : [input.tools]).filter(
+          (t): t is ToolId =>
+            typeof t === "string" && (TOOL_IDS as string[]).includes(t),
+        );
+  if (!asked.length)
+    throw new FmError(
+      "UNKNOWN_TOOL",
+      "Choose at least one program to install.",
+    );
   const items: Array<{ name: string; packages: string[]; cask?: boolean }> = [];
   const tools: SetupPlan["tools"] = [];
   const skipped: SetupPlan["skipped"] = [];
@@ -188,20 +273,49 @@ export async function planSetup(ctx: FmContext, input: { tools?: unknown; manage
     const def = TOOLS[id];
     if (resolveTool(ctx, id)) continue;
     if (!hasPackage(ctx, manager, id)) {
-      skipped.push({ id, name: def.name, why: `${NAMES[manager]} has no package for it. Download it from ${def.website}` });
+      skipped.push({
+        id,
+        name: def.name,
+        why: `${NAMES[manager]} has no package for it. Download it from ${def.website}`,
+      });
       continue;
     }
     const packages = def[manager].split(" ").filter(Boolean);
-    for (const pkg of packages) if (!PACKAGE_NAME.test(pkg)) throw new FmError("BAD_REQUEST", `"${pkg}" isn't a package name this app will pass to ${NAMES[manager]}.`);
-    items.push({ name: def.name, packages, cask: manager === "brew" && !!def.brewCask });
+    for (const pkg of packages)
+      if (!PACKAGE_NAME.test(pkg))
+        throw new FmError(
+          "BAD_REQUEST",
+          `"${pkg}" isn't a package name this app will pass to ${NAMES[manager]}.`,
+        );
+    items.push({
+      name: def.name,
+      packages,
+      cask: manager === "brew" && !!def.brewCask,
+    });
     tools.push({ id, name: def.name, size: def.size ?? "" });
   }
-  if (!items.length) throw new FmError("ALREADY_INSTALLED", skipped.length ? `Nothing to install with ${NAMES[manager]}: ${skipped.map((s) => s.name).join(", ")} can't be installed this way.` : "Every program you chose is already installed.");
+  if (!items.length)
+    throw new FmError(
+      "ALREADY_INSTALLED",
+      skipped.length
+        ? `Nothing to install with ${NAMES[manager]}: ${skipped.map((s) => s.name).join(", ")} can't be installed this way.`
+        : "Every program you chose is already installed.",
+    );
   const script = setupScript(manager, items);
   const path = nodePath.join(ctx.dataDir, "install_helper_programs.sh");
   await fsp.mkdir(ctx.dataDir, { recursive: true });
   const tmp = `${path}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`;
   await fsp.writeFile(tmp, script, { mode: 0o700 });
   await fsp.rename(tmp, path);
-  return { path, command: `bash ${shellQuote(path)}`, script, manager, managerName: choice.name, needsPassword: choice.needsPassword, installsHomebrew: choice.installsItself, tools, skipped };
+  return {
+    path,
+    command: `bash ${shellQuote(path)}`,
+    script,
+    manager,
+    managerName: choice.name,
+    needsPassword: choice.needsPassword,
+    installsHomebrew: choice.installsItself,
+    tools,
+    skipped,
+  };
 }

@@ -4,7 +4,15 @@
  */
 import type { SourceColumn } from "./reader";
 import type { ColumnRule, Step, TargetColumn, TargetTable } from "./types";
-import { detectDateOrder, formatDate, formatDateTime, parseBoolean, parseDate, parseNumber, titleCase } from "./values";
+import {
+  detectDateOrder,
+  formatDate,
+  formatDateTime,
+  parseBoolean,
+  parseDate,
+  parseNumber,
+  titleCase,
+} from "./values";
 
 /** Applies a single transformation `Step` to a cell string or `null` value. */
 export function applyStep(value: string | null, step: Step): string | null {
@@ -73,23 +81,37 @@ export const STEP_LABELS: Record<Step["t"], string> = {
   default: "If empty, use a default value",
 };
 
-const isStepType = (t: unknown): t is Step["t"] => typeof t === "string" && t in STEP_LABELS;
+const isStepType = (t: unknown): t is Step["t"] =>
+  typeof t === "string" && t in STEP_LABELS;
 
 /** Checks a mapping that came from the page and returns a clean copy (or throws a plain message). */
-export function sanitizeRules(input: unknown, sourceNames: string[], targetNames: string[] | null): ColumnRule[] {
+export function sanitizeRules(
+  input: unknown,
+  sourceNames: string[],
+  targetNames: string[] | null,
+): ColumnRule[] {
   if (!Array.isArray(input)) throw new Error("The mapping must be a list.");
   const seenTargets = new Set<string>();
   const out: ColumnRule[] = [];
   const known = new Set(sourceNames);
   for (const raw of input as any[]) {
-    if (!raw || typeof raw !== "object" || typeof raw.target !== "string" || !raw.target) throw new Error("Each mapped column needs a target name.");
-    if (targetNames && !targetNames.includes(raw.target)) throw new Error(`The table has no column called “${raw.target}”.`);
-    if (seenTargets.has(raw.target)) throw new Error(`Column “${raw.target}” is mapped twice.`);
+    if (
+      !raw ||
+      typeof raw !== "object" ||
+      typeof raw.target !== "string" ||
+      !raw.target
+    )
+      throw new Error("Each mapped column needs a target name.");
+    if (targetNames && !targetNames.includes(raw.target))
+      throw new Error(`The table has no column called “${raw.target}”.`);
+    if (seenTargets.has(raw.target))
+      throw new Error(`Column “${raw.target}” is mapped twice.`);
     seenTargets.add(raw.target);
     const s = raw.source ?? { kind: "skip" };
     let source: ColumnRule["source"];
     const needCol = (c: unknown): string => {
-      if (typeof c !== "string" || !known.has(c)) throw new Error(`The file has no column called “${String(c)}”.`);
+      if (typeof c !== "string" || !known.has(c))
+        throw new Error(`The file has no column called “${String(c)}”.`);
       return c;
     };
     switch (s.kind) {
@@ -97,14 +119,34 @@ export function sanitizeRules(input: unknown, sourceNames: string[], targetNames
         source = { kind: "column", column: needCol(s.column) };
         break;
       case "concat":
-        if (!Array.isArray(s.columns) || s.columns.length < 1 || s.columns.length > 20) throw new Error("Joining needs between 1 and 20 columns.");
-        source = { kind: "concat", columns: s.columns.map(needCol), separator: String(s.separator ?? "").slice(0, 20) };
+        if (
+          !Array.isArray(s.columns) ||
+          s.columns.length < 1 ||
+          s.columns.length > 20
+        )
+          throw new Error("Joining needs between 1 and 20 columns.");
+        source = {
+          kind: "concat",
+          columns: s.columns.map(needCol),
+          separator: String(s.separator ?? "").slice(0, 20),
+        };
         break;
       case "split":
-        source = { kind: "split", column: needCol(s.column), separator: String(s.separator ?? " ").slice(0, 20) || " ", part: Math.max(1, Math.min(50, Math.trunc(Number(s.part) || 1))) };
+        source = {
+          kind: "split",
+          column: needCol(s.column),
+          separator: String(s.separator ?? " ").slice(0, 20) || " ",
+          part: Math.max(1, Math.min(50, Math.trunc(Number(s.part) || 1))),
+        };
         break;
       case "constant":
-        source = { kind: "constant", value: s.value === null || s.value === undefined ? null : String(s.value).slice(0, 10000) };
+        source = {
+          kind: "constant",
+          value:
+            s.value === null || s.value === undefined
+              ? null
+              : String(s.value).slice(0, 10000),
+        };
         break;
       default:
         source = { kind: "skip" };
@@ -112,20 +154,34 @@ export function sanitizeRules(input: unknown, sourceNames: string[], targetNames
     const steps: Step[] = [];
     for (const st of Array.isArray(raw.steps) ? raw.steps : []) {
       if (!st || !isStepType(st.t)) throw new Error("Unknown clean-up step.");
-      const order = ["YMD", "DMY", "MDY", "auto"].includes(st.order) ? st.order : "auto";
+      const order = ["YMD", "DMY", "MDY", "auto"].includes(st.order)
+        ? st.order
+        : "auto";
       switch (st.t) {
         case "date":
         case "datetime":
           steps.push({ t: st.t, order });
           break;
         case "number":
-          steps.push({ t: "number", locale: ["us", "eu", "auto"].includes(st.locale) ? st.locale : "auto" });
+          steps.push({
+            t: "number",
+            locale: ["us", "eu", "auto"].includes(st.locale)
+              ? st.locale
+              : "auto",
+          });
           break;
         case "replace":
-          steps.push({ t: "replace", find: String(st.find ?? "").slice(0, 200), with: String(st.with ?? "").slice(0, 200) });
+          steps.push({
+            t: "replace",
+            find: String(st.find ?? "").slice(0, 200),
+            with: String(st.with ?? "").slice(0, 200),
+          });
           break;
         case "default":
-          steps.push({ t: "default", value: String(st.value ?? "").slice(0, 10000) });
+          steps.push({
+            t: "default",
+            value: String(st.value ?? "").slice(0, 10000),
+          });
           break;
         default:
           steps.push({ t: st.t } as Step);
@@ -140,13 +196,19 @@ export function sanitizeRules(input: unknown, sourceNames: string[], targetNames
 export interface RowBuilder {
   /** Staged values, in the order of `rules` that are not skipped. */
   columns: string[];
-  build(cells: (string | null)[]): { values: (string | null)[]; changed: boolean };
+  build(cells: (string | null)[]): {
+    values: (string | null)[];
+    changed: boolean;
+  };
   /** Source columns that no rule uses (they are kept only in the raw copy). */
   unusedSource: string[];
 }
 
 /** Compiles an array of `ColumnRule` mappings against source column names into a fast `RowBuilder`. */
-export function compileRules(rules: ColumnRule[], sourceNames: string[]): RowBuilder {
+export function compileRules(
+  rules: ColumnRule[],
+  sourceNames: string[],
+): RowBuilder {
   const idx = new Map(sourceNames.map((n, i) => [n, i]));
   const active = rules.filter((r) => r.source.kind !== "skip");
   const used = new Set<string>();
@@ -161,7 +223,9 @@ export function compileRules(rules: ColumnRule[], sourceNames: string[]): RowBui
       case "concat": {
         const is = s.columns.map((c) => (used.add(c), idx.get(c)!));
         return (c: (string | null)[]) => {
-          const parts = is.map((i) => c[i] ?? null).filter((v): v is string => v !== null && v.trim() !== "");
+          const parts = is
+            .map((i) => c[i] ?? null)
+            .filter((v): v is string => v !== null && v.trim() !== "");
           return parts.length ? parts.join(s.separator) : null;
         };
       }
@@ -211,8 +275,23 @@ const SYNONYMS: string[][] = [
   ["amt", "amount", "total", "sum"],
   ["addr", "address", "street", "streetaddress", "address1"],
   ["company", "organization", "organization", "org", "employer", "business"],
-  ["created", "createdat", "createddate", "creationdate", "datecreated", "createdon"],
-  ["updated", "updatedat", "modifiedat", "modified", "lastmodified", "datemodified", "updatedon"],
+  [
+    "created",
+    "createdat",
+    "createddate",
+    "creationdate",
+    "datecreated",
+    "createdon",
+  ],
+  [
+    "updated",
+    "updatedat",
+    "modifiedat",
+    "modified",
+    "lastmodified",
+    "datemodified",
+    "updatedon",
+  ],
   ["state", "province", "region"],
   ["country", "nation", "countryname"],
   ["price", "unitprice", "cost", "rate"],
@@ -233,7 +312,8 @@ export function normalizeName(name: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "");
   if (n.length > 4 && n.endsWith("ies")) n = n.slice(0, -3) + "y";
-  else if (n.length > 3 && n.endsWith("s") && !n.endsWith("ss")) n = n.slice(0, -1);
+  else if (n.length > 3 && n.endsWith("s") && !n.endsWith("ss"))
+    n = n.slice(0, -1);
   return n;
 }
 
@@ -244,7 +324,8 @@ function levenshtein(a: string, b: string): number {
     dp[0] = i;
     for (let j = 1; j <= b.length; j++) {
       const tmp = dp[j]!;
-      dp[j] = a[i - 1] === b[j - 1] ? prev : 1 + Math.min(prev, dp[j]!, dp[j - 1]!);
+      dp[j] =
+        a[i - 1] === b[j - 1] ? prev : 1 + Math.min(prev, dp[j]!, dp[j - 1]!);
       prev = tmp;
     }
   }
@@ -262,22 +343,35 @@ export interface MatchInfo {
 }
 
 /** Computes a similarity score and reason between two column names, or returns `null` if unrelated. */
-export function nameScore(a: string, b: string): { score: number; reason: MatchInfo["reason"] } | null {
+export function nameScore(
+  a: string,
+  b: string,
+): { score: number; reason: MatchInfo["reason"] } | null {
   const x = normalizeName(a);
   const y = normalizeName(b);
   if (!x || !y) return null;
   if (x === y) return { score: 1, reason: "same name" };
-  if (GROUPS.some((g) => g.has(x) && g.has(y))) return { score: 0.92, reason: "known synonym" };
+  if (GROUPS.some((g) => g.has(x) && g.has(y)))
+    return { score: 0.92, reason: "known synonym" };
   // "Customer ID" in the file, "id" in the table (the table's own key)
-  if ((y === "id" && x.length > 2 && x.endsWith("id")) || (x === "id" && y.length > 2 && y.endsWith("id"))) return { score: 0.66, reason: "similar name" };
-  if (Math.min(x.length, y.length) >= 4 && (x.includes(y) || y.includes(x))) return { score: 0.72, reason: "similar name" };
+  if (
+    (y === "id" && x.length > 2 && x.endsWith("id")) ||
+    (x === "id" && y.length > 2 && y.endsWith("id"))
+  )
+    return { score: 0.66, reason: "similar name" };
+  if (Math.min(x.length, y.length) >= 4 && (x.includes(y) || y.includes(x)))
+    return { score: 0.72, reason: "similar name" };
   const sim = 1 - levenshtein(x, y) / Math.max(x.length, y.length);
-  if (sim >= 0.78 && Math.min(x.length, y.length) >= 4) return { score: 0.6 + sim * 0.3, reason: "similar name" };
+  if (sim >= 0.78 && Math.min(x.length, y.length) >= 4)
+    return { score: 0.6 + sim * 0.3, reason: "similar name" };
   return null;
 }
 
 /** Steps that make typical incoming text fit this kind of column. */
-export function suggestSteps(col: TargetColumn, src: SourceColumn | null): Step[] {
+export function suggestSteps(
+  col: TargetColumn,
+  src: SourceColumn | null,
+): Step[] {
   const steps: Step[] = [];
   const inf = src?.inferred;
   if (col.cls !== "text") steps.push({ t: "trim" }, { t: "emptyToNull" });
@@ -285,16 +379,30 @@ export function suggestSteps(col: TargetColumn, src: SourceColumn | null): Step[
     case "integer":
     case "decimal":
     case "float":
-      if (inf?.needsCleaning) steps.push({ t: "number", locale: inf.numberLocale ?? "auto" });
+      if (inf?.needsCleaning)
+        steps.push({ t: "number", locale: inf.numberLocale ?? "auto" });
       break;
     case "boolean":
       steps.push({ t: "boolean" });
       break;
     case "date":
     case "timestamp": {
-      if (inf && (inf.kind === "date" || inf.kind === "timestamp") && !inf.needsCleaning) break;
-      const order = inf?.dateOrder && inf.dateOrder !== "unknown" ? inf.dateOrder : src ? detectDateOrder(src.samples).order : "unknown";
-      steps.push({ t: col.cls === "date" ? "date" : "datetime", order: order === "unknown" ? "MDY" : order });
+      if (
+        inf &&
+        (inf.kind === "date" || inf.kind === "timestamp") &&
+        !inf.needsCleaning
+      )
+        break;
+      const order =
+        inf?.dateOrder && inf.dateOrder !== "unknown"
+          ? inf.dateOrder
+          : src
+            ? detectDateOrder(src.samples).order
+            : "unknown";
+      steps.push({
+        t: col.cls === "date" ? "date" : "datetime",
+        order: order === "unknown" ? "MDY" : order,
+      });
       break;
     }
     case "uuid":
@@ -314,12 +422,16 @@ export interface AutoMapResult {
 }
 
 /** Automatically pairs source columns with target table columns and suggests cleanup steps for each match. */
-export function autoMap(source: SourceColumn[], target: TargetTable): AutoMapResult {
+export function autoMap(
+  source: SourceColumn[],
+  target: TargetTable,
+): AutoMapResult {
   const pairs: MatchInfo[] = [];
   for (const t of target.columns) {
     for (const s of source) {
       const m = nameScore(t.name, s.name);
-      if (m && m.score >= 0.65) pairs.push({ target: t.name, source: s.name, ...m });
+      if (m && m.score >= 0.65)
+        pairs.push({ target: t.name, source: s.name, ...m });
     }
   }
   pairs.sort((a, b) => b.score - a.score);
@@ -338,14 +450,26 @@ export function autoMap(source: SourceColumn[], target: TargetTable): AutoMapRes
     const m = matches.find((x) => x.target === t.name);
     if (!m) return { target: t.name, source: { kind: "skip" }, steps: [] };
     const src = bySource.get(m.source)!;
-    if ((t.cls === "date" || t.cls === "timestamp") && src.inferred.dateOrder === "unknown") ambiguousDates.push(t.name);
-    return { target: t.name, source: { kind: "column", column: m.source }, steps: suggestSteps(t, src) };
+    if (
+      (t.cls === "date" || t.cls === "timestamp") &&
+      src.inferred.dateOrder === "unknown"
+    )
+      ambiguousDates.push(t.name);
+    return {
+      target: t.name,
+      source: { kind: "column", column: m.source },
+      steps: suggestSteps(t, src),
+    };
   });
   return {
     rules,
     matches,
-    unmatchedSource: source.filter((s) => !usedS.has(s.name)).map((s) => s.name),
-    unmatchedTarget: target.columns.filter((c) => !usedT.has(c.name)).map((c) => c.name),
+    unmatchedSource: source
+      .filter((s) => !usedS.has(s.name))
+      .map((s) => s.name),
+    unmatchedTarget: target.columns
+      .filter((c) => !usedT.has(c.name))
+      .map((c) => c.name),
     ambiguousDates,
   };
 }

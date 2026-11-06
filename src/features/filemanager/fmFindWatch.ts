@@ -24,7 +24,9 @@ function stopWatcher(ctx: FmContext, id: string): boolean {
   const w = state.watchers.get(id);
   if (!w) return false;
   clearTimeout(w.idle);
-  try { w.watcher.close(); } catch {}
+  try {
+    w.watcher.close();
+  } catch {}
   state.watchers.delete(id);
   return true;
 }
@@ -36,12 +38,19 @@ function armIdle(ctx: FmContext, w: LiveWatcher, idleMs: number): void {
 }
 
 /** Starts a recursive filesystem watcher on `b.root` for Find live mode and returns its `watchId`. */
-export async function startWatch(ctx: FmContext, b: Record<string, any>, idleMs = WATCH_IDLE_MS): Promise<{ watchId: string; root: string }> {
+export async function startWatch(
+  ctx: FmContext,
+  b: Record<string, any>,
+  idleMs = WATCH_IDLE_MS,
+): Promise<{ watchId: string; root: string }> {
   const root = absolutePath(ctx, b.root);
   await assertFolder(root, "The folder to watch");
   const state = findState(ctx);
   if (state.watchers.size >= MAX_WATCHERS) {
-    throw new FmError("TOO_MANY_WATCHERS", `Only ${MAX_WATCHERS} folders can be watched at once. Turn off live mode somewhere else first.`);
+    throw new FmError(
+      "TOO_MANY_WATCHERS",
+      `Only ${MAX_WATCHERS} folders can be watched at once. Turn off live mode somewhere else first.`,
+    );
   }
   const id = randomBytes(6).toString("hex");
   const hidden = b.hidden === true;
@@ -49,11 +58,24 @@ export async function startWatch(ctx: FmContext, b: Record<string, any>, idleMs 
   try {
     fsWatcher = fs.watch(root, { recursive: true });
   } catch (err) {
-    throw new FmError("WATCH_FAILED", `Live mode couldn't start: ${describeFsError(err, "watch that folder").message}`);
+    throw new FmError(
+      "WATCH_FAILED",
+      `Live mode couldn't start: ${describeFsError(err, "watch that folder").message}`,
+    );
   }
-  const w: LiveWatcher = { id, root, hidden, changes: 0, lastName: "", failed: null, watcher: fsWatcher, idle: setTimeout(() => {}, 0) };
+  const w: LiveWatcher = {
+    id,
+    root,
+    hidden,
+    changes: 0,
+    lastName: "",
+    failed: null,
+    watcher: fsWatcher,
+    idle: setTimeout(() => {}, 0),
+  };
   fsWatcher.on("change", (_event, name) => {
-    const filename = typeof name === "string" ? name : name ? name.toString() : "";
+    const filename =
+      typeof name === "string" ? name : name ? name.toString() : "";
     if (filename && isNoise(filename, hidden)) return;
     w.changes++;
     w.lastName = filename;
@@ -67,14 +89,42 @@ export async function startWatch(ctx: FmContext, b: Record<string, any>, idleMs 
 }
 
 /** Polls an active Find watcher by `b.watchId`, resetting its idle timer and returning its change count. */
-export function pollWatch(ctx: FmContext, b: Record<string, any>, idleMs = WATCH_IDLE_MS): { active: boolean; changes: number; lastName: string; error: string | null } {
-  const w = typeof b.watchId === "string" ? findState(ctx).watchers.get(b.watchId) : undefined;
-  if (!w) return { active: false, changes: 0, lastName: "", error: "Live mode has stopped. Turn it on again." };
+export function pollWatch(
+  ctx: FmContext,
+  b: Record<string, any>,
+  idleMs = WATCH_IDLE_MS,
+): {
+  active: boolean;
+  changes: number;
+  lastName: string;
+  error: string | null;
+} {
+  const w =
+    typeof b.watchId === "string"
+      ? findState(ctx).watchers.get(b.watchId)
+      : undefined;
+  if (!w)
+    return {
+      active: false,
+      changes: 0,
+      lastName: "",
+      error: "Live mode has stopped. Turn it on again.",
+    };
   armIdle(ctx, w, idleMs);
-  return { active: w.failed === null, changes: w.changes, lastName: w.lastName, error: w.failed };
+  return {
+    active: w.failed === null,
+    changes: w.changes,
+    lastName: w.lastName,
+    error: w.failed,
+  };
 }
 
 /** Stops and removes the Find filesystem watcher identified by `b.watchId`. */
-export function stopWatch(ctx: FmContext, b: Record<string, any>): { stopped: boolean } {
-  return { stopped: typeof b.watchId === "string" && stopWatcher(ctx, b.watchId) };
+export function stopWatch(
+  ctx: FmContext,
+  b: Record<string, any>,
+): { stopped: boolean } {
+  return {
+    stopped: typeof b.watchId === "string" && stopWatcher(ctx, b.watchId),
+  };
 }

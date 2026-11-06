@@ -11,20 +11,50 @@ export type DiacriticMode = "remove" | "compose" | "decompose";
 
 /** Letters that have no accent to take off but are written with one in mind: they are spelled out in plain letters. */
 const SPELLED: Record<string, string> = {
-  ß: "ss", ẞ: "SS", æ: "ae", Æ: "AE", œ: "oe", Œ: "OE", ø: "o", Ø: "O", đ: "d", Đ: "D", ð: "d", Ð: "D",
-  þ: "th", Þ: "TH", ł: "l", Ł: "L", ħ: "h", Ħ: "H", ı: "i", ĸ: "k", ŀ: "l", Ŀ: "L", ſ: "s", ĳ: "ij", Ĳ: "IJ",
+  ß: "ss",
+  ẞ: "SS",
+  æ: "ae",
+  Æ: "AE",
+  œ: "oe",
+  Œ: "OE",
+  ø: "o",
+  Ø: "O",
+  đ: "d",
+  Đ: "D",
+  ð: "d",
+  Ð: "D",
+  þ: "th",
+  Þ: "TH",
+  ł: "l",
+  Ł: "L",
+  ħ: "h",
+  Ħ: "H",
+  ı: "i",
+  ĸ: "k",
+  ŀ: "l",
+  Ŀ: "L",
+  ſ: "s",
+  ĳ: "ij",
+  Ĳ: "IJ",
 };
 const SPELLED_RE = new RegExp(`[${Object.keys(SPELLED).join("")}]`, "g");
 const MARKED_LETTER = /([\p{Script=Latin}\p{Script=Greek}])[\u0300-\u036f]+/gu;
 
 /** Strips combining diacritical marks from Latin and Greek letters and optionally spells out typographic ligatures. */
 export function removeDiacritics(text: string, spellOut = true): string {
-  const plain = text.normalize("NFD").replace(MARKED_LETTER, "$1").normalize("NFC");
+  const plain = text
+    .normalize("NFD")
+    .replace(MARKED_LETTER, "$1")
+    .normalize("NFC");
   return spellOut ? plain.replace(SPELLED_RE, (c) => SPELLED[c]!) : plain;
 }
 
 /** Transforms diacritics in `text` according to `mode` (`remove`, `compose`, or `decompose`). */
-export function changeDiacritics(text: string, mode: DiacriticMode, spellOut = true): string {
+export function changeDiacritics(
+  text: string,
+  mode: DiacriticMode,
+  spellOut = true,
+): string {
   if (mode === "compose") return text.normalize("NFC");
   if (mode === "decompose") return text.normalize("NFD");
   return removeDiacritics(text, spellOut);

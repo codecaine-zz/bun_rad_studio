@@ -11,7 +11,9 @@ import { mkdir, rename, rm } from "node:fs/promises";
 import { dirname } from "node:path";
 
 // The installed Bun type definitions omit stringify, which exists at run time.
-const toml = Bun.TOML as typeof Bun.TOML & { stringify(value: unknown): string };
+const toml = Bun.TOML as typeof Bun.TOML & {
+  stringify(value: unknown): string;
+};
 
 /** Any parsed TOML table. */
 export type TomlTable = Record<string, any>;
@@ -64,7 +66,10 @@ export function stringifyToml(data: unknown): string {
  * const cfg = await tomlutils.loadToml("./bunfig.toml", {});
  * ```
  */
-export async function loadToml<T = TomlTable>(filePath: string, fallback?: T): Promise<T> {
+export async function loadToml<T = TomlTable>(
+  filePath: string,
+  fallback?: T,
+): Promise<T> {
   try {
     const file = Bun.file(filePath);
     if (!(await file.exists())) {
@@ -74,7 +79,9 @@ export async function loadToml<T = TomlTable>(filePath: string, fallback?: T): P
     return Bun.TOML.parse(await file.text()) as T;
   } catch (err: any) {
     if (fallback !== undefined) return fallback;
-    throw new Error(`[tomlutils] Failed to load TOML from ${filePath}: ${err.message}`);
+    throw new Error(
+      `[tomlutils] Failed to load TOML from ${filePath}: ${err.message}`,
+    );
   }
 }
 
@@ -83,7 +90,10 @@ export async function loadToml<T = TomlTable>(filePath: string, fallback?: T): P
  * @returns Number of bytes written.
  * @example `await tomlutils.saveToml("./config.toml", { server: { port: 8080 } });`
  */
-export async function saveToml(filePath: string, data: unknown): Promise<number> {
+export async function saveToml(
+  filePath: string,
+  data: unknown,
+): Promise<number> {
   const content = toml.stringify(data) ?? "";
   await mkdir(dirname(filePath), { recursive: true });
   const tmp = `${filePath}.tmp-${process.pid}-${Date.now()}`;
@@ -93,7 +103,9 @@ export async function saveToml(filePath: string, data: unknown): Promise<number>
     return bytes;
   } catch (err: any) {
     await rm(tmp, { force: true });
-    throw new Error(`[tomlutils.saveToml] Failed writing ${filePath}: ${err.message}`);
+    throw new Error(
+      `[tomlutils.saveToml] Failed writing ${filePath}: ${err.message}`,
+    );
   }
 }
 
@@ -105,7 +117,8 @@ export function getTomlPath(doc: TomlTable, keyPath: string): any {
   if (!doc || typeof doc !== "object") return undefined;
   let cur: any = doc;
   for (const p of keyPath.split(".")) {
-    if (cur === null || cur === undefined || typeof cur !== "object") return undefined;
+    if (cur === null || cur === undefined || typeof cur !== "object")
+      return undefined;
     cur = cur[p];
   }
   return cur;
@@ -124,13 +137,19 @@ export function hasTomlKey(doc: TomlTable, keyPath: string): boolean {
  * tomlutils.setTomlPath(cfg, "server.tls.enabled", true);
  * ```
  */
-export function setTomlPath<T extends TomlTable>(doc: T, keyPath: string, value: unknown): T {
+export function setTomlPath<T extends TomlTable>(
+  doc: T,
+  keyPath: string,
+  value: unknown,
+): T {
   const parts = keyPath.split(".");
   let cur: any = doc;
   for (const p of parts.slice(0, -1)) {
     if (cur[p] === undefined) cur[p] = {};
     else if (typeof cur[p] !== "object" || cur[p] === null) {
-      throw new Error(`[tomlutils.setTomlPath] "${p}" in "${keyPath}" is not a table`);
+      throw new Error(
+        `[tomlutils.setTomlPath] "${p}" in "${keyPath}" is not a table`,
+      );
     }
     cur = cur[p];
   }
@@ -142,7 +161,11 @@ export function setTomlPath<T extends TomlTable>(doc: T, keyPath: string, value:
  * Read a value as a string (numbers/booleans are stringified).
  * @example `tomlutils.getString(cfg, "app.name", "untitled");`
  */
-export function getString(doc: TomlTable, keyPath: string, fallback = ""): string {
+export function getString(
+  doc: TomlTable,
+  keyPath: string,
+  fallback = "",
+): string {
   const val = getTomlPath(doc, keyPath);
   return val !== undefined && val !== null ? String(val) : fallback;
 }
@@ -166,9 +189,14 @@ export function getInt(doc: TomlTable, keyPath: string, fallback = 0): number {
  * Read a float (numeric strings parsed).
  * @example `tomlutils.getNumber(cfg, "limits.ratio", 0.5);`
  */
-export function getNumber(doc: TomlTable, keyPath: string, fallback = 0): number {
+export function getNumber(
+  doc: TomlTable,
+  keyPath: string,
+  fallback = 0,
+): number {
   const val = getTomlPath(doc, keyPath);
-  const n = typeof val === "number" ? val : typeof val === "string" ? Number(val) : NaN;
+  const n =
+    typeof val === "number" ? val : typeof val === "string" ? Number(val) : NaN;
   return Number.isFinite(n) ? n : fallback;
 }
 
@@ -176,11 +204,16 @@ export function getNumber(doc: TomlTable, keyPath: string, fallback = 0): number
  * Read a boolean (`"true"`, `"1"`, `"yes"`, `"on"` strings are truthy).
  * @example `tomlutils.getBool(cfg, "server.enabled");`
  */
-export function getBool(doc: TomlTable, keyPath: string, fallback = false): boolean {
+export function getBool(
+  doc: TomlTable,
+  keyPath: string,
+  fallback = false,
+): boolean {
   const val = getTomlPath(doc, keyPath);
   if (typeof val === "boolean") return val;
   if (typeof val === "number") return val !== 0;
-  if (typeof val === "string") return ["true", "1", "yes", "on"].includes(val.toLowerCase());
+  if (typeof val === "string")
+    return ["true", "1", "yes", "on"].includes(val.toLowerCase());
   return fallback;
 }
 
@@ -188,7 +221,11 @@ export function getBool(doc: TomlTable, keyPath: string, fallback = false): bool
  * Read an array (fallback when the value is not an array).
  * @example `tomlutils.getArray<string>(cfg, "server.cors_origins");`
  */
-export function getArray<T = any>(doc: TomlTable, keyPath: string, fallback: T[] = []): T[] {
+export function getArray<T = any>(
+  doc: TomlTable,
+  keyPath: string,
+  fallback: T[] = [],
+): T[] {
   const val = getTomlPath(doc, keyPath);
   return Array.isArray(val) ? (val as T[]) : fallback;
 }
@@ -197,9 +234,15 @@ export function getArray<T = any>(doc: TomlTable, keyPath: string, fallback: T[]
  * Read a sub-table (fallback when the value is not a plain table).
  * @example `tomlutils.getTable(cfg, "database");`
  */
-export function getTable<T extends TomlTable = TomlTable>(doc: TomlTable, keyPath: string, fallback = {} as T): T {
+export function getTable<T extends TomlTable = TomlTable>(
+  doc: TomlTable,
+  keyPath: string,
+  fallback = {} as T,
+): T {
   const val = getTomlPath(doc, keyPath);
-  return val && typeof val === "object" && !Array.isArray(val) ? (val as T) : fallback;
+  return val && typeof val === "object" && !Array.isArray(val)
+    ? (val as T)
+    : fallback;
 }
 
 /**
@@ -211,7 +254,10 @@ export function getTable<T extends TomlTable = TomlTable>(doc: TomlTable, keyPat
  * // { server: { port: 8080, host: "0.0.0.0" } }
  * ```
  */
-export function mergeToml<T extends TomlTable = TomlTable>(base: TomlTable, override: TomlTable): T {
+export function mergeToml<T extends TomlTable = TomlTable>(
+  base: TomlTable,
+  override: TomlTable,
+): T {
   const out: TomlTable = { ...base };
   for (const [k, v] of Object.entries(override)) {
     const prev = out[k];
@@ -222,7 +268,12 @@ export function mergeToml<T extends TomlTable = TomlTable>(base: TomlTable, over
 }
 
 function isTable(v: unknown): v is TomlTable {
-  return typeof v === "object" && v !== null && !Array.isArray(v) && !(v instanceof Date);
+  return (
+    typeof v === "object" &&
+    v !== null &&
+    !Array.isArray(v) &&
+    !(v instanceof Date)
+  );
 }
 
 /**
@@ -234,15 +285,22 @@ function isTable(v: unknown): v is TomlTable {
  * const cfg = await tomlutils.loadTomlLayers(["./config/default.toml", "./config/local.toml"]);
  * ```
  */
-export async function loadTomlLayers<T extends TomlTable = TomlTable>(filePaths: string[]): Promise<T> {
+export async function loadTomlLayers<T extends TomlTable = TomlTable>(
+  filePaths: string[],
+): Promise<T> {
   let merged: TomlTable = {};
   for (const p of filePaths) {
     const file = Bun.file(p);
     if (!(await file.exists())) continue;
     try {
-      merged = mergeToml(merged, Bun.TOML.parse(await file.text()) as TomlTable);
+      merged = mergeToml(
+        merged,
+        Bun.TOML.parse(await file.text()) as TomlTable,
+      );
     } catch (err: any) {
-      throw new Error(`[tomlutils.loadTomlLayers] Invalid TOML in ${p}: ${err.message}`);
+      throw new Error(
+        `[tomlutils.loadTomlLayers] Invalid TOML in ${p}: ${err.message}`,
+      );
     }
   }
   return merged as T;

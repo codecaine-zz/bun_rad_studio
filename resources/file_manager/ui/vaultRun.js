@@ -6,7 +6,8 @@ import { formatSize, plural } from "./util.js";
 
 const PHASES = {
   scanning: "Looking at what to lock…",
-  deriving: "Making the key from your password. This is slow on purpose, to protect you…",
+  deriving:
+    "Making the key from your password. This is slow on purpose, to protect you…",
   encrypting: "Encrypting…",
   verifying: "Checking the encrypted copy…",
   decrypting: "Decrypting…",
@@ -14,16 +15,24 @@ const PHASES = {
   idle: "",
 };
 
-const STATE_TEXT = { waiting: "Waiting", working: "Working…", cancelled: "Cancelled" };
+const STATE_TEXT = {
+  waiting: "Waiting",
+  working: "Working…",
+  cancelled: "Cancelled",
+};
 
 /** One line for one item, in words. */
 export function itemText(item, kind) {
   if (item.state === "done") {
     const verb = kind === "encrypt" ? "Locked as" : "Unlocked as";
-    const size = kind === "encrypt" && item.cipherBytes ? ` (${formatSize(item.cipherBytes)})` : "";
+    const size =
+      kind === "encrypt" && item.cipherBytes
+        ? ` (${formatSize(item.cipherBytes)})`
+        : "";
     return `${verb} ${item.outputName}${size}`;
   }
-  if (item.state === "error") return `Didn't work: ${item.error?.message ?? "something went wrong."}`;
+  if (item.state === "error")
+    return `Didn't work: ${item.error?.message ?? "something went wrong."}`;
   return STATE_TEXT[item.state] ?? item.state;
 }
 
@@ -35,11 +44,37 @@ export function runView({ task, kind, onDone }) {
   let version = -1;
   let stopped = false;
   let timer = 0;
-  const bar = h("progress", { class: "vault-progress", max: "100", "aria-label": "Progress of the whole job", title: "How much of the work is done." });
-  const status = h("p", { class: "vault-status", role: "status", "aria-live": "polite" });
+  const bar = h("progress", {
+    class: "vault-progress",
+    max: "100",
+    "aria-label": "Progress of the whole job",
+    title: "How much of the work is done.",
+  });
+  const status = h("p", {
+    class: "vault-status",
+    role: "status",
+    "aria-live": "polite",
+  });
   const list = h("ul", { class: "vault-results", "aria-label": "Each item" });
-  const cancel = h("button", { type: "button", class: "btn", title: "Stop now. Nothing half-finished is kept, and your originals are never changed.", onclick: onCancel }, "Cancel");
-  const el = h("div", { class: "vault-run" }, status, bar, list, h("div", { class: "dialog-buttons" }, cancel));
+  const cancel = h(
+    "button",
+    {
+      type: "button",
+      class: "btn",
+      title:
+        "Stop now. Nothing half-finished is kept, and your originals are never changed.",
+      onclick: onCancel,
+    },
+    "Cancel",
+  );
+  const el = h(
+    "div",
+    { class: "vault-run" },
+    status,
+    bar,
+    list,
+    h("div", { class: "dialog-buttons" }, cancel),
+  );
 
   async function onCancel() {
     cancel.disabled = true;
@@ -53,14 +88,27 @@ export function runView({ task, kind, onDone }) {
   function render(t) {
     const verbing = kind === "encrypt" ? "Locking" : "Unlocking";
     const phase = PHASES[t.phase] ?? "";
-    status.textContent = t.state === "running" ? `${verbing} ${t.total > 1 ? `${Math.min(t.currentIndex + 1, t.total)} of ${t.total}: ` : ""}${t.current ?? ""} ${phase}`.trim() : "";
-    if (t.bytesTotal > 0 && (t.phase === "encrypting" || t.phase === "decrypting")) bar.value = Math.min(100, Math.round((t.bytesDone / t.bytesTotal) * 100));
+    status.textContent =
+      t.state === "running"
+        ? `${verbing} ${t.total > 1 ? `${Math.min(t.currentIndex + 1, t.total)} of ${t.total}: ` : ""}${t.current ?? ""} ${phase}`.trim()
+        : "";
+    if (
+      t.bytesTotal > 0 &&
+      (t.phase === "encrypting" || t.phase === "decrypting")
+    )
+      bar.value = Math.min(100, Math.round((t.bytesDone / t.bytesTotal) * 100));
     else if (t.state !== "running") bar.value = 100;
     else bar.removeAttribute("value");
-    list.replaceChildren(...t.items.map((item) => h("li", { class: `vault-item vault-${item.state}` },
-      h("span", { class: "vault-item-name" }, item.name),
-      h("span", { class: "vault-item-state" }, itemText(item, kind)),
-    )));
+    list.replaceChildren(
+      ...t.items.map((item) =>
+        h(
+          "li",
+          { class: `vault-item vault-${item.state}` },
+          h("span", { class: "vault-item-name" }, item.name),
+          h("span", { class: "vault-item-state" }, itemText(item, kind)),
+        ),
+      ),
+    );
   }
 
   async function poll() {
@@ -75,7 +123,9 @@ export function runView({ task, kind, onDone }) {
       if (t.state !== "running") {
         stopped = true;
         cancel.hidden = true;
-        const final = t.unchanged ? (await call("vault/status", { id: task.id })).task : t;
+        const final = t.unchanged
+          ? (await call("vault/status", { id: task.id })).task
+          : t;
         render(final);
         onDone(final);
         return;
@@ -117,11 +167,35 @@ export function summaryText(task, kind) {
 
 /** The final list: what happened to each item, with any warnings and what became of the original. */
 export function resultList(task, kind) {
-  return h("ul", { class: "vault-results", "aria-label": "Results" }, task.items.map((item) => h("li", { class: `vault-item vault-${item.state}` },
-    h("span", { class: "vault-item-name" }, item.name),
-    h("span", { class: "vault-item-state" }, itemText(item, kind)),
-    item.trashed ? h("span", { class: "vault-note" }, kind === "encrypt" ? "The original was moved to the Recycle Bin, so you can still get it back from there." : "The locked file was moved to the Recycle Bin.") : null,
-    item.trashMessage ? h("span", { class: "vault-note vault-note-warn" }, item.trashMessage) : null,
-    ...(item.warnings ?? []).map((w) => h("span", { class: "vault-note vault-note-warn" }, w)),
-  )));
+  return h(
+    "ul",
+    { class: "vault-results", "aria-label": "Results" },
+    task.items.map((item) =>
+      h(
+        "li",
+        { class: `vault-item vault-${item.state}` },
+        h("span", { class: "vault-item-name" }, item.name),
+        h("span", { class: "vault-item-state" }, itemText(item, kind)),
+        item.trashed
+          ? h(
+              "span",
+              { class: "vault-note" },
+              kind === "encrypt"
+                ? "The original was moved to the Recycle Bin, so you can still get it back from there."
+                : "The locked file was moved to the Recycle Bin.",
+            )
+          : null,
+        item.trashMessage
+          ? h(
+              "span",
+              { class: "vault-note vault-note-warn" },
+              item.trashMessage,
+            )
+          : null,
+        ...(item.warnings ?? []).map((w) =>
+          h("span", { class: "vault-note vault-note-warn" }, w),
+        ),
+      ),
+    ),
+  );
 }

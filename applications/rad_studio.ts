@@ -3,7 +3,9 @@ import { rad } from "../src/features/rad/index.ts";
 import { RAD_MODULES_CATALOG } from "../cli_apps/rad_cli.ts";
 
 export function getRecipeForModule(moduleName: string): string {
-  const mod = RAD_MODULES_CATALOG.find((m) => m.name.toLowerCase() === moduleName.toLowerCase());
+  const mod = RAD_MODULES_CATALOG.find(
+    (m) => m.name.toLowerCase() === moduleName.toLowerCase(),
+  );
   if (!mod) return `// Select a module to view its TypeScript recipe`;
 
   switch (mod.name) {
@@ -120,7 +122,9 @@ console.log(${mod.name});`;
   }
 }
 
-export function createRadStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
+export function createRadStudio(
+  options: { fullscreen?: boolean; theme?: string } = {},
+): SimpleWindow {
   const fullscreen = options.fullscreen ?? true;
   const win = newSimpleWindow(
     "RAD Utilities Studio Pro -- 44 High-Velocity Development Modules",
@@ -131,7 +135,7 @@ export function createRadStudio(options: { fullscreen?: boolean; theme?: string 
       theme: options.theme || getSavedTheme() || "midnight",
       autoSaveState: true,
       fullscreen,
-    }
+    },
   );
 
   // -----------------------------------------------------------------------------------------------
@@ -144,7 +148,9 @@ export function createRadStudio(options: { fullscreen?: boolean; theme?: string 
   win.addButton("btn_center", "Center Window");
   win.addButton("btn_fullscreen", "⛶ Fullscreen");
   win.endRow();
-  win.addCaption("44 Ergonomic Modules for Rapid Application Development (RAD) in Bun with Zero External Dependencies");
+  win.addCaption(
+    "44 Ergonomic Modules for Rapid Application Development (RAD) in Bun with Zero External Dependencies",
+  );
 
   // -----------------------------------------------------------------------------------------------
   // 2. Telemetry KPI Cards
@@ -153,7 +159,10 @@ export function createRadStudio(options: { fullscreen?: boolean; theme?: string 
   win.beginRow();
   win.addLabel("lbl_kpi_modules", "📦 Modules: 44 Active");
   win.addLabel("lbl_kpi_categories", "🏷️ Domains: 6 Categories");
-  win.addLabel("lbl_kpi_engine", "⚡ Engines: Bun.Glob / Bun.$ / bun:sqlite / Bun.serve");
+  win.addLabel(
+    "lbl_kpi_engine",
+    "⚡ Engines: Bun.Glob / Bun.$ / bun:sqlite / Bun.serve",
+  );
   win.addLabel("lbl_kpi_tests", "🧪 Test Suite: 100% Pass (~8ms)");
   win.endRow();
   win.endGroupBox();
@@ -164,7 +173,15 @@ export function createRadStudio(options: { fullscreen?: boolean; theme?: string 
   win.beginGroupBox("Module Explorer & Rapid Playground");
   win.beginRow();
   win.addLabel("lbl_filter_cat", "Category:");
-  const categories = ["All (44 Modules)", "File & Storage", "Data Structures", "Strings & Formats", "System & Runtime", "Network & Web", "Functions & Logic"];
+  const categories = [
+    "All (44 Modules)",
+    "File & Storage",
+    "Data Structures",
+    "Strings & Formats",
+    "System & Runtime",
+    "Network & Web",
+    "Functions & Logic",
+  ];
   win.addDropdown("dd_category", categories, "All (44 Modules)").width(180);
 
   win.addLabel("lbl_filter_mod", "Select Module:");
@@ -182,8 +199,18 @@ export function createRadStudio(options: { fullscreen?: boolean; theme?: string 
   // 4. Tabular Catalog Grid
   // -----------------------------------------------------------------------------------------------
   win.beginGroupBox("44 RAD Modules Catalog (Specifications & Superpowers)");
-  const tableHeaders = ["Module", "Category", "Superpower / Engine", "Description"];
-  const tableRows = RAD_MODULES_CATALOG.map((m) => [m.name, m.category, m.superpower, m.description]);
+  const tableHeaders = [
+    "Module",
+    "Category",
+    "Superpower / Engine",
+    "Description",
+  ];
+  const tableRows = RAD_MODULES_CATALOG.map((m) => [
+    m.name,
+    m.category,
+    m.superpower,
+    m.description,
+  ]);
   win.addTable("tbl_modules", tableHeaders, tableRows).height(120);
   win.endGroupBox();
 
@@ -205,7 +232,10 @@ export function createRadStudio(options: { fullscreen?: boolean; theme?: string 
   // 7. Status Bar
   // -----------------------------------------------------------------------------------------------
   win.beginRow();
-  win.addLabel("lbl_status", "Status: Ready | 44 Modules Loaded | Zero Dependencies | Ported from bun_sys_utils");
+  win.addLabel(
+    "lbl_status",
+    "Status: Ready | 44 Modules Loaded | Zero Dependencies | Ported from bun_sys_utils",
+  );
   win.endRow();
 
   // -----------------------------------------------------------------------------------------------
@@ -228,9 +258,17 @@ export function createRadStudio(options: { fullscreen?: boolean; theme?: string 
     if (val !== "All (44 Modules)") {
       filtered = RAD_MODULES_CATALOG.filter((m) => m.category === val);
     }
-    const newRows = filtered.map((m) => [m.name, m.category, m.superpower, m.description]);
+    const newRows = filtered.map((m) => [
+      m.name,
+      m.category,
+      m.superpower,
+      m.description,
+    ]);
     w.setTableData("tbl_modules", tableHeaders, newRows);
-    w.appendConsole("console_rad", `Filtered catalog by category: ${val} (${filtered.length} modules)\n`);
+    w.appendConsole(
+      "console_rad",
+      `Filtered catalog by category: ${val} (${filtered.length} modules)\n`,
+    );
   });
 
   win.onClick("btn_clear", (w) => {
@@ -242,23 +280,39 @@ export function createRadStudio(options: { fullscreen?: boolean; theme?: string 
     const recipe = getRecipeForModule(mod);
     w.setValue("txt_recipe", recipe);
     let copied = false;
-    try { w.copyToClipboard(recipe); copied = true; } catch {}
-    w.toast(copied ? `Recipe for ${mod} copied to clipboard!` : `Recipe for ${mod} ready to copy!`);
+    try {
+      w.copyToClipboard(recipe);
+      copied = true;
+    } catch {}
+    w.toast(
+      copied
+        ? `Recipe for ${mod} copied to clipboard!`
+        : `Recipe for ${mod} ready to copy!`,
+    );
   });
 
   win.onClick("btn_run_module", async (w) => {
     const mod = w.getValue("dd_module") || "fileutils";
-    w.appendConsole("console_rad", `[${new Date().toISOString()}] ⚡ Testing [${mod}]...\n`);
+    w.appendConsole(
+      "console_rad",
+      `[${new Date().toISOString()}] ⚡ Testing [${mod}]...\n`,
+    );
 
     const t0 = performance.now();
     try {
       switch (mod) {
         case "fileutils": {
           const testPath = "/tmp/bun_rad_gui_test.json";
-          await rad.fileutils.saveJson(testPath, { test: "RAD Studio", timestamp: Date.now() });
+          await rad.fileutils.saveJson(testPath, {
+            test: "RAD Studio",
+            timestamp: Date.now(),
+          });
           const readBack = await rad.fileutils.loadJson<any>(testPath);
           const size = await rad.fileutils.fileSizeHuman(testPath);
-          w.appendConsole("console_rad", `  ✓ fileutils: saved & read JSON file (${size}) -> ${JSON.stringify(readBack)}\n`);
+          w.appendConsole(
+            "console_rad",
+            `  ✓ fileutils: saved & read JSON file (${size}) -> ${JSON.stringify(readBack)}\n`,
+          );
           break;
         }
         case "sqliteutils": {
@@ -267,53 +321,87 @@ export function createRadStudio(options: { fullscreen?: boolean; theme?: string 
           rad.sqliteutils.setKv(db, "gui_settings", "theme", "midnight");
           const val = rad.sqliteutils.getKv(db, "gui_settings", "theme");
           rad.sqliteutils.closeDb(db);
-          w.appendConsole("console_rad", `  ✓ sqliteutils: in-memory KV table read back theme = "${val}"\n`);
+          w.appendConsole(
+            "console_rad",
+            `  ✓ sqliteutils: in-memory KV table read back theme = "${val}"\n`,
+          );
           break;
         }
         case "strutils": {
           const slug = rad.strutils.slugify("Bun RAD Studio 2026");
           const mask = rad.strutils.maskEmail("developer@bun.sh");
           const lev = rad.strutils.levenshteinDistance("fast", "faster");
-          w.appendConsole("console_rad", `  ✓ strutils: slug="${slug}", mask="${mask}", lev=${lev}\n`);
+          w.appendConsole(
+            "console_rad",
+            `  ✓ strutils: slug="${slug}", mask="${mask}", lev=${lev}\n`,
+          );
           break;
         }
         case "arrutils":
         case "sliceutils": {
           const arr = [10, 20, 30, 40, 50];
-          w.appendConsole("console_rad", `  ✓ arrutils.at(-1): ${rad.arrutils.at(arr, -1)}\n`);
-          w.appendConsole("console_rad", `  ✓ arrutils.chunk(2): ${JSON.stringify(rad.arrutils.chunk(arr, 2))}\n`);
+          w.appendConsole(
+            "console_rad",
+            `  ✓ arrutils.at(-1): ${rad.arrutils.at(arr, -1)}\n`,
+          );
+          w.appendConsole(
+            "console_rad",
+            `  ✓ arrutils.chunk(2): ${JSON.stringify(rad.arrutils.chunk(arr, 2))}\n`,
+          );
           break;
         }
         case "objutils": {
           const testObj = { nested: { secret: "bun-speed" } };
-          w.appendConsole("console_rad", `  ✓ objutils.get: ${rad.objutils.get(testObj, "nested.secret")}\n`);
-          w.appendConsole("console_rad", `  ✓ objutils.isEqual: ${rad.objutils.isEqual({ a: 1 }, { a: 1 })}\n`);
+          w.appendConsole(
+            "console_rad",
+            `  ✓ objutils.get: ${rad.objutils.get(testObj, "nested.secret")}\n`,
+          );
+          w.appendConsole(
+            "console_rad",
+            `  ✓ objutils.isEqual: ${rad.objutils.isEqual({ a: 1 }, { a: 1 })}\n`,
+          );
           break;
         }
         case "fnutils": {
-          const piped = rad.fnutils.pipe(5, (x: number) => x * 4, (x: number) => x + 2);
+          const piped = rad.fnutils.pipe(
+            5,
+            (x: number) => x * 4,
+            (x: number) => x + 2,
+          );
           w.appendConsole("console_rad", `  ✓ fnutils.pipe: ${piped}\n`);
           break;
         }
         case "globutils": {
           const hits = await rad.globutils.glob("*.json");
-          w.appendConsole("console_rad", `  ✓ globutils (Bun.Glob): found ${hits.length} JSON files: ${hits.join(", ")}\n`);
+          w.appendConsole(
+            "console_rad",
+            `  ✓ globutils (Bun.Glob): found ${hits.length} JSON files: ${hits.join(", ")}\n`,
+          );
           break;
         }
         case "shellutils": {
           const bunBin = rad.shellutils.which("bun");
-          w.appendConsole("console_rad", `  ✓ shellutils (Bun.$ & which): ${bunBin}\n`);
+          w.appendConsole(
+            "console_rad",
+            `  ✓ shellutils (Bun.$ & which): ${bunBin}\n`,
+          );
           break;
         }
         case "hashutils": {
           const h = rad.hashutils.wyhash("bun_rad_studio");
-          w.appendConsole("console_rad", `  ✓ hashutils (Bun.hash 64-bit wyhash): ${h}\n`);
+          w.appendConsole(
+            "console_rad",
+            `  ✓ hashutils (Bun.hash 64-bit wyhash): ${h}\n`,
+          );
           break;
         }
         default: {
           const modObj = (rad as any)[mod];
           const methodCount = Object.keys(modObj || {}).length;
-          w.appendConsole("console_rad", `  ✓ ${mod}: module verified with ${methodCount} functions\n`);
+          w.appendConsole(
+            "console_rad",
+            `  ✓ ${mod}: module verified with ${methodCount} functions\n`,
+          );
           break;
         }
       }
@@ -321,12 +409,18 @@ export function createRadStudio(options: { fullscreen?: boolean; theme?: string 
       w.appendConsole("console_rad", `  ✓ Completed in ${elapsed}ms\n\n`);
       w.toast(`Module ${mod} verified (${elapsed}ms)`);
     } catch (err: any) {
-      w.appendConsole("console_rad", `  ❌ Error running ${mod}: ${err?.message || err}\n\n`);
+      w.appendConsole(
+        "console_rad",
+        `  ❌ Error running ${mod}: ${err?.message || err}\n\n`,
+      );
     }
   });
 
   win.onClick("btn_run_all", async (w) => {
-    w.appendConsole("console_rad", `[${new Date().toISOString()}] 🚀 Running full 44-Module RAD benchmark suite...\n`);
+    w.appendConsole(
+      "console_rad",
+      `[${new Date().toISOString()}] 🚀 Running full 44-Module RAD benchmark suite...\n`,
+    );
     const t0 = performance.now();
     let passCount = 0;
 
@@ -340,7 +434,10 @@ export function createRadStudio(options: { fullscreen?: boolean; theme?: string 
     }
 
     const elapsed = (performance.now() - t0).toFixed(2);
-    w.appendConsole("console_rad", `✓ All 44 modules verified in ${elapsed}ms (${passCount}/44 available)\n\n`);
+    w.appendConsole(
+      "console_rad",
+      `✓ All 44 modules verified in ${elapsed}ms (${passCount}/44 available)\n\n`,
+    );
     w.toast(`44-Module RAD Suite verified in ${elapsed}ms!`);
   });
 

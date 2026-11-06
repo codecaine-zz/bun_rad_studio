@@ -45,7 +45,10 @@ function myers(a: string[], b: string[], maxD: number): Op[] | null {
     trace.push(v.slice(off - d - 1, off + d + 2));
     for (let k = -d; k <= d; k += 2) {
       const i = k + off;
-      let x = k === -d || (k !== d && v[i - 1]! < v[i + 1]!) ? v[i + 1]! : v[i - 1]! + 1;
+      let x =
+        k === -d || (k !== d && v[i - 1]! < v[i + 1]!)
+          ? v[i + 1]!
+          : v[i - 1]! + 1;
       let y = x - k;
       while (x < n && y < m && a[x] === b[y]) {
         x++;
@@ -67,7 +70,8 @@ function myers(a: string[], b: string[], maxD: number): Op[] | null {
     const snap = trace[d]!;
     const at = (k: number) => snap[k + d + 1]!;
     const k = x - y;
-    const prevK = k === -d || (k !== d && at(k - 1) < at(k + 1)) ? k + 1 : k - 1;
+    const prevK =
+      k === -d || (k !== d && at(k - 1) < at(k + 1)) ? k + 1 : k - 1;
     const prevX = at(prevK);
     const prevY = prevX - prevK;
     while (x > prevX && y > prevY) {
@@ -100,15 +104,27 @@ export function editScript(a: string[], b: string[]): Op[] {
   }
   const midA = a.slice(start, endA);
   const midB = b.slice(start, endB);
-  const middle = myers(midA, midB, MAX_EDIT_DISTANCE) ?? [...midA.map((s): Op => ({ k: "-", s })), ...midB.map((s): Op => ({ k: "+", s }))];
-  return [...a.slice(0, start).map((s): Op => ({ k: " ", s })), ...middle, ...a.slice(endA).map((s): Op => ({ k: " ", s }))];
+  const middle = myers(midA, midB, MAX_EDIT_DISTANCE) ?? [
+    ...midA.map((s): Op => ({ k: "-", s })),
+    ...midB.map((s): Op => ({ k: "+", s })),
+  ];
+  return [
+    ...a.slice(0, start).map((s): Op => ({ k: " ", s })),
+    ...middle,
+    ...a.slice(endA).map((s): Op => ({ k: " ", s })),
+  ];
 }
 
 /** A carriage return would be invisible, so a line that ends in one shows "␍" instead. */
 const show = (s: string) => (s.endsWith("\r") ? `${s.slice(0, -1)}␍` : s);
 
 /** Generates a unified diff (`diff -u` style) between `before` and `after` for `path`, bounded by `limits`. */
-export function unifiedDiff(path: string, before: string, after: string, limits: { maxLines: number; maxChars: number }): UnifiedDiff {
+export function unifiedDiff(
+  path: string,
+  before: string,
+  after: string,
+  limits: { maxLines: number; maxChars: number },
+): UnifiedDiff {
   const ops = editScript(splitLines(before), splitLines(after));
   let added = 0;
   let removed = 0;
@@ -126,13 +142,20 @@ export function unifiedDiff(path: string, before: string, after: string, limits:
   const lines: string[] = [`--- ${path}`, `+++ ${path}`];
   if (changes.length === 0) {
     lines.push("\\ Only the line break at the end of the file changed.");
-    return { text: lines.join("\n"), hunks: 0, added, removed, truncated: false };
+    return {
+      text: lines.join("\n"),
+      hunks: 0,
+      added,
+      removed,
+      truncated: false,
+    };
   }
   const groups: Array<[number, number]> = [];
   for (let g = 0; g < changes.length; g++) {
     const from = Math.max(0, changes[g]! - DIFF_CONTEXT);
     let last = changes[g]!;
-    while (g + 1 < changes.length && changes[g + 1]! - last <= 2 * DIFF_CONTEXT) last = changes[++g]!;
+    while (g + 1 < changes.length && changes[g + 1]! - last <= 2 * DIFF_CONTEXT)
+      last = changes[++g]!;
     groups.push([from, Math.min(ops.length, last + DIFF_CONTEXT + 1)]);
   }
 
@@ -143,9 +166,15 @@ export function unifiedDiff(path: string, before: string, after: string, limits:
     const newCount = newBefore[to]! - newBefore[from]!;
     const oldStart = oldCount === 0 ? oldBefore[from]! : oldBefore[from]! + 1;
     const newStart = newCount === 0 ? newBefore[from]! : newBefore[from]! + 1;
-    const rows = [`@@ -${oldStart},${oldCount} +${newStart},${newCount} @@`, ...ops.slice(from, to).map((op) => `${op.k}${show(op.s)}`)];
+    const rows = [
+      `@@ -${oldStart},${oldCount} +${newStart},${newCount} @@`,
+      ...ops.slice(from, to).map((op) => `${op.k}${show(op.s)}`),
+    ];
     for (const row of rows) {
-      if (lines.length >= limits.maxLines || chars + row.length + 1 > limits.maxChars) {
+      if (
+        lines.length >= limits.maxLines ||
+        chars + row.length + 1 > limits.maxChars
+      ) {
         truncated = true;
         break;
       }
@@ -154,6 +183,15 @@ export function unifiedDiff(path: string, before: string, after: string, limits:
     }
     if (truncated) break;
   }
-  if (truncated) lines.push("… This is only the start of the changes: the rest is too long to show here.");
-  return { text: lines.join("\n"), hunks: groups.length, added, removed, truncated };
+  if (truncated)
+    lines.push(
+      "… This is only the start of the changes: the rest is too long to show here.",
+    );
+  return {
+    text: lines.join("\n"),
+    hunks: groups.length,
+    added,
+    removed,
+    truncated,
+  };
 }

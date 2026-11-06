@@ -5,16 +5,26 @@ import { paneOf, setActivePane } from "./pane.js";
 import { isModifier } from "./util.js";
 
 function rectsIntersect(a, b) {
-  return a.right >= b.left && a.left <= b.right && a.bottom >= b.top && a.top <= b.bottom;
+  return (
+    a.right >= b.left &&
+    a.left <= b.right &&
+    a.bottom >= b.top &&
+    a.top <= b.bottom
+  );
 }
 
 /**
  * Selects all `.row` elements in `pane` ("left" | "right" or pane object) whose bounding client rect intersects `box`
  * (`{ left, top, right, bottom }`). Returns the array of matched row keys.
  */
-export function selectRowsInRect(pane, box, { additive = false, toggle = false, baseSelection = null } = {}) {
+export function selectRowsInRect(
+  pane,
+  box,
+  { additive = false, toggle = false, baseSelection = null } = {},
+) {
   const p = typeof pane === "string" ? paneOf(pane) : pane;
-  const list = p.side === "right" ? document.getElementById("dual-list") : $("#list");
+  const list =
+    p.side === "right" ? document.getElementById("dual-list") : $("#list");
   if (!list) return [];
   const initial = baseSelection ? new Set(baseSelection) : new Set(p.selection);
   const next = additive || toggle ? new Set(initial) : new Set();
@@ -46,21 +56,30 @@ export function selectRowsInRect(pane, box, { additive = false, toggle = false, 
 
 export function wireMarquee(pane = "left") {
   const side = typeof pane === "string" ? pane : pane.side;
-  const wrap = side === "right" ? document.getElementById("dual-wrap") : $("#list-wrap");
+  const wrap =
+    side === "right" ? document.getElementById("dual-wrap") : $("#list-wrap");
   if (!wrap || wrap.dataset.marqueeWired === "1") return;
   wrap.dataset.marqueeWired = "1";
 
   let suppressNextClick = false;
-  wrap.addEventListener("click", (e) => {
-    if (suppressNextClick) {
-      suppressNextClick = false;
-      e.stopImmediatePropagation();
-    }
-  }, true);
+  wrap.addEventListener(
+    "click",
+    (e) => {
+      if (suppressNextClick) {
+        suppressNextClick = false;
+        e.stopImmediatePropagation();
+      }
+    },
+    true,
+  );
 
   wrap.addEventListener("mousedown", (e) => {
     if (e.button !== 0) return;
-    if (e.target instanceof Element && e.target.closest(".row, button, input, a, .group-header")) return;
+    if (
+      e.target instanceof Element &&
+      e.target.closest(".row, button, input, a, .group-header")
+    )
+      return;
     const startX = e.clientX;
     const startY = e.clientY;
     const additive = e.shiftKey;
@@ -87,7 +106,11 @@ export function wireMarquee(pane = "left") {
       boxEl.style.top = `${top}px`;
       boxEl.style.width = `${right - left}px`;
       boxEl.style.height = `${bottom - top}px`;
-      selectRowsInRect(side, { left, top, right, bottom }, { additive, toggle, baseSelection });
+      selectRowsInRect(
+        side,
+        { left, top, right, bottom },
+        { additive, toggle, baseSelection },
+      );
     };
 
     const onUp = () => {

@@ -2,29 +2,50 @@
 /**
  * Regex Studio Pro CLI -- Regular Expression Tester & Code Generator
  */
-import { SimpleCLI } from '../src/index.ts';
+import { SimpleCLI } from "../src/index.ts";
 
-const app = SimpleCLI.newApp('regex-cli', '1.0.0')
-  .setDescription('Regular Expression Pattern Tester, Substitution Engine & Code Generator');
+const app = SimpleCLI.newApp("regex-cli", "1.0.0").setDescription(
+  "Regular Expression Pattern Tester, Substitution Engine & Code Generator",
+);
 
-app.addFlagString('pattern', 'p', '([a-zA-Z0-9._%+-]+)@([a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})', 'RegEx pattern');
-app.addFlagString('flags', 'F', 'g', 'RegEx flags (g, i, m, s, u)');
-app.addFlagString('text', 't', 'Contact support@company.com or security@dev.internal.net for access.', 'Input text to match');
-app.addFlagString('replace', 'r', '', 'Replacement template (supports $1, $2, etc.)');
-app.addFlagBool('code-ts', 'c', false, 'Generate production-ready TypeScript code snippet');
-app.addFlagBool('json', 'j', false, 'Output matches in structured JSON format');
+app.addFlagString(
+  "pattern",
+  "p",
+  "([a-zA-Z0-9._%+-]+)@([a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})",
+  "RegEx pattern",
+);
+app.addFlagString("flags", "F", "g", "RegEx flags (g, i, m, s, u)");
+app.addFlagString(
+  "text",
+  "t",
+  "Contact support@company.com or security@dev.internal.net for access.",
+  "Input text to match",
+);
+app.addFlagString(
+  "replace",
+  "r",
+  "",
+  "Replacement template (supports $1, $2, etc.)",
+);
+app.addFlagBool(
+  "code-ts",
+  "c",
+  false,
+  "Generate production-ready TypeScript code snippet",
+);
+app.addFlagBool("json", "j", false, "Output matches in structured JSON format");
 
 if (!app.parseCli()) process.exit(0);
 
-const pat = app.getFlagString('pattern');
-const flags = app.getFlagString('flags');
-const text = app.getFlagString('text');
-const replaceStr = app.getFlagString('replace');
-const isTs = app.getFlagBool('code-ts');
-const isJson = app.getFlagBool('json');
+const pat = app.getFlagString("pattern");
+const flags = app.getFlagString("flags");
+const text = app.getFlagString("text");
+const replaceStr = app.getFlagString("replace");
+const isTs = app.getFlagBool("code-ts");
+const isJson = app.getFlagBool("json");
 
 if (!isJson && !isTs) {
-  app.banner('Regex Studio Pro CLI', 'v1.0.0 - Expression Evaluator');
+  app.banner("Regex Studio Pro CLI", "v1.0.0 - Expression Evaluator");
 }
 
 if (isTs) {
@@ -48,7 +69,7 @@ try {
   const matches = [...text.matchAll(re)];
 
   if (isJson) {
-    const jsonMatches = matches.map(m => ({
+    const jsonMatches = matches.map((m) => ({
       match: m[0],
       groups: m.slice(1),
       index: m.index,
@@ -64,14 +85,17 @@ try {
       `#${idx + 1}`,
       String(m.index ?? 0),
       m[0],
-      m.slice(1).map((g, gi) => `$${gi + 1}: ${g}`).join(' | ') || '(none)',
+      m
+        .slice(1)
+        .map((g, gi) => `$${gi + 1}: ${g}`)
+        .join(" | ") || "(none)",
     ]);
-    app.table(['#', 'Index', 'Full Match', 'Captured Groups'], rows);
+    app.table(["#", "Index", "Full Match", "Captured Groups"], rows);
   }
 
-  if (replaceStr !== '') {
+  if (replaceStr !== "") {
     const replaced = text.replace(re, replaceStr);
-    app.panel('Substitution Result', replaced);
+    app.panel("Substitution Result", replaced);
   }
 } catch (err: any) {
   app.error(`Invalid RegEx /${pat}/${flags}/: ${err.message}`);

@@ -12,12 +12,17 @@ import {
   sortDiskItems,
   parseByteSize,
 } from "../src/features/gdu/gduDoers.ts";
-import type { DiskUsageItem, MountedDisk } from "../src/features/gdu/gduTypes.ts";
+import type {
+  DiskUsageItem,
+  MountedDisk,
+} from "../src/features/gdu/gduTypes.ts";
 import * as path from "node:path";
 import * as fs from "node:fs";
 import * as os from "node:os";
 
-export function createGduStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
+export function createGduStudio(
+  options: { fullscreen?: boolean; theme?: string } = {},
+): SimpleWindow {
   const win = newSimpleWindow(
     "Gdu Studio Pro -- Fast Disk Usage Analyzer & Storage Explorer",
     1260,
@@ -27,7 +32,7 @@ export function createGduStudio(options: { fullscreen?: boolean; theme?: string 
       theme: options.theme || getSavedTheme() || "midnight",
       autoSaveState: true,
       fullscreen: options.fullscreen ?? true,
-    }
+    },
   );
 
   let currentRoot: DiskUsageItem | null = null;
@@ -46,7 +51,9 @@ export function createGduStudio(options: { fullscreen?: boolean; theme?: string 
   win.addButton("btn_save_state", "💾 Save Config");
   win.addButton("btn_center", "Center");
   win.endRow();
-  win.addCaption("Fast Disk Usage Analyzer -- Interactive Directory Traversal, Visual Size Bars & Storage Telemetry");
+  win.addCaption(
+    "Fast Disk Usage Analyzer -- Interactive Directory Traversal, Visual Size Bars & Storage Telemetry",
+  );
 
   // 2. Storage Telemetry
   // -----------------------------------------------------------------------------------------------
@@ -54,10 +61,22 @@ export function createGduStudio(options: { fullscreen?: boolean; theme?: string 
   win.beginGroupBox("Disk Usage & Volume Telemetry");
   win.beginRow();
   win.addLabel("lbl_metric_folder", isShot ? "Directory: ." : "Directory: .");
-  win.addLabel("lbl_metric_size", isShot ? "Total Size: 48.2 MB" : "Total Size: 0 B");
-  win.addLabel("lbl_metric_items", isShot ? "Total Items: 142" : "Total Items: 0");
-  win.addLabel("lbl_metric_largest", isShot ? "Largest: src (28.4 MB)" : "Largest: None");
-  win.addLabel("lbl_metric_status", isShot ? "Engine: Scanned" : "Engine: Ready");
+  win.addLabel(
+    "lbl_metric_size",
+    isShot ? "Total Size: 48.2 MB" : "Total Size: 0 B",
+  );
+  win.addLabel(
+    "lbl_metric_items",
+    isShot ? "Total Items: 142" : "Total Items: 0",
+  );
+  win.addLabel(
+    "lbl_metric_largest",
+    isShot ? "Largest: src (28.4 MB)" : "Largest: None",
+  );
+  win.addLabel(
+    "lbl_metric_status",
+    isShot ? "Engine: Scanned" : "Engine: Ready",
+  );
   win.endRow();
   win.endGroupBox();
 
@@ -69,7 +88,12 @@ export function createGduStudio(options: { fullscreen?: boolean; theme?: string 
   win.addLabel("lbl_path", "Target Path:");
   win.addInput("txt_path", ".", "Path to scan...", { width: 340 });
   win.addLabel("lbl_sort", "Sort Order:");
-  win.addDropdown("dd_sort", ["Size (Desc)", "Name (Asc)", "Item Count (Desc)", "Modified (Desc)"], "Size (Desc)", { width: 140 });
+  win.addDropdown(
+    "dd_sort",
+    ["Size (Desc)", "Name (Asc)", "Item Count (Desc)", "Modified (Desc)"],
+    "Size (Desc)",
+    { width: 140 },
+  );
   win.addLabel("lbl_min_size", "Min Size:");
   win.addInput("txt_min_size", "", "e.g. 1M, 500k...", { width: 80 });
   win.addCheckbox("chk_si", "Decimal SI (MB/GB)", false);
@@ -90,15 +114,73 @@ export function createGduStudio(options: { fullscreen?: boolean; theme?: string 
   // 4. Directory Items Table
   // -----------------------------------------------------------------------------------------------
   win.beginGroupBox("Directory Structure & Storage Consumption");
-  const tableHeaders = ["Name", "Type", "Size", "Proportion Bar", "Sub-Items", "Modified Date", "Full Path"];
-  const demoItems = isShot ? [
-    ["src", "Directory", "28.4 MB", "████████████░░░░", "68 items", "Today", "./src"],
-    ["node_modules", "Directory", "12.1 MB", "█████░░░░░░░░░░░", "42 items", "Today", "./node_modules"],
-    ["tests", "Directory", "4.8 MB", "██░░░░░░░░░░░░░░", "18 items", "Today", "./tests"],
-    ["docs", "Directory", "2.1 MB", "█░░░░░░░░░░░░░░░", "10 items", "Today", "./docs"],
-    ["bun.lockb", "File", "520.4 KB", "░░░░░░░░░░░░░░░░", "1 file", "Today", "./bun.lockb"],
-    ["package.json", "File", "4.2 KB", "░░░░░░░░░░░░░░░░", "1 file", "Today", "./package.json"],
-  ] : [];
+  const tableHeaders = [
+    "Name",
+    "Type",
+    "Size",
+    "Proportion Bar",
+    "Sub-Items",
+    "Modified Date",
+    "Full Path",
+  ];
+  const demoItems = isShot
+    ? [
+        [
+          "src",
+          "Directory",
+          "28.4 MB",
+          "████████████░░░░",
+          "68 items",
+          "Today",
+          "./src",
+        ],
+        [
+          "node_modules",
+          "Directory",
+          "12.1 MB",
+          "█████░░░░░░░░░░░",
+          "42 items",
+          "Today",
+          "./node_modules",
+        ],
+        [
+          "tests",
+          "Directory",
+          "4.8 MB",
+          "██░░░░░░░░░░░░░░",
+          "18 items",
+          "Today",
+          "./tests",
+        ],
+        [
+          "docs",
+          "Directory",
+          "2.1 MB",
+          "█░░░░░░░░░░░░░░░",
+          "10 items",
+          "Today",
+          "./docs",
+        ],
+        [
+          "bun.lockb",
+          "File",
+          "520.4 KB",
+          "░░░░░░░░░░░░░░░░",
+          "1 file",
+          "Today",
+          "./bun.lockb",
+        ],
+        [
+          "package.json",
+          "File",
+          "4.2 KB",
+          "░░░░░░░░░░░░░░░░",
+          "1 file",
+          "Today",
+          "./package.json",
+        ],
+      ]
+    : [];
   win.addTable("tbl_items", tableHeaders, demoItems, { height: 320 });
   win.endGroupBox();
 
@@ -113,7 +195,10 @@ export function createGduStudio(options: { fullscreen?: boolean; theme?: string 
   // 6. Status Bar
   // -----------------------------------------------------------------------------------------------
   win.beginRow();
-  win.addLabel("lbl_status_bar", "Ready. Click Scan Target to compute disk usage.");
+  win.addLabel(
+    "lbl_status_bar",
+    "Ready. Click Scan Target to compute disk usage.",
+  );
   win.endRow();
 
   // -----------------------------------------------------------------------------------------------
@@ -173,16 +258,36 @@ export function createGduStudio(options: { fullscreen?: boolean; theme?: string 
 
       win.setTableData("tbl_items", rows);
 
-      win.setValue("lbl_metric_folder", `Directory: ${path.basename(activePath) || activePath}`);
-      win.setValue("lbl_metric_size", `Total Size: ${formatBytes(root.size, si)}`);
-      win.setValue("lbl_metric_items", `Total Items: ${root.itemCount?.toLocaleString() ?? sorted.length}`);
-      win.setValue("lbl_metric_largest", sorted[0] ? `Largest: ${sorted[0].name} (${formatBytes(sorted[0].size, si)})` : "None");
+      win.setValue(
+        "lbl_metric_folder",
+        `Directory: ${path.basename(activePath) || activePath}`,
+      );
+      win.setValue(
+        "lbl_metric_size",
+        `Total Size: ${formatBytes(root.size, si)}`,
+      );
+      win.setValue(
+        "lbl_metric_items",
+        `Total Items: ${root.itemCount?.toLocaleString() ?? sorted.length}`,
+      );
+      win.setValue(
+        "lbl_metric_largest",
+        sorted[0]
+          ? `Largest: ${sorted[0].name} (${formatBytes(sorted[0].size, si)})`
+          : "None",
+      );
       win.setValue("lbl_metric_status", "Engine: Completed");
-      win.setValue("lbl_status_bar", `✓ Scanned ${sorted.length} item(s) in "${activePath}". Total: ${formatBytes(root.size, si)}.`);
+      win.setValue(
+        "lbl_status_bar",
+        `✓ Scanned ${sorted.length} item(s) in "${activePath}". Total: ${formatBytes(root.size, si)}.`,
+      );
 
       win.clearConsole("console_gdu");
       win.appendConsole("console_gdu", `CURRENT DIRECTORY: ${activePath}\n`);
-      win.appendConsole("console_gdu", `Total Disk Space Consumed: ${formatBytes(root.size, si)} across ${root.itemCount ?? sorted.length} files/folders.\n`);
+      win.appendConsole(
+        "console_gdu",
+        `Total Disk Space Consumed: ${formatBytes(root.size, si)} across ${root.itemCount ?? sorted.length} files/folders.\n`,
+      );
     } catch (err: any) {
       win.setValue("lbl_status_bar", `❌ Scan error: ${err.message}`);
     }
@@ -210,7 +315,10 @@ export function createGduStudio(options: { fullscreen?: boolean; theme?: string 
       pathHistory.push(activePath);
       return scanCurrentPath(selectedItem.path);
     } else {
-      win.setValue("lbl_status_bar", "⚠️ Please select a directory row from the table to drill down.");
+      win.setValue(
+        "lbl_status_bar",
+        "⚠️ Please select a directory row from the table to drill down.",
+      );
     }
   });
 
@@ -219,15 +327,42 @@ export function createGduStudio(options: { fullscreen?: boolean; theme?: string 
       selectedItem = currentItems[val];
       if (selectedItem) {
         win.clearConsole("console_gdu");
-        win.appendConsole("console_gdu", `=================================================================\n`);
-        win.appendConsole("console_gdu", `SELECTED ITEM: ${selectedItem.name}\n`);
-        win.appendConsole("console_gdu", `=================================================================\n`);
-        win.appendConsole("console_gdu", `Type:          ${selectedItem.isDirectory ? "Directory" : "File"}\n`);
-        win.appendConsole("console_gdu", `Size:          ${formatBytes(selectedItem.size)} (${selectedItem.size.toLocaleString()} bytes)\n`);
-        win.appendConsole("console_gdu", `Sub-items:     ${selectedItem.itemCount ?? 1}\n`);
-        win.appendConsole("console_gdu", `Full Path:     ${selectedItem.path}\n`);
-        win.appendConsole("console_gdu", `Modified:      ${selectedItem.mtime ? new Date(selectedItem.mtime).toISOString() : "Unknown"}\n`);
-        win.setValue("lbl_status_bar", `Selected: ${selectedItem.name} (${formatBytes(selectedItem.size)})`);
+        win.appendConsole(
+          "console_gdu",
+          `=================================================================\n`,
+        );
+        win.appendConsole(
+          "console_gdu",
+          `SELECTED ITEM: ${selectedItem.name}\n`,
+        );
+        win.appendConsole(
+          "console_gdu",
+          `=================================================================\n`,
+        );
+        win.appendConsole(
+          "console_gdu",
+          `Type:          ${selectedItem.isDirectory ? "Directory" : "File"}\n`,
+        );
+        win.appendConsole(
+          "console_gdu",
+          `Size:          ${formatBytes(selectedItem.size)} (${selectedItem.size.toLocaleString()} bytes)\n`,
+        );
+        win.appendConsole(
+          "console_gdu",
+          `Sub-items:     ${selectedItem.itemCount ?? 1}\n`,
+        );
+        win.appendConsole(
+          "console_gdu",
+          `Full Path:     ${selectedItem.path}\n`,
+        );
+        win.appendConsole(
+          "console_gdu",
+          `Modified:      ${selectedItem.mtime ? new Date(selectedItem.mtime).toISOString() : "Unknown"}\n`,
+        );
+        win.setValue(
+          "lbl_status_bar",
+          `Selected: ${selectedItem.name} (${formatBytes(selectedItem.size)})`,
+        );
       }
     }
   });
@@ -238,11 +373,20 @@ export function createGduStudio(options: { fullscreen?: boolean; theme?: string 
       const disks = fetchMountedDisksSync();
       const tableText = formatDisksTable(disks);
       win.clearConsole("console_gdu");
-      win.appendConsole("console_gdu", `=================================================================\n`);
+      win.appendConsole(
+        "console_gdu",
+        `=================================================================\n`,
+      );
       win.appendConsole("console_gdu", `MOUNTED FILESYSTEMS & DISK VOLUMES\n`);
-      win.appendConsole("console_gdu", `=================================================================\n`);
+      win.appendConsole(
+        "console_gdu",
+        `=================================================================\n`,
+      );
       win.appendConsole("console_gdu", tableText + "\n");
-      win.setValue("lbl_status_bar", `✓ Found ${disks.length} mounted filesystem volume(s).`);
+      win.setValue(
+        "lbl_status_bar",
+        `✓ Found ${disks.length} mounted filesystem volume(s).`,
+      );
     } catch (err: any) {
       win.setValue("lbl_status_bar", `❌ Error fetching disks: ${err.message}`);
     }
@@ -256,14 +400,20 @@ export function createGduStudio(options: { fullscreen?: boolean; theme?: string 
     const itemPath = selectedItem.path;
     const itemName = selectedItem.name;
     const resolvedItem = path.resolve(itemPath);
-    if (resolvedItem === path.parse(resolvedItem).root || resolvedItem === path.resolve(os.homedir())) {
-      win.setValue("lbl_status_bar", "⛔ Refusing to delete a filesystem root or your home directory.");
+    if (
+      resolvedItem === path.parse(resolvedItem).root ||
+      resolvedItem === path.resolve(os.homedir())
+    ) {
+      win.setValue(
+        "lbl_status_bar",
+        "⛔ Refusing to delete a filesystem root or your home directory.",
+      );
       return;
     }
     const detail = `${formatBytes(selectedItem.size)}${selectedItem.isDirectory ? `, ${selectedItem.itemCount ?? "?"} item(s) inside` : ""}`;
     const confirmed = await win.confirm(
       `Permanently delete "${itemName}" (${detail})?\n\n${resolvedItem}\n\nThis cannot be undone.`,
-      "Confirm Permanent Delete"
+      "Confirm Permanent Delete",
     );
     if (!confirmed) {
       win.setValue("lbl_status_bar", "Delete cancelled.");

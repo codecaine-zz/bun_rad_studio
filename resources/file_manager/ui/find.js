@@ -20,7 +20,10 @@ import { formatSize, plural } from "./util.js";
 const LIVE_POLL_MS = 2000;
 
 registerPowerTab({
-  id: "find", label: "Find", icon: "🔎", tip: "Advanced file search: patterns, filters, contents, duplicates, bulk actions",
+  id: "find",
+  label: "Find",
+  icon: "🔎",
+  tip: "Advanced file search: patterns, filters, contents, duplicates, bulk actions",
   mount(root) {
     root.classList.add("find-pane");
     let history = [];
@@ -32,7 +35,11 @@ registerPowerTab({
     let pollTimer = 0;
     let polling = false;
 
-    const status = h("p", { class: "pw-status find-status", role: "status", "aria-live": "polite" }, "Choose a folder and press Find.");
+    const status = h(
+      "p",
+      { class: "pw-status find-status", role: "status", "aria-live": "polite" },
+      "Choose a folder and press Find.",
+    );
     const setStatus = (text, bad = false) => {
       status.textContent = text;
       status.classList.toggle("pw-bad", bad);
@@ -45,13 +52,26 @@ registerPowerTab({
       void call("find/cancel", {}).catch(() => {});
     }
 
-    const form = createForm({ onSearch: () => search(), onCancel, onClear, onLive, onPreset, onRecent });
+    const form = createForm({
+      onSearch: () => search(),
+      onCancel,
+      onClear,
+      onLive,
+      onPreset,
+      onRecent,
+    });
     // Saved projects read and restore the search settings through these two functions.
     fs.readForm = () => form.readSaved();
-    fs.applyForm = (v, folder) => { form.applySaved(v); if (folder) form.setValues({ root: folder }); };
+    fs.applyForm = (v, folder) => {
+      form.applySaved(v);
+      if (folder) form.setValues({ root: folder });
+    };
     const results = createResults({ onActivate: openItem });
     const inspector = createInspector();
-    const hooks = { rerun: () => search({ quiet: true }), getRoot: () => form.getRoot() };
+    const hooks = {
+      rerun: () => search({ quiet: true }),
+      getRoot: () => form.getRoot(),
+    };
     const actions = createActions(hooks);
     const analyze = createAnalyze({ reveal: results.reveal });
     const rename = createRename(hooks);
@@ -79,7 +99,12 @@ registerPowerTab({
         root.classList.toggle("find-windows", !fs.meta.posix);
       } catch (err) {
         metaLoaded = false;
-        setStatus(err instanceof ApiError ? err.message : "The search tool couldn't start.", true);
+        setStatus(
+          err instanceof ApiError
+            ? err.message
+            : "The search tool couldn't start.",
+          true,
+        );
       }
     }
 
@@ -87,7 +112,10 @@ registerPowerTab({
       await loadMeta();
       const body = form.read();
       if (!body.root) {
-        setStatus("Choose a folder to search in first: type its location or press Browse.", true);
+        setStatus(
+          "Choose a folder to search in first: type its location or press Browse.",
+          true,
+        );
         return;
       }
       const mine = ++seq;
@@ -106,14 +134,26 @@ registerPowerTab({
           `looked at ${res.totalScanned.toLocaleString()} items`,
           `files add up to ${formatSize(res.totalSizeBytes)}`,
         ];
-        if (res.truncated) bits.push(`stopped at the limit of ${body.maxResults.toLocaleString()} results: raise "Most results" or narrow the search`);
-        if (res.patternFallback) bits.push("that isn't a valid pattern, so it was searched as plain text");
+        if (res.truncated)
+          bits.push(
+            `stopped at the limit of ${body.maxResults.toLocaleString()} results: raise "Most results" or narrow the search`,
+          );
+        if (res.patternFallback)
+          bits.push(
+            "that isn't a valid pattern, so it was searched as plain text",
+          );
         setStatus(`${bits.join(" · ")}.`, false);
-        if (!quiet) announce(res.matchedCount === 0 ? "No matches found." : `${plural(res.matchedCount, "match", "matches")} found.`);
+        if (!quiet)
+          announce(
+            res.matchedCount === 0
+              ? "No matches found."
+              : `${plural(res.matchedCount, "match", "matches")} found.`,
+          );
         if (form.isLive() && (!watch || watch.root !== res.root)) startLive();
       } catch (err) {
         if (mine !== seq) return;
-        const message = err instanceof ApiError ? err.message : "The search didn't work.";
+        const message =
+          err instanceof ApiError ? err.message : "The search didn't work.";
         setStatus(message, true);
         if (!quiet) toast(message, { kind: "error" });
       } finally {
@@ -129,7 +169,13 @@ registerPowerTab({
     function onPreset(label) {
       const preset = fs.meta.presets.find((p) => p.label === label);
       if (!preset) return;
-      form.setValues({ pattern: preset.pattern, exts: preset.exts, size: preset.size, modified: preset.modified, type: preset.type });
+      form.setValues({
+        pattern: preset.pattern,
+        exts: preset.exts,
+        size: preset.size,
+        modified: preset.modified,
+        type: preset.type,
+      });
       search();
     }
 
@@ -146,7 +192,8 @@ registerPowerTab({
       pollTimer = 0;
       const old = watch;
       watch = null;
-      if (old && tellServer) await call("find/watch/stop", { watchId: old.id }).catch(() => {});
+      if (old && tellServer)
+        await call("find/watch/stop", { watchId: old.id }).catch(() => {});
     }
 
     async function startLive() {
@@ -157,13 +204,22 @@ registerPowerTab({
         return;
       }
       try {
-        const res = await call("find/watch/start", { root: folder, hidden: form.read().hidden });
+        const res = await call("find/watch/start", {
+          root: folder,
+          hidden: form.read().hidden,
+        });
         watch = { id: res.watchId, root: res.root, changes: 0 };
         pollTimer = setInterval(poll, LIVE_POLL_MS);
-        toast("Live mode is on: the results update by themselves when files change.", { kind: "info" });
+        toast(
+          "Live mode is on: the results update by themselves when files change.",
+          { kind: "info" },
+        );
       } catch (err) {
         form.setLive(false);
-        toast(err instanceof ApiError ? err.message : "Live mode couldn't start.", { kind: "error" });
+        toast(
+          err instanceof ApiError ? err.message : "Live mode couldn't start.",
+          { kind: "error" },
+        );
       }
     }
 
@@ -205,7 +261,8 @@ registerPowerTab({
     return {
       show(opts) {
         loadMeta();
-        const fromMenu = opts && (opts.root || typeof opts.pattern === "string");
+        const fromMenu =
+          opts && (opts.root || typeof opts.pattern === "string");
         if (opts?.root) {
           form.setValues({ root: opts.root });
         } else if (!form.hasRoot() || form.getRoot() === autoRoot) {

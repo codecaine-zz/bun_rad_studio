@@ -29,7 +29,8 @@ import {
 
 export const DEFAULT_PORT = 3276;
 export const APP_PORT = Number(process.env.VAMPIRE_SURVIVORS_PORT || 3276);
-export const APP_TITLE = "Codecaine NightSavior: Bullet-Heaven & Dark Force Odyssey";
+export const APP_TITLE =
+  "Codecaine NightSavior: Bullet-Heaven & Dark Force Odyssey";
 
 const FALLBACK_FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
@@ -149,10 +150,16 @@ ${getWindowShortcutsScript()}
     title?: string,
     accent?: string,
   ) => string;
-  return applyFx(html, "Codecaine NightSavior: Vampire Survivors & Dark Force", "rose");
+  return applyFx(
+    html,
+    "Codecaine NightSavior: Vampire Survivors & Dark Force",
+    "rose",
+  );
 }
 
-export function startVampireSurvivorsServer(options: VampireSurvivorsServerOptions = {}) {
+export function startVampireSurvivorsServer(
+  options: VampireSurvivorsServerOptions = {},
+) {
   const port = options.port ?? APP_PORT;
   const host = options.host ?? "127.0.0.1";
   const assetsDir = getVampireSurvivorsAssetsDir();
@@ -179,7 +186,10 @@ export function startVampireSurvivorsServer(options: VampireSurvivorsServerOptio
 
       if (pathname === "/" || pathname === "/index.html") {
         return new Response(generateVampireSurvivorsStudioHtml(), {
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            ...corsHeaders,
+          },
         });
       }
 
@@ -218,7 +228,9 @@ export function startVampireSurvivorsServer(options: VampireSurvivorsServerOptio
         return new Response("Forbidden", { status: 403 });
       }
       if (existsSync(directCandidate)) {
-        return new Response(Bun.file(directCandidate), { headers: corsHeaders });
+        return new Response(Bun.file(directCandidate), {
+          headers: corsHeaders,
+        });
       }
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
@@ -260,7 +272,8 @@ export function createVampireSurvivorsStudio(
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -280,11 +293,15 @@ export function createVampireSurvivorsStudio(
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -295,7 +312,9 @@ export function createVampireSurvivorsStudio(
 
         webview.setHTML(html);
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
         console.warn(
@@ -303,7 +322,9 @@ export function createVampireSurvivorsStudio(
         );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -329,10 +350,13 @@ if (process.argv.includes("--server")) {
   );
   const srv = startVampireSurvivorsServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`🧛 ${APP_TITLE} Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `🧛 ${APP_TITLE} Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = process.argv.includes("--fullscreen") || process.argv.includes("-f");
+  const fullscreen =
+    process.argv.includes("--fullscreen") || process.argv.includes("-f");
   const app = createVampireSurvivorsStudio({ fullscreen });
   await app.run();
   process.exit(0);

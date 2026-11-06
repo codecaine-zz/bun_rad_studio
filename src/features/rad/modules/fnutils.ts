@@ -27,7 +27,7 @@ export function once<T extends (...args: any[]) => any>(fn: T): T {
  */
 export function memoize<T extends (...args: any[]) => any>(
   fn: T,
-  keyResolver?: (...args: Parameters<T>) => string
+  keyResolver?: (...args: Parameters<T>) => string,
 ): T & { cache: Map<string, ReturnType<T>> } {
   const cache = new Map<string, ReturnType<T>>();
 
@@ -101,7 +101,7 @@ export function after<T extends (...args: any[]) => any>(n: number, fn: T): T {
  */
 export function debounce<T extends (...args: any[]) => any>(
   fn: T,
-  waitMs: number
+  waitMs: number,
 ): ((...args: Parameters<T>) => void) & { cancel: () => void } {
   let timer: ReturnType<typeof setTimeout> | null = null;
   const debounced = (...args: Parameters<T>) => {
@@ -126,7 +126,7 @@ export function debounce<T extends (...args: any[]) => any>(
  */
 export function throttle<T extends (...args: any[]) => any>(
   fn: T,
-  waitMs: number
+  waitMs: number,
 ): ((...args: Parameters<T>) => void) & { cancel: () => void } {
   let lastExec = 0;
   let timer: ReturnType<typeof setTimeout> | null = null;

@@ -4,8 +4,11 @@ import { S, inStudio } from "./mysql_tutorial_helpers";
 /** Chapter 9: build a macro in the macro designer and run it. */
 export const macroChapters: Chapter[] = [
   {
-    id: "10_macros", chapter: "MACROS", title: "Automate it: build and run a macro",
-    blurb: "The macro designer: actions, conditions, a dry run, and the execution trace",
+    id: "10_macros",
+    chapter: "MACROS",
+    title: "Automate it: build and run a macro",
+    blurb:
+      "The macro designer: actions, conditions, a dry run, and the execution trace",
     steps: [
       {
         cap: "The Macro Designer",
@@ -25,7 +28,10 @@ export const macroChapters: Chapter[] = [
           await d.key("Meta+a", "⌘ A");
           await d.type("Top customers", 60);
           await d.hover(S + ".sidebar-mini-btn >> + Add", 800);
-          await inStudio(d, `(() => { const s = document.querySelectorAll('.macro-action-select')[1]; s.value = 'RunSQL'; s.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+          await inStudio(
+            d,
+            `(() => { const s = document.querySelectorAll('.macro-action-select')[1]; s.value = 'RunSQL'; s.dispatchEvent(new Event('change', { bubbles: true })); })()`,
+          );
           await d.wait(1500);
         },
       },
@@ -33,10 +39,16 @@ export const macroChapters: Chapter[] = [
         cap: "Give the action its S Q L",
         say: "Run S Q L takes a statement. I type a query for the five biggest balances. Conditions can guard a row, and on error decides whether the macro stops or continues.",
         act: async (d) => {
-          await inStudio(d, `(() => { document.querySelectorAll('[data-vid]').forEach((e) => e.removeAttribute('data-vid')); let row = document.querySelectorAll('.macro-action-select')[1]; while (row && !row.querySelector('.macro-param-input')) row = row.parentElement; row.querySelector('.macro-param-input').setAttribute('data-vid', 'f'); })()`);
+          await inStudio(
+            d,
+            `(() => { document.querySelectorAll('[data-vid]').forEach((e) => e.removeAttribute('data-vid')); let row = document.querySelectorAll('.macro-action-select')[1]; while (row && !row.querySelector('.macro-param-input')) row = row.parentElement; row.querySelector('.macro-param-input').setAttribute('data-vid', 'f'); })()`,
+          );
           await d.click(S + "[data-vid=f]", { pause: 400 });
           await d.key("Meta+a", "⌘ A");
-          await d.type("SELECT name, tier, balance FROM customers ORDER BY balance DESC LIMIT 5", 35);
+          await d.type(
+            "SELECT name, tier, balance FROM customers ORDER BY balance DESC LIMIT 5",
+            35,
+          );
           await d.wait(800);
           await d.hover(S + "#macroOnErrorSelect", 900);
         },
@@ -56,8 +68,12 @@ export const macroChapters: Chapter[] = [
   },
 
   {
-    id: "10b_studio_ide_v2", chapter: "STUDIO IDE V2", title: "Row inspector, FK jump, SQL worksheets, ER diagram, schema diff & codegen",
-    blurb: "Side row inspector, foreign-key navigation, multi-tab SQL IDE, ER canvas, schema diff and five-language code generation",
+    id: "10b_studio_ide_v2",
+    chapter: "STUDIO IDE V2",
+    title:
+      "Row inspector, FK jump, SQL worksheets, ER diagram, schema diff & codegen",
+    blurb:
+      "Side row inspector, foreign-key navigation, multi-tab SQL IDE, ER canvas, schema diff and five-language code generation",
     steps: [
       {
         cap: "Side Row Inspector & FK ↗ Jump",
@@ -81,7 +97,9 @@ export const macroChapters: Chapter[] = [
           await d.click(S + "#btnAddWorksheet", { pause: 800 });
           await d.click(S + ".studio-ws-tab", { pause: 600 });
           await d.click(S + "#btnStudioFormatSql", { pause: 900 });
-          await d.click(S + 'button[onclick="runEditorQuery()"]', { pause: 1000 });
+          await d.click(S + 'button[onclick="runEditorQuery()"]', {
+            pause: 1000,
+          });
           await d.click(S + "#btnStudioSqlHistory", { pause: 1100 });
           await d.click(S + "#btnStudioHistClose", { pause: 500 });
           await d.click(S + "#btnTxBegin", { pause: 900 });
@@ -102,14 +120,19 @@ export const macroChapters: Chapter[] = [
           await d.click(S + "#btnRunSchemaDiff", { pause: 1100 });
           await d.click(S + "#btnSchemaModeTable", { pause: 500 });
           await d.click(S + "#tabBtnMacros", { pause: 900 });
-          await d.click(S + 'button[onclick="openCodeGenForCurrentMacro()"]', { pause: 1100 });
+          await d.click(S + 'button[onclick="openCodeGenForCurrentMacro()"]', {
+            pause: 1100,
+          });
           for (const lang of ["bun-sql", "typescript", "python", "vlang"]) {
-            await d.click(S + `#macroCodeTabs button[data-target="${lang}"]`, { pause: 650 });
+            await d.click(S + `#macroCodeTabs button[data-target="${lang}"]`, {
+              pause: 650,
+            });
           }
-          await d.click(S + 'button[onclick="closeCodeGenModal()"]', { pause: 500 });
+          await d.click(S + 'button[onclick="closeCodeGenModal()"]', {
+            pause: 500,
+          });
         },
       },
     ],
   },
 ];
-

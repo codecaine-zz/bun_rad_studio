@@ -13,7 +13,10 @@ const PINNED_STORAGE_KEY = "fm.cliutils.pinned";
 
 function loadPinnedSet() {
   try {
-    const raw = typeof localStorage !== "undefined" ? localStorage.getItem(PINNED_STORAGE_KEY) : null;
+    const raw =
+      typeof localStorage !== "undefined"
+        ? localStorage.getItem(PINNED_STORAGE_KEY)
+        : null;
     if (!raw) return new Set(["calc", "fd", "rg", "tokei", "jq", "sqlite"]);
     const parsed = JSON.parse(raw);
     return new Set(Array.isArray(parsed) ? parsed.map(String) : []);
@@ -48,8 +51,16 @@ function mount(root) {
   let runningToolId = "";
   const pinned = loadPinnedSet();
 
-  const status = h("p", { class: "pw-status", role: "status", "aria-live": "polite" });
-  const folderCode = h("code", { class: "pw-mono" }, folder || "~/.bun_rad_studio/cli_utils");
+  const status = h("p", {
+    class: "pw-status",
+    role: "status",
+    "aria-live": "polite",
+  });
+  const folderCode = h(
+    "code",
+    { class: "pw-mono" },
+    folder || "~/.bun_rad_studio/cli_utils",
+  );
   const filterInput = h("input", {
     type: "search",
     class: "find-input",
@@ -71,7 +82,8 @@ function mount(root) {
       if (e.key === "Enter") {
         e.preventDefault();
         const targetTool =
-          (lastRun?.tool && tools.find((t) => t.id === lastRun.tool.id)) || getFilteredTools()[0];
+          (lastRun?.tool && tools.find((t) => t.id === lastRun.tool.id)) ||
+          getFilteredTools()[0];
         if (targetTool) void quickRunTool(targetTool);
       }
     },
@@ -81,7 +93,8 @@ function mount(root) {
     {
       type: "button",
       class: "pw-btn",
-      title: "Switch working directory for Quick Run between the current File Manager folder and cli_utils",
+      title:
+        "Switch working directory for Quick Run between the current File Manager folder and cli_utils",
       onclick: () => {
         cwdMode = cwdMode === "current" ? "cli_utils" : "current";
         syncCwdButton();
@@ -126,11 +139,16 @@ function mount(root) {
   function insertSelectedPaths() {
     const selected = [...(state.selected ?? [])];
     if (!selected.length) {
-      toast("Select one or more files in the File Manager first.", { kind: "info" });
+      toast("Select one or more files in the File Manager first.", {
+        kind: "info",
+      });
       return;
     }
     appendArgTokens(selected);
-    toast(`Inserted ${plural(selected.length, "selected path")} into arguments.`, { kind: "info" });
+    toast(
+      `Inserted ${plural(selected.length, "selected path")} into arguments.`,
+      { kind: "info" },
+    );
   }
 
   function insertCurrentFolder() {
@@ -144,29 +162,43 @@ function mount(root) {
   }
 
   function openFolderInFiles(target) {
-    if (!target) return toast("The folder path isn't available yet.", { kind: "info" });
+    if (!target)
+      return toast("The folder path isn't available yet.", { kind: "info" });
     setWorkspace("files");
     goTo(target);
   }
 
   function openTerminalInCliFolder() {
     const target = folder || state.cliUtilsDir;
-    if (!target) return toast("The CLI utilities folder isn't ready yet.", { kind: "error" });
+    if (!target)
+      return toast("The CLI utilities folder isn't ready yet.", {
+        kind: "error",
+      });
     setWorkspace("files");
     goTo(target);
     emit("terminal-here", target);
-    toast("Terminal opened in CLI Utilities. Run ./<tool-name> directly.", { kind: "info" });
+    toast("Terminal opened in CLI Utilities. Run ./<tool-name> directly.", {
+      kind: "info",
+    });
   }
 
   function sendToolToTerminal(tool, { submit = false, forceArgs = null } = {}) {
     const target = folder || state.cliUtilsDir;
-    if (!target) return toast("The CLI utilities folder isn't ready yet.", { kind: "error" });
+    if (!target)
+      return toast("The CLI utilities folder isn't ready yet.", {
+        kind: "error",
+      });
     const rawArgs = forceArgs !== null ? forceArgs : argsInput.value;
-    if (/[\r\n\0]/.test(rawArgs)) return toast("Arguments cannot contain line breaks.", { kind: "error" });
-    const cmd = buildCmd(tool.command, rawArgs) + (submit ? "" : rawArgs.trim() ? " " : " ");
+    if (/[\r\n\0]/.test(rawArgs))
+      return toast("Arguments cannot contain line breaks.", { kind: "error" });
+    const cmd =
+      buildCmd(tool.command, rawArgs) +
+      (submit ? "" : rawArgs.trim() ? " " : " ");
     emit("terminal-run-in", { folder: target, command: cmd, submit });
     toast(
-      submit ? `Running ${cmd.trim()} in Terminal…` : `Ready in Terminal: ${cmd.trim()} (press Enter to run)`,
+      submit
+        ? `Running ${cmd.trim()} in Terminal…`
+        : `Ready in Terminal: ${cmd.trim()} (press Enter to run)`,
       { kind: "info" },
     );
   }
@@ -201,7 +233,10 @@ function mount(root) {
       toast(`Saved CLI output to ${created.name}`, { kind: "success" });
       if (state.path === parent) void refresh();
     } catch (err) {
-      toast(err instanceof ApiError ? err.message : "Couldn't save output to file.", { kind: "error" });
+      toast(
+        err instanceof ApiError ? err.message : "Couldn't save output to file.",
+        { kind: "error" },
+      );
     }
   }
 
@@ -214,8 +249,15 @@ function mount(root) {
       runnerWrap.replaceChildren(
         h(
           "section",
-          { class: "pw-card cliutil-runner-card", "aria-label": "CLI Quick Runner Console" },
-          h("div", { class: "pw-row" }, h("strong", {}, `⚡ Running ./${runningToolId}…`)),
+          {
+            class: "pw-card cliutil-runner-card",
+            "aria-label": "CLI Quick Runner Console",
+          },
+          h(
+            "div",
+            { class: "pw-row" },
+            h("strong", {}, `⚡ Running ./${runningToolId}…`),
+          ),
         ),
       );
       return;
@@ -223,13 +265,22 @@ function mount(root) {
 
     const r = lastRun;
     const isOk = r.ok && r.exitCode === 0;
-    const badgeText = r.timedOut ? "⏱ Timed out" : isOk ? "✓ Exit 0" : `✗ Exit ${r.exitCode}`;
-    const outputText = (r.cleanOutput || r.output || "").trim() || "(Command completed with no stdout/stderr output)";
+    const badgeText = r.timedOut
+      ? "⏱ Timed out"
+      : isOk
+        ? "✓ Exit 0"
+        : `✗ Exit ${r.exitCode}`;
+    const outputText =
+      (r.cleanOutput || r.output || "").trim() ||
+      "(Command completed with no stdout/stderr output)";
 
     runnerWrap.replaceChildren(
       h(
         "section",
-        { class: "pw-card cliutil-runner-card", "aria-label": "CLI Quick Runner Console" },
+        {
+          class: "pw-card cliutil-runner-card",
+          "aria-label": "CLI Quick Runner Console",
+        },
         h(
           "div",
           { class: "pw-row cliutil-card-head" },
@@ -238,8 +289,16 @@ function mount(root) {
             { class: "cliutil-title-wrap" },
             h("strong", {}, `${r.tool.icon || "⚡"} Quick Runner Console`),
             h("code", { class: "pw-mono" }, r.command),
-            h("span", { class: `cliutil-exit-badge ${isOk ? "ok" : "err"}` }, badgeText),
-            h("span", { class: "code-badge code-badge-quiet" }, `${r.durationMs} ms`),
+            h(
+              "span",
+              { class: `cliutil-exit-badge ${isOk ? "ok" : "err"}` },
+              badgeText,
+            ),
+            h(
+              "span",
+              { class: "code-badge code-badge-quiet" },
+              `${r.durationMs} ms`,
+            ),
           ),
           h(
             "div",
@@ -300,8 +359,17 @@ function mount(root) {
             ),
           ),
         ),
-        h("p", { class: "pw-hint" }, "Working directory: ", h("code", { class: "pw-mono" }, r.cwd)),
-        h("pre", { class: "pw-out cliutil-console-out", tabindex: "0" }, outputText),
+        h(
+          "p",
+          { class: "pw-hint" },
+          "Working directory: ",
+          h("code", { class: "pw-mono" }, r.cwd),
+        ),
+        h(
+          "pre",
+          { class: "pw-out cliutil-console-out", tabindex: "0" },
+          outputText,
+        ),
       ),
     );
   }
@@ -316,7 +384,9 @@ function mount(root) {
       return;
     }
     const targetCwd =
-      cwdMode === "current" && state.path ? state.path : folder || state.cliUtilsDir || "";
+      cwdMode === "current" && state.path
+        ? state.path
+        : folder || state.cliUtilsDir || "";
     runningToolId = tool.id;
     renderRunnerConsole();
     say(`Running ${buildCmd(tool.command, rawArgs)}…`);
@@ -336,7 +406,8 @@ function mount(root) {
     } catch (err) {
       runningToolId = "";
       renderRunnerConsole();
-      const msg = err instanceof ApiError ? err.message : "Couldn't run CLI utility.";
+      const msg =
+        err instanceof ApiError ? err.message : "Couldn't run CLI utility.";
       say(msg, true);
       toast(msg, { kind: "error" });
     }
@@ -358,8 +429,13 @@ function mount(root) {
     const pinnedCount = tools.filter((t) => pinned.has(t.id)).length;
     const cats = [
       { id: "All", label: `All (${tools.length})` },
-      ...(pinnedCount > 0 ? [{ id: "Pinned", label: `⭐ Pinned (${pinnedCount})` }] : []),
-      ...[...counts.entries()].map(([cat, count]) => ({ id: cat, label: `${cat} (${count})` })),
+      ...(pinnedCount > 0
+        ? [{ id: "Pinned", label: `⭐ Pinned (${pinnedCount})` }]
+        : []),
+      ...[...counts.entries()].map(([cat, count]) => ({
+        id: cat,
+        label: `${cat} (${count})`,
+      })),
     ];
     if (selectedCategory === "Pinned" && pinnedCount === 0) {
       selectedCategory = "All";
@@ -385,7 +461,10 @@ function mount(root) {
   }
 
   function renderRow(tool) {
-    const bothNames = tool.id !== tool.stem ? `${tool.command}  (${tool.stemCommand})` : tool.command;
+    const bothNames =
+      tool.id !== tool.stem
+        ? `${tool.command}  (${tool.stemCommand})`
+        : tool.command;
     const isFav = pinned.has(tool.id);
     const flags = Array.isArray(tool.flags) ? tool.flags : [];
     const examples = Array.isArray(tool.examples) ? tool.examples : [];
@@ -403,7 +482,11 @@ function mount(root) {
         h(
           "div",
           { class: "cliutil-title-wrap" },
-          h("span", { class: "cliutil-icon", "aria-hidden": "true" }, tool.icon || "🛠️"),
+          h(
+            "span",
+            { class: "cliutil-icon", "aria-hidden": "true" },
+            tool.icon || "🛠️",
+          ),
           h("strong", { class: "pw-mono" }, bothNames),
           h("span", { class: "code-badge code-badge-quiet" }, tool.category),
           h("span", { class: "pw-hint" }, tool.suiteName),
@@ -426,7 +509,9 @@ function mount(root) {
             "div",
             { class: "cliutil-meta-row", "aria-label": "Supported flags" },
             ...flags.slice(0, 5).map((f) => {
-              const flagSyntax = f.short ? `--${f.name} (-${f.short})` : `--${f.name}`;
+              const flagSyntax = f.short
+                ? `--${f.name} (-${f.short})`
+                : `--${f.name}`;
               return h(
                 "button",
                 {
@@ -459,7 +544,9 @@ function mount(root) {
                 {
                   type: "button",
                   class: "cliutil-preset-pill",
-                  title: ex.description ? `${ex.description} (${tool.command} ${ex.args})` : `${tool.command} ${ex.args}`,
+                  title: ex.description
+                    ? `${ex.description} (${tool.command} ${ex.args})`
+                    : `${tool.command} ${ex.args}`,
                   onclick: () => void quickRunTool(tool, ex.args),
                 },
                 `⚡ ${ex.label}`,
@@ -506,7 +593,8 @@ function mount(root) {
             type: "button",
             class: "pw-btn",
             title: `Run ${tool.command} --help in the Terminal`,
-            onclick: () => sendToolToTerminal(tool, { submit: true, forceArgs: "--help" }),
+            onclick: () =>
+              sendToolToTerminal(tool, { submit: true, forceArgs: "--help" }),
           },
           "❓ --help",
         ),
@@ -529,14 +617,19 @@ function mount(root) {
     const filtered = tools.filter((t) => {
       if (selectedCategory === "Pinned") {
         if (!pinned.has(t.id)) return false;
-      } else if (selectedCategory !== "All" && t.category !== selectedCategory) {
+      } else if (
+        selectedCategory !== "All" &&
+        t.category !== selectedCategory
+      ) {
         return false;
       }
       if (!q) return true;
       const flagMatch =
         Array.isArray(t.flags) &&
         t.flags.some(
-          (f) => f.name.toLowerCase().includes(q) || (f.description && f.description.toLowerCase().includes(q)),
+          (f) =>
+            f.name.toLowerCase().includes(q) ||
+            (f.description && f.description.toLowerCase().includes(q)),
         );
       return (
         t.id.toLowerCase().includes(q) ||
@@ -557,9 +650,13 @@ function mount(root) {
 
   function renderList() {
     const filtered = getFilteredTools();
-    say(`${plural(filtered.length, "CLI utility")} shown (of ${tools.length} built-in utilities).`);
+    say(
+      `${plural(filtered.length, "CLI utility")} shown (of ${tools.length} built-in utilities).`,
+    );
     if (!filtered.length) {
-      listWrap.replaceChildren(h("p", { class: "pw-hint" }, "No CLI utilities match that filter."));
+      listWrap.replaceChildren(
+        h("p", { class: "pw-hint" }, "No CLI utilities match that filter."),
+      );
       return;
     }
     listWrap.replaceChildren(...filtered.map(renderRow));
@@ -581,7 +678,9 @@ function mount(root) {
     renderCategories();
     renderList();
     if (opts.toolId) {
-      const target = tools.find((t) => t.id === opts.toolId || t.stem === opts.toolId);
+      const target = tools.find(
+        (t) => t.id === opts.toolId || t.stem === opts.toolId,
+      );
       if (target && opts.autoRun) {
         void quickRunTool(target);
       }
@@ -589,9 +688,16 @@ function mount(root) {
   }
 
   async function load(force = false) {
-    say(force ? "Rebuilding CLI utility wrappers…" : "Loading built-in CLI utilities…");
+    say(
+      force
+        ? "Rebuilding CLI utility wrappers…"
+        : "Loading built-in CLI utilities…",
+    );
     try {
-      const res = await call(force ? "cliutils/ensure" : "cliutils/list", force ? { force: true } : {});
+      const res = await call(
+        force ? "cliutils/ensure" : "cliutils/list",
+        force ? { force: true } : {},
+      );
       tools = res.tools ?? [];
       folder = res.folder || state.cliUtilsDir || "";
       sourceFolder = res.sourceFolder || state.cliAppsDir || "";
@@ -607,9 +713,18 @@ function mount(root) {
         pendingShowOpts = null;
         applyShowOptions(opts);
       }
-      if (force) toast(`Synced ${plural(tools.length, "CLI utility wrapper")} in ${folder}.`, { kind: "success" });
+      if (force)
+        toast(
+          `Synced ${plural(tools.length, "CLI utility wrapper")} in ${folder}.`,
+          { kind: "success" },
+        );
     } catch (err) {
-      say(err instanceof ApiError ? err.message : "Couldn't load the built-in CLI utilities.", true);
+      say(
+        err instanceof ApiError
+          ? err.message
+          : "Couldn't load the built-in CLI utilities.",
+        true,
+      );
     }
   }
 
@@ -637,7 +752,8 @@ function mount(root) {
         {
           type: "button",
           class: "pw-btn primary",
-          title: "Open the CLI Utilities folder in the File Manager and open the Terminal there so you can type ./tool-name",
+          title:
+            "Open the CLI Utilities folder in the File Manager and open the Terminal there so you can type ./tool-name",
           onclick: openTerminalInCliFolder,
         },
         "⌨️ Open Terminal in CLI Utilities (./)",
@@ -657,7 +773,8 @@ function mount(root) {
         {
           type: "button",
           class: "pw-btn",
-          title: "Browse the cli_apps/*.ts TypeScript source scripts in the File Manager",
+          title:
+            "Browse the cli_apps/*.ts TypeScript source scripts in the File Manager",
           onclick: () => openFolderInFiles(sourceFolder || state.cliAppsDir),
         },
         "📂 Open cli_apps source",
@@ -683,7 +800,8 @@ function mount(root) {
         {
           type: "button",
           class: "pw-btn",
-          title: "Insert currently selected File Manager paths into the arguments box",
+          title:
+            "Insert currently selected File Manager paths into the arguments box",
           onclick: insertSelectedPaths,
         },
         "📎 Insert selected files",
@@ -693,7 +811,8 @@ function mount(root) {
         {
           type: "button",
           class: "pw-btn",
-          title: "Insert the active File Manager folder path into the arguments box",
+          title:
+            "Insert the active File Manager folder path into the arguments box",
           onclick: insertCurrentFolder,
         },
         "📂 Insert current folder",

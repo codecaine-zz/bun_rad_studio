@@ -1,6 +1,6 @@
 /**
  * 🎨 Chroma Studio Pro — Advanced Paint & Vector Coloring Studio
- * 
+ *
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
  * - Advanced Freehand Painting Suite: Smooth Bézier brush, Airbrush particles, Calligraphy chisel,
@@ -86,14 +86,22 @@ function buildPaintHtml(): string {
   const assetsDir = getPaintAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Chroma Studio Pro</h1>";
+  let html = existsSync(indexPath)
+    ? readFileSync(indexPath, "utf8")
+    : "<h1>Chroma Studio Pro</h1>";
 
   const libPath = join(assetsDir, "coloring_library.js");
   let libContent = "";
   if (existsSync(libPath)) {
     libContent = readFileSync(libPath, "utf8");
-    libContent = libContent.replace(/export\s+const\s+COLORING_LIBRARY\s*=/, "var COLORING_LIBRARY = window.COLORING_LIBRARY =");
-    libContent = libContent.replace(/export\s*\{\s*COLORING_LIBRARY\s*\}\s*;?/, "");
+    libContent = libContent.replace(
+      /export\s+const\s+COLORING_LIBRARY\s*=/,
+      "var COLORING_LIBRARY = window.COLORING_LIBRARY =",
+    );
+    libContent = libContent.replace(
+      /export\s*\{\s*COLORING_LIBRARY\s*\}\s*;?/,
+      "",
+    );
   }
 
   const inlinedLibScript = `
@@ -102,10 +110,18 @@ function buildPaintHtml(): string {
   </script>
   `;
 
-  if (html.includes('<script type="module" src="coloring_library.js"></script>')) {
-    html = html.replace('<script type="module" src="coloring_library.js"></script>', inlinedLibScript);
+  if (
+    html.includes('<script type="module" src="coloring_library.js"></script>')
+  ) {
+    html = html.replace(
+      '<script type="module" src="coloring_library.js"></script>',
+      inlinedLibScript,
+    );
   } else if (html.includes('<script src="coloring_library.js"></script>')) {
-    html = html.replace('<script src="coloring_library.js"></script>', inlinedLibScript);
+    html = html.replace(
+      '<script src="coloring_library.js"></script>',
+      inlinedLibScript,
+    );
   } else if (html.includes("</head>")) {
     html = html.replace("</head>", `${inlinedLibScript}\n</head>`);
   }
@@ -198,8 +214,8 @@ export function startPaintServer(options: PaintServerOptions = {}) {
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
         "Cache-Control": "no-cache, no-store, must-revalidate",
-        "Pragma": "no-cache",
-        "Expires": "0",
+        Pragma: "no-cache",
+        Expires: "0",
       };
 
       if (req.method === "OPTIONS") {
@@ -210,7 +226,10 @@ export function startPaintServer(options: PaintServerOptions = {}) {
       if (pathname === "/" || pathname === "/index.html") {
         const html = generatePaintStudioHtml();
         return new Response(html, {
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            ...corsHeaders,
+          },
         });
       }
 
@@ -229,7 +248,10 @@ export function startPaintServer(options: PaintServerOptions = {}) {
         const filePath = join(assetsDir, "coloring_library.js");
         if (existsSync(filePath)) {
           return new Response(Bun.file(filePath), {
-            headers: { "Content-Type": "application/javascript; charset=utf-8", ...corsHeaders },
+            headers: {
+              "Content-Type": "application/javascript; charset=utf-8",
+              ...corsHeaders,
+            },
           });
         }
       }
@@ -245,18 +267,24 @@ export function startPaintServer(options: PaintServerOptions = {}) {
             totalVectorGraphics: 106,
             timestamp: Date.now(),
           },
-          { headers: corsHeaders }
+          { headers: corsHeaders },
         );
       }
 
       // Fallback: static file in assets directory
       const sanitized = pathname.replace(/^\/+/, "");
       const directCandidate = join(assetsDir, sanitized);
-      if (directCandidate !== assetsDir && !directCandidate.startsWith(assetsDir + "/") && !directCandidate.startsWith(assetsDir + "\\")) {
+      if (
+        directCandidate !== assetsDir &&
+        !directCandidate.startsWith(assetsDir + "/") &&
+        !directCandidate.startsWith(assetsDir + "\\")
+      ) {
         return new Response("Forbidden", { status: 403 });
       }
       if (existsSync(directCandidate)) {
-        return new Response(Bun.file(directCandidate), { headers: corsHeaders });
+        return new Response(Bun.file(directCandidate), {
+          headers: corsHeaders,
+        });
       }
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
@@ -269,7 +297,9 @@ export function startPaintServer(options: PaintServerOptions = {}) {
 /**
  * Creates the complete native desktop instance of Chroma Studio Pro.
  */
-export function createPaintStudio(options: PaintStudioOptions = {}): PaintStudioInstance {
+export function createPaintStudio(
+  options: PaintStudioOptions = {},
+): PaintStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1380);
@@ -321,11 +351,15 @@ export function createPaintStudio(options: PaintStudioOptions = {}): PaintStudio
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -336,16 +370,24 @@ export function createPaintStudio(options: PaintStudioOptions = {}): PaintStudio
 
         // Set HTML directly into Webview memory (bypasses macOS ATS network restrictions)
         webview.setHTML(html);
-        console.log(`🎨 Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`);
+        console.log(
+          `🎨 Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`,
+        );
 
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -364,7 +406,9 @@ if (import.meta.main) {
 
   if (serverOnly) {
     const srv = startPaintServer({ port, host: "127.0.0.1" });
-    console.log(`🎨 Chroma Studio Pro server running at: http://127.0.0.1:${srv.port}/`);
+    console.log(
+      `🎨 Chroma Studio Pro server running at: http://127.0.0.1:${srv.port}/`,
+    );
     await new Promise(() => {});
   } else {
     const app = createPaintStudio({ fullscreen, port });

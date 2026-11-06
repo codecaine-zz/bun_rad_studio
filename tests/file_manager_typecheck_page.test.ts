@@ -1,5 +1,12 @@
 import { afterAll, beforeAll, describe, expect, mock, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { JSDOM } from "jsdom";
@@ -7,7 +14,20 @@ import { startFileManagerServer } from "../src/features/filemanager/fmServer";
 
 // The "this file isn't what its name says" badges, dialogs and the open guard, run for real in a fake browser
 // (jsdom) against the real server. The fake browser's globals are removed again in afterAll.
-const GLOBALS = ["document", "window", "Node", "Element", "HTMLElement", "HTMLInputElement", "HTMLTextAreaElement", "HTMLSelectElement", "MutationObserver", "navigator", "location", "fetch"] as const;
+const GLOBALS = [
+  "document",
+  "window",
+  "Node",
+  "Element",
+  "HTMLElement",
+  "HTMLInputElement",
+  "HTMLTextAreaElement",
+  "HTMLSelectElement",
+  "MutationObserver",
+  "navigator",
+  "location",
+  "fetch",
+] as const;
 const saved = new Map<string, PropertyDescriptor | undefined>();
 
 const root = mkdtempSync(join(tmpdir(), "fm-typecheck-ui-"));
@@ -27,7 +47,11 @@ let extras: any;
 let events: any;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const png = () => Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52]);
+const png = () =>
+  Buffer.from([
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48,
+    0x44, 0x52,
+  ]);
 const winProgram = () => {
   const b = Buffer.alloc(256);
   b.write("MZ");
@@ -37,10 +61,17 @@ const winProgram = () => {
   b.writeUInt16LE(0x22, 0x80 + 22);
   return b;
 };
-const rowFor = (name: string): any => [...doc.querySelectorAll("#list .row")].find((r: any) => r.querySelector(".name-text")?.textContent === name);
-const badgeFor = (name: string): any => rowFor(name)?.querySelector(".type-badge") ?? null;
+const rowFor = (name: string): any =>
+  [...doc.querySelectorAll("#list .row")].find(
+    (r: any) => r.querySelector(".name-text")?.textContent === name,
+  );
+const badgeFor = (name: string): any =>
+  rowFor(name)?.querySelector(".type-badge") ?? null;
 const dialog = (): any => [...doc.querySelectorAll(".modal-backdrop")].at(-1);
-const dialogButton = (text: string): any => [...doc.querySelectorAll(".modal-backdrop button")].find((b: any) => b.textContent.trim() === text);
+const dialogButton = (text: string): any =>
+  [...doc.querySelectorAll(".modal-backdrop button")].find(
+    (b: any) => b.textContent.trim() === text,
+  );
 const closeDialogs = async () => {
   for (const b of [...doc.querySelectorAll(".modal-backdrop")]) b.remove();
   doc.body.classList.remove("modal-open");
@@ -60,22 +91,64 @@ beforeAll(async () => {
   writeFileSync(join(files, "scan.jpg"), png());
   writeFileSync(join(files, "scan.png"), "I was here first");
   writeFileSync(join(files, "report.pdf.exe"), winProgram());
-  for (let i = 0; i < 620; i++) writeFileSync(join(big, `f${String(i).padStart(3, "0")}.pdf`), winProgram());
+  for (let i = 0; i < 620; i++)
+    writeFileSync(
+      join(big, `f${String(i).padStart(3, "0")}.pdf`),
+      winProgram(),
+    );
   // The terminal needs a library the page loads from /vendor/, which a plain import can't reach.
-  mock.module("../resources/file_manager/ui/terminal.js", () => ({ terminalShell: () => "posix", terminalWsl: () => ({}), terminalAvailable: () => false, typeInTerminal: () => false, showTerminal() {}, hideTerminal() {}, toggleTerminal() {}, wireTerminal() {}, isTerminalOpen: () => false }));
-  server = startFileManagerServer({ port: 0, token: "ui-token", context: { home, dataDir: join(root, "data"), launch: async (command, args) => void launched.push({ command, args }) } });
+  mock.module("../resources/file_manager/ui/terminal.js", () => ({
+    terminalShell: () => "posix",
+    terminalWsl: () => ({}),
+    terminalAvailable: () => false,
+    typeInTerminal: () => false,
+    showTerminal() {},
+    hideTerminal() {},
+    toggleTerminal() {},
+    wireTerminal() {},
+    isTerminalOpen: () => false,
+  }));
+  server = startFileManagerServer({
+    port: 0,
+    token: "ui-token",
+    context: {
+      home,
+      dataDir: join(root, "data"),
+      launch: async (command, args) => void launched.push({ command, args }),
+    },
+  });
   const base = `http://127.0.0.1:${server.port}`;
-  const html = readFileSync(join(import.meta.dir, "..", "resources", "file_manager", "index.html"), "utf8").replace(/__FM_TOKEN__/g, "ui-token").replace(/__FM_PLATFORM__/g, process.platform === "darwin" ? "darwin" : "linux").replace(/__FM_NONCE__/g, "n").replace(/__FM_START__/g, "");
+  const html = readFileSync(
+    join(import.meta.dir, "..", "resources", "file_manager", "index.html"),
+    "utf8",
+  )
+    .replace(/__FM_TOKEN__/g, "ui-token")
+    .replace(
+      /__FM_PLATFORM__/g,
+      process.platform === "darwin" ? "darwin" : "linux",
+    )
+    .replace(/__FM_NONCE__/g, "n")
+    .replace(/__FM_START__/g, "");
   const dom = new JSDOM(html, { url: `${base}/` });
   (dom.window as any).HTMLElement.prototype.scrollIntoView = () => {};
   const g = globalThis as any;
-  for (const key of GLOBALS) saved.set(key, Object.getOwnPropertyDescriptor(g, key));
-  for (const key of GLOBALS.filter((k) => k !== "fetch")) Object.defineProperty(g, key, { value: (dom.window as any)[key], configurable: true, writable: true });
+  for (const key of GLOBALS)
+    saved.set(key, Object.getOwnPropertyDescriptor(g, key));
+  for (const key of GLOBALS.filter((k) => k !== "fetch"))
+    Object.defineProperty(g, key, {
+      value: (dom.window as any)[key],
+      configurable: true,
+      writable: true,
+    });
   const realFetch = saved.get("fetch")!.value as typeof fetch;
   Object.defineProperty(g, "fetch", {
     value: (u: any, o: any) => {
-      if (typeof u === "string" && u.endsWith("/api/check/files")) checkRequests.push(JSON.parse(o.body).paths);
-      return realFetch(typeof u === "string" && u.startsWith("/") ? base + u : u, o);
+      if (typeof u === "string" && u.endsWith("/api/check/files"))
+        checkRequests.push(JSON.parse(o.body).paths);
+      return realFetch(
+        typeof u === "string" && u.startsWith("/") ? base + u : u,
+        o,
+      );
     },
     configurable: true,
     writable: true,
@@ -129,14 +202,18 @@ describe("badges in the file list", () => {
     expect(danger.classList.contains("danger")).toBe(true);
     expect(danger.textContent).toContain("⛔");
     expect(danger.textContent).toContain("Danger");
-    expect(danger.getAttribute("aria-label")).toBe("Danger: this file is not what its name says. Press for details");
+    expect(danger.getAttribute("aria-label")).toBe(
+      "Danger: this file is not what its name says. Press for details",
+    );
     expect(danger.title).toContain("This is a program in disguise");
     expect(danger.title).toContain("Windows program");
     expect(danger.tabIndex).toBeGreaterThanOrEqual(0);
     const notice = badgeFor("photo.jpg");
     expect(notice.classList.contains("notice")).toBe(true);
     expect(notice.textContent).toContain("ℹ️");
-    expect(notice.getAttribute("aria-label")).toMatch(/^Note: this file is not what its name says/);
+    expect(notice.getAttribute("aria-label")).toMatch(
+      /^Note: this file is not what its name says/,
+    );
   });
 
   test("the folder was asked about once, in a batch, for files only", () => {
@@ -152,7 +229,9 @@ describe("badges in the file list", () => {
     expect(doc.querySelectorAll("#list .row").length).toBe(500);
     expect(doc.querySelectorAll("#list .type-badge").length).toBe(300);
     expect(checkRequests.flat().length).toBe(300);
-    expect(Math.max(...checkRequests.map((r) => r.length))).toBeLessThanOrEqual(100);
+    expect(Math.max(...checkRequests.map((r) => r.length))).toBeLessThanOrEqual(
+      100,
+    );
     doc.querySelector("#list .more .btn").click();
     await settle(900);
     expect(doc.querySelectorAll("#list .row").length).toBe(620);
@@ -168,13 +247,22 @@ describe("the explanation dialog", () => {
     await sleep(50);
     const text = dialog().textContent;
     expect(text).toContain("This file isn't what its name says");
-    expect(text).toContain('This file is named "invoice.pdf", but it is really a Windows program.');
+    expect(text).toContain(
+      'This file is named "invoice.pdf", but it is really a Windows program.',
+    );
     expect(text).toContain("What this means");
-    expect(text).toContain("Don't open it unless you trust where it came from.");
+    expect(text).toContain(
+      "Don't open it unless you trust where it came from.",
+    );
     expect(dialogButton("Show in Details")).toBeTruthy();
     expect(dialogButton("Close")).toBeTruthy();
-    expect([...dialog().querySelectorAll("button")].some((b: any) => b.textContent.startsWith("Rename to"))).toBe(false);
-    for (const b of dialog().querySelectorAll("button")) expect(b.title, b.textContent).toBeTruthy();
+    expect(
+      [...dialog().querySelectorAll("button")].some((b: any) =>
+        b.textContent.startsWith("Rename to"),
+      ),
+    ).toBe(false);
+    for (const b of dialog().querySelectorAll("button"))
+      expect(b.title, b.textContent).toBeTruthy();
     await closeDialogs();
   });
 
@@ -186,7 +274,9 @@ describe("the explanation dialog", () => {
     expect(state.settings.showInfoPanel).toBe(true);
     expect([...state.selection]).toEqual([join(files, "invoice.pdf")]);
     expect(doc.querySelector(".modal-backdrop")).toBeNull();
-    expect(doc.querySelector("#info .type-block.danger")?.textContent).toContain("Windows program");
+    expect(
+      doc.querySelector("#info .type-block.danger")?.textContent,
+    ).toContain("Windows program");
   });
 
   test("Rename to .png renames the file, refreshes the list and says so", async () => {
@@ -202,7 +292,9 @@ describe("the explanation dialog", () => {
     expect(doc.querySelector(".modal-backdrop")).toBeNull();
     expect(rowFor("photo.png")).not.toBeNull();
     expect(rowFor("photo.jpg")).toBeFalsy();
-    expect(doc.querySelector("#toasts").textContent).toContain('Renamed to "photo.png"');
+    expect(doc.querySelector("#toasts").textContent).toContain(
+      'Renamed to "photo.png"',
+    );
     await settle(500);
     expect(badgeFor("photo.png")).toBeNull();
   });
@@ -212,8 +304,12 @@ describe("the explanation dialog", () => {
     await sleep(50);
     dialogButton("Rename to .png").click();
     await sleep(500);
-    expect(dialog().querySelector(".dialog-error").textContent).toContain("already exists");
-    expect(readFileSync(join(files, "scan.png"), "utf8")).toBe("I was here first");
+    expect(dialog().querySelector(".dialog-error").textContent).toContain(
+      "already exists",
+    );
+    expect(readFileSync(join(files, "scan.png"), "utf8")).toBe(
+      "I was here first",
+    );
     expect(existsSync(join(files, "scan.jpg"))).toBe(true);
     await closeDialogs();
   });
@@ -224,7 +320,9 @@ describe("opening", () => {
     launched.length = 0;
     const pending = ops.openEntry(entry("invoice.pdf"));
     await sleep(400);
-    expect(dialog().textContent).toContain("This file isn't what its name says");
+    expect(dialog().textContent).toContain(
+      "This file isn't what its name says",
+    );
     expect(dialog().textContent).toContain("really a Windows program");
     expect(dialogButton("Open anyway").classList.contains("danger")).toBe(true);
     dialogButton("Don't open").click();
@@ -270,18 +368,24 @@ describe("Details and Properties", () => {
     const block = doc.querySelector("#info .type-block.notice");
     expect(block).not.toBeNull();
     expect(block.textContent).toContain("really a PNG picture");
-    expect([...block.querySelectorAll("button")].map((b: any) => b.textContent)).toEqual(["Rename to .png"]);
+    expect(
+      [...block.querySelectorAll("button")].map((b: any) => b.textContent),
+    ).toEqual(["Rename to .png"]);
     state.selection = new Set([join(files, "clean.png")]);
     await info.renderInfo();
     await sleep(300);
     expect(doc.querySelector("#info .type-block")).toBeNull();
-    expect(doc.querySelector("#info").textContent).not.toContain("Matches its name");
+    expect(doc.querySelector("#info").textContent).not.toContain(
+      "Matches its name",
+    );
   });
 
   test("Properties shows the same block with Show in Details, and a clean file shows none", async () => {
     await extras.showProperties([join(files, "invoice.pdf")]);
     await sleep(300);
-    expect(dialog().querySelector(".type-block.danger").textContent).toContain("Windows program");
+    expect(dialog().querySelector(".type-block.danger").textContent).toContain(
+      "Windows program",
+    );
     expect(dialogButton("Show in Details")).toBeTruthy();
     await closeDialogs();
     await extras.showProperties([join(files, "clean.png")]);
@@ -294,7 +398,9 @@ describe("Details and Properties", () => {
 describe("the setting", () => {
   test("it is in the Settings dialog with a tooltip, and saves", async () => {
     extras.showSettings();
-    const label = [...dialog().querySelectorAll("label.check")].find((l: any) => l.textContent.includes("Warn when a file isn't what its name says"));
+    const label = [...dialog().querySelectorAll("label.check")].find((l: any) =>
+      l.textContent.includes("Warn when a file isn't what its name says"),
+    );
     expect(label).toBeTruthy();
     expect(label.title).toContain("badge");
     const box = label.querySelector("input");
@@ -321,7 +427,9 @@ describe("the setting", () => {
   });
 
   test("turning it back on brings the badges back", async () => {
-    await (await import("../resources/file_manager/ui/nav.js")).saveSettings({ typeWarnings: true });
+    await (
+      await import("../resources/file_manager/ui/nav.js")
+    ).saveSettings({ typeWarnings: true });
     await settle(600);
     expect(badgeFor("invoice.pdf")).not.toBeNull();
     expect(events.state.settings.typeWarnings).toBe(true);
@@ -330,7 +438,8 @@ describe("the setting", () => {
 
 describe("right after a file is created or renamed", () => {
   const toastText = () => doc.querySelector("#toasts").textContent;
-  const clearToasts = () => doc.querySelectorAll("#toasts .toast").forEach((t: any) => t.remove());
+  const clearToasts = () =>
+    doc.querySelectorAll("#toasts .toast").forEach((t: any) => t.remove());
 
   test("naming a new empty file New file.txt.png says at once that it has two endings and is empty, and Details explains", async () => {
     clearToasts();
@@ -339,11 +448,17 @@ describe("right after a file is created or renamed", () => {
     await ops.commitRename(join(files, "New file.txt"), "New file.txt.png");
     await settle(600);
     expect(toastText()).toContain("Its name ends in two file types");
-    expect(toastText()).toContain('"New file.txt.png" has two file types in its name');
-    const details = [...doc.querySelectorAll("#toasts button")].find((b: any) => b.textContent.trim() === "Details");
+    expect(toastText()).toContain(
+      '"New file.txt.png" has two file types in its name',
+    );
+    const details = [...doc.querySelectorAll("#toasts button")].find(
+      (b: any) => b.textContent.trim() === "Details",
+    );
     details.click();
     await sleep(100);
-    expect(dialog().querySelector(".dialog-title").textContent).toBe("Look at this file's name");
+    expect(dialog().querySelector(".dialog-title").textContent).toBe(
+      "Look at this file's name",
+    );
     expect(dialog().textContent).toMatch(/Only the last one, \.png, counts/);
     expect(dialog().textContent).toMatch(/also empty/);
     expect(dialogButton("Rename to .txt")).toBeTruthy();
@@ -369,13 +484,19 @@ describe("right after a file is created or renamed", () => {
     await ops.commitRename(join(files, "draft"), "draft.png");
     await settle(500);
     expect(toastText()).toContain("An empty file with a file type in its name");
-    expect(toastText()).toContain("is empty, so it is not a real .png file yet");
-    await (await import("../resources/file_manager/ui/nav.js")).saveSettings({ typeWarnings: false });
+    expect(toastText()).toContain(
+      "is empty, so it is not a real .png file yet",
+    );
+    await (
+      await import("../resources/file_manager/ui/nav.js")
+    ).saveSettings({ typeWarnings: false });
     clearToasts();
     await ops.commitRename(join(files, "draft.png"), "draft2.png");
     await settle(400);
     expect(toastText()).not.toContain("empty");
-    await (await import("../resources/file_manager/ui/nav.js")).saveSettings({ typeWarnings: true });
+    await (
+      await import("../resources/file_manager/ui/nav.js")
+    ).saveSettings({ typeWarnings: true });
     rmSync(join(files, "draft2.png"), { force: true });
     await nav.refresh({ keepSelection: false });
   });

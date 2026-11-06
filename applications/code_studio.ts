@@ -1,6 +1,6 @@
 /**
  * ⚡ NovaCode Studio Pro — Advanced Developer Workstation
- * 
+ *
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
  * - Multi-language developer workstation with syntax highlighting (TS/JS, Python, Rust, Go, HTML, CSS, JSON, Markdown, SQL, Shell, C/C++)
@@ -17,11 +17,24 @@
  */
 
 import { injectHelp } from "../src/shared/helpTips";
-import { minify as minifyCode, prettify as prettifyCode } from "../src/shared/code_prettify";
+import {
+  minify as minifyCode,
+  prettify as prettifyCode,
+} from "../src/shared/code_prettify";
 import type { SizeHint, Webview } from "webview-bun";
 import { resolve, join, relative, dirname, isAbsolute, sep } from "path";
 import { guardLocalRequest } from "../src/localGuard";
-import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync, statSync, readdirSync, renameSync, rmSync } from "fs";
+import {
+  existsSync,
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  unlinkSync,
+  statSync,
+  readdirSync,
+  renameSync,
+  rmSync,
+} from "fs";
 import {
   setAlwaysOnTopNative,
   setWindowPositionNative,
@@ -92,7 +105,9 @@ function buildCodeStudioHtml(): string {
   const assetsDir = getCodeEditorAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>NovaCode Studio Pro</h1>";
+  let html = existsSync(indexPath)
+    ? readFileSync(indexPath, "utf8")
+    : "<h1>NovaCode Studio Pro</h1>";
 
   const storagePolyfill = `
   <script>
@@ -151,7 +166,10 @@ ${getWindowShortcutsScript()}
 
   const lastBodyIdx = html.lastIndexOf("</body>");
   if (lastBodyIdx !== -1) {
-    html = html.slice(0, lastBodyIdx) + `${desktopHooks}\n` + html.slice(lastBodyIdx);
+    html =
+      html.slice(0, lastBodyIdx) +
+      `${desktopHooks}\n` +
+      html.slice(lastBodyIdx);
   } else {
     html += desktopHooks;
   }
@@ -162,12 +180,50 @@ ${getWindowShortcutsScript()}
 // File types that are never searched as text. The search used to read each of them in full just to look for a
 // NUL byte: on this repository about three quarters of the bytes it read were PNG screenshots.
 const BINARY_EXTENSIONS = new Set([
-  ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".ico", ".icns", ".tiff",
-  ".mp3", ".wav", ".ogg", ".m4a", ".flac", ".mp4", ".mov", ".webm", ".avi",
-  ".woff", ".woff2", ".ttf", ".otf", ".eot",
-  ".zip", ".gz", ".tgz", ".bz2", ".xz", ".7z", ".tar", ".pdf",
-  ".sqlite", ".sqlite3", ".db", ".sqlite-shm", ".sqlite-wal", ".db-shm", ".db-wal",
-  ".exe", ".dll", ".so", ".dylib", ".bin", ".wasm",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".gif",
+  ".webp",
+  ".bmp",
+  ".ico",
+  ".icns",
+  ".tiff",
+  ".mp3",
+  ".wav",
+  ".ogg",
+  ".m4a",
+  ".flac",
+  ".mp4",
+  ".mov",
+  ".webm",
+  ".avi",
+  ".woff",
+  ".woff2",
+  ".ttf",
+  ".otf",
+  ".eot",
+  ".zip",
+  ".gz",
+  ".tgz",
+  ".bz2",
+  ".xz",
+  ".7z",
+  ".tar",
+  ".pdf",
+  ".sqlite",
+  ".sqlite3",
+  ".db",
+  ".sqlite-shm",
+  ".sqlite-wal",
+  ".db-shm",
+  ".db-wal",
+  ".exe",
+  ".dll",
+  ".so",
+  ".dylib",
+  ".bin",
+  ".wasm",
 ]);
 
 export function isBinaryPath(path: string): boolean {
@@ -178,11 +234,37 @@ export function isBinaryPath(path: string): boolean {
 /**
  * Recursively scans a workspace directory and builds a safe file tree.
  */
-function scanWorkspace(rootDir: string, currentDir: string = rootDir, maxDepth = 4, depth = 0): Array<{ path: string; name: string; size: number; isDirectory: boolean; modified: number }> {
+function scanWorkspace(
+  rootDir: string,
+  currentDir: string = rootDir,
+  maxDepth = 4,
+  depth = 0,
+): Array<{
+  path: string;
+  name: string;
+  size: number;
+  isDirectory: boolean;
+  modified: number;
+}> {
   if (depth > maxDepth || !existsSync(currentDir)) return [];
 
-  const results: Array<{ path: string; name: string; size: number; isDirectory: boolean; modified: number }> = [];
-  const ignored = new Set(["node_modules", ".git", ".DS_Store", ".gemini", "dist", "build", ".tempmediaStorage", "coverage"]);
+  const results: Array<{
+    path: string;
+    name: string;
+    size: number;
+    isDirectory: boolean;
+    modified: number;
+  }> = [];
+  const ignored = new Set([
+    "node_modules",
+    ".git",
+    ".DS_Store",
+    ".gemini",
+    "dist",
+    "build",
+    ".tempmediaStorage",
+    "coverage",
+  ]);
 
   try {
     const entries = readdirSync(currentDir, { withFileTypes: true });
@@ -202,7 +284,12 @@ function scanWorkspace(rootDir: string, currentDir: string = rootDir, maxDepth =
             isDirectory: true,
             modified: stat.mtimeMs,
           });
-          const children = scanWorkspace(rootDir, fullPath, maxDepth, depth + 1);
+          const children = scanWorkspace(
+            rootDir,
+            fullPath,
+            maxDepth,
+            depth + 1,
+          );
           results.push(...children);
         } else {
           results.push({
@@ -223,7 +310,10 @@ function scanWorkspace(rootDir: string, currentDir: string = rootDir, maxDepth =
 /** True when `target` is `root` itself or lies inside it (a plain prefix check wrongly accepts `/ws-evil` for `/ws`). */
 export function isInsideWorkspace(root: string, target: string): boolean {
   const rel = relative(root, target);
-  return rel === "" || (rel !== ".." && !rel.startsWith(".." + sep) && !isAbsolute(rel));
+  return (
+    rel === "" ||
+    (rel !== ".." && !rel.startsWith(".." + sep) && !isAbsolute(rel))
+  );
 }
 
 function escapeRegExp(s: string): string {
@@ -254,8 +344,8 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
         "Cache-Control": "no-cache, no-store, must-revalidate",
-        "Pragma": "no-cache",
-        "Expires": "0",
+        Pragma: "no-cache",
+        Expires: "0",
       };
 
       if (req.method === "OPTIONS") {
@@ -266,7 +356,10 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
       if (pathname === "/" || pathname === "/index.html") {
         const html = generateCodeStudioHtml();
         return new Response(html, {
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            ...corsHeaders,
+          },
         });
       }
 
@@ -291,20 +384,23 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
             workspaceRoot,
             timestamp: Date.now(),
           },
-          { headers: corsHeaders }
+          { headers: corsHeaders },
         );
       }
 
       // API: Scan Workspace File Tree
       if (pathname === "/api/fs/workspace") {
         const files = scanWorkspace(workspaceRoot);
-        return Response.json({ success: true, workspaceRoot, files }, { headers: corsHeaders });
+        return Response.json(
+          { success: true, workspaceRoot, files },
+          { headers: corsHeaders },
+        );
       }
 
       // API: Search Workspace Files
       if (pathname === "/api/fs/search" && req.method === "POST") {
         try {
-          const body = await req.json() as {
+          const body = (await req.json()) as {
             query?: string;
             matchCase?: boolean;
             wholeWord?: boolean;
@@ -313,7 +409,10 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
           };
 
           if (!body?.query) {
-            return Response.json({ success: false, error: "Missing query parameter" }, { status: 400, headers: corsHeaders });
+            return Response.json(
+              { success: false, error: "Missing query parameter" },
+              { status: 400, headers: corsHeaders },
+            );
           }
 
           const query = body.query;
@@ -333,11 +432,17 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
               regex = new RegExp(escapeRegExp(query), regexFlags);
             }
           } catch (e: any) {
-            return Response.json({ success: false, error: "Invalid regex: " + e.message }, { status: 400, headers: corsHeaders });
+            return Response.json(
+              { success: false, error: "Invalid regex: " + e.message },
+              { status: 400, headers: corsHeaders },
+            );
           }
 
           const scanned = scanWorkspace(workspaceRoot, workspaceRoot, 6);
-          const fileResults: Array<{ path: string; matches: Array<{ line: number; col: number; snippet: string }> }> = [];
+          const fileResults: Array<{
+            path: string;
+            matches: Array<{ line: number; col: number; snippet: string }>;
+          }> = [];
           let totalMatches = 0;
 
           for (const item of scanned) {
@@ -351,7 +456,11 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
               if (content.includes("\0")) continue; // skip binary
 
               const lines = content.split("\n");
-              const matches: Array<{ line: number; col: number; snippet: string }> = [];
+              const matches: Array<{
+                line: number;
+                col: number;
+                snippet: string;
+              }> = [];
 
               for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
                 const lineText = lines[lineIdx]!;
@@ -377,61 +486,91 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
             } catch {}
           }
 
-          return Response.json({
-            success: true,
-            query,
-            totalMatches,
-            fileCount: fileResults.length,
-            results: fileResults,
-          }, { headers: corsHeaders });
+          return Response.json(
+            {
+              success: true,
+              query,
+              totalMatches,
+              fileCount: fileResults.length,
+              results: fileResults,
+            },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err?.message || String(err) }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err?.message || String(err) },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
       // API: Read File
       if (pathname === "/api/fs/read" && req.method === "POST") {
         try {
-          const body = await req.json() as { path?: string };
+          const body = (await req.json()) as { path?: string };
           if (!body?.path) {
-            return Response.json({ success: false, error: "Missing path parameter" }, { status: 400, headers: corsHeaders });
+            return Response.json(
+              { success: false, error: "Missing path parameter" },
+              { status: 400, headers: corsHeaders },
+            );
           }
 
           const targetPath = resolve(workspaceRoot, body.path);
           if (!isInsideWorkspace(workspaceRoot, targetPath)) {
-            return Response.json({ success: false, error: "Access denied" }, { status: 403, headers: corsHeaders });
+            return Response.json(
+              { success: false, error: "Access denied" },
+              { status: 403, headers: corsHeaders },
+            );
           }
 
           if (!existsSync(targetPath)) {
-            return Response.json({ success: false, error: "File not found" }, { status: 404, headers: corsHeaders });
+            return Response.json(
+              { success: false, error: "File not found" },
+              { status: 404, headers: corsHeaders },
+            );
           }
 
           const content = readFileSync(targetPath, "utf8");
           const stat = statSync(targetPath);
 
-          return Response.json({
-            success: true,
-            path: body.path,
-            content,
-            size: stat.size,
-            modified: stat.mtimeMs,
-          }, { headers: corsHeaders });
+          return Response.json(
+            {
+              success: true,
+              path: body.path,
+              content,
+              size: stat.size,
+              modified: stat.mtimeMs,
+            },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err?.message || String(err) }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err?.message || String(err) },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
       // API: Save File
       if (pathname === "/api/fs/save" && req.method === "POST") {
         try {
-          const body = await req.json() as { path?: string; content?: string };
+          const body = (await req.json()) as {
+            path?: string;
+            content?: string;
+          };
           if (!body?.path || body.content === undefined) {
-            return Response.json({ success: false, error: "Missing path or content parameter" }, { status: 400, headers: corsHeaders });
+            return Response.json(
+              { success: false, error: "Missing path or content parameter" },
+              { status: 400, headers: corsHeaders },
+            );
           }
 
           const targetPath = resolve(workspaceRoot, body.path);
           if (!isInsideWorkspace(workspaceRoot, targetPath)) {
-            return Response.json({ success: false, error: "Access denied" }, { status: 403, headers: corsHeaders });
+            return Response.json(
+              { success: false, error: "Access denied" },
+              { status: 403, headers: corsHeaders },
+            );
           }
 
           const parent = dirname(targetPath);
@@ -442,55 +581,86 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
           writeFileSync(targetPath, body.content, "utf8");
           const stat = statSync(targetPath);
 
-          return Response.json({
-            success: true,
-            path: body.path,
-            size: stat.size,
-            savedAt: Date.now(),
-          }, { headers: corsHeaders });
+          return Response.json(
+            {
+              success: true,
+              path: body.path,
+              size: stat.size,
+              savedAt: Date.now(),
+            },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err?.message || String(err) }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err?.message || String(err) },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
       // API: Create File or Directory
       if (pathname === "/api/fs/new" && req.method === "POST") {
         try {
-          const body = await req.json() as { path?: string; type?: "file" | "directory" };
+          const body = (await req.json()) as {
+            path?: string;
+            type?: "file" | "directory";
+          };
           if (!body?.path) {
-            return Response.json({ success: false, error: "Missing path parameter" }, { status: 400, headers: corsHeaders });
+            return Response.json(
+              { success: false, error: "Missing path parameter" },
+              { status: 400, headers: corsHeaders },
+            );
           }
 
           const targetPath = resolve(workspaceRoot, body.path);
           if (!isInsideWorkspace(workspaceRoot, targetPath)) {
-            return Response.json({ success: false, error: "Access denied" }, { status: 403, headers: corsHeaders });
+            return Response.json(
+              { success: false, error: "Access denied" },
+              { status: 403, headers: corsHeaders },
+            );
           }
 
           if (body.type === "directory") {
-            if (!existsSync(targetPath)) mkdirSync(targetPath, { recursive: true });
+            if (!existsSync(targetPath))
+              mkdirSync(targetPath, { recursive: true });
           } else {
             const parent = dirname(targetPath);
             if (!existsSync(parent)) mkdirSync(parent, { recursive: true });
             if (!existsSync(targetPath)) writeFileSync(targetPath, "", "utf8");
           }
 
-          return Response.json({ success: true, path: body.path, type: body.type || "file" }, { headers: corsHeaders });
+          return Response.json(
+            { success: true, path: body.path, type: body.type || "file" },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err?.message || String(err) }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err?.message || String(err) },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
       // API: Delete File or Directory
       if (pathname === "/api/fs/delete" && req.method === "POST") {
         try {
-          const body = await req.json() as { path?: string };
+          const body = (await req.json()) as { path?: string };
           if (!body?.path) {
-            return Response.json({ success: false, error: "Missing path parameter" }, { status: 400, headers: corsHeaders });
+            return Response.json(
+              { success: false, error: "Missing path parameter" },
+              { status: 400, headers: corsHeaders },
+            );
           }
 
           const targetPath = resolve(workspaceRoot, body.path);
-          if (!isInsideWorkspace(workspaceRoot, targetPath) || targetPath === workspaceRoot) {
-            return Response.json({ success: false, error: "Access denied" }, { status: 403, headers: corsHeaders });
+          if (
+            !isInsideWorkspace(workspaceRoot, targetPath) ||
+            targetPath === workspaceRoot
+          ) {
+            return Response.json(
+              { success: false, error: "Access denied" },
+              { status: 403, headers: corsHeaders },
+            );
           }
 
           if (existsSync(targetPath)) {
@@ -502,35 +672,62 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
             }
           }
 
-          return Response.json({ success: true, path: body.path }, { headers: corsHeaders });
+          return Response.json(
+            { success: true, path: body.path },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err?.message || String(err) }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err?.message || String(err) },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
       // API: Rename File or Directory
       if (pathname === "/api/fs/rename" && req.method === "POST") {
         try {
-          const body = await req.json() as { oldPath?: string; newPath?: string };
+          const body = (await req.json()) as {
+            oldPath?: string;
+            newPath?: string;
+          };
           if (!body?.oldPath || !body?.newPath) {
-            return Response.json({ success: false, error: "Missing oldPath or newPath parameter" }, { status: 400, headers: corsHeaders });
+            return Response.json(
+              { success: false, error: "Missing oldPath or newPath parameter" },
+              { status: 400, headers: corsHeaders },
+            );
           }
 
           const srcPath = resolve(workspaceRoot, body.oldPath);
           const destPath = resolve(workspaceRoot, body.newPath);
 
-          if (!isInsideWorkspace(workspaceRoot, srcPath) || !isInsideWorkspace(workspaceRoot, destPath)) {
-            return Response.json({ success: false, error: "Access denied" }, { status: 403, headers: corsHeaders });
+          if (
+            !isInsideWorkspace(workspaceRoot, srcPath) ||
+            !isInsideWorkspace(workspaceRoot, destPath)
+          ) {
+            return Response.json(
+              { success: false, error: "Access denied" },
+              { status: 403, headers: corsHeaders },
+            );
           }
 
           if (!existsSync(srcPath)) {
-            return Response.json({ success: false, error: "Source path does not exist" }, { status: 404, headers: corsHeaders });
+            return Response.json(
+              { success: false, error: "Source path does not exist" },
+              { status: 404, headers: corsHeaders },
+            );
           }
 
           renameSync(srcPath, destPath);
-          return Response.json({ success: true, oldPath: body.oldPath, newPath: body.newPath }, { headers: corsHeaders });
+          return Response.json(
+            { success: true, oldPath: body.oldPath, newPath: body.newPath },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err?.message || String(err) }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err?.message || String(err) },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
@@ -538,33 +735,74 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
       // API: Prettify or minify the text of the open file (Prettier, sql-formatter, or the language's own formatter when installed)
       if (pathname === "/api/prettify" && req.method === "POST") {
         try {
-          const body = await req.json() as { mode?: string; text?: string; path?: string; lang?: string; tabWidth?: number; useTabs?: boolean };
+          const body = (await req.json()) as {
+            mode?: string;
+            text?: string;
+            path?: string;
+            lang?: string;
+            tabWidth?: number;
+            useTabs?: boolean;
+          };
           if (typeof body?.text !== "string") {
-            return Response.json({ ok: false, error: { message: "There is no text to format." } }, { status: 400, headers: corsHeaders });
+            return Response.json(
+              { ok: false, error: { message: "There is no text to format." } },
+              { status: 400, headers: corsHeaders },
+            );
           }
-          const input = { text: body.text, path: typeof body.path === "string" ? body.path : undefined, lang: typeof body.lang === "string" ? body.lang : undefined, tabWidth: typeof body.tabWidth === "number" ? body.tabWidth : undefined, useTabs: body.useTabs === true };
-          return Response.json(body.mode === "minify" ? await minifyCode(input) : await prettifyCode(input), { headers: corsHeaders });
+          const input = {
+            text: body.text,
+            path: typeof body.path === "string" ? body.path : undefined,
+            lang: typeof body.lang === "string" ? body.lang : undefined,
+            tabWidth:
+              typeof body.tabWidth === "number" ? body.tabWidth : undefined,
+            useTabs: body.useTabs === true,
+          };
+          return Response.json(
+            body.mode === "minify"
+              ? await minifyCode(input)
+              : await prettifyCode(input),
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ ok: false, error: { message: err?.message || String(err) } }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { ok: false, error: { message: err?.message || String(err) } },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
       if (pathname === "/api/exec" && req.method === "POST") {
         try {
-          const body = await req.json() as { command?: string; cwd?: string };
+          const body = (await req.json()) as { command?: string; cwd?: string };
           if (!body?.command) {
-            return Response.json({ success: false, error: "Missing command parameter" }, { status: 400, headers: corsHeaders });
+            return Response.json(
+              { success: false, error: "Missing command parameter" },
+              { status: 400, headers: corsHeaders },
+            );
           }
 
-          const execCwd = body.cwd ? resolve(workspaceRoot, body.cwd) : workspaceRoot;
+          const execCwd = body.cwd
+            ? resolve(workspaceRoot, body.cwd)
+            : workspaceRoot;
           if (!isInsideWorkspace(workspaceRoot, execCwd)) {
-            return Response.json({ success: false, error: "Access denied: cwd outside workspace" }, { status: 403, headers: corsHeaders });
+            return Response.json(
+              { success: false, error: "Access denied: cwd outside workspace" },
+              { status: 403, headers: corsHeaders },
+            );
           }
           const startTime = performance.now();
 
-          const command = process.platform === "win32"
-            ? ["powershell.exe", "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", body.command]
-            : ["sh", "-c", body.command];
+          const command =
+            process.platform === "win32"
+              ? [
+                  "powershell.exe",
+                  "-NoLogo",
+                  "-NoProfile",
+                  "-NonInteractive",
+                  "-Command",
+                  body.command,
+                ]
+              : ["sh", "-c", body.command];
           const proc = Bun.spawn(command, {
             cwd: execCwd,
             env: { ...process.env, TERM: "xterm-256color" },
@@ -579,27 +817,39 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
           ]);
           const durationMs = Math.round(performance.now() - startTime);
 
-          return Response.json({
-            success: true,
-            command: body.command,
-            exitCode,
-            stdout,
-            stderr,
-            durationMs,
-          }, { headers: corsHeaders });
+          return Response.json(
+            {
+              success: true,
+              command: body.command,
+              exitCode,
+              stdout,
+              stderr,
+              durationMs,
+            },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err?.message || String(err) }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err?.message || String(err) },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
       // Fallback: static file in assets directory
       const sanitized = pathname.replace(/^\/+/, "");
       const directCandidate = join(assetsDir, sanitized);
-      if (directCandidate !== assetsDir && !directCandidate.startsWith(assetsDir + "/") && !directCandidate.startsWith(assetsDir + "\\")) {
+      if (
+        directCandidate !== assetsDir &&
+        !directCandidate.startsWith(assetsDir + "/") &&
+        !directCandidate.startsWith(assetsDir + "\\")
+      ) {
         return new Response("Forbidden", { status: 403 });
       }
       if (existsSync(directCandidate)) {
-        return new Response(Bun.file(directCandidate), { headers: corsHeaders });
+        return new Response(Bun.file(directCandidate), {
+          headers: corsHeaders,
+        });
       }
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
@@ -612,7 +862,9 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
 /**
  * Creates the complete native desktop instance of NovaCode Studio Pro.
  */
-export function createCodeStudio(options: CodeStudioOptions = {}): CodeStudioInstance {
+export function createCodeStudio(
+  options: CodeStudioOptions = {},
+): CodeStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1440);
@@ -667,11 +919,15 @@ export function createCodeStudio(options: CodeStudioOptions = {}): CodeStudioIns
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -682,16 +938,24 @@ export function createCodeStudio(options: CodeStudioOptions = {}): CodeStudioIns
 
         // Set HTML directly into Webview memory (bypasses macOS ATS network restrictions)
         webview.setHTML(html);
-        console.log(`⚡ Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`);
+        console.log(
+          `⚡ Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`,
+        );
 
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -710,7 +974,9 @@ if (import.meta.main) {
 
   if (serverOnly) {
     const srv = startCodeStudioServer({ port, host: "127.0.0.1" });
-    console.log(`⚡ NovaCode Studio Pro server running at: http://127.0.0.1:${srv.port}/`);
+    console.log(
+      `⚡ NovaCode Studio Pro server running at: http://127.0.0.1:${srv.port}/`,
+    );
     await new Promise(() => {});
   } else {
     const app = createCodeStudio({ fullscreen, port });

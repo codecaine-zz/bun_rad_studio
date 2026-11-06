@@ -49,7 +49,7 @@ describe("NovaCode Studio Pro — Developer Workstation Contracts", () => {
     const res = await fetch(`${baseUrl}/api/health`);
     expect(res.status).toBe(200);
 
-    const data = await res.json() as any;
+    const data = (await res.json()) as any;
     expect(data.status).toBe("ok");
     expect(data.app).toBe("code_studio");
     expect(data.name).toContain("NovaCode Studio Pro");
@@ -72,7 +72,7 @@ describe("NovaCode Studio Pro — Developer Workstation Contracts", () => {
     const res = await fetch(`${baseUrl}/api/fs/workspace`);
     expect(res.status).toBe(200);
 
-    const data = await res.json() as any;
+    const data = (await res.json()) as any;
     expect(data.success).toBe(true);
     expect(Array.isArray(data.files)).toBe(true);
     expect(data.files.length).toBeGreaterThan(0);
@@ -94,7 +94,7 @@ describe("NovaCode Studio Pro — Developer Workstation Contracts", () => {
     });
     expect(res.status).toBe(200);
 
-    const data = await res.json() as any;
+    const data = (await res.json()) as any;
     expect(data.success).toBe(true);
     expect(data.totalMatches).toBeGreaterThan(0);
     expect(data.fileCount).toBeGreaterThan(0);
@@ -114,7 +114,7 @@ describe("NovaCode Studio Pro — Developer Workstation Contracts", () => {
       body: JSON.stringify({ path: testFileRel, type: "file" }),
     });
     expect(newRes.status).toBe(200);
-    const newData = await newRes.json() as any;
+    const newData = (await newRes.json()) as any;
     expect(newData.success).toBe(true);
 
     // 2. Save content
@@ -127,7 +127,7 @@ describe("NovaCode Studio Pro — Developer Workstation Contracts", () => {
       }),
     });
     expect(saveRes.status).toBe(200);
-    const saveData = await saveRes.json() as any;
+    const saveData = (await saveRes.json()) as any;
     expect(saveData.success).toBe(true);
     expect(saveData.size).toBeGreaterThan(0);
 
@@ -138,7 +138,7 @@ describe("NovaCode Studio Pro — Developer Workstation Contracts", () => {
       body: JSON.stringify({ path: testFileRel }),
     });
     expect(readRes.status).toBe(200);
-    const readData = await readRes.json() as any;
+    const readData = (await readRes.json()) as any;
     expect(readData.success).toBe(true);
     expect(readData.content).toBe("export const NOVA_TEST = 'active';");
 
@@ -146,10 +146,13 @@ describe("NovaCode Studio Pro — Developer Workstation Contracts", () => {
     const renameRes = await fetch(`${baseUrl}/api/fs/rename`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ oldPath: testFileRel, newPath: testFileRenamedRel }),
+      body: JSON.stringify({
+        oldPath: testFileRel,
+        newPath: testFileRenamedRel,
+      }),
     });
     expect(renameRes.status).toBe(200);
-    const renameData = await renameRes.json() as any;
+    const renameData = (await renameRes.json()) as any;
     expect(renameData.success).toBe(true);
 
     // 5. Delete file
@@ -159,7 +162,7 @@ describe("NovaCode Studio Pro — Developer Workstation Contracts", () => {
       body: JSON.stringify({ path: testFileRenamedRel }),
     });
     expect(delRes.status).toBe(200);
-    const delData = await delRes.json() as any;
+    const delData = (await delRes.json()) as any;
     expect(delData.success).toBe(true);
   });
 
@@ -171,7 +174,7 @@ describe("NovaCode Studio Pro — Developer Workstation Contracts", () => {
     });
     expect(res.status).toBe(200);
 
-    const data = await res.json() as any;
+    const data = (await res.json()) as any;
     expect(data.success).toBe(true);
     expect(data.exitCode).toBe(0);
     expect(data.stdout).toContain("NovaCode Studio Runner OK");
@@ -185,7 +188,7 @@ describe("NovaCode Studio Pro — Developer Workstation Contracts", () => {
       body: JSON.stringify({ command: "exit 7" }),
     });
     expect(res.status).toBe(200);
-    const data = await res.json() as { success: boolean; exitCode: number };
+    const data = (await res.json()) as { success: boolean; exitCode: number };
     expect(data.success).toBe(true);
     expect(data.exitCode).toBe(7);
   });

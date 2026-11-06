@@ -1,6 +1,6 @@
 /**
  * ⚡ World Time Zones Studio Pro
- * 
+ *
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
  * - Real-time global time zones workstation with interactive search & filtering
@@ -80,7 +80,9 @@ function buildWorldTimeZonesHtml(): string {
   const assetsDir = getWorldTimeZonesAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>World Time Zones</h1>";
+  let html = existsSync(indexPath)
+    ? readFileSync(indexPath, "utf8")
+    : "<h1>World Time Zones</h1>";
 
   const desktopHooks = `
   <script>
@@ -115,7 +117,9 @@ ${getWindowShortcutsScript()}
 /**
  * Starts the Bun.serve server hosting World Time Zones Studio.
  */
-export function startWorldTimeZonesStudioServer(options: WorldTimeZonesServerOptions = {}) {
+export function startWorldTimeZonesStudioServer(
+  options: WorldTimeZonesServerOptions = {},
+) {
   const port = options.port ?? 0;
   const host = options.host ?? "127.0.0.1";
   const assetsDir = getWorldTimeZonesAssetsDir();
@@ -144,7 +148,10 @@ export function startWorldTimeZonesStudioServer(options: WorldTimeZonesServerOpt
       if (pathname === "/" || pathname === "/index.html") {
         const html = generateWorldTimeZonesStudioHtml();
         return new Response(html, {
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            ...corsHeaders,
+          },
         });
       }
 
@@ -176,18 +183,24 @@ export function startWorldTimeZonesStudioServer(options: WorldTimeZonesServerOpt
             version: "1.0.0",
             timestamp: Date.now(),
           },
-          { headers: corsHeaders }
+          { headers: corsHeaders },
         );
       }
 
       // Fallback: static file in assets directory
       const sanitized = pathname.replace(/^\/+/, "");
       const directCandidate = join(assetsDir, sanitized);
-      if (directCandidate !== assetsDir && !directCandidate.startsWith(assetsDir + "/") && !directCandidate.startsWith(assetsDir + "\\")) {
+      if (
+        directCandidate !== assetsDir &&
+        !directCandidate.startsWith(assetsDir + "/") &&
+        !directCandidate.startsWith(assetsDir + "\\")
+      ) {
         return new Response("Forbidden", { status: 403 });
       }
       if (existsSync(directCandidate)) {
-        return new Response(Bun.file(directCandidate), { headers: corsHeaders });
+        return new Response(Bun.file(directCandidate), {
+          headers: corsHeaders,
+        });
       }
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
@@ -200,7 +213,9 @@ export function startWorldTimeZonesStudioServer(options: WorldTimeZonesServerOpt
 /**
  * Creates the complete native desktop instance of World Time Zones.
  */
-export function createWorldTimeZonesStudio(options: WorldTimeZonesStudioOptions = {}): WorldTimeZonesStudioInstance {
+export function createWorldTimeZonesStudio(
+  options: WorldTimeZonesStudioOptions = {},
+): WorldTimeZonesStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1280);
@@ -232,7 +247,8 @@ export function createWorldTimeZonesStudio(options: WorldTimeZonesStudioOptions 
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -252,11 +268,15 @@ export function createWorldTimeZonesStudio(options: WorldTimeZonesStudioOptions 
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -266,16 +286,24 @@ export function createWorldTimeZonesStudio(options: WorldTimeZonesStudioOptions 
         });
 
         webview.setHTML(html);
-        console.log(`⚡ Desktop window open (Fullscreen: ${fullscreen ? 'Enabled' : 'Disabled'}).`);
+        console.log(
+          `⚡ Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`,
+        );
 
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -291,10 +319,13 @@ if (process.argv.includes("--server")) {
   const port = parseInt(process.env.PORT || "0", 10);
   const srv = startWorldTimeZonesStudioServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`⚡ World Time Zones Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `⚡ World Time Zones Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
+  const fullscreen =
+    !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
   const app = createWorldTimeZonesStudio({ fullscreen });
   await app.run();
   process.exit(0);

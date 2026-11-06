@@ -35,7 +35,11 @@ describe("🎴 Egyptian Rat Screw Royale — Deluxe Reflex Card Studio Suite", (
   });
 
   it("3. Studio factory generates correct defaults and instance contracts", () => {
-    const app = createRatScrewStudio({ fullscreen: false, width: 1240, height: 860 });
+    const app = createRatScrewStudio({
+      fullscreen: false,
+      width: 1240,
+      height: 860,
+    });
     expect(app.title).toContain("Egyptian Rat Screw Royale");
     expect(app.width).toBe(1240);
     expect(app.height).toBe(860);
@@ -63,7 +67,7 @@ describe("🎴 Egyptian Rat Screw Royale — Deluxe Reflex Card Studio Suite", (
       // Health check endpoint
       const resHealth = await fetch(`${base}/api/health`);
       expect(resHealth.status).toBe(200);
-      const healthData = await resHealth.json() as any;
+      const healthData = (await resHealth.json()) as any;
       expect(healthData.status).toBe("ok");
       expect(healthData.app).toBe("rat_screw_studio");
       expect(healthData.name).toContain("Egyptian Rat Screw Royale");
@@ -74,7 +78,9 @@ describe("🎴 Egyptian Rat Screw Royale — Deluxe Reflex Card Studio Suite", (
 
   it("5. Launcher Studio automatically registers and surfaces Egyptian Rat Screw", () => {
     const apps = scanWorkspaceApps();
-    const found = apps.find((a) => a.name === "rat_screw_studio" || a.id === "rad_rat_screw_studio");
+    const found = apps.find(
+      (a) => a.name === "rat_screw_studio" || a.id === "rad_rat_screw_studio",
+    );
     expect(found).toBeDefined();
     expect(found?.displayName).toContain("Egyptian Rat Screw Royale");
     expect(found?.icon).toBe("🎴");

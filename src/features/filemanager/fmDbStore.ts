@@ -9,11 +9,29 @@
  * `file_manager_databases.json`.
  */
 import { randomUUID } from "crypto";
-import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from "fs";
 import { dirname, join } from "path";
 import { DbError } from "../../db/errors";
-import { ProfileStore, type ConnectionProfile, type Environment, type SecretStore } from "../../db/profiles";
-import { DB_ENGINES, isEngine, validHost, validPort, type DbEngine } from "./fmDbModel";
+import {
+  ProfileStore,
+  type ConnectionProfile,
+  type Environment,
+  type SecretStore,
+} from "../../db/profiles";
+import {
+  DB_ENGINES,
+  isEngine,
+  validHost,
+  validPort,
+  type DbEngine,
+} from "./fmDbModel";
 
 /** Saved connection profile for a Redis server endpoint. */
 export interface RedisProfile {
@@ -53,7 +71,10 @@ export interface ProfileMeta {
 }
 
 /** Database connection profile enriched with `hasPassword` and optional `ProfileMeta` for UI display. */
-export type PublicDbProfile = DbProfile & { hasPassword: boolean; meta?: ProfileMeta };
+export type PublicDbProfile = DbProfile & {
+  hasPassword: boolean;
+  meta?: ProfileMeta;
+};
 
 /** User-configured fallback host, port, user, database, and TLS settings for a database engine. */
 export interface EngineDefaults {
@@ -83,23 +104,40 @@ export interface DbSettings {
 }
 
 const bad = (m: string) => new DbError("INVALID_REQUEST", m);
-const ENVIRONMENTS: Environment[] = ["development", "test", "staging", "production"];
+const ENVIRONMENTS: Environment[] = [
+  "development",
+  "test",
+  "staging",
+  "production",
+];
 
 /** Creates a fresh `DbSettings` object with default per-engine settings and auto-detection enabled. */
 export function defaultSettings(): DbSettings {
-  const engines = Object.fromEntries(DB_ENGINES.map((e) => [e, { useEnv: true, defaults: {} }])) as Record<DbEngine, EngineSettings>;
-  return { version: 1, detect: { auto: true, autoSave: false }, engines, dismissed: [], meta: {} };
+  const engines = Object.fromEntries(
+    DB_ENGINES.map((e) => [e, { useEnv: true, defaults: {} }]),
+  ) as Record<DbEngine, EngineSettings>;
+  return {
+    version: 1,
+    detect: { auto: true, autoSave: false },
+    engines,
+    dismissed: [],
+    meta: {},
+  };
 }
 
 const text = (v: unknown, field: string, max: number): string | undefined => {
   if (v === undefined || v === null || v === "") return undefined;
-  if (typeof v !== "string" || v.length > max || /[\u0000-\u001f]/.test(v)) throw bad(`${field} must be text up to ${max} characters`);
+  if (typeof v !== "string" || v.length > max || /[\u0000-\u001f]/.test(v))
+    throw bad(`${field} must be text up to ${max} characters`);
   return v;
 };
 
 /** Defaults a person types for an engine: only the host, port, user, database, schema and TLS choice. */
 export function sanitizeDefaults(input: unknown): EngineDefaults {
-  const o = (input && typeof input === "object" ? input : {}) as Record<string, unknown>;
+  const o = (input && typeof input === "object" ? input : {}) as Record<
+    string,
+    unknown
+  >;
   const out: EngineDefaults = {};
   const host = text(o.host, "host", 255);
   if (host) {
@@ -122,11 +160,16 @@ export function sanitizeDefaults(input: unknown): EngineDefaults {
 }
 
 /** Validates and normalizes an untrusted Redis connection profile payload. */
-export function sanitizeRedisProfile(input: unknown, existing?: RedisProfile): Omit<RedisProfile, "id" | "createdAt" | "lastUsedAt"> {
-  if (typeof input !== "object" || input === null) throw bad("Profile must be an object");
+export function sanitizeRedisProfile(
+  input: unknown,
+  existing?: RedisProfile,
+): Omit<RedisProfile, "id" | "createdAt" | "lastUsedAt"> {
+  if (typeof input !== "object" || input === null)
+    throw bad("Profile must be an object");
   const o = input as Record<string, unknown>;
   const environment = (o.environment ?? "development") as Environment;
-  if (!ENVIRONMENTS.includes(environment)) throw bad("environment must be development, test, staging or production");
+  if (!ENVIRONMENTS.includes(environment))
+    throw bad("environment must be development, test, staging or production");
   const name = text(o.name, "name", 80);
   if (!name) throw bad("name is required");
   const host = text(o.host, "host", 255) ?? "localhost";
@@ -135,7 +178,12 @@ export function sanitizeRedisProfile(input: unknown, existing?: RedisProfile): O
     name,
     engine: "redis",
     folder: text(o.folder, "folder", 80),
-    tags: Array.isArray(o.tags) ? o.tags.map((t) => text(t, "tag", 40)).filter((t): t is string => !!t).slice(0, 20) : [],
+    tags: Array.isArray(o.tags)
+      ? o.tags
+          .map((t) => text(t, "tag", 40))
+          .filter((t): t is string => !!t)
+          .slice(0, 20)
+      : [],
     favorite: Boolean(o.favorite),
     environment,
     readOnly: Boolean(o.readOnly),
@@ -149,7 +197,8 @@ export function sanitizeRedisProfile(input: unknown, existing?: RedisProfile): O
   out.user = text(o.user, "user", 128);
   if (o.dbIndex !== undefined && o.dbIndex !== "" && o.dbIndex !== null) {
     const n = Number(o.dbIndex);
-    if (!Number.isInteger(n) || n < 0 || n > 15) throw bad("The database number must be 0 to 15");
+    if (!Number.isInteger(n) || n < 0 || n > 15)
+      throw bad("The database number must be 0 to 15");
     out.dbIndex = n;
   }
   const tls = o.tls;
@@ -157,16 +206,25 @@ export function sanitizeRedisProfile(input: unknown, existing?: RedisProfile): O
     if (typeof tls === "boolean") out.tls = tls;
     else if (typeof tls === "object") {
       const t = tls as Record<string, unknown>;
-      out.tls = { ...(t.ca ? { ca: text(t.ca, "tls.ca", 100_000) } : {}), ...(t.verify === false ? { verify: false } : {}) };
+      out.tls = {
+        ...(t.ca ? { ca: text(t.ca, "tls.ca", 100_000) } : {}),
+        ...(t.verify === false ? { verify: false } : {}),
+      };
     } else throw bad("tls must be on/off or an object");
   }
   out.keyPrefix = text(o.keyPrefix, "key prefix", 128);
-  if (o.connectTimeoutMs !== undefined && o.connectTimeoutMs !== "" && o.connectTimeoutMs !== null) {
+  if (
+    o.connectTimeoutMs !== undefined &&
+    o.connectTimeoutMs !== "" &&
+    o.connectTimeoutMs !== null
+  ) {
     const ms = Number(o.connectTimeoutMs);
-    if (!Number.isInteger(ms) || ms < 1000 || ms > 120_000) throw bad("connectTimeoutMs must be 1000-120000");
+    if (!Number.isInteger(ms) || ms < 1000 || ms > 120_000)
+      throw bad("connectTimeoutMs must be 1000-120000");
     out.connectTimeoutMs = ms;
   }
-  if (existing && existing.engine !== "redis") throw bad("A profile's engine cannot be changed; create a new profile");
+  if (existing && existing.engine !== "redis")
+    throw bad("A profile's engine cannot be changed; create a new profile");
   return out;
 }
 
@@ -198,7 +256,10 @@ export class DbStore {
   private readonly settingsFile: string;
 
   /** Initializes a `DbStore` backed by JSON files in `dir` and the provided `SecretStore`. */
-  constructor(readonly dir: string, readonly secrets: SecretStore) {
+  constructor(
+    readonly dir: string,
+    readonly secrets: SecretStore,
+  ) {
     this.sql = new ProfileStore(dir, secrets);
     this.redisFile = join(dir, "connections_redis.json");
     this.settingsFile = join(dir, "file_manager_databases.json");
@@ -232,11 +293,39 @@ export class DbStore {
           }
         }
       }
-      if (Array.isArray(raw.dismissed)) base.dismissed = raw.dismissed.filter((x: unknown) => typeof x === "string" && /^[a-z]+:[0-9a-f]{16}$/.test(x)).slice(0, 200);
+      if (Array.isArray(raw.dismissed))
+        base.dismissed = raw.dismissed
+          .filter(
+            (x: unknown) =>
+              typeof x === "string" && /^[a-z]+:[0-9a-f]{16}$/.test(x),
+          )
+          .slice(0, 200);
       if (raw.meta && typeof raw.meta === "object") {
         for (const [id, m] of Object.entries(raw.meta as Record<string, any>)) {
-          if (m && typeof m === "object" && ["manual", "environment", "dotenv", "envfile", "url", "local"].includes(m.source)) {
-            base.meta[id] = { source: m.source, variables: Array.isArray(m.variables) ? m.variables.filter((v: unknown) => typeof v === "string").slice(0, 40) : undefined, slot: typeof m.slot === "string" ? m.slot : undefined, fingerprint: typeof m.fingerprint === "string" ? m.fingerprint : undefined, savedAt: String(m.savedAt ?? "") };
+          if (
+            m &&
+            typeof m === "object" &&
+            [
+              "manual",
+              "environment",
+              "dotenv",
+              "envfile",
+              "url",
+              "local",
+            ].includes(m.source)
+          ) {
+            base.meta[id] = {
+              source: m.source,
+              variables: Array.isArray(m.variables)
+                ? m.variables
+                    .filter((v: unknown) => typeof v === "string")
+                    .slice(0, 40)
+                : undefined,
+              slot: typeof m.slot === "string" ? m.slot : undefined,
+              fingerprint:
+                typeof m.fingerprint === "string" ? m.fingerprint : undefined,
+              savedAt: String(m.savedAt ?? ""),
+            };
           }
         }
       }
@@ -251,10 +340,14 @@ export class DbStore {
   }
 
   /** Updates `useEnv` and default connection fields for `engine` and persists the settings. */
-  setEngineSettings(engine: DbEngine, change: { useEnv?: unknown; defaults?: unknown }) {
+  setEngineSettings(
+    engine: DbEngine,
+    change: { useEnv?: unknown; defaults?: unknown },
+  ) {
     const s = this.getSettings().engines[engine];
     if (change.useEnv !== undefined) s.useEnv = change.useEnv === true;
-    if (change.defaults !== undefined) s.defaults = sanitizeDefaults(change.defaults);
+    if (change.defaults !== undefined)
+      s.defaults = sanitizeDefaults(change.defaults);
     this.saveSettings();
     return s;
   }
@@ -263,7 +356,8 @@ export class DbStore {
   setDetect(change: { auto?: unknown; autoSave?: unknown }) {
     const s = this.getSettings();
     if (change.auto !== undefined) s.detect.auto = change.auto === true;
-    if (change.autoSave !== undefined) s.detect.autoSave = change.autoSave === true;
+    if (change.autoSave !== undefined)
+      s.detect.autoSave = change.autoSave === true;
     this.saveSettings();
     return s.detect;
   }
@@ -310,7 +404,11 @@ export class DbStore {
 
   private async decorate(p: DbProfile): Promise<PublicDbProfile> {
     const meta = this.getSettings().meta[p.id];
-    return { ...p, hasPassword: (await this.secrets.get(p.id)) !== null, ...(meta ? { meta } : {}) };
+    return {
+      ...p,
+      hasPassword: (await this.secrets.get(p.id)) !== null,
+      ...(meta ? { meta } : {}),
+    };
   }
 
   /** The saved connections without looking at the keychain (no `hasPassword`). */
@@ -322,16 +420,30 @@ export class DbStore {
   /** Returns all saved SQL and Redis profiles enriched with `hasPassword` and `ProfileMeta`, sorted by recent use. */
   async list(): Promise<PublicDbProfile[]> {
     this.loadRedis();
-    const all: DbProfile[] = [...(await this.sql.list()).map(({ hasPassword: _h, ...p }) => p as ConnectionProfile), ...this.redis];
+    const all: DbProfile[] = [
+      ...(await this.sql.list()).map(
+        ({ hasPassword: _h, ...p }) => p as ConnectionProfile,
+      ),
+      ...this.redis,
+    ];
     return Promise.all(all.map((p) => this.decorate(p)));
   }
 
   /** Create (no `id`) or update. `password`: text to store, "" to remove, undefined to leave it as it is. */
-  async save(input: Record<string, unknown>, password: string | undefined, id?: string): Promise<PublicDbProfile> {
+  async save(
+    input: Record<string, unknown>,
+    password: string | undefined,
+    id?: string,
+  ): Promise<PublicDbProfile> {
     this.loadRedis();
-    if (password !== undefined && (typeof password !== "string" || password.length > 1024)) throw bad("Invalid password");
+    if (
+      password !== undefined &&
+      (typeof password !== "string" || password.length > 1024)
+    )
+      throw bad("Invalid password");
     const engine = input.engine;
-    if (!isEngine(engine)) throw bad("engine must be sqlite, mysql, postgres or redis");
+    if (!isEngine(engine))
+      throw bad("engine must be sqlite, mysql, postgres or redis");
     if (engine !== "redis") {
       const saved = await this.sql.save(input, password, id);
       const { hasPassword: _h, ...p } = saved;
@@ -346,7 +458,11 @@ export class DbStore {
       if (clean.tls === undefined) delete profile.tls;
       this.redis[this.redis.indexOf(existing)] = profile;
     } else {
-      profile = { ...clean, id: randomUUID(), createdAt: new Date().toISOString() };
+      profile = {
+        ...clean,
+        id: randomUUID(),
+        createdAt: new Date().toISOString(),
+      };
       this.redis.push(profile);
     }
     if (password !== undefined) {
@@ -378,7 +494,14 @@ export class DbStore {
       const { hasPassword: _h, ...p } = copy;
       return this.decorate(p as ConnectionProfile);
     }
-    const copy: RedisProfile = { ...redis, id: randomUUID(), name: `${redis.name} (copy)`.slice(0, 80), createdAt: new Date().toISOString(), lastUsedAt: undefined, favorite: false };
+    const copy: RedisProfile = {
+      ...redis,
+      id: randomUUID(),
+      name: `${redis.name} (copy)`.slice(0, 80),
+      createdAt: new Date().toISOString(),
+      lastUsedAt: undefined,
+      favorite: false,
+    };
     this.redis.push(copy);
     const pw = copyPassword ? await this.secrets.get(id) : null;
     if (pw !== null) await this.secrets.set(copy.id, pw);

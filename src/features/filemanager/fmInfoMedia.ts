@@ -1,9 +1,25 @@
 /** `info/media`: sound and video details. ffprobe when installed (full), the built-in readers otherwise (basic). */
 import { promises as fsp } from "fs";
 import { absolutePath, pathApi, type FmContext } from "./fmCore";
-import { clip, fileSource, helperEnv, helperProgram, installHint, openForRead, readBytes, regularFile, runProgram, type InfoGroup } from "./fmInfoCommon";
+import {
+  clip,
+  fileSource,
+  helperEnv,
+  helperProgram,
+  installHint,
+  openForRead,
+  readBytes,
+  regularFile,
+  runProgram,
+  type InfoGroup,
+} from "./fmInfoCommon";
 import { parseFlac, parseMp3, parseOgg, parseWav } from "./fmInfoAudio";
-import { emptyMedia, mediaGroups, type MediaInfo, type MediaStream } from "./fmInfoMediaRows";
+import {
+  emptyMedia,
+  mediaGroups,
+  type MediaInfo,
+  type MediaStream,
+} from "./fmInfoMediaRows";
 import { parseMatroska, parseMp4 } from "./fmInfoVideo";
 import { extensionOf, FmError } from "./fmPaths";
 import { SNIFF_BYTES, sniffType } from "./fmSniff";
@@ -12,7 +28,15 @@ const num = (v: unknown): number | undefined => {
   const n = typeof v === "string" ? Number(v) : typeof v === "number" ? v : NaN;
   return Number.isFinite(n) ? n : undefined;
 };
-const text = (v: unknown, max = 500): string => (typeof v === "string" ? v.replace(/[\u0000-\u001f]+/g, " ").slice(0, max).trim() : typeof v === "number" ? String(v) : "");
+const text = (v: unknown, max = 500): string =>
+  typeof v === "string"
+    ? v
+        .replace(/[\u0000-\u001f]+/g, " ")
+        .slice(0, max)
+        .trim()
+    : typeof v === "number"
+      ? String(v)
+      : "";
 
 function rate(v: unknown): number | undefined {
   if (typeof v !== "string") return undefined;
@@ -39,28 +63,77 @@ export function fromFfprobe(json: any): MediaInfo {
       } else m.tags[key] = text(v);
     }
   }
-  for (const s of (Array.isArray(json?.streams) ? json.streams : []).slice(0, 100)) {
-    const type = s.codec_type === "video" || s.codec_type === "audio" || s.codec_type === "subtitle" || s.codec_type === "data" ? (s.codec_type as MediaStream["type"]) : "other";
+  for (const s of (Array.isArray(json?.streams) ? json.streams : []).slice(
+    0,
+    100,
+  )) {
+    const type =
+      s.codec_type === "video" ||
+      s.codec_type === "audio" ||
+      s.codec_type === "subtitle" ||
+      s.codec_type === "data"
+        ? (s.codec_type as MediaStream["type"])
+        : "other";
     const cover = type === "video" && s.disposition?.attached_pic === 1;
     if (cover) m.coverArt = true;
-    const stream: MediaStream = { type, codec: text(s.codec_long_name) || text(s.codec_name), width: num(s.width), height: num(s.height), channels: num(s.channels), layout: text(s.channel_layout) || undefined, sampleRate: num(s.sample_rate), bitrate: num(s.bit_rate), bits: num(s.bits_per_raw_sample) ?? (num(s.bits_per_sample) || undefined) };
+    const stream: MediaStream = {
+      type,
+      codec: text(s.codec_long_name) || text(s.codec_name),
+      width: num(s.width),
+      height: num(s.height),
+      channels: num(s.channels),
+      layout: text(s.channel_layout) || undefined,
+      sampleRate: num(s.sample_rate),
+      bitrate: num(s.bit_rate),
+      bits: num(s.bits_per_raw_sample) ?? (num(s.bits_per_sample) || undefined),
+    };
     if (type === "video") {
       const fps = rate(s.avg_frame_rate) ?? rate(s.r_frame_rate);
       if (fps && fps > 0 && fps < 1000) stream.fps = fps;
-      stream.detail = cover ? "cover" : [text(s.profile), text(s.pix_fmt)].filter(Boolean).join(", ") || undefined;
+      stream.detail = cover
+        ? "cover"
+        : [text(s.profile), text(s.pix_fmt)].filter(Boolean).join(", ") ||
+          undefined;
     }
     stream.language = text(s.tags?.language) || undefined;
     stream.title = text(s.tags?.title) || undefined;
     m.streams.push(stream);
   }
-  for (const c of (Array.isArray(json?.chapters) ? json.chapters : []).slice(0, 500)) m.chapters.push({ start: num(c.start_time) ?? 0, title: text(c.tags?.title, 200) });
+  for (const c of (Array.isArray(json?.chapters) ? json.chapters : []).slice(
+    0,
+    500,
+  ))
+    m.chapters.push({
+      start: num(c.start_time) ?? 0,
+      title: text(c.tags?.title, 200),
+    });
   return m;
 }
 
-async function viaFfprobe(ctx: FmContext, path: string): Promise<MediaInfo | null> {
+async function viaFfprobe(
+  ctx: FmContext,
+  path: string,
+): Promise<MediaInfo | null> {
   const bin = helperProgram(ctx, "ffmpeg", "ffprobe");
   if (!bin) return null;
-  const r = await runProgram([bin, "-v", "error", "-protocol_whitelist", "file", "-print_format", "json", "-show_format", "-show_streams", "-show_chapters", "-i", path], helperEnv(ctx), { timeoutMs: 9000, maxBytes: 4 * 1024 * 1024 });
+  const r = await runProgram(
+    [
+      bin,
+      "-v",
+      "error",
+      "-protocol_whitelist",
+      "file",
+      "-print_format",
+      "json",
+      "-show_format",
+      "-show_streams",
+      "-show_chapters",
+      "-i",
+      path,
+    ],
+    helperEnv(ctx),
+    { timeoutMs: 9000, maxBytes: 4 * 1024 * 1024 },
+  );
   if (r.code !== 0 || r.timedOut || r.truncated) return null;
   try {
     const json = JSON.parse(r.stdout);
@@ -72,28 +145,50 @@ async function viaFfprobe(ctx: FmContext, path: string): Promise<MediaInfo | nul
 
 function sidecarText(text: string, extension: string): string {
   const clean = text.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
-  if (extension !== "srt" && extension !== "vtt") return clip(clean.trim(), 256 * 1024);
-  return clip(clean.split("\n")
-    .filter((line) => !/^\s*(?:WEBVTT|NOTE(?:\s|$)|STYLE(?:\s|$)|REGION(?:\s|$)|\d+)\s*$/.test(line)
-      && !/^\s*\d{1,2}:\d{2}(?::\d{2})?[.,]\d{3}\s+-->/.test(line))
-    .join("\n").replace(/\n{3,}/g, "\n\n").trim(), 256 * 1024);
+  if (extension !== "srt" && extension !== "vtt")
+    return clip(clean.trim(), 256 * 1024);
+  return clip(
+    clean
+      .split("\n")
+      .filter(
+        (line) =>
+          !/^\s*(?:WEBVTT|NOTE(?:\s|$)|STYLE(?:\s|$)|REGION(?:\s|$)|\d+)\s*$/.test(
+            line,
+          ) && !/^\s*\d{1,2}:\d{2}(?::\d{2})?[.,]\d{3}\s+-->/.test(line),
+      )
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim(),
+    256 * 1024,
+  );
 }
 
-async function localLyrics(ctx: FmContext, path: string): Promise<Array<{ text: string; source: string }>> {
+async function localLyrics(
+  ctx: FmContext,
+  path: string,
+): Promise<Array<{ text: string; source: string }>> {
   const p = pathApi(ctx);
   const stem = p.basename(path, p.extname(path)).toLocaleLowerCase();
   const dir = p.dirname(path);
   const names = await fsp.readdir(dir, { withFileTypes: true });
-  const candidates = names.filter((entry) => {
-    if (!entry.isFile()) return false;
-    const name = entry.name.toLocaleLowerCase();
-    const dot = name.lastIndexOf(".");
-    if (dot < 0 || !name.startsWith(`${stem}.`)) return false;
-    return ["lrc", "txt", "srt", "vtt"].includes(name.slice(dot + 1));
-  }).sort((a, b) => {
-    const priority = (name: string) => ({ lrc: 0, txt: 1, srt: 2, vtt: 3 }[name.slice(name.lastIndexOf(".") + 1)] ?? 4);
-    return priority(a.name.toLocaleLowerCase()) - priority(b.name.toLocaleLowerCase()) || a.name.localeCompare(b.name);
-  });
+  const candidates = names
+    .filter((entry) => {
+      if (!entry.isFile()) return false;
+      const name = entry.name.toLocaleLowerCase();
+      const dot = name.lastIndexOf(".");
+      if (dot < 0 || !name.startsWith(`${stem}.`)) return false;
+      return ["lrc", "txt", "srt", "vtt"].includes(name.slice(dot + 1));
+    })
+    .sort((a, b) => {
+      const priority = (name: string) =>
+        ({ lrc: 0, txt: 1, srt: 2, vtt: 3 })[
+          name.slice(name.lastIndexOf(".") + 1)
+        ] ?? 4;
+      return (
+        priority(a.name.toLocaleLowerCase()) -
+          priority(b.name.toLocaleLowerCase()) || a.name.localeCompare(b.name)
+      );
+    });
 
   const lyrics: Array<{ text: string; source: string }> = [];
   for (const candidate of candidates.slice(0, 10)) {
@@ -109,7 +204,9 @@ async function localLyrics(ctx: FmContext, path: string): Promise<Array<{ text: 
       const st = await handle.stat();
       if (st.size > 256 * 1024) continue;
       const bytes = await readBytes(handle, 0, 256 * 1024);
-      const extension = candidate.name.slice(candidate.name.lastIndexOf(".") + 1).toLowerCase();
+      const extension = candidate.name
+        .slice(candidate.name.lastIndexOf(".") + 1)
+        .toLowerCase();
       const text = sidecarText(new TextDecoder().decode(bytes), extension);
       if (text) lyrics.push({ text, source: `Local file: ${candidate.name}` });
     } finally {
@@ -129,7 +226,10 @@ export interface MediaResult {
 }
 
 /** Inspects an audio or video file using `ffprobe` (when available) or the built-in container parsers, plus sidecar lyrics. */
-export async function mediaInfo(ctx: FmContext, input: unknown): Promise<MediaResult> {
+export async function mediaInfo(
+  ctx: FmContext,
+  input: unknown,
+): Promise<MediaResult> {
   const t = await regularFile(ctx, input);
   const path = absolutePath(ctx, input);
   const hasProbe = !!helperProgram(ctx, "ffmpeg", "ffprobe");
@@ -141,19 +241,34 @@ export async function mediaInfo(ctx: FmContext, input: unknown): Promise<MediaRe
       const src = fileSource(handle, t.lst.size);
       const sniff = sniffType(await readBytes(handle, 0, SNIFF_BYTES));
       const kind = sniff?.kind ?? "";
-      if (kind === "mp3" || (kind === "binary" && extensionOf(path) === "mp3")) info = await parseMp3(src);
+      if (kind === "mp3" || (kind === "binary" && extensionOf(path) === "mp3"))
+        info = await parseMp3(src);
       else if (kind === "wav") info = await parseWav(src);
       else if (kind === "flac") info = await parseFlac(src);
       else if (kind === "ogg") info = await parseOgg(src);
-      else if (["mp4", "m4a", "m4v", "mov", "3gp"].includes(kind)) info = await parseMp4(src);
-      else if (kind === "mkv" || kind === "webm") info = await parseMatroska(src);
-      else throw new FmError("NOT_MEDIA", `This doesn't look like a sound or video file that the built-in reader knows.${hint ? ` ${hint}` : ""}`);
+      else if (["mp4", "m4a", "m4v", "mov", "3gp"].includes(kind))
+        info = await parseMp4(src);
+      else if (kind === "mkv" || kind === "webm")
+        info = await parseMatroska(src);
+      else
+        throw new FmError(
+          "NOT_MEDIA",
+          `This doesn't look like a sound or video file that the built-in reader knows.${hint ? ` ${hint}` : ""}`,
+        );
     } finally {
       await handle.close();
     }
   }
-  const embedded = info.lyrics ? [{ source: info.lyricsSource || "Embedded lyrics", text: info.lyrics }] : [];
+  const embedded = info.lyrics
+    ? [{ source: info.lyricsSource || "Embedded lyrics", text: info.lyrics }]
+    : [];
   const sidecars = await localLyrics(ctx, path);
   info.lyricsSources = [...embedded, ...sidecars];
-  return { groups: mediaGroups(info, t.lst.size), source: info.source, helper: { ffprobe: hasProbe, hint }, partial: info.partial, notes: info.notes };
+  return {
+    groups: mediaGroups(info, t.lst.size),
+    source: info.source,
+    helper: { ffprobe: hasProbe, hint },
+    partial: info.partial,
+    notes: info.notes,
+  };
 }

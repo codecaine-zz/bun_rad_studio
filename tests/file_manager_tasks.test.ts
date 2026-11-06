@@ -38,7 +38,13 @@ describe("cross-platform Task Manager pure parsers & platform rules", () => {
     expect(win.supportsNativeTreeKill).toBe(true);
     expect(win.portMechanism).toContain("netstat");
     expect(win.killMechanism).toContain("taskkill");
-    expect(win.actions.map((a) => a.id)).toEqual(["terminate", "kill", "tree", "group", "priority"]);
+    expect(win.actions.map((a) => a.id)).toEqual([
+      "terminate",
+      "kill",
+      "tree",
+      "group",
+      "priority",
+    ]);
 
     const mac = getTaskPlatformProfile("darwin");
     expect(mac.family).toBe("unix");
@@ -46,7 +52,16 @@ describe("cross-platform Task Manager pure parsers & platform rules", () => {
     expect(mac.supportsSuspendResume).toBe(true);
     expect(mac.supportsReloadSignal).toBe(true);
     expect(mac.supportsNativeTreeKill).toBe(false);
-    expect(mac.actions.map((a) => a.id)).toEqual(["terminate", "kill", "suspend", "resume", "reload", "tree", "group", "priority"]);
+    expect(mac.actions.map((a) => a.id)).toEqual([
+      "terminate",
+      "kill",
+      "suspend",
+      "resume",
+      "reload",
+      "tree",
+      "group",
+      "priority",
+    ]);
 
     const lin = getTaskPlatformProfile("linux");
     expect(lin.family).toBe("unix");
@@ -57,32 +72,109 @@ describe("cross-platform Task Manager pure parsers & platform rules", () => {
   });
 
   test("buildProcessActionCommand constructs taskkill/PowerShell on Windows and kill/renice on *nix", () => {
-    expect(buildProcessActionCommand("win32", "terminate", "4200")).toEqual(["taskkill", "/PID", "4200"]);
-    expect(buildProcessActionCommand("win32", "kill", "4200")).toEqual(["taskkill", "/F", "/PID", "4200"]);
-    expect(buildProcessActionCommand("win32", "tree", "4200")).toEqual(["taskkill", "/T", "/F", "/PID", "4200"]);
+    expect(buildProcessActionCommand("win32", "terminate", "4200")).toEqual([
+      "taskkill",
+      "/PID",
+      "4200",
+    ]);
+    expect(buildProcessActionCommand("win32", "kill", "4200")).toEqual([
+      "taskkill",
+      "/F",
+      "/PID",
+      "4200",
+    ]);
+    expect(buildProcessActionCommand("win32", "tree", "4200")).toEqual([
+      "taskkill",
+      "/T",
+      "/F",
+      "/PID",
+      "4200",
+    ]);
     const winPrio = buildProcessActionCommand("win32", "priority", "4200");
     expect(winPrio[0]).toBe("powershell.exe");
     expect(winPrio.join(" ")).toContain("BelowNormal");
 
-    expect(buildProcessActionCommand("darwin", "terminate", "4200")).toEqual(["kill", "-15", "4200"]);
-    expect(buildProcessActionCommand("darwin", "kill", "4200")).toEqual(["kill", "-9", "4200"]);
-    expect(buildProcessActionCommand("darwin", "suspend", "4200")).toEqual(["kill", "-17", "4200"]);
-    expect(buildProcessActionCommand("linux", "suspend", "4200")).toEqual(["kill", "-19", "4200"]);
-    expect(buildProcessActionCommand("darwin", "resume", "4200")).toEqual(["kill", "-19", "4200"]);
-    expect(buildProcessActionCommand("linux", "resume", "4200")).toEqual(["kill", "-18", "4200"]);
-    expect(buildProcessActionCommand("darwin", "reload", "4200")).toEqual(["kill", "-1", "4200"]);
-    expect(buildProcessActionCommand("darwin", "priority", "4200")).toEqual(["renice", "10", "-p", "4200"]);
+    expect(buildProcessActionCommand("darwin", "terminate", "4200")).toEqual([
+      "kill",
+      "-15",
+      "4200",
+    ]);
+    expect(buildProcessActionCommand("darwin", "kill", "4200")).toEqual([
+      "kill",
+      "-9",
+      "4200",
+    ]);
+    expect(buildProcessActionCommand("darwin", "suspend", "4200")).toEqual([
+      "kill",
+      "-17",
+      "4200",
+    ]);
+    expect(buildProcessActionCommand("linux", "suspend", "4200")).toEqual([
+      "kill",
+      "-19",
+      "4200",
+    ]);
+    expect(buildProcessActionCommand("darwin", "resume", "4200")).toEqual([
+      "kill",
+      "-19",
+      "4200",
+    ]);
+    expect(buildProcessActionCommand("linux", "resume", "4200")).toEqual([
+      "kill",
+      "-18",
+      "4200",
+    ]);
+    expect(buildProcessActionCommand("darwin", "reload", "4200")).toEqual([
+      "kill",
+      "-1",
+      "4200",
+    ]);
+    expect(buildProcessActionCommand("darwin", "priority", "4200")).toEqual([
+      "renice",
+      "10",
+      "-p",
+      "4200",
+    ]);
   });
 
   test("extractProcessName and executablePath handle both Windows paths and *nix / .app bundles", () => {
-    expect(extractProcessName('"C:\\Program Files\\nodejs\\node.exe" server.js', "win32")).toBe("node.exe");
-    expect(extractProcessName("C:\\Windows\\System32\\svchost.exe -k netsvcs", "win32")).toBe("svchost.exe");
-    expect(executablePath('"C:\\Program Files\\nodejs\\node.exe" server.js', "win32")).toBe("C:\\Program Files\\nodejs\\node.exe");
+    expect(
+      extractProcessName(
+        '"C:\\Program Files\\nodejs\\node.exe" server.js',
+        "win32",
+      ),
+    ).toBe("node.exe");
+    expect(
+      extractProcessName(
+        "C:\\Windows\\System32\\svchost.exe -k netsvcs",
+        "win32",
+      ),
+    ).toBe("svchost.exe");
+    expect(
+      executablePath(
+        '"C:\\Program Files\\nodejs\\node.exe" server.js',
+        "win32",
+      ),
+    ).toBe("C:\\Program Files\\nodejs\\node.exe");
 
-    expect(extractProcessName("/Applications/Visual Studio Code.app/Contents/MacOS/Electron --type=gpu", "darwin")).toBe("Visual Studio Code");
-    expect(executablePath("/Applications/Visual Studio Code.app/Contents/MacOS/Electron --type=gpu", "darwin")).toBe("/Applications/Visual Studio Code.app");
-    expect(extractProcessName("/usr/local/bin/bun run dev", "linux")).toBe("bun");
-    expect(executablePath("/usr/local/bin/bun run dev", "linux")).toBe("/usr/local/bin/bun");
+    expect(
+      extractProcessName(
+        "/Applications/Visual Studio Code.app/Contents/MacOS/Electron --type=gpu",
+        "darwin",
+      ),
+    ).toBe("Visual Studio Code");
+    expect(
+      executablePath(
+        "/Applications/Visual Studio Code.app/Contents/MacOS/Electron --type=gpu",
+        "darwin",
+      ),
+    ).toBe("/Applications/Visual Studio Code.app");
+    expect(extractProcessName("/usr/local/bin/bun run dev", "linux")).toBe(
+      "bun",
+    );
+    expect(executablePath("/usr/local/bin/bun run dev", "linux")).toBe(
+      "/usr/local/bin/bun",
+    );
   });
 
   test("parses Windows netstat -ano -p tcp, PowerShell CIM JSON, and tasklist /V /FO CSV", () => {
@@ -126,7 +218,12 @@ describe("cross-platform Task Manager pure parsers & platform rules", () => {
         ElapsedSeconds: 3665,
       },
     ]);
-    const procs = parseWindowsProcessJson(psJson, winPorts, "alice", 8 * 1024 * 1024 * 1024);
+    const procs = parseWindowsProcessJson(
+      psJson,
+      winPorts,
+      "alice",
+      8 * 1024 * 1024 * 1024,
+    );
     expect(procs.length).toBe(2);
     expect(procs[0]!.isCritical).toBe(true);
     expect(procs[1]!.pid).toBe("4120");
@@ -141,7 +238,12 @@ describe("cross-platform Task Manager pure parsers & platform rules", () => {
       '"csrss.exe","600","Services","0","6,144 K","Running","NT AUTHORITY\\SYSTEM","0:00:12","N/A"',
       '"node.exe","5200","Console","1","85,200 K","Not Responding","DESKTOP\\alice","0:05:30","Express API"',
     ].join("\r\n");
-    const csvProcs = parseWindowsTasklistCsv(tasklistCsv, winPorts, "alice", 8 * 1024 * 1024 * 1024);
+    const csvProcs = parseWindowsTasklistCsv(
+      tasklistCsv,
+      winPorts,
+      "alice",
+      8 * 1024 * 1024 * 1024,
+    );
     expect(csvProcs.length).toBe(2);
     expect(csvProcs[0]!.isCritical).toBe(true);
     expect(csvProcs[1]!.pid).toBe("5200");
@@ -184,7 +286,9 @@ describe("cross-platform Task Manager pure parsers & platform rules", () => {
     const groups = groupProcesses(nixProcs);
     expect(groups.length).toBe(3);
 
-    expect(matchesTaskQuery(nixProcs[1]!, ":4000 cpu>20 user:alice")).toBe(true);
+    expect(matchesTaskQuery(nixProcs[1]!, ":4000 cpu>20 user:alice")).toBe(
+      true,
+    );
     expect(matchesTaskQuery(nixProcs[1]!, ":9999")).toBe(false);
     expect(validPort(":3000")).toBe(3000);
     expect(validPort("99999")).toBeNull();
@@ -201,10 +305,21 @@ describe("cross-platform Task Manager pure parsers & platform rules", () => {
     expect(isCriticalProcess("launchd", "1", "darwin")).toBe(true);
     expect(isCriticalProcess("systemd", "1", "linux")).toBe(true);
 
-    const winCtx = { platform: "win32" as const, selfPid: "999", parentPid: "888", currentUser: "alice" };
-    expect(assessTaskAction(undefined, "4", "terminate", winCtx).allowed).toBe(false);
-    expect(assessTaskAction(undefined, "999", "terminate", winCtx).allowed).toBe(false);
-    expect(assessTaskAction(undefined, "4120", "suspend", winCtx).allowed).toBe(false);
+    const winCtx = {
+      platform: "win32" as const,
+      selfPid: "999",
+      parentPid: "888",
+      currentUser: "alice",
+    };
+    expect(assessTaskAction(undefined, "4", "terminate", winCtx).allowed).toBe(
+      false,
+    );
+    expect(
+      assessTaskAction(undefined, "999", "terminate", winCtx).allowed,
+    ).toBe(false);
+    expect(assessTaskAction(undefined, "4120", "suspend", winCtx).allowed).toBe(
+      false,
+    );
   });
 });
 
@@ -234,17 +349,54 @@ describe("File Manager Task Manager API operations (Windows vs *nix)", () => {
             if (cmd[0] === "netstat") {
               return {
                 exitCode: 0,
-                stdout: "  TCP    0.0.0.0:3000           0.0.0.0:0              LISTENING       4120\r\n",
+                stdout:
+                  "  TCP    0.0.0.0:3000           0.0.0.0:0              LISTENING       4120\r\n",
                 stderr: "",
               };
             }
-            if (cmd[0] === "powershell.exe" && cmd.join(" ").includes("ConvertTo-Json")) {
+            if (
+              cmd[0] === "powershell.exe" &&
+              cmd.join(" ").includes("ConvertTo-Json")
+            ) {
               return {
                 exitCode: 0,
                 stdout: JSON.stringify([
-                  { ProcessId: 4, ParentProcessId: 0, Name: "System", CommandLine: "System", WorkingSetSize: 4096000, CPU: 0.2, UserName: "SYSTEM", Responding: true },
-                  { ProcessId: 4120, ParentProcessId: 1000, Name: "node.exe", ExecutablePath: "C:\\Program Files\\nodejs\\node.exe", CommandLine: '"C:\\Program Files\\nodejs\\node.exe" server.js', WorkingSetSize: 104857600, CPU: 12.4, UserName: "PC\\alice", Responding: true, MainWindowTitle: "Node Server", ElapsedSeconds: 600 },
-                  { ProcessId: 4125, ParentProcessId: 4120, Name: "esbuild.exe", ExecutablePath: "C:\\project\\node_modules\\esbuild.exe", CommandLine: "esbuild.exe --service", WorkingSetSize: 30485760, CPU: 2.1, UserName: "PC\\alice", Responding: true, ElapsedSeconds: 590 },
+                  {
+                    ProcessId: 4,
+                    ParentProcessId: 0,
+                    Name: "System",
+                    CommandLine: "System",
+                    WorkingSetSize: 4096000,
+                    CPU: 0.2,
+                    UserName: "SYSTEM",
+                    Responding: true,
+                  },
+                  {
+                    ProcessId: 4120,
+                    ParentProcessId: 1000,
+                    Name: "node.exe",
+                    ExecutablePath: "C:\\Program Files\\nodejs\\node.exe",
+                    CommandLine:
+                      '"C:\\Program Files\\nodejs\\node.exe" server.js',
+                    WorkingSetSize: 104857600,
+                    CPU: 12.4,
+                    UserName: "PC\\alice",
+                    Responding: true,
+                    MainWindowTitle: "Node Server",
+                    ElapsedSeconds: 600,
+                  },
+                  {
+                    ProcessId: 4125,
+                    ParentProcessId: 4120,
+                    Name: "esbuild.exe",
+                    ExecutablePath: "C:\\project\\node_modules\\esbuild.exe",
+                    CommandLine: "esbuild.exe --service",
+                    WorkingSetSize: 30485760,
+                    CPU: 2.1,
+                    UserName: "PC\\alice",
+                    Responding: true,
+                    ElapsedSeconds: 590,
+                  },
                 ]),
                 stderr: "",
               };
@@ -270,7 +422,8 @@ describe("File Manager Task Manager API operations (Windows vs *nix)", () => {
             if (cmd[0] === "lsof" && cmd.includes("-iTCP")) {
               return {
                 exitCode: 0,
-                stdout: "COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME\nbun 5100 alice 19u IPv4 0x1 0t0 TCP *:5173 (LISTEN)\n",
+                stdout:
+                  "COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME\nbun 5100 alice 19u IPv4 0x1 0t0 TCP *:5173 (LISTEN)\n",
                 stderr: "",
               };
             }
@@ -303,7 +456,11 @@ describe("File Manager Task Manager API operations (Windows vs *nix)", () => {
     fs.rmSync(DATA, { recursive: true, force: true });
   });
 
-  const post = async (srv: ReturnType<typeof startFileManagerServer>, op: string, body: object) => {
+  const post = async (
+    srv: ReturnType<typeof startFileManagerServer>,
+    op: string,
+    body: object,
+  ) => {
     const res = await fetch(`http://127.0.0.1:${srv.port}/api/${op}`, {
       method: "POST",
       headers: { "content-type": "application/json", "x-fm-token": srv.token },
@@ -320,58 +477,90 @@ describe("File Manager Task Manager API operations (Windows vs *nix)", () => {
     expect(listRes.json.processes.length).toBe(3);
 
     // Refuses critical Windows PID 4
-    const critRes = await post(winServer, "tasks/action", { pid: "4", action: "terminate", confirm: true });
+    const critRes = await post(winServer, "tasks/action", {
+      pid: "4",
+      action: "terminate",
+      confirm: true,
+    });
     expect(critRes.status).toBe(400);
     expect(critRes.json.error.code).toBe("PROTECTED");
 
     // Refuses POSIX-only suspend on Windows
-    const suspRes = await post(winServer, "tasks/action", { pid: "4120", action: "suspend", confirm: true });
+    const suspRes = await post(winServer, "tasks/action", {
+      pid: "4120",
+      action: "suspend",
+      confirm: true,
+    });
     expect(suspRes.status).toBe(400);
 
     // Requires confirmation when port listener is terminated
-    const unconfirmed = await post(winServer, "tasks/action", { pid: "4120", action: "terminate" });
+    const unconfirmed = await post(winServer, "tasks/action", {
+      pid: "4120",
+      action: "terminate",
+    });
     expect(unconfirmed.status).toBe(409);
     expect(unconfirmed.json.error.code).toBe("NEEDS_CONFIRM");
 
     // Confirmed tree kill uses native Windows `taskkill /T /F /PID 4120`
     winCommands.length = 0;
-    const treeRes = await post(winServer, "tasks/action", { pid: "4120", action: "tree", confirm: true });
+    const treeRes = await post(winServer, "tasks/action", {
+      pid: "4120",
+      action: "tree",
+      confirm: true,
+    });
     expect(treeRes.status).toBe(200);
-    expect(winCommands.some((c) => c.join(" ") === "taskkill /T /F /PID 4120")).toBe(true);
+    expect(
+      winCommands.some((c) => c.join(" ") === "taskkill /T /F /PID 4120"),
+    ).toBe(true);
 
     // Port killer on Windows uses taskkill /F /PID
-    const portRes = await post(winServer, "tasks/kill-port", { port: "3000", confirm: true });
+    const portRes = await post(winServer, "tasks/kill-port", {
+      port: "3000",
+      confirm: true,
+    });
     expect(portRes.status).toBe(200);
     expect(portRes.json.killed).toEqual(["4120"]);
   });
 
-  test.skipIf(process.platform === "win32")("*nix server lists processes via ps + lsof, inspects cwd, and dispatches POSIX signals", async () => {
-    const listRes = await post(nixServer, "tasks/list", {});
-    expect(listRes.status).toBe(200);
-    expect(listRes.json.platform).toBe("darwin");
-    expect(listRes.json.processes.length).toBe(3);
+  test.skipIf(process.platform === "win32")(
+    "*nix server lists processes via ps + lsof, inspects cwd, and dispatches POSIX signals",
+    async () => {
+      const listRes = await post(nixServer, "tasks/list", {});
+      expect(listRes.status).toBe(200);
+      expect(listRes.json.platform).toBe("darwin");
+      expect(listRes.json.processes.length).toBe(3);
 
-    const inspRes = await post(nixServer, "tasks/inspect", { pid: "5100" });
-    expect(inspRes.status).toBe(200);
-    expect(inspRes.json.cwd).toBe(HOME);
-    expect(inspRes.json.children.length).toBe(1);
+      const inspRes = await post(nixServer, "tasks/inspect", { pid: "5100" });
+      expect(inspRes.status).toBe(200);
+      expect(inspRes.json.cwd).toBe(HOME);
+      expect(inspRes.json.children.length).toBe(1);
 
-    nixCommands.length = 0;
-    const treeRes = await post(nixServer, "tasks/action", { pid: "5100", action: "tree", confirm: true });
-    expect(treeRes.status).toBe(200);
-    // Child 5101 is killed before parent 5100
-    const killCmds = nixCommands.filter((c) => c[0] === "kill");
-    expect(killCmds).toEqual([
-      ["kill", "-15", "5101"],
-      ["kill", "-15", "5100"],
-    ]);
+      nixCommands.length = 0;
+      const treeRes = await post(nixServer, "tasks/action", {
+        pid: "5100",
+        action: "tree",
+        confirm: true,
+      });
+      expect(treeRes.status).toBe(200);
+      // Child 5101 is killed before parent 5100
+      const killCmds = nixCommands.filter((c) => c[0] === "kill");
+      expect(killCmds).toEqual([
+        ["kill", "-15", "5101"],
+        ["kill", "-15", "5100"],
+      ]);
 
-    const cleanRes = await post(nixServer, "tasks/clean-dev", { confirm: true });
-    expect(cleanRes.status).toBe(200);
-    expect(cleanRes.json.cleaned).toContain("5100");
+      const cleanRes = await post(nixServer, "tasks/clean-dev", {
+        confirm: true,
+      });
+      expect(cleanRes.status).toBe(200);
+      expect(cleanRes.json.cleaned).toContain("5100");
 
-    const saveRes = await post(nixServer, "tasks/save", { folder: HOME, format: "csv" });
-    expect(saveRes.status).toBe(200);
-    expect(fs.existsSync(saveRes.json.path)).toBe(true);
-  });
+      const saveRes = await post(nixServer, "tasks/save", {
+        folder: HOME,
+        format: "csv",
+      });
+      expect(saveRes.status).toBe(200);
+      expect(fs.existsSync(saveRes.json.path)).toBe(true);
+    },
+  );
 });

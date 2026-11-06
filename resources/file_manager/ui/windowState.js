@@ -5,16 +5,25 @@
 import { toast } from "./menus.js";
 
 /** How long to wait after the last change before reporting it, and how often to look. Tests change these. */
-export const timing = { debounceMs: 500, pollMs: 500, retryMs: 600, retries: 5 };
+export const timing = {
+  debounceMs: 500,
+  pollMs: 500,
+  retryMs: 600,
+  retries: 5,
+};
 
-export const REMEMBERED_TOAST = "Your window size is remembered. Settings → Window → Reset to default to go back to full screen.";
+export const REMEMBERED_TOAST =
+  "Your window size is remembered. Settings → Window → Reset to default to go back to full screen.";
 
 /** True in the desktop app, where the window can be managed. */
-export const hasDesktopWindow = () => typeof window !== "undefined" && typeof window.fmWindowChanged === "function";
+export const hasDesktopWindow = () =>
+  typeof window !== "undefined" && typeof window.fmWindowChanged === "function";
 
 const call = (name, ...args) => {
   try {
-    return typeof window[name] === "function" ? Promise.resolve(window[name](...args)).catch(() => null) : Promise.resolve(null);
+    return typeof window[name] === "function"
+      ? Promise.resolve(window[name](...args)).catch(() => null)
+      : Promise.resolve(null);
   } catch {
     return Promise.resolve(null);
   }
@@ -57,19 +66,49 @@ export function pageMetrics(win = window) {
  * @returns {null | { x: number, y: number, width: number, height: number, maximized: boolean, fullscreen: boolean, screenWidth: number, screenHeight: number, dpr: number }}
  */
 export function buildReport(native, page) {
-  const screen = { screenWidth: whole(page.screenWidth), screenHeight: whole(page.screenHeight), dpr: Math.round((page.dpr || 1) * 100) / 100 };
-  if (native && [native.x, native.y, native.width, native.height].every(Number.isFinite)) {
-    return { x: whole(native.x), y: whole(native.y), width: whole(native.width), height: whole(native.height), maximized: native.maximized === true, fullscreen: native.fullscreen === true, ...screen };
+  const screen = {
+    screenWidth: whole(page.screenWidth),
+    screenHeight: whole(page.screenHeight),
+    dpr: Math.round((page.dpr || 1) * 100) / 100,
+  };
+  if (
+    native &&
+    [native.x, native.y, native.width, native.height].every(Number.isFinite)
+  ) {
+    return {
+      x: whole(native.x),
+      y: whole(native.y),
+      width: whole(native.width),
+      height: whole(native.height),
+      maximized: native.maximized === true,
+      fullscreen: native.fullscreen === true,
+      ...screen,
+    };
   }
   if (page.outerWidth > 0 && page.outerHeight > 0) {
-    const fillsWork = page.innerWidth >= page.availWidth - 8 && page.innerHeight >= page.availHeight - 80;
-    const fullscreen = page.fullscreen || (page.screenWidth > 0 && page.innerWidth >= page.screenWidth && page.innerHeight >= page.screenHeight);
-    return { x: whole(page.x), y: whole(page.y), width: whole(page.outerWidth), height: whole(page.outerHeight), maximized: fillsWork && !fullscreen, fullscreen, ...screen };
+    const fillsWork =
+      page.innerWidth >= page.availWidth - 8 &&
+      page.innerHeight >= page.availHeight - 80;
+    const fullscreen =
+      page.fullscreen ||
+      (page.screenWidth > 0 &&
+        page.innerWidth >= page.screenWidth &&
+        page.innerHeight >= page.screenHeight);
+    return {
+      x: whole(page.x),
+      y: whole(page.y),
+      width: whole(page.outerWidth),
+      height: whole(page.outerHeight),
+      maximized: fillsWork && !fullscreen,
+      fullscreen,
+      ...screen,
+    };
   }
   return null;
 }
 
-const keyOf = (r) => `${r.x},${r.y},${r.width},${r.height},${r.maximized ? 1 : 0},${r.fullscreen ? 1 : 0},${r.screenWidth},${r.screenHeight},${r.dpr}`;
+const keyOf = (r) =>
+  `${r.x},${r.y},${r.width},${r.height},${r.maximized ? 1 : 0},${r.fullscreen ? 1 : 0},${r.screenWidth},${r.screenHeight},${r.dpr}`;
 
 /**
  * Watches the window and reports a change once it has really changed: the first steady look is the starting point (so
@@ -78,10 +117,19 @@ const keyOf = (r) => `${r.x},${r.y},${r.width},${r.height},${r.maximized ? 1 : 0
  */
 export function createWindowReporter(options = {}) {
   const b = options.bridge ?? bridge;
-  const win = options.win ?? (typeof window === "undefined" ? undefined : window);
+  const win =
+    options.win ?? (typeof window === "undefined" ? undefined : window);
   const measure = options.measure ?? (() => pageMetrics(win));
-  const timers = options.timers ?? { setTimeout: (f, ms) => setTimeout(f, ms), clearTimeout: (t) => clearTimeout(t), setInterval: (f, ms) => setInterval(f, ms), clearInterval: (t) => clearInterval(t) };
-  const visible = options.isVisible ?? (() => typeof document === "undefined" || document.visibilityState !== "hidden");
+  const timers = options.timers ?? {
+    setTimeout: (f, ms) => setTimeout(f, ms),
+    clearTimeout: (t) => clearTimeout(t),
+    setInterval: (f, ms) => setInterval(f, ms),
+    clearInterval: (t) => clearInterval(t),
+  };
+  const visible =
+    options.isVisible ??
+    (() =>
+      typeof document === "undefined" || document.visibilityState !== "hidden");
   let interval = null;
   let debounce = null;
   let candidate = "";
@@ -161,7 +209,8 @@ export function createWindowReporter(options = {}) {
       win?.addEventListener("resize", tick);
       win?.addEventListener("pagehide", flushNow);
       win?.addEventListener("beforeunload", flushNow);
-      if (typeof document !== "undefined") document.addEventListener("visibilitychange", tick);
+      if (typeof document !== "undefined")
+        document.addEventListener("visibilitychange", tick);
     },
     stop() {
       stopped = true;
@@ -171,7 +220,8 @@ export function createWindowReporter(options = {}) {
       win?.removeEventListener("resize", tick);
       win?.removeEventListener("pagehide", flushNow);
       win?.removeEventListener("beforeunload", flushNow);
-      if (typeof document !== "undefined") document.removeEventListener("visibilitychange", tick);
+      if (typeof document !== "undefined")
+        document.removeEventListener("visibilitychange", tick);
     },
     tick,
     flushNow,
@@ -212,7 +262,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  */
 export async function untilSettled(first, again) {
   let answer = await first();
-  for (let i = 0; i < timing.retries && answer && answer.ok && answer.settled === false; i++) {
+  for (
+    let i = 0;
+    i < timing.retries && answer && answer.ok && answer.settled === false;
+    i++
+  ) {
     await sleep(timing.retryMs);
     answer = await again();
   }

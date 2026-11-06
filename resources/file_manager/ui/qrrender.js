@@ -4,7 +4,9 @@
 const COLOR = /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 
 export function checkColour(value, fallback) {
-  return typeof value === "string" && COLOR.test(value) ? value.toLowerCase() : fallback;
+  return typeof value === "string" && COLOR.test(value)
+    ? value.toLowerCase()
+    : fallback;
 }
 
 /** "#rrggbb" to [r, g, b, a] (0-255). */
@@ -15,10 +17,14 @@ export function parseColour(value) {
   return [0, 2, 4, 6].map((i) => parseInt(h.slice(i, i + 2), 16));
 }
 
-const quiet = (border) => Math.max(0, Math.min(20, Math.floor(Number.isFinite(border) ? border : 4)));
+const quiet = (border) =>
+  Math.max(0, Math.min(20, Math.floor(Number.isFinite(border) ? border : 4)));
 
 /** An SVG picture of the code, one rectangle path per row of dark modules. */
-export function qrToSvg(qr, { border = 4, fg = "#000000", bg = "#ffffff", pixels = 0 } = {}) {
+export function qrToSvg(
+  qr,
+  { border = 4, fg = "#000000", bg = "#ffffff", pixels = 0 } = {},
+) {
   const b = quiet(border);
   const full = qr.size + b * 2;
   const parts = [];
@@ -35,12 +41,18 @@ export function qrToSvg(qr, { border = 4, fg = "#000000", bg = "#ffffff", pixels
       x += w;
     }
   }
-  const dim = pixels > 0 ? ` width="${Math.round(pixels)}" height="${Math.round(pixels)}"` : "";
+  const dim =
+    pixels > 0
+      ? ` width="${Math.round(pixels)}" height="${Math.round(pixels)}"`
+      : "";
   return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${full} ${full}"${dim} shape-rendering="crispEdges">\n<rect width="100%" height="100%" fill="${checkColour(bg, "#ffffff")}"/>\n<path d="${parts.join("")}" fill="${checkColour(fg, "#000000")}"/>\n</svg>\n`;
 }
 
 /** The code as pixels: { data (RGBA), width, height }, each module `scale` pixels wide, with the quiet zone around it. */
-export function qrToRgba(qr, { scale = 8, border = 4, fg = "#000000", bg = "#ffffff" } = {}) {
+export function qrToRgba(
+  qr,
+  { scale = 8, border = 4, fg = "#000000", bg = "#ffffff" } = {},
+) {
   const b = quiet(border);
   const s = Math.max(1, Math.min(64, Math.floor(scale)));
   const full = (qr.size + b * 2) * s;
@@ -51,7 +63,12 @@ export function qrToRgba(qr, { scale = 8, border = 4, fg = "#000000", bg = "#fff
     for (let x = 0; x < full; x++) {
       const mx = Math.floor(x / s) - b;
       const my = Math.floor(y / s) - b;
-      const on = mx >= 0 && my >= 0 && mx < qr.size && my < qr.size && qr.modules[my * qr.size + mx] === 1;
+      const on =
+        mx >= 0 &&
+        my >= 0 &&
+        mx < qr.size &&
+        my < qr.size &&
+        qr.modules[my * qr.size + mx] === 1;
       const c = on ? dark : light;
       const i = (y * full + x) * 4;
       data[i] = c[0];
@@ -70,7 +87,12 @@ export function qrToText(qr, { border = 2, invert = false } = {}) {
   const dark = (x, y) => {
     const mx = x - b;
     const my = y - b;
-    const on = mx >= 0 && my >= 0 && mx < qr.size && my < qr.size && qr.modules[my * qr.size + mx] === 1;
+    const on =
+      mx >= 0 &&
+      my >= 0 &&
+      mx < qr.size &&
+      my < qr.size &&
+      qr.modules[my * qr.size + mx] === 1;
     return invert ? !on : on;
   };
   const lines = [];

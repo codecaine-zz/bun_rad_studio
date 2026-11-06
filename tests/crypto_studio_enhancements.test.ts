@@ -20,17 +20,35 @@ import {
 import { createCryptoStudio } from "../applications/crypto_studio";
 import type { SimpleWindow } from "../src/simplegui";
 
-async function trigger(win: SimpleWindow, id: string, event = "click", val?: any) {
-  const h = win.eventHandlersMap.get(`${id}:on${event}`) || win.eventHandlersMap.get(`${id}:${event}`) || win.eventHandlersMap.get(id);
+async function trigger(
+  win: SimpleWindow,
+  id: string,
+  event = "click",
+  val?: any,
+) {
+  const h =
+    win.eventHandlersMap.get(`${id}:on${event}`) ||
+    win.eventHandlersMap.get(`${id}:${event}`) ||
+    win.eventHandlersMap.get(id);
   if (!h) throw new Error(`no handler for ${id}`);
   return await h(win, val);
 }
 
-const b64u = (o: any) => Buffer.from(typeof o === "string" ? o : JSON.stringify(o)).toString("base64url");
-function makeJwt(alg: string, payload: any, secret: string, nodeAlg = "sha256") {
+const b64u = (o: any) =>
+  Buffer.from(typeof o === "string" ? o : JSON.stringify(o)).toString(
+    "base64url",
+  );
+function makeJwt(
+  alg: string,
+  payload: any,
+  secret: string,
+  nodeAlg = "sha256",
+) {
   const h = b64u({ alg, typ: "JWT" });
   const p = b64u(payload);
-  const sig = createHmac(nodeAlg, secret).update(`${h}.${p}`).digest("base64url");
+  const sig = createHmac(nodeAlg, secret)
+    .update(`${h}.${p}`)
+    .digest("base64url");
   return `${h}.${p}.${sig}`;
 }
 
@@ -49,7 +67,9 @@ describe("crypto_tools", () => {
     expect(size).toBe(11);
     const sha256 = createHash("sha256").update("hello world").digest("hex");
     expect(rows.find((r) => r[0] === "SHA-256")![1]).toBe(sha256);
-    expect(rows.find((r) => r[0] === "MD5")![1]).toBe("5eb63bbbe01eeed093cb22bb8f5acdc3");
+    expect(rows.find((r) => r[0] === "MD5")![1]).toBe(
+      "5eb63bbbe01eeed093cb22bb8f5acdc3",
+    );
     expect(matchChecksum(sha256.toUpperCase(), rows).match).toBe("SHA-256");
     expect(matchChecksum("  0x" + sha256 + "\n", rows).match).toBe("SHA-256");
     expect(matchChecksum("deadbeef", rows).match).toBeNull();
@@ -62,23 +82,51 @@ describe("crypto_tools", () => {
     for (let i = 0; i < 50; i++) {
       const pw = generatePassword({ length: 24, symbols: true });
       expect(pw.length).toBe(24);
-      expect(/[a-z]/.test(pw) && /[A-Z]/.test(pw) && /[0-9]/.test(pw) && /[^a-zA-Z0-9]/.test(pw)).toBe(true);
+      expect(
+        /[a-z]/.test(pw) &&
+          /[A-Z]/.test(pw) &&
+          /[0-9]/.test(pw) &&
+          /[^a-zA-Z0-9]/.test(pw),
+      ).toBe(true);
     }
-    expect(generatePassword({ length: 40, lower: false, upper: false, digits: true, symbols: false })).toMatch(/^[0-9]{40}$/);
-    for (let i = 0; i < 30; i++) expect(generatePassword({ length: 60, noAmbiguous: true, symbols: true })).not.toMatch(/[O0oIl1|`'"]/);
-    expect(() => generatePassword({ length: 10, lower: false, upper: false, digits: false, symbols: false })).toThrow();
+    expect(
+      generatePassword({
+        length: 40,
+        lower: false,
+        upper: false,
+        digits: true,
+        symbols: false,
+      }),
+    ).toMatch(/^[0-9]{40}$/);
+    for (let i = 0; i < 30; i++)
+      expect(
+        generatePassword({ length: 60, noAmbiguous: true, symbols: true }),
+      ).not.toMatch(/[O0oIl1|`'"]/);
+    expect(() =>
+      generatePassword({
+        length: 10,
+        lower: false,
+        upper: false,
+        digits: false,
+        symbols: false,
+      }),
+    ).toThrow();
     expect(clampPasswordLength(2)).toBe(4);
     expect(clampPasswordLength(9999)).toBe(256);
     expect(clampPasswordLength(NaN)).toBe(20);
     // different calls differ
-    expect(generatePassword({ length: 32 })).not.toBe(generatePassword({ length: 32 }));
+    expect(generatePassword({ length: 32 })).not.toBe(
+      generatePassword({ length: 32 }),
+    );
   });
 
   test("base64 / hex round-trips and validation", () => {
     const s = "héllo ✓ wörld";
     expect(fromBase64(toBase64(s))).toBe(s);
     expect(fromHex(toHex(s))).toBe(s);
-    expect(fromBase64("aGk_-w==".replace("_", "/").replace("-", "+"))).toBeTypeOf("string");
+    expect(
+      fromBase64("aGk_-w==".replace("_", "/").replace("-", "+")),
+    ).toBeTypeOf("string");
     expect(() => fromBase64("not base64!!")).toThrow();
     expect(() => fromHex("abc")).toThrow();
     expect(() => fromHex("zz")).toThrow();
@@ -91,22 +139,39 @@ describe("crypto_tools", () => {
     const bad = verifyJwtHmac(tok, "wrong");
     expect(bad.ok).toBe(false);
     expect(bad.reason).toContain("does not match");
-    expect(verifyJwtHmac(makeJwt("HS512", { a: 1 }, "k", "sha512"), "k").ok).toBe(true);
-    expect(verifyJwtHmac(makeJwt("RS256", { a: 1 }, "k"), "k").reason).toContain("HS256");
-    expect(verifyJwtHmac(`${b64u({ alg: "none" })}.${b64u({})}.`, "k").reason).toContain("alg=none");
+    expect(
+      verifyJwtHmac(makeJwt("HS512", { a: 1 }, "k", "sha512"), "k").ok,
+    ).toBe(true);
+    expect(
+      verifyJwtHmac(makeJwt("RS256", { a: 1 }, "k"), "k").reason,
+    ).toContain("HS256");
+    expect(
+      verifyJwtHmac(`${b64u({ alg: "none" })}.${b64u({})}.`, "k").reason,
+    ).toContain("alg=none");
     expect(verifyJwtHmac("a.b", "k").ok).toBe(false);
 
     const now = Date.UTC(2026, 0, 1);
-    const lines = describeJwtTimes({ iat: now / 1000 - 3600, exp: now / 1000 + 86400 }, now);
+    const lines = describeJwtTimes(
+      { iat: now / 1000 - 3600, exp: now / 1000 + 86400 },
+      now,
+    );
     expect(lines.join("\n")).toContain("1h ago");
     expect(lines.join("\n")).toContain("in 1d");
     expect(lines.join("\n")).toContain("not expired");
-    expect(describeJwtTimes({ exp: now / 1000 - 5 }, now).join("\n")).toContain("EXPIRED");
+    expect(describeJwtTimes({ exp: now / 1000 - 5 }, now).join("\n")).toContain(
+      "EXPIRED",
+    );
     expect(describeJwtTimes({}, now)).toEqual([]);
   });
 
   test("digest report", () => {
-    const r = formatDigestReport([["SHA-256", "aa"], ["MD5", "bb"]], "x");
+    const r = formatDigestReport(
+      [
+        ["SHA-256", "aa"],
+        ["MD5", "bb"],
+      ],
+      "x",
+    );
     expect(r).toContain("Source: x");
     expect(r).toContain("SHA-256  aa");
   });
@@ -122,7 +187,21 @@ describe("Crypto Studio enhancements (GUI handlers)", () => {
 
   test("renders new controls", () => {
     const html = createCryptoStudio({ fullscreen: false }).generateHtml();
-    for (const id of ["txt_file_path", "btn_browse_file", "btn_hash_file", "txt_expected", "btn_verify_checksum", "btn_gen_password", "txt_pw_out", "btn_b64_encode", "btn_hex_decode", "txt_jwt_secret", "btn_verify_jwt", "btn_clear_all", "btn_save_digests"]) {
+    for (const id of [
+      "txt_file_path",
+      "btn_browse_file",
+      "btn_hash_file",
+      "txt_expected",
+      "btn_verify_checksum",
+      "btn_gen_password",
+      "txt_pw_out",
+      "btn_b64_encode",
+      "btn_hex_decode",
+      "txt_jwt_secret",
+      "btn_verify_jwt",
+      "btn_clear_all",
+      "btn_save_digests",
+    ]) {
       expect(html).toContain(`id="${id}"`);
     }
   });
@@ -132,7 +211,9 @@ describe("Crypto Studio enhancements (GUI handlers)", () => {
     win.setValue("txt_file_path", path.join(dir, "f.txt"));
     await trigger(win, "btn_hash_file");
     const rows = win.getValue("tbl_hashes") as string[][];
-    expect(rows.find((r) => r[0] === "MD5")![1]).toBe("5eb63bbbe01eeed093cb22bb8f5acdc3");
+    expect(rows.find((r) => r[0] === "MD5")![1]).toBe(
+      "5eb63bbbe01eeed093cb22bb8f5acdc3",
+    );
     win.setValue("txt_expected", "5EB63BBBE01EEED093CB22BB8F5ACDC3");
     await trigger(win, "btn_verify_checksum");
     expect(win.getValue("crypto_console")).toContain("MATCH (MD5)");

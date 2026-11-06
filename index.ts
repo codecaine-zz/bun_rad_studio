@@ -7,12 +7,31 @@
  */
 import { injectHelp } from "./src/shared/helpTips";
 import { DESKTOP_SHORTCUTS_SCRIPT } from "./src/shared/desktopShortcuts";
-import { buildSemanticPalette, normalizeKind, semanticCssVars } from "./src/shared/themeSemantic";
-import { findFxTheme, fxCssVars, fxRootAttrString, normalizeFxMode } from "./src/shared/fxThemes";
+import {
+  buildSemanticPalette,
+  normalizeKind,
+  semanticCssVars,
+} from "./src/shared/themeSemantic";
+import {
+  findFxTheme,
+  fxCssVars,
+  fxRootAttrString,
+  normalizeFxMode,
+} from "./src/shared/fxThemes";
 import { fxCss } from "./src/shared/fxCss";
 import { FX_POINTER_SOURCE } from "./src/shared/fxPointer";
 import type { SizeHint, Webview } from "webview-bun";
-import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync, unlinkSync, openSync, closeSync, appendFileSync } from "fs";
+import {
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  existsSync,
+  renameSync,
+  unlinkSync,
+  openSync,
+  closeSync,
+  appendFileSync,
+} from "fs";
 import { spawn, spawnSync } from "child_process";
 import { join, dirname } from "path";
 import { homedir } from "os";
@@ -20,17 +39,17 @@ import { dlopen, FFIType } from "bun:ffi";
 import { writeClipboardSync, readClipboardSync } from "./src/localGuard";
 
 function getLinuxDisplaySizeFallback() {
-    try {
-        const out = spawnSync("xrandr", ["--query"], { encoding: "utf8" });
-        const text = String(out.stdout || "");
-        const match = text.match(/(\d+)x(\d+)(?:\s+\+\d+\+\d+)?/);
-        if (match) {
-            return { width: Number(match[1]), height: Number(match[2]) };
-        }
-    } catch {
-        // Ignore and use a safe fallback
+  try {
+    const out = spawnSync("xrandr", ["--query"], { encoding: "utf8" });
+    const text = String(out.stdout || "");
+    const match = text.match(/(\d+)x(\d+)(?:\s+\+\d+\+\d+)?/);
+    if (match) {
+      return { width: Number(match[1]), height: Number(match[2]) };
     }
-    return { width: 1920, height: 1080 };
+  } catch {
+    // Ignore and use a safe fallback
+  }
+  return { width: 1920, height: 1080 };
 }
 
 const fullscreenStateMap = new WeakMap<Webview, boolean>();
@@ -39,544 +58,696 @@ export const fullscreenDebounceMap = new WeakMap<object, number>();
 
 /** Sets or clears the native always-on-top floating window level on macOS and Windows. */
 export function setAlwaysOnTopNative(wv: Webview, onTop: boolean) {
-    try {
-        const handle = wv.unsafeWindowHandle;
-        if (!handle) return;
+  try {
+    const handle = wv.unsafeWindowHandle;
+    if (!handle) return;
 
-        if (process.platform === "darwin") {
-            const libobjc = dlopen("libobjc.dylib", {
-                objc_msgSend: {
-                    args: [FFIType.pointer, FFIType.pointer, FFIType.i64],
-                    returns: FFIType.void,
-                },
-                sel_registerName: {
-                    args: [FFIType.cstring],
-                    returns: FFIType.pointer,
-                }
-            });
-            const sel_setLevel = libobjc.symbols.sel_registerName(Buffer.from("setLevel:\0"));
-            // Level 5 = NSFloatingWindowLevel (Always On Top), 0 = NSNormalWindowLevel
-            const level = onTop ? 5n : 0n;
-            libobjc.symbols.objc_msgSend(handle, sel_setLevel, level);
-        } else if (process.platform === "win32") {
-            const user32 = dlopen("user32.dll", {
-                SetWindowPos: {
-                    args: [FFIType.pointer, FFIType.pointer, FFIType.i32, FFIType.i32, FFIType.i32, FFIType.i32, FFIType.u32],
-                    returns: FFIType.bool,
-                }
-            });
-            // HWND_TOPMOST = -1, HWND_NOTOPMOST = -2
-            // SWP_NOMOVE (2) | SWP_NOSIZE (1) = 3
-            const insertAfter = onTop ? -1 : -2;
-            user32.symbols.SetWindowPos(handle, insertAfter, 0, 0, 0, 0, 3);
-        } else if (process.platform === "linux") {
-            // Linux/Wayland builds in Bun can crash when directly calling GTK/GDK FFI.
-            // The safe fallback is to leave the window at normal stacking until a stable host API is available.
-            console.warn("Linux always-on-top is unavailable in this Bun/Wayland environment; skipping native call.");
-        }
-    } catch (e) {
-        console.warn("Could not set window level:", e);
+    if (process.platform === "darwin") {
+      const libobjc = dlopen("libobjc.dylib", {
+        objc_msgSend: {
+          args: [FFIType.pointer, FFIType.pointer, FFIType.i64],
+          returns: FFIType.void,
+        },
+        sel_registerName: {
+          args: [FFIType.cstring],
+          returns: FFIType.pointer,
+        },
+      });
+      const sel_setLevel = libobjc.symbols.sel_registerName(
+        Buffer.from("setLevel:\0"),
+      );
+      // Level 5 = NSFloatingWindowLevel (Always On Top), 0 = NSNormalWindowLevel
+      const level = onTop ? 5n : 0n;
+      libobjc.symbols.objc_msgSend(handle, sel_setLevel, level);
+    } else if (process.platform === "win32") {
+      const user32 = dlopen("user32.dll", {
+        SetWindowPos: {
+          args: [
+            FFIType.pointer,
+            FFIType.pointer,
+            FFIType.i32,
+            FFIType.i32,
+            FFIType.i32,
+            FFIType.i32,
+            FFIType.u32,
+          ],
+          returns: FFIType.bool,
+        },
+      });
+      // HWND_TOPMOST = -1, HWND_NOTOPMOST = -2
+      // SWP_NOMOVE (2) | SWP_NOSIZE (1) = 3
+      const insertAfter = onTop ? -1 : -2;
+      user32.symbols.SetWindowPos(handle, insertAfter, 0, 0, 0, 0, 3);
+    } else if (process.platform === "linux") {
+      // Linux/Wayland builds in Bun can crash when directly calling GTK/GDK FFI.
+      // The safe fallback is to leave the window at normal stacking until a stable host API is available.
+      console.warn(
+        "Linux always-on-top is unavailable in this Bun/Wayland environment; skipping native call.",
+      );
     }
+  } catch (e) {
+    console.warn("Could not set window level:", e);
+  }
 }
 
 /** Toggles native fullscreen or maximized state for a Webview window with 450ms debouncing. */
 export function toggleFullscreenNative(wv: Webview) {
-    try {
-        if (!wv) return;
-        const now = Date.now();
-        const lastToggle = fullscreenDebounceMap.get(wv as any) ?? 0;
-        if (now - lastToggle < 450) {
-            return;
-        }
-        fullscreenDebounceMap.set(wv as any, now);
-
-        const handle = wv.unsafeWindowHandle;
-        if (!handle) return;
-
-        if (process.platform === "darwin") {
-            const libobjc = dlopen("libobjc.dylib", {
-                objc_msgSend: {
-                    args: [FFIType.pointer, FFIType.pointer, FFIType.u64],
-                    returns: FFIType.u64,
-                },
-                sel_registerName: {
-                    args: [FFIType.cstring],
-                    returns: FFIType.pointer,
-                }
-            });
-            const sel_cb = libobjc.symbols.sel_registerName(Buffer.from("collectionBehavior\0"));
-            const sel_scb = libobjc.symbols.sel_registerName(Buffer.from("setCollectionBehavior:\0"));
-            const sel_toggle = libobjc.symbols.sel_registerName(Buffer.from("toggleFullScreen:\0"));
-
-            // Enable NSWindowCollectionBehaviorFullScreenPrimary (128) on NSWindow
-            const cb = BigInt(libobjc.symbols.objc_msgSend(handle, sel_cb, 0n));
-            libobjc.symbols.objc_msgSend(handle, sel_scb, cb | 128n);
-
-            // Perform Cocoa toggleFullScreen:
-            libobjc.symbols.objc_msgSend(handle, sel_toggle, 0n);
-        } else if (process.platform === "win32") {
-            const user32 = dlopen("user32.dll", {
-                IsZoomed: {
-                    args: [FFIType.pointer],
-                    returns: FFIType.bool,
-                },
-                ShowWindow: {
-                    args: [FFIType.pointer, FFIType.i32],
-                    returns: FFIType.bool,
-                }
-            });
-            const isZoomed = user32.symbols.IsZoomed(handle);
-            // SW_MAXIMIZE = 3, SW_RESTORE = 9
-            user32.symbols.ShowWindow(handle, isZoomed ? 9 : 3);
-        } else if (process.platform === "linux") {
-            // GTK/GDK direct FFI is unstable under Bun on Ubuntu/Wayland and can segfault.
-            // Keep the state in memory but avoid the unsafe native call.
-            const nextState = !(fullscreenStateMap.get(wv) ?? false);
-            fullscreenStateMap.set(wv, nextState);
-            console.warn("Linux fullscreen toggle is unavailable in this Bun/Wayland environment; skipping native call.");
-        }
-    } catch (e) {
-        console.warn("Could not toggle native window fullscreen:", e);
+  try {
+    if (!wv) return;
+    const now = Date.now();
+    const lastToggle = fullscreenDebounceMap.get(wv as any) ?? 0;
+    if (now - lastToggle < 450) {
+      return;
     }
+    fullscreenDebounceMap.set(wv as any, now);
+
+    const handle = wv.unsafeWindowHandle;
+    if (!handle) return;
+
+    if (process.platform === "darwin") {
+      const libobjc = dlopen("libobjc.dylib", {
+        objc_msgSend: {
+          args: [FFIType.pointer, FFIType.pointer, FFIType.u64],
+          returns: FFIType.u64,
+        },
+        sel_registerName: {
+          args: [FFIType.cstring],
+          returns: FFIType.pointer,
+        },
+      });
+      const sel_cb = libobjc.symbols.sel_registerName(
+        Buffer.from("collectionBehavior\0"),
+      );
+      const sel_scb = libobjc.symbols.sel_registerName(
+        Buffer.from("setCollectionBehavior:\0"),
+      );
+      const sel_toggle = libobjc.symbols.sel_registerName(
+        Buffer.from("toggleFullScreen:\0"),
+      );
+
+      // Enable NSWindowCollectionBehaviorFullScreenPrimary (128) on NSWindow
+      const cb = BigInt(libobjc.symbols.objc_msgSend(handle, sel_cb, 0n));
+      libobjc.symbols.objc_msgSend(handle, sel_scb, cb | 128n);
+
+      // Perform Cocoa toggleFullScreen:
+      libobjc.symbols.objc_msgSend(handle, sel_toggle, 0n);
+    } else if (process.platform === "win32") {
+      const user32 = dlopen("user32.dll", {
+        IsZoomed: {
+          args: [FFIType.pointer],
+          returns: FFIType.bool,
+        },
+        ShowWindow: {
+          args: [FFIType.pointer, FFIType.i32],
+          returns: FFIType.bool,
+        },
+      });
+      const isZoomed = user32.symbols.IsZoomed(handle);
+      // SW_MAXIMIZE = 3, SW_RESTORE = 9
+      user32.symbols.ShowWindow(handle, isZoomed ? 9 : 3);
+    } else if (process.platform === "linux") {
+      // GTK/GDK direct FFI is unstable under Bun on Ubuntu/Wayland and can segfault.
+      // Keep the state in memory but avoid the unsafe native call.
+      const nextState = !(fullscreenStateMap.get(wv) ?? false);
+      fullscreenStateMap.set(wv, nextState);
+      console.warn(
+        "Linux fullscreen toggle is unavailable in this Bun/Wayland environment; skipping native call.",
+      );
+    }
+  } catch (e) {
+    console.warn("Could not toggle native window fullscreen:", e);
+  }
 }
 
 /** Returns `true` if the given Webview window is currently in native fullscreen or maximized mode. */
 export function isFullscreenNative(wv: Webview): boolean {
-    try {
-        if (!wv) return false;
-        const handle = wv.unsafeWindowHandle;
-        if (!handle) return false;
+  try {
+    if (!wv) return false;
+    const handle = wv.unsafeWindowHandle;
+    if (!handle) return false;
 
-        if (process.platform === "darwin") {
-            const libobjc = dlopen("libobjc.dylib", {
-                objc_msgSend: {
-                    args: [FFIType.pointer, FFIType.pointer, FFIType.u64],
-                    returns: FFIType.u64,
-                },
-                sel_registerName: {
-                    args: [FFIType.cstring],
-                    returns: FFIType.pointer,
-                }
-            });
-            const sel_styleMask = libobjc.symbols.sel_registerName(Buffer.from("styleMask\0"));
-            const mask = BigInt(libobjc.symbols.objc_msgSend(handle, sel_styleMask, 0n));
-            return (mask & (1n << 14n)) !== 0n;
-        } else if (process.platform === "win32") {
-            const user32 = dlopen("user32.dll", {
-                IsZoomed: {
-                    args: [FFIType.pointer],
-                    returns: FFIType.bool,
-                },
-            });
-            return Boolean(user32.symbols.IsZoomed(handle));
-        } else if (process.platform === "linux") {
-            return Boolean(fullscreenStateMap.get(wv));
-        }
-    } catch {
-        return false;
+    if (process.platform === "darwin") {
+      const libobjc = dlopen("libobjc.dylib", {
+        objc_msgSend: {
+          args: [FFIType.pointer, FFIType.pointer, FFIType.u64],
+          returns: FFIType.u64,
+        },
+        sel_registerName: {
+          args: [FFIType.cstring],
+          returns: FFIType.pointer,
+        },
+      });
+      const sel_styleMask = libobjc.symbols.sel_registerName(
+        Buffer.from("styleMask\0"),
+      );
+      const mask = BigInt(
+        libobjc.symbols.objc_msgSend(handle, sel_styleMask, 0n),
+      );
+      return (mask & (1n << 14n)) !== 0n;
+    } else if (process.platform === "win32") {
+      const user32 = dlopen("user32.dll", {
+        IsZoomed: {
+          args: [FFIType.pointer],
+          returns: FFIType.bool,
+        },
+      });
+      return Boolean(user32.symbols.IsZoomed(handle));
+    } else if (process.platform === "linux") {
+      return Boolean(fullscreenStateMap.get(wv));
     }
+  } catch {
     return false;
+  }
+  return false;
 }
 
 /** Explicitly enters or exits native fullscreen mode for a Webview window if not already in the target state. */
 export function setFullscreenNative(wv: Webview, fullscreen = true) {
-    try {
-        if (!wv) return;
-        const current = isFullscreenNative(wv);
-        if (current !== fullscreen) {
-            fullscreenDebounceMap.delete(wv as any);
-            toggleFullscreenNative(wv);
-        }
-    } catch (e) {
-        console.warn("Could not set fullscreen:", e);
+  try {
+    if (!wv) return;
+    const current = isFullscreenNative(wv);
+    if (current !== fullscreen) {
+      fullscreenDebounceMap.delete(wv as any);
+      toggleFullscreenNative(wv);
     }
+  } catch (e) {
+    console.warn("Could not set fullscreen:", e);
+  }
 }
 
 /** Minimizes the given Webview window to the OS dock or taskbar, exiting fullscreen first on macOS if needed. */
 export function minimizeWindowNative(wv: Webview) {
-    try {
-        const handle = wv?.unsafeWindowHandle;
-        if (!handle) return;
+  try {
+    const handle = wv?.unsafeWindowHandle;
+    if (!handle) return;
 
-        if (process.platform === "darwin") {
-            const libobjc = dlopen("libobjc.dylib", {
-                objc_msgSend: {
-                    args: [FFIType.pointer, FFIType.pointer, FFIType.pointer],
-                    returns: FFIType.void,
-                },
-                sel_registerName: {
-                    args: [FFIType.cstring],
-                    returns: FFIType.pointer,
-                }
-            });
-            const isFull = isFullscreenNative(wv);
-            if (isFull) {
-                setFullscreenNative(wv, false);
-                setTimeout(() => {
-                    try {
-                        const sel_miniaturize = libobjc.symbols.sel_registerName(Buffer.from("miniaturize:\0"));
-                        libobjc.symbols.objc_msgSend(handle, sel_miniaturize, null);
-                    } catch {}
-                }, 350);
-                return;
-            }
-            try {
-                const sel_perf = libobjc.symbols.sel_registerName(Buffer.from("performMiniaturize:\0"));
-                libobjc.symbols.objc_msgSend(handle, sel_perf, null);
-            } catch {}
-            const sel_miniaturize = libobjc.symbols.sel_registerName(Buffer.from("miniaturize:\0"));
+    if (process.platform === "darwin") {
+      const libobjc = dlopen("libobjc.dylib", {
+        objc_msgSend: {
+          args: [FFIType.pointer, FFIType.pointer, FFIType.pointer],
+          returns: FFIType.void,
+        },
+        sel_registerName: {
+          args: [FFIType.cstring],
+          returns: FFIType.pointer,
+        },
+      });
+      const isFull = isFullscreenNative(wv);
+      if (isFull) {
+        setFullscreenNative(wv, false);
+        setTimeout(() => {
+          try {
+            const sel_miniaturize = libobjc.symbols.sel_registerName(
+              Buffer.from("miniaturize:\0"),
+            );
             libobjc.symbols.objc_msgSend(handle, sel_miniaturize, null);
-        } else if (process.platform === "win32") {
-            const user32 = dlopen("user32.dll", {
-                ShowWindow: {
-                    args: [FFIType.pointer, FFIType.i32],
-                    returns: FFIType.bool,
-                }
-            });
-            // SW_MINIMIZE = 6
-            user32.symbols.ShowWindow(handle, 6);
-        } else if (process.platform === "linux") {
-            console.warn("Linux minimize is unavailable in this Bun/Wayland environment; skipping native call.");
-        }
-    } catch (e) {
-        console.warn("Could not minimize native window:", e);
+          } catch {}
+        }, 350);
+        return;
+      }
+      try {
+        const sel_perf = libobjc.symbols.sel_registerName(
+          Buffer.from("performMiniaturize:\0"),
+        );
+        libobjc.symbols.objc_msgSend(handle, sel_perf, null);
+      } catch {}
+      const sel_miniaturize = libobjc.symbols.sel_registerName(
+        Buffer.from("miniaturize:\0"),
+      );
+      libobjc.symbols.objc_msgSend(handle, sel_miniaturize, null);
+    } else if (process.platform === "win32") {
+      const user32 = dlopen("user32.dll", {
+        ShowWindow: {
+          args: [FFIType.pointer, FFIType.i32],
+          returns: FFIType.bool,
+        },
+      });
+      // SW_MINIMIZE = 6
+      user32.symbols.ShowWindow(handle, 6);
+    } else if (process.platform === "linux") {
+      console.warn(
+        "Linux minimize is unavailable in this Bun/Wayland environment; skipping native call.",
+      );
     }
+  } catch (e) {
+    console.warn("Could not minimize native window:", e);
+  }
 }
 
 /** Hides the application via `NSApplication.hide:` on macOS, or falls back to minimizing the window. */
 export function hideAppNative(wv?: Webview) {
-    try {
-        if (process.platform === "darwin") {
-            const libobjc = dlopen("libobjc.dylib", {
-                objc_getClass: {
-                    args: [FFIType.cstring],
-                    returns: FFIType.pointer,
-                },
-                objc_msgSend: {
-                    args: [FFIType.pointer, FFIType.pointer, FFIType.pointer],
-                    returns: FFIType.pointer,
-                },
-                sel_registerName: {
-                    args: [FFIType.cstring],
-                    returns: FFIType.pointer,
-                }
-            });
-            const cls = libobjc.symbols.objc_getClass(Buffer.from("NSApplication\0"));
-            const selShared = libobjc.symbols.sel_registerName(Buffer.from("sharedApplication\0"));
-            const app = libobjc.symbols.objc_msgSend(cls, selShared, null);
-            if (app) {
-                const selHide = libobjc.symbols.sel_registerName(Buffer.from("hide:\0"));
-                libobjc.symbols.objc_msgSend(app, selHide, null);
-                return;
-            }
-        }
-    } catch {}
-    if (wv) minimizeWindowNative(wv);
+  try {
+    if (process.platform === "darwin") {
+      const libobjc = dlopen("libobjc.dylib", {
+        objc_getClass: {
+          args: [FFIType.cstring],
+          returns: FFIType.pointer,
+        },
+        objc_msgSend: {
+          args: [FFIType.pointer, FFIType.pointer, FFIType.pointer],
+          returns: FFIType.pointer,
+        },
+        sel_registerName: {
+          args: [FFIType.cstring],
+          returns: FFIType.pointer,
+        },
+      });
+      const cls = libobjc.symbols.objc_getClass(Buffer.from("NSApplication\0"));
+      const selShared = libobjc.symbols.sel_registerName(
+        Buffer.from("sharedApplication\0"),
+      );
+      const app = libobjc.symbols.objc_msgSend(cls, selShared, null);
+      if (app) {
+        const selHide = libobjc.symbols.sel_registerName(
+          Buffer.from("hide:\0"),
+        );
+        libobjc.symbols.objc_msgSend(app, selHide, null);
+        return;
+      }
+    }
+  } catch {}
+  if (wv) minimizeWindowNative(wv);
 }
 
 /** Sends a native close message (`performClose:` on macOS or `WM_CLOSE` on Windows) to the Webview window. */
 export function closeWindowNative(wv: Webview) {
-    try {
-        const handle = wv?.unsafeWindowHandle;
-        if (handle && process.platform === "darwin") {
-            try {
-                const libobjc = dlopen("libobjc.dylib", {
-                    objc_msgSend: {
-                        args: [FFIType.pointer, FFIType.pointer, FFIType.pointer],
-                        returns: FFIType.void,
-                    },
-                    sel_registerName: {
-                        args: [FFIType.cstring],
-                        returns: FFIType.pointer,
-                    }
-                });
-                const sel_performClose = libobjc.symbols.sel_registerName(Buffer.from("performClose:\0"));
-                libobjc.symbols.objc_msgSend(handle, sel_performClose, null);
-            } catch {}
-        } else if (handle && process.platform === "win32") {
-            try {
-                const user32 = dlopen("user32.dll", {
-                    PostMessageW: {
-                        args: [FFIType.pointer, FFIType.u32, FFIType.pointer, FFIType.pointer],
-                        returns: FFIType.bool,
-                    }
-                });
-                // WM_CLOSE = 0x0010
-                user32.symbols.PostMessageW(handle, 0x0010, null, null);
-            } catch {}
-        }
-    } catch (e) {
-        console.warn("Could not close native window:", e);
+  try {
+    const handle = wv?.unsafeWindowHandle;
+    if (handle && process.platform === "darwin") {
+      try {
+        const libobjc = dlopen("libobjc.dylib", {
+          objc_msgSend: {
+            args: [FFIType.pointer, FFIType.pointer, FFIType.pointer],
+            returns: FFIType.void,
+          },
+          sel_registerName: {
+            args: [FFIType.cstring],
+            returns: FFIType.pointer,
+          },
+        });
+        const sel_performClose = libobjc.symbols.sel_registerName(
+          Buffer.from("performClose:\0"),
+        );
+        libobjc.symbols.objc_msgSend(handle, sel_performClose, null);
+      } catch {}
+    } else if (handle && process.platform === "win32") {
+      try {
+        const user32 = dlopen("user32.dll", {
+          PostMessageW: {
+            args: [
+              FFIType.pointer,
+              FFIType.u32,
+              FFIType.pointer,
+              FFIType.pointer,
+            ],
+            returns: FFIType.bool,
+          },
+        });
+        // WM_CLOSE = 0x0010
+        user32.symbols.PostMessageW(handle, 0x0010, null, null);
+      } catch {}
     }
+  } catch (e) {
+    console.warn("Could not close native window:", e);
+  }
 }
 
 /** Queries the primary display dimensions in pixels via CoreGraphics on macOS or User32 on Windows. */
 export function getScreenDimensions(): { width: number; height: number } {
-    let screenW = 1920;
-    let screenH = 1080;
-    try {
-        if (process.platform === "darwin") {
-            const cg = dlopen("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics", {
-                CGMainDisplayID: { args: [], returns: FFIType.u32 },
-                CGDisplayPixelsWide: { args: [FFIType.u32], returns: FFIType.u64 },
-                CGDisplayPixelsHigh: { args: [FFIType.u32], returns: FFIType.u64 },
-            });
-            const mainId = cg.symbols.CGMainDisplayID();
-            screenW = Number(cg.symbols.CGDisplayPixelsWide(mainId));
-            screenH = Number(cg.symbols.CGDisplayPixelsHigh(mainId));
-        } else if (process.platform === "win32") {
-            const user32 = dlopen("user32.dll", {
-                GetSystemMetrics: { args: [FFIType.i32], returns: FFIType.i32 },
-            });
-            screenW = user32.symbols.GetSystemMetrics(0);
-            screenH = user32.symbols.GetSystemMetrics(1);
-        }
-    } catch {}
-    return { width: screenW, height: screenH };
+  let screenW = 1920;
+  let screenH = 1080;
+  try {
+    if (process.platform === "darwin") {
+      const cg = dlopen(
+        "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+        {
+          CGMainDisplayID: { args: [], returns: FFIType.u32 },
+          CGDisplayPixelsWide: { args: [FFIType.u32], returns: FFIType.u64 },
+          CGDisplayPixelsHigh: { args: [FFIType.u32], returns: FFIType.u64 },
+        },
+      );
+      const mainId = cg.symbols.CGMainDisplayID();
+      screenW = Number(cg.symbols.CGDisplayPixelsWide(mainId));
+      screenH = Number(cg.symbols.CGDisplayPixelsHigh(mainId));
+    } else if (process.platform === "win32") {
+      const user32 = dlopen("user32.dll", {
+        GetSystemMetrics: { args: [FFIType.i32], returns: FFIType.i32 },
+      });
+      screenW = user32.symbols.GetSystemMetrics(0);
+      screenH = user32.symbols.GetSystemMetrics(1);
+    }
+  } catch {}
+  return { width: screenW, height: screenH };
 }
 
 /** Centers a Webview window on the primary screen given its width and height. */
-export function centerWindowNative(wv: Webview, winWidth = 1400, winHeight = 900) {
-    return setWindowPositionNative(wv, "center", winWidth, winHeight);
+export function centerWindowNative(
+  wv: Webview,
+  winWidth = 1400,
+  winHeight = 900,
+) {
+  return setWindowPositionNative(wv, "center", winWidth, winHeight);
 }
 
 /** Callbacks and initial state options for `attachWindowShortcuts`. */
 export interface WindowShortcutOptions {
-    onQuit?: () => void;
-    onClose?: () => void;
-    onMinimize?: () => void;
-    onFullscreen?: () => void;
-    onAlwaysOnTop?: (onTop: boolean) => void;
-    onCenter?: () => void;
-    fullscreen?: boolean;
+  onQuit?: () => void;
+  onClose?: () => void;
+  onMinimize?: () => void;
+  onFullscreen?: () => void;
+  onAlwaysOnTop?: (onTop: boolean) => void;
+  onCenter?: () => void;
+  fullscreen?: boolean;
 }
 
 /** Attaches desktop keyboard shortcuts, clipboard bindings, window management IPC, and external URL handlers to a Webview. */
-export function attachWindowShortcuts(wv: Webview, options?: WindowShortcutOptions) {
-    let alwaysOnTopState = false;
-    wv.init(DESKTOP_SHORTCUTS_SCRIPT);
+export function attachWindowShortcuts(
+  wv: Webview,
+  options?: WindowShortcutOptions,
+) {
+  let alwaysOnTopState = false;
+  wv.init(DESKTOP_SHORTCUTS_SCRIPT);
 
-    // Enable macOS FullScreen Collection Behavior immediately on creation and silence unhandled-key NSBeep()
-    if (process.platform === "darwin" && wv?.unsafeWindowHandle) {
+  // Enable macOS FullScreen Collection Behavior immediately on creation and silence unhandled-key NSBeep()
+  if (process.platform === "darwin" && wv?.unsafeWindowHandle) {
+    try {
+      const libobjc = dlopen("libobjc.dylib", {
+        objc_getClass: { args: [FFIType.cstring], returns: FFIType.pointer },
+        objc_msgSend: {
+          args: [FFIType.pointer, FFIType.pointer, FFIType.u64],
+          returns: FFIType.u64,
+        },
+        sel_registerName: { args: [FFIType.cstring], returns: FFIType.pointer },
+        class_getMethodImplementation: {
+          args: [FFIType.pointer, FFIType.pointer],
+          returns: FFIType.pointer,
+        },
+        class_replaceMethod: {
+          args: [
+            FFIType.pointer,
+            FFIType.pointer,
+            FFIType.pointer,
+            FFIType.cstring,
+          ],
+          returns: FFIType.pointer,
+        },
+      });
+      const sel_cb = libobjc.symbols.sel_registerName(
+        Buffer.from("collectionBehavior\0"),
+      );
+      const sel_scb = libobjc.symbols.sel_registerName(
+        Buffer.from("setCollectionBehavior:\0"),
+      );
+      const cb = BigInt(
+        libobjc.symbols.objc_msgSend(wv.unsafeWindowHandle, sel_cb, 0n),
+      );
+      libobjc.symbols.objc_msgSend(wv.unsafeWindowHandle, sel_scb, cb | 128n);
+      try {
+        const objcPtr = dlopen("libobjc.dylib", {
+          objc_msgSend: {
+            args: [FFIType.pointer, FFIType.pointer, FFIType.pointer],
+            returns: FFIType.pointer,
+          },
+        });
+        const objcBool = dlopen("libobjc.dylib", {
+          objc_msgSend: {
+            args: [FFIType.pointer, FFIType.pointer, FFIType.bool],
+            returns: FFIType.void,
+          },
+        });
+        const s = (name: string) =>
+          libobjc.symbols.sel_registerName(Buffer.from(name + "\0"));
+        const responds = (obj: any, selPtr: any) =>
+          Boolean(
+            objcPtr.symbols.objc_msgSend(obj, s("respondsToSelector:"), selPtr),
+          );
+        const contentView = objcPtr.symbols.objc_msgSend(
+          wv.unsafeWindowHandle,
+          s("contentView"),
+          null,
+        );
+        let wkView = contentView;
+        if (wkView && !responds(wkView, s("configuration"))) {
+          const subs = objcPtr.symbols.objc_msgSend(
+            wkView,
+            s("subviews"),
+            null,
+          );
+          if (subs)
+            wkView = objcPtr.symbols.objc_msgSend(subs, s("firstObject"), null);
+        }
+        if (wkView && responds(wkView, s("configuration"))) {
+          const cfg = objcPtr.symbols.objc_msgSend(
+            wkView,
+            s("configuration"),
+            null,
+          );
+          if (cfg) {
+            if (responds(cfg, s("setAllowsAirPlayForMediaPlayback:"))) {
+              objcBool.symbols.objc_msgSend(
+                cfg,
+                s("setAllowsAirPlayForMediaPlayback:"),
+                true,
+              );
+            }
+            const prefs = objcPtr.symbols.objc_msgSend(
+              cfg,
+              s("preferences"),
+              null,
+            );
+            if (prefs) {
+              for (const name of [
+                "_setAllowsPictureInPictureMediaPlayback:",
+                "_setAllowsInlineMediaPlayback:",
+              ]) {
+                const selP = s(name);
+                if (responds(prefs, selP))
+                  objcBool.symbols.objc_msgSend(prefs, selP, true);
+              }
+            }
+          }
+        }
+      } catch {}
+      const nsObject = libobjc.symbols.objc_getClass(Buffer.from("NSObject\0"));
+      const nsResponder = libobjc.symbols.objc_getClass(
+        Buffer.from("NSResponder\0"),
+      );
+      const nsWindow = libobjc.symbols.objc_getClass(Buffer.from("NSWindow\0"));
+      const noopImp = nsObject
+        ? libobjc.symbols.class_getMethodImplementation(
+            nsObject,
+            libobjc.symbols.sel_registerName(Buffer.from("self\0")),
+          )
+        : null;
+      if (noopImp && nsResponder) {
+        libobjc.symbols.class_replaceMethod(
+          nsResponder,
+          libobjc.symbols.sel_registerName(Buffer.from("noResponderFor:\0")),
+          noopImp,
+          Buffer.from("v@::\0"),
+        );
+      }
+      if (noopImp && nsWindow) {
+        libobjc.symbols.class_replaceMethod(
+          nsWindow,
+          libobjc.symbols.sel_registerName(Buffer.from("cancelOperation:\0")),
+          noopImp,
+          Buffer.from("v@:@\0"),
+        );
+        libobjc.symbols.class_replaceMethod(
+          nsWindow,
+          libobjc.symbols.sel_registerName(Buffer.from("_cancelKey:\0")),
+          noopImp,
+          Buffer.from("v@:@\0"),
+        );
+      }
+      const cg = dlopen(
+        "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+        {
+          CGSSetSymbolicHotKeyEnabled: {
+            args: [FFIType.i32, FFIType.bool],
+            returns: FFIType.i32,
+          },
+        },
+      );
+      cg.symbols.CGSSetSymbolicHotKeyEnabled(36, false);
+      cg.symbols.CGSSetSymbolicHotKeyEnabled(37, false);
+    } catch (e) {}
+  }
+
+  try {
+    wv.bind("requestInitialFullscreen", () => {
+      if (options?.fullscreen !== false) {
+        if (!isFullscreenNative(wv)) {
+          fullscreenDebounceMap.delete(wv as any);
+          setFullscreenNative(wv, true);
+        }
+      }
+      const isFull = isFullscreenNative(wv);
+      return { success: true, isFullscreen: isFull };
+    });
+  } catch {}
+
+  try {
+    wv.bind("quitApp", () => {
+      if (options?.onQuit) {
         try {
-            const libobjc = dlopen("libobjc.dylib", {
-                objc_getClass: { args: [FFIType.cstring], returns: FFIType.pointer },
-                objc_msgSend: { args: [FFIType.pointer, FFIType.pointer, FFIType.u64], returns: FFIType.u64 },
-                sel_registerName: { args: [FFIType.cstring], returns: FFIType.pointer },
-                class_getMethodImplementation: { args: [FFIType.pointer, FFIType.pointer], returns: FFIType.pointer },
-                class_replaceMethod: { args: [FFIType.pointer, FFIType.pointer, FFIType.pointer, FFIType.cstring], returns: FFIType.pointer },
-            });
-            const sel_cb = libobjc.symbols.sel_registerName(Buffer.from("collectionBehavior\0"));
-            const sel_scb = libobjc.symbols.sel_registerName(Buffer.from("setCollectionBehavior:\0"));
-            const cb = BigInt(libobjc.symbols.objc_msgSend(wv.unsafeWindowHandle, sel_cb, 0n));
-            libobjc.symbols.objc_msgSend(wv.unsafeWindowHandle, sel_scb, cb | 128n);
-            try {
-                const objcPtr = dlopen("libobjc.dylib", {
-                    objc_msgSend: { args: [FFIType.pointer, FFIType.pointer, FFIType.pointer], returns: FFIType.pointer },
-                });
-                const objcBool = dlopen("libobjc.dylib", {
-                    objc_msgSend: { args: [FFIType.pointer, FFIType.pointer, FFIType.bool], returns: FFIType.void },
-                });
-                const s = (name: string) => libobjc.symbols.sel_registerName(Buffer.from(name + "\0"));
-                const responds = (obj: any, selPtr: any) => Boolean(objcPtr.symbols.objc_msgSend(obj, s("respondsToSelector:"), selPtr));
-                const contentView = objcPtr.symbols.objc_msgSend(wv.unsafeWindowHandle, s("contentView"), null);
-                let wkView = contentView;
-                if (wkView && !responds(wkView, s("configuration"))) {
-                    const subs = objcPtr.symbols.objc_msgSend(wkView, s("subviews"), null);
-                    if (subs) wkView = objcPtr.symbols.objc_msgSend(subs, s("firstObject"), null);
-                }
-                if (wkView && responds(wkView, s("configuration"))) {
-                    const cfg = objcPtr.symbols.objc_msgSend(wkView, s("configuration"), null);
-                    if (cfg) {
-                        if (responds(cfg, s("setAllowsAirPlayForMediaPlayback:"))) {
-                            objcBool.symbols.objc_msgSend(cfg, s("setAllowsAirPlayForMediaPlayback:"), true);
-                        }
-                        const prefs = objcPtr.symbols.objc_msgSend(cfg, s("preferences"), null);
-                        if (prefs) {
-                            for (const name of [
-                                "_setAllowsPictureInPictureMediaPlayback:",
-                                "_setAllowsInlineMediaPlayback:",
-                            ]) {
-                                const selP = s(name);
-                                if (responds(prefs, selP)) objcBool.symbols.objc_msgSend(prefs, selP, true);
-                            }
-                        }
-                    }
-                }
-            } catch {}
-            const nsObject = libobjc.symbols.objc_getClass(Buffer.from("NSObject\0"));
-            const nsResponder = libobjc.symbols.objc_getClass(Buffer.from("NSResponder\0"));
-            const nsWindow = libobjc.symbols.objc_getClass(Buffer.from("NSWindow\0"));
-            const noopImp = nsObject ? libobjc.symbols.class_getMethodImplementation(nsObject, libobjc.symbols.sel_registerName(Buffer.from("self\0"))) : null;
-            if (noopImp && nsResponder) {
-                libobjc.symbols.class_replaceMethod(nsResponder, libobjc.symbols.sel_registerName(Buffer.from("noResponderFor:\0")), noopImp, Buffer.from("v@::\0"));
-            }
-            if (noopImp && nsWindow) {
-                libobjc.symbols.class_replaceMethod(nsWindow, libobjc.symbols.sel_registerName(Buffer.from("cancelOperation:\0")), noopImp, Buffer.from("v@:@\0"));
-                libobjc.symbols.class_replaceMethod(nsWindow, libobjc.symbols.sel_registerName(Buffer.from("_cancelKey:\0")), noopImp, Buffer.from("v@:@\0"));
-            }
-            const cg = dlopen("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics", {
-                CGSSetSymbolicHotKeyEnabled: { args: [FFIType.i32, FFIType.bool], returns: FFIType.i32 },
-            });
-            cg.symbols.CGSSetSymbolicHotKeyEnabled(36, false);
-            cg.symbols.CGSSetSymbolicHotKeyEnabled(37, false);
-        } catch (e) {}
-    }
+          options.onQuit();
+        } catch {}
+      }
+      try {
+        closeWindowNative(wv);
+      } catch {}
+      process.exit(0);
+    });
+  } catch {}
 
-    try {
-        wv.bind("requestInitialFullscreen", () => {
-            if (options?.fullscreen !== false) {
-                if (!isFullscreenNative(wv)) {
-                    fullscreenDebounceMap.delete(wv as any);
-                    setFullscreenNative(wv, true);
-                }
-            }
-            const isFull = isFullscreenNative(wv);
-            return { success: true, isFullscreen: isFull };
-        });
-    } catch {}
+  try {
+    wv.bind("closeWindow", () => {
+      if (options?.onClose) {
+        try {
+          options.onClose();
+        } catch {}
+      }
+      try {
+        closeWindowNative(wv);
+      } catch {}
+      process.exit(0);
+    });
+  } catch {}
 
-    try {
-        wv.bind("quitApp", () => {
-            if (options?.onQuit) {
-                try { options.onQuit(); } catch {}
-            }
-            try { closeWindowNative(wv); } catch {}
-            process.exit(0);
-        });
-    } catch {}
+  try {
+    wv.bind("minimizeWindow", () => {
+      if (options?.onMinimize) {
+        options.onMinimize();
+      } else {
+        minimizeWindowNative(wv);
+      }
+      return { success: true };
+    });
+  } catch {}
 
-    try {
-        wv.bind("closeWindow", () => {
-            if (options?.onClose) {
-                try { options.onClose(); } catch {}
-            }
-            try { closeWindowNative(wv); } catch {}
-            process.exit(0);
-        });
-    } catch {}
+  try {
+    wv.bind("hideApp", () => {
+      hideAppNative(wv);
+      return { success: true };
+    });
+  } catch {}
 
-    try {
-        wv.bind("minimizeWindow", () => {
-            if (options?.onMinimize) {
-                options.onMinimize();
-            } else {
-                minimizeWindowNative(wv);
-            }
-            return { success: true };
-        });
-    } catch {}
+  try {
+    wv.bind("toggleFullscreen", () => {
+      if (options?.onFullscreen) {
+        options.onFullscreen();
+      } else {
+        toggleFullscreenNative(wv);
+      }
+      return { success: true };
+    });
+  } catch {}
 
-    try {
-        wv.bind("hideApp", () => {
-            hideAppNative(wv);
-            return { success: true };
-        });
-    } catch {}
+  try {
+    wv.bind("toggleNativeFullscreen", () => {
+      toggleFullscreenNative(wv);
+      return { success: true };
+    });
+  } catch {}
 
-    try {
-        wv.bind("toggleFullscreen", () => {
-            if (options?.onFullscreen) {
-                options.onFullscreen();
-            } else {
-                toggleFullscreenNative(wv);
-            }
-            return { success: true };
-        });
-    } catch {}
+  try {
+    wv.bind("toggleAlwaysOnTop", () => {
+      alwaysOnTopState = !alwaysOnTopState;
+      setAlwaysOnTopNative(wv, alwaysOnTopState);
+      if (options?.onAlwaysOnTop) options.onAlwaysOnTop(alwaysOnTopState);
+      return { success: true, onTop: alwaysOnTopState };
+    });
+  } catch {}
 
-    try {
-        wv.bind("toggleNativeFullscreen", () => {
-            toggleFullscreenNative(wv);
-            return { success: true };
-        });
-    } catch {}
+  try {
+    wv.bind("setAlwaysOnTop", (onTop?: boolean) => {
+      alwaysOnTopState = onTop !== undefined ? onTop : !alwaysOnTopState;
+      setAlwaysOnTopNative(wv, alwaysOnTopState);
+      if (options?.onAlwaysOnTop) options.onAlwaysOnTop(alwaysOnTopState);
+      return { success: true, onTop: alwaysOnTopState };
+    });
+  } catch {}
 
-    try {
-        wv.bind("toggleAlwaysOnTop", () => {
-            alwaysOnTopState = !alwaysOnTopState;
-            setAlwaysOnTopNative(wv, alwaysOnTopState);
-            if (options?.onAlwaysOnTop) options.onAlwaysOnTop(alwaysOnTopState);
-            return { success: true, onTop: alwaysOnTopState };
-        });
-    } catch {}
+  try {
+    wv.bind("centerWindow", () => {
+      if (options?.onCenter) {
+        options.onCenter();
+      } else {
+        centerWindowNative(wv);
+      }
+      return { success: true };
+    });
+  } catch {}
 
-    try {
-        wv.bind("setAlwaysOnTop", (onTop?: boolean) => {
-            alwaysOnTopState = onTop !== undefined ? onTop : !alwaysOnTopState;
-            setAlwaysOnTopNative(wv, alwaysOnTopState);
-            if (options?.onAlwaysOnTop) options.onAlwaysOnTop(alwaysOnTopState);
-            return { success: true, onTop: alwaysOnTopState };
-        });
-    } catch {}
+  try {
+    wv.bind("setWindowPosition", (pos: any) => {
+      setWindowPositionNative(wv, pos);
+      return { success: true, position: pos };
+    });
+  } catch {}
 
-    try {
-        wv.bind("centerWindow", () => {
-            if (options?.onCenter) {
-                options.onCenter();
-            } else {
-                centerWindowNative(wv);
-            }
-            return { success: true };
-        });
-    } catch {}
+  // OS clipboard bridge for the in-page Cut/Copy/Paste shortcuts (see src/shared/desktopShortcuts.ts).
+  try {
+    wv.bind("__radClipboardWrite", (text: string) => ({
+      success: writeClipboardSync(String(text ?? "")),
+    }));
+  } catch {}
+  try {
+    wv.bind("__radClipboardRead", () => readClipboardSync());
+  } catch {}
 
-    try {
-        wv.bind("setWindowPosition", (pos: any) => {
-            setWindowPositionNative(wv, pos);
-            return { success: true, position: pos };
-        });
-    } catch {}
-
-    // OS clipboard bridge for the in-page Cut/Copy/Paste shortcuts (see src/shared/desktopShortcuts.ts).
-    try {
-        wv.bind("__radClipboardWrite", (text: string) => ({ success: writeClipboardSync(String(text ?? "")) }));
-    } catch {}
-    try {
-        wv.bind("__radClipboardRead", () => readClipboardSync());
-    } catch {}
-
-    const lastOpenedUrls = new Map<string, number>();
-    try {
-        wv.bind("openExternalUrl", (url: string) => {
-            if (typeof url === "string" && (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("mailto:"))) {
-                let safeUrl = "";
-                try {
-                    const parsed = new URL(url);
-                    if (parsed.protocol !== "http:" && parsed.protocol !== "https:" && parsed.protocol !== "mailto:") {
-                        return { success: false };
-                    }
-                    if (/[\r\n\0]/.test(url)) return { success: false };
-                    safeUrl = parsed.toString();
-                } catch {
-                    return { success: false };
-                }
-                const now = Date.now();
-                const lastTime = lastOpenedUrls.get(safeUrl) || 0;
-                if (now - lastTime < 1000) {
-                    return { success: true, deduped: true };
-                }
-                lastOpenedUrls.set(safeUrl, now);
-                try {
-                    if (process.platform === "darwin") {
-                        Bun.spawn(["open", safeUrl]);
-                    } else if (process.platform === "win32") {
-                        Bun.spawn(["rundll32", "url.dll,FileProtocolHandler", safeUrl]);
-                    } else {
-                        Bun.spawn(["xdg-open", safeUrl]);
-                    }
-                } catch (err) {
-                    console.error("Failed to open external URL:", err);
-                }
-            }
-            return { success: true };
-        });
-    } catch {}
+  const lastOpenedUrls = new Map<string, number>();
+  try {
+    wv.bind("openExternalUrl", (url: string) => {
+      if (
+        typeof url === "string" &&
+        (url.startsWith("http://") ||
+          url.startsWith("https://") ||
+          url.startsWith("mailto:"))
+      ) {
+        let safeUrl = "";
+        try {
+          const parsed = new URL(url);
+          if (
+            parsed.protocol !== "http:" &&
+            parsed.protocol !== "https:" &&
+            parsed.protocol !== "mailto:"
+          ) {
+            return { success: false };
+          }
+          if (/[\r\n\0]/.test(url)) return { success: false };
+          safeUrl = parsed.toString();
+        } catch {
+          return { success: false };
+        }
+        const now = Date.now();
+        const lastTime = lastOpenedUrls.get(safeUrl) || 0;
+        if (now - lastTime < 1000) {
+          return { success: true, deduped: true };
+        }
+        lastOpenedUrls.set(safeUrl, now);
+        try {
+          if (process.platform === "darwin") {
+            Bun.spawn(["open", safeUrl]);
+          } else if (process.platform === "win32") {
+            Bun.spawn(["rundll32", "url.dll,FileProtocolHandler", safeUrl]);
+          } else {
+            Bun.spawn(["xdg-open", safeUrl]);
+          }
+        } catch (err) {
+          console.error("Failed to open external URL:", err);
+        }
+      }
+      return { success: true };
+    });
+  } catch {}
 }
 
 /** Returns the client-side JavaScript snippet that wires desktop keyboard shortcuts, audio unlock, and link interception inside a webview. */
 export function getWindowShortcutsScript(): string {
-    return `
+  return `
 ${DESKTOP_SHORTCUTS_SCRIPT}
 (function() {
     // Disable default right-click context menu across desktop windows to prevent inspect/reload from breaking desktop apps
@@ -986,136 +1157,188 @@ ${DESKTOP_SHORTCUTS_SCRIPT}
 `;
 }
 
-
 /** Named screen alignment presets for positioning a native desktop window. */
-export type WindowPositionPreset = 
-    | "center" | "screen_center"
-    | "upper_left" | "top_left"
-    | "upper_right" | "top_right"
-    | "bottom_left" | "lower_left"
-    | "bottom_right" | "lower_right"
-    | "top_center" | "upper_center"
-    | "bottom_center" | "lower_center"
-    | "center_left"
-    | "center_right";
+export type WindowPositionPreset =
+  | "center"
+  | "screen_center"
+  | "upper_left"
+  | "top_left"
+  | "upper_right"
+  | "top_right"
+  | "bottom_left"
+  | "lower_left"
+  | "bottom_right"
+  | "lower_right"
+  | "top_center"
+  | "upper_center"
+  | "bottom_center"
+  | "lower_center"
+  | "center_left"
+  | "center_right";
 
 /** Moves a Webview window to a named screen alignment preset or explicit `{ x, y }` screen coordinates. */
-export function setWindowPositionNative(wv: Webview, pos: WindowPositionPreset | { x: number, y: number }, winWidth = 1400, winHeight = 900) {
-    try {
-        let screenW = 1920;
-        let screenH = 1080;
+export function setWindowPositionNative(
+  wv: Webview,
+  pos: WindowPositionPreset | { x: number; y: number },
+  winWidth = 1400,
+  winHeight = 900,
+) {
+  try {
+    let screenW = 1920;
+    let screenH = 1080;
 
-        if (process.platform === "darwin") {
-            const cg = dlopen("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics", {
-                CGMainDisplayID: { args: [], returns: FFIType.u32 },
-                CGDisplayPixelsWide: { args: [FFIType.u32], returns: FFIType.u64 },
-                CGDisplayPixelsHigh: { args: [FFIType.u32], returns: FFIType.u64 }
-            });
-            const mainId = cg.symbols.CGMainDisplayID();
-            screenW = Number(cg.symbols.CGDisplayPixelsWide(mainId));
-            screenH = Number(cg.symbols.CGDisplayPixelsHigh(mainId));
-        } else if (process.platform === "win32") {
-            const user32 = dlopen("user32.dll", {
-                GetSystemMetrics: { args: [FFIType.i32], returns: FFIType.i32 }
-            });
-            // SM_CXSCREEN = 0, SM_CYSCREEN = 1
-            screenW = user32.symbols.GetSystemMetrics(0);
-            screenH = user32.symbols.GetSystemMetrics(1);
-        } else if (process.platform === "linux") {
-            const fallback = getLinuxDisplaySizeFallback();
-            screenW = fallback.width;
-            screenH = fallback.height;
-        }
-
-        let targetX = 40;
-        let targetTopY = 40;
-
-        if (typeof pos === "object" && pos !== null) {
-            targetX = pos.x;
-            targetTopY = pos.y;
-        } else {
-            const preset = String(pos || "center").toLowerCase();
-            const margin = 30;
-            if (preset === "upper_left" || preset === "top_left") {
-                targetX = margin;
-                targetTopY = margin + 30;
-            } else if (preset === "upper_right" || preset === "top_right") {
-                targetX = screenW - winWidth - margin;
-                targetTopY = margin + 30;
-            } else if (preset === "bottom_left" || preset === "lower_left") {
-                targetX = margin;
-                targetTopY = screenH - winHeight - margin;
-            } else if (preset === "bottom_right" || preset === "lower_right") {
-                targetX = screenW - winWidth - margin;
-                targetTopY = screenH - winHeight - margin;
-            } else if (preset === "top_center" || preset === "upper_center") {
-                targetX = Math.round((screenW - winWidth) / 2);
-                targetTopY = margin + 30;
-            } else if (preset === "bottom_center" || preset === "lower_center") {
-                targetX = Math.round((screenW - winWidth) / 2);
-                targetTopY = screenH - winHeight - margin;
-            } else if (preset === "center_left") {
-                targetX = margin;
-                targetTopY = Math.round((screenH - winHeight) / 2);
-            } else if (preset === "center_right") {
-                targetX = screenW - winWidth - margin;
-                targetTopY = Math.round((screenH - winHeight) / 2);
-            } else {
-                // "center" default
-                targetX = Math.round((screenW - winWidth) / 2);
-                targetTopY = Math.round((screenH - winHeight) / 2);
-            }
-        }
-
-        const handle = wv.unsafeWindowHandle;
-        if (handle) {
-            if (process.platform === "darwin") {
-                const presetStr = typeof pos === "string" ? pos.toLowerCase() : "";
-                if (presetStr === "center" || presetStr === "middle" || presetStr === "middle_center" || presetStr === "center_center" || !presetStr) {
-                    const libobjc = dlopen("libobjc.dylib", {
-                        objc_msgSend: {
-                            args: [FFIType.pointer, FFIType.pointer],
-                            returns: FFIType.void,
-                        },
-                        sel_registerName: {
-                            args: [FFIType.cstring],
-                            returns: FFIType.pointer,
-                        }
-                    });
-                    const sel_center = libobjc.symbols.sel_registerName(Buffer.from("center\0"));
-                    libobjc.symbols.objc_msgSend(handle, sel_center);
-                } else {
-                    const libobjc = dlopen("libobjc.dylib", {
-                        objc_msgSend: {
-                            args: [FFIType.pointer, FFIType.pointer, FFIType.f64, FFIType.f64],
-                            returns: FFIType.void,
-                        },
-                        sel_registerName: {
-                            args: [FFIType.cstring],
-                            returns: FFIType.pointer,
-                        }
-                    });
-                    const sel_setFrameTopLeft = libobjc.symbols.sel_registerName(Buffer.from("setFrameTopLeftPoint:\0"));
-                    libobjc.symbols.objc_msgSend(handle, sel_setFrameTopLeft, Number(targetX), Number(screenH - targetTopY));
-                }
-            } else if (process.platform === "win32") {
-                const user32 = dlopen("user32.dll", {
-                    SetWindowPos: {
-                        args: [FFIType.pointer, FFIType.pointer, FFIType.i32, FFIType.i32, FFIType.i32, FFIType.i32, FFIType.u32],
-                        returns: FFIType.bool,
-                    }
-                });
-                // SWP_NOSIZE (1) | SWP_NOZORDER (4) = 5
-                user32.symbols.SetWindowPos(handle, null, Number(targetX), Number(targetTopY), 0, 0, 5);
-            } else if (process.platform === "linux") {
-                // Direct GTK/GDK FFI is unsafe under Bun on Ubuntu/Wayland and can segfault.
-                // Leave Linux windows in their current position instead of risking a crash.
-                console.warn("Linux window positioning is unavailable in this Bun/Wayland environment; skipping native move.");
-            }
-        }
-    } catch (e) {
-        console.warn("Could not set window position:", e);
+    if (process.platform === "darwin") {
+      const cg = dlopen(
+        "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+        {
+          CGMainDisplayID: { args: [], returns: FFIType.u32 },
+          CGDisplayPixelsWide: { args: [FFIType.u32], returns: FFIType.u64 },
+          CGDisplayPixelsHigh: { args: [FFIType.u32], returns: FFIType.u64 },
+        },
+      );
+      const mainId = cg.symbols.CGMainDisplayID();
+      screenW = Number(cg.symbols.CGDisplayPixelsWide(mainId));
+      screenH = Number(cg.symbols.CGDisplayPixelsHigh(mainId));
+    } else if (process.platform === "win32") {
+      const user32 = dlopen("user32.dll", {
+        GetSystemMetrics: { args: [FFIType.i32], returns: FFIType.i32 },
+      });
+      // SM_CXSCREEN = 0, SM_CYSCREEN = 1
+      screenW = user32.symbols.GetSystemMetrics(0);
+      screenH = user32.symbols.GetSystemMetrics(1);
+    } else if (process.platform === "linux") {
+      const fallback = getLinuxDisplaySizeFallback();
+      screenW = fallback.width;
+      screenH = fallback.height;
     }
+
+    let targetX = 40;
+    let targetTopY = 40;
+
+    if (typeof pos === "object" && pos !== null) {
+      targetX = pos.x;
+      targetTopY = pos.y;
+    } else {
+      const preset = String(pos || "center").toLowerCase();
+      const margin = 30;
+      if (preset === "upper_left" || preset === "top_left") {
+        targetX = margin;
+        targetTopY = margin + 30;
+      } else if (preset === "upper_right" || preset === "top_right") {
+        targetX = screenW - winWidth - margin;
+        targetTopY = margin + 30;
+      } else if (preset === "bottom_left" || preset === "lower_left") {
+        targetX = margin;
+        targetTopY = screenH - winHeight - margin;
+      } else if (preset === "bottom_right" || preset === "lower_right") {
+        targetX = screenW - winWidth - margin;
+        targetTopY = screenH - winHeight - margin;
+      } else if (preset === "top_center" || preset === "upper_center") {
+        targetX = Math.round((screenW - winWidth) / 2);
+        targetTopY = margin + 30;
+      } else if (preset === "bottom_center" || preset === "lower_center") {
+        targetX = Math.round((screenW - winWidth) / 2);
+        targetTopY = screenH - winHeight - margin;
+      } else if (preset === "center_left") {
+        targetX = margin;
+        targetTopY = Math.round((screenH - winHeight) / 2);
+      } else if (preset === "center_right") {
+        targetX = screenW - winWidth - margin;
+        targetTopY = Math.round((screenH - winHeight) / 2);
+      } else {
+        // "center" default
+        targetX = Math.round((screenW - winWidth) / 2);
+        targetTopY = Math.round((screenH - winHeight) / 2);
+      }
+    }
+
+    const handle = wv.unsafeWindowHandle;
+    if (handle) {
+      if (process.platform === "darwin") {
+        const presetStr = typeof pos === "string" ? pos.toLowerCase() : "";
+        if (
+          presetStr === "center" ||
+          presetStr === "middle" ||
+          presetStr === "middle_center" ||
+          presetStr === "center_center" ||
+          !presetStr
+        ) {
+          const libobjc = dlopen("libobjc.dylib", {
+            objc_msgSend: {
+              args: [FFIType.pointer, FFIType.pointer],
+              returns: FFIType.void,
+            },
+            sel_registerName: {
+              args: [FFIType.cstring],
+              returns: FFIType.pointer,
+            },
+          });
+          const sel_center = libobjc.symbols.sel_registerName(
+            Buffer.from("center\0"),
+          );
+          libobjc.symbols.objc_msgSend(handle, sel_center);
+        } else {
+          const libobjc = dlopen("libobjc.dylib", {
+            objc_msgSend: {
+              args: [
+                FFIType.pointer,
+                FFIType.pointer,
+                FFIType.f64,
+                FFIType.f64,
+              ],
+              returns: FFIType.void,
+            },
+            sel_registerName: {
+              args: [FFIType.cstring],
+              returns: FFIType.pointer,
+            },
+          });
+          const sel_setFrameTopLeft = libobjc.symbols.sel_registerName(
+            Buffer.from("setFrameTopLeftPoint:\0"),
+          );
+          libobjc.symbols.objc_msgSend(
+            handle,
+            sel_setFrameTopLeft,
+            Number(targetX),
+            Number(screenH - targetTopY),
+          );
+        }
+      } else if (process.platform === "win32") {
+        const user32 = dlopen("user32.dll", {
+          SetWindowPos: {
+            args: [
+              FFIType.pointer,
+              FFIType.pointer,
+              FFIType.i32,
+              FFIType.i32,
+              FFIType.i32,
+              FFIType.i32,
+              FFIType.u32,
+            ],
+            returns: FFIType.bool,
+          },
+        });
+        // SWP_NOSIZE (1) | SWP_NOZORDER (4) = 5
+        user32.symbols.SetWindowPos(
+          handle,
+          null,
+          Number(targetX),
+          Number(targetTopY),
+          0,
+          0,
+          5,
+        );
+      } else if (process.platform === "linux") {
+        // Direct GTK/GDK FFI is unsafe under Bun on Ubuntu/Wayland and can segfault.
+        // Leave Linux windows in their current position instead of risking a crash.
+        console.warn(
+          "Linux window positioning is unavailable in this Bun/Wayland environment; skipping native move.",
+        );
+      }
+    }
+  } catch (e) {
+    console.warn("Could not set window position:", e);
+  }
 }
 
 // Main IDE entry point helper
@@ -1123,57 +1346,62 @@ export function setWindowPositionNative(wv: Webview, pos: WindowPositionPreset |
 export let html = "";
 /** Loads and returns the Bun RAD Studio IDE HTML template populated with a default form specification. */
 export function getIdeHtml(): string {
-    const defaultSpec = JSON.stringify({
-        title: "Form1",
-        width: 800,
-        height: 600,
-        background_color: "#0f172a",
-        font_color: "#e2e8f0",
-        padding: 20,
-        spacing: 12,
-        controls: []
-    });
+  const defaultSpec = JSON.stringify({
+    title: "Form1",
+    width: 800,
+    height: 600,
+    background_color: "#0f172a",
+    font_color: "#e2e8f0",
+    padding: 20,
+    spacing: 12,
+    controls: [],
+  });
 
-    const candidates = [
-        join(process.cwd(), "src", "ide.html"),
-        join(import.meta.dir, "src", "ide.html"),
-        join(import.meta.dir, "ide.html"),
-        join(process.cwd(), "ide.html"),
-    ];
-    for (const p of candidates) {
-        if (existsSync(p)) {
-            try {
-                const raw = readFileSync(p, "utf-8");
-                return raw.replace("__SPEC_JSON__", defaultSpec);
-            } catch {}
-        }
+  const candidates = [
+    join(process.cwd(), "src", "ide.html"),
+    join(import.meta.dir, "src", "ide.html"),
+    join(import.meta.dir, "ide.html"),
+    join(process.cwd(), "ide.html"),
+  ];
+  for (const p of candidates) {
+    if (existsSync(p)) {
+      try {
+        const raw = readFileSync(p, "utf-8");
+        return raw.replace("__SPEC_JSON__", defaultSpec);
+      } catch {}
     }
-    return `<!DOCTYPE html><html><body style="background:#0f172a;color:#e2e8f0;font-family:system-ui;padding:20px;"><h1>Bun RAD Studio IDE</h1></body></html>`;
+  }
+  return `<!DOCTYPE html><html><body style="background:#0f172a;color:#e2e8f0;font-family:system-ui;padding:20px;"><h1>Bun RAD Studio IDE</h1></body></html>`;
 }
 
 /** A value as a TypeScript string literal, safe to paste into generated source (quotes, backslashes, newlines). */
 export function tsStringLiteral(value: unknown): string {
-    return JSON.stringify(String(value ?? "")).replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
+  return JSON.stringify(String(value ?? ""))
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
 }
 
 /** A positive whole number for generated source, or the fallback when the value is not one. */
 export function safeDimension(value: unknown, fallback: number): number {
-    const n = Math.round(Number(value));
-    return Number.isFinite(n) && n > 0 && n <= 100000 ? n : fallback;
+  const n = Math.round(Number(value));
+  return Number.isFinite(n) && n > 0 && n <= 100000 ? n : fallback;
 }
 
 /**
  * Writes a generated file. When the file already exists with different content (for example the user edited the
  * exported index.ts), the old copy is kept as `<name>.bak-<timestamp>` first. Returns the backup path, if any.
  */
-export function writeGeneratedFile(path: string, content: string): string | null {
-    let backup: string | null = null;
-    if (existsSync(path) && readFileSync(path, "utf-8") !== content) {
-        backup = `${path}.bak-${new Date().toISOString().replace(/[:.]/g, "-")}`;
-        renameSync(path, backup);
-    }
-    writeFileSync(path, content);
-    return backup;
+export function writeGeneratedFile(
+  path: string,
+  content: string,
+): string | null {
+  let backup: string | null = null;
+  if (existsSync(path) && readFileSync(path, "utf-8") !== content) {
+    backup = `${path}.bak-${new Date().toISOString().replace(/[:.]/g, "-")}`;
+    renameSync(path, backup);
+  }
+  writeFileSync(path, content);
+  return backup;
 }
 
 /**
@@ -1185,108 +1413,163 @@ const DRAFT_MAX_BYTES = 10 * 1024 * 1024;
 
 /** Resolves the file path used to store the form designer's autosave draft JSON (`designer_draft.json`). */
 export function draftFilePath(customDir?: string): string {
-    return join(customDir ?? join(homedir(), ".bun_rad_studio"), "designer_draft.json");
+  return join(
+    customDir ?? join(homedir(), ".bun_rad_studio"),
+    "designer_draft.json",
+  );
 }
 
 /** Atomically validates and saves the current form designer specification JSON to the user's draft file. */
-export function saveDraftHelper(specJson: string, customDir?: string): { ok: boolean; error?: string } {
-    try {
-        if (typeof specJson !== "string" || specJson.length > DRAFT_MAX_BYTES) return { ok: false, error: "The form is too large to autosave." };
-        const spec = JSON.parse(specJson);
-        if (!spec || typeof spec !== "object" || !Array.isArray(spec.controls)) return { ok: false, error: "Not a form." };
-        const file = draftFilePath(customDir);
-        mkdirSync(dirname(file), { recursive: true });
-        const tmp = `${file}.${process.pid}.tmp`;
-        writeFileSync(tmp, JSON.stringify({ savedAt: new Date().toISOString(), spec }), { mode: 0o600 });
-        renameSync(tmp, file);
-        return { ok: true };
-    } catch (err: any) {
-        return { ok: false, error: String(err?.message ?? err) };
-    }
+export function saveDraftHelper(
+  specJson: string,
+  customDir?: string,
+): { ok: boolean; error?: string } {
+  try {
+    if (typeof specJson !== "string" || specJson.length > DRAFT_MAX_BYTES)
+      return { ok: false, error: "The form is too large to autosave." };
+    const spec = JSON.parse(specJson);
+    if (!spec || typeof spec !== "object" || !Array.isArray(spec.controls))
+      return { ok: false, error: "Not a form." };
+    const file = draftFilePath(customDir);
+    mkdirSync(dirname(file), { recursive: true });
+    const tmp = `${file}.${process.pid}.tmp`;
+    writeFileSync(
+      tmp,
+      JSON.stringify({ savedAt: new Date().toISOString(), spec }),
+      { mode: 0o600 },
+    );
+    renameSync(tmp, file);
+    return { ok: true };
+  } catch (err: any) {
+    return { ok: false, error: String(err?.message ?? err) };
+  }
 }
 
 /** Returns the saved form as JSON text plus when it was saved, or null when there is no usable draft. */
-export function loadDraftHelper(customDir?: string): { savedAt: string; specJson: string } | null {
-    try {
-        const file = draftFilePath(customDir);
-        if (!existsSync(file)) return null;
-        const text = readFileSync(file, "utf-8");
-        if (text.length > DRAFT_MAX_BYTES) return null;
-        const saved = JSON.parse(text);
-        if (!saved || typeof saved !== "object" || !saved.spec || !Array.isArray(saved.spec.controls)) return null;
-        return { savedAt: String(saved.savedAt ?? ""), specJson: JSON.stringify(saved.spec) };
-    } catch {
-        return null;
-    }
+export function loadDraftHelper(
+  customDir?: string,
+): { savedAt: string; specJson: string } | null {
+  try {
+    const file = draftFilePath(customDir);
+    if (!existsSync(file)) return null;
+    const text = readFileSync(file, "utf-8");
+    if (text.length > DRAFT_MAX_BYTES) return null;
+    const saved = JSON.parse(text);
+    if (
+      !saved ||
+      typeof saved !== "object" ||
+      !saved.spec ||
+      !Array.isArray(saved.spec.controls)
+    )
+      return null;
+    return {
+      savedAt: String(saved.savedAt ?? ""),
+      specJson: JSON.stringify(saved.spec),
+    };
+  } catch {
+    return null;
+  }
 }
 
 /** Removes the saved designer draft file if it exists, returning `true` when a draft was deleted. */
 export function clearDraftHelper(customDir?: string): boolean {
-    try {
-        const file = draftFilePath(customDir);
-        if (!existsSync(file)) return false;
-        unlinkSync(file);
-        return true;
-    } catch {
-        return false;
-    }
+  try {
+    const file = draftFilePath(customDir);
+    if (!existsSync(file)) return false;
+    unlinkSync(file);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // Helper function for exporting project structure
 /** Exports a form specification JSON into a standalone runnable Bun project directory with generated HTML, TypeScript, and package files. */
-export function exportProjectHelper(specJson: string, customExportDir?: string) {
-    try {
-        const spec = JSON.parse(specJson);
-        const exportDir = customExportDir || join(process.cwd(), "exported_project");
-        mkdirSync(exportDir, { recursive: true });
-        
-        const previewHtml = generatePreviewHtml(spec);
-        const backups: string[] = [];
-        const keep = (b: string | null) => { if (b) backups.push(b); };
-        keep(writeGeneratedFile(join(exportDir, "index.html"), previewHtml));
+export function exportProjectHelper(
+  specJson: string,
+  customExportDir?: string,
+) {
+  try {
+    const spec = JSON.parse(specJson);
+    const exportDir =
+      customExportDir || join(process.cwd(), "exported_project");
+    mkdirSync(exportDir, { recursive: true });
 
-        let boundMethods: string[] = [];
-        let customHandlers: { name: string, ctrlId: string, type: string, evt: string }[] = [];
-        (spec.controls || []).forEach((c: any) => {
-            if (!c.event_handlers) return;
-            for (let evtName in c.event_handlers) {
-                let handler = c.event_handlers[evtName];
-                if (handler && typeof handler === "string" && handler.trim()) {
-                    const clean = handler.trim();
-                    const isFuncName = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(clean);
-                    if (isFuncName && !boundMethods.includes(clean)) {
-                        boundMethods.push(clean);
-                        customHandlers.push({ name: clean, ctrlId: c.id, type: c.control_type || "control", evt: evtName });
-                    }
-                }
-            }
-        });
+    const previewHtml = generatePreviewHtml(spec);
+    const backups: string[] = [];
+    const keep = (b: string | null) => {
+      if (b) backups.push(b);
+    };
+    keep(writeGeneratedFile(join(exportDir, "index.html"), previewHtml));
 
-        let handlersCode = "";
-        if (customHandlers.length > 0) {
-            handlersCode += '\n// ==========================================\n';
-            handlersCode += '// 🔌 RAD COMPONENT EVENT HANDLERS (' + customHandlers.length + ' active binding(s))\n';
-            handlersCode += '// ==========================================\n';
-            customHandlers.forEach(h => {
-                handlersCode += 'wv.bind(' + tsStringLiteral(h.name) + ', (data?: any) => {\n';
-                handlersCode += '    console.log(' + tsStringLiteral('⚡ RAD Event [' + h.evt + '] on #' + h.ctrlId + ' (' + h.type + '):') + ', data || "");\n';
-                if (h.evt === "onChange" || h.evt === "onInput") {
-                    handlersCode += '    return { success: true, value: data };\n';
-                } else {
-                    handlersCode += '    return { success: true, timestamp: Date.now() };\n';
-                }
-                handlersCode += '});\n\n';
+    let boundMethods: string[] = [];
+    let customHandlers: {
+      name: string;
+      ctrlId: string;
+      type: string;
+      evt: string;
+    }[] = [];
+    (spec.controls || []).forEach((c: any) => {
+      if (!c.event_handlers) return;
+      for (let evtName in c.event_handlers) {
+        let handler = c.event_handlers[evtName];
+        if (handler && typeof handler === "string" && handler.trim()) {
+          const clean = handler.trim();
+          const isFuncName = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(clean);
+          if (isFuncName && !boundMethods.includes(clean)) {
+            boundMethods.push(clean);
+            customHandlers.push({
+              name: clean,
+              ctrlId: c.id,
+              type: c.control_type || "control",
+              evt: evtName,
             });
+          }
         }
+      }
+    });
 
-        const appTs = `
+    let handlersCode = "";
+    if (customHandlers.length > 0) {
+      handlersCode += "\n// ==========================================\n";
+      handlersCode +=
+        "// 🔌 RAD COMPONENT EVENT HANDLERS (" +
+        customHandlers.length +
+        " active binding(s))\n";
+      handlersCode += "// ==========================================\n";
+      customHandlers.forEach((h) => {
+        handlersCode +=
+          "wv.bind(" + tsStringLiteral(h.name) + ", (data?: any) => {\n";
+        handlersCode +=
+          "    console.log(" +
+          tsStringLiteral(
+            "⚡ RAD Event [" +
+              h.evt +
+              "] on #" +
+              h.ctrlId +
+              " (" +
+              h.type +
+              "):",
+          ) +
+          ', data || "");\n';
+        if (h.evt === "onChange" || h.evt === "onInput") {
+          handlersCode += "    return { success: true, value: data };\n";
+        } else {
+          handlersCode +=
+            "    return { success: true, timestamp: Date.now() };\n";
+        }
+        handlersCode += "});\n\n";
+      });
+    }
+
+    const appTs = `
 import { SizeHint, Webview } from "webview-bun";
 import { readFileSync } from "fs";
 import { join } from "path";
 
 // Initialize Webview Window
 const wv = new Webview();
-wv.title = ${tsStringLiteral(spec.title || 'Exported App')};
+wv.title = ${tsStringLiteral(spec.title || "Exported App")};
 wv.size = { width: ${safeDimension(spec.width, 800)}, height: ${safeDimension(spec.height, 600)}, hint: SizeHint.NONE };
 
 // Load HTML UI Spec
@@ -1525,27 +1808,32 @@ wv.bind("centerWindow", () => {
     console.log("⚡ Window Lifecycle: Center window");
 });
 ${handlersCode}
-console.log(${tsStringLiteral("🚀 Starting Bun RAD Studio App: " + (spec.title || 'Exported App') + "...")});
+console.log(${tsStringLiteral("🚀 Starting Bun RAD Studio App: " + (spec.title || "Exported App") + "...")});
 wv.run();
         `;
-        keep(writeGeneratedFile(join(exportDir, "index.ts"), appTs.trim()));
+    keep(writeGeneratedFile(join(exportDir, "index.ts"), appTs.trim()));
 
-        const pkgJson = {
-            name: "exported-rad-project",
-            version: "1.0.0",
-            scripts: {
-                start: "bun run index.ts"
-            },
-            dependencies: {
-                "webview-bun": "^2.4.0"
-            }
-        };
-        keep(writeGeneratedFile(join(exportDir, "package.json"), JSON.stringify(pkgJson, null, 2)));
+    const pkgJson = {
+      name: "exported-rad-project",
+      version: "1.0.0",
+      scripts: {
+        start: "bun run index.ts",
+      },
+      dependencies: {
+        "webview-bun": "^2.4.0",
+      },
+    };
+    keep(
+      writeGeneratedFile(
+        join(exportDir, "package.json"),
+        JSON.stringify(pkgJson, null, 2),
+      ),
+    );
 
-        return { success: true, dir: exportDir, backups };
-    } catch (err: any) {
-        return { success: false, error: err.message };
-    }
+    return { success: true, dir: exportDir, backups };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
 /**
@@ -1557,18 +1845,23 @@ wv.run();
  * `.rad_preview/preview.log` (it used to be thrown away), and a failure to start it is written there too instead of
  * surfacing as an unhandled error in the designer. `bunBin` exists so tests can simulate a missing runtime.
  */
-export function runPreviewHelper(specJson: string, options: { cwd?: string; start?: boolean; bunBin?: string } = {}) {
-    const cwd = options.cwd ?? process.cwd();
-    try {
-            const spec = JSON.parse(specJson);
-            const tempDir = join(cwd, ".rad_preview");
-            mkdirSync(tempDir, { recursive: true });
+export function runPreviewHelper(
+  specJson: string,
+  options: { cwd?: string; start?: boolean; bunBin?: string } = {},
+) {
+  const cwd = options.cwd ?? process.cwd();
+  try {
+    const spec = JSON.parse(specJson);
+    const tempDir = join(cwd, ".rad_preview");
+    mkdirSync(tempDir, { recursive: true });
 
-            const previewHtml = generatePreviewHtml(spec);
-            writeFileSync(join(tempDir, "preview.html"), previewHtml);
+    const previewHtml = generatePreviewHtml(spec);
+    writeFileSync(join(tempDir, "preview.html"), previewHtml);
 
-            const previewTitle = tsStringLiteral((spec.title || "Preview") + " - Live Preview");
-            const previewTs = `
+    const previewTitle = tsStringLiteral(
+      (spec.title || "Preview") + " - Live Preview",
+    );
+    const previewTs = `
 import { SizeHint, Webview } from "webview-bun";
 import { readFileSync } from "fs";
 import { join } from "path";
@@ -1587,95 +1880,155 @@ wv.bind("backendAlert", (msg: string) => {
 
 wv.run();
             `;
-            const previewTsPath = join(tempDir, "preview.ts");
-            writeFileSync(previewTsPath, previewTs);
+    const previewTsPath = join(tempDir, "preview.ts");
+    writeFileSync(previewTsPath, previewTs);
 
-            const logPath = join(tempDir, "preview.log");
-            if (options.start !== false) {
-                const bunBin = options.bunBin ?? (process.execPath || "bun");
-                const logFd = openSync(logPath, "w");
-                try {
-                    const proc = spawn(bunBin, ["run", previewTsPath], {
-                        cwd: cwd,
-                        stdio: ["ignore", logFd, logFd],
-                        detached: true
-                    });
-                    proc.on("error", (err) => {
-                        try { appendFileSync(logPath, `Could not start the preview: ${err.message}\n`); } catch { /* the log is best effort */ }
-                    });
-                    proc.unref();
-                } finally {
-                    closeSync(logFd);
-                }
-            }
-
-        return { success: true, previewTsPath, logPath };
-    } catch (err: any) {
-        console.error("Preview failed:", err);
-        return { success: false, error: err.message };
+    const logPath = join(tempDir, "preview.log");
+    if (options.start !== false) {
+      const bunBin = options.bunBin ?? (process.execPath || "bun");
+      const logFd = openSync(logPath, "w");
+      try {
+        const proc = spawn(bunBin, ["run", previewTsPath], {
+          cwd: cwd,
+          stdio: ["ignore", logFd, logFd],
+          detached: true,
+        });
+        proc.on("error", (err) => {
+          try {
+            appendFileSync(
+              logPath,
+              `Could not start the preview: ${err.message}\n`,
+            );
+          } catch {
+            /* the log is best effort */
+          }
+        });
+        proc.unref();
+      } finally {
+        closeSync(logFd);
+      }
     }
+
+    return { success: true, previewTsPath, logPath };
+  } catch (err: any) {
+    console.error("Preview failed:", err);
+    return { success: false, error: err.message };
+  }
 }
 
 // Only launch main Webview IDE window when run as primary entrypoint (not imported during bun test)
 if (import.meta.main) {
-    const { SizeHint, Webview } = await import("webview-bun");
-    const webview = new Webview();
-    attachWindowShortcuts(webview);
-    // The tooltip script is added here, not in getIdeHtml(), which must stay identical to the built src/ide.html.
-    html = injectHelp(getIdeHtml(), "designer");
-    webview.setHTML(html);
-    webview.title = "Bun RAD Studio (Delphi/VB Style)";
-    webview.size = { width: 1400, height: 900, hint: SizeHint.NONE };
+  const { SizeHint, Webview } = await import("webview-bun");
+  const webview = new Webview();
+  attachWindowShortcuts(webview);
+  // The tooltip script is added here, not in getIdeHtml(), which must stay identical to the built src/ide.html.
+  html = injectHelp(getIdeHtml(), "designer");
+  webview.setHTML(html);
+  webview.title = "Bun RAD Studio (Delphi/VB Style)";
+  webview.size = { width: 1400, height: 900, hint: SizeHint.NONE };
 
-    if (process.platform === "darwin" && webview.unsafeWindowHandle) {
-        try {
-            const libobjc = dlopen("libobjc.dylib", {
-                objc_msgSend: { args: [FFIType.pointer, FFIType.pointer, FFIType.u64], returns: FFIType.u64 },
-                sel_registerName: { args: [FFIType.cstring], returns: FFIType.pointer }
-            });
-            const sel_cb = libobjc.symbols.sel_registerName(Buffer.from("collectionBehavior\0"));
-            const sel_scb = libobjc.symbols.sel_registerName(Buffer.from("setCollectionBehavior:\0"));
-            const cb = BigInt(libobjc.symbols.objc_msgSend(webview.unsafeWindowHandle, sel_cb, 0n));
-            libobjc.symbols.objc_msgSend(webview.unsafeWindowHandle, sel_scb, cb | 128n);
-        } catch (e) {}
-    }
+  if (process.platform === "darwin" && webview.unsafeWindowHandle) {
+    try {
+      const libobjc = dlopen("libobjc.dylib", {
+        objc_msgSend: {
+          args: [FFIType.pointer, FFIType.pointer, FFIType.u64],
+          returns: FFIType.u64,
+        },
+        sel_registerName: { args: [FFIType.cstring], returns: FFIType.pointer },
+      });
+      const sel_cb = libobjc.symbols.sel_registerName(
+        Buffer.from("collectionBehavior\0"),
+      );
+      const sel_scb = libobjc.symbols.sel_registerName(
+        Buffer.from("setCollectionBehavior:\0"),
+      );
+      const cb = BigInt(
+        libobjc.symbols.objc_msgSend(webview.unsafeWindowHandle, sel_cb, 0n),
+      );
+      libobjc.symbols.objc_msgSend(
+        webview.unsafeWindowHandle,
+        sel_scb,
+        cb | 128n,
+      );
+    } catch (e) {}
+  }
 
-    webview.bind("runPreview", (specJson: string) => runPreviewHelper(specJson));
+  webview.bind("runPreview", (specJson: string) => runPreviewHelper(specJson));
 
-    webview.bind("exportProject", (specJson: string) => {
-        return exportProjectHelper(specJson);
-    });
+  webview.bind("exportProject", (specJson: string) => {
+    return exportProjectHelper(specJson);
+  });
 
-    webview.bind("saveDraft", (specJson: string) => saveDraftHelper(specJson));
-    webview.bind("loadDraft", () => loadDraftHelper());
-    webview.bind("clearDraft", () => clearDraftHelper());
+  webview.bind("saveDraft", (specJson: string) => saveDraftHelper(specJson));
+  webview.bind("loadDraft", () => loadDraftHelper());
+  webview.bind("clearDraft", () => clearDraftHelper());
 
-    webview.run();
+  webview.run();
 }
 
-
 export {
-    simplegui, SimpleWindow, SimpleControlRef, createWindow, newWindow, newSimpleWindow, new_simple_window,
-    listThemes, list_themes, getThemes, get_themes, getThemeNames, get_theme_names, VLANG_THEME_NAMES, getThemeKeys, get_theme_keys, getTheme, saveTheme, save_theme, getSavedTheme, get_saved_theme,
-    homeDir, tempDir, desktopDir, documentsDir, downloadsDir,
-    resolveUserPath, resolve_user_path,
-    getAppConfigDir, get_app_config_dir,
-    getAppDataDir, get_app_data_dir,
-    getAppCacheDir, get_app_cache_dir,
-    getAppStateDir, get_app_state_dir,
-    getAppLogDir, get_app_log_dir,
-    getAppRuntimeDir, get_app_runtime_dir,
-    getAppConfigFile, get_app_config_file,
-    getAppStateFile, get_app_state_file,
-    writeFileAtomic, write_file_atomic,
-    saveStateToFile, save_state_to_file,
-    loadStateFromFile, load_state_from_file,
-    shouldPersistControl, should_persist_control,
-    isBrightColor, is_bright_color,
-    isBrightAccentColor, is_bright_accent_color,
-    autoShortThemeName, auto_short_theme_name,
-    getShortThemeName, get_short_theme_name,
-    listShortThemes, list_short_themes
+  simplegui,
+  SimpleWindow,
+  SimpleControlRef,
+  createWindow,
+  newWindow,
+  newSimpleWindow,
+  new_simple_window,
+  listThemes,
+  list_themes,
+  getThemes,
+  get_themes,
+  getThemeNames,
+  get_theme_names,
+  VLANG_THEME_NAMES,
+  getThemeKeys,
+  get_theme_keys,
+  getTheme,
+  saveTheme,
+  save_theme,
+  getSavedTheme,
+  get_saved_theme,
+  homeDir,
+  tempDir,
+  desktopDir,
+  documentsDir,
+  downloadsDir,
+  resolveUserPath,
+  resolve_user_path,
+  getAppConfigDir,
+  get_app_config_dir,
+  getAppDataDir,
+  get_app_data_dir,
+  getAppCacheDir,
+  get_app_cache_dir,
+  getAppStateDir,
+  get_app_state_dir,
+  getAppLogDir,
+  get_app_log_dir,
+  getAppRuntimeDir,
+  get_app_runtime_dir,
+  getAppConfigFile,
+  get_app_config_file,
+  getAppStateFile,
+  get_app_state_file,
+  writeFileAtomic,
+  write_file_atomic,
+  saveStateToFile,
+  save_state_to_file,
+  loadStateFromFile,
+  load_state_from_file,
+  shouldPersistControl,
+  should_persist_control,
+  isBrightColor,
+  is_bright_color,
+  isBrightAccentColor,
+  is_bright_accent_color,
+  autoShortThemeName,
+  auto_short_theme_name,
+  getShortThemeName,
+  get_short_theme_name,
+  listShortThemes,
+  list_short_themes,
 } from "./src/simplegui.ts";
 
 export * from "./src/simplecli/index.ts";
@@ -1685,13 +2038,22 @@ export function setStatusBarText(controlId: string, statusText: string) {}
 /** Stub helper for updating a Kanban board control's columns data in generated or preview environments. */
 export function setKanbanColumns(controlId: string, columnsData: string) {}
 /** Stub helper for updating a shortcut recorder control's key combination value. */
-export function setShortcutRecorderValue(controlId: string, shortcutStr: string) {}
+export function setShortcutRecorderValue(
+  controlId: string,
+  shortcutStr: string,
+) {}
 /** Stub helper for updating a split button control's primary action label. */
 export function setSplitButtonAction(controlId: string, text: string) {}
 /** Stub helper for populating a sparkline table control from CSV row data. */
 export function setSparklineTableData(controlId: string, rowsCSV: string) {}
 /** Stub helper for updating a metric comparison card control's values and delta text. */
-export function setMetricComparison(controlId: string, title: string, curVal: string, targetStr: string, changeStr: string) {}
+export function setMetricComparison(
+  controlId: string,
+  title: string,
+  curVal: string,
+  targetStr: string,
+  changeStr: string,
+) {}
 /** Stub helper for populating an activity feed control from CSV items data. */
 export function setActivityFeedItems(controlId: string, itemsCSV: string) {}
 /** Stub helper for setting the open file tabs on a workspace tabs control. */
@@ -1699,531 +2061,1088 @@ export function setWorkspaceTabs(controlId: string, filesCSV: string) {}
 
 /** Returns `true` when a `#RGB` or `#RRGGBB` hex color has high perceived luminance (> 180). */
 export function isColorBright(hex?: string): boolean {
-    if (!hex || typeof hex !== 'string' || !hex.startsWith('#')) return false;
-    const clean = hex.slice(1);
-    let r = 0, g = 0, b = 0;
-    if (clean.length === 3) {
-        r = parseInt(clean.charAt(0) + clean.charAt(0), 16);
-        g = parseInt(clean.charAt(1) + clean.charAt(1), 16);
-        b = parseInt(clean.charAt(2) + clean.charAt(2), 16);
-    } else if (clean.length >= 6) {
-        r = parseInt(clean.slice(0, 2), 16);
-        g = parseInt(clean.slice(2, 4), 16);
-        b = parseInt(clean.slice(4, 6), 16);
-    } else {
-        return false;
-    }
-    return (r * 0.299 + g * 0.587 + b * 0.114) > 180;
+  if (!hex || typeof hex !== "string" || !hex.startsWith("#")) return false;
+  const clean = hex.slice(1);
+  let r = 0,
+    g = 0,
+    b = 0;
+  if (clean.length === 3) {
+    r = parseInt(clean.charAt(0) + clean.charAt(0), 16);
+    g = parseInt(clean.charAt(1) + clean.charAt(1), 16);
+    b = parseInt(clean.charAt(2) + clean.charAt(2), 16);
+  } else if (clean.length >= 6) {
+    r = parseInt(clean.slice(0, 2), 16);
+    g = parseInt(clean.slice(2, 4), 16);
+    b = parseInt(clean.slice(4, 6), 16);
+  } else {
+    return false;
+  }
+  return r * 0.299 + g * 0.587 + b * 0.114 > 180;
 }
 
 function hexToRgba(hex: string, alpha: number): string {
-    if (!hex || typeof hex !== 'string') return `rgba(56, 189, 248, ${alpha})`;
-    const clean = hex.replace('#', '').trim();
-    if (clean.length === 3) {
-        const r = parseInt(clean.charAt(0) + clean.charAt(0), 16);
-        const g = parseInt(clean.charAt(1) + clean.charAt(1), 16);
-        const b = parseInt(clean.charAt(2) + clean.charAt(2), 16);
-        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-    } else if (clean.length >= 6) {
-        const r = parseInt(clean.slice(0, 2), 16);
-        const g = parseInt(clean.slice(2, 4), 16);
-        const b = parseInt(clean.slice(4, 6), 16);
-        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-    }
-    return `rgba(56, 189, 248, ${alpha})`;
+  if (!hex || typeof hex !== "string") return `rgba(56, 189, 248, ${alpha})`;
+  const clean = hex.replace("#", "").trim();
+  if (clean.length === 3) {
+    const r = parseInt(clean.charAt(0) + clean.charAt(0), 16);
+    const g = parseInt(clean.charAt(1) + clean.charAt(1), 16);
+    const b = parseInt(clean.charAt(2) + clean.charAt(2), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  } else if (clean.length >= 6) {
+    const r = parseInt(clean.slice(0, 2), 16);
+    const g = parseInt(clean.slice(2, 4), 16);
+    const b = parseInt(clean.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  return `rgba(56, 189, 248, ${alpha})`;
 }
 
 /** Generates a complete standalone HTML document rendering the given form designer specification (`spec`). */
 export function generatePreviewHtml(spec: any): string {
-    const bg = spec.background_color || '#0f172a';
-    const fg = spec.font_color || '#e2e8f0';
+  const bg = spec.background_color || "#0f172a";
+  const fg = spec.font_color || "#e2e8f0";
 
-    // A theme can have a mid-tone background (Windows 95's teal) with light surfaces and black text, so its own flag wins over the background's brightness.
-    const isLight = typeof spec.is_dark === 'boolean' ? !spec.is_dark : bg === '#f8fafc' || bg === '#ffffff' || (bg.startsWith('#') && bg.length >= 7 && (parseInt(bg.slice(1,3), 16)*0.299 + parseInt(bg.slice(3,5), 16)*0.587 + parseInt(bg.slice(5,7), 16)*0.114) > 160);
+  // A theme can have a mid-tone background (Windows 95's teal) with light surfaces and black text, so its own flag wins over the background's brightness.
+  const isLight =
+    typeof spec.is_dark === "boolean"
+      ? !spec.is_dark
+      : bg === "#f8fafc" ||
+        bg === "#ffffff" ||
+        (bg.startsWith("#") &&
+          bg.length >= 7 &&
+          parseInt(bg.slice(1, 3), 16) * 0.299 +
+            parseInt(bg.slice(3, 5), 16) * 0.587 +
+            parseInt(bg.slice(5, 7), 16) * 0.114 >
+            160);
 
-    let accent = spec.accent_color || '#38bdf8';
-    if (spec.accent_color) {
-        accent = spec.accent_color;
-    } else if (bg === '#050505') {
-        accent = '#0fb36a';
-    } else if (bg === '#000000' || fg === '#00ff00') {
-        accent = '#00ff00';
-    } else if (bg === '#0d0221' || fg === '#00f6ff') {
-        accent = '#00f6ff';
-    } else if (isLight) {
-        accent = '#0284c7';
-    } else if (bg === '#090d16') {
-        accent = '#3b82f6';
+  let accent = spec.accent_color || "#38bdf8";
+  if (spec.accent_color) {
+    accent = spec.accent_color;
+  } else if (bg === "#050505") {
+    accent = "#0fb36a";
+  } else if (bg === "#000000" || fg === "#00ff00") {
+    accent = "#00ff00";
+  } else if (bg === "#0d0221" || fg === "#00f6ff") {
+    accent = "#00f6ff";
+  } else if (isLight) {
+    accent = "#0284c7";
+  } else if (bg === "#090d16") {
+    accent = "#3b82f6";
+  }
+
+  const defaultBtnBg = spec.accent_color || accent || "#0284c7";
+  const isBrightDefault =
+    defaultBtnBg === "#0fb36a" ||
+    defaultBtnBg === "#30d158" ||
+    defaultBtnBg === "#00ff00" ||
+    defaultBtnBg === "#4ade80" ||
+    defaultBtnBg === "#00ff41" ||
+    defaultBtnBg === "#ffb000" ||
+    defaultBtnBg === "#ffd866" ||
+    isColorBright(defaultBtnBg);
+  const defaultBtnFg = isBrightDefault ? "#000000" : "#ffffff";
+
+  const isBrightAccent =
+    accent === "#0fb36a" ||
+    accent === "#30d158" ||
+    accent === "#00ff00" ||
+    accent === "#4ade80" ||
+    accent === "#00ff41" ||
+    accent === "#ffb000" ||
+    accent === "#ffd866" ||
+    isColorBright(accent);
+  const activeFg = isBrightAccent ? "#000000" : "#ffffff";
+
+  const cardBg =
+    spec.card_background ||
+    (isLight
+      ? "#ffffff"
+      : bg === "#050505"
+        ? "#121212"
+        : bg === "#0a0600"
+          ? "#160d00"
+          : bg === "#040a05"
+            ? "#08140a"
+            : "#1e293b");
+  const isCardLight = isLight || isColorBright(cardBg);
+  const cardBorder =
+    spec.card_border ||
+    (bg === "#050505"
+      ? "#242424"
+      : bg === "#0a0600"
+        ? "#472800"
+        : bg === "#040a05"
+          ? "#123d18"
+          : isLight
+            ? "rgba(0, 0, 0, 0.12)"
+            : "rgba(255, 255, 255, 0.12)");
+  const border =
+    spec.border_color ||
+    spec.card_border ||
+    (bg === "#050505"
+      ? "#2a2a2a"
+      : isLight
+        ? "rgba(0, 0, 0, 0.15)"
+        : "rgba(255, 255, 255, 0.12)");
+  const sem = buildSemanticPalette({
+    background: bg,
+    card: cardBg,
+    isDark: !isLight,
+    overrides: spec.semantic_overrides,
+  });
+  // Themes with an `fx` descriptor (the futuristic set, or any theme that opts in) get the effects layer; every other page is unchanged.
+  const fxMode = normalizeFxMode(spec.fx_mode);
+  const fxSource: any = spec.fx
+    ? {
+        name: String(spec.theme || ""),
+        background_color: bg,
+        font_color: fg,
+        accent_color: accent,
+        card_background: cardBg,
+        is_dark: !isLight,
+        fx: spec.fx,
+      }
+    : findFxTheme(spec.theme);
+  const fxHead = fxSource
+    ? `<style id="simplegui-fx-vars">:root { ${fxCssVars(fxSource)} }</style>\n` +
+      (fxMode === "off"
+        ? ""
+        : `<style id="simplegui-fx-css">\n${fxCss()}\n</style>\n<script>${FX_POINTER_SOURCE}</script>\n`)
+    : "";
+  const fxAttrs = fxSource ? " " + fxRootAttrString(fxSource, fxMode) : "";
+  const w = spec.width || 800;
+  const h = spec.height || 600;
+  const buildEvents = (c: any) => {
+    let ev = "";
+    const handlers: Record<string, string> = {
+      ...(c.event_handlers || {}),
+      ...(c.onclick ? { onClick: c.onclick } : {}),
+      ...(c.onClick ? { onClick: c.onClick } : {}),
+      ...(c.onchange ? { onChange: c.onchange } : {}),
+      ...(c.onChange ? { onChange: c.onChange } : {}),
+      ...(c.ondblclick ? { onDoubleClick: c.ondblclick } : {}),
+      ...(c.onDoubleClick ? { onDoubleClick: c.onDoubleClick } : {}),
+      ...(c.ondoubleclick ? { onDoubleClick: c.ondoubleclick } : {}),
+      ...(c.onkeydown ? { onKeyDown: c.onkeydown } : {}),
+      ...(c.onKeyDown ? { onKeyDown: c.onKeyDown } : {}),
+      ...(c.onenter ? { onEnter: c.onenter } : {}),
+      ...(c.onEnter ? { onEnter: c.onEnter } : {}),
+    };
+    if (c.id) {
+      const ctrlType = (c.control_type || c.type || "").toLowerCase();
+      const isInputType = [
+        "input",
+        "search",
+        "form_search",
+        "textarea",
+        "form_textarea",
+        "select",
+        "dropdown",
+        "form_dropdown",
+        "listbox",
+        "checkbox",
+        "form_checkbox",
+        "radio",
+        "form_radio",
+        "slider",
+        "form_slider",
+        "number",
+        "form_number",
+        "date",
+        "date_picker",
+        "form_date",
+        "time_picker",
+        "form_time",
+        "color",
+        "color_picker",
+        "color_well",
+        "form_color",
+        "form_code",
+        "stepper",
+        "number_stepper",
+        "form_stepper",
+        "form_drop_zone",
+        "tabs",
+        "pagination",
+        "toggle_button",
+        "search_field",
+        "masked_input",
+        "token_field",
+        "tag_input",
+        "inline_editable_label",
+        "pull_down",
+        "combo_box",
+        "mode_control",
+        "theme_menu",
+        "pill_toggle",
+        "knob",
+        "vertical_slider",
+        "range_slider",
+        "date_range_picker",
+        "date_time_picker",
+        "color_grid",
+        "file_picker_field",
+        "feedback_mood",
+        "transfer_list",
+        "color_swatch",
+        "file_path_bar",
+        "drop_zone",
+      ].includes(ctrlType);
+      if (isInputType) {
+        if (
+          !handlers.onChange &&
+          !handlers.onchange &&
+          !handlers.onClick &&
+          !handlers.onclick
+        ) {
+          handlers.onChange = `on_${c.id}_change`;
+        }
+        if (ctrlType === "listbox") {
+          if (!handlers.onClick && !handlers.onclick) {
+            handlers.onClick = handlers.onChange || `on_${c.id}_click`;
+          }
+          if (
+            !handlers.onDoubleClick &&
+            !handlers.ondblclick &&
+            !handlers.ondoubleclick
+          ) {
+            handlers.onDoubleClick = `on_${c.id}_doubleclick`;
+          }
+        }
+      } else {
+        if (!handlers.onClick && !handlers.onclick) {
+          handlers.onClick = `on_${c.id}_click`;
+        }
+      }
+    }
+    for (const [evtName, handler] of Object.entries(handlers)) {
+      if (!handler || typeof handler !== "string" || !handler.trim()) continue;
+      const clean = (handler as string).trim();
+      let attrName = evtName.toLowerCase();
+      if (attrName === "onhover" || attrName === "onmouseenter")
+        attrName = "onmouseover";
+      if (attrName === "onhoverexit" || attrName === "onmouseleave")
+        attrName = "onmouseout";
+      if (attrName === "ondoubleclick") attrName = "ondblclick";
+
+      const isFuncName = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(clean);
+      let codeToExec = "";
+      if (isFuncName) {
+        const valExpr =
+          "this.tagName==='SELECT'&&this.multiple?Array.from(this.selectedOptions).map(o=>o.value):(this.type==='checkbox'?this.checked:(this.dataset&&this.dataset.page?parseInt(this.dataset.page):(this.value!==undefined?this.value:'')))";
+        codeToExec = `if(this.disabled)return;if(window['${clean}']){window['${clean}'](${valExpr})}else if(window['${clean}']===undefined&&window.backendAlert){window.backendAlert('Event: ${clean}')}`;
+      } else {
+        codeToExec = clean;
+      }
+
+      const safeCode = codeToExec.replace(/"/g, "&quot;");
+      ev += ` ${attrName}="try{${safeCode}}catch(e){console.error(e)}"`;
+    }
+    return ev;
+  };
+
+  const getShadowCss = (s?: string, bCol?: string) => {
+    if (s === "subtle") return "box-shadow:0 2px 4px rgba(0,0,0,0.15);";
+    if (s === "medium") return "box-shadow:0 4px 12px rgba(0,0,0,0.3);";
+    if (s === "deep") return "box-shadow:0 10px 25px rgba(0,0,0,0.5);";
+    if (s === "glow") return `box-shadow:0 0 15px ${bCol || "#38bdf8"};`;
+    return "";
+  };
+
+  const base = (c: any, extra = "") => {
+    let bw =
+      c.border_width !== undefined &&
+      c.border_width !== null &&
+      c.border_width !== ""
+        ? `border-width:${c.border_width}px;`
+        : "";
+    let bc = c.border_color ? `border-color:${c.border_color};` : "";
+    let bs = c.border_style ? `border-style:${c.border_style};` : "";
+    let br =
+      c.border_radius !== undefined &&
+      c.border_radius !== null &&
+      c.border_radius !== ""
+        ? `border-radius:${c.border_radius}px;`
+        : "";
+    let sh = getShadowCss(c.box_shadow, c.border_color || c.font_color);
+    let ta = c.text_align ? `text-align:${c.text_align};` : "";
+    let op =
+      c.opacity !== undefined && c.opacity !== null && c.opacity !== ""
+        ? `opacity:${c.opacity / 100};`
+        : c.enabled === false
+          ? "opacity:0.55;"
+          : "";
+    let pe = c.enabled === false ? "pointer-events:none;" : "";
+    let cur = c.cursor ? `cursor:${c.cursor};` : "";
+    const posX = c.left !== undefined ? c.left : c.x !== undefined ? c.x : 0;
+    const posY = c.top !== undefined ? c.top : c.y !== undefined ? c.y : 0;
+
+    const ctrlType = (c.control_type || c.type || "").toLowerCase();
+    const isFullWidthContainer =
+      (ctrlType === "groupbox" ||
+        ctrlType === "card" ||
+        ctrlType === "content_card" ||
+        ctrlType === "w3_card" ||
+        ctrlType === "accordion") &&
+      posX <= 40 &&
+      c.width >= w - posX * 2 - 60;
+    const isFullWidthControl =
+      !isFullWidthContainer &&
+      posX <= 60 &&
+      c.width >= w - 120 &&
+      [
+        "textarea",
+        "html_view",
+        "browser_view",
+        "code_view",
+        "code_editor",
+        "data_table",
+        "db_grid",
+        "table",
+        "tree_grid",
+        "tree_table",
+        "activity_feed",
+        "stat_chart",
+        "diff_view",
+        "diff_editor",
+        "cmd_palette",
+        "command_palette",
+        "quick_open",
+        "toolbar",
+        "action_bar",
+        "split_pane",
+        "tabs",
+        "workspace_tabs",
+        "status_bar",
+        "property_grid",
+        "kanban_board",
+        "sparkline_table",
+        "drop_zone",
+        "sidebar",
+        "list_group",
+        "code_snippet",
+        "code_block",
+        "callout_panel",
+        "note_panel",
+        "slideshow",
+        "hero_display",
+        "rad_display",
+        "w3_display",
+        "w3_display_container",
+        "w3_sidebar",
+        "w3_list",
+        "w3_code",
+        "w3_panel",
+        "w3_slideshow",
+      ].includes(ctrlType);
+
+    let widthCss = `${c.width}px`;
+    if (isFullWidthContainer) {
+      widthCss = `calc(100% - ${posX * 2}px)`;
+    } else if (isFullWidthControl) {
+      widthCss = `calc(100% - ${posX + 20}px)`;
     }
 
-    const defaultBtnBg = spec.accent_color || accent || '#0284c7';
-    const isBrightDefault = (defaultBtnBg === '#0fb36a' || defaultBtnBg === '#30d158' || defaultBtnBg === '#00ff00' || defaultBtnBg === '#4ade80' || defaultBtnBg === '#00ff41' || defaultBtnBg === '#ffb000' || defaultBtnBg === '#ffd866') || isColorBright(defaultBtnBg);
-    const defaultBtnFg = isBrightDefault ? '#000000' : '#ffffff';
+    let posStyle = `position:absolute;left:${posX}px;top:${posY}px;width:${widthCss};max-width:${isFullWidthContainer ? `calc(100% - ${posX * 2}px)` : "100%"};height:${c.height}px;`;
+    if (
+      c.dock === "bottom" ||
+      c.control_type === "status_bar" ||
+      c.type === "status_bar"
+    ) {
+      posStyle = `position:fixed;bottom:0;left:0;right:0;width:100%;height:${c.height || 28}px;z-index:9999;`;
+    } else if (c.dock === "top") {
+      posStyle = `position:fixed;top:0;left:0;right:0;width:100%;height:${c.height || 40}px;z-index:9999;`;
+    } else if (c.dock === "fill") {
+      posStyle = `position:absolute;top:0;bottom:0;left:0;right:0;width:100%;height:100%;`;
+    }
 
-    const isBrightAccent = (accent === '#0fb36a' || accent === '#30d158' || accent === '#00ff00' || accent === '#4ade80' || accent === '#00ff41' || accent === '#ffb000' || accent === '#ffd866') || isColorBright(accent);
-    const activeFg = isBrightAccent ? '#000000' : '#ffffff';
+    return (
+      `${posStyle}` +
+      `font-size:${c.font_size || 13}px;` +
+      `box-sizing:border-box;transition:background 0.15s,color 0.15s,filter 0.15s,transform 0.1s;${bw}${bc}${bs}${br}${sh}${ta}${op}${pe}${cur}${extra}`
+    );
+  };
 
-    const cardBg = spec.card_background || (isLight ? '#ffffff' : (bg === '#050505' ? '#121212' : (bg === '#0a0600' ? '#160d00' : (bg === '#040a05' ? '#08140a' : '#1e293b'))));
-    const isCardLight = isLight || isColorBright(cardBg);
-    const cardBorder = spec.card_border || (bg === '#050505' ? '#242424' : (bg === '#0a0600' ? '#472800' : (bg === '#040a05' ? '#123d18' : (isLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.12)'))));
-    const border = spec.border_color || spec.card_border || (bg === '#050505' ? '#2a2a2a' : (isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.12)'));
-    const sem = buildSemanticPalette({ background: bg, card: cardBg, isDark: !isLight, overrides: spec.semantic_overrides });
-    // Themes with an `fx` descriptor (the futuristic set, or any theme that opts in) get the effects layer; every other page is unchanged.
-    const fxMode = normalizeFxMode(spec.fx_mode);
-    const fxSource: any = spec.fx
-        ? { name: String(spec.theme || ''), background_color: bg, font_color: fg, accent_color: accent, card_background: cardBg, is_dark: !isLight, fx: spec.fx }
-        : findFxTheme(spec.theme);
-    const fxHead = fxSource
-        ? `<style id="simplegui-fx-vars">:root { ${fxCssVars(fxSource)} }</style>\n` + (fxMode === 'off' ? '' : `<style id="simplegui-fx-css">\n${fxCss()}\n</style>\n<script>${FX_POINTER_SOURCE}</script>\n`)
-        : '';
-    const fxAttrs = fxSource ? ' ' + fxRootAttrString(fxSource, fxMode) : '';
-    const w = spec.width || 800;
-    const h = spec.height || 600;
-    const buildEvents = (c: any) => {
-        let ev = '';
-        const handlers: Record<string, string> = {
-            ...(c.event_handlers || {}),
-            ...(c.onclick ? { onClick: c.onclick } : {}),
-            ...(c.onClick ? { onClick: c.onClick } : {}),
-            ...(c.onchange ? { onChange: c.onchange } : {}),
-            ...(c.onChange ? { onChange: c.onChange } : {}),
-            ...(c.ondblclick ? { onDoubleClick: c.ondblclick } : {}),
-            ...(c.onDoubleClick ? { onDoubleClick: c.onDoubleClick } : {}),
-            ...(c.ondoubleclick ? { onDoubleClick: c.ondoubleclick } : {}),
-            ...(c.onkeydown ? { onKeyDown: c.onkeydown } : {}),
-            ...(c.onKeyDown ? { onKeyDown: c.onKeyDown } : {}),
-            ...(c.onenter ? { onEnter: c.onenter } : {}),
-            ...(c.onEnter ? { onEnter: c.onEnter } : {}),
-        };
-        if (c.id) {
-            const ctrlType = (c.control_type || c.type || '').toLowerCase();
-            const isInputType = [
-                'input', 'search', 'form_search', 'textarea', 'form_textarea',
-                'select', 'dropdown', 'form_dropdown', 'listbox', 'checkbox', 'form_checkbox',
-                'radio', 'form_radio', 'slider', 'form_slider', 'number', 'form_number',
-                'date', 'date_picker', 'form_date', 'time_picker', 'form_time',
-                'color', 'color_picker', 'color_well', 'form_color', 'form_code',
-                'stepper', 'number_stepper', 'form_stepper', 'form_drop_zone',
-                'tabs', 'pagination', 'toggle_button',
-                'search_field', 'masked_input', 'token_field', 'tag_input',
-                'inline_editable_label', 'pull_down', 'combo_box', 'mode_control',
-                'theme_menu', 'pill_toggle', 'knob', 'vertical_slider', 'range_slider',
-                'date_range_picker', 'date_time_picker', 'color_grid', 'file_picker_field',
-                'feedback_mood', 'transfer_list', 'color_swatch', 'file_path_bar', 'drop_zone'
-            ].includes(ctrlType);
-            if (isInputType) {
-                if (!handlers.onChange && !handlers.onchange && !handlers.onClick && !handlers.onclick) {
-                    handlers.onChange = `on_${c.id}_change`;
-                }
-                if (ctrlType === 'listbox') {
-                    if (!handlers.onClick && !handlers.onclick) {
-                        handlers.onClick = handlers.onChange || `on_${c.id}_click`;
-                    }
-                    if (!handlers.onDoubleClick && !handlers.ondblclick && !handlers.ondoubleclick) {
-                        handlers.onDoubleClick = `on_${c.id}_doubleclick`;
-                    }
-                }
-            } else {
-                if (!handlers.onClick && !handlers.onclick) {
-                    handlers.onClick = `on_${c.id}_click`;
-                }
-            }
+  const esc = (s: any) =>
+    s === null || s === undefined
+      ? ""
+      : String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+
+  let controls = "";
+  let hoverStyles = "";
+  for (const c of spec.controls || []) {
+    if (c.visible === false) continue;
+    const t = c.control_type || c.type;
+    const text =
+      c.text !== undefined && c.text !== ""
+        ? c.text
+        : c.value !== undefined && c.value !== ""
+          ? c.value
+          : c.caption !== undefined && c.caption !== ""
+            ? c.caption
+            : c.title !== undefined && c.title !== ""
+              ? c.title
+              : (c.text ?? c.value ?? c.caption ?? c.title ?? "");
+    const color = c.font_color || fg;
+    const rawCbg = c.background_color || "transparent";
+    const cbg =
+      c.background_color && c.background_color !== "transparent"
+        ? c.background_color
+        : spec.card_background
+          ? spec.card_background
+          : bg === "#050505"
+            ? "#121212"
+            : isLight
+              ? "rgba(0, 0, 0, 0.04)"
+              : "rgba(255, 255, 255, 0.06)";
+    const ev = buildEvents(c);
+    const ctxAttr =
+      c.context_menu_items &&
+      Array.isArray(c.context_menu_items) &&
+      c.context_menu_items.length > 0
+        ? ` data-context-menu="${c.context_menu_items.join("|").replace(/"/g, "&quot;")}" data-ctrl-id="${c.id}"`
+        : "";
+    const id = ` id="${c.id}"${ctxAttr}`;
+    const disabled = c.enabled === false ? " disabled" : "";
+    const titleAttr = c.tooltip
+      ? ` title="${c.tooltip.replace(/"/g, "&quot;")}"`
+      : "";
+    const roAttr = c.read_only ? " readonly" : "";
+    const reqAttr = c.required ? " required" : "";
+    const maxLenAttr =
+      c.max_length !== undefined && c.max_length !== null && c.max_length !== ""
+        ? ` maxlength="${c.max_length}"`
+        : "";
+    const autoFocusAttr = c.auto_focus ? " autofocus" : "";
+    const minVal = c.min_value !== undefined ? c.min_value : c.min;
+    const minAttr =
+      minVal !== undefined && minVal !== null && minVal !== ""
+        ? ` min="${minVal}"`
+        : "";
+    const maxVal = c.max_value !== undefined ? c.max_value : c.max;
+    const maxAttr =
+      maxVal !== undefined && maxVal !== null && maxVal !== ""
+        ? ` max="${maxVal}"`
+        : "";
+    const stepAttr =
+      c.step !== undefined && c.step !== null && c.step !== ""
+        ? ` step="${c.step}"`
+        : "";
+
+    if (c.hover_color || c.hover_text_color) {
+      let rules = "";
+      if (c.hover_color)
+        rules += `background-color:${c.hover_color} !important;background:${c.hover_color} !important;`;
+      if (c.hover_text_color)
+        rules += `color:${c.hover_text_color} !important;`;
+      hoverStyles += `#${c.id}:hover { ${rules} }\n#${c.id}:hover input, #${c.id}:hover textarea, #${c.id}:hover select, #${c.id}:hover button { ${rules} }\n`;
+    }
+
+    const hasCustomBorder =
+      c.border_width !== undefined || c.border_color || c.border_style;
+    const defBorder = hasCustomBorder
+      ? `border-width:${c.border_width || 1}px;border-color:${c.border_color || border};border-style:${c.border_style || "solid"};`
+      : `border:1px solid ${border};`;
+    const defRadius =
+      c.border_radius !== undefined &&
+      c.border_radius !== null &&
+      c.border_radius !== ""
+        ? `border-radius:${c.border_radius}px;`
+        : "border-radius:5px;";
+
+    if (t === "button") {
+      const hasCustomBg =
+        c.custom_background === true ||
+        (c.background_color &&
+          c.background_color !== "transparent" &&
+          c.background_color !== defaultBtnBg &&
+          c.background_color !== spec.accent_color &&
+          !c._isThemeAccent);
+      const hasCustomFg = c.custom_color === true;
+      const btnBg =
+        c.background_color && c.background_color !== "transparent"
+          ? c.background_color
+          : defaultBtnBg;
+      const isBright =
+        btnBg === "#0fb36a" ||
+        btnBg === "#30d158" ||
+        btnBg === "#00ff00" ||
+        btnBg === "#4ade80" ||
+        isColorBright(btnBg);
+      const btnColor =
+        hasCustomFg && c.font_color
+          ? c.font_color
+          : isBright
+            ? "#000000"
+            : color || "#ffffff";
+      const bBorder = hasCustomBorder
+        ? `border-width:${c.border_width || 1}px;border-color:${c.border_color || border};border-style:${c.border_style || "solid"};`
+        : "border:none;";
+      const bRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:6px;";
+      const mouseOverFilter =
+        c.hover_color || c.hover_text_color
+          ? ""
+          : ` onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''"`;
+      const roleKind = hasCustomBg
+        ? null
+        : normalizeKind(c.variant || c.alert_type || c.color);
+      if (roleKind) {
+        // Status buttons read their colours from the theme variables, so a live theme switch restyles them.
+        const look = String(c.appearance || "solid");
+        const roleStyle =
+          look === "soft"
+            ? `background:var(--${roleKind}-soft);color:var(--${roleKind}-text);border:1px solid var(--${roleKind}-border);`
+            : look === "outline"
+              ? `background:transparent;color:var(--${roleKind}-text);border:2px solid var(--${roleKind});`
+              : `background:var(--${roleKind});color:var(--${roleKind}-on);${bBorder}`;
+        controls += `<button${id} data-custom-bg="true" data-variant="${roleKind}" class="rad-button rad-btn-${roleKind}"${titleAttr}${ev}${disabled} style="${base(c)}${roleStyle}${bRadius}cursor:${c.cursor || "pointer"};font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);"${mouseOverFilter} onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform=''">${text}</button>\n`;
+      } else {
+        const customAttr = hasCustomBg
+          ? ' data-custom-bg="true"'
+          : ' class="rad-button btn-theme-accent"';
+        controls += `<button${id}${customAttr}${titleAttr}${ev}${disabled} style="${base(c)}background:${btnBg};color:${btnColor};${bBorder}${bRadius}cursor:${c.cursor || "pointer"};font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);"${mouseOverFilter} onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform=''">${text}</button>\n`;
+      }
+    } else if (t === "heading") {
+      controls += `<h1${id}${titleAttr}${ev} class="rad-heading" style="${base(c)}margin:0;font-size:${c.font_size || 22}px;font-weight:700;color:${color};background:${rawCbg};">${text}</h1>\n`;
+    } else if (t === "subheading") {
+      controls += `<h2${id}${titleAttr}${ev} class="rad-subheading" style="${base(c)}margin:0;font-size:${c.font_size || 16}px;font-weight:600;opacity:0.85;color:${color};background:${rawCbg};">${text}</h2>\n`;
+    } else if (t === "raw_html") {
+      controls += `<div${id}${titleAttr} class="rad-raw-html" style="${base(c)}">${text}</div>\n`;
+    } else if (t === "markdown") {
+      controls += `<div${id}${titleAttr} class="rad-markdown" style="${base(c)}color:${color};line-height:1.6;"><pre style="margin:0;white-space:pre-wrap;font-family:inherit;">${esc(text)}</pre></div>\n`;
+    } else if (t === "kpi_card") {
+      const val = c.value !== undefined ? c.value : "";
+      const sub = c.secondary_text || c.change || "";
+      controls += `<div${id}${titleAttr} class="sg-kpi-card rad-kpi-card" style="${base(c)}background:${cbg};border:1px solid ${cardBorder};border-radius:10px;padding:12px 16px;display:flex;flex-direction:column;gap:4px;box-shadow:0 4px 12px rgba(0,0,0,0.15);"><div style="font-size:12px;opacity:0.8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:${color};">${text}</div><div style="font-size:24px;font-weight:800;color:${accent};">${val}</div>${sub ? `<div style="font-size:12px;opacity:0.75;color:${color};">${sub}</div>` : ""}</div>\n`;
+    } else if (t === "scroll_view") {
+      controls += `<div${id}${titleAttr} class="rad-scroll-view" style="${base(c)}max-height:${c.height || 300}px;overflow-y:auto;padding-right:8px;">${text}</div>\n`;
+    } else if (t === "label") {
+      const isStatus =
+        !c.user_explicit_width &&
+        ((c.id &&
+          (c.id.toLowerCase().includes("status") ||
+            c.id.toLowerCase().includes("telemetry"))) ||
+          (text &&
+            (text.toLowerCase().startsWith("status:") ||
+              text.toLowerCase().startsWith("status :") ||
+              text.toLowerCase().startsWith("matches found:") ||
+              text.toLowerCase().startsWith("ready  |") ||
+              text.toLowerCase().startsWith("codefreelance engine:"))));
+      const statusStyle = isStatus
+        ? "width:calc(100% - 40px) !important;max-width:calc(100% - 40px) !important;font-size:12px;opacity:0.9;"
+        : "";
+      const customColorAttr = c.custom_color
+        ? ' data-custom-color="true"'
+        : ' data-theme-label="true"';
+      const captionAttr =
+        c.is_caption || c.is_card_subtitle ? ' data-caption="true"' : "";
+      controls += `<div${id}${titleAttr}${ev}${customColorAttr}${captionAttr} class="rad-label" style="${base(c)}color:${color};display:flex;align-items:center;background:${rawCbg};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${statusStyle}">${text}</div>\n`;
+    } else if (t === "input" || t === "search") {
+      controls += `<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${id}${titleAttr}${ev}${disabled}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} type="${t === "search" ? "search" : "text"}" value="${text}" placeholder="${c.placeholder || ""}" oninput="const fnC=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" onkeydown="if(event.key==='Enter'){const fnE=window['${c.id}_onEnter']||window['on_${c.id}_enter']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnE)fnE(this.value);}" style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;outline:none;">\n`;
+    } else if (t === "password") {
+      controls += `<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${id}${titleAttr}${ev}${disabled}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} type="password" value="${text}" placeholder="${c.placeholder || ""}" oninput="const fnC=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;outline:none;">\n`;
+    } else if (t === "textarea") {
+      controls += `<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${id}${titleAttr}${ev}${disabled}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} placeholder="${c.placeholder || ""}" oninput="const fnC=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}padding:8px;resize:none;outline:none;">${text}</textarea>\n`;
+    } else if (t === "checkbox") {
+      const chk = c.checked ? "checked" : "";
+      controls += `<label${id}${titleAttr} class="rad-checkbox-label" data-theme-label="true" style="${base(c)}display:flex;align-items:center;gap:8px;cursor:${c.cursor || "pointer"};color:${color};"><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="checkbox" ${chk}${disabled}${reqAttr}${ev} style="width:16px;height:16px;accent-color:${accent};cursor:${c.cursor || "pointer"};">${text}</label>\n`;
+    } else if (t === "radio") {
+      const chk = c.checked ? "checked" : "";
+      controls += `<label${id}${titleAttr} class="rad-radio-label" data-theme-label="true" style="${base(c)}display:flex;align-items:center;gap:8px;cursor:${c.cursor || "pointer"};color:${color};"><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="radio" ${chk}${disabled}${reqAttr}${ev} style="width:16px;height:16px;accent-color:${accent};cursor:${c.cursor || "pointer"};">${text}</label>\n`;
+    } else if (t === "switch" || t === "form_switch") {
+      const on = c.checked;
+      const trackCol = on
+        ? accent
+        : isLight
+          ? "rgba(0,0,0,0.15)"
+          : "rgba(255,255,255,0.15)";
+      const thumbX = on ? "22px" : "2px";
+      controls += `<div${id}${titleAttr} class="rad-switch-label" data-theme-label="true" style="${base(c)}display:flex;align-items:center;gap:10px;color:${color};cursor:${c.cursor || "pointer"};" onclick="this.querySelector('.sw-track').style.background=this.querySelector('.sw-thumb').style.left==='2px'?'${accent}':'${isLight ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.15)"}';this.querySelector('.sw-thumb').style.left=this.querySelector('.sw-thumb').style.left==='2px'?'22px':'2px';">${t === "form_switch" ? `<span>${text}</span>` : ""}<div class="sw-track" style="width:44px;height:24px;background:${trackCol};border-radius:12px;position:relative;flex-shrink:0;transition:background 0.2s;"><div class="sw-thumb" style="position:absolute;left:${thumbX};top:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:left 0.2s;"></div></div>${t !== "form_switch" ? `<span>${text}</span>` : ""}</div>\n`;
+    } else if (t === "slider" || t === "form_slider") {
+      const val = c.value !== undefined ? c.value : 50;
+      const hasExplicitText =
+        (c.text !== undefined && c.text !== "" && c.text !== String(val)) ||
+        (c.caption !== undefined &&
+          c.caption !== "" &&
+          c.caption !== String(val)) ||
+        (c.title !== undefined && c.title !== "");
+      const sliderTitle = hasExplicitText ? c.caption || c.title || c.text : "";
+      const headerLabel = sliderTitle
+        ? `<span class="rad-slider-title" data-theme-label="true" style="opacity:0.9;">${sliderTitle}</span>`
+        : "";
+      controls += `<div${id}${titleAttr} class="rad-slider-wrapper" data-theme-label="true" style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};"><div style="display:flex;justify-content:${headerLabel ? "space-between" : "flex-end"};align-items:center;font-size:11px;font-weight:700;">${headerLabel}<span class="slider-val" style="color:${accent};font-family:monospace;font-size:12px;font-weight:bold;">${val}</span></div><input type="range"${minAttr || ' min="0"'}${maxAttr || ' max="100"'}${stepAttr} value="${val}"${ev} oninput="if(this.previousElementSibling&&this.previousElementSibling.querySelector('.slider-val'))this.previousElementSibling.querySelector('.slider-val').textContent=this.value;" style="width:100%;height:6px;accent-color:${accent};cursor:${c.cursor || "pointer"};"></div>\n`;
+    } else if (t === "number" || t === "form_number") {
+      const val = c.value !== undefined ? c.value : 0;
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};">${t.startsWith("form") ? `<span style="font-size:10px;font-weight:700;opacity:0.8;">${text}</span>` : ""}<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" value="${val}" placeholder="${c.placeholder || ""}"${ev}${roAttr}${reqAttr}${minAttr}${maxAttr}${stepAttr}${autoFocusAttr} style="background:${cbg};color:${color};${defBorder}${defRadius}padding:4px 8px;outline:none;font-size:${c.font_size || 13}px;"></div>\n`;
+    } else if (t === "date" || t === "date_picker" || t === "form_date") {
+      const val = c.value || "2026-07-27";
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};">${t.startsWith("form") ? `<span style="font-size:10px;font-weight:700;opacity:0.8;">${text}</span>` : ""}<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="date" value="${val}"${ev} style="width:100%;height:100%;background:${cbg};color:${color};${defBorder}${defRadius}padding:4px 8px;outline:none;font-size:${c.font_size || 13}px;color-scheme:${isLight ? "light" : "dark"};cursor:pointer;"></div>\n`;
+    } else if (
+      t === "color" ||
+      t === "color_picker" ||
+      t === "color_well" ||
+      t === "form_color"
+    ) {
+      const val = c.value || "#0284c7";
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:8px;background:${cbg};${defBorder}${defRadius}padding:2px 8px;cursor:pointer;"><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="color" value="${val}"${ev} style="width:28px;height:24px;border:none;border-radius:4px;cursor:pointer;background:transparent;" oninput="if(this.nextElementSibling)this.nextElementSibling.textContent=this.value.toUpperCase();"><span class="color-hex" style="font-size:11px;font-weight:700;color:${color};font-family:monospace;">${val.toUpperCase()}</span></div>\n`;
+    } else if (
+      t === "progress" ||
+      t === "progress_bar" ||
+      t === "form_progress"
+    ) {
+      const val = c.value !== undefined ? c.value : 60;
+      const progBg = isLight ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.1)";
+      controls += `<div${id}${titleAttr} class="rad-progress" style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};">${t.startsWith("form") ? `<div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;"><span>${text}</span><span>${val}%</span></div>` : ""}<div style="width:100%;height:8px;background:${progBg};border-radius:4px;overflow:hidden;"><div style="width:${val}%;height:100%;background:${c.background_color && c.background_color !== "transparent" ? c.background_color : accent};border-radius:4px;transition:width 0.3s;"></div></div></div>\n`;
+    } else if (t === "circular_progress") {
+      const val = c.value !== undefined ? c.value : 75;
+      const r = 36;
+      const circ = 2 * Math.PI * r;
+      const dash = (circ * val) / 100;
+      const circBg = isLight ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.1)";
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 100 100" width="${Math.min(c.width, c.height)}" height="${Math.min(c.width, c.height)}"><circle cx="50" cy="50" r="${r}" fill="none" stroke="${circBg}" stroke-width="10"/><circle cx="50" cy="50" r="${r}" fill="none" stroke="${accent}" stroke-width="10" stroke-dasharray="${dash.toFixed(1)} ${(circ - dash).toFixed(1)}" stroke-dashoffset="${circ * 0.25}" stroke-linecap="round" transform="rotate(-90 50 50)"/><text x="50" y="54" text-anchor="middle" font-size="18" fill="${color}" font-weight="bold">${val}%</text></svg></div>\n`;
+    } else if (t === "rating") {
+      const val = c.value !== undefined ? c.value : 3;
+      const starBg = isLight ? "rgba(0,0,0,0.2)" : "rgba(255,255,255,0.2)";
+      controls += `<div${id}${titleAttr} data-value="${val}" style="${base(c)}display:flex;align-items:center;gap:4px;font-size:${Math.max(c.height - 8, 16)}px;">${[1, 2, 3, 4, 5].map((i) => `<span style="cursor:pointer;color:${i <= val ? "#f59e0b" : starBg};transition:color 0.1s;" onclick="const parent=this.parentNode;parent.dataset.value='${i}';parent.querySelectorAll('span').forEach((s,j)=>{s.style.color=j<${i}?'#f59e0b':'${starBg}'});if(window['${c.id}_onChange'])window['${c.id}_onChange'](${i});else if(window['on_${c.id}_change'])window['on_${c.id}_change'](${i});" onmouseover="this.parentNode.querySelectorAll('span').forEach((s,j)=>{s.style.color=j<${i}?'#f59e0b':'${starBg}'})" onmouseout="const cur=parseInt(this.parentNode.dataset.value||'${val}');this.parentNode.querySelectorAll('span').forEach((s,j)=>{s.style.color=j<cur?'#f59e0b':'${starBg}'})">★</span>`).join("")}</div>\n`;
+    } else if (t === "stepper" || t === "number_stepper") {
+      const val = c.value !== undefined ? c.value : 5;
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:${cbg};${defBorder}${defRadius}padding:0 6px;color:${color};"><button onclick="const s=this.nextElementSibling;const n=parseInt(s.textContent||'0')-1;s.textContent=n;if(window['${c.id}_onChange'])window['${c.id}_onChange'](n);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](n);" onmouseover="this.style.background='${accent}';this.style.color='#fff';" onmouseout="this.style.background='${isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"}';this.style.color='${accent}';" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:${isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"};border:none;border-radius:4px;color:${accent};font-size:16px;font-weight:bold;cursor:pointer;line-height:1;user-select:none;transition:all 0.15s;">−</button><span class="stepper-val" style="font-weight:bold;font-size:12px;color:${color};">${val}</span><button onclick="const s=this.previousElementSibling;const n=parseInt(s.textContent||'0')+1;s.textContent=n;if(window['${c.id}_onChange'])window['${c.id}_onChange'](n);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](n);" onmouseover="this.style.background='${accent}';this.style.color='#fff';" onmouseout="this.style.background='${isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"}';this.style.color='${accent}';" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:${isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"};border:none;border-radius:4px;color:${accent};font-size:16px;font-weight:bold;cursor:pointer;line-height:1;user-select:none;transition:all 0.15s;">+</button></div>\n`;
+    } else if (t === "badge" || t === "status_badge") {
+      const bRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:20px;";
+      let badgeBg = "#10b981";
+      let badgeFg = "#ffffff";
+      let badgeBorder = "border:none;";
+
+      const aType = c.alert_type || c.type || "";
+      if (c.background_color && c.background_color !== "transparent") {
+        badgeBg = c.background_color;
+        const isBgBright = isColorBright(badgeBg);
+        badgeFg = c.font_color || (isBgBright ? "#0f172a" : "#ffffff");
+      } else if (normalizeKind(aType)) {
+        const sc = sem[normalizeKind(aType)!];
+        badgeBg = sc.soft;
+        badgeFg = sc.text;
+        badgeBorder = `border:1px solid ${sc.border};`;
+      } else {
+        badgeBg = isLight ? "#f1f5f9" : "rgba(255,255,255,0.1)";
+        badgeFg = isLight ? "#0f172a" : "#f8fafc";
+        badgeBorder = isLight
+          ? "border:1px solid #cbd5e1;"
+          : "border:1px solid rgba(255,255,255,0.15);";
+      }
+      controls += `<div${id}${titleAttr} class="rad-badge" style="${base(c)}background:${badgeBg};color:${badgeFg};${badgeBorder}${bRadius}display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;">${text}</div>\n`;
+    } else if (t === "image") {
+      const imgBorder = hasCustomBorder
+        ? `border-width:${c.border_width || 1}px;border-color:${c.border_color || border};border-style:${c.border_style || "dashed"};`
+        : `border:1px dashed ${border};`;
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};${imgBorder}${defRadius}display:flex;align-items:center;justify-content:center;color:${color};font-size:11px;">🖼️ ${text || "Image"}</div>\n`;
+    } else if (t === "divider" || t === "separator") {
+      controls += `<hr${id}${titleAttr} style="${base(c)}height:1px;background:${c.background_color && c.background_color !== "transparent" ? c.background_color : border};border:none;padding:0;margin:0;">\n`;
+    } else if (t === "panel") {
+      const panelBg =
+        c.background_color && c.background_color !== "transparent"
+          ? c.background_color
+          : isLight
+            ? "#e2e8f0"
+            : "#1e293b";
+      const pRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:8px;";
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${panelBg};color:${color};${defBorder}${pRadius}overflow:hidden;"><div style="padding:8px 12px;font-weight:700;font-size:11px;text-transform:uppercase;color:${accent};border-bottom:1px solid ${border};letter-spacing:0.5px;">${text}</div></div>\n`;
+    } else if (t === "groupbox") {
+      const gbTitle = c.title || c.caption || text || "Group";
+      const gbRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:8px;";
+      const legendColor = isLight ? "#0f172a" : accent;
+      controls += `<fieldset${id}${titleAttr}${ev} style="${base(c)}background:${cbg};${defBorder}${gbRadius}padding:12px;box-sizing:border-box;"><legend style="padding:0 8px;font-size:11px;font-weight:700;color:${legendColor};text-transform:uppercase;letter-spacing:0.5px;">${gbTitle}</legend></fieldset>\n`;
+    } else if (t === "drop_zone") {
+      const dzBorder = hasCustomBorder
+        ? `border-width:${c.border_width || 2}px;border-color:${c.border_color || accent};border-style:${c.border_style || "dashed"};`
+        : `border:2px dashed ${accent};`;
+      const dzRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:8px;";
+      const customChange =
+        c.event_handlers?.onChange || c.event_handlers?.onchange || "";
+      const customClick =
+        c.event_handlers?.onClick || c.event_handlers?.onclick || "";
+      controls += `<div id="${c.id}_wrapper"${ctxAttr}${titleAttr} onclick="const fi=document.getElementById('${c.id}_file');if(fi)fi.click();" ondragover="event.preventDefault();" ondrop="event.preventDefault();if(event.dataTransfer&&event.dataTransfer.files&&event.dataTransfer.files[0]){const p=event.dataTransfer.files[0].name;const lbl=this.querySelector('.dz-label');if(lbl)lbl.textContent=p;const hid=document.getElementById('${c.id}');if(hid)hid.value=p;const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(p);}" style="${base(c)}background:${cbg};${dzBorder}${dzRadius}display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:${color};opacity:0.85;cursor:${c.cursor || "pointer"};" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''"><input type="hidden" id="${c.id}" name="${c.id}" value="${text || ""}"><input type="file" id="${c.id}_file" style="display:none;" onchange="if(this.files&&this.files[0]){const p=this.files[0].name;const lbl=this.parentNode.querySelector('.dz-label');if(lbl)lbl.textContent=p;const hid=document.getElementById('${c.id}');if(hid)hid.value=p;const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(p);const fnK=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK(p);}"><span style="font-size:24px;">📥</span><span class="dz-label" style="font-size:11px;">${text || "Drop files here or click to browse"}</span></div>\n`;
+    } else if (t === "status_indicator") {
+      const statusColor =
+        c.status === "error"
+          ? sem.danger.solid
+          : c.status === "warning"
+            ? sem.warning.solid
+            : c.status === "inactive"
+              ? isLight
+                ? "rgba(0,0,0,0.3)"
+                : "rgba(255,255,255,0.3)"
+              : sem.success.solid;
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:8px;color:${color};"><div style="width:10px;height:10px;background:${statusColor};border-radius:50%;box-shadow:0 0 6px ${statusColor};flex-shrink:0;"></div><span style="font-size:12px;font-weight:600;">${text}</span></div>\n`;
+    } else if (t === "metric_card") {
+      const mRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:10px;";
+      const showTrend =
+        c.trend !== undefined &&
+        c.trend !== null &&
+        c.trend !== "" &&
+        c.trend !== false &&
+        c.show_trend !== false;
+      const trendHtml = showTrend
+        ? `<div style="font-size:10px;color:${c.trend_color || sem.success.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">↑ ${c.trend}</div>`
+        : "";
+      const pad =
+        c.padding !== undefined
+          ? `${c.padding}px`
+          : showTrend
+            ? "10px 12px"
+            : "6px 14px";
+      const justify = showTrend ? "space-between" : "center";
+      const valSize = c.value_font_size || (showTrend ? 22 : 19);
+      const valColor = c.value_color || color;
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};${defBorder}${mRadius}padding:${pad};display:flex;flex-direction:column;justify-content:${justify};gap:2px;box-sizing:border-box;"><div style="font-size:${c.font_size || 10}px;color:${color};opacity:0.75;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${text}</div><div style="font-size:${valSize}px;font-weight:800;color:${valColor};line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.value || "—"}</div>${trendHtml}</div>\n`;
+    } else if (t === "alert_banner") {
+      const alertCol =
+        c.alert_type === "error"
+          ? sem.danger.solid
+          : c.alert_type === "warning"
+            ? sem.warning.solid
+            : c.alert_type === "success"
+              ? sem.success.solid
+              : accent;
+      const alertIcon =
+        c.alert_type === "error"
+          ? "❌"
+          : c.alert_type === "warning"
+            ? "⚠️"
+            : c.alert_type === "success"
+              ? "✅"
+              : "ℹ️";
+      const aRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:0 6px 6px 0;";
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${c.background_color && c.background_color !== "transparent" ? c.background_color : alertCol + "22"};border-left:4px solid ${alertCol};${aRadius}display:flex;align-items:center;gap:10px;padding:0 12px;color:${color};"><span>${alertIcon}</span><span style="font-size:12px;">${text}</span></div>\n`;
+    } else if (t === "code_view") {
+      const codeBg =
+        c.background_color && c.background_color !== "transparent"
+          ? c.background_color
+          : "#0d1117";
+      const codeFg =
+        c.font_color && c.font_color !== fg ? c.font_color : "#7dd3fc";
+      const cdRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:8px;";
+      controls += `<textarea${id}${titleAttr}${ev}${roAttr}${autoFocusAttr} placeholder="${c.placeholder || ""}" style="${base(c)}background:${codeBg};${defBorder}${cdRadius}padding:12px;color:${codeFg};font-family:'Fira Code','Courier New',monospace;font-size:${c.font_size || 12}px;overflow:auto;margin:0;resize:none;outline:none;white-space:pre;" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'>${text}</textarea>\n`;
+    } else if (t === "metric_meter") {
+      const val = c.value !== undefined ? c.value : 65;
+      const meterBg = isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)";
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};"><div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;"><span>${text}</span><span>${val}%</span></div><div style="width:100%;height:6px;background:${meterBg};border-radius:3px;overflow:hidden;"><div style="width:${val}%;height:100%;background:${c.background_color && c.background_color !== "transparent" ? c.background_color : `linear-gradient(to right, ${accent}, #818cf8)`};border-radius:3px;"></div></div></div>\n`;
+    } else if (t === "tag") {
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:4px 8px;">${(
+        text || "tag1,tag2"
+      )
+        .split(",")
+        .map(
+          (tg: string) =>
+            `<span style="background:${cbg};color:${accent};${defBorder}${defRadius}padding:2px 10px;font-size:11px;font-weight:600;">${tg.trim()}</span>`,
+        )
+        .join("")}</div>\n`;
+    } else if (
+      t === "form_field" ||
+      t === "form_password" ||
+      t === "form_textarea"
+    ) {
+      const inputType =
+        t === "form_password"
+          ? "password"
+          : t === "form_textarea"
+            ? "textarea"
+            : "text";
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;"><label style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${text}</label>${inputType === "textarea" ? `<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${ev}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} placeholder="${c.placeholder || ""}" style="flex:1;background:${cbg};color:${color};${defBorder}${defRadius}padding:6px 10px;resize:none;outline:none;font-size:${c.font_size || 13}px;"></textarea>` : `<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="${inputType}"${ev}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} placeholder="${c.placeholder || ""}" style="height:32px;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;outline:none;font-size:${c.font_size || 13}px;">`}</div>\n`;
+    } else if (
+      t === "select" ||
+      t === "dropdown" ||
+      t === "form_dropdown" ||
+      t === "listbox"
+    ) {
+      const rawOpts =
+        c.items ||
+        c.options ||
+        text ||
+        c.caption ||
+        "Option 1, Option 2, Option 3";
+      const optArray = Array.isArray(rawOpts)
+        ? rawOpts
+        : String(rawOpts)
+            .split(",")
+            .map((s: string) => s.trim());
+      const isListBox = t === "listbox";
+      const isMulti =
+        isListBox &&
+        (Boolean(c.multiple) ||
+          Boolean(c.multi_select) ||
+          c.selection_mode === "multiple");
+
+      let selectedVals: string[] = [];
+      if (Array.isArray(c.value)) {
+        selectedVals = c.value.map(String);
+      } else if (Array.isArray(c.selected)) {
+        selectedVals = c.selected.map(String);
+      } else if (c.value !== undefined && c.value !== null && c.value !== "") {
+        if (isMulti && typeof c.value === "string" && c.value.includes(",")) {
+          selectedVals = c.value.split(",").map((s: string) => s.trim());
+        } else {
+          selectedVals = [String(c.value)];
         }
-        for (const [evtName, handler] of Object.entries(handlers)) {
-            if (!handler || typeof handler !== 'string' || !handler.trim()) continue;
-            const clean = (handler as string).trim();
-            let attrName = evtName.toLowerCase();
-            if (attrName === 'onhover' || attrName === 'onmouseenter') attrName = 'onmouseover';
-            if (attrName === 'onhoverexit' || attrName === 'onmouseleave') attrName = 'onmouseout';
-            if (attrName === 'ondoubleclick') attrName = 'ondblclick';
+      } else if (
+        c.selected !== undefined &&
+        c.selected !== null &&
+        c.selected !== ""
+      ) {
+        selectedVals = [String(c.selected)];
+      } else if (!isMulti && optArray[0]) {
+        const firstOpt = optArray[0];
+        const firstVal =
+          typeof firstOpt === "object" && firstOpt !== null
+            ? firstOpt.value !== undefined
+              ? String(firstOpt.value)
+              : String(firstOpt.id || "")
+            : String(firstOpt);
+        selectedVals = [firstVal];
+      }
 
-            const isFuncName = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(clean);
-            let codeToExec = '';
-            if (isFuncName) {
-                const valExpr = "this.tagName==='SELECT'&&this.multiple?Array.from(this.selectedOptions).map(o=>o.value):(this.type==='checkbox'?this.checked:(this.dataset&&this.dataset.page?parseInt(this.dataset.page):(this.value!==undefined?this.value:'')))";
-                codeToExec = `if(this.disabled)return;if(window['${clean}']){window['${clean}'](${valExpr})}else if(window['${clean}']===undefined&&window.backendAlert){window.backendAlert('Event: ${clean}')}`;
-            } else {
-                codeToExec = clean;
-            }
+      const itemLabels = c.item_labels || {};
+      const selOptions = optArray
+        .map((opt: any) => {
+          const val =
+            typeof opt === "object" && opt !== null
+              ? opt.value !== undefined
+                ? String(opt.value)
+                : String(opt.id || "")
+              : String(opt);
+          const label =
+            typeof opt === "object" && opt !== null
+              ? opt.label || opt.text || opt.name || val
+              : itemLabels[val] || val;
+          const isSelected =
+            selectedVals.includes(val) ||
+            (typeof opt === "string" && selectedVals.includes(opt))
+              ? " selected"
+              : "";
+          return `<option value="${val.replace(/"/g, "&quot;")}"${isSelected}>${label}</option>`;
+        })
+        .join("");
 
-            const safeCode = codeToExec.replace(/"/g, '&quot;');
-            ev += ` ${attrName}="try{${safeCode}}catch(e){console.error(e)}"`;
-        }
-        return ev;
-    };
+      const sizeAttr = isListBox ? ` size="${c.size || 5}"` : "";
+      const multiAttr = isMulti ? " multiple" : "";
+      const chevronColor = encodeURIComponent(accent || "#38bdf8");
+      const selectInnerStyle = isListBox
+        ? `width:100%;height:100%;background:${cbg};color:${color};${defBorder}${defRadius}padding:4px 8px;outline:none;cursor:${c.cursor || "pointer"};font-size:${c.font_size || 13}px;box-sizing:border-box;`
+        : `width:100%;height:100%;background-color:${cbg};color:${color};${defBorder}${defRadius}padding:0 30px 0 10px;outline:none;cursor:${c.cursor || "pointer"};font-size:${c.font_size || 13}px;font-weight:500;appearance:none;-webkit-appearance:none;background-image:url('data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'12\\' height=\\'12\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'${chevronColor}\\' stroke-width=\\'2.5\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'%3E%3Cpolyline points=\\'6 9 12 15 18 9\\'%3E%3C/polyline%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 10px center;background-size:12px 12px;box-shadow:0 1px 2px rgba(0,0,0,0.2);box-sizing:border-box;`;
 
-    const getShadowCss = (s?: string, bCol?: string) => {
-        if (s === 'subtle') return 'box-shadow:0 2px 4px rgba(0,0,0,0.15);';
-        if (s === 'medium') return 'box-shadow:0 4px 12px rgba(0,0,0,0.3);';
-        if (s === 'deep') return 'box-shadow:0 10px 25px rgba(0,0,0,0.5);';
-        if (s === 'glow') return `box-shadow:0 0 15px ${bCol || '#38bdf8'};`;
-        return '';
-    };
-
-    const base = (c: any, extra = '') => {
-        let bw = c.border_width !== undefined && c.border_width !== null && c.border_width !== '' ? `border-width:${c.border_width}px;` : '';
-        let bc = c.border_color ? `border-color:${c.border_color};` : '';
-        let bs = c.border_style ? `border-style:${c.border_style};` : '';
-        let br = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : '';
-        let sh = getShadowCss(c.box_shadow, c.border_color || c.font_color);
-        let ta = c.text_align ? `text-align:${c.text_align};` : '';
-        let op = c.opacity !== undefined && c.opacity !== null && c.opacity !== '' ? `opacity:${c.opacity / 100};` : (c.enabled === false ? 'opacity:0.55;' : '');
-        let pe = c.enabled === false ? 'pointer-events:none;' : '';
-        let cur = c.cursor ? `cursor:${c.cursor};` : '';
-        const posX = c.left !== undefined ? c.left : (c.x !== undefined ? c.x : 0);
-        const posY = c.top !== undefined ? c.top : (c.y !== undefined ? c.y : 0);
-
-        const ctrlType = (c.control_type || c.type || '').toLowerCase();
-        const isFullWidthContainer = (ctrlType === 'groupbox' || ctrlType === 'card' || ctrlType === 'content_card' || ctrlType === 'w3_card' || ctrlType === 'accordion') && posX <= 40 && c.width >= (w - (posX * 2) - 60);
-        const isFullWidthControl = !isFullWidthContainer && posX <= 60 && c.width >= (w - 120) && [
-            'textarea', 'html_view', 'browser_view', 'code_view', 'code_editor',
-            'data_table', 'db_grid', 'table', 'tree_grid', 'tree_table', 'activity_feed', 'stat_chart',
-            'diff_view', 'diff_editor', 'cmd_palette', 'command_palette', 'quick_open', 'toolbar', 'action_bar', 'split_pane',
-            'tabs', 'workspace_tabs', 'status_bar', 'property_grid', 'kanban_board',
-            'sparkline_table', 'drop_zone',
-            'sidebar', 'list_group', 'code_snippet', 'code_block', 'callout_panel', 'note_panel', 'slideshow',
-            'hero_display', 'rad_display', 'w3_display', 'w3_display_container',
-            'w3_sidebar', 'w3_list', 'w3_code', 'w3_panel', 'w3_slideshow'
-        ].includes(ctrlType);
-
-        let widthCss = `${c.width}px`;
-        if (isFullWidthContainer) {
-            widthCss = `calc(100% - ${posX * 2}px)`;
-        } else if (isFullWidthControl) {
-            widthCss = `calc(100% - ${posX + 20}px)`;
-        }
-
-        let posStyle = `position:absolute;left:${posX}px;top:${posY}px;width:${widthCss};max-width:${isFullWidthContainer ? `calc(100% - ${posX * 2}px)` : '100%'};height:${c.height}px;`;
-        if (c.dock === 'bottom' || c.control_type === 'status_bar' || (c.type === 'status_bar')) {
-            posStyle = `position:fixed;bottom:0;left:0;right:0;width:100%;height:${c.height || 28}px;z-index:9999;`;
-        } else if (c.dock === 'top') {
-            posStyle = `position:fixed;top:0;left:0;right:0;width:100%;height:${c.height || 40}px;z-index:9999;`;
-        } else if (c.dock === 'fill') {
-            posStyle = `position:absolute;top:0;bottom:0;left:0;right:0;width:100%;height:100%;`;
-        }
-
-        return `${posStyle}` +
-            `font-size:${c.font_size || 13}px;` +
-            `box-sizing:border-box;transition:background 0.15s,color 0.15s,filter 0.15s,transform 0.1s;${bw}${bc}${bs}${br}${sh}${ta}${op}${pe}${cur}${extra}`;
-    };
-
-    const esc = (s: any) => s === null || s === undefined ? '' : String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
-
-    let controls = '';
-    let hoverStyles = '';
-    for (const c of (spec.controls || [])) {
-        if (c.visible === false) continue;
-        const t = c.control_type || c.type;
-        const text = (c.text !== undefined && c.text !== '') ? c.text : (c.value !== undefined && c.value !== '' ? c.value : (c.caption !== undefined && c.caption !== '' ? c.caption : (c.title !== undefined && c.title !== '' ? c.title : (c.text ?? c.value ?? c.caption ?? c.title ?? ''))));
-        const color = c.font_color || fg;
-        const rawCbg = c.background_color || 'transparent';
-        const cbg = c.background_color && c.background_color !== 'transparent'
-            ? c.background_color
-            : (spec.card_background ? spec.card_background : (bg === '#050505' ? '#121212' : (isLight ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.06)')));
-        const ev = buildEvents(c);
-        const ctxAttr = c.context_menu_items && Array.isArray(c.context_menu_items) && c.context_menu_items.length > 0
-            ? ` data-context-menu="${c.context_menu_items.join('|').replace(/"/g, '&quot;')}" data-ctrl-id="${c.id}"`
-            : '';
-        const id = ` id="${c.id}"${ctxAttr}`;
-        const disabled = c.enabled === false ? ' disabled' : '';
-        const titleAttr = c.tooltip ? ` title="${c.tooltip.replace(/"/g, '&quot;')}"` : '';
-        const roAttr = c.read_only ? ' readonly' : '';
-        const reqAttr = c.required ? ' required' : '';
-        const maxLenAttr = c.max_length !== undefined && c.max_length !== null && c.max_length !== '' ? ` maxlength="${c.max_length}"` : '';
-        const autoFocusAttr = c.auto_focus ? ' autofocus' : '';
-        const minVal = c.min_value !== undefined ? c.min_value : c.min;
-        const minAttr = minVal !== undefined && minVal !== null && minVal !== '' ? ` min="${minVal}"` : '';
-        const maxVal = c.max_value !== undefined ? c.max_value : c.max;
-        const maxAttr = maxVal !== undefined && maxVal !== null && maxVal !== '' ? ` max="${maxVal}"` : '';
-        const stepAttr = c.step !== undefined && c.step !== null && c.step !== '' ? ` step="${c.step}"` : '';
-
-        if (c.hover_color || c.hover_text_color) {
-            let rules = '';
-            if (c.hover_color) rules += `background-color:${c.hover_color} !important;background:${c.hover_color} !important;`;
-            if (c.hover_text_color) rules += `color:${c.hover_text_color} !important;`;
-            hoverStyles += `#${c.id}:hover { ${rules} }\n#${c.id}:hover input, #${c.id}:hover textarea, #${c.id}:hover select, #${c.id}:hover button { ${rules} }\n`;
-        }
-
-        const hasCustomBorder = c.border_width !== undefined || c.border_color || c.border_style;
-        const defBorder = hasCustomBorder ? `border-width:${c.border_width || 1}px;border-color:${c.border_color || border};border-style:${c.border_style || 'solid'};` : `border:1px solid ${border};`;
-        const defRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:5px;';
-
-        if (t === 'button') {
-            const hasCustomBg = c.custom_background === true || (c.background_color && c.background_color !== 'transparent' && c.background_color !== defaultBtnBg && c.background_color !== spec.accent_color && !c._isThemeAccent);
-            const hasCustomFg = c.custom_color === true;
-            const btnBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : defaultBtnBg;
-            const isBright = (btnBg === '#0fb36a' || btnBg === '#30d158' || btnBg === '#00ff00' || btnBg === '#4ade80') || isColorBright(btnBg);
-            const btnColor = hasCustomFg && c.font_color ? c.font_color : (isBright ? '#000000' : (color || '#ffffff'));
-            const bBorder = hasCustomBorder ? `border-width:${c.border_width || 1}px;border-color:${c.border_color || border};border-style:${c.border_style || 'solid'};` : 'border:none;';
-            const bRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:6px;';
-            const mouseOverFilter = c.hover_color || c.hover_text_color ? '' : ` onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''"`;
-            const roleKind = hasCustomBg ? null : normalizeKind(c.variant || c.alert_type || c.color);
-            if (roleKind) {
-                // Status buttons read their colours from the theme variables, so a live theme switch restyles them.
-                const look = String(c.appearance || 'solid');
-                const roleStyle = look === 'soft' ? `background:var(--${roleKind}-soft);color:var(--${roleKind}-text);border:1px solid var(--${roleKind}-border);`
-                    : look === 'outline' ? `background:transparent;color:var(--${roleKind}-text);border:2px solid var(--${roleKind});`
-                    : `background:var(--${roleKind});color:var(--${roleKind}-on);${bBorder}`;
-                controls += `<button${id} data-custom-bg="true" data-variant="${roleKind}" class="rad-button rad-btn-${roleKind}"${titleAttr}${ev}${disabled} style="${base(c)}${roleStyle}${bRadius}cursor:${c.cursor||'pointer'};font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);"${mouseOverFilter} onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform=''">${text}</button>\n`;
-            } else {
-            const customAttr = hasCustomBg ? ' data-custom-bg="true"' : ' class="rad-button btn-theme-accent"';
-            controls += `<button${id}${customAttr}${titleAttr}${ev}${disabled} style="${base(c)}background:${btnBg};color:${btnColor};${bBorder}${bRadius}cursor:${c.cursor||'pointer'};font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);"${mouseOverFilter} onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform=''">${text}</button>\n`;
-            }
-        } else if (t === 'heading') {
-            controls += `<h1${id}${titleAttr}${ev} class="rad-heading" style="${base(c)}margin:0;font-size:${c.font_size || 22}px;font-weight:700;color:${color};background:${rawCbg};">${text}</h1>\n`;
-        } else if (t === 'subheading') {
-            controls += `<h2${id}${titleAttr}${ev} class="rad-subheading" style="${base(c)}margin:0;font-size:${c.font_size || 16}px;font-weight:600;opacity:0.85;color:${color};background:${rawCbg};">${text}</h2>\n`;
-        } else if (t === 'raw_html') {
-            controls += `<div${id}${titleAttr} class="rad-raw-html" style="${base(c)}">${text}</div>\n`;
-        } else if (t === 'markdown') {
-            controls += `<div${id}${titleAttr} class="rad-markdown" style="${base(c)}color:${color};line-height:1.6;"><pre style="margin:0;white-space:pre-wrap;font-family:inherit;">${esc(text)}</pre></div>\n`;
-        } else if (t === 'kpi_card') {
-            const val = c.value !== undefined ? c.value : '';
-            const sub = c.secondary_text || c.change || '';
-            controls += `<div${id}${titleAttr} class="sg-kpi-card rad-kpi-card" style="${base(c)}background:${cbg};border:1px solid ${cardBorder};border-radius:10px;padding:12px 16px;display:flex;flex-direction:column;gap:4px;box-shadow:0 4px 12px rgba(0,0,0,0.15);"><div style="font-size:12px;opacity:0.8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:${color};">${text}</div><div style="font-size:24px;font-weight:800;color:${accent};">${val}</div>${sub ? `<div style="font-size:12px;opacity:0.75;color:${color};">${sub}</div>` : ''}</div>\n`;
-        } else if (t === 'scroll_view') {
-            controls += `<div${id}${titleAttr} class="rad-scroll-view" style="${base(c)}max-height:${c.height || 300}px;overflow-y:auto;padding-right:8px;">${text}</div>\n`;
-        } else if (t === 'label') {
-            const isStatus = !c.user_explicit_width && ((c.id && (c.id.toLowerCase().includes('status') || c.id.toLowerCase().includes('telemetry'))) ||
-                             (text && (text.toLowerCase().startsWith('status:') || text.toLowerCase().startsWith('status :') || text.toLowerCase().startsWith('matches found:') || text.toLowerCase().startsWith('ready  |') || text.toLowerCase().startsWith('codefreelance engine:'))));
-            const statusStyle = isStatus ? 'width:calc(100% - 40px) !important;max-width:calc(100% - 40px) !important;font-size:12px;opacity:0.9;' : '';
-            const customColorAttr = c.custom_color ? ' data-custom-color="true"' : ' data-theme-label="true"';
-            const captionAttr = c.is_caption || c.is_card_subtitle ? ' data-caption="true"' : '';
-            controls += `<div${id}${titleAttr}${ev}${customColorAttr}${captionAttr} class="rad-label" style="${base(c)}color:${color};display:flex;align-items:center;background:${rawCbg};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${statusStyle}">${text}</div>\n`;
-        } else if (t === 'input' || t === 'search') {
-            controls += `<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${id}${titleAttr}${ev}${disabled}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} type="${t === 'search' ? 'search' : 'text'}" value="${text}" placeholder="${c.placeholder || ''}" oninput="const fnC=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" onkeydown="if(event.key==='Enter'){const fnE=window['${c.id}_onEnter']||window['on_${c.id}_enter']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnE)fnE(this.value);}" style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;outline:none;">\n`;
-        } else if (t === 'password') {
-            controls += `<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${id}${titleAttr}${ev}${disabled}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} type="password" value="${text}" placeholder="${c.placeholder || ''}" oninput="const fnC=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;outline:none;">\n`;
-        } else if (t === 'textarea') {
-            controls += `<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${id}${titleAttr}${ev}${disabled}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} placeholder="${c.placeholder || ''}" oninput="const fnC=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}padding:8px;resize:none;outline:none;">${text}</textarea>\n`;
-        } else if (t === 'checkbox') {
-            const chk = c.checked ? 'checked' : '';
-            controls += `<label${id}${titleAttr} class="rad-checkbox-label" data-theme-label="true" style="${base(c)}display:flex;align-items:center;gap:8px;cursor:${c.cursor||'pointer'};color:${color};"><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="checkbox" ${chk}${disabled}${reqAttr}${ev} style="width:16px;height:16px;accent-color:${accent};cursor:${c.cursor||'pointer'};">${text}</label>\n`;
-        } else if (t === 'radio') {
-            const chk = c.checked ? 'checked' : '';
-            controls += `<label${id}${titleAttr} class="rad-radio-label" data-theme-label="true" style="${base(c)}display:flex;align-items:center;gap:8px;cursor:${c.cursor||'pointer'};color:${color};"><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="radio" ${chk}${disabled}${reqAttr}${ev} style="width:16px;height:16px;accent-color:${accent};cursor:${c.cursor||'pointer'};">${text}</label>\n`;
-        } else if (t === 'switch' || t === 'form_switch') {
-            const on = c.checked;
-            const trackCol = on ? accent : (isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)');
-            const thumbX = on ? '22px' : '2px';
-            controls += `<div${id}${titleAttr} class="rad-switch-label" data-theme-label="true" style="${base(c)}display:flex;align-items:center;gap:10px;color:${color};cursor:${c.cursor||'pointer'};" onclick="this.querySelector('.sw-track').style.background=this.querySelector('.sw-thumb').style.left==='2px'?'${accent}':'${isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)'}';this.querySelector('.sw-thumb').style.left=this.querySelector('.sw-thumb').style.left==='2px'?'22px':'2px';">${t === 'form_switch' ? `<span>${text}</span>` : ''}<div class="sw-track" style="width:44px;height:24px;background:${trackCol};border-radius:12px;position:relative;flex-shrink:0;transition:background 0.2s;"><div class="sw-thumb" style="position:absolute;left:${thumbX};top:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:left 0.2s;"></div></div>${t !== 'form_switch' ? `<span>${text}</span>` : ''}</div>\n`;
-        } else if (t === 'slider' || t === 'form_slider') {
-            const val = c.value !== undefined ? c.value : 50;
-            const hasExplicitText = (c.text !== undefined && c.text !== '' && c.text !== String(val)) || (c.caption !== undefined && c.caption !== '' && c.caption !== String(val)) || (c.title !== undefined && c.title !== '');
-            const sliderTitle = hasExplicitText ? (c.caption || c.title || c.text) : '';
-            const headerLabel = sliderTitle ? `<span class="rad-slider-title" data-theme-label="true" style="opacity:0.9;">${sliderTitle}</span>` : '';
-            controls += `<div${id}${titleAttr} class="rad-slider-wrapper" data-theme-label="true" style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};"><div style="display:flex;justify-content:${headerLabel ? 'space-between' : 'flex-end'};align-items:center;font-size:11px;font-weight:700;">${headerLabel}<span class="slider-val" style="color:${accent};font-family:monospace;font-size:12px;font-weight:bold;">${val}</span></div><input type="range"${minAttr || ' min="0"'}${maxAttr || ' max="100"'}${stepAttr} value="${val}"${ev} oninput="if(this.previousElementSibling&&this.previousElementSibling.querySelector('.slider-val'))this.previousElementSibling.querySelector('.slider-val').textContent=this.value;" style="width:100%;height:6px;accent-color:${accent};cursor:${c.cursor||'pointer'};"></div>\n`;
-        } else if (t === 'number' || t === 'form_number') {
-            const val = c.value !== undefined ? c.value : 0;
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};">${t.startsWith('form') ? `<span style="font-size:10px;font-weight:700;opacity:0.8;">${text}</span>` : ''}<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="number" value="${val}" placeholder="${c.placeholder || ''}"${ev}${roAttr}${reqAttr}${minAttr}${maxAttr}${stepAttr}${autoFocusAttr} style="background:${cbg};color:${color};${defBorder}${defRadius}padding:4px 8px;outline:none;font-size:${c.font_size||13}px;"></div>\n`;
-        } else if (t === 'date' || t === 'date_picker' || t === 'form_date') {
-            const val = c.value || '2026-07-27';
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};">${t.startsWith('form') ? `<span style="font-size:10px;font-weight:700;opacity:0.8;">${text}</span>` : ''}<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="date" value="${val}"${ev} style="width:100%;height:100%;background:${cbg};color:${color};${defBorder}${defRadius}padding:4px 8px;outline:none;font-size:${c.font_size||13}px;color-scheme:${isLight ? 'light' : 'dark'};cursor:pointer;"></div>\n`;
-        } else if (t === 'color' || t === 'color_picker' || t === 'color_well' || t === 'form_color') {
-            const val = c.value || '#0284c7';
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:8px;background:${cbg};${defBorder}${defRadius}padding:2px 8px;cursor:pointer;"><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="color" value="${val}"${ev} style="width:28px;height:24px;border:none;border-radius:4px;cursor:pointer;background:transparent;" oninput="if(this.nextElementSibling)this.nextElementSibling.textContent=this.value.toUpperCase();"><span class="color-hex" style="font-size:11px;font-weight:700;color:${color};font-family:monospace;">${val.toUpperCase()}</span></div>\n`;
-        } else if (t === 'progress' || t === 'progress_bar' || t === 'form_progress') {
-            const val = c.value !== undefined ? c.value : 60;
-            const progBg = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
-            controls += `<div${id}${titleAttr} class="rad-progress" style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};">${t.startsWith('form') ? `<div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;"><span>${text}</span><span>${val}%</span></div>` : ''}<div style="width:100%;height:8px;background:${progBg};border-radius:4px;overflow:hidden;"><div style="width:${val}%;height:100%;background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : accent};border-radius:4px;transition:width 0.3s;"></div></div></div>\n`;
-        } else if (t === 'circular_progress') {
-            const val = c.value !== undefined ? c.value : 75;
-            const r = 36; const circ = 2 * Math.PI * r;
-            const dash = circ * val / 100;
-            const circBg = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 100 100" width="${Math.min(c.width,c.height)}" height="${Math.min(c.width,c.height)}"><circle cx="50" cy="50" r="${r}" fill="none" stroke="${circBg}" stroke-width="10"/><circle cx="50" cy="50" r="${r}" fill="none" stroke="${accent}" stroke-width="10" stroke-dasharray="${dash.toFixed(1)} ${(circ-dash).toFixed(1)}" stroke-dashoffset="${circ*0.25}" stroke-linecap="round" transform="rotate(-90 50 50)"/><text x="50" y="54" text-anchor="middle" font-size="18" fill="${color}" font-weight="bold">${val}%</text></svg></div>\n`;
-        } else if (t === 'rating') {
-            const val = c.value !== undefined ? c.value : 3;
-            const starBg = isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)';
-            controls += `<div${id}${titleAttr} data-value="${val}" style="${base(c)}display:flex;align-items:center;gap:4px;font-size:${Math.max(c.height-8,16)}px;">${[1,2,3,4,5].map(i=>`<span style="cursor:pointer;color:${i<=val?'#f59e0b':starBg};transition:color 0.1s;" onclick="const parent=this.parentNode;parent.dataset.value='${i}';parent.querySelectorAll('span').forEach((s,j)=>{s.style.color=j<${i}?'#f59e0b':'${starBg}'});if(window['${c.id}_onChange'])window['${c.id}_onChange'](${i});else if(window['on_${c.id}_change'])window['on_${c.id}_change'](${i});" onmouseover="this.parentNode.querySelectorAll('span').forEach((s,j)=>{s.style.color=j<${i}?'#f59e0b':'${starBg}'})" onmouseout="const cur=parseInt(this.parentNode.dataset.value||'${val}');this.parentNode.querySelectorAll('span').forEach((s,j)=>{s.style.color=j<cur?'#f59e0b':'${starBg}'})">★</span>`).join('')}</div>\n`;
-        } else if (t === 'stepper' || t === 'number_stepper') {
-            const val = c.value !== undefined ? c.value : 5;
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:${cbg};${defBorder}${defRadius}padding:0 6px;color:${color};"><button onclick="const s=this.nextElementSibling;const n=parseInt(s.textContent||'0')-1;s.textContent=n;if(window['${c.id}_onChange'])window['${c.id}_onChange'](n);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](n);" onmouseover="this.style.background='${accent}';this.style.color='#fff';" onmouseout="this.style.background='${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}';this.style.color='${accent}';" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'};border:none;border-radius:4px;color:${accent};font-size:16px;font-weight:bold;cursor:pointer;line-height:1;user-select:none;transition:all 0.15s;">−</button><span class="stepper-val" style="font-weight:bold;font-size:12px;color:${color};">${val}</span><button onclick="const s=this.previousElementSibling;const n=parseInt(s.textContent||'0')+1;s.textContent=n;if(window['${c.id}_onChange'])window['${c.id}_onChange'](n);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](n);" onmouseover="this.style.background='${accent}';this.style.color='#fff';" onmouseout="this.style.background='${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}';this.style.color='${accent}';" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'};border:none;border-radius:4px;color:${accent};font-size:16px;font-weight:bold;cursor:pointer;line-height:1;user-select:none;transition:all 0.15s;">+</button></div>\n`;
-        } else if (t === 'badge' || t === 'status_badge') {
-            const bRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:20px;';
-            let badgeBg = '#10b981';
-            let badgeFg = '#ffffff';
-            let badgeBorder = 'border:none;';
-            
-            const aType = c.alert_type || c.type || '';
-            if (c.background_color && c.background_color !== 'transparent') {
-                badgeBg = c.background_color;
-                const isBgBright = isColorBright(badgeBg);
-                badgeFg = c.font_color || (isBgBright ? '#0f172a' : '#ffffff');
-            } else if (normalizeKind(aType)) {
-                const sc = sem[normalizeKind(aType)!];
-                badgeBg = sc.soft;
-                badgeFg = sc.text;
-                badgeBorder = `border:1px solid ${sc.border};`;
-            } else {
-                badgeBg = isLight ? '#f1f5f9' : 'rgba(255,255,255,0.1)';
-                badgeFg = isLight ? '#0f172a' : '#f8fafc';
-                badgeBorder = isLight ? 'border:1px solid #cbd5e1;' : 'border:1px solid rgba(255,255,255,0.15);';
-            }
-            controls += `<div${id}${titleAttr} class="rad-badge" style="${base(c)}background:${badgeBg};color:${badgeFg};${badgeBorder}${bRadius}display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;">${text}</div>\n`;
-        } else if (t === 'image') {
-            const imgBorder = hasCustomBorder ? `border-width:${c.border_width || 1}px;border-color:${c.border_color || border};border-style:${c.border_style || 'dashed'};` : `border:1px dashed ${border};`;
-            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};${imgBorder}${defRadius}display:flex;align-items:center;justify-content:center;color:${color};font-size:11px;">🖼️ ${text||'Image'}</div>\n`;
-        } else if (t === 'divider' || t === 'separator') {
-            controls += `<hr${id}${titleAttr} style="${base(c)}height:1px;background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : border};border:none;padding:0;margin:0;">\n`;
-        } else if (t === 'panel') {
-            const panelBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : (isLight ? '#e2e8f0' : '#1e293b');
-            const pRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
-            controls += `<div${id}${titleAttr} style="${base(c)}background:${panelBg};color:${color};${defBorder}${pRadius}overflow:hidden;"><div style="padding:8px 12px;font-weight:700;font-size:11px;text-transform:uppercase;color:${accent};border-bottom:1px solid ${border};letter-spacing:0.5px;">${text}</div></div>\n`;
-        } else if (t === 'groupbox') {
-            const gbTitle = c.title || c.caption || text || 'Group';
-            const gbRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
-            const legendColor = isLight ? '#0f172a' : accent;
-            controls += `<fieldset${id}${titleAttr}${ev} style="${base(c)}background:${cbg};${defBorder}${gbRadius}padding:12px;box-sizing:border-box;"><legend style="padding:0 8px;font-size:11px;font-weight:700;color:${legendColor};text-transform:uppercase;letter-spacing:0.5px;">${gbTitle}</legend></fieldset>\n`;
-        } else if (t === 'drop_zone') {
-            const dzBorder = hasCustomBorder ? `border-width:${c.border_width || 2}px;border-color:${c.border_color || accent};border-style:${c.border_style || 'dashed'};` : `border:2px dashed ${accent};`;
-            const dzRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
-            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
-            const customClick = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
-            controls += `<div id="${c.id}_wrapper"${ctxAttr}${titleAttr} onclick="const fi=document.getElementById('${c.id}_file');if(fi)fi.click();" ondragover="event.preventDefault();" ondrop="event.preventDefault();if(event.dataTransfer&&event.dataTransfer.files&&event.dataTransfer.files[0]){const p=event.dataTransfer.files[0].name;const lbl=this.querySelector('.dz-label');if(lbl)lbl.textContent=p;const hid=document.getElementById('${c.id}');if(hid)hid.value=p;const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(p);}" style="${base(c)}background:${cbg};${dzBorder}${dzRadius}display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:${color};opacity:0.85;cursor:${c.cursor||'pointer'};" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''"><input type="hidden" id="${c.id}" name="${c.id}" value="${text||''}"><input type="file" id="${c.id}_file" style="display:none;" onchange="if(this.files&&this.files[0]){const p=this.files[0].name;const lbl=this.parentNode.querySelector('.dz-label');if(lbl)lbl.textContent=p;const hid=document.getElementById('${c.id}');if(hid)hid.value=p;const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(p);const fnK=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK(p);}"><span style="font-size:24px;">📥</span><span class="dz-label" style="font-size:11px;">${text||'Drop files here or click to browse'}</span></div>\n`;
-        } else if (t === 'status_indicator') {
-            const statusColor = c.status === 'error' ? sem.danger.solid : c.status === 'warning' ? sem.warning.solid : c.status === 'inactive' ? (isLight ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.3)') : sem.success.solid;
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:8px;color:${color};"><div style="width:10px;height:10px;background:${statusColor};border-radius:50%;box-shadow:0 0 6px ${statusColor};flex-shrink:0;"></div><span style="font-size:12px;font-weight:600;">${text}</span></div>\n`;
-        } else if (t === 'metric_card') {
-            const mRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:10px;';
-            const showTrend = c.trend !== undefined && c.trend !== null && c.trend !== '' && c.trend !== false && c.show_trend !== false;
-            const trendHtml = showTrend ? `<div style="font-size:10px;color:${c.trend_color || sem.success.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">↑ ${c.trend}</div>` : '';
-            const pad = c.padding !== undefined ? `${c.padding}px` : (showTrend ? '10px 12px' : '6px 14px');
-            const justify = showTrend ? 'space-between' : 'center';
-            const valSize = c.value_font_size || (showTrend ? 22 : 19);
-            const valColor = c.value_color || color;
-            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};${defBorder}${mRadius}padding:${pad};display:flex;flex-direction:column;justify-content:${justify};gap:2px;box-sizing:border-box;"><div style="font-size:${c.font_size || 10}px;color:${color};opacity:0.75;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${text}</div><div style="font-size:${valSize}px;font-weight:800;color:${valColor};line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.value||'—'}</div>${trendHtml}</div>\n`;
-        } else if (t === 'alert_banner') {
-            const alertCol = c.alert_type === 'error' ? sem.danger.solid : c.alert_type === 'warning' ? sem.warning.solid : c.alert_type === 'success' ? sem.success.solid : accent;
-            const alertIcon = c.alert_type === 'error' ? '❌' : c.alert_type === 'warning' ? '⚠️' : c.alert_type === 'success' ? '✅' : 'ℹ️';
-            const aRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:0 6px 6px 0;';
-            controls += `<div${id}${titleAttr} style="${base(c)}background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : alertCol + '22'};border-left:4px solid ${alertCol};${aRadius}display:flex;align-items:center;gap:10px;padding:0 12px;color:${color};"><span>${alertIcon}</span><span style="font-size:12px;">${text}</span></div>\n`;
-        } else if (t === 'code_view') {
-            const codeBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : '#0d1117';
-            const codeFg = c.font_color && c.font_color !== fg ? c.font_color : '#7dd3fc';
-            const cdRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
-            controls += `<textarea${id}${titleAttr}${ev}${roAttr}${autoFocusAttr} placeholder="${c.placeholder || ''}" style="${base(c)}background:${codeBg};${defBorder}${cdRadius}padding:12px;color:${codeFg};font-family:'Fira Code','Courier New',monospace;font-size:${c.font_size||12}px;overflow:auto;margin:0;resize:none;outline:none;white-space:pre;" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'>${text}</textarea>\n`;
-        } else if (t === 'metric_meter') {
-            const val = c.value !== undefined ? c.value : 65;
-            const meterBg = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};"><div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;"><span>${text}</span><span>${val}%</span></div><div style="width:100%;height:6px;background:${meterBg};border-radius:3px;overflow:hidden;"><div style="width:${val}%;height:100%;background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : `linear-gradient(to right, ${accent}, #818cf8)`};border-radius:3px;"></div></div></div>\n`;
-        } else if (t === 'tag') {
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:4px 8px;">${(text||'tag1,tag2').split(',').map((tg: string)=>`<span style="background:${cbg};color:${accent};${defBorder}${defRadius}padding:2px 10px;font-size:11px;font-weight:600;">${tg.trim()}</span>`).join('')}</div>\n`;
-        } else if (t === 'form_field' || t === 'form_password' || t === 'form_textarea') {
-            const inputType = t === 'form_password' ? 'password' : (t === 'form_textarea' ? 'textarea' : 'text');
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;"><label style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${text}</label>${inputType === 'textarea' ? `<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${ev}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} placeholder="${c.placeholder || ''}" style="flex:1;background:${cbg};color:${color};${defBorder}${defRadius}padding:6px 10px;resize:none;outline:none;font-size:${c.font_size||13}px;"></textarea>` : `<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="${inputType}"${ev}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} placeholder="${c.placeholder || ''}" style="height:32px;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;outline:none;font-size:${c.font_size||13}px;">`}</div>\n`;
-        } else if (t === 'select' || t === 'dropdown' || t === 'form_dropdown' || t === 'listbox') {
-            const rawOpts = c.items || c.options || text || c.caption || 'Option 1, Option 2, Option 3';
-            const optArray = Array.isArray(rawOpts) ? rawOpts : String(rawOpts).split(',').map((s: string) => s.trim());
-            const isListBox = t === 'listbox';
-            const isMulti = isListBox && (Boolean(c.multiple) || Boolean(c.multi_select) || c.selection_mode === 'multiple');
-
-            let selectedVals: string[] = [];
-            if (Array.isArray(c.value)) {
-                selectedVals = c.value.map(String);
-            } else if (Array.isArray(c.selected)) {
-                selectedVals = c.selected.map(String);
-            } else if (c.value !== undefined && c.value !== null && c.value !== '') {
-                if (isMulti && typeof c.value === 'string' && c.value.includes(',')) {
-                    selectedVals = c.value.split(',').map((s: string) => s.trim());
-                } else {
-                    selectedVals = [String(c.value)];
-                }
-            } else if (c.selected !== undefined && c.selected !== null && c.selected !== '') {
-                selectedVals = [String(c.selected)];
-            } else if (!isMulti && optArray[0]) {
-                const firstOpt = optArray[0];
-                const firstVal = typeof firstOpt === 'object' && firstOpt !== null ? (firstOpt.value !== undefined ? String(firstOpt.value) : String(firstOpt.id || '')) : String(firstOpt);
-                selectedVals = [firstVal];
-            }
-
-            const itemLabels = c.item_labels || {};
-            const selOptions = optArray.map((opt: any) => {
-                const val = typeof opt === 'object' && opt !== null ? (opt.value !== undefined ? String(opt.value) : String(opt.id || '')) : String(opt);
-                const label = typeof opt === 'object' && opt !== null ? (opt.label || opt.text || opt.name || val) : (itemLabels[val] || val);
-                const isSelected = selectedVals.includes(val) || (typeof opt === 'string' && selectedVals.includes(opt)) ? ' selected' : '';
-                return `<option value="${val.replace(/"/g, '&quot;')}"${isSelected}>${label}</option>`;
-            }).join('');
-
-            const sizeAttr = isListBox ? ` size="${c.size || 5}"` : '';
-            const multiAttr = isMulti ? ' multiple' : '';
-            const chevronColor = encodeURIComponent(accent || '#38bdf8');
-            const selectInnerStyle = isListBox
-                ? `width:100%;height:100%;background:${cbg};color:${color};${defBorder}${defRadius}padding:4px 8px;outline:none;cursor:${c.cursor||'pointer'};font-size:${c.font_size||13}px;box-sizing:border-box;`
-                : `width:100%;height:100%;background-color:${cbg};color:${color};${defBorder}${defRadius}padding:0 30px 0 10px;outline:none;cursor:${c.cursor||'pointer'};font-size:${c.font_size||13}px;font-weight:500;appearance:none;-webkit-appearance:none;background-image:url('data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'12\\' height=\\'12\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'${chevronColor}\\' stroke-width=\\'2.5\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'%3E%3Cpolyline points=\\'6 9 12 15 18 9\\'%3E%3C/polyline%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 10px center;background-size:12px 12px;box-shadow:0 1px 2px rgba(0,0,0,0.2);box-sizing:border-box;`;
-
-            const selectClass = isListBox ? 'simplegui-listbox' : 'simplegui-select';
-            if (t === 'form_dropdown') {
-                controls += `<div style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;"><label style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${text}</label><select id="${c.id}" class="${selectClass}"${sizeAttr}${multiAttr}${ev}${disabled}${reqAttr} style="${selectInnerStyle}">${selOptions}</select></div>\n`;
-            } else {
-                controls += `<div style="${base(c)}"><select id="${c.id}" class="${selectClass}"${sizeAttr}${multiAttr}${ev}${disabled}${reqAttr} style="${selectInnerStyle}">${selOptions}</select></div>\n`;
-            }
-        } else if (t === 'form_link') {
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;justify-content:space-between;align-items:center;color:${color};"><span style="font-size:11px;opacity:0.8;">${text}</span><a href="#"${ev} style="color:${accent};text-decoration:none;font-size:11px;font-weight:700;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">View Link 🔗</a></div>\n`;
-        } else if (t === 'path') {
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:6px;background:${cbg};${defBorder}${defRadius}padding:0 10px;color:${color};font-size:11px;overflow:hidden;">📁 ${(text||'Users › developer › project').replace(/›/g,'<span style="opacity:0.4;margin:0 4px;">›</span>')}</div>\n`;
-        } else if (t === 'db_grid') {
-            const gridBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : (isLight ? '#ffffff' : 'rgba(15,23,42,0.8)');
-            const dbBorder = hasCustomBorder ? `border-width:${c.border_width || 1}px;border-color:${c.border_color || accent};border-style:${c.border_style || 'solid'};` : `border:1px solid ${accent};`;
-            const dbRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
-            const thColor = isLight ? '#0f172a' : accent;
-            const selBg = isLight ? 'rgba(2,132,199,0.18)' : 'rgba(56,189,248,0.22)';
-            const hoverBg = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)';
-            controls += `<div${id}${titleAttr} style="${base(c)}overflow:auto;${dbBorder}${dbRadius}background:${gridBg};box-shadow:0 4px 12px rgba(0,0,0,0.3);"><div style="padding:6px 12px;background:${isLight ? 'rgba(2,132,199,0.1)' : 'rgba(56,189,248,0.1)'};font-size:11px;font-weight:700;color:${accent};border-bottom:1px solid ${border};display:flex;justify-content:space-between;"><span>🗄️ ${text||'DBGrid: Dataset1'}</span><span>3 Records</span></div><table style="width:100%;border-collapse:collapse;font-size:11px;color:${color};"><thead><tr style="background:${cbg};">${['ID','Customer Name','Email','Balance'].map(h=>`<th style="padding:6px 10px;text-align:left;font-weight:700;color:${thColor};border-bottom:1px solid ${border};">${h}</th>`).join('')}</tr></thead><tbody>${[['101','Acme Corp','sales@acme.com','$12,450'],['102','Starlight Ltd','info@starlight.io','$8,900'],['103','Nexus Tech','contact@nexus.dev','$15,200']].map(r=>`<tr style="border-bottom:1px solid ${border};cursor:pointer;transition:background 0.12s;" data-pid="${r[0]}" onclick="const tbody=this.closest('tbody');if(tbody){tbody.querySelectorAll('tr').forEach(tr=>{tr.classList.remove('selected-tr');tr.style.background=''});this.classList.add('selected-tr');this.style.background='${selBg}';window.selectedRowElement=this;window.selectedRowPid='${r[0]}';if(window.onTableRowClick)window.onTableRowClick(this);const fn=window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${r[0]}');}" onmouseover="if(!this.classList.contains('selected-tr'))this.style.background='${hoverBg}'" onmouseout="if(!this.classList.contains('selected-tr'))this.style.background=''">${r.map(cell=>`<td style="padding:6px 10px;">${cell}</td>`).join('')}</tr>`).join('')}</tbody></table></div>\n`;
-        } else if (t === 'db_navigator') {
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}${defRadius}padding:2px;gap:2px;">${[['⏮','First'],['◀','Prev'],['▶','Next'],['⏭','Last'],['➕','Add'],['✖','Delete'],['💾','Post'],['🔄','Refresh']].map(b=>`<button title="${b[1]}" style="flex:1;height:100%;background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'};border:none;border-radius:4px;color:${color};font-size:12px;cursor:pointer;" onmouseover="this.style.background='${isLight ? 'rgba(2,132,199,0.2)' : 'rgba(56,189,248,0.2)'}'" onmouseout="this.style.background='${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'}'">${b[0]}</button>`).join('')}</div>\n`;
-        } else if (t === 'db_input') {
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:3px;"><label style="font-size:10px;font-weight:700;color:${accent};">🗄️ ${text||'DBField'}</label><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" value="Sample Record Data" placeholder="${c.placeholder || ''}"${ev}${roAttr}${reqAttr}${maxLenAttr} style="height:32px;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;outline:none;font-size:${c.font_size||13}px;"></div>\n`;
-        } else if (t === 'db_dropdown') {
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:3px;"><label style="font-size:10px;font-weight:700;color:${accent};">🗄️ ${text||'DBLookup'}</label><select${ev} style="height:32px;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 8px;outline:none;cursor:${c.cursor||'pointer'};font-size:${c.font_size||13}px;"><option>Acme Corp</option><option>Starlight Ltd</option><option>Nexus Tech</option></select></div>\n`;
-        } else if (t === 'open_dialog') {
-            controls += `<input type="file"${id}${ev} style="display:none;" onchange="if(this.files&&this.files[0]){const p=this.files[0].name;if(window['${c.id}_onSelect'])window['${c.id}_onSelect'](p);else if(window.backendAlert)window.backendAlert('File Selected: '+p);}">\n`;
-        } else if (t === 'save_dialog') {
-            controls += `<input type="file"${id}${ev} style="display:none;">\n`;
-        } else if (t === 'table' || t === 'data_table' || t === 'table_view' || t === 'form_table') {
-            const rawHeaders = c.columns || c.headers || (c.text ? String(c.text).split(',').map(s => s.trim()) : ['ID', 'Name', 'Value', 'Status']);
-            const headers = Array.isArray(rawHeaders) ? rawHeaders : String(rawHeaders).split(',').map(s => s.trim());
-            const rawRows = c.rows || c.data || c.dataset || (Array.isArray(c.value) ? c.value : [
-                ['#1', 'Item 1', '100', 'Active'],
-                ['#2', 'Item 2', '200', 'Active'],
-                ['#3', 'Item 3', '300', 'Active']
+      const selectClass = isListBox ? "simplegui-listbox" : "simplegui-select";
+      if (t === "form_dropdown") {
+        controls += `<div style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;"><label style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${text}</label><select id="${c.id}" class="${selectClass}"${sizeAttr}${multiAttr}${ev}${disabled}${reqAttr} style="${selectInnerStyle}">${selOptions}</select></div>\n`;
+      } else {
+        controls += `<div style="${base(c)}"><select id="${c.id}" class="${selectClass}"${sizeAttr}${multiAttr}${ev}${disabled}${reqAttr} style="${selectInnerStyle}">${selOptions}</select></div>\n`;
+      }
+    } else if (t === "form_link") {
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;justify-content:space-between;align-items:center;color:${color};"><span style="font-size:11px;opacity:0.8;">${text}</span><a href="#"${ev} style="color:${accent};text-decoration:none;font-size:11px;font-weight:700;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">View Link 🔗</a></div>\n`;
+    } else if (t === "path") {
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:6px;background:${cbg};${defBorder}${defRadius}padding:0 10px;color:${color};font-size:11px;overflow:hidden;">📁 ${(text || "Users › developer › project").replace(/›/g, '<span style="opacity:0.4;margin:0 4px;">›</span>')}</div>\n`;
+    } else if (t === "db_grid") {
+      const gridBg =
+        c.background_color && c.background_color !== "transparent"
+          ? c.background_color
+          : isLight
+            ? "#ffffff"
+            : "rgba(15,23,42,0.8)";
+      const dbBorder = hasCustomBorder
+        ? `border-width:${c.border_width || 1}px;border-color:${c.border_color || accent};border-style:${c.border_style || "solid"};`
+        : `border:1px solid ${accent};`;
+      const dbRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:8px;";
+      const thColor = isLight ? "#0f172a" : accent;
+      const selBg = isLight ? "rgba(2,132,199,0.18)" : "rgba(56,189,248,0.22)";
+      const hoverBg = isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.05)";
+      controls += `<div${id}${titleAttr} style="${base(c)}overflow:auto;${dbBorder}${dbRadius}background:${gridBg};box-shadow:0 4px 12px rgba(0,0,0,0.3);"><div style="padding:6px 12px;background:${isLight ? "rgba(2,132,199,0.1)" : "rgba(56,189,248,0.1)"};font-size:11px;font-weight:700;color:${accent};border-bottom:1px solid ${border};display:flex;justify-content:space-between;"><span>🗄️ ${text || "DBGrid: Dataset1"}</span><span>3 Records</span></div><table style="width:100%;border-collapse:collapse;font-size:11px;color:${color};"><thead><tr style="background:${cbg};">${["ID", "Customer Name", "Email", "Balance"].map((h) => `<th style="padding:6px 10px;text-align:left;font-weight:700;color:${thColor};border-bottom:1px solid ${border};">${h}</th>`).join("")}</tr></thead><tbody>${[
+        ["101", "Acme Corp", "sales@acme.com", "$12,450"],
+        ["102", "Starlight Ltd", "info@starlight.io", "$8,900"],
+        ["103", "Nexus Tech", "contact@nexus.dev", "$15,200"],
+      ]
+        .map(
+          (r) =>
+            `<tr style="border-bottom:1px solid ${border};cursor:pointer;transition:background 0.12s;" data-pid="${r[0]}" onclick="const tbody=this.closest('tbody');if(tbody){tbody.querySelectorAll('tr').forEach(tr=>{tr.classList.remove('selected-tr');tr.style.background=''});this.classList.add('selected-tr');this.style.background='${selBg}';window.selectedRowElement=this;window.selectedRowPid='${r[0]}';if(window.onTableRowClick)window.onTableRowClick(this);const fn=window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${r[0]}');}" onmouseover="if(!this.classList.contains('selected-tr'))this.style.background='${hoverBg}'" onmouseout="if(!this.classList.contains('selected-tr'))this.style.background=''">${r.map((cell) => `<td style="padding:6px 10px;">${cell}</td>`).join("")}</tr>`,
+        )
+        .join("")}</tbody></table></div>\n`;
+    } else if (t === "db_navigator") {
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}${defRadius}padding:2px;gap:2px;">${[
+        ["⏮", "First"],
+        ["◀", "Prev"],
+        ["▶", "Next"],
+        ["⏭", "Last"],
+        ["➕", "Add"],
+        ["✖", "Delete"],
+        ["💾", "Post"],
+        ["🔄", "Refresh"],
+      ]
+        .map(
+          (b) =>
+            `<button title="${b[1]}" style="flex:1;height:100%;background:${isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.05)"};border:none;border-radius:4px;color:${color};font-size:12px;cursor:pointer;" onmouseover="this.style.background='${isLight ? "rgba(2,132,199,0.2)" : "rgba(56,189,248,0.2)"}'" onmouseout="this.style.background='${isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.05)"}'">${b[0]}</button>`,
+        )
+        .join("")}</div>\n`;
+    } else if (t === "db_input") {
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:3px;"><label style="font-size:10px;font-weight:700;color:${accent};">🗄️ ${text || "DBField"}</label><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" value="Sample Record Data" placeholder="${c.placeholder || ""}"${ev}${roAttr}${reqAttr}${maxLenAttr} style="height:32px;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;outline:none;font-size:${c.font_size || 13}px;"></div>\n`;
+    } else if (t === "db_dropdown") {
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:3px;"><label style="font-size:10px;font-weight:700;color:${accent};">🗄️ ${text || "DBLookup"}</label><select${ev} style="height:32px;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 8px;outline:none;cursor:${c.cursor || "pointer"};font-size:${c.font_size || 13}px;"><option>Acme Corp</option><option>Starlight Ltd</option><option>Nexus Tech</option></select></div>\n`;
+    } else if (t === "open_dialog") {
+      controls += `<input type="file"${id}${ev} style="display:none;" onchange="if(this.files&&this.files[0]){const p=this.files[0].name;if(window['${c.id}_onSelect'])window['${c.id}_onSelect'](p);else if(window.backendAlert)window.backendAlert('File Selected: '+p);}">\n`;
+    } else if (t === "save_dialog") {
+      controls += `<input type="file"${id}${ev} style="display:none;">\n`;
+    } else if (
+      t === "table" ||
+      t === "data_table" ||
+      t === "table_view" ||
+      t === "form_table"
+    ) {
+      const rawHeaders =
+        c.columns ||
+        c.headers ||
+        (c.text
+          ? String(c.text)
+              .split(",")
+              .map((s) => s.trim())
+          : ["ID", "Name", "Value", "Status"]);
+      const headers = Array.isArray(rawHeaders)
+        ? rawHeaders
+        : String(rawHeaders)
+            .split(",")
+            .map((s) => s.trim());
+      const rawRows =
+        c.rows ||
+        c.data ||
+        c.dataset ||
+        (Array.isArray(c.value)
+          ? c.value
+          : [
+              ["#1", "Item 1", "100", "Active"],
+              ["#2", "Item 2", "200", "Active"],
+              ["#3", "Item 3", "300", "Active"],
             ]);
-            const isMulti = Boolean(c.multi_select || c.multiple || c.selection_mode === 'multiple');
-            const hasCheckboxes = Boolean(c.checkbox_selection || c.selectable_checkbox || c.checkboxes);
-            const tableBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : cbg;
-            const selBg = isLight ? 'rgba(2,132,199,0.18)' : 'rgba(56,189,248,0.22)';
-            const hoverBg = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)';
-            const thColor = isLight ? '#0f172a' : accent;
-            const esc = (s: any) => s === null || s === undefined ? '' : String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+      const isMulti = Boolean(
+        c.multi_select || c.multiple || c.selection_mode === "multiple",
+      );
+      const hasCheckboxes = Boolean(
+        c.checkbox_selection || c.selectable_checkbox || c.checkboxes,
+      );
+      const tableBg =
+        c.background_color && c.background_color !== "transparent"
+          ? c.background_color
+          : cbg;
+      const selBg = isLight ? "rgba(2,132,199,0.18)" : "rgba(56,189,248,0.22)";
+      const hoverBg = isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.05)";
+      const thColor = isLight ? "#0f172a" : accent;
+      const esc = (s: any) =>
+        s === null || s === undefined
+          ? ""
+          : String(s)
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+              .replace(/"/g, "&quot;")
+              .replace(/'/g, "&#039;");
 
-            const thCheckbox = hasCheckboxes
-                ? `<th style="width:36px;padding:8px 6px;text-align:center;border-bottom:1px solid ${border};"><input type="checkbox" class="table-select-all" style="accent-color:${accent};cursor:pointer;" onclick="event.stopPropagation();const tbl=this.closest('table');const chks=tbl.querySelectorAll('tbody .row-chk');const isChk=this.checked;chks.forEach(k=>{k.checked=isChk;const tr=k.closest('tr');if(tr){if(isChk){tr.classList.add('selected-tr');tr.style.background='${selBg}';}else{tr.classList.remove('selected-tr');tr.style.background='';}}});if(window['${c.id}_syncTable'])window['${c.id}_syncTable']();"></th>`
-                : '';
+      const thCheckbox = hasCheckboxes
+        ? `<th style="width:36px;padding:8px 6px;text-align:center;border-bottom:1px solid ${border};"><input type="checkbox" class="table-select-all" style="accent-color:${accent};cursor:pointer;" onclick="event.stopPropagation();const tbl=this.closest('table');const chks=tbl.querySelectorAll('tbody .row-chk');const isChk=this.checked;chks.forEach(k=>{k.checked=isChk;const tr=k.closest('tr');if(tr){if(isChk){tr.classList.add('selected-tr');tr.style.background='${selBg}';}else{tr.classList.remove('selected-tr');tr.style.background='';}}});if(window['${c.id}_syncTable'])window['${c.id}_syncTable']();"></th>`
+        : "";
 
-            const tableRowsHtml = rawRows.map((r: any, rIdx: number) => {
-                const cells = Array.isArray(r) ? r : (r && r.cells ? r.cells : Object.values(r));
-                const rowPid = esc(String(r && r.rowId !== undefined ? r.rowId : (r && r.pid !== undefined ? r.pid : (cells[0] || ''))).trim());
-                const tdCheckbox = hasCheckboxes
-                    ? `<td style="width:36px;padding:8px 6px;text-align:center;"><input type="checkbox" class="row-chk" style="accent-color:${accent};cursor:pointer;" onclick="event.stopPropagation();const tr=this.closest('tr');if(tr){if(this.checked){tr.classList.add('selected-tr');tr.style.background='${selBg}';}else{tr.classList.remove('selected-tr');tr.style.background='';}}if(window['${c.id}_syncTable'])window['${c.id}_syncTable']();"></td>`
-                    : '';
+      const tableRowsHtml = rawRows
+        .map((r: any, rIdx: number) => {
+          const cells = Array.isArray(r)
+            ? r
+            : r && r.cells
+              ? r.cells
+              : Object.values(r);
+          const rowPid = esc(
+            String(
+              r && r.rowId !== undefined
+                ? r.rowId
+                : r && r.pid !== undefined
+                  ? r.pid
+                  : cells[0] || "",
+            ).trim(),
+          );
+          const tdCheckbox = hasCheckboxes
+            ? `<td style="width:36px;padding:8px 6px;text-align:center;"><input type="checkbox" class="row-chk" style="accent-color:${accent};cursor:pointer;" onclick="event.stopPropagation();const tr=this.closest('tr');if(tr){if(this.checked){tr.classList.add('selected-tr');tr.style.background='${selBg}';}else{tr.classList.remove('selected-tr');tr.style.background='';}}if(window['${c.id}_syncTable'])window['${c.id}_syncTable']();"></td>`
+            : "";
 
-                const rowClickScript = `const tr=this;const tbody=tr.closest('tbody');const table=tr.closest('table');const rows=Array.from(tbody.querySelectorAll('tr'));const curIdx=rows.indexOf(tr);const lastIdx=parseInt(table.dataset.lastIdx!==undefined?table.dataset.lastIdx:'-1',10);const isMulti=${isMulti};if(isMulti&&(event.ctrlKey||event.metaKey)){tr.classList.toggle('selected-tr');tr.style.background=tr.classList.contains('selected-tr')?'${selBg}':'';const chk=tr.querySelector('.row-chk');if(chk)chk.checked=tr.classList.contains('selected-tr');table.dataset.lastIdx=curIdx;}else if(isMulti&&event.shiftKey&&lastIdx>=0){const start=Math.min(lastIdx,curIdx);const end=Math.max(lastIdx,curIdx);for(let i=start;i<=end;i++){rows[i].classList.add('selected-tr');rows[i].style.background='${selBg}';const chk=rows[i].querySelector('.row-chk');if(chk)chk.checked=true;}}else{if(!isMulti){rows.forEach(r=>{r.classList.remove('selected-tr');r.style.background='';const chk=r.querySelector('.row-chk');if(chk)chk.checked=false;});tr.classList.add('selected-tr');tr.style.background='${selBg}';const chk=tr.querySelector('.row-chk');if(chk)chk.checked=true;table.dataset.lastIdx=curIdx;}else{tr.classList.toggle('selected-tr');tr.style.background=tr.classList.contains('selected-tr')?'${selBg}':'';const chk=tr.querySelector('.row-chk');if(chk)chk.checked=tr.classList.contains('selected-tr');table.dataset.lastIdx=curIdx;}}window.selectedRowElement=tr;window.selectedRowPid='${rowPid}';if(window.onTableRowClick)window.onTableRowClick(tr);if(window['${c.id}_syncTable'])window['${c.id}_syncTable']();const fn=window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${rowPid}');`;
-                const rowDblClickScript = `const fn=window['${c.id}_onDoubleClick']||window['on_${c.id}_doubleclick']||window['on_${c.id}_ondoubleclick'];if(fn)fn('${rowPid}');`;
+          const rowClickScript = `const tr=this;const tbody=tr.closest('tbody');const table=tr.closest('table');const rows=Array.from(tbody.querySelectorAll('tr'));const curIdx=rows.indexOf(tr);const lastIdx=parseInt(table.dataset.lastIdx!==undefined?table.dataset.lastIdx:'-1',10);const isMulti=${isMulti};if(isMulti&&(event.ctrlKey||event.metaKey)){tr.classList.toggle('selected-tr');tr.style.background=tr.classList.contains('selected-tr')?'${selBg}':'';const chk=tr.querySelector('.row-chk');if(chk)chk.checked=tr.classList.contains('selected-tr');table.dataset.lastIdx=curIdx;}else if(isMulti&&event.shiftKey&&lastIdx>=0){const start=Math.min(lastIdx,curIdx);const end=Math.max(lastIdx,curIdx);for(let i=start;i<=end;i++){rows[i].classList.add('selected-tr');rows[i].style.background='${selBg}';const chk=rows[i].querySelector('.row-chk');if(chk)chk.checked=true;}}else{if(!isMulti){rows.forEach(r=>{r.classList.remove('selected-tr');r.style.background='';const chk=r.querySelector('.row-chk');if(chk)chk.checked=false;});tr.classList.add('selected-tr');tr.style.background='${selBg}';const chk=tr.querySelector('.row-chk');if(chk)chk.checked=true;table.dataset.lastIdx=curIdx;}else{tr.classList.toggle('selected-tr');tr.style.background=tr.classList.contains('selected-tr')?'${selBg}':'';const chk=tr.querySelector('.row-chk');if(chk)chk.checked=tr.classList.contains('selected-tr');table.dataset.lastIdx=curIdx;}}window.selectedRowElement=tr;window.selectedRowPid='${rowPid}';if(window.onTableRowClick)window.onTableRowClick(tr);if(window['${c.id}_syncTable'])window['${c.id}_syncTable']();const fn=window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${rowPid}');`;
+          const rowDblClickScript = `const fn=window['${c.id}_onDoubleClick']||window['on_${c.id}_doubleclick']||window['on_${c.id}_ondoubleclick'];if(fn)fn('${rowPid}');`;
 
-                return `<tr style="border-bottom:1px solid ${border};cursor:pointer;transition:background 0.12s;" data-pid="${rowPid}" data-row-index="${rIdx}" onclick="${rowClickScript}" ondblclick="${rowDblClickScript}" onmouseover="if(!this.classList.contains('selected-tr'))this.style.background='${hoverBg}'" onmouseout="if(!this.classList.contains('selected-tr'))this.style.background=''">${tdCheckbox}${cells.map((cell: any, i: number) => {
-                    const strVal = cell === null || cell === undefined ? '' : String(cell);
-                    const isNum = typeof cell === 'number' || (typeof cell === 'string' && /^-?\d+(\.\d+)?$/.test(strVal.trim()));
-                    const alignStyle = isNum ? 'text-align:right;' : 'text-align:left;';
-                    const monoStyle = (i === 0 || isNum) ? 'font-family:monospace;' : '';
-                    const isUrl = strVal.startsWith('http://') || strVal.startsWith('https://');
-                    const cellHtml = isUrl
-                        ? `<a href="${esc(strVal)}" target="_blank" rel="noopener noreferrer" style="color:${accent};text-decoration:underline;cursor:pointer;" onclick="event.stopPropagation();if(typeof window.openUrl==='function'){window.openUrl('${esc(strVal)}');}else if(typeof window.openExternal==='function'){window.openExternal('${esc(strVal)}');}return false;">${esc(strVal)}</a>`
-                        : esc(strVal);
-                    return `<td style="padding:8px 12px;white-space:nowrap;${alignStyle}${monoStyle}">${cellHtml}</td>`;
-                }).join('')}</tr>`;
-            }).join('');
+          return `<tr style="border-bottom:1px solid ${border};cursor:pointer;transition:background 0.12s;" data-pid="${rowPid}" data-row-index="${rIdx}" onclick="${rowClickScript}" ondblclick="${rowDblClickScript}" onmouseover="if(!this.classList.contains('selected-tr'))this.style.background='${hoverBg}'" onmouseout="if(!this.classList.contains('selected-tr'))this.style.background=''">${tdCheckbox}${cells
+            .map((cell: any, i: number) => {
+              const strVal =
+                cell === null || cell === undefined ? "" : String(cell);
+              const isNum =
+                typeof cell === "number" ||
+                (typeof cell === "string" &&
+                  /^-?\d+(\.\d+)?$/.test(strVal.trim()));
+              const alignStyle = isNum
+                ? "text-align:right;"
+                : "text-align:left;";
+              const monoStyle =
+                i === 0 || isNum ? "font-family:monospace;" : "";
+              const isUrl =
+                strVal.startsWith("http://") || strVal.startsWith("https://");
+              const cellHtml = isUrl
+                ? `<a href="${esc(strVal)}" target="_blank" rel="noopener noreferrer" style="color:${accent};text-decoration:underline;cursor:pointer;" onclick="event.stopPropagation();if(typeof window.openUrl==='function'){window.openUrl('${esc(strVal)}');}else if(typeof window.openExternal==='function'){window.openExternal('${esc(strVal)}');}return false;">${esc(strVal)}</a>`
+                : esc(strVal);
+              return `<td style="padding:8px 12px;white-space:nowrap;${alignStyle}${monoStyle}">${cellHtml}</td>`;
+            })
+            .join("")}</tr>`;
+        })
+        .join("");
 
-            const syncScript = `<script>
+      const syncScript = `<script>
 (function() {
     window['${c.id}_syncTable']=function(){const cont=document.getElementById('${c.id}');if(!cont)return;const tbl=cont.querySelector('table');if(!tbl)return;const selectedTrs=Array.from(tbl.querySelectorAll('tbody tr.selected-tr'));const pids=selectedTrs.map(r=>r.getAttribute('data-pid')||'');const allTrs=tbl.querySelectorAll('tbody tr');const selectAllChk=tbl.querySelector('thead .table-select-all');if(selectAllChk){selectAllChk.checked=allTrs.length>0&&selectedTrs.length===allTrs.length;selectAllChk.indeterminate=selectedTrs.length>0&&selectedTrs.length<allTrs.length;}const hid=document.getElementById('${c.id}_selected');if(hid)hid.value=pids.join(',');const fnSel=window['${c.id}_onSelectionChange']||window['on_${c.id}_selection_change']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnSel)fnSel(pids);};
 
@@ -2261,146 +3180,294 @@ export function generatePreviewHtml(spec: any): string {
 })();
 </script>`;
 
-            const thHeadersHtml = headers.map((h: any, colIdx: number) => {
-                return `<th onclick="window['${c.id}_sortTable'](${colIdx}, this);" style="position:relative;padding:8px 12px;text-align:left;font-weight:700;color:${thColor};border-bottom:1px solid ${border};white-space:nowrap;cursor:pointer;user-select:none;"><span>${esc(h)}</span><span class="sort-icon" style="font-size:10px;opacity:0.6;margin-left:4px;"></span><span class="th-resizer" onclick="event.stopPropagation();" onmousedown="event.stopPropagation();event.preventDefault();const th=this.parentNode;const startX=event.clientX;const startW=th.offsetWidth;function onColMove(e){const w=Math.max(40, startW + (e.clientX - startX));th.style.width=w+'px';th.style.minWidth=w+'px';}function onColUp(){window.removeEventListener('mousemove',onColMove);window.removeEventListener('mouseup',onColUp);}window.addEventListener('mousemove',onColMove);window.addEventListener('mouseup',onColUp);" style="position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;user-select:none;opacity:0.2;" onmouseover="this.style.opacity='1';this.style.background='${accent}';" onmouseout="this.style.opacity='0.2';this.style.background='transparent';"></span></th>`;
-            }).join('');
+      const thHeadersHtml = headers
+        .map((h: any, colIdx: number) => {
+          return `<th onclick="window['${c.id}_sortTable'](${colIdx}, this);" style="position:relative;padding:8px 12px;text-align:left;font-weight:700;color:${thColor};border-bottom:1px solid ${border};white-space:nowrap;cursor:pointer;user-select:none;"><span>${esc(h)}</span><span class="sort-icon" style="font-size:10px;opacity:0.6;margin-left:4px;"></span><span class="th-resizer" onclick="event.stopPropagation();" onmousedown="event.stopPropagation();event.preventDefault();const th=this.parentNode;const startX=event.clientX;const startW=th.offsetWidth;function onColMove(e){const w=Math.max(40, startW + (e.clientX - startX));th.style.width=w+'px';th.style.minWidth=w+'px';}function onColUp(){window.removeEventListener('mousemove',onColMove);window.removeEventListener('mouseup',onColUp);}window.addEventListener('mousemove',onColMove);window.addEventListener('mouseup',onColUp);" style="position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;user-select:none;opacity:0.2;" onmouseover="this.style.opacity='1';this.style.background='${accent}';" onmouseout="this.style.opacity='0.2';this.style.background='transparent';"></span></th>`;
+        })
+        .join("");
 
-            controls += `<div${id}${titleAttr} style="${base(c)}overflow:auto;${defBorder}${defRadius}background:${tableBg};"><input type="hidden" id="${c.id}_selected" name="${c.id}_selected" value=""><table style="width:100%;border-collapse:collapse;font-size:12px;color:${color};"><thead><tr style="background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'};position:sticky;top:0;z-index:2;">${thCheckbox}${thHeadersHtml}</tr></thead><tbody>${tableRowsHtml}</tbody></table></div>\n${syncScript}\n`;
-        } else if (t === 'tree_grid' || t === 'tree_table') {
-            const rawHeaders = c.columns || c.headers || (c.text ? String(c.text).split(',').map(s => s.trim()) : ['Name', 'Type', 'Size', 'Date Modified', 'Status']);
-            const headers = Array.isArray(rawHeaders) ? rawHeaders : String(rawHeaders).split(',').map(s => s.trim());
-            const rawRows = c.rows || c.data || c.dataset || c.items || c.nodes || (Array.isArray(c.value) ? c.value : []);
+      controls += `<div${id}${titleAttr} style="${base(c)}overflow:auto;${defBorder}${defRadius}background:${tableBg};"><input type="hidden" id="${c.id}_selected" name="${c.id}_selected" value=""><table style="width:100%;border-collapse:collapse;font-size:12px;color:${color};"><thead><tr style="background:${isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)"};position:sticky;top:0;z-index:2;">${thCheckbox}${thHeadersHtml}</tr></thead><tbody>${tableRowsHtml}</tbody></table></div>\n${syncScript}\n`;
+    } else if (t === "tree_grid" || t === "tree_table") {
+      const rawHeaders =
+        c.columns ||
+        c.headers ||
+        (c.text
+          ? String(c.text)
+              .split(",")
+              .map((s) => s.trim())
+          : ["Name", "Type", "Size", "Date Modified", "Status"]);
+      const headers = Array.isArray(rawHeaders)
+        ? rawHeaders
+        : String(rawHeaders)
+            .split(",")
+            .map((s) => s.trim());
+      const rawRows =
+        c.rows ||
+        c.data ||
+        c.dataset ||
+        c.items ||
+        c.nodes ||
+        (Array.isArray(c.value) ? c.value : []);
 
-            interface FlatTreeItem {
-                id: string;
-                parentId: string;
-                depth: number;
-                cells: any[];
-                icon?: string;
-                hasChildren: boolean;
-                expanded: boolean;
-                visible: boolean;
+      interface FlatTreeItem {
+        id: string;
+        parentId: string;
+        depth: number;
+        cells: any[];
+        icon?: string;
+        hasChildren: boolean;
+        expanded: boolean;
+        visible: boolean;
+      }
+
+      const flattenTreeItems = (
+        items: any[],
+        depth = 0,
+        parentId = "",
+        parentVisible = true,
+      ): FlatTreeItem[] => {
+        let list: FlatTreeItem[] = [];
+        items.forEach((item: any, idx: number) => {
+          let itemId =
+            item && item.id !== undefined
+              ? String(item.id)
+              : parentId
+                ? `${parentId}_${idx}`
+                : `node_${idx}`;
+          let cells: any[] = [];
+          let icon = item ? item.icon : undefined;
+          let hasChildren =
+            Boolean(
+              item &&
+              item.children &&
+              Array.isArray(item.children) &&
+              item.children.length > 0,
+            ) || Boolean(item && item.hasChildren);
+          let expanded =
+            item && item.expanded !== undefined ? Boolean(item.expanded) : true;
+          let itemDepth = depth;
+
+          if (Array.isArray(item)) {
+            cells = [...item];
+            const firstStr = String(cells[0] || "");
+            const leadingMatch = firstStr.match(/^(\s+)/);
+            if (leadingMatch) {
+              itemDepth = Math.max(
+                depth,
+                Math.floor(leadingMatch[1]!.length / 2),
+              );
+              cells[0] = firstStr.trim();
             }
+          } else if (typeof item === "object" && item !== null) {
+            if (Array.isArray(item.cells)) cells = [...item.cells];
+            else if (Array.isArray(item.values)) cells = [...item.values];
+            else if (Array.isArray(item.data)) cells = [...item.data];
+            else {
+              const {
+                id: _i,
+                depth: _d,
+                parentId: _p,
+                children: _c,
+                expanded: _e,
+                icon: _ic,
+                hasChildren: _hc,
+                ...rest
+              } = item;
+              cells = Object.values(rest);
+              if (
+                cells.length === 0 &&
+                (item.name || item.text || item.title)
+              ) {
+                cells = [item.name || item.text || item.title];
+              }
+            }
+            if (item.depth !== undefined) itemDepth = Number(item.depth);
+          } else {
+            cells = [String(item)];
+          }
 
-            const flattenTreeItems = (items: any[], depth = 0, parentId = '', parentVisible = true): FlatTreeItem[] => {
-                let list: FlatTreeItem[] = [];
-                items.forEach((item: any, idx: number) => {
-                    let itemId = item && item.id !== undefined ? String(item.id) : (parentId ? `${parentId}_${idx}` : `node_${idx}`);
-                    let cells: any[] = [];
-                    let icon = item ? item.icon : undefined;
-                    let hasChildren = Boolean(item && item.children && Array.isArray(item.children) && item.children.length > 0) || Boolean(item && item.hasChildren);
-                    let expanded = item && item.expanded !== undefined ? Boolean(item.expanded) : true;
-                    let itemDepth = depth;
+          if (!icon) {
+            const firstCellStr = String(cells[0] || "");
+            if (firstCellStr.includes("📁") || firstCellStr.includes("📂")) {
+              hasChildren = true;
+            } else if (hasChildren) {
+              icon = "📁";
+            } else {
+              icon = "📄";
+            }
+          }
 
-                    if (Array.isArray(item)) {
-                        cells = [...item];
-                        const firstStr = String(cells[0] || '');
-                        const leadingMatch = firstStr.match(/^(\s+)/);
-                        if (leadingMatch) {
-                            itemDepth = Math.max(depth, Math.floor(leadingMatch[1]!.length / 2));
-                            cells[0] = firstStr.trim();
-                        }
-                    } else if (typeof item === 'object' && item !== null) {
-                        if (Array.isArray(item.cells)) cells = [...item.cells];
-                        else if (Array.isArray(item.values)) cells = [...item.values];
-                        else if (Array.isArray(item.data)) cells = [...item.data];
-                        else {
-                            const { id: _i, depth: _d, parentId: _p, children: _c, expanded: _e, icon: _ic, hasChildren: _hc, ...rest } = item;
-                            cells = Object.values(rest);
-                            if (cells.length === 0 && (item.name || item.text || item.title)) {
-                                cells = [item.name || item.text || item.title];
-                            }
-                        }
-                        if (item.depth !== undefined) itemDepth = Number(item.depth);
-                    } else {
-                        cells = [String(item)];
-                    }
+          list.push({
+            id: itemId,
+            parentId: item && item.parentId ? String(item.parentId) : parentId,
+            depth: itemDepth,
+            cells,
+            icon,
+            hasChildren,
+            expanded,
+            visible: parentVisible,
+          });
 
-                    if (!icon) {
-                        const firstCellStr = String(cells[0] || '');
-                        if (firstCellStr.includes('📁') || firstCellStr.includes('📂')) {
-                            hasChildren = true;
-                        } else if (hasChildren) {
-                            icon = '📁';
-                        } else {
-                            icon = '📄';
-                        }
-                    }
+          if (item && item.children && Array.isArray(item.children)) {
+            list = list.concat(
+              flattenTreeItems(
+                item.children,
+                itemDepth + 1,
+                itemId,
+                parentVisible && expanded,
+              ),
+            );
+          }
+        });
+        return list;
+      };
 
-                    list.push({
-                        id: itemId,
-                        parentId: item && item.parentId ? String(item.parentId) : parentId,
-                        depth: itemDepth,
-                        cells,
-                        icon,
-                        hasChildren,
-                        expanded,
-                        visible: parentVisible
-                    });
+      const flatRows: FlatTreeItem[] = flattenTreeItems(
+        rawRows.length > 0
+          ? rawRows
+          : [
+              {
+                id: "src",
+                cells: ["src", "Folder", "--", "Today", "Active"],
+                icon: "📁",
+                expanded: true,
+                children: [
+                  {
+                    id: "simplegui.ts",
+                    cells: [
+                      "simplegui.ts",
+                      "TypeScript",
+                      "142 KB",
+                      "Today",
+                      "Modified",
+                    ],
+                    icon: "📄",
+                  },
+                  {
+                    id: "index.ts",
+                    cells: [
+                      "index.ts",
+                      "TypeScript",
+                      "98 KB",
+                      "Yesterday",
+                      "Clean",
+                    ],
+                    icon: "📄",
+                  },
+                ],
+              },
+              {
+                id: "demos",
+                cells: ["demos", "Folder", "--", "Today", "Active"],
+                icon: "📁",
+                expanded: true,
+                children: [
+                  {
+                    id: "showcase.ts",
+                    cells: [
+                      "23_all_themes_all_controls_showcase.ts",
+                      "TypeScript",
+                      "12 KB",
+                      "Today",
+                      "Active",
+                    ],
+                    icon: "📄",
+                  },
+                ],
+              },
+              {
+                id: "package.json",
+                cells: [
+                  "package.json",
+                  "JSON",
+                  "1.8 KB",
+                  "Yesterday",
+                  "Locked",
+                ],
+                icon: "📄",
+              },
+              {
+                id: "README.md",
+                cells: ["README.md", "Markdown", "15 KB", "Today", "Published"],
+                icon: "📄",
+              },
+            ],
+      );
 
-                    if (item && item.children && Array.isArray(item.children)) {
-                        list = list.concat(flattenTreeItems(item.children, itemDepth + 1, itemId, parentVisible && expanded));
-                    }
-                });
-                return list;
-            };
+      const isMulti = Boolean(
+        c.multi_select || c.multiple || c.selection_mode === "multiple",
+      );
+      const hasCheckboxes = Boolean(
+        c.checkbox_selection || c.selectable_checkbox || c.checkboxes,
+      );
+      const tableBg =
+        c.background_color && c.background_color !== "transparent"
+          ? c.background_color
+          : cbg;
+      const selBg = isLight ? "rgba(2,132,199,0.18)" : "rgba(56,189,248,0.22)";
+      const hoverBg = isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.05)";
+      const thColor = isLight ? "#0f172a" : accent;
+      const esc = (s: any) =>
+        s === null || s === undefined
+          ? ""
+          : String(s)
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+              .replace(/"/g, "&quot;")
+              .replace(/'/g, "&#039;");
 
-            const flatRows: FlatTreeItem[] = flattenTreeItems(rawRows.length > 0 ? rawRows : [
-                { id: 'src', cells: ['src', 'Folder', '--', 'Today', 'Active'], icon: '📁', expanded: true, children: [
-                    { id: 'simplegui.ts', cells: ['simplegui.ts', 'TypeScript', '142 KB', 'Today', 'Modified'], icon: '📄' },
-                    { id: 'index.ts', cells: ['index.ts', 'TypeScript', '98 KB', 'Yesterday', 'Clean'], icon: '📄' }
-                ]},
-                { id: 'demos', cells: ['demos', 'Folder', '--', 'Today', 'Active'], icon: '📁', expanded: true, children: [
-                    { id: 'showcase.ts', cells: ['23_all_themes_all_controls_showcase.ts', 'TypeScript', '12 KB', 'Today', 'Active'], icon: '📄' }
-                ]},
-                { id: 'package.json', cells: ['package.json', 'JSON', '1.8 KB', 'Yesterday', 'Locked'], icon: '📄' },
-                { id: 'README.md', cells: ['README.md', 'Markdown', '15 KB', 'Today', 'Published'], icon: '📄' }
-            ]);
+      const thCheckbox = hasCheckboxes
+        ? `<th style="width:36px;padding:8px 6px;text-align:center;border-bottom:1px solid ${border};"><input type="checkbox" class="treegrid-select-all" style="accent-color:${accent};cursor:pointer;" onclick="event.stopPropagation();const tbl=this.closest('table');const chks=tbl.querySelectorAll('tbody .treegrid-row-chk');const isChk=this.checked;chks.forEach(k=>{k.checked=isChk;const tr=k.closest('tr');if(tr){if(isChk){tr.classList.add('selected-tr');tr.style.background='${selBg}';}else{tr.classList.remove('selected-tr');tr.style.background='';}}});if(window['${c.id}_syncTable'])window['${c.id}_syncTable']();"></th>`
+        : "";
 
-            const isMulti = Boolean(c.multi_select || c.multiple || c.selection_mode === 'multiple');
-            const hasCheckboxes = Boolean(c.checkbox_selection || c.selectable_checkbox || c.checkboxes);
-            const tableBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : cbg;
-            const selBg = isLight ? 'rgba(2,132,199,0.18)' : 'rgba(56,189,248,0.22)';
-            const hoverBg = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)';
-            const thColor = isLight ? '#0f172a' : accent;
-            const esc = (s: any) => s === null || s === undefined ? '' : String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+      const tableRowsHtml = flatRows
+        .map((r: FlatTreeItem, rIdx: number) => {
+          const rowPid = esc(r.id);
+          const tdCheckbox = hasCheckboxes
+            ? `<td style="width:36px;padding:6px 6px;text-align:center;"><input type="checkbox" class="treegrid-row-chk" style="accent-color:${accent};cursor:pointer;" onclick="event.stopPropagation();const tr=this.closest('tr');if(tr){if(this.checked){tr.classList.add('selected-tr');tr.style.background='${selBg}';}else{tr.classList.remove('selected-tr');tr.style.background='';}}if(window['${c.id}_syncTable'])window['${c.id}_syncTable']();"></td>`
+            : "";
 
-            const thCheckbox = hasCheckboxes
-                ? `<th style="width:36px;padding:8px 6px;text-align:center;border-bottom:1px solid ${border};"><input type="checkbox" class="treegrid-select-all" style="accent-color:${accent};cursor:pointer;" onclick="event.stopPropagation();const tbl=this.closest('table');const chks=tbl.querySelectorAll('tbody .treegrid-row-chk');const isChk=this.checked;chks.forEach(k=>{k.checked=isChk;const tr=k.closest('tr');if(tr){if(isChk){tr.classList.add('selected-tr');tr.style.background='${selBg}';}else{tr.classList.remove('selected-tr');tr.style.background='';}}});if(window['${c.id}_syncTable'])window['${c.id}_syncTable']();"></th>`
-                : '';
+          const rowClickScript = `const tr=this;const tbody=tr.closest('tbody');const table=tr.closest('table');const rows=Array.from(tbody.querySelectorAll('tr'));const curIdx=rows.indexOf(tr);const lastIdx=parseInt(table.dataset.lastIdx!==undefined?table.dataset.lastIdx:'-1',10);const isMulti=${isMulti};if(isMulti&&(event.ctrlKey||event.metaKey)){tr.classList.toggle('selected-tr');tr.style.background=tr.classList.contains('selected-tr')?'${selBg}':'';const chk=tr.querySelector('.treegrid-row-chk');if(chk)chk.checked=tr.classList.contains('selected-tr');table.dataset.lastIdx=curIdx;}else if(isMulti&&event.shiftKey&&lastIdx>=0){const start=Math.min(lastIdx,curIdx);const end=Math.max(lastIdx,curIdx);for(let i=start;i<=end;i++){rows[i].classList.add('selected-tr');rows[i].style.background='${selBg}';const chk=rows[i].querySelector('.treegrid-row-chk');if(chk)chk.checked=true;}}else{if(!isMulti){rows.forEach(r=>{r.classList.remove('selected-tr');r.style.background='';const chk=r.querySelector('.treegrid-row-chk');if(chk)chk.checked=false;});tr.classList.add('selected-tr');tr.style.background='${selBg}';const chk=tr.querySelector('.treegrid-row-chk');if(chk)chk.checked=true;table.dataset.lastIdx=curIdx;}else{tr.classList.toggle('selected-tr');tr.style.background=tr.classList.contains('selected-tr')?'${selBg}':'';const chk=tr.querySelector('.treegrid-row-chk');if(chk)chk.checked=tr.classList.contains('selected-tr');table.dataset.lastIdx=curIdx;}}window.selectedRowElement=tr;window.selectedRowPid='${rowPid}';if(window.onTableRowClick)window.onTableRowClick(tr);if(window['${c.id}_syncTable'])window['${c.id}_syncTable']();const fn=window['${c.id}_onClick']||window['on_${c.id}_click']||window['${c.id}_onSelect']||window['on_${c.id}_select'];if(fn)fn('${rowPid}');`;
 
-            const tableRowsHtml = flatRows.map((r: FlatTreeItem, rIdx: number) => {
-                const rowPid = esc(r.id);
-                const tdCheckbox = hasCheckboxes
-                    ? `<td style="width:36px;padding:6px 6px;text-align:center;"><input type="checkbox" class="treegrid-row-chk" style="accent-color:${accent};cursor:pointer;" onclick="event.stopPropagation();const tr=this.closest('tr');if(tr){if(this.checked){tr.classList.add('selected-tr');tr.style.background='${selBg}';}else{tr.classList.remove('selected-tr');tr.style.background='';}}if(window['${c.id}_syncTable'])window['${c.id}_syncTable']();"></td>`
-                    : '';
+          const indentPx = r.depth * 18 + 4;
+          const toggleIcon = r.hasChildren
+            ? `<span class="treegrid-toggle" onclick="event.stopPropagation();window['${c.id}_toggleRow']('${rowPid}');" style="width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;font-size:9px;opacity:0.8;transition:transform 0.15s;transform:${r.expanded ? "rotate(90deg)" : "rotate(0deg)"};color:${accent};">▶</span>`
+            : `<span class="treegrid-spacer" style="width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;font-size:7px;opacity:0.25;">•</span>`;
 
-                const rowClickScript = `const tr=this;const tbody=tr.closest('tbody');const table=tr.closest('table');const rows=Array.from(tbody.querySelectorAll('tr'));const curIdx=rows.indexOf(tr);const lastIdx=parseInt(table.dataset.lastIdx!==undefined?table.dataset.lastIdx:'-1',10);const isMulti=${isMulti};if(isMulti&&(event.ctrlKey||event.metaKey)){tr.classList.toggle('selected-tr');tr.style.background=tr.classList.contains('selected-tr')?'${selBg}':'';const chk=tr.querySelector('.treegrid-row-chk');if(chk)chk.checked=tr.classList.contains('selected-tr');table.dataset.lastIdx=curIdx;}else if(isMulti&&event.shiftKey&&lastIdx>=0){const start=Math.min(lastIdx,curIdx);const end=Math.max(lastIdx,curIdx);for(let i=start;i<=end;i++){rows[i].classList.add('selected-tr');rows[i].style.background='${selBg}';const chk=rows[i].querySelector('.treegrid-row-chk');if(chk)chk.checked=true;}}else{if(!isMulti){rows.forEach(r=>{r.classList.remove('selected-tr');r.style.background='';const chk=r.querySelector('.treegrid-row-chk');if(chk)chk.checked=false;});tr.classList.add('selected-tr');tr.style.background='${selBg}';const chk=tr.querySelector('.treegrid-row-chk');if(chk)chk.checked=true;table.dataset.lastIdx=curIdx;}else{tr.classList.toggle('selected-tr');tr.style.background=tr.classList.contains('selected-tr')?'${selBg}':'';const chk=tr.querySelector('.treegrid-row-chk');if(chk)chk.checked=tr.classList.contains('selected-tr');table.dataset.lastIdx=curIdx;}}window.selectedRowElement=tr;window.selectedRowPid='${rowPid}';if(window.onTableRowClick)window.onTableRowClick(tr);if(window['${c.id}_syncTable'])window['${c.id}_syncTable']();const fn=window['${c.id}_onClick']||window['on_${c.id}_click']||window['${c.id}_onSelect']||window['on_${c.id}_select'];if(fn)fn('${rowPid}');`;
+          const iconHtml = r.icon
+            ? `<span class="treegrid-node-icon" style="font-size:13px;display:inline-flex;align-items:center;margin-right:2px;">${r.icon}</span>`
+            : "";
+          const firstCellText = esc(r.cells[0] || "");
 
-                const indentPx = r.depth * 18 + 4;
-                const toggleIcon = r.hasChildren
-                    ? `<span class="treegrid-toggle" onclick="event.stopPropagation();window['${c.id}_toggleRow']('${rowPid}');" style="width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;font-size:9px;opacity:0.8;transition:transform 0.15s;transform:${r.expanded ? 'rotate(90deg)' : 'rotate(0deg)'};color:${accent};">▶</span>`
-                    : `<span class="treegrid-spacer" style="width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;font-size:7px;opacity:0.25;">•</span>`;
+          const firstTd = `<td style="padding:6px 10px;white-space:nowrap;"><div style="display:flex;align-items:center;padding-left:${indentPx}px;gap:6px;">${toggleIcon}${iconHtml}<span class="treegrid-node-label" style="font-weight:${r.hasChildren ? "700" : "normal"};color:${color};">${firstCellText}</span></div></td>`;
 
-                const iconHtml = r.icon ? `<span class="treegrid-node-icon" style="font-size:13px;display:inline-flex;align-items:center;margin-right:2px;">${r.icon}</span>` : '';
-                const firstCellText = esc(r.cells[0] || '');
+          const otherTds = r.cells
+            .slice(1)
+            .map((cell: any, cIdx: number) => {
+              const actualColIdx = cIdx + 1;
+              const cellStr = esc(cell);
+              const isRightAlign =
+                headers[actualColIdx] &&
+                (headers[actualColIdx].toLowerCase().includes("size") ||
+                  headers[actualColIdx].toLowerCase().includes("count") ||
+                  headers[actualColIdx].toLowerCase().includes("amount") ||
+                  headers[actualColIdx].toLowerCase().includes("price") ||
+                  headers[actualColIdx].toLowerCase().includes("port"));
+              const alignStyle = isRightAlign
+                ? "text-align:right;"
+                : "text-align:left;";
+              const monoStyle = isRightAlign ? "font-family:monospace;" : "";
+              return `<td style="padding:6px 12px;white-space:nowrap;${alignStyle}${monoStyle};color:${color};opacity:0.9;">${cellStr}</td>`;
+            })
+            .join("");
 
-                const firstTd = `<td style="padding:6px 10px;white-space:nowrap;"><div style="display:flex;align-items:center;padding-left:${indentPx}px;gap:6px;">${toggleIcon}${iconHtml}<span class="treegrid-node-label" style="font-weight:${r.hasChildren ? '700' : 'normal'};color:${color};">${firstCellText}</span></div></td>`;
+          const displayStyle = r.visible ? "" : "display:none;";
+          return `<tr class="treegrid-row" style="${displayStyle}border-bottom:1px solid ${border};cursor:pointer;transition:background 0.12s;" data-tree-id="${rowPid}" data-parent-id="${esc(r.parentId)}" data-depth="${r.depth}" data-has-children="${r.hasChildren ? "true" : "false"}" data-expanded="${r.expanded ? "true" : "false"}" data-pid="${rowPid}" data-row-index="${rIdx}" onclick="${rowClickScript}" onmouseover="if(!this.classList.contains('selected-tr'))this.style.background='${hoverBg}'" onmouseout="if(!this.classList.contains('selected-tr'))this.style.background=''">${tdCheckbox}${firstTd}${otherTds}</tr>`;
+        })
+        .join("");
 
-                const otherTds = r.cells.slice(1).map((cell: any, cIdx: number) => {
-                    const actualColIdx = cIdx + 1;
-                    const cellStr = esc(cell);
-                    const isRightAlign = (headers[actualColIdx] && (headers[actualColIdx].toLowerCase().includes('size') || headers[actualColIdx].toLowerCase().includes('count') || headers[actualColIdx].toLowerCase().includes('amount') || headers[actualColIdx].toLowerCase().includes('price') || headers[actualColIdx].toLowerCase().includes('port')));
-                    const alignStyle = isRightAlign ? 'text-align:right;' : 'text-align:left;';
-                    const monoStyle = isRightAlign ? 'font-family:monospace;' : '';
-                    return `<td style="padding:6px 12px;white-space:nowrap;${alignStyle}${monoStyle};color:${color};opacity:0.9;">${cellStr}</td>`;
-                }).join('');
-
-                const displayStyle = r.visible ? '' : 'display:none;';
-                return `<tr class="treegrid-row" style="${displayStyle}border-bottom:1px solid ${border};cursor:pointer;transition:background 0.12s;" data-tree-id="${rowPid}" data-parent-id="${esc(r.parentId)}" data-depth="${r.depth}" data-has-children="${r.hasChildren ? 'true' : 'false'}" data-expanded="${r.expanded ? 'true' : 'false'}" data-pid="${rowPid}" data-row-index="${rIdx}" onclick="${rowClickScript}" onmouseover="if(!this.classList.contains('selected-tr'))this.style.background='${hoverBg}'" onmouseout="if(!this.classList.contains('selected-tr'))this.style.background=''">${tdCheckbox}${firstTd}${otherTds}</tr>`;
-            }).join('');
-
-            const syncAndToggleScript = `<script>
+      const syncAndToggleScript = `<script>
 (function() {
     window['${c.id}_syncTable'] = function() {
         const cont = document.getElementById('${c.id}');
@@ -2519,177 +3586,343 @@ export function generatePreviewHtml(spec: any): string {
 })();
 </script>`;
 
-            controls += `<div${id}${titleAttr} class="rad-treegrid-container" style="${base(c)}overflow:auto;${defBorder}${defRadius}background:${tableBg};"><input type="hidden" id="${c.id}_selected" name="${c.id}_selected" value=""><table style="width:100%;border-collapse:collapse;font-size:12px;color:${color};"><thead><tr style="background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'};position:sticky;top:0;z-index:2;">${thCheckbox}${headers.map((h: any, colIdx: number) => {
-                const isRight = h && (h.toLowerCase().includes('size') || h.toLowerCase().includes('count') || h.toLowerCase().includes('amount') || h.toLowerCase().includes('price') || h.toLowerCase().includes('port'));
-                const alignStyle = isRight ? 'text-align:right;' : 'text-align:left;';
-                return `<th onclick="window['${c.id}_sortTreeGrid'](${colIdx}, this);" style="position:relative;padding:8px 12px;${alignStyle}font-weight:700;color:${thColor};border-bottom:1px solid ${border};white-space:nowrap;cursor:pointer;user-select:none;"><span>${esc(h)}</span><span class="sort-icon" style="font-size:10px;opacity:0.6;margin-left:4px;"></span><span class="th-resizer" onclick="event.stopPropagation();" onmousedown="event.stopPropagation();event.preventDefault();const th=this.parentNode;const startX=event.clientX;const startW=th.offsetWidth;function onColMove(e){const w=Math.max(40, startW + (e.clientX - startX));th.style.width=w+'px';th.style.minWidth=w+'px';}function onColUp(){window.removeEventListener('mousemove',onColMove);window.removeEventListener('mouseup',onColUp);}window.addEventListener('mousemove',onColMove);window.addEventListener('mouseup',onColUp);" style="position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;user-select:none;opacity:0.2;" onmouseover="this.style.opacity='1';this.style.background='${accent}';" onmouseout="this.style.opacity='0.2';this.style.background='transparent';"></span></th>`;
-            }).join('')}</tr></thead><tbody>${tableRowsHtml}</tbody></table></div>\n${syncAndToggleScript}\n`;
-        } else if (t === 'segmented_control') {
-            const items = (text || 'Overview, Analytics, Reports').split(',').map((s: string) => s.trim());
-            const sel = c.value || items[0] || '';
-            const segBg = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)';
-            const segRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
-            const activeBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : accent;
-            controls += `<div${id}${titleAttr}${ev} data-value="${sel}" style="${base(c)}display:flex;align-items:center;background:${cbg !== 'transparent' ? cbg : segBg};padding:3px;${defBorder}${segRadius}gap:3px;">${items.map((item: string) => {
-                const isSel = item === sel;
-                const itemBg = isSel ? activeBg : 'transparent';
-                const itemFg = isSel ? '#ffffff' : color;
-                return `<button onclick="this.parentNode.querySelectorAll('button').forEach(b=>{b.style.background='transparent';b.style.color='${color}'});this.style.background='${activeBg}';this.style.color='#ffffff';this.parentNode.dataset.value='${item}';if(window['${c.id}_onChange'])window['${c.id}_onChange']('${item}');else if(window['on_${c.id}_change'])window['on_${c.id}_change']('${item}');" style="flex:1;height:100%;border:none;border-radius:6px;background:${itemBg};color:${itemFg};font-weight:600;font-size:11px;cursor:${c.cursor||'pointer'};transition:all 0.15s;">${item}</button>`;
-            }).join('')}</div>\n`;
-        } else if (t === 'tree_view') {
-            const rawNodes = (text || '📂 Project Root, 📂 src, 📄 index.ts, 📄 styles.css, 📁 assets, 🖼️ logo.png').split(',').map((n: string) => n.trim());
-            const treeBg = cbg;
-            const selBg = isLight ? 'rgba(2,132,199,0.15)' : 'rgba(56,189,248,0.2)';
-            const selFg = isLight ? '#0f172a' : accent;
-            controls += `<div${id}${titleAttr}${ev} class="rad-tree-container" data-selected="" style="${base(c)}background:${treeBg};${defBorder}${defRadius}padding:6px 8px;overflow:auto;display:flex;flex-direction:column;gap:2px;font-size:12px;color:${color};">${rawNodes.map((nodeText: string, idx: number) => {
-                const isFolder = nodeText.includes('📁') || nodeText.includes('Project Root') || nodeText.includes('src') || nodeText.includes('assets') || idx === 0;
-                const indent = idx === 0 ? 0 : (idx === 1 || idx === 4 ? 16 : 32);
-                const arrowIcon = isFolder ? '▼' : ' ';
-                const cleanName = nodeText;
-                return `<div class="tree-node${idx===0?' selected-tree-node':''}" data-node="${cleanName}" style="padding:4px 8px;padding-left:${indent + 8}px;border-radius:4px;display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;transition:background 0.12s;${idx===0 ? `background:${selBg};color:${selFg};font-weight:600;` : ''}" onclick="event.stopPropagation();const container=this.closest('.rad-tree-container');container.querySelectorAll('.tree-node').forEach(n=>{n.style.background='transparent';n.style.color='${color}';n.style.fontWeight='normal';});this.style.background='${selBg}';this.style.color='${selFg}';this.style.fontWeight='600';container.dataset.selected=this.dataset.node;if(window['${c.id}_onSelect'])window['${c.id}_onSelect'](this.dataset.node);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](this.dataset.node);if(window['${c.id}_onNodeClick'])window['${c.id}_onNodeClick'](this.dataset.node);" onmouseover="if(!this.style.background.includes('rgba')){this.style.background='${isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)'}'}" onmouseout="if(!this.style.background.includes('rgba(56')&&!this.style.background.includes('rgba(2,132')){this.style.background='transparent';}"><span class="tree-arrow" onclick="event.stopPropagation();const isCollapsed=this.textContent==='▶';this.textContent=isCollapsed?'▼':'▶';let curr=this.closest('.tree-node').nextElementSibling;while(curr){const currIndent=parseInt(curr.style.paddingLeft||'0');if(currIndent<=${indent + 8})break;curr.style.display=isCollapsed?'flex':'none';curr=curr.nextElementSibling;}" style="width:12px;font-size:9px;opacity:0.7;display:inline-block;cursor:pointer;">${arrowIcon}</span><span>${cleanName}</span></div>`;
-            }).join('')}</div>\n`;
-        } else if (t === 'avatar_group') {
-            const avatars = (text || 'JD, AS, MK, +3').split(',').map((a: string) => a.trim());
-            const avColors = ['#0284c7', '#7c3aed', '#059669', '#d97706', '#dc2626'];
-            controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;align-items:center;padding:0 4px;">${avatars.map((av: string, i: number) => {
-                const bgCol = av.startsWith('+') ? (isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.2)') : avColors[i % avColors.length];
-                return `<div style="width:32px;height:32px;border-radius:50%;background:${bgCol};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2px solid ${bg};margin-left:${i === 0 ? '0' : '-8px'};box-shadow:0 2px 4px rgba(0,0,0,0.2);flex-shrink:0;" title="${av}">${av}</div>`;
-            }).join('')}</div>\n`;
-        } else if (t === 'stat_chart') {
-            const val = c.value !== undefined ? c.value : '$48,290';
-            const trend = c.trend || '+18.4%';
-            const scRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:10px;';
-            controls += `<div${id}${titleAttr}${ev} style="${base(c)}background:${cbg};${defBorder}${scRadius}padding:10px 12px;display:flex;flex-direction:column;justify-content:space-between;"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:10px;font-weight:700;color:${color};opacity:0.7;text-transform:uppercase;">${text||'Monthly Revenue'}</span><span style="font-size:10px;font-weight:700;color:#10b981;background:rgba(16,185,129,0.15);padding:2px 6px;border-radius:4px;">${trend}</span></div><div style="font-size:20px;font-weight:800;color:${color};">${val}</div><svg viewBox="0 0 100 24" style="width:100%;height:24px;overflow:visible;"><path d="M0 20 L20 14 L40 17 L60 8 L80 12 L100 2" fill="none" stroke="${accent}" stroke-width="2.5" stroke-linecap="round"/><path d="M0 20 L20 14 L40 17 L60 8 L80 12 L100 2 L100 24 L0 24 Z" fill="${accent}" opacity="0.15"/></svg></div>\n`;
-        } else if (t === 'accordion') {
-            const accRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
-            controls += `<div${id}${titleAttr}${ev} style="${base(c)}background:${cbg};${defBorder}${accRadius}overflow:hidden;display:flex;flex-direction:column;"><div onclick="const body=this.nextElementSibling;const arrow=this.querySelector('.acc-arrow');if(body.style.display==='none'){body.style.display='block';arrow.textContent='▼';}else{body.style.display='none';arrow.textContent='▶';}" style="padding:8px 12px;background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'};font-weight:700;font-size:12px;color:${color};display:flex;justify-content:space-between;align-items:center;cursor:pointer;"><span>${text||'Accordion Section'}</span><span class="acc-arrow" style="font-size:10px;opacity:0.7;">▼</span></div><div style="padding:10px 12px;font-size:11px;color:${color};opacity:0.85;border-top:1px solid ${border};">${c.placeholder||'Collapsible accordion content panel details.'}</div></div>\n`;
-        } else if (t === 'breadcrumb') {
-            const crumbs = (text || 'Home, Projects, App Settings').split(',').map((cr: string) => cr.trim());
-            controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;align-items:center;gap:6px;font-size:11px;color:${color};">${crumbs.map((crumb: string, i: number) => {
-                const isLast = i === crumbs.length - 1;
-                const colStyle = isLast ? `font-weight:700;color:${accent};` : `opacity:0.7;cursor:pointer;`;
-                return `${i > 0 ? `<span style="opacity:0.4;">›</span>` : ''}<span style="${colStyle}">${crumb}</span>`;
-            }).join('')}</div>\n`;
-        } else if (t === 'timeline') {
-            const steps = (text || 'Order Placed, Payment Verified, In Transit, Delivered').split(',').map((st: string) => st.trim());
-            controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:8px;padding:6px 8px;">${steps.map((step: string, i: number) => {
-                const active = i <= 1;
-                const nodeCol = active ? accent : (isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)');
-                return `<div style="display:flex;align-items:center;gap:10px;font-size:11px;color:${color};"><div style="width:10px;height:10px;border-radius:50%;background:${nodeCol};box-shadow:${active ? `0 0 6px ${accent}` : 'none'};flex-shrink:0;"></div><span style="font-weight:${active ? '700' : 'normal'};opacity:${active ? '1' : '0.6'};">${step}</span></div>`;
-            }).join('')}</div>\n`;
-        } else if (t === 'toast_card') {
-            const tCol = c.alert_type === 'error' ? sem.danger.solid : c.alert_type === 'warning' ? sem.warning.solid : c.alert_type === 'info' ? accent : sem.success.solid;
-            const tIcon = c.alert_type === 'error' ? '❌' : c.alert_type === 'warning' ? '⚠️' : c.alert_type === 'info' ? 'ℹ️' : '✅';
-            const tRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:10px;';
-            controls += `<div${id}${titleAttr}${ev} style="${base(c)}background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b')};border-left:4px solid ${tCol};${defBorder}${tRadius}padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 4px 14px rgba(0,0,0,0.25);"><div style="display:flex;align-items:center;gap:10px;"><span style="font-size:16px;">${tIcon}</span><div style="display:flex;flex-direction:column;"><span style="font-weight:700;font-size:12px;color:${color};">${text||'Notification'}</span><span style="font-size:10px;color:${color};opacity:0.7;">${c.placeholder||'Action performed successfully.'}</span></div></div><button onclick="this.parentNode.style.display='none'" style="background:none;border:none;color:${color};opacity:0.5;cursor:pointer;font-size:14px;">✕</button></div>\n`;
-        } else if (t === 'time_picker') {
-            const val = c.value || '09:30';
-            controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;align-items:center;gap:8px;background:${cbg};${defBorder}${defRadius}padding:0 10px;color:${color};"><span style="font-size:14px;opacity:0.7;">🕒</span><input type="time" value="${val}" style="background:none;border:none;color:inherit;font-family:inherit;font-size:${c.font_size||13}px;outline:none;width:100%;color-scheme:${isLight ? 'light' : 'dark'};"></div>\n`;
-        } else if (t === 'rich_select') {
-            const optList = c.options || 'React.js, Vue.js, Angular, Svelte, Next.js, Bun RAD Studio, TypeScript';
-            controls += `<div${id}${titleAttr}${ev} class="rad-rich-select" style="${base(c)}background:${cbg};${defBorder}${defRadius}display:flex;align-items:center;gap:6px;padding:0 8px;color:${color};"><span style="opacity:0.6;font-size:13px;flex-shrink:0;">🔍</span><input type="text" value="${text || ''}" placeholder="${c.placeholder || 'Type to search options...'}" style="flex:1;background:none;border:none;color:inherit;font-family:inherit;font-size:${c.font_size||12}px;outline:none;width:100%;" oninput="const val=this.value.toLowerCase();const dropdown=this.parentNode.querySelector('.rich-select-dropdown');if(dropdown){dropdown.style.display='block';dropdown.querySelectorAll('.rich-select-option').forEach(opt=>{opt.style.display=opt.textContent.toLowerCase().includes(val)?'block':'none';});}if(window['${c.id}_onChange'])window['${c.id}_onChange'](this.value);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](this.value);" onfocus="const dropdown=this.parentNode.querySelector('.rich-select-dropdown');if(dropdown)dropdown.style.display='block';" onblur="setTimeout(()=>{const dropdown=this.parentNode.querySelector('.rich-select-dropdown');if(dropdown)dropdown.style.display='none';},200)"><span style="font-size:10px;opacity:0.5;cursor:pointer;flex-shrink:0;" onclick="const input=this.parentNode.querySelector('input');input.focus();">▼</span><div class="rich-select-dropdown" style="display:none;position:absolute;left:0;top:100%;width:100%;max-height:160px;overflow-y:auto;background:${isLight?'#ffffff':'#1e293b'};border:1px solid ${border};border-radius:6px;margin-top:4px;box-shadow:0 6px 16px rgba(0,0,0,0.3);z-index:999;">${optList.split(',').map((opt: string) => { const clean = opt.trim(); return `<div class="rich-select-option" style="padding:6px 10px;font-size:11px;cursor:pointer;color:${color};" onmouseover="this.style.background='${isLight?'rgba(2,132,199,0.1)':'rgba(56,189,248,0.15)'}'" onmouseout="this.style.background='transparent'" onmousedown="event.preventDefault()" onclick="const input=this.closest('.rad-rich-select').querySelector('input');input.value='${clean}';this.parentNode.style.display='none';if(window['${c.id}_onChange'])window['${c.id}_onChange']('${clean}');else if(window['on_${c.id}_change'])window['on_${c.id}_change']('${clean}');">${clean}</div>`; }).join('')}</div></div>\n`;
-        } else if (t === 'property_grid') {
-            const rawProps = text || 'Theme: Dark, Font Size: 13px, Auto Save: True, Version: 1.4.0';
-            const propsList = rawProps.split(',').map((s: string) => s.trim().split(':')).filter((arr: string[]) => arr.length === 2);
-            const pgRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
-            const customClick = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
-            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b')};${defBorder}${pgRadius}display:flex;flex-direction:column;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.2);"><div style="padding:6px 10px;background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'};font-weight:700;font-size:11px;color:${accent};border-bottom:1px solid ${border};display:flex;align-items:center;gap:6px;"><span>📋</span><span>${c.caption || 'Property Inspector'}</span></div><div class="prop-grid-body" style="display:flex;flex-direction:column;overflow-y:auto;flex:1;min-height:0;">${propsList.map((pair: string[]) => {
-                const k = (pair[0] || '').trim(); const v = (pair[1] || '').trim();
-                return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 10px;border-bottom:1px solid ${border};font-size:11px;cursor:pointer;" onmouseover="this.style.background='${isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.05)'}'" onmouseout="this.style.background=''" onclick="event.stopPropagation();const fnK=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK('${k}: ${v}');"><span style="font-weight:600;color:${color};opacity:0.85;">${k}</span><span style="font-size:11px;color:${accent};font-weight:600;font-family:monospace;">${v}</span></div>`;
-            }).join('')}</div></div>\n`;
-        } else if (t === 'popup_menu') {
-            const rawItems = text || '✂️ Cut  ⌘X, 📋 Copy  ⌘C, 📄 Paste  ⌘V, ---, 🗑️ Delete  ⌫';
-            const items = rawItems.split(',').map((s: string) => s.trim());
-            const pmRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:10px;';
-            const customClick = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
-            controls += `<div${id}${titleAttr} class="rad-popup-menu" style="${base(c)}background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b')};${defBorder}${pmRadius}padding:6px;display:flex;flex-direction:column;gap:2px;box-shadow:0 10px 25px rgba(0,0,0,0.4);">${items.map((it: string) => {
-                if (it === '---') return `<div style="height:1px;background:${border};margin:4px 0;"></div>`;
-                const parts = it.split(/\s{2,}/);
-                const label = parts[0] || it;
-                const shortcut = parts[1] || '';
-                return `<div class="popup-item" style="padding:6px 10px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:${color};cursor:pointer;transition:background 0.12s;" onmouseover="this.style.background='${isLight ? 'rgba(2,132,199,0.12)' : 'rgba(56,189,248,0.18)'}'" onmouseout="this.style.background=''" onclick="event.stopPropagation();const fnK=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK('${label.replace(/'/g, "\\'")}');"><span>${label}</span>${shortcut ? `<span style="font-size:10px;opacity:0.5;font-family:monospace;">${shortcut}</span>` : ''}</div>`;
-            }).join('')}</div>\n`;
-        } else if (t === 'calendar_view') {
-            const calRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:12px;';
-            const calBg = cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b');
-            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
-            const curDate = text || 'July 2026';
-            const selDay = Number(c.value) || 25;
+      controls += `<div${id}${titleAttr} class="rad-treegrid-container" style="${base(c)}overflow:auto;${defBorder}${defRadius}background:${tableBg};"><input type="hidden" id="${c.id}_selected" name="${c.id}_selected" value=""><table style="width:100%;border-collapse:collapse;font-size:12px;color:${color};"><thead><tr style="background:${isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)"};position:sticky;top:0;z-index:2;">${thCheckbox}${headers
+        .map((h: any, colIdx: number) => {
+          const isRight =
+            h &&
+            (h.toLowerCase().includes("size") ||
+              h.toLowerCase().includes("count") ||
+              h.toLowerCase().includes("amount") ||
+              h.toLowerCase().includes("price") ||
+              h.toLowerCase().includes("port"));
+          const alignStyle = isRight ? "text-align:right;" : "text-align:left;";
+          return `<th onclick="window['${c.id}_sortTreeGrid'](${colIdx}, this);" style="position:relative;padding:8px 12px;${alignStyle}font-weight:700;color:${thColor};border-bottom:1px solid ${border};white-space:nowrap;cursor:pointer;user-select:none;"><span>${esc(h)}</span><span class="sort-icon" style="font-size:10px;opacity:0.6;margin-left:4px;"></span><span class="th-resizer" onclick="event.stopPropagation();" onmousedown="event.stopPropagation();event.preventDefault();const th=this.parentNode;const startX=event.clientX;const startW=th.offsetWidth;function onColMove(e){const w=Math.max(40, startW + (e.clientX - startX));th.style.width=w+'px';th.style.minWidth=w+'px';}function onColUp(){window.removeEventListener('mousemove',onColMove);window.removeEventListener('mouseup',onColUp);}window.addEventListener('mousemove',onColMove);window.addEventListener('mouseup',onColUp);" style="position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;user-select:none;opacity:0.2;" onmouseover="this.style.opacity='1';this.style.background='${accent}';" onmouseout="this.style.opacity='0.2';this.style.background='transparent';"></span></th>`;
+        })
+        .join(
+          "",
+        )}</tr></thead><tbody>${tableRowsHtml}</tbody></table></div>\n${syncAndToggleScript}\n`;
+    } else if (t === "segmented_control") {
+      const items = (text || "Overview, Analytics, Reports")
+        .split(",")
+        .map((s: string) => s.trim());
+      const sel = c.value || items[0] || "";
+      const segBg = isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)";
+      const segRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:8px;";
+      const activeBg =
+        c.background_color && c.background_color !== "transparent"
+          ? c.background_color
+          : accent;
+      controls += `<div${id}${titleAttr}${ev} data-value="${sel}" style="${base(c)}display:flex;align-items:center;background:${cbg !== "transparent" ? cbg : segBg};padding:3px;${defBorder}${segRadius}gap:3px;">${items
+        .map((item: string) => {
+          const isSel = item === sel;
+          const itemBg = isSel ? activeBg : "transparent";
+          const itemFg = isSel ? "#ffffff" : color;
+          return `<button onclick="this.parentNode.querySelectorAll('button').forEach(b=>{b.style.background='transparent';b.style.color='${color}'});this.style.background='${activeBg}';this.style.color='#ffffff';this.parentNode.dataset.value='${item}';if(window['${c.id}_onChange'])window['${c.id}_onChange']('${item}');else if(window['on_${c.id}_change'])window['on_${c.id}_change']('${item}');" style="flex:1;height:100%;border:none;border-radius:6px;background:${itemBg};color:${itemFg};font-weight:600;font-size:11px;cursor:${c.cursor || "pointer"};transition:all 0.15s;">${item}</button>`;
+        })
+        .join("")}</div>\n`;
+    } else if (t === "tree_view") {
+      const rawNodes = (
+        text ||
+        "📂 Project Root, 📂 src, 📄 index.ts, 📄 styles.css, 📁 assets, 🖼️ logo.png"
+      )
+        .split(",")
+        .map((n: string) => n.trim());
+      const treeBg = cbg;
+      const selBg = isLight ? "rgba(2,132,199,0.15)" : "rgba(56,189,248,0.2)";
+      const selFg = isLight ? "#0f172a" : accent;
+      controls += `<div${id}${titleAttr}${ev} class="rad-tree-container" data-selected="" style="${base(c)}background:${treeBg};${defBorder}${defRadius}padding:6px 8px;overflow:auto;display:flex;flex-direction:column;gap:2px;font-size:12px;color:${color};">${rawNodes
+        .map((nodeText: string, idx: number) => {
+          const isFolder =
+            nodeText.includes("📁") ||
+            nodeText.includes("Project Root") ||
+            nodeText.includes("src") ||
+            nodeText.includes("assets") ||
+            idx === 0;
+          const indent = idx === 0 ? 0 : idx === 1 || idx === 4 ? 16 : 32;
+          const arrowIcon = isFolder ? "▼" : " ";
+          const cleanName = nodeText;
+          return `<div class="tree-node${idx === 0 ? " selected-tree-node" : ""}" data-node="${cleanName}" style="padding:4px 8px;padding-left:${indent + 8}px;border-radius:4px;display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;transition:background 0.12s;${idx === 0 ? `background:${selBg};color:${selFg};font-weight:600;` : ""}" onclick="event.stopPropagation();const container=this.closest('.rad-tree-container');container.querySelectorAll('.tree-node').forEach(n=>{n.style.background='transparent';n.style.color='${color}';n.style.fontWeight='normal';});this.style.background='${selBg}';this.style.color='${selFg}';this.style.fontWeight='600';container.dataset.selected=this.dataset.node;if(window['${c.id}_onSelect'])window['${c.id}_onSelect'](this.dataset.node);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](this.dataset.node);if(window['${c.id}_onNodeClick'])window['${c.id}_onNodeClick'](this.dataset.node);" onmouseover="if(!this.style.background.includes('rgba')){this.style.background='${isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)"}'}" onmouseout="if(!this.style.background.includes('rgba(56')&&!this.style.background.includes('rgba(2,132')){this.style.background='transparent';}"><span class="tree-arrow" onclick="event.stopPropagation();const isCollapsed=this.textContent==='▶';this.textContent=isCollapsed?'▼':'▶';let curr=this.closest('.tree-node').nextElementSibling;while(curr){const currIndent=parseInt(curr.style.paddingLeft||'0');if(currIndent<=${indent + 8})break;curr.style.display=isCollapsed?'flex':'none';curr=curr.nextElementSibling;}" style="width:12px;font-size:9px;opacity:0.7;display:inline-block;cursor:pointer;">${arrowIcon}</span><span>${cleanName}</span></div>`;
+        })
+        .join("")}</div>\n`;
+    } else if (t === "avatar_group") {
+      const avatars = (text || "JD, AS, MK, +3")
+        .split(",")
+        .map((a: string) => a.trim());
+      const avColors = ["#0284c7", "#7c3aed", "#059669", "#d97706", "#dc2626"];
+      controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;align-items:center;padding:0 4px;">${avatars
+        .map((av: string, i: number) => {
+          const bgCol = av.startsWith("+")
+            ? isLight
+              ? "rgba(0,0,0,0.15)"
+              : "rgba(255,255,255,0.2)"
+            : avColors[i % avColors.length];
+          return `<div style="width:32px;height:32px;border-radius:50%;background:${bgCol};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2px solid ${bg};margin-left:${i === 0 ? "0" : "-8px"};box-shadow:0 2px 4px rgba(0,0,0,0.2);flex-shrink:0;" title="${av}">${av}</div>`;
+        })
+        .join("")}</div>\n`;
+    } else if (t === "stat_chart") {
+      const val = c.value !== undefined ? c.value : "$48,290";
+      const trend = c.trend || "+18.4%";
+      const scRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:10px;";
+      controls += `<div${id}${titleAttr}${ev} style="${base(c)}background:${cbg};${defBorder}${scRadius}padding:10px 12px;display:flex;flex-direction:column;justify-content:space-between;"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:10px;font-weight:700;color:${color};opacity:0.7;text-transform:uppercase;">${text || "Monthly Revenue"}</span><span style="font-size:10px;font-weight:700;color:#10b981;background:rgba(16,185,129,0.15);padding:2px 6px;border-radius:4px;">${trend}</span></div><div style="font-size:20px;font-weight:800;color:${color};">${val}</div><svg viewBox="0 0 100 24" style="width:100%;height:24px;overflow:visible;"><path d="M0 20 L20 14 L40 17 L60 8 L80 12 L100 2" fill="none" stroke="${accent}" stroke-width="2.5" stroke-linecap="round"/><path d="M0 20 L20 14 L40 17 L60 8 L80 12 L100 2 L100 24 L0 24 Z" fill="${accent}" opacity="0.15"/></svg></div>\n`;
+    } else if (t === "accordion") {
+      const accRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:8px;";
+      controls += `<div${id}${titleAttr}${ev} style="${base(c)}background:${cbg};${defBorder}${accRadius}overflow:hidden;display:flex;flex-direction:column;"><div onclick="const body=this.nextElementSibling;const arrow=this.querySelector('.acc-arrow');if(body.style.display==='none'){body.style.display='block';arrow.textContent='▼';}else{body.style.display='none';arrow.textContent='▶';}" style="padding:8px 12px;background:${isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)"};font-weight:700;font-size:12px;color:${color};display:flex;justify-content:space-between;align-items:center;cursor:pointer;"><span>${text || "Accordion Section"}</span><span class="acc-arrow" style="font-size:10px;opacity:0.7;">▼</span></div><div style="padding:10px 12px;font-size:11px;color:${color};opacity:0.85;border-top:1px solid ${border};">${c.placeholder || "Collapsible accordion content panel details."}</div></div>\n`;
+    } else if (t === "breadcrumb") {
+      const crumbs = (text || "Home, Projects, App Settings")
+        .split(",")
+        .map((cr: string) => cr.trim());
+      controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;align-items:center;gap:6px;font-size:11px;color:${color};">${crumbs
+        .map((crumb: string, i: number) => {
+          const isLast = i === crumbs.length - 1;
+          const colStyle = isLast
+            ? `font-weight:700;color:${accent};`
+            : `opacity:0.7;cursor:pointer;`;
+          return `${i > 0 ? `<span style="opacity:0.4;">›</span>` : ""}<span style="${colStyle}">${crumb}</span>`;
+        })
+        .join("")}</div>\n`;
+    } else if (t === "timeline") {
+      const steps = (
+        text || "Order Placed, Payment Verified, In Transit, Delivered"
+      )
+        .split(",")
+        .map((st: string) => st.trim());
+      controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:8px;padding:6px 8px;">${steps
+        .map((step: string, i: number) => {
+          const active = i <= 1;
+          const nodeCol = active
+            ? accent
+            : isLight
+              ? "rgba(0,0,0,0.2)"
+              : "rgba(255,255,255,0.2)";
+          return `<div style="display:flex;align-items:center;gap:10px;font-size:11px;color:${color};"><div style="width:10px;height:10px;border-radius:50%;background:${nodeCol};box-shadow:${active ? `0 0 6px ${accent}` : "none"};flex-shrink:0;"></div><span style="font-weight:${active ? "700" : "normal"};opacity:${active ? "1" : "0.6"};">${step}</span></div>`;
+        })
+        .join("")}</div>\n`;
+    } else if (t === "toast_card") {
+      const tCol =
+        c.alert_type === "error"
+          ? sem.danger.solid
+          : c.alert_type === "warning"
+            ? sem.warning.solid
+            : c.alert_type === "info"
+              ? accent
+              : sem.success.solid;
+      const tIcon =
+        c.alert_type === "error"
+          ? "❌"
+          : c.alert_type === "warning"
+            ? "⚠️"
+            : c.alert_type === "info"
+              ? "ℹ️"
+              : "✅";
+      const tRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:10px;";
+      controls += `<div${id}${titleAttr}${ev} style="${base(c)}background:${cbg !== "transparent" ? cbg : isLight ? "#ffffff" : "#1e293b"};border-left:4px solid ${tCol};${defBorder}${tRadius}padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 4px 14px rgba(0,0,0,0.25);"><div style="display:flex;align-items:center;gap:10px;"><span style="font-size:16px;">${tIcon}</span><div style="display:flex;flex-direction:column;"><span style="font-weight:700;font-size:12px;color:${color};">${text || "Notification"}</span><span style="font-size:10px;color:${color};opacity:0.7;">${c.placeholder || "Action performed successfully."}</span></div></div><button onclick="this.parentNode.style.display='none'" style="background:none;border:none;color:${color};opacity:0.5;cursor:pointer;font-size:14px;">✕</button></div>\n`;
+    } else if (t === "time_picker") {
+      const val = c.value || "09:30";
+      controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;align-items:center;gap:8px;background:${cbg};${defBorder}${defRadius}padding:0 10px;color:${color};"><span style="font-size:14px;opacity:0.7;">🕒</span><input type="time" value="${val}" style="background:none;border:none;color:inherit;font-family:inherit;font-size:${c.font_size || 13}px;outline:none;width:100%;color-scheme:${isLight ? "light" : "dark"};"></div>\n`;
+    } else if (t === "rich_select") {
+      const optList =
+        c.options ||
+        "React.js, Vue.js, Angular, Svelte, Next.js, Bun RAD Studio, TypeScript";
+      controls += `<div${id}${titleAttr}${ev} class="rad-rich-select" style="${base(c)}background:${cbg};${defBorder}${defRadius}display:flex;align-items:center;gap:6px;padding:0 8px;color:${color};"><span style="opacity:0.6;font-size:13px;flex-shrink:0;">🔍</span><input type="text" value="${text || ""}" placeholder="${c.placeholder || "Type to search options..."}" style="flex:1;background:none;border:none;color:inherit;font-family:inherit;font-size:${c.font_size || 12}px;outline:none;width:100%;" oninput="const val=this.value.toLowerCase();const dropdown=this.parentNode.querySelector('.rich-select-dropdown');if(dropdown){dropdown.style.display='block';dropdown.querySelectorAll('.rich-select-option').forEach(opt=>{opt.style.display=opt.textContent.toLowerCase().includes(val)?'block':'none';});}if(window['${c.id}_onChange'])window['${c.id}_onChange'](this.value);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](this.value);" onfocus="const dropdown=this.parentNode.querySelector('.rich-select-dropdown');if(dropdown)dropdown.style.display='block';" onblur="setTimeout(()=>{const dropdown=this.parentNode.querySelector('.rich-select-dropdown');if(dropdown)dropdown.style.display='none';},200)"><span style="font-size:10px;opacity:0.5;cursor:pointer;flex-shrink:0;" onclick="const input=this.parentNode.querySelector('input');input.focus();">▼</span><div class="rich-select-dropdown" style="display:none;position:absolute;left:0;top:100%;width:100%;max-height:160px;overflow-y:auto;background:${isLight ? "#ffffff" : "#1e293b"};border:1px solid ${border};border-radius:6px;margin-top:4px;box-shadow:0 6px 16px rgba(0,0,0,0.3);z-index:999;">${optList
+        .split(",")
+        .map((opt: string) => {
+          const clean = opt.trim();
+          return `<div class="rich-select-option" style="padding:6px 10px;font-size:11px;cursor:pointer;color:${color};" onmouseover="this.style.background='${isLight ? "rgba(2,132,199,0.1)" : "rgba(56,189,248,0.15)"}'" onmouseout="this.style.background='transparent'" onmousedown="event.preventDefault()" onclick="const input=this.closest('.rad-rich-select').querySelector('input');input.value='${clean}';this.parentNode.style.display='none';if(window['${c.id}_onChange'])window['${c.id}_onChange']('${clean}');else if(window['on_${c.id}_change'])window['on_${c.id}_change']('${clean}');">${clean}</div>`;
+        })
+        .join("")}</div></div>\n`;
+    } else if (t === "property_grid") {
+      const rawProps =
+        text || "Theme: Dark, Font Size: 13px, Auto Save: True, Version: 1.4.0";
+      const propsList = rawProps
+        .split(",")
+        .map((s: string) => s.trim().split(":"))
+        .filter((arr: string[]) => arr.length === 2);
+      const pgRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:8px;";
+      const customClick =
+        c.event_handlers?.onClick || c.event_handlers?.onclick || "";
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg !== "transparent" ? cbg : isLight ? "#ffffff" : "#1e293b"};${defBorder}${pgRadius}display:flex;flex-direction:column;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.2);"><div style="padding:6px 10px;background:${isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)"};font-weight:700;font-size:11px;color:${accent};border-bottom:1px solid ${border};display:flex;align-items:center;gap:6px;"><span>📋</span><span>${c.caption || "Property Inspector"}</span></div><div class="prop-grid-body" style="display:flex;flex-direction:column;overflow-y:auto;flex:1;min-height:0;">${propsList
+        .map((pair: string[]) => {
+          const k = (pair[0] || "").trim();
+          const v = (pair[1] || "").trim();
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 10px;border-bottom:1px solid ${border};font-size:11px;cursor:pointer;" onmouseover="this.style.background='${isLight ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.05)"}'" onmouseout="this.style.background=''" onclick="event.stopPropagation();const fnK=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK('${k}: ${v}');"><span style="font-weight:600;color:${color};opacity:0.85;">${k}</span><span style="font-size:11px;color:${accent};font-weight:600;font-family:monospace;">${v}</span></div>`;
+        })
+        .join("")}</div></div>\n`;
+    } else if (t === "popup_menu") {
+      const rawItems =
+        text || "✂️ Cut  ⌘X, 📋 Copy  ⌘C, 📄 Paste  ⌘V, ---, 🗑️ Delete  ⌫";
+      const items = rawItems.split(",").map((s: string) => s.trim());
+      const pmRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:10px;";
+      const customClick =
+        c.event_handlers?.onClick || c.event_handlers?.onclick || "";
+      controls += `<div${id}${titleAttr} class="rad-popup-menu" style="${base(c)}background:${cbg !== "transparent" ? cbg : isLight ? "#ffffff" : "#1e293b"};${defBorder}${pmRadius}padding:6px;display:flex;flex-direction:column;gap:2px;box-shadow:0 10px 25px rgba(0,0,0,0.4);">${items
+        .map((it: string) => {
+          if (it === "---")
+            return `<div style="height:1px;background:${border};margin:4px 0;"></div>`;
+          const parts = it.split(/\s{2,}/);
+          const label = parts[0] || it;
+          const shortcut = parts[1] || "";
+          return `<div class="popup-item" style="padding:6px 10px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:${color};cursor:pointer;transition:background 0.12s;" onmouseover="this.style.background='${isLight ? "rgba(2,132,199,0.12)" : "rgba(56,189,248,0.18)"}'" onmouseout="this.style.background=''" onclick="event.stopPropagation();const fnK=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK('${label.replace(/'/g, "\\'")}');"><span>${label}</span>${shortcut ? `<span style="font-size:10px;opacity:0.5;font-family:monospace;">${shortcut}</span>` : ""}</div>`;
+        })
+        .join("")}</div>\n`;
+    } else if (t === "calendar_view") {
+      const calRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:12px;";
+      const calBg =
+        cbg !== "transparent" ? cbg : isLight ? "#ffffff" : "#1e293b";
+      const customChange =
+        c.event_handlers?.onChange || c.event_handlers?.onchange || "";
+      const curDate = text || "July 2026";
+      const selDay = Number(c.value) || 25;
 
-            const calMonths = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-            const dateParts = curDate.trim().split(' ').filter(Boolean);
-            let calMIdx = calMonths.findIndex(m => m.toLowerCase() === (dateParts[0] || '').toLowerCase());
-            if (calMIdx === -1) calMIdx = 6;
-            const calYear = parseInt(dateParts[1] || '2026', 10);
-            const calFirstDay = new Date(calYear, calMIdx, 1).getDay();
-            const calDaysInMonth = new Date(calYear, calMIdx + 1, 0).getDate();
-            const calPrevMonthDays = new Date(calYear, calMIdx, 0).getDate();
+      const calMonths = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ];
+      const dateParts = curDate.trim().split(" ").filter(Boolean);
+      let calMIdx = calMonths.findIndex(
+        (m) => m.toLowerCase() === (dateParts[0] || "").toLowerCase(),
+      );
+      if (calMIdx === -1) calMIdx = 6;
+      const calYear = parseInt(dateParts[1] || "2026", 10);
+      const calFirstDay = new Date(calYear, calMIdx, 1).getDay();
+      const calDaysInMonth = new Date(calYear, calMIdx + 1, 0).getDate();
+      const calPrevMonthDays = new Date(calYear, calMIdx, 0).getDate();
 
-            let initialDays = '';
-            for (let i = 0; i < calFirstDay; i++) {
-                const d = calPrevMonthDays - calFirstDay + 1 + i;
-                initialDays += `<span class="cal-day cal-day-prev" style="padding:4px 0;opacity:0.35;cursor:pointer;" onclick="window.navCalendar(this, -1);">${d}</span>`;
-            }
-            for (let d = 1; d <= calDaysInMonth; d++) {
-                const isSelected = (d === selDay);
-                const bgStyle = isSelected ? `background:${accent};color:#ffffff;font-weight:700;border-radius:50%;` : '';
-                initialDays += `<span class="cal-day cal-day-cur" data-day="${d}" style="padding:4px 0;opacity:0.95;cursor:pointer;${bgStyle}" onclick="window.selectCalendarDay(this, ${d});">${d}</span>`;
-            }
-            const totalCellsCount = (calFirstDay + calDaysInMonth) > 35 ? 42 : 35;
-            const nextFillerCount = totalCellsCount - (calFirstDay + calDaysInMonth);
-            for (let d = 1; d <= nextFillerCount; d++) {
-                initialDays += `<span class="cal-day cal-day-next" style="padding:4px 0;opacity:0.35;cursor:pointer;" onclick="window.navCalendar(this, 1);">${d}</span>`;
-            }
+      let initialDays = "";
+      for (let i = 0; i < calFirstDay; i++) {
+        const d = calPrevMonthDays - calFirstDay + 1 + i;
+        initialDays += `<span class="cal-day cal-day-prev" style="padding:4px 0;opacity:0.35;cursor:pointer;" onclick="window.navCalendar(this, -1);">${d}</span>`;
+      }
+      for (let d = 1; d <= calDaysInMonth; d++) {
+        const isSelected = d === selDay;
+        const bgStyle = isSelected
+          ? `background:${accent};color:#ffffff;font-weight:700;border-radius:50%;`
+          : "";
+        initialDays += `<span class="cal-day cal-day-cur" data-day="${d}" style="padding:4px 0;opacity:0.95;cursor:pointer;${bgStyle}" onclick="window.selectCalendarDay(this, ${d});">${d}</span>`;
+      }
+      const totalCellsCount = calFirstDay + calDaysInMonth > 35 ? 42 : 35;
+      const nextFillerCount = totalCellsCount - (calFirstDay + calDaysInMonth);
+      for (let d = 1; d <= nextFillerCount; d++) {
+        initialDays += `<span class="cal-day cal-day-next" style="padding:4px 0;opacity:0.35;cursor:pointer;" onclick="window.navCalendar(this, 1);">${d}</span>`;
+      }
 
-            controls += `<div id="${c.id}_wrapper"${titleAttr} data-cal-id="${c.id}" data-accent="${accent}" data-color="${color}" data-change-handler="${customChange}" style="${base(c)}background:${calBg};${defBorder}${calRadius}padding:10px 12px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 4px 14px rgba(0,0,0,0.25);"><input type="hidden" id="${c.id}" name="${c.id}" value="${selDay}"><div style="display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:12px;color:${color};border-bottom:1px solid ${border};padding-bottom:6px;"><button type="button" style="background:none;border:none;color:inherit;cursor:pointer;font-size:12px;opacity:0.7;" onclick="window.navCalendar(this, -1);">◄</button><span class="cal-title">${curDate}</span><button type="button" style="background:none;border:none;color:inherit;cursor:pointer;font-size:12px;opacity:0.7;" onclick="window.navCalendar(this, 1);">►</button></div><div style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:10px;font-weight:700;color:${accent};margin-top:6px;opacity:0.8;"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div><div class="cal-days-grid" style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:11px;color:${color};gap:2px;margin-top:4px;">${initialDays}</div></div>\n`;
-        } else if (t === 'color_swatch') {
-            const colorsList = (text || '#0284c7, #38bdf8, #10b981, #f59e0b, #ef4444, #7c3aed, #ec4899').split(',').map((s: string) => s.trim());
-            const curCol = c.value || colorsList[0] || '#0284c7';
-            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
-            controls += `<div id="${c.id}_wrapper"${titleAttr} data-value="${curCol}" style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:6px;padding:4px;"><input type="hidden" id="${c.id}" name="${c.id}" value="${curCol}"><span style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${c.caption || 'Color Palette Swatch'}</span><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">${colorsList.map((hex: string) => {
-                const isSel = hex.toLowerCase() === curCol.toLowerCase();
-                return `<div class="swatch-chip" data-color="${hex}" style="width:24px;height:24px;border-radius:50%;background:${hex};cursor:pointer;transition:transform 0.15s, box-shadow 0.15s;box-shadow:${isSel ? `0 0 0 3px ${isLight ? '#ffffff' : '#0f172a'}, 0 0 0 5px ${hex}` : '0 2px 6px rgba(0,0,0,0.3)'};transform:${isSel ? 'scale(1.15)' : 'scale(1)'};" onclick="this.parentNode.querySelectorAll('.swatch-chip').forEach(s=>{s.style.transform='scale(1)';s.style.boxShadow='0 2px 6px rgba(0,0,0,0.3)';});this.style.transform='scale(1.15)';this.style.boxShadow='0 0 0 3px ${isLight ? '#ffffff' : '#0f172a'}, 0 0 0 5px ${hex}';const hid=document.getElementById('${c.id}');if(hid)hid.value='${hex}';this.closest('[id]').dataset.value='${hex}';const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC('${hex}');"></div>`;
-            }).join('')}</div></div>\n`;
-        } else if (t === 'file_path_bar') {
-            const pathVal = text || '/Users/codecaine/bun_rad_studio/src';
-            const fRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:6px;';
-            const customHandler = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
-            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
-            controls += `<div id="${c.id}_wrapper"${ctxAttr}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b')};${defBorder}${fRadius}padding:0 8px;gap:8px;box-shadow:0 2px 6px rgba(0,0,0,0.15);color:${color};"><input type="hidden" id="${c.id}" name="${c.id}" value="${pathVal}"><input type="file" id="${c.id}_native_file" style="display:none;" onchange="if(this.files&&this.files[0]){const p=this.files[0].name;const txt=this.parentNode.querySelector('.path-text');if(txt)txt.textContent=p;const hid=document.getElementById('${c.id}');if(hid)hid.value=p;const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(p);const fnK=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK(p);}"><div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;overflow:hidden;cursor:pointer;" onclick="const cur=document.getElementById('${c.id}')?.value||'${pathVal}';const fnK=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK(cur);"><span style="font-size:14px;opacity:0.75;flex-shrink:0;">📁</span><span class="path-text" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:0.9;font-family:monospace;">${pathVal}</span></div><button type="button" onclick="event.stopPropagation();const cur=document.getElementById('${c.id}')?.value||'${pathVal}';const fnK=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK(cur);const fi=document.getElementById('${c.id}_native_file');if(fi)fi.click();" style="padding:4px 10px;background:${accent};color:#ffffff;border:none;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;flex-shrink:0;transition:filter 0.15s;" onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''">Browse...</button></div>\n`;
-        } else if (t === 'kanban_board') {
-            const kbColsData = c.kanbanColumns || c.columns || (Array.isArray(c.items) ? c.items : null);
-            let cols: Array<{ id: string; title: string; cards: any[] }> = [];
+      controls += `<div id="${c.id}_wrapper"${titleAttr} data-cal-id="${c.id}" data-accent="${accent}" data-color="${color}" data-change-handler="${customChange}" style="${base(c)}background:${calBg};${defBorder}${calRadius}padding:10px 12px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 4px 14px rgba(0,0,0,0.25);"><input type="hidden" id="${c.id}" name="${c.id}" value="${selDay}"><div style="display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:12px;color:${color};border-bottom:1px solid ${border};padding-bottom:6px;"><button type="button" style="background:none;border:none;color:inherit;cursor:pointer;font-size:12px;opacity:0.7;" onclick="window.navCalendar(this, -1);">◄</button><span class="cal-title">${curDate}</span><button type="button" style="background:none;border:none;color:inherit;cursor:pointer;font-size:12px;opacity:0.7;" onclick="window.navCalendar(this, 1);">►</button></div><div style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:10px;font-weight:700;color:${accent};margin-top:6px;opacity:0.8;"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div><div class="cal-days-grid" style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:11px;color:${color};gap:2px;margin-top:4px;">${initialDays}</div></div>\n`;
+    } else if (t === "color_swatch") {
+      const colorsList = (
+        text || "#0284c7, #38bdf8, #10b981, #f59e0b, #ef4444, #7c3aed, #ec4899"
+      )
+        .split(",")
+        .map((s: string) => s.trim());
+      const curCol = c.value || colorsList[0] || "#0284c7";
+      const customChange =
+        c.event_handlers?.onChange || c.event_handlers?.onchange || "";
+      controls += `<div id="${c.id}_wrapper"${titleAttr} data-value="${curCol}" style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:6px;padding:4px;"><input type="hidden" id="${c.id}" name="${c.id}" value="${curCol}"><span style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${c.caption || "Color Palette Swatch"}</span><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">${colorsList
+        .map((hex: string) => {
+          const isSel = hex.toLowerCase() === curCol.toLowerCase();
+          return `<div class="swatch-chip" data-color="${hex}" style="width:24px;height:24px;border-radius:50%;background:${hex};cursor:pointer;transition:transform 0.15s, box-shadow 0.15s;box-shadow:${isSel ? `0 0 0 3px ${isLight ? "#ffffff" : "#0f172a"}, 0 0 0 5px ${hex}` : "0 2px 6px rgba(0,0,0,0.3)"};transform:${isSel ? "scale(1.15)" : "scale(1)"};" onclick="this.parentNode.querySelectorAll('.swatch-chip').forEach(s=>{s.style.transform='scale(1)';s.style.boxShadow='0 2px 6px rgba(0,0,0,0.3)';});this.style.transform='scale(1.15)';this.style.boxShadow='0 0 0 3px ${isLight ? "#ffffff" : "#0f172a"}, 0 0 0 5px ${hex}';const hid=document.getElementById('${c.id}');if(hid)hid.value='${hex}';this.closest('[id]').dataset.value='${hex}';const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC('${hex}');"></div>`;
+        })
+        .join("")}</div></div>\n`;
+    } else if (t === "file_path_bar") {
+      const pathVal = text || "/Users/codecaine/bun_rad_studio/src";
+      const fRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:6px;";
+      const customHandler =
+        c.event_handlers?.onClick || c.event_handlers?.onclick || "";
+      const customChange =
+        c.event_handlers?.onChange || c.event_handlers?.onchange || "";
+      controls += `<div id="${c.id}_wrapper"${ctxAttr}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:${cbg !== "transparent" ? cbg : isLight ? "#ffffff" : "#1e293b"};${defBorder}${fRadius}padding:0 8px;gap:8px;box-shadow:0 2px 6px rgba(0,0,0,0.15);color:${color};"><input type="hidden" id="${c.id}" name="${c.id}" value="${pathVal}"><input type="file" id="${c.id}_native_file" style="display:none;" onchange="if(this.files&&this.files[0]){const p=this.files[0].name;const txt=this.parentNode.querySelector('.path-text');if(txt)txt.textContent=p;const hid=document.getElementById('${c.id}');if(hid)hid.value=p;const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(p);const fnK=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK(p);}"><div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;overflow:hidden;cursor:pointer;" onclick="const cur=document.getElementById('${c.id}')?.value||'${pathVal}';const fnK=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK(cur);"><span style="font-size:14px;opacity:0.75;flex-shrink:0;">📁</span><span class="path-text" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:0.9;font-family:monospace;">${pathVal}</span></div><button type="button" onclick="event.stopPropagation();const cur=document.getElementById('${c.id}')?.value||'${pathVal}';const fnK=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK(cur);const fi=document.getElementById('${c.id}_native_file');if(fi)fi.click();" style="padding:4px 10px;background:${accent};color:#ffffff;border:none;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;flex-shrink:0;transition:filter 0.15s;" onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''">Browse...</button></div>\n`;
+    } else if (t === "kanban_board") {
+      const kbColsData =
+        c.kanbanColumns ||
+        c.columns ||
+        (Array.isArray(c.items) ? c.items : null);
+      let cols: Array<{ id: string; title: string; cards: any[] }> = [];
 
-            if (Array.isArray(kbColsData)) {
-                cols = kbColsData.map((col: any, idx: number) => {
-                    if (typeof col === 'string') {
-                        return { id: `col_${idx}`, title: col, cards: [] };
-                    }
-                    const cId = col.id || `col_${idx}`;
-                    const cTitle = col.title || col.name || cId;
-                    const cCards = col.cards || col.items || [];
-                    return { id: cId, title: cTitle, cards: cCards };
-                });
-            } else {
-                const rawCols = text || 'To Do (3) | In Progress (2) | Done (4)';
-                const colNames = rawCols.split('|').map((s: string) => s.trim());
-                const sampleCards = [
-                    ['● Design Specs', '● IPC Handlers', '● State Sync'],
-                    ['● HTML Generator', '● UI Canvas'],
-                    ['● Unit Tests', '● API Docs', '● Themes', '● Exporter']
-                ];
-                cols = colNames.map((cn: string, idx: number) => ({
-                    id: cn.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
-                    title: cn,
-                    cards: sampleCards[idx % sampleCards.length] || []
-                }));
-            }
+      if (Array.isArray(kbColsData)) {
+        cols = kbColsData.map((col: any, idx: number) => {
+          if (typeof col === "string") {
+            return { id: `col_${idx}`, title: col, cards: [] };
+          }
+          const cId = col.id || `col_${idx}`;
+          const cTitle = col.title || col.name || cId;
+          const cCards = col.cards || col.items || [];
+          return { id: cId, title: cTitle, cards: cCards };
+        });
+      } else {
+        const rawCols = text || "To Do (3) | In Progress (2) | Done (4)";
+        const colNames = rawCols.split("|").map((s: string) => s.trim());
+        const sampleCards = [
+          ["● Design Specs", "● IPC Handlers", "● State Sync"],
+          ["● HTML Generator", "● UI Canvas"],
+          ["● Unit Tests", "● API Docs", "● Themes", "● Exporter"],
+        ];
+        cols = colNames.map((cn: string, idx: number) => ({
+          id: cn.toLowerCase().replace(/[^a-z0-9]+/g, "_"),
+          title: cn,
+          cards: sampleCards[idx % sampleCards.length] || [],
+        }));
+      }
 
-            const kbRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:10px;';
-            const customHandler = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
-            const customMove = c.event_handlers?.onCardMove || c.event_handlers?.on_card_move || '';
+      const kbRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:10px;";
+      const customHandler =
+        c.event_handlers?.onClick || c.event_handlers?.onclick || "";
+      const customMove =
+        c.event_handlers?.onCardMove || c.event_handlers?.on_card_move || "";
 
-            const kbScript = `<script>
+      const kbScript = `<script>
 (function() {
     window['${c.id}_dragStart'] = function(event, cardId) {
         event.dataTransfer.setData('text/plain', cardId);
@@ -2721,97 +3954,182 @@ export function generatePreviewHtml(spec: any): string {
 })();
 </script>`;
 
-            controls += `<div${id}${titleAttr} class="rad-kanban-board" style="${base(c)}background:${cbg !== 'transparent' ? cbg : (isLight ? '#f8fafc' : '#0f172a')};${defBorder}${kbRadius}padding:8px;display:flex;gap:8px;box-shadow:0 4px 14px rgba(0,0,0,0.25);overflow-x:auto;">${cols.map((col) => {
-                return `<div class="kanban-column" data-col="${esc(col.id)}" ondragover="window['${c.id}_dragOver'](event);" ondrop="window['${c.id}_drop'](event, '${esc(col.id)}')" style="flex:1;min-width:90px;background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'};border-radius:6px;padding:6px;display:flex;flex-direction:column;gap:6px;transition:background 0.15s;"><div style="font-size:10px;font-weight:700;color:${accent};border-bottom:1px solid ${border};padding-bottom:4px;display:flex;justify-content:space-between;align-items:center;"><span>${esc(col.title)}</span></div><div class="kanban-cards" style="display:flex;flex-direction:column;gap:4px;flex:1;overflow-y:auto;min-height:30px;">${col.cards.map((card: any, cIdx: number) => {
-                    const cardId = typeof card === 'object' && card !== null ? (card.id || `card_${cIdx}`) : String(card);
-                    const cardTitle = typeof card === 'object' && card !== null ? (card.title || card.text || card.label || cardId) : String(card);
-                    const cardTag = typeof card === 'object' && card !== null ? (card.tag || card.category || '') : '';
-                    return `<div class="kanban-card" data-card="${esc(cardId)}" draggable="true" ondragstart="window['${c.id}_dragStart'](event, '${esc(cardId)}')" ondragend="window['${c.id}_dragEnd'](event)" onclick="const fn=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${esc(cardId)}');" style="background:${isLight ? '#ffffff' : '#1e293b'};border:1px solid ${border};border-radius:4px;padding:4px 6px;font-size:10px;color:${color};font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,0.1);cursor:grab;user-select:none;transition:transform 0.12s, box-shadow 0.12s;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 3px 8px rgba(0,0,0,0.15)';" onmouseout="this.style.transform='';this.style.boxShadow='0 1px 3px rgba(0,0,0,0.1)';"><div>${esc(cardTitle)}</div>${cardTag ? `<div style="font-size:9px;opacity:0.6;margin-top:2px;">${esc(cardTag)}</div>` : ''}</div>`;
-                }).join('')}</div></div>`;
-            }).join('')}</div>\n${kbScript}\n`;
-        } else if (t === 'shortcut_recorder') {
-            const scVal = text || c.value || '⌘ Shift P';
-            const keys = scVal.split(/\s+|\+|\-/).filter(Boolean);
-            const srRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:6px;';
-            const customHandler = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b')};${defBorder}${srRadius}padding:0 8px;gap:6px;box-shadow:0 2px 6px rgba(0,0,0,0.15);color:${color};cursor:pointer;" onclick="const fn=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${scVal}');"><div style="display:flex;align-items:center;gap:4px;">${keys.map((k: string) => `<kbd class="rad-mono" style="background:${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.12)'};border:1px solid ${border};border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;color:${accent};">${k}</kbd>`).join('')}</div><span style="font-size:10px;opacity:0.5;">⌨️ Edit</span></div>\n`;
-        } else if (t === 'split_button') {
-            const mainText = text || 'Save Changes';
-            const sbRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:6px;';
-            const customHandler = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
-            const customMenuHandler = c.event_handlers?.onMenu || c.event_handlers?.onmenu || '';
-            controls += `<div${id}${titleAttr} style="${base(c)}display:inline-flex;align-items:stretch;background:${cbg !== 'transparent' ? cbg : accent};${defBorder}${sbRadius}overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,0.2);"><button onclick="const fn=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${mainText}');" style="flex:1;padding:0 12px;background:none;border:none;color:#ffffff;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;">${mainText}</button><div style="width:1px;background:rgba(255,255,255,0.25);"></div><button onclick="const fn=window['${customMenuHandler}']||window['${c.id}_onMenu']||window['on_${c.id}_menu'];if(fn)fn();" style="padding:0 8px;background:none;border:none;color:#ffffff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;">▼</button></div>\n`;
-        } else if (t === 'sparkline_table') {
-            const rawRows = text || 'Revenue: $48k [↗], Active Users: 1.2k [→], Errors: 0.01% [↘]';
-            const rows = rawRows.split(',').map((s: string) => s.trim());
-            const stRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
-            const customHandler = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
-            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b')};${defBorder}${stRadius}padding:6px 10px;display:flex;flex-direction:column;justify-content:space-around;box-shadow:0 4px 12px rgba(0,0,0,0.2);color:${color};">${rows.map((row: string, i: number) => {
-                const parts = row.split(':');
-                const label = parts[0] || 'Metric';
-                const val = parts[1] || '$10k';
-                const isUp = i % 3 === 0; const isFlat = i % 3 === 1;
-                const sparkColor = isUp ? sem.success.solid : isFlat ? accent : sem.danger.solid;
-                const points = isUp ? '0,14 10,12 20,8 30,10 40,4 50,2' : isFlat ? '0,8 10,10 20,7 30,9 40,8 50,8' : '0,2 10,5 20,8 30,6 40,12 50,14';
-                return `<div onclick="const fn=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${label.replace(/'/g, "\\'")}');" style="display:flex;align-items:center;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:${i < rows.length - 1 ? `1px solid ${border}` : 'none'};cursor:pointer;"><span style="font-weight:600;opacity:0.85;">${label}</span><div style="display:flex;align-items:center;gap:8px;"><svg width="50" height="16" style="overflow:visible;"><polyline fill="none" stroke="${sparkColor}" stroke-width="2" points="${points}" /></svg><span class="rad-mono" style="font-weight:700;color:${sparkColor};">${val}</span></div></div>`;
-            }).join('')}</div>\n`;
-        } else if (t === 'metric_comparison') {
-            const mTitle = text || 'Monthly Recurring Revenue';
-            const mVal = c.value || '$84,250';
-            const targetStr = c.placeholder || 'vs $75,000 target';
-            const mcRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:10px;';
-            const customHandler = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
-            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b')};${defBorder}${mcRadius}padding:10px 12px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 4px 14px rgba(0,0,0,0.25);color:${color};cursor:pointer;" onclick="const fn=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${mTitle.replace(/'/g, "\\'")}');"><div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;font-weight:700;opacity:0.8;"><span>${mTitle}</span><span style="background:rgba(16,185,129,0.15);color:#10b981;padding:2px 6px;border-radius:4px;font-weight:bold;">▲ +12.3%</span></div><div style="display:flex;align-items:baseline;gap:8px;margin:4px 0;"><span style="font-size:20px;font-weight:800;color:${accent};">${mVal}</span><span style="font-size:10px;opacity:0.6;">${targetStr}</span></div><div style="width:100%;height:4px;background:${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.1)'};border-radius:2px;overflow:hidden;"><div style="width:82%;height:100%;background:#10b981;"></div></div></div>\n`;
-        } else if (t === 'activity_feed') {
-            const rawItems = text || 'Alice deployed v1.4 (2m ago), Bob pushed fix (15m ago), Charlie opened PR #42 (1h ago)';
-            const items = rawItems.split(',').map((s: string) => s.trim());
-            const afRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:10px;';
-            const customHandler = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
-            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b')};${defBorder}${afRadius}padding:8px 10px;display:flex;flex-direction:column;gap:6px;box-shadow:0 4px 12px rgba(0,0,0,0.2);color:${color};"><div style="font-weight:700;font-size:11px;color:${accent};border-bottom:1px solid ${border};padding-bottom:4px;display:flex;align-items:center;gap:6px;"><span>⚡</span><span>${c.caption || 'Activity Stream'}</span></div><div style="display:flex;flex-direction:column;gap:6px;overflow-y:auto;flex:1;">${items.map((it: string) => {
-                const initial = it.charAt(0).toUpperCase();
-                return `<div onclick="const fn=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${it.replace(/'/g, "\\'")}');" style="display:flex;align-items:center;gap:8px;font-size:10px;cursor:pointer;"><div style="width:20px;height:20px;border-radius:50%;background:${accent};color:#ffffff;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:9px;flex-shrink:0;">${initial}</div><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${it}</span></div>`;
-            }).join('')}</div></div>\n`;
-        } else if (t === 'file_tree_tabs') {
-            const rawFiles = text || '⚡ index.ts*, 📄 API.md, 🎨 styles.css';
-            const files = rawFiles.split(',').map((s: string) => s.trim());
-            const ftRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:6px;';
-            const customHandler = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg !== 'transparent' ? cbg : (isLight ? '#e2e8f0' : '#090d16')};${defBorder}${ftRadius}padding:0 4px;gap:2px;overflow-x:auto;">${files.map((file: string, idx: number) => {
-                const isSel = idx === 0;
-                return `<div style="padding:4px 10px;background:${isSel ? (isLight ? '#ffffff' : '#1e293b') : 'transparent'};border-radius:4px 4px 0 0;font-size:11px;font-weight:${isSel ? '700' : 'normal'};color:${isSel ? accent : color};display:flex;align-items:center;gap:6px;cursor:pointer;border-bottom:${isSel ? `2px solid ${accent}` : 'none'};" onclick="const fn=window['${customHandler}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fn)fn('${file}');"><span>${file}</span><span style="font-size:9px;opacity:0.5;" onclick="event.stopPropagation();this.parentNode.style.display='none';">✕</span></div>`;
-            }).join('')}</div>\n`;
-        } else if (t === 'form_checkbox') {
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};"><span style="font-size:10px;font-weight:700;opacity:0.8;">${text}</span><label style="display:flex;align-items:center;gap:8px;cursor:${c.cursor||'pointer'};font-size:${c.font_size||13}px;"><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="checkbox" ${c.checked ? 'checked' : ''}${disabled}${reqAttr}${ev} style="width:16px;height:16px;accent-color:${accent};cursor:${c.cursor||'pointer'};">${c.placeholder || 'Enable option toggle'}</label></div>\n`;
-        } else if (t === 'form_radio') {
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};"><span style="font-size:10px;font-weight:700;opacity:0.8;">${text}</span><label style="display:flex;align-items:center;gap:8px;cursor:${c.cursor||'pointer'};font-size:${c.font_size||13}px;"><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="radio" ${c.checked ? 'checked' : ''}${disabled}${reqAttr}${ev} style="width:16px;height:16px;accent-color:${accent};cursor:${c.cursor||'pointer'};">${c.placeholder || 'Select option'}</label></div>\n`;
-        } else if (t === 'form_search') {
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};"><span style="font-size:10px;font-weight:700;opacity:0.8;">${text}</span><div style="display:flex;align-items:center;gap:6px;background:${cbg};${defBorder}${defRadius}padding:0 8px;height:32px;"><span style="opacity:0.6;font-size:13px;">🔍</span><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="search" value="" placeholder="${c.placeholder || 'Search records...'}"${disabled}${roAttr}${ev} style="flex:1;background:none;border:none;color:${color};outline:none;font-size:${c.font_size||13}px;width:100%;"></div></div>\n`;
-        } else if (t === 'form_color') {
-            const hexVal = c.value || '#38bdf8';
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};"><span style="font-size:10px;font-weight:700;opacity:0.8;">${text}</span><div style="display:flex;align-items:center;gap:8px;"><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="color" value="${hexVal}"${disabled}${ev} style="width:36px;height:28px;padding:2px;${defBorder}${defRadius}cursor:${c.cursor||'pointer'};background:${rawCbg};"><span style="font-family:monospace;font-size:12px;opacity:0.9;">${hexVal}</span></div></div>\n`;
-        } else if (t === 'form_time') {
-            const timeVal = c.value || '09:30';
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};"><span style="font-size:10px;font-weight:700;opacity:0.8;">${text}</span><div style="display:flex;align-items:center;gap:8px;background:${cbg};${defBorder}${defRadius}padding:0 8px;height:32px;"><span style="font-size:14px;opacity:0.7;">🕒</span><input type="time" value="${timeVal}"${disabled}${roAttr}${ev} style="background:none;border:none;color:inherit;font-family:inherit;font-size:${c.font_size||13}px;outline:none;width:100%;color-scheme:${isLight ? 'light' : 'dark'};"></div></div>\n`;
-        } else if (t === 'form_stepper') {
-            const stepVal = c.value !== undefined ? c.value : 5;
-            const customHandler = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:space-between;gap:8px;color:${color};"><span style="font-size:11px;font-weight:700;opacity:0.8;">${text}</span><div style="display:flex;align-items:center;justify-content:space-between;background:${cbg};${defBorder}${defRadius}padding:0 6px;height:32px;min-width:110px;"><button onclick="const s=this.nextElementSibling;const n=parseInt(s.textContent||'0')-1;s.textContent=n;const fn=window['${customHandler}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fn)fn(n);" onmouseover="this.style.background='${accent}';this.style.color='#fff';" onmouseout="this.style.background='${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}';this.style.color='${accent}';" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'};border:none;border-radius:4px;color:${accent};font-size:16px;font-weight:bold;cursor:pointer;line-height:1;user-select:none;transition:all 0.15s;">−</button><span style="font-weight:bold;font-size:12px;padding:0 8px;">${stepVal}</span><button onclick="const s=this.previousElementSibling;const n=parseInt(s.textContent||'0')+1;s.textContent=n;const fn=window['${customHandler}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fn)fn(n);" onmouseover="this.style.background='${accent}';this.style.color='#fff';" onmouseout="this.style.background='${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}';this.style.color='${accent}';" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'};border:none;border-radius:4px;color:${accent};font-size:16px;font-weight:bold;cursor:pointer;line-height:1;user-select:none;transition:all 0.15s;">+</button></div></div>\n`;
-        } else if (t === 'form_code') {
-            const codeFg = c.font_color && c.font_color !== fg ? c.font_color : '#7dd3fc';
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;gap:4px;"><span style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${text}</span><textarea${disabled}${roAttr}${autoFocusAttr}${ev} placeholder="${c.placeholder || '// Enter script code...'}" style="flex:1;background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : '#0d1117'};${defBorder}${defRadius}padding:8px;color:${codeFg};font-family:'Fira Code','Courier New',monospace;font-size:${c.font_size||12}px;overflow:auto;margin:0;resize:none;outline:none;white-space:pre;" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'>${c.value || c.code || ''}</textarea></div>\n`;
-        } else if (t === 'form_drop_zone') {
-            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
-            const customClick = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
-            controls += `<div id="${c.id}_wrapper"${ctxAttr}${titleAttr} style="${base(c)}display:flex;flex-direction:column;gap:4px;"><span style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${text}</span><div onclick="const fi=document.getElementById('${c.id}_file');if(fi)fi.click();" ondragover="event.preventDefault();" ondrop="event.preventDefault();if(event.dataTransfer&&event.dataTransfer.files&&event.dataTransfer.files[0]){const p=event.dataTransfer.files[0].name;const lbl=this.querySelector('.dz-label');if(lbl)lbl.textContent=p;const hid=document.getElementById('${c.id}');if(hid)hid.value=p;const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(p);}" style="flex:1;background:${cbg};border:2px dashed ${accent};${defRadius}display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:${color};opacity:0.85;cursor:${c.cursor||'pointer'};"><input type="hidden" id="${c.id}" name="${c.id}" value="${c.value||''}"><input type="file" id="${c.id}_file" style="display:none;" onchange="if(this.files&&this.files[0]){const p=this.files[0].name;const lbl=this.parentNode.querySelector('.dz-label');if(lbl)lbl.textContent=p;const hid=document.getElementById('${c.id}');if(hid)hid.value=p;const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(p);const fnK=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK(p);}"><span style="font-size:20px;">📥</span><span class="dz-label" style="font-size:11px;">${c.placeholder || 'Drop files here or click to browse'}</span></div></div>\n`;
-        } else if (t === 'tabs') {
-            const rawTabItems = c.items || (text ? text.split(',').map((tb: string) => tb.trim()) : ['General', 'Security', 'Advanced']);
-            const tabItems = Array.isArray(rawTabItems) ? rawTabItems : String(rawTabItems).split(',').map((tb: string) => tb.trim());
-            const activeTab = c.value || tabItems[0] || '';
-            const customHandler = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
-            const customClose = c.event_handlers?.onTabClose || c.event_handlers?.on_tab_close || '';
-            const isClosable = Boolean(c.closable || c.closeable || c.has_close_button);
+      controls += `<div${id}${titleAttr} class="rad-kanban-board" style="${base(c)}background:${cbg !== "transparent" ? cbg : isLight ? "#f8fafc" : "#0f172a"};${defBorder}${kbRadius}padding:8px;display:flex;gap:8px;box-shadow:0 4px 14px rgba(0,0,0,0.25);overflow-x:auto;">${cols
+        .map((col) => {
+          return `<div class="kanban-column" data-col="${esc(col.id)}" ondragover="window['${c.id}_dragOver'](event);" ondrop="window['${c.id}_drop'](event, '${esc(col.id)}')" style="flex:1;min-width:90px;background:${isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.05)"};border-radius:6px;padding:6px;display:flex;flex-direction:column;gap:6px;transition:background 0.15s;"><div style="font-size:10px;font-weight:700;color:${accent};border-bottom:1px solid ${border};padding-bottom:4px;display:flex;justify-content:space-between;align-items:center;"><span>${esc(col.title)}</span></div><div class="kanban-cards" style="display:flex;flex-direction:column;gap:4px;flex:1;overflow-y:auto;min-height:30px;">${col.cards
+            .map((card: any, cIdx: number) => {
+              const cardId =
+                typeof card === "object" && card !== null
+                  ? card.id || `card_${cIdx}`
+                  : String(card);
+              const cardTitle =
+                typeof card === "object" && card !== null
+                  ? card.title || card.text || card.label || cardId
+                  : String(card);
+              const cardTag =
+                typeof card === "object" && card !== null
+                  ? card.tag || card.category || ""
+                  : "";
+              return `<div class="kanban-card" data-card="${esc(cardId)}" draggable="true" ondragstart="window['${c.id}_dragStart'](event, '${esc(cardId)}')" ondragend="window['${c.id}_dragEnd'](event)" onclick="const fn=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${esc(cardId)}');" style="background:${isLight ? "#ffffff" : "#1e293b"};border:1px solid ${border};border-radius:4px;padding:4px 6px;font-size:10px;color:${color};font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,0.1);cursor:grab;user-select:none;transition:transform 0.12s, box-shadow 0.12s;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 3px 8px rgba(0,0,0,0.15)';" onmouseout="this.style.transform='';this.style.boxShadow='0 1px 3px rgba(0,0,0,0.1)';"><div>${esc(cardTitle)}</div>${cardTag ? `<div style="font-size:9px;opacity:0.6;margin-top:2px;">${esc(cardTag)}</div>` : ""}</div>`;
+            })
+            .join("")}</div></div>`;
+        })
+        .join("")}</div>\n${kbScript}\n`;
+    } else if (t === "shortcut_recorder") {
+      const scVal = text || c.value || "⌘ Shift P";
+      const keys = scVal.split(/\s+|\+|\-/).filter(Boolean);
+      const srRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:6px;";
+      const customHandler =
+        c.event_handlers?.onClick || c.event_handlers?.onclick || "";
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:${cbg !== "transparent" ? cbg : isLight ? "#ffffff" : "#1e293b"};${defBorder}${srRadius}padding:0 8px;gap:6px;box-shadow:0 2px 6px rgba(0,0,0,0.15);color:${color};cursor:pointer;" onclick="const fn=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${scVal}');"><div style="display:flex;align-items:center;gap:4px;">${keys.map((k: string) => `<kbd class="rad-mono" style="background:${isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.12)"};border:1px solid ${border};border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;color:${accent};">${k}</kbd>`).join("")}</div><span style="font-size:10px;opacity:0.5;">⌨️ Edit</span></div>\n`;
+    } else if (t === "split_button") {
+      const mainText = text || "Save Changes";
+      const sbRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:6px;";
+      const customHandler =
+        c.event_handlers?.onClick || c.event_handlers?.onclick || "";
+      const customMenuHandler =
+        c.event_handlers?.onMenu || c.event_handlers?.onmenu || "";
+      controls += `<div${id}${titleAttr} style="${base(c)}display:inline-flex;align-items:stretch;background:${cbg !== "transparent" ? cbg : accent};${defBorder}${sbRadius}overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,0.2);"><button onclick="const fn=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${mainText}');" style="flex:1;padding:0 12px;background:none;border:none;color:#ffffff;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;">${mainText}</button><div style="width:1px;background:rgba(255,255,255,0.25);"></div><button onclick="const fn=window['${customMenuHandler}']||window['${c.id}_onMenu']||window['on_${c.id}_menu'];if(fn)fn();" style="padding:0 8px;background:none;border:none;color:#ffffff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;">▼</button></div>\n`;
+    } else if (t === "sparkline_table") {
+      const rawRows =
+        text || "Revenue: $48k [↗], Active Users: 1.2k [→], Errors: 0.01% [↘]";
+      const rows = rawRows.split(",").map((s: string) => s.trim());
+      const stRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:8px;";
+      const customHandler =
+        c.event_handlers?.onClick || c.event_handlers?.onclick || "";
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg !== "transparent" ? cbg : isLight ? "#ffffff" : "#1e293b"};${defBorder}${stRadius}padding:6px 10px;display:flex;flex-direction:column;justify-content:space-around;box-shadow:0 4px 12px rgba(0,0,0,0.2);color:${color};">${rows
+        .map((row: string, i: number) => {
+          const parts = row.split(":");
+          const label = parts[0] || "Metric";
+          const val = parts[1] || "$10k";
+          const isUp = i % 3 === 0;
+          const isFlat = i % 3 === 1;
+          const sparkColor = isUp
+            ? sem.success.solid
+            : isFlat
+              ? accent
+              : sem.danger.solid;
+          const points = isUp
+            ? "0,14 10,12 20,8 30,10 40,4 50,2"
+            : isFlat
+              ? "0,8 10,10 20,7 30,9 40,8 50,8"
+              : "0,2 10,5 20,8 30,6 40,12 50,14";
+          return `<div onclick="const fn=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${label.replace(/'/g, "\\'")}');" style="display:flex;align-items:center;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:${i < rows.length - 1 ? `1px solid ${border}` : "none"};cursor:pointer;"><span style="font-weight:600;opacity:0.85;">${label}</span><div style="display:flex;align-items:center;gap:8px;"><svg width="50" height="16" style="overflow:visible;"><polyline fill="none" stroke="${sparkColor}" stroke-width="2" points="${points}" /></svg><span class="rad-mono" style="font-weight:700;color:${sparkColor};">${val}</span></div></div>`;
+        })
+        .join("")}</div>\n`;
+    } else if (t === "metric_comparison") {
+      const mTitle = text || "Monthly Recurring Revenue";
+      const mVal = c.value || "$84,250";
+      const targetStr = c.placeholder || "vs $75,000 target";
+      const mcRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:10px;";
+      const customHandler =
+        c.event_handlers?.onClick || c.event_handlers?.onclick || "";
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg !== "transparent" ? cbg : isLight ? "#ffffff" : "#1e293b"};${defBorder}${mcRadius}padding:10px 12px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 4px 14px rgba(0,0,0,0.25);color:${color};cursor:pointer;" onclick="const fn=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${mTitle.replace(/'/g, "\\'")}');"><div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;font-weight:700;opacity:0.8;"><span>${mTitle}</span><span style="background:rgba(16,185,129,0.15);color:#10b981;padding:2px 6px;border-radius:4px;font-weight:bold;">▲ +12.3%</span></div><div style="display:flex;align-items:baseline;gap:8px;margin:4px 0;"><span style="font-size:20px;font-weight:800;color:${accent};">${mVal}</span><span style="font-size:10px;opacity:0.6;">${targetStr}</span></div><div style="width:100%;height:4px;background:${isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.1)"};border-radius:2px;overflow:hidden;"><div style="width:82%;height:100%;background:#10b981;"></div></div></div>\n`;
+    } else if (t === "activity_feed") {
+      const rawItems =
+        text ||
+        "Alice deployed v1.4 (2m ago), Bob pushed fix (15m ago), Charlie opened PR #42 (1h ago)";
+      const items = rawItems.split(",").map((s: string) => s.trim());
+      const afRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:10px;";
+      const customHandler =
+        c.event_handlers?.onClick || c.event_handlers?.onclick || "";
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg !== "transparent" ? cbg : isLight ? "#ffffff" : "#1e293b"};${defBorder}${afRadius}padding:8px 10px;display:flex;flex-direction:column;gap:6px;box-shadow:0 4px 12px rgba(0,0,0,0.2);color:${color};"><div style="font-weight:700;font-size:11px;color:${accent};border-bottom:1px solid ${border};padding-bottom:4px;display:flex;align-items:center;gap:6px;"><span>⚡</span><span>${c.caption || "Activity Stream"}</span></div><div style="display:flex;flex-direction:column;gap:6px;overflow-y:auto;flex:1;">${items
+        .map((it: string) => {
+          const initial = it.charAt(0).toUpperCase();
+          return `<div onclick="const fn=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${it.replace(/'/g, "\\'")}');" style="display:flex;align-items:center;gap:8px;font-size:10px;cursor:pointer;"><div style="width:20px;height:20px;border-radius:50%;background:${accent};color:#ffffff;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:9px;flex-shrink:0;">${initial}</div><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${it}</span></div>`;
+        })
+        .join("")}</div></div>\n`;
+    } else if (t === "file_tree_tabs") {
+      const rawFiles = text || "⚡ index.ts*, 📄 API.md, 🎨 styles.css";
+      const files = rawFiles.split(",").map((s: string) => s.trim());
+      const ftRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:6px;";
+      const customHandler =
+        c.event_handlers?.onChange || c.event_handlers?.onchange || "";
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg !== "transparent" ? cbg : isLight ? "#e2e8f0" : "#090d16"};${defBorder}${ftRadius}padding:0 4px;gap:2px;overflow-x:auto;">${files
+        .map((file: string, idx: number) => {
+          const isSel = idx === 0;
+          return `<div style="padding:4px 10px;background:${isSel ? (isLight ? "#ffffff" : "#1e293b") : "transparent"};border-radius:4px 4px 0 0;font-size:11px;font-weight:${isSel ? "700" : "normal"};color:${isSel ? accent : color};display:flex;align-items:center;gap:6px;cursor:pointer;border-bottom:${isSel ? `2px solid ${accent}` : "none"};" onclick="const fn=window['${customHandler}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fn)fn('${file}');"><span>${file}</span><span style="font-size:9px;opacity:0.5;" onclick="event.stopPropagation();this.parentNode.style.display='none';">✕</span></div>`;
+        })
+        .join("")}</div>\n`;
+    } else if (t === "form_checkbox") {
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};"><span style="font-size:10px;font-weight:700;opacity:0.8;">${text}</span><label style="display:flex;align-items:center;gap:8px;cursor:${c.cursor || "pointer"};font-size:${c.font_size || 13}px;"><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="checkbox" ${c.checked ? "checked" : ""}${disabled}${reqAttr}${ev} style="width:16px;height:16px;accent-color:${accent};cursor:${c.cursor || "pointer"};">${c.placeholder || "Enable option toggle"}</label></div>\n`;
+    } else if (t === "form_radio") {
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};"><span style="font-size:10px;font-weight:700;opacity:0.8;">${text}</span><label style="display:flex;align-items:center;gap:8px;cursor:${c.cursor || "pointer"};font-size:${c.font_size || 13}px;"><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="radio" ${c.checked ? "checked" : ""}${disabled}${reqAttr}${ev} style="width:16px;height:16px;accent-color:${accent};cursor:${c.cursor || "pointer"};">${c.placeholder || "Select option"}</label></div>\n`;
+    } else if (t === "form_search") {
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};"><span style="font-size:10px;font-weight:700;opacity:0.8;">${text}</span><div style="display:flex;align-items:center;gap:6px;background:${cbg};${defBorder}${defRadius}padding:0 8px;height:32px;"><span style="opacity:0.6;font-size:13px;">🔍</span><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="search" value="" placeholder="${c.placeholder || "Search records..."}"${disabled}${roAttr}${ev} style="flex:1;background:none;border:none;color:${color};outline:none;font-size:${c.font_size || 13}px;width:100%;"></div></div>\n`;
+    } else if (t === "form_color") {
+      const hexVal = c.value || "#38bdf8";
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};"><span style="font-size:10px;font-weight:700;opacity:0.8;">${text}</span><div style="display:flex;align-items:center;gap:8px;"><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="color" value="${hexVal}"${disabled}${ev} style="width:36px;height:28px;padding:2px;${defBorder}${defRadius}cursor:${c.cursor || "pointer"};background:${rawCbg};"><span style="font-family:monospace;font-size:12px;opacity:0.9;">${hexVal}</span></div></div>\n`;
+    } else if (t === "form_time") {
+      const timeVal = c.value || "09:30";
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};"><span style="font-size:10px;font-weight:700;opacity:0.8;">${text}</span><div style="display:flex;align-items:center;gap:8px;background:${cbg};${defBorder}${defRadius}padding:0 8px;height:32px;"><span style="font-size:14px;opacity:0.7;">🕒</span><input type="time" value="${timeVal}"${disabled}${roAttr}${ev} style="background:none;border:none;color:inherit;font-family:inherit;font-size:${c.font_size || 13}px;outline:none;width:100%;color-scheme:${isLight ? "light" : "dark"};"></div></div>\n`;
+    } else if (t === "form_stepper") {
+      const stepVal = c.value !== undefined ? c.value : 5;
+      const customHandler =
+        c.event_handlers?.onChange || c.event_handlers?.onchange || "";
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:space-between;gap:8px;color:${color};"><span style="font-size:11px;font-weight:700;opacity:0.8;">${text}</span><div style="display:flex;align-items:center;justify-content:space-between;background:${cbg};${defBorder}${defRadius}padding:0 6px;height:32px;min-width:110px;"><button onclick="const s=this.nextElementSibling;const n=parseInt(s.textContent||'0')-1;s.textContent=n;const fn=window['${customHandler}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fn)fn(n);" onmouseover="this.style.background='${accent}';this.style.color='#fff';" onmouseout="this.style.background='${isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"}';this.style.color='${accent}';" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:${isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"};border:none;border-radius:4px;color:${accent};font-size:16px;font-weight:bold;cursor:pointer;line-height:1;user-select:none;transition:all 0.15s;">−</button><span style="font-weight:bold;font-size:12px;padding:0 8px;">${stepVal}</span><button onclick="const s=this.previousElementSibling;const n=parseInt(s.textContent||'0')+1;s.textContent=n;const fn=window['${customHandler}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fn)fn(n);" onmouseover="this.style.background='${accent}';this.style.color='#fff';" onmouseout="this.style.background='${isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"}';this.style.color='${accent}';" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:${isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"};border:none;border-radius:4px;color:${accent};font-size:16px;font-weight:bold;cursor:pointer;line-height:1;user-select:none;transition:all 0.15s;">+</button></div></div>\n`;
+    } else if (t === "form_code") {
+      const codeFg =
+        c.font_color && c.font_color !== fg ? c.font_color : "#7dd3fc";
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;gap:4px;"><span style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${text}</span><textarea${disabled}${roAttr}${autoFocusAttr}${ev} placeholder="${c.placeholder || "// Enter script code..."}" style="flex:1;background:${c.background_color && c.background_color !== "transparent" ? c.background_color : "#0d1117"};${defBorder}${defRadius}padding:8px;color:${codeFg};font-family:'Fira Code','Courier New',monospace;font-size:${c.font_size || 12}px;overflow:auto;margin:0;resize:none;outline:none;white-space:pre;" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'>${c.value || c.code || ""}</textarea></div>\n`;
+    } else if (t === "form_drop_zone") {
+      const customChange =
+        c.event_handlers?.onChange || c.event_handlers?.onchange || "";
+      const customClick =
+        c.event_handlers?.onClick || c.event_handlers?.onclick || "";
+      controls += `<div id="${c.id}_wrapper"${ctxAttr}${titleAttr} style="${base(c)}display:flex;flex-direction:column;gap:4px;"><span style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${text}</span><div onclick="const fi=document.getElementById('${c.id}_file');if(fi)fi.click();" ondragover="event.preventDefault();" ondrop="event.preventDefault();if(event.dataTransfer&&event.dataTransfer.files&&event.dataTransfer.files[0]){const p=event.dataTransfer.files[0].name;const lbl=this.querySelector('.dz-label');if(lbl)lbl.textContent=p;const hid=document.getElementById('${c.id}');if(hid)hid.value=p;const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(p);}" style="flex:1;background:${cbg};border:2px dashed ${accent};${defRadius}display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:${color};opacity:0.85;cursor:${c.cursor || "pointer"};"><input type="hidden" id="${c.id}" name="${c.id}" value="${c.value || ""}"><input type="file" id="${c.id}_file" style="display:none;" onchange="if(this.files&&this.files[0]){const p=this.files[0].name;const lbl=this.parentNode.querySelector('.dz-label');if(lbl)lbl.textContent=p;const hid=document.getElementById('${c.id}');if(hid)hid.value=p;const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(p);const fnK=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK(p);}"><span style="font-size:20px;">📥</span><span class="dz-label" style="font-size:11px;">${c.placeholder || "Drop files here or click to browse"}</span></div></div>\n`;
+    } else if (t === "tabs") {
+      const rawTabItems =
+        c.items ||
+        (text
+          ? text.split(",").map((tb: string) => tb.trim())
+          : ["General", "Security", "Advanced"]);
+      const tabItems = Array.isArray(rawTabItems)
+        ? rawTabItems
+        : String(rawTabItems)
+            .split(",")
+            .map((tb: string) => tb.trim());
+      const activeTab = c.value || tabItems[0] || "";
+      const customHandler =
+        c.event_handlers?.onChange || c.event_handlers?.onchange || "";
+      const customClose =
+        c.event_handlers?.onTabClose || c.event_handlers?.on_tab_close || "";
+      const isClosable = Boolean(
+        c.closable || c.closeable || c.has_close_button,
+      );
 
-            const tabsScript = isClosable ? `<script>
+      const tabsScript = isClosable
+        ? `<script>
 (function() {
     window['${c.id}_closeTab'] = function(title) {
         const cont = document.getElementById('${c.id}');
@@ -2829,145 +4147,347 @@ export function generatePreviewHtml(spec: any): string {
         if (fnC) fnC(title);
     };
 })();
-</script>` : '';
+</script>`
+        : "";
 
-            controls += `<div${id}${titleAttr} class="rad-tabs-bar" data-value="${activeTab}" style="${base(c)}display:flex;align-items:center;background:${cbg !== 'transparent' ? cbg : (isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)')};border-bottom:2px solid ${border};padding:0 4px;gap:2px;overflow-x:auto;">${tabItems.map((tb: string, idx: number) => {
-                const isSel = tb === activeTab || (idx === 0 && !c.value);
-                const closeBtn = isClosable
-                    ? `<span class="tab-close-btn" onclick="event.stopPropagation();if(window['${c.id}_closeTab'])window['${c.id}_closeTab']('${tb.replace(/'/g, "\\'")}');else{this.parentNode.remove();}" style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;margin-left:6px;font-size:11px;opacity:0.6;cursor:pointer;line-height:1;" onmouseover="this.style.opacity='1';this.style.background='rgba(239,68,68,0.2)';this.style.color='#ef4444';" onmouseout="this.style.opacity='0.6';this.style.background='transparent';this.style.color='inherit';">×</span>`
-                    : '';
-                return `<button class="rad-tab-btn" data-tab="${tb.replace(/"/g, '&quot;')}" onclick="this.parentNode.querySelectorAll('.rad-tab-btn').forEach(b=>{b.style.borderBottom='none';b.style.color='${color}';b.style.fontWeight='normal'});this.style.borderBottom='2px solid ${accent}';this.style.color='${accent}';this.style.fontWeight='700';this.parentNode.dataset.value='${tb}';const fn=window['${customHandler}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fn)fn('${tb}');" style="height:100%;padding:0 14px;background:none;border:none;border-bottom:${isSel ? `2px solid ${accent}` : 'none'};color:${isSel ? accent : color};font-weight:${isSel ? '700' : 'normal'};font-size:12px;cursor:pointer;transition:all 0.15s;display:inline-flex;align-items:center;"><span>${tb}</span>${closeBtn}</button>`;
-            }).join('')}</div>\n${tabsScript}\n`;
-        } else if (t === 'menu_bar') {
-            const rawMenus = c.items || c.menus || (text ? text.split('|') : ['File', 'Edit', 'View', 'Help']);
-            const customClick = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
-            const mbRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:6px;';
-            const defaultSubMenus: Record<string, string[]> = {
-                'File': ['📄 New File  ⌘N', '📂 Open...  ⌘O', '💾 Save  ⌘S', '---', '🚪 Exit  ⌘Q'],
-                'Edit': ['↩️ Undo  ⌘Z', '↪️ Redo  ⌘⇧Z', '---', '✂️ Cut  ⌘X', '📋 Copy  ⌘C', '📄 Paste  ⌘V'],
-                'View': ['🔍 Zoom In  ⌘+', '🔎 Zoom Out  ⌘-', '🔄 Reset Zoom  ⌘0', '---', '🖥️ Fullscreen  ⌃⌘F'],
-                'Run': ['▶️ Start Debugging  F5', '⚡ Run Without Debugging  ⌃F5', '🔄 Restart  ⌘⇧F5'],
-                'Tools': ['⌨️ Command Palette...  ⌘⇧P', '⚙️ Preferences...  ⌘,', '---', '🩺 Diagnostics'],
-                'Help': ['📖 Documentation', '⌨️ Keyboard Shortcuts', '---', 'ℹ️ About Bun RAD Studio']
-            };
+      controls += `<div${id}${titleAttr} class="rad-tabs-bar" data-value="${activeTab}" style="${base(c)}display:flex;align-items:center;background:${cbg !== "transparent" ? cbg : isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)"};border-bottom:2px solid ${border};padding:0 4px;gap:2px;overflow-x:auto;">${tabItems
+        .map((tb: string, idx: number) => {
+          const isSel = tb === activeTab || (idx === 0 && !c.value);
+          const closeBtn = isClosable
+            ? `<span class="tab-close-btn" onclick="event.stopPropagation();if(window['${c.id}_closeTab'])window['${c.id}_closeTab']('${tb.replace(/'/g, "\\'")}');else{this.parentNode.remove();}" style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;margin-left:6px;font-size:11px;opacity:0.6;cursor:pointer;line-height:1;" onmouseover="this.style.opacity='1';this.style.background='rgba(239,68,68,0.2)';this.style.color='#ef4444';" onmouseout="this.style.opacity='0.6';this.style.background='transparent';this.style.color='inherit';">×</span>`
+            : "";
+          return `<button class="rad-tab-btn" data-tab="${tb.replace(/"/g, "&quot;")}" onclick="this.parentNode.querySelectorAll('.rad-tab-btn').forEach(b=>{b.style.borderBottom='none';b.style.color='${color}';b.style.fontWeight='normal'});this.style.borderBottom='2px solid ${accent}';this.style.color='${accent}';this.style.fontWeight='700';this.parentNode.dataset.value='${tb}';const fn=window['${customHandler}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fn)fn('${tb}');" style="height:100%;padding:0 14px;background:none;border:none;border-bottom:${isSel ? `2px solid ${accent}` : "none"};color:${isSel ? accent : color};font-weight:${isSel ? "700" : "normal"};font-size:12px;cursor:pointer;transition:all 0.15s;display:inline-flex;align-items:center;"><span>${tb}</span>${closeBtn}</button>`;
+        })
+        .join("")}</div>\n${tabsScript}\n`;
+    } else if (t === "menu_bar") {
+      const rawMenus =
+        c.items ||
+        c.menus ||
+        (text ? text.split("|") : ["File", "Edit", "View", "Help"]);
+      const customClick =
+        c.event_handlers?.onClick || c.event_handlers?.onclick || "";
+      const mbRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:6px;";
+      const defaultSubMenus: Record<string, string[]> = {
+        File: [
+          "📄 New File  ⌘N",
+          "📂 Open...  ⌘O",
+          "💾 Save  ⌘S",
+          "---",
+          "🚪 Exit  ⌘Q",
+        ],
+        Edit: [
+          "↩️ Undo  ⌘Z",
+          "↪️ Redo  ⌘⇧Z",
+          "---",
+          "✂️ Cut  ⌘X",
+          "📋 Copy  ⌘C",
+          "📄 Paste  ⌘V",
+        ],
+        View: [
+          "🔍 Zoom In  ⌘+",
+          "🔎 Zoom Out  ⌘-",
+          "🔄 Reset Zoom  ⌘0",
+          "---",
+          "🖥️ Fullscreen  ⌃⌘F",
+        ],
+        Run: [
+          "▶️ Start Debugging  F5",
+          "⚡ Run Without Debugging  ⌃F5",
+          "🔄 Restart  ⌘⇧F5",
+        ],
+        Tools: [
+          "⌨️ Command Palette...  ⌘⇧P",
+          "⚙️ Preferences...  ⌘,",
+          "---",
+          "🩺 Diagnostics",
+        ],
+        Help: [
+          "📖 Documentation",
+          "⌨️ Keyboard Shortcuts",
+          "---",
+          "ℹ️ About Bun RAD Studio",
+        ],
+      };
 
-            const menus = (Array.isArray(rawMenus) ? rawMenus : [rawMenus]).map((m: any) => {
-                if (typeof m === 'string') {
-                    const parts = m.split(':');
-                    const label = (parts[0] || '').trim() || 'Menu';
-                    const items = parts[1] ? parts[1].split(',').map((s: string) => s.trim()) : (defaultSubMenus[label] || ['Action 1', 'Action 2']);
-                    return { label, items };
-                }
-                return { label: m.label || 'Menu', items: m.items || defaultSubMenus[m.label] || ['Item 1', 'Item 2'] };
-            });
+      const menus = (Array.isArray(rawMenus) ? rawMenus : [rawMenus]).map(
+        (m: any) => {
+          if (typeof m === "string") {
+            const parts = m.split(":");
+            const label = (parts[0] || "").trim() || "Menu";
+            const items = parts[1]
+              ? parts[1].split(",").map((s: string) => s.trim())
+              : defaultSubMenus[label] || ["Action 1", "Action 2"];
+            return { label, items };
+          }
+          return {
+            label: m.label || "Menu",
+            items: m.items || defaultSubMenus[m.label] || ["Item 1", "Item 2"],
+          };
+        },
+      );
 
-            controls += `<div id="${c.id}" class="rad-menu-bar" style="${base(c)}display:flex;align-items:center;background:${cbg !== 'transparent' ? cbg : (isLight ? '#f1f5f9' : '#1e293b')};${defBorder}${mbRadius}padding:0 6px;gap:2px;user-select:none;box-shadow:0 2px 6px rgba(0,0,0,0.15);">${menus.map((m: any) => {
-                return `<div class="menu-bar-item" style="position:relative;display:inline-block;" onmouseleave="const dd=this.querySelector('.menu-dropdown');if(dd)dd.style.display='none';"><button type="button" onclick="event.stopPropagation();document.querySelectorAll('.menu-dropdown').forEach(d=>{if(d!==this.nextElementSibling)d.style.display='none'});const dd=this.nextElementSibling;if(dd)dd.style.display=dd.style.display==='block'?'none':'block';" onmouseenter="const anyOpen=Array.from(document.querySelectorAll('.menu-dropdown')).some(d=>d.style.display==='block');if(anyOpen){document.querySelectorAll('.menu-dropdown').forEach(d=>d.style.display='none');const dd=this.nextElementSibling;if(dd)dd.style.display='block';}" style="padding:5px 10px;background:transparent;border:none;border-radius:4px;color:${color};font-size:12px;font-weight:600;cursor:pointer;transition:background 0.12s;" onmouseover="this.style.background='${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}'" onmouseout="this.style.background='transparent'">${m.label}</button><div class="menu-dropdown" style="display:none;position:absolute;left:0;top:100%;min-width:190px;background:${isLight ? '#ffffff' : '#1e293b'};border:1px solid ${border};border-radius:8px;padding:6px;box-shadow:0 12px 28px rgba(0,0,0,0.4);z-index:99999;backdrop-filter:blur(12px);">${(m.items || []).map((it: string) => {
-                    if (it === '---') return `<div style="height:1px;background:${border};margin:4px 0;"></div>`;
-                    const parts = it.split(/\s{2,}/);
-                    const itLabel = parts[0] || it;
-                    const itShortcut = parts[1] || '';
-                    return `<div class="menu-dropdown-item" style="padding:6px 10px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:${color};cursor:pointer;transition:background 0.12s;" onmouseover="this.style.background='${isLight ? 'rgba(2,132,199,0.12)' : 'rgba(56,189,248,0.18)'}'" onmouseout="this.style.background=''" onclick="event.stopPropagation();this.closest('.menu-dropdown').style.display='none';if(window.showInteractionToast)window.showInteractionToast('Menu Bar Action','${m.label} > ${itLabel.replace(/'/g, "\\'")}');const fn=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${m.label} > ${itLabel.replace(/'/g, "\\'")}');"><span>${itLabel}</span>${itShortcut ? `<span class="rad-mono" style="font-size:10px;opacity:0.5;">${itShortcut}</span>` : ''}</div>`;
-                }).join('')}</div></div>`;
-            }).join('')}</div>\n`;
-        } else if (t === 'tool_bar' || t === 'toolbar' || t === 'action_bar') {
-            const rawItems = c.items || (text ? text.split(',').map((s: string) => s.trim()) : ['📄 New', '📂 Open', '💾 Save', '---', '✂️ Cut', '📋 Copy', '---', '⚙️ Settings', '🔍 Search']);
-            const items = Array.isArray(rawItems) ? rawItems : String(rawItems).split(',').map((s: string) => s.trim());
-            const customHandler = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
-            const tbRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:6px;';
-            controls += `<div${id}${titleAttr} class="rad-toolbar" style="${base(c)}display:flex;align-items:center;gap:4px;background:${cbg !== 'transparent' ? cbg : (isLight ? '#f1f5f9' : '#1e293b')};${defBorder}${tbRadius}padding:3px 6px;box-shadow:0 2px 6px rgba(0,0,0,0.15);overflow-x:auto;">${items.map((item: any) => {
-                if (item === '---' || item === '|') {
-                    return `<div class="toolbar-separator" style="width:1px;height:18px;background:${border};margin:0 4px;opacity:0.8;"></div>`;
-                }
-                const label = typeof item === 'object' && item !== null ? (item.label || item.text || item.id || '') : String(item);
-                const icon = typeof item === 'object' && item !== null ? (item.icon || '') : '';
-                const tooltip = typeof item === 'object' && item !== null ? (item.tooltip || label) : label;
-                const isToggle = typeof item === 'object' && item !== null ? Boolean(item.toggle) : false;
-                const isActive = typeof item === 'object' && item !== null ? Boolean(item.active) : false;
-                const activeBg = isLight ? 'rgba(2,132,199,0.18)' : 'rgba(56,189,248,0.22)';
-                const activeColor = accent;
-                const baseBg = isActive ? activeBg : (isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.06)');
-                const baseFg = isActive ? activeColor : color;
-                return `<button type="button" title="${tooltip}" data-toggle="${isToggle}" data-active="${isActive}" onclick="if(this.dataset.toggle==='true'){const a=this.dataset.active!=='true';this.dataset.active=a?'true':'false';this.style.background=a?'${activeBg}':'${isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.06)'}';this.style.color=a?'${activeColor}':'${color}';}const fn=window['${customHandler}']||window['${c.id}_click']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${label.replace(/'/g, "\\'")}');" style="height:28px;padding:0 8px;background:${baseBg};border:1px solid ${isActive ? accent : 'transparent'};border-radius:4px;color:${baseFg};font-size:11px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all 0.12s;white-space:nowrap;flex-shrink:0;" onmouseover="if(this.dataset.active!=='true')this.style.background='${isLight ? 'rgba(2,132,199,0.12)' : 'rgba(56,189,248,0.15)'}';" onmouseout="if(this.dataset.active!=='true')this.style.background='${isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.06)'}';">${icon ? `<span>${icon}</span>` : ''}<span>${label}</span></button>`;
-            }).join('')}</div>\n`;
-        } else if (t === 'status_bar') {
-            controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:${cbg !== 'transparent' ? cbg : (isLight ? '#e2e8f0' : '#090d16')};border-top:1px solid ${border};padding:0 12px;font-size:11px;color:${color};"><div style="display:flex;align-items:center;gap:8px;"><span style="color:#10b981;font-weight:bold;">🟢 Ready</span><span style="opacity:0.4;">|</span><span>${text || 'UTF-8 | Line 1, Col 1'}</span></div><div style="display:flex;align-items:center;gap:8px;opacity:0.75;"><span>Bun RAD v1.3</span><span>100%</span></div></div>\n`;
-        } else if (t === 'split_pane' || t === 'splitter') {
-            const rawParts = text ? text.split('|') : (c.items || ['Navigation Sidebar', 'Main Detail Area']);
-            const leftContent = c.left_content || c.left || (rawParts[0] ? rawParts[0].trim() : 'Left Sidebar');
-            const rightContent = c.right_content || c.right || (rawParts[1] ? rawParts[1].trim() : 'Main Content Panel');
-            const isVert = Boolean(c.orientation === 'vertical' || c.vertical);
-            const initialRatio = Number(c.ratio || c.split_ratio || 0.35);
-            const initialSizePct = Math.round(initialRatio * 100);
-            const customResize = c.event_handlers?.onResize || c.event_handlers?.on_resize || '';
-            const spRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
-            controls += `<div${id}${titleAttr} class="rad-split-pane" style="${base(c)}display:flex;flex-direction:${isVert ? 'column' : 'row'};background:${cbg !== 'transparent' ? cbg : (isLight ? '#f8fafc' : '#0f172a')};${defBorder}${spRadius}overflow:hidden;position:relative;"><div class="split-pane-first" style="${isVert ? `height:${initialSizePct}%;width:100%;` : `width:${initialSizePct}%;height:100%;`}padding:8px 12px;font-size:11px;color:${color};background:${isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.03)'};overflow:auto;box-sizing:border-box;"><div style="font-weight:700;color:${accent};margin-bottom:4px;">${c.left_title || 'Sidebar'}</div><div>${leftContent}</div></div><div class="split-pane-handle" style="${isVert ? 'height:6px;width:100%;cursor:row-resize;' : 'width:6px;height:100%;cursor:col-resize;'}background:${accent};opacity:0.6;user-select:none;transition:opacity 0.15s;flex-shrink:0;z-index:2;" onmouseover="this.style.opacity='1';" onmouseout="if(!this.dataset.dragging)this.style.opacity='0.6';" onmousedown="event.preventDefault();event.stopPropagation();const h=this;h.dataset.dragging='true';h.style.opacity='1';const cont=h.parentNode;const firstPane=cont.querySelector('.split-pane-first');const isV=${isVert};const startPos=isV?event.clientY:event.clientX;const startSize=isV?firstPane.offsetHeight:firstPane.offsetWidth;const totalSize=isV?cont.offsetHeight:cont.offsetWidth;function onSplitMove(e){if(!h.dataset.dragging)return;const delta=(isV?e.clientY:e.clientX)-startPos;const newPx=Math.max(40,Math.min(totalSize-40,startSize+delta));if(isV){firstPane.style.height=newPx+'px';}else{firstPane.style.width=newPx+'px';}const fn=window['${customResize}']||window['${c.id}_onResize']||window['on_${c.id}_resize'];if(fn)fn(newPx);}function onSplitUp(){delete h.dataset.dragging;h.style.opacity='0.6';window.removeEventListener('mousemove',onSplitMove);window.removeEventListener('mouseup',onSplitUp);}window.addEventListener('mousemove',onSplitMove);window.addEventListener('mouseup',onSplitUp);"></div><div class="split-pane-second" style="flex:1;padding:8px 12px;font-size:11px;color:${color};overflow:auto;box-sizing:border-box;"><div style="font-weight:700;color:${accent};margin-bottom:4px;">${c.right_title || 'Main Area'}</div><div>${rightContent}</div></div></div>\n`;
-        } else if (t === 'diff_view' || t === 'diff_editor') {
-            const originalLines = (c.original !== undefined ? String(c.original) : (text || '// Original code\nfunction calculate(a, b) {\n    return a + b;\n}')).split('\n');
-            const modifiedLines = (c.modified !== undefined ? String(c.modified) : (c.value ? String(c.value) : '// Modified code\nfunction calculate(a, b, factor = 1) {\n    const sum = a + b;\n    return sum * factor;\n}')).split('\n');
-            const diffRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
-            const maxLines = Math.max(originalLines.length, modifiedLines.length);
-            const origHeader = c.original_title || 'Original (Base)';
-            const modHeader = c.modified_title || 'Modified (Working)';
+      controls += `<div id="${c.id}" class="rad-menu-bar" style="${base(c)}display:flex;align-items:center;background:${cbg !== "transparent" ? cbg : isLight ? "#f1f5f9" : "#1e293b"};${defBorder}${mbRadius}padding:0 6px;gap:2px;user-select:none;box-shadow:0 2px 6px rgba(0,0,0,0.15);">${menus
+        .map((m: any) => {
+          return `<div class="menu-bar-item" style="position:relative;display:inline-block;" onmouseleave="const dd=this.querySelector('.menu-dropdown');if(dd)dd.style.display='none';"><button type="button" onclick="event.stopPropagation();document.querySelectorAll('.menu-dropdown').forEach(d=>{if(d!==this.nextElementSibling)d.style.display='none'});const dd=this.nextElementSibling;if(dd)dd.style.display=dd.style.display==='block'?'none':'block';" onmouseenter="const anyOpen=Array.from(document.querySelectorAll('.menu-dropdown')).some(d=>d.style.display==='block');if(anyOpen){document.querySelectorAll('.menu-dropdown').forEach(d=>d.style.display='none');const dd=this.nextElementSibling;if(dd)dd.style.display='block';}" style="padding:5px 10px;background:transparent;border:none;border-radius:4px;color:${color};font-size:12px;font-weight:600;cursor:pointer;transition:background 0.12s;" onmouseover="this.style.background='${isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"}'" onmouseout="this.style.background='transparent'">${m.label}</button><div class="menu-dropdown" style="display:none;position:absolute;left:0;top:100%;min-width:190px;background:${isLight ? "#ffffff" : "#1e293b"};border:1px solid ${border};border-radius:8px;padding:6px;box-shadow:0 12px 28px rgba(0,0,0,0.4);z-index:99999;backdrop-filter:blur(12px);">${(
+            m.items || []
+          )
+            .map((it: string) => {
+              if (it === "---")
+                return `<div style="height:1px;background:${border};margin:4px 0;"></div>`;
+              const parts = it.split(/\s{2,}/);
+              const itLabel = parts[0] || it;
+              const itShortcut = parts[1] || "";
+              return `<div class="menu-dropdown-item" style="padding:6px 10px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:${color};cursor:pointer;transition:background 0.12s;" onmouseover="this.style.background='${isLight ? "rgba(2,132,199,0.12)" : "rgba(56,189,248,0.18)"}'" onmouseout="this.style.background=''" onclick="event.stopPropagation();this.closest('.menu-dropdown').style.display='none';if(window.showInteractionToast)window.showInteractionToast('Menu Bar Action','${m.label} > ${itLabel.replace(/'/g, "\\'")}');const fn=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${m.label} > ${itLabel.replace(/'/g, "\\'")}');"><span>${itLabel}</span>${itShortcut ? `<span class="rad-mono" style="font-size:10px;opacity:0.5;">${itShortcut}</span>` : ""}</div>`;
+            })
+            .join("")}</div></div>`;
+        })
+        .join("")}</div>\n`;
+    } else if (t === "tool_bar" || t === "toolbar" || t === "action_bar") {
+      const rawItems =
+        c.items ||
+        (text
+          ? text.split(",").map((s: string) => s.trim())
+          : [
+              "📄 New",
+              "📂 Open",
+              "💾 Save",
+              "---",
+              "✂️ Cut",
+              "📋 Copy",
+              "---",
+              "⚙️ Settings",
+              "🔍 Search",
+            ]);
+      const items = Array.isArray(rawItems)
+        ? rawItems
+        : String(rawItems)
+            .split(",")
+            .map((s: string) => s.trim());
+      const customHandler =
+        c.event_handlers?.onClick || c.event_handlers?.onclick || "";
+      const tbRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:6px;";
+      controls += `<div${id}${titleAttr} class="rad-toolbar" style="${base(c)}display:flex;align-items:center;gap:4px;background:${cbg !== "transparent" ? cbg : isLight ? "#f1f5f9" : "#1e293b"};${defBorder}${tbRadius}padding:3px 6px;box-shadow:0 2px 6px rgba(0,0,0,0.15);overflow-x:auto;">${items
+        .map((item: any) => {
+          if (item === "---" || item === "|") {
+            return `<div class="toolbar-separator" style="width:1px;height:18px;background:${border};margin:0 4px;opacity:0.8;"></div>`;
+          }
+          const label =
+            typeof item === "object" && item !== null
+              ? item.label || item.text || item.id || ""
+              : String(item);
+          const icon =
+            typeof item === "object" && item !== null ? item.icon || "" : "";
+          const tooltip =
+            typeof item === "object" && item !== null
+              ? item.tooltip || label
+              : label;
+          const isToggle =
+            typeof item === "object" && item !== null
+              ? Boolean(item.toggle)
+              : false;
+          const isActive =
+            typeof item === "object" && item !== null
+              ? Boolean(item.active)
+              : false;
+          const activeBg = isLight
+            ? "rgba(2,132,199,0.18)"
+            : "rgba(56,189,248,0.22)";
+          const activeColor = accent;
+          const baseBg = isActive
+            ? activeBg
+            : isLight
+              ? "rgba(0,0,0,0.03)"
+              : "rgba(255,255,255,0.06)";
+          const baseFg = isActive ? activeColor : color;
+          return `<button type="button" title="${tooltip}" data-toggle="${isToggle}" data-active="${isActive}" onclick="if(this.dataset.toggle==='true'){const a=this.dataset.active!=='true';this.dataset.active=a?'true':'false';this.style.background=a?'${activeBg}':'${isLight ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.06)"}';this.style.color=a?'${activeColor}':'${color}';}const fn=window['${customHandler}']||window['${c.id}_click']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${label.replace(/'/g, "\\'")}');" style="height:28px;padding:0 8px;background:${baseBg};border:1px solid ${isActive ? accent : "transparent"};border-radius:4px;color:${baseFg};font-size:11px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all 0.12s;white-space:nowrap;flex-shrink:0;" onmouseover="if(this.dataset.active!=='true')this.style.background='${isLight ? "rgba(2,132,199,0.12)" : "rgba(56,189,248,0.15)"}';" onmouseout="if(this.dataset.active!=='true')this.style.background='${isLight ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.06)"}';">${icon ? `<span>${icon}</span>` : ""}<span>${label}</span></button>`;
+        })
+        .join("")}</div>\n`;
+    } else if (t === "status_bar") {
+      controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:${cbg !== "transparent" ? cbg : isLight ? "#e2e8f0" : "#090d16"};border-top:1px solid ${border};padding:0 12px;font-size:11px;color:${color};"><div style="display:flex;align-items:center;gap:8px;"><span style="color:#10b981;font-weight:bold;">🟢 Ready</span><span style="opacity:0.4;">|</span><span>${text || "UTF-8 | Line 1, Col 1"}</span></div><div style="display:flex;align-items:center;gap:8px;opacity:0.75;"><span>Bun RAD v1.3</span><span>100%</span></div></div>\n`;
+    } else if (t === "split_pane" || t === "splitter") {
+      const rawParts = text
+        ? text.split("|")
+        : c.items || ["Navigation Sidebar", "Main Detail Area"];
+      const leftContent =
+        c.left_content ||
+        c.left ||
+        (rawParts[0] ? rawParts[0].trim() : "Left Sidebar");
+      const rightContent =
+        c.right_content ||
+        c.right ||
+        (rawParts[1] ? rawParts[1].trim() : "Main Content Panel");
+      const isVert = Boolean(c.orientation === "vertical" || c.vertical);
+      const initialRatio = Number(c.ratio || c.split_ratio || 0.35);
+      const initialSizePct = Math.round(initialRatio * 100);
+      const customResize =
+        c.event_handlers?.onResize || c.event_handlers?.on_resize || "";
+      const spRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:8px;";
+      controls += `<div${id}${titleAttr} class="rad-split-pane" style="${base(c)}display:flex;flex-direction:${isVert ? "column" : "row"};background:${cbg !== "transparent" ? cbg : isLight ? "#f8fafc" : "#0f172a"};${defBorder}${spRadius}overflow:hidden;position:relative;"><div class="split-pane-first" style="${isVert ? `height:${initialSizePct}%;width:100%;` : `width:${initialSizePct}%;height:100%;`}padding:8px 12px;font-size:11px;color:${color};background:${isLight ? "rgba(0,0,0,0.02)" : "rgba(255,255,255,0.03)"};overflow:auto;box-sizing:border-box;"><div style="font-weight:700;color:${accent};margin-bottom:4px;">${c.left_title || "Sidebar"}</div><div>${leftContent}</div></div><div class="split-pane-handle" style="${isVert ? "height:6px;width:100%;cursor:row-resize;" : "width:6px;height:100%;cursor:col-resize;"}background:${accent};opacity:0.6;user-select:none;transition:opacity 0.15s;flex-shrink:0;z-index:2;" onmouseover="this.style.opacity='1';" onmouseout="if(!this.dataset.dragging)this.style.opacity='0.6';" onmousedown="event.preventDefault();event.stopPropagation();const h=this;h.dataset.dragging='true';h.style.opacity='1';const cont=h.parentNode;const firstPane=cont.querySelector('.split-pane-first');const isV=${isVert};const startPos=isV?event.clientY:event.clientX;const startSize=isV?firstPane.offsetHeight:firstPane.offsetWidth;const totalSize=isV?cont.offsetHeight:cont.offsetWidth;function onSplitMove(e){if(!h.dataset.dragging)return;const delta=(isV?e.clientY:e.clientX)-startPos;const newPx=Math.max(40,Math.min(totalSize-40,startSize+delta));if(isV){firstPane.style.height=newPx+'px';}else{firstPane.style.width=newPx+'px';}const fn=window['${customResize}']||window['${c.id}_onResize']||window['on_${c.id}_resize'];if(fn)fn(newPx);}function onSplitUp(){delete h.dataset.dragging;h.style.opacity='0.6';window.removeEventListener('mousemove',onSplitMove);window.removeEventListener('mouseup',onSplitUp);}window.addEventListener('mousemove',onSplitMove);window.addEventListener('mouseup',onSplitUp);"></div><div class="split-pane-second" style="flex:1;padding:8px 12px;font-size:11px;color:${color};overflow:auto;box-sizing:border-box;"><div style="font-weight:700;color:${accent};margin-bottom:4px;">${c.right_title || "Main Area"}</div><div>${rightContent}</div></div></div>\n`;
+    } else if (t === "diff_view" || t === "diff_editor") {
+      const originalLines = (
+        c.original !== undefined
+          ? String(c.original)
+          : text ||
+            "// Original code\nfunction calculate(a, b) {\n    return a + b;\n}"
+      ).split("\n");
+      const modifiedLines = (
+        c.modified !== undefined
+          ? String(c.modified)
+          : c.value
+            ? String(c.value)
+            : "// Modified code\nfunction calculate(a, b, factor = 1) {\n    const sum = a + b;\n    return sum * factor;\n}"
+      ).split("\n");
+      const diffRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:8px;";
+      const maxLines = Math.max(originalLines.length, modifiedLines.length);
+      const origHeader = c.original_title || "Original (Base)";
+      const modHeader = c.modified_title || "Modified (Working)";
 
-            let diffRowsHtml = '';
-            for (let i = 0; i < maxLines; i++) {
-                const orig = originalLines[i] !== undefined ? originalLines[i] : null;
-                const mod = modifiedLines[i] !== undefined ? modifiedLines[i] : null;
-                const isDiff = orig !== mod;
-                const origBg = orig !== null && isDiff ? (isLight ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.18)') : 'transparent';
-                const modBg = mod !== null && isDiff ? (isLight ? 'rgba(16,185,129,0.12)' : 'rgba(16,185,129,0.18)') : 'transparent';
-                const origSign = isDiff && orig !== null ? '-' : ' ';
-                const modSign = isDiff && mod !== null ? '+' : ' ';
-                const origFg = isDiff && orig !== null ? sem.danger.text : color;
-                const modFg = isDiff && mod !== null ? sem.success.text : color;
+      let diffRowsHtml = "";
+      for (let i = 0; i < maxLines; i++) {
+        const orig = originalLines[i] !== undefined ? originalLines[i] : null;
+        const mod = modifiedLines[i] !== undefined ? modifiedLines[i] : null;
+        const isDiff = orig !== mod;
+        const origBg =
+          orig !== null && isDiff
+            ? isLight
+              ? "rgba(239,68,68,0.12)"
+              : "rgba(239,68,68,0.18)"
+            : "transparent";
+        const modBg =
+          mod !== null && isDiff
+            ? isLight
+              ? "rgba(16,185,129,0.12)"
+              : "rgba(16,185,129,0.18)"
+            : "transparent";
+        const origSign = isDiff && orig !== null ? "-" : " ";
+        const modSign = isDiff && mod !== null ? "+" : " ";
+        const origFg = isDiff && orig !== null ? sem.danger.text : color;
+        const modFg = isDiff && mod !== null ? sem.success.text : color;
 
-                diffRowsHtml += `<tr style="font-family:'Fira Code','Courier New',monospace;font-size:11px;line-height:1.4;">
-                    <td class="diff-line-num" style="width:30px;padding:2px 6px;text-align:right;opacity:0.4;background:${isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)'};border-right:1px solid ${border};user-select:none;">${orig !== null ? i + 1 : ''}</td>
+        diffRowsHtml += `<tr style="font-family:'Fira Code','Courier New',monospace;font-size:11px;line-height:1.4;">
+                    <td class="diff-line-num" style="width:30px;padding:2px 6px;text-align:right;opacity:0.4;background:${isLight ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.03)"};border-right:1px solid ${border};user-select:none;">${orig !== null ? i + 1 : ""}</td>
                     <td class="diff-del" style="width:16px;padding:2px 4px;text-align:center;color:${origFg};font-weight:bold;background:${origBg};">${origSign}</td>
-                    <td style="padding:2px 8px;background:${origBg};color:${origFg};white-space:pre;border-right:1px solid ${border};">${esc(orig || '')}</td>
-                    <td class="diff-line-num" style="width:30px;padding:2px 6px;text-align:right;opacity:0.4;background:${isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)'};border-right:1px solid ${border};user-select:none;">${mod !== null ? i + 1 : ''}</td>
+                    <td style="padding:2px 8px;background:${origBg};color:${origFg};white-space:pre;border-right:1px solid ${border};">${esc(orig || "")}</td>
+                    <td class="diff-line-num" style="width:30px;padding:2px 6px;text-align:right;opacity:0.4;background:${isLight ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.03)"};border-right:1px solid ${border};user-select:none;">${mod !== null ? i + 1 : ""}</td>
                     <td class="diff-add" style="width:16px;padding:2px 4px;text-align:center;color:${modFg};font-weight:bold;background:${modBg};">${modSign}</td>
-                    <td style="padding:2px 8px;background:${modBg};color:${modFg};white-space:pre;">${esc(mod || '')}</td>
+                    <td style="padding:2px 8px;background:${modBg};color:${modFg};white-space:pre;">${esc(mod || "")}</td>
                 </tr>`;
-            }
+      }
 
-            controls += `<div${id}${titleAttr} class="rad-diff-view rad-diff-container" style="${base(c)}background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#0d1117')};${defBorder}${diffRadius}overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,0.2);display:flex;flex-direction:column;">
-                <div style="display:flex;background:${isLight ? '#f1f5f9' : '#161b22'};border-bottom:1px solid ${border};font-size:11px;font-weight:700;">
+      controls += `<div${id}${titleAttr} class="rad-diff-view rad-diff-container" style="${base(c)}background:${cbg !== "transparent" ? cbg : isLight ? "#ffffff" : "#0d1117"};${defBorder}${diffRadius}overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,0.2);display:flex;flex-direction:column;">
+                <div style="display:flex;background:${isLight ? "#f1f5f9" : "#161b22"};border-bottom:1px solid ${border};font-size:11px;font-weight:700;">
                     <div class="diff-col-orig" style="flex:1;padding:6px 12px;color:#ef4444;border-right:1px solid ${border};display:flex;align-items:center;gap:6px;"><span>🔴</span><span>${origHeader}</span></div>
                     <div class="diff-col-mod" style="flex:1;padding:6px 12px;color:#10b981;display:flex;align-items:center;gap:6px;"><span>🟢</span><span>${modHeader}</span></div>
                 </div>
                 <div style="flex:1;overflow:auto;"><table style="width:100%;border-collapse:collapse;"><tbody>${diffRowsHtml}</tbody></table></div>
             </div>\n`;
-        } else if (t === 'cmd_palette' || t === 'command_palette' || t === 'quick_open') {
-            const rawCmds = c.items || c.commands || [
-                { id: 'new_file', label: 'Create New File', category: 'File', shortcut: '⌘N', icon: '📄' },
-                { id: 'open_project', label: 'Open Project Folder...', category: 'File', shortcut: '⌘O', icon: '📂' },
-                { id: 'save_all', label: 'Save All Changes', category: 'File', shortcut: '⌘S', icon: '💾' },
-                { id: 'toggle_theme', label: 'Toggle Light / Dark Mode', category: 'Preferences', shortcut: '⌘T', icon: '🎨' },
-                { id: 'find_files', label: 'Quick Open File by Name', category: 'Search', shortcut: '⌘P', icon: '🔍' },
-                { id: 'run_tests', label: 'Run Full Test Suite', category: 'Diagnostics', shortcut: '⌘⇧T', icon: '🧪' },
-                { id: 'build_proj', label: 'Export Desktop Bundle', category: 'Build', shortcut: '⌘B', icon: '📦' }
-            ];
-            const cmds = Array.isArray(rawCmds) ? rawCmds : [];
-            const customSelect = c.event_handlers?.onSelect || c.event_handlers?.onselect || c.event_handlers?.onClick || '';
-            const palRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:12px;';
-            const scText = esc(c.shortcut || '⌘K');
-            const triggerText = text || `⌨️ Command Palette (${scText})`;
+    } else if (
+      t === "cmd_palette" ||
+      t === "command_palette" ||
+      t === "quick_open"
+    ) {
+      const rawCmds = c.items ||
+        c.commands || [
+          {
+            id: "new_file",
+            label: "Create New File",
+            category: "File",
+            shortcut: "⌘N",
+            icon: "📄",
+          },
+          {
+            id: "open_project",
+            label: "Open Project Folder...",
+            category: "File",
+            shortcut: "⌘O",
+            icon: "📂",
+          },
+          {
+            id: "save_all",
+            label: "Save All Changes",
+            category: "File",
+            shortcut: "⌘S",
+            icon: "💾",
+          },
+          {
+            id: "toggle_theme",
+            label: "Toggle Light / Dark Mode",
+            category: "Preferences",
+            shortcut: "⌘T",
+            icon: "🎨",
+          },
+          {
+            id: "find_files",
+            label: "Quick Open File by Name",
+            category: "Search",
+            shortcut: "⌘P",
+            icon: "🔍",
+          },
+          {
+            id: "run_tests",
+            label: "Run Full Test Suite",
+            category: "Diagnostics",
+            shortcut: "⌘⇧T",
+            icon: "🧪",
+          },
+          {
+            id: "build_proj",
+            label: "Export Desktop Bundle",
+            category: "Build",
+            shortcut: "⌘B",
+            icon: "📦",
+          },
+        ];
+      const cmds = Array.isArray(rawCmds) ? rawCmds : [];
+      const customSelect =
+        c.event_handlers?.onSelect ||
+        c.event_handlers?.onselect ||
+        c.event_handlers?.onClick ||
+        "";
+      const palRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:12px;";
+      const scText = esc(c.shortcut || "⌘K");
+      const triggerText = text || `⌨️ Command Palette (${scText})`;
 
-            const palItemsHtml = cmds.map((cmd: any, i: number) => {
-                const cmdId = esc(cmd.id || `cmd_${i}`);
-                const cmdLabel = esc(cmd.label || cmd.name || cmdId);
-                const cmdCat = esc(cmd.category || 'General');
-                const cmdIcon = esc(cmd.icon || '⚡');
-                const cmdSc = esc(cmd.shortcut || '');
-                return `<div class="pal-item" data-id="${cmdId}" data-label="${cmdLabel.toLowerCase()}" data-cat="${cmdCat.toLowerCase()}" onclick="window['${c.id}_triggerCommand']('${cmdId}', '${cmdLabel}');" style="padding:8px 12px;border-radius:6px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:12px;color:${color};transition:background 0.12s;" onmouseover="this.classList.add('pal-selected');this.style.background='${isLight ? 'rgba(2,132,199,0.15)' : 'rgba(56,189,248,0.2)'}';" onmouseout="this.classList.remove('pal-selected');this.style.background='';">
+      const palItemsHtml = cmds
+        .map((cmd: any, i: number) => {
+          const cmdId = esc(cmd.id || `cmd_${i}`);
+          const cmdLabel = esc(cmd.label || cmd.name || cmdId);
+          const cmdCat = esc(cmd.category || "General");
+          const cmdIcon = esc(cmd.icon || "⚡");
+          const cmdSc = esc(cmd.shortcut || "");
+          return `<div class="pal-item" data-id="${cmdId}" data-label="${cmdLabel.toLowerCase()}" data-cat="${cmdCat.toLowerCase()}" onclick="window['${c.id}_triggerCommand']('${cmdId}', '${cmdLabel}');" style="padding:8px 12px;border-radius:6px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:12px;color:${color};transition:background 0.12s;" onmouseover="this.classList.add('pal-selected');this.style.background='${isLight ? "rgba(2,132,199,0.15)" : "rgba(56,189,248,0.2)"}';" onmouseout="this.classList.remove('pal-selected');this.style.background='';">
                     <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:14px;">${cmdIcon}</span><div><div style="font-weight:600;">${cmdLabel}</div><div style="font-size:10px;opacity:0.6;">${cmdCat}</div></div></div>
-                    ${cmdSc ? `<kbd class="rad-mono" style="font-size:10px;padding:2px 6px;border-radius:4px;background:${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.1)'};color:${accent};font-weight:700;">${cmdSc}</kbd>` : ''}
+                    ${cmdSc ? `<kbd class="rad-mono" style="font-size:10px;padding:2px 6px;border-radius:4px;background:${isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.1)"};color:${accent};font-weight:700;">${cmdSc}</kbd>` : ""}
                 </div>`;
-            }).join('');
+        })
+        .join("");
 
-            const palScript = `<script>
+      const palScript = `<script>
 (function() {
     window['${c.id}_openPalette'] = function() {
         const m = document.getElementById('${c.id}_backdrop') || document.getElementById('${c.id}_modal');
@@ -3021,17 +4541,17 @@ export function generatePreviewHtml(spec: any): string {
 })();
 </script>`;
 
-            controls += `<div${id}${titleAttr} class="rad-cmd-palette-trigger" style="${base(c)}display:flex;align-items:center;">
-                <button type="button" onclick="window['${c.id}_openPalette']();" style="width:100%;height:100%;background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b')};${defBorder}${defRadius}padding:0 12px;color:${color};font-size:12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.1);transition:border-color 0.15s;" onmouseover="this.style.borderColor='${accent}';" onmouseout="this.style.borderColor='${border}';">
+      controls += `<div${id}${titleAttr} class="rad-cmd-palette-trigger" style="${base(c)}display:flex;align-items:center;">
+                <button type="button" onclick="window['${c.id}_openPalette']();" style="width:100%;height:100%;background:${cbg !== "transparent" ? cbg : isLight ? "#ffffff" : "#1e293b"};${defBorder}${defRadius}padding:0 12px;color:${color};font-size:12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.1);transition:border-color 0.15s;" onmouseover="this.style.borderColor='${accent}';" onmouseout="this.style.borderColor='${border}';">
                     <span style="display:flex;align-items:center;gap:6px;"><span>🔍</span><span>${triggerText}</span></span>
-                    <kbd class="rad-mono" style="font-size:10px;padding:2px 6px;border-radius:4px;background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.1)'};color:${accent};font-weight:700;">${scText}</kbd>
+                    <kbd class="rad-mono" style="font-size:10px;padding:2px 6px;border-radius:4px;background:${isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.1)"};color:${accent};font-weight:700;">${scText}</kbd>
                 </button>
                 <div id="${c.id}_backdrop" class="rad-cmd-palette-modal rad-cmd-palette-backdrop" onclick="if(event.target===this)window['${c.id}_closePalette']();" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);z-index:999999;align-items:flex-start;justify-content:center;padding-top:12vh;">
-                    <div style="width:540px;max-width:92vw;max-height:70vh;background:${isLight ? '#ffffff' : '#1e293b'};${defBorder}${palRadius}box-shadow:0 20px 50px rgba(0,0,0,0.5);display:flex;flex-direction:column;overflow:hidden;border:1px solid ${accent};">
+                    <div style="width:540px;max-width:92vw;max-height:70vh;background:${isLight ? "#ffffff" : "#1e293b"};${defBorder}${palRadius}box-shadow:0 20px 50px rgba(0,0,0,0.5);display:flex;flex-direction:column;overflow:hidden;border:1px solid ${accent};">
                         <div style="padding:12px 14px;border-bottom:1px solid ${border};display:flex;align-items:center;gap:10px;">
                             <span style="font-size:16px;opacity:0.6;">🔍</span>
-                            <input type="text" id="${c.id}_input" class="cmd-palette-input" placeholder="${esc(c.placeholder || 'Type a command, action, or file...')}" oninput="window['${c.id}_filterPalette'](this.value);" onkeydown="if(event.key==='Escape')window['${c.id}_closePalette']();else if(event.key==='Enter'){const firstVisible=this.parentNode.nextElementSibling.querySelector('.pal-item[style*=\x27display: flex\x27], .pal-item:not([style*=\x27display: none\x27])');if(firstVisible)firstVisible.click();}" style="flex:1;background:none;border:none;outline:none;font-size:14px;color:${color};font-weight:500;">
-                            <kbd class="rad-mono" onclick="window['${c.id}_closePalette']();" style="font-size:10px;padding:2px 6px;border-radius:4px;background:${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.12)'};cursor:pointer;opacity:0.7;">ESC</kbd>
+                            <input type="text" id="${c.id}_input" class="cmd-palette-input" placeholder="${esc(c.placeholder || "Type a command, action, or file...")}" oninput="window['${c.id}_filterPalette'](this.value);" onkeydown="if(event.key==='Escape')window['${c.id}_closePalette']();else if(event.key==='Enter'){const firstVisible=this.parentNode.nextElementSibling.querySelector('.pal-item[style*=\x27display: flex\x27], .pal-item:not([style*=\x27display: none\x27])');if(firstVisible)firstVisible.click();}" style="flex:1;background:none;border:none;outline:none;font-size:14px;color:${color};font-weight:500;">
+                            <kbd class="rad-mono" onclick="window['${c.id}_closePalette']();" style="font-size:10px;padding:2px 6px;border-radius:4px;background:${isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.12)"};cursor:pointer;opacity:0.7;">ESC</kbd>
                         </div>
                         <div class="pal-items-list" style="flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:2px;">
                             ${palItemsHtml}
@@ -3040,13 +4560,16 @@ export function generatePreviewHtml(spec: any): string {
                     </div>
                 </div>
             </div>\n${palScript}\n`;
-        } else if (t === 'pagination') {
-            const curPage = Number(c.value) || 1;
-            const pagId = c.id;
-            const pagInactBg = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)';
-            const pagActiveBg = accent;
+    } else if (t === "pagination") {
+      const curPage = Number(c.value) || 1;
+      const pagId = c.id;
+      const pagInactBg = isLight
+        ? "rgba(0,0,0,0.04)"
+        : "rgba(255,255,255,0.06)";
+      const pagActiveBg = accent;
 
-            const updateJs = (pageExpr: string) => `
+      const updateJs = (pageExpr: string) =>
+        `
                 var p=this.parentNode;
                 var targetP=${pageExpr};
                 p.dataset.page=String(targetP);
@@ -3062,488 +4585,1071 @@ export function generatePreviewHtml(spec: any): string {
                 else if(window['on_${pagId}_change']) window['on_${pagId}_change'](targetP);
                 if(window['${pagId}_onClick']) window['${pagId}_onClick'](targetP);
                 else if(window['on_${pagId}_click']) window['on_${pagId}_click'](targetP);
-            `.replace(/\s+/g, ' ').trim();
+            `
+          .replace(/\s+/g, " ")
+          .trim();
 
-            const makePageBtn = (n: number) => {
-                const isActive = curPage === n;
-                return `<button data-pag-num="${n}" data-active="${isActive ? 'true' : 'false'}" onclick="${updateJs(String(n))}" style="padding:4px 10px;background:${isActive ? pagActiveBg : pagInactBg};border:${isActive ? 'none' : '1px solid ' + border};border-radius:4px;color:${isActive ? '#fff' : 'inherit'};font-weight:${isActive ? 'bold' : 'normal'};cursor:pointer;transition:all 0.15s;">${n}</button>`;
-            };
+      const makePageBtn = (n: number) => {
+        const isActive = curPage === n;
+        return `<button data-pag-num="${n}" data-active="${isActive ? "true" : "false"}" onclick="${updateJs(String(n))}" style="padding:4px 10px;background:${isActive ? pagActiveBg : pagInactBg};border:${isActive ? "none" : "1px solid " + border};border-radius:4px;color:${isActive ? "#fff" : "inherit"};font-weight:${isActive ? "bold" : "normal"};cursor:pointer;transition:all 0.15s;">${n}</button>`;
+      };
 
-            const prevJs = updateJs("Math.max(1, parseInt(this.parentNode.dataset.page||'1', 10) - 1)");
-            const nextJs = updateJs("Math.min(this.parentNode.querySelectorAll('button[data-pag-num]').length||3, parseInt(this.parentNode.dataset.page||'1', 10) + 1)");
+      const prevJs = updateJs(
+        "Math.max(1, parseInt(this.parentNode.dataset.page||'1', 10) - 1)",
+      );
+      const nextJs = updateJs(
+        "Math.min(this.parentNode.querySelectorAll('button[data-pag-num]').length||3, parseInt(this.parentNode.dataset.page||'1', 10) + 1)",
+      );
 
-            controls += `<div${id}${titleAttr} data-page="${curPage}" style="${base(c)}display:flex;align-items:center;justify-content:center;gap:4px;color:${color};font-size:12px;"><button onclick="${prevJs}" style="padding:4px 8px;background:${pagInactBg};border:1px solid ${border};border-radius:4px;color:inherit;cursor:pointer;transition:all 0.15s;">« Prev</button>${makePageBtn(1)}${makePageBtn(2)}${makePageBtn(3)}<button onclick="${nextJs}" style="padding:4px 8px;background:${pagInactBg};border:1px solid ${border};border-radius:4px;color:inherit;cursor:pointer;transition:all 0.15s;">Next »</button></div>\n`;
-        } else if (t === 'command_palette') {
-            controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;align-items:center;gap:8px;background:${cbg !== 'transparent' ? cbg : (isLight ? '#ffffff' : '#1e293b')};border:1px solid ${accent};${defRadius}padding:0 12px;box-shadow:0 4px 16px rgba(0,0,0,0.3);color:${color};"><span style="font-size:14px;color:${accent};">⌘</span><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" placeholder="${c.placeholder || 'Type a command or search actions...'}" value="${text || ''}" style="flex:1;background:none;border:none;color:inherit;font-family:inherit;font-size:12px;outline:none;" ${disabled}${roAttr}><span style="font-size:10px;font-weight:700;background:${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.12)'};padding:2px 6px;border-radius:4px;opacity:0.8;">ESC</span></div>\n`;
-        } else if (t === 'toggle_button') {
-            const isChecked = c.checked;
-            controls += `<button id="${c.id}" ${titleAttr}${ev}${disabled} style="${base(c)}background:${isChecked ? accent : (cbg !== 'transparent' ? cbg : (isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'))};color:${isChecked ? '#ffffff' : color};${defBorder}${defRadius}font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;cursor:${c.cursor||'pointer'};" onclick="const isChk=this.dataset.checked==='true';this.dataset.checked=!isChk;this.style.background=!isChk?'${accent}':'${cbg !== 'transparent' ? cbg : (isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)')}';this.style.color=!isChk?'#ffffff':'${color}';if(window['${c.id}_onChange'])window['${c.id}_onChange'](!isChk);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](!isChk);" data-checked="${isChecked ? 'true' : 'false'}">${isChecked ? '🔒 Locked' : (text || '🔓 Unlocked')}</button>\n`;
-        } else if (t === 'search_field') {
-            const curVal = c.value !== undefined ? String(c.value) : (text || '');
-            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
-            const customClick = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
-            controls += `<div id="${c.id}_wrapper" class="search-field-wrapper"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};color:${color};${defBorder}border-radius:20px;padding:0 12px;gap:8px;"><span style="font-size:13px;opacity:0.6;">🔍</span><input id="${c.id}" name="${c.id}" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="search" value="${curVal}" placeholder="${c.placeholder || 'Search...'}"${disabled}${roAttr} style="flex:1;background:none;border:none;color:${color};outline:none;font-size:${c.font_size||13}px;" oninput="const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" onkeydown="if(event.key==='Enter'){const fnK=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK(this.value);}">${curVal ? `<button type="button" onclick="const inp=document.getElementById('${c.id}');if(inp){inp.value='';inp.dispatchEvent(new Event('input'));inp.dispatchEvent(new Event('change'));}" style="background:none;border:none;color:${color};opacity:0.5;cursor:pointer;font-size:12px;">✕</button>` : ''}</div>\n`;
-        } else if (t === 'token_field' || t === 'tag_input') {
-            const rawTokens = c.tags || c.tokens || (text ? text.split(',') : ['tag1', 'tag2']);
-            const tokenArr = Array.isArray(rawTokens) ? rawTokens : String(rawTokens).split(',').map((s: string) => s.trim()).filter(Boolean);
-            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
-            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;flex-wrap:wrap;gap:6px;background:${cbg};color:${color};${defBorder}${defRadius}padding:4px 8px;overflow-y:auto;"><input type="hidden" id="${c.id}" name="${c.id}" value="${tokenArr.join(',')}"><div class="token-list" style="display:inline-flex;align-items:center;flex-wrap:wrap;gap:6px;">${tokenArr.map((tok: string) => `<span class="token-chip" style="background:${isLight ? 'rgba(2,132,199,0.12)' : 'rgba(56,189,248,0.15)'};color:${accent};border:1px solid ${border};border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:4px;">${tok}<span onclick="const chip=this.parentNode;const cont=chip.closest('[id]');chip.remove();const all=Array.from(cont.querySelectorAll('.token-chip')).map(c=>c.textContent.replace('✕','').trim());const hid=document.getElementById('${c.id}');if(hid)hid.value=all.join(',');const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(all.join(','));" style="cursor:pointer;opacity:0.6;font-size:10px;">✕</span></span>`).join('')}</div><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" placeholder="${c.placeholder || '+ Add...'}" onkeydown="if(event.key==='Enter'&&this.value.trim()){event.preventDefault();const val=this.value.trim();const list=this.previousElementSibling;const span=document.createElement('span');span.className='token-chip';span.style.cssText='background:${isLight ? 'rgba(2,132,199,0.12)' : 'rgba(56,189,248,0.15)'};color:${accent};border:1px solid ${border};border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:4px;';span.innerHTML=val+'<span style=\\&quot;cursor:pointer;opacity:0.6;font-size:10px;\\&quot; onclick=\\&quot;const chip=this.parentNode;const cont=chip.closest(\\'[id]\\');chip.remove();const all=Array.from(cont.querySelectorAll(\\'.token-chip\\')).map(c=>c.textContent.replace(\\'✕\\',\\'\\').trim());const hid=document.getElementById(\\''+'${c.id}'+'\\');if(hid)hid.value=all.join(\\',\\');const fnC=window[\\''+'${customChange}'+'\\']||window[\\''+'${c.id}'+'_onChange\\']||window[\\'on_'+'${c.id}'+'_change\\'];if(fnC)fnC(all.join(\\',\\'));\\&quot;>✕</span>';list.appendChild(span);this.value='';const all=Array.from(list.querySelectorAll('.token-chip')).map(c=>c.textContent.replace('✕','').trim());const hid=document.getElementById('${c.id}');if(hid)hid.value=all.join(',');const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(all.join(','));}" style="flex:1;min-width:60px;background:none;border:none;color:${color};outline:none;font-size:11px;"></div>\n`;
-        } else if (t === 'masked_input') {
-            const mask = c.mask || '(999) 999-9999';
-            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
-            controls += `<div id="${c.id}_wrapper" class="rad-masked-input-wrapper"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;gap:8px;"><input id="${c.id}" name="${c.id}" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" value="${text}" placeholder="${mask}"${disabled}${roAttr} oninput="const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" style="flex:1;background:none;border:none;color:${color};outline:none;font-family:monospace;font-size:${c.font_size||13}px;letter-spacing:1px;"><span style="font-size:10px;opacity:0.6;font-family:monospace;color:${color};">${mask}</span></div>\n`;
-        } else if (t === 'inline_editable_label') {
-            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
-            controls += `<div id="${c.id}_container"${titleAttr} class="rad-editable-label-container" data-theme-label="true" title="Double-click to edit" ondblclick="const span=this.querySelector('.label-display');const inp=document.getElementById('${c.id}');span.style.display='none';inp.style.display='block';inp.focus();inp.select();" style="${base(c)}display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:0 10px;box-sizing:border-box;"><div class="label-display" data-theme-label="true" style="font-size:${c.font_size||13}px;font-weight:600;display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px;"><span class="label-text" style="color:${color};font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${text || 'Click to edit text'}</span><span class="rad-editable-badge" style="font-size:10px;font-weight:700;color:${accent};">✎ EDIT</span></div><input id="${c.id}" name="${c.id}" class="rad-editable-input" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" value="${text}" onblur="const span=this.previousElementSibling;span.querySelector('.label-text').textContent=this.value;span.style.display='flex';this.style.display='none';const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){this.value=this.previousElementSibling.querySelector('.label-text').textContent;this.blur();}" style="display:none;width:100%;padding:3px 8px;outline:none;font-size:${c.font_size||13}px;font-weight:600;"></div>\n`;
-        } else if (t === 'section_header') {
-            const subtitle = c.subtitle || c.caption || '';
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;border-bottom:1px solid ${border};padding-bottom:6px;"><div style="font-size:16px;font-weight:800;color:${accent};letter-spacing:-0.2px;">${text}</div>${subtitle ? `<div style="font-size:11px;color:${color};opacity:0.7;margin-top:2px;">${subtitle}</div>` : ''}</div>\n`;
-        } else if (t === 'hotkey_badge') {
-            const keys = (c.shortcut || text || '⌘K').split(/\s+|\+/).filter(Boolean);
-            const rawDesc = c.description || '';
-            const hasDesc = Boolean(rawDesc && rawDesc !== text && !keys.includes(rawDesc));
-            const justify = hasDesc ? 'space-between' : 'center';
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:${justify};gap:6px;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 8px;box-sizing:border-box;white-space:nowrap;overflow:hidden;">${hasDesc ? `<span style="font-size:11px;font-weight:600;opacity:0.85;white-space:nowrap;">${rawDesc}</span>` : ''}<div style="display:inline-flex;align-items:center;gap:3px;flex-shrink:0;">${keys.map((k: string) => `<kbd class="rad-mono" style="background:${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.12)'};border:1px solid ${border};border-radius:4px;padding:2px 5px;font-size:10px;font-weight:700;color:${accent};line-height:1.2;">${k}</kbd>`).join('')}</div></div>\n`;
-        } else if (t === 'link') {
-            const url = c.url || c.placeholder || '#';
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:6px;"><a href="${url}"${ev} target="_blank" style="color:${accent};text-decoration:none;font-size:${c.font_size||13}px;font-weight:600;display:inline-flex;align-items:center;gap:4px;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'"><span>🔗</span><span>${text || url}</span></a></div>\n`;
-        } else if (t === 'banner' || t === 'status_banner') {
-            const bStyle = c.style || c.alert_type || c.banner_style || 'info';
-            const bCol = bStyle === 'error' ? sem.danger.solid : (bStyle === 'warning' ? sem.warning.solid : (bStyle === 'success' ? sem.success.solid : accent));
-            const bIcon = bStyle === 'error' ? '❌' : (bStyle === 'warning' ? '⚠️' : (bStyle === 'success' ? '✅' : 'ℹ️'));
-            const bRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
-            const subtitle = c.message || c.caption || '';
-            controls += `<div${id}${titleAttr} style="${base(c)}background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : (bCol + '18')};border-left:4px solid ${bCol};border-top:1px solid ${border};border-right:1px solid ${border};border-bottom:1px solid ${border};${bRadius}display:flex;align-items:center;gap:12px;padding:0 14px;color:${color};"><span style="font-size:16px;">${bIcon}</span><div style="display:flex;flex-direction:column;min-width:0;"><span style="font-size:12px;font-weight:700;color:${color};">${text}</span>${subtitle ? `<span style="font-size:11px;opacity:0.8;color:${color};margin-top:1px;">${subtitle}</span>` : ''}</div></div>\n`;
-        } else if (t === 'info_callout') {
-            const bCol = c.alert_type === 'success' ? sem.success.solid : (c.alert_type === 'warning' ? sem.warning.solid : accent);
-            const btnText = c.button_text || 'Learn More';
-            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-left:4px solid ${bCol};border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px;color:${color};"><div style="display:flex;align-items:center;gap:10px;min-width:0;"><span style="font-size:20px;">💡</span><div style="display:flex;flex-direction:column;"><span style="font-weight:800;font-size:13px;color:${bCol};">${text || 'Callout Title'}</span><span style="font-size:11px;opacity:0.8;margin-top:2px;">${c.message || c.caption || 'Important callout details and guidance for the user.'}</span></div></div>${btnText ? `<button style="padding:6px 12px;background:${bCol};color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;">${btnText}</button>` : ''}</div>\n`;
-        } else if (t === 'hero_banner') {
-            const heroGrad = c.gradient_style || `linear-gradient(135deg, ${accent}22 0%, #1e1b4b 100%)`;
-            const hTitle = c.caption || text || 'Hero Title';
-            const hSubtitle = c.caption ? (c.subtitle || text || '') : (c.subtitle || '');
-            const heroBtn = c.placeholder || c.button_text || 'Get Started';
-            controls += `<div${id}${titleAttr} style="${base(c)}background:${heroGrad};border:1px solid ${border};border-radius:12px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;color:${color};box-shadow:0 8px 24px rgba(0,0,0,0.3);"><div style="display:flex;flex-direction:column;gap:4px;min-width:0;"><div style="font-size:18px;font-weight:800;color:${accent};letter-spacing:-0.3px;">${hTitle}</div><div style="font-size:12px;opacity:0.85;max-width:560px;">${hSubtitle}</div></div>${heroBtn ? `<button type="button" onclick="const fnK=window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK('${heroBtn.replace(/'/g, "\\'")}');" style="padding:8px 18px;background:${accent};color:#ffffff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px ${accent}44;flex-shrink:0;">${heroBtn}</button>` : ''}</div>\n`;
-        } else if (t === 'image_button') {
-            const sym = c.symbol || '🚀';
-            controls += `<button${id}${titleAttr}${ev}${disabled} style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;font-weight:600;font-size:12px;padding:0 12px;" onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''"><span style="font-size:14px;">${sym}</span><span>${text}</span></button>\n`;
-        } else if (t === 'help_button') {
-            controls += `<button${id}${titleAttr}${ev}${disabled} style="${base(c)}background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'};color:${color};border:1px solid ${border};border-radius:50%;width:${c.width||26}px;height:${c.height||26}px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;cursor:pointer;opacity:0.85;" title="${c.tooltip || text || 'Help & Documentation'}" onmouseover="this.style.opacity='1';this.style.borderColor='${accent}';" onmouseout="this.style.opacity='0.85';this.style.borderColor='${border}';">?</button>\n`;
-        } else if (t === 'badge_button') {
-            const count = c.count !== undefined ? c.count : 3;
-            const bCol = c.badge_color || sem.danger.solid;
-            controls += `<button${id}${titleAttr}${ev}${disabled} style="${base(c)}position:relative;background:${cbg};color:${color};${defBorder}${defRadius}display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;font-weight:700;font-size:12px;padding:0 14px;"><span>${text}</span><span style="background:${bCol};color:#ffffff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:800;box-shadow:0 1px 3px rgba(0,0,0,0.3);">${count}</span></button>\n`;
-        } else if (t === 'quick_action_bar') {
-            const rawActs = c.items || c.actions || (text ? text.split(',') : ['⚡ Run', '💾 Save', '🔄 Sync', '⚙️ Options']);
-            const actions = Array.isArray(rawActs) ? rawActs : String(rawActs).split(',').map((s: string) => s.trim());
-            const customClick = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
-            controls += `<div id="${c.id}"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}${defRadius}padding:3px;gap:4px;">${actions.map((act: any) => {
-                const label = typeof act === 'object' && act ? (act.label || act.actionId || '') : String(act);
-                const actionId = typeof act === 'object' && act ? (act.actionId || act.label || '') : String(act);
-                const icon = typeof act === 'object' && act && act.icon ? act.icon + ' ' : '';
-                return `<button type="button" onclick="const fnK=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK('${actionId.replace(/'/g, "\\'")}');" style="flex:1;height:100%;background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'};border:none;border-radius:4px;color:${color};font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;transition:all 0.15s;" onmouseover="this.style.background='${accent}';this.style.color='#fff';" onmouseout="this.style.background='${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'}';this.style.color='${color}';">${icon}${label}</button>`;
-            }).join('')}</div>\n`;
-        } else if (t === 'floating_toolbar') {
-            const tools = (c.tools || (text ? text.split(',') : ['🔍', '✂️', '📋', '🗑️', '⚙️'])).map((s: string) => s.trim());
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;background:rgba(20,25,35,0.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.18);border-radius:30px;padding:4px 8px;gap:6px;box-shadow:0 12px 30px rgba(0,0,0,0.5);">${tools.map((tl: string) => `<button onclick="if(window['${c.id}_onClick'])window['${c.id}_onClick']('${tl}');" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.08);border:none;color:#ffffff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;" onmouseover="this.style.background='${accent}';this.style.transform='scale(1.15)';" onmouseout="this.style.background='rgba(255,255,255,0.08)';this.style.transform='scale(1)';">${tl}</button>`).join('')}</div>\n`;
-        } else if (t === 'radio_group') {
-            const rawOpts = c.items || (text ? text.split(',') : ['Option A', 'Option B', 'Option C']);
-            const rOpts = Array.isArray(rawOpts) ? rawOpts : String(rawOpts).split(',').map((s: string) => s.trim());
-            const curVal = c.value !== undefined ? String(c.value) : (rOpts[0] || '');
-            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
-            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;gap:16px;color:${color};flex-wrap:wrap;"><input type="hidden" id="${c.id}" name="${c.id}" value="${curVal}">${rOpts.map((opt: string, i: number) => {
-                const isSel = opt === curVal || String(i) === curVal;
-                return `<label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:${c.font_size||12}px;font-weight:500;"><input type="radio" name="${c.id}_group" value="${opt}" ${isSel ? 'checked' : ''} style="accent-color:${accent};cursor:pointer;" onchange="const hid=document.getElementById('${c.id}');if(hid)hid.value='${opt}';const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC('${opt}');"><span>${opt}</span></label>`;
-            }).join('')}</div>\n`;
-        } else if (t === 'pull_down' || t === 'combo_box') {
-            const rawOpts = c.items || c.options || (text ? text.split(',') : ['Default Item', 'Option 1', 'Option 2']);
-            const pOpts = Array.isArray(rawOpts) ? rawOpts : String(rawOpts).split(',').map((s: string) => s.trim());
-            const curVal = c.value !== undefined ? String(c.value) : (pOpts[0] || '');
-            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
-            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}${defRadius}padding:0 8px;gap:6px;"><input id="${c.id}" name="${c.id}" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" value="${curVal}" placeholder="${c.placeholder || 'Select or type...'}" style="flex:1;background:none;border:none;color:${color};font-size:${c.font_size||13}px;outline:none;" oninput="const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);"><select onchange="const inp=document.getElementById('${c.id}');if(inp){inp.value=this.value;inp.dispatchEvent(new Event('input'));inp.dispatchEvent(new Event('change'));}const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" style="background:none;border:none;color:${color};cursor:pointer;outline:none;width:18px;">${pOpts.map((opt: string) => `<option value="${opt}" ${opt === curVal ? 'selected' : ''}>${opt}</option>`).join('')}</select></div>\n`;
-        } else if (t === 'theme_menu' || t === 'mode_control') {
-            const rawModes = c.items || c.modes || ['System', 'Dark', 'Light'];
-            const modes = Array.isArray(rawModes) ? rawModes : String(rawModes).split(',').map((s: string) => s.trim());
-            const curMode = c.value !== undefined ? String(c.value) : (modes[0] || 'Dark');
-            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
-            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}border-radius:20px;padding:2px;gap:2px;"><input type="hidden" id="${c.id}" name="${c.id}" value="${curMode}">${modes.map((m: string) => {
-                const isSel = String(m).toLowerCase() === String(curMode).toLowerCase();
-                const icon = m.toLowerCase().includes('dark') ? '🌙 ' : (m.toLowerCase().includes('light') ? '☀️ ' : (m.toLowerCase().includes('system') || m.toLowerCase().includes('auto') ? '⚙️ ' : ''));
-                return `<button type="button" onclick="this.parentNode.querySelectorAll('button').forEach(b=>{b.style.background='transparent';b.style.color='${color}'});this.style.background='${accent}';this.style.color='#fff';const hid=document.getElementById('${c.id}');if(hid){hid.value='${m}';hid.dispatchEvent(new Event('change'));}const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC('${m}');" style="flex:1;height:100%;border:none;border-radius:18px;background:${isSel ? accent : 'transparent'};color:${isSel ? '#fff' : color};font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;transition:all 0.15s;">${icon}${m}</button>`;
-            }).join('')}</div>\n`;
-        } else if (t === 'icon_segments') {
-            const rawSyms = c.items || c.symbols || (text ? text.split(',') : ['▦ Grid', '☰ List', '☷ Table']);
-            const syms = Array.isArray(rawSyms) ? rawSyms : String(rawSyms).split(',').map((s: string) => s.trim());
-            const curIdx = c.selected !== undefined ? c.selected : (typeof c.value === 'number' ? c.value : 0);
-            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
-            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}${defRadius}padding:3px;gap:3px;"><input type="hidden" id="${c.id}" name="${c.id}" value="${curIdx}">${syms.map((sym: any, i: number) => {
-                const label = typeof sym === 'object' && sym ? `${sym.icon ? sym.icon + ' ' : ''}${sym.label || ''}` : String(sym);
-                const isSel = i === curIdx;
-                return `<button type="button" onclick="this.parentNode.querySelectorAll('button').forEach(b=>{b.style.background='transparent';b.style.color='${color}'});this.style.background='${accent}';this.style.color='#fff';const hid=document.getElementById('${c.id}');if(hid){hid.value='${i}';hid.dispatchEvent(new Event('change'));}const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(${i});" style="flex:1;height:100%;border:none;border-radius:6px;background:${isSel ? accent : 'transparent'};color:${isSel ? '#fff' : color};font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;">${label}</button>`;
-            }).join('')}</div>\n`;
-        } else if (t === 'pill_toggle') {
-            const rawOpts = c.items || c.options || (text ? text.split(',') : ['Enabled', 'Disabled']);
-            const opts = Array.isArray(rawOpts) ? rawOpts : String(rawOpts).split(',').map((s: string) => s.trim());
-            const curIdx = typeof c.value === 'number' ? c.value : (c.selected !== undefined ? c.selected : (typeof c.value === 'string' ? opts.indexOf(c.value) : 0));
-            const activeIdx = curIdx >= 0 ? curIdx : 0;
-            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
-            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}border-radius:24px;padding:3px;gap:2px;"><input type="hidden" id="${c.id}" name="${c.id}" value="${activeIdx}">${opts.map((op: string, idx: number) => {
-                const isSel = idx === activeIdx;
-                return `<button type="button" onclick="this.parentNode.querySelectorAll('button').forEach(b=>{b.style.background='transparent';b.style.color='${color}'});this.style.background='${accent}';this.style.color='#fff';const hid=document.getElementById('${c.id}');if(hid){hid.value='${idx}';hid.dispatchEvent(new Event('change'));}const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(${idx});" style="flex:1;height:100%;border:none;border-radius:20px;background:${isSel ? accent : 'transparent'};color:${isSel ? '#fff' : color};font-size:11px;font-weight:700;cursor:pointer;">${op}</button>`;
-            }).join('')}</div>\n`;
-        } else if (t === 'tag_cloud') {
-            const rawTags = c.tags || (text ? text.split(',') : ['TypeScript', 'Bun', 'macOS', 'GUI', 'Cocoa', 'RAD', 'Desktop']);
-            const tags = Array.isArray(rawTags) ? rawTags : String(rawTags).split(',').map((s: string) => s.trim());
-            const rawSel = c.selectedTags || c.selected || [];
-            const selList = Array.isArray(rawSel) ? rawSel : [rawSel];
-            const customClick = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
-            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
-            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:4px;overflow-y:auto;"><input type="hidden" id="${c.id}" name="${c.id}" value="${selList.join(',')}">${tags.map((tg: string) => {
-                const isSel = selList.includes(tg);
-                return `<span class="tag-cloud-item" onclick="this.classList.toggle('selected');const isS=this.classList.contains('selected');this.style.background=isS?'${accent}':'${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}';this.style.color=isS?'#ffffff':'${color}';const cont=this.closest('[id]');const curSel=Array.from(cont.querySelectorAll('.tag-cloud-item.selected')).map(el=>el.textContent.replace('#','').trim());const hid=document.getElementById('${c.id}');if(hid)hid.value=curSel.join(',');const fnK=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK('${tg}');const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(curSel.join(','));" style="background:${isSel ? accent : (isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)')};color:${isSel ? '#ffffff' : color};border:1px solid ${border};border-radius:14px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='${accent}';" onmouseout="this.style.borderColor='${border}';">#${tg}</span>`;
-            }).join('')}</div>\n`;
-        } else if (t === 'transfer_list') {
-            const rawAvail = c.leftItems || c.available || ['Alpha', 'Beta', 'Gamma', 'Delta'];
-            const rawSel = c.rightItems || c.selected || ['Epsilon'];
-            const avail = Array.isArray(rawAvail) ? rawAvail : String(rawAvail).split(',').map((s: string) => s.trim());
-            const sel = Array.isArray(rawSel) ? rawSel : String(rawSel).split(',').map((s: string) => s.trim());
-            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
-            const leftTitle = c.leftTitle || c.left_title || 'Available';
-            const rightTitle = c.rightTitle || c.right_title || 'Selected';
-            const btnBg = isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.08)';
-            const btnHoverBg = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.15)';
-            const itemSelBg = isLight ? 'rgba(2,132,199,0.18)' : 'rgba(56,189,248,0.22)';
-            const itemSelBorder = `1px solid ${accent}`;
+      controls += `<div${id}${titleAttr} data-page="${curPage}" style="${base(c)}display:flex;align-items:center;justify-content:center;gap:4px;color:${color};font-size:12px;"><button onclick="${prevJs}" style="padding:4px 8px;background:${pagInactBg};border:1px solid ${border};border-radius:4px;color:inherit;cursor:pointer;transition:all 0.15s;">« Prev</button>${makePageBtn(1)}${makePageBtn(2)}${makePageBtn(3)}<button onclick="${nextJs}" style="padding:4px 8px;background:${pagInactBg};border:1px solid ${border};border-radius:4px;color:inherit;cursor:pointer;transition:all 0.15s;">Next »</button></div>\n`;
+    } else if (t === "command_palette") {
+      controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;align-items:center;gap:8px;background:${cbg !== "transparent" ? cbg : isLight ? "#ffffff" : "#1e293b"};border:1px solid ${accent};${defRadius}padding:0 12px;box-shadow:0 4px 16px rgba(0,0,0,0.3);color:${color};"><span style="font-size:14px;color:${accent};">⌘</span><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" placeholder="${c.placeholder || "Type a command or search actions..."}" value="${text || ""}" style="flex:1;background:none;border:none;color:inherit;font-family:inherit;font-size:12px;outline:none;" ${disabled}${roAttr}><span style="font-size:10px;font-weight:700;background:${isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.12)"};padding:2px 6px;border-radius:4px;opacity:0.8;">ESC</span></div>\n`;
+    } else if (t === "toggle_button") {
+      const isChecked = c.checked;
+      controls += `<button id="${c.id}" ${titleAttr}${ev}${disabled} style="${base(c)}background:${isChecked ? accent : cbg !== "transparent" ? cbg : isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"};color:${isChecked ? "#ffffff" : color};${defBorder}${defRadius}font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;cursor:${c.cursor || "pointer"};" onclick="const isChk=this.dataset.checked==='true';this.dataset.checked=!isChk;this.style.background=!isChk?'${accent}':'${cbg !== "transparent" ? cbg : isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"}';this.style.color=!isChk?'#ffffff':'${color}';if(window['${c.id}_onChange'])window['${c.id}_onChange'](!isChk);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](!isChk);" data-checked="${isChecked ? "true" : "false"}">${isChecked ? "🔒 Locked" : text || "🔓 Unlocked"}</button>\n`;
+    } else if (t === "search_field") {
+      const curVal = c.value !== undefined ? String(c.value) : text || "";
+      const customChange =
+        c.event_handlers?.onChange || c.event_handlers?.onchange || "";
+      const customClick =
+        c.event_handlers?.onClick || c.event_handlers?.onclick || "";
+      controls += `<div id="${c.id}_wrapper" class="search-field-wrapper"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};color:${color};${defBorder}border-radius:20px;padding:0 12px;gap:8px;"><span style="font-size:13px;opacity:0.6;">🔍</span><input id="${c.id}" name="${c.id}" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="search" value="${curVal}" placeholder="${c.placeholder || "Search..."}"${disabled}${roAttr} style="flex:1;background:none;border:none;color:${color};outline:none;font-size:${c.font_size || 13}px;" oninput="const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" onkeydown="if(event.key==='Enter'){const fnK=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK(this.value);}">${curVal ? `<button type="button" onclick="const inp=document.getElementById('${c.id}');if(inp){inp.value='';inp.dispatchEvent(new Event('input'));inp.dispatchEvent(new Event('change'));}" style="background:none;border:none;color:${color};opacity:0.5;cursor:pointer;font-size:12px;">✕</button>` : ""}</div>\n`;
+    } else if (t === "token_field" || t === "tag_input") {
+      const rawTokens =
+        c.tags || c.tokens || (text ? text.split(",") : ["tag1", "tag2"]);
+      const tokenArr = Array.isArray(rawTokens)
+        ? rawTokens
+        : String(rawTokens)
+            .split(",")
+            .map((s: string) => s.trim())
+            .filter(Boolean);
+      const customChange =
+        c.event_handlers?.onChange || c.event_handlers?.onchange || "";
+      controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;flex-wrap:wrap;gap:6px;background:${cbg};color:${color};${defBorder}${defRadius}padding:4px 8px;overflow-y:auto;"><input type="hidden" id="${c.id}" name="${c.id}" value="${tokenArr.join(",")}"><div class="token-list" style="display:inline-flex;align-items:center;flex-wrap:wrap;gap:6px;">${tokenArr.map((tok: string) => `<span class="token-chip" style="background:${isLight ? "rgba(2,132,199,0.12)" : "rgba(56,189,248,0.15)"};color:${accent};border:1px solid ${border};border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:4px;">${tok}<span onclick="const chip=this.parentNode;const cont=chip.closest('[id]');chip.remove();const all=Array.from(cont.querySelectorAll('.token-chip')).map(c=>c.textContent.replace('✕','').trim());const hid=document.getElementById('${c.id}');if(hid)hid.value=all.join(',');const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(all.join(','));" style="cursor:pointer;opacity:0.6;font-size:10px;">✕</span></span>`).join("")}</div><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" placeholder="${c.placeholder || "+ Add..."}" onkeydown="if(event.key==='Enter'&&this.value.trim()){event.preventDefault();const val=this.value.trim();const list=this.previousElementSibling;const span=document.createElement('span');span.className='token-chip';span.style.cssText='background:${isLight ? "rgba(2,132,199,0.12)" : "rgba(56,189,248,0.15)"};color:${accent};border:1px solid ${border};border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:4px;';span.innerHTML=val+'<span style=\\&quot;cursor:pointer;opacity:0.6;font-size:10px;\\&quot; onclick=\\&quot;const chip=this.parentNode;const cont=chip.closest(\\'[id]\\');chip.remove();const all=Array.from(cont.querySelectorAll(\\'.token-chip\\')).map(c=>c.textContent.replace(\\'✕\\',\\'\\').trim());const hid=document.getElementById(\\''+'${c.id}'+'\\');if(hid)hid.value=all.join(\\',\\');const fnC=window[\\''+'${customChange}'+'\\']||window[\\''+'${c.id}'+'_onChange\\']||window[\\'on_'+'${c.id}'+'_change\\'];if(fnC)fnC(all.join(\\',\\'));\\&quot;>✕</span>';list.appendChild(span);this.value='';const all=Array.from(list.querySelectorAll('.token-chip')).map(c=>c.textContent.replace('✕','').trim());const hid=document.getElementById('${c.id}');if(hid)hid.value=all.join(',');const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(all.join(','));}" style="flex:1;min-width:60px;background:none;border:none;color:${color};outline:none;font-size:11px;"></div>\n`;
+    } else if (t === "masked_input") {
+      const mask = c.mask || "(999) 999-9999";
+      const customChange =
+        c.event_handlers?.onChange || c.event_handlers?.onchange || "";
+      controls += `<div id="${c.id}_wrapper" class="rad-masked-input-wrapper"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;gap:8px;"><input id="${c.id}" name="${c.id}" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" value="${text}" placeholder="${mask}"${disabled}${roAttr} oninput="const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" style="flex:1;background:none;border:none;color:${color};outline:none;font-family:monospace;font-size:${c.font_size || 13}px;letter-spacing:1px;"><span style="font-size:10px;opacity:0.6;font-family:monospace;color:${color};">${mask}</span></div>\n`;
+    } else if (t === "inline_editable_label") {
+      const customChange =
+        c.event_handlers?.onChange || c.event_handlers?.onchange || "";
+      controls += `<div id="${c.id}_container"${titleAttr} class="rad-editable-label-container" data-theme-label="true" title="Double-click to edit" ondblclick="const span=this.querySelector('.label-display');const inp=document.getElementById('${c.id}');span.style.display='none';inp.style.display='block';inp.focus();inp.select();" style="${base(c)}display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:0 10px;box-sizing:border-box;"><div class="label-display" data-theme-label="true" style="font-size:${c.font_size || 13}px;font-weight:600;display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px;"><span class="label-text" style="color:${color};font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${text || "Click to edit text"}</span><span class="rad-editable-badge" style="font-size:10px;font-weight:700;color:${accent};">✎ EDIT</span></div><input id="${c.id}" name="${c.id}" class="rad-editable-input" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" value="${text}" onblur="const span=this.previousElementSibling;span.querySelector('.label-text').textContent=this.value;span.style.display='flex';this.style.display='none';const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){this.value=this.previousElementSibling.querySelector('.label-text').textContent;this.blur();}" style="display:none;width:100%;padding:3px 8px;outline:none;font-size:${c.font_size || 13}px;font-weight:600;"></div>\n`;
+    } else if (t === "section_header") {
+      const subtitle = c.subtitle || c.caption || "";
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;border-bottom:1px solid ${border};padding-bottom:6px;"><div style="font-size:16px;font-weight:800;color:${accent};letter-spacing:-0.2px;">${text}</div>${subtitle ? `<div style="font-size:11px;color:${color};opacity:0.7;margin-top:2px;">${subtitle}</div>` : ""}</div>\n`;
+    } else if (t === "hotkey_badge") {
+      const keys = (c.shortcut || text || "⌘K").split(/\s+|\+/).filter(Boolean);
+      const rawDesc = c.description || "";
+      const hasDesc = Boolean(
+        rawDesc && rawDesc !== text && !keys.includes(rawDesc),
+      );
+      const justify = hasDesc ? "space-between" : "center";
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:${justify};gap:6px;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 8px;box-sizing:border-box;white-space:nowrap;overflow:hidden;">${hasDesc ? `<span style="font-size:11px;font-weight:600;opacity:0.85;white-space:nowrap;">${rawDesc}</span>` : ""}<div style="display:inline-flex;align-items:center;gap:3px;flex-shrink:0;">${keys.map((k: string) => `<kbd class="rad-mono" style="background:${isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.12)"};border:1px solid ${border};border-radius:4px;padding:2px 5px;font-size:10px;font-weight:700;color:${accent};line-height:1.2;">${k}</kbd>`).join("")}</div></div>\n`;
+    } else if (t === "link") {
+      const url = c.url || c.placeholder || "#";
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:6px;"><a href="${url}"${ev} target="_blank" style="color:${accent};text-decoration:none;font-size:${c.font_size || 13}px;font-weight:600;display:inline-flex;align-items:center;gap:4px;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'"><span>🔗</span><span>${text || url}</span></a></div>\n`;
+    } else if (t === "banner" || t === "status_banner") {
+      const bStyle = c.style || c.alert_type || c.banner_style || "info";
+      const bCol =
+        bStyle === "error"
+          ? sem.danger.solid
+          : bStyle === "warning"
+            ? sem.warning.solid
+            : bStyle === "success"
+              ? sem.success.solid
+              : accent;
+      const bIcon =
+        bStyle === "error"
+          ? "❌"
+          : bStyle === "warning"
+            ? "⚠️"
+            : bStyle === "success"
+              ? "✅"
+              : "ℹ️";
+      const bRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:8px;";
+      const subtitle = c.message || c.caption || "";
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${c.background_color && c.background_color !== "transparent" ? c.background_color : bCol + "18"};border-left:4px solid ${bCol};border-top:1px solid ${border};border-right:1px solid ${border};border-bottom:1px solid ${border};${bRadius}display:flex;align-items:center;gap:12px;padding:0 14px;color:${color};"><span style="font-size:16px;">${bIcon}</span><div style="display:flex;flex-direction:column;min-width:0;"><span style="font-size:12px;font-weight:700;color:${color};">${text}</span>${subtitle ? `<span style="font-size:11px;opacity:0.8;color:${color};margin-top:1px;">${subtitle}</span>` : ""}</div></div>\n`;
+    } else if (t === "info_callout") {
+      const bCol =
+        c.alert_type === "success"
+          ? sem.success.solid
+          : c.alert_type === "warning"
+            ? sem.warning.solid
+            : accent;
+      const btnText = c.button_text || "Learn More";
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-left:4px solid ${bCol};border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px;color:${color};"><div style="display:flex;align-items:center;gap:10px;min-width:0;"><span style="font-size:20px;">💡</span><div style="display:flex;flex-direction:column;"><span style="font-weight:800;font-size:13px;color:${bCol};">${text || "Callout Title"}</span><span style="font-size:11px;opacity:0.8;margin-top:2px;">${c.message || c.caption || "Important callout details and guidance for the user."}</span></div></div>${btnText ? `<button style="padding:6px 12px;background:${bCol};color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;">${btnText}</button>` : ""}</div>\n`;
+    } else if (t === "hero_banner") {
+      const heroGrad =
+        c.gradient_style ||
+        `linear-gradient(135deg, ${accent}22 0%, #1e1b4b 100%)`;
+      const hTitle = c.caption || text || "Hero Title";
+      const hSubtitle = c.caption ? c.subtitle || text || "" : c.subtitle || "";
+      const heroBtn = c.placeholder || c.button_text || "Get Started";
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${heroGrad};border:1px solid ${border};border-radius:12px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;color:${color};box-shadow:0 8px 24px rgba(0,0,0,0.3);"><div style="display:flex;flex-direction:column;gap:4px;min-width:0;"><div style="font-size:18px;font-weight:800;color:${accent};letter-spacing:-0.3px;">${hTitle}</div><div style="font-size:12px;opacity:0.85;max-width:560px;">${hSubtitle}</div></div>${heroBtn ? `<button type="button" onclick="const fnK=window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK('${heroBtn.replace(/'/g, "\\'")}');" style="padding:8px 18px;background:${accent};color:#ffffff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px ${accent}44;flex-shrink:0;">${heroBtn}</button>` : ""}</div>\n`;
+    } else if (t === "image_button") {
+      const sym = c.symbol || "🚀";
+      controls += `<button${id}${titleAttr}${ev}${disabled} style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;font-weight:600;font-size:12px;padding:0 12px;" onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''"><span style="font-size:14px;">${sym}</span><span>${text}</span></button>\n`;
+    } else if (t === "help_button") {
+      controls += `<button${id}${titleAttr}${ev}${disabled} style="${base(c)}background:${isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"};color:${color};border:1px solid ${border};border-radius:50%;width:${c.width || 26}px;height:${c.height || 26}px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;cursor:pointer;opacity:0.85;" title="${c.tooltip || text || "Help & Documentation"}" onmouseover="this.style.opacity='1';this.style.borderColor='${accent}';" onmouseout="this.style.opacity='0.85';this.style.borderColor='${border}';">?</button>\n`;
+    } else if (t === "badge_button") {
+      const count = c.count !== undefined ? c.count : 3;
+      const bCol = c.badge_color || sem.danger.solid;
+      controls += `<button${id}${titleAttr}${ev}${disabled} style="${base(c)}position:relative;background:${cbg};color:${color};${defBorder}${defRadius}display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;font-weight:700;font-size:12px;padding:0 14px;"><span>${text}</span><span style="background:${bCol};color:#ffffff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:800;box-shadow:0 1px 3px rgba(0,0,0,0.3);">${count}</span></button>\n`;
+    } else if (t === "quick_action_bar") {
+      const rawActs =
+        c.items ||
+        c.actions ||
+        (text
+          ? text.split(",")
+          : ["⚡ Run", "💾 Save", "🔄 Sync", "⚙️ Options"]);
+      const actions = Array.isArray(rawActs)
+        ? rawActs
+        : String(rawActs)
+            .split(",")
+            .map((s: string) => s.trim());
+      const customClick =
+        c.event_handlers?.onClick || c.event_handlers?.onclick || "";
+      controls += `<div id="${c.id}"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}${defRadius}padding:3px;gap:4px;">${actions
+        .map((act: any) => {
+          const label =
+            typeof act === "object" && act
+              ? act.label || act.actionId || ""
+              : String(act);
+          const actionId =
+            typeof act === "object" && act
+              ? act.actionId || act.label || ""
+              : String(act);
+          const icon =
+            typeof act === "object" && act && act.icon ? act.icon + " " : "";
+          return `<button type="button" onclick="const fnK=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK('${actionId.replace(/'/g, "\\'")}');" style="flex:1;height:100%;background:${isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)"};border:none;border-radius:4px;color:${color};font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;transition:all 0.15s;" onmouseover="this.style.background='${accent}';this.style.color='#fff';" onmouseout="this.style.background='${isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)"}';this.style.color='${color}';">${icon}${label}</button>`;
+        })
+        .join("")}</div>\n`;
+    } else if (t === "floating_toolbar") {
+      const tools = (
+        c.tools || (text ? text.split(",") : ["🔍", "✂️", "📋", "🗑️", "⚙️"])
+      ).map((s: string) => s.trim());
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;background:rgba(20,25,35,0.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.18);border-radius:30px;padding:4px 8px;gap:6px;box-shadow:0 12px 30px rgba(0,0,0,0.5);">${tools.map((tl: string) => `<button onclick="if(window['${c.id}_onClick'])window['${c.id}_onClick']('${tl}');" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.08);border:none;color:#ffffff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;" onmouseover="this.style.background='${accent}';this.style.transform='scale(1.15)';" onmouseout="this.style.background='rgba(255,255,255,0.08)';this.style.transform='scale(1)';">${tl}</button>`).join("")}</div>\n`;
+    } else if (t === "radio_group") {
+      const rawOpts =
+        c.items ||
+        (text ? text.split(",") : ["Option A", "Option B", "Option C"]);
+      const rOpts = Array.isArray(rawOpts)
+        ? rawOpts
+        : String(rawOpts)
+            .split(",")
+            .map((s: string) => s.trim());
+      const curVal = c.value !== undefined ? String(c.value) : rOpts[0] || "";
+      const customChange =
+        c.event_handlers?.onChange || c.event_handlers?.onchange || "";
+      controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;gap:16px;color:${color};flex-wrap:wrap;"><input type="hidden" id="${c.id}" name="${c.id}" value="${curVal}">${rOpts
+        .map((opt: string, i: number) => {
+          const isSel = opt === curVal || String(i) === curVal;
+          return `<label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:${c.font_size || 12}px;font-weight:500;"><input type="radio" name="${c.id}_group" value="${opt}" ${isSel ? "checked" : ""} style="accent-color:${accent};cursor:pointer;" onchange="const hid=document.getElementById('${c.id}');if(hid)hid.value='${opt}';const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC('${opt}');"><span>${opt}</span></label>`;
+        })
+        .join("")}</div>\n`;
+    } else if (t === "pull_down" || t === "combo_box") {
+      const rawOpts =
+        c.items ||
+        c.options ||
+        (text ? text.split(",") : ["Default Item", "Option 1", "Option 2"]);
+      const pOpts = Array.isArray(rawOpts)
+        ? rawOpts
+        : String(rawOpts)
+            .split(",")
+            .map((s: string) => s.trim());
+      const curVal = c.value !== undefined ? String(c.value) : pOpts[0] || "";
+      const customChange =
+        c.event_handlers?.onChange || c.event_handlers?.onchange || "";
+      controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}${defRadius}padding:0 8px;gap:6px;"><input id="${c.id}" name="${c.id}" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" value="${curVal}" placeholder="${c.placeholder || "Select or type..."}" style="flex:1;background:none;border:none;color:${color};font-size:${c.font_size || 13}px;outline:none;" oninput="const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);"><select onchange="const inp=document.getElementById('${c.id}');if(inp){inp.value=this.value;inp.dispatchEvent(new Event('input'));inp.dispatchEvent(new Event('change'));}const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" style="background:none;border:none;color:${color};cursor:pointer;outline:none;width:18px;">${pOpts.map((opt: string) => `<option value="${opt}" ${opt === curVal ? "selected" : ""}>${opt}</option>`).join("")}</select></div>\n`;
+    } else if (t === "theme_menu" || t === "mode_control") {
+      const rawModes = c.items || c.modes || ["System", "Dark", "Light"];
+      const modes = Array.isArray(rawModes)
+        ? rawModes
+        : String(rawModes)
+            .split(",")
+            .map((s: string) => s.trim());
+      const curMode =
+        c.value !== undefined ? String(c.value) : modes[0] || "Dark";
+      const customChange =
+        c.event_handlers?.onChange || c.event_handlers?.onchange || "";
+      controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}border-radius:20px;padding:2px;gap:2px;"><input type="hidden" id="${c.id}" name="${c.id}" value="${curMode}">${modes
+        .map((m: string) => {
+          const isSel =
+            String(m).toLowerCase() === String(curMode).toLowerCase();
+          const icon = m.toLowerCase().includes("dark")
+            ? "🌙 "
+            : m.toLowerCase().includes("light")
+              ? "☀️ "
+              : m.toLowerCase().includes("system") ||
+                  m.toLowerCase().includes("auto")
+                ? "⚙️ "
+                : "";
+          return `<button type="button" onclick="this.parentNode.querySelectorAll('button').forEach(b=>{b.style.background='transparent';b.style.color='${color}'});this.style.background='${accent}';this.style.color='#fff';const hid=document.getElementById('${c.id}');if(hid){hid.value='${m}';hid.dispatchEvent(new Event('change'));}const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC('${m}');" style="flex:1;height:100%;border:none;border-radius:18px;background:${isSel ? accent : "transparent"};color:${isSel ? "#fff" : color};font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;transition:all 0.15s;">${icon}${m}</button>`;
+        })
+        .join("")}</div>\n`;
+    } else if (t === "icon_segments") {
+      const rawSyms =
+        c.items ||
+        c.symbols ||
+        (text ? text.split(",") : ["▦ Grid", "☰ List", "☷ Table"]);
+      const syms = Array.isArray(rawSyms)
+        ? rawSyms
+        : String(rawSyms)
+            .split(",")
+            .map((s: string) => s.trim());
+      const curIdx =
+        c.selected !== undefined
+          ? c.selected
+          : typeof c.value === "number"
+            ? c.value
+            : 0;
+      const customChange =
+        c.event_handlers?.onChange || c.event_handlers?.onchange || "";
+      controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}${defRadius}padding:3px;gap:3px;"><input type="hidden" id="${c.id}" name="${c.id}" value="${curIdx}">${syms
+        .map((sym: any, i: number) => {
+          const label =
+            typeof sym === "object" && sym
+              ? `${sym.icon ? sym.icon + " " : ""}${sym.label || ""}`
+              : String(sym);
+          const isSel = i === curIdx;
+          return `<button type="button" onclick="this.parentNode.querySelectorAll('button').forEach(b=>{b.style.background='transparent';b.style.color='${color}'});this.style.background='${accent}';this.style.color='#fff';const hid=document.getElementById('${c.id}');if(hid){hid.value='${i}';hid.dispatchEvent(new Event('change'));}const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(${i});" style="flex:1;height:100%;border:none;border-radius:6px;background:${isSel ? accent : "transparent"};color:${isSel ? "#fff" : color};font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;">${label}</button>`;
+        })
+        .join("")}</div>\n`;
+    } else if (t === "pill_toggle") {
+      const rawOpts =
+        c.items ||
+        c.options ||
+        (text ? text.split(",") : ["Enabled", "Disabled"]);
+      const opts = Array.isArray(rawOpts)
+        ? rawOpts
+        : String(rawOpts)
+            .split(",")
+            .map((s: string) => s.trim());
+      const curIdx =
+        typeof c.value === "number"
+          ? c.value
+          : c.selected !== undefined
+            ? c.selected
+            : typeof c.value === "string"
+              ? opts.indexOf(c.value)
+              : 0;
+      const activeIdx = curIdx >= 0 ? curIdx : 0;
+      const customChange =
+        c.event_handlers?.onChange || c.event_handlers?.onchange || "";
+      controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}border-radius:24px;padding:3px;gap:2px;"><input type="hidden" id="${c.id}" name="${c.id}" value="${activeIdx}">${opts
+        .map((op: string, idx: number) => {
+          const isSel = idx === activeIdx;
+          return `<button type="button" onclick="this.parentNode.querySelectorAll('button').forEach(b=>{b.style.background='transparent';b.style.color='${color}'});this.style.background='${accent}';this.style.color='#fff';const hid=document.getElementById('${c.id}');if(hid){hid.value='${idx}';hid.dispatchEvent(new Event('change'));}const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(${idx});" style="flex:1;height:100%;border:none;border-radius:20px;background:${isSel ? accent : "transparent"};color:${isSel ? "#fff" : color};font-size:11px;font-weight:700;cursor:pointer;">${op}</button>`;
+        })
+        .join("")}</div>\n`;
+    } else if (t === "tag_cloud") {
+      const rawTags =
+        c.tags ||
+        (text
+          ? text.split(",")
+          : ["TypeScript", "Bun", "macOS", "GUI", "Cocoa", "RAD", "Desktop"]);
+      const tags = Array.isArray(rawTags)
+        ? rawTags
+        : String(rawTags)
+            .split(",")
+            .map((s: string) => s.trim());
+      const rawSel = c.selectedTags || c.selected || [];
+      const selList = Array.isArray(rawSel) ? rawSel : [rawSel];
+      const customClick =
+        c.event_handlers?.onClick || c.event_handlers?.onclick || "";
+      const customChange =
+        c.event_handlers?.onChange || c.event_handlers?.onchange || "";
+      controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:4px;overflow-y:auto;"><input type="hidden" id="${c.id}" name="${c.id}" value="${selList.join(",")}">${tags
+        .map((tg: string) => {
+          const isSel = selList.includes(tg);
+          return `<span class="tag-cloud-item" onclick="this.classList.toggle('selected');const isS=this.classList.contains('selected');this.style.background=isS?'${accent}':'${isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"}';this.style.color=isS?'#ffffff':'${color}';const cont=this.closest('[id]');const curSel=Array.from(cont.querySelectorAll('.tag-cloud-item.selected')).map(el=>el.textContent.replace('#','').trim());const hid=document.getElementById('${c.id}');if(hid)hid.value=curSel.join(',');const fnK=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK('${tg}');const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(curSel.join(','));" style="background:${isSel ? accent : isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"};color:${isSel ? "#ffffff" : color};border:1px solid ${border};border-radius:14px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='${accent}';" onmouseout="this.style.borderColor='${border}';">#${tg}</span>`;
+        })
+        .join("")}</div>\n`;
+    } else if (t === "transfer_list") {
+      const rawAvail = c.leftItems ||
+        c.available || ["Alpha", "Beta", "Gamma", "Delta"];
+      const rawSel = c.rightItems || c.selected || ["Epsilon"];
+      const avail = Array.isArray(rawAvail)
+        ? rawAvail
+        : String(rawAvail)
+            .split(",")
+            .map((s: string) => s.trim());
+      const sel = Array.isArray(rawSel)
+        ? rawSel
+        : String(rawSel)
+            .split(",")
+            .map((s: string) => s.trim());
+      const customChange =
+        c.event_handlers?.onChange || c.event_handlers?.onchange || "";
+      const leftTitle = c.leftTitle || c.left_title || "Available";
+      const rightTitle = c.rightTitle || c.right_title || "Selected";
+      const btnBg = isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.08)";
+      const btnHoverBg = isLight ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.15)";
+      const itemSelBg = isLight
+        ? "rgba(2,132,199,0.18)"
+        : "rgba(56,189,248,0.22)";
+      const itemSelBorder = `1px solid ${accent}`;
 
-            const syncScript = `<script>window['${c.id}_sync']=function(){const cont=document.getElementById('${c.id}_container');if(!cont)return;const availItems=cont.querySelector('.transfer-avail-items');const selItems=cont.querySelector('.transfer-sel-items');const curAvail=Array.from(availItems.querySelectorAll('.transfer-item')).map(el=>el.textContent.trim());const curSel=Array.from(selItems.querySelectorAll('.transfer-item')).map(el=>el.textContent.trim());const availCount=cont.querySelector('.transfer-avail-count');if(availCount)availCount.textContent=String(curAvail.length);const selCount=cont.querySelector('.transfer-sel-count');if(selCount)selCount.textContent=String(curSel.length);const hidSel=document.getElementById('${c.id}');if(hidSel)hidSel.value=curSel.join(',');const hidAvail=document.getElementById('${c.id}_available');if(hidAvail)hidAvail.value=curAvail.join(',');const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(curSel,curAvail);};</script>`;
+      const syncScript = `<script>window['${c.id}_sync']=function(){const cont=document.getElementById('${c.id}_container');if(!cont)return;const availItems=cont.querySelector('.transfer-avail-items');const selItems=cont.querySelector('.transfer-sel-items');const curAvail=Array.from(availItems.querySelectorAll('.transfer-item')).map(el=>el.textContent.trim());const curSel=Array.from(selItems.querySelectorAll('.transfer-item')).map(el=>el.textContent.trim());const availCount=cont.querySelector('.transfer-avail-count');if(availCount)availCount.textContent=String(curAvail.length);const selCount=cont.querySelector('.transfer-sel-count');if(selCount)selCount.textContent=String(curSel.length);const hidSel=document.getElementById('${c.id}');if(hidSel)hidSel.value=curSel.join(',');const hidAvail=document.getElementById('${c.id}_available');if(hidAvail)hidAvail.value=curAvail.join(',');const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(curSel,curAvail);};</script>`;
 
-            const moveItemDblClick = `const cont=this.closest('.transfer-container');const inAvail=this.closest('.transfer-avail');const target=inAvail?cont.querySelector('.transfer-sel-items'):cont.querySelector('.transfer-avail-items');this.classList.remove('selected');this.style.background='transparent';this.style.borderColor='transparent';target.appendChild(this);if(window['${c.id}_sync'])window['${c.id}_sync']();`;
+      const moveItemDblClick = `const cont=this.closest('.transfer-container');const inAvail=this.closest('.transfer-avail');const target=inAvail?cont.querySelector('.transfer-sel-items'):cont.querySelector('.transfer-avail-items');this.classList.remove('selected');this.style.background='transparent';this.style.borderColor='transparent';target.appendChild(this);if(window['${c.id}_sync'])window['${c.id}_sync']();`;
 
-            controls += `<div id="${c.id}_container" class="transfer-container"${titleAttr} style="${base(c)}display:flex;align-items:stretch;gap:8px;color:${color};"><input type="hidden" id="${c.id}" name="${c.id}" value="${sel.join(',')}"><input type="hidden" id="${c.id}_available" name="${c.id}_available" value="${avail.join(',')}"><div class="transfer-avail" style="flex:1;height:100%;min-height:0;background:${cbg};${defBorder}${defRadius}display:flex;flex-direction:column;font-size:11px;overflow:hidden;"><div style="font-weight:700;color:${accent};padding:6px 10px;border-bottom:1px solid ${border};display:flex;justify-content:space-between;align-items:center;background:${isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.03)'};"><span>${leftTitle}</span><span class="transfer-avail-count" style="background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'};padding:1px 6px;border-radius:10px;font-size:10px;">${avail.length}</span></div><div class="transfer-avail-items" style="flex:1;overflow-y:auto;padding:4px;display:flex;flex-direction:column;gap:2px;">${avail.map((a: string) => `<div class="transfer-item" title="Click to select, double-click to transfer" ondblclick="${moveItemDblClick}" onclick="this.classList.toggle('selected');const isS=this.classList.contains('selected');this.style.background=isS?'${itemSelBg}':'transparent';this.style.border=isS?'${itemSelBorder}':'1px solid transparent';" style="padding:4px 8px;border-radius:4px;cursor:pointer;border:1px solid transparent;transition:all 0.12s;user-select:none;">${a}</div>`).join('')}</div></div><div class="transfer-buttons" style="display:flex;flex-direction:column;justify-content:center;gap:4px;"><button type="button" title="Move Selected to ${rightTitle}" onclick="const cont=this.closest('.transfer-container');const availList=cont.querySelector('.transfer-avail-items');const selList=cont.querySelector('.transfer-sel-items');const toMove=availList.querySelectorAll('.transfer-item.selected');toMove.forEach(el=>{el.classList.remove('selected');el.style.background='transparent';el.style.border='1px solid transparent';selList.appendChild(el);});if(window['${c.id}_sync'])window['${c.id}_sync']();" style="width:32px;height:26px;padding:0;background:${accent};color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:bold;font-size:12px;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''">›</button><button type="button" title="Move All to ${rightTitle}" onclick="const cont=this.closest('.transfer-container');const availList=cont.querySelector('.transfer-avail-items');const selList=cont.querySelector('.transfer-sel-items');const toMove=availList.querySelectorAll('.transfer-item');toMove.forEach(el=>{el.classList.remove('selected');el.style.background='transparent';el.style.border='1px solid transparent';selList.appendChild(el);});if(window['${c.id}_sync'])window['${c.id}_sync']();" style="width:32px;height:26px;padding:0;background:${btnBg};color:${color};border:1px solid ${border};border-radius:4px;cursor:pointer;font-weight:bold;font-size:11px;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='${btnHoverBg}'" onmouseout="this.style.background='${btnBg}'">»</button><button type="button" title="Move Selected to ${leftTitle}" onclick="const cont=this.closest('.transfer-container');const availList=cont.querySelector('.transfer-avail-items');const selList=cont.querySelector('.transfer-sel-items');const toMove=selList.querySelectorAll('.transfer-item.selected');toMove.forEach(el=>{el.classList.remove('selected');el.style.background='transparent';el.style.border='1px solid transparent';availList.appendChild(el);});if(window['${c.id}_sync'])window['${c.id}_sync']();" style="width:32px;height:26px;padding:0;background:${btnBg};color:${color};border:1px solid ${border};border-radius:4px;cursor:pointer;font-weight:bold;font-size:12px;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='${btnHoverBg}'" onmouseout="this.style.background='${btnBg}'">‹</button><button type="button" title="Move All to ${leftTitle}" onclick="const cont=this.closest('.transfer-container');const availList=cont.querySelector('.transfer-avail-items');const selList=cont.querySelector('.transfer-sel-items');const toMove=selList.querySelectorAll('.transfer-item');toMove.forEach(el=>{el.classList.remove('selected');el.style.background='transparent';el.style.border='1px solid transparent';availList.appendChild(el);});if(window['${c.id}_sync'])window['${c.id}_sync']();" style="width:32px;height:26px;padding:0;background:${btnBg};color:${color};border:1px solid ${border};border-radius:4px;cursor:pointer;font-weight:bold;font-size:11px;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='${btnHoverBg}'" onmouseout="this.style.background='${btnBg}'">«</button></div><div class="transfer-sel" style="flex:1;height:100%;min-height:0;background:${cbg};${defBorder}${defRadius}display:flex;flex-direction:column;font-size:11px;overflow:hidden;"><div style="font-weight:700;color:#10b981;padding:6px 10px;border-bottom:1px solid ${border};display:flex;justify-content:space-between;align-items:center;background:${isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.03)'};"><span>${rightTitle}</span><span class="transfer-sel-count" style="background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'};padding:1px 6px;border-radius:10px;font-size:10px;">${sel.length}</span></div><div class="transfer-sel-items" style="flex:1;overflow-y:auto;padding:4px;display:flex;flex-direction:column;gap:2px;">${sel.map((s: string) => `<div class="transfer-item" title="Click to select, double-click to transfer" ondblclick="${moveItemDblClick}" onclick="this.classList.toggle('selected');const isS=this.classList.contains('selected');this.style.background=isS?'${itemSelBg}':'transparent';this.style.border=isS?'${itemSelBorder}':'1px solid transparent';" style="padding:4px 8px;border-radius:4px;cursor:pointer;border:1px solid transparent;transition:all 0.12s;user-select:none;">${s}</div>`).join('')}</div></div></div>\n${syncScript}\n`;
-        } else if (t === 'vertical_slider') {
-            const val = c.value !== undefined ? c.value : 50;
-            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
-            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:${color};"><span style="font-size:11px;font-weight:700;color:${accent};">${val}</span><input id="${c.id}" name="${c.id}" type="range" min="${c.min_value||0}" max="${c.max_value||100}" value="${val}" style="transform:rotate(-90deg);width:${Math.max(60, (c.height||120) - 40)}px;accent-color:${accent};cursor:pointer;" oninput="this.parentNode.querySelector('span').textContent=this.value;const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);"><span style="font-size:10px;opacity:0.6;">${text || 'Vol'}</span></div>\n`;
-        } else if (t === 'range_slider') {
-            const low = c.low !== undefined ? c.low : 20;
-            const high = c.high !== undefined ? c.high : 80;
-            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:6px;color:${color};"><div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;"><span>${text || 'Range'}</span><span style="color:${accent};">${low} – ${high}</span></div><div style="position:relative;height:6px;background:${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.12)'};border-radius:3px;"><div style="position:absolute;left:${low}%;width:${high - low}%;height:100%;background:${accent};border-radius:3px;"></div></div></div>\n`;
-        } else if (t === 'knob') {
-            const val = c.value !== undefined ? Number(c.value) : 60;
-            const min = c.min_value !== undefined ? Number(c.min_value) : 0;
-            const max = c.max_value !== undefined ? Number(c.max_value) : 100;
-            const angle = Math.round(((val - min) / (max - min)) * 270 - 135);
-            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
-            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:${color};user-select:none;cursor:ns-resize;" onwheel="event.preventDefault();const inp=document.getElementById('${c.id}');let cur=parseInt(inp.value,10);cur=event.deltaY<0?Math.min(${max},cur+2):Math.max(${min},cur-2);inp.value=cur;this.querySelector('.knob-val').textContent=cur+'%';const ang=Math.round(((cur-${min})/(${max}-${min}))*270-135);this.querySelector('.knob-pointer').style.transform='rotate('+ang+'deg)';const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(cur);" onclick="const inp=document.getElementById('${c.id}');let cur=parseInt(inp.value,10);cur=cur>=${max}?${min}:cur+10;inp.value=cur;this.querySelector('.knob-val').textContent=cur+'%';const ang=Math.round(((cur-${min})/(${max}-${min}))*270-135);this.querySelector('.knob-pointer').style.transform='rotate('+ang+'deg)';const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(cur);"><input type="hidden" id="${c.id}" name="${c.id}" value="${val}"><div style="width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 30% 30%, ${isLight ? '#f1f5f9' : '#334155'}, ${isLight ? '#cbd5e1' : '#0f172a'});border:2px solid ${border};box-shadow:0 4px 10px rgba(0,0,0,0.3);position:relative;display:flex;align-items:center;justify-content:center;"><div class="knob-pointer" style="position:absolute;width:4px;height:12px;background:${accent};border-radius:2px;top:4px;transform-origin:center 18px;transform:rotate(${angle}deg);"></div></div><span class="knob-val" style="font-size:11px;font-weight:800;color:${accent};">${val}%</span></div>\n`;
-        } else if (t === 'level_indicator') {
-            const val = c.value !== undefined ? c.value : 75;
-            const bars = 12;
-            const activeBars = Math.round((val / 100) * bars);
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:3px;padding:4px 6px;background:${cbg};${defBorder}${defRadius};">${Array.from({length: bars}).map((_, idx) => {
-                const isActive = idx < activeBars;
-                const col = idx >= 10 ? sem.danger.solid : (idx >= 7 ? sem.warning.solid : sem.success.solid);
-                return `<div style="flex:1;height:100%;background:${isActive ? col : (isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)')};border-radius:2px;box-shadow:${isActive ? `0 0 4px ${col}` : 'none'};"></div>`;
-            }).join('')}</div>\n`;
-        } else if (t === 'spinner') {
-            const isActive = c.active !== false;
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:center;gap:8px;color:${color};">${isActive ? `<svg width="24" height="24" viewBox="0 0 24 24" style="animation:spin 0.8s linear infinite;"><style>@keyframes spin { 100% { transform: rotate(360deg); } }</style><circle cx="12" cy="12" r="10" stroke="${isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.15)'}" stroke-width="3" fill="none"/><path d="M12 2 A10 10 0 0 1 22 12" stroke="${accent}" stroke-width="3" fill="none" stroke-linecap="round"/></svg>` : ''}${text ? `<span style="font-size:12px;font-weight:600;">${text}</span>` : ''}</div>\n`;
-        } else if (t === 'donut_chart') {
-            const pct = c.value !== undefined ? Number(c.value) : 68;
-            const r = 32; const circ = 2 * Math.PI * r;
-            const dash = circ * pct / 100;
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:12px;background:${cbg};${defBorder}${defRadius}padding:10px 14px;color:${color};"><svg width="76" height="76" viewBox="0 0 80 80"><circle cx="40" cy="40" r="${r}" fill="none" stroke="${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'}" stroke-width="8"/><circle cx="40" cy="40" r="${r}" fill="none" stroke="${accent}" stroke-width="8" stroke-dasharray="${dash.toFixed(1)} ${(circ - dash).toFixed(1)}" stroke-linecap="round" transform="rotate(-90 40 40)"/><text x="40" y="44" text-anchor="middle" font-size="14" font-weight="800" fill="${color}">${pct}%</text></svg><div style="display:flex;flex-direction:column;min-width:0;"><span style="font-size:13px;font-weight:700;color:${color};">${text || 'Progress Metric'}</span><span style="font-size:11px;opacity:0.75;margin-top:2px;">${c.caption || 'Active workload completion'}</span></div></div>\n`;
-        } else if (t === 'activity_rings') {
-            const pcts = c.percentages || [85, 65, 45];
-            const cols = c.colors || ['#ff2d55', '#5856d6', '#00f5d4'];
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:center;"><svg width="90" height="90" viewBox="0 0 100 100">${pcts.map((pct: number, idx: number) => {
-                const rad = 38 - (idx * 10);
-                const circ = 2 * Math.PI * rad;
-                const d = circ * pct / 100;
-                const strokeCol = cols[idx % cols.length];
-                return `<circle cx="50" cy="50" r="${rad}" fill="none" stroke="${strokeCol}26" stroke-width="7"/><circle cx="50" cy="50" r="${rad}" fill="none" stroke="${strokeCol}" stroke-width="7" stroke-dasharray="${d.toFixed(1)} ${(circ - d).toFixed(1)}" stroke-linecap="round" transform="rotate(-90 50 50)"/>`;
-            }).join('')}</svg></div>\n`;
-        } else if (t === 'segment_distribution_bar') {
-            const labels = c.labels || ['TypeScript (65%)', 'CSS (25%)', 'HTML (10%)'];
-            const vals = c.values || [65, 25, 10];
-            const segCols = c.colors || ['#3178c6', '#38bdf8', '#e34c26'];
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:6px;color:${color};"><div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;"><span>${text || 'Distribution'}</span><span style="opacity:0.7;">100% total</span></div><div style="display:flex;width:100%;height:10px;border-radius:5px;overflow:hidden;">${vals.map((v: number, i: number) => `<div style="width:${v}%;height:100%;background:${segCols[i % segCols.length]};" title="${labels[i] || ''}"></div>`).join('')}</div><div style="display:flex;gap:12px;font-size:10px;opacity:0.8;flex-wrap:wrap;">${labels.map((l: string, i: number) => `<div style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:${segCols[i % segCols.length]};display:inline-block;"></span><span>${l}</span></div>`).join('')}</div></div>\n`;
-        } else if (t === 'feedback_mood') {
-            const moods = ['😡', '🙁', '😐', '🙂', '🤩'];
-            const selMood = c.value || '🙂';
-            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
-            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:space-around;background:${cbg};${defBorder}${defRadius}padding:6px;gap:8px;"><input type="hidden" id="${c.id}" name="${c.id}" value="${selMood}">${moods.map((m: string) => {
-                const isSel = m === selMood;
-                return `<button type="button" onclick="this.parentNode.querySelectorAll('button').forEach(b=>{b.style.transform='scale(1)';b.style.background='transparent'});this.style.transform='scale(1.3)';this.style.background='${accent}22';const hid=document.getElementById('${c.id}');if(hid){hid.value='${m}';hid.dispatchEvent(new Event('change'));}const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC('${m}');" style="font-size:22px;background:${isSel ? accent + '22' : 'transparent'};border:none;border-radius:50%;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform 0.15s;transform:${isSel ? 'scale(1.3)' : 'scale(1)'};">${m}</button>`;
-            }).join('')}</div>\n`;
-        } else if (t === 'activity_heatmap') {
-            const weeks = c.weeks || 16;
-            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};${defBorder}${defRadius}padding:10px;display:flex;flex-direction:column;justify-content:space-between;color:${color};"><div style="font-size:11px;font-weight:700;margin-bottom:6px;color:${accent};">${text || 'Contribution Activity'}</div><div style="display:flex;gap:3px;overflow-x:auto;">${Array.from({length: weeks}).map((_, wIdx) => `<div style="display:flex;flex-direction:column;gap:3px;">${Array.from({length: 5}).map((_, dIdx) => {
+      controls += `<div id="${c.id}_container" class="transfer-container"${titleAttr} style="${base(c)}display:flex;align-items:stretch;gap:8px;color:${color};"><input type="hidden" id="${c.id}" name="${c.id}" value="${sel.join(",")}"><input type="hidden" id="${c.id}_available" name="${c.id}_available" value="${avail.join(",")}"><div class="transfer-avail" style="flex:1;height:100%;min-height:0;background:${cbg};${defBorder}${defRadius}display:flex;flex-direction:column;font-size:11px;overflow:hidden;"><div style="font-weight:700;color:${accent};padding:6px 10px;border-bottom:1px solid ${border};display:flex;justify-content:space-between;align-items:center;background:${isLight ? "rgba(0,0,0,0.02)" : "rgba(255,255,255,0.03)"};"><span>${leftTitle}</span><span class="transfer-avail-count" style="background:${isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"};padding:1px 6px;border-radius:10px;font-size:10px;">${avail.length}</span></div><div class="transfer-avail-items" style="flex:1;overflow-y:auto;padding:4px;display:flex;flex-direction:column;gap:2px;">${avail.map((a: string) => `<div class="transfer-item" title="Click to select, double-click to transfer" ondblclick="${moveItemDblClick}" onclick="this.classList.toggle('selected');const isS=this.classList.contains('selected');this.style.background=isS?'${itemSelBg}':'transparent';this.style.border=isS?'${itemSelBorder}':'1px solid transparent';" style="padding:4px 8px;border-radius:4px;cursor:pointer;border:1px solid transparent;transition:all 0.12s;user-select:none;">${a}</div>`).join("")}</div></div><div class="transfer-buttons" style="display:flex;flex-direction:column;justify-content:center;gap:4px;"><button type="button" title="Move Selected to ${rightTitle}" onclick="const cont=this.closest('.transfer-container');const availList=cont.querySelector('.transfer-avail-items');const selList=cont.querySelector('.transfer-sel-items');const toMove=availList.querySelectorAll('.transfer-item.selected');toMove.forEach(el=>{el.classList.remove('selected');el.style.background='transparent';el.style.border='1px solid transparent';selList.appendChild(el);});if(window['${c.id}_sync'])window['${c.id}_sync']();" style="width:32px;height:26px;padding:0;background:${accent};color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:bold;font-size:12px;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''">›</button><button type="button" title="Move All to ${rightTitle}" onclick="const cont=this.closest('.transfer-container');const availList=cont.querySelector('.transfer-avail-items');const selList=cont.querySelector('.transfer-sel-items');const toMove=availList.querySelectorAll('.transfer-item');toMove.forEach(el=>{el.classList.remove('selected');el.style.background='transparent';el.style.border='1px solid transparent';selList.appendChild(el);});if(window['${c.id}_sync'])window['${c.id}_sync']();" style="width:32px;height:26px;padding:0;background:${btnBg};color:${color};border:1px solid ${border};border-radius:4px;cursor:pointer;font-weight:bold;font-size:11px;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='${btnHoverBg}'" onmouseout="this.style.background='${btnBg}'">»</button><button type="button" title="Move Selected to ${leftTitle}" onclick="const cont=this.closest('.transfer-container');const availList=cont.querySelector('.transfer-avail-items');const selList=cont.querySelector('.transfer-sel-items');const toMove=selList.querySelectorAll('.transfer-item.selected');toMove.forEach(el=>{el.classList.remove('selected');el.style.background='transparent';el.style.border='1px solid transparent';availList.appendChild(el);});if(window['${c.id}_sync'])window['${c.id}_sync']();" style="width:32px;height:26px;padding:0;background:${btnBg};color:${color};border:1px solid ${border};border-radius:4px;cursor:pointer;font-weight:bold;font-size:12px;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='${btnHoverBg}'" onmouseout="this.style.background='${btnBg}'">‹</button><button type="button" title="Move All to ${leftTitle}" onclick="const cont=this.closest('.transfer-container');const availList=cont.querySelector('.transfer-avail-items');const selList=cont.querySelector('.transfer-sel-items');const toMove=selList.querySelectorAll('.transfer-item');toMove.forEach(el=>{el.classList.remove('selected');el.style.background='transparent';el.style.border='1px solid transparent';availList.appendChild(el);});if(window['${c.id}_sync'])window['${c.id}_sync']();" style="width:32px;height:26px;padding:0;background:${btnBg};color:${color};border:1px solid ${border};border-radius:4px;cursor:pointer;font-weight:bold;font-size:11px;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='${btnHoverBg}'" onmouseout="this.style.background='${btnBg}'">«</button></div><div class="transfer-sel" style="flex:1;height:100%;min-height:0;background:${cbg};${defBorder}${defRadius}display:flex;flex-direction:column;font-size:11px;overflow:hidden;"><div style="font-weight:700;color:#10b981;padding:6px 10px;border-bottom:1px solid ${border};display:flex;justify-content:space-between;align-items:center;background:${isLight ? "rgba(0,0,0,0.02)" : "rgba(255,255,255,0.03)"};"><span>${rightTitle}</span><span class="transfer-sel-count" style="background:${isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"};padding:1px 6px;border-radius:10px;font-size:10px;">${sel.length}</span></div><div class="transfer-sel-items" style="flex:1;overflow-y:auto;padding:4px;display:flex;flex-direction:column;gap:2px;">${sel.map((s: string) => `<div class="transfer-item" title="Click to select, double-click to transfer" ondblclick="${moveItemDblClick}" onclick="this.classList.toggle('selected');const isS=this.classList.contains('selected');this.style.background=isS?'${itemSelBg}':'transparent';this.style.border=isS?'${itemSelBorder}':'1px solid transparent';" style="padding:4px 8px;border-radius:4px;cursor:pointer;border:1px solid transparent;transition:all 0.12s;user-select:none;">${s}</div>`).join("")}</div></div></div>\n${syncScript}\n`;
+    } else if (t === "vertical_slider") {
+      const val = c.value !== undefined ? c.value : 50;
+      const customChange =
+        c.event_handlers?.onChange || c.event_handlers?.onchange || "";
+      controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:${color};"><span style="font-size:11px;font-weight:700;color:${accent};">${val}</span><input id="${c.id}" name="${c.id}" type="range" min="${c.min_value || 0}" max="${c.max_value || 100}" value="${val}" style="transform:rotate(-90deg);width:${Math.max(60, (c.height || 120) - 40)}px;accent-color:${accent};cursor:pointer;" oninput="this.parentNode.querySelector('span').textContent=this.value;const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);"><span style="font-size:10px;opacity:0.6;">${text || "Vol"}</span></div>\n`;
+    } else if (t === "range_slider") {
+      const low = c.low !== undefined ? c.low : 20;
+      const high = c.high !== undefined ? c.high : 80;
+      controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:6px;color:${color};"><div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;"><span>${text || "Range"}</span><span style="color:${accent};">${low} – ${high}</span></div><div style="position:relative;height:6px;background:${isLight ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.12)"};border-radius:3px;"><div style="position:absolute;left:${low}%;width:${high - low}%;height:100%;background:${accent};border-radius:3px;"></div></div></div>\n`;
+    } else if (t === "knob") {
+      const val = c.value !== undefined ? Number(c.value) : 60;
+      const min = c.min_value !== undefined ? Number(c.min_value) : 0;
+      const max = c.max_value !== undefined ? Number(c.max_value) : 100;
+      const angle = Math.round(((val - min) / (max - min)) * 270 - 135);
+      const customChange =
+        c.event_handlers?.onChange || c.event_handlers?.onchange || "";
+      controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:${color};user-select:none;cursor:ns-resize;" onwheel="event.preventDefault();const inp=document.getElementById('${c.id}');let cur=parseInt(inp.value,10);cur=event.deltaY<0?Math.min(${max},cur+2):Math.max(${min},cur-2);inp.value=cur;this.querySelector('.knob-val').textContent=cur+'%';const ang=Math.round(((cur-${min})/(${max}-${min}))*270-135);this.querySelector('.knob-pointer').style.transform='rotate('+ang+'deg)';const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(cur);" onclick="const inp=document.getElementById('${c.id}');let cur=parseInt(inp.value,10);cur=cur>=${max}?${min}:cur+10;inp.value=cur;this.querySelector('.knob-val').textContent=cur+'%';const ang=Math.round(((cur-${min})/(${max}-${min}))*270-135);this.querySelector('.knob-pointer').style.transform='rotate('+ang+'deg)';const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(cur);"><input type="hidden" id="${c.id}" name="${c.id}" value="${val}"><div style="width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 30% 30%, ${isLight ? "#f1f5f9" : "#334155"}, ${isLight ? "#cbd5e1" : "#0f172a"});border:2px solid ${border};box-shadow:0 4px 10px rgba(0,0,0,0.3);position:relative;display:flex;align-items:center;justify-content:center;"><div class="knob-pointer" style="position:absolute;width:4px;height:12px;background:${accent};border-radius:2px;top:4px;transform-origin:center 18px;transform:rotate(${angle}deg);"></div></div><span class="knob-val" style="font-size:11px;font-weight:800;color:${accent};">${val}%</span></div>\n`;
+    } else if (t === "level_indicator") {
+      const val = c.value !== undefined ? c.value : 75;
+      const bars = 12;
+      const activeBars = Math.round((val / 100) * bars);
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:3px;padding:4px 6px;background:${cbg};${defBorder}${defRadius};">${Array.from(
+        { length: bars },
+      )
+        .map((_, idx) => {
+          const isActive = idx < activeBars;
+          const col =
+            idx >= 10
+              ? sem.danger.solid
+              : idx >= 7
+                ? sem.warning.solid
+                : sem.success.solid;
+          return `<div style="flex:1;height:100%;background:${isActive ? col : isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)"};border-radius:2px;box-shadow:${isActive ? `0 0 4px ${col}` : "none"};"></div>`;
+        })
+        .join("")}</div>\n`;
+    } else if (t === "spinner") {
+      const isActive = c.active !== false;
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:center;gap:8px;color:${color};">${isActive ? `<svg width="24" height="24" viewBox="0 0 24 24" style="animation:spin 0.8s linear infinite;"><style>@keyframes spin { 100% { transform: rotate(360deg); } }</style><circle cx="12" cy="12" r="10" stroke="${isLight ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.15)"}" stroke-width="3" fill="none"/><path d="M12 2 A10 10 0 0 1 22 12" stroke="${accent}" stroke-width="3" fill="none" stroke-linecap="round"/></svg>` : ""}${text ? `<span style="font-size:12px;font-weight:600;">${text}</span>` : ""}</div>\n`;
+    } else if (t === "donut_chart") {
+      const pct = c.value !== undefined ? Number(c.value) : 68;
+      const r = 32;
+      const circ = 2 * Math.PI * r;
+      const dash = (circ * pct) / 100;
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:12px;background:${cbg};${defBorder}${defRadius}padding:10px 14px;color:${color};"><svg width="76" height="76" viewBox="0 0 80 80"><circle cx="40" cy="40" r="${r}" fill="none" stroke="${isLight ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.1)"}" stroke-width="8"/><circle cx="40" cy="40" r="${r}" fill="none" stroke="${accent}" stroke-width="8" stroke-dasharray="${dash.toFixed(1)} ${(circ - dash).toFixed(1)}" stroke-linecap="round" transform="rotate(-90 40 40)"/><text x="40" y="44" text-anchor="middle" font-size="14" font-weight="800" fill="${color}">${pct}%</text></svg><div style="display:flex;flex-direction:column;min-width:0;"><span style="font-size:13px;font-weight:700;color:${color};">${text || "Progress Metric"}</span><span style="font-size:11px;opacity:0.75;margin-top:2px;">${c.caption || "Active workload completion"}</span></div></div>\n`;
+    } else if (t === "activity_rings") {
+      const pcts = c.percentages || [85, 65, 45];
+      const cols = c.colors || ["#ff2d55", "#5856d6", "#00f5d4"];
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:center;"><svg width="90" height="90" viewBox="0 0 100 100">${pcts
+        .map((pct: number, idx: number) => {
+          const rad = 38 - idx * 10;
+          const circ = 2 * Math.PI * rad;
+          const d = (circ * pct) / 100;
+          const strokeCol = cols[idx % cols.length];
+          return `<circle cx="50" cy="50" r="${rad}" fill="none" stroke="${strokeCol}26" stroke-width="7"/><circle cx="50" cy="50" r="${rad}" fill="none" stroke="${strokeCol}" stroke-width="7" stroke-dasharray="${d.toFixed(1)} ${(circ - d).toFixed(1)}" stroke-linecap="round" transform="rotate(-90 50 50)"/>`;
+        })
+        .join("")}</svg></div>\n`;
+    } else if (t === "segment_distribution_bar") {
+      const labels = c.labels || [
+        "TypeScript (65%)",
+        "CSS (25%)",
+        "HTML (10%)",
+      ];
+      const vals = c.values || [65, 25, 10];
+      const segCols = c.colors || ["#3178c6", "#38bdf8", "#e34c26"];
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:6px;color:${color};"><div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;"><span>${text || "Distribution"}</span><span style="opacity:0.7;">100% total</span></div><div style="display:flex;width:100%;height:10px;border-radius:5px;overflow:hidden;">${vals.map((v: number, i: number) => `<div style="width:${v}%;height:100%;background:${segCols[i % segCols.length]};" title="${labels[i] || ""}"></div>`).join("")}</div><div style="display:flex;gap:12px;font-size:10px;opacity:0.8;flex-wrap:wrap;">${labels.map((l: string, i: number) => `<div style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:${segCols[i % segCols.length]};display:inline-block;"></span><span>${l}</span></div>`).join("")}</div></div>\n`;
+    } else if (t === "feedback_mood") {
+      const moods = ["😡", "🙁", "😐", "🙂", "🤩"];
+      const selMood = c.value || "🙂";
+      const customChange =
+        c.event_handlers?.onChange || c.event_handlers?.onchange || "";
+      controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:space-around;background:${cbg};${defBorder}${defRadius}padding:6px;gap:8px;"><input type="hidden" id="${c.id}" name="${c.id}" value="${selMood}">${moods
+        .map((m: string) => {
+          const isSel = m === selMood;
+          return `<button type="button" onclick="this.parentNode.querySelectorAll('button').forEach(b=>{b.style.transform='scale(1)';b.style.background='transparent'});this.style.transform='scale(1.3)';this.style.background='${accent}22';const hid=document.getElementById('${c.id}');if(hid){hid.value='${m}';hid.dispatchEvent(new Event('change'));}const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC('${m}');" style="font-size:22px;background:${isSel ? accent + "22" : "transparent"};border:none;border-radius:50%;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform 0.15s;transform:${isSel ? "scale(1.3)" : "scale(1)"};">${m}</button>`;
+        })
+        .join("")}</div>\n`;
+    } else if (t === "activity_heatmap") {
+      const weeks = c.weeks || 16;
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};${defBorder}${defRadius}padding:10px;display:flex;flex-direction:column;justify-content:space-between;color:${color};"><div style="font-size:11px;font-weight:700;margin-bottom:6px;color:${accent};">${text || "Contribution Activity"}</div><div style="display:flex;gap:3px;overflow-x:auto;">${Array.from(
+        { length: weeks },
+      )
+        .map(
+          (_, wIdx) =>
+            `<div style="display:flex;flex-direction:column;gap:3px;">${Array.from(
+              { length: 5 },
+            )
+              .map((_, dIdx) => {
                 const intensity = (wIdx * 3 + dIdx * 2) % 5;
-                const heatCol = intensity === 0 ? (isLight ? '#e2e8f0' : '#1e293b') : (intensity === 1 ? '#0e4429' : (intensity === 2 ? '#006d32' : (intensity === 3 ? '#26a641' : '#39d353')));
+                const heatCol =
+                  intensity === 0
+                    ? isLight
+                      ? "#e2e8f0"
+                      : "#1e293b"
+                    : intensity === 1
+                      ? "#0e4429"
+                      : intensity === 2
+                        ? "#006d32"
+                        : intensity === 3
+                          ? "#26a641"
+                          : "#39d353";
                 return `<div style="width:10px;height:10px;border-radius:2px;background:${heatCol};"></div>`;
-            }).join('')}</div>`).join('')}</div></div>\n`;
-        } else if (t === 'date_range_picker') {
-            const startVal = c.start_date || '2026-07-01';
-            const endVal = c.end_date || '2026-07-31';
-            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
-            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;gap:8px;background:${cbg};${defBorder}${defRadius}padding:0 8px;color:${color};"><input type="hidden" id="${c.id}" name="${c.id}" value="${startVal} to ${endVal}"><span style="font-size:13px;opacity:0.7;">📅</span><input type="date" value="${startVal}" onchange="const p=this.parentNode;const hid=document.getElementById('${c.id}');const endInp=p.querySelectorAll('input[type=date]')[1];hid.value=this.value+' to '+endInp.value;const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(hid.value);" style="background:none;border:none;color:inherit;outline:none;font-size:11px;color-scheme:${isLight ? 'light' : 'dark'};"><span style="opacity:0.5;">➔</span><input type="date" value="${endVal}" onchange="const p=this.parentNode;const hid=document.getElementById('${c.id}');const startInp=p.querySelectorAll('input[type=date]')[0];hid.value=startInp.value+' to '+this.value;const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(hid.value);" style="background:none;border:none;color:inherit;outline:none;font-size:11px;color-scheme:${isLight ? 'light' : 'dark'};"></div>\n`;
-        } else if (t === 'date_time_picker') {
-            const dtVal = c.value || '2026-07-27T12:00';
-            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
-            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;gap:8px;background:${cbg};${defBorder}${defRadius}padding:0 8px;color:${color};"><span style="font-size:13px;opacity:0.7;">🕒</span><input id="${c.id}" name="${c.id}" type="datetime-local" value="${dtVal}" onchange="const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" style="flex:1;background:none;border:none;color:inherit;outline:none;font-size:12px;color-scheme:${isLight ? 'light' : 'dark'};"></div>\n`;
-        } else if (t === 'color_grid') {
-            const gridCols = c.colors || ['#ef4444', '#f97316', '#f59e0b', '#10b981', '#06b6d4', '#0284c7', '#6366f1', '#a855f7', '#ec4899', '#64748b'];
-            const curCol = c.value || c.selectedColor || gridCols[0];
-            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
-            controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:grid;grid-template-columns:repeat(5, 1fr);gap:6px;background:${cbg};${defBorder}${defRadius}padding:8px;"><input type="hidden" id="${c.id}" name="${c.id}" value="${curCol}">${gridCols.map((gc: string) => {
-                const isSel = gc.toLowerCase() === String(curCol).toLowerCase();
-                return `<div class="color-grid-item" onclick="this.parentNode.querySelectorAll('.color-grid-item').forEach(el=>el.style.border='none');this.style.border='2px solid #ffffff';const hid=document.getElementById('${c.id}');if(hid){hid.value='${gc}';hid.dispatchEvent(new Event('change'));}const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC('${gc}');" style="width:100%;height:24px;border-radius:4px;background:${gc};cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:transform 0.1s;border:${isSel ? '2px solid #ffffff' : 'none'};" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></div>`;
-            }).join('')}</div>\n`;
-        } else if (t === 'file_picker_field') {
-            const pVal = text || c.value || '/Users/codecaine/Documents';
-            const customHandler = c.event_handlers?.onClick || c.event_handlers?.onclick || '';
-            const customChange = c.event_handlers?.onChange || c.event_handlers?.onchange || '';
-            controls += `<div id="${c.id}_wrapper"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}${defRadius}padding:0 8px;gap:8px;color:${color};"><span style="font-size:13px;opacity:0.7;">📂</span><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" id="${c.id}" name="${c.id}" value="${pVal}" placeholder="${c.placeholder || 'Select a file...'}" oninput="const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" style="flex:1;background:none;border:none;color:inherit;font-family:monospace;font-size:11px;outline:none;"><input type="file" id="${c.id}_native_file" style="display:none;" onchange="if(this.files&&this.files[0]){const p=this.files[0].name;const inp=document.getElementById('${c.id}');if(inp){inp.value=p;inp.dispatchEvent(new Event('input'));inp.dispatchEvent(new Event('change'));}const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(p);const fnK=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK(p);}"><button type="button" onclick="event.stopPropagation();const inp=document.getElementById('${c.id}');const cur=inp?inp.value:'${pVal}';const fnK=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK(cur);const fi=document.getElementById('${c.id}_native_file');if(fi)fi.click();" style="padding:4px 10px;background:${accent};color:#fff;border:none;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">${c.button_title || 'Browse...'}</button></div>\n`;
-        } else if (t === 'path_control') {
-            const parts = (text || 'Root › Users › codecaine › Projects').split('›').map((s: string) => s.trim());
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}${defRadius}padding:0 10px;gap:6px;color:${color};font-size:11px;overflow-x:auto;">${parts.map((prt: string, i: number) => `<span style="cursor:pointer;font-weight:${i === parts.length - 1 ? '700' : 'normal'};color:${i === parts.length - 1 ? accent : color};">${prt}</span>${i < parts.length - 1 ? '<span style="opacity:0.4;">/</span>' : ''}`).join('')}</div>\n`;
-        } else if (t === 'html_view' || t === 'browser_view') {
-            controls += `<div${id}${titleAttr} class="simplegui-html-view" data-control-type="${t}" style="${base(c)}background:${cbg};${defBorder}${defRadius}padding:12px;overflow:auto;color:${color};font-size:12px;">${text || '<div style="opacity:0.8;">HTML View Canvas</div>'}</div>\n`;
-        } else if (t === 'code_editor' || t === 'code_studio') {
-            const fileName = c.caption || c.filename || 'app.ts';
-            const lang = c.placeholder || c.language || 'typescript';
-            const codeVal = c.code || text || '// Bun RAD Studio v1.4\nconsole.log("Hello, World!");';
-            controls += `<div${id}${titleAttr} style="${base(c)}background:#0d1117;border:1px solid #30363d;border-radius:8px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.4);"><div style="padding:6px 12px;background:#161b22;border-bottom:1px solid #30363d;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#c9d1d9;"><div style="display:flex;align-items:center;gap:6px;"><span style="color:#58a6ff;">📄</span><span style="font-weight:600;">${fileName}</span></div><span style="font-size:10px;background:#21262d;padding:2px 8px;border-radius:4px;color:#79c0ff;font-weight:bold;">${lang}</span></div><textarea spellcheck="false" ${id ? `data-ctrl-id="${c.id}"` : ''} style="flex:1;background:#0d1117;color:#79c0ff;border:none;padding:10px;font-family:'Fira Code',monospace;font-size:12px;line-height:1.5;outline:none;resize:none;margin:0;">${codeVal}</textarea></div>\n`;
-        } else if (t === 'diff_view') {
-            const oldLines = (c.old_text || '- function hello() {\n-   return false;\n- }').split('\n');
-            const newLines = (c.new_text || '+ function hello() {\n+   return true;\n+ }').split('\n');
-            controls += `<div${id}${titleAttr} style="${base(c)}background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:8px 12px;overflow:auto;font-family:monospace;font-size:11px;line-height:1.4;"><div style="color:#f85149;margin-bottom:4px;">${oldLines.map((l: string) => `<div>${l}</div>`).join('')}</div><div style="color:#3fb950;">${newLines.map((l: string) => `<div>${l}</div>`).join('')}</div></div>\n`;
-        } else if (t === 'terminal_view') {
-            const prompt = c.prompt_text || '$ bun run start';
-            const logOut = c.output || '[server] listening on http://localhost:3000\n[ready] client connected successfully';
-            controls += `<div${id}${titleAttr} style="${base(c)}background:#050505;border:1px solid #2a2a2a;border-radius:8px;padding:10px 12px;font-family:'Fira Code',monospace;font-size:11px;color:#f0fdf4;display:flex;flex-direction:column;gap:6px;overflow:auto;"><div style="color:#38bdf8;font-weight:700;">${prompt}</div><div style="opacity:0.85;white-space:pre-wrap;">${logOut}</div><div style="display:flex;align-items:center;gap:4px;color:#30d158;"><span>$</span><span style="animation:blink 1s infinite;">▌</span></div></div>\n`;
-        } else if (t === 'json_tree') {
-            const jsonText = c.json || text || '{\n  "name": "bun_rad_studio",\n  "status": "active",\n  "version": 1.4\n}';
-            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};${defBorder}${defRadius}padding:10px;font-family:monospace;font-size:11px;color:${color};overflow:auto;white-space:pre;"><span style="color:${accent};font-weight:bold;">{ JSON Inspector }</span>\n${jsonText}</div>\n`;
-        } else if (t === 'audio_waveform') {
-            const amps = c.amplitudes || [20, 45, 80, 60, 30, 90, 75, 40, 85, 95, 65, 35, 70, 50, 80, 40];
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:3px;background:${cbg};${defBorder}${defRadius}padding:0 8px;">${amps.map((a: number) => `<div style="flex:1;height:${a}%;background:${accent};border-radius:2px;opacity:0.85;"></div>`).join('')}</div>\n`;
-        } else if (t === 'image_gallery') {
-            const imgs = c.images || ['🖼️ Slide 1', '🖼️ Slide 2', '🖼️ Slide 3'];
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:8px;background:${cbg};${defBorder}${defRadius}padding:8px;overflow-x:auto;">${imgs.map((im: string) => `<div style="min-width:100px;height:100%;border:1px solid ${border};border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:${color};background:${isLight ? '#f8fafc' : '#1e293b'};">${im}</div>`).join('')}</div>\n`;
-        } else if (t === 'media_player') {
-            const song = c.title || text || 'Midnight Drive';
-            const artist = c.artist || 'Synthwave Collective';
-            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-radius:12px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;color:${color};"><div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg, ${accent}, #ec4899);display:flex;align-items:center;justify-content:center;font-size:18px;">🎵</div><div style="display:flex;flex-direction:column;"><span style="font-weight:700;font-size:12px;">${song}</span><span style="font-size:10px;opacity:0.7;">${artist}</span></div></div><div style="display:flex;align-items:center;gap:8px;"><button style="background:none;border:none;color:${color};font-size:14px;cursor:pointer;">⏮</button><button style="width:28px;height:28px;border-radius:50%;background:${accent};color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;">▶</button><button style="background:none;border:none;color:${color};font-size:14px;cursor:pointer;">⏭</button></div></div>\n`;
-        } else if (t === 'stat_grid') {
-            let titles = c.titles || ['Revenue', 'Users', 'Orders', 'Growth'];
-            let vals = c.values || ['$12.4k', '850', '320', '+24%'];
-            if (Array.isArray(c.stats)) {
-                titles = c.stats.map((s: any) => s.label || s.title || '');
-                vals = c.stats.map((s: any) => s.value || '');
-            }
-            controls += `<div${id}${titleAttr} style="${base(c)}display:grid;grid-template-columns:repeat(${Math.max(1, titles.length)}, 1fr);gap:8px;">${titles.map((tl: string, idx: number) => `<div style="background:${cbg};border:1px solid ${border};border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;justify-content:space-between;"><span style="font-size:10px;opacity:0.7;font-weight:bold;text-transform:uppercase;">${tl}</span><span style="font-size:16px;font-weight:800;color:${accent};margin-top:2px;">${vals[idx]||'—'}</span></div>`).join('')}</div>\n`;
-        } else if (t === 'score_card') {
-            const titleText = c.caption || text || 'User Satisfaction';
-            const subtitleText = c.caption ? (text || '') : (c.subtitle || '');
-            const score = c.score !== undefined ? c.score : (c.value !== undefined ? c.value : 4.9);
-            const grade = c.placeholder || c.grade || '';
-            const revs = c.reviews !== undefined ? c.reviews : 128;
-            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-radius:10px;padding:12px;display:flex;align-items:center;justify-content:space-between;color:${color};"><div style="display:flex;flex-direction:column;"><span style="font-size:11px;font-weight:700;opacity:0.8;">${titleText}</span><div style="font-size:24px;font-weight:900;color:${accent};">${score} <span style="font-size:14px;color:#f59e0b;">${grade ? `(${grade}) ★★★★★` : '★★★★★'}</span></div><span style="font-size:10px;opacity:0.6;">${subtitleText ? subtitleText : `Based on ${revs} reviews`}</span></div></div>\n`;
-        } else if (t === 'avatar_card') {
-            const user = text || 'John Doe';
-            const role = c.subtitle || 'Senior Engineer';
-            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;color:${color};"><div style="width:36px;height:36px;border-radius:50%;background:${accent};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px;flex-shrink:0;">${user.charAt(0)}</div><div style="display:flex;flex-direction:column;min-width:0;"><span style="font-weight:700;font-size:12px;">${user}</span><span style="font-size:11px;opacity:0.7;">${role}</span></div></div>\n`;
-        } else if (t === 'user_profile_card') {
-            const user = (c.userProfile && c.userProfile.name) || c.caption || text || 'Jane Developer';
-            const email = (c.userProfile && (c.userProfile.handle || c.userProfile.email)) || c.text || c.email || 'jane@example.com';
-            const role = (c.userProfile && c.userProfile.bio) || c.role || 'Lead Architect';
-            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-radius:12px;padding:14px;display:flex;flex-direction:column;justify-content:space-between;color:${color};box-shadow:0 4px 14px rgba(0,0,0,0.25);"><div style="display:flex;align-items:center;gap:12px;"><div style="width:44px;height:44px;border-radius:50%;background:${accent};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;">${user.charAt(0)}</div><div style="display:flex;flex-direction:column;"><span style="font-weight:800;font-size:14px;">${user}</span><span style="font-size:11px;color:${accent};font-weight:600;">${role}</span><span style="font-size:10px;opacity:0.7;">${email}</span></div></div></div>\n`;
-        } else if (t === 'product_card') {
-            const prod = (c.productData && c.productData.title) || c.caption || text || 'Pro Wireless Mouse';
-            const price = (c.productData && c.productData.price) || c.value || c.price || '$79.99';
-            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-radius:12px;padding:12px;display:flex;flex-direction:column;justify-content:space-between;color:${color};"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-weight:800;font-size:13px;">${prod}</span><span style="background:rgba(16,185,129,0.15);color:#10b981;font-size:10px;padding:2px 6px;border-radius:4px;font-weight:bold;">In Stock</span></div><div style="font-size:18px;font-weight:900;color:${accent};margin:6px 0;">${price}</div><button style="width:100%;padding:6px;background:${accent};color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">Add to Cart 🛒</button></div>\n`;
-        } else if (t === 'app_launcher_tile') {
-            const appName = text || 'Code Studio';
-            const icon = c.icon || '🚀';
-            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:${color};cursor:pointer;transition:transform 0.15s;" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'"><span style="font-size:26px;">${icon}</span><span style="font-size:11px;font-weight:700;">${appName}</span></div>\n`;
-        } else if (t === 'http_request_card') {
-            const method = c.method || 'POST';
-            const url = c.url || '/api/v1/auth/login';
-            const sc = c.status_code || 200;
-            const rt = c.response_time || '42ms';
-            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-radius:8px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;color:${color};font-family:monospace;font-size:11px;"><div style="display:flex;align-items:center;gap:8px;"><span style="background:${method === 'GET' ? '#0284c7' : '#10b981'};color:#fff;padding:2px 6px;border-radius:4px;font-weight:bold;">${method}</span><span>${url}</span></div><div style="display:flex;align-items:center;gap:8px;"><span style="color:#10b981;font-weight:bold;">${sc} OK</span><span style="opacity:0.6;">${rt}</span></div></div>\n`;
-        } else if (t === 'resource_monitor') {
-            const cpu = c.cpu !== undefined ? c.cpu : 24;
-            const mem = c.mem !== undefined ? c.mem : 58;
-            const disk = c.disk !== undefined ? c.disk : 41;
-            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;justify-content:space-around;color:${color};"><div style="font-size:11px;font-weight:700;color:${accent};">⚡ System Resources</div>${[['CPU', cpu, '#0284c7'], ['RAM', mem, '#10b981'], ['Disk', disk, '#f59e0b']].map(([rName, rVal, rCol]: any) => `<div style="display:flex;align-items:center;justify-content:space-between;font-size:10px;"><span style="width:36px;font-weight:bold;">${rName}</span><div style="flex:1;height:5px;background:${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.1)'};border-radius:3px;margin:0 8px;overflow:hidden;"><div style="width:${rVal}%;height:100%;background:${rCol};"></div></div><span style="font-family:monospace;font-weight:bold;">${rVal}%</span></div>`).join('')}</div>\n`;
-        } else if (t === 'env_vars') {
-            const vars = c.vars || { 'NODE_ENV': 'production', 'PORT': '3000', 'DEBUG': 'false' };
-            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:4px;overflow-y:auto;color:${color};font-family:monospace;font-size:11px;"><div style="font-weight:bold;color:${accent};">Environment Variables</div>${Object.entries(vars).map(([k, v]) => `<div style="display:flex;justify-content:space-between;border-bottom:1px solid ${border};padding:2px 0;"><span style="color:#f59e0b;">${k}</span><span style="opacity:0.85;">${v}</span></div>`).join('')}</div>\n`;
-        } else if (t === 'status_dock') {
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:rgba(15,23,42,0.85);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:0 12px;color:#f8fafc;font-size:11px;"><div style="display:flex;align-items:center;gap:6px;"><span style="color:#10b981;">●</span><span>${text || 'Daemon Live'}</span></div><span style="opacity:0.6;font-family:monospace;">${c.status || 'OK'}</span></div>\n`;
-        } else if (t === 'nav_rail') {
-            const items = (c.items || (text ? text.split(',') : ['🏠 Home', '📊 Stats', '⚙️ Config', '📁 Files'])).map((s: string) => s.trim());
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;gap:8px;background:${cbg};border-right:1px solid ${border};padding:12px 6px;color:${color};">${items.map((it: string, idx: number) => `<button onclick="if(window['${c.id}_onClick'])window['${c.id}_onClick']('${it}');" style="padding:8px 12px;background:${idx === 0 ? accent : 'transparent'};color:${idx === 0 ? '#fff' : color};border:none;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;text-align:left;">${it}</button>`).join('')}</div>\n`;
-        } else if (t === 'disclosure' || t === 'collapsible_section') {
-            controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};${defBorder}${defRadius}overflow:hidden;"><details style="padding:8px 12px;color:${color};font-size:12px;"><summary style="cursor:pointer;font-weight:700;color:${accent};user-select:none;">${text || 'Advanced Settings'}</summary><div style="padding-top:8px;font-size:11px;opacity:0.85;">${c.content || c.placeholder || 'Expanded collapsible details and configuration.'}</div></details></div>\n`;
-        } else if (t === 'accordion_group') {
-            const titles = (c.titles || (text ? text.split(',') : ['Section 1', 'Section 2', 'Section 3'])).map((s: string) => s.trim());
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;gap:4px;">${titles.map((tl: string, i: number) => `<div style="background:${cbg};border:1px solid ${border};border-radius:6px;overflow:hidden;"><div style="padding:6px 10px;font-size:11px;font-weight:700;color:${accent};cursor:pointer;background:${isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.05)'};">${tl}</div></div>`).join('')}</div>\n`;
-        } else if (t === 'sidebar' || t === 'rad_sidebar' || t === 'w3_sidebar') {
-            const sbTitle = c.title || c.caption || text || 'Navigation';
-            const rawItems = c.items || c.menu_items || ['🏠 Dashboard', '📁 Projects', '👥 Team Members', '⚙️ Preferences', '❓ Help & Docs'];
-            const sbItems = Array.isArray(rawItems) ? rawItems : String(rawItems).split(',').map((s: string) => s.trim());
-            const sbRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
-            const activeIdx = c.selected_index !== undefined ? c.selected_index : 0;
-            const actBg = hexToRgba(accent, isLight ? 0.15 : 0.22);
-            controls += `<div${id}${titleAttr} class="rad-sidebar rad-elevation-2" style="${base(c)}background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : cardBg};border:1px solid ${cardBorder};${sbRadius}display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.3);"><div style="padding:12px 14px;background:${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'};border-bottom:1px solid ${cardBorder};display:flex;align-items:center;justify-content:space-between;flex-shrink:0;"><span style="font-weight:700;font-size:13px;color:${accent};">${esc(sbTitle)}</span><button onclick="const sb=this.closest('.rad-sidebar');if(sb)sb.style.display='none';const fn=window['${c.id}_onClose']||window['on_${c.id}_close'];if(fn)fn();" style="background:transparent;border:none;color:${color};font-size:16px;cursor:pointer;opacity:0.7;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">&times;</button></div><div style="flex:1;overflow-y:auto;padding:6px 0;">${sbItems.map((it: any, i: number) => {
-                const label = typeof it === 'object' && it !== null ? (it.label || it.text || '') : String(it);
-                const isAct = i === activeIdx;
-                const itBg = isAct ? actBg : 'transparent';
-                const itCol = isAct ? accent : color;
-                const itWeight = isAct ? '700' : '500';
-                return `<button class="rad-sidebar-item" onclick="const p=this.parentNode;p.querySelectorAll('button').forEach(b=>{b.style.background='transparent';b.style.color='${color}';b.style.fontWeight='500';});this.style.background='${actBg}';this.style.color='${accent}';this.style.fontWeight='700';const fn=window['${c.id}_onSelect']||window['${c.id}_onChange']||window['${c.id}_onClick']||window['on_${c.id}_select']||window['on_${c.id}_change']||window['on_${c.id}_click'];if(fn)fn('${esc(label)}');" style="width:100%;padding:9px 14px;text-align:left;background:${itBg};color:${itCol};font-weight:${itWeight};font-size:12px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:background 0.15s;" onmouseover="if(this.style.color!=='${accent}')this.style.background='${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'}'" onmouseout="if(this.style.color!=='${accent}')this.style.background='transparent'"><span>${esc(label)}</span><span style="opacity:0.4;font-size:10px;">›</span></button>`;
-            }).join('')}</div></div>\n`;
-        } else if (t === 'modal' || t === 'modal_dialog' || t === 'rad_modal' || t === 'w3_modal') {
-            const mTitle = c.title || c.caption || text || 'Modal Dialog';
-            const mMsg = c.message || c.content || c.placeholder || 'This is a modal dialog container. It provides customizable header, body content, and action buttons.';
-            const mRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:12px;';
-            const isDisplayed = c.is_open === true || c.isOpen === true;
-            const mHeadBg = hexToRgba(accent, isLight ? 0.1 : 0.16);
-            controls += `<div id="${c.id}" class="rad-modal-backdrop" style="display:${isDisplayed ? 'flex' : 'none'};position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:99999;align-items:center;justify-content:center;" onclick="if(event.target===this){this.style.display='none';const fn=window['${c.id}_onClose']||window['on_${c.id}_close'];if(fn)fn();}"><div class="rad-modal rad-elevation-2" style="width:${c.width || 480}px;max-width:92vw;background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : cardBg};border:1px solid ${cardBorder};${mRadius}overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 48px rgba(0,0,0,0.55);animation:radModalPop 0.22s cubic-bezier(0.16,1,0.3,1);"><div style="padding:14px 18px;background:${mHeadBg};border-bottom:1px solid ${cardBorder};display:flex;align-items:center;justify-content:space-between;flex-shrink:0;"><span style="font-weight:700;font-size:13px;color:${accent};">${esc(mTitle)}</span><button onclick="const m=this.closest('.rad-modal-backdrop')||this.closest('.rad-modal');if(m)m.style.display='none';const fn=window['${c.id}_onClose']||window['on_${c.id}_close'];if(fn)fn();" style="background:transparent;border:none;color:${color};font-size:20px;font-weight:bold;cursor:pointer;line-height:1;opacity:0.7;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">&times;</button></div><div style="padding:18px;flex:1;overflow-y:auto;font-size:12px;line-height:1.5;color:${color};white-space:pre-wrap;"><p style="margin:0;">${esc(mMsg)}</p></div><div style="padding:12px 18px;background:${isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)'};border-top:1px solid ${cardBorder};display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-shrink:0;"><button onclick="const m=this.closest('.rad-modal-backdrop')||this.closest('.rad-modal');if(m)m.style.display='none';const fn=window['${c.id}_onCancel']||window['on_${c.id}_cancel']||window['${c.id}_onClose']||window['on_${c.id}_close'];if(fn)fn();" style="padding:7px 14px;background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'};color:${color};border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">Cancel</button><button onclick="const m=this.closest('.rad-modal-backdrop')||this.closest('.rad-modal');if(m)m.style.display='none';const fn=window['${c.id}_onConfirm']||window['on_${c.id}_confirm']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('confirm');" style="padding:7px 16px;background:${accent};color:${activeFg};border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">Confirm</button></div></div></div>\n`;
-        } else if (t === 'dropdown_menu' || t === 'rad_dropdown' || t === 'w3_dropdown' || t === 'w3_dropdown_menu') {
-            const dLabel = c.caption || text || 'Select Action';
-            const rawItems = c.items || ['Action One', 'Action Two', 'Action Three', 'Settings'];
-            const dItems = Array.isArray(rawItems) ? rawItems : String(rawItems).split(',').map((s: string) => s.trim());
-            const dRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:6px;';
-            controls += `<div${id}${titleAttr} class="rad-dropdown-host" style="${base(c)}"><button class="rad-dropdown-btn btn-theme-accent" onclick="event.stopPropagation();const p=this.parentNode;const c=p.querySelector('.rad-dropdown-menu');const isShow=c.style.display==='block';document.querySelectorAll('.rad-dropdown-menu, .w3-dropdown-content').forEach(el=>el.style.display='none');document.querySelectorAll('.rad-dropdown-host').forEach(el=>el.style.zIndex='10');c.style.display=isShow?'none':'block';p.style.zIndex=isShow?'10':'10000';" style="width:100%;height:100%;background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : accent};color:${activeFg};border:1px solid ${cardBorder};${dRadius}padding:0 12px;display:flex;align-items:center;justify-content:space-between;font-size:${c.font_size||12}px;font-weight:600;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.2);"><span>${esc(dLabel)}</span><span style="font-size:10px;margin-left:8px;">▼</span></button><div class="rad-dropdown-menu" style="background:${cardBg};border:1px solid ${cardBorder};top:calc(100% + 4px);left:0;min-width:100%;border-radius:6px;overflow:hidden;box-shadow:0 12px 28px rgba(0,0,0,0.4);z-index:10000;">${dItems.map((it: any) => {
-                const label = typeof it === 'object' && it !== null ? (it.label || it.text || '') : String(it);
-                const val = typeof it === 'object' && it !== null ? (it.value !== undefined ? it.value : it.label) : String(it);
-                return `<button class="rad-dropdown-item" onclick="event.stopPropagation();const dc=this.closest('.rad-dropdown-menu');if(dc)dc.style.display='none';const host=this.closest('.rad-dropdown-host');if(host)host.style.zIndex='10';const btn=host ? host.querySelector('button span') : null;if(btn)btn.textContent='${esc(label)}';const fn=window['${c.id}_onSelect']||window['${c.id}_onChange']||window['${c.id}_onClick']||window['on_${c.id}_select']||window['on_${c.id}_change']||window['on_${c.id}_click'];if(fn)fn('${esc(val)}');" style="width:100%;padding:8px 12px;text-align:left;background:transparent;color:${color};font-size:11px;border:none;cursor:pointer;display:block;" onmouseover="this.style.background='${isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.08)'}'" onmouseout="this.style.background='transparent'">${esc(label)}</button>`;
-            }).join('')}</div></div>\n`;
-        } else if (t === 'list_group' || t === 'rad_list_group' || t === 'w3_list' || t === 'w3_ul') {
-            const rawItems = c.items || [
-                { title: 'Project Specification', subtext: 'Updated 10m ago', badge: 'Active', icon: '📄' },
-                { title: 'Customer Database', subtext: '12.4k records synced', badge: 'Online', icon: '🗄️' },
-                { title: 'Security Audit Log', subtext: 'Zero critical issues', badge: 'Passed', icon: '🛡️' }
-            ];
-            const listItems = Array.isArray(rawItems) ? rawItems : String(rawItems).split(',').map((s: string) => ({ title: s.trim() }));
-            const lRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
-            const badgeBg = hexToRgba(accent, isLight ? 0.12 : 0.2);
-            controls += `<div${id}${titleAttr} class="rad-card rad-list-group" style="${base(c)}background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : cardBg};border:1px solid ${cardBorder};${lRadius}overflow-y:auto;"><ul class="rad-list-group-ul" style="list-style:none;padding:0;margin:0;">${listItems.map((it: any) => {
-                const title = typeof it === 'object' && it !== null ? (it.title || it.text || it.name || '') : String(it);
-                const sub = typeof it === 'object' && it !== null ? (it.subtext || it.subtitle || '') : '';
-                const badge = typeof it === 'object' && it !== null ? (it.badge || it.tag || '') : '';
-                const icon = typeof it === 'object' && it !== null ? (it.icon || '📌') : '📌';
-                return `<li style="padding:10px 14px;border-bottom:1px solid ${cardBorder};display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:background 0.15s;" onclick="const fn=window['${c.id}_onSelect']||window['${c.id}_onChange']||window['${c.id}_onClick']||window['on_${c.id}_select']||window['on_${c.id}_change']||window['on_${c.id}_click'];if(fn)fn('${esc(title)}');" onmouseover="this.style.background='${isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.04)'}'" onmouseout="this.style.background='transparent'"><div style="display:flex;align-items:center;gap:10px;"><span style="font-size:16px;">${icon}</span><div style="display:flex;flex-direction:column;"><span style="font-size:12px;font-weight:600;color:${color};">${esc(title)}</span>${sub ? `<span style="font-size:10px;opacity:0.65;color:${color};">${esc(sub)}</span>` : ''}</div></div>${badge ? `<span class="rad-pill-tag" style="background:${badgeBg};color:${accent};font-size:10px;font-weight:700;border-radius:4px;padding:2px 8px;">${esc(badge)}</span>` : ''}</li>`;
-            }).join('')}</ul></div>\n`;
-        } else if (t === 'content_card' || t === 'card' || t === 'rad_card' || t === 'w3_card') {
-            const cardTitle = c.title || c.caption || text || 'Card Title';
-            const cardDesc = c.description || c.message || c.placeholder || 'Cards provide a clean container with elevation shadow, header banner, and action buttons.';
-            const cardFooter = c.footer || c.subtext || '';
-            const btnText = c.button_text || c.action_label || 'Explore';
-            const cRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:10px;';
-            const cardHeadBg = hexToRgba(accent, isLight ? 0.1 : 0.15);
-            controls += `<div${id}${titleAttr} class="rad-card rad-elevation-2 rad-content-card" style="${base(c)}background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : cardBg};border:1px solid ${cardBorder};${cRadius}overflow:hidden;display:flex;flex-direction:column;box-shadow:0 8px 24px rgba(0,0,0,0.3);"><header style="padding:10px 14px;background:${cardHeadBg};border-bottom:1px solid ${cardBorder};"><h4 style="margin:0;font-size:13px;font-weight:700;color:${accent};">${esc(cardTitle)}</h4></header><div style="padding:12px 14px;flex:1;font-size:11px;line-height:1.5;color:${color};overflow-y:auto;"><p style="margin:0;">${esc(cardDesc)}</p></div><footer style="padding:8px 14px;background:${isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)'};border-top:1px solid ${cardBorder};display:flex;align-items:center;justify-content:space-between;gap:8px;">${cardFooter ? `<span style="font-size:10px;opacity:0.7;color:${color};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(cardFooter)}</span>` : '<span style="flex:1;"></span>'}${c.button_visible === false ? '' : `<button onclick="const fn=window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${esc(btnText)}');" style="padding:5px 12px;background:${accent};color:${activeFg};border:none;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;">${esc(btnText)}</button>`}</footer></div>\n`;
-        } else if (t === 'callout_panel' || t === 'note_panel' || t === 'rad_callout' || t === 'w3_panel') {
-            const pTitle = c.title || c.caption || 'Important Note';
-            const pMsg = c.message || text || 'Panels highlight important messages, alerts, or notes with a thick accent border bar.';
-            const pType = c.alert_type || c.variant || 'info';
-            const barCol = pType === 'error' || pType === 'danger' ? sem.danger.solid : (pType === 'warning' ? sem.warning.solid : (pType === 'success' ? sem.success.solid : accent));
-            const icon = pType === 'error' || pType === 'danger' ? '⛔ ' : (pType === 'warning' ? '⚠️ ' : (pType === 'success' ? '✓ ' : 'ℹ️ '));
-            const showIcon = !pTitle.includes('ℹ️') && !pTitle.includes('⚠️') && !pTitle.includes('✓') && !pTitle.includes('⛔') && !pTitle.includes('⚡') && !pTitle.includes('🚨');
-            const pRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:0 8px 8px 0;';
-            const panelBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : hexToRgba(barCol, isLight ? 0.08 : 0.14);
-            controls += `<div${id}${titleAttr} class="rad-callout-panel rad-callout-leftbar" onclick="const fn=window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn();" style="${base(c)}background:${panelBg};border-left:6px solid ${barCol};border-top:1px solid ${cardBorder};border-right:1px solid ${cardBorder};border-bottom:1px solid ${cardBorder};${pRadius}padding:10px 14px;display:flex;flex-direction:column;justify-content:center;gap:3px;box-sizing:border-box;"><div style="font-size:12px;font-weight:700;color:${barCol};display:flex;align-items:center;gap:4px;"><span>${showIcon ? icon : ''}</span><span>${esc(pTitle)}</span></div><div style="font-size:11px;color:${color};line-height:1.4;">${esc(pMsg)}</div></div>\n`;
-        } else if (t === 'tooltip_box' || t === 'rad_tooltip' || t === 'w3_tooltip' || t === 'w3_tooltip_box') {
-            const tipText = c.tooltip || c.content || 'Tooltip info popup!';
-            const triggerText = text || 'Hover Me ℹ️';
-            const tRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:6px;';
-            controls += `<div${id} class="rad-tooltip-container rad-tooltip" style="${base(c)}display:inline-flex;align-items:center;justify-content:center;"><button style="width:100%;height:100%;background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : (isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)')};color:${color};border:1px solid ${border};${tRadius}font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer;">${esc(triggerText)}</button><span class="rad-tooltip-bubble" style="bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#0f172a;color:#ffffff;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:500;white-space:nowrap;box-shadow:0 6px 16px rgba(0,0,0,0.4);border:1px solid ${hexToRgba(accent, 0.4)};pointer-events:none;">${esc(tipText)}</span></div>\n`;
-        } else if (t === 'animated_input' || t === 'rad_anim_input' || t === 'w3_animated_input') {
-            const aiVal = c.value !== undefined ? c.value : text;
-            const aiPlaceholder = c.placeholder || 'Click to expand...';
-            const aiRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:6px;';
-            const inBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : (isLight ? '#ffffff' : (cardBg === '#050505' ? '#121212' : cardBg));
-            controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;"><input class="rad-anim-input" type="text" value="${esc(aiVal)}" placeholder="${esc(aiPlaceholder)}"${disabled}${roAttr}${reqAttr}${maxLenAttr}${ev} oninput="const fn=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fn)fn(this.value);" style="width:65%;min-width:120px;max-width:100%;height:100%;background:${inBg};color:${color};border:1px solid ${border};${aiRadius}padding:0 12px;font-size:12px;outline:none;box-sizing:border-box;"></div>\n`;
-        } else if (t === 'hero_display' || t === 'display_container' || t === 'rad_display' || t === 'w3_display') {
-            const dTitle = c.title || c.caption || text || 'Hero Display';
-            const dSubtitle = c.subtitle || c.description || 'Modern visual container with high contrast typography and responsive layout.';
-            const dRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:10px;';
-            const heroBg = c.background_color && c.background_color !== 'transparent'
-                ? c.background_color
-                : (isLight ? `linear-gradient(135deg, ${hexToRgba(accent, 0.12)}, #ffffff)` : `linear-gradient(135deg, ${hexToRgba(accent, 0.22)}, ${cardBg})`);
-            controls += `<div${id}${titleAttr} class="rad-display-hero rad-card" style="${base(c)}background:${heroBg};border:1px solid ${cardBorder};${dRadius}overflow:hidden;padding:24px 28px;display:flex;flex-direction:column;justify-content:center;position:relative;box-sizing:border-box;"><div style="position:absolute;top:10px;left:14px;background:rgba(0,0,0,0.6);color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">★ Featured</div><div style="position:absolute;top:10px;right:14px;background:${accent};color:${activeFg};padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">PRO</div><div style="margin-top:10px;"><h2 style="font-size:22px;font-weight:800;color:${color};margin:0 0 6px 0;letter-spacing:-0.02em;">${esc(dTitle)}</h2><p style="font-size:12px;opacity:0.8;color:${color};margin:0;max-width:85%;line-height:1.5;">${esc(dSubtitle)}</p></div></div>\n`;
-        } else if (t === 'code_snippet' || t === 'code_block' || t === 'rad_code' || t === 'w3_code' || t === 'w3_code_block') {
-            const codeContent = c.code || text || 'const studio = new SimpleGUI({\n  responsive: true\n});';
-            const cdRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:6px;';
-            const codeBg = isLight ? '#f8fafc' : (bg === '#050505' ? '#0d1117' : (bg === '#0a0600' || bg === '#040a05' ? cardBg : '#0f172a'));
-            controls += `<div${id}${titleAttr} class="rad-code-box rad-card" style="${base(c)}background:${codeBg};border:1px solid ${cardBorder};border-left:4px solid ${accent};${cdRadius}padding:10px 14px;position:relative;overflow:auto;box-sizing:border-box;"><div style="position:absolute;top:6px;right:8px;display:flex;gap:4px;"><button onclick="const pre=this.closest('.rad-code-box').querySelector('pre');if(pre){const t=pre.textContent||'';if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(()=>{this.textContent='✓ Copied';setTimeout(()=>this.textContent='📋 Copy',1500);}).catch(()=>{const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');this.textContent='✓ Copied';setTimeout(()=>this.textContent='📋 Copy',1500);}catch(e){}document.body.removeChild(ta);});}else{const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');this.textContent='✓ Copied';setTimeout(()=>this.textContent='📋 Copy',1500);}catch(e){}document.body.removeChild(ta);}}}" style="background:${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.1)'};color:${color};border:none;border-radius:4px;padding:2px 6px;font-size:9px;font-weight:700;cursor:pointer;">📋 Copy</button></div><pre style="margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11px;color:${isLight ? '#0f172a' : (bg === '#0a0600' ? '#ffb000' : (bg === '#040a05' ? '#00ff66' : '#a7f3d0'))};white-space:pre-wrap;line-height:1.4;">${esc(codeContent)}</pre></div>\n`;
-        } else if (t === 'count_badge' || t === 'circular_badge' || t === 'rad_badge' || t === 'w3_badge') {
-            const count = c.count !== undefined ? c.count : (text || '1');
-            const label = c.label || c.title || c.caption || '';
-            const isDanger = c.alert_type === 'danger' || c.color === 'danger' || c.alert_type === 'error' || c.color === 'error';
-            const isSuccess = c.alert_type === 'success' || c.color === 'success';
-            const isWarning = c.alert_type === 'warning' || c.color === 'warning';
-            const isInfo = c.alert_type === 'info' || c.color === 'info';
-            const badgeBg = c.background_color && c.background_color !== 'transparent' ? c.background_color : (isDanger ? sem.danger.solid : (isSuccess ? sem.success.solid : (isWarning ? sem.warning.solid : (isInfo ? sem.info.solid : accent))));
-            const badgeFg = isColorBright(badgeBg) ? '#000000' : '#ffffff';
-            if (label || c.width > 48) {
-                const bRadius = c.border_radius !== undefined ? `${c.border_radius}px` : '16px';
-                controls += `<div${id}${titleAttr} class="rad-count-badge-pill" style="${base(c)}background:${hexToRgba(badgeBg, 0.16)};border:1px solid ${hexToRgba(badgeBg, 0.45)};border-radius:${bRadius};padding:0 10px;display:inline-flex;align-items:center;justify-content:space-between;box-sizing:border-box;box-shadow:0 2px 6px rgba(0,0,0,0.15);"><span style="font-size:11px;font-weight:600;color:${color};">${esc(label)}</span><span style="background:${badgeBg};color:${badgeFg};border-radius:10px;padding:2px 7px;font-size:10px;font-weight:800;line-height:1;">${esc(String(count))}</span></div>\n`;
-            } else {
-                const badgeSize = Math.min(c.width, c.height, 36);
-                controls += `<div${id}${titleAttr} class="rad-count-badge" style="${base(c)}width:${badgeSize}px;height:${badgeSize}px;background:${badgeBg};color:${badgeFg};border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:${Math.max(10, Math.floor(badgeSize * 0.42))}px;box-shadow:0 2px 6px rgba(0,0,0,0.3);flex-shrink:0;">${esc(String(count))}</div>\n`;
-            }
-        } else if (t === 'button_group' || t === 'button_bar' || t === 'rad_button_group' || t === 'w3_button_group' || t === 'w3_button_bar') {
-            const rawBtns = c.buttons || (text ? text.split(',') : ['◀ Previous', '⏸ Pause', '▶ Next']);
-            const btns = Array.isArray(rawBtns) ? rawBtns : String(rawBtns).split(',').map((s: string) => s.trim());
-            const bRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:6px;';
-            controls += `<div${id}${titleAttr} class="rad-btn-bar rad-btn-group" style="${base(c)}display:flex;align-items:stretch;border:1px solid ${border};${bRadius}overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,0.2);">${btns.map((btnItem: any, bIdx: number) => {
-                const isFirst = bIdx === 0;
-                const isLast = bIdx === btns.length - 1;
-                const borderRight = isLast ? 'none' : `1px solid ${border}`;
-                const btnLabel = typeof btnItem === 'object' && btnItem !== null ? (btnItem.label || btnItem.text || '') : String(btnItem).trim();
-                const btnVal = typeof btnItem === 'object' && btnItem !== null ? (btnItem.value !== undefined ? btnItem.value : btnItem.label) : String(btnItem).trim();
-                return `<button class="rad-btn-group-item" onclick="const p=this.parentNode;p.querySelectorAll('button').forEach(b=>{b.style.background='${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'}';b.style.color='${color}';});this.style.background='${accent}';this.style.color='${activeFg}';const fn=window['${c.id}_onChange']||window['${c.id}_onClick']||window['on_${c.id}_change']||window['on_${c.id}_click'];if(fn)fn('${esc(btnVal)}');" style="flex:1;background:${isFirst ? accent : (isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)')};color:${isFirst ? activeFg : color};border:none;border-right:${borderRight};font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0 10px;transition:background 0.15s;" onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''">${esc(btnLabel)}</button>`;
-            }).join('')}</div>\n`;
-        } else if (t === 'slideshow' || t === 'carousel' || t === 'rad_slideshow' || t === 'w3_slideshow') {
-            const rawSlides = c.slides || [
-                { caption: 'Slide 1: Executive Analytics', desc: 'Real-time telemetry and revenue KPI monitoring.' },
-                { caption: 'Slide 2: Cloud Infrastructure', desc: 'High availability multi-region deployment nodes.' },
-                { caption: 'Slide 3: Automated Workflow', desc: 'Event-driven message queues and background workers.' }
-            ];
-            const slides = Array.isArray(rawSlides) ? rawSlides : [{ caption: 'Slide 1' }, { caption: 'Slide 2' }];
-            const sRadius = c.border_radius !== undefined && c.border_radius !== null && c.border_radius !== '' ? `border-radius:${c.border_radius}px;` : 'border-radius:8px;';
-            const dotInactive = isCardLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.3)';
-            controls += `<div${id}${titleAttr} class="rad-slideshow rad-elevation-2" data-slide-index="0" style="${base(c)}background:${c.background_color && c.background_color !== 'transparent' ? c.background_color : cardBg};border:1px solid ${cardBorder};${sRadius}overflow:hidden;display:flex;flex-direction:column;box-shadow:0 8px 24px rgba(0,0,0,0.3);"><div class="slides-viewport" style="flex:1;position:relative;display:flex;align-items:center;justify-content:center;padding:12px;overflow:hidden;">${slides.map((sl: any, sIdx: number) => {
-                const sTitle = typeof sl === 'object' && sl !== null ? (sl.caption || sl.title || `Slide ${sIdx+1}`) : String(sl);
-                const sDesc = typeof sl === 'object' && sl !== null ? (sl.desc || sl.description || '') : '';
-                const sImg = typeof sl === 'object' && sl !== null ? (sl.image || '') : '';
-                return `<div class="slide-item" data-slide="${sIdx}" style="display:${sIdx === 0 ? 'flex' : 'none'};flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px;width:100%;height:100%;">${sImg ? `<img src="${esc(sImg)}" style="max-height:80px;max-width:90%;object-fit:contain;border-radius:4px;" />` : ''}<div style="font-size:13px;font-weight:800;color:${accent};">${esc(sTitle)}</div>${sDesc ? `<div style="font-size:11px;opacity:0.8;color:${color};max-width:80%;line-height:1.4;">${esc(sDesc)}</div>` : ''}</div>`;
-            }).join('')}<button class="rad-slideshow-prev" onclick="const p=this.closest('.rad-slideshow');const slides=p.querySelectorAll('.slide-item');let idx=parseInt(p.dataset.slideIndex||'0');slides[idx].style.display='none';idx=(idx-1+slides.length)%slides.length;slides[idx].style.display='flex';p.dataset.slideIndex=idx;const cnt=p.querySelector('.slide-count');if(cnt)cnt.textContent=(idx+1)+' / '+slides.length;p.querySelectorAll('.slide-dot').forEach((d,i)=>{d.style.background=i===idx?'${accent}':'${dotInactive}';});const fn=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fn)fn(idx);" style="position:absolute;left:6px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.5);color:#fff;border:none;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;z-index:2;">❮</button><button class="rad-slideshow-next" onclick="const p=this.closest('.rad-slideshow');const slides=p.querySelectorAll('.slide-item');let idx=parseInt(p.dataset.slideIndex||'0');slides[idx].style.display='none';idx=(idx+1)%slides.length;slides[idx].style.display='flex';p.dataset.slideIndex=idx;const cnt=p.querySelector('.slide-count');if(cnt)cnt.textContent=(idx+1)+' / '+slides.length;p.querySelectorAll('.slide-dot').forEach((d,i)=>{d.style.background=i===idx?'${accent}':'${dotInactive}';});const fn=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fn)fn(idx);" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.5);color:#fff;border:none;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;z-index:2;">❯</button></div><div style="padding:4px 10px;background:${isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.04)'};border-top:1px solid ${cardBorder};display:flex;align-items:center;justify-content:space-between;font-size:10px;"><span class="slide-count" style="font-family:monospace;font-weight:bold;color:${accent};">1 / ${slides.length}</span><div style="display:flex;gap:5px;">${slides.map((_, dotIdx) => `<span class="slide-dot" onclick="const p=this.closest('.rad-slideshow');const slides=p.querySelectorAll('.slide-item');let oldIdx=parseInt(p.dataset.slideIndex||'0');slides[oldIdx].style.display='none';slides[${dotIdx}].style.display='flex';p.dataset.slideIndex='${dotIdx}';const cnt=p.querySelector('.slide-count');if(cnt)cnt.textContent='${dotIdx+1} / '+slides.length;p.querySelectorAll('.slide-dot').forEach((d,i)=>{d.style.background=i===${dotIdx}?'${accent}':'${dotInactive}';});const fn=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fn)fn(${dotIdx});" style="width:8px;height:8px;border-radius:50%;background:${dotIdx === 0 ? accent : dotInactive};cursor:pointer;transition:background 0.2s;"></span>`).join('')}</div></div></div>\n`;
-        } else {
-            // Fallback for any other type
-            controls += `<div${id}${titleAttr}${ev} style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}display:flex;align-items:center;justify-content:center;">${text}</div>\n`;
-        }
+              })
+              .join("")}</div>`,
+        )
+        .join("")}</div></div>\n`;
+    } else if (t === "date_range_picker") {
+      const startVal = c.start_date || "2026-07-01";
+      const endVal = c.end_date || "2026-07-31";
+      const customChange =
+        c.event_handlers?.onChange || c.event_handlers?.onchange || "";
+      controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;gap:8px;background:${cbg};${defBorder}${defRadius}padding:0 8px;color:${color};"><input type="hidden" id="${c.id}" name="${c.id}" value="${startVal} to ${endVal}"><span style="font-size:13px;opacity:0.7;">📅</span><input type="date" value="${startVal}" onchange="const p=this.parentNode;const hid=document.getElementById('${c.id}');const endInp=p.querySelectorAll('input[type=date]')[1];hid.value=this.value+' to '+endInp.value;const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(hid.value);" style="background:none;border:none;color:inherit;outline:none;font-size:11px;color-scheme:${isLight ? "light" : "dark"};"><span style="opacity:0.5;">➔</span><input type="date" value="${endVal}" onchange="const p=this.parentNode;const hid=document.getElementById('${c.id}');const startInp=p.querySelectorAll('input[type=date]')[0];hid.value=startInp.value+' to '+this.value;const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(hid.value);" style="background:none;border:none;color:inherit;outline:none;font-size:11px;color-scheme:${isLight ? "light" : "dark"};"></div>\n`;
+    } else if (t === "date_time_picker") {
+      const dtVal = c.value || "2026-07-27T12:00";
+      const customChange =
+        c.event_handlers?.onChange || c.event_handlers?.onchange || "";
+      controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;gap:8px;background:${cbg};${defBorder}${defRadius}padding:0 8px;color:${color};"><span style="font-size:13px;opacity:0.7;">🕒</span><input id="${c.id}" name="${c.id}" type="datetime-local" value="${dtVal}" onchange="const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" style="flex:1;background:none;border:none;color:inherit;outline:none;font-size:12px;color-scheme:${isLight ? "light" : "dark"};"></div>\n`;
+    } else if (t === "color_grid") {
+      const gridCols = c.colors || [
+        "#ef4444",
+        "#f97316",
+        "#f59e0b",
+        "#10b981",
+        "#06b6d4",
+        "#0284c7",
+        "#6366f1",
+        "#a855f7",
+        "#ec4899",
+        "#64748b",
+      ];
+      const curCol = c.value || c.selectedColor || gridCols[0];
+      const customChange =
+        c.event_handlers?.onChange || c.event_handlers?.onchange || "";
+      controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:grid;grid-template-columns:repeat(5, 1fr);gap:6px;background:${cbg};${defBorder}${defRadius}padding:8px;"><input type="hidden" id="${c.id}" name="${c.id}" value="${curCol}">${gridCols
+        .map((gc: string) => {
+          const isSel = gc.toLowerCase() === String(curCol).toLowerCase();
+          return `<div class="color-grid-item" onclick="this.parentNode.querySelectorAll('.color-grid-item').forEach(el=>el.style.border='none');this.style.border='2px solid #ffffff';const hid=document.getElementById('${c.id}');if(hid){hid.value='${gc}';hid.dispatchEvent(new Event('change'));}const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC('${gc}');" style="width:100%;height:24px;border-radius:4px;background:${gc};cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:transform 0.1s;border:${isSel ? "2px solid #ffffff" : "none"};" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'"></div>`;
+        })
+        .join("")}</div>\n`;
+    } else if (t === "file_picker_field") {
+      const pVal = text || c.value || "/Users/codecaine/Documents";
+      const customHandler =
+        c.event_handlers?.onClick || c.event_handlers?.onclick || "";
+      const customChange =
+        c.event_handlers?.onChange || c.event_handlers?.onchange || "";
+      controls += `<div id="${c.id}_wrapper"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}${defRadius}padding:0 8px;gap:8px;color:${color};"><span style="font-size:13px;opacity:0.7;">📂</span><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" id="${c.id}" name="${c.id}" value="${pVal}" placeholder="${c.placeholder || "Select a file..."}" oninput="const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" style="flex:1;background:none;border:none;color:inherit;font-family:monospace;font-size:11px;outline:none;"><input type="file" id="${c.id}_native_file" style="display:none;" onchange="if(this.files&&this.files[0]){const p=this.files[0].name;const inp=document.getElementById('${c.id}');if(inp){inp.value=p;inp.dispatchEvent(new Event('input'));inp.dispatchEvent(new Event('change'));}const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(p);const fnK=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK(p);}"><button type="button" onclick="event.stopPropagation();const inp=document.getElementById('${c.id}');const cur=inp?inp.value:'${pVal}';const fnK=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK(cur);const fi=document.getElementById('${c.id}_native_file');if(fi)fi.click();" style="padding:4px 10px;background:${accent};color:#fff;border:none;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;">${c.button_title || "Browse..."}</button></div>\n`;
+    } else if (t === "path_control") {
+      const parts = (text || "Root › Users › codecaine › Projects")
+        .split("›")
+        .map((s: string) => s.trim());
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}${defRadius}padding:0 10px;gap:6px;color:${color};font-size:11px;overflow-x:auto;">${parts.map((prt: string, i: number) => `<span style="cursor:pointer;font-weight:${i === parts.length - 1 ? "700" : "normal"};color:${i === parts.length - 1 ? accent : color};">${prt}</span>${i < parts.length - 1 ? '<span style="opacity:0.4;">/</span>' : ""}`).join("")}</div>\n`;
+    } else if (t === "html_view" || t === "browser_view") {
+      controls += `<div${id}${titleAttr} class="simplegui-html-view" data-control-type="${t}" style="${base(c)}background:${cbg};${defBorder}${defRadius}padding:12px;overflow:auto;color:${color};font-size:12px;">${text || '<div style="opacity:0.8;">HTML View Canvas</div>'}</div>\n`;
+    } else if (t === "code_editor" || t === "code_studio") {
+      const fileName = c.caption || c.filename || "app.ts";
+      const lang = c.placeholder || c.language || "typescript";
+      const codeVal =
+        c.code ||
+        text ||
+        '// Bun RAD Studio v1.4\nconsole.log("Hello, World!");';
+      controls += `<div${id}${titleAttr} style="${base(c)}background:#0d1117;border:1px solid #30363d;border-radius:8px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.4);"><div style="padding:6px 12px;background:#161b22;border-bottom:1px solid #30363d;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#c9d1d9;"><div style="display:flex;align-items:center;gap:6px;"><span style="color:#58a6ff;">📄</span><span style="font-weight:600;">${fileName}</span></div><span style="font-size:10px;background:#21262d;padding:2px 8px;border-radius:4px;color:#79c0ff;font-weight:bold;">${lang}</span></div><textarea spellcheck="false" ${id ? `data-ctrl-id="${c.id}"` : ""} style="flex:1;background:#0d1117;color:#79c0ff;border:none;padding:10px;font-family:'Fira Code',monospace;font-size:12px;line-height:1.5;outline:none;resize:none;margin:0;">${codeVal}</textarea></div>\n`;
+    } else if (t === "diff_view") {
+      const oldLines = (
+        c.old_text || "- function hello() {\n-   return false;\n- }"
+      ).split("\n");
+      const newLines = (
+        c.new_text || "+ function hello() {\n+   return true;\n+ }"
+      ).split("\n");
+      controls += `<div${id}${titleAttr} style="${base(c)}background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:8px 12px;overflow:auto;font-family:monospace;font-size:11px;line-height:1.4;"><div style="color:#f85149;margin-bottom:4px;">${oldLines.map((l: string) => `<div>${l}</div>`).join("")}</div><div style="color:#3fb950;">${newLines.map((l: string) => `<div>${l}</div>`).join("")}</div></div>\n`;
+    } else if (t === "terminal_view") {
+      const prompt = c.prompt_text || "$ bun run start";
+      const logOut =
+        c.output ||
+        "[server] listening on http://localhost:3000\n[ready] client connected successfully";
+      controls += `<div${id}${titleAttr} style="${base(c)}background:#050505;border:1px solid #2a2a2a;border-radius:8px;padding:10px 12px;font-family:'Fira Code',monospace;font-size:11px;color:#f0fdf4;display:flex;flex-direction:column;gap:6px;overflow:auto;"><div style="color:#38bdf8;font-weight:700;">${prompt}</div><div style="opacity:0.85;white-space:pre-wrap;">${logOut}</div><div style="display:flex;align-items:center;gap:4px;color:#30d158;"><span>$</span><span style="animation:blink 1s infinite;">▌</span></div></div>\n`;
+    } else if (t === "json_tree") {
+      const jsonText =
+        c.json ||
+        text ||
+        '{\n  "name": "bun_rad_studio",\n  "status": "active",\n  "version": 1.4\n}';
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};${defBorder}${defRadius}padding:10px;font-family:monospace;font-size:11px;color:${color};overflow:auto;white-space:pre;"><span style="color:${accent};font-weight:bold;">{ JSON Inspector }</span>\n${jsonText}</div>\n`;
+    } else if (t === "audio_waveform") {
+      const amps = c.amplitudes || [
+        20, 45, 80, 60, 30, 90, 75, 40, 85, 95, 65, 35, 70, 50, 80, 40,
+      ];
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:3px;background:${cbg};${defBorder}${defRadius}padding:0 8px;">${amps.map((a: number) => `<div style="flex:1;height:${a}%;background:${accent};border-radius:2px;opacity:0.85;"></div>`).join("")}</div>\n`;
+    } else if (t === "image_gallery") {
+      const imgs = c.images || ["🖼️ Slide 1", "🖼️ Slide 2", "🖼️ Slide 3"];
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:8px;background:${cbg};${defBorder}${defRadius}padding:8px;overflow-x:auto;">${imgs.map((im: string) => `<div style="min-width:100px;height:100%;border:1px solid ${border};border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:${color};background:${isLight ? "#f8fafc" : "#1e293b"};">${im}</div>`).join("")}</div>\n`;
+    } else if (t === "media_player") {
+      const song = c.title || text || "Midnight Drive";
+      const artist = c.artist || "Synthwave Collective";
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-radius:12px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;color:${color};"><div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg, ${accent}, #ec4899);display:flex;align-items:center;justify-content:center;font-size:18px;">🎵</div><div style="display:flex;flex-direction:column;"><span style="font-weight:700;font-size:12px;">${song}</span><span style="font-size:10px;opacity:0.7;">${artist}</span></div></div><div style="display:flex;align-items:center;gap:8px;"><button style="background:none;border:none;color:${color};font-size:14px;cursor:pointer;">⏮</button><button style="width:28px;height:28px;border-radius:50%;background:${accent};color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;">▶</button><button style="background:none;border:none;color:${color};font-size:14px;cursor:pointer;">⏭</button></div></div>\n`;
+    } else if (t === "stat_grid") {
+      let titles = c.titles || ["Revenue", "Users", "Orders", "Growth"];
+      let vals = c.values || ["$12.4k", "850", "320", "+24%"];
+      if (Array.isArray(c.stats)) {
+        titles = c.stats.map((s: any) => s.label || s.title || "");
+        vals = c.stats.map((s: any) => s.value || "");
+      }
+      controls += `<div${id}${titleAttr} style="${base(c)}display:grid;grid-template-columns:repeat(${Math.max(1, titles.length)}, 1fr);gap:8px;">${titles.map((tl: string, idx: number) => `<div style="background:${cbg};border:1px solid ${border};border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;justify-content:space-between;"><span style="font-size:10px;opacity:0.7;font-weight:bold;text-transform:uppercase;">${tl}</span><span style="font-size:16px;font-weight:800;color:${accent};margin-top:2px;">${vals[idx] || "—"}</span></div>`).join("")}</div>\n`;
+    } else if (t === "score_card") {
+      const titleText = c.caption || text || "User Satisfaction";
+      const subtitleText = c.caption ? text || "" : c.subtitle || "";
+      const score =
+        c.score !== undefined ? c.score : c.value !== undefined ? c.value : 4.9;
+      const grade = c.placeholder || c.grade || "";
+      const revs = c.reviews !== undefined ? c.reviews : 128;
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-radius:10px;padding:12px;display:flex;align-items:center;justify-content:space-between;color:${color};"><div style="display:flex;flex-direction:column;"><span style="font-size:11px;font-weight:700;opacity:0.8;">${titleText}</span><div style="font-size:24px;font-weight:900;color:${accent};">${score} <span style="font-size:14px;color:#f59e0b;">${grade ? `(${grade}) ★★★★★` : "★★★★★"}</span></div><span style="font-size:10px;opacity:0.6;">${subtitleText ? subtitleText : `Based on ${revs} reviews`}</span></div></div>\n`;
+    } else if (t === "avatar_card") {
+      const user = text || "John Doe";
+      const role = c.subtitle || "Senior Engineer";
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;color:${color};"><div style="width:36px;height:36px;border-radius:50%;background:${accent};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px;flex-shrink:0;">${user.charAt(0)}</div><div style="display:flex;flex-direction:column;min-width:0;"><span style="font-weight:700;font-size:12px;">${user}</span><span style="font-size:11px;opacity:0.7;">${role}</span></div></div>\n`;
+    } else if (t === "user_profile_card") {
+      const user =
+        (c.userProfile && c.userProfile.name) ||
+        c.caption ||
+        text ||
+        "Jane Developer";
+      const email =
+        (c.userProfile && (c.userProfile.handle || c.userProfile.email)) ||
+        c.text ||
+        c.email ||
+        "jane@example.com";
+      const role =
+        (c.userProfile && c.userProfile.bio) || c.role || "Lead Architect";
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-radius:12px;padding:14px;display:flex;flex-direction:column;justify-content:space-between;color:${color};box-shadow:0 4px 14px rgba(0,0,0,0.25);"><div style="display:flex;align-items:center;gap:12px;"><div style="width:44px;height:44px;border-radius:50%;background:${accent};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;">${user.charAt(0)}</div><div style="display:flex;flex-direction:column;"><span style="font-weight:800;font-size:14px;">${user}</span><span style="font-size:11px;color:${accent};font-weight:600;">${role}</span><span style="font-size:10px;opacity:0.7;">${email}</span></div></div></div>\n`;
+    } else if (t === "product_card") {
+      const prod =
+        (c.productData && c.productData.title) ||
+        c.caption ||
+        text ||
+        "Pro Wireless Mouse";
+      const price =
+        (c.productData && c.productData.price) ||
+        c.value ||
+        c.price ||
+        "$79.99";
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-radius:12px;padding:12px;display:flex;flex-direction:column;justify-content:space-between;color:${color};"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-weight:800;font-size:13px;">${prod}</span><span style="background:rgba(16,185,129,0.15);color:#10b981;font-size:10px;padding:2px 6px;border-radius:4px;font-weight:bold;">In Stock</span></div><div style="font-size:18px;font-weight:900;color:${accent};margin:6px 0;">${price}</div><button style="width:100%;padding:6px;background:${accent};color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">Add to Cart 🛒</button></div>\n`;
+    } else if (t === "app_launcher_tile") {
+      const appName = text || "Code Studio";
+      const icon = c.icon || "🚀";
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:${color};cursor:pointer;transition:transform 0.15s;" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'"><span style="font-size:26px;">${icon}</span><span style="font-size:11px;font-weight:700;">${appName}</span></div>\n`;
+    } else if (t === "http_request_card") {
+      const method = c.method || "POST";
+      const url = c.url || "/api/v1/auth/login";
+      const sc = c.status_code || 200;
+      const rt = c.response_time || "42ms";
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-radius:8px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;color:${color};font-family:monospace;font-size:11px;"><div style="display:flex;align-items:center;gap:8px;"><span style="background:${method === "GET" ? "#0284c7" : "#10b981"};color:#fff;padding:2px 6px;border-radius:4px;font-weight:bold;">${method}</span><span>${url}</span></div><div style="display:flex;align-items:center;gap:8px;"><span style="color:#10b981;font-weight:bold;">${sc} OK</span><span style="opacity:0.6;">${rt}</span></div></div>\n`;
+    } else if (t === "resource_monitor") {
+      const cpu = c.cpu !== undefined ? c.cpu : 24;
+      const mem = c.mem !== undefined ? c.mem : 58;
+      const disk = c.disk !== undefined ? c.disk : 41;
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;justify-content:space-around;color:${color};"><div style="font-size:11px;font-weight:700;color:${accent};">⚡ System Resources</div>${[
+        ["CPU", cpu, "#0284c7"],
+        ["RAM", mem, "#10b981"],
+        ["Disk", disk, "#f59e0b"],
+      ]
+        .map(
+          ([rName, rVal, rCol]: any) =>
+            `<div style="display:flex;align-items:center;justify-content:space-between;font-size:10px;"><span style="width:36px;font-weight:bold;">${rName}</span><div style="flex:1;height:5px;background:${isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.1)"};border-radius:3px;margin:0 8px;overflow:hidden;"><div style="width:${rVal}%;height:100%;background:${rCol};"></div></div><span style="font-family:monospace;font-weight:bold;">${rVal}%</span></div>`,
+        )
+        .join("")}</div>\n`;
+    } else if (t === "env_vars") {
+      const vars = c.vars || {
+        NODE_ENV: "production",
+        PORT: "3000",
+        DEBUG: "false",
+      };
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:4px;overflow-y:auto;color:${color};font-family:monospace;font-size:11px;"><div style="font-weight:bold;color:${accent};">Environment Variables</div>${Object.entries(
+        vars,
+      )
+        .map(
+          ([k, v]) =>
+            `<div style="display:flex;justify-content:space-between;border-bottom:1px solid ${border};padding:2px 0;"><span style="color:#f59e0b;">${k}</span><span style="opacity:0.85;">${v}</span></div>`,
+        )
+        .join("")}</div>\n`;
+    } else if (t === "status_dock") {
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:space-between;background:rgba(15,23,42,0.85);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:0 12px;color:#f8fafc;font-size:11px;"><div style="display:flex;align-items:center;gap:6px;"><span style="color:#10b981;">●</span><span>${text || "Daemon Live"}</span></div><span style="opacity:0.6;font-family:monospace;">${c.status || "OK"}</span></div>\n`;
+    } else if (t === "nav_rail") {
+      const items = (
+        c.items ||
+        (text
+          ? text.split(",")
+          : ["🏠 Home", "📊 Stats", "⚙️ Config", "📁 Files"])
+      ).map((s: string) => s.trim());
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;gap:8px;background:${cbg};border-right:1px solid ${border};padding:12px 6px;color:${color};">${items.map((it: string, idx: number) => `<button onclick="if(window['${c.id}_onClick'])window['${c.id}_onClick']('${it}');" style="padding:8px 12px;background:${idx === 0 ? accent : "transparent"};color:${idx === 0 ? "#fff" : color};border:none;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;text-align:left;">${it}</button>`).join("")}</div>\n`;
+    } else if (t === "disclosure" || t === "collapsible_section") {
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};${defBorder}${defRadius}overflow:hidden;"><details style="padding:8px 12px;color:${color};font-size:12px;"><summary style="cursor:pointer;font-weight:700;color:${accent};user-select:none;">${text || "Advanced Settings"}</summary><div style="padding-top:8px;font-size:11px;opacity:0.85;">${c.content || c.placeholder || "Expanded collapsible details and configuration."}</div></details></div>\n`;
+    } else if (t === "accordion_group") {
+      const titles = (
+        c.titles ||
+        (text ? text.split(",") : ["Section 1", "Section 2", "Section 3"])
+      ).map((s: string) => s.trim());
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;gap:4px;">${titles.map((tl: string, i: number) => `<div style="background:${cbg};border:1px solid ${border};border-radius:6px;overflow:hidden;"><div style="padding:6px 10px;font-size:11px;font-weight:700;color:${accent};cursor:pointer;background:${isLight ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.05)"};">${tl}</div></div>`).join("")}</div>\n`;
+    } else if (t === "sidebar" || t === "rad_sidebar" || t === "w3_sidebar") {
+      const sbTitle = c.title || c.caption || text || "Navigation";
+      const rawItems = c.items ||
+        c.menu_items || [
+          "🏠 Dashboard",
+          "📁 Projects",
+          "👥 Team Members",
+          "⚙️ Preferences",
+          "❓ Help & Docs",
+        ];
+      const sbItems = Array.isArray(rawItems)
+        ? rawItems
+        : String(rawItems)
+            .split(",")
+            .map((s: string) => s.trim());
+      const sbRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:8px;";
+      const activeIdx = c.selected_index !== undefined ? c.selected_index : 0;
+      const actBg = hexToRgba(accent, isLight ? 0.15 : 0.22);
+      controls += `<div${id}${titleAttr} class="rad-sidebar rad-elevation-2" style="${base(c)}background:${c.background_color && c.background_color !== "transparent" ? c.background_color : cardBg};border:1px solid ${cardBorder};${sbRadius}display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.3);"><div style="padding:12px 14px;background:${isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)"};border-bottom:1px solid ${cardBorder};display:flex;align-items:center;justify-content:space-between;flex-shrink:0;"><span style="font-weight:700;font-size:13px;color:${accent};">${esc(sbTitle)}</span><button onclick="const sb=this.closest('.rad-sidebar');if(sb)sb.style.display='none';const fn=window['${c.id}_onClose']||window['on_${c.id}_close'];if(fn)fn();" style="background:transparent;border:none;color:${color};font-size:16px;cursor:pointer;opacity:0.7;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">&times;</button></div><div style="flex:1;overflow-y:auto;padding:6px 0;">${sbItems
+        .map((it: any, i: number) => {
+          const label =
+            typeof it === "object" && it !== null
+              ? it.label || it.text || ""
+              : String(it);
+          const isAct = i === activeIdx;
+          const itBg = isAct ? actBg : "transparent";
+          const itCol = isAct ? accent : color;
+          const itWeight = isAct ? "700" : "500";
+          return `<button class="rad-sidebar-item" onclick="const p=this.parentNode;p.querySelectorAll('button').forEach(b=>{b.style.background='transparent';b.style.color='${color}';b.style.fontWeight='500';});this.style.background='${actBg}';this.style.color='${accent}';this.style.fontWeight='700';const fn=window['${c.id}_onSelect']||window['${c.id}_onChange']||window['${c.id}_onClick']||window['on_${c.id}_select']||window['on_${c.id}_change']||window['on_${c.id}_click'];if(fn)fn('${esc(label)}');" style="width:100%;padding:9px 14px;text-align:left;background:${itBg};color:${itCol};font-weight:${itWeight};font-size:12px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:background 0.15s;" onmouseover="if(this.style.color!=='${accent}')this.style.background='${isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.05)"}'" onmouseout="if(this.style.color!=='${accent}')this.style.background='transparent'"><span>${esc(label)}</span><span style="opacity:0.4;font-size:10px;">›</span></button>`;
+        })
+        .join("")}</div></div>\n`;
+    } else if (
+      t === "modal" ||
+      t === "modal_dialog" ||
+      t === "rad_modal" ||
+      t === "w3_modal"
+    ) {
+      const mTitle = c.title || c.caption || text || "Modal Dialog";
+      const mMsg =
+        c.message ||
+        c.content ||
+        c.placeholder ||
+        "This is a modal dialog container. It provides customizable header, body content, and action buttons.";
+      const mRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:12px;";
+      const isDisplayed = c.is_open === true || c.isOpen === true;
+      const mHeadBg = hexToRgba(accent, isLight ? 0.1 : 0.16);
+      controls += `<div id="${c.id}" class="rad-modal-backdrop" style="display:${isDisplayed ? "flex" : "none"};position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:99999;align-items:center;justify-content:center;" onclick="if(event.target===this){this.style.display='none';const fn=window['${c.id}_onClose']||window['on_${c.id}_close'];if(fn)fn();}"><div class="rad-modal rad-elevation-2" style="width:${c.width || 480}px;max-width:92vw;background:${c.background_color && c.background_color !== "transparent" ? c.background_color : cardBg};border:1px solid ${cardBorder};${mRadius}overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 48px rgba(0,0,0,0.55);animation:radModalPop 0.22s cubic-bezier(0.16,1,0.3,1);"><div style="padding:14px 18px;background:${mHeadBg};border-bottom:1px solid ${cardBorder};display:flex;align-items:center;justify-content:space-between;flex-shrink:0;"><span style="font-weight:700;font-size:13px;color:${accent};">${esc(mTitle)}</span><button onclick="const m=this.closest('.rad-modal-backdrop')||this.closest('.rad-modal');if(m)m.style.display='none';const fn=window['${c.id}_onClose']||window['on_${c.id}_close'];if(fn)fn();" style="background:transparent;border:none;color:${color};font-size:20px;font-weight:bold;cursor:pointer;line-height:1;opacity:0.7;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">&times;</button></div><div style="padding:18px;flex:1;overflow-y:auto;font-size:12px;line-height:1.5;color:${color};white-space:pre-wrap;"><p style="margin:0;">${esc(mMsg)}</p></div><div style="padding:12px 18px;background:${isLight ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.03)"};border-top:1px solid ${cardBorder};display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-shrink:0;"><button onclick="const m=this.closest('.rad-modal-backdrop')||this.closest('.rad-modal');if(m)m.style.display='none';const fn=window['${c.id}_onCancel']||window['on_${c.id}_cancel']||window['${c.id}_onClose']||window['on_${c.id}_close'];if(fn)fn();" style="padding:7px 14px;background:${isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"};color:${color};border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">Cancel</button><button onclick="const m=this.closest('.rad-modal-backdrop')||this.closest('.rad-modal');if(m)m.style.display='none';const fn=window['${c.id}_onConfirm']||window['on_${c.id}_confirm']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('confirm');" style="padding:7px 16px;background:${accent};color:${activeFg};border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">Confirm</button></div></div></div>\n`;
+    } else if (
+      t === "dropdown_menu" ||
+      t === "rad_dropdown" ||
+      t === "w3_dropdown" ||
+      t === "w3_dropdown_menu"
+    ) {
+      const dLabel = c.caption || text || "Select Action";
+      const rawItems = c.items || [
+        "Action One",
+        "Action Two",
+        "Action Three",
+        "Settings",
+      ];
+      const dItems = Array.isArray(rawItems)
+        ? rawItems
+        : String(rawItems)
+            .split(",")
+            .map((s: string) => s.trim());
+      const dRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:6px;";
+      controls += `<div${id}${titleAttr} class="rad-dropdown-host" style="${base(c)}"><button class="rad-dropdown-btn btn-theme-accent" onclick="event.stopPropagation();const p=this.parentNode;const c=p.querySelector('.rad-dropdown-menu');const isShow=c.style.display==='block';document.querySelectorAll('.rad-dropdown-menu, .w3-dropdown-content').forEach(el=>el.style.display='none');document.querySelectorAll('.rad-dropdown-host').forEach(el=>el.style.zIndex='10');c.style.display=isShow?'none':'block';p.style.zIndex=isShow?'10':'10000';" style="width:100%;height:100%;background:${c.background_color && c.background_color !== "transparent" ? c.background_color : accent};color:${activeFg};border:1px solid ${cardBorder};${dRadius}padding:0 12px;display:flex;align-items:center;justify-content:space-between;font-size:${c.font_size || 12}px;font-weight:600;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.2);"><span>${esc(dLabel)}</span><span style="font-size:10px;margin-left:8px;">▼</span></button><div class="rad-dropdown-menu" style="background:${cardBg};border:1px solid ${cardBorder};top:calc(100% + 4px);left:0;min-width:100%;border-radius:6px;overflow:hidden;box-shadow:0 12px 28px rgba(0,0,0,0.4);z-index:10000;">${dItems
+        .map((it: any) => {
+          const label =
+            typeof it === "object" && it !== null
+              ? it.label || it.text || ""
+              : String(it);
+          const val =
+            typeof it === "object" && it !== null
+              ? it.value !== undefined
+                ? it.value
+                : it.label
+              : String(it);
+          return `<button class="rad-dropdown-item" onclick="event.stopPropagation();const dc=this.closest('.rad-dropdown-menu');if(dc)dc.style.display='none';const host=this.closest('.rad-dropdown-host');if(host)host.style.zIndex='10';const btn=host ? host.querySelector('button span') : null;if(btn)btn.textContent='${esc(label)}';const fn=window['${c.id}_onSelect']||window['${c.id}_onChange']||window['${c.id}_onClick']||window['on_${c.id}_select']||window['on_${c.id}_change']||window['on_${c.id}_click'];if(fn)fn('${esc(val)}');" style="width:100%;padding:8px 12px;text-align:left;background:transparent;color:${color};font-size:11px;border:none;cursor:pointer;display:block;" onmouseover="this.style.background='${isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.08)"}'" onmouseout="this.style.background='transparent'">${esc(label)}</button>`;
+        })
+        .join("")}</div></div>\n`;
+    } else if (
+      t === "list_group" ||
+      t === "rad_list_group" ||
+      t === "w3_list" ||
+      t === "w3_ul"
+    ) {
+      const rawItems = c.items || [
+        {
+          title: "Project Specification",
+          subtext: "Updated 10m ago",
+          badge: "Active",
+          icon: "📄",
+        },
+        {
+          title: "Customer Database",
+          subtext: "12.4k records synced",
+          badge: "Online",
+          icon: "🗄️",
+        },
+        {
+          title: "Security Audit Log",
+          subtext: "Zero critical issues",
+          badge: "Passed",
+          icon: "🛡️",
+        },
+      ];
+      const listItems = Array.isArray(rawItems)
+        ? rawItems
+        : String(rawItems)
+            .split(",")
+            .map((s: string) => ({ title: s.trim() }));
+      const lRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:8px;";
+      const badgeBg = hexToRgba(accent, isLight ? 0.12 : 0.2);
+      controls += `<div${id}${titleAttr} class="rad-card rad-list-group" style="${base(c)}background:${c.background_color && c.background_color !== "transparent" ? c.background_color : cardBg};border:1px solid ${cardBorder};${lRadius}overflow-y:auto;"><ul class="rad-list-group-ul" style="list-style:none;padding:0;margin:0;">${listItems
+        .map((it: any) => {
+          const title =
+            typeof it === "object" && it !== null
+              ? it.title || it.text || it.name || ""
+              : String(it);
+          const sub =
+            typeof it === "object" && it !== null
+              ? it.subtext || it.subtitle || ""
+              : "";
+          const badge =
+            typeof it === "object" && it !== null
+              ? it.badge || it.tag || ""
+              : "";
+          const icon =
+            typeof it === "object" && it !== null ? it.icon || "📌" : "📌";
+          return `<li style="padding:10px 14px;border-bottom:1px solid ${cardBorder};display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:background 0.15s;" onclick="const fn=window['${c.id}_onSelect']||window['${c.id}_onChange']||window['${c.id}_onClick']||window['on_${c.id}_select']||window['on_${c.id}_change']||window['on_${c.id}_click'];if(fn)fn('${esc(title)}');" onmouseover="this.style.background='${isLight ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.04)"}'" onmouseout="this.style.background='transparent'"><div style="display:flex;align-items:center;gap:10px;"><span style="font-size:16px;">${icon}</span><div style="display:flex;flex-direction:column;"><span style="font-size:12px;font-weight:600;color:${color};">${esc(title)}</span>${sub ? `<span style="font-size:10px;opacity:0.65;color:${color};">${esc(sub)}</span>` : ""}</div></div>${badge ? `<span class="rad-pill-tag" style="background:${badgeBg};color:${accent};font-size:10px;font-weight:700;border-radius:4px;padding:2px 8px;">${esc(badge)}</span>` : ""}</li>`;
+        })
+        .join("")}</ul></div>\n`;
+    } else if (
+      t === "content_card" ||
+      t === "card" ||
+      t === "rad_card" ||
+      t === "w3_card"
+    ) {
+      const cardTitle = c.title || c.caption || text || "Card Title";
+      const cardDesc =
+        c.description ||
+        c.message ||
+        c.placeholder ||
+        "Cards provide a clean container with elevation shadow, header banner, and action buttons.";
+      const cardFooter = c.footer || c.subtext || "";
+      const btnText = c.button_text || c.action_label || "Explore";
+      const cRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:10px;";
+      const cardHeadBg = hexToRgba(accent, isLight ? 0.1 : 0.15);
+      controls += `<div${id}${titleAttr} class="rad-card rad-elevation-2 rad-content-card" style="${base(c)}background:${c.background_color && c.background_color !== "transparent" ? c.background_color : cardBg};border:1px solid ${cardBorder};${cRadius}overflow:hidden;display:flex;flex-direction:column;box-shadow:0 8px 24px rgba(0,0,0,0.3);"><header style="padding:10px 14px;background:${cardHeadBg};border-bottom:1px solid ${cardBorder};"><h4 style="margin:0;font-size:13px;font-weight:700;color:${accent};">${esc(cardTitle)}</h4></header><div style="padding:12px 14px;flex:1;font-size:11px;line-height:1.5;color:${color};overflow-y:auto;"><p style="margin:0;">${esc(cardDesc)}</p></div><footer style="padding:8px 14px;background:${isLight ? "rgba(0,0,0,0.02)" : "rgba(255,255,255,0.02)"};border-top:1px solid ${cardBorder};display:flex;align-items:center;justify-content:space-between;gap:8px;">${cardFooter ? `<span style="font-size:10px;opacity:0.7;color:${color};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(cardFooter)}</span>` : '<span style="flex:1;"></span>'}${c.button_visible === false ? "" : `<button onclick="const fn=window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${esc(btnText)}');" style="padding:5px 12px;background:${accent};color:${activeFg};border:none;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;">${esc(btnText)}</button>`}</footer></div>\n`;
+    } else if (
+      t === "callout_panel" ||
+      t === "note_panel" ||
+      t === "rad_callout" ||
+      t === "w3_panel"
+    ) {
+      const pTitle = c.title || c.caption || "Important Note";
+      const pMsg =
+        c.message ||
+        text ||
+        "Panels highlight important messages, alerts, or notes with a thick accent border bar.";
+      const pType = c.alert_type || c.variant || "info";
+      const barCol =
+        pType === "error" || pType === "danger"
+          ? sem.danger.solid
+          : pType === "warning"
+            ? sem.warning.solid
+            : pType === "success"
+              ? sem.success.solid
+              : accent;
+      const icon =
+        pType === "error" || pType === "danger"
+          ? "⛔ "
+          : pType === "warning"
+            ? "⚠️ "
+            : pType === "success"
+              ? "✓ "
+              : "ℹ️ ";
+      const showIcon =
+        !pTitle.includes("ℹ️") &&
+        !pTitle.includes("⚠️") &&
+        !pTitle.includes("✓") &&
+        !pTitle.includes("⛔") &&
+        !pTitle.includes("⚡") &&
+        !pTitle.includes("🚨");
+      const pRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:0 8px 8px 0;";
+      const panelBg =
+        c.background_color && c.background_color !== "transparent"
+          ? c.background_color
+          : hexToRgba(barCol, isLight ? 0.08 : 0.14);
+      controls += `<div${id}${titleAttr} class="rad-callout-panel rad-callout-leftbar" onclick="const fn=window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn();" style="${base(c)}background:${panelBg};border-left:6px solid ${barCol};border-top:1px solid ${cardBorder};border-right:1px solid ${cardBorder};border-bottom:1px solid ${cardBorder};${pRadius}padding:10px 14px;display:flex;flex-direction:column;justify-content:center;gap:3px;box-sizing:border-box;"><div style="font-size:12px;font-weight:700;color:${barCol};display:flex;align-items:center;gap:4px;"><span>${showIcon ? icon : ""}</span><span>${esc(pTitle)}</span></div><div style="font-size:11px;color:${color};line-height:1.4;">${esc(pMsg)}</div></div>\n`;
+    } else if (
+      t === "tooltip_box" ||
+      t === "rad_tooltip" ||
+      t === "w3_tooltip" ||
+      t === "w3_tooltip_box"
+    ) {
+      const tipText = c.tooltip || c.content || "Tooltip info popup!";
+      const triggerText = text || "Hover Me ℹ️";
+      const tRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:6px;";
+      controls += `<div${id} class="rad-tooltip-container rad-tooltip" style="${base(c)}display:inline-flex;align-items:center;justify-content:center;"><button style="width:100%;height:100%;background:${c.background_color && c.background_color !== "transparent" ? c.background_color : isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"};color:${color};border:1px solid ${border};${tRadius}font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer;">${esc(triggerText)}</button><span class="rad-tooltip-bubble" style="bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#0f172a;color:#ffffff;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:500;white-space:nowrap;box-shadow:0 6px 16px rgba(0,0,0,0.4);border:1px solid ${hexToRgba(accent, 0.4)};pointer-events:none;">${esc(tipText)}</span></div>\n`;
+    } else if (
+      t === "animated_input" ||
+      t === "rad_anim_input" ||
+      t === "w3_animated_input"
+    ) {
+      const aiVal = c.value !== undefined ? c.value : text;
+      const aiPlaceholder = c.placeholder || "Click to expand...";
+      const aiRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:6px;";
+      const inBg =
+        c.background_color && c.background_color !== "transparent"
+          ? c.background_color
+          : isLight
+            ? "#ffffff"
+            : cardBg === "#050505"
+              ? "#121212"
+              : cardBg;
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;"><input class="rad-anim-input" type="text" value="${esc(aiVal)}" placeholder="${esc(aiPlaceholder)}"${disabled}${roAttr}${reqAttr}${maxLenAttr}${ev} oninput="const fn=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fn)fn(this.value);" style="width:65%;min-width:120px;max-width:100%;height:100%;background:${inBg};color:${color};border:1px solid ${border};${aiRadius}padding:0 12px;font-size:12px;outline:none;box-sizing:border-box;"></div>\n`;
+    } else if (
+      t === "hero_display" ||
+      t === "display_container" ||
+      t === "rad_display" ||
+      t === "w3_display"
+    ) {
+      const dTitle = c.title || c.caption || text || "Hero Display";
+      const dSubtitle =
+        c.subtitle ||
+        c.description ||
+        "Modern visual container with high contrast typography and responsive layout.";
+      const dRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:10px;";
+      const heroBg =
+        c.background_color && c.background_color !== "transparent"
+          ? c.background_color
+          : isLight
+            ? `linear-gradient(135deg, ${hexToRgba(accent, 0.12)}, #ffffff)`
+            : `linear-gradient(135deg, ${hexToRgba(accent, 0.22)}, ${cardBg})`;
+      controls += `<div${id}${titleAttr} class="rad-display-hero rad-card" style="${base(c)}background:${heroBg};border:1px solid ${cardBorder};${dRadius}overflow:hidden;padding:24px 28px;display:flex;flex-direction:column;justify-content:center;position:relative;box-sizing:border-box;"><div style="position:absolute;top:10px;left:14px;background:rgba(0,0,0,0.6);color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">★ Featured</div><div style="position:absolute;top:10px;right:14px;background:${accent};color:${activeFg};padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">PRO</div><div style="margin-top:10px;"><h2 style="font-size:22px;font-weight:800;color:${color};margin:0 0 6px 0;letter-spacing:-0.02em;">${esc(dTitle)}</h2><p style="font-size:12px;opacity:0.8;color:${color};margin:0;max-width:85%;line-height:1.5;">${esc(dSubtitle)}</p></div></div>\n`;
+    } else if (
+      t === "code_snippet" ||
+      t === "code_block" ||
+      t === "rad_code" ||
+      t === "w3_code" ||
+      t === "w3_code_block"
+    ) {
+      const codeContent =
+        c.code ||
+        text ||
+        "const studio = new SimpleGUI({\n  responsive: true\n});";
+      const cdRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:6px;";
+      const codeBg = isLight
+        ? "#f8fafc"
+        : bg === "#050505"
+          ? "#0d1117"
+          : bg === "#0a0600" || bg === "#040a05"
+            ? cardBg
+            : "#0f172a";
+      controls += `<div${id}${titleAttr} class="rad-code-box rad-card" style="${base(c)}background:${codeBg};border:1px solid ${cardBorder};border-left:4px solid ${accent};${cdRadius}padding:10px 14px;position:relative;overflow:auto;box-sizing:border-box;"><div style="position:absolute;top:6px;right:8px;display:flex;gap:4px;"><button onclick="const pre=this.closest('.rad-code-box').querySelector('pre');if(pre){const t=pre.textContent||'';if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(()=>{this.textContent='✓ Copied';setTimeout(()=>this.textContent='📋 Copy',1500);}).catch(()=>{const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');this.textContent='✓ Copied';setTimeout(()=>this.textContent='📋 Copy',1500);}catch(e){}document.body.removeChild(ta);});}else{const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');this.textContent='✓ Copied';setTimeout(()=>this.textContent='📋 Copy',1500);}catch(e){}document.body.removeChild(ta);}}}" style="background:${isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.1)"};color:${color};border:none;border-radius:4px;padding:2px 6px;font-size:9px;font-weight:700;cursor:pointer;">📋 Copy</button></div><pre style="margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11px;color:${isLight ? "#0f172a" : bg === "#0a0600" ? "#ffb000" : bg === "#040a05" ? "#00ff66" : "#a7f3d0"};white-space:pre-wrap;line-height:1.4;">${esc(codeContent)}</pre></div>\n`;
+    } else if (
+      t === "count_badge" ||
+      t === "circular_badge" ||
+      t === "rad_badge" ||
+      t === "w3_badge"
+    ) {
+      const count = c.count !== undefined ? c.count : text || "1";
+      const label = c.label || c.title || c.caption || "";
+      const isDanger =
+        c.alert_type === "danger" ||
+        c.color === "danger" ||
+        c.alert_type === "error" ||
+        c.color === "error";
+      const isSuccess = c.alert_type === "success" || c.color === "success";
+      const isWarning = c.alert_type === "warning" || c.color === "warning";
+      const isInfo = c.alert_type === "info" || c.color === "info";
+      const badgeBg =
+        c.background_color && c.background_color !== "transparent"
+          ? c.background_color
+          : isDanger
+            ? sem.danger.solid
+            : isSuccess
+              ? sem.success.solid
+              : isWarning
+                ? sem.warning.solid
+                : isInfo
+                  ? sem.info.solid
+                  : accent;
+      const badgeFg = isColorBright(badgeBg) ? "#000000" : "#ffffff";
+      if (label || c.width > 48) {
+        const bRadius =
+          c.border_radius !== undefined ? `${c.border_radius}px` : "16px";
+        controls += `<div${id}${titleAttr} class="rad-count-badge-pill" style="${base(c)}background:${hexToRgba(badgeBg, 0.16)};border:1px solid ${hexToRgba(badgeBg, 0.45)};border-radius:${bRadius};padding:0 10px;display:inline-flex;align-items:center;justify-content:space-between;box-sizing:border-box;box-shadow:0 2px 6px rgba(0,0,0,0.15);"><span style="font-size:11px;font-weight:600;color:${color};">${esc(label)}</span><span style="background:${badgeBg};color:${badgeFg};border-radius:10px;padding:2px 7px;font-size:10px;font-weight:800;line-height:1;">${esc(String(count))}</span></div>\n`;
+      } else {
+        const badgeSize = Math.min(c.width, c.height, 36);
+        controls += `<div${id}${titleAttr} class="rad-count-badge" style="${base(c)}width:${badgeSize}px;height:${badgeSize}px;background:${badgeBg};color:${badgeFg};border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:${Math.max(10, Math.floor(badgeSize * 0.42))}px;box-shadow:0 2px 6px rgba(0,0,0,0.3);flex-shrink:0;">${esc(String(count))}</div>\n`;
+      }
+    } else if (
+      t === "button_group" ||
+      t === "button_bar" ||
+      t === "rad_button_group" ||
+      t === "w3_button_group" ||
+      t === "w3_button_bar"
+    ) {
+      const rawBtns =
+        c.buttons ||
+        (text ? text.split(",") : ["◀ Previous", "⏸ Pause", "▶ Next"]);
+      const btns = Array.isArray(rawBtns)
+        ? rawBtns
+        : String(rawBtns)
+            .split(",")
+            .map((s: string) => s.trim());
+      const bRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:6px;";
+      controls += `<div${id}${titleAttr} class="rad-btn-bar rad-btn-group" style="${base(c)}display:flex;align-items:stretch;border:1px solid ${border};${bRadius}overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,0.2);">${btns
+        .map((btnItem: any, bIdx: number) => {
+          const isFirst = bIdx === 0;
+          const isLast = bIdx === btns.length - 1;
+          const borderRight = isLast ? "none" : `1px solid ${border}`;
+          const btnLabel =
+            typeof btnItem === "object" && btnItem !== null
+              ? btnItem.label || btnItem.text || ""
+              : String(btnItem).trim();
+          const btnVal =
+            typeof btnItem === "object" && btnItem !== null
+              ? btnItem.value !== undefined
+                ? btnItem.value
+                : btnItem.label
+              : String(btnItem).trim();
+          return `<button class="rad-btn-group-item" onclick="const p=this.parentNode;p.querySelectorAll('button').forEach(b=>{b.style.background='${isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)"}';b.style.color='${color}';});this.style.background='${accent}';this.style.color='${activeFg}';const fn=window['${c.id}_onChange']||window['${c.id}_onClick']||window['on_${c.id}_change']||window['on_${c.id}_click'];if(fn)fn('${esc(btnVal)}');" style="flex:1;background:${isFirst ? accent : isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)"};color:${isFirst ? activeFg : color};border:none;border-right:${borderRight};font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0 10px;transition:background 0.15s;" onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''">${esc(btnLabel)}</button>`;
+        })
+        .join("")}</div>\n`;
+    } else if (
+      t === "slideshow" ||
+      t === "carousel" ||
+      t === "rad_slideshow" ||
+      t === "w3_slideshow"
+    ) {
+      const rawSlides = c.slides || [
+        {
+          caption: "Slide 1: Executive Analytics",
+          desc: "Real-time telemetry and revenue KPI monitoring.",
+        },
+        {
+          caption: "Slide 2: Cloud Infrastructure",
+          desc: "High availability multi-region deployment nodes.",
+        },
+        {
+          caption: "Slide 3: Automated Workflow",
+          desc: "Event-driven message queues and background workers.",
+        },
+      ];
+      const slides = Array.isArray(rawSlides)
+        ? rawSlides
+        : [{ caption: "Slide 1" }, { caption: "Slide 2" }];
+      const sRadius =
+        c.border_radius !== undefined &&
+        c.border_radius !== null &&
+        c.border_radius !== ""
+          ? `border-radius:${c.border_radius}px;`
+          : "border-radius:8px;";
+      const dotInactive = isCardLight
+        ? "rgba(0,0,0,0.22)"
+        : "rgba(255,255,255,0.3)";
+      controls += `<div${id}${titleAttr} class="rad-slideshow rad-elevation-2" data-slide-index="0" style="${base(c)}background:${c.background_color && c.background_color !== "transparent" ? c.background_color : cardBg};border:1px solid ${cardBorder};${sRadius}overflow:hidden;display:flex;flex-direction:column;box-shadow:0 8px 24px rgba(0,0,0,0.3);"><div class="slides-viewport" style="flex:1;position:relative;display:flex;align-items:center;justify-content:center;padding:12px;overflow:hidden;">${slides
+        .map((sl: any, sIdx: number) => {
+          const sTitle =
+            typeof sl === "object" && sl !== null
+              ? sl.caption || sl.title || `Slide ${sIdx + 1}`
+              : String(sl);
+          const sDesc =
+            typeof sl === "object" && sl !== null
+              ? sl.desc || sl.description || ""
+              : "";
+          const sImg =
+            typeof sl === "object" && sl !== null ? sl.image || "" : "";
+          return `<div class="slide-item" data-slide="${sIdx}" style="display:${sIdx === 0 ? "flex" : "none"};flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px;width:100%;height:100%;">${sImg ? `<img src="${esc(sImg)}" style="max-height:80px;max-width:90%;object-fit:contain;border-radius:4px;" />` : ""}<div style="font-size:13px;font-weight:800;color:${accent};">${esc(sTitle)}</div>${sDesc ? `<div style="font-size:11px;opacity:0.8;color:${color};max-width:80%;line-height:1.4;">${esc(sDesc)}</div>` : ""}</div>`;
+        })
+        .join(
+          "",
+        )}<button class="rad-slideshow-prev" onclick="const p=this.closest('.rad-slideshow');const slides=p.querySelectorAll('.slide-item');let idx=parseInt(p.dataset.slideIndex||'0');slides[idx].style.display='none';idx=(idx-1+slides.length)%slides.length;slides[idx].style.display='flex';p.dataset.slideIndex=idx;const cnt=p.querySelector('.slide-count');if(cnt)cnt.textContent=(idx+1)+' / '+slides.length;p.querySelectorAll('.slide-dot').forEach((d,i)=>{d.style.background=i===idx?'${accent}':'${dotInactive}';});const fn=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fn)fn(idx);" style="position:absolute;left:6px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.5);color:#fff;border:none;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;z-index:2;">❮</button><button class="rad-slideshow-next" onclick="const p=this.closest('.rad-slideshow');const slides=p.querySelectorAll('.slide-item');let idx=parseInt(p.dataset.slideIndex||'0');slides[idx].style.display='none';idx=(idx+1)%slides.length;slides[idx].style.display='flex';p.dataset.slideIndex=idx;const cnt=p.querySelector('.slide-count');if(cnt)cnt.textContent=(idx+1)+' / '+slides.length;p.querySelectorAll('.slide-dot').forEach((d,i)=>{d.style.background=i===idx?'${accent}':'${dotInactive}';});const fn=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fn)fn(idx);" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.5);color:#fff;border:none;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;z-index:2;">❯</button></div><div style="padding:4px 10px;background:${isLight ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.04)"};border-top:1px solid ${cardBorder};display:flex;align-items:center;justify-content:space-between;font-size:10px;"><span class="slide-count" style="font-family:monospace;font-weight:bold;color:${accent};">1 / ${slides.length}</span><div style="display:flex;gap:5px;">${slides.map((_, dotIdx) => `<span class="slide-dot" onclick="const p=this.closest('.rad-slideshow');const slides=p.querySelectorAll('.slide-item');let oldIdx=parseInt(p.dataset.slideIndex||'0');slides[oldIdx].style.display='none';slides[${dotIdx}].style.display='flex';p.dataset.slideIndex='${dotIdx}';const cnt=p.querySelector('.slide-count');if(cnt)cnt.textContent='${dotIdx + 1} / '+slides.length;p.querySelectorAll('.slide-dot').forEach((d,i)=>{d.style.background=i===${dotIdx}?'${accent}':'${dotInactive}';});const fn=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fn)fn(${dotIdx});" style="width:8px;height:8px;border-radius:50%;background:${dotIdx === 0 ? accent : dotInactive};cursor:pointer;transition:background 0.2s;"></span>`).join("")}</div></div></div>\n`;
+    } else {
+      // Fallback for any other type
+      controls += `<div${id}${titleAttr}${ev} style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}display:flex;align-items:center;justify-content:center;">${text}</div>\n`;
     }
+  }
 
-    // Process non_visual_controls array if present
-    for (const nv of (spec.non_visual_controls || [])) {
-        const nvt = nv.control_type;
-        const nvid = ` id="${nv.id}"`;
-        const nvev = buildEvents(nv);
-        if (nvt === 'open_dialog') {
-            controls += `<input type="file"${nvid}${nvev} style="display:none;" onchange="if(this.files&&this.files[0]){const p=this.files[0].name;if(window['${nv.id}_onSelect'])window['${nv.id}_onSelect'](p);else if(window.backendAlert)window.backendAlert('File Selected: '+p);}">\n`;
-        } else if (nvt === 'save_dialog') {
-            controls += `<input type="file"${nvid}${nvev} style="display:none;">\n`;
-        } else if (nvt === 'timer') {
-            const interval = nv.interval || 1000;
-            const handler = nv.event_handlers?.onTimer || nv.event_handlers?.ontimer || `on_${nv.id}_timer`;
-            const autoStart = nv.enabled !== false;
-            controls += `<script>
+  // Process non_visual_controls array if present
+  for (const nv of spec.non_visual_controls || []) {
+    const nvt = nv.control_type;
+    const nvid = ` id="${nv.id}"`;
+    const nvev = buildEvents(nv);
+    if (nvt === "open_dialog") {
+      controls += `<input type="file"${nvid}${nvev} style="display:none;" onchange="if(this.files&&this.files[0]){const p=this.files[0].name;if(window['${nv.id}_onSelect'])window['${nv.id}_onSelect'](p);else if(window.backendAlert)window.backendAlert('File Selected: '+p);}">\n`;
+    } else if (nvt === "save_dialog") {
+      controls += `<input type="file"${nvid}${nvev} style="display:none;">\n`;
+    } else if (nvt === "timer") {
+      const interval = nv.interval || 1000;
+      const handler =
+        nv.event_handlers?.onTimer ||
+        nv.event_handlers?.ontimer ||
+        `on_${nv.id}_timer`;
+      const autoStart = nv.enabled !== false;
+      controls += `<script>
                 (function() {
                     window['__timer_interval_${nv.id}'] = ${interval};
                     window['__timer_func_${nv.id}'] = function() {
@@ -3556,14 +5662,17 @@ export function generatePreviewHtml(spec: any): string {
                     }
                 })();
             </script>\n`;
-        }
     }
+  }
 
-    return `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html${fxAttrs}>
 <head>
 <meta charset="utf-8">
-<title>${String(spec.title || 'Preview').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</title>
+<title>${String(spec.title || "Preview")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")}</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <script>if (/Linux/.test(navigator.userAgent) && !/Android/.test(navigator.userAgent)) document.documentElement.classList.add('rad-linux');</script>
 <style>
@@ -3573,13 +5682,13 @@ export function generatePreviewHtml(spec: any): string {
     --btn-bg: ${defaultBtnBg};
     --btn-fg: ${defaultBtnFg};
     --theme-fg: ${fg};
-    --theme-muted: ${isLight ? '#334155' : '#94a3b8'};
+    --theme-muted: ${isLight ? "#334155" : "#94a3b8"};
     --card-bg: ${cardBg};
     --card-border: ${cardBorder};
-    --input-bg: ${isLight ? '#ffffff' : (bg === '#050505' ? '#121212' : (bg === '#0a0600' ? '#160d00' : (bg === '#040a05' ? '#08140a' : 'rgba(255, 255, 255, 0.05)')) )};
+    --input-bg: ${isLight ? "#ffffff" : bg === "#050505" ? "#121212" : bg === "#0a0600" ? "#160d00" : bg === "#040a05" ? "#08140a" : "rgba(255, 255, 255, 0.05)"};
     --input-border: ${cardBorder};
-    --editable-bg: ${isLight ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.04)'};
-    --editable-border: ${isLight ? 'rgba(0, 0, 0, 0.22)' : 'rgba(255, 255, 255, 0.22)'};
+    --editable-bg: ${isLight ? "rgba(0, 0, 0, 0.03)" : "rgba(255, 255, 255, 0.04)"};
+    --editable-border: ${isLight ? "rgba(0, 0, 0, 0.22)" : "rgba(255, 255, 255, 0.22)"};
     ${semanticCssVars(sem)}
   }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3623,8 +5732,8 @@ export function generatePreviewHtml(spec: any): string {
 
   /* Inline Editable Label Container & Display */
   .rad-editable-label-container {
-    background: var(--editable-bg, ${isLight ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.04)'}) !important;
-    border: 1px dashed var(--editable-border, ${isLight ? 'rgba(0, 0, 0, 0.22)' : 'rgba(255, 255, 255, 0.22)'}) !important;
+    background: var(--editable-bg, ${isLight ? "rgba(0, 0, 0, 0.03)" : "rgba(255, 255, 255, 0.04)"}) !important;
+    border: 1px dashed var(--editable-border, ${isLight ? "rgba(0, 0, 0, 0.22)" : "rgba(255, 255, 255, 0.22)"}) !important;
     border-radius: 6px !important;
     color: var(--theme-fg, ${fg}) !important;
     transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s !important;
@@ -3633,7 +5742,7 @@ export function generatePreviewHtml(spec: any): string {
   .rad-editable-label-container:hover {
     border-color: var(--accent, ${accent}) !important;
     border-style: solid !important;
-    background: var(--input-bg, ${isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.08)'}) !important;
+    background: var(--input-bg, ${isLight ? "#ffffff" : "rgba(255, 255, 255, 0.08)"}) !important;
     box-shadow: 0 0 0 1px var(--accent, ${accent}) !important;
   }
   .rad-editable-label-container .label-display,
@@ -3648,15 +5757,15 @@ export function generatePreviewHtml(spec: any): string {
     font-size: 10px !important;
     font-weight: 700 !important;
     color: var(--accent, ${accent}) !important;
-    background: var(--editable-bg, ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}) !important;
-    border: 1px solid var(--editable-border, ${isLight ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.18)'}) !important;
+    background: var(--editable-bg, ${isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"}) !important;
+    border: 1px solid var(--editable-border, ${isLight ? "rgba(0,0,0,0.18)" : "rgba(255,255,255,0.18)"}) !important;
     border-radius: 4px !important;
     padding: 1px 6px !important;
     letter-spacing: 0.3px !important;
     flex-shrink: 0 !important;
   }
   .rad-editable-input {
-    background: var(--input-bg, ${isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.08)'}) !important;
+    background: var(--input-bg, ${isLight ? "#ffffff" : "rgba(255, 255, 255, 0.08)"}) !important;
     color: var(--theme-fg, ${fg}) !important;
     border: 1px solid var(--accent, ${accent}) !important;
     border-radius: 5px !important;
@@ -3675,27 +5784,27 @@ export function generatePreviewHtml(spec: any): string {
   .rad-card-subtitle,
   [data-caption="true"],
   .rad-muted-text {
-      color: var(--theme-muted, ${isLight ? '#334155' : '#94a3b8'}) !important;
+      color: var(--theme-muted, ${isLight ? "#334155" : "#94a3b8"}) !important;
   }
 
   table th {
-      color: ${isLight ? '#0f172a' : accent} !important;
+      color: ${isLight ? "#0f172a" : accent} !important;
   }
   table tr {
       border-color: ${border} !important;
   }
   table tr:hover:not(.selected-tr) {
-      background: ${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'} !important;
+      background: ${isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.05)"} !important;
   }
   table tr.selected-tr {
-      background: ${isLight ? 'rgba(2,132,199,0.18)' : 'rgba(56,189,248,0.22)'} !important;
+      background: ${isLight ? "rgba(2,132,199,0.18)" : "rgba(56,189,248,0.22)"} !important;
   }
   legend {
-      color: ${isLight ? '#0f172a' : accent} !important;
+      color: ${isLight ? "#0f172a" : accent} !important;
       font-weight: 700 !important;
   }
   .selected-tree-node {
-      color: ${isLight ? '#0f172a' : accent} !important;
+      color: ${isLight ? "#0f172a" : accent} !important;
       font-weight: 700 !important;
   }
 
@@ -3722,7 +5831,7 @@ export function generatePreviewHtml(spec: any): string {
     border-radius: 6px; margin: 2px 0; transition: all 0.15s ease;
   }
   .rad-sidebar-item:hover {
-    background: ${isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)'};
+    background: ${isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)"};
   }
   .rad-dropdown-host { position: relative; display: inline-block; }
   .rad-dropdown-menu {
@@ -3739,7 +5848,7 @@ export function generatePreviewHtml(spec: any): string {
     border-radius: 5px; font-size: 11px; cursor: pointer; background: transparent; transition: background 0.12s;
   }
   .rad-dropdown-item:hover {
-    background: ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'};
+    background: ${isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"};
   }
   .rad-modal {
     animation: radModalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
@@ -3807,8 +5916,8 @@ export function generatePreviewHtml(spec: any): string {
   /* Linux (WebKitGTK) paints list boxes, scrollbars and some controls itself, from the desktop's GTK theme. Without a
      colour scheme it draws a selected list row with black text on a dark band in dark themes. Saying which scheme the
      page uses makes those parts match it. The class is set by the script above, so other systems are unchanged. */
-  html.rad-linux { color-scheme: ${isLight ? 'light' : 'dark'}; }
-  html.rad-linux input[type=range] { background: ${isLight ? 'rgba(15, 23, 42, 0.22)' : 'rgba(255, 255, 255, 0.22)'}; }
+  html.rad-linux { color-scheme: ${isLight ? "light" : "dark"}; }
+  html.rad-linux input[type=range] { background: ${isLight ? "rgba(15, 23, 42, 0.22)" : "rgba(255, 255, 255, 0.22)"}; }
   input::placeholder, textarea::placeholder { color: var(--theme-muted); opacity: 0.85; }
   :focus-visible { outline: 2px solid ${accent}; outline-offset: 2px; }
   ::selection { background: rgba(56,189,248,0.3); }
@@ -3818,7 +5927,7 @@ export function generatePreviewHtml(spec: any): string {
   select:not([size]):not([multiple]), .simplegui-select:not([size]):not([multiple]) {
     appearance: none !important;
     -webkit-appearance: none !important;
-    color-scheme: ${isLight ? 'light' : 'dark'} !important;
+    color-scheme: ${isLight ? "light" : "dark"} !important;
     background-repeat: no-repeat !important;
     background-position: right 10px center !important;
     background-size: 12px 12px !important;
@@ -3827,7 +5936,7 @@ export function generatePreviewHtml(spec: any): string {
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
   }
   select[multiple] option:checked, select[size] option:checked {
-    background: ${isLight ? '#0284c7' : accent} linear-gradient(0deg, ${isLight ? '#0284c7' : accent} 0%, ${isLight ? '#0284c7' : accent} 100%) !important;
+    background: ${isLight ? "#0284c7" : accent} linear-gradient(0deg, ${isLight ? "#0284c7" : accent} 0%, ${isLight ? "#0284c7" : accent} 100%) !important;
     color: #ffffff !important;
   }
   select:not([size]):hover, .simplegui-select:hover {
@@ -3839,7 +5948,7 @@ export function generatePreviewHtml(spec: any): string {
     outline-offset: 1px !important;
   }
   select option {
-    background-color: ${isLight ? '#ffffff' : (bg === '#050505' ? '#121212' : '#1e293b')} !important;
+    background-color: ${isLight ? "#ffffff" : bg === "#050505" ? "#121212" : "#1e293b"} !important;
     color: ${fg} !important;
     padding: 8px 12px !important;
   }
@@ -4824,7 +6933,9 @@ ${controls}
   window.addEventListener("beforeunload", () => {
     if (window.onFormClose) window.onFormClose();
   });
-  ${spec.fullscreen !== false ? `
+  ${
+    spec.fullscreen !== false
+      ? `
   (function() {
     var attempts = 0;
     function attempt() {
@@ -4856,7 +6967,9 @@ ${controls}
     window.addEventListener("DOMContentLoaded", function() { setTimeout(attempt, 120); });
     window.addEventListener("load", function() { setTimeout(attempt, 200); });
   })();
-  ` : ''}
+  `
+      : ""
+  }
 </script>
 </body>
 </html>`;

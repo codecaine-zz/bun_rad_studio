@@ -35,9 +35,14 @@ const { seedWorld, env } = createThemesTutorialEnv({
 });
 
 const DEMO_RATE = "+10%";
-const DEMO_GAP = 0.30;
+const DEMO_GAP = 0.3;
 
-async function showDemoHud(d: Do, badge: string, title: string, subtitle: string) {
+async function showDemoHud(
+  d: Do,
+  badge: string,
+  title: string,
+  subtitle: string,
+) {
   await d.eval(`(() => {
     let banner = document.getElementById('fm-unobstructed-theme-hud');
     if (!banner) {
@@ -56,10 +61,12 @@ const chapters: Chapter[] = [
   {
     id: "00_intro",
     chapter: "WHAT'S NEW IN V1.5.1",
-    title: "Codecaine File Manager v1.5.1 — Master Features, Security & Performance Demo",
+    title:
+      "Codecaine File Manager v1.5.1 — Master Features, Security & Performance Demo",
     kind: "card",
     card: {
-      kicker: "Codecaine File Manager v1.5.1 · Live Feature, Security & Performance Demo",
+      kicker:
+        "Codecaine File Manager v1.5.1 · Live Feature, Security & Performance Demo",
       title: "Faster Rendering, Hardened Local Security & Power Ergonomics",
       lines: [
         "📐 On-Demand Folder Sizes · ⚡ Power Filter Predicates · 🏷️ Single-Pass Kind Chips",
@@ -78,8 +85,10 @@ const chapters: Chapter[] = [
   {
     id: "01_sizes_and_power_filters",
     chapter: "FOLDER SIZES & POWER FILTERS",
-    title: "On-Demand Recursive Folder Sizes, Power Filter Predicates & Single-Pass Kind Chips",
-    blurb: "Compute folder sizes in batched async chunks, filter by extension or negation predicates, and switch kind chips in a single pass",
+    title:
+      "On-Demand Recursive Folder Sizes, Power Filter Predicates & Single-Pass Kind Chips",
+    blurb:
+      "Compute folder sizes in batched async chunks, filter by extension or negation predicates, and switch kind chips in a single pass",
     path: "<HOME>/Projects/shop-app",
     steps: [
       {
@@ -143,8 +152,10 @@ const chapters: Chapter[] = [
   {
     id: "02_selection_and_atomic_ops",
     chapter: "SELECTION & ATOMIC FILE OPS",
-    title: "Select by Pattern, New Folder with Selection + Atomic Undo & Paste Text as File",
-    blurb: "Select items by glob or regex, bundle selected files into a new folder with full Undo, and paste clipboard text directly as a file",
+    title:
+      "Select by Pattern, New Folder with Selection + Atomic Undo & Paste Text as File",
+    blurb:
+      "Select items by glob or regex, bundle selected files into a new folder with full Undo, and paste clipboard text directly as a file",
     path: "<HOME>/Projects/shop-app/custom_themes",
     steps: [
       {
@@ -218,7 +229,8 @@ const chapters: Chapter[] = [
     id: "03_tabs_dual_and_security",
     chapter: "TABS, DUAL VIEW & SECURITY",
     title: "Reopen Closed Tab, Swap Dual Panes & Full-Stack Security Hardening",
-    blurb: "Restore closed folder tabs, swap left and right dual panes in one click, and inspect hardened local security and parallel tools",
+    blurb:
+      "Restore closed folder tabs, swap left and right dual panes in one click, and inspect hardened local security and parallel tools",
     path: "<HOME>/Projects/shop-app",
     steps: [
       {
@@ -305,7 +317,8 @@ const chapters: Chapter[] = [
     title: "Download Codecaine File Manager v1.5.1 for macOS, Windows & Linux",
     kind: "card",
     card: {
-      kicker: "Free & Open Source (MIT) · 25 Native Release Packages Available Now",
+      kicker:
+        "Free & Open Source (MIT) · 25 Native Release Packages Available Now",
       title: "Download Codecaine File Manager v1.5.1 on GitHub",
       lines: [
         "🍎 macOS (Apple Silicon arm64 & Intel x64) · 🪟 Windows (x64, ARM64 & Baseline) · 🐧 Linux (x64 & ARM64)",
@@ -322,9 +335,14 @@ const chapters: Chapter[] = [
   },
 ];
 
-function notesText(marks: Array<{ at: number; title: string }>, total: number): string {
+function notesText(
+  marks: Array<{ at: number; title: string }>,
+  total: number,
+): string {
   const REPO = "https://github.com/codecaine-zz/bun_rad_studio";
-  const chaptersText = marks.map((m, i) => `${fmtTime(i === 0 ? 0 : m.at)} ${m.title}`).join("\n");
+  const chaptersText = marks
+    .map((m, i) => `${fmtTime(i === 0 ? 0 : m.at)} ${m.title}`)
+    .join("\n");
   return `# Codecaine File Manager v1.5.1 — Security, Performance & Master Enhancements Demo (${fmtTime(total)})
 
 ## Video Output

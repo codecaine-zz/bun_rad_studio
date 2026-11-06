@@ -13,7 +13,8 @@ export const lineEnd = (text, pos) => {
 /** Start offsets of every line (line 0 starts at 0). */
 export function buildLineStarts(text) {
   const starts = [0];
-  for (let i = text.indexOf("\n"); i >= 0; i = text.indexOf("\n", i + 1)) starts.push(i + 1);
+  for (let i = text.indexOf("\n"); i >= 0; i = text.indexOf("\n", i + 1))
+    starts.push(i + 1);
   return starts;
 }
 
@@ -34,7 +35,12 @@ export function lineCol(text, pos) {
   const p = Math.max(0, Math.min(pos, text.length));
   const start = lineStart(text, p);
   let line = 1;
-  for (let i = text.indexOf("\n"); i >= 0 && i < p; i = text.indexOf("\n", i + 1)) line++;
+  for (
+    let i = text.indexOf("\n");
+    i >= 0 && i < p;
+    i = text.indexOf("\n", i + 1)
+  )
+    line++;
   return { line, col: p - start + 1 };
 }
 
@@ -90,13 +96,18 @@ export function toggleLineComment(text, s, e, lang) {
     const real = lines.filter((l) => !isBlank(l));
     const commented = (l) => {
       const t = l.trim();
-      return t.startsWith(open) && (!close || t.endsWith(close) && t.length >= open.length + close.length);
+      return (
+        t.startsWith(open) &&
+        (!close ||
+          (t.endsWith(close) && t.length >= open.length + close.length))
+      );
     };
     if (real.length && real.every(commented)) {
       return lines.map((l) => {
         if (isBlank(l)) return l;
         let out = l.replace(new RegExp(`^(\\s*)${escapeRe(open)} ?`), "$1");
-        if (close) out = out.replace(new RegExp(` ?${escapeRe(close)}\\s*$`), "");
+        if (close)
+          out = out.replace(new RegExp(` ?${escapeRe(close)}\\s*$`), "");
         return out;
       });
     }
@@ -117,20 +128,54 @@ export function toggleLineComment(text, s, e, lang) {
 
 export function toggleBlockComment(text, s, e, lang) {
   const { line, block } = commentSyntax(lang);
-  if (!block) return line ? toggleLineComment(text, s, e, lang) : { message: "This kind of file has no comments." };
+  if (!block)
+    return line
+      ? toggleLineComment(text, s, e, lang)
+      : { message: "This kind of file has no comments." };
   const [open, close] = block;
   if (s === e) return toggleLineComment(text, s, e, lang);
   const sel = text.slice(s, e);
-  if (sel.startsWith(open) && sel.endsWith(close) && sel.length >= open.length + close.length) {
-    const inner = sel.slice(open.length, sel.length - close.length).replace(/^ /, "").replace(/ $/, "");
-    return { from: s, to: e, insert: inner, selStart: s, selEnd: s + inner.length };
+  if (
+    sel.startsWith(open) &&
+    sel.endsWith(close) &&
+    sel.length >= open.length + close.length
+  ) {
+    const inner = sel
+      .slice(open.length, sel.length - close.length)
+      .replace(/^ /, "")
+      .replace(/ $/, "");
+    return {
+      from: s,
+      to: e,
+      insert: inner,
+      selStart: s,
+      selEnd: s + inner.length,
+    };
   }
-  if (text.slice(Math.max(0, s - open.length - 1), s).trimEnd().endsWith(open) && text.slice(e, e + close.length + 1).trimStart().startsWith(close)) {
+  if (
+    text
+      .slice(Math.max(0, s - open.length - 1), s)
+      .trimEnd()
+      .endsWith(open) &&
+    text
+      .slice(e, e + close.length + 1)
+      .trimStart()
+      .startsWith(close)
+  ) {
     const before = text.slice(0, s);
     const o = before.lastIndexOf(open);
     const afterClose = text.indexOf(close, e);
-    const inner = text.slice(o + open.length, afterClose).replace(/^ /, "").replace(/ $/, "");
-    return { from: o, to: afterClose + close.length, insert: inner, selStart: o, selEnd: o + inner.length };
+    const inner = text
+      .slice(o + open.length, afterClose)
+      .replace(/^ /, "")
+      .replace(/ $/, "");
+    return {
+      from: o,
+      to: afterClose + close.length,
+      insert: inner,
+      selStart: o,
+      selEnd: o + inner.length,
+    };
   }
   const insert = `${open} ${sel} ${close}`;
   return { from: s, to: e, insert, selStart: s, selEnd: s + insert.length };
@@ -142,14 +187,29 @@ export function toggleBlockComment(text, s, e, lang) {
 
 /** Tab with no selection types spaces up to the next tab stop (or a tab character). */
 export function tabAtCaret(text, pos, unit) {
-  if (unit === "\t") return { from: pos, to: pos, insert: "\t", selStart: pos + 1, selEnd: pos + 1 };
+  if (unit === "\t")
+    return {
+      from: pos,
+      to: pos,
+      insert: "\t",
+      selStart: pos + 1,
+      selEnd: pos + 1,
+    };
   const col = pos - lineStart(text, pos);
   const add = " ".repeat(unit.length - (col % unit.length));
-  return { from: pos, to: pos, insert: add, selStart: pos + add.length, selEnd: pos + add.length };
+  return {
+    from: pos,
+    to: pos,
+    insert: add,
+    selStart: pos + add.length,
+    selEnd: pos + add.length,
+  };
 }
 
 export function indentLines(text, s, e, unit) {
-  return mapLines(text, s, e, (lines) => lines.map((l) => (l === "" ? l : unit + l)));
+  return mapLines(text, s, e, (lines) =>
+    lines.map((l) => (l === "" ? l : unit + l)),
+  );
 }
 
 export function outdentLines(text, s, e, unit) {
@@ -173,10 +233,14 @@ export function convertIndent(text, to, size) {
     let cols = 0;
     for (const ch of lead) cols += ch === "\t" ? width - (cols % width) : 1;
     const body = l.slice(lead.length);
-    return to === "tabs" ? "\t".repeat(Math.floor(cols / width)) + " ".repeat(cols % width) + body : " ".repeat(cols) + body;
+    return to === "tabs"
+      ? "\t".repeat(Math.floor(cols / width)) + " ".repeat(cols % width) + body
+      : " ".repeat(cols) + body;
   });
   const insert = lines.join("\n");
-  return insert === text ? null : { from: 0, to: text.length, insert, selStart: 0, selEnd: 0 };
+  return insert === text
+    ? null
+    : { from: 0, to: text.length, insert, selStart: 0, selEnd: 0 };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -193,7 +257,8 @@ export function deleteLines(text, s, e) {
   }
   const col = s - lineStart(text, s);
   const rest = text.slice(0, from) + text.slice(to);
-  const start = from === first ? Math.min(first, rest.length) : lineStart(rest, from);
+  const start =
+    from === first ? Math.min(first, rest.length) : lineStart(rest, from);
   const caret = start + Math.min(col, lineEnd(rest, start) - start);
   return { from, to, insert: "", selStart: caret, selEnd: caret };
 }
@@ -201,9 +266,22 @@ export function deleteLines(text, s, e) {
 export function duplicateLines(text, s, e, direction = "down") {
   const { first, last } = touchedLines(text, s, e);
   const block = text.slice(first, last);
-  if (direction === "up") return { from: first, to: first, insert: `${block}\n`, selStart: s, selEnd: e };
+  if (direction === "up")
+    return {
+      from: first,
+      to: first,
+      insert: `${block}\n`,
+      selStart: s,
+      selEnd: e,
+    };
   const shift = block.length + 1;
-  return { from: last, to: last, insert: `\n${block}`, selStart: s + shift, selEnd: e + shift };
+  return {
+    from: last,
+    to: last,
+    insert: `\n${block}`,
+    selStart: s + shift,
+    selEnd: e + shift,
+  };
 }
 
 export function moveLines(text, s, e, direction) {
@@ -214,13 +292,25 @@ export function moveLines(text, s, e, direction) {
     const prevStart = lineStart(text, first - 1);
     const prev = text.slice(prevStart, first - 1);
     const shift = prev.length + 1;
-    return { from: prevStart, to: last, insert: `${block}\n${prev}`, selStart: s - shift, selEnd: e - shift };
+    return {
+      from: prevStart,
+      to: last,
+      insert: `${block}\n${prev}`,
+      selStart: s - shift,
+      selEnd: e - shift,
+    };
   }
   if (last >= text.length) return null;
   const nextEnd = lineEnd(text, last + 1);
   const next = text.slice(last + 1, nextEnd);
   const shift = next.length + 1;
-  return { from: first, to: nextEnd, insert: `${next}\n${block}`, selStart: s + shift, selEnd: e + shift };
+  return {
+    from: first,
+    to: nextEnd,
+    insert: `${next}\n${block}`,
+    selStart: s + shift,
+    selEnd: e + shift,
+  };
 }
 
 export function joinLines(text, s, e) {
@@ -267,26 +357,51 @@ function region(text, s, e) {
 function rewrite(text, s, e, fn, message) {
   const { first, last } = region(text, s, e);
   const oldText = text.slice(first, last);
-  const trailing = oldText.endsWith("\n") && first === 0 && last === text.length;
+  const trailing =
+    oldText.endsWith("\n") && first === 0 && last === text.length;
   const lines = (trailing ? oldText.slice(0, -1) : oldText).split("\n");
   const result = fn(lines);
   const insert = result.lines.join("\n") + (trailing ? "\n" : "");
-  if (insert === oldText) return { message: result.none ?? "Nothing needed changing." };
-  return { from: first, to: last, insert, selStart: first, selEnd: first + insert.length, message: message?.(result) };
+  if (insert === oldText)
+    return { message: result.none ?? "Nothing needed changing." };
+  return {
+    from: first,
+    to: last,
+    insert,
+    selStart: first,
+    selEnd: first + insert.length,
+    message: message?.(result),
+  };
 }
 
-export function sortLines(text, s, e, { descending = false, ignoreCase = false, numeric = false } = {}) {
-  const collator = new Intl.Collator(undefined, { numeric, sensitivity: ignoreCase ? "accent" : "variant" });
-  const compare = ignoreCase || numeric ? (a, b) => collator.compare(a, b) : (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+export function sortLines(
+  text,
+  s,
+  e,
+  { descending = false, ignoreCase = false, numeric = false } = {},
+) {
+  const collator = new Intl.Collator(undefined, {
+    numeric,
+    sensitivity: ignoreCase ? "accent" : "variant",
+  });
+  const compare =
+    ignoreCase || numeric
+      ? (a, b) => collator.compare(a, b)
+      : (a, b) => (a < b ? -1 : a > b ? 1 : 0);
   return rewrite(text, s, e, (lines) => ({
-    lines: lines.map((l, i) => ({ l, i })).sort((a, b) => (descending ? -1 : 1) * compare(a.l, b.l) || a.i - b.i).map((x) => x.l),
+    lines: lines
+      .map((l, i) => ({ l, i }))
+      .sort((a, b) => (descending ? -1 : 1) * compare(a.l, b.l) || a.i - b.i)
+      .map((x) => x.l),
     none: "The lines are already in that order.",
   }));
 }
 
 export function removeDuplicateLines(text, s, e, { ignoreCase = false } = {}) {
   return rewrite(
-    text, s, e,
+    text,
+    s,
+    e,
     (lines) => {
       const seen = new Set();
       const kept = [];
@@ -296,38 +411,80 @@ export function removeDuplicateLines(text, s, e, { ignoreCase = false } = {}) {
         seen.add(k);
         kept.push(l);
       }
-      return { lines: kept, removed: lines.length - kept.length, none: "There are no duplicate lines." };
+      return {
+        lines: kept,
+        removed: lines.length - kept.length,
+        none: "There are no duplicate lines.",
+      };
     },
-    (r) => `Removed ${r.removed} duplicate ${r.removed === 1 ? "line" : "lines"}.`,
+    (r) =>
+      `Removed ${r.removed} duplicate ${r.removed === 1 ? "line" : "lines"}.`,
   );
 }
 
 export function reverseLines(text, s, e) {
-  return rewrite(text, s, e, (lines) => ({ lines: [...lines].reverse(), none: "Nothing to reverse." }));
+  return rewrite(text, s, e, (lines) => ({
+    lines: [...lines].reverse(),
+    none: "Nothing to reverse.",
+  }));
 }
 
 export function trimTrailingWhitespace(text, s, e) {
-  return rewrite(text, s, e, (lines) => ({ lines: lines.map((l) => l.replace(/[ \t]+$/, "")), none: "There was no extra space at the ends of lines." }), () => "Removed the extra space at the ends of lines.");
+  return rewrite(
+    text,
+    s,
+    e,
+    (lines) => ({
+      lines: lines.map((l) => l.replace(/[ \t]+$/, "")),
+      none: "There was no extra space at the ends of lines.",
+    }),
+    () => "Removed the extra space at the ends of lines.",
+  );
 }
 
 export function ensureFinalNewline(text) {
-  if (text === "" || text.endsWith("\n")) return { message: "The file already ends with a new line." };
-  return { from: text.length, to: text.length, insert: "\n", selStart: text.length + 1, selEnd: text.length + 1 };
+  if (text === "" || text.endsWith("\n"))
+    return { message: "The file already ends with a new line." };
+  return {
+    from: text.length,
+    to: text.length,
+    insert: "\n",
+    selStart: text.length + 1,
+    selEnd: text.length + 1,
+  };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
 // Text transforms on the selection (or the word at the caret)
 // ---------------------------------------------------------------------------------------------------------------
 
-const words = (t) => t.replace(/([a-z0-9])([A-Z])/g, "$1 $2").split(/[^A-Za-z0-9\u00c0-\uffff]+/).filter(Boolean);
+const words = (t) =>
+  t
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .split(/[^A-Za-z0-9\u00c0-\uffff]+/)
+    .filter(Boolean);
 
 export const CASES = {
   upper: (t) => t.toUpperCase(),
   lower: (t) => t.toLowerCase(),
-  title: (t) => t.toLowerCase().replace(/(^|[^\p{L}\p{N}'])(\p{L})/gu, (_, a, b) => a + b.toUpperCase()),
-  camel: (t) => words(t).map((w, i) => (i ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w.toLowerCase())).join(""),
-  snake: (t) => words(t).map((w) => w.toLowerCase()).join("_"),
-  kebab: (t) => words(t).map((w) => w.toLowerCase()).join("-"),
+  title: (t) =>
+    t
+      .toLowerCase()
+      .replace(/(^|[^\p{L}\p{N}'])(\p{L})/gu, (_, a, b) => a + b.toUpperCase()),
+  camel: (t) =>
+    words(t)
+      .map((w, i) =>
+        i ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w.toLowerCase(),
+      )
+      .join(""),
+  snake: (t) =>
+    words(t)
+      .map((w) => w.toLowerCase())
+      .join("_"),
+  kebab: (t) =>
+    words(t)
+      .map((w) => w.toLowerCase())
+      .join("-"),
 };
 
 function transformSelection(text, s, e, fn) {
@@ -335,7 +492,10 @@ function transformSelection(text, s, e, fn) {
   let to = e;
   if (s === e) {
     const w = wordAt(text, s);
-    if (!w) return { message: "Select some text first (or put the cursor in a word)." };
+    if (!w)
+      return {
+        message: "Select some text first (or put the cursor in a word).",
+      };
     from = w.selStart;
     to = w.selEnd;
   }
@@ -347,10 +507,17 @@ function transformSelection(text, s, e, fn) {
     return { message: "That text can't be converted." };
   }
   if (after === before) return null;
-  return { from, to, insert: after, selStart: from, selEnd: from + after.length };
+  return {
+    from,
+    to,
+    insert: after,
+    selStart: from,
+    selEnd: from + after.length,
+  };
 }
 
-export const changeCase = (text, s, e, kind) => transformSelection(text, s, e, CASES[kind] ?? ((t) => t));
+export const changeCase = (text, s, e, kind) =>
+  transformSelection(text, s, e, CASES[kind] ?? ((t) => t));
 /** Accents off (or stored another way) for the selection, or for the whole file when nothing is selected. */
 export function changeDiacritics(text, s, e, mode, spellOut = true) {
   const whole = s === e;
@@ -358,12 +525,32 @@ export function changeDiacritics(text, s, e, mode, spellOut = true) {
   const to = whole ? text.length : e;
   const before = text.slice(from, to);
   const after = changeDiacriticsText(before, mode, spellOut);
-  if (after === before) return { message: mode === "remove" ? "There are no accents to change here." : "The accents are already stored that way." };
-  return { from, to, insert: after, selStart: whole ? Math.min(s, after.length) : from, selEnd: whole ? Math.min(e, after.length) : from + after.length };
+  if (after === before)
+    return {
+      message:
+        mode === "remove"
+          ? "There are no accents to change here."
+          : "The accents are already stored that way.",
+    };
+  return {
+    from,
+    to,
+    insert: after,
+    selStart: whole ? Math.min(s, after.length) : from,
+    selEnd: whole ? Math.min(e, after.length) : from + after.length,
+  };
 }
 
-export const urlEncode = (text, s, e) => transformSelection(text, s, e, (t) => encodeURIComponent(t));
+export const urlEncode = (text, s, e) =>
+  transformSelection(text, s, e, (t) => encodeURIComponent(t));
 export function urlDecode(text, s, e) {
-  const r = transformSelection(text, s, e, (t) => decodeURIComponent(t.replace(/\+/g, " ")));
-  return r?.message ? { message: "That text isn't valid web-address encoding (a % isn't followed by two digits)." } : r;
+  const r = transformSelection(text, s, e, (t) =>
+    decodeURIComponent(t.replace(/\+/g, " ")),
+  );
+  return r?.message
+    ? {
+        message:
+          "That text isn't valid web-address encoding (a % isn't followed by two digits).",
+      }
+    : r;
 }

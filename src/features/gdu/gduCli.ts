@@ -39,8 +39,12 @@ export function parseGduArguments(args: string[]): GduOptions {
 
   const targetDir = positionals[0] ?? ".";
   const top = values.top ? parseInt(values.top, 10) : undefined;
-  const maxDepth = values["max-depth"] ? parseInt(values["max-depth"], 10) : undefined;
-  const ignoreDirs = values["ignore-dirs"] ? values["ignore-dirs"].split(",") : [];
+  const maxDepth = values["max-depth"]
+    ? parseInt(values["max-depth"], 10)
+    : undefined;
+  const ignoreDirs = values["ignore-dirs"]
+    ? values["ignore-dirs"].split(",")
+    : [];
   const sortBy = values.sort as GduOptions["sortBy"];
 
   return {
@@ -92,7 +96,12 @@ Flags:
 
 async function main(): Promise<void> {
   const options = parseGduArguments(process.argv.slice(2));
-  if (!options.nonInteractive && process.stdin.isTTY && !options.json && !options.showDisks) {
+  if (
+    !options.nonInteractive &&
+    process.stdin.isTTY &&
+    !options.json &&
+    !options.showDisks
+  ) {
     const root = await analyzeDirectory(options);
     await runGduTui(root);
     return;

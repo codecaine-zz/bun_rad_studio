@@ -7,7 +7,16 @@ import * as fs from "node:fs";
 import { promises as fsp } from "node:fs";
 import * as nodePath from "node:path";
 import { randomBytes } from "node:crypto";
-import { MAX_ENTRIES, MAX_MANIFEST_BYTES, MAX_NAME_BYTES, checkEntryPath, collisionKey, componentProblem, unsafe, type Manifest } from "./fmVaultContainer";
+import {
+  MAX_ENTRIES,
+  MAX_MANIFEST_BYTES,
+  MAX_NAME_BYTES,
+  checkEntryPath,
+  collisionKey,
+  componentProblem,
+  unsafe,
+  type Manifest,
+} from "./fmVaultContainer";
 import { VaultError, throwIfAborted } from "./fmVaultFormat";
 import { platformName, type Platform } from "./fmPaths";
 
@@ -92,14 +101,32 @@ function parseManifest(json: Buffer, platform: Platform): Manifest {
   } catch {
     throw unsafe("the table of contents is unreadable");
   }
-  const intIn = (v: unknown, max: number) => typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= max;
-  if (!m || typeof m !== "object" || m.v !== 1) throw unsafe("the table of contents has an unknown version");
-  if (m.kind !== "file" && m.kind !== "folder") throw unsafe("the table of contents has an unknown kind");
-  if (typeof m.name !== "string" || componentProblem(m.name, platform) || Buffer.byteLength(m.name, "utf8") > MAX_NAME_BYTES) throw unsafe("the original name isn't safe");
-  if (typeof m.created !== "string" || m.created.length > 64) throw unsafe("the table of contents is invalid");
-  if (!intIn(m.count, MAX_ENTRIES) || !intIn(m.bytes, Number.MAX_SAFE_INTEGER)) throw unsafe("the table of contents has impossible sizes");
-  if (m.kind === "file" && m.count !== 1) throw unsafe("the table of contents is inconsistent");
-  return { v: 1, kind: m.kind, name: m.name, created: m.created, count: m.count, bytes: m.bytes };
+  const intIn = (v: unknown, max: number) =>
+    typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= max;
+  if (!m || typeof m !== "object" || m.v !== 1)
+    throw unsafe("the table of contents has an unknown version");
+  if (m.kind !== "file" && m.kind !== "folder")
+    throw unsafe("the table of contents has an unknown kind");
+  if (
+    typeof m.name !== "string" ||
+    componentProblem(m.name, platform) ||
+    Buffer.byteLength(m.name, "utf8") > MAX_NAME_BYTES
+  )
+    throw unsafe("the original name isn't safe");
+  if (typeof m.created !== "string" || m.created.length > 64)
+    throw unsafe("the table of contents is invalid");
+  if (!intIn(m.count, MAX_ENTRIES) || !intIn(m.bytes, Number.MAX_SAFE_INTEGER))
+    throw unsafe("the table of contents has impossible sizes");
+  if (m.kind === "file" && m.count !== 1)
+    throw unsafe("the table of contents is inconsistent");
+  return {
+    v: 1,
+    kind: m.kind,
+    name: m.name,
+    created: m.created,
+    count: m.count,
+    bytes: m.bytes,
+  };
 }
 
 async function freeSpace(dir: string): Promise<number | null> {
@@ -112,7 +139,10 @@ async function freeSpace(dir: string): Promise<number | null> {
 }
 
 /** Parses and extracts an authenticated RADENC container byte stream (`source`) into a fresh temporary directory under `opts.tempParent`. */
-export async function extractContainer(source: AsyncIterable<Buffer>, opts: ExtractOptions): Promise<Extracted> {
+export async function extractContainer(
+  source: AsyncIterable<Buffer>,
+  opts: ExtractOptions,
+): Promise<Extracted> {
   const pull = new Pull(source);
   try {
     return await extractFrom(pull, opts);
@@ -121,21 +151,32 @@ export async function extractContainer(source: AsyncIterable<Buffer>, opts: Extr
   }
 }
 
-async function extractFrom(pull: Pull, opts: ExtractOptions): Promise<Extracted> {
+async function extractFrom(
+  pull: Pull,
+  opts: ExtractOptions,
+): Promise<Extracted> {
   const platform = opts.platform ?? platformName();
   const p = platform === "win32" ? nodePath.win32 : nodePath.posix;
 
-  if ((await pull.exact(1))[0] !== 0x4d) throw unsafe("the table of contents is missing");
+  if ((await pull.exact(1))[0] !== 0x4d)
+    throw unsafe("the table of contents is missing");
   const len = (await pull.exact(4)).readUInt32BE(0);
-  if (len > MAX_MANIFEST_BYTES) throw unsafe("the table of contents is too large");
+  if (len > MAX_MANIFEST_BYTES)
+    throw unsafe("the table of contents is too large");
   const manifest = parseManifest(await pull.exact(len), platform);
 
   const free = await freeSpace(opts.tempParent);
   if (free !== null && manifest.bytes > free) {
-    throw new VaultError("NO_SPACE", `There isn't enough free space here to unlock this (it needs about ${Math.ceil(manifest.bytes / 1048576)} MB). Choose another folder or free some space.`);
+    throw new VaultError(
+      "NO_SPACE",
+      `There isn't enough free space here to unlock this (it needs about ${Math.ceil(manifest.bytes / 1048576)} MB). Choose another folder or free some space.`,
+    );
   }
 
-  const tempDir = p.join(opts.tempParent, `.radenc-${randomBytes(6).toString("hex")}.tmp`);
+  const tempDir = p.join(
+    opts.tempParent,
+    `.radenc-${randomBytes(6).toString("hex")}.tmp`,
+  );
   await fsp.mkdir(tempDir, { mode: 0o700 });
   opts.state.tempDir = tempDir;
   const root = p.join(tempDir, manifest.name);
@@ -144,13 +185,19 @@ async function extractFrom(pull: Pull, opts: ExtractOptions): Promise<Extracted>
   const kinds = new Map<string, "file" | "dir">();
   const explicit = new Set<string>();
   const made = new Set<string>();
-  const dirMeta: Array<{ abs: string; mode: number; mtime: number; depth: number }> = [];
+  const dirMeta: Array<{
+    abs: string;
+    mode: number;
+    mtime: number;
+    depth: number;
+  }> = [];
   let entries = 0;
   let bytes = 0;
 
   const safeJoin = (parts: string[]) => {
     const abs = p.join(root, ...parts);
-    if (!abs.startsWith(root + p.sep)) throw unsafe("a path that leaves the destination");
+    if (!abs.startsWith(root + p.sep))
+      throw unsafe("a path that leaves the destination");
     return abs;
   };
 
@@ -201,7 +248,13 @@ async function extractFrom(pull: Pull, opts: ExtractOptions): Promise<Extracted>
     const isDir = tag === 0x44;
 
     if (manifest.kind === "file") {
-      if (isDir || parts.length !== 1 || path !== manifest.name || entries !== 1) throw unsafe("the contents don't match the table of contents");
+      if (
+        isDir ||
+        parts.length !== 1 ||
+        path !== manifest.name ||
+        entries !== 1
+      )
+        throw unsafe("the contents don't match the table of contents");
     }
     register(parts, isDir);
 
@@ -217,17 +270,27 @@ async function extractFrom(pull: Pull, opts: ExtractOptions): Promise<Extracted>
     }
 
     const sizeBytes = await pull.exact(8);
-    const size = sizeBytes.readUInt32BE(0) * 2 ** 32 + sizeBytes.readUInt32BE(4);
-    if (!Number.isSafeInteger(size) || size > manifest.bytes - bytes) throw unsafe("a file larger than announced");
-    const abs = manifest.kind === "file" ? root : (await ensureParents(parts), safeJoin(parts));
-    const fh = await fsp.open(abs, fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL, 0o600);
+    const size =
+      sizeBytes.readUInt32BE(0) * 2 ** 32 + sizeBytes.readUInt32BE(4);
+    if (!Number.isSafeInteger(size) || size > manifest.bytes - bytes)
+      throw unsafe("a file larger than announced");
+    const abs =
+      manifest.kind === "file"
+        ? root
+        : (await ensureParents(parts), safeJoin(parts));
+    const fh = await fsp.open(
+      abs,
+      fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL,
+      0o600,
+    );
     try {
       let left = size;
       while (left > 0) {
         throwIfAborted(opts.signal);
         const piece = await pull.some(Math.min(left, WRITE_SIZE));
         let off = 0;
-        while (off < piece.length) off += (await fh.write(piece, off, piece.length - off)).bytesWritten;
+        while (off < piece.length)
+          off += (await fh.write(piece, off, piece.length - off)).bytesWritten;
         left -= piece.length;
         opts.onBytes?.(piece.length);
       }
@@ -235,17 +298,30 @@ async function extractFrom(pull: Pull, opts: ExtractOptions): Promise<Extracted>
       await fh.close();
     }
     bytes += size;
-    if (platform !== "win32") await fsp.chmod(abs, (mode & 0o777) | 0o600).catch(() => {});
-    if (Number.isFinite(mtime) && mtime > 0 && mtime < 8.64e15) await fsp.utimes(abs, new Date(mtime), new Date(mtime)).catch(() => {});
+    if (platform !== "win32")
+      await fsp.chmod(abs, (mode & 0o777) | 0o600).catch(() => {});
+    if (Number.isFinite(mtime) && mtime > 0 && mtime < 8.64e15)
+      await fsp.utimes(abs, new Date(mtime), new Date(mtime)).catch(() => {});
   }
 
   if (await pull.hasMore()) throw unsafe("extra data after the end");
-  if (entries !== manifest.count || bytes !== manifest.bytes) throw unsafe("the contents don't match the table of contents");
+  if (entries !== manifest.count || bytes !== manifest.bytes)
+    throw unsafe("the contents don't match the table of contents");
 
   dirMeta.sort((a, b) => b.depth - a.depth);
   for (const d of dirMeta) {
-    if (platform !== "win32") await fsp.chmod(d.abs, (d.mode & 0o777) | 0o700).catch(() => {});
-    if (Number.isFinite(d.mtime) && d.mtime > 0 && d.mtime < 8.64e15) await fsp.utimes(d.abs, new Date(d.mtime), new Date(d.mtime)).catch(() => {});
+    if (platform !== "win32")
+      await fsp.chmod(d.abs, (d.mode & 0o777) | 0o700).catch(() => {});
+    if (Number.isFinite(d.mtime) && d.mtime > 0 && d.mtime < 8.64e15)
+      await fsp
+        .utimes(d.abs, new Date(d.mtime), new Date(d.mtime))
+        .catch(() => {});
   }
-  return { kind: manifest.kind, name: manifest.name, path: root, entries, bytes };
+  return {
+    kind: manifest.kind,
+    name: manifest.name,
+    path: root,
+    entries,
+    bytes,
+  };
 }

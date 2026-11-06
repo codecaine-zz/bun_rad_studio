@@ -1,7 +1,16 @@
 import { describe, it, expect } from "bun:test";
-import { evaluateBunJsonQuery, createJqStudio } from "../applications/jq_studio";
-import { createBrewStudio, createBunSystemStudio } from "../applications/brew_studio";
-import { createWatchexecStudio, createBunWatchStudio } from "../applications/watchexec_studio";
+import {
+  evaluateBunJsonQuery,
+  createJqStudio,
+} from "../applications/jq_studio";
+import {
+  createBrewStudio,
+  createBunSystemStudio,
+} from "../applications/brew_studio";
+import {
+  createWatchexecStudio,
+  createBunWatchStudio,
+} from "../applications/watchexec_studio";
 import { createOmnitoolStudio } from "../applications/omnitool_studio";
 
 describe("⚡ Bun Native System & Zero-Homebrew Suite", () => {
@@ -37,31 +46,46 @@ describe("⚡ Bun Native System & Zero-Homebrew Suite", () => {
   it("3. Evaluates property path traversal natively", () => {
     expect(evaluateBunJsonQuery(sampleData, ".author.name")).toBe("Alex");
     expect(evaluateBunJsonQuery(sampleData, ".metrics.stars")).toBe(4800);
-    expect(evaluateBunJsonQuery(sampleData, ".modules[0].name")).toBe("simplegui");
+    expect(evaluateBunJsonQuery(sampleData, ".modules[0].name")).toBe(
+      "simplegui",
+    );
     expect(evaluateBunJsonQuery(sampleData, ".tags[1]")).toBe("typescript");
   });
 
   it("4. Evaluates pipeline operators (map, select, join, add) natively", () => {
     const names = evaluateBunJsonQuery(sampleData, ".modules | map(.name)");
-    expect(names).toEqual(["simplegui", "simplecli", "applications", "designer"]);
+    expect(names).toEqual([
+      "simplegui",
+      "simplecli",
+      "applications",
+      "designer",
+    ]);
 
     const joined = evaluateBunJsonQuery(sampleData, '.tags | join(", ")');
     expect(joined).toBe("bun, typescript, native-mac");
 
-    const stable = evaluateBunJsonQuery(sampleData, '.modules[] | select(.status == "stable")');
+    const stable = evaluateBunJsonQuery(
+      sampleData,
+      '.modules[] | select(.status == "stable")',
+    );
     expect(stable.length).toBe(3);
   });
 
   it("5. Evaluates JavaScript expressions ($) natively", () => {
     const uppercaseNames = evaluateBunJsonQuery(
       sampleData,
-      "$.modules.map(m => m.name.toUpperCase())"
+      "$.modules.map(m => m.name.toUpperCase())",
     );
-    expect(uppercaseNames).toEqual(["SIMPLEGUI", "SIMPLECLI", "APPLICATIONS", "DESIGNER"]);
+    expect(uppercaseNames).toEqual([
+      "SIMPLEGUI",
+      "SIMPLECLI",
+      "APPLICATIONS",
+      "DESIGNER",
+    ]);
 
     const totalLines = evaluateBunJsonQuery(
       sampleData,
-      "$.modules.reduce((acc, m) => acc + m.lines, 0)"
+      "$.modules.reduce((acc, m) => acc + m.lines, 0)",
     );
     expect(totalLines).toBe(12400);
   });
@@ -112,18 +136,29 @@ describe("⚡ Bun Native System & Zero-Homebrew Suite", () => {
   });
 
   it("10. Instantiates newly named modern studio entry points", async () => {
-    const { createSystemStudio } = await import("../applications/system_studio");
-    const { createWatcherStudio } = await import("../applications/watcher_studio");
+    const { createSystemStudio } =
+      await import("../applications/system_studio");
+    const { createWatcherStudio } =
+      await import("../applications/watcher_studio");
     const { createJsonStudio } = await import("../applications/json_studio");
-    const { createDevToolsStudio } = await import("../applications/devtools_studio");
-    const { createProcessStudio } = await import("../applications/process_studio");
-    const { createDatabaseStudio } = await import("../applications/database_studio");
+    const { createDevToolsStudio } =
+      await import("../applications/devtools_studio");
+    const { createProcessStudio } =
+      await import("../applications/process_studio");
+    const { createDatabaseStudio } =
+      await import("../applications/database_studio");
 
-    expect(createSystemStudio().generateHtml()).toContain("System & Package Workstation");
+    expect(createSystemStudio().generateHtml()).toContain(
+      "System & Package Workstation",
+    );
     expect(createWatcherStudio().generateHtml()).toContain("Bun Watch Studio");
     expect(createJsonStudio().generateHtml()).toContain("JQ Studio Pro");
-    expect(createDevToolsStudio().generateHtml()).toContain("OmniTool Studio Pro");
+    expect(createDevToolsStudio().generateHtml()).toContain(
+      "OmniTool Studio Pro",
+    );
     expect(createProcessStudio().generateHtml()).toContain("Task Manager Pro");
-    expect(createDatabaseStudio().generateHtml()).toContain("SQLite Studio Pro");
+    expect(createDatabaseStudio().generateHtml()).toContain(
+      "SQLite Studio Pro",
+    );
   });
 });

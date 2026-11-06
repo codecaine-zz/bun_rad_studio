@@ -1,18 +1,35 @@
 import type { Chapter } from "./fm_tutorial_types";
-import { S, inStudio, pick, selectActive, selectText, setValue, studioReady, tagButton, tagField } from "./sqlite_tutorial_helpers";
+import {
+  S,
+  inStudio,
+  pick,
+  selectActive,
+  selectText,
+  setValue,
+  studioReady,
+  tagButton,
+  tagField,
+} from "./sqlite_tutorial_helpers";
 
 const MODAL = `${S}[class*=modal]`;
 
 /** Chapters 5 to 9: the studio's data grid, editing, table design, queries and the visual designer. */
 export const studioChapters: Chapter[] = [
   {
-    id: "05_grid", chapter: "DATA GRID", title: "Browsing a table", blurb: "Sort, filter, totals, columns and pages",
+    id: "05_grid",
+    chapter: "DATA GRID",
+    title: "Browsing a table",
+    blurb: "Sort, filter, totals, columns and pages",
     before: (d) => studioReady(d),
     steps: [
       {
         cap: "Click a header to sort",
         say: "Click customers, and the data grid shows its rows, one page at a time. A click on a column header sorts by that column. I click name for alphabetical order, and click again to reverse it.",
-        act: async (d) => { await d.hover(S + "th >> email", 1000); await d.click(S + "th >> name", { pause: 1800 }); await d.click(S + "th >> name", { pause: 1500 }); },
+        act: async (d) => {
+          await d.hover(S + "th >> email", 1000);
+          await d.click(S + "th >> name", { pause: 1800 });
+          await d.click(S + "th >> name", { pause: 1500 });
+        },
       },
       {
         cap: "Filter rows: find what you need",
@@ -31,7 +48,9 @@ export const studioChapters: Chapter[] = [
           await d.click(S + "#scBtn-grid", { pause: 1200 });
           await d.click(`${S}#scPop-grid label >> company`, { pause: 1300 });
           await d.click(`${S}#scPop-grid button >> Only keys`, { pause: 1300 });
-          await d.click(`${S}#scPop-grid button >> Reset to default`, { pause: 1000 });
+          await d.click(`${S}#scPop-grid button >> Reset to default`, {
+            pause: 1000,
+          });
           await d.key("Escape");
         },
       },
@@ -44,20 +63,29 @@ export const studioChapters: Chapter[] = [
           await d.wait(1200);
           await d.click(S + "button >> Next ▶", { pause: 1500 });
           await d.click(S + "button >> ◀ Prev", { pause: 1200 });
-          await inStudio(d, `(() => { const s = [...document.querySelectorAll('select')].find((x) => [...x.options].some((o) => o.value === '500')); s.value = '50'; s.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+          await inStudio(
+            d,
+            `(() => { const s = [...document.querySelectorAll('select')].find((x) => [...x.options].some((o) => o.value === '500')); s.value = '50'; s.dispatchEvent(new Event('change', { bubbles: true })); })()`,
+          );
           await d.wait(1500);
         },
       },
       {
         cap: "Report: a printable datasheet",
         say: "Report builds a print ready datasheet of the grid, with a header, the database name, the time, and clean rows. Print it, save it as a P D F, or export a standalone H T M L file.",
-        act: async (d) => { await d.click(S + "#btnAccessReport", { pause: 3500 }); await d.key("Escape"); },
+        act: async (d) => {
+          await d.click(S + "#btnAccessReport", { pause: 3500 });
+          await d.key("Escape");
+        },
       },
     ],
   },
 
   {
-    id: "06_crud", chapter: "EDIT ROWS", title: "Add, edit and delete rows without SQL", blurb: "Forms, inline editing and the right-click menu",
+    id: "06_crud",
+    chapter: "EDIT ROWS",
+    title: "Add, edit and delete rows without SQL",
+    blurb: "Forms, inline editing and the right-click menu",
     before: (d) => studioReady(d),
     steps: [
       {
@@ -123,7 +151,10 @@ export const studioChapters: Chapter[] = [
   },
 
   {
-    id: "07_design", chapter: "TABLE DESIGN", title: "Designing tables visually", blurb: "New table, design table and the schema tab",
+    id: "07_design",
+    chapter: "TABLE DESIGN",
+    title: "Designing tables visually",
+    blurb: "New table, design table and the schema tab",
     before: (d) => studioReady(d),
     steps: [
       {
@@ -153,7 +184,14 @@ export const studioChapters: Chapter[] = [
         say: "The Schema Designer tab shows the table's types, keys and defaults, and the create statement. Cards list its indexes, relationships and triggers. Buttons on top add a column or an index, rename, import, export, empty or delete the table.",
         act: async (d) => {
           await d.click(S + "#tabBtnSchema", { pause: 1500 });
-          for (const t of ["Add column", "New index", "Rename", "Import data", "Export"]) await d.hover(`${S}button >> ${t}`, 800);
+          for (const t of [
+            "Add column",
+            "New index",
+            "Rename",
+            "Import data",
+            "Export",
+          ])
+            await d.hover(`${S}button >> ${t}`, 800);
           await d.scroll(`${S}button >> Rename`, 600, 8);
           await d.wait(1500);
         },
@@ -162,10 +200,16 @@ export const studioChapters: Chapter[] = [
   },
 
   {
-    id: "08_sql", chapter: "SQL EDITOR", title: "The SQL editor", blurb: "Run, explain, and turn a query into a view",
+    id: "08_sql",
+    chapter: "SQL EDITOR",
+    title: "The SQL editor",
+    blurb: "Run, explain, and turn a query into a view",
     before: async (d) => {
       await studioReady(d);
-      await inStudio(d, `(() => { const b = document.getElementById('editorBanner'); if (b && !b.classList.contains('collapsed')) window.toggleEditorCollapse?.(); })()`);
+      await inStudio(
+        d,
+        `(() => { const b = document.getElementById('editorBanner'); if (b && !b.classList.contains('collapsed')) window.toggleEditorCollapse?.(); })()`,
+      );
     },
     steps: [
       {
@@ -173,9 +217,13 @@ export const studioChapters: Chapter[] = [
         say: "The S Q L editor is folded away until you need it, so press Expand. The snippet list has ready made queries. I choose All Customers, and Execute. The toolbar shows the rows and the time. Results have a Filter Bar, and I type V I P under tier.",
         act: async (d) => {
           await d.click(S + "#btnToggleEditor", { pause: 1200 });
-          if (!(await d.c.exists(S + "#sqlEditor"))) await d.click(S + "#btnToggleEditor", { pause: 600 });
+          if (!(await d.c.exists(S + "#sqlEditor")))
+            await d.click(S + "#btnToggleEditor", { pause: 600 });
           await d.hover(S + "#presetSelect", 900);
-          await inStudio(d, `(() => { const s = document.getElementById('presetSelect'); s.selectedIndex = 6; s.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+          await inStudio(
+            d,
+            `(() => { const s = document.getElementById('presetSelect'); s.selectedIndex = 6; s.dispatchEvent(new Event('change', { bubbles: true })); })()`,
+          );
           await d.wait(900);
           await d.click(S + "button >> Execute", { pause: 2000 });
           await d.click(S + "#btnToggleFilterBar", { pause: 900 });
@@ -190,7 +238,10 @@ export const studioChapters: Chapter[] = [
         act: async (d) => {
           await d.click(S + "button >> 🧹 Clear", { pause: 800 });
           await d.click(S + "#sqlEditor", { pause: 500 });
-          await d.type("SELECT country, count(*) AS customers, round(avg(balance), 2) AS avg_balance FROM customers GROUP BY country ORDER BY customers DESC;", 22);
+          await d.type(
+            "SELECT country, count(*) AS customers, round(avg(balance), 2) AS avg_balance FROM customers GROUP BY country ORDER BY customers DESC;",
+            22,
+          );
           await d.key("Meta+Enter", "⌘ Enter");
           await d.wait(1800);
         },
@@ -220,13 +271,19 @@ export const studioChapters: Chapter[] = [
       {
         cap: "Export the result",
         say: "Export C S V, Export J S O N and Export S Q L save the current result as a file. S Q L inserts are handy for moving a few rows into another database.",
-        act: async (d) => { for (const t of ["#btnExportCsv", "#btnExportJson", "#btnExportSql"]) await d.hover(S + t, 1200); },
+        act: async (d) => {
+          for (const t of ["#btnExportCsv", "#btnExportJson", "#btnExportSql"])
+            await d.hover(S + t, 1200);
+        },
       },
     ],
   },
 
   {
-    id: "09_designer", chapter: "QUERY DESIGNER", title: "The visual query designer", blurb: "Tables on a canvas, joins and generated SQL",
+    id: "09_designer",
+    chapter: "QUERY DESIGNER",
+    title: "The visual query designer",
+    blurb: "Tables on a canvas, joins and generated SQL",
     before: (d) => studioReady(d),
     steps: [
       {
@@ -247,17 +304,34 @@ export const studioChapters: Chapter[] = [
         say: "Auto Detect Joins reads the foreign keys and column names and links the tables for you. Customer id joins to customers, order id to orders, product id to products. I drag the cards apart so every join pill is easy to see.",
         act: async (d) => {
           await d.click(S + "button >> Auto-Detect Joins", { pause: 1800 });
-          await d.c.drag(S + "#qbeTableCard_products .qbe-table-card-header", 150, 0);
-          await d.c.drag(S + "#qbeTableCard_order_items .qbe-table-card-header", 100, 0);
-          await d.c.drag(S + "#qbeTableCard_orders .qbe-table-card-header", 50, 0);
+          await d.c.drag(
+            S + "#qbeTableCard_products .qbe-table-card-header",
+            150,
+            0,
+          );
+          await d.c.drag(
+            S + "#qbeTableCard_order_items .qbe-table-card-header",
+            100,
+            0,
+          );
+          await d.c.drag(
+            S + "#qbeTableCard_orders .qbe-table-card-header",
+            50,
+            0,
+          );
         },
       },
       {
         cap: "Join Properties",
         say: "Each link has a join pill and a Properties button. Choose the column on each side, and one of five join types: inner, left, right, full, or cross. Every choice explains in plain words which rows are kept.",
         act: async (d) => {
-          await d.click(`${S}.qbe-join-badge button >> Properties`, { pause: 1800 });
-          await d.hover(`${S}[class*=modal] label >> ALL records from 'customers'`, 1500);
+          await d.click(`${S}.qbe-join-badge button >> Properties`, {
+            pause: 1800,
+          });
+          await d.hover(
+            `${S}[class*=modal] label >> ALL records from 'customers'`,
+            1500,
+          );
           await d.hover(`${S}[class*=modal] label >> Cartesian`, 1500);
           await d.click(`${MODAL} button >> Cancel`, { pause: 800 });
         },

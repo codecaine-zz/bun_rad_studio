@@ -12,8 +12,14 @@ export const DONATE_URL = "https://paypal.me/codecaine81";
 
 export async function qrText(url: string): Promise<string | null> {
   try {
-    const proc = Bun.spawn(["qrencode", "-t", "ANSIUTF8", "-m", "2", url], { stdout: "pipe", stderr: "ignore" });
-    const [out, code] = await Promise.all([new Response(proc.stdout).text(), proc.exited]);
+    const proc = Bun.spawn(["qrencode", "-t", "ANSIUTF8", "-m", "2", url], {
+      stdout: "pipe",
+      stderr: "ignore",
+    });
+    const [out, code] = await Promise.all([
+      new Response(proc.stdout).text(),
+      proc.exited,
+    ]);
     return code === 0 && out.trim() ? out : null;
   } catch {
     return null; // qrencode is not installed
@@ -25,6 +31,9 @@ if (import.meta.main) {
   console.log(`  ${DONATE_URL}\n`);
   const qr = await qrText(DONATE_URL);
   if (qr) console.log(qr);
-  else console.log("  (A QR code is in docs/images/donate-paypal-qr.png. Install `qrencode` to draw it here.)\n");
+  else
+    console.log(
+      "  (A QR code is in docs/images/donate-paypal-qr.png. Install `qrencode` to draw it here.)\n",
+    );
   if (!process.argv.includes("--no-open")) Sys.openUrl(DONATE_URL);
 }

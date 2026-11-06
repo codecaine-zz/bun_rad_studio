@@ -38,12 +38,20 @@ export interface UnpackedTarEntry {
 const BLOCK = 512;
 const MAX_OCTAL_SIZE = 0o77777777777; // 8 GiB - 1
 
-function writeOctal(buf: Buffer, value: number, offset: number, width: number): void {
+function writeOctal(
+  buf: Buffer,
+  value: number,
+  offset: number,
+  width: number,
+): void {
   buf.write(value.toString(8).padStart(width - 1, "0") + "\0", offset, "ascii");
 }
 
 function readOctal(block: Buffer, offset: number, width: number): number {
-  const raw = block.toString("ascii", offset, offset + width).replace(/\0.*$/, "").trim();
+  const raw = block
+    .toString("ascii", offset, offset + width)
+    .replace(/\0.*$/, "")
+    .trim();
   return raw ? parseInt(raw, 8) : 0;
 }
 
@@ -58,13 +66,26 @@ function splitUstarName(name: string): { name: string; prefix: string } | null {
   for (let i = name.indexOf("/"); i !== -1; i = name.indexOf("/", i + 1)) {
     const prefix = name.slice(0, i);
     const rest = name.slice(i + 1);
-    if (Buffer.byteLength(prefix) <= 155 && Buffer.byteLength(rest) <= 100 && rest) return { name: rest, prefix };
+    if (
+      Buffer.byteLength(prefix) <= 155 &&
+      Buffer.byteLength(rest) <= 100 &&
+      rest
+    )
+      return { name: rest, prefix };
   }
   return null;
 }
 
-function createTarHeader(name: string, size: number, typeflag: string, mode: number, mtime: Date, prefix = ""): Buffer {
-  if (size > MAX_OCTAL_SIZE) throw new Error(`[tarutils] ${name} is ${size} bytes; ustar max is 8 GiB`);
+function createTarHeader(
+  name: string,
+  size: number,
+  typeflag: string,
+  mode: number,
+  mtime: Date,
+  prefix = "",
+): Buffer {
+  if (size > MAX_OCTAL_SIZE)
+    throw new Error(`[tarutils] ${name} is ${size} bytes; ustar max is 8 GiB`);
   const header = Buffer.alloc(BLOCK);
   header.write(name, 0, 100, "utf-8");
   writeOctal(header, mode & 0o7777, 100, 8);
@@ -76,7 +97,11 @@ function createTarHeader(name: string, size: number, typeflag: string, mode: num
   header.write("ustar\0", 257, "ascii");
   header.write("00", 263, "ascii");
   header.write(prefix, 345, 155, "utf-8");
-  header.write(headerChecksum(header).toString(8).padStart(6, "0") + "\0 ", 148, "ascii");
+  header.write(
+    headerChecksum(header).toString(8).padStart(6, "0") + "\0 ",
+    148,
+    "ascii",
+  );
   return header;
 }
 
@@ -87,7 +112,8 @@ function createTarHeader(name: string, size: number, typeflag: string, mode: num
 export function paxRecord(key: string, value: string): string {
   const body = ` ${key}=${value}\n`;
   let len = Buffer.byteLength(body) + 1;
-  while (String(len).length + Buffer.byteLength(body) !== len) len = String(len).length + Buffer.byteLength(body);
+  while (String(len).length + Buffer.byteLength(body) !== len)
+    len = String(len).length + Buffer.byteLength(body);
   return `${len}${body}`;
 }
 
@@ -100,18 +126,36 @@ function packEntry(entry: TarEntry): Buffer[] {
   const isDir = entry.type === "directory" || entry.name.endsWith("/");
   const posix = entry.name.replace(/\\/g, "/").replace(/^\/+/, "");
   const name = isDir && !posix.endsWith("/") ? `${posix}/` : posix;
-  if (!name) throw new Error("[tarutils.packTarBytes] Entry name must not be empty");
-  const data = isDir ? Buffer.alloc(0) : typeof entry.data === "string" ? Buffer.from(entry.data, "utf-8") : Buffer.from(entry.data);
+  if (!name)
+    throw new Error("[tarutils.packTarBytes] Entry name must not be empty");
+  const data = isDir
+    ? Buffer.alloc(0)
+    : typeof entry.data === "string"
+      ? Buffer.from(entry.data, "utf-8")
+      : Buffer.from(entry.data);
   const mode = entry.mode ?? (isDir ? 0o755 : 0o644);
   const mtime = entry.mtime ?? new Date();
   const split = splitUstarName(name);
   const chunks: Buffer[] = [];
   if (!split) {
     const pax = Buffer.from(paxRecord("path", name), "utf-8");
-    chunks.push(createTarHeader("PaxHeader", pax.length, "x", 0o644, mtime), pax, padBlock(pax.length));
+    chunks.push(
+      createTarHeader("PaxHeader", pax.length, "x", 0o644, mtime),
+      pax,
+      padBlock(pax.length),
+    );
   }
   const headerName = split ? split.name : name.slice(-100);
-  chunks.push(createTarHeader(headerName, data.length, isDir ? "5" : "0", mode, mtime, split?.prefix ?? ""));
+  chunks.push(
+    createTarHeader(
+      headerName,
+      data.length,
+      isDir ? "5" : "0",
+      mode,
+      mtime,
+      split?.prefix ?? "",
+    ),
+  );
   chunks.push(data, padBlock(data.length));
   return chunks;
 }
@@ -158,13 +202,17 @@ export function unpackTarBytes(bytes: Uint8Array): UnpackedTarEntry[] {
   while (offset + BLOCK <= buf.length) {
     const header = buf.subarray(offset, offset + BLOCK);
     if (header.every((b) => b === 0)) break;
-    if (readOctal(header, 148, 8) !== headerChecksum(header)) throw new Error(`[tarutils] Header checksum mismatch at offset ${offset}`);
+    if (readOctal(header, 148, 8) !== headerChecksum(header))
+      throw new Error(
+        `[tarutils] Header checksum mismatch at offset ${offset}`,
+      );
     const size = readOctal(header, 124, 12);
     const typeflag = String.fromCharCode(header[156] || 48);
     const data = buf.subarray(offset + BLOCK, offset + BLOCK + size);
     offset += BLOCK + size + padBlock(size).length;
     if (typeflag === "x") longName = parsePax(data).path ?? longName;
-    else if (typeflag === "L") longName = data.toString("utf-8").replace(/\0+$/, "");
+    else if (typeflag === "L")
+      longName = data.toString("utf-8").replace(/\0+$/, "");
     else if (typeflag === "0" || typeflag === "5") {
       entries.push(toUnpacked(header, data, typeflag, longName));
       longName = null;
@@ -173,7 +221,12 @@ export function unpackTarBytes(bytes: Uint8Array): UnpackedTarEntry[] {
   return entries;
 }
 
-function toUnpacked(header: Buffer, data: Buffer, typeflag: string, longName: string | null): UnpackedTarEntry {
+function toUnpacked(
+  header: Buffer,
+  data: Buffer,
+  typeflag: string,
+  longName: string | null,
+): UnpackedTarEntry {
   const base = header.toString("utf-8", 0, 100).replace(/\0.*$/s, "");
   const prefix = header.toString("utf-8", 345, 500).replace(/\0.*$/s, "");
   const name = longName ?? (prefix ? `${prefix}/${base}` : base);
@@ -203,7 +256,9 @@ export function listTarEntries(bytes: Uint8Array): string[] {
  */
 export function packTarGz(entries: TarEntry[], level?: number): Uint8Array {
   const tar = packTarBytes(entries) as Uint8Array<ArrayBuffer>;
-  return level === undefined ? Bun.gzipSync(tar) : Bun.gzipSync(tar, { level: level as any });
+  return level === undefined
+    ? Bun.gzipSync(tar)
+    : Bun.gzipSync(tar, { level: level as any });
 }
 
 /**
@@ -215,14 +270,18 @@ export function unpackTarGz(bytes: Uint8Array): UnpackedTarEntry[] {
 }
 
 function maybeGunzip(bytes: Uint8Array): Uint8Array {
-  return bytes[0] === 0x1f && bytes[1] === 0x8b ? Bun.gunzipSync(bytes as Uint8Array<ArrayBuffer>) : bytes;
+  return bytes[0] === 0x1f && bytes[1] === 0x8b
+    ? Bun.gunzipSync(bytes as Uint8Array<ArrayBuffer>)
+    : bytes;
 }
 
 function safeTarget(destDir: string, name: string): string {
   const root = resolve(destDir);
   const target = resolve(root, name);
   if (target !== root && !target.startsWith(root + sep)) {
-    throw new Error(`[tarutils] Refusing to extract "${name}": path escapes ${root}`);
+    throw new Error(
+      `[tarutils] Refusing to extract "${name}": path escapes ${root}`,
+    );
   }
   return target;
 }
@@ -237,7 +296,11 @@ function safeTarget(destDir: string, name: string): string {
  * await tarutils.createTarFile("./dist", "./release/dist.tgz", (rel) => !rel.endsWith(".map"));
  * ```
  */
-export async function createTarFile(srcDir: string, destTarPath: string, filter?: (relPath: string) => boolean): Promise<number> {
+export async function createTarFile(
+  srcDir: string,
+  destTarPath: string,
+  filter?: (relPath: string) => boolean,
+): Promise<number> {
   const entries: TarEntry[] = [];
   const walk = async (current: string): Promise<void> => {
     for (const item of await readdir(current, { withFileTypes: true })) {
@@ -246,9 +309,21 @@ export async function createTarFile(srcDir: string, destTarPath: string, filter?
       if (filter && !filter(rel)) continue;
       const st = await stat(full);
       if (item.isDirectory()) {
-        entries.push({ name: `${rel}/`, data: "", type: "directory", mode: st.mode, mtime: st.mtime });
+        entries.push({
+          name: `${rel}/`,
+          data: "",
+          type: "directory",
+          mode: st.mode,
+          mtime: st.mtime,
+        });
         await walk(full);
-      } else if (item.isFile()) entries.push({ name: rel, data: await Bun.file(full).bytes(), mode: st.mode, mtime: st.mtime });
+      } else if (item.isFile())
+        entries.push({
+          name: rel,
+          data: await Bun.file(full).bytes(),
+          mode: st.mode,
+          mtime: st.mtime,
+        });
     }
   };
   await walk(srcDir);
@@ -264,9 +339,13 @@ export async function createTarFile(srcDir: string, destTarPath: string, filter?
  * @returns Number of files written.
  * @example `await tarutils.extractTarFile("./release/dist.tgz", "./restore");`
  */
-export async function extractTarFile(tarPath: string, destDir: string): Promise<number> {
+export async function extractTarFile(
+  tarPath: string,
+  destDir: string,
+): Promise<number> {
   const file = Bun.file(tarPath);
-  if (!(await file.exists())) throw new Error(`[tarutils.extractTarFile] File not found: ${tarPath}`);
+  if (!(await file.exists()))
+    throw new Error(`[tarutils.extractTarFile] File not found: ${tarPath}`);
   let files = 0;
   for (const entry of unpackTarGz(await file.bytes())) {
     const outPath = safeTarget(destDir, entry.name);

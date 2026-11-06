@@ -31,17 +31,35 @@ export function parseArgs(input: string): string[] {
   for (let i = 0; i < input.length; i++) {
     const c = input[i]!;
     if (quote) {
-      if (c === quote) { quote = null; continue; }
-      if (c === "\\" && quote === '"' && i + 1 < input.length && /["\\$`]/.test(input[i + 1]!)) { cur += input[++i]; continue; }
+      if (c === quote) {
+        quote = null;
+        continue;
+      }
+      if (
+        c === "\\" &&
+        quote === '"' &&
+        i + 1 < input.length &&
+        /["\\$`]/.test(input[i + 1]!)
+      ) {
+        cur += input[++i];
+        continue;
+      }
       cur += c;
     } else if (c === '"' || c === "'") {
-      quote = c; has = true;
+      quote = c;
+      has = true;
     } else if (c === "\\" && i + 1 < input.length) {
-      cur += input[++i]; has = true;
+      cur += input[++i];
+      has = true;
     } else if (/\s/.test(c)) {
-      if (has || cur) { out.push(cur); cur = ""; has = false; }
+      if (has || cur) {
+        out.push(cur);
+        cur = "";
+        has = false;
+      }
     } else {
-      cur += c; has = true;
+      cur += c;
+      has = true;
     }
   }
   if (has || cur) out.push(cur);
@@ -118,26 +136,36 @@ export const SORT_LABELS: Record<SortMode, string> = {
 
 /** Maps a UI sort dropdown label back to its `SortMode` key, defaulting to `"default"`. */
 export function sortModeFromLabel(label: string): SortMode {
-  for (const [k, v] of Object.entries(SORT_LABELS)) if (v === label || label.includes(v)) return k as SortMode;
+  for (const [k, v] of Object.entries(SORT_LABELS))
+    if (v === label || label.includes(v)) return k as SortMode;
   return "default";
 }
 
 /** Returns a new array of applications sorted according to the specified `SortMode`. */
-export function sortApps<T extends LauncherApp>(apps: T[], mode: SortMode): T[] {
+export function sortApps<T extends LauncherApp>(
+  apps: T[],
+  mode: SortMode,
+): T[] {
   const copy = apps.slice();
   const byName = (a: T, b: T) => a.displayName.localeCompare(b.displayName);
   switch (mode) {
     case "recent":
-      return copy.sort((a, b) => (b.lastLaunched || 0) - (a.lastLaunched || 0) || byName(a, b));
+      return copy.sort(
+        (a, b) => (b.lastLaunched || 0) - (a.lastLaunched || 0) || byName(a, b),
+      );
     case "most_used":
-      return copy.sort((a, b) => (b.launchCount || 0) - (a.launchCount || 0) || byName(a, b));
+      return copy.sort(
+        (a, b) => (b.launchCount || 0) - (a.launchCount || 0) || byName(a, b),
+      );
     case "name":
       return copy.sort(byName);
     default:
-      return copy.sort((a, b) =>
-        Number(!!b.isFavorite) - Number(!!a.isFavorite) ||
-        Number(!!b.isRunning) - Number(!!a.isRunning) ||
-        byName(a, b));
+      return copy.sort(
+        (a, b) =>
+          Number(!!b.isFavorite) - Number(!!a.isFavorite) ||
+          Number(!!b.isRunning) - Number(!!a.isRunning) ||
+          byName(a, b),
+      );
   }
 }
 
@@ -163,18 +191,33 @@ export function usageLabel(app: LauncherApp, now = Date.now()): string {
  * Requires a runtime executable (bun/node/deno) and the script as a whole path segment, so
  * editors that merely have the file open, `grep`, `tail`, or look-alike names do not count.
  */
-export function isScriptProcess(comm: string, args: string, relPath: string): boolean {
+export function isScriptProcess(
+  comm: string,
+  args: string,
+  relPath: string,
+): boolean {
   // Normalize Windows separators and .exe extension
   const cleanComm = comm.replace(/\\/g, "/");
   const rawExe = (cleanComm.split("/").pop() || "").toLowerCase();
   const exe = rawExe.replace(/\.exe$/, "");
 
   const cleanArgs = args.replace(/\\/g, "/");
-  const firstArg = (cleanArgs.split(/\s+/)[0] || "").split("/").pop()?.toLowerCase().replace(/\.exe$/, "") || "";
+  const firstArg =
+    (cleanArgs.split(/\s+/)[0] || "")
+      .split("/")
+      .pop()
+      ?.toLowerCase()
+      .replace(/\.exe$/, "") || "";
 
-  if (!/^(bun|node|deno|bunx)$/.test(exe) && !/^(bun|node|deno)$/.test(firstArg)) return false;
+  if (
+    !/^(bun|node|deno|bunx)$/.test(exe) &&
+    !/^(bun|node|deno)$/.test(firstArg)
+  )
+    return false;
 
   const rel = relPath.replace(/\\/g, "/").replace(/^\.\//, "");
   const tokens = cleanArgs.split(/\s+/);
-  return tokens.some((tok) => tok === rel || tok === `./${rel}` || tok.endsWith(`/${rel}`));
+  return tokens.some(
+    (tok) => tok === rel || tok === `./${rel}` || tok.endsWith(`/${rel}`),
+  );
 }

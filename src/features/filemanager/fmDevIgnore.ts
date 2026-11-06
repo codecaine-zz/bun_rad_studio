@@ -83,14 +83,16 @@ export function parseIgnoreLines(lines: string[]): IgnoreRule[] {
   for (const rawLine of lines) {
     if (rules.length >= MAX_PATTERNS) break;
     let line = rawLine.replace(/\r$/, "");
-    if (!line || line.startsWith("#") || line.length > MAX_PATTERN_LENGTH) continue;
+    if (!line || line.startsWith("#") || line.length > MAX_PATTERN_LENGTH)
+      continue;
     line = line.replace(/(?<!\\)\s+$/, "");
     if (!line) continue;
     let negate = false;
     if (line.startsWith("!")) {
       negate = true;
       line = line.slice(1);
-    } else if (line.startsWith("\\!") || line.startsWith("\\#")) line = line.slice(1);
+    } else if (line.startsWith("\\!") || line.startsWith("\\#"))
+      line = line.slice(1);
     let dirOnly = false;
     if (line.endsWith("/")) {
       dirOnly = true;
@@ -107,11 +109,18 @@ export function parseIgnoreLines(lines: string[]): IgnoreRule[] {
 
 /** Compiles newline-separated gitignore-style patterns into an `IgnoreSet` anchored at `base`. */
 export function ignoreSetFromText(base: string, text: string): IgnoreSet {
-  return { base: base.replace(/\\/g, "/").replace(/\/$/, ""), rules: parseIgnoreLines(text.split("\n")) };
+  return {
+    base: base.replace(/\\/g, "/").replace(/\/$/, ""),
+    rules: parseIgnoreLines(text.split("\n")),
+  };
 }
 
 /** True when the sets (shallowest first) ignore `absPath`. The last rule that matches decides. */
-export function isIgnored(sets: IgnoreSet[], absPath: string, isDir: boolean): boolean {
+export function isIgnored(
+  sets: IgnoreSet[],
+  absPath: string,
+  isDir: boolean,
+): boolean {
   const abs = absPath.replace(/\\/g, "/");
   let ignored = false;
   for (const set of sets) {
@@ -130,33 +139,51 @@ const MAX_IGNORE_FILE = 256 * 1024;
 export const IGNORE_FILE_NAMES = [".gitignore", ".ignore", ".tokeignore"];
 
 /** Reads the ignore files in `dir` (if any). Symlinks are not followed and big files are skipped. */
-export async function readIgnoreFiles(dir: string, names: string[] = IGNORE_FILE_NAMES): Promise<IgnoreSet | null> {
+export async function readIgnoreFiles(
+  dir: string,
+  names: string[] = IGNORE_FILE_NAMES,
+): Promise<IgnoreSet | null> {
   const rules: IgnoreRule[] = [];
   for (const name of names) {
     try {
       const file = nodePath.join(dir, name);
       const st = await fsp.lstat(file);
       if (!st.isFile() || st.size > MAX_IGNORE_FILE) continue;
-      rules.push(...parseIgnoreLines((await fsp.readFile(file, "utf8")).split("\n")));
+      rules.push(
+        ...parseIgnoreLines((await fsp.readFile(file, "utf8")).split("\n")),
+      );
     } catch {
       // no such file
     }
   }
-  return rules.length ? { base: dir.replace(/\\/g, "/").replace(/\/$/, ""), rules } : null;
+  return rules.length
+    ? { base: dir.replace(/\\/g, "/").replace(/\/$/, ""), rules }
+    : null;
 }
 
-const hasGit = (dir: string) => fsp.lstat(nodePath.join(dir, ".git")).then(() => true, () => false);
+const hasGit = (dir: string) =>
+  fsp.lstat(nodePath.join(dir, ".git")).then(
+    () => true,
+    () => false,
+  );
 
 /**
  * The ignore sets that apply to a scan of `root` from folders above it: .git/info/exclude and the .gitignore files
  * between `root` and the enclosing git repository (so scanning a sub-folder still honours the repository's rules).
  * Shallowest first. Empty when `root` is not inside a repository.
  */
-export async function inheritedIgnores(root: string, maxLevels = 12): Promise<IgnoreSet[]> {
+export async function inheritedIgnores(
+  root: string,
+  maxLevels = 12,
+): Promise<IgnoreSet[]> {
   const above: string[] = [];
   let repoTop: string | null = (await hasGit(root)) ? root : null;
   let dir = nodePath.dirname(root);
-  for (let level = 0; !repoTop && level < maxLevels && dir !== nodePath.dirname(dir); level++) {
+  for (
+    let level = 0;
+    !repoTop && level < maxLevels && dir !== nodePath.dirname(dir);
+    level++
+  ) {
     above.push(dir);
     if (await hasGit(dir)) repoTop = dir;
     dir = nodePath.dirname(dir);
@@ -164,7 +191,15 @@ export async function inheritedIgnores(root: string, maxLevels = 12): Promise<Ig
   if (!repoTop) return [];
   const sets: IgnoreSet[] = [];
   try {
-    sets.push(ignoreSetFromText(repoTop, await fsp.readFile(nodePath.join(repoTop, ".git", "info", "exclude"), "utf8")));
+    sets.push(
+      ignoreSetFromText(
+        repoTop,
+        await fsp.readFile(
+          nodePath.join(repoTop, ".git", "info", "exclude"),
+          "utf8",
+        ),
+      ),
+    );
   } catch {
     // no exclude file
   }

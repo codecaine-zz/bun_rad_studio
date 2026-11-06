@@ -6,7 +6,14 @@
  */
 import * as os from "os";
 import si from "systeminformation";
-import { diffData, flattenData, toCsv, toHtmlReport, toMarkdown, type DataDiff } from "../../system_report";
+import {
+  diffData,
+  flattenData,
+  toCsv,
+  toHtmlReport,
+  toMarkdown,
+  type DataDiff,
+} from "../../system_report";
 import type { Platform } from "./fmPaths";
 
 /** Identifier for a top-level System Information telemetry section. */
@@ -34,44 +41,222 @@ export interface SysinfoProbeCatalogItem {
 /** Catalog of supported `systeminformation` probes available in the System Info tool. */
 export const SYSINFO_PROBE_CATALOG: SysinfoProbeCatalogItem[] = [
   // System & Hardware
-  { method: "system", category: "Hardware", label: "System Model & UUID", description: "Hardware manufacturer, model, serial, UUID, and SKU." },
-  { method: "bios", category: "Hardware", label: "BIOS / UEFI Firmware", description: "BIOS vendor, version, release date, and revision." },
-  { method: "baseboard", category: "Hardware", label: "Motherboard / Logic Board", description: "Baseboard manufacturer, model, version, serial, and memory slots." },
-  { method: "chassis", category: "Hardware", label: "Chassis / Enclosure", description: "Physical enclosure type, manufacturer, model, and serial." },
+  {
+    method: "system",
+    category: "Hardware",
+    label: "System Model & UUID",
+    description: "Hardware manufacturer, model, serial, UUID, and SKU.",
+  },
+  {
+    method: "bios",
+    category: "Hardware",
+    label: "BIOS / UEFI Firmware",
+    description: "BIOS vendor, version, release date, and revision.",
+  },
+  {
+    method: "baseboard",
+    category: "Hardware",
+    label: "Motherboard / Logic Board",
+    description:
+      "Baseboard manufacturer, model, version, serial, and memory slots.",
+  },
+  {
+    method: "chassis",
+    category: "Hardware",
+    label: "Chassis / Enclosure",
+    description: "Physical enclosure type, manufacturer, model, and serial.",
+  },
   // CPU & Thermal
-  { method: "cpu", category: "CPU", label: "Processor Architecture", description: "CPU brand, vendor, family, model, cores, speeds, and cache sizes." },
-  { method: "cpuCurrentSpeed", category: "CPU", label: "CPU Clock Speeds", description: "Current average, min, max, and per-core GHz clock speeds." },
-  { method: "cpuTemperature", category: "CPU", label: "CPU Temperatures", description: "Main package, per-core, chipset, and socket thermal sensors." },
-  { method: "cpuCache", category: "CPU", label: "CPU Cache Hierarchy", description: "L1d, L1i, L2, and L3 cache sizes." },
-  { method: "currentLoad", category: "CPU", label: "CPU Load Breakdown", description: "Overall and per-core user, system, idle, and IRQ CPU load percentages." },
+  {
+    method: "cpu",
+    category: "CPU",
+    label: "Processor Architecture",
+    description:
+      "CPU brand, vendor, family, model, cores, speeds, and cache sizes.",
+  },
+  {
+    method: "cpuCurrentSpeed",
+    category: "CPU",
+    label: "CPU Clock Speeds",
+    description: "Current average, min, max, and per-core GHz clock speeds.",
+  },
+  {
+    method: "cpuTemperature",
+    category: "CPU",
+    label: "CPU Temperatures",
+    description: "Main package, per-core, chipset, and socket thermal sensors.",
+  },
+  {
+    method: "cpuCache",
+    category: "CPU",
+    label: "CPU Cache Hierarchy",
+    description: "L1d, L1i, L2, and L3 cache sizes.",
+  },
+  {
+    method: "currentLoad",
+    category: "CPU",
+    label: "CPU Load Breakdown",
+    description:
+      "Overall and per-core user, system, idle, and IRQ CPU load percentages.",
+  },
   // Memory
-  { method: "mem", category: "Memory", label: "Memory & Swap Usage", description: "Total, free, used, active, available, buffered/cached, and swap RAM." },
-  { method: "memLayout", category: "Memory", label: "Physical RAM Modules (DIMMs)", description: "Physical memory banks, stick sizes, DDR type, clock speed, and part numbers." },
+  {
+    method: "mem",
+    category: "Memory",
+    label: "Memory & Swap Usage",
+    description:
+      "Total, free, used, active, available, buffered/cached, and swap RAM.",
+  },
+  {
+    method: "memLayout",
+    category: "Memory",
+    label: "Physical RAM Modules (DIMMs)",
+    description:
+      "Physical memory banks, stick sizes, DDR type, clock speed, and part numbers.",
+  },
   // Storage & Disks
-  { method: "fsSize", category: "Storage", label: "Mounted Filesystems", description: "Mounted volumes/drives, filesystem types, capacity, used bytes, and mount points." },
-  { method: "blockDevices", category: "Storage", label: "Block Devices & Partitions", description: "Disks, partitions, UUIDs, labels, mount points, and removable media." },
-  { method: "diskLayout", category: "Storage", label: "Physical Storage Drives", description: "Physical SSD/NVMe/HDD drives, vendor, firmware, serial, interface, and SMART status." },
-  { method: "disksIO", category: "Storage", label: "Disk I/O Throughput", description: "Read/write IOPS, byte transfer counts, and I/O wait metrics." },
+  {
+    method: "fsSize",
+    category: "Storage",
+    label: "Mounted Filesystems",
+    description:
+      "Mounted volumes/drives, filesystem types, capacity, used bytes, and mount points.",
+  },
+  {
+    method: "blockDevices",
+    category: "Storage",
+    label: "Block Devices & Partitions",
+    description:
+      "Disks, partitions, UUIDs, labels, mount points, and removable media.",
+  },
+  {
+    method: "diskLayout",
+    category: "Storage",
+    label: "Physical Storage Drives",
+    description:
+      "Physical SSD/NVMe/HDD drives, vendor, firmware, serial, interface, and SMART status.",
+  },
+  {
+    method: "disksIO",
+    category: "Storage",
+    label: "Disk I/O Throughput",
+    description: "Read/write IOPS, byte transfer counts, and I/O wait metrics.",
+  },
   // Graphics & Audio
-  { method: "graphics", category: "Graphics", label: "GPUs & Displays", description: "Graphics controllers, VRAM, driver versions, and connected display resolutions." },
-  { method: "audio", category: "Graphics", label: "Audio Devices", description: "Sound cards, codecs, input/output channels, and manufacturers." },
+  {
+    method: "graphics",
+    category: "Graphics",
+    label: "GPUs & Displays",
+    description:
+      "Graphics controllers, VRAM, driver versions, and connected display resolutions.",
+  },
+  {
+    method: "audio",
+    category: "Graphics",
+    label: "Audio Devices",
+    description:
+      "Sound cards, codecs, input/output channels, and manufacturers.",
+  },
   // Network & Wi-Fi
-  { method: "networkInterfaces", category: "Network", label: "Network Interfaces (NICs)", description: "IPv4/IPv6 addresses, MAC addresses, MTU, link speed, and carrier state." },
-  { method: "networkStats", category: "Network", label: "Network Interface Traffic", description: "Received/transmitted bytes, throughput per second, packet drops, and errors." },
-  { method: "networkGatewayDefault", category: "Network", label: "Default Network Gateway", description: "Active default router IP address." },
-  { method: "wifiNetworks", category: "Network", label: "Visible Wi-Fi Networks", description: "Nearby SSIDs, BSSIDs, channels, signal quality, and security modes." },
-  { method: "wifiInterfaces", category: "Network", label: "Wi-Fi Adapters", description: "Wireless network interface cards, MACs, and vendors." },
-  { method: "inetLatency", category: "Network", label: "Internet Ping Latency", description: "Round-trip latency in milliseconds to a target host.", hasParam: true, defaultParam: "1.1.1.1" },
+  {
+    method: "networkInterfaces",
+    category: "Network",
+    label: "Network Interfaces (NICs)",
+    description:
+      "IPv4/IPv6 addresses, MAC addresses, MTU, link speed, and carrier state.",
+  },
+  {
+    method: "networkStats",
+    category: "Network",
+    label: "Network Interface Traffic",
+    description:
+      "Received/transmitted bytes, throughput per second, packet drops, and errors.",
+  },
+  {
+    method: "networkGatewayDefault",
+    category: "Network",
+    label: "Default Network Gateway",
+    description: "Active default router IP address.",
+  },
+  {
+    method: "wifiNetworks",
+    category: "Network",
+    label: "Visible Wi-Fi Networks",
+    description:
+      "Nearby SSIDs, BSSIDs, channels, signal quality, and security modes.",
+  },
+  {
+    method: "wifiInterfaces",
+    category: "Network",
+    label: "Wi-Fi Adapters",
+    description: "Wireless network interface cards, MACs, and vendors.",
+  },
+  {
+    method: "inetLatency",
+    category: "Network",
+    label: "Internet Ping Latency",
+    description: "Round-trip latency in milliseconds to a target host.",
+    hasParam: true,
+    defaultParam: "1.1.1.1",
+  },
   // Peripherals & Power
-  { method: "battery", category: "Peripherals", label: "Battery & Power Status", description: "Charge percentage, AC status, cycle count, health, and capacity in mWh." },
-  { method: "usb", category: "Peripherals", label: "USB Bus & Devices", description: "Connected USB controllers, hubs, keyboards, mice, and storage devices." },
-  { method: "bluetoothDevices", category: "Peripherals", label: "Bluetooth Devices", description: "Paired and nearby Bluetooth peripherals, MACs, and battery levels." },
-  { method: "printer", category: "Peripherals", label: "Printers & Queues", description: "Configured local and network printers and their status." },
+  {
+    method: "battery",
+    category: "Peripherals",
+    label: "Battery & Power Status",
+    description:
+      "Charge percentage, AC status, cycle count, health, and capacity in mWh.",
+  },
+  {
+    method: "usb",
+    category: "Peripherals",
+    label: "USB Bus & Devices",
+    description:
+      "Connected USB controllers, hubs, keyboards, mice, and storage devices.",
+  },
+  {
+    method: "bluetoothDevices",
+    category: "Peripherals",
+    label: "Bluetooth Devices",
+    description:
+      "Paired and nearby Bluetooth peripherals, MACs, and battery levels.",
+  },
+  {
+    method: "printer",
+    category: "Peripherals",
+    label: "Printers & Queues",
+    description: "Configured local and network printers and their status.",
+  },
   // OS & Software
-  { method: "osInfo", category: "Software", label: "Operating System Info", description: "OS distro, release, codename, kernel, architecture, hostname, and UEFI status." },
-  { method: "versions", category: "Software", label: "Installed Toolchain Versions", description: "Detected versions of kernel, OpenSSL, Node, Bun, Git, Python, Docker, etc.", hasParam: true, defaultParam: "" },
-  { method: "users", category: "Software", label: "Logged-in User Sessions", description: "Active user logins, TTYs, login times, and last commands." },
-  { method: "time", category: "Software", label: "System Clock & Timezone", description: "Current epoch time, uptime, timezone identifier, and UTC offset." },
+  {
+    method: "osInfo",
+    category: "Software",
+    label: "Operating System Info",
+    description:
+      "OS distro, release, codename, kernel, architecture, hostname, and UEFI status.",
+  },
+  {
+    method: "versions",
+    category: "Software",
+    label: "Installed Toolchain Versions",
+    description:
+      "Detected versions of kernel, OpenSSL, Node, Bun, Git, Python, Docker, etc.",
+    hasParam: true,
+    defaultParam: "",
+  },
+  {
+    method: "users",
+    category: "Software",
+    label: "Logged-in User Sessions",
+    description: "Active user logins, TTYs, login times, and last commands.",
+  },
+  {
+    method: "time",
+    category: "Software",
+    label: "System Clock & Timezone",
+    description:
+      "Current epoch time, uptime, timezone identifier, and UTC offset.",
+  },
 ];
 
 /** Comprehensive snapshot of OS, CPU, memory, battery, storage, network, and graphics telemetry for the System Info overview. */
@@ -207,16 +392,26 @@ export interface SysinfoHooks {
   /** Override overview collection for fast deterministic tests. */
   getOverview?: (platform: Platform) => Promise<SysinfoOverview>;
   /** Override section collection for tests. */
-  getSection?: (section: SysinfoSectionId, platform: Platform) => Promise<SysinfoSectionResult>;
+  getSection?: (
+    section: SysinfoSectionId,
+    platform: Platform,
+  ) => Promise<SysinfoSectionResult>;
   /** Override individual `systeminformation` probe calls for tests. */
-  runProbe?: (method: string, param: string, platform: Platform) => Promise<unknown>;
+  runProbe?: (
+    method: string,
+    param: string,
+    platform: Platform,
+  ) => Promise<unknown>;
 }
 
 /** Formats a byte count into a human-readable string (`B`, `KB`, `MB`, `GB`, `TB`, or `PB`). */
 export function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
   const units = ["B", "KB", "MB", "GB", "TB", "PB"];
-  const i = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)));
+  const i = Math.min(
+    units.length - 1,
+    Math.floor(Math.log(bytes) / Math.log(1024)),
+  );
   const val = bytes / Math.pow(1024, i);
   return `${val >= 100 || i === 0 ? Math.round(val) : val.toFixed(1)} ${units[i]}`;
 }
@@ -235,27 +430,61 @@ export function formatDurationSec(sec: number): string {
 
 /** Returns the human-readable operating system family label (`Windows`, `Linux`, or `macOS`) for `platform`. */
 export function platformLabel(platform: Platform): string {
-  return platform === "win32" ? "Windows" : platform === "linux" ? "Linux" : "macOS";
+  return platform === "win32"
+    ? "Windows"
+    : platform === "linux"
+      ? "Linux"
+      : "macOS";
 }
 
 /** Builds platform-specific OS and hardware summary highlights for Windows, Linux, or macOS. */
 export function buildPlatformHighlights(
   platform: Platform,
-  osData: { distro: string; release: string; codename: string; kernel: string; arch: string; uefi: boolean | null; hypervisor: string; shell: string },
+  osData: {
+    distro: string;
+    release: string;
+    codename: string;
+    kernel: string;
+    arch: string;
+    uefi: boolean | null;
+    hypervisor: string;
+    shell: string;
+  },
   disks: Array<{ mount: string; type: string; fs: string }>,
-): { family: "windows" | "unix"; summary: string; highlights: Array<[string, string]> } {
+): {
+  family: "windows" | "unix";
+  summary: string;
+  highlights: Array<[string, string]>;
+} {
   if (platform === "win32") {
-    const drives = disks.map((d) => d.mount || d.fs).filter(Boolean).join(", ") || "C:\\";
+    const drives =
+      disks
+        .map((d) => d.mount || d.fs)
+        .filter(Boolean)
+        .join(", ") || "C:\\";
     return {
       family: "windows",
       summary: "Windows NT / CIM / WMI hardware & system telemetry",
       highlights: [
         ["OS Family", "Windows NT (win32)"],
-        ["Edition / Build", `${osData.distro || "Windows"} (${osData.release || os.release()})`],
-        ["Boot Firmware", osData.uefi === true ? "UEFI" : osData.uefi === false ? "Legacy BIOS" : "Standard"],
+        [
+          "Edition / Build",
+          `${osData.distro || "Windows"} (${osData.release || os.release()})`,
+        ],
+        [
+          "Boot Firmware",
+          osData.uefi === true
+            ? "UEFI"
+            : osData.uefi === false
+              ? "Legacy BIOS"
+              : "Standard",
+        ],
         ["Hypervisor / VBS", osData.hypervisor || "None detected"],
         ["Drive Letters", drives],
-        ["Command Shell", osData.shell || process.env.ComSpec || "PowerShell / cmd.exe"],
+        [
+          "Command Shell",
+          osData.shell || process.env.ComSpec || "PowerShell / cmd.exe",
+        ],
       ],
     };
   }
@@ -266,10 +495,16 @@ export function buildPlatformHighlights(
       summary: "Linux /proc, sysfs, and udev kernel & hardware telemetry",
       highlights: [
         ["OS Family", "POSIX / Linux"],
-        ["Distribution", `${osData.distro || "Linux"} ${osData.release || ""}`.trim()],
+        [
+          "Distribution",
+          `${osData.distro || "Linux"} ${osData.release || ""}`.trim(),
+        ],
         ["Kernel Version", osData.kernel || os.release()],
         ["Architecture", osData.arch || os.arch()],
-        ["Root Filesystem", rootFs ? `${rootFs.mount} (${rootFs.type || rootFs.fs})` : "/"],
+        [
+          "Root Filesystem",
+          rootFs ? `${rootFs.mount} (${rootFs.type || rootFs.fs})` : "/",
+        ],
         ["Default Shell", osData.shell || process.env.SHELL || "/bin/bash"],
       ],
     };
@@ -280,10 +515,21 @@ export function buildPlatformHighlights(
     summary: "macOS Darwin IOKit, sysctl, and diskutil hardware telemetry",
     highlights: [
       ["OS Family", "POSIX / Darwin (macOS)"],
-      ["macOS Release", `${osData.distro || "macOS"} ${osData.release || ""}${osData.codename ? ` (${osData.codename})` : ""}`.trim()],
+      [
+        "macOS Release",
+        `${osData.distro || "macOS"} ${osData.release || ""}${osData.codename ? ` (${osData.codename})` : ""}`.trim(),
+      ],
       ["Darwin Kernel", osData.kernel || os.release()],
-      ["Silicon / Arch", osData.arch === "arm64" ? "Apple Silicon (arm64)" : osData.arch || os.arch()],
-      ["System Volume", rootFs ? `${rootFs.mount} (${rootFs.type || rootFs.fs})` : "/ (APFS)"],
+      [
+        "Silicon / Arch",
+        osData.arch === "arm64"
+          ? "Apple Silicon (arm64)"
+          : osData.arch || os.arch(),
+      ],
+      [
+        "System Volume",
+        rootFs ? `${rootFs.mount} (${rootFs.type || rootFs.fs})` : "/ (APFS)",
+      ],
       ["Login Shell", osData.shell || process.env.SHELL || "/bin/zsh"],
     ],
   };
@@ -319,15 +565,16 @@ export async function collectSysinfoOverview(
     return await hooks.getOverview(platform);
   }
 
-  const [staticInfo, load, mem, temp, battery, fsSize, netIfaces] = await Promise.all([
-    getStaticInfo(),
-    si.currentLoad().catch(() => null),
-    si.mem().catch(() => null),
-    si.cpuTemperature().catch(() => null),
-    si.battery().catch(() => null),
-    si.fsSize().catch(() => []),
-    si.networkInterfaces().catch(() => []),
-  ]);
+  const [staticInfo, load, mem, temp, battery, fsSize, netIfaces] =
+    await Promise.all([
+      getStaticInfo(),
+      si.currentLoad().catch(() => null),
+      si.mem().catch(() => null),
+      si.cpuTemperature().catch(() => null),
+      si.battery().catch(() => null),
+      si.fsSize().catch(() => []),
+      si.networkInterfaces().catch(() => []),
+    ]);
 
   const showcaseMacUltra = process.env.FM_SHOWCASE_MAC_ULTRA === "1";
   const osCpus = os.cpus();
@@ -335,7 +582,8 @@ export async function collectSysinfoOverview(
     ? {
         ...(staticInfo.cpu || {}),
         manufacturer: "Apple",
-        brand: "Apple M4 Ultra (32-Core CPU · 80-Core GPU · 32-Core Neural Engine)",
+        brand:
+          "Apple M4 Ultra (32-Core CPU · 80-Core GPU · 32-Core Neural Engine)",
         speed: 4.51,
         speedMax: 4.51,
         physicalCores: 32,
@@ -360,7 +608,8 @@ export async function collectSysinfoOverview(
         controllers: [
           {
             vendor: "Apple",
-            model: "Apple M4 Ultra 80-Core GPU (Hardware Ray Tracing · Metal 4)",
+            model:
+              "Apple M4 Ultra 80-Core GPU (Hardware Ray Tracing · Metal 4)",
             vram: 196608,
             bus: "Apple UltraFusion Unified Fabric (819 GB/s)",
             driverVersion: "Metal 4.0 (Display-P3 1600-nit XDR)",
@@ -387,17 +636,28 @@ export async function collectSysinfoOverview(
           },
         ],
       }
-    : ((staticInfo.graphics || { controllers: [], displays: [] }) as Record<string, any>);
+    : ((staticInfo.graphics || { controllers: [], displays: [] }) as Record<
+        string,
+        any
+      >);
 
-  const totalMem = showcaseMacUltra ? 192 * 1024 * 1024 * 1024 : (mem?.total ?? os.totalmem());
-  const freeMem = showcaseMacUltra ? 148 * 1024 * 1024 * 1024 : (mem?.free ?? os.freemem());
-  const availMem = showcaseMacUltra ? 156 * 1024 * 1024 * 1024 : (mem?.available ?? freeMem);
+  const totalMem = showcaseMacUltra
+    ? 192 * 1024 * 1024 * 1024
+    : (mem?.total ?? os.totalmem());
+  const freeMem = showcaseMacUltra
+    ? 148 * 1024 * 1024 * 1024
+    : (mem?.free ?? os.freemem());
+  const availMem = showcaseMacUltra
+    ? 156 * 1024 * 1024 * 1024
+    : (mem?.available ?? freeMem);
   const activeMem = mem?.active ?? Math.max(0, totalMem - availMem);
   const usedMem = Math.max(0, totalMem - availMem);
-  const usedPercent = totalMem > 0 ? Math.round((usedMem / totalMem) * 1000) / 10 : 0;
+  const usedPercent =
+    totalMem > 0 ? Math.round((usedMem / totalMem) * 1000) / 10 : 0;
   const swapTotal = mem?.swaptotal ?? 0;
   const swapUsed = mem?.swapused ?? 0;
-  const swapPercent = swapTotal > 0 ? Math.round((swapUsed / swapTotal) * 1000) / 10 : 0;
+  const swapPercent =
+    swapTotal > 0 ? Math.round((swapUsed / swapTotal) * 1000) / 10 : 0;
 
   const [avg1 = 0, avg5 = 0, avg15 = 0] = os.loadavg();
   const logicalCores = Number(cpuInfo.cores) || osCpus.length || 1;
@@ -405,9 +665,15 @@ export async function collectSysinfoOverview(
   const loadPercent =
     load && Number.isFinite(load.currentLoad)
       ? Math.round(load.currentLoad * 10) / 10
-      : Math.min(100, Math.round(((avg1 / logicalCores) * 100) * 10) / 10);
-  const loadUserPercent = load && Number.isFinite(load.currentLoadUser) ? Math.round(load.currentLoadUser * 10) / 10 : 0;
-  const loadSystemPercent = load && Number.isFinite(load.currentLoadSystem) ? Math.round(load.currentLoadSystem * 10) / 10 : 0;
+      : Math.min(100, Math.round((avg1 / logicalCores) * 100 * 10) / 10);
+  const loadUserPercent =
+    load && Number.isFinite(load.currentLoadUser)
+      ? Math.round(load.currentLoadUser * 10) / 10
+      : 0;
+  const loadSystemPercent =
+    load && Number.isFinite(load.currentLoadSystem)
+      ? Math.round(load.currentLoadSystem * 10) / 10
+      : 0;
   const perCoreLoads = Array.isArray(load?.cpus)
     ? load.cpus.map((c: any) => Math.round((Number(c.load) || 0) * 10) / 10)
     : osCpus.map(() => loadPercent);
@@ -424,18 +690,24 @@ export async function collectSysinfoOverview(
       ? process.env.ComSpec || "powershell.exe"
       : process.env.SHELL || "/bin/zsh";
 
-  const disks = (Array.isArray(fsSize) ? fsSize : []).slice(0, 16).map((d: any) => ({
-    fs: String(d.fs || ""),
-    type: String(d.type || ""),
-    mount: String(d.mount || d.fs || ""),
-    sizeBytes: Number(d.size) || 0,
-    usedBytes: Number(d.used) || 0,
-    availableBytes: Number(d.available) || 0,
-    usePercent: Math.round((Number(d.use) || 0) * 10) / 10,
-    rw: d.rw !== false,
-  }));
+  const disks = (Array.isArray(fsSize) ? fsSize : [])
+    .slice(0, 16)
+    .map((d: any) => ({
+      fs: String(d.fs || ""),
+      type: String(d.type || ""),
+      mount: String(d.mount || d.fs || ""),
+      sizeBytes: Number(d.size) || 0,
+      usedBytes: Number(d.used) || 0,
+      availableBytes: Number(d.available) || 0,
+      usePercent: Math.round((Number(d.use) || 0) * 10) / 10,
+      rw: d.rw !== false,
+    }));
 
-  const ifaceList = Array.isArray(netIfaces) ? netIfaces : netIfaces ? [netIfaces] : [];
+  const ifaceList = Array.isArray(netIfaces)
+    ? netIfaces
+    : netIfaces
+      ? [netIfaces]
+      : [];
   const network = ifaceList.slice(0, 16).map((n: any) => ({
     iface: String(n.iface || n.ifaceName || ""),
     ip4: String(n.ip4 || ""),
@@ -444,7 +716,10 @@ export async function collectSysinfoOverview(
     internal: Boolean(n.internal),
     default: Boolean(n.default),
     type: String(n.type || ""),
-    speedMbps: Number.isFinite(Number(n.speed)) && Number(n.speed) > 0 ? Number(n.speed) : null,
+    speedMbps:
+      Number.isFinite(Number(n.speed)) && Number(n.speed) > 0
+        ? Number(n.speed)
+        : null,
     operstate: String(n.operstate || "up"),
   }));
 
@@ -476,7 +751,9 @@ export async function collectSysinfoOverview(
     cpu: {
       manufacturer: String(cpuInfo.manufacturer || ""),
       brand: String(cpuInfo.brand || osCpus[0]?.model || "Processor").trim(),
-      speedGhz: Number(cpuInfo.speed) || Math.round(((osCpus[0]?.speed || 0) / 1000) * 100) / 100,
+      speedGhz:
+        Number(cpuInfo.speed) ||
+        Math.round(((osCpus[0]?.speed || 0) / 1000) * 100) / 100,
       speedMaxGhz: Number(cpuInfo.speedMax) || Number(cpuInfo.speed) || 0,
       physicalCores,
       logicalCores,
@@ -488,8 +765,14 @@ export async function collectSysinfoOverview(
       loadAvg1m: Math.round(avg1 * 100) / 100,
       loadAvg5m: Math.round(avg5 * 100) / 100,
       loadAvg15m: Math.round(avg15 * 100) / 100,
-      tempMainC: temp && Number.isFinite(Number(temp.main)) && Number(temp.main) > 0 ? Math.round(Number(temp.main) * 10) / 10 : null,
-      tempMaxC: temp && Number.isFinite(Number(temp.max)) && Number(temp.max) > 0 ? Math.round(Number(temp.max) * 10) / 10 : null,
+      tempMainC:
+        temp && Number.isFinite(Number(temp.main)) && Number(temp.main) > 0
+          ? Math.round(Number(temp.main) * 10) / 10
+          : null,
+      tempMaxC:
+        temp && Number.isFinite(Number(temp.max)) && Number(temp.max) > 0
+          ? Math.round(Number(temp.max) * 10) / 10
+          : null,
       perCoreLoads,
     },
     memory: {
@@ -508,30 +791,49 @@ export async function collectSysinfoOverview(
       percent: Number(battery?.percent) || 0,
       isCharging: Boolean(battery?.isCharging),
       acConnected: Boolean(battery?.acConnected),
-      timeRemainingMin: Number.isFinite(Number(battery?.timeRemaining)) && Number(battery?.timeRemaining) >= 0 ? Number(battery?.timeRemaining) : null,
-      cycleCount: Number.isFinite(Number(battery?.cycleCount)) && Number(battery?.cycleCount) > 0 ? Number(battery?.cycleCount) : null,
+      timeRemainingMin:
+        Number.isFinite(Number(battery?.timeRemaining)) &&
+        Number(battery?.timeRemaining) >= 0
+          ? Number(battery?.timeRemaining)
+          : null,
+      cycleCount:
+        Number.isFinite(Number(battery?.cycleCount)) &&
+        Number(battery?.cycleCount) > 0
+          ? Number(battery?.cycleCount)
+          : null,
       model: String(battery?.model || ""),
       manufacturer: String(battery?.manufacturer || ""),
     },
     disks,
     network,
     graphics: {
-      controllers: (Array.isArray(gfxInfo.controllers) ? gfxInfo.controllers : []).map((c: any) => ({
+      controllers: (Array.isArray(gfxInfo.controllers)
+        ? gfxInfo.controllers
+        : []
+      ).map((c: any) => ({
         vendor: String(c.vendor || ""),
         model: String(c.model || ""),
         vramMb: Number.isFinite(Number(c.vram)) ? Number(c.vram) : null,
         bus: String(c.bus || ""),
         driverVersion: String(c.driverVersion || ""),
       })),
-      displays: (Array.isArray(gfxInfo.displays) ? gfxInfo.displays : []).map((d: any) => ({
-        model: String(d.model || "Display"),
-        main: Boolean(d.main),
-        builtin: Boolean(d.builtin),
-        connection: String(d.connection || ""),
-        resolutionX: Number.isFinite(Number(d.resolutionX)) ? Number(d.resolutionX) : null,
-        resolutionY: Number.isFinite(Number(d.resolutionY)) ? Number(d.resolutionY) : null,
-        refreshRate: Number.isFinite(Number(d.currentRefreshRate)) ? Number(d.currentRefreshRate) : null,
-      })),
+      displays: (Array.isArray(gfxInfo.displays) ? gfxInfo.displays : []).map(
+        (d: any) => ({
+          model: String(d.model || "Display"),
+          main: Boolean(d.main),
+          builtin: Boolean(d.builtin),
+          connection: String(d.connection || ""),
+          resolutionX: Number.isFinite(Number(d.resolutionX))
+            ? Number(d.resolutionX)
+            : null,
+          resolutionY: Number.isFinite(Number(d.resolutionY))
+            ? Number(d.resolutionY)
+            : null,
+          refreshRate: Number.isFinite(Number(d.currentRefreshRate))
+            ? Number(d.currentRefreshRate)
+            : null,
+        }),
+      ),
     },
     platformDetails: buildPlatformHighlights(platform, osBlock, disks),
   };
@@ -558,21 +860,51 @@ export async function collectSysinfoSection(
       osLabel,
       timestamp,
       facts: [
-        ["Operating System", `${ov.os.distro} ${ov.os.release} (${ov.os.arch})`],
+        [
+          "Operating System",
+          `${ov.os.distro} ${ov.os.release} (${ov.os.arch})`,
+        ],
         ["Hostname", ov.os.hostname],
         ["Kernel", ov.os.kernel],
         ["System Uptime", ov.os.uptimeFormatted],
-        ["Processor", `${ov.cpu.brand} (${ov.cpu.physicalCores}P / ${ov.cpu.logicalCores}L cores)`],
-        ["CPU Load", `${ov.cpu.loadPercent}% (User ${ov.cpu.loadUserPercent}%, System ${ov.cpu.loadSystemPercent}%)`],
-        ["Memory Used", `${formatBytes(ov.memory.usedBytes)} / ${formatBytes(ov.memory.totalBytes)} (${ov.memory.usedPercent}%)`],
-        ["Swap Used", ov.memory.swapTotalBytes > 0 ? `${formatBytes(ov.memory.swapUsedBytes)} / ${formatBytes(ov.memory.swapTotalBytes)} (${ov.memory.swapPercent}%)` : "None"],
-        ["Battery", ov.battery.hasBattery ? `${ov.battery.percent}% (${ov.battery.isCharging ? "Charging" : ov.battery.acConnected ? "AC Power" : "On Battery"})` : "Desktop / AC Power"],
+        [
+          "Processor",
+          `${ov.cpu.brand} (${ov.cpu.physicalCores}P / ${ov.cpu.logicalCores}L cores)`,
+        ],
+        [
+          "CPU Load",
+          `${ov.cpu.loadPercent}% (User ${ov.cpu.loadUserPercent}%, System ${ov.cpu.loadSystemPercent}%)`,
+        ],
+        [
+          "Memory Used",
+          `${formatBytes(ov.memory.usedBytes)} / ${formatBytes(ov.memory.totalBytes)} (${ov.memory.usedPercent}%)`,
+        ],
+        [
+          "Swap Used",
+          ov.memory.swapTotalBytes > 0
+            ? `${formatBytes(ov.memory.swapUsedBytes)} / ${formatBytes(ov.memory.swapTotalBytes)} (${ov.memory.swapPercent}%)`
+            : "None",
+        ],
+        [
+          "Battery",
+          ov.battery.hasBattery
+            ? `${ov.battery.percent}% (${ov.battery.isCharging ? "Charging" : ov.battery.acConnected ? "AC Power" : "On Battery"})`
+            : "Desktop / AC Power",
+        ],
         ...ov.platformDetails.highlights,
       ],
       tables: [
         {
           title: "Mounted Storage Volumes",
-          columns: ["Mount", "Filesystem", "Type", "Size", "Used", "Available", "Use %"],
+          columns: [
+            "Mount",
+            "Filesystem",
+            "Type",
+            "Size",
+            "Used",
+            "Available",
+            "Use %",
+          ],
           rows: ov.disks.map((d) => [
             d.mount,
             d.fs,
@@ -585,7 +917,15 @@ export async function collectSysinfoSection(
         },
         {
           title: "Network Interfaces",
-          columns: ["Interface", "IPv4", "IPv6", "MAC", "Type", "Speed", "State"],
+          columns: [
+            "Interface",
+            "IPv4",
+            "IPv6",
+            "MAC",
+            "Type",
+            "Speed",
+            "State",
+          ],
           rows: ov.network.map((n) => [
             n.iface + (n.default ? " (default)" : ""),
             n.ip4 || "—",
@@ -603,10 +943,10 @@ export async function collectSysinfoSection(
 
   if (section === "hardware") {
     const [system, bios, baseboard, chassis] = await Promise.all([
-      si.system().catch(() => ({} as any)),
-      si.bios().catch(() => ({} as any)),
-      si.baseboard().catch(() => ({} as any)),
-      si.chassis().catch(() => ({} as any)),
+      si.system().catch(() => ({}) as any),
+      si.bios().catch(() => ({}) as any),
+      si.baseboard().catch(() => ({}) as any),
+      si.chassis().catch(() => ({}) as any),
     ]);
     return {
       section,
@@ -619,7 +959,12 @@ export async function collectSysinfoSection(
         ["System Version", String(system.version || "—")],
         ["Serial Number", String(system.serial || "—")],
         ["Hardware UUID", String(system.uuid || "—")],
-        ["Virtual Machine", system.virtual ? `Yes (${system.virtualHost || "VM"})` : "Physical Machine"],
+        [
+          "Virtual Machine",
+          system.virtual
+            ? `Yes (${system.virtualHost || "VM"})`
+            : "Physical Machine",
+        ],
         ["BIOS / Firmware Vendor", String(bios.vendor || "—")],
         ["BIOS Version", String(bios.version || "—")],
         ["BIOS Release Date", String(bios.releaseDate || "—")],
@@ -637,10 +982,10 @@ export async function collectSysinfoSection(
 
   if (section === "cpu") {
     const [rawCpu, speed, load, temp] = await Promise.all([
-      si.cpu().catch(() => ({} as any)),
-      si.cpuCurrentSpeed().catch(() => ({} as any)),
-      si.currentLoad().catch(() => ({} as any)),
-      si.cpuTemperature().catch(() => ({} as any)),
+      si.cpu().catch(() => ({}) as any),
+      si.cpuCurrentSpeed().catch(() => ({}) as any),
+      si.currentLoad().catch(() => ({}) as any),
+      si.cpuTemperature().catch(() => ({}) as any),
     ]);
     const cpu = showcaseMacUltra
       ? {
@@ -655,16 +1000,31 @@ export async function collectSysinfoSection(
           speed: 4.51,
           speedMax: 4.51,
           socket: "Apple UltraFusion SoC",
-          cache: { l1d: 192 * 1024, l1i: 192 * 1024, l2: 64 * 1024 * 1024, l3: 128 * 1024 * 1024 },
+          cache: {
+            l1d: 192 * 1024,
+            l1i: 192 * 1024,
+            l2: 64 * 1024 * 1024,
+            l3: 128 * 1024 * 1024,
+          },
         }
       : rawCpu;
-    const coresRows: Array<Array<string | number>> = (Array.isArray(load.cpus) ? load.cpus : []).map((c: any, idx: number) => [
+    const coresRows: Array<Array<string | number>> = (
+      Array.isArray(load.cpus) ? load.cpus : []
+    ).map((c: any, idx: number) => [
       `Core #${idx + 1}`,
       `${(Number(c.load) || 0).toFixed(1)}%`,
       `${(Number(c.loadUser) || 0).toFixed(1)}%`,
       `${(Number(c.loadSystem) || 0).toFixed(1)}%`,
-      showcaseMacUltra ? "4.51 GHz" : (speed.cores?.[idx] ? `${speed.cores[idx]} GHz` : `${speed.avg || cpu.speed || "—"} GHz`),
-      temp.cores?.[idx] ? `${temp.cores[idx]} °C` : (showcaseMacUltra ? "39 °C" : "—"),
+      showcaseMacUltra
+        ? "4.51 GHz"
+        : speed.cores?.[idx]
+          ? `${speed.cores[idx]} GHz`
+          : `${speed.avg || cpu.speed || "—"} GHz`,
+      temp.cores?.[idx]
+        ? `${temp.cores[idx]} °C`
+        : showcaseMacUltra
+          ? "39 °C"
+          : "—",
     ]);
     return {
       section,
@@ -672,20 +1032,60 @@ export async function collectSysinfoSection(
       osLabel,
       timestamp,
       facts: [
-        ["Processor", `${cpu.manufacturer || ""} ${cpu.brand || ""}`.trim() || os.cpus()[0]?.model || "—"],
-        ["Vendor / Family / Model", `${cpu.vendor || "—"} / ${cpu.family || "—"} / ${cpu.model || "—"}`],
-        ["Physical / Logical Cores", `${cpu.physicalCores || "—"} physical, ${cpu.cores || os.cpus().length} logical`],
-        ["Base / Max Clock", `${cpu.speed || "—"} GHz (Max ${cpu.speedMax || cpu.speed || "—"} GHz)`],
-        ["Current Avg Clock", `${showcaseMacUltra ? 4.51 : (speed.avg || cpu.speed || "—")} GHz`],
-        ["Socket / Governor", `${cpu.socket || "SoC"} / ${cpu.governor || "auto"}`],
-        ["L1d / L1i Cache", `${formatBytes(Number(cpu.cache?.l1d) || 0)} / ${formatBytes(Number(cpu.cache?.l1i) || 0)}`],
-        ["L2 / L3 Cache", `${formatBytes(Number(cpu.cache?.l2) || 0)} / ${formatBytes(Number(cpu.cache?.l3) || 0)}`],
-        ["Package Temperature", temp.main ? `${temp.main} °C (Max ${temp.max || temp.main} °C)` : (showcaseMacUltra ? "39 °C (Max 44 °C)" : "Not reported by OS")],
+        [
+          "Processor",
+          `${cpu.manufacturer || ""} ${cpu.brand || ""}`.trim() ||
+            os.cpus()[0]?.model ||
+            "—",
+        ],
+        [
+          "Vendor / Family / Model",
+          `${cpu.vendor || "—"} / ${cpu.family || "—"} / ${cpu.model || "—"}`,
+        ],
+        [
+          "Physical / Logical Cores",
+          `${cpu.physicalCores || "—"} physical, ${cpu.cores || os.cpus().length} logical`,
+        ],
+        [
+          "Base / Max Clock",
+          `${cpu.speed || "—"} GHz (Max ${cpu.speedMax || cpu.speed || "—"} GHz)`,
+        ],
+        [
+          "Current Avg Clock",
+          `${showcaseMacUltra ? 4.51 : speed.avg || cpu.speed || "—"} GHz`,
+        ],
+        [
+          "Socket / Governor",
+          `${cpu.socket || "SoC"} / ${cpu.governor || "auto"}`,
+        ],
+        [
+          "L1d / L1i Cache",
+          `${formatBytes(Number(cpu.cache?.l1d) || 0)} / ${formatBytes(Number(cpu.cache?.l1i) || 0)}`,
+        ],
+        [
+          "L2 / L3 Cache",
+          `${formatBytes(Number(cpu.cache?.l2) || 0)} / ${formatBytes(Number(cpu.cache?.l3) || 0)}`,
+        ],
+        [
+          "Package Temperature",
+          temp.main
+            ? `${temp.main} °C (Max ${temp.max || temp.main} °C)`
+            : showcaseMacUltra
+              ? "39 °C (Max 44 °C)"
+              : "Not reported by OS",
+        ],
       ],
       tables: [
         {
           title: "Per-Core Utilization & Clocks",
-          columns: ["Core", "Total Load", "User %", "System %", "Clock Speed", "Temp"],
+          columns: [
+            "Core",
+            "Total Load",
+            "User %",
+            "System %",
+            "Clock Speed",
+            "Temp",
+          ],
           rows: coresRows,
         },
       ],
@@ -695,16 +1095,36 @@ export async function collectSysinfoSection(
 
   if (section === "memory") {
     const [mem, rawLayout] = await Promise.all([
-      si.mem().catch(() => ({} as any)),
+      si.mem().catch(() => ({}) as any),
       si.memLayout().catch(() => [] as any[]),
     ]);
-    const total = showcaseMacUltra ? 192 * 1024 * 1024 * 1024 : (Number(mem.total) || os.totalmem());
-    const avail = showcaseMacUltra ? 156 * 1024 * 1024 * 1024 : (Number(mem.available) || Number(mem.free) || os.freemem());
+    const total = showcaseMacUltra
+      ? 192 * 1024 * 1024 * 1024
+      : Number(mem.total) || os.totalmem();
+    const avail = showcaseMacUltra
+      ? 156 * 1024 * 1024 * 1024
+      : Number(mem.available) || Number(mem.free) || os.freemem();
     const used = Math.max(0, total - avail);
     const layout = showcaseMacUltra
       ? [
-          { bank: "Unified Bank 0 (Die A)", size: 96 * 1024 * 1024 * 1024, type: "LPDDR5X-8533 (819 GB/s)", clockSpeed: 8533, formFactor: "Apple UltraFusion Package", manufacturer: "Apple / SK Hynix", partNum: "M4U-192GB-LP5X-A" },
-          { bank: "Unified Bank 1 (Die B)", size: 96 * 1024 * 1024 * 1024, type: "LPDDR5X-8533 (819 GB/s)", clockSpeed: 8533, formFactor: "Apple UltraFusion Package", manufacturer: "Apple / SK Hynix", partNum: "M4U-192GB-LP5X-B" },
+          {
+            bank: "Unified Bank 0 (Die A)",
+            size: 96 * 1024 * 1024 * 1024,
+            type: "LPDDR5X-8533 (819 GB/s)",
+            clockSpeed: 8533,
+            formFactor: "Apple UltraFusion Package",
+            manufacturer: "Apple / SK Hynix",
+            partNum: "M4U-192GB-LP5X-A",
+          },
+          {
+            bank: "Unified Bank 1 (Die B)",
+            size: 96 * 1024 * 1024 * 1024,
+            type: "LPDDR5X-8533 (819 GB/s)",
+            clockSpeed: 8533,
+            formFactor: "Apple UltraFusion Package",
+            manufacturer: "Apple / SK Hynix",
+            partNum: "M4U-192GB-LP5X-B",
+          },
         ]
       : rawLayout;
     return {
@@ -714,10 +1134,25 @@ export async function collectSysinfoSection(
       timestamp,
       facts: [
         ["Total Physical RAM", formatBytes(total)],
-        ["Used Memory", `${formatBytes(used)} (${total > 0 ? ((used / total) * 100).toFixed(1) : 0}%)`],
+        [
+          "Used Memory",
+          `${formatBytes(used)} (${total > 0 ? ((used / total) * 100).toFixed(1) : 0}%)`,
+        ],
         ["Available Memory", formatBytes(avail)],
-        ["Free (Unallocated)", formatBytes(showcaseMacUltra ? 148 * 1024 * 1024 * 1024 : (Number(mem.free) || 0))],
-        ["Active Memory", formatBytes(showcaseMacUltra ? 36 * 1024 * 1024 * 1024 : (Number(mem.active) || 0))],
+        [
+          "Free (Unallocated)",
+          formatBytes(
+            showcaseMacUltra ? 148 * 1024 * 1024 * 1024 : Number(mem.free) || 0,
+          ),
+        ],
+        [
+          "Active Memory",
+          formatBytes(
+            showcaseMacUltra
+              ? 36 * 1024 * 1024 * 1024
+              : Number(mem.active) || 0,
+          ),
+        ],
         ["Buffers / Cache", formatBytes(Number(mem.buffcache) || 0)],
         ["Swap Total", formatBytes(Number(mem.swaptotal) || 0)],
         ["Swap Used", formatBytes(Number(mem.swapused) || 0)],
@@ -726,16 +1161,26 @@ export async function collectSysinfoSection(
       tables: [
         {
           title: "Physical Memory Modules (DIMMs / Banks)",
-          columns: ["Bank", "Size", "Type", "Clock Speed", "Form Factor", "Manufacturer", "Part Number"],
-          rows: (Array.isArray(layout) ? layout : []).map((m: any, i: number) => [
-            String(m.bank || `Slot ${i + 1}`),
-            formatBytes(Number(m.size) || 0),
-            String(m.type || "—"),
-            m.clockSpeed ? `${m.clockSpeed} MHz` : "—",
-            String(m.formFactor || "—"),
-            String(m.manufacturer || "—"),
-            String(m.partNum || "—"),
-          ]),
+          columns: [
+            "Bank",
+            "Size",
+            "Type",
+            "Clock Speed",
+            "Form Factor",
+            "Manufacturer",
+            "Part Number",
+          ],
+          rows: (Array.isArray(layout) ? layout : []).map(
+            (m: any, i: number) => [
+              String(m.bank || `Slot ${i + 1}`),
+              formatBytes(Number(m.size) || 0),
+              String(m.type || "—"),
+              m.clockSpeed ? `${m.clockSpeed} MHz` : "—",
+              String(m.formFactor || "—"),
+              String(m.manufacturer || "—"),
+              String(m.partNum || "—"),
+            ],
+          ),
         },
       ],
       raw: { mem, layout },
@@ -747,7 +1192,7 @@ export async function collectSysinfoSection(
       si.fsSize().catch(() => [] as any[]),
       si.blockDevices().catch(() => [] as any[]),
       si.diskLayout().catch(() => [] as any[]),
-      si.disksIO().catch(() => ({} as any)),
+      si.disksIO().catch(() => ({}) as any),
     ]);
     return {
       section,
@@ -755,15 +1200,36 @@ export async function collectSysinfoSection(
       osLabel,
       timestamp,
       facts: [
-        ["Mounted Filesystems", String(Array.isArray(fsSize) ? fsSize.length : 0)],
-        ["Physical Drives", String(Array.isArray(diskLayout) ? diskLayout.length : 0)],
-        ["Read / Write IOPS", `${disksIO?.rIO_sec ?? 0} / ${disksIO?.wIO_sec ?? 0} ops/s`],
-        ["Total Read / Write Ops", `${disksIO?.rIO ?? 0} / ${disksIO?.wIO ?? 0}`],
+        [
+          "Mounted Filesystems",
+          String(Array.isArray(fsSize) ? fsSize.length : 0),
+        ],
+        [
+          "Physical Drives",
+          String(Array.isArray(diskLayout) ? diskLayout.length : 0),
+        ],
+        [
+          "Read / Write IOPS",
+          `${disksIO?.rIO_sec ?? 0} / ${disksIO?.wIO_sec ?? 0} ops/s`,
+        ],
+        [
+          "Total Read / Write Ops",
+          `${disksIO?.rIO ?? 0} / ${disksIO?.wIO ?? 0}`,
+        ],
       ],
       tables: [
         {
           title: "Mounted Filesystems",
-          columns: ["Mount", "Filesystem", "Type", "Capacity", "Used", "Available", "Use %", "Access"],
+          columns: [
+            "Mount",
+            "Filesystem",
+            "Type",
+            "Capacity",
+            "Used",
+            "Available",
+            "Use %",
+            "Access",
+          ],
           rows: (Array.isArray(fsSize) ? fsSize : []).map((d: any) => [
             String(d.mount || d.fs || ""),
             String(d.fs || ""),
@@ -777,7 +1243,15 @@ export async function collectSysinfoSection(
         },
         {
           title: "Physical Drives",
-          columns: ["Device", "Name", "Vendor", "Type", "Interface", "Size", "SMART Status"],
+          columns: [
+            "Device",
+            "Name",
+            "Vendor",
+            "Type",
+            "Interface",
+            "Size",
+            "SMART Status",
+          ],
           rows: (Array.isArray(diskLayout) ? diskLayout : []).map((d: any) => [
             String(d.device || ""),
             String(d.name || "Drive"),
@@ -790,16 +1264,26 @@ export async function collectSysinfoSection(
         },
         {
           title: "Block Devices & Partitions",
-          columns: ["Name", "Type", "FSType", "Mount", "Size", "Label", "Removable"],
-          rows: (Array.isArray(blockDevices) ? blockDevices : []).slice(0, 30).map((b: any) => [
-            String(b.name || ""),
-            String(b.type || ""),
-            String(b.fsType || "—"),
-            String(b.mount || "—"),
-            formatBytes(Number(b.size) || 0),
-            String(b.label || "—"),
-            b.removable ? "Yes" : "No",
-          ]),
+          columns: [
+            "Name",
+            "Type",
+            "FSType",
+            "Mount",
+            "Size",
+            "Label",
+            "Removable",
+          ],
+          rows: (Array.isArray(blockDevices) ? blockDevices : [])
+            .slice(0, 30)
+            .map((b: any) => [
+              String(b.name || ""),
+              String(b.type || ""),
+              String(b.fsType || "—"),
+              String(b.mount || "—"),
+              formatBytes(Number(b.size) || 0),
+              String(b.label || "—"),
+              b.removable ? "Yes" : "No",
+            ]),
         },
       ],
       raw: { fsSize, blockDevices, diskLayout, disksIO },
@@ -827,7 +1311,16 @@ export async function collectSysinfoSection(
       tables: [
         {
           title: "Network Interfaces (NICs)",
-          columns: ["Interface", "IPv4", "IPv6", "MAC", "Type", "Speed", "MTU", "State"],
+          columns: [
+            "Interface",
+            "IPv4",
+            "IPv6",
+            "MAC",
+            "Type",
+            "Speed",
+            "MTU",
+            "State",
+          ],
           rows: ifaceList.map((n: any) => [
             String(n.iface || "") + (n.default ? " ★" : ""),
             String(n.ip4 || "—"),
@@ -841,7 +1334,15 @@ export async function collectSysinfoSection(
         },
         {
           title: "Live Interface Traffic",
-          columns: ["Interface", "State", "RX Total", "TX Total", "RX / sec", "TX / sec", "Errors"],
+          columns: [
+            "Interface",
+            "State",
+            "RX Total",
+            "TX Total",
+            "RX / sec",
+            "TX / sec",
+            "Errors",
+          ],
           rows: statList.map((s: any) => [
             String(s.iface || ""),
             String(s.operstate || "up"),
@@ -867,7 +1368,8 @@ export async function collectSysinfoSection(
           controllers: [
             {
               vendor: "Apple",
-              model: "Apple M4 Ultra 80-Core GPU (Hardware Ray Tracing · Metal 4)",
+              model:
+                "Apple M4 Ultra 80-Core GPU (Hardware Ray Tracing · Metal 4)",
               vram: 196608,
               bus: "Apple UltraFusion Unified Fabric (819 GB/s)",
               driverVersion: "Metal 4.0 (Display-P3 1600-nit XDR)",
@@ -919,13 +1421,22 @@ export async function collectSysinfoSection(
         },
         {
           title: "Displays & Monitors",
-          columns: ["Display", "Main", "Built-in", "Connection", "Resolution", "Refresh Rate"],
+          columns: [
+            "Display",
+            "Main",
+            "Built-in",
+            "Connection",
+            "Resolution",
+            "Refresh Rate",
+          ],
           rows: (gfx.displays || []).map((d: any) => [
             String(d.model || "Display"),
             d.main ? "Yes" : "No",
             d.builtin ? "Yes" : "No",
             String(d.connection || "—"),
-            d.resolutionX && d.resolutionY ? `${d.resolutionX} × ${d.resolutionY}` : "—",
+            d.resolutionX && d.resolutionY
+              ? `${d.resolutionX} × ${d.resolutionY}`
+              : "—",
             d.currentRefreshRate ? `${d.currentRefreshRate} Hz` : "—",
           ]),
         },
@@ -947,7 +1458,7 @@ export async function collectSysinfoSection(
 
   if (section === "peripherals") {
     const [battery, usb, bt, printers] = await Promise.all([
-      si.battery().catch(() => ({} as any)),
+      si.battery().catch(() => ({}) as any),
       si.usb().catch(() => [] as any[]),
       si.bluetoothDevices().catch(() => [] as any[]),
       si.printer().catch(() => [] as any[]),
@@ -959,8 +1470,16 @@ export async function collectSysinfoSection(
       timestamp,
       facts: [
         ["Battery Installed", battery.hasBattery ? "Yes" : "No (AC Desktop)"],
-        ["Battery Charge", battery.hasBattery ? `${battery.percent}% (${battery.isCharging ? "Charging" : "Discharging"})` : "—"],
-        ["Battery Cycles", battery.cycleCount ? String(battery.cycleCount) : "—"],
+        [
+          "Battery Charge",
+          battery.hasBattery
+            ? `${battery.percent}% (${battery.isCharging ? "Charging" : "Discharging"})`
+            : "—",
+        ],
+        [
+          "Battery Cycles",
+          battery.cycleCount ? String(battery.cycleCount) : "—",
+        ],
         ["USB Devices", String(Array.isArray(usb) ? usb.length : 0)],
         ["Bluetooth Devices", String(Array.isArray(bt) ? bt.length : 0)],
         ["Printers", String(Array.isArray(printers) ? printers.length : 0)],
@@ -968,26 +1487,43 @@ export async function collectSysinfoSection(
       tables: [
         {
           title: "USB Devices",
-          columns: ["Name", "Type", "Vendor / Manufacturer", "Bus", "Removable"],
-          rows: (Array.isArray(usb) ? usb : []).slice(0, 30).map((u: any) => [
-            String(u.name || "USB Device"),
-            String(u.type || "—"),
-            String(u.manufacturer || u.vendor || "—"),
-            String(u.bus ?? "—"),
-            u.removable ? "Yes" : "No",
-          ]),
+          columns: [
+            "Name",
+            "Type",
+            "Vendor / Manufacturer",
+            "Bus",
+            "Removable",
+          ],
+          rows: (Array.isArray(usb) ? usb : [])
+            .slice(0, 30)
+            .map((u: any) => [
+              String(u.name || "USB Device"),
+              String(u.type || "—"),
+              String(u.manufacturer || u.vendor || "—"),
+              String(u.bus ?? "—"),
+              u.removable ? "Yes" : "No",
+            ]),
         },
         {
           title: "Bluetooth Peripherals",
-          columns: ["Name", "Type", "Manufacturer", "MAC", "Connected", "Battery"],
-          rows: (Array.isArray(bt) ? bt : []).slice(0, 25).map((b: any) => [
-            String(b.name || "Bluetooth Device"),
-            String(b.type || "—"),
-            String(b.manufacturer || "—"),
-            String(b.macDevice || "—"),
-            b.connected ? "Connected" : "Paired",
-            b.batteryPercent ? `${b.batteryPercent}%` : "—",
-          ]),
+          columns: [
+            "Name",
+            "Type",
+            "Manufacturer",
+            "MAC",
+            "Connected",
+            "Battery",
+          ],
+          rows: (Array.isArray(bt) ? bt : [])
+            .slice(0, 25)
+            .map((b: any) => [
+              String(b.name || "Bluetooth Device"),
+              String(b.type || "—"),
+              String(b.manufacturer || "—"),
+              String(b.macDevice || "—"),
+              b.connected ? "Connected" : "Paired",
+              b.batteryPercent ? `${b.batteryPercent}%` : "—",
+            ]),
         },
         {
           title: "Configured Printers",
@@ -1008,11 +1544,13 @@ export async function collectSysinfoSection(
 
   // software
   const [osInfo, versions, users] = await Promise.all([
-    si.osInfo().catch(() => ({} as any)),
-    si.versions().catch(() => ({} as any)),
+    si.osInfo().catch(() => ({}) as any),
+    si.versions().catch(() => ({}) as any),
     si.users().catch(() => [] as any[]),
   ]);
-  const versionRows: Array<Array<string | number>> = Object.entries(versions || {})
+  const versionRows: Array<Array<string | number>> = Object.entries(
+    versions || {},
+  )
     .filter(([, v]) => Boolean(v))
     .map(([k, v]) => [k, String(v)]);
   if (typeof Bun !== "undefined" && !versionRows.some(([k]) => k === "bun")) {
@@ -1024,7 +1562,10 @@ export async function collectSysinfoSection(
     osLabel,
     timestamp,
     facts: [
-      ["OS Distribution", `${osInfo.distro || osLabel} ${osInfo.release || os.release()}`],
+      [
+        "OS Distribution",
+        `${osInfo.distro || osLabel} ${osInfo.release || os.release()}`,
+      ],
       ["Kernel / Build", String(osInfo.kernel || os.release())],
       ["Architecture", String(osInfo.arch || os.arch())],
       ["Hostname", String(osInfo.hostname || os.hostname())],
@@ -1040,7 +1581,14 @@ export async function collectSysinfoSection(
       },
       {
         title: "Active User Sessions",
-        columns: ["User", "Terminal / TTY", "Login Date", "Login Time", "IP / Host", "Last Command"],
+        columns: [
+          "User",
+          "Terminal / TTY",
+          "Login Date",
+          "Login Time",
+          "IP / Host",
+          "Last Command",
+        ],
         rows: (Array.isArray(users) ? users : []).map((u: any) => [
           String(u.user || ""),
           String(u.tty || "—"),
@@ -1078,7 +1626,9 @@ export async function runSysinfoProbe(
     throw new Error(`Unsupported system probe: "${method}".`);
   }
 
-  const cleanParam = String(param ?? "").slice(0, 200).trim();
+  const cleanParam = String(param ?? "")
+    .slice(0, 200)
+    .trim();
   if (entry.hasParam && cleanParam) {
     if (method === "inetLatency") {
       if (cleanParam.startsWith("-") || !/^[a-zA-Z0-9.:-]+$/.test(cleanParam)) {
@@ -1098,18 +1648,30 @@ export async function runSysinfoProbe(
     if (typeof fn !== "function") {
       throw new Error(`Probe "${method}" is not available on this platform.`);
     }
-    data = entry.hasParam ? await fn(cleanParam || entry.defaultParam || "") : await fn();
+    data = entry.hasParam
+      ? await fn(cleanParam || entry.defaultParam || "")
+      : await fn();
   }
   const elapsedMs = Math.max(1, Math.round(performance.now() - started));
 
   const flat = flattenData(data, "", {}, 600);
-  const flatRows: Array<[string, string]> = Object.entries(flat).map(([k, v]) => [
-    k,
-    v === null || v === undefined ? "" : typeof v === "object" ? JSON.stringify(v) : String(v),
-  ]);
+  const flatRows: Array<[string, string]> = Object.entries(flat).map(
+    ([k, v]) => [
+      k,
+      v === null || v === undefined
+        ? ""
+        : typeof v === "object"
+          ? JSON.stringify(v)
+          : String(v),
+    ],
+  );
 
   let table: SysinfoTable | null = null;
-  if (Array.isArray(data) && data.length > 0 && data.every((r) => r && typeof r === "object" && !Array.isArray(r))) {
+  if (
+    Array.isArray(data) &&
+    data.length > 0 &&
+    data.every((r) => r && typeof r === "object" && !Array.isArray(r))
+  ) {
     const cols: string[] = [];
     for (const r of data.slice(0, 50)) {
       for (const [k, v] of Object.entries(r as Record<string, unknown>)) {
@@ -1123,9 +1685,13 @@ export async function runSysinfoProbe(
       table = {
         title: entry.label,
         columns: cappedCols,
-        rows: data.slice(0, 100).map((r: any) =>
-          cappedCols.map((c) => (r[c] === null || r[c] === undefined ? "" : String(r[c]))),
-        ),
+        rows: data
+          .slice(0, 100)
+          .map((r: any) =>
+            cappedCols.map((c) =>
+              r[c] === null || r[c] === undefined ? "" : String(r[c]),
+            ),
+          ),
       };
     }
   }
@@ -1145,7 +1711,10 @@ export async function runSysinfoProbe(
 }
 
 /** Computes a structured diff between two system information snapshots (`before` and `after`). */
-export function diffSysinfoSnapshots(before: unknown, after: unknown): DataDiff {
+export function diffSysinfoSnapshots(
+  before: unknown,
+  after: unknown,
+): DataDiff {
   return diffData(before, after);
 }
 
@@ -1166,6 +1735,8 @@ export function formatSysinfoReport(
       return toHtmlReport(title, data, { platform, generated });
     case "json":
     default:
-      return JSON.stringify({ title, platform, generated, data }, null, 2) + "\n";
+      return (
+        JSON.stringify({ title, platform, generated, data }, null, 2) + "\n"
+      );
   }
 }

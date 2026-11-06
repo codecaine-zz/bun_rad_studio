@@ -55,15 +55,24 @@ function clampByte(n: number): number {
 /**
  * Normalizes any hex or rgb() string into a valid 6-digit lowercase `#rrggbb` hex string.
  */
-export function normalizeHex(input: string | undefined, fallback = "#3b82f6"): string {
-  const rgb = parseColorToRgb(input, parseColorToRgb(fallback, { r: 59, g: 130, b: 246 }));
+export function normalizeHex(
+  input: string | undefined,
+  fallback = "#3b82f6",
+): string {
+  const rgb = parseColorToRgb(
+    input,
+    parseColorToRgb(fallback, { r: 59, g: 130, b: 246 }),
+  );
   return rgbToHex(rgb);
 }
 
 /**
  * Parses `#rgb`, `#rrggbb`, `#rrggbbaa`, or `rgb()/rgba()` into `{ r, g, b }`.
  */
-export function parseColorToRgb(input: string | undefined, fallback: RGB = { r: 59, g: 130, b: 246 }): RGB {
+export function parseColorToRgb(
+  input: string | undefined,
+  fallback: RGB = { r: 59, g: 130, b: 246 },
+): RGB {
   if (!input || typeof input !== "string") return fallback;
   const s = input.trim();
 
@@ -83,7 +92,9 @@ export function parseColorToRgb(input: string | undefined, fallback: RGB = { r: 
     };
   }
 
-  const rgbMatch = /^rgba?\(\s*(\d{1,3})[\s,]+(\d{1,3})[\s,]+(\d{1,3})/i.exec(s);
+  const rgbMatch = /^rgba?\(\s*(\d{1,3})[\s,]+(\d{1,3})[\s,]+(\d{1,3})/i.exec(
+    s,
+  );
   if (rgbMatch) {
     return {
       r: clampByte(Number(rgbMatch[1])),
@@ -185,7 +196,8 @@ export function hslToHex(h: number, s: number, l: number): string {
  * Formats a hex string or `RGB` object with an alpha channel (`0`–`1`) as a CSS `rgba(...)` string.
  */
 export function rgba(hexOrRgb: string | RGB, alpha: number): string {
-  const rgb = typeof hexOrRgb === "string" ? parseColorToRgb(hexOrRgb) : hexOrRgb;
+  const rgb =
+    typeof hexOrRgb === "string" ? parseColorToRgb(hexOrRgb) : hexOrRgb;
   const a = Math.round(clamp(alpha, 0, 1) * 1000) / 1000;
   return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${a})`;
 }
@@ -193,7 +205,11 @@ export function rgba(hexOrRgb: string | RGB, alpha: number): string {
 /**
  * Linear interpolation between two colors in RGB space (`t = 0` -> `colorA`, `t = 1` -> `colorB`).
  */
-export function mixHexColors(colorA: string, colorB: string, t: number): string {
+export function mixHexColors(
+  colorA: string,
+  colorB: string,
+  t: number,
+): string {
   const a = parseColorToRgb(colorA);
   const b = parseColorToRgb(colorB);
   const ratio = clamp(t, 0, 1);
@@ -208,7 +224,8 @@ export function mixHexColors(colorA: string, colorB: string, t: number): string 
  * WCAG 2.1 relative luminance (0.0 darkest black to 1.0 brightest white).
  */
 export function getRelativeLuminance(color: string | RGB): number {
-  const { r, g, b } = typeof color === "string" ? parseColorToRgb(color) : color;
+  const { r, g, b } =
+    typeof color === "string" ? parseColorToRgb(color) : color;
   const transform = (channel: number) => {
     const c = channel / 255;
     return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
@@ -219,7 +236,10 @@ export function getRelativeLuminance(color: string | RGB): number {
 /**
  * WCAG 2.1 contrast ratio between two colors (1.0 to 21.0).
  */
-export function getContrastRatio(foreground: string, background: string): number {
+export function getContrastRatio(
+  foreground: string,
+  background: string,
+): number {
   const l1 = getRelativeLuminance(foreground);
   const l2 = getRelativeLuminance(background);
   const lighter = Math.max(l1, l2);
@@ -234,7 +254,7 @@ export function ensureContrastRatio(
   candidateFg: string,
   bgHex: string,
   minRatio = 4.5,
-  preferLight?: boolean
+  preferLight?: boolean,
 ): string {
   const normalizedFg = normalizeHex(candidateFg);
   const normalizedBg = normalizeHex(bgHex);
@@ -261,7 +281,8 @@ export function ensureContrastRatio(
     }
   }
 
-  return getContrastRatio("#ffffff", normalizedBg) >= getContrastRatio("#000000", normalizedBg)
+  return getContrastRatio("#ffffff", normalizedBg) >=
+    getContrastRatio("#000000", normalizedBg)
     ? "#ffffff"
     : "#000000";
 }
@@ -269,7 +290,10 @@ export function ensureContrastRatio(
 /**
  * Picks optimal readable foreground text (`on` color) for solid fills such as buttons and badges.
  */
-export function pickReadableOnColor(solidBgHex: string, baseMode: BaseMode = "dark"): string {
+export function pickReadableOnColor(
+  solidBgHex: string,
+  baseMode: BaseMode = "dark",
+): string {
   const minTarget = baseMode === "high-contrast" ? 7.0 : 4.5;
   const whiteContrast = getContrastRatio("#ffffff", solidBgHex);
   const darkInk = "#090d16";
@@ -288,7 +312,10 @@ export function pickReadableOnColor(solidBgHex: string, baseMode: BaseMode = "da
  * Generates the 10-step (50 to 950, plus 900) background/panel/border neutral shade scale
  * tinted by the Primary Brand Color and calibrated for the selected Base Mode.
  */
-export function generateNeutralShadeScale(primaryColor: string, baseMode: BaseMode): ShadeScale {
+export function generateNeutralShadeScale(
+  primaryColor: string,
+  baseMode: BaseMode,
+): ShadeScale {
   const { h, s } = hexToHsl(primaryColor);
 
   // Calibrate saturation & lightness curves per Base Mode
@@ -354,14 +381,21 @@ export function generateNeutralShadeScale(primaryColor: string, baseMode: BaseMo
     "high-contrast": 0.12,
   };
 
-  const baseSat = clamp(s * saturationFactor[baseMode], 4, baseMode === "midnight" ? 38 : 26);
+  const baseSat = clamp(
+    s * saturationFactor[baseMode],
+    4,
+    baseMode === "midnight" ? 38 : 26,
+  );
   const scale = {} as ShadeScale;
 
   for (const step of SHADE_STEPS_ALL) {
     const l = lightnessMap[baseMode][step];
     // Slightly boost saturation in deep mid-darks for richness, taper at extremes
     const extremityDampener = l > 92 || l < 5 ? 0.65 : 1.0;
-    const stepSat = baseMode === "high-contrast" && (step === 50 || step === 950) ? 0 : baseSat * extremityDampener;
+    const stepSat =
+      baseMode === "high-contrast" && (step === 50 || step === 950)
+        ? 0
+        : baseSat * extremityDampener;
     scale[step] = hslToHex(h, stepSat, l);
   }
 
@@ -395,7 +429,8 @@ export function generateBrandShadeScale(brandHex: string): ShadeScale {
       scale[step] = normalizeHex(brandHex);
     } else {
       const targetL = stepLightness[step];
-      const satAdjust = step <= 100 ? baseSat * 0.82 : step >= 900 ? baseSat * 0.88 : baseSat;
+      const satAdjust =
+        step <= 100 ? baseSat * 0.82 : step >= 900 ? baseSat * 0.88 : baseSat;
       scale[step] = hslToHex(h, satAdjust, targetL);
     }
   }
@@ -409,14 +444,19 @@ export function computeInteractiveStates(
   baseColorHex: string,
   baseMode: BaseMode,
   surfaceBgHex: string,
-  neutralScale: ShadeScale
+  neutralScale: ShadeScale,
 ): InteractiveStateTokens {
   const isLight = baseMode === "light";
   const isHighContrast = baseMode === "high-contrast";
 
   // Ensure the interactive base color stands out clearly against the surface
   const minSurfaceContrast = isHighContrast ? 4.5 : 2.6;
-  const safeBase = ensureContrastRatio(baseColorHex, surfaceBgHex, minSurfaceContrast, !isLight);
+  const safeBase = ensureContrastRatio(
+    baseColorHex,
+    surfaceBgHex,
+    minSurfaceContrast,
+    !isLight,
+  );
   const { h, s, l } = hexToHsl(safeBase);
 
   const hoverL = isLight ? clamp(l - 6, 12, 88) : clamp(l + 7, 18, 92);
@@ -427,7 +467,11 @@ export function computeInteractiveStates(
 
   const focusBorder = isHighContrast
     ? ensureContrastRatio(safeBase, surfaceBgHex, 7.0, true)
-    : hslToHex(h, clamp(s + 10, 50, 100), isLight ? clamp(l, 35, 55) : clamp(l + 10, 55, 80));
+    : hslToHex(
+        h,
+        clamp(s + 10, 50, 100),
+        isLight ? clamp(l, 35, 55) : clamp(l + 10, 55, 80),
+      );
 
   const focusRingAlpha = isHighContrast ? 0.65 : isLight ? 0.28 : 0.38;
   const focusRingWidth = isHighContrast ? "3px" : "3px";
@@ -461,7 +505,7 @@ export function computeSurfaceVibeTokens(
   vibe: SurfaceVibe,
   baseMode: BaseMode,
   primaryColor: string,
-  accentColor: string
+  accentColor: string,
 ): SurfaceVibeTokens {
   const isLight = baseMode === "light";
   const isMidnight = baseMode === "midnight";
@@ -475,8 +519,12 @@ export function computeSurfaceVibeTokens(
     case "flat": {
       return {
         shadowXs: "none",
-        shadowSm: isHighContrast ? "none" : `0 1px 2px rgba(${shadowInk}, ${isLight ? 0.04 : 0.18})`,
-        shadowMd: isHighContrast ? "none" : `0 2px 4px rgba(${shadowInk}, ${isLight ? 0.06 : 0.24})`,
+        shadowSm: isHighContrast
+          ? "none"
+          : `0 1px 2px rgba(${shadowInk}, ${isLight ? 0.04 : 0.18})`,
+        shadowMd: isHighContrast
+          ? "none"
+          : `0 2px 4px rgba(${shadowInk}, ${isLight ? 0.06 : 0.24})`,
         shadowElevated: isHighContrast
           ? `0 0 0 2px ${primaryColor}`
           : `0 4px 12px rgba(${shadowInk}, ${isLight ? 0.08 : 0.32})`,
@@ -514,8 +562,12 @@ export function computeSurfaceVibeTokens(
     }
 
     case "matte": {
-      const matteTopRim = isLight ? "rgba(255, 255, 255, 0.5)" : "rgba(255, 255, 255, 0.04)";
-      const matteBottomRim = isLight ? "rgba(15, 23, 42, 0.05)" : "rgba(0, 0, 0, 0.35)";
+      const matteTopRim = isLight
+        ? "rgba(255, 255, 255, 0.5)"
+        : "rgba(255, 255, 255, 0.04)";
+      const matteBottomRim = isLight
+        ? "rgba(15, 23, 42, 0.05)"
+        : "rgba(0, 0, 0, 0.35)";
       return {
         shadowXs: `0 1px 2px rgba(${shadowInk}, ${isLight ? 0.05 : 0.22})`,
         shadowSm: `0 2px 5px rgba(${shadowInk}, ${isLight ? 0.07 : 0.28}), inset 0 1px 0 ${matteTopRim}`,
@@ -559,7 +611,9 @@ export function computeSurfaceVibeTokens(
 /**
  * Maps Corner Sharpness slider (0px sharp to 24px pill-shaped) into semantic radius tokens.
  */
-export function computeCornerTokens(cornerSharpness: number): CornerRadiusTokens {
+export function computeCornerTokens(
+  cornerSharpness: number,
+): CornerRadiusTokens {
   const c = clamp(Math.round(cornerSharpness), 0, 24);
   if (c === 0) {
     return {
@@ -700,136 +754,799 @@ export const DEFAULT_SURFACE_CONFIG: ThemeSurfaceConfig = {
  */
 export const THEME_VARIABLE_CATALOG: readonly ThemeVariableDescriptor[] = [
   // 1. Backgrounds
-  { name: "--bg-app", label: "App Canvas Background", category: "Backgrounds", kind: "color", description: "Primary application viewport background" },
-  { name: "--bg-panel", label: "Panel Surface", category: "Backgrounds", kind: "color", description: "Cards, drawers, sidebars, and primary containers" },
-  { name: "--bg-elevated", label: "Elevated Surface", category: "Backgrounds", kind: "color", description: "Popovers, dropdowns, modals, and floating cards" },
-  { name: "--bg-surface", label: "Subtle Section Fill", category: "Backgrounds", kind: "color", description: "Secondary content wells, table headers, and toolbars" },
-  { name: "--bg-hover", label: "Interactive Hover Fill", category: "Backgrounds", kind: "color", description: "Row, tab, and list item hover background" },
-  { name: "--bg-active", label: "Interactive Active Fill", category: "Backgrounds", kind: "color", description: "Pressed or active surface background" },
-  { name: "--bg-selected", label: "Selected Item Fill", category: "Backgrounds", kind: "color", description: "Selected table row or active navigation item tint" },
-  { name: "--bg-glass", label: "Translucent Glass Fill", category: "Backgrounds", kind: "color", description: "Frosted glass surface background with alpha" },
-  { name: "--bg-overlay", label: "Modal Backdrop Overlay", category: "Backgrounds", kind: "color", description: "Dimmed scrim behind modal dialogs and drawers" },
-  { name: "--shade-50", label: "Shade 50 (Lightest)", category: "Backgrounds", kind: "color", description: "Step 50 in the 10-step neutral shade scale" },
-  { name: "--shade-100", label: "Shade 100", category: "Backgrounds", kind: "color", description: "Step 100 in the 10-step neutral shade scale" },
-  { name: "--shade-200", label: "Shade 200", category: "Backgrounds", kind: "color", description: "Step 200 in the 10-step neutral shade scale" },
-  { name: "--shade-300", label: "Shade 300", category: "Backgrounds", kind: "color", description: "Step 300 in the 10-step neutral shade scale" },
-  { name: "--shade-400", label: "Shade 400", category: "Backgrounds", kind: "color", description: "Step 400 in the 10-step neutral shade scale" },
-  { name: "--shade-500", label: "Shade 500 (Midpoint)", category: "Backgrounds", kind: "color", description: "Step 500 in the 10-step neutral shade scale" },
-  { name: "--shade-600", label: "Shade 600", category: "Backgrounds", kind: "color", description: "Step 600 in the 10-step neutral shade scale" },
-  { name: "--shade-700", label: "Shade 700", category: "Backgrounds", kind: "color", description: "Step 700 in the 10-step neutral shade scale" },
-  { name: "--shade-800", label: "Shade 800", category: "Backgrounds", kind: "color", description: "Step 800 in the 10-step neutral shade scale" },
-  { name: "--shade-900", label: "Shade 900", category: "Backgrounds", kind: "color", description: "Step 900 deep surface shade" },
-  { name: "--shade-950", label: "Shade 950 (Deepest)", category: "Backgrounds", kind: "color", description: "Step 950 in the 10-step neutral shade scale" },
+  {
+    name: "--bg-app",
+    label: "App Canvas Background",
+    category: "Backgrounds",
+    kind: "color",
+    description: "Primary application viewport background",
+  },
+  {
+    name: "--bg-panel",
+    label: "Panel Surface",
+    category: "Backgrounds",
+    kind: "color",
+    description: "Cards, drawers, sidebars, and primary containers",
+  },
+  {
+    name: "--bg-elevated",
+    label: "Elevated Surface",
+    category: "Backgrounds",
+    kind: "color",
+    description: "Popovers, dropdowns, modals, and floating cards",
+  },
+  {
+    name: "--bg-surface",
+    label: "Subtle Section Fill",
+    category: "Backgrounds",
+    kind: "color",
+    description: "Secondary content wells, table headers, and toolbars",
+  },
+  {
+    name: "--bg-hover",
+    label: "Interactive Hover Fill",
+    category: "Backgrounds",
+    kind: "color",
+    description: "Row, tab, and list item hover background",
+  },
+  {
+    name: "--bg-active",
+    label: "Interactive Active Fill",
+    category: "Backgrounds",
+    kind: "color",
+    description: "Pressed or active surface background",
+  },
+  {
+    name: "--bg-selected",
+    label: "Selected Item Fill",
+    category: "Backgrounds",
+    kind: "color",
+    description: "Selected table row or active navigation item tint",
+  },
+  {
+    name: "--bg-glass",
+    label: "Translucent Glass Fill",
+    category: "Backgrounds",
+    kind: "color",
+    description: "Frosted glass surface background with alpha",
+  },
+  {
+    name: "--bg-overlay",
+    label: "Modal Backdrop Overlay",
+    category: "Backgrounds",
+    kind: "color",
+    description: "Dimmed scrim behind modal dialogs and drawers",
+  },
+  {
+    name: "--shade-50",
+    label: "Shade 50 (Lightest)",
+    category: "Backgrounds",
+    kind: "color",
+    description: "Step 50 in the 10-step neutral shade scale",
+  },
+  {
+    name: "--shade-100",
+    label: "Shade 100",
+    category: "Backgrounds",
+    kind: "color",
+    description: "Step 100 in the 10-step neutral shade scale",
+  },
+  {
+    name: "--shade-200",
+    label: "Shade 200",
+    category: "Backgrounds",
+    kind: "color",
+    description: "Step 200 in the 10-step neutral shade scale",
+  },
+  {
+    name: "--shade-300",
+    label: "Shade 300",
+    category: "Backgrounds",
+    kind: "color",
+    description: "Step 300 in the 10-step neutral shade scale",
+  },
+  {
+    name: "--shade-400",
+    label: "Shade 400",
+    category: "Backgrounds",
+    kind: "color",
+    description: "Step 400 in the 10-step neutral shade scale",
+  },
+  {
+    name: "--shade-500",
+    label: "Shade 500 (Midpoint)",
+    category: "Backgrounds",
+    kind: "color",
+    description: "Step 500 in the 10-step neutral shade scale",
+  },
+  {
+    name: "--shade-600",
+    label: "Shade 600",
+    category: "Backgrounds",
+    kind: "color",
+    description: "Step 600 in the 10-step neutral shade scale",
+  },
+  {
+    name: "--shade-700",
+    label: "Shade 700",
+    category: "Backgrounds",
+    kind: "color",
+    description: "Step 700 in the 10-step neutral shade scale",
+  },
+  {
+    name: "--shade-800",
+    label: "Shade 800",
+    category: "Backgrounds",
+    kind: "color",
+    description: "Step 800 in the 10-step neutral shade scale",
+  },
+  {
+    name: "--shade-900",
+    label: "Shade 900",
+    category: "Backgrounds",
+    kind: "color",
+    description: "Step 900 deep surface shade",
+  },
+  {
+    name: "--shade-950",
+    label: "Shade 950 (Deepest)",
+    category: "Backgrounds",
+    kind: "color",
+    description: "Step 950 in the 10-step neutral shade scale",
+  },
 
   // 2. Typography
-  { name: "--text-primary", label: "Primary Text", category: "Typography", kind: "color", description: "High-contrast headings and body copy" },
-  { name: "--text-secondary", label: "Secondary Text", category: "Typography", kind: "color", description: "Subtitles, supporting descriptions, and labels" },
-  { name: "--text-muted", label: "Muted / Caption Text", category: "Typography", kind: "color", description: "Timestamps, metadata, and helper captions" },
-  { name: "--text-on-primary", label: "Text on Primary Brand", category: "Typography", kind: "color", description: "Auto-contrasted foreground on primary fills" },
-  { name: "--text-on-accent", label: "Text on Accent Action", category: "Typography", kind: "color", description: "Auto-contrasted foreground on accent fills" },
-  { name: "--text-link", label: "Hyperlink Text", category: "Typography", kind: "color", description: "Interactive anchor and breadcrumb links" },
-  { name: "--text-success", label: "Success Status Text", category: "Typography", kind: "color", description: "Contrast-checked positive status foreground" },
-  { name: "--text-warning", label: "Warning Status Text", category: "Typography", kind: "color", description: "Contrast-checked caution status foreground" },
-  { name: "--text-danger", label: "Danger Status Text", category: "Typography", kind: "color", description: "Contrast-checked error/destructive foreground" },
-  { name: "--text-info", label: "Info Status Text", category: "Typography", kind: "color", description: "Contrast-checked informational foreground" },
-  { name: "--font-sans", label: "Sans-Serif Font Stack", category: "Typography", kind: "font", description: "Primary UI font family" },
-  { name: "--font-mono", label: "Monospace Font Stack", category: "Typography", kind: "font", description: "Code, token, and terminal font family" },
-  { name: "--font-size-xs", label: "Font Size XS", category: "Typography", kind: "length", description: "Micro badges and dense metadata" },
-  { name: "--font-size-sm", label: "Font Size SM", category: "Typography", kind: "length", description: "Secondary controls and table cells" },
-  { name: "--font-size-base", label: "Font Size Base", category: "Typography", kind: "length", description: "Default body and control font size" },
-  { name: "--font-size-lg", label: "Font Size LG", category: "Typography", kind: "length", description: "Card titles and section headers" },
-  { name: "--font-size-xl", label: "Font Size XL", category: "Typography", kind: "length", description: "Primary view headings" },
-  { name: "--line-height-base", label: "Base Line Height", category: "Typography", kind: "text", description: "Typographic vertical rhythm multiplier" },
+  {
+    name: "--text-primary",
+    label: "Primary Text",
+    category: "Typography",
+    kind: "color",
+    description: "High-contrast headings and body copy",
+  },
+  {
+    name: "--text-secondary",
+    label: "Secondary Text",
+    category: "Typography",
+    kind: "color",
+    description: "Subtitles, supporting descriptions, and labels",
+  },
+  {
+    name: "--text-muted",
+    label: "Muted / Caption Text",
+    category: "Typography",
+    kind: "color",
+    description: "Timestamps, metadata, and helper captions",
+  },
+  {
+    name: "--text-on-primary",
+    label: "Text on Primary Brand",
+    category: "Typography",
+    kind: "color",
+    description: "Auto-contrasted foreground on primary fills",
+  },
+  {
+    name: "--text-on-accent",
+    label: "Text on Accent Action",
+    category: "Typography",
+    kind: "color",
+    description: "Auto-contrasted foreground on accent fills",
+  },
+  {
+    name: "--text-link",
+    label: "Hyperlink Text",
+    category: "Typography",
+    kind: "color",
+    description: "Interactive anchor and breadcrumb links",
+  },
+  {
+    name: "--text-success",
+    label: "Success Status Text",
+    category: "Typography",
+    kind: "color",
+    description: "Contrast-checked positive status foreground",
+  },
+  {
+    name: "--text-warning",
+    label: "Warning Status Text",
+    category: "Typography",
+    kind: "color",
+    description: "Contrast-checked caution status foreground",
+  },
+  {
+    name: "--text-danger",
+    label: "Danger Status Text",
+    category: "Typography",
+    kind: "color",
+    description: "Contrast-checked error/destructive foreground",
+  },
+  {
+    name: "--text-info",
+    label: "Info Status Text",
+    category: "Typography",
+    kind: "color",
+    description: "Contrast-checked informational foreground",
+  },
+  {
+    name: "--font-sans",
+    label: "Sans-Serif Font Stack",
+    category: "Typography",
+    kind: "font",
+    description: "Primary UI font family",
+  },
+  {
+    name: "--font-mono",
+    label: "Monospace Font Stack",
+    category: "Typography",
+    kind: "font",
+    description: "Code, token, and terminal font family",
+  },
+  {
+    name: "--font-size-xs",
+    label: "Font Size XS",
+    category: "Typography",
+    kind: "length",
+    description: "Micro badges and dense metadata",
+  },
+  {
+    name: "--font-size-sm",
+    label: "Font Size SM",
+    category: "Typography",
+    kind: "length",
+    description: "Secondary controls and table cells",
+  },
+  {
+    name: "--font-size-base",
+    label: "Font Size Base",
+    category: "Typography",
+    kind: "length",
+    description: "Default body and control font size",
+  },
+  {
+    name: "--font-size-lg",
+    label: "Font Size LG",
+    category: "Typography",
+    kind: "length",
+    description: "Card titles and section headers",
+  },
+  {
+    name: "--font-size-xl",
+    label: "Font Size XL",
+    category: "Typography",
+    kind: "length",
+    description: "Primary view headings",
+  },
+  {
+    name: "--line-height-base",
+    label: "Base Line Height",
+    category: "Typography",
+    kind: "text",
+    description: "Typographic vertical rhythm multiplier",
+  },
 
   // 3. Borders
-  { name: "--border-subtle", label: "Subtle Hairline Border", category: "Borders", kind: "color", description: "Low-contrast dividers, table cells, and card outlines" },
-  { name: "--border-default", label: "Default Structural Border", category: "Borders", kind: "color", description: "Standard panel, group, and toolbar border" },
-  { name: "--border-strong", label: "Strong Emphasized Border", category: "Borders", kind: "color", description: "Hovered cards and active dividers" },
-  { name: "--border-focus", label: "Keyboard Focus Border", category: "Borders", kind: "color", description: "Focused input, button, and control outline color" },
-  { name: "--border-glow", label: "Surface Vibe Border Glow", category: "Borders", kind: "color", description: "Chromatic neon or glass rim border highlight" },
-  { name: "--border-width", label: "Structural Border Width", category: "Borders", kind: "length", description: "Default border stroke thickness" },
-  { name: "--radius-xs", label: "Radius XS", category: "Borders", kind: "length", description: "Extra-small corner radius (badges, code tags)" },
-  { name: "--radius-sm", label: "Radius SM", category: "Borders", kind: "length", description: "Small corner radius (inputs, inner controls)" },
-  { name: "--radius-md", label: "Radius MD", category: "Borders", kind: "length", description: "Medium corner radius (buttons, tabs, dropdowns)" },
-  { name: "--radius-lg", label: "Radius LG", category: "Borders", kind: "length", description: "Large corner radius (panels, cards, tables)" },
-  { name: "--radius-xl", label: "Radius XL", category: "Borders", kind: "length", description: "Extra-large corner radius (modals, drawers)" },
-  { name: "--radius-pill", label: "Radius Pill", category: "Borders", kind: "length", description: "Full capsule radius for pills and tags" },
-  { name: "--focus-ring", label: "Focus Ring Shadow", category: "Borders", kind: "shadow", description: "Accessible keyboard focus halo box-shadow" },
+  {
+    name: "--border-subtle",
+    label: "Subtle Hairline Border",
+    category: "Borders",
+    kind: "color",
+    description: "Low-contrast dividers, table cells, and card outlines",
+  },
+  {
+    name: "--border-default",
+    label: "Default Structural Border",
+    category: "Borders",
+    kind: "color",
+    description: "Standard panel, group, and toolbar border",
+  },
+  {
+    name: "--border-strong",
+    label: "Strong Emphasized Border",
+    category: "Borders",
+    kind: "color",
+    description: "Hovered cards and active dividers",
+  },
+  {
+    name: "--border-focus",
+    label: "Keyboard Focus Border",
+    category: "Borders",
+    kind: "color",
+    description: "Focused input, button, and control outline color",
+  },
+  {
+    name: "--border-glow",
+    label: "Surface Vibe Border Glow",
+    category: "Borders",
+    kind: "color",
+    description: "Chromatic neon or glass rim border highlight",
+  },
+  {
+    name: "--border-width",
+    label: "Structural Border Width",
+    category: "Borders",
+    kind: "length",
+    description: "Default border stroke thickness",
+  },
+  {
+    name: "--radius-xs",
+    label: "Radius XS",
+    category: "Borders",
+    kind: "length",
+    description: "Extra-small corner radius (badges, code tags)",
+  },
+  {
+    name: "--radius-sm",
+    label: "Radius SM",
+    category: "Borders",
+    kind: "length",
+    description: "Small corner radius (inputs, inner controls)",
+  },
+  {
+    name: "--radius-md",
+    label: "Radius MD",
+    category: "Borders",
+    kind: "length",
+    description: "Medium corner radius (buttons, tabs, dropdowns)",
+  },
+  {
+    name: "--radius-lg",
+    label: "Radius LG",
+    category: "Borders",
+    kind: "length",
+    description: "Large corner radius (panels, cards, tables)",
+  },
+  {
+    name: "--radius-xl",
+    label: "Radius XL",
+    category: "Borders",
+    kind: "length",
+    description: "Extra-large corner radius (modals, drawers)",
+  },
+  {
+    name: "--radius-pill",
+    label: "Radius Pill",
+    category: "Borders",
+    kind: "length",
+    description: "Full capsule radius for pills and tags",
+  },
+  {
+    name: "--focus-ring",
+    label: "Focus Ring Shadow",
+    category: "Borders",
+    kind: "shadow",
+    description: "Accessible keyboard focus halo box-shadow",
+  },
 
   // 4. Buttons
-  { name: "--btn-primary-bg", label: "Primary Button Fill", category: "Buttons", kind: "color", description: "Default background for primary CTA buttons" },
-  { name: "--btn-primary-hover", label: "Primary Button Hover", category: "Buttons", kind: "color", description: "Hovered background for primary CTA buttons" },
-  { name: "--btn-primary-active", label: "Primary Button Active", category: "Buttons", kind: "color", description: "Pressed background for primary CTA buttons" },
-  { name: "--btn-primary-text", label: "Primary Button Text", category: "Buttons", kind: "color", description: "Contrast-checked label color on primary buttons" },
-  { name: "--btn-primary-border", label: "Primary Button Border", category: "Buttons", kind: "color", description: "Border color for primary buttons" },
-  { name: "--btn-accent-bg", label: "Accent Button Fill", category: "Buttons", kind: "color", description: "Default background for accent/action buttons" },
-  { name: "--btn-accent-hover", label: "Accent Button Hover", category: "Buttons", kind: "color", description: "Hovered background for accent/action buttons" },
-  { name: "--btn-accent-active", label: "Accent Button Active", category: "Buttons", kind: "color", description: "Pressed background for accent/action buttons" },
-  { name: "--btn-accent-text", label: "Accent Button Text", category: "Buttons", kind: "color", description: "Contrast-checked label color on accent buttons" },
-  { name: "--btn-secondary-bg", label: "Secondary Button Fill", category: "Buttons", kind: "color", description: "Neutral surface button background" },
-  { name: "--btn-secondary-hover", label: "Secondary Button Hover", category: "Buttons", kind: "color", description: "Neutral surface button hover background" },
-  { name: "--btn-secondary-active", label: "Secondary Button Active", category: "Buttons", kind: "color", description: "Neutral surface button active background" },
-  { name: "--btn-secondary-text", label: "Secondary Button Text", category: "Buttons", kind: "color", description: "Label color on secondary buttons" },
-  { name: "--btn-secondary-border", label: "Secondary Button Border", category: "Buttons", kind: "color", description: "Border stroke on secondary buttons" },
-  { name: "--btn-disabled-bg", label: "Disabled Button Fill", category: "Buttons", kind: "color", description: "Background of disabled interactive buttons" },
-  { name: "--btn-disabled-text", label: "Disabled Button Text", category: "Buttons", kind: "color", description: "Muted foreground of disabled buttons" },
-  { name: "--btn-height", label: "Button Control Height", category: "Buttons", kind: "length", description: "Standard button height derived from density" },
-  { name: "--btn-padding-x", label: "Button Horizontal Padding", category: "Buttons", kind: "length", description: "Horizontal internal button padding" },
-  { name: "--btn-radius", label: "Button Corner Radius", category: "Buttons", kind: "length", description: "Corner sharpness applied to buttons" },
+  {
+    name: "--btn-primary-bg",
+    label: "Primary Button Fill",
+    category: "Buttons",
+    kind: "color",
+    description: "Default background for primary CTA buttons",
+  },
+  {
+    name: "--btn-primary-hover",
+    label: "Primary Button Hover",
+    category: "Buttons",
+    kind: "color",
+    description: "Hovered background for primary CTA buttons",
+  },
+  {
+    name: "--btn-primary-active",
+    label: "Primary Button Active",
+    category: "Buttons",
+    kind: "color",
+    description: "Pressed background for primary CTA buttons",
+  },
+  {
+    name: "--btn-primary-text",
+    label: "Primary Button Text",
+    category: "Buttons",
+    kind: "color",
+    description: "Contrast-checked label color on primary buttons",
+  },
+  {
+    name: "--btn-primary-border",
+    label: "Primary Button Border",
+    category: "Buttons",
+    kind: "color",
+    description: "Border color for primary buttons",
+  },
+  {
+    name: "--btn-accent-bg",
+    label: "Accent Button Fill",
+    category: "Buttons",
+    kind: "color",
+    description: "Default background for accent/action buttons",
+  },
+  {
+    name: "--btn-accent-hover",
+    label: "Accent Button Hover",
+    category: "Buttons",
+    kind: "color",
+    description: "Hovered background for accent/action buttons",
+  },
+  {
+    name: "--btn-accent-active",
+    label: "Accent Button Active",
+    category: "Buttons",
+    kind: "color",
+    description: "Pressed background for accent/action buttons",
+  },
+  {
+    name: "--btn-accent-text",
+    label: "Accent Button Text",
+    category: "Buttons",
+    kind: "color",
+    description: "Contrast-checked label color on accent buttons",
+  },
+  {
+    name: "--btn-secondary-bg",
+    label: "Secondary Button Fill",
+    category: "Buttons",
+    kind: "color",
+    description: "Neutral surface button background",
+  },
+  {
+    name: "--btn-secondary-hover",
+    label: "Secondary Button Hover",
+    category: "Buttons",
+    kind: "color",
+    description: "Neutral surface button hover background",
+  },
+  {
+    name: "--btn-secondary-active",
+    label: "Secondary Button Active",
+    category: "Buttons",
+    kind: "color",
+    description: "Neutral surface button active background",
+  },
+  {
+    name: "--btn-secondary-text",
+    label: "Secondary Button Text",
+    category: "Buttons",
+    kind: "color",
+    description: "Label color on secondary buttons",
+  },
+  {
+    name: "--btn-secondary-border",
+    label: "Secondary Button Border",
+    category: "Buttons",
+    kind: "color",
+    description: "Border stroke on secondary buttons",
+  },
+  {
+    name: "--btn-disabled-bg",
+    label: "Disabled Button Fill",
+    category: "Buttons",
+    kind: "color",
+    description: "Background of disabled interactive buttons",
+  },
+  {
+    name: "--btn-disabled-text",
+    label: "Disabled Button Text",
+    category: "Buttons",
+    kind: "color",
+    description: "Muted foreground of disabled buttons",
+  },
+  {
+    name: "--btn-height",
+    label: "Button Control Height",
+    category: "Buttons",
+    kind: "length",
+    description: "Standard button height derived from density",
+  },
+  {
+    name: "--btn-padding-x",
+    label: "Button Horizontal Padding",
+    category: "Buttons",
+    kind: "length",
+    description: "Horizontal internal button padding",
+  },
+  {
+    name: "--btn-radius",
+    label: "Button Corner Radius",
+    category: "Buttons",
+    kind: "length",
+    description: "Corner sharpness applied to buttons",
+  },
 
   // 5. Inputs
-  { name: "--input-bg", label: "Input Field Fill", category: "Inputs", kind: "color", description: "Text input, select, and textarea background" },
-  { name: "--input-hover-bg", label: "Input Hover Fill", category: "Inputs", kind: "color", description: "Background when hovering over an input field" },
-  { name: "--input-focus-bg", label: "Input Focus Fill", category: "Inputs", kind: "color", description: "Background when an input field is focused" },
-  { name: "--input-text", label: "Input Value Text", category: "Inputs", kind: "color", description: "Typed value color inside form controls" },
-  { name: "--input-placeholder", label: "Input Placeholder Text", category: "Inputs", kind: "color", description: "Placeholder hint text inside empty inputs" },
-  { name: "--input-border", label: "Input Resting Border", category: "Inputs", kind: "color", description: "Default border stroke on form controls" },
-  { name: "--input-hover-border", label: "Input Hover Border", category: "Inputs", kind: "color", description: "Hovered border stroke on form controls" },
-  { name: "--input-focus-border", label: "Input Focus Border", category: "Inputs", kind: "color", description: "Active border stroke when input has focus" },
-  { name: "--input-focus-ring", label: "Input Focus Halo", category: "Inputs", kind: "shadow", description: "Outer focus ring box-shadow on inputs" },
-  { name: "--input-disabled-bg", label: "Disabled Input Fill", category: "Inputs", kind: "color", description: "Background for disabled form fields" },
-  { name: "--input-disabled-text", label: "Disabled Input Text", category: "Inputs", kind: "color", description: "Text color for disabled form fields" },
-  { name: "--input-height", label: "Input Control Height", category: "Inputs", kind: "length", description: "Standard single-line input height" },
-  { name: "--input-padding-x", label: "Input Horizontal Padding", category: "Inputs", kind: "length", description: "Horizontal padding inside inputs" },
-  { name: "--input-radius", label: "Input Corner Radius", category: "Inputs", kind: "length", description: "Corner radius for inputs and selects" },
+  {
+    name: "--input-bg",
+    label: "Input Field Fill",
+    category: "Inputs",
+    kind: "color",
+    description: "Text input, select, and textarea background",
+  },
+  {
+    name: "--input-hover-bg",
+    label: "Input Hover Fill",
+    category: "Inputs",
+    kind: "color",
+    description: "Background when hovering over an input field",
+  },
+  {
+    name: "--input-focus-bg",
+    label: "Input Focus Fill",
+    category: "Inputs",
+    kind: "color",
+    description: "Background when an input field is focused",
+  },
+  {
+    name: "--input-text",
+    label: "Input Value Text",
+    category: "Inputs",
+    kind: "color",
+    description: "Typed value color inside form controls",
+  },
+  {
+    name: "--input-placeholder",
+    label: "Input Placeholder Text",
+    category: "Inputs",
+    kind: "color",
+    description: "Placeholder hint text inside empty inputs",
+  },
+  {
+    name: "--input-border",
+    label: "Input Resting Border",
+    category: "Inputs",
+    kind: "color",
+    description: "Default border stroke on form controls",
+  },
+  {
+    name: "--input-hover-border",
+    label: "Input Hover Border",
+    category: "Inputs",
+    kind: "color",
+    description: "Hovered border stroke on form controls",
+  },
+  {
+    name: "--input-focus-border",
+    label: "Input Focus Border",
+    category: "Inputs",
+    kind: "color",
+    description: "Active border stroke when input has focus",
+  },
+  {
+    name: "--input-focus-ring",
+    label: "Input Focus Halo",
+    category: "Inputs",
+    kind: "shadow",
+    description: "Outer focus ring box-shadow on inputs",
+  },
+  {
+    name: "--input-disabled-bg",
+    label: "Disabled Input Fill",
+    category: "Inputs",
+    kind: "color",
+    description: "Background for disabled form fields",
+  },
+  {
+    name: "--input-disabled-text",
+    label: "Disabled Input Text",
+    category: "Inputs",
+    kind: "color",
+    description: "Text color for disabled form fields",
+  },
+  {
+    name: "--input-height",
+    label: "Input Control Height",
+    category: "Inputs",
+    kind: "length",
+    description: "Standard single-line input height",
+  },
+  {
+    name: "--input-padding-x",
+    label: "Input Horizontal Padding",
+    category: "Inputs",
+    kind: "length",
+    description: "Horizontal padding inside inputs",
+  },
+  {
+    name: "--input-radius",
+    label: "Input Corner Radius",
+    category: "Inputs",
+    kind: "length",
+    description: "Corner radius for inputs and selects",
+  },
 
   // 6. Code/Terminal
-  { name: "--code-bg", label: "Code Block Background", category: "Code/Terminal", kind: "color", description: "Preformatted code editor and snippet canvas" },
-  { name: "--code-border", label: "Code Block Border", category: "Code/Terminal", kind: "color", description: "Border around code and terminal blocks" },
-  { name: "--code-text", label: "Code Default Foreground", category: "Code/Terminal", kind: "color", description: "Default identifier and punctuation color" },
-  { name: "--code-keyword", label: "Syntax Keyword Color", category: "Code/Terminal", kind: "color", description: "Language keywords (const, export, return)" },
-  { name: "--code-string", label: "Syntax String Color", category: "Code/Terminal", kind: "color", description: "String literals and template values" },
-  { name: "--code-number", label: "Syntax Number Color", category: "Code/Terminal", kind: "color", description: "Numeric constants, booleans, and units" },
-  { name: "--code-function", label: "Syntax Function Color", category: "Code/Terminal", kind: "color", description: "Function, method, and class names" },
-  { name: "--code-comment", label: "Syntax Comment Color", category: "Code/Terminal", kind: "color", description: "Inline and docblock code comments" },
-  { name: "--terminal-bg", label: "Terminal Viewport Fill", category: "Code/Terminal", kind: "color", description: "Console and shell output background" },
-  { name: "--terminal-text", label: "Terminal Output Text", category: "Code/Terminal", kind: "color", description: "Primary stdout text inside terminal" },
-  { name: "--terminal-cursor", label: "Terminal Cursor Color", category: "Code/Terminal", kind: "color", description: "Active caret and prompt indicator color" },
+  {
+    name: "--code-bg",
+    label: "Code Block Background",
+    category: "Code/Terminal",
+    kind: "color",
+    description: "Preformatted code editor and snippet canvas",
+  },
+  {
+    name: "--code-border",
+    label: "Code Block Border",
+    category: "Code/Terminal",
+    kind: "color",
+    description: "Border around code and terminal blocks",
+  },
+  {
+    name: "--code-text",
+    label: "Code Default Foreground",
+    category: "Code/Terminal",
+    kind: "color",
+    description: "Default identifier and punctuation color",
+  },
+  {
+    name: "--code-keyword",
+    label: "Syntax Keyword Color",
+    category: "Code/Terminal",
+    kind: "color",
+    description: "Language keywords (const, export, return)",
+  },
+  {
+    name: "--code-string",
+    label: "Syntax String Color",
+    category: "Code/Terminal",
+    kind: "color",
+    description: "String literals and template values",
+  },
+  {
+    name: "--code-number",
+    label: "Syntax Number Color",
+    category: "Code/Terminal",
+    kind: "color",
+    description: "Numeric constants, booleans, and units",
+  },
+  {
+    name: "--code-function",
+    label: "Syntax Function Color",
+    category: "Code/Terminal",
+    kind: "color",
+    description: "Function, method, and class names",
+  },
+  {
+    name: "--code-comment",
+    label: "Syntax Comment Color",
+    category: "Code/Terminal",
+    kind: "color",
+    description: "Inline and docblock code comments",
+  },
+  {
+    name: "--terminal-bg",
+    label: "Terminal Viewport Fill",
+    category: "Code/Terminal",
+    kind: "color",
+    description: "Console and shell output background",
+  },
+  {
+    name: "--terminal-text",
+    label: "Terminal Output Text",
+    category: "Code/Terminal",
+    kind: "color",
+    description: "Primary stdout text inside terminal",
+  },
+  {
+    name: "--terminal-cursor",
+    label: "Terminal Cursor Color",
+    category: "Code/Terminal",
+    kind: "color",
+    description: "Active caret and prompt indicator color",
+  },
 
   // 7. Scrollbars
-  { name: "--scrollbar-track", label: "Scrollbar Track Fill", category: "Scrollbars", kind: "color", description: "Background channel behind scrollbars" },
-  { name: "--scrollbar-thumb", label: "Scrollbar Thumb Fill", category: "Scrollbars", kind: "color", description: "Draggable scrollbar thumb indicator" },
-  { name: "--scrollbar-thumb-hover", label: "Scrollbar Thumb Hover", category: "Scrollbars", kind: "color", description: "Hovered or active scrollbar thumb color" },
-  { name: "--scrollbar-width", label: "Scrollbar Pixel Width", category: "Scrollbars", kind: "length", description: "Scrollbar thickness for WebKit/Blink fallback" },
-  { name: "--scrollbar-width-keyword", label: "Standard Scrollbar Width", category: "Scrollbars", kind: "text", description: "CSS scrollbar-width keyword (thin or auto)" },
+  {
+    name: "--scrollbar-track",
+    label: "Scrollbar Track Fill",
+    category: "Scrollbars",
+    kind: "color",
+    description: "Background channel behind scrollbars",
+  },
+  {
+    name: "--scrollbar-thumb",
+    label: "Scrollbar Thumb Fill",
+    category: "Scrollbars",
+    kind: "color",
+    description: "Draggable scrollbar thumb indicator",
+  },
+  {
+    name: "--scrollbar-thumb-hover",
+    label: "Scrollbar Thumb Hover",
+    category: "Scrollbars",
+    kind: "color",
+    description: "Hovered or active scrollbar thumb color",
+  },
+  {
+    name: "--scrollbar-width",
+    label: "Scrollbar Pixel Width",
+    category: "Scrollbars",
+    kind: "length",
+    description: "Scrollbar thickness for WebKit/Blink fallback",
+  },
+  {
+    name: "--scrollbar-width-keyword",
+    label: "Standard Scrollbar Width",
+    category: "Scrollbars",
+    kind: "text",
+    description: "CSS scrollbar-width keyword (thin or auto)",
+  },
 
   // 8. Shadows
-  { name: "--shadow-xs", label: "Shadow XS (Hairline)", category: "Shadows", kind: "shadow", description: "Micro-elevation for badges and subtle controls" },
-  { name: "--shadow-sm", label: "Shadow SM (Low)", category: "Shadows", kind: "shadow", description: "Resting card and button elevation" },
-  { name: "--shadow-md", label: "Shadow MD (Medium)", category: "Shadows", kind: "shadow", description: "Hovered card and dropdown elevation" },
-  { name: "--shadow-elevated", label: "Shadow Elevated (High)", category: "Shadows", kind: "shadow", description: "Floating panels, popovers, and drawers" },
-  { name: "--shadow-modal", label: "Shadow Modal (Dialog)", category: "Shadows", kind: "shadow", description: "Deep dialog and command palette shadow" },
-  { name: "--shadow-glow", label: "Shadow Chromatic Glow", category: "Shadows", kind: "shadow", description: "Ambient or neon border luminescence" },
-  { name: "--shadow-inset", label: "Shadow Specular Inset", category: "Shadows", kind: "shadow", description: "Inner glass rim or matte top highlight" },
-  { name: "--glass-blur", label: "Glass Blur Radius", category: "Shadows", kind: "length", description: "Backdrop blur intensity in pixels" },
-  { name: "--glass-saturate", label: "Glass Backdrop Saturation", category: "Shadows", kind: "text", description: "Backdrop color saturation multiplier" },
-  { name: "--surface-backdrop", label: "Surface Backdrop Filter", category: "Shadows", kind: "text", description: "Composite CSS backdrop-filter value" },
+  {
+    name: "--shadow-xs",
+    label: "Shadow XS (Hairline)",
+    category: "Shadows",
+    kind: "shadow",
+    description: "Micro-elevation for badges and subtle controls",
+  },
+  {
+    name: "--shadow-sm",
+    label: "Shadow SM (Low)",
+    category: "Shadows",
+    kind: "shadow",
+    description: "Resting card and button elevation",
+  },
+  {
+    name: "--shadow-md",
+    label: "Shadow MD (Medium)",
+    category: "Shadows",
+    kind: "shadow",
+    description: "Hovered card and dropdown elevation",
+  },
+  {
+    name: "--shadow-elevated",
+    label: "Shadow Elevated (High)",
+    category: "Shadows",
+    kind: "shadow",
+    description: "Floating panels, popovers, and drawers",
+  },
+  {
+    name: "--shadow-modal",
+    label: "Shadow Modal (Dialog)",
+    category: "Shadows",
+    kind: "shadow",
+    description: "Deep dialog and command palette shadow",
+  },
+  {
+    name: "--shadow-glow",
+    label: "Shadow Chromatic Glow",
+    category: "Shadows",
+    kind: "shadow",
+    description: "Ambient or neon border luminescence",
+  },
+  {
+    name: "--shadow-inset",
+    label: "Shadow Specular Inset",
+    category: "Shadows",
+    kind: "shadow",
+    description: "Inner glass rim or matte top highlight",
+  },
+  {
+    name: "--glass-blur",
+    label: "Glass Blur Radius",
+    category: "Shadows",
+    kind: "length",
+    description: "Backdrop blur intensity in pixels",
+  },
+  {
+    name: "--glass-saturate",
+    label: "Glass Backdrop Saturation",
+    category: "Shadows",
+    kind: "text",
+    description: "Backdrop color saturation multiplier",
+  },
+  {
+    name: "--surface-backdrop",
+    label: "Surface Backdrop Filter",
+    category: "Shadows",
+    kind: "text",
+    description: "Composite CSS backdrop-filter value",
+  },
 ] as const;
 
 /**
  * Returns the catalog descriptors grouped by the 8 Pro Inspector categories.
  */
-export function getCatalogByCategory(): Record<InspectorCategory, ThemeVariableDescriptor[]> {
+export function getCatalogByCategory(): Record<
+  InspectorCategory,
+  ThemeVariableDescriptor[]
+> {
   const grouped: Record<InspectorCategory, ThemeVariableDescriptor[]> = {
     Backgrounds: [],
     Typography: [],
@@ -853,19 +1570,26 @@ export function getCatalogByCategory(): Record<InspectorCategory, ThemeVariableD
  */
 export function calculateThemeSystem(
   surfaceInput: Partial<ThemeSurfaceConfig> = {},
-  rawOverrides: Record<string, string> = {}
+  rawOverrides: Record<string, string> = {},
 ): CalculatedThemeSystem {
   const surface: ThemeSurfaceConfig = {
     baseMode: surfaceInput.baseMode ?? DEFAULT_SURFACE_CONFIG.baseMode,
-    primaryColor: normalizeHex(surfaceInput.primaryColor, DEFAULT_SURFACE_CONFIG.primaryColor),
-    accentColor: normalizeHex(surfaceInput.accentColor, DEFAULT_SURFACE_CONFIG.accentColor),
+    primaryColor: normalizeHex(
+      surfaceInput.primaryColor,
+      DEFAULT_SURFACE_CONFIG.primaryColor,
+    ),
+    accentColor: normalizeHex(
+      surfaceInput.accentColor,
+      DEFAULT_SURFACE_CONFIG.accentColor,
+    ),
     surfaceVibe: surfaceInput.surfaceVibe ?? DEFAULT_SURFACE_CONFIG.surfaceVibe,
     cornerSharpness: clamp(
-      typeof surfaceInput.cornerSharpness === "number" && !Number.isNaN(surfaceInput.cornerSharpness)
+      typeof surfaceInput.cornerSharpness === "number" &&
+        !Number.isNaN(surfaceInput.cornerSharpness)
         ? Math.round(surfaceInput.cornerSharpness)
         : DEFAULT_SURFACE_CONFIG.cornerSharpness,
       0,
-      24
+      24,
     ),
     density: surfaceInput.density ?? DEFAULT_SURFACE_CONFIG.density,
   };
@@ -877,7 +1601,10 @@ export function calculateThemeSystem(
   const colorScheme: "light" | "dark" = isLight ? "light" : "dark";
 
   // 1. 10-step (50..950) shade scales for Neutral surfaces, Primary Brand, and Accent
-  const neutralScale = generateNeutralShadeScale(surface.primaryColor, surface.baseMode);
+  const neutralScale = generateNeutralShadeScale(
+    surface.primaryColor,
+    surface.baseMode,
+  );
   const primaryScale = generateBrandShadeScale(surface.primaryColor);
   const accentScale = generateBrandShadeScale(surface.accentColor);
 
@@ -919,13 +1646,17 @@ export function calculateThemeSystem(
     surface.surfaceVibe,
     surface.baseMode,
     surface.primaryColor,
-    surface.accentColor
+    surface.accentColor,
   );
 
   const bgPanel =
-    vibe.panelBgAlpha < 1 ? rgba(bgPanelSolid, vibe.panelBgAlpha) : bgPanelSolid;
+    vibe.panelBgAlpha < 1
+      ? rgba(bgPanelSolid, vibe.panelBgAlpha)
+      : bgPanelSolid;
   const bgElevated =
-    vibe.elevatedBgAlpha < 1 ? rgba(bgElevatedSolid, vibe.elevatedBgAlpha) : bgElevatedSolid;
+    vibe.elevatedBgAlpha < 1
+      ? rgba(bgElevatedSolid, vibe.elevatedBgAlpha)
+      : bgElevatedSolid;
   const bgGlass = rgba(bgPanelSolid, isLight ? 0.75 : 0.68);
 
   // 4. Contrast-verified Typography colors
@@ -937,35 +1668,50 @@ export function calculateThemeSystem(
   const rawTextSecondary = isLight ? neutralScale[700] : neutralScale[200];
   const rawTextMuted = isLight ? neutralScale[500] : neutralScale[400];
 
-  const textPrimary = ensureContrastRatio(rawTextPrimary, bgPanelSolid, minPrimaryTextContrast, !isLight);
-  const textSecondary = ensureContrastRatio(rawTextSecondary, bgPanelSolid, minSecondaryTextContrast, !isLight);
-  const textMuted = ensureContrastRatio(rawTextMuted, bgPanelSolid, minMutedTextContrast, !isLight);
+  const textPrimary = ensureContrastRatio(
+    rawTextPrimary,
+    bgPanelSolid,
+    minPrimaryTextContrast,
+    !isLight,
+  );
+  const textSecondary = ensureContrastRatio(
+    rawTextSecondary,
+    bgPanelSolid,
+    minSecondaryTextContrast,
+    !isLight,
+  );
+  const textMuted = ensureContrastRatio(
+    rawTextMuted,
+    bgPanelSolid,
+    minMutedTextContrast,
+    !isLight,
+  );
 
   // 5. Interactive states for Primary, Accent, and Neutral elements
   const primaryStates = computeInteractiveStates(
     surface.primaryColor,
     surface.baseMode,
     bgPanelSolid,
-    neutralScale
+    neutralScale,
   );
   const accentStates = computeInteractiveStates(
     surface.accentColor,
     surface.baseMode,
     bgPanelSolid,
-    neutralScale
+    neutralScale,
   );
   const neutralStates = computeInteractiveStates(
     isLight ? neutralScale[200] : neutralScale[700],
     surface.baseMode,
     bgPanelSolid,
-    neutralScale
+    neutralScale,
   );
 
   const textLink = ensureContrastRatio(
     surface.primaryColor,
     bgPanelSolid,
     isHighContrast ? 7.0 : 4.5,
-    !isLight
+    !isLight,
   );
 
   const textTokens: TextContrastTokens = {
@@ -978,20 +1724,56 @@ export function calculateThemeSystem(
     textLink,
     appBgContrastRatio: getContrastRatio(textPrimary, bgAppSolid),
     panelBgContrastRatio: getContrastRatio(textPrimary, bgPanelSolid),
-    primaryButtonContrastRatio: getContrastRatio(primaryStates.textOnBase, primaryStates.base),
-    accentButtonContrastRatio: getContrastRatio(accentStates.textOnBase, accentStates.base),
+    primaryButtonContrastRatio: getContrastRatio(
+      primaryStates.textOnBase,
+      primaryStates.base,
+    ),
+    accentButtonContrastRatio: getContrastRatio(
+      accentStates.textOnBase,
+      accentStates.base,
+    ),
   };
 
   // 6. Semantic status colors (Success, Warning, Danger, Info) contrast-checked against panel
   const statusSeeds = isLight
-    ? { success: "#16a34a", warning: "#d97706", danger: "#dc2626", info: "#0284c7" }
-    : { success: "#34d399", warning: "#fbbf24", danger: "#f87171", info: "#38bdf8" };
+    ? {
+        success: "#16a34a",
+        warning: "#d97706",
+        danger: "#dc2626",
+        info: "#0284c7",
+      }
+    : {
+        success: "#34d399",
+        warning: "#fbbf24",
+        danger: "#f87171",
+        info: "#38bdf8",
+      };
 
   const statusTextMin = isHighContrast ? 7.0 : 4.5;
-  const textSuccess = ensureContrastRatio(statusSeeds.success, bgPanelSolid, statusTextMin, !isLight);
-  const textWarning = ensureContrastRatio(statusSeeds.warning, bgPanelSolid, statusTextMin, !isLight);
-  const textDanger = ensureContrastRatio(statusSeeds.danger, bgPanelSolid, statusTextMin, !isLight);
-  const textInfo = ensureContrastRatio(statusSeeds.info, bgPanelSolid, statusTextMin, !isLight);
+  const textSuccess = ensureContrastRatio(
+    statusSeeds.success,
+    bgPanelSolid,
+    statusTextMin,
+    !isLight,
+  );
+  const textWarning = ensureContrastRatio(
+    statusSeeds.warning,
+    bgPanelSolid,
+    statusTextMin,
+    !isLight,
+  );
+  const textDanger = ensureContrastRatio(
+    statusSeeds.danger,
+    bgPanelSolid,
+    statusTextMin,
+    !isLight,
+  );
+  const textInfo = ensureContrastRatio(
+    statusSeeds.info,
+    bgPanelSolid,
+    statusTextMin,
+    !isLight,
+  );
 
   // 7. Borders & Dividers
   const borderSubtle = isHighContrast
@@ -1049,18 +1831,60 @@ export function calculateThemeSystem(
       : isMidnight
         ? "#03050a"
         : neutralScale[950];
-  const codeText = ensureContrastRatio(isLight ? neutralScale[900] : neutralScale[100], codeBg, 7.0, !isLight);
-  const codeKeyword = ensureContrastRatio(accentStates.base, codeBg, 4.5, !isLight);
-  const codeFunction = ensureContrastRatio(primaryStates.base, codeBg, 4.5, !isLight);
-  const codeString = ensureContrastRatio(statusSeeds.success, codeBg, 4.5, !isLight);
-  const codeNumber = ensureContrastRatio(statusSeeds.warning, codeBg, 4.5, !isLight);
-  const codeComment = ensureContrastRatio(isLight ? neutralScale[500] : neutralScale[400], codeBg, 3.5, !isLight);
+  const codeText = ensureContrastRatio(
+    isLight ? neutralScale[900] : neutralScale[100],
+    codeBg,
+    7.0,
+    !isLight,
+  );
+  const codeKeyword = ensureContrastRatio(
+    accentStates.base,
+    codeBg,
+    4.5,
+    !isLight,
+  );
+  const codeFunction = ensureContrastRatio(
+    primaryStates.base,
+    codeBg,
+    4.5,
+    !isLight,
+  );
+  const codeString = ensureContrastRatio(
+    statusSeeds.success,
+    codeBg,
+    4.5,
+    !isLight,
+  );
+  const codeNumber = ensureContrastRatio(
+    statusSeeds.warning,
+    codeBg,
+    4.5,
+    !isLight,
+  );
+  const codeComment = ensureContrastRatio(
+    isLight ? neutralScale[500] : neutralScale[400],
+    codeBg,
+    3.5,
+    !isLight,
+  );
 
   // 11. Scrollbar tokens (≥3:1 thumb contrast against track per modern-web-guidance)
   const scrollbarTrack = isLight ? neutralScale[100] : neutralScale[900];
-  const scrollbarThumbCandidate = isLight ? neutralScale[400] : neutralScale[600];
-  const scrollbarThumb = ensureContrastRatio(scrollbarThumbCandidate, scrollbarTrack, 3.1, !isLight);
-  const scrollbarThumbHover = ensureContrastRatio(primaryStates.base, scrollbarTrack, 3.5, !isLight);
+  const scrollbarThumbCandidate = isLight
+    ? neutralScale[400]
+    : neutralScale[600];
+  const scrollbarThumb = ensureContrastRatio(
+    scrollbarThumbCandidate,
+    scrollbarTrack,
+    3.1,
+    !isLight,
+  );
+  const scrollbarThumbHover = ensureContrastRatio(
+    primaryStates.base,
+    scrollbarTrack,
+    3.5,
+    !isLight,
+  );
 
   // 12. Assemble Granular CSS Custom Properties (Layer 3)
   const computedVariables: ThemeCssVariables = {
@@ -1133,8 +1957,10 @@ export function calculateThemeSystem(
     "--text-warning": textWarning,
     "--text-danger": textDanger,
     "--text-info": textInfo,
-    "--font-sans": 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    "--font-mono": '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+    "--font-sans":
+      'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    "--font-mono":
+      '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
     "--font-size-xs": density.fontSizeXs,
     "--font-size-sm": density.fontSizeSm,
     "--font-size-base": density.fontSizeBase,
@@ -1163,7 +1989,10 @@ export function calculateThemeSystem(
     "--btn-primary-hover": primaryStates.hover,
     "--btn-primary-active": primaryStates.active,
     "--btn-primary-text": primaryStates.textOnBase,
-    "--btn-primary-border": surface.surfaceVibe === "neon-border" ? primaryScale[400] : primaryStates.base,
+    "--btn-primary-border":
+      surface.surfaceVibe === "neon-border"
+        ? primaryScale[400]
+        : primaryStates.base,
     "--btn-accent-bg": accentStates.base,
     "--btn-accent-hover": accentStates.hover,
     "--btn-accent-active": accentStates.active,
@@ -1180,7 +2009,11 @@ export function calculateThemeSystem(
     "--btn-radius": corners.radiusButton,
 
     // Group 5: Inputs
-    "--input-bg": isLight ? "#ffffff" : isMidnight ? neutralScale[950] : neutralScale[900],
+    "--input-bg": isLight
+      ? "#ffffff"
+      : isMidnight
+        ? neutralScale[950]
+        : neutralScale[900],
     "--input-hover-bg": isLight ? neutralScale[50] : neutralScale[800],
     "--input-focus-bg": isLight ? "#ffffff" : neutralScale[900],
     "--input-text": textTokens.textPrimary,
@@ -1264,7 +2097,11 @@ export function calculateThemeSystem(
   for (const [key, val] of Object.entries(rawOverrides || {})) {
     const trimmedKey = key.trim();
     const trimmedVal = String(val ?? "").trim();
-    if (trimmedKey.startsWith("--") && trimmedVal.length > 0 && !/[{};<>]/.test(trimmedVal)) {
+    if (
+      trimmedKey.startsWith("--") &&
+      trimmedVal.length > 0 &&
+      !/[{};<>]/.test(trimmedVal)
+    ) {
       sanitizedOverrides[trimmedKey] = trimmedVal;
     }
   }
@@ -1307,7 +2144,7 @@ export function calculateThemeSystem(
 export function applyThemeToRoot(
   systemOrSurface: CalculatedThemeSystem | ThemeSurfaceConfig,
   overrides: Record<string, string> = {},
-  targetElement?: HTMLElement | null
+  targetElement?: HTMLElement | null,
 ): CalculatedThemeSystem {
   const system =
     "variables" in systemOrSurface

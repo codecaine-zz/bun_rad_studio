@@ -1,6 +1,6 @@
 /**
  * ⚡ Codecaine Cyberpunk QuadLink 4 - Neon AI & 2-Player Arcade Studio
- * 
+ *
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
  * - Smart AI difficulty engine (Easy, Medium, Hard with minimax heuristics)
@@ -77,7 +77,9 @@ export function generateConnect4StudioHtml(): string {
   const assetsDir = getConnect4AssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Codecaine Cyberpunk QuadLink 4</h1>";
+  let html = existsSync(indexPath)
+    ? readFileSync(indexPath, "utf8")
+    : "<h1>Codecaine Cyberpunk QuadLink 4</h1>";
 
   const storagePolyfill = `
   <script>
@@ -175,7 +177,10 @@ export function startConnect4StudioServer(options: Connect4ServerOptions = {}) {
       if (pathname === "/" || pathname === "/index.html") {
         const html = generateConnect4StudioHtml();
         return new Response(html, {
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            ...corsHeaders,
+          },
         });
       }
 
@@ -208,18 +213,24 @@ export function startConnect4StudioServer(options: Connect4ServerOptions = {}) {
             version: "1.0.0",
             timestamp: Date.now(),
           },
-          { headers: corsHeaders }
+          { headers: corsHeaders },
         );
       }
 
       // Fallback: static file in assets directory
       const sanitized = pathname.replace(/^\/+/, "");
       const directCandidate = join(assetsDir, sanitized);
-      if (directCandidate !== assetsDir && !directCandidate.startsWith(assetsDir + "/") && !directCandidate.startsWith(assetsDir + "\\")) {
+      if (
+        directCandidate !== assetsDir &&
+        !directCandidate.startsWith(assetsDir + "/") &&
+        !directCandidate.startsWith(assetsDir + "\\")
+      ) {
         return new Response("Forbidden", { status: 403 });
       }
       if (existsSync(directCandidate)) {
-        return new Response(Bun.file(directCandidate), { headers: corsHeaders });
+        return new Response(Bun.file(directCandidate), {
+          headers: corsHeaders,
+        });
       }
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
@@ -232,7 +243,9 @@ export function startConnect4StudioServer(options: Connect4ServerOptions = {}) {
 /**
  * Creates the complete native desktop instance of Connect 4.
  */
-export function createConnect4Studio(options: Connect4StudioOptions = {}): Connect4StudioInstance {
+export function createConnect4Studio(
+  options: Connect4StudioOptions = {},
+): Connect4StudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1200);
@@ -264,7 +277,8 @@ export function createConnect4Studio(options: Connect4StudioOptions = {}): Conne
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -284,11 +298,15 @@ export function createConnect4Studio(options: Connect4StudioOptions = {}): Conne
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -298,16 +316,24 @@ export function createConnect4Studio(options: Connect4StudioOptions = {}): Conne
         });
 
         webview.setHTML(html);
-        console.log(`⚡ Desktop window open (Fullscreen: ${fullscreen ? 'Enabled' : 'Disabled'}).`);
+        console.log(
+          `⚡ Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`,
+        );
 
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -323,10 +349,13 @@ if (process.argv.includes("--server")) {
   const port = parseInt(process.env.PORT || "0", 10);
   const srv = startConnect4StudioServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`⚡ Cyberpunk Connect 4 Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `⚡ Cyberpunk Connect 4 Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
+  const fullscreen =
+    !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
   const app = createConnect4Studio({ fullscreen });
   await app.run();
   process.exit(0);

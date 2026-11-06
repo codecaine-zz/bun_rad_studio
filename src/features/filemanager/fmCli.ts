@@ -8,7 +8,13 @@
 import { createHash } from "crypto";
 import { promises as fsp } from "fs";
 import * as nodePath from "path";
-import { absolutePath, createContext, pathApi, type FmContext, type FmContextOptions } from "./fmCore";
+import {
+  absolutePath,
+  createContext,
+  pathApi,
+  type FmContext,
+  type FmContextOptions,
+} from "./fmCore";
 import { listCliUtils, runCliUtil } from "./fmCliUtils";
 import { fileInfo } from "./fmInfoFile";
 import { listFolder, propertiesOf, searchFolder } from "./fmList";
@@ -66,7 +72,12 @@ const CLI_SUBCOMMANDS = new Set([
 export function isFileManagerCliInvocation(args: string[]): boolean {
   if (!args || args.length === 0) return false;
   const first = args[0]!.trim();
-  if (first === "--help" || first === "-h" || first === "--version" || first === "-v") {
+  if (
+    first === "--help" ||
+    first === "-h" ||
+    first === "--version" ||
+    first === "-v"
+  ) {
     return true;
   }
   if (!first.startsWith("-") && CLI_SUBCOMMANDS.has(first.toLowerCase())) {
@@ -100,33 +111,63 @@ function resolveUserPath(ctx: FmContext, raw: string, cwd: string): string {
 }
 
 function printHelp(out: (line: string) => void): void {
-  out(`${APP_NAME} v${APP_VERSION} — Desktop Studio & Command-Line File Manager`);
+  out(
+    `${APP_NAME} v${APP_VERSION} — Desktop Studio & Command-Line File Manager`,
+  );
   out("");
   out("Usage:");
   out("  codecaine-file-manager [window/server options]");
   out("  codecaine-file-manager <subcommand> [options] [arguments]");
   out("");
   out("Subcommands:");
-  out("  ls, list [path]                  List directory contents (--hidden, --sort, --reverse, --json)");
-  out("  info, stat <path...>             Inspect file/folder properties & deep metadata (--json)");
-  out("  find, search <pattern> [path]    Recursively search for files/folders (--hidden, --limit, --json)");
-  out("  hash, checksum <path...>         Compute MD5, SHA-1, SHA-256 & SHA-512 digests (--algo, --json)");
-  out("  trash <path...>                  Move files or folders safely to the File Manager Recycle Bin");
-  out("  trash-list                       List items currently in the Recycle Bin (--json)");
-  out("  restore <id...>                  Restore items from the Recycle Bin by trash ID");
-  out("  tools, doctor                    Check status of optional external helper tools (--json)");
-  out("  cli-utils, cli [list|run]        List or execute the 76 built-in RAD CLI utilities (--category, --search, --json)");
+  out(
+    "  ls, list [path]                  List directory contents (--hidden, --sort, --reverse, --json)",
+  );
+  out(
+    "  info, stat <path...>             Inspect file/folder properties & deep metadata (--json)",
+  );
+  out(
+    "  find, search <pattern> [path]    Recursively search for files/folders (--hidden, --limit, --json)",
+  );
+  out(
+    "  hash, checksum <path...>         Compute MD5, SHA-1, SHA-256 & SHA-512 digests (--algo, --json)",
+  );
+  out(
+    "  trash <path...>                  Move files or folders safely to the File Manager Recycle Bin",
+  );
+  out(
+    "  trash-list                       List items currently in the Recycle Bin (--json)",
+  );
+  out(
+    "  restore <id...>                  Restore items from the Recycle Bin by trash ID",
+  );
+  out(
+    "  tools, doctor                    Check status of optional external helper tools (--json)",
+  );
+  out(
+    "  cli-utils, cli [list|run]        List or execute the 76 built-in RAD CLI utilities (--category, --search, --json)",
+  );
   out("  help, --help, -h                 Show this help message");
   out("  version, --version, -v           Show version information");
   out("");
   out("Window & Server Options:");
-  out("  --server, -s                     Run headless HTTP server and print its URL");
+  out(
+    "  --server, -s                     Run headless HTTP server and print its URL",
+  );
   out("  --port <n>                       Port to listen on (0 for automatic)");
-  out("  --path <dir>                     Open directly to the specified folder");
-  out("  --tool <id>                      Open a studio tool tab (e.g. cliutils, tasks, sysinfo, ollama)");
-  out("  --browser, -b                    Open in system browser instead of native WebView");
+  out(
+    "  --path <dir>                     Open directly to the specified folder",
+  );
+  out(
+    "  --tool <id>                      Open a studio tool tab (e.g. cliutils, tasks, sysinfo, ollama)",
+  );
+  out(
+    "  --browser, -b                    Open in system browser instead of native WebView",
+  );
   out("  --home <dir>                     Override user home directory");
-  out("  --data-dir <dir>                 Override File Manager data & trash directory");
+  out(
+    "  --data-dir <dir>                 Override File Manager data & trash directory",
+  );
 }
 
 function extractGlobalContextFlags(
@@ -155,20 +196,35 @@ function extractGlobalContextFlags(
 /**
  * Executes a headless File Manager CLI subcommand and returns an exit code (`0` on success, non-zero on error).
  */
-export async function runFileManagerCli(rawArgs: string[], io: FmCliIo = {}): Promise<number> {
+export async function runFileManagerCli(
+  rawArgs: string[],
+  io: FmCliIo = {},
+): Promise<number> {
   const out = io.stdout ?? ((line: string) => console.log(line));
   const err = io.stderr ?? ((line: string) => console.error(line));
   const cwd = io.cwd ?? process.cwd();
 
-  const { rest: args, ctxOptions } = extractGlobalContextFlags(rawArgs, io.contextOptions);
+  const { rest: args, ctxOptions } = extractGlobalContextFlags(
+    rawArgs,
+    io.contextOptions,
+  );
   const first = (args[0] ?? "").trim();
 
-  if (!first || first === "--help" || first === "-h" || first.toLowerCase() === "help") {
+  if (
+    !first ||
+    first === "--help" ||
+    first === "-h" ||
+    first.toLowerCase() === "help"
+  ) {
     printHelp(out);
     return 0;
   }
 
-  if (first === "--version" || first === "-v" || first.toLowerCase() === "version") {
+  if (
+    first === "--version" ||
+    first === "-v" ||
+    first.toLowerCase() === "version"
+  ) {
     if (args.includes("--json") || args.includes("-j")) {
       out(JSON.stringify({ name: APP_NAME, version: APP_VERSION }, null, 2));
     } else {
@@ -198,7 +254,13 @@ export async function runFileManagerCli(rawArgs: string[], io: FmCliIo = {}): Pr
           else if (a === "--json" || a === "-j") json = true;
           else if ((a === "--sort" || a === "-s") && subArgs[i + 1]) {
             const v = subArgs[++i]!.toLowerCase();
-            if (v === "name" || v === "size" || v === "modified" || v === "type") sortBy = v;
+            if (
+              v === "name" ||
+              v === "size" ||
+              v === "modified" ||
+              v === "type"
+            )
+              sortBy = v;
           } else if (!a.startsWith("-")) {
             targets.push(a);
           }
@@ -212,7 +274,8 @@ export async function runFileManagerCli(rawArgs: string[], io: FmCliIo = {}): Pr
           let cmp = 0;
           if (sortBy === "size") cmp = a.size - b.size;
           else if (sortBy === "modified") cmp = a.mtimeMs - b.mtimeMs;
-          else if (sortBy === "type") cmp = a.kind.localeCompare(b.kind) || a.name.localeCompare(b.name);
+          else if (sortBy === "type")
+            cmp = a.kind.localeCompare(b.kind) || a.name.localeCompare(b.name);
           else cmp = a.name.localeCompare(b.name);
           return cmp * dirMul;
         });
@@ -222,8 +285,14 @@ export async function runFileManagerCli(rawArgs: string[], io: FmCliIo = {}): Pr
         }
         out(`Folder: ${listing.path} (${listing.total} items)`);
         for (const item of listing.entries) {
-          const typeBadge = item.isDir ? "DIR " : item.isSymlink ? "LINK" : "FILE";
-          const sizeStr = item.isDir ? "       -" : formatBytes(item.size).padStart(8);
+          const typeBadge = item.isDir
+            ? "DIR "
+            : item.isSymlink
+              ? "LINK"
+              : "FILE";
+          const sizeStr = item.isDir
+            ? "       -"
+            : formatBytes(item.size).padStart(8);
           out(`  ${typeBadge}  ${sizeStr}  ${item.name}`);
         }
         return 0;
@@ -248,7 +317,13 @@ export async function runFileManagerCli(rawArgs: string[], io: FmCliIo = {}): Pr
           deepInfo = await fileInfo(ctx, resolved[0]!).catch(() => null);
         }
         if (json) {
-          out(JSON.stringify(deepInfo ? { ...props, inspect: deepInfo } : props, null, 2));
+          out(
+            JSON.stringify(
+              deepInfo ? { ...props, inspect: deepInfo } : props,
+              null,
+              2,
+            ),
+          );
           return 0;
         }
         out(`Name:        ${props.name}`);
@@ -259,7 +334,8 @@ export async function runFileManagerCli(rawArgs: string[], io: FmCliIo = {}): Pr
           out(`Contents:    ${props.files} files, ${props.folders} folders`);
         }
         if (props.permissions) out(`Permissions: ${props.permissions}`);
-        if (props.modifiedMs) out(`Modified:    ${new Date(props.modifiedMs).toISOString()}`);
+        if (props.modifiedMs)
+          out(`Modified:    ${new Date(props.modifiedMs).toISOString()}`);
         if (deepInfo && typeof deepInfo === "object" && "mime" in deepInfo) {
           const d = deepInfo as { mime?: string; encoding?: string };
           if (d.mime) out(`MIME Type:   ${d.mime}`);
@@ -291,16 +367,24 @@ export async function runFileManagerCli(rawArgs: string[], io: FmCliIo = {}): Pr
 
         const query = positionals[0] ?? "";
         if (!query) {
-          err("Usage: codecaine-file-manager find <pattern> [path] [--hidden] [--limit <n>] [--json]");
+          err(
+            "Usage: codecaine-file-manager find <pattern> [path] [--hidden] [--limit <n>] [--json]",
+          );
           return 1;
         }
         const rootPath = resolveUserPath(ctx, positionals[1] ?? ".", cwd);
-        const res = await searchFolder(ctx, rootPath, query, { showHidden, maxResults, kind });
+        const res = await searchFolder(ctx, rootPath, query, {
+          showHidden,
+          maxResults,
+          kind,
+        });
         if (json) {
           out(JSON.stringify(res, null, 2));
           return 0;
         }
-        out(`Found ${res.entries.length} match(es) in ${rootPath} (scanned ${res.scanned}):`);
+        out(
+          `Found ${res.entries.length} match(es) in ${rootPath} (scanned ${res.scanned}):`,
+        );
         for (const item of res.entries) {
           const tag = item.isDir ? "[DIR] " : "      ";
           out(`  ${tag}${item.path}`);
@@ -323,7 +407,9 @@ export async function runFileManagerCli(rawArgs: string[], io: FmCliIo = {}): Pr
           }
         }
         if (targets.length === 0) {
-          err("Usage: codecaine-file-manager hash <path...> [--algo sha256|sha512|sha1|md5] [--json]");
+          err(
+            "Usage: codecaine-file-manager hash <path...> [--algo sha256|sha512|sha1|md5] [--json]",
+          );
           return 1;
         }
         const results = [];
@@ -333,7 +419,13 @@ export async function runFileManagerCli(rawArgs: string[], io: FmCliIo = {}): Pr
           results.push(h);
         }
         if (json) {
-          out(JSON.stringify(results.length === 1 ? results[0] : results, null, 2));
+          out(
+            JSON.stringify(
+              results.length === 1 ? results[0] : results,
+              null,
+              2,
+            ),
+          );
           return 0;
         }
         for (const r of results) {
@@ -390,7 +482,9 @@ export async function runFileManagerCli(rawArgs: string[], io: FmCliIo = {}): Pr
           out("Recycle Bin is empty.");
           return 0;
         }
-        out(`Recycle Bin (${items.length} item${items.length === 1 ? "" : "s"}):`);
+        out(
+          `Recycle Bin (${items.length} item${items.length === 1 ? "" : "s"}):`,
+        );
         for (const item of items) {
           out(`  ${item.id}  ${item.name}  (from ${item.originalPath})`);
         }
@@ -434,7 +528,9 @@ export async function runFileManagerCli(rawArgs: string[], io: FmCliIo = {}): Pr
           return 0;
         }
         const installedCount = status.tools.filter((t) => t.installed).length;
-        out(`${APP_NAME} External Helper Tools (${installedCount}/${status.tools.length} available):`);
+        out(
+          `${APP_NAME} External Helper Tools (${installedCount}/${status.tools.length} available):`,
+        );
         for (const t of status.tools) {
           const badge = t.installed ? "✓" : "✗";
           const ver = t.version ? ` (${t.version})` : "";
@@ -481,7 +577,11 @@ export async function runFileManagerCli(rawArgs: string[], io: FmCliIo = {}): Pr
 
         const catalog = listCliUtils(ctx);
         const filtered = catalog.tools.filter((t) => {
-          if (categoryFilter && !t.category.toLowerCase().includes(categoryFilter)) return false;
+          if (
+            categoryFilter &&
+            !t.category.toLowerCase().includes(categoryFilter)
+          )
+            return false;
           if (
             searchFilter &&
             !t.id.toLowerCase().includes(searchFilter) &&
@@ -511,9 +611,13 @@ export async function runFileManagerCli(rawArgs: string[], io: FmCliIo = {}): Pr
           return 0;
         }
 
-        out(`Built-in RAD CLI Utilities (${filtered.length}/${catalog.count}) — folder: ${catalog.folder}`);
+        out(
+          `Built-in RAD CLI Utilities (${filtered.length}/${catalog.count}) — folder: ${catalog.folder}`,
+        );
         for (const t of filtered) {
-          out(`  ${t.icon} ${t.command.padEnd(22)} [${t.category}] ${t.description}`);
+          out(
+            `  ${t.icon} ${t.command.padEnd(22)} [${t.category}] ${t.description}`,
+          );
         }
         return 0;
       }

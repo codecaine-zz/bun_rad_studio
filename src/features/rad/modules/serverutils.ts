@@ -10,7 +10,10 @@ import type { Server, ServerWebSocket } from "bun";
 /**
  * Standard request handler signature compatible with `Bun.serve`.
  */
-export type HttpHandler = (req: Request, server: Server<any>) => Response | Promise<Response>;
+export type HttpHandler = (
+  req: Request,
+  server: Server<any>,
+) => Response | Promise<Response>;
 
 /**
  * Internal route definition pairing an HTTP method and compiled URL pattern with a request handler.
@@ -18,17 +21,49 @@ export type HttpHandler = (req: Request, server: Server<any>) => Response | Prom
 export interface RouteEntry {
   method: string;
   pattern: RegExp;
-  handler: (req: Request, params: Record<string, string>, server: Server<any>) => Response | Promise<Response>;
+  handler: (
+    req: Request,
+    params: Record<string, string>,
+    server: Server<any>,
+  ) => Response | Promise<Response>;
 }
 
 /**
  * Fluent HTTP router supporting parameterized path patterns (e.g., `"/users/:id"`) and method dispatch.
  */
 export interface HttpRouter {
-  get(path: string, handler: (req: Request, params: Record<string, string>, server: Server<any>) => Response | Promise<Response>): HttpRouter;
-  post(path: string, handler: (req: Request, params: Record<string, string>, server: Server<any>) => Response | Promise<Response>): HttpRouter;
-  put(path: string, handler: (req: Request, params: Record<string, string>, server: Server<any>) => Response | Promise<Response>): HttpRouter;
-  delete(path: string, handler: (req: Request, params: Record<string, string>, server: Server<any>) => Response | Promise<Response>): HttpRouter;
+  get(
+    path: string,
+    handler: (
+      req: Request,
+      params: Record<string, string>,
+      server: Server<any>,
+    ) => Response | Promise<Response>,
+  ): HttpRouter;
+  post(
+    path: string,
+    handler: (
+      req: Request,
+      params: Record<string, string>,
+      server: Server<any>,
+    ) => Response | Promise<Response>,
+  ): HttpRouter;
+  put(
+    path: string,
+    handler: (
+      req: Request,
+      params: Record<string, string>,
+      server: Server<any>,
+    ) => Response | Promise<Response>,
+  ): HttpRouter;
+  delete(
+    path: string,
+    handler: (
+      req: Request,
+      params: Record<string, string>,
+      server: Server<any>,
+    ) => Response | Promise<Response>,
+  ): HttpRouter;
   handle(req: Request, server: Server<any>): Promise<Response>;
 }
 
@@ -49,7 +84,15 @@ function pathToRegex(path: string): { regex: RegExp; keys: string[] } {
 export function createRouter(): HttpRouter {
   const routes: RouteEntry[] = [];
 
-  function addRoute(method: string, path: string, handler: (req: Request, params: Record<string, string>, server: Server<any>) => Response | Promise<Response>) {
+  function addRoute(
+    method: string,
+    path: string,
+    handler: (
+      req: Request,
+      params: Record<string, string>,
+      server: Server<any>,
+    ) => Response | Promise<Response>,
+  ) {
     const { regex, keys } = pathToRegex(path);
     routes.push({
       method: method.toUpperCase(),
@@ -127,7 +170,9 @@ export interface ServerInstance {
  * Starts a `Bun.serve` HTTP server dispatched through a custom `fetch` handler or an {@link HttpRouter}.
  */
 export function serveHttp(options: ServeOptions = {}): ServerInstance {
-  const fetchHandler = options.fetch ?? (options.router ? options.router.handle : () => new Response("OK"));
+  const fetchHandler =
+    options.fetch ??
+    (options.router ? options.router.handle : () => new Response("OK"));
   const server = Bun.serve({
     port: options.port ?? 0,
     hostname: options.hostname ?? "localhost",
@@ -138,7 +183,8 @@ export function serveHttp(options: ServeOptions = {}): ServerInstance {
     port: server.port ?? 0,
     hostname: server.hostname ?? options.hostname ?? "localhost",
     url: `http://${server.hostname ?? options.hostname ?? "localhost"}:${server.port}`,
-    stop: (closeActiveConnections = true) => server.stop(closeActiveConnections),
+    stop: (closeActiveConnections = true) =>
+      server.stop(closeActiveConnections),
     raw: server,
   };
 }
@@ -171,8 +217,10 @@ export function serveStatic(options: StaticServerOptions): ServerInstance {
       } catch {
         return new Response("Bad Request", { status: 400 });
       }
-      if (decodedPath.includes("\0")) return new Response("Bad Request", { status: 400 });
-      const relativePath = decodedPath === "/" ? "index.html" : decodedPath.replace(/^\/+/, "");
+      if (decodedPath.includes("\0"))
+        return new Response("Bad Request", { status: 400 });
+      const relativePath =
+        decodedPath === "/" ? "index.html" : decodedPath.replace(/^\/+/, "");
       const filePath = resolve(rootDir, relativePath);
       if (filePath !== rootDir && !filePath.startsWith(rootDir + sep)) {
         return new Response("Forbidden", { status: 403 });
@@ -198,7 +246,8 @@ export function serveStatic(options: StaticServerOptions): ServerInstance {
     port: server.port ?? 0,
     hostname: server.hostname ?? "localhost",
     url: `http://${server.hostname ?? "localhost"}:${server.port}`,
-    stop: (closeActiveConnections = true) => server.stop(closeActiveConnections),
+    stop: (closeActiveConnections = true) =>
+      server.stop(closeActiveConnections),
     raw: server,
   };
 }
@@ -232,7 +281,8 @@ export interface WebSocketHub {
  */
 export function createWsHub(options: WsHubOptions = {}): WebSocketHub {
   const bindHost = options.hostname ?? "127.0.0.1";
-  const isLoopback = bindHost === "127.0.0.1" || bindHost === "localhost" || bindHost === "::1";
+  const isLoopback =
+    bindHost === "127.0.0.1" || bindHost === "localhost" || bindHost === "::1";
   const server = Bun.serve<{ topic: string }>({
     port: options.port ?? 0,
     hostname: bindHost,
@@ -242,8 +292,15 @@ export function createWsHub(options: WsHubOptions = {}): WebSocketHub {
         if (origin && origin !== "null") {
           try {
             const originHost = new URL(origin).hostname.toLowerCase();
-            if (originHost !== "127.0.0.1" && originHost !== "localhost" && originHost !== "::1" && originHost !== "[::1]") {
-              return new Response("Forbidden: cross-origin WebSocket blocked", { status: 403 });
+            if (
+              originHost !== "127.0.0.1" &&
+              originHost !== "localhost" &&
+              originHost !== "::1" &&
+              originHost !== "[::1]"
+            ) {
+              return new Response("Forbidden: cross-origin WebSocket blocked", {
+                status: 403,
+              });
             }
           } catch {
             return new Response("Forbidden: invalid Origin", { status: 403 });

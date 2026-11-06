@@ -36,7 +36,8 @@ export const commonPatterns = {
   uuid: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
   semver: /^v?(\d+)\.(\d+)\.(\d+)(?:-([\w.-]+))?(?:\+([\w.-]+))?$/,
   hexColor: /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i,
-  isoDate: /^\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?$/,
+  isoDate:
+    /^\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?$/,
   slug: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
   integer: /^[+-]?\d+$/,
   number: /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i,
@@ -49,16 +50,25 @@ export type CommonPatternName = keyof typeof commonPatterns;
 function toRegex(pattern: Pattern, addFlags = "", removeFlags = ""): RegExp {
   const source = pattern instanceof RegExp ? pattern.source : pattern;
   const base = pattern instanceof RegExp ? pattern.flags : "";
-  const flags = Array.from(new Set([...base, ...addFlags])).filter((f) => !removeFlags.includes(f)).join("");
+  const flags = Array.from(new Set([...base, ...addFlags]))
+    .filter((f) => !removeFlags.includes(f))
+    .join("");
   try {
     return new RegExp(source, flags);
   } catch (err) {
-    throw new Error(`[regexutils] Invalid pattern /${source}/${flags}: ${(err as Error).message}`);
+    throw new Error(
+      `[regexutils] Invalid pattern /${source}/${flags}: ${(err as Error).message}`,
+    );
   }
 }
 
 function toMatch(m: RegExpExecArray): RegexMatch {
-  return { match: m[0], index: m.index, captures: m.slice(1), groups: { ...(m.groups ?? {}) } };
+  return {
+    match: m[0],
+    index: m.index,
+    captures: m.slice(1),
+    groups: { ...(m.groups ?? {}) },
+  };
 }
 
 /** Escape regex metacharacters. @example regexutils.escapeRegExp("1+1=2?"); // "1\\+1=2\\?" */
@@ -128,29 +138,48 @@ export function countMatches(pattern: Pattern, text: string): number {
  * @example regexutils.replace(/\d+/g, "items: 123", "###"); // "items: ###"
  * @example regexutils.replace(/\d+/, "1 2", (m) => String(+m * 10)); // "10 20"
  */
-export function replace(pattern: Pattern, text: string, replacement: Replacement): string {
+export function replace(
+  pattern: Pattern,
+  text: string,
+  replacement: Replacement,
+): string {
   return text.replace(toRegex(pattern, "g"), replacement as any);
 }
 
 /** Replace only the first match. @example regexutils.replaceFirst(/a/g, "aaa", "b"); // "baa" */
-export function replaceFirst(pattern: Pattern, text: string, replacement: Replacement): string {
+export function replaceFirst(
+  pattern: Pattern,
+  text: string,
+  replacement: Replacement,
+): string {
   return text.replace(toRegex(pattern, "", "g"), replacement as any);
 }
 
 /** Split by pattern (capture groups are included, per `String.split`). @example regexutils.split(/ ?, ?/, "a , b,c"); // ["a","b","c"] */
-export function split(pattern: Pattern, text: string, limit?: number): string[] {
+export function split(
+  pattern: Pattern,
+  text: string,
+  limit?: number,
+): string[] {
   return text.split(toRegex(pattern, "", "gy"), limit);
 }
 
 /** Named groups of every match (matches without groups are skipped). @example regexutils.findNamedGroups(/(?<k>\w+)=(?<v>\w+)/, "a=1 b=2"); // [{k:"a",v:"1"},{k:"b",v:"2"}] */
-export function findNamedGroups(pattern: RegExp, text: string): Record<string, string>[] {
+export function findNamedGroups(
+  pattern: RegExp,
+  text: string,
+): Record<string, string>[] {
   const out: Record<string, string>[] = [];
-  for (const m of text.matchAll(toRegex(pattern, "g"))) if (m.groups) out.push({ ...m.groups } as Record<string, string>);
+  for (const m of text.matchAll(toRegex(pattern, "g")))
+    if (m.groups) out.push({ ...m.groups } as Record<string, string>);
   return out;
 }
 
 /** Named groups of the first match, or `null`. @example regexutils.extractGroups(/(?<major>\d+)\.(?<minor>\d+)/, "v3.14"); // { major: "3", minor: "14" } */
-export function extractGroups(pattern: RegExp, text: string): Record<string, string> | null {
+export function extractGroups(
+  pattern: RegExp,
+  text: string,
+): Record<string, string> | null {
   const m = toRegex(pattern, "", "gy").exec(text);
   return m?.groups ? ({ ...m.groups } as Record<string, string>) : null;
 }
@@ -160,9 +189,14 @@ export function extractGroups(pattern: RegExp, text: string): Record<string, str
  * @example regexutils.anyOf(["cat", /dogs?/]).test("dogs"); // true
  */
 export function anyOf(patterns: readonly Pattern[], flags?: string): RegExp {
-  const sources = patterns.map((p) => (p instanceof RegExp ? p.source : escapeRegExp(p)));
+  const sources = patterns.map((p) =>
+    p instanceof RegExp ? p.source : escapeRegExp(p),
+  );
   const firstRe = patterns.find((p): p is RegExp => p instanceof RegExp);
-  return new RegExp(sources.map((s) => `(?:${s})`).join("|"), flags ?? firstRe?.flags.replace(/[gy]/g, "") ?? "");
+  return new RegExp(
+    sources.map((s) => `(?:${s})`).join("|"),
+    flags ?? firstRe?.flags.replace(/[gy]/g, "") ?? "",
+  );
 }
 
 /** Namespace bundle. */

@@ -134,7 +134,9 @@ export function startPoolServer(options: PoolServerOptions = {}) {
   );
 }
 
-export function createPoolStudio(options: PoolStudioOptions = {}): PoolStudioInstance {
+export function createPoolStudio(
+  options: PoolStudioOptions = {},
+): PoolStudioInstance {
   const fullscreen = options.fullscreen ?? false;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1280);
@@ -148,7 +150,9 @@ export function createPoolStudio(options: PoolStudioOptions = {}): PoolStudioIns
     fullscreen,
     generateHtml: () => generatePoolStudioHtml(),
     run: async () => {
-      console.log("🎱 Launching Codecaine 8-Ball Pool Royale: Cyber Billiards Suite...");
+      console.log(
+        "🎱 Launching Codecaine 8-Ball Pool Royale: Cyber Billiards Suite...",
+      );
       const html = generatePoolStudioHtml();
 
       let srv: any = null;
@@ -166,7 +170,8 @@ export function createPoolStudio(options: PoolStudioOptions = {}): PoolStudioIns
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -186,11 +191,15 @@ export function createPoolStudio(options: PoolStudioOptions = {}): PoolStudioIns
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -201,13 +210,19 @@ export function createPoolStudio(options: PoolStudioOptions = {}): PoolStudioIns
 
         webview.setHTML(html);
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -230,10 +245,13 @@ if (process.argv.includes("--server")) {
   const port = parseInt(process.env.POOL_PORT || process.env.PORT || "0", 10);
   const srv = startPoolServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`🎱 Codecaine 8-Ball Pool Royale Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `🎱 Codecaine 8-Ball Pool Royale Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = process.argv.includes("--fullscreen") || process.argv.includes("-f");
+  const fullscreen =
+    process.argv.includes("--fullscreen") || process.argv.includes("-f");
   const app = createPoolStudio({ fullscreen });
   await app.run();
   process.exit(0);

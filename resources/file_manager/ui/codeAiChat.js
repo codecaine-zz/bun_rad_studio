@@ -81,7 +81,10 @@ function splitThinkBlocks(rawText) {
       return "";
     },
   );
-  content = content.replace(/<\|(?:start\|>assistant<\|)?channel\|>final<\|message\|>/gi, "");
+  content = content.replace(
+    /<\|(?:start\|>assistant<\|)?channel\|>final<\|message\|>/gi,
+    "",
+  );
   content = content.replace(/<\|(?:end|return|start|channel|message)\|>/gi, "");
   content = content.replace(/<think>([\s\S]*?)<\/think>/gi, (_m, inner) => {
     if (inner && inner.trim()) reasoningParts.push(inner.trim());
@@ -136,9 +139,25 @@ export function createCodeAiChat(ctx) {
   function activeSelectionInfo() {
     const d = ctx.getDoc?.();
     const e = ctx.getEditor?.();
-    if (!d || !e || d.kind === "diff") return { hasSelection: false, text: "", startLine: 1, endLine: 1, start: 0, end: 0 };
+    if (!d || !e || d.kind === "diff")
+      return {
+        hasSelection: false,
+        text: "",
+        startLine: 1,
+        endLine: 1,
+        start: 0,
+        end: 0,
+      };
     const sel = e.getSelection();
-    if (!sel || sel.end <= sel.start) return { hasSelection: false, text: "", startLine: d.line || 1, endLine: d.line || 1, start: sel?.start || 0, end: sel?.end || 0 };
+    if (!sel || sel.end <= sel.start)
+      return {
+        hasSelection: false,
+        text: "",
+        startLine: d.line || 1,
+        endLine: d.line || 1,
+        start: sel?.start || 0,
+        end: sel?.end || 0,
+      };
     const full = e.getText();
     const slice = full.slice(sel.start, sel.end);
     const startLine = full.slice(0, sel.start).split("\n").length;
@@ -157,7 +176,9 @@ export function createCodeAiChat(ctx) {
     const localModels = Array.isArray(bionicStatus?.models)
       ? bionicStatus.models.filter((m) => m.type === "llm" || m.type === "vlm")
       : [];
-    const cloudModels = Array.isArray(bionicStatus?.cloudModels) ? bionicStatus.cloudModels : [];
+    const cloudModels = Array.isArray(bionicStatus?.cloudModels)
+      ? bionicStatus.cloudModels
+      : [];
     const seen = new Set(localModels.map((m) => m.id));
     const merged = [...localModels];
     for (const cm of cloudModels) {
@@ -172,11 +193,16 @@ export function createCodeAiChat(ctx) {
   function resolveCodeChatActiveProfile() {
     const isBionic = state.engine === "bionic";
     const bionicModels = getCombinedBionicModels(state.bionicStatus);
-    const ollamaModels = Array.isArray(state.ollamaStatus?.models) ? state.ollamaStatus.models : [];
+    const ollamaModels = Array.isArray(state.ollamaStatus?.models)
+      ? state.ollamaStatus.models
+      : [];
     const activeModelName = isBionic
       ? state.bionicModel || "openai/gpt-oss-20b"
       : state.ollamaModel || "qwen3.5:latest";
-    return getClientModelFeatureProfile(activeModelName, isBionic ? bionicModels : ollamaModels);
+    return getClientModelFeatureProfile(
+      activeModelName,
+      isBionic ? bionicModels : ollamaModels,
+    );
   }
 
   function syncCodeChatModelCapabilities() {
@@ -184,7 +210,11 @@ export function createCodeAiChat(ctx) {
     const feat = profile.features || {};
     const caps = profile.thinkingCapabilities || {};
     if (caps.thinkingMode === "levels") {
-      if (state.thinkingLevel !== "low" && state.thinkingLevel !== "medium" && state.thinkingLevel !== "high") {
+      if (
+        state.thinkingLevel !== "low" &&
+        state.thinkingLevel !== "medium" &&
+        state.thinkingLevel !== "high"
+      ) {
         state.thinkingLevel = caps.defaultLevel || "medium";
       }
     } else if (caps.thinkingMode === "always_on") {
@@ -209,7 +239,9 @@ export function createCodeAiChat(ctx) {
     }
     if (caps.thinkingMode === "levels") {
       const lvl =
-        state.thinkingLevel === "low" || state.thinkingLevel === "medium" || state.thinkingLevel === "high"
+        state.thinkingLevel === "low" ||
+        state.thinkingLevel === "medium" ||
+        state.thinkingLevel === "high"
           ? state.thinkingLevel
           : caps.defaultLevel || "medium";
       return { think: lvl, thinkingLevel: lvl };
@@ -236,8 +268,11 @@ export function createCodeAiChat(ctx) {
       state.bionicStatus = bRes.value;
       const models = getCombinedBionicModels(bRes.value);
       if (!state.bionicModel && models.length > 0) {
-        const loadedChat = models.find((m) => m.loaded && (m.type === "llm" || m.type === "vlm"));
-        const anyChat = models.find((m) => m.type === "llm" || m.type === "vlm") || models[0];
+        const loadedChat = models.find(
+          (m) => m.loaded && (m.type === "llm" || m.type === "vlm"),
+        );
+        const anyChat =
+          models.find((m) => m.type === "llm" || m.type === "vlm") || models[0];
         if (loadedChat) state.bionicModel = loadedChat.id;
         else if (anyChat) state.bionicModel = anyChat.id;
       }
@@ -247,15 +282,22 @@ export function createCodeAiChat(ctx) {
       state.ollamaStatus = oRes.value;
       const models = Array.isArray(oRes.value.models) ? oRes.value.models : [];
       if (!state.ollamaModel && models.length > 0) {
-        const chatModel = models.find((m) => m.badges?.includes("Chat")) || models[0];
+        const chatModel =
+          models.find((m) => m.badges?.includes("Chat")) || models[0];
         if (chatModel) state.ollamaModel = chatModel.name;
       }
     }
 
     // Auto-select online engine if user hasn't explicitly picked one yet
     if (!state.engineManuallyChosen) {
-      const bionicOnline = Boolean(state.bionicStatus?.server?.running || (state.bionicStatus?.models?.length > 0));
-      const ollamaOnline = Boolean(state.ollamaStatus?.daemon?.running && (state.ollamaStatus?.models?.length > 0));
+      const bionicOnline = Boolean(
+        state.bionicStatus?.server?.running ||
+        state.bionicStatus?.models?.length > 0,
+      );
+      const ollamaOnline = Boolean(
+        state.ollamaStatus?.daemon?.running &&
+        state.ollamaStatus?.models?.length > 0,
+      );
       if (state.bionicStatus?.server?.running) {
         state.engine = "bionic";
       } else if (ollamaOnline && !bionicOnline) {
@@ -323,13 +365,18 @@ export function createCodeAiChat(ctx) {
         selEnd: clean.length,
       });
       e.focus();
-      ctx.toast?.(`Applied AI code to ${d.name} (snapshot saved in History).`, { kind: "success" });
+      ctx.toast?.(`Applied AI code to ${d.name} (snapshot saved in History).`, {
+        kind: "success",
+      });
       return;
     }
 
     const sel = e.getSelection();
     const hasSel = sel && sel.end > sel.start;
-    ctx.docs?.snapshot?.(d, hasSel ? "Before AI Replace Selection" : "Before AI Insert");
+    ctx.docs?.snapshot?.(
+      d,
+      hasSel ? "Before AI Replace Selection" : "Before AI Insert",
+    );
     const from = hasSel ? sel.start : (sel?.start ?? e.getText().length);
     const to = hasSel ? sel.end : from;
     e.apply({
@@ -387,7 +434,9 @@ export function createCodeAiChat(ctx) {
 
   function resolveCodeLang(rawLang, codeText) {
     const d = ctx.getDoc?.();
-    const raw = String(rawLang || d?.lang || "").trim().toLowerCase();
+    const raw = String(rawLang || d?.lang || "")
+      .trim()
+      .toLowerCase();
     const aliasMap = {
       js: "javascript",
       jsx: "javascript",
@@ -409,9 +458,32 @@ export function createCodeAiChat(ctx) {
     if (aliasMap[raw]) return aliasMap[raw];
     if (
       [
-        "javascript", "typescript", "json", "html", "css", "markdown", "python",
-        "go", "rust", "c", "cpp", "csharp", "java", "kotlin", "swift", "php",
-        "ruby", "lua", "shell", "yaml", "toml", "ini", "sql", "xml", "diff", "v",
+        "javascript",
+        "typescript",
+        "json",
+        "html",
+        "css",
+        "markdown",
+        "python",
+        "go",
+        "rust",
+        "c",
+        "cpp",
+        "csharp",
+        "java",
+        "kotlin",
+        "swift",
+        "php",
+        "ruby",
+        "lua",
+        "shell",
+        "yaml",
+        "toml",
+        "ini",
+        "sql",
+        "xml",
+        "diff",
+        "v",
       ].includes(raw)
     ) {
       return raw;
@@ -428,7 +500,9 @@ export function createCodeAiChat(ctx) {
     } else {
       for (const t of tokens) {
         span.append(
-          t.type ? h("span", { class: `code-t-${t.type}` }, t.text) : document.createTextNode(t.text),
+          t.type
+            ? h("span", { class: `code-t-${t.type}` }, t.text)
+            : document.createTextNode(t.text),
         );
       }
     }
@@ -442,21 +516,30 @@ export function createCodeAiChat(ctx) {
       .replace(/\n+$/, "");
     const lang = resolveCodeLang(rawLang, cleanCode);
     const displayLang = (rawLang || lang || "code").toUpperCase();
-    const lines = tokenizeText(lang, cleanCode.length > 200_000 ? cleanCode.slice(0, 200_000) : cleanCode);
+    const lines = tokenizeText(
+      lang,
+      cleanCode.length > 200_000 ? cleanCode.slice(0, 200_000) : cleanCode,
+    );
 
-    const effectiveKey = cardKey || `${lang}:${cleanCode.length}:${cleanCode.slice(0, 120)}`;
+    const effectiveKey =
+      cardKey || `${lang}:${cleanCode.length}:${cleanCode.slice(0, 120)}`;
 
     function computeOrGetCardState(forceRediff = false) {
       let cs = state.codeCardStates.get(effectiveKey);
       const d = ctx.getDoc?.();
-      const canDiffDoc = Boolean(d && d.kind !== "diff" && String(d.text ?? "").trim().length > 0);
+      const canDiffDoc = Boolean(
+        d && d.kind !== "diff" && String(d.text ?? "").trim().length > 0,
+      );
 
       if (
         !cs ||
         forceRediff ||
         cs.cleanCode !== cleanCode ||
         (!state.loading && cs.wasStreaming) ||
-        (canDiffDoc && cs.docId !== d.id && cs.acceptedHunkIds.size === 0 && !cs.userToggled)
+        (canDiffDoc &&
+          cs.docId !== d.id &&
+          cs.acceptedHunkIds.size === 0 &&
+          !cs.userToggled)
       ) {
         if (canDiffDoc) {
           const selInfo = activeSelectionInfo();
@@ -471,14 +554,22 @@ export function createCodeAiChat(ctx) {
                   ? `${d.name} · Insert at L${target.startLine}`
                   : `${d.name} (L1–${target.endLine})`;
           const diffRes = isSnippet
-            ? { identical: false, added: 0, removed: 0, hunks: [], diff: "", ops: [] }
+            ? {
+                identical: false,
+                added: 0,
+                removed: 0,
+                hunks: [],
+                diff: "",
+                ops: [],
+              }
             : computeDiffHunks(target.baseText, cleanCode, {
                 oldLabel: targetLabel,
                 newLabel: "AI Proposed",
                 context: 2,
                 mergeGap: 0,
               });
-          const hasHunks = !isSnippet && !diffRes.identical && diffRes.hunks.length > 0;
+          const hasHunks =
+            !isSnippet && !diffRes.identical && diffRes.hunks.length > 0;
           cs = {
             cardKey: effectiveKey,
             cleanCode,
@@ -516,7 +607,14 @@ export function createCodeAiChat(ctx) {
             lastAppliedLen: 0,
             startLine: 1,
             endLine: 1,
-            diffRes: { identical: false, added: 0, removed: 0, hunks: [], diff: "", ops: [] },
+            diffRes: {
+              identical: false,
+              added: 0,
+              removed: 0,
+              hunks: [],
+              diff: "",
+              ops: [],
+            },
             selectedHunkIds: new Set(),
             acceptedHunkIds: new Set(),
             userToggled: false,
@@ -545,13 +643,19 @@ export function createCodeAiChat(ctx) {
         } else {
           for (const t of tokens) {
             textCell.append(
-              t.type ? h("span", { class: `code-t-${t.type}` }, t.text) : document.createTextNode(t.text),
+              t.type
+                ? h("span", { class: `code-t-${t.type}` }, t.text)
+                : document.createTextNode(t.text),
             );
           }
         }
         bodyEl.append(
           h("div", { class: "bionic-md-code-row" }, [
-            h("span", { class: "bionic-md-code-ln", "aria-hidden": "true" }, String(i + 1)),
+            h(
+              "span",
+              { class: "bionic-md-code-ln", "aria-hidden": "true" },
+              String(i + 1),
+            ),
             textCell,
           ]),
         );
@@ -567,7 +671,9 @@ export function createCodeAiChat(ctx) {
           ctx.docs.activate(cs.docId);
           d = ctx.getDoc?.();
         } else if (cs.docName && d.name !== cs.docName) {
-          ctx.toast?.(`Target file "${cs.docName}" is no longer open.`, { kind: "error" });
+          ctx.toast?.(`Target file "${cs.docName}" is no longer open.`, {
+            kind: "error",
+          });
           return false;
         }
       }
@@ -584,26 +690,42 @@ export function createCodeAiChat(ctx) {
         return false;
       }
 
-      const applied = applySelectedDiffHunks(cs.originalBaseText, cleanCode, hunkIdsToApply, {
-        context: 2,
-        mergeGap: 0,
-      });
+      const applied = applySelectedDiffHunks(
+        cs.originalBaseText,
+        cleanCode,
+        hunkIdsToApply,
+        {
+          context: 2,
+          mergeGap: 0,
+        },
+      );
 
       ctx.docs?.snapshot?.(d, snapshotLabel);
       const curDocText = e.getText();
       let safeFrom = Math.max(0, Math.min(cs.targetFrom, curDocText.length));
-      let safeTo = cs.targetMode === "file"
-        ? curDocText.length
-        : Math.max(safeFrom, Math.min(safeFrom + cs.lastAppliedLen, curDocText.length));
+      let safeTo =
+        cs.targetMode === "file"
+          ? curDocText.length
+          : Math.max(
+              safeFrom,
+              Math.min(safeFrom + cs.lastAppliedLen, curDocText.length),
+            );
 
       // If lines above cs.targetFrom were edited manually, relocate the expected block before splicing
       const expectedPrev = cs.lastAppliedText ?? cs.originalBaseText ?? "";
-      if (cs.targetMode !== "file" && expectedPrev && curDocText.slice(safeFrom, safeTo) !== expectedPrev) {
+      if (
+        cs.targetMode !== "file" &&
+        expectedPrev &&
+        curDocText.slice(safeFrom, safeTo) !== expectedPrev
+      ) {
         const relocatedIdx = curDocText.indexOf(expectedPrev);
         if (relocatedIdx !== -1) {
           safeFrom = relocatedIdx;
           safeTo = relocatedIdx + expectedPrev.length;
-        } else if (cs.originalBaseText && curDocText.includes(cs.originalBaseText)) {
+        } else if (
+          cs.originalBaseText &&
+          curDocText.includes(cs.originalBaseText)
+        ) {
           safeFrom = curDocText.indexOf(cs.originalBaseText);
           safeTo = safeFrom + cs.originalBaseText.length;
         } else {
@@ -652,10 +774,15 @@ export function createCodeAiChat(ctx) {
       const selectedCount = cs.selectedHunkIds.size;
       const acceptedCount = cs.acceptedHunkIds.size;
       const selInfo = activeSelectionInfo();
-      const insertLabel = selInfo.hasSelection ? "⤓ Replace Selection" : "⤓ Insert at Cursor";
+      const insertLabel = selInfo.hasSelection
+        ? "⤓ Replace Selection"
+        : "⤓ Insert at Cursor";
 
       cardEl.classList.toggle("has-diff-review", hasHunks);
-      cardEl.classList.toggle("is-diff-view", hasHunks && cs.viewMode === "diff");
+      cardEl.classList.toggle(
+        "is-diff-view",
+        hasHunks && cs.viewMode === "diff",
+      );
 
       // 1. Card Header Bar (Diff & Hunk controls front and centre)
       const barEl = h("div", { class: "bionic-md-code-bar code-ai-card-bar" }, [
@@ -674,13 +801,29 @@ export function createCodeAiChat(ctx) {
                   title: `Proposed edit has +${cs.diffRes.added} added and −${cs.diffRes.removed} removed lines across ${totalHunks} ${totalHunks === 1 ? "hunk" : "hunks"}`,
                 },
                 [
-                  h("span", { class: "code-ai-stat-hunks" }, `⇄ ${totalHunks} ${totalHunks === 1 ? "hunk" : "hunks"}`),
-                  h("span", { class: "code-ai-stat-add" }, `+${cs.diffRes.added}`),
-                  h("span", { class: "code-ai-stat-del" }, `−${cs.diffRes.removed}`),
+                  h(
+                    "span",
+                    { class: "code-ai-stat-hunks" },
+                    `⇄ ${totalHunks} ${totalHunks === 1 ? "hunk" : "hunks"}`,
+                  ),
+                  h(
+                    "span",
+                    { class: "code-ai-stat-add" },
+                    `+${cs.diffRes.added}`,
+                  ),
+                  h(
+                    "span",
+                    { class: "code-ai-stat-del" },
+                    `−${cs.diffRes.removed}`,
+                  ),
                 ],
               )
             : cs.diffRes?.identical && cs.originalBaseText
-              ? h("span", { class: "ollama-pill code-ai-identical-pill" }, "✓ Identical to editor")
+              ? h(
+                  "span",
+                  { class: "ollama-pill code-ai-identical-pill" },
+                  "✓ Identical to editor",
+                )
               : null,
           hasHunks && cs.targetLabel
             ? h(
@@ -715,7 +858,8 @@ export function createCodeAiChat(ctx) {
                       class: `code-ai-view-tab${cs.viewMode === "diff" ? " is-active" : ""}`,
                       "aria-selected": String(cs.viewMode === "diff"),
                       "data-ai-view-mode": "diff",
-                      title: "Inspect diff and accept/reject individual hunks before applying",
+                      title:
+                        "Inspect diff and accept/reject individual hunks before applying",
                       onclick: () => {
                         cs.viewMode = "diff";
                         refreshCardDom();
@@ -749,9 +893,13 @@ export function createCodeAiChat(ctx) {
                 "button",
                 {
                   type: "button",
-                  class: "ollama-btn is-mini is-primary code-ai-apply-hunks-btn",
+                  class:
+                    "ollama-btn is-mini is-primary code-ai-apply-hunks-btn",
                   "data-ai-apply-selected-hunks": "true",
-                  disabled: selectedCount === 0 && acceptedCount === 0 ? "disabled" : null,
+                  disabled:
+                    selectedCount === 0 && acceptedCount === 0
+                      ? "disabled"
+                      : null,
                   title:
                     selectedCount === 0 && acceptedCount > 0
                       ? "Revert applied hunks back to the original code"
@@ -819,7 +967,8 @@ export function createCodeAiChat(ctx) {
                 {
                   type: "button",
                   class: "ollama-btn is-mini",
-                  title: "Replace the entire active file with this code block (saves a History snapshot first)",
+                  title:
+                    "Replace the entire active file with this code block (saves a History snapshot first)",
                   onclick: () => insertCodeIntoEditor(cleanCode, "file"),
                 },
                 "📄 Apply File",
@@ -846,18 +995,31 @@ export function createCodeAiChat(ctx) {
                   ? `Copy code with only the ${selectedCount} selected ${selectedCount === 1 ? "hunk" : "hunks"} applied`
                   : "Copy code block to clipboard",
               onclick: (e) => {
-                if (hasHunks && selectedCount > 0 && selectedCount < totalHunks) {
-                  const partial = applySelectedDiffHunks(cs.originalBaseText, cleanCode, cs.selectedHunkIds, {
-                    context: 2,
-                    mergeGap: 0,
-                  });
+                if (
+                  hasHunks &&
+                  selectedCount > 0 &&
+                  selectedCount < totalHunks
+                ) {
+                  const partial = applySelectedDiffHunks(
+                    cs.originalBaseText,
+                    cleanCode,
+                    cs.selectedHunkIds,
+                    {
+                      context: 2,
+                      mergeGap: 0,
+                    },
+                  );
                   void copyCodeText(
                     partial.text,
                     `${displayLang} (${selectedCount}/${totalHunks} hunks)`,
                     e.currentTarget,
                   );
                 } else {
-                  void copyCodeText(cleanCode, `${displayLang} code block`, e.currentTarget);
+                  void copyCodeText(
+                    cleanCode,
+                    `${displayLang} code block`,
+                    e.currentTarget,
+                  );
                 }
               },
             },
@@ -948,7 +1110,8 @@ export function createCodeAiChat(ctx) {
                 type: "button",
                 class: "ollama-btn is-mini",
                 "data-ai-rediff": "true",
-                title: "Re-compare this AI code block against your current editor selection or file",
+                title:
+                  "Re-compare this AI code block against your current editor selection or file",
                 onclick: () => {
                   computeOrGetCardState(true);
                   refreshCardDom();
@@ -964,14 +1127,29 @@ export function createCodeAiChat(ctx) {
           const isAccepted = cs.acceptedHunkIds.has(hunk.id);
           const oldEndLine = hunk.oldStart + Math.max(0, hunk.oldCount - 1);
           const lineRangeLabel =
-            hunk.oldCount > 1 ? `Lines ${hunk.oldStart}–${oldEndLine}` : `Line ${hunk.oldStart}`;
+            hunk.oldCount > 1
+              ? `Lines ${hunk.oldStart}–${oldEndLine}`
+              : `Line ${hunk.oldStart}`;
 
           const diffRows = hunk.lines.map((op) => {
-            const rowKind = op.type === "+" ? "is-add" : op.type === "-" ? "is-del" : "is-ctx";
+            const rowKind =
+              op.type === "+"
+                ? "is-add"
+                : op.type === "-"
+                  ? "is-del"
+                  : "is-ctx";
             const absOld =
-              op.oldLine !== null ? (cs.startLine > 1 ? cs.startLine + op.oldLine - 1 : op.oldLine) : "";
+              op.oldLine !== null
+                ? cs.startLine > 1
+                  ? cs.startLine + op.oldLine - 1
+                  : op.oldLine
+                : "";
             const absNew =
-              op.newLine !== null ? (cs.startLine > 1 ? cs.startLine + op.newLine - 1 : op.newLine) : "";
+              op.newLine !== null
+                ? cs.startLine > 1
+                  ? cs.startLine + op.newLine - 1
+                  : op.newLine
+                : "";
             return h("div", { class: `code-ai-diff-row ${rowKind}` }, [
               h(
                 "span",
@@ -983,7 +1161,11 @@ export function createCodeAiChat(ctx) {
                 { class: "code-ai-diff-ln is-new", "aria-hidden": "true" },
                 absNew !== "" ? String(absNew) : "",
               ),
-              h("span", { class: "code-ai-diff-sign", "aria-hidden": "true" }, op.type),
+              h(
+                "span",
+                { class: "code-ai-diff-sign", "aria-hidden": "true" },
+                op.type,
+              ),
               renderTokenizedSpan(lang, op.line),
             ]);
           });
@@ -1017,7 +1199,11 @@ export function createCodeAiChat(ctx) {
                         refreshCardDom();
                       },
                     }),
-                    h("span", { class: "code-ai-hunk-title" }, `Hunk #${hunk.number}`),
+                    h(
+                      "span",
+                      { class: "code-ai-hunk-title" },
+                      `Hunk #${hunk.number}`,
+                    ),
                   ],
                 ),
                 h(
@@ -1025,10 +1211,17 @@ export function createCodeAiChat(ctx) {
                   {
                     type: "button",
                     class: "code-ai-hunk-loc",
-                    "data-ai-jump-line": String(cs.startLine > 1 ? cs.startLine + hunk.oldStart - 1 : hunk.oldStart),
+                    "data-ai-jump-line": String(
+                      cs.startLine > 1
+                        ? cs.startLine + hunk.oldStart - 1
+                        : hunk.oldStart,
+                    ),
                     title: `Jump active editor to ${lineRangeLabel} (${hunk.header})`,
                     onclick: () => {
-                      const targetLine = cs.startLine > 1 ? cs.startLine + hunk.oldStart - 1 : hunk.oldStart;
+                      const targetLine =
+                        cs.startLine > 1
+                          ? cs.startLine + hunk.oldStart - 1
+                          : hunk.oldStart;
                       const ed = ctx.getEditor?.();
                       ed?.goTo?.(targetLine, 1);
                       ed?.focus?.();
@@ -1044,10 +1237,18 @@ export function createCodeAiChat(ctx) {
                   "span",
                   {
                     class: `code-ai-hunk-status-pill ${
-                      isAccepted ? "is-accepted" : isSelected ? "is-included" : "is-skipped"
+                      isAccepted
+                        ? "is-accepted"
+                        : isSelected
+                          ? "is-included"
+                          : "is-skipped"
                     }`,
                   },
-                  isAccepted ? "✓ Applied" : isSelected ? "Included" : "Skipped",
+                  isAccepted
+                    ? "✓ Applied"
+                    : isSelected
+                      ? "Included"
+                      : "Skipped",
                 ),
                 h("span", { class: "code-grow" }),
                 h(
@@ -1083,12 +1284,16 @@ export function createCodeAiChat(ctx) {
                       refreshCardDom();
                     },
                   },
-                  isAccepted ? `↩ Revert Hunk #${hunk.number}` : `✓ Accept Hunk #${hunk.number}`,
+                  isAccepted
+                    ? `↩ Revert Hunk #${hunk.number}`
+                    : `✓ Accept Hunk #${hunk.number}`,
                 ),
               ]),
               h(
                 "div",
-                { class: `code-ai-hunk-lines${state.codeWrap ? " is-wrapped" : ""}` },
+                {
+                  class: `code-ai-hunk-lines${state.codeWrap ? " is-wrapped" : ""}`,
+                },
                 diffRows,
               ),
             ],
@@ -1119,7 +1324,8 @@ export function createCodeAiChat(ctx) {
         return document.createTextNode(node.text || "");
       case "#inline": {
         const frag = document.createDocumentFragment();
-        for (const c of node.children || []) frag.append(renderAstNode(c, ctxMeta));
+        for (const c of node.children || [])
+          frag.append(renderAstNode(c, ctxMeta));
         return frag;
       }
       case "br":
@@ -1153,7 +1359,11 @@ export function createCodeAiChat(ctx) {
           (node.children || []).map((c) => renderAstNode(c, ctxMeta)),
         );
       case "ul":
-        return h("ul", {}, (node.children || []).map((c) => renderAstNode(c, ctxMeta)));
+        return h(
+          "ul",
+          {},
+          (node.children || []).map((c) => renderAstNode(c, ctxMeta)),
+        );
       case "ol":
         return h(
           "ol",
@@ -1161,19 +1371,31 @@ export function createCodeAiChat(ctx) {
           (node.children || []).map((c) => renderAstNode(c, ctxMeta)),
         );
       case "li":
-        return h("li", {}, (node.children || []).map((c) => renderAstNode(c, ctxMeta)));
+        return h(
+          "li",
+          {},
+          (node.children || []).map((c) => renderAstNode(c, ctxMeta)),
+        );
       case "table": {
         const theadNode = (node.children || []).find((c) => c.tag === "thead");
         const tbodyNode = (node.children || []).find((c) => c.tag === "tbody");
         const thEls = (theadNode?.children?.[0]?.children || []).map((th) =>
-          h("th", {}, (th.children || []).map((c) => renderAstNode(c, ctxMeta))),
+          h(
+            "th",
+            {},
+            (th.children || []).map((c) => renderAstNode(c, ctxMeta)),
+          ),
         );
         const trEls = (tbodyNode?.children || []).map((tr) =>
           h(
             "tr",
             {},
             (tr.children || []).map((td) =>
-              h("td", {}, (td.children || []).map((c) => renderAstNode(c, ctxMeta))),
+              h(
+                "td",
+                {},
+                (td.children || []).map((c) => renderAstNode(c, ctxMeta)),
+              ),
             ),
           ),
         );
@@ -1192,7 +1414,11 @@ export function createCodeAiChat(ctx) {
             (node.children || []).map((c) => renderAstNode(c, ctxMeta)),
           );
         }
-        const safeTag = ["p", "strong", "em", "del", "span", "div"].includes(node.tag) ? node.tag : "span";
+        const safeTag = ["p", "strong", "em", "del", "span", "div"].includes(
+          node.tag,
+        )
+          ? node.tag
+          : "span";
         return h(
           safeTag,
           {},
@@ -1217,7 +1443,12 @@ export function createCodeAiChat(ctx) {
     const parts = [];
 
     const profile = resolveCodeChatActiveProfile();
-    if (state.engine === "bionic" && state.selectedSkill && profile.features?.tools && !userPrompt.includes(`@${state.selectedSkill}`)) {
+    if (
+      state.engine === "bionic" &&
+      state.selectedSkill &&
+      profile.features?.tools &&
+      !userPrompt.includes(`@${state.selectedSkill}`)
+    ) {
       parts.push(`@${state.selectedSkill}`);
     }
 
@@ -1234,11 +1465,19 @@ export function createCodeAiChat(ctx) {
       }
       if (state.includeFile && d.text) {
         // Avoid duplicating if the selection is already the entire file
-        if (!selInfo.hasSelection || !state.includeSelection || selInfo.text.length < d.text.length) {
+        if (
+          !selInfo.hasSelection ||
+          !state.includeSelection ||
+          selInfo.text.length < d.text.length
+        ) {
           const maxFileChars = 28000;
           const truncated = d.text.length > maxFileChars;
-          const fileSnippet = truncated ? `${d.text.slice(0, maxFileChars)}\n/* ... truncated (${d.text.length} total chars) ... */` : d.text;
-          parts.push(`${fileHeader}\nFull File Content:\n\`\`\`${d.lang || ""}\n${fileSnippet}\n\`\`\``);
+          const fileSnippet = truncated
+            ? `${d.text.slice(0, maxFileChars)}\n/* ... truncated (${d.text.length} total chars) ... */`
+            : d.text;
+          parts.push(
+            `${fileHeader}\nFull File Content:\n\`\`\`${d.lang || ""}\n${fileSnippet}\n\`\`\``,
+          );
         }
       }
     }
@@ -1248,9 +1487,14 @@ export function createCodeAiChat(ctx) {
     if (recentMsgs.length > 0) {
       const historyLines = recentMsgs
         .filter((m) => m.content && !m.streaming)
-        .map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content.slice(0, 2500)}`);
+        .map(
+          (m) =>
+            `${m.role === "user" ? "User" : "Assistant"}: ${m.content.slice(0, 2500)}`,
+        );
       if (historyLines.length > 0) {
-        parts.push(`Recent Conversation Context:\n${historyLines.join("\n\n")}`);
+        parts.push(
+          `Recent Conversation Context:\n${historyLines.join("\n\n")}`,
+        );
       }
     }
 
@@ -1263,9 +1507,13 @@ export function createCodeAiChat(ctx) {
     const rawPrompt =
       customPromptText !== undefined
         ? String(customPromptText).trim()
-        : String(promptInputEl ? promptInputEl.value : state.promptText || "").trim();
+        : String(
+            promptInputEl ? promptInputEl.value : state.promptText || "",
+          ).trim();
     if (!rawPrompt) {
-      ctx.toast?.("Type a question or click one of the Quick Code chips above.");
+      ctx.toast?.(
+        "Type a question or click one of the Quick Code chips above.",
+      );
       return;
     }
 
@@ -1286,7 +1534,8 @@ export function createCodeAiChat(ctx) {
 
     const fullPrompt = buildPromptWithEditorContext(rawPrompt);
     const activeEngine = state.engine;
-    const activeModel = activeEngine === "bionic" ? state.bionicModel : state.ollamaModel;
+    const activeModel =
+      activeEngine === "bionic" ? state.bionicModel : state.ollamaModel;
 
     const userMsg = {
       id: Date.now(),
@@ -1302,7 +1551,9 @@ export function createCodeAiChat(ctx) {
       content: "",
       reasoning: "",
       engine: activeEngine,
-      model: activeModel || (activeEngine === "bionic" ? "LM Studio Bionic" : "Ollama"),
+      model:
+        activeModel ||
+        (activeEngine === "bionic" ? "LM Studio Bionic" : "Ollama"),
       streaming: true,
       error: "",
       stats: null,
@@ -1367,7 +1618,10 @@ export function createCodeAiChat(ctx) {
           prompt: fullPrompt,
           paths: [],
           dirPath: ctx.getWorkspace?.() || "/",
-          skill: profile.features?.tools && state.selectedSkill ? state.selectedSkill : undefined,
+          skill:
+            profile.features?.tools && state.selectedSkill
+              ? state.selectedSkill
+              : undefined,
           maxTokens: 16384,
           think: thinkArgs.think,
           thinkingLevel: thinkArgs.thinkingLevel,
@@ -1415,7 +1669,9 @@ export function createCodeAiChat(ctx) {
           for (const line of buffer.split("\n")) processBionicSseLine(line);
         }
         const split = splitThinkBlocks(rawAccum);
-        assistantMsg.reasoning = [explicitReasoning, split.reasoning].filter(Boolean).join("\n\n");
+        assistantMsg.reasoning = [explicitReasoning, split.reasoning]
+          .filter(Boolean)
+          .join("\n\n");
         assistantMsg.content = split.content;
         renderThreadOnly();
         break;
@@ -1427,7 +1683,9 @@ export function createCodeAiChat(ctx) {
         processBionicSseLine(line);
       }
       const split = splitThinkBlocks(rawAccum);
-      assistantMsg.reasoning = [explicitReasoning, split.reasoning].filter(Boolean).join("\n\n");
+      assistantMsg.reasoning = [explicitReasoning, split.reasoning]
+        .filter(Boolean)
+        .join("\n\n");
       assistantMsg.content = split.content;
       renderThreadOnly();
     }
@@ -1502,7 +1760,9 @@ export function createCodeAiChat(ctx) {
           for (const line of buffer.split("\n")) processOllamaLine(line);
         }
         const split = splitThinkBlocks(rawAccum);
-        assistantMsg.reasoning = [explicitThinking, split.reasoning].filter(Boolean).join("\n\n");
+        assistantMsg.reasoning = [explicitThinking, split.reasoning]
+          .filter(Boolean)
+          .join("\n\n");
         assistantMsg.content = split.content;
         renderThreadOnly();
         break;
@@ -1514,7 +1774,9 @@ export function createCodeAiChat(ctx) {
         processOllamaLine(line);
       }
       const split = splitThinkBlocks(rawAccum);
-      assistantMsg.reasoning = [explicitThinking, split.reasoning].filter(Boolean).join("\n\n");
+      assistantMsg.reasoning = [explicitThinking, split.reasoning]
+        .filter(Boolean)
+        .join("\n\n");
       assistantMsg.content = split.content;
       renderThreadOnly();
     }
@@ -1532,7 +1794,9 @@ export function createCodeAiChat(ctx) {
     if (!threadContainerEl) return;
     requestAnimationFrame(() => {
       if (!threadContainerEl) return;
-      const cards = threadContainerEl.querySelectorAll(".code-ai-msg.is-assistant");
+      const cards = threadContainerEl.querySelectorAll(
+        ".code-ai-msg.is-assistant",
+      );
       const lastCard = cards[cards.length - 1];
       if (lastCard instanceof HTMLElement) {
         lastCard.scrollIntoView({ block: "start", behavior: "instant" });
@@ -1547,13 +1811,16 @@ export function createCodeAiChat(ctx) {
       return h("div", { class: "code-ai-msg is-user" }, [
         h("div", { class: "code-ai-msg-head" }, [
           h("strong", {}, "You"),
-          msg.contextBadge ? h("span", { class: "code-ai-ctx-pill" }, `📎 ${msg.contextBadge}`) : null,
+          msg.contextBadge
+            ? h("span", { class: "code-ai-ctx-pill" }, `📎 ${msg.contextBadge}`)
+            : null,
         ]),
         h("div", { class: "code-ai-user-text" }, msg.content),
       ]);
     }
 
-    const engineBadge = msg.engine === "bionic" ? "🧬 LM Studio Bionic" : "🤖 Ollama";
+    const engineBadge =
+      msg.engine === "bionic" ? "🧬 LM Studio Bionic" : "🤖 Ollama";
     return h("div", { class: "code-ai-msg is-assistant" }, [
       h("div", { class: "code-ai-msg-head" }, [
         h("span", { class: "code-ai-engine-tag" }, engineBadge),
@@ -1566,22 +1833,42 @@ export function createCodeAiChat(ctx) {
                 type: "button",
                 class: "ollama-btn is-mini",
                 title: "Copy entire AI response",
-                onclick: (e) => void copyCodeText(msg.content, "AI response", e.currentTarget),
+                onclick: (e) =>
+                  void copyCodeText(
+                    msg.content,
+                    "AI response",
+                    e.currentTarget,
+                  ),
               },
               "📋 Copy",
             )
           : null,
       ]),
       msg.reasoning
-        ? h("details", { class: "ollama-thinking-details code-ai-think", open: !msg.content ? "open" : null }, [
-            h("summary", { class: "ollama-thinking-summary" }, `🧠 Reasoning Trace (${msg.reasoning.length.toLocaleString()} chars)`),
-            h("div", { class: "ollama-thinking-box" }, msg.reasoning),
-          ])
+        ? h(
+            "details",
+            {
+              class: "ollama-thinking-details code-ai-think",
+              open: !msg.content ? "open" : null,
+            },
+            [
+              h(
+                "summary",
+                { class: "ollama-thinking-summary" },
+                `🧠 Reasoning Trace (${msg.reasoning.length.toLocaleString()} chars)`,
+              ),
+              h("div", { class: "ollama-thinking-box" }, msg.reasoning),
+            ],
+          )
         : null,
       msg.error
         ? h("div", { class: "code-ai-err" }, `⚠ ${msg.error}`)
         : msg.streaming && !msg.content && !msg.reasoning
-          ? h("div", { class: "code-ai-streaming" }, "⚡ Thinking & streaming tokens…")
+          ? h(
+              "div",
+              { class: "code-ai-streaming" },
+              "⚡ Thinking & streaming tokens…",
+            )
           : renderMarkdownBody(msg.content, `msg-${msg.id ?? idx}`),
     ]);
   }
@@ -1591,15 +1878,27 @@ export function createCodeAiChat(ctx) {
       const d = ctx.getDoc?.();
       return [
         h("div", { class: "code-ai-welcome" }, [
-          h("div", { class: "code-ai-welcome-title" }, "🤖 Code Editor AI Assistant"),
+          h(
+            "div",
+            { class: "code-ai-welcome-title" },
+            "🤖 Code Editor AI Assistant",
+          ),
           h(
             "p",
             { class: "code-ai-welcome-sub" },
             "Ask questions about your active file, highlight lines to refactor or debug, and review inline diffs or accept individual hunks with 1 click.",
           ),
           d
-            ? h("div", { class: "code-ai-welcome-file" }, `📄 Active tab: ${d.name} (${d.lang || "text"})`)
-            : h("div", { class: "code-ai-welcome-file" }, "Open any file tab or start chatting below."),
+            ? h(
+                "div",
+                { class: "code-ai-welcome-file" },
+                `📄 Active tab: ${d.name} (${d.lang || "text"})`,
+              )
+            : h(
+                "div",
+                { class: "code-ai-welcome-file" },
+                "Open any file tab or start chatting below.",
+              ),
         ]),
       ];
     }
@@ -1628,8 +1927,12 @@ export function createCodeAiChat(ctx) {
     const currentOnline = isBionic ? bionicOnline : ollamaOnline;
 
     const bionicModels = getCombinedBionicModels(state.bionicStatus);
-    const ollamaModels = Array.isArray(state.ollamaStatus?.models) ? state.ollamaStatus.models : [];
-    const skills = Array.isArray(state.bionicStatus?.skills) ? state.bionicStatus.skills : [];
+    const ollamaModels = Array.isArray(state.ollamaStatus?.models)
+      ? state.ollamaStatus.models
+      : [];
+    const skills = Array.isArray(state.bionicStatus?.skills)
+      ? state.bionicStatus.skills
+      : [];
 
     const d = ctx.getDoc?.();
     const selInfo = activeSelectionInfo();
@@ -1639,46 +1942,58 @@ export function createCodeAiChat(ctx) {
 
     // 1. Header bar: Engine Switcher (LM Studio Bionic vs Ollama) + status dot + Expand/Fullscreen/Stop/Close
     const head = h("div", { class: "code-preview-head code-ai-head" }, [
-      h("div", { class: "code-ai-engine-switch", role: "group", "aria-label": "Choose AI Engine" }, [
-        h(
-          "button",
-          {
-            type: "button",
-            class: `code-ai-eng-btn${isBionic ? " is-active" : ""}`,
-            "aria-pressed": String(isBionic),
-            title: "Use LM Studio / Bionic local server (:1234 / :1235)",
-            onclick: () => {
-              state.engine = "bionic";
-              state.engineManuallyChosen = true;
-              syncCodeChatModelCapabilities();
-              render();
+      h(
+        "div",
+        {
+          class: "code-ai-engine-switch",
+          role: "group",
+          "aria-label": "Choose AI Engine",
+        },
+        [
+          h(
+            "button",
+            {
+              type: "button",
+              class: `code-ai-eng-btn${isBionic ? " is-active" : ""}`,
+              "aria-pressed": String(isBionic),
+              title: "Use LM Studio / Bionic local server (:1234 / :1235)",
+              onclick: () => {
+                state.engine = "bionic";
+                state.engineManuallyChosen = true;
+                syncCodeChatModelCapabilities();
+                render();
+              },
             },
-          },
-          [
-            h("span", { class: `code-ai-dot ${bionicOnline ? "is-online" : "is-offline"}` }),
-            "🧬 LM Studio",
-          ],
-        ),
-        h(
-          "button",
-          {
-            type: "button",
-            class: `code-ai-eng-btn${!isBionic ? " is-active" : ""}`,
-            "aria-pressed": String(!isBionic),
-            title: "Use Ollama local server (:11434)",
-            onclick: () => {
-              state.engine = "ollama";
-              state.engineManuallyChosen = true;
-              syncCodeChatModelCapabilities();
-              render();
+            [
+              h("span", {
+                class: `code-ai-dot ${bionicOnline ? "is-online" : "is-offline"}`,
+              }),
+              "🧬 LM Studio",
+            ],
+          ),
+          h(
+            "button",
+            {
+              type: "button",
+              class: `code-ai-eng-btn${!isBionic ? " is-active" : ""}`,
+              "aria-pressed": String(!isBionic),
+              title: "Use Ollama local server (:11434)",
+              onclick: () => {
+                state.engine = "ollama";
+                state.engineManuallyChosen = true;
+                syncCodeChatModelCapabilities();
+                render();
+              },
             },
-          },
-          [
-            h("span", { class: `code-ai-dot ${ollamaOnline ? "is-online" : "is-offline"}` }),
-            "🤖 Ollama",
-          ],
-        ),
-      ]),
+            [
+              h("span", {
+                class: `code-ai-dot ${ollamaOnline ? "is-online" : "is-offline"}`,
+              }),
+              "🤖 Ollama",
+            ],
+          ),
+        ],
+      ),
       h("span", { class: "code-grow" }),
       state.loading
         ? h(
@@ -1700,7 +2015,8 @@ export function createCodeAiChat(ctx) {
           class: `btn code-small${state.expanded ? " primary" : ""}`,
           "data-code-ai-action": "toggle-expand",
           "aria-pressed": String(Boolean(state.expanded)),
-          title: "Expand AI Chat pane width for easier reading of long responses and code blocks",
+          title:
+            "Expand AI Chat pane width for easier reading of long responses and code blocks",
           onclick: () => {
             state.expanded = !state.expanded;
             if (!state.expanded) state.fullscreen = false;
@@ -1795,7 +2111,15 @@ export function createCodeAiChat(ctx) {
               },
             },
             bionicModels.length === 0
-              ? [h("option", { value: "" }, bionicOnline ? "Default loaded model" : "LM Studio offline — click Start")]
+              ? [
+                  h(
+                    "option",
+                    { value: "" },
+                    bionicOnline
+                      ? "Default loaded model"
+                      : "LM Studio offline — click Start",
+                  ),
+                ]
               : bionicModels.map((m) =>
                   h(
                     "option",
@@ -1822,13 +2146,20 @@ export function createCodeAiChat(ctx) {
               },
             },
             ollamaModels.length === 0
-              ? [h("option", { value: "" }, ollamaOnline ? "Default Ollama model" : "Ollama offline")]
+              ? [
+                  h(
+                    "option",
+                    { value: "" },
+                    ollamaOnline ? "Default Ollama model" : "Ollama offline",
+                  ),
+                ]
               : ollamaModels.map((m) =>
                   h(
                     "option",
                     {
                       value: m.name,
-                      selected: m.name === state.ollamaModel ? "selected" : null,
+                      selected:
+                        m.name === state.ollamaModel ? "selected" : null,
                     },
                     `${m.name} (${m.parameterSize || "LLM"})`,
                   ),
@@ -1852,7 +2183,8 @@ export function createCodeAiChat(ctx) {
                   "option",
                   {
                     value: s.name,
-                    selected: s.name === state.selectedSkill ? "selected" : null,
+                    selected:
+                      s.name === state.selectedSkill ? "selected" : null,
                   },
                   `@${s.name}`,
                 ),
@@ -1866,7 +2198,8 @@ export function createCodeAiChat(ctx) {
             {
               class: "code-in code-ai-skill-select",
               "aria-label": "Reasoning effort level (Low / Medium / High)",
-              title: "Select reasoning effort level for this multi-level reasoning model (gpt-oss)",
+              title:
+                "Select reasoning effort level for this multi-level reasoning model (gpt-oss)",
               onchange: (e) => {
                 state.thinkingLevel = e.target.value;
               },
@@ -1880,7 +2213,14 @@ export function createCodeAiChat(ctx) {
                 "option",
                 {
                   value: opt.val,
-                  selected: (state.thinkingLevel === "low" || state.thinkingLevel === "medium" || state.thinkingLevel === "high" ? state.thinkingLevel : "medium") === opt.val ? "selected" : null,
+                  selected:
+                    (state.thinkingLevel === "low" ||
+                    state.thinkingLevel === "medium" ||
+                    state.thinkingLevel === "high"
+                      ? state.thinkingLevel
+                      : "medium") === opt.val
+                      ? "selected"
+                      : null,
                 },
                 opt.label,
               ),
@@ -1892,7 +2232,8 @@ export function createCodeAiChat(ctx) {
               {
                 class: "code-in code-ai-skill-select",
                 "aria-label": "Toggle thinking On or Off",
-                title: "Turn chain-of-thought thinking On or Off for this model",
+                title:
+                  "Turn chain-of-thought thinking On or Off for this model",
                 onchange: (e) => {
                   state.thinkingLevel = e.target.value;
                 },
@@ -1905,7 +2246,10 @@ export function createCodeAiChat(ctx) {
                   "option",
                   {
                     value: opt.val,
-                    selected: (state.thinkingLevel === "on" ? "on" : "off") === opt.val ? "selected" : null,
+                    selected:
+                      (state.thinkingLevel === "on" ? "on" : "off") === opt.val
+                        ? "selected"
+                        : null,
                   },
                   opt.label,
                 ),
@@ -1916,7 +2260,8 @@ export function createCodeAiChat(ctx) {
                 "span",
                 {
                   class: "code-ai-chip",
-                  title: "Native chain-of-thought reasoning is always active for this model",
+                  title:
+                    "Native chain-of-thought reasoning is always active for this model",
                   style: "cursor:default;",
                 },
                 "🧠 Always-On <think>",
@@ -1935,7 +2280,10 @@ export function createCodeAiChat(ctx) {
                   await call("bionic/server/control", { action: "start" });
                   await refreshEngines(false);
                 } catch (err) {
-                  ctx.toast?.(err?.message || "Could not start LM Studio server", { kind: "error" });
+                  ctx.toast?.(
+                    err?.message || "Could not start LM Studio server",
+                    { kind: "error" },
+                  );
                 }
               },
             },
@@ -1967,7 +2315,11 @@ export function createCodeAiChat(ctx) {
     // 3. Quick Code Action Chips
     const quickBar = h(
       "div",
-      { class: "code-ai-quick-bar", role: "toolbar", "aria-label": "Quick AI code actions" },
+      {
+        class: "code-ai-quick-bar",
+        role: "toolbar",
+        "aria-label": "Quick AI code actions",
+      },
       QUICK_PROMPTS.map((q) =>
         h(
           "button",
@@ -2094,7 +2446,14 @@ export function createCodeAiChat(ctx) {
       ]),
     ]);
 
-    root.append(head, modelBar, modelCapabilitiesBar, quickBar, threadContainerEl, composer);
+    root.append(
+      head,
+      modelBar,
+      modelCapabilitiesBar,
+      quickBar,
+      threadContainerEl,
+      composer,
+    );
     if (threadContainerEl && prevScrollTop > 0) {
       threadContainerEl.scrollTop = prevScrollTop;
     }
@@ -2129,7 +2488,8 @@ export function createCodeAiChat(ctx) {
       if (!state.bionicStatus && !state.ollamaStatus) {
         void refreshEngines(true);
       }
-      const q = QUICK_PROMPTS.find((x) => x.id === actionId) || QUICK_PROMPTS[0];
+      const q =
+        QUICK_PROMPTS.find((x) => x.id === actionId) || QUICK_PROMPTS[0];
       const selInfo = activeSelectionInfo();
       void sendPrompt(q.buildPrompt(selInfo.hasSelection));
     },
@@ -2139,7 +2499,10 @@ export function createCodeAiChat(ctx) {
         id: msg.id ?? ++msgSeq,
         role: msg.role || "assistant",
         engine: msg.engine || state.engine,
-        model: msg.model || (state.engine === "bionic" ? state.bionicModel : state.ollamaModel) || "local-llm",
+        model:
+          msg.model ||
+          (state.engine === "bionic" ? state.bionicModel : state.ollamaModel) ||
+          "local-llm",
         reasoning: msg.reasoning || "",
         content: String(msg.content ?? ""),
         contextBadge: msg.contextBadge || "",

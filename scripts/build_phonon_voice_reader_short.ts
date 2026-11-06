@@ -23,12 +23,19 @@ import { join } from "path";
 import { Cdp, sleep } from "./lib/cdp_recorder";
 import { seedDemoWorkspace } from "./lib/demo_workspace";
 import { FFMPEG, FFPROBE, narrate } from "./lib/video_pipeline";
-import { createWavHeader, parseWavPcm, splitTextForPhonon } from "../src/features/filemanager/fmPhonon";
+import {
+  createWavHeader,
+  parseWavPcm,
+  splitTextForPhonon,
+} from "../src/features/filemanager/fmPhonon";
 
 const ROOT = process.cwd();
 const PROD = join(ROOT, "youtube_production");
 const WORK = join(PROD, "phonon_voice_reader_short");
-const OUTPUT_SHORT = join(PROD, "codecaine-file-manager-phonon-voice-reader-short.mp4");
+const OUTPUT_SHORT = join(
+  PROD,
+  "codecaine-file-manager-phonon-voice-reader-short.mp4",
+);
 const OUTPUT_WIDE = join(PROD, "file_manager_phonon_voice_reader_demo.mp4");
 const NOTES = join(PROD, "PHONON_VOICE_READER_SHORT_NOTES.md");
 const REPO = "https://github.com/codecaine-zz/bun_rad_studio";
@@ -40,7 +47,10 @@ const VIEW_W = 1920;
 const VIEW_H = 972;
 
 const ROOT_DIR = "/tmp/fm_phonon_voice_reader_short";
-const HOME = process.platform === "darwin" ? "/private/tmp/fm_phonon_voice_reader_short/home" : "/tmp/fm_phonon_voice_reader_short/home";
+const HOME =
+  process.platform === "darwin"
+    ? "/private/tmp/fm_phonon_voice_reader_short/home"
+    : "/tmp/fm_phonon_voice_reader_short/home";
 const DATA = `${ROOT_DIR}/data`;
 const GRAVE = `${ROOT_DIR}/grave`;
 const ZDOT = `${ROOT_DIR}/zdot`;
@@ -60,17 +70,33 @@ type SceneSpec = {
 
 function run(args: string[]): string {
   const result = Bun.spawnSync(args, { stdout: "pipe", stderr: "pipe" });
-  if (result.exitCode !== 0) throw new Error(`${args[0]} failed:\n${result.stderr.toString().slice(-4000)}`);
+  if (result.exitCode !== 0)
+    throw new Error(
+      `${args[0]} failed:\n${result.stderr.toString().slice(-4000)}`,
+    );
   return result.stdout.toString();
 }
 
 function duration(file: string): number {
-  const value = Number(run([FFPROBE, "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file]).trim());
-  if (!Number.isFinite(value) || value <= 0) throw new Error(`Invalid duration: ${file}`);
+  const value = Number(
+    run([
+      FFPROBE,
+      "-v",
+      "error",
+      "-show_entries",
+      "format=duration",
+      "-of",
+      "csv=p=0",
+      file,
+    ]).trim(),
+  );
+  if (!Number.isFinite(value) || value <= 0)
+    throw new Error(`Invalid duration: ${file}`);
   return value;
 }
 
-const esc = (text: string) => text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+const esc = (text: string) =>
+  text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 
 function seedPhononWorkspace() {
   rmSync(ROOT_DIR, { recursive: true, force: true });
@@ -104,10 +130,18 @@ function seedPhononWorkspace() {
     const ch = idx + 1;
     return `Chapter ${ch}: Large-Scale Neural Audiobook Synthesis\n\nWhen reading an entire book or a multi-hundred-page technical specification, passing the full document at once would overflow the 8,192-token context window of ollama run phonon. The Codecaine File Manager solves this automatically with an O(N) hierarchical boundary splitter that divides paragraphs, sentences, and clauses into context-safe segments while prefetching upcoming audio chunks in the background and stitching 24 kHz PCM frames directly on disk.`;
   }).join("\n\n");
-  writeFileSync(join(studioDir, "05_Complete_24_Chapter_Book.txt"), largeBookChapters);
+  writeFileSync(
+    join(studioDir, "05_Complete_24_Chapter_Book.txt"),
+    largeBookChapters,
+  );
 }
 
-async function showKeynoteHud(c: Cdp, title: string, subtitle: string, pill = "🎙️ OLLAMA RUN PHONON") {
+async function showKeynoteHud(
+  c: Cdp,
+  title: string,
+  subtitle: string,
+  pill = "🎙️ OLLAMA RUN PHONON",
+) {
   await c.eval(`(() => {
     let el = document.getElementById("apple-keynote-hud");
     if (!el) {
@@ -161,8 +195,10 @@ const sceneSpecs: SceneSpec[] = [
     voiceDesc: "Zoey (Narrating This Video Live from Mac)",
     badge: "01 / 08 · NARRATED BY ZOEY FROM THIS MAC (LOW RESOURCES)",
     title: "NARRATED BY ZOEY ON MAC.\nPHONON TTS + OLLAMA.",
-    label: "🎙️ THIS VIDEO IS NARRATED ON MAC BY: OLLAMA RUN PHONON --VOICE ZOEY",
-    extra: "🎙️ You are hearing Zoey right now — generated live on this Mac (112 MB MLX Model)",
+    label:
+      "🎙️ THIS VIDEO IS NARRATED ON MAC BY: OLLAMA RUN PHONON --VOICE ZOEY",
+    extra:
+      "🎙️ You are hearing Zoey right now — generated live on this Mac (112 MB MLX Model)",
     bullets: [
       "🎙️ Narrated 100% Live on Mac by `ollama run phonon --voice Zoey`",
       "🪶 Ultra-Low Resources: Compact 112 MB Local Apple MLX Model",
@@ -217,8 +253,10 @@ const sceneSpecs: SceneSpec[] = [
     voiceDesc: "Zoey (--voice Zoey · 38 Voices, Pitch & Sync)",
     badge: "02 / 08 · 38 NEURAL VOICES, PITCH SHIFT & SYNC OFFSET",
     title: "38 NATURAL AI VOICES.\nPITCH, SPEED & SYNC.",
-    label: "🗣️ --VOICE ZOEY DEFAULT · 38 VOICES · TIME-LOCKED PITCH (±6 ST) · SYNC (±300 MS)",
-    extra: "Narrated Live by ollama run phonon --voice Zoey · Persistent Voice, Pitch & Pacing",
+    label:
+      "🗣️ --VOICE ZOEY DEFAULT · 38 VOICES · TIME-LOCKED PITCH (±6 ST) · SYNC (±300 MS)",
+    extra:
+      "Narrated Live by ollama run phonon --voice Zoey · Persistent Voice, Pitch & Pacing",
     bullets: [
       "🗣️ 38 Built-In Conversational, Narrator & Character Voices",
       "⭐ Save `Zoey` as Persistent Default + Live Voice Preview",
@@ -238,7 +276,14 @@ const sceneSpecs: SceneSpec[] = [
         "🎙️ --VOICE ZOEY",
       );
       await sleep(500);
-      for (const v of ["Easton", "Freya", "Hugh", "Imogen", "Master Aldric", "Zoey"]) {
+      for (const v of [
+        "Easton",
+        "Freya",
+        "Hugh",
+        "Imogen",
+        "Master Aldric",
+        "Zoey",
+      ]) {
         await c.eval(`(() => {
           const sel = document.getElementById('phonon-voice-select');
           if (sel) {
@@ -248,7 +293,9 @@ const sceneSpecs: SceneSpec[] = [
         })()`);
         await sleep(340);
       }
-      await c.click('button >> ⭐ Set Default Voice', { pause: 550 }).catch(() => {});
+      await c
+        .click("button >> ⭐ Set Default Voice", { pause: 550 })
+        .catch(() => {});
       await c.eval(`(() => {
         const spd = document.getElementById('phonon-speed-range');
         if (spd) {
@@ -283,8 +330,10 @@ const sceneSpecs: SceneSpec[] = [
     voiceDesc: "Zoey (--voice Zoey · AI Voice Recorder & F5-TTS-MLX Cloning)",
     badge: "03 / 08 · AI VOICE RECORDER & ZERO-SHOT VOICE CLONING",
     title: "RECORD YOUR OWN VOICE.\nZERO-SHOT MLX CLONING.",
-    label: "🎙️ LIVE MIC OSCILLOSCOPE · F5-TTS-MLX ZERO-SHOT CLONING · GITIGNORE PRIVACY",
-    extra: "Narrated Live by ollama run phonon --voice Zoey · 100% Local Biometric Privacy",
+    label:
+      "🎙️ LIVE MIC OSCILLOSCOPE · F5-TTS-MLX ZERO-SHOT CLONING · GITIGNORE PRIVACY",
+    extra:
+      "Narrated Live by ollama run phonon --voice Zoey · 100% Local Biometric Privacy",
     bullets: [
       "🎙️ Live Microphone Recorder with Waveform Oscilloscope & dB Meter",
       "🧬 Zero-Shot Neural Voice Cloning Powered by Local `F5-TTS-MLX`",
@@ -321,8 +370,10 @@ const sceneSpecs: SceneSpec[] = [
     voiceDesc: "Zoey (--voice Zoey · 25+ Format Extractor)",
     badge: "04 / 08 · CONVERT 25+ FILE FORMATS TO SPEECH & .TXT",
     title: "READ ANY FILE FORMAT\nOR SAVE AS PLAIN TEXT.",
-    label: "📄 PDF · DOCX · EPUB · HTML · MD · SRT · CSV · JSON · CODE → SPEECH",
-    extra: "Narrated Live by ollama run phonon --voice Zoey · 6 Smart Speech Cleanup Filters",
+    label:
+      "📄 PDF · DOCX · EPUB · HTML · MD · SRT · CSV · JSON · CODE → SPEECH",
+    extra:
+      "Narrated Live by ollama run phonon --voice Zoey · 6 Smart Speech Cleanup Filters",
     bullets: [
       "📄 Extract Speech-Ready Text from 25+ Document Formats",
       "🧹 6 Filters Auto-Strip Markdown, HTML, Code, URLs & Timestamps",
@@ -348,9 +399,15 @@ const sceneSpecs: SceneSpec[] = [
         renderList(left);
       })()`);
       await sleep(500);
-      await c.click('button >> 📥 Use Selected File', { pause: 1000 }).catch(() => {});
-      await c.click('button >> ✨ Clean to Plain Text', { pause: 650 }).catch(() => {});
-      await c.click('button >> 💾 Save as .TXT', { pause: 850 }).catch(() => {});
+      await c
+        .click("button >> 📥 Use Selected File", { pause: 1000 })
+        .catch(() => {});
+      await c
+        .click("button >> ✨ Clean to Plain Text", { pause: 650 })
+        .catch(() => {});
+      await c
+        .click("button >> 💾 Save as .TXT", { pause: 850 })
+        .catch(() => {});
       await sleep(600);
     },
   },
@@ -360,8 +417,10 @@ const sceneSpecs: SceneSpec[] = [
     voiceDesc: "Zoey (--voice Zoey · 242-Chunk Large Book Engine)",
     badge: "05 / 08 · HANDLE 242-CHUNK EPUB BOOKS IN O(1) MEMORY",
     title: "HANDLE MASSIVE BOOKS.\n242+ CHUNKS ZERO FREEZE.",
-    label: "📚 8,192-TOKEN SAFE SPLITTER · PAGINATED QUEUE · O(1) DISK STREAMING",
-    extra: "Narrated Live by ollama run phonon --voice Zoey · Tested on Full 242-Chunk EPUB Novels",
+    label:
+      "📚 8,192-TOKEN SAFE SPLITTER · PAGINATED QUEUE · O(1) DISK STREAMING",
+    extra:
+      "Narrated Live by ollama run phonon --voice Zoey · Tested on Full 242-Chunk EPUB Novels",
     bullets: [
       "📚 Tested on Full 242-Chunk EPUB Books (49+ Mins Audio)",
       "✂️ O(N) Paragraph, Sentence & Clause Boundary Chunker",
@@ -387,7 +446,9 @@ const sceneSpecs: SceneSpec[] = [
         renderList(left);
       })()`);
       await sleep(450);
-      await c.click('button >> 📥 Use Selected File', { pause: 1000 }).catch(() => {});
+      await c
+        .click("button >> 📥 Use Selected File", { pause: 1000 })
+        .catch(() => {});
       await c.eval(`(() => {
         const q = document.querySelector('.phonon-chunks-section');
         if (q) q.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -406,8 +467,10 @@ const sceneSpecs: SceneSpec[] = [
     voiceDesc: "Zoey (--voice Zoey · Waveform-Synced Teleprompter)",
     badge: "06 / 08 · WAVEFORM-SYNCED KARAOKE TELEPROMPTER",
     title: "FOLLOW ALONG LIVE.\nWAVEFORM WORD SYNC.",
-    label: "📖 10 MS PCM ENVELOPE ALIGNMENT · 4 CINEMA THEMES · 2-CHUNK PREFETCH",
-    extra: "Narrated Live by ollama run phonon --voice Zoey · Click Any Word to Jump Playback",
+    label:
+      "📖 10 MS PCM ENVELOPE ALIGNMENT · 4 CINEMA THEMES · 2-CHUNK PREFETCH",
+    extra:
+      "Narrated Live by ollama run phonon --voice Zoey · Click Any Word to Jump Playback",
     bullets: [
       "📖 10 ms WAV Speech-Envelope Word Alignment (Zero Drift)",
       "🎨 4 Reading Themes (Midnight, Sepia, Matrix, High-Contrast)",
@@ -455,8 +518,10 @@ const sceneSpecs: SceneSpec[] = [
     voiceDesc: "Zoey (--voice Zoey · 9 Audio + 4 Read-Along Video Formats)",
     badge: "07 / 08 · EXPORT 9 AUDIO & 4 READ-ALONG VIDEO FORMATS",
     title: "EXPORT TO 9 AUDIO OR\n4 READ-ALONG VIDEOS.",
-    label: "🎬 MP4 / WEBM / MOV / MKV IN 2 SECONDS + WAV / MP3 / FLAC / M4A / OPUS",
-    extra: "Narrated Live by ollama run phonon --voice Zoey · Sparse-Keyframe Instant Video Encoder",
+    label:
+      "🎬 MP4 / WEBM / MOV / MKV IN 2 SECONDS + WAV / MP3 / FLAC / M4A / OPUS",
+    extra:
+      "Narrated Live by ollama run phonon --voice Zoey · Sparse-Keyframe Instant Video Encoder",
     bullets: [
       "🎬 4 Read-Along Video Formats (MP4, WebM, MOV, MKV in 16:9, 9:16, 1:1)",
       "⚡ Sparse-Keyframe Encoder Renders 49-Min Books to MP4 in ~2 Seconds",
@@ -498,18 +563,21 @@ const sceneSpecs: SceneSpec[] = [
         }
       })()`);
       await sleep(400);
-      await c.click('.phonon-save-video-btn', { pause: 1800 }).catch(() => {});
+      await c.click(".phonon-save-video-btn", { pause: 1800 }).catch(() => {});
       await sleep(900);
     },
   },
   {
     id: "08_ollama_ai_assistant_and_router",
     voice: "Zoey",
-    voiceDesc: "Zoey (--voice Zoey · Ollama AI Assistant & Full Capability Router)",
+    voiceDesc:
+      "Zoey (--voice Zoey · Ollama AI Assistant & Full Capability Router)",
     badge: "08 / 08 · OLLAMA AI ASSISTANT, ROUTER & SPEAK REPLY",
     title: "OLLAMA AI ASSISTANT +\nSPEAK REPLY WITH ZOEY.",
-    label: "🦙 AUTO-ROUTER · DEEP THINKING · VISION · SYSTEMONE · EMBED · SPEAK REPLY",
-    extra: "Narrated Live by ollama run phonon --voice Zoey · 70% RAM Guard & keep_alive: 0",
+    label:
+      "🦙 AUTO-ROUTER · DEEP THINKING · VISION · SYSTEMONE · EMBED · SPEAK REPLY",
+    extra:
+      "Narrated Live by ollama run phonon --voice Zoey · 70% RAM Guard & keep_alive: 0",
     bullets: [
       "🦙 Ask Anything Auto-Router: Chat, Deep Thinking, Vision & Web Search",
       "⚡ SystemOne Instant Decisions (`/v1/systemone`) & Semantic Search (`/api/embed`)",
@@ -634,7 +702,11 @@ ${
 }`;
 }
 
-function overlayWideStrip(scene: SceneSpec, index: number, totalScenes: number): string {
+function overlayWideStrip(
+  scene: SceneSpec,
+  index: number,
+  totalScenes: number,
+): string {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{width:1920px;height:1080px;background:transparent;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;position:relative;overflow:hidden}
@@ -649,12 +721,21 @@ body{width:1920px;height:1080px;background:transparent;font-family:-apple-system
 </style></head><body><div class="strip"><div class="badge">${esc(scene.badge)}</div><div class="col"><div class="title">${esc(scene.label)}</div><div class="cap">${esc(scene.bullets.join("  ·  "))}</div></div><div class="right"><div class="rig">🎙️ Video Narrated on Mac by: phonon --voice Zoey</div><div class="n">Scene ${index + 1} of ${totalScenes}</div></div></body></html>`;
 }
 
-function notesMarkdown(seconds: number, tempo: number, sceneMarks: Array<{ at: number; scene: SceneSpec }>): string {
+function notesMarkdown(
+  seconds: number,
+  tempo: number,
+  sceneMarks: Array<{ at: number; scene: SceneSpec }>,
+): string {
   const fmt = (sec: number) => {
     const s = Math.floor(sec);
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   };
-  const stamps = sceneMarks.map((m, i) => `${fmt(i === 0 ? 0 : m.at)} ${m.scene.label} (Voice: ${m.scene.voice})`).join("\n");
+  const stamps = sceneMarks
+    .map(
+      (m, i) =>
+        `${fmt(i === 0 ? 0 : m.at)} ${m.scene.label} (Voice: ${m.scene.voice})`,
+    )
+    .join("\n");
   return `# Codecaine File Manager — Ollama Phonon AI Voice Reader (\`ollama run phonon --voice Zoey\` · Apple Silicon Mac MLX) YouTube Short & Demo (${fmt(seconds)})
 
 ## Video Files (100% Live-Recorded & Narrated Live by \`ollama run phonon --voice Zoey\`)
@@ -747,7 +828,9 @@ function runOllamaPhononWav(text: string, voice: string, outWav: string): void {
       timeout: 60_000,
     });
     if (res.exitCode !== 0 || res.stdout.byteLength < 100) {
-      throw new Error(`ollama run phonon failed (${res.exitCode}): ${res.stderr.toString()}`);
+      throw new Error(
+        `ollama run phonon failed (${res.exitCode}): ${res.stderr.toString()}`,
+      );
     }
     const parsed = parseWavPcm(Buffer.from(res.stdout));
     sampleRate = parsed.sampleRate;
@@ -756,12 +839,19 @@ function runOllamaPhononWav(text: string, voice: string, outWav: string): void {
     pcmParts.push(parsed.pcmData);
     if (i + 1 < chunks.length) {
       const gapSamples = Math.round(sampleRate * 0.14);
-      pcmParts.push(Buffer.alloc(gapSamples * numChannels * (bitsPerSample >> 3)));
+      pcmParts.push(
+        Buffer.alloc(gapSamples * numChannels * (bitsPerSample >> 3)),
+      );
     }
   }
 
   const totalPcm = Buffer.concat(pcmParts);
-  const header = createWavHeader(totalPcm.length, sampleRate, numChannels, bitsPerSample);
+  const header = createWavHeader(
+    totalPcm.length,
+    sampleRate,
+    numChannels,
+    bitsPerSample,
+  );
   writeFileSync(outWav, Buffer.concat([header, totalPcm]));
 }
 
@@ -773,7 +863,9 @@ async function synthesizeSceneNarration(scene: SceneSpec): Promise<string> {
   const masteredWav = join(WORK, `phonon_${scene.id}_${safeVoice}.wav`);
 
   if (!existsSync(masteredWav)) {
-    console.log(`🎙️  Synthesizing ${scene.id} with ollama run phonon --voice "${scene.voice}"...`);
+    console.log(
+      `🎙️  Synthesizing ${scene.id} with ollama run phonon --voice "${scene.voice}"...`,
+    );
     try {
       runOllamaPhononWav(scene.say, scene.voice, rawWav);
       run([
@@ -794,7 +886,10 @@ async function synthesizeSceneNarration(scene: SceneSpec): Promise<string> {
       ]);
     } catch (err) {
       console.warn(`⚠️ Phonon CLI fallback to Edge TTS for ${scene.id}:`, err);
-      const fallbackMp3 = await narrate(scene.id, scene.say, audioDir, { rate: "+6%", gap: 0.20 });
+      const fallbackMp3 = await narrate(scene.id, scene.say, audioDir, {
+        rate: "+6%",
+        gap: 0.2,
+      });
       run([
         FFMPEG,
         "-hide_banner",
@@ -819,7 +914,8 @@ async function main() {
   seedPhononWorkspace();
 
   // 1. Synthesize all 6 scene narrations using real `ollama run phonon` voices!
-  const narrated: Array<{ scene: SceneSpec; audio: string; seconds: number }> = [];
+  const narrated: Array<{ scene: SceneSpec; audio: string; seconds: number }> =
+    [];
   for (const scene of sceneSpecs) {
     const audio = await synthesizeSceneNarration(scene);
     narrated.push({ scene, audio, seconds: duration(audio) });
@@ -827,7 +923,9 @@ async function main() {
 
   const total = narrated.reduce((sum, item) => sum + item.seconds, 0);
   const tempo = Math.max(1, total / 168);
-  console.log(`⏱️  Total Phonon narration: ${total.toFixed(2)}s; pace factor ${tempo.toFixed(3)}x -> ${(total / tempo).toFixed(1)}s`);
+  console.log(
+    `⏱️  Total Phonon narration: ${total.toFixed(2)}s; pace factor ${tempo.toFixed(3)}x -> ${(total / tempo).toFixed(1)}s`,
+  );
 
   // 2. Launch live File Manager server pointed at Phonon_Voice_Studio
   const fm = Bun.spawn(
@@ -865,7 +963,12 @@ async function main() {
     await sleep(200);
   }
 
-  const recBrowser = await Cdp.launch(CDP_REC_PORT, join(WORK, "chrome-rec"), VIEW_W, VIEW_H);
+  const recBrowser = await Cdp.launch(
+    CDP_REC_PORT,
+    join(WORK, "chrome-rec"),
+    VIEW_W,
+    VIEW_H,
+  );
   const rawClips: Map<string, string> = new Map();
 
   try {
@@ -880,19 +983,37 @@ async function main() {
     for (const item of narrated) {
       const { scene } = item;
       const clipPath = join(WORK, `${scene.id}_raw.mp4`);
-      console.log(`🎥 Recording live scene ${scene.id} (${(item.seconds / tempo).toFixed(1)}s)...`);
+      console.log(
+        `🎥 Recording live scene ${scene.id} (${(item.seconds / tempo).toFixed(1)}s)...`,
+      );
       await recBrowser.startRecording();
       await scene.record(recBrowser);
       if (scene.id === "05_extreme_large_text_chunking") {
-        const uiShot = await recBrowser.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
-        writeFileSync(join(PROD, "phonon_voice_reader_zoey_studio.png"), Buffer.from(uiShot.data, "base64"));
+        const uiShot = await recBrowser.send("Page.captureScreenshot", {
+          format: "png",
+          captureBeyondViewport: false,
+        });
+        writeFileSync(
+          join(PROD, "phonon_voice_reader_zoey_studio.png"),
+          Buffer.from(uiShot.data, "base64"),
+        );
       }
       if (scene.id === "08_ollama_ai_assistant_and_router") {
-        const uiShot = await recBrowser.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
-        writeFileSync(join(PROD, "phonon_ollama_ai_assistant_zoey.png"), Buffer.from(uiShot.data, "base64"));
+        const uiShot = await recBrowser.send("Page.captureScreenshot", {
+          format: "png",
+          captureBeyondViewport: false,
+        });
+        writeFileSync(
+          join(PROD, "phonon_ollama_ai_assistant_zoey.png"),
+          Buffer.from(uiShot.data, "base64"),
+        );
       }
       await sleep(350);
-      await recBrowser.stopRecording(clipPath, join(WORK, `frames_${scene.id}`), item.seconds / tempo);
+      await recBrowser.stopRecording(
+        clipPath,
+        join(WORK, `frames_${scene.id}`),
+        item.seconds / tempo,
+      );
       rawClips.set(scene.id, clipPath);
     }
   } finally {
@@ -903,8 +1024,18 @@ async function main() {
   }
 
   // 3. Composite both 1080x1920 Vertical YouTube Short AND 1920x1080 Widescreen Demo Video
-  const ovlBrowser = await Cdp.launch(CDP_OVL_PORT, join(WORK, "chrome-ovl"), 1080, 1920);
-  const wideBrowser = await Cdp.launch(CDP_OVL_PORT + 1, join(WORK, "chrome-wide"), 1920, 1080);
+  const ovlBrowser = await Cdp.launch(
+    CDP_OVL_PORT,
+    join(WORK, "chrome-ovl"),
+    1080,
+    1920,
+  );
+  const wideBrowser = await Cdp.launch(
+    CDP_OVL_PORT + 1,
+    join(WORK, "chrome-wide"),
+    1920,
+    1080,
+  );
   const shortSegments: string[] = [];
   const wideSegments: string[] = [];
   const sceneMarks: Array<{ at: number; scene: SceneSpec }> = [];
@@ -918,15 +1049,22 @@ async function main() {
       const seconds = item.seconds / tempo;
       const ptsScale = (seconds / clipDur).toFixed(5);
 
-      console.log(`🎬 Compositing vertical Short + widescreen segment for ${scene.id} (${seconds.toFixed(1)}s)...`);
+      console.log(
+        `🎬 Compositing vertical Short + widescreen segment for ${scene.id} (${seconds.toFixed(1)}s)...`,
+      );
 
       // Vertical 1080x1920 overlay
       const vHtml = join(WORK, `${scene.id}_v.html`);
       const vPng = join(WORK, `${scene.id}_v.png`);
       writeFileSync(vHtml, overlayVertical(scene, index));
       await ovlBrowser.goto(`file://${vHtml}`, null);
-      await ovlBrowser.send("Emulation.setDefaultBackgroundColorOverride", { color: { r: 0, g: 0, b: 0, a: 0 } });
-      const vShot = await ovlBrowser.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
+      await ovlBrowser.send("Emulation.setDefaultBackgroundColorOverride", {
+        color: { r: 0, g: 0, b: 0, a: 0 },
+      });
+      const vShot = await ovlBrowser.send("Page.captureScreenshot", {
+        format: "png",
+        captureBeyondViewport: false,
+      });
       writeFileSync(vPng, Buffer.from(vShot.data, "base64"));
 
       const shortSeg = join(WORK, `${scene.id}_short.mp4`);
@@ -976,8 +1114,13 @@ async function main() {
       const wPng = join(WORK, `${scene.id}_w.png`);
       writeFileSync(wHtml, overlayWideStrip(scene, index, narrated.length));
       await wideBrowser.goto(`file://${wHtml}`, null);
-      await wideBrowser.send("Emulation.setDefaultBackgroundColorOverride", { color: { r: 0, g: 0, b: 0, a: 0 } });
-      const wShot = await wideBrowser.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
+      await wideBrowser.send("Emulation.setDefaultBackgroundColorOverride", {
+        color: { r: 0, g: 0, b: 0, a: 0 },
+      });
+      const wShot = await wideBrowser.send("Page.captureScreenshot", {
+        format: "png",
+        captureBeyondViewport: false,
+      });
       writeFileSync(wPng, Buffer.from(wShot.data, "base64"));
 
       const wideSeg = join(WORK, `${scene.id}_wide.mp4`);
@@ -1032,7 +1175,10 @@ async function main() {
 
   // Concatenate Short MP4
   const shortList = join(WORK, "concat_short.txt");
-  writeFileSync(shortList, shortSegments.map((f) => `file '${f}'`).join("\n") + "\n");
+  writeFileSync(
+    shortList,
+    shortSegments.map((f) => `file '${f}'`).join("\n") + "\n",
+  );
   run([
     FFMPEG,
     "-hide_banner",
@@ -1072,7 +1218,10 @@ async function main() {
 
   // Concatenate Wide MP4
   const wideList = join(WORK, "concat_wide.txt");
-  writeFileSync(wideList, wideSegments.map((f) => `file '${f}'`).join("\n") + "\n");
+  writeFileSync(
+    wideList,
+    wideSegments.map((f) => `file '${f}'`).join("\n") + "\n",
+  );
   run([
     FFMPEG,
     "-hide_banner",
@@ -1115,12 +1264,28 @@ async function main() {
   writeFileSync(NOTES, notes);
   writeFileSync(join(PROD, "PHONON_OLLAMA_COMPLETE_TUTORIAL.md"), notes);
   writeFileSync(join(WORK, "upload-guide.txt"), notes);
-  run(["cp", "-f", OUTPUT_WIDE, join(PROD, "phonon_ollama_complete_tutorial_1080p.mp4")]);
-  run(["cp", "-f", OUTPUT_SHORT, join(PROD, "phonon_ollama_complete_tutorial_short.mp4")]);
+  run([
+    "cp",
+    "-f",
+    OUTPUT_WIDE,
+    join(PROD, "phonon_ollama_complete_tutorial_1080p.mp4"),
+  ]);
+  run([
+    "cp",
+    "-f",
+    OUTPUT_SHORT,
+    join(PROD, "phonon_ollama_complete_tutorial_short.mp4"),
+  ]);
 
-  console.log(`\n✅ Built Vertical 9:16 YouTube Short: ${OUTPUT_SHORT} (${finalSeconds.toFixed(2)}s, ${(Bun.file(OUTPUT_SHORT).size / 1048576).toFixed(1)} MB)`);
-  console.log(`✅ Built Widescreen 16:9 Demo Video:  ${OUTPUT_WIDE} (${duration(OUTPUT_WIDE).toFixed(2)}s, ${(Bun.file(OUTPUT_WIDE).size / 1048576).toFixed(1)} MB)`);
-  console.log(`✅ Built Complete Tutorial 1080p MP4: ${join(PROD, "phonon_ollama_complete_tutorial_1080p.mp4")}`);
+  console.log(
+    `\n✅ Built Vertical 9:16 YouTube Short: ${OUTPUT_SHORT} (${finalSeconds.toFixed(2)}s, ${(Bun.file(OUTPUT_SHORT).size / 1048576).toFixed(1)} MB)`,
+  );
+  console.log(
+    `✅ Built Widescreen 16:9 Demo Video:  ${OUTPUT_WIDE} (${duration(OUTPUT_WIDE).toFixed(2)}s, ${(Bun.file(OUTPUT_WIDE).size / 1048576).toFixed(1)} MB)`,
+  );
+  console.log(
+    `✅ Built Complete Tutorial 1080p MP4: ${join(PROD, "phonon_ollama_complete_tutorial_1080p.mp4")}`,
+  );
   console.log(`📝 Wrote YouTube & Tutorial Notes:    ${NOTES}`);
 }
 

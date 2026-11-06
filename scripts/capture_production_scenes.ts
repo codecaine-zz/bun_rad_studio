@@ -12,7 +12,9 @@ async function run() {
   console.log("Connecting to Chrome DevTools on port 9222...");
   const targetsRes = await fetch(`http://127.0.0.1:${port}/json`);
   const targets = (await targetsRes.json()) as any[];
-  const pageTarget = targets.find((t: any) => t.type === "page" && t.url.includes("51292")) || targets[0];
+  const pageTarget =
+    targets.find((t: any) => t.type === "page" && t.url.includes("51292")) ||
+    targets[0];
   const ws = new WebSocket(pageTarget.webSocketDebuggerUrl);
 
   let idCounter = 1;
@@ -26,7 +28,9 @@ async function run() {
     }
   };
 
-  await new Promise<void>((r) => { ws.onopen = () => r(); });
+  await new Promise<void>((r) => {
+    ws.onopen = () => r();
+  });
 
   function send(method: string, params: any = {}): Promise<any> {
     const id = idCounter++;
@@ -145,7 +149,9 @@ async function run() {
   `);
   await wait(600);
   await capture("14_converter_dialog.png");
-  await evalJs(`document.querySelector('.modal-backdrop [aria-label="Close"]')?.click() || document.querySelector('.modal-backdrop button.btn-secondary')?.click();`);
+  await evalJs(
+    `document.querySelector('.modal-backdrop [aria-label="Close"]')?.click() || document.querySelector('.modal-backdrop button.btn-secondary')?.click();`,
+  );
 
   // 15. More Info & Forensics Dialog
   console.log("15. Capturing More Info & Forensics...");

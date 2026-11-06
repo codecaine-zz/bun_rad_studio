@@ -2,9 +2,24 @@ import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
 import { writeFileSync, readFileSync } from "fs";
 import { basename } from "path";
 import {
-  isUnsafeMethod, formatBytes, clampInt, normalizeUrl, buildUrl, parseVariables, applyVariables,
-  parseHeaderLines, applyAuth, withDefaultContentType, buildCurlCommand, parseCurlCommand, serializeRequest, parseRequestFile,
-  runPool, summarizeBench, pushHistory, type HistoryEntry,
+  isUnsafeMethod,
+  formatBytes,
+  clampInt,
+  normalizeUrl,
+  buildUrl,
+  parseVariables,
+  applyVariables,
+  parseHeaderLines,
+  applyAuth,
+  withDefaultContentType,
+  buildCurlCommand,
+  parseCurlCommand,
+  serializeRequest,
+  parseRequestFile,
+  runPool,
+  summarizeBench,
+  pushHistory,
+  type HistoryEntry,
 } from "../src/api_tools";
 import { evaluateBunJsonQuery } from "./jq_studio";
 
@@ -29,10 +44,11 @@ export async function executeCurlRequest(
   url: string,
   headers: Record<string, string>,
   bodyStr?: string,
-  opts: CurlOptions = {}
+  opts: CurlOptions = {},
 ): Promise<CurlResponse> {
   const t0 = performance.now();
-  const timeout = opts.timeoutSec && opts.timeoutSec > 0 ? Math.floor(opts.timeoutSec) : 10;
+  const timeout =
+    opts.timeoutSec && opts.timeoutSec > 0 ? Math.floor(opts.timeoutSec) : 10;
   const args = [
     "curl",
     "-s",
@@ -40,19 +56,29 @@ export async function executeCurlRequest(
     ...(opts.follow === false ? [] : ["-L"]),
     ...(opts.insecure ? ["-k"] : []),
     // Never let curl read local files (file://) or use other schemes, including via redirects.
-    "--proto", "=http,https",
-    "--proto-redir", "=http,https",
-    "--connect-timeout", String(Math.min(4, timeout)),
-    "-m", String(timeout),
+    "--proto",
+    "=http,https",
+    "--proto-redir",
+    "=http,https",
+    "--connect-timeout",
+    String(Math.min(4, timeout)),
+    "-m",
+    String(timeout),
     ...(method === "HEAD" ? ["-I"] : ["-X", method]),
-    "-w", "\n__BUN_RAD_CURL_METADATA__\n%{http_code}\n%{time_total}\n",
+    "-w",
+    "\n__BUN_RAD_CURL_METADATA__\n%{http_code}\n%{time_total}\n",
   ];
 
   for (const [k, v] of Object.entries(headers)) {
     args.push("-H", `${k}: ${v}`);
   }
 
-  if (bodyStr && method !== "GET" && method !== "HEAD" && method !== "OPTIONS") {
+  if (
+    bodyStr &&
+    method !== "GET" &&
+    method !== "HEAD" &&
+    method !== "OPTIONS"
+  ) {
     args.push("--data-raw", bodyStr);
   }
 
@@ -71,15 +97,26 @@ export async function executeCurlRequest(
     const elapsed = (performance.now() - t0).toFixed(1);
 
     if (!rawOut && exitCode !== 0) {
-      const err = rawError.trim() || `Curl process exited with code ${exitCode}`;
-      return { ok: false, status: 0, statusText: "Network Error", headers: [], body: `[Network Error]\n${err}`, elapsedMs: elapsed, error: err };
+      const err =
+        rawError.trim() || `Curl process exited with code ${exitCode}`;
+      return {
+        ok: false,
+        status: 0,
+        statusText: "Network Error",
+        headers: [],
+        body: `[Network Error]\n${err}`,
+        elapsedMs: elapsed,
+        error: err,
+      };
     }
 
     const parts = rawOut.split("\n__BUN_RAD_CURL_METADATA__\n");
     const payload = parts[0] || "";
     const meta = (parts[1] || "").trim().split("\n");
     const statusCode = parseInt(meta[0] || "0", 10);
-    const curlElapsedMs = meta[1] ? (parseFloat(meta[1]) * 1000).toFixed(1) : elapsed;
+    const curlElapsedMs = meta[1]
+      ? (parseFloat(meta[1]) * 1000).toFixed(1)
+      : elapsed;
 
     // Header & body separation (handles redirects by taking the last header block)
     const blocks = payload.split(/\r?\n\r?\n/);
@@ -105,21 +142,48 @@ export async function executeCurlRequest(
       if (!line) continue;
       const colon = line.indexOf(":");
       if (colon > 0) {
-        parsedHeaders.push([line.slice(0, colon).trim(), line.slice(colon + 1).trim()]);
+        parsedHeaders.push([
+          line.slice(0, colon).trim(),
+          line.slice(colon + 1).trim(),
+        ]);
       }
     }
 
-    const reason = (headerLines[0] ?? "").replace(/^HTTP\/\S+\s+\d+\s*/i, "").trim();
+    const reason = (headerLines[0] ?? "")
+      .replace(/^HTTP\/\S+\s+\d+\s*/i, "")
+      .trim();
     const fallbackText: Record<number, string> = {
-      200: "OK", 201: "Created", 202: "Accepted", 204: "No Content", 301: "Moved Permanently", 302: "Found", 304: "Not Modified",
-      400: "Bad Request", 401: "Unauthorized", 403: "Forbidden", 404: "Not Found", 405: "Method Not Allowed", 408: "Request Timeout",
-      409: "Conflict", 422: "Unprocessable Entity", 429: "Too Many Requests", 500: "Internal Server Error", 502: "Bad Gateway",
-      503: "Service Unavailable", 504: "Gateway Timeout",
+      200: "OK",
+      201: "Created",
+      202: "Accepted",
+      204: "No Content",
+      301: "Moved Permanently",
+      302: "Found",
+      304: "Not Modified",
+      400: "Bad Request",
+      401: "Unauthorized",
+      403: "Forbidden",
+      404: "Not Found",
+      405: "Method Not Allowed",
+      408: "Request Timeout",
+      409: "Conflict",
+      422: "Unprocessable Entity",
+      429: "Too Many Requests",
+      500: "Internal Server Error",
+      502: "Bad Gateway",
+      503: "Service Unavailable",
+      504: "Gateway Timeout",
     };
     const statusText =
       reason ||
       fallbackText[statusCode] ||
-      (statusCode >= 400 && statusCode < 500 ? "Client Error" : statusCode >= 500 ? "Server Error" : statusCode === 0 ? "No Response" : "Response");
+      (statusCode >= 400 && statusCode < 500
+        ? "Client Error"
+        : statusCode >= 500
+          ? "Server Error"
+          : statusCode === 0
+            ? "No Response"
+            : "Response");
 
     return {
       ok: statusCode >= 200 && statusCode < 300,
@@ -143,14 +207,21 @@ export async function executeCurlRequest(
   }
 }
 
-export function createApiStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
+export function createApiStudio(
+  options: { fullscreen?: boolean; theme?: string } = {},
+): SimpleWindow {
   const fullscreen = options.fullscreen ?? true;
-  const win = newSimpleWindow("API Studio Pro -- Enterprise HTTP & REST API Workbench", 1160, 900, {
-    appId: "api_studio",
-    theme: options.theme || getSavedTheme() || "midnight",
-    autoSaveState: true,
-    fullscreen,
-  });
+  const win = newSimpleWindow(
+    "API Studio Pro -- Enterprise HTTP & REST API Workbench",
+    1160,
+    900,
+    {
+      appId: "api_studio",
+      theme: options.theme || getSavedTheme() || "midnight",
+      autoSaveState: true,
+      fullscreen,
+    },
+  );
 
   // Title Row
   win.beginRow();
@@ -162,25 +233,35 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
   win.addButton("btn_center", "Center Window");
   win.addButton("btn_fullscreen", "⛶ Fullscreen");
   win.endRow();
-  win.addCaption("Enterprise HTTP Client, REST Endpoint Inspector & Load Benchmark Suite");
+  win.addCaption(
+    "Enterprise HTTP Client, REST Endpoint Inspector & Load Benchmark Suite",
+  );
 
   // Presets & Environment Row
   win.beginGroupBox("Endpoint Presets & Environment Context");
   win.beginRow();
   win.addLabel("lbl_preset", "Quick Endpoints:");
-  win.addDropdown(
-    "dd_presets",
-    [
+  win
+    .addDropdown(
+      "dd_presets",
+      [
+        "1. JSONPlaceholder (GET /todos/1)",
+        "2. JSONPlaceholder Create (POST /posts)",
+        "3. GitHub API Status (GET /zen)",
+        "4. HTTPBin Headers (GET /headers)",
+        "5. HTTPBin Delay 1s (GET /delay/1)",
+      ],
       "1. JSONPlaceholder (GET /todos/1)",
-      "2. JSONPlaceholder Create (POST /posts)",
-      "3. GitHub API Status (GET /zen)",
-      "4. HTTPBin Headers (GET /headers)",
-      "5. HTTPBin Delay 1s (GET /delay/1)",
-    ],
-    "1. JSONPlaceholder (GET /todos/1)"
-  ).width(340);
+    )
+    .width(340);
   win.addLabel("lbl_auth", "Auth Mode:");
-  win.addDropdown("dd_auth", ["None", "Bearer Token", "Basic Auth", "API Key Header"], "None").width(180);
+  win
+    .addDropdown(
+      "dd_auth",
+      ["None", "Bearer Token", "Basic Auth", "API Key Header"],
+      "None",
+    )
+    .width(180);
   win.addInput("txt_auth", "", "token | user:pass | key").width(220);
   win.addButton("btn_copy_curl", "📋 Copy cURL");
   win.endRow();
@@ -190,14 +271,27 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
   win.beginGroupBox("HTTP Request Configuration");
   win.beginRow();
   win.addLabel("lbl_method", "Method:");
-  win.addDropdown("dd_method", ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"], "GET").width(120);
+  win
+    .addDropdown(
+      "dd_method",
+      ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
+      "GET",
+    )
+    .width(120);
   win.addLabel("lbl_url", "Target URL:");
-  win.addInput("txt_url", "https://jsonplaceholder.typicode.com/todos/1").width(520);
+  win
+    .addInput("txt_url", "https://jsonplaceholder.typicode.com/todos/1")
+    .width(520);
   win.endRow();
 
   win.beginRow();
   win.addLabel("lbl_headers", "Headers (Key: Value):");
-  win.addInput("txt_headers", "Content-Type: application/json\nAccept: application/json").width(480);
+  win
+    .addInput(
+      "txt_headers",
+      "Content-Type: application/json\nAccept: application/json",
+    )
+    .width(480);
   win.addButton("btn_send", "🚀 Send Request");
   win.addButton("btn_bench", "⚡ Benchmark (x10)");
   win.endRow();
@@ -213,7 +307,13 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
   win.addLabel("lbl_req_body", "Request Body / Payload (JSON):");
   win.endRow();
   win.beginRow();
-  win.addTextarea("txt_req_body", "{\n  \"title\": \"Build native Mac GUI\",\n  \"body\": \"Enterprise REST workbench\",\n  \"userId\": 1\n}").width(1060).height(150);
+  win
+    .addTextarea(
+      "txt_req_body",
+      '{\n  "title": "Build native Mac GUI",\n  "body": "Enterprise REST workbench",\n  "userId": 1\n}',
+    )
+    .width(1060)
+    .height(150);
   win.endRow();
   win.beginRow();
   win.addButton("btn_format_body", "✨ Format JSON Body");
@@ -222,10 +322,20 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
 
   win.beginGroupBox("Variables, Options & Import");
   win.beginRow();
-  win.addLabel("lbl_vars", "Variables (NAME=value per line; use {{NAME}}, {{$uuid}}, {{$timestamp}}, {{$randomInt}} anywhere):");
+  win.addLabel(
+    "lbl_vars",
+    "Variables (NAME=value per line; use {{NAME}}, {{$uuid}}, {{$timestamp}}, {{$randomInt}} anywhere):",
+  );
   win.endRow();
   win.beginRow();
-  win.addTextarea("txt_vars", "", "baseUrl=https://jsonplaceholder.typicode.com\ntoken=abc123").width(1060).height(80);
+  win
+    .addTextarea(
+      "txt_vars",
+      "",
+      "baseUrl=https://jsonplaceholder.typicode.com\ntoken=abc123",
+    )
+    .width(1060)
+    .height(80);
   win.endRow();
   win.beginRow();
   win.addCheckbox("chk_follow", "Follow redirects", true);
@@ -239,10 +349,20 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
   win.addInput("txt_bench_c", "10", "", { width: 70 });
   win.endRow();
   win.beginRow();
-  win.addLabel("lbl_curl_import", "Import cURL (paste a command, e.g. Chrome DevTools → Copy as cURL):");
+  win.addLabel(
+    "lbl_curl_import",
+    "Import cURL (paste a command, e.g. Chrome DevTools → Copy as cURL):",
+  );
   win.endRow();
   win.beginRow();
-  win.addTextarea("txt_curl_import", "", "curl 'https://api.example.com/items' -H 'Accept: application/json'").width(1060).height(70);
+  win
+    .addTextarea(
+      "txt_curl_import",
+      "",
+      "curl 'https://api.example.com/items' -H 'Accept: application/json'",
+    )
+    .width(1060)
+    .height(70);
   win.endRow();
   win.beginRow();
   win.addButton("btn_import_curl", "⬇ Import cURL");
@@ -260,7 +380,13 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
   win.addButton("btn_apply_filter", "Apply Filter");
   win.endRow();
   win.beginRow();
-  win.addTextarea("txt_resp_body", "{\n  \"userId\": 1,\n  \"id\": 1,\n  \"title\": \"delectus aut autem\",\n  \"completed\": false\n}").width(1060).height(220);
+  win
+    .addTextarea(
+      "txt_resp_body",
+      '{\n  "userId": 1,\n  "id": 1,\n  "title": "delectus aut autem",\n  "completed": false\n}',
+    )
+    .width(1060)
+    .height(220);
   win.endRow();
   win.beginRow();
   win.addLabel("lbl_resp_headers", "Response headers:");
@@ -272,7 +398,12 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
   win.beginRow();
   win.addButton("btn_clear_history", "Clear History");
   win.endRow();
-  win.addTable("tbl_history", ["#", "Method", "URL", "Status", "Time (ms)", "At"], [], { height: 130 });
+  win.addTable(
+    "tbl_history",
+    ["#", "Method", "URL", "Status", "Time (ms)", "At"],
+    [],
+    { height: 130 },
+  );
   win.endGroupBox();
 
   // Network Telemetry
@@ -282,7 +413,10 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
 
   // Status Bar
   win.beginRow();
-  win.addLabel("lbl_status", "Status: Ready  |  Last Code: 200 OK  |  Latency: 42ms  |  Size: 83 bytes");
+  win.addLabel(
+    "lbl_status",
+    "Status: Ready  |  Last Code: 200 OK  |  Latency: 42ms  |  Size: 83 bytes",
+  );
   win.endRow();
 
   let lastResponseText = "";
@@ -322,7 +456,14 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
     win.setTableData(
       "tbl_history",
       ["#", "Method", "URL", "Status", "Time (ms)", "At"],
-      history.map((h) => [`#${h.id}`, h.method, h.url, String(h.status), h.ms, h.time])
+      history.map((h) => [
+        `#${h.id}`,
+        h.method,
+        h.url,
+        String(h.status),
+        h.ms,
+        h.time,
+      ]),
     );
   };
 
@@ -356,7 +497,11 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
       return null;
     }
     const url = buildUrl(norm.url, query);
-    const headers = withDefaultContentType(applyAuth(parseHeaderLines(headersText), mode, cred), method, body);
+    const headers = withDefaultContentType(
+      applyAuth(parseHeaderLines(headersText), mode, cred),
+      method,
+      body,
+    );
     const opts: CurlOptions = {
       follow: win.getBool("chk_follow"),
       insecure: win.getBool("chk_insecure"),
@@ -369,7 +514,9 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
     let shown = text;
     let note = "";
     if (win.getBool("chk_pretty")) {
-      try { shown = JSON.stringify(JSON.parse(text), null, 2); } catch {}
+      try {
+        shown = JSON.stringify(JSON.parse(text), null, 2);
+      } catch {}
     }
     if (shown.length > MAX_DISPLAY) {
       shown = shown.slice(0, MAX_DISPLAY);
@@ -398,22 +545,36 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
     }
     const { method, url, headers, body: bodyStr, opts } = req;
 
-    win.appendConsole("api_console", `[HTTP Dispatch] ${method} ${url} initiating...\n`, 1);
+    win.appendConsole(
+      "api_console",
+      `[HTTP Dispatch] ${method} ${url} initiating...\n`,
+      1,
+    );
     win.setStatus(`Connecting to ${url}...`);
 
     try {
       const res = await executeCurlRequest(method, url, headers, bodyStr, opts);
       lastResponseText = res.body;
       showBody(res.body);
-      win.setTableData("tbl_resp_headers", ["Header", "Value"], res.headers.map(([k, v]) => [k, v]));
+      win.setTableData(
+        "tbl_resp_headers",
+        ["Header", "Value"],
+        res.headers.map(([k, v]) => [k, v]),
+      );
 
-      const headerPreview = res.headers.slice(0, 8).map(([k, v]) => `  ${k}: ${v}`).join("\n");
+      const headerPreview = res.headers
+        .slice(0, 8)
+        .map(([k, v]) => `  ${k}: ${v}`)
+        .join("\n");
       win.appendConsole(
         "api_console",
         `[HTTP Response] ${res.status} ${res.statusText} in ${res.elapsedMs}ms (${res.body.length} bytes)\n[Headers]\n${headerPreview}\n`,
-        res.ok ? 2 : 3
+        res.ok ? 2 : 3,
       );
-      win.setText("lbl_status", `Status: HTTP ${res.status} ${res.statusText}  |  Latency: ${res.elapsedMs}ms  |  Size: ${formatBytes(res.body.length)}`);
+      win.setText(
+        "lbl_status",
+        `Status: HTTP ${res.status} ${res.statusText}  |  Latency: ${res.elapsedMs}ms  |  Size: ${formatBytes(res.body.length)}`,
+      );
       win.setStatus(`HTTP ${res.status} (${res.elapsedMs}ms)`);
       win.toast(`HTTP ${res.status} ${res.statusText}`);
 
@@ -431,7 +592,11 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
       renderHistory();
     } catch (e: any) {
       win.setText("txt_resp_body", `[Network Error]\n${e.message}`);
-      win.appendConsole("api_console", `[Connection Failure] ${e.message}\n`, 3);
+      win.appendConsole(
+        "api_console",
+        `[Connection Failure] ${e.message}\n`,
+        3,
+      );
       win.setStatus(`Connection Error: ${e.message}`);
       win.toast(`Error: ${e.message}`);
     } finally {
@@ -468,7 +633,11 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
       insecure: req.opts.insecure,
       timeoutSec: req.opts.timeoutSec,
     });
-    win.appendConsole("api_console", `[Generated cURL Command]\n${curlCmd}\n\n`, 1);
+    win.appendConsole(
+      "api_console",
+      `[Generated cURL Command]\n${curlCmd}\n\n`,
+      1,
+    );
     win.copyToClipboard(curlCmd);
     win.toast("cURL command copied to clipboard");
   });
@@ -478,7 +647,10 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
       const p = parseCurlCommand(win.getValue("txt_curl_import") || "");
       win.setValue("dd_method", p.method);
       win.setText("txt_url", p.url);
-      win.setText("txt_headers", p.headers.map(([k, v]) => `${k}: ${v}`).join("\n"));
+      win.setText(
+        "txt_headers",
+        p.headers.map(([k, v]) => `${k}: ${v}`).join("\n"),
+      );
       win.setText("txt_req_body", p.body);
       win.setText("txt_query", "");
       if (p.authMode) {
@@ -488,7 +660,11 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
       win.setBool("chk_follow", p.follow);
       win.setBool("chk_insecure", p.insecure);
       if (p.timeoutSec) win.setText("txt_timeout", String(p.timeoutSec));
-      win.appendConsole("api_console", `[Import] ${p.method} ${p.url} (${p.headers.length} headers)\n`, 2);
+      win.appendConsole(
+        "api_console",
+        `[Import] ${p.method} ${p.url} (${p.headers.length} headers)\n`,
+        2,
+      );
       win.toast("cURL command imported");
     } catch (e: any) {
       win.appendConsole("api_console", `[Import Error] ${e.message}\n`, 3);
@@ -497,26 +673,37 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
   });
 
   win.onClick("btn_save_req_file", () => {
-    win.saveFile({ title: "Save API request", defaultName: "request.apireq.json" }, (p) => {
-      if (!p) return;
-      try {
-        // Credentials (txt_auth) are deliberately NOT written to the file.
-        writeFileSync(p, serializeRequest({
-          method: win.getValue("dd_method") || "GET",
-          url: win.getValue("txt_url") || "",
-          headers: win.getValue("txt_headers") || "",
-          body: win.getValue("txt_req_body") || "",
-          query: win.getValue("txt_query") || "",
-          vars: win.getValue("txt_vars") || "",
-          authMode: win.getValue("dd_auth") || "None",
-        }), "utf8");
-        win.appendConsole("api_console", `[Save] Request saved to ${p} (credentials not included)\n`, 2);
-        win.toast(`Saved ${basename(p)}`);
-      } catch (e: any) {
-        win.appendConsole("api_console", `[Save Error] ${e.message}\n`, 3);
-        win.toast(`Save failed: ${e.message}`);
-      }
-    });
+    win.saveFile(
+      { title: "Save API request", defaultName: "request.apireq.json" },
+      (p) => {
+        if (!p) return;
+        try {
+          // Credentials (txt_auth) are deliberately NOT written to the file.
+          writeFileSync(
+            p,
+            serializeRequest({
+              method: win.getValue("dd_method") || "GET",
+              url: win.getValue("txt_url") || "",
+              headers: win.getValue("txt_headers") || "",
+              body: win.getValue("txt_req_body") || "",
+              query: win.getValue("txt_query") || "",
+              vars: win.getValue("txt_vars") || "",
+              authMode: win.getValue("dd_auth") || "None",
+            }),
+            "utf8",
+          );
+          win.appendConsole(
+            "api_console",
+            `[Save] Request saved to ${p} (credentials not included)\n`,
+            2,
+          );
+          win.toast(`Saved ${basename(p)}`);
+        } catch (e: any) {
+          win.appendConsole("api_console", `[Save Error] ${e.message}\n`, 3);
+          win.toast(`Save failed: ${e.message}`);
+        }
+      },
+    );
   });
 
   win.onClick("btn_load_req_file", () => {
@@ -531,7 +718,11 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
         win.setText("txt_query", r.query);
         win.setText("txt_vars", r.vars);
         win.setValue("dd_auth", r.authMode);
-        win.appendConsole("api_console", `[Open] Loaded ${p}${r.authMode !== "None" ? " (re-enter your credential)" : ""}\n`, 2);
+        win.appendConsole(
+          "api_console",
+          `[Open] Loaded ${p}${r.authMode !== "None" ? " (re-enter your credential)" : ""}\n`,
+          2,
+        );
         win.toast(`Loaded ${basename(p)}`);
       } catch (e: any) {
         win.appendConsole("api_console", `[Open Error] ${e.message}\n`, 3);
@@ -571,7 +762,10 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
     }
     try {
       const result = evaluateBunJsonQuery(JSON.parse(lastResponseText), q);
-      win.setText("txt_resp_body", typeof result === "string" ? result : JSON.stringify(result, null, 2));
+      win.setText(
+        "txt_resp_body",
+        typeof result === "string" ? result : JSON.stringify(result, null, 2),
+      );
     } catch (e: any) {
       win.toast(`Filter failed: ${e.message}`);
     }
@@ -582,17 +776,24 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
       win.toast("No response to export");
       return;
     }
-    win.saveFile({ title: "Save response", defaultName: "api_response.json" }, (p) => {
-      if (!p) return;
-      try {
-        writeFileSync(p, lastResponseText, "utf8");
-        win.appendConsole("api_console", `[Export] Response saved to ${p}\n`, 2);
-        win.toast(`Saved ${basename(p)}`);
-      } catch (e: any) {
-        win.appendConsole("api_console", `[Export Error] ${e.message}\n`, 3);
-        win.toast(`Export failed: ${e.message}`);
-      }
-    });
+    win.saveFile(
+      { title: "Save response", defaultName: "api_response.json" },
+      (p) => {
+        if (!p) return;
+        try {
+          writeFileSync(p, lastResponseText, "utf8");
+          win.appendConsole(
+            "api_console",
+            `[Export] Response saved to ${p}\n`,
+            2,
+          );
+          win.toast(`Saved ${basename(p)}`);
+        } catch (e: any) {
+          win.appendConsole("api_console", `[Export Error] ${e.message}\n`, 3);
+          win.toast(`Export failed: ${e.message}`);
+        }
+      },
+    );
   });
 
   win.onClick("btn_bench", async () => {
@@ -603,32 +804,50 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
     const C = clampInt(win.getValue("txt_bench_c"), 1, 20, 10);
 
     if (isUnsafeMethod(method)) {
-      const ok = await win.confirm(`This will send ${N} ${method} requests to ${url}. ${method} can change data on the server. Continue?`, "Benchmark a non-GET method");
+      const ok = await win.confirm(
+        `This will send ${N} ${method} requests to ${url}. ${method} can change data on the server. Continue?`,
+        "Benchmark a non-GET method",
+      );
       if (!ok) {
-        win.appendConsole("api_console", `[Benchmark] Cancelled (${method} not confirmed)\n`, 1);
+        win.appendConsole(
+          "api_console",
+          `[Benchmark] Cancelled (${method} not confirmed)\n`,
+          1,
+        );
         return;
       }
     }
 
-    win.appendConsole("api_console", `[Benchmark] Firing ${N} ${method} requests (${C} at a time) to ${url}...\n`, 1);
+    win.appendConsole(
+      "api_console",
+      `[Benchmark] Firing ${N} ${method} requests (${C} at a time) to ${url}...\n`,
+      1,
+    );
     win.setStatus("Running benchmark...");
 
     const t0 = performance.now();
     try {
-      const results = await runPool(N, C, () => executeCurlRequest(method, url, headers, bodyStr, opts));
+      const results = await runPool(N, C, () =>
+        executeCurlRequest(method, url, headers, bodyStr, opts),
+      );
       const totalMs = performance.now() - t0;
       const totalElapsed = totalMs.toFixed(1);
       const ok = results.filter((r) => r.ok);
-      const latencies = results.filter((r) => r.status > 0).map((r) => parseFloat(r.elapsedMs)).filter((n) => !isNaN(n));
+      const latencies = results
+        .filter((r) => r.status > 0)
+        .map((r) => parseFloat(r.elapsedMs))
+        .filter((n) => !isNaN(n));
       const st = summarizeBench(latencies, totalMs);
       if (!st) throw new Error(results[0]?.error || "No successful responses");
 
       win.appendConsole(
         "api_console",
         `[Benchmark Completed] ${results.length} requests completed in ${totalElapsed}ms | Success (2xx): ${ok.length}/${results.length}\n  Average: ${st.avg}ms  Min: ${st.min}ms  p50: ${st.p50}ms  p95: ${st.p95}ms  p99: ${st.p99}ms  Max: ${st.max}ms  Throughput: ${st.rps} req/s\n`,
-        ok.length === results.length ? 2 : 3
+        ok.length === results.length ? 2 : 3,
       );
-      win.setStatus(`Benchmark complete (avg ${st.avg}ms, ${ok.length}/${results.length} OK)`);
+      win.setStatus(
+        `Benchmark complete (avg ${st.avg}ms, ${ok.length}/${results.length} OK)`,
+      );
       win.toast(`Benchmark complete: avg ${st.avg}ms`);
     } catch (e: any) {
       win.appendConsole("api_console", `[Benchmark Error] ${e.message}\n`, 3);
@@ -644,7 +863,10 @@ export function createApiStudio(options: { fullscreen?: boolean; theme?: string 
     } else if (choice.includes("JSONPlaceholder Create")) {
       win.setText("txt_url", "https://jsonplaceholder.typicode.com/posts");
       win.setText("dd_method", "POST");
-      win.setText("txt_req_body", "{\n  \"title\": \"Enterprise Bun App\",\n  \"body\": \"High-performance native GUI\",\n  \"userId\": 1\n}");
+      win.setText(
+        "txt_req_body",
+        '{\n  "title": "Enterprise Bun App",\n  "body": "High-performance native GUI",\n  "userId": 1\n}',
+      );
     } else if (choice.includes("GitHub API Status")) {
       win.setText("txt_url", "https://api.github.com/zen");
       win.setText("dd_method", "GET");

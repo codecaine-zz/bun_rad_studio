@@ -20,13 +20,56 @@
  *   Linux    "codecaine-file-manager" next to app/, lib/ and resources/, plus install.sh for a menu entry
  * Every zip also holds the SQLite, MySQL, PostgreSQL and Redis studios, which the File Manager starts from the same folder.
  */
-import { chmodSync, cpSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "fs";
+import {
+  chmodSync,
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "fs";
 import { basename, join } from "path";
-import { WINDOWS_SETUP, desktopInfo, embedWindowsIcon, windowsInstallCommand } from "./desktop";
-import { BUNDLE_DIR, CACHE_DIR, RELEASE_DIR, bundleApps, buildRuntime, copyAppBundle, logBundleFailures } from "./suite";
+import {
+  WINDOWS_SETUP,
+  desktopInfo,
+  embedWindowsIcon,
+  windowsInstallCommand,
+} from "./desktop";
+import {
+  BUNDLE_DIR,
+  CACHE_DIR,
+  RELEASE_DIR,
+  bundleApps,
+  buildRuntime,
+  copyAppBundle,
+  logBundleFailures,
+} from "./suite";
 import type { MacApp } from "./build_mac_apps";
-import { ROOT, SIDECAR_FILES, TARGETS, VERSION, defaultJobs, listSourceApps, log, mapPool, parseJobs, run, sha256File, webviewLibSource, writeFileAtomic, zipEntries, type SourceApp, type Target } from "./common";
-import { LINUX_SANDBOX_WARNING, linuxOllamaInstallScript, linuxSandboxSetup } from "./linuxSandbox";
+import {
+  ROOT,
+  SIDECAR_FILES,
+  TARGETS,
+  VERSION,
+  defaultJobs,
+  listSourceApps,
+  log,
+  mapPool,
+  parseJobs,
+  run,
+  sha256File,
+  webviewLibSource,
+  writeFileAtomic,
+  zipEntries,
+  type SourceApp,
+  type Target,
+} from "./common";
+import {
+  LINUX_SANDBOX_WARNING,
+  linuxOllamaInstallScript,
+  linuxSandboxSetup,
+} from "./linuxSandbox";
 import {
   APPSTREAM_ID,
   appStreamMetaInfoXml,
@@ -42,7 +85,12 @@ export const WINDOWS_TROUBLESHOOT = `@echo off\r\nsetlocal\r\npushd "%~dp0" || e
 export const OUT_DIR = join(RELEASE_DIR, "file-manager");
 const STAGE = join(RELEASE_DIR, ".stage-fm");
 const MAIN = "file-manager-studio";
-const STUDIOS = ["sqlite-studio", "mysql-studio", "postgres-studio", "redis-studio"];
+const STUDIOS = [
+  "sqlite-studio",
+  "mysql-studio",
+  "postgres-studio",
+  "redis-studio",
+];
 
 export interface Download {
   /** Used in the file name: macos-arm64, windows-x64 ... */
@@ -57,17 +105,76 @@ export interface Download {
 }
 
 export const DOWNLOADS: Download[] = [
-  { id: "macos-arm64", os: "macos", arch: "arm64", from: "macos-arm64", label: "Apple silicon", hint: "Macs with an M1, M2, M3, M4 or newer chip" },
-  { id: "macos-x64", os: "macos", arch: "x64", from: "macos-x64", label: "Intel", hint: "Macs with an Intel processor" },
-  { id: "windows-x64", os: "windows", arch: "x64", from: "windows-x64", label: "64-bit (x64)", hint: "Most Windows 10 and 11 PCs" },
-  { id: "windows-arm64", os: "windows", arch: "arm64", from: "windows-x64-baseline", label: "ARM64", hint: "Windows 11 on ARM (Snapdragon X, Surface Pro X ...). Uses the baseline x64 runtime through emulation, without requiring AVX2" },
-  { id: "windows-x64-baseline", os: "windows", arch: "x64", from: "windows-x64-baseline", label: "x64 for older CPUs", hint: "Processors from before 2013 (no AVX2)", older: true },
-  { id: "linux-x64", os: "linux", arch: "x64", from: "linux-x64", label: "x86-64 (Intel / AMD)", hint: "Ubuntu, Debian, Fedora, Arch and other glibc distributions" },
-  { id: "linux-arm64", os: "linux", arch: "arm64", from: "linux-arm64", label: "ARM64", hint: "Raspberry Pi OS 64-bit, Ampere, Graviton and other 64-bit ARM Linux" },
-  { id: "linux-x64-baseline", os: "linux", arch: "x64", from: "linux-x64-baseline", label: "x86-64 for older CPUs", hint: "Processors from before 2013 (no AVX2)", older: true },
+  {
+    id: "macos-arm64",
+    os: "macos",
+    arch: "arm64",
+    from: "macos-arm64",
+    label: "Apple silicon",
+    hint: "Macs with an M1, M2, M3, M4 or newer chip",
+  },
+  {
+    id: "macos-x64",
+    os: "macos",
+    arch: "x64",
+    from: "macos-x64",
+    label: "Intel",
+    hint: "Macs with an Intel processor",
+  },
+  {
+    id: "windows-x64",
+    os: "windows",
+    arch: "x64",
+    from: "windows-x64",
+    label: "64-bit (x64)",
+    hint: "Most Windows 10 and 11 PCs",
+  },
+  {
+    id: "windows-arm64",
+    os: "windows",
+    arch: "arm64",
+    from: "windows-x64-baseline",
+    label: "ARM64",
+    hint: "Windows 11 on ARM (Snapdragon X, Surface Pro X ...). Uses the baseline x64 runtime through emulation, without requiring AVX2",
+  },
+  {
+    id: "windows-x64-baseline",
+    os: "windows",
+    arch: "x64",
+    from: "windows-x64-baseline",
+    label: "x64 for older CPUs",
+    hint: "Processors from before 2013 (no AVX2)",
+    older: true,
+  },
+  {
+    id: "linux-x64",
+    os: "linux",
+    arch: "x64",
+    from: "linux-x64",
+    label: "x86-64 (Intel / AMD)",
+    hint: "Ubuntu, Debian, Fedora, Arch and other glibc distributions",
+  },
+  {
+    id: "linux-arm64",
+    os: "linux",
+    arch: "arm64",
+    from: "linux-arm64",
+    label: "ARM64",
+    hint: "Raspberry Pi OS 64-bit, Ampere, Graviton and other 64-bit ARM Linux",
+  },
+  {
+    id: "linux-x64-baseline",
+    os: "linux",
+    arch: "x64",
+    from: "linux-x64-baseline",
+    label: "x86-64 for older CPUs",
+    hint: "Processors from before 2013 (no AVX2)",
+    older: true,
+  },
 ];
 
-const zipName = (d: Download) => `Codecaine-File-Manager-v${VERSION}-${d.id}.zip`;
+const zipName = (d: Download) =>
+  `Codecaine-File-Manager-v${VERSION}-${d.id}.zip`;
 const mb = (b: number) => `${(b / 1024 / 1024).toFixed(1)} MB`;
 
 function targetOf(d: Download): Target {
@@ -163,36 +270,119 @@ if (code !== 0) await fail(new Error("${APP_TITLE} exited with " + code + "."), 
 try { await start(); } catch (error) { await fail(error); }
 `;
 
-async function compileLauncher(d: Download, outFile: string, icoFile: string | null): Promise<void> {
+async function compileLauncher(
+  d: Download,
+  outFile: string,
+  icoFile: string | null,
+): Promise<void> {
   const t = targetOf(d);
   mkdirSync(CACHE_DIR, { recursive: true });
   const stub = join(CACHE_DIR, "fm-launcher.ts");
   writeFileAtomic(stub, LAUNCHER_STUB);
-  const args = ["bun", "build", "--compile", "--minify", `--target=${t.bunTarget}`, `--outfile=${outFile}`];
+  const args = [
+    "bun",
+    "build",
+    "--compile",
+    "--minify",
+    `--target=${t.bunTarget}`,
+    `--outfile=${outFile}`,
+  ];
   if (d.os === "windows") {
     args.push("--windows-hide-console");
     if (process.platform === "win32") args.push(`--windows-title=${APP_TITLE}`);
   }
   const output = await run([...args, stub]);
-  if (!existsSync(outFile)) throw new Error(`The compiler did not produce ${outFile}: ${output.trim()}`);
+  if (!existsSync(outFile))
+    throw new Error(
+      `The compiler did not produce ${outFile}: ${output.trim()}`,
+    );
   if (d.os === "windows" && icoFile) embedWindowsIcon(outFile, icoFile);
 }
 
 export function readmeFor(d: Download): string {
-  const L: string[] = [`${APP_TITLE} ${VERSION}: ${d.label}`, "", d.hint + ".", ""];
+  const L: string[] = [
+    `${APP_TITLE} ${VERSION}: ${d.label}`,
+    "",
+    d.hint + ".",
+    "",
+  ];
   if (d.os === "windows") {
-    L.push(`First, double-click install.cmd to check prerequisites and install missing ones from Microsoft with your permission. Then double-click "${APP_TITLE}.exe".`, "", "No Bun or compiler is needed. Microsoft installers may request elevation.", "", "It needs the Microsoft WebView2 runtime (already part of Windows 11):", "  https://developer.microsoft.com/microsoft-edge/webview2/", "");
-    L.push("Windows SmartScreen may say the app is unrecognized the first time. Choose More info > Run anyway.", "Keep the folders next to the .exe (app, lib, resources): the program reads them.");
-    L.push("", "The native window library also needs the Microsoft Visual C++ 2015-2022 x64 Redistributable (even on ARM):", "  https://aka.ms/vs/17/release/vc_redist.x64.exe", "", "If no window opens, double-click troubleshoot.cmd to see the error in a console.");
-    if (d.arch === "arm64") L.push("", "Requires Windows 11 on ARM with x64 emulation. Uses the baseline x64 build, so AVX2 emulation is not required.");
+    L.push(
+      `First, double-click install.cmd to check prerequisites and install missing ones from Microsoft with your permission. Then double-click "${APP_TITLE}.exe".`,
+      "",
+      "No Bun or compiler is needed. Microsoft installers may request elevation.",
+      "",
+      "It needs the Microsoft WebView2 runtime (already part of Windows 11):",
+      "  https://developer.microsoft.com/microsoft-edge/webview2/",
+      "",
+    );
+    L.push(
+      "Windows SmartScreen may say the app is unrecognized the first time. Choose More info > Run anyway.",
+      "Keep the folders next to the .exe (app, lib, resources): the program reads them.",
+    );
+    L.push(
+      "",
+      "The native window library also needs the Microsoft Visual C++ 2015-2022 x64 Redistributable (even on ARM):",
+      "  https://aka.ms/vs/17/release/vc_redist.x64.exe",
+      "",
+      "If no window opens, double-click troubleshoot.cmd to see the error in a console.",
+    );
+    if (d.arch === "arm64")
+      L.push(
+        "",
+        "Requires Windows 11 on ARM with x64 emulation. Uses the baseline x64 build, so AVX2 emulation is not required.",
+      );
   } else if (d.os === "linux") {
-    L.push("Start it:", "  ./codecaine-file-manager", "", "Add it to your applications menu and your PATH:", "  sh install.sh        (undo with: sh install.sh --uninstall)", "", "Single-step install for Ollama & local AI models (Qwen 3.5 + LFM3-Omni, no sudo required):", "  sh install-ollama.sh (or: sh install.sh --ollama)", "  Inside the app, you can also click \"🤖 Ollama AI\" -> \"⚡ 1-Click Install Ollama & Starter Models\"", "  or open \"Convert & process\" -> \"Helper programs\" -> \"⚡ Install Ollama & Starter AI Models (1-Click)\".", "", "It needs GTK 4 and WebKitGTK 6.0:", "  Debian/Ubuntu 24.04+:  sudo apt install libgtk-4-1 libwebkitgtk-6.0-4", "  Fedora:                sudo dnf install gtk4 webkitgtk6.0", "");
-    L.push("If the file manager will not execute the binary, use a terminal in this folder:", "  chmod +x codecaine-file-manager", "  sh troubleshoot.sh", "", "Headless (no window, open the address it prints in a browser):", "  ./codecaine-file-manager --server");
-    L.push("", "Ubuntu 24.04+ sandbox fix:", "  If startup logs say 'bwrap: setting up uid map: Permission denied' or", "  'Failed to fully launch dbus-proxy', run:", "    sh install.sh --apparmor", "  Enter your sudo password in the terminal. This installs an AppArmor profile", "  for this executable only; AppArmor and WebKit's sandbox stay enabled.", "  Keep the folder in its final location; rerun that command after moving it.", "  Remove the menu entry, link and profile with: sh install.sh --uninstall --apparmor");
+    L.push(
+      "Start it:",
+      "  ./codecaine-file-manager",
+      "",
+      "Add it to your applications menu and your PATH:",
+      "  sh install.sh        (undo with: sh install.sh --uninstall)",
+      "",
+      "Single-step install for Ollama & local AI models (Qwen 3.5 + LFM3-Omni, no sudo required):",
+      "  sh install-ollama.sh (or: sh install.sh --ollama)",
+      '  Inside the app, you can also click "🤖 Ollama AI" -> "⚡ 1-Click Install Ollama & Starter Models"',
+      '  or open "Convert & process" -> "Helper programs" -> "⚡ Install Ollama & Starter AI Models (1-Click)".',
+      "",
+      "It needs GTK 4 and WebKitGTK 6.0:",
+      "  Debian/Ubuntu 24.04+:  sudo apt install libgtk-4-1 libwebkitgtk-6.0-4",
+      "  Fedora:                sudo dnf install gtk4 webkitgtk6.0",
+      "",
+    );
+    L.push(
+      "If the file manager will not execute the binary, use a terminal in this folder:",
+      "  chmod +x codecaine-file-manager",
+      "  sh troubleshoot.sh",
+      "",
+      "Headless (no window, open the address it prints in a browser):",
+      "  ./codecaine-file-manager --server",
+    );
+    L.push(
+      "",
+      "Ubuntu 24.04+ sandbox fix:",
+      "  If startup logs say 'bwrap: setting up uid map: Permission denied' or",
+      "  'Failed to fully launch dbus-proxy', run:",
+      "    sh install.sh --apparmor",
+      "  Enter your sudo password in the terminal. This installs an AppArmor profile",
+      "  for this executable only; AppArmor and WebKit's sandbox stay enabled.",
+      "  Keep the folder in its final location; rerun that command after moving it.",
+      "  Remove the menu entry, link and profile with: sh install.sh --uninstall --apparmor",
+    );
   }
-  L.push("", "If the native window is unavailable, the File Manager opens in your default browser instead.");
-  L.push("", "Startup logs: ~/.bun_rad_studio/file-manager-startup.log (on Windows: %USERPROFILE%\\.bun_rad_studio\\file-manager-startup.log).");
-  L.push("", "License: MIT (see LICENSE). The source code is at https://github.com/codecaine-zz/bun_rad_studio", "");
+  L.push(
+    "",
+    "If the native window is unavailable, the File Manager opens in your default browser instead.",
+  );
+  L.push(
+    "",
+    "Startup logs: ~/.bun_rad_studio/file-manager-startup.log (on Windows: %USERPROFILE%\\.bun_rad_studio\\file-manager-startup.log).",
+  );
+  L.push(
+    "",
+    "License: MIT (see LICENSE). The source code is at https://github.com/codecaine-zz/bun_rad_studio",
+    "",
+  );
   return L.join(d.os === "windows" ? "\r\n" : "\n");
 }
 
@@ -260,24 +450,49 @@ async function makeAssets(): Promise<Assets> {
   return { icnsPng: icon.png, ico: icon.ico, png512: icon.png };
 }
 
-async function zipDir(parent: string, entries: string[], out: string): Promise<void> {
+async function zipDir(
+  parent: string,
+  entries: string[],
+  out: string,
+): Promise<void> {
   rmSync(out, { force: true });
   await zipEntries(parent, entries, out);
 }
 
-async function buildMac(d: Download, assets: Assets, sources: SourceApp[]): Promise<string> {
+async function buildMac(
+  d: Download,
+  assets: Assets,
+  sources: SourceApp[],
+): Promise<string> {
   const { buildApp } = await import("./build_mac_apps");
   const target = targetOf(d);
   const stage = join(STAGE, d.id);
   rmSync(stage, { recursive: true, force: true });
   mkdirSync(stage, { recursive: true });
   const main = sources.find((s) => s.name === MAIN)!;
-  const app: MacApp = { id: MAIN, title: APP_TITLE, emoji: "📁", category: "File & Directory Tools", source: main };
+  const app: MacApp = {
+    id: MAIN,
+    title: APP_TITLE,
+    emoji: "📁",
+    category: "File & Directory Tools",
+    source: main,
+  };
   const runtime = await buildRuntime(target);
-  const opts = { outDir: stage, arch: d.arch, only: null, install: false, zip: false, verify: false, sign: false, jobs: 1 } as const;
+  const opts = {
+    outDir: stage,
+    arch: d.arch,
+    only: null,
+    install: false,
+    zip: false,
+    verify: false,
+    sign: false,
+    jobs: 1,
+  } as const;
   const bundle = await buildApp(app, runtime, { ...opts }, assets.icnsPng);
   const appDir = join(bundle, "Contents", "Resources", "app");
-  for (const s of STUDIOS) if (existsSync(join(BUNDLE_DIR, "apps", `${s}.js`))) cpSync(join(BUNDLE_DIR, "apps", `${s}.js`), join(appDir, `${s}.js`));
+  for (const s of STUDIOS)
+    if (existsSync(join(BUNDLE_DIR, "apps", `${s}.js`)))
+      cpSync(join(BUNDLE_DIR, "apps", `${s}.js`), join(appDir, `${s}.js`));
   await run(["codesign", "--force", "--deep", "--sign", "-", bundle]);
   writeFileSync(join(stage, "READ ME FIRST.txt"), MAC_README);
   const out = join(OUT_DIR, zipName(d));
@@ -300,39 +515,73 @@ async function buildFolder(d: Download, assets: Assets): Promise<string> {
   mkdirSync(join(dir, "app"), { recursive: true });
   mkdirSync(join(dir, "lib"), { recursive: true });
 
-  const exeName = d.os === "windows" ? `${APP_TITLE}.exe` : "codecaine-file-manager";
-  await compileLauncher(d, join(dir, exeName), d.os === "windows" ? assets.ico : null);
+  const exeName =
+    d.os === "windows" ? `${APP_TITLE}.exe` : "codecaine-file-manager";
+  await compileLauncher(
+    d,
+    join(dir, exeName),
+    d.os === "windows" ? assets.ico : null,
+  );
   if (d.os !== "windows") chmodSync(join(dir, exeName), 0o755);
 
-  copyAppBundle({ name: MAIN, entry: "applications/file_manager_studio.ts", kind: "gui" }, join(dir, "app"));
-  for (const s of STUDIOS) if (existsSync(join(BUNDLE_DIR, "apps", `${s}.js`))) cpSync(join(BUNDLE_DIR, "apps", `${s}.js`), join(dir, "app", `${s}.js`));
-  for (const f of SIDECAR_FILES) if (existsSync(join(ROOT, f))) cpSync(join(ROOT, f), join(dir, "app", f.split("/").pop()!));
-  cpSync(webviewLibSource(target.webviewLib!), join(dir, "lib", target.webviewLib!));
+  copyAppBundle(
+    { name: MAIN, entry: "applications/file_manager_studio.ts", kind: "gui" },
+    join(dir, "app"),
+  );
+  for (const s of STUDIOS)
+    if (existsSync(join(BUNDLE_DIR, "apps", `${s}.js`)))
+      cpSync(join(BUNDLE_DIR, "apps", `${s}.js`), join(dir, "app", `${s}.js`));
+  for (const f of SIDECAR_FILES)
+    if (existsSync(join(ROOT, f)))
+      cpSync(join(ROOT, f), join(dir, "app", f.split("/").pop()!));
+  cpSync(
+    webviewLibSource(target.webviewLib!),
+    join(dir, "lib", target.webviewLib!),
+  );
   cpSync(join(ROOT, "resources"), join(dir, "resources"), { recursive: true });
-  if (existsSync(join(ROOT, "LICENSE"))) cpSync(join(ROOT, "LICENSE"), join(dir, "LICENSE"));
+  if (existsSync(join(ROOT, "LICENSE")))
+    cpSync(join(ROOT, "LICENSE"), join(dir, "LICENSE"));
   writeFileSync(join(dir, "README.txt"), readmeFor(d));
   if (d.os === "windows") {
     writeFileSync(join(dir, "setup.ps1"), WINDOWS_SETUP);
     writeFileSync(join(dir, "install.cmd"), windowsInstallCommand(false));
   }
-  if (d.os === "windows") writeFileSync(join(dir, "troubleshoot.cmd"), WINDOWS_TROUBLESHOOT);
+  if (d.os === "windows")
+    writeFileSync(join(dir, "troubleshoot.cmd"), WINDOWS_TROUBLESHOOT);
   writeFileSync(join(dir, "VERSION"), `${VERSION}\n`);
   if (d.os === "linux") {
-    writeFileSync(join(dir, "troubleshoot.sh"), `#!/bin/sh\nset -eu\ncd "$(dirname "$0")"\nchmod +x codecaine-file-manager\nexec ./codecaine-file-manager "$@"\n`);
+    writeFileSync(
+      join(dir, "troubleshoot.sh"),
+      `#!/bin/sh\nset -eu\ncd "$(dirname "$0")"\nchmod +x codecaine-file-manager\nexec ./codecaine-file-manager "$@"\n`,
+    );
     writeFileSync(join(dir, "install.sh"), linuxInstallScript());
     chmodSync(join(dir, "install.sh"), 0o755);
-    writeFileSync(join(dir, "install-ollama.sh"), linuxOllamaInstallScript("codecaine-file-manager"));
+    writeFileSync(
+      join(dir, "install-ollama.sh"),
+      linuxOllamaInstallScript("codecaine-file-manager"),
+    );
     chmodSync(join(dir, "install-ollama.sh"), 0o755);
-    writeFileSync(join(dir, `${APPSTREAM_ID}.metainfo.xml`), appStreamMetaInfoXml(VERSION));
-    writeFileSync(join(dir, `${APPSTREAM_ID}.desktop`), systemDesktopEntry("/usr/bin/codecaine-file-manager %U", APPSTREAM_ID));
-    if (assets.png512) cpSync(assets.png512, join(dir, "codecaine-file-manager.png"));
+    writeFileSync(
+      join(dir, `${APPSTREAM_ID}.metainfo.xml`),
+      appStreamMetaInfoXml(VERSION),
+    );
+    writeFileSync(
+      join(dir, `${APPSTREAM_ID}.desktop`),
+      systemDesktopEntry("/usr/bin/codecaine-file-manager %U", APPSTREAM_ID),
+    );
+    if (assets.png512)
+      cpSync(assets.png512, join(dir, "codecaine-file-manager.png"));
   }
   const out = join(OUT_DIR, zipName(d));
   await zipDir(stage, [name], out);
   const debArch = debArchForDownload(d.id);
   if (debArch) {
     const debOut = join(OUT_DIR, debFileName(debArch, VERSION));
-    await buildDebPackage(dir, debOut, { version: VERSION, arch: debArch, iconPngPath: assets.png512 });
+    await buildDebPackage(dir, debOut, {
+      version: VERSION,
+      arch: debArch,
+      iconPngPath: assets.png512,
+    });
     log("📦", `${basename(debOut)}  ${mb(statSync(debOut).size)}`);
   }
   return out;
@@ -347,10 +596,19 @@ export interface DebDownloadRow {
 }
 
 export function collectPresentDebs(outDir = OUT_DIR): DebDownloadRow[] {
-  const specs: Array<{ arch: "amd64" | "arm64"; label: string; hint: string }> = [
-    { arch: "amd64", label: "Ubuntu / Debian / Mint (.deb · x86-64)", hint: "Double-click in GNOME Software, Ubuntu App Center, KDE Discover, or GDebi; auto-installs GTK 4, WebKitGTK 6.0 & AppArmor profile" },
-    { arch: "arm64", label: "Ubuntu / Debian / Raspberry Pi (.deb · ARM64)", hint: "64-bit ARM .deb installer with automatic dependencies, desktop icon & AppStream metadata" },
-  ];
+  const specs: Array<{ arch: "amd64" | "arm64"; label: string; hint: string }> =
+    [
+      {
+        arch: "amd64",
+        label: "Ubuntu / Debian / Mint (.deb · x86-64)",
+        hint: "Double-click in GNOME Software, Ubuntu App Center, KDE Discover, or GDebi; auto-installs GTK 4, WebKitGTK 6.0 & AppArmor profile",
+      },
+      {
+        arch: "arm64",
+        label: "Ubuntu / Debian / Raspberry Pi (.deb · ARM64)",
+        hint: "64-bit ARM .deb installer with automatic dependencies, desktop icon & AppStream metadata",
+      },
+    ];
   const out: DebDownloadRow[] = [];
   for (const s of specs) {
     const file = debFileName(s.arch, VERSION);
@@ -366,18 +624,39 @@ export function downloadPage(
   debs: DebDownloadRow[] = [],
 ): string {
   const base = baseUrl && !baseUrl.endsWith("/") ? `${baseUrl}/` : baseUrl;
-  const data = rows.map((r) => ({ id: r.d.id, os: r.d.os, arch: r.d.arch, label: r.d.label, hint: r.d.hint, older: !!r.d.older, file: base + r.file, size: mb(r.bytes) }));
+  const data = rows.map((r) => ({
+    id: r.d.id,
+    os: r.d.os,
+    arch: r.d.arch,
+    label: r.d.label,
+    hint: r.d.hint,
+    older: !!r.d.older,
+    file: base + r.file,
+    size: mb(r.bytes),
+  }));
   const macAvailable = rows.some((r) => r.d.os === "macos");
-  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
-  const card = (os: "macos" | "windows" | "linux", title: string, icon: string, note: string) => {
+  const esc = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+  const card = (
+    os: "macos" | "windows" | "linux",
+    title: string,
+    icon: string,
+    note: string,
+  ) => {
     const list = rows.filter((r) => r.d.os === os);
     const main = list.filter((r) => !r.d.older);
     const old = list.filter((r) => r.d.older);
     const btn = (r: (typeof rows)[number], primary: boolean) =>
       `<a class="btn${primary ? "" : " ghost"}" data-id="${r.d.id}" href="${esc(base + r.file)}" download><span class="b-top">${esc(r.d.label)}</span><span class="b-sub">${esc(r.d.hint)}</span><span class="b-size">.zip · ${mb(r.bytes)}</span></a>`;
-    const debBtns = os === "linux"
-      ? debs.map((d) => `<a class="btn" data-id="linux-deb-${d.arch}" href="${esc(base + d.file)}" download><span class="b-top">${esc(d.label)}</span><span class="b-sub">${esc(d.hint)}</span><span class="b-size">.deb · ${mb(d.bytes)}</span></a>`).join("")
-      : "";
+    const debBtns =
+      os === "linux"
+        ? debs
+            .map(
+              (d) =>
+                `<a class="btn" data-id="linux-deb-${d.arch}" href="${esc(base + d.file)}" download><span class="b-top">${esc(d.label)}</span><span class="b-sub">${esc(d.hint)}</span><span class="b-size">.deb · ${mb(d.bytes)}</span></a>`,
+            )
+            .join("")
+        : "";
     return `<section class="card" id="${os}"><div class="icon">${icon}</div><h2>${title}</h2><p class="note">${note}</p>${debBtns}${main.map((r) => btn(r, true)).join("")}${old.length ? `<details><summary>Older computers</summary>${old.map((r) => btn(r, false)).join("")}</details>` : ""}</section>`;
   };
   return `<!DOCTYPE html>
@@ -447,7 +726,13 @@ const FILES = ${JSON.stringify(data)};
 `;
 }
 
-export function parseArgs(argv: string[]): { ids: string[] | null; list: boolean; baseUrl: string; pageOnly: boolean; jobs: number } {
+export function parseArgs(argv: string[]): {
+  ids: string[] | null;
+  list: boolean;
+  baseUrl: string;
+  pageOnly: boolean;
+  jobs: number;
+} {
   let ids: string[] | null = null;
   let list = false;
   let baseUrl = "";
@@ -455,46 +740,81 @@ export function parseArgs(argv: string[]): { ids: string[] | null; list: boolean
   let jobs = defaultJobs();
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
-    if (a === "--targets") ids = (argv[++i] ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+    if (a === "--targets")
+      ids = (argv[++i] ?? "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
     else if (a === "--list") list = true;
     else if (a === "--base-url") baseUrl = argv[++i] ?? "";
     else if (a === "--page-only") pageOnly = true;
     else if (a === "--jobs" || a === "-j") jobs = parseJobs(argv[++i]);
-    else throw new Error(`Unknown option "${a}". Options: --targets a,b  --list  --base-url <url the zips are hosted at>  --page-only  --jobs N`);
+    else
+      throw new Error(
+        `Unknown option "${a}". Options: --targets a,b  --list  --base-url <url the zips are hosted at>  --page-only  --jobs N`,
+      );
   }
   return { ids, list, baseUrl, pageOnly, jobs };
 }
 
 async function main() {
-  const { ids, list, baseUrl, pageOnly, jobs } = parseArgs(process.argv.slice(2));
+  const { ids, list, baseUrl, pageOnly, jobs } = parseArgs(
+    process.argv.slice(2),
+  );
   if (list) {
-    for (const d of DOWNLOADS) console.log(`${d.id.padEnd(22)} ${d.label.padEnd(22)} ${d.hint}`);
+    for (const d of DOWNLOADS)
+      console.log(`${d.id.padEnd(22)} ${d.label.padEnd(22)} ${d.hint}`);
     return;
   }
   if (pageOnly) {
     mkdirSync(OUT_DIR, { recursive: true });
-    const have = DOWNLOADS.filter((d) => existsSync(join(OUT_DIR, zipName(d)))).map((d) => ({ d, file: zipName(d), bytes: statSync(join(OUT_DIR, zipName(d))).size }));
+    const have = DOWNLOADS.filter((d) =>
+      existsSync(join(OUT_DIR, zipName(d))),
+    ).map((d) => ({
+      d,
+      file: zipName(d),
+      bytes: statSync(join(OUT_DIR, zipName(d))).size,
+    }));
     const debs = collectPresentDebs(OUT_DIR);
-    writeFileSync(join(OUT_DIR, "index.html"), downloadPage(have, baseUrl, debs));
-    log("🌐", `index.html rewritten for ${have.length} downloads + ${debs.length} .deb installer(s)${baseUrl ? ` hosted at ${baseUrl}` : ""}`);
+    writeFileSync(
+      join(OUT_DIR, "index.html"),
+      downloadPage(have, baseUrl, debs),
+    );
+    log(
+      "🌐",
+      `index.html rewritten for ${have.length} downloads + ${debs.length} .deb installer(s)${baseUrl ? ` hosted at ${baseUrl}` : ""}`,
+    );
     return;
   }
   let chosen = DOWNLOADS;
   if (ids) {
     const bad = ids.filter((i) => !DOWNLOADS.some((d) => d.id === i));
-    if (bad.length) throw new Error(`Unknown target ${bad.join(", ")}. Choose from: ${DOWNLOADS.map((d) => d.id).join(", ")}`);
+    if (bad.length)
+      throw new Error(
+        `Unknown target ${bad.join(", ")}. Choose from: ${DOWNLOADS.map((d) => d.id).join(", ")}`,
+      );
     chosen = DOWNLOADS.filter((d) => ids.includes(d.id));
   }
-  if (chosen.some((d) => d.os === "macos") && process.platform !== "darwin") throw new Error("The macOS .app downloads can only be built on a Mac (they need codesign, sips and iconutil).");
+  if (chosen.some((d) => d.os === "macos") && process.platform !== "darwin")
+    throw new Error(
+      "The macOS .app downloads can only be built on a Mac (they need codesign, sips and iconutil).",
+    );
 
-  const sources = listSourceApps().filter((s) => s.name === MAIN || STUDIOS.includes(s.name) || s.kind === "cli");
-  if (!sources.some((s) => s.name === MAIN)) throw new Error("applications/file_manager_studio.ts was not found");
+  const sources = listSourceApps().filter(
+    (s) => s.name === MAIN || STUDIOS.includes(s.name) || s.kind === "cli",
+  );
+  if (!sources.some((s) => s.name === MAIN))
+    throw new Error("applications/file_manager_studio.ts was not found");
   mkdirSync(OUT_DIR, { recursive: true });
 
-  log("🧩", `Bundling ${sources.length} programs (the File Manager, its database studios, and its built-in CLI utilities)`);
+  log(
+    "🧩",
+    `Bundling ${sources.length} programs (the File Manager, its database studios, and its built-in CLI utilities)`,
+  );
   const bundles = await bundleApps(sources, undefined, jobs);
   logBundleFailures(bundles);
-  if (!bundles.built.some((s) => s.name === MAIN)) throw new Error("The File Manager did not bundle");
+  if (!bundles.built.some((s) => s.name === MAIN))
+    throw new Error("The File Manager did not bundle");
 
   const assets = await makeAssets();
   const rows: Array<{ d: Download; file: string; bytes: number }> = [];
@@ -502,11 +822,19 @@ async function main() {
   const built = await mapPool(chosen, jobs, async (d) => {
     try {
       log("🔨", `${d.id}`);
-      const out = d.os === "macos" ? await buildMac(d, assets, sources) : await buildFolder(d, assets);
+      const out =
+        d.os === "macos"
+          ? await buildMac(d, assets, sources)
+          : await buildFolder(d, assets);
       log("✅", `${basename(out)}  ${mb(statSync(out).size)}`);
       return { d, file: basename(out), bytes: statSync(out).size };
     } catch (err: any) {
-      failures.push(`${d.id}: ${String(err?.message ?? err).split("\n").slice(0, 3).join(" ")}`);
+      failures.push(
+        `${d.id}: ${String(err?.message ?? err)
+          .split("\n")
+          .slice(0, 3)
+          .join(" ")}`,
+      );
       log("❌", failures[failures.length - 1]!);
       return null;
     }
@@ -515,9 +843,18 @@ async function main() {
   rmSync(STAGE, { recursive: true, force: true });
 
   // The page and checksums always describe every zip and .deb that is present, not only the ones built this time.
-  const present = DOWNLOADS.filter((d) => existsSync(join(OUT_DIR, zipName(d)))).map((d) => ({ d, file: zipName(d), bytes: statSync(join(OUT_DIR, zipName(d))).size }));
+  const present = DOWNLOADS.filter((d) =>
+    existsSync(join(OUT_DIR, zipName(d))),
+  ).map((d) => ({
+    d,
+    file: zipName(d),
+    bytes: statSync(join(OUT_DIR, zipName(d))).size,
+  }));
   const presentDebs = collectPresentDebs(OUT_DIR);
-  writeFileSync(join(OUT_DIR, "index.html"), downloadPage(present, baseUrl, presentDebs));
+  writeFileSync(
+    join(OUT_DIR, "index.html"),
+    downloadPage(present, baseUrl, presentDebs),
+  );
   const sums: string[] = [];
   const hashByFile = new Map<string, string>();
   for (const r of present) {
@@ -535,16 +872,32 @@ async function main() {
   const linuxStoresDir = join(OUT_DIR, "linux-stores");
   writeLinuxStoreManifests(linuxStoresDir, {
     version: VERSION,
-    sha256X64: hashByFile.get(`Codecaine-File-Manager-v${VERSION}-linux-x64.zip`),
-    sha256Arm64: hashByFile.get(`Codecaine-File-Manager-v${VERSION}-linux-arm64.zip`),
+    sha256X64: hashByFile.get(
+      `Codecaine-File-Manager-v${VERSION}-linux-x64.zip`,
+    ),
+    sha256Arm64: hashByFile.get(
+      `Codecaine-File-Manager-v${VERSION}-linux-arm64.zip`,
+    ),
     iconPngPath: assets.png512,
   });
-  log("🐧", `Linux GUI store manifests written to ${linuxStoresDir} (Flathub, Snap, AUR, RPM/COPR, AppImage)`);
-  log("🌐", `${join(OUT_DIR, "index.html")} lists ${present.length} zip downloads and ${presentDebs.length} .deb installer(s)`);
+  log(
+    "🐧",
+    `Linux GUI store manifests written to ${linuxStoresDir} (Flathub, Snap, AUR, RPM/COPR, AppImage)`,
+  );
+  log(
+    "🌐",
+    `${join(OUT_DIR, "index.html")} lists ${present.length} zip downloads and ${presentDebs.length} .deb installer(s)`,
+  );
   if (failures.length) {
-    console.error(`\n${failures.length} download(s) failed:\n  ${failures.join("\n  ")}`);
+    console.error(
+      `\n${failures.length} download(s) failed:\n  ${failures.join("\n  ")}`,
+    );
     process.exit(1);
   }
 }
 
-if (import.meta.main) main().catch((e) => { console.error(e); process.exit(1); });
+if (import.meta.main)
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });

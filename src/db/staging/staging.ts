@@ -57,9 +57,13 @@ export interface LoadResult {
   warnings: string[];
 }
 
-const shortName = (s: string) => s.replace(/[\\/]/g, "/").split("/").pop()!.slice(0, 255);
+const shortName = (s: string) =>
+  s.replace(/[\\/]/g, "/").split("/").pop()!.slice(0, 255);
 
-function countingSource(src: ByteSource, counter: { bytes: number }): ByteSource {
+function countingSource(
+  src: ByteSource,
+  counter: { bytes: number },
+): ByteSource {
   return {
     ...src,
     chunks() {
@@ -91,21 +95,53 @@ export async function loadIntoStaging(o: LoadOptions): Promise<LoadResult> {
   const rules: ColumnRule[] = plan.rules;
   const builder = compileRules(rules, o.sourceColumns);
   const dataColumns = builder.columns;
-  if (!dataColumns.length) throw new StagingError("No columns are mapped, so there is nothing to load. Map at least one column.", "NOTHING_MAPPED");
-  for (const c of dataColumns) if (c.startsWith("_stg_")) throw new StagingError(`A column called “${c}” clashes with the staging bookkeeping columns (they all start with _stg_). Rename it first.`, "BAD_COLUMN");
+  if (!dataColumns.length)
+    throw new StagingError(
+      "No columns are mapped, so there is nothing to load. Map at least one column.",
+      "NOTHING_MAPPED",
+    );
+  for (const c of dataColumns)
+    if (c.startsWith("_stg_"))
+      throw new StagingError(
+        `A column called “${c}” clashes with the staging bookkeeping columns (they all start with _stg_). Rename it first.`,
+        "BAD_COLUMN",
+      );
 
   const existing = await db.tables();
   const stg = stagingName(plan.target, existing);
   const batchId = o.batchId ?? newBatchId();
   const file = shortName(o.fileName);
   const loadedAt = nowIso();
-  const metaCols = ["_stg_batch_id", "_stg_source_file", "_stg_row_number", "_stg_loaded_at", "_stg_status", "_stg_errors", "_stg_raw"];
+  const metaCols = [
+    "_stg_batch_id",
+    "_stg_source_file",
+    "_stg_row_number",
+    "_stg_loaded_at",
+    "_stg_status",
+    "_stg_errors",
+    "_stg_raw",
+  ];
   const insertCols = [...dataColumns, ...metaCols];
-  const perBatch = Math.max(1, Math.min(limits.batchRows, Math.floor(limits.maxParams / insertCols.length)));
+  const perBatch = Math.max(
+    1,
+    Math.min(
+      limits.batchRows,
+      Math.floor(limits.maxParams / insertCols.length),
+    ),
+  );
   const sqlCache = new Map<number, string>();
   const sqlFor = (rows: number, p: Params): string => {
     const groups: string[] = [];
-    for (let r = 0; r < rows; r++) groups.push("(" + insertCols.map((c) => p.add(null, c === "_stg_row_number" ? "bigint" : "text")).join(", ") + ")");
+    for (let r = 0; r < rows; r++)
+      groups.push(
+        "(" +
+          insertCols
+            .map((c) =>
+              p.add(null, c === "_stg_row_number" ? "bigint" : "text"),
+            )
+            .join(", ") +
+          ")",
+      );
     return `INSERT INTO ${refOf(db, stg)} (${insertCols.map((c) => q(e, c)).join(", ")}) VALUES ${groups.join(", ")}`;
   };
 
@@ -141,7 +177,11 @@ export async function loadIntoStaging(o: LoadOptions): Promise<LoadResult> {
   const flush = async () => {
     if (!pending.length) return;
     let text = sqlCache.get(pending.length);
-    if (!text) sqlCache.set(pending.length, (text = sqlFor(pending.length, new Params(e))));
+    if (!text)
+      sqlCache.set(
+        pending.length,
+        (text = sqlFor(pending.length, new Params(e))),
+      );
     const flat = pending.flat();
     pending = [];
     await conn!.query(text, flat);
@@ -170,15 +210,27 @@ export async function loadIntoStaging(o: LoadOptions): Promise<LoadResult> {
     }
     for await (const row of readRows(src, o.settings, o.sourceColumns, ctx)) {
       if (o.signal?.aborted) throw new LoadCancelled();
-      if (rows >= limits.maxRows) throw new StagingError(limitMessage("rows"), "TOO_MANY_ROWS", 413);
+      if (rows >= limits.maxRows)
+        throw new StagingError(limitMessage("rows"), "TOO_MANY_ROWS", 413);
       const built = builder.build(row.cells);
       const errors: RowError[] = [];
       if (row.problem) {
         problems++;
-        errors.push({ c: null, code: "damaged_row", m: row.problem, f: "Fix the cells in place or skip this row.", s: "load" });
+        errors.push({
+          c: null,
+          code: "damaged_row",
+          m: row.problem,
+          f: "Fix the cells in place or skip this row.",
+          s: "load",
+        });
       }
       let raw: string | null = null;
-      if (built.changed || row.problem || row.extra || builder.unusedSource.length) {
+      if (
+        built.changed ||
+        row.problem ||
+        row.extra ||
+        builder.unusedSource.length
+      ) {
         const obj: Record<string, string | null> = {};
         o.sourceColumns.forEach((n, i) => (obj[n] = row.cells[i] ?? null));
         if (row.extra) {
@@ -186,14 +238,27 @@ export async function loadIntoStaging(o: LoadOptions): Promise<LoadResult> {
           extraFields++;
         }
         const out: any = obj;
-        if (row.rawCells && row.rawCells.length > o.sourceColumns.length) out["(extra cells)"] = row.rawCells.slice(o.sourceColumns.length);
+        if (row.rawCells && row.rawCells.length > o.sourceColumns.length)
+          out["(extra cells)"] = row.rawCells.slice(o.sourceColumns.length);
         raw = JSON.stringify(out);
       }
       rows++;
-      pending.push([...built.values.map(clean), batchId, file, row.n, loadedAt, errors.length ? "invalid" : "new", errors.length ? JSON.stringify(errors) : null, raw]);
+      pending.push([
+        ...built.values.map(clean),
+        batchId,
+        file,
+        row.n,
+        loadedAt,
+        errors.length ? "invalid" : "new",
+        errors.length ? JSON.stringify(errors) : null,
+        raw,
+      ]);
       if (pending.length >= perBatch) {
         await flush();
-        o.onProgress?.({ rows, fraction: o.src.size ? Math.min(0.99, counter.bytes / o.src.size) : 0 });
+        o.onProgress?.({
+          rows,
+          fraction: o.src.size ? Math.min(0.99, counter.bytes / o.src.size) : 0,
+        });
         await breathe(db);
       }
     }
@@ -212,9 +277,18 @@ export async function loadIntoStaging(o: LoadOptions): Promise<LoadResult> {
   }
   await conn.release();
 
-  if (nulStripped) warnings.push(`${nulStripped} cell${nulStripped === 1 ? "" : "s"} contained invisible NUL characters, which databases cannot store; they were removed.`);
-  if (extraFields) warnings.push(`${extraFields} row${extraFields === 1 ? "" : "s"} had fields that are not among the columns. They are kept in the raw copy of the row.`);
-  if (ctx.replaced.replaced) warnings.push(`${ctx.replaced.replaced} character${ctx.replaced.replaced === 1 ? "" : "s"} could not be read with the chosen encoding.`);
+  if (nulStripped)
+    warnings.push(
+      `${nulStripped} cell${nulStripped === 1 ? "" : "s"} contained invisible NUL characters, which databases cannot store; they were removed.`,
+    );
+  if (extraFields)
+    warnings.push(
+      `${extraFields} row${extraFields === 1 ? "" : "s"} had fields that are not among the columns. They are kept in the raw copy of the row.`,
+    );
+  if (ctx.replaced.replaced)
+    warnings.push(
+      `${ctx.replaced.replaced} character${ctx.replaced.replaced === 1 ? "" : "s"} could not be read with the chosen encoding.`,
+    );
   for (const w of ctx.warnings) warnings.push(w);
 
   const batch: BatchRecord = {
@@ -238,7 +312,12 @@ export async function loadIntoStaging(o: LoadOptions): Promise<LoadResult> {
     droppedAt: null,
     undoable: false,
     undoNote: null,
-    config: { plan, settings: o.settings, sourceColumns: o.sourceColumns, dataColumns },
+    config: {
+      plan,
+      settings: o.settings,
+      sourceColumns: o.sourceColumns,
+      dataColumns,
+    },
     note: null,
   };
   const c2 = await db.open();
@@ -248,5 +327,12 @@ export async function loadIntoStaging(o: LoadOptions): Promise<LoadResult> {
     await c2.release();
   }
   o.onProgress?.({ rows, fraction: 1 });
-  return { batch, stagingTable: stg, dataColumns, rowsLoaded: rows, problemRows: problems, warnings };
+  return {
+    batch,
+    stagingTable: stg,
+    dataColumns,
+    rowsLoaded: rows,
+    problemRows: problems,
+    warnings,
+  };
 }

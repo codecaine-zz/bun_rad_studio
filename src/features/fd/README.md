@@ -52,14 +52,14 @@ export interface FdOptions {
 }
 
 export interface FdEntry {
-  path: string;           // Full absolute path
-  displayPath: string;    // Relative path for display
-  name: string;           // Filename or dirname
+  path: string; // Full absolute path
+  displayPath: string; // Relative path for display
+  name: string; // Filename or dirname
   isDirectory: boolean;
   isFile: boolean;
   isSymlink: boolean;
   isExecutable: boolean;
-  depth: number;          // Traversal depth from root
+  depth: number; // Traversal depth from root
 }
 ```
 
@@ -68,6 +68,7 @@ export interface FdEntry {
 ## 3. Comprehensive Code Examples
 
 ### Example 1: Search Files by Regex with Extension Filter
+
 ```typescript
 import { searchFiles } from "./fdCoordinator.ts";
 
@@ -85,6 +86,7 @@ for (const entry of results) {
 ```
 
 ### Example 2: Find Executable Files Only
+
 ```typescript
 import { searchFiles } from "./fdCoordinator.ts";
 
@@ -102,6 +104,7 @@ for (const exe of executables) {
 ```
 
 ### Example 3: Limit Search Depth & Include Hidden Files
+
 ```typescript
 import { searchFiles } from "./fdCoordinator.ts";
 
@@ -121,6 +124,7 @@ for (const entry of topLevelHidden) {
 ```
 
 ### Example 4: Execute Commands on Matched Results (Programmatic `-x`)
+
 ```typescript
 import { runFdCoordinator } from "./fdCoordinator.ts";
 
@@ -135,6 +139,7 @@ await runFdCoordinator({
 ```
 
 ### Example 5: Low-Level Doer Composition
+
 ```typescript
 import {
   buildMatcher,
@@ -147,13 +152,14 @@ const matcher = buildMatcher("config");
 const entries = await collectAllEntries(".", 1, ".", 2, false);
 
 const configFiles = entries.filter(
-  (e) => matcher(e.name, e.displayPath) && matchesType(e, "f")
+  (e) => matcher(e.name, e.displayPath) && matchesType(e, "f"),
 );
 
 console.log(configFiles.map((e) => e.displayPath));
 ```
 
 ### Example 6: Modern Filter Doers (Size, Duration, Exclusions, Empty, MinDepth)
+
 ```typescript
 import {
   matchesSize,
@@ -170,7 +176,9 @@ const sizeParsed = parseSizeFilter("+5M");
 const isLarge = matchesSize(10 * 1024 * 1024, "+5M"); // true
 
 // Pattern exclusion checking
-const isIgnored = matchesExclude("node_modules/bun/index.d.ts", ["node_modules"]); // true
+const isIgnored = matchesExclude("node_modules/bun/index.d.ts", [
+  "node_modules",
+]); // true
 
 // Duration parsing and modification time checks
 const oneDayMs = parseDurationMs("24h"); // 86400000 ms
@@ -178,16 +186,18 @@ const isRecentlyModified = matchesChangedWithin(new Date(), "10m"); // true
 
 // Min-depth and empty file checks
 const satisfiesMinDepth = matchesMinDepth(3, 2); // true
-const satisfiesEmpty = matchesEmpty({
-  name: "empty.txt",
-  path: "/path/empty.txt",
-  displayPath: "empty.txt",
-  isDirectory: false,
-  isFile: true,
-  isSymlink: false,
-  isExecutable: false,
-  depth: 1,
-  size: 0,
-}, true); // true
+const satisfiesEmpty = matchesEmpty(
+  {
+    name: "empty.txt",
+    path: "/path/empty.txt",
+    displayPath: "empty.txt",
+    isDirectory: false,
+    isFile: true,
+    isSymlink: false,
+    isExecutable: false,
+    depth: 1,
+    size: 0,
+  },
+  true,
+); // true
 ```
-

@@ -3,7 +3,14 @@
 // correction for tilt and perspective), read the format and version, undo the mask, correct errors with Reed-Solomon,
 // and decode the text segments. Pure functions: the caller supplies pixels (see decodeQr).
 import {
-  blockLayout, dataOrder, decodeFormatBits, decodeVersionBits, maskFlips, rsCorrect, sizeOf, versionOfSize,
+  blockLayout,
+  dataOrder,
+  decodeFormatBits,
+  decodeVersionBits,
+  maskFlips,
+  rsCorrect,
+  sizeOf,
+  versionOfSize,
 } from "./qrtables.js";
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -11,20 +18,58 @@ import {
 // ---------------------------------------------------------------------------------------------------------------
 
 const ALNUM = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
-const ECI_LABELS = { 1: "iso-8859-1", 3: "iso-8859-1", 4: "iso-8859-2", 5: "iso-8859-3", 6: "iso-8859-4", 7: "iso-8859-5", 9: "iso-8859-7", 11: "iso-8859-9", 15: "iso-8859-15", 20: "shift_jis", 21: "windows-1250", 22: "windows-1251", 23: "windows-1252", 24: "windows-1256", 25: "utf-16be", 26: "utf-8", 27: "us-ascii", 28: "big5", 29: "gb18030", 30: "euc-kr" };
+const ECI_LABELS = {
+  1: "iso-8859-1",
+  3: "iso-8859-1",
+  4: "iso-8859-2",
+  5: "iso-8859-3",
+  6: "iso-8859-4",
+  7: "iso-8859-5",
+  9: "iso-8859-7",
+  11: "iso-8859-9",
+  15: "iso-8859-15",
+  20: "shift_jis",
+  21: "windows-1250",
+  22: "windows-1251",
+  23: "windows-1252",
+  24: "windows-1256",
+  25: "utf-16be",
+  26: "utf-8",
+  27: "us-ascii",
+  28: "big5",
+  29: "gb18030",
+  30: "euc-kr",
+};
 
 function decodeBytes(bytes, label) {
   if (label) {
     try {
-      return { text: new TextDecoder(label === "us-ascii" ? "utf-8" : label).decode(Uint8Array.from(bytes)), binary: false };
-    } catch { /* an encoding this engine doesn't know: fall through */ }
+      return {
+        text: new TextDecoder(label === "us-ascii" ? "utf-8" : label).decode(
+          Uint8Array.from(bytes),
+        ),
+        binary: false,
+      };
+    } catch {
+      /* an encoding this engine doesn't know: fall through */
+    }
   }
   try {
-    return { text: new TextDecoder("utf-8", { fatal: true }).decode(Uint8Array.from(bytes)), binary: false };
-  } catch { /* not UTF-8 */ }
+    return {
+      text: new TextDecoder("utf-8", { fatal: true }).decode(
+        Uint8Array.from(bytes),
+      ),
+      binary: false,
+    };
+  } catch {
+    /* not UTF-8 */
+  }
   // Many old codes hold Shift_JIS or Latin-1 without saying so.
   const latin = String.fromCharCode(...bytes);
-  return { text: latin, binary: bytes.some((b) => b < 9 || (b > 13 && b < 32)) };
+  return {
+    text: latin,
+    binary: bytes.some((b) => b < 9 || (b > 13 && b < 32)),
+  };
 }
 
 class BitReader {
@@ -49,7 +94,12 @@ class BitReader {
 export function parseSegments(data, version) {
   const r = new BitReader(data);
   const band = version <= 9 ? 0 : version <= 26 ? 1 : 2;
-  const counts = { numeric: [10, 12, 14][band], alnum: [9, 11, 13][band], byte: [8, 16, 16][band], kanji: [8, 10, 12][band] };
+  const counts = {
+    numeric: [10, 12, 14][band],
+    alnum: [9, 11, 13][band],
+    byte: [8, 16, 16][band],
+    kanji: [8, 10, 12][band],
+  };
   const modes = [];
   const pieces = []; // strings, or { bytes, label }
   let eci = null;
@@ -61,16 +111,43 @@ export function parseSegments(data, version) {
     if (mode === 1) {
       let n = r.read(counts.numeric);
       let s = "";
-      while (n >= 3) { if (r.left < 10) return null; const v = r.read(10); if (v > 999) return null; s += String(v).padStart(3, "0"); n -= 3; }
-      if (n === 2) { if (r.left < 7) return null; const v = r.read(7); if (v > 99) return null; s += String(v).padStart(2, "0"); }
-      if (n === 1) { if (r.left < 4) return null; const v = r.read(4); if (v > 9) return null; s += String(v); }
+      while (n >= 3) {
+        if (r.left < 10) return null;
+        const v = r.read(10);
+        if (v > 999) return null;
+        s += String(v).padStart(3, "0");
+        n -= 3;
+      }
+      if (n === 2) {
+        if (r.left < 7) return null;
+        const v = r.read(7);
+        if (v > 99) return null;
+        s += String(v).padStart(2, "0");
+      }
+      if (n === 1) {
+        if (r.left < 4) return null;
+        const v = r.read(4);
+        if (v > 9) return null;
+        s += String(v);
+      }
       pieces.push(s);
       modes.push("numeric");
     } else if (mode === 2) {
       let n = r.read(counts.alnum);
       let s = "";
-      while (n >= 2) { if (r.left < 11) return null; const v = r.read(11); if (v >= 45 * 45) return null; s += ALNUM[Math.floor(v / 45)] + ALNUM[v % 45]; n -= 2; }
-      if (n === 1) { if (r.left < 6) return null; const v = r.read(6); if (v >= 45) return null; s += ALNUM[v]; }
+      while (n >= 2) {
+        if (r.left < 11) return null;
+        const v = r.read(11);
+        if (v >= 45 * 45) return null;
+        s += ALNUM[Math.floor(v / 45)] + ALNUM[v % 45];
+        n -= 2;
+      }
+      if (n === 1) {
+        if (r.left < 6) return null;
+        const v = r.read(6);
+        if (v >= 45) return null;
+        s += ALNUM[v];
+      }
       pieces.push(s);
       modes.push("alnum");
     } else if (mode === 4) {
@@ -100,10 +177,17 @@ export function parseSegments(data, version) {
       else eci = ((v & 0x1f) << 16) | r.read(16);
     } else if (mode === 3) {
       if (r.left < 16) return null;
-      structured = { index: r.read(4), total: r.read(4) + 1, parity: r.read(8) };
+      structured = {
+        index: r.read(4),
+        total: r.read(4) + 1,
+        parity: r.read(8),
+      };
     } else if (mode === 5) fnc1 = true;
-    else if (mode === 9) { if (r.left < 8) return null; r.read(8); fnc1 = true; }
-    else return null;
+    else if (mode === 9) {
+      if (r.left < 8) return null;
+      r.read(8);
+      fnc1 = true;
+    } else return null;
   }
   if (!modes.length) return null;
   // Neighbouring byte segments with the same encoding are decoded together, so a character split between them survives.
@@ -111,14 +195,29 @@ export function parseSegments(data, version) {
   let binary = false;
   for (let i = 0; i < pieces.length; i++) {
     const p = pieces[i];
-    if (typeof p === "string") { text += p; continue; }
+    if (typeof p === "string") {
+      text += p;
+      continue;
+    }
     const bytes = [...p.bytes];
-    while (i + 1 < pieces.length && typeof pieces[i + 1] !== "string" && pieces[i + 1].label === p.label) bytes.push(...pieces[++i].bytes);
+    while (
+      i + 1 < pieces.length &&
+      typeof pieces[i + 1] !== "string" &&
+      pieces[i + 1].label === p.label
+    )
+      bytes.push(...pieces[++i].bytes);
     const d = decodeBytes(bytes, p.label);
     text += d.text;
     binary ||= d.binary;
   }
-  return { text, binary, modes: [...new Set(modes)], eci: eci ? ECI_LABELS[eci] ?? `ECI ${eci}` : null, structured, fnc1 };
+  return {
+    text,
+    binary,
+    modes: [...new Set(modes)],
+    eci: eci ? (ECI_LABELS[eci] ?? `ECI ${eci}`) : null,
+    structured,
+    fnc1,
+  };
 }
 
 const getModule = (m, size, x, y) => m[y * size + x];
@@ -151,7 +250,8 @@ function readVersionBits(m, size) {
 
 function transpose(m, size) {
   const t = new Uint8Array(size * size);
-  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) t[x * size + y] = m[y * size + x];
+  for (let y = 0; y < size; y++)
+    for (let x = 0; x < size; x++) t[x * size + y] = m[y * size + x];
   return t;
 }
 
@@ -180,8 +280,11 @@ function decodeOriented(m, size) {
   }
   let at = 0;
   const longest = shortLen - ecc + 1;
-  for (let i = 0; i < longest; i++) for (let j = 0; j < blocks; j++) if (i < lens[j]) dataBlocks[j][i] = words[at++];
-  for (let i = 0; i < ecc; i++) for (let j = 0; j < blocks; j++) dataBlocks[j][lens[j] + i] = words[at++];
+  for (let i = 0; i < longest; i++)
+    for (let j = 0; j < blocks; j++)
+      if (i < lens[j]) dataBlocks[j][i] = words[at++];
+  for (let i = 0; i < ecc; i++)
+    for (let j = 0; j < blocks; j++) dataBlocks[j][lens[j] + i] = words[at++];
   let corrected = 0;
   const data = [];
   for (let j = 0; j < blocks; j++) {
@@ -192,7 +295,15 @@ function decodeOriented(m, size) {
   }
   const parsed = parseSegments(Uint8Array.from(data), version);
   if (!parsed) return null;
-  return { ...parsed, version, ecc: fmt.level, mask: fmt.mask, corrected, size, bytes: Uint8Array.from(data) };
+  return {
+    ...parsed,
+    version,
+    ecc: fmt.level,
+    mask: fmt.mask,
+    corrected,
+    size,
+    bytes: Uint8Array.from(data),
+  };
 }
 
 /** Reads a grid of modules (Uint8Array of size*size, 1 = dark) as a QR code. Also tries the mirror image. Returns the result or null. */
@@ -228,7 +339,9 @@ function shrink({ gray, width, height }, factor) {
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       let sum = 0;
-      for (let dy = 0; dy < factor; dy++) for (let dx = 0; dx < factor; dx++) sum += gray[(y * factor + dy) * width + x * factor + dx];
+      for (let dy = 0; dy < factor; dy++)
+        for (let dx = 0; dx < factor; dx++)
+          sum += gray[(y * factor + dy) * width + x * factor + dx];
       out[y * w + x] = Math.round(sum / n);
     }
   }
@@ -251,7 +364,8 @@ function enlarge({ gray, width, height }, factor) {
       const x1 = Math.min(width - 1, x0 + 1);
       const tx = fx - x0;
       const top = gray[y0 * width + x0] * (1 - tx) + gray[y0 * width + x1] * tx;
-      const bottom = gray[y1 * width + x0] * (1 - tx) + gray[y1 * width + x1] * tx;
+      const bottom =
+        gray[y1 * width + x0] * (1 - tx) + gray[y1 * width + x1] * tx;
       out[y * w + x] = Math.round(top * (1 - ty) + bottom * ty);
     }
   }
@@ -260,7 +374,10 @@ function enlarge({ gray, width, height }, factor) {
 
 /** Black and white by the average of the neighbourhood (copes with shadows and uneven light). 1 = dark. */
 export function binarizeLocal({ gray, width, height }) {
-  const bs = Math.max(8, Math.min(32, Math.round(Math.min(width, height) / 40)));
+  const bs = Math.max(
+    8,
+    Math.min(32, Math.round(Math.min(width, height) / 40)),
+  );
   const bw = Math.ceil(width / bs);
   const bh = Math.ceil(height / bs);
   const black = new Float32Array(bw * bh);
@@ -284,7 +401,11 @@ export function binarizeLocal({ gray, width, height }) {
         // A flat block: assume it is light, unless the neighbours say it is dark.
         avg = min / 2;
         if (bx > 0 && by > 0) {
-          const nb = (black[(by - 1) * bw + bx] + 2 * black[by * bw + bx - 1] + black[(by - 1) * bw + bx - 1]) / 4;
+          const nb =
+            (black[(by - 1) * bw + bx] +
+              2 * black[by * bw + bx - 1] +
+              black[(by - 1) * bw + bx - 1]) /
+            4;
           if (min < nb) avg = nb;
         }
       }
@@ -296,15 +417,17 @@ export function binarizeLocal({ gray, width, height }) {
     for (let bx = 0; bx < bw; bx++) {
       let sum = 0;
       let n = 0;
-      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
-        const yy = Math.min(bh - 1, Math.max(0, by + dy));
-        const xx = Math.min(bw - 1, Math.max(0, bx + dx));
-        sum += black[yy * bw + xx];
-        n++;
-      }
+      for (let dy = -2; dy <= 2; dy++)
+        for (let dx = -2; dx <= 2; dx++) {
+          const yy = Math.min(bh - 1, Math.max(0, by + dy));
+          const xx = Math.min(bw - 1, Math.max(0, bx + dx));
+          sum += black[yy * bw + xx];
+          n++;
+        }
       const threshold = sum / n;
       for (let y = by * bs; y < Math.min(height, by * bs + bs); y++) {
-        for (let x = bx * bs; x < Math.min(width, bx * bs + bs); x++) bits[y * width + x] = gray[y * width + x] < threshold ? 1 : 0;
+        for (let x = bx * bs; x < Math.min(width, bx * bs + bs); x++)
+          bits[y * width + x] = gray[y * width + x] < threshold ? 1 : 0;
       }
     }
   }
@@ -339,7 +462,11 @@ export function binarizeGlobal({ gray, width, height }) {
   return { bits, width, height };
 }
 
-const invertBits = ({ bits, width, height }) => ({ bits: bits.map((b) => 1 - b), width, height });
+const invertBits = ({ bits, width, height }) => ({
+  bits: bits.map((b) => 1 - b),
+  width,
+  height,
+});
 
 // Finder patterns: a row of a finder square reads dark, light, dark, light, dark in the ratio 1:1:3:1:1.
 function crossesRatio(c) {
@@ -347,26 +474,60 @@ function crossesRatio(c) {
   if (total < 7) return false;
   const m = total / 7;
   const v = m * 0.65;
-  return Math.abs(m - c[0]) < v && Math.abs(m - c[1]) < v && Math.abs(3 * m - c[2]) < 3 * v && Math.abs(m - c[3]) < v && Math.abs(m - c[4]) < v;
+  return (
+    Math.abs(m - c[0]) < v &&
+    Math.abs(m - c[1]) < v &&
+    Math.abs(3 * m - c[2]) < 3 * v &&
+    Math.abs(m - c[3]) < v &&
+    Math.abs(m - c[4]) < v
+  );
 }
 
-function crossCheck(bits, width, height, startX, startY, dx, dy, maxCount, originalTotal) {
+function crossCheck(
+  bits,
+  width,
+  height,
+  startX,
+  startY,
+  dx,
+  dy,
+  maxCount,
+  originalTotal,
+) {
   const c = [0, 0, 0, 0, 0];
   const limit = dx ? width : height;
   let p = dx ? startX : startY;
   const at = (q) => (dx ? bits[startY * width + q] : bits[q * width + startX]);
-  while (p >= 0 && at(p) === 1) { c[2]++; p--; }
+  while (p >= 0 && at(p) === 1) {
+    c[2]++;
+    p--;
+  }
   if (p < 0) return NaN;
-  while (p >= 0 && at(p) === 0 && c[1] <= maxCount) { c[1]++; p--; }
+  while (p >= 0 && at(p) === 0 && c[1] <= maxCount) {
+    c[1]++;
+    p--;
+  }
   if (p < 0 || c[1] > maxCount) return NaN;
-  while (p >= 0 && at(p) === 1 && c[0] <= maxCount) { c[0]++; p--; }
+  while (p >= 0 && at(p) === 1 && c[0] <= maxCount) {
+    c[0]++;
+    p--;
+  }
   if (c[0] > maxCount) return NaN;
   p = (dx ? startX : startY) + 1;
-  while (p < limit && at(p) === 1) { c[2]++; p++; }
+  while (p < limit && at(p) === 1) {
+    c[2]++;
+    p++;
+  }
   if (p >= limit) return NaN;
-  while (p < limit && at(p) === 0 && c[3] < maxCount) { c[3]++; p++; }
+  while (p < limit && at(p) === 0 && c[3] < maxCount) {
+    c[3]++;
+    p++;
+  }
   if (p >= limit || c[3] >= maxCount) return NaN;
-  while (p < limit && at(p) === 1 && c[4] < maxCount) { c[4]++; p++; }
+  while (p < limit && at(p) === 1 && c[4] < maxCount) {
+    c[4]++;
+    p++;
+  }
   if (c[4] >= maxCount) return NaN;
   const total = c[0] + c[1] + c[2] + c[3] + c[4];
   if (5 * Math.abs(total - originalTotal) >= 2 * originalTotal) return NaN;
@@ -379,7 +540,11 @@ export function findFinders({ bits, width, height }) {
   const add = (cx, cy, total) => {
     const size = total / 7;
     for (const f of found) {
-      if (Math.abs(f.x - cx) <= f.size && Math.abs(f.y - cy) <= f.size && (Math.abs(f.size - size) <= f.size || Math.abs(f.size - size) <= 1)) {
+      if (
+        Math.abs(f.x - cx) <= f.size &&
+        Math.abs(f.y - cy) <= f.size &&
+        (Math.abs(f.size - size) <= f.size || Math.abs(f.size - size) <= 1)
+      ) {
         const n = f.count + 1;
         f.x = (f.x * f.count + cx) / n;
         f.y = (f.y * f.count + cy) / n;
@@ -393,9 +558,29 @@ export function findFinders({ bits, width, height }) {
   const handle = (state, y, endX) => {
     const total = state[0] + state[1] + state[2] + state[3] + state[4];
     let cx = endX - state[4] - state[3] - state[2] / 2;
-    const cy = crossCheck(bits, width, height, Math.floor(cx), y, 0, 1, state[2], total);
+    const cy = crossCheck(
+      bits,
+      width,
+      height,
+      Math.floor(cx),
+      y,
+      0,
+      1,
+      state[2],
+      total,
+    );
     if (Number.isNaN(cy)) return;
-    cx = crossCheck(bits, width, height, Math.floor(cx), Math.floor(cy), 1, 0, state[2], total);
+    cx = crossCheck(
+      bits,
+      width,
+      height,
+      Math.floor(cx),
+      Math.floor(cy),
+      1,
+      0,
+      state[2],
+      total,
+    );
     if (Number.isNaN(cx)) return;
     add(cx, cy, total);
   };
@@ -411,9 +596,19 @@ export function findFinders({ bits, width, height }) {
       else if (cur === 4) {
         if (crossesRatio(state)) {
           handle(state, y, x);
-          state[0] = state[2]; state[1] = state[3]; state[2] = state[4]; state[3] = 1; state[4] = 0; cur = 3;
+          state[0] = state[2];
+          state[1] = state[3];
+          state[2] = state[4];
+          state[3] = 1;
+          state[4] = 0;
+          cur = 3;
         } else {
-          state[0] = state[2]; state[1] = state[3]; state[2] = state[4]; state[3] = 1; state[4] = 0; cur = 3;
+          state[0] = state[2];
+          state[1] = state[3];
+          state[2] = state[4];
+          state[3] = 1;
+          state[4] = 0;
+          cur = 3;
         }
       } else state[++cur]++;
     }
@@ -426,8 +621,17 @@ const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
 /** The most likely triples of finder patterns (corner squares), best first. */
 export function chooseTriples(found) {
-  const good = found.filter((f) => f.count >= 2).sort((a, b) => b.count - a.count).slice(0, 12);
-  const pool = good.length >= 3 ? good : found.slice().sort((a, b) => b.count - a.count).slice(0, 8);
+  const good = found
+    .filter((f) => f.count >= 2)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 12);
+  const pool =
+    good.length >= 3
+      ? good
+      : found
+          .slice()
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 8);
   const out = [];
   for (let i = 0; i < pool.length; i++) {
     for (let j = i + 1; j < pool.length; j++) {
@@ -435,15 +639,21 @@ export function chooseTriples(found) {
         const t = [pool[i], pool[j], pool[k]];
         const sizes = t.map((p) => p.size);
         if (Math.max(...sizes) / Math.min(...sizes) > 1.7) continue;
-        const d = [dist(t[0], t[1]), dist(t[1], t[2]), dist(t[0], t[2])].sort((a, b) => a - b);
+        const d = [dist(t[0], t[1]), dist(t[1], t[2]), dist(t[0], t[2])].sort(
+          (a, b) => a - b,
+        );
         const mod = (sizes[0] + sizes[1] + sizes[2]) / 3;
         if (d[0] < 9 * mod) continue;
-        const score = Math.abs(d[0] - d[1]) / d[0] + Math.abs(d[2] / d[0] - Math.SQRT2);
+        const score =
+          Math.abs(d[0] - d[1]) / d[0] + Math.abs(d[2] / d[0] - Math.SQRT2);
         if (score < 0.45) out.push({ t, score });
       }
     }
   }
-  return out.sort((a, b) => a.score - b.score).slice(0, 5).map((o) => o.t);
+  return out
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 5)
+    .map((o) => o.t);
 }
 
 /** Puts three finder patterns in order: top-left, top-right, bottom-left. */
@@ -466,7 +676,8 @@ function solve(a, b) {
   const n = b.length;
   for (let i = 0; i < n; i++) {
     let max = i;
-    for (let r = i + 1; r < n; r++) if (Math.abs(a[r][i]) > Math.abs(a[max][i])) max = r;
+    for (let r = i + 1; r < n; r++)
+      if (Math.abs(a[r][i]) > Math.abs(a[max][i])) max = r;
     [a[i], a[max]] = [a[max], a[i]];
     [b[i], b[max]] = [b[max], b[i]];
     if (Math.abs(a[i][i]) < 1e-12) return null;
@@ -506,7 +717,13 @@ export function homography(src, dst) {
 }
 
 /** Looks near (ex, ey) for an alignment pattern: a dark center in a light ring, one module wide each. */
-function findAlignment({ bits, width, height }, ex, ey, mod, reachModules = 4.5) {
+function findAlignment(
+  { bits, width, height },
+  ex,
+  ey,
+  mod,
+  reachModules = 4.5,
+) {
   const reach = Math.ceil(mod * reachModules);
   const x0 = Math.max(0, Math.floor(ex - reach));
   const x1 = Math.min(width - 1, Math.ceil(ex + reach));
@@ -534,20 +751,42 @@ function findAlignment({ bits, width, height }, ex, ey, mod, reachModules = 4.5)
     for (let i = 1; i + 1 < runs.length; i++) {
       const [l1, d, l2] = [runs[i - 1], runs[i], runs[i + 1]];
       if (d.color !== 1 || l1.color !== 0 || l2.color !== 0) continue;
-      if (!near(d.len, mod) || !near(l1.len, mod) || !near(l2.len, mod)) continue;
+      if (!near(d.len, mod) || !near(l1.len, mod) || !near(l2.len, mod))
+        continue;
       const cx = d.start + d.len / 2;
       // The same pattern must show going down the middle of it.
       let up = 0;
       let yy = y;
-      while (yy >= 0 && bits[yy * width + Math.floor(cx)] === 1) { up++; yy--; }
+      while (yy >= 0 && bits[yy * width + Math.floor(cx)] === 1) {
+        up++;
+        yy--;
+      }
       let lightUp = 0;
-      while (yy >= 0 && bits[yy * width + Math.floor(cx)] === 0 && lightUp <= mod * 2) { lightUp++; yy--; }
+      while (
+        yy >= 0 &&
+        bits[yy * width + Math.floor(cx)] === 0 &&
+        lightUp <= mod * 2
+      ) {
+        lightUp++;
+        yy--;
+      }
       let down = 0;
       yy = y + 1;
-      while (yy < height && bits[yy * width + Math.floor(cx)] === 1) { down++; yy++; }
+      while (yy < height && bits[yy * width + Math.floor(cx)] === 1) {
+        down++;
+        yy++;
+      }
       let lightDown = 0;
-      while (yy < height && bits[yy * width + Math.floor(cx)] === 0 && lightDown <= mod * 2) { lightDown++; yy++; }
-      if (near(up + down, mod) && near(lightUp, mod) && near(lightDown, mod)) consider(cx, y - up + (up + down) / 2);
+      while (
+        yy < height &&
+        bits[yy * width + Math.floor(cx)] === 0 &&
+        lightDown <= mod * 2
+      ) {
+        lightDown++;
+        yy++;
+      }
+      if (near(up + down, mod) && near(lightUp, mod) && near(lightDown, mod))
+        consider(cx, y - up + (up + down) / 2);
     }
   }
   return best && best.d <= reach ? best : null;
@@ -559,8 +798,16 @@ function sampleGrid(img, order, dim, alignment) {
   const { tl, tr, bl } = order;
   const mod = (tl.size + tr.size + bl.size) / 3;
   const corner = { x: tr.x + bl.x - tl.x, y: tr.y + bl.y - tl.y };
-  const src = [[3.5, 3.5], [dim - 3.5, 3.5], [3.5, dim - 3.5]];
-  const dst = [[tl.x, tl.y], [tr.x, tr.y], [bl.x, bl.y]];
+  const src = [
+    [3.5, 3.5],
+    [dim - 3.5, 3.5],
+    [3.5, dim - 3.5],
+  ];
+  const dst = [
+    [tl.x, tl.y],
+    [tr.x, tr.y],
+    [bl.x, bl.y],
+  ];
   let fourth = [corner.x, corner.y];
   let fourthSrc = [dim - 3.5, dim - 3.5];
   if (alignment && dim >= 25) {
@@ -578,7 +825,13 @@ function sampleGrid(img, order, dim, alignment) {
   if (!h) return null;
   const m = new Uint8Array(dim * dim);
   const { bits, width, height } = img;
-  const offsets = [[0, 0], [-0.25, 0], [0.25, 0], [0, -0.25], [0, 0.25]];
+  const offsets = [
+    [0, 0],
+    [-0.25, 0],
+    [0.25, 0],
+    [0, -0.25],
+    [0, 0.25],
+  ];
   for (let y = 0; y < dim; y++) {
     for (let x = 0; x < dim; x++) {
       let dark = 0;
@@ -601,7 +854,9 @@ function tryDecodeTriple(img, triple) {
   const across = (dist(order.tl, order.tr) + dist(order.tl, order.bl)) / 2;
   const estimate = across / mod + 7;
   const first = Math.round((estimate - 17) / 4);
-  const versions = [first, first - 1, first + 1, first - 2, first + 2].filter((v, i, all) => v >= 1 && v <= 40 && all.indexOf(v) === i);
+  const versions = [first, first - 1, first + 1, first - 2, first + 2].filter(
+    (v, i, all) => v >= 1 && v <= 40 && all.indexOf(v) === i,
+  );
   for (const v of versions) {
     const dim = sizeOf(v);
     for (const alignment of v < 2 ? [0] : [4.5, 8, 13, 0]) {
@@ -666,18 +921,29 @@ function* attempts(image) {
     seen.add(s);
     let g;
     const enlargeBy = s < 1 ? Math.round(1 / s) : 0;
-    const getGray = () => (g ??= enlargeBy ? enlarge(base, enlargeBy) : shrink(base, s));
+    const getGray = () =>
+      (g ??= enlargeBy ? enlarge(base, enlargeBy) : shrink(base, s));
     for (const kind of ["local", "global"]) {
       for (const inverted of [false, true]) {
         yield () => {
           const gray = getGray();
-          let bin = kind === "local" ? binarizeLocal(gray) : binarizeGlobal(gray);
+          let bin =
+            kind === "local" ? binarizeLocal(gray) : binarizeGlobal(gray);
           if (inverted) bin = invertBits(bin);
           const r = decodeBits(bin);
           if (!r) return null;
           const k = enlargeBy ? 1 / enlargeBy : s;
           const scale = (p) => ({ x: p.x * k, y: p.y * k, size: p.size * k });
-          return { ...r, corners: { tl: scale(r.corners.tl), tr: scale(r.corners.tr), bl: scale(r.corners.bl) }, scale: k, inverted };
+          return {
+            ...r,
+            corners: {
+              tl: scale(r.corners.tl),
+              tr: scale(r.corners.tr),
+              bl: scale(r.corners.bl),
+            },
+            scale: k,
+            inverted,
+          };
         };
       }
     }

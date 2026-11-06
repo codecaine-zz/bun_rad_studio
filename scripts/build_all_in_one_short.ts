@@ -46,7 +46,11 @@ const scenes: Scene[] = [
     title: "THIS IS A\nFILE MANAGER?!",
     label: "WINDOWS · macOS · LINUX · x64 & ARM64",
     extra: "Free & Open-Source · 100% Local · PowerShell + WSL on Windows",
-    bullets: ["Zero Telemetry", "Instant Startup on Bun", "Full Keyboard Navigation"],
+    bullets: [
+      "Zero Telemetry",
+      "Instant Startup on Bun",
+      "Full Keyboard Navigation",
+    ],
     say: "Meet the Codecaine File Manager. Free, open source, and built for Windows, macOS, and Linux, on Intel, A M D, and ARM.",
     file: "18_terminal",
     start: 0.2,
@@ -58,7 +62,11 @@ const scenes: Scene[] = [
     title: "TABS, TREES\n& COLOR TAGS.",
     label: "FOLDER TABS · SIDEBAR TREE · COLOR TAGS",
     extra: "Multi-Tab Browsing · Expandable Folder Tree · Group by Kind",
-    bullets: ["Breadcrumbs & Favorites", "Sidebar Folder Tree", "Color Tag Filters & Grouping"],
+    bullets: [
+      "Breadcrumbs & Favorites",
+      "Sidebar Folder Tree",
+      "Color Tag Filters & Grouping",
+    ],
     say: "Open multiple folder tabs, expand the sidebar folder tree, tag files with colors, and group by file kind.",
     file: "04b_tabs_tree_tags",
     start: 0.5,
@@ -70,7 +78,11 @@ const scenes: Scene[] = [
     title: "DUAL PANES.\nSAFE BY DEFAULT.",
     label: "DUAL PANE · F5 COPY · F6 MOVE · RECYCLE BIN",
     extra: "Live Progress · Collision Protection · Safe Restore & Undo",
-    bullets: ["Side-by-Side Dual Pane", "F5 Copy / F6 Move", "Recycle Bin & Rip Graveyard"],
+    bullets: [
+      "Side-by-Side Dual Pane",
+      "F5 Copy / F6 Move",
+      "Recycle Bin & Rip Graveyard",
+    ],
     say: "Work across two folders side by side with F5 copy and F6 move. And if you delete something, restore it from the Recycle Bin.",
     file: "07_move",
     start: 39,
@@ -81,8 +93,13 @@ const scenes: Scene[] = [
     badge: "04 / 19 · SPACEBAR QUICK LOOK",
     title: "PRESS SPACE.\nINSTANT PREVIEW.",
     label: "PHOTOS · PDF · DOCX · XLSX · ARCHIVES · CODE",
-    extra: "Flip Through Folders With Arrow Keys · Copy Image or Text Instantly",
-    bullets: ["Instant Spacebar Preview", "Arrow Keys Flip Files", "Zero External Apps Needed"],
+    extra:
+      "Flip Through Folders With Arrow Keys · Copy Image or Text Instantly",
+    bullets: [
+      "Instant Spacebar Preview",
+      "Arrow Keys Flip Files",
+      "Zero External Apps Needed",
+    ],
     say: "Press Space to preview photos, documents, spreadsheets, and archives right in place, and use the arrow keys to flip through the folder.",
     file: "09_quicklook",
     start: 0.5,
@@ -94,7 +111,11 @@ const scenes: Scene[] = [
     title: "VISUAL CHMOD &\nAES-256 LOCK.",
     label: "DEEP FILE INFO · OCTAL PERMISSIONS · .radenc LOCK",
     extra: "SHA-256 Fingerprints · Color Palettes · Password File Encryption",
-    bullets: ["Dominant Color & Hashes", "Owner / Group / Others Grid", "AES-256-GCM File Encryption"],
+    bullets: [
+      "Dominant Color & Hashes",
+      "Owner / Group / Others Grid",
+      "AES-256-GCM File Encryption",
+    ],
     say: "Inspect file hashes and color palettes, edit Unix permissions visually, or lock sensitive files with A E S 256 password encryption.",
     file: "09b_perms_info_lock",
     start: 44,
@@ -106,7 +127,11 @@ const scenes: Scene[] = [
     title: "FIND MATCHES.\nRENAME IN BULK.",
     label: "FAST SEARCH + LIVE RENAME PREVIEW",
     extra: "Every New Name Checked Before Anything Changes on Disk",
-    bullets: ["Wildcard & Content Search", "Batch Rename Rules", "Full Before/After Review"],
+    bullets: [
+      "Wildcard & Content Search",
+      "Batch Rename Rules",
+      "Full Before/After Review",
+    ],
     say: "Find matching files across folders, then bulk-rename them with a full before-and-after review before a single file is touched.",
     file: "11_find",
     start: 38.6,
@@ -118,7 +143,11 @@ const scenes: Scene[] = [
     title: "COMPARE FOLDERS\n& SAVE WORKSPACES.",
     label: "TWO-FOLDER DIFF · PROJECTS · ACTION RECIPES",
     extra: "Side-by-Side Folder Sync · Saved Project Tabs · One-Click Recipes",
-    bullets: ["5-Group Folder Diff", "Safe Copy Without Deleting", "Saved Projects & Actions"],
+    bullets: [
+      "5-Group Folder Diff",
+      "Safe Copy Without Deleting",
+      "Saved Projects & Actions",
+    ],
     say: "Compare two folders side by side to sync differences safely, and save your favorite workspaces as Projects and reusable Action recipes.",
     file: "13_compare",
     start: 32,
@@ -130,7 +159,11 @@ const scenes: Scene[] = [
     title: "TYPE cd.\nYOUR FILES FOLLOW.",
     label: "SYNCED TERMINAL + QUOTED PATH INSERTION",
     extra: "PowerShell · CMD · Git Bash · WSL · zsh · bash",
-    bullets: ["cd Syncs File List", "Open Terminal Here", "One-Click Quoted Paths"],
+    bullets: [
+      "cd Syncs File List",
+      "Open Terminal Here",
+      "One-Click Quoted Paths",
+    ],
     say: "In the built-in terminal, type cd and the file list follows automatically. Or select files and insert safely quoted paths in one click.",
     file: "18_terminal",
     start: 54,
@@ -142,7 +175,11 @@ const scenes: Scene[] = [
     title: "CODE EDITOR,\nGIT & CODE STATS.",
     label: "70+ TEXT TRANSFORMS · MULTI-FILE REPLACE · DEV TAB",
     extra: "Zen Mode · Regex Replace with Undo · Tokei Code Stats · Git · QR",
-    bullets: ["Built-in Code Editor & Zen Mode", "Multi-File Replace + Undo", "Tokei Stats, Git & QR Studio"],
+    bullets: [
+      "Built-in Code Editor & Zen Mode",
+      "Multi-File Replace + Undo",
+      "Tokei Stats, Git & QR Studio",
+    ],
     say: "Edit code with seventy text conversions and Zen mode, replace across files with undo, generate Q R codes, and inspect Git and Tokei code stats.",
     file: "19_dev",
     start: 87,
@@ -153,8 +190,13 @@ const scenes: Scene[] = [
     badge: "10 / 19 · SERVE, WATCH & POWER TOOLBOX",
     title: "A FULL DEVELOPER\nTOOLBOX INSIDE.",
     label: "LIVE SERVER · CRYPTO · SECRETS VAULT · CLOCKS",
-    extra: "Watch Automation · Multi-Connection Downloads · API Studio · CLI Tools",
-    bullets: ["Zero-Config Live & PHP Server", "Crypto, Secrets & .env", "World Clocks & CLI Utilities"],
+    extra:
+      "Watch Automation · Multi-Connection Downloads · API Studio · CLI Tools",
+    bullets: [
+      "Zero-Config Live & PHP Server",
+      "Crypto, Secrets & .env",
+      "World Clocks & CLI Utilities",
+    ],
     say: "Spin up a live web server, watch files, manage secrets and hashes, test A P Is, check world clocks, and run built-in C L I tools.",
     file: "21a_home_split_clock_cli",
     start: 21,
@@ -166,7 +208,11 @@ const scenes: Scene[] = [
     title: "PROCESS MANAGER\n& SYSTEM INFO.",
     label: "PROCESS & TASK MANAGER · HARDWARE TELEMETRY",
     extra: "Live CPU & RAM · TCP Port Bindings · Per-Core Bars · Baseline Diff",
-    bullets: ["Live Processes, Tree & Port Map", "Per-Core CPU, GPU, Disks & Net", "Pin & Compare Telemetry Baseline"],
+    bullets: [
+      "Live Processes, Tree & Port Map",
+      "Per-Core CPU, GPU, Disks & Net",
+      "Pin & Compare Telemetry Baseline",
+    ],
     say: "Monitor live processes, port bindings, and process trees in the Task Manager, and inspect per-core C P U, G P U, disks, and baseline diffs in System Info.",
     file: "21aa_tasks_sysinfo",
     start: 1,
@@ -178,7 +224,11 @@ const scenes: Scene[] = [
     title: "EDIT PHOTOS,\nVIDEO & AUDIO.",
     label: "IMAGE STUDIO · MEDIA STUDIO · BATCH PRESETS",
     extra: "Live Sliders · Trim, Speed & Fades · Apply Saved Presets in Bulk",
-    bullets: ["Non-Destructive Photo Sliders", "Video Trim, Speed & Audio Fades", "Reusable Batch Presets"],
+    bullets: [
+      "Non-Destructive Photo Sliders",
+      "Video Trim, Speed & Audio Fades",
+      "Reusable Batch Presets",
+    ],
     say: "Adjust photos in Image Studio, or trim video, change speed, and add fades in Media Studio, then save a preset to process dozens of files at once.",
     file: "21d_media_studio",
     start: 14.3,
@@ -190,7 +240,11 @@ const scenes: Scene[] = [
     title: "MEDIA DECK, PAINT\n& 24 ARCADE GAMES.",
     label: "10-BAND EQ · 108 VISUALIZERS · PAINT · 24 GAMES",
     extra: "Synced Lyrics Player · Vector Coloring Book · Retro Arcade Suite",
-    bullets: ["AmpDeck Player + Synced Lyrics", "Paint Studio + Coloring Library", "24 Built-in Arcade Games"],
+    bullets: [
+      "AmpDeck Player + Synced Lyrics",
+      "Paint Studio + Coloring Library",
+      "24 Built-in Arcade Games",
+    ],
     say: "Play music with a ten-band equalizer, visualizers, and synced lyrics in Media Deck, paint in Paint Studio, or launch twenty-four built-in arcade games.",
     file: "21g_player_paint_games",
     start: 0.5,
@@ -202,7 +256,11 @@ const scenes: Scene[] = [
     title: "200+ THEMES.\nBeOS TO TESLA PLASMA.",
     label: "5-ROW FILTERS · FOLDER PINNING · SPLIT COMPARATOR · SOLAR CYCLE",
     extra: "Tesla Plasma · Tokamak · Hawking · BeOS · OS/2 Warp · Palm OS",
-    bullets: ["200+ Themes & 5-Row Filter Pills", "Folder Pinning & Split Comparator", "4-Stage Solar Cycle Schedule"],
+    bullets: [
+      "200+ Themes & 5-Row Filter Pills",
+      "Folder Pinning & Split Comparator",
+      "4-Stage Solar Cycle Schedule",
+    ],
     say: "Switch across two hundred themes with five-row filter pills, pin themes to folders, compare two looks side by side, or schedule a four-stage Solar Cycle.",
     file: "22_themes",
     start: 75,
@@ -213,8 +271,13 @@ const scenes: Scene[] = [
     badge: "15 / 19 · 194 LIVE SHADERS & THEME EDITOR v2",
     title: "194 LIVE SHADERS.\n6-LAYER FX MIXER.",
     label: "EF5 TORNADOES · 4D TESSERACT · 6-LAYER MIXER · THEME EDITOR",
-    extra: "M4 120Hz Shaders · Reactive Physics · 12 Style Presets · WCAG Contrast",
-    bullets: ["194 Shaders (EF5 Tornado, 4D, Tesla)", "6-Layer Mixer & 48 Signature Mixes", "Theme Editor v2 & Custom Shortcuts"],
+    extra:
+      "M4 120Hz Shaders · Reactive Physics · 12 Style Presets · WCAG Contrast",
+    bullets: [
+      "194 Shaders (EF5 Tornado, 4D, Tesla)",
+      "6-Layer Mixer & 48 Signature Mixes",
+      "Theme Editor v2 & Custom Shortcuts",
+    ],
     say: "Unleash one hundred and ninety-four live shaders with a six-layer mixer, from EF5 Tornadoes to 4D Tesseracts, or design custom Liquid Glass themes.",
     file: "22_themes",
     start: 183,
@@ -225,8 +288,13 @@ const scenes: Scene[] = [
     badge: "16 / 19 · 4 DATABASES & CROSS-ENGINE CLONING",
     title: "4 DATABASE ENGINES.\nCROSS-ENGINE CLONING.",
     label: "SQLite · MySQL · PostgreSQL · Redis",
-    extra: "Keychain Security · Clone Tables, Views, Indexes, FKs & Redis Hashes",
-    bullets: ["Auto-Detect .env Connections", "Clone SQLite ⇄ Postgres ⇄ MySQL", "Clone SQL Tables ⇄ Redis Hashes"],
+    extra:
+      "Keychain Security · Clone Tables, Views, Indexes, FKs & Redis Hashes",
+    bullets: [
+      "Auto-Detect .env Connections",
+      "Clone SQLite ⇄ Postgres ⇄ MySQL",
+      "Clone SQL Tables ⇄ Redis Hashes",
+    ],
     say: "Open the Databases Hub to connect SQLite, MySQL, PostgreSQL, and Redis with keychain security, and clone entire databases or tables across engines and Redis Hashes.",
     suite: "databases_masterclass_tutorial",
     file: "03_clone_sql_to_postgres_and_mysql",
@@ -238,8 +306,13 @@ const scenes: Scene[] = [
     badge: "17 / 19 · BUN JS MACROS & STUDIO IDE v2",
     title: "BUN JS MACROS,\nER DIAGRAMS & CODEGEN.",
     label: "DAO / DoCmd MACROS · 15-FORMAT STAGING · STUDIO IDE v2",
-    extra: "Visual Query Designer · Full ER Diagram · Schema Diff · 5-Language Codegen",
-    bullets: ["Bun JS & Visual Action Macros", "15-Format Staging Import Wizard", "ER Diagram, Diff & Codegen"],
+    extra:
+      "Visual Query Designer · Full ER Diagram · Schema Diff · 5-Language Codegen",
+    bullets: [
+      "Bun JS & Visual Action Macros",
+      "15-Format Staging Import Wizard",
+      "ER Diagram, Diff & Codegen",
+    ],
     say: "Automate queries with Bun JavaScript and visual macros, import fifteen file formats with staging validation, and use Studio I D E version two with E R diagrams, schema diff, and code generation.",
     suite: "databases_masterclass_tutorial",
     file: "08_sql_ide_er_diff_codegen",
@@ -251,8 +324,13 @@ const scenes: Scene[] = [
     badge: "18 / 19 · SIMPLEGUI TYPESCRIPT RAD",
     title: "BUILD DESKTOP APPS\nIN TYPESCRIPT.",
     label: "SIMPLEGUI API · 45 RAD MODULES · SINGLE BINARY",
-    extra: "Reactive State · SweetAlert2 · SQLite Apps · Compile Standalone Executables",
-    bullets: ["100+ SimpleGUI Controls", "45 RAD Modules & 10 System Tools", "Compile Single-File Binaries"],
+    extra:
+      "Reactive State · SweetAlert2 · SQLite Apps · Compile Standalone Executables",
+    bullets: [
+      "100+ SimpleGUI Controls",
+      "45 RAD Modules & 10 System Tools",
+      "Compile Single-File Binaries",
+    ],
     say: "And because it's part of Bun R A D Studio, you can build your own desktop apps in TypeScript with SimpleGUI and compile them into single-file executables.",
     suite: "rad_tutorial",
     file: "07_capstone",
@@ -265,7 +343,11 @@ const scenes: Scene[] = [
     title: "WATCH THE FULL\nALL-IN-ONE COURSE.",
     label: "FILE MANAGER + 4 DATABASES + VISUAL DESIGNER + RAD",
     extra: "2+ Hours · 106 Step-by-Step Chapters · Every Click Shown Live",
-    bullets: ["Codecaine File Manager Complete Guide", "All 4 Databases & Cloning Masterclass", "Visual Designer & SimpleGUI RAD Course"],
+    bullets: [
+      "Codecaine File Manager Complete Guide",
+      "All 4 Databases & Cloning Masterclass",
+      "Visual Designer & SimpleGUI RAD Course",
+    ],
     say: "Plus the no-code Visual Designer that exports TypeScript, React, Vue, and Python. Watch the complete two-hour All-in-One Master Tutorial with all one hundred and six chapters: tap the related video below my name.",
     suite: "designer_tutorial",
     file: "01_tour",
@@ -276,18 +358,40 @@ const scenes: Scene[] = [
 
 function run(args: string[]): string {
   const result = Bun.spawnSync(args, { stdout: "pipe", stderr: "pipe" });
-  if (result.exitCode !== 0) throw new Error(`${args[0]} failed:\n${result.stderr.toString().slice(-4000)}`);
+  if (result.exitCode !== 0)
+    throw new Error(
+      `${args[0]} failed:\n${result.stderr.toString().slice(-4000)}`,
+    );
   return result.stdout.toString();
 }
 
 function duration(file: string): number {
-  const value = Number(run([FFPROBE, "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file]).trim());
-  if (!Number.isFinite(value) || value <= 0) throw new Error(`Invalid duration: ${file}`);
+  const value = Number(
+    run([
+      FFPROBE,
+      "-v",
+      "error",
+      "-show_entries",
+      "format=duration",
+      "-of",
+      "csv=p=0",
+      file,
+    ]).trim(),
+  );
+  if (!Number.isFinite(value) || value <= 0)
+    throw new Error(`Invalid duration: ${file}`);
   return value;
 }
 
-const esc = (text: string) => text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-const sourceOf = (scene: Scene) => join(PROD, scene.suite ?? "file_manager_tutorial", "live", `${scene.file}.mp4`);
+const esc = (text: string) =>
+  text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+const sourceOf = (scene: Scene) =>
+  join(
+    PROD,
+    scene.suite ?? "file_manager_tutorial",
+    "live",
+    `${scene.file}.mp4`,
+  );
 
 function overlay(scene: Scene, index: number): string {
   const isLast = index === scenes.length - 1;
@@ -328,12 +432,18 @@ function demoFilter(scene: Scene, seconds: number): string {
   return `${timing},scale=1080:-2[demo];[2:v][demo]overlay=0:630:shortest=1,format=yuv420p[v]`;
 }
 
-function notesMarkdown(seconds: number, tempo: number, sceneMarks: Array<{ at: number; scene: Scene }>): string {
+function notesMarkdown(
+  seconds: number,
+  tempo: number,
+  sceneMarks: Array<{ at: number; scene: Scene }>,
+): string {
   const fmt = (sec: number) => {
     const s = Math.floor(sec);
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   };
-  const stamps = sceneMarks.map((m, i) => `${fmt(i === 0 ? 0 : m.at)} ${m.scene.label}`).join("\n");
+  const stamps = sceneMarks
+    .map((m, i) => `${fmt(i === 0 ? 0 : m.at)} ${m.scene.label}`)
+    .join("\n");
   return `# Codecaine File Manager — All-in-One Overview YouTube Short (${fmt(seconds)})
 
 ## Video File
@@ -399,20 +509,27 @@ async function main() {
   mkdirSync(WORK, { recursive: true });
   for (const scene of scenes) {
     const source = sourceOf(scene);
-    if (!existsSync(source)) throw new Error(`Missing tutorial recording: ${source}`);
+    if (!existsSync(source))
+      throw new Error(`Missing tutorial recording: ${source}`);
     const srcDur = duration(source);
     if (scene.start + scene.length > srcDur) {
-      throw new Error(`Scene ${scene.id} (${scene.start}+${scene.length}s) exceeds source (${srcDur.toFixed(1)}s): ${source}`);
+      throw new Error(
+        `Scene ${scene.id} (${scene.start}+${scene.length}s) exceeds source (${srcDur.toFixed(1)}s): ${source}`,
+      );
     }
   }
 
   const narrated: Array<{ scene: Scene; audio: string; seconds: number }> = [];
   for (const scene of scenes) {
     console.log(`🎙️  Narrating ${scene.id}...`);
-    const narration = await narrate(scene.id, scene.say, join(WORK, "audio"), { rate: "+3%", gap: 0.22 });
+    const narration = await narrate(scene.id, scene.say, join(WORK, "audio"), {
+      rate: "+3%",
+      gap: 0.22,
+    });
     const audio = join(WORK, `${scene.id}.wav`);
     const seconds = duration(narration) - 0.85;
-    if (seconds <= 0) throw new Error(`Narration is too short to trim: ${scene.id}`);
+    if (seconds <= 0)
+      throw new Error(`Narration is too short to trim: ${scene.id}`);
     run([
       FFMPEG,
       "-hide_banner",
@@ -435,11 +552,20 @@ async function main() {
   const total = narrated.reduce((sum, item) => sum + item.seconds, 0);
   const tempo = Math.max(1, total / 176.5);
   if (tempo > 1.18) {
-    throw new Error(`Narration is too long (${total.toFixed(1)}s); shorten the script rather than rushing it.`);
+    throw new Error(
+      `Narration is too long (${total.toFixed(1)}s); shorten the script rather than rushing it.`,
+    );
   }
-  console.log(`⏱️  Raw narration ${total.toFixed(2)}s; pace adjustment ${tempo.toFixed(3)}x`);
+  console.log(
+    `⏱️  Raw narration ${total.toFixed(2)}s; pace adjustment ${tempo.toFixed(3)}x`,
+  );
 
-  const browser = await Cdp.launch(9359, join(WORK, "chrome-profile"), 1080, 1920);
+  const browser = await Cdp.launch(
+    9359,
+    join(WORK, "chrome-profile"),
+    1080,
+    1920,
+  );
   const segments: string[] = [];
   const sceneMarks: Array<{ at: number; scene: Scene }> = [];
   let at = 0;
@@ -453,8 +579,13 @@ async function main() {
       const png = join(WORK, `${scene.id}.png`);
       writeFileSync(html, overlay(scene, index));
       await browser.goto(`file://${html}`, null);
-      await browser.send("Emulation.setDefaultBackgroundColorOverride", { color: { r: 0, g: 0, b: 0, a: 0 } });
-      const screenshot = await browser.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
+      await browser.send("Emulation.setDefaultBackgroundColorOverride", {
+        color: { r: 0, g: 0, b: 0, a: 0 },
+      });
+      const screenshot = await browser.send("Page.captureScreenshot", {
+        format: "png",
+        captureBeyondViewport: false,
+      });
       writeFileSync(png, Buffer.from(screenshot.data, "base64"));
 
       const segment = join(WORK, `${scene.id}.mp4`);
@@ -514,7 +645,12 @@ async function main() {
   }
 
   const list = join(WORK, "concat.txt");
-  writeFileSync(list, segments.map((file) => `file '${file.replaceAll("'", "'\\''")}'`).join("\n"));
+  writeFileSync(
+    list,
+    segments
+      .map((file) => `file '${file.replaceAll("'", "'\\''")}'`)
+      .join("\n"),
+  );
   run([
     FFMPEG,
     "-hide_banner",
@@ -535,12 +671,15 @@ async function main() {
   ]);
 
   const seconds = duration(OUTPUT);
-  if (seconds >= 180) throw new Error(`Short exceeds three minutes: ${seconds}`);
+  if (seconds >= 180)
+    throw new Error(`Short exceeds three minutes: ${seconds}`);
 
   const md = notesMarkdown(seconds, tempo, sceneMarks);
   writeFileSync(NOTES, md);
   writeFileSync(join(WORK, "upload-guide.txt"), md);
-  console.log(`\n✔ Created ${OUTPUT} (${seconds.toFixed(2)}s, ${(Bun.file(OUTPUT).size / 1048576).toFixed(1)} MB)`);
+  console.log(
+    `\n✔ Created ${OUTPUT} (${seconds.toFixed(2)}s, ${(Bun.file(OUTPUT).size / 1048576).toFixed(1)} MB)`,
+  );
   console.log(`📝 ${NOTES}`);
 }
 

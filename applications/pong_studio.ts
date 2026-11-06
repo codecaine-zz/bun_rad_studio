@@ -1,6 +1,6 @@
 /**
  * ⚡ Codecaine Neon Cyber Paddle - Kinetic Arcade Studio
- * 
+ *
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
  * - High-speed retro kinetic paddle rally with fluid spin physics and angle deflections
@@ -77,7 +77,9 @@ export function generatePongStudioHtml(): string {
   const assetsDir = getPongAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Codecaine Neon Cyber Paddle</h1>";
+  let html = existsSync(indexPath)
+    ? readFileSync(indexPath, "utf8")
+    : "<h1>Codecaine Neon Cyber Paddle</h1>";
 
   const storagePolyfill = `
   <script>
@@ -175,7 +177,10 @@ export function startPongStudioServer(options: PongServerOptions = {}) {
       if (pathname === "/" || pathname === "/index.html") {
         const html = generatePongStudioHtml();
         return new Response(html, {
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            ...corsHeaders,
+          },
         });
       }
 
@@ -199,18 +204,24 @@ export function startPongStudioServer(options: PongServerOptions = {}) {
             version: "1.0.0",
             timestamp: Date.now(),
           },
-          { headers: corsHeaders }
+          { headers: corsHeaders },
         );
       }
 
       // Fallback: static file in assets directory
       const sanitized = pathname.replace(/^\/+/, "");
       const directCandidate = join(assetsDir, sanitized);
-      if (directCandidate !== assetsDir && !directCandidate.startsWith(assetsDir + "/") && !directCandidate.startsWith(assetsDir + "\\")) {
+      if (
+        directCandidate !== assetsDir &&
+        !directCandidate.startsWith(assetsDir + "/") &&
+        !directCandidate.startsWith(assetsDir + "\\")
+      ) {
         return new Response("Forbidden", { status: 403 });
       }
       if (existsSync(directCandidate)) {
-        return new Response(Bun.file(directCandidate), { headers: corsHeaders });
+        return new Response(Bun.file(directCandidate), {
+          headers: corsHeaders,
+        });
       }
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
@@ -223,7 +234,9 @@ export function startPongStudioServer(options: PongServerOptions = {}) {
 /**
  * Creates the complete native desktop instance of Cyber Pong.
  */
-export function createPongStudio(options: PongStudioOptions = {}): PongStudioInstance {
+export function createPongStudio(
+  options: PongStudioOptions = {},
+): PongStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1200);
@@ -255,7 +268,8 @@ export function createPongStudio(options: PongStudioOptions = {}): PongStudioIns
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -275,11 +289,15 @@ export function createPongStudio(options: PongStudioOptions = {}): PongStudioIns
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -289,16 +307,24 @@ export function createPongStudio(options: PongStudioOptions = {}): PongStudioIns
         });
 
         webview.setHTML(html);
-        console.log(`⚡ Desktop window open (Fullscreen: ${fullscreen ? 'Enabled' : 'Disabled'}).`);
+        console.log(
+          `⚡ Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`,
+        );
 
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -314,10 +340,13 @@ if (process.argv.includes("--server")) {
   const port = parseInt(process.env.PORT || "0", 10);
   const srv = startPongStudioServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`⚡ Neon Cyber Pong Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `⚡ Neon Cyber Pong Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
+  const fullscreen =
+    !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
   const app = createPongStudio({ fullscreen });
   await app.run();
   process.exit(0);

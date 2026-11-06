@@ -1,7 +1,7 @@
 import { injectGameMasterFx } from "../src/shared/gameMasterFx";
 /**
  * 🎲 Codecaine Yacht Dice Royale Deluxe — Classic Dice Board Studio
- * 
+ *
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
  * - Authentic 13-category Championship scorecard with upper subtotal bonus (+35 for 63+) and lower section combos
@@ -83,7 +83,9 @@ export function generateYahtzeeStudioHtml(): string {
   const assetsDir = getYahtzeeAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Codecaine Yacht Dice Royale Deluxe</h1>";
+  let html = existsSync(indexPath)
+    ? readFileSync(indexPath, "utf8")
+    : "<h1>Codecaine Yacht Dice Royale Deluxe</h1>";
 
   const storagePolyfill = `
   <script>
@@ -155,7 +157,13 @@ ${getWindowShortcutsScript()}
  */
 export function startYahtzeeServer(options: YahtzeeServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "yahtzee_studio", name: "Codecaine Yacht Dice Royale Deluxe — Classic Dice Board Studio", version: "1.0.0", assetsDir: getYahtzeeAssetsDir(), generateHtml: generateYahtzeeStudioHtml },
+    {
+      app: "yahtzee_studio",
+      name: "Codecaine Yacht Dice Royale Deluxe — Classic Dice Board Studio",
+      version: "1.0.0",
+      assetsDir: getYahtzeeAssetsDir(),
+      generateHtml: generateYahtzeeStudioHtml,
+    },
     options,
   );
 }
@@ -163,12 +171,15 @@ export function startYahtzeeServer(options: YahtzeeServerOptions = {}) {
 /**
  * Creates the complete native desktop instance of Yacht Dice Royale Deluxe.
  */
-export function createYahtzeeStudio(options: YahtzeeStudioOptions = {}): YahtzeeStudioInstance {
+export function createYahtzeeStudio(
+  options: YahtzeeStudioOptions = {},
+): YahtzeeStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1240);
   const height = options.height ?? (fullscreen ? screen.height : 860);
-  const title = "Codecaine Yacht Dice Royale Deluxe — Classic Dice Board Studio";
+  const title =
+    "Codecaine Yacht Dice Royale Deluxe — Classic Dice Board Studio";
 
   const app: YahtzeeStudioInstance = {
     title,
@@ -195,7 +206,8 @@ export function createYahtzeeStudio(options: YahtzeeStudioOptions = {}): Yahtzee
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -215,11 +227,15 @@ export function createYahtzeeStudio(options: YahtzeeStudioOptions = {}): Yahtzee
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -230,16 +246,24 @@ export function createYahtzeeStudio(options: YahtzeeStudioOptions = {}): Yahtzee
 
         // Set HTML directly into Webview memory (bypasses macOS ATS network restrictions)
         webview.setHTML(html);
-        console.log(`🎲 Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`);
+        console.log(
+          `🎲 Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`,
+        );
 
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -258,7 +282,9 @@ if (import.meta.main) {
 
   if (serverOnly) {
     const srv = startYahtzeeServer({ port, host: "127.0.0.1" });
-    console.log(`🎲 Yahtzee Royale Deluxe server running at: http://127.0.0.1:${srv.port}/`);
+    console.log(
+      `🎲 Yahtzee Royale Deluxe server running at: http://127.0.0.1:${srv.port}/`,
+    );
     await new Promise(() => {});
   } else {
     const app = createYahtzeeStudio({ fullscreen, port });

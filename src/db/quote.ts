@@ -5,14 +5,19 @@ import type { Engine, ObjectRef } from "./types";
 
 /** Quote one identifier for an engine. Never interpolate an identifier without going through this. */
 export function quoteIdent(engine: Engine, name: string): string {
-  if (typeof name !== "string" || name.length === 0) throw new Error("Identifier must be a non-empty string");
-  if (name.includes("\0")) throw new Error("Identifier contains a NUL character");
+  if (typeof name !== "string" || name.length === 0)
+    throw new Error("Identifier must be a non-empty string");
+  if (name.includes("\0"))
+    throw new Error("Identifier contains a NUL character");
   if (engine === "mysql") return "`" + name.replace(/`/g, "``") + "`";
   return '"' + name.replace(/"/g, '""') + '"';
 }
 
 /** Quotes a table or view reference (`schema.name` or `name`) for the specified database `engine`. */
-export function quoteRef(engine: Engine, ref: Pick<ObjectRef, "schema" | "name">): string {
+export function quoteRef(
+  engine: Engine,
+  ref: Pick<ObjectRef, "schema" | "name">,
+): string {
   if (engine === "sqlite" || !ref.schema) return quoteIdent(engine, ref.name);
   return `${quoteIdent(engine, ref.schema)}.${quoteIdent(engine, ref.name)}`;
 }

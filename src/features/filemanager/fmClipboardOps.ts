@@ -8,8 +8,22 @@ import { spawnSync } from "child_process";
 import { createHash } from "crypto";
 import { existsSync, promises as fsp } from "fs";
 import * as nodePath from "path";
-import { absolutePath, assertCreatable, assertModifiable, type FmContext, type FmHandler } from "./fmCore";
-import { FmError, classify, describeFsError, extensionOf, formatSize, isDocumentPackageName, splitName } from "./fmPaths";
+import {
+  absolutePath,
+  assertCreatable,
+  assertModifiable,
+  type FmContext,
+  type FmHandler,
+} from "./fmCore";
+import {
+  FmError,
+  classify,
+  describeFsError,
+  extensionOf,
+  formatSize,
+  isDocumentPackageName,
+  splitName,
+} from "./fmPaths";
 import { imagePreviewFor } from "./fmQuickLook";
 
 /** Maximum file size in bytes allowed when copying a text file's contents to the system clipboard. */
@@ -18,15 +32,33 @@ export const MAX_CLIP_TEXT_BYTES = 5 * 1024 * 1024;
 export const MAX_CLIP_IMAGE_BYTES = 50 * 1024 * 1024;
 
 const IMAGE_MIME: Record<string, string> = {
-  png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp", bmp: "image/bmp", svg: "image/svg+xml",
-  ico: "image/x-icon", avif: "image/avif", tif: "image/tiff", tiff: "image/tiff", heic: "image/heic",
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  gif: "image/gif",
+  webp: "image/webp",
+  bmp: "image/bmp",
+  svg: "image/svg+xml",
+  ico: "image/x-icon",
+  avif: "image/avif",
+  tif: "image/tiff",
+  tiff: "image/tiff",
+  heic: "image/heic",
 };
 
-async function regularFile(ctx: FmContext, input: unknown, what: string): Promise<{ file: string; size: number }> {
+async function regularFile(
+  ctx: FmContext,
+  input: unknown,
+  what: string,
+): Promise<{ file: string; size: number }> {
   const file = absolutePath(ctx, input);
   try {
     const st = await fsp.stat(file);
-    if (!st.isFile()) throw new FmError("NOT_A_FILE", `That isn't a file, so there is no ${what} to copy.`);
+    if (!st.isFile())
+      throw new FmError(
+        "NOT_A_FILE",
+        `That isn't a file, so there is no ${what} to copy.`,
+      );
     return { file, size: st.size };
   } catch (err) {
     if (err instanceof FmError) throw err;
@@ -36,24 +68,47 @@ async function regularFile(ctx: FmContext, input: unknown, what: string): Promis
 }
 
 /** Puts a picture file on the clipboard as a picture. */
-export async function copyImageToClipboard(ctx: FmContext, input: unknown): Promise<{ copied: true }> {
+export async function copyImageToClipboard(
+  ctx: FmContext,
+  input: unknown,
+): Promise<{ copied: true }> {
   const { file, size } = await regularFile(ctx, input, "picture");
   const name = nodePath.basename(file);
-  if (classify(name, false).kind !== "image") throw new FmError("NOT_AN_IMAGE", "That isn't a picture, so it can't be copied as one.");
-  if (size > MAX_CLIP_IMAGE_BYTES) throw new FmError("TOO_BIG", `That picture is ${formatSize(size)}, which is more than the ${formatSize(MAX_CLIP_IMAGE_BYTES)} that can be put on the clipboard.`);
+  if (classify(name, false).kind !== "image")
+    throw new FmError(
+      "NOT_AN_IMAGE",
+      "That isn't a picture, so it can't be copied as one.",
+    );
+  if (size > MAX_CLIP_IMAGE_BYTES)
+    throw new FmError(
+      "TOO_BIG",
+      `That picture is ${formatSize(size)}, which is more than the ${formatSize(MAX_CLIP_IMAGE_BYTES)} that can be put on the clipboard.`,
+    );
   const directMime = IMAGE_MIME[extensionOf(name)];
-  const targetFile = directMime ? file : ((await imagePreviewFor(ctx, file)) ?? file);
+  const targetFile = directMime
+    ? file
+    : ((await imagePreviewFor(ctx, file)) ?? file);
   const mime = directMime ?? "image/png";
   if (!(await ctx.clipboard.writeImage(targetFile, mime))) {
-    throw new FmError("CLIPBOARD_FAILED", "The picture couldn't be put on the clipboard. Its format may not be supported on this computer, or the clipboard tool is missing (Linux needs wl-copy or xclip).");
+    throw new FmError(
+      "CLIPBOARD_FAILED",
+      "The picture couldn't be put on the clipboard. Its format may not be supported on this computer, or the clipboard tool is missing (Linux needs wl-copy or xclip).",
+    );
   }
   return { copied: true };
 }
 
 /** Puts the contents of a plain-text file on the clipboard as text. */
-export async function copyTextFileToClipboard(ctx: FmContext, input: unknown): Promise<{ copied: true; chars: number; lines: number }> {
+export async function copyTextFileToClipboard(
+  ctx: FmContext,
+  input: unknown,
+): Promise<{ copied: true; chars: number; lines: number }> {
   const { file, size } = await regularFile(ctx, input, "text");
-  if (size > MAX_CLIP_TEXT_BYTES) throw new FmError("TOO_BIG", `That file is ${formatSize(size)}, which is more than the ${formatSize(MAX_CLIP_TEXT_BYTES)} that can be copied as text. Open it in the code editor and copy the part you need.`);
+  if (size > MAX_CLIP_TEXT_BYTES)
+    throw new FmError(
+      "TOO_BIG",
+      `That file is ${formatSize(size)}, which is more than the ${formatSize(MAX_CLIP_TEXT_BYTES)} that can be copied as text. Open it in the code editor and copy the part you need.`,
+    );
   let bytes: Buffer;
   try {
     bytes = await fsp.readFile(file);
@@ -66,16 +121,32 @@ export async function copyTextFileToClipboard(ctx: FmContext, input: unknown): P
     if (bytes.subarray(0, 8192).includes(0)) throw new Error("binary");
     text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
   } catch {
-    throw new FmError("NOT_TEXT", "This file isn't plain UTF-8 text, so it can't be copied as text.");
+    throw new FmError(
+      "NOT_TEXT",
+      "This file isn't plain UTF-8 text, so it can't be copied as text.",
+    );
   }
   if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
-  if (text === "") throw new FmError("EMPTY", "That file is empty, so there is nothing to copy.");
-  if (!ctx.clipboard.writeText(text)) throw new FmError("CLIPBOARD_FAILED", "The text couldn't be put on the clipboard. The clipboard tool may be missing (Linux needs wl-copy, xclip or xsel).");
-  return { copied: true, chars: text.length, lines: text.split("\n").length - (text.endsWith("\n") ? 1 : 0) };
+  if (text === "")
+    throw new FmError(
+      "EMPTY",
+      "That file is empty, so there is nothing to copy.",
+    );
+  if (!ctx.clipboard.writeText(text))
+    throw new FmError(
+      "CLIPBOARD_FAILED",
+      "The text couldn't be put on the clipboard. The clipboard tool may be missing (Linux needs wl-copy, xclip or xsel).",
+    );
+  return {
+    copied: true,
+    chars: text.length,
+    lines: text.split("\n").length - (text.endsWith("\n") ? 1 : 0),
+  };
 }
 
 function nextAvailableFilePath(dir: string, preferredName: string): string {
-  const cleanName = preferredName.replace(/[/\\]/g, "_").trim() || "Clipboard.png";
+  const cleanName =
+    preferredName.replace(/[/\\]/g, "_").trim() || "Clipboard.png";
   const candidate0 = nodePath.join(dir, cleanName);
   if (!existsSync(candidate0)) return candidate0;
   const [stem, ext] = splitName(cleanName);
@@ -87,7 +158,10 @@ function nextAvailableFilePath(dir: string, preferredName: string): string {
 }
 
 function resolveDirInput(ctx: FmContext, raw: unknown): string {
-  const s = typeof raw === "string" && raw.trim() ? raw.trim() : ctx.sandboxRoot || ctx.home;
+  const s =
+    typeof raw === "string" && raw.trim()
+      ? raw.trim()
+      : ctx.sandboxRoot || ctx.home;
   if (nodePath.isAbsolute(s) || /^[A-Za-z]:[\\/]/.test(s)) {
     return absolutePath(ctx, s);
   }
@@ -97,26 +171,45 @@ function resolveDirInput(ctx: FmContext, raw: unknown): string {
 /** Saves an image from the system clipboard (or provided base64 PNG) as a new .png file in `dirPath`. */
 export async function pasteClipboardImageToFile(
   ctx: FmContext,
-  payload: { dirPath?: string; path?: string; base64Png?: string; fileName?: string },
+  payload: {
+    dirPath?: string;
+    path?: string;
+    base64Png?: string;
+    fileName?: string;
+  },
 ): Promise<{ saved: true; path: string; name: string; size: number }> {
   const dir = resolveDirInput(ctx, payload?.dirPath || payload?.path);
   await assertCreatable(ctx, dir);
 
-  const stamp = new Date().toISOString().slice(0, 19).replace(/T/, "-").replace(/:/g, "");
-  const defaultName = payload?.fileName && String(payload.fileName).trim()
-    ? String(payload.fileName).trim().replace(/(\.png)?$/i, ".png")
-    : `Clipboard-${stamp}.png`;
+  const stamp = new Date()
+    .toISOString()
+    .slice(0, 19)
+    .replace(/T/, "-")
+    .replace(/:/g, "");
+  const defaultName =
+    payload?.fileName && String(payload.fileName).trim()
+      ? String(payload.fileName)
+          .trim()
+          .replace(/(\.png)?$/i, ".png")
+      : `Clipboard-${stamp}.png`;
   const targetPath = nextAvailableFilePath(dir, defaultName);
 
   if (typeof payload?.base64Png === "string" && payload.base64Png.trim()) {
-    const cleanB64 = payload.base64Png.trim().replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/i, "");
+    const cleanB64 = payload.base64Png
+      .trim()
+      .replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/i, "");
     const buf = Buffer.from(cleanB64, "base64");
     if (buf.length === 0) {
       throw new FmError("EMPTY_IMAGE", "The clipboard image data was empty.");
     }
     await fsp.writeFile(targetPath, buf);
     const st = await fsp.stat(targetPath);
-    return { saved: true, path: targetPath, name: nodePath.basename(targetPath), size: st.size };
+    return {
+      saved: true,
+      path: targetPath,
+      name: nodePath.basename(targetPath),
+      size: st.size,
+    };
   }
 
   let wrote = false;
@@ -142,19 +235,33 @@ export async function pasteClipboardImageToFile(
       "  end try",
       "end run",
     ].join("\n");
-    const r = spawnSync("osascript", ["-e", appleScript, targetPath], { stdio: "ignore", timeout: 6000 });
+    const r = spawnSync("osascript", ["-e", appleScript, targetPath], {
+      stdio: "ignore",
+      timeout: 6000,
+    });
     wrote = r.status === 0 && existsSync(targetPath);
   } else if (ctx.platform === "win32") {
     const ps = `$img = Get-Clipboard -Format Image; if ($null -eq $img) { exit 2 }; $img.Save(${JSON.stringify(targetPath)}, [System.Drawing.Imaging.ImageFormat]::Png)`;
-    const r = spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", ps], { stdio: "ignore", timeout: 6000 });
+    const r = spawnSync(
+      "powershell",
+      ["-NoProfile", "-NonInteractive", "-Command", ps],
+      { stdio: "ignore", timeout: 6000 },
+    );
     wrote = r.status === 0 && existsSync(targetPath);
   } else {
-    const wl = spawnSync("wl-paste", ["--type", "image/png"], { maxBuffer: MAX_CLIP_IMAGE_BYTES, timeout: 5000 });
+    const wl = spawnSync("wl-paste", ["--type", "image/png"], {
+      maxBuffer: MAX_CLIP_IMAGE_BYTES,
+      timeout: 5000,
+    });
     if (wl.status === 0 && wl.stdout && wl.stdout.length > 0) {
       await fsp.writeFile(targetPath, wl.stdout);
       wrote = true;
     } else {
-      const xc = spawnSync("xclip", ["-selection", "clipboard", "-t", "image/png", "-o"], { maxBuffer: MAX_CLIP_IMAGE_BYTES, timeout: 5000 });
+      const xc = spawnSync(
+        "xclip",
+        ["-selection", "clipboard", "-t", "image/png", "-o"],
+        { maxBuffer: MAX_CLIP_IMAGE_BYTES, timeout: 5000 },
+      );
       if (xc.status === 0 && xc.stdout && xc.stdout.length > 0) {
         await fsp.writeFile(targetPath, xc.stdout);
         wrote = true;
@@ -163,15 +270,26 @@ export async function pasteClipboardImageToFile(
   }
 
   if (!wrote || !existsSync(targetPath)) {
-    throw new FmError("NO_CLIPBOARD_IMAGE", "There is no picture on the clipboard right now. Copy a screenshot or image first, then try again.");
+    throw new FmError(
+      "NO_CLIPBOARD_IMAGE",
+      "There is no picture on the clipboard right now. Copy a screenshot or image first, then try again.",
+    );
   }
 
   const st = await fsp.stat(targetPath);
   if (st.size === 0) {
     await fsp.unlink(targetPath).catch(() => {});
-    throw new FmError("NO_CLIPBOARD_IMAGE", "There is no picture on the clipboard right now.");
+    throw new FmError(
+      "NO_CLIPBOARD_IMAGE",
+      "There is no picture on the clipboard right now.",
+    );
   }
-  return { saved: true, path: targetPath, name: nodePath.basename(targetPath), size: st.size };
+  return {
+    saved: true,
+    path: targetPath,
+    name: nodePath.basename(targetPath),
+    size: st.size,
+  };
 }
 
 const TIDY_CATEGORY_FOLDERS = new Set([
@@ -194,9 +312,40 @@ function classifyTidyCategory(name: string, isDocPkg: boolean): string | null {
 
   if (
     [
-      "epub", "ibooks", "pdf", "docx", "doc", "odt", "rtf", "rtfd", "textbundle", "scriv", "ulysses",
-      "pages", "numbers", "key", "oo3", "mindnode", "graffle", "pptx", "ppsx", "odp", "xlsx", "xlsm",
-      "ods", "txt", "md", "markdown", "rst", "org", "adoc", "tex", "fb2", "mobi", "azw", "azw3",
+      "epub",
+      "ibooks",
+      "pdf",
+      "docx",
+      "doc",
+      "odt",
+      "rtf",
+      "rtfd",
+      "textbundle",
+      "scriv",
+      "ulysses",
+      "pages",
+      "numbers",
+      "key",
+      "oo3",
+      "mindnode",
+      "graffle",
+      "pptx",
+      "ppsx",
+      "odp",
+      "xlsx",
+      "xlsm",
+      "ods",
+      "txt",
+      "md",
+      "markdown",
+      "rst",
+      "org",
+      "adoc",
+      "tex",
+      "fb2",
+      "mobi",
+      "azw",
+      "azw3",
     ].includes(ext) ||
     info.kind === "document"
   ) {
@@ -204,34 +353,127 @@ function classifyTidyCategory(name: string, isDocPkg: boolean): string | null {
   }
   if (
     info.kind === "image" ||
-    ["png", "jpg", "jpeg", "gif", "webp", "heic", "svg", "bmp", "tiff", "tif", "avif", "ico", "psd", "raw", "cr2", "nef"].includes(ext)
+    [
+      "png",
+      "jpg",
+      "jpeg",
+      "gif",
+      "webp",
+      "heic",
+      "svg",
+      "bmp",
+      "tiff",
+      "tif",
+      "avif",
+      "ico",
+      "psd",
+      "raw",
+      "cr2",
+      "nef",
+    ].includes(ext)
   ) {
     return "Images & Screenshots";
   }
   if (
     info.kind === "audio" ||
-    ["mp3", "wav", "m4a", "flac", "ogg", "opus", "aac", "aiff", "wma", "mid", "midi"].includes(ext)
+    [
+      "mp3",
+      "wav",
+      "m4a",
+      "flac",
+      "ogg",
+      "opus",
+      "aac",
+      "aiff",
+      "wma",
+      "mid",
+      "midi",
+    ].includes(ext)
   ) {
     return "Audio & Music";
   }
   if (
     info.kind === "video" ||
-    ["mp4", "mov", "mkv", "webm", "avi", "m4v", "wmv", "flv", "mpeg", "mpg"].includes(ext)
+    [
+      "mp4",
+      "mov",
+      "mkv",
+      "webm",
+      "avi",
+      "m4v",
+      "wmv",
+      "flv",
+      "mpeg",
+      "mpg",
+    ].includes(ext)
   ) {
     return "Videos";
   }
   if (
     info.kind === "archive" ||
-    ["zip", "tar", "gz", "tgz", "7z", "rar", "bz2", "xz", "zst", "dmg", "pkg", "iso", "deb", "rpm", "msi", "apk"].includes(ext)
+    [
+      "zip",
+      "tar",
+      "gz",
+      "tgz",
+      "7z",
+      "rar",
+      "bz2",
+      "xz",
+      "zst",
+      "dmg",
+      "pkg",
+      "iso",
+      "deb",
+      "rpm",
+      "msi",
+      "apk",
+    ].includes(ext)
   ) {
     return "Archives & Installers";
   }
   if (
     info.kind === "code" ||
     [
-      "json", "jsonl", "csv", "tsv", "yaml", "yml", "toml", "xml", "ini", "env", "sql", "sqlite", "sqlite3", "db",
-      "py", "ts", "tsx", "js", "jsx", "mjs", "cjs", "rs", "go", "java", "c", "cpp", "h", "cs", "rb", "php", "sh", "zsh",
-      "html", "css", "scss", "ipynb", "playground", "playgroundbook", "log",
+      "json",
+      "jsonl",
+      "csv",
+      "tsv",
+      "yaml",
+      "yml",
+      "toml",
+      "xml",
+      "ini",
+      "env",
+      "sql",
+      "sqlite",
+      "sqlite3",
+      "db",
+      "py",
+      "ts",
+      "tsx",
+      "js",
+      "jsx",
+      "mjs",
+      "cjs",
+      "rs",
+      "go",
+      "java",
+      "c",
+      "cpp",
+      "h",
+      "cs",
+      "rb",
+      "php",
+      "sh",
+      "zsh",
+      "html",
+      "css",
+      "scss",
+      "ipynb",
+      "playground",
+      "playgroundbook",
+      "log",
     ].includes(ext)
   ) {
     return "Code & Data";
@@ -263,7 +505,10 @@ export async function tidyFolder(
 
   const stat = await fsp.stat(dir);
   if (!stat.isDirectory()) {
-    throw new FmError("NOT_A_DIRECTORY", "Select a folder to tidy and organize.");
+    throw new FmError(
+      "NOT_A_DIRECTORY",
+      "Select a folder to tidy and organize.",
+    );
   }
 
   const dirents = await fsp.readdir(dir, { withFileTypes: true });
@@ -342,16 +587,26 @@ export interface VerifyItemResult {
   actual: string | null;
 }
 
-async function computeFileDigest(filePath: string, algorithm: "sha256" | "sha1" | "md5"): Promise<{ hash: string; size: number }> {
+async function computeFileDigest(
+  filePath: string,
+  algorithm: "sha256" | "sha1" | "md5",
+): Promise<{ hash: string; size: number }> {
   const st = await fsp.stat(filePath);
-  if (!st.isFile()) throw new FmError("NOT_A_FILE", `"${nodePath.basename(filePath)}" is not a regular file.`);
+  if (!st.isFile())
+    throw new FmError(
+      "NOT_A_FILE",
+      `"${nodePath.basename(filePath)}" is not a regular file.`,
+    );
   const h = createHash(algorithm);
   const buf = await fsp.readFile(filePath);
   h.update(buf);
   return { hash: h.digest("hex"), size: st.size };
 }
 
-function detectHashAlgorithm(hashHex: string, fallback: "sha256" | "sha1" | "md5" = "sha256"): "sha256" | "sha1" | "md5" {
+function detectHashAlgorithm(
+  hashHex: string,
+  fallback: "sha256" | "sha1" | "md5" = "sha256",
+): "sha256" | "sha1" | "md5" {
   const clean = hashHex.trim();
   if (clean.length === 32) return "md5";
   if (clean.length === 40) return "sha1";
@@ -362,7 +617,12 @@ function detectHashAlgorithm(hashHex: string, fallback: "sha256" | "sha1" | "md5
 /** Generates a SHA-256 / SHA-1 / MD5 checksum manifest for one or more files (or a folder's files). */
 export async function generateChecksums(
   ctx: FmContext,
-  payload: { paths?: unknown; algorithm?: string; saveFile?: boolean; outputName?: string },
+  payload: {
+    paths?: unknown;
+    algorithm?: string;
+    saveFile?: boolean;
+    outputName?: string;
+  },
 ): Promise<{
   algorithm: "sha256" | "sha1" | "md5";
   items: ChecksumItemResult[];
@@ -372,9 +632,14 @@ export async function generateChecksums(
   undo: { action: "delete"; paths: string[] } | null;
 }> {
   const rawPaths = Array.isArray(payload?.paths) ? payload.paths : [];
-  if (rawPaths.length === 0) throw new FmError("BAD_REQUEST", "Select at least one file to generate a checksum manifest.");
+  if (rawPaths.length === 0)
+    throw new FmError(
+      "BAD_REQUEST",
+      "Select at least one file to generate a checksum manifest.",
+    );
   const algoRaw = String(payload?.algorithm || "sha256").toLowerCase();
-  const algorithm: "sha256" | "sha1" | "md5" = algoRaw === "md5" ? "md5" : algoRaw === "sha1" ? "sha1" : "sha256";
+  const algorithm: "sha256" | "sha1" | "md5" =
+    algoRaw === "md5" ? "md5" : algoRaw === "sha1" ? "sha1" : "sha256";
 
   const targetFiles: string[] = [];
   for (const raw of rawPaths) {
@@ -393,7 +658,10 @@ export async function generateChecksums(
     }
   }
   if (targetFiles.length === 0) {
-    throw new FmError("NO_FILES", "No regular files were found in the selection to hash.");
+    throw new FmError(
+      "NO_FILES",
+      "No regular files were found in the selection to hash.",
+    );
   }
 
   const items: ChecksumItemResult[] = [];
@@ -402,7 +670,8 @@ export async function generateChecksums(
     items.push({ name: nodePath.basename(f), path: f, size, hash });
   }
 
-  const manifestText = items.map((it) => `${it.hash}  ${it.name}`).join("\n") + "\n";
+  const manifestText =
+    items.map((it) => `${it.hash}  ${it.name}`).join("\n") + "\n";
   let savedPath: string | null = null;
   let savedName: string | null = null;
   let undo: { action: "delete"; paths: string[] } | null = null;
@@ -410,11 +679,12 @@ export async function generateChecksums(
   if (payload?.saveFile !== false) {
     const parentDir = nodePath.dirname(items[0]!.path);
     await assertCreatable(ctx, parentDir);
-    const defaultName = payload?.outputName && String(payload.outputName).trim()
-      ? String(payload.outputName).trim()
-      : items.length === 1
-        ? `${items[0]!.name}.${algorithm}`
-        : `${algorithm.toUpperCase()}SUMS`;
+    const defaultName =
+      payload?.outputName && String(payload.outputName).trim()
+        ? String(payload.outputName).trim()
+        : items.length === 1
+          ? `${items[0]!.name}.${algorithm}`
+          : `${algorithm.toUpperCase()}SUMS`;
     savedPath = nextAvailableFilePath(parentDir, defaultName);
     savedName = nodePath.basename(savedPath);
     await fsp.writeFile(savedPath, manifestText, "utf8");
@@ -440,15 +710,25 @@ export async function verifyChecksums(
   const targetPath = absolutePath(ctx, payload?.path);
   const st = await fsp.stat(targetPath).catch(() => null);
   if (!st || !st.isFile()) {
-    throw new FmError("NOT_A_FILE", "Select a file or checksum manifest (.sha256, .md5, SHA256SUMS) to verify.");
+    throw new FmError(
+      "NOT_A_FILE",
+      "Select a file or checksum manifest (.sha256, .md5, SHA256SUMS) to verify.",
+    );
   }
   const base = nodePath.basename(targetPath);
   const dir = nodePath.dirname(targetPath);
-  const expectedRaw = typeof payload?.expectedHash === "string" ? payload.expectedHash.trim().toLowerCase() : "";
+  const expectedRaw =
+    typeof payload?.expectedHash === "string"
+      ? payload.expectedHash.trim().toLowerCase()
+      : "";
 
   if (expectedRaw) {
     const cleanExpected = expectedRaw.replace(/[^a-f0-9]/g, "");
-    if (!cleanExpected) throw new FmError("BAD_HASH", "Enter a valid hexadecimal hash (MD5, SHA-1, or SHA-256) to compare against.");
+    if (!cleanExpected)
+      throw new FmError(
+        "BAD_HASH",
+        "Enter a valid hexadecimal hash (MD5, SHA-1, or SHA-256) to compare against.",
+      );
     const algorithm = payload?.algorithm
       ? (String(payload.algorithm).toLowerCase() as "sha256" | "sha1" | "md5")
       : detectHashAlgorithm(cleanExpected, "sha256");
@@ -461,7 +741,14 @@ export async function verifyChecksums(
       passed: ok ? 1 : 0,
       failed: ok ? 0 : 1,
       missing: 0,
-      results: [{ name: base, status: ok ? "ok" : "mismatch", expected: cleanExpected, actual }],
+      results: [
+        {
+          name: base,
+          status: ok ? "ok" : "mismatch",
+          expected: cleanExpected,
+          actual,
+        },
+      ],
     };
   }
 
@@ -474,13 +761,20 @@ export async function verifyChecksums(
   let manifestPath = targetPath;
   let singleTargetForSidecar: string | null = null;
   if (!isManifestFile) {
-    const sidecars = [`${targetPath}.sha256`, `${targetPath}.sha1`, `${targetPath}.md5`];
+    const sidecars = [
+      `${targetPath}.sha256`,
+      `${targetPath}.sha1`,
+      `${targetPath}.md5`,
+    ];
     const foundSidecar = sidecars.find((p) => existsSync(p));
     if (foundSidecar) {
       manifestPath = foundSidecar;
       singleTargetForSidecar = base;
     } else {
-      throw new FmError("NEEDS_EXPECTED_HASH", `No sidecar .sha256 file was found next to "${base}". Provide an expected hash to verify this file.`);
+      throw new FmError(
+        "NEEDS_EXPECTED_HASH",
+        `No sidecar .sha256 file was found next to "${base}". Provide an expected hash to verify this file.`,
+      );
     }
   } else if (/\.(sha256|sha1|md5)$/i.test(lowerBase)) {
     const stripped = base.replace(/\.(sha256|sha1|md5)$/i, "");
@@ -489,47 +783,77 @@ export async function verifyChecksums(
     }
   }
 
-  const rawText = (await fsp.readFile(manifestPath, "utf8")).replace(/^\uFEFF/, "");
-  const lines = rawText.split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.startsWith("#"));
+  const rawText = (await fsp.readFile(manifestPath, "utf8")).replace(
+    /^\uFEFF/,
+    "",
+  );
+  const lines = rawText
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith("#"));
   if (lines.length === 0) {
-    throw new FmError("EMPTY_MANIFEST", `"${nodePath.basename(manifestPath)}" does not contain any checksum lines.`);
+    throw new FmError(
+      "EMPTY_MANIFEST",
+      `"${nodePath.basename(manifestPath)}" does not contain any checksum lines.`,
+    );
   }
 
   const extAlgo: "sha256" | "sha1" | "md5" =
     manifestPath.toLowerCase().endsWith(".md5") || lowerBase.includes("md5")
       ? "md5"
-      : manifestPath.toLowerCase().endsWith(".sha1") || lowerBase.includes("sha1")
+      : manifestPath.toLowerCase().endsWith(".sha1") ||
+          lowerBase.includes("sha1")
         ? "sha1"
         : "sha256";
 
-  const entriesToVerify: Array<{ fileName: string; expected: string; algo: "sha256" | "sha1" | "md5" }> = [];
+  const entriesToVerify: Array<{
+    fileName: string;
+    expected: string;
+    algo: "sha256" | "sha1" | "md5";
+  }> = [];
   for (const line of lines) {
     // Standard GNU format: <hex>  <filename> or <hex> *<filename>
     const gnu = /^([a-fA-F0-9]{32,64})\s+\*?(.+)$/.exec(line);
     if (gnu) {
       const hash = gnu[1]!.toLowerCase();
       const fileName = gnu[2]!.trim();
-      entriesToVerify.push({ fileName, expected: hash, algo: detectHashAlgorithm(hash, extAlgo) });
+      entriesToVerify.push({
+        fileName,
+        expected: hash,
+        algo: detectHashAlgorithm(hash, extAlgo),
+      });
       continue;
     }
     // BSD format: SHA256 (filename) = <hex>
-    const bsd = /^(?:SHA256|SHA1|MD5)\s*\((.+)\)\s*=\s*([a-fA-F0-9]{32,64})$/i.exec(line);
+    const bsd =
+      /^(?:SHA256|SHA1|MD5)\s*\((.+)\)\s*=\s*([a-fA-F0-9]{32,64})$/i.exec(line);
     if (bsd) {
       const fileName = bsd[1]!.trim();
       const hash = bsd[2]!.toLowerCase();
-      entriesToVerify.push({ fileName, expected: hash, algo: detectHashAlgorithm(hash, extAlgo) });
+      entriesToVerify.push({
+        fileName,
+        expected: hash,
+        algo: detectHashAlgorithm(hash, extAlgo),
+      });
       continue;
     }
     // Bare single hash inside a sidecar file (`release.zip.sha256` containing only `<hex>`)
     const bare = /^([a-fA-F0-9]{32,64})$/.exec(line);
     if (bare && singleTargetForSidecar) {
       const hash = bare[1]!.toLowerCase();
-      entriesToVerify.push({ fileName: singleTargetForSidecar, expected: hash, algo: detectHashAlgorithm(hash, extAlgo) });
+      entriesToVerify.push({
+        fileName: singleTargetForSidecar,
+        expected: hash,
+        algo: detectHashAlgorithm(hash, extAlgo),
+      });
     }
   }
 
   if (entriesToVerify.length === 0) {
-    throw new FmError("BAD_MANIFEST", `Could not parse any valid checksum lines in "${nodePath.basename(manifestPath)}".`);
+    throw new FmError(
+      "BAD_MANIFEST",
+      `Could not parse any valid checksum lines in "${nodePath.basename(manifestPath)}".`,
+    );
   }
 
   const results: VerifyItemResult[] = [];
@@ -543,21 +867,41 @@ export async function verifyChecksums(
     const candidate = absolutePath(ctx, nodePath.join(manifestDir, safeRel));
     if (!existsSync(candidate)) {
       missing++;
-      results.push({ name: item.fileName, status: "missing", expected: item.expected, actual: null });
+      results.push({
+        name: item.fileName,
+        status: "missing",
+        expected: item.expected,
+        actual: null,
+      });
       continue;
     }
     try {
       const { hash: actual } = await computeFileDigest(candidate, item.algo);
       if (actual.toLowerCase() === item.expected) {
         passed++;
-        results.push({ name: item.fileName, status: "ok", expected: item.expected, actual });
+        results.push({
+          name: item.fileName,
+          status: "ok",
+          expected: item.expected,
+          actual,
+        });
       } else {
         failed++;
-        results.push({ name: item.fileName, status: "mismatch", expected: item.expected, actual });
+        results.push({
+          name: item.fileName,
+          status: "mismatch",
+          expected: item.expected,
+          actual,
+        });
       }
     } catch {
       missing++;
-      results.push({ name: item.fileName, status: "missing", expected: item.expected, actual: null });
+      results.push({
+        name: item.fileName,
+        status: "missing",
+        expected: item.expected,
+        actual: null,
+      });
     }
   }
 
@@ -586,7 +930,13 @@ export interface InventoryEntry {
 /** Exports a directory's structure and file inventory as ASCII Tree, Markdown Table, CSV, or JSON. */
 export async function exportFolderInventory(
   ctx: FmContext,
-  payload: { path?: unknown; format?: string; maxDepth?: number; includeHidden?: boolean; saveFile?: boolean },
+  payload: {
+    path?: unknown;
+    format?: string;
+    maxDepth?: number;
+    includeHidden?: boolean;
+    saveFile?: boolean;
+  },
 ): Promise<{
   folderName: string;
   folderPath: string;
@@ -603,15 +953,21 @@ export async function exportFolderInventory(
   const dir = resolveDirInput(ctx, payload?.path);
   const st = await fsp.stat(dir).catch(() => null);
   if (!st || !st.isDirectory()) {
-    throw new FmError("NOT_A_DIRECTORY", "Select a folder to export its directory tree or inventory.");
+    throw new FmError(
+      "NOT_A_DIRECTORY",
+      "Select a folder to export its directory tree or inventory.",
+    );
   }
 
   const fmtRaw = String(payload?.format || "tree").toLowerCase();
   const format: "tree" | "markdown" | "csv" | "json" =
-    fmtRaw === "markdown" || fmtRaw === "md" ? "markdown"
-    : fmtRaw === "csv" ? "csv"
-    : fmtRaw === "json" ? "json"
-    : "tree";
+    fmtRaw === "markdown" || fmtRaw === "md"
+      ? "markdown"
+      : fmtRaw === "csv"
+        ? "csv"
+        : fmtRaw === "json"
+          ? "json"
+          : "tree";
   const maxDepth = Math.max(1, Math.min(6, Number(payload?.maxDepth) || 3));
   const includeHidden = payload?.includeHidden === true;
   const maxItems = 500;
@@ -623,18 +979,29 @@ export async function exportFolderInventory(
   let totalBytes = 0;
   let truncated = false;
 
-  async function walk(currentDir: string, relPrefix: string, depth: number, treePrefix: string) {
+  async function walk(
+    currentDir: string,
+    relPrefix: string,
+    depth: number,
+    treePrefix: string,
+  ) {
     if (depth > maxDepth) return;
     if (entries.length >= maxItems) {
       truncated = true;
       return;
     }
-    const dirents = await fsp.readdir(currentDir, { withFileTypes: true }).catch(() => []);
+    const dirents = await fsp
+      .readdir(currentDir, { withFileTypes: true })
+      .catch(() => []);
     const filtered = dirents
       .filter((d) => includeHidden || !d.name.startsWith("."))
       .sort((a, b) => {
-        if (a.isDirectory() !== b.isDirectory()) return a.isDirectory() ? -1 : 1;
-        return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
+        if (a.isDirectory() !== b.isDirectory())
+          return a.isDirectory() ? -1 : 1;
+        return a.name.localeCompare(b.name, undefined, {
+          numeric: true,
+          sensitivity: "base",
+        });
       });
 
     for (let i = 0; i < filtered.length; i++) {
@@ -649,7 +1016,12 @@ export async function exportFolderInventory(
       const itemStat = await fsp.stat(fullPath).catch(() => null);
       const isDir = d.isDirectory();
       const size = !isDir && itemStat ? itemStat.size : 0;
-      const mtimeIso = itemStat ? new Date(itemStat.mtimeMs).toISOString().slice(0, 19).replace("T", " ") : "";
+      const mtimeIso = itemStat
+        ? new Date(itemStat.mtimeMs)
+            .toISOString()
+            .slice(0, 19)
+            .replace("T", " ")
+        : "";
 
       if (isDir) totalFolders++;
       else {
@@ -669,7 +1041,9 @@ export async function exportFolderInventory(
 
       const branch = isLast ? "└── " : "├── ";
       const childPrefix = treePrefix + (isLast ? "    " : "│   ");
-      treeLines.push(`${treePrefix}${branch}${d.name}${isDir ? "/" : ` (${formatSize(size)})`}`);
+      treeLines.push(
+        `${treePrefix}${branch}${d.name}${isDir ? "/" : ` (${formatSize(size)})`}`,
+      );
 
       if (isDir && depth < maxDepth) {
         await walk(fullPath, relPath, depth + 1, childPrefix);
@@ -683,7 +1057,9 @@ export async function exportFolderInventory(
   let content = "";
   if (format === "tree") {
     treeLines.push("");
-    treeLines.push(`${totalFolders} folder${totalFolders === 1 ? "" : "s"}, ${totalFiles} file${totalFiles === 1 ? "" : "s"}, ${formatSize(totalBytes)} total${truncated ? " (truncated)" : ""}`);
+    treeLines.push(
+      `${totalFolders} folder${totalFolders === 1 ? "" : "s"}, ${totalFiles} file${totalFiles === 1 ? "" : "s"}, ${formatSize(totalBytes)} total${truncated ? " (truncated)" : ""}`,
+    );
     content = treeLines.join("\n") + "\n";
   } else if (format === "markdown") {
     const md = [
@@ -695,31 +1071,48 @@ export async function exportFolderInventory(
       "",
       "| Path | Kind | Size | Modified |",
       "| :--- | :--- | ---: | :--- |",
-      ...entries.map((e) => `| \`${e.relativePath}${e.isDir ? "/" : ""}\` | ${e.isDir ? "Folder" : "File"} | ${e.sizeFormatted} | ${e.modifiedIso} |`),
+      ...entries.map(
+        (e) =>
+          `| \`${e.relativePath}${e.isDir ? "/" : ""}\` | ${e.isDir ? "Folder" : "File"} | ${e.sizeFormatted} | ${e.modifiedIso} |`,
+      ),
       "",
     ];
     content = md.join("\n");
   } else if (format === "csv") {
     const esc = (s: string) => `"${String(s).replace(/"/g, '""')}"`;
     const rows = [
-      ["Path", "Name", "Type", "Size (Bytes)", "Size", "Modified"].map(esc).join(","),
-      ...entries.map((e) => [e.relativePath, e.name, e.isDir ? "Folder" : "File", String(e.size), e.sizeFormatted, e.modifiedIso].map(esc).join(",")),
+      ["Path", "Name", "Type", "Size (Bytes)", "Size", "Modified"]
+        .map(esc)
+        .join(","),
+      ...entries.map((e) =>
+        [
+          e.relativePath,
+          e.name,
+          e.isDir ? "Folder" : "File",
+          String(e.size),
+          e.sizeFormatted,
+          e.modifiedIso,
+        ]
+          .map(esc)
+          .join(","),
+      ),
     ];
     content = rows.join("\n") + "\n";
   } else {
-    content = JSON.stringify(
-      {
-        folder: folderName,
-        totalFolders,
-        totalFiles,
-        totalBytes,
-        totalSizeFormatted: formatSize(totalBytes),
-        truncated,
-        entries,
-      },
-      null,
-      2,
-    ) + "\n";
+    content =
+      JSON.stringify(
+        {
+          folder: folderName,
+          totalFolders,
+          totalFiles,
+          totalBytes,
+          totalSizeFormatted: formatSize(totalBytes),
+          truncated,
+          entries,
+        },
+        null,
+        2,
+      ) + "\n";
   }
 
   let savedPath: string | null = null;
@@ -728,8 +1121,18 @@ export async function exportFolderInventory(
 
   if (payload?.saveFile === true) {
     await assertCreatable(ctx, dir);
-    const ext = format === "markdown" ? "md" : format === "csv" ? "csv" : format === "json" ? "json" : "txt";
-    const defaultName = `${folderName}-inventory.${ext}`.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const ext =
+      format === "markdown"
+        ? "md"
+        : format === "csv"
+          ? "csv"
+          : format === "json"
+            ? "json"
+            : "txt";
+    const defaultName = `${folderName}-inventory.${ext}`.replace(
+      /[^a-zA-Z0-9._-]/g,
+      "_",
+    );
     savedPath = nextAvailableFilePath(dir, defaultName);
     savedName = nodePath.basename(savedPath);
     await fsp.writeFile(savedPath, content, "utf8");

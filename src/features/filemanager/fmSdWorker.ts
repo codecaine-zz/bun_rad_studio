@@ -6,16 +6,39 @@
 import { createHash } from "crypto";
 import * as fs from "fs";
 import * as nodePath from "path";
-import { isLikelyBinary, parseExtList, passesFileFilter, SD_MAX_FILE_BYTES } from "../../sd_helpers";
+import {
+  isLikelyBinary,
+  parseExtList,
+  passesFileFilter,
+  SD_MAX_FILE_BYTES,
+} from "../../sd_helpers";
 import { unifiedDiff } from "./fmSdDiff";
 import {
-  SD_DEFAULT_EXCLUDES, SD_DIFF_BUDGET, SD_DIFF_LIMITS, SD_MAX_FILES, SD_MAX_REPLACEMENTS, compileSpec, rewriteText,
-  type SdFileResult, type SdFilter, type SdJob, type SdScanOutcome, type SdSkipped, type SdTransformOutcome,
+  SD_DEFAULT_EXCLUDES,
+  SD_DIFF_BUDGET,
+  SD_DIFF_LIMITS,
+  SD_MAX_FILES,
+  SD_MAX_REPLACEMENTS,
+  compileSpec,
+  rewriteText,
+  type SdFileResult,
+  type SdFilter,
+  type SdJob,
+  type SdScanOutcome,
+  type SdSkipped,
+  type SdTransformOutcome,
 } from "./fmSdShared";
 import { FmError } from "./fmPaths";
 
 type Loaded =
-  | { ok: true; text: string; hash: string; size: number; bytes: Buffer; bom: boolean }
+  | {
+      ok: true;
+      text: string;
+      hash: string;
+      size: number;
+      bytes: Buffer;
+      bom: boolean;
+    }
   | { ok: false; why: keyof SdSkipped };
 
 const BOM = Buffer.from([0xef, 0xbb, 0xbf]);
@@ -30,23 +53,36 @@ function load(path: string): Loaded {
     if (st.size > SD_MAX_FILE_BYTES) return { ok: false, why: "large" };
     const bytes = fs.readFileSync(path);
     if (bytes.length > SD_MAX_FILE_BYTES) return { ok: false, why: "large" };
-    if (bytes.includes(0) || isLikelyBinary(bytes)) return { ok: false, why: "binary" };
+    if (bytes.includes(0) || isLikelyBinary(bytes))
+      return { ok: false, why: "binary" };
     let text: string;
     try {
       text = decoder.decode(bytes);
     } catch {
       return { ok: false, why: "notText" };
     }
-    return { ok: true, text, bytes, size: bytes.length, bom: bytes.subarray(0, 3).equals(BOM), hash: createHash("sha256").update(bytes).digest("hex") };
+    return {
+      ok: true,
+      text,
+      bytes,
+      size: bytes.length,
+      bom: bytes.subarray(0, 3).equals(BOM),
+      hash: createHash("sha256").update(bytes).digest("hex"),
+    };
   } catch {
     return { ok: false, why: "unreadable" };
   }
 }
 
 /** The files to look at, in a steady order. Links are never followed; the walk stops at SD_MAX_FILES. */
-function* candidates(targets: string[], filter: SdFilter, skipped: SdSkipped): Generator<string> {
+function* candidates(
+  targets: string[],
+  filter: SdFilter,
+  skipped: SdSkipped,
+): Generator<string> {
   const exts = filter.exts.length ? filter.exts : undefined;
-  const fileOk = (p: string) => passesFileFilter(p, { exts, exclude: filter.exclude });
+  const fileOk = (p: string) =>
+    passesFileFilter(p, { exts, exclude: filter.exclude });
   const dirOk = (p: string) => passesFileFilter(p, { exclude: filter.exclude });
   const seen = new Set<string>();
   const stack: string[] = [...targets].reverse();
@@ -81,13 +117,22 @@ function* candidates(targets: string[], filter: SdFilter, skipped: SdSkipped): G
         let kind: "dir" | "other" | "link" = "other";
         try {
           const cst = fs.lstatSync(child);
-          kind = cst.isSymbolicLink() ? "link" : cst.isDirectory() ? "dir" : "other";
+          kind = cst.isSymbolicLink()
+            ? "link"
+            : cst.isDirectory()
+              ? "dir"
+              : "other";
         } catch {
           skipped.unreadable++;
           continue;
         }
         if (kind === "link") skipped.links++;
-        else if (kind === "dir" && ((filter.defaultExcludes && SD_DEFAULT_EXCLUDES.includes(name)) || !dirOk(child))) continue;
+        else if (
+          kind === "dir" &&
+          ((filter.defaultExcludes && SD_DEFAULT_EXCLUDES.includes(name)) ||
+            !dirOk(child))
+        )
+          continue;
         else stack.push(child);
       }
     }
@@ -96,14 +141,23 @@ function* candidates(targets: string[], filter: SdFilter, skipped: SdSkipped): G
 
 function scan(job: Extract<SdJob, { kind: "scan" }>): SdScanOutcome {
   const c = compileSpec(job.spec);
-  const skipped: SdSkipped = { binary: 0, large: 0, notText: 0, unreadable: 0, links: 0 };
+  const skipped: SdSkipped = {
+    binary: 0,
+    large: 0,
+    notText: 0,
+    unreadable: 0,
+    links: 0,
+  };
   const budget = { left: SD_MAX_REPLACEMENTS };
   const files: SdFileResult[] = [];
   let filesScanned = 0;
   let filesCapped = false;
   let replacementsCapped = false;
   let diffChars = 0;
-  const filter: SdFilter = { ...job.filter, exts: parseExtList(job.filter.exts.join(",")) };
+  const filter: SdFilter = {
+    ...job.filter,
+    exts: parseExtList(job.filter.exts.join(",")),
+  };
   for (const path of candidates(job.targets, filter, skipped)) {
     if (filesScanned >= SD_MAX_FILES) {
       filesCapped = true;
@@ -122,7 +176,18 @@ function scan(job: Extract<SdJob, { kind: "scan" }>): SdScanOutcome {
     }
     if (r.matches === 0) continue;
     const changed = r.final !== f.text;
-    const row: SdFileResult = { path, matches: r.matches, changed, hunks: 0, added: 0, removed: 0, size: f.size, hash: f.hash, diff: "", diffTruncated: false };
+    const row: SdFileResult = {
+      path,
+      matches: r.matches,
+      changed,
+      hunks: 0,
+      added: 0,
+      removed: 0,
+      size: f.size,
+      hash: f.hash,
+      diff: "",
+      diffTruncated: false,
+    };
     if (job.mode === "preview" && changed) {
       const d = unifiedDiff(path, r.before, r.after, SD_DIFF_LIMITS);
       row.hunks = d.hunks;
@@ -138,11 +203,20 @@ function scan(job: Extract<SdJob, { kind: "scan" }>): SdScanOutcome {
     }
     files.push(row);
   }
-  return { files, filesScanned, replacements: SD_MAX_REPLACEMENTS - budget.left, skipped, filesCapped, replacementsCapped };
+  return {
+    files,
+    filesScanned,
+    replacements: SD_MAX_REPLACEMENTS - budget.left,
+    skipped,
+    filesCapped,
+    replacementsCapped,
+  };
 }
 
 /** Prepares the new content of the chosen files, but only for files that still have the content that was previewed. */
-function transform(job: Extract<SdJob, { kind: "transform" }>): SdTransformOutcome {
+function transform(
+  job: Extract<SdJob, { kind: "transform" }>,
+): SdTransformOutcome {
   const c = compileSpec(job.spec);
   const budget = { left: SD_MAX_REPLACEMENTS };
   const items: SdTransformOutcome["items"] = [];
@@ -170,16 +244,28 @@ function transform(job: Extract<SdJob, { kind: "transform" }>): SdTransformOutco
     const body = Buffer.from(r.final, "utf8");
     const updated = f.bom ? Buffer.concat([BOM, body]) : body;
     bytes += f.bytes.length + updated.length;
-    if (bytes > job.maxBytes) throw new FmError("TOO_BIG", `These files add up to more than ${Math.round(job.maxBytes / 1024 / 1024)} MB, which is too much to change (and keep an undo copy of) in one go. Tick fewer files.`);
-    items.push({ path, status: "ok", replacements: r.matches, original: f.bytes, updated });
+    if (bytes > job.maxBytes)
+      throw new FmError(
+        "TOO_BIG",
+        `These files add up to more than ${Math.round(job.maxBytes / 1024 / 1024)} MB, which is too much to change (and keep an undo copy of) in one go. Tick fewer files.`,
+      );
+    items.push({
+      path,
+      status: "ok",
+      replacements: r.matches,
+      original: f.bytes,
+      updated,
+    });
   }
   return { items, replacementsCapped };
 }
 
 function run(job: SdJob): unknown {
   switch (job.kind) {
-    case "scan": return scan(job);
-    case "transform": return transform(job);
+    case "scan":
+      return scan(job);
+    case "transform":
+      return transform(job);
     case "spin": {
       const end = Date.now() + job.ms;
       while (Date.now() < end) {
@@ -195,6 +281,10 @@ g.onmessage = (e: MessageEvent) => {
   try {
     g.postMessage({ ok: true, result: run(e.data as SdJob) });
   } catch (err: any) {
-    g.postMessage({ ok: false, code: typeof err?.code === "string" ? err.code : "UNKNOWN", message: String(err?.message ?? err) });
+    g.postMessage({
+      ok: false,
+      code: typeof err?.code === "string" ? err.code : "UNKNOWN",
+      message: String(err?.message ?? err),
+    });
   }
 };

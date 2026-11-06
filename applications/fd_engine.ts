@@ -8,7 +8,15 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
 
-export type FdFileType = "file" | "directory" | "symlink" | "executable" | "empty" | "socket" | "pipe" | "other";
+export type FdFileType =
+  | "file"
+  | "directory"
+  | "symlink"
+  | "executable"
+  | "empty"
+  | "socket"
+  | "pipe"
+  | "other";
 
 export interface FdItem {
   path: string;
@@ -81,7 +89,9 @@ export function formatHumanSize(bytes: number): string {
 /**
  * Parse human size string (e.g. "+1M", "-500k", "10KB", "2G") into comparison and bytes.
  */
-export function parseSizeFilter(sizeStr: string): { mode: "greater" | "less" | "exact"; bytes: number } | null {
+export function parseSizeFilter(
+  sizeStr: string,
+): { mode: "greater" | "less" | "exact"; bytes: number } | null {
   const trimmed = sizeStr.trim();
   if (!trimmed) return null;
 
@@ -199,13 +209,13 @@ export function formatPermissions(mode: number): string {
   const perms = [
     mode & 0o400 ? "r" : "-",
     mode & 0o200 ? "w" : "-",
-    mode & 0o100 ? (mode & 0o4000 ? "s" : "x") : (mode & 0o4000 ? "S" : "-"),
+    mode & 0o100 ? (mode & 0o4000 ? "s" : "x") : mode & 0o4000 ? "S" : "-",
     mode & 0o040 ? "r" : "-",
     mode & 0o020 ? "w" : "-",
-    mode & 0o010 ? (mode & 0o2000 ? "s" : "x") : (mode & 0o2000 ? "S" : "-"),
+    mode & 0o010 ? (mode & 0o2000 ? "s" : "x") : mode & 0o2000 ? "S" : "-",
     mode & 0o004 ? "r" : "-",
     mode & 0o002 ? "w" : "-",
-    mode & 0o001 ? (mode & 0o1000 ? "t" : "x") : (mode & 0o1000 ? "T" : "-"),
+    mode & 0o001 ? (mode & 0o1000 ? "t" : "x") : mode & 0o1000 ? "T" : "-",
   ];
   return perms.join("");
 }
@@ -214,7 +224,8 @@ export function formatPermissions(mode: number): string {
  * Simple .gitignore rule engine
  */
 class GitignoreMatcher {
-  private rules: { pattern: RegExp; isNegative: boolean; dirOnly: boolean }[] = [];
+  private rules: { pattern: RegExp; isNegative: boolean; dirOnly: boolean }[] =
+    [];
 
   constructor(baseDir: string, ignoreContent?: string) {
     if (ignoreContent) {
@@ -246,7 +257,9 @@ class GitignoreMatcher {
         if (patternClean.includes("/")) {
           regex = globToRegExp(patternClean.replace(/^\//, ""), false);
         } else {
-          regex = new RegExp("(^|/)" + globToRegExp(patternClean, false).source.slice(1));
+          regex = new RegExp(
+            "(^|/)" + globToRegExp(patternClean, false).source.slice(1),
+          );
         }
         this.rules.push({ pattern: regex, isNegative, dirOnly });
       } catch {}
@@ -259,7 +272,10 @@ class GitignoreMatcher {
 
     for (const rule of this.rules) {
       if (rule.dirOnly && !isDir) continue;
-      if (rule.pattern.test(normalized) || rule.pattern.test(path.basename(normalized))) {
+      if (
+        rule.pattern.test(normalized) ||
+        rule.pattern.test(path.basename(normalized))
+      ) {
         ignored = !rule.isNegative;
       }
     }
@@ -276,17 +292,31 @@ class GitignoreMatcher {
  * - `{.}`: path without extension
  * - `{/.}`: basename without extension
  */
-export function interpolateExecCommand(cmdTemplate: string, filePath: string): string {
+export function interpolateExecCommand(
+  cmdTemplate: string,
+  filePath: string,
+): string {
   let tmpl = cmdTemplate.trim();
-  if (!tmpl.includes("{}") && !tmpl.includes("{/}") && !tmpl.includes("{//}") && !tmpl.includes("{.}") && !tmpl.includes("{/.}")) {
+  if (
+    !tmpl.includes("{}") &&
+    !tmpl.includes("{/}") &&
+    !tmpl.includes("{//}") &&
+    !tmpl.includes("{.}") &&
+    !tmpl.includes("{/.}")
+  ) {
     tmpl = `${tmpl} {}`;
   }
 
   const base = path.basename(filePath);
-  const dir = filePath.includes("/") && !filePath.includes("\\") ? path.posix.dirname(filePath) : path.dirname(filePath);
+  const dir =
+    filePath.includes("/") && !filePath.includes("\\")
+      ? path.posix.dirname(filePath)
+      : path.dirname(filePath);
   const ext = path.extname(filePath);
   const baseNoExt = base.slice(0, base.length - ext.length);
-  const pathNoExt = ext ? filePath.slice(0, filePath.length - ext.length) : filePath;
+  const pathNoExt = ext
+    ? filePath.slice(0, filePath.length - ext.length)
+    : filePath;
 
   function quoteIfSpaced(val: string): string {
     if (/[\s"'$`\\;<>|&]/.test(val)) {
@@ -325,29 +355,57 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function expandBatchExecCommand(cmdTemplate: string, filePaths: string[]): string {
+function expandBatchExecCommand(
+  cmdTemplate: string,
+  filePaths: string[],
+): string {
   let tmpl = cmdTemplate.trim();
-  if (!tmpl.includes("{}") && !tmpl.includes("{/}") && !tmpl.includes("{//}") && !tmpl.includes("{.}") && !tmpl.includes("{/.}")) {
+  if (
+    !tmpl.includes("{}") &&
+    !tmpl.includes("{/}") &&
+    !tmpl.includes("{//}") &&
+    !tmpl.includes("{.}") &&
+    !tmpl.includes("{/.}")
+  ) {
     tmpl = `${tmpl} {}`;
   }
 
-  const stringify = (v: string) => /[\s"'$`\\;<>|&]/.test(v) ? `"${v.replace(/(["\\$`])/g, "\\$1")}"` : v;
+  const stringify = (v: string) =>
+    /[\s"'$`\\;<>|&]/.test(v) ? `"${v.replace(/(["\\$`])/g, "\\$1")}"` : v;
   const asPathValue = (value: string) => stringify(value);
 
   const replacements = [
     { token: "{}", value: filePaths.map(asPathValue).join(" ") },
-    { token: "{/}", value: filePaths.map((p) => stringify(path.basename(p))).join(" ") },
-    { token: "{//}", value: filePaths.map((p) => stringify(path.dirname(p))).join(" ") },
-    { token: "{.}", value: filePaths.map((p) => {
-      const base = path.basename(p);
-      const ext = path.extname(p);
-      return stringify(path.join(path.dirname(p), base.slice(0, base.length - ext.length)));
-    }).join(" ") },
-    { token: "{/.}", value: filePaths.map((p) => {
-      const base = path.basename(p);
-      const ext = path.extname(p);
-      return stringify(base.slice(0, base.length - ext.length));
-    }).join(" ") },
+    {
+      token: "{/}",
+      value: filePaths.map((p) => stringify(path.basename(p))).join(" "),
+    },
+    {
+      token: "{//}",
+      value: filePaths.map((p) => stringify(path.dirname(p))).join(" "),
+    },
+    {
+      token: "{.}",
+      value: filePaths
+        .map((p) => {
+          const base = path.basename(p);
+          const ext = path.extname(p);
+          return stringify(
+            path.join(path.dirname(p), base.slice(0, base.length - ext.length)),
+          );
+        })
+        .join(" "),
+    },
+    {
+      token: "{/.}",
+      value: filePaths
+        .map((p) => {
+          const base = path.basename(p);
+          const ext = path.extname(p);
+          return stringify(base.slice(0, base.length - ext.length));
+        })
+        .join(" "),
+    },
   ];
 
   let expanded = tmpl;
@@ -413,18 +471,27 @@ export function executeFdSearch(options: FdSearchOptions = {}): FdSearchResult {
   }
 
   // 2. Prepare Exclusions & Gitignore
-  const defaultExcludes = options.noIgnore ? [] : ["node_modules", ".git", ".DS_Store"];
-  const customExcludes = (options.excludePatterns || []).map(p => p.trim()).filter(Boolean);
+  const defaultExcludes = options.noIgnore
+    ? []
+    : ["node_modules", ".git", ".DS_Store"];
+  const customExcludes = (options.excludePatterns || [])
+    .map((p) => p.trim())
+    .filter(Boolean);
   const allExcludes = [...defaultExcludes, ...customExcludes];
-  const excludeRegexes = allExcludes.map(ex => globToRegExp(ex, false));
+  const excludeRegexes = allExcludes.map((ex) => globToRegExp(ex, false));
 
-  const gitignore = !options.noIgnore ? new GitignoreMatcher(resolvedRoot) : null;
+  const gitignore = !options.noIgnore
+    ? new GitignoreMatcher(resolvedRoot)
+    : null;
 
   // 3. Extension filters
-  const exts = options.extensions?.map(e => e.trim().toLowerCase().replace(/^\./, "")).filter(Boolean);
+  const exts = options.extensions
+    ?.map((e) => e.trim().toLowerCase().replace(/^\./, ""))
+    .filter(Boolean);
 
   // 4. Type filters
-  const allowedTypes = options.types && options.types.length > 0 ? new Set(options.types) : null;
+  const allowedTypes =
+    options.types && options.types.length > 0 ? new Set(options.types) : null;
 
   const results: FdItem[] = [];
   let totalScanned = 0;
@@ -475,7 +542,10 @@ export function executeFdSearch(options: FdSearchOptions = {}): FdSearchResult {
       const normalizedRelPath = relativePath.split(path.sep).join("/");
 
       // Exclude filter
-      const isExcluded = excludeRegexes.some(rx => rx.test(name) || rx.test(relativePath) || rx.test(normalizedRelPath));
+      const isExcluded = excludeRegexes.some(
+        (rx) =>
+          rx.test(name) || rx.test(relativePath) || rx.test(normalizedRelPath),
+      );
       if (isExcluded) {
         continue;
       }
@@ -488,7 +558,11 @@ export function executeFdSearch(options: FdSearchOptions = {}): FdSearchResult {
       let isFile = entry.isFile();
 
       // Gitignore check
-      if (gitignore && (gitignore.isIgnored(relativePath, isDir) || gitignore.isIgnored(normalizedRelPath, isDir))) {
+      if (
+        gitignore &&
+        (gitignore.isIgnored(relativePath, isDir) ||
+          gitignore.isIgnored(normalizedRelPath, isDir))
+      ) {
         continue;
       }
 
@@ -538,14 +612,24 @@ export function executeFdSearch(options: FdSearchOptions = {}): FdSearchResult {
 
       // Depth constraints for matching
       const currentDepth = depth + 1;
-      if (options.minDepth !== undefined && currentDepth < options.minDepth) continue;
-      if (options.maxDepth !== undefined && currentDepth > options.maxDepth) continue;
-      if (options.exactDepth !== undefined && currentDepth !== options.exactDepth) continue;
+      if (options.minDepth !== undefined && currentDepth < options.minDepth)
+        continue;
+      if (options.maxDepth !== undefined && currentDepth > options.maxDepth)
+        continue;
+      if (
+        options.exactDepth !== undefined &&
+        currentDepth !== options.exactDepth
+      )
+        continue;
 
       // Stats check
       let stat: fs.Stats | null = null;
       try {
-        stat = resolvedSymlinkStat ?? (isSymlink && !options.followSymlinks ? fs.lstatSync(fullPath) : fs.statSync(fullPath));
+        stat =
+          resolvedSymlinkStat ??
+          (isSymlink && !options.followSymlinks
+            ? fs.lstatSync(fullPath)
+            : fs.statSync(fullPath));
       } catch {
         continue;
       }
@@ -596,10 +680,21 @@ export function executeFdSearch(options: FdSearchOptions = {}): FdSearchResult {
       }
 
       // Size constraints (like fd, they are about files: the "size" of a folder is a file system detail, 4096 on Linux)
-      if (options.minSizeBytes !== undefined || options.maxSizeBytes !== undefined) {
+      if (
+        options.minSizeBytes !== undefined ||
+        options.maxSizeBytes !== undefined
+      ) {
         if (isDir) continue;
-        if (options.minSizeBytes !== undefined && sizeBytes < options.minSizeBytes) continue;
-        if (options.maxSizeBytes !== undefined && sizeBytes > options.maxSizeBytes) continue;
+        if (
+          options.minSizeBytes !== undefined &&
+          sizeBytes < options.minSizeBytes
+        )
+          continue;
+        if (
+          options.maxSizeBytes !== undefined &&
+          sizeBytes > options.maxSizeBytes
+        )
+          continue;
       }
 
       // Modification time constraints
@@ -622,7 +717,10 @@ export function executeFdSearch(options: FdSearchOptions = {}): FdSearchResult {
       if (options.perm !== undefined && options.perm !== "") {
         const octal = (mode & 0o777).toString(8);
         const permString = formatPermissions(mode);
-        if (!octal.includes(options.perm) && !permString.includes(options.perm)) {
+        if (
+          !octal.includes(options.perm) &&
+          !permString.includes(options.perm)
+        ) {
           continue;
         }
       }
@@ -688,7 +786,10 @@ export function executeFdSearch(options: FdSearchOptions = {}): FdSearchResult {
  * Execute command with interpolation against matching files (-x / -X).
  * Fully synchronous to prevent native desktop Webview runloop deadlocks.
  */
-export function runFdCommand(commandTemplate: string, filePaths: string[]): { stdout: string; stderr: string; exitCode: number } {
+export function runFdCommand(
+  commandTemplate: string,
+  filePaths: string[],
+): { stdout: string; stderr: string; exitCode: number } {
   if (!commandTemplate || filePaths.length === 0) {
     return { stdout: "", stderr: "No command or files provided", exitCode: 1 };
   }
@@ -699,17 +800,31 @@ export function runFdCommand(commandTemplate: string, filePaths: string[]): { st
       ? expandBatchExecCommand(commandTemplate, filePaths)
       : interpolateExecCommand(commandTemplate, filePaths[0] || "");
 
-    const shellArgv = process.platform === "win32"
-      ? [Bun.which("bash") || Bun.which("sh") || "cmd.exe", ...(Bun.which("bash") || Bun.which("sh") ? ["-c", fullCommand] : ["/d", "/s", "/c", fullCommand])]
-      : ["/bin/sh", "-c", fullCommand];
+    const shellArgv =
+      process.platform === "win32"
+        ? [
+            Bun.which("bash") || Bun.which("sh") || "cmd.exe",
+            ...(Bun.which("bash") || Bun.which("sh")
+              ? ["-c", fullCommand]
+              : ["/d", "/s", "/c", fullCommand]),
+          ]
+        : ["/bin/sh", "-c", fullCommand];
     const spawnResult = Bun.spawnSync(shellArgv, {
       stdin: "ignore",
       stdout: "pipe",
       stderr: "pipe",
     });
-    const stdoutBuf = spawnResult.stdout ? Buffer.from(spawnResult.stdout).toString("utf-8") : "";
-    const stderrBuf = spawnResult.stderr ? Buffer.from(spawnResult.stderr).toString("utf-8") : "";
-    return { stdout: stdoutBuf.trim(), stderr: stderrBuf.trim(), exitCode: spawnResult.exitCode };
+    const stdoutBuf = spawnResult.stdout
+      ? Buffer.from(spawnResult.stdout).toString("utf-8")
+      : "";
+    const stderrBuf = spawnResult.stderr
+      ? Buffer.from(spawnResult.stderr).toString("utf-8")
+      : "";
+    return {
+      stdout: stdoutBuf.trim(),
+      stderr: stderrBuf.trim(),
+      exitCode: spawnResult.exitCode,
+    };
   } catch (err: any) {
     return { stdout: "", stderr: err?.message || String(err), exitCode: 1 };
   }

@@ -1,6 +1,6 @@
 /**
  * ⚡ Neon Word Search - Cyber Labyrinth Edition Studio
- * 
+ *
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
  * - AAA cyber word search with Web Audio synthesizer & neon particle visuals
@@ -71,7 +71,10 @@ export function getWordSearchAssetsDir(): string {
 
 /** Where settings and statistics live. WORD_SEARCH_STATE_FILE overrides it (used by tests). */
 export function getWordSearchStatePath(): string {
-  return process.env.WORD_SEARCH_STATE_FILE || resolve(process.cwd(), ".word_search_state.json");
+  return (
+    process.env.WORD_SEARCH_STATE_FILE ||
+    resolve(process.cwd(), ".word_search_state.json")
+  );
 }
 
 /** Read saved settings/statistics; anything unreadable yields an empty object (the page sanitises the rest). */
@@ -80,7 +83,9 @@ export function loadWordSearchState(): { settings?: unknown; stats?: unknown } {
     const file = getWordSearchStatePath();
     if (!existsSync(file)) return {};
     const parsed = JSON.parse(readFileSync(file, "utf8"));
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? { settings: parsed.settings, stats: parsed.stats } : {};
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? { settings: parsed.settings, stats: parsed.stats }
+      : {};
   } catch {
     return {};
   }
@@ -91,7 +96,10 @@ export function saveWordSearchState(raw: unknown): boolean {
   try {
     const data = typeof raw === "string" ? JSON.parse(raw) : raw;
     if (!data || typeof data !== "object" || Array.isArray(data)) return false;
-    const body = JSON.stringify({ settings: (data as any).settings ?? {}, stats: (data as any).stats ?? {} });
+    const body = JSON.stringify({
+      settings: (data as any).settings ?? {},
+      stats: (data as any).stats ?? {},
+    });
     if (body.length > 64 * 1024) return false;
     const file = getWordSearchStatePath();
     const tmp = `${file}.${process.pid}.tmp`;
@@ -110,13 +118,18 @@ export function generateWordSearchStudioHtml(): string {
   const assetsDir = getWordSearchAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Neon Word Search</h1>";
+  let html = existsSync(indexPath)
+    ? readFileSync(indexPath, "utf8")
+    : "<h1>Neon Word Search</h1>";
 
   // The desktop window loads this HTML with no base URL, so relative scripts cannot load: inline the engine,
   // and inject the saved state so settings and records are there on the first frame.
   const enginePath = join(assetsDir, "engine.js");
   if (existsSync(enginePath)) {
-    const stateJson = JSON.stringify(loadWordSearchState()).replace(/</g, "\\u003c");
+    const stateJson = JSON.stringify(loadWordSearchState()).replace(
+      /</g,
+      "\\u003c",
+    );
     const inline = `<script>window.__WS_STATE__ = ${stateJson};</script>\n<script>\n${readFileSync(enginePath, "utf8")}\n</script>`;
     html = html.replace('<script src="engine.js"></script>', () => inline);
   }
@@ -154,7 +167,9 @@ ${getWindowShortcutsScript()}
 /**
  * Starts the Bun.serve server hosting Neon Word Search.
  */
-export function startWordSearchStudioServer(options: WordSearchServerOptions = {}) {
+export function startWordSearchStudioServer(
+  options: WordSearchServerOptions = {},
+) {
   const port = options.port ?? 0;
   const host = options.host ?? "127.0.0.1";
   const assetsDir = getWordSearchAssetsDir();
@@ -183,7 +198,10 @@ export function startWordSearchStudioServer(options: WordSearchServerOptions = {
       if (pathname === "/" || pathname === "/index.html") {
         const html = generateWordSearchStudioHtml();
         return new Response(html, {
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            ...corsHeaders,
+          },
         });
       }
 
@@ -215,7 +233,7 @@ export function startWordSearchStudioServer(options: WordSearchServerOptions = {
             version: "1.0.0",
             timestamp: Date.now(),
           },
-          { headers: corsHeaders }
+          { headers: corsHeaders },
         );
       }
 
@@ -225,8 +243,15 @@ export function startWordSearchStudioServer(options: WordSearchServerOptions = {
         if (req.method === "GET") return Response.json(loadWordSearchState());
         if (req.method === "POST") {
           const origin = req.headers.get("origin");
-          if (origin && new URL(origin).host !== req.headers.get("host")) return new Response("Forbidden", { status: 403 });
-          return req.text().then((text) => (saveWordSearchState(text) ? Response.json({ ok: true }) : new Response("Bad Request", { status: 400 })));
+          if (origin && new URL(origin).host !== req.headers.get("host"))
+            return new Response("Forbidden", { status: 403 });
+          return req
+            .text()
+            .then((text) =>
+              saveWordSearchState(text)
+                ? Response.json({ ok: true })
+                : new Response("Bad Request", { status: 400 }),
+            );
         }
         return new Response("Method Not Allowed", { status: 405 });
       }
@@ -234,11 +259,17 @@ export function startWordSearchStudioServer(options: WordSearchServerOptions = {
       // Fallback: static file in assets directory
       const sanitized = pathname.replace(/^\/+/, "");
       const directCandidate = join(assetsDir, sanitized);
-      if (directCandidate !== assetsDir && !directCandidate.startsWith(assetsDir + "/") && !directCandidate.startsWith(assetsDir + "\\")) {
+      if (
+        directCandidate !== assetsDir &&
+        !directCandidate.startsWith(assetsDir + "/") &&
+        !directCandidate.startsWith(assetsDir + "\\")
+      ) {
         return new Response("Forbidden", { status: 403 });
       }
       if (existsSync(directCandidate)) {
-        return new Response(Bun.file(directCandidate), { headers: corsHeaders });
+        return new Response(Bun.file(directCandidate), {
+          headers: corsHeaders,
+        });
       }
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
@@ -251,7 +282,9 @@ export function startWordSearchStudioServer(options: WordSearchServerOptions = {
 /**
  * Creates the complete native desktop instance of Neon Word Search.
  */
-export function createWordSearchStudio(options: WordSearchStudioOptions = {}): WordSearchStudioInstance {
+export function createWordSearchStudio(
+  options: WordSearchStudioOptions = {},
+): WordSearchStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1280);
@@ -283,7 +316,8 @@ export function createWordSearchStudio(options: WordSearchStudioOptions = {}): W
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -292,7 +326,11 @@ export function createWordSearchStudio(options: WordSearchStudioOptions = {}): W
         app.webview = webview;
         webview.title = title;
         // Lets the page save settings/statistics (the HTML is loaded without an origin, so localStorage is unreliable)
-        try { webview.bind("wsSaveState", (json: string) => { saveWordSearchState(json); }); } catch {}
+        try {
+          webview.bind("wsSaveState", (json: string) => {
+            saveWordSearchState(json);
+          });
+        } catch {}
 
         try {
           if (fullscreen) {
@@ -305,11 +343,15 @@ export function createWordSearchStudio(options: WordSearchStudioOptions = {}): W
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -319,16 +361,24 @@ export function createWordSearchStudio(options: WordSearchStudioOptions = {}): W
         });
 
         webview.setHTML(html);
-        console.log(`⚡ Desktop window open (Fullscreen: ${fullscreen ? 'Enabled' : 'Disabled'}).`);
+        console.log(
+          `⚡ Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`,
+        );
 
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -344,10 +394,13 @@ if (process.argv.includes("--server")) {
   const port = parseInt(process.env.PORT || "0", 10);
   const srv = startWordSearchStudioServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`⚡ Neon Word Search Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `⚡ Neon Word Search Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
+  const fullscreen =
+    !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
   const app = createWordSearchStudio({ fullscreen });
   await app.run();
   process.exit(0);

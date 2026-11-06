@@ -22,13 +22,71 @@ export const SD_PRESET_NONE = "Presets…";
 
 /** Built-in find-and-replace presets for Sd Studio. */
 export const SD_PRESETS: SdPreset[] = [
-  { label: "Trim trailing whitespace", find: "[ \\t]+$", replace: "", flags: "gm", literal: false, wholeWord: false, ignoreCase: false },
-  { label: "Tabs → 4 spaces", find: "\\t", replace: "    ", flags: "g", literal: false, wholeWord: false, ignoreCase: false },
-  { label: "Collapse 3+ blank lines", find: "\\n{3,}", replace: "\\n\\n", flags: "g", literal: false, wholeWord: false, ignoreCase: false, escapes: true },
-  { label: "Windows (CRLF) → Unix (LF)", find: "\\r\\n", replace: "\\n", flags: "g", literal: false, wholeWord: false, ignoreCase: false, escapes: true },
-  { label: "Remove console.log lines", find: "^[ \\t]*console\\.log\\(.*\\);?[ \\t]*\\r?\\n", replace: "", flags: "gm", literal: false, wholeWord: false, ignoreCase: false },
-  { label: "http:// → https://", find: "http://", replace: "https://", flags: "g", literal: true, wholeWord: false, ignoreCase: false },
-  { label: "Rename identifier (whole word)", find: "oldName", replace: "newName", flags: "g", literal: false, wholeWord: true, ignoreCase: false },
+  {
+    label: "Trim trailing whitespace",
+    find: "[ \\t]+$",
+    replace: "",
+    flags: "gm",
+    literal: false,
+    wholeWord: false,
+    ignoreCase: false,
+  },
+  {
+    label: "Tabs → 4 spaces",
+    find: "\\t",
+    replace: "    ",
+    flags: "g",
+    literal: false,
+    wholeWord: false,
+    ignoreCase: false,
+  },
+  {
+    label: "Collapse 3+ blank lines",
+    find: "\\n{3,}",
+    replace: "\\n\\n",
+    flags: "g",
+    literal: false,
+    wholeWord: false,
+    ignoreCase: false,
+    escapes: true,
+  },
+  {
+    label: "Windows (CRLF) → Unix (LF)",
+    find: "\\r\\n",
+    replace: "\\n",
+    flags: "g",
+    literal: false,
+    wholeWord: false,
+    ignoreCase: false,
+    escapes: true,
+  },
+  {
+    label: "Remove console.log lines",
+    find: "^[ \\t]*console\\.log\\(.*\\);?[ \\t]*\\r?\\n",
+    replace: "",
+    flags: "gm",
+    literal: false,
+    wholeWord: false,
+    ignoreCase: false,
+  },
+  {
+    label: "http:// → https://",
+    find: "http://",
+    replace: "https://",
+    flags: "g",
+    literal: true,
+    wholeWord: false,
+    ignoreCase: false,
+  },
+  {
+    label: "Rename identifier (whole word)",
+    find: "oldName",
+    replace: "newName",
+    flags: "g",
+    literal: false,
+    wholeWord: true,
+    ignoreCase: false,
+  },
 ];
 
 /** Finds a built-in `SdPreset` by its dropdown display label. */
@@ -55,8 +113,11 @@ export function globToRegExp(glob: string): RegExp {
   for (let i = 0; i < g.length; i++) {
     const c = g[i]!;
     if (c === "*") {
-      if (g[i + 1] === "*") { out += ".*"; i++; if (g[i + 1] === "/") i++; }
-      else out += "[^/]*";
+      if (g[i + 1] === "*") {
+        out += ".*";
+        i++;
+        if (g[i + 1] === "/") i++;
+      } else out += "[^/]*";
     } else if (c === "?") out += "[^/]";
     else out += c.replace(/[.+^${}()|[\]\\]/g, "\\$&");
   }
@@ -110,7 +171,10 @@ export interface UndoRecord {
 }
 
 /** Keeps only the first snapshot per file so repeated replaces still undo to the true original. */
-export function mergeUndo(existing: UndoRecord[], incoming: UndoRecord[]): UndoRecord[] {
+export function mergeUndo(
+  existing: UndoRecord[],
+  incoming: UndoRecord[],
+): UndoRecord[] {
   const seen = new Set(existing.map((r) => r.filePath));
   return [...existing, ...incoming.filter((r) => !seen.has(r.filePath))];
 }
@@ -124,7 +188,13 @@ export interface ReportRow {
 }
 
 /** Plain-text/Markdown summary of a run for Save As / clipboard. */
-export function formatReport(opts: { find: string; replace: string; mode: string; rows: ReportRow[]; skipped?: number }): string {
+export function formatReport(opts: {
+  find: string;
+  replace: string;
+  mode: string;
+  rows: ReportRow[];
+  skipped?: number;
+}): string {
   const total = opts.rows.reduce((a, r) => a + r.matches, 0);
   const lines = [
     "# Sd Studio report",
@@ -135,9 +205,15 @@ export function formatReport(opts: { find: string; replace: string; mode: string
     `- Files with matches: ${opts.rows.length}`,
     `- Total matches: ${total}`,
   ];
-  if (opts.skipped) lines.push(`- Skipped (binary / too large): ${opts.skipped}`);
-  lines.push("", "| File | Matches | Hunks | Status |", "| --- | ---: | ---: | --- |");
-  for (const r of opts.rows) lines.push(`| ${r.filePath} | ${r.matches} | ${r.hunks} | ${r.status} |`);
+  if (opts.skipped)
+    lines.push(`- Skipped (binary / too large): ${opts.skipped}`);
+  lines.push(
+    "",
+    "| File | Matches | Hunks | Status |",
+    "| --- | ---: | ---: | --- |",
+  );
+  for (const r of opts.rows)
+    lines.push(`| ${r.filePath} | ${r.matches} | ${r.hunks} | ${r.status} |`);
   return lines.join("\n") + "\n";
 }
 
@@ -148,5 +224,7 @@ export function joinDiffs(diffs: string[]): string {
 
 /** Turns \\n, \\t, \\r and \\\\ in a replacement string into real characters ($1 captures are untouched). */
 export function unescapeReplacement(s: string): string {
-  return s.replace(/\\([ntr\\])/g, (_, c) => (c === "n" ? "\n" : c === "t" ? "\t" : c === "r" ? "\r" : "\\"));
+  return s.replace(/\\([ntr\\])/g, (_, c) =>
+    c === "n" ? "\n" : c === "t" ? "\t" : c === "r" ? "\r" : "\\",
+  );
 }

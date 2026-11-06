@@ -21,7 +21,15 @@
 import "./lib/tts_edge_default";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
-import { EDGE_VOICE, FFMPEG, cardHtml, durationOf, fmtTime, screenshotHtml, sh } from "./lib/video_pipeline";
+import {
+  EDGE_VOICE,
+  FFMPEG,
+  cardHtml,
+  durationOf,
+  fmtTime,
+  screenshotHtml,
+  sh,
+} from "./lib/video_pipeline";
 import { chapters as fmChapters } from "./lib/fm_tutorial_script";
 
 const ROOT = process.cwd();
@@ -60,8 +68,10 @@ const EXTERNAL_SECTIONS: ExternalSection[] = [
   {
     id: "23b_databases_masterclass",
     kicker: "Part 2 · Databases Masterclass",
-    title: "All 4 Databases, Cross-Engine Cloning, Bun JS Macros & Studio IDE v2",
-    blurb: "SQLite, MySQL, PostgreSQL, Redis, live cross-engine cloning, Bun JS & visual macros, staging import, ER diagram, schema diff & codegen",
+    title:
+      "All 4 Databases, Cross-Engine Cloning, Bun JS Macros & Studio IDE v2",
+    blurb:
+      "SQLite, MySQL, PostgreSQL, Redis, live cross-engine cloning, Bun JS & visual macros, staging import, ER diagram, schema diff & codegen",
     dir: "databases_masterclass_tutorial",
     label: "Databases Hub",
   },
@@ -69,7 +79,8 @@ const EXTERNAL_SECTIONS: ExternalSection[] = [
     id: "24_sqlite",
     kicker: "Part 3 · SQLite Studio",
     title: "SQLite Studio, step by step",
-    blurb: "Find a database file, browse and edit it, design tables, write SQL, and keep it safe",
+    blurb:
+      "Find a database file, browse and edit it, design tables, write SQL, and keep it safe",
     dir: "sqlite_studio_tutorial",
     label: "SQLite",
   },
@@ -77,7 +88,8 @@ const EXTERNAL_SECTIONS: ExternalSection[] = [
     id: "25_mysql",
     kicker: "Part 4 · MySQL Studio Pro",
     title: "MySQL Studio, step by step",
-    blurb: "Connect to a server, the workbench, the grid, SQL, design, imports and backups",
+    blurb:
+      "Connect to a server, the workbench, the grid, SQL, design, imports and backups",
     dir: "mysql_studio_tutorial",
     label: "MySQL",
   },
@@ -85,7 +97,8 @@ const EXTERNAL_SECTIONS: ExternalSection[] = [
     id: "25b_designer",
     kicker: "Part 5 · SimpleGUI Visual Designer",
     title: "Build a Desktop App With No Code: The Visual Designer",
-    blurb: "101 controls across 11 categories, property inspector, Delphi anchors, events, live preview, 63 themes, CRUD wizard & multi-language code export",
+    blurb:
+      "101 controls across 11 categories, property inspector, Delphi anchors, events, live preview, 63 themes, CRUD wizard & multi-language code export",
     dir: "designer_tutorial",
     label: "Visual Designer",
   },
@@ -93,7 +106,8 @@ const EXTERNAL_SECTIONS: ExternalSection[] = [
     id: "25c_rad",
     kicker: "Part 6 · SimpleGUI RAD & System Utilities",
     title: "Build Desktop Apps Fast With Bun & TypeScript",
-    blurb: "Windows, layouts, controls, parity & enterprise widgets, reactive state, menus, SweetAlert2, 133 themes, SQLite contacts app, 45 RAD modules & single-binary builds",
+    blurb:
+      "Windows, layouts, controls, parity & enterprise widgets, reactive state, menus, SweetAlert2, 133 themes, SQLite contacts app, 45 RAD modules & single-binary builds",
     dir: "rad_tutorial",
     label: "SimpleGUI RAD",
   },
@@ -112,7 +126,12 @@ const SUITE_TOUR_SCENES: SuiteTourScene[] = [
   { id: "13_ship", title: "Bundle and Share Your App" },
 ];
 
-function makeSectionCard(id: string, kicker: string, title: string, blurb: string): string {
+function makeSectionCard(
+  id: string,
+  kicker: string,
+  title: string,
+  blurb: string,
+): string {
   mkdirSync(SEG, { recursive: true });
   mkdirSync(ASSETS, { recursive: true });
   const out = join(SEG, `${id}_card.mp4`);
@@ -151,19 +170,32 @@ function makeSectionCard(id: string, kicker: string, title: string, blurb: strin
   return out;
 }
 
-function externalSegments(sec: ExternalSection): Array<{ file: string; title: string }> {
+function externalSegments(
+  sec: ExternalSection,
+): Array<{ file: string; title: string }> {
   const dir = join(PROD, sec.dir);
   const listFile = join(dir, "segments", "list.txt");
-  if (!existsSync(listFile)) throw new Error(`${sec.id}: ${listFile} is missing; build ${sec.dir} first`);
-  const files = [...readFileSync(listFile, "utf8").matchAll(/^file '(.+)'$/gm)].map((m) => m[1]!);
+  if (!existsSync(listFile))
+    throw new Error(
+      `${sec.id}: ${listFile} is missing; build ${sec.dir} first`,
+    );
+  const files = [
+    ...readFileSync(listFile, "utf8").matchAll(/^file '(.+)'$/gm),
+  ].map((m) => m[1]!);
   const parts = files.flatMap((file) => {
-    const id = file.split("/").pop()!.replace(/\.mp4$/, "");
+    const id = file
+      .split("/")
+      .pop()!
+      .replace(/\.mp4$/, "");
     const tlFile = join(dir, "timelines", `${id}.json`);
     if (id.endsWith("_card") && !existsSync(tlFile)) return [];
-    const tl = existsSync(tlFile) ? (JSON.parse(readFileSync(tlFile, "utf8")) as Timeline) : null;
+    const tl = existsSync(tlFile)
+      ? (JSON.parse(readFileSync(tlFile, "utf8")) as Timeline)
+      : null;
     if (!tl) return [];
     if (!tl.clip && /^(00_intro|01_server)$|_outro$/.test(id)) return [];
-    if (!existsSync(file)) throw new Error(`${sec.id}: ${file} is missing; rebuild ${sec.dir}`);
+    if (!existsSync(file))
+      throw new Error(`${sec.id}: ${file} is missing; rebuild ${sec.dir}`);
     return [{ file, title: tl.title }];
   });
   if (!parts.length) throw new Error(`${sec.id}: no segments found in ${dir}`);
@@ -201,8 +233,12 @@ function notesText(
   sectionStarts: Array<{ at: number; title: string }>,
   total: number,
 ): string {
-  const allChaptersText = marks.map((m, i) => `${fmtTime(i === 0 ? 0 : m.at)} ${m.title}`).join("\n");
-  const sectionOverviewText = sectionStarts.map((s, i) => `${fmtTime(i === 0 ? 0 : s.at)} ${s.title}`).join("\n");
+  const allChaptersText = marks
+    .map((m, i) => `${fmtTime(i === 0 ? 0 : m.at)} ${m.title}`)
+    .join("\n");
+  const sectionOverviewText = sectionStarts
+    .map((s, i) => `${fmtTime(i === 0 ? 0 : s.at)} ${s.title}`)
+    .join("\n");
 
   // Compact chapter list (<4,900 chars total description) spanning all 8 parts for YouTube's strict 5,000-char limit
   const compactChaptersText = marks
@@ -215,7 +251,10 @@ function notesText(
         .replace(/^Suite Tour: /, "Suite: ");
       return `${t} ${shortTitle}`;
     })
-    .filter((_, idx, arr) => idx === 0 || idx === arr.length - 1 || idx < 38 || idx % 2 === 0)
+    .filter(
+      (_, idx, arr) =>
+        idx === 0 || idx === arr.length - 1 || idx < 38 || idx % 2 === 0,
+    )
     .join("\n");
 
   return `# Codecaine File Manager & Bun RAD Studio: Complete All-in-One Master Tutorial (${fmtTime(total)})
@@ -292,16 +331,21 @@ codecaine file manager, bun rad studio, file manager tutorial, bun tutorial, typ
 }
 
 function listChapters() {
-  const fmCore = fmChapters.filter((c) => c.kind !== "external" && c.id !== "26_outro");
+  const fmCore = fmChapters.filter(
+    (c) => c.kind !== "external" && c.id !== "26_outro",
+  );
   console.log("=== Part 1: Codecaine File Manager ===");
   for (const ch of fmCore) console.log(`  ${ch.id.padEnd(28)} ${ch.title}`);
   for (const sec of EXTERNAL_SECTIONS) {
     console.log(`\n=== ${sec.kicker}: ${sec.title} ===`);
-    for (const p of externalSegments(sec)) console.log(`  ${sec.label}: ${p.title}`);
+    for (const p of externalSegments(sec))
+      console.log(`  ${sec.label}: ${p.title}`);
   }
   console.log(`\n=== Part 7: Bun RAD Studio Suite Tour ===`);
   for (const sc of SUITE_TOUR_SCENES) console.log(`  Suite Tour: ${sc.title}`);
-  console.log(`\n=== Outro ===\n  26_outro                     That is the tour`);
+  console.log(
+    `\n=== Outro ===\n  26_outro                     That is the tour`,
+  );
 }
 
 function buildAllInOne(notesOnly = false) {
@@ -317,18 +361,26 @@ function buildAllInOne(notesOnly = false) {
   let at = 0;
 
   // 1. Codecaine File Manager core chapters (00_intro through 23_databases)
-  const fmCore = fmChapters.filter((c) => c.kind !== "external" && c.id !== "26_outro");
-  sectionStarts.push({ at: 0, title: "Part 1 — Codecaine File Manager: The Complete Step-by-Step Guide" });
+  const fmCore = fmChapters.filter(
+    (c) => c.kind !== "external" && c.id !== "26_outro",
+  );
+  sectionStarts.push({
+    at: 0,
+    title: "Part 1 — Codecaine File Manager: The Complete Step-by-Step Guide",
+  });
 
   for (const ch of fmCore) {
     const segFile = join(fmSegDir, `${ch.id}.mp4`);
-    if (!existsSync(segFile)) throw new Error(`Missing File Manager segment: ${segFile}`);
+    if (!existsSync(segFile))
+      throw new Error(`Missing File Manager segment: ${segFile}`);
     const tlFile = join(fmTlDir, `${ch.id}.json`);
-    if (!existsSync(tlFile)) throw new Error(`Missing File Manager timeline: ${tlFile}`);
+    if (!existsSync(tlFile))
+      throw new Error(`Missing File Manager timeline: ${tlFile}`);
 
     if (ch.kind !== "card") {
       const cardFile = join(fmSegDir, `${ch.id}_card.mp4`);
-      if (!existsSync(cardFile)) throw new Error(`Missing File Manager card: ${cardFile}`);
+      if (!existsSync(cardFile))
+        throw new Error(`Missing File Manager card: ${cardFile}`);
       marks.push({ at, title: ch.title, section: "Codecaine File Manager" });
       list.push(`file '${cardFile}'`);
       at += durationOf(cardFile);
@@ -337,12 +389,16 @@ function buildAllInOne(notesOnly = false) {
     }
     list.push(`file '${segFile}'`);
     at += durationOf(segFile);
-    if (!notesOnly) console.log(`  ✓ [File Manager] ${ch.id.padEnd(28)} -> ${fmtTime(at)}`);
+    if (!notesOnly)
+      console.log(`  ✓ [File Manager] ${ch.id.padEnd(28)} -> ${fmtTime(at)}`);
   }
 
   // 2–6. External tutorials: Databases Masterclass, SQLite Studio, MySQL Studio, Visual Designer, SimpleGUI RAD
   for (const sec of EXTERNAL_SECTIONS) {
-    sectionStarts.push({ at, title: `${sec.kicker.replace(" · ", " — ")}: ${sec.title}` });
+    sectionStarts.push({
+      at,
+      title: `${sec.kicker.replace(" · ", " — ")}: ${sec.title}`,
+    });
     const parts = externalSegments(sec);
     const existingFmCard = join(fmSegDir, `${sec.id}_card.mp4`);
     const existingLocalCard = join(SEG, `${sec.id}_card.mp4`);
@@ -361,13 +417,17 @@ function buildAllInOne(notesOnly = false) {
       list.push(`file '${p.file}'`);
       at += durationOf(p.file);
     });
-    if (!notesOnly) console.log(`  ✓ [${sec.label}] ${sec.id.padEnd(28)} -> ${fmtTime(at)} (${parts.length} chapters)`);
+    if (!notesOnly)
+      console.log(
+        `  ✓ [${sec.label}] ${sec.id.padEnd(28)} -> ${fmtTime(at)} (${parts.length} chapters)`,
+      );
   }
 
   // 7. Bun RAD Studio Suite Tour (Launcher, Install, 79 CLI Tools, Standalone Studios, 24 Games, App Bundler)
   sectionStarts.push({
     at,
-    title: "Part 7 — Bun RAD Studio Suite Tour: Launcher, 79 CLI Tools, Standalone Studios & 24 Games",
+    title:
+      "Part 7 — Bun RAD Studio Suite Tour: Launcher, 79 CLI Tools, Standalone Studios & 24 Games",
   });
   const existingSuiteCard = join(SEG, "25d_suite_tour_card.mp4");
   const suiteCard =
@@ -384,24 +444,35 @@ function buildAllInOne(notesOnly = false) {
 
   SUITE_TOUR_SCENES.forEach((sc, i) => {
     const srcSeg = join(PROD, "tutorial", "segments", `seg_${sc.id}.mp4`);
-    if (!existsSync(srcSeg)) throw new Error(`Missing tutorial segment: ${srcSeg}`);
+    if (!existsSync(srcSeg))
+      throw new Error(`Missing tutorial segment: ${srcSeg}`);
     const existingStereo = join(SEG, `suite_${sc.id}.mp4`);
-    const stereoSeg = notesOnly && existsSync(existingStereo) ? existingStereo : ensureStereoSegment(srcSeg, `suite_${sc.id}.mp4`);
+    const stereoSeg =
+      notesOnly && existsSync(existingStereo)
+        ? existingStereo
+        : ensureStereoSegment(srcSeg, `suite_${sc.id}.mp4`);
     marks.push({ at, title: `Suite Tour: ${sc.title}`, section: "Suite Tour" });
     if (i === 0) at += suiteCardDur;
     list.push(`file '${stereoSeg}'`);
     at += durationOf(stereoSeg);
   });
-  if (!notesOnly) console.log(`  ✓ [Suite Tour]   25d_suite_tour               -> ${fmtTime(at)} (${SUITE_TOUR_SCENES.length} chapters)`);
+  if (!notesOnly)
+    console.log(
+      `  ✓ [Suite Tour]   25d_suite_tour               -> ${fmtTime(at)} (${SUITE_TOUR_SCENES.length} chapters)`,
+    );
 
   // 8. Grand Finale Outro (26_outro from file_manager_tutorial)
   const outroSeg = join(fmSegDir, "26_outro.mp4");
-  if (!existsSync(outroSeg)) throw new Error(`Missing outro segment: ${outroSeg}`);
+  if (!existsSync(outroSeg))
+    throw new Error(`Missing outro segment: ${outroSeg}`);
   sectionStarts.push({ at, title: "Part 8 — Conclusion & Next Steps" });
   marks.push({ at, title: "That is the tour", section: "Outro" });
   list.push(`file '${outroSeg}'`);
   at += durationOf(outroSeg);
-  if (!notesOnly) console.log(`  ✓ [Outro]        26_outro                     -> ${fmtTime(at)}`);
+  if (!notesOnly)
+    console.log(
+      `  ✓ [Outro]        26_outro                     -> ${fmtTime(at)}`,
+    );
 
   if (notesOnly) {
     const total = existsSync(FINAL) ? durationOf(FINAL) : at;
@@ -414,8 +485,22 @@ function buildAllInOne(notesOnly = false) {
   const listPath = join(SEG, "list.txt");
   writeFileSync(listPath, list.join("\n"));
   const merged = join(SEG, "merged.mp4");
-  console.log(`\n🎬 Concatenating ${list.length} video segments (${fmtTime(at)})...`);
-  sh([FFMPEG, "-y", "-f", "concat", "-safe", "0", "-i", listPath, "-c", "copy", merged]);
+  console.log(
+    `\n🎬 Concatenating ${list.length} video segments (${fmtTime(at)})...`,
+  );
+  sh([
+    FFMPEG,
+    "-y",
+    "-f",
+    "concat",
+    "-safe",
+    "0",
+    "-i",
+    listPath,
+    "-c",
+    "copy",
+    merged,
+  ]);
 
   const total = durationOf(merged);
   const bed = join(SEG, "bed.m4a");
@@ -476,6 +561,8 @@ if (phase === "list") {
 } else if (phase === "build" || phase === "all") {
   buildAllInOne(false);
 } else {
-  console.error("Usage: bun scripts/tutorial_all_in_one.ts list|notes|build|all");
+  console.error(
+    "Usage: bun scripts/tutorial_all_in_one.ts list|notes|build|all",
+  );
   process.exit(1);
 }

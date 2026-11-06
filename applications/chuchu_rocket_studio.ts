@@ -26,8 +26,11 @@ import {
   getScreenDimensions,
 } from "../index.ts";
 
-const injectGameMasterFx = (html: string, _title?: string, _accent?: string): string =>
-  rawInjectGameMasterFx(html);
+const injectGameMasterFx = (
+  html: string,
+  _title?: string,
+  _accent?: string,
+): string => rawInjectGameMasterFx(html);
 
 export const DEFAULT_PORT = 3269;
 export const APP_PORT = Number(process.env.CHUCHU_ROCKET_PORT || 3269);
@@ -137,10 +140,16 @@ ${getWindowShortcutsScript()}
     html += desktopHooks;
   }
 
-  return injectGameMasterFx(html, "Codecaine CyberRocket: Arrow Tile Panic", "cyan");
+  return injectGameMasterFx(
+    html,
+    "Codecaine CyberRocket: Arrow Tile Panic",
+    "cyan",
+  );
 }
 
-export function startChuChuRocketServer(options: ChuChuRocketServerOptions = {}) {
+export function startChuChuRocketServer(
+  options: ChuChuRocketServerOptions = {},
+) {
   const port = options.port ?? APP_PORT;
   const host = options.host ?? "127.0.0.1";
   const assetsDir = getChuChuRocketAssetsDir();
@@ -168,7 +177,10 @@ export function startChuChuRocketServer(options: ChuChuRocketServerOptions = {})
       if (pathname === "/" || pathname === "/index.html") {
         const html = generateChuChuRocketStudioHtml();
         return new Response(html, {
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            ...corsHeaders,
+          },
         });
       }
 
@@ -208,7 +220,9 @@ export function startChuChuRocketServer(options: ChuChuRocketServerOptions = {})
         return new Response("Forbidden", { status: 403 });
       }
       if (existsSync(directCandidate)) {
-        return new Response(Bun.file(directCandidate), { headers: corsHeaders });
+        return new Response(Bun.file(directCandidate), {
+          headers: corsHeaders,
+        });
       }
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
@@ -216,7 +230,9 @@ export function startChuChuRocketServer(options: ChuChuRocketServerOptions = {})
   });
 }
 
-export function createChuChuRocketStudio(options: ChuChuRocketStudioOptions = {}): ChuChuRocketStudioInstance {
+export function createChuChuRocketStudio(
+  options: ChuChuRocketStudioOptions = {},
+): ChuChuRocketStudioInstance {
   const fullscreen = options.fullscreen ?? false;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1320);
@@ -248,7 +264,8 @@ export function createChuChuRocketStudio(options: ChuChuRocketStudioOptions = {}
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -268,11 +285,15 @@ export function createChuChuRocketStudio(options: ChuChuRocketStudioOptions = {}
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -283,13 +304,19 @@ export function createChuChuRocketStudio(options: ChuChuRocketStudioOptions = {}
 
         webview.setHTML(html);
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -309,13 +336,19 @@ export const createChuChuRocketApp = createChuChuRocketStudio;
 export const startChuChuRocketStudioServer = startChuChuRocketServer;
 
 if (process.argv.includes("--server")) {
-  const port = parseInt(process.env.CHUCHU_ROCKET_PORT || process.env.PORT || String(APP_PORT), 10);
+  const port = parseInt(
+    process.env.CHUCHU_ROCKET_PORT || process.env.PORT || String(APP_PORT),
+    10,
+  );
   const srv = startChuChuRocketServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`🚀 ${APP_TITLE} Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `🚀 ${APP_TITLE} Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = process.argv.includes("--fullscreen") || process.argv.includes("-f");
+  const fullscreen =
+    process.argv.includes("--fullscreen") || process.argv.includes("-f");
   const app = createChuChuRocketStudio({ fullscreen });
   await app.run();
   process.exit(0);

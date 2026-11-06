@@ -3,7 +3,9 @@
 import { newSimpleWindow, type SimpleWindow } from "../../src/simplegui";
 
 export function createQuickstart(): SimpleWindow {
-  const win = newSimpleWindow("My First Desktop App", 760, 520, { theme: "apple_dark" });
+  const win = newSimpleWindow("My First Desktop App", 760, 520, {
+    theme: "apple_dark",
+  });
 
   win.addLabel("⚡ Welcome to SimpleGUI!").font(22, "#38bdf8", "700");
 
@@ -18,10 +20,16 @@ export function createQuickstart(): SimpleWindow {
   win.endRow();
   win.endCard();
 
-  win.addButton("🚀 Login", (w) => {
-    const username = w.getText("txtUser") || "Friend";
-    w.info("Welcome!", `Hello ${username}, you are logged in!`);
-  }).bg("#0284c7").color("#ffffff").bold().width(140).height(38);
+  win
+    .addButton("🚀 Login", (w) => {
+      const username = w.getText("txtUser") || "Friend";
+      w.info("Welcome!", `Hello ${username}, you are logged in!`);
+    })
+    .bg("#0284c7")
+    .color("#ffffff")
+    .bold()
+    .width(140)
+    .height(38);
 
   return win;
 }

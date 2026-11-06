@@ -9,13 +9,28 @@ import { mediaInfo } from "./fmInfoMedia";
 import { OP_TIMEOUT_MS, regularFile, withLimit } from "./fmInfoCommon";
 import { stripFile } from "./fmInfoStrip";
 import { FAST_GROUP_TITLE } from "./fmHashes";
-import { DEFAULT_HASH_IDS, HASHES, cancelTask, compareHash, hashFile, startTask, taskView } from "./fmInfoTasks";
+import {
+  DEFAULT_HASH_IDS,
+  HASHES,
+  cancelTask,
+  compareHash,
+  hashFile,
+  startTask,
+  taskView,
+} from "./fmInfoTasks";
 import { FmError } from "./fmPaths";
 
 function hashRows(value: unknown): Array<{ id: string; value: string }> {
-  if (!Array.isArray(value) || value.length > 40) throw new FmError("BAD_REQUEST", "Calculate the fingerprints first.");
+  if (!Array.isArray(value) || value.length > 40)
+    throw new FmError("BAD_REQUEST", "Calculate the fingerprints first.");
   return value.map((r) => {
-    if (!r || typeof r.id !== "string" || typeof r.value !== "string" || r.value.length > 200) throw new FmError("BAD_REQUEST", "Those fingerprints aren't valid.");
+    if (
+      !r ||
+      typeof r.id !== "string" ||
+      typeof r.value !== "string" ||
+      r.value.length > 200
+    )
+      throw new FmError("BAD_REQUEST", "Those fingerprints aren't valid.");
     return { id: r.id, value: r.value };
   });
 }
@@ -45,16 +60,33 @@ export const infoOperations: Record<string, FmHandler> = {
   },
   /** The kinds of fingerprint that can be chosen, with plain-words descriptions and which are ticked by default. */
   async "info/hashkinds"() {
-    return { kinds: HASHES, defaults: DEFAULT_HASH_IDS, fastTitle: FAST_GROUP_TITLE };
+    return {
+      kinds: HASHES,
+      defaults: DEFAULT_HASH_IDS,
+      fastTitle: FAST_GROUP_TITLE,
+    };
   },
   /** Starts a fingerprint job (MD5, SHA-1, SHA-256, SHA-512, CRC32). Ask `info/task` how it is going. */
   async "info/hash"(ctx, b) {
     await regularFile(ctx, b.path);
-    return { task: startTask(ctx, "hash", (control) => hashFile(ctx, b.path, control, b.algorithms)) };
+    return {
+      task: startTask(ctx, "hash", (control) =>
+        hashFile(ctx, b.path, control, b.algorithms),
+      ),
+    };
   },
   /** Starts counting a folder with no time limit other than cancelling (it still stops at a very large number of items). */
   async "info/folderscan"(ctx, b) {
-    return { task: startTask(ctx, "folder", (control) => folderInfo(ctx, b.path, { signal: control.signal, progress: control.progress, maxMs: 5 * 60_000, maxEntries: 3_000_000 })) };
+    return {
+      task: startTask(ctx, "folder", (control) =>
+        folderInfo(ctx, b.path, {
+          signal: control.signal,
+          progress: control.progress,
+          maxMs: 5 * 60_000,
+          maxEntries: 3_000_000,
+        }),
+      ),
+    };
   },
   async "info/task"(ctx, b) {
     return { task: taskView(ctx, b.id) };
@@ -66,7 +98,9 @@ export const infoOperations: Record<string, FmHandler> = {
     return compareHash(b.expected, hashRows(b.rows));
   },
   async "info/strip"(ctx, b) {
-    return await withLimit(30_000, () => stripFile(ctx, b.path, b.keepOrientation === true));
+    return await withLimit(30_000, () =>
+      stripFile(ctx, b.path, b.keepOrientation === true),
+    );
   },
   async "info/save"(ctx, b) {
     return await saveReport(ctx, b.path, b.format, b.content);

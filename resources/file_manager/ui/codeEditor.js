@@ -3,7 +3,24 @@
 // are painted (plus a few more), so a file of 100,000 lines is as quick as one of 100. Everything is built from DOM
 // nodes: file text never goes through innerHTML.
 import { h } from "./dom.js";
-import { backspaceEdit, buildLineStarts, closerDedentEdit, createHighlighter, detectFoldableRanges, diagnoseSyntax, findLineColors, findMatchingBracket, findWordOccurrences, indentLines, lineAt, newLineEdit, offsetOf, outdentLines, tabAtCaret, typedCharEdit } from "./codeLogic.js";
+import {
+  backspaceEdit,
+  buildLineStarts,
+  closerDedentEdit,
+  createHighlighter,
+  detectFoldableRanges,
+  diagnoseSyntax,
+  findLineColors,
+  findMatchingBracket,
+  findWordOccurrences,
+  indentLines,
+  lineAt,
+  newLineEdit,
+  offsetOf,
+  outdentLines,
+  tabAtCaret,
+  typedCharEdit,
+} from "./codeLogic.js";
 
 const PAD = 8;
 const BUFFER = 25;
@@ -13,28 +30,52 @@ const WRAP_CHARS = 150_000;
 const TODO_COMMENT_RE = /\b(TODO|FIXME|BUG|HACK|NOTE|XXX|OPTIMIZE)\b/gi;
 
 function span(text, type, cls, showWs) {
-  const display = showWs && text.includes(" ") ? text.replaceAll(" ", "·") : text;
+  const display =
+    showWs && text.includes(" ") ? text.replaceAll(" ", "·") : text;
   if (type === "comment" && TODO_COMMENT_RE.test(text)) {
     TODO_COMMENT_RE.lastIndex = 0;
     const wrap = h("span", { class: `code-t-comment${cls ?? ""}`.trim() });
     let last = 0;
-    for (let m = TODO_COMMENT_RE.exec(text); m !== null; m = TODO_COMMENT_RE.exec(text)) {
+    for (
+      let m = TODO_COMMENT_RE.exec(text);
+      m !== null;
+      m = TODO_COMMENT_RE.exec(text)
+    ) {
       if (m.index > last) {
         const before = text.slice(last, m.index);
-        wrap.append(document.createTextNode(showWs ? before.replaceAll(" ", "·") : before));
+        wrap.append(
+          document.createTextNode(
+            showWs ? before.replaceAll(" ", "·") : before,
+          ),
+        );
       }
       const tag = m[1].toUpperCase();
-      wrap.append(h("span", { class: `code-todo-tag code-todo-${tag.toLowerCase()}` }, m[0]));
+      wrap.append(
+        h(
+          "span",
+          { class: `code-todo-tag code-todo-${tag.toLowerCase()}` },
+          m[0],
+        ),
+      );
       last = m.index + m[0].length;
     }
     if (last < text.length) {
       const rest = text.slice(last);
-      wrap.append(document.createTextNode(showWs ? rest.replaceAll(" ", "·") : rest));
+      wrap.append(
+        document.createTextNode(showWs ? rest.replaceAll(" ", "·") : rest),
+      );
     }
     return wrap;
   }
   if (!type && !cls && !showWs) return document.createTextNode(display);
-  return h("span", { class: `${type ? `code-t-${type}` : ""}${cls ?? ""}${showWs && text.includes(" ") ? " code-ws" : ""}`.trim() }, display);
+  return h(
+    "span",
+    {
+      class:
+        `${type ? `code-t-${type}` : ""}${cls ?? ""}${showWs && text.includes(" ") ? " code-ws" : ""}`.trim(),
+    },
+    display,
+  );
 }
 
 /** Adds colored pieces to a row, cutting them where search matches, word occurrences or brackets are marked. decos: [{ from, to, cls }]. */
@@ -68,16 +109,55 @@ function appendTokens(row, tokens, decos, showWs) {
  * and onKey(event) which sees every key first and returns true when dealt with.
  * The element to put on the page is `editor.el`.
  */
-export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip = () => {}, onKey = () => false, onBookmark = null, onScroll = null } = {}) {
-  const o = { lang: "plain", wrap: false, lineNumbers: true, minimap: false, stickyScroll: true, whitespace: false, indentGuides: true, ruler: false, wordHighlight: true, fontSize: 0, tabSize: 0, unit: "  ", readOnly: false };
-  const ta = h("textarea", { class: "code-ta", spellcheck: "false", autocomplete: "off", autocapitalize: "off", autocorrect: "off", wrap: "off", "aria-label": "Code editor text", "aria-multiline": "true" });
+export function createEditor({
+  onChange = () => {},
+  onSelect = () => {},
+  onClip = () => {},
+  onKey = () => false,
+  onBookmark = null,
+  onScroll = null,
+} = {}) {
+  const o = {
+    lang: "plain",
+    wrap: false,
+    lineNumbers: true,
+    minimap: false,
+    stickyScroll: true,
+    whitespace: false,
+    indentGuides: true,
+    ruler: false,
+    wordHighlight: true,
+    fontSize: 0,
+    tabSize: 0,
+    unit: "  ",
+    readOnly: false,
+  };
+  const ta = h("textarea", {
+    class: "code-ta",
+    spellcheck: "false",
+    autocomplete: "off",
+    autocapitalize: "off",
+    autocorrect: "off",
+    wrap: "off",
+    "aria-label": "Code editor text",
+    "aria-multiline": "true",
+  });
   const inner = h("div", { class: "code-hl-inner" });
   const layer = h("div", { class: "code-hl", "aria-hidden": "true" }, inner);
   const gutInner = h("div", { class: "code-gut-inner" });
-  const gutter = h("div", { class: "code-gut", "aria-hidden": "true" }, gutInner);
+  const gutter = h(
+    "div",
+    { class: "code-gut", "aria-hidden": "true" },
+    gutInner,
+  );
   const mmLines = h("div", { class: "code-mm-lines" });
   const mmSlider = h("div", { class: "code-mm-slider" });
-  const minimap = h("div", { class: "code-minimap", "aria-hidden": "true", hidden: true }, mmLines, mmSlider);
+  const minimap = h(
+    "div",
+    { class: "code-minimap", "aria-hidden": "true", hidden: true },
+    mmLines,
+    mmSlider,
+  );
   const stickyScrollEl = h("button", {
     type: "button",
     class: "code-sticky-scroll",
@@ -89,8 +169,21 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
       if (targetLine > 0) editor.goTo(targetLine, 1);
     },
   });
-  const probe = h("span", { class: "code-probe", "aria-hidden": "true" }, "0000000000");
-  const el = h("div", { class: "code-ed code-guides" }, layer, gutter, minimap, stickyScrollEl, ta, probe);
+  const probe = h(
+    "span",
+    { class: "code-probe", "aria-hidden": "true" },
+    "0000000000",
+  );
+  const el = h(
+    "div",
+    { class: "code-ed code-guides" },
+    layer,
+    gutter,
+    minimap,
+    stickyScrollEl,
+    ta,
+    probe,
+  );
   const hl = createHighlighter("plain");
 
   let lines = [""];
@@ -112,7 +205,12 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
   const foldedLines = new Set();
   let diagnostics = [];
   const diagByLine = new Map();
-  const decoKinds = { brk: new Map(), find: new Map(), word: new Map(), diag: new Map() };
+  const decoKinds = {
+    brk: new Map(),
+    find: new Map(),
+    word: new Map(),
+    diag: new Map(),
+  };
   const rows = new Map();
   let tabTrap = true;
   const fallbackUndo = [];
@@ -134,7 +232,8 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
   function isLineHiddenInFold(lineOneBased) {
     for (const startLine of foldedLines) {
       const r = foldMap.get(startLine);
-      if (r && lineOneBased > r.startLine && lineOneBased <= r.endLine) return true;
+      if (r && lineOneBased > r.startLine && lineOneBased <= r.endLine)
+        return true;
     }
     return false;
   }
@@ -187,7 +286,13 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
       const bar = h("span", { class: "code-mm-bar" });
       bar.style.marginLeft = `${Math.round(indent * 1.2)}px`;
       bar.style.width = `${Math.max(2, Math.round(len * 0.85))}px`;
-      frag.append(h("div", { class: cls, dataset: { line: String(i + 1) } }, len ? bar : null));
+      frag.append(
+        h(
+          "div",
+          { class: cls, dataset: { line: String(i + 1) } },
+          len ? bar : null,
+        ),
+      );
     }
     mmLines.replaceChildren(frag);
   }
@@ -201,7 +306,10 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
     const ratio = Math.min(1, viewH / contentH);
     const sliderH = Math.max(18, Math.round(mmH * ratio));
     const maxTop = Math.max(1, contentH - viewH);
-    const sliderTop = Math.min(mmH - sliderH, Math.round((ta.scrollTop / maxTop) * (mmH - sliderH)));
+    const sliderTop = Math.min(
+      mmH - sliderH,
+      Math.round((ta.scrollTop / maxTop) * (mmH - sliderH)),
+    );
     mmSlider.style.height = `${sliderH}px`;
     mmSlider.style.transform = `translateY(${Math.max(0, sliderTop)}px)`;
   }
@@ -210,7 +318,10 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
     const rect = minimap.getBoundingClientRect();
     if (rect.height <= 0) return;
     const ratio = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
-    const targetLine = Math.max(1, Math.min(lines.length, Math.round(ratio * lines.length)));
+    const targetLine = Math.max(
+      1,
+      Math.min(lines.length, Math.round(ratio * lines.length)),
+    );
     ta.scrollTop = Math.max(0, (targetLine - 1) * lh - ta.clientHeight / 2);
     schedule();
   }
@@ -268,13 +379,25 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
     for (const d of diagnostics) {
       const idx = d.line - 1;
       if (!diagByLine.has(idx)) diagByLine.set(idx, d.message);
-      diagDecos.set(idx, [...(diagDecos.get(idx) ?? []), { from: Math.max(0, d.col - 1), to: Math.max(d.col, d.endCol - 1), cls: "code-diag-err" }]);
+      diagDecos.set(idx, [
+        ...(diagDecos.get(idx) ?? []),
+        {
+          from: Math.max(0, d.col - 1),
+          to: Math.max(d.col, d.endCol - 1),
+          cls: "code-diag-err",
+        },
+      ]);
     }
     decoKinds.diag = diagDecos;
 
     const digits = Math.max(3, String(lines.length).length);
     rendered = null;
-    const px = o.lineNumbers && cw ? Math.ceil(digits * cw) + 28 : o.lineNumbers ? 48 : 0;
+    const px =
+      o.lineNumbers && cw
+        ? Math.ceil(digits * cw) + 28
+        : o.lineNumbers
+          ? 48
+          : 0;
     if (px !== gutterPx) {
       gutterPx = px;
       el.style.setProperty("--code-gutter", `${px}px`);
@@ -284,16 +407,33 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
   function row(i) {
     const lineOne = i + 1;
     const inFold = isLineHiddenInFold(lineOne);
-    const r = h("div", { class: `code-row${i === curLine ? " code-cur" : ""}${inFold ? " code-row-folded" : ""}` });
-    if (o.wrap && o.lineNumbers) r.append(h("span", { class: `code-ln${bookmarks.has(lineOne) ? " code-bm" : ""}` }, String(lineOne)));
-    const tokens = plain ? (lines[i] ? [{ text: lines[i], type: "" }] : []) : hl.line(i);
+    const r = h("div", {
+      class: `code-row${i === curLine ? " code-cur" : ""}${inFold ? " code-row-folded" : ""}`,
+    });
+    if (o.wrap && o.lineNumbers)
+      r.append(
+        h(
+          "span",
+          { class: `code-ln${bookmarks.has(lineOne) ? " code-bm" : ""}` },
+          String(lineOne),
+        ),
+      );
+    const tokens = plain
+      ? lines[i]
+        ? [{ text: lines[i], type: "" }]
+        : []
+      : hl.line(i);
     appendTokens(r, tokens, decosFor(i), o.whitespace);
     if (!plain) {
       const colors = findLineColors(lines[i]);
       for (const c of colors) {
         const swatch = h("span", {
           class: "code-color-swatch",
-          dataset: { color: c.color, line: String(lineOne), col: String(c.from + 1) },
+          dataset: {
+            color: c.color,
+            line: String(lineOne),
+            col: String(c.from + 1),
+          },
           title: `Color ${c.color}`,
         });
         swatch.style.backgroundColor = c.color;
@@ -302,10 +442,16 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
       if (foldedLines.has(lineOne)) {
         const range = foldMap.get(lineOne);
         if (range) {
-          r.append(h("span", {
-            class: "code-fold-badge",
-            dataset: { foldLine: String(lineOne) },
-          }, ` ⋯ ${range.endLine - range.startLine} lines folded`));
+          r.append(
+            h(
+              "span",
+              {
+                class: "code-fold-badge",
+                dataset: { foldLine: String(lineOne) },
+              },
+              ` ⋯ ${range.endLine - range.startLine} lines folded`,
+            ),
+          );
         }
       }
     }
@@ -326,19 +472,32 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
       errMsg ? "code-gn-err" : "",
       foldable ? "code-gn-foldable" : "",
       isFolded ? "code-gn-folded" : "",
-    ].filter(Boolean).join(" ");
+    ]
+      .filter(Boolean)
+      .join(" ");
     const tipParts = [];
     if (errMsg) tipParts.push(`⚠ ${errMsg}`);
     if (chg) tipParts.push(`Line ${chg} since last save`);
     if (onBookmark) tipParts.push("Click to toggle bookmark on this line");
     const foldToggle = foldable
-      ? h("span", {
-          class: "code-fold-icon",
-          dataset: { foldLine: String(lineOne) },
-          title: isFolded ? `Unfold block (lines ${lineOne}–${foldMap.get(lineOne).endLine})` : `Fold block (lines ${lineOne}–${foldMap.get(lineOne).endLine})`,
-        }, isFolded ? "▸" : "▾")
+      ? h(
+          "span",
+          {
+            class: "code-fold-icon",
+            dataset: { foldLine: String(lineOne) },
+            title: isFolded
+              ? `Unfold block (lines ${lineOne}–${foldMap.get(lineOne).endLine})`
+              : `Fold block (lines ${lineOne}–${foldMap.get(lineOne).endLine})`,
+          },
+          isFolded ? "▸" : "▾",
+        )
       : null;
-    return h("div", { class: cls, title: tipParts.join(" · ") || null }, foldToggle, String(lineOne));
+    return h(
+      "div",
+      { class: cls, title: tipParts.join(" · ") || null },
+      foldToggle,
+      String(lineOne),
+    );
   }
 
   function rebuild(first, last) {
@@ -378,15 +537,30 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
     if (!el.isConnected || el.offsetParent === null) return;
     if (!cw) measure();
     sync();
-    el.classList.toggle("code-nolayer", o.wrap && (lines.length > WRAP_LINES || ta.value.length > WRAP_CHARS));
+    el.classList.toggle(
+      "code-nolayer",
+      o.wrap && (lines.length > WRAP_LINES || ta.value.length > WRAP_CHARS),
+    );
     if (el.classList.contains("code-nolayer")) return;
     const top = ta.scrollTop;
     const left = ta.scrollLeft;
     if (!o.wrap) {
       const view = ta.clientHeight;
       const first = Math.max(0, Math.floor((top - PAD) / lh));
-      const last = Math.min(lines.length - 1, Math.ceil((top + view - PAD) / lh));
-      if (!rendered || rendered.wrap || first < rendered.first || last > rendered.last) rebuild(Math.max(0, first - BUFFER), Math.min(lines.length - 1, last + BUFFER));
+      const last = Math.min(
+        lines.length - 1,
+        Math.ceil((top + view - PAD) / lh),
+      );
+      if (
+        !rendered ||
+        rendered.wrap ||
+        first < rendered.first ||
+        last > rendered.last
+      )
+        rebuild(
+          Math.max(0, first - BUFFER),
+          Math.min(lines.length - 1, last + BUFFER),
+        );
       inner.style.transform = `translate(${-left}px, ${PAD + rendered.first * lh - top}px)`;
       gutInner.style.transform = `translate(0px, ${PAD + rendered.first * lh - top}px)`;
     } else {
@@ -420,7 +594,9 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
   function setKind(kind, next) {
     const old = decoKinds[kind];
     const changed = new Set();
-    for (const k of new Set([...old.keys(), ...next.keys()])) if (JSON.stringify(old.get(k)) !== JSON.stringify(next.get(k))) changed.add(k);
+    for (const k of new Set([...old.keys(), ...next.keys()]))
+      if (JSON.stringify(old.get(k)) !== JSON.stringify(next.get(k)))
+        changed.add(k);
     decoKinds[kind] = next;
     mmDirty = true;
     if (changed.size > 400) invalidate();
@@ -449,10 +625,18 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
     const brackets = new Map();
     if (start === end && text.length < 400_000) {
       const m = findMatchingBracket(text, caret);
-      if (m) for (const pos of [m.open, m.close]) {
-        const l = lineOf(pos);
-        brackets.set(l, [...(brackets.get(l) ?? []), { from: pos - getStarts()[l], to: pos - getStarts()[l] + 1, cls: "code-brk" }]);
-      }
+      if (m)
+        for (const pos of [m.open, m.close]) {
+          const l = lineOf(pos);
+          brackets.set(l, [
+            ...(brackets.get(l) ?? []),
+            {
+              from: pos - getStarts()[l],
+              to: pos - getStarts()[l] + 1,
+              cls: "code-brk",
+            },
+          ]);
+        }
     }
     setKind("brk", brackets);
 
@@ -468,13 +652,30 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
         for (let k = 0; k < occ.matches.length; k++) {
           const m = occ.matches[k];
           const l = lineAt(st, m.index);
-          words.set(l, [...(words.get(l) ?? []), { from: m.index - st[l], to: m.index - st[l] + m.length, cls: k === occ.current ? "code-word-occ code-word-cur" : "code-word-occ" }]);
+          words.set(l, [
+            ...(words.get(l) ?? []),
+            {
+              from: m.index - st[l],
+              to: m.index - st[l] + m.length,
+              cls:
+                k === occ.current
+                  ? "code-word-occ code-word-cur"
+                  : "code-word-occ",
+            },
+          ]);
         }
       }
     }
     setKind("word", words);
     updateStickyScroll();
-    onSelect({ start, end, line: line + 1, col: caret - getStarts()[line] + 1, word: occWord, wordCount: occCount });
+    onSelect({
+      start,
+      end,
+      line: line + 1,
+      col: caret - getStarts()[line] + 1,
+      word: occWord,
+      wordCount: occCount,
+    });
   }
 
   /** Replaces a range through the browser's own editing command, so Undo and Redo keep working. */
@@ -486,7 +687,12 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
     let a = 0;
     while (a < old.length && a < insert.length && old[a] === insert[a]) a++;
     let b = 0;
-    while (b < old.length - a && b < insert.length - a && old[old.length - 1 - b] === insert[insert.length - 1 - b]) b++;
+    while (
+      b < old.length - a &&
+      b < insert.length - a &&
+      old[old.length - 1 - b] === insert[insert.length - 1 - b]
+    )
+      b++;
     const f = from + a;
     const t = to - b;
     const text = insert.slice(a, insert.length - b);
@@ -496,7 +702,9 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
     ta.setSelectionRange(f, t);
     let ok = false;
     try {
-      ok = text ? document.execCommand("insertText", false, text) : document.execCommand("delete");
+      ok = text
+        ? document.execCommand("insertText", false, text)
+        : document.execCommand("delete");
     } catch {
       ok = false;
     }
@@ -538,18 +746,32 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
     const s = ta.selectionStart;
     const end = ta.selectionEnd;
     const text = ta.value;
-    if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === "z" && (fallbackUndo.length || fallbackRedo.length) && ta.value === fallbackExpectedVal) {
+    if (
+      (e.ctrlKey || e.metaKey) &&
+      !e.altKey &&
+      e.key.toLowerCase() === "z" &&
+      (fallbackUndo.length || fallbackRedo.length) &&
+      ta.value === fallbackExpectedVal
+    ) {
       e.preventDefault();
       if (!e.shiftKey && fallbackUndo.length) {
         const snap = fallbackUndo.pop();
-        fallbackRedo.push({ value: ta.value, start: ta.selectionStart, end: ta.selectionEnd });
+        fallbackRedo.push({
+          value: ta.value,
+          start: ta.selectionStart,
+          end: ta.selectionEnd,
+        });
         ta.value = snap.value;
         fallbackExpectedVal = snap.value;
         ta.setSelectionRange(snap.start, snap.end);
         ta.dispatchEvent(new Event("input", { bubbles: true }));
       } else if (e.shiftKey && fallbackRedo.length) {
         const snap = fallbackRedo.pop();
-        fallbackUndo.push({ value: ta.value, start: ta.selectionStart, end: ta.selectionEnd });
+        fallbackUndo.push({
+          value: ta.value,
+          start: ta.selectionStart,
+          end: ta.selectionEnd,
+        });
         ta.value = snap.value;
         fallbackExpectedVal = snap.value;
         ta.setSelectionRange(snap.start, snap.end);
@@ -581,7 +803,9 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
         apply(edit);
       }
     } else if (e.key.length === 1 && plainKey) {
-      const edit = typedCharEdit(text, s, end, e.key, o.lang) ?? closerDedentEdit(text, s, end, e.key, o.unit, o.lang);
+      const edit =
+        typedCharEdit(text, s, end, e.key, o.lang) ??
+        closerDedentEdit(text, s, end, e.key, o.unit, o.lang);
       if (edit) {
         e.preventDefault();
         apply(edit);
@@ -594,7 +818,8 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
     if (text.trim()) onClip(text, e.type);
   }
 
-  const onDocSelection = () => document.activeElement === ta && selectionChanged();
+  const onDocSelection = () =>
+    document.activeElement === ta && selectionChanged();
   ta.addEventListener("input", onInput);
   ta.addEventListener("keydown", onKeyDown);
   ta.addEventListener("scroll", () => {
@@ -603,7 +828,13 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
       const topLine = Math.max(1, Math.floor((ta.scrollTop - PAD) / lh) + 1);
       const maxScroll = Math.max(1, ta.scrollHeight - ta.clientHeight);
       const ratio = Math.max(0, Math.min(1, ta.scrollTop / maxScroll));
-      onScroll({ scrollTop: ta.scrollTop, scrollHeight: ta.scrollHeight, clientHeight: ta.clientHeight, topLine, ratio });
+      onScroll({
+        scrollTop: ta.scrollTop,
+        scrollHeight: ta.scrollHeight,
+        clientHeight: ta.clientHeight,
+        topLine,
+        ratio,
+      });
     }
   });
   ta.addEventListener("copy", clip);
@@ -619,7 +850,9 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
   const editor = {
     el,
     ta,
-    get lineCount() { return lines.length; },
+    get lineCount() {
+      return lines.length;
+    },
     getText: () => ta.value,
     /** Puts new text in (a file was opened, or reloaded). The undo history starts afresh. */
     setText(text) {
@@ -635,16 +868,36 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
     caretRect() {
       sync();
       if (!cw) measure();
-      const caret = ta.selectionDirection === "backward" ? ta.selectionStart : ta.selectionEnd;
+      const caret =
+        ta.selectionDirection === "backward"
+          ? ta.selectionStart
+          : ta.selectionEnd;
       const line = lineOf(caret);
       const tab = Math.max(1, o.tabSize || 4);
       let vcol = 0;
-      for (const ch of lines[line].slice(0, caret - getStarts()[line])) vcol = ch === "\t" ? vcol + tab - (vcol % tab) : vcol + 1;
+      for (const ch of lines[line].slice(0, caret - getStarts()[line]))
+        vcol = ch === "\t" ? vcol + tab - (vcol % tab) : vcol + 1;
       const base = (cw ? gutterPx : 46) + 8;
-      if (!o.wrap) return { x: base + vcol * cw - ta.scrollLeft, y: PAD + line * lh - ta.scrollTop, h: lh };
-      const perRow = Math.max(1, Math.floor((ta.clientWidth - base - 12) / (cw || 8)));
+      if (!o.wrap)
+        return {
+          x: base + vcol * cw - ta.scrollLeft,
+          y: PAD + line * lh - ta.scrollTop,
+          h: lh,
+        };
+      const perRow = Math.max(
+        1,
+        Math.floor((ta.clientWidth - base - 12) / (cw || 8)),
+      );
       const r = rows.get(line);
-      return { x: base + (vcol % perRow) * cw, y: PAD + (r ? r.offsetTop : line * lh) + Math.floor(vcol / perRow) * lh - ta.scrollTop, h: lh };
+      return {
+        x: base + (vcol % perRow) * cw,
+        y:
+          PAD +
+          (r ? r.offsetTop : line * lh) +
+          Math.floor(vcol / perRow) * lh -
+          ta.scrollTop,
+        h: lh,
+      };
     },
     setSelection(start, end = start) {
       ta.setSelectionRange(start, end);
@@ -653,8 +906,13 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
     apply,
     focus: () => ta.focus({ preventScroll: true }),
     hasFocus: () => document.activeElement === ta,
-    get scrollTop() { return ta.scrollTop; },
-    set scrollTop(v) { ta.scrollTop = v; schedule(); },
+    get scrollTop() {
+      return ta.scrollTop;
+    },
+    set scrollTop(v) {
+      ta.scrollTop = v;
+      schedule();
+    },
     lineOffset: (line, col) => offsetOf(ta.value, line, col),
     /** Scrolls so that line (1-based) is comfortably in view. */
     reveal(line, col = 1) {
@@ -662,13 +920,20 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
       let y = PAD + (line - 1) * lh;
       if (o.wrap) {
         const r = rows.get(line - 1);
-        y = r ? PAD + r.offsetTop : (ta.scrollHeight * (line - 1)) / Math.max(1, lines.length);
+        y = r
+          ? PAD + r.offsetTop
+          : (ta.scrollHeight * (line - 1)) / Math.max(1, lines.length);
       }
       const view = ta.clientHeight;
-      if (y < ta.scrollTop + lh * 2 || y > ta.scrollTop + view - lh * 3) ta.scrollTop = Math.max(0, y - view / 2 + lh);
+      if (y < ta.scrollTop + lh * 2 || y > ta.scrollTop + view - lh * 3)
+        ta.scrollTop = Math.max(0, y - view / 2 + lh);
       if (!o.wrap) {
         const x = (col - 1) * cw + gutterPx + 8;
-        if (x < ta.scrollLeft + gutterPx + 8 || x > ta.scrollLeft + ta.clientWidth - 30) ta.scrollLeft = Math.max(0, x - ta.clientWidth / 2);
+        if (
+          x < ta.scrollLeft + gutterPx + 8 ||
+          x > ta.scrollLeft + ta.clientWidth - 30
+        )
+          ta.scrollLeft = Math.max(0, x - ta.clientWidth / 2);
       }
       schedule();
     },
@@ -685,11 +950,19 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
       const text = ta.value;
       const st = getStarts();
       matches.slice(0, 5000).forEach((m, k) => {
-        for (let pos = m.index, endPos = m.index + m.length; pos < endPos; ) {
+        for (let pos = m.index, endPos = m.index + m.length; pos < endPos;) {
           const l = lineAt(st, pos);
           const lineEndPos = l + 1 < st.length ? st[l + 1] - 1 : text.length;
           const stop = Math.min(endPos, lineEndPos);
-          if (stop > pos) map.set(l, [...(map.get(l) ?? []), { from: pos - st[l], to: stop - st[l], cls: k === current ? " code-find code-find-cur" : " code-find" }]);
+          if (stop > pos)
+            map.set(l, [
+              ...(map.get(l) ?? []),
+              {
+                from: pos - st[l],
+                to: stop - st[l],
+                cls: k === current ? " code-find code-find-cur" : " code-find",
+              },
+            ]);
           pos = Math.max(stop, pos + 1) + (stop >= lineEndPos ? 1 : 0);
         }
       });
@@ -697,7 +970,9 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
     },
     setBookmarks(list) {
       const next = new Set(list);
-      const changed = [...bookmarks, ...next].filter((l) => bookmarks.has(l) !== next.has(l)).map((l) => l - 1);
+      const changed = [...bookmarks, ...next]
+        .filter((l) => bookmarks.has(l) !== next.has(l))
+        .map((l) => l - 1);
       bookmarks = next;
       mmDirty = true;
       patch(changed);
@@ -777,8 +1052,14 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
       render();
     },
     getFoldedLines: () => [...foldedLines],
-    getFoldRanges: () => { sync(); return foldRanges; },
-    getDiagnostics: () => { sync(); return diagnostics; },
+    getFoldRanges: () => {
+      sync();
+      return foldRanges;
+    },
+    getDiagnostics: () => {
+      sync();
+      return diagnostics;
+    },
     setOptions(patchOptions) {
       const before = { ...o };
       Object.assign(o, patchOptions);
@@ -797,7 +1078,8 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
         el.style.setProperty("--code-lh", `${lh}px`);
         cw = 0;
       }
-      if (o.tabSize !== before.tabSize) el.style.setProperty("--code-tab", String(o.tabSize));
+      if (o.tabSize !== before.tabSize)
+        el.style.setProperty("--code-tab", String(o.tabSize));
       if (o.lineNumbers !== before.lineNumbers) {
         el.classList.toggle("code-no-ln", !o.lineNumbers);
         dirty = true;
@@ -808,9 +1090,12 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
         mmDirty = true;
       }
       if (o.stickyScroll !== before.stickyScroll) updateStickyScroll();
-      if (o.whitespace !== before.whitespace) el.classList.toggle("code-show-ws", Boolean(o.whitespace));
-      if (o.indentGuides !== before.indentGuides) el.classList.toggle("code-guides", o.indentGuides !== false);
-      if (o.ruler !== before.ruler) el.classList.toggle("code-ruler", Boolean(o.ruler));
+      if (o.whitespace !== before.whitespace)
+        el.classList.toggle("code-show-ws", Boolean(o.whitespace));
+      if (o.indentGuides !== before.indentGuides)
+        el.classList.toggle("code-guides", o.indentGuides !== false);
+      if (o.ruler !== before.ruler)
+        el.classList.toggle("code-ruler", Boolean(o.ruler));
       if (o.wordHighlight !== before.wordHighlight) selectionChanged(true);
       invalidate();
     },
@@ -830,4 +1115,3 @@ export function createEditor({ onChange = () => {}, onSelect = () => {}, onClip 
   editor.setOptions({ fontSize: 14, tabSize: 2 });
   return editor;
 }
-

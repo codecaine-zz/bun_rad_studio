@@ -11,7 +11,10 @@ describe("donation links", () => {
   test("every place that mentions the link agrees", () => {
     expect(DONATE_URL).toBe("https://paypal.me/codecaine81");
     expect(read(".github/FUNDING.yml")).toContain(`custom: ["${DONATE_URL}"]`);
-    expect(JSON.parse(read("package.json")).funding).toEqual({ type: "paypal", url: DONATE_URL });
+    expect(JSON.parse(read("package.json")).funding).toEqual({
+      type: "paypal",
+      url: DONATE_URL,
+    });
     const readme = read("README.md");
     expect(readme).toContain(`](${DONATE_URL})`);
     expect(readme).toContain("Support & Donations");
@@ -26,7 +29,10 @@ describe("donation links", () => {
     expect(read("docs/images/donate-paypal-qr.svg")).toContain("<svg");
     if (process.platform !== "darwin") return;
     const file = join(tmpdir(), `qr-decode-${process.pid}.js`);
-    writeFileSync(file, `ObjC.import("CoreImage"); function run(a){const i=$.CIImage.imageWithContentsOfURL($.NSURL.fileURLWithPath(a[0]));const d=$.CIDetector.detectorOfTypeContextOptions("CIDetectorTypeQRCode",$(),$());const f=d.featuresInImage(i);return f.count>0?ObjC.unwrap(f.objectAtIndex(0).messageString):"NONE"}`);
+    writeFileSync(
+      file,
+      `ObjC.import("CoreImage"); function run(a){const i=$.CIImage.imageWithContentsOfURL($.NSURL.fileURLWithPath(a[0]));const d=$.CIDetector.detectorOfTypeContextOptions("CIDetectorTypeQRCode",$(),$());const f=d.featuresInImage(i);return f.count>0?ObjC.unwrap(f.objectAtIndex(0).messageString):"NONE"}`,
+    );
     try {
       const out = Bun.spawnSync(["osascript", "-l", "JavaScript", file, png]);
       expect(out.stdout.toString().trim()).toBe(DONATE_URL);

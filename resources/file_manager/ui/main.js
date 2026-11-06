@@ -13,7 +13,12 @@ import { renderSidebar, wireSidebar } from "./sidebar.js";
 import { emit, on, state } from "./state.js";
 import { openPower, setPowerExpanded, wirePower } from "./power.js";
 import { wireChrome } from "./chrome.js";
-import { applyPalette, applyUiImmersionProfiles, currentThemePayload, effectiveAutoPalette } from "./themes.js";
+import {
+  applyPalette,
+  applyUiImmersionProfiles,
+  currentThemePayload,
+  effectiveAutoPalette,
+} from "./themes.js";
 import { wireTypeCheck } from "./typecheck.js";
 import { wireWindowState } from "./windowState.js";
 import { startCopySections } from "./copysection.js";
@@ -62,10 +67,26 @@ import { wireQuickbar } from "./quickbar.js";
 import { wireTabs } from "./tabs.js";
 import { wireTerminal } from "./terminal.js";
 import { wireTools } from "./tools.js";
-import { renderAddress, renderBanner, updateSearchBox, updateToolbar, wireToolbar } from "./toolbar.js";
+import {
+  renderAddress,
+  renderBanner,
+  updateSearchBox,
+  updateToolbar,
+  wireToolbar,
+} from "./toolbar.js";
 
 /** The settings that change how the list looks or is ordered. */
-const LIST_SETTINGS = ["view", "sortBy", "sortDir", "foldersFirst", "columns", "groupBy", "rowDensity", "tags", "notes"];
+const LIST_SETTINGS = [
+  "view",
+  "sortBy",
+  "sortDir",
+  "foldersFirst",
+  "columns",
+  "groupBy",
+  "rowDensity",
+  "tags",
+  "notes",
+];
 
 function applySettings() {
   const s = state.settings;
@@ -101,7 +122,14 @@ function applySettings() {
 
 function showFatal(message) {
   document.body.classList.add("ready");
-  $("#list").replaceChildren(h("div", { class: "fatal", role: "alert" }, h("h2", {}, "The File Manager can't start"), h("p", {}, message)));
+  $("#list").replaceChildren(
+    h(
+      "div",
+      { class: "fatal", role: "alert" },
+      h("h2", {}, "The File Manager can't start"),
+      h("p", {}, message),
+    ),
+  );
 }
 
 async function start() {
@@ -109,7 +137,11 @@ async function start() {
   try {
     await loadPlaces();
   } catch (err) {
-    return showFatal(err instanceof ApiError ? err.message : "Something went wrong while starting.");
+    return showFatal(
+      err instanceof ApiError
+        ? err.message
+        : "Something went wrong while starting.",
+    );
   }
   applySettings();
   wireToolbar();
@@ -145,9 +177,15 @@ async function start() {
     else if (keys.some((k) => LIST_SETTINGS.includes(k))) renderList();
   });
 
-  const requested = document.querySelector('meta[name="fm-start"]')?.getAttribute("content") ?? "";
-  const first = (requested && decodeURIComponent(requested)) || state.settings.lastPath || state.home;
-  if (!(await goTo(first, { push: false }))) await goTo(state.home, { push: false });
+  const requested =
+    document.querySelector('meta[name="fm-start"]')?.getAttribute("content") ??
+    "";
+  const first =
+    (requested && decodeURIComponent(requested)) ||
+    state.settings.lastPath ||
+    state.home;
+  if (!(await goTo(first, { push: false })))
+    await goTo(state.home, { push: false });
   renderAddress();
   renderBanner();
   updateSearchBox();
@@ -164,7 +202,11 @@ async function start() {
   startQuietDetect();
   // The window has no browser menu, so keep the system's own page menu (Reload, Inspect ...) out of the way.
   document.addEventListener("contextmenu", (e) => {
-    if (!(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) e.preventDefault();
+    if (!(
+      e.target instanceof HTMLInputElement ||
+      e.target instanceof HTMLTextAreaElement
+    ))
+      e.preventDefault();
   });
   $("#list").focus();
   if (!state.settings.seenWelcome && !startTool) showWelcome();
@@ -173,7 +215,14 @@ async function start() {
   let last = Date.now();
   window.addEventListener("focus", () => {
     // Never rebuild the list under someone who is typing a new name, choosing from a menu or answering a dialog.
-    if (Date.now() - last < 2000 || state.busy || isRenaming() || menuIsOpen() || document.querySelector(".modal-backdrop")) return;
+    if (
+      Date.now() - last < 2000 ||
+      state.busy ||
+      isRenaming() ||
+      menuIsOpen() ||
+      document.querySelector(".modal-backdrop")
+    )
+      return;
     last = Date.now();
     refresh();
   });

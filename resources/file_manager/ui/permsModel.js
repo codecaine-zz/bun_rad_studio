@@ -33,7 +33,9 @@ export const ALL_BITS = [
 
 export function octalOf(mode) {
   const m = mode & MODE_MASK;
-  return m > 0o777 ? m.toString(8).padStart(4, "0") : m.toString(8).padStart(3, "0");
+  return m > 0o777
+    ? m.toString(8).padStart(4, "0")
+    : m.toString(8).padStart(3, "0");
 }
 
 /** "rw-r--r--", with s/S/t/T for the special bits (the same text as the More info panel). */
@@ -56,9 +58,13 @@ export function parseOctal(text) {
 /** The name of a bit for a screen reader: "Owner can read". */
 export function bitName(bit) {
   if (bit === SETUID) return "Run as the owner (setuid)";
-  if (bit === SETGID) return "Run as the group, or new files join the folder's group (setgid)";
+  if (bit === SETGID)
+    return "Run as the group, or new files join the folder's group (setgid)";
   if (bit === STICKY) return "Only owners can delete inside (sticky)";
-  for (const c of CLASSES) for (const p of PERMISSIONS) if (p.bit << c.shift === bit) return `${c.label} can ${p.label.toLowerCase()}`;
+  for (const c of CLASSES)
+    for (const p of PERMISSIONS)
+      if (p.bit << c.shift === bit)
+        return `${c.label} can ${p.label.toLowerCase()}`;
   return "";
 }
 
@@ -66,20 +72,65 @@ export function bitName(bit) {
 // Presets
 // ---------------------------------------------------------------------------------------------------------------
 
-const readAll = (mode, isDir) => mode | 0o444 | (isDir || mode & 0o111 ? 0o111 : 0);
+const readAll = (mode, isDir) =>
+  mode | 0o444 | (isDir || mode & 0o111 ? 0o111 : 0);
 
 /**
  * The presets. `file` and `dir` are the exact modes (null: leave that kind alone); `change` is what is sent for them,
  * `filesOnly` presets leave folders alone, and `after` shows what one item becomes.
  */
 export const PRESETS = [
-  { id: "private", label: "Private", tip: "Only you can use it: files 600, folders 700.", file: 0o600, dir: 0o700 },
-  { id: "normal", label: "Normal", tip: "You can change it, everyone else can only read it: files 644, folders 755.", file: 0o644, dir: 0o755 },
-  { id: "group", label: "Shared with my group", tip: "You and your group can change it, everyone else can only read it: files 664, folders 775.", file: 0o664, dir: 0o775 },
-  { id: "readonly", label: "Read-only", tip: "Nobody can change it: files 444, folders 555. You can undo this.", file: 0o444, dir: 0o555 },
-  { id: "exec", label: "Make executable (+x)", tip: "Lets the file run as a program or script. Folders are left alone.", change: { symbolic: "a+x" }, filesOnly: true, after: (m, d) => (d ? m : m | 0o111) },
-  { id: "noexec", label: "Remove execute (−x)", tip: "Stops the file running as a program. Folders are left alone, because a folder needs it to be opened.", change: { symbolic: "a-x" }, filesOnly: true, after: (m, d) => (d ? m : m & ~0o111) },
-  { id: "readall", label: "Everyone can read", tip: "Adds read for everyone. Folders and files that already run also get the right to open or run.", change: { symbolic: "a+rX" }, after: readAll },
+  {
+    id: "private",
+    label: "Private",
+    tip: "Only you can use it: files 600, folders 700.",
+    file: 0o600,
+    dir: 0o700,
+  },
+  {
+    id: "normal",
+    label: "Normal",
+    tip: "You can change it, everyone else can only read it: files 644, folders 755.",
+    file: 0o644,
+    dir: 0o755,
+  },
+  {
+    id: "group",
+    label: "Shared with my group",
+    tip: "You and your group can change it, everyone else can only read it: files 664, folders 775.",
+    file: 0o664,
+    dir: 0o775,
+  },
+  {
+    id: "readonly",
+    label: "Read-only",
+    tip: "Nobody can change it: files 444, folders 555. You can undo this.",
+    file: 0o444,
+    dir: 0o555,
+  },
+  {
+    id: "exec",
+    label: "Make executable (+x)",
+    tip: "Lets the file run as a program or script. Folders are left alone.",
+    change: { symbolic: "a+x" },
+    filesOnly: true,
+    after: (m, d) => (d ? m : m | 0o111),
+  },
+  {
+    id: "noexec",
+    label: "Remove execute (−x)",
+    tip: "Stops the file running as a program. Folders are left alone, because a folder needs it to be opened.",
+    change: { symbolic: "a-x" },
+    filesOnly: true,
+    after: (m, d) => (d ? m : m & ~0o111),
+  },
+  {
+    id: "readall",
+    label: "Everyone can read",
+    tip: "Adds read for everyone. Folders and files that already run also get the right to open or run.",
+    change: { symbolic: "a+rX" },
+    after: readAll,
+  },
 ];
 
 /** What a preset makes of one item. */
@@ -107,7 +158,9 @@ export function bitState(modes, bit) {
 }
 
 export function statesOf(modes) {
-  return Object.fromEntries(ALL_BITS.map((bit) => [bit, modes.length ? bitState(modes, bit) : "off"]));
+  return Object.fromEntries(
+    ALL_BITS.map((bit) => [bit, modes.length ? bitState(modes, bit) : "off"]),
+  );
 }
 
 /** The mode all items would have, or null when some bit differs between items. */
@@ -126,7 +179,12 @@ export function statesSymbolic(states) {
   let s = "";
   for (let i = 0; i < 9; i++) {
     const bit = 0o400 >> i;
-    s += states[bit] === "mixed" ? "?" : states[bit] === "on" ? letters[i % 3] : "-";
+    s +=
+      states[bit] === "mixed"
+        ? "?"
+        : states[bit] === "on"
+          ? letters[i % 3]
+          : "-";
   }
   const special = (bit, at, lower, upper) => {
     if (states[bit] === "off") return;
@@ -153,5 +211,7 @@ export function bitsChange(initial, desired) {
     if (desired[bit] === "on") add |= bit;
     else remove |= bit;
   }
-  return add || remove ? { ...(add ? { add } : {}), ...(remove ? { remove } : {}) } : null;
+  return add || remove
+    ? { ...(add ? { add } : {}), ...(remove ? { remove } : {}) }
+    : null;
 }

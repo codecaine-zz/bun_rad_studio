@@ -42,7 +42,13 @@ export function encodeManifest(m: Manifest): Buffer {
   return Buffer.concat([head, json]);
 }
 
-function entryHead(tag: number, path: string, mode: number, mtimeMs: number, extra: number): Buffer {
+function entryHead(
+  tag: number,
+  path: string,
+  mode: number,
+  mtimeMs: number,
+  extra: number,
+): Buffer {
   const p = Buffer.from(path, "utf8");
   const b = Buffer.alloc(1 + 2 + p.length + 2 + 8 + extra);
   b[0] = tag;
@@ -54,7 +60,12 @@ function entryHead(tag: number, path: string, mode: number, mtimeMs: number, ext
 }
 
 /** Encodes the header of a file (`F`) entry before its raw file bytes are streamed. */
-export function encodeFileEntry(path: string, mode: number, mtimeMs: number, size: number): Buffer {
+export function encodeFileEntry(
+  path: string,
+  mode: number,
+  mtimeMs: number,
+  size: number,
+): Buffer {
   const b = entryHead(0x46, path, mode, mtimeMs, 8); // "F"
   b.writeUInt32BE(Math.floor(size / 2 ** 32), b.length - 8);
   b.writeUInt32BE(size % 2 ** 32, b.length - 4);
@@ -62,7 +73,11 @@ export function encodeFileEntry(path: string, mode: number, mtimeMs: number, siz
 }
 
 /** Encodes a directory (`D`) entry record with its relative path, POSIX permission bits, and mtime. */
-export function encodeDirEntry(path: string, mode: number, mtimeMs: number): Buffer {
+export function encodeDirEntry(
+  path: string,
+  mode: number,
+  mtimeMs: number,
+): Buffer {
   return entryHead(0x44, path, mode, mtimeMs, 0); // "D"
 }
 
@@ -74,24 +89,34 @@ export const END_ENTRY = Buffer.from([0x45]); // "E"
 // ---------------------------------------------------------------------------------------------------------------
 
 /** Why one path component can never be stored or extracted, or null when it is fine on every platform. */
-export function componentProblem(name: string, platform: Platform = platformName()): string | null {
+export function componentProblem(
+  name: string,
+  platform: Platform = platformName(),
+): string | null {
   if (name.length === 0) return "an empty name";
   if (name === "." || name === "..") return "a '.' or '..' part";
-  if (/[\u0000-\u001f\u007f\\]/.test(name)) return "a name with control characters or a backslash";
+  if (/[\u0000-\u001f\u007f\\]/.test(name))
+    return "a name with control characters or a backslash";
   if (name.includes("/")) return "a name containing a slash";
   if (name.includes("\ufffd")) return "a name that isn't valid text";
-  if (Buffer.byteLength(name, "utf8") > MAX_NAME_BYTES) return "a name that is too long";
+  if (Buffer.byteLength(name, "utf8") > MAX_NAME_BYTES)
+    return "a name that is too long";
   if (platform === "win32") {
-    if (name !== name.trim() || validateName(name, "win32")) return "a name Windows doesn't allow";
+    if (name !== name.trim() || validateName(name, "win32"))
+      return "a name Windows doesn't allow";
     if (/^[A-Za-z]:/.test(name)) return "a drive letter";
   }
   return null;
 }
 
 /** Splits and checks a stored relative path. Throws the plain "unsafe contents" error on anything suspicious. */
-export function checkEntryPath(path: string, platform: Platform = platformName()): string[] {
+export function checkEntryPath(
+  path: string,
+  platform: Platform = platformName(),
+): string[] {
   if (path.length === 0) throw unsafe("an entry without a path");
-  if (Buffer.byteLength(path, "utf8") > MAX_PATH_BYTES) throw unsafe("a path that is too long");
+  if (Buffer.byteLength(path, "utf8") > MAX_PATH_BYTES)
+    throw unsafe("a path that is too long");
   if (path.startsWith("/")) throw unsafe("an absolute path");
   if (/^[A-Za-z]:/.test(path)) throw unsafe("a drive letter");
   const parts = path.split("/");
@@ -105,10 +130,16 @@ export function checkEntryPath(path: string, platform: Platform = platformName()
 
 /** Creates a `BAD_CONTAINER` `VaultError` explaining why an entry inside the archive was rejected as unsafe to extract. */
 export function unsafe(reason: string): VaultError {
-  return new VaultError("BAD_CONTAINER", `The file unlocked, but it contains something that isn't safe to extract (${reason}), so nothing was extracted.`);
+  return new VaultError(
+    "BAD_CONTAINER",
+    `The file unlocked, but it contains something that isn't safe to extract (${reason}), so nothing was extracted.`,
+  );
 }
 
 /** Two names that are the same file on this platform (macOS and Windows ignore case; macOS also ignores accent composition). */
-export function collisionKey(path: string, platform: Platform = platformName()): string {
+export function collisionKey(
+  path: string,
+  platform: Platform = platformName(),
+): string {
   return platform === "linux" ? path : path.normalize("NFC").toLowerCase();
 }

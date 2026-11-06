@@ -13,41 +13,42 @@ export enum LogLevel {
 }
 
 /** Case-insensitive string names corresponding to `LogLevel` values. */
-export type LogLevelName = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'silent';
+export type LogLevelName =
+  "trace" | "debug" | "info" | "warn" | "error" | "silent";
 
 /** Visual callout styles for terminal alert boxes. */
 export enum AlertKind {
-  INFO = 'info',
-  SUCCESS = 'success',
-  WARNING = 'warning',
-  CAUTION = 'caution',
-  TIP = 'tip',
-  NOTE = 'note',
+  INFO = "info",
+  SUCCESS = "success",
+  WARNING = "warning",
+  CAUTION = "caution",
+  TIP = "tip",
+  NOTE = "note",
 }
 
 /** Execution status states for terminal task list items. */
 export enum TaskStatus {
-  PENDING = 'pending',
-  RUNNING = 'running',
-  DONE = 'done',
-  FAILED = 'failed',
-  SKIPPED = 'skipped',
+  PENDING = "pending",
+  RUNNING = "running",
+  DONE = "done",
+  FAILED = "failed",
+  SKIPPED = "skipped",
 }
 
 /** Supported input control types for interactive CLI form wizards. */
 export enum FormFieldKind {
-  TEXT = 'text',
-  NUMBER = 'number',
-  BOOLEAN = 'boolean',
-  PASSWORD = 'password',
-  SELECT = 'select',
+  TEXT = "text",
+  NUMBER = "number",
+  BOOLEAN = "boolean",
+  PASSWORD = "password",
+  SELECT = "select",
 }
 
 /** Schema definition for a single field in an interactive CLI form wizard. */
 export interface FormField {
   key: string;
   label: string;
-  kind?: FormFieldKind | 'text' | 'number' | 'boolean' | 'password' | 'select';
+  kind?: FormFieldKind | "text" | "number" | "boolean" | "password" | "select";
   defaultVal?: string;
   required?: boolean;
   choices?: string[];
@@ -55,10 +56,10 @@ export interface FormField {
 
 /** Filesystem validation modes for interactive path prompts and file pickers. */
 export enum PathMode {
-  ANY = 'any',
-  MUST_EXIST = 'must_exist',
-  FILE = 'file',
-  DIRECTORY = 'directory',
+  ANY = "any",
+  MUST_EXIST = "must_exist",
+  FILE = "file",
+  DIRECTORY = "directory",
 }
 
 /** Hierarchical tree node used for rendering ASCII/Unicode tree views in the terminal. */
@@ -74,7 +75,7 @@ export class TreeNode {
 
   /** Appends a child node (created from a label string or passed as a `TreeNode`) and returns the child. */
   public addChild(childLabelOrNode: string | TreeNode): TreeNode {
-    if (typeof childLabelOrNode === 'string') {
+    if (typeof childLabelOrNode === "string") {
       const child = new TreeNode(childLabelOrNode);
       this.children.push(child);
       return child;
@@ -98,7 +99,7 @@ export interface PipelineStep {
 }
 
 /** Supported data types for CLI command-line flags. */
-export type FlagKind = 'string' | 'int' | 'float' | 'bool' | 'array';
+export type FlagKind = "string" | "int" | "float" | "bool" | "array";
 
 /** Configuration metadata for a registered CLI command-line flag. */
 export interface FlagOption {
@@ -182,19 +183,19 @@ export interface BackendRequestContext {
 
 /** Interceptor function invoked before sending an HTTP request, optionally returning a modified context. */
 export type RequestInterceptor = (
-  ctx: BackendRequestContext
+  ctx: BackendRequestContext,
 ) => BackendRequestContext | void | Promise<BackendRequestContext | void>;
 
 /** Interceptor function invoked after receiving an HTTP response, optionally returning a modified response. */
 export type ResponseInterceptor<T = any> = (
   res: BackendResponse<T>,
-  ctx: BackendRequestContext
+  ctx: BackendRequestContext,
 ) => BackendResponse<T> | void | Promise<BackendResponse<T> | void>;
 
 /** Interceptor function invoked when an HTTP request fails with an error. */
 export type ErrorInterceptor = (
   err: Error,
-  ctx: BackendRequestContext
+  ctx: BackendRequestContext,
 ) => void | Promise<void>;
 
 /** Configuration options for constructing a `BackendClient` instance. */
@@ -280,7 +281,7 @@ export interface SseEvent {
 
 /** Options controlling automatic pagination in `BackendClient.paginate` and `BackendClient.fetchAllPages`. */
 export interface PaginationOptions<T = any> {
-  mode?: 'page' | 'offset' | 'cursor' | 'link';
+  mode?: "page" | "offset" | "cursor" | "link";
   pageParam?: string;
   offsetParam?: string;
   limitParam?: string;
@@ -291,7 +292,10 @@ export interface PaginationOptions<T = any> {
   query?: Record<string, any>;
   headers?: Record<string, string>;
   extractItems?: (data: any, response: BackendResponse<any>) => T[];
-  extractNextCursor?: (data: any, response: BackendResponse<any>) => string | null | undefined;
+  extractNextCursor?: (
+    data: any,
+    response: BackendResponse<any>,
+  ) => string | null | undefined;
 }
 
 /** Result of probing a service health endpoint via `BackendClient.healthCheck`. */
@@ -373,7 +377,10 @@ export interface SimpleURL {
 }
 
 /** Callback handler invoked when a registered CLI command or subcommand is executed. */
-export type CommandAction = (flags: Record<string, any>, args: string[]) => void | Promise<void>;
+export type CommandAction = (
+  flags: Record<string, any>,
+  args: string[],
+) => void | Promise<void>;
 
 /** Metadata and flag definitions for a registered `SimpleCLI` subcommand. */
 export interface CommandDefinition {
@@ -393,8 +400,7 @@ export interface FilePickerOptions {
 }
 
 /** Output serialization formats supported by `SimpleCLI.output`. */
-export type OutputFormat = 'json' | 'table' | 'kv' | 'markdown' | 'text';
+export type OutputFormat = "json" | "table" | "kv" | "markdown" | "text";
 
 /** Target shell types supported for auto-completion script generation. */
-export type ShellType = 'bash' | 'zsh' | 'fish';
-
+export type ShellType = "bash" | "zsh" | "fish";

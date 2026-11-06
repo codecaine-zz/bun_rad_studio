@@ -25,7 +25,7 @@ export async function getProcesses(
   keyword?: string,
   sortBy?: ProcsOptions["sortBy"],
   limit?: number,
-  user?: string
+  user?: string,
 ): Promise<ProcessInfo[]> {
   const raw = await fetchRawProcessList();
   const allProcs = parsePsOutput(raw);
@@ -38,13 +38,23 @@ export async function getProcesses(
 /**
  * Executes the non-interactive `procs` workflow (process termination or process listing in JSON, tree, or table format).
  */
-export async function runProcsCoordinator(options: ProcsOptions): Promise<string> {
+export async function runProcsCoordinator(
+  options: ProcsOptions,
+): Promise<string> {
   if (options.killPid) {
-    killProcess(options.killPid, (options.signal ?? "SIGTERM") as NodeJS.Signals);
+    killProcess(
+      options.killPid,
+      (options.signal ?? "SIGTERM") as NodeJS.Signals,
+    );
     return `Successfully sent ${options.signal ?? "SIGTERM"} to PID ${options.killPid}.`;
   }
 
-  let procs = await getProcesses(options.keyword, options.sortBy, options.limit, options.user);
+  let procs = await getProcesses(
+    options.keyword,
+    options.sortBy,
+    options.limit,
+    options.user,
+  );
 
   if (options.ports) {
     const portMap = await fetchListeningPorts();

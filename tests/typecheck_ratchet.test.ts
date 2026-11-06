@@ -2,7 +2,10 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { compareCounts, countErrorsByFile } from "../scripts/typecheck_ratchet.ts";
+import {
+  compareCounts,
+  countErrorsByFile,
+} from "../scripts/typecheck_ratchet.ts";
 
 const ROOT = join(import.meta.dir, "..");
 
@@ -15,11 +18,19 @@ describe("countErrorsByFile", () => {
       "src\\b.ts(3,3): error TS2339: Property 'q' does not exist on type 'Z'.",
       "Found 3 errors in 2 files.",
     ].join("\n");
-    expect(countErrorsByFile(out, "/repo")).toEqual({ "src/a.ts": 2, "src/b.ts": 1 });
+    expect(countErrorsByFile(out, "/repo")).toEqual({
+      "src/a.ts": 2,
+      "src/b.ts": 1,
+    });
   });
 
   test("normalizes paths relative to the root", () => {
-    expect(countErrorsByFile("/repo/x/y.ts(1,1): error TS1005: ';' expected.", "/repo")).toEqual({ "x/y.ts": 1 });
+    expect(
+      countErrorsByFile(
+        "/repo/x/y.ts(1,1): error TS1005: ';' expected.",
+        "/repo",
+      ),
+    ).toEqual({ "x/y.ts": 1 });
   });
 
   test("no errors gives an empty result", () => {
@@ -29,7 +40,10 @@ describe("countErrorsByFile", () => {
 
 describe("compareCounts", () => {
   test("a higher count, or an error in a file that had none, is a regression", () => {
-    const { regressions, improvements } = compareCounts({ "a.ts": 2, "c.ts": 1 }, { "a.ts": 3, "b.ts": 1, "c.ts": 1 });
+    const { regressions, improvements } = compareCounts(
+      { "a.ts": 2, "c.ts": 1 },
+      { "a.ts": 3, "b.ts": 1, "c.ts": 1 },
+    );
     expect(regressions).toEqual([
       { file: "a.ts", before: 2, now: 3 },
       { file: "b.ts", before: 0, now: 1 },
@@ -38,7 +52,10 @@ describe("compareCounts", () => {
   });
 
   test("fewer errors, or a file that is now clean, is an improvement and not a failure", () => {
-    const { regressions, improvements } = compareCounts({ "a.ts": 3, "b.ts": 1 }, { "a.ts": 1 });
+    const { regressions, improvements } = compareCounts(
+      { "a.ts": 3, "b.ts": 1 },
+      { "a.ts": 1 },
+    );
     expect(regressions).toEqual([]);
     expect(improvements).toEqual([
       { file: "a.ts", before: 3, now: 1 },
@@ -47,7 +64,10 @@ describe("compareCounts", () => {
   });
 
   test("equal counts change nothing", () => {
-    expect(compareCounts({ "a.ts": 2 }, { "a.ts": 2 })).toEqual({ regressions: [], improvements: [] });
+    expect(compareCounts({ "a.ts": 2 }, { "a.ts": 2 })).toEqual({
+      regressions: [],
+      improvements: [],
+    });
   });
 });
 
@@ -58,14 +78,32 @@ describe("typecheck script on a disposable project", () => {
   const baseline = join(dir, "baseline.json");
   const run = (...extra: string[]) => {
     const r = Bun.spawnSync(
-      [process.execPath, "scripts/typecheck_ratchet.ts", "--project", join(dir, "tsconfig.json"), "--baseline", baseline, ...extra],
+      [
+        process.execPath,
+        "scripts/typecheck_ratchet.ts",
+        "--project",
+        join(dir, "tsconfig.json"),
+        "--baseline",
+        baseline,
+        ...extra,
+      ],
       { cwd: ROOT, stdout: "pipe", stderr: "pipe" },
     );
-    return { code: r.exitCode, text: r.stdout.toString() + r.stderr.toString() };
+    return {
+      code: r.exitCode,
+      text: r.stdout.toString() + r.stderr.toString(),
+    };
   };
-  const write = (name: string, body: string) => writeFileSync(join(dir, name), body);
+  const write = (name: string, body: string) =>
+    writeFileSync(join(dir, name), body);
 
-  write("tsconfig.json", JSON.stringify({ compilerOptions: { strict: true, noEmit: true, types: [] }, files: ["a.ts", "b.ts"] }));
+  write(
+    "tsconfig.json",
+    JSON.stringify({
+      compilerOptions: { strict: true, noEmit: true, types: [] },
+      files: ["a.ts", "b.ts"],
+    }),
+  );
   write("a.ts", "export const a: number = 1;\n");
   write("b.ts", "export const b: number = 2;\n");
 
@@ -109,11 +147,21 @@ describe("typecheck script on a disposable project", () => {
   });
 
   test("a project that cannot be found is reported as a tsc failure", () => {
-    const r = Bun.spawnSync([process.execPath, "scripts/typecheck_ratchet.ts", "--project", join(dir, "missing.json"), "--baseline", baseline], {
-      cwd: ROOT,
-      stdout: "pipe",
-      stderr: "pipe",
-    });
+    const r = Bun.spawnSync(
+      [
+        process.execPath,
+        "scripts/typecheck_ratchet.ts",
+        "--project",
+        join(dir, "missing.json"),
+        "--baseline",
+        baseline,
+      ],
+      {
+        cwd: ROOT,
+        stdout: "pipe",
+        stderr: "pipe",
+      },
+    );
     expect(r.exitCode).toBe(2);
     expect(r.stderr.toString() + r.stdout.toString()).toContain("tsc failed");
   });

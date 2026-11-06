@@ -9,7 +9,8 @@ export function selectedEntries(pane = activePane()) {
   return visibleEntries(pane).filter((e) => pane.selection.has(e.path));
 }
 
-export const selectedPaths = (pane = activePane()) => selectedEntries(pane).map((e) => e.path);
+export const selectedPaths = (pane = activePane()) =>
+  selectedEntries(pane).map((e) => e.path);
 
 function changed() {
   emit("selection");
@@ -60,7 +61,9 @@ export function clearSelection(pane = activePane()) {
 
 export function invertSelection(pane = activePane()) {
   const list = visibleEntries(pane);
-  const next = new Set(list.filter((e) => !pane.selection.has(e.path)).map((e) => e.path));
+  const next = new Set(
+    list.filter((e) => !pane.selection.has(e.path)).map((e) => e.path),
+  );
   pane.selection = next;
   if (next.size && !next.has(pane.focusKey)) pane.focusKey = [...next][0];
   pane.anchorKey = pane.focusKey;
@@ -75,7 +78,10 @@ export function selectKeys(keys, pane = activePane()) {
 }
 
 /** Moves the keyboard focus to the entry at `index` (and selects it, or extends the selection with `extend`). */
-export function focusIndex(index, { extend = false, keepSelection = false, pane = activePane() } = {}) {
+export function focusIndex(
+  index,
+  { extend = false, keepSelection = false, pane = activePane() } = {},
+) {
   const list = visibleEntries(pane);
   if (!list.length) return;
   const i = Math.max(0, Math.min(list.length - 1, index));
@@ -106,14 +112,19 @@ export function matchEntriesByPattern(entries, pattern) {
       return [];
     }
   }
-  return entries.filter((e) => entryMatchesQuickFilter(e, q, state.settings?.tags));
+  return entries.filter((e) =>
+    entryMatchesQuickFilter(e, q, state.settings?.tags),
+  );
 }
 
 /**
  * Selects or deselects items in `pane` matching `pattern`.
  * `mode`: "replace" (default) | "add" | "deselect"
  */
-export function selectByPattern(pattern, { mode = "replace", pane = activePane() } = {}) {
+export function selectByPattern(
+  pattern,
+  { mode = "replace", pane = activePane() } = {},
+) {
   const list = visibleEntries(pane);
   const matched = matchEntriesByPattern(list, pattern);
   const matchedKeys = matched.map((e) => e.path);
@@ -144,17 +155,21 @@ export function selectSameKindOrExt(pane = activePane()) {
   }
   if (seeds.length === 0) return { matched: 0, label: "" };
   const wantDirs = seeds.some((e) => e.isDir);
-  const wantExts = new Set(seeds.filter((e) => !e.isDir).map((e) => extensionOf(e.name || "")));
+  const wantExts = new Set(
+    seeds.filter((e) => !e.isDir).map((e) => extensionOf(e.name || "")),
+  );
   const matched = list.filter((e) => {
     if (e.isDir) return wantDirs;
     return wantExts.has(extensionOf(e.name || ""));
   });
   pane.selection = new Set(matched.map((e) => e.path));
-  if (matched.length && !pane.selection.has(pane.focusKey)) pane.focusKey = matched[0].path;
+  if (matched.length && !pane.selection.has(pane.focusKey))
+    pane.focusKey = matched[0].path;
   pane.anchorKey = pane.focusKey;
   changed();
   const labelParts = [];
   if (wantDirs) labelParts.push("folders");
-  for (const ext of wantExts) labelParts.push(ext ? `.${ext} files` : "files without extension");
+  for (const ext of wantExts)
+    labelParts.push(ext ? `.${ext} files` : "files without extension");
   return { matched: matched.length, label: labelParts.join(" & ") };
 }

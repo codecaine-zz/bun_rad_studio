@@ -35,7 +35,14 @@ export const SIGNALS = {
 export type SignalName = keyof typeof SIGNALS;
 
 /** Processes that must never be signaled: stopping or killing them logs you out or freezes the machine. */
-export const CRITICAL_NAMES = ["launchd", "kernel_task", "WindowServer", "loginwindow", "systemd", "init"];
+export const CRITICAL_NAMES = [
+  "launchd",
+  "kernel_task",
+  "WindowServer",
+  "loginwindow",
+  "systemd",
+  "init",
+];
 
 /** Human-readable name: the app name for .app bundles, otherwise the executable's base name. */
 export function extractProcessName(command: string): string {
@@ -50,14 +57,21 @@ export function extractProcessName(command: string): string {
 /** Returns `true` if the command or executable name matches a known development runtime, server, or database. */
 export function isDevServerProcess(command: string, name: string): boolean {
   const hay = (name + " " + command).toLowerCase();
-  return /\b(bun|node|deno|vite|next|ts-node|tsx|esbuild|webpack|turbopack|python|python3|uvicorn|gunicorn|flask|fastapi|ruby|rails|cargo|rustc|go|redis-server|postgres|mysqld|mongod|docker|caddy|nginx)\b/i.test(hay);
+  return /\b(bun|node|deno|vite|next|ts-node|tsx|esbuild|webpack|turbopack|python|python3|uvicorn|gunicorn|flask|fastapi|ruby|rails|cargo|rustc|go|redis-server|postgres|mysqld|mongod|docker|caddy|nginx)\b/i.test(
+    hay,
+  );
 }
 
 /** Parse `ps` elapsed time ([[dd-]hh:]mm:ss) to seconds. Returns undefined when it cannot be parsed. */
 export function parseEtime(s: string): number | undefined {
   const m = /^(?:(\d+)-)?(?:(\d+):)?(\d+):(\d+)$/.exec((s || "").trim());
   if (!m) return undefined;
-  return (Number(m[1] || 0) * 86400) + (Number(m[2] || 0) * 3600) + Number(m[3]) * 60 + Number(m[4]);
+  return (
+    Number(m[1] || 0) * 86400 +
+    Number(m[2] || 0) * 3600 +
+    Number(m[3]) * 60 +
+    Number(m[4])
+  );
 }
 
 /** Formats an elapsed uptime in seconds into a compact human-readable string (e.g. `"2h 15m"`). */
@@ -65,7 +79,8 @@ export function formatUptime(sec: number | undefined): string {
   if (sec === undefined || !Number.isFinite(sec) || sec < 0) return "—";
   if (sec < 60) return `${Math.floor(sec)}s`;
   if (sec < 3600) return `${Math.floor(sec / 60)}m`;
-  if (sec < 86400) return `${Math.floor(sec / 3600)}h ${Math.floor((sec % 3600) / 60)}m`;
+  if (sec < 86400)
+    return `${Math.floor(sec / 3600)}h ${Math.floor((sec % 3600) / 60)}m`;
   return `${Math.floor(sec / 86400)}d ${Math.floor((sec % 86400) / 3600)}h`;
 }
 
@@ -75,7 +90,11 @@ export function formatMb(kb: number): string {
 }
 
 /** Parse `ps -axo pid,ppid,pcpu,pmem,rss,state,user,etime,command` output. */
-export function parsePsOutput(out: string, portMap: Map<string, string[]>, currentUser: string): ProcessItem[] {
+export function parsePsOutput(
+  out: string,
+  portMap: Map<string, string[]>,
+  currentUser: string,
+): ProcessItem[] {
   const lines = out.trim().split("\n");
   const items: ProcessItem[] = [];
   for (let i = 1; i < lines.length; i++) {
@@ -131,7 +150,14 @@ export function parseLsofListen(out: string): Map<string, string[]> {
 /** Expands a single-character `ps` process state code into a descriptive label (e.g. `"Running"`, `"Sleeping"`). */
 export function stateLabel(state: string): string {
   const c = (state || "?")[0]!.toUpperCase();
-  const base: Record<string, string> = { R: "Running", S: "Sleeping", I: "Idle", T: "Stopped (suspended)", U: "Uninterruptible wait", Z: "Zombie" };
+  const base: Record<string, string> = {
+    R: "Running",
+    S: "Sleeping",
+    I: "Idle",
+    T: "Stopped (suspended)",
+    U: "Uninterruptible wait",
+    Z: "Zombie",
+  };
   return base[c] || state;
 }
 
@@ -239,34 +265,84 @@ export interface SignalAssessment {
 }
 
 /** Evaluates whether sending `signal` to `pid` is safe, blocked, or requires user confirmation. */
-export function assessSignal(proc: ProcessItem | undefined, pid: string, signal: SignalName, ctx: SignalContext): SignalAssessment {
-  if (!/^\d+$/.test(pid) || pid === "0") return { allowed: false, reason: "Please specify a valid numeric PID." };
-  if (pid === "1") return { allowed: false, reason: "Refusing to signal PID 1 (launchd/init)." };
-  if (pid === ctx.selfPid) return { allowed: false, reason: "Refusing to signal this Task Manager's own process." };
-  if (proc && CRITICAL_NAMES.some((n) => n.toLowerCase() === proc.name.toLowerCase())) {
-    return { allowed: false, reason: `Refusing to signal ${proc.name}: it is critical to the system.` };
+export function assessSignal(
+  proc: ProcessItem | undefined,
+  pid: string,
+  signal: SignalName,
+  ctx: SignalContext,
+): SignalAssessment {
+  if (!/^\d+$/.test(pid) || pid === "0")
+    return { allowed: false, reason: "Please specify a valid numeric PID." };
+  if (pid === "1")
+    return {
+      allowed: false,
+      reason: "Refusing to signal PID 1 (launchd/init).",
+    };
+  if (pid === ctx.selfPid)
+    return {
+      allowed: false,
+      reason: "Refusing to signal this Task Manager's own process.",
+    };
+  if (
+    proc &&
+    CRITICAL_NAMES.some((n) => n.toLowerCase() === proc.name.toLowerCase())
+  ) {
+    return {
+      allowed: false,
+      reason: `Refusing to signal ${proc.name}: it is critical to the system.`,
+    };
   }
   const label = proc ? `${proc.name} (PID ${pid})` : `PID ${pid}`;
   const notes: string[] = [];
-  if (pid === ctx.parentPid) notes.push("This is the process that launched Task Manager, so it will probably close this window.");
-  if (proc && proc.user !== ctx.currentUser) notes.push(`It belongs to "${proc.user}", not you. This will probably be refused, and signaling system processes can destabilise your Mac.`);
-  if (proc && proc.ports.length) notes.push(`It is listening on ${proc.ports.join(", ")}.`);
+  if (pid === ctx.parentPid)
+    notes.push(
+      "This is the process that launched Task Manager, so it will probably close this window.",
+    );
+  if (proc && proc.user !== ctx.currentUser)
+    notes.push(
+      `It belongs to "${proc.user}", not you. This will probably be refused, and signaling system processes can destabilise your Mac.`,
+    );
+  if (proc && proc.ports.length)
+    notes.push(`It is listening on ${proc.ports.join(", ")}.`);
   const destructive = signal === "SIGKILL" || signal === "SIGSTOP";
   if (destructive || notes.length) {
-    const what = signal === "SIGKILL" ? "force-kill (SIGKILL, no cleanup, unsaved work is lost)"
-      : signal === "SIGSTOP" ? "suspend (SIGSTOP)"
-      : signal === "SIGTERM" ? "terminate (SIGTERM)"
-      : signal === "SIGHUP" ? "send SIGHUP to"
-      : "resume (SIGCONT)";
-    return { allowed: true, confirm: `${signal === "SIGCONT" ? "Resume" : "Really"} ${what} ${label}?${notes.length ? "\n\n" + notes.join("\n") : ""}` };
+    const what =
+      signal === "SIGKILL"
+        ? "force-kill (SIGKILL, no cleanup, unsaved work is lost)"
+        : signal === "SIGSTOP"
+          ? "suspend (SIGSTOP)"
+          : signal === "SIGTERM"
+            ? "terminate (SIGTERM)"
+            : signal === "SIGHUP"
+              ? "send SIGHUP to"
+              : "resume (SIGCONT)";
+    return {
+      allowed: true,
+      confirm: `${signal === "SIGCONT" ? "Resume" : "Really"} ${what} ${label}?${notes.length ? "\n\n" + notes.join("\n") : ""}`,
+    };
   }
   return { allowed: true };
 }
 
 /** Dev servers worth cleaning up: yours, listening on a port or orphaned (parent is launchd), and not part of this app's own process chain. */
-export function findRogueDevServers(procs: ProcessItem[], ctx: SignalContext): ProcessItem[] {
-  const protectedPids = new Set<string>([ctx.selfPid, ctx.parentPid, ...ancestorsOf(procs, ctx.selfPid), ...descendantsOf(procs, ctx.selfPid)]);
-  return procs.filter((p) => p.isDevServer && p.isUserApp && !protectedPids.has(p.pid) && (p.ports.length > 0 || p.ppid === "1") && !CRITICAL_NAMES.includes(p.name));
+export function findRogueDevServers(
+  procs: ProcessItem[],
+  ctx: SignalContext,
+): ProcessItem[] {
+  const protectedPids = new Set<string>([
+    ctx.selfPid,
+    ctx.parentPid,
+    ...ancestorsOf(procs, ctx.selfPid),
+    ...descendantsOf(procs, ctx.selfPid),
+  ]);
+  return procs.filter(
+    (p) =>
+      p.isDevServer &&
+      p.isUserApp &&
+      !protectedPids.has(p.pid) &&
+      (p.ports.length > 0 || p.ppid === "1") &&
+      !CRITICAL_NAMES.includes(p.name),
+  );
 }
 
 /** Extracts and validates a TCP/UDP port number (`1`–`65535`) from a string, or returns `null`. */
@@ -296,20 +372,90 @@ function cell(v: string): string {
 
 /** Serializes a list of processes into a formula-safe CSV string. */
 export function processesToCsv(procs: ProcessItem[]): string {
-  const head = ["pid", "ppid", "name", "user", "state", "cpu_percent", "mem_percent", "rss_mb", "uptime", "ports", "command"];
-  const rows = procs.map((p) => [p.pid, p.ppid, p.name, p.user, p.state, p.cpu.toFixed(1), p.mem.toFixed(1), (p.rssKb / 1024).toFixed(1), p.uptime || "", p.ports.join(" "), p.command]);
+  const head = [
+    "pid",
+    "ppid",
+    "name",
+    "user",
+    "state",
+    "cpu_percent",
+    "mem_percent",
+    "rss_mb",
+    "uptime",
+    "ports",
+    "command",
+  ];
+  const rows = procs.map((p) => [
+    p.pid,
+    p.ppid,
+    p.name,
+    p.user,
+    p.state,
+    p.cpu.toFixed(1),
+    p.mem.toFixed(1),
+    (p.rssKb / 1024).toFixed(1),
+    p.uptime || "",
+    p.ports.join(" "),
+    p.command,
+  ]);
   return [head, ...rows].map((r) => r.map(cell).join(",")).join("\n") + "\n";
 }
 
 /** Serializes a list of processes into a formatted JSON string. */
 export function processesToJson(procs: ProcessItem[]): string {
-  return JSON.stringify(procs.map((p) => ({ pid: p.pid, ppid: p.ppid, name: p.name, user: p.user, state: p.state, cpu: p.cpu, mem: p.mem, rssMb: Math.round((p.rssKb / 1024) * 10) / 10, uptime: p.uptime ?? null, ports: p.ports, command: p.command })), null, 2);
+  return JSON.stringify(
+    procs.map((p) => ({
+      pid: p.pid,
+      ppid: p.ppid,
+      name: p.name,
+      user: p.user,
+      state: p.state,
+      cpu: p.cpu,
+      mem: p.mem,
+      rssMb: Math.round((p.rssKb / 1024) * 10) / 10,
+      uptime: p.uptime ?? null,
+      ports: p.ports,
+      command: p.command,
+    })),
+    null,
+    2,
+  );
 }
 
 /** Serializes a list of processes into a tab-separated values (TSV) string. */
 export function processesToTsv(procs: ProcessItem[]): string {
-  const head = ["PID", "Name", "Ports", "CPU %", "MEM %", "RSS", "User", "State", "Uptime", "Command"].join("\t");
-  return head + "\n" + procs.map((p) => [p.pid, p.name, p.ports.join(" "), p.cpu.toFixed(1), p.mem.toFixed(1), p.rssMb, p.user, p.state, p.uptime || "", p.command.replace(/[\t\n]/g, " ")].join("\t")).join("\n");
+  const head = [
+    "PID",
+    "Name",
+    "Ports",
+    "CPU %",
+    "MEM %",
+    "RSS",
+    "User",
+    "State",
+    "Uptime",
+    "Command",
+  ].join("\t");
+  return (
+    head +
+    "\n" +
+    procs
+      .map((p) =>
+        [
+          p.pid,
+          p.name,
+          p.ports.join(" "),
+          p.cpu.toFixed(1),
+          p.mem.toFixed(1),
+          p.rssMb,
+          p.user,
+          p.state,
+          p.uptime || "",
+          p.command.replace(/[\t\n]/g, " "),
+        ].join("\t"),
+      )
+      .join("\n")
+  );
 }
 
 /** Parses a refresh interval dropdown label (e.g. `"2s"`, `"Off"`) into seconds (`0` when disabled). */

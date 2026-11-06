@@ -3,7 +3,9 @@ import { join } from "path";
 
 export function generateCliReplacements(outDir: string) {
   // 17_fd_studio.md
-  writeFileSync(join(outDir, "17_fd_studio.md"), `# 🔎 Fd Studio Pro -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "17_fd_studio.md"),
+    `# 🔎 Fd Studio Pro -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Native Recursive Filesystem Traversal  •  Dependencies: 0  •  Offline: 100%
@@ -98,10 +100,13 @@ A beginner-friendly file-manager layer on top of search — everything is a butt
 - **Filter results**: Type to narrow the current results by name or path (case-insensitive) without rescanning. Batch actions, exports and copies use exactly what is shown.
 - **💾 Save Results As…**: Native Save dialog; the format follows the extension you choose — \`.json\`, \`.csv\`, \`.tsv\`, \`.md\` or \`.txt\` (path list).
 - **Feedback**: A toast summarizes each search (count and time), and a missing Search Root shows a clear error instead of an empty result.
-`);
+`,
+  );
 
   // 18_rip_studio.md
-  writeFileSync(join(outDir, "18_rip_studio.md"), `# ⚰️ Rip Studio Pro -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "18_rip_studio.md"),
+    `# ⚰️ Rip Studio Pro -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Native File Quarantine & Graveyard Engine  •  Dependencies: 0  •  Offline: 100%
@@ -164,10 +169,13 @@ bun run cli:rip unbury
 ### 3. Graveyard Storage Maintenance
 - **Graveyard Size Pill**: Total disk space occupied by quarantined files.
 - **🧹 Empty Graveyard Button**: Purges items older than 30 days or clears entire archive.
-`);
+`,
+  );
 
   // 19_sd_studio.md
-  writeFileSync(join(outDir, "19_sd_studio.md"), `# 🔄 Sd Studio Pro -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "19_sd_studio.md"),
+    `# 🔄 Sd Studio Pro -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Native Regex Stream Substitution  •  Dependencies: 0  •  Offline: 100%
@@ -239,10 +247,13 @@ bun run cli:sd "http://localhost:3000" "https://api.prod.com" config.json --back
 - **↶ Undo Last Replace**: Restores every file changed by the most recent *Replace In Files* to its previous content (kept for the current session, no backup files needed).
 - **📋 Copy Diff / 💾 Save Diff As… / 📊 Save Report As…**: Copy or save the unified diff of the last preview/replace, or save a Markdown report listing each file's matches and hunks.
 - **Feedback**: A toast summarizes each run (matches and files), warns when nothing matched, and shows regex errors immediately.
-`);
+`,
+  );
 
   // 20_procs_studio.md
-  writeFileSync(join(outDir, "20_procs_studio.md"), `# 📈 Procs Studio Pro -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "20_procs_studio.md"),
+    `# 📈 Procs Studio Pro -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Native Process Table Telemetry  •  Dependencies: 0  •  Offline: 100%
@@ -288,10 +299,13 @@ bun run cli:procs --search "chrome"
 - **Process Tree View**: Collapsible tree visualizing parent-child relationship (e.g., Terminal -> zsh -> Bun -> Webview).
 - **Port Correlation**: Highlights which specific PID is listening on port 3000, 5432, or 8080.
 - **Signal Dispatcher**: Send \`SIGTERM\` (graceful) or \`SIGKILL\` (forceful) directly from UI.
-`);
+`,
+  );
 
   // 21_watchexec_studio.md
-  writeFileSync(join(outDir, "21_watchexec_studio.md"), `# ⚡ Watchexec Studio Pro -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "21_watchexec_studio.md"),
+    `# ⚡ Watchexec Studio Pro -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Native fs.watch & Subprocess Pipeline  •  Dependencies: 0  •  Offline: 100%
@@ -334,10 +348,13 @@ bun run cli:watchexec -w ./src -e "bun test"
 - **Live Console Streaming**: stdout/stderr appear as they are produced, with **Copy Log** and **Export Log** buttons.
 - **Run History with Duration**: Status and duration per run, a **Clear History** button, and optional success/failure toasts (**Notify When Done**).
 - **Path Validation**: Missing watch or working directories raise a clear error instead of failing silently.
-`);
+`,
+  );
 
   // 22_tokei_studio.md
-  writeFileSync(join(outDir, "22_tokei_studio.md"), `# 📊 Tokei Studio Pro -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "22_tokei_studio.md"),
+    `# 📊 Tokei Studio Pro -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Native Multi-Language Code Classifier  •  Dependencies: 0  •  Offline: 100%
@@ -376,10 +393,13 @@ bun run cli:tokei ./ --json
 - **Language Composition Chart**: Visual proportion breakdown showing percentage of TypeScript, V, C++, CSS, HTML, and Markdown.
 - **Metrics Table**: Displays Language, Total Files, Blank Lines, Comment Lines, Code Lines, and Comment-to-Code ratio.
 - **Export Options**: One-click export to Markdown summary tables or structured JSON reports.
-`);
+`,
+  );
 
   // 23_gdu_studio.md
-  writeFileSync(join(outDir, "23_gdu_studio.md"), `# 💽 Gdu Studio Pro -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "23_gdu_studio.md"),
+    `# 💽 Gdu Studio Pro -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Native Recursive Disk Walker  •  Dependencies: 0  •  Offline: 100%
@@ -417,10 +437,13 @@ bun run cli:gdu ./
 - **Proportional Storage Bars**: Instantly spot which folder consumes 80% of your disk space.
 - **Directory Drill-down**: Click any folder to dive deeper into subtrees.
 - **Clean Reclamation**: Directly bury large temporary folders into the Rip Graveyard.
-`);
+`,
+  );
 
   // 24_ipinfo_studio.md
-  writeFileSync(join(outDir, "24_ipinfo_studio.md"), `# 🌍 IpInfo Studio Pro -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "24_ipinfo_studio.md"),
+    `# 🌍 IpInfo Studio Pro -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: IP Geolocation (ipinfo.io / ipwho.is) & Native CIDR Math  •  Dependencies: 0  •  Lookups need internet; subnet tools offline
@@ -499,10 +522,13 @@ bun run cli:ipinfo --subnet "192.168.1.0/24"
 ## 💡 Pro Tips & Best Practices
 - Lookups run one after another and the window waits while they do, so large bulk lists can take a while.
 - Typed values, including the **API Token**, are kept in the saved form state. Clear the token field if you share the machine.
-`);
+`,
+  );
 
   // 25_subfinder_studio.md
-  writeFileSync(join(outDir, "25_subfinder_studio.md"), `# 🔎 Subfinder Studio Pro -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "25_subfinder_studio.md"),
+    `# 🔎 Subfinder Studio Pro -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Passive & Active DNS Reconnaissance  •  Dependencies: 0  •  Needs network access (queries online OSINT services)
@@ -541,10 +567,13 @@ bun run cli:subfinder example.com --probe-http
 - **Multi-Source Subdomain Enumeration**: Extracts subdomains without sending intrusive traffic to target networks.
 - **HTTP / HTTPS Live Probing**: Checks status codes (200, 301, 403, 500) and page titles.
 - **Export Formats**: One-click CSV, TXT, or JSON export of valid targets.
-`);
+`,
+  );
 
   // 26_doggo_studio.md
-  writeFileSync(join(outDir, "26_doggo_studio.md"), `# 🐶 Doggo Studio Pro -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "26_doggo_studio.md"),
+    `# 🐶 Doggo Studio Pro -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Modern DNS Client & DNS-over-HTTPS (DoH)  •  Dependencies: 0  •  Needs network access (DNS lookups; DoH defaults to cloudflare-dns.com)
@@ -588,7 +617,8 @@ bun run cli:doggo 8.8.8.8 -x
 - **Custom Nameserver Bar**: Query specific resolvers (\`@1.1.1.1\`, \`@8.8.8.8\`, \`@9.9.9.9\`) or local routers.
 - **DNS-over-HTTPS (DoH) Toggle**: Encrypts queries via HTTPS to bypass local DNS interception and filtering.
 - **Answer Table**: Displays Record Type, Host Name, TTL (Time To Live), and Resolved Data.
-`);
+`,
+  );
 
   console.log("✔ CLI Replacements (17 to 26) generated with AAA quality.");
 }

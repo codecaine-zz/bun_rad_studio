@@ -52,7 +52,9 @@ export function resetLimits(): void {
 const mb = (n: number) => `${Math.round(n / 1024 / 1024)} MB`;
 
 /** Formats a human-friendly error explanation when a staging limit is exceeded. */
-export function limitMessage(kind: "file" | "rows" | "columns" | "record" | "paste"): string {
+export function limitMessage(
+  kind: "file" | "rows" | "columns" | "record" | "paste",
+): string {
   switch (kind) {
     case "file":
       return `That file is bigger than the ${limits.maxFileBytes >= 1024 ** 3 ? (limits.maxFileBytes / 1024 ** 3).toFixed(0) + " GB" : mb(limits.maxFileBytes)} limit. Split it into smaller files and load them one after another.`;

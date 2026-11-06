@@ -1,5 +1,8 @@
 /** Shared by Linux release installers; ROOT must be the extracted archive's physical path. */
-export function linuxSandboxSetup(profileName: string, executable: string): string {
+export function linuxSandboxSetup(
+  profileName: string,
+  executable: string,
+): string {
   return `PROFILE="/etc/apparmor.d/${profileName}"
 APPARMOR=0
 UNINSTALL=0
@@ -206,4 +209,3 @@ console.log("\\n==> All done! Ollama and starter AI models (" + modelsToPull.joi
 ' "$@"
 `;
 }
-

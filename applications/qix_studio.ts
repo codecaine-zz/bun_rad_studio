@@ -142,7 +142,11 @@ ${getWindowShortcutsScript()}
   }
 
   // @ts-ignore - extra metadata args supported for studio branding
-  return injectGameMasterFx(html, "Codecaine CyberQix: Laser Territory Claim", "violet");
+  return injectGameMasterFx(
+    html,
+    "Codecaine CyberQix: Laser Territory Claim",
+    "violet",
+  );
 }
 
 export function startQixServer(options: QixServerOptions = {}) {
@@ -172,7 +176,10 @@ export function startQixServer(options: QixServerOptions = {}) {
 
       if (pathname === "/" || pathname === "/index.html") {
         return new Response(generateQixStudioHtml(), {
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            ...corsHeaders,
+          },
         });
       }
 
@@ -212,7 +219,9 @@ export function startQixServer(options: QixServerOptions = {}) {
         return new Response("Forbidden", { status: 403 });
       }
       if (existsSync(directCandidate)) {
-        return new Response(Bun.file(directCandidate), { headers: corsHeaders });
+        return new Response(Bun.file(directCandidate), {
+          headers: corsHeaders,
+        });
       }
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
@@ -220,7 +229,9 @@ export function startQixServer(options: QixServerOptions = {}) {
   });
 }
 
-export function createQixStudio(options: QixStudioOptions = {}): QixStudioInstance {
+export function createQixStudio(
+  options: QixStudioOptions = {},
+): QixStudioInstance {
   const fullscreen = options.fullscreen ?? false;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1280);
@@ -252,7 +263,8 @@ export function createQixStudio(options: QixStudioOptions = {}): QixStudioInstan
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -272,11 +284,15 @@ export function createQixStudio(options: QixStudioOptions = {}): QixStudioInstan
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -287,13 +303,19 @@ export function createQixStudio(options: QixStudioOptions = {}): QixStudioInstan
 
         webview.setHTML(html);
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -316,10 +338,13 @@ if (process.argv.includes("--server")) {
   const port = Number(process.env.QIX_PORT || process.env.PORT || APP_PORT);
   const srv = startQixServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`⚡ ${APP_TITLE} Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `⚡ ${APP_TITLE} Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = process.argv.includes("--fullscreen") || process.argv.includes("-f");
+  const fullscreen =
+    process.argv.includes("--fullscreen") || process.argv.includes("-f");
   const app = createQixStudio({ fullscreen });
   await app.run();
   process.exit(0);

@@ -9,7 +9,10 @@ export interface FlagDefinition {
 }
 
 /** Generates a Bash completion script (`complete -F`) for `cliName` with the given `flags`. */
-export function generateBashCompletion(cliName: string, flags: string[]): string {
+export function generateBashCompletion(
+  cliName: string,
+  flags: string[],
+): string {
   const optsStr = flags.join(" ");
   return `# Bash completion for ${cliName}
 _${cliName}() {
@@ -29,11 +32,14 @@ complete -F _${cliName} ${cliName}
 /** Generates a Zsh `#compdef` completion script with descriptions for `cliName`. */
 export function generateZshCompletion(
   cliName: string,
-  flagDefs: FlagDefinition[]
+  flagDefs: FlagDefinition[],
 ): string {
   const options = flagDefs
     .map((d) => {
-      const escaped = d.desc.replace(/'/g, "'\\''").replace(/\[/g, "\\[").replace(/\]/g, "\\]");
+      const escaped = d.desc
+        .replace(/'/g, "'\\''")
+        .replace(/\[/g, "\\[")
+        .replace(/\]/g, "\\]");
       return `        '${d.flag}[${escaped}]'`;
     })
     .join("\n");
@@ -56,7 +62,7 @@ _${cliName} "$@"
 /** Generates a Fish shell completion script (`complete -c`) for `cliName`. */
 export function generateFishCompletion(
   cliName: string,
-  flagDefs: FlagDefinition[]
+  flagDefs: FlagDefinition[],
 ): string {
   const lines: string[] = [
     `# Fish completion for ${cliName}`,
@@ -186,7 +192,7 @@ export const TOOL_FLAGS: Record<string, FlagDefinition[]> = {
 export function renderCompletionScript(
   cliName: string,
   shell: string,
-  flagDefs: FlagDefinition[] = TOOL_FLAGS[cliName] ?? []
+  flagDefs: FlagDefinition[] = TOOL_FLAGS[cliName] ?? [],
 ): string {
   const normShell = shell.toLowerCase().trim();
   if (normShell === "bash") {
@@ -199,5 +205,7 @@ export function renderCompletionScript(
   if (normShell === "fish") {
     return generateFishCompletion(cliName, flagDefs);
   }
-  throw new Error(`[Completions] Unsupported shell: ${shell}. Supported shells: bash, zsh, fish.`);
+  throw new Error(
+    `[Completions] Unsupported shell: ${shell}. Supported shells: bash, zsh, fish.`,
+  );
 }

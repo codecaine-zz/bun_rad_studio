@@ -6,7 +6,14 @@
  *   header (64 bytes, also the AAD of every chunk)  |  chunk 0 | chunk 1 | ... | last chunk
  *   chunk = AES-256-GCM(plaintext piece of 1 << chunkLog2 bytes) + 16-byte tag
  */
-import { argon2, createCipheriv, createDecipheriv, hkdfSync, randomBytes, timingSafeEqual } from "node:crypto";
+import {
+  argon2,
+  createCipheriv,
+  createDecipheriv,
+  hkdfSync,
+  randomBytes,
+  timingSafeEqual,
+} from "node:crypto";
 import type { FileHandle } from "node:fs/promises";
 import { totalmem } from "node:os";
 import { FmError } from "./fmPaths";
@@ -51,10 +58,15 @@ export const LEVELS: Record<Level, KdfParams> = {
 };
 
 /** What a reader accepts before it runs the (expensive) key derivation: a hostile file must not be able to demand the moon. */
-export const KDF_LIMITS = { maxMemoryKiB: 2 * 1024 * 1024, maxPasses: 10, maxParallelism: 16 } as const;
+export const KDF_LIMITS = {
+  maxMemoryKiB: 2 * 1024 * 1024,
+  maxPasses: 10,
+  maxParallelism: 16,
+} as const;
 
 /** One message for every reason a file cannot be opened, so a wrong password and a damaged file look the same. */
-export const WRONG_OR_DAMAGED = "Wrong password, or the file is damaged or has been changed.";
+export const WRONG_OR_DAMAGED =
+  "Wrong password, or the file is damaged or has been changed.";
 
 /** Domain error thrown by RADENC format and container operations. */
 export class VaultError extends FmError {}
@@ -70,24 +82,44 @@ export interface VaultHeader extends KdfParams {
 }
 
 /** Result of parsing and validating a raw RADENC file header. */
-export type HeaderCheck = { ok: true; header: VaultHeader; raw: Buffer } | { ok: false; code: "NOT_RADENC" | "UNSUPPORTED" | "BAD_PARAMS"; detail: string };
+export type HeaderCheck =
+  | { ok: true; header: VaultHeader; raw: Buffer }
+  | {
+      ok: false;
+      code: "NOT_RADENC" | "UNSUPPORTED" | "BAD_PARAMS";
+      detail: string;
+    };
 
 /** Maps a `KdfParams` configuration to its matching preset `Level` name, or `"custom"` if it differs. */
 export function levelOf(p: KdfParams): Level | "custom" {
   for (const name of ["standard", "maximum"] as const) {
     const l = LEVELS[name];
-    if (l.memoryKiB === p.memoryKiB && l.passes === p.passes && l.parallelism === p.parallelism) return name;
+    if (
+      l.memoryKiB === p.memoryKiB &&
+      l.passes === p.passes &&
+      l.parallelism === p.parallelism
+    )
+      return name;
   }
   return "custom";
 }
 
 /** A plain reason why these parameters are refused, or null when they are acceptable. */
 export function kdfRefusal(p: KdfParams): string | null {
-  if (!Number.isInteger(p.memoryKiB) || !Number.isInteger(p.passes) || !Number.isInteger(p.parallelism)) return "The key settings are not whole numbers.";
-  if (p.parallelism < 1 || p.parallelism > KDF_LIMITS.maxParallelism) return `The key settings ask for ${p.parallelism} parallel lanes (allowed: 1 to ${KDF_LIMITS.maxParallelism}).`;
-  if (p.passes < 1 || p.passes > KDF_LIMITS.maxPasses) return `The key settings ask for ${p.passes} passes (allowed: 1 to ${KDF_LIMITS.maxPasses}).`;
-  if (p.memoryKiB < 8 * p.parallelism) return "The key settings ask for too little memory.";
-  if (p.memoryKiB > KDF_LIMITS.maxMemoryKiB) return `The key settings ask for ${Math.round(p.memoryKiB / 1024)} MB of memory (the most this program accepts is ${KDF_LIMITS.maxMemoryKiB / 1024} MB).`;
+  if (
+    !Number.isInteger(p.memoryKiB) ||
+    !Number.isInteger(p.passes) ||
+    !Number.isInteger(p.parallelism)
+  )
+    return "The key settings are not whole numbers.";
+  if (p.parallelism < 1 || p.parallelism > KDF_LIMITS.maxParallelism)
+    return `The key settings ask for ${p.parallelism} parallel lanes (allowed: 1 to ${KDF_LIMITS.maxParallelism}).`;
+  if (p.passes < 1 || p.passes > KDF_LIMITS.maxPasses)
+    return `The key settings ask for ${p.passes} passes (allowed: 1 to ${KDF_LIMITS.maxPasses}).`;
+  if (p.memoryKiB < 8 * p.parallelism)
+    return "The key settings ask for too little memory.";
+  if (p.memoryKiB > KDF_LIMITS.maxMemoryKiB)
+    return `The key settings ask for ${Math.round(p.memoryKiB / 1024)} MB of memory (the most this program accepts is ${KDF_LIMITS.maxMemoryKiB / 1024} MB).`;
   return null;
 }
 
@@ -108,16 +140,37 @@ export function encodeHeader(h: VaultHeader): Buffer {
 }
 
 /** Creates a new `VaultHeader` with fresh random salt and nonce prefix for the given KDF and compression settings. */
-export function newHeader(params: KdfParams, compress: boolean, chunkLog2 = DEFAULT_CHUNK_LOG2): VaultHeader {
-  return { kdfId: KDF_ARGON2ID, ...params, salt: randomBytes(32), cipherId: CIPHER_AES256GCM_STREAM, chunkLog2, flags: compress ? FLAG_GZIP : 0, noncePrefix: randomBytes(7) };
+export function newHeader(
+  params: KdfParams,
+  compress: boolean,
+  chunkLog2 = DEFAULT_CHUNK_LOG2,
+): VaultHeader {
+  return {
+    kdfId: KDF_ARGON2ID,
+    ...params,
+    salt: randomBytes(32),
+    cipherId: CIPHER_AES256GCM_STREAM,
+    chunkLog2,
+    flags: compress ? FLAG_GZIP : 0,
+    noncePrefix: randomBytes(7),
+  };
 }
 
 /** Reads and checks a header without any secret. Every refusal is decided here, before any key derivation. */
 export function parseHeader(raw: Buffer): HeaderCheck {
   if (raw.length < MAGIC.length || !raw.subarray(0, 8).equals(MAGIC)) {
-    return { ok: false, code: "NOT_RADENC", detail: "This isn't a RADENC encrypted file." };
+    return {
+      ok: false,
+      code: "NOT_RADENC",
+      detail: "This isn't a RADENC encrypted file.",
+    };
   }
-  if (raw.length < HEADER_SIZE) return { ok: false, code: "NOT_RADENC", detail: "This file is too short to be a RADENC encrypted file." };
+  if (raw.length < HEADER_SIZE)
+    return {
+      ok: false,
+      code: "NOT_RADENC",
+      detail: "This file is too short to be a RADENC encrypted file.",
+    };
   const h: VaultHeader = {
     kdfId: raw[8]!,
     memoryKiB: raw.readUInt32BE(9),
@@ -129,12 +182,39 @@ export function parseHeader(raw: Buffer): HeaderCheck {
     flags: raw[49]!,
     noncePrefix: Buffer.from(raw.subarray(50, 57)),
   };
-  if (h.kdfId !== KDF_ARGON2ID || h.cipherId !== CIPHER_AES256GCM_STREAM) return { ok: false, code: "UNSUPPORTED", detail: "This file uses a method this program doesn't know." };
-  if ((h.flags & ~FLAG_GZIP) !== 0 || !raw.subarray(57, HEADER_SIZE).every((x) => x === 0)) return { ok: false, code: "UNSUPPORTED", detail: "This file uses options this program doesn't know." };
-  if (h.chunkLog2 < MIN_CHUNK_LOG2 || h.chunkLog2 > MAX_CHUNK_LOG2) return { ok: false, code: "BAD_PARAMS", detail: "This file's block size is outside the allowed range." };
+  if (h.kdfId !== KDF_ARGON2ID || h.cipherId !== CIPHER_AES256GCM_STREAM)
+    return {
+      ok: false,
+      code: "UNSUPPORTED",
+      detail: "This file uses a method this program doesn't know.",
+    };
+  if (
+    (h.flags & ~FLAG_GZIP) !== 0 ||
+    !raw.subarray(57, HEADER_SIZE).every((x) => x === 0)
+  )
+    return {
+      ok: false,
+      code: "UNSUPPORTED",
+      detail: "This file uses options this program doesn't know.",
+    };
+  if (h.chunkLog2 < MIN_CHUNK_LOG2 || h.chunkLog2 > MAX_CHUNK_LOG2)
+    return {
+      ok: false,
+      code: "BAD_PARAMS",
+      detail: "This file's block size is outside the allowed range.",
+    };
   const refusal = kdfRefusal(h);
-  if (refusal) return { ok: false, code: "BAD_PARAMS", detail: `${refusal} It was refused for safety.` };
-  return { ok: true, header: h, raw: Buffer.from(raw.subarray(0, HEADER_SIZE)) };
+  if (refusal)
+    return {
+      ok: false,
+      code: "BAD_PARAMS",
+      detail: `${refusal} It was refused for safety.`,
+    };
+  return {
+    ok: true,
+    header: h,
+    raw: Buffer.from(raw.subarray(0, HEADER_SIZE)),
+  };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -146,9 +226,24 @@ export function passwordBytes(password: string): Buffer {
   return Buffer.from(password.normalize("NFKC"), "utf8");
 }
 
-function argon2Async(message: Buffer, salt: Buffer, p: KdfParams): Promise<Buffer> {
+function argon2Async(
+  message: Buffer,
+  salt: Buffer,
+  p: KdfParams,
+): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    argon2("argon2id", { message, nonce: salt, parallelism: p.parallelism, tagLength: 32, memory: p.memoryKiB, passes: p.passes }, (err, key) => (err ? reject(err) : resolve(Buffer.from(key))));
+    argon2(
+      "argon2id",
+      {
+        message,
+        nonce: salt,
+        parallelism: p.parallelism,
+        tagLength: 32,
+        memory: p.memoryKiB,
+        passes: p.passes,
+      },
+      (err, key) => (err ? reject(err) : resolve(Buffer.from(key))),
+    );
   });
 }
 
@@ -156,7 +251,11 @@ function argon2Async(message: Buffer, salt: Buffer, p: KdfParams): Promise<Buffe
  * Password -> Argon2id -> HKDF-SHA-256 -> the 32-byte file key. The caller must `fill(0)` the returned key when done.
  * Refuses unreasonable parameters first. Runs on a worker thread, so the program stays responsive.
  */
-export async function deriveFileKey(password: string, header: VaultHeader, forCreating = false): Promise<Buffer> {
+export async function deriveFileKey(
+  password: string,
+  header: VaultHeader,
+  forCreating = false,
+): Promise<Buffer> {
   const refusal = kdfRefusal(header);
   if (refusal) throw new VaultError("BAD_PARAMS", WRONG_OR_DAMAGED);
   const needBytes = header.memoryKiB * 1024;
@@ -170,11 +269,17 @@ export async function deriveFileKey(password: string, header: VaultHeader, forCr
     if (err instanceof VaultError) throw err;
     const mb = Math.round(header.memoryKiB / 1024);
     if (forCreating) {
-      throw new VaultError("NO_MEMORY", header.memoryKiB > LEVELS.standard.memoryKiB
-        ? "This computer can't spare that much memory for the Maximum level. Choose Standard."
-        : "This computer doesn't have enough free memory even for the Standard level. Close other programs and try again.");
+      throw new VaultError(
+        "NO_MEMORY",
+        header.memoryKiB > LEVELS.standard.memoryKiB
+          ? "This computer can't spare that much memory for the Maximum level. Choose Standard."
+          : "This computer doesn't have enough free memory even for the Standard level. Close other programs and try again.",
+      );
     }
-    throw new VaultError("NO_MEMORY", `This computer can't spare the ${mb} MB of memory needed to open this file. Close other programs and try again.`);
+    throw new VaultError(
+      "NO_MEMORY",
+      `This computer can't spare the ${mb} MB of memory needed to open this file. Close other programs and try again.`,
+    );
   } finally {
     pw.fill(0);
     master?.fill(0);
@@ -194,9 +299,25 @@ function nonceFor(prefix: Buffer, counter: number, last: boolean): Buffer {
 }
 
 /** Encrypts and authenticates a single plaintext chunk using AES-256-GCM with the header as AAD. */
-export function sealChunk(key: Buffer, raw: Buffer, prefix: Buffer, counter: number, last: boolean, plain: Buffer): Buffer {
-  if (!Number.isInteger(counter) || counter < 0 || counter > 0xffffffff) throw new VaultError("TOO_LARGE", "This is too large to encrypt in one file.");
-  const cipher = createCipheriv("aes-256-gcm", key, nonceFor(prefix, counter, last), { authTagLength: TAG_SIZE });
+export function sealChunk(
+  key: Buffer,
+  raw: Buffer,
+  prefix: Buffer,
+  counter: number,
+  last: boolean,
+  plain: Buffer,
+): Buffer {
+  if (!Number.isInteger(counter) || counter < 0 || counter > 0xffffffff)
+    throw new VaultError(
+      "TOO_LARGE",
+      "This is too large to encrypt in one file.",
+    );
+  const cipher = createCipheriv(
+    "aes-256-gcm",
+    key,
+    nonceFor(prefix, counter, last),
+    { authTagLength: TAG_SIZE },
+  );
   cipher.setAAD(raw);
   const body = cipher.update(plain);
   const tail = cipher.final();
@@ -204,10 +325,23 @@ export function sealChunk(key: Buffer, raw: Buffer, prefix: Buffer, counter: num
 }
 
 /** The plaintext of one sealed block; throws the "wrong password or damaged" error when it does not authenticate. */
-export function openChunk(key: Buffer, raw: Buffer, prefix: Buffer, counter: number, last: boolean, sealed: Buffer): Buffer {
-  if (sealed.length < TAG_SIZE) throw new VaultError("WRONG_PASSWORD", WRONG_OR_DAMAGED);
+export function openChunk(
+  key: Buffer,
+  raw: Buffer,
+  prefix: Buffer,
+  counter: number,
+  last: boolean,
+  sealed: Buffer,
+): Buffer {
+  if (sealed.length < TAG_SIZE)
+    throw new VaultError("WRONG_PASSWORD", WRONG_OR_DAMAGED);
   try {
-    const decipher = createDecipheriv("aes-256-gcm", key, nonceFor(prefix, counter, last), { authTagLength: TAG_SIZE });
+    const decipher = createDecipheriv(
+      "aes-256-gcm",
+      key,
+      nonceFor(prefix, counter, last),
+      { authTagLength: TAG_SIZE },
+    );
     decipher.setAAD(raw);
     decipher.setAuthTag(sealed.subarray(sealed.length - TAG_SIZE));
     const body = decipher.update(sealed.subarray(0, sealed.length - TAG_SIZE));
@@ -227,7 +361,14 @@ export function throwIfAborted(signal?: AbortSignal): void {
  * Cuts the plaintext stream into fixed chunks and writes each one sealed. A full chunk is only sealed once more
  * data follows, so the last chunk is the one flagged "last" (it is empty only when the whole payload is empty).
  */
-export async function sealStream(source: AsyncIterable<Buffer>, key: Buffer, header: VaultHeader, raw: Buffer, write: (block: Buffer) => Promise<void>, signal?: AbortSignal): Promise<{ chunks: number; cipherBytes: number }> {
+export async function sealStream(
+  source: AsyncIterable<Buffer>,
+  key: Buffer,
+  header: VaultHeader,
+  raw: Buffer,
+  write: (block: Buffer) => Promise<void>,
+  signal?: AbortSignal,
+): Promise<{ chunks: number; cipherBytes: number }> {
   const size = 1 << header.chunkLog2;
   const buf = Buffer.allocUnsafe(size);
   let fill = 0;
@@ -235,7 +376,14 @@ export async function sealStream(source: AsyncIterable<Buffer>, key: Buffer, hea
   let cipherBytes = 0;
   const flush = async (last: boolean) => {
     throwIfAborted(signal);
-    const sealed = sealChunk(key, raw, header.noncePrefix, counter++, last, buf.subarray(0, fill));
+    const sealed = sealChunk(
+      key,
+      raw,
+      header.noncePrefix,
+      counter++,
+      last,
+      buf.subarray(0, fill),
+    );
     fill = 0;
     cipherBytes += sealed.length;
     await write(sealed);
@@ -258,11 +406,21 @@ export async function sealStream(source: AsyncIterable<Buffer>, key: Buffer, hea
   }
 }
 
-async function readExactly(fh: FileHandle, buf: Buffer, position: number): Promise<void> {
+async function readExactly(
+  fh: FileHandle,
+  buf: Buffer,
+  position: number,
+): Promise<void> {
   let got = 0;
   while (got < buf.length) {
-    const { bytesRead } = await fh.read(buf, got, buf.length - got, position + got);
-    if (bytesRead === 0) throw new VaultError("WRONG_PASSWORD", WRONG_OR_DAMAGED);
+    const { bytesRead } = await fh.read(
+      buf,
+      got,
+      buf.length - got,
+      position + got,
+    );
+    if (bytesRead === 0)
+      throw new VaultError("WRONG_PASSWORD", WRONG_OR_DAMAGED);
     got += bytesRead;
   }
 }
@@ -271,13 +429,22 @@ async function readExactly(fh: FileHandle, buf: Buffer, position: number): Promi
  * Reads the sealed blocks after the header and yields each authenticated plaintext. The block that ends exactly at the
  * end of the file is opened as the "last" one, so truncation, reordering, duplication and appended data all fail.
  */
-export async function* openBlocks(fh: FileHandle, fileSize: number, key: Buffer, header: VaultHeader, raw: Buffer, signal?: AbortSignal, onBytes?: (n: number) => void): AsyncGenerator<Buffer> {
+export async function* openBlocks(
+  fh: FileHandle,
+  fileSize: number,
+  key: Buffer,
+  header: VaultHeader,
+  raw: Buffer,
+  signal?: AbortSignal,
+  onBytes?: (n: number) => void,
+): AsyncGenerator<Buffer> {
   const full = (1 << header.chunkLog2) + TAG_SIZE;
   const body = fileSize - HEADER_SIZE;
   if (body < TAG_SIZE) throw new VaultError("WRONG_PASSWORD", WRONG_OR_DAMAGED);
   const blocks = Math.ceil(body / full);
   const lastLen = body - (blocks - 1) * full;
-  if (blocks > 0xffffffff || lastLen < TAG_SIZE) throw new VaultError("WRONG_PASSWORD", WRONG_OR_DAMAGED);
+  if (blocks > 0xffffffff || lastLen < TAG_SIZE)
+    throw new VaultError("WRONG_PASSWORD", WRONG_OR_DAMAGED);
   const buf = Buffer.allocUnsafe(full);
   try {
     for (let i = 0; i < blocks; i++) {
@@ -294,14 +461,34 @@ export async function* openBlocks(fh: FileHandle, fileSize: number, key: Buffer,
 }
 
 /** Re-reads a finished file and authenticates every chunk with `key`. Returns false on any difference. */
-export async function verifyCiphertext(fh: FileHandle, fileSize: number, key: Buffer, expectedHeader: Buffer, signal?: AbortSignal, onBytes?: (n: number) => void): Promise<boolean> {
+export async function verifyCiphertext(
+  fh: FileHandle,
+  fileSize: number,
+  key: Buffer,
+  expectedHeader: Buffer,
+  signal?: AbortSignal,
+  onBytes?: (n: number) => void,
+): Promise<boolean> {
   try {
     const raw = Buffer.alloc(HEADER_SIZE);
     await readExactly(fh, raw, 0);
-    if (raw.length !== expectedHeader.length || !timingSafeEqual(raw, expectedHeader)) return false;
+    if (
+      raw.length !== expectedHeader.length ||
+      !timingSafeEqual(raw, expectedHeader)
+    )
+      return false;
     const parsed = parseHeader(raw);
     if (!parsed.ok) return false;
-    for await (const _ of openBlocks(fh, fileSize, key, parsed.header, parsed.raw, signal, onBytes)) void _;
+    for await (const _ of openBlocks(
+      fh,
+      fileSize,
+      key,
+      parsed.header,
+      parsed.raw,
+      signal,
+      onBytes,
+    ))
+      void _;
     return true;
   } catch (err) {
     if (err instanceof VaultError && err.code === "CANCELLED") throw err;

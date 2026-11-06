@@ -2,7 +2,10 @@ import { expect, test, describe } from "bun:test";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { JSDOM } from "jsdom";
-import { TypingStudio, createTypingStudio } from "../applications/typing_studio";
+import {
+  TypingStudio,
+  createTypingStudio,
+} from "../applications/typing_studio";
 
 describe("⌨️ CyberType Deluxe — Codecaine Master Edition", () => {
   const resourceDir = join(import.meta.dir, "../resources/typing_studio");
@@ -96,9 +99,19 @@ describe("⌨️ CyberType Deluxe — Codecaine Master Edition", () => {
     const html = readFileSync(join(resourceDir, "index.html"), "utf-8");
     const dom = new JSDOM(html, { url: "http://127.0.0.1:59700/" });
     const doc = dom.window.document;
-    const scripts = Array.from(doc.querySelectorAll("script")).map((s) => s.textContent || "");
+    const scripts = Array.from(doc.querySelectorAll("script")).map(
+      (s) => s.textContent || "",
+    );
     for (const code of scripts) {
-      new Function("window", "document", "setInterval", "clearInterval", "setTimeout", "clearTimeout", code)(
+      new Function(
+        "window",
+        "document",
+        "setInterval",
+        "clearInterval",
+        "setTimeout",
+        "clearTimeout",
+        code,
+      )(
         dom.window,
         doc,
         dom.window.setInterval.bind(dom.window),
@@ -113,21 +126,37 @@ describe("⌨️ CyberType Deluxe — Codecaine Master Edition", () => {
     expect(wordsWrapper.children.length).toBeGreaterThan(20);
 
     // Switch to Interactive Tutorial mode
-    const tutBtn = doc.querySelector('.mode-btn[data-mode="tutorial"]') as HTMLButtonElement;
+    const tutBtn = doc.querySelector(
+      '.mode-btn[data-mode="tutorial"]',
+    ) as HTMLButtonElement;
     tutBtn.click();
     const tutBriefing = doc.getElementById("tutorialBriefing")!;
     expect(tutBriefing.classList.contains("visible")).toBe(true);
-    expect(doc.getElementById("tutTitle")!.textContent).toContain("Tactile Index Anchors");
-    expect(doc.getElementById("targetKeyDisplay")!.textContent?.toLowerCase()).toBe("f");
-    expect(doc.getElementById("fingerIndicator")!.textContent).toContain("Left Index");
+    expect(doc.getElementById("tutTitle")!.textContent).toContain(
+      "Tactile Index Anchors",
+    );
+    expect(
+      doc.getElementById("targetKeyDisplay")!.textContent?.toLowerCase(),
+    ).toBe("f");
+    expect(doc.getElementById("fingerIndicator")!.textContent).toContain(
+      "Left Index",
+    );
 
     // Simulate typing the first tutorial word ("f")
     const canvas = doc.getElementById("typeCanvas")!;
-    canvas.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "f", code: "KeyF", bubbles: true }));
+    canvas.dispatchEvent(
+      new dom.window.KeyboardEvent("keydown", {
+        key: "f",
+        code: "KeyF",
+        bubbles: true,
+      }),
+    );
     expect(doc.getElementById("hudStreak")!.textContent).toContain("1");
 
     // Switch to Adaptive AI mode
-    const adaptiveBtn = doc.querySelector('.mode-btn[data-mode="adaptive"]') as HTMLButtonElement;
+    const adaptiveBtn = doc.querySelector(
+      '.mode-btn[data-mode="adaptive"]',
+    ) as HTMLButtonElement;
     adaptiveBtn.click();
     const keybrStrip = doc.getElementById("keybrStrip")!;
     expect(keybrStrip.classList.contains("visible")).toBe(true);
@@ -169,7 +198,9 @@ describe("⌨️ CyberType Deluxe — Codecaine Master Edition", () => {
 
     const svgRes = await fetch(`http://127.0.0.1:${port}/favicon.svg`);
     expect(svgRes.status).toBe(200);
-    try { (studio as any).server?.stop(); } catch {}
+    try {
+      (studio as any).server?.stop();
+    } catch {}
   });
 
   test("8. Gameplay regression suite: bare 'f' never triggers fullscreen, lesson advance preserves step, Colemak remaps hardware keys, and cross-word Backspace works", () => {
@@ -181,9 +212,19 @@ describe("⌨️ CyberType Deluxe — Codecaine Master Edition", () => {
       fullscreenTriggered++;
     };
 
-    const scripts = Array.from(doc.querySelectorAll("script")).map((s) => s.textContent || "");
+    const scripts = Array.from(doc.querySelectorAll("script")).map(
+      (s) => s.textContent || "",
+    );
     for (const code of scripts) {
-      new Function("window", "document", "setInterval", "clearInterval", "setTimeout", "clearTimeout", code)(
+      new Function(
+        "window",
+        "document",
+        "setInterval",
+        "clearInterval",
+        "setTimeout",
+        "clearTimeout",
+        code,
+      )(
         dom.window,
         doc,
         dom.window.setInterval.bind(dom.window),
@@ -194,52 +235,112 @@ describe("⌨️ CyberType Deluxe — Codecaine Master Edition", () => {
     }
 
     // Switch to Tutorial Step 1 (which starts with "f")
-    const tutBtn = doc.querySelector('.mode-btn[data-mode="tutorial"]') as HTMLButtonElement;
+    const tutBtn = doc.querySelector(
+      '.mode-btn[data-mode="tutorial"]',
+    ) as HTMLButtonElement;
     tutBtn.click();
     expect(doc.getElementById("tutBadge")!.textContent).toBe("TUTORIAL 1 / 10");
 
     // 1. Bare 'f' keystroke must type 'f' and NEVER trigger fullscreen even with getWindowShortcutsScript loaded
-    dom.window.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "f", code: "KeyF", bubbles: true }));
+    dom.window.dispatchEvent(
+      new dom.window.KeyboardEvent("keydown", {
+        key: "f",
+        code: "KeyF",
+        bubbles: true,
+      }),
+    );
     expect(fullscreenTriggered).toBe(0);
-    expect(doc.querySelector("#wordsWrapper .word .letter.correct")?.textContent).toBe("f");
+    expect(
+      doc.querySelector("#wordsWrapper .word .letter.correct")?.textContent,
+    ).toBe("f");
 
     // 2. Press Space to advance to word 2 ("j"), then Backspace at index 0 to return to word 1
-    dom.window.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: " ", code: "Space", bubbles: true }));
-    expect(doc.querySelectorAll("#wordsWrapper .word")[1]?.classList.contains("active-word")).toBe(true);
-    dom.window.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "Backspace", code: "Backspace", bubbles: true }));
-    expect(doc.querySelectorAll("#wordsWrapper .word")[0]?.classList.contains("active-word")).toBe(true);
+    dom.window.dispatchEvent(
+      new dom.window.KeyboardEvent("keydown", {
+        key: " ",
+        code: "Space",
+        bubbles: true,
+      }),
+    );
+    expect(
+      doc
+        .querySelectorAll("#wordsWrapper .word")[1]
+        ?.classList.contains("active-word"),
+    ).toBe(true);
+    dom.window.dispatchEvent(
+      new dom.window.KeyboardEvent("keydown", {
+        key: "Backspace",
+        code: "Backspace",
+        bubbles: true,
+      }),
+    );
+    expect(
+      doc
+        .querySelectorAll("#wordsWrapper .word")[0]
+        ?.classList.contains("active-word"),
+    ).toBe(true);
 
     // 3. Complete all 16 words in Tutorial Step 1 and verify synchronous completion + NEXT LESSON advancement
     const allWordEls = Array.from(doc.querySelectorAll("#wordsWrapper .word"));
     const wordTexts = allWordEls.map((el) => el.textContent || "");
     // Word 0 already has "f" typed, so press Space to advance from word 0
-    dom.window.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: " ", code: "Space", bubbles: true }));
+    dom.window.dispatchEvent(
+      new dom.window.KeyboardEvent("keydown", {
+        key: " ",
+        code: "Space",
+        bubbles: true,
+      }),
+    );
     for (let i = 1; i < wordTexts.length; i++) {
       for (const ch of wordTexts[i]!) {
         dom.window.dispatchEvent(
-          new dom.window.KeyboardEvent("keydown", { key: ch, code: `Key${ch.toUpperCase()}`, bubbles: true }),
+          new dom.window.KeyboardEvent("keydown", {
+            key: ch,
+            code: `Key${ch.toUpperCase()}`,
+            bubbles: true,
+          }),
         );
       }
       if (i < wordTexts.length - 1) {
-        dom.window.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: " ", code: "Space", bubbles: true }));
+        dom.window.dispatchEvent(
+          new dom.window.KeyboardEvent("keydown", {
+            key: " ",
+            code: "Space",
+            bubbles: true,
+          }),
+        );
       }
     }
 
     const resultsOverlay = doc.getElementById("resultsOverlay")!;
     expect(resultsOverlay.classList.contains("show")).toBe(true);
-    const advanceBtn = doc.getElementById("btnAdvanceLesson") as HTMLButtonElement;
+    const advanceBtn = doc.getElementById(
+      "btnAdvanceLesson",
+    ) as HTMLButtonElement;
     expect(advanceBtn.style.display).toBe("inline-block");
     advanceBtn.click();
 
     expect(doc.getElementById("tutBadge")!.textContent).toBe("TUTORIAL 2 / 10");
-    expect(doc.querySelector("#subOptions .sub-btn.active")?.textContent).toContain("S2: D/K/F/J");
+    expect(
+      doc.querySelector("#subOptions .sub-btn.active")?.textContent,
+    ).toContain("S2: D/K/F/J");
 
     // 4. Hardware layout emulation: when Colemak is selected, physical KeyF produces 't'
     const selLayout = doc.getElementById("selLayout") as HTMLSelectElement;
     selLayout.value = "colemak";
     selLayout.dispatchEvent(new dom.window.Event("change"));
-    dom.window.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "f", code: "KeyF", bubbles: true }));
-    expect(doc.querySelector("#wordsWrapper .word.active-word .letter")?.classList.contains("incorrect")).toBe(true);
+    dom.window.dispatchEvent(
+      new dom.window.KeyboardEvent("keydown", {
+        key: "f",
+        code: "KeyF",
+        bubbles: true,
+      }),
+    );
+    expect(
+      doc
+        .querySelector("#wordsWrapper .word.active-word .letter")
+        ?.classList.contains("incorrect"),
+    ).toBe(true);
 
     dom.window.close();
   });

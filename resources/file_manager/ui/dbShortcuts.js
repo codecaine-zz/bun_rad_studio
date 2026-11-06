@@ -15,7 +15,8 @@ let shortcuts = [];
 let loadedAt = 0;
 let loading = false;
 
-export const shortcutMode = () => (state.settings.dbShortcut === "browser" ? "browser" : "window");
+export const shortcutMode = () =>
+  state.settings.dbShortcut === "browser" ? "browser" : "window";
 
 /** Forgets everything (for tests that start the page more than once in one process). */
 export function resetShortcuts() {
@@ -42,21 +43,35 @@ export async function loadShortcuts() {
 /** Favorites first, then the most recently used, then by name. */
 export function listShortcuts() {
   const time = (p) => Date.parse(p.lastUsedAt ?? "") || 0;
-  return [...shortcuts].sort((a, b) => Number(!!b.favorite) - Number(!!a.favorite) || time(b) - time(a) || a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).slice(0, MAX_SHORTCUTS);
+  return [...shortcuts]
+    .sort(
+      (a, b) =>
+        Number(!!b.favorite) - Number(!!a.favorite) ||
+        time(b) - time(a) ||
+        a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
+    )
+    .slice(0, MAX_SHORTCUTS);
 }
 
-const askBefore = (name, err) => confirmBox({
-  title: err.details?.reason === "production" ? "This is a production connection" : "This connection is marked read-only",
-  message: err.message || `"${name}" needs your OK before it opens.`,
-  confirmLabel: "Open anyway",
-  danger: true,
-});
+const askBefore = (name, err) =>
+  confirmBox({
+    title:
+      err.details?.reason === "production"
+        ? "This is a production connection"
+        : "This connection is marked read-only",
+    message: err.message || `"${name}" needs your OK before it opens.`,
+    confirmLabel: "Open anyway",
+    danger: true,
+  });
 
 /**
  * Opens `target` (`{ profileId }` or `{ engine: "sqlite", path }`) in its own window, or in the web browser.
  * `mode` defaults to the person's setting. Returns true when it was opened.
  */
-export async function openTarget(target, { name = "The database", mode = shortcutMode(), confirmed = false } = {}) {
+export async function openTarget(
+  target,
+  { name = "The database", mode = shortcutMode(), confirmed = false } = {},
+) {
   const sure = confirmed ? { confirmWrites: true } : {};
   try {
     if (mode === "browser") {
@@ -76,18 +91,33 @@ export async function openTarget(target, { name = "The database", mode = shortcu
       if (!(await askBefore(name, err))) return false;
       return openTarget(target, { name, mode, confirmed: true });
     }
-    toast(errorText(err, mode === "browser" ? "The studio couldn't be opened in your browser." : "The window couldn't be opened."), { kind: "error" });
+    toast(
+      errorText(
+        err,
+        mode === "browser"
+          ? "The studio couldn't be opened in your browser."
+          : "The window couldn't be opened.",
+      ),
+      { kind: "error" },
+    );
     return false;
   }
 }
 
-export const openShortcut = (profile, mode) => openTarget({ profileId: profile.id }, { name: profile.name, mode });
+export const openShortcut = (profile, mode) =>
+  openTarget({ profileId: profile.id }, { name: profile.name, mode });
 
-const modeWords = (mode) => (mode === "browser" ? "your web browser" : "its own window");
+const modeWords = (mode) =>
+  mode === "browser" ? "your web browser" : "its own window";
 
 /** Home page tiles: one per saved connection. They read the list the server gave, and ask for a fresh one now and then. */
 function tiles() {
-  if (typeof document !== "undefined" && !loading && Date.now() - loadedAt > REFRESH_MS) loadShortcuts();
+  if (
+    typeof document !== "undefined" &&
+    !loading &&
+    Date.now() - loadedAt > REFRESH_MS
+  )
+    loadShortcuts();
   const mode = shortcutMode();
   return listShortcuts().map((p, i) => ({
     id: `db-shortcut-${p.id}`,

@@ -116,8 +116,16 @@ export function crudClientMain() {
         if (v === undefined || v === null || v === false) continue;
         if (k === "class") el.className = v;
         else if (k === "style") el.style.cssText = v;
-        else if (k.startsWith("on") && typeof v === "function") el.addEventListener(k.slice(2), v);
-        else if (k === "value" || k === "checked" || k === "disabled" || k === "readOnly" || k === "selected") el[k] = v;
+        else if (k.startsWith("on") && typeof v === "function")
+          el.addEventListener(k.slice(2), v);
+        else if (
+          k === "value" ||
+          k === "checked" ||
+          k === "disabled" ||
+          k === "readOnly" ||
+          k === "selected"
+        )
+          el[k] = v;
         else el.setAttribute(k, v === true ? "" : v);
       }
     }
@@ -151,11 +159,20 @@ export function crudClientMain() {
       }
       const res = await fetch(url, init);
       let data = null;
-      try { data = await res.json(); } catch {}
-      if (!data) return { success: false, error: "HTTP " + res.status + " " + res.statusText };
+      try {
+        data = await res.json();
+      } catch {}
+      if (!data)
+        return {
+          success: false,
+          error: "HTTP " + res.status + " " + res.statusText,
+        };
       return data;
     } catch (err) {
-      return { success: false, error: String(err && err.message ? err.message : err) };
+      return {
+        success: false,
+        error: String(err && err.message ? err.message : err),
+      };
     }
   }
 
@@ -170,26 +187,49 @@ export function crudClientMain() {
 
   function esc(s) {
     return String(s === null || s === undefined ? "" : s)
-      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
   }
-  function qid(n) { return '"' + String(n).replace(/"/g, '""') + '"'; }
+  function qid(n) {
+    return '"' + String(n).replace(/"/g, '""') + '"';
+  }
 
   function tableMeta(name) {
     if (!currentSchema) return null;
-    return (currentSchema.tables || []).find((t) => t.name === name) ||
-           (currentSchema.views || []).find((v) => v.name === name) ||
-           (currentSchema.matviews || []).find((m) => m.name === name) || null;
+    return (
+      (currentSchema.tables || []).find((t) => t.name === name) ||
+      (currentSchema.views || []).find((v) => v.name === name) ||
+      (currentSchema.matviews || []).find((m) => m.name === name) ||
+      null
+    );
   }
 
   const modalStack = [];
   function openModal(opts) {
-    const overlay = h("div", { class: "modal-overlay active crud-overlay" + (modalStack.length ? " crud-top" : "") });
-    const card = h("div", { class: "modal-card crud-modal-card" + (opts.wide ? " crud-wide" : "") + (opts.small ? " crud-small" : "") });
+    const overlay = h("div", {
+      class:
+        "modal-overlay active crud-overlay" +
+        (modalStack.length ? " crud-top" : ""),
+    });
+    const card = h("div", {
+      class:
+        "modal-card crud-modal-card" +
+        (opts.wide ? " crud-wide" : "") +
+        (opts.small ? " crud-small" : ""),
+    });
     const errorBox = h("div", { class: "crud-error", style: "display:none" });
-    const body = h("div", { class: "modal-body crud-body" }, errorBox, opts.body);
+    const body = h(
+      "div",
+      { class: "modal-body crud-body" },
+      errorBox,
+      opts.body,
+    );
     const footer = h("div", { class: "crud-footer" });
     const api = {
-      el: overlay, body, footer,
+      el: overlay,
+      body,
+      footer,
       close() {
         const i = modalStack.indexOf(api);
         if (i >= 0) modalStack.splice(i, 1);
@@ -206,9 +246,22 @@ export function crudClientMain() {
         (btns || []).forEach((b) => footer.appendChild(b));
       },
     };
-    card.appendChild(h("div", { class: "modal-header" },
-      h("div", { class: "modal-title" }, opts.title),
-      h("button", { class: "modal-close", title: "Close (Esc)", onclick: () => api.close() }, "✕")));
+    card.appendChild(
+      h(
+        "div",
+        { class: "modal-header" },
+        h("div", { class: "modal-title" }, opts.title),
+        h(
+          "button",
+          {
+            class: "modal-close",
+            title: "Close (Esc)",
+            onclick: () => api.close(),
+          },
+          "✕",
+        ),
+      ),
+    );
     card.appendChild(body);
     card.appendChild(footer);
     api.setButtons(opts.buttons);
@@ -220,8 +273,20 @@ export function crudClientMain() {
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
-      if (menuEl) { e.preventDefault(); e.stopPropagation(); closeMenu(); return; }
-      if (modalStack.length && !(e.target && e.target.classList && e.target.classList.contains("crud-inline"))) {
+      if (menuEl) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeMenu();
+        return;
+      }
+      if (
+        modalStack.length &&
+        !(
+          e.target &&
+          e.target.classList &&
+          e.target.classList.contains("crud-inline")
+        )
+      ) {
         e.preventDefault();
         e.stopPropagation();
         modalStack[modalStack.length - 1].close();
@@ -237,16 +302,34 @@ export function crudClientMain() {
     opts = opts || {};
     return new Promise((resolve) => {
       let done = false;
-      const finish = (v) => { if (done) return; done = true; m.close(); resolve(v); };
+      const finish = (v) => {
+        if (done) return;
+        done = true;
+        m.close();
+        resolve(v);
+      };
       const m = openModal({
         title: opts.title || "Please confirm",
         small: true,
-        body: h("div", { style: "font-size:13px;line-height:1.5;white-space:pre-wrap" }, message),
-        onClose: () => { if (!done) { done = true; resolve(false); } },
+        body: h(
+          "div",
+          { style: "font-size:13px;line-height:1.5;white-space:pre-wrap" },
+          message,
+        ),
+        onClose: () => {
+          if (!done) {
+            done = true;
+            resolve(false);
+          }
+        },
       });
       m.setButtons([
         btn("Cancel", () => finish(false)),
-        btn(opts.okText || "OK", () => finish(true), opts.danger ? "btn-danger" : "btn-primary"),
+        btn(
+          opts.okText || "OK",
+          () => finish(true),
+          opts.danger ? "btn-danger" : "btn-primary",
+        ),
       ]);
     });
   }
@@ -255,14 +338,35 @@ export function crudClientMain() {
     return new Promise((resolve) => {
       let done = false;
       const input = h("input", { type: "text", value: def || "" });
-      const finish = (v) => { if (done) return; done = true; m.close(); resolve(v); };
+      const finish = (v) => {
+        if (done) return;
+        done = true;
+        m.close();
+        resolve(v);
+      };
       const m = openModal({
-        title, small: true,
-        body: h("div", { class: "crud-body", style: "gap:6px" }, h("div", { style: "font-size:12px" }, label), input),
-        onClose: () => { if (!done) { done = true; resolve(null); } },
+        title,
+        small: true,
+        body: h(
+          "div",
+          { class: "crud-body", style: "gap:6px" },
+          h("div", { style: "font-size:12px" }, label),
+          input,
+        ),
+        onClose: () => {
+          if (!done) {
+            done = true;
+            resolve(null);
+          }
+        },
       });
-      input.addEventListener("keydown", (e) => { if (e.key === "Enter") finish(input.value.trim() || null); });
-      m.setButtons([btn("Cancel", () => finish(null)), btn("OK", () => finish(input.value.trim() || null), "btn-primary")]);
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") finish(input.value.trim() || null);
+      });
+      m.setButtons([
+        btn("Cancel", () => finish(null)),
+        btn("OK", () => finish(input.value.trim() || null), "btn-primary"),
+      ]);
       setTimeout(() => input.focus(), 50);
     });
   }
@@ -271,41 +375,175 @@ export function crudClientMain() {
   // Context Menu for Sidebar Tables
   // -------------------------------------------------------------------------------------------
   let menuEl = null;
-  function closeMenu() { if (menuEl) { menuEl.remove(); menuEl = null; } }
-  document.addEventListener("click", (e) => { if (menuEl && !menuEl.contains(e.target)) closeMenu(); });
+  function closeMenu() {
+    if (menuEl) {
+      menuEl.remove();
+      menuEl = null;
+    }
+  }
+  document.addEventListener("click", (e) => {
+    if (menuEl && !menuEl.contains(e.target)) closeMenu();
+  });
 
   function openTableContextMenu(tableName, x, y) {
     closeMenu();
     const meta = tableMeta(tableName);
-    const isMatView = !!((meta && meta.type === "materialized_view") || ((currentSchema && currentSchema.matviews) || []).some((m) => m.name === tableName));
+    const isMatView = !!(
+      (meta && meta.type === "materialized_view") ||
+      ((currentSchema && currentSchema.matviews) || []).some(
+        (m) => m.name === tableName,
+      )
+    );
     const isView = !isMatView && !!(meta && meta.type === "view");
 
     const m = h("div", { class: "crud-menu", style: `left:${x}px;top:${y}px` });
 
-    m.appendChild(h("div", { class: "crud-mi", onclick: () => { closeMenu(); selectEntity(tableName, meta ? meta.type : "table"); } }, "📊 Open Table Data"));
+    m.appendChild(
+      h(
+        "div",
+        {
+          class: "crud-mi",
+          onclick: () => {
+            closeMenu();
+            selectEntity(tableName, meta ? meta.type : "table");
+          },
+        },
+        "📊 Open Table Data",
+      ),
+    );
     m.appendChild(h("div", { class: "crud-msep" }));
 
     if (isMatView) {
-      m.appendChild(h("div", { class: "crud-mi", onclick: () => { closeMenu(); refreshMatView(tableName); } }, "⚡ Refresh Materialized View"));
+      m.appendChild(
+        h(
+          "div",
+          {
+            class: "crud-mi",
+            onclick: () => {
+              closeMenu();
+              refreshMatView(tableName);
+            },
+          },
+          "⚡ Refresh Materialized View",
+        ),
+      );
       m.appendChild(h("div", { class: "crud-msep" }));
     }
 
     if (!isView && !isMatView) {
-      m.appendChild(h("div", { class: "crud-mi", onclick: () => { closeMenu(); openRowDialog("add"); } }, "+ Add Record"));
-      m.appendChild(h("div", { class: "crud-mi", onclick: () => { closeMenu(); openTableDesigner(tableName); } }, "📐 Redesign Table"));
-      m.appendChild(h("div", { class: "crud-mi", onclick: () => { closeMenu(); openIndexesManager(tableName); } }, "🏷️ Manage Indexes"));
-      m.appendChild(h("div", { class: "crud-mi", onclick: () => { closeMenu(); openImportDialog(tableName); } }, "📥 Import Data..."));
+      m.appendChild(
+        h(
+          "div",
+          {
+            class: "crud-mi",
+            onclick: () => {
+              closeMenu();
+              openRowDialog("add");
+            },
+          },
+          "+ Add Record",
+        ),
+      );
+      m.appendChild(
+        h(
+          "div",
+          {
+            class: "crud-mi",
+            onclick: () => {
+              closeMenu();
+              openTableDesigner(tableName);
+            },
+          },
+          "📐 Redesign Table",
+        ),
+      );
+      m.appendChild(
+        h(
+          "div",
+          {
+            class: "crud-mi",
+            onclick: () => {
+              closeMenu();
+              openIndexesManager(tableName);
+            },
+          },
+          "🏷️ Manage Indexes",
+        ),
+      );
+      m.appendChild(
+        h(
+          "div",
+          {
+            class: "crud-mi",
+            onclick: () => {
+              closeMenu();
+              openImportDialog(tableName);
+            },
+          },
+          "📥 Import Data...",
+        ),
+      );
       m.appendChild(h("div", { class: "crud-msep" }));
-      m.appendChild(h("div", { class: "crud-mi danger", onclick: () => { closeMenu(); truncateCurrentTable(tableName); } }, "🧹 Truncate Table (Empty)"));
-      m.appendChild(h("div", { class: "crud-mi", onclick: () => { closeMenu(); renameCurrentTable(tableName); } }, "✏️ Rename Table..."));
+      m.appendChild(
+        h(
+          "div",
+          {
+            class: "crud-mi danger",
+            onclick: () => {
+              closeMenu();
+              truncateCurrentTable(tableName);
+            },
+          },
+          "🧹 Truncate Table (Empty)",
+        ),
+      );
+      m.appendChild(
+        h(
+          "div",
+          {
+            class: "crud-mi",
+            onclick: () => {
+              closeMenu();
+              renameCurrentTable(tableName);
+            },
+          },
+          "✏️ Rename Table...",
+        ),
+      );
     }
 
     if (isView || isMatView) {
-      m.appendChild(h("div", { class: "crud-mi", onclick: () => { closeMenu(); StudioViews.openEdit(tableName, { materialized: isMatView }); } }, "✏️ Edit view definition..."));
+      m.appendChild(
+        h(
+          "div",
+          {
+            class: "crud-mi",
+            onclick: () => {
+              closeMenu();
+              StudioViews.openEdit(tableName, { materialized: isMatView });
+            },
+          },
+          "✏️ Edit view definition...",
+        ),
+      );
       m.appendChild(h("div", { class: "crud-msep" }));
     }
 
-    m.appendChild(h("div", { class: "crud-mi danger", onclick: () => { closeMenu(); if (isView || isMatView) StudioViews.drop(tableName, { materialized: isMatView }); else dropCurrentObject(tableName, "table"); } }, isView || isMatView ? "🗑 Drop view..." : "🗑 Drop Object"));
+    m.appendChild(
+      h(
+        "div",
+        {
+          class: "crud-mi danger",
+          onclick: () => {
+            closeMenu();
+            if (isView || isMatView)
+              StudioViews.drop(tableName, { materialized: isMatView });
+            else dropCurrentObject(tableName, "table");
+          },
+        },
+        isView || isMatView ? "🗑 Drop view..." : "🗑 Drop Object",
+      ),
+    );
 
     document.body.appendChild(m);
     menuEl = m;
@@ -316,10 +554,16 @@ export function crudClientMain() {
   // -------------------------------------------------------------------------------------------
 
   async function truncateCurrentTable(tableName) {
-    const ok = await crudConfirm(`Are you sure you want to TRUNCATE "${tableName}"?\nAll rows will be permanently deleted!`, { title: "Truncate Table", danger: true, okText: "Truncate" });
+    const ok = await crudConfirm(
+      `Are you sure you want to TRUNCATE "${tableName}"?\nAll rows will be permanently deleted!`,
+      { title: "Truncate Table", danger: true, okText: "Truncate" },
+    );
     if (!ok) return;
     showToast("Truncating table: " + tableName + "...");
-    const res = await call("/api/table/truncate", { table: tableName, cascade: false });
+    const res = await call("/api/table/truncate", {
+      table: tableName,
+      cascade: false,
+    });
     if (res.success) {
       showToast(`✓ Table "${tableName}" truncated!`);
       loadSchema();
@@ -330,10 +574,17 @@ export function crudClientMain() {
   }
 
   async function renameCurrentTable(tableName) {
-    const newName = await crudPrompt("Rename Table", "Enter new name for table '" + tableName + "':", tableName);
+    const newName = await crudPrompt(
+      "Rename Table",
+      "Enter new name for table '" + tableName + "':",
+      tableName,
+    );
     if (!newName || newName === tableName) return;
     showToast("Renaming table to: " + newName + "...");
-    const res = await call("/api/schema/rename-table", { table: tableName, newName });
+    const res = await call("/api/schema/rename-table", {
+      table: tableName,
+      newName,
+    });
     if (res.success) {
       showToast(`✓ Table renamed to "${newName}"`);
       activeTable = newName;
@@ -345,7 +596,10 @@ export function crudClientMain() {
   }
 
   async function dropCurrentObject(name, kind) {
-    const ok = await crudConfirm(`Permanently DROP ${kind} "${name}"?\nThis cannot be undone!`, { title: "Drop " + kind, danger: true, okText: "Drop" });
+    const ok = await crudConfirm(
+      `Permanently DROP ${kind} "${name}"?\nThis cannot be undone!`,
+      { title: "Drop " + kind, danger: true, okText: "Drop" },
+    );
     if (!ok) return;
     showToast(`Dropping ${kind} "${name}"...`);
     const res = await call("/api/schema/drop", { kind, name });
@@ -362,7 +616,10 @@ export function crudClientMain() {
   // Row Form (Add / Edit / Duplicate) with PostgreSQL Type Shortcuts
   // -------------------------------------------------------------------------------------------
   function openRowDialog(mode, existingRow = null) {
-    if (!activeTable) { showToast("Select a table first."); return; }
+    if (!activeTable) {
+      showToast("Select a table first.");
+      return;
+    }
     const meta = tableMeta(activeTable);
     if (!meta || !meta.columns) return;
 
@@ -372,7 +629,7 @@ export function crudClientMain() {
 
     const form = h("div", { class: "crud-form" });
 
-    cols.forEach(col => {
+    cols.forEach((col) => {
       const isPk = col.pk;
       const typeStr = (col.type || "").toUpperCase();
       const isUuid = typeStr.includes("UUID");
@@ -382,45 +639,115 @@ export function crudClientMain() {
 
       const labelKids = [h("span", {}, col.name)];
       if (isPk) labelKids.push(h("span", { class: "crud-badge" }, "PK"));
-      if (col.notnull) labelKids.push(h("span", { class: "crud-badge nn" }, "NOT NULL"));
+      if (col.notnull)
+        labelKids.push(h("span", { class: "crud-badge nn" }, "NOT NULL"));
       labelKids.push(h("small", {}, col.type || "text"));
 
       let inputEl;
       let fieldWrapper;
 
-      const initVal = existingRow ? existingRow[col.name] : (col.dflt_value || "");
+      const initVal = existingRow
+        ? existingRow[col.name]
+        : col.dflt_value || "";
 
       if (isJsonb) {
-        inputEl = h("textarea", { placeholder: '{"key": "value"}' }, typeof initVal === "object" ? JSON.stringify(initVal, null, 2) : String(initVal || "{}"));
-        fieldWrapper = h("div", { style: "display: flex; flex-direction: column; gap: 4px;" },
+        inputEl = h(
+          "textarea",
+          { placeholder: '{"key": "value"}' },
+          typeof initVal === "object"
+            ? JSON.stringify(initVal, null, 2)
+            : String(initVal || "{}"),
+        );
+        fieldWrapper = h(
+          "div",
+          { style: "display: flex; flex-direction: column; gap: 4px;" },
           inputEl,
-          h("div", { style: "display: flex; gap: 6px;" },
-            h("button", { class: "btn btn-sm", onclick: () => {
-              try { inputEl.value = JSON.stringify(JSON.parse(inputEl.value), null, 2); showToast("✓ Valid JSON formatted!"); }
-              catch(err) { showToast("Invalid JSON syntax: " + err.message); }
-            }}, "Format JSON"),
-            h("button", { class: "btn btn-sm", onclick: () => { inputEl.value = "{}"; }}, "Clear JSON")
-          )
+          h(
+            "div",
+            { style: "display: flex; gap: 6px;" },
+            h(
+              "button",
+              {
+                class: "btn btn-sm",
+                onclick: () => {
+                  try {
+                    inputEl.value = JSON.stringify(
+                      JSON.parse(inputEl.value),
+                      null,
+                      2,
+                    );
+                    showToast("✓ Valid JSON formatted!");
+                  } catch (err) {
+                    showToast("Invalid JSON syntax: " + err.message);
+                  }
+                },
+              },
+              "Format JSON",
+            ),
+            h(
+              "button",
+              {
+                class: "btn btn-sm",
+                onclick: () => {
+                  inputEl.value = "{}";
+                },
+              },
+              "Clear JSON",
+            ),
+          ),
         );
       } else if (isUuid) {
-        inputEl = h("input", { type: "text", placeholder: "e.g. a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", value: String(initVal || "") });
-        fieldWrapper = h("div", { style: "display: flex; gap: 6px;" },
+        inputEl = h("input", {
+          type: "text",
+          placeholder: "e.g. a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+          value: String(initVal || ""),
+        });
+        fieldWrapper = h(
+          "div",
+          { style: "display: flex; gap: 6px;" },
           inputEl,
-          h("button", { class: "btn btn-sm", title: "Generate new v4 UUID", onclick: () => {
-            inputEl.value = crypto.randomUUID();
-            showToast("Generated new UUID!");
-          }}, "🎲 Gen UUID")
+          h(
+            "button",
+            {
+              class: "btn btn-sm",
+              title: "Generate new v4 UUID",
+              onclick: () => {
+                inputEl.value = crypto.randomUUID();
+                showToast("Generated new UUID!");
+              },
+            },
+            "🎲 Gen UUID",
+          ),
         );
       } else if (isTimestamp) {
-        inputEl = h("input", { type: "text", placeholder: "YYYY-MM-DDTHH:MM:SSZ", value: String(initVal || "") });
-        fieldWrapper = h("div", { style: "display: flex; gap: 6px;" },
+        inputEl = h("input", {
+          type: "text",
+          placeholder: "YYYY-MM-DDTHH:MM:SSZ",
+          value: String(initVal || ""),
+        });
+        fieldWrapper = h(
+          "div",
+          { style: "display: flex; gap: 6px;" },
           inputEl,
-          h("button", { class: "btn btn-sm", title: "Insert current UTC timestamp", onclick: () => {
-            inputEl.value = new Date().toISOString();
-          }}, "⚡ NOW()")
+          h(
+            "button",
+            {
+              class: "btn btn-sm",
+              title: "Insert current UTC timestamp",
+              onclick: () => {
+                inputEl.value = new Date().toISOString();
+              },
+            },
+            "⚡ NOW()",
+          ),
         );
       } else {
-        inputEl = h("input", { type: "text", value: String(initVal !== null && initVal !== undefined ? initVal : "") });
+        inputEl = h("input", {
+          type: "text",
+          value: String(
+            initVal !== null && initVal !== undefined ? initVal : "",
+          ),
+        });
         fieldWrapper = inputEl;
       }
 
@@ -430,45 +757,63 @@ export function crudClientMain() {
     });
 
     const m = openModal({
-      title: isEdit ? `Edit Record in "${activeTable}"` : `Add Record to "${activeTable}"`,
+      title: isEdit
+        ? `Edit Record in "${activeTable}"`
+        : `Add Record to "${activeTable}"`,
       wide: true,
       body: form,
       buttons: [
         btn("Cancel", () => m.close()),
-        btn(isEdit ? "Save Changes" : "Insert Record", async () => {
-          const rowData = {};
-          for (const c of cols) {
-            const val = inputs[c.name].value.trim();
-            if (val === "" && !c.notnull) {
-              rowData[c.name] = null;
-            } else if ((c.type || "").toUpperCase().includes("JSON")) {
-              try { rowData[c.name] = JSON.parse(val || "{}"); } catch { rowData[c.name] = val; }
-            } else if ((c.type || "").toUpperCase().includes("INT")) {
-              rowData[c.name] = val !== "" && !isNaN(val) ? Number(val) : val;
-            } else {
-              rowData[c.name] = val;
+        btn(
+          isEdit ? "Save Changes" : "Insert Record",
+          async () => {
+            const rowData = {};
+            for (const c of cols) {
+              const val = inputs[c.name].value.trim();
+              if (val === "" && !c.notnull) {
+                rowData[c.name] = null;
+              } else if ((c.type || "").toUpperCase().includes("JSON")) {
+                try {
+                  rowData[c.name] = JSON.parse(val || "{}");
+                } catch {
+                  rowData[c.name] = val;
+                }
+              } else if ((c.type || "").toUpperCase().includes("INT")) {
+                rowData[c.name] = val !== "" && !isNaN(val) ? Number(val) : val;
+              } else {
+                rowData[c.name] = val;
+              }
             }
-          }
 
-          let res;
-          if (isEdit) {
-            const pkCol = cols.find(c => c.pk) || cols[0];
-            const pkVal = existingRow[pkCol.name];
-            res = await call("/api/rows/update", { table: activeTable, pkCol: pkCol.name, pkVal, row: rowData });
-          } else {
-            res = await call("/api/rows/insert", { table: activeTable, row: rowData });
-          }
+            let res;
+            if (isEdit) {
+              const pkCol = cols.find((c) => c.pk) || cols[0];
+              const pkVal = existingRow[pkCol.name];
+              res = await call("/api/rows/update", {
+                table: activeTable,
+                pkCol: pkCol.name,
+                pkVal,
+                row: rowData,
+              });
+            } else {
+              res = await call("/api/rows/insert", {
+                table: activeTable,
+                row: rowData,
+              });
+            }
 
-          if (res.success) {
-            showToast(isEdit ? "✓ Record updated!" : "✓ Record inserted!");
-            m.close();
-            loadTableData(activeTable, gridCurrentPage);
-            loadKpis();
-          } else {
-            m.error(res.error || "Save failed");
-          }
-        }, "btn-primary")
-      ]
+            if (res.success) {
+              showToast(isEdit ? "✓ Record updated!" : "✓ Record inserted!");
+              m.close();
+              loadTableData(activeTable, gridCurrentPage);
+              loadKpis();
+            } else {
+              m.error(res.error || "Save failed");
+            }
+          },
+          "btn-primary",
+        ),
+      ],
     });
   }
 
@@ -479,39 +824,137 @@ export function crudClientMain() {
     const isRedesign = Boolean(existingTableName);
     const meta = isRedesign ? tableMeta(existingTableName) : null;
 
-    const tableNameInput = h("input", { type: "text", value: existingTableName || "new_table_name", placeholder: "table_name" });
-    const colsContainer = h("div", { style: "display: flex; flex-direction: column; gap: 6px;" });
+    const tableNameInput = h("input", {
+      type: "text",
+      value: existingTableName || "new_table_name",
+      placeholder: "table_name",
+    });
+    const colsContainer = h("div", {
+      style: "display: flex; flex-direction: column; gap: 6px;",
+    });
 
     const PG_TYPES = [
-      "UUID", "VARCHAR(255)", "TEXT", "INTEGER", "BIGINT", "SMALLINT",
-      "SERIAL", "BIGSERIAL", "NUMERIC(12,2)", "BOOLEAN", "JSONB",
-      "TIMESTAMPTZ", "BYTEA", "TEXT[]", "INTEGER[]"
+      "UUID",
+      "VARCHAR(255)",
+      "TEXT",
+      "INTEGER",
+      "BIGINT",
+      "SMALLINT",
+      "SERIAL",
+      "BIGSERIAL",
+      "NUMERIC(12,2)",
+      "BOOLEAN",
+      "JSONB",
+      "TIMESTAMPTZ",
+      "BYTEA",
+      "TEXT[]",
+      "INTEGER[]",
     ];
 
-    let colList = meta && meta.columns && meta.columns.length ? meta.columns.map(c => ({
-      name: c.name,
-      type: c.type || "VARCHAR(255)",
-      pk: Boolean(c.pk),
-      notnull: Boolean(c.notnull),
-      dflt: c.dflt_value || ""
-    })) : [
-      { name: "id", type: "UUID", pk: true, notnull: true, dflt: "gen_random_uuid()" },
-      { name: "name", type: "VARCHAR(255)", pk: false, notnull: true, dflt: "" },
-      { name: "data", type: "JSONB", pk: false, notnull: false, dflt: "'{}'::jsonb" },
-      { name: "created_at", type: "TIMESTAMPTZ", pk: false, notnull: true, dflt: "NOW()" },
-    ];
+    let colList =
+      meta && meta.columns && meta.columns.length
+        ? meta.columns.map((c) => ({
+            name: c.name,
+            type: c.type || "VARCHAR(255)",
+            pk: Boolean(c.pk),
+            notnull: Boolean(c.notnull),
+            dflt: c.dflt_value || "",
+          }))
+        : [
+            {
+              name: "id",
+              type: "UUID",
+              pk: true,
+              notnull: true,
+              dflt: "gen_random_uuid()",
+            },
+            {
+              name: "name",
+              type: "VARCHAR(255)",
+              pk: false,
+              notnull: true,
+              dflt: "",
+            },
+            {
+              name: "data",
+              type: "JSONB",
+              pk: false,
+              notnull: false,
+              dflt: "'{}'::jsonb",
+            },
+            {
+              name: "created_at",
+              type: "TIMESTAMPTZ",
+              pk: false,
+              notnull: true,
+              dflt: "NOW()",
+            },
+          ];
 
     function renderCols() {
       colsContainer.innerHTML = "";
       colList.forEach((c, idx) => {
-        const row = h("div", { class: "crud-row", style: "background: rgba(255,255,255,0.02); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-subtle); display: grid; grid-template-columns: 160px 140px 60px 80px 1fr 40px; gap: 8px; align-items: center;" });
+        const row = h("div", {
+          class: "crud-row",
+          style:
+            "background: rgba(255,255,255,0.02); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-subtle); display: grid; grid-template-columns: 160px 140px 60px 80px 1fr 40px; gap: 8px; align-items: center;",
+        });
 
-        const nameInp = h("input", { type: "text", value: c.name, oninput: (e) => { c.name = e.target.value; } });
-        const typeSel = mkSelect(PG_TYPES, c.type, (v) => { c.type = v; });
-        const pkChk = h("label", {}, h("input", { type: "checkbox", checked: c.pk, onchange: (e) => { c.pk = e.target.checked; if (c.pk) c.notnull = true; renderCols(); } }), " PK");
-        const nnChk = h("label", {}, h("input", { type: "checkbox", checked: c.notnull, onchange: (e) => { c.notnull = e.target.checked; } }), " NotNull");
-        const dfltInp = h("input", { type: "text", placeholder: "Default", value: c.dflt, oninput: (e) => { c.dflt = e.target.value; } });
-        const delBtn = h("button", { class: "sidebar-mini-btn", onclick: () => { colList.splice(idx, 1); renderCols(); } }, "✕");
+        const nameInp = h("input", {
+          type: "text",
+          value: c.name,
+          oninput: (e) => {
+            c.name = e.target.value;
+          },
+        });
+        const typeSel = mkSelect(PG_TYPES, c.type, (v) => {
+          c.type = v;
+        });
+        const pkChk = h(
+          "label",
+          {},
+          h("input", {
+            type: "checkbox",
+            checked: c.pk,
+            onchange: (e) => {
+              c.pk = e.target.checked;
+              if (c.pk) c.notnull = true;
+              renderCols();
+            },
+          }),
+          " PK",
+        );
+        const nnChk = h(
+          "label",
+          {},
+          h("input", {
+            type: "checkbox",
+            checked: c.notnull,
+            onchange: (e) => {
+              c.notnull = e.target.checked;
+            },
+          }),
+          " NotNull",
+        );
+        const dfltInp = h("input", {
+          type: "text",
+          placeholder: "Default",
+          value: c.dflt,
+          oninput: (e) => {
+            c.dflt = e.target.value;
+          },
+        });
+        const delBtn = h(
+          "button",
+          {
+            class: "sidebar-mini-btn",
+            onclick: () => {
+              colList.splice(idx, 1);
+              renderCols();
+            },
+          },
+          "✕",
+        );
 
         row.appendChild(nameInp);
         row.appendChild(typeSel);
@@ -525,57 +968,102 @@ export function crudClientMain() {
 
     renderCols();
 
-    const body = h("div", { class: "crud-body" },
-      h("div", { class: "crud-row" },
+    const body = h(
+      "div",
+      { class: "crud-body" },
+      h(
+        "div",
+        { class: "crud-row" },
         h("label", { style: "font-weight: 700; width: 100px;" }, "Table Name:"),
-        tableNameInput
+        tableNameInput,
       ),
-      h("div", { style: "display: flex; justify-content: space-between; align-items: center; margin-top: 6px;" },
+      h(
+        "div",
+        {
+          style:
+            "display: flex; justify-content: space-between; align-items: center; margin-top: 6px;",
+        },
         h("div", { class: "crud-section-title" }, "Columns Definition"),
-        h("button", { class: "btn btn-sm", onclick: () => {
-          colList.push({ name: "col_" + (colList.length + 1), type: "TEXT", pk: false, notnull: false, dflt: "" });
-          renderCols();
-        }}, "+ Add Column")
+        h(
+          "button",
+          {
+            class: "btn btn-sm",
+            onclick: () => {
+              colList.push({
+                name: "col_" + (colList.length + 1),
+                type: "TEXT",
+                pk: false,
+                notnull: false,
+                dflt: "",
+              });
+              renderCols();
+            },
+          },
+          "+ Add Column",
+        ),
       ),
-      colsContainer
+      colsContainer,
     );
 
     const m = openModal({
-      title: isRedesign ? `Redesign Table "${existingTableName}"` : "Create New PostgreSQL Table",
+      title: isRedesign
+        ? `Redesign Table "${existingTableName}"`
+        : "Create New PostgreSQL Table",
       wide: true,
       body,
       buttons: [
         btn("Cancel", () => m.close()),
-        btn(isRedesign ? "Apply Redesign" : "Create Table", async () => {
-          const tName = tableNameInput.value.trim();
-          if (!tName) { m.error("Table name required"); return; }
-          if (!colList.length) { m.error("At least one column required"); return; }
+        btn(
+          isRedesign ? "Apply Redesign" : "Create Table",
+          async () => {
+            const tName = tableNameInput.value.trim();
+            if (!tName) {
+              m.error("Table name required");
+              return;
+            }
+            if (!colList.length) {
+              m.error("At least one column required");
+              return;
+            }
 
-          const colsPayload = colList.map(c => ({
-            name: c.name.trim(),
-            type: c.type,
-            pk: c.pk,
-            notnull: c.notnull,
-            dflt_value: c.dflt.trim() || undefined
-          }));
+            const colsPayload = colList.map((c) => ({
+              name: c.name.trim(),
+              type: c.type,
+              pk: c.pk,
+              notnull: c.notnull,
+              dflt_value: c.dflt.trim() || undefined,
+            }));
 
-          let res;
-          if (isRedesign) {
-            res = await call("/api/schema/redesign-table", { table: existingTableName, newName: tName, columns: colsPayload });
-          } else {
-            res = await call("/api/schema/create-table", { name: tName, columns: colsPayload });
-          }
+            let res;
+            if (isRedesign) {
+              res = await call("/api/schema/redesign-table", {
+                table: existingTableName,
+                newName: tName,
+                columns: colsPayload,
+              });
+            } else {
+              res = await call("/api/schema/create-table", {
+                name: tName,
+                columns: colsPayload,
+              });
+            }
 
-          if (res.success) {
-            showToast(isRedesign ? `✓ Table "${tName}" redesigned!` : `✓ Table "${tName}" created!`);
-            m.close();
-            loadSchema();
-            selectEntity(tName, "table");
-          } else {
-            m.error(res.error || "Operation failed");
-          }
-        }, "btn-primary")
-      ]
+            if (res.success) {
+              showToast(
+                isRedesign
+                  ? `✓ Table "${tName}" redesigned!`
+                  : `✓ Table "${tName}" created!`,
+              );
+              m.close();
+              loadSchema();
+              selectEntity(tName, "table");
+            } else {
+              m.error(res.error || "Operation failed");
+            }
+          },
+          "btn-primary",
+        ),
+      ],
     });
   }
 
@@ -583,7 +1071,10 @@ export function crudClientMain() {
   // Indexes Manager (BTREE, GIN, GIST, BRIN, HASH)
   // -------------------------------------------------------------------------------------------
   async function openIndexesManager(tableName) {
-    if (!tableName) { showToast("Select a table first."); return; }
+    if (!tableName) {
+      showToast("Select a table first.");
+      return;
+    }
     const meta = tableMeta(tableName);
     if (!meta || !meta.columns) return;
 
@@ -591,32 +1082,56 @@ export function crudClientMain() {
     const res = await call(`/api/indexes?table=${tableName}`);
     const indexes = res.indexes || [];
 
-    const listContainer = h("div", { style: "display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto;" });
+    const listContainer = h("div", {
+      style:
+        "display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto;",
+    });
 
     function renderIdxList() {
       listContainer.innerHTML = "";
       if (!indexes.length) {
-        listContainer.innerHTML = '<div style="color: var(--text-dim); font-size: 11px;">No indexes found.</div>';
+        listContainer.innerHTML =
+          '<div style="color: var(--text-dim); font-size: 11px;">No indexes found.</div>';
         return;
       }
       indexes.forEach((idx) => {
-        const row = h("div", { class: "crud-idx-row" },
-          h("div", {},
+        const row = h(
+          "div",
+          { class: "crud-idx-row" },
+          h(
+            "div",
+            {},
             h("strong", { style: "color: #fff;" }, idx.name),
             idx.unique ? h("span", { class: "crud-badge" }, "UNIQUE") : "",
-            h("div", { style: "font-size: 10px; color: var(--text-dim);" }, idx.definition)
+            h(
+              "div",
+              { style: "font-size: 10px; color: var(--text-dim);" },
+              idx.definition,
+            ),
           ),
-          h("button", { class: "btn btn-sm btn-danger", onclick: async () => {
-            const ok = await crudConfirm(`Drop index "${idx.name}"?`, { danger: true, okText: "Drop" });
-            if (!ok) return;
-            const dropRes = await call("/api/indexes/drop", { name: idx.name });
-            if (dropRes.success) {
-              showToast("✓ Index dropped!");
-              openIndexesManager(tableName);
-            } else {
-              showToast("Error dropping index: " + dropRes.error);
-            }
-          }}, "Drop")
+          h(
+            "button",
+            {
+              class: "btn btn-sm btn-danger",
+              onclick: async () => {
+                const ok = await crudConfirm(`Drop index "${idx.name}"?`, {
+                  danger: true,
+                  okText: "Drop",
+                });
+                if (!ok) return;
+                const dropRes = await call("/api/indexes/drop", {
+                  name: idx.name,
+                });
+                if (dropRes.success) {
+                  showToast("✓ Index dropped!");
+                  openIndexesManager(tableName);
+                } else {
+                  showToast("Error dropping index: " + dropRes.error);
+                }
+              },
+            },
+            "Drop",
+          ),
         );
         listContainer.appendChild(row);
       });
@@ -625,33 +1140,98 @@ export function crudClientMain() {
     renderIdxList();
 
     // Create New Index Form
-    const idxNameInput = h("input", { type: "text", placeholder: `idx_${tableName}_col`, value: `idx_${tableName}_` });
-    const idxTypeSelect = mkSelect(["btree", "gin", "gist", "brin", "hash"], "btree");
+    const idxNameInput = h("input", {
+      type: "text",
+      placeholder: `idx_${tableName}_col`,
+      value: `idx_${tableName}_`,
+    });
+    const idxTypeSelect = mkSelect(
+      ["btree", "gin", "gist", "brin", "hash"],
+      "btree",
+    );
     const uniqueCheck = h("input", { type: "checkbox" });
-    const colChecks = h("div", { class: "crud-row", style: "gap: 8px; flex-wrap: wrap;" });
+    const colChecks = h("div", {
+      class: "crud-row",
+      style: "gap: 8px; flex-wrap: wrap;",
+    });
 
     const selectedCols = new Set();
-    meta.columns.forEach(c => {
-      const chk = h("label", {},
-        h("input", { type: "checkbox", onchange: (e) => {
-          if (e.target.checked) selectedCols.add(c.name);
-          else selectedCols.delete(c.name);
-        }}),
-        " " + c.name
+    meta.columns.forEach((c) => {
+      const chk = h(
+        "label",
+        {},
+        h("input", {
+          type: "checkbox",
+          onchange: (e) => {
+            if (e.target.checked) selectedCols.add(c.name);
+            else selectedCols.delete(c.name);
+          },
+        }),
+        " " + c.name,
       );
       colChecks.appendChild(chk);
     });
 
-    const body = h("div", { class: "crud-body" },
-      h("div", { class: "crud-section-title" }, `Existing Indexes on "${tableName}"`),
-      listContainer,
-      h("div", { class: "crud-section-title", style: "margin-top: 10px;" }, "Create New Index"),
-      h("div", { style: "display: grid; grid-template-columns: 1fr 120px; gap: 8px;" },
-        h("div", {}, h("label", { style: "font-size: 11px; color: var(--text-dim);" }, "Index Name:"), idxNameInput),
-        h("div", {}, h("label", { style: "font-size: 11px; color: var(--text-dim);" }, "Index Type:"), idxTypeSelect)
+    const body = h(
+      "div",
+      { class: "crud-body" },
+      h(
+        "div",
+        { class: "crud-section-title" },
+        `Existing Indexes on "${tableName}"`,
       ),
-      h("label", { style: "font-size: 11px; display: flex; align-items: center; gap: 6px; cursor: pointer;" }, uniqueCheck, "Enforce UNIQUE Constraint"),
-      h("div", {}, h("label", { style: "font-size: 11px; color: var(--text-dim); display: block; margin-bottom: 4px;" }, "Indexed Columns:"), colChecks)
+      listContainer,
+      h(
+        "div",
+        { class: "crud-section-title", style: "margin-top: 10px;" },
+        "Create New Index",
+      ),
+      h(
+        "div",
+        { style: "display: grid; grid-template-columns: 1fr 120px; gap: 8px;" },
+        h(
+          "div",
+          {},
+          h(
+            "label",
+            { style: "font-size: 11px; color: var(--text-dim);" },
+            "Index Name:",
+          ),
+          idxNameInput,
+        ),
+        h(
+          "div",
+          {},
+          h(
+            "label",
+            { style: "font-size: 11px; color: var(--text-dim);" },
+            "Index Type:",
+          ),
+          idxTypeSelect,
+        ),
+      ),
+      h(
+        "label",
+        {
+          style:
+            "font-size: 11px; display: flex; align-items: center; gap: 6px; cursor: pointer;",
+        },
+        uniqueCheck,
+        "Enforce UNIQUE Constraint",
+      ),
+      h(
+        "div",
+        {},
+        h(
+          "label",
+          {
+            style:
+              "font-size: 11px; color: var(--text-dim); display: block; margin-bottom: 4px;",
+          },
+          "Indexed Columns:",
+        ),
+        colChecks,
+      ),
     );
 
     const m = openModal({
@@ -659,29 +1239,39 @@ export function crudClientMain() {
       body,
       buttons: [
         btn("Close", () => m.close()),
-        btn("Create Index", async () => {
-          const iName = idxNameInput.value.trim();
-          if (!iName) { m.error("Index name required"); return; }
-          const colsArr = Array.from(selectedCols);
-          if (!colsArr.length) { m.error("Select at least one column to index"); return; }
+        btn(
+          "Create Index",
+          async () => {
+            const iName = idxNameInput.value.trim();
+            if (!iName) {
+              m.error("Index name required");
+              return;
+            }
+            const colsArr = Array.from(selectedCols);
+            if (!colsArr.length) {
+              m.error("Select at least one column to index");
+              return;
+            }
 
-          const res = await call("/api/indexes/create", {
-            name: iName,
-            table: tableName,
-            columns: colsArr,
-            type: idxTypeSelect.value,
-            unique: uniqueCheck.checked
-          });
+            const res = await call("/api/indexes/create", {
+              name: iName,
+              table: tableName,
+              columns: colsArr,
+              type: idxTypeSelect.value,
+              unique: uniqueCheck.checked,
+            });
 
-          if (res.success) {
-            showToast("✓ Index created successfully!");
-            m.close();
-            openIndexesManager(tableName);
-          } else {
-            m.error(res.error || "Create index failed");
-          }
-        }, "btn-primary")
-      ]
+            if (res.success) {
+              showToast("✓ Index created successfully!");
+              m.close();
+              openIndexesManager(tableName);
+            } else {
+              m.error(res.error || "Create index failed");
+            }
+          },
+          "btn-primary",
+        ),
+      ],
     });
   }
 
@@ -700,67 +1290,91 @@ export function crudClientMain() {
 
   function openImportDialog(targetTable = null) {
     const st = {
-      text: "", base64: "", fileName: "",
-      format: "auto", sheet: "", hasHeader: true,
-      mode: "append", onConflict: "abort",
-      targetMode: (targetTable || activeTable) ? "existing" : "new",
+      text: "",
+      base64: "",
+      fileName: "",
+      format: "auto",
+      sheet: "",
+      hasHeader: true,
+      mode: "append",
+      onConflict: "abort",
+      targetMode: targetTable || activeTable ? "existing" : "new",
       newTableName: "",
       parsed: null,
     };
 
-    const existingTables = currentSchema ? currentSchema.tables.map(t => t.name) : [];
+    const existingTables = currentSchema
+      ? currentSchema.tables.map((t) => t.name)
+      : [];
     const tableSel = mkSelect(
-      [{ value: "__new__", label: "➕ Create New Table…" }].concat(existingTables.map(t => ({ value: t, label: t }))),
-      targetTable || activeTable || (existingTables[0] || "__new__"),
+      [{ value: "__new__", label: "➕ Create New Table…" }].concat(
+        existingTables.map((t) => ({ value: t, label: t })),
+      ),
+      targetTable || activeTable || existingTables[0] || "__new__",
       (val) => {
-        newTableInput.style.display = val === "__new__" ? "inline-block" : "none";
-      }
+        newTableInput.style.display =
+          val === "__new__" ? "inline-block" : "none";
+      },
     );
     const newTableInput = h("input", {
       type: "text",
       placeholder: "New table name (e.g. imported_data)",
-      style: "max-width: 220px; display: " + (tableSel.value === "__new__" ? "inline-block" : "none")
+      style:
+        "max-width: 220px; display: " +
+        (tableSel.value === "__new__" ? "inline-block" : "none"),
     });
 
-    const fmtSel = mkSelect([
-      { value: "auto", label: "Auto-detect format" },
-      { value: "csv", label: "CSV / Delimited" },
-      { value: "tsv", label: "TSV (Tab-separated)" },
-      { value: "psv", label: "PSV (Pipe-separated)" },
-      { value: "json", label: "JSON / JSONC / JSON5" },
-      { value: "ndjson", label: "JSON Lines (NDJSON)" },
-      { value: "xlsx", label: "Excel Workbook (.xlsx)" },
-      { value: "ods", label: "OpenDocument Spreadsheet (.ods)" },
-      { value: "yaml", label: "YAML (.yaml / .yml)" },
-      { value: "toml", label: "TOML (.toml)" },
-      { value: "xml", label: "XML records (.xml)" },
-      { value: "plist", label: "Apple Property List (.plist)" },
-      { value: "html", label: "HTML <table> (.html)" },
-      { value: "markdown", label: "Markdown table (.md)" },
-      { value: "ini", label: "INI / Config (.ini / .cfg)" },
-      { value: "env", label: "Dotenv (.env)" },
-      { value: "properties", label: "Java .properties" },
-      { value: "sql", label: "SQL dump → extract table rows (INSERT / COPY)" },
-      { value: "sql_script", label: "SQL script → execute DDL/DML directly" },
-    ], "auto", (v) => { st.format = v; previewImport(); });
+    const fmtSel = mkSelect(
+      [
+        { value: "auto", label: "Auto-detect format" },
+        { value: "csv", label: "CSV / Delimited" },
+        { value: "tsv", label: "TSV (Tab-separated)" },
+        { value: "psv", label: "PSV (Pipe-separated)" },
+        { value: "json", label: "JSON / JSONC / JSON5" },
+        { value: "ndjson", label: "JSON Lines (NDJSON)" },
+        { value: "xlsx", label: "Excel Workbook (.xlsx)" },
+        { value: "ods", label: "OpenDocument Spreadsheet (.ods)" },
+        { value: "yaml", label: "YAML (.yaml / .yml)" },
+        { value: "toml", label: "TOML (.toml)" },
+        { value: "xml", label: "XML records (.xml)" },
+        { value: "plist", label: "Apple Property List (.plist)" },
+        { value: "html", label: "HTML <table> (.html)" },
+        { value: "markdown", label: "Markdown table (.md)" },
+        { value: "ini", label: "INI / Config (.ini / .cfg)" },
+        { value: "env", label: "Dotenv (.env)" },
+        { value: "properties", label: "Java .properties" },
+        {
+          value: "sql",
+          label: "SQL dump → extract table rows (INSERT / COPY)",
+        },
+        { value: "sql_script", label: "SQL script → execute DDL/DML directly" },
+      ],
+      "auto",
+      (v) => {
+        st.format = v;
+        previewImport();
+      },
+    );
 
     const sheetSelWrap = h("span", { style: "display:none" });
     const statusBadge = h("div", { class: "crud-info", style: "display:none" });
     const previewWrap = h("div");
 
     const textarea = h("textarea", {
-      placeholder: "Paste CSV, TSV, JSON, JSONL, YAML, TOML, XML, HTML table, Markdown table, INI, .env, or SQL content here...",
-      style: "height: 110px;"
+      placeholder:
+        "Paste CSV, TSV, JSON, JSONL, YAML, TOML, XML, HTML table, Markdown table, INI, .env, or SQL content here...",
+      style: "height: 110px;",
     });
     const dropZone = h(
       "div",
       { class: "crud-drop" },
-      "📁 Drop CSV, TSV, JSON, Excel (.xlsx), ODS, YAML, TOML, XML, Plist, HTML, Markdown, INI/ENV or SQL file here or click to select"
+      "📁 Drop CSV, TSV, JSON, Excel (.xlsx), ODS, YAML, TOML, XML, Plist, HTML, Markdown, INI/ENV or SQL file here or click to select",
     );
     const fileInput = h("input", {
       type: "file",
-      accept: ".csv,.tsv,.tab,.psv,.txt,.dat,.log,.json,.jsonc,.json5,.jsonl,.ndjson,.xlsx,.ods,.yaml,.yml,.toml,.xml,.plist,.sql,.md,.markdown,.html,.htm,.ini,.cfg,.conf,.env,.properties,text/*,application/json,application/xml",
-      style: "display:none"
+      accept:
+        ".csv,.tsv,.tab,.psv,.txt,.dat,.log,.json,.jsonc,.json5,.jsonl,.ndjson,.xlsx,.ods,.yaml,.yml,.toml,.xml,.plist,.sql,.md,.markdown,.html,.htm,.ini,.cfg,.conf,.env,.properties,text/*,application/json,application/xml",
+      style: "display:none",
     });
 
     async function loadFileObj(f) {
@@ -768,7 +1382,12 @@ export function crudClientMain() {
       st.fileName = f.name || "";
       st.sheet = "";
       if (!newTableInput.value) {
-        newTableInput.value = st.fileName.replace(/\.[^.]+$/, "").replace(/[^\w]+/g, "_").replace(/^_+|_+$/g, "").toLowerCase() || "imported_data";
+        newTableInput.value =
+          st.fileName
+            .replace(/\.[^.]+$/, "")
+            .replace(/[^\w]+/g, "_")
+            .replace(/^_+|_+$/g, "")
+            .toLowerCase() || "imported_data";
       }
       if (/\.xlsx$|\.ods$/i.test(st.fileName)) {
         const buf = await f.arrayBuffer();
@@ -795,7 +1414,13 @@ export function crudClientMain() {
       const rawText = st.text || textarea.value.trim();
       if (!rawText && !st.base64) return;
       if (st.format === "sql_script") {
-        previewWrap.appendChild(h("div", { class: "crud-info" }, "SQL script mode: will execute all statements inside a transaction."));
+        previewWrap.appendChild(
+          h(
+            "div",
+            { class: "crud-info" },
+            "SQL script mode: will execute all statements inside a transaction.",
+          ),
+        );
         return;
       }
       try {
@@ -808,7 +1433,13 @@ export function crudClientMain() {
           hasHeader: st.hasHeader,
         });
         if (!res.success) {
-          previewWrap.appendChild(h("div", { class: "crud-error" }, res.error || "Could not parse input"));
+          previewWrap.appendChild(
+            h(
+              "div",
+              { class: "crud-error" },
+              res.error || "Could not parse input",
+            ),
+          );
           st.parsed = null;
           return;
         }
@@ -816,29 +1447,66 @@ export function crudClientMain() {
         if (res.sheets && res.sheets.length > 1) {
           sheetSelWrap.style.display = "inline-block";
           const shSel = mkSelect(
-            res.sheets.map(s => ({ value: s, label: "Sheet/Table: " + s })),
+            res.sheets.map((s) => ({ value: s, label: "Sheet/Table: " + s })),
             st.sheet || res.selectedSheet || res.sheets[0],
-            (v) => { st.sheet = v; previewImport(); }
+            (v) => {
+              st.sheet = v;
+              previewImport();
+            },
           );
           sheetSelWrap.appendChild(shSel);
         }
         const cols = res.columns || [];
         const rows = res.rows || [];
         previewWrap.appendChild(
-          h("div", { class: "crud-section-title" }, `Preview (${res.format.toUpperCase()}) — ${rows.length.toLocaleString()} rows × ${cols.length} columns`)
+          h(
+            "div",
+            { class: "crud-section-title" },
+            `Preview (${res.format.toUpperCase()}) — ${rows.length.toLocaleString()} rows × ${cols.length} columns`,
+          ),
         );
         if (cols.length) {
-          const tbl = h("table", null,
-            h("thead", null, h("tr", null, cols.map(c => h("th", null, c)))),
-            h("tbody", null, rows.slice(0, 6).map(r => h("tr", null, cols.map((c, i) => {
-              const v = Array.isArray(r) ? r[i] : r[c];
-              return h("td", null, v === null || v === undefined ? "NULL" : typeof v === "object" ? JSON.stringify(v) : String(v));
-            }))))
+          const tbl = h(
+            "table",
+            null,
+            h(
+              "thead",
+              null,
+              h(
+                "tr",
+                null,
+                cols.map((c) => h("th", null, c)),
+              ),
+            ),
+            h(
+              "tbody",
+              null,
+              rows.slice(0, 6).map((r) =>
+                h(
+                  "tr",
+                  null,
+                  cols.map((c, i) => {
+                    const v = Array.isArray(r) ? r[i] : r[c];
+                    return h(
+                      "td",
+                      null,
+                      v === null || v === undefined
+                        ? "NULL"
+                        : typeof v === "object"
+                          ? JSON.stringify(v)
+                          : String(v),
+                    );
+                  }),
+                ),
+              ),
+            ),
           );
           previewWrap.appendChild(h("div", { class: "crud-scroll" }, tbl));
         }
       } catch (err) {
-        previewWrap.appendChild(h("div", { class: "crud-error" }, err.message || String(err)));
+        previewWrap.appendChild(
+          h("div", { class: "crud-error" }, err.message || String(err)),
+        );
       }
     }
 
@@ -848,12 +1516,16 @@ export function crudClientMain() {
       if (f) loadFileObj(f);
     };
 
-    dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add("dragover"); };
+    dropZone.ondragover = (e) => {
+      e.preventDefault();
+      dropZone.classList.add("dragover");
+    };
     dropZone.ondragleave = () => dropZone.classList.remove("dragover");
     dropZone.ondrop = (e) => {
       e.preventDefault();
       dropZone.classList.remove("dragover");
-      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      const f =
+        e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
       if (f) loadFileObj(f);
     };
 
@@ -863,47 +1535,66 @@ export function crudClientMain() {
       previewImport();
     };
 
-    const body = h("div", { class: "crud-body" },
-      h("div", { class: "crud-row" },
-        h("label", { style: "font-weight: 700; width: 100px;" }, "Target Table:"),
+    const body = h(
+      "div",
+      { class: "crud-body" },
+      h(
+        "div",
+        { class: "crud-row" },
+        h(
+          "label",
+          { style: "font-weight: 700; width: 100px;" },
+          "Target Table:",
+        ),
         tableSel,
         newTableInput,
-        btn("🖥️ Browse Server File…", async () => {
-          const r = await call("/api/pick-file", {});
-          if (r.success) {
-            st.fileName = r.name || "";
-            st.sheet = "";
-            if (!newTableInput.value) {
-              newTableInput.value = st.fileName.replace(/\.[^.]+$/, "").replace(/[^\w]+/g, "_").replace(/^_+|_+$/g, "").toLowerCase() || "imported_data";
+        btn(
+          "🖥️ Browse Server File…",
+          async () => {
+            const r = await call("/api/pick-file", {});
+            if (r.success) {
+              st.fileName = r.name || "";
+              st.sheet = "";
+              if (!newTableInput.value) {
+                newTableInput.value =
+                  st.fileName
+                    .replace(/\.[^.]+$/, "")
+                    .replace(/[^\w]+/g, "_")
+                    .replace(/^_+|_+$/g, "")
+                    .toLowerCase() || "imported_data";
+              }
+              if (r.isBinary && r.base64) {
+                st.base64 = r.base64;
+                st.text = "";
+                textarea.value = "";
+                textarea.disabled = true;
+              } else {
+                st.text = r.text || "";
+                st.base64 = "";
+                textarea.disabled = false;
+                textarea.value = st.text;
+              }
+              statusBadge.style.display = "block";
+              statusBadge.textContent = `📄 Loaded ${st.fileName}`;
+              await previewImport();
             }
-            if (r.isBinary && r.base64) {
-              st.base64 = r.base64;
-              st.text = "";
-              textarea.value = "";
-              textarea.disabled = true;
-            } else {
-              st.text = r.text || "";
-              st.base64 = "";
-              textarea.disabled = false;
-              textarea.value = st.text;
-            }
-            statusBadge.style.display = "block";
-            statusBadge.textContent = `📄 Loaded ${st.fileName}`;
-            await previewImport();
-          }
-        }, "btn-sm")
+          },
+          "btn-sm",
+        ),
       ),
-      h("div", { class: "crud-row" },
+      h(
+        "div",
+        { class: "crud-row" },
         h("label", { style: "font-weight: 700; width: 100px;" }, "Format:"),
         fmtSel,
-        sheetSelWrap
+        sheetSelWrap,
       ),
       dropZone,
       fileInput,
       statusBadge,
       h("div", { class: "crud-section-title" }, "Or Paste Content Below:"),
       textarea,
-      previewWrap
+      previewWrap,
     );
 
     const m = openModal({
@@ -912,50 +1603,66 @@ export function crudClientMain() {
       body,
       buttons: [
         btn("Cancel", () => m.close()),
-        btn("Execute Import", async () => {
-          const isNew = tableSel.value === "__new__";
-          const tName = isNew ? newTableInput.value.trim() : tableSel.value;
-          const rawText = st.text || textarea.value.trim();
-          if (st.format === "sql_script") {
-            if (!rawText) { m.error("No SQL script provided"); return; }
-            const res = await call("/api/script", { sql: rawText });
+        btn(
+          "Execute Import",
+          async () => {
+            const isNew = tableSel.value === "__new__";
+            const tName = isNew ? newTableInput.value.trim() : tableSel.value;
+            const rawText = st.text || textarea.value.trim();
+            if (st.format === "sql_script") {
+              if (!rawText) {
+                m.error("No SQL script provided");
+                return;
+              }
+              const res = await call("/api/script", { sql: rawText });
+              if (res.success) {
+                showToast("✓ SQL script executed!");
+                m.close();
+                loadSchema();
+                if (activeTable) loadTableData(activeTable, 1);
+              } else {
+                m.error(res.error || "Script execution failed");
+              }
+              return;
+            }
+            if (!tName) {
+              m.error("Select or enter a target table name");
+              return;
+            }
+            if (!rawText && !st.base64) {
+              m.error("No data provided to import");
+              return;
+            }
+
+            showToast(`Importing into "${tName}"...`);
+            const res = await call("/api/rows/import-batch", {
+              table: tName,
+              create: isNew,
+              content: st.base64 ? undefined : rawText,
+              base64: st.base64 || undefined,
+              fileName: st.fileName || undefined,
+              format: st.format === "auto" ? undefined : st.format,
+              sheet: st.sheet || undefined,
+              hasHeader: st.hasHeader,
+              rows: st.parsed ? st.parsed.rows : undefined,
+              columns: st.parsed ? st.parsed.columns : undefined,
+            });
             if (res.success) {
-              showToast("✓ SQL script executed!");
+              const cnt =
+                res.inserted ??
+                res.importedCount ??
+                (st.parsed ? st.parsed.rows.length : 0);
+              showToast(`✓ Successfully imported ${cnt} records!`);
               m.close();
               loadSchema();
-              if (activeTable) loadTableData(activeTable, 1);
+              loadTableData(tName, 1);
             } else {
-              m.error(res.error || "Script execution failed");
+              m.error(res.error || "Import failed");
             }
-            return;
-          }
-          if (!tName) { m.error("Select or enter a target table name"); return; }
-          if (!rawText && !st.base64) { m.error("No data provided to import"); return; }
-
-          showToast(`Importing into "${tName}"...`);
-          const res = await call("/api/rows/import-batch", {
-            table: tName,
-            create: isNew,
-            content: st.base64 ? undefined : rawText,
-            base64: st.base64 || undefined,
-            fileName: st.fileName || undefined,
-            format: st.format === "auto" ? undefined : st.format,
-            sheet: st.sheet || undefined,
-            hasHeader: st.hasHeader,
-            rows: st.parsed ? st.parsed.rows : undefined,
-            columns: st.parsed ? st.parsed.columns : undefined,
-          });
-          if (res.success) {
-            const cnt = res.inserted ?? res.importedCount ?? (st.parsed ? st.parsed.rows.length : 0);
-            showToast(`✓ Successfully imported ${cnt} records!`);
-            m.close();
-            loadSchema();
-            loadTableData(tName, 1);
-          } else {
-            m.error(res.error || "Import failed");
-          }
-        }, "btn-primary")
-      ]
+          },
+          "btn-primary",
+        ),
+      ],
     });
   }
 
@@ -963,25 +1670,41 @@ export function crudClientMain() {
   // Export Wizard (CSV, TSV, JSON, JSONL, Markdown, SQL INSERT, Full DDL Dump)
   // -------------------------------------------------------------------------------------------
   function openExportDialog() {
-    if (!activeTable) { showToast("Select a table first."); return; }
+    if (!activeTable) {
+      showToast("Select a table first.");
+      return;
+    }
     const meta = tableMeta(activeTable);
     if (!meta) return;
 
-    const formatSel = mkSelect([
-      { value: "csv", label: "CSV (Comma-Separated Values)" },
-      { value: "tsv", label: "TSV (Tab-Separated Values)" },
-      { value: "json", label: "JSON (Formatted Array)" },
-      { value: "jsonl", label: "JSON-Lines (One JSON per row)" },
-      { value: "markdown", label: "Markdown Table" },
-      { value: "sql", label: "SQL INSERT Statements" },
-    ], "csv");
+    const formatSel = mkSelect(
+      [
+        { value: "csv", label: "CSV (Comma-Separated Values)" },
+        { value: "tsv", label: "TSV (Tab-Separated Values)" },
+        { value: "json", label: "JSON (Formatted Array)" },
+        { value: "jsonl", label: "JSON-Lines (One JSON per row)" },
+        { value: "markdown", label: "Markdown Table" },
+        { value: "sql", label: "SQL INSERT Statements" },
+      ],
+      "csv",
+    );
 
-    const textarea = h("textarea", { style: "height: 200px; font-family: var(--font-mono); font-size: 11px;", readonly: true });
+    const textarea = h("textarea", {
+      style: "height: 200px; font-family: var(--font-mono); font-size: 11px;",
+      readonly: true,
+    });
 
     async function generateExportContent() {
       textarea.value = "Generating export...";
-      const res = await call("/api/table/data", { table: activeTable, page: 1, pageSize: 5000 });
-      if (!res.success) { textarea.value = "Error: " + res.error; return; }
+      const res = await call("/api/table/data", {
+        table: activeTable,
+        page: 1,
+        pageSize: 5000,
+      });
+      if (!res.success) {
+        textarea.value = "Error: " + res.error;
+        return;
+      }
 
       const rows = res.rows || [];
       const cols = res.columns || [];
@@ -990,30 +1713,54 @@ export function crudClientMain() {
       if (fmt === "json") {
         textarea.value = JSON.stringify(rows, null, 2);
       } else if (fmt === "jsonl") {
-        textarea.value = rows.map(r => JSON.stringify(r)).join("\n");
+        textarea.value = rows.map((r) => JSON.stringify(r)).join("\n");
       } else if (fmt === "csv") {
-        const header = cols.map(c => `"${c}"`).join(",");
-        const lines = rows.map(r => cols.map(c => `"${String(r[c] !== null && r[c] !== undefined ? r[c] : '').replace(/"/g, '""')}"`).join(","));
+        const header = cols.map((c) => `"${c}"`).join(",");
+        const lines = rows.map((r) =>
+          cols
+            .map(
+              (c) =>
+                `"${String(r[c] !== null && r[c] !== undefined ? r[c] : "").replace(/"/g, '""')}"`,
+            )
+            .join(","),
+        );
         textarea.value = [header, ...lines].join("\n");
       } else if (fmt === "tsv") {
         const header = cols.join("\t");
-        const lines = rows.map(r => cols.map(c => String(r[c] !== null && r[c] !== undefined ? r[c] : '')).join("\t"));
+        const lines = rows.map((r) =>
+          cols
+            .map((c) => String(r[c] !== null && r[c] !== undefined ? r[c] : ""))
+            .join("\t"),
+        );
         textarea.value = [header, ...lines].join("\n");
       } else if (fmt === "markdown") {
         const header = "| " + cols.join(" | ") + " |";
         const sep = "| " + cols.map(() => "---").join(" | ") + " |";
-        const lines = rows.map(r => "| " + cols.map(c => String(r[c] !== null && r[c] !== undefined ? r[c] : '')).join(" | ") + " |");
+        const lines = rows.map(
+          (r) =>
+            "| " +
+            cols
+              .map((c) =>
+                String(r[c] !== null && r[c] !== undefined ? r[c] : ""),
+              )
+              .join(" | ") +
+            " |",
+        );
         textarea.value = [header, sep, ...lines].join("\n");
       } else if (fmt === "sql") {
-        textarea.value = rows.map(r => {
-          const vals = cols.map(c => {
-            const v = r[c];
-            if (v === null || v === undefined) return "NULL";
-            if (typeof v === "number") return v;
-            return `'${String(v).replace(/'/g, "''")}'`;
-          }).join(", ");
-          return `INSERT INTO "${activeTable}" (${cols.map(c => `"${c}"`).join(", ")}) VALUES (${vals});`;
-        }).join("\n");
+        textarea.value = rows
+          .map((r) => {
+            const vals = cols
+              .map((c) => {
+                const v = r[c];
+                if (v === null || v === undefined) return "NULL";
+                if (typeof v === "number") return v;
+                return `'${String(v).replace(/'/g, "''")}'`;
+              })
+              .join(", ");
+            return `INSERT INTO "${activeTable}" (${cols.map((c) => `"${c}"`).join(", ")}) VALUES (${vals});`;
+          })
+          .join("\n");
       }
     }
 
@@ -1023,9 +1770,16 @@ export function crudClientMain() {
     const m = openModal({
       title: `Export Data -- "${activeTable}"`,
       wide: true,
-      body: h("div", { class: "crud-body" },
-        h("div", { class: "crud-row" }, h("label", { style: "font-weight: 700;" }, "Format:"), formatSel),
-        textarea
+      body: h(
+        "div",
+        { class: "crud-body" },
+        h(
+          "div",
+          { class: "crud-row" },
+          h("label", { style: "font-weight: 700;" }, "Format:"),
+          formatSel,
+        ),
+        textarea,
       ),
       buttons: [
         btn("Close", () => m.close()),
@@ -1033,14 +1787,18 @@ export function crudClientMain() {
           copyText(textarea.value);
           showToast("Copied export to clipboard!");
         }),
-        btn("💾 Download File", () => {
-          const blob = new Blob([textarea.value], { type: "text/plain" });
-          const a = document.createElement("a");
-          a.href = URL.createObjectURL(blob);
-          a.download = `${activeTable}_export.${formatSel.value}`;
-          a.click();
-        }, "btn-primary")
-      ]
+        btn(
+          "💾 Download File",
+          () => {
+            const blob = new Blob([textarea.value], { type: "text/plain" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = `${activeTable}_export.${formatSel.value}`;
+            a.click();
+          },
+          "btn-primary",
+        ),
+      ],
     });
   }
 
@@ -1051,42 +1809,80 @@ export function crudClientMain() {
     const tabGrid = $("tabGrid");
     if (!tabGrid || tabGrid.querySelector(".crud-bar")) return;
 
-    const bar = h("div", { class: "crud-bar" },
+    const bar = h(
+      "div",
+      { class: "crud-bar" },
       btn("+ Add Record", () => openRowDialog("add"), "btn-sm btn-primary"),
-      btn("✎ Edit", () => {
-        if (!currentGridData || !currentGridData.rows || !currentGridData.rows.length) {
-          showToast("No row selected to edit");
-          return;
-        }
-        openRowDialog("edit", currentGridData.rows[0]);
-      }, "btn-sm"),
-      btn("⎘ Duplicate", () => {
-        if (!currentGridData || !currentGridData.rows || !currentGridData.rows.length) return;
-        const row = Object.assign({}, currentGridData.rows[0]);
-        // clear PK if exists
-        const meta = tableMeta(activeTable);
-        if (meta && meta.columns) {
-          const pk = meta.columns.find(c => c.pk);
-          if (pk) delete row[pk.name];
-        }
-        openRowDialog("add", row);
-      }, "btn-sm"),
-      btn("🗑 Delete", async () => {
-        if (!currentGridData || !currentGridData.rows || !currentGridData.rows.length) return;
-        const row = currentGridData.rows[0];
-        const meta = tableMeta(activeTable);
-        const pkCol = meta && meta.columns ? (meta.columns.find(c => c.pk) || meta.columns[0]) : null;
-        if (!pkCol) return;
-        const ok = await crudConfirm(`Delete selected row (PK: ${row[pkCol.name]})?`, { danger: true, okText: "Delete" });
-        if (!ok) return;
-        const res = await call("/api/rows/delete", { table: activeTable, pkCol: pkCol.name, pkVal: row[pkCol.name] });
-        if (res.success) {
-          showToast("✓ Row deleted");
-          loadTableData(activeTable, gridCurrentPage);
-        } else {
-          showToast("Delete failed: " + res.error);
-        }
-      }, "btn-sm btn-danger"),
+      btn(
+        "✎ Edit",
+        () => {
+          if (
+            !currentGridData ||
+            !currentGridData.rows ||
+            !currentGridData.rows.length
+          ) {
+            showToast("No row selected to edit");
+            return;
+          }
+          openRowDialog("edit", currentGridData.rows[0]);
+        },
+        "btn-sm",
+      ),
+      btn(
+        "⎘ Duplicate",
+        () => {
+          if (
+            !currentGridData ||
+            !currentGridData.rows ||
+            !currentGridData.rows.length
+          )
+            return;
+          const row = Object.assign({}, currentGridData.rows[0]);
+          // clear PK if exists
+          const meta = tableMeta(activeTable);
+          if (meta && meta.columns) {
+            const pk = meta.columns.find((c) => c.pk);
+            if (pk) delete row[pk.name];
+          }
+          openRowDialog("add", row);
+        },
+        "btn-sm",
+      ),
+      btn(
+        "🗑 Delete",
+        async () => {
+          if (
+            !currentGridData ||
+            !currentGridData.rows ||
+            !currentGridData.rows.length
+          )
+            return;
+          const row = currentGridData.rows[0];
+          const meta = tableMeta(activeTable);
+          const pkCol =
+            meta && meta.columns
+              ? meta.columns.find((c) => c.pk) || meta.columns[0]
+              : null;
+          if (!pkCol) return;
+          const ok = await crudConfirm(
+            `Delete selected row (PK: ${row[pkCol.name]})?`,
+            { danger: true, okText: "Delete" },
+          );
+          if (!ok) return;
+          const res = await call("/api/rows/delete", {
+            table: activeTable,
+            pkCol: pkCol.name,
+            pkVal: row[pkCol.name],
+          });
+          if (res.success) {
+            showToast("✓ Row deleted");
+            loadTableData(activeTable, gridCurrentPage);
+          } else {
+            showToast("Delete failed: " + res.error);
+          }
+        },
+        "btn-sm btn-danger",
+      ),
       h("div", { class: "crud-sep" }),
       btn("📐 Redesign", () => openTableDesigner(activeTable), "btn-sm"),
       btn("🏷️ Indexes", () => openIndexesManager(activeTable), "btn-sm"),
@@ -1094,7 +1890,7 @@ export function crudClientMain() {
       h("div", { class: "crud-sep" }),
       btn("📥 Import", () => openImportDialog(activeTable), "btn-sm"),
       btn("📤 Export", () => openExportDialog(), "btn-sm"),
-      h("div", { class: "crud-hint" }, "💡 Double-click cell to edit inline")
+      h("div", { class: "crud-hint" }, "💡 Double-click cell to edit inline"),
     );
 
     tabGrid.insertBefore(bar, tabGrid.children[1]);
@@ -1112,7 +1908,9 @@ export function crudClientMain() {
       const item = e.target.closest(".tree-item");
       if (!item) return;
       e.preventDefault();
-      const text = item.querySelector(".tree-item-name span:nth-child(2)")?.innerText || "";
+      const text =
+        item.querySelector(".tree-item-name span:nth-child(2)")?.innerText ||
+        "";
       if (text) {
         openTableContextMenu(text, e.clientX, e.clientY);
       }
@@ -1129,7 +1927,12 @@ export function crudClientMain() {
 
     grid.addEventListener("dblclick", async (e) => {
       const td = e.target.closest("td");
-      if (!td || td.classList.contains("crud-rownum") || td.classList.contains("crud-check")) return;
+      if (
+        !td ||
+        td.classList.contains("crud-rownum") ||
+        td.classList.contains("crud-check")
+      )
+        return;
       const tr = td.closest("tr");
       if (!tr || !activeTable) return;
 
@@ -1137,7 +1940,10 @@ export function crudClientMain() {
       if (!colName || !currentGridData || !currentGridData.columns) return;
       const oldVal = td.innerText;
 
-      const input = h("input", { class: "crud-inline", value: oldVal === "NULL" ? "" : oldVal });
+      const input = h("input", {
+        class: "crud-inline",
+        value: oldVal === "NULL" ? "" : oldVal,
+      });
       td.classList.add("crud-editing");
       td.innerHTML = "";
       td.appendChild(input);
@@ -1152,7 +1958,10 @@ export function crudClientMain() {
         td.innerText = newVal;
 
         const meta = tableMeta(activeTable);
-        const pkCol = meta && meta.columns ? (meta.columns.find(c => c.pk) || meta.columns[0]) : null;
+        const pkCol =
+          meta && meta.columns
+            ? meta.columns.find((c) => c.pk) || meta.columns[0]
+            : null;
         if (!pkCol) return;
 
         const rowIdx = Number(tr.dataset.row);
@@ -1163,7 +1972,12 @@ export function crudClientMain() {
         const updatePayload = {};
         updatePayload[colName] = newVal;
 
-        const res = await call("/api/rows/update", { table: activeTable, pkCol: pkCol.name, pkVal, row: updatePayload });
+        const res = await call("/api/rows/update", {
+          table: activeTable,
+          pkCol: pkCol.name,
+          pkVal,
+          row: updatePayload,
+        });
         if (res.success) {
           showToast(`✓ Saved "${colName}"`);
           targetRow[colName] = newVal;
@@ -1176,7 +1990,11 @@ export function crudClientMain() {
       input.addEventListener("blur", save);
       input.addEventListener("keydown", (ev) => {
         if (ev.key === "Enter") save();
-        if (ev.key === "Escape") { finished = true; td.classList.remove("crud-editing"); td.innerText = oldVal; }
+        if (ev.key === "Escape") {
+          finished = true;
+          td.classList.remove("crud-editing");
+          td.innerText = oldVal;
+        }
       });
     });
   }

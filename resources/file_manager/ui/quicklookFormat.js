@@ -64,7 +64,8 @@ export function loadQuickLookReadingProgress(filePath) {
     return {
       chapterIdx: typeof entry.chapterIdx === "number" ? entry.chapterIdx : -1,
       scrollTop: typeof entry.scrollTop === "number" ? entry.scrollTop : 0,
-      scrollRatio: typeof entry.scrollRatio === "number" ? entry.scrollRatio : 0,
+      scrollRatio:
+        typeof entry.scrollRatio === "number" ? entry.scrollRatio : 0,
       updatedAt: Number(entry.updatedAt) || 0,
     };
   } catch {
@@ -72,14 +73,19 @@ export function loadQuickLookReadingProgress(filePath) {
   }
 }
 
-export function saveQuickLookReadingProgress(filePath, { chapterIdx = -1, scrollTop = 0, scrollRatio = 0 } = {}) {
+export function saveQuickLookReadingProgress(
+  filePath,
+  { chapterIdx = -1, scrollTop = 0, scrollRatio = 0 } = {},
+) {
   if (!filePath) return;
   try {
     const map = readProgressMap();
     map[filePath] = {
       chapterIdx: Number.isFinite(chapterIdx) ? chapterIdx : -1,
       scrollTop: Math.max(0, Math.round(Number(scrollTop) || 0)),
-      scrollRatio: Number.isFinite(scrollRatio) ? Math.max(0, Math.min(1, Number(scrollRatio))) : 0,
+      scrollRatio: Number.isFinite(scrollRatio)
+        ? Math.max(0, Math.min(1, Number(scrollRatio)))
+        : 0,
       updatedAt: Date.now(),
     };
     const keys = Object.keys(map);
@@ -108,7 +114,11 @@ export function clearQuickLookHighlights() {
 }
 
 export function ensureQuickLookFindBar(hostEl) {
-  const host = hostEl || (typeof document !== "undefined" ? document.querySelector(".ql-body") : null);
+  const host =
+    hostEl ||
+    (typeof document !== "undefined"
+      ? document.querySelector(".ql-body")
+      : null);
   if (!host) return null;
   let bar = host.querySelector(".ql-find-bar");
   if (bar) return bar;
@@ -122,28 +132,46 @@ export function ensureQuickLookFindBar(hostEl) {
     placeholder: "Find in preview… (Enter next, Shift+Enter prev)",
     "aria-label": "Find in preview",
   });
-  const countEl = h("span", { class: "ql-fmt-count ql-find-count", "aria-live": "polite" }, "Type to find");
+  const countEl = h(
+    "span",
+    { class: "ql-fmt-count ql-find-count", "aria-live": "polite" },
+    "Type to find",
+  );
 
   const collectRanges = (query) => {
     clearQuickLookHighlights();
-    const q = String(query ?? "").trim().toLowerCase();
-    if (!q || typeof document === "undefined" || typeof document.createTreeWalker !== "function") return [];
-    const NF =
-      (typeof NodeFilter !== "undefined" ? NodeFilter : typeof window !== "undefined" && window.NodeFilter) || {
-        SHOW_TEXT: 4,
-        FILTER_ACCEPT: 1,
-        FILTER_REJECT: 2,
-        FILTER_SKIP: 3,
-      };
+    const q = String(query ?? "")
+      .trim()
+      .toLowerCase();
+    if (
+      !q ||
+      typeof document === "undefined" ||
+      typeof document.createTreeWalker !== "function"
+    )
+      return [];
+    const NF = (typeof NodeFilter !== "undefined"
+      ? NodeFilter
+      : typeof window !== "undefined" && window.NodeFilter) || {
+      SHOW_TEXT: 4,
+      FILTER_ACCEPT: 1,
+      FILTER_REJECT: 2,
+      FILTER_SKIP: 3,
+    };
     const found = [];
     const walker = document.createTreeWalker(host, NF.SHOW_TEXT, {
       acceptNode(node) {
         const parent = node.parentElement;
         if (!parent) return NF.FILTER_REJECT;
-        if (parent.closest(".ql-fmt-head, .ql-find-bar, .code-md-toolbar, [data-copy-ui], [hidden], script, style")) {
+        if (
+          parent.closest(
+            ".ql-fmt-head, .ql-find-bar, .code-md-toolbar, [data-copy-ui], [hidden], script, style",
+          )
+        ) {
           return NF.FILTER_REJECT;
         }
-        return node.nodeValue && node.nodeValue.trim() ? NF.FILTER_ACCEPT : NF.FILTER_SKIP;
+        return node.nodeValue && node.nodeValue.trim()
+          ? NF.FILTER_ACCEPT
+          : NF.FILTER_SKIP;
       },
     });
     let textNode = walker.nextNode();
@@ -154,8 +182,14 @@ export function ensureQuickLookFindBar(hostEl) {
       while (startPos <= val.length - q.length) {
         const idx = val.indexOf(q, startPos);
         if (idx === -1) break;
-        if (typeof doc.createRange === "function" || typeof Range !== "undefined") {
-          const range = typeof doc.createRange === "function" ? doc.createRange() : new Range();
+        if (
+          typeof doc.createRange === "function" ||
+          typeof Range !== "undefined"
+        ) {
+          const range =
+            typeof doc.createRange === "function"
+              ? doc.createRange()
+              : new Range();
           range.setStart(textNode, idx);
           range.setEnd(textNode, idx + q.length);
           found.push(range);
@@ -178,7 +212,11 @@ export function ensureQuickLookFindBar(hostEl) {
     if (activeIdx < 0 || activeIdx >= matches.length) activeIdx = 0;
     countEl.textContent = `${activeIdx + 1} of ${matches.length}`;
 
-    if (typeof globalThis.CSS !== "undefined" && globalThis.CSS?.highlights && typeof globalThis.Highlight === "function") {
+    if (
+      typeof globalThis.CSS !== "undefined" &&
+      globalThis.CSS?.highlights &&
+      typeof globalThis.Highlight === "function"
+    ) {
       try {
         const allHighlight = new globalThis.Highlight(...matches);
         globalThis.CSS.highlights.set("ql-search", allHighlight);
@@ -267,7 +305,13 @@ export function ensureQuickLookFindBar(hostEl) {
 
   bar = h(
     "div",
-    { class: "ql-find-bar", "data-copy-ui": "", hidden: true, role: "search", "aria-label": "Find in preview" },
+    {
+      class: "ql-find-bar",
+      "data-copy-ui": "",
+      hidden: true,
+      role: "search",
+      "aria-label": "Find in preview",
+    },
     h("span", { class: "ql-fmt-badge" }, "🔍 Find"),
     input,
     countEl,
@@ -295,7 +339,11 @@ export function ensureQuickLookFindBar(hostEl) {
 }
 
 export function toggleQuickLookFindBar(hostEl, seedText = "") {
-  const host = hostEl || (typeof document !== "undefined" ? document.querySelector(".ql-body") : null);
+  const host =
+    hostEl ||
+    (typeof document !== "undefined"
+      ? document.querySelector(".ql-body")
+      : null);
   const bar = ensureQuickLookFindBar(host);
   if (!bar) return false;
   if (!bar.hidden && !seedText) {
@@ -313,16 +361,24 @@ export function toggleQuickLookFindBar(hostEl, seedText = "") {
 }
 
 export function getSelectedTextInQuickLook(rootEl = null) {
-  if (typeof window === "undefined" || typeof window.getSelection !== "function") return "";
+  if (
+    typeof window === "undefined" ||
+    typeof window.getSelection !== "function"
+  )
+    return "";
   const sel = window.getSelection();
   if (!sel || sel.isCollapsed) return "";
   const text = sel.toString();
   if (!text || !text.trim()) return "";
-  const scope = rootEl || (typeof document !== "undefined" ? document.querySelector(".ql-body, .ql") : null);
+  const scope =
+    rootEl ||
+    (typeof document !== "undefined"
+      ? document.querySelector(".ql-body, .ql")
+      : null);
   if (scope) {
     const a = sel.anchorNode;
     const f = sel.focusNode;
-    if ((a && !scope.contains(a)) && (f && !scope.contains(f))) return "";
+    if (a && !scope.contains(a) && f && !scope.contains(f)) return "";
   }
   return text;
 }
@@ -330,20 +386,32 @@ export function getSelectedTextInQuickLook(rootEl = null) {
 function tableElementToTsv(table) {
   if (!table) return "";
   return [...table.querySelectorAll("tr")]
-    .map((tr) => [...tr.querySelectorAll("th, td")].map((c) => (c.textContent || "").trim()).join("\t"))
+    .map((tr) =>
+      [...tr.querySelectorAll("th, td")]
+        .map((c) => (c.textContent || "").trim())
+        .join("\t"),
+    )
     .filter(Boolean)
     .join("\n");
 }
 
 function blocksToPlainText(blocks = []) {
   return blocks
-    .map((b) => (b.type === "table" && Array.isArray(b.rows) ? b.rows.map((r) => r.join("\t")).join("\n") : b.text || ""))
+    .map((b) =>
+      b.type === "table" && Array.isArray(b.rows)
+        ? b.rows.map((r) => r.join("\t")).join("\n")
+        : b.text || "",
+    )
     .filter(Boolean)
     .join("\n\n");
 }
 
 export function extractQuickLookPreviewText(entry, preview, rootEl = null) {
-  const scope = rootEl || (typeof document !== "undefined" ? document.querySelector(".ql-body") : null);
+  const scope =
+    rootEl ||
+    (typeof document !== "undefined"
+      ? document.querySelector(".ql-body")
+      : null);
   const rich = preview?.rich;
   if (rich) {
     switch (rich.kind) {
@@ -352,7 +420,9 @@ export function extractQuickLookPreviewText(entry, preview, rootEl = null) {
         const chapIdx = chapSelect ? Number(chapSelect.value) : -1;
         if (chapIdx >= 0 && rich.chapters?.[chapIdx]) {
           const ch = rich.chapters[chapIdx];
-          return [ch.title || "", blocksToPlainText(ch.blocks || [])].filter(Boolean).join("\n\n");
+          return [ch.title || "", blocksToPlainText(ch.blocks || [])]
+            .filter(Boolean)
+            .join("\n\n");
         }
         return (
           rich.plainText ||
@@ -381,38 +451,63 @@ export function extractQuickLookPreviewText(entry, preview, rootEl = null) {
         if (domTsv) return domTsv;
         const s = rich.sheets?.[0];
         if (!s) return "";
-        return [s.headers.join("\t"), ...(s.rows || []).map((r) => r.join("\t"))].filter(Boolean).join("\n");
+        return [
+          s.headers.join("\t"),
+          ...(s.rows || []).map((r) => r.join("\t")),
+        ]
+          .filter(Boolean)
+          .join("\n");
       }
       case "sqlite": {
         const sqlPre = scope?.querySelector?.(".ql-rich-pre");
         const domTable = scope?.querySelector?.(".ql-fmt-table");
         const domTsv = tableElementToTsv(domTable);
         if (domTsv || sqlPre?.textContent) {
-          return [domTsv, sqlPre?.textContent || ""].filter(Boolean).join("\n\n");
+          return [domTsv, sqlPre?.textContent || ""]
+            .filter(Boolean)
+            .join("\n\n");
         }
         const t = rich.tables?.[0];
         if (!t) return "";
         const headers = (t.columns || []).map((c) => c.name).join("\t");
-        return [headers, ...(t.rows || []).map((r) => r.join("\t"))].filter(Boolean).join("\n");
+        return [headers, ...(t.rows || []).map((r) => r.join("\t"))]
+          .filter(Boolean)
+          .join("\n");
       }
       case "structured":
-        return (preview?.type === "text" && preview.text) || rich.formattedText || (rich.data !== undefined ? JSON.stringify(rich.data, null, 2) : "");
+        return (
+          (preview?.type === "text" && preview.text) ||
+          rich.formattedText ||
+          (rich.data !== undefined ? JSON.stringify(rich.data, null, 2) : "")
+        );
       case "notebook":
         return (rich.cells || [])
-          .map((c) => [c.source || "", ...(c.outputs || []).map((o) => o.text || "")].filter(Boolean).join("\n"))
+          .map((c) =>
+            [c.source || "", ...(c.outputs || []).map((o) => o.text || "")]
+              .filter(Boolean)
+              .join("\n"),
+          )
           .filter(Boolean)
           .join("\n\n");
       case "subtitles":
         return (
           (preview?.type === "text" && preview.text) ||
           (rich.cues || [])
-            .map((c) => `${c.start}${c.end ? ` --> ${c.end}` : ""} ${c.speaker ? `[${c.speaker}] ` : ""}${c.text}`)
+            .map(
+              (c) =>
+                `${c.start}${c.end ? ` --> ${c.end}` : ""} ${c.speaker ? `[${c.speaker}] ` : ""}${c.text}`,
+            )
             .join("\n")
         );
       case "playlist":
         return (
           (preview?.type === "text" && preview.text) ||
-          (rich.tracks || []).map((t) => `${t.index}. ${t.title}${t.duration ? ` (${t.duration})` : ""} — ${t.path}`).join("\n")
+          (rich.tracks || [])
+            .map(
+              (t) =>
+                `${t.index}. ${t.title}${t.duration ? ` (${t.duration})` : ""} — ${t.path}`,
+            )
+            .join("\n")
         );
       case "calendar":
         return (
@@ -455,51 +550,85 @@ export function extractQuickLookPreviewText(entry, preview, rootEl = null) {
           (preview?.type === "text" && preview.text) ||
           (rich.blocks || [])
             .map((b) =>
-              [b.label, `SHA-256: ${b.sha256}`, `SHA-1: ${b.sha1}`, ...(b.details || []).map(([k, v]) => `${k}: ${v}`)].join("\n"),
+              [
+                b.label,
+                `SHA-256: ${b.sha256}`,
+                `SHA-1: ${b.sha1}`,
+                ...(b.details || []).map(([k, v]) => `${k}: ${v}`),
+              ].join("\n"),
             )
             .join("\n\n")
         );
       case "model3d":
-        return (preview?.type === "text" && preview.text) || (rich.meta || []).map(([k, v]) => `${k}: ${v}`).join("\n");
+        return (
+          (preview?.type === "text" && preview.text) ||
+          (rich.meta || []).map(([k, v]) => `${k}: ${v}`).join("\n")
+        );
       case "diff":
         return (
           (preview?.type === "text" && preview.text) ||
           (rich.files || [])
             .map((f) =>
-              [f.newFile || f.oldFile, ...(f.hunks || []).flatMap((hk) => [hk.header, ...(hk.lines || []).map((l) => `${l.type}${l.text}`)])].join("\n"),
+              [
+                f.newFile || f.oldFile,
+                ...(f.hunks || []).flatMap((hk) => [
+                  hk.header,
+                  ...(hk.lines || []).map((l) => `${l.type}${l.text}`),
+                ]),
+              ].join("\n"),
             )
             .join("\n\n")
         );
       case "log": {
         const logList = scope?.querySelector?.(".ql-log-list");
         if (logList && !logList.closest("[hidden]")) {
-          const lines = [...logList.querySelectorAll(".ql-log-line")].map((row) => {
-            const lvl = row.querySelector(".ql-log-badge")?.textContent || "";
-            const msg = row.querySelector(".ql-log-msg")?.textContent || "";
-            return `[${lvl}] ${msg}`.trim();
-          });
+          const lines = [...logList.querySelectorAll(".ql-log-line")].map(
+            (row) => {
+              const lvl = row.querySelector(".ql-log-badge")?.textContent || "";
+              const msg = row.querySelector(".ql-log-msg")?.textContent || "";
+              return `[${lvl}] ${msg}`.trim();
+            },
+          );
           if (lines.length) return lines.join("\n");
         }
-        return (preview?.type === "text" && preview.text) || (rich.entries || []).map((e) => `[${e.level}] ${e.text}`).join("\n");
+        return (
+          (preview?.type === "text" && preview.text) ||
+          (rich.entries || []).map((e) => `[${e.level}] ${e.text}`).join("\n")
+        );
       }
       case "archive":
-        return rich.innerText || (rich.entries || []).map((e) => e.name).join("\n");
+        return (
+          rich.innerText || (rich.entries || []).map((e) => e.name).join("\n")
+        );
       case "binary": {
-        const visiblePre = scope?.querySelector?.("pre.ql-hex-dump:not([hidden])");
+        const visiblePre = scope?.querySelector?.(
+          "pre.ql-hex-dump:not([hidden])",
+        );
         if (visiblePre?.textContent) return visiblePre.textContent;
         return (rich.hexLines || []).join("\n");
       }
     }
   }
-  if (preview?.type === "text" && typeof preview.text === "string" && preview.text) {
+  if (
+    preview?.type === "text" &&
+    typeof preview.text === "string" &&
+    preview.text
+  ) {
     return preview.text;
   }
-  const mdDom = scope?.querySelector?.(".code-md-content:not([hidden]), pre.ql-text:not([hidden]), pre.code-md-plain:not([hidden])");
+  const mdDom = scope?.querySelector?.(
+    ".code-md-content:not([hidden]), pre.ql-text:not([hidden]), pre.code-md-plain:not([hidden])",
+  );
   if (mdDom?.textContent) return mdDom.textContent;
   return "";
 }
 
-export function buildQuickLookCopyButtons(entry, preview, getContainer = null, helpers = {}) {
+export function buildQuickLookCopyButtons(
+  entry,
+  preview,
+  getContainer = null,
+  helpers = {},
+) {
   const findBtn = h(
     "button",
     {
@@ -509,9 +638,14 @@ export function buildQuickLookCopyButtons(entry, preview, getContainer = null, h
       title: "Find text in this preview (⌘F / Ctrl+F)",
       onmousedown: (e) => e.preventDefault(),
       onclick: () => {
-        const host = getContainer?.() ?? findBtn.closest(".ql-body, .ql-fmt-wrap, .ql");
-        const selText = getSelectedTextInQuickLook(host) || cachedQuickLookSelection;
-        toggleQuickLookFindBar(host, selText && selText.length <= 80 ? selText.trim() : "");
+        const host =
+          getContainer?.() ?? findBtn.closest(".ql-body, .ql-fmt-wrap, .ql");
+        const selText =
+          getSelectedTextInQuickLook(host) || cachedQuickLookSelection;
+        toggleQuickLookFindBar(
+          host,
+          selText && selText.length <= 80 ? selText.trim() : "",
+        );
       },
     },
     "🔍 Find",
@@ -523,11 +657,17 @@ export function buildQuickLookCopyButtons(entry, preview, getContainer = null, h
       type: "button",
       class: "code-btn code-small ql-ask-ai-btn",
       "data-copy-ui": "",
-      title: "Send selected passage (or document context) to LM Studio Bionic AI",
+      title:
+        "Send selected passage (or document context) to LM Studio Bionic AI",
       onmousedown: (e) => e.preventDefault(),
       onclick: () => {
-        const host = getContainer?.() ?? askAiBtn.closest(".ql-body, .ql-fmt-wrap, .ql");
-        const selText = (getSelectedTextInQuickLook(host) || cachedQuickLookSelection || "").trim();
+        const host =
+          getContainer?.() ?? askAiBtn.closest(".ql-body, .ql-fmt-wrap, .ql");
+        const selText = (
+          getSelectedTextInQuickLook(host) ||
+          cachedQuickLookSelection ||
+          ""
+        ).trim();
         const prompt = selText
           ? `Analyze and explain this selected passage from "${entry?.name || "document"}":\n\n> ${selText.slice(0, 2400)}`
           : `Summarize and highlight the key takeaways of "${entry?.name || "this file"}".`;
@@ -548,14 +688,25 @@ export function buildQuickLookCopyButtons(entry, preview, getContainer = null, h
       type: "button",
       class: "code-btn code-small ql-speak-sel-btn",
       "data-copy-ui": "",
-      title: "Read selected passage (or full document) aloud in Phonon Voice Reader",
+      title:
+        "Read selected passage (or full document) aloud in Phonon Voice Reader",
       onmousedown: (e) => e.preventDefault(),
       onclick: () => {
-        const host = getContainer?.() ?? speakSelBtn.closest(".ql-body, .ql-fmt-wrap, .ql");
-        const selText = (getSelectedTextInQuickLook(host) || cachedQuickLookSelection || "").trim();
+        const host =
+          getContainer?.() ??
+          speakSelBtn.closest(".ql-body, .ql-fmt-wrap, .ql");
+        const selText = (
+          getSelectedTextInQuickLook(host) ||
+          cachedQuickLookSelection ||
+          ""
+        ).trim();
         helpers.onClose?.();
         if (selText) {
-          openPower("phonon", { text: selText, path: entry?.path, autoPlay: true });
+          openPower("phonon", {
+            text: selText,
+            path: entry?.path,
+            autoPlay: true,
+          });
         } else if (entry?.path) {
           openPower("phonon", { path: entry.path, autoPlay: true });
         } else {
@@ -576,13 +727,18 @@ export function buildQuickLookCopyButtons(entry, preview, getContainer = null, h
       title: "Copy all text in this preview to the clipboard",
       onmousedown: (e) => e.preventDefault(),
       onclick: async () => {
-        const host = getContainer?.() ?? copyAllBtn.closest(".ql-body, .ql-fmt-wrap, .ql");
+        const host =
+          getContainer?.() ?? copyAllBtn.closest(".ql-body, .ql-fmt-wrap, .ql");
         const text = extractQuickLookPreviewText(entry, preview, host);
         if (!text) {
           toast("There is no text in this preview to copy.", { kind: "info" });
           return;
         }
-        if (await copyToClipboard(text, { what: `all preview text from ${entry?.name || "preview"}` })) {
+        if (
+          await copyToClipboard(text, {
+            what: `all preview text from ${entry?.name || "preview"}`,
+          })
+        ) {
           flashCopied(copyAllBtn, "Copied All ✓");
         }
       },
@@ -596,18 +752,28 @@ export function buildQuickLookCopyButtons(entry, preview, getContainer = null, h
       type: "button",
       class: "code-btn code-small ql-copy-sel-btn",
       "data-copy-ui": "",
-      title: "Copy the highlighted/selected text in this preview to the clipboard",
+      title:
+        "Copy the highlighted/selected text in this preview to the clipboard",
       onmousedown: (e) => e.preventDefault(),
       onclick: async () => {
-        const host = getContainer?.() ?? copySelBtn.closest(".ql-body, .ql-fmt-wrap, .ql");
-        const selText = getSelectedTextInQuickLook(host) || cachedQuickLookSelection;
+        const host =
+          getContainer?.() ?? copySelBtn.closest(".ql-body, .ql-fmt-wrap, .ql");
+        const selText =
+          getSelectedTextInQuickLook(host) || cachedQuickLookSelection;
         if (selText) {
-          if (await copyToClipboard(selText, { what: `selected text (${selText.length.toLocaleString("en-US")} chars)` })) {
+          if (
+            await copyToClipboard(selText, {
+              what: `selected text (${selText.length.toLocaleString("en-US")} chars)`,
+            })
+          ) {
             flashCopied(copySelBtn, "Copied Selection ✓");
           }
           return;
         }
-        toast("Select some text in the preview first, or click Copy All Text.", { kind: "info" });
+        toast(
+          "Select some text in the preview first, or click Copy All Text.",
+          { kind: "info" },
+        );
       },
     },
     "✂️ Copy Selected",
@@ -615,7 +781,12 @@ export function buildQuickLookCopyButtons(entry, preview, getContainer = null, h
 
   return h(
     "span",
-    { class: "ql-copy-group", role: "group", "aria-label": "Preview text actions", "data-copy-ui": "" },
+    {
+      class: "ql-copy-group",
+      role: "group",
+      "aria-label": "Preview text actions",
+      "data-copy-ui": "",
+    },
     findBtn,
     askAiBtn,
     speakSelBtn,
@@ -625,45 +796,105 @@ export function buildQuickLookCopyButtons(entry, preview, getContainer = null, h
 }
 
 function metaChips(meta = []) {
-  const valid = meta.filter(([k, v]) => k && v && !/\b(?:null|undefined)\b/i.test(String(v)));
+  const valid = meta.filter(
+    ([k, v]) => k && v && !/\b(?:null|undefined)\b/i.test(String(v)),
+  );
   if (!valid.length) return null;
   return h(
     "div",
     { class: "ql-fmt-chips" },
-    ...valid.slice(0, 8).map(([k, v]) =>
-      h("span", { class: "ql-fmt-chip", title: `${k}: ${v}` }, h("strong", {}, `${k}: `), String(v)),
-    ),
+    ...valid
+      .slice(0, 8)
+      .map(([k, v]) =>
+        h(
+          "span",
+          { class: "ql-fmt-chip", title: `${k}: ${v}` },
+          h("strong", {}, `${k}: `),
+          String(v),
+        ),
+      ),
   );
 }
 
 function buildDataTree(key, value, depth, filterText) {
-  const labelKey = key !== null ? h("span", { class: "code-t-property" }, `${String(key)}: `) : null;
+  const labelKey =
+    key !== null
+      ? h("span", { class: "code-t-property" }, `${String(key)}: `)
+      : null;
   if (value === null || value === undefined || typeof value !== "object") {
-    const type = value === null || value === undefined ? "constant" : typeof value === "string" ? "string" : typeof value === "number" ? "number" : "keyword";
-    const text = value === null || value === undefined ? "—" : typeof value === "string" ? JSON.stringify(value) : String(value);
-    if (filterText && !`${key ?? ""} ${text}`.toLowerCase().includes(filterText)) return null;
-    return h("div", { class: "code-json-leaf" }, labelKey, h("span", { class: `code-t-${type}` }, text));
+    const type =
+      value === null || value === undefined
+        ? "constant"
+        : typeof value === "string"
+          ? "string"
+          : typeof value === "number"
+            ? "number"
+            : "keyword";
+    const text =
+      value === null || value === undefined
+        ? "—"
+        : typeof value === "string"
+          ? JSON.stringify(value)
+          : String(value);
+    if (
+      filterText &&
+      !`${key ?? ""} ${text}`.toLowerCase().includes(filterText)
+    )
+      return null;
+    return h(
+      "div",
+      { class: "code-json-leaf" },
+      labelKey,
+      h("span", { class: `code-t-${type}` }, text),
+    );
   }
   const isArr = Array.isArray(value);
   const entries = isArr ? value.map((v, i) => [i, v]) : Object.entries(value);
-  const summary = isArr ? `Array(${entries.length})` : `{${entries.length} ${entries.length === 1 ? "key" : "keys"}}`;
-  if (depth > 7) return h("div", { class: "code-json-leaf" }, labelKey, h("span", { class: "code-hint" }, summary));
+  const summary = isArr
+    ? `Array(${entries.length})`
+    : `{${entries.length} ${entries.length === 1 ? "key" : "keys"}}`;
+  if (depth > 7)
+    return h(
+      "div",
+      { class: "code-json-leaf" },
+      labelKey,
+      h("span", { class: "code-hint" }, summary),
+    );
   const children = [];
   for (const [k, v] of entries.slice(0, 250)) {
     const child = buildDataTree(k, v, depth + 1, filterText);
     if (child) children.push(child);
   }
-  if (filterText && !children.length && !String(key ?? "").toLowerCase().includes(filterText)) return null;
-  if (entries.length > 250) children.push(h("div", { class: "code-hint" }, `… ${entries.length - 250} more items`));
+  if (
+    filterText &&
+    !children.length &&
+    !String(key ?? "")
+      .toLowerCase()
+      .includes(filterText)
+  )
+    return null;
+  if (entries.length > 250)
+    children.push(
+      h("div", { class: "code-hint" }, `… ${entries.length - 250} more items`),
+    );
   return h(
     "details",
     { class: "code-json-branch", open: depth < 2 || Boolean(filterText) },
-    h("summary", { class: "code-json-sum" }, labelKey, h("span", { class: "code-badge code-badge-quiet" }, summary)),
+    h(
+      "summary",
+      { class: "code-json-sum" },
+      labelKey,
+      h("span", { class: "code-badge code-badge-quiet" }, summary),
+    ),
     h("div", { class: "code-json-children" }, children),
   );
 }
 
-function buildInteractiveGrid(headers, rows, { maxRows = 200, filterPlaceholder = "Filter rows…" } = {}) {
+function buildInteractiveGrid(
+  headers,
+  rows,
+  { maxRows = 200, filterPlaceholder = "Filter rows…" } = {},
+) {
   let sortCol = -1;
   let sortDesc = false;
   const colCount = Math.max(headers.length, ...rows.map((r) => r.length), 0);
@@ -678,14 +909,25 @@ function buildInteractiveGrid(headers, rows, { maxRows = 200, filterPlaceholder 
 
   const draw = () => {
     const q = filter.value.trim().toLowerCase();
-    const filtered = q ? rows.filter((r) => r.some((c) => String(c ?? "").toLowerCase().includes(q))) : [...rows];
+    const filtered = q
+      ? rows.filter((r) =>
+          r.some((c) =>
+            String(c ?? "")
+              .toLowerCase()
+              .includes(q),
+          ),
+        )
+      : [...rows];
     if (sortCol >= 0) {
       filtered.sort((a, b) => {
         const va = String(a[sortCol] ?? "").trim();
         const vb = String(b[sortCol] ?? "").trim();
         const na = Number(va);
         const nb = Number(vb);
-        const cmp = !Number.isNaN(na) && !Number.isNaN(nb) && va !== "" && vb !== "" ? na - nb : va.localeCompare(vb);
+        const cmp =
+          !Number.isNaN(na) && !Number.isNaN(nb) && va !== "" && vb !== ""
+            ? na - nb
+            : va.localeCompare(vb);
         return sortDesc ? -cmp : cmp;
       });
     }
@@ -711,16 +953,34 @@ function buildInteractiveGrid(headers, rows, { maxRows = 200, filterPlaceholder 
         `${label}${arrow}`,
       );
     });
-    const trs = filtered.slice(0, maxRows).map((r) =>
-      h("tr", {}, ...Array.from({ length: colCount }, (_, c) => h("td", {}, String(r[c] ?? "")))),
-    );
+    const trs = filtered
+      .slice(0, maxRows)
+      .map((r) =>
+        h(
+          "tr",
+          {},
+          ...Array.from({ length: colCount }, (_, c) =>
+            h("td", {}, String(r[c] ?? "")),
+          ),
+        ),
+      );
     host.replaceChildren(
-      h("table", { class: "ql-fmt-table" }, h("thead", {}, h("tr", {}, ...ths)), h("tbody", {}, ...trs)),
+      h(
+        "table",
+        { class: "ql-fmt-table" },
+        h("thead", {}, h("tr", {}, ...ths)),
+        h("tbody", {}, ...trs),
+      ),
     );
   };
   filter.addEventListener("input", draw);
   draw();
-  return h("div", { class: "ql-fmt-grid" }, h("div", { class: "ql-fmt-bar" }, filter, countLabel), host);
+  return h(
+    "div",
+    { class: "ql-fmt-grid" },
+    h("div", { class: "ql-fmt-bar" }, filter, countLabel),
+    host,
+  );
 }
 
 function renderDocBlocks(blocks = []) {
@@ -728,7 +988,13 @@ function renderDocBlocks(blocks = []) {
   let listItems = [];
   const flushList = () => {
     if (!listItems.length) return;
-    out.push(h("ul", { class: "ql-doc-list" }, ...listItems.map((t) => h("li", {}, t))));
+    out.push(
+      h(
+        "ul",
+        { class: "ql-doc-list" },
+        ...listItems.map((t) => h("li", {}, t)),
+      ),
+    );
     listItems = [];
   };
   for (const b of blocks) {
@@ -740,8 +1006,10 @@ function renderDocBlocks(blocks = []) {
     if (b.type === "h1") out.push(h("h1", { class: "ql-doc-h1" }, b.text));
     else if (b.type === "h2") out.push(h("h2", { class: "ql-doc-h2" }, b.text));
     else if (b.type === "h3") out.push(h("h3", { class: "ql-doc-h3" }, b.text));
-    else if (b.type === "quote") out.push(h("blockquote", { class: "ql-doc-quote" }, b.text));
-    else if (b.type === "code") out.push(h("pre", { class: "ql-doc-code" }, b.text));
+    else if (b.type === "quote")
+      out.push(h("blockquote", { class: "ql-doc-quote" }, b.text));
+    else if (b.type === "code")
+      out.push(h("pre", { class: "ql-doc-code" }, b.text));
     else if (b.type === "table" && Array.isArray(b.rows) && b.rows.length) {
       const width = Math.max(...b.rows.map((r) => r.length), 1);
       const head = b.rows[0] ?? [];
@@ -753,8 +1021,30 @@ function renderDocBlocks(blocks = []) {
           h(
             "table",
             { class: "ql-fmt-table" },
-            h("thead", {}, h("tr", {}, ...Array.from({ length: width }, (_, i) => h("th", {}, head[i] ?? "")))),
-            h("tbody", {}, ...body.map((r) => h("tr", {}, ...Array.from({ length: width }, (_, i) => h("td", {}, r[i] ?? ""))))),
+            h(
+              "thead",
+              {},
+              h(
+                "tr",
+                {},
+                ...Array.from({ length: width }, (_, i) =>
+                  h("th", {}, head[i] ?? ""),
+                ),
+              ),
+            ),
+            h(
+              "tbody",
+              {},
+              ...body.map((r) =>
+                h(
+                  "tr",
+                  {},
+                  ...Array.from({ length: width }, (_, i) =>
+                    h("td", {}, r[i] ?? ""),
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
       );
@@ -763,20 +1053,43 @@ function renderDocBlocks(blocks = []) {
     }
   }
   flushList();
-  return out.length ? out : [h("p", { class: "ql-note" }, "No readable text blocks found in this document.")];
+  return out.length
+    ? out
+    : [
+        h(
+          "p",
+          { class: "ql-note" },
+          "No readable text blocks found in this document.",
+        ),
+      ];
 }
 
 function renderColouredCodeLines(text, langId) {
-  const lines = tokenizeText(langId, text.length > 500_000 ? text.slice(0, 500_000) : text);
-  const pre = h("pre", { class: "ql-text ql-code-pre", tabindex: "0", "aria-label": "Source code preview" });
+  const lines = tokenizeText(
+    langId,
+    text.length > 500_000 ? text.slice(0, 500_000) : text,
+  );
+  const pre = h("pre", {
+    class: "ql-text ql-code-pre",
+    tabindex: "0",
+    "aria-label": "Source code preview",
+  });
   const max = Math.min(lines.length, 3000);
   for (let i = 0; i < max; i++) {
     const tokens = lines[i];
-    const lineSpan = h("span", { class: "ql-code-line", dataset: { ln: String(i + 1) } });
+    const lineSpan = h("span", {
+      class: "ql-code-line",
+      dataset: { ln: String(i + 1) },
+    });
     for (const t of tokens) {
-      lineSpan.append(t.type ? h("span", { class: `code-t-${t.type}` }, t.text) : document.createTextNode(t.text));
+      lineSpan.append(
+        t.type
+          ? h("span", { class: `code-t-${t.type}` }, t.text)
+          : document.createTextNode(t.text),
+      );
     }
-    if (i < max - 1 || text.endsWith("\n")) lineSpan.append(document.createTextNode("\n"));
+    if (i < max - 1 || text.endsWith("\n"))
+      lineSpan.append(document.createTextNode("\n"));
     pre.append(lineSpan);
   }
   return pre;
@@ -806,7 +1119,11 @@ function buildModeSwitcher(modes, initialId, onSelect) {
       label,
     ),
   );
-  return h("span", { class: "ql-mode-group", role: "group", "aria-label": "Preview mode" }, ...btns);
+  return h(
+    "span",
+    { class: "ql-mode-group", role: "group", "aria-label": "Preview mode" },
+    ...btns,
+  );
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -841,10 +1158,16 @@ function renderSpreadsheetQuickLook(entry, rich) {
   const drawSheet = () => {
     const s = sheets[activeIdx];
     if (!s || (!s.headers.length && !s.rows.length)) {
-      stage.replaceChildren(h("p", { class: "ql-note" }, "This sheet is empty."));
+      stage.replaceChildren(
+        h("p", { class: "ql-note" }, "This sheet is empty."),
+      );
       return;
     }
-    stage.replaceChildren(buildInteractiveGrid(s.headers, s.rows, { filterPlaceholder: `Filter ${s.name}…` }));
+    stage.replaceChildren(
+      buildInteractiveGrid(s.headers, s.rows, {
+        filterPlaceholder: `Filter ${s.name}…`,
+      }),
+    );
   };
   drawSheet();
 
@@ -855,7 +1178,17 @@ function renderSpreadsheetQuickLook(entry, rich) {
       "div",
       { class: "ql-fmt-head" },
       h("span", { class: "ql-fmt-badge" }, rich.formatLabel),
-      sheets.length > 1 ? h("div", { class: "ql-sheet-tabs", role: "tablist", "aria-label": "Workbook sheets" }, ...tabBtns) : null,
+      sheets.length > 1
+        ? h(
+            "div",
+            {
+              class: "ql-sheet-tabs",
+              role: "tablist",
+              "aria-label": "Workbook sheets",
+            },
+            ...tabBtns,
+          )
+        : null,
       metaChips(rich.meta),
     ),
     stage,
@@ -879,13 +1212,19 @@ function renderDocumentQuickLook(entry, preview, rich, helpers = {}) {
     ? h(
         "div",
         { class: "ql-doc", hidden: true },
-        h("img", { class: "ql-image", src: `${rawUrl(entry.path)}&thumb=1`, alt: `First page of ${entry.name}` }),
+        h("img", {
+          class: "ql-image",
+          src: `${rawUrl(entry.path)}&thumb=1`,
+          alt: `First page of ${entry.name}`,
+        }),
       )
     : null;
 
   let chapterIdx = -1;
   const chapters = rich.chapters || [];
-  const savedProgress = entry?.path ? loadQuickLookReadingProgress(entry.path) : null;
+  const savedProgress = entry?.path
+    ? loadQuickLookReadingProgress(entry.path)
+    : null;
   if (
     savedProgress &&
     typeof savedProgress.chapterIdx === "number" &&
@@ -897,10 +1236,15 @@ function renderDocumentQuickLook(entry, preview, rich, helpers = {}) {
 
   let chapterSelect = null;
   const drawReader = () => {
-    const blocks = chapterIdx >= 0 && chapters[chapterIdx] ? chapters[chapterIdx].blocks : rich.blocks;
+    const blocks =
+      chapterIdx >= 0 && chapters[chapterIdx]
+        ? chapters[chapterIdx].blocks
+        : rich.blocks;
     readerHost.replaceChildren(
       ...(rich.title ? [h("h1", { class: "ql-doc-title" }, rich.title)] : []),
-      ...(rich.author ? [h("p", { class: "ql-doc-author" }, `By ${rich.author}`)] : []),
+      ...(rich.author
+        ? [h("p", { class: "ql-doc-author" }, `By ${rich.author}`)]
+        : []),
       ...renderDocBlocks(blocks),
     );
   };
@@ -915,19 +1259,27 @@ function renderDocumentQuickLook(entry, preview, rich, helpers = {}) {
           drawReader();
           readerHost.scrollTop = 0;
           if (entry?.path) {
-            saveQuickLookReadingProgress(entry.path, { chapterIdx, scrollTop: 0 });
+            saveQuickLookReadingProgress(entry.path, {
+              chapterIdx,
+              scrollTop: 0,
+            });
           }
         },
       },
       h("option", { value: "-1" }, `All chapters (${chapters.length})`),
-      ...chapters.map((c, i) => h("option", { value: String(i) }, `${i + 1}. ${c.title}`)),
+      ...chapters.map((c, i) =>
+        h("option", { value: String(i) }, `${i + 1}. ${c.title}`),
+      ),
     );
     chapterSelect.value = String(chapterIdx);
   }
   drawReader();
 
   let resumeChip = null;
-  if (savedProgress && (savedProgress.chapterIdx >= 0 || savedProgress.scrollTop > 40)) {
+  if (
+    savedProgress &&
+    (savedProgress.chapterIdx >= 0 || savedProgress.scrollTop > 40)
+  ) {
     const chapLabel =
       savedProgress.chapterIdx >= 0 && chapters[savedProgress.chapterIdx]
         ? `Ch. ${savedProgress.chapterIdx + 1}`
@@ -937,13 +1289,18 @@ function renderDocumentQuickLook(entry, preview, rich, helpers = {}) {
       {
         type: "button",
         class: "code-btn code-small ql-resume-chip",
-        title: "Resumed from your last reading position — click to reset to the beginning",
+        title:
+          "Resumed from your last reading position — click to reset to the beginning",
         onclick: () => {
           chapterIdx = -1;
           if (chapterSelect) chapterSelect.value = "-1";
           drawReader();
           readerHost.scrollTop = 0;
-          if (entry?.path) saveQuickLookReadingProgress(entry.path, { chapterIdx: -1, scrollTop: 0 });
+          if (entry?.path)
+            saveQuickLookReadingProgress(entry.path, {
+              chapterIdx: -1,
+              scrollTop: 0,
+            });
           resumeChip.remove();
         },
       },
@@ -960,16 +1317,35 @@ function renderDocumentQuickLook(entry, preview, rich, helpers = {}) {
     readerHost.addEventListener(
       "scroll",
       () => {
-        saveQuickLookReadingProgress(entry.path, { chapterIdx, scrollTop: readerHost.scrollTop });
+        saveQuickLookReadingProgress(entry.path, {
+          chapterIdx,
+          scrollTop: readerHost.scrollTop,
+        });
       },
       { passive: true },
     );
   }
 
   const modes = [
-    { id: "formatted", label: "Formatted", title: "Show formatted document headings, paragraphs, and tables" },
-    { id: "plain", label: "Plain text", title: "Show raw/extracted plain text" },
-    ...(thumbHost ? [{ id: "thumb", label: "Page image", title: "Show the first page image from Quick Look" }] : []),
+    {
+      id: "formatted",
+      label: "Formatted",
+      title: "Show formatted document headings, paragraphs, and tables",
+    },
+    {
+      id: "plain",
+      label: "Plain text",
+      title: "Show raw/extracted plain text",
+    },
+    ...(thumbHost
+      ? [
+          {
+            id: "thumb",
+            label: "Page image",
+            title: "Show the first page image from Quick Look",
+          },
+        ]
+      : []),
   ];
   const switcher = buildModeSwitcher(modes, "formatted", (mode) => {
     readerHost.hidden = mode !== "formatted";
@@ -983,7 +1359,8 @@ function renderDocumentQuickLook(entry, preview, rich, helpers = {}) {
         {
           type: "button",
           class: "code-btn code-small",
-          title: "Open this book or document in the Phonon Voice Reader to listen out loud or export audio/video",
+          title:
+            "Open this book or document in the Phonon Voice Reader to listen out loud or export audio/video",
           onclick: () => {
             helpers.onClose?.();
             openPower("phonon", { path: entry.path, autoPlay: false });
@@ -996,7 +1373,17 @@ function renderDocumentQuickLook(entry, preview, rich, helpers = {}) {
   return h(
     "div",
     { class: "ql-textwrap ql-fmt-wrap" },
-    h("div", { class: "ql-fmt-head" }, h("span", { class: "ql-fmt-badge" }, rich.formatLabel), chapterSelect, resumeChip, metaChips(rich.meta), h("span", { class: "code-grow" }), voiceReaderBtn, switcher),
+    h(
+      "div",
+      { class: "ql-fmt-head" },
+      h("span", { class: "ql-fmt-badge" }, rich.formatLabel),
+      chapterSelect,
+      resumeChip,
+      metaChips(rich.meta),
+      h("span", { class: "code-grow" }),
+      voiceReaderBtn,
+      switcher,
+    ),
     readerHost,
     plainPre,
     thumbHost,
@@ -1017,19 +1404,36 @@ function renderPresentationQuickLook(entry, rich) {
       h("div", { class: "ql-slide-num" }, `Slide ${s.number}`),
       h("h2", { class: "ql-slide-title" }, s.title || `Slide ${s.number}`),
       s.bullets?.length
-        ? h("ul", { class: "ql-slide-bullets" }, ...s.bullets.map((b) => h("li", {}, b)))
+        ? h(
+            "ul",
+            { class: "ql-slide-bullets" },
+            ...s.bullets.map((b) => h("li", {}, b)),
+          )
         : h("p", { class: "ql-note" }, "(Visual slide without text bullets)"),
-      s.notes ? h("div", { class: "ql-slide-notes" }, h("strong", {}, "Speaker notes: "), s.notes) : null,
+      s.notes
+        ? h(
+            "div",
+            { class: "ql-slide-notes" },
+            h("strong", {}, "Speaker notes: "),
+            s.notes,
+          )
+        : null,
     );
 
   const draw = () => {
-    counter.textContent = slides.length ? `Slide ${cur + 1} of ${slides.length}` : "No slides";
+    counter.textContent = slides.length
+      ? `Slide ${cur + 1} of ${slides.length}`
+      : "No slides";
     if (!slides.length) {
-      stage.replaceChildren(h("p", { class: "ql-note" }, "No slides found in this presentation."));
+      stage.replaceChildren(
+        h("p", { class: "ql-note" }, "No slides found in this presentation."),
+      );
       return;
     }
     if (showAll) {
-      stage.replaceChildren(h("div", { class: "ql-slide-deck" }, ...slides.map(renderSlideCard)));
+      stage.replaceChildren(
+        h("div", { class: "ql-slide-deck" }, ...slides.map(renderSlideCard)),
+      );
     } else {
       stage.replaceChildren(renderSlideCard(slides[cur]));
     }
@@ -1084,7 +1488,17 @@ function renderPresentationQuickLook(entry, rich) {
   return h(
     "div",
     { class: "ql-textwrap ql-fmt-wrap" },
-    h("div", { class: "ql-fmt-head" }, h("span", { class: "ql-fmt-badge" }, rich.formatLabel), prevBtn, counter, nextBtn, metaChips(rich.meta), h("span", { class: "code-grow" }), modeSwitcher),
+    h(
+      "div",
+      { class: "ql-fmt-head" },
+      h("span", { class: "ql-fmt-badge" }, rich.formatLabel),
+      prevBtn,
+      counter,
+      nextBtn,
+      metaChips(rich.meta),
+      h("span", { class: "code-grow" }),
+      modeSwitcher,
+    ),
     stage,
   );
 }
@@ -1095,7 +1509,11 @@ function renderPdfQuickLook(entry, rich) {
     ? h(
         "div",
         { class: "ql-pdf-thumb" },
-        h("img", { class: "ql-image", src: `${rawUrl(entry.path)}&thumb=1`, alt: `First page of ${entry.name}` }),
+        h("img", {
+          class: "ql-image",
+          src: `${rawUrl(entry.path)}&thumb=1`,
+          alt: `First page of ${entry.name}`,
+        }),
       )
     : null;
 
@@ -1107,7 +1525,11 @@ function renderPdfQuickLook(entry, rich) {
           "div",
           { class: "ql-fmt-section" },
           h("h4", {}, `Outline / Bookmarks (${rich.outline.length})`),
-          h("ul", { class: "ql-doc-list" }, ...rich.outline.slice(0, 30).map((o) => h("li", {}, o))),
+          h(
+            "ul",
+            { class: "ql-doc-list" },
+            ...rich.outline.slice(0, 30).map((o) => h("li", {}, o)),
+          ),
         )
       : null,
     h(
@@ -1116,14 +1538,26 @@ function renderPdfQuickLook(entry, rich) {
       h("h4", {}, "Extracted Document Text"),
       hasText
         ? h("pre", { class: "ql-rich-pre", tabindex: "0" }, rich.extractedText)
-        : h("p", { class: "ql-note" }, rich.encrypted ? "This PDF is encrypted, so its text cannot be read without a password." : "This PDF contains scanned images or custom vector glyphs rather than plain text streams."),
+        : h(
+            "p",
+            { class: "ql-note" },
+            rich.encrypted
+              ? "This PDF is encrypted, so its text cannot be read without a password."
+              : "This PDF contains scanned images or custom vector glyphs rather than plain text streams.",
+          ),
     ),
     rich.flags?.some((f) => f.found)
       ? h(
           "div",
           { class: "ql-fmt-section ql-pdf-warn" },
           h("h4", {}, "Active Content Warnings"),
-          h("ul", { class: "ql-doc-list" }, ...rich.flags.filter((f) => f.found).map((f) => h("li", {}, `${f.label}: ${f.hint}`))),
+          h(
+            "ul",
+            { class: "ql-doc-list" },
+            ...rich.flags
+              .filter((f) => f.found)
+              .map((f) => h("li", {}, `${f.label}: ${f.hint}`)),
+          ),
         )
       : null,
   );
@@ -1135,8 +1569,22 @@ function renderPdfQuickLook(entry, rich) {
       "div",
       { class: "ql-fmt-head" },
       h("span", { class: "ql-fmt-badge" }, rich.formatLabel),
-      rich.pages ? h("span", { class: "ql-fmt-chip" }, h("strong", {}, "Pages: "), String(rich.pages)) : null,
-      rich.pageSize ? h("span", { class: "ql-fmt-chip" }, h("strong", {}, "Size: "), rich.pageSize) : null,
+      rich.pages
+        ? h(
+            "span",
+            { class: "ql-fmt-chip" },
+            h("strong", {}, "Pages: "),
+            String(rich.pages),
+          )
+        : null,
+      rich.pageSize
+        ? h(
+            "span",
+            { class: "ql-fmt-chip" },
+            h("strong", {}, "Size: "),
+            rich.pageSize,
+          )
+        : null,
       metaChips(rich.meta),
     ),
     h("div", { class: "ql-pdf-split" }, thumbWrap, textSection),
@@ -1173,19 +1621,38 @@ function renderSqliteQuickLook(entry, rich, { onClose } = {}) {
   const drawTable = () => {
     const t = tables[activeIdx];
     if (!t) {
-      stage.replaceChildren(h("p", { class: "ql-note" }, "No user tables found in this SQLite database."));
+      stage.replaceChildren(
+        h(
+          "p",
+          { class: "ql-note" },
+          "No user tables found in this SQLite database.",
+        ),
+      );
       return;
     }
     if (viewMode === "schema") {
-      const schemaRows = t.columns.map((c) => [c.name, c.type, c.pk ? "Primary Key" : "", c.notnull ? "NOT NULL" : ""]);
+      const schemaRows = t.columns.map((c) => [
+        c.name,
+        c.type,
+        c.pk ? "Primary Key" : "",
+        c.notnull ? "NOT NULL" : "",
+      ]);
       stage.replaceChildren(
-        buildInteractiveGrid(["Column", "Type", "Key", "Constraints"], schemaRows, { filterPlaceholder: "Filter columns…" }),
+        buildInteractiveGrid(
+          ["Column", "Type", "Key", "Constraints"],
+          schemaRows,
+          { filterPlaceholder: "Filter columns…" },
+        ),
         t.sql ? h("pre", { class: "ql-rich-pre" }, t.sql) : null,
       );
       return;
     }
     const headers = t.columns.map((c) => `${c.name}${c.pk ? " 🔑" : ""}`);
-    stage.replaceChildren(buildInteractiveGrid(headers, t.rows, { filterPlaceholder: `Filter ${t.name} rows…` }));
+    stage.replaceChildren(
+      buildInteractiveGrid(headers, t.rows, {
+        filterPlaceholder: `Filter ${t.name} rows…`,
+      }),
+    );
   };
 
   const switcher = buildModeSwitcher(
@@ -1221,7 +1688,9 @@ function renderSqliteQuickLook(entry, rich, { onClose } = {}) {
       "div",
       { class: "ql-fmt-head" },
       h("span", { class: "ql-fmt-badge" }, rich.formatLabel),
-      tables.length ? h("div", { class: "ql-sheet-tabs", role: "tablist" }, ...tabBtns) : null,
+      tables.length
+        ? h("div", { class: "ql-sheet-tabs", role: "tablist" }, ...tabBtns)
+        : null,
       metaChips(rich.meta),
       h("span", { class: "code-grow" }),
       studioBtn,
@@ -1242,7 +1711,12 @@ function renderArchiveQuickLook(entry, rich) {
   return h(
     "div",
     { class: "ql-card ql-card-wide ql-fmt-wrap" },
-    h("div", { class: "ql-fmt-head" }, h("span", { class: "ql-fmt-badge" }, rich.formatLabel), metaChips(rich.meta)),
+    h(
+      "div",
+      { class: "ql-fmt-head" },
+      h("span", { class: "ql-fmt-badge" }, rich.formatLabel),
+      metaChips(rich.meta),
+    ),
     rich.innerText
       ? h(
           "div",
@@ -1252,10 +1726,14 @@ function renderArchiveQuickLook(entry, rich) {
         )
       : null,
     rows.length
-      ? buildInteractiveGrid(["Path inside archive", "Unpacked size", "Packed size", "Kind"], rows, {
-          maxRows: 300,
-          filterPlaceholder: "Filter files in archive…",
-        })
+      ? buildInteractiveGrid(
+          ["Path inside archive", "Unpacked size", "Packed size", "Kind"],
+          rows,
+          {
+            maxRows: 300,
+            filterPlaceholder: "Filter files in archive…",
+          },
+        )
       : !rich.innerText
         ? h("p", { class: "ql-note" }, "Archive summary loaded above.")
         : null,
@@ -1278,7 +1756,14 @@ function renderFontQuickLook(entry, rich) {
       "div",
       { class: "ql-font-line" },
       h("span", { class: "ql-font-size" }, `${pt}px`),
-      h("div", { class: "ql-font-sample", style: `font-family: "${fontFamilyId}", sans-serif; font-size: ${pt}px;` }, sampleText),
+      h(
+        "div",
+        {
+          class: "ql-font-sample",
+          style: `font-family: "${fontFamilyId}", sans-serif; font-size: ${pt}px;`,
+        },
+        sampleText,
+      ),
     ),
   );
   sampleInput.addEventListener("input", () => {
@@ -1288,24 +1773,47 @@ function renderFontQuickLook(entry, rich) {
     }
   });
 
-  if (rich.canRenderSpecimen && typeof FontFace === "function" && document.fonts?.add) {
+  if (
+    rich.canRenderSpecimen &&
+    typeof FontFace === "function" &&
+    document.fonts?.add
+  ) {
     try {
-      const face = new FontFace(fontFamilyId, `url("${rawUrl(entry.path)}&font=1")`);
-      face.load().then((loaded) => document.fonts.add(loaded)).catch(() => {});
+      const face = new FontFace(
+        fontFamilyId,
+        `url("${rawUrl(entry.path)}&font=1")`,
+      );
+      face
+        .load()
+        .then((loaded) => document.fonts.add(loaded))
+        .catch(() => {});
     } catch {}
   }
 
   return h(
     "div",
     { class: "ql-card ql-card-wide ql-fmt-wrap" },
-    h("div", { class: "ql-fmt-head" }, h("span", { class: "ql-fmt-badge" }, `${rich.family} (${rich.style})`), metaChips(rich.meta)),
+    h(
+      "div",
+      { class: "ql-fmt-head" },
+      h("span", { class: "ql-fmt-badge" }, `${rich.family} (${rich.style})`),
+      metaChips(rich.meta),
+    ),
     h(
       "div",
       { class: "ql-font-specimen" },
-      h("div", { class: "ql-fmt-bar" }, h("strong", {}, "Specimen preview:"), sampleInput),
       h(
         "div",
-        { class: "ql-font-alphabet", style: `font-family: "${fontFamilyId}", sans-serif;` },
+        { class: "ql-fmt-bar" },
+        h("strong", {}, "Specimen preview:"),
+        sampleInput,
+      ),
+      h(
+        "div",
+        {
+          class: "ql-font-alphabet",
+          style: `font-family: "${fontFamilyId}", sans-serif;`,
+        },
         h("div", {}, "ABCDEFGHIJKLMNOPQRSTUVWXYZ"),
         h("div", {}, "abcdefghijklmnopqrstuvwxyz"),
         h("div", {}, "0123456789 !@#$%^&*()_+-=[]{};':\",./<>?"),
@@ -1331,15 +1839,29 @@ function renderStructuredQuickLook(entry, preview, rich) {
   });
   const treeBody = h("div", { class: "code-json-tree" });
   const drawTree = () => {
-    const node = buildDataTree(null, rich.data, 0, treeFilter.value.trim().toLowerCase());
-    treeBody.replaceChildren(node ?? h("p", { class: "code-hint" }, "Nothing matches the filter."));
+    const node = buildDataTree(
+      null,
+      rich.data,
+      0,
+      treeFilter.value.trim().toLowerCase(),
+    );
+    treeBody.replaceChildren(
+      node ?? h("p", { class: "code-hint" }, "Nothing matches the filter."),
+    );
   };
   treeFilter.addEventListener("input", drawTree);
   drawTree();
-  const treeWrap = h("div", { class: "ql-fmt-stage" }, h("div", { class: "ql-fmt-bar" }, treeFilter), treeBody);
+  const treeWrap = h(
+    "div",
+    { class: "ql-fmt-stage" },
+    h("div", { class: "ql-fmt-bar" }, treeFilter),
+    treeBody,
+  );
 
   const tableWrap = rich.table
-    ? buildInteractiveGrid(rich.table.headers, rich.table.rows, { filterPlaceholder: "Filter records…" })
+    ? buildInteractiveGrid(rich.table.headers, rich.table.rows, {
+        filterPlaceholder: "Filter records…",
+      })
     : null;
 
   const initialMode = rich.subkind === "jsonl" && tableWrap ? "table" : "tree";
@@ -1349,7 +1871,9 @@ function renderStructuredQuickLook(entry, preview, rich) {
 
   const modes = [
     { id: "tree", label: "Structured tree" },
-    ...(tableWrap ? [{ id: "table", label: `Table (${rich.table.totalRows})` }] : []),
+    ...(tableWrap
+      ? [{ id: "table", label: `Table (${rich.table.totalRows})` }]
+      : []),
     { id: "source", label: "Source" },
   ];
   const switcher = buildModeSwitcher(modes, initialMode, (m) => {
@@ -1360,8 +1884,19 @@ function renderStructuredQuickLook(entry, preview, rich) {
 
   return h(
     "div",
-    { class: isText ? "ql-textwrap ql-fmt-wrap" : "ql-card ql-card-wide ql-fmt-wrap" },
-    h("div", { class: "ql-fmt-head" }, h("span", { class: "ql-fmt-badge" }, rich.formatLabel), metaChips(rich.meta), h("span", { class: "code-grow" }), switcher),
+    {
+      class: isText
+        ? "ql-textwrap ql-fmt-wrap"
+        : "ql-card ql-card-wide ql-fmt-wrap",
+    },
+    h(
+      "div",
+      { class: "ql-fmt-head" },
+      h("span", { class: "ql-fmt-badge" }, rich.formatLabel),
+      metaChips(rich.meta),
+      h("span", { class: "code-grow" }),
+      switcher,
+    ),
     treeWrap,
     tableWrap,
     plainPre,
@@ -1369,7 +1904,11 @@ function renderStructuredQuickLook(entry, preview, rich) {
 }
 
 function renderNotebookQuickLook(entry, preview, rich) {
-  const plainPre = h("pre", { class: "ql-text", tabindex: "0", hidden: true }, preview.text || "");
+  const plainPre = h(
+    "pre",
+    { class: "ql-text", tabindex: "0", hidden: true },
+    preview.text || "",
+  );
   const nbHost = h(
     "div",
     { class: "ql-nb-cells" },
@@ -1384,14 +1923,26 @@ function renderNotebookQuickLook(entry, preview, rich) {
       codeBox.classList.add("ql-nb-code");
       const outNodes = (cell.outputs || []).map((o) => {
         if (o.kind === "image" && o.dataUrl) {
-          return h("div", { class: "ql-nb-out ql-nb-out-img" }, h("img", { src: o.dataUrl, alt: "Notebook cell output" }));
+          return h(
+            "div",
+            { class: "ql-nb-out ql-nb-out-img" },
+            h("img", { src: o.dataUrl, alt: "Notebook cell output" }),
+          );
         }
-        return h("pre", { class: `ql-nb-out${o.kind === "error" ? " ql-nb-out-err" : ""}` }, o.text || "");
+        return h(
+          "pre",
+          { class: `ql-nb-out${o.kind === "error" ? " ql-nb-out-err" : ""}` },
+          o.text || "",
+        );
       });
       return h(
         "div",
         { class: "ql-nb-cell ql-nb-cell-code" },
-        h("div", { class: "ql-nb-prompt" }, `In [${cell.executionCount ?? " "}]:`),
+        h(
+          "div",
+          { class: "ql-nb-prompt" },
+          `In [${cell.executionCount ?? " "}]:`,
+        ),
         h("div", { class: "ql-nb-cell-body" }, codeBox, ...outNodes),
       );
     }),
@@ -1410,17 +1961,34 @@ function renderNotebookQuickLook(entry, preview, rich) {
   return h(
     "div",
     { class: "ql-textwrap ql-fmt-wrap" },
-    h("div", { class: "ql-fmt-head" }, h("span", { class: "ql-fmt-badge" }, rich.formatLabel), metaChips(rich.meta), h("span", { class: "code-grow" }), switcher),
+    h(
+      "div",
+      { class: "ql-fmt-head" },
+      h("span", { class: "ql-fmt-badge" }, rich.formatLabel),
+      metaChips(rich.meta),
+      h("span", { class: "code-grow" }),
+      switcher,
+    ),
     nbHost,
     plainPre,
   );
 }
 
 function renderSubtitlesQuickLook(entry, preview, rich) {
-  const plainPre = h("pre", { class: "ql-text", tabindex: "0", hidden: true }, preview.text || "");
+  const plainPre = h(
+    "pre",
+    { class: "ql-text", tabindex: "0", hidden: true },
+    preview.text || "",
+  );
   const hasSpeaker = rich.cues.some((c) => c.speaker);
   const hasEnd = rich.cues.some((c) => c.end);
-  const headers = ["#", "Start", ...(hasEnd ? ["End"] : []), ...(hasSpeaker ? ["Speaker"] : []), "Text"];
+  const headers = [
+    "#",
+    "Start",
+    ...(hasEnd ? ["End"] : []),
+    ...(hasSpeaker ? ["Speaker"] : []),
+    "Text",
+  ];
   const rows = rich.cues.map((c) => [
     String(c.index),
     c.start,
@@ -1428,7 +1996,9 @@ function renderSubtitlesQuickLook(entry, preview, rich) {
     ...(hasSpeaker ? [c.speaker || ""] : []),
     c.text,
   ]);
-  const grid = buildInteractiveGrid(headers, rows, { filterPlaceholder: "Search captions or lyrics…" });
+  const grid = buildInteractiveGrid(headers, rows, {
+    filterPlaceholder: "Search captions or lyrics…",
+  });
   const switcher = buildModeSwitcher(
     [
       { id: "cues", label: `Timed cues (${rich.totalCues})` },
@@ -1443,16 +2013,36 @@ function renderSubtitlesQuickLook(entry, preview, rich) {
   return h(
     "div",
     { class: "ql-textwrap ql-fmt-wrap" },
-    h("div", { class: "ql-fmt-head" }, h("span", { class: "ql-fmt-badge" }, rich.formatLabel), metaChips(rich.meta), h("span", { class: "code-grow" }), switcher),
+    h(
+      "div",
+      { class: "ql-fmt-head" },
+      h("span", { class: "ql-fmt-badge" }, rich.formatLabel),
+      metaChips(rich.meta),
+      h("span", { class: "code-grow" }),
+      switcher,
+    ),
     grid,
     plainPre,
   );
 }
 
 function renderPlaylistQuickLook(entry, preview, rich) {
-  const plainPre = h("pre", { class: "ql-text", tabindex: "0", hidden: true }, preview.text || "");
-  const rows = rich.tracks.map((t) => [String(t.index), t.title, t.duration || "—", t.path]);
-  const grid = buildInteractiveGrid(["#", "Title", "Duration", "Path / Stream"], rows, { filterPlaceholder: "Filter tracks…" });
+  const plainPre = h(
+    "pre",
+    { class: "ql-text", tabindex: "0", hidden: true },
+    preview.text || "",
+  );
+  const rows = rich.tracks.map((t) => [
+    String(t.index),
+    t.title,
+    t.duration || "—",
+    t.path,
+  ]);
+  const grid = buildInteractiveGrid(
+    ["#", "Title", "Duration", "Path / Stream"],
+    rows,
+    { filterPlaceholder: "Filter tracks…" },
+  );
   const switcher = buildModeSwitcher(
     [
       { id: "tracks", label: `Tracks (${rich.tracks.length})` },
@@ -1467,14 +2057,25 @@ function renderPlaylistQuickLook(entry, preview, rich) {
   return h(
     "div",
     { class: "ql-textwrap ql-fmt-wrap" },
-    h("div", { class: "ql-fmt-head" }, h("span", { class: "ql-fmt-badge" }, rich.formatLabel), metaChips(rich.meta), h("span", { class: "code-grow" }), switcher),
+    h(
+      "div",
+      { class: "ql-fmt-head" },
+      h("span", { class: "ql-fmt-badge" }, rich.formatLabel),
+      metaChips(rich.meta),
+      h("span", { class: "code-grow" }),
+      switcher,
+    ),
     grid,
     plainPre,
   );
 }
 
 function renderCalendarQuickLook(entry, preview, rich) {
-  const plainPre = h("pre", { class: "ql-text", tabindex: "0", hidden: true }, preview.text || "");
+  const plainPre = h(
+    "pre",
+    { class: "ql-text", tabindex: "0", hidden: true },
+    preview.text || "",
+  );
   const cards = h(
     "div",
     { class: "ql-fmt-cards" },
@@ -1490,11 +2091,19 @@ function renderCalendarQuickLook(entry, preview, rich) {
               h("dt", {}, "Starts"),
               h("dd", {}, ev.start || "—"),
               ...(ev.end ? [h("dt", {}, "Ends"), h("dd", {}, ev.end)] : []),
-              ...(ev.location ? [h("dt", {}, "Location"), h("dd", {}, ev.location)] : []),
-              ...(ev.organizer ? [h("dt", {}, "Organizer"), h("dd", {}, ev.organizer)] : []),
-              ...(ev.status ? [h("dt", {}, "Status"), h("dd", {}, ev.status)] : []),
+              ...(ev.location
+                ? [h("dt", {}, "Location"), h("dd", {}, ev.location)]
+                : []),
+              ...(ev.organizer
+                ? [h("dt", {}, "Organizer"), h("dd", {}, ev.organizer)]
+                : []),
+              ...(ev.status
+                ? [h("dt", {}, "Status"), h("dd", {}, ev.status)]
+                : []),
             ),
-            ev.description ? h("p", { class: "ql-doc-p" }, ev.description) : null,
+            ev.description
+              ? h("p", { class: "ql-doc-p" }, ev.description)
+              : null,
           ),
         )
       : [h("p", { class: "ql-note" }, "No calendar events found.")]),
@@ -1513,14 +2122,25 @@ function renderCalendarQuickLook(entry, preview, rich) {
   return h(
     "div",
     { class: "ql-textwrap ql-fmt-wrap" },
-    h("div", { class: "ql-fmt-head" }, h("span", { class: "ql-fmt-badge" }, rich.formatLabel), metaChips(rich.meta), h("span", { class: "code-grow" }), switcher),
+    h(
+      "div",
+      { class: "ql-fmt-head" },
+      h("span", { class: "ql-fmt-badge" }, rich.formatLabel),
+      metaChips(rich.meta),
+      h("span", { class: "code-grow" }),
+      switcher,
+    ),
     cards,
     plainPre,
   );
 }
 
 function renderContactQuickLook(entry, preview, rich) {
-  const plainPre = h("pre", { class: "ql-text", tabindex: "0", hidden: true }, preview.text || "");
+  const plainPre = h(
+    "pre",
+    { class: "ql-text", tabindex: "0", hidden: true },
+    preview.text || "",
+  );
   const cards = h(
     "div",
     { class: "ql-fmt-cards" },
@@ -1530,13 +2150,25 @@ function renderContactQuickLook(entry, preview, rich) {
             "article",
             { class: "ql-fmt-card" },
             h("h3", {}, `👤 ${c.fullName}`),
-            c.title || c.org ? h("p", { class: "ql-doc-author" }, [c.title, c.org].filter(Boolean).join(" · ")) : null,
+            c.title || c.org
+              ? h(
+                  "p",
+                  { class: "ql-doc-author" },
+                  [c.title, c.org].filter(Boolean).join(" · "),
+                )
+              : null,
             h(
               "dl",
               { class: "ql-facts" },
-              ...(c.phones.length ? [h("dt", {}, "Phone"), h("dd", {}, c.phones.join(", "))] : []),
-              ...(c.emails.length ? [h("dt", {}, "Email"), h("dd", {}, c.emails.join(", "))] : []),
-              ...(c.addresses.length ? [h("dt", {}, "Address"), h("dd", {}, c.addresses.join(" | "))] : []),
+              ...(c.phones.length
+                ? [h("dt", {}, "Phone"), h("dd", {}, c.phones.join(", "))]
+                : []),
+              ...(c.emails.length
+                ? [h("dt", {}, "Email"), h("dd", {}, c.emails.join(", "))]
+                : []),
+              ...(c.addresses.length
+                ? [h("dt", {}, "Address"), h("dd", {}, c.addresses.join(" | "))]
+                : []),
               ...(c.url ? [h("dt", {}, "Website"), h("dd", {}, c.url)] : []),
               ...(c.note ? [h("dt", {}, "Note"), h("dd", {}, c.note)] : []),
             ),
@@ -1558,7 +2190,14 @@ function renderContactQuickLook(entry, preview, rich) {
   return h(
     "div",
     { class: "ql-textwrap ql-fmt-wrap" },
-    h("div", { class: "ql-fmt-head" }, h("span", { class: "ql-fmt-badge" }, rich.formatLabel), metaChips(rich.meta), h("span", { class: "code-grow" }), switcher),
+    h(
+      "div",
+      { class: "ql-fmt-head" },
+      h("span", { class: "ql-fmt-badge" }, rich.formatLabel),
+      metaChips(rich.meta),
+      h("span", { class: "code-grow" }),
+      switcher,
+    ),
     cards,
     plainPre,
   );
@@ -1566,7 +2205,13 @@ function renderContactQuickLook(entry, preview, rich) {
 
 function renderCertificateQuickLook(entry, preview, rich) {
   const isText = preview.type === "text";
-  const plainPre = isText ? h("pre", { class: "ql-text", tabindex: "0", hidden: true }, preview.text || "") : null;
+  const plainPre = isText
+    ? h(
+        "pre",
+        { class: "ql-text", tabindex: "0", hidden: true },
+        preview.text || "",
+      )
+    : null;
   const cards = h(
     "div",
     { class: "ql-fmt-cards" },
@@ -1604,8 +2249,19 @@ function renderCertificateQuickLook(entry, preview, rich) {
     : null;
   return h(
     "div",
-    { class: isText ? "ql-textwrap ql-fmt-wrap" : "ql-card ql-card-wide ql-fmt-wrap" },
-    h("div", { class: "ql-fmt-head" }, h("span", { class: "ql-fmt-badge" }, rich.formatLabel), metaChips(rich.meta), h("span", { class: "code-grow" }), switcher),
+    {
+      class: isText
+        ? "ql-textwrap ql-fmt-wrap"
+        : "ql-card ql-card-wide ql-fmt-wrap",
+    },
+    h(
+      "div",
+      { class: "ql-fmt-head" },
+      h("span", { class: "ql-fmt-badge" }, rich.formatLabel),
+      metaChips(rich.meta),
+      h("span", { class: "code-grow" }),
+      switcher,
+    ),
     cards,
     plainPre,
   );
@@ -1613,7 +2269,13 @@ function renderCertificateQuickLook(entry, preview, rich) {
 
 function renderModel3dQuickLook(entry, preview, rich) {
   const isText = preview.type === "text";
-  const plainPre = isText ? h("pre", { class: "ql-text", tabindex: "0", hidden: true }, preview.text || "") : null;
+  const plainPre = isText
+    ? h(
+        "pre",
+        { class: "ql-text", tabindex: "0", hidden: true },
+        preview.text || "",
+      )
+    : null;
   let yaw = 35;
   let pitch = 20;
   const svgHost = h("div", { class: "ql-3d-stage" });
@@ -1622,13 +2284,17 @@ function renderModel3dQuickLook(entry, preview, rich) {
     const verts = rich.vertices || [];
     const edges = rich.edges || [];
     if (!verts.length) {
-      svgHost.replaceChildren(h("p", { class: "ql-note" }, "3D scene metadata loaded above."));
+      svgHost.replaceChildren(
+        h("p", { class: "ql-note" }, "3D scene metadata loaded above."),
+      );
       return;
     }
     const radY = (yaw * Math.PI) / 180;
     const radP = (pitch * Math.PI) / 180;
-    const cosY = Math.cos(radY), sinY = Math.sin(radY);
-    const cosP = Math.cos(radP), sinP = Math.sin(radP);
+    const cosY = Math.cos(radY),
+      sinY = Math.sin(radY);
+    const cosP = Math.cos(radP),
+      sinP = Math.sin(radP);
     const project = ([x, y, z]) => {
       const rx = x * cosY + z * sinY;
       const rz = -x * sinY + z * cosY;
@@ -1645,7 +2311,8 @@ function renderModel3dQuickLook(entry, preview, rich) {
     if (edges.length) {
       const d = edges
         .map(([a, b]) => {
-          const pa = projected[a], pb = projected[b];
+          const pa = projected[a],
+            pb = projected[b];
           if (!pa || !pb) return "";
           return `M${pa[0].toFixed(1)},${pa[1].toFixed(1)}L${pb[0].toFixed(1)},${pb[1].toFixed(1)}`;
         })
@@ -1698,7 +2365,12 @@ function renderModel3dQuickLook(entry, preview, rich) {
     "div",
     { class: "ql-3d-wrap" },
     rich.vertices?.length
-      ? h("div", { class: "ql-fmt-bar" }, h("label", {}, "Rotate Y ", yawInput), h("label", {}, "Tilt X ", pitchInput))
+      ? h(
+          "div",
+          { class: "ql-fmt-bar" },
+          h("label", {}, "Rotate Y ", yawInput),
+          h("label", {}, "Tilt X ", pitchInput),
+        )
       : null,
     svgHost,
   );
@@ -1718,15 +2390,30 @@ function renderModel3dQuickLook(entry, preview, rich) {
 
   return h(
     "div",
-    { class: isText ? "ql-textwrap ql-fmt-wrap" : "ql-card ql-card-wide ql-fmt-wrap" },
-    h("div", { class: "ql-fmt-head" }, h("span", { class: "ql-fmt-badge" }, rich.formatLabel), metaChips(rich.meta), h("span", { class: "code-grow" }), switcher),
+    {
+      class: isText
+        ? "ql-textwrap ql-fmt-wrap"
+        : "ql-card ql-card-wide ql-fmt-wrap",
+    },
+    h(
+      "div",
+      { class: "ql-fmt-head" },
+      h("span", { class: "ql-fmt-badge" }, rich.formatLabel),
+      metaChips(rich.meta),
+      h("span", { class: "code-grow" }),
+      switcher,
+    ),
     viewWrap,
     plainPre,
   );
 }
 
 function renderDiffQuickLook(entry, preview, rich) {
-  const plainPre = h("pre", { class: "ql-text", tabindex: "0", hidden: true }, preview.text || "");
+  const plainPre = h(
+    "pre",
+    { class: "ql-text", tabindex: "0", hidden: true },
+    preview.text || "",
+  );
   const diffHost = h(
     "div",
     { class: "ql-diff-files" },
@@ -1749,7 +2436,9 @@ function renderDiffQuickLook(entry, preview, rich) {
             ...hk.lines.map((l) =>
               h(
                 "div",
-                { class: `code-pv-line ${l.type === "+" ? "code-t-inserted" : l.type === "-" ? "code-t-deleted" : ""}` },
+                {
+                  class: `code-pv-line ${l.type === "+" ? "code-t-inserted" : l.type === "-" ? "code-t-deleted" : ""}`,
+                },
                 `${l.type}${l.text}`,
               ),
             ),
@@ -1772,16 +2461,32 @@ function renderDiffQuickLook(entry, preview, rich) {
   return h(
     "div",
     { class: "ql-textwrap ql-fmt-wrap" },
-    h("div", { class: "ql-fmt-head" }, h("span", { class: "ql-fmt-badge" }, rich.formatLabel), metaChips(rich.meta), h("span", { class: "code-grow" }), switcher),
+    h(
+      "div",
+      { class: "ql-fmt-head" },
+      h("span", { class: "ql-fmt-badge" }, rich.formatLabel),
+      metaChips(rich.meta),
+      h("span", { class: "code-grow" }),
+      switcher,
+    ),
     diffHost,
     plainPre,
   );
 }
 
 function renderLogQuickLook(entry, preview, rich) {
-  const plainPre = h("pre", { class: "ql-text", tabindex: "0", hidden: true }, preview.text || "");
+  const plainPre = h(
+    "pre",
+    { class: "ql-text", tabindex: "0", hidden: true },
+    preview.text || "",
+  );
   let levelFilter = "ALL";
-  const search = h("input", { type: "search", class: "ql-fmt-search", placeholder: "Filter log lines…", "aria-label": "Filter log lines" });
+  const search = h("input", {
+    type: "search",
+    class: "ql-fmt-search",
+    placeholder: "Filter log lines…",
+    "aria-label": "Filter log lines",
+  });
   const listHost = h("div", { class: "ql-log-list" });
 
   const drawLogs = () => {
@@ -1792,15 +2497,21 @@ function renderLogQuickLook(entry, preview, rich) {
       return true;
     });
     listHost.replaceChildren(
-      ...filtered.slice(0, 300).map((e) =>
-        h(
-          "div",
-          { class: `ql-log-line ql-log-${e.level.toLowerCase()}` },
-          h("span", { class: "code-pv-ln" }, String(e.line)),
-          h("span", { class: `ql-log-badge ql-log-badge-${e.level.toLowerCase()}` }, e.level),
-          h("span", { class: "ql-log-msg" }, e.text),
+      ...filtered
+        .slice(0, 300)
+        .map((e) =>
+          h(
+            "div",
+            { class: `ql-log-line ql-log-${e.level.toLowerCase()}` },
+            h("span", { class: "code-pv-ln" }, String(e.line)),
+            h(
+              "span",
+              { class: `ql-log-badge ql-log-badge-${e.level.toLowerCase()}` },
+              e.level,
+            ),
+            h("span", { class: "ql-log-msg" }, e.text),
+          ),
         ),
-      ),
     );
   };
   search.addEventListener("input", drawLogs);
@@ -1818,7 +2529,10 @@ function renderLogQuickLook(entry, preview, rich) {
         class: `code-btn code-small${lvl === "ALL" ? " active" : ""}`,
         onclick: (ev) => {
           levelFilter = lvl;
-          for (const b of ev.currentTarget.parentElement.querySelectorAll("button")) b.classList.toggle("active", b === ev.currentTarget);
+          for (const b of ev.currentTarget.parentElement.querySelectorAll(
+            "button",
+          ))
+            b.classList.toggle("active", b === ev.currentTarget);
           drawLogs();
         },
       },
@@ -1827,7 +2541,12 @@ function renderLogQuickLook(entry, preview, rich) {
   );
   drawLogs();
 
-  const logStage = h("div", { class: "ql-fmt-stage" }, h("div", { class: "ql-fmt-bar" }, search, ...levelBtns), listHost);
+  const logStage = h(
+    "div",
+    { class: "ql-fmt-stage" },
+    h("div", { class: "ql-fmt-bar" }, search, ...levelBtns),
+    listHost,
+  );
   const switcher = buildModeSwitcher(
     [
       { id: "log", label: "Log viewer" },
@@ -1842,7 +2561,14 @@ function renderLogQuickLook(entry, preview, rich) {
   return h(
     "div",
     { class: "ql-textwrap ql-fmt-wrap" },
-    h("div", { class: "ql-fmt-head" }, h("span", { class: "ql-fmt-badge" }, rich.formatLabel), metaChips(rich.meta), h("span", { class: "code-grow" }), switcher),
+    h(
+      "div",
+      { class: "ql-fmt-head" },
+      h("span", { class: "ql-fmt-badge" }, rich.formatLabel),
+      metaChips(rich.meta),
+      h("span", { class: "code-grow" }),
+      switcher,
+    ),
     logStage,
     plainPre,
   );
@@ -1858,13 +2584,24 @@ function renderBinaryQuickLook(entry, rich) {
 
   const hexPre = h(
     "pre",
-    { class: "ql-hex-dump", tabindex: "0", "aria-label": `Hex dump of ${entry.name}` },
+    {
+      class: "ql-hex-dump",
+      tabindex: "0",
+      "aria-label": `Hex dump of ${entry.name}`,
+    },
     rich.hexLines?.length ? rich.hexLines.join("\n") : "(Empty file)",
   );
   const stringsPre = h(
     "pre",
-    { class: "ql-hex-dump", tabindex: "0", "aria-label": `Extracted strings of ${entry.name}`, hidden: true },
-    rich.strings?.length ? rich.strings.join("\n") : "(No printable ASCII strings of 4+ characters in the first 64 KB.)",
+    {
+      class: "ql-hex-dump",
+      tabindex: "0",
+      "aria-label": `Extracted strings of ${entry.name}`,
+      hidden: true,
+    },
+    rich.strings?.length
+      ? rich.strings.join("\n")
+      : "(No printable ASCII strings of 4+ characters in the first 64 KB.)",
   );
   const switcher = buildModeSwitcher(
     [
@@ -1881,8 +2618,24 @@ function renderBinaryQuickLook(entry, rich) {
   return h(
     "div",
     { class: "ql-card ql-card-wide ql-fmt-wrap" },
-    h("div", { class: "ql-fmt-head" }, h("span", { class: "ql-bigicon", "aria-hidden": "true" }, entry.icon || iconFor(entry.name, false)), h("h3", {}, entry.name), h("span", { class: "ql-fmt-badge" }, rich.formatLabel), h("span", { class: "code-grow" }), switcher),
-    h("dl", { class: "ql-facts" }, ...facts.flatMap(([k, v]) => [h("dt", {}, k), h("dd", {}, String(v))])),
+    h(
+      "div",
+      { class: "ql-fmt-head" },
+      h(
+        "span",
+        { class: "ql-bigicon", "aria-hidden": "true" },
+        entry.icon || iconFor(entry.name, false),
+      ),
+      h("h3", {}, entry.name),
+      h("span", { class: "ql-fmt-badge" }, rich.formatLabel),
+      h("span", { class: "code-grow" }),
+      switcher,
+    ),
+    h(
+      "dl",
+      { class: "ql-facts" },
+      ...facts.flatMap(([k, v]) => [h("dt", {}, k), h("dd", {}, String(v))]),
+    ),
     hexPre,
     stringsPre,
   );
@@ -1988,7 +2741,12 @@ export function renderRichQuickLook(entry, preview, helpers = {}) {
         h(
           "div",
           { class: "ql-textwrap ql-fmt-wrap" },
-          h("div", { class: "ql-fmt-head" }, h("span", { class: "ql-fmt-badge" }, lang.name), metaChips(meta)),
+          h(
+            "div",
+            { class: "ql-fmt-head" },
+            h("span", { class: "ql-fmt-badge" }, lang.name),
+            metaChips(meta),
+          ),
           codePre,
         ),
         entry,
@@ -2007,31 +2765,65 @@ export function renderRichQuickLook(entry, preview, helpers = {}) {
 export function renderRichInfoSummary(entry, preview) {
   const rich = preview?.rich;
   if (!rich) return null;
-  const rows = (rich.meta || []).filter(([k, v]) => k && v && !/\b(?:null|undefined)\b/i.test(`${k} ${v}`)).slice(0, 6);
+  const rows = (rich.meta || [])
+    .filter(([k, v]) => k && v && !/\b(?:null|undefined)\b/i.test(`${k} ${v}`))
+    .slice(0, 6);
   let bodyNode = null;
 
   if (rich.kind === "spreadsheet" && rich.sheets?.length) {
     const s = rich.sheets[0];
-    rows.unshift(["Sheets", rich.sheets.map((x) => `${x.name} (${x.totalRows})`).join(", ")]);
+    rows.unshift([
+      "Sheets",
+      rich.sheets.map((x) => `${x.name} (${x.totalRows})`).join(", "),
+    ]);
     if (s.rows.length) {
-      const sample = s.rows.slice(0, 4).map((r) => r.slice(0, 4).join(" · ")).join("\n");
+      const sample = s.rows
+        .slice(0, 4)
+        .map((r) => r.slice(0, 4).join(" · "))
+        .join("\n");
       bodyNode = h("pre", { class: "info-rich-snippet" }, sample);
     }
   } else if (rich.kind === "document" && rich.plainText) {
-    bodyNode = h("pre", { class: "info-rich-snippet" }, rich.plainText.slice(0, 400));
+    bodyNode = h(
+      "pre",
+      { class: "info-rich-snippet" },
+      rich.plainText.slice(0, 400),
+    );
   } else if (rich.kind === "presentation" && rich.slides?.length) {
-    const text = rich.slides.slice(0, 5).map((s) => `${s.number}. ${s.title}`).join("\n");
+    const text = rich.slides
+      .slice(0, 5)
+      .map((s) => `${s.number}. ${s.title}`)
+      .join("\n");
     bodyNode = h("pre", { class: "info-rich-snippet" }, text);
   } else if (rich.kind === "pdf") {
     if (rich.pages) rows.unshift(["Pages", String(rich.pages)]);
-    if (rich.extractedText) bodyNode = h("pre", { class: "info-rich-snippet" }, rich.extractedText.slice(0, 400));
+    if (rich.extractedText)
+      bodyNode = h(
+        "pre",
+        { class: "info-rich-snippet" },
+        rich.extractedText.slice(0, 400),
+      );
   } else if (rich.kind === "sqlite" && rich.tables?.length) {
-    rows.unshift(["Tables", rich.tables.map((t) => `${t.name} (${t.rowCount})`).join(", ")]);
+    rows.unshift([
+      "Tables",
+      rich.tables.map((t) => `${t.name} (${t.rowCount})`).join(", "),
+    ]);
   } else if (rich.kind === "archive") {
     if (rich.innerText) {
-      bodyNode = h("pre", { class: "info-rich-snippet" }, rich.innerText.slice(0, 400));
+      bodyNode = h(
+        "pre",
+        { class: "info-rich-snippet" },
+        rich.innerText.slice(0, 400),
+      );
     } else if (rich.entries?.length) {
-      bodyNode = h("pre", { class: "info-rich-snippet" }, rich.entries.slice(0, 8).map((e) => e.name).join("\n"));
+      bodyNode = h(
+        "pre",
+        { class: "info-rich-snippet" },
+        rich.entries
+          .slice(0, 8)
+          .map((e) => e.name)
+          .join("\n"),
+      );
     }
   } else if (rich.kind === "font") {
     rows.unshift(["Font", `${rich.family} (${rich.style})`]);
@@ -2048,7 +2840,11 @@ export function renderRichInfoSummary(entry, preview) {
     { class: "info-rich-box" },
     h("div", { class: "info-rich-title" }, rich.formatLabel || entry.label),
     rows.length
-      ? h("dl", { class: "info-rich-facts" }, ...rows.flatMap(([k, v]) => [h("dt", {}, k), h("dd", {}, String(v))]))
+      ? h(
+          "dl",
+          { class: "info-rich-facts" },
+          ...rows.flatMap(([k, v]) => [h("dt", {}, k), h("dd", {}, String(v))]),
+        )
       : null,
     bodyNode,
   );

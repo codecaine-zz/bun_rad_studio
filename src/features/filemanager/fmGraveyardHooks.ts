@@ -44,4 +44,6 @@ export const defaultGraveyardHooks: GraveyardHooks = {
 };
 
 /** Merges any partial `graveyardHooks` overrides on `ctx` with `defaultGraveyardHooks`. */
-export const graveyardHooksOf = (ctx: { graveyardHooks?: Partial<GraveyardHooks> }): GraveyardHooks => ({ ...defaultGraveyardHooks, ...ctx.graveyardHooks });
+export const graveyardHooksOf = (ctx: {
+  graveyardHooks?: Partial<GraveyardHooks>;
+}): GraveyardHooks => ({ ...defaultGraveyardHooks, ...ctx.graveyardHooks });

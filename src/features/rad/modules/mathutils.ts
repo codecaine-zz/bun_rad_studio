@@ -36,7 +36,13 @@ export function inverseLerp(a: number, b: number, val: number): number {
 }
 
 /** Map `val` from `[inMin, inMax]` to `[outMin, outMax]`. @example `mathutils.remap(5, 0, 10, 0, 100); // 50` */
-export function remap(val: number, inMin: number, inMax: number, outMin: number, outMax: number): number {
+export function remap(
+  val: number,
+  inMin: number,
+  inMax: number,
+  outMin: number,
+  outMax: number,
+): number {
   if (inMax === inMin) return outMin;
   return outMin + (outMax - outMin) * ((val - inMin) / (inMax - inMin));
 }
@@ -91,12 +97,19 @@ export function angleBetween(p1: Point2D, p2: Point2D): number {
 }
 
 /** Rotate `p` around `origin` by `radians` (counter-clockwise). @example `mathutils.rotatePoint({ x: 1, y: 0 }, Math.PI / 2); // ≈ { x: 0, y: 1 }` */
-export function rotatePoint(p: Point2D, radians: number, origin: Point2D = { x: 0, y: 0 }): Point2D {
+export function rotatePoint(
+  p: Point2D,
+  radians: number,
+  origin: Point2D = { x: 0, y: 0 },
+): Point2D {
   const cos = Math.cos(radians);
   const sin = Math.sin(radians);
   const dx = p.x - origin.x;
   const dy = p.y - origin.y;
-  return { x: origin.x + dx * cos - dy * sin, y: origin.y + dx * sin + dy * cos };
+  return {
+    x: origin.x + dx * cos - dy * sin,
+    y: origin.y + dx * sin + dy * cos,
+  };
 }
 
 /** Degrees → radians. @example `mathutils.degToRad(180); // Math.PI` */
@@ -111,7 +124,12 @@ export function radToDeg(rad: number): number {
 
 /** Overlap test for axis-aligned rectangles (touching edges do not count). @example `mathutils.rectIntersects(a, b);` */
 export function rectIntersects(r1: Rect, r2: Rect): boolean {
-  return r1.x < r2.x + r2.width && r1.x + r1.width > r2.x && r1.y < r2.y + r2.height && r1.y + r1.height > r2.y;
+  return (
+    r1.x < r2.x + r2.width &&
+    r1.x + r1.width > r2.x &&
+    r1.y < r2.y + r2.height &&
+    r1.y + r1.height > r2.y
+  );
 }
 
 /** Overlapping region, or `null`. @example `mathutils.rectIntersection({ x: 0, y: 0, width: 10, height: 10 }, { x: 5, y: 5, width: 10, height: 10 }); // { x: 5, y: 5, width: 5, height: 5 }` */
@@ -119,19 +137,31 @@ export function rectIntersection(r1: Rect, r2: Rect): Rect | null {
   if (!rectIntersects(r1, r2)) return null;
   const x = Math.max(r1.x, r2.x);
   const y = Math.max(r1.y, r2.y);
-  return { x, y, width: Math.min(r1.x + r1.width, r2.x + r2.width) - x, height: Math.min(r1.y + r1.height, r2.y + r2.height) - y };
+  return {
+    x,
+    y,
+    width: Math.min(r1.x + r1.width, r2.x + r2.width) - x,
+    height: Math.min(r1.y + r1.height, r2.y + r2.height) - y,
+  };
 }
 
 /** Smallest rectangle containing both. @example `mathutils.rectUnion(a, b);` */
 export function rectUnion(r1: Rect, r2: Rect): Rect {
   const x = Math.min(r1.x, r2.x);
   const y = Math.min(r1.y, r2.y);
-  return { x, y, width: Math.max(r1.x + r1.width, r2.x + r2.width) - x, height: Math.max(r1.y + r1.height, r2.y + r2.height) - y };
+  return {
+    x,
+    y,
+    width: Math.max(r1.x + r1.width, r2.x + r2.width) - x,
+    height: Math.max(r1.y + r1.height, r2.y + r2.height) - y,
+  };
 }
 
 /** `true` when `p` lies inside `r` (edges inclusive). @example `mathutils.rectContainsPoint({ x: 0, y: 0, width: 10, height: 10 }, { x: 10, y: 5 }); // true` */
 export function rectContainsPoint(r: Rect, p: Point2D): boolean {
-  return p.x >= r.x && p.x <= r.x + r.width && p.y >= r.y && p.y <= r.y + r.height;
+  return (
+    p.x >= r.x && p.x <= r.x + r.width && p.y >= r.y && p.y <= r.y + r.height
+  );
 }
 
 /** Area (negative sizes count as 0). @example `mathutils.rectArea({ x: 0, y: 0, width: 4, height: 5 }); // 20` */
@@ -168,7 +198,8 @@ export function isPrime(n: number): boolean {
   if (!Number.isInteger(n) || n < 2) return false;
   if (n < 4) return true;
   if (n % 2 === 0 || n % 3 === 0) return false;
-  for (let i = 5; i * i <= n; i += 6) if (n % i === 0 || n % (i + 2) === 0) return false;
+  for (let i = 5; i * i <= n; i += 6)
+    if (n % i === 0 || n % (i + 2) === 0) return false;
   return true;
 }
 
@@ -188,7 +219,10 @@ export function primeFactors(n: number): number[] {
 
 /** Exact factorial as bigint. @throws For negative/non-integer input. @example `mathutils.factorial(20); // 2432902008176640000n` */
 export function factorial(n: number): bigint {
-  if (!Number.isInteger(n) || n < 0) throw new Error(`[mathutils.factorial] n must be a non-negative integer (got ${n})`);
+  if (!Number.isInteger(n) || n < 0)
+    throw new Error(
+      `[mathutils.factorial] n must be a non-negative integer (got ${n})`,
+    );
   let r = 1n;
   for (let i = 2n; i <= BigInt(n); i++) r *= i;
   return r;
@@ -253,7 +287,8 @@ export function randomFloat(min: number, max: number): number {
 export function secureRandomInt(min: number, max: number): number {
   const low = Math.ceil(Math.min(min, max));
   const span = Math.floor(Math.max(min, max)) - low + 1;
-  if (span > 2 ** 32) throw new Error(`[mathutils.secureRandomInt] range too large (${span})`);
+  if (span > 2 ** 32)
+    throw new Error(`[mathutils.secureRandomInt] range too large (${span})`);
   const limit = 2 ** 32 - (2 ** 32 % span);
   const buf = new Uint32Array(1);
   do crypto.getRandomValues(buf);

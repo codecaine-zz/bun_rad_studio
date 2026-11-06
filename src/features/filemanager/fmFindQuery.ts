@@ -5,28 +5,54 @@
 import { randomBytes } from "crypto";
 import { promises as fsp } from "fs";
 import * as nodePath from "path";
-import { parseDurationMs, parseSizeFilter, type FdFileType, type FdSearchOptions } from "../../../applications/fd_engine";
+import {
+  parseDurationMs,
+  parseSizeFilter,
+  type FdFileType,
+  type FdSearchOptions,
+} from "../../../applications/fd_engine";
 import { filterResults, parseMaxResults, sortResults } from "../../fd_helpers";
 import { absolutePath, assertFolder, pathApi, type FmContext } from "./fmCore";
 import { FmError, type Platform } from "./fmPaths";
-import { DEFAULT_MAX_RESULTS, MAX_CACHED_RESULTS, MAX_PATHS, MAX_RESULTS_CAP, type FindItem } from "./fmFindShared";
+import {
+  DEFAULT_MAX_RESULTS,
+  MAX_CACHED_RESULTS,
+  MAX_PATHS,
+  MAX_RESULTS_CAP,
+  type FindItem,
+} from "./fmFindShared";
 import { findState, type StoredResults } from "./fmFindRun";
 
 // ---------------------------------------------------------------------------------------------------------------
 // The search form
 // ---------------------------------------------------------------------------------------------------------------
 
-const TYPES = new Set<FdFileType>(["file", "directory", "executable", "symlink", "empty"]);
+const TYPES = new Set<FdFileType>([
+  "file",
+  "directory",
+  "executable",
+  "symlink",
+  "empty",
+]);
 
 function words(value: unknown, maxItems: number, maxLength: number): string[] {
-  const list = Array.isArray(value) ? value : typeof value === "string" ? value.split(/[,;\s]+/) : [];
-  return list.filter((w): w is string => typeof w === "string").map((w) => w.trim().slice(0, maxLength)).filter(Boolean).slice(0, maxItems);
+  const list = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split(/[,;\s]+/)
+      : [];
+  return list
+    .filter((w): w is string => typeof w === "string")
+    .map((w) => w.trim().slice(0, maxLength))
+    .filter(Boolean)
+    .slice(0, maxItems);
 }
 
 function depth(value: unknown, what: string): number | undefined {
   if (value === undefined || value === null || value === "") return undefined;
   const n = Math.floor(Number(value));
-  if (!Number.isFinite(n)) throw new FmError("BAD_DEPTH", `${what} must be a whole number, like 2.`);
+  if (!Number.isFinite(n))
+    throw new FmError("BAD_DEPTH", `${what} must be a whole number, like 2.`);
   return Math.max(0, Math.min(64, n));
 }
 
@@ -37,21 +63,37 @@ export interface ParsedSearch {
 }
 
 /** Turns the page's form values into engine options. Anything odd is clamped or explained in plain words. */
-export async function parseSearch(ctx: FmContext, b: Record<string, any>): Promise<ParsedSearch> {
+export async function parseSearch(
+  ctx: FmContext,
+  b: Record<string, any>,
+): Promise<ParsedSearch> {
   const root = absolutePath(ctx, b.root);
   await assertFolder(root, "The folder to search");
   const pattern = typeof b.pattern === "string" ? b.pattern.slice(0, 500) : "";
   const searchMode = b.mode === "glob" || b.mode === "fixed" ? b.mode : "regex";
-  const caseMode = b.caseMode === "sensitive" || b.caseMode === "ignore" ? b.caseMode : "smart";
+  const caseMode =
+    b.caseMode === "sensitive" || b.caseMode === "ignore"
+      ? b.caseMode
+      : "smart";
 
-  const typeList = words(b.types ?? (typeof b.type === "string" && b.type !== "all" ? [b.type] : []), 10, 20);
-  const types = typeList.filter((t): t is FdFileType => TYPES.has(t as FdFileType));
+  const typeList = words(
+    b.types ?? (typeof b.type === "string" && b.type !== "all" ? [b.type] : []),
+    10,
+    20,
+  );
+  const types = typeList.filter((t): t is FdFileType =>
+    TYPES.has(t as FdFileType),
+  );
 
   let minSizeBytes: number | undefined;
   let maxSizeBytes: number | undefined;
   if (typeof b.size === "string" && b.size.trim()) {
     const parsed = parseSizeFilter(b.size.slice(0, 30));
-    if (!parsed || !Number.isFinite(parsed.bytes)) throw new FmError("BAD_SIZE", 'I couldn\'t understand that size. Try "+1M" (bigger than 1 MB) or "-10k" (smaller than 10 KB).');
+    if (!parsed || !Number.isFinite(parsed.bytes))
+      throw new FmError(
+        "BAD_SIZE",
+        'I couldn\'t understand that size. Try "+1M" (bigger than 1 MB) or "-10k" (smaller than 10 KB).',
+      );
     if (parsed.mode === "greater") minSizeBytes = parsed.bytes;
     else if (parsed.mode === "less") maxSizeBytes = parsed.bytes;
     else {
@@ -61,15 +103,27 @@ export async function parseSearch(ctx: FmContext, b: Record<string, any>): Promi
   }
 
   let changedWithinMs: number | undefined;
-  if (typeof b.modified === "string" && b.modified.trim() && b.modified !== "any") {
+  if (
+    typeof b.modified === "string" &&
+    b.modified.trim() &&
+    b.modified !== "any"
+  ) {
     const ms = parseDurationMs(b.modified.slice(0, 20));
-    if (ms === null || !Number.isFinite(ms) || ms <= 0) throw new FmError("BAD_AGE", 'I couldn\'t understand that time. Try "24h" or "7d".');
+    if (ms === null || !Number.isFinite(ms) || ms <= 0)
+      throw new FmError(
+        "BAD_AGE",
+        'I couldn\'t understand that time. Try "24h" or "7d".',
+      );
     changedWithinMs = Math.min(ms, 3650 * 86_400_000);
   }
 
   const minDepth = depth(b.minDepth, "The smallest depth");
   let maxDepth = depth(b.maxDepth, "The largest depth");
-  if (minDepth !== undefined && maxDepth !== undefined && minDepth > maxDepth) throw new FmError("BAD_DEPTH", "The smallest depth can't be bigger than the largest depth.");
+  if (minDepth !== undefined && maxDepth !== undefined && minDepth > maxDepth)
+    throw new FmError(
+      "BAD_DEPTH",
+      "The smallest depth can't be bigger than the largest depth.",
+    );
   const followSymlinks = b.followSymlinks === true;
   // Links that point back up the tree would loop for a very long time, so following them always has a depth limit.
   if (followSymlinks && maxDepth === undefined) maxDepth = 20;
@@ -91,7 +145,11 @@ export async function parseSearch(ctx: FmContext, b: Record<string, any>): Promi
     minSizeBytes,
     maxSizeBytes,
     changedWithinMs,
-    maxResults: parseMaxResults(String(b.maxResults ?? ""), DEFAULT_MAX_RESULTS, MAX_RESULTS_CAP),
+    maxResults: parseMaxResults(
+      String(b.maxResults ?? ""),
+      DEFAULT_MAX_RESULTS,
+      MAX_RESULTS_CAP,
+    ),
   };
   return { root, options };
 }
@@ -101,7 +159,11 @@ export async function parseSearch(ctx: FmContext, b: Record<string, any>): Promi
 // ---------------------------------------------------------------------------------------------------------------
 
 /** Caches a search result list in the session state under a generated ID, evicting the oldest entry when full. */
-export function storeResults(ctx: FmContext, root: string, items: FindItem[]): string {
+export function storeResults(
+  ctx: FmContext,
+  root: string,
+  items: FindItem[],
+): string {
   const { results } = findState(ctx);
   const id = randomBytes(8).toString("hex");
   results.set(id, { id, root, items, at: Date.now() });
@@ -117,7 +179,11 @@ export function storeResults(ctx: FmContext, root: string, items: FindItem[]): s
 export function getResults(ctx: FmContext, id: unknown): StoredResults {
   const { results } = findState(ctx);
   const found = typeof id === "string" ? results.get(id) : undefined;
-  if (!found) throw new FmError("RESULT_GONE", "Those search results are too old to use. Search again.");
+  if (!found)
+    throw new FmError(
+      "RESULT_GONE",
+      "Those search results are too old to use. Search again.",
+    );
   // Using a result keeps it among the most recent.
   results.delete(found.id);
   results.set(found.id, found);
@@ -145,10 +211,17 @@ function typeOf(st: import("fs").Stats): FdFileType {
   return "file";
 }
 
-const perms = (mode: number) => [0o400, 0o200, 0o100, 0o040, 0o020, 0o010, 0o004, 0o002, 0o001].map((bit, i) => (mode & bit ? "rwx"[i % 3] : "-")).join("");
+const perms = (mode: number) =>
+  [0o400, 0o200, 0o100, 0o040, 0o020, 0o010, 0o004, 0o002, 0o001]
+    .map((bit, i) => (mode & bit ? "rwx"[i % 3] : "-"))
+    .join("");
 
 /** Describes one path like a search result does (for exports and bulk actions on a hand-picked list). */
-export async function statItem(ctx: FmContext, path: string, root: string | null): Promise<FindItem | null> {
+export async function statItem(
+  ctx: FmContext,
+  path: string,
+  root: string | null,
+): Promise<FindItem | null> {
   const p = pathApi(ctx);
   try {
     const st = await fsp.lstat(path);
@@ -157,7 +230,8 @@ export async function statItem(ctx: FmContext, path: string, root: string | null
     const extension = p.extname(name).replace(/^\./, "").toLowerCase();
     let empty = false;
     if (st.isFile()) empty = st.size === 0;
-    else if (st.isDirectory()) empty = (await fsp.readdir(path).catch(() => ["x"])).length === 0;
+    else if (st.isDirectory())
+      empty = (await fsp.readdir(path).catch(() => ["x"])).length === 0;
     return {
       path,
       relativePath: rel.split(p.sep).join("/"),
@@ -184,17 +258,34 @@ export async function statItem(ctx: FmContext, path: string, root: string | null
  * `filter` and `sort` applied the same way the page shows them. `expectedCount` lets the page say how many it
  * is showing, so nothing is done to a different list than the one on screen.
  */
-export async function resolveTargets(ctx: FmContext, b: Record<string, any>, options: { needItems?: boolean } = {}): Promise<Targets> {
+export async function resolveTargets(
+  ctx: FmContext,
+  b: Record<string, any>,
+  options: { needItems?: boolean } = {},
+): Promise<Targets> {
   let result: Targets;
   if (Array.isArray(b.paths)) {
-    if (b.paths.length === 0) throw new FmError("NOTHING_TO_DO", "Nothing is selected.");
-    if (b.paths.length > MAX_PATHS) throw new FmError("TOO_MANY", `That's too many items to pick one by one (the limit is ${MAX_PATHS}). Use the whole result list instead.`);
-    const paths = [...new Set(b.paths.map((x: unknown) => absolutePath(ctx, x)))] as string[];
-    const root = typeof b.resultId === "string" ? (findState(ctx).results.get(b.resultId)?.root ?? null) : null;
+    if (b.paths.length === 0)
+      throw new FmError("NOTHING_TO_DO", "Nothing is selected.");
+    if (b.paths.length > MAX_PATHS)
+      throw new FmError(
+        "TOO_MANY",
+        `That's too many items to pick one by one (the limit is ${MAX_PATHS}). Use the whole result list instead.`,
+      );
+    const paths = [
+      ...new Set(b.paths.map((x: unknown) => absolutePath(ctx, x))),
+    ] as string[];
+    const root =
+      typeof b.resultId === "string"
+        ? (findState(ctx).results.get(b.resultId)?.root ?? null)
+        : null;
     const items: FindItem[] = [];
     if (options.needItems) {
       for (let i = 0; i < paths.length; i += 64) {
-        for (const it of await Promise.all(paths.slice(i, i + 64).map((x) => statItem(ctx, x, root)))) if (it) items.push(it);
+        for (const it of await Promise.all(
+          paths.slice(i, i + 64).map((x) => statItem(ctx, x, root)),
+        ))
+          if (it) items.push(it);
       }
     }
     result = { paths, items, root };
@@ -207,9 +298,19 @@ export async function resolveTargets(ctx: FmContext, b: Record<string, any>, opt
   } else {
     throw new FmError("BAD_REQUEST", "Nothing is selected.");
   }
-  if (result.paths.length === 0) throw new FmError("NOTHING_TO_DO", "There are no matching items to work on.");
-  if (b.expectedCount !== undefined && Number(b.expectedCount) !== result.paths.length) {
-    throw new FmError("STALE_LIST", "The list changed since you looked at it, so nothing was done. Search again and retry.");
+  if (result.paths.length === 0)
+    throw new FmError(
+      "NOTHING_TO_DO",
+      "There are no matching items to work on.",
+    );
+  if (
+    b.expectedCount !== undefined &&
+    Number(b.expectedCount) !== result.paths.length
+  ) {
+    throw new FmError(
+      "STALE_LIST",
+      "The list changed since you looked at it, so nothing was done. Search again and retry.",
+    );
   }
   return result;
 }
@@ -237,7 +338,14 @@ export function commonFolder(paths: string[], platform: Platform): string {
   let common = parts[0] ?? [];
   for (const other of parts.slice(1)) {
     let n = 0;
-    while (n < common.length && n < other.length && (platform === "linux" ? common[n] === other[n] : common[n]!.toLowerCase() === other[n]!.toLowerCase())) n++;
+    while (
+      n < common.length &&
+      n < other.length &&
+      (platform === "linux"
+        ? common[n] === other[n]
+        : common[n]!.toLowerCase() === other[n]!.toLowerCase())
+    )
+      n++;
     common = common.slice(0, n);
   }
   const joined = common.join(p.sep);

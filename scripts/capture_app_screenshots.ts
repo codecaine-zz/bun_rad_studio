@@ -60,58 +60,59 @@ saveTheme("midnight");
 
 // Map of all production applications & showcases
 const apps: Record<string, () => { generateHtml: () => string }> = {
-  "api_studio": createApiStudio,
-  "app_bundler_studio": createAppBundlerStudio,
-  "brew_studio": createBrewStudio,
-  "calculator_studio": createCalculatorStudio,
-  "color_studio": createColorStudio,
-  "crypto_studio": createCryptoStudio,
-  "database_studio": () => createDatabaseStudio(":memory:"),
-  "dataconvert_studio": createDataConvertStudio,
-  "devtools_studio": createDevToolsStudio,
-  "doggo_studio": createDoggoStudio,
-  "env_studio": createEnvStudio,
-  "fd_studio": createFdStudio,
-  "gdu_studio": createGduStudio,
-  "git_studio": createGitStudio,
-  "ipinfo_studio": createIpInfoStudio,
-  "jq_studio": createJqStudio,
-  "json_studio": createJsonStudio,
-  "launcher_studio": createLauncherStudio,
-  "markdown_studio": createMarkdownStudio,
-  "network_studio": createNetworkStudio,
-  "omnitool_studio": createOmnitoolStudio,
-  "process_studio": createProcessStudio,
-  "procs_studio": createProcsStudio,
-  "redis_studio": createRedisStudio,
-  "regex_studio": createRegexStudio,
-  "rip_studio": createRipStudio,
-  "sd_studio": createSdStudio,
-  "sqlite_studio": createSqliteStudio,
-  "mysql_studio": () => createMysqlStudio(),
-  "subfinder_studio": createSubfinderStudio,
-  "system_studio": createSystemInformationStudio,
-  "task_manager": createTaskTracker,
-  "tokei_studio": createTokeiStudio,
-  "watcher_studio": createWatcherStudio,
-  "watchexec_studio": createWatchexecStudio,
-  "codefreelance_theme": createCodeFreelanceShowcase,
-  "context_menu_studio": createContextMenuAndMenuDemo,
-  "dr_codecaine": createDrCodecaineStudio,
-  "codecaine_bros": createCodecaineBrosStudio,
-  "connect4": createConnect4Studio,
-  "maze_generator": createMazeStudio,
-  "pong": createPongStudio,
-  "tictactoe": createTicTacToeStudio,
-  "interval_timer": createIntervalTimerStudio,
-  "lolo": createLoloStudio,
-  "pacman": createPacmanStudio,
-  "rodents_revenge": createRodentsRevengeStudio,
-  "word_search": createWordSearchStudio,
-  "world_time_zones": createWorldTimeZonesStudio,
+  api_studio: createApiStudio,
+  app_bundler_studio: createAppBundlerStudio,
+  brew_studio: createBrewStudio,
+  calculator_studio: createCalculatorStudio,
+  color_studio: createColorStudio,
+  crypto_studio: createCryptoStudio,
+  database_studio: () => createDatabaseStudio(":memory:"),
+  dataconvert_studio: createDataConvertStudio,
+  devtools_studio: createDevToolsStudio,
+  doggo_studio: createDoggoStudio,
+  env_studio: createEnvStudio,
+  fd_studio: createFdStudio,
+  gdu_studio: createGduStudio,
+  git_studio: createGitStudio,
+  ipinfo_studio: createIpInfoStudio,
+  jq_studio: createJqStudio,
+  json_studio: createJsonStudio,
+  launcher_studio: createLauncherStudio,
+  markdown_studio: createMarkdownStudio,
+  network_studio: createNetworkStudio,
+  omnitool_studio: createOmnitoolStudio,
+  process_studio: createProcessStudio,
+  procs_studio: createProcsStudio,
+  redis_studio: createRedisStudio,
+  regex_studio: createRegexStudio,
+  rip_studio: createRipStudio,
+  sd_studio: createSdStudio,
+  sqlite_studio: createSqliteStudio,
+  mysql_studio: () => createMysqlStudio(),
+  subfinder_studio: createSubfinderStudio,
+  system_studio: createSystemInformationStudio,
+  task_manager: createTaskTracker,
+  tokei_studio: createTokeiStudio,
+  watcher_studio: createWatcherStudio,
+  watchexec_studio: createWatchexecStudio,
+  codefreelance_theme: createCodeFreelanceShowcase,
+  context_menu_studio: createContextMenuAndMenuDemo,
+  dr_codecaine: createDrCodecaineStudio,
+  codecaine_bros: createCodecaineBrosStudio,
+  connect4: createConnect4Studio,
+  maze_generator: createMazeStudio,
+  pong: createPongStudio,
+  tictactoe: createTicTacToeStudio,
+  interval_timer: createIntervalTimerStudio,
+  lolo: createLoloStudio,
+  pacman: createPacmanStudio,
+  rodents_revenge: createRodentsRevengeStudio,
+  word_search: createWordSearchStudio,
+  world_time_zones: createWorldTimeZonesStudio,
 };
 
-const CHROME_BIN = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const CHROME_BIN =
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const OUTPUT_DIR = join(process.cwd(), "screenshots", "apps");
 const ROOT_DIR = process.cwd();
 const TEMP_HTML_DIR = join(process.cwd(), ".temp_screens");
@@ -119,18 +120,32 @@ const TEMP_HTML_DIR = join(process.cwd(), ".temp_screens");
 mkdirSync(OUTPUT_DIR, { recursive: true });
 mkdirSync(TEMP_HTML_DIR, { recursive: true });
 
-console.log(`========================================================================`);
+console.log(
+  `========================================================================`,
+);
 console.log(`📸 Bun RAD Studio - Automated Production Screenshot Pipeline`);
-console.log(`========================================================================`);
+console.log(
+  `========================================================================`,
+);
 console.log(`Chrome Binary: ${CHROME_BIN}`);
 console.log(`Destination:   ${OUTPUT_DIR}`);
 console.log(`Total Apps:    ${Object.keys(apps).length}\n`);
 
-const results: { name: string; desktopPath: string; responsivePath: string; size: string }[] = [];
-const filterArgs = process.argv.slice(2).filter(a => !a.startsWith("-"));
-const targetEntries = filterArgs.length > 0
-  ? Object.entries(apps).filter(([k]) => filterArgs.includes(k) || filterArgs.includes(k.replace("_studio", "")))
-  : Object.entries(apps);
+const results: {
+  name: string;
+  desktopPath: string;
+  responsivePath: string;
+  size: string;
+}[] = [];
+const filterArgs = process.argv.slice(2).filter((a) => !a.startsWith("-"));
+const targetEntries =
+  filterArgs.length > 0
+    ? Object.entries(apps).filter(
+        ([k]) =>
+          filterArgs.includes(k) ||
+          filterArgs.includes(k.replace("_studio", "")),
+      )
+    : Object.entries(apps);
 
 // 1. Capture screenshots for each application
 for (const [name, factory] of targetEntries) {
@@ -139,7 +154,16 @@ for (const [name, factory] of targetEntries) {
   const html = appInstance.generateHtml();
   const winW = (appInstance as any).width || 1200;
   // Apps with tall content can opt into a taller capture without changing their real window size.
-  const TALL_CAPTURE: Record<string, number> = { crypto_studio: 1700, ipinfo_studio: 1500, network_studio: 1400, api_studio: 1750, regex_studio: 1250, task_manager: 1500, process_studio: 1500, launcher_studio: 1500 };
+  const TALL_CAPTURE: Record<string, number> = {
+    crypto_studio: 1700,
+    ipinfo_studio: 1500,
+    network_studio: 1400,
+    api_studio: 1750,
+    regex_studio: 1250,
+    task_manager: 1500,
+    process_studio: 1500,
+    launcher_studio: 1500,
+  };
   const winH = TALL_CAPTURE[name] || (appInstance as any).height || 850;
 
   const tempHtmlPath = join(TEMP_HTML_DIR, `${name}.html`);
@@ -157,43 +181,71 @@ for (const [name, factory] of targetEntries) {
   Sys.exec(cmdResponsive);
 
   const exists = existsSync(desktopOut);
-  const size = exists ? (Bun.file(desktopOut).size / 1024).toFixed(1) + " KB" : "0 KB";
+  const size = exists
+    ? (Bun.file(desktopOut).size / 1024).toFixed(1) + " KB"
+    : "0 KB";
 
   console.log(`  ✔ Desktop:    ${desktopOut} (${size})`);
   console.log(`  ✔ Responsive: ${responsiveOut}\n`);
 
-  results.push({ name, desktopPath: desktopOut, responsivePath: responsiveOut, size });
+  results.push({
+    name,
+    desktopPath: desktopOut,
+    responsivePath: responsiveOut,
+    size,
+  });
 }
 
 // 2. Capture root showcases & README screenshots
 if (filterArgs.length === 0) {
   console.log(`[Processing Root Showcase Screenshots]...`);
 
-// A. IDE Visual Designer screenshot (screenshot.png)
-const ideHtmlPath = join(ROOT_DIR, "src", "ide.html");
-const ideOut = join(ROOT_DIR, "screenshot.png");
-console.log(`  Capturing IDE Visual Designer (${ideOut})...`);
-Sys.exec(`"${CHROME_BIN}" --headless --disable-gpu --virtual-time-budget=1000 --screenshot="${ideOut}" --window-size=1280,880 "file://${ideHtmlPath}" 2>/dev/null`);
-console.log(`  ✔ IDE Designer: ${ideOut} (${(Bun.file(ideOut).size / 1024).toFixed(1)} KB)`);
+  // A. IDE Visual Designer screenshot (screenshot.png)
+  const ideHtmlPath = join(ROOT_DIR, "src", "ide.html");
+  const ideOut = join(ROOT_DIR, "screenshot.png");
+  console.log(`  Capturing IDE Visual Designer (${ideOut})...`);
+  Sys.exec(
+    `"${CHROME_BIN}" --headless --disable-gpu --virtual-time-budget=1000 --screenshot="${ideOut}" --window-size=1280,880 "file://${ideHtmlPath}" 2>/dev/null`,
+  );
+  console.log(
+    `  ✔ IDE Designer: ${ideOut} (${(Bun.file(ideOut).size / 1024).toFixed(1)} KB)`,
+  );
 
-// B. Modern Productivity UI Controls Studio (screenshot_productivity.png)
-const productivityHtmlPath = join(TEMP_HTML_DIR, "productivity_showcase.html");
-writeFileSync(productivityHtmlPath, productivityHtml, "utf8");
-const prodOut = join(ROOT_DIR, "screenshot_productivity.png");
-console.log(`  Capturing Productivity Controls Studio (${prodOut})...`);
-Sys.exec(`"${CHROME_BIN}" --headless --disable-gpu --virtual-time-budget=1000 --screenshot="${prodOut}" --window-size=1200,850 "file://${productivityHtmlPath}" 2>/dev/null`);
-console.log(`  ✔ Productivity Controls: ${prodOut} (${(Bun.file(prodOut).size / 1024).toFixed(1)} KB)`);
+  // B. Modern Productivity UI Controls Studio (screenshot_productivity.png)
+  const productivityHtmlPath = join(
+    TEMP_HTML_DIR,
+    "productivity_showcase.html",
+  );
+  writeFileSync(productivityHtmlPath, productivityHtml, "utf8");
+  const prodOut = join(ROOT_DIR, "screenshot_productivity.png");
+  console.log(`  Capturing Productivity Controls Studio (${prodOut})...`);
+  Sys.exec(
+    `"${CHROME_BIN}" --headless --disable-gpu --virtual-time-budget=1000 --screenshot="${prodOut}" --window-size=1200,850 "file://${productivityHtmlPath}" 2>/dev/null`,
+  );
+  console.log(
+    `  ✔ Productivity Controls: ${prodOut} (${(Bun.file(prodOut).size / 1024).toFixed(1)} KB)`,
+  );
 
-// C. SimpleGUI Ergonomics & Shortcuts Demo (screenshot_ergonomics.png)
-const ergonomicsHtml = createErgonomicsShowcase().generateHtml();
-const ergonomicsHtmlPath = join(TEMP_HTML_DIR, "ergonomics_showcase.html");
-writeFileSync(ergonomicsHtmlPath, ergonomicsHtml, "utf8");
-const ergoOut = join(ROOT_DIR, "screenshot_ergonomics.png");
-console.log(`  Capturing Ergonomics Demo (${ergoOut})...`);
-Sys.exec(`"${CHROME_BIN}" --headless=new --disable-gpu --no-sandbox --user-data-dir="/tmp/chrome_ergo_profile" --screenshot="${ergoOut}" --window-size=960,655 "file://${ergonomicsHtmlPath}" 2>/dev/null`);
-console.log(`  ✔ Ergonomics Showcase: ${ergoOut} (${(Bun.file(ergoOut).size / 1024).toFixed(1)} KB)\n`);
+  // C. SimpleGUI Ergonomics & Shortcuts Demo (screenshot_ergonomics.png)
+  const ergonomicsHtml = createErgonomicsShowcase().generateHtml();
+  const ergonomicsHtmlPath = join(TEMP_HTML_DIR, "ergonomics_showcase.html");
+  writeFileSync(ergonomicsHtmlPath, ergonomicsHtml, "utf8");
+  const ergoOut = join(ROOT_DIR, "screenshot_ergonomics.png");
+  console.log(`  Capturing Ergonomics Demo (${ergoOut})...`);
+  Sys.exec(
+    `"${CHROME_BIN}" --headless=new --disable-gpu --no-sandbox --user-data-dir="/tmp/chrome_ergo_profile" --screenshot="${ergoOut}" --window-size=960,655 "file://${ergonomicsHtmlPath}" 2>/dev/null`,
+  );
+  console.log(
+    `  ✔ Ergonomics Showcase: ${ergoOut} (${(Bun.file(ergoOut).size / 1024).toFixed(1)} KB)\n`,
+  );
 }
 
-console.log(`========================================================================`);
-console.log(`✨ All ${results.length} application screenshots + 3 root showcases updated!`);
-console.log(`========================================================================`);
+console.log(
+  `========================================================================`,
+);
+console.log(
+  `✨ All ${results.length} application screenshots + 3 root showcases updated!`,
+);
+console.log(
+  `========================================================================`,
+);

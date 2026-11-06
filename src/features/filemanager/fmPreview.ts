@@ -24,17 +24,47 @@
 import { createHash } from "crypto";
 import { promises as fsp } from "fs";
 import * as nodePath from "path";
-import { brotliDecompressSync, createGunzip, gunzipSync, inflateRawSync, inflateSync, zstdDecompressSync } from "zlib";
+import {
+  brotliDecompressSync,
+  createGunzip,
+  gunzipSync,
+  inflateRawSync,
+  inflateSync,
+  zstdDecompressSync,
+} from "zlib";
 import { Database } from "bun:sqlite";
 import { Notes, isObj, toTable, type Value } from "./fmConvCommon";
 import { DEFAULT_DATA_OPTIONS, parseData } from "./fmConvFormats";
 import { parseEnv, parseIni, parseProperties } from "./fmConvMarkup";
 import { readSpreadsheet } from "./fmConvSheet";
-import { elfInfo, fontInfo, machoInfo, peInfo, sqliteInfo } from "./fmInfoBinary";
-import { ascii, be16, be32, clip, fileSource, humanBytes, le16, le32, type InfoGroup, type Source } from "./fmInfoCommon";
+import {
+  elfInfo,
+  fontInfo,
+  machoInfo,
+  peInfo,
+  sqliteInfo,
+} from "./fmInfoBinary";
+import {
+  ascii,
+  be16,
+  be32,
+  clip,
+  fileSource,
+  humanBytes,
+  le16,
+  le32,
+  type InfoGroup,
+  type Source,
+} from "./fmInfoCommon";
 import { decodeEntities, xmlAttr, xmlText } from "./fmInfoMeta";
 import { parsePdf, pdfGroups, pdfString } from "./fmInfoPdf";
-import { gzipDocument, isTarHeader, tarDocument, walkTar, zipDocument } from "./fmInfoZipDoc";
+import {
+  gzipDocument,
+  isTarHeader,
+  tarDocument,
+  walkTar,
+  zipDocument,
+} from "./fmInfoZipDoc";
 import { extensionOf } from "./fmPaths";
 import { sniffType } from "./fmSniff";
 import { readCentralDirectory, readZipEntry, type CentralEntry } from "./fmZip";
@@ -111,7 +141,12 @@ export interface RichSqlitePreview {
     name: string;
     type: "table" | "view";
     rowCount: number;
-    columns: Array<{ name: string; type: string; pk: boolean; notnull: boolean }>;
+    columns: Array<{
+      name: string;
+      type: string;
+      pk: boolean;
+      notnull: boolean;
+    }>;
     rows: string[][];
     sql?: string;
   }>;
@@ -128,7 +163,13 @@ export interface RichArchivePreview {
   uncompressed: number;
   compressed: number;
   encrypted: number;
-  entries: Array<{ name: string; size: number; packed?: number; dir: boolean; encrypted?: boolean }>;
+  entries: Array<{
+    name: string;
+    size: number;
+    packed?: number;
+    dir: boolean;
+    encrypted?: boolean;
+  }>;
   innerName?: string;
   innerText?: string;
 }
@@ -146,7 +187,17 @@ export interface RichFontPreview {
 /** Rich preview payload for structured data and configuration files (JSON, JSONL, YAML, TOML, INI, ENV, XML, Plist, GeoJSON). */
 export interface RichStructuredPreview {
   kind: "structured";
-  subkind: "json" | "jsonl" | "yaml" | "toml" | "ini" | "env" | "xml" | "plist" | "bplist" | "geojson";
+  subkind:
+    | "json"
+    | "jsonl"
+    | "yaml"
+    | "toml"
+    | "ini"
+    | "env"
+    | "xml"
+    | "plist"
+    | "bplist"
+    | "geojson";
   formatLabel: string;
   meta: Array<[string, string]>;
   data?: unknown;
@@ -164,7 +215,12 @@ export interface RichNotebookPreview {
     cellType: "markdown" | "code" | "raw";
     executionCount?: number | null;
     source: string;
-    outputs?: Array<{ kind: "text" | "error" | "image"; text?: string; mime?: string; dataUrl?: string }>;
+    outputs?: Array<{
+      kind: "text" | "error" | "image";
+      text?: string;
+      mime?: string;
+      dataUrl?: string;
+    }>;
   }>;
 }
 
@@ -173,7 +229,13 @@ export interface RichSubtitlesPreview {
   kind: "subtitles";
   formatLabel: string;
   meta: Array<[string, string]>;
-  cues: Array<{ index: number; start: string; end: string; speaker?: string; text: string }>;
+  cues: Array<{
+    index: number;
+    start: string;
+    end: string;
+    speaker?: string;
+    text: string;
+  }>;
   totalCues: number;
 }
 
@@ -182,7 +244,12 @@ export interface RichPlaylistPreview {
   kind: "playlist";
   formatLabel: string;
   meta: Array<[string, string]>;
-  tracks: Array<{ index: number; title: string; duration?: string; path: string }>;
+  tracks: Array<{
+    index: number;
+    title: string;
+    duration?: string;
+    path: string;
+  }>;
 }
 
 /** Rich preview payload for iCalendar schedule files (`.ics`) containing parsed events and todo items. */
@@ -251,7 +318,10 @@ export interface RichDiffPreview {
     newFile: string;
     added: number;
     removed: number;
-    hunks: Array<{ header: string; lines: Array<{ type: "+" | "-" | " "; text: string }> }>;
+    hunks: Array<{
+      header: string;
+      lines: Array<{ type: "+" | "-" | " "; text: string }>;
+    }>;
   }>;
 }
 
@@ -260,8 +330,19 @@ export interface RichLogPreview {
   kind: "log";
   formatLabel: string;
   meta: Array<[string, string]>;
-  counts: { error: number; warn: number; info: number; debug: number; other: number };
-  entries: Array<{ line: number; level: "ERROR" | "WARN" | "INFO" | "DEBUG" | "OTHER"; timestamp?: string; text: string }>;
+  counts: {
+    error: number;
+    warn: number;
+    info: number;
+    debug: number;
+    other: number;
+  };
+  entries: Array<{
+    line: number;
+    level: "ERROR" | "WARN" | "INFO" | "DEBUG" | "OTHER";
+    timestamp?: string;
+    text: string;
+  }>;
 }
 
 /** Rich preview payload for arbitrary binary files (executables, object files, unknown binaries) with hex+ASCII dump lines and printable strings. */
@@ -330,13 +411,19 @@ export function buildHexLines(buf: Uint8Array, maxBytes = 2048): string[] {
         asciiCol += " ";
       }
     }
-    lines.push(`${off.toString(16).padStart(8, "0")}  ${hexLeft.join(" ")}  ${hexRight.join(" ")}  |${asciiCol}|`);
+    lines.push(
+      `${off.toString(16).padStart(8, "0")}  ${hexLeft.join(" ")}  ${hexRight.join(" ")}  |${asciiCol}|`,
+    );
   }
   return lines;
 }
 
 /** Extracts up to `maxCount` printable ASCII runs of length at least `minLen` from the first 64 KiB of `buf`. */
-export function extractPrintableStrings(buf: Uint8Array, minLen = 4, maxCount = 120): string[] {
+export function extractPrintableStrings(
+  buf: Uint8Array,
+  minLen = 4,
+  maxCount = 120,
+): string[] {
   const out: string[] = [];
   let cur = "";
   const limit = Math.min(buf.length, 65536);
@@ -349,7 +436,8 @@ export function extractPrintableStrings(buf: Uint8Array, minLen = 4, maxCount = 
       cur = "";
     }
   }
-  if (cur.trim().length >= minLen && out.length < maxCount) out.push(cur.trim());
+  if (cur.trim().length >= minLen && out.length < maxCount)
+    out.push(cur.trim());
   return out;
 }
 
@@ -375,7 +463,8 @@ function shannonEntropy(buf: Uint8Array): number {
 
 /** Decodes an Apple `bplist00` binary property list buffer into its JavaScript value representation, or returns `null` if invalid. */
 export function parseBinaryPlist(buf: Buffer): unknown {
-  if (buf.length < 40 || buf.subarray(0, 8).toString("ascii") !== "bplist00") return null;
+  if (buf.length < 40 || buf.subarray(0, 8).toString("ascii") !== "bplist00")
+    return null;
   const trailer = buf.subarray(buf.length - 32);
   const offsetSize = trailer[6]!;
   const objectRefSize = trailer[7]!;
@@ -383,10 +472,14 @@ export function parseBinaryPlist(buf: Buffer): unknown {
   const topObject = Number(trailer.readBigUInt64BE(16));
   const offsetTableOffset = Number(trailer.readBigUInt64BE(24));
   if (
-    offsetSize < 1 || offsetSize > 8 ||
-    objectRefSize < 1 || objectRefSize > 8 ||
-    numObjects < 1 || numObjects > 50_000 ||
-    offsetTableOffset < 8 || offsetTableOffset + numObjects * offsetSize > buf.length - 32
+    offsetSize < 1 ||
+    offsetSize > 8 ||
+    objectRefSize < 1 ||
+    objectRefSize > 8 ||
+    numObjects < 1 ||
+    numObjects > 50_000 ||
+    offsetTableOffset < 8 ||
+    offsetTableOffset + numObjects * offsetSize > buf.length - 32
   ) {
     return null;
   }
@@ -401,7 +494,8 @@ export function parseBinaryPlist(buf: Buffer): unknown {
   }
   const visited = new Set<number>();
   const decodeObj = (idx: number, depth: number): unknown => {
-    if (depth > 16 || idx < 0 || idx >= numObjects || visited.has(idx)) return null;
+    if (depth > 16 || idx < 0 || idx >= numObjects || visited.has(idx))
+      return null;
     const off = offsets[idx]!;
     if (off < 8 || off >= offsetTableOffset) return null;
     const marker = buf[off]!;
@@ -421,13 +515,16 @@ export function parseBinaryPlist(buf: Buffer): unknown {
       case 0x1: {
         const bytes = 1 << lo;
         if (bytes <= 4) return readUInt(off + 1, bytes);
-        if (bytes === 8 && off + 9 <= buf.length) return Number(buf.readBigInt64BE(off + 1));
+        if (bytes === 8 && off + 9 <= buf.length)
+          return Number(buf.readBigInt64BE(off + 1));
         return readUInt(off + 1, Math.min(bytes, 8));
       }
       case 0x2: {
         const bytes = 1 << lo;
-        if (bytes === 4 && off + 5 <= buf.length) return buf.readFloatBE(off + 1);
-        if (bytes === 8 && off + 9 <= buf.length) return buf.readDoubleBE(off + 1);
+        if (bytes === 4 && off + 5 <= buf.length)
+          return buf.readFloatBE(off + 1);
+        if (bytes === 8 && off + 9 <= buf.length)
+          return buf.readDoubleBE(off + 1);
         return 0;
       }
       case 0x3: {
@@ -442,7 +539,9 @@ export function parseBinaryPlist(buf: Buffer): unknown {
       }
       case 0x5: {
         const { len, next } = readLen(off + 1);
-        return buf.subarray(next, Math.min(buf.length, next + len)).toString("latin1");
+        return buf
+          .subarray(next, Math.min(buf.length, next + len))
+          .toString("latin1");
       }
       case 0x6: {
         const { len, next } = readLen(off + 1);
@@ -491,18 +590,47 @@ export function parseBinaryPlist(buf: Buffer): unknown {
 // ---------------------------------------------------------------------------------------------------------------
 
 /** Parses a Rich Text Format (`.rtf`) document into structured `DocBlock` paragraphs, plain text, and document info metadata. */
-export function parseRtfDocument(raw: string): { blocks: DocBlock[]; plainText: string; meta: Array<[string, string]> } {
+export function parseRtfDocument(raw: string): {
+  blocks: DocBlock[];
+  plainText: string;
+  meta: Array<[string, string]>;
+} {
   const skipDests = new Set([
-    "fonttbl", "colortbl", "stylesheet", "info", "pict", "object", "datafield",
-    "fldinst", "header", "footer", "headerl", "headerr", "footerl", "footerr",
-    "Xmlns", "latentstyles", "rsidtbl", "generator", "themedata", "colorschememapping",
+    "fonttbl",
+    "colortbl",
+    "stylesheet",
+    "info",
+    "pict",
+    "object",
+    "datafield",
+    "fldinst",
+    "header",
+    "footer",
+    "headerl",
+    "headerr",
+    "footerl",
+    "footerr",
+    "Xmlns",
+    "latentstyles",
+    "rsidtbl",
+    "generator",
+    "themedata",
+    "colorschememapping",
   ]);
   const meta: Array<[string, string]> = [];
   const infoMatch = /\{\\info\b([\s\S]{1,4000}?)\}/i.exec(raw);
   if (infoMatch) {
     const infoBody = infoMatch[1]!;
-    for (const [tag, label] of [["title", "Title"], ["author", "Author"], ["subject", "Subject"], ["company", "Company"], ["operator", "Last saved by"]] as const) {
-      const m = new RegExp(`\\{\\\\${tag}\\s+([^}]{1,200})\\}`, "i").exec(infoBody);
+    for (const [tag, label] of [
+      ["title", "Title"],
+      ["author", "Author"],
+      ["subject", "Subject"],
+      ["company", "Company"],
+      ["operator", "Last saved by"],
+    ] as const) {
+      const m = new RegExp(`\\{\\\\${tag}\\s+([^}]{1,200})\\}`, "i").exec(
+        infoBody,
+      );
       if (m?.[1]?.trim()) meta.push([label, m[1].trim()]);
     }
   }
@@ -600,7 +728,14 @@ export function parseRtfDocument(raw: string): { blocks: DocBlock[]; plainText: 
         continue;
       }
       if (!skip) {
-        if (w === "par" || (w === "pard" && !out.endsWith("\n")) || w === "sect" || w === "page" || w === "line" || w === "row") {
+        if (
+          w === "par" ||
+          (w === "pard" && !out.endsWith("\n")) ||
+          w === "sect" ||
+          w === "page" ||
+          w === "line" ||
+          w === "row"
+        ) {
           out += "\n";
         } else if (w === "tab" || w === "cell") {
           out += "\t";
@@ -628,12 +763,19 @@ export function parseRtfDocument(raw: string): { blocks: DocBlock[]; plainText: 
     i++;
   }
 
-  const lines = out.split(/\n+/).map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean);
+  const lines = out
+    .split(/\n+/)
+    .map((l) => l.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
   const blocks: DocBlock[] = [];
   for (const line of lines.slice(0, 400)) {
     if (line.startsWith("• ") || /^[-*]\s+/.test(line)) {
       blocks.push({ type: "li", text: line.replace(/^(?:•|[-*])\s+/, "") });
-    } else if (line.length < 80 && /^[A-Z0-9][A-Za-z0-9\s,:—–-]{2,70}$/.test(line) && !line.endsWith(".")) {
+    } else if (
+      line.length < 80 &&
+      /^[A-Z0-9][A-Za-z0-9\s,:—–-]{2,70}$/.test(line) &&
+      !line.endsWith(".")
+    ) {
       blocks.push({ type: blocks.length === 0 ? "h1" : "h2", text: line });
     } else {
       blocks.push({ type: "p", text: line });
@@ -647,7 +789,10 @@ export function parseRtfDocument(raw: string): { blocks: DocBlock[]; plainText: 
 // Word (.docx), OpenDocument Text (.odt), Presentations (.pptx, .odp), E-Books (.epub, .fb2)
 // ---------------------------------------------------------------------------------------------------------------
 
-function parseDocxBlocks(xml: string): { blocks: DocBlock[]; plainText: string } {
+function parseDocxBlocks(xml: string): {
+  blocks: DocBlock[];
+  plainText: string;
+} {
   const blocks: DocBlock[] = [];
   const plainLines: string[] = [];
   const tokenRe = /<w:tbl\b[\s\S]*?<\/w:tbl>|<w:p\b[\s\S]*?<\/w:p>/g;
@@ -659,7 +804,9 @@ function parseDocxBlocks(xml: string): { blocks: DocBlock[]; plainText: string }
       for (const tr of chunk.matchAll(/<w:tr\b[\s\S]*?<\/w:tr>/g)) {
         const row: string[] = [];
         for (const tc of tr[0].matchAll(/<w:tc\b[\s\S]*?<\/w:tc>/g)) {
-          const cellText = [...tc[0].matchAll(/<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/g)]
+          const cellText = [
+            ...tc[0].matchAll(/<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/g),
+          ]
             .map((t) => decodeEntities(t[1]!))
             .join("")
             .trim();
@@ -675,7 +822,9 @@ function parseDocxBlocks(xml: string): { blocks: DocBlock[]; plainText: string }
       const style = /<w:pStyle\b[^>]*w:val="([^"]+)"/i.exec(chunk)?.[1] ?? "";
       const isList = /<w:numPr\b/.test(chunk) || /List/i.test(style);
       const runs: string[] = [];
-      for (const tok of chunk.matchAll(/<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>|<w:tab\b[^>]*\/>|<w:br\b[^>]*\/>/g)) {
+      for (const tok of chunk.matchAll(
+        /<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>|<w:tab\b[^>]*\/>|<w:br\b[^>]*\/>/g,
+      )) {
         if (tok[0].startsWith("<w:tab")) runs.push("\t");
         else if (tok[0].startsWith("<w:br")) runs.push("\n");
         else runs.push(decodeEntities(tok[1] ?? ""));
@@ -683,8 +832,10 @@ function parseDocxBlocks(xml: string): { blocks: DocBlock[]; plainText: string }
       const text = runs.join("").trim();
       if (!text) continue;
       plainLines.push(text);
-      if (/^(?:Title|Heading1|1)$/i.test(style)) blocks.push({ type: "h1", text });
-      else if (/^(?:Subtitle|Heading2|2)$/i.test(style)) blocks.push({ type: "h2", text });
+      if (/^(?:Title|Heading1|1)$/i.test(style))
+        blocks.push({ type: "h1", text });
+      else if (/^(?:Subtitle|Heading2|2)$/i.test(style))
+        blocks.push({ type: "h2", text });
       else if (/^Heading[3-6]$/i.test(style)) blocks.push({ type: "h3", text });
       else if (/Quote/i.test(style)) blocks.push({ type: "quote", text });
       else if (isList) blocks.push({ type: "li", text });
@@ -694,7 +845,10 @@ function parseDocxBlocks(xml: string): { blocks: DocBlock[]; plainText: string }
   return { blocks, plainText: plainLines.join("\n\n") };
 }
 
-function parseOdtBlocks(xml: string): { blocks: DocBlock[]; plainText: string } {
+function parseOdtBlocks(xml: string): {
+  blocks: DocBlock[];
+  plainText: string;
+} {
   const blocks: DocBlock[] = [];
   const plainLines: string[] = [];
   const stripTags = (s: string) =>
@@ -705,15 +859,20 @@ function parseOdtBlocks(xml: string): { blocks: DocBlock[]; plainText: string } 
         .replace(/<[^>]+>/g, ""),
     ).trim();
 
-  const tokenRe = /<table:table\b[\s\S]*?<\/table:table>|<text:h\b[^>]*>[\s\S]*?<\/text:h>|<text:p\b[^>]*>[\s\S]*?<\/text:p>/g;
+  const tokenRe =
+    /<table:table\b[\s\S]*?<\/table:table>|<text:h\b[^>]*>[\s\S]*?<\/text:h>|<text:p\b[^>]*>[\s\S]*?<\/text:p>/g;
   let m: RegExpExecArray | null;
   while ((m = tokenRe.exec(xml)) !== null && blocks.length < 400) {
     const chunk = m[0]!;
     if (chunk.startsWith("<table:table")) {
       const rows: string[][] = [];
-      for (const tr of chunk.matchAll(/<table:table-row\b[\s\S]*?<\/table:table-row>/g)) {
+      for (const tr of chunk.matchAll(
+        /<table:table-row\b[\s\S]*?<\/table:table-row>/g,
+      )) {
         const row: string[] = [];
-        for (const tc of tr[0].matchAll(/<table:table-cell\b[\s\S]*?<\/table:table-cell>/g)) {
+        for (const tc of tr[0].matchAll(
+          /<table:table-cell\b[\s\S]*?<\/table:table-cell>/g,
+        )) {
           row.push(stripTags(tc[0]));
         }
         if (row.some(Boolean)) rows.push(row);
@@ -748,7 +907,11 @@ function parseHtmlToBlocks(xhtml: string, maxBlocks = 250): DocBlock[] {
   let m: RegExpExecArray | null;
   while ((m = re.exec(clean)) !== null && blocks.length < maxBlocks) {
     const tag = m[1]!.toLowerCase();
-    const text = decodeEntities(m[2]!.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").trim();
+    const text = decodeEntities(
+      m[2]!.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, ""),
+    )
+      .replace(/\s+/g, " ")
+      .trim();
     if (!text) continue;
     if (tag === "h1") blocks.push({ type: "h1", text });
     else if (tag === "h2") blocks.push({ type: "h2", text });
@@ -759,8 +922,14 @@ function parseHtmlToBlocks(xhtml: string, maxBlocks = 250): DocBlock[] {
     else blocks.push({ type: "p", text });
   }
   if (!blocks.length) {
-    const plain = decodeEntities(clean.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
-    if (plain) blocks.push({ type: "p", text: plain.slice(0, maxBlocks > 500 ? 100_000 : 4000) });
+    const plain = decodeEntities(clean.replace(/<[^>]+>/g, " "))
+      .replace(/\s+/g, " ")
+      .trim();
+    if (plain)
+      blocks.push({
+        type: "p",
+        text: plain.slice(0, maxBlocks > 500 ? 100_000 : 4000),
+      });
   }
   return blocks;
 }
@@ -789,17 +958,24 @@ async function inspectEpubFromReader(
   let rootPath = xmlAttr(containerXml, "rootfile", "full-path");
   if (!rootPath) {
     const allNames = await listRelPaths();
-    rootPath = allNames.find((n) => /\.opf$/i.test(n)) ?? (allNames.includes("content.opf") ? "content.opf" : "");
+    rootPath =
+      allNames.find((n) => /\.opf$/i.test(n)) ??
+      (allNames.includes("content.opf") ? "content.opf" : "");
   }
   const opf = rootPath ? await readPart(rootPath, 512 * 1024) : "";
-  const opfDir = rootPath && rootPath.includes("/") ? rootPath.slice(0, rootPath.lastIndexOf("/") + 1) : "";
+  const opfDir =
+    rootPath && rootPath.includes("/")
+      ? rootPath.slice(0, rootPath.lastIndexOf("/") + 1)
+      : "";
   const manifest = new Map<string, string>();
   for (const item of opf.matchAll(/<item\b([^>]+)\/?>/g)) {
     const id = /\bid="([^"]+)"/.exec(item[1]!)?.[1];
     const href = /\bhref="([^"]+)"/.exec(item[1]!)?.[1];
     if (id && href) manifest.set(id, decodeEntities(href));
   }
-  const spineIds = [...opf.matchAll(/<itemref\b[^>]*\bidref="([^"]+)"/g)].map((m) => m[1]!);
+  const spineIds = [...opf.matchAll(/<itemref\b[^>]*\bidref="([^"]+)"/g)].map(
+    (m) => m[1]!,
+  );
   const chapterPaths: string[] = [];
   for (const idref of spineIds) {
     const href = manifest.get(idref);
@@ -810,8 +986,12 @@ async function inspectEpubFromReader(
   if (chapterPaths.length === 0) {
     const allNames = await listRelPaths();
     const fallback = allNames
-      .filter((n) => /\.(?:xhtml|html|htm)$/i.test(n) && !/^META-INF\//i.test(n))
-      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }));
+      .filter(
+        (n) => /\.(?:xhtml|html|htm)$/i.test(n) && !/^META-INF\//i.test(n),
+      )
+      .sort((a, b) =>
+        a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }),
+      );
     chapterPaths.push(...fallback);
   }
 
@@ -828,14 +1008,20 @@ async function inspectEpubFromReader(
     if (!xhtml) continue;
     const cBlocks = parseHtmlToBlocks(xhtml, maxBlocksPerChapter);
     if (!cBlocks.length) continue;
-    let firstHeading = cBlocks.find((b) => b.type === "h1" || b.type === "h2" || b.type === "h3");
+    let firstHeading = cBlocks.find(
+      (b) => b.type === "h1" || b.type === "h2" || b.type === "h3",
+    );
     if (!firstHeading && cBlocks[0] && cBlocks[0].type === "p") {
       const candidate = cBlocks[0].text.trim();
       if (
         candidate.length > 0 &&
         candidate.length <= 90 &&
-        (/^(?:chapter|prologue|epilogue|part|book|section|act|scene|introduction|foreword|preface|afterword|acknowledg|dedication|contents|table of contents)\b/i.test(candidate) ||
-          (candidate.length <= 70 && candidate === candidate.toUpperCase() && /[A-Z]/.test(candidate)))
+        (/^(?:chapter|prologue|epilogue|part|book|section|act|scene|introduction|foreword|preface|afterword|acknowledg|dedication|contents|table of contents)\b/i.test(
+          candidate,
+        ) ||
+          (candidate.length <= 70 &&
+            candidate === candidate.toUpperCase() &&
+            /[A-Z]/.test(candidate)))
       ) {
         cBlocks[0] = { type: "h2", text: candidate };
         firstHeading = cBlocks[0];
@@ -843,7 +1029,9 @@ async function inspectEpubFromReader(
     }
     const rawHtmlTitle = xmlText(xhtml, "title").trim();
     const usableHtmlTitle =
-      rawHtmlTitle && (!bookTitle || rawHtmlTitle.toLowerCase() !== bookTitle.toLowerCase()) && !/^unknown$/i.test(rawHtmlTitle)
+      rawHtmlTitle &&
+      (!bookTitle || rawHtmlTitle.toLowerCase() !== bookTitle.toLowerCase()) &&
+      !/^unknown$/i.test(rawHtmlTitle)
         ? rawHtmlTitle
         : "";
     const chTitle =
@@ -855,16 +1043,21 @@ async function inspectEpubFromReader(
   }
 
   const meta: Array<[string, string]> = [...baseMeta];
-  const hasMetaKey = (k: string) => meta.some(([mk]) => mk.toLowerCase() === k.toLowerCase());
+  const hasMetaKey = (k: string) =>
+    meta.some(([mk]) => mk.toLowerCase() === k.toLowerCase());
   if (bookTitle && !hasMetaKey("Title")) meta.unshift(["Title", bookTitle]);
   if (author && !hasMetaKey("Author")) meta.push(["Author", author]);
   if (language && !hasMetaKey("Language")) meta.push(["Language", language]);
-  if (publisher && !hasMetaKey("Publisher")) meta.push(["Publisher", publisher]);
+  if (publisher && !hasMetaKey("Publisher"))
+    meta.push(["Publisher", publisher]);
   if (pubDate && !hasMetaKey("Date")) meta.push(["Date", pubDate.slice(0, 10)]);
-  if (chapterPaths.length > 0 && !hasMetaKey("Chapters")) meta.push(["Chapters", String(chapterPaths.length)]);
+  if (chapterPaths.length > 0 && !hasMetaKey("Chapters"))
+    meta.push(["Chapters", String(chapterPaths.length)]);
 
   const plainText = allBlocks
-    .map((b) => (b.type === "table" ? b.rows.map((r) => r.join("\t")).join("\n") : b.text))
+    .map((b) =>
+      b.type === "table" ? b.rows.map((r) => r.join("\t")).join("\n") : b.text,
+    )
     .join("\n\n");
   return {
     kind: "document",
@@ -879,7 +1072,11 @@ async function inspectEpubFromReader(
   };
 }
 
-function parseMarkdownToBlocksAndChapters(mdText: string, defaultTitle: string, maxBlocks = 2500): {
+function parseMarkdownToBlocksAndChapters(
+  mdText: string,
+  defaultTitle: string,
+  maxBlocks = 2500,
+): {
   title?: string;
   blocks: DocBlock[];
   chapters: Array<{ title: string; blocks: DocBlock[] }>;
@@ -887,7 +1084,10 @@ function parseMarkdownToBlocksAndChapters(mdText: string, defaultTitle: string, 
 } {
   const blocks: DocBlock[] = [];
   const chapters: Array<{ title: string; blocks: DocBlock[] }> = [];
-  let currentChapter: { title: string; blocks: DocBlock[] } = { title: defaultTitle, blocks: [] };
+  let currentChapter: { title: string; blocks: DocBlock[] } = {
+    title: defaultTitle,
+    blocks: [],
+  };
   let detectedTitle: string | undefined;
 
   const lines = mdText.replace(/\r\n/g, "\n").split("\n");
@@ -947,7 +1147,10 @@ function parseMarkdownToBlocksAndChapters(mdText: string, defaultTitle: string, 
     }
     if (/^[-*+]\s+/.test(line) || /^\d+\.\s+/.test(line)) {
       flushPara();
-      pushBlock({ type: "li", text: line.replace(/^(?:[-*+]|\d+\.)\s+/, "").trim() });
+      pushBlock({
+        type: "li",
+        text: line.replace(/^(?:[-*+]|\d+\.)\s+/, "").trim(),
+      });
       continue;
     }
     if (line.startsWith(">")) {
@@ -958,28 +1161,46 @@ function parseMarkdownToBlocksAndChapters(mdText: string, defaultTitle: string, 
     paraLines.push(line);
   }
   flushPara();
-  if (inCode && codeLines.length) pushBlock({ type: "code", text: codeLines.join("\n") });
+  if (inCode && codeLines.length)
+    pushBlock({ type: "code", text: codeLines.join("\n") });
   if (currentChapter.blocks.length > 0) chapters.push(currentChapter);
 
   const plainText = blocks
-    .map((b) => (b.type === "table" ? b.rows.map((r) => r.join("\t")).join("\n") : b.text))
+    .map((b) =>
+      b.type === "table" ? b.rows.map((r) => r.join("\t")).join("\n") : b.text,
+    )
     .join("\n\n");
-  return { ...(detectedTitle ? { title: detectedTitle } : {}), blocks, chapters, plainText };
+  return {
+    ...(detectedTitle ? { title: detectedTitle } : {}),
+    blocks,
+    chapters,
+    plainText,
+  };
 }
 
-function parseGenericXmlDocumentBlocks(xml: string, maxBlocks = 1500): {
+function parseGenericXmlDocumentBlocks(
+  xml: string,
+  maxBlocks = 1500,
+): {
   title?: string;
   blocks: DocBlock[];
   plainText: string;
 } {
   const blocks: DocBlock[] = [];
   let title: string | undefined;
-  const tagRe = /<(?:sf:p|p|lit|title|heading|string|text|item|note)\b[^>]*>([\s\S]*?)<\/(?:sf:p|p|lit|title|heading|string|text|item|note)>/gi;
+  const tagRe =
+    /<(?:sf:p|p|lit|title|heading|string|text|item|note)\b[^>]*>([\s\S]*?)<\/(?:sf:p|p|lit|title|heading|string|text|item|note)>/gi;
   let m: RegExpExecArray | null;
   while ((m = tagRe.exec(xml)) !== null && blocks.length < maxBlocks) {
-    const raw = decodeEntities(m[1]!.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+    const raw = decodeEntities(m[1]!.replace(/<[^>]+>/g, " "))
+      .replace(/\s+/g, " ")
+      .trim();
     if (!raw || raw.length < 2) continue;
-    if (/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(raw) || /^[A-Za-z0-9+/=]{40,}$/.test(raw)) continue;
+    if (
+      /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(raw) ||
+      /^[A-Za-z0-9+/=]{40,}$/.test(raw)
+    )
+      continue;
     const isHeading = /^<(?:title|heading)\b/i.test(m[0]);
     if (isHeading && !title) title = raw;
     blocks.push({ type: isHeading ? "h2" : "p", text: raw });
@@ -1004,10 +1225,17 @@ export async function inspectPackageDirectoryRich(
   const maxTotalBlocks = limits.maxTotalBlocks ?? 300;
   const resolvedRoot = nodePath.resolve(dirPath);
 
-  const readPart = async (relPath: string, limit = 512 * 1024): Promise<string> => {
-    const normalizedRel = relPath.replace(/^\/+/, "").split("/").join(nodePath.sep);
+  const readPart = async (
+    relPath: string,
+    limit = 512 * 1024,
+  ): Promise<string> => {
+    const normalizedRel = relPath
+      .replace(/^\/+/, "")
+      .split("/")
+      .join(nodePath.sep);
     const full = nodePath.resolve(resolvedRoot, normalizedRel);
-    if (!full.startsWith(resolvedRoot + nodePath.sep) && full !== resolvedRoot) return "";
+    if (!full.startsWith(resolvedRoot + nodePath.sep) && full !== resolvedRoot)
+      return "";
     try {
       const st = await fsp.stat(full);
       if (!st.isFile() || st.size === 0) return "";
@@ -1025,10 +1253,17 @@ export async function inspectPackageDirectoryRich(
     }
   };
 
-  const readPartBytes = async (relPath: string, limit = 4 * 1024 * 1024): Promise<Buffer | null> => {
-    const normalizedRel = relPath.replace(/^\/+/, "").split("/").join(nodePath.sep);
+  const readPartBytes = async (
+    relPath: string,
+    limit = 4 * 1024 * 1024,
+  ): Promise<Buffer | null> => {
+    const normalizedRel = relPath
+      .replace(/^\/+/, "")
+      .split("/")
+      .join(nodePath.sep);
     const full = nodePath.resolve(resolvedRoot, normalizedRel);
-    if (!full.startsWith(resolvedRoot + nodePath.sep) && full !== resolvedRoot) return null;
+    if (!full.startsWith(resolvedRoot + nodePath.sep) && full !== resolvedRoot)
+      return null;
     try {
       const st = await fsp.stat(full);
       if (!st.isFile() || st.size === 0) return null;
@@ -1050,10 +1285,16 @@ export async function inspectPackageDirectoryRich(
   const listRelPaths = async (): Promise<string[]> => {
     if (cachedRelPaths) return cachedRelPaths;
     const out: string[] = [];
-    const stack: Array<{ abs: string; rel: string }> = [{ abs: resolvedRoot, rel: "" }];
+    const stack: Array<{ abs: string; rel: string }> = [
+      { abs: resolvedRoot, rel: "" },
+    ];
     while (stack.length > 0 && out.length < 2000) {
       const cur = stack.pop()!;
-      let entries: Array<{ name: string; isDirectory(): boolean; isFile(): boolean }>;
+      let entries: Array<{
+        name: string;
+        isDirectory(): boolean;
+        isFile(): boolean;
+      }>;
       try {
         entries = await fsp.readdir(cur.abs, { withFileTypes: true });
       } catch {
@@ -1093,7 +1334,9 @@ export async function inspectPackageDirectoryRich(
       meta: [
         ["Package format", "macOS RTFD Bundle"],
         ["Paragraphs", String(blocks.length)],
-        ...(attachments.length ? [["Attachments", String(attachments.length)] as [string, string]] : []),
+        ...(attachments.length
+          ? [["Attachments", String(attachments.length)] as [string, string]]
+          : []),
         ...meta,
       ],
       blocks: blocks.slice(0, maxTotalBlocks),
@@ -1105,7 +1348,9 @@ export async function inspectPackageDirectoryRich(
   // 2. .textbundle (Markdown + info.json + assets/)
   if (lowerName.endsWith(".textbundle")) {
     const all = await listRelPaths();
-    const mdFile = all.find((f) => /^text\.(?:md|markdown|txt|text)$/i.test(f)) ?? all.find((f) => /\.(?:md|markdown|txt)$/i.test(f));
+    const mdFile =
+      all.find((f) => /^text\.(?:md|markdown|txt|text)$/i.test(f)) ??
+      all.find((f) => /\.(?:md|markdown|txt)$/i.test(f));
     if (!mdFile) return null;
     const mdText = await readPart(mdFile, 4 * 1024 * 1024);
     const infoRaw = await readPart("info.json", 64 * 1024);
@@ -1114,7 +1359,11 @@ export async function inspectPackageDirectoryRich(
       const info = JSON.parse(infoRaw);
       if (info?.creatorIdentifier) creator = String(info.creatorIdentifier);
     } catch {}
-    const parsed = parseMarkdownToBlocksAndChapters(mdText, stemTitle, maxTotalBlocks);
+    const parsed = parseMarkdownToBlocksAndChapters(
+      mdText,
+      stemTitle,
+      maxTotalBlocks,
+    );
     const assets = all.filter((f) => f.startsWith("assets/"));
     return {
       kind: "document",
@@ -1124,7 +1373,9 @@ export async function inspectPackageDirectoryRich(
         ["Package format", "TextBundle"],
         ["Text file", mdFile],
         ...(creator ? [["Creator", creator] as [string, string]] : []),
-        ...(assets.length ? [["Bundled assets", String(assets.length)] as [string, string]] : []),
+        ...(assets.length
+          ? [["Bundled assets", String(assets.length)] as [string, string]]
+          : []),
       ],
       blocks: parsed.blocks,
       chapters: parsed.chapters,
@@ -1137,13 +1388,19 @@ export async function inspectPackageDirectoryRich(
   if (lowerName.endsWith(".scriv")) {
     const all = await listRelPaths();
     const scrivxRel = all.find((f) => /\.scrivx$/i.test(f));
-    const scrivxXml = scrivxRel ? await readPart(scrivxRel, 2 * 1024 * 1024) : "";
+    const scrivxXml = scrivxRel
+      ? await readPart(scrivxRel, 2 * 1024 * 1024)
+      : "";
     const binderTitles = new Map<string, string>();
     const orderedIds: string[] = [];
-    for (const item of scrivxXml.matchAll(/<BinderItem\b([^>]*)>([\s\S]*?)<\/BinderItem>/g)) {
+    for (const item of scrivxXml.matchAll(
+      /<BinderItem\b([^>]*)>([\s\S]*?)<\/BinderItem>/g,
+    )) {
       const attrs = item[1]!;
       const inner = item[2]!;
-      const uuid = /\bUUID="([^"]+)"/i.exec(attrs)?.[1] ?? /\bID="([^"]+)"/i.exec(attrs)?.[1];
+      const uuid =
+        /\bUUID="([^"]+)"/i.exec(attrs)?.[1] ??
+        /\bID="([^"]+)"/i.exec(attrs)?.[1];
       const titleMatch = /<Title>([\s\S]*?)<\/Title>/i.exec(inner);
       const t = titleMatch ? decodeEntities(titleMatch[1]!.trim()) : "";
       if (uuid) {
@@ -1151,7 +1408,11 @@ export async function inspectPackageDirectoryRich(
         if (t) binderTitles.set(uuid, t);
       }
     }
-    const rtfPaths = all.filter((f) => /^Files\/(?:Data|Docs)\/.*\.(?:rtf|txt)$/i.test(f) && !/notes\.rtf$/i.test(f));
+    const rtfPaths = all.filter(
+      (f) =>
+        /^Files\/(?:Data|Docs)\/.*\.(?:rtf|txt)$/i.test(f) &&
+        !/notes\.rtf$/i.test(f),
+    );
     rtfPaths.sort((a, b) => {
       const idA = orderedIds.findIndex((id) => a.includes(id));
       const idB = orderedIds.findIndex((id) => b.includes(id));
@@ -1171,14 +1432,23 @@ export async function inspectPackageDirectoryRich(
         : parseMarkdownToBlocksAndChapters(raw, nodePath.basename(rel));
       if (!parsed.blocks.length) continue;
       const matchedId = orderedIds.find((id) => rel.includes(id));
-      const chTitle = (matchedId && binderTitles.get(matchedId)) || `Section ${chapters.length + 1}`;
-      const chBlocks: DocBlock[] = [{ type: "h2", text: chTitle }, ...parsed.blocks];
+      const chTitle =
+        (matchedId && binderTitles.get(matchedId)) ||
+        `Section ${chapters.length + 1}`;
+      const chBlocks: DocBlock[] = [
+        { type: "h2", text: chTitle },
+        ...parsed.blocks,
+      ];
       chapters.push({ title: chTitle, blocks: chBlocks });
       allBlocks.push(...chBlocks);
     }
     if (!allBlocks.length) return null;
     const plainText = allBlocks
-      .map((b) => (b.type === "table" ? b.rows.map((r) => r.join("\t")).join("\n") : b.text))
+      .map((b) =>
+        b.type === "table"
+          ? b.rows.map((r) => r.join("\t")).join("\n")
+          : b.text,
+      )
       .join("\n\n");
     return {
       kind: "document",
@@ -1198,7 +1468,9 @@ export async function inspectPackageDirectoryRich(
   // 4. .ulysses (Ulysses Sheet Package)
   if (lowerName.endsWith(".ulysses")) {
     const all = await listRelPaths();
-    const xmlRel = all.find((f) => /^Content\.xml$/i.test(f)) ?? all.find((f) => /\.xml$/i.test(f));
+    const xmlRel =
+      all.find((f) => /^Content\.xml$/i.test(f)) ??
+      all.find((f) => /\.xml$/i.test(f));
     if (!xmlRel) return null;
     const xml = await readPart(xmlRel, 2 * 1024 * 1024);
     const parsed = parseGenericXmlDocumentBlocks(xml, maxTotalBlocks);
@@ -1218,7 +1490,10 @@ export async function inspectPackageDirectoryRich(
   }
 
   // 5. .playground and .playgroundbook (Swift Playgrounds Package)
-  if (lowerName.endsWith(".playground") || lowerName.endsWith(".playgroundbook")) {
+  if (
+    lowerName.endsWith(".playground") ||
+    lowerName.endsWith(".playgroundbook")
+  ) {
     const all = await listRelPaths();
     const codeAndDocFiles = all
       .filter((f) => /\.(?:swift|md|markdown|txt)$/i.test(f))
@@ -1235,18 +1510,28 @@ export async function inspectPackageDirectoryRich(
         // Extract /// or /*: playground prose comments and Swift code
         chBlocks.push({ type: "code", text: content.trim() });
       } else {
-        const mdParsed = parseMarkdownToBlocksAndChapters(content, chTitle, 500);
+        const mdParsed = parseMarkdownToBlocksAndChapters(
+          content,
+          chTitle,
+          500,
+        );
         chBlocks.push(...mdParsed.blocks);
       }
       chapters.push({ title: chTitle, blocks: chBlocks });
       allBlocks.push(...chBlocks);
     }
     const plainText = allBlocks
-      .map((b) => (b.type === "table" ? b.rows.map((r) => r.join("\t")).join("\n") : b.text))
+      .map((b) =>
+        b.type === "table"
+          ? b.rows.map((r) => r.join("\t")).join("\n")
+          : b.text,
+      )
       .join("\n\n");
     return {
       kind: "document",
-      formatLabel: lowerName.endsWith(".playgroundbook") ? "Swift Playground Book (.playgroundbook)" : "Swift Playground (.playground)",
+      formatLabel: lowerName.endsWith(".playgroundbook")
+        ? "Swift Playground Book (.playgroundbook)"
+        : "Swift Playground (.playground)",
       title: stemTitle,
       meta: [
         ["Package format", "Swift Playgrounds Bundle"],
@@ -1262,11 +1547,15 @@ export async function inspectPackageDirectoryRich(
   // 6. Apple iWork (.pages, .numbers, .key) and Omni / MindNode (.oo3, .mindnode, .graffle) package directories
   if (/\.(?:pages|numbers|key|oo3|mindnode|graffle)$/i.test(lowerName)) {
     const all = await listRelPaths();
-    const pdfRel = all.find((f) => /(?:^|\/)Preview\.pdf$/i.test(f)) ?? all.find((f) => /\.pdf$/i.test(f));
+    const pdfRel =
+      all.find((f) => /(?:^|\/)Preview\.pdf$/i.test(f)) ??
+      all.find((f) => /\.pdf$/i.test(f));
     if (pdfRel) {
       const pdfBytes = await readPartBytes(pdfRel, 4 * 1024 * 1024);
       if (pdfBytes) {
-        const { text: pdfText, outline } = extractPdfStreamsText(pdfBytes.toString("latin1"));
+        const { text: pdfText, outline } = extractPdfStreamsText(
+          pdfBytes.toString("latin1"),
+        );
         if (pdfText.trim()) {
           const blocks: DocBlock[] = pdfText
             .split(/\n{2,}/)
@@ -1279,7 +1568,10 @@ export async function inspectPackageDirectoryRich(
             formatLabel: `macOS Package Document (${nodePath.extname(baseName).toUpperCase()})`,
             title: outline[0] || stemTitle,
             meta: [
-              ["Package format", `${nodePath.extname(baseName).slice(1).toUpperCase()} Package Bundle`],
+              [
+                "Package format",
+                `${nodePath.extname(baseName).slice(1).toUpperCase()} Package Bundle`,
+              ],
               ["Preview source", pdfRel],
               ["Paragraphs", String(blocks.length)],
             ],
@@ -1290,7 +1582,12 @@ export async function inspectPackageDirectoryRich(
         }
       }
     }
-    const xmlRel = all.find((f) => /(?:^|\/)(?:index\.xml|index\.apxl|contents\.xml|data\.plist)$/i.test(f)) ?? all.find((f) => /\.(?:xml|apxl|plist)$/i.test(f));
+    const xmlRel =
+      all.find((f) =>
+        /(?:^|\/)(?:index\.xml|index\.apxl|contents\.xml|data\.plist)$/i.test(
+          f,
+        ),
+      ) ?? all.find((f) => /\.(?:xml|apxl|plist)$/i.test(f));
     if (xmlRel) {
       const xml = await readPart(xmlRel, 2 * 1024 * 1024);
       const parsed = parseGenericXmlDocumentBlocks(xml, maxTotalBlocks);
@@ -1300,7 +1597,10 @@ export async function inspectPackageDirectoryRich(
           formatLabel: `macOS Package Document (${nodePath.extname(baseName).toUpperCase()})`,
           title: parsed.title || stemTitle,
           meta: [
-            ["Package format", `${nodePath.extname(baseName).slice(1).toUpperCase()} Package Bundle`],
+            [
+              "Package format",
+              `${nodePath.extname(baseName).slice(1).toUpperCase()} Package Bundle`,
+            ],
             ["Content XML", xmlRel],
           ],
           blocks: parsed.blocks,
@@ -1313,15 +1613,28 @@ export async function inspectPackageDirectoryRich(
 
   // 7. Unpacked .epub or .ibooks package directory (contains META-INF/container.xml or .opf)
   const hasContainer = await readPart("META-INF/container.xml", 16 * 1024);
-  if (!hasContainer && !lowerName.endsWith(".epub") && !lowerName.endsWith(".ibooks")) {
-    const topFiles = await fsp.readdir(resolvedRoot).catch(() => [] as string[]);
+  if (
+    !hasContainer &&
+    !lowerName.endsWith(".epub") &&
+    !lowerName.endsWith(".ibooks")
+  ) {
+    const topFiles = await fsp
+      .readdir(resolvedRoot)
+      .catch(() => [] as string[]);
     if (!topFiles.some((f) => /\.opf$/i.test(f))) return null;
   }
 
   return await inspectEpubFromReader(
     readPart,
     listRelPaths,
-    [["Package format", lowerName.endsWith(".ibooks") ? "Apple Books (.ibooks) Bundle" : "macOS EPUB Bundle"]],
+    [
+      [
+        "Package format",
+        lowerName.endsWith(".ibooks")
+          ? "Apple Books (.ibooks) Bundle"
+          : "macOS EPUB Bundle",
+      ],
+    ],
     hasThumb,
     limits,
   );
@@ -1331,7 +1644,10 @@ export async function inspectPackageDirectoryRich(
  * Extracts all chapters and blocks from either an unpacked `.epub` directory bundle or a zipped `.epub` file,
  * without preview-only chapter caps so Phonon Voice Reader can read entire books from cover to cover.
  */
-export async function extractFullEpubRich(filePath: string, isDir: boolean): Promise<RichDocumentPreview | null> {
+export async function extractFullEpubRich(
+  filePath: string,
+  isDir: boolean,
+): Promise<RichDocumentPreview | null> {
   const fullLimits: EpubInspectLimits = {
     maxChapters: 2000,
     maxBlocksPerChapter: 10_000,
@@ -1348,7 +1664,10 @@ export async function extractFullEpubRich(filePath: string, isDir: boolean): Pro
   try {
     const entries = await readCentralDirectory(handle, st.size);
     const byName = new Map(entries.map((e) => [e.name, e]));
-    const readPart = async (name: string, limit = 4 * 1024 * 1024): Promise<string> => {
+    const readPart = async (
+      name: string,
+      limit = 4 * 1024 * 1024,
+    ): Promise<string> => {
       const e = byName.get(name);
       if (!e || e.isDir || (e.flags & 1) !== 0) return "";
       try {
@@ -1357,11 +1676,24 @@ export async function extractFullEpubRich(filePath: string, isDir: boolean): Pro
         return "";
       }
     };
-    const listRelPaths = async () => entries.filter((e) => !e.isDir).map((e) => e.name);
-    const epubRich = await inspectEpubFromReader(readPart, listRelPaths, [], false, fullLimits);
+    const listRelPaths = async () =>
+      entries.filter((e) => !e.isDir).map((e) => e.name);
+    const epubRich = await inspectEpubFromReader(
+      readPart,
+      listRelPaths,
+      [],
+      false,
+      fullLimits,
+    );
     if (epubRich) return epubRich;
     const ext = nodePath.extname(filePath).slice(1).toLowerCase();
-    const zipRich = await inspectZipBasedRich(handle, filePath, st.size, ext, false);
+    const zipRich = await inspectZipBasedRich(
+      handle,
+      filePath,
+      st.size,
+      ext,
+      false,
+    );
     return zipRich && zipRich.kind === "document" ? zipRich : null;
   } catch {
     return null;
@@ -1370,21 +1702,43 @@ export async function extractFullEpubRich(filePath: string, isDir: boolean): Pro
   }
 }
 
-async function inspectZipBasedRich(handle: fsp.FileHandle, path: string, size: number, ext: string, hasThumb: boolean): Promise<RichPreview | null> {
+async function inspectZipBasedRich(
+  handle: fsp.FileHandle,
+  path: string,
+  size: number,
+  ext: string,
+  hasThumb: boolean,
+): Promise<RichPreview | null> {
   if (ext === "xlsx" || ext === "ods" || ext === "xlsm") {
     try {
       const wb = await readSpreadsheet(path);
-      const docMeta = await zipDocument(handle, size, ext).catch(() => ({ groups: [], kind: "Spreadsheet" }));
+      const docMeta = await zipDocument(handle, size, ext).catch(() => ({
+        groups: [],
+        kind: "Spreadsheet",
+      }));
       return {
         kind: "spreadsheet",
-        formatLabel: ext === "ods" ? "OpenDocument Spreadsheet (ODS)" : "Excel Workbook (XLSX)",
+        formatLabel:
+          ext === "ods"
+            ? "OpenDocument Spreadsheet (ODS)"
+            : "Excel Workbook (XLSX)",
         meta: flattenGroups(docMeta.groups),
         sheets: wb.slice(0, 20).map((s) => {
           const totalRows = s.rows.length;
           const totalCols = s.rows.reduce((m, r) => Math.max(m, r.length), 0);
-          const headers = (s.rows[0] ?? []).slice(0, 50).map((c, i) => String(c || `Col ${i + 1}`));
-          const rows = s.rows.slice(1, 201).map((r) => r.slice(0, 50).map((c) => String(c ?? "")));
-          return { name: s.name, headers, rows, totalRows: Math.max(0, totalRows - 1), totalCols };
+          const headers = (s.rows[0] ?? [])
+            .slice(0, 50)
+            .map((c, i) => String(c || `Col ${i + 1}`));
+          const rows = s.rows
+            .slice(1, 201)
+            .map((r) => r.slice(0, 50).map((c) => String(c ?? "")));
+          return {
+            name: s.name,
+            headers,
+            rows,
+            totalRows: Math.max(0, totalRows - 1),
+            totalCols,
+          };
         }),
         hasThumb,
       };
@@ -1400,7 +1754,10 @@ async function inspectZipBasedRich(handle: fsp.FileHandle, path: string, size: n
     return null;
   }
   const byName = new Map(entries.map((e) => [e.name, e]));
-  const readPart = async (name: string, limit = 1024 * 1024): Promise<string> => {
+  const readPart = async (
+    name: string,
+    limit = 1024 * 1024,
+  ): Promise<string> => {
     const e = byName.get(name);
     if (!e || e.isDir || (e.flags & 1) !== 0) return "";
     try {
@@ -1411,7 +1768,10 @@ async function inspectZipBasedRich(handle: fsp.FileHandle, path: string, size: n
   };
 
   const names = entries.map((e) => e.name);
-  const docMeta = await zipDocument(handle, size, ext).catch(() => ({ groups: [], kind: "Zip archive" }));
+  const docMeta = await zipDocument(handle, size, ext).catch(() => ({
+    groups: [],
+    kind: "Zip archive",
+  }));
   const meta = flattenGroups(docMeta.groups);
 
   // Word document (.docx / .docm)
@@ -1442,7 +1802,9 @@ async function inspectZipBasedRich(handle: fsp.FileHandle, path: string, size: n
   if (slideNames.length > 0) {
     const slides: RichPresentationPreview["slides"] = [];
     for (const sName of slideNames.slice(0, 60)) {
-      const num = Number(/slide(\d+)\.xml/i.exec(sName)?.[1] ?? slides.length + 1);
+      const num = Number(
+        /slide(\d+)\.xml/i.exec(sName)?.[1] ?? slides.length + 1,
+      );
       const xml = await readPart(sName, 512 * 1024);
       let title = "";
       const bullets: string[] = [];
@@ -1463,7 +1825,10 @@ async function inspectZipBasedRich(handle: fsp.FileHandle, path: string, size: n
         }
       }
       if (!title && bullets.length) title = bullets.shift()!;
-      const notesXml = await readPart(`ppt/notesSlides/notesSlide${num}.xml`, 256 * 1024);
+      const notesXml = await readPart(
+        `ppt/notesSlides/notesSlide${num}.xml`,
+        256 * 1024,
+      );
       const notes = notesXml
         ? [...notesXml.matchAll(/<a:t(?:\s[^>]*)?>([\s\S]*?)<\/a:t>/g)]
             .map((t) => decodeEntities(t[1]!))
@@ -1471,9 +1836,19 @@ async function inspectZipBasedRich(handle: fsp.FileHandle, path: string, size: n
             .replace(/\s+/g, " ")
             .trim()
         : "";
-      slides.push({ number: num, title: title || `Slide ${num}`, bullets, ...(notes ? { notes } : {}) });
+      slides.push({
+        number: num,
+        title: title || `Slide ${num}`,
+        bullets,
+        ...(notes ? { notes } : {}),
+      });
     }
-    const plainText = slides.map((s) => `[Slide ${s.number}: ${s.title}]\n${s.bullets.map((b) => `• ${b}`).join("\n")}`).join("\n\n");
+    const plainText = slides
+      .map(
+        (s) =>
+          `[Slide ${s.number}: ${s.title}]\n${s.bullets.map((b) => `• ${b}`).join("\n")}`,
+      )
+      .join("\n\n");
     return {
       kind: "presentation",
       formatLabel: "PowerPoint Presentation (PPTX)",
@@ -1486,22 +1861,38 @@ async function inspectZipBasedRich(handle: fsp.FileHandle, path: string, size: n
 
   // OpenDocument Text (.odt) or Presentation (.odp)
   const mimetype = (await readPart("mimetype", 1024)).trim();
-  if (byName.has("content.xml") && (mimetype.includes("opendocument") || ext === "odt" || ext === "odp")) {
+  if (
+    byName.has("content.xml") &&
+    (mimetype.includes("opendocument") || ext === "odt" || ext === "odp")
+  ) {
     const contentXml = await readPart("content.xml", 2 * 1024 * 1024);
     const metaXml = await readPart("meta.xml", 256 * 1024);
-    if (mimetype.includes("presentation") || ext === "odp" || contentXml.includes("<draw:page")) {
+    if (
+      mimetype.includes("presentation") ||
+      ext === "odp" ||
+      contentXml.includes("<draw:page")
+    ) {
       const slides: RichPresentationPreview["slides"] = [];
       let idx = 1;
-      for (const page of contentXml.matchAll(/<draw:page\b([\s\S]*?)<\/draw:page>/g)) {
+      for (const page of contentXml.matchAll(
+        /<draw:page\b([\s\S]*?)<\/draw:page>/g,
+      )) {
         const pageAttr = page[1]!;
         const pageName = /draw:name="([^"]+)"/.exec(pageAttr)?.[1] ?? "";
-        const paras = [...page[0].matchAll(/<text:p\b[^>]*>([\s\S]*?)<\/text:p>/g)]
+        const paras = [
+          ...page[0].matchAll(/<text:p\b[^>]*>([\s\S]*?)<\/text:p>/g),
+        ]
           .map((p) => decodeEntities(p[1]!.replace(/<[^>]+>/g, "")).trim())
           .filter(Boolean);
         const title = paras.shift() || pageName || `Slide ${idx}`;
         slides.push({ number: idx++, title, bullets: paras });
       }
-      const plainText = slides.map((s) => `[Slide ${s.number}: ${s.title}]\n${s.bullets.map((b) => `• ${b}`).join("\n")}`).join("\n\n");
+      const plainText = slides
+        .map(
+          (s) =>
+            `[Slide ${s.number}: ${s.title}]\n${s.bullets.map((b) => `• ${b}`).join("\n")}`,
+        )
+        .join("\n\n");
       return {
         kind: "presentation",
         formatLabel: "OpenDocument Presentation (ODP)",
@@ -1516,7 +1907,10 @@ async function inspectZipBasedRich(handle: fsp.FileHandle, path: string, size: n
       kind: "document",
       formatLabel: "OpenDocument Text (ODT)",
       title: xmlText(metaXml, "dc:title") || undefined,
-      author: xmlText(metaXml, "dc:creator") || xmlText(metaXml, "meta:initial-creator") || undefined,
+      author:
+        xmlText(metaXml, "dc:creator") ||
+        xmlText(metaXml, "meta:initial-creator") ||
+        undefined,
       meta,
       blocks,
       plainText,
@@ -1525,7 +1919,13 @@ async function inspectZipBasedRich(handle: fsp.FileHandle, path: string, size: n
   }
 
   // EPUB / iBooks E-Book (.epub, .ibooks)
-  if (mimetype === "application/epub+zip" || mimetype.includes("ibooks") || byName.has("META-INF/container.xml") || ext === "epub" || ext === "ibooks") {
+  if (
+    mimetype === "application/epub+zip" ||
+    mimetype.includes("ibooks") ||
+    byName.has("META-INF/container.xml") ||
+    ext === "epub" ||
+    ext === "ibooks"
+  ) {
     const epubRich = await inspectEpubFromReader(
       readPart,
       async () => entries.filter((e) => !e.isDir).map((e) => e.name),
@@ -1538,11 +1938,20 @@ async function inspectZipBasedRich(handle: fsp.FileHandle, path: string, size: n
   // Zipped Apple iWork (.pages, .numbers, .key) or Omni/MindNode (.oo3, .mindnode, .graffle) package
   if (["pages", "numbers", "key", "oo3", "mindnode", "graffle"].includes(ext)) {
     const stemTitle = nodePath.basename(path).replace(/\.[^.]+$/, "");
-    const pdfEntry = entries.find((e) => !e.isDir && /(?:^|\/)Preview\.pdf$/i.test(e.name));
+    const pdfEntry = entries.find(
+      (e) => !e.isDir && /(?:^|\/)Preview\.pdf$/i.test(e.name),
+    );
     if (pdfEntry && (pdfEntry.flags & 1) === 0) {
       try {
-        const pdfBytes = await readZipEntry(handle, size, pdfEntry, 4 * 1024 * 1024);
-        const { text: pdfText, outline } = extractPdfStreamsText(pdfBytes.toString("latin1"));
+        const pdfBytes = await readZipEntry(
+          handle,
+          size,
+          pdfEntry,
+          4 * 1024 * 1024,
+        );
+        const { text: pdfText, outline } = extractPdfStreamsText(
+          pdfBytes.toString("latin1"),
+        );
         if (pdfText.trim()) {
           const blocks: DocBlock[] = pdfText
             .split(/\n{2,}/)
@@ -1562,7 +1971,13 @@ async function inspectZipBasedRich(handle: fsp.FileHandle, path: string, size: n
         }
       } catch {}
     }
-    const xmlEntry = entries.find((e) => !e.isDir && /(?:^|\/)(?:index\.xml|index\.apxl|contents\.xml|data\.plist)$/i.test(e.name));
+    const xmlEntry = entries.find(
+      (e) =>
+        !e.isDir &&
+        /(?:^|\/)(?:index\.xml|index\.apxl|contents\.xml|data\.plist)$/i.test(
+          e.name,
+        ),
+    );
     if (xmlEntry) {
       const xml = await readPart(xmlEntry.name, 2 * 1024 * 1024);
       const parsed = parseGenericXmlDocumentBlocks(xml, 300);
@@ -1619,15 +2034,21 @@ async function inspectZipBasedRich(handle: fsp.FileHandle, path: string, size: n
 // PDF Text & Metadata Extraction
 // ---------------------------------------------------------------------------------------------------------------
 
-function extractPdfStreamsText(rawLatin1: string): { text: string; outline: string[] } {
+function extractPdfStreamsText(rawLatin1: string): {
+  text: string;
+  outline: string[];
+} {
   const outline: string[] = [];
   const pieces: string[] = [];
 
   const extractBtEt = (streamContent: string) => {
-    for (const bt of streamContent.matchAll(/\bBT\b([\s\S]{1,65536}?)\bET\b/g)) {
+    for (const bt of streamContent.matchAll(
+      /\bBT\b([\s\S]{1,65536}?)\bET\b/g,
+    )) {
       const block = bt[1]!;
       const lineParts: string[] = [];
-      const tokRe = /\((?:\\.|[^\\()])*\)\s*(?:Tj|'|")|<[0-9a-fA-F\s]+>\s*Tj|\[([\s\S]*?)\]\s*TJ|\b(?:Td|TD|T\*)\b/g;
+      const tokRe =
+        /\((?:\\.|[^\\()])*\)\s*(?:Tj|'|")|<[0-9a-fA-F\s]+>\s*Tj|\[([\s\S]*?)\]\s*TJ|\b(?:Td|TD|T\*)\b/g;
       let m: RegExpExecArray | null;
       while ((m = tokRe.exec(block)) !== null) {
         const tok = m[0]!;
@@ -1635,7 +2056,9 @@ function extractPdfStreamsText(rawLatin1: string): { text: string; outline: stri
           lineParts.push("\n");
         } else if (m[1] !== undefined) {
           const arr = m[1]!;
-          for (const sub of arr.matchAll(/\((?:\\.|[^\\()])*\)|<[0-9a-fA-F\s]+>|-?\d+(?:\.\d+)?/g)) {
+          for (const sub of arr.matchAll(
+            /\((?:\\.|[^\\()])*\)|<[0-9a-fA-F\s]+>|-?\d+(?:\.\d+)?/g,
+          )) {
             const st = sub[0]!;
             if (st.startsWith("(") || st.startsWith("<")) {
               lineParts.push(pdfString(st));
@@ -1646,12 +2069,20 @@ function extractPdfStreamsText(rawLatin1: string): { text: string; outline: stri
         } else {
           const strEnd = tok.lastIndexOf(")");
           const hexEnd = tok.lastIndexOf(">");
-          const rawLit = strEnd > 0 ? tok.slice(0, strEnd + 1) : hexEnd > 0 ? tok.slice(0, hexEnd + 1) : tok;
+          const rawLit =
+            strEnd > 0
+              ? tok.slice(0, strEnd + 1)
+              : hexEnd > 0
+                ? tok.slice(0, hexEnd + 1)
+                : tok;
           lineParts.push(pdfString(rawLit));
           if (tok.endsWith("'") || tok.endsWith('"')) lineParts.push("\n");
         }
       }
-      const joined = lineParts.join("").replace(/[ \t]+/g, " ").trim();
+      const joined = lineParts
+        .join("")
+        .replace(/[ \t]+/g, " ")
+        .trim();
       if (joined) pieces.push(joined);
     }
   };
@@ -1667,8 +2098,10 @@ function extractPdfStreamsText(rawLatin1: string): { text: string; outline: stri
     const prevCh = rawLatin1[sIdx - 1] ?? "";
     if (/[a-zA-Z]/.test(prevCh)) continue;
     let dataStart = sIdx + 6;
-    if (rawLatin1[dataStart] === "\r" && rawLatin1[dataStart + 1] === "\n") dataStart += 2;
-    else if (rawLatin1[dataStart] === "\n" || rawLatin1[dataStart] === "\r") dataStart += 1;
+    if (rawLatin1[dataStart] === "\r" && rawLatin1[dataStart + 1] === "\n")
+      dataStart += 2;
+    else if (rawLatin1[dataStart] === "\n" || rawLatin1[dataStart] === "\r")
+      dataStart += 1;
     else continue;
     const eIdx = rawLatin1.indexOf("endstream", dataStart);
     if (eIdx < 0) break;
@@ -1696,7 +2129,9 @@ function extractPdfStreamsText(rawLatin1: string): { text: string; outline: stri
     }
   }
 
-  for (const m of rawLatin1.matchAll(/\/Title\s*(\((?:\\.|[^\\()])*\)|<[0-9a-fA-F]+>)/g)) {
+  for (const m of rawLatin1.matchAll(
+    /\/Title\s*(\((?:\\.|[^\\()])*\)|<[0-9a-fA-F]+>)/g,
+  )) {
     const t = pdfString(m[1]!).trim();
     if (t && !outline.includes(t) && outline.length < 60) outline.push(t);
   }
@@ -1704,11 +2139,16 @@ function extractPdfStreamsText(rawLatin1: string): { text: string; outline: stri
   return { text: pieces.join("\n\n").slice(0, 32_000), outline };
 }
 
-async function inspectPdfRich(src: Source, hasThumb: boolean): Promise<RichPdfPreview> {
+async function inspectPdfRich(
+  src: Source,
+  hasThumb: boolean,
+): Promise<RichPdfPreview> {
   const info = await parsePdf(src);
   const groups = pdfGroups(info);
   const headBuf = await src.read(0, Math.min(src.size, 4 * 1024 * 1024));
-  const { text: extractedText, outline } = extractPdfStreamsText(headBuf.toString("latin1"));
+  const { text: extractedText, outline } = extractPdfStreamsText(
+    headBuf.toString("latin1"),
+  );
   return {
     kind: "pdf",
     formatLabel: `PDF Document${info.version ? ` (v${info.version})` : ""}`,
@@ -1728,16 +2168,26 @@ async function inspectPdfRich(src: Source, hasThumb: boolean): Promise<RichPdfPr
 // SQLite Rich Table & Sample Row Inspector
 // ---------------------------------------------------------------------------------------------------------------
 
-async function inspectSqliteRich(src: Source, path: string): Promise<RichSqlitePreview> {
-  const base = await sqliteInfo(src).catch(() => ({ groups: [], kind: "SQLite database" }));
+async function inspectSqliteRich(
+  src: Source,
+  path: string,
+): Promise<RichSqlitePreview> {
+  const base = await sqliteInfo(src).catch(() => ({
+    groups: [],
+    kind: "SQLite database",
+  }));
   const meta = flattenGroups(base.groups);
   const tables: RichSqlitePreview["tables"] = [];
   let db: Database | null = null;
   try {
     db = new Database(path, { readonly: true });
-    try { db.exec("PRAGMA trusted_schema = OFF; PRAGMA cell_size_check = ON;"); } catch {}
+    try {
+      db.exec("PRAGMA trusted_schema = OFF; PRAGMA cell_size_check = ON;");
+    } catch {}
     const master = db
-      .query("SELECT name, type, sql FROM sqlite_master WHERE type IN ('table', 'view') AND name NOT LIKE 'sqlite_%' ORDER BY type ASC, name ASC LIMIT 25")
+      .query(
+        "SELECT name, type, sql FROM sqlite_master WHERE type IN ('table', 'view') AND name NOT LIKE 'sqlite_%' ORDER BY type ASC, name ASC LIMIT 25",
+      )
       .all() as Array<{ name: string; type: "table" | "view"; sql?: string }>;
     for (const item of master) {
       const safeIdent = `"${item.name.replace(/"/g, '""')}"`;
@@ -1745,17 +2195,33 @@ async function inspectSqliteRich(src: Source, path: string): Promise<RichSqliteP
       if (item.type === "table") {
         try {
           if (src.size > 16 * 1024 * 1024) {
-            const est = db.query(`SELECT COALESCE(MAX(_rowid_), 0) AS n FROM ${safeIdent}`).get() as { n?: number } | null;
+            const est = db
+              .query(`SELECT COALESCE(MAX(_rowid_), 0) AS n FROM ${safeIdent}`)
+              .get() as { n?: number } | null;
             rowCount = Number(est?.n ?? 0);
           } else {
-            const c = db.query(`SELECT COUNT(*) AS n FROM ${safeIdent}`).get() as { n?: number } | null;
+            const c = db
+              .query(`SELECT COUNT(*) AS n FROM ${safeIdent}`)
+              .get() as { n?: number } | null;
             rowCount = Number(c?.n ?? 0);
           }
         } catch {}
       }
-      let columns: Array<{ name: string; type: string; pk: boolean; notnull: boolean }> = [];
+      let columns: Array<{
+        name: string;
+        type: string;
+        pk: boolean;
+        notnull: boolean;
+      }> = [];
       try {
-        const cols = db.query(`PRAGMA table_info(${safeIdent})`).all() as Array<{ name: string; type: string; pk: number; notnull: number }>;
+        const cols = db
+          .query(`PRAGMA table_info(${safeIdent})`)
+          .all() as Array<{
+          name: string;
+          type: string;
+          pk: number;
+          notnull: number;
+        }>;
         columns = cols.map((col) => ({
           name: String(col.name),
           type: String(col.type || "ANY"),
@@ -1766,16 +2232,24 @@ async function inspectSqliteRich(src: Source, path: string): Promise<RichSqliteP
       const rows: string[][] = [];
       if (item.type === "table") {
         try {
-          const rawRows = db.query(`SELECT * FROM ${safeIdent} LIMIT 50`).all() as Array<Record<string, unknown>>;
+          const rawRows = db
+            .query(`SELECT * FROM ${safeIdent} LIMIT 50`)
+            .all() as Array<Record<string, unknown>>;
           if (!columns.length && rawRows[0]) {
-            columns = Object.keys(rawRows[0]).map((k) => ({ name: k, type: "ANY", pk: false, notnull: false }));
+            columns = Object.keys(rawRows[0]).map((k) => ({
+              name: k,
+              type: "ANY",
+              pk: false,
+              notnull: false,
+            }));
           }
           for (const r of rawRows) {
             rows.push(
               columns.map((c) => {
                 const v = r[c.name];
                 if (v === null || v === undefined) return "—";
-                if (v instanceof Uint8Array || Buffer.isBuffer(v)) return `<BLOB ${v.byteLength} B>`;
+                if (v instanceof Uint8Array || Buffer.isBuffer(v))
+                  return `<BLOB ${v.byteLength} B>`;
                 return clip(String(v), 200);
               }),
             );
@@ -1794,7 +2268,9 @@ async function inspectSqliteRich(src: Source, path: string): Promise<RichSqliteP
   } catch {
     // Fallback to header-only metadata when locked or corrupt
   } finally {
-    try { db?.close(); } catch {}
+    try {
+      db?.close();
+    } catch {}
   }
   return {
     kind: "sqlite",
@@ -1809,30 +2285,53 @@ async function inspectSqliteRich(src: Source, path: string): Promise<RichSqliteP
 // ---------------------------------------------------------------------------------------------------------------
 
 /** Parses subtitle and lyric files (`.srt`, `.vtt`, `.sbv`, `.ass`, `.ssa`, `.lrc`) into a `RichSubtitlesPreview`. */
-export function parseSubtitlesRich(text: string, ext: string): RichSubtitlesPreview {
+export function parseSubtitlesRich(
+  text: string,
+  ext: string,
+): RichSubtitlesPreview {
   const clean = text.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
   const cues: RichSubtitlesPreview["cues"] = [];
   const meta: Array<[string, string]> = [];
 
   if (ext === "lrc") {
     for (const m of clean.matchAll(/^\[(ti|ar|al|by|offset):([^\]]*)\]/gim)) {
-      const labels: Record<string, string> = { ti: "Title", ar: "Artist", al: "Album", by: "Creator", offset: "Offset (ms)" };
-      if (m[2]?.trim()) meta.push([labels[m[1]!.toLowerCase()] ?? m[1]!, m[2].trim()]);
+      const labels: Record<string, string> = {
+        ti: "Title",
+        ar: "Artist",
+        al: "Album",
+        by: "Creator",
+        offset: "Offset (ms)",
+      };
+      if (m[2]?.trim())
+        meta.push([labels[m[1]!.toLowerCase()] ?? m[1]!, m[2].trim()]);
     }
     for (const line of clean.split("\n")) {
       const m = /^\[(\d{1,3}:\d{2}(?:\.\d{1,3})?)\](.*)$/.exec(line.trim());
       if (m) {
-        cues.push({ index: cues.length + 1, start: m[1]!, end: "", text: m[2]!.trim() || "♪" });
+        cues.push({
+          index: cues.length + 1,
+          start: m[1]!,
+          end: "",
+          text: m[2]!.trim() || "♪",
+        });
       }
     }
   } else if (ext === "ass" || ext === "ssa") {
     for (const line of clean.split("\n")) {
       if (/^Title:/i.test(line)) meta.push(["Title", line.slice(6).trim()]);
-      else if (/^PlayResX:/i.test(line)) meta.push(["Resolution X", line.slice(9).trim()]);
-      else if (/^PlayResY:/i.test(line)) meta.push(["Resolution Y", line.slice(9).trim()]);
-      const d = /^Dialogue:\s*[^,]*,([^,]+),([^,]+),[^,]*,([^,]*),[^,]*,[^,]*,[^,]*,[^,]*,(.*)$/i.exec(line);
+      else if (/^PlayResX:/i.test(line))
+        meta.push(["Resolution X", line.slice(9).trim()]);
+      else if (/^PlayResY:/i.test(line))
+        meta.push(["Resolution Y", line.slice(9).trim()]);
+      const d =
+        /^Dialogue:\s*[^,]*,([^,]+),([^,]+),[^,]*,([^,]*),[^,]*,[^,]*,[^,]*,[^,]*,(.*)$/i.exec(
+          line,
+        );
       if (d) {
-        const cueText = d[4]!.replace(/\{[^}]*\}/g, "").replace(/\\N/gi, "\n").trim();
+        const cueText = d[4]!
+          .replace(/\{[^}]*\}/g, "")
+          .replace(/\\N/gi, "\n")
+          .trim();
         if (cueText) {
           cues.push({
             index: cues.length + 1,
@@ -1847,12 +2346,25 @@ export function parseSubtitlesRich(text: string, ext: string): RichSubtitlesPrev
   } else {
     const blocks = clean.split(/\n{2,}/);
     for (const block of blocks) {
-      const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
-      if (!lines.length || lines[0]!.startsWith("WEBVTT") || lines[0]!.startsWith("NOTE")) continue;
-      let timeLineIdx = lines.findIndex((l) => l.includes("-->") || /^\d+:\d{2}:\d{2}\.\d+,\d+:\d{2}:\d{2}\.\d+$/.test(l));
+      const lines = block
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean);
+      if (
+        !lines.length ||
+        lines[0]!.startsWith("WEBVTT") ||
+        lines[0]!.startsWith("NOTE")
+      )
+        continue;
+      let timeLineIdx = lines.findIndex(
+        (l) =>
+          l.includes("-->") ||
+          /^\d+:\d{2}:\d{2}\.\d+,\d+:\d{2}:\d{2}\.\d+$/.test(l),
+      );
       if (timeLineIdx < 0) continue;
       const timeLine = lines[timeLineIdx]!;
-      let start = "", end = "";
+      let start = "",
+        end = "";
       if (timeLine.includes("-->")) {
         const parts = timeLine.split("-->");
         start = parts[0]!.trim();
@@ -1862,15 +2374,23 @@ export function parseSubtitlesRich(text: string, ext: string): RichSubtitlesPrev
         start = parts[0]!.trim();
         end = (parts[1] ?? "").trim();
       }
-      const cueText = lines.slice(timeLineIdx + 1).join("\n").replace(/<[^>]+>/g, "").trim();
-      if (cueText) cues.push({ index: cues.length + 1, start, end, text: cueText });
+      const cueText = lines
+        .slice(timeLineIdx + 1)
+        .join("\n")
+        .replace(/<[^>]+>/g, "")
+        .trim();
+      if (cueText)
+        cues.push({ index: cues.length + 1, start, end, text: cueText });
     }
   }
 
   meta.unshift(["Cues", String(cues.length)]);
   if (cues.length) {
     meta.push(["First cue", cues[0]!.start]);
-    meta.push(["Last cue", cues[cues.length - 1]!.end || cues[cues.length - 1]!.start]);
+    meta.push([
+      "Last cue",
+      cues[cues.length - 1]!.end || cues[cues.length - 1]!.start,
+    ]);
   }
   const labels: Record<string, string> = {
     srt: "SubRip Subtitles (SRT)",
@@ -1890,11 +2410,23 @@ export function parseSubtitlesRich(text: string, ext: string): RichSubtitlesPrev
 }
 
 /** Parses media playlist files (`.m3u`, `.m3u8`, `.pls`) into a `RichPlaylistPreview`. */
-export function parsePlaylistRich(text: string, ext: string): RichPlaylistPreview {
-  const lines = text.replace(/\r\n?/g, "\n").split("\n").map((l) => l.trim()).filter(Boolean);
+export function parsePlaylistRich(
+  text: string,
+  ext: string,
+): RichPlaylistPreview {
+  const lines = text
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
   const tracks: RichPlaylistPreview["tracks"] = [];
   const meta: Array<[string, string]> = [];
-  const isHls = lines.some((l) => l.startsWith("#EXT-X-VERSION") || l.startsWith("#EXT-X-TARGETDURATION") || l.startsWith("#EXT-X-STREAM-INF"));
+  const isHls = lines.some(
+    (l) =>
+      l.startsWith("#EXT-X-VERSION") ||
+      l.startsWith("#EXT-X-TARGETDURATION") ||
+      l.startsWith("#EXT-X-STREAM-INF"),
+  );
 
   if (ext === "pls") {
     const titles = new Map<string, string>();
@@ -1913,7 +2445,11 @@ export function parsePlaylistRich(text: string, ext: string): RichPlaylistPrevie
       tracks.push({
         index: tracks.length + 1,
         title: titles.get(idx) || nodePath.basename(path),
-        ...(secs > 0 ? { duration: `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}` } : {}),
+        ...(secs > 0
+          ? {
+              duration: `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`,
+            }
+          : {}),
         path,
       });
     }
@@ -1925,7 +2461,10 @@ export function parsePlaylistRich(text: string, ext: string): RichPlaylistPrevie
         const m = /^#EXTINF:(-?\d+(?:\.\d+)?)[^,]*,(.*)$/.exec(line);
         if (m) {
           const secs = Math.round(Number(m[1]));
-          pendingDur = secs > 0 ? `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}` : "";
+          pendingDur =
+            secs > 0
+              ? `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`
+              : "";
           pendingTitle = m[2]!.trim();
         }
       } else if (line.startsWith("#EXT-X-")) {
@@ -1946,7 +2485,11 @@ export function parsePlaylistRich(text: string, ext: string): RichPlaylistPrevie
   meta.unshift(["Tracks / segments", String(tracks.length)]);
   return {
     kind: "playlist",
-    formatLabel: isHls ? "HLS Media Playlist (M3U8)" : ext === "pls" ? "Audio Playlist (PLS)" : "Media Playlist (M3U)",
+    formatLabel: isHls
+      ? "HLS Media Playlist (M3U8)"
+      : ext === "pls"
+        ? "Audio Playlist (PLS)"
+        : "Media Playlist (M3U)",
     meta,
     tracks: tracks.slice(0, 300),
   };
@@ -1957,7 +2500,10 @@ export function parsePlaylistRich(text: string, ext: string): RichPlaylistPrevie
 // ---------------------------------------------------------------------------------------------------------------
 
 function unfoldIcsLines(text: string): string[] {
-  return text.replace(/\r\n?/g, "\n").replace(/\n[ \t]/g, "").split("\n");
+  return text
+    .replace(/\r\n?/g, "\n")
+    .replace(/\n[ \t]/g, "")
+    .split("\n");
 }
 
 function formatIcsDate(raw: string): string {
@@ -1989,9 +2535,18 @@ export function parseCalendarRich(text: string): RichCalendarPreview {
           start: formatIcsDate(cur.DTSTART || ""),
           ...(cur.DTEND ? { end: formatIcsDate(cur.DTEND) } : {}),
           ...(cur.LOCATION ? { location: cur.LOCATION } : {}),
-          ...(cur.ORGANIZER ? { organizer: cur.ORGANIZER.replace(/^mailto:/i, "") } : {}),
+          ...(cur.ORGANIZER
+            ? { organizer: cur.ORGANIZER.replace(/^mailto:/i, "") }
+            : {}),
           ...(cur.STATUS ? { status: cur.STATUS } : {}),
-          ...(cur.DESCRIPTION ? { description: cur.DESCRIPTION.replace(/\\n/gi, "\n").replace(/\\,/g, ",") } : {}),
+          ...(cur.DESCRIPTION
+            ? {
+                description: cur.DESCRIPTION.replace(/\\n/gi, "\n").replace(
+                  /\\,/g,
+                  ",",
+                ),
+              }
+            : {}),
         });
       }
       cur = null;
@@ -2034,7 +2589,8 @@ export function parseContactRich(text: string): RichContactPreview {
     }
     if (/^END:VCARD$/i.test(trimmed)) {
       if (cur) {
-        if (!cur.fullName) cur.fullName = cur.emails[0] || cur.phones[0] || "Contact";
+        if (!cur.fullName)
+          cur.fullName = cur.emails[0] || cur.phones[0] || "Contact";
         contacts.push(cur);
       }
       cur = null;
@@ -2045,15 +2601,21 @@ export function parseContactRich(text: string): RichContactPreview {
     if (colon < 0) continue;
     const rawKey = trimmed.slice(0, colon);
     const key = rawKey.split(";")[0]!.toUpperCase();
-    const val = trimmed.slice(colon + 1).replace(/\\;/g, ";").replace(/\\n/gi, ", ").trim();
+    const val = trimmed
+      .slice(colon + 1)
+      .replace(/\\;/g, ";")
+      .replace(/\\n/gi, ", ")
+      .trim();
     if (!val) continue;
     if (key === "FN") cur.fullName = val;
-    else if (key === "N" && !cur.fullName) cur.fullName = val.split(";").filter(Boolean).reverse().join(" ");
+    else if (key === "N" && !cur.fullName)
+      cur.fullName = val.split(";").filter(Boolean).reverse().join(" ");
     else if (key === "ORG") cur.org = val.replace(/;/g, " · ");
     else if (key === "TITLE") cur.title = val;
     else if (key === "TEL") cur.phones.push(val);
     else if (key === "EMAIL") cur.emails.push(val);
-    else if (key === "ADR") cur.addresses.push(val.split(";").filter(Boolean).join(", "));
+    else if (key === "ADR")
+      cur.addresses.push(val.split(";").filter(Boolean).join(", "));
     else if (key === "URL") cur.url = val;
     else if (key === "NOTE") cur.note = val;
   }
@@ -2076,18 +2638,35 @@ function extractDerReadableStrings(der: Buffer): Array<[string, string]> {
   for (let i = 0; i < der.length - 4; i++) {
     const tag = der[i]!;
     const len = der[i + 1]!;
-    if ((tag === 0x0c || tag === 0x13 || tag === 0x16) && len >= 2 && len <= 120 && i + 2 + len <= der.length) {
+    if (
+      (tag === 0x0c || tag === 0x13 || tag === 0x16) &&
+      len >= 2 &&
+      len <= 120 &&
+      i + 2 + len <= der.length
+    ) {
       const s = der.subarray(i + 2, i + 2 + len).toString("utf8");
       if (/^[\x20-\x7e]+$/.test(s)) {
         strings.push(s);
         i += 1 + len;
       }
-    } else if ((tag === 0x17 || tag === 0x18) && len >= 10 && len <= 20 && i + 2 + len <= der.length) {
+    } else if (
+      (tag === 0x17 || tag === 0x18) &&
+      len >= 10 &&
+      len <= 20 &&
+      i + 2 + len <= der.length
+    ) {
       const d = der.subarray(i + 2, i + 2 + len).toString("ascii");
       if (/^\d{10,14}Z$/.test(d)) {
-        const yr = d.length >= 15 ? d.slice(0, 4) : Number(d.slice(0, 2)) >= 50 ? `19${d.slice(0, 2)}` : `20${d.slice(0, 2)}`;
+        const yr =
+          d.length >= 15
+            ? d.slice(0, 4)
+            : Number(d.slice(0, 2)) >= 50
+              ? `19${d.slice(0, 2)}`
+              : `20${d.slice(0, 2)}`;
         const rest = d.length >= 15 ? d.slice(4) : d.slice(2);
-        dates.push(`${yr}-${rest.slice(0, 2)}-${rest.slice(2, 4)} ${rest.slice(4, 6)}:${rest.slice(6, 8)} UTC`);
+        dates.push(
+          `${yr}-${rest.slice(0, 2)}-${rest.slice(2, 4)} ${rest.slice(4, 6)}:${rest.slice(6, 8)} UTC`,
+        );
         i += 1 + len;
       }
     }
@@ -2095,19 +2674,32 @@ function extractDerReadableStrings(der: Buffer): Array<[string, string]> {
   if (dates[0]) details.push(["Valid from", dates[0]]);
   if (dates[1]) details.push(["Valid until", dates[1]]);
   const uniqueStrings = [...new Set(strings)].slice(0, 12);
-  if (uniqueStrings.length) details.push(["Subject / Issuer fields", uniqueStrings.join(" · ")]);
+  if (uniqueStrings.length)
+    details.push(["Subject / Issuer fields", uniqueStrings.join(" · ")]);
   return details;
 }
 
 /** Parses PEM, DER, or OpenSSH public key/certificate content into a `RichCertificatePreview` with fingerprints and ASN.1 fields. */
-export function parseCertificateRich(buf: Buffer, text: string, ext: string): RichCertificatePreview {
+export function parseCertificateRich(
+  buf: Buffer,
+  text: string,
+  ext: string,
+): RichCertificatePreview {
   const blocks: RichCertificatePreview["blocks"] = [];
-  if (ext === "pub" || /^(?:ssh-(?:rsa|ed25519|dss)|ecdsa-sha2-nistp\d+)\s+/i.test(text.trim())) {
+  if (
+    ext === "pub" ||
+    /^(?:ssh-(?:rsa|ed25519|dss)|ecdsa-sha2-nistp\d+)\s+/i.test(text.trim())
+  ) {
     for (const line of text.split(/\r?\n/)) {
-      const m = /^(ssh-\S+|ecdsa-\S+)\s+([A-Za-z0-9+/=]+)(?:\s+(.*))?$/.exec(line.trim());
+      const m = /^(ssh-\S+|ecdsa-\S+)\s+([A-Za-z0-9+/=]+)(?:\s+(.*))?$/.exec(
+        line.trim(),
+      );
       if (!m) continue;
       const raw = Buffer.from(m[2]!, "base64");
-      const sha256 = createHash("sha256").update(raw).digest("base64").replace(/=+$/, "");
+      const sha256 = createHash("sha256")
+        .update(raw)
+        .digest("base64")
+        .replace(/=+$/, "");
       const sha1 = createHash("sha1").update(raw).digest("hex");
       blocks.push({
         label: `SSH Public Key (${m[1]})`,
@@ -2121,12 +2713,26 @@ export function parseCertificateRich(buf: Buffer, text: string, ext: string): Ri
       });
     }
   }
-  for (const m of text.matchAll(/-----BEGIN ([A-Z0-9 -]+)-----([\s\S]*?)-----END \1-----/g)) {
+  for (const m of text.matchAll(
+    /-----BEGIN ([A-Z0-9 -]+)-----([\s\S]*?)-----END \1-----/g,
+  )) {
     const label = m[1]!;
     const b64 = m[2]!.replace(/\s+/g, "");
     const der = Buffer.from(b64, "base64");
-    const sha256 = createHash("sha256").update(der).digest("hex").toUpperCase().match(/.{2}/g)?.join(":") ?? "";
-    const sha1 = createHash("sha1").update(der).digest("hex").toUpperCase().match(/.{2}/g)?.join(":") ?? "";
+    const sha256 =
+      createHash("sha256")
+        .update(der)
+        .digest("hex")
+        .toUpperCase()
+        .match(/.{2}/g)
+        ?.join(":") ?? "";
+    const sha1 =
+      createHash("sha1")
+        .update(der)
+        .digest("hex")
+        .toUpperCase()
+        .match(/.{2}/g)
+        ?.join(":") ?? "";
     blocks.push({
       label,
       bytes: der.length,
@@ -2136,8 +2742,20 @@ export function parseCertificateRich(buf: Buffer, text: string, ext: string): Ri
     });
   }
   if (!blocks.length && buf.length > 16 && buf[0] === 0x30) {
-    const sha256 = createHash("sha256").update(buf).digest("hex").toUpperCase().match(/.{2}/g)?.join(":") ?? "";
-    const sha1 = createHash("sha1").update(buf).digest("hex").toUpperCase().match(/.{2}/g)?.join(":") ?? "";
+    const sha256 =
+      createHash("sha256")
+        .update(buf)
+        .digest("hex")
+        .toUpperCase()
+        .match(/.{2}/g)
+        ?.join(":") ?? "";
+    const sha1 =
+      createHash("sha1")
+        .update(buf)
+        .digest("hex")
+        .toUpperCase()
+        .match(/.{2}/g)
+        ?.join(":") ?? "";
     blocks.push({
       label: "DER Certificate / ASN.1 Structure",
       bytes: buf.length,
@@ -2158,27 +2776,45 @@ export function parseCertificateRich(buf: Buffer, text: string, ext: string): Ri
 // 3D Models (.obj, .stl, .ply, .gltf, .glb)
 // ---------------------------------------------------------------------------------------------------------------
 
-function normalizeWireframe(verts: Array<[number, number, number]>, rawEdges: Array<[number, number]>): {
+function normalizeWireframe(
+  verts: Array<[number, number, number]>,
+  rawEdges: Array<[number, number]>,
+): {
   vertices: Array<[number, number, number]>;
   edges: Array<[number, number]>;
   boundsText: string;
 } {
   if (!verts.length) return { vertices: [], edges: [], boundsText: "" };
-  let minX = Infinity, minY = Infinity, minZ = Infinity;
-  let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+  let minX = Infinity,
+    minY = Infinity,
+    minZ = Infinity;
+  let maxX = -Infinity,
+    maxY = -Infinity,
+    maxZ = -Infinity;
   for (const [x, y, z] of verts) {
-    if (x < minX) minX = x; if (x > maxX) maxX = x;
-    if (y < minY) minY = y; if (y > maxY) maxY = y;
-    if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+    if (z < minZ) minZ = z;
+    if (z > maxZ) maxZ = z;
   }
-  const dx = maxX - minX, dy = maxY - minY, dz = maxZ - minZ;
+  const dx = maxX - minX,
+    dy = maxY - minY,
+    dz = maxZ - minZ;
   const maxSpan = Math.max(dx, dy, dz, 1e-6);
-  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2, cz = (minZ + maxZ) / 2;
+  const cx = (minX + maxX) / 2,
+    cy = (minY + maxY) / 2,
+    cz = (minZ + maxZ) / 2;
   const maxVerts = 1200;
   const stride = Math.max(1, Math.floor(verts.length / maxVerts));
   const normVerts: Array<[number, number, number]> = [];
   const indexMap = new Map<number, number>();
-  for (let i = 0; i < verts.length && normVerts.length < maxVerts; i += stride) {
+  for (
+    let i = 0;
+    i < verts.length && normVerts.length < maxVerts;
+    i += stride
+  ) {
     const [x, y, z] = verts[i]!;
     indexMap.set(i, normVerts.length);
     normVerts.push([
@@ -2205,7 +2841,11 @@ function normalizeWireframe(verts: Array<[number, number, number]>, rawEdges: Ar
 }
 
 /** Parses 3D model files (`.obj`, `.stl`, `.ply`, `.gltf`, `.glb`) into a `RichModel3dPreview` with normalized wireframe geometry and metadata. */
-export function parseModel3dRich(buf: Buffer, text: string, ext: string): RichModel3dPreview {
+export function parseModel3dRich(
+  buf: Buffer,
+  text: string,
+  ext: string,
+): RichModel3dPreview {
   const verts: Array<[number, number, number]> = [];
   const rawEdges: Array<[number, number]> = [];
   const meta: Array<[string, string]> = [];
@@ -2221,7 +2861,11 @@ export function parseModel3dRich(buf: Buffer, text: string, ext: string): RichMo
       if (s.startsWith("v ")) {
         totalVerts++;
         const parts = s.slice(2).trim().split(/\s+/).map(Number);
-        if (parts.length >= 3 && parts.every(Number.isFinite) && verts.length < 5000) {
+        if (
+          parts.length >= 3 &&
+          parts.every(Number.isFinite) &&
+          verts.length < 5000
+        ) {
           verts.push([parts[0]!, parts[1]!, parts[2]!]);
         }
       } else if (s.startsWith("vn ")) {
@@ -2230,7 +2874,8 @@ export function parseModel3dRich(buf: Buffer, text: string, ext: string): RichMo
         uvs++;
       } else if (s.startsWith("o ") || s.startsWith("g ")) {
         const name = s.slice(2).trim();
-        if (name && objects.length < 10 && !objects.includes(name)) objects.push(name);
+        if (name && objects.length < 10 && !objects.includes(name))
+          objects.push(name);
       } else if (s.startsWith("f ")) {
         totalFaces++;
         if (rawEdges.length < 3000) {
@@ -2246,21 +2891,33 @@ export function parseModel3dRich(buf: Buffer, text: string, ext: string): RichMo
         }
       }
     }
-    meta.push(["Vertices", totalVerts.toLocaleString("en-US")], ["Faces", totalFaces.toLocaleString("en-US")]);
+    meta.push(
+      ["Vertices", totalVerts.toLocaleString("en-US")],
+      ["Faces", totalFaces.toLocaleString("en-US")],
+    );
     if (normals) meta.push(["Normals", normals.toLocaleString("en-US")]);
     if (uvs) meta.push(["UV coordinates", uvs.toLocaleString("en-US")]);
     if (objects.length) meta.push(["Objects / groups", objects.join(", ")]);
   } else if (ext === "stl") {
-    const isAscii = text.trimStart().startsWith("solid") && text.includes("facet") && text.includes("vertex");
+    const isAscii =
+      text.trimStart().startsWith("solid") &&
+      text.includes("facet") &&
+      text.includes("vertex");
     if (isAscii) {
       let tri: number[] = [];
-      for (const m of text.matchAll(/vertex\s+([-+\d.eE]+)\s+([-+\d.eE]+)\s+([-+\d.eE]+)/g)) {
+      for (const m of text.matchAll(
+        /vertex\s+([-+\d.eE]+)\s+([-+\d.eE]+)\s+([-+\d.eE]+)/g,
+      )) {
         const idx = verts.length;
         verts.push([Number(m[1]), Number(m[2]), Number(m[3])]);
         tri.push(idx);
         if (tri.length === 3) {
           totalFaces++;
-          rawEdges.push([tri[0]!, tri[1]!], [tri[1]!, tri[2]!], [tri[2]!, tri[0]!]);
+          rawEdges.push(
+            [tri[0]!, tri[1]!],
+            [tri[1]!, tri[2]!],
+            [tri[2]!, tri[0]!],
+          );
           tri = [];
         }
       }
@@ -2274,26 +2931,46 @@ export function parseModel3dRich(buf: Buffer, text: string, ext: string): RichMo
         const base = verts.length;
         for (let v = 0; v < 3; v++) {
           const vo = off + v * 12;
-          verts.push([buf.readFloatLE(vo), buf.readFloatLE(vo + 4), buf.readFloatLE(vo + 8)]);
+          verts.push([
+            buf.readFloatLE(vo),
+            buf.readFloatLE(vo + 4),
+            buf.readFloatLE(vo + 8),
+          ]);
         }
         rawEdges.push([base, base + 1], [base + 1, base + 2], [base + 2, base]);
       }
     }
-    meta.push(["Triangles", totalFaces.toLocaleString("en-US")], ["Vertices", totalVerts.toLocaleString("en-US")]);
+    meta.push(
+      ["Triangles", totalFaces.toLocaleString("en-US")],
+      ["Vertices", totalVerts.toLocaleString("en-US")],
+    );
   } else if (ext === "ply") {
     const endHdr = text.indexOf("end_header");
     const hdr = endHdr >= 0 ? text.slice(0, endHdr) : text.slice(0, 2000);
     totalVerts = Number(/element\s+vertex\s+(\d+)/i.exec(hdr)?.[1] ?? 0);
     totalFaces = Number(/element\s+face\s+(\d+)/i.exec(hdr)?.[1] ?? 0);
     const fmt = /format\s+(\S+)/i.exec(hdr)?.[1] ?? "ascii";
-    meta.push(["Format", fmt], ["Vertices", totalVerts.toLocaleString("en-US")], ["Faces", totalFaces.toLocaleString("en-US")]);
+    meta.push(
+      ["Format", fmt],
+      ["Vertices", totalVerts.toLocaleString("en-US")],
+      ["Faces", totalFaces.toLocaleString("en-US")],
+    );
     if (fmt === "ascii" && endHdr >= 0) {
-      const bodyLines = text.slice(endHdr + 10).trim().split(/\r?\n/);
+      const bodyLines = text
+        .slice(endHdr + 10)
+        .trim()
+        .split(/\r?\n/);
       for (let i = 0; i < Math.min(totalVerts, bodyLines.length, 2000); i++) {
         const nums = bodyLines[i]!.trim().split(/\s+/).map(Number);
-        if (nums.length >= 3 && nums.every(Number.isFinite)) verts.push([nums[0]!, nums[1]!, nums[2]!]);
+        if (nums.length >= 3 && nums.every(Number.isFinite))
+          verts.push([nums[0]!, nums[1]!, nums[2]!]);
       }
-      for (let i = totalVerts; i < Math.min(totalVerts + totalFaces, bodyLines.length, totalVerts + 1000); i++) {
+      for (
+        let i = totalVerts;
+        i <
+        Math.min(totalVerts + totalFaces, bodyLines.length, totalVerts + 1000);
+        i++
+      ) {
         const nums = bodyLines[i]!.trim().split(/\s+/).map(Number);
         const cnt = nums[0] ?? 0;
         if (cnt >= 3 && nums.length >= cnt + 1) {
@@ -2305,7 +2982,11 @@ export function parseModel3dRich(buf: Buffer, text: string, ext: string): RichMo
     }
   } else if (ext === "gltf" || ext === "glb") {
     let jsonStr = text;
-    if (ext === "glb" && buf.length >= 20 && buf.readUInt32LE(0) === 0x46546c67) {
+    if (
+      ext === "glb" &&
+      buf.length >= 20 &&
+      buf.readUInt32LE(0) === 0x46546c67
+    ) {
       const chunkLen = buf.readUInt32LE(12);
       const chunkType = buf.readUInt32LE(16);
       if (chunkType === 0x4e4f534a && 20 + chunkLen <= buf.length) {
@@ -2315,7 +2996,8 @@ export function parseModel3dRich(buf: Buffer, text: string, ext: string): RichMo
     try {
       const gltf = JSON.parse(jsonStr);
       meta.push(["glTF version", String(gltf.asset?.version ?? "2.0")]);
-      if (gltf.asset?.generator) meta.push(["Generator", String(gltf.asset.generator)]);
+      if (gltf.asset?.generator)
+        meta.push(["Generator", String(gltf.asset.generator)]);
       meta.push(["Meshes", String((gltf.meshes ?? []).length)]);
       meta.push(["Nodes", String((gltf.nodes ?? []).length)]);
       meta.push(["Materials", String((gltf.materials ?? []).length)]);
@@ -2350,7 +3032,10 @@ export function parseNotebookRich(text: string): RichNotebookPreview | null {
   try {
     const nb = JSON.parse(text);
     if (!nb || typeof nb !== "object" || !Array.isArray(nb.cells)) return null;
-    const kernel = nb.metadata?.kernelspec?.display_name || nb.metadata?.kernelspec?.name || "";
+    const kernel =
+      nb.metadata?.kernelspec?.display_name ||
+      nb.metadata?.kernelspec?.name ||
+      "";
     const lang = nb.metadata?.language_info?.name || "python";
     const meta: Array<[string, string]> = [
       ["Cells", String(nb.cells.length)],
@@ -2358,34 +3043,65 @@ export function parseNotebookRich(text: string): RichNotebookPreview | null {
       ...(kernel ? [["Kernel", String(kernel)] as [string, string]] : []),
       ["Notebook format", `v${nb.nbformat ?? 4}.${nb.nbformat_minor ?? 0}`],
     ];
-    const joinLines = (v: unknown): string => (Array.isArray(v) ? v.map(String).join("") : typeof v === "string" ? v : "");
-    const cells: RichNotebookPreview["cells"] = nb.cells.slice(0, 150).map((c: any, idx: number) => {
-      const cellType = c.cell_type === "markdown" ? "markdown" : c.cell_type === "code" ? "code" : "raw";
-      const outputs: NonNullable<RichNotebookPreview["cells"][number]["outputs"]> = [];
-      if (Array.isArray(c.outputs)) {
-        for (const o of c.outputs.slice(0, 10)) {
-          if (o.output_type === "stream") {
-            outputs.push({ kind: "text", text: joinLines(o.text).slice(0, 4000) });
-          } else if (o.output_type === "error") {
-            outputs.push({ kind: "error", text: `${o.ename || "Error"}: ${o.evalue || ""}\n${joinLines(o.traceback).replace(/\x1b\[[0-9;]*m/g, "")}`.slice(0, 4000) });
-          } else if (o.data && typeof o.data === "object") {
-            if (o.data["image/png"]) {
-              const b64 = joinLines(o.data["image/png"]).replace(/\s+/g, "");
-              outputs.push({ kind: "image", mime: "image/png", dataUrl: `data:image/png;base64,${b64}` });
-            } else if (o.data["text/plain"]) {
-              outputs.push({ kind: "text", text: joinLines(o.data["text/plain"]).slice(0, 4000) });
+    const joinLines = (v: unknown): string =>
+      Array.isArray(v)
+        ? v.map(String).join("")
+        : typeof v === "string"
+          ? v
+          : "";
+    const cells: RichNotebookPreview["cells"] = nb.cells
+      .slice(0, 150)
+      .map((c: any, idx: number) => {
+        const cellType =
+          c.cell_type === "markdown"
+            ? "markdown"
+            : c.cell_type === "code"
+              ? "code"
+              : "raw";
+        const outputs: NonNullable<
+          RichNotebookPreview["cells"][number]["outputs"]
+        > = [];
+        if (Array.isArray(c.outputs)) {
+          for (const o of c.outputs.slice(0, 10)) {
+            if (o.output_type === "stream") {
+              outputs.push({
+                kind: "text",
+                text: joinLines(o.text).slice(0, 4000),
+              });
+            } else if (o.output_type === "error") {
+              outputs.push({
+                kind: "error",
+                text: `${o.ename || "Error"}: ${o.evalue || ""}\n${joinLines(o.traceback).replace(/\x1b\[[0-9;]*m/g, "")}`.slice(
+                  0,
+                  4000,
+                ),
+              });
+            } else if (o.data && typeof o.data === "object") {
+              if (o.data["image/png"]) {
+                const b64 = joinLines(o.data["image/png"]).replace(/\s+/g, "");
+                outputs.push({
+                  kind: "image",
+                  mime: "image/png",
+                  dataUrl: `data:image/png;base64,${b64}`,
+                });
+              } else if (o.data["text/plain"]) {
+                outputs.push({
+                  kind: "text",
+                  text: joinLines(o.data["text/plain"]).slice(0, 4000),
+                });
+              }
             }
           }
         }
-      }
-      return {
-        index: idx + 1,
-        cellType,
-        executionCount: typeof c.execution_count === "number" ? c.execution_count : null,
-        source: joinLines(c.source),
-        ...(outputs.length ? { outputs } : {}),
-      };
-    });
+        return {
+          index: idx + 1,
+          cellType,
+          executionCount:
+            typeof c.execution_count === "number" ? c.execution_count : null,
+          source: joinLines(c.source),
+          ...(outputs.length ? { outputs } : {}),
+        };
+      });
     return {
       kind: "notebook",
       formatLabel: `Jupyter Notebook (${lang})`,
@@ -2410,14 +3126,26 @@ export function parseDiffRich(text: string): RichDiffPreview {
       curFile = null;
       curHunk = null;
     } else if (line.startsWith("--- ")) {
-      curFile = { oldFile: line.slice(4).trim(), newFile: "", added: 0, removed: 0, hunks: [] };
+      curFile = {
+        oldFile: line.slice(4).trim(),
+        newFile: "",
+        added: 0,
+        removed: 0,
+        hunks: [],
+      };
       files.push(curFile);
       curHunk = null;
     } else if (line.startsWith("+++ ") && curFile) {
       curFile.newFile = line.slice(4).trim();
     } else if (line.startsWith("@@")) {
       if (!curFile) {
-        curFile = { oldFile: "patch", newFile: "patch", added: 0, removed: 0, hunks: [] };
+        curFile = {
+          oldFile: "patch",
+          newFile: "patch",
+          added: 0,
+          removed: 0,
+          hunks: [],
+        };
         files.push(curFile);
       }
       curHunk = { header: line, lines: [] };
@@ -2456,11 +3184,20 @@ export function parseLogRich(text: string): RichLogPreview {
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i]!;
     if (!raw.trim()) continue;
-    const tsMatch = /^(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?|\w{3}\s+\d+\s+\d{2}:\d{2}:\d{2})/.exec(raw);
-    const lvlMatch = /\b(FATAL|CRITICAL|ERROR|ERR|WARN|WARNING|INFO|DEBUG|TRACE)\b/i.exec(raw);
+    const tsMatch =
+      /^(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?|\w{3}\s+\d+\s+\d{2}:\d{2}:\d{2})/.exec(
+        raw,
+      );
+    const lvlMatch =
+      /\b(FATAL|CRITICAL|ERROR|ERR|WARN|WARNING|INFO|DEBUG|TRACE)\b/i.exec(raw);
     const rawLvl = (lvlMatch?.[1] ?? "").toUpperCase();
     let level: RichLogPreview["entries"][number]["level"] = "OTHER";
-    if (rawLvl === "ERROR" || rawLvl === "ERR" || rawLvl === "FATAL" || rawLvl === "CRITICAL") {
+    if (
+      rawLvl === "ERROR" ||
+      rawLvl === "ERR" ||
+      rawLvl === "FATAL" ||
+      rawLvl === "CRITICAL"
+    ) {
       level = "ERROR";
       counts.error++;
     } else if (rawLvl === "WARN" || rawLvl === "WARNING") {
@@ -2507,13 +3244,25 @@ function inspectWasm(buf: Buffer): Array<[string, string]> {
   const ver = buf.readUInt32LE(4);
   const meta: Array<[string, string]> = [["WebAssembly version", String(ver)]];
   const secNames: Record<number, string> = {
-    0: "Custom", 1: "Type", 2: "Import", 3: "Function", 4: "Table", 5: "Memory",
-    6: "Global", 7: "Export", 8: "Start", 9: "Element", 10: "Code", 11: "Data", 12: "DataCount",
+    0: "Custom",
+    1: "Type",
+    2: "Import",
+    3: "Function",
+    4: "Table",
+    5: "Memory",
+    6: "Global",
+    7: "Export",
+    8: "Start",
+    9: "Element",
+    10: "Code",
+    11: "Data",
+    12: "DataCount",
   };
   const sections: string[] = [];
   let pos = 8;
   const readLebU32 = (): number => {
-    let res = 0, shift = 0;
+    let res = 0,
+      shift = 0;
     while (pos < buf.length && shift < 35) {
       const b = buf[pos++]!;
       res |= (b & 0x7f) << shift;
@@ -2552,18 +3301,62 @@ function inspectJavaClass(buf: Buffer): Array<[string, string]> {
 // Structured Data Inspector (.json, .jsonl, .yaml, .toml, .ini, .env, .properties, .xml, .plist)
 // ---------------------------------------------------------------------------------------------------------------
 
-function inspectStructuredText(text: string, ext: string, baseName: string): RichStructuredPreview | null {
+function inspectStructuredText(
+  text: string,
+  ext: string,
+  baseName: string,
+): RichStructuredPreview | null {
   const lowerBase = baseName.toLowerCase();
-  const isEnv = ext === "env" || lowerBase === ".env" || lowerBase.startsWith(".env.");
-  const isIni = ["ini", "cfg", "conf", "editorconfig", "gitconfig", "npmrc", "desktop"].includes(ext) || [".editorconfig", ".gitconfig", ".npmrc"].includes(lowerBase);
+  const isEnv =
+    ext === "env" || lowerBase === ".env" || lowerBase.startsWith(".env.");
+  const isIni =
+    [
+      "ini",
+      "cfg",
+      "conf",
+      "editorconfig",
+      "gitconfig",
+      "npmrc",
+      "desktop",
+    ].includes(ext) ||
+    [".editorconfig", ".gitconfig", ".npmrc"].includes(lowerBase);
   const isProps = ext === "properties";
   const isJsonl = ext === "jsonl" || ext === "ndjson";
-  const isJson = ["json", "jsonc", "json5", "geojson", "webmanifest", "har"].includes(ext) || [".babelrc", ".eslintrc", ".prettierrc", "tsconfig.json"].includes(lowerBase);
+  const isJson =
+    ["json", "jsonc", "json5", "geojson", "webmanifest", "har"].includes(ext) ||
+    [".babelrc", ".eslintrc", ".prettierrc", "tsconfig.json"].includes(
+      lowerBase,
+    );
   const isYaml = ext === "yaml" || ext === "yml";
-  const isToml = ext === "toml" || lowerBase === "cargo.lock" || lowerBase === "poetry.lock";
-  const isXml = ["xml", "plist", "xsd", "xsl", "xslt", "rss", "atom", "gpx", "kml", "csproj", "vcxproj", "resx", "wsdl"].includes(ext);
+  const isToml =
+    ext === "toml" || lowerBase === "cargo.lock" || lowerBase === "poetry.lock";
+  const isXml = [
+    "xml",
+    "plist",
+    "xsd",
+    "xsl",
+    "xslt",
+    "rss",
+    "atom",
+    "gpx",
+    "kml",
+    "csproj",
+    "vcxproj",
+    "resx",
+    "wsdl",
+  ].includes(ext);
 
-  if (!isEnv && !isIni && !isProps && !isJsonl && !isJson && !isYaml && !isToml && !isXml) return null;
+  if (
+    !isEnv &&
+    !isIni &&
+    !isProps &&
+    !isJsonl &&
+    !isJson &&
+    !isYaml &&
+    !isToml &&
+    !isXml
+  )
+    return null;
 
   try {
     const notes = new Notes();
@@ -2596,15 +3389,33 @@ function inspectStructuredText(text: string, ext: string, baseName: string): Ric
       formatLabel = "TOML Configuration";
       data = parseData("toml", text, DEFAULT_DATA_OPTIONS, notes);
     } else if (isXml) {
-      subkind = ext === "plist" || text.includes("<!DOCTYPE plist") ? "plist" : "xml";
-      formatLabel = subkind === "plist" ? "Property List (XML Plist)" : `XML Document (${ext.toUpperCase()})`;
-      data = parseData(subkind === "plist" ? "plist" : "xml", text, DEFAULT_DATA_OPTIONS, notes);
+      subkind =
+        ext === "plist" || text.includes("<!DOCTYPE plist") ? "plist" : "xml";
+      formatLabel =
+        subkind === "plist"
+          ? "Property List (XML Plist)"
+          : `XML Document (${ext.toUpperCase()})`;
+      data = parseData(
+        subkind === "plist" ? "plist" : "xml",
+        text,
+        DEFAULT_DATA_OPTIONS,
+        notes,
+      );
     } else {
       subkind = ext === "geojson" ? "geojson" : "json";
-      formatLabel = ext === "geojson" ? "GeoJSON Features" : ext === "webmanifest" ? "Web App Manifest" : "JSON Data";
-      const stripped = ext === "jsonc" || ext === "json5" || lowerBase === "tsconfig.json"
-        ? text.replace(/^\s*\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "").replace(/,(\s*[}\]])/g, "$1")
-        : text;
+      formatLabel =
+        ext === "geojson"
+          ? "GeoJSON Features"
+          : ext === "webmanifest"
+            ? "Web App Manifest"
+            : "JSON Data";
+      const stripped =
+        ext === "jsonc" || ext === "json5" || lowerBase === "tsconfig.json"
+          ? text
+              .replace(/^\s*\/\/.*$/gm, "")
+              .replace(/\/\*[\s\S]*?\*\//g, "")
+              .replace(/,(\s*[}\]])/g, "$1")
+          : text;
       data = JSON.parse(stripped);
     }
 
@@ -2617,8 +3428,14 @@ function inspectStructuredText(text: string, ext: string, baseName: string): Ric
     }
 
     const isTabularData =
-      (Array.isArray(data) && data.length > 0 && data.every((r) => isObj(r) || Array.isArray(r))) ||
-      (isObj(data) && Object.values(data).length === 1 && Array.isArray(Object.values(data)[0]) && (Object.values(data)[0] as unknown[]).length > 0 && (Object.values(data)[0] as unknown[]).every(isObj));
+      (Array.isArray(data) &&
+        data.length > 0 &&
+        data.every((r) => isObj(r) || Array.isArray(r))) ||
+      (isObj(data) &&
+        Object.values(data).length === 1 &&
+        Array.isArray(Object.values(data)[0]) &&
+        (Object.values(data)[0] as unknown[]).length > 0 &&
+        (Object.values(data)[0] as unknown[]).every(isObj));
 
     if (isTabularData) {
       const extracted = toTable(data as Value, { flatten: true, notes });
@@ -2626,13 +3443,24 @@ function inspectStructuredText(text: string, ext: string, baseName: string): Ric
         const colCount = Math.min(40, extracted.columns.length);
         table = {
           headers: extracted.columns.slice(0, colCount),
-          rows: extracted.rows.slice(0, 200).map((r) => r.slice(0, colCount).map((v) => {
-            return v === null || v === undefined ? "" : typeof v === "object" ? JSON.stringify(v) : String(v);
-          })),
+          rows: extracted.rows.slice(0, 200).map((r) =>
+            r.slice(0, colCount).map((v) => {
+              return v === null || v === undefined
+                ? ""
+                : typeof v === "object"
+                  ? JSON.stringify(v)
+                  : String(v);
+            }),
+          ),
           totalRows: extracted.rows.length,
         };
       }
-    } else if ((subkind === "env" || subkind === "ini") && data && typeof data === "object" && !Array.isArray(data)) {
+    } else if (
+      (subkind === "env" || subkind === "ini") &&
+      data &&
+      typeof data === "object" &&
+      !Array.isArray(data)
+    ) {
       const rows: string[][] = [];
       for (const [k, v] of Object.entries(data as Record<string, unknown>)) {
         if (v && typeof v === "object" && !Array.isArray(v)) {
@@ -2643,7 +3471,12 @@ function inspectStructuredText(text: string, ext: string, baseName: string): Ric
           rows.push([k, String(v ?? "")]);
         }
       }
-      if (rows.length) table = { headers: ["Key", "Value"], rows: rows.slice(0, 200), totalRows: rows.length };
+      if (rows.length)
+        table = {
+          headers: ["Key", "Value"],
+          rows: rows.slice(0, 200),
+          totalRows: rows.length,
+        };
     }
 
     return {
@@ -2679,7 +3512,10 @@ export async function inspectRichPreview(
   const sniff = sniffType(head);
 
   // 1. Apple Binary Property List (bplist00)
-  if (head.length >= 8 && head.subarray(0, 8).toString("ascii") === "bplist00") {
+  if (
+    head.length >= 8 &&
+    head.subarray(0, 8).toString("ascii") === "bplist00"
+  ) {
     const fullBuf = size <= 2 * 1024 * 1024 ? await src.read(0, size) : head;
     const parsed = parseBinaryPlist(fullBuf);
     if (parsed !== null) {
@@ -2690,7 +3526,14 @@ export async function inspectRichPreview(
         formatLabel: "Apple Binary Property List (bplist00)",
         meta: [
           ["Encoding", "Binary Plist v0.0"],
-          ["Top-level type", Array.isArray(parsed) ? `Array (${parsed.length})` : typeof parsed === "object" && parsed ? `Dictionary (${Object.keys(parsed).length} keys)` : typeof parsed],
+          [
+            "Top-level type",
+            Array.isArray(parsed)
+              ? `Array (${parsed.length})`
+              : typeof parsed === "object" && parsed
+                ? `Dictionary (${Object.keys(parsed).length} keys)`
+                : typeof parsed,
+          ],
         ],
         data: parsed,
         formattedText,
@@ -2699,7 +3542,10 @@ export async function inspectRichPreview(
   }
 
   // 2. SQLite Database
-  if (sniff?.kind === "sqlite" || ["sqlite", "sqlite3", "db", "db3", "s3db"].includes(lastExt)) {
+  if (
+    sniff?.kind === "sqlite" ||
+    ["sqlite", "sqlite3", "db", "db3", "s3db"].includes(lastExt)
+  ) {
     if (head.length >= 16 && ascii(head, 0, 16) === "SQLite format 3\0") {
       return await inspectSqliteRich(src, path);
     }
@@ -2711,20 +3557,63 @@ export async function inspectRichPreview(
   }
 
   // 4. ZIP-based Documents, Spreadsheets, Presentations, E-Books & Archives
-  const isZipMagic = head.length >= 4 && head[0] === 0x50 && head[1] === 0x4b && (head[2] === 3 || head[2] === 5 || head[2] === 7);
-  if (isZipMagic || ["zip", "docx", "docm", "xlsx", "xlsm", "pptx", "ppsx", "odt", "ods", "odp", "epub", "jar", "apk", "war", "whl", "vsix", "nupkg", "cbz"].includes(lastExt)) {
-    const zipRich = await inspectZipBasedRich(handle, path, size, lastExt, hasThumb);
+  const isZipMagic =
+    head.length >= 4 &&
+    head[0] === 0x50 &&
+    head[1] === 0x4b &&
+    (head[2] === 3 || head[2] === 5 || head[2] === 7);
+  if (
+    isZipMagic ||
+    [
+      "zip",
+      "docx",
+      "docm",
+      "xlsx",
+      "xlsm",
+      "pptx",
+      "ppsx",
+      "odt",
+      "ods",
+      "odp",
+      "epub",
+      "jar",
+      "apk",
+      "war",
+      "whl",
+      "vsix",
+      "nupkg",
+      "cbz",
+    ].includes(lastExt)
+  ) {
+    const zipRich = await inspectZipBasedRich(
+      handle,
+      path,
+      size,
+      lastExt,
+      hasThumb,
+    );
     if (zipRich) return zipRich;
   }
 
   // 5. TAR, TARGZ, GZIP, ZSTD, BROTLI Archives & Compressed Single Files
-  if (ext === "tar.gz" || lastExt === "tgz" || lastExt === "gz" || sniff?.kind === "gzip") {
-    const gzDoc = await gzipDocument(handle, path, size).catch(() => ({ groups: [], kind: "Gzip archive" }));
+  if (
+    ext === "tar.gz" ||
+    lastExt === "tgz" ||
+    lastExt === "gz" ||
+    sniff?.kind === "gzip"
+  ) {
+    const gzDoc = await gzipDocument(handle, path, size).catch(() => ({
+      groups: [],
+      kind: "Gzip archive",
+    }));
     const meta = flattenGroups(gzDoc.groups);
     let innerText: string | undefined;
     let innerName = name.replace(/\.(?:gz|tgz)$/i, "");
     try {
-      const decomp = gunzipSync(head.subarray(0, Math.min(head.length, 64 * 1024)), { maxOutputLength: 64 * 1024 });
+      const decomp = gunzipSync(
+        head.subarray(0, Math.min(head.length, 64 * 1024)),
+        { maxOutputLength: 64 * 1024 },
+      );
       if (!isTarHeader(decomp) && !decomp.subarray(0, 4096).includes(0)) {
         innerText = new TextDecoder("utf-8").decode(decomp);
       }
@@ -2746,7 +3635,10 @@ export async function inspectRichPreview(
     };
   }
   if (lastExt === "tar" || sniff?.kind === "tar") {
-    const tarDoc = await tarDocument(path, size).catch(() => ({ groups: [], kind: "Tar archive" }));
+    const tarDoc = await tarDocument(path, size).catch(() => ({
+      groups: [],
+      kind: "Tar archive",
+    }));
     return {
       kind: "archive",
       formatLabel: tarDoc.kind || "TAR Archive",
@@ -2763,11 +3655,17 @@ export async function inspectRichPreview(
   if (lastExt === "zst" || sniff?.kind === "zstd" || lastExt === "br") {
     try {
       const raw = size <= 512 * 1024 ? await src.read(0, size) : head;
-      const decomp = lastExt === "br" ? brotliDecompressSync(raw, { maxOutputLength: 64 * 1024 }) : zstdDecompressSync(raw, { maxOutputLength: 64 * 1024 });
+      const decomp =
+        lastExt === "br"
+          ? brotliDecompressSync(raw, { maxOutputLength: 64 * 1024 })
+          : zstdDecompressSync(raw, { maxOutputLength: 64 * 1024 });
       const isText = !decomp.subarray(0, 4096).includes(0);
       return {
         kind: "archive",
-        formatLabel: lastExt === "br" ? "Brotli Compressed File" : "Zstandard Compressed File (.zst)",
+        formatLabel:
+          lastExt === "br"
+            ? "Brotli Compressed File"
+            : "Zstandard Compressed File (.zst)",
         meta: [
           ["Compressed size", humanBytes(size)],
           ["Decompressed preview", humanBytes(decomp.length)],
@@ -2779,16 +3677,31 @@ export async function inspectRichPreview(
         compressed: size,
         encrypted: 0,
         entries: [],
-        ...(isText ? { innerName: name.replace(/\.(?:zst|br)$/i, ""), innerText: new TextDecoder("utf-8").decode(decomp) } : {}),
+        ...(isText
+          ? {
+              innerName: name.replace(/\.(?:zst|br)$/i, ""),
+              innerText: new TextDecoder("utf-8").decode(decomp),
+            }
+          : {}),
       };
     } catch {}
   }
 
   // 6. Fonts (.ttf, .otf, .woff, .woff2, .ttc, .eot)
-  if (sniff?.kind === "ttf" || sniff?.kind === "otf" || sniff?.kind === "woff" || sniff?.kind === "woff2" || ["ttf", "otf", "woff", "woff2", "ttc", "eot"].includes(lastExt)) {
-    const fInfo = await fontInfo(src).catch(() => ({ groups: [], kind: "Font" }));
+  if (
+    sniff?.kind === "ttf" ||
+    sniff?.kind === "otf" ||
+    sniff?.kind === "woff" ||
+    sniff?.kind === "woff2" ||
+    ["ttf", "otf", "woff", "woff2", "ttc", "eot"].includes(lastExt)
+  ) {
+    const fInfo = await fontInfo(src).catch(() => ({
+      groups: [],
+      kind: "Font",
+    }));
     const meta = flattenGroups(fInfo.groups);
-    const family = meta.find(([k]) => k === "Family")?.[1] || name.replace(/\.[^.]+$/, "");
+    const family =
+      meta.find(([k]) => k === "Family")?.[1] || name.replace(/\.[^.]+$/, "");
     const style = meta.find(([k]) => k === "Style")?.[1] || "Regular";
     return {
       kind: "font",
@@ -2796,12 +3709,18 @@ export async function inspectRichPreview(
       family,
       style,
       meta,
-      canRenderSpecimen: ["ttf", "otf", "woff", "woff2", "ttc"].includes(lastExt),
+      canRenderSpecimen: ["ttf", "otf", "woff", "woff2", "ttc"].includes(
+        lastExt,
+      ),
     };
   }
 
   // 7. RTF Document (.rtf or {\rtf magic)
-  const headText = text ?? (head.length ? new TextDecoder("utf-8", { fatal: false }).decode(head) : "");
+  const headText =
+    text ??
+    (head.length
+      ? new TextDecoder("utf-8", { fatal: false }).decode(head)
+      : "");
   if (lastExt === "rtf" || headText.startsWith("{\\rtf")) {
     const { blocks, plainText, meta } = parseRtfDocument(headText);
     return {
@@ -2817,7 +3736,12 @@ export async function inspectRichPreview(
   // 8. FictionBook E-Book (.fb2)
   if (lastExt === "fb2") {
     const title = xmlText(headText, "book-title");
-    const author = [xmlText(headText, "first-name"), xmlText(headText, "last-name")].filter(Boolean).join(" ");
+    const author = [
+      xmlText(headText, "first-name"),
+      xmlText(headText, "last-name"),
+    ]
+      .filter(Boolean)
+      .join(" ");
     const blocks = parseHtmlToBlocks(headText);
     return {
       kind: "document",
@@ -2850,13 +3774,19 @@ export async function inspectRichPreview(
     if (["m3u", "m3u8", "pls"].includes(lastExt)) {
       return parsePlaylistRich(text, lastExt);
     }
-    if (["ics", "ical", "vcs", "ifb"].includes(lastExt) || text.startsWith("BEGIN:VCALENDAR")) {
+    if (
+      ["ics", "ical", "vcs", "ifb"].includes(lastExt) ||
+      text.startsWith("BEGIN:VCALENDAR")
+    ) {
       return parseCalendarRich(text);
     }
     if (["vcf", "vcard"].includes(lastExt) || text.startsWith("BEGIN:VCARD")) {
       return parseContactRich(text);
     }
-    if (["pem", "crt", "cer", "csr", "pub", "asc"].includes(lastExt) || /-----BEGIN [A-Z0-9 -]+-----/.test(text.slice(0, 512))) {
+    if (
+      ["pem", "crt", "cer", "csr", "pub", "asc"].includes(lastExt) ||
+      /-----BEGIN [A-Z0-9 -]+-----/.test(text.slice(0, 512))
+    ) {
       return parseCertificateRich(head, text, lastExt);
     }
     if (lastExt === "diff" || lastExt === "patch") {
@@ -2877,7 +3807,9 @@ export async function inspectRichPreview(
 
   // 12. Executables, WASM, Java Class, & Arbitrary Binary Files
   const meta: Array<[string, string]> = [];
-  let formatLabel = sniff?.label || (lastExt ? `${lastExt.toUpperCase()} Binary File` : "Binary File");
+  let formatLabel =
+    sniff?.label ||
+    (lastExt ? `${lastExt.toUpperCase()} Binary File` : "Binary File");
   if (sniff?.kind === "pe" || lastExt === "exe" || lastExt === "dll") {
     const pe = await peInfo(src).catch(() => null);
     if (pe) {
@@ -2906,7 +3838,10 @@ export async function inspectRichPreview(
       meta.push(...jc);
     }
   }
-  meta.push(["Size", `${humanBytes(size)} (${size.toLocaleString("en-US")} bytes)`]);
+  meta.push([
+    "Size",
+    `${humanBytes(size)} (${size.toLocaleString("en-US")} bytes)`,
+  ]);
   meta.push(["Entropy", `${shannonEntropy(head)} bits/byte`]);
 
   return {
@@ -2923,7 +3858,10 @@ export async function inspectRichPreview(
  * package directory bundles, zipped `.epub` books, and rich binary document files (`.pdf`, `.docx`,
  * `.odt`, `.rtf`, `.fb2`, `.pptx`, `.odp`, `.xlsx`, `.ods`).
  */
-export async function extractReadableDocumentText(absPath: string, maxChars = 24_000): Promise<string | null> {
+export async function extractReadableDocumentText(
+  absPath: string,
+  maxChars = 24_000,
+): Promise<string | null> {
   const st = await fsp.stat(absPath).catch(() => null);
   if (!st) return null;
 
@@ -2932,7 +3870,10 @@ export async function extractReadableDocumentText(absPath: string, maxChars = 24
       rich.title ? `Title: ${rich.title}` : "",
       rich.author ? `Author: ${rich.author}` : "",
       rich.chapters?.length
-        ? `Chapters (${rich.chapters.length}): ${rich.chapters.slice(0, 40).map((c) => c.title).join(" · ")}`
+        ? `Chapters (${rich.chapters.length}): ${rich.chapters
+            .slice(0, 40)
+            .map((c) => c.title)
+            .join(" · ")}`
         : "",
     ]
       .filter(Boolean)
@@ -2940,7 +3881,9 @@ export async function extractReadableDocumentText(absPath: string, maxChars = 24
     const body =
       rich.plainText?.trim() ||
       rich.blocks
-        .map((b) => ("rows" in b ? b.rows.map((r) => r.join(" | ")).join("\n") : b.text))
+        .map((b) =>
+          "rows" in b ? b.rows.map((r) => r.join(" | ")).join("\n") : b.text,
+        )
         .filter(Boolean)
         .join("\n\n");
     return [header, body].filter(Boolean).join("\n\n").trim();
@@ -2966,14 +3909,36 @@ export async function extractReadableDocumentText(absPath: string, maxChars = 24
   const lastExt = ext.includes(".") ? ext.slice(ext.lastIndexOf(".") + 1) : ext;
 
   if (lastExt === "epub" || lastExt === "ibooks") {
-    const epubRich = await extractFullEpubRich(absPath, false).catch(() => null);
+    const epubRich = await extractFullEpubRich(absPath, false).catch(
+      () => null,
+    );
     if (epubRich && epubRich.kind === "document") {
       const full = formatDocRich(epubRich);
       if (full) return full.length > maxChars ? full.slice(0, maxChars) : full;
     }
   }
 
-  if (["docx", "odt", "rtf", "fb2", "pdf", "pptx", "ppsx", "odp", "xlsx", "xlsm", "ods", "pages", "numbers", "key", "oo3", "mindnode", "graffle"].includes(lastExt)) {
+  if (
+    [
+      "docx",
+      "odt",
+      "rtf",
+      "fb2",
+      "pdf",
+      "pptx",
+      "ppsx",
+      "odp",
+      "xlsx",
+      "xlsm",
+      "ods",
+      "pages",
+      "numbers",
+      "key",
+      "oo3",
+      "mindnode",
+      "graffle",
+    ].includes(lastExt)
+  ) {
     const handle = await fsp.open(absPath, "r").catch(() => null);
     if (handle) {
       try {
@@ -2981,7 +3946,14 @@ export async function extractReadableDocumentText(absPath: string, maxChars = 24
         const headBuf = Buffer.alloc(headLen);
         const { bytesRead } = await handle.read(headBuf, 0, headLen, 0);
         const head = headBuf.subarray(0, bytesRead);
-        const rich = await inspectRichPreview(handle, absPath, st.size, head, null, false).catch(() => null);
+        const rich = await inspectRichPreview(
+          handle,
+          absPath,
+          st.size,
+          head,
+          null,
+          false,
+        ).catch(() => null);
         if (rich) {
           let full = "";
           if (rich.kind === "document") {
@@ -2991,16 +3963,29 @@ export async function extractReadableDocumentText(absPath: string, maxChars = 24
           } else if (rich.kind === "presentation") {
             full =
               rich.slides
-                .map((s) => [`Slide ${s.number}${s.title ? `: ${s.title}` : ""}`, ...s.bullets, s.notes ? `Notes: ${s.notes}` : ""].filter(Boolean).join("\n"))
+                .map((s) =>
+                  [
+                    `Slide ${s.number}${s.title ? `: ${s.title}` : ""}`,
+                    ...s.bullets,
+                    s.notes ? `Notes: ${s.notes}` : "",
+                  ]
+                    .filter(Boolean)
+                    .join("\n"),
+                )
                 .join("\n\n") ||
               rich.plainText?.trim() ||
               "";
           } else if (rich.kind === "spreadsheet") {
             full = rich.sheets
-              .map((sh) => `Sheet: ${sh.name}\n` + sh.rows.map((r) => r.join(" | ")).join("\n"))
+              .map(
+                (sh) =>
+                  `Sheet: ${sh.name}\n` +
+                  sh.rows.map((r) => r.join(" | ")).join("\n"),
+              )
               .join("\n\n");
           }
-          if (full) return full.length > maxChars ? full.slice(0, maxChars) : full;
+          if (full)
+            return full.length > maxChars ? full.slice(0, maxChars) : full;
         }
       } finally {
         await handle.close().catch(() => {});
@@ -3010,4 +3995,3 @@ export async function extractReadableDocumentText(absPath: string, maxChars = 24
 
   return null;
 }
-

@@ -77,17 +77,21 @@ export interface IpInfoOptions {
 ## 3. Comprehensive Code Examples
 
 ### Example 1: Lookup Any Target IP Address
+
 ```typescript
 import { queryIp } from "./ipinfoCoordinator.ts";
 
 const googleDns = await queryIp("8.8.8.8");
 console.log(`IP: ${googleDns.ip}`);
 console.log(`Host: ${googleDns.hostname}`);
-console.log(`Location: ${googleDns.city}, ${googleDns.region}, ${googleDns.country}`);
+console.log(
+  `Location: ${googleDns.city}, ${googleDns.region}, ${googleDns.country}`,
+);
 console.log(`Organization: ${googleDns.org}`);
 ```
 
 ### Example 2: Lookup Current Machine Public IP
+
 ```typescript
 import { queryIp } from "./ipinfoCoordinator.ts";
 
@@ -98,16 +102,18 @@ console.log(`Coordinates: ${myIp.loc}`);
 ```
 
 ### Example 3: Extract Specific Property Directly
+
 ```typescript
 import { queryIp } from "./ipinfoCoordinator.ts";
 import { extractField } from "./ipinfoDoers.ts";
 
 const data = await queryIp("1.1.1.1");
-const org = extractField(data, "org");       // "AS13335 Cloudflare, Inc."
+const org = extractField(data, "org"); // "AS13335 Cloudflare, Inc."
 const country = extractField(data, "country"); // "AU"
 ```
 
 ### Example 4: Output to JSON or CSV Formats
+
 ```typescript
 import { queryIp } from "./ipinfoCoordinator.ts";
 import { formatCsv, formatJson } from "./ipinfoDoers.ts";
@@ -118,15 +124,17 @@ const csvStr = formatCsv(data);
 ```
 
 ### Example 5: IP Address Validation
+
 ```typescript
 import { isIpAddress } from "./ipinfoDoers.ts";
 
-console.log(isIpAddress("1.1.1.1"));                  // true
-console.log(isIpAddress("2001:4860:4860::8888"));    // true
-console.log(isIpAddress("google.com"));              // false
+console.log(isIpAddress("1.1.1.1")); // true
+console.log(isIpAddress("2001:4860:4860::8888")); // true
+console.log(isIpAddress("google.com")); // false
 ```
 
 ### Example 6: CIDR Subnet Calculation & Local Network Interfaces
+
 ```typescript
 import {
   calculateSubnet,
@@ -141,7 +149,9 @@ console.log(isCidr("192.168.1.0/24")); // true
 
 // Calculate detailed IPv4 subnet network metrics
 const subnet = calculateSubnet("10.0.0.0/22");
-console.log(`Usable hosts: ${subnet.usableHosts} (${subnet.firstHost} -> ${subnet.lastHost})`);
+console.log(
+  `Usable hosts: ${subnet.usableHosts} (${subnet.firstHost} -> ${subnet.lastHost})`,
+);
 console.log(formatSubnetInfo(subnet));
 
 // Inspect local machine network interfaces
@@ -149,4 +159,3 @@ const interfaces = getLocalInterfaces();
 console.log(`Found ${interfaces.length} local interface(s):`);
 console.log(formatLocalInterfaces(interfaces));
 ```
-

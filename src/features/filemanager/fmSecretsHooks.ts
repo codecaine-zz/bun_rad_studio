@@ -26,12 +26,19 @@ export interface SecretsHooks {
   setTimer(fn: () => void, ms: number): unknown;
   clearTimer(handle: unknown): void;
   /** Used only by the opt-in breach check. */
-  fetch(url: string, init: { headers: Record<string, string>; signal?: AbortSignal }): Promise<{ ok: boolean; status: number; text(): Promise<string> }>;
+  fetch(
+    url: string,
+    init: { headers: Record<string, string>; signal?: AbortSignal },
+  ): Promise<{ ok: boolean; status: number; text(): Promise<string> }>;
   clipboard: { read(): string; write(text: string): boolean };
   /** The operating system's credential store for "Unlock with this computer" (default: `Bun.secrets`). Tests use an in-memory fake. */
   store: CredentialStore;
   /** Replaces the three strength levels (tests use tiny, fast ones). */
-  kdf?: { standard: SecretsKdfParams; strong: SecretsKdfParams; maximum: SecretsKdfParams };
+  kdf?: {
+    standard: SecretsKdfParams;
+    strong: SecretsKdfParams;
+    maximum: SecretsKdfParams;
+  };
   /** Seconds a rotating backup is kept from being replaced by a newer state. 0 = every save may rotate (tests). */
   backupMinIntervalMs?: number;
   /** A test can make the atomic write fail between the temporary file and the rename. */

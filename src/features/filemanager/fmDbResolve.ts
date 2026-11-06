@@ -10,8 +10,21 @@
  */
 import { provenanceText, type EnvView, type Provenance } from "./fmDbEnvView";
 import { readEnvFields } from "./fmDbDetect";
-import { ENGINES, PRIVATE_ENV_PREFIXES, CONTROL_ENV, isEngineVariable, isScrubbedVariable, type DbEngine, type FieldName } from "./fmDbModel";
-import type { DbProfile, EngineSettings, ProfileMeta, RedisProfile } from "./fmDbStore";
+import {
+  ENGINES,
+  PRIVATE_ENV_PREFIXES,
+  CONTROL_ENV,
+  isEngineVariable,
+  isScrubbedVariable,
+  type DbEngine,
+  type FieldName,
+} from "./fmDbModel";
+import type {
+  DbProfile,
+  EngineSettings,
+  ProfileMeta,
+  RedisProfile,
+} from "./fmDbStore";
 import type { ConnectionProfile } from "../../db/profiles";
 
 /** Origin tier for a resolved connection field (`profile`, `defaults`, `env`, `builtin`, or `none`). */
@@ -32,7 +45,17 @@ export interface Resolved {
   engine: DbEngine;
   /** profile: a saved connection; defaults: no connection but File Manager defaults; environment: the studio is left to read the environment itself, as before; builtin: nothing at all. */
   mode: "profile" | "defaults" | "environment" | "builtin";
-  values: { host?: string; port?: number; user?: string; password?: string; database?: string; schema?: string; tls?: boolean; path?: string; dbIndex?: number };
+  values: {
+    host?: string;
+    port?: number;
+    user?: string;
+    password?: string;
+    database?: string;
+    schema?: string;
+    tls?: boolean;
+    path?: string;
+    dbIndex?: number;
+  };
   sources: Partial<Record<FieldName, Source>>;
   /** Connection variables that are set but not used (names and where they are). */
   ignored: Array<{ name: string; origin: string }>;
@@ -42,8 +65,21 @@ export interface Resolved {
 
 const BUILTIN: Record<DbEngine, Resolved["values"]> = {
   sqlite: { path: ":memory:" },
-  mysql: { host: "localhost", port: 3306, user: "root", database: "my_app_dev", tls: false },
-  postgres: { host: "localhost", port: 5432, user: "postgres", database: "mydb", schema: "public", tls: false },
+  mysql: {
+    host: "localhost",
+    port: 3306,
+    user: "root",
+    database: "my_app_dev",
+    tls: false,
+  },
+  postgres: {
+    host: "localhost",
+    port: 5432,
+    user: "postgres",
+    database: "mydb",
+    schema: "public",
+    tls: false,
+  },
   redis: { host: "127.0.0.1", port: 6379, dbIndex: 0, tls: false },
 };
 
@@ -55,16 +91,30 @@ export const FIELD_ORDER: Record<DbEngine, FieldName[]> = {
   redis: ["host", "port", "user", "password", "dbIndex", "tls"],
 };
 
-const profileTls = (p: DbProfile): boolean | undefined => (p.tls === undefined ? undefined : p.tls === false ? false : true);
+const profileTls = (p: DbProfile): boolean | undefined =>
+  p.tls === undefined ? undefined : p.tls === false ? false : true;
 
 function fromProfile(p: DbProfile): Resolved["values"] {
   if (p.engine === "sqlite") return { path: (p as ConnectionProfile).path };
   if (p.engine === "redis") {
     const r = p as RedisProfile;
-    return { host: r.host, port: r.port, user: r.user, dbIndex: r.dbIndex, tls: profileTls(r) };
+    return {
+      host: r.host,
+      port: r.port,
+      user: r.user,
+      dbIndex: r.dbIndex,
+      tls: profileTls(r),
+    };
   }
   const c = p as ConnectionProfile;
-  return { host: c.host, port: c.port, user: c.user, database: c.database, schema: c.schema, tls: profileTls(c) };
+  return {
+    host: c.host,
+    port: c.port,
+    user: c.user,
+    database: c.database,
+    schema: c.schema,
+    tls: profileTls(c),
+  };
 }
 
 /** Input parameters for `resolveConnection` combining profile, keychain password, engine defaults, and environment view. */
@@ -77,13 +127,18 @@ export interface ResolveInput {
   view: EnvView;
 }
 
-
 /** Applies the precedence rule (`profile > defaults > env > builtin`) to compute effective connection values and their sources. */
 export function resolveConnection(input: ResolveInput): Resolved {
   const { engine, profile, settings, view } = input;
   const defaults = settings.defaults;
   const hasDefaults = Object.keys(defaults).length > 0;
-  const mode: Resolved["mode"] = profile ? "profile" : hasDefaults ? "defaults" : settings.useEnv ? "environment" : "builtin";
+  const mode: Resolved["mode"] = profile
+    ? "profile"
+    : hasDefaults
+      ? "defaults"
+      : settings.useEnv
+        ? "environment"
+        : "builtin";
   const values: Resolved["values"] = {};
   const sources: Resolved["sources"] = {};
   const warnings: string[] = [];
@@ -91,8 +146,17 @@ export function resolveConnection(input: ResolveInput): Resolved {
   const own = profile ? fromProfile(profile) : {};
   const useDefaults = engine !== "sqlite";
   // Started with no connection and no defaults, the studio is left to read the environment itself, and Bun gives it the `.env` files of its start folder.
-  const childLoads = mode === "environment" ? (p: Provenance) => p.where === "start" || p.where === "application" : undefined;
-  const env = settings.useEnv ? readEnvFields(engine, view, { studioOnly: true, loadedOnly: true, childLoads }) : null;
+  const childLoads =
+    mode === "environment"
+      ? (p: Provenance) => p.where === "start" || p.where === "application"
+      : undefined;
+  const env = settings.useEnv
+    ? readEnvFields(engine, view, {
+        studioOnly: true,
+        loadedOnly: true,
+        childLoads,
+      })
+    : null;
   const usedEnv = new Set<string>();
 
   for (const field of FIELD_ORDER[engine]) {
@@ -103,14 +167,33 @@ export function resolveConnection(input: ResolveInput): Resolved {
       sources[f] = source;
     };
     const mine = (own as Record<string, unknown>)[f];
-    const dflt = useDefaults ? (defaults as Record<string, unknown>)[f] : undefined;
+    const dflt = useDefaults
+      ? (defaults as Record<string, unknown>)[f]
+      : undefined;
     const fromEnv = env?.fields[f];
-    if (mine !== undefined && mine !== "") set(mine, { kind: "profile", text: "this connection (saved in the File Manager)" });
-    else if (dflt !== undefined) set(dflt, { kind: "defaults", text: `your defaults for ${ENGINES[engine].label} (File Manager)` });
+    if (mine !== undefined && mine !== "")
+      set(mine, {
+        kind: "profile",
+        text: "this connection (saved in the File Manager)",
+      });
+    else if (dflt !== undefined)
+      set(dflt, {
+        kind: "defaults",
+        text: `your defaults for ${ENGINES[engine].label} (File Manager)`,
+      });
     else if (fromEnv) {
-      set(fromEnv.value, { kind: "env", text: provenanceText(fromEnv.prov), name: fromEnv.name, prov: fromEnv.prov });
+      set(fromEnv.value, {
+        kind: "env",
+        text: provenanceText(fromEnv.prov),
+        name: fromEnv.name,
+        prov: fromEnv.prov,
+      });
       usedEnv.add(fromEnv.name);
-    } else if (BUILTIN[engine][f] !== undefined) set(BUILTIN[engine][f], { kind: "builtin", text: "the studio's built-in default" });
+    } else if (BUILTIN[engine][f] !== undefined)
+      set(BUILTIN[engine][f], {
+        kind: "builtin",
+        text: "the studio's built-in default",
+      });
   }
 
   // Passwords never cross from the environment into a saved connection: that would send a password meant for one server to another.
@@ -118,11 +201,23 @@ export function resolveConnection(input: ResolveInput): Resolved {
     if (profile) {
       if (input.password) {
         values.password = input.password;
-        sources.password = { kind: "profile", text: "this connection (saved in the OS keychain)" };
-      } else sources.password = { kind: "none", text: "not saved: environment passwords are never used with a saved connection" };
+        sources.password = {
+          kind: "profile",
+          text: "this connection (saved in the OS keychain)",
+        };
+      } else
+        sources.password = {
+          kind: "none",
+          text: "not saved: environment passwords are never used with a saved connection",
+        };
     } else if (env?.password && String(env.password.value) !== "") {
       values.password = String(env.password.value);
-      sources.password = { kind: "env", text: provenanceText(env.password.prov), name: env.password.name, prov: env.password.prov };
+      sources.password = {
+        kind: "env",
+        text: provenanceText(env.password.prov),
+        name: env.password.name,
+        prov: env.password.prov,
+      };
       usedEnv.add(env.password.name);
     } else sources.password = { kind: "none", text: "no password" };
   }
@@ -130,23 +225,59 @@ export function resolveConnection(input: ResolveInput): Resolved {
   // Which connection variables are present but not part of the answer.
   const ignored: Resolved["ignored"] = [];
   for (const [name, v] of view.vars) {
-    const present = v.prov.kind === "process" || !!v.prov.loaded || !!childLoads?.(v.prov);
-    if (!isEngineVariable(engine, name) || !present || usedEnv.has(name)) continue;
+    const present =
+      v.prov.kind === "process" || !!v.prov.loaded || !!childLoads?.(v.prov);
+    if (!isEngineVariable(engine, name) || !present || usedEnv.has(name))
+      continue;
     ignored.push({ name, origin: provenanceText(v.prov) });
   }
   if (env) warnings.push(...env.warnings);
-  if (mode === "environment") notes.push("No connection is chosen, so the studio reads the environment itself, as before.");
-  if (mode === "builtin") notes.push("No connection is chosen and environment variables are turned off for this engine, so the studio uses its own defaults.");
+  if (mode === "environment")
+    notes.push(
+      "No connection is chosen, so the studio reads the environment itself, as before.",
+    );
+  if (mode === "builtin")
+    notes.push(
+      "No connection is chosen and environment variables are turned off for this engine, so the studio uses its own defaults.",
+    );
 
   if (profile) {
     const tls = profile.tls;
-    if (engine !== "sqlite" && tls && typeof tls === "object" && (tls.ca || tls.verify === false)) warnings.push(`${ENGINES[engine].studioName} can only switch TLS on or off: it ignores the CA file and the "verify" choice. Those apply to Test connection only.`);
-    if (engine === "mysql" && !(profile as ConnectionProfile).database && !defaults.database && !env?.fields.database) warnings.push("MySQL Studio needs a database name. With none set it opens one called my_app_dev.");
+    if (
+      engine !== "sqlite" &&
+      tls &&
+      typeof tls === "object" &&
+      (tls.ca || tls.verify === false)
+    )
+      warnings.push(
+        `${ENGINES[engine].studioName} can only switch TLS on or off: it ignores the CA file and the "verify" choice. Those apply to Test connection only.`,
+      );
+    if (
+      engine === "mysql" &&
+      !(profile as ConnectionProfile).database &&
+      !defaults.database &&
+      !env?.fields.database
+    )
+      warnings.push(
+        "MySQL Studio needs a database name. With none set it opens one called my_app_dev.",
+      );
     if (engine === "redis") {
-      if ((profile as RedisProfile).keyPrefix) warnings.push("Redis Studio shows every key: the key prefix is only used by Test connection.");
-      if (profile.readOnly) warnings.push("Redis Studio can't be made read-only. Use a Redis account that can only read.");
+      if ((profile as RedisProfile).keyPrefix)
+        warnings.push(
+          "Redis Studio shows every key: the key prefix is only used by Test connection.",
+        );
+      if (profile.readOnly)
+        warnings.push(
+          "Redis Studio can't be made read-only. Use a Redis account that can only read.",
+        );
     }
-    if (engine === "sqlite" && (profile as ConnectionProfile).sqliteMode === "readonly") warnings.push("SQLite Studio opens the file for reading and writing. Read-only applies to Test connection only.");
+    if (
+      engine === "sqlite" &&
+      (profile as ConnectionProfile).sqliteMode === "readonly"
+    )
+      warnings.push(
+        "SQLite Studio opens the file for reading and writing. Read-only applies to Test connection only.",
+      );
   }
   return { engine, mode, values, sources, ignored, notes, warnings };
 }
@@ -176,7 +307,10 @@ export interface LaunchInput {
 }
 
 function redisUrl(v: Resolved["values"]): string {
-  const auth = v.user || v.password ? `${v.user ? encodeURIComponent(v.user) : ""}${v.password ? `:${encodeURIComponent(v.password)}` : ""}@` : "";
+  const auth =
+    v.user || v.password
+      ? `${v.user ? encodeURIComponent(v.user) : ""}${v.password ? `:${encodeURIComponent(v.password)}` : ""}@`
+      : "";
   return `${v.tls ? "rediss" : "redis"}://${auth}${v.host?.includes(":") ? `[${v.host}]` : v.host}:${v.port}`;
 }
 
@@ -187,7 +321,11 @@ export function buildLaunch(r: Resolved, input: LaunchInput): LaunchSpec {
   for (const [k, v] of Object.entries(input.baseEnv)) {
     if (v === undefined) continue;
     // A studio never gets this program's own settings or start-up steering; and when it is started for a connection, no connection variables at all.
-    if (PRIVATE_ENV_PREFIXES.some((p) => k.startsWith(p)) || CONTROL_ENV.includes(k)) continue;
+    if (
+      PRIVATE_ENV_PREFIXES.some((p) => k.startsWith(p)) ||
+      CONTROL_ENV.includes(k)
+    )
+      continue;
     if (explicit && isScrubbedVariable(k)) continue;
     env[k] = v;
   }
@@ -201,7 +339,8 @@ export function buildLaunch(r: Resolved, input: LaunchInput): LaunchSpec {
   const setValues = explicit && r.mode !== "builtin";
   if (e === "sqlite") {
     studioArgs.push("--port", "0");
-    if (setValues || (!explicit && v.path !== undefined)) env.SQLITE_STUDIO_DB = v.path ?? ":memory:";
+    if (setValues || (!explicit && v.path !== undefined))
+      env.SQLITE_STUDIO_DB = v.path ?? ":memory:";
   } else if (e === "mysql" && setValues) {
     env.MSQL_HOST = env.MYSQL_HOST = v.host ?? "localhost";
     env.MSQL_PORT = env.MYSQL_PORT = String(v.port ?? 3306);
@@ -223,23 +362,64 @@ export function buildLaunch(r: Resolved, input: LaunchInput): LaunchSpec {
       env.PG_TLS = tlsText(v.tls);
     }
   } else if (e === "redis" && setValues) {
-    env.REDIS_URL = redisUrl({ ...v, host: v.host ?? "127.0.0.1", port: v.port ?? 6379 });
+    env.REDIS_URL = redisUrl({
+      ...v,
+      host: v.host ?? "127.0.0.1",
+      port: v.port ?? 6379,
+    });
     env.REDIS_DB = String(v.dbIndex ?? 0);
   }
-  return { env, bunArgs: explicit ? ["--no-env-file"] : [], studioArgs, cwd: explicit ? "neutral" : "inherit", explicit };
+  return {
+    env,
+    bunArgs: explicit ? ["--no-env-file"] : [],
+    studioArgs,
+    cwd: explicit ? "neutral" : "inherit",
+    explicit,
+  };
 }
 
 /** The panel: every field with its value (never the password), where it came from, and what is ignored. */
-export function describeEffective(r: Resolved, profile: DbProfile | null, meta: ProfileMeta | undefined, view: EnvView) {
+export function describeEffective(
+  r: Resolved,
+  profile: DbProfile | null,
+  meta: ProfileMeta | undefined,
+  view: EnvView,
+) {
   const fields = FIELD_ORDER[r.engine].map((f) => {
     const src = r.sources[f] ?? { kind: "none", text: "not set" };
-    if (f === "password") return { field: f, label: "Password", secret: true, present: !!r.values.password, value: null as string | null, source: src };
+    if (f === "password")
+      return {
+        field: f,
+        label: "Password",
+        secret: true,
+        present: !!r.values.password,
+        value: null as string | null,
+        source: src,
+      };
     const raw = (r.values as Record<string, unknown>)[f];
-    const value = raw === undefined ? null : f === "tls" ? (raw ? "on" : "off") : String(raw);
-    return { field: f, label: LABELS[f], secret: false, present: raw !== undefined, value, source: src };
+    const value =
+      raw === undefined
+        ? null
+        : f === "tls"
+          ? raw
+            ? "on"
+            : "off"
+          : String(raw);
+    return {
+      field: f,
+      label: LABELS[f],
+      secret: false,
+      present: raw !== undefined,
+      value,
+      source: src,
+    };
   });
   const noLonger: Array<{ name: string; origin: string }> = [];
-  if (meta && (meta.source === "environment" || meta.source === "dotenv") && meta.variables) {
+  if (
+    meta &&
+    (meta.source === "environment" || meta.source === "dotenv") &&
+    meta.variables
+  ) {
     for (const name of meta.variables) {
       const v = view.vars.get(name);
       if (v) noLonger.push({ name, origin: provenanceText(v.prov) });
@@ -254,8 +434,23 @@ export function describeEffective(r: Resolved, profile: DbProfile | null, meta: 
     noLongerNeeded: noLonger,
     notes: r.notes,
     warnings: r.warnings,
-    willUse: r.mode === "environment" ? "the environment, as before" : r.mode === "builtin" ? "the studio's own defaults" : "the values above, and nothing from the environment or any .env file",
+    willUse:
+      r.mode === "environment"
+        ? "the environment, as before"
+        : r.mode === "builtin"
+          ? "the studio's own defaults"
+          : "the values above, and nothing from the environment or any .env file",
   };
 }
 
-const LABELS: Record<FieldName, string> = { host: "Host", port: "Port", user: "User", password: "Password", database: "Database", schema: "Schema", tls: "TLS", path: "File", dbIndex: "Database number" };
+const LABELS: Record<FieldName, string> = {
+  host: "Host",
+  port: "Port",
+  user: "User",
+  password: "Password",
+  database: "Database",
+  schema: "Schema",
+  tls: "TLS",
+  path: "File",
+  dbIndex: "Database number",
+};

@@ -23,131 +23,171 @@ export type DialogIcon = "success" | "error" | "warning" | "info" | "question";
 
 /** Supported interactive form input types rendered inside an input dialog. */
 export type DialogInputType =
-    | "text" | "email" | "password" | "number" | "tel" | "url" | "search"
-    | "date" | "time" | "datetime-local" | "month" | "week" | "color"
-    | "range" | "textarea" | "select" | "radio" | "checkbox" | "file";
+  | "text"
+  | "email"
+  | "password"
+  | "number"
+  | "tel"
+  | "url"
+  | "search"
+  | "date"
+  | "time"
+  | "datetime-local"
+  | "month"
+  | "week"
+  | "color"
+  | "range"
+  | "textarea"
+  | "select"
+  | "radio"
+  | "checkbox"
+  | "file";
 
 /** Screen alignment anchor positions for modal dialogs and non-blocking toasts. */
 export type DialogPosition =
-    | "top" | "top-start" | "top-end"
-    | "center" | "center-start" | "center-end"
-    | "bottom" | "bottom-start" | "bottom-end";
+  | "top"
+  | "top-start"
+  | "top-end"
+  | "center"
+  | "center-start"
+  | "center-end"
+  | "bottom"
+  | "bottom-start"
+  | "bottom-end";
 
 /** Built-in declarative validation presets evaluated directly inside the webview client. */
-export type DialogValidationPreset = "required" | "email" | "url" | "number" | "integer";
+export type DialogValidationPreset =
+  "required" | "email" | "url" | "number" | "integer";
 
 /** Declarative client-side validation rules for dialog input values. */
 export interface DialogValidationRules {
-    required?: boolean;
-    minLength?: number;
-    maxLength?: number;
-    min?: number;
-    max?: number;
-    integer?: boolean;
-    pattern?: string;
-    flags?: string;
-    message?: string;
+  required?: boolean;
+  minLength?: number;
+  maxLength?: number;
+  min?: number;
+  max?: number;
+  integer?: boolean;
+  pattern?: string;
+  flags?: string;
+  message?: string;
 }
 
 /** Map `{ value: "Label" }`, nested map for option groups, or array of strings / `[value,label]` / `{value,label}`. */
 export type DialogInputOptions =
-    | Record<string, any>
-    | Array<string | [string, string] | { value: string; label: string }>;
+  | Record<string, any>
+  | Array<string | [string, string] | { value: string; label: string }>;
 
 /** Complete configuration options for rendering a modal dialog, input prompt, or toast notification. */
 export interface DialogOptions {
-    // content
-    title?: string;
-    /** Plain text (HTML-escaped, newlines preserved). */
-    text?: string;
-    /** Raw HTML string (developer-trusted). */
-    html?: string;
-    icon?: DialogIcon;
-    /** Custom icon markup. */
-    iconHtml?: string;
-    imageUrl?: string;
-    imageAlt?: string;
-    imageWidth?: number | string;
-    imageHeight?: number | string;
-    footer?: string;
+  // content
+  title?: string;
+  /** Plain text (HTML-escaped, newlines preserved). */
+  text?: string;
+  /** Raw HTML string (developer-trusted). */
+  html?: string;
+  icon?: DialogIcon;
+  /** Custom icon markup. */
+  iconHtml?: string;
+  imageUrl?: string;
+  imageAlt?: string;
+  imageWidth?: number | string;
+  imageHeight?: number | string;
+  footer?: string;
 
-    // behavior
-    /** Render as a small non-blocking toast. */
-    toast?: boolean;
-    /** `false` = non-modal: no backdrop, page stays interactive. */
-    modal?: boolean;
-    position?: DialogPosition;
-    /** Auto-close after N ms. */
-    timer?: number;
-    timerProgressBar?: boolean;
-    timerPauseOnHover?: boolean;
-    allowOutsideClick?: boolean;
-    allowEscapeKey?: boolean;
-    allowEnterKey?: boolean;
-    /** Clicking a toast dismisses it (default true). */
-    dismissOnClick?: boolean;
-    /** Show a spinner instead of an icon. */
-    loading?: boolean;
+  // behavior
+  /** Render as a small non-blocking toast. */
+  toast?: boolean;
+  /** `false` = non-modal: no backdrop, page stays interactive. */
+  modal?: boolean;
+  position?: DialogPosition;
+  /** Auto-close after N ms. */
+  timer?: number;
+  timerProgressBar?: boolean;
+  timerPauseOnHover?: boolean;
+  allowOutsideClick?: boolean;
+  allowEscapeKey?: boolean;
+  allowEnterKey?: boolean;
+  /** Clicking a toast dismisses it (default true). */
+  dismissOnClick?: boolean;
+  /** Show a spinner instead of an icon. */
+  loading?: boolean;
 
-    // buttons
-    showConfirmButton?: boolean;
-    showCancelButton?: boolean;
-    showDenyButton?: boolean;
-    showCloseButton?: boolean;
-    confirmButtonText?: string;
-    cancelButtonText?: string;
-    denyButtonText?: string;
-    confirmButtonColor?: string;
-    cancelButtonColor?: string;
-    denyButtonColor?: string;
-    reverseButtons?: boolean;
-    focusConfirm?: boolean;
-    focusCancel?: boolean;
-    focusDeny?: boolean;
-    showLoaderOnConfirm?: boolean;
+  // buttons
+  showConfirmButton?: boolean;
+  showCancelButton?: boolean;
+  showDenyButton?: boolean;
+  showCloseButton?: boolean;
+  confirmButtonText?: string;
+  cancelButtonText?: string;
+  denyButtonText?: string;
+  confirmButtonColor?: string;
+  cancelButtonColor?: string;
+  denyButtonColor?: string;
+  reverseButtons?: boolean;
+  focusConfirm?: boolean;
+  focusCancel?: boolean;
+  focusDeny?: boolean;
+  showLoaderOnConfirm?: boolean;
 
-    // input
-    input?: DialogInputType;
-    inputValue?: any;
-    inputPlaceholder?: string;
-    inputLabel?: string;
-    inputOptions?: DialogInputOptions | (() => DialogInputOptions | Promise<DialogInputOptions>);
-    inputAttributes?: Record<string, string>;
-    inputAutoFocus?: boolean;
-    inputAutoTrim?: boolean;
-    /** Declarative validation: a preset name or a rules object. Runs in the webview (instant feedback). */
-    validate?: DialogValidationPreset | DialogValidationRules;
-    /** TypeScript validator. Return an error string (or `false`) to block confirm, nothing/`null` to accept. */
-    inputValidator?: (value: any) => string | false | null | undefined | void | Promise<string | false | null | undefined | void>;
-    /** TypeScript hook run on confirm (spinner shown). Return `false` to keep open; any other value becomes `result.value`. Throw to show an error. */
-    preConfirm?: (value: any) => any | Promise<any>;
-    /** Return the input value (instead of `false`) when the deny button is pressed. */
-    returnInputValueOnDeny?: boolean;
+  // input
+  input?: DialogInputType;
+  inputValue?: any;
+  inputPlaceholder?: string;
+  inputLabel?: string;
+  inputOptions?:
+    | DialogInputOptions
+    | (() => DialogInputOptions | Promise<DialogInputOptions>);
+  inputAttributes?: Record<string, string>;
+  inputAutoFocus?: boolean;
+  inputAutoTrim?: boolean;
+  /** Declarative validation: a preset name or a rules object. Runs in the webview (instant feedback). */
+  validate?: DialogValidationPreset | DialogValidationRules;
+  /** TypeScript validator. Return an error string (or `false`) to block confirm, nothing/`null` to accept. */
+  inputValidator?: (
+    value: any,
+  ) =>
+    | string
+    | false
+    | null
+    | undefined
+    | void
+    | Promise<string | false | null | undefined | void>;
+  /** TypeScript hook run on confirm (spinner shown). Return `false` to keep open; any other value becomes `result.value`. Throw to show an error. */
+  preConfirm?: (value: any) => any | Promise<any>;
+  /** Return the input value (instead of `false`) when the deny button is pressed. */
+  returnInputValueOnDeny?: boolean;
 
-    // look & feel
-    width?: number | string;
-    padding?: number | string;
-    background?: string;
-    color?: string;
-    accent?: string;
-    /** `false` = no backdrop, or any CSS color. */
-    backdrop?: boolean | string;
-    align?: "left" | "center";
-    customClass?: string | Partial<Record<"popup" | "title" | "confirmButton" | "cancelButton" | "denyButton", string>>;
+  // look & feel
+  width?: number | string;
+  padding?: number | string;
+  background?: string;
+  color?: string;
+  accent?: string;
+  /** `false` = no backdrop, or any CSS color. */
+  backdrop?: boolean | string;
+  align?: "left" | "center";
+  customClass?:
+    | string
+    | Partial<
+        Record<
+          "popup" | "title" | "confirmButton" | "cancelButton" | "denyButton",
+          string
+        >
+      >;
 
-    // progress steps
-    progressSteps?: string[];
-    currentProgressStep?: number;
+  // progress steps
+  progressSteps?: string[];
+  currentProgressStep?: number;
 }
 
 /** Outcome returned when a dialog or toast finishes (confirmed, denied, or dismissed). */
 export interface DialogResult<T = any> {
-    isConfirmed: boolean;
-    isDenied: boolean;
-    isDismissed: boolean;
-    value?: T;
-    /** "cancel" | "backdrop" | "close" | "esc" | "timer" | "click" | "replaced" | "unavailable" */
-    dismiss?: string;
+  isConfirmed: boolean;
+  isDenied: boolean;
+  isDismissed: boolean;
+  value?: T;
+  /** "cancel" | "backdrop" | "close" | "esc" | "timer" | "click" | "replaced" | "unavailable" */
+  dismiss?: string;
 }
 
 /** Synchronous callback invoked when a dialog, prompt, or file picker completes. */
@@ -155,19 +195,19 @@ export type DialogCallback<T = DialogResult> = (result: T) => void;
 
 /** Options controlling native or in-webview file and folder picker dialogs. */
 export interface FileDialogOptions {
-    title?: string;
-    /** Extensions, e.g. `"png,jpg"`, `"*.png;*.jpg"` or `["png","jpg"]`. */
-    filter?: string | string[];
-    defaultName?: string;
-    initialDir?: string;
-    multiple?: boolean;
-    showHidden?: boolean;
-    /**
-     * `"auto"` (default): use the native OS dialog; fall back to the in-webview picker ONLY when the native dialog is
-     * unavailable (never when the user simply cancels). `"never"`: always use the in-webview picker.
-     * `"always"`: native only (resolves `null` if unavailable).
-     */
-    native?: "auto" | "always" | "never";
+  title?: string;
+  /** Extensions, e.g. `"png,jpg"`, `"*.png;*.jpg"` or `["png","jpg"]`. */
+  filter?: string | string[];
+  defaultName?: string;
+  initialDir?: string;
+  multiple?: boolean;
+  showHidden?: boolean;
+  /**
+   * `"auto"` (default): use the native OS dialog; fall back to the in-webview picker ONLY when the native dialog is
+   * unavailable (never when the user simply cancels). `"never"`: always use the in-webview picker.
+   * `"always"`: native only (resolves `null` if unavailable).
+   */
+  native?: "auto" | "always" | "never";
 }
 
 /** Operation mode for the file picker (`"open"`, `"save"`, or `"folder"`). */
@@ -175,9 +215,9 @@ export type FileDialogMode = "open" | "save" | "folder";
 
 /** Host bridge contract connecting `SimpleDialogs` to an active `SimpleWindow` webview instance. */
 export interface DialogHost {
-    isRunning(): boolean;
-    eval(code: string): void;
-    resolvers: Map<string, (val: any) => void>;
+  isRunning(): boolean;
+  eval(code: string): void;
+  resolvers: Map<string, (val: any) => void>;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -918,76 +958,148 @@ export const DIALOG_CLIENT_HTML = `<style id="sgd-style">${DIALOG_CLIENT_CSS}</s
 // TypeScript API
 // ---------------------------------------------------------------------------------------------------------------------
 
-type NativeResult = { status: "ok"; paths: string[] } | { status: "cancel" } | { status: "unavailable" };
+type NativeResult =
+  | { status: "ok"; paths: string[] }
+  | { status: "cancel" }
+  | { status: "unavailable" };
 
 function parseExts(filter?: string | string[]): string[] {
-    const raw = Array.isArray(filter) ? filter : String(filter ?? "").split(/[,;|\s]+/);
-    return raw.map(s => String(s).trim().replace(/^\*?\./, "").toLowerCase()).filter(s => s && s !== "*" && s !== "*.*");
+  const raw = Array.isArray(filter)
+    ? filter
+    : String(filter ?? "").split(/[,;|\s]+/);
+  return raw
+    .map((s) =>
+      String(s)
+        .trim()
+        .replace(/^\*?\./, "")
+        .toLowerCase(),
+    )
+    .filter((s) => s && s !== "*" && s !== "*.*");
 }
 const psq = (s: string) => String(s).replace(/'/g, "''");
-const asq = (s: string) => String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/[\r\n]+/g, " ");
-const cleanPath = (p: string) => (p.length > 1 && /[\\/]$/.test(p) && !/^[A-Za-z]:[\\/]$/.test(p) ? p.replace(/[\\/]+$/, "") : p);
+const asq = (s: string) =>
+  String(s)
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/[\r\n]+/g, " ");
+const cleanPath = (p: string) =>
+  p.length > 1 && /[\\/]$/.test(p) && !/^[A-Za-z]:[\\/]$/.test(p)
+    ? p.replace(/[\\/]+$/, "")
+    : p;
 
 function runNative(mode: FileDialogMode, o: FileDialogOptions): NativeResult {
-    if (typeof Bun === "undefined") return { status: "unavailable" };
-    const title = o.title || (mode === "folder" ? "Select Folder" : mode === "save" ? "Save File" : "Open File");
-    const exts = parseExts(o.filter);
-    const dir = o.initialDir && fs.existsSync(o.initialDir) ? o.initialDir : "";
-    const split = (s: string, sep: RegExp) => s.split(sep).map(x => x.trim()).filter(Boolean).map(cleanPath);
-    try {
-        if (process.platform === "darwin") {
-            const loc = dir ? ` default location (POSIX file "${asq(dir)}")` : "";
-            const multi = o.multiple && mode !== "save" ? " with multiple selections allowed" : "";
-            const lines = ["activate"];
-            if (mode === "folder") lines.push(`set r to choose folder with prompt "${asq(title)}"${loc}${multi}`);
-            else if (mode === "save") lines.push(`set r to choose file name with prompt "${asq(title)}" default name "${asq(o.defaultName || "untitled.txt")}"${loc}`);
-            else {
-                const types = exts.length ? ` of type {${exts.map(e => `"${asq(e)}"`).join(", ")}}` : "";
-                lines.push(`set r to choose file with prompt "${asq(title)}"${types}${loc}${multi}`);
-            }
-            lines.push("if class of r is list then", "set fs to r", "else", "set fs to {r}", "end if", 'set out to ""',
-                "repeat with f in fs", "set out to out & POSIX path of (contents of f) & linefeed", "end repeat", "return out");
-            const proc = Bun.spawnSync(["osascript", ...lines.flatMap(l => ["-e", l])]);
-            const err = proc.stderr.toString();
-            if (proc.exitCode === 0) {
-                const paths = split(proc.stdout.toString(), /\r?\n/);
-                return paths.length ? { status: "ok", paths } : { status: "cancel" };
-            }
-            return /-128/.test(err) ? { status: "cancel" } : { status: "unavailable" };
-        }
-        if (process.platform === "win32") {
-            const filt = exts.length ? `Files|${exts.map(e => "*." + e).join(";")}|All files|*.*` : "All files|*.*";
-            let body: string;
-            if (mode === "folder") {
-                body = `$f=New-Object System.Windows.Forms.FolderBrowserDialog; $f.Description='${psq(title)}'; ${dir ? `$f.SelectedPath='${psq(dir)}';` : ""} if($f.ShowDialog() -eq 'OK'){ $f.SelectedPath }`;
-            } else if (mode === "save") {
-                body = `$f=New-Object System.Windows.Forms.SaveFileDialog; $f.Title='${psq(title)}'; $f.FileName='${psq(o.defaultName || "untitled.txt")}'; $f.Filter='${psq(filt)}'; ${dir ? `$f.InitialDirectory='${psq(dir)}';` : ""} if($f.ShowDialog() -eq 'OK'){ $f.FileName }`;
-            } else {
-                body = `$f=New-Object System.Windows.Forms.OpenFileDialog; $f.Title='${psq(title)}'; $f.Multiselect=$${o.multiple ? "true" : "false"}; $f.Filter='${psq(filt)}'; ${dir ? `$f.InitialDirectory='${psq(dir)}';` : ""} if($f.ShowDialog() -eq 'OK'){ $f.FileNames | ForEach-Object { $_ } }`;
-            }
-            const proc = Bun.spawnSync(["powershell", "-NoProfile", "-STA", "-Command", `Add-Type -AssemblyName System.Windows.Forms; ${body}`]);
-            if (proc.exitCode !== 0) return { status: "unavailable" };
-            const paths = split(proc.stdout.toString(), /\r?\n/);
-            return paths.length ? { status: "ok", paths } : { status: "cancel" };
-        }
-        // linux & others: zenity
-        const args = ["zenity", "--file-selection", `--title=${title}`];
-        if (mode === "folder") args.push("--directory");
-        if (mode === "save") args.push("--save", "--confirm-overwrite");
-        if (o.multiple && mode !== "save") args.push("--multiple", "--separator=\n");
-        if (exts.length && mode === "open") args.push(`--file-filter=Files | ${exts.map(e => "*." + e).join(" ")}`);
-        if (mode === "save") { if (dir || o.defaultName) args.push(`--filename=${path.join(dir, o.defaultName || "")}`); }
-        else if (dir) args.push(`--filename=${dir.replace(/[\\/]+$/, "")}/`);
-        const proc = Bun.spawnSync(args);
-        if (proc.exitCode === 0) {
-            const paths = split(proc.stdout.toString(), /\r?\n/);
-            return paths.length ? { status: "ok", paths } : { status: "cancel" };
-        }
-        // zenity exits 1 with empty stderr when the user cancels; anything else (no display, crash) means unavailable.
-        return proc.exitCode === 1 && !proc.stderr.toString().trim() ? { status: "cancel" } : { status: "unavailable" };
-    } catch {
-        return { status: "unavailable" };
+  if (typeof Bun === "undefined") return { status: "unavailable" };
+  const title =
+    o.title ||
+    (mode === "folder"
+      ? "Select Folder"
+      : mode === "save"
+        ? "Save File"
+        : "Open File");
+  const exts = parseExts(o.filter);
+  const dir = o.initialDir && fs.existsSync(o.initialDir) ? o.initialDir : "";
+  const split = (s: string, sep: RegExp) =>
+    s
+      .split(sep)
+      .map((x) => x.trim())
+      .filter(Boolean)
+      .map(cleanPath);
+  try {
+    if (process.platform === "darwin") {
+      const loc = dir ? ` default location (POSIX file "${asq(dir)}")` : "";
+      const multi =
+        o.multiple && mode !== "save"
+          ? " with multiple selections allowed"
+          : "";
+      const lines = ["activate"];
+      if (mode === "folder")
+        lines.push(
+          `set r to choose folder with prompt "${asq(title)}"${loc}${multi}`,
+        );
+      else if (mode === "save")
+        lines.push(
+          `set r to choose file name with prompt "${asq(title)}" default name "${asq(o.defaultName || "untitled.txt")}"${loc}`,
+        );
+      else {
+        const types = exts.length
+          ? ` of type {${exts.map((e) => `"${asq(e)}"`).join(", ")}}`
+          : "";
+        lines.push(
+          `set r to choose file with prompt "${asq(title)}"${types}${loc}${multi}`,
+        );
+      }
+      lines.push(
+        "if class of r is list then",
+        "set fs to r",
+        "else",
+        "set fs to {r}",
+        "end if",
+        'set out to ""',
+        "repeat with f in fs",
+        "set out to out & POSIX path of (contents of f) & linefeed",
+        "end repeat",
+        "return out",
+      );
+      const proc = Bun.spawnSync([
+        "osascript",
+        ...lines.flatMap((l) => ["-e", l]),
+      ]);
+      const err = proc.stderr.toString();
+      if (proc.exitCode === 0) {
+        const paths = split(proc.stdout.toString(), /\r?\n/);
+        return paths.length ? { status: "ok", paths } : { status: "cancel" };
+      }
+      return /-128/.test(err)
+        ? { status: "cancel" }
+        : { status: "unavailable" };
     }
+    if (process.platform === "win32") {
+      const filt = exts.length
+        ? `Files|${exts.map((e) => "*." + e).join(";")}|All files|*.*`
+        : "All files|*.*";
+      let body: string;
+      if (mode === "folder") {
+        body = `$f=New-Object System.Windows.Forms.FolderBrowserDialog; $f.Description='${psq(title)}'; ${dir ? `$f.SelectedPath='${psq(dir)}';` : ""} if($f.ShowDialog() -eq 'OK'){ $f.SelectedPath }`;
+      } else if (mode === "save") {
+        body = `$f=New-Object System.Windows.Forms.SaveFileDialog; $f.Title='${psq(title)}'; $f.FileName='${psq(o.defaultName || "untitled.txt")}'; $f.Filter='${psq(filt)}'; ${dir ? `$f.InitialDirectory='${psq(dir)}';` : ""} if($f.ShowDialog() -eq 'OK'){ $f.FileName }`;
+      } else {
+        body = `$f=New-Object System.Windows.Forms.OpenFileDialog; $f.Title='${psq(title)}'; $f.Multiselect=$${o.multiple ? "true" : "false"}; $f.Filter='${psq(filt)}'; ${dir ? `$f.InitialDirectory='${psq(dir)}';` : ""} if($f.ShowDialog() -eq 'OK'){ $f.FileNames | ForEach-Object { $_ } }`;
+      }
+      const proc = Bun.spawnSync([
+        "powershell",
+        "-NoProfile",
+        "-STA",
+        "-Command",
+        `Add-Type -AssemblyName System.Windows.Forms; ${body}`,
+      ]);
+      if (proc.exitCode !== 0) return { status: "unavailable" };
+      const paths = split(proc.stdout.toString(), /\r?\n/);
+      return paths.length ? { status: "ok", paths } : { status: "cancel" };
+    }
+    // linux & others: zenity
+    const args = ["zenity", "--file-selection", `--title=${title}`];
+    if (mode === "folder") args.push("--directory");
+    if (mode === "save") args.push("--save", "--confirm-overwrite");
+    if (o.multiple && mode !== "save")
+      args.push("--multiple", "--separator=\n");
+    if (exts.length && mode === "open")
+      args.push(`--file-filter=Files | ${exts.map((e) => "*." + e).join(" ")}`);
+    if (mode === "save") {
+      if (dir || o.defaultName)
+        args.push(`--filename=${path.join(dir, o.defaultName || "")}`);
+    } else if (dir) args.push(`--filename=${dir.replace(/[\\/]+$/, "")}/`);
+    const proc = Bun.spawnSync(args);
+    if (proc.exitCode === 0) {
+      const paths = split(proc.stdout.toString(), /\r?\n/);
+      return paths.length ? { status: "ok", paths } : { status: "cancel" };
+    }
+    // zenity exits 1 with empty stderr when the user cancels; anything else (no display, crash) means unavailable.
+    return proc.exitCode === 1 && !proc.stderr.toString().trim()
+      ? { status: "cancel" }
+      : { status: "unavailable" };
+  } catch {
+    return { status: "unavailable" };
+  }
 }
 
 /**
@@ -995,316 +1107,720 @@ function runNative(mode: FileDialogMode, o: FileDialogOptions): NativeResult {
  * bound to a `SimpleWindow` host.
  */
 export class SimpleDialogs {
-    private host: DialogHost;
-    private defaults: DialogOptions;
-    private shared: { hooks: Map<string, { validator?: DialogOptions["inputValidator"]; preConfirm?: DialogOptions["preConfirm"] }>; open: Set<string> };
+  private host: DialogHost;
+  private defaults: DialogOptions;
+  private shared: {
+    hooks: Map<
+      string,
+      {
+        validator?: DialogOptions["inputValidator"];
+        preConfirm?: DialogOptions["preConfirm"];
+      }
+    >;
+    open: Set<string>;
+  };
 
-    /** Creates a `SimpleDialogs` controller attached to the given window host with optional default dialog options. */
-    constructor(host: DialogHost, defaults: DialogOptions = {}, shared?: SimpleDialogs["shared"]) {
-        this.host = host;
-        this.defaults = defaults;
-        this.shared = shared ?? { hooks: new Map(), open: new Set() };
+  /** Creates a `SimpleDialogs` controller attached to the given window host with optional default dialog options. */
+  constructor(
+    host: DialogHost,
+    defaults: DialogOptions = {},
+    shared?: SimpleDialogs["shared"],
+  ) {
+    this.host = host;
+    this.defaults = defaults;
+    this.shared = shared ?? { hooks: new Map(), open: new Set() };
+  }
+
+  /** New instance sharing this window but with extra default options (like `Swal.mixin`). */
+  mixin(defaults: DialogOptions): SimpleDialogs {
+    return new SimpleDialogs(
+      this.host,
+      { ...this.defaults, ...defaults },
+      this.shared,
+    );
+  }
+
+  // ----- core -----------------------------------------------------------------------------------------------------
+
+  /**
+   * Show a dialog. Accepts an options object or the classic `(title, text, icon)` shorthand.
+   * The LAST argument may be a callback `(result) => void` (recommended inside window event handlers).
+   */
+  fire(
+    options?: DialogOptions | string,
+    text?: string | DialogOptions | DialogCallback,
+    icon?: DialogIcon | DialogOptions | DialogCallback,
+    cb?: DialogCallback,
+  ): Promise<DialogResult> {
+    const args: any[] = [options, text, icon, cb];
+    let callback: DialogCallback | undefined;
+    for (let i = args.length - 1; i >= 0; i--) {
+      if (typeof args[i] === "function") {
+        callback = args[i];
+        args[i] = undefined;
+        break;
+      }
+    }
+    let opts: DialogOptions;
+    if (typeof args[0] === "string") {
+      opts = { title: args[0] };
+      for (const extra of [args[1], args[2]]) {
+        if (typeof extra === "string") {
+          if (opts.text === undefined) opts.text = extra;
+          else opts.icon = extra as DialogIcon;
+        } else if (extra && typeof extra === "object")
+          Object.assign(opts, extra);
+      }
+      if (typeof args[2] === "string") opts.icon = args[2] as DialogIcon;
+    } else {
+      opts = { ...(args[0] || {}) };
+    }
+    return this.dispatch({ ...this.defaults, ...opts }, callback);
+  }
+
+  private dispatch(
+    opts: DialogOptions,
+    callback?: DialogCallback,
+  ): Promise<DialogResult> {
+    // Headless (window not shown, e.g. unit tests / CLI): auto-accept so scripts never hang.
+    if (!this.host.isRunning()) {
+      const label = opts.title || opts.text || "";
+      console.log(
+        `[${opts.toast ? "Toast" : "Dialog"}${opts.icon ? ` - ${opts.icon}` : ""}] ${label}`,
+      );
+      const res: DialogResult = {
+        isConfirmed: true,
+        isDenied: false,
+        isDismissed: false,
+        value: opts.input ? opts.inputValue : true,
+      };
+      callback?.(res);
+      return Promise.resolve(res);
     }
 
-    /** New instance sharing this window but with extra default options (like `Swal.mixin`). */
-    mixin(defaults: DialogOptions): SimpleDialogs {
-        return new SimpleDialogs(this.host, { ...this.defaults, ...defaults }, this.shared);
-    }
+    const resolveOptions = (): DialogOptions | Promise<DialogOptions> => {
+      const src = opts.inputOptions;
+      if (typeof src === "function") {
+        const r = (src as () => any)();
+        if (r && typeof (r as any).then === "function")
+          return (r as Promise<any>).then((v) => ({
+            ...opts,
+            inputOptions: v,
+          }));
+        return { ...opts, inputOptions: r };
+      }
+      return opts;
+    };
+    const resolved = resolveOptions();
 
-    // ----- core -----------------------------------------------------------------------------------------------------
-
-    /**
-     * Show a dialog. Accepts an options object or the classic `(title, text, icon)` shorthand.
-     * The LAST argument may be a callback `(result) => void` (recommended inside window event handlers).
-     */
-    fire(options?: DialogOptions | string, text?: string | DialogOptions | DialogCallback, icon?: DialogIcon | DialogOptions | DialogCallback, cb?: DialogCallback): Promise<DialogResult> {
-        const args: any[] = [options, text, icon, cb];
-        let callback: DialogCallback | undefined;
-        for (let i = args.length - 1; i >= 0; i--) {
-            if (typeof args[i] === "function") { callback = args[i]; args[i] = undefined; break; }
-        }
-        let opts: DialogOptions;
-        if (typeof args[0] === "string") {
-            opts = { title: args[0] };
-            for (const extra of [args[1], args[2]]) {
-                if (typeof extra === "string") { if (opts.text === undefined) opts.text = extra; else opts.icon = extra as DialogIcon; }
-                else if (extra && typeof extra === "object") Object.assign(opts, extra);
-            }
-            if (typeof args[2] === "string") opts.icon = args[2] as DialogIcon;
-        } else {
-            opts = { ...(args[0] || {}) };
-        }
-        return this.dispatch({ ...this.defaults, ...opts }, callback);
-    }
-
-    private dispatch(opts: DialogOptions, callback?: DialogCallback): Promise<DialogResult> {
-        // Headless (window not shown, e.g. unit tests / CLI): auto-accept so scripts never hang.
-        if (!this.host.isRunning()) {
-            const label = opts.title || opts.text || "";
-            console.log(`[${opts.toast ? "Toast" : "Dialog"}${opts.icon ? ` - ${opts.icon}` : ""}] ${label}`);
-            const res: DialogResult = { isConfirmed: true, isDenied: false, isDismissed: false, value: opts.input ? opts.inputValue : true };
-            callback?.(res);
-            return Promise.resolve(res);
-        }
-
-        const resolveOptions = (): DialogOptions | Promise<DialogOptions> => {
-            const src = opts.inputOptions;
-            if (typeof src === "function") {
-                const r = (src as () => any)();
-                if (r && typeof (r as any).then === "function") return (r as Promise<any>).then(v => ({ ...opts, inputOptions: v }));
-                return { ...opts, inputOptions: r };
-            }
-            return opts;
-        };
-        const resolved = resolveOptions();
-
-        return new Promise<DialogResult>((resolve) => {
-            const go = (o: DialogOptions) => {
-                const reqId = `dlg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-                const { inputValidator, preConfirm, ...plain } = o as any;
-                plain.reqId = reqId;
-                plain.hasValidator = typeof inputValidator === "function";
-                plain.hasPreConfirm = typeof preConfirm === "function";
-                if (plain.hasValidator || plain.hasPreConfirm) this.shared.hooks.set(reqId, { validator: inputValidator, preConfirm });
-                if (!o.toast && o.modal !== false) this.shared.open.add(reqId);
-                this.host.resolvers.set(reqId, (r: DialogResult) => {
-                    this.shared.hooks.delete(reqId);
-                    this.shared.open.delete(reqId);
-                    try { callback?.(r); } catch (e) { console.error("[SimpleDialogs] callback error:", e); }
-                    resolve(r);
-                });
-                const payload = JSON.stringify(plain);
-                this.host.eval(
-                    `(function(){var c=window.SimpleDialogClient;var done=function(r){if(window.handlePromptResultIPC)window.handlePromptResultIPC(${JSON.stringify(reqId)},r);};` +
-                    `if(!c){done({isConfirmed:false,isDenied:false,isDismissed:true,dismiss:"unavailable"});return;}` +
-                    `c.fire(${payload}).then(done,function(e){done({isConfirmed:false,isDenied:false,isDismissed:true,dismiss:"error",error:String(e)});});})();`
-                );
-            };
-            if (resolved && typeof (resolved as any).then === "function") (resolved as Promise<DialogOptions>).then(go);
-            else go(resolved as DialogOptions);
+    return new Promise<DialogResult>((resolve) => {
+      const go = (o: DialogOptions) => {
+        const reqId = `dlg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        const { inputValidator, preConfirm, ...plain } = o as any;
+        plain.reqId = reqId;
+        plain.hasValidator = typeof inputValidator === "function";
+        plain.hasPreConfirm = typeof preConfirm === "function";
+        if (plain.hasValidator || plain.hasPreConfirm)
+          this.shared.hooks.set(reqId, {
+            validator: inputValidator,
+            preConfirm,
+          });
+        if (!o.toast && o.modal !== false) this.shared.open.add(reqId);
+        this.host.resolvers.set(reqId, (r: DialogResult) => {
+          this.shared.hooks.delete(reqId);
+          this.shared.open.delete(reqId);
+          try {
+            callback?.(r);
+          } catch (e) {
+            console.error("[SimpleDialogs] callback error:", e);
+          }
+          resolve(r);
         });
+        const payload = JSON.stringify(plain);
+        this.host.eval(
+          `(function(){var c=window.SimpleDialogClient;var done=function(r){if(window.handlePromptResultIPC)window.handlePromptResultIPC(${JSON.stringify(reqId)},r);};` +
+            `if(!c){done({isConfirmed:false,isDenied:false,isDismissed:true,dismiss:"unavailable"});return;}` +
+            `c.fire(${payload}).then(done,function(e){done({isConfirmed:false,isDenied:false,isDismissed:true,dismiss:"error",error:String(e)});});})();`,
+        );
+      };
+      if (resolved && typeof (resolved as any).then === "function")
+        (resolved as Promise<DialogOptions>).then(go);
+      else go(resolved as DialogOptions);
+    });
+  }
+
+  private wrap<T>(
+    opts: DialogOptions,
+    map: (r: DialogResult) => T,
+    cb?: DialogCallback<T>,
+  ): Promise<T> {
+    const p = this.dispatch(opts, cb ? (r) => cb(map(r)) : undefined);
+    return p.then(map);
+  }
+
+  // ----- shortcuts ------------------------------------------------------------------------------------------------
+
+  private iconDialog(
+    icon: DialogIcon,
+    title: string,
+    text?: string | DialogCallback,
+    opts?: DialogOptions | DialogCallback,
+    cb?: DialogCallback,
+  ): Promise<DialogResult> {
+    const extra =
+      typeof text === "function" ? {} : typeof opts === "object" ? opts : {};
+    const callback =
+      typeof text === "function"
+        ? text
+        : typeof opts === "function"
+          ? opts
+          : cb;
+    return this.dispatch(
+      {
+        ...this.defaults,
+        title,
+        text: typeof text === "string" ? text : undefined,
+        icon,
+        ...extra,
+      },
+      callback,
+    );
+  }
+  /** Shows a dialog with the `"success"` icon. */
+  success(
+    title: string,
+    text?: string | DialogCallback,
+    opts?: DialogOptions | DialogCallback,
+    cb?: DialogCallback,
+  ) {
+    return this.iconDialog("success", title, text, opts, cb);
+  }
+  /** Shows a dialog with the `"error"` icon. */
+  error(
+    title: string,
+    text?: string | DialogCallback,
+    opts?: DialogOptions | DialogCallback,
+    cb?: DialogCallback,
+  ) {
+    return this.iconDialog("error", title, text, opts, cb);
+  }
+  /** Shows a dialog with the `"warning"` icon. */
+  warning(
+    title: string,
+    text?: string | DialogCallback,
+    opts?: DialogOptions | DialogCallback,
+    cb?: DialogCallback,
+  ) {
+    return this.iconDialog("warning", title, text, opts, cb);
+  }
+  /** Shows a dialog with the `"info"` icon. */
+  info(
+    title: string,
+    text?: string | DialogCallback,
+    opts?: DialogOptions | DialogCallback,
+    cb?: DialogCallback,
+  ) {
+    return this.iconDialog("info", title, text, opts, cb);
+  }
+  /** Shows a dialog with the `"question"` icon. */
+  question(
+    title: string,
+    text?: string | DialogCallback,
+    opts?: DialogOptions | DialogCallback,
+    cb?: DialogCallback,
+  ) {
+    return this.iconDialog("question", title, text, opts, cb);
+  }
+
+  /** Yes/No style confirmation. Resolves `true` when confirmed. */
+  confirm(
+    text: string,
+    title = "Are you sure?",
+    opts?: DialogOptions | DialogCallback<boolean>,
+    cb?: DialogCallback<boolean>,
+  ): Promise<boolean> {
+    const extra = typeof opts === "object" ? opts : {};
+    const callback = typeof opts === "function" ? opts : cb;
+    return this.wrap(
+      {
+        icon: "question",
+        title,
+        text,
+        showCancelButton: true,
+        confirmButtonText: "Yes",
+        cancelButtonText: "Cancel",
+        focusCancel: false,
+        ...this.defaults,
+        ...extra,
+      },
+      (r) => r.isConfirmed,
+      callback,
+    );
+  }
+
+  /** Typical "Delete this?" flow with a red confirm button. */
+  confirmDelete(
+    what = "this item",
+    opts?: DialogOptions | DialogCallback<boolean>,
+    cb?: DialogCallback<boolean>,
+  ): Promise<boolean> {
+    const extra = typeof opts === "object" ? opts : {};
+    const callback = typeof opts === "function" ? opts : cb;
+    return this.wrap(
+      {
+        icon: "warning",
+        title: "Are you sure?",
+        text: `You are about to delete ${what}. This cannot be undone.`,
+        showCancelButton: true,
+        confirmButtonText: "Yes, delete it",
+        confirmButtonColor: "#dc3741",
+        focusCancel: true,
+        ...this.defaults,
+        ...extra,
+      },
+      (r) => r.isConfirmed,
+      callback,
+    );
+  }
+
+  /** Free-text prompt. Resolves the entered string, or `null` when cancelled. */
+  prompt(
+    text: string,
+    defaultValue = "",
+    title = "Prompt",
+    opts?: DialogOptions | DialogCallback<string | null>,
+    cb?: DialogCallback<string | null>,
+  ): Promise<string | null> {
+    const extra = typeof opts === "object" ? opts : {};
+    const callback = typeof opts === "function" ? opts : cb;
+    return this.wrap(
+      {
+        title,
+        text,
+        input: "text",
+        inputValue: defaultValue,
+        showCancelButton: true,
+        ...this.defaults,
+        ...extra,
+      },
+      (r) => (r.isConfirmed ? String(r.value ?? "") : null),
+      callback,
+    );
+  }
+
+  /** Ask for a single typed value (`email`, `password`, `number`, `date`, `color`, `range`, `textarea`...). Resolves `undefined` when cancelled. */
+  inputDialog(
+    type: DialogInputType,
+    title: string,
+    opts?: DialogOptions | DialogCallback<any>,
+    cb?: DialogCallback<any>,
+  ): Promise<any> {
+    const extra = typeof opts === "object" ? opts : {};
+    const callback = typeof opts === "function" ? opts : cb;
+    return this.wrap(
+      {
+        title,
+        input: type,
+        showCancelButton: true,
+        ...this.defaults,
+        ...extra,
+      },
+      (r) => (r.isConfirmed ? r.value : undefined),
+      callback,
+    );
+  }
+
+  /** Pick one option from a dropdown. Resolves the chosen value, or `undefined` when cancelled. */
+  selectDialog(
+    title: string,
+    options: DialogInputOptions,
+    opts?: DialogOptions | DialogCallback<any>,
+    cb?: DialogCallback<any>,
+  ): Promise<any> {
+    const extra = typeof opts === "object" ? opts : {};
+    const callback = typeof opts === "function" ? opts : cb;
+    return this.wrap(
+      {
+        title,
+        input: "select",
+        inputOptions: options,
+        inputPlaceholder: "Select...",
+        showCancelButton: true,
+        validate: "required",
+        ...this.defaults,
+        ...extra,
+      },
+      (r) => (r.isConfirmed ? r.value : undefined),
+      callback,
+    );
+  }
+
+  /** Non-blocking toast. `icon` and `position` are optional. */
+  toast(
+    message: string | DialogOptions,
+    durationMs = 3000,
+    icon?: DialogIcon | DialogCallback,
+    cb?: DialogCallback,
+  ): Promise<DialogResult> {
+    const callback = typeof icon === "function" ? icon : cb;
+    const opts: DialogOptions =
+      typeof message === "string"
+        ? {
+            title: message,
+            timer: durationMs,
+            ...(typeof icon === "string" ? { icon } : {}),
+          }
+        : { ...message };
+    return this.dispatch({ ...this.defaults, ...opts, toast: true }, callback);
+  }
+
+  /** Show a spinner dialog. Close it with `close()`. */
+  showLoading(title = "Loading...", text?: string): Promise<DialogResult> {
+    return this.dispatch({
+      ...this.defaults,
+      title,
+      text,
+      loading: true,
+      showConfirmButton: false,
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+    });
+  }
+
+  /** Run several dialogs in sequence with a progress-step indicator. Stops at the first non-confirmed step. */
+  queue(
+    steps: DialogOptions[],
+    cb?: (out: { completed: boolean; results: DialogResult[] }) => void,
+  ): Promise<{ completed: boolean; results: DialogResult[] }> {
+    return new Promise((resolve) => {
+      const results: DialogResult[] = [];
+      const finish = (completed: boolean) => {
+        const out = { completed, results };
+        try {
+          cb?.(out);
+        } catch (e) {
+          console.error(e);
+        }
+        resolve(out);
+      };
+      const run = (i: number) => {
+        if (i >= steps.length) return finish(true);
+        const s = steps[i]!;
+        this.dispatch(
+          {
+            ...this.defaults,
+            ...s,
+            progressSteps:
+              s.progressSteps ?? steps.map((_, k) => String(k + 1)),
+            currentProgressStep: i,
+          },
+          (r) => {
+            results.push(r);
+            if (r.isConfirmed) run(i + 1);
+            else finish(false);
+          },
+        );
+      };
+      run(0);
+    });
+  }
+
+  // ----- control --------------------------------------------------------------------------------------------------
+
+  /** Closes the currently active modal dialog, optionally resolving it with a partial result. */
+  close(result?: Partial<DialogResult>): void {
+    this.host.eval(
+      `window.SimpleDialogClient&&window.SimpleDialogClient.close(${result ? JSON.stringify(result) : ""});`,
+    );
+  }
+  /** Closes all open modal dialogs and active toast notifications immediately. */
+  closeAll(): void {
+    this.host.eval(
+      `window.SimpleDialogClient&&window.SimpleDialogClient.closeAll();`,
+    );
+  }
+  /** Update the visible dialog in place (title, text, icon, button labels, ...). Function options are not supported here. */
+  update(options: Omit<DialogOptions, "inputValidator" | "preConfirm">): void {
+    this.host.eval(
+      `window.SimpleDialogClient&&window.SimpleDialogClient.update(${JSON.stringify(options)});`,
+    );
+  }
+  /** Returns `true` if a modal dialog is currently open in the window. */
+  isVisible(): boolean {
+    return this.shared.open.size > 0;
+  }
+
+  // ----- files ----------------------------------------------------------------------------------------------------
+
+  /**
+   * Generic file dialog. Native OS dialog first (`native: "auto"`); the in-webview picker is used ONLY when the native
+   * dialog is unavailable — a user pressing Cancel never opens a second dialog.
+   * Result: path string, array of paths (when `multiple`), or `null` when cancelled.
+   */
+  fileDialog(
+    mode: FileDialogMode,
+    opts: FileDialogOptions = {},
+    cb?: DialogCallback<string | string[] | null>,
+  ): Promise<string | string[] | null> {
+    const finish = (v: string | string[] | null) => {
+      try {
+        cb?.(v);
+      } catch (e) {
+        console.error(e);
+      }
+      return Promise.resolve(v);
+    };
+    const native = opts.native ?? "auto";
+    if (native !== "never") {
+      const r = runNative(mode, opts);
+      if (r.status === "ok")
+        return finish(
+          opts.multiple && mode !== "save" ? r.paths : (r.paths[0] ?? null),
+        );
+      if (r.status === "cancel") return finish(null);
+      if (native === "always") {
+        console.warn("[SimpleDialogs] Native file dialog unavailable.");
+        return finish(null);
+      }
     }
+    if (!this.host.isRunning()) return finish(null);
+    return new Promise((resolve) => {
+      const reqId = `file_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      this.host.resolvers.set(reqId, (v: any) => {
+        const out = v ?? null;
+        try {
+          cb?.(out);
+        } catch (e) {
+          console.error(e);
+        }
+        resolve(out);
+      });
+      const payload = JSON.stringify({
+        mode,
+        title: opts.title,
+        filter: parseExts(opts.filter),
+        defaultName: opts.defaultName,
+        initialDir: opts.initialDir || process.cwd(),
+        multiple: !!opts.multiple,
+        showHidden: !!opts.showHidden,
+      });
+      this.host.eval(
+        `(function(){var c=window.SimpleDialogClient;var done=function(r){if(window.handlePromptResultIPC)window.handlePromptResultIPC(${JSON.stringify(reqId)},r);};` +
+          `if(!c){done(null);return;}c.filePicker(${payload}).then(done,function(){done(null);});})();`,
+      );
+    });
+  }
 
-    private wrap<T>(opts: DialogOptions, map: (r: DialogResult) => T, cb?: DialogCallback<T>): Promise<T> {
-        const p = this.dispatch(opts, cb ? (r) => cb(map(r)) : undefined);
-        return p.then(map);
+  /** Opens a single-file selection dialog and resolves with the selected file path or `null` if cancelled. */
+  openFile(opts: FileDialogOptions = {}, cb?: DialogCallback<string | null>) {
+    return this.fileDialog(
+      "open",
+      { ...opts, multiple: false },
+      cb as any,
+    ) as Promise<string | null>;
+  }
+  /** Opens a multi-file selection dialog and resolves with an array of selected file paths or `null` if cancelled. */
+  openFiles(
+    opts: FileDialogOptions = {},
+    cb?: DialogCallback<string[] | null>,
+  ) {
+    return this.fileDialog(
+      "open",
+      { ...opts, multiple: true },
+      cb as any,
+    ) as Promise<string[] | null>;
+  }
+  /** Opens a save-file dialog and resolves with the chosen destination path or `null` if cancelled. */
+  saveFile(opts: FileDialogOptions = {}, cb?: DialogCallback<string | null>) {
+    return this.fileDialog(
+      "save",
+      { ...opts, multiple: false },
+      cb as any,
+    ) as Promise<string | null>;
+  }
+  /** Opens a directory selection dialog and resolves with the chosen folder path or `null` if cancelled. */
+  openFolder(opts: FileDialogOptions = {}, cb?: DialogCallback<string | null>) {
+    return this.fileDialog(
+      "folder",
+      { ...opts, multiple: false },
+      cb as any,
+    ) as Promise<string | null>;
+  }
+
+  // ----- bridge (called once from SimpleWindow.show()) -------------------------------------------------------------
+
+  /** Binds the IPC handlers needed by the in-webview file picker and dialog validation hooks onto a Webview instance. */
+  bindIpc(webview: {
+    bind: (name: string, fn: (...a: any[]) => any) => void;
+  }): void {
+    const safeBind = (name: string, fn: (...a: any[]) => any) => {
+      try {
+        webview.bind(name, fn);
+      } catch {
+        /* already bound */
+      }
+    };
+    safeBind("simpleguiBrowseDirIPC", (dir: string, showHidden?: boolean) =>
+      this.browseDir(dir, !!showHidden),
+    );
+    safeBind("simpleguiMkdirIPC", (parent: string, name: string) =>
+      this.makeDir(parent, name),
+    );
+    safeBind(
+      "simpleguiDialogHookIPC",
+      (reqId: string, name: string, value: any) =>
+        this.runHook(reqId, name, value),
+    );
+  }
+
+  private runHook(reqId: string, name: string, value: any): any {
+    const h = this.shared.hooks.get(reqId);
+    if (!h) return {};
+    const shape = (r: any) => {
+      if (name === "validator")
+        return typeof r === "string" && r
+          ? { error: r }
+          : r === false
+            ? { error: "Invalid value" }
+            : {};
+      return r === false ? { cancel: true } : { value: r };
+    };
+    try {
+      const fn = name === "validator" ? h.validator : h.preConfirm;
+      if (!fn) return {};
+      const r: any = fn(value);
+      // Stay synchronous when the user's function is synchronous (no dependency on microtask draining).
+      if (r && typeof r.then === "function")
+        return r.then(shape, (e: any) => ({ error: String(e?.message ?? e) }));
+      return shape(r);
+    } catch (e: any) {
+      return { error: String(e?.message ?? e) };
     }
+  }
 
-    // ----- shortcuts ------------------------------------------------------------------------------------------------
-
-    private iconDialog(icon: DialogIcon, title: string, text?: string | DialogCallback, opts?: DialogOptions | DialogCallback, cb?: DialogCallback): Promise<DialogResult> {
-        const extra = typeof text === "function" ? {} : typeof opts === "object" ? opts : {};
-        const callback = typeof text === "function" ? text : typeof opts === "function" ? opts : cb;
-        return this.dispatch({ ...this.defaults, title, text: typeof text === "string" ? text : undefined, icon, ...extra }, callback);
+  private places(): Array<{ name: string; path: string; icon: string }> {
+    const home = os.homedir();
+    const out: Array<{ name: string; path: string; icon: string }> = [
+      { name: "Home", path: home, icon: "\u{1F3E0}" },
+    ];
+    for (const [n, ic] of [
+      ["Desktop", "\u{1F5A5}"],
+      ["Documents", "\u{1F4C4}"],
+      ["Downloads", "\u2B07"],
+      ["Pictures", "\u{1F5BC}"],
+      ["Projects", "\u{1F4BB}"],
+    ] as const) {
+      const p = path.join(home, n);
+      try {
+        if (fs.statSync(p).isDirectory())
+          out.push({ name: n, path: p, icon: ic });
+      } catch {
+        /* skip */
+      }
     }
-    /** Shows a dialog with the `"success"` icon. */
-    success(title: string, text?: string | DialogCallback, opts?: DialogOptions | DialogCallback, cb?: DialogCallback) { return this.iconDialog("success", title, text, opts, cb); }
-    /** Shows a dialog with the `"error"` icon. */
-    error(title: string, text?: string | DialogCallback, opts?: DialogOptions | DialogCallback, cb?: DialogCallback) { return this.iconDialog("error", title, text, opts, cb); }
-    /** Shows a dialog with the `"warning"` icon. */
-    warning(title: string, text?: string | DialogCallback, opts?: DialogOptions | DialogCallback, cb?: DialogCallback) { return this.iconDialog("warning", title, text, opts, cb); }
-    /** Shows a dialog with the `"info"` icon. */
-    info(title: string, text?: string | DialogCallback, opts?: DialogOptions | DialogCallback, cb?: DialogCallback) { return this.iconDialog("info", title, text, opts, cb); }
-    /** Shows a dialog with the `"question"` icon. */
-    question(title: string, text?: string | DialogCallback, opts?: DialogOptions | DialogCallback, cb?: DialogCallback) { return this.iconDialog("question", title, text, opts, cb); }
-
-    /** Yes/No style confirmation. Resolves `true` when confirmed. */
-    confirm(text: string, title = "Are you sure?", opts?: DialogOptions | DialogCallback<boolean>, cb?: DialogCallback<boolean>): Promise<boolean> {
-        const extra = typeof opts === "object" ? opts : {};
-        const callback = typeof opts === "function" ? opts : cb;
-        return this.wrap({ icon: "question", title, text, showCancelButton: true, confirmButtonText: "Yes", cancelButtonText: "Cancel", focusCancel: false, ...this.defaults, ...extra }, r => r.isConfirmed, callback);
+    out.push({ name: "Working dir", path: process.cwd(), icon: "\u{1F4C2}" });
+    if (process.platform === "win32") {
+      for (let c = 67; c <= 90; c++) {
+        const d = `${String.fromCharCode(c)}:\\`;
+        try {
+          if (fs.existsSync(d))
+            out.push({ name: d, path: d, icon: "\u{1F4BD}" });
+        } catch {
+          /* skip */
+        }
+      }
+    } else {
+      out.push({ name: "Computer", path: "/", icon: "\u{1F4BD}" });
+      if (process.platform === "darwin")
+        out.push({ name: "Volumes", path: "/Volumes", icon: "\u{1F4BE}" });
     }
+    return out;
+  }
 
-    /** Typical "Delete this?" flow with a red confirm button. */
-    confirmDelete(what = "this item", opts?: DialogOptions | DialogCallback<boolean>, cb?: DialogCallback<boolean>): Promise<boolean> {
-        const extra = typeof opts === "object" ? opts : {};
-        const callback = typeof opts === "function" ? opts : cb;
-        return this.wrap({ icon: "warning", title: "Are you sure?", text: `You are about to delete ${what}. This cannot be undone.`, showCancelButton: true, confirmButtonText: "Yes, delete it", confirmButtonColor: "#dc3741", focusCancel: true, ...this.defaults, ...extra }, r => r.isConfirmed, callback);
-    }
-
-    /** Free-text prompt. Resolves the entered string, or `null` when cancelled. */
-    prompt(text: string, defaultValue = "", title = "Prompt", opts?: DialogOptions | DialogCallback<string | null>, cb?: DialogCallback<string | null>): Promise<string | null> {
-        const extra = typeof opts === "object" ? opts : {};
-        const callback = typeof opts === "function" ? opts : cb;
-        return this.wrap({ title, text, input: "text", inputValue: defaultValue, showCancelButton: true, ...this.defaults, ...extra }, r => (r.isConfirmed ? String(r.value ?? "") : null), callback);
-    }
-
-    /** Ask for a single typed value (`email`, `password`, `number`, `date`, `color`, `range`, `textarea`...). Resolves `undefined` when cancelled. */
-    inputDialog(type: DialogInputType, title: string, opts?: DialogOptions | DialogCallback<any>, cb?: DialogCallback<any>): Promise<any> {
-        const extra = typeof opts === "object" ? opts : {};
-        const callback = typeof opts === "function" ? opts : cb;
-        return this.wrap({ title, input: type, showCancelButton: true, ...this.defaults, ...extra }, r => (r.isConfirmed ? r.value : undefined), callback);
-    }
-
-    /** Pick one option from a dropdown. Resolves the chosen value, or `undefined` when cancelled. */
-    selectDialog(title: string, options: DialogInputOptions, opts?: DialogOptions | DialogCallback<any>, cb?: DialogCallback<any>): Promise<any> {
-        const extra = typeof opts === "object" ? opts : {};
-        const callback = typeof opts === "function" ? opts : cb;
-        return this.wrap({ title, input: "select", inputOptions: options, inputPlaceholder: "Select...", showCancelButton: true, validate: "required", ...this.defaults, ...extra }, r => (r.isConfirmed ? r.value : undefined), callback);
-    }
-
-    /** Non-blocking toast. `icon` and `position` are optional. */
-    toast(message: string | DialogOptions, durationMs = 3000, icon?: DialogIcon | DialogCallback, cb?: DialogCallback): Promise<DialogResult> {
-        const callback = typeof icon === "function" ? icon : cb;
-        const opts: DialogOptions = typeof message === "string"
-            ? { title: message, timer: durationMs, ...(typeof icon === "string" ? { icon } : {}) }
-            : { ...message };
-        return this.dispatch({ ...this.defaults, ...opts, toast: true }, callback);
-    }
-
-    /** Show a spinner dialog. Close it with `close()`. */
-    showLoading(title = "Loading...", text?: string): Promise<DialogResult> {
-        return this.dispatch({ ...this.defaults, title, text, loading: true, showConfirmButton: false, allowOutsideClick: false, allowEscapeKey: false });
-    }
-
-    /** Run several dialogs in sequence with a progress-step indicator. Stops at the first non-confirmed step. */
-    queue(steps: DialogOptions[], cb?: (out: { completed: boolean; results: DialogResult[] }) => void): Promise<{ completed: boolean; results: DialogResult[] }> {
-        return new Promise((resolve) => {
-            const results: DialogResult[] = [];
-            const finish = (completed: boolean) => { const out = { completed, results }; try { cb?.(out); } catch (e) { console.error(e); } resolve(out); };
-            const run = (i: number) => {
-                if (i >= steps.length) return finish(true);
-                const s = steps[i]!;
-                this.dispatch({ ...this.defaults, ...s, progressSteps: s.progressSteps ?? steps.map((_, k) => String(k + 1)), currentProgressStep: i }, (r) => {
-                    results.push(r);
-                    if (r.isConfirmed) run(i + 1); else finish(false);
-                });
-            };
-            run(0);
+  private browseDir(dirPath: string, showHidden: boolean): any {
+    const places = this.places();
+    try {
+      let target = dirPath ? path.resolve(dirPath) : os.homedir();
+      try {
+        if (!fs.statSync(target).isDirectory()) target = path.dirname(target);
+      } catch {
+        target = os.homedir();
+      }
+      const entries: Array<{
+        name: string;
+        isDirectory: boolean;
+        path: string;
+        size: number | null;
+        mtime: number;
+      }> = [];
+      for (const e of fs.readdirSync(target, { withFileTypes: true })) {
+        if (!showHidden && e.name.startsWith(".")) continue;
+        const full = path.join(target, e.name);
+        let isDir = e.isDirectory(),
+          size: number | null = null,
+          mtime = 0;
+        try {
+          const st = fs.statSync(full);
+          isDir = st.isDirectory();
+          size = isDir ? null : st.size;
+          mtime = st.mtimeMs;
+        } catch {
+          /* broken symlink etc. */
+        }
+        entries.push({
+          name: e.name,
+          isDirectory: isDir,
+          path: full,
+          size,
+          mtime,
         });
+      }
+      entries.sort((a, b) =>
+        a.isDirectory === b.isDirectory
+          ? a.name.localeCompare(b.name, undefined, {
+              sensitivity: "base",
+              numeric: true,
+            })
+          : a.isDirectory
+            ? -1
+            : 1,
+      );
+      const parent = path.dirname(target);
+      return {
+        currentDir: target,
+        parentDir: parent !== target ? parent : null,
+        entries,
+        places,
+        sep: path.sep,
+        home: os.homedir(),
+      };
+    } catch (err: any) {
+      return {
+        error: `Cannot open folder: ${err?.message ?? err}`,
+        currentDir: dirPath,
+        parentDir: null,
+        entries: [],
+        places,
+        sep: path.sep,
+      };
     }
+  }
 
-    // ----- control --------------------------------------------------------------------------------------------------
-
-    /** Closes the currently active modal dialog, optionally resolving it with a partial result. */
-    close(result?: Partial<DialogResult>): void {
-        this.host.eval(`window.SimpleDialogClient&&window.SimpleDialogClient.close(${result ? JSON.stringify(result) : ""});`);
+  private makeDir(parent: string, name: string): any {
+    try {
+      const clean = String(name || "").trim();
+      if (!clean || /[\\/]/.test(clean) || clean === "." || clean === "..")
+        return { error: "Invalid folder name" };
+      const full = path.join(parent, clean);
+      fs.mkdirSync(full, { recursive: false });
+      return { ok: true, path: full };
+    } catch (err: any) {
+      return {
+        error:
+          err?.code === "EEXIST"
+            ? "A folder with that name already exists"
+            : `Could not create folder: ${err?.message ?? err}`,
+      };
     }
-    /** Closes all open modal dialogs and active toast notifications immediately. */
-    closeAll(): void { this.host.eval(`window.SimpleDialogClient&&window.SimpleDialogClient.closeAll();`); }
-    /** Update the visible dialog in place (title, text, icon, button labels, ...). Function options are not supported here. */
-    update(options: Omit<DialogOptions, "inputValidator" | "preConfirm">): void {
-        this.host.eval(`window.SimpleDialogClient&&window.SimpleDialogClient.update(${JSON.stringify(options)});`);
-    }
-    /** Returns `true` if a modal dialog is currently open in the window. */
-    isVisible(): boolean { return this.shared.open.size > 0; }
-
-    // ----- files ----------------------------------------------------------------------------------------------------
-
-    /**
-     * Generic file dialog. Native OS dialog first (`native: "auto"`); the in-webview picker is used ONLY when the native
-     * dialog is unavailable — a user pressing Cancel never opens a second dialog.
-     * Result: path string, array of paths (when `multiple`), or `null` when cancelled.
-     */
-    fileDialog(mode: FileDialogMode, opts: FileDialogOptions = {}, cb?: DialogCallback<string | string[] | null>): Promise<string | string[] | null> {
-        const finish = (v: string | string[] | null) => { try { cb?.(v); } catch (e) { console.error(e); } return Promise.resolve(v); };
-        const native = opts.native ?? "auto";
-        if (native !== "never") {
-            const r = runNative(mode, opts);
-            if (r.status === "ok") return finish(opts.multiple && mode !== "save" ? r.paths : (r.paths[0] ?? null));
-            if (r.status === "cancel") return finish(null);
-            if (native === "always") { console.warn("[SimpleDialogs] Native file dialog unavailable."); return finish(null); }
-        }
-        if (!this.host.isRunning()) return finish(null);
-        return new Promise((resolve) => {
-            const reqId = `file_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-            this.host.resolvers.set(reqId, (v: any) => { const out = v ?? null; try { cb?.(out); } catch (e) { console.error(e); } resolve(out); });
-            const payload = JSON.stringify({
-                mode, title: opts.title, filter: parseExts(opts.filter), defaultName: opts.defaultName,
-                initialDir: opts.initialDir || process.cwd(), multiple: !!opts.multiple, showHidden: !!opts.showHidden,
-            });
-            this.host.eval(
-                `(function(){var c=window.SimpleDialogClient;var done=function(r){if(window.handlePromptResultIPC)window.handlePromptResultIPC(${JSON.stringify(reqId)},r);};` +
-                `if(!c){done(null);return;}c.filePicker(${payload}).then(done,function(){done(null);});})();`
-            );
-        });
-    }
-
-    /** Opens a single-file selection dialog and resolves with the selected file path or `null` if cancelled. */
-    openFile(opts: FileDialogOptions = {}, cb?: DialogCallback<string | null>) { return this.fileDialog("open", { ...opts, multiple: false }, cb as any) as Promise<string | null>; }
-    /** Opens a multi-file selection dialog and resolves with an array of selected file paths or `null` if cancelled. */
-    openFiles(opts: FileDialogOptions = {}, cb?: DialogCallback<string[] | null>) { return this.fileDialog("open", { ...opts, multiple: true }, cb as any) as Promise<string[] | null>; }
-    /** Opens a save-file dialog and resolves with the chosen destination path or `null` if cancelled. */
-    saveFile(opts: FileDialogOptions = {}, cb?: DialogCallback<string | null>) { return this.fileDialog("save", { ...opts, multiple: false }, cb as any) as Promise<string | null>; }
-    /** Opens a directory selection dialog and resolves with the chosen folder path or `null` if cancelled. */
-    openFolder(opts: FileDialogOptions = {}, cb?: DialogCallback<string | null>) { return this.fileDialog("folder", { ...opts, multiple: false }, cb as any) as Promise<string | null>; }
-
-    // ----- bridge (called once from SimpleWindow.show()) -------------------------------------------------------------
-
-    /** Binds the IPC handlers needed by the in-webview file picker and dialog validation hooks onto a Webview instance. */
-    bindIpc(webview: { bind: (name: string, fn: (...a: any[]) => any) => void }): void {
-        const safeBind = (name: string, fn: (...a: any[]) => any) => { try { webview.bind(name, fn); } catch { /* already bound */ } };
-        safeBind("simpleguiBrowseDirIPC", (dir: string, showHidden?: boolean) => this.browseDir(dir, !!showHidden));
-        safeBind("simpleguiMkdirIPC", (parent: string, name: string) => this.makeDir(parent, name));
-        safeBind("simpleguiDialogHookIPC", (reqId: string, name: string, value: any) => this.runHook(reqId, name, value));
-    }
-
-    private runHook(reqId: string, name: string, value: any): any {
-        const h = this.shared.hooks.get(reqId);
-        if (!h) return {};
-        const shape = (r: any) => {
-            if (name === "validator") return (typeof r === "string" && r) ? { error: r } : (r === false ? { error: "Invalid value" } : {});
-            return r === false ? { cancel: true } : { value: r };
-        };
-        try {
-            const fn = name === "validator" ? h.validator : h.preConfirm;
-            if (!fn) return {};
-            const r: any = fn(value);
-            // Stay synchronous when the user's function is synchronous (no dependency on microtask draining).
-            if (r && typeof r.then === "function") return r.then(shape, (e: any) => ({ error: String(e?.message ?? e) }));
-            return shape(r);
-        } catch (e: any) {
-            return { error: String(e?.message ?? e) };
-        }
-    }
-
-    private places(): Array<{ name: string; path: string; icon: string }> {
-        const home = os.homedir();
-        const out: Array<{ name: string; path: string; icon: string }> = [{ name: "Home", path: home, icon: "\u{1F3E0}" }];
-        for (const [n, ic] of [["Desktop", "\u{1F5A5}"], ["Documents", "\u{1F4C4}"], ["Downloads", "\u2B07"], ["Pictures", "\u{1F5BC}"], ["Projects", "\u{1F4BB}"]] as const) {
-            const p = path.join(home, n);
-            try { if (fs.statSync(p).isDirectory()) out.push({ name: n, path: p, icon: ic }); } catch { /* skip */ }
-        }
-        out.push({ name: "Working dir", path: process.cwd(), icon: "\u{1F4C2}" });
-        if (process.platform === "win32") {
-            for (let c = 67; c <= 90; c++) { const d = `${String.fromCharCode(c)}:\\`; try { if (fs.existsSync(d)) out.push({ name: d, path: d, icon: "\u{1F4BD}" }); } catch { /* skip */ } }
-        } else {
-            out.push({ name: "Computer", path: "/", icon: "\u{1F4BD}" });
-            if (process.platform === "darwin") out.push({ name: "Volumes", path: "/Volumes", icon: "\u{1F4BE}" });
-        }
-        return out;
-    }
-
-    private browseDir(dirPath: string, showHidden: boolean): any {
-        const places = this.places();
-        try {
-            let target = dirPath ? path.resolve(dirPath) : os.homedir();
-            try { if (!fs.statSync(target).isDirectory()) target = path.dirname(target); } catch { target = os.homedir(); }
-            const entries: Array<{ name: string; isDirectory: boolean; path: string; size: number | null; mtime: number }> = [];
-            for (const e of fs.readdirSync(target, { withFileTypes: true })) {
-                if (!showHidden && e.name.startsWith(".")) continue;
-                const full = path.join(target, e.name);
-                let isDir = e.isDirectory(), size: number | null = null, mtime = 0;
-                try { const st = fs.statSync(full); isDir = st.isDirectory(); size = isDir ? null : st.size; mtime = st.mtimeMs; } catch { /* broken symlink etc. */ }
-                entries.push({ name: e.name, isDirectory: isDir, path: full, size, mtime });
-            }
-            entries.sort((a, b) => (a.isDirectory === b.isDirectory ? a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true }) : a.isDirectory ? -1 : 1));
-            const parent = path.dirname(target);
-            return { currentDir: target, parentDir: parent !== target ? parent : null, entries, places, sep: path.sep, home: os.homedir() };
-        } catch (err: any) {
-            return { error: `Cannot open folder: ${err?.message ?? err}`, currentDir: dirPath, parentDir: null, entries: [], places, sep: path.sep };
-        }
-    }
-
-    private makeDir(parent: string, name: string): any {
-        try {
-            const clean = String(name || "").trim();
-            if (!clean || /[\\/]/.test(clean) || clean === "." || clean === "..") return { error: "Invalid folder name" };
-            const full = path.join(parent, clean);
-            fs.mkdirSync(full, { recursive: false });
-            return { ok: true, path: full };
-        } catch (err: any) {
-            return { error: err?.code === "EEXIST" ? "A folder with that name already exists" : `Could not create folder: ${err?.message ?? err}` };
-        }
-    }
+  }
 }

@@ -3,7 +3,22 @@
  * plain values (see `fmConvCommon.ts`). Nothing here fetches anything: XML entities and external references are never
  * expanded, so a hostile file can't read other files or blow up in memory.
  */
-import { ConvError, MAX_DEPTH, Notes, flatten, inferScalar, isObj, newObj, recordsFromRows, scalarText, setKey, toTable, uniqueHeaders, type Obj, type Value } from "./fmConvCommon";
+import {
+  ConvError,
+  MAX_DEPTH,
+  Notes,
+  flatten,
+  inferScalar,
+  isObj,
+  newObj,
+  recordsFromRows,
+  scalarText,
+  setKey,
+  toTable,
+  uniqueHeaders,
+  type Obj,
+  type Value,
+} from "./fmConvCommon";
 
 // ---------------------------------------------------------------------------------------------------------------
 // XML
@@ -18,17 +33,34 @@ export interface XNode {
   text: string;
 }
 
-const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: "\u00a0" };
+const ENTITIES: Record<string, string> = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  nbsp: "\u00a0",
+};
 
 /** Decodes standard named (`&amp;`, `&lt;`, etc.) and numeric (`&#...;`, `&#x...;`) XML/HTML character entities. */
 export function decodeEntities(s: string): string {
-  return s.replace(/&(#x[0-9a-fA-F]{1,6}|#\d{1,7}|[A-Za-z][A-Za-z0-9]{1,10});/g, (m, body: string) => {
-    if (body[0] === "#") {
-      const code = body[1] === "x" || body[1] === "X" ? parseInt(body.slice(2), 16) : parseInt(body.slice(1), 10);
-      return code > 0 && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff) ? String.fromCodePoint(code) : m;
-    }
-    return ENTITIES[body] ?? m;
-  });
+  return s.replace(
+    /&(#x[0-9a-fA-F]{1,6}|#\d{1,7}|[A-Za-z][A-Za-z0-9]{1,10});/g,
+    (m, body: string) => {
+      if (body[0] === "#") {
+        const code =
+          body[1] === "x" || body[1] === "X"
+            ? parseInt(body.slice(2), 16)
+            : parseInt(body.slice(1), 10);
+        return code > 0 &&
+          code <= 0x10ffff &&
+          !(code >= 0xd800 && code <= 0xdfff)
+          ? String.fromCodePoint(code)
+          : m;
+      }
+      return ENTITIES[body] ?? m;
+    },
+  );
 }
 
 /** Parses an XML document string into a tree of `XNode` elements. */
@@ -88,7 +120,8 @@ export function parseXmlTree(source: string): XNode {
       if (!stack.length) {
         const rest = text.slice(i);
         // after the root: only whitespace, comments and instructions may follow
-        if (rest.replace(/<!--[\s\S]*?-->|<\?[\s\S]*?\?>/g, "").trim()) err("there is more content after the main element", i);
+        if (rest.replace(/<!--[\s\S]*?-->|<\?[\s\S]*?\?>/g, "").trim())
+          err("there is more content after the main element", i);
         return open!;
       }
     } else {
@@ -99,8 +132,15 @@ export function parseXmlTree(source: string): XNode {
       for (;;) {
         while (/\s/.test(text[j] ?? "")) j++;
         if (j >= text.length) err("a tag is never closed", i);
-        if (text[j] === ">") { j++; break; }
-        if (text[j] === "/" && text[j + 1] === ">") { j += 2; node.text = "\u0000selfclosed"; break; }
+        if (text[j] === ">") {
+          j++;
+          break;
+        }
+        if (text[j] === "/" && text[j + 1] === ">") {
+          j += 2;
+          node.text = "\u0000selfclosed";
+          break;
+        }
         const a = NAME.exec(text.slice(j, j + 300));
         if (!a) err("an attribute name was expected", j);
         j += a![0].length;
@@ -109,13 +149,15 @@ export function parseXmlTree(source: string): XNode {
         j++;
         while (/\s/.test(text[j] ?? "")) j++;
         const q = text[j];
-        if (q !== '"' && q !== "'") err(`the value of "${a![0]}" must be in quotes`, j);
+        if (q !== '"' && q !== "'")
+          err(`the value of "${a![0]}" must be in quotes`, j);
         const end = text.indexOf(q!, j + 1);
         if (end < 0) err("an attribute value is never closed", j);
         node.attrs.push([a![0], decodeEntities(text.slice(j + 1, end))]);
         j = end + 1;
       }
-      if (stack.length >= MAX_DEPTH) err("the elements are nested more than 200 levels deep");
+      if (stack.length >= MAX_DEPTH)
+        err("the elements are nested more than 200 levels deep");
       i = j;
       if (stack.length) stack[stack.length - 1]!.children.push(node);
       else if (root) err("there is more than one main element");
@@ -123,14 +165,24 @@ export function parseXmlTree(source: string): XNode {
       if (node.text === "\u0000selfclosed") {
         node.text = "";
         if (!stack.length) {
-          if (text.slice(i).replace(/<!--[\s\S]*?-->|<\?[\s\S]*?\?>/g, "").trim()) err("there is more content after the main element", i);
+          if (
+            text
+              .slice(i)
+              .replace(/<!--[\s\S]*?-->|<\?[\s\S]*?\?>/g, "")
+              .trim()
+          )
+            err("there is more content after the main element", i);
           return node;
         }
       } else stack.push(node);
     }
   }
-  if (stack.length) throw new ConvError(`This isn't valid XML: <${stack[stack.length - 1]!.name}> is never closed.`);
-  if (!root) throw new ConvError("The file is empty: there is no XML to convert.");
+  if (stack.length)
+    throw new ConvError(
+      `This isn't valid XML: <${stack[stack.length - 1]!.name}> is never closed.`,
+    );
+  if (!root)
+    throw new ConvError("The file is empty: there is no XML to convert.");
   return root;
 }
 
@@ -140,8 +192,14 @@ function xnodeValue(node: XNode): Value {
   const out = newObj();
   for (const [k, v] of node.attrs) setKey(out, `@${k}`, v);
   const groups = new Map<string, XNode[]>();
-  for (const c of node.children) (groups.get(c.name) ?? groups.set(c.name, []).get(c.name)!).push(c);
-  for (const [name, list] of groups) setKey(out, name, list.length === 1 ? xnodeValue(list[0]!) : list.map(xnodeValue));
+  for (const c of node.children)
+    (groups.get(c.name) ?? groups.set(c.name, []).get(c.name)!).push(c);
+  for (const [name, list] of groups)
+    setKey(
+      out,
+      name,
+      list.length === 1 ? xnodeValue(list[0]!) : list.map(xnodeValue),
+    );
   if (text) setKey(out, "#text", text);
   return out;
 }
@@ -154,28 +212,41 @@ export function parseXml(text: string): Value {
   return out;
 }
 
-const escXml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-const escAttr = (s: string) => escXml(s).replace(/"/g, "&quot;").replace(/\r?\n/g, "&#10;");
+const escXml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const escAttr = (s: string) =>
+  escXml(s).replace(/"/g, "&quot;").replace(/\r?\n/g, "&#10;");
 // eslint-disable-next-line no-control-regex
 const XML_BAD = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/g;
 
 /** Serializes a structured `Value` into formatted XML text with the configured root and item element names. */
-export function writeXml(v: Value, opts: { rootName: string; itemName: string }, notes: Notes): string {
+export function writeXml(
+  v: Value,
+  opts: { rootName: string; itemName: string },
+  notes: Notes,
+): string {
   const clean = (s: string) => {
-    if (XML_BAD.test(s)) notes.add("Control characters that XML can't hold were removed.");
+    if (XML_BAD.test(s))
+      notes.add("Control characters that XML can't hold were removed.");
     return s.replace(XML_BAD, "");
   };
   const name = (raw: string): string => {
     let n = raw.replace(/[^A-Za-z0-9_.-]/g, "_");
     if (!/^[A-Za-z_]/.test(n)) n = `_${n}`;
     if (/^xml/i.test(n)) n = `_${n}`;
-    if (n !== raw) notes.add("Some names weren't allowed in XML and were changed (for example spaces became _).");
+    if (n !== raw)
+      notes.add(
+        "Some names weren't allowed in XML and were changed (for example spaces became _).",
+      );
     return n;
   };
   const text = (x: Value): string => clean(scalarText(x));
   const lines: string[] = [];
   const element = (tag: string, x: Value, level: number) => {
-    if (level > MAX_DEPTH) throw new ConvError("The data is nested too deeply (more than 200 levels).");
+    if (level > MAX_DEPTH)
+      throw new ConvError(
+        "The data is nested too deeply (more than 200 levels).",
+      );
     const pad = "  ".repeat(level);
     const t = name(tag);
     if (Array.isArray(x)) {
@@ -188,12 +259,19 @@ export function writeXml(v: Value, opts: { rootName: string; itemName: string },
       const kids: Array<[string, Value]> = [];
       let body = "";
       for (const [k, val] of Object.entries(x)) {
-        if (k.startsWith("@") && k.length > 1 && !isObj(val) && !Array.isArray(val)) attrs.push(` ${name(k.slice(1))}="${escAttr(text(val))}"`);
+        if (
+          k.startsWith("@") &&
+          k.length > 1 &&
+          !isObj(val) &&
+          !Array.isArray(val)
+        )
+          attrs.push(` ${name(k.slice(1))}="${escAttr(text(val))}"`);
         else if (k === "#text") body = text(val);
         else kids.push([k, val]);
       }
       const open = `${pad}<${t}${attrs.join("")}`;
-      if (!kids.length) lines.push(body ? `${open}>${escXml(body)}</${t}>` : `${open}/>`);
+      if (!kids.length)
+        lines.push(body ? `${open}>${escXml(body)}</${t}>` : `${open}/>`);
       else {
         lines.push(`${open}>`);
         if (body) lines.push(`${pad}  ${escXml(body)}`);
@@ -205,9 +283,22 @@ export function writeXml(v: Value, opts: { rootName: string; itemName: string },
     if (x === null || scalarText(x) === "") lines.push(`${pad}<${t}/>`);
     else lines.push(`${pad}<${t}>${escXml(text(x))}</${t}>`);
   };
-  const single = isObj(v) && Object.keys(v).length === 1 ? Object.entries(v)[0]! : null;
-  if (single && !Array.isArray(single[1]) && isObj(single[1]) && !single[0].startsWith("@") && single[0] !== "#text") element(single[0], single[1], 0);
-  else if (single && !single[0].startsWith("@") && single[0] !== "#text" && Array.isArray(single[1])) {
+  const single =
+    isObj(v) && Object.keys(v).length === 1 ? Object.entries(v)[0]! : null;
+  if (
+    single &&
+    !Array.isArray(single[1]) &&
+    isObj(single[1]) &&
+    !single[0].startsWith("@") &&
+    single[0] !== "#text"
+  )
+    element(single[0], single[1], 0);
+  else if (
+    single &&
+    !single[0].startsWith("@") &&
+    single[0] !== "#text" &&
+    Array.isArray(single[1])
+  ) {
     lines.push(`<${name(opts.rootName)}>`);
     element(single[0], single[1], 1);
     lines.push(`</${name(opts.rootName)}>`);
@@ -225,42 +316,68 @@ export function writeXml(v: Value, opts: { rootName: string; itemName: string },
 
 /** Parses an Apple XML `.plist` document into a structured `Value` tree. */
 export function parsePlist(text: string, notes: Notes): Value {
-  if (text.startsWith("bplist00")) throw new ConvError("This is a binary property list. Convert it to XML first (on a Mac: plutil -convert xml1 file.plist), then try again.");
+  if (text.startsWith("bplist00"))
+    throw new ConvError(
+      "This is a binary property list. Convert it to XML first (on a Mac: plutil -convert xml1 file.plist), then try again.",
+    );
   const root = parseXmlTree(text);
-  if (root.name !== "plist") throw new ConvError("This XML isn't a property list (its main element should be <plist>).");
+  if (root.name !== "plist")
+    throw new ConvError(
+      "This XML isn't a property list (its main element should be <plist>).",
+    );
   const first = root.children[0];
   if (!first) throw new ConvError("This property list is empty.");
   const go = (n: XNode, depth: number): Value => {
-    if (depth > MAX_DEPTH) throw new ConvError("The property list is nested too deeply.");
+    if (depth > MAX_DEPTH)
+      throw new ConvError("The property list is nested too deeply.");
     switch (n.name) {
       case "dict": {
         const out = newObj();
         for (let k = 0; k < n.children.length; k += 2) {
           const key = n.children[k]!;
           const val = n.children[k + 1];
-          if (key.name !== "key" || !val) throw new ConvError("This property list is damaged (a <dict> doesn't alternate <key> and values).");
+          if (key.name !== "key" || !val)
+            throw new ConvError(
+              "This property list is damaged (a <dict> doesn't alternate <key> and values).",
+            );
           setKey(out, key.text, go(val, depth + 1));
         }
         return out;
       }
-      case "array": return n.children.map((c) => go(c, depth + 1));
-      case "string": return n.text;
+      case "array":
+        return n.children.map((c) => go(c, depth + 1));
+      case "string":
+        return n.text;
       case "integer": {
         const t = n.text.trim();
-        if (!/^-?\d+$/.test(t)) throw new ConvError(`"${t.slice(0, 20)}" isn't a whole number in this property list.`);
+        if (!/^-?\d+$/.test(t))
+          throw new ConvError(
+            `"${t.slice(0, 20)}" isn't a whole number in this property list.`,
+          );
         const num = Number(t);
         return Number.isSafeInteger(num) ? num : BigInt(t);
       }
       case "real": {
         const num = Number(n.text.trim());
-        if (!Number.isFinite(num)) throw new ConvError("A decimal number in this property list isn't valid.");
+        if (!Number.isFinite(num))
+          throw new ConvError(
+            "A decimal number in this property list isn't valid.",
+          );
         return num;
       }
-      case "true": return true;
-      case "false": return false;
-      case "date": return n.text.trim();
-      case "data": notes.add("Binary data (<data>) was kept as base64 text."); return n.text.replace(/\s+/g, "");
-      default: throw new ConvError(`This property list has an unknown item <${n.name}>.`);
+      case "true":
+        return true;
+      case "false":
+        return false;
+      case "date":
+        return n.text.trim();
+      case "data":
+        notes.add("Binary data (<data>) was kept as base64 text.");
+        return n.text.replace(/\s+/g, "");
+      default:
+        throw new ConvError(
+          `This property list has an unknown item <${n.name}>.`,
+        );
     }
   };
   return go(first, 0);
@@ -270,24 +387,46 @@ export function parsePlist(text: string, notes: Notes): Value {
 export function writePlist(v: Value, notes: Notes): string {
   const out: string[] = [];
   const go = (x: Value, level: number) => {
-    if (level > MAX_DEPTH) throw new ConvError("The data is nested too deeply (more than 200 levels).");
+    if (level > MAX_DEPTH)
+      throw new ConvError(
+        "The data is nested too deeply (more than 200 levels).",
+      );
     const pad = "\t".repeat(level);
-    if (x === null) { notes.add("A property list has no null, so empty values were written as empty text."); out.push(`${pad}<string></string>`); }
-    else if (typeof x === "string") out.push(`${pad}<string>${escXml(x.replace(XML_BAD, ""))}</string>`);
+    if (x === null) {
+      notes.add(
+        "A property list has no null, so empty values were written as empty text.",
+      );
+      out.push(`${pad}<string></string>`);
+    } else if (typeof x === "string")
+      out.push(`${pad}<string>${escXml(x.replace(XML_BAD, ""))}</string>`);
     else if (typeof x === "boolean") out.push(`${pad}<${x}/>`);
     else if (typeof x === "bigint") out.push(`${pad}<integer>${x}</integer>`);
     else if (typeof x === "number") {
-      if (!Number.isFinite(x)) { notes.add("A number that isn't finite was written as 0."); out.push(`${pad}<real>0</real>`); }
-      else out.push(Number.isInteger(x) ? `${pad}<integer>${x}</integer>` : `${pad}<real>${x}</real>`);
+      if (!Number.isFinite(x)) {
+        notes.add("A number that isn't finite was written as 0.");
+        out.push(`${pad}<real>0</real>`);
+      } else
+        out.push(
+          Number.isInteger(x)
+            ? `${pad}<integer>${x}</integer>`
+            : `${pad}<real>${x}</real>`,
+        );
     } else if (Array.isArray(x)) {
       if (!x.length) out.push(`${pad}<array/>`);
-      else { out.push(`${pad}<array>`); for (const e of x) go(e, level + 1); out.push(`${pad}</array>`); }
+      else {
+        out.push(`${pad}<array>`);
+        for (const e of x) go(e, level + 1);
+        out.push(`${pad}</array>`);
+      }
     } else {
       const entries = Object.entries(x);
       if (!entries.length) out.push(`${pad}<dict/>`);
       else {
         out.push(`${pad}<dict>`);
-        for (const [k, e] of entries) { out.push(`${pad}\t<key>${escXml(k.replace(XML_BAD, ""))}</key>`); go(e, level + 1); }
+        for (const [k, e] of entries) {
+          out.push(`${pad}\t<key>${escXml(k.replace(XML_BAD, ""))}</key>`);
+          go(e, level + 1);
+        }
         out.push(`${pad}</dict>`);
       }
     }
@@ -328,11 +467,17 @@ export function parseIni(text: string, infer: boolean, notes: Notes): Value {
       const name = section[1]!.trim();
       const existing = root[name];
       if (isObj(existing)) cur = existing;
-      else { cur = newObj(); setKey(root, name, cur); }
+      else {
+        cur = newObj();
+        setKey(root, name, cur);
+      }
       continue;
     }
     const m = /^([^=:]+?)\s*[=:]\s*(.*)$/.exec(line);
-    if (!m) throw new ConvError(`Line ${n + 1} isn't a setting (it should look like name = value).`);
+    if (!m)
+      throw new ConvError(
+        `Line ${n + 1} isn't a setting (it should look like name = value).`,
+      );
     let key = m[1]!.trim();
     const val = unquoteValue(m[2]!);
     const v: Value = infer ? inferScalar(val) : val;
@@ -342,23 +487,35 @@ export function parseIni(text: string, infer: boolean, notes: Notes): Value {
       if (Array.isArray(list)) list.push(v);
       else setKey(cur, key, [v]);
     } else {
-      if (Object.prototype.hasOwnProperty.call(cur, key)) notes.add(`The setting "${key.slice(0, 40)}" appears more than once; the last value was kept.`);
+      if (Object.prototype.hasOwnProperty.call(cur, key))
+        notes.add(
+          `The setting "${key.slice(0, 40)}" appears more than once; the last value was kept.`,
+        );
       setKey(cur, key, v);
     }
   }
-  if (!any) throw new ConvError("The file is empty: there are no settings to convert.");
+  if (!any)
+    throw new ConvError("The file is empty: there are no settings to convert.");
   return root;
 }
 
 /** Serializes a structured `Value` object into INI configuration text with top-level keys and `[section]` blocks. */
 export function writeIni(v: Value, notes: Notes): string {
-  if (!isObj(v)) throw new ConvError("An INI file needs named settings. This data is a list or a single value, so it can't be written as INI. Convert it from JSON with an object at the top.");
-  const q = (x: string) => (/^\s|\s$|^["';#]|[\r\n]/.test(x) ? JSON.stringify(x) : x);
+  if (!isObj(v))
+    throw new ConvError(
+      "An INI file needs named settings. This data is a list or a single value, so it can't be written as INI. Convert it from JSON with an object at the top.",
+    );
+  const q = (x: string) =>
+    /^\s|\s$|^["';#]|[\r\n]/.test(x) ? JSON.stringify(x) : x;
   const setting = (key: string, x: Value, out: string[]) => {
-    if (Array.isArray(x) && x.every((e) => typeof e !== "object" || e === null)) for (const e of x) out.push(`${key}[] = ${q(scalarText(e))}`);
+    if (Array.isArray(x) && x.every((e) => typeof e !== "object" || e === null))
+      for (const e of x) out.push(`${key}[] = ${q(scalarText(e))}`);
     else if (typeof x === "object" && x !== null) {
-      notes.add("Nested data inside a section was flattened into dotted names.");
-      for (const [k, e] of Object.entries(flatten(x))) out.push(`${key}.${k} = ${q(scalarText(e))}`);
+      notes.add(
+        "Nested data inside a section was flattened into dotted names.",
+      );
+      for (const [k, e] of Object.entries(flatten(x)))
+        out.push(`${key}.${k} = ${q(scalarText(e))}`);
     } else out.push(`${key} = ${q(scalarText(x))}`);
   };
   const head: string[] = [];
@@ -387,8 +544,13 @@ export function parseEnv(text: string, infer: boolean): Value {
     const line = raw.trim();
     if (!line || line[0] === "#") continue;
     any = true;
-    const m = /^(?:export\s+)?([A-Za-z_][A-Za-z0-9_.-]*)\s*=\s*(.*)$/.exec(line);
-    if (!m) throw new ConvError(`Line ${n + 1} isn't a setting (it should look like NAME=value).`);
+    const m = /^(?:export\s+)?([A-Za-z_][A-Za-z0-9_.-]*)\s*=\s*(.*)$/.exec(
+      line,
+    );
+    if (!m)
+      throw new ConvError(
+        `Line ${n + 1} isn't a setting (it should look like NAME=value).`,
+      );
     let rest = m[2]!;
     let value: string;
     const quote = rest[0];
@@ -397,35 +559,64 @@ export function parseEnv(text: string, infer: boolean): Value {
       let end = -1;
       for (let guard = 0; guard < 10_000; guard++) {
         for (let k = 0; k < body.length; k++) {
-          if (quote === '"' && body[k] === "\\") { k++; continue; }
-          if (body[k] === quote) { end = k; break; }
+          if (quote === '"' && body[k] === "\\") {
+            k++;
+            continue;
+          }
+          if (body[k] === quote) {
+            end = k;
+            break;
+          }
         }
         if (end >= 0 || n + 1 >= lines.length) break;
         body += `\n${lines[++n]!}`;
       }
-      if (end < 0) throw new ConvError(`The quoted value of ${m[1]} never ends.`);
+      if (end < 0)
+        throw new ConvError(`The quoted value of ${m[1]} never ends.`);
       value = body.slice(0, end);
-      if (quote === '"') value = value.replace(/\\(["\\nrt$])/g, (_x, c: string) => (c === "n" ? "\n" : c === "r" ? "\r" : c === "t" ? "\t" : c));
+      if (quote === '"')
+        value = value.replace(/\\(["\\nrt$])/g, (_x, c: string) =>
+          c === "n" ? "\n" : c === "r" ? "\r" : c === "t" ? "\t" : c,
+        );
     } else {
       rest = rest.replace(/\s+#.*$/, "");
       value = rest.trim();
     }
-    setKey(out, m[1]!, infer && quote === undefined ? inferScalar(value) : value);
+    setKey(
+      out,
+      m[1]!,
+      infer && quote === undefined ? inferScalar(value) : value,
+    );
   }
-  if (!any) throw new ConvError("The file is empty: there are no settings to convert.");
+  if (!any)
+    throw new ConvError("The file is empty: there are no settings to convert.");
   return out;
 }
 
 /** Flattens and serializes a structured `Value` into uppercase `KEY=VALUE` `.env` lines. */
 export function writeEnv(v: Value, notes: Notes): string {
   const flat = isObj(v) ? flatten(v, "_") : flatten({ value: v } as Obj, "_");
-  if (!isObj(v) || Object.values(v).some((x) => typeof x === "object" && x !== null)) notes.add("Nested data was flattened, joining the names with _.");
+  if (
+    !isObj(v) ||
+    Object.values(v).some((x) => typeof x === "object" && x !== null)
+  )
+    notes.add("Nested data was flattened, joining the names with _.");
   const lines: string[] = [];
   for (const [k, x] of Object.entries(flat)) {
     const key = k.replace(/[^A-Za-z0-9_]/g, "_").replace(/^(\d)/, "_$1");
-    if (key !== k) notes.add("Some names weren't allowed in an .env file and were changed (for example . became _).");
+    if (key !== k)
+      notes.add(
+        "Some names weren't allowed in an .env file and were changed (for example . became _).",
+      );
     const s = scalarText(x);
-    const out = s === "" ? "" : /^[A-Za-z0-9_./:@%+,=-]+$/.test(s) ? s : !/['\r\n]/.test(s) ? `'${s}'` : `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n").replace(/\r/g, "\\r")}"`;
+    const out =
+      s === ""
+        ? ""
+        : /^[A-Za-z0-9_./:@%+,=-]+$/.test(s)
+          ? s
+          : !/['\r\n]/.test(s)
+            ? `'${s}'`
+            : `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n").replace(/\r/g, "\\r")}"`;
     lines.push(`${key}=${out}`);
   }
   return `${lines.join("\n")}\n`;
@@ -436,7 +627,19 @@ export function writeEnv(v: Value, notes: Notes): string {
 // ---------------------------------------------------------------------------------------------------------------
 
 function propUnescape(s: string): string {
-  return s.replace(/\\(u[0-9a-fA-F]{4}|[\s\S])/g, (_m, c: string) => (c[0] === "u" && c.length === 5 ? String.fromCharCode(parseInt(c.slice(1), 16)) : c === "n" ? "\n" : c === "t" ? "\t" : c === "r" ? "\r" : c === "f" ? "\f" : c));
+  return s.replace(/\\(u[0-9a-fA-F]{4}|[\s\S])/g, (_m, c: string) =>
+    c[0] === "u" && c.length === 5
+      ? String.fromCharCode(parseInt(c.slice(1), 16))
+      : c === "n"
+        ? "\n"
+        : c === "t"
+          ? "\t"
+          : c === "r"
+            ? "\r"
+            : c === "f"
+              ? "\f"
+              : c,
+  );
 }
 
 /** Parses a Java `.properties` file (including line continuations and `\uXXXX` escapes) into a `Value` object. */
@@ -447,24 +650,34 @@ export function parseProperties(text: string, infer: boolean): Value {
   for (let n = 0; n < physical.length; n++) {
     let line = physical[n]!.replace(/^[ \t\f]+/, "");
     if (!line || line[0] === "#" || line[0] === "!") continue;
-    while (/(?:^|[^\\])(?:\\\\)*\\$/.test(line) && n + 1 < physical.length) line = line.slice(0, -1) + physical[++n]!.replace(/^[ \t\f]+/, "");
+    while (/(?:^|[^\\])(?:\\\\)*\\$/.test(line) && n + 1 < physical.length)
+      line = line.slice(0, -1) + physical[++n]!.replace(/^[ \t\f]+/, "");
     any = true;
     let k = 0;
-    while (k < line.length && !/[=:\s]/.test(line[k]!)) k += line[k] === "\\" ? 2 : 1;
+    while (k < line.length && !/[=:\s]/.test(line[k]!))
+      k += line[k] === "\\" ? 2 : 1;
     const key = propUnescape(line.slice(0, k));
     let rest = line.slice(k).replace(/^[ \t\f]*/, "");
-    if (rest[0] === "=" || rest[0] === ":") rest = rest.slice(1).replace(/^[ \t\f]*/, "");
+    if (rest[0] === "=" || rest[0] === ":")
+      rest = rest.slice(1).replace(/^[ \t\f]*/, "");
     const value = propUnescape(rest);
     setKey(out, key, infer ? inferScalar(value) : value);
   }
-  if (!any) throw new ConvError("The file is empty: there are no settings to convert.");
+  if (!any)
+    throw new ConvError("The file is empty: there are no settings to convert.");
   return out;
 }
 
 /** Flattens and serializes a structured `Value` into Java `.properties` format. */
 export function writeProperties(v: Value, notes: Notes): string {
   const flat = isObj(v) ? flatten(v) : flatten({ value: v } as Obj);
-  if (!isObj(v) || Object.values(v).some((x) => typeof x === "object" && x !== null)) notes.add("Nested data was flattened into dotted names (like server.port).");
+  if (
+    !isObj(v) ||
+    Object.values(v).some((x) => typeof x === "object" && x !== null)
+  )
+    notes.add(
+      "Nested data was flattened into dotted names (like server.port).",
+    );
   const esc = (s: string, key: boolean) => {
     let out = "";
     for (let i = 0; i < s.length; i++) {
@@ -475,14 +688,21 @@ export function writeProperties(v: Value, notes: Notes): string {
       else if (c === "\r") out += "\\r";
       else if (c === "\t") out += "\\t";
       else if (c === "\f") out += "\\f";
-      else if (code < 0x20 || code > 0x7e) out += `\\u${code.toString(16).padStart(4, "0")}`;
-      else if (key && (c === " " || c === "=" || c === ":" || c === "#" || c === "!")) out += `\\${c}`;
+      else if (code < 0x20 || code > 0x7e)
+        out += `\\u${code.toString(16).padStart(4, "0")}`;
+      else if (
+        key &&
+        (c === " " || c === "=" || c === ":" || c === "#" || c === "!")
+      )
+        out += `\\${c}`;
       else if (!key && c === " " && i === 0) out += "\\ ";
       else out += c;
     }
     return out;
   };
-  return `${Object.entries(flat).map(([k, x]) => `${esc(k, true)}=${esc(scalarText(x), false)}`).join("\n")}\n`;
+  return `${Object.entries(flat)
+    .map(([k, x]) => `${esc(k, true)}=${esc(scalarText(x), false)}`)
+    .join("\n")}\n`;
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -494,9 +714,13 @@ function splitPipes(line: string): string[] {
   let cur = "";
   for (let i = 0; i < line.length; i++) {
     const c = line[i]!;
-    if (c === "\\" && line[i + 1] === "|") { cur += "|"; i++; }
-    else if (c === "|") { cells.push(cur); cur = ""; }
-    else cur += c;
+    if (c === "\\" && line[i + 1] === "|") {
+      cur += "|";
+      i++;
+    } else if (c === "|") {
+      cells.push(cur);
+      cur = "";
+    } else cur += c;
   }
   cells.push(cur);
   if (cells[0]!.trim() === "") cells.shift();
@@ -505,52 +729,97 @@ function splitPipes(line: string): string[] {
 }
 
 /** Extracts and parses the first GitHub-flavored Markdown pipe table in `text` into an array of row objects. */
-export function parseMarkdownTable(text: string, infer: boolean, notes: Notes): Value {
+export function parseMarkdownTable(
+  text: string,
+  infer: boolean,
+  notes: Notes,
+): Value {
   const lines = text.replace(/^\ufeff/, "").split(/\r?\n/);
-  const sep = (l: string) => /^\s*\|?\s*:?-{1,}:?\s*(\|\s*:?-{1,}:?\s*)*\|?\s*$/.test(l) && l.includes("-") && (l.includes("|") || /^\s*:?-+:?\s*$/.test(l));
+  const sep = (l: string) =>
+    /^\s*\|?\s*:?-{1,}:?\s*(\|\s*:?-{1,}:?\s*)*\|?\s*$/.test(l) &&
+    l.includes("-") &&
+    (l.includes("|") || /^\s*:?-+:?\s*$/.test(l));
   let start = -1;
   let tables = 0;
   for (let i = 0; i + 1 < lines.length; i++) {
-    if (lines[i]!.includes("|") && sep(lines[i + 1]!) && lines[i + 1]!.includes("|")) {
+    if (
+      lines[i]!.includes("|") &&
+      sep(lines[i + 1]!) &&
+      lines[i + 1]!.includes("|")
+    ) {
       tables++;
       if (start < 0) start = i;
       i++;
     }
   }
-  if (start < 0) throw new ConvError("No table was found in this file. A Markdown table looks like: | name | age |  followed by  | --- | --- |.");
-  if (tables > 1) notes.add("The file has more than one table; only the first was used.");
+  if (start < 0)
+    throw new ConvError(
+      "No table was found in this file. A Markdown table looks like: | name | age |  followed by  | --- | --- |.",
+    );
+  if (tables > 1)
+    notes.add("The file has more than one table; only the first was used.");
   const header = splitPipes(lines[start]!);
   const rows: string[][] = [];
-  for (let i = start + 2; i < lines.length && lines[i]!.trim() && lines[i]!.includes("|"); i++) rows.push(splitPipes(lines[i]!));
+  for (
+    let i = start + 2;
+    i < lines.length && lines[i]!.trim() && lines[i]!.includes("|");
+    i++
+  )
+    rows.push(splitPipes(lines[i]!));
   return recordsFromRows(header, rows, infer);
 }
 
 /** Formats a structured `Value` as a GitHub-flavored Markdown pipe table. */
-export function writeMarkdownTable(v: Value, flatOpt: boolean, notes: Notes): string {
+export function writeMarkdownTable(
+  v: Value,
+  flatOpt: boolean,
+  notes: Notes,
+): string {
   const t = toTable(v, { flatten: flatOpt, notes });
-  const cell = (x: Value) => scalarText(x).replace(/\|/g, "\\|").replace(/\r?\n/g, "<br>");
+  const cell = (x: Value) =>
+    scalarText(x).replace(/\|/g, "\\|").replace(/\r?\n/g, "<br>");
   const header = t.columns.map((c) => cell(c));
   const body = t.rows.map((r) => r.map(cell));
-  const widths = header.map((h, i) => Math.min(40, Math.max(3, h.length, ...body.map((r) => r[i]!.length))));
-  const fmt = (r: string[]) => `| ${r.map((c, i) => c.padEnd(widths[i]!)).join(" | ")} |`;
+  const widths = header.map((h, i) =>
+    Math.min(40, Math.max(3, h.length, ...body.map((r) => r[i]!.length))),
+  );
+  const fmt = (r: string[]) =>
+    `| ${r.map((c, i) => c.padEnd(widths[i]!)).join(" | ")} |`;
   return `${[fmt(header), `| ${widths.map((w) => "-".repeat(w)).join(" | ")} |`, ...body.map(fmt)].join("\n")}\n`;
 }
 
-const stripTags = (s: string) => decodeEntities(s.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]*>/g, "")).replace(/[ \t\r\f\v\u00a0]+/g, " ").replace(/ ?\n ?/g, "\n").trim();
+const stripTags = (s: string) =>
+  decodeEntities(s.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]*>/g, ""))
+    .replace(/[ \t\r\f\v\u00a0]+/g, " ")
+    .replace(/ ?\n ?/g, "\n")
+    .trim();
 
 /** Extracts and parses the first HTML `<table>` in `text` into an array of row objects or cell arrays. */
-export function parseHtmlTable(text: string, header: boolean, infer: boolean, notes: Notes): Value {
+export function parseHtmlTable(
+  text: string,
+  header: boolean,
+  infer: boolean,
+  notes: Notes,
+): Value {
   const tables = [...text.matchAll(/<table\b[^>]*>([\s\S]*?)<\/table\s*>/gi)];
-  if (!tables.length) throw new ConvError("No table was found in this file (there is no <table> in it).");
-  if (tables.length > 1) notes.add("The file has more than one table; only the first was used.");
+  if (!tables.length)
+    throw new ConvError(
+      "No table was found in this file (there is no <table> in it).",
+    );
+  if (tables.length > 1)
+    notes.add("The file has more than one table; only the first was used.");
   const body = tables[0]![1]!;
-  if (/\b(?:rowspan|colspan)\s*=/i.test(body)) notes.add("Merged cells (rowspan, colspan) aren't supported: each cell was read as one cell.");
+  if (/\b(?:rowspan|colspan)\s*=/i.test(body))
+    notes.add(
+      "Merged cells (rowspan, colspan) aren't supported: each cell was read as one cell.",
+    );
   const rows: string[][] = [];
   let hasTh = false;
   for (const tr of body.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr\s*>/gi)) {
     const cells = [...tr[1]!.matchAll(/<(t[hd])\b[^>]*>([\s\S]*?)<\/\1\s*>/gi)];
     if (!cells.length) continue;
-    if (rows.length === 0 && cells.some((c) => c[1]!.toLowerCase() === "th")) hasTh = true;
+    if (rows.length === 0 && cells.some((c) => c[1]!.toLowerCase() === "th"))
+      hasTh = true;
     rows.push(cells.map((c) => stripTags(c[2]!)));
   }
   if (!rows.length) throw new ConvError("The table has no rows.");
@@ -559,11 +828,23 @@ export function parseHtmlTable(text: string, header: boolean, infer: boolean, no
 }
 
 /** Renders a structured `Value` as a standalone HTML document containing a styled `<table>`. */
-export function writeHtmlTable(v: Value, flatOpt: boolean, title: string, notes: Notes): string {
+export function writeHtmlTable(
+  v: Value,
+  flatOpt: boolean,
+  title: string,
+  notes: Notes,
+): string {
   const t = toTable(v, { flatten: flatOpt, notes });
-  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const esc = (s: string) =>
+    s
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
   const cell = (x: Value) => esc(scalarText(x)).replace(/\r?\n/g, "<br>");
-  const rows = t.rows.map((r) => `      <tr>${r.map((x) => `<td>${cell(x)}</td>`).join("")}</tr>`);
+  const rows = t.rows.map(
+    (r) => `      <tr>${r.map((x) => `<td>${cell(x)}</td>`).join("")}</tr>`,
+  );
   return `<!doctype html>\n<html lang="en">\n<head>\n  <meta charset="utf-8">\n  <title>${esc(title)}</title>\n</head>\n<body>\n  <table border="1" cellspacing="0" cellpadding="4">\n    <thead>\n      <tr>${t.columns.map((c) => `<th>${esc(c)}</th>`).join("")}</tr>\n    </thead>\n    <tbody>\n${rows.join("\n")}\n    </tbody>\n  </table>\n</body>\n</html>\n`;
 }
 
@@ -575,14 +856,32 @@ export function writeHtmlTable(v: Value, flatOpt: boolean, title: string, notes:
 export type Dialect = "ansi" | "mysql" | "sqlserver";
 
 /** Generates optional `CREATE TABLE` DDL and batched `INSERT INTO` SQL statements from a structured `Value`. */
-export function writeSql(v: Value, o: { table: string; dialect: Dialect; createTable: boolean; flatten: boolean }, notes: Notes): string {
+export function writeSql(
+  v: Value,
+  o: {
+    table: string;
+    dialect: Dialect;
+    createTable: boolean;
+    flatten: boolean;
+  },
+  notes: Notes,
+): string {
   const t = toTable(v, { flatten: o.flatten, notes });
-  const ident = (s: string) => (o.dialect === "mysql" ? `\`${s.replace(/`/g, "``")}\`` : o.dialect === "sqlserver" ? `[${s.replace(/\]/g, "]]")}]` : `"${s.replace(/"/g, '""')}"`);
+  const ident = (s: string) =>
+    o.dialect === "mysql"
+      ? `\`${s.replace(/`/g, "``")}\``
+      : o.dialect === "sqlserver"
+        ? `[${s.replace(/\]/g, "]]")}]`
+        : `"${s.replace(/"/g, '""')}"`;
   const lit = (x: Value): string => {
     if (x === null) return "NULL";
-    if (typeof x === "boolean") return o.dialect === "sqlserver" ? (x ? "1" : "0") : x ? "TRUE" : "FALSE";
+    if (typeof x === "boolean")
+      return o.dialect === "sqlserver" ? (x ? "1" : "0") : x ? "TRUE" : "FALSE";
     if (typeof x === "number") {
-      if (!Number.isFinite(x)) { notes.add("A number that isn't finite was written as NULL."); return "NULL"; }
+      if (!Number.isFinite(x)) {
+        notes.add("A number that isn't finite was written as NULL.");
+        return "NULL";
+      }
       return String(x);
     }
     if (typeof x === "bigint") return x.toString();
@@ -595,17 +894,38 @@ export function writeSql(v: Value, o: { table: string; dialect: Dialect; createT
   if (o.createTable) {
     const types = t.columns.map((_c, i) => {
       const col = t.rows.map((r) => r[i]!).filter((x) => x !== null);
-      if (col.length && col.every((x) => typeof x === "boolean")) return o.dialect === "sqlserver" ? "BIT" : "BOOLEAN";
-      if (col.length && col.every((x) => typeof x === "number" && Number.isInteger(x) || typeof x === "bigint")) return "BIGINT";
-      if (col.length && col.every((x) => typeof x === "number" || typeof x === "bigint")) return o.dialect === "ansi" ? "DOUBLE PRECISION" : o.dialect === "mysql" ? "DOUBLE" : "FLOAT";
+      if (col.length && col.every((x) => typeof x === "boolean"))
+        return o.dialect === "sqlserver" ? "BIT" : "BOOLEAN";
+      if (
+        col.length &&
+        col.every(
+          (x) =>
+            (typeof x === "number" && Number.isInteger(x)) ||
+            typeof x === "bigint",
+        )
+      )
+        return "BIGINT";
+      if (
+        col.length &&
+        col.every((x) => typeof x === "number" || typeof x === "bigint")
+      )
+        return o.dialect === "ansi"
+          ? "DOUBLE PRECISION"
+          : o.dialect === "mysql"
+            ? "DOUBLE"
+            : "FLOAT";
       return o.dialect === "sqlserver" ? "NVARCHAR(MAX)" : "TEXT";
     });
-    out.push(`CREATE TABLE ${table} (\n${t.columns.map((c, i) => `  ${ident(c)} ${types[i]}`).join(",\n")}\n);`);
+    out.push(
+      `CREATE TABLE ${table} (\n${t.columns.map((c, i) => `  ${ident(c)} ${types[i]}`).join(",\n")}\n);`,
+    );
   }
   const cols = t.columns.map(ident).join(", ");
   const batch = 100;
   for (let i = 0; i < t.rows.length; i += batch) {
-    const rows = t.rows.slice(i, i + batch).map((r) => `  (${r.map(lit).join(", ")})`);
+    const rows = t.rows
+      .slice(i, i + batch)
+      .map((r) => `  (${r.map(lit).join(", ")})`);
     out.push(`INSERT INTO ${table} (${cols}) VALUES\n${rows.join(",\n")};`);
   }
   return `${out.join("\n\n")}\n`;
@@ -620,15 +940,19 @@ export function parseSql(source: string, _infer: boolean, notes: Notes): Value {
   const skipSpace = () => {
     for (;;) {
       while (i < n && /\s/.test(s[i]!)) i++;
-      if (s.startsWith("--", i) || s[i] === "#") { while (i < n && s[i] !== "\n") i++; }
-      else if (s.startsWith("/*", i)) { const e = s.indexOf("*/", i + 2); i = e < 0 ? n : e + 2; }
-      else return;
+      if (s.startsWith("--", i) || s[i] === "#") {
+        while (i < n && s[i] !== "\n") i++;
+      } else if (s.startsWith("/*", i)) {
+        const e = s.indexOf("*/", i + 2);
+        i = e < 0 ? n : e + 2;
+      } else return;
     }
   };
   const ident = (): string => {
     skipSpace();
     const open = s[i];
-    const close = open === "`" ? "`" : open === '"' ? '"' : open === "[" ? "]" : null;
+    const close =
+      open === "`" ? "`" : open === '"' ? '"' : open === "[" ? "]" : null;
     let name = "";
     if (close) {
       i++;
@@ -636,17 +960,30 @@ export function parseSql(source: string, _infer: boolean, notes: Notes): Value {
       i++;
     } else {
       const m = /^[A-Za-z_][\w$]*/.exec(s.slice(i, i + 200));
-      if (!m) throw new ConvError(`The SQL isn't understood near "${s.slice(i, i + 20).replace(/\s+/g, " ")}".`);
+      if (!m)
+        throw new ConvError(
+          `The SQL isn't understood near "${s.slice(i, i + 20).replace(/\s+/g, " ")}".`,
+        );
       name = m[0];
       i += name.length;
     }
     skipSpace();
-    if (s[i] === ".") { i++; return `${name}.${ident()}`; }
+    if (s[i] === ".") {
+      i++;
+      return `${name}.${ident()}`;
+    }
     return name;
   };
   const skipStatement = () => {
     while (i < n && s[i] !== ";") {
-      if (s[i] === "'" || s[i] === '"' || s[i] === "`") { const q = s[i]!; i++; while (i < n && s[i] !== q) { if (s[i] === "\\" && q === "'") i++; i++; } }
+      if (s[i] === "'" || s[i] === '"' || s[i] === "`") {
+        const q = s[i]!;
+        i++;
+        while (i < n && s[i] !== q) {
+          if (s[i] === "\\" && q === "'") i++;
+          i++;
+        }
+      }
       i++;
     }
     i++;
@@ -659,32 +996,58 @@ export function parseSql(source: string, _infer: boolean, notes: Notes): Value {
       i++;
       let out = "";
       for (;;) {
-        if (i >= n) throw new ConvError("A text value in the SQL never ends (a closing ' is missing).");
-        if (s[i] === "'") { if (s[i + 1] === "'") { out += "'"; i += 2; continue; } i++; break; }
-        if (s[i] === "\\" && (s[i + 1] === "'" || s[i + 1] === "\\")) { out += s[i + 1]; i += 2; continue; }
+        if (i >= n)
+          throw new ConvError(
+            "A text value in the SQL never ends (a closing ' is missing).",
+          );
+        if (s[i] === "'") {
+          if (s[i + 1] === "'") {
+            out += "'";
+            i += 2;
+            continue;
+          }
+          i++;
+          break;
+        }
+        if (s[i] === "\\" && (s[i + 1] === "'" || s[i + 1] === "\\")) {
+          out += s[i + 1];
+          i += 2;
+          continue;
+        }
         out += s[i++];
       }
       return out;
     }
     const m = /^[^,)\s]+(?:\([^)]*\))?/.exec(s.slice(i, i + 400));
-    if (!m) throw new ConvError(`A value in the SQL isn't understood near "${s.slice(i, i + 20).replace(/\s+/g, " ")}".`);
+    if (!m)
+      throw new ConvError(
+        `A value in the SQL isn't understood near "${s.slice(i, i + 20).replace(/\s+/g, " ")}".`,
+      );
     i += m[0].length;
     const tok = m[0];
     if (/^null$/i.test(tok)) return null;
     if (/^true$/i.test(tok)) return true;
     if (/^false$/i.test(tok)) return false;
     if (/^-?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/.test(tok)) {
-      if (/^-?\d+$/.test(tok) && !Number.isSafeInteger(Number(tok))) return BigInt(tok);
+      if (/^-?\d+$/.test(tok) && !Number.isSafeInteger(Number(tok)))
+        return BigInt(tok);
       return Number(tok);
     }
-    notes.add("Some SQL expressions (like NOW()) can't be evaluated and were kept as text.");
+    notes.add(
+      "Some SQL expressions (like NOW()) can't be evaluated and were kept as text.",
+    );
     return tok;
   };
   while (i < n) {
     skipSpace();
     if (i >= n) break;
-    const m = /^insert\s+(?:ignore\s+)?(?:or\s+\w+\s+)?into\s+/i.exec(s.slice(i, i + 80));
-    if (!m) { skipStatement(); continue; }
+    const m = /^insert\s+(?:ignore\s+)?(?:or\s+\w+\s+)?into\s+/i.exec(
+      s.slice(i, i + 80),
+    );
+    if (!m) {
+      skipStatement();
+      continue;
+    }
     i += m[0].length;
     const table = ident();
     skipSpace();
@@ -695,13 +1058,22 @@ export function parseSql(source: string, _infer: boolean, notes: Notes): Value {
       for (;;) {
         cols.push(ident());
         skipSpace();
-        if (s[i] === ",") { i++; continue; }
-        if (s[i] === ")") { i++; break; }
+        if (s[i] === ",") {
+          i++;
+          continue;
+        }
+        if (s[i] === ")") {
+          i++;
+          break;
+        }
         throw new ConvError("The column list in the SQL isn't understood.");
       }
     }
     skipSpace();
-    if (!/^values?\b/i.test(s.slice(i, i + 7))) { skipStatement(); continue; }
+    if (!/^values?\b/i.test(s.slice(i, i + 7))) {
+      skipStatement();
+      continue;
+    }
     i += /^values/i.test(s.slice(i, i + 6)) ? 6 : 5;
     const list = tables.get(table) ?? tables.set(table, []).get(table)!;
     for (;;) {
@@ -712,24 +1084,43 @@ export function parseSql(source: string, _infer: boolean, notes: Notes): Value {
       for (;;) {
         vals.push(literal());
         skipSpace();
-        if (s[i] === ",") { i++; continue; }
-        if (s[i] === ")") { i++; break; }
-        throw new ConvError("A row of values in the SQL isn't understood (a , or ) was expected).");
+        if (s[i] === ",") {
+          i++;
+          continue;
+        }
+        if (s[i] === ")") {
+          i++;
+          break;
+        }
+        throw new ConvError(
+          "A row of values in the SQL isn't understood (a , or ) was expected).",
+        );
       }
-      const names = uniqueHeaders(cols ?? vals.map((_v, k) => `column${k + 1}`));
-      if (cols && vals.length !== cols.length) throw new ConvError(`A row has ${vals.length} values but the column list has ${cols.length}.`);
+      const names = uniqueHeaders(
+        cols ?? vals.map((_v, k) => `column${k + 1}`),
+      );
+      if (cols && vals.length !== cols.length)
+        throw new ConvError(
+          `A row has ${vals.length} values but the column list has ${cols.length}.`,
+        );
       const rec = newObj();
       names.forEach((name, k) => setKey(rec, name, vals[k]!));
       list.push(rec);
       skipSpace();
-      if (s[i] === ",") { i++; continue; }
+      if (s[i] === ",") {
+        i++;
+        continue;
+      }
       break;
     }
     skipStatement();
   }
-  if (!tables.size) throw new ConvError("No INSERT statements were found in this file.");
+  if (!tables.size)
+    throw new ConvError("No INSERT statements were found in this file.");
   if (tables.size === 1) return [...tables.values()][0]!;
-  notes.add("The file inserts into more than one table, so the result has one list for each table.");
+  notes.add(
+    "The file inserts into more than one table, so the result has one list for each table.",
+  );
   const out = newObj();
   for (const [name, rows] of tables) setKey(out, name, rows);
   return out;

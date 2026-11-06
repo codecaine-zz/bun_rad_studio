@@ -1,7 +1,7 @@
 import { injectGameMasterFx } from "../src/shared/gameMasterFx";
 /**
  * ⚡ Minesweeper Pro — Championship Deluxe Master Edition Studio
- * 
+ *
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
  * - Championship Minesweeper with 100% Safe First-Click & Chord Clearing
@@ -79,7 +79,9 @@ export function generateMinesweeperStudioHtml(): string {
   const assetsDir = getMinesweeperAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Minesweeper Pro</h1>";
+  let html = existsSync(indexPath)
+    ? readFileSync(indexPath, "utf8")
+    : "<h1>Minesweeper Pro</h1>";
 
   const desktopHooks = `
   <script>
@@ -116,7 +118,13 @@ ${getWindowShortcutsScript()}
  */
 export function startMinesweeperServer(options: MinesweeperServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "minesweeper_studio", name: "Codecaine Minesweeper Pro — Championship Deluxe Master Edition", version: "1.0.0", assetsDir: getMinesweeperAssetsDir(), generateHtml: generateMinesweeperStudioHtml },
+    {
+      app: "minesweeper_studio",
+      name: "Codecaine Minesweeper Pro — Championship Deluxe Master Edition",
+      version: "1.0.0",
+      assetsDir: getMinesweeperAssetsDir(),
+      generateHtml: generateMinesweeperStudioHtml,
+    },
     options,
   );
 }
@@ -124,12 +132,15 @@ export function startMinesweeperServer(options: MinesweeperServerOptions = {}) {
 /**
  * Creates the complete native desktop instance of Minesweeper Pro.
  */
-export function createMinesweeperStudio(options: MinesweeperStudioOptions = {}): MinesweeperStudioInstance {
+export function createMinesweeperStudio(
+  options: MinesweeperStudioOptions = {},
+): MinesweeperStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1200);
   const height = options.height ?? (fullscreen ? screen.height : 860);
-  const title = "Codecaine Minesweeper Pro — Championship Deluxe Master Edition";
+  const title =
+    "Codecaine Minesweeper Pro — Championship Deluxe Master Edition";
 
   const app: MinesweeperStudioInstance = {
     title,
@@ -156,7 +167,8 @@ export function createMinesweeperStudio(options: MinesweeperStudioOptions = {}):
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -176,11 +188,15 @@ export function createMinesweeperStudio(options: MinesweeperStudioOptions = {}):
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -190,16 +206,24 @@ export function createMinesweeperStudio(options: MinesweeperStudioOptions = {}):
         });
 
         webview.setHTML(html);
-        console.log(`⚡ Desktop window open (Fullscreen: ${fullscreen ? 'Enabled' : 'Disabled'}).`);
+        console.log(
+          `⚡ Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`,
+        );
 
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -216,10 +240,13 @@ if (process.argv.includes("--server")) {
   const port = parseInt(process.env.PORT || "0", 10);
   const srv = startMinesweeperServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`⚡ Minesweeper Pro Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `⚡ Minesweeper Pro Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
+  const fullscreen =
+    !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
   const app = createMinesweeperStudio({ fullscreen });
   await app.run();
   process.exit(0);

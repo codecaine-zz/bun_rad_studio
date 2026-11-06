@@ -14,12 +14,29 @@ export async function formatWithV(app) {
   try {
     r = await formatV(before);
   } catch (err) {
-    return void app.toast(err?.message || "v fmt couldn't be run.", { kind: "error" });
+    return void app.toast(err?.message || "v fmt couldn't be run.", {
+      kind: "error",
+    });
   }
-  if (!r.available) return void app.toast(r.message, { kind: "error", timeout: 8000 });
-  if (!r.formatted) return void app.toast(`v fmt: ${r.problem}`, { kind: "error", timeout: 10000 });
-  if (editor.getText() !== before) return void app.toast("The text changed while formatting, so nothing was replaced. Try again.", { kind: "info" });
+  if (!r.available)
+    return void app.toast(r.message, { kind: "error", timeout: 8000 });
+  if (!r.formatted)
+    return void app.toast(`v fmt: ${r.problem}`, {
+      kind: "error",
+      timeout: 10000,
+    });
+  if (editor.getText() !== before)
+    return void app.toast(
+      "The text changed while formatting, so nothing was replaced. Try again.",
+      { kind: "info" },
+    );
   if (r.text === before) return void app.toast("Nothing needed changing.");
-  editor.apply({ from: 0, to: before.length, insert: r.text, selStart: Math.min(start, r.text.length), selEnd: Math.min(end, r.text.length) });
+  editor.apply({
+    from: 0,
+    to: before.length,
+    insert: r.text,
+    selStart: Math.min(start, r.text.length),
+    selEnd: Math.min(end, r.text.length),
+  });
   app.toast("Formatted with v fmt.", { kind: "success" });
 }

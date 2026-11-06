@@ -56,8 +56,12 @@ const MAX_U32 = 0xffffffff;
  */
 export function toDosDateTime(d: Date): { time: number; date: number } {
   if (d.getFullYear() < 1980) return { time: 0, date: (1 << 5) | 1 };
-  const time = (d.getHours() << 11) | (d.getMinutes() << 5) | Math.floor(d.getSeconds() / 2);
-  const date = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  const time =
+    (d.getHours() << 11) |
+    (d.getMinutes() << 5) |
+    Math.floor(d.getSeconds() / 2);
+  const date =
+    ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
   return { time, date };
 }
 
@@ -66,7 +70,14 @@ export function toDosDateTime(d: Date): { time: number; date: number } {
  * @example `archiveutils.fromDosDateTime(6275, 23586).getFullYear(); // 2026`
  */
 export function fromDosDateTime(time: number, date: number): Date {
-  return new Date(1980 + (date >> 9), ((date >> 5) & 0xf) - 1, date & 0x1f, time >> 11, (time >> 5) & 0x3f, (time & 0x1f) * 2);
+  return new Date(
+    1980 + (date >> 9),
+    ((date >> 5) & 0xf) - 1,
+    date & 0x1f,
+    time >> 11,
+    (time >> 5) & 0x3f,
+    (time & 0x1f) * 2,
+  );
 }
 
 interface PreparedEntry {
@@ -81,12 +92,24 @@ interface PreparedEntry {
 
 function prepareEntry(entry: ZipEntryInput): PreparedEntry {
   const name = entry.name.replace(/\\/g, "/").replace(/^\/+/, "");
-  if (!name) throw new Error("[archiveutils.zipFiles] Entry name must not be empty");
+  if (!name)
+    throw new Error("[archiveutils.zipFiles] Entry name must not be empty");
   const isDir = name.endsWith("/");
-  const raw = isDir ? Buffer.alloc(0) : typeof entry.data === "string" ? Buffer.from(entry.data, "utf-8") : Buffer.from(entry.data);
-  if (raw.length >= MAX_U32) throw new Error(`[archiveutils.zipFiles] ${name} exceeds 4 GiB (Zip64 unsupported)`);
-  const deflated = raw.length && entry.compress !== false ? Buffer.from(Bun.deflateSync(raw)) : null;
-  const useDeflate = !!deflated && (entry.compress === true || deflated.length < raw.length);
+  const raw = isDir
+    ? Buffer.alloc(0)
+    : typeof entry.data === "string"
+      ? Buffer.from(entry.data, "utf-8")
+      : Buffer.from(entry.data);
+  if (raw.length >= MAX_U32)
+    throw new Error(
+      `[archiveutils.zipFiles] ${name} exceeds 4 GiB (Zip64 unsupported)`,
+    );
+  const deflated =
+    raw.length && entry.compress !== false
+      ? Buffer.from(Bun.deflateSync(raw))
+      : null;
+  const useDeflate =
+    !!deflated && (entry.compress === true || deflated.length < raw.length);
   const nameBuf = Buffer.from(name, "utf-8");
   return {
     nameBuf,
@@ -131,7 +154,11 @@ function buildCentralHeader(e: PreparedEntry, offset: number): Buffer {
   return central;
 }
 
-function buildEocd(count: number, centralSize: number, centralOffset: number): Buffer {
+function buildEocd(
+  count: number,
+  centralSize: number,
+  centralOffset: number,
+): Buffer {
   const eocd = Buffer.alloc(22);
   eocd.writeUInt32LE(SIG_EOCD, 0);
   eocd.writeUInt16LE(count, 8);
@@ -155,7 +182,10 @@ function buildEocd(count: number, centralSize: number, centralOffset: number): B
  * ```
  */
 export function zipFiles(entries: ZipEntryInput[]): Uint8Array {
-  if (entries.length > 0xffff) throw new Error(`[archiveutils.zipFiles] ${entries.length} entries exceeds 65535 (Zip64 unsupported)`);
+  if (entries.length > 0xffff)
+    throw new Error(
+      `[archiveutils.zipFiles] ${entries.length} entries exceeds 65535 (Zip64 unsupported)`,
+    );
   const parts: Buffer[] = [];
   const centrals: Buffer[] = [];
   let offset = 0;
@@ -166,9 +196,16 @@ export function zipFiles(entries: ZipEntryInput[]): Uint8Array {
     centrals.push(buildCentralHeader(e, offset));
     offset += local.length + e.payload.length;
   }
-  if (offset >= MAX_U32) throw new Error("[archiveutils.zipFiles] Archive exceeds 4 GiB (Zip64 unsupported)");
+  if (offset >= MAX_U32)
+    throw new Error(
+      "[archiveutils.zipFiles] Archive exceeds 4 GiB (Zip64 unsupported)",
+    );
   const centralSize = centrals.reduce((acc, h) => acc + h.length, 0);
-  return Buffer.concat([...parts, ...centrals, buildEocd(entries.length, centralSize, offset)]);
+  return Buffer.concat([
+    ...parts,
+    ...centrals,
+    buildEocd(entries.length, centralSize, offset),
+  ]);
 }
 
 function findEocd(buf: Buffer): number {
@@ -176,7 +213,9 @@ function findEocd(buf: Buffer): number {
   for (let pos = buf.length - 22; pos >= minPos; pos--) {
     if (buf.readUInt32LE(pos) === SIG_EOCD) return pos;
   }
-  throw new Error(`[archiveutils] Not a ZIP archive: end-of-central-directory record not found (${buf.length} bytes)`);
+  throw new Error(
+    `[archiveutils] Not a ZIP archive: end-of-central-directory record not found (${buf.length} bytes)`,
+  );
 }
 
 function parseCentralDirectory(buf: Buffer): ZipEntryInfo[] {
@@ -185,20 +224,27 @@ function parseCentralDirectory(buf: Buffer): ZipEntryInfo[] {
   let pos = buf.readUInt32LE(eocd + 16);
   const out: ZipEntryInfo[] = [];
   for (let i = 0; i < count; i++) {
-    if (buf.readUInt32LE(pos) !== SIG_CENTRAL) throw new Error(`[archiveutils] Corrupt central directory at offset ${pos}`);
+    if (buf.readUInt32LE(pos) !== SIG_CENTRAL)
+      throw new Error(
+        `[archiveutils] Corrupt central directory at offset ${pos}`,
+      );
     const nameLen = buf.readUInt16LE(pos + 28);
     const name = buf.toString("utf-8", pos + 46, pos + 46 + nameLen);
     out.push({
       name,
       compressionMethod: buf.readUInt16LE(pos + 10),
-      modified: fromDosDateTime(buf.readUInt16LE(pos + 12), buf.readUInt16LE(pos + 14)),
+      modified: fromDosDateTime(
+        buf.readUInt16LE(pos + 12),
+        buf.readUInt16LE(pos + 14),
+      ),
       crc32: buf.readUInt32LE(pos + 16),
       compressedSize: buf.readUInt32LE(pos + 20),
       uncompressedSize: buf.readUInt32LE(pos + 24),
       offset: buf.readUInt32LE(pos + 42),
       isDirectory: name.endsWith("/"),
     });
-    pos += 46 + nameLen + buf.readUInt16LE(pos + 30) + buf.readUInt16LE(pos + 32);
+    pos +=
+      46 + nameLen + buf.readUInt16LE(pos + 30) + buf.readUInt16LE(pos + 32);
   }
   return out;
 }
@@ -210,16 +256,29 @@ function extractEntry(buf: Buffer, h: ZipEntryHeader): Uint8Array {
   const payload = buf.subarray(start, start + h.compressedSize);
   let data: Uint8Array;
   if (h.compressionMethod === 0) data = payload;
-  else if (h.compressionMethod === 8) data = Bun.inflateSync(payload as Uint8Array<ArrayBuffer>);
-  else throw new Error(`[archiveutils] ${h.name}: unsupported compression method ${h.compressionMethod}`);
-  if (((Bun.hash.crc32(data) >>> 0) !== h.crc32 >>> 0)) throw new Error(`[archiveutils] ${h.name}: CRC-32 mismatch (corrupt archive)`);
+  else if (h.compressionMethod === 8)
+    data = Bun.inflateSync(payload as Uint8Array<ArrayBuffer>);
+  else
+    throw new Error(
+      `[archiveutils] ${h.name}: unsupported compression method ${h.compressionMethod}`,
+    );
+  if (Bun.hash.crc32(data) >>> 0 !== h.crc32 >>> 0)
+    throw new Error(
+      `[archiveutils] ${h.name}: CRC-32 mismatch (corrupt archive)`,
+    );
   return data;
 }
 
 async function toBuffer(zipDataOrPath: Uint8Array | string): Promise<Buffer> {
-  if (typeof zipDataOrPath !== "string") return Buffer.from(zipDataOrPath.buffer, zipDataOrPath.byteOffset, zipDataOrPath.byteLength);
+  if (typeof zipDataOrPath !== "string")
+    return Buffer.from(
+      zipDataOrPath.buffer,
+      zipDataOrPath.byteOffset,
+      zipDataOrPath.byteLength,
+    );
   const file = Bun.file(zipDataOrPath);
-  if (!(await file.exists())) throw new Error(`[archiveutils] ZIP file not found: ${zipDataOrPath}`);
+  if (!(await file.exists()))
+    throw new Error(`[archiveutils] ZIP file not found: ${zipDataOrPath}`);
   return Buffer.from(await file.bytes());
 }
 
@@ -228,8 +287,12 @@ async function toBuffer(zipDataOrPath: Uint8Array | string): Promise<Buffer> {
  * @param zipDataOrPath - ZIP bytes or a path to a `.zip` file.
  * @example `await archiveutils.listZipEntries("bundle.zip"); // ["docs/", "docs/readme.txt"]`
  */
-export async function listZipEntries(zipDataOrPath: Uint8Array | string): Promise<string[]> {
-  return parseCentralDirectory(await toBuffer(zipDataOrPath)).map((h) => h.name);
+export async function listZipEntries(
+  zipDataOrPath: Uint8Array | string,
+): Promise<string[]> {
+  return parseCentralDirectory(await toBuffer(zipDataOrPath)).map(
+    (h) => h.name,
+  );
 }
 
 /**
@@ -239,7 +302,9 @@ export async function listZipEntries(zipDataOrPath: Uint8Array | string): Promis
  * for (const e of await archiveutils.listZipDetails(zip)) console.log(e.name, e.uncompressedSize, e.modified);
  * ```
  */
-export async function listZipDetails(zipDataOrPath: Uint8Array | string): Promise<ZipEntryInfo[]> {
+export async function listZipDetails(
+  zipDataOrPath: Uint8Array | string,
+): Promise<ZipEntryInfo[]> {
   return parseCentralDirectory(await toBuffer(zipDataOrPath));
 }
 
@@ -248,7 +313,10 @@ export async function listZipDetails(zipDataOrPath: Uint8Array | string): Promis
  * @throws On corrupt data or unsupported compression methods.
  * @example `const bytes = await archiveutils.readZipEntry(zip, "docs/readme.txt");`
  */
-export async function readZipEntry(zipDataOrPath: Uint8Array | string, entryName: string): Promise<Uint8Array | null> {
+export async function readZipEntry(
+  zipDataOrPath: Uint8Array | string,
+  entryName: string,
+): Promise<Uint8Array | null> {
   const buf = await toBuffer(zipDataOrPath);
   const entry = parseCentralDirectory(buf).find((h) => h.name === entryName);
   return entry ? extractEntry(buf, entry) : null;
@@ -258,7 +326,10 @@ export async function readZipEntry(zipDataOrPath: Uint8Array | string, entryName
  * Extract one entry decoded as UTF-8 text, or `null` when missing.
  * @example `await archiveutils.readZipText(zip, "docs/readme.txt"); // "Hello"`
  */
-export async function readZipText(zipDataOrPath: Uint8Array | string, entryName: string): Promise<string | null> {
+export async function readZipText(
+  zipDataOrPath: Uint8Array | string,
+  entryName: string,
+): Promise<string | null> {
   const bytes = await readZipEntry(zipDataOrPath, entryName);
   return bytes ? new TextDecoder().decode(bytes) : null;
 }
@@ -271,7 +342,9 @@ export async function readZipText(zipDataOrPath: Uint8Array | string, entryName:
  * files.find((f) => f.name === "docs/readme.txt");
  * ```
  */
-export async function unzipToMemory(zipDataOrPath: Uint8Array | string): Promise<ZipExtractedEntry[]> {
+export async function unzipToMemory(
+  zipDataOrPath: Uint8Array | string,
+): Promise<ZipExtractedEntry[]> {
   const buf = await toBuffer(zipDataOrPath);
   return parseCentralDirectory(buf)
     .filter((h) => !h.isDirectory)
@@ -287,7 +360,9 @@ export function safeJoin(destDir: string, entryName: string): string {
   const root = resolve(destDir);
   const target = resolve(root, entryName);
   if (target !== root && !target.startsWith(root + sep)) {
-    throw new Error(`[archiveutils] Refusing to extract "${entryName}": path escapes ${root}`);
+    throw new Error(
+      `[archiveutils] Refusing to extract "${entryName}": path escapes ${root}`,
+    );
   }
   return target;
 }
@@ -297,7 +372,10 @@ export function safeJoin(destDir: string, entryName: string): string {
  * @returns Number of files written.
  * @example `await archiveutils.unzipToDir("bundle.zip", "./extracted");`
  */
-export async function unzipToDir(zipDataOrPath: Uint8Array | string, destDir: string): Promise<number> {
+export async function unzipToDir(
+  zipDataOrPath: Uint8Array | string,
+  destDir: string,
+): Promise<number> {
   const buf = await toBuffer(zipDataOrPath);
   let written = 0;
   for (const h of parseCentralDirectory(buf)) {
@@ -317,13 +395,20 @@ export async function unzipToDir(zipDataOrPath: Uint8Array | string, destDir: st
  * Zip a single file (stored under its base name, preserving mtime).
  * @example `await archiveutils.zipFile("./report.pdf", "./out/report.zip");`
  */
-export async function zipFile(srcPath: string, destZipPath: string): Promise<void> {
+export async function zipFile(
+  srcPath: string,
+  destZipPath: string,
+): Promise<void> {
   const file = Bun.file(srcPath);
-  if (!(await file.exists())) throw new Error(`[archiveutils.zipFile] Source not found: ${srcPath}`);
+  if (!(await file.exists()))
+    throw new Error(`[archiveutils.zipFile] Source not found: ${srcPath}`);
   const name = srcPath.split(/[/\\]/).pop() || "file";
   const mtime = (await stat(srcPath)).mtime;
   await mkdir(dirname(destZipPath), { recursive: true });
-  await Bun.write(destZipPath, zipFiles([{ name, data: await file.bytes(), mtime }]));
+  await Bun.write(
+    destZipPath,
+    zipFiles([{ name, data: await file.bytes(), mtime }]),
+  );
 }
 
 /**
@@ -335,7 +420,11 @@ export async function zipFile(srcPath: string, destZipPath: string): Promise<voi
  * await archiveutils.zipDir("./site", "./site.zip", (rel) => !rel.startsWith(".git/"));
  * ```
  */
-export async function zipDir(srcDir: string, destZipPath: string, filter?: (relPath: string) => boolean): Promise<number> {
+export async function zipDir(
+  srcDir: string,
+  destZipPath: string,
+  filter?: (relPath: string) => boolean,
+): Promise<number> {
   const entries: ZipEntryInput[] = [];
   const walk = async (current: string): Promise<void> => {
     for (const item of await readdir(current, { withFileTypes: true })) {
@@ -343,7 +432,11 @@ export async function zipDir(srcDir: string, destZipPath: string, filter?: (relP
       const rel = relative(srcDir, full).replace(/\\/g, "/");
       if (item.isDirectory()) await walk(full);
       else if (item.isFile() && (!filter || filter(rel))) {
-        entries.push({ name: rel, data: await Bun.file(full).bytes(), mtime: (await stat(full)).mtime });
+        entries.push({
+          name: rel,
+          data: await Bun.file(full).bytes(),
+          mtime: (await stat(full)).mtime,
+        });
       }
     }
   };

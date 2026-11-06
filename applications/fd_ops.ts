@@ -59,7 +59,10 @@ export function uniquePath(target: string, suffixWord = "copy"): string {
   const ext = path.extname(target);
   const base = path.basename(target, ext);
   for (let i = 1; i < 10000; i++) {
-    const candidatePath = path.join(dir, `${base} ${suffixWord}${i > 1 ? " " + i : ""}${ext}`);
+    const candidatePath = path.join(
+      dir,
+      `${base} ${suffixWord}${i > 1 ? " " + i : ""}${ext}`,
+    );
     if (!fs.existsSync(candidatePath)) return candidatePath;
   }
   throw new Error("Could not find a free file name.");
@@ -89,7 +92,8 @@ export function renamePath(from: string, newName: string): UndoEntry {
   if (err) throw new Error(err);
   const to = path.join(path.dirname(from), newName.trim());
   if (to === from) throw new Error("The new name is the same as the old name.");
-  if (fs.existsSync(to)) throw new Error(`'${newName}' already exists in that folder.`);
+  if (fs.existsSync(to))
+    throw new Error(`'${newName}' already exists in that folder.`);
   fs.renameSync(from, to);
   return { kind: "rename", from, to };
 }
@@ -103,7 +107,10 @@ export function duplicatePath(from: string): UndoEntry {
 /** Undo one entry. Created/duplicated items are removed only if still empty files or fresh copies. */
 export function undoEntry(entry: UndoEntry): string {
   if (entry.kind === "rename") {
-    if (fs.existsSync(entry.from)) throw new Error(`Cannot undo: '${path.basename(entry.from)}' already exists.`);
+    if (fs.existsSync(entry.from))
+      throw new Error(
+        `Cannot undo: '${path.basename(entry.from)}' already exists.`,
+      );
     fs.renameSync(entry.to, entry.from);
     return `Renamed '${path.basename(entry.to)}' back to '${path.basename(entry.from)}'`;
   }
@@ -115,7 +122,8 @@ export function undoEntry(entry: UndoEntry): string {
 export function openWithDefaultApp(target: string): void {
   const resolved = path.resolve(target);
   if (process.platform === "darwin") Bun.spawn(["open", resolved]);
-  else if (process.platform === "win32") Bun.spawn(["cmd", "/c", "start", "", resolved]);
+  else if (process.platform === "win32")
+    Bun.spawn(["cmd", "/c", "start", "", resolved]);
   else Bun.spawn(["xdg-open", resolved]);
 }
 
@@ -125,29 +133,46 @@ export function parseMode(input: string): number {
   if (/^[0-7]{3,4}$/.test(trimmedInput)) return parseInt(trimmedInput, 8);
   if (/^[r-][w-][x-][r-][w-][x-][r-][w-][x-]$/.test(trimmedInput)) {
     let modeBits = 0;
-    for (let i = 0; i < 9; i++) if (trimmedInput[i] !== "-") modeBits |= 1 << (8 - i);
+    for (let i = 0; i < 9; i++)
+      if (trimmedInput[i] !== "-") modeBits |= 1 << (8 - i);
     return modeBits;
   }
   throw new Error("Use octal like 644 / 755 or symbolic like rwxr-xr-x.");
 }
 
-export function chmodPath(target: string, modeInput: string): { before: string; after: string } {
+export function chmodPath(
+  target: string,
+  modeInput: string,
+): { before: string; after: string } {
   const mode = parseMode(modeInput);
-  const before = (fs.statSync(target).mode & 0o777).toString(8).padStart(3, "0");
+  const before = (fs.statSync(target).mode & 0o777)
+    .toString(8)
+    .padStart(3, "0");
   fs.chmodSync(target, mode);
   return { before, after: (mode & 0o777).toString(8).padStart(3, "0") };
 }
 
 function titleCase(text: string): string {
-  return text.replace(/\w\S*/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+  return text.replace(
+    /\w\S*/g,
+    (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+  );
 }
 
 /** Builds a preview of renames without touching the disk. */
-export function planBatchRename(paths: string[], rules: RenameRules): RenamePlanRow[] {
+export function planBatchRename(
+  paths: string[],
+  rules: RenameRules,
+): RenamePlanRow[] {
   let re: RegExp | null = null;
   if (rules.find) {
     try {
-      re = new RegExp(rules.useRegex ? rules.find : rules.find.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g");
+      re = new RegExp(
+        rules.useRegex
+          ? rules.find
+          : rules.find.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+        "g",
+      );
     } catch (e: any) {
       throw new Error(`Invalid pattern: ${e.message}`);
     }
@@ -172,7 +197,8 @@ export function planBatchRename(paths: string[], rules: RenameRules): RenamePlan
     return row;
   });
   // Conflict detection (collisions with each other or existing files not part of the batch)
-  const caseFold = process.platform === "darwin" || process.platform === "win32";
+  const caseFold =
+    process.platform === "darwin" || process.platform === "win32";
   const normKey = (p: string) => (caseFold ? p.toLowerCase() : p);
   const movingSources = new Set<string>();
   const unchangedSources = new Set<string>();
@@ -192,7 +218,10 @@ export function planBatchRename(paths: string[], rules: RenameRules): RenamePlan
     const toKey = normKey(planRow.to);
     if (taken.has(toKey)) {
       planRow.error = "Duplicate target name in this batch.";
-    } else if ((fs.existsSync(planRow.to) || unchangedSources.has(toKey)) && !movingSources.has(toKey)) {
+    } else if (
+      (fs.existsSync(planRow.to) || unchangedSources.has(toKey)) &&
+      !movingSources.has(toKey)
+    ) {
       planRow.error = "A file with that name already exists.";
     }
     taken.add(toKey);
@@ -201,7 +230,11 @@ export function planBatchRename(paths: string[], rules: RenameRules): RenamePlan
 }
 
 /** Applies a plan (rows with errors or no change are skipped). Returns undo entries + counts. */
-export function applyRenamePlan(plan: RenamePlanRow[]): { done: UndoEntry[]; skipped: number; failed: string[] } {
+export function applyRenamePlan(plan: RenamePlanRow[]): {
+  done: UndoEntry[];
+  skipped: number;
+  failed: string[];
+} {
   const done: UndoEntry[] = [];
   const failed: string[] = [];
   let skipped = 0;
@@ -212,7 +245,10 @@ export function applyRenamePlan(plan: RenamePlanRow[]): { done: UndoEntry[]; ski
       skipped++;
       continue;
     }
-    const stagedPath = path.join(path.dirname(row.from), `.fdrn_${process.pid}_${staged.length}_${Date.now()}`);
+    const stagedPath = path.join(
+      path.dirname(row.from),
+      `.fdrn_${process.pid}_${staged.length}_${Date.now()}`,
+    );
     try {
       fs.renameSync(row.from, stagedPath);
       staged.push({ stagedPath, row });
@@ -238,12 +274,25 @@ export function applyRenamePlan(plan: RenamePlanRow[]): { done: UndoEntry[]; ski
 export function searchContents(
   paths: string[],
   query: string,
-  opts: { regex?: boolean; caseSensitive?: boolean; maxMatches?: number; maxFileBytes?: number } = {}
-): { matches: ContentMatch[]; filesScanned: number; filesWithHits: number; truncated: boolean } {
+  opts: {
+    regex?: boolean;
+    caseSensitive?: boolean;
+    maxMatches?: number;
+    maxFileBytes?: number;
+  } = {},
+): {
+  matches: ContentMatch[];
+  filesScanned: number;
+  filesWithHits: number;
+  truncated: boolean;
+} {
   const maxMatches = opts.maxMatches ?? 500;
   const maxFileBytes = opts.maxFileBytes ?? 5 * 1024 * 1024;
   const flags = opts.caseSensitive ? "" : "i";
-  const re = new RegExp(opts.regex ? query : query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), flags);
+  const re = new RegExp(
+    opts.regex ? query : query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+    flags,
+  );
   const matches: ContentMatch[] = [];
   let filesScanned = 0;
   let filesWithHits = 0;
@@ -270,7 +319,11 @@ export function searchContents(
       const lineText = lines[i] ?? "";
       if (re.test(lineText)) {
         hit = true;
-        matches.push({ path: filePath, line: i + 1, text: lineText.trim().slice(0, 200) });
+        matches.push({
+          path: filePath,
+          line: i + 1,
+          text: lineText.trim().slice(0, 200),
+        });
         if (matches.length >= maxMatches) {
           truncated = true;
           break;
@@ -291,7 +344,13 @@ function quickHashSync(filePath: string, size: number, buf: Buffer): string {
     hasher.update(buf.subarray(0, headBytes));
     if (size > buf.length) {
       const tailOffset = Math.max(headBytes, size - buf.length);
-      const tailBytes = fs.readSync(fd, buf, 0, Math.min(buf.length, size - tailOffset), tailOffset);
+      const tailBytes = fs.readSync(
+        fd,
+        buf,
+        0,
+        Math.min(buf.length, size - tailOffset),
+        tailOffset,
+      );
       hasher.update(buf.subarray(0, tailBytes));
     }
     return hasher.digest("hex");
@@ -318,7 +377,10 @@ function fullHashSync(filePath: string, chunkBuf: Buffer): string {
 }
 
 /** Finds identical files: group by size, pre-hash head+tail for large files, then stream SHA-256. */
-export function findDuplicates(paths: string[], minBytes = 1): { groups: DuplicateGroup[]; wastedBytes: number } {
+export function findDuplicates(
+  paths: string[],
+  minBytes = 1,
+): { groups: DuplicateGroup[]; wastedBytes: number } {
   const bySize = new Map<number, string[]>();
   for (const filePath of paths) {
     try {
@@ -348,7 +410,9 @@ export function findDuplicates(paths: string[], minBytes = 1): { groups: Duplica
           byQuick.set(qh, bucket);
         } catch {}
       }
-      candidatesLists = [...byQuick.values()].filter((bucket) => bucket.length >= 2);
+      candidatesLists = [...byQuick.values()].filter(
+        (bucket) => bucket.length >= 2,
+      );
     }
     for (const candidates of candidatesLists) {
       const byHash = new Map<string, string[]>();
@@ -376,23 +440,36 @@ export function findDuplicates(paths: string[], minBytes = 1): { groups: Duplica
       }
     }
   }
-  groups.sort((a, b) => b.sizeBytes * (b.paths.length - 1) - a.sizeBytes * (a.paths.length - 1));
+  groups.sort(
+    (a, b) =>
+      b.sizeBytes * (b.paths.length - 1) - a.sizeBytes * (a.paths.length - 1),
+  );
   return { groups, wastedBytes };
 }
 
-export function largestFiles(paths: string[], n = 20): { path: string; sizeBytes: number; humanSize: string }[] {
+export function largestFiles(
+  paths: string[],
+  n = 20,
+): { path: string; sizeBytes: number; humanSize: string }[] {
   const out: { path: string; sizeBytes: number; humanSize: string }[] = [];
   for (const filePath of paths) {
     try {
       const st = fs.statSync(filePath);
-      if (st.isFile()) out.push({ path: filePath, sizeBytes: st.size, humanSize: formatHumanSize(st.size) });
+      if (st.isFile())
+        out.push({
+          path: filePath,
+          sizeBytes: st.size,
+          humanSize: formatHumanSize(st.size),
+        });
     } catch {}
   }
   return out.sort((a, b) => b.sizeBytes - a.sizeBytes).slice(0, n);
 }
 
 /** Size breakdown by file extension for the given files. */
-export function sizeByExtension(paths: string[]): { ext: string; count: number; sizeBytes: number; humanSize: string }[] {
+export function sizeByExtension(
+  paths: string[],
+): { ext: string; count: number; sizeBytes: number; humanSize: string }[] {
   const map = new Map<string, { count: number; sizeBytes: number }>();
   for (const filePath of paths) {
     try {
@@ -419,8 +496,15 @@ export function hexPreview(file: string, len = 256): string {
     const lines: string[] = [];
     for (let i = 0; i < bytesRead; i += 16) {
       const chunk = buf.subarray(i, Math.min(i + 16, bytesRead));
-      const hex = [...chunk].map((byte) => byte.toString(16).padStart(2, "0")).join(" ").padEnd(47);
-      const asc = [...chunk].map((byte) => (byte >= 32 && byte < 127 ? String.fromCharCode(byte) : ".")).join("");
+      const hex = [...chunk]
+        .map((byte) => byte.toString(16).padStart(2, "0"))
+        .join(" ")
+        .padEnd(47);
+      const asc = [...chunk]
+        .map((byte) =>
+          byte >= 32 && byte < 127 ? String.fromCharCode(byte) : ".",
+        )
+        .join("");
       lines.push(`${i.toString(16).padStart(6, "0")}  ${hex}  ${asc}`);
     }
     return lines.join("\n");
@@ -456,12 +540,34 @@ export interface ExportRow {
 export function toTsv(rows: ExportRow[]): string {
   const clean = (v: string) => String(v).replace(/[\t\r\n]+/g, " ");
   const head = ["Name", "Type", "Size", "Path", "Modified", "Perms"].join("\t");
-  return [head, ...rows.map((row) => [row.name, row.type, row.humanSize, row.relativePath, row.mtimeStr, row.permStr].map(clean).join("\t"))].join("\n") + "\n";
+  return (
+    [
+      head,
+      ...rows.map((row) =>
+        [
+          row.name,
+          row.type,
+          row.humanSize,
+          row.relativePath,
+          row.mtimeStr,
+          row.permStr,
+        ]
+          .map(clean)
+          .join("\t"),
+      ),
+    ].join("\n") + "\n"
+  );
 }
 
 export function toMarkdownTable(rows: ExportRow[]): string {
   const esc = (v: string) => String(v).replace(/\|/g, "\\|");
-  const lines = ["| Name | Type | Size | Path | Modified | Perms |", "|---|---|---|---|---|---|"];
-  for (const row of rows) lines.push(`| ${[row.name, row.type, row.humanSize, row.relativePath, row.mtimeStr, row.permStr].map(esc).join(" | ")} |`);
+  const lines = [
+    "| Name | Type | Size | Path | Modified | Perms |",
+    "|---|---|---|---|---|---|",
+  ];
+  for (const row of rows)
+    lines.push(
+      `| ${[row.name, row.type, row.humanSize, row.relativePath, row.mtimeStr, row.permStr].map(esc).join(" | ")} |`,
+    );
   return lines.join("\n") + "\n";
 }

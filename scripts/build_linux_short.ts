@@ -39,7 +39,10 @@ const VIEW_W = 1920;
 const VIEW_H = 972;
 
 const ROOT_DIR = "/tmp/fm_linux_short";
-const HOME = process.platform === "darwin" ? "/private/tmp/fm_linux_short/home" : "/tmp/fm_linux_short/home";
+const HOME =
+  process.platform === "darwin"
+    ? "/private/tmp/fm_linux_short/home"
+    : "/tmp/fm_linux_short/home";
 const DATA = `${ROOT_DIR}/data`;
 const GRAVE = `${ROOT_DIR}/grave`;
 const ZDOT = `${ROOT_DIR}/zdot`;
@@ -57,17 +60,33 @@ type SceneSpec = {
 
 function run(args: string[]): string {
   const result = Bun.spawnSync(args, { stdout: "pipe", stderr: "pipe" });
-  if (result.exitCode !== 0) throw new Error(`${args[0]} failed:\n${result.stderr.toString().slice(-4000)}`);
+  if (result.exitCode !== 0)
+    throw new Error(
+      `${args[0]} failed:\n${result.stderr.toString().slice(-4000)}`,
+    );
   return result.stdout.toString();
 }
 
 function duration(file: string): number {
-  const value = Number(run([FFPROBE, "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file]).trim());
-  if (!Number.isFinite(value) || value <= 0) throw new Error(`Invalid duration: ${file}`);
+  const value = Number(
+    run([
+      FFPROBE,
+      "-v",
+      "error",
+      "-show_entries",
+      "format=duration",
+      "-of",
+      "csv=p=0",
+      file,
+    ]).trim(),
+  );
+  if (!Number.isFinite(value) || value <= 0)
+    throw new Error(`Invalid duration: ${file}`);
   return value;
 }
 
-const esc = (text: string) => text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+const esc = (text: string) =>
+  text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 
 function seedLinuxWorld() {
   rmSync(ROOT_DIR, { recursive: true, force: true });
@@ -87,7 +106,12 @@ function seedLinuxWorld() {
         "1",
         "-vf",
         `hue=h=${i * 55},drawtext=text='Linux Photo ${i}':fontcolor=white:fontsize=92:x=(w-text_w)/2:y=(h-text_h)/2`,
-        join(HOME, "Documents", "Trip", `IMG_${String(i).padStart(4, "0")}.jpg`),
+        join(
+          HOME,
+          "Documents",
+          "Trip",
+          `IMG_${String(i).padStart(4, "0")}.jpg`,
+        ),
       ],
       { quiet: true },
     );
@@ -320,7 +344,8 @@ const sceneSpecs: SceneSpec[] = [
     badge: "01 / 08 · DOWNLOAD LINUX RELEASE ON GITHUB",
     title: "DOWNLOAD FOR LINUX\nFROM GITHUB v1.4.9.",
     label: "🐧 UBUNTU · DEBIAN · FEDORA · ARCH · STANDALONE x64 BINARY",
-    extra: "Grab Codecaine-File-Manager-v1.4.9-linux-x64.zip or Full Suite .tar.gz",
+    extra:
+      "Grab Codecaine-File-Manager-v1.4.9-linux-x64.zip or Full Suite .tar.gz",
     bullets: [
       "🐧 Standalone Linux x64 Binary (No Runtime Needed)",
       "📦 Includes install.sh + Ubuntu 24.04 AppArmor Setup",
@@ -349,15 +374,21 @@ const sceneSpecs: SceneSpec[] = [
     ],
     say: "Unzip the archive, run s h install dot s h dash dash apparmor to configure your Linux desktop launcher and Ubuntu AppArmor profile, and launch Codecaine File Manager with its built-in synced terminal.",
     record: async (c) => {
-      await c.eval(`[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Start')?.click()`);
+      await c.eval(
+        `[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Start')?.click()`,
+      );
       await sleep(600);
       await c.eval(LINUX_CONVERT_MOCK_SCRIPT);
       // Open the built-in Terminal and run the Linux install verification banner
       await c.click("#tool-terminal", { pause: 900 }).catch(() => {});
-      await c.eval(`(async () => {
+      await c
+        .eval(
+          `(async () => {
         const mod = await import('/ui/terminal.js');
         mod.typeInTerminal("echo '🐧 Codecaine File Manager v1.4.9 (Linux x86_64) — sh install.sh --apparmor complete!'\r");
-      })()`).catch(() => {});
+      })()`,
+        )
+        .catch(() => {});
       await sleep(2200);
       await c.moveTo(960, 360, 600);
       await sleep(1000);
@@ -368,7 +399,8 @@ const sceneSpecs: SceneSpec[] = [
     badge: "03 / 08 · 1-CLICK INSTALL ALL 10 CONVERT PACKAGES",
     title: "INSTALL ALL CONVERT\nPACKAGES IN 1 CLICK.",
     label: "🧰 APT · DNF · PACMAN · HOMEBREW · ALL 10 HELPER PACKAGES",
-    extra: "FFmpeg · ImageMagick · LibreOffice · Pandoc · Poppler · qpdf · OCR · 7z",
+    extra:
+      "FFmpeg · ImageMagick · LibreOffice · Pandoc · Poppler · qpdf · OCR · 7z",
     bullets: [
       "✨ One-Click Setup: Install Everything Missing (10)",
       "📦 Supports apt, dnf, pacman & Homebrew on Linux",
@@ -384,14 +416,18 @@ const sceneSpecs: SceneSpec[] = [
       })()`);
       await c.click("#tool-tools", { pause: 1100 });
       await c.waitFor(".tool-setup", 5000);
-      await c.click(".tool-setup button >> Choose what to install", { pause: 1200 });
+      await c.click(".tool-setup button >> Choose what to install", {
+        pause: 1200,
+      });
       await c.waitFor(".setup-list", 5000);
       await c.moveTo(760, 340, 500);
       await sleep(900);
       await c.moveTo(760, 520, 550);
       await sleep(900);
       // Click "Install 10 programs" primary button in the setup dialog
-      await c.click(".modal-backdrop:last-child .dialog-buttons .btn.primary", { pause: 1800 });
+      await c.click(".modal-backdrop:last-child .dialog-buttons .btn.primary", {
+        pause: 1800,
+      });
       await sleep(1200);
     },
   },
@@ -437,7 +473,8 @@ const sceneSpecs: SceneSpec[] = [
     badge: "05 / 08 · 🐧 OPTIMIZE FOR LINUX & VFD TELEMETRY",
     title: "1-CLICK LINUX GPU\nMODE & VFD DECK.",
     label: "🐧 OPTIMIZE FOR LINUX / VM · 📟 HARDWARE VFD · 🚀 ULTRA TIER",
-    extra: "Zero-Readback WebKitGTK & Wayland 120Hz Compositor + Live Spectrum HUD",
+    extra:
+      "Zero-Readback WebKitGTK & Wayland 120Hz Compositor + Live Spectrum HUD",
     bullets: [
       "🐧 1-Click Optimize for Linux & VM Compositor",
       "📟 Hardware VFD & Winamp Spectrum Telemetry Deck",
@@ -452,10 +489,18 @@ const sceneSpecs: SceneSpec[] = [
       await c.click("#tool-themes", { pause: 900 });
       await c.click(".menu [role^=menuitem] >> All themes", { pause: 1200 });
       await c.waitFor(".theme-card", 6000);
-      await c.click('[data-optimize-platform="linux"]', { pause: 1000 }).catch(() => {});
-      await c.click('[data-open-telemetry-studio="true"]', { pause: 1000 }).catch(() => {});
-      await c.click('[data-telemetry-skin-btn="winamp_spectrum"]', { pause: 900 }).catch(() => {});
-      await c.click('[data-tier-pill="ultra"]', { pause: 1200 }).catch(() => {});
+      await c
+        .click('[data-optimize-platform="linux"]', { pause: 1000 })
+        .catch(() => {});
+      await c
+        .click('[data-open-telemetry-studio="true"]', { pause: 1000 })
+        .catch(() => {});
+      await c
+        .click('[data-telemetry-skin-btn="winamp_spectrum"]', { pause: 900 })
+        .catch(() => {});
+      await c
+        .click('[data-tier-pill="ultra"]', { pause: 1200 })
+        .catch(() => {});
       await sleep(700);
     },
   },
@@ -464,7 +509,8 @@ const sceneSpecs: SceneSpec[] = [
     badge: "06 / 08 · POLAR NIGHT, ORBITAL ICE & LINUX HiDPI",
     title: "POLAR NIGHT, ORBITAL\nICE & LINUX HiDPI.",
     label: "❄️ POLAR NIGHT · 🧊 ORBITAL ICE · 🌨️ CRYO BLIZZARD · 🐧 PAPIRUS",
-    extra: "Arctic Frosted Glass + Live Blizzard & Aurora Australis Dual Shader",
+    extra:
+      "Arctic Frosted Glass + Live Blizzard & Aurora Australis Dual Shader",
     bullets: [
       "❄️ Polar Night: Blizzard + Aurora Australis Shader",
       "🧊 Orbital Ice & Cryo-Glacier Icicle Storm",
@@ -487,21 +533,33 @@ const sceneSpecs: SceneSpec[] = [
         await sleep(550);
       };
       await searchTheme("polar night");
-      await c.click('.theme-card[data-key="polar_night"]', { pause: 1900 }).catch(() => {});
+      await c
+        .click('.theme-card[data-key="polar_night"]', { pause: 1900 })
+        .catch(() => {});
       await searchTheme("orbital ice");
-      await c.click('.theme-card[data-key="orbital_ice"]', { pause: 1600 }).catch(() => {});
+      await c
+        .click('.theme-card[data-key="orbital_ice"]', { pause: 1600 })
+        .catch(() => {});
       await searchTheme("cryo");
-      await c.click('.theme-card[data-key="cryo_icicle_blizzard"]', { pause: 1600 }).catch(() => {});
+      await c
+        .click('.theme-card[data-key="cryo_icicle_blizzard"]', { pause: 1600 })
+        .catch(() => {});
       await searchTheme("linux papirus");
-      await c.click('.theme-card[data-key="linux_workstation_hidpi"]', { pause: 1600 }).catch(() => {});
+      await c
+        .click('.theme-card[data-key="linux_workstation_hidpi"]', {
+          pause: 1600,
+        })
+        .catch(() => {});
     },
   },
   {
     id: "07_godmode_tiedye_tornado_compiz",
     badge: "07 / 08 · OMEGA 3000, 120HZ TIE-DYE & COMPIZ BURN",
     title: "OMEGA 3000, TIE-DYE\n& COMPIZ BURN '07.",
-    label: "🪐 OMEGA SINGULARITY · 🫧 120HZ TIE-DYE · 🌪️ EF5 TORNADO · 🔥 COMPIZ",
-    extra: "Post-Singularity Gold Halo, 120Hz Lava-Wax, EF5 Tornado & Tesla Plasma",
+    label:
+      "🪐 OMEGA SINGULARITY · 🫧 120HZ TIE-DYE · 🌪️ EF5 TORNADO · 🔥 COMPIZ",
+    extra:
+      "Post-Singularity Gold Halo, 120Hz Lava-Wax, EF5 Tornado & Tesla Plasma",
     bullets: [
       "🪐 Year 3000+ Omega Point Singularity",
       "🫧 120Hz Haight-Ashbury Tie-Dye '67 Lava-Wax",
@@ -522,23 +580,39 @@ const sceneSpecs: SceneSpec[] = [
         await sleep(550);
       };
       await searchTheme("omega");
-      await c.click('.theme-card[data-key="omega_point_singularity"]', { pause: 1700 }).catch(() => {});
+      await c
+        .click('.theme-card[data-key="omega_point_singularity"]', {
+          pause: 1700,
+        })
+        .catch(() => {});
       await searchTheme("tie-dye");
-      await c.click('.theme-card[data-key="summer_of_love_tiedye_67"]', { pause: 1700 }).catch(() => {});
+      await c
+        .click('.theme-card[data-key="summer_of_love_tiedye_67"]', {
+          pause: 1700,
+        })
+        .catch(() => {});
       await searchTheme("tornado");
-      await c.click('.theme-card[data-key="ef5_debris_tornado"]', { pause: 1700 }).catch(() => {});
+      await c
+        .click('.theme-card[data-key="ef5_debris_tornado"]', { pause: 1700 })
+        .catch(() => {});
       await searchTheme("tesla");
-      await c.click('.theme-card[data-key="tesla_coil_plasma"]', { pause: 1600 }).catch(() => {});
+      await c
+        .click('.theme-card[data-key="tesla_coil_plasma"]', { pause: 1600 })
+        .catch(() => {});
       await searchTheme("polar night");
-      await c.click('.theme-card[data-key="polar_night"]', { pause: 1400 }).catch(() => {});
+      await c
+        .click('.theme-card[data-key="polar_night"]', { pause: 1400 })
+        .catch(() => {});
     },
   },
   {
     id: "08_linux_hotkeys_cta",
     badge: "08 / 08 · ALT+U ULTRA & ALT+R RANDOM HOTKEYS",
     title: "ALT+U ULTRA, ALT+R\n& FREE DOWNLOAD!",
-    label: "🚀 ALT+U ULTRA · 🎲 ALT+R ANY · ✨ ALT+E FX · ⏹️ ALT+P PLAIN · 🛑 ALT+0",
-    extra: "Zero-Dialog Instant Theme Switching on Linux + Free Download on GitHub",
+    label:
+      "🚀 ALT+U ULTRA · 🎲 ALT+R ANY · ✨ ALT+E FX · ⏹️ ALT+P PLAIN · 🛑 ALT+0",
+    extra:
+      "Zero-Dialog Instant Theme Switching on Linux + Free Download on GitHub",
     bullets: [
       "🚀 Alt+U Instant Random Ultra Theme (No Dialog)",
       "🎲 Alt+R Random · ✨ Alt+E FX · ⏹️ Alt+P Plain 0% GPU",
@@ -553,17 +627,23 @@ const sceneSpecs: SceneSpec[] = [
       await sleep(700);
       const triggerShortcut = async (label: string, code: string) => {
         await c.eval(`window.__cc.keys(${JSON.stringify([label])})`);
-        await c.eval(`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'u', code: ${JSON.stringify(code)}, altKey: true, bubbles: true }))`);
+        await c.eval(
+          `window.dispatchEvent(new KeyboardEvent('keydown', { key: 'u', code: ${JSON.stringify(code)}, altKey: true, bubbles: true }))`,
+        );
         await sleep(1500);
       };
       await triggerShortcut("Alt + U  (Random Ultra Theme)", "KeyU");
       await triggerShortcut("Alt + E  (Random FX Theme)", "KeyE");
       await triggerShortcut("Alt + P  (Random Plain 0% GPU)", "KeyP");
-      await c.eval(`(async () => {
+      await c
+        .eval(
+          `(async () => {
         window.__cc.keys(["❄️ Polar Night (Ultra)"]);
         const tm = await import('/ui/themes.js');
         if (tm.applyTheme) await tm.applyTheme('polar_night');
-      })()`).catch(() => {});
+      })()`,
+        )
+        .catch(() => {});
       await sleep(1800);
     },
   },
@@ -603,12 +683,18 @@ ${
 }`;
 }
 
-function notesMarkdown(seconds: number, tempo: number, sceneMarks: Array<{ at: number; scene: SceneSpec }>): string {
+function notesMarkdown(
+  seconds: number,
+  tempo: number,
+  sceneMarks: Array<{ at: number; scene: SceneSpec }>,
+): string {
   const fmt = (sec: number) => {
     const s = Math.floor(sec);
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   };
-  const stamps = sceneMarks.map((m, i) => `${fmt(i === 0 ? 0 : m.at)} ${m.scene.label}`).join("\n");
+  const stamps = sceneMarks
+    .map((m, i) => `${fmt(i === 0 ? 0 : m.at)} ${m.scene.label}`)
+    .join("\n");
   return `# Codecaine File Manager on High-End Linux — GitHub Release Install, 1-Click Convert Packages & Polar Night Ultra Themes Short (${fmt(seconds)})
 
 ## Video File
@@ -668,10 +754,14 @@ async function main() {
   seedLinuxWorld();
 
   // 1. Generate narration first so each live recording matches the narration duration
-  const narrated: Array<{ scene: SceneSpec; audio: string; seconds: number }> = [];
+  const narrated: Array<{ scene: SceneSpec; audio: string; seconds: number }> =
+    [];
   for (const scene of sceneSpecs) {
     console.log(`🎙️  Narrating ${scene.id}...`);
-    const narration = await narrate(scene.id, scene.say, join(WORK, "audio"), { rate: "+4%", gap: 0.22 });
+    const narration = await narrate(scene.id, scene.say, join(WORK, "audio"), {
+      rate: "+4%",
+      gap: 0.22,
+    });
     const audio = join(WORK, `${scene.id}.wav`);
     const seconds = Math.max(3.5, duration(narration) - 0.85);
     run([
@@ -695,7 +785,9 @@ async function main() {
 
   const total = narrated.reduce((sum, item) => sum + item.seconds, 0);
   const tempo = Math.max(1, total / 172);
-  console.log(`⏱️  Total narration ${total.toFixed(2)}s; pace factor ${tempo.toFixed(3)}x`);
+  console.log(
+    `⏱️  Total narration ${total.toFixed(2)}s; pace factor ${tempo.toFixed(3)}x`,
+  );
 
   // 2. Start File Manager server and record each scene live in 2x Retina 1920x972
   const fm = Bun.spawn(
@@ -733,7 +825,12 @@ async function main() {
     await sleep(200);
   }
 
-  const recBrowser = await Cdp.launch(CDP_REC_PORT, join(WORK, "chrome-rec"), VIEW_W, VIEW_H);
+  const recBrowser = await Cdp.launch(
+    CDP_REC_PORT,
+    join(WORK, "chrome-rec"),
+    VIEW_W,
+    VIEW_H,
+  );
   const rawClips: Map<string, string> = new Map();
 
   try {
@@ -752,7 +849,11 @@ async function main() {
         await recBrowser.startRecording();
         await scene.record(recBrowser);
         await sleep(400);
-        await recBrowser.stopRecording(clipPath, join(WORK, `frames_${scene.id}`), item.seconds / tempo);
+        await recBrowser.stopRecording(
+          clipPath,
+          join(WORK, `frames_${scene.id}`),
+          item.seconds / tempo,
+        );
       } else {
         console.log(`♻️  Reusing recorded clip ${scene.id}_raw.mp4`);
       }
@@ -766,7 +867,12 @@ async function main() {
   }
 
   // 3. Render vertical 1080x1920 overlays and composite each segment
-  const ovlBrowser = await Cdp.launch(CDP_OVL_PORT, join(WORK, "chrome-ovl"), 1080, 1920);
+  const ovlBrowser = await Cdp.launch(
+    CDP_OVL_PORT,
+    join(WORK, "chrome-ovl"),
+    1080,
+    1920,
+  );
   const segments: string[] = [];
   const sceneMarks: Array<{ at: number; scene: SceneSpec }> = [];
   let at = 0;
@@ -783,7 +889,9 @@ async function main() {
       const png = join(WORK, `${scene.id}.png`);
       writeFileSync(html, overlay(scene, index));
       await ovlBrowser.goto(`file://${html}`, null);
-      await ovlBrowser.send("Emulation.setDefaultBackgroundColorOverride", { color: { r: 0, g: 0, b: 0, a: 0 } });
+      await ovlBrowser.send("Emulation.setDefaultBackgroundColorOverride", {
+        color: { r: 0, g: 0, b: 0, a: 0 },
+      });
       const screenshot = await ovlBrowser.send("Page.captureScreenshot", {
         format: "png",
         captureBeyondViewport: false,
@@ -841,7 +949,10 @@ async function main() {
   }
 
   const list = join(WORK, "concat.txt");
-  writeFileSync(list, segments.map((file) => `file '${file}'`).join("\n") + "\n");
+  writeFileSync(
+    list,
+    segments.map((file) => `file '${file}'`).join("\n") + "\n",
+  );
   run([
     FFMPEG,
     "-hide_banner",

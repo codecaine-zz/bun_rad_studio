@@ -4,10 +4,12 @@
 import { join } from "path";
 import { mkdirSync, rmSync, writeFileSync } from "fs";
 
-export const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+export const CHROME =
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const FFMPEG = "/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg";
 
-export const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+export const sleep = (ms: number) =>
+  new Promise<void>((r) => setTimeout(r, ms));
 
 // Styled through the CSSOM / Web Animations API only: the app's CSP blocks injected <style> elements.
 const CURSOR_SCRIPT = `(() => {
@@ -78,77 +80,161 @@ export class Cdp {
   /** The height of the recorded picture (the window height it was launched with). */
   private height = 1080;
 
-  static async launch(port: number, userDir: string, width = 1920, height = 1080): Promise<Cdp> {
+  static async launch(
+    port: number,
+    userDir: string,
+    width = 1920,
+    height = 1080,
+  ): Promise<Cdp> {
     const c = new Cdp();
     c.height = height;
     const isRetinaShowcase = width === 1920 && height < 1080;
     const dpr = isRetinaShowcase ? 2 : 1;
     // A stale browser on the same debugging port would silently answer instead of ours.
-    try { await fetch(`http://127.0.0.1:${port}/json/version`); throw new Error(`port ${port} is already in use by another browser`); } catch (e) { if ((e as Error).message.includes("already in use")) throw e; }
+    try {
+      await fetch(`http://127.0.0.1:${port}/json/version`);
+      throw new Error(`port ${port} is already in use by another browser`);
+    } catch (e) {
+      if ((e as Error).message.includes("already in use")) throw e;
+    }
     rmSync(userDir, { recursive: true, force: true });
     c.proc = Bun.spawn(
-      [CHROME, "--headless=new", `--remote-debugging-port=${port}`, `--user-data-dir=${userDir}`, `--window-size=${width},${height}`,
-        `--force-device-scale-factor=${dpr}`, "--force-color-profile=display-p3", "--enable-gpu-rasterization", "--ignore-gpu-blocklist", "--hide-scrollbars", "--no-first-run", "--no-default-browser-check", "about:blank"],
+      [
+        CHROME,
+        "--headless=new",
+        `--remote-debugging-port=${port}`,
+        `--user-data-dir=${userDir}`,
+        `--window-size=${width},${height}`,
+        `--force-device-scale-factor=${dpr}`,
+        "--force-color-profile=display-p3",
+        "--enable-gpu-rasterization",
+        "--ignore-gpu-blocklist",
+        "--hide-scrollbars",
+        "--no-first-run",
+        "--no-default-browser-check",
+        "about:blank",
+      ],
       { stdout: "ignore", stderr: "ignore" },
     );
     let target: any;
     for (let i = 0; i < 60 && !target; i++) {
       await sleep(250);
       try {
-        const list = (await (await fetch(`http://127.0.0.1:${port}/json`)).json()) as any[];
+        const list = (await (
+          await fetch(`http://127.0.0.1:${port}/json`)
+        ).json()) as any[];
         target = list.find((t) => t.type === "page");
       } catch {}
     }
     if (!target) throw new Error("Chrome DevTools did not come up");
     c.ws = new WebSocket(target.webSocketDebuggerUrl);
-    await new Promise<void>((r) => { c.ws.onopen = () => r(); });
+    await new Promise<void>((r) => {
+      c.ws.onopen = () => r();
+    });
     c.ws.onmessage = (ev) => {
       const m = JSON.parse(ev.data as string);
       if (m.id && c.pending.has(m.id)) {
         const f = c.pending.get(m.id)!;
         c.pending.delete(m.id);
         f(m);
-      } else if (m.method === "Target.attachedToTarget" && m.params.targetInfo.type === "iframe") {
-        c.frameSessions = c.frameSessions.filter((x) => x.id !== m.params.sessionId);
-        c.frameSessions.push({ id: m.params.sessionId, targetId: m.params.targetInfo.targetId, url: m.params.targetInfo.url });
-        void c.send("Target.setAutoAttach", { autoAttach: true, waitForDebuggerOnStart: false, flatten: true }, m.params.sessionId).catch(() => {});
+      } else if (
+        m.method === "Target.attachedToTarget" &&
+        m.params.targetInfo.type === "iframe"
+      ) {
+        c.frameSessions = c.frameSessions.filter(
+          (x) => x.id !== m.params.sessionId,
+        );
+        c.frameSessions.push({
+          id: m.params.sessionId,
+          targetId: m.params.targetInfo.targetId,
+          url: m.params.targetInfo.url,
+        });
+        void c
+          .send(
+            "Target.setAutoAttach",
+            { autoAttach: true, waitForDebuggerOnStart: false, flatten: true },
+            m.params.sessionId,
+          )
+          .catch(() => {});
       } else if (m.method === "Target.detachedFromTarget") {
-        c.frameSessions = c.frameSessions.filter((x) => x.id !== m.params.sessionId);
+        c.frameSessions = c.frameSessions.filter(
+          (x) => x.id !== m.params.sessionId,
+        );
       } else if (m.method === "Target.targetInfoChanged") {
-        const f = c.frameSessions.find((x) => x.targetId === m.params.targetInfo.targetId);
+        const f = c.frameSessions.find(
+          (x) => x.targetId === m.params.targetInfo.targetId,
+        );
         if (f) f.url = m.params.targetInfo.url;
       } else if (m.method === "Page.screencastFrame") {
-        if (c.recording) c.frames.push({ t: performance.now(), data: m.params.data });
-        c.ws.send(JSON.stringify({ id: c.id++, method: "Page.screencastFrameAck", params: { sessionId: m.params.sessionId } }));
+        if (c.recording)
+          c.frames.push({ t: performance.now(), data: m.params.data });
+        c.ws.send(
+          JSON.stringify({
+            id: c.id++,
+            method: "Page.screencastFrameAck",
+            params: { sessionId: m.params.sessionId },
+          }),
+        );
       }
     };
     process.on("exit", () => c.close());
     await c.send("Page.enable");
     await c.send("Runtime.enable");
     await c.send("Target.setDiscoverTargets", { discover: true });
-    await c.send("Target.setAutoAttach", { autoAttach: true, waitForDebuggerOnStart: false, flatten: true });
-    await c.send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: dpr, mobile: false });
-    await c.send("Emulation.setEmulatedMedia", {
-      features: [
-        { name: "color-gamut", value: "p3" },
-        { name: "dynamic-range", value: "high" },
-      ],
-    }).catch(() => {});
-    await c.send("Page.addScriptToEvaluateOnNewDocument", { source: CURSOR_SCRIPT });
+    await c.send("Target.setAutoAttach", {
+      autoAttach: true,
+      waitForDebuggerOnStart: false,
+      flatten: true,
+    });
+    await c.send("Emulation.setDeviceMetricsOverride", {
+      width,
+      height,
+      deviceScaleFactor: dpr,
+      mobile: false,
+    });
+    await c
+      .send("Emulation.setEmulatedMedia", {
+        features: [
+          { name: "color-gamut", value: "p3" },
+          { name: "dynamic-range", value: "high" },
+        ],
+      })
+      .catch(() => {});
+    await c.send("Page.addScriptToEvaluateOnNewDocument", {
+      source: CURSOR_SCRIPT,
+    });
     return c;
   }
 
   send(method: string, params: any = {}, sessionId?: string): Promise<any> {
     const id = this.id++;
     return new Promise((resolve, reject) => {
-      this.pending.set(id, (m) => (m.error ? reject(new Error(`${method}: ${m.error.message}`)) : resolve(m.result)));
-      this.ws.send(JSON.stringify({ id, method, params, ...(sessionId ? { sessionId } : {}) }));
+      this.pending.set(id, (m) =>
+        m.error
+          ? reject(new Error(`${method}: ${m.error.message}`))
+          : resolve(m.result),
+      );
+      this.ws.send(
+        JSON.stringify({
+          id,
+          method,
+          params,
+          ...(sessionId ? { sessionId } : {}),
+        }),
+      );
     });
   }
 
   async eval<T = any>(expr: string): Promise<T> {
-    const r = await this.send("Runtime.evaluate", { expression: expr, awaitPromise: true, returnByValue: true });
-    if (r.exceptionDetails) throw new Error(`eval failed: ${r.exceptionDetails.text} ${r.exceptionDetails.exception?.description ?? ""}`);
+    const r = await this.send("Runtime.evaluate", {
+      expression: expr,
+      awaitPromise: true,
+      returnByValue: true,
+    });
+    if (r.exceptionDetails)
+      throw new Error(
+        `eval failed: ${r.exceptionDetails.text} ${r.exceptionDetails.exception?.description ?? ""}`,
+      );
     return r.result.value;
   }
 
@@ -171,22 +257,40 @@ export class Cdp {
       return els[0] || null; })()`;
   }
 
-  private async evalIn(sessionId: string | undefined, expr: string): Promise<any> {
-    const r = await this.send("Runtime.evaluate", { expression: expr, awaitPromise: true, returnByValue: true }, sessionId);
-    if (r.exceptionDetails) throw new Error(`eval failed: ${r.exceptionDetails.exception?.description ?? r.exceptionDetails.text}`);
+  private async evalIn(
+    sessionId: string | undefined,
+    expr: string,
+  ): Promise<any> {
+    const r = await this.send(
+      "Runtime.evaluate",
+      { expression: expr, awaitPromise: true, returnByValue: true },
+      sessionId,
+    );
+    if (r.exceptionDetails)
+      throw new Error(
+        `eval failed: ${r.exceptionDetails.exception?.description ?? r.exceptionDetails.text}`,
+      );
     return r.result.value;
   }
 
   /** Runs `expr` inside the (possibly nested) iframes named by `frames`; returns [result, left, top] of the innermost frame. */
-  private async inFrames<T>(frames: string[], expr: string): Promise<[T, number, number] | null> {
+  private async inFrames<T>(
+    frames: string[],
+    expr: string,
+  ): Promise<[T, number, number] | null> {
     const base = (u: string) => u.split("#")[0]!.split("?")[0]!;
     let session: string | undefined;
-    let ox = 0, oy = 0;
+    let ox = 0,
+      oy = 0;
     for (const css of frames) {
-      const fo = await this.evalIn(session, `(() => { const f = [...document.querySelectorAll(${JSON.stringify(css)})].find((e) => e.getBoundingClientRect().width > 0);
-        if (!f) return null; const r = f.getBoundingClientRect(); return { x: r.left, y: r.top, src: f.src }; })()`);
+      const fo = await this.evalIn(
+        session,
+        `(() => { const f = [...document.querySelectorAll(${JSON.stringify(css)})].find((e) => e.getBoundingClientRect().width > 0);
+        if (!f) return null; const r = f.getBoundingClientRect(); return { x: r.left, y: r.top, src: f.src }; })()`,
+      );
       if (!fo) return null;
-      ox += fo.x; oy += fo.y;
+      ox += fo.x;
+      oy += fo.y;
       const sess = this.frameSessions.find((x) => base(x.url) === base(fo.src));
       if (!sess) return null;
       session = sess.id;
@@ -203,14 +307,24 @@ export class Cdp {
     return (await this.rect(selector, false)) !== null;
   }
 
-  async rect(selector: string, scroll = true): Promise<{ x: number; y: number; w: number; h: number } | null> {
-    const body = (inner: string) => `(() => { const e = ${this.pick(inner)}; if (!e) return null;
+  async rect(
+    selector: string,
+    scroll = true,
+  ): Promise<{ x: number; y: number; w: number; h: number } | null> {
+    const body = (
+      inner: string,
+    ) => `(() => { const e = ${this.pick(inner)}; if (!e) return null;
       ${scroll ? 'e.scrollIntoView({ block: "nearest", behavior: "instant" });' : ""}
       const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height }; })()`;
     if (selector.includes(" ||| ")) {
       const parts = selector.split(" ||| ");
       const inner = parts.pop()!;
-      const res = await this.inFrames<{ x: number; y: number; w: number; h: number } | null>(parts, body(inner));
+      const res = await this.inFrames<{
+        x: number;
+        y: number;
+        w: number;
+        h: number;
+      } | null>(parts, body(inner));
       if (!res || !res[0]) return null;
       return { ...res[0], x: res[0].x + res[1], y: res[0].y + res[2] };
     }
@@ -231,50 +345,115 @@ export class Cdp {
   }
 
   /** Glide the visible cursor to the element, then really click it (re-measured just before pressing, in case the layout moved). */
-  async click(selector: string, opts: { ms?: number; pause?: number; dx?: number; dy?: number } = {}): Promise<boolean> {
+  async click(
+    selector: string,
+    opts: { ms?: number; pause?: number; dx?: number; dy?: number } = {},
+  ): Promise<boolean> {
     let r = await this.rect(selector);
-    if (!r) { console.warn(`    ⚠ click: ${selector} not found`); return false; }
-    await this.moveTo(r.x + (opts.dx ?? 0), r.y + (opts.dy ?? 0), opts.ms ?? 650);
+    if (!r) {
+      console.warn(`    ⚠ click: ${selector} not found`);
+      return false;
+    }
+    await this.moveTo(
+      r.x + (opts.dx ?? 0),
+      r.y + (opts.dy ?? 0),
+      opts.ms ?? 650,
+    );
     await sleep(120);
     const again = await this.rect(selector);
     if (again && (Math.abs(again.x - r.x) > 2 || Math.abs(again.y - r.y) > 2)) {
       r = again;
       await this.moveTo(r.x + (opts.dx ?? 0), r.y + (opts.dy ?? 0), 200);
     }
-    const x = r.x + (opts.dx ?? 0), y = r.y + (opts.dy ?? 0);
+    const x = r.x + (opts.dx ?? 0),
+      y = r.y + (opts.dy ?? 0);
     await this.eval(`window.__cc.ripple(${x}, ${y})`);
-    await this.send("Input.dispatchMouseEvent", { type: "mousePressed", x, y, button: "left", buttons: 1, clickCount: 1 });
+    await this.send("Input.dispatchMouseEvent", {
+      type: "mousePressed",
+      x,
+      y,
+      button: "left",
+      buttons: 1,
+      clickCount: 1,
+    });
     await sleep(70);
-    await this.send("Input.dispatchMouseEvent", { type: "mouseReleased", x, y, button: "left", buttons: 0, clickCount: 1 });
+    await this.send("Input.dispatchMouseEvent", {
+      type: "mouseReleased",
+      x,
+      y,
+      button: "left",
+      buttons: 0,
+      clickCount: 1,
+    });
     await sleep(opts.pause ?? 500);
     return true;
   }
 
-  async dblclick(selector: string, opts: { ms?: number; pause?: number } = {}): Promise<boolean> {
+  async dblclick(
+    selector: string,
+    opts: { ms?: number; pause?: number } = {},
+  ): Promise<boolean> {
     const r = await this.rect(selector);
-    if (!r) { console.warn(`    ⚠ dblclick: ${selector} not found`); return false; }
+    if (!r) {
+      console.warn(`    ⚠ dblclick: ${selector} not found`);
+      return false;
+    }
     await this.moveTo(r.x, r.y, opts.ms ?? 650);
     await sleep(120);
     await this.eval(`window.__cc.ripple(${r.x}, ${r.y})`);
     for (const n of [1, 2]) {
-      await this.send("Input.dispatchMouseEvent", { type: "mousePressed", x: r.x, y: r.y, button: "left", buttons: 1, clickCount: n });
+      await this.send("Input.dispatchMouseEvent", {
+        type: "mousePressed",
+        x: r.x,
+        y: r.y,
+        button: "left",
+        buttons: 1,
+        clickCount: n,
+      });
       await sleep(50);
-      await this.send("Input.dispatchMouseEvent", { type: "mouseReleased", x: r.x, y: r.y, button: "left", buttons: 0, clickCount: n });
+      await this.send("Input.dispatchMouseEvent", {
+        type: "mouseReleased",
+        x: r.x,
+        y: r.y,
+        button: "left",
+        buttons: 0,
+        clickCount: n,
+      });
       await sleep(60);
     }
     await sleep(opts.pause ?? 700);
     return true;
   }
 
-  async rclick(selector: string, opts: { ms?: number; pause?: number } = {}): Promise<boolean> {
+  async rclick(
+    selector: string,
+    opts: { ms?: number; pause?: number } = {},
+  ): Promise<boolean> {
     const r = await this.rect(selector);
-    if (!r) { console.warn(`    ⚠ rclick: ${selector} not found`); return false; }
+    if (!r) {
+      console.warn(`    ⚠ rclick: ${selector} not found`);
+      return false;
+    }
     await this.moveTo(r.x, r.y, opts.ms ?? 650);
     await sleep(120);
     await this.eval(`window.__cc.ripple(${r.x}, ${r.y})`);
-    await this.send("Input.dispatchMouseEvent", { type: "mousePressed", x: r.x, y: r.y, button: "right", buttons: 2, clickCount: 1 });
+    await this.send("Input.dispatchMouseEvent", {
+      type: "mousePressed",
+      x: r.x,
+      y: r.y,
+      button: "right",
+      buttons: 2,
+      clickCount: 1,
+    });
     await sleep(60);
-    await this.send("Input.dispatchMouseEvent", { type: "mouseReleased", x: r.x, y: r.y, button: "right", buttons: 0, clickCount: 1 });
+    await this.send("Input.dispatchMouseEvent", {
+      type: "mouseReleased",
+      x: r.x,
+      y: r.y,
+      button: "right",
+      buttons: 0,
+      clickCount: 1,
+    });
     await sleep(opts.pause ?? 600);
     return true;
   }
@@ -282,16 +461,40 @@ export class Cdp {
   /** Press on an element and drag it by (dx, dy), e.g. a splitter. */
   async drag(selector: string, dx: number, dy: number, ms = 700) {
     const r = await this.rect(selector);
-    if (!r) { console.warn(`    ⚠ drag: ${selector} not found`); return; }
+    if (!r) {
+      console.warn(`    ⚠ drag: ${selector} not found`);
+      return;
+    }
     await this.moveTo(r.x, r.y, 600);
-    await this.send("Input.dispatchMouseEvent", { type: "mousePressed", x: r.x, y: r.y, button: "left", buttons: 1, clickCount: 1 });
+    await this.send("Input.dispatchMouseEvent", {
+      type: "mousePressed",
+      x: r.x,
+      y: r.y,
+      button: "left",
+      buttons: 1,
+      clickCount: 1,
+    });
     const steps = 14;
     for (let i = 1; i <= steps; i++) {
-      const x = r.x + (dx * i) / steps, y = r.y + (dy * i) / steps;
+      const x = r.x + (dx * i) / steps,
+        y = r.y + (dy * i) / steps;
       await this.eval(`window.__cc.move(${x}, ${y}, ${ms / steps})`);
-      await this.send("Input.dispatchMouseEvent", { type: "mouseMoved", x, y, button: "left", buttons: 1 });
+      await this.send("Input.dispatchMouseEvent", {
+        type: "mouseMoved",
+        x,
+        y,
+        button: "left",
+        buttons: 1,
+      });
     }
-    await this.send("Input.dispatchMouseEvent", { type: "mouseReleased", x: r.x + dx, y: r.y + dy, button: "left", buttons: 0, clickCount: 1 });
+    await this.send("Input.dispatchMouseEvent", {
+      type: "mouseReleased",
+      x: r.x + dx,
+      y: r.y + dy,
+      button: "left",
+      buttons: 0,
+      clickCount: 1,
+    });
     await sleep(400);
   }
 
@@ -311,15 +514,56 @@ export class Cdp {
   async key(combo: string, label?: string) {
     const parts = combo.split("+");
     const key = parts.pop()!;
-    const mods = (parts.includes("Alt") ? 1 : 0) | (parts.includes("Control") ? 2 : 0) | (parts.includes("Meta") ? 4 : 0) | (parts.includes("Shift") ? 8 : 0);
-    const codes: Record<string, number> = { Tab: 9, Enter: 13, Escape: 27, Delete: 46, ArrowDown: 40, ArrowUp: 38, F2: 113, F3: 114, F5: 116, F6: 117, F8: 119 };
+    const mods =
+      (parts.includes("Alt") ? 1 : 0) |
+      (parts.includes("Control") ? 2 : 0) |
+      (parts.includes("Meta") ? 4 : 0) |
+      (parts.includes("Shift") ? 8 : 0);
+    const codes: Record<string, number> = {
+      Tab: 9,
+      Enter: 13,
+      Escape: 27,
+      Delete: 46,
+      ArrowDown: 40,
+      ArrowUp: 38,
+      F2: 113,
+      F3: 114,
+      F5: 116,
+      F6: 117,
+      F8: 119,
+    };
     const vk = codes[key] ?? key.toUpperCase().charCodeAt(0);
     const text = key.length === 1 && !(mods & 2) ? key : undefined;
-    await this.eval(`window.__cc.keys(${JSON.stringify((label ?? combo).split("+"))})`);
-    const edit: Record<string, string> = { a: "selectAll", z: "undo", c: "copy", v: "paste", x: "cut" };
-    const commands = key.length === 1 && (mods & 6) && !(mods & 8) && edit[key] ? [edit[key]!] : undefined;
-    await this.send("Input.dispatchKeyEvent", { type: "rawKeyDown", key, code: key.length === 1 ? `Key${key.toUpperCase()}` : key, windowsVirtualKeyCode: vk, modifiers: mods, text, ...(commands ? { commands } : {}) });
-    await this.send("Input.dispatchKeyEvent", { type: "keyUp", key, code: key.length === 1 ? `Key${key.toUpperCase()}` : key, windowsVirtualKeyCode: vk, modifiers: mods });
+    await this.eval(
+      `window.__cc.keys(${JSON.stringify((label ?? combo).split("+"))})`,
+    );
+    const edit: Record<string, string> = {
+      a: "selectAll",
+      z: "undo",
+      c: "copy",
+      v: "paste",
+      x: "cut",
+    };
+    const commands =
+      key.length === 1 && mods & 6 && !(mods & 8) && edit[key]
+        ? [edit[key]!]
+        : undefined;
+    await this.send("Input.dispatchKeyEvent", {
+      type: "rawKeyDown",
+      key,
+      code: key.length === 1 ? `Key${key.toUpperCase()}` : key,
+      windowsVirtualKeyCode: vk,
+      modifiers: mods,
+      text,
+      ...(commands ? { commands } : {}),
+    });
+    await this.send("Input.dispatchKeyEvent", {
+      type: "keyUp",
+      key,
+      code: key.length === 1 ? `Key${key.toUpperCase()}` : key,
+      windowsVirtualKeyCode: vk,
+      modifiers: mods,
+    });
     await sleep(450);
   }
 
@@ -328,7 +572,13 @@ export class Cdp {
     if (!r) return;
     await this.moveTo(r.x, r.y, 500);
     for (let i = 0; i < steps; i++) {
-      await this.send("Input.dispatchMouseEvent", { type: "mouseWheel", x: r.x, y: r.y, deltaX: 0, deltaY: deltaY / steps });
+      await this.send("Input.dispatchMouseEvent", {
+        type: "mouseWheel",
+        x: r.x,
+        y: r.y,
+        deltaX: 0,
+        deltaY: deltaY / steps,
+      });
       await sleep(60);
     }
   }
@@ -347,20 +597,34 @@ export class Cdp {
     this.recordStartTime = performance.now();
     this.recording = true;
     try {
-      const initShot = await this.send("Page.captureScreenshot", { format: "jpeg", quality: 98 });
+      const initShot = await this.send("Page.captureScreenshot", {
+        format: "jpeg",
+        quality: 98,
+      });
       if (initShot?.data) {
         this.frames.push({ t: this.recordStartTime, data: initShot.data });
       }
     } catch {}
-    await this.send("Page.startScreencast", { format: "jpeg", quality: 98, maxWidth: 1920, maxHeight: this.height, everyNthFrame: 1 });
+    await this.send("Page.startScreencast", {
+      format: "jpeg",
+      quality: 98,
+      maxWidth: 1920,
+      maxHeight: this.height,
+      everyNthFrame: 1,
+    });
     // Ensure screencast emits immediately as well.
-    await this.eval(`window.__cc.move(window.__cc.state.x + 1, window.__cc.state.y, 50)`);
+    await this.eval(
+      `window.__cc.move(window.__cc.state.x + 1, window.__cc.state.y, 50)`,
+    );
   }
 
   /** Stop and encode to a constant 30 fps clip of² exact wall-clock alignment with `recordStartTime`. */
   async stopRecording(outPath: string, workDir: string, seconds: number) {
     try {
-      const endShot = await this.send("Page.captureScreenshot", { format: "jpeg", quality: 98 });
+      const endShot = await this.send("Page.captureScreenshot", {
+        format: "jpeg",
+        quality: 98,
+      });
       if (endShot?.data) {
         this.frames.push({ t: performance.now(), data: endShot.data });
       }
@@ -371,30 +635,68 @@ export class Cdp {
     if (frames.length === 0) throw new Error("no screencast frames captured");
     rmSync(workDir, { recursive: true, force: true });
     mkdirSync(workDir, { recursive: true });
-    const tOrigin = this.recordStartTime > 0 ? Math.min(this.recordStartTime, frames[0]!.t) : frames[0]!.t;
+    const tOrigin =
+      this.recordStartTime > 0
+        ? Math.min(this.recordStartTime, frames[0]!.t)
+        : frames[0]!.t;
     const targetEndMs = tOrigin + (seconds + 1.0) * 1000;
     const lines: string[] = [];
     frames.forEach((f, i) => {
       const file = join(workDir, `f${String(i).padStart(5, "0")}.jpg`);
       writeFileSync(file, Buffer.from(f.data, "base64"));
       const curT = i === 0 ? tOrigin : f.t;
-      const nextT = i + 1 < frames.length ? Math.max(curT + 1, frames[i + 1]!.t) : Math.max(curT + 1000, targetEndMs);
-      lines.push(`file '${file}'`, `duration ${Math.max(0.001, (nextT - curT) / 1000).toFixed(4)}`);
+      const nextT =
+        i + 1 < frames.length
+          ? Math.max(curT + 1, frames[i + 1]!.t)
+          : Math.max(curT + 1000, targetEndMs);
+      lines.push(
+        `file '${file}'`,
+        `duration ${Math.max(0.001, (nextT - curT) / 1000).toFixed(4)}`,
+      );
     });
-    lines.push(`file '${join(workDir, `f${String(frames.length - 1).padStart(5, "0")}.jpg`)}'`);
+    lines.push(
+      `file '${join(workDir, `f${String(frames.length - 1).padStart(5, "0")}.jpg`)}'`,
+    );
     const list = join(workDir, "list.txt");
     writeFileSync(list, lines.join("\n"));
     const recordedSec = (frames[frames.length - 1]!.t - tOrigin) / 1000;
     const speed = 1;
-    const p = Bun.spawnSync([FFMPEG, "-y", "-f", "concat", "-safe", "0", "-i", list, "-vf", `fps=30,tpad=stop_mode=clone:stop_duration=${seconds},scale=1920:${this.height}:flags=lanczos,format=yuv420p`,
-      "-t", seconds.toFixed(3), "-c:v", "libx264", "-preset", "medium", "-crf", "14", outPath], { stdout: "ignore", stderr: "pipe" });
-    if (p.exitCode !== 0) throw new Error(`clip encode failed: ${p.stderr.toString().slice(-400)}`);
+    const p = Bun.spawnSync(
+      [
+        FFMPEG,
+        "-y",
+        "-f",
+        "concat",
+        "-safe",
+        "0",
+        "-i",
+        list,
+        "-vf",
+        `fps=30,tpad=stop_mode=clone:stop_duration=${seconds},scale=1920:${this.height}:flags=lanczos,format=yuv420p`,
+        "-t",
+        seconds.toFixed(3),
+        "-c:v",
+        "libx264",
+        "-preset",
+        "medium",
+        "-crf",
+        "14",
+        outPath,
+      ],
+      { stdout: "ignore", stderr: "pipe" },
+    );
+    if (p.exitCode !== 0)
+      throw new Error(`clip encode failed: ${p.stderr.toString().slice(-400)}`);
     rmSync(workDir, { recursive: true, force: true });
     return { frames: frames.length, recordedSeconds: recordedSec, speed };
   }
 
   close() {
-    try { this.ws.close(); } catch {}
-    try { this.proc.kill(9); } catch {}
+    try {
+      this.ws.close();
+    } catch {}
+    try {
+      this.proc.kill(9);
+    } catch {}
   }
 }

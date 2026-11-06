@@ -13,7 +13,11 @@ const LIVE_DIR = join(ROOT, "youtube_production", "live");
 const REUSE_AUDIO = process.argv.includes("--reuse-audio");
 const STILLS_ONLY = process.argv.includes("--stills");
 const SEGMENTS_DIR = join(ROOT, "youtube_production", "segments");
-const FINAL_VIDEO = join(ROOT, "youtube_production", "codecaine_file_manager_youtube_demo.mp4");
+const FINAL_VIDEO = join(
+  ROOT,
+  "youtube_production",
+  "codecaine_file_manager_youtube_demo.mp4",
+);
 const RELEASE_KIT = join(ROOT, "youtube_production", "YOUTUBE_RELEASE_KIT.md");
 
 const FFMPEG = "/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg";
@@ -40,8 +44,10 @@ const scenes: SceneDef[] = [
     frame: "00_title_card.png",
     chapter: "INTRODUCTION",
     title: "The Ultimate Developer Workstation",
-    bullets: "Cross-Platform · Built on Bun v1.4.2 · Zero-Data-Loss Architecture",
-    narration: "Welcome to Codecaine File Manager, the next-generation developer workstation built on Bun version 1.4.2. This is not just a file browser. It is a complete, private, cross-platform power tool for macOS, Windows, and Linux that replaces dozens of standalone utilities."
+    bullets:
+      "Cross-Platform · Built on Bun v1.4.2 · Zero-Data-Loss Architecture",
+    narration:
+      "Welcome to Codecaine File Manager, the next-generation developer workstation built on Bun version 1.4.2. This is not just a file browser. It is a complete, private, cross-platform power tool for macOS, Windows, and Linux that replaces dozens of standalone utilities.",
   },
   {
     id: "01_install",
@@ -49,7 +55,8 @@ const scenes: SceneDef[] = [
     chapter: "GETTING STARTED",
     title: "First-Time Install: Windows & *Nix",
     bullets: "bun install · Windows Auto WebView2 · macOS & Linux Native",
-    narration: "Whether you are on Windows, macOS, or Linux, getting started with Codecaine File Manager is completely straightforward. First, run bun install. On Windows, the automated postinstall script immediately verifies and patches the Microsoft Edge WebView2 runtime, and you can launch with PowerShell using run.ps1 or bun run app:files. On macOS and Linux, bun install resolves all dependencies in milliseconds, and bun run app:files launches the native desktop window right away, with optional macOS application bundlers and headless server modes."
+    narration:
+      "Whether you are on Windows, macOS, or Linux, getting started with Codecaine File Manager is completely straightforward. First, run bun install. On Windows, the automated postinstall script immediately verifies and patches the Microsoft Edge WebView2 runtime, and you can launch with PowerShell using run.ps1 or bun run app:files. On macOS and Linux, bun install resolves all dependencies in milliseconds, and bun run app:files launches the native desktop window right away, with optional macOS application bundlers and headless server modes.",
   },
   {
     id: "02_home",
@@ -57,7 +64,8 @@ const scenes: SceneDef[] = [
     chapter: "CHAPTER 01",
     title: "Home Dashboard & Quick Launch",
     bullets: "Pinned Favorites · Disk Meters · One-Click Tool Tiles",
-    narration: "The Home Dashboard welcomes you with a birds-eye view of your entire system. Pinned favorites, disk storage meters, recent files, and one-click launch tiles for every developer tool. Everything is visible, labeled, and instantly accessible."
+    narration:
+      "The Home Dashboard welcomes you with a birds-eye view of your entire system. Pinned favorites, disk storage meters, recent files, and one-click launch tiles for every developer tool. Everything is visible, labeled, and instantly accessible.",
   },
   {
     id: "03_files",
@@ -65,7 +73,8 @@ const scenes: SceneDef[] = [
     chapter: "CHAPTER 02",
     title: "Everyday Files Workspace",
     bullets: "Breadcrumbs · Details / List / Icons · Live File Previews",
-    narration: "In the main files workspace, enjoy crystal-clear breadcrumb navigation, instant search with wildcards, and three view modes: Details, List, and Icons. The side details panel provides live image and text previews, file stats, and deep metadata inspection."
+    narration:
+      "In the main files workspace, enjoy crystal-clear breadcrumb navigation, instant search with wildcards, and three view modes: Details, List, and Icons. The side details panel provides live image and text previews, file stats, and deep metadata inspection.",
   },
   {
     id: "04_dual",
@@ -73,31 +82,38 @@ const scenes: SceneDef[] = [
     chapter: "CHAPTER 03",
     title: "Dual-Pane Productivity Flow",
     bullets: "Two Folders Side-by-Side · F5 Copy · F6 Move · Undo",
-    narration: "Power users get a true dual-pane workspace. Browse two independent directories side by side, navigate with Tab, and transfer files instantly using F5 to copy and F6 to move, complete with collision handling and one-touch undo."
+    narration:
+      "Power users get a true dual-pane workspace. Browse two independent directories side by side, navigate with Tab, and transfer files instantly using F5 to copy and F6 to move, complete with collision handling and one-touch undo.",
   },
   {
     id: "05_split",
     frame: "04_split_view.png",
     chapter: "CHAPTER 04",
     title: "Split View Workspace",
-    bullets: "Side-by-Side Tools · Synchronized Navigation · Adjustable Divider",
-    narration: "With Split View, you never lose your context. Keep your active file list on one side while running any developer tool on the other, stacked horizontally or side-by-side with an adjustable divider."
+    bullets:
+      "Side-by-Side Tools · Synchronized Navigation · Adjustable Divider",
+    narration:
+      "With Split View, you never lose your context. Keep your active file list on one side while running any developer tool on the other, stacked horizontally or side-by-side with an adjustable divider.",
   },
   {
     id: "06_code",
     frame: "05_code_studio.png",
     chapter: "CHAPTER 05",
     title: "Built-In Code Studio",
-    bullets: "Syntax Highlighting · Multi-Tab Editor · V-Lang · Markdown Preview",
-    narration: "The built-in Code Studio gives you a multi-tab code editor with syntax highlighting, autocomplete snippets, Markdown live preview, run presets, and full support for V-Lang formatting."
+    bullets:
+      "Syntax Highlighting · Multi-Tab Editor · V-Lang · Markdown Preview",
+    narration:
+      "The built-in Code Studio gives you a multi-tab code editor with syntax highlighting, autocomplete snippets, Markdown live preview, run presets, and full support for V-Lang formatting.",
   },
   {
     id: "07_dev",
     frame: "06_dev_station.png",
     chapter: "CHAPTER 06",
     title: "Developer Station (Tokei & Git)",
-    bullets: "100+ Languages Counted · Git Insights · Heavy Folder Bloat Scanner",
-    narration: "The Dev tab brings deep repository insights. Run instant lines-of-code counts across one hundred languages powered by Tokei, inspect Git commit history, identify bloated directories like node_modules, and scan for TODO notes."
+    bullets:
+      "100+ Languages Counted · Git Insights · Heavy Folder Bloat Scanner",
+    narration:
+      "The Dev tab brings deep repository insights. Run instant lines-of-code counts across one hundred languages powered by Tokei, inspect Git commit history, identify bloated directories like node_modules, and scan for TODO notes.",
   },
   {
     id: "08_database",
@@ -105,15 +121,18 @@ const scenes: SceneDef[] = [
     chapter: "CHAPTER 07",
     title: "Database Studio Hub",
     bullets: "SQLite Studio Pro · MySQL · PostgreSQL · Redis · Staging Imports",
-    narration: "The Database Hub automatically connects your local and remote databases. Here, SQLite Studio Pro is connected directly to our analytics database, giving you visual table designers, raw SQL query runners, and PRAGMA performance tuning."
+    narration:
+      "The Database Hub automatically connects your local and remote databases. Here, SQLite Studio Pro is connected directly to our analytics database, giving you visual table designers, raw SQL query runners, and PRAGMA performance tuning.",
   },
   {
     id: "09_secrets",
     frame: "08_secrets_vault.png",
     chapter: "CHAPTER 08",
     title: "Secrets & Encrypted Vaults",
-    bullets: "Argon2id + AES-256-GCM · 2FA TOTP · Recovery Keys · Zero Plaintext",
-    narration: "Keep your credentials secure with Secrets and Encrypted Vaults. Store passwords, secure notes, and 2FA TOTP authenticator tokens encrypted with Argon2id and AES-256-GCM. Plus, lock any sensitive file or folder into a protected archive."
+    bullets:
+      "Argon2id + AES-256-GCM · 2FA TOTP · Recovery Keys · Zero Plaintext",
+    narration:
+      "Keep your credentials secure with Secrets and Encrypted Vaults. Store passwords, secure notes, and 2FA TOTP authenticator tokens encrypted with Argon2id and AES-256-GCM. Plus, lock any sensitive file or folder into a protected archive.",
   },
   {
     id: "10_crypto",
@@ -121,31 +140,38 @@ const scenes: SceneDef[] = [
     chapter: "CHAPTER 09",
     title: "Crypto & Multi-Hash Verifier",
     bullets: "MD5 · SHA-256 · Blake3 · rapidhash · Argon2id · Color Converter",
-    narration: "The Crypto suite lets you verify checksums across MD5, SHA-256, Blake3, and rapidhash. Hash passwords with Argon2id and bcrypt, generate cryptographically secure keys, and convert CSS color tokens."
+    narration:
+      "The Crypto suite lets you verify checksums across MD5, SHA-256, Blake3, and rapidhash. Hash passwords with Argon2id and bcrypt, generate cryptographically secure keys, and convert CSS color tokens.",
   },
   {
     id: "11_serve",
     frame: "10_live_server.png",
     chapter: "CHAPTER 10",
     title: "Zero-Config Live & PHP Server",
-    bullets: "Live Reload on Save · Built-in PHP Server · Real-Time Request Logs",
-    narration: "Need to preview a web project? Launch the zero-config Live Server with instant hot reload on file saves, or boot a local PHP development server with real-time streaming request logs."
+    bullets:
+      "Live Reload on Save · Built-in PHP Server · Real-Time Request Logs",
+    narration:
+      "Need to preview a web project? Launch the zero-config Live Server with instant hot reload on file saves, or boot a local PHP development server with real-time streaming request logs.",
   },
   {
     id: "12_net",
     frame: "11_network_ip.png",
     chapter: "CHAPTER 11",
     title: "Network & Subnet CIDR IP Tools",
-    bullets: "Subnet Calculator · Port Probing · DNS Verification · Diagnostics",
-    narration: "The Network suite provides CIDR subnet calculators, IP address lookups, live port probes, and connectivity diagnostics to troubleshoot web services without leaving your file manager."
+    bullets:
+      "Subnet Calculator · Port Probing · DNS Verification · Diagnostics",
+    narration:
+      "The Network suite provides CIDR subnet calculators, IP address lookups, live port probes, and connectivity diagnostics to troubleshoot web services without leaving your file manager.",
   },
   {
     id: "13_subs",
     frame: "12_subfinder_recon.png",
     chapter: "CHAPTER 12",
     title: "Subdomain Recon (Subfinder)",
-    bullets: "Certificate Logs · Passive DNS · Live HTTP Probing · Markdown Reports",
-    narration: "For security research, the Subdomains tool integrates the Subfinder engine to discover subdomains from public certificate logs and passive DNS, with live HTTP status probing and exportable reports."
+    bullets:
+      "Certificate Logs · Passive DNS · Live HTTP Probing · Markdown Reports",
+    narration:
+      "For security research, the Subdomains tool integrates the Subfinder engine to discover subdomains from public certificate logs and passive DNS, with live HTTP status probing and exportable reports.",
   },
   {
     id: "14_grave",
@@ -153,15 +179,18 @@ const scenes: SceneDef[] = [
     chapter: "CHAPTER 13",
     title: "Rip Graveyard & Safe Undo",
     bullets: "Quarantine Before Delete · Instant Undo · Manifest Verification",
-    narration: "Never lose a file again. Every delete moves items to the Recycle Bin or Rip Graveyard with one-touch Ctrl-Z undo. Inspect buried files before restoring, or verify graveyard integrity with automated manifest repair."
+    narration:
+      "Never lose a file again. Every delete moves items to the Recycle Bin or Rip Graveyard with one-touch Ctrl-Z undo. Inspect buried files before restoring, or verify graveyard integrity with automated manifest repair.",
   },
   {
     id: "15_find",
     frame: "14_find_replace.png",
     chapter: "CHAPTER 14",
     title: "Deep Find & Regex Replace",
-    bullets: "Archive Search · Multi-File Search & Replace · Live Diff Previews",
-    narration: "Search your entire filesystem with regex, size, and date filters, search inside compressed archives, or perform blazing-fast multi-file search and replace using the integrated sd engine with live diff previews."
+    bullets:
+      "Archive Search · Multi-File Search & Replace · Live Diff Previews",
+    narration:
+      "Search your entire filesystem with regex, size, and date filters, search inside compressed archives, or perform blazing-fast multi-file search and replace using the integrated sd engine with live diff previews.",
   },
   {
     id: "16_cyberpunk",
@@ -169,7 +198,8 @@ const scenes: SceneDef[] = [
     chapter: "CHAPTER 15",
     title: "Futuristic Cyberpunk Themes",
     bullets: "Neon Accents · Custom Glassmorphism · High Contrast Dark Mode",
-    narration: "Personalize your workspace with over 135 built-in themes. From Cyberpunk neon glows to retro terminals and minimalist slate palettes, switch themes with zero lag."
+    narration:
+      "Personalize your workspace with over 135 built-in themes. From Cyberpunk neon glows to retro terminals and minimalist slate palettes, switch themes with zero lag.",
   },
   {
     id: "17_sonoma",
@@ -177,7 +207,8 @@ const scenes: SceneDef[] = [
     chapter: "CHAPTER 16",
     title: "Apple Sonoma & Custom Designer",
     bullets: "Emerald Accents · Live CSS Variables · Export Custom Palettes",
-    narration: "Enjoy native OS aesthetics with Apple Sonoma Emerald, or open the built-in Theme Designer to customize every border, accent, and contrast token to match your exact taste."
+    narration:
+      "Enjoy native OS aesthetics with Apple Sonoma Emerald, or open the built-in Theme Designer to customize every border, accent, and contrast token to match your exact taste.",
   },
   {
     id: "18_outro",
@@ -185,8 +216,9 @@ const scenes: SceneDef[] = [
     chapter: "CONCLUSION",
     title: "Ready to Supercharge Your Workflow?",
     bullets: "Clone on GitHub · Run with Bun v1.4.2 · Star the Repository",
-    narration: "Codecaine File Manager is fast, private, and open-source. Clone the repository today, run bun install, and experience the ultimate developer workstation on macOS, Windows, and Linux. Star the repository on GitHub, and subscribe for more developer tool showcases."
-  }
+    narration:
+      "Codecaine File Manager is fast, private, and open-source. Clone the repository today, run bun install, and experience the ultimate developer workstation on macOS, Windows, and Linux. Star the repository on GitHub, and subscribe for more developer tool showcases.",
+  },
 ];
 
 const VOICE = "en-US-AndrewMultilingualNeural";
@@ -225,27 +257,57 @@ function spokenText(text: string): string {
     .replace(/\b135\b/g, "one hundred thirty five");
 }
 
-const GEMINI_KEY = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? "";
-const GEMINI_MODEL = process.env.GEMINI_TTS_MODEL ?? "gemini-2.5-flash-preview-tts";
+const GEMINI_KEY =
+  process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? "";
+const GEMINI_MODEL =
+  process.env.GEMINI_TTS_MODEL ?? "gemini-2.5-flash-preview-tts";
 const GEMINI_VOICE = process.env.GEMINI_TTS_VOICE ?? "Kore";
 
 // Optional: Google Gemini TTS (free AI Studio key). Returns true when the narration was written.
-async function synthesizeWithGemini(sc: SceneDef, outPath: string): Promise<boolean> {
+async function synthesizeWithGemini(
+  sc: SceneDef,
+  outPath: string,
+): Promise<boolean> {
   if (!GEMINI_KEY) return false;
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
   const body = {
-    contents: [{ parts: [{ text: `Read this as a warm, natural, conversational YouTube narrator, with relaxed pacing:\n\n${spokenText(sc.narration)}` }] }],
+    contents: [
+      {
+        parts: [
+          {
+            text: `Read this as a warm, natural, conversational YouTube narrator, with relaxed pacing:\n\n${spokenText(sc.narration)}`,
+          },
+        ],
+      },
+    ],
     generationConfig: {
       responseModalities: ["AUDIO"],
-      speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: GEMINI_VOICE } } },
+      speechConfig: {
+        voiceConfig: { prebuiltVoiceConfig: { voiceName: GEMINI_VOICE } },
+      },
     },
   };
   for (let attempt = 0; attempt < 6; attempt++) {
     try {
-      const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": GEMINI_KEY }, body: JSON.stringify(body) });
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-goog-api-key": GEMINI_KEY,
+        },
+        body: JSON.stringify(body),
+      });
       if (!res.ok) {
-        console.warn(`  ⚠ Gemini TTS HTTP ${res.status}: ${(await res.text()).slice(0, 160)}`);
-        if (res.status === 400 || res.status === 401 || res.status === 403 || res.status === 404) return false;
+        console.warn(
+          `  ⚠ Gemini TTS HTTP ${res.status}: ${(await res.text()).slice(0, 160)}`,
+        );
+        if (
+          res.status === 400 ||
+          res.status === 401 ||
+          res.status === 403 ||
+          res.status === 404
+        )
+          return false;
         await Bun.sleep(res.status === 429 ? 25000 : 3000);
         continue;
       }
@@ -254,7 +316,9 @@ async function synthesizeWithGemini(sc: SceneDef, outPath: string): Promise<bool
       if (!b64) continue;
       const pcm = join(AUDIO_DIR, `gemini_${sc.id}.pcm`);
       await Bun.write(pcm, Buffer.from(b64, "base64"));
-      Sys.exec(`"${FFMPEG}" -y -f s16le -ar 24000 -ac 1 -i "${pcm}" -c:a libmp3lame -q:a 2 "${outPath}" 2>/dev/null`);
+      Sys.exec(
+        `"${FFMPEG}" -y -f s16le -ar 24000 -ac 1 -i "${pcm}" -c:a libmp3lame -q:a 2 "${outPath}" 2>/dev/null`,
+      );
       if (existsSync(outPath)) return true;
     } catch (e) {
       console.warn(`  ⚠ Gemini TTS error: ${e}`);
@@ -265,13 +329,17 @@ async function synthesizeWithGemini(sc: SceneDef, outPath: string): Promise<bool
 
 // Synthesize sentence by sentence so we can insert natural pauses between them.
 function synthesizeNarration(sc: SceneDef, outPath: string): void {
-  const sentences = (spokenText(sc.narration).match(/[^.!?]+[.!?]+|[^.!?]+$/g) ?? [])
+  const sentences = (
+    spokenText(sc.narration).match(/[^.!?]+[.!?]+|[^.!?]+$/g) ?? []
+  )
     .map((x) => x.trim())
     .filter(Boolean);
   const partDir = join(AUDIO_DIR, "parts");
   mkdirSync(partDir, { recursive: true });
   const gap = join(partDir, "gap.wav");
-  Sys.exec(`"${FFMPEG}" -y -f lavfi -i anullsrc=r=24000:cl=mono -t ${SENTENCE_GAP_SEC} "${gap}" 2>/dev/null`);
+  Sys.exec(
+    `"${FFMPEG}" -y -f lavfi -i anullsrc=r=24000:cl=mono -t ${SENTENCE_GAP_SEC} "${gap}" 2>/dev/null`,
+  );
 
   const lines: string[] = [];
   sentences.forEach((sentence, idx) => {
@@ -279,10 +347,26 @@ function synthesizeNarration(sc: SceneDef, outPath: string): void {
     const wav = join(partDir, `${sc.id}_${idx}.wav`);
     let ok = false;
     for (let attempt = 0; attempt < 4 && !ok; attempt++) {
-      const r = Bun.spawnSync([UVX, "edge-tts", "--voice", VOICE, `--rate=${VOICE_RATE}`, "--text", sentence, "--write-media", mp3], { stdout: "ignore", stderr: "ignore" });
+      const r = Bun.spawnSync(
+        [
+          UVX,
+          "edge-tts",
+          "--voice",
+          VOICE,
+          `--rate=${VOICE_RATE}`,
+          "--text",
+          sentence,
+          "--write-media",
+          mp3,
+        ],
+        { stdout: "ignore", stderr: "ignore" },
+      );
       ok = r.exitCode === 0 && existsSync(mp3) && Bun.file(mp3).size > 1000;
     }
-    if (!ok) throw new Error(`edge-tts failed for ${sc.id} sentence ${idx}: ${sentence}`);
+    if (!ok)
+      throw new Error(
+        `edge-tts failed for ${sc.id} sentence ${idx}: ${sentence}`,
+      );
     Sys.exec(`"${FFMPEG}" -y -i "${mp3}" -ar 24000 -ac 1 "${wav}" 2>/dev/null`);
     lines.push(`file '${wav}'`);
     if (idx < sentences.length - 1) lines.push(`file '${gap}'`);
@@ -290,16 +374,25 @@ function synthesizeNarration(sc: SceneDef, outPath: string): void {
 
   const list = join(partDir, `${sc.id}_list.txt`);
   require("fs").writeFileSync(list, lines.join("\n"));
-  Sys.exec(`"${FFMPEG}" -y -f concat -safe 0 -i "${list}" -c:a libmp3lame -q:a 2 "${outPath}" 2>/dev/null`);
-  if (!existsSync(outPath)) throw new Error(`narration concat failed for ${sc.id}`);
+  Sys.exec(
+    `"${FFMPEG}" -y -f concat -safe 0 -i "${list}" -c:a libmp3lame -q:a 2 "${outPath}" 2>/dev/null`,
+  );
+  if (!existsSync(outPath))
+    throw new Error(`narration concat failed for ${sc.id}`);
 }
 
 function getAudioDuration(filePath: string): number {
-  const [out] = Sys.exec(`"${FFPROBE}" -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`);
+  const [out] = Sys.exec(
+    `"${FFPROBE}" -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`,
+  );
   return parseFloat(out.trim()) || 10.0;
 }
 
-function makeOverlayHtml(chapter: string, title: string, bullets: string): string {
+function makeOverlayHtml(
+  chapter: string,
+  title: string,
+  bullets: string,
+): string {
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -382,10 +475,18 @@ async function renderOverlay(sc: SceneDef, outPath: string) {
 }
 
 async function main() {
-  console.log("🎬 ========================================================================");
-  console.log("🚀 CODECAINE FILE MANAGER - HIGH LEVEL PRODUCTION VIDEO COMPILATION");
-  console.log("🎙️ AI Neural Voice Synthesis (en-US-AndrewMultilingualNeural) + Full Feature Tour");
-  console.log("🎬 ========================================================================\n");
+  console.log(
+    "🎬 ========================================================================",
+  );
+  console.log(
+    "🚀 CODECAINE FILE MANAGER - HIGH LEVEL PRODUCTION VIDEO COMPILATION",
+  );
+  console.log(
+    "🎙️ AI Neural Voice Synthesis (en-US-AndrewMultilingualNeural) + Full Feature Tour",
+  );
+  console.log(
+    "🎬 ========================================================================\n",
+  );
 
   const segmentFiles: string[] = [];
   const chaptersList: { time: number; title: string }[] = [];
@@ -402,20 +503,35 @@ async function main() {
     console.log(`  🎙️ Generating AI voice: ${sc.title}...`);
     // Narration is only regenerated when its text or voice changed (every Gemini call is billed).
     const keyFile = `${rawAudioPath}.key`;
-    const voiceKey = createHash("sha1").update(`${GEMINI_KEY ? `gemini:${GEMINI_MODEL}:${GEMINI_VOICE}` : `edge:${VOICE}:${VOICE_RATE}`}|${spokenText(sc.narration)}`).digest("hex");
-    const cached = existsSync(rawAudioPath) && Bun.file(rawAudioPath).size > 1000 && (REUSE_AUDIO || (existsSync(keyFile) && readFileSync(keyFile, "utf8") === voiceKey));
+    const voiceKey = createHash("sha1")
+      .update(
+        `${GEMINI_KEY ? `gemini:${GEMINI_MODEL}:${GEMINI_VOICE}` : `edge:${VOICE}:${VOICE_RATE}`}|${spokenText(sc.narration)}`,
+      )
+      .digest("hex");
+    const cached =
+      existsSync(rawAudioPath) &&
+      Bun.file(rawAudioPath).size > 1000 &&
+      (REUSE_AUDIO ||
+        (existsSync(keyFile) && readFileSync(keyFile, "utf8") === voiceKey));
     if (cached) console.log("  ♻ Reusing existing narration audio");
-    else if (await synthesizeWithGemini(sc, rawAudioPath)) console.log("  ✨ Voice: Google Gemini TTS");
+    else if (await synthesizeWithGemini(sc, rawAudioPath))
+      console.log("  ✨ Voice: Google Gemini TTS");
     else synthesizeNarration(sc, rawAudioPath);
     writeFileSync(keyFile, voiceKey);
 
     // Gentle EQ + level-matching (no extra gain stage) with lead-in / lead-out padding
-    Sys.exec(`"${FFMPEG}" -y -i "${rawAudioPath}" -af "highpass=f=70,acompressor=threshold=-20dB:ratio=2:attack=20:release=250,loudnorm=I=-16:TP=-1.5:LRA=11,adelay=350|350,apad=pad_dur=0.75" -ar 48000 "${mp3Path}" 2>/dev/null`);
-    if (!existsSync(mp3Path)) throw new Error(`audio post-processing failed for ${sc.id}`);
+    Sys.exec(
+      `"${FFMPEG}" -y -i "${rawAudioPath}" -af "highpass=f=70,acompressor=threshold=-20dB:ratio=2:attack=20:release=250,loudnorm=I=-16:TP=-1.5:LRA=11,adelay=350|350,apad=pad_dur=0.75" -ar 48000 "${mp3Path}" 2>/dev/null`,
+    );
+    if (!existsSync(mp3Path))
+      throw new Error(`audio post-processing failed for ${sc.id}`);
 
     const dur = getAudioDuration(mp3Path);
     console.log(`  🎙️ AI Voice duration: ${dur.toFixed(2)}s`);
-    chaptersList.push({ time: currentTime, title: `${sc.chapter}: ${sc.title}` });
+    chaptersList.push({
+      time: currentTime,
+      title: `${sc.chapter}: ${sc.title}`,
+    });
     currentTime += dur;
 
     // 2. Generate Transparent HUD Overlay (Skip on pure title/outro cards)
@@ -460,18 +576,26 @@ async function main() {
   // 5. Final Concat & Audio Mixing
   console.log("🎬 Rendering Master 1080p MP4 with Audio Mix...");
   const tempMerged = join(SEGMENTS_DIR, "merged_video.mp4");
-  Sys.exec(`"${FFMPEG}" -y -f concat -safe 0 -i "${listFile}" -c copy "${tempMerged}" 2>/dev/null`);
+  Sys.exec(
+    `"${FFMPEG}" -y -f concat -safe 0 -i "${listFile}" -c copy "${tempMerged}" 2>/dev/null`,
+  );
 
   // Mix merged video with ambient music
   const finalCmd = `"${FFMPEG}" -y -i "${tempMerged}" -i "${musicPath}" -filter_complex "[0:a][1:a]amix=inputs=2:duration=first:weights=1.0 0.09[aout]" -map 0:v -map "[aout]" -c:v copy -c:a aac -b:a 256k -movflags +faststart "${FINAL_VIDEO}" 2>/dev/null`;
   Sys.exec(finalCmd);
 
   const finalSize = (Bun.file(FINAL_VIDEO).size / (1024 * 1024)).toFixed(2);
-  console.log(`\n✨ ========================================================================`);
+  console.log(
+    `\n✨ ========================================================================`,
+  );
   console.log(`🎉 Master Video Successfully Rendered!`);
   console.log(`📁 File: ${FINAL_VIDEO} (${finalSize} MB)`);
-  console.log(`⏱️ Duration: ${Math.floor(currentTime / 60)}m ${Math.floor(currentTime % 60)}s`);
-  console.log(`✨ ========================================================================\n`);
+  console.log(
+    `⏱️ Duration: ${Math.floor(currentTime / 60)}m ${Math.floor(currentTime % 60)}s`,
+  );
+  console.log(
+    `✨ ========================================================================\n`,
+  );
 
   // 6. Write YouTube Release Kit Markdown with Exact Clickable Timestamps
   console.log("📝 Generating YouTube Publishing Kit...");
@@ -481,7 +605,9 @@ async function main() {
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
-  const timestamps = chaptersList.map((c) => `${formatTime(c.time)} ${c.title}`).join("\n");
+  const timestamps = chaptersList
+    .map((c) => `${formatTime(c.time)} ${c.title}`)
+    .join("\n");
 
   const releaseKitContent = `# 🎬 Codecaine File Manager — Official YouTube Release Kit
 

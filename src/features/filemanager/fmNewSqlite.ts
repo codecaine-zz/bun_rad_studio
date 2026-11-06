@@ -4,7 +4,13 @@
  */
 import { Database } from "bun:sqlite";
 import { promises as fsp } from "fs";
-import { absolutePath, assertCreatable, assertFolder, pathApi, type FmContext } from "./fmCore";
+import {
+  absolutePath,
+  assertCreatable,
+  assertFolder,
+  pathApi,
+  type FmContext,
+} from "./fmCore";
 import { dbState, guarded } from "./fmDbState";
 import { FmError, cleanName, uniqueName, validateName } from "./fmPaths";
 
@@ -90,14 +96,21 @@ export async function makeSqliteFile(
     if (!/\.[A-Za-z0-9]+$/.test(name)) name += ".sqlite";
   } else name = uniqueName(DEFAULT_NAME, (n) => taken.has(n));
   const path = pathApi(ctx).join(parent, name);
-  const rawTemplate = typeof options?.template === "string" ? options.template : "empty";
+  const rawTemplate =
+    typeof options?.template === "string" ? options.template : "empty";
   const template: SqliteStarterTemplate =
-    rawTemplate === "starter" || rawTemplate === "kv" || rawTemplate === "notes" ? rawTemplate : "empty";
+    rawTemplate === "starter" || rawTemplate === "kv" || rawTemplate === "notes"
+      ? rawTemplate
+      : "empty";
   try {
     // "wx" fails if the name is taken, so nothing is ever overwritten
     await fsp.writeFile(path, "", { flag: "wx" });
   } catch (err: any) {
-    if (err?.code === "EEXIST") throw new FmError("EXISTS", `"${name}" already exists here. Choose a different name.`);
+    if (err?.code === "EEXIST")
+      throw new FmError(
+        "EXISTS",
+        `"${name}" already exists here. Choose a different name.`,
+      );
     throw err;
   }
   try {
@@ -115,13 +128,21 @@ export async function makeSqliteFile(
   if (options?.saveProfile === true) {
     const st = dbState(ctx);
     const connName =
-      typeof options.connectionName === "string" && options.connectionName.trim()
+      typeof options.connectionName === "string" &&
+      options.connectionName.trim()
         ? options.connectionName.trim().slice(0, 80)
         : name.replace(/\.(sqlite|sqlite3|db|db3|s3db)$/i, "") || name;
     const profile = await guarded(() =>
-      st.store.save({ engine: "sqlite", name: connName, path, sqliteMode: "readwrite" }, undefined, undefined),
+      st.store.save(
+        { engine: "sqlite", name: connName, path, sqliteMode: "readwrite" },
+        undefined,
+        undefined,
+      ),
     );
-    st.store.setMeta(profile.id, { source: "manual", savedAt: new Date().toISOString() });
+    st.store.setMeta(profile.id, {
+      source: "manual",
+      savedAt: new Date().toISOString(),
+    });
     return { path, name, profile };
   }
   return { path, name };

@@ -6,7 +6,11 @@ import { runProcsTui } from "../src/features/procs/procsTui.ts";
 async function main(): Promise<void> {
   const options = parseProcsArguments(process.argv.slice(2));
 
-  if ((options.interactive || (options.watch && process.stdin.isTTY)) && !options.json && !options.killPid) {
+  if (
+    (options.interactive || (options.watch && process.stdin.isTTY)) &&
+    !options.json &&
+    !options.killPid
+  ) {
     await runProcsTui(options.sortBy || "cpu", options.keyword);
     return;
   }

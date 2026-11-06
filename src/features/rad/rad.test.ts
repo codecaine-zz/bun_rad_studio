@@ -9,7 +9,9 @@ describe("Bun RAD Development Utilities (44 Modules)", () => {
   it("fileutils > handles JSON, CSV, text, and file size helpers", async () => {
     const testJson = "/tmp/test_fileutils.json";
     await rad.fileutils.saveJson(testJson, { foo: "bar", num: 42 });
-    const loaded = await rad.fileutils.loadJson<{ foo: string; num: number }>(testJson);
+    const loaded = await rad.fileutils.loadJson<{ foo: string; num: number }>(
+      testJson,
+    );
     expect(loaded.foo).toBe("bar");
     expect(loaded.num).toBe(42);
 
@@ -36,19 +38,37 @@ describe("Bun RAD Development Utilities (44 Modules)", () => {
     rad.sqliteutils.createKvTable(db, "my_kv");
     rad.sqliteutils.setKv(db, "my_kv", "key1", "val1");
     expect(rad.sqliteutils.getKv(db, "my_kv", "key1")).toBe("val1");
-    expect(rad.sqliteutils.getKvOr(db, "my_kv", "missing", "fallback")).toBe("fallback");
+    expect(rad.sqliteutils.getKvOr(db, "my_kv", "missing", "fallback")).toBe(
+      "fallback",
+    );
 
     // JSON Document store
     rad.sqliteutils.createJsonStore(db, "my_docs");
     rad.sqliteutils.saveDoc(db, "my_docs", "d1", { title: "Doc 1", count: 10 });
-    const loadedDoc = rad.sqliteutils.loadDoc<{ title: string; count: number }>(db, "my_docs", "d1");
+    const loadedDoc = rad.sqliteutils.loadDoc<{ title: string; count: number }>(
+      db,
+      "my_docs",
+      "d1",
+    );
     expect(loadedDoc?.title).toBe("Doc 1");
 
     // CRUD
-    rad.sqliteutils.execSql(db, "CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT, price REAL);");
-    const id = rad.sqliteutils.insertRow(db, "items", { name: "Gadget", price: 19.99 });
+    rad.sqliteutils.execSql(
+      db,
+      "CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT, price REAL);",
+    );
+    const id = rad.sqliteutils.insertRow(db, "items", {
+      name: "Gadget",
+      price: 19.99,
+    });
     expect(id).toBe(1);
-    const items = rad.sqliteutils.selectRows(db, "items", ["name", "price"], "price > ?", [10.0]);
+    const items = rad.sqliteutils.selectRows(
+      db,
+      "items",
+      ["name", "price"],
+      "price > ?",
+      [10.0],
+    );
     expect(items.length).toBe(1);
 
     // Migrations
@@ -60,8 +80,14 @@ describe("Bun RAD Development Utilities (44 Modules)", () => {
 
     // FTS5 Full-Text Search
     rad.sqliteutils.createFtsTable(db, "articles", ["title", "body"]);
-    rad.sqliteutils.indexFts(db, "articles", { title: "Bun Speed", body: "Ultra high performance JavaScript and TypeScript" });
-    rad.sqliteutils.indexFts(db, "articles", { title: "Vlang Utils", body: "RAD development patterns" });
+    rad.sqliteutils.indexFts(db, "articles", {
+      title: "Bun Speed",
+      body: "Ultra high performance JavaScript and TypeScript",
+    });
+    rad.sqliteutils.indexFts(db, "articles", {
+      title: "Vlang Utils",
+      body: "RAD development patterns",
+    });
     const ftsResults = rad.sqliteutils.searchFts(db, "articles", "performance");
     expect(ftsResults.length).toBe(1);
     expect(ftsResults[0]?.title).toBe("Bun Speed");
@@ -81,9 +107,13 @@ describe("Bun RAD Development Utilities (44 Modules)", () => {
     expect(rad.strutils.toCamelCase("snake_case_text")).toBe("snakeCaseText");
     expect(rad.strutils.toPascalCase("snake_case_text")).toBe("SnakeCaseText");
     expect(rad.strutils.toTitleCase("hello world")).toBe("Hello World");
-    expect(rad.strutils.maskEmail("developer@example.com")).toBe("d*******r@example.com");
+    expect(rad.strutils.maskEmail("developer@example.com")).toBe(
+      "d*******r@example.com",
+    );
     expect(rad.strutils.maskPhone("1234567890")).toBe("***-***-7890");
-    expect(rad.strutils.maskCreditCard("1234567812345678")).toBe("****-****-****-5678");
+    expect(rad.strutils.maskCreditCard("1234567812345678")).toBe(
+      "****-****-****-5678",
+    );
     expect(rad.strutils.levenshteinDistance("kitten", "sitting")).toBe(3);
     expect(rad.strutils.truncate("Hello World", 8)).toBe("Hello...");
   });
@@ -91,8 +121,15 @@ describe("Bun RAD Development Utilities (44 Modules)", () => {
   // 4. arrutils / sliceutils
   it("arrutils / sliceutils > operates on collections and arrays", () => {
     expect(rad.arrutils.unique([1, 2, 2, 3, 1])).toEqual([1, 2, 3]);
-    expect(rad.arrutils.chunk([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
-    expect(rad.arrutils.partition([1, 2, 3, 4], (n) => n % 2 === 0)).toEqual([[2, 4], [1, 3]]);
+    expect(rad.arrutils.chunk([1, 2, 3, 4, 5], 2)).toEqual([
+      [1, 2],
+      [3, 4],
+      [5],
+    ]);
+    expect(rad.arrutils.partition([1, 2, 3, 4], (n) => n % 2 === 0)).toEqual([
+      [2, 4],
+      [1, 3],
+    ]);
     expect(rad.arrutils.intersection([1, 2, 3], [2, 3, 4])).toEqual([2, 3]);
     expect(rad.arrutils.difference([1, 2, 3], [2, 3, 4])).toEqual([1]);
     expect(rad.arrutils.groupBy(["cat", "car", "dog"], (s) => s[0]!)).toEqual({
@@ -107,7 +144,9 @@ describe("Bun RAD Development Utilities (44 Modules)", () => {
     expect(rad.arrutils.at(["a", "b", "c"], -2)).toBe("b");
     expect(rad.arrutils.at(["a", "b", "c"], 5)).toBeUndefined();
 
-    expect(rad.arrutils.compact([0, 1, false, 2, "", 3, null, undefined])).toEqual([1, 2, 3]);
+    expect(
+      rad.arrutils.compact([0, 1, false, 2, "", 3, null, undefined]),
+    ).toEqual([1, 2, 3]);
     expect(rad.arrutils.drop([1, 2, 3, 4], 2)).toEqual([3, 4]);
     expect(rad.arrutils.dropRight([1, 2, 3, 4], 1)).toEqual([1, 2, 3]);
     expect(rad.arrutils.dropWhile([1, 2, 3, 4], (n) => n < 3)).toEqual([3, 4]);
@@ -115,21 +154,46 @@ describe("Bun RAD Development Utilities (44 Modules)", () => {
     expect(rad.arrutils.takeRight([1, 2, 3, 4], 2)).toEqual([3, 4]);
     expect(rad.arrutils.takeWhile([1, 2, 3, 4], (n) => n < 3)).toEqual([1, 2]);
 
-    expect(rad.arrutils.keyBy([{ id: "a", v: 1 }, { id: "b", v: 2 }], (x) => x.id)).toEqual({
+    expect(
+      rad.arrutils.keyBy(
+        [
+          { id: "a", v: 1 },
+          { id: "b", v: 2 },
+        ],
+        (x) => x.id,
+      ),
+    ).toEqual({
       a: { id: "a", v: 1 },
       b: { id: "b", v: 2 },
     });
-    expect(rad.arrutils.countBy(["apple", "banana", "apple", "cherry"], (x) => x)).toEqual({
+    expect(
+      rad.arrutils.countBy(["apple", "banana", "apple", "cherry"], (x) => x),
+    ).toEqual({
       apple: 2,
       banana: 1,
       cherry: 1,
     });
-    expect(rad.arrutils.minBy([{ n: 10 }, { n: 5 }, { n: 20 }], (x) => x.n)).toEqual({ n: 5 });
-    expect(rad.arrutils.maxBy([{ n: 10 }, { n: 5 }, { n: 20 }], (x) => x.n)).toEqual({ n: 20 });
+    expect(
+      rad.arrutils.minBy([{ n: 10 }, { n: 5 }, { n: 20 }], (x) => x.n),
+    ).toEqual({ n: 5 });
+    expect(
+      rad.arrutils.maxBy([{ n: 10 }, { n: 5 }, { n: 20 }], (x) => x.n),
+    ).toEqual({ n: 20 });
     expect(rad.arrutils.sumBy([{ n: 10 }, { n: 5 }], (x) => x.n)).toBe(15);
 
-    expect(rad.arrutils.zip(["a", "b"], [1, 2])).toEqual([["a", 1], ["b", 2]]);
-    expect(rad.arrutils.unzip([["a", 1], ["b", 2]])).toEqual([["a", "b"], [1, 2]]);
+    expect(rad.arrutils.zip(["a", "b"], [1, 2])).toEqual([
+      ["a", 1],
+      ["b", 2],
+    ]);
+    expect(
+      rad.arrutils.unzip([
+        ["a", 1],
+        ["b", 2],
+      ]),
+    ).toEqual([
+      ["a", "b"],
+      [1, 2],
+    ]);
     expect(rad.arrutils.tail([1, 2, 3])).toEqual([2, 3]);
     expect(rad.arrutils.without([1, 2, 3, 2, 1], 1, 2)).toEqual([3]);
     expect(rad.arrutils.zipObject(["a", "b"], [1, 2])).toEqual({ a: 1, b: 2 });
@@ -148,8 +212,12 @@ describe("Bun RAD Development Utilities (44 Modules)", () => {
 
   // 6. cryptoutils
   it("cryptoutils > calculates hashes, base64, and UUIDs", async () => {
-    expect(rad.cryptoutils.sha256("test")).toBe("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
-    expect(rad.cryptoutils.md5("test")).toBe("098f6bcd4621d373cade4e832627b4f6");
+    expect(rad.cryptoutils.sha256("test")).toBe(
+      "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+    );
+    expect(rad.cryptoutils.md5("test")).toBe(
+      "098f6bcd4621d373cade4e832627b4f6",
+    );
     expect(rad.cryptoutils.base64Encode("hello")).toBe("aGVsbG8=");
     expect(rad.cryptoutils.base64Decode("aGVsbG8=")).toBe("hello");
     expect(rad.cryptoutils.uuidV4()).toMatch(/^[0-9a-f-]{36}$/);
@@ -268,8 +336,14 @@ describe("Bun RAD Development Utilities (44 Modules)", () => {
 
   // 15. stateutils
   it("stateutils > manages app state and rollback", async () => {
-    const store = new rad.stateutils.AppStateStore("test_app", { count: 0 }, { customPath: "/tmp/test_state.json" });
-    await store.update((draft) => { draft.count = 5; });
+    const store = new rad.stateutils.AppStateStore(
+      "test_app",
+      { count: 0 },
+      { customPath: "/tmp/test_state.json" },
+    );
+    await store.update((draft) => {
+      draft.count = 5;
+    });
     expect(store.get().count).toBe(5);
     store.rollback();
     expect(store.get().count).toBe(0);
@@ -302,11 +376,15 @@ describe("Bun RAD Development Utilities (44 Modules)", () => {
   // 18. flowutils
   it("flowutils > executes retry with exponential backoff and circuit breaker", async () => {
     let calls = 0;
-    const res = await rad.flowutils.retry(async () => {
-      calls++;
-      if (calls < 2) throw new Error("transient");
-      return "success";
-    }, 3, 10);
+    const res = await rad.flowutils.retry(
+      async () => {
+        calls++;
+        if (calls < 2) throw new Error("transient");
+        return "success";
+      },
+      3,
+      10,
+    );
     expect(res).toBe("success");
     expect(calls).toBe(2);
 
@@ -358,8 +436,14 @@ describe("Bun RAD Development Utilities (44 Modules)", () => {
   // 23. regexutils
   it("regexutils > matches, finds, and replaces patterns", () => {
     expect(rad.regexutils.isMatch(/^\d+$/, "12345")).toBe(true);
-    expect(rad.regexutils.findAll(/\d+/g, "10 20 30")).toEqual(["10", "20", "30"]);
-    expect(rad.regexutils.replace(/\d+/g, "items: 123", "###")).toBe("items: ###");
+    expect(rad.regexutils.findAll(/\d+/g, "10 20 30")).toEqual([
+      "10",
+      "20",
+      "30",
+    ]);
+    expect(rad.regexutils.replace(/\d+/g, "items: 123", "###")).toBe(
+      "items: ###",
+    );
   });
 
   // 24. mockutils
@@ -373,7 +457,9 @@ describe("Bun RAD Development Utilities (44 Modules)", () => {
 
   // 25. logutils
   it("logutils > initializes logger with levels", () => {
-    const logger = rad.logutils.newLogger({ level: rad.logutils.LogLevel.DEBUG });
+    const logger = rad.logutils.newLogger({
+      level: rad.logutils.LogLevel.DEBUG,
+    });
     expect(logger.level).toBe(rad.logutils.LogLevel.DEBUG);
   });
 
@@ -389,10 +475,13 @@ tags = ["sql", "bun"]
     expect(rad.tomlutils.getString(toml, "database.host")).toBe("localhost");
     expect(rad.tomlutils.getInt(toml, "database.port")).toBe(5432);
     expect(rad.tomlutils.getBool(toml, "database.enabled")).toBe(true);
-    expect(rad.tomlutils.getArray(toml, "database.tags")).toEqual(["sql", "bun"]);
+    expect(rad.tomlutils.getArray(toml, "database.tags")).toEqual([
+      "sql",
+      "bun",
+    ]);
 
     const serialized = rad.tomlutils.stringifyToml(toml);
-    expect(serialized).toContain("host = \"localhost\"");
+    expect(serialized).toContain('host = "localhost"');
     expect(serialized).toContain("port = 5432");
 
     const tmpTomlPath = `/tmp/bun_test_config_${Date.now()}.toml`;
@@ -405,8 +494,13 @@ tags = ["sql", "bun"]
   // 27. htmlutils
   it("htmlutils > escapes entities and extracts elements", () => {
     expect(rad.htmlutils.escapeHtml("<script>")).toBe("&lt;script&gt;");
-    expect(rad.htmlutils.stripTags("<p>Hello <b>World</b></p>")).toBe("Hello World");
-    const el = rad.htmlutils.getElementById('<div id="main">Content</div>', "main");
+    expect(rad.htmlutils.stripTags("<p>Hello <b>World</b></p>")).toBe(
+      "Hello World",
+    );
+    const el = rad.htmlutils.getElementById(
+      '<div id="main">Content</div>',
+      "main",
+    );
     expect(el?.text).toBe("Content");
   });
 
@@ -456,18 +550,22 @@ tags = ["sql", "bun"]
     const cron = rad.cronutils.parseCron("0 12 * * *");
     expect(cron.hours.has(12)).toBe(true);
     expect(cron.minutes.has(0)).toBe(true);
-    expect(rad.cronutils.cronToHuman("0 0 * * *")).toBe("Every day at midnight");
+    expect(rad.cronutils.cronToHuman("0 0 * * *")).toBe(
+      "Every day at midnight",
+    );
   });
 
   // 33. urlutils
   it("urlutils > parses RFC 3986 URLs and redacts credentials", () => {
-    const parsed = rad.urlutils.parseUrl("https://admin:secret@api.io:8080/v1/users?page=2#top");
+    const parsed = rad.urlutils.parseUrl(
+      "https://admin:secret@api.io:8080/v1/users?page=2#top",
+    );
     expect(parsed.hostWithPort).toBe("api.io:8080");
     expect(parsed.pathSegments).toEqual(["v1", "users"]);
     expect(parsed.queryParams.page).toBe("2");
-    expect(rad.urlutils.redactCredentials("postgres://user:pass@db:5432/main")).toBe(
-      "postgres://user:***@db:5432/main"
-    );
+    expect(
+      rad.urlutils.redactCredentials("postgres://user:pass@db:5432/main"),
+    ).toBe("postgres://user:***@db:5432/main");
   });
 
   // 34. jwtutils
@@ -482,7 +580,9 @@ tags = ["sql", "bun"]
   it("eventutils > emits and handles events with listeners", () => {
     const ee = rad.eventutils.newEmitter();
     let val = 0;
-    ee.on("inc", (delta: number) => { val += delta; });
+    ee.on("inc", (delta: number) => {
+      val += delta;
+    });
     ee.emit("inc", 5);
     expect(val).toBe(5);
   });
@@ -517,12 +617,20 @@ tags = ["sql", "bun"]
     // Bun v1.4.4 extglob & brace-range patterns
     expect(rad.globutils.globMatch("!(*.test).ts", "app.ts")).toBe(true);
     expect(rad.globutils.globMatch("!(*.test).ts", "app.test.ts")).toBe(false);
-    expect(rad.globutils.globMatch("@(src|lib)/*.ts", "src/main.ts")).toBe(true);
+    expect(rad.globutils.globMatch("@(src|lib)/*.ts", "src/main.ts")).toBe(
+      true,
+    );
     expect(rad.globutils.globMatch("file{1..3}.ts", "file2.ts")).toBe(true);
     expect(rad.globutils.globMatch("file{1..3}.ts", "file4.ts")).toBe(false);
-    expect(rad.globutils.globFilter("!(*.test).ts", ["a.ts", "a.test.ts", "b.ts"])).toEqual(["a.ts", "b.ts"]);
-    expect(rad.globutils.globMatchAny(["*.ts", "*.json"], "package.json")).toBe(true);
-    expect(rad.globutils.globMatchAll(["src/**", "**/!(*.test).ts"], "src/index.ts")).toBe(true);
+    expect(
+      rad.globutils.globFilter("!(*.test).ts", ["a.ts", "a.test.ts", "b.ts"]),
+    ).toEqual(["a.ts", "b.ts"]);
+    expect(rad.globutils.globMatchAny(["*.ts", "*.json"], "package.json")).toBe(
+      true,
+    );
+    expect(
+      rad.globutils.globMatchAll(["src/**", "**/!(*.test).ts"], "src/index.ts"),
+    ).toBe(true);
 
     const asyncMatches = await rad.globutils.globScan("*.json", { cwd: "." });
     expect(asyncMatches.length).toBeGreaterThan(0);
@@ -549,7 +657,9 @@ tags = ["sql", "bun"]
     expect(echoRes.exitCode).toBe(0);
     expect(echoRes.stdout.trim()).toBe("rad test shell");
 
-    const lines = await rad.shellutils.execLines("printf 'one\\ntwo\\nthree\\n'");
+    const lines = await rad.shellutils.execLines(
+      "printf 'one\\ntwo\\nthree\\n'",
+    );
     expect(lines).toEqual(["one", "two", "three"]);
 
     const piped = await rad.shellutils.pipeCmds("echo 'pipe test'", "cat");
@@ -586,10 +696,18 @@ tags = ["sql", "bun"]
   // 41. serverutils (Bun.serve & Router)
   it("serverutils > creates HTTP routers, serves requests, and handles WebSocket hub", async () => {
     const router = rad.serverutils.createRouter();
-    router.get("/api/v1/ping", () => new Response(JSON.stringify({ pong: true }), { headers: { "content-type": "application/json" } }));
+    router.get(
+      "/api/v1/ping",
+      () =>
+        new Response(JSON.stringify({ pong: true }), {
+          headers: { "content-type": "application/json" },
+        }),
+    );
     router.post("/api/v1/echo", async (req) => {
       const body = await req.json();
-      return new Response(JSON.stringify(body), { headers: { "content-type": "application/json" } });
+      return new Response(JSON.stringify(body), {
+        headers: { "content-type": "application/json" },
+      });
     });
 
     const srv = rad.serverutils.serveHttp({ router });
@@ -635,10 +753,14 @@ tags = ["sql", "bun"]
     expect(analysis.exports).toContain("default");
     expect(analysis.imports[0]?.path).toBe("./math");
 
-    const importsOnly = rad.transpileutils.scanImports(`import "dotenv/config"; import { a } from "./a";`);
+    const importsOnly = rad.transpileutils.scanImports(
+      `import "dotenv/config"; import { a } from "./a";`,
+    );
     expect(importsOnly.length).toBe(2);
 
-    const evalResult = rad.transpileutils.evalTs<number>("const m = 7; const n = 6; return m * n;");
+    const evalResult = rad.transpileutils.evalTs<number>(
+      "const m = 7; const n = 6; return m * n;",
+    );
     expect(evalResult).toBe(42);
   });
 
@@ -655,13 +777,20 @@ tags = ["sql", "bun"]
     expect(rad.objutils.isEmpty("")).toBe(true);
     expect(rad.objutils.isEmpty([1])).toBe(false);
 
-    expect(rad.objutils.isEqual({ a: [1, 2], b: { c: 3 } }, { a: [1, 2], b: { c: 3 } })).toBe(true);
+    expect(
+      rad.objutils.isEqual(
+        { a: [1, 2], b: { c: 3 } },
+        { a: [1, 2], b: { c: 3 } },
+      ),
+    ).toBe(true);
     expect(rad.objutils.isEqual({ a: 1 }, { a: 2 })).toBe(false);
 
     const doc: any = { user: { name: "Alice", address: { city: "SF" } } };
     expect(rad.objutils.get(doc, "user.name")).toBe("Alice");
     expect(rad.objutils.get(doc, "user.address.city")).toBe("SF");
-    expect(rad.objutils.get(doc, "user.missing.key", "fallback")).toBe("fallback");
+    expect(rad.objutils.get(doc, "user.missing.key", "fallback")).toBe(
+      "fallback",
+    );
     expect(rad.objutils.has(doc, "user.address.city")).toBe(true);
     expect(rad.objutils.has(doc, "user.fake")).toBe(false);
 
@@ -671,20 +800,37 @@ tags = ["sql", "bun"]
     rad.objutils.unset(doc, "user.address.zip");
     expect(doc.user.address.zip).toBeUndefined();
 
-    expect(rad.objutils.pick({ a: 1, b: 2, c: 3 }, ["a", "c"])).toEqual({ a: 1, c: 3 });
-    expect(rad.objutils.omit({ a: 1, b: 2, c: 3 }, ["b"])).toEqual({ a: 1, c: 3 });
+    expect(rad.objutils.pick({ a: 1, b: 2, c: 3 }, ["a", "c"])).toEqual({
+      a: 1,
+      c: 3,
+    });
+    expect(rad.objutils.omit({ a: 1, b: 2, c: 3 }, ["b"])).toEqual({
+      a: 1,
+      c: 3,
+    });
 
-    expect(rad.objutils.pickBy({ a: 1, b: 2, c: 3 }, (v) => v > 1)).toEqual({ b: 2, c: 3 });
-    expect(rad.objutils.omitBy({ a: 1, b: 2, c: 3 }, (v) => v > 1)).toEqual({ a: 1 });
+    expect(rad.objutils.pickBy({ a: 1, b: 2, c: 3 }, (v) => v > 1)).toEqual({
+      b: 2,
+      c: 3,
+    });
+    expect(rad.objutils.omitBy({ a: 1, b: 2, c: 3 }, (v) => v > 1)).toEqual({
+      a: 1,
+    });
 
     expect(rad.objutils.findKey({ a: 10, b: 20 }, (v) => v === 20)).toBe("b");
 
     const flat = rad.objutils.flattenObject({ a: { b: 1, c: { d: 2 } } });
     expect(flat).toEqual({ "a.b": 1, "a.c.d": 2 });
 
-    expect(rad.objutils.invert({ x: "1", y: "2" })).toEqual({ "1": "x", "2": "y" });
+    expect(rad.objutils.invert({ x: "1", y: "2" })).toEqual({
+      "1": "x",
+      "2": "y",
+    });
 
-    const merged = rad.objutils.deepMerge({ a: { b: 1, c: 2 } }, { a: { c: 3, d: 4 } });
+    const merged = rad.objutils.deepMerge(
+      { a: { b: 1, c: 2 } },
+      { a: { c: 3, d: 4 } },
+    );
     expect(merged).toEqual({ a: { b: 1, c: 3, d: 4 } });
 
     const cloned = rad.objutils.deepClone(doc);
@@ -732,11 +878,13 @@ tags = ["sql", "bun"]
 
     expect(rad.fnutils.times(3, (i) => i * 10)).toEqual([0, 10, 20]);
 
-    const piped = rad.fnutils.pipe(2, (n: number) => n * 3, (n: number) => n + 4);
+    const piped = rad.fnutils.pipe(
+      2,
+      (n: number) => n * 3,
+      (n: number) => n + 4,
+    );
     expect(piped).toBe(10);
 
     await rad.fnutils.delay(5);
   });
 });
-
-

@@ -27,9 +27,26 @@
 import type { FmHandler } from "./fmCore";
 import { minify, prettify } from "../../shared/code_prettify";
 import { formatWithTool, vVersion } from "./fmCodeFormat";
-import { readCodeFile, saveCodeFile, saveCodeFileAs, statFiles, uploadChunk } from "./fmCodeFiles";
+import {
+  readCodeFile,
+  saveCodeFile,
+  saveCodeFileAs,
+  statFiles,
+  uploadChunk,
+} from "./fmCodeFiles";
 import { gitInfo } from "./fmCodeGit";
-import { deletePreset, exportPresets, findProjectRoot, importPresets, listPresets, movePresets, recordRun, reorderPresets, savePreset, setDefaultPreset } from "./fmCodePresets";
+import {
+  deletePreset,
+  exportPresets,
+  findProjectRoot,
+  importPresets,
+  listPresets,
+  movePresets,
+  recordRun,
+  reorderPresets,
+  savePreset,
+  setDefaultPreset,
+} from "./fmCodePresets";
 import { FmError } from "./fmPaths";
 import { findInFiles, listWorkspaceFiles } from "./fmCodeSearch";
 import { loadCodeSession, updateCodeSession } from "./fmCodeSession";
@@ -52,7 +69,9 @@ export const codeOperations: Record<string, FmHandler> = {
     return { stats: await statFiles(ctx, b.paths) };
   },
   async "code/files"(ctx, b) {
-    return { ...(await listWorkspaceFiles(ctx, b.root, { hidden: b.hidden === true })) };
+    return {
+      ...(await listWorkspaceFiles(ctx, b.root, { hidden: b.hidden === true })),
+    };
   },
   async "code/search"(ctx, b) {
     return { ...(await findInFiles(ctx, b)) };
@@ -61,7 +80,12 @@ export const codeOperations: Record<string, FmHandler> = {
     return await gitInfo(ctx, b);
   },
   async "code/session"(ctx, b) {
-    return { session: b.set !== undefined ? await updateCodeSession(ctx, b.set) : await loadCodeSession(ctx) };
+    return {
+      session:
+        b.set !== undefined
+          ? await updateCodeSession(ctx, b.set)
+          : await loadCodeSession(ctx),
+    };
   },
   async "code/presets/list"(ctx, b) {
     return { ...(await listPresets(ctx, b)) };
@@ -97,10 +121,18 @@ export const codeOperations: Record<string, FmHandler> = {
     return { ...(await formatWithTool(ctx, b)) };
   },
   async "code/prettify"(_ctx, b) {
-    if (typeof b.text !== "string") throw new FmError("BAD_REQUEST", "There is no text to format.");
-    const input = { text: b.text, path: typeof b.path === "string" ? b.path : undefined, lang: typeof b.lang === "string" ? b.lang : undefined, tabWidth: typeof b.tabWidth === "number" ? b.tabWidth : undefined, useTabs: b.useTabs === true };
+    if (typeof b.text !== "string")
+      throw new FmError("BAD_REQUEST", "There is no text to format.");
+    const input = {
+      text: b.text,
+      path: typeof b.path === "string" ? b.path : undefined,
+      lang: typeof b.lang === "string" ? b.lang : undefined,
+      tabWidth: typeof b.tabWidth === "number" ? b.tabWidth : undefined,
+      useTabs: b.useTabs === true,
+    };
     // `formatted`, not `ok`: the reply envelope already uses `ok` for "the request worked".
-    const { ok, error, ...rest } = b.mode === "minify" ? await minify(input) : await prettify(input);
+    const { ok, error, ...rest } =
+      b.mode === "minify" ? await minify(input) : await prettify(input);
     return { formatted: ok, problem: error, ...rest };
   },
   async "code/formatter"(ctx) {

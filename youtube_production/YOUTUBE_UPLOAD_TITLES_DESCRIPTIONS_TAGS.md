@@ -1,20 +1,23 @@
 # 🎬 YouTube Upload Guide — Titles (<=100 chars), Descriptions (<=5,000 chars with Full Timestamps) & Tags (<=500 chars)
 
 All rendered MP4 videos are in **`~/Downloads/` (`/Users/codecaine/Downloads/`)**:
-1. **`/Users/codecaine/Downloads/file_manager_tutorial.mp4`** (`1:49:54`, `848 MB`) — *Video 1: Full Codecaine File Manager Tutorial*
-2. **`/Users/codecaine/Downloads/file_manager_themes_youtube_short_9x16.mp4`** (`2:24`, `20 MB`, `1080×1920` 9:16 Vertical) & **`/Users/codecaine/Downloads/file_manager_themes_short_tutorial.mp4`** (`2:24`, `64 MB`, `1920×1080`) — *Video 2: 3-Minute YouTube Short*
-3. **`/Users/codecaine/Downloads/file_manager_themes_full_tutorial.mp4`** (`11:21`) — *Video 3: Complete 12-Chapter Themes & Shaders Masterclass*
+
+1. **`/Users/codecaine/Downloads/file_manager_tutorial.mp4`** (`1:49:54`, `848 MB`) — _Video 1: Full Codecaine File Manager Tutorial_
+2. **`/Users/codecaine/Downloads/file_manager_themes_youtube_short_9x16.mp4`** (`2:24`, `20 MB`, `1080×1920` 9:16 Vertical) & **`/Users/codecaine/Downloads/file_manager_themes_short_tutorial.mp4`** (`2:24`, `64 MB`, `1920×1080`) — _Video 2: 3-Minute YouTube Short_
+3. **`/Users/codecaine/Downloads/file_manager_themes_full_tutorial.mp4`** (`11:21`) — _Video 3: Complete 12-Chapter Themes & Shaders Masterclass_
 
 ---
 
 ## 🎥 VIDEO 1: Full Codecaine File Manager Tutorial (`file_manager_tutorial.mp4` — `1:49:54`)
 
 ### 1. YouTube Title (`92 / 100 chars`)
+
 ```text
 Codecaine File Manager Full Tutorial (Mac Studio M4 Ultra 6K): Every Tool, Theme & DB Studio
 ```
 
 ### 2. YouTube Description (`4,545 / 5,000 chars` · `4,604 UTF-8 bytes` — with all 65 Chapter Timestamps)
+
 ```text
 The complete, step-by-step MacAcademy-style guide to the Codecaine File Manager — recorded on an Apple Mac Studio M4 Ultra (32-Core CPU · 80-Core GPU · 192GB Unified Memory · Apple Pro Display XDR 6K @ 120Hz ProMotion). Free & open-source for macOS, Windows, and Linux.
 
@@ -106,6 +109,7 @@ CHAPTERS
 ```
 
 ### 3. YouTube Tags (`396 / 500 chars`)
+
 ```text
 Codecaine File Manager, File Manager Tutorial, MacAcademy Tutorial, Mac Studio M4 Ultra, Pro Display XDR 6K 120Hz, Open Source File Manager, Dual Pane File Manager, File Manager Themes, Unobstructed Icons View, Halloween Theme, Polar Night Theme, US Holiday Themes, Custom Themes GitHub, Google Gemini AI Theme, 3D Folder Icons, SQLite Studio, MySQL Studio, PostgreSQL Studio, Redis Studio, Bun RAD Studio
 ```
@@ -117,21 +121,25 @@ Codecaine File Manager, File Manager Tutorial, MacAcademy Tutorial, Mac Studio M
 ### 1. High-Growth & Subscriber-Converting YouTube Short Titles (`<= 100 chars` — Pick 1)
 
 **Option A — Viral Visual Hook + AI + Hardware Flex (`95 / 100 chars` — Recommended for Max Views & Subs):**
+
 ```text
 I Built a 120Hz 3D File Manager with 310 Themes, 194 Shaders & Gemini AI (M4 Ultra 6K) #Shorts
 ```
 
 **Option B — Curiosity + Free Open-Source Value (`94 / 100 chars`):**
+
 ```text
 What a 6K 120Hz File Manager Looks Like on M4 Ultra: 18 Holiday Themes & Gemini AI 🎨 #Shorts
 ```
 
 **Option C — Direct Feature & Theme Tour (`87 / 100 chars`):**
+
 ```text
 Codecaine File Manager Themes Short Tour (M4 Ultra 6K): 18 Holidays & Gemini AI #Shorts
 ```
 
 ### 2. Audience Growth & Subscriber-Focused YouTube Short Description (`2,394 / 5,000 chars` — with Full Timestamps)
+
 ```text
 🔥 Free & Open-Source 120Hz File Manager for macOS, Windows & Linux!
 🔔 SUBSCRIBE for more 6K 120Hz dev tools, WebGL shader engineering, AI workflows & open-source builds!
@@ -165,6 +173,7 @@ CHAPTERS
 ```
 
 ### 3. Pinned Comment for the Short (Copy-Paste to Boost Subscribers & Algorithm Engagement)
+
 ```text
 🔔 Enjoyed the 120Hz themes & shaders? Hit SUBSCRIBE so you don't miss our next open-source build!
 📺 Watch the FULL 1h50m tutorial here: https://www.youtube.com/watch?v=fBprLo8Uzgc
@@ -173,6 +182,7 @@ CHAPTERS
 ```
 
 ### 4. YouTube Tags (`466 / 500 chars` — Broad Discovery + Subscriber Funnel)
+
 ```text
 Shorts, YouTube Shorts, Codecaine File Manager, File Manager Themes, UI UX Design, WebGL Shaders, CSS Animation, Mac Studio M4 Ultra, Pro Display XDR 6K 120Hz, Google Gemini AI, AI Theme Generator, Open Source Projects, Coding Shorts, Programming, Developer Tools, macOS Finder Alternative, Linux File Manager, Windows File Manager, Halloween Theme, Polar Night Theme, 3D Folder Icons, Bun JS, TypeScript, GitHub Open Source, Bun RAD Studio
 ```
@@ -182,11 +192,13 @@ Shorts, YouTube Shorts, Codecaine File Manager, File Manager Themes, UI UX Desig
 ## 🎓 VIDEO 3: Codecaine File Manager Themes — Full 12-Chapter Masterclass (`file_manager_themes_full_tutorial.mp4` — `11:21`)
 
 ### 1. YouTube Title (`92 / 100 chars`)
+
 ```text
 Codecaine File Manager Themes Masterclass (M4 Ultra 6K): 310 Themes, 194 Shaders & Gemini AI
 ```
 
 ### 2. YouTube Description (`3,185 / 5,000 chars` — with all 13 Chapter Timestamps)
+
 ```text
 The complete, step-by-step MacAcademy-style masterclass dedicated 100% to the Codecaine File Manager Theme & Atmospheric Shader Studio — recorded on our flagship Apple Mac Studio M4 Ultra (32-Core CPU · 80-Core GPU · 192GB Unified Memory · Apple Pro Display XDR 6K @ 120Hz ProMotion).
 
@@ -226,6 +238,7 @@ CHAPTERS
 ```
 
 ### 3. YouTube Tags (`389 / 500 chars`)
+
 ```text
 Codecaine File Manager, File Manager Themes Tutorial, Complete Theme Masterclass, Mac Studio M4 Ultra, Pro Display XDR 6K 120Hz, Unobstructed Icons View, Halloween Theme, Polar Night Theme, All 18 US Holiday Themes, Custom Themes GitHub, Google Gemini AI Theme, 3D Folder Icons, 2Advanced Flash HUD, Compiz Fire Folders, OKLab Blender, 194 Shaders, Theme Style Guide, Bun RAD Studio
 ```
@@ -235,6 +248,7 @@ Codecaine File Manager, File Manager Themes Tutorial, Complete Theme Masterclass
 ## 📢 YOUTUBE COMMUNITY POST (All 3 Videos + All GitHub Links + Optional Poll)
 
 ### Option 1 — Full Launch Community Post (Text / Image / Carousel Post — `2,485 chars`)
+
 ```text
 🚀 THE COMPLETE CODECAINE FILE MANAGER VIDEO SERIES IS LIVE! (Recorded in 6K @ 120Hz on Apple Mac Studio M4 Ultra)
 
@@ -281,7 +295,9 @@ https://github.com/codecaine-zz/bun_rad_studio
 ```
 
 ### Option 2 — Interactive Poll Community Post (Attach Poll Choices Below to Boost Algorithm Reach by 3×–5×)
-*(Paste the text from Option 1 above as the Poll body, then add these 4 Poll options in YouTube Studio):*
+
+_(Paste the text from Option 1 above as the Poll body, then add these 4 Poll options in YouTube Studio):_
+
 - 🎃 The 310 Themes, 18 Holiday Skins & 194 Shaders
 - 🤖 The Google Gemini AI Theme Customizer & Bulk Import
 - 🗄️ The Built-in SQLite, MySQL, PostgreSQL & Redis Studios

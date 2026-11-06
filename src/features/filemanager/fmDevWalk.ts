@@ -6,10 +6,22 @@
 import { promises as fsp, type Dirent } from "fs";
 import * as nodePath from "path";
 import { tick } from "./fmCore";
-import { inheritedIgnores, isIgnored, readIgnoreFiles, type IgnoreSet, parseIgnoreLines } from "./fmDevIgnore";
+import {
+  inheritedIgnores,
+  isIgnored,
+  readIgnoreFiles,
+  type IgnoreSet,
+  parseIgnoreLines,
+} from "./fmDevIgnore";
 
 /** Folders full of other people's code or build output. */
-export const VENDORED_DIRS = ["node_modules", "target", "dist", "build", ".git"];
+export const VENDORED_DIRS = [
+  "node_modules",
+  "target",
+  "dist",
+  "build",
+  ".git",
+];
 
 /** Hard upper limit on the number of files visited during a Developer Tools directory walk. */
 export const HARD_MAX_FILES = 200_000;
@@ -76,24 +88,49 @@ export function resolveLimits(o: Partial<WalkLimits> | undefined): WalkLimits {
 }
 
 /** The user's exclude patterns (one per entry, .gitignore syntax) as a rule set for a scan of `root`. */
-export function excludeSet(root: string, patterns: string[] | undefined): IgnoreSet | null {
-  const clean = (patterns ?? []).filter((p) => typeof p === "string").map((p) => p.trim()).filter(Boolean).slice(0, MAX_EXCLUDES);
+export function excludeSet(
+  root: string,
+  patterns: string[] | undefined,
+): IgnoreSet | null {
+  const clean = (patterns ?? [])
+    .filter((p) => typeof p === "string")
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .slice(0, MAX_EXCLUDES);
   const rules = parseIgnoreLines(clean.filter((p) => !p.startsWith("!")));
-  return rules.length ? { base: root.replace(/\\/g, "/").replace(/\/$/, ""), rules } : null;
+  return rules.length
+    ? { base: root.replace(/\\/g, "/").replace(/\/$/, ""), rules }
+    : null;
 }
 
 /**
  * Calls `onFiles` with the files of each folder in turn (already filtered) until the walk ends. `onFiles` may be
  * slow; the walk waits for it. Returns what was skipped and why it ended.
  */
-export async function walkFiles(root: string, options: WalkOptions, signal: Cancellable, onFiles: (files: WalkFile[], report: WalkReport) => Promise<void | "bytes">): Promise<WalkReport> {
+export async function walkFiles(
+  root: string,
+  options: WalkOptions,
+  signal: Cancellable,
+  onFiles: (files: WalkFile[], report: WalkReport) => Promise<void | "bytes">,
+): Promise<WalkReport> {
   const limits = resolveLimits(options);
-  const report: WalkReport = { dirs: 0, files: 0, symlinks: 0, ignored: 0, hiddenSkipped: 0, vendoredSkipped: 0, stoppedBy: null, cancelled: false };
+  const report: WalkReport = {
+    dirs: 0,
+    files: 0,
+    symlinks: 0,
+    ignored: 0,
+    hiddenSkipped: 0,
+    vendoredSkipped: 0,
+    stoppedBy: null,
+    cancelled: false,
+  };
   const started = Date.now();
   const respect = options.respectIgnore !== false;
   const inherited = respect ? await inheritedIgnores(root) : [];
   const excludes = excludeSet(root, options.excludes);
-  const stack: Array<{ dir: string; rel: string; sets: IgnoreSet[] }> = [{ dir: root, rel: "", sets: inherited }];
+  const stack: Array<{ dir: string; rel: string; sets: IgnoreSet[] }> = [
+    { dir: root, rel: "", sets: inherited },
+  ];
   let lastYield = Date.now();
   while (stack.length) {
     if (signal.cancelled) {
@@ -141,7 +178,10 @@ export async function walkFiles(root: string, options: WalkOptions, signal: Canc
       }
       const abs = nodePath.join(frame.dir, e.name);
       const absSlash = abs.replace(/\\/g, "/");
-      if ((respect && isIgnored(sets, absSlash, isDir)) || (excludes && isIgnored([excludes], absSlash, isDir))) {
+      if (
+        (respect && isIgnored(sets, absSlash, isDir)) ||
+        (excludes && isIgnored([excludes], absSlash, isDir))
+      ) {
         report.ignored++;
         continue;
       }
@@ -156,7 +196,8 @@ export async function walkFiles(root: string, options: WalkOptions, signal: Canc
         report.stoppedBy = "files";
       }
       report.files += files.length;
-      if (files.length && (await onFiles(files, report)) === "bytes") report.stoppedBy = "bytes";
+      if (files.length && (await onFiles(files, report)) === "bytes")
+        report.stoppedBy = "bytes";
       if (report.stoppedBy) break;
     }
     for (let k = dirs.length - 1; k >= 0; k--) stack.push(dirs[k]!);

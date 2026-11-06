@@ -31,7 +31,11 @@ describe("⛷️ CyberSki Deluxe — Winter Legends Arcade Suite", () => {
   });
 
   it("3. Studio factory generates correct defaults and instance contracts", () => {
-    const app = createSkiFreeStudio({ fullscreen: false, width: 1000, height: 800 });
+    const app = createSkiFreeStudio({
+      fullscreen: false,
+      width: 1000,
+      height: 800,
+    });
     expect(app.title).toContain("CyberSki Deluxe");
     expect(app.width).toBe(1000);
     expect(app.height).toBe(800);
@@ -59,7 +63,7 @@ describe("⛷️ CyberSki Deluxe — Winter Legends Arcade Suite", () => {
       // Health check endpoint
       const resHealth = await fetch(`${base}/api/health`);
       expect(resHealth.status).toBe(200);
-      const healthData = await resHealth.json() as any;
+      const healthData = (await resHealth.json()) as any;
       expect(healthData.status).toBe("ok");
       expect(healthData.app).toBe("skifree_studio");
       expect(healthData.name).toContain("CyberSki Deluxe");
@@ -70,7 +74,9 @@ describe("⛷️ CyberSki Deluxe — Winter Legends Arcade Suite", () => {
 
   it("5. Launcher Studio automatically registers and surfaces CyberSki", () => {
     const apps = scanWorkspaceApps();
-    const found = apps.find((a) => a.name === "skifree_studio" || a.id === "rad_skifree_studio");
+    const found = apps.find(
+      (a) => a.name === "skifree_studio" || a.id === "rad_skifree_studio",
+    );
     expect(found).toBeDefined();
     expect(found?.displayName).toBe("Codecaine CyberSki Deluxe");
     expect(found?.icon).toBe("⛷️");

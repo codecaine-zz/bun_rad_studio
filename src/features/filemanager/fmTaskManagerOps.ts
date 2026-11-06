@@ -6,7 +6,14 @@
  * for destructive or multi-process operations, and exports snapshots without overwriting files.
  */
 import { promises as fsp } from "fs";
-import { absolutePath, assertCreatable, assertFolder, pathApi, type FmContext, type FmHandler } from "./fmCore";
+import {
+  absolutePath,
+  assertCreatable,
+  assertFolder,
+  pathApi,
+  type FmContext,
+  type FmHandler,
+} from "./fmCore";
 import { FmError, uniqueName, validateName } from "./fmPaths";
 import {
   ancestorsOf,
@@ -44,13 +51,20 @@ const EXPORT_FORMATS = ["csv", "json", "tsv", "md"] as const;
 type TaskExportFormat = (typeof EXPORT_FORMATS)[number];
 
 function parseExportFormat(raw: unknown): TaskExportFormat {
-  if (typeof raw === "string" && (EXPORT_FORMATS as readonly string[]).includes(raw)) {
+  if (
+    typeof raw === "string" &&
+    (EXPORT_FORMATS as readonly string[]).includes(raw)
+  ) {
     return raw as TaskExportFormat;
   }
   throw new FmError("BAD_FORMAT", "Choose CSV, JSON, TSV, or Markdown.");
 }
 
-function renderTaskExport(procs: TaskProcessItem[], format: TaskExportFormat, platform: FmContext["platform"]): string {
+function renderTaskExport(
+  procs: TaskProcessItem[],
+  format: TaskExportFormat,
+  platform: FmContext["platform"],
+): string {
   switch (format) {
     case "csv":
       return processesToCsv(procs);
@@ -74,7 +88,11 @@ async function writeUniqueReport(
   await assertFolder(folder, "That folder");
   assertCreatable(ctx, folder);
   const p = pathApi(ctx);
-  const safeBase = baseName.replace(/[^\w.-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "processes";
+  const safeBase =
+    baseName
+      .replace(/[^\w.-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 48) || "processes";
   const wanted = `${safeBase}.${ext}`;
   const problem = validateName(wanted, ctx.platform);
   if (problem) throw new FmError("BAD_NAME", problem);
@@ -112,7 +130,11 @@ export const taskManagerOperations: Record<string, FmHandler> = {
 
   async "tasks/inspect"(ctx, b) {
     const pid = String(b.pid ?? "").trim();
-    if (!/^\d+$/.test(pid)) throw new FmError("BAD_REQUEST", "Provide a valid numeric PID to inspect.");
+    if (!/^\d+$/.test(pid))
+      throw new FmError(
+        "BAD_REQUEST",
+        "Provide a valid numeric PID to inspect.",
+      );
     return await inspectTaskProcess(pid, ctx.platform, ctx.tasks);
   },
 
@@ -132,7 +154,10 @@ export const taskManagerOperations: Record<string, FmHandler> = {
     };
     const assessment = assessTaskAction(proc, pid, action, safetyCtx);
     if (!assessment.allowed) {
-      throw new FmError("PROTECTED", assessment.reason || "That process cannot be modified.");
+      throw new FmError(
+        "PROTECTED",
+        assessment.reason || "That process cannot be modified.",
+      );
     }
     if (assessment.confirm && b.confirm !== true) {
       throw new FmError("NEEDS_CONFIRM", assessment.confirm, {
@@ -147,7 +172,10 @@ export const taskManagerOperations: Record<string, FmHandler> = {
     if (action === "tree") {
       const selfAncestors = new Set(ancestorsOf(snap.processes, snap.selfPid));
       if (selfAncestors.has(pid)) {
-        throw new FmError("PROTECTED", "Refusing to terminate an ancestor of the File Manager process tree.");
+        throw new FmError(
+          "PROTECTED",
+          "Refusing to terminate an ancestor of the File Manager process tree.",
+        );
       }
       const descendants = descendantsOf(snap.processes, pid);
       if (ctx.platform === "win32") {
@@ -155,7 +183,10 @@ export const taskManagerOperations: Record<string, FmHandler> = {
         const cmd = buildProcessActionCommand("win32", "tree", pid);
         const res = await exec(cmd, "win32");
         if (res.exitCode !== 0) {
-          throw new FmError("ACTION_FAILED", (res.stderr || res.stdout || "taskkill /T /F failed.").trim());
+          throw new FmError(
+            "ACTION_FAILED",
+            (res.stderr || res.stdout || "taskkill /T /F failed.").trim(),
+          );
         }
         return {
           ok: true,
@@ -172,9 +203,11 @@ export const taskManagerOperations: Record<string, FmHandler> = {
       const targets = [...descendants, pid];
       const stopped: string[] = [];
       for (const tPid of targets) {
-        if (tPid === snap.selfPid || tPid === "1" || selfAncestors.has(tPid)) continue;
+        if (tPid === snap.selfPid || tPid === "1" || selfAncestors.has(tPid))
+          continue;
         const tProc = byPid.get(tPid);
-        if (tProc && isCriticalProcess(tProc.name, tPid, ctx.platform)) continue;
+        if (tProc && isCriticalProcess(tProc.name, tPid, ctx.platform))
+          continue;
         const cmd = buildProcessActionCommand(ctx.platform, "terminate", tPid);
         const res = await exec(cmd, ctx.platform);
         if (res.exitCode === 0) stopped.push(tPid);
@@ -191,18 +224,34 @@ export const taskManagerOperations: Record<string, FmHandler> = {
     }
 
     if (action === "group") {
-      if (!proc) throw new FmError("NOT_FOUND", `Process PID ${pid} is no longer running.`);
-      const protectedSet = new Set([snap.selfPid, snap.parentPid, ...ancestorsOf(snap.processes, snap.selfPid)]);
+      if (!proc)
+        throw new FmError(
+          "NOT_FOUND",
+          `Process PID ${pid} is no longer running.`,
+        );
+      const protectedSet = new Set([
+        snap.selfPid,
+        snap.parentPid,
+        ...ancestorsOf(snap.processes, snap.selfPid),
+      ]);
       const peers = snap.processes.filter(
-        (p) => p.name === proc.name && !protectedSet.has(p.pid) && !p.isCritical,
+        (p) =>
+          p.name === proc.name && !protectedSet.has(p.pid) && !p.isCritical,
       );
       if (peers.length === 0) {
-        throw new FmError("PROTECTED", `No safe instances of "${proc.name}" can be stopped.`);
+        throw new FmError(
+          "PROTECTED",
+          `No safe instances of "${proc.name}" can be stopped.`,
+        );
       }
       const stopped: string[] = [];
       for (const peer of peers) {
         const subAction = ctx.platform === "win32" ? "kill" : "terminate";
-        const cmd = buildProcessActionCommand(ctx.platform, subAction, peer.pid);
+        const cmd = buildProcessActionCommand(
+          ctx.platform,
+          subAction,
+          peer.pid,
+        );
         const res = await exec(cmd, ctx.platform);
         if (res.exitCode === 0) stopped.push(peer.pid);
       }
@@ -221,7 +270,11 @@ export const taskManagerOperations: Record<string, FmHandler> = {
     if (res.exitCode !== 0) {
       throw new FmError(
         "ACTION_FAILED",
-        (res.stderr || res.stdout || `Could not run ${action} on PID ${pid}.`).trim(),
+        (
+          res.stderr ||
+          res.stdout ||
+          `Could not run ${action} on PID ${pid}.`
+        ).trim(),
       );
     }
 
@@ -247,7 +300,11 @@ export const taskManagerOperations: Record<string, FmHandler> = {
 
   async "tasks/kill-port"(ctx, b) {
     const port = validPort(b.port);
-    if (!port) throw new FmError("BAD_REQUEST", "Enter a valid TCP port between 1 and 65535.");
+    if (!port)
+      throw new FmError(
+        "BAD_REQUEST",
+        "Enter a valid TCP port between 1 and 65535.",
+      );
     const snap = await collectTaskSnapshot(ctx.platform, ctx.tasks);
     const portTag = `:${port}`;
     const listeners = snap.processes.filter((p) => p.ports.includes(portTag));
@@ -269,16 +326,25 @@ export const taskManagerOperations: Record<string, FmHandler> = {
     for (const l of listeners) {
       const check = assessTaskAction(l, l.pid, "terminate", safetyCtx);
       if (!check.allowed) {
-        throw new FmError("PROTECTED", check.reason || `Cannot stop listener ${l.name} (${l.pid}) on port ${port}.`);
+        throw new FmError(
+          "PROTECTED",
+          check.reason ||
+            `Cannot stop listener ${l.name} (${l.pid}) on port ${port}.`,
+        );
       }
     }
 
     if (b.confirm !== true) {
-      const listDesc = listeners.map((l) => `${l.name} (PID ${l.pid})`).join(", ");
+      const listDesc = listeners
+        .map((l) => `${l.name} (PID ${l.pid})`)
+        .join(", ");
       throw new FmError(
         "NEEDS_CONFIRM",
         `Stop ${listeners.length} process${listeners.length === 1 ? "" : "es"} listening on port :${port}?\n\n${listDesc}`,
-        { port, listeners: listeners.map((l) => ({ pid: l.pid, name: l.name })) },
+        {
+          port,
+          listeners: listeners.map((l) => ({ pid: l.pid, name: l.name })),
+        },
       );
     }
 
@@ -286,7 +352,11 @@ export const taskManagerOperations: Record<string, FmHandler> = {
     const killed: string[] = [];
     const force = b.force === true || ctx.platform === "win32";
     for (const l of listeners) {
-      const cmd = buildProcessActionCommand(ctx.platform, force ? "kill" : "terminate", l.pid);
+      const cmd = buildProcessActionCommand(
+        ctx.platform,
+        force ? "kill" : "terminate",
+        l.pid,
+      );
       const res = await exec(cmd, ctx.platform);
       if (res.exitCode === 0) killed.push(l.pid);
     }
@@ -318,7 +388,10 @@ export const taskManagerOperations: Record<string, FmHandler> = {
 
     if (b.confirm !== true) {
       const summary = rogues
-        .map((r) => `• ${r.name} (PID ${r.pid}${r.ports.length ? `, ${r.ports.join(" ")}` : ""})`)
+        .map(
+          (r) =>
+            `• ${r.name} (PID ${r.pid}${r.ports.length ? `, ${r.ports.join(" ")}` : ""})`,
+        )
         .join("\n");
       throw new FmError(
         "NEEDS_CONFIRM",
@@ -330,7 +403,11 @@ export const taskManagerOperations: Record<string, FmHandler> = {
     const exec = ctx.tasks?.execCommand ?? defaultExecCommand;
     const cleaned: string[] = [];
     for (const r of rogues) {
-      const cmd = buildProcessActionCommand(ctx.platform, ctx.platform === "win32" ? "kill" : "terminate", r.pid);
+      const cmd = buildProcessActionCommand(
+        ctx.platform,
+        ctx.platform === "win32" ? "kill" : "terminate",
+        r.pid,
+      );
       const res = await exec(cmd, ctx.platform);
       if (res.exitCode === 0) cleaned.push(r.pid);
     }
@@ -358,8 +435,17 @@ export const taskManagerOperations: Record<string, FmHandler> = {
     const snap = await collectTaskSnapshot(ctx.platform, ctx.tasks);
     const text = renderTaskExport(snap.processes, format, ctx.platform);
     const stamp = new Date().toISOString().slice(0, 10);
-    const baseName = typeof b.name === "string" && b.name.trim() ? b.name.trim() : `process-snapshot-${stamp}`;
-    const saved = await writeUniqueReport(ctx, b.folder, baseName, format, text);
+    const baseName =
+      typeof b.name === "string" && b.name.trim()
+        ? b.name.trim()
+        : `process-snapshot-${stamp}`;
+    const saved = await writeUniqueReport(
+      ctx,
+      b.folder,
+      baseName,
+      format,
+      text,
+    );
     return { ...saved, format, count: snap.processes.length };
   },
 };

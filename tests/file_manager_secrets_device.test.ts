@@ -1,10 +1,33 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { randomBytes } from "node:crypto";
-import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
-import { SERVICE, bunCredentialStore, encodeEntry, entryName, parseEntry, probe } from "../src/features/filemanager/fmSecretsDevice";
-import { FLAG_DEVICE, parseHeader } from "../src/features/filemanager/fmSecretsFormat";
-import { PASSWORD, PASSWORD2, createVault, loginItem, makeEnv, type Env } from "./file_manager_secrets_helpers";
+import {
+  SERVICE,
+  bunCredentialStore,
+  encodeEntry,
+  entryName,
+  parseEntry,
+  probe,
+} from "../src/features/filemanager/fmSecretsDevice";
+import {
+  FLAG_DEVICE,
+  parseHeader,
+} from "../src/features/filemanager/fmSecretsFormat";
+import {
+  PASSWORD,
+  PASSWORD2,
+  createVault,
+  loginItem,
+  makeEnv,
+  type Env,
+} from "./file_manager_secrets_helpers";
 
 const DAY = 86_400_000;
 const envs: Env[] = [];
@@ -23,7 +46,9 @@ afterAll(() => {
 const vaultFile = (e: Env) => join(e.dataDir, "file_manager_secrets.radsec");
 const header = (e: Env) => parseHeader(readFileSync(vaultFile(e)));
 const entryKey = (e: Env) => `${SERVICE}\u0000${entryName(header(e).vaultId)}`;
-const failure = async (p: Promise<unknown>): Promise<{ code: string; message: string }> => {
+const failure = async (
+  p: Promise<unknown>,
+): Promise<{ code: string; message: string }> => {
   try {
     await p;
   } catch (e: any) {
@@ -36,7 +61,9 @@ const failure = async (p: Promise<unknown>): Promise<{ code: string; message: st
 async function deviceVault(e: Env, body: Record<string, any> = {}) {
   await createVault(e, body);
   await e.call("secrets/settings", { settings: { autoLockMinutes: 0 } });
-  const item = (await e.call("secrets/save", { item: loginItem({ title: "Inside" }) })).item;
+  const item = (
+    await e.call("secrets/save", { item: loginItem({ title: "Inside" }) })
+  ).item;
   await e.call("secrets/device", { action: "enable", password: PASSWORD });
   e.svc.lock();
   return item;
@@ -48,10 +75,24 @@ describe("Unlock with this computer", () => {
     await createVault(e);
     expect((await e.call("secrets/status")).status.device).toBe(false);
     expect(e.store.map.size).toBe(0);
-    await expect(e.call("secrets/device", { action: "enable" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
-    expect((await failure(e.call("secrets/device", { action: "enable", password: "Wrong-Password-1234!" }))).code).toBe("WRONG_PASSWORD");
+    await expect(
+      e.call("secrets/device", { action: "enable" }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(
+      (
+        await failure(
+          e.call("secrets/device", {
+            action: "enable",
+            password: "Wrong-Password-1234!",
+          }),
+        )
+      ).code,
+    ).toBe("WRONG_PASSWORD");
     expect(e.store.map.size).toBe(0);
-    const res = await e.call("secrets/device", { action: "enable", password: PASSWORD });
+    const res = await e.call("secrets/device", {
+      action: "enable",
+      password: PASSWORD,
+    });
     expect(res.status.device).toBe(true);
     expect(header(e).flags & FLAG_DEVICE).toBe(FLAG_DEVICE);
     // named by the vault's random id (public, inside the header), never by the file's path
@@ -69,14 +110,31 @@ describe("Unlock with this computer", () => {
   test("unlocking with it needs no password, never counts as a wrong password, and the master password still works beside it", async () => {
     const e = fresh();
     const item = await deviceVault(e);
-    expect((await e.call("secrets/status")).status).toMatchObject({ locked: true, device: true });
+    expect((await e.call("secrets/status")).status).toMatchObject({
+      locked: true,
+      device: true,
+    });
     await e.call("secrets/unlock", { device: true });
-    expect((await e.call("secrets/status")).status).toMatchObject({ locked: false, via: "device" });
-    expect((await e.call("secrets/get", { id: item.id })).item.title).toBe("Inside");
+    expect((await e.call("secrets/status")).status).toMatchObject({
+      locked: false,
+      via: "device",
+    });
+    expect((await e.call("secrets/get", { id: item.id })).item.title).toBe(
+      "Inside",
+    );
     // sensitive actions still ask for the master password
-    await expect(e.call("secrets/change-password", { newPassword: PASSWORD2 })).rejects.toMatchObject({ code: "BAD_REQUEST" });
-    await expect(e.call("secrets/export-csv", { path: join(e.root, "x.csv"), confirm: true })).rejects.toMatchObject({ code: "BAD_REQUEST" });
-    expect((await e.call("secrets/audit")).events.map((x: any) => x.ev)).toContain("device-unlock");
+    await expect(
+      e.call("secrets/change-password", { newPassword: PASSWORD2 }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(
+      e.call("secrets/export-csv", {
+        path: join(e.root, "x.csv"),
+        confirm: true,
+      }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(
+      (await e.call("secrets/audit")).events.map((x: any) => x.ev),
+    ).toContain("device-unlock");
     e.svc.lock();
     await e.call("secrets/unlock", { password: PASSWORD });
     expect((await e.call("secrets/status")).status.via).toBe("password");
@@ -88,10 +146,22 @@ describe("Unlock with this computer", () => {
     const real = e.store.map.get(entryKey(e))!;
     const codes: string[] = [];
     e.store.map.delete(entryKey(e));
-    codes.push((await failure(e.call("secrets/unlock", { device: true }))).code);
+    codes.push(
+      (await failure(e.call("secrets/unlock", { device: true }))).code,
+    );
     e.store.map.set(entryKey(e), "not json at all");
-    codes.push((await failure(e.call("secrets/unlock", { device: true }))).code);
-    e.store.map.set(entryKey(e), JSON.stringify({ v: 1, key: randomBytes(32).toString("base64"), passwordAt: e.clock.now(), days: 14 }));
+    codes.push(
+      (await failure(e.call("secrets/unlock", { device: true }))).code,
+    );
+    e.store.map.set(
+      entryKey(e),
+      JSON.stringify({
+        v: 1,
+        key: randomBytes(32).toString("base64"),
+        passwordAt: e.clock.now(),
+        days: 14,
+      }),
+    );
     const wrongKey = await failure(e.call("secrets/unlock", { device: true }));
     codes.push(wrongKey.code);
     expect(wrongKey.message).toMatch(/Use your master password/);
@@ -102,7 +172,12 @@ describe("Unlock with this computer", () => {
     expect(down.message).toMatch(/isn't available or didn't allow access/);
     expect(down.message).not.toMatch(/Error|\bat \w/);
     e.store.down = false;
-    expect(codes).toEqual(["DEVICE_MISSING", "DEVICE_MISSING", "DEVICE_CHANGED", "DEVICE_UNAVAILABLE"]);
+    expect(codes).toEqual([
+      "DEVICE_MISSING",
+      "DEVICE_MISSING",
+      "DEVICE_CHANGED",
+      "DEVICE_UNAVAILABLE",
+    ]);
     expect(e.svc.unlocked).toBeNull();
     expect((await e.call("secrets/status")).status.waitMs).toBe(0); // none of this counted against the password
     expect(() => readFileSync(`${vaultFile(e)}.attempts`)).toThrow();
@@ -120,8 +195,12 @@ describe("Unlock with this computer", () => {
     const bad = Buffer.from(good);
     bad[h.length - 32 - 30] = bad[h.length - 32 - 30]! ^ 1; // inside the device wrap
     writeFileSync(vaultFile(e), bad);
-    expect((await failure(e.call("secrets/unlock", { device: true }))).code).toBe("DEVICE_CHANGED");
-    expect((await failure(e.call("secrets/unlock", { password: PASSWORD }))).code).toBe("WRONG_OR_DAMAGED");
+    expect(
+      (await failure(e.call("secrets/unlock", { device: true }))).code,
+    ).toBe("DEVICE_CHANGED");
+    expect(
+      (await failure(e.call("secrets/unlock", { password: PASSWORD }))).code,
+    ).toBe("WRONG_OR_DAMAGED");
     writeFileSync(vaultFile(e), good);
     e.clock.advance(60_000);
     await e.call("secrets/unlock", { password: PASSWORD });
@@ -131,13 +210,17 @@ describe("Unlock with this computer", () => {
     const plain = fresh();
     await createVault(plain);
     plain.svc.lock();
-    expect((await failure(plain.call("secrets/unlock", { device: true }))).code).toBe("DEVICE_OFF");
+    expect(
+      (await failure(plain.call("secrets/unlock", { device: true }))).code,
+    ).toBe("DEVICE_OFF");
     const source = fresh();
     await deviceVault(source);
     const elsewhere = fresh(); // another computer: same vault file, its own (empty) credential store
     mkdirSync(elsewhere.dataDir, { recursive: true });
     copyFileSync(vaultFile(source), vaultFile(elsewhere));
-    expect((await failure(elsewhere.call("secrets/unlock", { device: true }))).code).toBe("DEVICE_MISSING");
+    expect(
+      (await failure(elsewhere.call("secrets/unlock", { device: true }))).code,
+    ).toBe("DEVICE_MISSING");
     await elsewhere.call("secrets/unlock", { password: PASSWORD });
     expect(elsewhere.store.map.size).toBe(0); // opening a copy elsewhere doesn't create a key
   });
@@ -162,29 +245,48 @@ describe("Unlock with this computer", () => {
     expect(parseEntry(e.store.map.get(entryKey(e))!)!.days).toBe(1);
     e.svc.lock();
     e.clock.advance(2 * DAY);
-    expect((await failure(e.call("secrets/unlock", { device: true }))).code).toBe("DEVICE_EXPIRED");
+    expect(
+      (await failure(e.call("secrets/unlock", { device: true }))).code,
+    ).toBe("DEVICE_EXPIRED");
     // an entry stamped in the far future is not trusted either
     const entry = parseEntry(e.store.map.get(entryKey(e))!)!;
-    e.store.map.set(entryKey(e), encodeEntry({ ...entry, passwordAt: e.clock.now() + 30 * DAY, days: 90 }));
-    expect((await failure(e.call("secrets/unlock", { device: true }))).code).toBe("DEVICE_EXPIRED");
+    e.store.map.set(
+      entryKey(e),
+      encodeEntry({ ...entry, passwordAt: e.clock.now() + 30 * DAY, days: 90 }),
+    );
+    expect(
+      (await failure(e.call("secrets/unlock", { device: true }))).code,
+    ).toBe("DEVICE_EXPIRED");
   });
 
   test("changing the master password or the Argon2 settings keeps the device shortcut working; rotating the key ends it", async () => {
     const e = fresh();
     await deviceVault(e);
     await e.call("secrets/unlock", { password: PASSWORD });
-    await e.call("secrets/change-password", { password: PASSWORD, newPassword: PASSWORD2 });
+    await e.call("secrets/change-password", {
+      password: PASSWORD,
+      newPassword: PASSWORD2,
+    });
     await e.call("secrets/rekey", { password: PASSWORD2, strength: "strong" });
     e.svc.lock();
     await e.call("secrets/unlock", { device: true });
-    expect((await e.call("secrets/status")).status).toMatchObject({ via: "device", device: true });
+    expect((await e.call("secrets/status")).status).toMatchObject({
+      via: "device",
+      device: true,
+    });
     e.svc.lock();
     await e.call("secrets/unlock", { password: PASSWORD2 });
-    await e.call("secrets/rekey", { password: PASSWORD2, strength: "standard", rotateKey: true });
+    await e.call("secrets/rekey", {
+      password: PASSWORD2,
+      strength: "standard",
+      rotateKey: true,
+    });
     expect((await e.call("secrets/status")).status.device).toBe(false);
     expect(e.store.map.size).toBe(0);
     e.svc.lock();
-    expect((await failure(e.call("secrets/unlock", { device: true }))).code).toBe("DEVICE_OFF");
+    expect(
+      (await failure(e.call("secrets/unlock", { device: true }))).code,
+    ).toBe("DEVICE_OFF");
   });
 
   test("turning it off removes the keychain entry and the wrapping in the file, and the old backups that still had it", async () => {
@@ -193,13 +295,19 @@ describe("Unlock with this computer", () => {
     await e.call("secrets/unlock", { password: PASSWORD });
     await e.call("secrets/save", { item: loginItem({ title: "Later" }) });
     const res = await e.call("secrets/device", { action: "disable" });
-    expect(res).toMatchObject({ keychainRemoved: true, status: { device: false } });
+    expect(res).toMatchObject({
+      keychainRemoved: true,
+      status: { device: false },
+    });
     expect(e.store.map.size).toBe(0);
     expect(header(e).flags & FLAG_DEVICE).toBe(0);
     expect(header(e).devWrap).toBeNull();
-    for (const n of [1, 2, 3]) expect(() => readFileSync(`${vaultFile(e)}.${n}`)).toThrow();
+    for (const n of [1, 2, 3])
+      expect(() => readFileSync(`${vaultFile(e)}.${n}`)).toThrow();
     e.svc.lock();
-    expect((await failure(e.call("secrets/unlock", { device: true }))).code).toBe("DEVICE_OFF");
+    expect(
+      (await failure(e.call("secrets/unlock", { device: true }))).code,
+    ).toBe("DEVICE_OFF");
     await e.call("secrets/unlock", { password: PASSWORD });
   });
 
@@ -219,15 +327,21 @@ describe("Unlock with this computer", () => {
     await createVault(e);
     e.store.down = true;
     const before = readFileSync(vaultFile(e));
-    const err = await failure(e.call("secrets/device", { action: "enable", password: PASSWORD }));
+    const err = await failure(
+      e.call("secrets/device", { action: "enable", password: PASSWORD }),
+    );
     expect(err.code).toBe("DEVICE_UNAVAILABLE");
     expect(err.message).toMatch(/Secret Service|didn't allow/);
     expect(readFileSync(vaultFile(e)).equals(before)).toBe(true);
     expect((await e.call("secrets/status")).status.device).toBe(false);
     e.store.down = false;
-    expect((await e.call("secrets/device", { action: "probe" })).availability.ok).toBe(false);
+    expect(
+      (await e.call("secrets/device", { action: "probe" })).availability.ok,
+    ).toBe(false);
     e.clock.advance(61_000);
-    expect((await e.call("secrets/device", { action: "probe" })).availability.ok).toBe(true);
+    expect(
+      (await e.call("secrets/device", { action: "probe" })).availability.ok,
+    ).toBe(true);
   });
 
   test("a failed save while turning it on removes the entry again", async () => {
@@ -236,7 +350,9 @@ describe("Unlock with this computer", () => {
     e.svc.hooks.faultBeforeRename = () => {
       throw new Error("disk full");
     };
-    await expect(e.call("secrets/device", { action: "enable", password: PASSWORD })).rejects.toThrow();
+    await expect(
+      e.call("secrets/device", { action: "enable", password: PASSWORD }),
+    ).rejects.toThrow();
     e.svc.hooks.faultBeforeRename = undefined;
     expect(e.store.map.size).toBe(0);
     expect(header(e).devWrap).toBeNull();
@@ -253,26 +369,35 @@ describe("Unlock with this computer", () => {
   test("an unknown action is refused", async () => {
     const e = fresh();
     await createVault(e);
-    await expect(e.call("secrets/device", { action: "explode" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(
+      e.call("secrets/device", { action: "explode" }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });
 });
 
 describe("the real credential store (Bun.secrets)", () => {
-  test.skipIf(Boolean(process.env.CI))("a random test service round-trips and is cleaned up", async () => {
-    const real = bunCredentialStore();
-    const availability = await probe(real);
-    if (!availability.ok) return; // Linux without a Secret Service: nothing to test here
-    const service = `codecaine-fm-test-${randomBytes(6).toString("hex")}`;
-    const name = "vault-device-key:smoke";
-    try {
+  test.skipIf(Boolean(process.env.CI))(
+    "a random test service round-trips and is cleaned up",
+    async () => {
+      const real = bunCredentialStore();
+      const availability = await probe(real);
+      if (!availability.ok) return; // Linux without a Secret Service: nothing to test here
+      const service = `codecaine-fm-test-${randomBytes(6).toString("hex")}`;
+      const name = "vault-device-key:smoke";
+      try {
+        expect(await real.get(service, name)).toBeNull();
+        const entry = {
+          key: randomBytes(32),
+          passwordAt: Date.now(),
+          days: 14,
+        };
+        await real.set(service, name, encodeEntry(entry));
+        const back = parseEntry(await real.get(service, name));
+        expect(back?.key.equals(entry.key)).toBe(true);
+      } finally {
+        await real.delete(service, name).catch(() => false);
+      }
       expect(await real.get(service, name)).toBeNull();
-      const entry = { key: randomBytes(32), passwordAt: Date.now(), days: 14 };
-      await real.set(service, name, encodeEntry(entry));
-      const back = parseEntry(await real.get(service, name));
-      expect(back?.key.equals(entry.key)).toBe(true);
-    } finally {
-      await real.delete(service, name).catch(() => false);
-    }
-    expect(await real.get(service, name)).toBeNull();
-  });
+    },
+  );
 });

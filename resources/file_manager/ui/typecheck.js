@@ -57,14 +57,19 @@ function meaningOf(check) {
       ? "A program or script can run on your computer and change or take things. Pretending to be a document or a picture is a common way to trick people into running one."
       : "A name like this is a common trick to make something that can run look like a harmless document or picture.";
   }
-  if (check.severity === "warning") return "The file itself isn't a program, but programs that expect that kind of file may not open it, or may show an error.";
+  if (check.severity === "warning")
+    return "The file itself isn't a program, but programs that expect that kind of file may not open it, or may show an error.";
   return "It is a different format of the same sort of file, so most programs will still open it, though a few strict ones may not.";
 }
 
 function adviceOf(check) {
-  if (check.severity === "danger") return "Don't open it unless you trust where it came from. If you weren't expecting it, move it to the Recycle Bin.";
-  if (check.severity === "warning") return "If you know what it really is, rename it so it ends the right way. If you don't recognize it, check where it came from before you open it.";
-  return check.suggestedName ? "You can rename it so its ending matches what it really is." : "Nothing needs to be done unless a program refuses to open it.";
+  if (check.severity === "danger")
+    return "Don't open it unless you trust where it came from. If you weren't expecting it, move it to the Recycle Bin.";
+  if (check.severity === "warning")
+    return "If you know what it really is, rename it so it ends the right way. If you don't recognize it, check where it came from before you open it.";
+  return check.suggestedName
+    ? "You can rename it so its ending matches what it really is."
+    : "Nothing needs to be done unless a program refuses to open it.";
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -74,7 +79,12 @@ function adviceOf(check) {
 /** What is known about one file: a verdict or null. Asks the server when the list hasn't done so already. */
 export async function verdictFor(path, entry = null) {
   if (!typeWarningsOn()) return null;
-  const known = entry ?? [...visibleEntries(left), ...visibleEntries(right)].find((e) => e.path === path) ?? null;
+  const known =
+    entry ??
+    [...visibleEntries(left), ...visibleEntries(right)].find(
+      (e) => e.path === path,
+    ) ??
+    null;
   const hit = known ? cached(known) : null;
   if (hit) return hit.check;
   try {
@@ -105,7 +115,13 @@ function wanted() {
     const limit = pane.shown > PAGE ? pane.shown : FIRST_ROWS;
     for (const row of rows.slice(0, limit)) {
       const entry = byPath.get(row.dataset.key);
-      if (entry && !entry.isDir && !cached(entry) && !inflight.has(entry.path) && !seen.has(entry.path)) {
+      if (
+        entry &&
+        !entry.isDir &&
+        !cached(entry) &&
+        !inflight.has(entry.path) &&
+        !seen.has(entry.path)
+      ) {
         seen.add(entry.path);
         out.push(entry);
       }
@@ -122,11 +138,14 @@ async function checkPending() {
     const batch = todo.slice(i, i + BATCH);
     for (const e of batch) inflight.add(e.path);
     try {
-      const res = await call("check/files", { paths: batch.map((e) => e.path) });
+      const res = await call("check/files", {
+        paths: batch.map((e) => e.path),
+      });
       const byPath = new Map(batch.map((e) => [e.path, e]));
       for (const r of res.results) {
         const entry = byPath.get(r.path);
-        if (entry && !r.skipped) remember(entry.path, sigOf(entry), r.check ?? null);
+        if (entry && !r.skipped)
+          remember(entry.path, sigOf(entry), r.check ?? null);
       }
       decorate();
     } catch {
@@ -153,13 +172,21 @@ function noteScope() {
 
 function makeBadge(entry, check) {
   const lv = level(check);
-  const badge = h("button", {
-    type: "button", class: `type-badge ${check.severity}`, dataset: { code: check.code },
-    "aria-label": `${lv.lead}: this file is not what its name says. Press for details`,
-    title: `${check.title}. ${check.detail} Press to read more.`,
-    onclick: () => explainFile(entry.path, entry.name, check),
-    ondblclick: (e) => e.stopPropagation(),
-  }, h("span", { "aria-hidden": "true" }, lv.icon), " ", lv.word);
+  const badge = h(
+    "button",
+    {
+      type: "button",
+      class: `type-badge ${check.severity}`,
+      dataset: { code: check.code },
+      "aria-label": `${lv.lead}: this file is not what its name says. Press for details`,
+      title: `${check.title}. ${check.detail} Press to read more.`,
+      onclick: () => explainFile(entry.path, entry.name, check),
+      ondblclick: (e) => e.stopPropagation(),
+    },
+    h("span", { "aria-hidden": "true" }, lv.icon),
+    " ",
+    lv.word,
+  );
   badge.addEventListener("keydown", (e) => {
     if (e.key === "Enter" || e.key === " ") e.stopPropagation();
   });
@@ -170,10 +197,14 @@ function makeBadge(entry, check) {
 function decorate() {
   const enabled = typeWarningsOn();
   for (const pane of PANES) {
-    const byPath = enabled && !inTrash(pane) ? new Map(visibleEntries(pane).map((e) => [e.path, e])) : null;
+    const byPath =
+      enabled && !inTrash(pane)
+        ? new Map(visibleEntries(pane).map((e) => [e.path, e]))
+        : null;
     for (const row of document.querySelectorAll(`#${pane.ids.list} .row`)) {
       const entry = byPath?.get(row.dataset.key);
-      const check = entry && !entry.isDir ? (cached(entry)?.check ?? null) : null;
+      const check =
+        entry && !entry.isDir ? (cached(entry)?.check ?? null) : null;
       const old = row.querySelector(".type-badge");
       if (!check) {
         if (old) {
@@ -182,7 +213,12 @@ function decorate() {
         }
         continue;
       }
-      if (old && old.dataset.code === check.code && old.classList.contains(check.severity)) continue;
+      if (
+        old &&
+        old.dataset.code === check.code &&
+        old.classList.contains(check.severity)
+      )
+        continue;
       old?.remove();
       row.classList.add("has-verdict");
       (row.querySelector(".c-name") ?? row).append(makeBadge(entry, check));
@@ -202,7 +238,8 @@ export function wireTypeCheck() {
   new MutationObserver(changed).observe(list, { childList: true });
   on("right-view", changed);
   on("settings", (change) => {
-    if (!change || Object.keys(change).length === 0 || "typeWarnings" in change) changed();
+    if (!change || Object.keys(change).length === 0 || "typeWarnings" in change)
+      changed();
   });
   changed();
 }
@@ -217,7 +254,20 @@ async function renameTo(path, newName, oldName) {
   selectKeys([res.to]);
   toast(`Renamed to "${newName}".`, {
     kind: "success",
-    action: { label: "Undo", run: () => call("rename", { path: res.to, name: oldName }).then(() => refresh({ keepSelection: false })).catch((err) => toast(err instanceof ApiError ? err.message : "That couldn't be undone.", { kind: "error" })) },
+    action: {
+      label: "Undo",
+      run: () =>
+        call("rename", { path: res.to, name: oldName })
+          .then(() => refresh({ keepSelection: false }))
+          .catch((err) =>
+            toast(
+              err instanceof ApiError
+                ? err.message
+                : "That couldn't be undone.",
+              { kind: "error" },
+            ),
+          ),
+    },
   });
   return res;
 }
@@ -226,36 +276,76 @@ async function renameTo(path, newName, oldName) {
  * The buttons that go with a verdict. `onDone` runs after one of them did its work (to close a dialog);
  * `onError` shows a problem (a name that is taken) where the person is looking.
  */
-function actionButtons(path, name, check, { details = true, onDone = () => {}, onError = (message) => toast(message, { kind: "error" }) } = {}) {
+function actionButtons(
+  path,
+  name,
+  check,
+  {
+    details = true,
+    onDone = () => {},
+    onError = (message) => toast(message, { kind: "error" }),
+  } = {},
+) {
   const out = [];
-  if (check.suggestedName && check.suggestedExtension && check.severity !== "danger") {
-    out.push(h("button", {
-      type: "button", class: "btn primary", title: "Gives the file the ending that matches what it really is. What is inside doesn't change, and nothing is overwritten.",
-      onclick: async () => {
-        try {
-          await renameTo(path, check.suggestedName, name);
-          onDone();
-        } catch (err) {
-          onError(err instanceof ApiError ? err.message : "That couldn't be renamed.");
-        }
-      },
-    }, `Rename to .${check.suggestedExtension}`));
+  if (
+    check.suggestedName &&
+    check.suggestedExtension &&
+    check.severity !== "danger"
+  ) {
+    out.push(
+      h(
+        "button",
+        {
+          type: "button",
+          class: "btn primary",
+          title:
+            "Gives the file the ending that matches what it really is. What is inside doesn't change, and nothing is overwritten.",
+          onclick: async () => {
+            try {
+              await renameTo(path, check.suggestedName, name);
+              onDone();
+            } catch (err) {
+              onError(
+                err instanceof ApiError
+                  ? err.message
+                  : "That couldn't be renamed.",
+              );
+            }
+          },
+        },
+        `Rename to .${check.suggestedExtension}`,
+      ),
+    );
   }
   if (details) {
-    out.push(h("button", {
-      type: "button", class: "btn", title: "Opens the Details panel on the right, with this file selected",
-      onclick: async () => {
-        await saveSettings({ showInfoPanel: true }).catch(() => {});
-        selectOnly(path);
-        onDone();
-      },
-    }, "Show in Details"));
+    out.push(
+      h(
+        "button",
+        {
+          type: "button",
+          class: "btn",
+          title:
+            "Opens the Details panel on the right, with this file selected",
+          onclick: async () => {
+            await saveSettings({ showInfoPanel: true }).catch(() => {});
+            selectOnly(path);
+            onDone();
+          },
+        },
+        "Show in Details",
+      ),
+    );
   }
   return out;
 }
 
 const explanation = (check) => [
-  h("p", { class: "tc-detail" }, h("strong", {}, `${level(check).icon} ${level(check).word}: `), check.detail),
+  h(
+    "p",
+    { class: "tc-detail" },
+    h("strong", {}, `${level(check).icon} ${level(check).word}: `),
+    check.detail,
+  ),
   h("p", {}, h("strong", {}, "What this means: "), meaningOf(check)),
   h("p", {}, h("strong", {}, "What to do: "), adviceOf(check)),
 ];
@@ -278,17 +368,37 @@ export async function announceVerdict(path) {
   if (!check) return;
   const name = baseName(path, state.sep);
   const first = check.detail.split(/(?<=[.!?])\s/)[0];
-  toast(`${check.title}: ${first}`, { kind: check.severity === "danger" ? "error" : "info", timeout: 12000, action: { label: "Details", run: () => explainFile(path, name, check) } });
+  toast(`${check.title}: ${first}`, {
+    kind: check.severity === "danger" ? "error" : "info",
+    timeout: 12000,
+    action: { label: "Details", run: () => explainFile(path, name, check) },
+  });
 }
 
 /** The dialog that explains one verdict. */
 export function explainFile(path, name, check) {
   let dialog = null;
-  const actions = actionButtons(path, name, check, { onDone: () => dialog?.close("done"), onError: (message) => dialog?.setError(message) });
+  const actions = actionButtons(path, name, check, {
+    onDone: () => dialog?.close("done"),
+    onError: (message) => dialog?.setError(message),
+  });
   dialog = openDialog({
-    title: NAME_NOTICES.has(check.code) ? "Look at this file's name" : "This file isn't what its name says",
-    body: h("div", { class: "tc-dialog" }, explanation(check), actions.length ? h("div", { class: "type-actions" }, actions) : null),
-    buttons: [{ label: "Close", primary: check.severity === "danger" || actions.length === 0, value: "close" }],
+    title: NAME_NOTICES.has(check.code)
+      ? "Look at this file's name"
+      : "This file isn't what its name says",
+    body: h(
+      "div",
+      { class: "tc-dialog" },
+      explanation(check),
+      actions.length ? h("div", { class: "type-actions" }, actions) : null,
+    ),
+    buttons: [
+      {
+        label: "Close",
+        primary: check.severity === "danger" || actions.length === 0,
+        value: "close",
+      },
+    ],
     describe: check.title,
   });
   const close = dialog.el.querySelector(".dialog-buttons .btn");
@@ -300,17 +410,35 @@ export function explainFile(path, name, check) {
  * A panel for the Details panel and Properties: nothing at first, and the verdict once the server has answered
  * (and only when there is one). `showDetails` adds "Show in Details" (not needed inside the Details panel itself).
  */
-export function verdictBlock(path, name, { showDetails = false, onDone = () => {} } = {}) {
+export function verdictBlock(
+  path,
+  name,
+  { showDetails = false, onDone = () => {} } = {},
+) {
   const box = h("div", { class: "type-block-host", "aria-live": "polite" });
   verdictFor(path).then((check) => {
     if (!check) return;
-    const actions = actionButtons(path, name, check, { details: showDetails, onDone, onError: (message) => toast(message, { kind: "error" }) });
-    box.append(h("section", { class: `type-block ${check.severity}`, "aria-label": "File type" },
-      h("h3", { class: "tc-heading" }, `${level(check).icon} File type: ${check.title}`),
-      explanation(check),
-      check.actual ? h("p", { class: "hint" }, `Its contents are ${check.actual.label}.`) : null,
-      actions.length ? h("div", { class: "type-actions" }, actions) : null,
-    ));
+    const actions = actionButtons(path, name, check, {
+      details: showDetails,
+      onDone,
+      onError: (message) => toast(message, { kind: "error" }),
+    });
+    box.append(
+      h(
+        "section",
+        { class: `type-block ${check.severity}`, "aria-label": "File type" },
+        h(
+          "h3",
+          { class: "tc-heading" },
+          `${level(check).icon} File type: ${check.title}`,
+        ),
+        explanation(check),
+        check.actual
+          ? h("p", { class: "hint" }, `Its contents are ${check.actual.label}.`)
+          : null,
+        actions.length ? h("div", { class: "type-actions" }, actions) : null,
+      ),
+    );
   });
   return box;
 }
@@ -320,8 +448,12 @@ export function askOpenAnyway(path, err) {
   const check = err?.details?.check;
   return confirmBox({
     title: "This file isn't what its name says",
-    message: check?.detail ?? `"${baseName(path, state.sep)}" isn't what its name says.`,
-    details: ["Only open it if you trust where it came from. If you weren't expecting this file, choose Don't open."],
+    message:
+      check?.detail ??
+      `"${baseName(path, state.sep)}" isn't what its name says.`,
+    details: [
+      "Only open it if you trust where it came from. If you weren't expecting this file, choose Don't open.",
+    ],
     confirmLabel: "Open anyway",
     cancelLabel: "Don't open",
     danger: true,

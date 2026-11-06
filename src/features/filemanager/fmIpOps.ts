@@ -3,8 +3,22 @@
  * subnet and CIDR math, local network interfaces, external map/WHOIS links, and result file export/import.
  */
 import { lstatSync, promises as fsp } from "fs";
-import { absolutePath, assertCreatable, assertFolder, pathApi, type FmContext, type FmHandler } from "./fmCore";
-import { formatsAnswer, inCidrAnswer, interfacesAnswer, maskAnswer, splitAnswer, subnetAnswer } from "./fmIpCalc";
+import {
+  absolutePath,
+  assertCreatable,
+  assertFolder,
+  pathApi,
+  type FmContext,
+  type FmHandler,
+} from "./fmCore";
+import {
+  formatsAnswer,
+  inCidrAnswer,
+  interfacesAnswer,
+  maskAnswer,
+  splitAnswer,
+  subnetAnswer,
+} from "./fmIpCalc";
 import { bulkAnswer, lookupAnswer, splitTargets } from "./fmIpLookup";
 import { buildExternalUrl } from "./fmIpNet";
 import { openCommand } from "./fmOpen";
@@ -17,8 +31,15 @@ async function guarded<T>(work: () => T | Promise<T>): Promise<T> {
   try {
     return await work();
   } catch (err: any) {
-    if (err instanceof FmError || (typeof err?.code === "string" && /^E[A-Z]+$/.test(err.code))) throw err;
-    throw new FmError("IP_FAILED", "That didn't work. Check what you typed and try again.");
+    if (
+      err instanceof FmError ||
+      (typeof err?.code === "string" && /^E[A-Z]+$/.test(err.code))
+    )
+      throw err;
+    throw new FmError(
+      "IP_FAILED",
+      "That didn't work. Check what you typed and try again.",
+    );
   }
 }
 
@@ -32,7 +53,13 @@ async function openUrl(ctx: FmContext, body: Record<string, any>) {
   try {
     await ctx.launch(cmd.command, cmd.args);
   } catch (err: any) {
-    if (err?.code === "ENOENT") throw new FmError("NO_OPENER", ctx.platform === "linux" ? "Opening a web page needs the 'xdg-open' program (package 'xdg-utils'), which this computer doesn't seem to have." : `Couldn't start "${cmd.command}" to open that.`);
+    if (err?.code === "ENOENT")
+      throw new FmError(
+        "NO_OPENER",
+        ctx.platform === "linux"
+          ? "Opening a web page needs the 'xdg-open' program (package 'xdg-utils'), which this computer doesn't seem to have."
+          : `Couldn't start "${cmd.command}" to open that.`,
+      );
     throw new FmError("OPEN_FAILED", "Couldn't open the web page.");
   }
   return { opened: url };
@@ -51,11 +78,17 @@ async function saveResults(ctx: FmContext, body: Record<string, any>) {
   const folder = absolutePath(ctx, body.folder);
   await assertFolder(folder, "That folder");
   assertCreatable(ctx, folder);
-  const format = body.format === "csv" ? "csv" : body.format === "json" ? "json" : null;
+  const format =
+    body.format === "csv" ? "csv" : body.format === "json" ? "json" : null;
   if (!format) throw new FmError("BAD_FORMAT", "Choose JSON or CSV.");
   const text = typeof body.text === "string" ? body.text : "";
-  if (!text.trim()) throw new FmError("NOTHING_TO_SAVE", "There is nothing to save yet. Look something up first.");
-  if (Buffer.byteLength(text) > MAX_SAVE_BYTES) throw new FmError("TOO_LARGE", "That is too much to save in one file.");
+  if (!text.trim())
+    throw new FmError(
+      "NOTHING_TO_SAVE",
+      "There is nothing to save yet. Look something up first.",
+    );
+  if (Buffer.byteLength(text) > MAX_SAVE_BYTES)
+    throw new FmError("TOO_LARGE", "That is too much to save in one file.");
   if (format === "json") {
     try {
       JSON.parse(text);
@@ -63,25 +96,46 @@ async function saveResults(ctx: FmContext, body: Record<string, any>) {
       throw new FmError("BAD_REQUEST", "Those results can't be saved as JSON.");
     }
   }
-  const wanted = (cleanName(body.name) || "ipinfo_results").replace(/\.(json|csv)$/i, "");
+  const wanted = (cleanName(body.name) || "ipinfo_results").replace(
+    /\.(json|csv)$/i,
+    "",
+  );
   const reason = validateName(`${wanted}.${format}`, ctx.platform);
   if (reason) throw new FmError("BAD_NAME", reason);
   const p = pathApi(ctx);
   const ci = ctx.platform !== "linux";
-  const existing = new Set((await fsp.readdir(folder).catch(() => [] as string[])).map((n) => (ci ? n.toLowerCase() : n)));
+  const existing = new Set(
+    (await fsp.readdir(folder).catch(() => [] as string[])).map((n) =>
+      ci ? n.toLowerCase() : n,
+    ),
+  );
   const raced = new Set<string>();
   const data = text.endsWith("\n") ? text : `${text}\n`;
   for (let attempt = 0; attempt < 25; attempt++) {
-    const name = uniqueName(`${wanted}.${format}`, (n) => raced.has(n) || existing.has(ci ? n.toLowerCase() : n));
+    const name = uniqueName(
+      `${wanted}.${format}`,
+      (n) => raced.has(n) || existing.has(ci ? n.toLowerCase() : n),
+    );
     try {
-      await fsp.writeFile(p.join(folder, name), data, { flag: "wx", encoding: "utf8" });
-      return { path: p.join(folder, name), name, folder, bytes: Buffer.byteLength(data) };
+      await fsp.writeFile(p.join(folder, name), data, {
+        flag: "wx",
+        encoding: "utf8",
+      });
+      return {
+        path: p.join(folder, name),
+        name,
+        folder,
+        bytes: Buffer.byteLength(data),
+      };
     } catch (err: any) {
       if (err?.code !== "EEXIST") throw err;
       raced.add(name);
     }
   }
-  throw new FmError("NO_FREE_NAME", "Couldn't find a free file name. Try a different name.");
+  throw new FmError(
+    "NO_FREE_NAME",
+    "Couldn't find a free file name. Try a different name.",
+  );
 }
 
 /** Reads a text file of addresses (the first 256 KB) for the bulk lookup. */
@@ -91,10 +145,15 @@ async function loadList(ctx: FmContext, body: Record<string, any>) {
   try {
     st = await fsp.stat(path);
   } catch (err: any) {
-    if (err?.code === "ENOENT") throw new FmError("NOT_FOUND", "That file doesn't exist.");
+    if (err?.code === "ENOENT")
+      throw new FmError("NOT_FOUND", "That file doesn't exist.");
     throw err;
   }
-  if (!st.isFile()) throw new FmError("NOT_A_FILE", "That isn't a file. Choose a text file with one address per line.");
+  if (!st.isFile())
+    throw new FmError(
+      "NOT_A_FILE",
+      "That isn't a file. Choose a text file with one address per line.",
+    );
   const length = Math.min(st.size, MAX_LIST_BYTES);
   const buffer = Buffer.alloc(length);
   const handle = await fsp.open(path, "r");
@@ -103,12 +162,22 @@ async function loadList(ctx: FmContext, body: Record<string, any>) {
   } finally {
     await handle.close();
   }
-  if (buffer.includes(0)) throw new FmError("NOT_TEXT", "That doesn't look like a text file. Choose a plain text file with one address per line.");
+  if (buffer.includes(0))
+    throw new FmError(
+      "NOT_TEXT",
+      "That doesn't look like a text file. Choose a plain text file with one address per line.",
+    );
   let text = buffer.toString("utf8");
   const truncated = st.size > MAX_LIST_BYTES;
   if (truncated) text = text.slice(0, Math.max(0, text.lastIndexOf("\n")));
   const { targets, skipped } = splitTargets(text);
-  return { name: pathApi(ctx).basename(path), text, truncated, count: targets.length, skipped };
+  return {
+    name: pathApi(ctx).basename(path),
+    text,
+    truncated,
+    count: targets.length,
+    skipped,
+  };
 }
 
 /** File Manager API route handlers for the IP Info tool (`ip/lookup`, `ip/myip`, `ip/subnet`, `ip/interfaces`, `ip/bulk`, `ip/incidr`, `ip/split`, `ip/formats`, `ip/mask`, `ip/openurl`, `ip/save`, `ip/loadlist`). */

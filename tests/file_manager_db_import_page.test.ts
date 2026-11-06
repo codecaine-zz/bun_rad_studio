@@ -1,5 +1,20 @@
-import { afterAll, beforeAll, describe, expect, mock, setDefaultTimeout, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "fs";
+import {
+  afterAll,
+  beforeAll,
+  describe,
+  expect,
+  mock,
+  setDefaultTimeout,
+  test,
+} from "bun:test";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 // @ts-ignore (jsdom has no type declarations in every setup)
@@ -14,7 +29,21 @@ import { FakeKeychain } from "./helpers/db_fm";
 setDefaultTimeout(30_000);
 
 const FAKE = join(import.meta.dir, "helpers", "fake_studio_staging.ts");
-const GLOBALS = ["document", "window", "Node", "Element", "HTMLElement", "HTMLInputElement", "HTMLSelectElement", "navigator", "location", "fetch", "localStorage", "sessionStorage", "ResizeObserver"] as const;
+const GLOBALS = [
+  "document",
+  "window",
+  "Node",
+  "Element",
+  "HTMLElement",
+  "HTMLInputElement",
+  "HTMLSelectElement",
+  "navigator",
+  "location",
+  "fetch",
+  "localStorage",
+  "sessionStorage",
+  "ResizeObserver",
+] as const;
 const saved = new Map<string, PropertyDescriptor | undefined>();
 const root = mkdtempSync(join(tmpdir(), "fm-import-page-"));
 const home = join(root, "home");
@@ -38,14 +67,29 @@ async function until(fn: () => any, what: string, ms = 10_000) {
     if (v) return v;
     await sleep(20);
   }
-  throw new Error(`Timed out waiting for ${what}. Dialog: ${String(doc.querySelector(".modal-backdrop")?.textContent ?? "").replace(/\s+/g, " ").slice(0, 300)} Toasts: ${doc.querySelector("#toasts")?.textContent}`);
+  throw new Error(
+    `Timed out waiting for ${what}. Dialog: ${String(
+      doc.querySelector(".modal-backdrop")?.textContent ?? "",
+    )
+      .replace(/\s+/g, " ")
+      .slice(0, 300)} Toasts: ${doc.querySelector("#toasts")?.textContent}`,
+  );
 }
 const q = (sel: string, from: any = doc): any => from.querySelector(sel);
-const qa = (sel: string, from: any = doc): any[] => [...from.querySelectorAll(sel)];
+const qa = (sel: string, from: any = doc): any[] => [
+  ...from.querySelectorAll(sel),
+];
 const pane = (): any => doc.getElementById("power-pane-databases");
-const btn = (text: string, from: any = pane()): any => qa("button", from).find((b) => b.textContent.trim().startsWith(text));
-const click = (el: any) => el.dispatchEvent(new win.MouseEvent("click", { bubbles: true, cancelable: true }));
-const menuItem = (label: string): any => qa(".menu .menu-item").find((b) => b.querySelector(".menu-label").textContent === label);
+const btn = (text: string, from: any = pane()): any =>
+  qa("button", from).find((b) => b.textContent.trim().startsWith(text));
+const click = (el: any) =>
+  el.dispatchEvent(
+    new win.MouseEvent("click", { bubbles: true, cancelable: true }),
+  );
+const menuItem = (label: string): any =>
+  qa(".menu .menu-item").find(
+    (b) => b.querySelector(".menu-label").textContent === label,
+  );
 const closeAll = () => {
   for (const b of qa(".modal-backdrop")) b.remove();
   q(".menu")?.remove();
@@ -53,30 +97,86 @@ const closeAll = () => {
   doc.body.classList.remove("modal-open");
 };
 const call = async (op: string, body: Record<string, unknown> = {}) => {
-  const r = await fetch(`${base}/api/${op}`, { method: "POST", headers: { "content-type": "application/json", "x-fm-token": "ui-token" }, body: JSON.stringify(body) });
-  const data = await r.json() as any;
+  const r = await fetch(`${base}/api/${op}`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-fm-token": "ui-token" },
+    body: JSON.stringify(body),
+  });
+  const data = (await r.json()) as any;
   if (!r.ok) throw new Error(`${op}: ${JSON.stringify(data)}`);
   return data;
 };
-const entry = (name: string) => ({ name, path: join(work, name), isDir: false, size: 1 });
+const entry = (name: string) => ({
+  name,
+  path: join(work, name),
+  isDir: false,
+  size: 1,
+});
 async function openTab(opts?: Record<string, unknown>) {
   closeAll();
   power.openPower("databases", opts);
-  await until(() => pane() && !pane().hidden && pane().querySelector(".db-toolbar"), "the Databases tab");
-  await until(() => dbState.db.loaded && !pane().querySelector(".db-listbox")?.textContent.includes("Loading"), "the list");
+  await until(
+    () => pane() && !pane().hidden && pane().querySelector(".db-toolbar"),
+    "the Databases tab",
+  );
+  await until(
+    () =>
+      dbState.db.loaded &&
+      !pane().querySelector(".db-listbox")?.textContent.includes("Loading"),
+    "the list",
+  );
 }
 async function select(name: string) {
-  const row = qa(".db-row", pane()).find((r) => r.querySelector(".db-row-name").textContent.replace(/^★\s*/, "").trim() === name);
+  const row = qa(".db-row", pane()).find(
+    (r) =>
+      r
+        .querySelector(".db-row-name")
+        .textContent.replace(/^★\s*/, "")
+        .trim() === name,
+  );
   click(row);
-  await until(() => pane().querySelector(".db-detail h3")?.textContent.includes(name), `the detail of ${name}`);
+  await until(
+    () => pane().querySelector(".db-detail h3")?.textContent.includes(name),
+    `the detail of ${name}`,
+  );
 }
 
 beforeAll(async () => {
-  mock.module("../resources/file_manager/ui/terminal.js", () => ({ terminalShell: () => "posix", terminalWsl: () => ({}), terminalAvailable: () => true, typeInTerminal: () => true, showTerminal() {}, hideTerminal() {}, toggleTerminal() {}, wireTerminal() {}, isTerminalOpen: () => false }));
-  saved.set("ResizeObserver", Object.getOwnPropertyDescriptor(globalThis, "ResizeObserver"));
-  Object.defineProperty(globalThis, "ResizeObserver", { value: class { observe() {} disconnect() {} unobserve() {} }, configurable: true, writable: true });
+  mock.module("../resources/file_manager/ui/terminal.js", () => ({
+    terminalShell: () => "posix",
+    terminalWsl: () => ({}),
+    terminalAvailable: () => true,
+    typeInTerminal: () => true,
+    showTerminal() {},
+    hideTerminal() {},
+    toggleTerminal() {},
+    wireTerminal() {},
+    isTerminalOpen: () => false,
+  }));
+  saved.set(
+    "ResizeObserver",
+    Object.getOwnPropertyDescriptor(globalThis, "ResizeObserver"),
+  );
+  Object.defineProperty(globalThis, "ResizeObserver", {
+    value: class {
+      observe() {}
+      disconnect() {}
+      unobserve() {}
+    },
+    configurable: true,
+    writable: true,
+  });
   mkdirSync(work, { recursive: true });
-  for (const [name, text] of Object.entries({ "people.csv": "id,name\n1,Ann\n", "t.tsv": "id\tname\n", "d.json": "[]", "l.ndjson": "{}\n", "book.xlsx": "PK", "notes.txt": "hi", "readme.md": "# x" })) writeFileSync(join(work, name), text);
+  for (const [name, text] of Object.entries({
+    "people.csv": "id,name\n1,Ann\n",
+    "t.tsv": "id\tname\n",
+    "d.json": "[]",
+    "l.ndjson": "{}\n",
+    "book.xlsx": "PK",
+    "notes.txt": "hi",
+    "readme.md": "# x",
+  }))
+    writeFileSync(join(work, name), text);
   sqliteFile = join(home, "shop.sqlite");
   const db = new Database(sqliteFile);
   try {
@@ -89,7 +189,12 @@ beforeAll(async () => {
     port: 0,
     token: "ui-token",
     context: {
-      platform: process.platform === "win32" ? "win32" : process.platform === "darwin" ? "darwin" : "linux",
+      platform:
+        process.platform === "win32"
+          ? "win32"
+          : process.platform === "darwin"
+            ? "darwin"
+            : "linux",
       home,
       dataDir: join(root, "data"),
       databases: {
@@ -97,22 +202,54 @@ beforeAll(async () => {
         env: () => ({ PATH: process.env.PATH ?? "" }),
         cwd: () => work,
         appRoots: () => [],
-        studioCommand: () => ({ kind: "dev", where: FAKE, build: (bunArgs: string[], studioArgs: string[]) => [process.execPath, ...bunArgs, FAKE, ...studioArgs] }),
-        spawnWindow: async (_cmd, o) => (windows.push({ env: o.env }), { ok: true }),
+        studioCommand: () => ({
+          kind: "dev",
+          where: FAKE,
+          build: (bunArgs: string[], studioArgs: string[]) => [
+            process.execPath,
+            ...bunArgs,
+            FAKE,
+            ...studioArgs,
+          ],
+        }),
+        spawnWindow: async (_cmd, o) => (
+          windows.push({ env: o.env }),
+          { ok: true }
+        ),
         startTimeoutMs: 15_000,
         killGraceMs: 400,
       },
     },
   });
   base = `http://127.0.0.1:${server.port}`;
-  const html = readFileSync(join(import.meta.dir, "..", "resources", "file_manager", "index.html"), "utf8").replace(/__FM_TOKEN__/g, "ui-token").replace(/__FM_PLATFORM__/g, process.platform).replace(/__FM_NONCE__/g, "n").replace(/__FM_START__/g, "");
+  const html = readFileSync(
+    join(import.meta.dir, "..", "resources", "file_manager", "index.html"),
+    "utf8",
+  )
+    .replace(/__FM_TOKEN__/g, "ui-token")
+    .replace(/__FM_PLATFORM__/g, process.platform)
+    .replace(/__FM_NONCE__/g, "n")
+    .replace(/__FM_START__/g, "");
   const dom = new JSDOM(html, { url: `${base}/`, pretendToBeVisual: true });
   win = dom.window;
   const g = globalThis as any;
-  for (const k of GLOBALS) if (!saved.has(k)) saved.set(k, Object.getOwnPropertyDescriptor(g, k));
-  for (const k of GLOBALS.filter((x) => x !== "fetch" && x !== "ResizeObserver")) Object.defineProperty(g, k, { value: (win as any)[k], configurable: true, writable: true });
+  for (const k of GLOBALS)
+    if (!saved.has(k)) saved.set(k, Object.getOwnPropertyDescriptor(g, k));
+  for (const k of GLOBALS.filter(
+    (x) => x !== "fetch" && x !== "ResizeObserver",
+  ))
+    Object.defineProperty(g, k, {
+      value: (win as any)[k],
+      configurable: true,
+      writable: true,
+    });
   const realFetch = saved.get("fetch")!.value as typeof fetch;
-  Object.defineProperty(g, "fetch", { value: (u: any, o: any) => realFetch(typeof u === "string" && u.startsWith("/") ? base + u : u, o), configurable: true, writable: true });
+  Object.defineProperty(g, "fetch", {
+    value: (u: any, o: any) =>
+      realFetch(typeof u === "string" && u.startsWith("/") ? base + u : u, o),
+    configurable: true,
+    writable: true,
+  });
   doc = win.document;
   const st = (await import("../resources/file_manager/ui/state.js")).state;
   st.platform = process.platform;
@@ -127,9 +264,27 @@ beforeAll(async () => {
   dbState.resetDatabases();
   studio.resetStudios();
   power.resetPower();
-  await call("db/profile/save", { profile: { engine: "sqlite", name: "Shop file", path: sqliteFile, sqliteMode: "readwrite" } });
-  await call("db/profile/save", { profile: { engine: "mysql", name: "Shop MySQL", host: "h", database: "shop" }, password: "pw-import-1" });
-  await call("db/profile/save", { profile: { engine: "redis", name: "Cache", host: "h" }, password: "pw-import-2" });
+  await call("db/profile/save", {
+    profile: {
+      engine: "sqlite",
+      name: "Shop file",
+      path: sqliteFile,
+      sqliteMode: "readwrite",
+    },
+  });
+  await call("db/profile/save", {
+    profile: {
+      engine: "mysql",
+      name: "Shop MySQL",
+      host: "h",
+      database: "shop",
+    },
+    password: "pw-import-1",
+  });
+  await call("db/profile/save", {
+    profile: { engine: "redis", name: "Cache", host: "h" },
+    password: "pw-import-2",
+  });
 });
 
 afterAll(async () => {
@@ -142,9 +297,17 @@ afterAll(async () => {
     else delete g[k];
   }
   mock.restore();
-  for (const s of (await call("db/studio/list")).studios ?? []) await call("db/studio/stop", { id: s.id });
+  for (const s of (await call("db/studio/list")).studios ?? [])
+    await call("db/studio/stop", { id: s.id });
   server?.stop(true);
-  try { rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); } catch {}
+  try {
+    rmSync(root, {
+      recursive: true,
+      force: true,
+      maxRetries: 10,
+      retryDelay: 100,
+    });
+  } catch {}
 });
 
 describe("Databases tab: Import data with staging…", () => {
@@ -168,7 +331,9 @@ describe("Databases tab: Import data with staging…", () => {
     await select("Shop file");
     click(btn("Import data with staging"));
     await until(() => qa(".menu .menu-item").length === 3, "the menu");
-    expect(qa(".menu .menu-item .menu-label").map((e) => e.textContent)).toEqual(["Here, in this tab", "In its own window", "In my web browser"]);
+    expect(
+      qa(".menu .menu-item .menu-label").map((e) => e.textContent),
+    ).toEqual(["Here, in this tab", "In its own window", "In my web browser"]);
     click(menuItem("In its own window"));
     await until(() => windows.length > 0, "the window to be started");
     expect(windows[0]!.env.STUDIO_IMPORT_OPEN).toBe("1");
@@ -184,12 +349,17 @@ describe("Databases tab: Import data with staging…", () => {
     click(menuItem("Here, in this tab"));
     let info: any;
     await until(() => {
-      void call("db/studio/list").then((r) => (info = r.studios.find((s: any) => s.state === "running")));
+      void call("db/studio/list").then(
+        (r) => (info = r.studios.find((s: any) => s.state === "running")),
+      );
       return info;
     }, "the studio to run");
     const env = ((await (await fetch(`${info.url}__env`)).json()) as any).env;
     expect(env.STUDIO_IMPORT_OPEN).toBe("1");
-    await until(() => qa(".db-studio", pane()).some((s) => !s.hidden), "the studio to be shown in the tab");
+    await until(
+      () => qa(".db-studio", pane()).some((s) => !s.hidden),
+      "the studio to be shown in the tab",
+    );
   });
 });
 
@@ -202,11 +372,25 @@ describe("right-click on a data file: Load into a database (staging first)…", 
   };
 
   test("CSV, TSV, JSON, JSON Lines, Excel (.xlsx) and other data files get it; other files, folders and selections of several do not; legacy .xls gets an honest disabled item", () => {
-    for (const n of ["people.csv", "t.tsv", "d.json", "l.ndjson", "book.xlsx", "sheet.ods", "data.yaml", "dump.sql"]) expect(labelsFor([entry(n)]), n).toContain(label);
+    for (const n of [
+      "people.csv",
+      "t.tsv",
+      "d.json",
+      "l.ndjson",
+      "book.xlsx",
+      "sheet.ods",
+      "data.yaml",
+      "dump.sql",
+    ])
+      expect(labelsFor([entry(n)]), n).toContain(label);
     expect(labelsFor([entry("notes.txt")])).not.toContain(label);
     expect(labelsFor([entry("readme.md")])).not.toContain(label);
-    expect(labelsFor([{ name: "work", path: work, isDir: true, size: 0 }])).not.toContain(label);
-    expect(labelsFor([entry("people.csv"), entry("t.tsv")])).not.toContain(label);
+    expect(
+      labelsFor([{ name: "work", path: work, isDir: true, size: 0 }]),
+    ).not.toContain(label);
+    expect(labelsFor([entry("people.csv"), entry("t.tsv")])).not.toContain(
+      label,
+    );
     expect(labelsFor([entry("book.xls")])).toContain(label);
     const x = menuItem(label);
     expect(x.disabled).toBe(true);
@@ -232,7 +416,11 @@ describe("right-click on a data file: Load into a database (staging first)…", 
     expect(options.some((o) => o.includes("Shop MySQL"))).toBe(true);
     expect(options.some((o) => o.includes("Cache"))).toBe(false);
     expect(options.some((o) => o.includes("A SQLite file"))).toBe(true);
-    for (const el of qa("select, input, button", dlg)) expect(el.title || el.getAttribute("aria-label") || el.textContent.trim(), el.outerHTML.slice(0, 80)).toBeTruthy();
+    for (const el of qa("select, input, button", dlg))
+      expect(
+        el.title || el.getAttribute("aria-label") || el.textContent.trim(),
+        el.outerHTML.slice(0, 80),
+      ).toBeTruthy();
     // a SQLite file typed by path, opened in its own window
     sel.value = "__file__";
     sel.dispatchEvent(new win.Event("change", { bubbles: true }));
@@ -240,9 +428,15 @@ describe("right-click on a data file: Load into a database (staging first)…", 
     expect(path.closest("label").hidden).toBe(false);
     path.value = sqliteFile;
     click(qa("input[type=radio]", dlg).find((r) => r.value === "window"));
-    click(qa("button", dlg).find((b) => b.textContent.includes("Open the import wizard")));
+    click(
+      qa("button", dlg).find((b) =>
+        b.textContent.includes("Open the import wizard"),
+      ),
+    );
     await until(() => windows.length > 0, "the window");
-    expect(windows[0]!.env.STUDIO_IMPORT_FILE).toBe(realpathSync(join(work, "people.csv")));
+    expect(windows[0]!.env.STUDIO_IMPORT_FILE).toBe(
+      realpathSync(join(work, "people.csv")),
+    );
     expect(windows[0]!.env.SQLITE_STUDIO_DB).toBe(sqliteFile);
     expect(windows[0]!.env.STUDIO_STAGING_TOKEN).toBe("");
   });
@@ -257,23 +451,48 @@ describe("right-click on a data file: Load into a database (staging first)…", 
     q("select", dlg).value = "__file__";
     q("select", dlg).dispatchEvent(new win.Event("change", { bubbles: true }));
     q("input[type=text]", dlg).value = join(work, "notes.txt");
-    click(qa("button", dlg).find((b) => b.textContent.includes("Open the import wizard")));
-    await until(() => (q("#toasts")?.textContent ?? "").includes("isn't an SQLite database"), "the refusal");
+    click(
+      qa("button", dlg).find((b) =>
+        b.textContent.includes("Open the import wizard"),
+      ),
+    );
+    await until(
+      () =>
+        (q("#toasts")?.textContent ?? "").includes("isn't an SQLite database"),
+      "the refusal",
+    );
     expect(windows).toHaveLength(0);
     closeAll();
     contextmenu.showEntryMenu([entry("people.csv")], { x: 5, y: 5 });
     click(menuItem(label));
     await until(() => q(".modal-backdrop .dialog"), "the dialog again");
-    click(qa("button", q(".modal-backdrop .dialog")).find((b) => b.textContent.trim() === "Cancel"));
+    click(
+      qa("button", q(".modal-backdrop .dialog")).find(
+        (b) => b.textContent.trim() === "Cancel",
+      ),
+    );
     await sleep(100);
     expect(windows).toHaveLength(0);
   });
 
   test("a file the server will not hand over (gone, or too big) is reported and no dialog opens", async () => {
     closeAll();
-    contextmenu.showEntryMenu([{ name: "ghost.csv", path: join(work, "ghost.csv"), isDir: false, size: 1 }], { x: 5, y: 5 });
+    contextmenu.showEntryMenu(
+      [
+        {
+          name: "ghost.csv",
+          path: join(work, "ghost.csv"),
+          isDir: false,
+          size: 1,
+        },
+      ],
+      { x: 5, y: 5 },
+    );
     click(menuItem(label));
-    await until(() => (q("#toasts")?.textContent ?? "").includes("isn't there"), "the message");
+    await until(
+      () => (q("#toasts")?.textContent ?? "").includes("isn't there"),
+      "the message",
+    );
     expect(q(".modal-backdrop .dialog")).toBeNull();
   });
 });

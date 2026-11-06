@@ -1,8 +1,20 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from "fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { clearDraftHelper, draftFilePath, loadDraftHelper, saveDraftHelper } from "../index.ts";
+import {
+  clearDraftHelper,
+  draftFilePath,
+  loadDraftHelper,
+  saveDraftHelper,
+} from "../index.ts";
 
 const dirs: string[] = [];
 function dir() {
@@ -14,7 +26,22 @@ afterEach(() => {
   while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true });
 });
 
-const form = { title: "My form", width: 800, height: 600, controls: [{ id: "button_1", control_type: "button", x: 1, y: 2, width: 3, height: 4, text: "Hi" }] };
+const form = {
+  title: "My form",
+  width: 800,
+  height: 600,
+  controls: [
+    {
+      id: "button_1",
+      control_type: "button",
+      x: 1,
+      y: 2,
+      width: 3,
+      height: 4,
+      text: "Hi",
+    },
+  ],
+};
 
 describe("Designer draft autosave (backend)", () => {
   test("a saved form comes back unchanged, with the time it was saved", () => {
@@ -42,7 +69,14 @@ describe("Designer draft autosave (backend)", () => {
 
   test("text that is not a form is refused and nothing is written", () => {
     const d = dir();
-    for (const bad of ["not json", "42", "null", "[]", '{"title":"x"}', '{"controls":"no"}']) {
+    for (const bad of [
+      "not json",
+      "42",
+      "null",
+      "[]",
+      '{"title":"x"}',
+      '{"controls":"no"}',
+    ]) {
       expect(saveDraftHelper(bad, d).ok).toBe(false);
     }
     expect(saveDraftHelper(undefined as any, d).ok).toBe(false);
@@ -51,7 +85,10 @@ describe("Designer draft autosave (backend)", () => {
 
   test("a form over 10 MB is refused", () => {
     const d = dir();
-    const huge = JSON.stringify({ controls: [], note: "x".repeat(10 * 1024 * 1024 + 1) });
+    const huge = JSON.stringify({
+      controls: [],
+      note: "x".repeat(10 * 1024 * 1024 + 1),
+    });
     const result = saveDraftHelper(huge, d);
     expect(result.ok).toBe(false);
     expect(result.error).toContain("too large");
@@ -62,7 +99,10 @@ describe("Designer draft autosave (backend)", () => {
     expect(loadDraftHelper(d)).toBeNull();
     writeFileSync(draftFilePath(d), "{ broken");
     expect(loadDraftHelper(d)).toBeNull();
-    writeFileSync(draftFilePath(d), JSON.stringify({ savedAt: "x", spec: { title: "no controls" } }));
+    writeFileSync(
+      draftFilePath(d),
+      JSON.stringify({ savedAt: "x", spec: { title: "no controls" } }),
+    );
     expect(loadDraftHelper(d)).toBeNull();
     writeFileSync(draftFilePath(d), JSON.stringify([1, 2]));
     expect(loadDraftHelper(d)).toBeNull();

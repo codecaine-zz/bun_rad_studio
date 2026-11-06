@@ -7,7 +7,11 @@ import { spawn } from "child_process";
 import * as nodePath from "path";
 import type { FmContext } from "./fmCore";
 import { FmError } from "./fmPaths";
-import { EXEC_MAX_RUNS, EXEC_OUTPUT_CAP, EXEC_TIMEOUT_MS } from "./fmFindShared";
+import {
+  EXEC_MAX_RUNS,
+  EXEC_OUTPUT_CAP,
+  EXEC_TIMEOUT_MS,
+} from "./fmFindShared";
 import { findState } from "./fmFindRun";
 
 /** Splits a command into words. Spaces separate; '...' and "..." group; inside "..." a backslash escapes " and \. */
@@ -29,7 +33,12 @@ export function tokenize(template: string, platform: string): string[] {
           i++;
           break;
         }
-        if (c === '"' && d === "\\" && (template[i + 1] === '"' || template[i + 1] === "\\") && (platform !== "win32" || template[i + 1] === '"')) {
+        if (
+          c === '"' &&
+          d === "\\" &&
+          (template[i + 1] === '"' || template[i + 1] === "\\") &&
+          (platform !== "win32" || template[i + 1] === '"')
+        ) {
           current += template[i + 1];
           i += 2;
           continue;
@@ -37,7 +46,11 @@ export function tokenize(template: string, platform: string): string[] {
         current += d;
         i++;
       }
-      if (!closed) throw new FmError("BAD_COMMAND", "A quote in the command isn't closed. Add the missing quote mark.");
+      if (!closed)
+        throw new FmError(
+          "BAD_COMMAND",
+          "A quote in the command isn't closed. Add the missing quote mark.",
+        );
     } else if (/\s/.test(c)) {
       if (started) tokens.push(current);
       current = "";
@@ -58,10 +71,15 @@ export function tokenize(template: string, platform: string): string[] {
 }
 
 const PLACEHOLDER = /\{(\/\/|\/\.|\/|\.)?\}/g;
-const hasPlaceholder = (token: string) => new RegExp(PLACEHOLDER.source).test(token);
+const hasPlaceholder = (token: string) =>
+  new RegExp(PLACEHOLDER.source).test(token);
 
 /** Fills {} (path), {/} (name), {//} (folder), {.} (path without extension) and {/.} (name without extension). */
-export function fillPlaceholders(token: string, path: string, platform: string): string {
+export function fillPlaceholders(
+  token: string,
+  path: string,
+  platform: string,
+): string {
   const p = platform === "win32" ? nodePath.win32 : nodePath.posix;
   const name = p.basename(path);
   const ext = p.extname(name);
@@ -69,11 +87,16 @@ export function fillPlaceholders(token: string, path: string, platform: string):
   const dir = p.dirname(path);
   return token.replace(PLACEHOLDER, (_m, kind: string | undefined) => {
     switch (kind) {
-      case "/": return name;
-      case "//": return dir;
-      case ".": return p.join(dir, stem);
-      case "/.": return stem;
-      default: return path;
+      case "/":
+        return name;
+      case "//":
+        return dir;
+      case ".":
+        return p.join(dir, stem);
+      case "/.":
+        return stem;
+      default:
+        return path;
     }
   });
 }
@@ -89,26 +112,55 @@ export interface ExecPlan {
  * `each`: the command runs once per path (fd -x). `batch`: it runs once and every word holding a placeholder is
  * repeated for each path (fd -X). A command without any placeholder gets {} added at the end, like fd does.
  */
-export function planExec(templateInput: unknown, paths: string[], mode: "each" | "batch", platform: string): ExecPlan {
-  if (typeof templateInput !== "string" || !templateInput.trim()) throw new FmError("BAD_COMMAND", 'Type a command first, like: wc -l {}');
-  if (templateInput.length > 2000) throw new FmError("BAD_COMMAND", "That command is too long.");
-  if (templateInput.includes("\0")) throw new FmError("BAD_COMMAND", "That command isn't valid.");
+export function planExec(
+  templateInput: unknown,
+  paths: string[],
+  mode: "each" | "batch",
+  platform: string,
+): ExecPlan {
+  if (typeof templateInput !== "string" || !templateInput.trim())
+    throw new FmError("BAD_COMMAND", "Type a command first, like: wc -l {}");
+  if (templateInput.length > 2000)
+    throw new FmError("BAD_COMMAND", "That command is too long.");
+  if (templateInput.includes("\0"))
+    throw new FmError("BAD_COMMAND", "That command isn't valid.");
   const tokens = tokenize(templateInput, platform);
-  if (tokens.length === 0) throw new FmError("BAD_COMMAND", 'Type a command first, like: wc -l {}');
-  if (tokens.length > 100) throw new FmError("BAD_COMMAND", "That command has too many parts.");
+  if (tokens.length === 0)
+    throw new FmError("BAD_COMMAND", "Type a command first, like: wc -l {}");
+  if (tokens.length > 100)
+    throw new FmError("BAD_COMMAND", "That command has too many parts.");
   const [program, ...rest] = tokens as [string, ...string[]];
-  if (hasPlaceholder(program)) throw new FmError("BAD_COMMAND", "The program name can't contain {} - put the file placeholders after it.");
+  if (hasPlaceholder(program))
+    throw new FmError(
+      "BAD_COMMAND",
+      "The program name can't contain {} - put the file placeholders after it.",
+    );
   const words = rest.some(hasPlaceholder) ? rest : [...rest, "{}"];
   if (mode === "each") {
-    if (paths.length > EXEC_MAX_RUNS) throw new FmError("TOO_MANY", `That would start the program ${paths.length} times (the limit is ${EXEC_MAX_RUNS}). Use "Run once with all results" instead.`);
-    return { program, runs: paths.map((path) => ({ path, args: words.map((w) => fillPlaceholders(w, path, platform)) })) };
+    if (paths.length > EXEC_MAX_RUNS)
+      throw new FmError(
+        "TOO_MANY",
+        `That would start the program ${paths.length} times (the limit is ${EXEC_MAX_RUNS}). Use "Run once with all results" instead.`,
+      );
+    return {
+      program,
+      runs: paths.map((path) => ({
+        path,
+        args: words.map((w) => fillPlaceholders(w, path, platform)),
+      })),
+    };
   }
   const args: string[] = [];
   for (const w of words) {
-    if (hasPlaceholder(w)) for (const path of paths) args.push(fillPlaceholders(w, path, platform));
+    if (hasPlaceholder(w))
+      for (const path of paths) args.push(fillPlaceholders(w, path, platform));
     else args.push(w);
   }
-  if (args.reduce((n, a) => n + a.length + 1, 0) > 200_000) throw new FmError("TOO_MANY", "That's too many items for one command. Narrow the search or run it on fewer items.");
+  if (args.reduce((n, a) => n + a.length + 1, 0) > 200_000)
+    throw new FmError(
+      "TOO_MANY",
+      "That's too many items for one command. Narrow the search or run it on fewer items.",
+    );
   return { program, runs: [{ path: null, args }] };
 }
 
@@ -133,10 +185,16 @@ export interface ExecOutcome {
   notRun: number;
 }
 
-const quote = (a: string) => (/[\s"']/.test(a) || a === "" ? JSON.stringify(a) : a);
+const quote = (a: string) =>
+  /[\s"']/.test(a) || a === "" ? JSON.stringify(a) : a;
 
 /** Starts the program with the given arguments (no shell), with a time limit and a cap on how much output is kept. */
-export async function runExec(ctx: FmContext, plan: ExecPlan, cwd: string, limits: { timeoutMs?: number; outputCap?: number } = {}): Promise<ExecOutcome> {
+export async function runExec(
+  ctx: FmContext,
+  plan: ExecPlan,
+  cwd: string,
+  limits: { timeoutMs?: number; outputCap?: number } = {},
+): Promise<ExecOutcome> {
   const state = findState(ctx);
   const deadline = Date.now() + (limits.timeoutMs ?? EXEC_TIMEOUT_MS);
   let budget = limits.outputCap ?? EXEC_OUTPUT_CAP;
@@ -157,37 +215,85 @@ export async function runExec(ctx: FmContext, plan: ExecPlan, cwd: string, limit
     const remaining = deadline - Date.now();
     if (remaining <= 0) break;
     const started = Date.now();
-    const result = await new Promise<Omit<ExecRun, "path" | "command" | "durationMs">>((resolve) => {
+    const result = await new Promise<
+      Omit<ExecRun, "path" | "command" | "durationMs">
+    >((resolve) => {
       let stdout = "";
       let stderr = "";
       let settled = false;
       let child;
       try {
-        child = spawn(plan.program, run.args, { cwd, shell: false, stdio: ["ignore", "pipe", "pipe"], windowsHide: true });
+        child = spawn(plan.program, run.args, {
+          cwd,
+          shell: false,
+          stdio: ["ignore", "pipe", "pipe"],
+          windowsHide: true,
+        });
       } catch (err: any) {
-        return resolve({ exitCode: null, stdout: "", stderr: "", timedOut: false, error: err?.message ?? "The program couldn't start." });
+        return resolve({
+          exitCode: null,
+          stdout: "",
+          stderr: "",
+          timedOut: false,
+          error: err?.message ?? "The program couldn't start.",
+        });
       }
       state.children.add(child);
       let timedOut = false;
       const timer = setTimeout(() => {
         timedOut = true;
-        try { child.kill("SIGKILL"); } catch {}
+        try {
+          child.kill("SIGKILL");
+        } catch {}
       }, remaining);
       const done = (exitCode: number | null, error?: string) => {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
         state.children.delete(child);
-        resolve({ exitCode, stdout: keep(stdout), stderr: keep(stderr), timedOut, ...(error ? { error } : {}) });
+        resolve({
+          exitCode,
+          stdout: keep(stdout),
+          stderr: keep(stderr),
+          timedOut,
+          ...(error ? { error } : {}),
+        });
       };
       // Only the first part of the output is kept in memory, whatever the program prints.
-      child.stdout?.on("data", (d: Buffer) => { if (stdout.length <= EXEC_OUTPUT_CAP) stdout += d.toString("utf8"); });
-      child.stderr?.on("data", (d: Buffer) => { if (stderr.length <= EXEC_OUTPUT_CAP) stderr += d.toString("utf8"); });
-      child.once("error", (err: NodeJS.ErrnoException) => done(null, err.code === "ENOENT" ? `The program "${plan.program}" wasn't found. Check the spelling, or give its full location.` : err.code === "EACCES" ? `You aren't allowed to run "${plan.program}".` : `The program couldn't start: ${err.message}`));
-      child.once("close", (code) => done(code, timedOut ? "It took too long and was stopped." : undefined));
+      child.stdout?.on("data", (d: Buffer) => {
+        if (stdout.length <= EXEC_OUTPUT_CAP) stdout += d.toString("utf8");
+      });
+      child.stderr?.on("data", (d: Buffer) => {
+        if (stderr.length <= EXEC_OUTPUT_CAP) stderr += d.toString("utf8");
+      });
+      child.once("error", (err: NodeJS.ErrnoException) =>
+        done(
+          null,
+          err.code === "ENOENT"
+            ? `The program "${plan.program}" wasn't found. Check the spelling, or give its full location.`
+            : err.code === "EACCES"
+              ? `You aren't allowed to run "${plan.program}".`
+              : `The program couldn't start: ${err.message}`,
+        ),
+      );
+      child.once("close", (code) =>
+        done(code, timedOut ? "It took too long and was stopped." : undefined),
+      );
     });
     if (result.timedOut) anyTimeout = true;
-    runs.push({ path: run.path, command: [plan.program, ...run.args].slice(0, 12).map(quote).join(" ") + (run.args.length > 11 ? ` … (${run.args.length} arguments)` : ""), durationMs: Date.now() - started, ...result });
+    runs.push({
+      path: run.path,
+      command:
+        [plan.program, ...run.args].slice(0, 12).map(quote).join(" ") +
+        (run.args.length > 11 ? ` … (${run.args.length} arguments)` : ""),
+      durationMs: Date.now() - started,
+      ...result,
+    });
   }
-  return { runs, truncated, timedOut: anyTimeout, notRun: plan.runs.length - runs.length };
+  return {
+    runs,
+    truncated,
+    timedOut: anyTimeout,
+    notRun: plan.runs.length - runs.length,
+  };
 }

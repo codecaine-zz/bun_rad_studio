@@ -42,8 +42,15 @@ export function parseDoggoArguments(args: string[]): DoggoOptions {
     process.exit(1);
   }
 
-  const isRev = values.reverse || (isIpAddress(domain) && !values.type && !parsed.type);
-  const queryType = (values.all ? "ALL" : (isRev ? "PTR" : (values.type?.toUpperCase() ?? parsed.type ?? "A"))) as DnsRecordType | "ALL";
+  const isRev =
+    values.reverse || (isIpAddress(domain) && !values.type && !parsed.type);
+  const queryType = (
+    values.all
+      ? "ALL"
+      : isRev
+        ? "PTR"
+        : (values.type?.toUpperCase() ?? parsed.type ?? "A")
+  ) as DnsRecordType | "ALL";
   const nameserver = values.nameserver ?? parsed.nameserver;
 
   return {

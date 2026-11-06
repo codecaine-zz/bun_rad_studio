@@ -1,23 +1,117 @@
 import { describe, expect, it } from "bun:test";
 import { DATASETS, catalog, getDataset } from "../src/db/samples/catalog";
-import { literal, quoteId, quoteString, sqlHelpers } from "../src/db/samples/dialect";
-import { DIALECTS, dataset, parseColumn, table, tableCounts, view, query, type DatasetDef, type Dialect } from "../src/db/samples/model";
 import {
-  META_TABLES, allIndexes, renderComments, renderCreateTable, renderDrop, renderIndexes, renderTriggers, renderViews, insertStatements, columnType,
+  literal,
+  quoteId,
+  quoteString,
+  sqlHelpers,
+} from "../src/db/samples/dialect";
+import {
+  DIALECTS,
+  dataset,
+  parseColumn,
+  table,
+  tableCounts,
+  view,
+  query,
+  type DatasetDef,
+  type Dialect,
+} from "../src/db/samples/model";
+import {
+  META_TABLES,
+  allIndexes,
+  renderComments,
+  renderCreateTable,
+  renderDrop,
+  renderIndexes,
+  renderTriggers,
+  renderViews,
+  insertStatements,
+  columnType,
 } from "../src/db/samples/render";
-import { luhnValid, ibanLike, mulberry32, luhnCheckDigit } from "../src/db/samples/gen";
-import { MYSQL_RESERVED, PG_RESERVED, SQLITE_RESERVED } from "./helpers/reserved_words";
+import {
+  luhnValid,
+  ibanLike,
+  mulberry32,
+  luhnCheckDigit,
+} from "../src/db/samples/gen";
+import {
+  MYSQL_RESERVED,
+  PG_RESERVED,
+  SQLITE_RESERVED,
+} from "./helpers/reserved_words";
 
-const RESERVED = new Set([...MYSQL_RESERVED, ...PG_RESERVED, ...SQLITE_RESERVED]);
-const TYPE_WORDS = new Set(["INTEGER", "INT", "NUMERIC", "TEXT", "DATE", "SIGNED", "CHAR", "DECIMAL", "DOUBLE", "REAL", "BIGINT", "TIMESTAMP"]);
+const RESERVED = new Set([
+  ...MYSQL_RESERVED,
+  ...PG_RESERVED,
+  ...SQLITE_RESERVED,
+]);
+const TYPE_WORDS = new Set([
+  "INTEGER",
+  "INT",
+  "NUMERIC",
+  "TEXT",
+  "DATE",
+  "SIGNED",
+  "CHAR",
+  "DECIMAL",
+  "DOUBLE",
+  "REAL",
+  "BIGINT",
+  "TIMESTAMP",
+]);
 
 const mini: DatasetDef = dataset({
-  id: "mini", title: "Mini", tagline: "t", description: "d", tags: ["Test"], asOf: "2025-06-30",
+  id: "mini",
+  title: "Mini",
+  tagline: "t",
+  description: "d",
+  tags: ["Test"],
+  asOf: "2025-06-30",
   tables: [
-    table("parent", "Parent table.", ["id id", "code str(10) uq", "kind enum(a,b)", "flag bool def:true", "price dec(10,2) def:0", "meta json null", "labels tags null", "token uuid null", "created_at ts def:now", "updated_at ts upd", "note text null"], { rows: [{ code: "x", kind: "a", price: 1.5 }], ix: ["kind,created_at"] }),
-    table("child", "Child table.", ["id id", "parent_id int fk:parent cascade", "qty int", "unit dec(8,2)", "total dec(12,2) = qty * unit"], { rows: [{ parent_id: 1, qty: 2, unit: 3 }], ck: ["qty > 0"], uq: [["parent_id", "qty"]] }),
+    table(
+      "parent",
+      "Parent table.",
+      [
+        "id id",
+        "code str(10) uq",
+        "kind enum(a,b)",
+        "flag bool def:true",
+        "price dec(10,2) def:0",
+        "meta json null",
+        "labels tags null",
+        "token uuid null",
+        "created_at ts def:now",
+        "updated_at ts upd",
+        "note text null",
+      ],
+      { rows: [{ code: "x", kind: "a", price: 1.5 }], ix: ["kind,created_at"] },
+    ),
+    table(
+      "child",
+      "Child table.",
+      [
+        "id id",
+        "parent_id int fk:parent cascade",
+        "qty int",
+        "unit dec(8,2)",
+        "total dec(12,2) = qty * unit",
+      ],
+      {
+        rows: [{ parent_id: 1, qty: 2, unit: 3 }],
+        ck: ["qty > 0"],
+        uq: [["parent_id", "qty"]],
+      },
+    ),
   ],
-  views: [view("v_mini", "A view.", (d) => `SELECT p.code, ${d.concat("p.code", "'-'", "p.kind")} AS label FROM parent p`)],
+  views: [
+    view(
+      "v_mini",
+      "A view.",
+      (d) =>
+        `SELECT p.code, ${d.concat("p.code", "'-'", "p.kind")} AS label FROM parent p`,
+    ),
+  ],
   queries: [query("q", "Q", "D", () => "SELECT 1")],
 });
 
@@ -46,15 +140,21 @@ describe("sample renderers (no server needed)", () => {
     expect(quoteId("sqlite", "t")).toBe('"t"');
     expect(quoteString("sqlite", "it's")).toBe("'it''s'");
     expect(quoteString("mysql", "a\\b'c")).toBe("'a\\\\b''c'");
-    expect(literal("postgres", ["a", "b'c"], parseColumn("x tags"))).toBe("ARRAY['a','b''c']::text[]");
-    expect(literal("postgres", [], parseColumn("x tags"))).toBe("ARRAY[]::text[]");
+    expect(literal("postgres", ["a", "b'c"], parseColumn("x tags"))).toBe(
+      "ARRAY['a','b''c']::text[]",
+    );
+    expect(literal("postgres", [], parseColumn("x tags"))).toBe(
+      "ARRAY[]::text[]",
+    );
     expect(literal("mysql", ["a"], parseColumn("x tags"))).toBe(`'["a"]'`);
     expect(literal("postgres", true)).toBe("TRUE");
     expect(literal("mysql", true)).toBe("1");
     expect(literal("sqlite", false)).toBe("0");
     expect(literal("sqlite", 1.5, parseColumn("x dec(10,3)"))).toBe("1.500");
     expect(literal("sqlite", null)).toBe("NULL");
-    expect(literal("postgres", { a: 1 }, parseColumn("x json"))).toBe(`'{"a":1}'`);
+    expect(literal("postgres", { a: 1 }, parseColumn("x json"))).toBe(
+      `'{"a":1}'`,
+    );
   });
 
   it("renders CREATE TABLE with the right syntax for each engine", () => {
@@ -63,7 +163,7 @@ describe("sample renderers (no server needed)", () => {
     const sqlite = renderCreateTable("sqlite", parent);
     expect(sqlite).toContain('"id" INTEGER PRIMARY KEY');
     expect(sqlite).toContain("CHECK (\"kind\" IN ('a', 'b'))");
-    expect(sqlite).toContain("json_valid(\"meta\")");
+    expect(sqlite).toContain('json_valid("meta")');
     expect(sqlite).not.toContain("COMMENT");
     const mysql = renderCreateTable("mysql", parent);
     expect(mysql).toContain("`id` INT NOT NULL AUTO_INCREMENT");
@@ -72,7 +172,9 @@ describe("sample renderers (no server needed)", () => {
     expect(mysql).toContain("ON UPDATE CURRENT_TIMESTAMP");
     expect(mysql).toContain("`meta` JSON");
     const pg = renderCreateTable("postgres", parent);
-    expect(pg).toContain('"id" INTEGER GENERATED BY DEFAULT AS IDENTITY NOT NULL');
+    expect(pg).toContain(
+      '"id" INTEGER GENERATED BY DEFAULT AS IDENTITY NOT NULL',
+    );
     expect(pg).toContain('"labels" TEXT[]');
     expect(pg).toContain('"token" UUID');
     expect(pg).toContain('"meta" JSONB');
@@ -81,23 +183,43 @@ describe("sample renderers (no server needed)", () => {
       expect(c).toContain("GENERATED ALWAYS AS (qty * unit) STORED");
       expect(c).toContain("ON DELETE CASCADE");
       expect(c).toContain("CHECK (qty > 0)");
-      expect(c).toMatch(/FOREIGN KEY \(.parent_id.\) REFERENCES .parent. \(.id.\)/);
+      expect(c).toMatch(
+        /FOREIGN KEY \(.parent_id.\) REFERENCES .parent. \(.id.\)/,
+      );
     }
   });
 
   it("adds triggers, comments and indexes that fit each dialect", () => {
     expect(renderTriggers("sqlite", mini)[0]).toContain("CREATE TRIGGER");
-    expect(renderTriggers("postgres", mini).join("\n")).toContain("CREATE FUNCTION _sample_touch_updated_at()");
+    expect(renderTriggers("postgres", mini).join("\n")).toContain(
+      "CREATE FUNCTION _sample_touch_updated_at()",
+    );
     expect(renderTriggers("mysql", mini)).toEqual([]);
-    expect(renderComments("postgres", mini).join("\n")).toContain('COMMENT ON TABLE "parent" IS \'Parent table.\'');
-    expect(renderComments("postgres", mini).some((c) => c.startsWith('COMMENT ON COLUMN "child"."parent_id" IS \'Foreign key to parent.id.'))).toBe(true);
+    expect(renderComments("postgres", mini).join("\n")).toContain(
+      "COMMENT ON TABLE \"parent\" IS 'Parent table.'",
+    );
+    expect(
+      renderComments("postgres", mini).some((c) =>
+        c.startsWith(
+          'COMMENT ON COLUMN "child"."parent_id" IS \'Foreign key to parent.id.',
+        ),
+      ),
+    ).toBe(true);
     expect(renderComments("sqlite", mini)).toEqual([]);
     expect(renderComments("mysql", mini)).toEqual([]);
     const idx = renderIndexes("sqlite", mini.tables[1]!);
     expect(idx.some((i) => i.includes('("parent_id")'))).toBe(false); // covered by the unique (parent_id, qty)
-    expect(allIndexes(mini.tables[0]!).some((i) => i.cols.join() === "kind,created_at")).toBe(true);
-    expect(renderViews("mysql", mini)[0]).toContain("CONCAT(p.code, '-', p.kind)");
-    expect(renderViews("postgres", mini)[0]).toContain("(p.code || '-' || p.kind)");
+    expect(
+      allIndexes(mini.tables[0]!).some(
+        (i) => i.cols.join() === "kind,created_at",
+      ),
+    ).toBe(true);
+    expect(renderViews("mysql", mini)[0]).toContain(
+      "CONCAT(p.code, '-', p.kind)",
+    );
+    expect(renderViews("postgres", mini)[0]).toContain(
+      "(p.code || '-' || p.kind)",
+    );
   });
 
   it("splits long inserts into batches and keeps every row", () => {
@@ -105,12 +227,22 @@ describe("sample renderers (no server needed)", () => {
     const rows = Array.from({ length: 1234 }, (_, i) => [i + 1, 1, i, 2.5]);
     const batches = [...insertStatements("sqlite", t, rows, 500)];
     expect(batches.map((b) => b.rows)).toEqual([500, 500, 234]);
-    expect(batches[0]!.sql.startsWith('INSERT INTO "child" ("id", "parent_id", "qty", "unit") VALUES')).toBe(true);
-    expect([...insertStatements("mysql", t, rows.slice(0, 2))][0]!.sql.startsWith("INSERT INTO `child` (`id`")).toBe(true);
+    expect(
+      batches[0]!.sql.startsWith(
+        'INSERT INTO "child" ("id", "parent_id", "qty", "unit") VALUES',
+      ),
+    ).toBe(true);
+    expect(
+      [...insertStatements("mysql", t, rows.slice(0, 2))][0]!.sql.startsWith(
+        "INSERT INTO `child` (`id`",
+      ),
+    ).toBe(true);
   });
 
   it("portable SQL helpers differ per engine where they must", () => {
-    const s = sqlHelpers("sqlite"), m = sqlHelpers("mysql"), p = sqlHelpers("postgres");
+    const s = sqlHelpers("sqlite"),
+      m = sqlHelpers("mysql"),
+      p = sqlHelpers("postgres");
     expect(s.ym("d")).toBe("strftime('%Y-%m', d)");
     expect(m.ym("d")).toBe("DATE_FORMAT(d, '%Y-%m')");
     expect(p.ym("d")).toBe("to_char(d, 'YYYY-MM')");
@@ -127,34 +259,65 @@ describe("sample renderers (no server needed)", () => {
     for (const ds of DATASETS) {
       const pos = new Map(ds.order.map((n, i) => [n, i]));
       expect(ds.order.length).toBe(ds.tables.length);
-      for (const t of ds.tables) for (const c of t.columns) if (c.ref && c.ref.table !== t.name) expect(pos.get(c.ref.table)!, `${ds.id}.${t.name}.${c.name}`).toBeLessThan(pos.get(t.name)!);
+      for (const t of ds.tables)
+        for (const c of t.columns)
+          if (c.ref && c.ref.table !== t.name)
+            expect(
+              pos.get(c.ref.table)!,
+              `${ds.id}.${t.name}.${c.name}`,
+            ).toBeLessThan(pos.get(t.name)!);
     }
-    expect(() => dataset({ id: "cyc", title: "", tagline: "", description: "", tags: [], asOf: "2025-01-01", views: [], queries: [], tables: [
-      table("a", "", ["id id", "b_id int fk:b"], { rows: [] }), table("b", "", ["id id", "a_id int fk:a"], { rows: [] }),
-    ] })).toThrow(/cycle/);
+    expect(() =>
+      dataset({
+        id: "cyc",
+        title: "",
+        tagline: "",
+        description: "",
+        tags: [],
+        asOf: "2025-01-01",
+        views: [],
+        queries: [],
+        tables: [
+          table("a", "", ["id id", "b_id int fk:b"], { rows: [] }),
+          table("b", "", ["id id", "a_id int fk:a"], { rows: [] }),
+        ],
+      }),
+    ).toThrow(/cycle/);
   });
 
   it("child key columns take the parent's type (MySQL requires identical types)", () => {
-    for (const ds of DATASETS) for (const t of ds.tables) for (const c of t.columns) {
-      if (!c.ref) continue;
-      const parent = ds.tables.find((x) => x.name === c.ref!.table)!;
-      const pc = parent.columns.find((x) => x.name === c.ref!.column)!;
-      expect(columnType("mysql", c), `${ds.id}.${t.name}.${c.name}`).toBe(columnType("mysql", pc));
-    }
+    for (const ds of DATASETS)
+      for (const t of ds.tables)
+        for (const c of t.columns) {
+          if (!c.ref) continue;
+          const parent = ds.tables.find((x) => x.name === c.ref!.table)!;
+          const pc = parent.columns.find((x) => x.name === c.ref!.column)!;
+          expect(columnType("mysql", c), `${ds.id}.${t.name}.${c.name}`).toBe(
+            columnType("mysql", pc),
+          );
+        }
   });
 
   it("uses no reserved words as table, column, view or alias names (MySQL + PostgreSQL + SQLite)", () => {
     const bad: string[] = [];
-    const check = (where: string, name: string) => { if (RESERVED.has(name.toUpperCase())) bad.push(`${where}: ${name}`); };
+    const check = (where: string, name: string) => {
+      if (RESERVED.has(name.toUpperCase())) bad.push(`${where}: ${name}`);
+    };
     for (const ds of DATASETS) {
       for (const t of ds.tables) {
         check(`${ds.id} table`, t.name);
-        for (const c of t.columns) { check(`${ds.id}.${t.name} column`, c.name); expect(c.name).toMatch(/^[a-z][a-z0-9_]*$/); }
+        for (const c of t.columns) {
+          check(`${ds.id}.${t.name} column`, c.name);
+          expect(c.name).toMatch(/^[a-z][a-z0-9_]*$/);
+        }
       }
       for (const v of ds.views) check(`${ds.id} view`, v.name);
       for (const d of DIALECTS) {
         const h = sqlHelpers(d);
-        const sqls = [...ds.views.map((v) => v.sql(h)), ...ds.queries.map((q) => q.sql(h))];
+        const sqls = [
+          ...ds.views.map((v) => v.sql(h)),
+          ...ds.queries.map((q) => q.sql(h)),
+        ];
         for (const sql of sqls) {
           for (const m of sql.matchAll(/\bAS\s+([A-Za-z_][A-Za-z0-9_]*)/gi)) {
             if (TYPE_WORDS.has(m[1]!.toUpperCase())) continue;
@@ -174,33 +337,62 @@ describe("sample renderers (no server needed)", () => {
         expect(t.name.length).toBeLessThanOrEqual(40);
         expect(names.has(t.name)).toBe(false);
         names.add(t.name);
-        for (const c of t.columns) expect(c.name.length).toBeLessThanOrEqual(40);
+        for (const c of t.columns)
+          expect(c.name.length).toBeLessThanOrEqual(40);
         for (const d of DIALECTS) {
-          for (const stmt of [renderCreateTable(d, t), ...renderIndexes(d, t)]) for (const m of stmt.matchAll(/(?:CONSTRAINT|INDEX) [`"]([^`"]+)[`"]/g)) expect(m[1]!.length, `${ds.id} ${m[1]}`).toBeLessThanOrEqual(63);
+          for (const stmt of [renderCreateTable(d, t), ...renderIndexes(d, t)])
+            for (const m of stmt.matchAll(
+              /(?:CONSTRAINT|INDEX) [`"]([^`"]+)[`"]/g,
+            ))
+              expect(m[1]!.length, `${ds.id} ${m[1]}`).toBeLessThanOrEqual(63);
         }
       }
-      for (const v of ds.views) expect(names.has(v.name), `${ds.id} view ${v.name} collides with a table`).toBe(false);
+      for (const v of ds.views)
+        expect(
+          names.has(v.name),
+          `${ds.id} view ${v.name} collides with a table`,
+        ).toBe(false);
     }
   });
 
   it("every dataset renders DDL, views, triggers, comments and drops for all three engines", () => {
-    for (const ds of DATASETS) for (const d of DIALECTS as Dialect[]) {
-      for (const t of ds.tables) expect(renderCreateTable(d, t)).toMatch(/^CREATE TABLE/);
-      expect(renderViews(d, ds).length).toBe(ds.views.length);
-      const drops = renderDrop(d, ds);
-      expect(drops.filter((s) => s.startsWith("DROP TABLE")).length).toBe(ds.tables.length + META_TABLES.length);
-      const firstTable = drops.findIndex((s) => s.startsWith("DROP TABLE"));
-      expect(drops.slice(0, firstTable).every((s) => /DROP (MATERIALIZED )?VIEW/.test(s))).toBe(true);
-      if (d === "postgres") expect(renderComments(d, ds).length).toBeGreaterThan(ds.tables.length);
-      if (ds.id === "medicare_formulary" || ds.id === "retail_banking") expect(renderTriggers(d, ds).length).toBeGreaterThan(0);
-    }
+    for (const ds of DATASETS)
+      for (const d of DIALECTS as Dialect[]) {
+        for (const t of ds.tables)
+          expect(renderCreateTable(d, t)).toMatch(/^CREATE TABLE/);
+        expect(renderViews(d, ds).length).toBe(ds.views.length);
+        const drops = renderDrop(d, ds);
+        expect(drops.filter((s) => s.startsWith("DROP TABLE")).length).toBe(
+          ds.tables.length + META_TABLES.length,
+        );
+        const firstTable = drops.findIndex((s) => s.startsWith("DROP TABLE"));
+        expect(
+          drops
+            .slice(0, firstTable)
+            .every((s) => /DROP (MATERIALIZED )?VIEW/.test(s)),
+        ).toBe(true);
+        if (d === "postgres")
+          expect(renderComments(d, ds).length).toBeGreaterThan(
+            ds.tables.length,
+          );
+        if (ds.id === "medicare_formulary" || ds.id === "retail_banking")
+          expect(renderTriggers(d, ds).length).toBeGreaterThan(0);
+      }
   });
 
   it("PostgreSQL gets a materialized view where a dataset asks for one, other engines a plain view", () => {
     const ds = getDataset("saas_billing")!;
-    expect(renderViews("postgres", ds).some((s) => s.startsWith("CREATE MATERIALIZED VIEW"))).toBe(true);
-    expect(renderViews("mysql", ds).some((s) => s.includes("MATERIALIZED"))).toBe(false);
-    expect(renderViews("sqlite", ds).some((s) => s.includes("MATERIALIZED"))).toBe(false);
+    expect(
+      renderViews("postgres", ds).some((s) =>
+        s.startsWith("CREATE MATERIALIZED VIEW"),
+      ),
+    ).toBe(true);
+    expect(
+      renderViews("mysql", ds).some((s) => s.includes("MATERIALIZED")),
+    ).toBe(false);
+    expect(
+      renderViews("sqlite", ds).some((s) => s.includes("MATERIALIZED")),
+    ).toBe(false);
   });
 });
 
@@ -209,7 +401,20 @@ describe("the catalog", () => {
     expect(DATASETS.length).toBeGreaterThanOrEqual(10);
     const ids = DATASETS.map((d) => d.id);
     expect(new Set(ids).size).toBe(ids.length);
-    for (const want of ["medicare_formulary", "hospital_ehr", "claims_adjudication", "ecommerce_marketplace", "retail_banking", "saas_billing", "hr_payroll", "wms_supply_chain", "airline_reservations", "project_tracker", "iot_telemetry"]) expect(ids).toContain(want);
+    for (const want of [
+      "medicare_formulary",
+      "hospital_ehr",
+      "claims_adjudication",
+      "ecommerce_marketplace",
+      "retail_banking",
+      "saas_billing",
+      "hr_payroll",
+      "wms_supply_chain",
+      "airline_reservations",
+      "project_tracker",
+      "iot_telemetry",
+    ])
+      expect(ids).toContain(want);
   });
 
   it("every entry has the metadata the dialog needs, identical for all engines", () => {
@@ -224,14 +429,22 @@ describe("the catalog", () => {
         expect(e.viewCount).toBeGreaterThanOrEqual(3);
         expect(e.queries.length).toBeGreaterThanOrEqual(6);
         expect(e.queries.length).toBeLessThanOrEqual(12);
-        for (const q of e.queries) { expect(q.title).toBeTruthy(); expect(q.description.length).toBeGreaterThan(10); expect(q.sql).toMatch(/^\s*(--[^\n]*\n)*\s*(WITH|SELECT)/i); }
+        for (const q of e.queries) {
+          expect(q.title).toBeTruthy();
+          expect(q.description.length).toBeGreaterThan(10);
+          expect(q.sql).toMatch(/^\s*(--[^\n]*\n)*\s*(WITH|SELECT)/i);
+        }
         expect(e.rows.small).toBeLessThan(e.rows.medium);
         expect(e.rows.medium).toBeLessThan(e.rows.large);
-        expect(e.estimatedSeconds.small).toBeLessThanOrEqual(e.estimatedSeconds.large);
+        expect(e.estimatedSeconds.small).toBeLessThanOrEqual(
+          e.estimatedSeconds.large,
+        );
         expect(e.syntheticNotice).toContain("SYNTHETIC");
         expect(e.relationships.length).toBeGreaterThan(5);
       }
-      expect(entries.map((x) => x.id)).toEqual(catalog("sqlite").map((x) => x.id));
+      expect(entries.map((x) => x.id)).toEqual(
+        catalog("sqlite").map((x) => x.id),
+      );
     }
   });
 
@@ -242,11 +455,52 @@ describe("the catalog", () => {
     expect(m.description).toContain("SYNTHETIC DATA");
     expect(m.description).toContain("not CMS data");
     const names = m.tables.map((t) => t.name);
-    for (const t of ["formulary", "formulary_version", "formulary_drug", "tier", "cost_share", "benefit_phase", "um_rule", "step_therapy_group", "step_therapy_step", "quantity_limit", "age_gender_limit", "pharmacy_network", "pharmacy", "exception_request", "appeal", "formulary_change_log", "audit_event", "stg_formulary_file", "stg_plan_info_file", "stg_beneficiary_cost_file", "plan_year", "contract", "plan", "drug", "ingredient", "drug_product", "therapeutic_category", "therapeutic_class"]) expect(names, t).toContain(t);
+    for (const t of [
+      "formulary",
+      "formulary_version",
+      "formulary_drug",
+      "tier",
+      "cost_share",
+      "benefit_phase",
+      "um_rule",
+      "step_therapy_group",
+      "step_therapy_step",
+      "quantity_limit",
+      "age_gender_limit",
+      "pharmacy_network",
+      "pharmacy",
+      "exception_request",
+      "appeal",
+      "formulary_change_log",
+      "audit_event",
+      "stg_formulary_file",
+      "stg_plan_info_file",
+      "stg_beneficiary_cost_file",
+      "plan_year",
+      "contract",
+      "plan",
+      "drug",
+      "ingredient",
+      "drug_product",
+      "therapeutic_category",
+      "therapeutic_class",
+    ])
+      expect(names, t).toContain(t);
     const counts = tableCounts(m, "small");
     expect(counts.tier).toBe(6);
-    expect(m.tables.find((t) => t.name === "formulary_version")!.columns.find((c) => c.name === "status")!.enumValues).toEqual(["draft", "in_review", "approved", "published", "retired"]);
-    expect(m.views.map((v) => v.name)).toEqual(expect.arrayContaining(["v_formulary_by_tier", "v_tier_change_report", "v_drugs_um_flags", "v_plan_coverage_summary"]));
+    expect(
+      m.tables
+        .find((t) => t.name === "formulary_version")!
+        .columns.find((c) => c.name === "status")!.enumValues,
+    ).toEqual(["draft", "in_review", "approved", "published", "retired"]);
+    expect(m.views.map((v) => v.name)).toEqual(
+      expect.arrayContaining([
+        "v_formulary_by_tier",
+        "v_tier_change_report",
+        "v_drugs_um_flags",
+        "v_plan_coverage_summary",
+      ]),
+    );
   });
 });
 
@@ -258,12 +512,15 @@ describe("generator helpers", () => {
     expect(iban.startsWith("GB")).toBe(true);
     const re = iban.slice(4) + iban.slice(0, 4);
     let rem = 0;
-    for (const ch of re) for (const dgt of (ch >= "A" ? String(ch.charCodeAt(0) - 55) : ch)) rem = (rem * 10 + Number(dgt)) % 97;
+    for (const ch of re)
+      for (const dgt of ch >= "A" ? String(ch.charCodeAt(0) - 55) : ch)
+        rem = (rem * 10 + Number(dgt)) % 97;
     expect(rem).toBe(1);
   });
 
   it("the PRNG is deterministic", () => {
-    const a = mulberry32(42), b = mulberry32(42);
+    const a = mulberry32(42),
+      b = mulberry32(42);
     for (let i = 0; i < 5; i++) expect(a()).toBe(b());
   });
 });

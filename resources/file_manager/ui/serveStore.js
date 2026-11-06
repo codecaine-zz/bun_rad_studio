@@ -16,14 +16,16 @@ let tabVisible = false;
 let inflight = null;
 let pill = null;
 
-export const isRunning = (s) => s.status === "running" || s.status === "starting";
+export const isRunning = (s) =>
+  s.status === "running" || s.status === "starting";
 export const kindName = (s) => (s.kind === "php" ? "PHP" : "Live");
 
 /** The words in the status-bar pill: "● Live :5500", "● PHP :8000" or "● 3 servers". Empty when nothing runs. */
 export function pillText(servers) {
   const running = servers.filter(isRunning);
   if (!running.length) return "";
-  if (running.length === 1) return `● ${kindName(running[0])} :${running[0].port}`;
+  if (running.length === 1)
+    return `● ${kindName(running[0])} :${running[0].port}`;
   return `● ${running.length} servers`;
 }
 
@@ -40,12 +42,19 @@ function renderPill() {
   if (!where) return;
   const title = `${running.map((s) => `${kindName(s)} server on port ${s.port}`).join(", ")}. Click to open the Serve tool.`;
   if (!pill || !pill.isConnected) {
-    pill = h("button", { type: "button", class: "serve-pill", onclick: () => openPower("serve") });
+    pill = h("button", {
+      type: "button",
+      class: "serve-pill",
+      onclick: () => openPower("serve"),
+    });
     where.prepend(pill);
   }
   pill.textContent = text;
   pill.title = title;
-  pill.setAttribute("aria-label", `${text.replace("● ", "")} running. Open the Serve tool.`);
+  pill.setAttribute(
+    "aria-label",
+    `${text.replace("● ", "")} running. Open the Serve tool.`,
+  );
 }
 
 function stopPolling() {
@@ -54,7 +63,9 @@ function stopPolling() {
 }
 
 function updatePolling() {
-  const want = typeof document !== "undefined" && (tabVisible || store.servers.some(isRunning));
+  const want =
+    typeof document !== "undefined" &&
+    (tabVisible || store.servers.some(isRunning));
   if (want && !timer) timer = setInterval(tick, POLL_MS);
   else if (!want && timer) stopPolling();
 }
@@ -71,11 +82,19 @@ export function refreshServers() {
   inflight = (async () => {
     try {
       const r = await call("serve/status");
-      store.info = { php: r.php, max: r.max, lanAddress: r.lanAddress, firstPorts: r.firstPorts };
+      store.info = {
+        php: r.php,
+        max: r.max,
+        lanAddress: r.lanAddress,
+        firstPorts: r.firstPorts,
+      };
       store.servers = r.servers;
       store.error = "";
     } catch (err) {
-      store.error = err instanceof ApiError ? err.message : "The servers couldn't be checked.";
+      store.error =
+        err instanceof ApiError
+          ? err.message
+          : "The servers couldn't be checked.";
     } finally {
       inflight = null;
     }
@@ -97,7 +116,9 @@ export function setServeVisible(visible) {
 /** The running (or starting) server of this kind for this folder, or undefined. */
 export function serverFor(path, kind, servers = store.servers) {
   const same = (a, b) => a === b || a.toLowerCase() === b.toLowerCase();
-  return servers.find((s) => s.kind === kind && isRunning(s) && same(s.root, path));
+  return servers.find(
+    (s) => s.kind === kind && isRunning(s) && same(s.root, path),
+  );
 }
 
 /** Test and shutdown helper: forget everything and stop the timer. */

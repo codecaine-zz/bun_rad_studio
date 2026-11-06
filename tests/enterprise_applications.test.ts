@@ -1,12 +1,30 @@
 import { describe, it, expect } from "bun:test";
-import { createDatabaseStudio, createSqliteStudio } from "../applications/database_studio";
-import { createSystemStudio, createBunSystemStudio } from "../applications/system_studio";
-import { createWatcherStudio, createWatchexecStudio } from "../applications/watcher_studio";
+import {
+  createDatabaseStudio,
+  createSqliteStudio,
+} from "../applications/database_studio";
+import {
+  createSystemStudio,
+  createBunSystemStudio,
+} from "../applications/system_studio";
+import {
+  createWatcherStudio,
+  createWatchexecStudio,
+} from "../applications/watcher_studio";
 import { createJsonStudio, createJqStudio } from "../applications/json_studio";
-import { createDevToolsStudio, createOmnitoolStudio } from "../applications/devtools_studio";
-import { createProcessStudio, createTaskTracker } from "../applications/process_studio";
+import {
+  createDevToolsStudio,
+  createOmnitoolStudio,
+} from "../applications/devtools_studio";
+import {
+  createProcessStudio,
+  createTaskTracker,
+} from "../applications/process_studio";
 import { createApiStudio } from "../applications/api_studio";
-import { createDataConvertStudio, createDataForgeStudio } from "../applications/dataconvert_studio";
+import {
+  createDataConvertStudio,
+  createDataForgeStudio,
+} from "../applications/dataconvert_studio";
 import { createCryptoStudio } from "../applications/crypto_studio";
 import { createRegexStudio } from "../applications/regex_studio";
 import { createAppBundlerStudio } from "../applications/app_bundler_studio";
@@ -27,7 +45,7 @@ describe("⚡ Enterprise 16-Application Suite Specification", () => {
     expect(html).toContain("btn_export_inserts");
     expect(html).toContain("btn_seed");
     expect(win.getControls().length).toBeGreaterThan(15);
-    
+
     // Verifies initial table data is populated from SQLite database
     const initialRows = win.getValue("tbl_results");
     expect(Array.isArray(initialRows)).toBe(true);
@@ -36,12 +54,15 @@ describe("⚡ Enterprise 16-Application Suite Specification", () => {
 
   it("1b. Database Studio Pro data grid updates upon query execution and preset selection", () => {
     const win = createDatabaseStudio(":memory:");
-    
+
     // Test preset change handler
     const presetHandler = win.eventHandlersMap.get("dd_sql_presets:onchange");
     expect(presetHandler).toBeDefined();
     if (presetHandler) {
-      presetHandler(win, "2. High Compensation (SELECT name, department, salary FROM developers WHERE salary >= 300000)");
+      presetHandler(
+        win,
+        "2. High Compensation (SELECT name, department, salary FROM developers WHERE salary >= 300000)",
+      );
       const updatedQuery = win.getValue("txt_sql_query");
       expect(updatedQuery).toContain("salary >= 300000");
       const updatedRows = win.getValue("tbl_results");
@@ -163,7 +184,8 @@ describe("⚡ Enterprise 16-Application Suite Specification", () => {
       bundleLinuxIcon,
       pngToIcoBuffer,
     } = await import("../applications/app_bundler_studio");
-    const { mkdtempSync, existsSync, readFileSync, rmSync } = await import("fs");
+    const { mkdtempSync, existsSync, readFileSync, rmSync } =
+      await import("fs");
     const { join } = await import("path");
     const { tmpdir } = await import("os");
 
@@ -185,34 +207,57 @@ describe("⚡ Enterprise 16-Application Suite Specification", () => {
     expect(html).toContain("btn_browse_icon");
 
     // Test loading an application via change handler
-    const changeHandler = (win as any).eventHandlersMap.get("dd_preset_app:onchange");
+    const changeHandler = (win as any).eventHandlersMap.get(
+      "dd_preset_app:onchange",
+    );
     expect(changeHandler).toBeDefined();
     changeHandler(win, "./applications/sqlite_studio.ts");
-    expect(win.getValue("txt_exec_path")).toBe("./applications/sqlite_studio.ts");
+    expect(win.getValue("txt_exec_path")).toBe(
+      "./applications/sqlite_studio.ts",
+    );
     expect(win.getValue("txt_app_name")).toBe("SqliteStudioPro");
     expect(win.getValue("txt_plist_preview")).toContain("SqliteStudioPro");
     // Verify auto-icon matching detected database_studio icon for sqlite_studio
     expect(win.getValue("txt_icon_path")).toContain("database_studio");
 
     // Test icon change handler
-    const iconChangeHandler = (win as any).eventHandlersMap.get("dd_preset_icon:onchange");
+    const iconChangeHandler = (win as any).eventHandlersMap.get(
+      "dd_preset_icon:onchange",
+    );
     expect(iconChangeHandler).toBeDefined();
     iconChangeHandler(win, "./icons/redis_studio.icns");
     expect(win.getValue("txt_icon_path")).toBe("./icons/redis_studio.icns");
-    expect(win.getValue("txt_plist_preview")).toContain("./icons/redis_studio.icns");
+    expect(win.getValue("txt_plist_preview")).toContain(
+      "./icons/redis_studio.icns",
+    );
 
-    const buildHandler = (win as any).eventHandlersMap.get("btn_build_bundle:onclick");
+    const buildHandler = (win as any).eventHandlersMap.get(
+      "btn_build_bundle:onclick",
+    );
     expect(buildHandler).toBeDefined();
-    const buildWinHandler = (win as any).eventHandlersMap.get("btn_build_windows:onclick");
+    const buildWinHandler = (win as any).eventHandlersMap.get(
+      "btn_build_windows:onclick",
+    );
     expect(buildWinHandler).toBeDefined();
-    const buildLinuxHandler = (win as any).eventHandlersMap.get("btn_build_linux:onclick");
+    const buildLinuxHandler = (win as any).eventHandlersMap.get(
+      "btn_build_linux:onclick",
+    );
     expect(buildLinuxHandler).toBeDefined();
 
     // Verify Windows manifest & Linux desktop entry generation
-    const winManifest = generateWindowsManifest("SqliteStudioPro", "com.enterprise.sqlitestudiopro", "1.2.3", true);
+    const winManifest = generateWindowsManifest(
+      "SqliteStudioPro",
+      "com.enterprise.sqlitestudiopro",
+      "1.2.3",
+      true,
+    );
     expect(winManifest).toContain('version="1.2.3.0"');
     expect(winManifest).toContain("PerMonitorV2");
-    const linuxDesktop = generateLinuxDesktopEntry("SqliteStudioPro", "com.enterprise.sqlitestudiopro", "1.2.3");
+    const linuxDesktop = generateLinuxDesktopEntry(
+      "SqliteStudioPro",
+      "com.enterprise.sqlitestudiopro",
+      "1.2.3",
+    );
     expect(linuxDesktop).toContain("[Desktop Entry]");
     expect(linuxDesktop).toContain("Exec=SqliteStudioPro %F");
     expect(linuxDesktop).toContain("Icon=SqliteStudioPro");
@@ -220,19 +265,45 @@ describe("⚡ Enterprise 16-Application Suite Specification", () => {
     // Verify Windows and Linux icon bundlers
     const tmp = mkdtempSync(join(tmpdir(), "bundler-test-"));
     try {
-      const winIconRes = bundleWindowsIcon("./icons/redis_studio.icns", join(tmp, "win"), "RedisStudioPro");
+      const winIconRes = bundleWindowsIcon(
+        "./icons/redis_studio.icns",
+        join(tmp, "win"),
+        "RedisStudioPro",
+      );
       expect(winIconRes.success).toBe(true);
       expect(existsSync(join(tmp, "win", "RedisStudioPro.ico"))).toBe(true);
       const icoBuf = readFileSync(join(tmp, "win", "RedisStudioPro.ico"));
       expect(icoBuf.readUInt16LE(2)).toBe(1);
 
-      const linuxIconRes = bundleLinuxIcon("./icons/redis_studio.icns", join(tmp, "linux.AppDir"), "RedisStudioPro");
+      const linuxIconRes = bundleLinuxIcon(
+        "./icons/redis_studio.icns",
+        join(tmp, "linux.AppDir"),
+        "RedisStudioPro",
+      );
       expect(linuxIconRes.success).toBe(true);
-      expect(existsSync(join(tmp, "linux.AppDir", "RedisStudioPro.png"))).toBe(true);
+      expect(existsSync(join(tmp, "linux.AppDir", "RedisStudioPro.png"))).toBe(
+        true,
+      );
       expect(existsSync(join(tmp, "linux.AppDir", ".DirIcon"))).toBe(true);
-      expect(existsSync(join(tmp, "linux.AppDir", "usr", "share", "icons", "hicolor", "256x256", "apps", "RedisStudioPro.png"))).toBe(true);
+      expect(
+        existsSync(
+          join(
+            tmp,
+            "linux.AppDir",
+            "usr",
+            "share",
+            "icons",
+            "hicolor",
+            "256x256",
+            "apps",
+            "RedisStudioPro.png",
+          ),
+        ),
+      ).toBe(true);
 
-      const convertedIco = pngToIcoBuffer(readFileSync("./icons/redis_studio.png"));
+      const convertedIco = pngToIcoBuffer(
+        readFileSync("./icons/redis_studio.png"),
+      );
       expect(convertedIco.readUInt16LE(2)).toBe(1);
     } finally {
       rmSync(tmp, { recursive: true, force: true });
@@ -250,48 +321,74 @@ describe("⚡ Enterprise 16-Application Suite Specification", () => {
     expect(html).toContain("btn_preset_localhost");
 
     // Baseline network diagnostics are populated on launch
-    expect(win.getValue("txt_net_results")).toContain("Network Forensics Engine Active");
-    expect(win.getValue("txt_net_results")).toContain("Detected Network Interfaces");
+    expect(win.getValue("txt_net_results")).toContain(
+      "Network Forensics Engine Active",
+    );
+    expect(win.getValue("txt_net_results")).toContain(
+      "Detected Network Interfaces",
+    );
 
     // The handlers that touch the network exist (they are exercised by test 12b, which is opt-in).
-    for (const id of ["btn_scan_socket", "btn_dns_a", "btn_dns_all", "btn_dns_mx", "btn_dns_txt"]) {
+    for (const id of [
+      "btn_scan_socket",
+      "btn_dns_a",
+      "btn_dns_all",
+      "btn_dns_mx",
+      "btn_dns_txt",
+    ]) {
       expect((win as any).eventHandlersMap.get(`${id}:onclick`)).toBeDefined();
     }
   });
 
   // Real DNS lookups and a port scan: their duration and result depend on the network, so they run only on request.
-  it.skipIf(!process.env.TEST_NETWORK)("12b. Network Forensics Studio port scan and DNS handlers work against the real network (opt-in: TEST_NETWORK=1)", async () => {
-    const win = createNetworkStudio();
-    // Test socket scan handler
-    const scanSocketHandler = (win as any).eventHandlersMap.get("btn_scan_socket:onclick");
-    expect(scanSocketHandler).toBeDefined();
-    await scanSocketHandler(win);
-    expect(win.getValue("txt_net_results")).toContain("Port Scan Audit");
+  it.skipIf(!process.env.TEST_NETWORK)(
+    "12b. Network Forensics Studio port scan and DNS handlers work against the real network (opt-in: TEST_NETWORK=1)",
+    async () => {
+      const win = createNetworkStudio();
+      // Test socket scan handler
+      const scanSocketHandler = (win as any).eventHandlersMap.get(
+        "btn_scan_socket:onclick",
+      );
+      expect(scanSocketHandler).toBeDefined();
+      await scanSocketHandler(win);
+      expect(win.getValue("txt_net_results")).toContain("Port Scan Audit");
 
-    // Test DNS query handlers
-    const dnsAHandler = (win as any).eventHandlersMap.get("btn_dns_a:onclick");
-    expect(dnsAHandler).toBeDefined();
-    await dnsAHandler(win);
-    expect(win.getValue("txt_net_results")).toContain("DNS");
+      // Test DNS query handlers
+      const dnsAHandler = (win as any).eventHandlersMap.get(
+        "btn_dns_a:onclick",
+      );
+      expect(dnsAHandler).toBeDefined();
+      await dnsAHandler(win);
+      expect(win.getValue("txt_net_results")).toContain("DNS");
 
-    // Test Full DNS Forensic Audit handler
-    const dnsAllHandler = (win as any).eventHandlersMap.get("btn_dns_all:onclick");
-    expect(dnsAllHandler).toBeDefined();
-    await dnsAllHandler(win);
-    expect(win.getValue("txt_net_results")).toContain("Complete DNS Forensic Dossier");
-    expect(win.getValue("txt_net_results")).toContain("Network Addresses");
+      // Test Full DNS Forensic Audit handler
+      const dnsAllHandler = (win as any).eventHandlersMap.get(
+        "btn_dns_all:onclick",
+      );
+      expect(dnsAllHandler).toBeDefined();
+      await dnsAllHandler(win);
+      expect(win.getValue("txt_net_results")).toContain(
+        "Complete DNS Forensic Dossier",
+      );
+      expect(win.getValue("txt_net_results")).toContain("Network Addresses");
 
-    // Test Mail (MX) & TXT handlers
-    const dnsMxHandler = (win as any).eventHandlersMap.get("btn_dns_mx:onclick");
-    expect(dnsMxHandler).toBeDefined();
-    await dnsMxHandler(win);
-    expect(win.getValue("txt_net_results")).toContain("DNS");
+      // Test Mail (MX) & TXT handlers
+      const dnsMxHandler = (win as any).eventHandlersMap.get(
+        "btn_dns_mx:onclick",
+      );
+      expect(dnsMxHandler).toBeDefined();
+      await dnsMxHandler(win);
+      expect(win.getValue("txt_net_results")).toContain("DNS");
 
-    const dnsTxtHandler = (win as any).eventHandlersMap.get("btn_dns_txt:onclick");
-    expect(dnsTxtHandler).toBeDefined();
-    await dnsTxtHandler(win);
-    expect(win.getValue("txt_net_results")).toContain("DNS");
-  }, 120_000);
+      const dnsTxtHandler = (win as any).eventHandlersMap.get(
+        "btn_dns_txt:onclick",
+      );
+      expect(dnsTxtHandler).toBeDefined();
+      await dnsTxtHandler(win);
+      expect(win.getValue("txt_net_results")).toContain("DNS");
+    },
+    120_000,
+  );
 
   it("13. Git Workbench Pro initializes with commit logs & diff viewer", () => {
     const win = createGitStudio();
@@ -315,33 +412,48 @@ describe("⚡ Enterprise 16-Application Suite Specification", () => {
     expect(html).toContain("btn_export_html");
 
     // Verify initial input and preview state
-    expect(win.getValue("txt_md_input")).toContain("# Enterprise Systems Architecture Blueprint");
+    expect(win.getValue("txt_md_input")).toContain(
+      "# Enterprise Systems Architecture Blueprint",
+    );
     expect(win.getValue("txt_md_preview")).toContain("<h1");
     expect(win.getValue("txt_md_preview")).toContain("<table");
     expect(win.getText("lbl_words")).toContain("Words:");
 
     // Test button: insert table
     const beforeTable = win.getValue("txt_md_input");
-    const insertTableHandler = (win as any).eventHandlersMap.get("btn_insert_table:onclick");
+    const insertTableHandler = (win as any).eventHandlersMap.get(
+      "btn_insert_table:onclick",
+    );
     expect(insertTableHandler).toBeDefined();
     insertTableHandler(win);
     expect(win.getValue("txt_md_input")).toContain("Hardware Acceleration");
-    expect(win.getValue("txt_md_input").length).toBeGreaterThan(beforeTable.length);
+    expect(win.getValue("txt_md_input").length).toBeGreaterThan(
+      beforeTable.length,
+    );
 
     // Test button: reset doc
-    const resetHandler = (win as any).eventHandlersMap.get("btn_reset_doc:onclick");
+    const resetHandler = (win as any).eventHandlersMap.get(
+      "btn_reset_doc:onclick",
+    );
     expect(resetHandler).toBeDefined();
     resetHandler(win);
     expect(win.getValue("txt_md_input")).toBe(beforeTable);
 
     // Test real-time onChange updates
-    const changeHandler = (win as any).eventHandlersMap.get("txt_md_input:onchange");
+    const changeHandler = (win as any).eventHandlersMap.get(
+      "txt_md_input:onchange",
+    );
     expect(changeHandler).toBeDefined();
-    win.setValue("txt_md_input", "# Custom Title\n\n**Bold Text**\n\n- Item 1\n- Item 2");
+    win.setValue(
+      "txt_md_input",
+      "# Custom Title\n\n**Bold Text**\n\n- Item 1\n- Item 2",
+    );
     changeHandler(win);
     expect(win.getValue("txt_md_preview")).toContain("<h1");
     expect(win.getValue("txt_md_preview")).toContain("Custom Title");
-    expect(win.getValue("txt_md_preview")).toContain("<strong style=\"color:#fff;\">Bold Text</strong>");
+    expect(win.getValue("txt_md_preview")).toContain(
+      '<strong style="color:#fff;">Bold Text</strong>',
+    );
     expect(win.getValue("txt_md_preview")).toContain("<li");
   });
 
@@ -404,10 +516,15 @@ describe("⚡ Enterprise 16-Application Suite Specification", () => {
 
     for (const [name, factory] of apps) {
       const app = factory();
-      const isFullscreen = (app as any).fullscreen ?? (app as any).options?.fullscreen;
+      const isFullscreen =
+        (app as any).fullscreen ?? (app as any).options?.fullscreen;
       expect(isFullscreen).toBe(true);
 
-      const html = app.generateHtml ? app.generateHtml() : (app.toHtml ? app.toHtml() : "");
+      const html = app.generateHtml
+        ? app.generateHtml()
+        : app.toHtml
+          ? app.toHtml()
+          : "";
       expect(html.length).toBeGreaterThan(1000);
       expect(html).toContain("requestInitialFullscreen");
     }

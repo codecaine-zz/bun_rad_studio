@@ -2,19 +2,32 @@
 // brackets, and finding out how a file is indented. Pure functions on text and offsets.
 import { lineEnd, lineStart } from "./codeLines.js";
 
-const OPEN_TO_CLOSE = { "(": ")", "[": "]", "{": "}", '"': '"', "'": "'", "`": "`" };
+const OPEN_TO_CLOSE = {
+  "(": ")",
+  "[": "]",
+  "{": "}",
+  '"': '"',
+  "'": "'",
+  "`": "`",
+};
 const CLOSERS = new Set([")", "]", "}", '"', "'", "`"]);
 const QUOTES = new Set(['"', "'", "`"]);
-const isWordChar = (c) => c !== undefined && c !== "" && /[\w\u00c0-\uffff]/.test(c);
+const isWordChar = (c) =>
+  c !== undefined && c !== "" && /[\w\u00c0-\uffff]/.test(c);
 
 /** Which of ( [ { " ' ` close by themselves in this language. */
 export function autoClosePairs(lang) {
   switch (lang) {
-    case "plain": return "([{";
-    case "markdown": return "([{`";
-    case "json": return '([{"';
-    case "rust": return '([{"`';
-    default: return "([{\"'`";
+    case "plain":
+      return "([{";
+    case "markdown":
+      return "([{`";
+    case "json":
+      return '([{"';
+    case "rust":
+      return '([{"`';
+    default:
+      return "([{\"'`";
   }
 }
 
@@ -33,22 +46,43 @@ export function newLineEdit(text, s, e, lang, unit) {
   if (lang === "markdown" && !text.slice(e, lineEnd(text, e)).trim().length) {
     const m = /^(\s*)([-*+]|\d+[.)])(\s+)(\[[ xX]\]\s+)?(.*)$/.exec(before);
     if (m) {
-      if (m[5].trim() === "" && !m[4]) return { from: ls, to: e, insert: "", selStart: ls, selEnd: ls };
+      if (m[5].trim() === "" && !m[4])
+        return { from: ls, to: e, insert: "", selStart: ls, selEnd: ls };
       const num = /^(\d+)([.)])$/.exec(m[2]);
       const marker = num ? `${Number(num[1]) + 1}${num[2]}` : m[2];
       const insert = `\n${m[1]}${marker}${m[3]}${m[4] ? "[ ] " : ""}`;
-      return { from: s, to: e, insert, selStart: s + insert.length, selEnd: s + insert.length };
+      return {
+        from: s,
+        to: e,
+        insert,
+        selStart: s + insert.length,
+        selEnd: s + insert.length,
+      };
     }
   }
-  const opensBlock = (prev !== "" && "{[(".includes(prev)) || ((lang === "python" || lang === "yaml") && prev === ":");
-  const between = (prev === "{" && next === "}") || (prev === "[" && next === "]") || (prev === "(" && next === ")") || ((lang === "html" || lang === "xml") && prev === ">" && text.startsWith("</", e));
+  const opensBlock =
+    (prev !== "" && "{[(".includes(prev)) ||
+    ((lang === "python" || lang === "yaml") && prev === ":");
+  const between =
+    (prev === "{" && next === "}") ||
+    (prev === "[" && next === "]") ||
+    (prev === "(" && next === ")") ||
+    ((lang === "html" || lang === "xml") &&
+      prev === ">" &&
+      text.startsWith("</", e));
   if (between) {
     const insert = `\n${indent}${unit}\n${indent}`;
     const caret = s + 1 + indent.length + unit.length;
     return { from: s, to: e, insert, selStart: caret, selEnd: caret };
   }
   const insert = `\n${indent}${opensBlock ? unit : ""}`;
-  return { from: s, to: e, insert, selStart: s + insert.length, selEnd: s + insert.length };
+  return {
+    from: s,
+    to: e,
+    insert,
+    selStart: s + insert.length,
+    selEnd: s + insert.length,
+  };
 }
 
 /**
@@ -64,7 +98,8 @@ export function typedCharEdit(text, s, e, ch, lang) {
     return { from: s, to: e, insert, selStart: s + 1, selEnd: s + 1 + (e - s) };
   }
   const next = text[s];
-  if (CLOSERS.has(ch) && next === ch && (!QUOTES.has(ch) || pairs.includes(ch))) return { move: s + 1 };
+  if (CLOSERS.has(ch) && next === ch && (!QUOTES.has(ch) || pairs.includes(ch)))
+    return { move: s + 1 };
   if (!close || !pairs.includes(ch)) return null;
   const before = text[s - 1];
   if (QUOTES.has(ch)) {
@@ -76,11 +111,20 @@ export function typedCharEdit(text, s, e, ch, lang) {
 
 /** Typing } ) or ] on a line that holds only indentation takes one level of indent away (like `v fmt` and most editors do). */
 export function closerDedentEdit(text, s, e, ch, unit, lang) {
-  if (s !== e || !"})]".includes(ch) || ["plain", "markdown", "yaml", "toml", "ini", "diff"].includes(lang)) return null;
+  if (
+    s !== e ||
+    !"})]".includes(ch) ||
+    ["plain", "markdown", "yaml", "toml", "ini", "diff"].includes(lang)
+  )
+    return null;
   const lead = text.slice(lineStart(text, s), s);
   if (!lead || !/^[ \t]+$/.test(lead)) return null;
   const spaces = /( *)$/.exec(lead)[1].length;
-  const remove = lead.endsWith(unit) ? unit.length : lead.endsWith("\t") ? 1 : Math.min(spaces, unit === "\t" ? 4 : unit.length);
+  const remove = lead.endsWith(unit)
+    ? unit.length
+    : lead.endsWith("\t")
+      ? 1
+      : Math.min(spaces, unit === "\t" ? 4 : unit.length);
   if (!remove) return null;
   const from = s - remove;
   return { from, to: s, insert: ch, selStart: from + 1, selEnd: from + 1 };
@@ -90,13 +134,26 @@ export function closerDedentEdit(text, s, e, ch, unit, lang) {
 export function backspaceEdit(text, s, e, unit) {
   if (s !== e || s === 0) return null;
   const prev = text[s - 1];
-  if (OPEN_TO_CLOSE[prev] !== undefined && OPEN_TO_CLOSE[prev] === text[s]) return { from: s - 1, to: s + 1, insert: "", selStart: s - 1, selEnd: s - 1 };
+  if (OPEN_TO_CLOSE[prev] !== undefined && OPEN_TO_CLOSE[prev] === text[s])
+    return {
+      from: s - 1,
+      to: s + 1,
+      insert: "",
+      selStart: s - 1,
+      selEnd: s - 1,
+    };
   if (unit !== "\t") {
     const ls = lineStart(text, s);
     const lead = text.slice(ls, s);
     if (lead.length > 0 && /^ +$/.test(lead)) {
       const remove = lead.length % unit.length || unit.length;
-      return { from: s - remove, to: s, insert: "", selStart: s - remove, selEnd: s - remove };
+      return {
+        from: s - remove,
+        to: s,
+        insert: "",
+        selStart: s - remove,
+        selEnd: s - remove,
+      };
     }
   }
   return null;
@@ -186,7 +243,8 @@ export function detectEol(text) {
     } else if (c === 10) lf++;
   }
   const kinds = [crlf, lf, cr].filter((n) => n > 0).length;
-  const eol = crlf >= lf && crlf >= cr && crlf > 0 ? "crlf" : lf >= cr ? "lf" : "cr";
+  const eol =
+    crlf >= lf && crlf >= cr && crlf > 0 ? "crlf" : lf >= cr ? "lf" : "cr";
   return { eol: kinds === 0 ? "lf" : eol, mixed: kinds > 1 };
 }
 
@@ -196,7 +254,8 @@ export function textStats(text) {
   const re = /\S+/g;
   while (re.exec(text) !== null) words++;
   let lines = 1;
-  for (let i = text.indexOf("\n"); i >= 0; i = text.indexOf("\n", i + 1)) if (i < text.length - 1) lines++;
+  for (let i = text.indexOf("\n"); i >= 0; i = text.indexOf("\n", i + 1))
+    if (i < text.length - 1) lines++;
   return { chars: text.length, words, lines };
 }
 
@@ -206,7 +265,9 @@ export function textStats(text) {
 
 /** Adds the line to the list, or removes it when it is already there. */
 export function toggleBookmark(list, line) {
-  return list.includes(line) ? list.filter((l) => l !== line) : [...list, line].sort((a, b) => a - b);
+  return list.includes(line)
+    ? list.filter((l) => l !== line)
+    : [...list, line].sort((a, b) => a - b);
 }
 
 /** The next (direction 1) or previous (-1) bookmarked line after `line`, wrapping around; null when there are none. */

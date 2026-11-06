@@ -11,10 +11,31 @@ import type { OptionDef, OptionValues } from "./fmConvOptions";
 import type { ToolId } from "./fmTools";
 
 /** Category tab name in the Convert & Process window. */
-export type ConvGroup = "Pictures" | "Video" | "Sound" | "Documents" | "Data & text" | "Archives" | "PDF tools" | "Ebooks" | "Fonts" | "Other";
+export type ConvGroup =
+  | "Pictures"
+  | "Video"
+  | "Sound"
+  | "Documents"
+  | "Data & text"
+  | "Archives"
+  | "PDF tools"
+  | "Ebooks"
+  | "Fonts"
+  | "Other";
 
 /** Ordered list of conversion category groups shown in the Convert & Process UI. */
-export const CONV_GROUPS: ConvGroup[] = ["Pictures", "Video", "Sound", "Documents", "Data & text", "Archives", "PDF tools", "Ebooks", "Fonts", "Other"];
+export const CONV_GROUPS: ConvGroup[] = [
+  "Pictures",
+  "Video",
+  "Sound",
+  "Documents",
+  "Data & text",
+  "Archives",
+  "PDF tools",
+  "Ebooks",
+  "Fonts",
+  "Other",
+];
 
 /** Context passed to an engine's `argv` builder containing resolved executable, staged input/output paths, and validated options. */
 export interface BuildContext {
@@ -73,7 +94,10 @@ export interface Engine {
   /** Run in the folder holding the first original (for programs that must be given relative names). */
   cwdIsInputFolder?: boolean;
   /** A built-in converter: the kind (see fmConvBuiltin) and its fixed settings. */
-  builtin?: { kind: string; params?: Record<string, string | number | boolean> };
+  builtin?: {
+    kind: string;
+    params?: Record<string, string | number | boolean>;
+  };
   /** Stop the program if what it writes grows beyond the safety limits (archive extractors). */
   limitOutput?: boolean;
   timeoutMs?: number;
@@ -135,7 +159,11 @@ export function outExtOf(def: ConvDef, opts: OptionValues): string {
 }
 
 /** Can this action be applied to a file with this name? */
-export function defAccepts(def: ConvDef, fileName: string, opts: OptionValues = {}): boolean {
+export function defAccepts(
+  def: ConvDef,
+  fileName: string,
+  opts: OptionValues = {},
+): boolean {
   const e = extOf(fileName);
   if (def.inputs && !def.inputs.has(e)) return false;
   if (def.rejectSame) {
@@ -146,45 +174,114 @@ export function defAccepts(def: ConvDef, fileName: string, opts: OptionValues = 
 }
 
 /** The new file's (or folder's) name before it is made unique. `files` are all the inputs, for "all" actions. */
-export function plannedName(def: ConvDef, inputName: string, opts: OptionValues, files: string[], pattern: string, index: number, apply: (pattern: string, base: string, index: number) => string): string {
+export function plannedName(
+  def: ConvDef,
+  inputName: string,
+  opts: OptionValues,
+  files: string[],
+  pattern: string,
+  index: number,
+  apply: (pattern: string, base: string, index: number) => string,
+): string {
   if (def.outName) return def.outName(inputName, opts, files);
   const [base, dotExt] = splitName(inputName);
   const ext = outExtOf(def, opts);
-  if (def.outKind === "folder") return pattern ? apply(pattern, base, index) : `${base} (${def.suffix})`;
+  if (def.outKind === "folder")
+    return pattern ? apply(pattern, base, index) : `${base} (${def.suffix})`;
   if (def.mode === "all") {
-    const first = def.singleName && files.length === 1 ? base : def.allName ?? "Combined";
+    const first =
+      def.singleName && files.length === 1 ? base : (def.allName ?? "Combined");
     const stem = pattern ? apply(pattern, first, index) : first;
     return `${stem}.${ext || dotExt.replace(/^\./, "") || "out"}`;
   }
   const inExt = dotExt.replace(/^\./, "").toLowerCase();
   const sameFormat = !ext || ext === inExt;
-  if (pattern) return `${apply(pattern, base, index)}${ext ? `.${ext}` : dotExt}`;
+  if (pattern)
+    return `${apply(pattern, base, index)}${ext ? `.${ext}` : dotExt}`;
   return sameFormat ? `${base} (${def.suffix})${dotExt}` : `${base}.${ext}`;
 }
 
 /** A name that doesn't exist yet. */
-export function freeName(name: string, exists: (candidate: string) => boolean): string {
+export function freeName(
+  name: string,
+  exists: (candidate: string) => boolean,
+): string {
   return uniqueName(name, exists);
 }
 
 /** Shorthand for a set of extensions written as one string. */
-export const exts = (list: string): Set<string> => new Set(list.split(/\s+/).filter(Boolean));
+export const exts = (list: string): Set<string> =>
+  new Set(list.split(/\s+/).filter(Boolean));
 
 // ---------------------------------------------------------------------------------------------------------------
 // Shorthands for describing options
 // ---------------------------------------------------------------------------------------------------------------
 
 /** Helper that constructs a numeric `OptionDef` with min, max, default value, unit, and step. */
-export const numberOpt = (id: string, label: string, hint: string, min: number, max: number, def: number, unit = "", step = 1): OptionDef => ({ id, label, hint, kind: "number", min, max, step, unit, default: def });
+export const numberOpt = (
+  id: string,
+  label: string,
+  hint: string,
+  min: number,
+  max: number,
+  def: number,
+  unit = "",
+  step = 1,
+): OptionDef => ({
+  id,
+  label,
+  hint,
+  kind: "number",
+  min,
+  max,
+  step,
+  unit,
+  default: def,
+});
 /** Helper that constructs a single-select choice `OptionDef` from `[value, label, needs?]` tuples. */
-export const choiceOpt = (id: string, label: string, hint: string, choices: Array<[string, string] | [string, string, string]>, def: string): OptionDef => ({
-  id, label, hint, kind: "choice", default: def, choices: choices.map(([value, text, needs]) => ({ value, label: text, ...(needs ? { needs } : {}) })),
+export const choiceOpt = (
+  id: string,
+  label: string,
+  hint: string,
+  choices: Array<[string, string] | [string, string, string]>,
+  def: string,
+): OptionDef => ({
+  id,
+  label,
+  hint,
+  kind: "choice",
+  default: def,
+  choices: choices.map(([value, text, needs]) => ({
+    value,
+    label: text,
+    ...(needs ? { needs } : {}),
+  })),
 });
 /** Helper that constructs a time/duration `OptionDef` (`mm:ss` or seconds). */
-export const timeOpt = (id: string, label: string, hint: string): OptionDef => ({ id, label, hint, kind: "time", default: "" });
+export const timeOpt = (
+  id: string,
+  label: string,
+  hint: string,
+): OptionDef => ({ id, label, hint, kind: "time", default: "" });
 /** Helper that constructs a boolean toggle `OptionDef`. */
-export const toggleOpt = (id: string, label: string, hint: string, def = false): OptionDef => ({ id, label, hint, kind: "toggle", default: def });
+export const toggleOpt = (
+  id: string,
+  label: string,
+  hint: string,
+  def = false,
+): OptionDef => ({ id, label, hint, kind: "toggle", default: def });
 /** Helper that constructs a single-line text `OptionDef` with a maximum character length. */
-export const textOpt = (id: string, label: string, hint: string, def = "", maxLength = 100): OptionDef => ({ id, label, hint, kind: "text", default: def, maxLength });
+export const textOpt = (
+  id: string,
+  label: string,
+  hint: string,
+  def = "",
+  maxLength = 100,
+): OptionDef => ({ id, label, hint, kind: "text", default: def, maxLength });
 /** Helper that constructs a page-range `OptionDef` (e.g., `1-3,5`). */
-export const pagesOpt = (id: string, label: string, hint: string, def = ""): OptionDef => ({ id, label, hint, kind: "pages", default: def });
+export const pagesOpt = (
+  id: string,
+  label: string,
+  hint: string,
+  def = "",
+): OptionDef => ({ id, label, hint, kind: "pages", default: def });

@@ -1,6 +1,9 @@
 import { describe, it, expect, afterAll, beforeAll } from "bun:test";
 import { startMysqlStudioServer } from "../applications/mysql_studio_server.ts";
-import { generateMysqlStudioHtml, createMysqlStudio } from "../applications/mysql_studio.ts";
+import {
+  generateMysqlStudioHtml,
+  createMysqlStudio,
+} from "../applications/mysql_studio.ts";
 import { provisionTestDb } from "./helpers/testdb.ts";
 
 // Query tests run against a throwaway database (TEST_MYSQL_URL) and are skipped when it is not configured.
@@ -177,12 +180,21 @@ describe("🔌 MySQL Manual Connection Configuration & Workbench Suite", () => {
       const pass = decodeURIComponent(dummyUrl.password || "");
       let db = dummyUrl.pathname ? dummyUrl.pathname.replace(/^\//, "") : "";
       db = decodeURIComponent(db);
-      const tls = dummyUrl.searchParams.get("tls") === "true" || dummyUrl.searchParams.get("ssl") === "true";
+      const tls =
+        dummyUrl.searchParams.get("tls") === "true" ||
+        dummyUrl.searchParams.get("ssl") === "true";
       return { host, port, user, pass, db, tls };
     };
 
     // Serialize connection components into URL
-    const serializeUrl = (c: { host: string; port: number; user?: string; pass?: string; db?: string; tls?: boolean }) => {
+    const serializeUrl = (c: {
+      host: string;
+      port: number;
+      user?: string;
+      pass?: string;
+      db?: string;
+      tls?: boolean;
+    }) => {
       let auth = "";
       if (c.user) {
         auth = encodeURIComponent(c.user);
@@ -195,7 +207,9 @@ describe("🔌 MySQL Manual Connection Configuration & Workbench Suite", () => {
       return url;
     };
 
-    const parsed = parseUrl("mysql://app_user:p%40ssw%3Ard@10.0.0.5:3307/ecommerce_db?tls=true");
+    const parsed = parseUrl(
+      "mysql://app_user:p%40ssw%3Ard@10.0.0.5:3307/ecommerce_db?tls=true",
+    );
     expect(parsed.host).toBe("10.0.0.5");
     expect(parsed.port).toBe(3307);
     expect(parsed.user).toBe("app_user");
@@ -204,7 +218,9 @@ describe("🔌 MySQL Manual Connection Configuration & Workbench Suite", () => {
     expect(parsed.tls).toBe(true);
 
     const serialized = serializeUrl(parsed);
-    expect(serialized).toBe("mysql://app_user:p%40ssw%3Ard@10.0.0.5:3307/ecommerce_db?tls=true");
+    expect(serialized).toBe(
+      "mysql://app_user:p%40ssw%3Ard@10.0.0.5:3307/ecommerce_db?tls=true",
+    );
   });
 
   it("8. Programmatic creation via createMysqlStudio accepts manual connection options", () => {
@@ -256,114 +272,154 @@ describe("🔌 MySQL Manual Connection Configuration & Workbench Suite", () => {
     }
   });
 
-  itDb("10. POST /api/query executes queries and returns rows, columns, and latency", async () => {
-    const srv = startMysqlStudioServer({ port: 0, config: testDb!.config });
-    try {
-      const res = await fetch(`http://127.0.0.1:${srv.port}/api/query`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sql: "SELECT 1 AS col_num, 'hello' AS col_str;" }),
-      });
-      expect(res.status).toBe(200);
-      const data = (await res.json()) as any;
-      expect(data.success).toBe(true);
-      expect(data.rows.length).toBe(1);
-      expect(data.columns).toEqual(["col_num", "col_str"]);
-      expect(data.rows[0].col_num).toBe(1);
-      expect(data.rows[0].col_str).toBe("hello");
-    } finally {
-      srv.stop(true);
-    }
-  });
+  itDb(
+    "10. POST /api/query executes queries and returns rows, columns, and latency",
+    async () => {
+      const srv = startMysqlStudioServer({ port: 0, config: testDb!.config });
+      try {
+        const res = await fetch(`http://127.0.0.1:${srv.port}/api/query`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sql: "SELECT 1 AS col_num, 'hello' AS col_str;",
+          }),
+        });
+        expect(res.status).toBe(200);
+        const data = (await res.json()) as any;
+        expect(data.success).toBe(true);
+        expect(data.rows.length).toBe(1);
+        expect(data.columns).toEqual(["col_num", "col_str"]);
+        expect(data.rows[0].col_num).toBe(1);
+        expect(data.rows[0].col_str).toBe("hello");
+      } finally {
+        srv.stop(true);
+      }
+    },
+  );
 
-  itDb("11. POST /api/explain parses query plan tree with timing and costs", async () => {
-    const srv = startMysqlStudioServer({ port: 0, config: testDb!.config });
-    try {
-      const res = await fetch(`http://127.0.0.1:${srv.port}/api/explain`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sql: "SELECT 1 AS id, 'x' AS name ORDER BY id;" }),
-      });
-      expect(res.status).toBe(200);
-      const data = (await res.json()) as any;
-      expect(data.success).toBe(true);
-      expect(Array.isArray(data.queryPlan)).toBe(true);
-      expect(data.queryPlan.length).toBeGreaterThan(0);
-      expect(data.queryPlan[0].detail).toBeDefined();
-    } finally {
-      srv.stop(true);
-    }
-  });
+  itDb(
+    "11. POST /api/explain parses query plan tree with timing and costs",
+    async () => {
+      const srv = startMysqlStudioServer({ port: 0, config: testDb!.config });
+      try {
+        const res = await fetch(`http://127.0.0.1:${srv.port}/api/explain`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sql: "SELECT 1 AS id, 'x' AS name ORDER BY id;",
+          }),
+        });
+        expect(res.status).toBe(200);
+        const data = (await res.json()) as any;
+        expect(data.success).toBe(true);
+        expect(Array.isArray(data.queryPlan)).toBe(true);
+        expect(data.queryPlan.length).toBeGreaterThan(0);
+        expect(data.queryPlan[0].detail).toBeDefined();
+      } finally {
+        srv.stop(true);
+      }
+    },
+  );
 
-  itDb("12. createMysqlStudio resolves default database to real DB and never :memory:", () => {
-    const studio = createMysqlStudio({ initialDbPath: testDb!.name });
-    expect(studio.activeDbPath).toBe(testDb!.name);
-    expect(studio.activeDbPath).not.toBe(":memory:");
-  });
+  itDb(
+    "12. createMysqlStudio resolves default database to real DB and never :memory:",
+    () => {
+      const studio = createMysqlStudio({ initialDbPath: testDb!.name });
+      expect(studio.activeDbPath).toBe(testDb!.name);
+      expect(studio.activeDbPath).not.toBe(":memory:");
+    },
+  );
 
-  itDb("13. POST /api/query executes queries with both MySQL backticks and ANSI double quotes seamlessly", async () => {
-    const srv = startMysqlStudioServer({ port: 0, config: testDb!.config });
-    try {
-      // 1. Backtick identifier query
-      const resBacktick = await fetch(`http://127.0.0.1:${srv.port}/api/query`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sql: "SELECT * FROM `audit_logs` LIMIT 2;" }),
-      });
-      expect(resBacktick.status).toBe(200);
-      const dataBacktick = (await resBacktick.json()) as any;
-      expect(dataBacktick.success).toBe(true);
-      expect(dataBacktick.rowCount).toBeGreaterThanOrEqual(1);
+  itDb(
+    "13. POST /api/query executes queries with both MySQL backticks and ANSI double quotes seamlessly",
+    async () => {
+      const srv = startMysqlStudioServer({ port: 0, config: testDb!.config });
+      try {
+        // 1. Backtick identifier query
+        const resBacktick = await fetch(
+          `http://127.0.0.1:${srv.port}/api/query`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sql: "SELECT * FROM `audit_logs` LIMIT 2;",
+            }),
+          },
+        );
+        expect(resBacktick.status).toBe(200);
+        const dataBacktick = (await resBacktick.json()) as any;
+        expect(dataBacktick.success).toBe(true);
+        expect(dataBacktick.rowCount).toBeGreaterThanOrEqual(1);
 
-      // 2. ANSI double-quote identifier query
-      const resQuotes = await fetch(`http://127.0.0.1:${srv.port}/api/query`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sql: "SELECT * FROM \"audit_logs\" LIMIT 2;" }),
-      });
-      expect(resQuotes.status).toBe(200);
-      const dataQuotes = (await resQuotes.json()) as any;
-      expect(dataQuotes.success).toBe(true);
-      expect(dataQuotes.rowCount).toBeGreaterThanOrEqual(1);
-    } finally {
-      srv.stop(true);
-    }
-  });
+        // 2. ANSI double-quote identifier query
+        const resQuotes = await fetch(
+          `http://127.0.0.1:${srv.port}/api/query`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sql: 'SELECT * FROM "audit_logs" LIMIT 2;',
+            }),
+          },
+        );
+        expect(resQuotes.status).toBe(200);
+        const dataQuotes = (await resQuotes.json()) as any;
+        expect(dataQuotes.success).toBe(true);
+        expect(dataQuotes.rowCount).toBeGreaterThanOrEqual(1);
+      } finally {
+        srv.stop(true);
+      }
+    },
+  );
 
-  itDb("14. POST /api/explain handles both MySQL backticks and ANSI double quotes without syntax errors", async () => {
-    const srv = startMysqlStudioServer({ port: 0, config: testDb!.config });
-    try {
-      // 1. Backtick explain
-      const resBacktick = await fetch(`http://127.0.0.1:${srv.port}/api/explain`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sql: "SELECT * FROM `audit_logs` LIMIT 5;" }),
-      });
-      expect(resBacktick.status).toBe(200);
-      const dataBacktick = (await resBacktick.json()) as any;
-      expect(dataBacktick.success).toBe(true);
-      expect(dataBacktick.queryPlan.length).toBeGreaterThan(0);
+  itDb(
+    "14. POST /api/explain handles both MySQL backticks and ANSI double quotes without syntax errors",
+    async () => {
+      const srv = startMysqlStudioServer({ port: 0, config: testDb!.config });
+      try {
+        // 1. Backtick explain
+        const resBacktick = await fetch(
+          `http://127.0.0.1:${srv.port}/api/explain`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sql: "SELECT * FROM `audit_logs` LIMIT 5;",
+            }),
+          },
+        );
+        expect(resBacktick.status).toBe(200);
+        const dataBacktick = (await resBacktick.json()) as any;
+        expect(dataBacktick.success).toBe(true);
+        expect(dataBacktick.queryPlan.length).toBeGreaterThan(0);
 
-      // 2. Double-quote explain
-      const resQuotes = await fetch(`http://127.0.0.1:${srv.port}/api/explain`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sql: "SELECT * FROM \"audit_logs\" LIMIT 5;" }),
-      });
-      expect(resQuotes.status).toBe(200);
-      const dataQuotes = (await resQuotes.json()) as any;
-      expect(dataQuotes.success).toBe(true);
-      expect(dataQuotes.queryPlan.length).toBeGreaterThan(0);
-    } finally {
-      srv.stop(true);
-    }
-  });
+        // 2. Double-quote explain
+        const resQuotes = await fetch(
+          `http://127.0.0.1:${srv.port}/api/explain`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sql: 'SELECT * FROM "audit_logs" LIMIT 5;',
+            }),
+          },
+        );
+        expect(resQuotes.status).toBe(200);
+        const dataQuotes = (await resQuotes.json()) as any;
+        expect(dataQuotes.success).toBe(true);
+        expect(dataQuotes.queryPlan.length).toBeGreaterThan(0);
+      } finally {
+        srv.stop(true);
+      }
+    },
+  );
 
   it("15. Client HTML quoteSqlIdentifier generates MySQL backtick identifiers", () => {
     const html = generateMysqlStudioHtml();
     expect(html).toContain("function quoteSqlIdentifier(value)");
     // Must contain backtick quoting in the generated client script
-    expect(html).toMatch(/return\s+["']`["']\s*\+\s*String\(value\)\.replace\(\/`\/g,\s*["']``["']\)\s*\+\s*["']`["']/);
+    expect(html).toMatch(
+      /return\s+["']`["']\s*\+\s*String\(value\)\.replace\(\/`\/g,\s*["']``["']\)\s*\+\s*["']`["']/,
+    );
   });
 });
-

@@ -63,21 +63,40 @@ export function resolveStorage(customStorage?: StorageLike): StorageLike {
   return fallbackStorage;
 }
 
-const VALID_BASE_MODES: readonly BaseMode[] = ["light", "dark", "midnight", "high-contrast"];
-const VALID_SURFACE_VIBES: readonly SurfaceVibe[] = ["flat", "frosted-glass", "matte", "neon-border"];
-const VALID_DENSITIES: readonly InterfaceDensity[] = ["compact", "comfortable", "spacious"];
+const VALID_BASE_MODES: readonly BaseMode[] = [
+  "light",
+  "dark",
+  "midnight",
+  "high-contrast",
+];
+const VALID_SURFACE_VIBES: readonly SurfaceVibe[] = [
+  "flat",
+  "frosted-glass",
+  "matte",
+  "neon-border",
+];
+const VALID_DENSITIES: readonly InterfaceDensity[] = [
+  "compact",
+  "comfortable",
+  "spacious",
+];
 
 /**
  * Validates and normalizes an untrusted surface config object.
  */
 export function sanitizeSurfaceConfig(raw: unknown): ThemeSurfaceConfig {
-  const obj = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const obj = (raw && typeof raw === "object" ? raw : {}) as Record<
+    string,
+    unknown
+  >;
 
   const baseMode = VALID_BASE_MODES.includes(obj.baseMode as BaseMode)
     ? (obj.baseMode as BaseMode)
     : DEFAULT_SURFACE_CONFIG.baseMode;
 
-  const surfaceVibe = VALID_SURFACE_VIBES.includes(obj.surfaceVibe as SurfaceVibe)
+  const surfaceVibe = VALID_SURFACE_VIBES.includes(
+    obj.surfaceVibe as SurfaceVibe,
+  )
     ? (obj.surfaceVibe as SurfaceVibe)
     : DEFAULT_SURFACE_CONFIG.surfaceVibe;
 
@@ -87,12 +106,12 @@ export function sanitizeSurfaceConfig(raw: unknown): ThemeSurfaceConfig {
 
   const primaryColor = normalizeHex(
     typeof obj.primaryColor === "string" ? obj.primaryColor : undefined,
-    DEFAULT_SURFACE_CONFIG.primaryColor
+    DEFAULT_SURFACE_CONFIG.primaryColor,
   );
 
   const accentColor = normalizeHex(
     typeof obj.accentColor === "string" ? obj.accentColor : undefined,
-    DEFAULT_SURFACE_CONFIG.accentColor
+    DEFAULT_SURFACE_CONFIG.accentColor,
   );
 
   const rawSharpness = Number(obj.cornerSharpness);
@@ -119,7 +138,12 @@ export function sanitizeOverrides(raw: unknown): Record<string, string> {
   for (const [key, val] of Object.entries(raw as Record<string, unknown>)) {
     const k = key.trim();
     const v = String(val ?? "").trim();
-    if (k.startsWith("--") && k.length > 2 && v.length > 0 && !/[{};<>]/.test(v)) {
+    if (
+      k.startsWith("--") &&
+      k.length > 2 &&
+      v.length > 0 &&
+      !/[{};<>]/.test(v)
+    ) {
       out[k] = v;
     }
   }
@@ -147,7 +171,9 @@ export function createThemeDocument(params: {
   return {
     schemaVersion: 1,
     format: "bun-rad-theme-studio",
-    id: params.id?.trim() || `theme-${slug || "custom"}-${Date.now().toString(36)}`,
+    id:
+      params.id?.trim() ||
+      `theme-${slug || "custom"}-${Date.now().toString(36)}`,
     name: cleanName,
     description: params.description?.trim() || undefined,
     createdAt: params.createdAt || now,
@@ -184,7 +210,9 @@ export function importThemeFromJson(jsonString: string): SavedThemeDocument {
   try {
     parsed = JSON.parse(jsonString);
   } catch (err: any) {
-    throw new Error(`Invalid JSON syntax: ${err?.message || "unable to parse"}`);
+    throw new Error(
+      `Invalid JSON syntax: ${err?.message || "unable to parse"}`,
+    );
   }
 
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
@@ -195,7 +223,9 @@ export function importThemeFromJson(jsonString: string): SavedThemeDocument {
 
   // Support both wrapped `{ surface: {...}, overrides: {...} }` and flat surface objects
   const surfaceSource =
-    record.surface && typeof record.surface === "object" ? record.surface : record;
+    record.surface && typeof record.surface === "object"
+      ? record.surface
+      : record;
 
   const hasAnyRecognizedField =
     "baseMode" in (surfaceSource as object) ||
@@ -208,7 +238,7 @@ export function importThemeFromJson(jsonString: string): SavedThemeDocument {
 
   if (!hasAnyRecognizedField) {
     throw new Error(
-      "Unrecognized theme JSON structure: expected surface controls (baseMode, primaryColor, accentColor, surfaceVibe, cornerSharpness, density)."
+      "Unrecognized theme JSON structure: expected surface controls (baseMode, primaryColor, accentColor, surfaceVibe, cornerSharpness, density).",
     );
   }
 
@@ -222,10 +252,12 @@ export function importThemeFromJson(jsonString: string): SavedThemeDocument {
   return createThemeDocument({
     id: typeof record.id === "string" ? record.id : undefined,
     name,
-    description: typeof record.description === "string" ? record.description : undefined,
+    description:
+      typeof record.description === "string" ? record.description : undefined,
     surface,
     overrides,
-    createdAt: typeof record.createdAt === "string" ? record.createdAt : undefined,
+    createdAt:
+      typeof record.createdAt === "string" ? record.createdAt : undefined,
   });
 }
 
@@ -264,13 +296,15 @@ export function saveCustomTheme(
     surface: ThemeSurfaceConfig;
     overrides?: Record<string, string>;
   },
-  storage?: StorageLike
+  storage?: StorageLike,
 ): { saved: SavedThemeDocument; themes: SavedThemeDocument[] } {
   const store = resolveStorage(storage);
   const existing = loadSavedThemes(store);
   const doc = createThemeDocument(params);
 
-  const index = existing.findIndex((t) => t.id === doc.id || t.name.toLowerCase() === doc.name.toLowerCase());
+  const index = existing.findIndex(
+    (t) => t.id === doc.id || t.name.toLowerCase() === doc.name.toLowerCase(),
+  );
   if (index >= 0) {
     doc.id = existing[index]!.id;
     doc.createdAt = existing[index]!.createdAt;
@@ -286,7 +320,10 @@ export function saveCustomTheme(
 /**
  * Deletes a saved custom theme by `id` from `localStorage`.
  */
-export function deleteSavedTheme(id: string, storage?: StorageLike): SavedThemeDocument[] {
+export function deleteSavedTheme(
+  id: string,
+  storage?: StorageLike,
+): SavedThemeDocument[] {
   const store = resolveStorage(storage);
   const existing = loadSavedThemes(store).filter((t) => t.id !== id);
   store.setItem(STORAGE_KEY_SAVED_THEMES, JSON.stringify(existing));
@@ -308,7 +345,7 @@ export interface ActiveStudioState {
  */
 export function saveActiveStudioState(
   state: ActiveStudioState,
-  storage?: StorageLike
+  storage?: StorageLike,
 ): void {
   const store = resolveStorage(storage);
   const payload: ActiveStudioState = {
@@ -323,7 +360,9 @@ export function saveActiveStudioState(
 /**
  * Restores the last working state of the Theme Studio from `localStorage`.
  */
-export function loadActiveStudioState(storage?: StorageLike): ActiveStudioState | null {
+export function loadActiveStudioState(
+  storage?: StorageLike,
+): ActiveStudioState | null {
   const store = resolveStorage(storage);
   const raw = store.getItem(STORAGE_KEY_ACTIVE_STATE);
   if (!raw) return null;
@@ -332,7 +371,10 @@ export function loadActiveStudioState(storage?: StorageLike): ActiveStudioState 
     if (!parsed || typeof parsed !== "object") return null;
     return {
       name: typeof parsed.name === "string" ? parsed.name : "Custom Theme",
-      activePresetId: typeof parsed.activePresetId === "string" ? parsed.activePresetId : null,
+      activePresetId:
+        typeof parsed.activePresetId === "string"
+          ? parsed.activePresetId
+          : null,
       surface: sanitizeSurfaceConfig(parsed.surface),
       overrides: sanitizeOverrides(parsed.overrides),
     };

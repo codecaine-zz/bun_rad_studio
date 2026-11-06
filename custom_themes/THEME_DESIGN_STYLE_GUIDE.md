@@ -10,12 +10,12 @@ This style guide documents the engineering principles, color science, GPU shader
 
 A professional theme designer never forces a single heavy shader budget onto every machine. Always classify your theme into one of four **Hardware Tiers** so users on any computer get a locked framerate:
 
-| Tier | Target Hardware | Backdrop Blur (`blur`) | Glass Opacity (`glass`) | Atmosphere Layers (`atmosphere`) | 3D Icon Animation (`iconAnimation`) | Motion Profile (`motion`) |
-| :--- | :--- | :-: | :-: | :--- | :--- | :-: |
-| **🟢 `low`** | Raspberry Pi, Chromebook, Intel N100, Remote VNC/SSH, Laptop Battery Saver | `0` (Zero GPU blur) | `0` (Opaque matte/OLED) | `"none"` (0 canvas particles) | `"off"` (Static crisp 3D SVG icons) | `"zero"` or `"calm"` |
-| **🟡 `medium`** | MacBook Air M1/M2/M3, Ultrabooks, Surface Pro, Steam Deck (60Hz) | `10` – `14` px | `0.45` – `0.55` | **1 lightweight layer** (`bokeh`, `snow`, `autumn_leaves`, `fireflies`) | Gentle 2D/3D (`spring_pop_3d`, `levitate_float`) | `"calm"` or `"spring"` |
-| **🟠 `high`** | MacBook Pro M3/M4 Pro, iMac 24", Desktop RTX 3060–4070 / Radeon RX (60–120Hz) | `20` – `24` px | `0.62` – `0.68` | **2 combined layers** (`aurora_ribbons+bokeh`, `snow+aurora_ribbons`, `data_rain+hud_reticle`) | Active 3D (`holo_foil_shimmer`, `orbital_halo_spin`, `clockwork_gear_tick`) | `"spring"` or `"cinematic"` |
-| **🔴 `ultra`** | **Apple Mac Studio M4 Ultra (32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K @ 120Hz)**, RTX 4090/5090 | `26` – `32` px | `0.70` – `0.78` | **3 to 6 combined layers** (`autumn_leaves+embers+fireflies`, `blizzard+aurora_australis`, `supernova_remnant+tesseract_4d+aurora_australis`) | Full 120Hz 3D Turntable / Origami / Cube / C4D (`folder_3d_spin_turntable`, `folder_3d_flip_origami`, `c4d_mograph_cloner_wave`, `m4_liquid_metal_morph`) | `"spring"`, `"snappy"`, or `"elastic"` |
+| Tier            | Target Hardware                                                                                               | Backdrop Blur (`blur`) | Glass Opacity (`glass`) | Atmosphere Layers (`atmosphere`)                                                                                                              | 3D Icon Animation (`iconAnimation`)                                                                                                                       |       Motion Profile (`motion`)        |
+| :-------------- | :------------------------------------------------------------------------------------------------------------ | :--------------------: | :---------------------: | :-------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------: |
+| **🟢 `low`**    | Raspberry Pi, Chromebook, Intel N100, Remote VNC/SSH, Laptop Battery Saver                                    |  `0` (Zero GPU blur)   | `0` (Opaque matte/OLED) | `"none"` (0 canvas particles)                                                                                                                 | `"off"` (Static crisp 3D SVG icons)                                                                                                                       |          `"zero"` or `"calm"`          |
+| **🟡 `medium`** | MacBook Air M1/M2/M3, Ultrabooks, Surface Pro, Steam Deck (60Hz)                                              |     `10` – `14` px     |     `0.45` – `0.55`     | **1 lightweight layer** (`bokeh`, `snow`, `autumn_leaves`, `fireflies`)                                                                       | Gentle 2D/3D (`spring_pop_3d`, `levitate_float`)                                                                                                          |         `"calm"` or `"spring"`         |
+| **🟠 `high`**   | MacBook Pro M3/M4 Pro, iMac 24", Desktop RTX 3060–4070 / Radeon RX (60–120Hz)                                 |     `20` – `24` px     |     `0.62` – `0.68`     | **2 combined layers** (`aurora_ribbons+bokeh`, `snow+aurora_ribbons`, `data_rain+hud_reticle`)                                                | Active 3D (`holo_foil_shimmer`, `orbital_halo_spin`, `clockwork_gear_tick`)                                                                               |      `"spring"` or `"cinematic"`       |
+| **🔴 `ultra`**  | **Apple Mac Studio M4 Ultra (32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K @ 120Hz)**, RTX 4090/5090 |     `26` – `32` px     |     `0.70` – `0.78`     | **3 to 6 combined layers** (`autumn_leaves+embers+fireflies`, `blizzard+aurora_australis`, `supernova_remnant+tesseract_4d+aurora_australis`) | Full 120Hz 3D Turntable / Origami / Cube / C4D (`folder_3d_spin_turntable`, `folder_3d_flip_origami`, `c4d_mograph_cloner_wave`, `m4_liquid_metal_morph`) | `"spring"`, `"snappy"`, or `"elastic"` |
 
 ---
 
@@ -39,6 +39,7 @@ Every theme defines **3 required hex colors** and **7 optional semantic hex colo
 ```
 
 ### Golden Rules of Palette Engineering
+
 1. **Primary Body Contrast ≥ 7.0:1 (WCAG AAA):** Keep `text` against both `background` and `card` above **7.0:1** (10:1+ preferred for 6K XDR studio monitors). The File Manager's `fmThemes.ts` engine automatically audits contrast and lifts/darkens tokens that fall below **4.5:1 (WCAG AA)**.
 2. **Card Elevation Step (`card` vs `background`):**
    - **Dark Themes (`dark: true`):** Make `card` **4% to 8% lighter** in relative luminance than `background` (e.g. `#050d17` background → `#0a1829` card) so panels, sidebars, and 3D folder plates separate cleanly without relying solely on borders.
@@ -52,38 +53,39 @@ Every theme defines **3 required hex colors** and **7 optional semantic hex colo
 
 The `fx.uiElementFx` property transforms every folder row and **Icons View (`#list.view-icons`)** tile into a physical 3D material with custom top-tab geometry, specular rim lighting, and animated surface shaders:
 
-| Category | `uiElementFx` Keys | Visual Signature |
-| :--- | :--- | :--- |
-| **Apple / Desktop Pro** | `tahoe_glass_folders`, `cupertino_ceramic_bevel`, `xdr_titanium_folders`, `fluent_mica_folders`, `google_material_folders` | Specular refractive glass, CNC-machined titanium chamfers, and layered mica elevation |
-| **Holiday & Seasonal** | `holiday_festive_glow`, `cryo_frost` | Warm festive lantern glow with animated holiday crests (`🎃`, `🎄`, `🎆`, `🦃`), or sculpted hanging ice crystals along folder rims |
-| **Visceral & Elemental** | `fire_folders`, `screen_melt_ooze`, `slime_drip`, `molten_lava_melt`, `storm_wind`, `tesla_arcs` | Compiz roaring flames, Salvador Dalí dripping bio-slime, molten magma fissures, and high-voltage plasma arcs |
-| **Gothic, Sci-Fi & Retro** | `horror_blood_moon`, `horror_vhs_static`, `void_tentacles`, `flash_3000_vector_hud`, `nerd_lcars_hud`, `nerd_arcane_runes` | Crimson gothic filigree, 2Advanced v3 vector targeting reticles, Starfleet LCARS bezels, and glowing arcane runes |
-| **3D Motion & Luxury** | `spinning_3d_holo_folders`, `c4d_mograph_extrude_folders`, `houdini_procedural_vex_hud`, `swiss_sapphire_chronograph`, `kyoto_washi_sumi`, `carbon_kevlar_weave` | Cinema 4D beveled extrusions, Houdini VEX wireframe cages, 24K gold horology bezels, and tactile Washi paper |
-| **Year 3000+ God-Mode** | `godmode_omega_halo`, `godmode_photonic_crystal`, `godmode_dyson_lattice`, `godmode_chrono_crystal`, `godmode_neural_synapse`, `godmode_zero_point_arc` | Post-singularity Dyson-sphere lattices, photonic waveguides, and zero-point energy halos |
+| Category                   | `uiElementFx` Keys                                                                                                                                               | Visual Signature                                                                                                                    |
+| :------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------- |
+| **Apple / Desktop Pro**    | `tahoe_glass_folders`, `cupertino_ceramic_bevel`, `xdr_titanium_folders`, `fluent_mica_folders`, `google_material_folders`                                       | Specular refractive glass, CNC-machined titanium chamfers, and layered mica elevation                                               |
+| **Holiday & Seasonal**     | `holiday_festive_glow`, `cryo_frost`                                                                                                                             | Warm festive lantern glow with animated holiday crests (`🎃`, `🎄`, `🎆`, `🦃`), or sculpted hanging ice crystals along folder rims |
+| **Visceral & Elemental**   | `fire_folders`, `screen_melt_ooze`, `slime_drip`, `molten_lava_melt`, `storm_wind`, `tesla_arcs`                                                                 | Compiz roaring flames, Salvador Dalí dripping bio-slime, molten magma fissures, and high-voltage plasma arcs                        |
+| **Gothic, Sci-Fi & Retro** | `horror_blood_moon`, `horror_vhs_static`, `void_tentacles`, `flash_3000_vector_hud`, `nerd_lcars_hud`, `nerd_arcane_runes`                                       | Crimson gothic filigree, 2Advanced v3 vector targeting reticles, Starfleet LCARS bezels, and glowing arcane runes                   |
+| **3D Motion & Luxury**     | `spinning_3d_holo_folders`, `c4d_mograph_extrude_folders`, `houdini_procedural_vex_hud`, `swiss_sapphire_chronograph`, `kyoto_washi_sumi`, `carbon_kevlar_weave` | Cinema 4D beveled extrusions, Houdini VEX wireframe cages, 24K gold horology bezels, and tactile Washi paper                        |
+| **Year 3000+ God-Mode**    | `godmode_omega_halo`, `godmode_photonic_crystal`, `godmode_dyson_lattice`, `godmode_chrono_crystal`, `godmode_neural_synapse`, `godmode_zero_point_arc`          | Post-singularity Dyson-sphere lattices, photonic waveguides, and zero-point energy halos                                            |
 
 ---
 
 ## 4. 3D Icon Packs (`iconPackStyle` — 56 Packs) & Icons View Choreography
 
 When the File Manager is switched to **Icons View (`#status-views button >> Icons` / `#list.view-icons`)**, every item renders at **`2.85rem` (`45.6px`)** inside a 3D stage card (`min-height: 118px`) with:
+
 - **Sculpted 3D Folder Top Tabs (`::before`)** and **3D Pedestal Plates (`::after`)**.
 - **Semantic Folder Detection (`folderIconTypeForName`):** Folders named `src`, `tests`, `docs`, `docker`, `ai-models`, `shaders`, `security-vault`, `camera-raw`, `music-stems`, `games`, `database`, `cloud`, etc. automatically receive bespoke 3D inner emblems.
 - **Holiday Corner Crests (`data-holiday-crest` & `data-holiday-badge`):** All 18 `holiday_*` themes automatically mount a floating, bobbing holiday crest (`🎃`, `🎄`, `🎆`, `🦃`, `☘️`, `💝`, `🥂`, `🕎`, `🌼`, etc.) on the top-right corner of every 3D icon.
 
 ### Recommended `uiElementFx` + `iconPackStyle` + `iconAnimation` Triads
 
-| Theme Archetype | `uiElementFx` | `iconPackStyle` | `iconAnimation` |
-| :--- | :--- | :--- | :--- |
-| **🎃 Halloween Ultra** | `holiday_festive_glow` | `us_holidays_festive` | `folder_3d_spin_turntable` |
-| **❄️ Polar Night Ultra** | `cryo_frost` | `aurora_nordic_ice` or `cryo_crystal` | `raytraced_caustic_refraction` |
-| **🍎 M4 Ultra Studio** | `xdr_titanium_folders` | `pro_studio_xdr` | `m4_liquid_metal_morph` |
-| **🧛 Gothic Crypt Ultra** | `horror_blood_moon` | `horror_crypt` | `folder_3d_flip_origami` |
-| **🔥 Compiz Hellfire** | `fire_folders` | `inferno_burn` | `fire_ember_flicker` |
-| **🧪 Bio-Slime Melt** | `screen_melt_ooze` | `bio_slime` | `liquid_jelly_morph` |
-| **🎯 Flash-3000 HUD** | `flash_3000_vector_hud` | `cyberdeck_matrix_hud` | `flash_2advanced_vector_hud` |
-| **🎬 Cinema 4D Studio** | `c4d_mograph_extrude_folders` | `creative_cinema_8k` | `c4d_mograph_cloner_wave` |
-| **⌚ 24K Gold Horology** | `swiss_sapphire_chronograph` | `royal_24k_gold_obsidian` | `clockwork_gear_tick` |
-| **🌌 Year 3099 Omega** | `godmode_omega_halo` | `godmode_omni_pantheon` | `godmode_pantheon_ascend` |
+| Theme Archetype           | `uiElementFx`                 | `iconPackStyle`                       | `iconAnimation`                |
+| :------------------------ | :---------------------------- | :------------------------------------ | :----------------------------- |
+| **🎃 Halloween Ultra**    | `holiday_festive_glow`        | `us_holidays_festive`                 | `folder_3d_spin_turntable`     |
+| **❄️ Polar Night Ultra**  | `cryo_frost`                  | `aurora_nordic_ice` or `cryo_crystal` | `raytraced_caustic_refraction` |
+| **🍎 M4 Ultra Studio**    | `xdr_titanium_folders`        | `pro_studio_xdr`                      | `m4_liquid_metal_morph`        |
+| **🧛 Gothic Crypt Ultra** | `horror_blood_moon`           | `horror_crypt`                        | `folder_3d_flip_origami`       |
+| **🔥 Compiz Hellfire**    | `fire_folders`                | `inferno_burn`                        | `fire_ember_flicker`           |
+| **🧪 Bio-Slime Melt**     | `screen_melt_ooze`            | `bio_slime`                           | `liquid_jelly_morph`           |
+| **🎯 Flash-3000 HUD**     | `flash_3000_vector_hud`       | `cyberdeck_matrix_hud`                | `flash_2advanced_vector_hud`   |
+| **🎬 Cinema 4D Studio**   | `c4d_mograph_extrude_folders` | `creative_cinema_8k`                  | `c4d_mograph_cloner_wave`      |
+| **⌚ 24K Gold Horology**  | `swiss_sapphire_chronograph`  | `royal_24k_gold_obsidian`             | `clockwork_gear_tick`          |
+| **🌌 Year 3099 Omega**    | `godmode_omega_halo`          | `godmode_omni_pantheon`               | `godmode_pantheon_ascend`      |
 
 ---
 
@@ -98,6 +100,7 @@ When the File Manager is switched to **Icons View (`#status-views button >> Icon
 ## 6. Theme Hacker Lab (`customVars` & Sanitized `customCss`)
 
 For pixel-level mastery, every custom theme supports:
+
 1. **`fx.customVars` (Up to 64 CSS Custom Property Overrides):**
    ```json
    "customVars": {

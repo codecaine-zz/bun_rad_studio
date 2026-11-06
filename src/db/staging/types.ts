@@ -2,7 +2,20 @@
 import type { Engine } from "../types";
 
 /** Broad data type family used for staging validation and type coercion rules. */
-export type TypeClass = "integer" | "decimal" | "float" | "boolean" | "date" | "time" | "timestamp" | "uuid" | "json" | "enum" | "text" | "binary" | "other";
+export type TypeClass =
+  | "integer"
+  | "decimal"
+  | "float"
+  | "boolean"
+  | "date"
+  | "time"
+  | "timestamp"
+  | "uuid"
+  | "json"
+  | "enum"
+  | "text"
+  | "binary"
+  | "other";
 
 /** Metadata describing a single column in the target database table. */
 export interface TargetColumn {
@@ -103,14 +116,19 @@ export interface ImportPlan {
   keyColumns: string[];
   userRules: UserRule[];
   /** New table only: the columns and types to create. */
-  newTable?: { columns: { name: string; kind: string; nullable: boolean }[]; autoId: boolean };
+  newTable?: {
+    columns: { name: string; kind: string; nullable: boolean }[];
+    autoId: boolean;
+  };
 }
 
 /** Lifecycle status of an import batch in the staging ledger. */
-export type BatchStatus = "staged" | "checked" | "promoted" | "undone" | "dropped";
+export type BatchStatus =
+  "staged" | "checked" | "promoted" | "undone" | "dropped";
 
 /** Strategy for promoting validated rows from the staging table into the target table. */
-export type PromoteMode = "insert-new" | "insert-all" | "upsert" | "update-only" | "append";
+export type PromoteMode =
+  "insert-new" | "insert-all" | "upsert" | "update-only" | "append";
 
 /** Structured validation or load problem recorded on a staged row. */
 export interface RowError {
@@ -129,4 +147,14 @@ export interface RowError {
 /** Prefix reserved for internal bookkeeping columns on staging tables. */
 export const STG_PREFIX = "_stg_";
 /** Ordered list of metadata column names present on every staging table. */
-export const META_COLUMNS = ["_stg_row_id", "_stg_batch_id", "_stg_source_file", "_stg_row_number", "_stg_loaded_at", "_stg_status", "_stg_errors", "_stg_match", "_stg_raw"] as const;
+export const META_COLUMNS = [
+  "_stg_row_id",
+  "_stg_batch_id",
+  "_stg_source_file",
+  "_stg_row_number",
+  "_stg_loaded_at",
+  "_stg_status",
+  "_stg_errors",
+  "_stg_match",
+  "_stg_raw",
+] as const;

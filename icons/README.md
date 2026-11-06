@@ -3,6 +3,7 @@
 This directory contains high-detail 1024x1024 application icons for compiling standalone macOS `.app` bundles, Windows executables, and Linux desktop packages.
 
 ## 📂 Available Pre-Configured Icons
+
 - **`app_default.icns` / `.png`**: Universal Bun RAD Studio application icon.
 - **`database_studio.icns` / `.png`**: SQLite Studio Pro & Database Studio icon.
 - **`redis_studio.icns` / `.png`**: Redis Studio Pro in-memory workstation icon.
@@ -16,6 +17,7 @@ This directory contains high-detail 1024x1024 application icons for compiling st
 - **`desktop/*.png` & `desktop/*.ico`**: Full suite of 66 application-specific 1024x1024 PNGs and multi-resolution Windows `.ico` icons.
 
 ## 📥 Adding Custom Icons
+
 You can drop any custom `.icns`, `.png` (1024x1024 recommended), or `.ico` file into this folder.
 In **App Bundler Studio Pro**, select your custom icon from the dropdown or click **📂 Browse Icon...** to pick any icon from disk.
 When packaging a macOS `.app` bundle, PNG icons are automatically converted to native multi-resolution Apple `.icns` bundles. When compiling or packaging Windows `.exe` executables, multi-resolution `.ico` resources are embedded directly into the PE header.

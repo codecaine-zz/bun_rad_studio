@@ -31,7 +31,11 @@ describe("👾 CyberMunch Math Deluxe — Cyber Legends Arcade Suite", () => {
   });
 
   it("3. Studio factory generates correct defaults and instance contracts", () => {
-    const app = createMathMunchersStudio({ fullscreen: false, width: 1100, height: 850 });
+    const app = createMathMunchersStudio({
+      fullscreen: false,
+      width: 1100,
+      height: 850,
+    });
     expect(app.title).toContain("CyberMunch Math Deluxe");
     expect(app.width).toBe(1100);
     expect(app.height).toBe(850);
@@ -59,7 +63,7 @@ describe("👾 CyberMunch Math Deluxe — Cyber Legends Arcade Suite", () => {
       // Health check endpoint
       const resHealth = await fetch(`${base}/api/health`);
       expect(resHealth.status).toBe(200);
-      const healthData = await resHealth.json() as any;
+      const healthData = (await resHealth.json()) as any;
       expect(healthData.status).toBe("ok");
       expect(healthData.app).toBe("math_munchers_studio");
       expect(healthData.name).toContain("CyberMunch Math Deluxe");
@@ -70,7 +74,11 @@ describe("👾 CyberMunch Math Deluxe — Cyber Legends Arcade Suite", () => {
 
   it("5. Launcher Studio automatically registers and surfaces CyberMunch Math", () => {
     const apps = scanWorkspaceApps();
-    const found = apps.find((a) => a.name === "math_munchers_studio" || a.id === "rad_math_munchers_studio");
+    const found = apps.find(
+      (a) =>
+        a.name === "math_munchers_studio" ||
+        a.id === "rad_math_munchers_studio",
+    );
     expect(found).toBeDefined();
     expect(found?.displayName).toBe("Codecaine CyberMunch Math Deluxe");
     expect(found?.icon).toBe("👾");

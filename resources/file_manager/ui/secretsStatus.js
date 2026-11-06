@@ -39,15 +39,30 @@ function paint() {
   const where = document.getElementById("status-right");
   if (!where) return;
   if (!pill || !pill.isConnected) {
-    pill = h("button", { type: "button", class: "secrets-pill", onclick: () => openPower("secrets") });
+    pill = h("button", {
+      type: "button",
+      class: "secrets-pill",
+      onclick: () => openPower("secrets"),
+    });
     where.prepend(pill);
   }
   const locked = status.locked !== false;
-  const text = locked ? "🔒 Locked" : left === null ? "🔓 Unlocked" : `🔓 Unlocked · locks in ${mmss(left)}`;
+  const text = locked
+    ? "🔒 Locked"
+    : left === null
+      ? "🔓 Unlocked"
+      : `🔓 Unlocked · locks in ${mmss(left)}`;
   pill.textContent = text;
   pill.dataset.state = locked ? "locked" : "open";
-  pill.title = locked ? "Your secret space is locked. Click to open the Secrets tool." : "Your secret space is unlocked. Click to open the Secrets tool.";
-  pill.setAttribute("aria-label", locked ? "Secrets: locked. Open the Secrets tool." : `Secrets: unlocked${left === null ? "" : `, locks in ${spoken(left)}`}. Open the Secrets tool.`);
+  pill.title = locked
+    ? "Your secret space is locked. Click to open the Secrets tool."
+    : "Your secret space is unlocked. Click to open the Secrets tool.";
+  pill.setAttribute(
+    "aria-label",
+    locked
+      ? "Secrets: locked. Open the Secrets tool."
+      : `Secrets: unlocked${left === null ? "" : `, locks in ${spoken(left)}`}. Open the Secrets tool.`,
+  );
 }
 
 function stopTick() {
@@ -67,7 +82,7 @@ function startTick() {
 }
 
 function onStatus(status) {
-  left = status.locked === false ? status.idleSeconds ?? null : null;
+  left = status.locked === false ? (status.idleSeconds ?? null) : null;
   paint();
   if (status.exists && status.locked === false) startTick();
   else stopTick();
@@ -75,7 +90,8 @@ function onStatus(status) {
 
 /** The person is using the vault page: tell the server, at most every 20 seconds, so the idle timer restarts. */
 export async function noteActivity() {
-  if (sx.status?.locked !== false || clock.now() - lastPing < PING_EVERY_MS) return;
+  if (sx.status?.locked !== false || clock.now() - lastPing < PING_EVERY_MS)
+    return;
   lastPing = clock.now();
   try {
     const res = await call("secrets/ping");
@@ -88,7 +104,8 @@ export async function noteActivity() {
 
 async function lookedAway() {
   wipeAll();
-  if (sx.status?.locked === false && sx.status.settings?.lockOnBlur) await lockNow("Locked because you switched away.");
+  if (sx.status?.locked === false && sx.status.settings?.lockOnBlur)
+    await lockNow("Locked because you switched away.");
 }
 
 /** Starts the pill and the look-away handling once. Safe to call again. */
@@ -126,7 +143,8 @@ export function startStatusWatch() {
 export function stopStatusWatch() {
   for (const off of unsubscribe.splice(0)) off();
   watched?.removeEventListener("blur", onBlur);
-  if (typeof document !== "undefined") document.removeEventListener("visibilitychange", onHidden);
+  if (typeof document !== "undefined")
+    document.removeEventListener("visibilitychange", onHidden);
   watched = null;
   stopTick();
   pill?.remove();

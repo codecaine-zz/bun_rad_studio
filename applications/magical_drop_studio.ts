@@ -145,7 +145,11 @@ ${getWindowShortcutsScript()}
   }
 
   // @ts-ignore - extra metadata args supported for studio branding
-  return injectGameMasterFx(html, "Codecaine CyberDrop: Grab & Throw Chain Blitz", "rose");
+  return injectGameMasterFx(
+    html,
+    "Codecaine CyberDrop: Grab & Throw Chain Blitz",
+    "rose",
+  );
 }
 
 export function startMagicalDropServer(options: MagicalDropServerOptions = {}) {
@@ -175,7 +179,10 @@ export function startMagicalDropServer(options: MagicalDropServerOptions = {}) {
 
       if (pathname === "/" || pathname === "/index.html") {
         return new Response(generateMagicalDropStudioHtml(), {
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            ...corsHeaders,
+          },
         });
       }
 
@@ -215,7 +222,9 @@ export function startMagicalDropServer(options: MagicalDropServerOptions = {}) {
         return new Response("Forbidden", { status: 403 });
       }
       if (existsSync(directCandidate)) {
-        return new Response(Bun.file(directCandidate), { headers: corsHeaders });
+        return new Response(Bun.file(directCandidate), {
+          headers: corsHeaders,
+        });
       }
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
@@ -223,7 +232,9 @@ export function startMagicalDropServer(options: MagicalDropServerOptions = {}) {
   });
 }
 
-export function createMagicalDropStudio(options: MagicalDropStudioOptions = {}): MagicalDropStudioInstance {
+export function createMagicalDropStudio(
+  options: MagicalDropStudioOptions = {},
+): MagicalDropStudioInstance {
   const fullscreen = options.fullscreen ?? false;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1280);
@@ -255,7 +266,8 @@ export function createMagicalDropStudio(options: MagicalDropStudioOptions = {}):
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -275,11 +287,15 @@ export function createMagicalDropStudio(options: MagicalDropStudioOptions = {}):
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -290,13 +306,19 @@ export function createMagicalDropStudio(options: MagicalDropStudioOptions = {}):
 
         webview.setHTML(html);
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -316,13 +338,18 @@ export const createMagicalDropApp = createMagicalDropStudio;
 export const startMagicalDropStudioServer = startMagicalDropServer;
 
 if (process.argv.includes("--server")) {
-  const port = Number(process.env.MAGICAL_DROP_PORT || process.env.PORT || APP_PORT);
+  const port = Number(
+    process.env.MAGICAL_DROP_PORT || process.env.PORT || APP_PORT,
+  );
   const srv = startMagicalDropServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`🃏 ${APP_TITLE} Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `🃏 ${APP_TITLE} Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = process.argv.includes("--fullscreen") || process.argv.includes("-f");
+  const fullscreen =
+    process.argv.includes("--fullscreen") || process.argv.includes("-f");
   const app = createMagicalDropStudio({ fullscreen });
   await app.run();
   process.exit(0);

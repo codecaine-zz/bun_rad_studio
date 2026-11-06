@@ -14,25 +14,42 @@ import {
 export const VIEW_H = 972;
 export const RATE = "+8%";
 export const GAP = 0.4;
-export const RIG_MARK = "🍎 Mac Studio M4 Ultra · 32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K 120Hz";
+export const RIG_MARK =
+  "🍎 Mac Studio M4 Ultra · 32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K 120Hz";
 
 /** Shows a key combination on screen. */
-export const showKeys = (d: Do, keys: string[]) => d.eval(`window.__cc.keys(${JSON.stringify(keys)})`);
+export const showKeys = (d: Do, keys: string[]) =>
+  d.eval(`window.__cc.keys(${JSON.stringify(keys)})`);
 
 /** Closes any open modal dialogs so the File Manager canvas is 100% unobstructed. */
 export async function closeDialogs(d: Do) {
-  for (let i = 0; i < 4 && (await d.eval<boolean>(`!!document.querySelector('.modal-backdrop')`)); i++) {
+  for (
+    let i = 0;
+    i < 4 &&
+    (await d.eval<boolean>(`!!document.querySelector('.modal-backdrop')`));
+    i++
+  ) {
     await d.key("Escape", "Esc");
     await d.wait(400);
   }
-  await d.eval(`document.querySelectorAll('.modal-backdrop').forEach(b => b.remove())`);
+  await d.eval(
+    `document.querySelectorAll('.modal-backdrop').forEach(b => b.remove())`,
+  );
 }
 
 /** Moves a slider of the theme editor slowly, so the change can be seen. */
-export async function slide(d: Do, label: string, from: number, to: number, step: number) {
+export async function slide(
+  d: Do,
+  label: string,
+  from: number,
+  to: number,
+  step: number,
+) {
   const sel = `.dialog input[aria-label='${label}']`;
   await d.hover(sel, 600);
-  await d.eval(`(async () => { const r = document.querySelector(${JSON.stringify(sel)}); if (!r) return; const n = Math.round(Math.abs(${to} - ${from}) / ${step}); for (let i = 0; i <= n; i++) { r.value = String(${from} + Math.sign(${to} - ${from}) * ${step} * i); r.dispatchEvent(new Event('input', { bubbles: true })); await new Promise((z) => setTimeout(z, 55)); } })()`);
+  await d.eval(
+    `(async () => { const r = document.querySelector(${JSON.stringify(sel)}); if (!r) return; const n = Math.round(Math.abs(${to} - ${from}) / ${step}); for (let i = 0; i <= n; i++) { r.value = String(${from} + Math.sign(${to} - ${from}) * ${step} * i); r.dispatchEvent(new Event('input', { bubbles: true })); await new Promise((z) => setTimeout(z, 55)); } })()`,
+  );
   await d.wait(1000);
 }
 
@@ -40,7 +57,9 @@ export async function slide(d: Do, label: string, from: number, to: number, step
 export async function pick(d: Do, label: string, value: string) {
   const sel = `.dialog select[aria-label='${label}']`;
   await d.hover(sel, 600);
-  await d.eval(`(() => { const s = document.querySelector(${JSON.stringify(sel)}); if (!s) return; s.value = ${JSON.stringify(value)}; s.dispatchEvent(new Event('input', { bubbles: true })); s.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+  await d.eval(
+    `(() => { const s = document.querySelector(${JSON.stringify(sel)}); if (!s) return; s.value = ${JSON.stringify(value)}; s.dispatchEvent(new Event('input', { bubbles: true })); s.dispatchEvent(new Event('change', { bubbles: true })); })()`,
+  );
   await d.wait(800);
 }
 
@@ -53,11 +72,18 @@ export async function showThemeUnobstructed(
   key: string,
   bannerTitle: string,
   bannerSub: string,
-  opts: { anim?: string; holidayBurst?: boolean; hoverRow?: string; waitMs?: number; tierLabel?: string } = {},
+  opts: {
+    anim?: string;
+    holidayBurst?: boolean;
+    hoverRow?: string;
+    waitMs?: number;
+    tierLabel?: string;
+  } = {},
 ) {
   const anim = opts.anim || "folder_3d_spin_turntable";
   const waitMs = opts.waitMs ?? 1350;
-  const tierLabel = opts.tierLabel || "🔴 UNOBSTRUCTED 6K XDR ICONS VIEW · 120Hz ULTRA";
+  const tierLabel =
+    opts.tierLabel || "🔴 UNOBSTRUCTED 6K XDR ICONS VIEW · 120Hz ULTRA";
   await d.eval(`(async () => {
     document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
     const { state } = await import('/ui/state.js');
@@ -89,7 +115,12 @@ export async function showThemeUnobstructed(
       + '<div style="font-size:11px;opacity:0.88;margin-top:1px;color:#cbd5e1;">' + ${JSON.stringify(bannerSub)} + '</div>';
   })()`);
   if (opts.hoverRow) {
-    await d.hover(`#list .row[data-name=${JSON.stringify(opts.hoverRow)}]`, Math.min(750, waitMs)).catch(() => {});
+    await d
+      .hover(
+        `#list .row[data-name=${JSON.stringify(opts.hoverRow)}]`,
+        Math.min(750, waitMs),
+      )
+      .catch(() => {});
     await d.wait(Math.max(250, waitMs - 750));
   } else {
     await d.wait(waitMs);
@@ -97,10 +128,16 @@ export async function showThemeUnobstructed(
 }
 
 export async function clearUnobstructedBanner(d: Do) {
-  await d.eval(`document.getElementById('fm-unobstructed-theme-hud')?.remove()`);
+  await d.eval(
+    `document.getElementById('fm-unobstructed-theme-hud')?.remove()`,
+  );
 }
 
-export function createThemesTutorialEnv(opts: { tmpDir: string; cdpPort: number; fmPort: number }) {
+export function createThemesTutorialEnv(opts: {
+  tmpDir: string;
+  cdpPort: number;
+  fmPort: number;
+}) {
   const ROOT = process.cwd();
   const TMP = opts.tmpDir;
   const HOME = join(TMP, FM_HOME);
@@ -110,7 +147,8 @@ export function createThemesTutorialEnv(opts: { tmpDir: string; cdpPort: number;
 
   function seedWorld(): World {
     rmSync(TMP, { recursive: true, force: true });
-    for (const d of [HOME, DATA, GRAVE, ZDOT]) mkdirSync(d, { recursive: true });
+    for (const d of [HOME, DATA, GRAVE, ZDOT])
+      mkdirSync(d, { recursive: true });
     writeFileSync(
       join(ZDOT, ".zshrc"),
       [
@@ -157,24 +195,48 @@ export function createThemesTutorialEnv(opts: { tmpDir: string; cdpPort: number;
     }
 
     const customExports = getMasterCustomThemeExports();
-    for (const baseDir of [join(HOME, "custom_themes"), join(HOME, "Projects", "shop-app", "custom_themes")]) {
+    for (const baseDir of [
+      join(HOME, "custom_themes"),
+      join(HOME, "Projects", "shop-app", "custom_themes"),
+    ]) {
       mkdirSync(baseDir, { recursive: true });
       for (const item of customExports) {
-        writeFileSync(join(baseDir, `${item.slug}.json`), JSON.stringify(item.jsonPayload, null, 2) + "\n");
+        writeFileSync(
+          join(baseDir, `${item.slug}.json`),
+          JSON.stringify(item.jsonPayload, null, 2) + "\n",
+        );
       }
-      writeFileSync(join(baseDir, "master_all_systems_20_themes_pack.json"), JSON.stringify(getMasterCustomThemesPackJson(), null, 2) + "\n");
-      writeFileSync(join(baseDir, "master_all_systems_20_themes_pack.ccfm.txt"), getMasterCustomThemesPackShareCode() + "\n");
-      writeFileSync(join(baseDir, "pack_tier_1_low_featherweight.json"), JSON.stringify(getMasterCustomThemesPackJson("low"), null, 2) + "\n");
-      writeFileSync(join(baseDir, "pack_tier_2_medium_balanced_60fps.json"), JSON.stringify(getMasterCustomThemesPackJson("medium"), null, 2) + "\n");
-      writeFileSync(join(baseDir, "pack_tier_3_high_spec_120hz.json"), JSON.stringify(getMasterCustomThemesPackJson("high"), null, 2) + "\n");
-      writeFileSync(join(baseDir, "pack_tier_4_ultra_6k_xdr_120hz.json"), JSON.stringify(getMasterCustomThemesPackJson("ultra"), null, 2) + "\n");
+      writeFileSync(
+        join(baseDir, "master_all_systems_20_themes_pack.json"),
+        JSON.stringify(getMasterCustomThemesPackJson(), null, 2) + "\n",
+      );
+      writeFileSync(
+        join(baseDir, "master_all_systems_20_themes_pack.ccfm.txt"),
+        getMasterCustomThemesPackShareCode() + "\n",
+      );
+      writeFileSync(
+        join(baseDir, "pack_tier_1_low_featherweight.json"),
+        JSON.stringify(getMasterCustomThemesPackJson("low"), null, 2) + "\n",
+      );
+      writeFileSync(
+        join(baseDir, "pack_tier_2_medium_balanced_60fps.json"),
+        JSON.stringify(getMasterCustomThemesPackJson("medium"), null, 2) + "\n",
+      );
+      writeFileSync(
+        join(baseDir, "pack_tier_3_high_spec_120hz.json"),
+        JSON.stringify(getMasterCustomThemesPackJson("high"), null, 2) + "\n",
+      );
+      writeFileSync(
+        join(baseDir, "pack_tier_4_ultra_6k_xdr_120hz.json"),
+        JSON.stringify(getMasterCustomThemesPackJson("ultra"), null, 2) + "\n",
+      );
     }
 
     const styleGuideMd = [
       "# 🎨 Codecaine Professional Theme Design Style Guide",
       "",
       "## 1. Hardware Tier Budgets",
-      "- **🟢 Low (`low`)**: 0% GPU load, `atmosphere: \"none\"`, crisp 1px borders.",
+      '- **🟢 Low (`low`)**: 0% GPU load, `atmosphere: "none"`, crisp 1px borders.',
       "- **🟡 Medium (`medium`)**: 60fps 1-layer shader, `blur <= 18px`.",
       "- **🟠 High (`high`)**: 60–120Hz 2-layer shader mix, `blur <= 26px`.",
       "- **🔴 Ultra (`ultra`)**: Uncapped 120Hz ProMotion 6K XDR, 3-layer shader mix + 3D turntable icons.",
@@ -189,8 +251,14 @@ export function createThemesTutorialEnv(opts: { tmpDir: string; cdpPort: number;
     w.put("custom_themes/THEME_DESIGN_STYLE_GUIDE.md", styleGuideMd);
     w.put("Projects/shop-app/README.md", styleGuideMd);
     w.put("Projects/shop-app/THEME_DESIGN_STYLE_GUIDE.md", styleGuideMd);
-    w.put("Projects/shop-app/custom_themes/00_THEME_DESIGN_STYLE_GUIDE.md", styleGuideMd);
-    w.put("Projects/shop-app/custom_themes/THEME_DESIGN_STYLE_GUIDE.md", styleGuideMd);
+    w.put(
+      "Projects/shop-app/custom_themes/00_THEME_DESIGN_STYLE_GUIDE.md",
+      styleGuideMd,
+    );
+    w.put(
+      "Projects/shop-app/custom_themes/THEME_DESIGN_STYLE_GUIDE.md",
+      styleGuideMd,
+    );
 
     writeFileSync(
       join(DATA, "file_manager_themes.json"),
@@ -204,7 +272,12 @@ export function createThemesTutorialEnv(opts: { tmpDir: string; cdpPort: number;
     private fm?: ReturnType<typeof Bun.spawn>;
 
     async start() {
-      this.c = await Cdp.launch(opts.cdpPort, join(TMP, "chrome"), 1920, VIEW_H);
+      this.c = await Cdp.launch(
+        opts.cdpPort,
+        join(TMP, "chrome"),
+        1920,
+        VIEW_H,
+      );
     }
 
     stop() {
@@ -253,7 +326,10 @@ export function createThemesTutorialEnv(opts: { tmpDir: string; cdpPort: number;
       );
       writeFileSync(join(DATA, "file_manager.json"), settingsPayload);
       writeFileSync(join(DATA, "file_manager_settings.json"), settingsPayload);
-      const path = (ch.path ?? `${HOME}/Projects/shop-app`).replace("<HOME>", HOME);
+      const path = (ch.path ?? `${HOME}/Projects/shop-app`).replace(
+        "<HOME>",
+        HOME,
+      );
       this.fm = Bun.spawn(
         [
           process.execPath,
@@ -289,10 +365,14 @@ export function createThemesTutorialEnv(opts: { tmpDir: string; cdpPort: number;
         await sleep(250);
       }
       await this.c.goto(`http://127.0.0.1:${opts.fmPort}/`);
-      await this.c.eval(`[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Start')?.click()`);
+      await this.c.eval(
+        `[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Start')?.click()`,
+      );
       await sleep(500);
       if (ch.view) {
-        await this.c.eval(`document.querySelector(${JSON.stringify(ch.view)})?.click()`);
+        await this.c.eval(
+          `document.querySelector(${JSON.stringify(ch.view)})?.click()`,
+        );
         await sleep(500);
       }
       void world;

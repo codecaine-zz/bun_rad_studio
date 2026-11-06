@@ -21,14 +21,21 @@ export interface HistorySnapshot {
   action: string;
 }
 
-export function createDataConvertStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
+export function createDataConvertStudio(
+  options: { fullscreen?: boolean; theme?: string } = {},
+): SimpleWindow {
   const fullscreen = options.fullscreen ?? true;
-  const win = newSimpleWindow("Data Converter Studio Pro -- Enterprise Data Interchange Suite", 1160, 920, {
-    appId: "dataconvert_studio",
-    theme: options.theme || getSavedTheme() || "midnight",
-    autoSaveState: true,
-    fullscreen,
-  });
+  const win = newSimpleWindow(
+    "Data Converter Studio Pro -- Enterprise Data Interchange Suite",
+    1160,
+    920,
+    {
+      appId: "dataconvert_studio",
+      theme: options.theme || getSavedTheme() || "midnight",
+      autoSaveState: true,
+      fullscreen,
+    },
+  );
 
   const SAMPLE_CSV = `name,role,department,salary
 Alice Smith,Principal Engineer,Core Systems,195000
@@ -39,17 +46,22 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
   const SAMPLE_JSON = `[\n  {\n    "name": "Alice Smith",\n    "role": "Principal Engineer",\n    "department": "Core Systems",\n    "salary": 195000\n  },\n  {\n    "name": "Bob Jones",\n    "role": "Product Architect",\n    "department": "UI Platform",\n    "salary": 180000\n  }\n]`;
 
   // Pre-configured Curated Sample Datasets
-  const PRESET_DATASETS: Record<string, { format: string; target: string; data: string; description: string }> = {
+  const PRESET_DATASETS: Record<
+    string,
+    { format: string; target: string; data: string; description: string }
+  > = {
     "Employees Directory (CSV)": {
       format: "CSV",
       target: "JSON",
-      description: "Engineering team roster with names, roles, departments and salaries",
+      description:
+        "Engineering team roster with names, roles, departments and salaries",
       data: SAMPLE_CSV,
     },
     "E-Commerce Orders (JSON)": {
       format: "JSON",
       target: "Markdown Table",
-      description: "Customer orders with order IDs, products, quantities and pricing",
+      description:
+        "Customer orders with order IDs, products, quantities and pricing",
       data: `[
   { "orderId": "ORD-9401", "customer": "Sarah Connor", "product": "Cyberdeck X1", "quantity": 1, "price": 1299.99, "shipped": true },
   { "orderId": "ORD-9402", "customer": "Neo Anderson", "product": "Neural Interface Cable", "quantity": 2, "price": 149.50, "shipped": true },
@@ -60,7 +72,8 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
     "Server Access Logs (TSV)": {
       format: "TSV",
       target: "SQL INSERT Statements",
-      description: "Web server access logs with timestamp, IP, HTTP method and response latency",
+      description:
+        "Web server access logs with timestamp, IP, HTTP method and response latency",
       data: `timestamp\tip_address\tmethod\tpath\tstatus_code\tlatency_ms
 2026-10-12T14:20:01Z\t192.168.1.101\tGET\t/api/v1/telemetry\t200\t12.4
 2026-10-12T14:20:03Z\t192.168.1.105\tPOST\t/api/v1/auth/token\t201\t45.8
@@ -70,7 +83,8 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
     "Cloud Infrastructure Config (YAML)": {
       format: "YAML",
       target: "JSON",
-      description: "Microservice cluster configuration with replica counts and memory limits",
+      description:
+        "Microservice cluster configuration with replica counts and memory limits",
       data: `- service: "api-gateway"
   replicas: "4"
   environment: "production"
@@ -90,7 +104,8 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
     "Financial Performance Metrics (Markdown Table)": {
       format: "Markdown Table",
       target: "HTML Table",
-      description: "Quarterly corporate revenue, profit margins and financial breakdown",
+      description:
+        "Quarterly corporate revenue, profit margins and financial breakdown",
       data: `| Quarter | Revenue_M | Gross_Margin | Operating_Income_M | Net_Profit_Margin |
 | --- | --- | --- | --- | --- |
 | Q1 2026 | 48.5 | 76.2% | 14.2 | 24.5% |
@@ -101,7 +116,8 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
     "Product Catalog (XML)": {
       format: "XML",
       target: "CSV",
-      description: "XML inventory feed with SKU, title, category and unit pricing",
+      description:
+        "XML inventory feed with SKU, title, category and unit pricing",
       data: `<?xml version="1.0" encoding="UTF-8"?>
 <products>
   <product>
@@ -152,8 +168,18 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
     const curFrom = win.getValue("dd_from") || "CSV";
     const curTo = win.getValue("dd_to") || "JSON";
     const last = undoStack[undoStack.length - 1];
-    if (!last || last.input !== curInput || last.fromFmt !== curFrom || last.toFmt !== curTo) {
-      undoStack.push({ input: curInput, fromFmt: curFrom, toFmt: curTo, action: "Edit" });
+    if (
+      !last ||
+      last.input !== curInput ||
+      last.fromFmt !== curFrom ||
+      last.toFmt !== curTo
+    ) {
+      undoStack.push({
+        input: curInput,
+        fromFmt: curFrom,
+        toFmt: curTo,
+        action: "Edit",
+      });
       if (undoStack.length > 100) undoStack.shift();
     }
   };
@@ -163,7 +189,12 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
     const curFrom = win.getValue("dd_from") || "CSV";
     const curTo = win.getValue("dd_to") || "JSON";
     const last = undoStack[undoStack.length - 1];
-    if (last && last.input === curInput && last.fromFmt === curFrom && last.toFmt === curTo) {
+    if (
+      last &&
+      last.input === curInput &&
+      last.fromFmt === curFrom &&
+      last.toFmt === curTo
+    ) {
       return; // Do not record duplicate state
     }
     undoStack.push({ input: curInput, fromFmt: curFrom, toFmt: curTo, action });
@@ -182,51 +213,55 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
   win.addButton("btn_fullscreen", "⛶ Fullscreen");
   win.endRow();
   win.addCaption(
-    "Enterprise Multi-Format Transformer: CSV, TSV, JSON, ndjson, YAML, TOML, XML, Markdown, SQL & Base64"
+    "Enterprise Multi-Format Transformer: CSV, TSV, JSON, ndjson, YAML, TOML, XML, Markdown, SQL & Base64",
   );
 
   // 2. Format Transformation & Pipeline Settings
   win.beginGroupBox("Format Transformation & Pipeline Settings");
   win.beginRow();
   win.addLabel("lbl_from", "Source Format:");
-  win.addDropdown(
-    "dd_from",
-    [
+  win
+    .addDropdown(
+      "dd_from",
+      [
+        "CSV",
+        "TSV",
+        "JSON",
+        "JSON Lines (ndjson)",
+        "YAML",
+        "TOML",
+        "XML",
+        "Markdown Table",
+        "Base64",
+        "URL Encoded",
+      ],
       "CSV",
-      "TSV",
-      "JSON",
-      "JSON Lines (ndjson)",
-      "YAML",
-      "TOML",
-      "XML",
-      "Markdown Table",
-      "Base64",
-      "URL Encoded",
-    ],
-    "CSV"
-  ).width(150);
+    )
+    .width(150);
   win.addLabel("lbl_to", "Target Format:");
-  win.addDropdown(
-    "dd_to",
-    [
+  win
+    .addDropdown(
+      "dd_to",
+      [
+        "JSON",
+        "Markdown Table",
+        "CSV",
+        "TSV",
+        "YAML",
+        "TOML",
+        "XML",
+        "SQL INSERT Statements",
+        "HTML Table",
+        "JSON Lines (ndjson)",
+        "JSON (Minified)",
+        "PHP Array",
+        "Python Dict",
+        "Base64",
+        "URL Encoded",
+      ],
       "JSON",
-      "Markdown Table",
-      "CSV",
-      "TSV",
-      "YAML",
-      "TOML",
-      "XML",
-      "SQL INSERT Statements",
-      "HTML Table",
-      "JSON Lines (ndjson)",
-      "JSON (Minified)",
-      "PHP Array",
-      "Python Dict",
-      "Base64",
-      "URL Encoded",
-    ],
-    "JSON"
-  ).width(180);
+    )
+    .width(180);
   win.addButton("btn_convert", "⚡ Convert Document");
   win.addButton("btn_paste_from_clipboard", "📋 Paste from Clipboard");
   win.addButton("btn_swap", "⇄ Swap Formats");
@@ -235,19 +270,21 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
 
   win.beginRow();
   win.addLabel("lbl_samples", "Preset Dataset:");
-  win.addDropdown(
-    "dd_samples",
-    [
+  win
+    .addDropdown(
+      "dd_samples",
+      [
+        "Select Preset Dataset...",
+        "Employees Directory (CSV)",
+        "E-Commerce Orders (JSON)",
+        "Server Access Logs (TSV)",
+        "Cloud Infrastructure Config (YAML)",
+        "Financial Performance Metrics (Markdown Table)",
+        "Product Catalog (XML)",
+      ],
       "Select Preset Dataset...",
-      "Employees Directory (CSV)",
-      "E-Commerce Orders (JSON)",
-      "Server Access Logs (TSV)",
-      "Cloud Infrastructure Config (YAML)",
-      "Financial Performance Metrics (Markdown Table)",
-      "Product Catalog (XML)",
-    ],
-    "Select Preset Dataset..."
-  ).width(250);
+    )
+    .width(250);
   win.addButton("btn_load_sample", "🎲 Load Preset");
   win.addButton("btn_beautify", "✨ Beautify Input");
   win.addButton("btn_minify", "⚡ Minify Input");
@@ -256,7 +293,9 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
   win.endGroupBox();
 
   // 3. Source Document Input Box with Complete Editing Actions (Undo, Paste, Select All, Copy, Import)
-  win.beginGroupBox("Source Document Input (Supports Drag & Drop, File Import, Paste & Undo)");
+  win.beginGroupBox(
+    "Source Document Input (Supports Drag & Drop, File Import, Paste & Undo)",
+  );
   win.beginRow();
   win.addButton("btn_paste", "📋 Paste from Clipboard");
   win.addButton("btn_undo", "↩️ Undo");
@@ -284,16 +323,18 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
   win.beginGroupBox("Tabular Grid Inspection (Structured Record View)");
   win.beginRow();
   win.addLabel("lbl_grid_info", "🔍 Filter Preview Records:");
-  win.addTextInput("txt_grid_search", "", "Type keyword to filter rows in preview table...").width(280);
+  win
+    .addTextInput(
+      "txt_grid_search",
+      "",
+      "Type keyword to filter rows in preview table...",
+    )
+    .width(280);
   win.addButton("btn_filter_grid", "Filter Grid");
   win.addButton("btn_reset_grid", "Reset Grid");
   win.addLabel("lbl_grid_count", "Showing 4 of 4 records (4 columns)");
   win.endRow();
-  win.addTable(
-    "tbl_preview",
-    currentHeaders,
-    currentRows
-  ).height(95);
+  win.addTable("tbl_preview", currentHeaders, currentRows).height(95);
   win.endGroupBox();
 
   // 6. Telemetry Console
@@ -303,7 +344,10 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
 
   // 7. Status Bar
   win.beginRow();
-  win.addLabel("lbl_status", "Status: Ready  |  Parsed Rows: 4  |  Columns: 4  |  Zero Homebrew");
+  win.addLabel(
+    "lbl_status",
+    "Status: Ready  |  Parsed Rows: 4  |  Columns: 4  |  Zero Homebrew",
+  );
   win.endRow();
 
   // -----------------------------------------------------------------------------------------------
@@ -311,15 +355,21 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
   // -----------------------------------------------------------------------------------------------
 
   const parseXmlRecords = (xml: string): ParseResult => {
-    const recordMatches = xml.match(/<(record|product|item|row|entry|node)[\s>][\s\S]*?<\/\1>/gi);
+    const recordMatches = xml.match(
+      /<(record|product|item|row|entry|node)[\s>][\s\S]*?<\/\1>/gi,
+    );
     if (!recordMatches || recordMatches.length === 0) {
-      throw new Error("No XML record tags (<record>, <product>, <item>, <row>, <entry>) found");
+      throw new Error(
+        "No XML record tags (<record>, <product>, <item>, <row>, <entry>) found",
+      );
     }
     const records: DataRecord[] = [];
     const headerSet = new Set<string>();
     for (const block of recordMatches) {
       const rec: DataRecord = {};
-      const fieldMatches = block.matchAll(/<([a-zA-Z0-9_\-]+)>([\s\S]*?)<\/\1>/g);
+      const fieldMatches = block.matchAll(
+        /<([a-zA-Z0-9_\-]+)>([\s\S]*?)<\/\1>/g,
+      );
       for (const m of fieldMatches) {
         const tag = m[1]!;
         const val = m[2]!
@@ -334,7 +384,9 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
       records.push(rec);
     }
     const headers = Array.from(headerSet);
-    const rows = records.map((r) => headers.map((h) => (r[h] !== undefined ? String(r[h]) : "")));
+    const rows = records.map((r) =>
+      headers.map((h) => (r[h] !== undefined ? String(r[h]) : "")),
+    );
     return { headers, rows, rawRecords: records };
   };
 
@@ -344,7 +396,9 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
       .map((l) => l.trim())
       .filter((l) => l.startsWith("|") && l.endsWith("|"));
     if (lines.length < 2) {
-      throw new Error("Markdown table must contain at least a header row and separator row");
+      throw new Error(
+        "Markdown table must contain at least a header row and separator row",
+      );
     }
     const parseRow = (line: string) =>
       line
@@ -363,13 +417,18 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
   };
 
   const parseNdjson = (input: string): ParseResult => {
-    const lines = input.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const lines = input
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean);
     if (lines.length === 0) throw new Error("JSON Lines input is empty");
     const records: DataRecord[] = lines.map((l, i) => {
       try {
         return JSON.parse(l);
       } catch (e: any) {
-        throw new Error(`JSON Lines syntax error at line ${i + 1}: ${e.message}`);
+        throw new Error(
+          `JSON Lines syntax error at line ${i + 1}: ${e.message}`,
+        );
       }
     });
     const headerSet = new Set<string>();
@@ -380,7 +439,7 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
         const v = r[h];
         if (v === null || v === undefined) return "";
         return typeof v === "object" ? JSON.stringify(v) : String(v);
-      })
+      }),
     );
     return { headers, rows, rawRecords: records };
   };
@@ -396,20 +455,33 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
       if (!line || line.startsWith("#")) continue;
 
       if (line === "-" || line.startsWith("- ")) {
-        if (currentRec && Object.keys(currentRec).length > 0) records.push(currentRec);
+        if (currentRec && Object.keys(currentRec).length > 0)
+          records.push(currentRec);
         currentRec = {};
         const rest = line.replace(/^-+\s*/, "").trim();
         if (rest.includes(":")) {
           const idx = rest.indexOf(":");
-          const k = rest.slice(0, idx).trim().replace(/^['"]|['"]$/g, "");
-          const v = rest.slice(idx + 1).trim().replace(/^['"]|['"]$/g, "");
+          const k = rest
+            .slice(0, idx)
+            .trim()
+            .replace(/^['"]|['"]$/g, "");
+          const v = rest
+            .slice(idx + 1)
+            .trim()
+            .replace(/^['"]|['"]$/g, "");
           currentRec[k] = v;
           headerSet.add(k);
         }
       } else if (currentRec && line.includes(":")) {
         const idx = line.indexOf(":");
-        const k = line.slice(0, idx).trim().replace(/^['"]|['"]$/g, "");
-        const v = line.slice(idx + 1).trim().replace(/^['"]|['"]$/g, "");
+        const k = line
+          .slice(0, idx)
+          .trim()
+          .replace(/^['"]|['"]$/g, "");
+        const v = line
+          .slice(idx + 1)
+          .trim()
+          .replace(/^['"]|['"]$/g, "");
         currentRec[k] = v;
         headerSet.add(k);
       }
@@ -418,30 +490,38 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
       records.push(currentRec);
     }
     if (records.length === 0) {
-      throw new Error("Could not parse YAML records (expected list format '- key: value')");
+      throw new Error(
+        "Could not parse YAML records (expected list format '- key: value')",
+      );
     }
     const headers = Array.from(headerSet);
-    const rows = records.map((r) => headers.map((h) => (r[h] !== undefined ? String(r[h]) : "")));
+    const rows = records.map((r) =>
+      headers.map((h) => (r[h] !== undefined ? String(r[h]) : "")),
+    );
     return { headers, rows, rawRecords: records };
   };
 
   const parseToml = (input: string): ParseResult => {
     try {
-      const data = (Bun as any).TOML?.parse ? (Bun as any).TOML.parse(input) : JSON.parse(input);
+      const data = (Bun as any).TOML?.parse
+        ? (Bun as any).TOML.parse(input)
+        : JSON.parse(input);
       const records = Array.isArray(data)
         ? data
         : Array.isArray((data as any).records)
-        ? (data as any).records
-        : [data];
+          ? (data as any).records
+          : [data];
       const headerSet = new Set<string>();
-      records.forEach((r: any) => Object.keys(r).forEach((k) => headerSet.add(k)));
+      records.forEach((r: any) =>
+        Object.keys(r).forEach((k) => headerSet.add(k)),
+      );
       const headers = Array.from(headerSet);
       const rows = records.map((r: any) =>
         headers.map((h) => {
           const v = r[h];
           if (v === null || v === undefined) return "";
           return typeof v === "object" ? JSON.stringify(v) : String(v);
-        })
+        }),
       );
       return { headers, rows, rawRecords: records };
     } catch (e: any) {
@@ -454,7 +534,10 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
     const words = input.trim() ? input.trim().split(/\s+/).length : 0;
     const chars = input.length;
     const kb = (chars / 1024).toFixed(1);
-    win.setText("lbl_input_stats", `Input: ${lines} lines · ${words} words · ${chars} chars · ${kb} KB`);
+    win.setText(
+      "lbl_input_stats",
+      `Input: ${lines} lines · ${words} words · ${chars} chars · ${kb} KB`,
+    );
   };
 
   const convertData = () => {
@@ -474,21 +557,27 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
         const parsed = Array.isArray(parsed0)
           ? parsed0
           : Array.isArray(parsed0.records)
-          ? parsed0.records
-          : Array.isArray(parsed0.data)
-          ? parsed0.data
-          : [parsed0];
-        const records = parsed.filter((x: any) => x !== null && typeof x === "object");
-        if (records.length === 0) throw new Error("JSON input must be an object or an array of objects");
+            ? parsed0.records
+            : Array.isArray(parsed0.data)
+              ? parsed0.data
+              : [parsed0];
+        const records = parsed.filter(
+          (x: any) => x !== null && typeof x === "object",
+        );
+        if (records.length === 0)
+          throw new Error(
+            "JSON input must be an object or an array of objects",
+          );
         const keySet = new Set<string>();
-        for (const rec of records) Object.keys(rec).forEach((k) => keySet.add(k));
+        for (const rec of records)
+          Object.keys(rec).forEach((k) => keySet.add(k));
         headers = [...keySet];
         rows = records.map((item: any) =>
           headers.map((h) => {
             const v = item[h];
             if (v === null || v === undefined) return "";
             return typeof v === "object" ? JSON.stringify(v) : String(v);
-          })
+          }),
         );
       } else if (fromFmt.includes("ndjson") || fromFmt.includes("lines")) {
         const res = parseNdjson(input);
@@ -514,23 +603,39 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
         const decoded = Buffer.from(input, "base64").toString("utf8");
         win.setText("txt_output_data", decoded);
         const elapsed = (performance.now() - t0).toFixed(2);
-        win.appendConsole("dc_console", `[Base64] Decoded ${input.length} chars to ${decoded.length} chars\n`, 2);
-        win.setText("lbl_output_stats", `Decoded: ${decoded.length} chars | Latency: ${elapsed}ms`);
+        win.appendConsole(
+          "dc_console",
+          `[Base64] Decoded ${input.length} chars to ${decoded.length} chars\n`,
+          2,
+        );
+        win.setText(
+          "lbl_output_stats",
+          `Decoded: ${decoded.length} chars | Latency: ${elapsed}ms`,
+        );
         win.setStatus(`Decoded Base64 in ${elapsed}ms`);
         return;
       } else if (fromFmt.includes("url")) {
         const decoded = decodeURIComponent(input);
         win.setText("txt_output_data", decoded);
         const elapsed = (performance.now() - t0).toFixed(2);
-        win.appendConsole("dc_console", `[URL] Decoded ${input.length} chars to ${decoded.length} chars\n`, 2);
-        win.setText("lbl_output_stats", `Decoded: ${decoded.length} chars | Latency: ${elapsed}ms`);
+        win.appendConsole(
+          "dc_console",
+          `[URL] Decoded ${input.length} chars to ${decoded.length} chars\n`,
+          2,
+        );
+        win.setText(
+          "lbl_output_stats",
+          `Decoded: ${decoded.length} chars | Latency: ${elapsed}ms`,
+        );
         return;
       } else {
         const delim = fromFmt === "tsv" ? "\t" : ",";
         const table = stdlib.csvParse(input, delim);
         if (table.length > 0) {
           headers = table[0] || [];
-          rows = table.slice(1).filter((r) => r.some((c) => c && c.trim() !== ""));
+          rows = table
+            .slice(1)
+            .filter((r) => r.some((c) => c && c.trim() !== ""));
         }
       }
 
@@ -539,9 +644,14 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
 
       const csvCell = (v: string, d: string) =>
         v.includes(d) || /["\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
-      const mdCell = (v: string) => v.replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
+      const mdCell = (v: string) =>
+        v.replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
       const escapeXml = (s: string) =>
-        s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        s
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
 
       let output = "";
 
@@ -571,7 +681,9 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
       } else if (toFmt.includes("markdown")) {
         const headerRow = `| ${headers.map(mdCell).join(" | ")} |`;
         const sepRow = `| ${headers.map(() => "---").join(" | ")} |`;
-        const dataRows = rows.map((r) => `| ${r.map(mdCell).join(" | ")} |`).join("\n");
+        const dataRows = rows
+          .map((r) => `| ${r.map(mdCell).join(" | ")} |`)
+          .join("\n");
         output = `${headerRow}\n${sepRow}\n${dataRows}`;
       } else if (toFmt.includes("html")) {
         const thead = `  <thead>\n    <tr>\n${headers
@@ -582,13 +694,15 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
             (r) =>
               `    <tr>\n${headers
                 .map((_, idx) => `      <td>${escapeXml(r[idx] ?? "")}</td>`)
-                .join("\n")}\n    </tr>`
+                .join("\n")}\n    </tr>`,
           )
           .join("\n")}\n  </tbody>`;
         output = `<table class="rad-data-table">\n${thead}\n${tbody}\n</table>`;
       } else if (toFmt.includes("sql")) {
         const tableName = "converted_records";
-        const cols = headers.map((h) => `\`${h.replace(/`/g, "")}\``).join(", ");
+        const cols = headers
+          .map((h) => `\`${h.replace(/`/g, "")}\``)
+          .join(", ");
         const valuesList = rows.map((r) => {
           const vals = headers
             .map((_, idx) => {
@@ -600,13 +714,15 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
           return `  (${vals})`;
         });
         output = `-- SQL INSERT Statements generated by Data Converter Studio Pro\nINSERT INTO \`${tableName}\` (${cols}) VALUES\n${valuesList.join(
-          ",\n"
+          ",\n",
         )};`;
       } else if (toFmt.includes("tsv")) {
         const tsvCell = (v: string) => v.replace(/[\t\r\n]+/g, " ");
         output = [
           headers.map(tsvCell).join("\t"),
-          ...rows.map((r) => headers.map((_, idx) => tsvCell(r[idx] ?? "")).join("\t")),
+          ...rows.map((r) =>
+            headers.map((_, idx) => tsvCell(r[idx] ?? "")).join("\t"),
+          ),
         ].join("\n");
       } else if (toFmt.includes("base64")) {
         output = Buffer.from(input).toString("base64");
@@ -619,7 +735,9 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
         for (const r of rows) {
           yamlLines.push("-");
           headers.forEach((h, idx) => {
-            yamlLines.push(`  ${/^[A-Za-z_][\w.-]*$/.test(h) ? h : yq(h)}: ${yq(r[idx] ?? "")}`);
+            yamlLines.push(
+              `  ${/^[A-Za-z_][\w.-]*$/.test(h) ? h : yq(h)}: ${yq(r[idx] ?? "")}`,
+            );
           });
         }
         output = yamlLines.join("\n");
@@ -630,14 +748,17 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
           headers.forEach((h, idx) => {
             const val = r[idx] ?? "";
             tomlLines.push(
-              `${/^[A-Za-z_][\w.-]*$/.test(h) ? h : JSON.stringify(h)} = ${JSON.stringify(val)}`
+              `${/^[A-Za-z_][\w.-]*$/.test(h) ? h : JSON.stringify(h)} = ${JSON.stringify(val)}`,
             );
           });
           tomlLines.push("");
         }
         output = tomlLines.join("\n").trim();
       } else if (toFmt.includes("xml")) {
-        const xmlLines: string[] = ['<?xml version="1.0" encoding="UTF-8"?>', "<records>"];
+        const xmlLines: string[] = [
+          '<?xml version="1.0" encoding="UTF-8"?>',
+          "<records>",
+        ];
         for (const r of rows) {
           xmlLines.push("  <record>");
           headers.forEach((h, idx) => {
@@ -651,17 +772,19 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
       } else if (toFmt.includes("php")) {
         const phpRecords = rows.map((r) => {
           const lines = headers.map(
-            (h, idx) => `        ${JSON.stringify(h)} => ${JSON.stringify(r[idx] ?? "")},`
+            (h, idx) =>
+              `        ${JSON.stringify(h)} => ${JSON.stringify(r[idx] ?? "")},`,
           );
           return `    [\n${lines.join("\n")}\n    ],`;
         });
         output = `<?php\n// Generated by Data Converter Studio Pro\n$data = [\n${phpRecords.join(
-          "\n"
+          "\n",
         )}\n];`;
       } else if (toFmt.includes("python")) {
         const pyRecords = rows.map((r) => {
           const lines = headers.map(
-            (h, idx) => `        ${JSON.stringify(h)}: ${JSON.stringify(r[idx] ?? "")},`
+            (h, idx) =>
+              `        ${JSON.stringify(h)}: ${JSON.stringify(r[idx] ?? "")},`,
           );
           return `    {\n${lines.join("\n")}\n    },`;
         });
@@ -670,7 +793,9 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
         // Standard CSV
         output = [
           headers.map((h) => csvCell(h, ",")).join(","),
-          ...rows.map((r) => headers.map((_, idx) => csvCell(r[idx] ?? "", ",")).join(",")),
+          ...rows.map((r) =>
+            headers.map((_, idx) => csvCell(r[idx] ?? "", ",")).join(","),
+          ),
         ].join("\n");
       }
 
@@ -679,7 +804,7 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
       win.setTableData(
         "tbl_preview",
         headers.length > 0 ? headers : ["Columns"],
-        rows.length > 0 ? rows : [["(no data)"]]
+        rows.length > 0 ? rows : [["(no data)"]],
       );
 
       const outKb = (output.length / 1024).toFixed(1);
@@ -688,24 +813,31 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
       const ratioStr = Number(ratio) >= 0 ? `+${ratio}%` : `${ratio}%`;
       win.setText(
         "lbl_output_stats",
-        `Output: ${output.split(/\r?\n/).length} lines · ${output.length} chars · ${outKb} KB (Ratio: ${ratioStr}) · ${elapsed}ms`
+        `Output: ${output.split(/\r?\n/).length} lines · ${output.length} chars · ${outKb} KB (Ratio: ${ratioStr}) · ${elapsed}ms`,
       );
 
-      win.setText("lbl_grid_count", `Showing ${rows.length} of ${rows.length} records (${headers.length} columns)`);
+      win.setText(
+        "lbl_grid_count",
+        `Showing ${rows.length} of ${rows.length} records (${headers.length} columns)`,
+      );
       win.appendConsole(
         "dc_console",
         `[Convert OK] Transformed ${rows.length} rows (${fromFmt.toUpperCase()} -> ${toFmt.toUpperCase()}) in ${elapsed}ms\n`,
-        2
+        2,
       );
       win.setText(
         "lbl_status",
-        `Converted: ${rows.length} rows  |  Columns: ${headers.length}  |  Latency: ${elapsed}ms  |  Status: OK`
+        `Converted: ${rows.length} rows  |  Columns: ${headers.length}  |  Latency: ${elapsed}ms  |  Status: OK`,
       );
       win.setStatus(`Converted in ${elapsed}ms`);
       win.toast(`Converted ${rows.length} rows`);
     } catch (e: any) {
       const elapsed = (performance.now() - t0).toFixed(2);
-      win.appendConsole("dc_console", `[Convert Error] ${e.message} (${elapsed}ms)\n`, 3);
+      win.appendConsole(
+        "dc_console",
+        `[Convert Error] ${e.message} (${elapsed}ms)\n`,
+        3,
+      );
       win.setStatus(`Conversion Error: ${e.message}`);
       win.toast(`Error: ${e.message}`);
     }
@@ -753,8 +885,16 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
     const curFrom = w.getValue("dd_from") || "CSV";
     const curTo = w.getValue("dd_to") || "JSON";
     const top = undoStack[undoStack.length - 1];
-    if (top && (top.input !== curInput || top.fromFmt !== curFrom || top.toFmt !== curTo)) {
-      undoStack.push({ input: curInput, fromFmt: curFrom, toFmt: curTo, action: "Current State" });
+    if (
+      top &&
+      (top.input !== curInput || top.fromFmt !== curFrom || top.toFmt !== curTo)
+    ) {
+      undoStack.push({
+        input: curInput,
+        fromFmt: curFrom,
+        toFmt: curTo,
+        action: "Current State",
+      });
     }
 
     if (undoStack.length <= 1) {
@@ -813,7 +953,9 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
       }
 
       if (!text || !text.trim()) {
-        w.toast("Clipboard is empty or inaccessible. Press Ctrl/Cmd+V to paste.");
+        w.toast(
+          "Clipboard is empty or inaccessible. Press Ctrl/Cmd+V to paste.",
+        );
         return;
       }
 
@@ -879,7 +1021,9 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
     }
     writeClipboardSync(input);
     w.copyToClipboard(input);
-    w.toast(`📋 Copied ${input.length} characters of source input to clipboard!`);
+    w.toast(
+      `📋 Copied ${input.length} characters of source input to clipboard!`,
+    );
   });
 
   // Copy Output to Clipboard
@@ -891,7 +1035,9 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
     }
     writeClipboardSync(out);
     w.copyToClipboard(out);
-    w.toast(`📋 Copied ${out.length} characters of transformed output to clipboard!`);
+    w.toast(
+      `📋 Copied ${out.length} characters of transformed output to clipboard!`,
+    );
   };
   win.onClick("btn_copy_output", handleCopyOutput);
 
@@ -900,7 +1046,7 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
     try {
       const selectedPath = await w.openFileDialog(
         "Select Data File to Convert",
-        "*.csv;*.tsv;*.json;*.jsonl;*.ndjson;*.yaml;*.yml;*.toml;*.xml;*.md;*.txt"
+        "*.csv;*.tsv;*.json;*.jsonl;*.ndjson;*.yaml;*.yml;*.toml;*.xml;*.md;*.txt",
       );
       if (!selectedPath) return;
 
@@ -916,7 +1062,8 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
       // Auto-detect format based on file extension
       const ext = extname(selectedPath).toLowerCase();
       if (ext === ".json") w.setText("dd_from", "JSON");
-      else if (ext === ".jsonl" || ext === ".ndjson") w.setText("dd_from", "JSON Lines (ndjson)");
+      else if (ext === ".jsonl" || ext === ".ndjson")
+        w.setText("dd_from", "JSON Lines (ndjson)");
       else if (ext === ".tsv") w.setText("dd_from", "TSV");
       else if (ext === ".yaml" || ext === ".yml") w.setText("dd_from", "YAML");
       else if (ext === ".toml") w.setText("dd_from", "TOML");
@@ -926,7 +1073,11 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
 
       recordNewState(`Import ${basename(selectedPath)}`);
       convertData();
-      w.appendConsole("dc_console", `[Import] Loaded ${selectedPath} (${(content.length / 1024).toFixed(1)} KB)\n`, 2);
+      w.appendConsole(
+        "dc_console",
+        `[Import] Loaded ${selectedPath} (${(content.length / 1024).toFixed(1)} KB)\n`,
+        2,
+      );
       w.toast(`📂 Imported ${basename(selectedPath)}`);
     } catch (e: any) {
       w.toast("Import error: " + e.message);
@@ -945,35 +1096,39 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
     const ext = toFmt.includes("json (minified)")
       ? "min.json"
       : toFmt.includes("ndjson") || toFmt.includes("lines")
-      ? "ndjson"
-      : toFmt.includes("json")
-      ? "json"
-      : toFmt.includes("markdown")
-      ? "md"
-      : toFmt.includes("html")
-      ? "html"
-      : toFmt.includes("sql")
-      ? "sql"
-      : toFmt.includes("yaml")
-      ? "yaml"
-      : toFmt.includes("toml")
-      ? "toml"
-      : toFmt.includes("xml")
-      ? "xml"
-      : toFmt.includes("php")
-      ? "php"
-      : toFmt.includes("python")
-      ? "py"
-      : toFmt.includes("tsv")
-      ? "tsv"
-      : toFmt.includes("base64")
-      ? "txt"
-      : "csv";
+        ? "ndjson"
+        : toFmt.includes("json")
+          ? "json"
+          : toFmt.includes("markdown")
+            ? "md"
+            : toFmt.includes("html")
+              ? "html"
+              : toFmt.includes("sql")
+                ? "sql"
+                : toFmt.includes("yaml")
+                  ? "yaml"
+                  : toFmt.includes("toml")
+                    ? "toml"
+                    : toFmt.includes("xml")
+                      ? "xml"
+                      : toFmt.includes("php")
+                        ? "php"
+                        : toFmt.includes("python")
+                          ? "py"
+                          : toFmt.includes("tsv")
+                            ? "tsv"
+                            : toFmt.includes("base64")
+                              ? "txt"
+                              : "csv";
 
     const outPath = resolve(process.cwd(), `converted_data.${ext}`);
     try {
       writeFileSync(outPath, out, "utf8");
-      w.appendConsole("dc_console", `[Export] Saved converted document to ${outPath}\n`, 2);
+      w.appendConsole(
+        "dc_console",
+        `[Export] Saved converted document to ${outPath}\n`,
+        2,
+      );
       w.toast(`Saved ${basename(outPath)}`);
     } catch (e: any) {
       w.appendConsole("dc_console", `[Export Error] ${e.message}\n`, 3);
@@ -997,7 +1152,11 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
     w.setText("txt_input_data", preset.data);
     recordNewState(`Load Preset: ${choice}`);
     convertData();
-    w.appendConsole("dc_console", `[Preset] Loaded '${choice}' (${preset.description})\n`, 2);
+    w.appendConsole(
+      "dc_console",
+      `[Preset] Loaded '${choice}' (${preset.description})\n`,
+      2,
+    );
     w.toast(`🎲 Loaded preset: ${choice}`);
   });
 
@@ -1064,19 +1223,34 @@ David Miller,DevOps Engineer,Cloud Platform,165000`;
     const query = (w.getValue("txt_grid_search") || "").toLowerCase().trim();
     if (!query) {
       w.setTableData("tbl_preview", currentHeaders, currentRows);
-      w.setText("lbl_grid_count", `Showing ${currentRows.length} of ${currentRows.length} records (${currentHeaders.length} columns)`);
+      w.setText(
+        "lbl_grid_count",
+        `Showing ${currentRows.length} of ${currentRows.length} records (${currentHeaders.length} columns)`,
+      );
       return;
     }
-    const filtered = currentRows.filter((r) => r.some((c) => c.toLowerCase().includes(query)));
-    w.setTableData("tbl_preview", currentHeaders, filtered.length > 0 ? filtered : [["(no matches)"]]);
-    w.setText("lbl_grid_count", `Showing ${filtered.length} of ${currentRows.length} records (query: "${query}")`);
+    const filtered = currentRows.filter((r) =>
+      r.some((c) => c.toLowerCase().includes(query)),
+    );
+    w.setTableData(
+      "tbl_preview",
+      currentHeaders,
+      filtered.length > 0 ? filtered : [["(no matches)"]],
+    );
+    w.setText(
+      "lbl_grid_count",
+      `Showing ${filtered.length} of ${currentRows.length} records (query: "${query}")`,
+    );
     w.toast(`Filtered to ${filtered.length} matching rows`);
   };
   win.onClick("btn_filter_grid", filterGrid);
   win.onClick("btn_reset_grid", (w) => {
     w.setValue("txt_grid_search", "");
     w.setTableData("tbl_preview", currentHeaders, currentRows);
-    w.setText("lbl_grid_count", `Showing ${currentRows.length} of ${currentRows.length} records (${currentHeaders.length} columns)`);
+    w.setText(
+      "lbl_grid_count",
+      `Showing ${currentRows.length} of ${currentRows.length} records (${currentHeaders.length} columns)`,
+    );
     w.toast("Reset preview grid");
   });
 

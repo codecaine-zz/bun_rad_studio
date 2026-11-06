@@ -98,7 +98,9 @@ export function startTypingServer(options: TypingServerOptions = {}) {
   );
 }
 
-export function createTypingStudio(options: TypingStudioOptions = {}): TypingStudioInstance {
+export function createTypingStudio(
+  options: TypingStudioOptions = {},
+): TypingStudioInstance {
   const fullscreen = options.fullscreen ?? false;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1280);
@@ -130,7 +132,8 @@ export function createTypingStudio(options: TypingStudioOptions = {}): TypingStu
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -150,11 +153,15 @@ export function createTypingStudio(options: TypingStudioOptions = {}): TypingStu
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -166,10 +173,15 @@ export function createTypingStudio(options: TypingStudioOptions = {}): TypingStu
         webview.setHTML(html);
         console.log("⚡ Desktop window open.");
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn("Desktop Webview unavailable. Running as server only.", err);
+        console.warn(
+          "Desktop Webview unavailable. Running as server only.",
+          err,
+        );
         await new Promise(() => {});
       }
     },
@@ -189,10 +201,13 @@ export class TypingStudio {
   public async start(): Promise<void> {
     console.log("⚡ Launching Codecaine CyberType Deluxe...");
     this.startServer();
-    console.log(`⚡ Background server active at: http://127.0.0.1:${this.port}`);
+    console.log(
+      `⚡ Background server active at: http://127.0.0.1:${this.port}`,
+    );
 
     try {
-      const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+      const { SizeHint, Webview } =
+        (await import("webview-bun")) as typeof import("webview-bun");
       this.webview = new Webview(true, {
         width: 1280,
         height: 800,
@@ -239,7 +254,10 @@ export class TypingStudio {
               ],
             }),
             {
-              headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+              headers: {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*",
+              },
             },
           );
         }
@@ -248,7 +266,9 @@ export class TypingStudio {
           try {
             const svgPath = join(getTypingAssetsDir(), "favicon.svg");
             const svgData = readFileSync(svgPath, "utf-8");
-            return new Response(svgData, { headers: { "Content-Type": "image/svg+xml" } });
+            return new Response(svgData, {
+              headers: { "Content-Type": "image/svg+xml" },
+            });
           } catch (e) {
             return new Response("Not Found", { status: 404 });
           }
@@ -258,7 +278,9 @@ export class TypingStudio {
           try {
             const htmlPath = join(getTypingAssetsDir(), "index.html");
             const htmlData = readFileSync(htmlPath, "utf-8");
-            return new Response(htmlData, { headers: { "Content-Type": "text/html" } });
+            return new Response(htmlData, {
+              headers: { "Content-Type": "text/html" },
+            });
           } catch (e) {
             return new Response("Not Found", { status: 404 });
           }
@@ -277,7 +299,9 @@ if (process.argv.includes("--server")) {
   const port = parseInt(process.env.PORT || "0", 10);
   const srv = startTypingServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`⚡ Codecaine CyberType Deluxe Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `⚡ Codecaine CyberType Deluxe Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
   const app = new TypingStudio();

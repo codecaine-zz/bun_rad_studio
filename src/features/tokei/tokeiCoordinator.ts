@@ -23,7 +23,7 @@ import {
 export async function scanCodeFiles(
   dirPath: string,
   hidden: boolean,
-  ignores: string[] = ["node_modules", ".git", ".graveyard", "dist", "build"]
+  ignores: string[] = ["node_modules", ".git", ".graveyard", "dist", "build"],
 ): Promise<string[]> {
   const matchedFiles: string[] = [];
   try {
@@ -65,10 +65,20 @@ export async function processFile(filePath: string): Promise<FileStat | null> {
 /**
  * Asynchronously collects, analyzes, aggregates, and sorts line-of-code statistics across all target paths.
  */
-export async function computeCodeStats(options: TokeiOptions): Promise<LanguageReport[]> {
+export async function computeCodeStats(
+  options: TokeiOptions,
+): Promise<LanguageReport[]> {
   const allFiles: string[] = [];
-  const defaultIgnores = ["node_modules", ".git", ".graveyard", "dist", "build"];
-  const combinedIgnores = options.excludes ? [...defaultIgnores, ...options.excludes] : defaultIgnores;
+  const defaultIgnores = [
+    "node_modules",
+    ".git",
+    ".graveyard",
+    "dist",
+    "build",
+  ];
+  const combinedIgnores = options.excludes
+    ? [...defaultIgnores, ...options.excludes]
+    : defaultIgnores;
 
   for (const p of options.paths) {
     const s = await Bun.file(p).exists();
@@ -96,7 +106,7 @@ export async function computeCodeStats(options: TokeiOptions): Promise<LanguageR
 export function scanCodeFilesSync(
   dirPath: string,
   hidden: boolean,
-  ignores: string[] = ["node_modules", ".git", ".graveyard", "dist", "build"]
+  ignores: string[] = ["node_modules", ".git", ".graveyard", "dist", "build"],
 ): string[] {
   const matchedFiles: string[] = [];
   try {
@@ -138,14 +148,24 @@ export function processFileSync(filePath: string): FileStat | null {
  */
 export function computeCodeStatsSync(options: TokeiOptions): LanguageReport[] {
   const allFiles: string[] = [];
-  const defaultIgnores = ["node_modules", ".git", ".graveyard", "dist", "build"];
-  const combinedIgnores = options.excludes ? [...defaultIgnores, ...options.excludes] : defaultIgnores;
+  const defaultIgnores = [
+    "node_modules",
+    ".git",
+    ".graveyard",
+    "dist",
+    "build",
+  ];
+  const combinedIgnores = options.excludes
+    ? [...defaultIgnores, ...options.excludes]
+    : defaultIgnores;
 
   for (const p of options.paths) {
     try {
       const s = statSync(p);
       if (s.isDirectory()) {
-        allFiles.push(...scanCodeFilesSync(p, options.hidden ?? false, combinedIgnores));
+        allFiles.push(
+          ...scanCodeFilesSync(p, options.hidden ?? false, combinedIgnores),
+        );
       } else if (s.isFile()) {
         allFiles.push(p);
       }
@@ -165,7 +185,9 @@ export function computeCodeStatsSync(options: TokeiOptions): LanguageReport[] {
 /**
  * Executes the full `tokei` analysis workflow and formats the output according to `options` (table, JSON, Markdown, or file breakdown).
  */
-export async function runTokeiCoordinator(options: TokeiOptions): Promise<string> {
+export async function runTokeiCoordinator(
+  options: TokeiOptions,
+): Promise<string> {
   const reports = await computeCodeStats(options);
   if (reports.length === 0) {
     return "No supported code files found.";

@@ -42,7 +42,11 @@ describe("🪙 Blackjack Royale VIP — Multi-Hand Casino Studio Suite", () => {
   });
 
   it("3. Studio factory generates correct defaults and instance contracts", () => {
-    const app = createBlackjackStudio({ fullscreen: false, width: 1240, height: 860 });
+    const app = createBlackjackStudio({
+      fullscreen: false,
+      width: 1240,
+      height: 860,
+    });
     expect(app.title).toContain("Blackjack Royale VIP");
     expect(app.width).toBe(1240);
     expect(app.height).toBe(860);
@@ -70,7 +74,7 @@ describe("🪙 Blackjack Royale VIP — Multi-Hand Casino Studio Suite", () => {
       // Health check endpoint
       const resHealth = await fetch(`${base}/api/health`);
       expect(resHealth.status).toBe(200);
-      const healthData = await resHealth.json() as any;
+      const healthData = (await resHealth.json()) as any;
       expect(healthData.status).toBe("ok");
       expect(healthData.app).toBe("blackjack_studio");
       expect(healthData.name).toContain("Blackjack Royale VIP");
@@ -81,7 +85,9 @@ describe("🪙 Blackjack Royale VIP — Multi-Hand Casino Studio Suite", () => {
 
   it("5. Launcher Studio automatically registers and surfaces Blackjack Royale", () => {
     const apps = scanWorkspaceApps();
-    const found = apps.find((a) => a.name === "blackjack_studio" || a.id === "rad_blackjack_studio");
+    const found = apps.find(
+      (a) => a.name === "blackjack_studio" || a.id === "rad_blackjack_studio",
+    );
     expect(found).toBeDefined();
     expect(found?.displayName).toContain("Blackjack Royale VIP");
     expect(found?.icon).toBe("🪙");

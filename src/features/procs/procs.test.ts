@@ -23,7 +23,8 @@ const samplePsOutput = `
 
 describe("procs doers", () => {
   it("parses single ps line correctly", () => {
-    const line = "  450     1 codecaine         12.0  3.5 S      0:45.10 /opt/homebrew/bin/bun run";
+    const line =
+      "  450     1 codecaine         12.0  3.5 S      0:45.10 /opt/homebrew/bin/bun run";
     const parsed = parsePsLine(line);
     expect(parsed).not.toBeNull();
     expect(parsed?.pid).toBe(450);
@@ -88,7 +89,10 @@ describe("procs doers", () => {
   });
 
   it("parses lsof output and attaches listening ports", () => {
-    const { parseLsofOutput, attachListeningPorts } = require("./procsDoers.ts");
+    const {
+      parseLsofOutput,
+      attachListeningPorts,
+    } = require("./procsDoers.ts");
     const rawLsof = `COMMAND     PID      USER   FD   TYPE             DEVICE SIZE/OFF NODE NAME
 rapportd    450 codecaine   10u  IPv4  0x41ec8278c949b30      0t0  TCP *:49152 (LISTEN)
 node        500 codecaine    9u  IPv4  0xcf5aabd609dea729      0t0  TCP *:3000 (LISTEN)

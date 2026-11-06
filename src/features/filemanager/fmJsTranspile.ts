@@ -36,42 +36,72 @@ export function loaderFor(ext: string): "ts" | "tsx" | "jsx" {
 /** The extension of the JavaScript file made from a source file: .mts gives .mjs, .cts gives .cjs, the rest .js. */
 export function jsExtensionFor(ext: string): string {
   const e = ext.toLowerCase().replace(/^\./, "");
-  return e === "mts" || e === "mjs" ? "mjs" : e === "cts" || e === "cjs" ? "cjs" : "js";
+  return e === "mts" || e === "mjs"
+    ? "mjs"
+    : e === "cts" || e === "cjs"
+      ? "cjs"
+      : "js";
 }
 
 /** A failure of the transpiler in plain words, with line and column numbers (at most three problems). */
 export class TranspileError extends Error {
   /** Creates a `TranspileError` with a human-readable summary message and structured line/column diagnostics. */
-  constructor(message: string, readonly problems: Array<{ line: number; column: number; text: string }>) {
+  constructor(
+    message: string,
+    readonly problems: Array<{ line: number; column: number; text: string }>,
+  ) {
     super(message);
     this.name = "TranspileError";
   }
 }
 
 function describeProblems(err: any): TranspileError {
-  const list: any[] = Array.isArray(err?.errors) && err.errors.length ? err.errors : [err];
+  const list: any[] =
+    Array.isArray(err?.errors) && err.errors.length ? err.errors : [err];
   const problems = list.slice(0, 3).map((e) => ({
     line: Number(e?.position?.line ?? 0),
     column: Number(e?.position?.column ?? 0),
-    text: String(e?.message ?? "Something here isn't valid").replace(/\s+/g, " ").slice(0, 200),
+    text: String(e?.message ?? "Something here isn't valid")
+      .replace(/\s+/g, " ")
+      .slice(0, 200),
   }));
-  const said = problems.map((p) => (p.line ? `line ${p.line}, column ${p.column}: ${p.text}` : p.text)).join("; ");
+  const said = problems
+    .map((p) =>
+      p.line ? `line ${p.line}, column ${p.column}: ${p.text}` : p.text,
+    )
+    .join("; ");
   const more = list.length > 3 ? ` (and ${list.length - 3} more)` : "";
-  return new TranspileError(`The code has a mistake, so it can't be converted. ${said.charAt(0).toUpperCase()}${said.slice(1)}${more}.`, problems);
+  return new TranspileError(
+    `The code has a mistake, so it can't be converted. ${said.charAt(0).toUpperCase()}${said.slice(1)}${more}.`,
+    problems,
+  );
 }
 
 /** Turns TypeScript, TSX or JSX source into JavaScript. Throws a TranspileError for code with syntax errors. */
-export function transpileSource(source: string, ext: string, options: TranspileOptions = {}): string {
+export function transpileSource(
+  source: string,
+  ext: string,
+  options: TranspileOptions = {},
+): string {
   const loader = loaderFor(ext);
   const jsx = options.jsx ?? "react";
-  const minify = { whitespace: options.minifyWhitespace === true, identifiers: options.minifyIdentifiers === true, syntax: options.minifySyntax === true };
+  const minify = {
+    whitespace: options.minifyWhitespace === true,
+    identifiers: options.minifyIdentifiers === true,
+    syntax: options.minifySyntax === true,
+  };
   // `minify` works at run time (see the options of Bun.build) but is missing from Bun's typings for the transpiler.
   const transpiler = new Bun.Transpiler({
     loader,
     target: options.target ?? "browser",
     minify,
     // Without this the JSX becomes calls to a helper that is never imported; plain factory calls are self-explanatory.
-    tsconfig: JSON.stringify({ compilerOptions: jsx === "preact" ? { jsx: "react", jsxFactory: "h", jsxFragmentFactory: "Fragment" } : { jsx: "react" } }),
+    tsconfig: JSON.stringify({
+      compilerOptions:
+        jsx === "preact"
+          ? { jsx: "react", jsxFactory: "h", jsxFragmentFactory: "Fragment" }
+          : { jsx: "react" },
+    }),
   } as Bun.TranspilerOptions);
   try {
     return transpiler.transformSync(source);
@@ -104,7 +134,10 @@ export function scanModule(source: string, ext: string): ModuleScan {
         imports.push({ kind: i.kind, path: i.path });
       }
     }
-    return { imports: imports.slice(0, MAX_SCAN_ITEMS), exports: found.exports.slice(0, MAX_SCAN_ITEMS) };
+    return {
+      imports: imports.slice(0, MAX_SCAN_ITEMS),
+      exports: found.exports.slice(0, MAX_SCAN_ITEMS),
+    };
   } catch (err) {
     throw describeProblems(err);
   }

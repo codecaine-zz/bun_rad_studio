@@ -82,29 +82,46 @@ function renderBranch(folderPath, label, depth, activePath) {
   });
   row.style.paddingLeft = `${Math.min(depth, 8) * 12 + 4}px`;
 
-  const twist = h("button", {
-    type: "button",
-    class: "tree-twist",
-    "aria-expanded": String(isOpen),
-    title: isOpen ? `Collapse subfolders of ${label}` : `Expand subfolders of ${label}`,
-    "aria-label": isOpen ? `Collapse ${label}` : `Expand ${label}`,
-    onclick: (e) => {
-      e.stopPropagation();
-      toggleTreeNode(folderPath);
+  const twist = h(
+    "button",
+    {
+      type: "button",
+      class: "tree-twist",
+      "aria-expanded": String(isOpen),
+      title: isOpen
+        ? `Collapse subfolders of ${label}`
+        : `Expand subfolders of ${label}`,
+      "aria-label": isOpen ? `Collapse ${label}` : `Expand ${label}`,
+      onclick: (e) => {
+        e.stopPropagation();
+        toggleTreeNode(folderPath);
+      },
     },
-  }, isOpen ? "▾" : "▸");
+    isOpen ? "▾" : "▸",
+  );
 
   const defaultGlyph = isOpen ? "📂" : "📁";
-  const treeGlyph = activeIconPackStyle() === "default" ? defaultGlyph : iconFor(label, true);
-  const btn = h("button", {
-    type: "button",
-    class: `tree-item${isActive ? " active" : ""}`,
-    title: folderPath,
-    "aria-label": `Open folder ${label}`,
-    "aria-current": isActive ? "page" : null,
-    onclick: () => goTo(folderPath),
-  },
-    h("span", { class: "si", "aria-hidden": "true", dataset: { treeName: label, defaultIcon: defaultGlyph } }, treeGlyph),
+  const treeGlyph =
+    activeIconPackStyle() === "default" ? defaultGlyph : iconFor(label, true);
+  const btn = h(
+    "button",
+    {
+      type: "button",
+      class: `tree-item${isActive ? " active" : ""}`,
+      title: folderPath,
+      "aria-label": `Open folder ${label}`,
+      "aria-current": isActive ? "page" : null,
+      onclick: () => goTo(folderPath),
+    },
+    h(
+      "span",
+      {
+        class: "si",
+        "aria-hidden": "true",
+        dataset: { treeName: label, defaultIcon: defaultGlyph },
+      },
+      treeGlyph,
+    ),
     h("span", { class: "sl" }, label),
   );
 
@@ -114,10 +131,23 @@ function renderBranch(folderPath, label, depth, activePath) {
       openNewTab(folderPath);
       return;
     }
-    showMenu([
-      { label: "Open", icon: "📂", tip: "Show this folder in the current tab", action: () => goTo(folderPath) },
-      { label: "Open in new tab", icon: "🗂️", tip: "Open this folder in a new folder tab at the top of the file list", action: () => openNewTab(folderPath) },
-    ], { x: e.clientX, y: e.clientY, label: label });
+    showMenu(
+      [
+        {
+          label: "Open",
+          icon: "📂",
+          tip: "Show this folder in the current tab",
+          action: () => goTo(folderPath),
+        },
+        {
+          label: "Open in new tab",
+          icon: "🗂️",
+          tip: "Open this folder in a new folder tab at the top of the file list",
+          action: () => openNewTab(folderPath),
+        },
+      ],
+      { x: e.clientX, y: e.clientY, label: label },
+    );
   });
   attachDropTarget(btn, { getPath: () => folderPath, trash: false });
 
@@ -136,7 +166,14 @@ function renderBranch(folderPath, label, depth, activePath) {
       nodes.push(emptyRow);
     } else {
       for (const child of kids) {
-        nodes.push(...renderBranch(child.path, child.name || baseName(child.path, state.sep) || child.path, depth + 1, activePath));
+        nodes.push(
+          ...renderBranch(
+            child.path,
+            child.name || baseName(child.path, state.sep) || child.path,
+            depth + 1,
+            activePath,
+          ),
+        );
       }
     }
   }
@@ -145,21 +182,31 @@ function renderBranch(folderPath, label, depth, activePath) {
 
 export function folderTreeSection() {
   const expanded = Boolean(state.settings.treeExpanded);
-  const head = h("div", { class: "side-head" },
+  const head = h(
+    "div",
+    { class: "side-head" },
     h("h2", { class: "side-title" }, "Folder tree"),
-    h("button", {
-      type: "button",
-      class: "side-mini",
-      dataset: { treeToggle: "" },
-      "aria-expanded": String(expanded),
-      title: expanded ? "Hide the expandable folder tree" : "Show the expandable folder tree to browse subfolders directly",
-      "aria-label": expanded ? "Hide folder tree" : "Show folder tree",
-      onclick: toggleFolderTreeSection,
-    }, expanded ? "▾" : "▸"),
+    h(
+      "button",
+      {
+        type: "button",
+        class: "side-mini",
+        dataset: { treeToggle: "" },
+        "aria-expanded": String(expanded),
+        title: expanded
+          ? "Hide the expandable folder tree"
+          : "Show the expandable folder tree to browse subfolders directly",
+        "aria-label": expanded ? "Hide folder tree" : "Show folder tree",
+        onclick: toggleFolderTreeSection,
+      },
+      expanded ? "▾" : "▸",
+    ),
   );
 
   if (!expanded) {
-    return h("section", { class: "side-section", dataset: { folderTreeSection: "" } },
+    return h(
+      "section",
+      { class: "side-section", dataset: { folderTreeSection: "" } },
       head,
       h("p", { class: "side-hint" }, "Press ▸ to browse subfolders in a tree."),
     );
@@ -167,12 +214,23 @@ export function folderTreeSection() {
 
   const activePath = currentPath();
   const roots = [];
-  if (state.home) roots.push({ path: state.home, name: baseName(state.home, state.sep) || "Home" });
+  if (state.home)
+    roots.push({
+      path: state.home,
+      name: baseName(state.home, state.sep) || "Home",
+    });
   if (activePath && !roots.some((r) => activePath.startsWith(r.path))) {
-    roots.push({ path: activePath, name: baseName(activePath, state.sep) || activePath });
+    roots.push({
+      path: activePath,
+      name: baseName(activePath, state.sep) || activePath,
+    });
   }
   for (const r of roots) {
-    if (!expandedPaths.has(r.path) && !childrenCache.has(r.path) && !loadingPaths.has(r.path)) {
+    if (
+      !expandedPaths.has(r.path) &&
+      !childrenCache.has(r.path) &&
+      !loadingPaths.has(r.path)
+    ) {
       expandedPaths.add(r.path);
       loadTreeChildren(r.path).then(() => emit("places"));
     }
@@ -183,8 +241,14 @@ export function folderTreeSection() {
     treeNodes.push(...renderBranch(r.path, r.name, 0, activePath));
   }
 
-  return h("section", { class: "side-section", dataset: { folderTreeSection: "" } },
+  return h(
+    "section",
+    { class: "side-section", dataset: { folderTreeSection: "" } },
     head,
-    h("div", { class: "folder-tree", role: "tree", "aria-label": "Folder tree" }, ...treeNodes),
+    h(
+      "div",
+      { class: "folder-tree", role: "tree", "aria-label": "Folder tree" },
+      ...treeNodes,
+    ),
   );
 }

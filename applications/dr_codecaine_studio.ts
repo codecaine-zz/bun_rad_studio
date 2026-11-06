@@ -1,7 +1,7 @@
 import { injectGameMasterFx } from "../src/shared/gameMasterFx";
 /**
  * ⚡ Dr. Codecaine - Overclocked Retro Arcade Studio
- * 
+ *
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
  * - Triple-A remastered Dr. Codecaine capsule puzzle game
@@ -77,7 +77,9 @@ export function generateDrCodecaineStudioHtml(): string {
   const assetsDir = getDrCodecaineAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Dr. Codecaine Arcade</h1>";
+  let html = existsSync(indexPath)
+    ? readFileSync(indexPath, "utf8")
+    : "<h1>Dr. Codecaine Arcade</h1>";
 
   const storagePolyfill = `
   <script>
@@ -146,9 +148,17 @@ ${getWindowShortcutsScript()}
 /**
  * Starts the Bun.serve server hosting Dr. Codecaine Arcade.
  */
-export function startDrCodecaineStudioServer(options: DrCodecaineServerOptions = {}) {
+export function startDrCodecaineStudioServer(
+  options: DrCodecaineServerOptions = {},
+) {
   return startStaticStudioServer(
-    { app: "dr_codecaine_studio", name: "Codecaine Dr. Codecaine - Overclocked Retro Arcade", version: "1.0.0", assetsDir: getDrCodecaineAssetsDir(), generateHtml: generateDrCodecaineStudioHtml },
+    {
+      app: "dr_codecaine_studio",
+      name: "Codecaine Dr. Codecaine - Overclocked Retro Arcade",
+      version: "1.0.0",
+      assetsDir: getDrCodecaineAssetsDir(),
+      generateHtml: generateDrCodecaineStudioHtml,
+    },
     options,
   );
 }
@@ -156,7 +166,9 @@ export function startDrCodecaineStudioServer(options: DrCodecaineServerOptions =
 /**
  * Creates the complete native desktop instance of Dr. Codecaine.
  */
-export function createDrCodecaineStudio(options: DrCodecaineStudioOptions = {}): DrCodecaineStudioInstance {
+export function createDrCodecaineStudio(
+  options: DrCodecaineStudioOptions = {},
+): DrCodecaineStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1200);
@@ -188,7 +200,8 @@ export function createDrCodecaineStudio(options: DrCodecaineStudioOptions = {}):
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -208,11 +221,15 @@ export function createDrCodecaineStudio(options: DrCodecaineStudioOptions = {}):
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -222,16 +239,24 @@ export function createDrCodecaineStudio(options: DrCodecaineStudioOptions = {}):
         });
 
         webview.setHTML(html);
-        console.log(`⚡ Desktop window open (Fullscreen: ${fullscreen ? 'Enabled' : 'Disabled'}).`);
+        console.log(
+          `⚡ Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`,
+        );
 
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -247,10 +272,13 @@ if (process.argv.includes("--server")) {
   const port = parseInt(process.env.PORT || "0", 10);
   const srv = startDrCodecaineStudioServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`⚡ Dr. Codecaine Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `⚡ Dr. Codecaine Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
+  const fullscreen =
+    !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
   const app = createDrCodecaineStudio({ fullscreen });
   await app.run();
   process.exit(0);

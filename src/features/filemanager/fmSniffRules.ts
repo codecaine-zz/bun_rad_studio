@@ -25,7 +25,12 @@ const FTYP = ["mp4", "m4a", "m4v", "mov", "3gp", "heic", "avif"];
 const ZIPPED = ["zip"];
 
 const rules = new Map<string, ExtRule>();
-function rule(exts: string, family: Family, kinds: Set<string>, textLike = false): void {
+function rule(
+  exts: string,
+  family: Family,
+  kinds: Set<string>,
+  textLike = false,
+): void {
   for (const e of exts.split(" ")) rules.set(e, { family, kinds, textLike });
 }
 
@@ -75,14 +80,30 @@ rule("mid midi kar", "audio", set(["midi"]));
 rule("pdf", "document", set(["pdf"]));
 rule("rtf", "document", set(["rtf"]));
 rule("doc dot", "document", set(["ole2", "rtf", "zip", "html", "xml", "text"]));
-rule("xls xlt xla xlw", "document", set(["ole2", "zip", "html", "xml", "text"]));
+rule(
+  "xls xlt xla xlw",
+  "document",
+  set(["ole2", "zip", "html", "xml", "text"]),
+);
 rule("ppt pps pot msg wps vsd vss pub mpp", "document", set(["ole2"]));
 rule("msi", "program", set(["ole2"]));
-rule("docx xlsx pptx dotx xltx potx ppsx docm xlsm pptm xlsb", "document", set(ZIPPED, ["ole2"]));
-rule("odt ods odp odg odf ott ots otp epub pages numbers", "document", set(ZIPPED));
+rule(
+  "docx xlsx pptx dotx xltx potx ppsx docm xlsm pptm xlsb",
+  "document",
+  set(ZIPPED, ["ole2"]),
+);
+rule(
+  "odt ods odp odg odf ott ots otp epub pages numbers",
+  "document",
+  set(ZIPPED),
+);
 
 // Archives. ZIP is also what Office files, apps and packages are made of.
-rule("zip zipx jar war ear apk aab ipa xpi whl egg nupkg vsix kmz sketch cbz", "archive", set(ZIPPED));
+rule(
+  "zip zipx jar war ear apk aab ipa xpi whl egg nupkg vsix kmz sketch cbz",
+  "archive",
+  set(ZIPPED),
+);
 rule("rar", "archive", set(["rar"]));
 rule("7z", "archive", set(["7z"]));
 rule("gz tgz tar.gz", "archive", set(["gzip"]));
@@ -112,7 +133,10 @@ export function expectedFor(ext: string): ExtRule | null {
  * How a real content relates to what an extension promises:
  * "ok" (fits, say nothing), "same" (another format of the same sort of thing), "different" (another sort of thing).
  */
-export function judge(r: ExtRule, actual: Sniffed): "ok" | "same" | "different" {
+export function judge(
+  r: ExtRule,
+  actual: Sniffed,
+): "ok" | "same" | "different" {
   if (r.kinds.has(actual.kind)) return "ok";
   // Binary data that isn't recognized may be a rare or damaged format; only plain text names are sure it is wrong.
   if (actual.kind === "binary") return r.textLike ? "different" : "ok";
@@ -127,20 +151,84 @@ export function judge(r: ExtRule, actual: Sniffed): "ok" | "same" | "different" 
 
 /** Extensions that start something when opened, or are a shortcut to something that does. */
 export const LAUNCH_EXTS = new Set([
-  "exe", "scr", "com", "pif", "bat", "cmd", "msi", "msp", "vbs", "vbe", "js", "jse", "wsf", "wsh", "hta", "lnk", "url", "jar", "ps1", "reg", "cpl",
-  "app", "command", "dmg", "pkg", "apk", "sh",
+  "exe",
+  "scr",
+  "com",
+  "pif",
+  "bat",
+  "cmd",
+  "msi",
+  "msp",
+  "vbs",
+  "vbe",
+  "js",
+  "jse",
+  "wsf",
+  "wsh",
+  "hta",
+  "lnk",
+  "url",
+  "jar",
+  "ps1",
+  "reg",
+  "cpl",
+  "app",
+  "command",
+  "dmg",
+  "pkg",
+  "apk",
+  "sh",
 ]);
 
 /** Extensions of things people open to read or look at: a launch extension after one of these is a disguise. */
 export const DECOY_EXTS = new Set([
-  "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "odt", "ods", "odp", "rtf", "txt", "csv", "md",
-  "jpg", "jpeg", "png", "gif", "bmp", "tif", "tiff", "heic", "webp", "svg", "ico",
-  "mp3", "mp4", "mov", "avi", "mkv", "wav", "flac", "wmv", "m4a", "zip", "rar", "7z",
+  "pdf",
+  "doc",
+  "docx",
+  "xls",
+  "xlsx",
+  "ppt",
+  "pptx",
+  "odt",
+  "ods",
+  "odp",
+  "rtf",
+  "txt",
+  "csv",
+  "md",
+  "jpg",
+  "jpeg",
+  "png",
+  "gif",
+  "bmp",
+  "tif",
+  "tiff",
+  "heic",
+  "webp",
+  "svg",
+  "ico",
+  "mp3",
+  "mp4",
+  "mov",
+  "avi",
+  "mkv",
+  "wav",
+  "flac",
+  "wmv",
+  "m4a",
+  "zip",
+  "rar",
+  "7z",
 ]);
 
 /** Warning describing a deceptive or problematic file name pattern (bidi override, hidden chars, double extension, etc.). */
 export interface NameProblem {
-  code: "BIDI_OVERRIDE" | "HIDDEN_CHARACTERS" | "DOUBLE_EXTENSION" | "PADDED_NAME" | "TRAILING_DOT_SPACE";
+  code:
+    | "BIDI_OVERRIDE"
+    | "HIDDEN_CHARACTERS"
+    | "DOUBLE_EXTENSION"
+    | "PADDED_NAME"
+    | "TRAILING_DOT_SPACE";
   title: string;
   detail: string;
   /** The name with invisible characters made visible. Only set when it differs. */
@@ -149,14 +237,19 @@ export interface NameProblem {
 
 const BIDI = /[\u202A-\u202E\u2066-\u2069]/;
 // eslint-disable-next-line no-control-regex
-const HIDDEN = /[\u0000-\u001F\u007F-\u009F\u2028\u2029\u200B\u2060\uFEFF\u180E\u3164\uFFA0\u115F\u1160]/;
+const HIDDEN =
+  /[\u0000-\u001F\u007F-\u009F\u2028\u2029\u200B\u2060\uFEFF\u180E\u3164\uFFA0\u115F\u1160]/;
 // eslint-disable-next-line no-control-regex
-const HIDDEN_ALL = /[\u0000-\u001F\u007F-\u009F\u2028\u2029\u200B\u2060\uFEFF\u180E\u3164\uFFA0\u115F\u1160\u202A-\u202E\u2066-\u2069]/g;
+const HIDDEN_ALL =
+  /[\u0000-\u001F\u007F-\u009F\u2028\u2029\u200B\u2060\uFEFF\u180E\u3164\uFFA0\u115F\u1160\u202A-\u202E\u2066-\u2069]/g;
 const PADDED = /[ \u00a0\u2000-\u200a\u3000_.]{4,}\.[^. _\u00a0]+$/;
 
 /** The name with each hidden character written out, like "report‹U+202E›fdp.exe". */
 export function visibleName(name: string): string {
-  return name.replace(HIDDEN_ALL, (c) => `‹U+${c.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0")}›`);
+  return name.replace(
+    HIDDEN_ALL,
+    (c) => `‹U+${c.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0")}›`,
+  );
 }
 
 /** Name-only traps. These need no look inside the file. */
@@ -210,7 +303,11 @@ export function checkName(name: string): NameProblem | null {
 /** True for names whose type needs real data inside (a picture, a sound, a PDF...), so an empty file under them is not that thing yet. */
 export function needsContent(ext: string): boolean {
   const r = expectedFor(ext);
-  return !!r && !r.textLike && !["sqlite", "sqlite3", "db3", "s3db"].includes(ext.toLowerCase());
+  return (
+    !!r &&
+    !r.textLike &&
+    !["sqlite", "sqlite3", "db3", "s3db"].includes(ext.toLowerCase())
+  );
 }
 
 /** Notice returned when a non-executable filename ends with two distinct known extensions (e.g., `"New file.txt.png"`). */

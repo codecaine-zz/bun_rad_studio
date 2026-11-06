@@ -5,11 +5,32 @@ import { ApiError, call } from "./api.js";
 import { attachDropTarget } from "./dnd.js";
 import { actionFor } from "./keymap.js";
 import { $, clear, h } from "./dom.js";
-import { isRenaming, makeListHead, renderList, syncSelection, wirePane, wirePaneExtras } from "./list.js";
+import {
+  isRenaming,
+  makeListHead,
+  renderList,
+  syncSelection,
+  wirePane,
+  wirePaneExtras,
+} from "./list.js";
 import { menuIsOpen, showMenu, toast } from "./menus.js";
 import { applyCachedFolderSizes, goTo, goUpIn, saveSettings } from "./nav.js";
-import { copyPathOf, isFavorite, toggleFavorite, transferInto, trashSelection } from "./ops.js";
-import { hooks, isFolderView, left, paneOf, right, setActivePane, sideNow } from "./pane.js";
+import {
+  copyPathOf,
+  isFavorite,
+  toggleFavorite,
+  transferInto,
+  trashSelection,
+} from "./ops.js";
+import {
+  hooks,
+  isFolderView,
+  left,
+  paneOf,
+  right,
+  setActivePane,
+  sideNow,
+} from "./pane.js";
 import { selectedEntries } from "./selection.js";
 import { emit, on, state } from "./state.js";
 import { collapseCrumbs, parentOf, splitPath } from "./util.js";
@@ -40,12 +61,18 @@ function applyActive() {
  * Opens `path` in the right pane. Resolves true when it worked; a problem is explained and leaves the old folder.
  * `keep` keeps the selection (for a refresh of the same folder); `select` selects one item after opening.
  */
-export async function loadRight(path, { keep = false, select = null, push = true } = {}) {
+export async function loadRight(
+  path,
+  { keep = false, select = null, push = true } = {},
+) {
   clearTimeout(refreshTimer);
   const mine = ++loadNumber;
   loading++;
   try {
-    const res = await call("list", { path, showHidden: state.settings.showHidden });
+    const res = await call("list", {
+      path,
+      showHidden: state.settings.showHidden,
+    });
     if (mine !== loadNumber) return false;
     const prevPath = right.location.path;
     const moved = res.path !== prevPath;
@@ -62,17 +89,29 @@ export async function loadRight(path, { keep = false, select = null, push = true
     const searchInput = byId("dual-search");
     if (searchInput && moved) searchInput.value = "";
     if (select) right.selection = new Set([select]);
-    else if (keep && !moved) right.selection = new Set([...right.selection].filter((k) => res.entries.some((e) => e.path === k)));
+    else if (keep && !moved)
+      right.selection = new Set(
+        [...right.selection].filter((k) =>
+          res.entries.some((e) => e.path === k),
+        ),
+      );
     else right.selection = new Set();
     if (select) right.focusKey = select;
     else if (!right.selection.has(right.focusKey)) right.focusKey = null;
     right.anchorKey = select ?? null;
     if (moved || !keep) right.shown = 0;
-    if (moved && state.settings.dualPath !== res.path) saveSettings({ dualPath: res.path }).catch(() => {});
+    if (moved && state.settings.dualPath !== res.path)
+      saveSettings({ dualPath: res.path }).catch(() => {});
     drawRight();
     return true;
   } catch (err) {
-    if (mine === loadNumber) toast(err instanceof ApiError ? err.message : "That folder couldn't be opened.", { kind: "error" });
+    if (mine === loadNumber)
+      toast(
+        err instanceof ApiError
+          ? err.message
+          : "That folder couldn't be opened.",
+        { kind: "error" },
+      );
     return false;
   } finally {
     loading--;
@@ -128,12 +167,26 @@ export async function runRightSearch(query, { keep = false } = {}) {
   if (!right.location.path) return false;
   const mine = ++loadNumber;
   try {
-    const res = await call("search", { path: right.location.path, query: text, showHidden: state.settings.showHidden });
+    const res = await call("search", {
+      path: right.location.path,
+      query: text,
+      showHidden: state.settings.showHidden,
+    });
     if (mine !== loadNumber) return false;
-    right.search = { query: text, root: right.location.path, entries: res.entries, truncated: res.truncated, skipped: res.skipped };
+    right.search = {
+      query: text,
+      root: right.location.path,
+      entries: res.entries,
+      truncated: res.truncated,
+      skipped: res.skipped,
+    };
     right.shown = 0;
     if (keep) {
-      right.selection = new Set([...right.selection].filter((k) => res.entries.some((e) => e.path === k)));
+      right.selection = new Set(
+        [...right.selection].filter((k) =>
+          res.entries.some((e) => e.path === k),
+        ),
+      );
       if (!right.selection.has(right.focusKey)) right.focusKey = null;
     } else {
       right.selection = new Set();
@@ -142,7 +195,12 @@ export async function runRightSearch(query, { keep = false } = {}) {
     drawRight();
     return true;
   } catch (err) {
-    toast(err instanceof ApiError ? err.message : "Search failed in the right pane.", { kind: "error" });
+    toast(
+      err instanceof ApiError
+        ? err.message
+        : "Search failed in the right pane.",
+      { kind: "error" },
+    );
     return false;
   }
 }
@@ -180,18 +238,31 @@ async function submitRightAddress() {
   closeRightAddressEdit();
   if (!raw) return;
   try {
-    const r = await call("typedpath", { text: raw, cwd: right.location.path || state.home });
-    if (!r.exists) return toast(`There is no folder at ${r.path}.`, { kind: "error" });
+    const r = await call("typedpath", {
+      text: raw,
+      cwd: right.location.path || state.home,
+    });
+    if (!r.exists)
+      return toast(`There is no folder at ${r.path}.`, { kind: "error" });
     if (r.isDir) await loadRight(r.path);
-    else await loadRight(parentOf(r.path, state.sep) ?? r.path, { select: r.path });
+    else
+      await loadRight(parentOf(r.path, state.sep) ?? r.path, {
+        select: r.path,
+      });
   } catch (err) {
-    toast(err instanceof ApiError ? err.message : "Couldn't open that location.", { kind: "error" });
+    toast(
+      err instanceof ApiError ? err.message : "Couldn't open that location.",
+      { kind: "error" },
+    );
   }
 }
 
 async function showRightCrumbSiblings(parentPath, currentChildPath, anchor) {
   try {
-    const res = await call("list", { path: parentPath, showHidden: state.settings.showHidden });
+    const res = await call("list", {
+      path: parentPath,
+      showHidden: state.settings.showHidden,
+    });
     const folders = (res.entries ?? []).filter((e) => e.isDir).slice(0, 30);
     if (!folders.length) return toast("No subfolders inside that location.");
     showMenu(
@@ -215,36 +286,61 @@ function renderCrumbs() {
   const parts = collapseCrumbs(splitPath(right.location.path, state.sep), 3);
   parts.forEach((c, i) => {
     const last = i === parts.length - 1;
-    const el = h("button", {
-      type: "button",
-      class: `crumb${last ? " current" : ""}`,
-      title: c.path,
-      "aria-current": last ? "page" : null,
-      onclick: () => loadRight(c.path),
-      oncontextmenu: (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        showMenu([
-          { label: "Open in right pane", icon: "📂", action: () => loadRight(c.path) },
-          { label: isFavorite(c.path) ? "Remove from Favorites" : "Add to Favorites", icon: "⭐", action: () => toggleFavorite(c.path) },
-          { label: "Copy path", icon: "🔗", action: () => copyPathOf([{ path: c.path }]) },
-        ], { x: e.clientX, y: e.clientY, label: c.name });
+    const el = h(
+      "button",
+      {
+        type: "button",
+        class: `crumb${last ? " current" : ""}`,
+        title: c.path,
+        "aria-current": last ? "page" : null,
+        onclick: () => loadRight(c.path),
+        oncontextmenu: (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          showMenu(
+            [
+              {
+                label: "Open in right pane",
+                icon: "📂",
+                action: () => loadRight(c.path),
+              },
+              {
+                label: isFavorite(c.path)
+                  ? "Remove from Favorites"
+                  : "Add to Favorites",
+                icon: "⭐",
+                action: () => toggleFavorite(c.path),
+              },
+              {
+                label: "Copy path",
+                icon: "🔗",
+                action: () => copyPathOf([{ path: c.path }]),
+              },
+            ],
+            { x: e.clientX, y: e.clientY, label: c.name },
+          );
+        },
       },
-    }, c.root && state.sep === "/" ? "💻 Computer" : c.name);
+      c.root && state.sep === "/" ? "💻 Computer" : c.name,
+    );
     attachDropTarget(el, { getPath: () => c.path });
     box.append(el);
     if (!last) {
       const nextPart = parts[i + 1];
-      const sepBtn = h("button", {
-        type: "button",
-        class: "crumb-sep",
-        title: `Show folders inside ${c.name}`,
-        "aria-label": `Show folders inside ${c.name}`,
-        onclick: (e) => {
-          e.stopPropagation();
-          showRightCrumbSiblings(c.path, nextPart?.path ?? "", sepBtn);
+      const sepBtn = h(
+        "button",
+        {
+          type: "button",
+          class: "crumb-sep",
+          title: `Show folders inside ${c.name}`,
+          "aria-label": `Show folders inside ${c.name}`,
+          onclick: (e) => {
+            e.stopPropagation();
+            showRightCrumbSiblings(c.path, nextPart?.path ?? "", sepBtn);
+          },
         },
-      }, "›");
+        "›",
+      );
       box.append(sepBtn);
     }
   });
@@ -260,13 +356,16 @@ function renderCrumbs() {
 function syncButtons() {
   if (!built || !byId("dual-copy-left")) return;
   const chosen = right.selection.size;
-  for (const id of ["dual-copy-left", "dual-move-left"]) byId(id).disabled = !chosen || !leftFolder();
-  for (const id of ["dual-copy-right", "dual-move-right"]) byId(id).disabled = !left.selection.size || !right.location.path;
+  for (const id of ["dual-copy-left", "dual-move-left"])
+    byId(id).disabled = !chosen || !leftFolder();
+  for (const id of ["dual-copy-right", "dual-move-right"])
+    byId(id).disabled = !left.selection.size || !right.location.path;
   const trash = byId("dual-trash");
   trash.disabled = !chosen;
-  trash.title = state.settings.deleteTo === "graveyard"
-    ? "Bury what is selected here in the Rip graveyard (Delete). You can undo this."
-    : "Move what is selected here to the Recycle Bin (Delete). You can undo this.";
+  trash.title =
+    state.settings.deleteTo === "graveyard"
+      ? "Bury what is selected here in the Rip graveyard (Delete). You can undo this."
+      : "Move what is selected here to the Recycle Bin (Delete). You can undo this.";
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -278,15 +377,27 @@ export async function transferBetween(from, mode) {
   const dest = from === "left" ? right.location.path : leftFolder();
   const pane = paneOf(from);
   const sources = selectedEntries(pane).map((e) => e.path);
-  if (!dest) return toast(from === "left" ? "The right pane has no folder open yet." : "Open a folder in the left pane first. Search results and the Recycle Bin can't receive files.");
-  if (!sources.length) return toast(`Select something in the ${from} pane first.`);
+  if (!dest)
+    return toast(
+      from === "left"
+        ? "The right pane has no folder open yet."
+        : "Open a folder in the left pane first. Search results and the Recycle Bin can't receive files.",
+    );
+  if (!sources.length)
+    return toast(`Select something in the ${from} pane first.`);
   await transferInto(dest, sources, mode, pane);
 }
 
 function scheduleRefresh() {
   clearTimeout(refreshTimer);
   refreshTimer = setTimeout(() => {
-    if (typeof document === "undefined" || state.workspace !== "dual" || !right.location.path || loading) return;
+    if (
+      typeof document === "undefined" ||
+      state.workspace !== "dual" ||
+      !right.location.path ||
+      loading
+    )
+      return;
     // Never rebuild the list under someone who is typing a new name.
     if (isRenaming(right)) return scheduleRefresh();
     if (right.search?.query) {
@@ -302,7 +413,12 @@ function scheduleRefresh() {
 // ---------------------------------------------------------------------------------------------------------------
 
 function actionButton(id, icon, label, tip, run) {
-  return h("button", { type: "button", class: "dual-btn", id, title: tip, onclick: run }, h("span", { "aria-hidden": "true" }, icon), h("span", { class: "dual-btn-label" }, label));
+  return h(
+    "button",
+    { type: "button", class: "dual-btn", id, title: tip, onclick: run },
+    h("span", { "aria-hidden": "true" }, icon),
+    h("span", { class: "dual-btn-label" }, label),
+  );
 }
 
 function build() {
@@ -318,8 +434,13 @@ function build() {
     hidden: true,
     onkeydown: (e) => {
       if (e.isComposing || e.keyCode === 229) return;
-      if (e.key === "Enter") { e.preventDefault(); submitRightAddress(); }
-      else if (e.key === "Escape") { e.preventDefault(); closeRightAddressEdit(); }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        submitRightAddress();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        closeRightAddressEdit();
+      }
     },
     onblur: () => closeRightAddressEdit(),
   });
@@ -334,8 +455,14 @@ function build() {
     spellcheck: "false",
     onkeydown: (e) => {
       if (e.isComposing || e.keyCode === 229) return;
-      if (e.key === "Enter") { e.preventDefault(); runRightSearch(searchInput.value); }
-      else if (e.key === "Escape" && searchInput.value) { e.preventDefault(); searchInput.value = ""; runRightSearch(""); }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        runRightSearch(searchInput.value);
+      } else if (e.key === "Escape" && searchInput.value) {
+        e.preventDefault();
+        searchInput.value = "";
+        runRightSearch("");
+      }
     },
     oninput: () => {
       if (!searchInput.value) runRightSearch("");
@@ -350,31 +477,166 @@ function build() {
     },
   });
   clear(pane).append(
-    h("div", { class: "dual-head" },
-      h("button", { type: "button", class: "icon-btn", id: "dual-back", title: "Go back to the previous folder in the right pane", "aria-label": "Back in the right pane", onclick: () => goRightBack() }, "←"),
-      h("button", { type: "button", class: "icon-btn", id: "dual-forward", title: "Go forward in the right pane", "aria-label": "Forward in the right pane", onclick: () => goRightForward() }, "→"),
-      h("button", { type: "button", class: "icon-btn", id: "dual-up", title: "Go up one folder in this pane", "aria-label": "Up one folder in the right pane", onclick: () => goUpIn(right) }, "↑"),
+    h(
+      "div",
+      { class: "dual-head" },
+      h(
+        "button",
+        {
+          type: "button",
+          class: "icon-btn",
+          id: "dual-back",
+          title: "Go back to the previous folder in the right pane",
+          "aria-label": "Back in the right pane",
+          onclick: () => goRightBack(),
+        },
+        "←",
+      ),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "icon-btn",
+          id: "dual-forward",
+          title: "Go forward in the right pane",
+          "aria-label": "Forward in the right pane",
+          onclick: () => goRightForward(),
+        },
+        "→",
+      ),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "icon-btn",
+          id: "dual-up",
+          title: "Go up one folder in this pane",
+          "aria-label": "Up one folder in the right pane",
+          onclick: () => goUpIn(right),
+        },
+        "↑",
+      ),
       crumbsNav,
       addrInput,
-      h("button", { type: "button", class: "icon-btn", id: "dual-edit-address", title: "Type a folder location for the right pane", "aria-label": "Type a location in the right pane", onclick: () => openRightAddressEdit() }, "✎"),
-      h("div", { class: "search dual-search-wrap", role: "search" },
-        searchInput,
-        h("button", { type: "button", class: "icon-btn", id: "dual-search-go", title: "Search the right pane", "aria-label": "Search the right pane", onclick: () => runRightSearch(searchInput.value) }, "🔍"),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "icon-btn",
+          id: "dual-edit-address",
+          title: "Type a folder location for the right pane",
+          "aria-label": "Type a location in the right pane",
+          onclick: () => openRightAddressEdit(),
+        },
+        "✎",
       ),
-      h("button", { type: "button", class: "icon-btn", id: "dual-same", title: "Show the folder from the left pane here too", "aria-label": "Show the left folder in this pane", onclick: () => leftFolder() && loadRight(leftFolder()) }, "⇄"),
-      h("button", { type: "button", class: "icon-btn", id: "dual-swap", title: "Swap the left and right pane folders", "aria-label": "Swap left and right pane folders", onclick: () => swapDualPanes() }, "⇌")),
+      h(
+        "div",
+        { class: "search dual-search-wrap", role: "search" },
+        searchInput,
+        h(
+          "button",
+          {
+            type: "button",
+            class: "icon-btn",
+            id: "dual-search-go",
+            title: "Search the right pane",
+            "aria-label": "Search the right pane",
+            onclick: () => runRightSearch(searchInput.value),
+          },
+          "🔍",
+        ),
+      ),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "icon-btn",
+          id: "dual-same",
+          title: "Show the folder from the left pane here too",
+          "aria-label": "Show the left folder in this pane",
+          onclick: () => leftFolder() && loadRight(leftFolder()),
+        },
+        "⇄",
+      ),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "icon-btn",
+          id: "dual-swap",
+          title: "Swap the left and right pane folders",
+          "aria-label": "Swap left and right pane folders",
+          onclick: () => swapDualPanes(),
+        },
+        "⇌",
+      ),
+    ),
     makeListHead(right.ids.head),
-    h("div", { class: "dual-listwrap", id: right.ids.wrap },
-      h("div", { id: right.ids.list, class: "view-details", role: "listbox", tabindex: "0", "aria-multiselectable": "true", "aria-label": "Files and folders in the right pane" }),
-      h("div", { id: right.ids.empty, class: "empty", hidden: true })),
-    h("div", { class: "dual-foot" },
+    h(
+      "div",
+      { class: "dual-listwrap", id: right.ids.wrap },
+      h("div", {
+        id: right.ids.list,
+        class: "view-details",
+        role: "listbox",
+        tabindex: "0",
+        "aria-multiselectable": "true",
+        "aria-label": "Files and folders in the right pane",
+      }),
+      h("div", { id: right.ids.empty, class: "empty", hidden: true }),
+    ),
+    h(
+      "div",
+      { class: "dual-foot" },
       h("span", { id: right.ids.status, class: "dual-status" }),
-      h("span", { class: "dual-actions", role: "group", "aria-label": "Copy and move between the two panes" },
-        actionButton("dual-copy-right", "📋", "Copy →", `Copy what is selected on the left into this folder (${mod()}drag also copies). Same as F5 when the left side is active.`, () => transferBetween("left", "copy")),
-        actionButton("dual-move-right", "✂️", "Move →", "Move what is selected on the left into this folder. Same as F6 when the left side is active.", () => transferBetween("left", "move")),
-        actionButton("dual-copy-left", "📋", "← Copy", "Copy what is selected here into the folder on the left. Same as F5 when this side is active.", () => transferBetween("right", "copy")),
-        actionButton("dual-move-left", "✂️", "← Move", "Move what is selected here into the folder on the left. Same as F6 when this side is active.", () => transferBetween("right", "move")),
-        actionButton("dual-trash", "🗑️", "Delete", "Move what is selected here to the Recycle Bin (Delete). You can undo this.", () => { setActivePane("right"); trashSelection(); }))),
+      h(
+        "span",
+        {
+          class: "dual-actions",
+          role: "group",
+          "aria-label": "Copy and move between the two panes",
+        },
+        actionButton(
+          "dual-copy-right",
+          "📋",
+          "Copy →",
+          `Copy what is selected on the left into this folder (${mod()}drag also copies). Same as F5 when the left side is active.`,
+          () => transferBetween("left", "copy"),
+        ),
+        actionButton(
+          "dual-move-right",
+          "✂️",
+          "Move →",
+          "Move what is selected on the left into this folder. Same as F6 when the left side is active.",
+          () => transferBetween("left", "move"),
+        ),
+        actionButton(
+          "dual-copy-left",
+          "📋",
+          "← Copy",
+          "Copy what is selected here into the folder on the left. Same as F5 when this side is active.",
+          () => transferBetween("right", "copy"),
+        ),
+        actionButton(
+          "dual-move-left",
+          "✂️",
+          "← Move",
+          "Move what is selected here into the folder on the left. Same as F6 when this side is active.",
+          () => transferBetween("right", "move"),
+        ),
+        actionButton(
+          "dual-trash",
+          "🗑️",
+          "Delete",
+          "Move what is selected here to the Recycle Bin (Delete). You can undo this.",
+          () => {
+            setActivePane("right");
+            trashSelection();
+          },
+        ),
+      ),
+    ),
   );
   wirePane(right);
   wirePaneExtras(right);
@@ -393,13 +655,20 @@ export function enterDual() {
   applyActive();
   syncButtons();
   if (right.location.path) loadRight(right.location.path, { keep: true });
-  else loadRight(state.settings.dualPath || state.home).then((ok) => ok || loadRight(state.home));
+  else
+    loadRight(state.settings.dualPath || state.home).then(
+      (ok) => ok || loadRight(state.home),
+    );
 }
 
 /** F5 and F6 copy and move to the other pane, Tab switches panes, and the right pane follows changes made elsewhere. */
 export function wireDual() {
   const live = () => state.workspace === "dual" && built;
-  on("view", () => state.workspace === "dual" && right.location.path && scheduleRefresh());
+  on(
+    "view",
+    () =>
+      state.workspace === "dual" && right.location.path && scheduleRefresh(),
+  );
   on("selection", () => {
     if (!live()) return;
     syncSelection(right);
@@ -419,16 +688,47 @@ export function wireDual() {
   on("settings", (change) => {
     const keys = Object.keys(change ?? {});
     if (!live()) return;
-    if (keys.some((k) => ["view", "sortBy", "sortDir", "foldersFirst", "columns", "groupBy", "tags"].includes(k))) renderList(right);
+    if (
+      keys.some((k) =>
+        [
+          "view",
+          "sortBy",
+          "sortDir",
+          "foldersFirst",
+          "columns",
+          "groupBy",
+          "tags",
+        ].includes(k),
+      )
+    )
+      renderList(right);
     if (keys.includes("deleteTo")) syncButtons();
   });
   document.addEventListener("keydown", (e) => {
     if (e.isComposing || e.keyCode === 229) return;
-    if (!live() || e.defaultPrevented || menuIsOpen() || document.querySelector(".modal-backdrop")) return;
+    if (
+      !live() ||
+      e.defaultPrevented ||
+      menuIsOpen() ||
+      document.querySelector(".modal-backdrop")
+    )
+      return;
     const t = e.target instanceof Element ? e.target : null;
-    if (!t || t.closest("#terminal-panel") || t.matches("input, textarea, select")) return;
+    if (
+      !t ||
+      t.closest("#terminal-panel") ||
+      t.matches("input, textarea, select")
+    )
+      return;
     const onList = t.id === "list" || t.id === "dual-list";
-    if (e.key === "Tab" && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey && onList) {
+    if (
+      e.key === "Tab" &&
+      !e.shiftKey &&
+      !e.ctrlKey &&
+      !e.altKey &&
+      !e.metaKey &&
+      onList
+    ) {
       e.preventDefault();
       $(t.id === "list" ? "#dual-list" : "#list").focus();
     } else {

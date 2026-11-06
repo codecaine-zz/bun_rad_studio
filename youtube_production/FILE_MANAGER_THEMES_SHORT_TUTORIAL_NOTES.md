@@ -1,16 +1,19 @@
 # Codecaine File Manager Themes — Short Quickstart Tutorial (2:24)
 
 ## Reference & Hardware Workstation Mark
+
 - **Workstation Hardware Mark:** `🍎 Mac Studio M4 Ultra · 32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K 120Hz`
 - **Custom Themes Vault:** [`custom_themes/README.md`](../custom_themes/README.md)
 - **Professional Theme Design Style Guide:** [`custom_themes/THEME_DESIGN_STYLE_GUIDE.md`](../custom_themes/THEME_DESIGN_STYLE_GUIDE.md)
 
 ## YouTube Title (87 chars — under YouTube's 100-char limit, copy and paste)
+
 ```text
 Codecaine File Manager Themes Short Tour (M4 Ultra 6K): 18 Holidays & Gemini AI #Shorts
 ```
 
 ## YouTube Description (copy and paste)
+
 ```text
 A fast-paced, unobstructed Icons View quickstart tour of the Codecaine File Manager Theme & Atmospheric Shader Studio — recorded and marked on our flagship Apple Mac Studio M4 Ultra (32-Core CPU · 80-Core GPU · 192GB Unified Memory · Apple Pro Display XDR 6K @ 120Hz ProMotion).
 
@@ -50,6 +53,7 @@ CHAPTERS
 ```
 
 ## YouTube Tags (copy and paste — comma-separated, under 500 chars)
+
 ```text
 Codecaine File Manager, File Manager Themes, UI Theme Design, Mac Studio M4 Ultra, Pro Display XDR 6K, 120Hz ProMotion, Halloween Theme, Polar Night Theme, US Holiday Themes, Custom Themes GitHub, Google Gemini AI Theme, 3D Folder Icons, Compiz Fire Folders, OKLab Color Blender, Atmospheric Shaders, Open Source File Manager, Bun RAD Studio, WCAG AAA Theme Design
 ```

@@ -4,21 +4,52 @@
  * long, so a huge folder or a badly written pattern can never freeze the File Manager.
  */
 import { promises as fsp } from "fs";
-import { absolutePath, assertFolder, pathApi, tick, type FmContext } from "./fmCore";
+import {
+  absolutePath,
+  assertFolder,
+  pathApi,
+  tick,
+  type FmContext,
+} from "./fmCore";
 import { FmError } from "./fmPaths";
 
 /** Maximum number of workspace files collected when listing or searching a directory tree. */
 export const MAX_FILES = 20_000;
 /** Maximum number of text search matches returned by a workspace search. */
 export const MAX_RESULTS = 1000;
-const SKIP_DIRS = new Set(["node_modules", ".git", ".hg", ".svn", "dist", ".next", ".nuxt", ".cache", ".venv", "__pycache__", ".idea", ".gradle", ".tox", "coverage"]);
+const SKIP_DIRS = new Set([
+  "node_modules",
+  ".git",
+  ".hg",
+  ".svn",
+  "dist",
+  ".next",
+  ".nuxt",
+  ".cache",
+  ".venv",
+  "__pycache__",
+  ".idea",
+  ".gradle",
+  ".tox",
+  "coverage",
+]);
 const BIG_DIR = 5000;
 
 /** Result of listing workspace files under a root directory, including truncation and skipped-folder metadata. */
-export interface FileList { root: string; files: string[]; truncated: boolean; timedOut: boolean; skipped: string[] }
+export interface FileList {
+  root: string;
+  files: string[];
+  truncated: boolean;
+  timedOut: boolean;
+  skipped: string[];
+}
 
 /** Relative paths (with "/") of the files under `root`, breadth first. Links are never followed. */
-export async function listWorkspaceFiles(ctx: FmContext, rootInput: unknown, opts: { hidden?: boolean; timeMs?: number } = {}): Promise<FileList> {
+export async function listWorkspaceFiles(
+  ctx: FmContext,
+  rootInput: unknown,
+  opts: { hidden?: boolean; timeMs?: number } = {},
+): Promise<FileList> {
   const root = absolutePath(ctx, rootInput);
   await assertFolder(root, "That folder");
   const p = pathApi(ctx);
@@ -33,11 +64,16 @@ export async function listWorkspaceFiles(ctx: FmContext, rootInput: unknown, opt
     const rel = queue.shift()!;
     let entries: import("fs").Dirent[];
     try {
-      entries = await fsp.readdir(rel ? p.join(root, rel) : root, { withFileTypes: true });
+      entries = await fsp.readdir(rel ? p.join(root, rel) : root, {
+        withFileTypes: true,
+      });
     } catch {
       continue;
     }
-    if (entries.length > BIG_DIR && rel) { skipped.push(`${rel}/ (${entries.length} items)`); continue; }
+    if (entries.length > BIG_DIR && rel) {
+      skipped.push(`${rel}/ (${entries.length} items)`);
+      continue;
+    }
     entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
     for (const e of entries) {
       if (!opts.hidden && e.name.startsWith(".")) continue;
@@ -46,7 +82,10 @@ export async function listWorkspaceFiles(ctx: FmContext, rootInput: unknown, opt
         if (SKIP_DIRS.has(e.name)) continue;
         queue.push(childRel);
       } else if (e.isFile()) {
-        if (files.length >= MAX_FILES) { truncated = true; break; }
+        if (files.length >= MAX_FILES) {
+          truncated = true;
+          break;
+        }
         files.push(childRel);
       }
     }
@@ -63,9 +102,21 @@ export async function listWorkspaceFiles(ctx: FmContext, rootInput: unknown, opt
 // ---------------------------------------------------------------------------------------------------------------
 
 /** A single line/column match found during a workspace text or regex search. */
-export interface SearchMatch { path: string; line: number; col: number; length: number; text: string }
+export interface SearchMatch {
+  path: string;
+  line: number;
+  col: number;
+  length: number;
+  text: string;
+}
 /** Aggregated matches and statistics returned when a worker-thread workspace search finishes. */
-export interface SearchOutcome { matches: SearchMatch[]; filesSearched: number; skippedBinary: number; truncated: boolean; timedOut: boolean }
+export interface SearchOutcome {
+  matches: SearchMatch[];
+  filesSearched: number;
+  skippedBinary: number;
+  truncated: boolean;
+  timedOut: boolean;
+}
 
 /** The worker's program. It only ever reads, and receives a list of files from the server. */
 const WORKER_SOURCE = `
@@ -112,11 +163,33 @@ self.onmessage = (e) => {
 `;
 
 /** Searches the given workspace files in a background Worker thread with timeout protection. */
-export function searchWorkspace(ctx: FmContext, root: string, files: string[], q: { query: string; regex: boolean; caseSensitive: boolean; wholeWord: boolean }, timeMs = 12_000): Promise<SearchOutcome> {
+export function searchWorkspace(
+  ctx: FmContext,
+  root: string,
+  files: string[],
+  q: {
+    query: string;
+    regex: boolean;
+    caseSensitive: boolean;
+    wholeWord: boolean;
+  },
+  timeMs = 12_000,
+): Promise<SearchOutcome> {
   const p = pathApi(ctx);
   return new Promise((resolve, reject) => {
-    const stop = () => finish(() => resolve({ matches: [], filesSearched: 0, skippedBinary: 0, truncated: false, timedOut: true }));
-    const url = URL.createObjectURL(new Blob([WORKER_SOURCE], { type: "text/javascript" }));
+    const stop = () =>
+      finish(() =>
+        resolve({
+          matches: [],
+          filesSearched: 0,
+          skippedBinary: 0,
+          truncated: false,
+          timedOut: true,
+        }),
+      );
+    const url = URL.createObjectURL(
+      new Blob([WORKER_SOURCE], { type: "text/javascript" }),
+    );
     const worker = new Worker(url);
     let done = false;
     let progress = 0;
@@ -126,36 +199,121 @@ export function searchWorkspace(ctx: FmContext, root: string, files: string[], q
       clearTimeout(timer);
       const at = ctx.disposers.indexOf(stop);
       if (at >= 0) ctx.disposers.splice(at, 1);
-      try { worker.terminate(); } catch {}
+      try {
+        worker.terminate();
+      } catch {}
       URL.revokeObjectURL(url);
       fn();
     };
-    const timer = setTimeout(() => finish(() => resolve({ matches: [], filesSearched: progress, skippedBinary: 0, truncated: false, timedOut: true })), timeMs);
+    const timer = setTimeout(
+      () =>
+        finish(() =>
+          resolve({
+            matches: [],
+            filesSearched: progress,
+            skippedBinary: 0,
+            truncated: false,
+            timedOut: true,
+          }),
+        ),
+      timeMs,
+    );
     worker.onmessage = (ev: MessageEvent) => {
       const m = ev.data;
       if (m.type === "progress") progress = m.searched;
       else if (m.type === "done") {
         if (m.error) finish(() => reject(new FmError("BAD_PATTERN", m.error)));
-        else finish(() => resolve({ matches: m.matches.map((x: any) => ({ path: x.path, line: x.line, col: x.col - x.cut, length: x.length, text: x.text })), filesSearched: m.searched, skippedBinary: m.binary, truncated: m.truncated, timedOut: false }));
+        else
+          finish(() =>
+            resolve({
+              matches: m.matches.map((x: any) => ({
+                path: x.path,
+                line: x.line,
+                col: x.col - x.cut,
+                length: x.length,
+                text: x.text,
+              })),
+              filesSearched: m.searched,
+              skippedBinary: m.binary,
+              truncated: m.truncated,
+              timedOut: false,
+            }),
+          );
       }
     };
-    worker.onerror = (ev: ErrorEvent) => finish(() => reject(new FmError("SEARCH_FAILED", `The search stopped: ${ev.message ?? "unknown problem"}`)));
-    worker.postMessage({ root, sep: p.sep, files, ...q, maxResults: MAX_RESULTS, maxBytes: 5 * 1024 * 1024 });
+    worker.onerror = (ev: ErrorEvent) =>
+      finish(() =>
+        reject(
+          new FmError(
+            "SEARCH_FAILED",
+            `The search stopped: ${ev.message ?? "unknown problem"}`,
+          ),
+        ),
+      );
+    worker.postMessage({
+      root,
+      sep: p.sep,
+      files,
+      ...q,
+      maxResults: MAX_RESULTS,
+      maxBytes: 5 * 1024 * 1024,
+    });
     ctx.disposers.push(stop);
   });
 }
 
 /** `code/search`: walks the folder, then searches the files in the worker. */
-export async function findInFiles(ctx: FmContext, body: Record<string, any>): Promise<SearchOutcome & { root: string; fileListTruncated: boolean }> {
-  if (typeof body.query !== "string" || !body.query) throw new FmError("BAD_REQUEST", "Type something to look for.");
-  if (body.query.length > 500) throw new FmError("BAD_REQUEST", "That search text is too long.");
-  const list = await listWorkspaceFiles(ctx, body.root, { hidden: body.hidden === true, timeMs: 3000 });
+export async function findInFiles(
+  ctx: FmContext,
+  body: Record<string, any>,
+): Promise<SearchOutcome & { root: string; fileListTruncated: boolean }> {
+  if (typeof body.query !== "string" || !body.query)
+    throw new FmError("BAD_REQUEST", "Type something to look for.");
+  if (body.query.length > 500)
+    throw new FmError("BAD_REQUEST", "That search text is too long.");
+  const list = await listWorkspaceFiles(ctx, body.root, {
+    hidden: body.hidden === true,
+    timeMs: 3000,
+  });
   let files = list.files;
   if (typeof body.include === "string" && body.include.trim()) {
-    const parts = body.include.slice(0, 256).split(",").map((s: string) => s.trim()).filter(Boolean).slice(0, 10);
-    const res = parts.map((g: string) => new RegExp(`(^|/)${g.replace(/\*{3,}/g, "**").replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*\*/g, "\0").replace(/\*/g, "[^/]*").replace(/\0/g, ".*").replace(/\?/g, "[^/]")}$`));
+    const parts = body.include
+      .slice(0, 256)
+      .split(",")
+      .map((s: string) => s.trim())
+      .filter(Boolean)
+      .slice(0, 10);
+    const res = parts.map(
+      (g: string) =>
+        new RegExp(
+          `(^|/)${g
+            .replace(/\*{3,}/g, "**")
+            .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+            .replace(/\*\*/g, "\0")
+            .replace(/\*/g, "[^/]*")
+            .replace(/\0/g, ".*")
+            .replace(/\?/g, "[^/]")}$`,
+        ),
+    );
     files = files.filter((f) => res.some((r: RegExp) => r.test(f)));
   }
-  const out = await searchWorkspace(ctx, list.root, files, { query: body.query, regex: body.regex === true, caseSensitive: body.caseSensitive === true, wholeWord: body.wholeWord === true }, Number.isFinite(body.timeMs) ? Math.min(12_000, Math.max(300, Number(body.timeMs))) : 12_000);
-  return { ...out, root: list.root, fileListTruncated: list.truncated || list.timedOut };
+  const out = await searchWorkspace(
+    ctx,
+    list.root,
+    files,
+    {
+      query: body.query,
+      regex: body.regex === true,
+      caseSensitive: body.caseSensitive === true,
+      wholeWord: body.wholeWord === true,
+    },
+    Number.isFinite(body.timeMs)
+      ? Math.min(12_000, Math.max(300, Number(body.timeMs)))
+      : 12_000,
+  );
+  return {
+    ...out,
+    root: list.root,
+    fileListTruncated: list.truncated || list.timedOut,
+  };
 }

@@ -20,11 +20,20 @@ export function stripAnsi(text: string): string {
 const UNFINISHED_TAIL = /(?:\x1b(?:\[[0-9;?<=>!]*[ -\/]*|\][^\x07\x1b]*)?|\r)$/;
 
 /** Turns the bytes of one output pipe into clean text; escape sequences and characters split between chunks are held back. */
-export function createTextCleaner(): (bytes: Uint8Array | null, final?: boolean) => string {
+export function createTextCleaner(): (
+  bytes: Uint8Array | null,
+  final?: boolean,
+) => string {
   const decoder = new TextDecoder();
   let pending = "";
   return (bytes, final = false) => {
-    let text = pending + (bytes ? decoder.decode(bytes, { stream: !final }) : final ? decoder.decode() : "");
+    let text =
+      pending +
+      (bytes
+        ? decoder.decode(bytes, { stream: !final })
+        : final
+          ? decoder.decode()
+          : "");
     pending = "";
     if (!final) {
       const tail = UNFINISHED_TAIL.exec(text);
@@ -76,10 +85,27 @@ export class LogBuffer {
   }
 
   /** What was written since `since`. `reset` means "replace your copy with `log`" (first read, cleared, or older text was dropped). */
-  read(since: unknown, epoch: unknown): { log: string; cursor: number; epoch: number; reset: boolean } {
-    const known = typeof since === "number" && Number.isFinite(since) && (epoch === undefined || epoch === this.epoch);
-    if (!known || since < this.base || since > this.cursor) return { log: this.text, cursor: this.cursor, epoch: this.epoch, reset: true };
-    return { log: this.text.slice(since - this.base), cursor: this.cursor, epoch: this.epoch, reset: false };
+  read(
+    since: unknown,
+    epoch: unknown,
+  ): { log: string; cursor: number; epoch: number; reset: boolean } {
+    const known =
+      typeof since === "number" &&
+      Number.isFinite(since) &&
+      (epoch === undefined || epoch === this.epoch);
+    if (!known || since < this.base || since > this.cursor)
+      return {
+        log: this.text,
+        cursor: this.cursor,
+        epoch: this.epoch,
+        reset: true,
+      };
+    return {
+      log: this.text.slice(since - this.base),
+      cursor: this.cursor,
+      epoch: this.epoch,
+      reset: false,
+    };
   }
 
   /** Returns the full currently buffered text and whether earlier output was dropped or cleared. */

@@ -36,8 +36,10 @@ function clone<T>(v: T): T {
 export function resolveConfigDir(appName: string): string {
   const platform = process.platform;
   let base: string;
-  if (platform === "darwin") base = path.join(os.homedir(), "Library", "Application Support");
-  else if (platform === "win32") base = process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming");
+  if (platform === "darwin")
+    base = path.join(os.homedir(), "Library", "Application Support");
+  else if (platform === "win32")
+    base = process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming");
   else base = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config");
   return path.join(base, appName);
 }
@@ -50,9 +52,14 @@ export function resolveConfigDir(appName: string): string {
 export function resolveDataDir(appName: string): string {
   const platform = process.platform;
   let base: string;
-  if (platform === "darwin") base = path.join(os.homedir(), "Library", "Application Support");
-  else if (platform === "win32") base = process.env.LOCALAPPDATA || path.join(os.homedir(), "AppData", "Local");
-  else base = process.env.XDG_DATA_HOME || path.join(os.homedir(), ".local", "share");
+  if (platform === "darwin")
+    base = path.join(os.homedir(), "Library", "Application Support");
+  else if (platform === "win32")
+    base =
+      process.env.LOCALAPPDATA || path.join(os.homedir(), "AppData", "Local");
+  else
+    base =
+      process.env.XDG_DATA_HOME || path.join(os.homedir(), ".local", "share");
   return path.join(base, appName);
 }
 
@@ -63,9 +70,18 @@ export function resolveDataDir(appName: string): string {
  */
 export function resolveCacheDir(appName: string): string {
   const platform = process.platform;
-  if (platform === "darwin") return path.join(os.homedir(), "Library", "Caches", appName);
-  if (platform === "win32") return path.join(process.env.LOCALAPPDATA || path.join(os.homedir(), "AppData", "Local"), appName, "Cache");
-  return path.join(process.env.XDG_CACHE_HOME || path.join(os.homedir(), ".cache"), appName);
+  if (platform === "darwin")
+    return path.join(os.homedir(), "Library", "Caches", appName);
+  if (platform === "win32")
+    return path.join(
+      process.env.LOCALAPPDATA || path.join(os.homedir(), "AppData", "Local"),
+      appName,
+      "Cache",
+    );
+  return path.join(
+    process.env.XDG_CACHE_HOME || path.join(os.homedir(), ".cache"),
+    appName,
+  );
 }
 
 /**
@@ -105,7 +121,8 @@ export class AppStateStore<T extends Record<string, any>> {
     this.current = clone(initialData);
     this.autoSave = options.autoSave ?? true;
     this.historyLimit = Math.max(1, options.historyLimit ?? 10);
-    this.filePath = options.customPath ?? path.join(resolveConfigDir(appName), "state.json");
+    this.filePath =
+      options.customPath ?? path.join(resolveConfigDir(appName), "state.json");
   }
 
   /** Current state (live reference — mutate only through `update`/`patch`). */
@@ -152,7 +169,9 @@ export class AppStateStore<T extends Record<string, any>> {
       await rename(tmp, this.filePath);
     } catch (err: any) {
       await rm(tmp, { force: true });
-      throw new Error(`[stateutils.AppStateStore] Failed to save ${this.filePath}: ${err.message}`);
+      throw new Error(
+        `[stateutils.AppStateStore] Failed to save ${this.filePath}: ${err.message}`,
+      );
     }
   }
 

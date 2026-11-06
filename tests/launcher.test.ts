@@ -71,7 +71,7 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
         a.displayName.toLowerCase() === "safari" ||
         a.displayName.toLowerCase() === "calculator" ||
         a.displayName.toLowerCase() === "finder" ||
-        a.displayName.toLowerCase() === "terminal"
+        a.displayName.toLowerCase() === "terminal",
     );
     expect(hasExternal).toBe(false);
   });
@@ -109,7 +109,11 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
     expect(typeof getAvailableLinuxTerminal).toBe("function");
 
     // Dry-run validation works identically on all platforms
-    const dryRes = launchInTerminal("echo 'Bun RAD Studio Test'", process.cwd(), { dryRun: true });
+    const dryRes = launchInTerminal(
+      "echo 'Bun RAD Studio Test'",
+      process.cwd(),
+      { dryRun: true },
+    );
     expect(dryRes.success).toBe(true);
     expect(dryRes.message).toContain("[Dry Run]");
 
@@ -131,11 +135,15 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
 
   it("launches CLI tool in terminal mode via launchApplication", async () => {
     if (process.platform === "darwin" && !process.env.CI) {
-      const res = await launchApplication("system_cli", "--version", { openTerminal: true });
+      const res = await launchApplication("system_cli", "--version", {
+        openTerminal: true,
+      });
       expect(res.success).toBe(true);
       expect(res.output).toContain("Launched in Terminal");
     } else if (process.platform === "linux") {
-      const res = await launchApplication("system_cli", "--version", { openTerminal: true });
+      const res = await launchApplication("system_cli", "--version", {
+        openTerminal: true,
+      });
       expect(res).toBeDefined();
     }
   });
@@ -157,7 +165,9 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
     expect(win).toBeDefined();
 
     // Trigger ListBox change with a specific tool (e.g. redis_studio or git_cli)
-    const listboxHandler = (win as any).eventHandlersMap?.get("lst_apps:onchange");
+    const listboxHandler = (win as any).eventHandlersMap?.get(
+      "lst_apps:onchange",
+    );
     expect(listboxHandler).toBeDefined();
 
     listboxHandler(win, "[Studio] Redis Studio (applications/redis_studio.ts)");
@@ -203,8 +213,13 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
     expect(favHandler).toBeDefined();
 
     // Select SQLite Studio
-    const listboxHandler = (win as any).eventHandlersMap?.get("lst_apps:onchange");
-    listboxHandler(win, "[App Studio] SQLite Studio Pro (./applications/sqlite_studio.ts)");
+    const listboxHandler = (win as any).eventHandlersMap?.get(
+      "lst_apps:onchange",
+    );
+    listboxHandler(
+      win,
+      "[App Studio] SQLite Studio Pro (./applications/sqlite_studio.ts)",
+    );
 
     // Table click handler keeps Top synchronized
     const tableHandler = (win as any).eventHandlersMap?.get("tbl_apps:onclick");
@@ -215,7 +230,9 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
     expect(win.getValue("lst_apps")).toContain("SQLite Studio Pro");
 
     // Quick filter to favorites
-    const quickFavsHandler = (win as any).eventHandlersMap?.get("btn_quick_favs:onclick");
+    const quickFavsHandler = (win as any).eventHandlersMap?.get(
+      "btn_quick_favs:onclick",
+    );
     expect(quickFavsHandler).toBeDefined();
     quickFavsHandler(win);
 
@@ -227,10 +244,14 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
     expect(win).toBeDefined();
 
     // Verify double-click handlers are registered in eventHandlersMap
-    const lstDblHandler = (win as any).eventHandlersMap?.get("lst_apps:ondoubleclick");
+    const lstDblHandler = (win as any).eventHandlersMap?.get(
+      "lst_apps:ondoubleclick",
+    );
     expect(lstDblHandler).toBeDefined();
 
-    const tblDblHandler = (win as any).eventHandlersMap?.get("tbl_apps:ondoubleclick");
+    const tblDblHandler = (win as any).eventHandlersMap?.get(
+      "tbl_apps:ondoubleclick",
+    );
     expect(tblDblHandler).toBeDefined();
 
     // Verify HTML generation includes ondblclick on the table container / script setup
@@ -259,10 +280,15 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
       expect(isPidAlive(res1.pid)).toBe(true);
 
       // Simulate closing the app out
-      try { process.kill(res1.pid, "SIGTERM"); } catch {}
+      try {
+        process.kill(res1.pid, "SIGTERM");
+      } catch {}
       let dead = false;
       for (let i = 0; i < 20; i++) {
-        if (!isPidAlive(res1.pid)) { dead = true; break; }
+        if (!isPidAlive(res1.pid)) {
+          dead = true;
+          break;
+        }
         await new Promise((r) => setTimeout(r, 50));
       }
       expect(dead).toBe(true);
@@ -278,7 +304,9 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
       expect(res2.success).toBe(true);
       expect(res2.pid).toBeDefined();
       if (res2.pid) {
-        try { process.kill(res2.pid, "SIGKILL"); } catch {}
+        try {
+          process.kill(res2.pid, "SIGKILL");
+        } catch {}
       }
     }
   });
@@ -307,8 +335,16 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
       expect(killRes.success).toBe(true);
       expect(killRes.message).toContain("Terminated");
     } finally {
-      if (res1.pid) { try { process.kill(res1.pid, "SIGKILL"); } catch {} }
-      if (res2.pid) { try { process.kill(res2.pid, "SIGKILL"); } catch {} }
+      if (res1.pid) {
+        try {
+          process.kill(res1.pid, "SIGKILL");
+        } catch {}
+      }
+      if (res2.pid) {
+        try {
+          process.kill(res2.pid, "SIGKILL");
+        } catch {}
+      }
     }
   });
 
@@ -334,8 +370,16 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
       const killRes = killApplication("rad_sqlite_studio");
       expect(killRes.success).toBe(true);
     } finally {
-      if (res1.pid) { try { process.kill(res1.pid, "SIGKILL"); } catch {} }
-      if (res2.pid) { try { process.kill(res2.pid, "SIGKILL"); } catch {} }
+      if (res1.pid) {
+        try {
+          process.kill(res1.pid, "SIGKILL");
+        } catch {}
+      }
+      if (res2.pid) {
+        try {
+          process.kill(res2.pid, "SIGKILL");
+        } catch {}
+      }
     }
   });
 
@@ -361,8 +405,16 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
       const killRes = killApplication("rad_system_studio");
       expect(killRes.success).toBe(true);
     } finally {
-      if (res1.pid) { try { process.kill(res1.pid, "SIGKILL"); } catch {} }
-      if (res2.pid) { try { process.kill(res2.pid, "SIGKILL"); } catch {} }
+      if (res1.pid) {
+        try {
+          process.kill(res1.pid, "SIGKILL");
+        } catch {}
+      }
+      if (res2.pid) {
+        try {
+          process.kill(res2.pid, "SIGKILL");
+        } catch {}
+      }
     }
   });
 
@@ -388,8 +440,16 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
       const killRes = killApplication("rad_redis_studio");
       expect(killRes.success).toBe(true);
     } finally {
-      if (res1.pid) { try { process.kill(res1.pid, "SIGKILL"); } catch {} }
-      if (res2.pid) { try { process.kill(res2.pid, "SIGKILL"); } catch {} }
+      if (res1.pid) {
+        try {
+          process.kill(res1.pid, "SIGKILL");
+        } catch {}
+      }
+      if (res2.pid) {
+        try {
+          process.kill(res2.pid, "SIGKILL");
+        } catch {}
+      }
     }
   });
 
@@ -415,8 +475,16 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
       const killRes = killApplication("rad_rip_studio");
       expect(killRes.success).toBe(true);
     } finally {
-      if (res1.pid) { try { process.kill(res1.pid, "SIGKILL"); } catch {} }
-      if (res2.pid) { try { process.kill(res2.pid, "SIGKILL"); } catch {} }
+      if (res1.pid) {
+        try {
+          process.kill(res1.pid, "SIGKILL");
+        } catch {}
+      }
+      if (res2.pid) {
+        try {
+          process.kill(res2.pid, "SIGKILL");
+        } catch {}
+      }
     }
   });
 
@@ -442,14 +510,24 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
       const killRes = killApplication("rad_fd_studio");
       expect(killRes.success).toBe(true);
     } finally {
-      if (res1.pid) { try { process.kill(res1.pid, "SIGKILL"); } catch {} }
-      if (res2.pid) { try { process.kill(res2.pid, "SIGKILL"); } catch {} }
+      if (res1.pid) {
+        try {
+          process.kill(res1.pid, "SIGKILL");
+        } catch {}
+      }
+      if (res2.pid) {
+        try {
+          process.kill(res2.pid, "SIGKILL");
+        } catch {}
+      }
     }
   });
 
   it("dynamically falls back to ephemeral ports when fd_studio and rip_studio servers are launched multiple times", async () => {
-    const { startFdStudioServer } = await import("../applications/fd_studio.ts");
-    const { startRipStudioServer } = await import("../applications/rip_studio.ts");
+    const { startFdStudioServer } =
+      await import("../applications/fd_studio.ts");
+    const { startRipStudioServer } =
+      await import("../applications/rip_studio.ts");
 
     const fd1 = startFdStudioServer({ port: 0 });
     const fd2 = startFdStudioServer({ port: fd1.port });
@@ -521,7 +599,9 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
     }
 
     // Filter to Games & Entertainment via quick button click
-    const gamesHandler = (win as any).eventHandlersMap?.get("btn_cat_games:onclick");
+    const gamesHandler = (win as any).eventHandlersMap?.get(
+      "btn_cat_games:onclick",
+    );
     expect(gamesHandler).toBeDefined();
     gamesHandler(win);
 
@@ -538,7 +618,9 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
     }
 
     // Test clearing category filter via btn_cat_all
-    const allHandler = (win as any).eventHandlersMap?.get("btn_cat_all:onclick");
+    const allHandler = (win as any).eventHandlersMap?.get(
+      "btn_cat_all:onclick",
+    );
     expect(allHandler).toBeDefined();
     allHandler(win);
 
@@ -555,13 +637,17 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
     const win = createLauncherStudio({ fullscreen: false });
 
     // 1. Switch to Games category first to create potential scope conflict
-    const gamesHandler = (win as any).eventHandlersMap?.get("btn_cat_games:onclick");
+    const gamesHandler = (win as any).eventHandlersMap?.get(
+      "btn_cat_games:onclick",
+    );
     expect(gamesHandler).toBeDefined();
     gamesHandler(win);
     expect(win.getValue("dd_app_category")).toContain("Games & Entertainment");
 
     // 2. Click "Filter to Favorites" (btn_quick_favs_filter)
-    const favFilterHandler = (win as any).eventHandlersMap?.get("btn_quick_favs_filter:onclick");
+    const favFilterHandler = (win as any).eventHandlersMap?.get(
+      "btn_quick_favs_filter:onclick",
+    );
     expect(favFilterHandler).toBeDefined();
     favFilterHandler(win);
 
@@ -577,14 +663,18 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
     }
 
     // 3. Test btn_quick_favs button as well
-    const favsOnlyHandler = (win as any).eventHandlersMap?.get("btn_quick_favs:onclick");
+    const favsOnlyHandler = (win as any).eventHandlersMap?.get(
+      "btn_quick_favs:onclick",
+    );
     expect(favsOnlyHandler).toBeDefined();
     favsOnlyHandler(win);
     expect(win.getValue("dd_category")).toBe("⭐ Pinned Favorites");
 
     try {
       // 4. Test Launch Top Favorite (btn_quick_launch_fav1)
-      const topFavHandler = (win as any).eventHandlersMap?.get("btn_quick_launch_fav1:onclick");
+      const topFavHandler = (win as any).eventHandlersMap?.get(
+        "btn_quick_launch_fav1:onclick",
+      );
       expect(topFavHandler).toBeDefined();
       await topFavHandler(win);
 
@@ -595,7 +685,9 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
       expect(outputText).toContain("[Desktop GUI Application Launched]");
 
       // 5. Test Toggle Favorite (btn_fav)
-      const toggleHandler = (win as any).eventHandlersMap?.get("btn_fav:onclick");
+      const toggleHandler = (win as any).eventHandlersMap?.get(
+        "btn_fav:onclick",
+      );
       expect(toggleHandler).toBeDefined();
       toggleHandler(win);
       // Toggling once removes favorite from selected tool
@@ -663,7 +755,8 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
     expect(handlers).toBeDefined();
 
     // Verify onEnter handlers are registered
-    const enterHandler = handlers.get("lst_apps:onenter") || handlers.get("lst_apps:enter");
+    const enterHandler =
+      handlers.get("lst_apps:onenter") || handlers.get("lst_apps:enter");
     expect(enterHandler).toBeDefined();
     expect(typeof enterHandler).toBe("function");
 
@@ -684,14 +777,42 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
     expect(handlers).toBeDefined();
 
     const cliAndGuiPairs = [
-      { cli: "btn_quick_sys_cli", gui: "btn_quick_system", label: "System Information" },
+      {
+        cli: "btn_quick_sys_cli",
+        gui: "btn_quick_system",
+        label: "System Information",
+      },
       { cli: "btn_quick_db_cli", gui: "btn_quick_db", label: "Database" },
-      { cli: "btn_quick_fd_cli", gui: "btn_quick_fd", label: "Fd File Discovery" },
-      { cli: "btn_quick_git_cli", gui: "btn_quick_git", label: "Git Version Control" },
-      { cli: "btn_quick_tokei_cli", gui: "btn_quick_tokei", label: "Tokei Code Stats" },
-      { cli: "btn_quick_gdu_cli", gui: "btn_quick_gdu", label: "GDU Disk Usage" },
-      { cli: "btn_quick_net_cli", gui: "btn_quick_network", label: "Network Diagnostics" },
-      { cli: "btn_quick_crypto_cli", gui: "btn_quick_crypto", label: "Cryptography & Hashing" },
+      {
+        cli: "btn_quick_fd_cli",
+        gui: "btn_quick_fd",
+        label: "Fd File Discovery",
+      },
+      {
+        cli: "btn_quick_git_cli",
+        gui: "btn_quick_git",
+        label: "Git Version Control",
+      },
+      {
+        cli: "btn_quick_tokei_cli",
+        gui: "btn_quick_tokei",
+        label: "Tokei Code Stats",
+      },
+      {
+        cli: "btn_quick_gdu_cli",
+        gui: "btn_quick_gdu",
+        label: "GDU Disk Usage",
+      },
+      {
+        cli: "btn_quick_net_cli",
+        gui: "btn_quick_network",
+        label: "Network Diagnostics",
+      },
+      {
+        cli: "btn_quick_crypto_cli",
+        gui: "btn_quick_crypto",
+        label: "Cryptography & Hashing",
+      },
     ];
 
     for (const pair of cliAndGuiPairs) {
@@ -704,6 +825,3 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
     }
   });
 });
-
-
-

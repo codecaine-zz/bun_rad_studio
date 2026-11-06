@@ -1,7 +1,7 @@
 import { injectGameMasterFx } from "../src/shared/gameMasterFx";
 /**
  * ⚡ Codecaine CyberChomp Arcade - Neon Remaster Studio
- * 
+ *
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
  * - Production-level Codecaine CyberChomp arcade remaster
@@ -78,7 +78,9 @@ export function generatePacmanStudioHtml(): string {
   const assetsDir = getPacmanAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Codecaine CyberChomp Arcade</h1>";
+  let html = existsSync(indexPath)
+    ? readFileSync(indexPath, "utf8")
+    : "<h1>Codecaine CyberChomp Arcade</h1>";
 
   const desktopHooks = `
   <script>
@@ -115,7 +117,13 @@ ${getWindowShortcutsScript()}
  */
 export function startPacmanStudioServer(options: PacmanServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "pacman_studio", name: "Codecaine CyberChomp Arcade - Neon Remaster", version: "1.0.0", assetsDir: getPacmanAssetsDir(), generateHtml: generatePacmanStudioHtml },
+    {
+      app: "pacman_studio",
+      name: "Codecaine CyberChomp Arcade - Neon Remaster",
+      version: "1.0.0",
+      assetsDir: getPacmanAssetsDir(),
+      generateHtml: generatePacmanStudioHtml,
+    },
     options,
   );
 }
@@ -123,7 +131,9 @@ export function startPacmanStudioServer(options: PacmanServerOptions = {}) {
 /**
  * Creates the complete native desktop instance of Codecaine CyberChomp.
  */
-export function createPacmanStudio(options: PacmanStudioOptions = {}): PacmanStudioInstance {
+export function createPacmanStudio(
+  options: PacmanStudioOptions = {},
+): PacmanStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1200);
@@ -155,7 +165,8 @@ export function createPacmanStudio(options: PacmanStudioOptions = {}): PacmanStu
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -175,11 +186,15 @@ export function createPacmanStudio(options: PacmanStudioOptions = {}): PacmanStu
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -189,16 +204,24 @@ export function createPacmanStudio(options: PacmanStudioOptions = {}): PacmanStu
         });
 
         webview.setHTML(html);
-        console.log(`⚡ Desktop window open (Fullscreen: ${fullscreen ? 'Enabled' : 'Disabled'}).`);
+        console.log(
+          `⚡ Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`,
+        );
 
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -214,10 +237,13 @@ if (process.argv.includes("--server")) {
   const port = parseInt(process.env.PORT || "0", 10);
   const srv = startPacmanStudioServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`⚡ Cyberpunk Pac-Man Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `⚡ Cyberpunk Pac-Man Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
+  const fullscreen =
+    !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
   const app = createPacmanStudio({ fullscreen });
   await app.run();
   process.exit(0);

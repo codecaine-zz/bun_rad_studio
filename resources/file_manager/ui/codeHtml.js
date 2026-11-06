@@ -2,8 +2,61 @@
 // inline tags (a, b, span ...) stay together on one line. Scripts and styles are formatted with the helpers given.
 // It never changes attribute text, and <pre> and <textarea> are left exactly as written.
 
-const VOID = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
-const INLINE = new Set(["a", "abbr", "b", "bdi", "bdo", "big", "cite", "code", "data", "del", "dfn", "em", "font", "i", "img", "input", "ins", "kbd", "label", "mark", "q", "s", "samp", "small", "span", "strike", "strong", "sub", "sup", "time", "tt", "u", "var", "br", "wbr", "button", "select"]);
+const VOID = new Set([
+  "area",
+  "base",
+  "br",
+  "col",
+  "embed",
+  "hr",
+  "img",
+  "input",
+  "link",
+  "meta",
+  "param",
+  "source",
+  "track",
+  "wbr",
+]);
+const INLINE = new Set([
+  "a",
+  "abbr",
+  "b",
+  "bdi",
+  "bdo",
+  "big",
+  "cite",
+  "code",
+  "data",
+  "del",
+  "dfn",
+  "em",
+  "font",
+  "i",
+  "img",
+  "input",
+  "ins",
+  "kbd",
+  "label",
+  "mark",
+  "q",
+  "s",
+  "samp",
+  "small",
+  "span",
+  "strike",
+  "strong",
+  "sub",
+  "sup",
+  "time",
+  "tt",
+  "u",
+  "var",
+  "br",
+  "wbr",
+  "button",
+  "select",
+]);
 const RAW = new Set(["script", "style", "pre", "textarea"]);
 const MAX_DEPTH = 300;
 
@@ -30,17 +83,26 @@ function lex(text) {
       let quote = "";
       for (; j < n; j++) {
         const c = text[j];
-        if (quote) { if (c === quote) quote = ""; } else if (c === '"' || c === "'") quote = c;
+        if (quote) {
+          if (c === quote) quote = "";
+        } else if (c === '"' || c === "'") quote = c;
         else if (c === ">") break;
       }
       const raw = text.slice(i, Math.min(n, j + 1));
       const closing = raw[1] === "/";
       const name = /^<\/?([\w:.-]+)/.exec(raw)?.[1]?.toLowerCase() ?? "";
       i = Math.min(n, j + 1);
-      if (closing) nodes.push({ t: "close", raw: raw.replace(/\s+/g, " "), name });
+      if (closing)
+        nodes.push({ t: "close", raw: raw.replace(/\s+/g, " "), name });
       else {
         const selfClosing = raw.endsWith("/>") || VOID.has(name);
-        nodes.push({ t: "open", raw: raw.replace(/\s*\n\s*/g, " "), name, selfClosing, children: [] });
+        nodes.push({
+          t: "open",
+          raw: raw.replace(/\s*\n\s*/g, " "),
+          name,
+          selfClosing,
+          children: [],
+        });
         if (!selfClosing && RAW.has(name)) {
           const close = text.toLowerCase().indexOf(`</${name}`, i);
           const end = close < 0 ? n : close;
@@ -68,7 +130,10 @@ function build(nodes) {
     } else if (node.t === "close") {
       let k = stack.length - 1;
       while (k > 0 && stack[k].name !== node.name) k--;
-      if (k > 0) { stack[k].closeRaw = node.raw; stack.length = k; } else top().children.push({ t: "stray", raw: node.raw });
+      if (k > 0) {
+        stack[k].closeRaw = node.raw;
+        stack.length = k;
+      } else top().children.push({ t: "stray", raw: node.raw });
     } else top().children.push(node);
   }
   return root;
@@ -76,14 +141,22 @@ function build(nodes) {
 
 const squash = (s) => s.replace(/\s+/g, " ");
 
-const isInlineNode = (node) => node.t === "text" || node.t === "stray" || (node.t === "open" && INLINE.has(node.name) && !RAW.has(node.name) && node.children.every(isInlineNode));
+const isInlineNode = (node) =>
+  node.t === "text" ||
+  node.t === "stray" ||
+  (node.t === "open" &&
+    INLINE.has(node.name) &&
+    !RAW.has(node.name) &&
+    node.children.every(isInlineNode));
 
 function inlineText(node) {
   if (node.t === "text") return squash(node.raw);
   if (node.t === "stray") return node.raw;
   if (node.t === "raw") return node.raw;
   const inner = node.children.map(inlineText).join("");
-  return node.selfClosing ? node.raw : `${node.raw}${inner}${node.closeRaw ?? ""}`;
+  return node.selfClosing
+    ? node.raw
+    : `${node.raw}${inner}${node.closeRaw ?? ""}`;
 }
 
 /**
@@ -104,7 +177,12 @@ export function formatHtml(text, unit, formatCss, formatJs) {
       run = [];
     };
     for (const child of children) {
-      if (child.t === "text" || child.t === "stray" || (child.t === "open" && isInlineNode(child))) run.push(child);
+      if (
+        child.t === "text" ||
+        child.t === "stray" ||
+        (child.t === "open" && isInlineNode(child))
+      )
+        run.push(child);
       else {
         flush();
         emit(child, depth);
@@ -114,21 +192,36 @@ export function formatHtml(text, unit, formatCss, formatJs) {
   }
 
   function emit(node, depth) {
-    if (depth > MAX_DEPTH) { tooDeep = true; return; }
-    if (node.t === "comment" || node.t === "decl") return void lines.push(pad(depth) + node.raw.trim());
-    if (node.t === "text") { const s = squash(node.raw).trim(); if (s) lines.push(pad(depth) + s); return; }
+    if (depth > MAX_DEPTH) {
+      tooDeep = true;
+      return;
+    }
+    if (node.t === "comment" || node.t === "decl")
+      return void lines.push(pad(depth) + node.raw.trim());
+    if (node.t === "text") {
+      const s = squash(node.raw).trim();
+      if (s) lines.push(pad(depth) + s);
+      return;
+    }
     if (node.t === "stray") return void lines.push(pad(depth) + node.raw);
     if (node.t !== "open") return;
     if (node.selfClosing) return void lines.push(pad(depth) + node.raw);
     const [first] = node.children;
     if (first?.t === "raw") {
-      if (node.name === "pre" || node.name === "textarea") return void lines.push(pad(depth) + node.raw + first.raw + (node.closeRaw ?? ""));
+      if (node.name === "pre" || node.name === "textarea")
+        return void lines.push(
+          pad(depth) + node.raw + first.raw + (node.closeRaw ?? ""),
+        );
       const body = first.raw.trim();
       lines.push(pad(depth) + node.raw);
       if (body) {
         const result = (node.name === "style" ? formatCss : formatJs)(body);
-        const tidy = typeof result?.text === "string" ? result.text.replace(/\n+$/, "") : body;
-        for (const l of tidy.split("\n")) lines.push(l.trim() ? pad(depth + 1) + l : "");
+        const tidy =
+          typeof result?.text === "string"
+            ? result.text.replace(/\n+$/, "")
+            : body;
+        for (const l of tidy.split("\n"))
+          lines.push(l.trim() ? pad(depth + 1) + l : "");
       }
       lines.push(pad(depth) + (node.closeRaw ?? `</${node.name}>`));
       return;
@@ -136,7 +229,8 @@ export function formatHtml(text, unit, formatCss, formatJs) {
     if (node.children.every(isInlineNode)) {
       const inner = node.children.map(inlineText).join("").trim();
       const one = `${node.raw}${inner}${node.closeRaw ?? ""}`;
-      if (one.length + depth * unit.length <= 110 && !inner.includes("\n")) return void lines.push(pad(depth) + one);
+      if (one.length + depth * unit.length <= 110 && !inner.includes("\n"))
+        return void lines.push(pad(depth) + one);
     }
     lines.push(pad(depth) + node.raw);
     emitChildren(node.children, depth + 1);
@@ -144,6 +238,9 @@ export function formatHtml(text, unit, formatCss, formatJs) {
   }
 
   emitChildren(root.children, 0);
-  if (tooDeep) return { error: { message: "This document is nested too deeply to tidy up." } };
+  if (tooDeep)
+    return {
+      error: { message: "This document is nested too deeply to tidy up." },
+    };
   return { text: lines.join("\n") + (lines.length ? "\n" : "") };
 }

@@ -131,7 +131,9 @@ export function startArtilleryServer(options: ArtilleryServerOptions = {}) {
   );
 }
 
-export function createArtilleryStudio(options: ArtilleryStudioOptions = {}): ArtilleryStudioInstance {
+export function createArtilleryStudio(
+  options: ArtilleryStudioOptions = {},
+): ArtilleryStudioInstance {
   const fullscreen = options.fullscreen ?? false;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1140);
@@ -163,7 +165,8 @@ export function createArtilleryStudio(options: ArtilleryStudioOptions = {}): Art
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -183,11 +186,15 @@ export function createArtilleryStudio(options: ArtilleryStudioOptions = {}): Art
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -198,13 +205,19 @@ export function createArtilleryStudio(options: ArtilleryStudioOptions = {}): Art
 
         webview.setHTML(html);
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -227,10 +240,13 @@ if (process.argv.includes("--server")) {
   const port = parseInt(process.env.PORT || "0", 10);
   const srv = startArtilleryServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`💥 Codecaine CyberArtillery: Scorched Skyline Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `💥 Codecaine CyberArtillery: Scorched Skyline Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = process.argv.includes("--fullscreen") || process.argv.includes("-f");
+  const fullscreen =
+    process.argv.includes("--fullscreen") || process.argv.includes("-f");
   const app = createArtilleryStudio({ fullscreen });
   await app.run();
   process.exit(0);

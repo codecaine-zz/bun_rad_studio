@@ -35,9 +35,15 @@ win.run();
 /** Removes active content (scripts, inline handlers, javascript: URLs) from rendered HTML. */
 function sanitizeHtml(html: string): string {
   return html
-    .replace(/<\/?(script|iframe|object|embed|style|link|meta|base|form)\b[^>]*>/gi, "")
+    .replace(
+      /<\/?(script|iframe|object|embed|style|link|meta|base|form)\b[^>]*>/gi,
+      "",
+    )
     .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
-    .replace(/(href|src)\s*=\s*("|')\s*(javascript|data|vbscript):[^"']*\2/gi, '$1="#"');
+    .replace(
+      /(href|src)\s*=\s*("|')\s*(javascript|data|vbscript):[^"']*\2/gi,
+      '$1="#"',
+    );
 }
 
 const MD_ALERTS: Record<string, [string, string]> = {
@@ -58,35 +64,69 @@ function simpleMarkdownToHtml(md: string): string {
     (_m, kind: string, text: string) => {
       const [fg, bg] = MD_ALERTS[kind.toUpperCase()]!;
       return `<div style="background:${bg};border-left:4px solid ${fg};padding:10px 14px;border-radius:6px;margin:10px 0;color:#e2e8f0;font-size:13px;"><strong style="color:${fg};">${kind.toUpperCase()}:</strong> ${text}</div>`;
-    }
+    },
   );
 
   const th = `border:1px solid rgba(255,255,255,0.15);padding:6px 10px;font-size:12px;text-align:left;`;
   html = html
-    .replace(/<h1>/g, '<h1 style="color:#f8fafc;margin:16px 0 10px 0;font-size:24px;">')
-    .replace(/<h2>/g, '<h2 style="color:#0284c7;margin:16px 0 8px 0;font-size:20px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:4px;">')
-    .replace(/<h([3-6])>/g, '<h$1 style="color:#38bdf8;margin:12px 0 6px 0;font-size:16px;">')
+    .replace(
+      /<h1>/g,
+      '<h1 style="color:#f8fafc;margin:16px 0 10px 0;font-size:24px;">',
+    )
+    .replace(
+      /<h2>/g,
+      '<h2 style="color:#0284c7;margin:16px 0 8px 0;font-size:20px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:4px;">',
+    )
+    .replace(
+      /<h([3-6])>/g,
+      '<h$1 style="color:#38bdf8;margin:12px 0 6px 0;font-size:16px;">',
+    )
     .replace(/<strong>/g, '<strong style="color:#fff;">')
-    .replace(/<table>/g, '<table style="width:100%;border-collapse:collapse;margin:12px 0;border:1px solid rgba(255,255,255,0.15);">')
-    .replace(/<th(\s[^>]*)?>/g, `<th$1 style="${th}background:rgba(255,255,255,0.06);color:#38bdf8;">`)
+    .replace(
+      /<table>/g,
+      '<table style="width:100%;border-collapse:collapse;margin:12px 0;border:1px solid rgba(255,255,255,0.15);">',
+    )
+    .replace(
+      /<th(\s[^>]*)?>/g,
+      `<th$1 style="${th}background:rgba(255,255,255,0.06);color:#38bdf8;">`,
+    )
     .replace(/<td(\s[^>]*)?>/g, `<td$1 style="${th}">`)
-    .replace(/<pre>/g, '<pre style="background:#0f172a;color:#38bdf8;padding:12px;border-radius:8px;overflow-x:auto;font-family:monospace;font-size:12px;margin:12px 0;">')
-    .replace(/<code>/g, '<code style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;color:#38bdf8;font-family:monospace;">')
-    .replace(/<blockquote>/g, '<blockquote style="border-left:3px solid #64748b;margin:8px 0;padding-left:12px;color:#94a3b8;font-style:italic;">')
+    .replace(
+      /<pre>/g,
+      '<pre style="background:#0f172a;color:#38bdf8;padding:12px;border-radius:8px;overflow-x:auto;font-family:monospace;font-size:12px;margin:12px 0;">',
+    )
+    .replace(
+      /<code>/g,
+      '<code style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;color:#38bdf8;font-family:monospace;">',
+    )
+    .replace(
+      /<blockquote>/g,
+      '<blockquote style="border-left:3px solid #64748b;margin:8px 0;padding-left:12px;color:#94a3b8;font-style:italic;">',
+    )
     .replace(/<a /g, '<a style="color:#38bdf8;" ')
-    .replace(/<hr\s*\/?>/g, '<hr style="border:none;border-top:1px solid rgba(255,255,255,0.15);margin:16px 0;">')
+    .replace(
+      /<hr\s*\/?>/g,
+      '<hr style="border:none;border-top:1px solid rgba(255,255,255,0.15);margin:16px 0;">',
+    )
     .replace(/<img /g, '<img style="max-width:100%;" ');
 
   return `<div style="font-family:system-ui,-apple-system,sans-serif;color:#cbd5e1;line-height:1.6;font-size:14px;padding:8px;">${html}</div>`;
 }
 
-export function createMarkdownStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
-  const win = newSimpleWindow("Markdown & Documentation Studio Pro -- Real-Time Preview Workbench", 1160, 980, {
-    appId: "markdown_studio",
-    theme: options.theme || getSavedTheme() || "midnight",
-    autoSaveState: true,
-    fullscreen: options.fullscreen ?? true,
-  });
+export function createMarkdownStudio(
+  options: { fullscreen?: boolean; theme?: string } = {},
+): SimpleWindow {
+  const win = newSimpleWindow(
+    "Markdown & Documentation Studio Pro -- Real-Time Preview Workbench",
+    1160,
+    980,
+    {
+      appId: "markdown_studio",
+      theme: options.theme || getSavedTheme() || "midnight",
+      autoSaveState: true,
+      fullscreen: options.fullscreen ?? true,
+    },
+  );
 
   // Top Bar
   win.beginRow();
@@ -96,7 +136,9 @@ export function createMarkdownStudio(options: { fullscreen?: boolean; theme?: st
   win.addButton("btn_save_state", "💾 Save State");
   win.addButton("btn_center", "Center Window");
   win.endRow();
-  win.addCaption("Enterprise Technical Documentation, Real-Time HTML Preview & Article Workbench");
+  win.addCaption(
+    "Enterprise Technical Documentation, Real-Time HTML Preview & Article Workbench",
+  );
 
   // Metrics Card
   win.beginCard("Document Telemetry & Statistics");
@@ -127,7 +169,12 @@ export function createMarkdownStudio(options: { fullscreen?: boolean; theme?: st
 
   // Live HTML Preview
   win.beginGroupBox("Real-Time Rendered Document Preview");
-  win.addHtmlView(simpleMarkdownToHtml(DEFAULT_MARKDOWN), 1088, 180, { id: "txt_md_preview" }).id("txt_md_preview").height(180);
+  win
+    .addHtmlView(simpleMarkdownToHtml(DEFAULT_MARKDOWN), 1088, 180, {
+      id: "txt_md_preview",
+    })
+    .id("txt_md_preview")
+    .height(180);
   win.endGroupBox();
 
   // Telemetry Console
@@ -137,7 +184,10 @@ export function createMarkdownStudio(options: { fullscreen?: boolean; theme?: st
 
   // Status Bar
   win.beginRow();
-  win.addLabel("lbl_status", "Status: Ready  |  Syntax: Valid Markdown  |  Zero Homebrew");
+  win.addLabel(
+    "lbl_status",
+    "Status: Ready  |  Syntax: Valid Markdown  |  Zero Homebrew",
+  );
   win.endRow();
 
   // Handlers
@@ -165,8 +215,15 @@ export function createMarkdownStudio(options: { fullscreen?: boolean; theme?: st
     win.setText("lbl_lines", `Lines: ${lines}`);
     win.setText("lbl_read_time", `Reading Time: ~${readMin} min`);
 
-    win.appendConsole("md_console", `[Markdown Render] Parsed ${words} words, ${lines} lines in ${elapsed}ms\n`, 0);
-    win.setText("lbl_status", `Words: ${words}  |  Rendered in ${elapsed}ms  |  Status: OK`);
+    win.appendConsole(
+      "md_console",
+      `[Markdown Render] Parsed ${words} words, ${lines} lines in ${elapsed}ms\n`,
+      0,
+    );
+    win.setText(
+      "lbl_status",
+      `Words: ${words}  |  Rendered in ${elapsed}ms  |  Status: OK`,
+    );
     win.setStatus(`Rendered in ${elapsed}ms`);
   };
 
@@ -229,7 +286,11 @@ export function createMarkdownStudio(options: { fullscreen?: boolean; theme?: st
     const outPath = resolve(process.cwd(), "document_export.html");
     try {
       writeFileSync(outPath, fullHtml, "utf8");
-      win.appendConsole("md_console", `[Export HTML] Document successfully exported to ${outPath}\n`, 2);
+      win.appendConsole(
+        "md_console",
+        `[Export HTML] Document successfully exported to ${outPath}\n`,
+        2,
+      );
       win.toast(`Exported HTML: ${basename(outPath)}`);
     } catch (e: any) {
       win.appendConsole("md_console", `[Export Error] ${e.message}\n`, 3);

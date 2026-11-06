@@ -13,7 +13,11 @@ import { moveToTrash } from "./fmTrash";
 import { FmError } from "./fmPaths";
 
 /** Concurrency and retention limits for background vault encrypt/decrypt tasks. */
-export const VAULT_LIMITS = { maxItems: 200, maxRunningTasks: 2, maxKeptTasks: 20 } as const;
+export const VAULT_LIMITS = {
+  maxItems: 200,
+  maxRunningTasks: 2,
+  maxKeptTasks: 20,
+} as const;
 
 /** Processing lifecycle state of a single item in a vault encrypt or decrypt task. */
 export type ItemState = "waiting" | "working" | "done" | "error" | "cancelled";
@@ -41,7 +45,14 @@ export interface VaultTask {
   id: string;
   kind: "encrypt" | "decrypt";
   state: "running" | "done" | "cancelled" | "failed";
-  phase: "scanning" | "deriving" | "encrypting" | "verifying" | "decrypting" | "finishing" | "idle";
+  phase:
+    | "scanning"
+    | "deriving"
+    | "encrypting"
+    | "verifying"
+    | "decrypting"
+    | "finishing"
+    | "idle";
   current: string | null;
   currentIndex: number;
   bytesDone: number;
@@ -82,21 +93,32 @@ export function vaultState(ctx: FmContext): VaultState {
 }
 
 /** For tests only (never reachable from the API): cheaper key derivation and a hook that runs after a file is written. */
-export function setVaultInternal(ctx: FmContext, internal: VaultInternal): void {
+export function setVaultInternal(
+  ctx: FmContext,
+  internal: VaultInternal,
+): void {
   vaultState(ctx).internal = internal;
 }
 
 /** Looks up a vault task by ID in `ctx`, throwing `NOT_FOUND` if the task does not exist. */
 export function findTask(ctx: FmContext, id: unknown): VaultTask {
-  const task = typeof id === "string" ? vaultState(ctx).tasks.get(id) : undefined;
+  const task =
+    typeof id === "string" ? vaultState(ctx).tasks.get(id) : undefined;
   if (!task) throw new FmError("NOT_FOUND", "That task no longer exists.");
   return task;
 }
 
 /** Builds a serializable status snapshot of `task`, or a compact `{ unchanged: true }` delta if `since` matches `task.version`. */
 export function snapshot(task: VaultTask, since?: number) {
-  const base = { id: task.id, kind: task.kind, state: task.state, phase: task.phase, version: task.version };
-  if (since !== undefined && since === task.version) return { ...base, unchanged: true as const };
+  const base = {
+    id: task.id,
+    kind: task.kind,
+    state: task.state,
+    phase: task.phase,
+    version: task.version,
+  };
+  if (since !== undefined && since === task.version)
+    return { ...base, unchanged: true as const };
   return {
     ...base,
     current: task.current,
@@ -114,10 +136,21 @@ function touch(task: VaultTask): void {
   task.version++;
 }
 
-function register(ctx: FmContext, kind: "encrypt" | "decrypt", paths: string[], run: (task: VaultTask) => Promise<void>): VaultTask {
+function register(
+  ctx: FmContext,
+  kind: "encrypt" | "decrypt",
+  paths: string[],
+  run: (task: VaultTask) => Promise<void>,
+): VaultTask {
   const state = vaultState(ctx);
-  const running = [...state.tasks.values()].filter((t) => t.state === "running").length;
-  if (running >= VAULT_LIMITS.maxRunningTasks) throw new FmError("BUSY", `${VAULT_LIMITS.maxRunningTasks} lock or unlock jobs are already running. Wait for one to finish, then try again.`);
+  const running = [...state.tasks.values()].filter(
+    (t) => t.state === "running",
+  ).length;
+  if (running >= VAULT_LIMITS.maxRunningTasks)
+    throw new FmError(
+      "BUSY",
+      `${VAULT_LIMITS.maxRunningTasks} lock or unlock jobs are already running. Wait for one to finish, then try again.`,
+    );
   const p = pathApi(ctx);
   const task: VaultTask = {
     id: `v${++state.counter}`,
@@ -128,7 +161,12 @@ function register(ctx: FmContext, kind: "encrypt" | "decrypt", paths: string[], 
     currentIndex: 0,
     bytesDone: 0,
     bytesTotal: 0,
-    items: paths.map((path) => ({ path, name: p.basename(path), state: "waiting", warnings: [] })),
+    items: paths.map((path) => ({
+      path,
+      name: p.basename(path),
+      state: "waiting",
+      warnings: [],
+    })),
     startedAt: Date.now(),
     version: 0,
     controller: new AbortController(),
@@ -145,11 +183,21 @@ function register(ctx: FmContext, kind: "encrypt" | "decrypt", paths: string[], 
       task.current = null;
       if (task.state === "running") {
         const results = task.items;
-        task.state = task.controller.signal.aborted ? "cancelled" : results.length > 0 && results.every((i) => i.state === "error") ? "failed" : "done";
+        task.state = task.controller.signal.aborted
+          ? "cancelled"
+          : results.length > 0 && results.every((i) => i.state === "error")
+            ? "failed"
+            : "done";
       }
       touch(task);
-      const finished = [...state.tasks.values()].filter((t) => t.state !== "running");
-      for (const old of finished.slice(0, Math.max(0, finished.length - VAULT_LIMITS.maxKeptTasks))) state.tasks.delete(old.id);
+      const finished = [...state.tasks.values()].filter(
+        (t) => t.state !== "running",
+      );
+      for (const old of finished.slice(
+        0,
+        Math.max(0, finished.length - VAULT_LIMITS.maxKeptTasks),
+      ))
+        state.tasks.delete(old.id);
     });
   return task;
 }
@@ -159,7 +207,8 @@ async function trashOriginal(ctx: FmContext, item: VaultItem): Promise<void> {
   try {
     const [res] = await moveToTrash(ctx, [item.path]);
     if (res?.ok) item.trashed = true;
-    else item.trashMessage = `The result is safe, but the original couldn't be moved to the Recycle Bin: ${res?.message ?? "unknown reason"}`;
+    else
+      item.trashMessage = `The result is safe, but the original couldn't be moved to the Recycle Bin: ${res?.message ?? "unknown reason"}`;
   } catch (err) {
     item.trashMessage = `The result is safe, but the original couldn't be moved to the Recycle Bin: ${vaultErrorInfo(err).message}`;
   }
@@ -238,7 +287,16 @@ export function startEncrypt(ctx: FmContext, params: EncryptParams): VaultTask {
             touch(task);
           },
         });
-        Object.assign(item, { state: "done", output: result.output, outputName: result.outputName, kind: result.kind, entries: result.entries, plainBytes: result.plainBytes, cipherBytes: result.cipherBytes, warnings: result.warnings });
+        Object.assign(item, {
+          state: "done",
+          output: result.output,
+          outputName: result.outputName,
+          kind: result.kind,
+          entries: result.entries,
+          plainBytes: result.plainBytes,
+          cipherBytes: result.cipherBytes,
+          warnings: result.warnings,
+        });
         if (params.afterwards === "trash") await trashOriginal(ctx, item);
       } catch (err) {
         fail(item, err, "write the encrypted file");
@@ -295,7 +353,14 @@ export function startDecrypt(ctx: FmContext, params: DecryptParams): VaultTask {
             touch(task);
           },
         });
-        Object.assign(item, { state: "done", output: result.output, outputName: result.outputName, kind: result.kind, entries: result.entries, plainBytes: result.plainBytes });
+        Object.assign(item, {
+          state: "done",
+          output: result.output,
+          outputName: result.outputName,
+          kind: result.kind,
+          entries: result.entries,
+          plainBytes: result.plainBytes,
+        });
         if (params.afterwards === "trash") await trashOriginal(ctx, item);
       } catch (err) {
         fail(item, err, "read that file");

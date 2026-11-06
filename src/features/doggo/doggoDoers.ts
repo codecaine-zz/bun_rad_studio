@@ -11,7 +11,16 @@ import { renderTable, type ColumnDef } from "../../shared/table.ts";
  * List of all DNS record types recognized by positional argument parsing.
  */
 export const RECORD_TYPES: DnsRecordType[] = [
-  "A", "AAAA", "CNAME", "MX", "TXT", "NS", "SOA", "PTR", "CAA", "SRV"
+  "A",
+  "AAAA",
+  "CNAME",
+  "MX",
+  "TXT",
+  "NS",
+  "SOA",
+  "PTR",
+  "CAA",
+  "SRV",
 ];
 
 /**
@@ -49,21 +58,42 @@ export function isIpAddress(target: string): boolean {
 /**
  * Normalizes a raw `node:dns` resolver record item into a display string and optional TTL.
  */
-export function formatRecordData(type: DnsRecordType, item: any): { data: string; ttl?: number } {
+export function formatRecordData(
+  type: DnsRecordType,
+  item: any,
+): { data: string; ttl?: number } {
   if (typeof item === "string") return { data: item };
   if (Array.isArray(item)) return { data: `"${item.join(" ")}"` };
   if (item.address) return { data: item.address, ttl: item.ttl };
-  if (typeof item.exchange === "string") return { data: `${item.priority} ${item.exchange || "."}` };
+  if (typeof item.exchange === "string")
+    return { data: `${item.priority} ${item.exchange || "."}` };
   if (item.nsname) {
-    const parts = [item.nsname, item.hostmaster, item.serial, item.refresh, item.retry, item.expire, item.minttl].filter(Boolean);
+    const parts = [
+      item.nsname,
+      item.hostmaster,
+      item.serial,
+      item.refresh,
+      item.retry,
+      item.expire,
+      item.minttl,
+    ].filter(Boolean);
     return { data: parts.join(" ") };
   }
   if (item.critical !== undefined) {
-    const tag = item.issue ? "issue" : item.issuewild ? "issuewild" : item.iodef ? "iodef" : "contactemail";
+    const tag = item.issue
+      ? "issue"
+      : item.issuewild
+        ? "issuewild"
+        : item.iodef
+          ? "iodef"
+          : "contactemail";
     const val = item.issue ?? item.issuewild ?? item.iodef ?? "";
     return { data: `${item.critical ? "128" : "0"} ${tag} "${val}"` };
   }
-  if (item.name && item.port) return { data: `${item.priority} ${item.weight} ${item.port} ${item.name}` };
+  if (item.name && item.port)
+    return {
+      data: `${item.priority} ${item.weight} ${item.port} ${item.name}`,
+    };
   return { data: JSON.stringify(item) };
 }
 
@@ -74,10 +104,14 @@ export function formatRecordData(type: DnsRecordType, item: any): { data: string
 export async function performDnsLookup(
   domain: string,
   type: DnsRecordType,
-  nameserver?: string
+  nameserver?: string,
 ): Promise<DoggoResponse> {
   // Clean target domain: remove protocol, paths, whitespace
-  let cleanDomain = domain.trim().replace(/^https?:\/\//i, "").split(/[\/\s]/)[0] ?? domain;
+  let cleanDomain =
+    domain
+      .trim()
+      .replace(/^https?:\/\//i, "")
+      .split(/[\/\s]/)[0] ?? domain;
   if (!cleanDomain) cleanDomain = domain;
 
   const resolver = new Resolver();
@@ -85,20 +119,27 @@ export async function performDnsLookup(
     const cleanNs = nameserver.trim().replace(/^@/, "");
     if (cleanNs) resolver.setServers([cleanNs]);
   }
-  const activeServer = nameserver ? nameserver.trim().replace(/^@/, "") : resolver.getServers()[0] ?? "default";
+  const activeServer = nameserver
+    ? nameserver.trim().replace(/^@/, "")
+    : (resolver.getServers()[0] ?? "default");
 
   const start = performance.now();
   let rawRecords: any[] = [];
 
   const timeoutMs = 3500;
   const timeoutPromise = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error(`DNS resolution timed out after ${timeoutMs}ms`)), timeoutMs)
+    setTimeout(
+      () => reject(new Error(`DNS resolution timed out after ${timeoutMs}ms`)),
+      timeoutMs,
+    ),
   );
 
   try {
     const lookupPromise = (async () => {
-      if (type === "A") return await resolver.resolve4(cleanDomain, { ttl: true });
-      if (type === "AAAA") return await resolver.resolve6(cleanDomain, { ttl: true });
+      if (type === "A")
+        return await resolver.resolve4(cleanDomain, { ttl: true });
+      if (type === "AAAA")
+        return await resolver.resolve6(cleanDomain, { ttl: true });
       if (type === "CNAME") return await resolver.resolveCname(cleanDomain);
       if (type === "MX") return await resolver.resolveMx(cleanDomain);
       if (type === "TXT") return await resolver.resolveTxt(cleanDomain);
@@ -127,14 +168,30 @@ export async function performDnsLookup(
     return { name: `${cleanDomain}.`, type, class: "IN", ttl, data };
   });
 
-  return { domain: cleanDomain, queryType: type, answers, queryTimeMs, server: activeServer, protocol: "UDP" };
+  return {
+    domain: cleanDomain,
+    queryType: type,
+    answers,
+    queryTimeMs,
+    server: activeServer,
+    protocol: "UDP",
+  };
 }
 
 /**
  * Mapping of numeric IANA DNS RR type codes to their mnemonic string names for DoH JSON responses.
  */
 export const DNS_TYPE_MAP: Record<number, string> = {
-  1: "A", 2: "NS", 5: "CNAME", 6: "SOA", 12: "PTR", 15: "MX", 16: "TXT", 28: "AAAA", 33: "SRV", 257: "CAA"
+  1: "A",
+  2: "NS",
+  5: "CNAME",
+  6: "SOA",
+  12: "PTR",
+  15: "MX",
+  16: "TXT",
+  28: "AAAA",
+  33: "SRV",
+  257: "CAA",
 };
 
 /**
@@ -143,7 +200,7 @@ export const DNS_TYPE_MAP: Record<number, string> = {
 export async function performDohLookup(
   domain: string,
   type: string = "A",
-  dohUrl: string = "https://cloudflare-dns.com/dns-query"
+  dohUrl: string = "https://cloudflare-dns.com/dns-query",
 ): Promise<DoggoResponse> {
   const start = performance.now();
   const url = `${dohUrl}?name=${encodeURIComponent(domain)}&type=${encodeURIComponent(type)}`;
@@ -151,7 +208,8 @@ export async function performDohLookup(
     headers: { Accept: "application/dns-json" },
     signal: AbortSignal.timeout(5000),
   });
-  if (!res.ok) throw new Error(`[DoggoDoH] HTTP error ${res.status}: ${res.statusText}`);
+  if (!res.ok)
+    throw new Error(`[DoggoDoH] HTTP error ${res.status}: ${res.statusText}`);
   const json: any = await res.json();
   const queryTimeMs = Math.round(performance.now() - start);
   const answers: DnsAnswer[] = (json.Answer ?? []).map((ans: any) => ({
@@ -161,7 +219,14 @@ export async function performDohLookup(
     ttl: ans.TTL,
     data: ans.data,
   }));
-  return { domain, queryType: type, answers, queryTimeMs, server: dohUrl, protocol: "DoH" };
+  return {
+    domain,
+    queryType: type,
+    answers,
+    queryTimeMs,
+    server: dohUrl,
+    protocol: "DoH",
+  };
 }
 
 /**
@@ -171,28 +236,51 @@ export async function performAllLookup(
   domain: string,
   nameserver?: string,
   isDoh?: boolean,
-  dohUrl?: string
+  dohUrl?: string,
 ): Promise<DoggoResponse> {
   const types: DnsRecordType[] = ["A", "AAAA", "MX", "TXT", "NS"];
   const settled = await Promise.allSettled(
-    types.map((t) => (isDoh ? performDohLookup(domain, t, dohUrl) : performDnsLookup(domain, t, nameserver)))
+    types.map((t) =>
+      isDoh
+        ? performDohLookup(domain, t, dohUrl)
+        : performDnsLookup(domain, t, nameserver),
+    ),
   );
   const successful = settled
-    .filter((s): s is PromiseFulfilledResult<DoggoResponse> => s.status === "fulfilled")
+    .filter(
+      (s): s is PromiseFulfilledResult<DoggoResponse> =>
+        s.status === "fulfilled",
+    )
     .map((s) => s.value);
 
   const answers = successful.flatMap((l) => l.answers);
-  const queryTimeMs = successful.length > 0 ? Math.max(...successful.map((l) => l.queryTimeMs)) : 0;
-  const server = successful[0]?.server ?? (isDoh ? dohUrl : nameserver) ?? "default";
-  return { domain, queryType: "ALL", answers, queryTimeMs, server, protocol: isDoh ? "DoH" : "UDP" };
+  const queryTimeMs =
+    successful.length > 0
+      ? Math.max(...successful.map((l) => l.queryTimeMs))
+      : 0;
+  const server =
+    successful[0]?.server ?? (isDoh ? dohUrl : nameserver) ?? "default";
+  return {
+    domain,
+    queryType: "ALL",
+    answers,
+    queryTimeMs,
+    server,
+    protocol: isDoh ? "DoH" : "UDP",
+  };
 }
 
 /**
  * Formats a `DoggoResponse` as a colorized terminal table with an optional query-time footer.
  */
-export function formatDoggoTable(res: DoggoResponse, showTime: boolean = true): string {
+export function formatDoggoTable(
+  res: DoggoResponse,
+  showTime: boolean = true,
+): string {
   const proto = res.protocol ? ` (${res.protocol})` : "";
-  const footer = showTime ? `\n${colors.dim(`Query time: ${res.queryTimeMs}ms  Server: ${res.server}${proto}`)}` : "";
+  const footer = showTime
+    ? `\n${colors.dim(`Query time: ${res.queryTimeMs}ms  Server: ${res.server}${proto}`)}`
+    : "";
   if (res.answers.length === 0) {
     return `${colors.dim(`No ${res.queryType} records found for ${res.domain}.`)}${footer}`;
   }
@@ -201,8 +289,16 @@ export function formatDoggoTable(res: DoggoResponse, showTime: boolean = true): 
     { header: "NAME", align: "left", getValue: (a) => colors.bold(a.name) },
     { header: "TYPE", align: "left", getValue: (a) => colors.yellow(a.type) },
     { header: "CLASS", align: "left", getValue: (a) => colors.dim(a.class) },
-    { header: "TTL", align: "right", getValue: (a) => (a.ttl ? colors.dim(a.ttl.toString()) : "-") },
-    { header: "ADDRESS / DATA", align: "left", getValue: (a) => colors.cyan(a.data) },
+    {
+      header: "TTL",
+      align: "right",
+      getValue: (a) => (a.ttl ? colors.dim(a.ttl.toString()) : "-"),
+    },
+    {
+      header: "ADDRESS / DATA",
+      align: "left",
+      getValue: (a) => colors.cyan(a.data),
+    },
   ];
 
   const table = renderTable(columns, res.answers);
@@ -231,10 +327,14 @@ export function performDnsLookupSync(
   type: DnsRecordType | string = "A",
   nameserver?: string,
   isDoh: boolean = false,
-  dohUrl: string = "https://cloudflare-dns.com/dns-query"
+  dohUrl: string = "https://cloudflare-dns.com/dns-query",
 ): DoggoResponse {
   const start = performance.now();
-  let cleanDomain = domain.trim().replace(/^https?:\/\//i, "").split(/[\/\s]/)[0] ?? domain;
+  let cleanDomain =
+    domain
+      .trim()
+      .replace(/^https?:\/\//i, "")
+      .split(/[\/\s]/)[0] ?? domain;
   cleanDomain = cleanDomain.replace(/^-+/, "");
   if (!cleanDomain) cleanDomain = "localhost";
 
@@ -244,7 +344,18 @@ export function performDnsLookupSync(
   if (isDoh || !nameserver) {
     const url = `${dohUrl}?name=${encodeURIComponent(cleanDomain)}&type=${encodeURIComponent(type)}`;
     try {
-      const res = Bun.spawnSync(["curl", "-s", "--proto", "=https,http", "--max-time", "3", "-H", "Accept: application/dns-json", "--", url]);
+      const res = Bun.spawnSync([
+        "curl",
+        "-s",
+        "--proto",
+        "=https,http",
+        "--max-time",
+        "3",
+        "-H",
+        "Accept: application/dns-json",
+        "--",
+        url,
+      ]);
       if (res.exitCode === 0) {
         const json = JSON.parse(res.stdout.toString());
         serverUsed = dohUrl;
@@ -260,7 +371,15 @@ export function performDnsLookupSync(
   }
 
   if (answers.length === 0) {
-    const args = ["dig", "+noall", "+answer", "+time=2", "+tries=1", cleanDomain, String(type)];
+    const args = [
+      "dig",
+      "+noall",
+      "+answer",
+      "+time=2",
+      "+tries=1",
+      cleanDomain,
+      String(type),
+    ];
     if (nameserver) {
       const ns = nameserver.replace(/^@/, "");
       args.push(`@${ns}`);
@@ -301,12 +420,14 @@ export function performAllLookupSync(
   domain: string,
   nameserver?: string,
   isDoh?: boolean,
-  dohUrl?: string
+  dohUrl?: string,
 ): DoggoResponse {
   const types: DnsRecordType[] = ["A", "AAAA", "MX", "TXT", "NS"];
   const answers: DnsAnswer[] = [];
   let maxTime = 0;
-  let server = nameserver ? nameserver.replace(/^@/, "") : (dohUrl || "System Default");
+  let server = nameserver
+    ? nameserver.replace(/^@/, "")
+    : dohUrl || "System Default";
 
   for (const t of types) {
     const res = performDnsLookupSync(domain, t, nameserver, isDoh, dohUrl);

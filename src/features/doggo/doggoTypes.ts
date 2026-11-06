@@ -7,16 +7,7 @@
  * Supported DNS resource record types that `doggo` can query.
  */
 export type DnsRecordType =
-  | "A"
-  | "AAAA"
-  | "CNAME"
-  | "MX"
-  | "TXT"
-  | "NS"
-  | "SOA"
-  | "PTR"
-  | "CAA"
-  | "SRV";
+  "A" | "AAAA" | "CNAME" | "MX" | "TXT" | "NS" | "SOA" | "PTR" | "CAA" | "SRV";
 
 /**
  * Normalized representation of a single DNS resource record answer.

@@ -1,5 +1,9 @@
 import { describe, it, expect } from "bun:test";
-import { classifyStatement, needsConfirmation, maskLiterals } from "../../src/db/classify";
+import {
+  classifyStatement,
+  needsConfirmation,
+  maskLiterals,
+} from "../../src/db/classify";
 
 const kind = (sql: string) => classifyStatement("postgres", sql).kind;
 
@@ -8,7 +12,9 @@ describe("classifyStatement", () => {
     expect(kind("SELECT * FROM t")).toBe("read");
     expect(kind("  /* c */ select 1")).toBe("read");
     expect(kind("WITH x AS (SELECT 1) SELECT * FROM x")).toBe("read");
-    expect(kind("WITH x AS (DELETE FROM t RETURNING *) SELECT * FROM x")).toBe("write");
+    expect(kind("WITH x AS (DELETE FROM t RETURNING *) SELECT * FROM x")).toBe(
+      "write",
+    );
     expect(kind("INSERT INTO t VALUES (1)")).toBe("write");
     expect(kind("UPDATE t SET a = 1 WHERE id = 2")).toBe("write");
     expect(kind("DELETE FROM t WHERE id = 2")).toBe("write");

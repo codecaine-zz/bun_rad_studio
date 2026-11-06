@@ -178,4 +178,6 @@ const RAW = `
 `;
 
 /** Frozen 2048-word BIP-39 English word list used to generate random passphrases. */
-export const VAULT_WORDS: readonly string[] = Object.freeze(RAW.split(/\s+/).filter(Boolean));
+export const VAULT_WORDS: readonly string[] = Object.freeze(
+  RAW.split(/\s+/).filter(Boolean),
+);

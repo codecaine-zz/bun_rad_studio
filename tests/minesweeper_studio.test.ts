@@ -31,7 +31,11 @@ describe("⚡ Minesweeper Pro — Championship Deluxe Master Edition Suite", () 
   });
 
   it("3. Studio factory generates correct defaults and instance contracts", () => {
-    const app = createMinesweeperStudio({ fullscreen: false, width: 1000, height: 800 });
+    const app = createMinesweeperStudio({
+      fullscreen: false,
+      width: 1000,
+      height: 800,
+    });
     expect(app.title).toContain("Minesweeper Pro");
     expect(app.width).toBe(1000);
     expect(app.height).toBe(800);
@@ -59,7 +63,7 @@ describe("⚡ Minesweeper Pro — Championship Deluxe Master Edition Suite", () 
       // Health check endpoint
       const resHealth = await fetch(`${base}/api/health`);
       expect(resHealth.status).toBe(200);
-      const healthData = await resHealth.json() as any;
+      const healthData = (await resHealth.json()) as any;
       expect(healthData.status).toBe("ok");
       expect(healthData.app).toBe("minesweeper_studio");
       expect(healthData.name).toContain("Minesweeper Pro");
@@ -70,7 +74,10 @@ describe("⚡ Minesweeper Pro — Championship Deluxe Master Edition Suite", () 
 
   it("5. Launcher Studio automatically registers and surfaces Minesweeper Pro", () => {
     const apps = scanWorkspaceApps();
-    const found = apps.find((a) => a.name === "minesweeper_studio" || a.id === "rad_minesweeper_studio");
+    const found = apps.find(
+      (a) =>
+        a.name === "minesweeper_studio" || a.id === "rad_minesweeper_studio",
+    );
     expect(found).toBeDefined();
     expect(found?.displayName).toBe("Codecaine Minesweeper Pro Championship");
     expect(found?.icon).toBe("💣");

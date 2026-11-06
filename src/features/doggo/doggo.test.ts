@@ -25,11 +25,17 @@ describe("doggo doers", () => {
   });
 
   it("formats record data across types", () => {
-    const aRecord = formatRecordData("A", { address: "93.184.216.34", ttl: 300 });
+    const aRecord = formatRecordData("A", {
+      address: "93.184.216.34",
+      ttl: 300,
+    });
     expect(aRecord.data).toBe("93.184.216.34");
     expect(aRecord.ttl).toBe(300);
 
-    const mxRecord = formatRecordData("MX", { priority: 10, exchange: "mail.example.com" });
+    const mxRecord = formatRecordData("MX", {
+      priority: 10,
+      exchange: "mail.example.com",
+    });
     expect(mxRecord.data).toBe("10 mail.example.com");
 
     const nullMx = formatRecordData("MX", { priority: 0, exchange: "" });
@@ -56,33 +62,38 @@ describe("doggo doers", () => {
 });
 
 // These resolve real names through the network, so they run only on request: TEST_NETWORK=1 bun test src/features/doggo
-describe.skipIf(!process.env.TEST_NETWORK)("doggo lookup integration (live DNS, opt-in)", () => {
-  it("resolves DNS records for example.com", async () => {
-    const res = await lookupDomain("example.com", "A");
-    expect(res.domain).toBe("example.com");
-    expect(res.answers.length).toBeGreaterThan(0);
-    expect(res.answers[0]?.type).toBe("A");
-    expect(res.answers[0]?.data).toBeDefined();
-  });
+describe.skipIf(!process.env.TEST_NETWORK)(
+  "doggo lookup integration (live DNS, opt-in)",
+  () => {
+    it("resolves DNS records for example.com", async () => {
+      const res = await lookupDomain("example.com", "A");
+      expect(res.domain).toBe("example.com");
+      expect(res.answers.length).toBeGreaterThan(0);
+      expect(res.answers[0]?.type).toBe("A");
+      expect(res.answers[0]?.data).toBeDefined();
+    });
 
-  it("performs reverse PTR lookup for 8.8.8.8", async () => {
-    const res = await lookupDomain("8.8.8.8", "PTR");
-    expect(res.answers.length).toBeGreaterThan(0);
-    expect(res.answers[0]?.data).toContain("dns.google");
-  });
+    it("performs reverse PTR lookup for 8.8.8.8", async () => {
+      const res = await lookupDomain("8.8.8.8", "PTR");
+      expect(res.answers.length).toBeGreaterThan(0);
+      expect(res.answers[0]?.data).toContain("dns.google");
+    });
 
-  it("resolves DNS-over-HTTPS (DoH) records", async () => {
-    const { performDohLookup } = await import("./doggoDoers.ts");
-    const res = await performDohLookup("example.com", "A");
-    expect(res.answers.length).toBeGreaterThan(0);
-    expect(res.protocol).toBe("DoH");
-    expect(res.server).toContain("cloudflare-dns.com");
-  });
+    it("resolves DNS-over-HTTPS (DoH) records", async () => {
+      const { performDohLookup } = await import("./doggoDoers.ts");
+      const res = await performDohLookup("example.com", "A");
+      expect(res.answers.length).toBeGreaterThan(0);
+      expect(res.protocol).toBe("DoH");
+      expect(res.server).toContain("cloudflare-dns.com");
+    });
 
-  it("resolves multiple record types in parallel with ALL", async () => {
-    const res = await lookupDomain("example.com", "ALL");
-    expect(res.queryType).toBe("ALL");
-    expect(res.answers.some((a) => a.type === "A")).toBe(true);
-    expect(res.answers.some((a) => a.type === "MX" || a.type === "NS")).toBe(true);
-  });
-});
+    it("resolves multiple record types in parallel with ALL", async () => {
+      const res = await lookupDomain("example.com", "ALL");
+      expect(res.queryType).toBe("ALL");
+      expect(res.answers.some((a) => a.type === "A")).toBe(true);
+      expect(res.answers.some((a) => a.type === "MX" || a.type === "NS")).toBe(
+        true,
+      );
+    });
+  },
+);

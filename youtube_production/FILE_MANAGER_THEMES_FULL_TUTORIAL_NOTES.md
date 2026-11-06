@@ -1,17 +1,20 @@
 # Codecaine File Manager — Complete Themes & Shaders Masterclass (11:21)
 
 ## Reference & Hardware Workstation Mark
+
 - **Workstation Hardware Mark:** `🍎 Mac Studio M4 Ultra · 32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K 120Hz`
 - **Custom Themes Vault:** [`custom_themes/README.md`](../custom_themes/README.md)
 - **Professional Theme Design Style Guide:** [`custom_themes/THEME_DESIGN_STYLE_GUIDE.md`](../custom_themes/THEME_DESIGN_STYLE_GUIDE.md)
 - **Written Companion Guide:** [`docs/userguides/file-manager-themes-complete-tutorial.md`](../docs/userguides/file-manager-themes-complete-tutorial.md)
 
 ## YouTube Title (92 chars — under YouTube's 100-char limit, copy and paste)
+
 ```text
 Codecaine File Manager Themes Masterclass (M4 Ultra 6K): 310 Themes, 194 Shaders & Gemini AI
 ```
 
 ## YouTube Description (copy and paste)
+
 ```text
 The complete, step-by-step MacAcademy-style masterclass dedicated 100% to the Codecaine File Manager Theme & Atmospheric Shader Studio — recorded and marked on our flagship Apple Mac Studio M4 Ultra (32-Core CPU · 80-Core GPU · 192GB Unified Memory · Apple Pro Display XDR 6K @ 120Hz ProMotion).
 
@@ -65,6 +68,7 @@ CHAPTERS
 ```
 
 ## YouTube Tags (copy and paste — comma-separated, under 500 chars)
+
 ```text
 Codecaine File Manager, File Manager Themes Tutorial, Complete Theme Masterclass, Mac Studio M4 Ultra, Pro Display XDR 6K 120Hz, Unobstructed Icons View, Halloween Theme, Polar Night Theme, All 18 US Holiday Themes, Custom Themes GitHub, Google Gemini AI Theme, 3D Folder Icons, 2Advanced Flash HUD, Compiz Fire Folders, OKLab Blender, 194 Shaders, Theme Style Guide, Bun RAD Studio
 ```

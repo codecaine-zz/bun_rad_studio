@@ -1,554 +1,842 @@
 import { describe, test, expect, afterAll } from "bun:test";
 import { join } from "path";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "fs";
 import { tmpdir } from "os";
 import { JSDOM } from "jsdom";
-import { getIdeHtml, exportProjectHelper, runPreviewHelper, tsStringLiteral, safeDimension } from "../index.ts";
+import {
+  getIdeHtml,
+  exportProjectHelper,
+  runPreviewHelper,
+  tsStringLiteral,
+  safeDimension,
+} from "../index.ts";
 
 const REPO_ROOT = join(import.meta.dir, "..");
 
 describe("Designer page loading (regression for D-001)", () => {
-    test("getIdeHtml returns the real designer page, not the fallback stub", () => {
-        const html = getIdeHtml();
-        expect(html.length).toBeGreaterThan(100_000);
-        expect(html).toContain("let formSpec =");
-    });
+  test("getIdeHtml returns the real designer page, not the fallback stub", () => {
+    const html = getIdeHtml();
+    expect(html.length).toBeGreaterThan(100_000);
+    expect(html).toContain("let formSpec =");
+  });
 
-    test("the __SPEC_JSON__ placeholder is replaced with a default form spec", () => {
-        const html = getIdeHtml();
-        expect(html).not.toContain("__SPEC_JSON__");
-        const match = html.match(/let formSpec = (\{.*\});/);
-        expect(match).not.toBeNull();
-        const spec = JSON.parse(match![1]!);
-        expect(spec.title).toBe("Form1");
-        expect(Array.isArray(spec.controls)).toBe(true);
-    });
+  test("the __SPEC_JSON__ placeholder is replaced with a default form spec", () => {
+    const html = getIdeHtml();
+    expect(html).not.toContain("__SPEC_JSON__");
+    const match = html.match(/let formSpec = (\{.*\});/);
+    expect(match).not.toBeNull();
+    const spec = JSON.parse(match![1]!);
+    expect(spec.title).toBe("Form1");
+    expect(Array.isArray(spec.controls)).toBe(true);
+  });
 
-    test("works when started from a different working directory", () => {
-        const script = `import { getIdeHtml } from ${JSON.stringify(join(REPO_ROOT, "index.ts"))};
+  test("works when started from a different working directory", () => {
+    const script = `import { getIdeHtml } from ${JSON.stringify(join(REPO_ROOT, "index.ts"))};
 const h = getIdeHtml();
 console.log(h.includes("let formSpec =") && h.length > 100000 ? "OK" : "FALLBACK");`;
-        const result = Bun.spawnSync([process.execPath, "-e", script], { cwd: tmpdir() });
-        expect(result.stderr.toString()).toBe("");
-        expect(result.stdout.toString().trim()).toBe("OK");
+    const result = Bun.spawnSync([process.execPath, "-e", script], {
+      cwd: tmpdir(),
     });
+    expect(result.stderr.toString()).toBe("");
+    expect(result.stdout.toString().trim()).toBe("OK");
+  });
 });
 
 describe("Designer page structure (regression for broken script and hidden dialogs)", () => {
-    const html = getIdeHtml();
+  const html = getIdeHtml();
 
-    test("every inline script is valid JavaScript, as a browser would split the page", () => {
-        // A browser ends a script at the first closing script tag, even inside a JS string.
-        const scripts = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]!);
-        expect(scripts.length).toBeGreaterThan(0);
-        for (const code of scripts) expect(() => new Function(code)).not.toThrow();
-    });
+  test("every inline script is valid JavaScript, as a browser would split the page", () => {
+    // A browser ends a script at the first closing script tag, even inside a JS string.
+    const scripts = [
+      ...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g),
+    ].map((m) => m[1]!);
+    expect(scripts.length).toBeGreaterThan(0);
+    for (const code of scripts) expect(() => new Function(code)).not.toThrow();
+  });
 
-    test("dialogs, context menu and status bar are not nested inside another dialog", () => {
-        const body = html.slice(html.indexOf("<body"), html.indexOf("<script>", html.indexOf("<body")));
-        const depthAt = (needle: string) => {
-            const at = body.indexOf(needle);
-            expect(at).toBeGreaterThan(-1);
-            let depth = 0;
-            for (const m of body.slice(0, at).matchAll(/<div\b|<\/div>/g)) depth += m[0] === "</div>" ? -1 : 1;
-            return depth;
-        };
-        const top = depthAt('id="eventEditorModal"');
-        for (const id of ["importModal", "hotkeysModal", "diagnosticsModal", "contextMenu"]) {
-            expect(depthAt(`id="${id}"`)).toBe(top);
-        }
-        const opens = (body.match(/<div\b/g) || []).length;
-        const closes = (body.match(/<\/div>/g) || []).length;
-        expect(opens).toBe(closes);
-    });
+  test("dialogs, context menu and status bar are not nested inside another dialog", () => {
+    const body = html.slice(
+      html.indexOf("<body"),
+      html.indexOf("<script>", html.indexOf("<body")),
+    );
+    const depthAt = (needle: string) => {
+      const at = body.indexOf(needle);
+      expect(at).toBeGreaterThan(-1);
+      let depth = 0;
+      for (const m of body.slice(0, at).matchAll(/<div\b|<\/div>/g))
+        depth += m[0] === "</div>" ? -1 : 1;
+      return depth;
+    };
+    const top = depthAt('id="eventEditorModal"');
+    for (const id of [
+      "importModal",
+      "hotkeysModal",
+      "diagnosticsModal",
+      "contextMenu",
+    ]) {
+      expect(depthAt(`id="${id}"`)).toBe(top);
+    }
+    const opens = (body.match(/<div\b/g) || []).length;
+    const closes = (body.match(/<\/div>/g) || []).length;
+    expect(opens).toBe(closes);
+  });
 });
 
 describe("Designer: importing a JSON layout", () => {
-    // Runs the real function from the page, so the test cannot drift from the shipped code.
-    const html = getIdeHtml();
-    const start = html.indexOf("function normalizeImportedSpec");
-    let depth = 0;
-    let end = html.indexOf("{", start);
-    for (; end < html.length; end++) {
-        if (html[end] === "{") depth++;
-        else if (html[end] === "}" && --depth === 0) break;
+  // Runs the real function from the page, so the test cannot drift from the shipped code.
+  const html = getIdeHtml();
+  const start = html.indexOf("function normalizeImportedSpec");
+  let depth = 0;
+  let end = html.indexOf("{", start);
+  for (; end < html.length; end++) {
+    if (html[end] === "{") depth++;
+    else if (html[end] === "}" && --depth === 0) break;
+  }
+  const normalize = new Function(
+    `${html.slice(start, end + 1)}; return normalizeImportedSpec;`,
+  )() as (v: unknown) => { spec?: any; error?: string };
+
+  test("a complete layout is kept as is", () => {
+    const input = {
+      title: "T",
+      width: 500,
+      height: 300,
+      controls: [
+        {
+          id: "b",
+          control_type: "button",
+          x: 1,
+          y: 2,
+          width: 3,
+          height: 4,
+          text: "Hi",
+        },
+      ],
+    };
+    const { spec, error } = normalize(input);
+    expect(error).toBeUndefined();
+    expect(spec.controls).toEqual(input.controls);
+    expect(spec.width).toBe(500);
+  });
+
+  test("missing values are filled in", () => {
+    const { spec } = normalize({ title: "Only a title" });
+    expect(spec.controls).toEqual([]);
+    expect([spec.width, spec.height]).toEqual([840, 560]);
+    const filled = normalize({
+      controls: [
+        { control_type: "button" },
+        { control_type: "label", x: "7", width: NaN },
+      ],
+    }).spec;
+    expect(filled.title).toBe("Imported Form");
+    expect(filled.controls[0]).toMatchObject({
+      id: "button_1",
+      x: 0,
+      y: 0,
+      width: 150,
+      height: 36,
+      text: "",
+    });
+    expect(filled.controls[1]).toMatchObject({ x: 0, width: 150 });
+  });
+
+  test("duplicate ids are made unique", () => {
+    const ids = normalize({
+      controls: [
+        { id: "a", control_type: "label" },
+        { id: "a", control_type: "label" },
+      ],
+    }).spec.controls.map((c: any) => c.id);
+    expect(new Set(ids).size).toBe(2);
+  });
+
+  test("unusable input is rejected with a specific message", () => {
+    for (const [input, message] of [
+      [null, "one JSON object"],
+      [[1, 2], "one JSON object"],
+      ["text", "one JSON object"],
+      [{ foo: 1 }, "neither"],
+      [{ title: "x", controls: "abc" }, "list of controls"],
+      [{ controls: [{ text: "no type" }] }, "Control #1"],
+      [{ controls: [null] }, "Control #1"],
+    ] as Array<[unknown, string]>) {
+      const result = normalize(input);
+      expect(result.spec).toBeUndefined();
+      expect(result.error).toContain(message);
     }
-    const normalize = new Function(`${html.slice(start, end + 1)}; return normalizeImportedSpec;`)() as (
-        v: unknown,
-    ) => { spec?: any; error?: string };
+  });
 
-    test("a complete layout is kept as is", () => {
-        const input = { title: "T", width: 500, height: 300, controls: [{ id: "b", control_type: "button", x: 1, y: 2, width: 3, height: 4, text: "Hi" }] };
-        const { spec, error } = normalize(input);
-        expect(error).toBeUndefined();
-        expect(spec.controls).toEqual(input.controls);
-        expect(spec.width).toBe(500);
-    });
-
-    test("missing values are filled in", () => {
-        const { spec } = normalize({ title: "Only a title" });
-        expect(spec.controls).toEqual([]);
-        expect([spec.width, spec.height]).toEqual([840, 560]);
-        const filled = normalize({ controls: [{ control_type: "button" }, { control_type: "label", x: "7", width: NaN }] }).spec;
-        expect(filled.title).toBe("Imported Form");
-        expect(filled.controls[0]).toMatchObject({ id: "button_1", x: 0, y: 0, width: 150, height: 36, text: "" });
-        expect(filled.controls[1]).toMatchObject({ x: 0, width: 150 });
-    });
-
-    test("duplicate ids are made unique", () => {
-        const ids = normalize({ controls: [{ id: "a", control_type: "label" }, { id: "a", control_type: "label" }] }).spec.controls.map((c: any) => c.id);
-        expect(new Set(ids).size).toBe(2);
-    });
-
-    test("unusable input is rejected with a specific message", () => {
-        for (const [input, message] of [
-            [null, "one JSON object"],
-            [[1, 2], "one JSON object"],
-            ["text", "one JSON object"],
-            [{ foo: 1 }, "neither"],
-            [{ title: "x", controls: "abc" }, "list of controls"],
-            [{ controls: [{ text: "no type" }] }, "Control #1"],
-            [{ controls: [null] }, "Control #1"],
-        ] as Array<[unknown, string]>) {
-            const result = normalize(input);
-            expect(result.spec).toBeUndefined();
-            expect(result.error).toContain(message);
-        }
-    });
-
-    test("the open form is only replaced after validation succeeds", () => {
-        const fn = html.slice(html.indexOf("function processImportJSON"), html.indexOf("// MS Access Database CRUD Form Wizard"));
-        expect(fn.indexOf("normalizeImportedSpec(parsed)")).toBeGreaterThan(-1);
-        expect(fn.indexOf("formSpec = ")).toBeGreaterThan(fn.indexOf("normalizeImportedSpec(parsed)"));
-    });
+  test("the open form is only replaced after validation succeeds", () => {
+    const fn = html.slice(
+      html.indexOf("function processImportJSON"),
+      html.indexOf("// MS Access Database CRUD Form Wizard"),
+    );
+    expect(fn.indexOf("normalizeImportedSpec(parsed)")).toBeGreaterThan(-1);
+    expect(fn.indexOf("formSpec = ")).toBeGreaterThan(
+      fn.indexOf("normalizeImportedSpec(parsed)"),
+    );
+  });
 });
 
 describe("Designer themes: readable button text (D-019)", () => {
-    const html = getIdeHtml();
-    const grab = (name: string) => {
-        const start = html.indexOf(`function ${name}(`);
-        expect(start).toBeGreaterThan(-1);
-        let depth = 0;
-        let end = html.indexOf("{", start);
-        for (; end < html.length; end++) {
-            if (html[end] === "{") depth++;
-            else if (html[end] === "}" && --depth === 0) break;
-        }
-        return html.slice(start, end + 1);
-    };
-    const fxData = ["FX_THEME_DATA", "FX_THEME_LOOKUP"].map((v) => html.match(new RegExp(`var ${v} = .*;`))![0]).join("\n");
-    const api = new Function(`${fxData}; ${grab("fxThemeFor")}; ${grab("fxPaletteFor")}; ${grab("contrastRatio")}; ${grab("getRawThemeColors")}; ${grab("getThemeColors")}; return { contrastRatio, getThemeColors, getRawThemeColors };`)() as {
-        contrastRatio: (a: string, b: string) => number;
-        getThemeColors: (t: string) => Record<string, string>;
-        getRawThemeColors: (t: string) => Record<string, string>;
-    };
-    const themes = [...html.match(/id="propFormTheme"[\s\S]*?<\/select>/)![0].matchAll(/<option value="([^"]*)"/g)].map((m) => m[1]!);
+  const html = getIdeHtml();
+  const grab = (name: string) => {
+    const start = html.indexOf(`function ${name}(`);
+    expect(start).toBeGreaterThan(-1);
+    let depth = 0;
+    let end = html.indexOf("{", start);
+    for (; end < html.length; end++) {
+      if (html[end] === "{") depth++;
+      else if (html[end] === "}" && --depth === 0) break;
+    }
+    return html.slice(start, end + 1);
+  };
+  const fxData = ["FX_THEME_DATA", "FX_THEME_LOOKUP"]
+    .map((v) => html.match(new RegExp(`var ${v} = .*;`))![0])
+    .join("\n");
+  const api = new Function(
+    `${fxData}; ${grab("fxThemeFor")}; ${grab("fxPaletteFor")}; ${grab("contrastRatio")}; ${grab("getRawThemeColors")}; ${grab("getThemeColors")}; return { contrastRatio, getThemeColors, getRawThemeColors };`,
+  )() as {
+    contrastRatio: (a: string, b: string) => number;
+    getThemeColors: (t: string) => Record<string, string>;
+    getRawThemeColors: (t: string) => Record<string, string>;
+  };
+  const themes = [
+    ...html
+      .match(/id="propFormTheme"[\s\S]*?<\/select>/)![0]
+      .matchAll(/<option value="([^"]*)"/g),
+  ].map((m) => m[1]!);
 
-    test("the theme list is found", () => {
-        expect(themes.length).toBeGreaterThan(40);
-    });
+  test("the theme list is found", () => {
+    expect(themes.length).toBeGreaterThan(40);
+  });
 
-    test("contrastRatio matches known values", () => {
-        expect(api.contrastRatio("#000000", "#ffffff")).toBeCloseTo(21, 0);
-        expect(api.contrastRatio("#777777", "#777777")).toBeCloseTo(1, 5);
-    });
+  test("contrastRatio matches known values", () => {
+    expect(api.contrastRatio("#000000", "#ffffff")).toBeCloseTo(21, 0);
+    expect(api.contrastRatio("#777777", "#777777")).toBeCloseTo(1, 5);
+  });
 
-    test("every theme's button text reaches 4.5:1 on the button fill", () => {
-        const failing = themes.filter((t) => {
-            const c = api.getThemeColors(t);
-            return api.contrastRatio(c.btnFg!, c.btnBg!) < 4.5;
-        });
-        expect(failing).toEqual([]);
+  test("every theme's button text reaches 4.5:1 on the button fill", () => {
+    const failing = themes.filter((t) => {
+      const c = api.getThemeColors(t);
+      return api.contrastRatio(c.btnFg!, c.btnBg!) < 4.5;
     });
+    expect(failing).toEqual([]);
+  });
 
-    test("a theme whose own button text already reads well keeps it", () => {
-        for (const t of themes) {
-            const raw = api.getRawThemeColors(t);
-            if (api.contrastRatio(raw.btnFg!, raw.btnBg!) >= 4.5) expect(api.getThemeColors(t).btnFg).toBe(raw.btnFg);
-        }
-    });
+  test("a theme whose own button text already reads well keeps it", () => {
+    for (const t of themes) {
+      const raw = api.getRawThemeColors(t);
+      if (api.contrastRatio(raw.btnFg!, raw.btnBg!) >= 4.5)
+        expect(api.getThemeColors(t).btnFg).toBe(raw.btnFg);
+    }
+  });
 
-    test("only the button text color is adjusted", () => {
-        for (const t of themes) {
-            const { btnFg: _a, ...raw } = api.getRawThemeColors(t);
-            const { btnFg: _b, ...adjusted } = api.getThemeColors(t);
-            expect(adjusted).toEqual(raw);
-        }
-    });
+  test("only the button text color is adjusted", () => {
+    for (const t of themes) {
+      const { btnFg: _a, ...raw } = api.getRawThemeColors(t);
+      const { btnFg: _b, ...adjusted } = api.getThemeColors(t);
+      expect(adjusted).toEqual(raw);
+    }
+  });
 });
 
 describe("Designer: importing a layout that contains scripts", () => {
-    const html = getIdeHtml();
-    const start = html.indexOf("function countImportedScripts");
-    let depth = 0;
-    let end = html.indexOf("{", start);
-    for (; end < html.length; end++) {
-        if (html[end] === "{") depth++;
-        else if (html[end] === "}" && --depth === 0) break;
-    }
-    const count = new Function(`${html.slice(start, end + 1)}; return countImportedScripts;`)() as (spec: any) => number;
+  const html = getIdeHtml();
+  const start = html.indexOf("function countImportedScripts");
+  let depth = 0;
+  let end = html.indexOf("{", start);
+  for (; end < html.length; end++) {
+    if (html[end] === "{") depth++;
+    else if (html[end] === "}" && --depth === 0) break;
+  }
+  const count = new Function(
+    `${html.slice(start, end + 1)}; return countImportedScripts;`,
+  )() as (spec: any) => number;
 
-    test("plain function names are not scripts", () => {
-        expect(count({ controls: [{ id: "a", event_handlers: { onClick: "doIt", onChange: " other_1 " } }] })).toBe(0);
-        expect(count({ controls: [] })).toBe(0);
-        expect(count({})).toBe(0);
-    });
+  test("plain function names are not scripts", () => {
+    expect(
+      count({
+        controls: [
+          {
+            id: "a",
+            event_handlers: { onClick: "doIt", onChange: " other_1 " },
+          },
+        ],
+      }),
+    ).toBe(0);
+    expect(count({ controls: [] })).toBe(0);
+    expect(count({})).toBe(0);
+  });
 
-    test("code in event_handlers and in onXxx fields is counted", () => {
-        const spec = {
-            controls: [
-                { id: "a", event_handlers: { onClick: "alert(1)", onHover: "doIt" } },
-                { id: "b", onclick: "fetch('/x')", onChange: "go" },
-                { id: "c", text: "onfoo not a handler", event_handlers: { onFocus: "  " } },
-            ],
-        };
-        expect(count(spec)).toBe(2);
-    });
+  test("code in event_handlers and in onXxx fields is counted", () => {
+    const spec = {
+      controls: [
+        { id: "a", event_handlers: { onClick: "alert(1)", onHover: "doIt" } },
+        { id: "b", onclick: "fetch('/x')", onChange: "go" },
+        {
+          id: "c",
+          text: "onfoo not a handler",
+          event_handlers: { onFocus: "  " },
+        },
+      ],
+    };
+    expect(count(spec)).toBe(2);
+  });
 
-    test("the import asks before replacing the form, and only after validation", () => {
-        const fn = html.slice(html.indexOf("function processImportJSON"), html.indexOf("// MS Access Database CRUD Form Wizard"));
-        expect(fn).toContain("confirm(");
-        expect(fn.indexOf("normalizeImportedSpec(parsed)")).toBeLessThan(fn.indexOf("confirm("));
-        expect(fn.indexOf("confirm(")).toBeLessThan(fn.indexOf("formSpec = "));
-    });
+  test("the import asks before replacing the form, and only after validation", () => {
+    const fn = html.slice(
+      html.indexOf("function processImportJSON"),
+      html.indexOf("// MS Access Database CRUD Form Wizard"),
+    );
+    expect(fn).toContain("confirm(");
+    expect(fn.indexOf("normalizeImportedSpec(parsed)")).toBeLessThan(
+      fn.indexOf("confirm("),
+    );
+    expect(fn.indexOf("confirm(")).toBeLessThan(fn.indexOf("formSpec = "));
+  });
 });
 
 describe("Designer: keyboard access", () => {
-    const html = getIdeHtml();
+  const html = getIdeHtml();
 
-    test("a visible focus outline is defined for keyboard focus", () => {
-        const css = html.slice(html.indexOf("<style>"), html.indexOf("</style>"));
-        expect(css).toMatch(/button:focus-visible[\s\S]*?outline:\s*2px solid var\(--accent\) !important/);
-    });
+  test("a visible focus outline is defined for keyboard focus", () => {
+    const css = html.slice(html.indexOf("<style>"), html.indexOf("</style>"));
+    expect(css).toMatch(
+      /button:focus-visible[\s\S]*?outline:\s*2px solid var\(--accent\) !important/,
+    );
+  });
 
-    function setup() {
-        const start = html.indexOf("function makeClickablesKeyboardOperable");
-        let depth = 0;
-        let end = html.indexOf("{", start);
-        for (; end < html.length; end++) {
-            if (html[end] === "{") depth++;
-            else if (html[end] === "}" && --depth === 0) break;
-        }
-        const body = html.slice(html.indexOf("<body"), html.indexOf("<script>", html.indexOf("<body")));
-        const dom = new JSDOM(`<!DOCTYPE html>${body}</body>`);
-        const fn = new Function("document", `${html.slice(start, end + 1)}; return makeClickablesKeyboardOperable;`)(dom.window.document) as () => void;
-        return { dom, run: fn };
-    }
-
-    test("every clickable non-button element becomes focusable, is announced as a button and has a name", () => {
-        const { dom, run } = setup();
-        const doc = dom.window.document;
-        const targets = [...doc.querySelectorAll("[onclick]")].filter((e) => !/^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(e.tagName));
-        expect(targets.length).toBeGreaterThan(100);
-        run();
-        for (const el of targets) {
-            expect(el.getAttribute("tabindex")).toBe("0");
-            expect(el.getAttribute("role")).toBe("button");
-            expect((el.getAttribute("aria-label") ?? "").length).toBeGreaterThan(0);
-        }
-    });
-
-    test("real buttons are left alone, and existing tabindex or role values are kept", () => {
-        const { dom, run } = setup();
-        const doc = dom.window.document;
-        const native = doc.querySelector("button[onclick]")!;
-        const custom = doc.createElement("div");
-        custom.setAttribute("onclick", "x()");
-        custom.setAttribute("tabindex", "-1");
-        custom.setAttribute("role", "menuitem");
-        doc.body.appendChild(custom);
-        run();
-        expect(native.hasAttribute("role")).toBe(false);
-        expect(custom.getAttribute("tabindex")).toBe("-1");
-        expect(custom.getAttribute("role")).toBe("menuitem");
-    });
-
-    test("Enter and Space activate the element; other keys do not", () => {
-        const { dom, run } = setup();
-        const doc = dom.window.document;
-        const el = doc.createElement("div");
-        el.setAttribute("onclick", "x()");
-        el.textContent = "Do it";
-        doc.body.appendChild(el);
-        run();
-        let clicks = 0;
-        el.addEventListener("click", () => clicks++);
-        const press = (key: string) => el.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
-        press("Enter");
-        press(" ");
-        press("a");
-        press("Tab");
-        expect(clicks).toBe(2);
-    });
-});
-
-describe("Designer: component tree rows are keyboard operable", () => {
-    const html = getIdeHtml();
-    const start = html.indexOf("function renderTree()");
+  function setup() {
+    const start = html.indexOf("function makeClickablesKeyboardOperable");
     let depth = 0;
     let end = html.indexOf("{", start);
     for (; end < html.length; end++) {
-        if (html[end] === "{") depth++;
-        else if (html[end] === "}" && --depth === 0) break;
+      if (html[end] === "{") depth++;
+      else if (html[end] === "}" && --depth === 0) break;
     }
-    const renderTreeSrc = html.slice(start, end + 1);
+    const body = html.slice(
+      html.indexOf("<body"),
+      html.indexOf("<script>", html.indexOf("<body")),
+    );
+    const dom = new JSDOM(`<!DOCTYPE html>${body}</body>`);
+    const fn = new Function(
+      "document",
+      `${html.slice(start, end + 1)}; return makeClickablesKeyboardOperable;`,
+    )(dom.window.document) as () => void;
+    return { dom, run: fn };
+  }
 
-    function build(controls: any[], selected: number[] = []) {
-        const dom = new JSDOM('<!DOCTYPE html><body><input id="treeFilterBox"><div id="treeContainer"></div></body>');
-        const doc = dom.window.document;
-        const picked: Array<{ idx: number; key?: string; shift?: boolean; meta?: boolean }> = [];
-        const state = { formSpec: { controls }, selectedIndices: selected, picked };
-        const run = new Function(
-            "document",
-            "state",
-            `const formSpec = state.formSpec; const selectedIndices = state.selectedIndices;
+  test("every clickable non-button element becomes focusable, is announced as a button and has a name", () => {
+    const { dom, run } = setup();
+    const doc = dom.window.document;
+    const targets = [...doc.querySelectorAll("[onclick]")].filter(
+      (e) => !/^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(e.tagName),
+    );
+    expect(targets.length).toBeGreaterThan(100);
+    run();
+    for (const el of targets) {
+      expect(el.getAttribute("tabindex")).toBe("0");
+      expect(el.getAttribute("role")).toBe("button");
+      expect((el.getAttribute("aria-label") ?? "").length).toBeGreaterThan(0);
+    }
+  });
+
+  test("real buttons are left alone, and existing tabindex or role values are kept", () => {
+    const { dom, run } = setup();
+    const doc = dom.window.document;
+    const native = doc.querySelector("button[onclick]")!;
+    const custom = doc.createElement("div");
+    custom.setAttribute("onclick", "x()");
+    custom.setAttribute("tabindex", "-1");
+    custom.setAttribute("role", "menuitem");
+    doc.body.appendChild(custom);
+    run();
+    expect(native.hasAttribute("role")).toBe(false);
+    expect(custom.getAttribute("tabindex")).toBe("-1");
+    expect(custom.getAttribute("role")).toBe("menuitem");
+  });
+
+  test("Enter and Space activate the element; other keys do not", () => {
+    const { dom, run } = setup();
+    const doc = dom.window.document;
+    const el = doc.createElement("div");
+    el.setAttribute("onclick", "x()");
+    el.textContent = "Do it";
+    doc.body.appendChild(el);
+    run();
+    let clicks = 0;
+    el.addEventListener("click", () => clicks++);
+    const press = (key: string) =>
+      el.dispatchEvent(
+        new dom.window.KeyboardEvent("keydown", {
+          key,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    press("Enter");
+    press(" ");
+    press("a");
+    press("Tab");
+    expect(clicks).toBe(2);
+  });
+});
+
+describe("Designer: component tree rows are keyboard operable", () => {
+  const html = getIdeHtml();
+  const start = html.indexOf("function renderTree()");
+  let depth = 0;
+  let end = html.indexOf("{", start);
+  for (; end < html.length; end++) {
+    if (html[end] === "{") depth++;
+    else if (html[end] === "}" && --depth === 0) break;
+  }
+  const renderTreeSrc = html.slice(start, end + 1);
+
+  function build(controls: any[], selected: number[] = []) {
+    const dom = new JSDOM(
+      '<!DOCTYPE html><body><input id="treeFilterBox"><div id="treeContainer"></div></body>',
+    );
+    const doc = dom.window.document;
+    const picked: Array<{
+      idx: number;
+      key?: string;
+      shift?: boolean;
+      meta?: boolean;
+    }> = [];
+    const state = { formSpec: { controls }, selectedIndices: selected, picked };
+    const run = new Function(
+      "document",
+      "state",
+      `const formSpec = state.formSpec; const selectedIndices = state.selectedIndices;
              const selectControl = (idx, e) => { state.picked.push({ idx, key: e && e.key, shift: !!(e && e.shiftKey), meta: !!(e && (e.metaKey || e.ctrlKey)) }); };
              const moveControlOrder = () => {};
              ${renderTreeSrc}; return renderTree;`,
-        )(doc, state) as () => void;
-        run();
-        return { dom, doc, picked };
-    }
+    )(doc, state) as () => void;
+    run();
+    return { dom, doc, picked };
+  }
 
-    const controls = [{ id: "button_1", control_type: "button" }, { id: "label_2", control_type: "label", locked: true }];
+  const controls = [
+    { id: "button_1", control_type: "button" },
+    { id: "label_2", control_type: "label", locked: true },
+  ];
 
-    test("every row can take focus, is announced as a button with a name, and shows whether it is selected", () => {
-        const { doc } = build(controls, [1]);
-        const rows = [...doc.querySelectorAll("#treeContainer .tree-item")];
-        expect(rows).toHaveLength(2);
-        expect(rows.map((r) => r.getAttribute("tabindex"))).toEqual(["0", "0"]);
-        expect(rows.map((r) => r.getAttribute("role"))).toEqual(["button", "button"]);
-        expect(rows[0]!.getAttribute("aria-label")).toBe("Select button_1 (button)");
-        expect(rows.map((r) => r.getAttribute("aria-pressed"))).toEqual(["false", "true"]);
-    });
+  test("every row can take focus, is announced as a button with a name, and shows whether it is selected", () => {
+    const { doc } = build(controls, [1]);
+    const rows = [...doc.querySelectorAll("#treeContainer .tree-item")];
+    expect(rows).toHaveLength(2);
+    expect(rows.map((r) => r.getAttribute("tabindex"))).toEqual(["0", "0"]);
+    expect(rows.map((r) => r.getAttribute("role"))).toEqual([
+      "button",
+      "button",
+    ]);
+    expect(rows[0]!.getAttribute("aria-label")).toBe(
+      "Select button_1 (button)",
+    );
+    expect(rows.map((r) => r.getAttribute("aria-pressed"))).toEqual([
+      "false",
+      "true",
+    ]);
+  });
 
-    test("Enter and Space select the row; other keys and keys from the row's own buttons do not", () => {
-        const { dom, doc, picked } = build(controls);
-        const rows = [...doc.querySelectorAll("#treeContainer .tree-item")];
-        const press = (el: any, key: string) => el.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
-        press(rows[0]!, "Enter");
-        press(rows[1]!, " ");
-        press(rows[0]!, "a");
-        press(rows[0]!.querySelector("button")!, "Enter");
-        expect(picked.map((p) => p.idx)).toEqual([0, 1]);
-    });
+  test("Enter and Space select the row; other keys and keys from the row's own buttons do not", () => {
+    const { dom, doc, picked } = build(controls);
+    const rows = [...doc.querySelectorAll("#treeContainer .tree-item")];
+    const press = (el: any, key: string) =>
+      el.dispatchEvent(
+        new dom.window.KeyboardEvent("keydown", {
+          key,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    press(rows[0]!, "Enter");
+    press(rows[1]!, " ");
+    press(rows[0]!, "a");
+    press(rows[0]!.querySelector("button")!, "Enter");
+    expect(picked.map((p) => p.idx)).toEqual([0, 1]);
+  });
 
-    test("Shift and Cmd/Ctrl are passed on, so the keyboard can select a range or toggle one row like the mouse", () => {
-        const { dom, doc, picked } = build([...controls, { id: "c3", control_type: "input" }]);
-        const rows = [...doc.querySelectorAll("#treeContainer .tree-item")];
-        const press = (el: any, init: any) => el.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true, ...init }));
-        press(rows[2]!, { shiftKey: true });
-        press(rows[1]!, { metaKey: true });
-        press(rows[0]!, { ctrlKey: true });
-        expect(picked.map((p) => [p.idx, p.shift, p.meta])).toEqual([[2, true, false], [1, false, true], [0, false, true]]);
-    });
+  test("Shift and Cmd/Ctrl are passed on, so the keyboard can select a range or toggle one row like the mouse", () => {
+    const { dom, doc, picked } = build([
+      ...controls,
+      { id: "c3", control_type: "input" },
+    ]);
+    const rows = [...doc.querySelectorAll("#treeContainer .tree-item")];
+    const press = (el: any, init: any) =>
+      el.dispatchEvent(
+        new dom.window.KeyboardEvent("keydown", {
+          key: "Enter",
+          bubbles: true,
+          cancelable: true,
+          ...init,
+        }),
+      );
+    press(rows[2]!, { shiftKey: true });
+    press(rows[1]!, { metaKey: true });
+    press(rows[0]!, { ctrlKey: true });
+    expect(picked.map((p) => [p.idx, p.shift, p.meta])).toEqual([
+      [2, true, false],
+      [1, false, true],
+      [0, false, true],
+    ]);
+  });
 });
 
 describe("Designer: dialogs handle focus and the keyboard", () => {
-    const html = getIdeHtml();
-    const grab = (name: string, kind = "function") => {
-        const start = html.indexOf(`${kind} ${name}`);
-        expect(start).toBeGreaterThan(-1);
-        let depth = 0;
-        let end = html.indexOf("{", start);
-        for (; end < html.length; end++) {
-            if (html[end] === "{") depth++;
-            else if (html[end] === "}" && --depth === 0) break;
-        }
-        return html.slice(start, end + 1);
-    };
-    const ids = ["eventEditorModal", "importModal", "hotkeysModal", "diagnosticsModal"];
-
-    function page() {
-        const body = html.slice(html.indexOf("<body"), html.indexOf("<script>", html.indexOf("<body")));
-        const dom = new JSDOM(`<!DOCTYPE html>${body}</body>`);
-        const w = dom.window as any;
-        const src = ["getOpenDialog", "dialogFocusables", "showDialog", "hideDialog", "onDialogKeydown", "setupDialogs"].map((n) => grab(n)).join("\n");
-        new Function("window", "document", `const DIALOG_IDS = ${JSON.stringify(ids)}; const dialogOpeners = {};\n${src}\nwindow.__api = { showDialog, hideDialog, setupDialogs, getOpenDialog };`)(w, w.document);
-        w.__api.setupDialogs();
-        const key = (el: any, k: string, init: any = {}) => {
-            const ev = new w.KeyboardEvent("keydown", { key: k, bubbles: true, cancelable: true, ...init });
-            el.dispatchEvent(ev);
-            return ev;
-        };
-        return { w, doc: w.document as any, api: w.__api, key };
+  const html = getIdeHtml();
+  const grab = (name: string, kind = "function") => {
+    const start = html.indexOf(`${kind} ${name}`);
+    expect(start).toBeGreaterThan(-1);
+    let depth = 0;
+    let end = html.indexOf("{", start);
+    for (; end < html.length; end++) {
+      if (html[end] === "{") depth++;
+      else if (html[end] === "}" && --depth === 0) break;
     }
+    return html.slice(start, end + 1);
+  };
+  const ids = [
+    "eventEditorModal",
+    "importModal",
+    "hotkeysModal",
+    "diagnosticsModal",
+  ];
 
-    test("every dialog is announced as a modal dialog with a name", () => {
-        const { doc } = page();
-        for (const id of ids) {
-            const d = doc.getElementById(id)!;
-            expect(d.getAttribute("role")).toBe("dialog");
-            expect(d.getAttribute("aria-modal")).toBe("true");
-            expect((d.getAttribute("aria-label") ?? "").length).toBeGreaterThan(3);
-        }
-    });
+  function page() {
+    const body = html.slice(
+      html.indexOf("<body"),
+      html.indexOf("<script>", html.indexOf("<body")),
+    );
+    const dom = new JSDOM(`<!DOCTYPE html>${body}</body>`);
+    const w = dom.window as any;
+    const src = [
+      "getOpenDialog",
+      "dialogFocusables",
+      "showDialog",
+      "hideDialog",
+      "onDialogKeydown",
+      "setupDialogs",
+    ]
+      .map((n) => grab(n))
+      .join("\n");
+    new Function(
+      "window",
+      "document",
+      `const DIALOG_IDS = ${JSON.stringify(ids)}; const dialogOpeners = {};\n${src}\nwindow.__api = { showDialog, hideDialog, setupDialogs, getOpenDialog };`,
+    )(w, w.document);
+    w.__api.setupDialogs();
+    const key = (el: any, k: string, init: any = {}) => {
+      const ev = new w.KeyboardEvent("keydown", {
+        key: k,
+        bubbles: true,
+        cancelable: true,
+        ...init,
+      });
+      el.dispatchEvent(ev);
+      return ev;
+    };
+    return { w, doc: w.document as any, api: w.__api, key };
+  }
 
-    test("opening moves focus into the dialog and closing hands it back to the opener", () => {
-        const { doc, api } = page();
-        const opener = doc.querySelector('button[onclick="showImportModal()"]')!;
-        opener.focus();
-        api.showDialog("importModal");
-        expect(doc.activeElement!.id).toBe("importJsonText");
-        api.hideDialog("importModal");
-        expect(doc.activeElement).toBe(opener);
-    });
+  test("every dialog is announced as a modal dialog with a name", () => {
+    const { doc } = page();
+    for (const id of ids) {
+      const d = doc.getElementById(id)!;
+      expect(d.getAttribute("role")).toBe("dialog");
+      expect(d.getAttribute("aria-modal")).toBe("true");
+      expect((d.getAttribute("aria-label") ?? "").length).toBeGreaterThan(3);
+    }
+  });
 
-    test("Escape closes the open dialog even while typing in its text box", () => {
-        const { doc, api, key } = page();
-        api.showDialog("importModal");
-        const ev = key(doc.getElementById("importJsonText")!, "Escape");
-        expect(doc.getElementById("importModal")!.style.display).toBe("none");
-        expect(ev.defaultPrevented).toBe(true);
-    });
+  test("opening moves focus into the dialog and closing hands it back to the opener", () => {
+    const { doc, api } = page();
+    const opener = doc.querySelector('button[onclick="showImportModal()"]')!;
+    opener.focus();
+    api.showDialog("importModal");
+    expect(doc.activeElement!.id).toBe("importJsonText");
+    api.hideDialog("importModal");
+    expect(doc.activeElement).toBe(opener);
+  });
 
-    test("Tab wraps inside the dialog in both directions and cannot leave it", () => {
-        const { w, doc, api, key } = page();
-        api.showDialog("importModal");
-        const modal = doc.getElementById("importModal")!;
-        const buttons = [...modal.querySelectorAll("button")] as any[];
-        const first = doc.getElementById("importJsonText")!;
-        const last = buttons[buttons.length - 1]!;
-        last.focus();
-        expect(key(last, "Tab").defaultPrevented).toBe(true);
-        expect(doc.activeElement).toBe(first);
-        expect(key(first, "Tab", { shiftKey: true }).defaultPrevented).toBe(true);
-        expect(doc.activeElement).toBe(last);
-        // Focus that somehow ended up behind the dialog is pulled back in.
-        doc.querySelector('button[onclick="showHotkeysModal()"]')!.focus();
-        key(doc.activeElement!, "Tab");
-        expect(modal.contains(doc.activeElement)).toBe(true);
-        void w;
-    });
+  test("Escape closes the open dialog even while typing in its text box", () => {
+    const { doc, api, key } = page();
+    api.showDialog("importModal");
+    const ev = key(doc.getElementById("importJsonText")!, "Escape");
+    expect(doc.getElementById("importModal")!.style.display).toBe("none");
+    expect(ev.defaultPrevented).toBe(true);
+  });
 
-    test("with no dialog open, Escape and Tab are left alone", () => {
-        const { doc, key } = page();
-        expect(key(doc.body, "Escape").defaultPrevented).toBe(false);
-        expect(key(doc.body, "Tab").defaultPrevented).toBe(false);
-    });
+  test("Tab wraps inside the dialog in both directions and cannot leave it", () => {
+    const { w, doc, api, key } = page();
+    api.showDialog("importModal");
+    const modal = doc.getElementById("importModal")!;
+    const buttons = [...modal.querySelectorAll("button")] as any[];
+    const first = doc.getElementById("importJsonText")!;
+    const last = buttons[buttons.length - 1]!;
+    last.focus();
+    expect(key(last, "Tab").defaultPrevented).toBe(true);
+    expect(doc.activeElement).toBe(first);
+    expect(key(first, "Tab", { shiftKey: true }).defaultPrevented).toBe(true);
+    expect(doc.activeElement).toBe(last);
+    // Focus that somehow ended up behind the dialog is pulled back in.
+    doc.querySelector('button[onclick="showHotkeysModal()"]')!.focus();
+    key(doc.activeElement!, "Tab");
+    expect(modal.contains(doc.activeElement)).toBe(true);
+    void w;
+  });
 
-    test("editing shortcuts (Delete, arrows, undo) are ignored while a dialog is open", () => {
-        const guard = html.indexOf("if (getOpenDialog()) return;");
-        expect(guard).toBeGreaterThan(-1);
-        expect(guard).toBeLessThan(html.indexOf('e.key === "Delete" || e.key === "Backspace"'));
-        expect(guard).toBeLessThan(html.indexOf('e.altKey && e.key === "ArrowLeft"'));
-        // All four dialogs go through the shared helpers.
-        for (const fn of ["showImportModal", "showHotkeysModal", "showDiagnosticsModal", "showEventEditorModal"]) {
-            expect(html).toContain(`function ${fn}(`);
-        }
-        expect(html.match(/showDialog\("(importModal|hotkeysModal|diagnosticsModal|eventEditorModal)"\)/g)).toHaveLength(4);
-    });
+  test("with no dialog open, Escape and Tab are left alone", () => {
+    const { doc, key } = page();
+    expect(key(doc.body, "Escape").defaultPrevented).toBe(false);
+    expect(key(doc.body, "Tab").defaultPrevented).toBe(false);
+  });
+
+  test("editing shortcuts (Delete, arrows, undo) are ignored while a dialog is open", () => {
+    const guard = html.indexOf("if (getOpenDialog()) return;");
+    expect(guard).toBeGreaterThan(-1);
+    expect(guard).toBeLessThan(
+      html.indexOf('e.key === "Delete" || e.key === "Backspace"'),
+    );
+    expect(guard).toBeLessThan(
+      html.indexOf('e.altKey && e.key === "ArrowLeft"'),
+    );
+    // All four dialogs go through the shared helpers.
+    for (const fn of [
+      "showImportModal",
+      "showHotkeysModal",
+      "showDiagnosticsModal",
+      "showEventEditorModal",
+    ]) {
+      expect(html).toContain(`function ${fn}(`);
+    }
+    expect(
+      html.match(
+        /showDialog\("(importModal|hotkeysModal|diagnosticsModal|eventEditorModal)"\)/g,
+      ),
+    ).toHaveLength(4);
+  });
 });
 
 describe("Designer: Audit report", () => {
-    const html = getIdeHtml();
-    const grab = (name: string) => {
-        const start = html.indexOf(`function ${name}(`);
-        expect(start).toBeGreaterThan(-1);
-        let depth = 0;
-        let end = html.indexOf("{", start);
-        for (; end < html.length; end++) {
-            if (html[end] === "{") depth++;
-            else if (html[end] === "}" && --depth === 0) break;
-        }
-        return html.slice(start, end + 1);
+  const html = getIdeHtml();
+  const grab = (name: string) => {
+    const start = html.indexOf(`function ${name}(`);
+    expect(start).toBeGreaterThan(-1);
+    let depth = 0;
+    let end = html.indexOf("{", start);
+    for (; end < html.length; end++) {
+      if (html[end] === "{") depth++;
+      else if (html[end] === "}" && --depth === 0) break;
+    }
+    return html.slice(start, end + 1);
+  };
+  // Built per call so a page without these functions fails the tests instead of breaking the whole file.
+  const collect = (spec: any): string[] =>
+    (
+      new Function(
+        `${grab("escapeHtml")}\n${grab("collectLayoutIssues")}\nreturn collectLayoutIssues;`,
+      )() as (s: any) => string[]
+    )(spec);
+  const ctl = (patch: object) => ({
+    id: "c",
+    control_type: "button",
+    x: 10,
+    y: 10,
+    width: 100,
+    height: 30,
+    text: "ok",
+    ...patch,
+  });
+  const form = (controls: any[], patch: object = {}) => ({
+    title: "T",
+    width: 400,
+    height: 300,
+    controls,
+    ...patch,
+  });
+
+  test("a tidy form has no findings", () => {
+    expect(collect(form([ctl({ id: "a" }), ctl({ id: "b", y: 100 })]))).toEqual(
+      [],
+    );
+  });
+
+  test("duplicate ids, right and bottom overflow, empty caption and overlap are still reported", () => {
+    const issues = collect(
+      form([
+        ctl({ id: "a" }),
+        ctl({ id: "a", x: 20, text: "" }),
+        ctl({ id: "wide", x: 350, y: 250, width: 100 }),
+      ]),
+    );
+    const text = issues.join("\n");
+    expect(text).toContain("Duplicate ID");
+    expect(text).toContain("exceeds form bounds (400x300)");
+    expect(text).toContain("Empty Caption");
+    expect(text).toContain("Overlap Detected");
+  });
+
+  test("a control that starts outside the form (negative position) is reported", () => {
+    const issues = collect(
+      form([ctl({ id: "left", x: -5 }), ctl({ id: "top", y: -1, x: 200 })]),
+    );
+    expect(issues.filter((i) => i.includes("negative position"))).toHaveLength(
+      2,
+    );
+  });
+
+  test("a control with no size is reported, including NaN and missing values", () => {
+    const issues = collect(
+      form([
+        ctl({ id: "zero", width: 0 }),
+        ctl({ id: "neg", height: -4, y: 100 }),
+        ctl({ id: "nan", width: NaN, y: 200 }),
+        ctl({ id: "none", width: undefined, y: 240 }),
+      ]),
+    );
+    expect(issues.filter((i) => i.includes("Invalid Size"))).toHaveLength(4);
+  });
+
+  test("panels may overlap what they contain", () => {
+    const issues = collect(
+      form([
+        ctl({ id: "p", control_type: "panel", width: 200, height: 200 }),
+        ctl({ id: "inside", x: 20, y: 20 }),
+      ]),
+    );
+    expect(issues.some((i) => i.includes("Overlap"))).toBe(false);
+  });
+
+  test("ids and numbers from the layout cannot inject markup into the report", () => {
+    const evil = '<img src=x onerror="alert(1)">';
+    const issues = collect(
+      form([
+        ctl({ id: evil, text: "" }),
+        ctl({ id: evil, x: 15 }),
+        ctl({ id: "&<>\"'", x: -3, y: 5, width: 0 }),
+      ]),
+    );
+    expect(issues.length).toBeGreaterThan(3);
+    for (const issue of issues) {
+      expect(issue).not.toMatch(/<img/i);
+      expect(issue.replace(/<\/?(b|code)>/g, "")).not.toMatch(/[<>]/);
+    }
+    expect(issues.join("")).toContain(
+      "&lt;img src=x onerror=&quot;alert(1)&quot;&gt;",
+    );
+  });
+
+  test("the report also escapes the form title", () => {
+    const show = grab("showDiagnosticsModal");
+    expect(show).toContain("escapeHtml(formSpec.title)");
+    expect(show).not.toMatch(/Form: " \+ formSpec\.title/);
+  });
+
+  test("Auto-fix pulls a negative position back inside the form and still fixes overflow and duplicates", () => {
+    const state: any = {
+      formSpec: {
+        width: 400,
+        height: 300,
+        controls: [
+          ctl({ id: "a", x: -8, y: -2 }),
+          ctl({ id: "a", x: 380, y: 10 }),
+          ctl({ id: "r", x: 10, y: 290 }),
+        ],
+      },
     };
-    // Built per call so a page without these functions fails the tests instead of breaking the whole file.
-    const collect = (spec: any): string[] => (new Function(`${grab("escapeHtml")}\n${grab("collectLayoutIssues")}\nreturn collectLayoutIssues;`)() as (s: any) => string[])(spec);
-    const ctl = (patch: object) => ({ id: "c", control_type: "button", x: 10, y: 10, width: 100, height: 30, text: "ok", ...patch });
-    const form = (controls: any[], patch: object = {}) => ({ title: "T", width: 400, height: 300, controls, ...patch });
-
-    test("a tidy form has no findings", () => {
-        expect(collect(form([ctl({ id: "a" }), ctl({ id: "b", y: 100 })]))).toEqual([]);
-    });
-
-    test("duplicate ids, right and bottom overflow, empty caption and overlap are still reported", () => {
-        const issues = collect(form([ctl({ id: "a" }), ctl({ id: "a", x: 20, text: "" }), ctl({ id: "wide", x: 350, y: 250, width: 100 })]));
-        const text = issues.join("\n");
-        expect(text).toContain("Duplicate ID");
-        expect(text).toContain("exceeds form bounds (400x300)");
-        expect(text).toContain("Empty Caption");
-        expect(text).toContain("Overlap Detected");
-    });
-
-    test("a control that starts outside the form (negative position) is reported", () => {
-        const issues = collect(form([ctl({ id: "left", x: -5 }), ctl({ id: "top", y: -1, x: 200 })]));
-        expect(issues.filter((i) => i.includes("negative position"))).toHaveLength(2);
-    });
-
-    test("a control with no size is reported, including NaN and missing values", () => {
-        const issues = collect(form([ctl({ id: "zero", width: 0 }), ctl({ id: "neg", height: -4, y: 100 }), ctl({ id: "nan", width: NaN, y: 200 }), ctl({ id: "none", width: undefined, y: 240 })]));
-        expect(issues.filter((i) => i.includes("Invalid Size"))).toHaveLength(4);
-    });
-
-    test("panels may overlap what they contain", () => {
-        const issues = collect(form([ctl({ id: "p", control_type: "panel", width: 200, height: 200 }), ctl({ id: "inside", x: 20, y: 20 })]));
-        expect(issues.some((i) => i.includes("Overlap"))).toBe(false);
-    });
-
-    test("ids and numbers from the layout cannot inject markup into the report", () => {
-        const evil = '<img src=x onerror="alert(1)">';
-        const issues = collect(form([ctl({ id: evil, text: "" }), ctl({ id: evil, x: 15 }), ctl({ id: "&<>\"'", x: -3, y: 5, width: 0 })]));
-        expect(issues.length).toBeGreaterThan(3);
-        for (const issue of issues) {
-            expect(issue).not.toMatch(/<img/i);
-            expect(issue.replace(/<\/?(b|code)>/g, "")).not.toMatch(/[<>]/);
-        }
-        expect(issues.join("")).toContain("&lt;img src=x onerror=&quot;alert(1)&quot;&gt;");
-    });
-
-    test("the report also escapes the form title", () => {
-        const show = grab("showDiagnosticsModal");
-        expect(show).toContain("escapeHtml(formSpec.title)");
-        expect(show).not.toMatch(/Form: " \+ formSpec\.title/);
-    });
-
-    test("Auto-fix pulls a negative position back inside the form and still fixes overflow and duplicates", () => {
-        const state: any = { formSpec: { width: 400, height: 300, controls: [ctl({ id: "a", x: -8, y: -2 }), ctl({ id: "a", x: 380, y: 10 }), ctl({ id: "r", x: 10, y: 290 })] } };
-        new Function("state", `let formSpec = state.formSpec; const saveHistoryState = () => {}, renderCanvas = () => {}, renderCode = () => {}, renderTree = () => {}, populateInspector = () => {}, showDiagnosticsModal = () => {};
-            const document = { getElementById: () => ({}) }; ${grab("autoFixLayoutIssues")}; autoFixLayoutIssues();`)(state);
-        const [a, dup, r] = state.formSpec.controls;
-        expect([a.x, a.y]).toEqual([0, 0]);
-        expect(dup.id).not.toBe("a");
-        expect(dup.x + dup.width).toBeLessThanOrEqual(380);
-        expect(r.y + r.height).toBeLessThanOrEqual(280);
-    });
+    new Function(
+      "state",
+      `let formSpec = state.formSpec; const saveHistoryState = () => {}, renderCanvas = () => {}, renderCode = () => {}, renderTree = () => {}, populateInspector = () => {}, showDiagnosticsModal = () => {};
+            const document = { getElementById: () => ({}) }; ${grab("autoFixLayoutIssues")}; autoFixLayoutIssues();`,
+    )(state);
+    const [a, dup, r] = state.formSpec.controls;
+    expect([a.x, a.y]).toEqual([0, 0]);
+    expect(dup.id).not.toBe("a");
+    expect(dup.x + dup.width).toBeLessThanOrEqual(380);
+    expect(r.y + r.height).toBeLessThanOrEqual(280);
+  });
 });
 
 describe("Designer: draft autosave and restore", () => {
-    const html = getIdeHtml();
-    const grab = (name: string, prefix = "") => {
-        const start = html.indexOf(`function ${name}(`);
-        expect(start).toBeGreaterThan(-1);
-        let depth = 0;
-        let end = html.indexOf("{", start);
-        for (; end < html.length; end++) {
-            if (html[end] === "{") depth++;
-            else if (html[end] === "}" && --depth === 0) break;
-        }
-        return prefix + html.slice(start, end + 1);
+  const html = getIdeHtml();
+  const grab = (name: string, prefix = "") => {
+    const start = html.indexOf(`function ${name}(`);
+    expect(start).toBeGreaterThan(-1);
+    let depth = 0;
+    let end = html.indexOf("{", start);
+    for (; end < html.length; end++) {
+      if (html[end] === "{") depth++;
+      else if (html[end] === "}" && --depth === 0) break;
+    }
+    return prefix + html.slice(start, end + 1);
+  };
+
+  const twoControls = {
+    title: "Saved form",
+    width: 800,
+    height: 600,
+    controls: [
+      { id: "a", control_type: "button", text: "x" },
+      { id: "b", control_type: "label", text: "y" },
+    ],
+  };
+
+  // Runs the real functions against the real page markup and a fake backend (or none).
+  function setup(
+    opts: { backend?: boolean; draft?: any; confirmAnswer?: boolean } = {},
+  ) {
+    const body = html.slice(
+      html.indexOf("<body"),
+      html.indexOf("<script>", html.indexOf("<body")),
+    );
+    const dom = new JSDOM(`<!DOCTYPE html>${body}</body>`);
+    const w = dom.window as any;
+    const log = {
+      saved: [] as string[],
+      cleared: 0,
+      history: 0,
+      confirms: [] as string[],
+      rendered: 0,
     };
-
-    const twoControls = { title: "Saved form", width: 800, height: 600, controls: [{ id: "a", control_type: "button", text: "x" }, { id: "b", control_type: "label", text: "y" }] };
-
-    // Runs the real functions against the real page markup and a fake backend (or none).
-    function setup(opts: { backend?: boolean; draft?: any; confirmAnswer?: boolean } = {}) {
-        const body = html.slice(html.indexOf("<body"), html.indexOf("<script>", html.indexOf("<body")));
-        const dom = new JSDOM(`<!DOCTYPE html>${body}</body>`);
-        const w = dom.window as any;
-        const log = { saved: [] as string[], cleared: 0, history: 0, confirms: [] as string[], rendered: 0 };
-        if (opts.backend !== false) {
-            w.loadDraft = async () => opts.draft ?? null;
-            w.saveDraft = async (json: string) => { log.saved.push(json); return { ok: true }; };
-            w.clearDraft = async () => { log.cleared++; return true; };
-        }
-        const src = [
-            grab("scheduleDraftSave"), grab("parseDraft"), grab("hideDraftBanner"), grab("offerDraftRestore", "async "),
-            grab("restoreDraft"), grab("discardDraft"), grab("normalizeImportedSpec"), grab("countImportedScripts"),
-        ].join("\n");
-        const api = new Function(
-            "window", "document", "log", "answer",
-            `let draftReady = false; let draftTimer = null; let pendingDraft = null;
+    if (opts.backend !== false) {
+      w.loadDraft = async () => opts.draft ?? null;
+      w.saveDraft = async (json: string) => {
+        log.saved.push(json);
+        return { ok: true };
+      };
+      w.clearDraft = async () => {
+        log.cleared++;
+        return true;
+      };
+    }
+    const src = [
+      grab("scheduleDraftSave"),
+      grab("parseDraft"),
+      grab("hideDraftBanner"),
+      grab("offerDraftRestore", "async "),
+      grab("restoreDraft"),
+      grab("discardDraft"),
+      grab("normalizeImportedSpec"),
+      grab("countImportedScripts"),
+    ].join("\n");
+    const api = new Function(
+      "window",
+      "document",
+      "log",
+      "answer",
+      `let draftReady = false; let draftTimer = null; let pendingDraft = null;
              let formSpec = { title: "Blank", width: 840, height: 560, controls: [] }; let selectedIndices = [3];
              const saveHistoryState = () => { log.history++; };
              const renderCanvas = () => { log.rendered++; }, renderCode = () => {}, renderTree = () => {}, populateInspector = () => {};
@@ -556,127 +844,172 @@ describe("Designer: draft autosave and restore", () => {
              ${src}
              return { scheduleDraftSave, offerDraftRestore, restoreDraft, discardDraft,
                       get ready() { return draftReady; }, get spec() { return formSpec; }, get pending() { return pendingDraft; } };`,
-        )(w, w.document, log, opts.confirmAnswer ?? true);
-        const banner = () => (w.document.getElementById("draftBanner") as any).style.display;
-        const draft = (spec: any, savedAt = "2026-10-13T20:00:00.000Z") => ({ savedAt, specJson: JSON.stringify(spec) });
-        return { w, doc: w.document, api, log, banner, draft };
+    )(w, w.document, log, opts.confirmAnswer ?? true);
+    const banner = () =>
+      (w.document.getElementById("draftBanner") as any).style.display;
+    const draft = (spec: any, savedAt = "2026-10-13T20:00:00.000Z") => ({
+      savedAt,
+      specJson: JSON.stringify(spec),
+    });
+    return { w, doc: w.document, api, log, banner, draft };
+  }
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  test("a usable draft shows the banner with its title and control count, and nothing is saved yet", async () => {
+    const s = setup({
+      draft: setup().draft({
+        ...twoControls,
+        title: "<img src=x onerror=alert(1)>",
+      }),
+    });
+    await s.api.offerDraftRestore();
+    expect(s.banner()).toBe("flex");
+    const text = s.doc.getElementById("draftBannerText")!.textContent!;
+    expect(text).toContain("2 controls");
+    expect(text).toContain("<img src=x onerror=alert(1)>");
+    expect(s.doc.querySelectorAll("#draftBannerText img")).toHaveLength(0);
+    expect(s.api.ready).toBe(false);
+    s.api.scheduleDraftSave();
+    await sleep(900);
+    expect(s.log.saved).toHaveLength(0);
+  });
+
+  test("no draft, an empty draft or a damaged draft: no banner and autosave starts", async () => {
+    for (const draft of [
+      null,
+      { savedAt: "", specJson: "{broken" },
+      {
+        savedAt: "",
+        specJson: JSON.stringify({ title: "Empty", controls: [] }),
+      },
+      { savedAt: "", specJson: JSON.stringify([1]) },
+      { savedAt: "", specJson: JSON.stringify({ controls: [{ id: "x" }] }) },
+    ]) {
+      const s = setup({ draft });
+      await s.api.offerDraftRestore();
+      expect(s.banner()).not.toBe("flex");
+      expect(s.api.ready).toBe(true);
     }
-    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  });
 
-    test("a usable draft shows the banner with its title and control count, and nothing is saved yet", async () => {
-        const s = setup({ draft: setup().draft({ ...twoControls, title: "<img src=x onerror=alert(1)>" }) });
-        await s.api.offerDraftRestore();
-        expect(s.banner()).toBe("flex");
-        const text = s.doc.getElementById("draftBannerText")!.textContent!;
-        expect(text).toContain("2 controls");
-        expect(text).toContain("<img src=x onerror=alert(1)>");
-        expect(s.doc.querySelectorAll("#draftBannerText img")).toHaveLength(0);
-        expect(s.api.ready).toBe(false);
-        s.api.scheduleDraftSave();
-        await sleep(900);
-        expect(s.log.saved).toHaveLength(0);
+  test("Restore replaces the form, records undo history, hides the banner and starts autosave", async () => {
+    const s = setup({ draft: setup().draft(twoControls) });
+    await s.api.offerDraftRestore();
+    s.api.restoreDraft();
+    expect(s.api.spec.title).toBe("Saved form");
+    expect(s.api.spec.controls.map((c: any) => c.id)).toEqual(["a", "b"]);
+    expect(s.log.history).toBe(1);
+    expect(s.banner()).toBe("none");
+    expect(s.api.ready).toBe(true);
+    expect((s.doc.getElementById("propFormTitle") as any).value).toBe(
+      "Saved form",
+    );
+    s.api.scheduleDraftSave();
+    await sleep(900);
+    expect(s.log.saved).toHaveLength(1);
+    expect(JSON.parse(s.log.saved[0]!).controls).toHaveLength(2);
+  });
+
+  test("a draft with event scripts asks first; saying no leaves the form and the banner alone", async () => {
+    const withScript = {
+      ...twoControls,
+      controls: [
+        {
+          id: "a",
+          control_type: "button",
+          event_handlers: { onClick: "alert(1)" },
+        },
+      ],
+    };
+    const no = setup({
+      draft: setup().draft(withScript),
+      confirmAnswer: false,
     });
+    await no.api.offerDraftRestore();
+    no.api.restoreDraft();
+    expect(no.log.confirms).toHaveLength(1);
+    expect(no.log.confirms[0]).toContain("1 event handler script");
+    expect(no.api.spec.title).toBe("Blank");
+    expect(no.banner()).toBe("flex");
+    expect(no.api.ready).toBe(false);
 
-    test("no draft, an empty draft or a damaged draft: no banner and autosave starts", async () => {
-        for (const draft of [null, { savedAt: "", specJson: "{broken" }, { savedAt: "", specJson: JSON.stringify({ title: "Empty", controls: [] }) }, { savedAt: "", specJson: JSON.stringify([1]) }, { savedAt: "", specJson: JSON.stringify({ controls: [{ id: "x" }] }) }]) {
-            const s = setup({ draft });
-            await s.api.offerDraftRestore();
-            expect(s.banner()).not.toBe("flex");
-            expect(s.api.ready).toBe(true);
-        }
+    const yes = setup({
+      draft: setup().draft(withScript),
+      confirmAnswer: true,
     });
+    await yes.api.offerDraftRestore();
+    yes.api.restoreDraft();
+    expect(yes.api.spec.controls).toHaveLength(1);
+  });
 
-    test("Restore replaces the form, records undo history, hides the banner and starts autosave", async () => {
-        const s = setup({ draft: setup().draft(twoControls) });
-        await s.api.offerDraftRestore();
-        s.api.restoreDraft();
-        expect(s.api.spec.title).toBe("Saved form");
-        expect(s.api.spec.controls.map((c: any) => c.id)).toEqual(["a", "b"]);
-        expect(s.log.history).toBe(1);
-        expect(s.banner()).toBe("none");
-        expect(s.api.ready).toBe(true);
-        expect((s.doc.getElementById("propFormTitle") as any).value).toBe("Saved form");
-        s.api.scheduleDraftSave();
-        await sleep(900);
-        expect(s.log.saved).toHaveLength(1);
-        expect(JSON.parse(s.log.saved[0]!).controls).toHaveLength(2);
-    });
+  test("Discard deletes the draft, hides the banner and starts autosave", async () => {
+    const s = setup({ draft: setup().draft(twoControls) });
+    await s.api.offerDraftRestore();
+    s.api.discardDraft();
+    expect(s.log.cleared).toBe(1);
+    expect(s.banner()).toBe("none");
+    expect(s.api.ready).toBe(true);
+    expect(s.api.spec.title).toBe("Blank");
+  });
 
-    test("a draft with event scripts asks first; saying no leaves the form and the banner alone", async () => {
-        const withScript = { ...twoControls, controls: [{ id: "a", control_type: "button", event_handlers: { onClick: "alert(1)" } }] };
-        const no = setup({ draft: setup().draft(withScript), confirmAnswer: false });
-        await no.api.offerDraftRestore();
-        no.api.restoreDraft();
-        expect(no.log.confirms).toHaveLength(1);
-        expect(no.log.confirms[0]).toContain("1 event handler script");
-        expect(no.api.spec.title).toBe("Blank");
-        expect(no.banner()).toBe("flex");
-        expect(no.api.ready).toBe(false);
+  test("changes are saved after a short pause, and a burst of changes becomes one save", async () => {
+    const s = setup({ draft: null });
+    await s.api.offerDraftRestore();
+    for (let i = 0; i < 5; i++) s.api.scheduleDraftSave();
+    expect(s.log.saved).toHaveLength(0);
+    await sleep(1000);
+    expect(s.log.saved).toHaveLength(1);
+  });
 
-        const yes = setup({ draft: setup().draft(withScript), confirmAnswer: true });
-        await yes.api.offerDraftRestore();
-        yes.api.restoreDraft();
-        expect(yes.api.spec.controls).toHaveLength(1);
-    });
+  test("in a plain browser (no backend) nothing is shown, saved or broken", async () => {
+    const s = setup({ backend: false });
+    await s.api.offerDraftRestore();
+    s.api.scheduleDraftSave();
+    s.api.discardDraft();
+    expect(s.banner()).not.toBe("flex");
+    expect(s.log.saved).toHaveLength(0);
+  });
 
-    test("Discard deletes the draft, hides the banner and starts autosave", async () => {
-        const s = setup({ draft: setup().draft(twoControls) });
-        await s.api.offerDraftRestore();
-        s.api.discardDraft();
-        expect(s.log.cleared).toBe(1);
-        expect(s.banner()).toBe("none");
-        expect(s.api.ready).toBe(true);
-        expect(s.api.spec.title).toBe("Blank");
-    });
-
-    test("changes are saved after a short pause, and a burst of changes becomes one save", async () => {
-        const s = setup({ draft: null });
-        await s.api.offerDraftRestore();
-        for (let i = 0; i < 5; i++) s.api.scheduleDraftSave();
-        expect(s.log.saved).toHaveLength(0);
-        await sleep(1000);
-        expect(s.log.saved).toHaveLength(1);
-    });
-
-    test("in a plain browser (no backend) nothing is shown, saved or broken", async () => {
-        const s = setup({ backend: false });
-        await s.api.offerDraftRestore();
-        s.api.scheduleDraftSave();
-        s.api.discardDraft();
-        expect(s.banner()).not.toBe("flex");
-        expect(s.log.saved).toHaveLength(0);
-    });
-
-    test("the page saves on every render and offers the restore right after the first render", () => {
-        const renderCode = html.slice(html.indexOf("function renderCode() {"));
-        expect(renderCode.slice(0, 120)).toContain("scheduleDraftSave();");
-        const init = html.slice(html.indexOf("function initDesignerApp()"));
-        expect(init.indexOf("renderTree();")).toBeLessThan(init.indexOf("offerDraftRestore();"));
-        expect(init.indexOf("offerDraftRestore();")).toBeLessThan(init.indexOf("inspector.addEventListener"));
-    });
+  test("the page saves on every render and offers the restore right after the first render", () => {
+    const renderCode = html.slice(html.indexOf("function renderCode() {"));
+    expect(renderCode.slice(0, 120)).toContain("scheduleDraftSave();");
+    const init = html.slice(html.indexOf("function initDesignerApp()"));
+    expect(init.indexOf("renderTree();")).toBeLessThan(
+      init.indexOf("offerDraftRestore();"),
+    );
+    expect(init.indexOf("offerDraftRestore();")).toBeLessThan(
+      init.indexOf("inspector.addEventListener"),
+    );
+  });
 });
 
 describe("Designer: placing and resizing without a mouse", () => {
-    const html = getIdeHtml();
-    const grab = (name: string) => {
-        const start = html.indexOf(`function ${name}(`);
-        expect(start).toBeGreaterThan(-1);
-        let depth = 0;
-        let end = html.indexOf("{", start);
-        for (; end < html.length; end++) {
-            if (html[end] === "{") depth++;
-            else if (html[end] === "}" && --depth === 0) break;
-        }
-        return html.slice(start, end + 1);
-    };
+  const html = getIdeHtml();
+  const grab = (name: string) => {
+    const start = html.indexOf(`function ${name}(`);
+    expect(start).toBeGreaterThan(-1);
+    let depth = 0;
+    let end = html.indexOf("{", start);
+    for (; end < html.length; end++) {
+      if (html[end] === "{") depth++;
+      else if (html[end] === "}" && --depth === 0) break;
+    }
+    return html.slice(start, end + 1);
+  };
 
-    // Runs the real functions against a small fake page state.
-    function world(controls: any[], formHeight = 560) {
-        const state: any = { formSpec: { height: formHeight, controls: [...controls] }, selectedIndices: [], status: "", cancelled: 0, snapshots: 0 };
-        const body = `${grab("resizeSelectedControlsBy")}; ${grab("placeControlWithKeyboard")}; return { resizeSelectedControlsBy, placeControlWithKeyboard };`;
-        const api = new Function(
-            "w",
-            `const document = { getElementById: () => w.statusEl };
+  // Runs the real functions against a small fake page state.
+  function world(controls: any[], formHeight = 560) {
+    const state: any = {
+      formSpec: { height: formHeight, controls: [...controls] },
+      selectedIndices: [],
+      status: "",
+      cancelled: 0,
+      snapshots: 0,
+    };
+    const body = `${grab("resizeSelectedControlsBy")}; ${grab("placeControlWithKeyboard")}; return { resizeSelectedControlsBy, placeControlWithKeyboard };`;
+    const api = new Function(
+      "w",
+      `const document = { getElementById: () => w.statusEl };
              let formSpec = w.formSpec; let selectedIndices = w.selectedIndices;
              const saveHistoryState = () => { w.snapshots++; };
              const renderCanvas = () => {}, renderCode = () => {}, renderTree = () => {}, populateInspector = () => {};
@@ -684,553 +1017,804 @@ describe("Designer: placing and resizing without a mouse", () => {
              const placeControlAt = (type, x, y) => { formSpec.controls.push({ id: type + "_" + (formSpec.controls.length + 1), control_type: type, x, y, width: 150, height: 36 }); selectedIndices = [formSpec.controls.length - 1]; w.selectedIndices = selectedIndices; };
              Object.defineProperty(w, "sel", { get: () => selectedIndices, set: (v) => { selectedIndices = v; } });
              ${body}`,
-        )({ ...state, get formSpec() { return state.formSpec; }, statusEl: { set textContent(v: string) { state.status = v; }, get textContent() { return state.status; } }, selectedIndices: state.selectedIndices, snapshots: 0, cancelled: 0 });
-        return { api, state };
+    )({
+      ...state,
+      get formSpec() {
+        return state.formSpec;
+      },
+      statusEl: {
+        set textContent(v: string) {
+          state.status = v;
+        },
+        get textContent() {
+          return state.status;
+        },
+      },
+      selectedIndices: state.selectedIndices,
+      snapshots: 0,
+      cancelled: 0,
+    });
+    return { api, state };
+  }
+
+  test("keyboard placement drops the first control near the top-left and cancels placement mode", () => {
+    const { api, state } = world([]);
+    api.placeControlWithKeyboard("button");
+    expect(state.formSpec.controls).toEqual([
+      expect.objectContaining({ control_type: "button", x: 16, y: 16 }),
+    ]);
+  });
+
+  test("each following control goes below the lowest existing one", () => {
+    const { api, state } = world([
+      { id: "a", x: 16, y: 16, width: 150, height: 36 },
+      { id: "b", x: 300, y: 100, width: 80, height: 30 },
+    ]);
+    api.placeControlWithKeyboard("label");
+    const placed = state.formSpec.controls.at(-1);
+    expect(placed).toMatchObject({ x: 16, y: 138 });
+    expect(state.status).toContain("Placed label control");
+    expect(state.status).toContain("Alt + arrow keys resize");
+  });
+
+  test("a control placed near the bottom stays inside the form", () => {
+    const { api, state } = world(
+      [{ id: "a", x: 0, y: 500, width: 100, height: 40 }],
+      560,
+    );
+    api.placeControlWithKeyboard("button");
+    expect(state.formSpec.controls.at(-1).y).toBeLessThanOrEqual(560 - 44);
+  });
+
+  test("resizing changes the selection, never below 8px, and skips locked controls", () => {
+    const { api, state } = world([
+      { id: "a", x: 0, y: 0, width: 20, height: 20 },
+      { id: "b", x: 0, y: 0, width: 50, height: 50, locked: true },
+    ]);
+    const w = state;
+    w.selectedIndices.push(0, 1);
+    api.resizeSelectedControlsBy(5, -30);
+    expect(state.formSpec.controls[0]).toMatchObject({ width: 25, height: 8 });
+    expect(state.formSpec.controls[1]).toMatchObject({ width: 50, height: 50 });
+    expect(state.status).toBe("Resized 2 control(s) by keyboard.");
+  });
+
+  test("resizing with nothing selected does nothing", () => {
+    const { api, state } = world([
+      { id: "a", x: 0, y: 0, width: 20, height: 20 },
+    ]);
+    api.resizeSelectedControlsBy(5, 5);
+    expect(state.formSpec.controls[0]).toMatchObject({ width: 20, height: 20 });
+  });
+
+  test("the page's keyboard handler and Keys dialog cover Alt + arrow resizing and keyboard placement", () => {
+    for (const key of ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"]) {
+      expect(html).toContain(`e.altKey && e.key === "${key}"`);
     }
+    const keys = html.slice(
+      html.indexOf('id="hotkeysModal"'),
+      html.indexOf('id="hotkeysModal"') + 6000,
+    );
+    expect(keys).toContain("Alt + Arrows");
+    expect(keys).toContain("Place that control without the mouse");
+  });
 
-    test("keyboard placement drops the first control near the top-left and cancels placement mode", () => {
-        const { api, state } = world([]);
-        api.placeControlWithKeyboard("button");
-        expect(state.formSpec.controls).toEqual([expect.objectContaining({ control_type: "button", x: 16, y: 16 })]);
-    });
-
-    test("each following control goes below the lowest existing one", () => {
-        const { api, state } = world([{ id: "a", x: 16, y: 16, width: 150, height: 36 }, { id: "b", x: 300, y: 100, width: 80, height: 30 }]);
-        api.placeControlWithKeyboard("label");
-        const placed = state.formSpec.controls.at(-1);
-        expect(placed).toMatchObject({ x: 16, y: 138 });
-        expect(state.status).toContain("Placed label control");
-        expect(state.status).toContain("Alt + arrow keys resize");
-    });
-
-    test("a control placed near the bottom stays inside the form", () => {
-        const { api, state } = world([{ id: "a", x: 0, y: 500, width: 100, height: 40 }], 560);
-        api.placeControlWithKeyboard("button");
-        expect(state.formSpec.controls.at(-1).y).toBeLessThanOrEqual(560 - 44);
-    });
-
-    test("resizing changes the selection, never below 8px, and skips locked controls", () => {
-        const { api, state } = world([{ id: "a", x: 0, y: 0, width: 20, height: 20 }, { id: "b", x: 0, y: 0, width: 50, height: 50, locked: true }]);
-        const w = state;
-        w.selectedIndices.push(0, 1);
-        api.resizeSelectedControlsBy(5, -30);
-        expect(state.formSpec.controls[0]).toMatchObject({ width: 25, height: 8 });
-        expect(state.formSpec.controls[1]).toMatchObject({ width: 50, height: 50 });
-        expect(state.status).toBe("Resized 2 control(s) by keyboard.");
-    });
-
-    test("resizing with nothing selected does nothing", () => {
-        const { api, state } = world([{ id: "a", x: 0, y: 0, width: 20, height: 20 }]);
-        api.resizeSelectedControlsBy(5, 5);
-        expect(state.formSpec.controls[0]).toMatchObject({ width: 20, height: 20 });
-    });
-
-    test("the page's keyboard handler and Keys dialog cover Alt + arrow resizing and keyboard placement", () => {
-        for (const key of ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"]) {
-            expect(html).toContain(`e.altKey && e.key === "${key}"`);
-        }
-        const keys = html.slice(html.indexOf('id="hotkeysModal"'), html.indexOf('id="hotkeysModal"') + 6000);
-        expect(keys).toContain("Alt + Arrows");
-        expect(keys).toContain("Place that control without the mouse");
-    });
-
-    test("palette items armed from the keyboard place straight away; mouse activation still waits for a canvas click", () => {
-        const handler = html.slice(html.indexOf("function makeClickablesKeyboardOperable"), html.indexOf("function initDesignerApp"));
-        expect(handler).toMatch(/el\.click\(\);[\s\S]*placeControlWithKeyboard\(placementType\)/);
-        // The mouse path (spawnControl -> enterPlacementMode) is untouched.
-        expect(html).toContain("function spawnControl(type) {");
-        expect(grab("spawnControl")).toContain("enterPlacementMode(type)");
-        expect(grab("spawnControl")).not.toContain("placeControlWithKeyboard");
-    });
+  test("palette items armed from the keyboard place straight away; mouse activation still waits for a canvas click", () => {
+    const handler = html.slice(
+      html.indexOf("function makeClickablesKeyboardOperable"),
+      html.indexOf("function initDesignerApp"),
+    );
+    expect(handler).toMatch(
+      /el\.click\(\);[\s\S]*placeControlWithKeyboard\(placementType\)/,
+    );
+    // The mouse path (spawnControl -> enterPlacementMode) is untouched.
+    expect(html).toContain("function spawnControl(type) {");
+    expect(grab("spawnControl")).toContain("enterPlacementMode(type)");
+    expect(grab("spawnControl")).not.toContain("placeControlWithKeyboard");
+  });
 });
 
 describe("Exported project (regression for nested template literals)", () => {
-    const dirs: string[] = [];
-    afterAll(() => dirs.forEach((d) => rmSync(d, { recursive: true, force: true })));
+  const dirs: string[] = [];
+  afterAll(() =>
+    dirs.forEach((d) => rmSync(d, { recursive: true, force: true })),
+  );
 
-    const spec = JSON.stringify({
-        title: "Export check",
-        width: 400,
-        height: 300,
-        background_color: "#ffffff",
-        font_color: "#000000",
-        padding: 10,
-        spacing: 5,
-        controls: [
-            { id: "b1", control_type: "button", x: 10, y: 10, width: 100, height: 30, text: "Hi", event_handlers: { onClick: "doHi" } },
-        ],
-    });
+  const spec = JSON.stringify({
+    title: "Export check",
+    width: 400,
+    height: 300,
+    background_color: "#ffffff",
+    font_color: "#000000",
+    padding: 10,
+    spacing: 5,
+    controls: [
+      {
+        id: "b1",
+        control_type: "button",
+        x: 10,
+        y: 10,
+        width: 100,
+        height: 30,
+        text: "Hi",
+        event_handlers: { onClick: "doHi" },
+      },
+    ],
+  });
 
-    function exportToTemp() {
-        const dir = mkdtempSync(join(tmpdir(), "rad-export-"));
-        dirs.push(dir);
-        const result = exportProjectHelper(spec, dir);
-        expect(result.success).toBe(true);
-        return dir;
+  function exportToTemp() {
+    const dir = mkdtempSync(join(tmpdir(), "rad-export-"));
+    dirs.push(dir);
+    const result = exportProjectHelper(spec, dir);
+    expect(result.success).toBe(true);
+    return dir;
+  }
+
+  test("writes index.html, index.ts and package.json", () => {
+    const dir = exportToTemp();
+    for (const f of ["index.html", "index.ts", "package.json"]) {
+      expect(readFileSync(join(dir, f), "utf-8").length).toBeGreaterThan(0);
     }
+  });
 
-    test("writes index.html, index.ts and package.json", () => {
-        const dir = exportToTemp();
-        for (const f of ["index.html", "index.ts", "package.json"]) {
-            expect(readFileSync(join(dir, f), "utf-8").length).toBeGreaterThan(0);
-        }
-    });
+  test("exported index.ts is syntactically valid TypeScript", () => {
+    const dir = exportToTemp();
+    const source = readFileSync(join(dir, "index.ts"), "utf-8");
+    expect(() =>
+      new Bun.Transpiler({ loader: "ts" }).transformSync(source),
+    ).not.toThrow();
+  });
 
-    test("exported index.ts is syntactically valid TypeScript", () => {
-        const dir = exportToTemp();
-        const source = readFileSync(join(dir, "index.ts"), "utf-8");
-        expect(() => new Bun.Transpiler({ loader: "ts" }).transformSync(source)).not.toThrow();
-    });
-
-    test("exported helpers send syntactically valid JavaScript to the page", async () => {
-        const dir = exportToTemp();
-        // Stand-in for the native webview so the generated app can run headlessly.
-        const fakeDir = join(dir, "node_modules", "webview-bun");
-        Bun.spawnSync(["mkdir", "-p", fakeDir]);
-        await Bun.write(join(fakeDir, "package.json"), JSON.stringify({ name: "webview-bun", main: "index.js" }));
-        await Bun.write(
-            join(fakeDir, "index.js"),
-            `export const SizeHint = { NONE: 0 };
+  test("exported helpers send syntactically valid JavaScript to the page", async () => {
+    const dir = exportToTemp();
+    // Stand-in for the native webview so the generated app can run headlessly.
+    const fakeDir = join(dir, "node_modules", "webview-bun");
+    Bun.spawnSync(["mkdir", "-p", fakeDir]);
+    await Bun.write(
+      join(fakeDir, "package.json"),
+      JSON.stringify({ name: "webview-bun", main: "index.js" }),
+    );
+    await Bun.write(
+      join(fakeDir, "index.js"),
+      `export const SizeHint = { NONE: 0 };
 export class Webview {
   constructor() { (globalThis.__evals = globalThis.__evals || []); }
   setHTML() {} bind() {} run() {} destroy() {} navigate() {} init() {}
   eval(code) { globalThis.__evals.push(code); }
 }`,
-        );
-        const mod = await import(join(dir, "index.ts"));
-        (globalThis as any).__evals = [];
-        mod.setTimelineSteps("t1", "One, Two, Three");
-        mod.setBreadcrumbs("b1", "Home, Docs, Page");
-        mod.setTreeNodes("tree1", "Root, Child");
-        mod.setAvatarGroup("av1", "AB, CD, +3");
-        expect((globalThis as any).__evals.length).toBe(4);
-        for (const code of (globalThis as any).__evals) {
-            expect(() => new Function(code)).not.toThrow();
-        }
-    });
+    );
+    const mod = await import(join(dir, "index.ts"));
+    (globalThis as any).__evals = [];
+    mod.setTimelineSteps("t1", "One, Two, Three");
+    mod.setBreadcrumbs("b1", "Home, Docs, Page");
+    mod.setTreeNodes("tree1", "Root, Child");
+    mod.setAvatarGroup("av1", "AB, CD, +3");
+    expect((globalThis as any).__evals.length).toBe(4);
+    for (const code of (globalThis as any).__evals) {
+      expect(() => new Function(code)).not.toThrow();
+    }
+  });
 });
 
 describe("Exported project: a crafted layout cannot inject code", () => {
-    const dirs: string[] = [];
-    afterAll(() => dirs.forEach((d) => rmSync(d, { recursive: true, force: true })));
+  const dirs: string[] = [];
+  afterAll(() =>
+    dirs.forEach((d) => rmSync(d, { recursive: true, force: true })),
+  );
 
-    test("tsStringLiteral and safeDimension", () => {
-        for (const text of ['plain', 'a"b', "a\\", "line\nbreak", "\u2028", "</script>", '"; evil(); //']) {
-            expect(eval(tsStringLiteral(text))).toBe(text);
-        }
-        expect(tsStringLiteral(undefined)).toBe('""');
-        expect(safeDimension(640, 800)).toBe(640);
-        expect(safeDimension("640", 800)).toBe(640);
-        for (const bad of ["400, x: 1", NaN, -5, 0, Infinity, null, undefined, {}, 1e9]) expect(safeDimension(bad, 800)).toBe(800);
-    });
+  test("tsStringLiteral and safeDimension", () => {
+    for (const text of [
+      "plain",
+      'a"b',
+      "a\\",
+      "line\nbreak",
+      "\u2028",
+      "</script>",
+      '"; evil(); //',
+    ]) {
+      expect(eval(tsStringLiteral(text))).toBe(text);
+    }
+    expect(tsStringLiteral(undefined)).toBe('""');
+    expect(safeDimension(640, 800)).toBe(640);
+    expect(safeDimension("640", 800)).toBe(640);
+    for (const bad of [
+      "400, x: 1",
+      NaN,
+      -5,
+      0,
+      Infinity,
+      null,
+      undefined,
+      {},
+      1e9,
+    ])
+      expect(safeDimension(bad, 800)).toBe(800);
+  });
 
-    const attacks: Record<string, any> = {
-        title: { title: 'x"; globalThis.PWNED_TITLE = 1; //' },
-        titleBackslash: { title: "x\\" },
-        titleNewline: { title: "a\nglobalThis.PWNED_NL = 1;\n//" },
-        width: { width: "400, hint: 0 }; globalThis.PWNED_WIDTH = 1; //" },
-        height: { height: "300 }; globalThis.PWNED_HEIGHT = 1; //" },
-        controlId: { controls: [{ id: 'a"+(globalThis.PWNED_ID=1)+"', control_type: "button", text: "b", event_handlers: { onClick: "doIt" } }] },
-        eventName: { controls: [{ id: "a", control_type: "button", text: "b", event_handlers: { 'onClick"+(globalThis.PWNED_EVT=1)+"': "doIt" } }] },
-    };
+  const attacks: Record<string, any> = {
+    title: { title: 'x"; globalThis.PWNED_TITLE = 1; //' },
+    titleBackslash: { title: "x\\" },
+    titleNewline: { title: "a\nglobalThis.PWNED_NL = 1;\n//" },
+    width: { width: "400, hint: 0 }; globalThis.PWNED_WIDTH = 1; //" },
+    height: { height: "300 }; globalThis.PWNED_HEIGHT = 1; //" },
+    controlId: {
+      controls: [
+        {
+          id: 'a"+(globalThis.PWNED_ID=1)+"',
+          control_type: "button",
+          text: "b",
+          event_handlers: { onClick: "doIt" },
+        },
+      ],
+    },
+    eventName: {
+      controls: [
+        {
+          id: "a",
+          control_type: "button",
+          text: "b",
+          event_handlers: { 'onClick"+(globalThis.PWNED_EVT=1)+"': "doIt" },
+        },
+      ],
+    },
+  };
 
-    for (const [name, patch] of Object.entries(attacks)) {
-        test(`${name}: the exported app only treats it as data`, async () => {
-            const dir = mkdtempSync(join(tmpdir(), "rad-inject-"));
-            dirs.push(dir);
-            const spec = { title: "T", width: 400, height: 300, background_color: "#fff", font_color: "#000", padding: 10, spacing: 5, controls: [], ...patch };
-            expect(exportProjectHelper(JSON.stringify(spec), dir).success).toBe(true);
-            const fakeDir = join(dir, "node_modules", "webview-bun");
-            Bun.spawnSync(["mkdir", "-p", fakeDir]);
-            await Bun.write(join(fakeDir, "package.json"), JSON.stringify({ name: "webview-bun", main: "index.js" }));
-            await Bun.write(
-                join(fakeDir, "index.js"),
-                `export const SizeHint = { NONE: 0 };
+  for (const [name, patch] of Object.entries(attacks)) {
+    test(`${name}: the exported app only treats it as data`, async () => {
+      const dir = mkdtempSync(join(tmpdir(), "rad-inject-"));
+      dirs.push(dir);
+      const spec = {
+        title: "T",
+        width: 400,
+        height: 300,
+        background_color: "#fff",
+        font_color: "#000",
+        padding: 10,
+        spacing: 5,
+        controls: [],
+        ...patch,
+      };
+      expect(exportProjectHelper(JSON.stringify(spec), dir).success).toBe(true);
+      const fakeDir = join(dir, "node_modules", "webview-bun");
+      Bun.spawnSync(["mkdir", "-p", fakeDir]);
+      await Bun.write(
+        join(fakeDir, "package.json"),
+        JSON.stringify({ name: "webview-bun", main: "index.js" }),
+      );
+      await Bun.write(
+        join(fakeDir, "index.js"),
+        `export const SizeHint = { NONE: 0 };
 export class Webview {
   constructor() { globalThis.__wv = this; this.binds = {}; }
   setHTML() {} run() {} destroy() {} eval() {} navigate() {} init() {}
   bind(name, fn) { this.binds[name] = fn; }
 }`,
-            );
-            const script = `await import(${JSON.stringify(join(dir, "index.ts"))});
+      );
+      const script = `await import(${JSON.stringify(join(dir, "index.ts"))});
 if (globalThis.__wv.binds.doIt) globalThis.__wv.binds.doIt("x");
 console.log(JSON.stringify({ title: globalThis.__wv.title, size: globalThis.__wv.size, pwned: Object.keys(globalThis).filter((k) => k.startsWith("PWNED")) }));`;
-            const r = Bun.spawnSync([process.execPath, "-e", script], { cwd: dir, stdout: "pipe", stderr: "pipe" });
-            const line = r.stdout.toString().split("\n").find((l) => l.startsWith("{"));
-            expect(line, r.stdout.toString() + r.stderr.toString()).toBeDefined();
-            const seen = JSON.parse(line!);
-            expect(seen.pwned).toEqual([]);
-            if ("title" in patch) expect(seen.title).toBe(patch.title);
-            if ("width" in patch) expect(seen.size.width).toBe(800);
-            if ("height" in patch) expect(seen.size.height).toBe(600);
-        });
-    }
+      const r = Bun.spawnSync([process.execPath, "-e", script], {
+        cwd: dir,
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      const line = r.stdout
+        .toString()
+        .split("\n")
+        .find((l) => l.startsWith("{"));
+      expect(line, r.stdout.toString() + r.stderr.toString()).toBeDefined();
+      const seen = JSON.parse(line!);
+      expect(seen.pwned).toEqual([]);
+      if ("title" in patch) expect(seen.title).toBe(patch.title);
+      if ("width" in patch) expect(seen.size.width).toBe(800);
+      if ("height" in patch) expect(seen.size.height).toBe(600);
+    });
+  }
 });
 
 describe("Export keeps the user's edits", () => {
-    const dirs: string[] = [];
-    afterAll(() => dirs.forEach((d) => rmSync(d, { recursive: true, force: true })));
-    const spec = (title: string) => JSON.stringify({ title, width: 400, height: 300, background_color: "#fff", font_color: "#000", padding: 10, spacing: 5, controls: [] });
-    const fresh = () => {
-        const d = mkdtempSync(join(tmpdir(), "rad-backup-"));
-        dirs.push(d);
-        return d;
-    };
-
-    test("a first export creates no backups", () => {
-        const dir = fresh();
-        const r = exportProjectHelper(spec("A"), dir);
-        expect(r.success).toBe(true);
-        expect(r.backups).toEqual([]);
-        expect(readdirSync(dir).sort()).toEqual(["index.html", "index.ts", "package.json"]);
+  const dirs: string[] = [];
+  afterAll(() =>
+    dirs.forEach((d) => rmSync(d, { recursive: true, force: true })),
+  );
+  const spec = (title: string) =>
+    JSON.stringify({
+      title,
+      width: 400,
+      height: 300,
+      background_color: "#fff",
+      font_color: "#000",
+      padding: 10,
+      spacing: 5,
+      controls: [],
     });
+  const fresh = () => {
+    const d = mkdtempSync(join(tmpdir(), "rad-backup-"));
+    dirs.push(d);
+    return d;
+  };
 
-    test("exporting the same layout again changes nothing and creates no backups", () => {
-        const dir = fresh();
-        exportProjectHelper(spec("A"), dir);
-        const r = exportProjectHelper(spec("A"), dir);
-        expect(r.backups).toEqual([]);
-        expect(readdirSync(dir).length).toBe(3);
-    });
+  test("a first export creates no backups", () => {
+    const dir = fresh();
+    const r = exportProjectHelper(spec("A"), dir);
+    expect(r.success).toBe(true);
+    expect(r.backups).toEqual([]);
+    expect(readdirSync(dir).sort()).toEqual([
+      "index.html",
+      "index.ts",
+      "package.json",
+    ]);
+  });
 
-    test("a file the user edited is kept as a backup before it is replaced", () => {
-        const dir = fresh();
-        exportProjectHelper(spec("A"), dir);
-        writeFileSync(join(dir, "index.ts"), "// my own handler code\n");
-        const r = exportProjectHelper(spec("A"), dir);
-        expect(r.success).toBe(true);
-        expect(r.backups!.length).toBe(1);
-        expect(readFileSync(r.backups![0]!, "utf-8")).toBe("// my own handler code\n");
-        expect(readFileSync(join(dir, "index.ts"), "utf-8")).toContain("webview-bun");
-    });
+  test("exporting the same layout again changes nothing and creates no backups", () => {
+    const dir = fresh();
+    exportProjectHelper(spec("A"), dir);
+    const r = exportProjectHelper(spec("A"), dir);
+    expect(r.backups).toEqual([]);
+    expect(readdirSync(dir).length).toBe(3);
+  });
 
-    test("a changed layout keeps the previous generated files too", () => {
-        const dir = fresh();
-        exportProjectHelper(spec("First"), dir);
-        const r = exportProjectHelper(spec("Second"), dir);
-        expect(r.backups!.length).toBeGreaterThanOrEqual(2);
-        expect(readFileSync(join(dir, "index.html"), "utf-8")).toContain("Second");
-    });
+  test("a file the user edited is kept as a backup before it is replaced", () => {
+    const dir = fresh();
+    exportProjectHelper(spec("A"), dir);
+    writeFileSync(join(dir, "index.ts"), "// my own handler code\n");
+    const r = exportProjectHelper(spec("A"), dir);
+    expect(r.success).toBe(true);
+    expect(r.backups!.length).toBe(1);
+    expect(readFileSync(r.backups![0]!, "utf-8")).toBe(
+      "// my own handler code\n",
+    );
+    expect(readFileSync(join(dir, "index.ts"), "utf-8")).toContain(
+      "webview-bun",
+    );
+  });
+
+  test("a changed layout keeps the previous generated files too", () => {
+    const dir = fresh();
+    exportProjectHelper(spec("First"), dir);
+    const r = exportProjectHelper(spec("Second"), dir);
+    expect(r.backups!.length).toBeGreaterThanOrEqual(2);
+    expect(readFileSync(join(dir, "index.html"), "utf-8")).toContain("Second");
+  });
 });
 
 describe("Run: the live preview script", () => {
-    const dirs: string[] = [];
-    afterAll(() => dirs.forEach((d) => rmSync(d, { recursive: true, force: true })));
-    const make = (patch: object = {}) => {
-        const cwd = mkdtempSync(join(tmpdir(), "rad-preview-"));
-        dirs.push(cwd);
-        const spec = { title: "Preview me", width: 420, height: 310, background_color: "#fff", font_color: "#000", padding: 10, spacing: 5, controls: [], ...patch };
-        const result = runPreviewHelper(JSON.stringify(spec), { cwd, start: false });
-        return { cwd, result };
+  const dirs: string[] = [];
+  afterAll(() =>
+    dirs.forEach((d) => rmSync(d, { recursive: true, force: true })),
+  );
+  const make = (patch: object = {}) => {
+    const cwd = mkdtempSync(join(tmpdir(), "rad-preview-"));
+    dirs.push(cwd);
+    const spec = {
+      title: "Preview me",
+      width: 420,
+      height: 310,
+      background_color: "#fff",
+      font_color: "#000",
+      padding: 10,
+      spacing: 5,
+      controls: [],
+      ...patch,
     };
-
-    test("writes preview.html and preview.ts into .rad_preview of the given folder", () => {
-        const { cwd, result } = make();
-        expect(result.success).toBe(true);
-        expect(readdirSync(join(cwd, ".rad_preview")).sort()).toEqual(["preview.html", "preview.ts"]);
-        expect(readFileSync(join(cwd, ".rad_preview", "preview.ts"), "utf-8")).toContain("Preview me - Live Preview");
+    const result = runPreviewHelper(JSON.stringify(spec), {
+      cwd,
+      start: false,
     });
+    return { cwd, result };
+  };
 
-    test("the script is valid TypeScript, also for hostile titles and sizes", () => {
-        for (const patch of [{}, { title: 'x"; globalThis.PWNED = 1; //' }, { title: "x\\" }, { title: "a\nb" }, { width: "1, y: 2 }; evil(); //", height: "5)" }]) {
-            const { cwd, result } = make(patch);
-            expect(result.success).toBe(true);
-            const src = readFileSync(join(cwd, ".rad_preview", "preview.ts"), "utf-8");
-            expect(() => new Bun.Transpiler({ loader: "ts" }).transformSync(src)).not.toThrow();
-            expect(src).not.toContain("evil()\n");
-        }
-    });
+  test("writes preview.html and preview.ts into .rad_preview of the given folder", () => {
+    const { cwd, result } = make();
+    expect(result.success).toBe(true);
+    expect(readdirSync(join(cwd, ".rad_preview")).sort()).toEqual([
+      "preview.html",
+      "preview.ts",
+    ]);
+    expect(
+      readFileSync(join(cwd, ".rad_preview", "preview.ts"), "utf-8"),
+    ).toContain("Preview me - Live Preview");
+  });
 
-    test("invalid JSON is reported, not thrown", () => {
-        const cwd = mkdtempSync(join(tmpdir(), "rad-preview-"));
-        dirs.push(cwd);
-        const result = runPreviewHelper("{ nope", { cwd, start: false });
-        expect(result.success).toBe(false);
-        expect(result.error).toBeTruthy();
-    });
+  test("the script is valid TypeScript, also for hostile titles and sizes", () => {
+    for (const patch of [
+      {},
+      { title: 'x"; globalThis.PWNED = 1; //' },
+      { title: "x\\" },
+      { title: "a\nb" },
+      { width: "1, y: 2 }; evil(); //", height: "5)" },
+    ]) {
+      const { cwd, result } = make(patch);
+      expect(result.success).toBe(true);
+      const src = readFileSync(
+        join(cwd, ".rad_preview", "preview.ts"),
+        "utf-8",
+      );
+      expect(() =>
+        new Bun.Transpiler({ loader: "ts" }).transformSync(src),
+      ).not.toThrow();
+      expect(src).not.toContain("evil()\n");
+    }
+  });
 
-    test("a real preview process starts and stays up (no window is shown by the test runner's fake)", async () => {
-        const { cwd } = make({ title: "Real start" });
-        const dir = join(cwd, ".rad_preview");
-        // Same script, but with a stand-in webview so the test needs no window system.
-        const fake = join(dir, "node_modules", "webview-bun");
-        Bun.spawnSync(["mkdir", "-p", fake]);
-        await Bun.write(join(fake, "package.json"), JSON.stringify({ name: "webview-bun", main: "index.js" }));
-        await Bun.write(join(fake, "index.js"), `export const SizeHint = { NONE: 0 };
-export class Webview { setHTML() {} bind() {} eval() {} init() {} navigate() {} destroy() {} run() { console.log("RUNNING:" + this.title + ":" + this.size.width + "x" + this.size.height); } }`);
-        const r = Bun.spawnSync([process.execPath, "run", join(dir, "preview.ts")], { cwd, stdout: "pipe", stderr: "pipe" });
-        expect(r.stdout.toString() + r.stderr.toString()).toContain("RUNNING:Real start - Live Preview:420x310");
-    });
+  test("invalid JSON is reported, not thrown", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "rad-preview-"));
+    dirs.push(cwd);
+    const result = runPreviewHelper("{ nope", { cwd, start: false });
+    expect(result.success).toBe(false);
+    expect(result.error).toBeTruthy();
+  });
+
+  test("a real preview process starts and stays up (no window is shown by the test runner's fake)", async () => {
+    const { cwd } = make({ title: "Real start" });
+    const dir = join(cwd, ".rad_preview");
+    // Same script, but with a stand-in webview so the test needs no window system.
+    const fake = join(dir, "node_modules", "webview-bun");
+    Bun.spawnSync(["mkdir", "-p", fake]);
+    await Bun.write(
+      join(fake, "package.json"),
+      JSON.stringify({ name: "webview-bun", main: "index.js" }),
+    );
+    await Bun.write(
+      join(fake, "index.js"),
+      `export const SizeHint = { NONE: 0 };
+export class Webview { setHTML() {} bind() {} eval() {} init() {} navigate() {} destroy() {} run() { console.log("RUNNING:" + this.title + ":" + this.size.width + "x" + this.size.height); } }`,
+    );
+    const r = Bun.spawnSync(
+      [process.execPath, "run", join(dir, "preview.ts")],
+      { cwd, stdout: "pipe", stderr: "pipe" },
+    );
+    expect(r.stdout.toString() + r.stderr.toString()).toContain(
+      "RUNNING:Real start - Live Preview:420x310",
+    );
+  });
 });
 
 describe("Run: output and failures are no longer lost", () => {
-    const dirs: string[] = [];
-    afterAll(() => dirs.forEach((d) => rmSync(d, { recursive: true, force: true })));
-    const spec = JSON.stringify({ title: "Logged", width: 300, height: 200, controls: [] });
-    const waitFor = async (check: () => boolean, ms = 15000) => {
-        const end = Date.now() + ms;
-        while (Date.now() < end) {
-            if (check()) return true;
-            await new Promise((r) => setTimeout(r, 100));
-        }
-        return false;
-    };
-    const fresh = () => {
-        const cwd = mkdtempSync(join(tmpdir(), "rad-preview-log-"));
-        dirs.push(cwd);
-        return cwd;
-    };
+  const dirs: string[] = [];
+  afterAll(() =>
+    dirs.forEach((d) => rmSync(d, { recursive: true, force: true })),
+  );
+  const spec = JSON.stringify({
+    title: "Logged",
+    width: 300,
+    height: 200,
+    controls: [],
+  });
+  const waitFor = async (check: () => boolean, ms = 15000) => {
+    const end = Date.now() + ms;
+    while (Date.now() < end) {
+      if (check()) return true;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    return false;
+  };
+  const fresh = () => {
+    const cwd = mkdtempSync(join(tmpdir(), "rad-preview-log-"));
+    dirs.push(cwd);
+    return cwd;
+  };
 
-    test("the preview process's output is kept in .rad_preview/preview.log", async () => {
-        const cwd = fresh();
-        // Stand-in webview, in place before the process starts, so no window system is needed.
-        const fake = join(cwd, ".rad_preview", "node_modules", "webview-bun");
-        mkdirSync(fake, { recursive: true });
-        writeFileSync(join(fake, "package.json"), JSON.stringify({ name: "webview-bun", main: "index.js" }));
-        writeFileSync(join(fake, "index.js"), `export const SizeHint = { NONE: 0 };
-export class Webview { setHTML() {} bind() {} eval() {} init() {} navigate() {} destroy() {} run() { console.log("PREVIEW OUTPUT " + this.title); console.error("PREVIEW ERROR LINE"); } }`);
-        const result = runPreviewHelper(spec, { cwd });
-        expect(result.success).toBe(true);
-        expect(result.logPath).toBe(join(cwd, ".rad_preview", "preview.log"));
-        expect(await waitFor(() => existsSync(result.logPath!) && readFileSync(result.logPath!, "utf-8").includes("PREVIEW ERROR LINE"))).toBe(true);
-        const log = readFileSync(result.logPath!, "utf-8");
-        expect(log).toContain("PREVIEW OUTPUT Logged - Live Preview");
+  test("the preview process's output is kept in .rad_preview/preview.log", async () => {
+    const cwd = fresh();
+    // Stand-in webview, in place before the process starts, so no window system is needed.
+    const fake = join(cwd, ".rad_preview", "node_modules", "webview-bun");
+    mkdirSync(fake, { recursive: true });
+    writeFileSync(
+      join(fake, "package.json"),
+      JSON.stringify({ name: "webview-bun", main: "index.js" }),
+    );
+    writeFileSync(
+      join(fake, "index.js"),
+      `export const SizeHint = { NONE: 0 };
+export class Webview { setHTML() {} bind() {} eval() {} init() {} navigate() {} destroy() {} run() { console.log("PREVIEW OUTPUT " + this.title); console.error("PREVIEW ERROR LINE"); } }`,
+    );
+    const result = runPreviewHelper(spec, { cwd });
+    expect(result.success).toBe(true);
+    expect(result.logPath).toBe(join(cwd, ".rad_preview", "preview.log"));
+    expect(
+      await waitFor(
+        () =>
+          existsSync(result.logPath!) &&
+          readFileSync(result.logPath!, "utf-8").includes("PREVIEW ERROR LINE"),
+      ),
+    ).toBe(true);
+    const log = readFileSync(result.logPath!, "utf-8");
+    expect(log).toContain("PREVIEW OUTPUT Logged - Live Preview");
+  });
+
+  test("a runtime that cannot be started is reported in the log and does not crash the caller", async () => {
+    const cwd = fresh();
+    const missing = join(cwd, "no-such-runtime");
+    let result: ReturnType<typeof runPreviewHelper> | undefined;
+    expect(() => {
+      result = runPreviewHelper(spec, { cwd, bunBin: missing });
+    }).not.toThrow();
+    // Either spawn refused at once (success: false) or it reported asynchronously into the log.
+    if (result!.success) {
+      expect(
+        await waitFor(
+          () =>
+            existsSync(result!.logPath!) &&
+            readFileSync(result!.logPath!, "utf-8").includes(
+              "Could not start the preview",
+            ),
+        ),
+      ).toBe(true);
+    } else {
+      expect(result!.error).toBeTruthy();
+    }
+  });
+
+  test("with start: false no log file is created", () => {
+    const cwd = fresh();
+    const result = runPreviewHelper(spec, { cwd, start: false });
+    expect(existsSync(result.logPath!)).toBe(false);
+  });
+
+  describe("the Run button reports what happened", () => {
+    const html = getIdeHtml();
+    const start = html.indexOf("function triggerRunForm()");
+    let depth = 0;
+    let end = html.indexOf("{", start);
+    for (; end < html.length; end++) {
+      if (html[end] === "{") depth++;
+      else if (html[end] === "}" && --depth === 0) break;
+    }
+    const src = html.slice(start, end + 1);
+    function run(runPreview: any) {
+      const status = { textContent: "" };
+      const sent: string[] = [];
+      const win: any = runPreview
+        ? {
+            runPreview: (json: string) => {
+              sent.push(json);
+              return runPreview();
+            },
+          }
+        : {};
+      new Function(
+        "window",
+        "document",
+        "formSpec",
+        `${src}; triggerRunForm();`,
+      )(win, { getElementById: () => status }, { title: "T", controls: [] });
+      return { status, sent };
+    }
+    const tick = () => new Promise((r) => setTimeout(r, 10));
+
+    test("in a plain browser it says Run needs the desktop app", () => {
+      expect(run(null).status.textContent).toContain("needs the desktop app");
     });
-
-    test("a runtime that cannot be started is reported in the log and does not crash the caller", async () => {
-        const cwd = fresh();
-        const missing = join(cwd, "no-such-runtime");
-        let result: ReturnType<typeof runPreviewHelper> | undefined;
-        expect(() => { result = runPreviewHelper(spec, { cwd, bunBin: missing }); }).not.toThrow();
-        // Either spawn refused at once (success: false) or it reported asynchronously into the log.
-        if (result!.success) {
-            expect(await waitFor(() => existsSync(result!.logPath!) && readFileSync(result!.logPath!, "utf-8").includes("Could not start the preview"))).toBe(true);
-        } else {
-            expect(result!.error).toBeTruthy();
-        }
+    test("a failure from the backend is shown", async () => {
+      const r = run(async () => ({ success: false, error: "boom" }));
+      expect(r.status.textContent).toContain("Launching");
+      await tick();
+      expect(r.status.textContent).toBe("Preview failed: boom");
     });
-
-    test("with start: false no log file is created", () => {
-        const cwd = fresh();
-        const result = runPreviewHelper(spec, { cwd, start: false });
-        expect(existsSync(result.logPath!)).toBe(false);
+    test("an error thrown by the call is shown", async () => {
+      const r = run(() => Promise.reject(new Error("bridge down")));
+      await tick();
+      expect(r.status.textContent).toBe("Preview failed: bridge down");
     });
-
-    describe("the Run button reports what happened", () => {
-        const html = getIdeHtml();
-        const start = html.indexOf("function triggerRunForm()");
-        let depth = 0;
-        let end = html.indexOf("{", start);
-        for (; end < html.length; end++) {
-            if (html[end] === "{") depth++;
-            else if (html[end] === "}" && --depth === 0) break;
-        }
-        const src = html.slice(start, end + 1);
-        function run(runPreview: any) {
-            const status = { textContent: "" };
-            const sent: string[] = [];
-            const win: any = runPreview ? { runPreview: (json: string) => { sent.push(json); return runPreview(); } } : {};
-            new Function("window", "document", "formSpec", `${src}; triggerRunForm();`)(win, { getElementById: () => status }, { title: "T", controls: [] });
-            return { status, sent };
-        }
-        const tick = () => new Promise((r) => setTimeout(r, 10));
-
-        test("in a plain browser it says Run needs the desktop app", () => {
-            expect(run(null).status.textContent).toContain("needs the desktop app");
-        });
-        test("a failure from the backend is shown", async () => {
-            const r = run(async () => ({ success: false, error: "boom" }));
-            expect(r.status.textContent).toContain("Launching");
-            await tick();
-            expect(r.status.textContent).toBe("Preview failed: boom");
-        });
-        test("an error thrown by the call is shown", async () => {
-            const r = run(() => Promise.reject(new Error("bridge down")));
-            await tick();
-            expect(r.status.textContent).toBe("Preview failed: bridge down");
-        });
-        test("success points at the log and the form is sent as JSON", async () => {
-            const r = run(async () => ({ success: true }));
-            await tick();
-            expect(r.status.textContent).toContain(".rad_preview/preview.log");
-            expect(JSON.parse(r.sent[0]!)).toEqual({ title: "T", controls: [] });
-        });
+    test("success points at the log and the form is sent as JSON", async () => {
+      const r = run(async () => ({ success: true }));
+      await tick();
+      expect(r.status.textContent).toContain(".rad_preview/preview.log");
+      expect(JSON.parse(r.sent[0]!)).toEqual({ title: "T", controls: [] });
     });
+  });
 });
 
 describe("Generated output is not tracked by git", () => {
-    test("the preview and export folders are ignored, and no file in them is tracked", () => {
-        const tracked = Bun.spawnSync(["git", "ls-files", ".rad_preview", "exported_project"], { cwd: REPO_ROOT, stdout: "pipe" }).stdout.toString().trim();
-        expect(tracked).toBe("");
-        for (const path of [".rad_preview/preview.ts", "exported_project/index.ts"]) {
-            const r = Bun.spawnSync(["git", "check-ignore", "-q", path], { cwd: REPO_ROOT });
-            expect(r.exitCode, `${path} must be in .gitignore`).toBe(0);
-        }
-    });
+  test("the preview and export folders are ignored, and no file in them is tracked", () => {
+    const tracked = Bun.spawnSync(
+      ["git", "ls-files", ".rad_preview", "exported_project"],
+      { cwd: REPO_ROOT, stdout: "pipe" },
+    )
+      .stdout.toString()
+      .trim();
+    expect(tracked).toBe("");
+    for (const path of [
+      ".rad_preview/preview.ts",
+      "exported_project/index.ts",
+    ]) {
+      const r = Bun.spawnSync(["git", "check-ignore", "-q", path], {
+        cwd: REPO_ROOT,
+      });
+      expect(r.exitCode, `${path} must be in .gitignore`).toBe(0);
+    }
+  });
 });
 
 describe("Designer: Main UI improvements (toolbars, sidebars, palette, and consolidated inspector)", () => {
-    const html = getIdeHtml();
-    const grab = (name: string) => {
-        const start = html.indexOf(`function ${name}(`);
-        expect(start).toBeGreaterThan(-1);
-        let depth = 0;
-        let end = html.indexOf("{", start);
-        for (; end < html.length; end++) {
-            if (html[end] === "{") depth++;
-            else if (html[end] === "}" && --depth === 0) break;
-        }
-        return html.slice(start, end + 1);
-    };
+  const html = getIdeHtml();
+  const grab = (name: string) => {
+    const start = html.indexOf(`function ${name}(`);
+    expect(start).toBeGreaterThan(-1);
+    let depth = 0;
+    let end = html.indexOf("{", start);
+    for (; end < html.length; end++) {
+      if (html[end] === "{") depth++;
+      else if (html[end] === "}" && --depth === 0) break;
+    }
+    return html.slice(start, end + 1);
+  };
 
-    test("alignSelectedControls maps center_h and center_v and delegates to alignControls", () => {
-        const calls: string[] = [];
-        const fn = new Function("alignControls", `${grab("alignSelectedControls")}; return alignSelectedControls;`)((m: string) => calls.push(m));
-        fn("left");
-        fn("center_h");
-        fn("center_v");
-        fn("bottom");
-        expect(calls).toEqual(["left", "center", "middle", "bottom"]);
-    });
+  test("alignSelectedControls maps center_h and center_v and delegates to alignControls", () => {
+    const calls: string[] = [];
+    const fn = new Function(
+      "alignControls",
+      `${grab("alignSelectedControls")}; return alignSelectedControls;`,
+    )((m: string) => calls.push(m));
+    fn("left");
+    fn("center_h");
+    fn("center_v");
+    fn("bottom");
+    expect(calls).toEqual(["left", "center", "middle", "bottom"]);
+  });
 
-    test("updateToolbarSelectionState dims and enables selection-dependent and clipboard buttons", () => {
-        const body = html.slice(html.indexOf("<body"), html.indexOf("<script>", html.indexOf("<body")));
-        const dom = new JSDOM(`<!DOCTYPE html>${body}</body>`);
-        const doc = dom.window.document;
-        const runUpdate = new Function(
-            "document", "selectedIndices", "clipboardBuffer",
-            `${grab("updateToolbarSelectionState")}; updateToolbarSelectionState();`,
-        );
+  test("updateToolbarSelectionState dims and enables selection-dependent and clipboard buttons", () => {
+    const body = html.slice(
+      html.indexOf("<body"),
+      html.indexOf("<script>", html.indexOf("<body")),
+    );
+    const dom = new JSDOM(`<!DOCTYPE html>${body}</body>`);
+    const doc = dom.window.document;
+    const runUpdate = new Function(
+      "document",
+      "selectedIndices",
+      "clipboardBuffer",
+      `${grab("updateToolbarSelectionState")}; updateToolbarSelectionState();`,
+    );
 
-        const btnSel1 = doc.querySelector('[data-min-sel="1"]')!;
-        const btnSel2 = doc.querySelector('[data-min-sel="2"]')!;
-        const btnSel3 = doc.querySelector('[data-min-sel="3"]')!;
-        const pasteBtn = doc.getElementById("pasteBtn")!;
+    const btnSel1 = doc.querySelector('[data-min-sel="1"]')!;
+    const btnSel2 = doc.querySelector('[data-min-sel="2"]')!;
+    const btnSel3 = doc.querySelector('[data-min-sel="3"]')!;
+    const pasteBtn = doc.getElementById("pasteBtn")!;
 
-        // 0 selected, empty clipboard -> all dimmed
-        runUpdate(doc, [], []);
-        expect(btnSel1.classList.contains("btn-disabled")).toBe(true);
-        expect(btnSel2.classList.contains("btn-disabled")).toBe(true);
-        expect(btnSel3.classList.contains("btn-disabled")).toBe(true);
-        expect(pasteBtn.classList.contains("btn-disabled")).toBe(true);
+    // 0 selected, empty clipboard -> all dimmed
+    runUpdate(doc, [], []);
+    expect(btnSel1.classList.contains("btn-disabled")).toBe(true);
+    expect(btnSel2.classList.contains("btn-disabled")).toBe(true);
+    expect(btnSel3.classList.contains("btn-disabled")).toBe(true);
+    expect(pasteBtn.classList.contains("btn-disabled")).toBe(true);
 
-        // 1 selected, 1 clipboard item -> min-sel=1 and paste enabled; min-sel=2,3 still dimmed
-        runUpdate(doc, [0], [{ id: "btn_1" }]);
-        expect(btnSel1.classList.contains("btn-disabled")).toBe(false);
-        expect(btnSel2.classList.contains("btn-disabled")).toBe(true);
-        expect(btnSel3.classList.contains("btn-disabled")).toBe(true);
-        expect(pasteBtn.classList.contains("btn-disabled")).toBe(false);
+    // 1 selected, 1 clipboard item -> min-sel=1 and paste enabled; min-sel=2,3 still dimmed
+    runUpdate(doc, [0], [{ id: "btn_1" }]);
+    expect(btnSel1.classList.contains("btn-disabled")).toBe(false);
+    expect(btnSel2.classList.contains("btn-disabled")).toBe(true);
+    expect(btnSel3.classList.contains("btn-disabled")).toBe(true);
+    expect(pasteBtn.classList.contains("btn-disabled")).toBe(false);
 
-        // 3 selected -> all enabled
-        runUpdate(doc, [0, 1, 2], [{ id: "btn_1" }]);
-        expect(btnSel1.classList.contains("btn-disabled")).toBe(false);
-        expect(btnSel2.classList.contains("btn-disabled")).toBe(false);
-        expect(btnSel3.classList.contains("btn-disabled")).toBe(false);
-    });
+    // 3 selected -> all enabled
+    runUpdate(doc, [0, 1, 2], [{ id: "btn_1" }]);
+    expect(btnSel1.classList.contains("btn-disabled")).toBe(false);
+    expect(btnSel2.classList.contains("btn-disabled")).toBe(false);
+    expect(btnSel3.classList.contains("btn-disabled")).toBe(false);
+  });
 
-    test("toggleSidebarPane collapses and expands the Palette and Inspector sidebars", () => {
-        const body = html.slice(html.indexOf("<body"), html.indexOf("<script>", html.indexOf("<body")));
-        const dom = new JSDOM(`<!DOCTYPE html>${body}</body>`);
-        const doc = dom.window.document;
-        const toggle = new Function(
-            "document",
-            `const drawRulers = () => {}; ${grab("toggleSidebarPane")}; return toggleSidebarPane;`,
-        )(doc);
+  test("toggleSidebarPane collapses and expands the Palette and Inspector sidebars", () => {
+    const body = html.slice(
+      html.indexOf("<body"),
+      html.indexOf("<script>", html.indexOf("<body")),
+    );
+    const dom = new JSDOM(`<!DOCTYPE html>${body}</body>`);
+    const doc = dom.window.document;
+    const toggle = new Function(
+      "document",
+      `const drawRulers = () => {}; ${grab("toggleSidebarPane")}; return toggleSidebarPane;`,
+    )(doc);
 
-        const studio = doc.getElementById("studioContainer")!;
-        const palBtn = doc.getElementById("togglePaletteBtn")!;
-        const inspBtn = doc.getElementById("toggleInspectorBtn")!;
+    const studio = doc.getElementById("studioContainer")!;
+    const palBtn = doc.getElementById("togglePaletteBtn")!;
+    const inspBtn = doc.getElementById("toggleInspectorBtn")!;
 
-        toggle("palette");
-        expect(studio.classList.contains("palette-collapsed")).toBe(true);
-        expect(palBtn.getAttribute("aria-pressed")).toBe("false");
+    toggle("palette");
+    expect(studio.classList.contains("palette-collapsed")).toBe(true);
+    expect(palBtn.getAttribute("aria-pressed")).toBe("false");
 
-        toggle("palette");
-        expect(studio.classList.contains("palette-collapsed")).toBe(false);
-        expect(palBtn.getAttribute("aria-pressed")).toBe("true");
+    toggle("palette");
+    expect(studio.classList.contains("palette-collapsed")).toBe(false);
+    expect(palBtn.getAttribute("aria-pressed")).toBe("true");
 
-        toggle("inspector");
-        expect(studio.classList.contains("inspector-collapsed")).toBe(true);
-        expect(inspBtn.getAttribute("aria-pressed")).toBe("false");
-    });
+    toggle("inspector");
+    expect(studio.classList.contains("inspector-collapsed")).toBe(true);
+    expect(inspBtn.getAttribute("aria-pressed")).toBe("false");
+  });
 
-    test("collapsible palette categories and filterPalette hide empty categories and match tooltips", () => {
-        const body = html.slice(html.indexOf("<body"), html.indexOf("<script>", html.indexOf("<body")));
-        const dom = new JSDOM(`<!DOCTYPE html>${body}</body>`);
-        const doc = dom.window.document;
-        const api = new Function(
-            "document",
-            `${grab("updatePaletteCollapseButtonLabel")}\n${grab("initPaletteCategories")}\n${grab("toggleAllPaletteCategories")}\n${grab("filterPalette")}\nreturn { initPaletteCategories, toggleAllPaletteCategories, filterPalette };`,
-        )(doc);
+  test("collapsible palette categories and filterPalette hide empty categories and match tooltips", () => {
+    const body = html.slice(
+      html.indexOf("<body"),
+      html.indexOf("<script>", html.indexOf("<body")),
+    );
+    const dom = new JSDOM(`<!DOCTYPE html>${body}</body>`);
+    const doc = dom.window.document;
+    const api = new Function(
+      "document",
+      `${grab("updatePaletteCollapseButtonLabel")}\n${grab("initPaletteCategories")}\n${grab("toggleAllPaletteCategories")}\n${grab("filterPalette")}\nreturn { initPaletteCategories, toggleAllPaletteCategories, filterPalette };`,
+    )(doc);
 
-        api.initPaletteCategories();
-        const cats = Array.from(doc.querySelectorAll(".palette-category")) as HTMLElement[];
-        expect(cats.length).toBeGreaterThan(5);
-        expect(cats[0]!.querySelector(".palette-cat-count")?.textContent).toBe("5");
+    api.initPaletteCategories();
+    const cats = Array.from(
+      doc.querySelectorAll(".palette-category"),
+    ) as HTMLElement[];
+    expect(cats.length).toBeGreaterThan(5);
+    expect(cats[0]!.querySelector(".palette-cat-count")?.textContent).toBe("5");
 
-        // Click first category header to collapse it
-        (cats[0]!.querySelector(".palette-cat-header") as HTMLElement).click();
-        expect(cats[0]!.classList.contains("collapsed")).toBe(true);
+    // Click first category header to collapse it
+    (cats[0]!.querySelector(".palette-cat-header") as HTMLElement).click();
+    expect(cats[0]!.classList.contains("collapsed")).toBe(true);
 
-        // Collapse all, then expand all
-        api.toggleAllPaletteCategories();
-        expect(cats.every((c) => c.classList.contains("collapsed"))).toBe(true);
-        api.toggleAllPaletteCategories();
-        expect(cats.every((c) => !c.classList.contains("collapsed"))).toBe(true);
+    // Collapse all, then expand all
+    api.toggleAllPaletteCategories();
+    expect(cats.every((c) => c.classList.contains("collapsed"))).toBe(true);
+    api.toggleAllPaletteCategories();
+    expect(cats.every((c) => !c.classList.contains("collapsed"))).toBe(true);
 
-        // Filter by tooltip keyword ("sparkline") -> only matching categories stay visible
-        api.filterPalette("sparkline");
-        const visibleCats = cats.filter((c) => c.style.display !== "none");
-        expect(visibleCats.length).toBeGreaterThan(0);
-        expect(visibleCats.length).toBeLessThan(cats.length);
-        expect(doc.getElementById("paletteEmptyMsg")!.style.display).toBe("none");
+    // Filter by tooltip keyword ("sparkline") -> only matching categories stay visible
+    api.filterPalette("sparkline");
+    const visibleCats = cats.filter((c) => c.style.display !== "none");
+    expect(visibleCats.length).toBeGreaterThan(0);
+    expect(visibleCats.length).toBeLessThan(cats.length);
+    expect(doc.getElementById("paletteEmptyMsg")!.style.display).toBe("none");
 
-        // Filter with no matches -> empty message shown
-        api.filterPalette("zzzz_nonexistent_widget_xyz");
-        expect(doc.getElementById("paletteEmptyMsg")!.style.display).toBe("block");
+    // Filter with no matches -> empty message shown
+    api.filterPalette("zzzz_nonexistent_widget_xyz");
+    expect(doc.getElementById("paletteEmptyMsg")!.style.display).toBe("block");
 
-        // Clear filter -> all categories restored
-        api.filterPalette("");
-        expect(cats.every((c) => c.style.display === "")).toBe(true);
-        expect(doc.getElementById("paletteEmptyMsg")!.style.display).toBe("none");
-    });
+    // Clear filter -> all categories restored
+    api.filterPalette("");
+    expect(cats.every((c) => c.style.display === "")).toBe(true);
+    expect(doc.getElementById("paletteEmptyMsg")!.style.display).toBe("none");
+  });
 
-    test("consolidated Inspector Code tab and secondary language switcher remember active language", () => {
-        const body = html.slice(html.indexOf("<body"), html.indexOf("<script>", html.indexOf("<body")));
-        const dom = new JSDOM(`<!DOCTYPE html>${body}</body>`);
-        const doc = dom.window.document;
-        const switchTab = new Function(
-            "document",
-            `let lastActiveCodeTab = "tabBunTS"; const INSPECTOR_CODE_TABS = ["tabBunTS", "tabHTML", "tabReact", "tabVue", "tabPython", "tabJSON"]; ${grab("switchTab")}; return switchTab;`,
-        )(doc);
+  test("consolidated Inspector Code tab and secondary language switcher remember active language", () => {
+    const body = html.slice(
+      html.indexOf("<body"),
+      html.indexOf("<script>", html.indexOf("<body")),
+    );
+    const dom = new JSDOM(`<!DOCTYPE html>${body}</body>`);
+    const doc = dom.window.document;
+    const switchTab = new Function(
+      "document",
+      `let lastActiveCodeTab = "tabBunTS"; const INSPECTOR_CODE_TABS = ["tabBunTS", "tabHTML", "tabReact", "tabVue", "tabPython", "tabJSON"]; ${grab("switchTab")}; return switchTab;`,
+    )(doc);
 
-        const subbar = doc.getElementById("inspectorCodeSubbar")!;
-        const codePrimary = doc.getElementById("inspectorCodePrimaryTab")!;
+    const subbar = doc.getElementById("inspectorCodeSubbar")!;
+    const codePrimary = doc.getElementById("inspectorCodePrimaryTab")!;
 
-        // Initially Properties tab is active and code subbar is hidden
-        expect(subbar.classList.contains("visible")).toBe(false);
+    // Initially Properties tab is active and code subbar is hidden
+    expect(subbar.classList.contains("visible")).toBe(false);
 
-        // Clicking Code primary tab opens default Bun TS tab and shows subbar
-        switchTab("tabCode");
-        expect(codePrimary.classList.contains("active")).toBe(true);
-        expect(subbar.classList.contains("visible")).toBe(true);
-        expect(doc.getElementById("tabBunTS")!.classList.contains("active")).toBe(true);
+    // Clicking Code primary tab opens default Bun TS tab and shows subbar
+    switchTab("tabCode");
+    expect(codePrimary.classList.contains("active")).toBe(true);
+    expect(subbar.classList.contains("visible")).toBe(true);
+    expect(doc.getElementById("tabBunTS")!.classList.contains("active")).toBe(
+      true,
+    );
 
-        // Switching to Vue 3 keeps Code primary tab active and activates tabVue
-        switchTab("tabVue");
-        expect(codePrimary.classList.contains("active")).toBe(true);
-        expect(subbar.classList.contains("visible")).toBe(true);
-        expect(doc.getElementById("tabVue")!.classList.contains("active")).toBe(true);
+    // Switching to Vue 3 keeps Code primary tab active and activates tabVue
+    switchTab("tabVue");
+    expect(codePrimary.classList.contains("active")).toBe(true);
+    expect(subbar.classList.contains("visible")).toBe(true);
+    expect(doc.getElementById("tabVue")!.classList.contains("active")).toBe(
+      true,
+    );
 
-        // Switching to Properties hides code subbar
-        switchTab("tabProps");
-        expect(subbar.classList.contains("visible")).toBe(false);
-        expect(doc.getElementById("tabProps")!.classList.contains("active")).toBe(true);
+    // Switching to Properties hides code subbar
+    switchTab("tabProps");
+    expect(subbar.classList.contains("visible")).toBe(false);
+    expect(doc.getElementById("tabProps")!.classList.contains("active")).toBe(
+      true,
+    );
 
-        // Clicking Code primary tab again restores Vue 3 (lastActiveCodeTab)
-        switchTab("tabCode");
-        expect(subbar.classList.contains("visible")).toBe(true);
-        expect(doc.getElementById("tabVue")!.classList.contains("active")).toBe(true);
-    });
+    // Clicking Code primary tab again restores Vue 3 (lastActiveCodeTab)
+    switchTab("tabCode");
+    expect(subbar.classList.contains("visible")).toBe(true);
+    expect(doc.getElementById("tabVue")!.classList.contains("active")).toBe(
+      true,
+    );
+  });
 });
-

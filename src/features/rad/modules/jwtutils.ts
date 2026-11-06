@@ -17,7 +17,11 @@ function base64UrlDecodeJson<T>(str: string): T {
 /**
  * Signs a JSON `payload` as an `HS256` JWT using `secret`, automatically populating `iat` and `exp` claims.
  */
-export function signJwt(payload: Record<string, any>, secret: string, expiresInSeconds = 3600): string {
+export function signJwt(
+  payload: Record<string, any>,
+  secret: string,
+  expiresInSeconds = 3600,
+): string {
   const header = { alg: "HS256", typ: "JWT" };
   const nowSec = Math.floor(Date.now() / 1000);
   const claims = {
@@ -29,7 +33,9 @@ export function signJwt(payload: Record<string, any>, secret: string, expiresInS
   const headerB64 = base64UrlEncodeJson(header);
   const payloadB64 = base64UrlEncodeJson(claims);
   const signingInput = `${headerB64}.${payloadB64}`;
-  const signature = createHmac("sha256", secret).update(signingInput).digest("base64url");
+  const signature = createHmac("sha256", secret)
+    .update(signingInput)
+    .digest("base64url");
 
   return `${signingInput}.${signature}`;
 }
@@ -39,7 +45,10 @@ export function signJwt(payload: Record<string, any>, secret: string, expiresInS
  * Verifies an `HS256` JWT's signature in constant time and checks its `exp` claim, returning the decoded payload.
  * @throws If the token is malformed, uses an unsupported algorithm, fails signature verification, or is expired.
  */
-export function verifyJwt<T = Record<string, any>>(token: string, secret: string): T {
+export function verifyJwt<T = Record<string, any>>(
+  token: string,
+  secret: string,
+): T {
   const parts = token.split(".");
   if (parts.length !== 3) {
     throw new Error("[jwtutils] Malformed JWT token format");
@@ -51,7 +60,9 @@ export function verifyJwt<T = Record<string, any>>(token: string, secret: string
     throw new Error("[jwtutils] Unsupported or missing JWT algorithm");
   }
   const signingInput = `${headerB64}.${payloadB64}`;
-  const expectedSig = createHmac("sha256", secret).update(signingInput).digest("base64url");
+  const expectedSig = createHmac("sha256", secret)
+    .update(signingInput)
+    .digest("base64url");
 
   const sigBuf = Buffer.from(signature ?? "", "utf8");
   const expBuf = Buffer.from(expectedSig, "utf8");

@@ -9,7 +9,10 @@ import {
   interpolateExecCommand,
   runFdCommand,
 } from "../applications/fd_engine";
-import { createFdStudio, generateFdStudioHtml } from "../applications/fd_studio";
+import {
+  createFdStudio,
+  generateFdStudioHtml,
+} from "../applications/fd_studio";
 import { loadManifest } from "../applications/rip_engine";
 import { Sys } from "../src/simplecli/sys";
 import * as path from "node:path";
@@ -58,10 +61,16 @@ describe("⚡ Native Bun Fd Engine & Studio Specification Suite", () => {
 
   it("4. Exec command placeholder interpolation correctly replaces variables", () => {
     const filePath = "/Users/test/project/src/index.ts";
-    expect(interpolateExecCommand("file {}", filePath)).toBe("file /Users/test/project/src/index.ts");
+    expect(interpolateExecCommand("file {}", filePath)).toBe(
+      "file /Users/test/project/src/index.ts",
+    );
     expect(interpolateExecCommand("echo {/}", filePath)).toBe("echo index.ts");
-    expect(interpolateExecCommand("ls {//}", filePath)).toBe("ls /Users/test/project/src");
-    expect(interpolateExecCommand("echo {.}", filePath)).toBe("echo /Users/test/project/src/index");
+    expect(interpolateExecCommand("ls {//}", filePath)).toBe(
+      "ls /Users/test/project/src",
+    );
+    expect(interpolateExecCommand("echo {.}", filePath)).toBe(
+      "echo /Users/test/project/src/index",
+    );
     expect(interpolateExecCommand("echo {/.}", filePath)).toBe("echo index");
   });
 
@@ -242,23 +251,39 @@ describe("⚡ Native Bun Fd Engine & Studio Specification Suite", () => {
   it("16. Fd Studio file management toolkit handles copy, move, export, and delete operations", () => {
     const sandboxDir = path.resolve("./.tmp_fd_test_sandbox");
     const targetDir = path.resolve("./.tmp_fd_test_target");
-    if (fs.existsSync(sandboxDir)) fs.rmSync(sandboxDir, { recursive: true, force: true });
-    if (fs.existsSync(targetDir)) fs.rmSync(targetDir, { recursive: true, force: true });
+    if (fs.existsSync(sandboxDir))
+      fs.rmSync(sandboxDir, { recursive: true, force: true });
+    if (fs.existsSync(targetDir))
+      fs.rmSync(targetDir, { recursive: true, force: true });
 
     fs.mkdirSync(sandboxDir, { recursive: true });
     fs.mkdirSync(targetDir, { recursive: true });
 
-    fs.writeFileSync(path.join(sandboxDir, "file1.txt"), "hello world", "utf-8");
-    fs.writeFileSync(path.join(sandboxDir, "file2.txt"), "antigravity bun rad", "utf-8");
+    fs.writeFileSync(
+      path.join(sandboxDir, "file1.txt"),
+      "hello world",
+      "utf-8",
+    );
+    fs.writeFileSync(
+      path.join(sandboxDir, "file2.txt"),
+      "antigravity bun rad",
+      "utf-8",
+    );
     fs.writeFileSync(path.join(sandboxDir, "file3.log"), "system log", "utf-8");
 
     // Search sandbox
-    const searchRes = executeFdSearch({ searchRoot: sandboxDir, pattern: "file.*\\.txt", searchMode: "regex" });
+    const searchRes = executeFdSearch({
+      searchRoot: sandboxDir,
+      pattern: "file.*\\.txt",
+      searchMode: "regex",
+    });
     expect(searchRes.matchedCount).toBe(2);
 
     // Copy to target
     for (const item of searchRes.items) {
-      fs.cpSync(item.path, path.join(targetDir, item.name), { recursive: true });
+      fs.cpSync(item.path, path.join(targetDir, item.name), {
+        recursive: true,
+      });
     }
     expect(fs.existsSync(path.join(targetDir, "file1.txt"))).toBe(true);
     expect(fs.existsSync(path.join(targetDir, "file2.txt"))).toBe(true);
@@ -292,14 +317,19 @@ describe("⚡ Native Bun Fd Engine & Studio Specification Suite", () => {
   it("18. Fd Studio Pro safely buries a matched file into the Rip graveyard and updates telemetry", () => {
     const testGraveyard = path.resolve("./.tmp_test_graveyard_fd_1");
     const testSandbox = path.resolve("./.tmp_test_sandbox_fd_1");
-    if (fs.existsSync(testGraveyard)) fs.rmSync(testGraveyard, { recursive: true, force: true });
-    if (fs.existsSync(testSandbox)) fs.rmSync(testSandbox, { recursive: true, force: true });
+    if (fs.existsSync(testGraveyard))
+      fs.rmSync(testGraveyard, { recursive: true, force: true });
+    if (fs.existsSync(testSandbox))
+      fs.rmSync(testSandbox, { recursive: true, force: true });
 
     fs.mkdirSync(testSandbox, { recursive: true });
     const victimPath = path.join(testSandbox, "victim.txt");
     fs.writeFileSync(victimPath, "safe burial content", "utf-8");
 
-    const win = createFdStudio({ fullscreen: false, graveyardDir: testGraveyard });
+    const win = createFdStudio({
+      fullscreen: false,
+      graveyardDir: testGraveyard,
+    });
     win.setValue("txt_pattern", "victim\\.txt");
     win.setValue("txt_root", testSandbox);
 
@@ -316,7 +346,9 @@ describe("⚡ Native Bun Fd Engine & Studio Specification Suite", () => {
     expect(fs.existsSync(victimPath)).toBe(false);
 
     // Trigger unbury last (undo)
-    const clickUndo = (win as any).eventHandlersMap.get("btn_unbury_last:onclick");
+    const clickUndo = (win as any).eventHandlersMap.get(
+      "btn_unbury_last:onclick",
+    );
     clickUndo(win);
 
     // Victim should be restored!
@@ -331,15 +363,20 @@ describe("⚡ Native Bun Fd Engine & Studio Specification Suite", () => {
   it("19. Fd Studio Pro batch buries multiple files and decomposes them permanently", () => {
     const testGraveyard = path.resolve("./.tmp_test_graveyard_fd_2");
     const testSandbox = path.resolve("./.tmp_test_sandbox_fd_2");
-    if (fs.existsSync(testGraveyard)) fs.rmSync(testGraveyard, { recursive: true, force: true });
-    if (fs.existsSync(testSandbox)) fs.rmSync(testSandbox, { recursive: true, force: true });
+    if (fs.existsSync(testGraveyard))
+      fs.rmSync(testGraveyard, { recursive: true, force: true });
+    if (fs.existsSync(testSandbox))
+      fs.rmSync(testSandbox, { recursive: true, force: true });
 
     fs.mkdirSync(testSandbox, { recursive: true });
     fs.writeFileSync(path.join(testSandbox, "a.log"), "log a", "utf-8");
     fs.writeFileSync(path.join(testSandbox, "b.log"), "log b", "utf-8");
     fs.writeFileSync(path.join(testSandbox, "c.log"), "log c", "utf-8");
 
-    const win = createFdStudio({ fullscreen: false, graveyardDir: testGraveyard });
+    const win = createFdStudio({
+      fullscreen: false,
+      graveyardDir: testGraveyard,
+    });
     win.setValue("txt_pattern", "\\.log$");
     win.setValue("txt_root", testSandbox);
 
@@ -348,7 +385,9 @@ describe("⚡ Native Bun Fd Engine & Studio Specification Suite", () => {
     clickSearch(win);
 
     // Batch bury all
-    const clickBuryAll = (win as any).eventHandlersMap.get("btn_bury_all:onclick");
+    const clickBuryAll = (win as any).eventHandlersMap.get(
+      "btn_bury_all:onclick",
+    );
     clickBuryAll(win);
 
     expect(fs.existsSync(path.join(testSandbox, "a.log"))).toBe(false);
@@ -356,13 +395,19 @@ describe("⚡ Native Bun Fd Engine & Studio Specification Suite", () => {
     expect(fs.existsSync(path.join(testSandbox, "c.log"))).toBe(false);
 
     // Unbury one item (it becomes status "unburied" in the graveyard manifest)
-    const clickUndo = (win as any).eventHandlersMap.get("btn_unbury_last:onclick");
+    const clickUndo = (win as any).eventHandlersMap.get(
+      "btn_unbury_last:onclick",
+    );
     clickUndo(win);
     const manifestMiddle = loadManifest(testGraveyard);
-    expect(manifestMiddle.items.some((i) => i.status === "unburied")).toBe(true);
+    expect(manifestMiddle.items.some((i) => i.status === "unburied")).toBe(
+      true,
+    );
 
     // Empty graveyard: should clear all buried and unburied items completely
-    const clickEmpty = (win as any).eventHandlersMap.get("btn_decompose_all:onclick");
+    const clickEmpty = (win as any).eventHandlersMap.get(
+      "btn_decompose_all:onclick",
+    );
     clickEmpty(win);
 
     const manifestFinal = loadManifest(testGraveyard);
@@ -377,14 +422,18 @@ describe("⚡ Native Bun Fd Engine & Studio Specification Suite", () => {
   // 5. CLI Execution Parity Tests
   // ---------------------------------------------------------------------------
   it("20. fd-cli executes via CLI and outputs formatted results and json", () => {
-    const [jsonOut, jsonCode] = Sys.exec("bun run cli_apps/fd_cli.ts fd_engine . --json");
+    const [jsonOut, jsonCode] = Sys.exec(
+      "bun run cli_apps/fd_cli.ts fd_engine . --json",
+    );
     expect(jsonCode).toBe(0);
     const parsed = JSON.parse(jsonOut);
     expect(Array.isArray(parsed)).toBe(true);
     expect(parsed.length).toBeGreaterThanOrEqual(1);
     expect(parsed[0].name).toBe("fd_engine.ts");
 
-    const [tableOut, tableCode] = Sys.exec("bun run cli_apps/fd_cli.ts package.json . -t f");
+    const [tableOut, tableCode] = Sys.exec(
+      "bun run cli_apps/fd_cli.ts package.json . -t f",
+    );
     expect(tableCode).toBe(0);
     expect(tableOut).toContain("Native Bun File Finder");
     expect(tableOut).toContain("package.json");
@@ -393,13 +442,22 @@ describe("⚡ Native Bun Fd Engine & Studio Specification Suite", () => {
   it("21. Fd Studio Pro action buttons execute without throwing exceptions or undefined property errors", () => {
     const testGraveyard = path.resolve("./.tmp_test_graveyard_btn");
     const testSandbox = path.resolve("./.tmp_test_sandbox_btn");
-    if (fs.existsSync(testGraveyard)) fs.rmSync(testGraveyard, { recursive: true, force: true });
-    if (fs.existsSync(testSandbox)) fs.rmSync(testSandbox, { recursive: true, force: true });
+    if (fs.existsSync(testGraveyard))
+      fs.rmSync(testGraveyard, { recursive: true, force: true });
+    if (fs.existsSync(testSandbox))
+      fs.rmSync(testSandbox, { recursive: true, force: true });
 
     fs.mkdirSync(testSandbox, { recursive: true });
-    fs.writeFileSync(path.join(testSandbox, "testfile.txt"), "hello buttons", "utf-8");
+    fs.writeFileSync(
+      path.join(testSandbox, "testfile.txt"),
+      "hello buttons",
+      "utf-8",
+    );
 
-    const win = createFdStudio({ fullscreen: false, graveyardDir: testGraveyard });
+    const win = createFdStudio({
+      fullscreen: false,
+      graveyardDir: testGraveyard,
+    });
     const consoleErrors: string[] = [];
     win.appendConsole = (_id, msg, style) => {
       if (style === 3 || msg.includes("ERROR") || msg.includes("undefined")) {
@@ -441,7 +499,11 @@ describe("⚡ Native Bun Fd Engine & Studio Specification Suite", () => {
     handlers.get("btn_decompose_all:onclick")(win);
 
     // 7. Recreate and test copy/archive
-    fs.writeFileSync(path.join(testSandbox, "testfile.txt"), "hello buttons 2", "utf-8");
+    fs.writeFileSync(
+      path.join(testSandbox, "testfile.txt"),
+      "hello buttons 2",
+      "utf-8",
+    );
     handlers.get("btn_search:onclick")(win);
     handlers.get("btn_copy_all_files:onclick")(win);
     handlers.get("btn_archive_all:onclick")(win);

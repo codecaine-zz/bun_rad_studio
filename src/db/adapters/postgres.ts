@@ -1,7 +1,14 @@
 /**
  * PostgreSQL database adapter (`PostgresAdapter`) built on `BunSqlAdapter` and `pg_catalog` introspection.
  */
-import type { Capabilities, ColumnInfo, ForeignKeyInfo, IndexInfo, ObjectRef, TableInfo } from "../types";
+import type {
+  Capabilities,
+  ColumnInfo,
+  ForeignKeyInfo,
+  IndexInfo,
+  ObjectRef,
+  TableInfo,
+} from "../types";
 import { DbError, normalizeError } from "../errors";
 import { BunSqlAdapter } from "./bunsql";
 
@@ -10,7 +17,8 @@ export class PostgresAdapter extends BunSqlAdapter {
   readonly engine = "postgres" as const;
   protected readonly beginSql = "BEGIN";
   protected readonly beginReadOnlySql = "BEGIN READ ONLY";
-  protected readonly versionSql = "SELECT version() AS v, current_database() AS d";
+  protected readonly versionSql =
+    "SELECT version() AS v, current_database() AS d";
   protected readonly backendIdSql = "SELECT pg_backend_pid() AS id";
 
   /** Returns extra `Bun.SQL` constructor options for PostgreSQL. */
@@ -31,13 +39,24 @@ export class PostgresAdapter extends BunSqlAdapter {
     return `SELECT pg_cancel_backend(${id})`;
   }
   /** Each statement runs alone in `BEGIN READ ONLY ... ROLLBACK`; the statement filter blocks COMMIT/SET tricks. */
-  protected async enterGuard(conn: { unsafe(sql: string): Promise<unknown> }, timeoutMs: number) {
+  protected async enterGuard(
+    conn: { unsafe(sql: string): Promise<unknown> },
+    timeoutMs: number,
+  ) {
     await conn.unsafe(this.readOnly ? this.beginReadOnlySql : this.beginSql);
-    if (timeoutMs) await conn.unsafe(`SET LOCAL statement_timeout = ${Math.max(0, Math.trunc(timeoutMs))}`);
+    if (timeoutMs)
+      await conn.unsafe(
+        `SET LOCAL statement_timeout = ${Math.max(0, Math.trunc(timeoutMs))}`,
+      );
     return true;
   }
   /** Commits or rolls back the per-statement transaction opened by `enterGuard`. */
-  protected async leaveGuard(conn: { unsafe(sql: string): Promise<unknown> }, began: boolean, _t: number, failed: boolean) {
+  protected async leaveGuard(
+    conn: { unsafe(sql: string): Promise<unknown> },
+    began: boolean,
+    _t: number,
+    failed: boolean,
+  ) {
     if (!began) return;
     await conn.unsafe(failed || this.readOnly ? "ROLLBACK" : "COMMIT");
   }
@@ -49,7 +68,9 @@ export class PostgresAdapter extends BunSqlAdapter {
   /** `json` and `xml` have no equality operator; compare their text form. */
   protected override eqExpr(col: ColumnInfo, ph: string) {
     const q = '"' + col.name.replace(/"/g, '""') + '"';
-    return /^(json|xml)$/i.test(col.dataType) ? `${q}::text = ${ph}::text` : `${q} = ${ph}`;
+    return /^(json|xml)$/i.test(col.dataType)
+      ? `${q}::text = ${ph}::text`
+      : `${q} = ${ph}`;
   }
 
   /** Reports PostgreSQL server version and feature capabilities (schemas, transactional DDL, `pg_cancel_backend`, `statement_timeout`). */
@@ -67,9 +88,12 @@ export class PostgresAdapter extends BunSqlAdapter {
       routines: true,
       sequences: true,
       notes: {
-        explainAnalyze: "EXPLAIN ANALYZE executes the statement. This tool never runs it automatically for data-changing statements.",
-        readOnly: "Read-only runs each statement in BEGIN READ ONLY (always rolled back) plus a statement filter. For a hard guarantee use a role without write privileges.",
-        timeout: "statement_timeout is enforced by the server and cancels the running statement.",
+        explainAnalyze:
+          "EXPLAIN ANALYZE executes the statement. This tool never runs it automatically for data-changing statements.",
+        readOnly:
+          "Read-only runs each statement in BEGIN READ ONLY (always rolled back) plus a statement filter. For a hard guarantee use a role without write privileges.",
+        timeout:
+          "statement_timeout is enforced by the server and cancels the running statement.",
       },
     };
   }
@@ -83,7 +107,11 @@ export class PostgresAdapter extends BunSqlAdapter {
          WHERE c.relkind IN ('r','p','v','m','f') AND n.nspname NOT IN ('pg_catalog','information_schema') AND n.nspname NOT LIKE 'pg\\_toast%' AND n.nspname NOT LIKE 'pg\\_temp%'
          ORDER BY n.nspname, c.relname`,
       )) as { schema: string; name: string; kind: string }[];
-      return rows.map((r) => ({ schema: r.schema, name: r.name, type: r.kind === "v" || r.kind === "m" ? "view" : "table" }));
+      return rows.map((r) => ({
+        schema: r.schema,
+        name: r.name,
+        type: r.kind === "v" || r.kind === "m" ? "view" : "table",
+      }));
     } catch (e) {
       throw normalizeError("postgres", e, [this.password]);
     }
@@ -99,7 +127,11 @@ export class PostgresAdapter extends BunSqlAdapter {
          WHERE n.nspname = $1 AND c.relname = $2 AND c.relkind IN ('r','p','v','m','f')`,
         [schema, ref.name],
       )) as { oid: string | number; kind: string; comment: string | null }[];
-      if (!rel[0]) throw new DbError("OBJECT_NOT_FOUND", `Table or view "${schema}.${ref.name}" does not exist.`);
+      if (!rel[0])
+        throw new DbError(
+          "OBJECT_NOT_FOUND",
+          `Table or view "${schema}.${ref.name}" does not exist.`,
+        );
       const oid = String(rel[0].oid);
       const cols = (await this.p.unsafe(
         `SELECT a.attname AS name, format_type(a.atttypid, a.atttypmod) AS data_type, NOT a.attnotnull AS nullable,
@@ -107,7 +139,15 @@ export class PostgresAdapter extends BunSqlAdapter {
          FROM pg_attribute a LEFT JOIN pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum
          WHERE a.attrelid = $1::oid AND a.attnum > 0 AND NOT a.attisdropped ORDER BY a.attnum`,
         [oid],
-      )) as { name: string; data_type: string; nullable: boolean; dflt: string | null; identity: string; generated: string; comment: string | null }[];
+      )) as {
+        name: string;
+        data_type: string;
+        nullable: boolean;
+        dflt: string | null;
+        identity: string;
+        generated: string;
+        comment: string | null;
+      }[];
       const pk = (await this.p.unsafe(
         `SELECT a.attname AS name FROM pg_constraint c
          JOIN LATERAL unnest(c.conkey) WITH ORDINALITY AS k(attnum, ord) ON true
@@ -133,17 +173,54 @@ export class PostgresAdapter extends BunSqlAdapter {
          FROM pg_constraint c JOIN pg_class rc ON rc.oid = c.confrelid JOIN pg_namespace rn ON rn.oid = rc.relnamespace
          WHERE c.conrelid = $1::oid AND c.contype = 'f' ORDER BY c.conname`,
         [oid],
-      )) as { name: string; ref_schema: string; ref_table: string; del: string; upd: string; cols: string[]; ref_cols: string[] }[];
-      const rule = (x: string) => ({ a: "NO ACTION", r: "RESTRICT", c: "CASCADE", n: "SET NULL", d: "SET DEFAULT" })[x] ?? x;
-      const foreignKeys: ForeignKeyInfo[] = fkRows.map((f) => ({ name: f.name, columns: f.cols, refSchema: f.ref_schema, refTable: f.ref_table, refColumns: f.ref_cols, onDelete: rule(f.del), onUpdate: rule(f.upd) }));
+      )) as {
+        name: string;
+        ref_schema: string;
+        ref_table: string;
+        del: string;
+        upd: string;
+        cols: string[];
+        ref_cols: string[];
+      }[];
+      const rule = (x: string) =>
+        ({
+          a: "NO ACTION",
+          r: "RESTRICT",
+          c: "CASCADE",
+          n: "SET NULL",
+          d: "SET DEFAULT",
+        })[x] ?? x;
+      const foreignKeys: ForeignKeyInfo[] = fkRows.map((f) => ({
+        name: f.name,
+        columns: f.cols,
+        refSchema: f.ref_schema,
+        refTable: f.ref_table,
+        refColumns: f.ref_cols,
+        onDelete: rule(f.del),
+        onUpdate: rule(f.upd),
+      }));
       const idxRows = (await this.p.unsafe(
         `SELECT ic.relname AS name, i.indisunique AS uniq, i.indisprimary AS prim,
                 (SELECT array_agg(pg_get_indexdef(i.indexrelid, k, true) ORDER BY k) FROM generate_series(1, i.indnkeyatts) k) AS cols
          FROM pg_index i JOIN pg_class ic ON ic.oid = i.indexrelid WHERE i.indrelid = $1::oid ORDER BY ic.relname`,
         [oid],
       )) as { name: string; uniq: boolean; prim: boolean; cols: string[] }[];
-      const indexes: IndexInfo[] = idxRows.map((i) => ({ name: i.name, unique: i.uniq, primary: i.prim, columns: i.cols }));
-      return { schema, name: ref.name, type: rel[0].kind === "v" || rel[0].kind === "m" ? "view" : "table", columns, primaryKey: pk.map((r) => r.name), foreignKeys, indexes, comment: rel[0].comment };
+      const indexes: IndexInfo[] = idxRows.map((i) => ({
+        name: i.name,
+        unique: i.uniq,
+        primary: i.prim,
+        columns: i.cols,
+      }));
+      return {
+        schema,
+        name: ref.name,
+        type: rel[0].kind === "v" || rel[0].kind === "m" ? "view" : "table",
+        columns,
+        primaryKey: pk.map((r) => r.name),
+        foreignKeys,
+        indexes,
+        comment: rel[0].comment,
+      };
     } catch (e) {
       throw normalizeError("postgres", e, [this.password]);
     }

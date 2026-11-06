@@ -7,17 +7,27 @@ import { toast } from "./menus.js";
 import { goTo } from "./nav.js";
 import { openPower } from "./power.js";
 import { state } from "./state.js";
-import { terminalAvailable, terminalShell, terminalWsl, typeInTerminal } from "./terminal.js";
+import {
+  terminalAvailable,
+  terminalShell,
+  terminalWsl,
+  typeInTerminal,
+} from "./terminal.js";
 import { parentOf } from "./util.js";
 import { errorText } from "./devCore.js";
 
 /** The full path of `rel` below the scanned folder. */
-export const joinRoot = (root, rel) => `${root.replace(/[\\/]+$/, "")}${state.sep}${rel.split("/").join(state.sep)}`;
+export const joinRoot = (root, rel) =>
+  `${root.replace(/[\\/]+$/, "")}${state.sep}${rel.split("/").join(state.sep)}`;
 
 /** Selects the item in the file list (the Files, Split and Dual views show it). */
 export async function revealPath(path) {
   const parent = parentOf(path, state.sep);
-  if (parent && (await goTo(parent, { select: path }))) toast("Selected in the file list. Switch to Files or Split view to see it.", { kind: "info" });
+  if (parent && (await goTo(parent, { select: path })))
+    toast(
+      "Selected in the file list. Switch to Files or Split view to see it.",
+      { kind: "info" },
+    );
 }
 
 let codeOpener = (path, line) => openPower("code", { open: path, line });
@@ -33,31 +43,66 @@ export function openInCodeAt(path, line = 1) {
 }
 
 /** Asks first, then types the command into the Terminal and presses Enter, like the Code editor's Run presets. */
-export async function runInTerminal(folder, commandText, display = commandText) {
+export async function runInTerminal(
+  folder,
+  commandText,
+  display = commandText,
+) {
   // Written for the shell the Terminal is in now: PowerShell, the Command Prompt, WSL or Git Bash on Windows.
-  const run = commandInFolder(folder, commandText, terminalShell(), terminalWsl());
-  if (run.error || /[\r\n\0]/.test(commandText)) return void (await messageBox("This command can't be sent", run.error ?? "It has a line break in it."));
+  const run = commandInFolder(
+    folder,
+    commandText,
+    terminalShell(),
+    terminalWsl(),
+  );
+  if (run.error || /[\r\n\0]/.test(commandText))
+    return void (await messageBox(
+      "This command can't be sent",
+      run.error ?? "It has a line break in it.",
+    ));
   const line = run.text;
-  if (!terminalAvailable()) return void (await messageBox("The Terminal isn't available on this system", `Run this in your system's terminal: ${line}`));
-  const ok = await confirmBox({ title: "Run this in the Terminal?", message: `The project's own script will run on your computer: "${display}".`, details: [line], confirmLabel: "Run it" });
+  if (!terminalAvailable())
+    return void (await messageBox(
+      "The Terminal isn't available on this system",
+      `Run this in your system's terminal: ${line}`,
+    ));
+  const ok = await confirmBox({
+    title: "Run this in the Terminal?",
+    message: `The project's own script will run on your computer: "${display}".`,
+    details: [line],
+    confirmLabel: "Run it",
+  });
   if (!ok) return;
-  if (!typeInTerminal(`${line}\r`)) return void toast("The Terminal couldn't be opened.", { kind: "error" });
+  if (!typeInTerminal(`${line}\r`))
+    return void toast("The Terminal couldn't be opened.", { kind: "error" });
   toast(`Running in the Terminal: ${display}`, { kind: "info", timeout: 6000 });
 }
 
 /** Moves folders to the Recycle Bin after asking. Never deletes for good. Resolves true when something moved. */
 export async function trashFolders(paths, summary) {
-  const ok = await confirmBox({ title: "Move to the Recycle Bin?", message: `${summary} You can put them back from the Recycle Bin.`, details: paths, confirmLabel: "Move to Recycle Bin", danger: true });
+  const ok = await confirmBox({
+    title: "Move to the Recycle Bin?",
+    message: `${summary} You can put them back from the Recycle Bin.`,
+    details: paths,
+    confirmLabel: "Move to Recycle Bin",
+    danger: true,
+  });
   if (!ok) return false;
   try {
     const res = await call("trash", { paths });
     const failed = res.results.filter((r) => !r.ok);
     if (failed.length) toast(failed[0].message, { kind: "error" });
     const moved = res.results.length - failed.length;
-    if (moved) toast(`Moved ${moved} folder${moved === 1 ? "" : "s"} to the Recycle Bin.`, { kind: "success" });
+    if (moved)
+      toast(
+        `Moved ${moved} folder${moved === 1 ? "" : "s"} to the Recycle Bin.`,
+        { kind: "success" },
+      );
     return moved > 0;
   } catch (err) {
-    toast(errorText(err, "Couldn't move them to the Recycle Bin."), { kind: "error" });
+    toast(errorText(err, "Couldn't move them to the Recycle Bin."), {
+      kind: "error",
+    });
     return false;
   }
 }

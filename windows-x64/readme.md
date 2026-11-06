@@ -40,6 +40,7 @@ Test window opening, rendering, resizing, controls, and closing with the GUI lau
 You can select demos and applications using `run.ps1` or `run.cmd` from the repository root, or `.\run-demo-x64.ps1` from this folder. Actual functionality depends on the app's Windows compatibility.
 
 ### 1. Interactive Menu (Pick from any app/demo)
+
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\run.ps1
 # or simply (via CMD/PowerShell):
@@ -47,6 +48,7 @@ powershell -ExecutionPolicy Bypass -File .\run.ps1
 ```
 
 ### 2. Launch Specific Apps & Demos
+
 ```powershell
 # Run the Universal Calculator & STEM Studio
 powershell -ExecutionPolicy Bypass -File .\run.ps1 calculator
@@ -69,7 +71,9 @@ powershell -ExecutionPolicy Bypass -File .\run.ps1 -List
 ```
 
 ### 3. Using `windows-x64\run-demo-x64.ps1` Directly
+
 `run-demo-x64.ps1` accepts app or demo targets; it does not make Unix-dependent apps Windows-compatible. These examples run from the repository root:
+
 ```powershell
 # Run default showcase demo 23
 powershell -ExecutionPolicy Bypass -File .\windows-x64\run-demo-x64.ps1
@@ -90,6 +94,7 @@ powershell -ExecutionPolicy Bypass -File .\windows-x64\run-demo-x64.ps1 -Interac
 ## When to use manual setup
 
 Use `install-x64-webview2.ps1` if:
+
 - `ERR_DLOPEN_FAILED` is thrown when loading `libwebview.dll`
 - `WebView2Loader.dll` is missing in `node_modules\webview-bun\build`
 - `WEBVIEW_PATH` points to the wrong library or stale runtime

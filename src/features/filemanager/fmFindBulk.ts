@@ -6,25 +6,44 @@
 import { randomBytes } from "crypto";
 import { promises as fsp } from "fs";
 import { parseMode, type RenameRules } from "../../../applications/fd_ops";
-import { absolutePath, assertFolder, assertModifiable, eachItem, pathApi, type FmContext, type FmHandler } from "./fmCore";
+import {
+  absolutePath,
+  assertFolder,
+  assertModifiable,
+  eachItem,
+  pathApi,
+  type FmContext,
+  type FmHandler,
+} from "./fmCore";
 import { copyItems, moveItems, renameItem, type Policy } from "./fmOps";
 import { FmError, describeFsError } from "./fmPaths";
 import { deletePermanently, moveToTrash } from "./fmTrash";
 import { archiveFormat, archivePaths } from "./fmFindArchive";
-import { MAX_EXPORT_TEXT, exportFormat, formatResults, saveNewFile } from "./fmFindExport";
+import {
+  MAX_EXPORT_TEXT,
+  exportFormat,
+  formatResults,
+  saveNewFile,
+} from "./fmFindExport";
 import { planExec, runExec } from "./fmFindExec";
 import { dropNested, resolveTargets } from "./fmFindQuery";
 import { runWorkerJob } from "./fmFindRun";
 import { MAX_PATHS } from "./fmFindShared";
 
-type Outcome<T> = { ok: true; value: T } | { ok: false; code: string; message: string };
+type Outcome<T> =
+  { ok: true; value: T } | { ok: false; code: string; message: string };
 
 const needConfirm = (b: Record<string, any>, what: string) => {
-  if (b.confirm !== true) throw new FmError("NEEDS_CONFIRM", `${what} needs to be confirmed.`);
+  if (b.confirm !== true)
+    throw new FmError("NEEDS_CONFIRM", `${what} needs to be confirmed.`);
 };
 
 /** How a batch went, small enough to send back: counts, the first few problems, and what was done. */
-function tally<T>(paths: string[], results: Outcome<T>[], isSkipped: (v: T) => boolean = () => false) {
+function tally<T>(
+  paths: string[],
+  results: Outcome<T>[],
+  isSkipped: (v: T) => boolean = () => false,
+) {
   let done = 0;
   let skipped = 0;
   const errors: Array<{ path: string; message: string }> = [];
@@ -32,24 +51,43 @@ function tally<T>(paths: string[], results: Outcome<T>[], isSkipped: (v: T) => b
   results.forEach((r, i) => {
     if (!r.ok) {
       failed++;
-      if (errors.length < 50) errors.push({ path: paths[i] ?? "", message: r.message });
+      if (errors.length < 50)
+        errors.push({ path: paths[i] ?? "", message: r.message });
     } else if (isSkipped(r.value)) skipped++;
     else done++;
   });
   return { done, skipped, failed, errors };
 }
 
-const policyOf = (v: unknown): Policy => (v === "replace" || v === "skip" ? v : "rename");
+const policyOf = (v: unknown): Policy =>
+  v === "replace" || v === "skip" ? v : "rename";
 
-async function transferOp(ctx: FmContext, b: Record<string, any>, copying: boolean) {
+async function transferOp(
+  ctx: FmContext,
+  b: Record<string, any>,
+  copying: boolean,
+) {
   const targets = await resolveTargets(ctx, b);
   const paths = dropNested(targets.paths, ctx.platform);
   const policy = policyOf(b.policy);
-  const results = await (copying ? copyItems : moveItems)(ctx, paths, b.dest, policy);
+  const results = await (copying ? copyItems : moveItems)(
+    ctx,
+    paths,
+    b.dest,
+    policy,
+  );
   const pairs: Array<{ from: string; to: string }> = [];
-  for (const r of results) if (r.ok && r.value.destination && pairs.length < MAX_PATHS) pairs.push({ from: r.value.source, to: r.value.destination });
-  const replaced = results.flatMap((r) => (r.ok && r.value.replaced ? [r.value.replaced] : []));
-  return { ...tally(paths, results, (v) => v.status === "skipped"), pairs, replaced };
+  for (const r of results)
+    if (r.ok && r.value.destination && pairs.length < MAX_PATHS)
+      pairs.push({ from: r.value.source, to: r.value.destination });
+  const replaced = results.flatMap((r) =>
+    r.ok && r.value.replaced ? [r.value.replaced] : [],
+  );
+  return {
+    ...tally(paths, results, (v) => v.status === "skipped"),
+    pairs,
+    replaced,
+  };
 }
 
 function clampText(v: unknown, max: number): string {
@@ -57,8 +95,14 @@ function clampText(v: unknown, max: number): string {
 }
 
 function renameRules(b: Record<string, any>): RenameRules {
-  const r = (b.rules && typeof b.rules === "object" ? b.rules : {}) as Record<string, any>;
-  const caseMode = r.caseMode === "lower" || r.caseMode === "upper" || r.caseMode === "title" ? r.caseMode : "none";
+  const r = (b.rules && typeof b.rules === "object" ? b.rules : {}) as Record<
+    string,
+    any
+  >;
+  const caseMode =
+    r.caseMode === "lower" || r.caseMode === "upper" || r.caseMode === "title"
+      ? r.caseMode
+      : "none";
   return {
     find: clampText(r.find, 200),
     replace: clampText(r.replace, 200),
@@ -87,7 +131,12 @@ interface PlanRow {
  */
 async function renamePlanOp(ctx: FmContext, b: Record<string, any>) {
   const targets = await resolveTargets(ctx, b);
-  const rows = await runWorkerJob<PlanRow[]>(ctx, { kind: "renameplan", paths: targets.paths, rules: renameRules(b), platform: ctx.platform });
+  const rows = await runWorkerJob<PlanRow[]>(ctx, {
+    kind: "renameplan",
+    paths: targets.paths,
+    rules: renameRules(b),
+    platform: ctx.platform,
+  });
   const p = pathApi(ctx);
   const changed = rows.filter((r) => r.changed);
   for (const r of changed) {
@@ -107,15 +156,28 @@ async function renamePlanOp(ctx: FmContext, b: Record<string, any>) {
   if (b.apply !== true) return { applied: false, ...summary };
 
   const todo = changed.filter((r) => !r.error);
-  if (todo.length === 0) throw new FmError("NOTHING_TO_DO", changed.length ? "None of the new names can be used. Check the preview to see why." : "No names would change.");
+  if (todo.length === 0)
+    throw new FmError(
+      "NOTHING_TO_DO",
+      changed.length
+        ? "None of the new names can be used. Check the preview to see why."
+        : "No names would change.",
+    );
   const staged: Array<{ row: PlanRow; temp: string }> = [];
   const failed: Array<{ path: string; message: string }> = [];
   for (const row of todo) {
     try {
-      const { to } = await renameItem(ctx, row.from, `.fm-find-${randomBytes(5).toString("hex")}`);
+      const { to } = await renameItem(
+        ctx,
+        row.from,
+        `.fm-find-${randomBytes(5).toString("hex")}`,
+      );
       staged.push({ row, temp: to });
     } catch (err) {
-      failed.push({ path: row.from, message: describeFsError(err, "rename that").message });
+      failed.push({
+        path: row.from,
+        message: describeFsError(err, "rename that").message,
+      });
     }
   }
   const renamed: Array<{ from: string; to: string }> = [];
@@ -133,26 +195,47 @@ async function renamePlanOp(ctx: FmContext, b: Record<string, any>) {
       failed.push({ path: row.from, message });
     }
   }
-  return { applied: true, ...summary, renamed, failed: failed.slice(0, 50), failedCount: failed.length };
+  return {
+    applied: true,
+    ...summary,
+    renamed,
+    failed: failed.slice(0, 50),
+    failedCount: failed.length,
+  };
 }
 
 async function chmodOp(ctx: FmContext, b: Record<string, any>) {
-  if (ctx.platform === "win32") throw new FmError("UNSUPPORTED", "Permissions work differently on Windows, so they can't be changed here.");
+  if (ctx.platform === "win32")
+    throw new FmError(
+      "UNSUPPORTED",
+      "Permissions work differently on Windows, so they can't be changed here.",
+    );
   // Either one mode for the chosen items, or a list of { path, mode } (what Undo sends to put old modes back).
   let wanted: Array<{ path: string; mode: number }>;
   if (Array.isArray(b.modes)) {
-    if (b.modes.length === 0 || b.modes.length > MAX_PATHS) throw new FmError("BAD_REQUEST", "Nothing was selected.");
-    wanted = b.modes.map((m: any) => ({ path: absolutePath(ctx, m?.path), mode: modeOf(m?.mode) }));
+    if (b.modes.length === 0 || b.modes.length > MAX_PATHS)
+      throw new FmError("BAD_REQUEST", "Nothing was selected.");
+    wanted = b.modes.map((m: any) => ({
+      path: absolutePath(ctx, m?.path),
+      mode: modeOf(m?.mode),
+    }));
   } else {
     const mode = modeOf(b.mode);
-    wanted = (await resolveTargets(ctx, b)).paths.map((path) => ({ path, mode }));
+    wanted = (await resolveTargets(ctx, b)).paths.map((path) => ({
+      path,
+      mode,
+    }));
   }
   const results = await eachItem(
     wanted,
     async ({ path, mode }) => {
       assertModifiable(ctx, path);
       const st = await fsp.lstat(path);
-      if (st.isSymbolicLink()) throw new FmError("IS_LINK", "This is a link. Change the permissions of the item it points to instead.");
+      if (st.isSymbolicLink())
+        throw new FmError(
+          "IS_LINK",
+          "This is a link. Change the permissions of the item it points to instead.",
+        );
       const before = (st.mode & 0o777).toString(8).padStart(3, "0");
       await fsp.chmod(path, mode);
       return { path, before, after: mode.toString(8).padStart(3, "0") };
@@ -160,16 +243,29 @@ async function chmodOp(ctx: FmContext, b: Record<string, any>) {
     (err) => describeFsError(err, "change the permissions of that"),
   );
   const changed = results.flatMap((r) => (r.ok ? [r.value] : []));
-  return { ...tally(wanted.map((w) => w.path), results), changed };
+  return {
+    ...tally(
+      wanted.map((w) => w.path),
+      results,
+    ),
+    changed,
+  };
 }
 
 /** "644", "0755" or "rwxr-xr-x". Only the nine ordinary permission bits are used (no setuid and the like). */
 function modeOf(value: unknown): number {
-  if (typeof value !== "string" || !value.trim()) throw new FmError("BAD_MODE", "Type the permissions, like 644 or rwxr-xr-x.");
+  if (typeof value !== "string" || !value.trim())
+    throw new FmError(
+      "BAD_MODE",
+      "Type the permissions, like 644 or rwxr-xr-x.",
+    );
   try {
     return parseMode(value) & 0o777;
   } catch {
-    throw new FmError("BAD_MODE", "Use three digits like 644 or 755, or letters like rwxr-xr-x.");
+    throw new FmError(
+      "BAD_MODE",
+      "Use three digits like 644 or 755, or letters like rwxr-xr-x.",
+    );
   }
 }
 
@@ -182,32 +278,67 @@ export const bulkOperations: Record<string, FmHandler> = {
     return await transferOp(ctx, b, false);
   },
   async "find/trash"(ctx, b) {
-    const paths = dropNested((await resolveTargets(ctx, b)).paths, ctx.platform);
+    const paths = dropNested(
+      (await resolveTargets(ctx, b)).paths,
+      ctx.platform,
+    );
     const results = await moveToTrash(ctx, paths);
-    return { ...tally(paths, results), trashed: results.flatMap((r) => (r.ok ? [{ path: r.value.path, id: r.value.id }] : [])) };
+    return {
+      ...tally(paths, results),
+      trashed: results.flatMap((r) =>
+        r.ok ? [{ path: r.value.path, id: r.value.id }] : [],
+      ),
+    };
   },
   async "find/delete"(ctx, b) {
     needConfirm(b, "Deleting for good");
-    const paths = dropNested((await resolveTargets(ctx, b)).paths, ctx.platform);
+    const paths = dropNested(
+      (await resolveTargets(ctx, b)).paths,
+      ctx.platform,
+    );
     return tally(paths, await deletePermanently(ctx, paths));
   },
   async "find/archive"(ctx, b) {
     const targets = await resolveTargets(ctx, b);
-    return await archivePaths(ctx, targets.paths, archiveFormat(b.format), b.dest, b.name);
+    return await archivePaths(
+      ctx,
+      targets.paths,
+      archiveFormat(b.format),
+      b.dest,
+      b.name,
+    );
   },
   async "find/export"(ctx, b) {
     const format = exportFormat(b.format);
     const { items } = await resolveTargets(ctx, b, { needItems: true });
-    if (items.length === 0) throw new FmError("NOTHING_TO_DO", "None of those items exist any more. Search again.");
+    if (items.length === 0)
+      throw new FmError(
+        "NOTHING_TO_DO",
+        "None of those items exist any more. Search again.",
+      );
     const text = formatResults(items, format);
-    if (b.dest !== undefined && b.dest !== null && b.dest !== "") return { count: items.length, format, saved: await saveNewFile(ctx, b.dest, format, text, b.name) };
-    if (text.length > MAX_EXPORT_TEXT) throw new FmError("TOO_BIG", "That's too much text to copy at once. Save it to a folder instead.");
+    if (b.dest !== undefined && b.dest !== null && b.dest !== "")
+      return {
+        count: items.length,
+        format,
+        saved: await saveNewFile(ctx, b.dest, format, text, b.name),
+      };
+    if (text.length > MAX_EXPORT_TEXT)
+      throw new FmError(
+        "TOO_BIG",
+        "That's too much text to copy at once. Save it to a folder instead.",
+      );
     return { count: items.length, format, text };
   },
   async "find/exec"(ctx, b) {
     needConfirm(b, "Running a command");
     const targets = await resolveTargets(ctx, b);
-    const plan = planExec(b.template, targets.paths, b.mode === "each" ? "each" : "batch", ctx.platform);
+    const plan = planExec(
+      b.template,
+      targets.paths,
+      b.mode === "each" ? "each" : "batch",
+      ctx.platform,
+    );
     const cwd = b.cwd ? absolutePath(ctx, b.cwd) : (targets.root ?? ctx.home);
     await assertFolder(cwd, "The folder to run in");
     return await runExec(ctx, plan, cwd);
@@ -218,4 +349,4 @@ export const bulkOperations: Record<string, FmHandler> = {
   async "find/renameplan"(ctx, b) {
     return await renamePlanOp(ctx, b);
   },
-}
+};

@@ -21,15 +21,25 @@ export class RingLog {
   private partial = "";
 
   /** Creates a new `RingLog` bounded by `maxLines` and `maxChars`. */
-  constructor(private maxLines = LOG_MAX_LINES, private maxChars = LOG_MAX_CHARS) {}
+  constructor(
+    private maxLines = LOG_MAX_LINES,
+    private maxChars = LOG_MAX_CHARS,
+  ) {}
 
   /** Adds one line (never split). */
   add(text: string): void {
-    const clean = text.replace(/\r/g, "").replace(/[\x00-\x08\x0b-\x1f\x7f]/g, "?");
-    const line = clean.length > MAX_LINE ? `${clean.slice(0, MAX_LINE)}…` : clean;
+    const clean = text
+      .replace(/\r/g, "")
+      .replace(/[\x00-\x08\x0b-\x1f\x7f]/g, "?");
+    const line =
+      clean.length > MAX_LINE ? `${clean.slice(0, MAX_LINE)}…` : clean;
     this.lines.push({ n: ++this.counter, t: Date.now(), text: line });
     this.chars += line.length + 1;
-    while (this.lines.length > this.maxLines || (this.chars > this.maxChars && this.lines.length > 1)) this.chars -= this.lines.shift()!.text.length + 1;
+    while (
+      this.lines.length > this.maxLines ||
+      (this.chars > this.maxChars && this.lines.length > 1)
+    )
+      this.chars -= this.lines.shift()!.text.length + 1;
   }
 
   /** Adds raw program output of any chunking: complete lines are added, the unfinished end waits for the next chunk. */
@@ -52,9 +62,14 @@ export class RingLog {
 
   /** The lines after `since` (a line number from an earlier answer), and the number to ask from next time. */
   read(since?: number): { lines: LogLine[]; cursor: number; dropped: boolean } {
-    const from = typeof since === "number" && Number.isFinite(since) ? since : 0;
+    const from =
+      typeof since === "number" && Number.isFinite(since) ? since : 0;
     const first = this.lines[0]?.n ?? this.counter + 1;
-    return { lines: this.lines.filter((l) => l.n > from), cursor: this.counter, dropped: from > 0 && from + 1 < first };
+    return {
+      lines: this.lines.filter((l) => l.n > from),
+      cursor: this.counter,
+      dropped: from > 0 && from + 1 < first,
+    };
   }
 
   /** Removes all retained lines from the log buffer while keeping the line counter monotonic. */

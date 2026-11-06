@@ -97,7 +97,9 @@ export function uuidV7(): string {
  * Generates a cryptographically random hexadecimal token of `length` characters (default `32`).
  */
 export function randomToken(length = 32): string {
-  return randomBytes(Math.ceil(length / 2)).toString("hex").slice(0, length);
+  return randomBytes(Math.ceil(length / 2))
+    .toString("hex")
+    .slice(0, length);
 }
 
 // Doer: Hash password using Bun's native argon2id/bcrypt
@@ -112,7 +114,10 @@ export async function hashPassword(password: string): Promise<string> {
 /**
  * Verifies a plaintext password against a stored Argon2/bcrypt hash using `Bun.password.verify()`.
  */
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+export async function verifyPassword(
+  password: string,
+  hash: string,
+): Promise<boolean> {
   return await Bun.password.verify(password, hash);
 }
 
@@ -134,4 +139,3 @@ export const cryptoutils = {
   hashPassword,
   verifyPassword,
 };
-

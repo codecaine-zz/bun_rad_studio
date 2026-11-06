@@ -24,21 +24,40 @@ export function terminalSupported(platform: FmContext["platform"]): boolean {
 }
 
 /** The user's shell, if it is an existing absolute path; otherwise a shell every system has. */
-export function pickShell(platform: FmContext["platform"], env: Record<string, string | undefined> = process.env): string {
+export function pickShell(
+  platform: FmContext["platform"],
+  env: Record<string, string | undefined> = process.env,
+): string {
   if (platform === "win32") {
-    return win32.join(env.SystemRoot ?? "C:\\Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+    return win32.join(
+      env.SystemRoot ?? "C:\\Windows",
+      "System32",
+      "WindowsPowerShell",
+      "v1.0",
+      "powershell.exe",
+    );
   }
   const own = env.SHELL;
   if (own && own.startsWith("/") && existsSync(own)) return own;
-  const fallbacks = platform === "darwin" ? ["/bin/zsh", "/bin/bash", "/bin/sh"] : ["/bin/bash", "/bin/sh"];
+  const fallbacks =
+    platform === "darwin"
+      ? ["/bin/zsh", "/bin/bash", "/bin/sh"]
+      : ["/bin/bash", "/bin/sh"];
   return fallbacks.find((p) => existsSync(p)) ?? "/bin/sh";
 }
 
 /** Coerces `value` to an integer clamped within `[min, max]`, returning `fallback` when `value` is missing or non-numeric. */
-export function clampSize(value: unknown, fallback: number, min: number, max: number): number {
+export function clampSize(
+  value: unknown,
+  fallback: number,
+  min: number,
+  max: number,
+): number {
   if (value === null || value === undefined || value === "") return fallback;
   const n = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(n) ? Math.min(max, Math.max(min, Math.round(n))) : fallback;
+  return Number.isFinite(n)
+    ? Math.min(max, Math.max(min, Math.round(n)))
+    : fallback;
 }
 
 /**
@@ -46,26 +65,49 @@ export function clampSize(value: unknown, fallback: number, min: number, max: nu
  * shell's working folder. Only the shell's own process is asked about (a number we got from the system), and the
  * answer is checked to be a plain absolute path before it is used.
  */
-export async function shellFolder(platform: FmContext["platform"], pid: number): Promise<string | null> {
+export async function shellFolder(
+  platform: FmContext["platform"],
+  pid: number,
+): Promise<string | null> {
   if (!Number.isInteger(pid) || pid <= 0) return null;
   let path: string | null = null;
   try {
     if (platform === "linux") {
       path = await fsp.readlink(`/proc/${pid}/cwd`);
     } else if (platform === "darwin") {
-      const lsof = ["/usr/sbin/lsof", "/usr/bin/lsof"].find((p) => existsSync(p));
+      const lsof = ["/usr/sbin/lsof", "/usr/bin/lsof"].find((p) =>
+        existsSync(p),
+      );
       if (!lsof) return null;
-      const proc = Bun.spawn([lsof, "-a", "-d", "cwd", "-Fn", "-p", String(pid)], { stdout: "pipe", stderr: "ignore", stdin: "ignore" });
-      const timer = setTimeout(() => { try { proc.kill("SIGKILL"); } catch {} }, 1500);
+      const proc = Bun.spawn(
+        [lsof, "-a", "-d", "cwd", "-Fn", "-p", String(pid)],
+        { stdout: "pipe", stderr: "ignore", stdin: "ignore" },
+      );
+      const timer = setTimeout(() => {
+        try {
+          proc.kill("SIGKILL");
+        } catch {}
+      }, 1500);
       const out = await new Response(proc.stdout).text();
       clearTimeout(timer);
-      path = out.split("\n").find((l) => l.startsWith("n"))?.slice(1) ?? null;
+      path =
+        out
+          .split("\n")
+          .find((l) => l.startsWith("n"))
+          ?.slice(1) ?? null;
     }
   } catch {
     return null;
   }
   // The shell may have been in a folder that has since been removed; Linux then adds " (deleted)".
-  if (!path || !path.startsWith("/") || /[\x00-\x1f\x7f]/.test(path) || path.length > 4096 || / \(deleted\)$/.test(path)) return null;
+  if (
+    !path ||
+    !path.startsWith("/") ||
+    /[\x00-\x1f\x7f]/.test(path) ||
+    path.length > 4096 ||
+    / \(deleted\)$/.test(path)
+  )
+    return null;
   try {
     if (!(await fsp.stat(path)).isDirectory()) return null;
   } catch {
@@ -77,7 +119,10 @@ export async function shellFolder(platform: FmContext["platform"], pid: number):
 /** Shell flavor detected inside a Windows ConPTY session (`"powershell"`, `"wsl"`, `"cmd"`, or `"gitbash"`). */
 export type WindowsShell = "powershell" | "wsl" | "cmd" | "gitbash";
 /** What a WSL prompt tells about its distro: its name, and where Windows drives are mounted (usually /mnt/). */
-export interface WslInfo { distro: string; driveRoot: string }
+export interface WslInfo {
+  distro: string;
+  driveRoot: string;
+}
 
 /** Active PTY terminal session handle for writing input, resizing the terminal grid, and closing the shell. */
 export interface TerminalSession {
@@ -102,14 +147,21 @@ export interface OpenTerminalOptions {
 }
 
 const WINDOWS_PATH = /^(?:[A-Za-z]:\\|\\\\[^\\]+\\[^\\]+)/;
-const BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+const BASE64 =
+  /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 
 /** The distro details a WSL prompt sends ("name\ndrive root", base64), or null when they don't look right. */
 function readWslInfo(encoded: string | undefined): WslInfo | null {
   if (!encoded || encoded.length > 1024 || !BASE64.test(encoded)) return null;
-  const [distro = "", driveRoot = ""] = Buffer.from(encoded, "base64").toString("utf8").split("\n");
+  const [distro = "", driveRoot = ""] = Buffer.from(encoded, "base64")
+    .toString("utf8")
+    .split("\n");
   if (distro && !/^[A-Za-z0-9._-]{1,64}$/.test(distro)) return null;
-  if (driveRoot && (!/^\/(?:[^\x00-\x1f\x7f]*\/)?$/.test(driveRoot) || driveRoot.length > 256)) return null;
+  if (
+    driveRoot &&
+    (!/^\/(?:[^\x00-\x1f\x7f]*\/)?$/.test(driveRoot) || driveRoot.length > 256)
+  )
+    return null;
   return { distro, driveRoot: driveRoot || "/mnt/" };
 }
 
@@ -121,18 +173,35 @@ function readWslInfo(encoded: string | undefined): WslInfo | null {
  *   Git Bash        ESC ]777;file-manager-cwd;<base64 Windows path>;gitbash BEL
  *   Command Prompt  ESC ]777;file-manager-cwd-cmd;<path> ESC \   (cmd's PROMPT can't make base64 or a BEL)
  */
-export function windowsTerminalOutput(onData: (text: string) => void, onFolder: (path: string, shell: WindowsShell, wsl?: WslInfo | null) => void) {
+export function windowsTerminalOutput(
+  onData: (text: string) => void,
+  onFolder: (path: string, shell: WindowsShell, wsl?: WslInfo | null) => void,
+) {
   const prefix = "\x1b]777;file-manager-cwd";
   let pending = "";
   const report = (body: string, cmd: boolean) => {
     if (cmd) {
-      if (body.length <= 4096 && !/[\x00-\x1f\x7f]/.test(body) && WINDOWS_PATH.test(body)) onFolder(body, "cmd");
+      if (
+        body.length <= 4096 &&
+        !/[\x00-\x1f\x7f]/.test(body) &&
+        WINDOWS_PATH.test(body)
+      )
+        onFolder(body, "cmd");
       return;
     }
     const [encoded = "", kind, meta] = body.split(";");
-    if (!BASE64.test(encoded) || (kind !== undefined && kind !== "wsl" && kind !== "gitbash")) return;
+    if (
+      !BASE64.test(encoded) ||
+      (kind !== undefined && kind !== "wsl" && kind !== "gitbash")
+    )
+      return;
     const path = Buffer.from(encoded, "base64").toString("utf8");
-    if (path.length > 4096 || /[\x00-\x1f\x7f]/.test(path) || !WINDOWS_PATH.test(path)) return;
+    if (
+      path.length > 4096 ||
+      /[\x00-\x1f\x7f]/.test(path) ||
+      !WINDOWS_PATH.test(path)
+    )
+      return;
     if (kind === "wsl") onFolder(path, "wsl", readWslInfo(meta));
     else if (kind === "gitbash") onFolder(path, "gitbash");
     else onFolder(path, "powershell");
@@ -150,7 +219,10 @@ export function windowsTerminalOutput(onData: (text: string) => void, onFolder: 
           pending = pending.slice(pending.length - keep);
           return;
         }
-        if (start > 0) { onData(pending.slice(0, start)); pending = pending.slice(start); }
+        if (start > 0) {
+          onData(pending.slice(0, start));
+          pending = pending.slice(start);
+        }
         const after = pending.slice(prefix.length);
         const cmd = after.startsWith("-cmd;");
         if (!cmd && !after.startsWith(";")) {
@@ -175,35 +247,71 @@ export function windowsTerminalOutput(onData: (text: string) => void, onFolder: 
         report(body, cmd);
       }
     },
-    flush() { if (pending) onData(pending); pending = ""; },
+    flush() {
+      if (pending) onData(pending);
+      pending = "";
+    },
   };
 }
 
-function openWindowsTerminal(ctx: FmContext, options: OpenTerminalOptions, assetsDir: string): TerminalSession {
+function openWindowsTerminal(
+  ctx: FmContext,
+  options: OpenTerminalOptions,
+  assetsDir: string,
+): TerminalSession {
   const shell = pickShell("win32");
   const bridge = resolve(assetsDir, "windows-terminal.ps1");
-  if (!existsSync(bridge)) throw new Error(`The Windows terminal bridge was not found: ${bridge}`);
-  const proc = Bun.spawn([
-    shell, "-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
-    "-File", bridge,
-    "-Shell", shell, "-WorkingDirectory", options.cwd, "-Columns", String(options.cols), "-Rows", String(options.rows),
-  ], { cwd: options.cwd, env: terminalEnv(ctx, childEnv(ctx)), stdin: "pipe", stdout: "pipe", stderr: "pipe", windowsHide: true });
+  if (!existsSync(bridge))
+    throw new Error(`The Windows terminal bridge was not found: ${bridge}`);
+  const proc = Bun.spawn(
+    [
+      shell,
+      "-NoLogo",
+      "-NoProfile",
+      "-NonInteractive",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      bridge,
+      "-Shell",
+      shell,
+      "-WorkingDirectory",
+      options.cwd,
+      "-Columns",
+      String(options.cols),
+      "-Rows",
+      String(options.rows),
+    ],
+    {
+      cwd: options.cwd,
+      env: terminalEnv(ctx, childEnv(ctx)),
+      stdin: "pipe",
+      stdout: "pipe",
+      stderr: "pipe",
+      windowsHide: true,
+    },
+  );
   let closed = false;
   let cwd = realpathSync.native(options.cwd);
   let activeShell: WindowsShell = "powershell";
   let wslInfo: WslInfo | null = null;
-  const outputParser = windowsTerminalOutput(options.onData, (path, shell, wsl) => {
-    activeShell = shell;
-    wslInfo = shell === "wsl" ? wsl ?? null : null;
-    try {
-      if (statSync(path).isDirectory()) cwd = realpathSync.native(path);
-    } catch (error) {
-      const code = (error as NodeJS.ErrnoException).code;
-      if (code !== "ENOENT" && code !== "ENOTDIR") {
-        options.onData(`\r\nCouldn't follow the terminal folder: ${error instanceof Error ? error.message : String(error)}\r\n`);
+  const outputParser = windowsTerminalOutput(
+    options.onData,
+    (path, shell, wsl) => {
+      activeShell = shell;
+      wslInfo = shell === "wsl" ? (wsl ?? null) : null;
+      try {
+        if (statSync(path).isDirectory()) cwd = realpathSync.native(path);
+      } catch (error) {
+        const code = (error as NodeJS.ErrnoException).code;
+        if (code !== "ENOENT" && code !== "ENOTDIR") {
+          options.onData(
+            `\r\nCouldn't follow the terminal folder: ${error instanceof Error ? error.message : String(error)}\r\n`,
+          );
+        }
       }
-    }
-  });
+    },
+  );
   const pump = async (stream: ReadableStream<Uint8Array>, error = false) => {
     const decoder = new TextDecoder();
     for await (const chunk of stream) {
@@ -215,34 +323,53 @@ function openWindowsTerminal(ctx: FmContext, options: OpenTerminalOptions, asset
     }
     const rest = decoder.decode();
     if (!closed) {
-      if (rest) { if (error) options.onData(rest); else outputParser.write(rest); }
+      if (rest) {
+        if (error) options.onData(rest);
+        else outputParser.write(rest);
+      }
       if (!error) outputParser.flush();
     }
   };
   const fail = (error: unknown) => {
     if (closed) return;
-    options.onData(`\r\nWindows terminal connection failed: ${error instanceof Error ? error.message : String(error)}\r\n`);
+    options.onData(
+      `\r\nWindows terminal connection failed: ${error instanceof Error ? error.message : String(error)}\r\n`,
+    );
     session.close();
     options.onExit(null);
   };
-  const output = Promise.all([pump(proc.stdout), pump(proc.stderr, true)]).catch(fail);
+  const output = Promise.all([
+    pump(proc.stdout),
+    pump(proc.stderr, true),
+  ]).catch(fail);
   const send = (line: string) => {
     if (!closed) {
       try {
         proc.stdin.write(`${line}\n`);
         void Promise.resolve(proc.stdin.flush()).catch(fail);
-      } catch (error) { fail(error); }
+      } catch (error) {
+        fail(error);
+      }
     }
   };
   void proc.exited.then(async (code) => {
     await output;
-    if (!closed) { closed = true; options.onExit(code); }
+    if (!closed) {
+      closed = true;
+      options.onExit(code);
+    }
   });
   const session: TerminalSession = {
     pid: proc.pid,
-    get cwd() { return cwd; },
-    get shell() { return activeShell; },
-    get wsl() { return wslInfo; },
+    get cwd() {
+      return cwd;
+    },
+    get shell() {
+      return activeShell;
+    },
+    get wsl() {
+      return wslInfo;
+    },
     write: (data) => send(`I:${Buffer.from(data, "utf8").toString("base64")}`),
     resize: (cols, rows) => send(`R:${cols}:${rows}`),
     close() {
@@ -267,7 +394,10 @@ export interface TerminalHub {
 }
 
 /** Creates a `TerminalHub` bounded to `limit` simultaneous terminal sessions. */
-export function createTerminalHub(limit = MAX_TERMINALS, assetsDir = resolve(import.meta.dir, "../../../resources/file_manager")): TerminalHub {
+export function createTerminalHub(
+  limit = MAX_TERMINALS,
+  assetsDir = resolve(import.meta.dir, "../../../resources/file_manager"),
+): TerminalHub {
   const sessions = new Set<TerminalSession>();
 
   return {
@@ -277,19 +407,35 @@ export function createTerminalHub(limit = MAX_TERMINALS, assetsDir = resolve(imp
 
     open(ctx, options) {
       if (sessions.size >= limit) return null;
-      if (!terminalSupported(ctx.platform)) throw new Error("Terminals aren't supported on this system.");
-      if (!statSync(options.cwd).isDirectory()) throw new Error("That isn't a folder.");
+      if (!terminalSupported(ctx.platform))
+        throw new Error("Terminals aren't supported on this system.");
+      if (!statSync(options.cwd).isDirectory())
+        throw new Error("That isn't a folder.");
 
       if (ctx.platform === "win32") {
-        const windows = openWindowsTerminal(ctx, {
-          ...options,
-          onExit(code) { sessions.delete(session); options.onExit(code); },
-        }, assetsDir);
+        const windows = openWindowsTerminal(
+          ctx,
+          {
+            ...options,
+            onExit(code) {
+              sessions.delete(session);
+              options.onExit(code);
+            },
+          },
+          assetsDir,
+        );
         const session: TerminalSession = {
           ...windows,
-          get cwd() { return windows.cwd; },
-          get shell() { return windows.shell; },
-          close() { sessions.delete(session); windows.close(); },
+          get cwd() {
+            return windows.cwd;
+          },
+          get shell() {
+            return windows.shell;
+          },
+          close() {
+            sessions.delete(session);
+            windows.close();
+          },
         };
         sessions.add(session);
         return session;
@@ -323,9 +469,15 @@ export function createTerminalHub(limit = MAX_TERMINALS, assetsDir = resolve(imp
           if (closed) return;
           closed = true;
           sessions.delete(session);
-          try { pty.close(); } catch {}
+          try {
+            pty.close();
+          } catch {}
           // An interactive shell ignores a polite stop request, so end it if closing the terminal was not enough.
-          const force = setTimeout(() => { try { proc.kill("SIGKILL"); } catch {} }, 1000);
+          const force = setTimeout(() => {
+            try {
+              proc.kill("SIGKILL");
+            } catch {}
+          }, 1000);
           force.unref?.();
           void proc.exited.then(() => clearTimeout(force));
         },

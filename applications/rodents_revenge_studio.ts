@@ -1,7 +1,7 @@
 import { injectGameMasterFx } from "../src/shared/gameMasterFx";
 /**
  * ⚡ Codecaine CyberMouse Trap - Deluxe Master Edition Studio
- * 
+ *
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
  * - Deluxe arcade revival of the classic mouse-and-cat block puzzle game
@@ -77,7 +77,9 @@ export function generateRodentsRevengeStudioHtml(): string {
   const assetsDir = getRodentsRevengeAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Codecaine CyberMouse Trap</h1>";
+  let html = existsSync(indexPath)
+    ? readFileSync(indexPath, "utf8")
+    : "<h1>Codecaine CyberMouse Trap</h1>";
 
   const desktopHooks = `
   <script>
@@ -112,9 +114,17 @@ ${getWindowShortcutsScript()}
 /**
  * Starts the Bun.serve server hosting Rodent's Revenge Deluxe.
  */
-export function startRodentsRevengeStudioServer(options: RodentsRevengeServerOptions = {}) {
+export function startRodentsRevengeStudioServer(
+  options: RodentsRevengeServerOptions = {},
+) {
   return startStaticStudioServer(
-    { app: "rodents_revenge_studio", name: "Codecaine CyberMouse Trap - Deluxe Master Edition", version: "1.0.0", assetsDir: getRodentsRevengeAssetsDir(), generateHtml: generateRodentsRevengeStudioHtml },
+    {
+      app: "rodents_revenge_studio",
+      name: "Codecaine CyberMouse Trap - Deluxe Master Edition",
+      version: "1.0.0",
+      assetsDir: getRodentsRevengeAssetsDir(),
+      generateHtml: generateRodentsRevengeStudioHtml,
+    },
     options,
   );
 }
@@ -122,7 +132,9 @@ export function startRodentsRevengeStudioServer(options: RodentsRevengeServerOpt
 /**
  * Creates the complete native desktop instance of Codecaine CyberMouse Trap.
  */
-export function createRodentsRevengeStudio(options: RodentsRevengeStudioOptions = {}): RodentsRevengeStudioInstance {
+export function createRodentsRevengeStudio(
+  options: RodentsRevengeStudioOptions = {},
+): RodentsRevengeStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1200);
@@ -154,7 +166,8 @@ export function createRodentsRevengeStudio(options: RodentsRevengeStudioOptions 
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -174,11 +187,15 @@ export function createRodentsRevengeStudio(options: RodentsRevengeStudioOptions 
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -188,16 +205,24 @@ export function createRodentsRevengeStudio(options: RodentsRevengeStudioOptions 
         });
 
         webview.setHTML(html);
-        console.log(`⚡ Desktop window open (Fullscreen: ${fullscreen ? 'Enabled' : 'Disabled'}).`);
+        console.log(
+          `⚡ Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`,
+        );
 
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -213,10 +238,13 @@ if (process.argv.includes("--server")) {
   const port = parseInt(process.env.PORT || "0", 10);
   const srv = startRodentsRevengeStudioServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`⚡ Rodent's Revenge Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `⚡ Rodent's Revenge Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
+  const fullscreen =
+    !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
   const app = createRodentsRevengeStudio({ fullscreen });
   await app.run();
   process.exit(0);

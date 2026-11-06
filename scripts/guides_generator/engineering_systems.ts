@@ -3,7 +3,9 @@ import { join } from "path";
 
 export function generateEngineeringSystems(outDir: string) {
   // 11_app_bundler_studio.md
-  writeFileSync(join(outDir, "11_app_bundler_studio.md"), `# 📦 App Bundler Studio Pro -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "11_app_bundler_studio.md"),
+    `# 📦 App Bundler Studio Pro -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Native bun build --compile  •  Dependencies: 0  •  Offline: 100%
@@ -93,10 +95,13 @@ bun run cli:bundler ./src/index.ts --target bun-linux-x64 -o ./dist/my_app_linux
 | **Cmd + O** / **Ctrl + O** | File Picker | Browse for Entrypoint file |
 | **Cmd + R** / **Ctrl + R** | Post-Build | Reveal output in Finder / Explorer |
 | **F11** or **F** | Global | Toggle borderless fullscreen |
-`);
+`,
+  );
 
   // 12_network_forensics_studio.md
-  writeFileSync(join(outDir, "12_network_forensics_studio.md"), `# 📡 Network Forensics Studio -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "12_network_forensics_studio.md"),
+    `# 📡 Network Forensics Studio -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Native node:net, node:tls & node:dns  •  Dependencies: 0  •  Port scans work offline; DNS/HTTP need internet
@@ -191,10 +196,13 @@ Set the **Target** (host name, IP or URL) and **Port**, then pick a tool. A targ
 - A TIMEOUT usually means a firewall is dropping packets; CLOSED means the host actively refused the connection.
 - DNS and HTTP probes need an internet connection; local port scans and TCP ping to localhost work offline.
 - Typed values are kept in the saved form state, so avoid putting sensitive hostnames on a shared machine.
-`);
+`,
+  );
 
   // 13_git_workbench_studio.md
-  writeFileSync(join(outDir, "13_git_workbench_studio.md"), `# 🌿 Git Workbench Pro -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "13_git_workbench_studio.md"),
+    `# 🌿 Git Workbench Pro -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Native Git Subsystem & Diff Engine  •  Dependencies: 0  •  Offline: 100%
@@ -257,10 +265,13 @@ bun run cli:git log -n 10
 - **Commit Type Selector**: \`feat\`, \`fix\`, \`docs\`, \`style\`, \`refactor\`, \`perf\`, \`test\`, \`chore\`.
 - **Commit Message Input**: Formatted message composer with 50/72 rule character counter.
 - **Commit Button (Cmd+Enter)**: Creates commit with clean GPG/sign-off support.
-`);
+`,
+  );
 
   // 14_markdown_studio.md
-  writeFileSync(join(outDir, "14_markdown_studio.md"), `# 📝 Markdown Studio Pro -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "14_markdown_studio.md"),
+    `# 📝 Markdown Studio Pro -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Native GFM Parser & HTML Renderer  •  Dependencies: 0  •  Offline: 100%
@@ -310,10 +321,13 @@ bun run cli:markdown README.md -o ./dist/README.html
 ### 2. Synchronized Dual-Pane Workspace
 - **Editor (Left Pane)**: Fast textarea with line wrapping, tab indentation, and undo/redo support.
 - **Live Preview (Right Pane)**: Rendered GFM preview with custom typography, clean tables, blockquotes, and alerts.
-`);
+`,
+  );
 
   // 15_color_token_studio.md
-  writeFileSync(join(outDir, "15_color_token_studio.md"), `# 🎨 Color & Design Token Studio -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "15_color_token_studio.md"),
+    `# 🎨 Color & Design Token Studio -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Native Color Space & WCAG 2.1 Math Engine  •  Dependencies: 0  •  Offline: 100%
@@ -373,10 +387,13 @@ bun run cli:color scale "#3b82f6"
 ### 3. 🎨 50–950 Tonal Scale Generator
 - Generates 10 harmonious shades: \`50\`, \`100\`, \`200\`, \`300\`, \`400\`, \`500\`, \`600\`, \`700\`, \`800\`, \`900\`, \`950\`.
 - Exports directly to Tailwind CSS configuration format or CSS Variables.
-`);
+`,
+  );
 
   // 16_environment_vault_studio.md
-  writeFileSync(join(outDir, "16_environment_vault_studio.md"), `# 🔑 Environment Vault Studio -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "16_environment_vault_studio.md"),
+    `# 🔑 Environment Vault Studio -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Native .env Parser & TypeScript Schema Gen  •  Dependencies: 0  •  Offline: 100%
@@ -441,7 +458,8 @@ bun run cli:env types .env
 - Nothing is sent anywhere; the file is read and written on your computer only.
 - Opening, comparing and generating never change a file. Only the two **Save** buttons write, and only where you choose.
 - The command-line version (\`bun run cli:env check .env --template .env.example\`) does the same checks without a window.
-`);
+`,
+  );
 
   console.log("✔ Engineering Systems (11 to 16) generated with AAA quality.");
 }

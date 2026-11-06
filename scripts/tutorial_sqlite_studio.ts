@@ -17,7 +17,12 @@
 import "./lib/tts_edge_default";
 import { existsSync, mkdirSync, rmSync } from "fs";
 import { join } from "path";
-import { WORK, prepareAppCopy, seedSqliteWorld, type World as SqliteWorld } from "./lib/sqlite_tutorial_world";
+import {
+  WORK,
+  prepareAppCopy,
+  seedSqliteWorld,
+  type World as SqliteWorld,
+} from "./lib/sqlite_tutorial_world";
 
 // Nothing may be written to the real home folder: the File Manager and the studios read $HOME.
 mkdirSync(join(WORK, "envhome"), { recursive: true });
@@ -49,25 +54,62 @@ function seedWorld(): World {
   return { home: HOME, data: DATA, big: "", put: () => {} };
 }
 
-function stopServer() { try { fm?.kill(9); } catch {} fm = null; }
+function stopServer() {
+  try {
+    fm?.kill(9);
+  } catch {}
+  fm = null;
+}
 
 async function open(ch: Chapter) {
   stopServer();
   await sleep(600);
   fm = Bun.spawn(
-    [process.execPath, "--preload", join(ROOT, "scripts/lib/sqlite_tutorial_nosecrets.ts"), join(APP, "applications", "file_manager_studio.ts"), "--server", "--port", String(FM_PORT), "--home", HOME, "--data-dir", DATA, "--path", sqlite.shopDir],
-    { cwd: APP, stdout: "ignore", stderr: "ignore", env: { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "", GRAVEYARD: join(WORK, "grave") } },
+    [
+      process.execPath,
+      "--preload",
+      join(ROOT, "scripts/lib/sqlite_tutorial_nosecrets.ts"),
+      join(APP, "applications", "file_manager_studio.ts"),
+      "--server",
+      "--port",
+      String(FM_PORT),
+      "--home",
+      HOME,
+      "--data-dir",
+      DATA,
+      "--path",
+      sqlite.shopDir,
+    ],
+    {
+      cwd: APP,
+      stdout: "ignore",
+      stderr: "ignore",
+      env: {
+        PATH: process.env.PATH ?? "",
+        HOME: process.env.HOME ?? "",
+        GRAVEYARD: join(WORK, "grave"),
+      },
+    },
   );
-  for (let i = 0; i < 120; i++) { try { if ((await fetch(`http://127.0.0.1:${FM_PORT}/`)).ok) break; } catch {} await sleep(250); }
+  for (let i = 0; i < 120; i++) {
+    try {
+      if ((await fetch(`http://127.0.0.1:${FM_PORT}/`)).ok) break;
+    } catch {}
+    await sleep(250);
+  }
   await cdp.goto(`http://127.0.0.1:${FM_PORT}/`);
-  await cdp.eval(`[...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Start')?.click()`);
+  await cdp.eval(
+    `[...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Start')?.click()`,
+  );
   await sleep(700);
   void ch;
 }
 
 const notes = (marks: Array<{ at: number; title: string }>, total: number) => {
   const REPO = "https://github.com/codecaine-zz/bun_rad_studio";
-  const text = marks.map((m, i) => `${fmtTime(i === 0 ? 0 : m.at)} ${m.title}`).join("\n");
+  const text = marks
+    .map((m, i) => `${fmtTime(i === 0 ? 0 : m.at)} ${m.title}`)
+    .join("\n");
   return `# SQLite in the Codecaine File Manager: the complete walkthrough (${fmtTime(total)})
 
 ## YouTube title
@@ -117,11 +159,15 @@ const suite: Suite = {
     prepareAppCopy(ROOT, APP, sqlite.shopDb);
     cdp = await Cdp.launch(CDP_PORT, join(WORK, "chrome"), 1920, VIEW_H);
   },
-  stop: () => { stopServer(); cdp?.close(); },
+  stop: () => {
+    stopServer();
+    cdp?.close();
+  },
   cdp: () => cdp,
   notes,
   viewHeight: VIEW_H,
-  rigMark: "🍎 Mac Studio M4 Ultra · 32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K 120Hz",
+  rigMark:
+    "🍎 Mac Studio M4 Ultra · 32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K 120Hz",
 };
 
 await runTutorial(suite, process.argv.slice(2));

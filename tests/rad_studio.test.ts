@@ -1,7 +1,20 @@
 import { describe, it, expect } from "bun:test";
-import { createRadStudio, getRecipeForModule } from "../applications/rad_studio.ts";
+import {
+  createRadStudio,
+  getRecipeForModule,
+} from "../applications/rad_studio.ts";
 import { RAD_MODULES_CATALOG } from "../cli_apps/rad_cli.ts";
-import { rad, fileutils, arrutils, objutils, fnutils, sqliteutils, globutils, shellutils, hashutils } from "../src/index.ts";
+import {
+  rad,
+  fileutils,
+  arrutils,
+  objutils,
+  fnutils,
+  sqliteutils,
+  globutils,
+  shellutils,
+  hashutils,
+} from "../src/index.ts";
 import { resolve } from "node:path";
 
 describe("⚡ RAD Utilities Studio Pro & CLI Specification Suite", () => {
@@ -84,10 +97,13 @@ describe("⚡ RAD Utilities Studio Pro & CLI Specification Suite", () => {
 
   it("5. Verifies RAD CLI runs single module demo with --module", async () => {
     const cliScript = resolve(process.cwd(), "cli_apps/rad_cli.ts");
-    const proc = Bun.spawn([process.execPath, cliScript, "--module", "arrutils"], {
-      stdout: "pipe",
-      stderr: "pipe",
-    });
+    const proc = Bun.spawn(
+      [process.execPath, cliScript, "--module", "arrutils"],
+      {
+        stdout: "pipe",
+        stderr: "pipe",
+      },
+    );
     const [stdout, stderr] = await Promise.all([
       new Response(proc.stdout).text(),
       new Response(proc.stderr).text(),

@@ -1,7 +1,7 @@
 import { injectGameMasterFx } from "../src/shared/gameMasterFx";
 /**
  * 🪙 Blackjack Royale VIP — Multi-Hand Casino Studio
- * 
+ *
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
  * - High-roller multi-hand VIP casino Blackjack with 3 simultaneous betting spots (Left, Center Main, Right)
@@ -83,7 +83,9 @@ export function generateBlackjackStudioHtml(): string {
   const assetsDir = getBlackjackAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Blackjack Royale VIP</h1>";
+  let html = existsSync(indexPath)
+    ? readFileSync(indexPath, "utf8")
+    : "<h1>Blackjack Royale VIP</h1>";
 
   const storagePolyfill = `
   <script>
@@ -155,7 +157,13 @@ ${getWindowShortcutsScript()}
  */
 export function startBlackjackServer(options: BlackjackServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "blackjack_studio", name: "Codecaine Blackjack Royale VIP — Multi-Hand Casino Studio", version: "1.0.0", assetsDir: getBlackjackAssetsDir(), generateHtml: generateBlackjackStudioHtml },
+    {
+      app: "blackjack_studio",
+      name: "Codecaine Blackjack Royale VIP — Multi-Hand Casino Studio",
+      version: "1.0.0",
+      assetsDir: getBlackjackAssetsDir(),
+      generateHtml: generateBlackjackStudioHtml,
+    },
     options,
   );
 }
@@ -163,7 +171,9 @@ export function startBlackjackServer(options: BlackjackServerOptions = {}) {
 /**
  * Creates the complete native desktop instance of Blackjack Royale VIP.
  */
-export function createBlackjackStudio(options: BlackjackStudioOptions = {}): BlackjackStudioInstance {
+export function createBlackjackStudio(
+  options: BlackjackStudioOptions = {},
+): BlackjackStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1240);
@@ -195,7 +205,8 @@ export function createBlackjackStudio(options: BlackjackStudioOptions = {}): Bla
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -215,11 +226,15 @@ export function createBlackjackStudio(options: BlackjackStudioOptions = {}): Bla
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -230,16 +245,24 @@ export function createBlackjackStudio(options: BlackjackStudioOptions = {}): Bla
 
         // Set HTML directly into Webview memory (bypasses macOS ATS network restrictions)
         webview.setHTML(html);
-        console.log(`🪙 Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`);
+        console.log(
+          `🪙 Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`,
+        );
 
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -258,7 +281,9 @@ if (import.meta.main) {
 
   if (serverOnly) {
     const srv = startBlackjackServer({ port, host: "127.0.0.1" });
-    console.log(`🪙 Blackjack Royale VIP server running at: http://127.0.0.1:${srv.port}/`);
+    console.log(
+      `🪙 Blackjack Royale VIP server running at: http://127.0.0.1:${srv.port}/`,
+    );
     await new Promise(() => {});
   } else {
     const app = createBlackjackStudio({ fullscreen, port });

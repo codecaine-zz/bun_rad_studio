@@ -8,7 +8,8 @@ import type { DatabasesHooks, DbProcess } from "./fmDbHooks";
 import { ENGINES, type DbEngine } from "./fmDbModel";
 
 /** Lifecycle state of a child database studio process (`starting`, `running`, `stopping`, `stopped`, or `crashed`). */
-export type StudioState = "starting" | "running" | "stopping" | "stopped" | "crashed";
+export type StudioState =
+  "starting" | "running" | "stopping" | "stopped" | "crashed";
 
 /** Public status and loopback endpoint details for a managed database studio instance. */
 export interface StudioInfo {
@@ -79,18 +80,32 @@ function installExitHook() {
 /** Removes known secret values and anything that looks like a password in an address. */
 export function scrubLog(line: string, secrets: string[]): string {
   let out = line.replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, "");
-  for (const s of secrets) if (s && s.length >= 3) out = out.split(s).join("••••");
-  out = out.replace(/(:\/\/[^:/@\s]*:)[^@/\s]+@/g, "$1••••@").replace(/\b(password|passwd|pwd)(["']?\s*[=:]\s*["']?)[^\s"'&;,]+/gi, "$1$2••••");
+  for (const s of secrets)
+    if (s && s.length >= 3) out = out.split(s).join("••••");
+  out = out
+    .replace(/(:\/\/[^:/@\s]*:)[^@/\s]+@/g, "$1••••@")
+    .replace(
+      /\b(password|passwd|pwd)(["']?\s*[=:]\s*["']?)[^\s"'&;,]+/gi,
+      "$1$2••••",
+    );
   return out.length > LOG_LINE_MAX ? out.slice(0, LOG_LINE_MAX) + "…" : out;
 }
 
 /** What went wrong, from the last lines the studio printed and how it ended. */
-export function explainExit(lines: string[], code: number | null, studio: string): string {
+export function explainExit(
+  lines: string[],
+  code: number | null,
+  studio: string,
+): string {
   const text = lines.join("\n");
-  if (/EADDRINUSE|address already in use/i.test(text)) return `${studio} couldn't open its network port because something else is using it. Try again.`;
-  if (/Cannot find module|Module not found|ENOENT.*\.(ts|js)/i.test(text)) return `${studio}'s program files couldn't be found. The download may be incomplete.`;
-  if (/libwebview|webview/i.test(text) && /error|cannot|failed/i.test(text)) return `${studio} needs the desktop window library, which isn't available here.`;
-  if (/permission denied|EACCES/i.test(text)) return `${studio} wasn't allowed to start or to use a file. Check the file permissions.`;
+  if (/EADDRINUSE|address already in use/i.test(text))
+    return `${studio} couldn't open its network port because something else is using it. Try again.`;
+  if (/Cannot find module|Module not found|ENOENT.*\.(ts|js)/i.test(text))
+    return `${studio}'s program files couldn't be found. The download may be incomplete.`;
+  if (/libwebview|webview/i.test(text) && /error|cannot|failed/i.test(text))
+    return `${studio} needs the desktop window library, which isn't available here.`;
+  if (/permission denied|EACCES/i.test(text))
+    return `${studio} wasn't allowed to start or to use a file. Check the file permissions.`;
   if (/out of memory|heap/i.test(text)) return `${studio} ran out of memory.`;
   return `${studio} stopped unexpectedly${code !== null && code !== undefined ? ` (exit code ${code})` : ""}. The last lines of its log are shown below.`;
 }
@@ -108,7 +123,10 @@ export class StudioManager {
 
   /** Returns status snapshots (including the last 4 log lines) for all tracked studio instances. */
   list(): StudioInfo[] {
-    return [...this.entries.values()].map((e) => ({ ...e.info, tail: e.log.slice(-4) }));
+    return [...this.entries.values()].map((e) => ({
+      ...e.info,
+      tail: e.log.slice(-4),
+    }));
   }
 
   /** Returns the current `StudioInfo` snapshot for studio `id`, or `undefined` if not found. */
@@ -120,19 +138,30 @@ export class StudioManager {
   /** Returns up to `max` recent log lines captured from studio `id`. */
   logs(id: string, max = 120): string[] {
     const e = this.entries.get(id);
-    if (!e) throw new FmError("NOT_FOUND", "That studio isn't running any more.");
+    if (!e)
+      throw new FmError("NOT_FOUND", "That studio isn't running any more.");
     return e.log.slice(-Math.min(max, LOG_LINES));
   }
 
   /** The running or starting studio for this key, if any. */
   find(key: string): StudioInfo | undefined {
-    for (const e of this.entries.values()) if (e.key === key && (e.info.state === "starting" || e.info.state === "running")) return this.get(e.info.id);
+    for (const e of this.entries.values())
+      if (
+        e.key === key &&
+        (e.info.state === "starting" || e.info.state === "running")
+      )
+        return this.get(e.info.id);
     return undefined;
   }
 
   /** Returns the number of studios currently in `starting`, `running`, or `stopping` state. */
   activeCount(): number {
-    return [...this.entries.values()].filter((e) => e.info.state === "starting" || e.info.state === "running" || e.info.state === "stopping").length;
+    return [...this.entries.values()].filter(
+      (e) =>
+        e.info.state === "starting" ||
+        e.info.state === "running" ||
+        e.info.state === "stopping",
+    ).length;
   }
 
   /** Where a running studio's page is, or null. Only a running studio of ours is ever framed. */
@@ -145,18 +174,42 @@ export class StudioManager {
   async start(req: StartRequest): Promise<StudioInfo> {
     const existing = this.find(req.key);
     if (existing) return existing;
-    if (this.activeCount() >= this.hooks.maxStudios) throw new FmError("TOO_MANY", `${this.hooks.maxStudios} studios are already open. Stop one first.`);
+    if (this.activeCount() >= this.hooks.maxStudios)
+      throw new FmError(
+        "TOO_MANY",
+        `${this.hooks.maxStudios} studios are already open. Stop one first.`,
+      );
 
     // Finished entries for the same connection are replaced; keep only a few of the rest.
-    for (const [id, e] of this.entries) if (e.key === req.key && (e.info.state === "stopped" || e.info.state === "crashed")) this.entries.delete(id);
-    const finished = [...this.entries.values()].filter((e) => e.info.state === "stopped" || e.info.state === "crashed");
-    for (const e of finished.slice(0, Math.max(0, finished.length - KEEP_FINISHED + 1))) this.entries.delete(e.info.id);
+    for (const [id, e] of this.entries)
+      if (
+        e.key === req.key &&
+        (e.info.state === "stopped" || e.info.state === "crashed")
+      )
+        this.entries.delete(id);
+    const finished = [...this.entries.values()].filter(
+      (e) => e.info.state === "stopped" || e.info.state === "crashed",
+    );
+    for (const e of finished.slice(
+      0,
+      Math.max(0, finished.length - KEEP_FINISHED + 1),
+    ))
+      this.entries.delete(e.info.id);
 
     const id = `st${++this.seq}-${Math.random().toString(36).slice(2, 10)}`;
     let endedResolve!: () => void;
     const ended = new Promise<void>((r) => (endedResolve = r));
     const entry: Entry = {
-      info: { id, engine: req.engine, profileId: req.profileId, title: req.title, state: "starting", startedAt: this.hooks.now(), tail: [], writesConfirmed: req.writesConfirmed },
+      info: {
+        id,
+        engine: req.engine,
+        profileId: req.profileId,
+        title: req.title,
+        state: "starting",
+        startedAt: this.hooks.now(),
+        tail: [],
+        writesConfirmed: req.writesConfirmed,
+      },
       key: req.key,
       proc: null,
       log: [],
@@ -172,7 +225,12 @@ export class StudioManager {
     try {
       proc = this.hooks.spawn(req.command, { env: req.env, cwd: req.cwd });
     } catch (err) {
-      this.finish(entry, "crashed", null, `${ENGINES[req.engine].studioName} couldn't be started: ${scrubLog(err instanceof Error ? err.message : String(err), req.secrets)}`);
+      this.finish(
+        entry,
+        "crashed",
+        null,
+        `${ENGINES[req.engine].studioName} couldn't be started: ${scrubLog(err instanceof Error ? err.message : String(err), req.secrets)}`,
+      );
       return this.get(id)!;
     }
     entry.proc = proc;
@@ -180,7 +238,10 @@ export class StudioManager {
 
     let readyResolve!: (port: number) => void;
     const ready = new Promise<number>((r) => (readyResolve = r));
-    const pump = (stream: ReadableStream<Uint8Array> | null, watchReady: boolean) => {
+    const pump = (
+      stream: ReadableStream<Uint8Array> | null,
+      watchReady: boolean,
+    ) => {
       if (!stream) return;
       const decoder = new TextDecoder();
       let pending = "";
@@ -193,7 +254,12 @@ export class StudioManager {
             pending += decoder.decode(value, { stream: true });
             let nl: number;
             while ((nl = pending.indexOf("\n")) >= 0) {
-              this.addLine(entry, pending.slice(0, nl), watchReady, readyResolve);
+              this.addLine(
+                entry,
+                pending.slice(0, nl),
+                watchReady,
+                readyResolve,
+              );
               pending = pending.slice(nl + 1);
             }
             if (pending.length > 4000) pending = pending.slice(-1000);
@@ -208,16 +274,38 @@ export class StudioManager {
     pump(proc.stderr, false);
 
     proc.exited.then((code) => {
-      if (entry.stopping) this.finish(entry, "stopped", code, entry.info.message);
-      else if (entry.info.state !== "stopped" && entry.info.state !== "crashed") this.finish(entry, "crashed", code, explainExit(entry.log.slice(-12), code, ENGINES[entry.info.engine].studioName));
+      if (entry.stopping)
+        this.finish(entry, "stopped", code, entry.info.message);
+      else if (entry.info.state !== "stopped" && entry.info.state !== "crashed")
+        this.finish(
+          entry,
+          "crashed",
+          code,
+          explainExit(
+            entry.log.slice(-12),
+            code,
+            ENGINES[entry.info.engine].studioName,
+          ),
+        );
     });
 
     // Wait for READY:<port> and for the page to answer, within the deadline.
     const deadline = this.hooks.startTimeoutMs;
-    const timedOut = new Promise<"timeout">((r) => entry.timers.push(setTimeout(() => r("timeout"), deadline)));
-    const first = await Promise.race([ready, timedOut, entry.ended.then(() => "ended" as const)]);
+    const timedOut = new Promise<"timeout">((r) =>
+      entry.timers.push(setTimeout(() => r("timeout"), deadline)),
+    );
+    const first = await Promise.race([
+      ready,
+      timedOut,
+      entry.ended.then(() => "ended" as const),
+    ]);
     if (first === "timeout") {
-      this.finish(entry, "crashed", null, `${ENGINES[req.engine].studioName} didn't become ready within ${Math.round(deadline / 1000)} seconds.`);
+      this.finish(
+        entry,
+        "crashed",
+        null,
+        `${ENGINES[req.engine].studioName} didn't become ready within ${Math.round(deadline / 1000)} seconds.`,
+      );
       this.terminate(entry);
       return this.get(id)!;
     }
@@ -225,13 +313,22 @@ export class StudioManager {
     const port = first;
     let answered = false;
     const probeEnd = this.hooks.now() + deadline;
-    while (!answered && entry.info.state === "starting" && this.hooks.now() < probeEnd) {
+    while (
+      !answered &&
+      entry.info.state === "starting" &&
+      this.hooks.now() < probeEnd
+    ) {
       answered = await this.hooks.probe(port);
       if (!answered) await new Promise((r) => setTimeout(r, 120));
     }
     if (entry.info.state !== "starting") return this.get(id)!;
     if (!answered) {
-      this.finish(entry, "crashed", null, `${ENGINES[req.engine].studioName} started but its page didn't answer.`);
+      this.finish(
+        entry,
+        "crashed",
+        null,
+        `${ENGINES[req.engine].studioName} started but its page didn't answer.`,
+      );
       this.terminate(entry);
       return this.get(id)!;
     }
@@ -250,11 +347,17 @@ export class StudioManager {
     return this.get(id)!;
   }
 
-  private addLine(entry: Entry, raw: string, watchReady: boolean, ready: (port: number) => void) {
+  private addLine(
+    entry: Entry,
+    raw: string,
+    watchReady: boolean,
+    ready: (port: number) => void,
+  ) {
     const line = scrubLog(raw.replace(/\r$/, ""), entry.secrets);
     if (!line.trim()) return;
     entry.log.push(line);
-    if (entry.log.length > LOG_LINES) entry.log.splice(0, entry.log.length - LOG_LINES);
+    if (entry.log.length > LOG_LINES)
+      entry.log.splice(0, entry.log.length - LOG_LINES);
     if (watchReady) {
       const m = READY.exec(raw);
       if (m) {
@@ -264,8 +367,14 @@ export class StudioManager {
     }
   }
 
-  private finish(entry: Entry, state: "stopped" | "crashed", code: number | null, message?: string) {
-    if (entry.info.state === "stopped" || entry.info.state === "crashed") return;
+  private finish(
+    entry: Entry,
+    state: "stopped" | "crashed",
+    code: number | null,
+    message?: string,
+  ) {
+    if (entry.info.state === "stopped" || entry.info.state === "crashed")
+      return;
     for (const t of entry.timers) clearTimeout(t);
     entry.timers = [];
     entry.info.state = state;
@@ -296,13 +405,22 @@ export class StudioManager {
   /** Gracefully stops studio `id` (escalating to `SIGKILL` after timeout) and returns its final `StudioInfo`. */
   async stop(id: string): Promise<StudioInfo> {
     const entry = this.entries.get(id);
-    if (!entry) throw new FmError("NOT_FOUND", "That studio isn't running any more.");
-    if (entry.info.state === "stopped" || entry.info.state === "crashed") return this.get(id)!;
+    if (!entry)
+      throw new FmError("NOT_FOUND", "That studio isn't running any more.");
+    if (entry.info.state === "stopped" || entry.info.state === "crashed")
+      return this.get(id)!;
     entry.stopping = true;
     entry.info.state = "stopping";
     this.terminate(entry);
-    await Promise.race([entry.ended, new Promise((r) => { const t = setTimeout(r, this.hooks.killGraceMs + 3000); (t as { unref?: () => void }).unref?.(); })]);
-    if (entry.info.state === "stopping") this.finish(entry, "stopped", null, entry.info.message);
+    await Promise.race([
+      entry.ended,
+      new Promise((r) => {
+        const t = setTimeout(r, this.hooks.killGraceMs + 3000);
+        (t as { unref?: () => void }).unref?.();
+      }),
+    ]);
+    if (entry.info.state === "stopping")
+      this.finish(entry, "stopped", null, entry.info.message);
     return this.get(id)!;
   }
 

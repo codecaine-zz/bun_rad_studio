@@ -25,10 +25,24 @@ export interface ClipboardHooks {
 
 const TIMEOUT_MS = 20_000;
 
-async function run(argv: string[], env: Record<string, string> = {}): Promise<boolean> {
+async function run(
+  argv: string[],
+  env: Record<string, string> = {},
+): Promise<boolean> {
   try {
-    const proc = Bun.spawn(argv, { stdin: "ignore", stdout: "ignore", stderr: "ignore", env: { ...process.env, ...env } });
-    const timer = setTimeout(() => { try { proc.kill(); } catch { /* already over */ } }, TIMEOUT_MS);
+    const proc = Bun.spawn(argv, {
+      stdin: "ignore",
+      stdout: "ignore",
+      stderr: "ignore",
+      env: { ...process.env, ...env },
+    });
+    const timer = setTimeout(() => {
+      try {
+        proc.kill();
+      } catch {
+        /* already over */
+      }
+    }, TIMEOUT_MS);
     const code = await proc.exited;
     clearTimeout(timer);
     return code === 0;
@@ -44,27 +58,47 @@ async function macImage(file: string, mime: string): Promise<boolean> {
     if (mime !== "image/png") {
       temp = mkdtempSync(nodePath.join(tmpdir(), "fm-clip-"));
       png = nodePath.join(temp, "picture.png");
-      if (!(await run(["sips", "-s", "format", "png", file, "--out", png]))) return false;
+      if (!(await run(["sips", "-s", "format", "png", file, "--out", png])))
+        return false;
     }
-    return await run(["osascript", "-e", "on run argv", "-e", "set the clipboard to (read (POSIX file (item 1 of argv)) as «class PNGf»)", "-e", "end run", png]);
+    return await run([
+      "osascript",
+      "-e",
+      "on run argv",
+      "-e",
+      "set the clipboard to (read (POSIX file (item 1 of argv)) as «class PNGf»)",
+      "-e",
+      "end run",
+      png,
+    ]);
   } finally {
     if (temp) rmSync(temp, { recursive: true, force: true });
   }
 }
 
 async function windowsImage(file: string): Promise<boolean> {
-  const script = "Add-Type -AssemblyName System.Windows.Forms,System.Drawing; $img = [System.Drawing.Image]::FromFile($env:FM_CLIP_FILE); [System.Windows.Forms.Clipboard]::SetImage($img); $img.Dispose()";
-  return run(["powershell.exe", "-NoProfile", "-STA", "-Command", script], { FM_CLIP_FILE: file });
+  const script =
+    "Add-Type -AssemblyName System.Windows.Forms,System.Drawing; $img = [System.Drawing.Image]::FromFile($env:FM_CLIP_FILE); [System.Windows.Forms.Clipboard]::SetImage($img); $img.Dispose()";
+  return run(["powershell.exe", "-NoProfile", "-STA", "-Command", script], {
+    FM_CLIP_FILE: file,
+  });
 }
 
 async function linuxImage(file: string, mime: string): Promise<boolean> {
   if (Bun.which("wl-copy")) {
     try {
-      const proc = Bun.spawn(["wl-copy", "--type", mime], { stdin: Bun.file(file), stdout: "ignore", stderr: "ignore" });
+      const proc = Bun.spawn(["wl-copy", "--type", mime], {
+        stdin: Bun.file(file),
+        stdout: "ignore",
+        stderr: "ignore",
+      });
       if ((await proc.exited) === 0) return true;
-    } catch { /* try the next tool */ }
+    } catch {
+      /* try the next tool */
+    }
   }
-  if (Bun.which("xclip")) return run(["xclip", "-selection", "clipboard", "-t", mime, "-i", file]);
+  if (Bun.which("xclip"))
+    return run(["xclip", "-selection", "clipboard", "-t", mime, "-i", file]);
   return false;
 }
 
@@ -73,6 +107,11 @@ export function defaultClipboard(): ClipboardHooks {
   return {
     writeText: (text) => writeClipboardSync(text),
     readText: () => readClipboardTextSync(),
-    writeImage: async (file, mime) => (process.platform === "darwin" ? macImage(file, mime) : process.platform === "win32" ? windowsImage(file) : linuxImage(file, mime)),
+    writeImage: async (file, mime) =>
+      process.platform === "darwin"
+        ? macImage(file, mime)
+        : process.platform === "win32"
+          ? windowsImage(file)
+          : linuxImage(file, mime),
   };
 }

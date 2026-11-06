@@ -9,7 +9,12 @@
 //   --fx-mag-x / --fx-mag-y           toolbar item drift in px, at most 6
 //   --fx-pill-x / --fx-pill-w         sliding tab indicator (translateX in px, scaleX factor)
 // It does nothing unless <html data-fx="on">, ignores touch, listens passively, and `dispose()` removes everything.
-import { FX_MAGNET_TARGETS, FX_PILL_BARS, FX_POINTER_TARGETS, FX_TILT_TARGETS } from "./fxSelectors";
+import {
+  FX_MAGNET_TARGETS,
+  FX_PILL_BARS,
+  FX_POINTER_TARGETS,
+  FX_TILT_TARGETS,
+} from "./fxSelectors";
 
 /** Maximum 3D tilt angle in degrees applied to hovered card elements. */
 export const FX_TILT_MAX_DEG = 4;
@@ -130,11 +135,11 @@ export const FX_POINTER_SOURCE = `${FX_POINTER_FUNCTION}(window);`;
 
 /** Handle returned by `installFxPointer` for refreshing tab pills or removing pointer event listeners. */
 export interface FxPointerHandle {
-    dispose(): void;
-    refresh(): void;
+  dispose(): void;
+  refresh(): void;
 }
 
 /** Installs the helper on a window (a jsdom window in tests). Returns a handle that removes the listeners. */
 export function installFxPointer(win: unknown): FxPointerHandle {
-    return (0, eval)(FX_POINTER_FUNCTION)(win) as FxPointerHandle;
+  return (0, eval)(FX_POINTER_FUNCTION)(win) as FxPointerHandle;
 }

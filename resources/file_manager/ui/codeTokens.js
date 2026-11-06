@@ -6,7 +6,27 @@ import { scanCss, scanDiff, scanMarkdown, scanMarkup } from "./codeMarkup.js";
 
 /** Lines longer than this are shown without colors (minified files), which keeps every line cheap. */
 export const MAX_COLOURED_LINE = 2000;
-export const TOKEN_TYPES = ["keyword", "type", "function", "constant", "string", "number", "comment", "property", "tag", "attr", "variable", "meta", "regexp", "heading", "link", "strong", "emphasis", "inserted", "deleted"];
+export const TOKEN_TYPES = [
+  "keyword",
+  "type",
+  "function",
+  "constant",
+  "string",
+  "number",
+  "comment",
+  "property",
+  "tag",
+  "attr",
+  "variable",
+  "meta",
+  "regexp",
+  "heading",
+  "link",
+  "strong",
+  "emphasis",
+  "inserted",
+  "deleted",
+];
 
 const join = (head, rest) => {
   const tokens = [];
@@ -18,37 +38,73 @@ const join = (head, rest) => {
 /** For config-like files: color the key (or [section]) at the start of the line, then scan the rest normally. */
 function keyedLine(id, line, state) {
   if (state) return scanCode(id, line, state);
-  const m = /^(\s*)(?:(\[[^\]\n]*\])|((?:-\s+)*)((?:"[^"\n]*"|'[^'\n]*'|[^\s=:#;[\]"'-][^=:#;]*?))(\s*)([=:]))/.exec(line);
+  const m =
+    /^(\s*)(?:(\[[^\]\n]*\])|((?:-\s+)*)((?:"[^"\n]*"|'[^'\n]*'|[^\s=:#;[\]"'-][^=:#;]*?))(\s*)([=:]))/.exec(
+      line,
+    );
   if (!m) return scanCode(id, line, state);
-  if (m[2] !== undefined) return join([{ text: m[1], type: "" }, { text: m[2], type: "tag" }], scanCode(id, line.slice(m[1].length + m[2].length), ""));
+  if (m[2] !== undefined)
+    return join(
+      [
+        { text: m[1], type: "" },
+        { text: m[2], type: "tag" },
+      ],
+      scanCode(id, line.slice(m[1].length + m[2].length), ""),
+    );
   // YAML and TOML allow ":" only when followed by a space (so URLs in values stay whole); INI allows "=" or ":"
   const sep = m[6];
   const after = line[m[0].length] ?? "";
-  if (id === "yaml" && (sep !== ":" || (after !== "" && after !== " "))) return scanCode(id, line, state);
+  if (id === "yaml" && (sep !== ":" || (after !== "" && after !== " ")))
+    return scanCode(id, line, state);
   if (id === "toml" && sep !== "=") return scanCode(id, line, state);
   if (m[4].length > 80) return scanCode(id, line, state);
-  return join([{ text: m[1] + m[3], type: "" }, { text: m[4], type: "property" }, { text: m[5] + sep, type: "" }], scanCode(id, line.slice(m[0].length), ""));
+  return join(
+    [
+      { text: m[1] + m[3], type: "" },
+      { text: m[4], type: "property" },
+      { text: m[5] + sep, type: "" },
+    ],
+    scanCode(id, line.slice(m[0].length), ""),
+  );
 }
 
 function dockerLine(line, state) {
   const m = /^(\s*)([A-Za-z]+)(?=\s|$)/.exec(line);
   if (!state && m && prepare("dockerfile").kwSet.has(m[2].toLowerCase())) {
-    return join([{ text: m[1], type: "" }, { text: m[2], type: "keyword" }], scanCode("dockerfile", line.slice(m[0].length), ""));
+    return join(
+      [
+        { text: m[1], type: "" },
+        { text: m[2], type: "keyword" },
+      ],
+      scanCode("dockerfile", line.slice(m[0].length), ""),
+    );
   }
   return scanCode("dockerfile", line, state);
 }
 
 function makeLine(line, state) {
-  if (state || line.startsWith("\t") || /^\s*#/.test(line)) return scanCode("makefile", line, state);
+  if (state || line.startsWith("\t") || /^\s*#/.test(line))
+    return scanCode("makefile", line, state);
   const colon = line.indexOf(":");
   const equals = line.indexOf("=");
   const assign = /^[\w.-]+\s*(?:[:?+]|::)?=/.exec(line);
   if (assign) {
     const key = /^[\w.-]+/.exec(line)[0];
-    return join([{ text: key, type: "property" }], scanCode("makefile", line.slice(key.length), ""));
+    return join(
+      [{ text: key, type: "property" }],
+      scanCode("makefile", line.slice(key.length), ""),
+    );
   }
-  if (colon > 0 && (equals < 0 || colon < equals) && line[colon + 1] !== "=" && !/^\s*(ifn?eq|ifn?def|else|endif|include|define|endef|export)\b/.test(line)) {
-    return join([{ text: line.slice(0, colon), type: "function" }], scanCode("makefile", line.slice(colon), ""));
+  if (
+    colon > 0 &&
+    (equals < 0 || colon < equals) &&
+    line[colon + 1] !== "=" &&
+    !/^\s*(ifn?eq|ifn?def|else|endif|include|define|endef|export)\b/.test(line)
+  ) {
+    return join(
+      [{ text: line.slice(0, colon), type: "function" }],
+      scanCode("makefile", line.slice(colon), ""),
+    );
   }
   return scanCode("makefile", line, state);
 }
@@ -58,20 +114,30 @@ function makeLine(line, state) {
  * @returns {{ tokens: Array<{ text: string, type: string }>, state: string }}
  */
 export function tokenizeLine(lang, line, state = "") {
-  if (line.length > MAX_COLOURED_LINE) return { tokens: [{ text: line, type: "" }], state };
+  if (line.length > MAX_COLOURED_LINE)
+    return { tokens: [{ text: line, type: "" }], state };
   switch (lang) {
-    case "plain": return { tokens: line ? [{ text: line, type: "" }] : [], state: "" };
+    case "plain":
+      return { tokens: line ? [{ text: line, type: "" }] : [], state: "" };
     case "html":
-    case "xml": return scanMarkup(line, state, tokenizeLine);
-    case "css": return scanCss(line, state);
-    case "markdown": return scanMarkdown(line, state);
-    case "diff": return scanDiff(line);
+    case "xml":
+      return scanMarkup(line, state, tokenizeLine);
+    case "css":
+      return scanCss(line, state);
+    case "markdown":
+      return scanMarkdown(line, state);
+    case "diff":
+      return scanDiff(line);
     case "yaml":
     case "toml":
-    case "ini": return keyedLine(lang, line, state);
-    case "dockerfile": return dockerLine(line, state);
-    case "makefile": return makeLine(line, state);
-    default: return scanCode(lang, line, state);
+    case "ini":
+      return keyedLine(lang, line, state);
+    case "dockerfile":
+      return dockerLine(line, state);
+    case "makefile":
+      return makeLine(line, state);
+    default:
+      return scanCode(lang, line, state);
   }
 }
 
@@ -135,7 +201,11 @@ export function createHighlighter(lang = "plain") {
       const max = Math.min(old.length, next.length);
       while (a < max && old[a] === next[a]) a++;
       let b = 0;
-      while (b < max - a && old[old.length - 1 - b] === next[next.length - 1 - b]) b++;
+      while (
+        b < max - a &&
+        old[old.length - 1 - b] === next[next.length - 1 - b]
+      )
+        b++;
       if (a === old.length && a === next.length) return;
       const oldEnd = old.length - b; // exclusive end of the changed block in the old lines
       const newEnd = next.length - b;

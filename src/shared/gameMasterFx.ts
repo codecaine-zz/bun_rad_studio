@@ -17,7 +17,8 @@ export const GAME_MASTER_SHADER_PRESETS = [
 ] as const;
 
 /** Identifier of a built-in Game Master post-processing shader preset. */
-export type GameMasterShaderPresetId = (typeof GAME_MASTER_SHADER_PRESETS)[number]["id"];
+export type GameMasterShaderPresetId =
+  (typeof GAME_MASTER_SHADER_PRESETS)[number]["id"];
 
 /** Embedded `<style>` and early bootstrap `<script>` block for the Game Master FX overlay and shaders. */
 export const GAME_MASTER_FX_STYLE = `
@@ -1385,7 +1386,11 @@ export const GAME_MASTER_FX_SCRIPT = `
  * Injects the Codecaine Game Master FX & Post-Processing Engine into an HTML document
  * if not already present.
  */
-export function injectGameMasterFx(html: string): string {
+export function injectGameMasterFx(
+  html: string,
+  _title?: string,
+  _accentColor?: string,
+): string {
   if (!html || html.includes("codecaine-game-master-fx-script")) {
     return html;
   }

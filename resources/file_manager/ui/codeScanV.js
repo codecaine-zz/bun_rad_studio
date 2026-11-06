@@ -2,8 +2,14 @@
 // (expressions may contain strings of their own), prefixed strings (r'..', c'..', js'..'), attributes and the
 // compile-time $if / $for words. Everything reads each character once, so the time is proportional to the line length.
 
-const isIdentStart = (c) => c !== undefined && ((c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || c === "_" || c > "\u007f");
-const isIdentPart = (c) => isIdentStart(c) || (c !== undefined && c >= "0" && c <= "9");
+const isIdentStart = (c) =>
+  c !== undefined &&
+  ((c >= "a" && c <= "z") ||
+    (c >= "A" && c <= "Z") ||
+    c === "_" ||
+    c > "\u007f");
+const isIdentPart = (c) =>
+  isIdentStart(c) || (c !== undefined && c >= "0" && c <= "9");
 
 /** Scans a possibly nested /* ... *\/ comment from `from`, with `depth` comments already open. */
 export function nestedComment(line, from, depth, block) {
@@ -11,7 +17,13 @@ export function nestedComment(line, from, depth, block) {
   let i = from;
   let d = depth;
   while (i < line.length && d > 0) {
-    if (line.startsWith(open, i)) { d++; i += open.length; } else if (line.startsWith(close, i)) { d--; i += close.length; } else i++;
+    if (line.startsWith(open, i)) {
+      d++;
+      i += open.length;
+    } else if (line.startsWith(close, i)) {
+      d--;
+      i += close.length;
+    } else i++;
   }
   return { end: i, depth: d };
 }
@@ -43,9 +55,15 @@ function skipString(line, i, depth) {
   i++;
   while (i < line.length) {
     const c = line[i];
-    if (c === "\\") { i += 2; continue; }
+    if (c === "\\") {
+      i += 2;
+      continue;
+    }
     if (c === q) return i + 1;
-    if (c === "$" && line[i + 1] === "{") { i = skipExpr(line, i + 2, depth); continue; }
+    if (c === "$" && line[i + 1] === "{") {
+      i = skipExpr(line, i + 2, depth);
+      continue;
+    }
     i++;
   }
   return line.length;
@@ -55,8 +73,14 @@ function skipString(line, i, depth) {
 export function vStringStart(line, i) {
   const c = line[i];
   if (c === "'" || c === '"') return { quoteAt: i, quote: c, raw: false };
-  if ((c === "r" || c === "c") && (line[i + 1] === "'" || line[i + 1] === '"')) return { quoteAt: i + 1, quote: line[i + 1], raw: true };
-  if (c === "j" && line[i + 1] === "s" && (line[i + 2] === "'" || line[i + 2] === '"')) return { quoteAt: i + 2, quote: line[i + 2], raw: false };
+  if ((c === "r" || c === "c") && (line[i + 1] === "'" || line[i + 1] === '"'))
+    return { quoteAt: i + 1, quote: line[i + 1], raw: true };
+  if (
+    c === "j" &&
+    line[i + 1] === "s" &&
+    (line[i + 2] === "'" || line[i + 2] === '"')
+  )
+    return { quoteAt: i + 2, quote: line[i + 2], raw: false };
   return null;
 }
 
@@ -70,7 +94,10 @@ export function vBody(out, push, line, i, quote, raw) {
   const flush = (to) => push(out, line.slice(segStart, to), "string");
   while (i < n) {
     const c = line[i];
-    if (c === "\\" && !raw) { i += 2; continue; }
+    if (c === "\\" && !raw) {
+      i += 2;
+      continue;
+    }
     if (c === quote) {
       flush(i + 1);
       return { i: i + 1, closed: true };
@@ -115,6 +142,10 @@ export function optionTypeEnd(line, i) {
   while (line[j] === "[" && line[j + 1] === "]") j += 2;
   while (line[j] === "&") j++;
   if (!isIdentStart(line[j])) return -1;
-  while (j < line.length && (isIdentPart(line[j]) || (line[j] === "." && isIdentStart(line[j + 1])))) j++;
+  while (
+    j < line.length &&
+    (isIdentPart(line[j]) || (line[j] === "." && isIdentStart(line[j + 1])))
+  )
+    j++;
   return j;
 }

@@ -1,36 +1,122 @@
 // The Find / Replace bar above the editor. It works on whichever editor is current (`getEditor()`), marks every match
 // in the text, steps through them, and replaces one or all. Bad or dangerous patterns are explained, never run.
 import { h } from "./dom.js";
-import { compileSearch, findAll, nextMatch, previousMatch, replaceAll, replacementAt } from "./codeLogic.js";
+import {
+  compileSearch,
+  findAll,
+  nextMatch,
+  previousMatch,
+  replaceAll,
+  replacementAt,
+} from "./codeLogic.js";
 
 export function createFindBar({ getEditor, toast, onClose }) {
-  const state = { query: "", replace: "", regex: false, caseSensitive: false, wholeWord: false };
-  const find = h("input", { type: "search", class: "code-in code-find-in", placeholder: "Find", "aria-label": "Find in this file", title: "Type what to look for. Enter goes to the next match, Shift+Enter to the previous one.", spellcheck: "false", autocomplete: "off" });
-  const repl = h("input", { type: "text", class: "code-in code-find-in", placeholder: "Replace with", "aria-label": "Replace with", title: "What to put in place of each match. In regular-expression mode, $1 and $& can be used.", spellcheck: "false", autocomplete: "off" });
-  const status = h("span", { class: "code-find-status", "aria-live": "polite" });
+  const state = {
+    query: "",
+    replace: "",
+    regex: false,
+    caseSensitive: false,
+    wholeWord: false,
+  };
+  const find = h("input", {
+    type: "search",
+    class: "code-in code-find-in",
+    placeholder: "Find",
+    "aria-label": "Find in this file",
+    title:
+      "Type what to look for. Enter goes to the next match, Shift+Enter to the previous one.",
+    spellcheck: "false",
+    autocomplete: "off",
+  });
+  const repl = h("input", {
+    type: "text",
+    class: "code-in code-find-in",
+    placeholder: "Replace with",
+    "aria-label": "Replace with",
+    title:
+      "What to put in place of each match. In regular-expression mode, $1 and $& can be used.",
+    spellcheck: "false",
+    autocomplete: "off",
+  });
+  const status = h("span", {
+    class: "code-find-status",
+    "aria-live": "polite",
+  });
   const toggle = (label, tip, key) => {
-    const b = h("button", { type: "button", class: "code-btn code-tog", "aria-pressed": "false", title: tip, "aria-label": tip, onclick: () => {
-      state[key] = !state[key];
-      b.setAttribute("aria-pressed", String(state[key]));
-      refresh(true);
-    } }, label);
+    const b = h(
+      "button",
+      {
+        type: "button",
+        class: "code-btn code-tog",
+        "aria-pressed": "false",
+        title: tip,
+        "aria-label": tip,
+        onclick: () => {
+          state[key] = !state[key];
+          b.setAttribute("aria-pressed", String(state[key]));
+          refresh(true);
+        },
+      },
+      label,
+    );
     return b;
   };
   const buttons = {
-    caseSensitive: toggle("Aa", "Match upper and lower case exactly", "caseSensitive"),
+    caseSensitive: toggle(
+      "Aa",
+      "Match upper and lower case exactly",
+      "caseSensitive",
+    ),
     wholeWord: toggle("ab", "Match whole words only", "wholeWord"),
-    regex: toggle(".*", "Treat the text as a regular expression (a pattern)", "regex"),
+    regex: toggle(
+      ".*",
+      "Treat the text as a regular expression (a pattern)",
+      "regex",
+    ),
   };
-  const button = (label, tip, run) => h("button", { type: "button", class: "code-btn", title: tip, "aria-label": tip, onclick: run }, label);
-  const replaceRow = h("div", { class: "code-find-row", hidden: true },
+  const button = (label, tip, run) =>
+    h(
+      "button",
+      {
+        type: "button",
+        class: "code-btn",
+        title: tip,
+        "aria-label": tip,
+        onclick: run,
+      },
+      label,
+    );
+  const replaceRow = h(
+    "div",
+    { class: "code-find-row", hidden: true },
     repl,
-    button("Replace", "Replace the highlighted match, then go to the next one", () => replaceOne()),
-    button("Replace all", "Replace every match in this file", () => replaceEverything()),
+    button(
+      "Replace",
+      "Replace the highlighted match, then go to the next one",
+      () => replaceOne(),
+    ),
+    button("Replace all", "Replace every match in this file", () =>
+      replaceEverything(),
+    ),
   );
-  const bar = h("div", { class: "code-findbar", role: "search", "aria-label": "Find and replace", hidden: true },
-    h("div", { class: "code-find-row" },
-      find, buttons.caseSensitive, buttons.wholeWord, buttons.regex,
-      button("▲", "Previous match (Shift+Enter)", () => step(-1)), button("▼", "Next match (Enter)", () => step(1)), status,
+  const bar = h(
+    "div",
+    {
+      class: "code-findbar",
+      role: "search",
+      "aria-label": "Find and replace",
+      hidden: true,
+    },
+    h(
+      "div",
+      { class: "code-find-row" },
+      find,
+      buttons.caseSensitive,
+      buttons.wholeWord,
+      buttons.regex,
+      button("▲", "Previous match (Shift+Enter)", () => step(-1)),
+      button("▼", "Next match (Enter)", () => step(1)),
+      status,
       h("span", { class: "code-grow" }),
       button("✕", "Close the find bar (Esc)", () => close()),
     ),
@@ -40,7 +126,12 @@ export function createFindBar({ getEditor, toast, onClose }) {
   let matches = [];
   let current = -1;
 
-  const search = () => ({ query: find.value, regex: state.regex, caseSensitive: state.caseSensitive, wholeWord: state.wholeWord });
+  const search = () => ({
+    query: find.value,
+    regex: state.regex,
+    caseSensitive: state.caseSensitive,
+    wholeWord: state.wholeWord,
+  });
 
   /** Looks for matches again (after typing in the box, a toggle, or an edit) and marks them. */
   function refresh(jump = false) {
@@ -76,7 +167,11 @@ export function createFindBar({ getEditor, toast, onClose }) {
     const ed = getEditor();
     if (!ed) return;
     ed.setMatches(matches, current);
-    status.textContent = !find.value ? "" : matches.length ? `${current + 1} of ${matches.length}${matches.length >= 20000 ? "+" : ""}` : "No results";
+    status.textContent = !find.value
+      ? ""
+      : matches.length
+        ? `${current + 1} of ${matches.length}${matches.length >= 20000 ? "+" : ""}`
+        : "No results";
   }
 
   function select(k, focus) {
@@ -98,9 +193,15 @@ export function createFindBar({ getEditor, toast, onClose }) {
     if (!matches.length) refresh();
     if (!matches.length) return;
     const sel = ed.getSelection();
-    const found = direction > 0 ? nextMatch(ed.getText(), sel.end, search()) : previousMatch(ed.getText(), sel.start, search());
+    const found =
+      direction > 0
+        ? nextMatch(ed.getText(), sel.end, search())
+        : previousMatch(ed.getText(), sel.start, search());
     const k = found ? matches.findIndex((m) => m.index === found.index) : -1;
-    select(k >= 0 ? k : (current + direction + matches.length) % matches.length, false);
+    select(
+      k >= 0 ? k : (current + direction + matches.length) % matches.length,
+      false,
+    );
   }
 
   function replaceOne() {
@@ -109,7 +210,13 @@ export function createFindBar({ getEditor, toast, onClose }) {
     const sel = ed.getSelection();
     const r = replacementAt(ed.getText(), sel.start, search(), repl.value);
     if (r && r.length === sel.end - sel.start) {
-      ed.apply({ from: sel.start, to: sel.end, insert: r.insert, selStart: sel.start + r.insert.length, selEnd: sel.start + r.insert.length });
+      ed.apply({
+        from: sel.start,
+        to: sel.end,
+        insert: r.insert,
+        selStart: sel.start + r.insert.length,
+        selEnd: sel.start + r.insert.length,
+      });
       refresh();
     }
     step(1);
@@ -122,8 +229,17 @@ export function createFindBar({ getEditor, toast, onClose }) {
     const r = replaceAll(text, search(), repl.value);
     if (r.error) return toast(r.error, { kind: "error" });
     if (!r.count) return toast("Nothing to replace.");
-    ed.apply({ from: 0, to: text.length, insert: r.text, selStart: 0, selEnd: 0 });
-    toast(`Replaced ${r.count} ${r.count === 1 ? "match" : "matches"}. Undo (Ctrl/Cmd+Z) puts them back.`, { kind: "success" });
+    ed.apply({
+      from: 0,
+      to: text.length,
+      insert: r.text,
+      selStart: 0,
+      selEnd: 0,
+    });
+    toast(
+      `Replaced ${r.count} ${r.count === 1 ? "match" : "matches"}. Undo (Ctrl/Cmd+Z) puts them back.`,
+      { kind: "success" },
+    );
     refresh();
   }
 
@@ -134,7 +250,8 @@ export function createFindBar({ getEditor, toast, onClose }) {
     if (seed && ed) {
       const sel = ed.getSelection();
       const picked = ed.getText().slice(sel.start, sel.end);
-      if (picked && !picked.includes("\n") && picked.length < 200) find.value = picked;
+      if (picked && !picked.includes("\n") && picked.length < 200)
+        find.value = picked;
     }
     (replace && find.value ? repl : find).focus();
     find.select();
@@ -172,5 +289,13 @@ export function createFindBar({ getEditor, toast, onClose }) {
     }
   });
 
-  return { el: bar, open, close, refresh, next: () => step(1), prev: () => step(-1), isOpen: () => !bar.hidden };
+  return {
+    el: bar,
+    open,
+    close,
+    refresh,
+    next: () => step(1),
+    prev: () => step(-1),
+    isOpen: () => !bar.hidden,
+  };
 }

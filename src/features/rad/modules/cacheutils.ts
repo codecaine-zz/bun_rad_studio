@@ -17,7 +17,12 @@ export interface CacheStats {
   hitRate: number;
 }
 
-function makeStats(hits: number, misses: number, evictions: number, size: number): CacheStats {
+function makeStats(
+  hits: number,
+  misses: number,
+  evictions: number,
+  size: number,
+): CacheStats {
   const total = hits + misses;
   return { hits, misses, evictions, size, hitRate: total ? hits / total : 0 };
 }
@@ -46,8 +51,14 @@ export class LRUCache<K, V> {
    * @param capacity - Maximum entries (> 0).
    * @param onEvict - Called with `(key, value)` whenever an entry is evicted for capacity.
    */
-  constructor(capacity: number, private readonly onEvict?: (key: K, value: V) => void) {
-    if (!(capacity > 0)) throw new Error(`[cacheutils] LRUCache capacity must be > 0 (got ${capacity})`);
+  constructor(
+    capacity: number,
+    private readonly onEvict?: (key: K, value: V) => void,
+  ) {
+    if (!(capacity > 0))
+      throw new Error(
+        `[cacheutils] LRUCache capacity must be > 0 (got ${capacity})`,
+      );
     this.cap = Math.floor(capacity);
   }
 
@@ -112,7 +123,10 @@ export class LRUCache<K, V> {
 
   /** Change capacity; shrinking evicts LRU entries immediately. */
   resize(capacity: number): void {
-    if (!(capacity > 0)) throw new Error(`[cacheutils] LRUCache capacity must be > 0 (got ${capacity})`);
+    if (!(capacity > 0))
+      throw new Error(
+        `[cacheutils] LRUCache capacity must be > 0 (got ${capacity})`,
+      );
     this.cap = Math.floor(capacity);
     this.evictOverflow();
   }
@@ -188,7 +202,10 @@ export class TTLCache<K, V> {
    * @param options - Optional background sweep interval and sliding expiration flag.
    */
   constructor(defaultTtlMs = 60_000, options: TTLCacheOptions = {}) {
-    if (!(defaultTtlMs > 0)) throw new Error(`[cacheutils] TTLCache defaultTtlMs must be > 0 (got ${defaultTtlMs})`);
+    if (!(defaultTtlMs > 0))
+      throw new Error(
+        `[cacheutils] TTLCache defaultTtlMs must be > 0 (got ${defaultTtlMs})`,
+      );
     this.defaultTtlMs = defaultTtlMs;
     this.sliding = options.sliding ?? false;
     if (options.sweepIntervalMs) {
@@ -218,7 +235,11 @@ export class TTLCache<K, V> {
    * Return the cached value or run `factory` once — concurrent calls for the same key await the
    * same promise. A rejected factory is not cached.
    */
-  async getOrSet(key: K, factory: () => Promise<V> | V, ttlMs = this.defaultTtlMs): Promise<V> {
+  async getOrSet(
+    key: K,
+    factory: () => Promise<V> | V,
+    ttlMs = this.defaultTtlMs,
+  ): Promise<V> {
     const cached = this.get(key);
     if (cached !== undefined) return cached;
     const pending = this.inflight.get(key);

@@ -1,6 +1,10 @@
 // Friendlier chrome: the toolbar keeps to one tidy row (buttons that don't fit move into a "More" menu), and the status
 // bar has quick buttons for how the file list looks (Details, List, Icons).
-import { dateMetrics, showCalendarDialog, showClockMenu } from "./clockTools.js";
+import {
+  dateMetrics,
+  showCalendarDialog,
+  showClockMenu,
+} from "./clockTools.js";
 import { $, buttonIconFor, debounce } from "./dom.js";
 import { showMenu } from "./menus.js";
 import { saveSettings } from "./nav.js";
@@ -8,7 +12,12 @@ import { hintOf } from "./keymap.js";
 import { on, state } from "./state.js";
 
 const VIEWS = [
-  ["details", "☰", "Details", "Show a table with size and date, which you can sort by clicking a heading"],
+  [
+    "details",
+    "☰",
+    "Details",
+    "Show a table with size and date, which you can sort by clicking a heading",
+  ],
   ["list", "▤", "List", "Show a compact list of names"],
   ["icons", "▦", "Icons", "Show big icons"],
 ];
@@ -43,7 +52,11 @@ export function fitToolbar() {
   const fits = () => bar.scrollWidth <= bar.clientWidth + 1;
   if (!bar.clientWidth || fits()) return;
   more.hidden = false;
-  hideUntilFits(buttons.filter((b) => !b.hidden), (b) => b.classList.add("overflowed"), fits);
+  hideUntilFits(
+    buttons.filter((b) => !b.hidden),
+    (b) => b.classList.add("overflowed"),
+    fits,
+  );
 }
 
 /** Clicks a toolbar button that is hidden in More. A button that opens a menu anchors it to itself, so it is parked, unseen, where More is. */
@@ -51,12 +64,21 @@ function clickHidden(btn) {
   const more = $("#tool-more");
   if (!btn.querySelector(".caret") || !more) return btn.click();
   const box = more.getBoundingClientRect();
-  const park = { position: "fixed", display: "flex", visibility: "hidden", left: `${box.left}px`, top: `${box.top}px`, width: `${box.width}px`, height: `${box.height}px` };
+  const park = {
+    position: "fixed",
+    display: "flex",
+    visibility: "hidden",
+    left: `${box.left}px`,
+    top: `${box.top}px`,
+    width: `${box.width}px`,
+    height: `${box.height}px`,
+  };
   // Its toolbar group may be hidden altogether, so the button steps out of it for a moment.
   const parent = btn.parentElement;
   const next = btn.nextSibling;
   document.body.append(btn);
-  for (const [name, value] of Object.entries(park)) btn.style.setProperty(name, value);
+  for (const [name, value] of Object.entries(park))
+    btn.style.setProperty(name, value);
   try {
     btn.click();
   } finally {
@@ -73,10 +95,16 @@ function overflowItems() {
     if (btn.hidden) continue;
     if (group && btn.parentElement !== group) items.push({ separator: true });
     group = btn.parentElement;
-    const label = btn.querySelector(".tl")?.textContent ?? btn.getAttribute("aria-label") ?? "";
+    const label =
+      btn.querySelector(".tl")?.textContent ??
+      btn.getAttribute("aria-label") ??
+      "";
     const pressed = btn.getAttribute("aria-pressed");
     items.push({
-      label, icon: btn.querySelector(".ti")?.textContent ?? "", disabled: btn.disabled, checked: pressed === null ? undefined : pressed === "true",
+      label,
+      icon: btn.querySelector(".ti")?.textContent ?? "",
+      disabled: btn.disabled,
+      checked: pressed === null ? undefined : pressed === "true",
       action: () => clickHidden(btn),
     });
   }
@@ -87,7 +115,11 @@ function updateStatusViews() {
   const box = $("#status-views");
   if (!box) return;
   box.hidden = state.workspace === "home" || state.workspace === "tools";
-  for (const btn of box.querySelectorAll("button")) btn.setAttribute("aria-pressed", String(btn.dataset.view === state.settings.view));
+  for (const btn of box.querySelectorAll("button"))
+    btn.setAttribute(
+      "aria-pressed",
+      String(btn.dataset.view === state.settings.view),
+    );
 }
 
 function buildStatusViews() {
@@ -132,7 +164,12 @@ let clockUtcMem = false;
 
 function readStorageBool(key, fallback) {
   try {
-    const ls = typeof window !== "undefined" && window.localStorage ? window.localStorage : typeof localStorage !== "undefined" ? localStorage : null;
+    const ls =
+      typeof window !== "undefined" && window.localStorage
+        ? window.localStorage
+        : typeof localStorage !== "undefined"
+          ? localStorage
+          : null;
     const v = ls?.getItem(key);
     if (v === "1" || v === "0") return v === "1";
   } catch {}
@@ -141,7 +178,12 @@ function readStorageBool(key, fallback) {
 
 function writeStorageBool(key, val) {
   try {
-    const ls = typeof window !== "undefined" && window.localStorage ? window.localStorage : typeof localStorage !== "undefined" ? localStorage : null;
+    const ls =
+      typeof window !== "undefined" && window.localStorage
+        ? window.localStorage
+        : typeof localStorage !== "undefined"
+          ? localStorage
+          : null;
     ls?.setItem(key, val ? "1" : "0");
   } catch {}
 }
@@ -176,8 +218,18 @@ export const clockPrefs = {
   setShowUtc: setClockUtc,
 };
 
-const SHORT_DATE_FMT = new Intl.DateTimeFormat(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" });
-const LONG_DATE_FMT = new Intl.DateTimeFormat(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+const SHORT_DATE_FMT = new Intl.DateTimeFormat(undefined, {
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
+const LONG_DATE_FMT = new Intl.DateTimeFormat(undefined, {
+  weekday: "long",
+  month: "long",
+  day: "numeric",
+  year: "numeric",
+});
 const TIME_FMT_CACHE = new Map();
 
 function getTimeFormatter(use24h, showSec) {
@@ -196,7 +248,12 @@ function getTimeFormatter(use24h, showSec) {
 }
 
 /** Formats a Date into short/long date strings and a 12-hour or 24-hour time string with optional seconds and UTC badge. */
-export function formatClock(now = new Date(), use24h = isClock24h(), showSec = isClockSeconds(), showUtc = isClockUtc()) {
+export function formatClock(
+  now = new Date(),
+  use24h = isClock24h(),
+  showSec = isClockSeconds(),
+  showUtc = isClockUtc(),
+) {
   const shortDate = SHORT_DATE_FMT.format(now);
   const longDate = LONG_DATE_FMT.format(now);
   const baseTime = getTimeFormatter(use24h, showSec).format(now);
@@ -232,21 +289,26 @@ export function updateClock(now = new Date()) {
   const statusClock = $("#status-clock");
   if (statusClock) {
     statusClock.setAttribute("datetime", c.iso);
-    if (statusClock.textContent !== c.compact) statusClock.textContent = c.compact;
+    if (statusClock.textContent !== c.compact)
+      statusClock.textContent = c.compact;
     const nextStatusTitle = `${c.full} (${c.meta}) — click for calendar, world clocks & timestamps`;
-    if (statusClock.title !== nextStatusTitle) statusClock.title = nextStatusTitle;
+    if (statusClock.title !== nextStatusTitle)
+      statusClock.title = nextStatusTitle;
   }
   const homeClock = document.getElementById("home-datetime");
   if (homeClock) {
     const nextHomeText = `${c.full} · Week ${c.metrics.isoWeek}`;
-    if (homeClock.textContent !== nextHomeText) homeClock.textContent = nextHomeText;
+    if (homeClock.textContent !== nextHomeText)
+      homeClock.textContent = nextHomeText;
     const nextHomeTitle = `${c.meta} — click to open Calendar, World Clocks & Timestamps`;
     if (homeClock.title !== nextHomeTitle) homeClock.title = nextHomeTitle;
   }
 }
 
-export const openClockMenu = (anchor = $("#fm-clock")) => showClockMenu(anchor, clockPrefs);
-export const openCalendarDialog = (date = new Date()) => showCalendarDialog(date, clockPrefs);
+export const openClockMenu = (anchor = $("#fm-clock")) =>
+  showClockMenu(anchor, clockPrefs);
+export const openCalendarDialog = (date = new Date()) =>
+  showCalendarDialog(date, clockPrefs);
 
 function wireClock() {
   const vbClock = $("#fm-clock");
@@ -297,8 +359,15 @@ export function wireChrome() {
   });
   // A short timer rather than an animation frame, so it also runs when the window is hidden or in the background.
   const queue = debounce(fitToolbar, 30);
-  if (typeof ResizeObserver === "function") new ResizeObserver(queue).observe($("#toolbar-row"));
-  if (typeof MutationObserver === "function") new MutationObserver(queue).observe($("#toolbar"), { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden"] });
+  if (typeof ResizeObserver === "function")
+    new ResizeObserver(queue).observe($("#toolbar-row"));
+  if (typeof MutationObserver === "function")
+    new MutationObserver(queue).observe($("#toolbar"), {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["hidden"],
+    });
   for (const ev of ["workspace", "settings", "power"]) on(ev, queue);
   window.addEventListener("resize", queue);
   queue();

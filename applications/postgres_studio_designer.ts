@@ -7,5 +7,5 @@ import { resolve } from "path";
  */
 export const POSTGRES_DESIGNER_SCRIPT = readFileSync(
   resolve(import.meta.dir, "postgres_designer.js"),
-  "utf8"
+  "utf8",
 );

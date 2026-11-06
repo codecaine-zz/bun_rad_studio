@@ -65,7 +65,7 @@ export function getTempDir(): string {
 export async function execSafe(
   cmd: string,
   args: string[] = [],
-  options: { cwd?: string; env?: Record<string, string> } = {}
+  options: { cwd?: string; env?: Record<string, string> } = {},
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const proc = Bun.spawn([cmd, ...args], {
     cwd: options.cwd,
@@ -86,10 +86,17 @@ export async function execSafe(
  * Copies `text` to the system clipboard (`pbcopy` on macOS, `xclip` on Linux), returning `true` on success.
  */
 export async function copyToClipboard(text: string): Promise<boolean> {
-  const cmd = process.platform === "darwin" ? ["pbcopy"] : ["xclip", "-selection", "clipboard"];
+  const cmd =
+    process.platform === "darwin"
+      ? ["pbcopy"]
+      : ["xclip", "-selection", "clipboard"];
   try {
     // No output pipes: xclip leaves a background process serving the clipboard that would keep them open.
-    const proc = Bun.spawn(cmd, { stdin: "pipe", stdout: "ignore", stderr: "ignore" });
+    const proc = Bun.spawn(cmd, {
+      stdin: "pipe",
+      stdout: "ignore",
+      stderr: "ignore",
+    });
     proc.stdin.write(text);
     proc.stdin.end();
     const code = await proc.exited;
@@ -104,7 +111,10 @@ export async function copyToClipboard(text: string): Promise<boolean> {
  * Reads plain text from the system clipboard (`pbpaste` on macOS, `xclip -o` on Linux), returning `""` on failure.
  */
 export async function readFromClipboard(): Promise<string> {
-  const cmd = process.platform === "darwin" ? ["pbpaste"] : ["xclip", "-selection", "clipboard", "-o"];
+  const cmd =
+    process.platform === "darwin"
+      ? ["pbpaste"]
+      : ["xclip", "-selection", "clipboard", "-o"];
   try {
     const res = await execSafe(cmd[0]!, cmd.slice(1));
     return res.exitCode === 0 ? res.stdout : "";

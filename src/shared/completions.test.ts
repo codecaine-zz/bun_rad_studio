@@ -32,14 +32,18 @@ describe("shell completions generator", () => {
   it("generates fish completion script", () => {
     const fish = generateFishCompletion("doggo", flags);
     expect(fish).toContain("complete -c doggo -f");
-    expect(fish).toContain("complete -c doggo -l help -d \"Show help information\"");
-    expect(fish).toContain("complete -c doggo -s h -d \"Show help information\"");
+    expect(fish).toContain(
+      'complete -c doggo -l help -d "Show help information"',
+    );
+    expect(fish).toContain('complete -c doggo -s h -d "Show help information"');
   });
 
   it("renders script based on shell choice and rejects invalid shell", () => {
     const script = renderCompletionScript("tokei", "zsh", flags);
     expect(script).toContain("#compdef tokei");
 
-    expect(() => renderCompletionScript("tokei", "powershell", flags)).toThrow();
+    expect(() =>
+      renderCompletionScript("tokei", "powershell", flags),
+    ).toThrow();
   });
 });

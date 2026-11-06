@@ -23,7 +23,8 @@ for (let n = 0; n < 256; n++) {
 
 function crc32(buf: Uint8Array): number {
   let c = 0xffffffff;
-  for (let i = 0; i < buf.length; i++) c = CRC_TABLE[(c ^ buf[i]!) & 0xff]! ^ (c >>> 8);
+  for (let i = 0; i < buf.length; i++)
+    c = CRC_TABLE[(c ^ buf[i]!) & 0xff]! ^ (c >>> 8);
   return (c ^ 0xffffffff) >>> 0;
 }
 
@@ -37,8 +38,13 @@ function pngChunk(type: string, data: Uint8Array): Buffer {
 }
 
 /** Encodes raw 8-bit RGBA pixels (`width * height * 4` bytes) into a valid PNG buffer. */
-export function encodeRgbaToPng(width: number, height: number, rgba: Uint8Array): Buffer | null {
-  if (!(width > 0 && height > 0 && width <= MAX_DIM && height <= MAX_DIM)) return null;
+export function encodeRgbaToPng(
+  width: number,
+  height: number,
+  rgba: Uint8Array,
+): Buffer | null {
+  if (!(width > 0 && height > 0 && width <= MAX_DIM && height <= MAX_DIM))
+    return null;
   if (rgba.length < width * height * 4) return null;
   const rowBytes = width * 4;
   const raw = Buffer.alloc((rowBytes + 1) * height);
@@ -46,7 +52,10 @@ export function encodeRgbaToPng(width: number, height: number, rgba: Uint8Array)
     const dstOff = y * (rowBytes + 1);
     raw[dstOff] = 0; // filter type 0 (None)
     const srcOff = y * rowBytes;
-    Buffer.from(rgba.buffer, rgba.byteOffset + srcOff, rowBytes).copy(raw, dstOff + 1);
+    Buffer.from(rgba.buffer, rgba.byteOffset + srcOff, rowBytes).copy(
+      raw,
+      dstOff + 1,
+    );
   }
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(width, 0);
@@ -57,7 +66,12 @@ export function encodeRgbaToPng(width: number, height: number, rgba: Uint8Array)
   ihdr[11] = 0;
   ihdr[12] = 0;
   const idat = deflateSync(raw, { level: 6 });
-  return Buffer.concat([PNG_SIG, pngChunk("IHDR", ihdr), pngChunk("IDAT", idat), pngChunk("IEND", new Uint8Array(0))]);
+  return Buffer.concat([
+    PNG_SIG,
+    pngChunk("IHDR", ihdr),
+    pngChunk("IDAT", idat),
+    pngChunk("IEND", new Uint8Array(0)),
+  ]);
 }
 
 function extractEmbeddedPng(buf: Buffer): Buffer | null {
@@ -88,8 +102,10 @@ function decodeNetpbm(buf: Buffer): Buffer | null {
   const skipSpaceAndComments = () => {
     while (pos < buf.length) {
       const b = buf[pos]!;
-      if (b === 0x23) { // '#'
-        while (pos < buf.length && buf[pos] !== 0x0a && buf[pos] !== 0x0d) pos++;
+      if (b === 0x23) {
+        // '#'
+        while (pos < buf.length && buf[pos] !== 0x0a && buf[pos] !== 0x0d)
+          pos++;
       } else if (b === 0x20 || b === 0x09 || b === 0x0a || b === 0x0d) {
         pos++;
       } else break;
@@ -100,14 +116,18 @@ function decodeNetpbm(buf: Buffer): Buffer | null {
     const start = pos;
     while (pos < buf.length) {
       const b = buf[pos]!;
-      if (b === 0x20 || b === 0x09 || b === 0x0a || b === 0x0d || b === 0x23) break;
+      if (b === 0x20 || b === 0x09 || b === 0x0a || b === 0x0d || b === 0x23)
+        break;
       pos++;
     }
     return buf.subarray(start, pos).toString("ascii");
   };
 
   if (magic === 7) {
-    let w = 0, h = 0, depth = 0, maxval = 255;
+    let w = 0,
+      h = 0,
+      depth = 0,
+      maxval = 255;
     while (pos < buf.length) {
       const lineEnd = buf.indexOf(0x0a, pos);
       if (lineEnd < 0) return null;
@@ -120,7 +140,16 @@ function decodeNetpbm(buf: Buffer): Buffer | null {
       else if (k === "DEPTH") depth = Number(v);
       else if (k === "MAXVAL") maxval = Number(v);
     }
-    if (!(w > 0 && h > 0 && w <= MAX_DIM && h <= MAX_DIM && depth >= 1 && depth <= 4 && maxval > 0)) return null;
+    if (!(
+      w > 0 &&
+      h > 0 &&
+      w <= MAX_DIM &&
+      h <= MAX_DIM &&
+      depth >= 1 &&
+      depth <= 4 &&
+      maxval > 0
+    ))
+      return null;
     const rgba = new Uint8Array(w * h * 4);
     const bpp = maxval > 255 ? 2 : 1;
     for (let i = 0; i < w * h; i++) {
@@ -145,9 +174,24 @@ function decodeNetpbm(buf: Buffer): Buffer | null {
   const w = Number(nextToken());
   const h = Number(nextToken());
   const maxval = magic === 1 || magic === 4 ? 1 : Number(nextToken());
-  if (!(w > 0 && h > 0 && w <= MAX_DIM && h <= MAX_DIM && maxval > 0 && maxval <= 65535)) return null;
+  if (!(
+    w > 0 &&
+    h > 0 &&
+    w <= MAX_DIM &&
+    h <= MAX_DIM &&
+    maxval > 0 &&
+    maxval <= 65535
+  ))
+    return null;
   // Exactly one whitespace byte after header before binary payload
-  if (magic >= 4 && pos < buf.length && (buf[pos] === 0x20 || buf[pos] === 0x09 || buf[pos] === 0x0a || buf[pos] === 0x0d)) {
+  if (
+    magic >= 4 &&
+    pos < buf.length &&
+    (buf[pos] === 0x20 ||
+      buf[pos] === 0x09 ||
+      buf[pos] === 0x0a ||
+      buf[pos] === 0x0d)
+  ) {
     if (buf[pos] === 0x0d && buf[pos + 1] === 0x0a) pos += 2;
     else pos += 1;
   }
@@ -237,22 +281,30 @@ function decodeTga(buf: Buffer): Buffer | null {
   if (pos > buf.length) return null;
   const cmapOffset = 18 + idLen;
 
-  const readColor = (off: number, bits: number): [number, number, number, number] => {
+  const readColor = (
+    off: number,
+    bits: number,
+  ): [number, number, number, number] => {
     if (bits === 8) {
       const v = buf[off] ?? 0;
       return [v, v, v, 255];
     }
     if (bits === 15 || bits === 16) {
       const v = off + 2 <= buf.length ? buf.readUInt16LE(off) : 0;
-      const r = ((v >> 10) & 0x1f) * 255 / 31;
-      const g = ((v >> 5) & 0x1f) * 255 / 31;
-      const b = (v & 0x1f) * 255 / 31;
+      const r = (((v >> 10) & 0x1f) * 255) / 31;
+      const g = (((v >> 5) & 0x1f) * 255) / 31;
+      const b = ((v & 0x1f) * 255) / 31;
       return [Math.round(r), Math.round(g), Math.round(b), 255];
     }
     if (bits === 24) {
       return [buf[off + 2] ?? 0, buf[off + 1] ?? 0, buf[off] ?? 0, 255];
     }
-    return [buf[off + 2] ?? 0, buf[off + 1] ?? 0, buf[off] ?? 0, buf[off + 3] ?? 255];
+    return [
+      buf[off + 2] ?? 0,
+      buf[off + 1] ?? 0,
+      buf[off] ?? 0,
+      buf[off + 3] ?? 255,
+    ];
   };
 
   const bpp = Math.ceil(depth / 8);
@@ -263,7 +315,8 @@ function decodeTga(buf: Buffer): Buffer | null {
 
   const decodePixelAt = (off: number): [number, number, number, number] => {
     if (isCmap && cmapType === 1) {
-      const idx = (bpp === 2 ? buf.readUInt16LE(off) : (buf[off] ?? 0)) - cmapFirst;
+      const idx =
+        (bpp === 2 ? buf.readUInt16LE(off) : (buf[off] ?? 0)) - cmapFirst;
       const cOff = cmapOffset + Math.max(0, idx) * cmapBytesPerEntry;
       return readColor(cOff, cmapBits);
     }
@@ -293,7 +346,11 @@ function decodeTga(buf: Buffer): Buffer | null {
           pixels[px * 4 + 3] = a;
         }
       } else {
-        for (let i = 0; i < count && px < totalPixels && pos < buf.length; i++, px++) {
+        for (
+          let i = 0;
+          i < count && px < totalPixels && pos < buf.length;
+          i++, px++
+        ) {
           const [r, g, b, a] = decodePixelAt(pos);
           pos += bpp;
           pixels[px * 4] = r;
@@ -322,14 +379,18 @@ function decodeTga(buf: Buffer): Buffer | null {
 // ---------------------------------------------------------------------------------------------------------------
 
 function decodeQoi(buf: Buffer): Buffer | null {
-  if (buf.length < 22 || buf.subarray(0, 4).toString("ascii") !== "qoif") return null;
+  if (buf.length < 22 || buf.subarray(0, 4).toString("ascii") !== "qoif")
+    return null;
   const w = buf.readUInt32BE(4);
   const h = buf.readUInt32BE(8);
   if (!(w > 0 && h > 0 && w <= MAX_DIM && h <= MAX_DIM)) return null;
   const totalPixels = w * h;
   const rgba = new Uint8Array(totalPixels * 4);
   const index = new Uint8Array(64 * 4);
-  let r = 0, g = 0, b = 0, a = 255;
+  let r = 0,
+    g = 0,
+    b = 0,
+    a = 255;
   let run = 0;
   let p = 14;
   const end = buf.length - 8;
@@ -387,12 +448,14 @@ function decodeQoi(buf: Buffer): Buffer | null {
 
 function unpackBits(src: Uint8Array, expectedLen: number): Uint8Array {
   const out = new Uint8Array(expectedLen);
-  let i = 0, o = 0;
+  let i = 0,
+    o = 0;
   while (i < src.length && o < expectedLen) {
     const n = (src[i++]! << 24) >> 24; // signed int8
     if (n >= 0) {
       const count = n + 1;
-      for (let k = 0; k < count && i < src.length && o < expectedLen; k++) out[o++] = src[i++]!;
+      for (let k = 0; k < count && i < src.length && o < expectedLen; k++)
+        out[o++] = src[i++]!;
     } else if (n !== -128) {
       const count = 1 - n;
       const val = src[i++] ?? 0;
@@ -404,17 +467,25 @@ function unpackBits(src: Uint8Array, expectedLen: number): Uint8Array {
 
 function decodeTiff(buf: Buffer): Buffer | null {
   if (buf.length < 8) return null;
-  const le = buf[0] === 0x49 && buf[1] === 0x49 && buf[2] === 42 && buf[3] === 0;
-  const be = buf[0] === 0x4d && buf[1] === 0x4d && buf[2] === 0 && buf[3] === 42;
+  const le =
+    buf[0] === 0x49 && buf[1] === 0x49 && buf[2] === 42 && buf[3] === 0;
+  const be =
+    buf[0] === 0x4d && buf[1] === 0x4d && buf[2] === 0 && buf[3] === 42;
   if (!le && !be) return null;
-  const u16 = (off: number) => (le ? buf.readUInt16LE(off) : buf.readUInt16BE(off));
-  const u32 = (off: number) => (le ? buf.readUInt32LE(off) : buf.readUInt32BE(off));
+  const u16 = (off: number) =>
+    le ? buf.readUInt16LE(off) : buf.readUInt16BE(off);
+  const u32 = (off: number) =>
+    le ? buf.readUInt32LE(off) : buf.readUInt32BE(off);
   const ifdOff = u32(4);
   if (ifdOff + 2 > buf.length) return null;
   const numEntries = u16(ifdOff);
   if (ifdOff + 2 + numEntries * 12 > buf.length) return null;
 
-  const readValues = (type: number, count: number, valOff: number): number[] => {
+  const readValues = (
+    type: number,
+    count: number,
+    valOff: number,
+  ): number[] => {
     const sizeByType: Record<number, number> = { 1: 1, 3: 2, 4: 4 };
     const unit = sizeByType[type] ?? 0;
     if (!unit) return [];
@@ -429,7 +500,12 @@ function decodeTiff(buf: Buffer): Buffer | null {
     return out;
   };
 
-  let w = 0, h = 0, compression = 1, photometric = 2, samplesPerPixel = 1, rowsPerStrip = 0;
+  let w = 0,
+    h = 0,
+    compression = 1,
+    photometric = 2,
+    samplesPerPixel = 1,
+    rowsPerStrip = 0;
   let bitsPerSample = [8];
   let stripOffsets: number[] = [];
   let stripByteCounts: number[] = [];
@@ -452,7 +528,14 @@ function decodeTiff(buf: Buffer): Buffer | null {
     else if (tag === 279) stripByteCounts = vals;
   }
 
-  if (!(w > 0 && h > 0 && w <= MAX_DIM && h <= MAX_DIM && stripOffsets.length > 0)) return null;
+  if (!(
+    w > 0 &&
+    h > 0 &&
+    w <= MAX_DIM &&
+    h <= MAX_DIM &&
+    stripOffsets.length > 0
+  ))
+    return null;
   if (![1, 8, 32946, 32773].includes(compression)) return null;
   const bps = bitsPerSample[0] ?? 8;
   if (bps !== 8 && bps !== 16) return null;
@@ -473,7 +556,13 @@ function decodeTiff(buf: Buffer): Buffer | null {
     if (compression === 1) {
       decoded = slice;
     } else if (compression === 8 || compression === 32946) {
-      try { decoded = inflateSync(slice, { maxOutputLength: Math.max(expectedBytes, 64 * 1024) }); } catch { return null; }
+      try {
+        decoded = inflateSync(slice, {
+          maxOutputLength: Math.max(expectedBytes, 64 * 1024),
+        });
+      } catch {
+        return null;
+      }
     } else if (compression === 32773) {
       decoded = unpackBits(slice, expectedBytes);
     } else return null;
@@ -486,7 +575,9 @@ function decodeTiff(buf: Buffer): Buffer | null {
   const sampleAt = (idx: number) => {
     if (bytesPerSample === 1) return rawPixels[idx] ?? 0;
     const p = idx * 2;
-    const v16 = le ? (rawPixels[p] ?? 0) | ((rawPixels[p + 1] ?? 0) << 8) : ((rawPixels[p] ?? 0) << 8) | (rawPixels[p + 1] ?? 0);
+    const v16 = le
+      ? (rawPixels[p] ?? 0) | ((rawPixels[p + 1] ?? 0) << 8)
+      : ((rawPixels[p] ?? 0) << 8) | (rawPixels[p + 1] ?? 0);
     return v16 >> 8;
   };
   for (let i = 0; i < w * h; i++) {
@@ -511,7 +602,8 @@ function decodeTiff(buf: Buffer): Buffer | null {
 // ---------------------------------------------------------------------------------------------------------------
 
 function decodePsd(buf: Buffer): Buffer | null {
-  if (buf.length < 26 || buf.subarray(0, 4).toString("ascii") !== "8BPS") return null;
+  if (buf.length < 26 || buf.subarray(0, 4).toString("ascii") !== "8BPS")
+    return null;
   const version = buf.readUInt16BE(4);
   if (version !== 1 && version !== 2) return null;
   const channels = buf.readUInt16BE(12);
@@ -519,7 +611,15 @@ function decodePsd(buf: Buffer): Buffer | null {
   const w = buf.readUInt32BE(18);
   const depth = buf.readUInt16BE(22);
   const colorMode = buf.readUInt16BE(24);
-  if (!(w > 0 && h > 0 && w <= MAX_DIM && h <= MAX_DIM && depth === 8 && (colorMode === 1 || colorMode === 3))) return null;
+  if (!(
+    w > 0 &&
+    h > 0 &&
+    w <= MAX_DIM &&
+    h <= MAX_DIM &&
+    depth === 8 &&
+    (colorMode === 1 || colorMode === 3)
+  ))
+    return null;
 
   let pos = 26;
   if (pos + 4 > buf.length) return null;
@@ -527,7 +627,8 @@ function decodePsd(buf: Buffer): Buffer | null {
   if (pos + 4 > buf.length) return null;
   pos += 4 + buf.readUInt32BE(pos); // skip Image Resources
   if (pos + (version === 2 ? 8 : 4) > buf.length) return null;
-  const layerLen = version === 2 ? Number(buf.readBigUInt64BE(pos)) : buf.readUInt32BE(pos);
+  const layerLen =
+    version === 2 ? Number(buf.readBigUInt64BE(pos)) : buf.readUInt32BE(pos);
   pos += (version === 2 ? 8 : 4) + layerLen;
   if (pos + 2 > buf.length) return null;
 
@@ -552,9 +653,15 @@ function decodePsd(buf: Buffer): Buffer | null {
       const plane = new Uint8Array(numPixels);
       for (let y = 0; y < h; y++) {
         const countOff = pos + (c * h + y) * countBytes;
-        const rowByteCount = countBytes === 4 ? buf.readUInt32BE(countOff) : buf.readUInt16BE(countOff);
+        const rowByteCount =
+          countBytes === 4
+            ? buf.readUInt32BE(countOff)
+            : buf.readUInt16BE(countOff);
         if (dataPos + rowByteCount > buf.length) return null;
-        const rowData = unpackBits(buf.subarray(dataPos, dataPos + rowByteCount), w);
+        const rowData = unpackBits(
+          buf.subarray(dataPos, dataPos + rowByteCount),
+          w,
+        );
         plane.set(rowData, y * w);
         dataPos += rowByteCount;
       }
@@ -585,7 +692,9 @@ function decodePsd(buf: Buffer): Buffer | null {
 function decodeXbm(buf: Buffer): Buffer | null {
   const head = buf.subarray(0, Math.min(buf.length, 512)).toString("ascii");
   if (!head.includes("#define")) return null;
-  const text = buf.subarray(0, Math.min(buf.length, 512 * 1024)).toString("ascii");
+  const text = buf
+    .subarray(0, Math.min(buf.length, 512 * 1024))
+    .toString("ascii");
   const wMatch = /#define\s+\w+_width\s+(\d+)/.exec(text);
   const hMatch = /#define\s+\w+_height\s+(\d+)/.exec(text);
   const bodyMatch = /\{([\s\S]+?)\}/.exec(text);
@@ -593,7 +702,9 @@ function decodeXbm(buf: Buffer): Buffer | null {
   const w = Number(wMatch[1]);
   const h = Number(hMatch[1]);
   if (!(w > 0 && h > 0 && w <= MAX_DIM && h <= MAX_DIM)) return null;
-  const bytes = (bodyMatch[1]!.match(/0x[\da-fA-F]+|\d+/g) ?? []).map((s) => Number(s) & 0xff);
+  const bytes = (bodyMatch[1]!.match(/0x[\da-fA-F]+|\d+/g) ?? []).map(
+    (s) => Number(s) & 0xff,
+  );
   const rowBytes = Math.ceil(w / 8);
   if (bytes.length < rowBytes * h) return null;
   const rgba = new Uint8Array(w * h * 4);
@@ -615,12 +726,22 @@ function decodeXbm(buf: Buffer): Buffer | null {
 // ---------------------------------------------------------------------------------------------------------------
 
 const NAMED_COLORS: Record<string, [number, number, number, number]> = {
-  none: [0, 0, 0, 0], transparent: [0, 0, 0, 0],
-  black: [0, 0, 0, 255], white: [255, 255, 255, 255],
-  red: [255, 0, 0, 255], green: [0, 128, 0, 255], blue: [0, 0, 255, 255],
-  yellow: [255, 255, 0, 255], cyan: [0, 255, 255, 255], magenta: [255, 0, 255, 255],
-  gray: [128, 128, 128, 255], grey: [128, 128, 128, 255], orange: [255, 165, 0, 255],
-  purple: [128, 0, 128, 255], brown: [165, 42, 42, 255], pink: [255, 192, 203, 255],
+  none: [0, 0, 0, 0],
+  transparent: [0, 0, 0, 0],
+  black: [0, 0, 0, 255],
+  white: [255, 255, 255, 255],
+  red: [255, 0, 0, 255],
+  green: [0, 128, 0, 255],
+  blue: [0, 0, 255, 255],
+  yellow: [255, 255, 0, 255],
+  cyan: [0, 255, 255, 255],
+  magenta: [255, 0, 255, 255],
+  gray: [128, 128, 128, 255],
+  grey: [128, 128, 128, 255],
+  orange: [255, 165, 0, 255],
+  purple: [128, 0, 128, 255],
+  brown: [165, 42, 42, 255],
+  pink: [255, 192, 203, 255],
 };
 
 function parseXpmColor(spec: string): [number, number, number, number] {
@@ -629,13 +750,28 @@ function parseXpmColor(spec: string): [number, number, number, number] {
   if (s.startsWith("#")) {
     const hex = s.slice(1);
     if (hex.length === 3) {
-      return [parseInt(hex[0]! + hex[0]!, 16), parseInt(hex[1]! + hex[1]!, 16), parseInt(hex[2]! + hex[2]!, 16), 255];
+      return [
+        parseInt(hex[0]! + hex[0]!, 16),
+        parseInt(hex[1]! + hex[1]!, 16),
+        parseInt(hex[2]! + hex[2]!, 16),
+        255,
+      ];
     }
     if (hex.length === 6) {
-      return [parseInt(hex.slice(0, 2), 16), parseInt(hex.slice(2, 4), 16), parseInt(hex.slice(4, 6), 16), 255];
+      return [
+        parseInt(hex.slice(0, 2), 16),
+        parseInt(hex.slice(2, 4), 16),
+        parseInt(hex.slice(4, 6), 16),
+        255,
+      ];
     }
     if (hex.length === 12) {
-      return [parseInt(hex.slice(0, 2), 16), parseInt(hex.slice(4, 6), 16), parseInt(hex.slice(8, 10), 16), 255];
+      return [
+        parseInt(hex.slice(0, 2), 16),
+        parseInt(hex.slice(4, 6), 16),
+        parseInt(hex.slice(8, 10), 16),
+        255,
+      ];
     }
   }
   return [128, 128, 128, 255];
@@ -644,7 +780,9 @@ function parseXpmColor(spec: string): [number, number, number, number] {
 function decodeXpm(buf: Buffer): Buffer | null {
   const head = buf.subarray(0, Math.min(buf.length, 512)).toString("ascii");
   if (!head.includes("XPM") && !head.includes("static")) return null;
-  const text = buf.subarray(0, Math.min(buf.length, 1024 * 1024)).toString("ascii");
+  const text = buf
+    .subarray(0, Math.min(buf.length, 1024 * 1024))
+    .toString("ascii");
   if (!text.includes("XPM") && !text.includes("static")) return null;
   const strings: string[] = [];
   const re = /"((?:[^"\\]|\\.)*)"/g;
@@ -654,14 +792,26 @@ function decodeXpm(buf: Buffer): Buffer | null {
   const header = strings[0]!.trim().split(/\s+/).map(Number);
   if (header.length < 4) return null;
   const [w, h, numColors, cpp] = header as [number, number, number, number];
-  if (!(w > 0 && h > 0 && w <= MAX_DIM && h <= MAX_DIM && numColors > 0 && cpp > 0 && cpp <= 8)) return null;
+  if (!(
+    w > 0 &&
+    h > 0 &&
+    w <= MAX_DIM &&
+    h <= MAX_DIM &&
+    numColors > 0 &&
+    cpp > 0 &&
+    cpp <= 8
+  ))
+    return null;
   if (strings.length < 1 + numColors + h) return null;
   const palette = new Map<string, [number, number, number, number]>();
   for (let i = 0; i < numColors; i++) {
     const line = strings[1 + i]!;
     const key = line.slice(0, cpp);
     const rest = line.slice(cpp);
-    const cm = /\bc\s+([^\s\t]+)/i.exec(rest) ?? /\bg\s+([^\s\t]+)/i.exec(rest) ?? /\bm\s+([^\s\t]+)/i.exec(rest);
+    const cm =
+      /\bc\s+([^\s\t]+)/i.exec(rest) ??
+      /\bg\s+([^\s\t]+)/i.exec(rest) ??
+      /\bm\s+([^\s\t]+)/i.exec(rest);
     palette.set(key, parseXpmColor(cm ? cm[1]! : "#000000"));
   }
   const rgba = new Uint8Array(w * h * 4);
@@ -671,7 +821,10 @@ function decodeXpm(buf: Buffer): Buffer | null {
       const key = row.slice(x * cpp, (x + 1) * cpp);
       const [r, g, b, a] = palette.get(key) ?? [0, 0, 0, 255];
       const idx = (y * w + x) * 4;
-      rgba[idx] = r; rgba[idx + 1] = g; rgba[idx + 2] = b; rgba[idx + 3] = a;
+      rgba[idx] = r;
+      rgba[idx + 1] = g;
+      rgba[idx + 2] = b;
+      rgba[idx + 3] = a;
     }
   }
   return encodeRgbaToPng(w, h, rgba);
@@ -718,7 +871,8 @@ function decodeWbmp(buf: Buffer): Buffer | null {
 
 function decodeHdr(buf: Buffer): Buffer | null {
   const headStr = buf.subarray(0, Math.min(buf.length, 4096)).toString("ascii");
-  if (!headStr.startsWith("#?RADIANCE") && !headStr.startsWith("#?RGBE")) return null;
+  if (!headStr.startsWith("#?RADIANCE") && !headStr.startsWith("#?RGBE"))
+    return null;
   const resMatch = /\r?\n\r?\n-Y\s+(\d+)\s+\+X\s+(\d+)\r?\n/.exec(headStr);
   if (!resMatch) return null;
   const h = Number(resMatch[1]);
@@ -728,7 +882,11 @@ function decodeHdr(buf: Buffer): Buffer | null {
   const rgbe = new Uint8Array(w * h * 4);
   for (let y = 0; y < h; y++) {
     if (pos + 4 > buf.length) return null;
-    if (buf[pos] === 2 && buf[pos + 1] === 2 && ((buf[pos + 2]! << 8) | buf[pos + 3]!) === w) {
+    if (
+      buf[pos] === 2 &&
+      buf[pos + 1] === 2 &&
+      ((buf[pos + 2]! << 8) | buf[pos + 3]!) === w
+    ) {
       pos += 4;
       for (let ch = 0; ch < 4; ch++) {
         let x = 0;
@@ -737,9 +895,11 @@ function decodeHdr(buf: Buffer): Buffer | null {
           if (code > 128) {
             const count = code - 128;
             const val = buf[pos++] ?? 0;
-            for (let i = 0; i < count && x < w; i++, x++) rgbe[(y * w + x) * 4 + ch] = val;
+            for (let i = 0; i < count && x < w; i++, x++)
+              rgbe[(y * w + x) * 4 + ch] = val;
           } else {
-            for (let i = 0; i < code && x < w && pos < buf.length; i++, x++) rgbe[(y * w + x) * 4 + ch] = buf[pos++]!;
+            for (let i = 0; i < code && x < w && pos < buf.length; i++, x++)
+              rgbe[(y * w + x) * 4 + ch] = buf[pos++]!;
           }
         }
       }
@@ -747,13 +907,20 @@ function decodeHdr(buf: Buffer): Buffer | null {
       for (let x = 0; x < w; x++) {
         if (pos + 4 > buf.length) return null;
         const d = (y * w + x) * 4;
-        rgbe[d] = buf[pos]!; rgbe[d + 1] = buf[pos + 1]!; rgbe[d + 2] = buf[pos + 2]!; rgbe[d + 3] = buf[pos + 3]!;
+        rgbe[d] = buf[pos]!;
+        rgbe[d + 1] = buf[pos + 1]!;
+        rgbe[d + 2] = buf[pos + 2]!;
+        rgbe[d + 3] = buf[pos + 3]!;
         pos += 4;
       }
     }
   }
   const rgba = new Uint8Array(w * h * 4);
-  const tone = (v: number) => Math.max(0, Math.min(255, Math.round(Math.pow(v / (1 + v), 1 / 2.2) * 255)));
+  const tone = (v: number) =>
+    Math.max(
+      0,
+      Math.min(255, Math.round(Math.pow(v / (1 + v), 1 / 2.2) * 255)),
+    );
   for (let i = 0; i < w * h; i++) {
     const e = rgbe[i * 4 + 3]!;
     if (e === 0) {
@@ -776,16 +943,28 @@ function decodeHdr(buf: Buffer): Buffer | null {
 function decodePcx(buf: Buffer): Buffer | null {
   if (buf.length < 128 || buf[0] !== 0x0a || buf[2] !== 1) return null;
   const bpp = buf[3]!;
-  const xmin = buf.readUInt16LE(4), ymin = buf.readUInt16LE(6);
-  const xmax = buf.readUInt16LE(8), ymax = buf.readUInt16LE(10);
-  const w = xmax - xmin + 1, h = ymax - ymin + 1;
+  const xmin = buf.readUInt16LE(4),
+    ymin = buf.readUInt16LE(6);
+  const xmax = buf.readUInt16LE(8),
+    ymax = buf.readUInt16LE(10);
+  const w = xmax - xmin + 1,
+    h = ymax - ymin + 1;
   const planes = buf[65]!;
   const bytesPerLine = buf.readUInt16LE(66);
-  if (!(w > 0 && h > 0 && w <= MAX_DIM && h <= MAX_DIM && bpp === 8 && (planes === 1 || planes === 3 || planes === 4))) return null;
+  if (!(
+    w > 0 &&
+    h > 0 &&
+    w <= MAX_DIM &&
+    h <= MAX_DIM &&
+    bpp === 8 &&
+    (planes === 1 || planes === 3 || planes === 4)
+  ))
+    return null;
   const scanLen = bytesPerLine * planes;
   const totalBytes = scanLen * h;
   const decoded = new Uint8Array(totalBytes);
-  let src = 128, dst = 0;
+  let src = 128,
+    dst = 0;
   while (dst < totalBytes && src < buf.length) {
     const b = buf[src++]!;
     if ((b & 0xc0) === 0xc0) {
@@ -822,7 +1001,8 @@ function decodePcx(buf: Buffer): Buffer | null {
         rgba[d] = decoded[rowOff + x]!;
         rgba[d + 1] = decoded[rowOff + bytesPerLine + x]!;
         rgba[d + 2] = decoded[rowOff + bytesPerLine * 2 + x]!;
-        rgba[d + 3] = planes === 4 ? decoded[rowOff + bytesPerLine * 3 + x]! : 255;
+        rgba[d + 3] =
+          planes === 4 ? decoded[rowOff + bytesPerLine * 3 + x]! : 255;
       }
     }
   }
@@ -841,7 +1021,15 @@ function decodeBmp(buf: Buffer): Buffer | null {
   const h = Math.abs(rawH);
   const bpp = buf.readUInt16LE(28);
   const comp = buf.readUInt32LE(30);
-  if (!(w > 0 && h > 0 && w <= MAX_DIM && h <= MAX_DIM && comp === 0 && (bpp === 24 || bpp === 32))) return null;
+  if (!(
+    w > 0 &&
+    h > 0 &&
+    w <= MAX_DIM &&
+    h <= MAX_DIM &&
+    comp === 0 &&
+    (bpp === 24 || bpp === 32)
+  ))
+    return null;
   const bytesPerPixel = bpp / 8;
   const stride = (w * bytesPerPixel + 3) & ~3;
   if (pixelOff + stride * h > buf.length) return null;
@@ -865,8 +1053,16 @@ function decodeIco(buf: Buffer): Buffer | null {
   if (buf.length < 22 || buf.readUInt16LE(0) !== 0) return null;
   const type = buf.readUInt16LE(2);
   const count = buf.readUInt16LE(4);
-  if ((type !== 1 && type !== 2) || count < 1 || count > 256 || 6 + count * 16 > buf.length) return null;
-  let bestOff = 0, bestSize = 0, bestScore = -1;
+  if (
+    (type !== 1 && type !== 2) ||
+    count < 1 ||
+    count > 256 ||
+    6 + count * 16 > buf.length
+  )
+    return null;
+  let bestOff = 0,
+    bestSize = 0,
+    bestScore = -1;
   for (let i = 0; i < count; i++) {
     const e = 6 + i * 16;
     const w = buf[e]! || 256;
@@ -876,11 +1072,16 @@ function decodeIco(buf: Buffer): Buffer | null {
     const off = buf.readUInt32LE(e + 12);
     if (off + sz > buf.length || sz < 40) continue;
     const score = w * h * 100 + bpp;
-    if (score > bestScore) { bestScore = score; bestOff = off; bestSize = sz; }
+    if (score > bestScore) {
+      bestScore = score;
+      bestOff = off;
+      bestSize = sz;
+    }
   }
   if (!bestSize) return null;
   const sub = buf.subarray(bestOff, bestOff + bestSize);
-  if (sub.length >= 8 && sub.subarray(0, 8).equals(PNG_SIG)) return Buffer.from(sub);
+  if (sub.length >= 8 && sub.subarray(0, 8).equals(PNG_SIG))
+    return Buffer.from(sub);
   const hdrSize = sub.readUInt32LE(0);
   if (hdrSize < 40 || sub.length < hdrSize) return null;
   const w = sub.readInt32LE(4);
@@ -888,7 +1089,15 @@ function decodeIco(buf: Buffer): Buffer | null {
   const h = Math.abs(rawH) >> 1;
   const bpp = sub.readUInt16LE(14);
   const comp = sub.readUInt32LE(16);
-  if (!(w > 0 && h > 0 && w <= MAX_DIM && h <= MAX_DIM && comp === 0 && (bpp === 32 || bpp === 24))) return null;
+  if (!(
+    w > 0 &&
+    h > 0 &&
+    w <= MAX_DIM &&
+    h <= MAX_DIM &&
+    comp === 0 &&
+    (bpp === 32 || bpp === 24)
+  ))
+    return null;
   const bytesPerPixel = bpp / 8;
   const stride = (w * bytesPerPixel + 3) & ~3;
   if (hdrSize + stride * h > sub.length) return null;
@@ -908,13 +1117,25 @@ function decodeIco(buf: Buffer): Buffer | null {
 }
 
 /** Attempts to decode an image buffer into a valid PNG buffer using pure-TypeScript decoders. */
-export function decodeImageToPngBuffer(buf: Buffer, ext: string): Buffer | null {
+export function decodeImageToPngBuffer(
+  buf: Buffer,
+  ext: string,
+): Buffer | null {
   if (buf.length >= 8 && buf.subarray(0, 8).equals(PNG_SIG)) return buf;
-  if (ext === "pbm" || ext === "pgm" || ext === "ppm" || ext === "pnm" || ext === "pam") {
+  if (
+    ext === "pbm" ||
+    ext === "pgm" ||
+    ext === "ppm" ||
+    ext === "pnm" ||
+    ext === "pam"
+  ) {
     const pnm = decodeNetpbm(buf);
     if (pnm) return pnm;
   }
-  if (ext === "qoi" || (buf.length >= 4 && buf.subarray(0, 4).toString("ascii") === "qoif")) {
+  if (
+    ext === "qoi" ||
+    (buf.length >= 4 && buf.subarray(0, 4).toString("ascii") === "qoif")
+  ) {
     const qoi = decodeQoi(buf);
     if (qoi) return qoi;
   }
@@ -922,7 +1143,10 @@ export function decodeImageToPngBuffer(buf: Buffer, ext: string): Buffer | null 
     const tif = decodeTiff(buf);
     if (tif) return tif;
   }
-  if (ext === "psd" || (buf.length >= 4 && buf.subarray(0, 4).toString("ascii") === "8BPS")) {
+  if (
+    ext === "psd" ||
+    (buf.length >= 4 && buf.subarray(0, 4).toString("ascii") === "8BPS")
+  ) {
     const psd = decodePsd(buf);
     if (psd) return psd;
   }
@@ -961,6 +1185,17 @@ export function decodeImageToPngBuffer(buf: Buffer, ext: string): Buffer | null 
   const embedded = extractEmbeddedPng(buf);
   if (embedded) return embedded;
   // Fallback auto-sniff by content regardless of extension
-  return decodeNetpbm(buf) ?? decodeTiff(buf) ?? decodePsd(buf) ?? decodeQoi(buf) ?? decodeBmp(buf) ?? decodeIco(buf) ?? decodeHdr(buf) ?? decodePcx(buf) ?? decodeXpm(buf) ?? decodeXbm(buf) ?? null;
+  return (
+    decodeNetpbm(buf) ??
+    decodeTiff(buf) ??
+    decodePsd(buf) ??
+    decodeQoi(buf) ??
+    decodeBmp(buf) ??
+    decodeIco(buf) ??
+    decodeHdr(buf) ??
+    decodePcx(buf) ??
+    decodeXpm(buf) ??
+    decodeXbm(buf) ??
+    null
+  );
 }
-

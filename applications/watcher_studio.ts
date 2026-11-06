@@ -2,7 +2,11 @@
  * Task Watcher Studio -- Continuous Task & Test Watcher
  * Zero Homebrew reliance -- Powered by Bun's native fs.watch system API
  */
-import { createWatcherStudio, createWatchexecStudio, createBunWatchStudio } from "./watchexec_studio";
+import {
+  createWatcherStudio,
+  createWatchexecStudio,
+  createBunWatchStudio,
+} from "./watchexec_studio";
 
 export { createWatcherStudio, createWatchexecStudio, createBunWatchStudio };
 

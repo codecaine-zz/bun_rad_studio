@@ -1,599 +1,630 @@
 import { describe, it, expect } from "bun:test";
 import {
-    simplegui,
-    SimpleWindow,
-    getTheme,
-    getThemes,
-    get_themes,
-    getThemeNames,
-    get_theme_names,
-    getThemeKeys,
-    listThemes,
-    VLANG_THEME_NAMES,
-    generatePreviewHtml
+  simplegui,
+  SimpleWindow,
+  getTheme,
+  getThemes,
+  get_themes,
+  getThemeNames,
+  get_theme_names,
+  getThemeKeys,
+  listThemes,
+  VLANG_THEME_NAMES,
+  generatePreviewHtml,
 } from "../index.ts";
 import { createVlangShowcase } from "../demos/25_vlang_all_themes_showcase.ts";
 
 describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
-    const BASE_76_THEMES = [
-        'abyss',
-        'adwaita_dark',
-        'adwaita_light',
-        'amber_crt',
-        'amethyst',
-        'amiga',
-        'apple_dark',
-        'apple_light',
-        'apple_sunset',
-        'arc_velvet',
-        'aura',
-        'catppuccin',
-        'charcoal',
-        'cobalt2',
-        'codefreelance',
-        'commodore64',
-        'crimson',
-        'cyberpunk',
-        'dark',
-        'dracula',
-        'emerald',
-        'everforest',
-        'fedora_dark',
-        'fluent_dark',
-        'fluent_light',
-        'forest_green',
-        'gameboy',
-        'github_dark',
-        'github_light',
-        'gruvbox_dark',
-        'gruvbox_light',
-        'horizon',
-        'hotdog_stand',
-        'jetbrains_darcula',
-        'kanagawa',
-        'light',
-        'linear_dark',
-        'linux_mint',
-        'mac_os_aqua',
-        'macintosh_system7',
-        'matrix_phosphor',
-        'midnight',
-        'monokai_pro',
-        'navy_blue',
-        'nextstep',
-        'night_city',
-        'nord',
-        'nordic_paper',
-        'oled_black',
-        'one_dark_pro',
-        'playstation',
-        'pop_os',
-        'raycast_dark',
-        'rose_pine',
-        'sapphire',
-        'slate',
-        'soft_pastel',
-        'solarized_dark',
-        'solarized_light',
-        'sonoma_dark',
-        'sonoma_emerald',
-        'sonoma_light',
-        'sunset_orange',
-        'supabase',
-        'synthwave84',
-        'tailwind_dark',
-        'titanium_slate',
-        'tokyo_night',
-        'ubuntu_dark',
-        'ubuntu_light',
-        'unreal_engine',
-        'ventura_amber',
-        'vercel_dark',
-        'win11_light',
-        'win11_slate',
-        'win95'
+  const BASE_76_THEMES = [
+    "abyss",
+    "adwaita_dark",
+    "adwaita_light",
+    "amber_crt",
+    "amethyst",
+    "amiga",
+    "apple_dark",
+    "apple_light",
+    "apple_sunset",
+    "arc_velvet",
+    "aura",
+    "catppuccin",
+    "charcoal",
+    "cobalt2",
+    "codefreelance",
+    "commodore64",
+    "crimson",
+    "cyberpunk",
+    "dark",
+    "dracula",
+    "emerald",
+    "everforest",
+    "fedora_dark",
+    "fluent_dark",
+    "fluent_light",
+    "forest_green",
+    "gameboy",
+    "github_dark",
+    "github_light",
+    "gruvbox_dark",
+    "gruvbox_light",
+    "horizon",
+    "hotdog_stand",
+    "jetbrains_darcula",
+    "kanagawa",
+    "light",
+    "linear_dark",
+    "linux_mint",
+    "mac_os_aqua",
+    "macintosh_system7",
+    "matrix_phosphor",
+    "midnight",
+    "monokai_pro",
+    "navy_blue",
+    "nextstep",
+    "night_city",
+    "nord",
+    "nordic_paper",
+    "oled_black",
+    "one_dark_pro",
+    "playstation",
+    "pop_os",
+    "raycast_dark",
+    "rose_pine",
+    "sapphire",
+    "slate",
+    "soft_pastel",
+    "solarized_dark",
+    "solarized_light",
+    "sonoma_dark",
+    "sonoma_emerald",
+    "sonoma_light",
+    "sunset_orange",
+    "supabase",
+    "synthwave84",
+    "tailwind_dark",
+    "titanium_slate",
+    "tokyo_night",
+    "ubuntu_dark",
+    "ubuntu_light",
+    "unreal_engine",
+    "ventura_amber",
+    "vercel_dark",
+    "win11_light",
+    "win11_slate",
+    "win95",
+  ];
+
+  // Linux distributions, Windows versions and macOS versions added on top of the 76 V themes.
+  const OS_VERSION_THEMES = [
+    "debian_dark",
+    "debian_light",
+    "arch_dark",
+    "opensuse_dark",
+    "manjaro_dark",
+    "elementary_light",
+    "elementary_dark",
+    "kali_dark",
+    "zorin_dark",
+    "rhel_dark",
+    "rocky_dark",
+    "almalinux_dark",
+    "centos_dark",
+    "fedora_light",
+    "endeavouros_dark",
+    "nixos_dark",
+    "gentoo_dark",
+    "alpine_dark",
+    "kde_breeze_dark",
+    "kde_breeze_light",
+    "xfce_dark",
+    "mate_dark",
+    "deepin_light",
+    "arc_dark",
+    "arc_light",
+    "sweet_dark",
+    "numix_dark",
+    "win31",
+    "win98",
+    "win2000",
+    "winxp_luna",
+    "vista_aero",
+    "win7_aero",
+    "win8_metro",
+    "win10_dark",
+    "win10_light",
+    "windows_terminal",
+    "windows_high_contrast",
+    "mac_os_9",
+    "snow_leopard",
+    "yosemite",
+    "big_sur",
+    "monterey_light",
+    "sequoia_dark",
+    "tahoe_glass",
+  ];
+  // The futuristic set (src/shared/fxThemes.ts): the same precedent as the OS versions above, 76 + 45 + 22 + 57 = 200.
+  const FUTURISTIC_THEMES = [
+    "cyberpunk_hologram",
+    "neon_hud",
+    "quantum_obsidian",
+    "deep_space",
+    "liquid_metal",
+    "titanium_aurora",
+    "liquid_metal_light",
+    "neo_tokyo_dark",
+    "synthetic_solar",
+    "neo_tokyo_day",
+    "aurora_glass",
+    "plasma_violet",
+    "prism_reactor",
+    "orbital_ice",
+    "ember_grid",
+    "synthwave_sunset",
+    "matrix_rain",
+    "amber_phosphor",
+    "midnight_glass",
+    "abyss_bloom",
+    "cosmic_nebula",
+    "obsidian_gold",
+    "crimson_eclipse",
+    "acid_reactor",
+    "polar_night",
+    "emerald_grove",
+    "brass_engine",
+    "focus_glow",
+    "neon_max",
+    "vaporwave_dream",
+    "frosted_glass",
+    "sakura_glass",
+    "pearl_hologram",
+    "rose_gold",
+    "daylight_hud",
+    "tesla_coil_plasma",
+    "wardenclyffe_tower",
+    "nikola_plasma_globe",
+    "jacobs_ladder_arc",
+    "ball_lightning_storm",
+    "tokamak_fusion",
+    "cherenkov_reactor",
+    "cern_synchrotron",
+    "lorentz_chaos",
+    "ferrofluid_spike",
+    "hawking_horizon",
+    "ligo_gravwave",
+    "meissner_superconductor",
+    "antimatter_penning",
+    "dyson_megastructure",
+    "alcubierre_metric",
+    "lissajous_scope",
+    "quark_chromodynamics",
+    "arc_reactor_mk",
+    "st_elmos_corona",
+    "van_de_graaff_day",
+    "cern_control_day",
+    "ef5_debris_tornado",
+    "inferno_fire_folders",
+    "toxic_slime_ooze",
+    "urban_street_cyclone",
+    "autumn_noreaster_gale",
+    "supercell_emerald_vortex",
+    "category_5_eyewall",
+    "mesosphere_red_sprite",
+    "cryo_icicle_blizzard",
+    "scrapyard_shrapnel_vortex",
+    "jovian_red_spot_storm",
+    "neptune_diamond_squall",
+    "tahoe_studio_3d",
+    "m4_pro_display_xdr",
+    "win11_rtx_fluent_3d",
+    "hdr_cinema_gallery",
+    "linux_workstation_hidpi",
+    "studio_architect_minimal",
+    "mac_studio_m4_ultra",
+    "mac_pro_rack_xdr",
+    "macbook_pro_space_black",
+    "apple_studio_display_5k",
+    "imac_m4_spectrum_p3",
+    "macos_sequoia_redwood_xdr",
+    "macos_vision_spatial_mac",
+    "mac_mini_m4_pro_carbon",
+    "kaleidoscope_mandala",
+    "lava_lamp_groovy_69",
+    "dmt_hyperspace_lattice",
+    "holographic_oil_slick",
+    "electric_mycelium_forest",
+    "optical_moire_hypnosis",
+    "acid_house_rave_92",
+    "mobius_wormhole_odyssey",
+    "pastel_dreamcore_cloud",
+    "solarpunk_kaleidoscope_day",
+    "google_gemini_ultra",
+    "google_material_you_3d",
+    "google_pixel_amoled",
+    "google_deepmind_quantum",
+    "google_cloud_vertex_pro",
+    "google_project_idx_studio",
+    "google_chromeos_aurora",
+    "google_workspace_daylight",
+    "ayahuasca_vine_vision",
+    "alex_grey_astral_cathedral",
+    "summer_of_love_tiedye_67",
+    "vaporwave_mall_plaza_95",
+    "frutiger_aero_aqua_2007",
+    "steampunk_chronometer_foundry",
+    "art_deco_metropolis_1929",
+    "synth_arcade_crt_1984",
+    "mariana_bioluminescent_trench",
+    "kyoto_zen_karesansui_day",
+    "holiday_new_years_times_square",
+    "holiday_mlk_dream_memorial",
+    "holiday_valentines_velvet_rose",
+    "holiday_presidents_mount_rushmore",
+    "holiday_st_patricks_emerald_clover",
+    "holiday_easter_pastel_egg_hunt",
+    "holiday_mothers_day_botanical_tea",
+    "holiday_memorial_day_poppy_honor",
+    "holiday_juneteenth_jubilee_star",
+    "holiday_fathers_day_leather_den",
+    "holiday_fourth_of_july_fireworks",
+    "holiday_labor_day_rivet_forge",
+    "holiday_halloween_jack_o_lantern",
+    "holiday_dia_de_los_muertos_marigold",
+    "holiday_veterans_day_valor_medallion",
+    "holiday_thanksgiving_harvest_hearth",
+    "holiday_hanukkah_menorah_sapphire",
+    "holiday_christmas_nutcracker_hearth",
+    "nerd_dnd_arcane_grimoire",
+    "nerd_starfleet_lcars_bridge",
+    "nerd_kyber_holocron_forge",
+    "nerd_lotr_mithril_elven",
+    "nerd_mecha_eva_nerv_hud",
+    "nerd_defcon_blackhat_mainframe",
+    "nerd_16bit_snes_jrpg_cartridge",
+    "nerd_golden_age_comic_halftone",
+    "nerd_apollo_11_dsky_guidance",
+    "nerd_enigma_bletchley_cipher",
+    "horror_nosferatu_blood_moon",
+    "horror_lovecraft_eldritch_rlyeh",
+    "horror_vhs_found_footage_1999",
+    "horror_silent_fog_asylum",
+    "horror_biohazard_containment_lab",
+    "horror_camp_crystal_slasher_80s",
+    "horror_haunted_victorian_seance",
+    "horror_necronomicon_parchment_day",
+    "horror_thalassophobia_abyssal_jaw",
+    "horror_cursed_carnival_calliope",
+    "realworld_grandfather_clockwork_mahogany",
+    "realworld_vinyl_jukebox_wurlitzer",
+    "realworld_stained_glass_cathedral",
+    "realworld_murano_blown_glass_day",
+    "realworld_katana_urushi_forge",
+    "realworld_pinball_wizard_arcade",
+    "omega_point_singularity",
+    "matrioshka_dyson_brain",
+    "photonic_metamaterial_3099",
+    "chrono_crystalline_aethelgard",
+    "akashic_neural_noosphere",
+    "zero_point_vacuum_genesis",
+    "kardashev_type_iii_galactic",
+    "transcendent_seraphim_halo",
+    "femtotech_picomatter_forge",
+    "holographic_holodeck_continuum",
+    "hyperborean_aether_sanctum_day",
+    "eden_solarpunk_archology_3000",
+  ];
+  // Rare and beloved systems (RARE_OS_THEME_KEYS in src/shared/osThemes.ts).
+  const RARE_OS_THEMES = [
+    "beos_r5",
+    "haiku_os",
+    "os2_warp",
+    "solaris_cde",
+    "irix_indigo_magic",
+    "atari_tos_gem",
+    "risc_os",
+    "qnx_photon",
+    "symbian_s60",
+    "palm_os",
+    "palm_webos",
+    "windows_phone_metro",
+    "zune_desktop",
+    "android_holo",
+    "windows_longhorn",
+    "ubuntu_human",
+    "plan9_acme",
+    "serenity_os",
+    "kde3_keramik",
+    "redhat_bluecurve",
+    "windows_media_center",
+    "window_maker",
+  ];
+  const EXPECTED_76_THEMES = [
+    ...BASE_76_THEMES,
+    ...OS_VERSION_THEMES,
+    ...RARE_OS_THEMES,
+    ...FUTURISTIC_THEMES,
+  ].sort((a, b) => a.localeCompare(b));
+
+  it("1. getThemeNames() and getThemes() return all 310 canonical themes sorted alphabetically", () => {
+    const names = getThemeNames();
+    expect(names.length).toBe(310);
+    expect(names).toEqual(EXPECTED_76_THEMES);
+
+    const namesSnake = get_theme_names();
+    expect(namesSnake).toEqual(EXPECTED_76_THEMES);
+    expect(VLANG_THEME_NAMES).toEqual(EXPECTED_76_THEMES);
+
+    // getThemes() & get_themes()
+    expect(getThemes()).toEqual(EXPECTED_76_THEMES);
+    expect(get_themes()).toEqual(EXPECTED_76_THEMES);
+    expect(simplegui.getThemes()).toEqual(EXPECTED_76_THEMES);
+    expect(simplegui.get_themes()).toEqual(EXPECTED_76_THEMES);
+
+    // Verify sorted ordering
+    const isSorted = (arr: string[]) =>
+      arr.every((v, i) => i === 0 || arr[i - 1]!.localeCompare(v) <= 0);
+    expect(isSorted(getThemeNames())).toBe(true);
+    expect(isSorted(getThemes())).toBe(true);
+    expect(isSorted(getThemeKeys())).toBe(true);
+    expect(isSorted(listThemes())).toBe(true);
+  });
+
+  it("2. getTheme() resolves every one of the 310 themes with valid palettes", () => {
+    for (const name of EXPECTED_76_THEMES) {
+      const theme = getTheme(name);
+      expect(theme).toBeDefined();
+      expect(theme.name).toBeTruthy();
+      expect(theme.background_color).toMatch(/^#[0-9a-fA-F]{6}$/);
+      expect(theme.font_color).toMatch(/^#[0-9a-fA-F]{6}$/);
+      expect(theme.accent_color).toMatch(/^#[0-9a-fA-F]{6}$/);
+      expect(typeof theme.is_dark).toBe("boolean");
+    }
+  });
+
+  it("3. getTheme() resolves Vlang aliases cleanly", () => {
+    expect(getTheme("gruvbox").name).toBe("Gruvbox Dark");
+    expect(getTheme("one_dark").name).toBe("One Dark Pro");
+    expect(getTheme("synthwave_84").name).toBe("Synthwave '84");
+    expect(getTheme("macos_sonoma").name).toBe("macOS Sonoma Dark");
+    expect(getTheme("windows_11_fluent").name).toBe("Windows 11 Fluent Dark");
+    expect(getTheme("commodore_64").name).toBe("Commodore 64");
+    expect(getTheme("c64").name).toBe("Commodore 64");
+    expect(getTheme("amiga_workbench").name).toBe("Amiga Workbench");
+    expect(getTheme("mac_system_7").name).toBe("Macintosh System 7");
+    expect(getTheme("matrix").name).toBe("Matrix Phosphor");
+    expect(getTheme("amber").name).toBe("Amber CRT Monochrome");
+    expect(getTheme("vibrant_neon").name).toBe("Cyberpunk 2077");
+    expect(getTheme("vscode_dark").name).toBe("One Dark Pro");
+  });
+
+  it("4. SimpleControlRef methods support font, color, and expand fill", () => {
+    const win = simplegui.createWindow("Test ControlRef", 800, 600);
+    const ref = win.addLabel("lblRef", "Reference Label");
+
+    ref
+      .fontSize(18)
+      .font_size(20)
+      .fontColor("#ff0000")
+      .font_color("#00ff00")
+      .backgroundColor("#0000ff")
+      .background_color("#333333")
+      .expandFill(true)
+      .expand_fill(true);
+
+    expect(ref.spec.font_size).toBe(20);
+    expect(ref.spec.fontSize).toBe(20);
+    expect(ref.spec.font_color).toBe("#00ff00");
+    expect(ref.spec.background_color).toBe("#333333");
+    expect(ref.spec.expand_fill).toBe(true);
+  });
+
+  it("5. SimpleWindow fluent chaining operates on lastControlId", () => {
+    const win = simplegui.createWindow("Test Fluent Chaining", 800, 600);
+
+    win
+      .addTextInput("User Input", "admin")
+      .width(320)
+      .height(44)
+      .fontSize(15)
+      .font_size(16)
+      .fontColor("#e2e8f0")
+      .backgroundColor("#1e293b")
+      .tooltip("Enter your credentials")
+      .placeholder("Type here...")
+      .bold(true)
+      .expandFill(true);
+
+    const ctrl = win.hasControl("default_input")
+      ? win.getControlSpec("default_input")
+      : (win as any).getLastControl();
+    expect(ctrl).toBeDefined();
+    expect(ctrl.width).toBe(320);
+    expect(ctrl.height).toBe(44);
+    expect(ctrl.fontSize).toBe(16);
+    expect(ctrl.tooltip).toBe("Enter your credentials");
+    expect(ctrl.placeholder).toBe("Type here...");
+    expect(ctrl.is_bold).toBe(true);
+    expect(ctrl.expand_fill).toBe(true);
+  });
+
+  it("6. SimpleWindow direct chaining builders (heading, subheading, divider, kpi_card, etc.)", () => {
+    const win = simplegui.createWindow("Direct Chaining", 800, 600);
+
+    win.heading("👑 Ultimate RAD Studio Mega-Showcase");
+    win.subheading(
+      "70+ Delphi/VB Style Native Controls across all 42 Desktop Themes:",
+    );
+    win.divider();
+    win.kpi_card("Visual Controls", "70+ Types", "Anchors & Docking");
+    win.statusBar(
+      "Vlang Webview RAD Studio Pro v2.0 | All systems operational",
+    );
+    win.raw_html('<div id="customHtml">Custom Raw Content</div>');
+
+    const spec = win.buildFormSpec();
+    const types = spec.controls.map((c: any) => c.control_type || c.type);
+    expect(types).toContain("heading");
+    expect(types).toContain("subheading");
+    expect(types).toContain("divider");
+    expect(types).toContain("kpi_card");
+    expect(types).toContain("status_bar");
+    expect(types).toContain("raw_html");
+
+    const html = generatePreviewHtml(spec);
+    expect(html).toContain("Ultimate RAD Studio Mega-Showcase");
+    expect(html).toContain("70+ Delphi/VB Style Native Controls");
+    expect(html).toContain("sg-kpi-card");
+    expect(html).toContain("Custom Raw Content");
+  });
+
+  it("7. Layout containers: row_start/end, box_start/end, begin_flex_box/end_flex_box, card_with_title", () => {
+    const win = simplegui.createWindow("Containers", 800, 600);
+
+    win.row_start();
+    win.addLabel("Row Item 1");
+    win.addLabel("Row Item 2");
+    win.row_end();
+
+    win.box_start("Settings Box");
+    win.addTextInput("pref_key", "pref_val");
+    win.box_end();
+
+    win.begin_flex_box("flex1", "row", "center", "center");
+    win.addButton("Flex Button");
+    win.end_flex_box();
+
+    let cardCallbackFired = false;
+    win.card_with_title("Security", "Security Settings", (w) => {
+      cardCallbackFired = true;
+      w.addCheckbox("chk2FA", "Enable 2FA", true);
+    });
+    expect(cardCallbackFired).toBe(true);
+  });
+
+  it("8. Table operations parity: setTableRows, addTableRow, removeTableRow, tableRowCount", () => {
+    const win = simplegui.createWindow("Table Operations", 800, 600);
+
+    const headers = ["Subsystem", "Engine Driver", "Status", "Parity"];
+    const rows = [
+      ["Webview FFI", "C/C++ Native Wrapper", "Active", "100%"],
+      ["Window Management", "Cocoa / Win32 / GTK", "Active", "100%"],
+      ["Hardware Telemetry", "sysctl / wmic / /proc", "Active", "100%"],
     ];
 
-    // Linux distributions, Windows versions and macOS versions added on top of the 76 V themes.
-    const OS_VERSION_THEMES = [
-        'debian_dark',
-        'debian_light',
-        'arch_dark',
-        'opensuse_dark',
-        'manjaro_dark',
-        'elementary_light',
-        'elementary_dark',
-        'kali_dark',
-        'zorin_dark',
-        'rhel_dark',
-        'rocky_dark',
-        'almalinux_dark',
-        'centos_dark',
-        'fedora_light',
-        'endeavouros_dark',
-        'nixos_dark',
-        'gentoo_dark',
-        'alpine_dark',
-        'kde_breeze_dark',
-        'kde_breeze_light',
-        'xfce_dark',
-        'mate_dark',
-        'deepin_light',
-        'arc_dark',
-        'arc_light',
-        'sweet_dark',
-        'numix_dark',
-        'win31',
-        'win98',
-        'win2000',
-        'winxp_luna',
-        'vista_aero',
-        'win7_aero',
-        'win8_metro',
-        'win10_dark',
-        'win10_light',
-        'windows_terminal',
-        'windows_high_contrast',
-        'mac_os_9',
-        'snow_leopard',
-        'yosemite',
-        'big_sur',
-        'monterey_light',
-        'sequoia_dark',
-        'tahoe_glass',
-    ];
-    // The futuristic set (src/shared/fxThemes.ts): the same precedent as the OS versions above, 76 + 45 + 22 + 57 = 200.
-    const FUTURISTIC_THEMES = [
-        'cyberpunk_hologram',
-        'neon_hud',
-        'quantum_obsidian',
-        'deep_space',
-        'liquid_metal',
-        'titanium_aurora',
-        'liquid_metal_light',
-        'neo_tokyo_dark',
-        'synthetic_solar',
-        'neo_tokyo_day',
-        'aurora_glass',
-        'plasma_violet',
-        'prism_reactor',
-        'orbital_ice',
-        'ember_grid',
-        'synthwave_sunset',
-        'matrix_rain',
-        'amber_phosphor',
-        'midnight_glass',
-        'abyss_bloom',
-        'cosmic_nebula',
-        'obsidian_gold',
-        'crimson_eclipse',
-        'acid_reactor',
-        'polar_night',
-        'emerald_grove',
-        'brass_engine',
-        'focus_glow',
-        'neon_max',
-        'vaporwave_dream',
-        'frosted_glass',
-        'sakura_glass',
-        'pearl_hologram',
-        'rose_gold',
-        'daylight_hud',
-        'tesla_coil_plasma',
-        'wardenclyffe_tower',
-        'nikola_plasma_globe',
-        'jacobs_ladder_arc',
-        'ball_lightning_storm',
-        'tokamak_fusion',
-        'cherenkov_reactor',
-        'cern_synchrotron',
-        'lorentz_chaos',
-        'ferrofluid_spike',
-        'hawking_horizon',
-        'ligo_gravwave',
-        'meissner_superconductor',
-        'antimatter_penning',
-        'dyson_megastructure',
-        'alcubierre_metric',
-        'lissajous_scope',
-        'quark_chromodynamics',
-        'arc_reactor_mk',
-        'st_elmos_corona',
-        'van_de_graaff_day',
-        'cern_control_day',
-        'ef5_debris_tornado',
-        'inferno_fire_folders',
-        'toxic_slime_ooze',
-        'urban_street_cyclone',
-        'autumn_noreaster_gale',
-        'supercell_emerald_vortex',
-        'category_5_eyewall',
-        'mesosphere_red_sprite',
-        'cryo_icicle_blizzard',
-        'scrapyard_shrapnel_vortex',
-        'jovian_red_spot_storm',
-        'neptune_diamond_squall',
-        'tahoe_studio_3d',
-        'm4_pro_display_xdr',
-        'win11_rtx_fluent_3d',
-        'hdr_cinema_gallery',
-        'linux_workstation_hidpi',
-        'studio_architect_minimal',
-        'mac_studio_m4_ultra',
-        'mac_pro_rack_xdr',
-        'macbook_pro_space_black',
-        'apple_studio_display_5k',
-        'imac_m4_spectrum_p3',
-        'macos_sequoia_redwood_xdr',
-        'macos_vision_spatial_mac',
-        'mac_mini_m4_pro_carbon',
-        'kaleidoscope_mandala',
-        'lava_lamp_groovy_69',
-        'dmt_hyperspace_lattice',
-        'holographic_oil_slick',
-        'electric_mycelium_forest',
-        'optical_moire_hypnosis',
-        'acid_house_rave_92',
-        'mobius_wormhole_odyssey',
-        'pastel_dreamcore_cloud',
-        'solarpunk_kaleidoscope_day',
-        'google_gemini_ultra',
-        'google_material_you_3d',
-        'google_pixel_amoled',
-        'google_deepmind_quantum',
-        'google_cloud_vertex_pro',
-        'google_project_idx_studio',
-        'google_chromeos_aurora',
-        'google_workspace_daylight',
-        'ayahuasca_vine_vision',
-        'alex_grey_astral_cathedral',
-        'summer_of_love_tiedye_67',
-        'vaporwave_mall_plaza_95',
-        'frutiger_aero_aqua_2007',
-        'steampunk_chronometer_foundry',
-        'art_deco_metropolis_1929',
-        'synth_arcade_crt_1984',
-        'mariana_bioluminescent_trench',
-        'kyoto_zen_karesansui_day',
-        'holiday_new_years_times_square',
-        'holiday_mlk_dream_memorial',
-        'holiday_valentines_velvet_rose',
-        'holiday_presidents_mount_rushmore',
-        'holiday_st_patricks_emerald_clover',
-        'holiday_easter_pastel_egg_hunt',
-        'holiday_mothers_day_botanical_tea',
-        'holiday_memorial_day_poppy_honor',
-        'holiday_juneteenth_jubilee_star',
-        'holiday_fathers_day_leather_den',
-        'holiday_fourth_of_july_fireworks',
-        'holiday_labor_day_rivet_forge',
-        'holiday_halloween_jack_o_lantern',
-        'holiday_dia_de_los_muertos_marigold',
-        'holiday_veterans_day_valor_medallion',
-        'holiday_thanksgiving_harvest_hearth',
-        'holiday_hanukkah_menorah_sapphire',
-        'holiday_christmas_nutcracker_hearth',
-        'nerd_dnd_arcane_grimoire',
-        'nerd_starfleet_lcars_bridge',
-        'nerd_kyber_holocron_forge',
-        'nerd_lotr_mithril_elven',
-        'nerd_mecha_eva_nerv_hud',
-        'nerd_defcon_blackhat_mainframe',
-        'nerd_16bit_snes_jrpg_cartridge',
-        'nerd_golden_age_comic_halftone',
-        'nerd_apollo_11_dsky_guidance',
-        'nerd_enigma_bletchley_cipher',
-        'horror_nosferatu_blood_moon',
-        'horror_lovecraft_eldritch_rlyeh',
-        'horror_vhs_found_footage_1999',
-        'horror_silent_fog_asylum',
-        'horror_biohazard_containment_lab',
-        'horror_camp_crystal_slasher_80s',
-        'horror_haunted_victorian_seance',
-        'horror_necronomicon_parchment_day',
-        'horror_thalassophobia_abyssal_jaw',
-        'horror_cursed_carnival_calliope',
-        'realworld_grandfather_clockwork_mahogany',
-        'realworld_vinyl_jukebox_wurlitzer',
-        'realworld_stained_glass_cathedral',
-        'realworld_murano_blown_glass_day',
-        'realworld_katana_urushi_forge',
-        'realworld_pinball_wizard_arcade',
-        'omega_point_singularity',
-        'matrioshka_dyson_brain',
-        'photonic_metamaterial_3099',
-        'chrono_crystalline_aethelgard',
-        'akashic_neural_noosphere',
-        'zero_point_vacuum_genesis',
-        'kardashev_type_iii_galactic',
-        'transcendent_seraphim_halo',
-        'femtotech_picomatter_forge',
-        'holographic_holodeck_continuum',
-        'hyperborean_aether_sanctum_day',
-        'eden_solarpunk_archology_3000',
-    ];
-    // Rare and beloved systems (RARE_OS_THEME_KEYS in src/shared/osThemes.ts).
-    const RARE_OS_THEMES = [
-        'beos_r5',
-        'haiku_os',
-        'os2_warp',
-        'solaris_cde',
-        'irix_indigo_magic',
-        'atari_tos_gem',
-        'risc_os',
-        'qnx_photon',
-        'symbian_s60',
-        'palm_os',
-        'palm_webos',
-        'windows_phone_metro',
-        'zune_desktop',
-        'android_holo',
-        'windows_longhorn',
-        'ubuntu_human',
-        'plan9_acme',
-        'serenity_os',
-        'kde3_keramik',
-        'redhat_bluecurve',
-        'windows_media_center',
-        'window_maker',
-    ];
-    const EXPECTED_76_THEMES = [...BASE_76_THEMES, ...OS_VERSION_THEMES, ...RARE_OS_THEMES, ...FUTURISTIC_THEMES].sort((a, b) => a.localeCompare(b));
+    win.addTable("tblParity", headers, rows);
+    expect(win.tableRowCount("tblParity")).toBe(3);
+    expect(win.table_row_count("tblParity")).toBe(3);
 
-    it("1. getThemeNames() and getThemes() return all 310 canonical themes sorted alphabetically", () => {
-        const names = getThemeNames();
-        expect(names.length).toBe(310);
-        expect(names).toEqual(EXPECTED_76_THEMES);
+    win.addTableRow("tblParity", [
+      "Theme Catalog",
+      "42 Built-in CSS Engines",
+      "Active",
+      "100%",
+    ]);
+    expect(win.tableRowCount("tblParity")).toBe(4);
 
-        const namesSnake = get_theme_names();
-        expect(namesSnake).toEqual(EXPECTED_76_THEMES);
-        expect(VLANG_THEME_NAMES).toEqual(EXPECTED_76_THEMES);
+    win.removeTableRow("tblParity", 1);
+    expect(win.tableRowCount("tblParity")).toBe(3);
 
-        // getThemes() & get_themes()
-        expect(getThemes()).toEqual(EXPECTED_76_THEMES);
-        expect(get_themes()).toEqual(EXPECTED_76_THEMES);
-        expect(simplegui.getThemes()).toEqual(EXPECTED_76_THEMES);
-        expect(simplegui.get_themes()).toEqual(EXPECTED_76_THEMES);
+    win.setTableRows("tblParity", [
+      ["Single Subsystem", "Custom Driver", "Ready", "100%"],
+    ]);
+    expect(win.tableRowCount("tblParity")).toBe(1);
+  });
 
-        // Verify sorted ordering
-        const isSorted = (arr: string[]) => arr.every((v, i) => i === 0 || arr[i - 1]!.localeCompare(v) <= 0);
-        expect(isSorted(getThemeNames())).toBe(true);
-        expect(isSorted(getThemes())).toBe(true);
-        expect(isSorted(getThemeKeys())).toBe(true);
-        expect(isSorted(listThemes())).toBe(true);
+  it("9. Value accessors and typed helpers", () => {
+    const win = simplegui.createWindow("Value Accessors", 800, 600);
+
+    win.addInput("txtAge", "42");
+    expect(win.getValueInt("txtAge")).toBe(42);
+    expect(win.get_value_int("txtAge")).toBe(42);
+
+    win.addCheckbox("chkNotify", "Receive Notifications", true);
+    expect(win.getChecked("chkNotify")).toBe(true);
+    expect(win.get_checked("chkNotify")).toBe(true);
+
+    win.setChecked("chkNotify", false);
+    expect(win.getChecked("chkNotify")).toBe(false);
+    expect(win.get_checked("chkNotify")).toBe(false);
+
+    win.set("txtAge", "99");
+    expect(win.get("txtAge")).toBe("99");
+  });
+
+  it("10. Full Theme Switching operations parity", () => {
+    const win = simplegui.createWindow("Theme Switcher", 800, 600, {
+      theme: "monokai_pro",
     });
+    expect(win.isDarkTheme()).toBe(true);
+    expect(win.is_dark_theme()).toBe(true);
 
-    it("2. getTheme() resolves every one of the 310 themes with valid palettes", () => {
-        for (const name of EXPECTED_76_THEMES) {
-            const theme = getTheme(name);
-            expect(theme).toBeDefined();
-            expect(theme.name).toBeTruthy();
-            expect(theme.background_color).toMatch(/^#[0-9a-fA-F]{6}$/);
-            expect(theme.font_color).toMatch(/^#[0-9a-fA-F]{6}$/);
-            expect(theme.accent_color).toMatch(/^#[0-9a-fA-F]{6}$/);
-            expect(typeof theme.is_dark).toBe("boolean");
-        }
-    });
+    win.applyTheme("apple_light");
+    expect(win.theme).toBe("apple_light");
+    expect(win.isDarkTheme()).toBe(false);
 
-    it("3. getTheme() resolves Vlang aliases cleanly", () => {
-        expect(getTheme("gruvbox").name).toBe("Gruvbox Dark");
-        expect(getTheme("one_dark").name).toBe("One Dark Pro");
-        expect(getTheme("synthwave_84").name).toBe("Synthwave '84");
-        expect(getTheme("macos_sonoma").name).toBe("macOS Sonoma Dark");
-        expect(getTheme("windows_11_fluent").name).toBe("Windows 11 Fluent Dark");
-        expect(getTheme("commodore_64").name).toBe("Commodore 64");
-        expect(getTheme("c64").name).toBe("Commodore 64");
-        expect(getTheme("amiga_workbench").name).toBe("Amiga Workbench");
-        expect(getTheme("mac_system_7").name).toBe("Macintosh System 7");
-        expect(getTheme("matrix").name).toBe("Matrix Phosphor");
-        expect(getTheme("amber").name).toBe("Amber CRT Monochrome");
-        expect(getTheme("vibrant_neon").name).toBe("Cyberpunk 2077");
-        expect(getTheme("vscode_dark").name).toBe("One Dark Pro");
-    });
+    win.apply_theme("sonoma_dark");
+    expect(win.theme).toBe("sonoma_dark");
+    expect(win.isDarkTheme()).toBe(true);
 
-    it("4. SimpleControlRef methods support font, color, and expand fill", () => {
-        const win = simplegui.createWindow("Test ControlRef", 800, 600);
-        const ref = win.addLabel("lblRef", "Reference Label");
+    win.applyThemeByName("commodore64");
+    expect(win.theme).toBe("commodore64");
+  });
 
-        ref.fontSize(18)
-           .font_size(20)
-           .fontColor("#ff0000")
-           .font_color("#00ff00")
-           .backgroundColor("#0000ff")
-           .background_color("#333333")
-           .expandFill(true)
-           .expand_fill(true);
+  it("11. Theme dropdowns are sorted alphabetically across all selectors and helpers", () => {
+    const win = simplegui.createWindow("Sorted Theme Selectors", 800, 600);
 
-        expect(ref.spec.font_size).toBe(20);
-        expect(ref.spec.fontSize).toBe(20);
-        expect(ref.spec.font_color).toBe("#00ff00");
-        expect(ref.spec.background_color).toBe("#333333");
-        expect(ref.spec.expand_fill).toBe(true);
-    });
+    // 1. addThemeSelector dropdown items sorted alphabetically by display name
+    const selRef = win.addThemeSelector("dd_theme", "Theme:");
+    const items = selRef.spec.items || [];
+    const labels = selRef.spec.item_labels || {};
+    expect(items.length).toBeGreaterThanOrEqual(178);
 
-    it("5. SimpleWindow fluent chaining operates on lastControlId", () => {
-        const win = simplegui.createWindow("Test Fluent Chaining", 800, 600);
+    const displayNames = items.map((k: string) => labels[k] || k);
+    const sortedDisplayNames = [...displayNames].sort((a: string, b: string) =>
+      a.localeCompare(b, undefined, { sensitivity: "base" }),
+    );
+    expect(displayNames).toEqual(sortedDisplayNames);
 
-        win.addTextInput("User Input", "admin")
-           .width(320)
-           .height(44)
-           .fontSize(15)
-           .font_size(16)
-           .fontColor("#e2e8f0")
-           .backgroundColor("#1e293b")
-           .tooltip("Enter your credentials")
-           .placeholder("Type here...")
-           .bold(true)
-           .expandFill(true);
+    // 2. addThemeSelector overload support (e.g., ("🎨 Theme", false, true))
+    const customSel = win.addThemeSelector("🎨 Theme", false, true);
+    expect(customSel).toBeDefined();
+    const customItems = customSel.spec.items || [];
+    const customLabels = customSel.spec.item_labels || {};
+    const customDisplayNames = customItems.map(
+      (k: string) => customLabels[k] || k,
+    );
+    const sortedCustomDisplayNames = [...customDisplayNames].sort(
+      (a: string, b: string) =>
+        a.localeCompare(b, undefined, { sensitivity: "base" }),
+    );
+    expect(customDisplayNames).toEqual(sortedCustomDisplayNames);
 
-        const ctrl = win.hasControl("default_input") ? win.getControlSpec("default_input") : (win as any).getLastControl();
-        expect(ctrl).toBeDefined();
-        expect(ctrl.width).toBe(320);
-        expect(ctrl.height).toBe(44);
-        expect(ctrl.fontSize).toBe(16);
-        expect(ctrl.tooltip).toBe("Enter your credentials");
-        expect(ctrl.placeholder).toBe("Type here...");
-        expect(ctrl.is_bold).toBe(true);
-        expect(ctrl.expand_fill).toBe(true);
-    });
+    // 3. getThemes() and listThemes() arrays are strictly sorted alphabetically
+    const allThemes = getThemes();
+    const sortedThemes = [...allThemes].sort((a, b) => a.localeCompare(b));
+    expect(allThemes).toEqual(sortedThemes);
 
-    it("6. SimpleWindow direct chaining builders (heading, subheading, divider, kpi_card, etc.)", () => {
-        const win = simplegui.createWindow("Direct Chaining", 800, 600);
+    const listThemesArr = listThemes();
+    const sortedListThemes = [...listThemesArr].sort((a, b) =>
+      a.localeCompare(b),
+    );
+    expect(listThemesArr).toEqual(sortedListThemes);
 
-        win.heading("👑 Ultimate RAD Studio Mega-Showcase");
-        win.subheading("70+ Delphi/VB Style Native Controls across all 42 Desktop Themes:");
-        win.divider();
-        win.kpi_card("Visual Controls", "70+ Types", "Anchors & Docking");
-        win.statusBar("Vlang Webview RAD Studio Pro v2.0 | All systems operational");
-        win.raw_html("<div id=\"customHtml\">Custom Raw Content</div>");
-
-        const spec = win.buildFormSpec();
-        const types = spec.controls.map((c: any) => c.control_type || c.type);
-        expect(types).toContain("heading");
-        expect(types).toContain("subheading");
-        expect(types).toContain("divider");
-        expect(types).toContain("kpi_card");
-        expect(types).toContain("status_bar");
-        expect(types).toContain("raw_html");
-
-        const html = generatePreviewHtml(spec);
-        expect(html).toContain("Ultimate RAD Studio Mega-Showcase");
-        expect(html).toContain("70+ Delphi/VB Style Native Controls");
-        expect(html).toContain("sg-kpi-card");
-        expect(html).toContain("Custom Raw Content");
-    });
-
-    it("7. Layout containers: row_start/end, box_start/end, begin_flex_box/end_flex_box, card_with_title", () => {
-        const win = simplegui.createWindow("Containers", 800, 600);
-
-        win.row_start();
-        win.addLabel("Row Item 1");
-        win.addLabel("Row Item 2");
-        win.row_end();
-
-        win.box_start("Settings Box");
-        win.addTextInput("pref_key", "pref_val");
-        win.box_end();
-
-        win.begin_flex_box("flex1", "row", "center", "center");
-        win.addButton("Flex Button");
-        win.end_flex_box();
-
-        let cardCallbackFired = false;
-        win.card_with_title("Security", "Security Settings", (w) => {
-            cardCallbackFired = true;
-            w.addCheckbox("chk2FA", "Enable 2FA", true);
-        });
-        expect(cardCallbackFired).toBe(true);
-    });
-
-    it("8. Table operations parity: setTableRows, addTableRow, removeTableRow, tableRowCount", () => {
-        const win = simplegui.createWindow("Table Operations", 800, 600);
-
-        const headers = ["Subsystem", "Engine Driver", "Status", "Parity"];
-        const rows = [
-            ["Webview FFI", "C/C++ Native Wrapper", "Active", "100%"],
-            ["Window Management", "Cocoa / Win32 / GTK", "Active", "100%"],
-            ["Hardware Telemetry", "sysctl / wmic / /proc", "Active", "100%"]
-        ];
-
-        win.addTable("tblParity", headers, rows);
-        expect(win.tableRowCount("tblParity")).toBe(3);
-        expect(win.table_row_count("tblParity")).toBe(3);
-
-        win.addTableRow("tblParity", ["Theme Catalog", "42 Built-in CSS Engines", "Active", "100%"]);
-        expect(win.tableRowCount("tblParity")).toBe(4);
-
-        win.removeTableRow("tblParity", 1);
-        expect(win.tableRowCount("tblParity")).toBe(3);
-
-        win.setTableRows("tblParity", [
-            ["Single Subsystem", "Custom Driver", "Ready", "100%"]
-        ]);
-        expect(win.tableRowCount("tblParity")).toBe(1);
-    });
-
-    it("9. Value accessors and typed helpers", () => {
-        const win = simplegui.createWindow("Value Accessors", 800, 600);
-
-        win.addInput("txtAge", "42");
-        expect(win.getValueInt("txtAge")).toBe(42);
-        expect(win.get_value_int("txtAge")).toBe(42);
-
-        win.addCheckbox("chkNotify", "Receive Notifications", true);
-        expect(win.getChecked("chkNotify")).toBe(true);
-        expect(win.get_checked("chkNotify")).toBe(true);
-
-        win.setChecked("chkNotify", false);
-        expect(win.getChecked("chkNotify")).toBe(false);
-        expect(win.get_checked("chkNotify")).toBe(false);
-
-        win.set("txtAge", "99");
-        expect(win.get("txtAge")).toBe("99");
-    });
-
-    it("10. Full Theme Switching operations parity", () => {
-        const win = simplegui.createWindow("Theme Switcher", 800, 600, { theme: "monokai_pro" });
-        expect(win.isDarkTheme()).toBe(true);
-        expect(win.is_dark_theme()).toBe(true);
-
-        win.applyTheme("apple_light");
-        expect(win.theme).toBe("apple_light");
-        expect(win.isDarkTheme()).toBe(false);
-
-        win.apply_theme("sonoma_dark");
-        expect(win.theme).toBe("sonoma_dark");
-        expect(win.isDarkTheme()).toBe(true);
-
-        win.applyThemeByName("commodore64");
-        expect(win.theme).toBe("commodore64");
-    });
-
-    it("11. Theme dropdowns are sorted alphabetically across all selectors and helpers", () => {
-        const win = simplegui.createWindow("Sorted Theme Selectors", 800, 600);
-
-        // 1. addThemeSelector dropdown items sorted alphabetically by display name
-        const selRef = win.addThemeSelector("dd_theme", "Theme:");
-        const items = selRef.spec.items || [];
-        const labels = selRef.spec.item_labels || {};
-        expect(items.length).toBeGreaterThanOrEqual(178);
-
-        const displayNames = items.map((k: string) => labels[k] || k);
-        const sortedDisplayNames = [...displayNames].sort((a: string, b: string) =>
-            a.localeCompare(b, undefined, { sensitivity: "base" })
-        );
-        expect(displayNames).toEqual(sortedDisplayNames);
-
-        // 2. addThemeSelector overload support (e.g., ("🎨 Theme", false, true))
-        const customSel = win.addThemeSelector("🎨 Theme", false, true);
-        expect(customSel).toBeDefined();
-        const customItems = customSel.spec.items || [];
-        const customLabels = customSel.spec.item_labels || {};
-        const customDisplayNames = customItems.map((k: string) => customLabels[k] || k);
-        const sortedCustomDisplayNames = [...customDisplayNames].sort((a: string, b: string) =>
-            a.localeCompare(b, undefined, { sensitivity: "base" })
-        );
-        expect(customDisplayNames).toEqual(sortedCustomDisplayNames);
-
-        // 3. getThemes() and listThemes() arrays are strictly sorted alphabetically
-        const allThemes = getThemes();
-        const sortedThemes = [...allThemes].sort((a, b) => a.localeCompare(b));
-        expect(allThemes).toEqual(sortedThemes);
-
-        const listThemesArr = listThemes();
-        const sortedListThemes = [...listThemesArr].sort((a, b) => a.localeCompare(b));
-        expect(listThemesArr).toEqual(sortedListThemes);
-
-        // 4. Demo 25 theme dropdown has exactly 310 unique themes with zero duplicates
-        const demo25Win = createVlangShowcase();
-        const demo25Html = demo25Win.getHtml();
-        const themeMatch = demo25Html.match(/<select[^>]*id="dd_theme_selector"[^>]*>([\s\S]*?)<\/select>/);
-        expect(themeMatch).toBeTruthy();
-        const demo25Options = [...themeMatch![1]!.matchAll(/<option[^>]*value="([^"]*)"[^>]*>([^<]*)<\/option>/g)].map(x => ({ val: x[1], text: x[2] }));
-        expect(demo25Options.length).toBe(310);
-        const uniqueValues = new Set(demo25Options.map(o => o.val));
-        const uniqueTexts = new Set(demo25Options.map(o => o.text));
-        expect(uniqueValues.size).toBe(310);
-        expect(uniqueTexts.size).toBe(310);
-    });
+    // 4. Demo 25 theme dropdown has exactly 310 unique themes with zero duplicates
+    const demo25Win = createVlangShowcase();
+    const demo25Html = demo25Win.getHtml();
+    const themeMatch = demo25Html.match(
+      /<select[^>]*id="dd_theme_selector"[^>]*>([\s\S]*?)<\/select>/,
+    );
+    expect(themeMatch).toBeTruthy();
+    const demo25Options = [
+      ...themeMatch![1]!.matchAll(
+        /<option[^>]*value="([^"]*)"[^>]*>([^<]*)<\/option>/g,
+      ),
+    ].map((x) => ({ val: x[1], text: x[2] }));
+    expect(demo25Options.length).toBe(310);
+    const uniqueValues = new Set(demo25Options.map((o) => o.val));
+    const uniqueTexts = new Set(demo25Options.map((o) => o.text));
+    expect(uniqueValues.size).toBe(310);
+    expect(uniqueTexts.size).toBe(310);
+  });
 });
-

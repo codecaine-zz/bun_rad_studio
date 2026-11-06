@@ -3,7 +3,9 @@ import { join } from "path";
 
 export function generateComputingFitness(outDir: string) {
   // 27_calculator_studio.md
-  writeFileSync(join(outDir, "27_calculator_studio.md"), `# 🧮 Universal Calculator & STEM IntuitionLab -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "27_calculator_studio.md"),
+    `# 🧮 Universal Calculator & STEM IntuitionLab -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Multi-Domain Computing Engine & 6 STEM Physics Simulators  •  Dependencies: 0  •  Offline: 100%
@@ -118,10 +120,13 @@ Accessible via the **IntuitionLab** workspace tab, this interactive sandbox prov
 | **C** or **Escape** | Calculator | Clear display / reset |
 | **Cmd + 1 .. 9** | Workspace | Switch directly between the computing studios |
 | **F11** or **F** | Global | Toggle borderless fullscreen |
-`);
+`,
+  );
 
   // 28_codecaine_dr_codecaine_arcade.md
-  writeFileSync(join(outDir, "28_codecaine_dr_codecaine_arcade.md"), `# 💊 Codecaine Dr. Codecaine Arcade -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "28_codecaine_dr_codecaine_arcade.md"),
+    `# 💊 Codecaine Dr. Codecaine Arcade -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Native HTML5 Canvas & Web Audio Chiptune Synthesizer  •  Dependencies: 0  •  Offline: 100%
@@ -200,10 +205,13 @@ bun run applications/dr_codecaine_studio.ts --server
 - **Build Horizontal Foundations**: Try to place capsules flat horizontally across the floor to build stable bases before dropping vertical colors.
 - **Watch Next Pill Window**: Always check the "NEXT" capsule preview in the top right to plan where your next colors will drop before your current pill touches down.
 - **Set Up Cascade Combos**: Leave a suspended matching half-capsule ready to fall into place when a lower virus dissolves.
-`);
+`,
+  );
 
   // 29_interval_timer_suite.md
-  writeFileSync(join(outDir, "29_interval_timer_suite.md"), `# ⚡ Interval Timer & Calisthenics Suite -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "29_interval_timer_suite.md"),
+    `# ⚡ Interval Timer & Calisthenics Suite -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Native Audio/Tone.js & YouTube Music Deck  •  Dependencies: 0  •  Offline: 100%
@@ -279,7 +287,8 @@ All exercise diagrams are base64-inlined directly into the application for 100% 
 | **N** | Timer | Skip to Next Exercise Node |
 | **M** | Music Deck | Open Routine Music & Audio Splits Panel |
 | **F** / **F11** | Global | Toggle Borderless Fullscreen |
-`);
+`,
+  );
 
   console.log("✔ Computing & Fitness (27 to 29) generated with AAA quality.");
 }

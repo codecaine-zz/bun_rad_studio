@@ -1,26 +1,41 @@
 /** Help dictionaries by app id. One file per app; see `../helpTips.ts` for the key formats. */
 import type { HelpTips, SkipRule } from "../helpMatch";
 import { apiStudioTips, apiStudioSkip } from "./api_studio";
-import { appBundlerStudioTips, appBundlerStudioSkip } from "./app_bundler_studio";
+import {
+  appBundlerStudioTips,
+  appBundlerStudioSkip,
+} from "./app_bundler_studio";
 import { brewStudioTips, brewStudioSkip } from "./brew_studio";
-import { calculatorStudioTips, calculatorStudioSkip } from "./calculator_studio";
+import {
+  calculatorStudioTips,
+  calculatorStudioSkip,
+} from "./calculator_studio";
 import { codeStudioTips, codeStudioSkip } from "./code_studio";
 import { colorStudioTips, colorStudioSkip } from "./color_studio";
 import { cryptoStudioTips, cryptoStudioSkip } from "./crypto_studio";
 import { databaseStudioTips, databaseStudioSkip } from "./database_studio";
-import { dataconvertStudioTips, dataconvertStudioSkip } from "./dataconvert_studio";
+import {
+  dataconvertStudioTips,
+  dataconvertStudioSkip,
+} from "./dataconvert_studio";
 import { doggoStudioTips, doggoStudioSkip } from "./doggo_studio";
 import { designerSkip, designerTips } from "./designer";
 import { envStudioSkip, envStudioTips } from "./env_studio";
 import { fdStudioTips, fdStudioSkip } from "./fd_studio";
 import { gduStudioTips, gduStudioSkip } from "./gdu_studio";
 import { gitStudioTips, gitStudioSkip } from "./git_studio";
-import { intervalTimerStudioTips, intervalTimerStudioSkip } from "./interval_timer_studio";
+import {
+  intervalTimerStudioTips,
+  intervalTimerStudioSkip,
+} from "./interval_timer_studio";
 import { ipinfoStudioTips, ipinfoStudioSkip } from "./ipinfo_studio";
 import { jqStudioTips, jqStudioSkip } from "./jq_studio";
 import { launcherStudioTips, launcherStudioSkip } from "./launcher_studio";
 import { markdownStudioTips, markdownStudioSkip } from "./markdown_studio";
-import { mediaPlayerStudioTips, mediaPlayerStudioSkip } from "./media_player_studio";
+import {
+  mediaPlayerStudioTips,
+  mediaPlayerStudioSkip,
+} from "./media_player_studio";
 import { mysqlStudioTips, mysqlStudioSkip } from "./mysql_studio";
 import { networkStudioTips, networkStudioSkip } from "./network_studio";
 import { omnitoolStudioTips, omnitoolStudioSkip } from "./omnitool_studio";
@@ -34,11 +49,17 @@ import { ripStudioTips, ripStudioSkip } from "./rip_studio";
 import { sdStudioTips, sdStudioSkip } from "./sd_studio";
 import { sqliteStudioTips, sqliteStudioSkip } from "./sqlite_studio";
 import { subfinderStudioTips, subfinderStudioSkip } from "./subfinder_studio";
-import { subprocessPipeStudioTips, subprocessPipeStudioSkip } from "./subprocess_pipe_studio";
+import {
+  subprocessPipeStudioTips,
+  subprocessPipeStudioSkip,
+} from "./subprocess_pipe_studio";
 import { taskManagerTips, taskManagerSkip } from "./task_manager";
 import { tokeiStudioTips, tokeiStudioSkip } from "./tokei_studio";
 import { watchexecStudioTips, watchexecStudioSkip } from "./watchexec_studio";
-import { worldTimeZonesStudioTips, worldTimeZonesStudioSkip } from "./world_time_zones_studio";
+import {
+  worldTimeZonesStudioTips,
+  worldTimeZonesStudioSkip,
+} from "./world_time_zones_studio";
 
 /** Registry mapping each Studio application ID to its interactive help tooltip dictionary. */
 export const HELP_TIPS: Record<string, HelpTips> = {

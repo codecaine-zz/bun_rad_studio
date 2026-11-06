@@ -35,7 +35,12 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
   let fmToken = "";
   let tempRoot = "";
 
-  const recordedOllamaRequests: Array<{ path: string; method: string; body: any; headers: Record<string, string> }> = [];
+  const recordedOllamaRequests: Array<{
+    path: string;
+    method: string;
+    body: any;
+    headers: Record<string, string>;
+  }> = [];
   let mockVersion = "0.40.12";
 
   beforeAll(async () => {
@@ -52,7 +57,10 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     // Tiny valid 1x1 PNG
     const pngBase64 =
       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
-    await Bun.write(`${tempRoot}/home/docs/receipt.png`, Uint8Array.from(atob(pngBase64), (c) => c.charCodeAt(0)));
+    await Bun.write(
+      `${tempRoot}/home/docs/receipt.png`,
+      Uint8Array.from(atob(pngBase64), (c) => c.charCodeAt(0)),
+    );
 
     mockOllamaServer = Bun.serve({
       port: 0,
@@ -76,7 +84,12 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
             }
           }
         }
-        recordedOllamaRequests.push({ path, method: req.method, body, headers: headersObj });
+        recordedOllamaRequests.push({
+          path,
+          method: req.method,
+          body,
+          headers: headersObj,
+        });
 
         if (path === "/api/version") {
           return Response.json({ version: mockVersion });
@@ -159,37 +172,74 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
           if (modelName.startsWith("phonon")) {
             return Response.json({
               capabilities: ["speech"],
-              details: { format: "safetensors", family: "gradium", parameter_size: "43.6M", quantization_level: "BF16", runner: "mlx" },
+              details: {
+                format: "safetensors",
+                family: "gradium",
+                parameter_size: "43.6M",
+                quantization_level: "BF16",
+                runner: "mlx",
+              },
               model_info: {
                 "general.parameter_count": 43600000,
-                "gradium.voices": ["default", "Zoey", "Easton", "Freya", "Mia", "Leo"],
+                "gradium.voices": [
+                  "default",
+                  "Zoey",
+                  "Easton",
+                  "Freya",
+                  "Mia",
+                  "Leo",
+                ],
               },
             });
           }
           if (modelName.startsWith("d3")) {
             return Response.json({
               capabilities: ["decision", "vision"],
-              details: { format: "safetensors", family: "d3", parameter_size: "8.4B", quantization_level: "MXFP8", runner: "mlx" },
+              details: {
+                format: "safetensors",
+                family: "d3",
+                parameter_size: "8.4B",
+                quantization_level: "MXFP8",
+                runner: "mlx",
+              },
               model_info: { "d3.context_length": 32768 },
             });
           }
           if (modelName.includes("-vl")) {
             return Response.json({
               capabilities: ["completion", "vision", "tools", "thinking"],
-              details: { format: "safetensors", family: "lfm3", parameter_size: "1.9B", quantization_level: "BF16", runner: "mlx" },
+              details: {
+                format: "safetensors",
+                family: "lfm3",
+                parameter_size: "1.9B",
+                quantization_level: "BF16",
+                runner: "mlx",
+              },
               model_info: { "lfm3.context_length": 32768 },
             });
           }
           if (modelName.startsWith("legacy-non-mlx")) {
             return Response.json({
               capabilities: ["completion"],
-              details: { format: "gguf", family: "llama", parameter_size: "7B", quantization_level: "Q4_K_M", runner: "gguf" },
+              details: {
+                format: "gguf",
+                family: "llama",
+                parameter_size: "7B",
+                quantization_level: "Q4_K_M",
+                runner: "gguf",
+              },
               model_info: { "llama.context_length": 8192 },
             });
           }
           return Response.json({
             capabilities: ["completion", "tools", "thinking"],
-            details: { format: "safetensors", family: "lfm3", parameter_size: "1.7B", quantization_level: "BF16", runner: "mlx" },
+            details: {
+              format: "safetensors",
+              family: "lfm3",
+              parameter_size: "1.7B",
+              quantization_level: "BF16",
+              runner: "mlx",
+            },
             model_info: { "lfm3.context_length": 32768 },
           });
         }
@@ -217,20 +267,33 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
               answers[k] = { type: "noul", noul: 0.96 };
             } else if (q.type === "choice") {
               const keys = Object.keys(q.criteria || {});
-              const win = keys.includes("bug_report") ? "bug_report" : keys[0] || "billing";
+              const win = keys.includes("bug_report")
+                ? "bug_report"
+                : keys[0] || "billing";
               answers[k] = {
                 type: "choice",
                 choice: win,
-                probabilities: Object.fromEntries(keys.map((label, i) => [label, i === 0 ? 0.85 : 0.05])),
+                probabilities: Object.fromEntries(
+                  keys.map((label, i) => [label, i === 0 ? 0.85 : 0.05]),
+                ),
                 confidence: 0.91,
               };
             } else if (q.type === "score") {
-              const levels: string[] = Array.isArray(q.criteria) ? q.criteria : ["Routine", "Soon", "Immediate"];
+              const levels: string[] = Array.isArray(q.criteria)
+                ? q.criteria
+                : ["Routine", "Soon", "Immediate"];
               answers[k] = {
                 type: "score",
                 score: levels.length - 1 - 0.1,
-                legend: Object.fromEntries(levels.map((lvl, idx) => [String(idx), lvl])),
-                probabilities: Object.fromEntries(levels.map((_lvl, idx) => [String(idx), idx === levels.length - 1 ? 0.9 : 0.05])),
+                legend: Object.fromEntries(
+                  levels.map((lvl, idx) => [String(idx), lvl]),
+                ),
+                probabilities: Object.fromEntries(
+                  levels.map((_lvl, idx) => [
+                    String(idx),
+                    idx === levels.length - 1 ? 0.9 : 0.05,
+                  ]),
+                ),
                 confidence: 0.88,
               };
             }
@@ -247,7 +310,8 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
           const buf = new ArrayBuffer(44 + pcmLen);
           const view = new DataView(buf);
           const writeStr = (off: number, s: string) => {
-            for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i));
+            for (let i = 0; i < s.length; i++)
+              view.setUint8(off + i, s.charCodeAt(i));
           };
           writeStr(0, "RIFF");
           view.setUint32(4, 36 + pcmLen, true);
@@ -270,15 +334,33 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
 
         if (path === "/api/chat") {
           if (body?.keep_alive === 0) {
-            return Response.json({ model: body.model, done: true, done_reason: "unload" });
+            return Response.json({
+              model: body.model,
+              done: true,
+              done_reason: "unload",
+            });
           }
           if (body?.stream === true) {
             const ndjson =
-              JSON.stringify({ model: body.model, message: { role: "assistant", thinking: "Analyzing file..." }, done: false }) +
+              JSON.stringify({
+                model: body.model,
+                message: { role: "assistant", thinking: "Analyzing file..." },
+                done: false,
+              }) +
               "\n" +
-              JSON.stringify({ model: body.model, message: { role: "assistant", content: "Live streamed answer." }, done: true }) +
+              JSON.stringify({
+                model: body.model,
+                message: {
+                  role: "assistant",
+                  content: "Live streamed answer.",
+                },
+                done: true,
+              }) +
               "\n";
-            return new Response(ndjson, { status: 200, headers: { "Content-Type": "application/x-ndjson" } });
+            return new Response(ndjson, {
+              status: 200,
+              headers: { "Content-Type": "application/x-ndjson" },
+            });
           }
           if (body?.format) {
             return Response.json({
@@ -287,18 +369,30 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
                 role: "assistant",
                 content: JSON.stringify({
                   summary: "Clean batch rename plan",
-                  renames: [{ from: "docs/crash.log", to: "docs/crash_2026_10_28.log", reason: "Add ISO date" }],
+                  renames: [
+                    {
+                      from: "docs/crash.log",
+                      to: "docs/crash_2026_10_28.log",
+                      reason: "Add ISO date",
+                    },
+                  ],
                 }),
               },
               done: true,
             });
           }
-          if (body?.tools && String(body?.messages?.[body.messages.length - 1]?.content || "").includes("create a file")) {
+          if (
+            body?.tools &&
+            String(
+              body?.messages?.[body.messages.length - 1]?.content || "",
+            ).includes("create a file")
+          ) {
             return Response.json({
               model: body.model,
               message: {
                 role: "assistant",
-                content: "I have prepared a new file creation action for your confirmation.",
+                content:
+                  "I have prepared a new file creation action for your confirmation.",
                 tool_calls: [
                   {
                     function: {
@@ -318,7 +412,9 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
             model: body?.model || "lfm3:latest",
             message: {
               role: "assistant",
-              thinking: body?.think ? "Step 1: Read file. Step 2: Formulate answer." : "",
+              thinking: body?.think
+                ? "Step 1: Read file. Step 2: Formulate answer."
+                : "",
               content: "Summary completed on 10/28 with **bold** highlights.",
             },
             done: true,
@@ -327,7 +423,11 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
 
         if (path === "/api/generate") {
           if (body?.keep_alive === 0) {
-            return Response.json({ model: body.model, done: true, done_reason: "unload" });
+            return Response.json({
+              model: body.model,
+              done: true,
+              done_reason: "unload",
+            });
           }
           return Response.json({
             model: body?.model || "lfm3:latest",
@@ -337,15 +437,24 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
         }
 
         if (path === "/api/embed") {
-          const inputs: string[] = Array.isArray(body?.input) ? body.input : [String(body?.input || "")];
+          const inputs: string[] = Array.isArray(body?.input)
+            ? body.input
+            : [String(body?.input || "")];
           const embeddings = inputs.map((txt) => {
             const lower = txt.toLowerCase();
-            if (lower.includes("database") || lower.includes("login") || lower.includes("auth")) {
+            if (
+              lower.includes("database") ||
+              lower.includes("login") ||
+              lower.includes("auth")
+            ) {
               return [0.95, 0.2, 0.1, 0.05];
             }
             return [0.05, 0.1, 0.9, 0.2];
           });
-          return Response.json({ model: body?.model || "lfm3:latest", embeddings });
+          return Response.json({
+            model: body?.model || "lfm3:latest",
+            embeddings,
+          });
         }
 
         if (path === "/api/web_search") {
@@ -371,13 +480,22 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
         if (path === "/api/pull") {
           const lines = [
             JSON.stringify({ status: "pulling manifest" }),
-            JSON.stringify({ status: "downloading weights", completed: 50, total: 100 }),
+            JSON.stringify({
+              status: "downloading weights",
+              completed: 50,
+              total: 100,
+            }),
             JSON.stringify({ status: "success", completed: 100, total: 100 }),
           ].join("\n");
           return new Response(lines, { status: 200 });
         }
 
-        if (path === "/api/create" || path === "/api/copy" || path === "/api/push" || path === "/api/delete") {
+        if (
+          path === "/api/create" ||
+          path === "/api/copy" ||
+          path === "/api/push" ||
+          path === "/api/delete"
+        ) {
           return Response.json({ status: "success" });
         }
 
@@ -445,9 +563,13 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
   }
 
   test("1. Pure Bun Runtime check: fmOllama.ts has zero Node or external imports", async () => {
-    const source = await Bun.file(`${import.meta.dir}/../src/features/filemanager/fmOllama.ts`).text();
+    const source = await Bun.file(
+      `${import.meta.dir}/../src/features/filemanager/fmOllama.ts`,
+    ).text();
     expect(source).not.toMatch(/from\s+["']node:/);
-    expect(source).not.toMatch(/from\s+["'](fs|path|os|child_process|crypto|http|https)["']/);
+    expect(source).not.toMatch(
+      /from\s+["'](fs|path|os|child_process|crypto|http|https)["']/,
+    );
     expect(source).toContain("Bun.spawnSync");
     expect(source).toContain("Bun.file");
     expect(source).toContain("Bun.write");
@@ -456,20 +578,39 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
   test("2. Strict Hardware Rules A, B, and C across all 4 RAM safety tiers & Apple Silicon MLX Exclusivity", () => {
     // Tier 1: Under 8 GB RAM (e.g. 6 GB RAM -> 4.2 GB 70% budget)
     const hw6Gb = inspectOllamaHardware({
-      ollama: { platform: "darwin", arch: "arm64", totalRamBytes: 6 * 1024 ** 3, cpuModel: "Apple M1" },
+      ollama: {
+        platform: "darwin",
+        arch: "arm64",
+        totalRamBytes: 6 * 1024 ** 3,
+        cpuModel: "Apple M1",
+      },
     } as any);
     expect(hw6Gb.isAppleSiliconMac).toBe(true);
     expect(hw6Gb.ramTier).toBe("under_8gb");
     expect(hw6Gb.safeMemoryBudgetGb).toBeCloseTo(4.2, 1);
 
     // Allow tiny MLX model (1.7B) and utility models (phonon, nimble, clef-flash) on <8 GB RAM
-    expect(evaluateModelHardwareGuard({ name: "lfm3:latest", parameterSize: "1.7B", runner: "mlx" }, hw6Gb).allowed).toBe(true);
-    expect(evaluateModelHardwareGuard({ name: "phonon" }, hw6Gb).allowed).toBe(true);
-    expect(evaluateModelHardwareGuard({ name: "nimble" }, hw6Gb).allowed).toBe(true);
-    expect(evaluateModelHardwareGuard({ name: "clef-flash" }, hw6Gb).allowed).toBe(true);
+    expect(
+      evaluateModelHardwareGuard(
+        { name: "lfm3:latest", parameterSize: "1.7B", runner: "mlx" },
+        hw6Gb,
+      ).allowed,
+    ).toBe(true);
+    expect(evaluateModelHardwareGuard({ name: "phonon" }, hw6Gb).allowed).toBe(
+      true,
+    );
+    expect(evaluateModelHardwareGuard({ name: "nimble" }, hw6Gb).allowed).toBe(
+      true,
+    );
+    expect(
+      evaluateModelHardwareGuard({ name: "clef-flash" }, hw6Gb).allowed,
+    ).toBe(true);
 
     // Block 7B+ model on <8 GB RAM with polite refusal + suggestions
-    const block7bOn6Gb = evaluateModelHardwareGuard({ name: "qwen2.5:7b-mlx", parameterSize: "7B", runner: "mlx" }, hw6Gb);
+    const block7bOn6Gb = evaluateModelHardwareGuard(
+      { name: "qwen2.5:7b-mlx", parameterSize: "7B", runner: "mlx" },
+      hw6Gb,
+    );
     expect(block7bOn6Gb.allowed).toBe(false);
     expect(block7bOn6Gb.code).toBe("HARDWARE_RAM_REFUSAL");
     expect(block7bOn6Gb.reason).toContain("freeze your computer");
@@ -477,40 +618,82 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
 
     // Tier 2: 8 GB to 16 GB RAM (e.g. 16 GB RAM -> 11.2 GB 70% budget)
     const hw16Gb = inspectOllamaHardware({
-      ollama: { platform: "darwin", arch: "arm64", totalRamBytes: 16 * 1024 ** 3 },
+      ollama: {
+        platform: "darwin",
+        arch: "arm64",
+        totalRamBytes: 16 * 1024 ** 3,
+      },
     } as any);
     expect(hw16Gb.ramTier).toBe("8gb_to_16gb");
-    expect(evaluateModelHardwareGuard({ name: "d3:9b-mxfp8", parameterSize: "8.4B", runner: "mlx" }, hw16Gb).allowed).toBe(true);
-    const block14bOn16Gb = evaluateModelHardwareGuard({ name: "qwen2.5:14b-mlx", parameterSize: "14B", runner: "mlx" }, hw16Gb);
+    expect(
+      evaluateModelHardwareGuard(
+        { name: "d3:9b-mxfp8", parameterSize: "8.4B", runner: "mlx" },
+        hw16Gb,
+      ).allowed,
+    ).toBe(true);
+    const block14bOn16Gb = evaluateModelHardwareGuard(
+      { name: "qwen2.5:14b-mlx", parameterSize: "14B", runner: "mlx" },
+      hw16Gb,
+    );
     expect(block14bOn16Gb.allowed).toBe(false);
     expect(block14bOn16Gb.code).toBe("HARDWARE_RAM_REFUSAL");
 
     // Tier 3: 17 GB to 32 GB RAM (e.g. 32 GB RAM -> 22.4 GB 70% budget)
     const hw32Gb = inspectOllamaHardware({
-      ollama: { platform: "darwin", arch: "arm64", totalRamBytes: 32 * 1024 ** 3 },
+      ollama: {
+        platform: "darwin",
+        arch: "arm64",
+        totalRamBytes: 32 * 1024 ** 3,
+      },
     } as any);
     expect(hw32Gb.ramTier).toBe("17gb_to_32gb");
     expect(
-      evaluateModelHardwareGuard({ name: "qwen2.5:14b-mlx-q4", parameterSize: "14B", sizeBytes: 10 * 1024 ** 3, runner: "mlx" }, hw32Gb)
-        .allowed,
+      evaluateModelHardwareGuard(
+        {
+          name: "qwen2.5:14b-mlx-q4",
+          parameterSize: "14B",
+          sizeBytes: 10 * 1024 ** 3,
+          runner: "mlx",
+        },
+        hw32Gb,
+      ).allowed,
     ).toBe(true);
-    const block70bOn32Gb = evaluateModelHardwareGuard({ name: "llama3.3:70b-mlx", parameterSize: "70B", runner: "mlx" }, hw32Gb);
+    const block70bOn32Gb = evaluateModelHardwareGuard(
+      { name: "llama3.3:70b-mlx", parameterSize: "70B", runner: "mlx" },
+      hw32Gb,
+    );
     expect(block70bOn32Gb.allowed).toBe(false);
     expect(block70bOn32Gb.code).toBe("HARDWARE_RAM_REFUSAL");
 
     // Tier 4: 33 GB to 64+ GB RAM (e.g. 64 GB RAM -> 44.8 GB 70% budget)
     const hw64Gb = inspectOllamaHardware({
-      ollama: { platform: "darwin", arch: "arm64", totalRamBytes: 64 * 1024 ** 3 },
+      ollama: {
+        platform: "darwin",
+        arch: "arm64",
+        totalRamBytes: 64 * 1024 ** 3,
+      },
     } as any);
     expect(hw64Gb.ramTier).toBe("33gb_plus");
     expect(
-      evaluateModelHardwareGuard({ name: "llama3.3:70b-mlx-q4", parameterSize: "70B", sizeBytes: 36 * 1024 ** 3, runner: "mlx" }, hw64Gb)
-        .allowed,
+      evaluateModelHardwareGuard(
+        {
+          name: "llama3.3:70b-mlx-q4",
+          parameterSize: "70B",
+          sizeBytes: 36 * 1024 ** 3,
+          runner: "mlx",
+        },
+        hw64Gb,
+      ).allowed,
     ).toBe(true);
 
     // Rule A: Mac Apple Silicon MLX Exclusivity blocks standard non-MLX GGUF models when MLX models exist
     const nonMlxVerdict = evaluateModelHardwareGuard(
-      { name: "legacy-non-mlx:7b", parameterSize: "7B", format: "gguf", runner: "gguf" },
+      {
+        name: "legacy-non-mlx:7b",
+        parameterSize: "7B",
+        format: "gguf",
+        runner: "gguf",
+      },
       hw64Gb,
       { hasMlxAlternativeForTask: true },
     );
@@ -518,7 +701,10 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(nonMlxVerdict.code).toBe("HARDWARE_MLX_EXCLUSIVITY");
 
     // Cloud models always pass with 0 local RAM
-    const cloudVerdict = evaluateModelHardwareGuard({ name: "gemma4:cloud" }, hw6Gb);
+    const cloudVerdict = evaluateModelHardwareGuard(
+      { name: "gemma4:cloud" },
+      hw6Gb,
+    );
     expect(cloudVerdict.allowed).toBe(true);
     expect(cloudVerdict.isCloud).toBe(true);
     expect(cloudVerdict.estimatedRamGb).toBe(0);
@@ -534,9 +720,13 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(names).toContain("phonon:latest");
     // Standard GGUF non-MLX model is automatically hidden on Apple Silicon Mac!
     expect(names).not.toContain("legacy-non-mlx:7b");
-    expect(data.hiddenNonMlxModels.map((m: any) => m.name)).toContain("legacy-non-mlx:7b");
+    expect(data.hiddenNonMlxModels.map((m: any) => m.name)).toContain(
+      "legacy-non-mlx:7b",
+    );
 
-    const vlModel = data.models.find((m: any) => m.name === "lfm3-vl:2b-mlx-bf16");
+    const vlModel = data.models.find(
+      (m: any) => m.name === "lfm3-vl:2b-mlx-bf16",
+    );
     expect(vlModel.badges).toContain("Vision");
     expect(vlModel.badges).toContain("MLX");
     expect(vlModel.badges).toContain("Thinking");
@@ -545,16 +735,28 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
   test("4. Capability A: Decision / SystemOne Engine (POST /v1/systemone) formats noul, choice (2-26), and score (2-10) + multi-question & image support", async () => {
     // Validation bounds check
     expect(() =>
-      formatSystemOneQuestions([{ type: "choice", instructions: "Too few", criteria: { only_one: "desc" } }]),
+      formatSystemOneQuestions([
+        {
+          type: "choice",
+          instructions: "Too few",
+          criteria: { only_one: "desc" },
+        },
+      ]),
     ).toThrow();
     expect(() =>
-      formatSystemOneQuestions([{ type: "score", instructions: "Too few", criteria: ["OnlyOne"] }]),
+      formatSystemOneQuestions([
+        { type: "score", instructions: "Too few", criteria: ["OnlyOne"] },
+      ]),
     ).toThrow();
 
     const { status, data } = await apiCall("ollama/decision", {
       paths: ["docs/crash.log", "docs/receipt.png"],
       questions: [
-        { id: "has_crash", type: "noul", instructions: "Does this log file contain a crash?" },
+        {
+          id: "has_crash",
+          type: "noul",
+          instructions: "Does this log file contain a crash?",
+        },
         {
           id: "triage_bucket",
           type: "choice",
@@ -582,7 +784,9 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(data.answers.urgency.type).toBe("score");
     expect(data.answers.urgency.score).toBeGreaterThan(1.5);
 
-    const lastSysOneReq = recordedOllamaRequests.filter((r) => r.path === "/v1/systemone").pop();
+    const lastSysOneReq = recordedOllamaRequests
+      .filter((r) => r.path === "/v1/systemone")
+      .pop();
     expect(lastSysOneReq).toBeDefined();
     expect(Array.isArray(lastSysOneReq?.body?.images)).toBe(true);
     expect(lastSysOneReq?.body?.images.length).toBe(1);
@@ -590,13 +794,17 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
 
   test("5. Capability B: Phonon Speech Engine (/v1/audio/speech) date conversion, markdown stripping, 4,096-char chunking, voice validation, File Mode & Safety Rule", async () => {
     // Date conversion check
-    const dateConverted = convertNumericDatesToWords("Release scheduled for 10/28 and 2026-12-05 or 03/14/2027.");
+    const dateConverted = convertNumericDatesToWords(
+      "Release scheduled for 10/28 and 2026-12-05 or 03/14/2027.",
+    );
     expect(dateConverted).toContain("October 28");
     expect(dateConverted).toContain("December 5, 2026");
     expect(dateConverted).toContain("March 14, 2027");
 
     // Markdown & <think> stripping check
-    const cleaned = cleanTextForPhononSpeech("<think>secret reasoning</think>### Heading on 10/28\nCheck **bold** and `code` and ~tilde~!");
+    const cleaned = cleanTextForPhononSpeech(
+      "<think>secret reasoning</think>### Heading on 10/28\nCheck **bold** and `code` and ~tilde~!",
+    );
     expect(cleaned).not.toContain("<think>");
     expect(cleaned).not.toContain("secret reasoning");
     expect(cleaned).not.toContain("*");
@@ -606,8 +814,15 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(cleaned).toContain("October 28");
 
     // 4,096-char paragraph/sentence splitting check
-    const longParagraphs = Array.from({ length: 60 }, (_, i) => `Sentence number ${i + 1} with natural punctuation and details.`).join(" ");
-    const chunks = splitSpeechTextIntoChunks(longParagraphs + " " + longParagraphs, 4096);
+    const longParagraphs = Array.from(
+      { length: 60 },
+      (_, i) =>
+        `Sentence number ${i + 1} with natural punctuation and details.`,
+    ).join(" ");
+    const chunks = splitSpeechTextIntoChunks(
+      longParagraphs + " " + longParagraphs,
+      4096,
+    );
     expect(chunks.length).toBeGreaterThanOrEqual(2);
     for (const c of chunks) {
       expect(c.length).toBeLessThanOrEqual(4096);
@@ -634,14 +849,22 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(goodSpeechRes.data.cleanedText).toContain("October 28");
     expect(goodSpeechRes.data.cleanedText).not.toContain("**");
     expect(goodSpeechRes.data.savedRelativePath).toBe("docs/meeting_10_28.wav");
-    expect(await Bun.file(`${tempRoot}/home/docs/meeting_10_28.wav`).exists()).toBe(true);
+    expect(
+      await Bun.file(`${tempRoot}/home/docs/meeting_10_28.wav`).exists(),
+    ).toBe(true);
 
     // Safety Rule: Never send chat, completion, decision, or embedding requests to "phonon"
-    const phononChatAttempt = await apiCall("ollama/chat", { model: "phonon", prompt: "Hello" });
+    const phononChatAttempt = await apiCall("ollama/chat", {
+      model: "phonon",
+      prompt: "Hello",
+    });
     expect(phononChatAttempt.status).toBe(400);
     expect(phononChatAttempt.data.error.code).toBe("PHONON_SAFETY_VIOLATION");
 
-    const phononEmbedAttempt = await apiCall("ollama/embed", { model: "phonon:latest", input: "Hello" });
+    const phononEmbedAttempt = await apiCall("ollama/embed", {
+      model: "phonon:latest",
+      input: "Hello",
+    });
     expect(phononEmbedAttempt.status).toBe(400);
     expect(phononEmbedAttempt.data.error.code).toBe("PHONON_SAFETY_VIOLATION");
   });
@@ -667,8 +890,12 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
       numCtx: 4096,
     });
     expect(webChat.status).toBe(200);
-    expect(webChat.data.enforcedNumCtx).toBeGreaterThanOrEqual(MIN_WEB_SEARCH_NUM_CTX);
-    const lastChatReq = recordedOllamaRequests.filter((r) => r.path === "/api/chat").pop();
+    expect(webChat.data.enforcedNumCtx).toBeGreaterThanOrEqual(
+      MIN_WEB_SEARCH_NUM_CTX,
+    );
+    const lastChatReq = recordedOllamaRequests
+      .filter((r) => r.path === "/api/chat")
+      .pop();
     expect(lastChatReq?.body?.options?.num_ctx).toBeGreaterThanOrEqual(32000);
 
     // Tool Calling stages a visual confirmation action before writing to disk
@@ -680,7 +907,9 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(toolChat.data.pendingActions.length).toBeGreaterThan(0);
     const pendingAct = toolChat.data.pendingActions[0];
     expect(pendingAct.toolName).toBe("create_file");
-    expect(await Bun.file(`${tempRoot}/home/docs/ai_created_note.txt`).exists()).toBe(false);
+    expect(
+      await Bun.file(`${tempRoot}/home/docs/ai_created_note.txt`).exists(),
+    ).toBe(false);
 
     // Confirming the visual prompt executes the file creation
     const confirmRes = await apiCall("ollama/tool/confirm", {
@@ -689,7 +918,9 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     });
     expect(confirmRes.status).toBe(200);
     expect(confirmRes.data.status).toBe("executed");
-    expect(await Bun.file(`${tempRoot}/home/docs/ai_created_note.txt`).exists()).toBe(true);
+    expect(
+      await Bun.file(`${tempRoot}/home/docs/ai_created_note.txt`).exists(),
+    ).toBe(true);
   });
 
   test("7. Capability G & Plain-English Router: Semantic meaning search (/api/embed) and automatic routing", async () => {
@@ -705,7 +936,9 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(/^(\/|[A-Za-z]:[\\/])/.test(firstMatch.folderPath)).toBe(true);
 
     // Verify "Open Containing Folder" (calling `list` with `firstMatch.folderPath`) succeeds with a full path
-    const listContainingRes = await apiCall("list", { path: firstMatch.folderPath });
+    const listContainingRes = await apiCall("list", {
+      path: firstMatch.folderPath,
+    });
     expect(listContainingRes.status).toBe(200);
     expect(listContainingRes.data.path).toBe(firstMatch.folderPath);
 
@@ -732,8 +965,12 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     });
     expect(blankReadSelectedRes.status).toBe(200);
     expect(blankReadSelectedRes.data.routedCapability).toBe("speech");
-    expect(blankReadSelectedRes.data.result.cleanedText).toContain("FATAL Unhandled panic in worker thread");
-    expect(blankReadSelectedRes.data.result.cleanedText).not.toContain("What is the main topic of this log?");
+    expect(blankReadSelectedRes.data.result.cleanedText).toContain(
+      "FATAL Unhandled panic in worker thread",
+    );
+    expect(blankReadSelectedRes.data.result.cleanedText).not.toContain(
+      "What is the main topic of this log?",
+    );
   });
 
   test("8. Capability K: Full Lifecycle endpoints (/api/ps, Free Up RAM keep_alive: 0, /api/pull guard, /api/version warnings, /api/usage, /api/balance)", async () => {
@@ -741,11 +978,15 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     const freeRes = await apiCall("ollama/freeRam", {});
     expect(freeRes.status).toBe(200);
     expect(freeRes.data.unloaded).toContain("lfm3:latest");
-    const unloadCall = recordedOllamaRequests.find((r) => r.body?.keep_alive === 0);
+    const unloadCall = recordedOllamaRequests.find(
+      (r) => r.body?.keep_alive === 0,
+    );
     expect(unloadCall).toBeDefined();
 
     // Pulling a model that exceeds the 70% RAM budget (e.g. a 120B model on 48 GB RAM) is politely refused
-    const blockedPull = await apiCall("ollama/pull", { model: "mega-model:120b-mlx" });
+    const blockedPull = await apiCall("ollama/pull", {
+      model: "mega-model:120b-mlx",
+    });
     expect(blockedPull.status).toBe(200);
     expect(blockedPull.data.ok).toBe(false);
     expect(blockedPull.data.verdict.code).toBe("HARDWARE_RAM_REFUSAL");
@@ -802,9 +1043,15 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
       saveFilename: "../../escaped_audio.wav",
     });
     expect(speechTraversal.status).toBe(200);
-    expect(speechTraversal.data.savedRelativePath).toBe("docs/escaped_audio.wav");
-    expect(await Bun.file(`${tempRoot}/escaped_audio.wav`).exists()).toBe(false);
-    expect(await Bun.file(`${tempRoot}/home/docs/escaped_audio.wav`).exists()).toBe(true);
+    expect(speechTraversal.data.savedRelativePath).toBe(
+      "docs/escaped_audio.wav",
+    );
+    expect(await Bun.file(`${tempRoot}/escaped_audio.wav`).exists()).toBe(
+      false,
+    );
+    expect(
+      await Bun.file(`${tempRoot}/home/docs/escaped_audio.wav`).exists(),
+    ).toBe(true);
   });
 
   test("10. Cross-Platform Linux & Windows Auto-Install, Live Progress Status Symbol, and Non-Phonon Text-to-Audio LLMs", async () => {
@@ -848,21 +1095,41 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     const linuxSpeechCaps = getSpeechCapabilitiesForHost(linuxCtx);
     expect(linuxSpeechCaps.phononSupported).toBe(false);
     expect(linuxSpeechCaps.defaultSpeechModel).toBe("lfm3-omni:latest");
-    expect(linuxSpeechCaps.availableSpeechModels.map((m) => m.name)).toContain("lfm3-omni:latest");
-    expect(linuxSpeechCaps.availableSpeechModels.map((m) => m.name)).toContain("orpheus:latest");
-    expect(linuxSpeechCaps.availableSpeechModels.map((m) => m.name)).toContain("kokoro:latest");
-    expect(linuxSpeechCaps.availableSpeechModels.map((m) => m.name)).not.toContain("phonon");
+    expect(linuxSpeechCaps.availableSpeechModels.map((m) => m.name)).toContain(
+      "lfm3-omni:latest",
+    );
+    expect(linuxSpeechCaps.availableSpeechModels.map((m) => m.name)).toContain(
+      "orpheus:latest",
+    );
+    expect(linuxSpeechCaps.availableSpeechModels.map((m) => m.name)).toContain(
+      "kokoro:latest",
+    );
+    expect(
+      linuxSpeechCaps.availableSpeechModels.map((m) => m.name),
+    ).not.toContain("phonon");
 
     const winSpeechCaps = getSpeechCapabilitiesForHost(winCtx);
     expect(winSpeechCaps.phononSupported).toBe(false);
     expect(winSpeechCaps.defaultSpeechModel).toBe("kokoro:latest");
-    expect(winSpeechCaps.availableSpeechModels.map((m) => m.name)).toContain("lfm3-omni:latest");
+    expect(winSpeechCaps.availableSpeechModels.map((m) => m.name)).toContain(
+      "lfm3-omni:latest",
+    );
 
     // 2. Linux 1-Click Auto-Install defaults to qwen3.5:latest + lfm3-omni:latest + nimble and replaces "phonon"
     const recordedSteps: Array<{ step: string; pct: number }> = [];
-    linuxCtx.ollama.installBinaryHook = async (_plat: string, _arch: string, onProgress: (s: string, p: number) => void) => {
-      onProgress("Downloading ollama-linux-amd64.tar.zst (48.0 MB / 120.0 MB)...", 28);
-      onProgress("Decompressing with Bun.zstdDecompressSync into ~/.local/bin/ollama...", 46);
+    linuxCtx.ollama.installBinaryHook = async (
+      _plat: string,
+      _arch: string,
+      onProgress: (s: string, p: number) => void,
+    ) => {
+      onProgress(
+        "Downloading ollama-linux-amd64.tar.zst (48.0 MB / 120.0 MB)...",
+        28,
+      );
+      onProgress(
+        "Decompressing with Bun.zstdDecompressSync into ~/.local/bin/ollama...",
+        46,
+      );
       return { installedPath: `${tempRoot}/home/.local/bin/ollama` };
     };
 
@@ -870,8 +1137,12 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(linuxDefaultInstallRes.ok).toBe(true);
     expect(linuxDefaultInstallRes.pulledModels).toContain("qwen3.5:4b");
     expect(linuxDefaultInstallRes.pulledModels).toContain("lfm3-omni:latest");
-    expect(linuxDefaultInstallRes.installStatus.recommendedStarterModels).toContain("qwen3.5:4b");
-    expect(linuxDefaultInstallRes.installStatus.recommendedStarterModels).toContain("lfm3-omni:latest");
+    expect(
+      linuxDefaultInstallRes.installStatus.recommendedStarterModels,
+    ).toContain("qwen3.5:4b");
+    expect(
+      linuxDefaultInstallRes.installStatus.recommendedStarterModels,
+    ).toContain("lfm3-omni:latest");
 
     const linuxInstallRes = await runOllamaAutoInstall(linuxCtx, {
       models: ["qwen3.5:4b", "phonon"], // "phonon" must be automatically replaced on Linux with lfm3-omni:latest!
@@ -905,9 +1176,18 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(winSpeechOut.model).toBe("kokoro:latest");
     expect(winSpeechOut.cleanedText).toContain("October 28");
     expect(winSpeechOut.savedRelativePath).toBe("docs/windows_tts_test.wav");
-    const wavBytes = await Bun.file(`${tempRoot}/home/docs/windows_tts_test.wav`).bytes();
+    const wavBytes = await Bun.file(
+      `${tempRoot}/home/docs/windows_tts_test.wav`,
+    ).bytes();
     expect(wavBytes.byteLength).toBeGreaterThan(44);
-    expect(String.fromCharCode(wavBytes[0]!, wavBytes[1]!, wavBytes[2]!, wavBytes[3]!)).toBe("RIFF");
+    expect(
+      String.fromCharCode(
+        wavBytes[0]!,
+        wavBytes[1]!,
+        wavBytes[2]!,
+        wavBytes[3]!,
+      ),
+    ).toBe("RIFF");
 
     // 4. Verify Windows 11 ARM64 in Parallels Desktop detection (when running x64 Bun under ARM64 emulation with PROCESSOR_ARCHITEW6432=ARM64)
     const prevWow = process.env.PROCESSOR_ARCHITEW6432;
@@ -931,16 +1211,32 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     }
 
     // Verify speech model registry fallback mapping for real registry.ollama.ai manifests
-    expect(resolveSpeechModelRegistryFallback("orpheus:latest")).toBe("legraphista/Orpheus:latest");
-    expect(resolveSpeechModelRegistryFallback("kokoro:latest")).toBe("lfm3-omni:latest");
-    expect(resolveSpeechModelRegistryFallback("oute-tts:latest")).toBe("mannix/outetts:0.3");
+    expect(resolveSpeechModelRegistryFallback("orpheus:latest")).toBe(
+      "legraphista/Orpheus:latest",
+    );
+    expect(resolveSpeechModelRegistryFallback("kokoro:latest")).toBe(
+      "lfm3-omni:latest",
+    );
+    expect(resolveSpeechModelRegistryFallback("oute-tts:latest")).toBe(
+      "mannix/outetts:0.3",
+    );
 
     // 5. Verify UI modules expose Ollama AI on Windows, Linux, and macOS and include live progress spinner + Copy/Clear output console
-    const toolbarSrc = await Bun.file("resources/file_manager/ui/toolbar.js").text();
-    const sidebarSrc = await Bun.file("resources/file_manager/ui/sidebar.js").text();
-    const ollamaJsSrc = await Bun.file("resources/file_manager/ui/ollama.js").text();
-    const toolsJsSrc = await Bun.file("resources/file_manager/ui/tools.js").text();
-    const cssSrc = await Bun.file("resources/file_manager/ui/ollama.css").text();
+    const toolbarSrc = await Bun.file(
+      "resources/file_manager/ui/toolbar.js",
+    ).text();
+    const sidebarSrc = await Bun.file(
+      "resources/file_manager/ui/sidebar.js",
+    ).text();
+    const ollamaJsSrc = await Bun.file(
+      "resources/file_manager/ui/ollama.js",
+    ).text();
+    const toolsJsSrc = await Bun.file(
+      "resources/file_manager/ui/tools.js",
+    ).text();
+    const cssSrc = await Bun.file(
+      "resources/file_manager/ui/ollama.css",
+    ).text();
     expect(toolbarSrc).toContain('id: "ollama"');
     expect(sidebarSrc).toContain('placeId: "ollama"');
     expect(ollamaJsSrc).toContain("copyOllamaOutput");
@@ -950,8 +1246,12 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(ollamaJsSrc).toContain("lfm3-omni:latest");
     expect(ollamaJsSrc).toContain("qwen3.5:4b");
     expect(ollamaJsSrc).toContain("qwen3.5:latest");
-    expect(toolsJsSrc).toContain("⚡ Install Ollama & Starter AI Models (1-Click)");
-    expect(toolsJsSrc).not.toContain('t.id !== "ollama" || isPhononSupported()');
+    expect(toolsJsSrc).toContain(
+      "⚡ Install Ollama & Starter AI Models (1-Click)",
+    );
+    expect(toolsJsSrc).not.toContain(
+      't.id !== "ollama" || isPhononSupported()',
+    );
     expect(cssSrc).toContain(".ollama-spinner");
     expect(cssSrc).toContain(".ollama-live-progress-banner");
     expect(cssSrc).toContain(".ollama-output-console");
@@ -959,11 +1259,15 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(cssSrc).toContain("overscroll-behavior: contain");
     expect(cssSrc).toContain("scrollbar-gutter: stable");
     expect(cssSrc).toContain("resize: vertical");
-    expect(cssSrc).toContain(".ollama-output-console.is-expanded .ollama-output-box");
+    expect(cssSrc).toContain(
+      ".ollama-output-console.is-expanded .ollama-output-box",
+    );
     expect(ollamaJsSrc).toContain("scrollConsoleOutput");
     expect(ollamaJsSrc).toContain('data-ollama-action": "scroll-top"');
     expect(ollamaJsSrc).toContain('data-ollama-action": "scroll-bottom"');
-    expect(ollamaJsSrc).toContain('data-ollama-action": "toggle-expand-output"');
+    expect(ollamaJsSrc).toContain(
+      'data-ollama-action": "toggle-expand-output"',
+    );
     expect(ollamaJsSrc).toContain("savedBoxScrolls");
     expect(ollamaJsSrc).toContain('data-ollama-select": "exit-policy"');
     expect(ollamaJsSrc).toContain("/api/ollama/shutdown");
@@ -1053,11 +1357,21 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
   });
 
   test("12. Universal Theme Adaptation: Ollama AI CSS & JS harmonize across Light, Dark, FX Glass, Corner, OLED, and High-Contrast themes", async () => {
-    const ollamaCss = await Bun.file("resources/file_manager/ui/ollama.css").text();
-    const ollamaJs = await Bun.file("resources/file_manager/ui/ollama.js").text();
-    const phononCss = await Bun.file("resources/file_manager/ui/phonon.css").text();
-    const themesJs = await Bun.file("resources/file_manager/ui/themes.js").text();
-    const themeEffectsCss = await Bun.file("resources/file_manager/ui/themeEffects.css").text();
+    const ollamaCss = await Bun.file(
+      "resources/file_manager/ui/ollama.css",
+    ).text();
+    const ollamaJs = await Bun.file(
+      "resources/file_manager/ui/ollama.js",
+    ).text();
+    const phononCss = await Bun.file(
+      "resources/file_manager/ui/phonon.css",
+    ).text();
+    const themesJs = await Bun.file(
+      "resources/file_manager/ui/themes.js",
+    ).text();
+    const themeEffectsCss = await Bun.file(
+      "resources/file_manager/ui/themeEffects.css",
+    ).text();
 
     // Must NOT reference non-existent --fg-0, --fg-1, --bg-1, --bg-2 tokens or hardcoded inline #cbd5e1
     expect(ollamaCss).not.toContain("--fg-0");
@@ -1073,7 +1387,9 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(ollamaCss).toContain("--ollama-text: var(--text,");
     expect(ollamaCss).toContain("--ollama-muted: var(--muted,");
     expect(ollamaCss).toContain("--ollama-accent: var(--accent,");
-    expect(ollamaCss).toContain("--ollama-accent-vivid: var(--accent-p3, var(--ollama-accent))");
+    expect(ollamaCss).toContain(
+      "--ollama-accent-vivid: var(--accent-p3, var(--ollama-accent))",
+    );
     expect(ollamaCss).toContain("--ollama-accent-text: var(--accent-text,");
     expect(ollamaCss).toContain("accent-color: var(--ollama-accent)");
     expect(ollamaCss).toContain("@supports not (scrollbar-color: auto)");
@@ -1091,7 +1407,9 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(themesJs).toContain('"--fm-ollama-console-bg"');
     expect(themesJs).toContain('"--fm-ollama-header-bg"');
     expect(themesJs).toContain('"--fm-ollama-thinking-bg"');
-    expect(themeEffectsCss).toContain("html[data-sub-studio-sync=\"active\"] .ollama-suite");
+    expect(themeEffectsCss).toContain(
+      'html[data-sub-studio-sync="active"] .ollama-suite',
+    );
     expect(themeEffectsCss).toContain(".ollama-hero-banner");
     expect(themeEffectsCss).toContain(".ollama-output-console");
   });
@@ -1105,20 +1423,26 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(gptOssCaps.supportedLevels).toEqual(["low", "medium", "high"]);
     expect(gptOssCaps.defaultLevel).toBe("medium");
 
-    const gptOssLow = resolveOllamaThinkConfig("gpt-oss:20b", { thinkingLevel: "low" });
+    const gptOssLow = resolveOllamaThinkConfig("gpt-oss:20b", {
+      thinkingLevel: "low",
+    });
     expect(gptOssLow.thinkParam).toBe("low");
     expect(gptOssLow.effectiveLevel).toBe("low");
     expect(gptOssLow.reasoningEffort).toBe("low");
     expect(gptOssLow.systemReasoningDirective).toContain("Reasoning: low");
 
-    const gptOssHigh = resolveOllamaThinkConfig("gpt-oss:120b", { think: "high" });
+    const gptOssHigh = resolveOllamaThinkConfig("gpt-oss:120b", {
+      think: "high",
+    });
     expect(gptOssHigh.thinkParam).toBe("high");
     expect(gptOssHigh.effectiveLevel).toBe("high");
     expect(gptOssHigh.reasoningEffort).toBe("high");
     expect(gptOssHigh.systemReasoningDirective).toContain("Reasoning: high");
 
     // Even if a caller passes think: false to gpt-oss, it safely maps to "low" effort (gpt-oss requires a level string)
-    const gptOssFallback = resolveOllamaThinkConfig("gpt-oss:20b", { think: false });
+    const gptOssFallback = resolveOllamaThinkConfig("gpt-oss:20b", {
+      think: false,
+    });
     expect(gptOssFallback.thinkParam).toBe("low");
     expect(gptOssFallback.effectiveLevel).toBe("low");
 
@@ -1129,16 +1453,23 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(qwenCaps.canToggle).toBe(true);
     expect(qwenCaps.supportedLevels).toEqual(["off", "on"]);
 
-    const qwenOff = resolveOllamaThinkConfig("qwen3.5:latest", { thinkingLevel: "off" });
+    const qwenOff = resolveOllamaThinkConfig("qwen3.5:latest", {
+      thinkingLevel: "off",
+    });
     expect(qwenOff.thinkParam).toBe(false);
     expect(qwenOff.thinkEnabled).toBe(false);
 
-    const qwenOn = resolveOllamaThinkConfig("qwen3.5:latest", { thinkingLevel: "on", thinkingBudget: 4096 });
+    const qwenOn = resolveOllamaThinkConfig("qwen3.5:latest", {
+      thinkingLevel: "on",
+      thinkingBudget: 4096,
+    });
     expect(qwenOn.thinkParam).toBe(true);
     expect(qwenOn.thinkEnabled).toBe(true);
     expect(qwenOn.systemReasoningDirective).toContain("4096");
 
-    const qwenHigh = resolveOllamaThinkConfig("cogito:8b", { thinkingLevel: "high" });
+    const qwenHigh = resolveOllamaThinkConfig("cogito:8b", {
+      thinkingLevel: "high",
+    });
     expect(qwenHigh.thinkParam).toBe(true);
     expect(qwenHigh.effectiveLevel).toBe("high");
     expect(qwenHigh.reasoningEffort).toBe("high");
@@ -1150,7 +1481,9 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(r1Caps.supportedLevels).toEqual(["on"]);
 
     // 3b. Non-thinking direct output models (qwen2.5-coder:7b, d3, phonon) have zero thinking levels and hide thinking UI
-    const coderCaps = getModelThinkingCapabilities({ name: "qwen2.5-coder:7b" });
+    const coderCaps = getModelThinkingCapabilities({
+      name: "qwen2.5-coder:7b",
+    });
     expect(coderCaps.supportsThinking).toBe(false);
     expect(coderCaps.thinkingMode).toBe("none");
     expect(coderCaps.supportedLevels).toEqual([]);
@@ -1161,24 +1494,36 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(gptOssProfile.features.thinkingToggle).toBe(false);
     expect(gptOssProfile.features.vision).toBe(false);
     expect(gptOssProfile.features.tools).toBe(true);
-    expect(gptOssProfile.indicators.map((i) => i.id)).toContain("thinking_levels");
+    expect(gptOssProfile.indicators.map((i) => i.id)).toContain(
+      "thinking_levels",
+    );
     expect(gptOssProfile.indicators.map((i) => i.id)).not.toContain("vision");
-    expect(gptOssProfile.indicators.map((i) => i.id)).not.toContain("thinking_toggle");
+    expect(gptOssProfile.indicators.map((i) => i.id)).not.toContain(
+      "thinking_toggle",
+    );
 
     const qwenProfile = getModelFeatureProfile({ name: "qwen3.5:latest" });
     expect(qwenProfile.features.thinkingToggle).toBe(true);
     expect(qwenProfile.features.thinkingLevels).toBe(false);
     expect(qwenProfile.features.vision).toBe(true);
-    expect(qwenProfile.indicators.map((i) => i.id)).toContain("thinking_toggle");
+    expect(qwenProfile.indicators.map((i) => i.id)).toContain(
+      "thinking_toggle",
+    );
     expect(qwenProfile.indicators.map((i) => i.id)).toContain("vision");
-    expect(qwenProfile.indicators.map((i) => i.id)).not.toContain("thinking_levels");
+    expect(qwenProfile.indicators.map((i) => i.id)).not.toContain(
+      "thinking_levels",
+    );
 
     const coderProfile = getModelFeatureProfile({ name: "qwen2.5-coder:7b" });
     expect(coderProfile.features.thinking).toBe(false);
     expect(coderProfile.features.vision).toBe(false);
     expect(coderProfile.indicators.map((i) => i.id)).toContain("direct_fast");
-    expect(coderProfile.indicators.map((i) => i.id)).not.toContain("thinking_levels");
-    expect(coderProfile.indicators.map((i) => i.id)).not.toContain("thinking_toggle");
+    expect(coderProfile.indicators.map((i) => i.id)).not.toContain(
+      "thinking_levels",
+    );
+    expect(coderProfile.indicators.map((i) => i.id)).not.toContain(
+      "thinking_toggle",
+    );
 
     // 4. Harmony channel & <think> extraction + speech stripping
     const harmonyRaw =
@@ -1186,7 +1531,9 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     const extracted = extractThinkingAndFinalContent(harmonyRaw);
     expect(extracted.thinkingText).toBe("Checking edge cases in B+tree split.");
     expect(extracted.content).toBe("The B+tree split is balanced.");
-    expect(cleanTextForPhononSpeech(harmonyRaw)).toBe("The B+tree split is balanced.");
+    expect(cleanTextForPhononSpeech(harmonyRaw)).toBe(
+      "The B+tree split is balanced.",
+    );
 
     // 5. Verify /api/chat receives think config and advanced sampling options
     const beforeLen = recordedOllamaRequests.length;
@@ -1218,7 +1565,9 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(chatJson.appliedOptions.seed).toBe(42);
     expect(chatJson.appliedOptions.stop).toEqual(["STOP_HERE"]);
 
-    const chatCalls = recordedOllamaRequests.slice(beforeLen).filter((r) => r.path === "/api/chat");
+    const chatCalls = recordedOllamaRequests
+      .slice(beforeLen)
+      .filter((r) => r.path === "/api/chat");
     expect(chatCalls.length).toBeGreaterThanOrEqual(1);
     const lastChatBody = chatCalls[chatCalls.length - 1]!.body;
     expect(lastChatBody.think).toBe(true);
@@ -1229,26 +1578,35 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
 
   test("14. Expand Output, Fullscreen Reader Mode, Compact Controls, and Stop LLM Generation across Ollama, Bionic, and Code AI Chat", async () => {
     const uiDir = `${import.meta.dir}/../resources/file_manager/ui`;
-    const [ollamaJs, bionicJs, codeAiJs, apiJs, ollamaCss, bionicCss, codeCss] = await Promise.all([
-      Bun.file(`${uiDir}/ollama.js`).text(),
-      Bun.file(`${uiDir}/bionic.js`).text(),
-      Bun.file(`${uiDir}/codeAiChat.js`).text(),
-      Bun.file(`${uiDir}/api.js`).text(),
-      Bun.file(`${uiDir}/ollama.css`).text(),
-      Bun.file(`${uiDir}/bionic.css`).text(),
-      Bun.file(`${uiDir}/code.css`).text(),
-    ]);
+    const [ollamaJs, bionicJs, codeAiJs, apiJs, ollamaCss, bionicCss, codeCss] =
+      await Promise.all([
+        Bun.file(`${uiDir}/ollama.js`).text(),
+        Bun.file(`${uiDir}/bionic.js`).text(),
+        Bun.file(`${uiDir}/codeAiChat.js`).text(),
+        Bun.file(`${uiDir}/api.js`).text(),
+        Bun.file(`${uiDir}/ollama.css`).text(),
+        Bun.file(`${uiDir}/bionic.css`).text(),
+        Bun.file(`${uiDir}/code.css`).text(),
+      ]);
 
     // 1. Expand Output, Fullscreen Reader Mode, and Compact Controls in Ollama & Bionic
     expect(ollamaJs).toContain('"data-ollama-action": "toggle-expand-output"');
-    expect(ollamaJs).toContain('"data-ollama-action": "toggle-fullscreen-output"');
-    expect(ollamaJs).toContain('"data-ollama-action": "toggle-compact-controls"');
+    expect(ollamaJs).toContain(
+      '"data-ollama-action": "toggle-fullscreen-output"',
+    );
+    expect(ollamaJs).toContain(
+      '"data-ollama-action": "toggle-compact-controls"',
+    );
     expect(ollamaJs).toContain("is-output-expanded");
     expect(ollamaJs).toContain("is-fullscreen");
 
     expect(bionicJs).toContain('"data-bionic-action": "toggle-expand-output"');
-    expect(bionicJs).toContain('"data-bionic-action": "toggle-fullscreen-output"');
-    expect(bionicJs).toContain('"data-bionic-action": "toggle-compact-controls"');
+    expect(bionicJs).toContain(
+      '"data-bionic-action": "toggle-fullscreen-output"',
+    );
+    expect(bionicJs).toContain(
+      '"data-bionic-action": "toggle-compact-controls"',
+    );
     expect(bionicJs).toContain("is-output-expanded");
     expect(bionicJs).toContain("is-fullscreen");
 
@@ -1256,10 +1614,16 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(codeAiJs).toContain('"data-code-ai-action": "toggle-fullscreen"');
 
     // 2. CSS rules collapse bulky chrome when expanded and pin fullscreen reader mode
-    expect(ollamaCss).toContain(".ollama-suite.is-output-expanded .ollama-hero-banner");
-    expect(ollamaCss).toContain(".ollama-suite.is-compact-controls .ollama-hero-banner");
+    expect(ollamaCss).toContain(
+      ".ollama-suite.is-output-expanded .ollama-hero-banner",
+    );
+    expect(ollamaCss).toContain(
+      ".ollama-suite.is-compact-controls .ollama-hero-banner",
+    );
     expect(ollamaCss).toContain(".ollama-output-console.is-fullscreen");
-    expect(bionicCss).toContain(".ollama-output-console.is-expanded .bionic-md-viewer");
+    expect(bionicCss).toContain(
+      ".ollama-output-console.is-expanded .bionic-md-viewer",
+    );
     expect(codeCss).toContain(".code-ai-pane.is-expanded");
     expect(codeCss).toContain(".code-ai-pane.is-fullscreen");
 
@@ -1279,7 +1643,12 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     const { writeFileSync } = await import("node:fs");
     const jpegPath = `${tempRoot}/home/docs/5162237.jpeg`;
     // Write realistic JPEG magic bytes + binary header
-    writeFileSync(jpegPath, Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01]));
+    writeFileSync(
+      jpegPath,
+      Buffer.from([
+        0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01,
+      ]),
+    );
 
     // 1. Reviewing a .jpeg image with blank prompt or speakReply: false routes to "vision" and never triggers speech
     const imgRouteBlank = await apiCall("ollama/route", {
@@ -1302,7 +1671,9 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
     expect(imgRouteAsk.status).toBe(200);
     expect(imgRouteAsk.data.routedCapability).toBe("vision");
     expect(imgRouteAsk.data.result.speechResult).toBeFalsy();
-    expect(imgRouteAsk.data.result.inspectedFiles).toContain("docs/5162237.jpeg");
+    expect(imgRouteAsk.data.result.inspectedFiles).toContain(
+      "docs/5162237.jpeg",
+    );
 
     // 3. Selecting a text file with speakReply: false and blank prompt or "read this file" routes to "chat", NOT "speech"
     const textRouteNoSpeak = await apiCall("ollama/route", {

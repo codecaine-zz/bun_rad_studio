@@ -35,7 +35,11 @@ describe("🃏 Joker Royale — Balatro Deluxe Roguelike Poker Studio Suite", ()
   });
 
   it("3. Studio factory generates correct defaults and instance contracts", () => {
-    const app = createBalatroStudio({ fullscreen: false, width: 1200, height: 860 });
+    const app = createBalatroStudio({
+      fullscreen: false,
+      width: 1200,
+      height: 860,
+    });
     expect(app.title).toContain("Joker Royale");
     expect(app.width).toBe(1200);
     expect(app.height).toBe(860);
@@ -63,7 +67,7 @@ describe("🃏 Joker Royale — Balatro Deluxe Roguelike Poker Studio Suite", ()
       // Health check endpoint
       const resHealth = await fetch(`${base}/api/health`);
       expect(resHealth.status).toBe(200);
-      const healthData = await resHealth.json() as any;
+      const healthData = (await resHealth.json()) as any;
       expect(healthData.status).toBe("ok");
       expect(healthData.app).toBe("balatro_studio");
       expect(healthData.name).toContain("Joker Royale");
@@ -74,7 +78,9 @@ describe("🃏 Joker Royale — Balatro Deluxe Roguelike Poker Studio Suite", ()
 
   it("5. Launcher Studio automatically registers and surfaces Joker Royale", () => {
     const apps = scanWorkspaceApps();
-    const found = apps.find((a) => a.name === "balatro_studio" || a.id === "rad_balatro_studio");
+    const found = apps.find(
+      (a) => a.name === "balatro_studio" || a.id === "rad_balatro_studio",
+    );
     expect(found).toBeDefined();
     expect(found?.displayName).toContain("Joker Royale");
     expect(found?.icon).toBe("🃏");
@@ -135,4 +141,3 @@ describe("🃏 Joker Royale — Balatro Deluxe Roguelike Poker Studio Suite", ()
     expect(html).toContain("text-wrap: pretty");
   });
 });
-

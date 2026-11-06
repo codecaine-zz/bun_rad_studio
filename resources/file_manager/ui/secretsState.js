@@ -7,7 +7,12 @@ import { announce } from "./dom.js";
 import { emit } from "./state.js";
 
 /** The latest status from the server (null until the first answer). */
-export const sx = { status: null, selectedId: null, activeTab: false, userLock: false };
+export const sx = {
+  status: null,
+  selectedId: null,
+  activeTab: false,
+  userLock: false,
+};
 
 const wipers = new Set();
 
@@ -23,7 +28,10 @@ export function wipeAll() {
     try {
       fn();
     } catch (err) {
-      console.error("A Secrets view could not be cleared", err instanceof Error ? err.name : "error");
+      console.error(
+        "A Secrets view could not be cleared",
+        err instanceof Error ? err.name : "error",
+      );
     }
   }
 }
@@ -36,8 +44,10 @@ export function setStatus(status) {
     wipeAll();
   }
   emit("secrets-status", status);
-  if (before && before.locked === false && status.locked) emit("secrets-locked");
-  if ((!before || before.locked) && status.locked === false) emit("secrets-unlocked");
+  if (before && before.locked === false && status.locked)
+    emit("secrets-locked");
+  if ((!before || before.locked) && status.locked === false)
+    emit("secrets-unlocked");
 }
 
 /** Asks the server for the status. Never throws; returns the status or null. */
@@ -50,7 +60,10 @@ export async function refreshStatus() {
   return sx.status;
 }
 
-export const errorText = (err, fallback = "Something went wrong. Nothing was changed.") => (err instanceof ApiError ? err.message : fallback);
+export const errorText = (
+  err,
+  fallback = "Something went wrong. Nothing was changed.",
+) => (err instanceof ApiError ? err.message : fallback);
 
 /** Locks now. `why` is only used in the announcement. */
 export async function lockNow(why = "Vault locked.") {
@@ -68,10 +81,15 @@ export async function lockNow(why = "Vault locked.") {
 }
 
 /** 4:32 for 272 seconds. */
-export const mmss = (seconds) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+export const mmss = (seconds) =>
+  `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 
 /** A typed location with "~" spelled out, for the server (which wants a full path). */
 export function fullPath(text, home) {
   const t = text.trim();
-  return t === "~" ? home : t.startsWith("~/") || t.startsWith("~\\") ? `${home}${t.slice(1)}` : t;
+  return t === "~"
+    ? home
+    : t.startsWith("~/") || t.startsWith("~\\")
+      ? `${home}${t.slice(1)}`
+      : t;
 }

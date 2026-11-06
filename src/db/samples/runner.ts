@@ -3,12 +3,28 @@ import { createHash } from "node:crypto";
 import { hashString, Gen } from "./gen";
 import { sqlHelpers } from "./dialect";
 import {
-  type Cell, type ColumnDef, type DatasetDef, type Dialect, type Row, type Scale, type TableDef,
-  insertableColumns, tableCounts,
+  type Cell,
+  type ColumnDef,
+  type DatasetDef,
+  type Dialect,
+  type Row,
+  type Scale,
+  type TableDef,
+  insertableColumns,
+  tableCounts,
 } from "./model";
 import {
-  SYNTHETIC_NOTICE, columnDoc, columnType, fixSequence, insertStatements, metaTableDefs, renderComments,
-  renderCreateTable, renderIndexes, renderTriggers, renderViews,
+  SYNTHETIC_NOTICE,
+  columnDoc,
+  columnType,
+  fixSequence,
+  insertStatements,
+  metaTableDefs,
+  renderComments,
+  renderCreateTable,
+  renderIndexes,
+  renderTriggers,
+  renderViews,
 } from "./render";
 
 /** Error thrown when a running sample database creation job is cancelled by the user. */
@@ -26,26 +42,43 @@ export interface GeneratedTable {
   rows: Cell[][];
 }
 
-function cellFor(ds: DatasetDef, t: TableDef, c: ColumnDef, row: Row, id: number): Cell {
+function cellFor(
+  ds: DatasetDef,
+  t: TableDef,
+  c: ColumnDef,
+  row: Row,
+  id: number,
+): Cell {
   let v = row[c.name];
   if (v === undefined) {
     if (c.type === "id") v = id;
     else if (c.default?.kind === "now") v = `${ds.asOf} 00:00:00`;
     else if (c.default?.kind === "literal") v = c.default.value;
     else if (!c.notNull) v = null;
-    else throw new Error(`${ds.id}.${t.name}.${c.name}: generator did not supply a value`);
+    else
+      throw new Error(
+        `${ds.id}.${t.name}.${c.name}: generator did not supply a value`,
+      );
   }
   if (v === null) {
-    if (c.notNull) throw new Error(`${ds.id}.${t.name}.${c.name}: NULL for a NOT NULL column`);
+    if (c.notNull)
+      throw new Error(
+        `${ds.id}.${t.name}.${c.name}: NULL for a NOT NULL column`,
+      );
     return null;
   }
-  if (c.type === "dec" && typeof v === "number") return Number(v.toFixed(c.scale ?? 2));
+  if (c.type === "dec" && typeof v === "number")
+    return Number(v.toFixed(c.scale ?? 2));
   if (c.type === "bool") return v === true || v === 1 || v === "true";
   return v;
 }
 
 /** Yields the rows of every table in dependency order. Pure and deterministic for a given dataset, scale and seed. */
-export function* generateDataset(ds: DatasetDef, scale: Scale, seed: number = ds.seed): Generator<GeneratedTable> {
+export function* generateDataset(
+  ds: DatasetDef,
+  scale: Scale,
+  seed: number = ds.seed,
+): Generator<GeneratedTable> {
   const counts = tableCounts(ds, scale);
   const retain = new Set<string>();
   for (const t of ds.tables) {
@@ -57,7 +90,14 @@ export function* generateDataset(ds: DatasetDef, scale: Scale, seed: number = ds
   for (const name of ds.order) {
     const t = byName.get(name)!;
     const n = counts[name]!;
-    const g = new Gen(hashString(`${seed}:${ds.id}:${name}`), scale, ds.asOf, store, name, n);
+    const g = new Gen(
+      hashString(`${seed}:${ds.id}:${name}`),
+      scale,
+      ds.asOf,
+      store,
+      name,
+      n,
+    );
     let objs: Row[];
     if (t.rows) objs = t.rows;
     else if (t.all) objs = t.all(g);
@@ -65,7 +105,10 @@ export function* generateDataset(ds: DatasetDef, scale: Scale, seed: number = ds
       objs = new Array<Row>(n);
       for (let i = 0; i < n; i++) objs[i] = t.gen!(g, i + 1);
     }
-    if (objs.length !== n) throw new Error(`${ds.id}.${name}: generator returned ${objs.length} rows, expected ${n}`);
+    if (objs.length !== n)
+      throw new Error(
+        `${ds.id}.${name}: generator returned ${objs.length} rows, expected ${n}`,
+      );
     const cols = insertableColumns(t);
     const idCol = t.columns.find((c) => c.type === "id");
     const rows: Cell[][] = new Array(n);
@@ -80,7 +123,11 @@ export function* generateDataset(ds: DatasetDef, scale: Scale, seed: number = ds
 }
 
 /** SHA-256 over every generated cell: equal hashes mean identical data. */
-export function datasetHash(ds: DatasetDef, scale: Scale, seed: number = ds.seed): string {
+export function datasetHash(
+  ds: DatasetDef,
+  scale: Scale,
+  seed: number = ds.seed,
+): string {
   const h = createHash("sha256");
   for (const { table, rows } of generateDataset(ds, scale, seed)) {
     h.update(`#${table.name}\n`);
@@ -135,7 +182,9 @@ export type RunSql = (sql: string) => Promise<void>;
  * Creates tables, inserts generated synthetic data and metadata dictionaries, and builds indexes, views, triggers, and comments for a dataset.
  */
 export async function seedDataset(
-  ds: DatasetDef, dialect: Dialect, run: RunSql,
+  ds: DatasetDef,
+  dialect: Dialect,
+  run: RunSql,
   opts: { scale: Scale; seed?: number } & SeedHooks,
 ): Promise<SeedSummary> {
   const started = Date.now();
@@ -145,8 +194,20 @@ export async function seedDataset(
   const tableCount = ds.tables.length;
   let rowsDone = 0;
   let tableIndex = 0;
-  const report = (phase: SeedProgress["phase"], table: string | undefined, pct: number) =>
-    opts.onProgress?.({ phase, table, tableIndex, tableCount, rowsDone, rowsTotal, percent: Math.min(100, Math.round(pct)) });
+  const report = (
+    phase: SeedProgress["phase"],
+    table: string | undefined,
+    pct: number,
+  ) =>
+    opts.onProgress?.({
+      phase,
+      table,
+      tableIndex,
+      tableCount,
+      rowsDone,
+      rowsTotal,
+      percent: Math.min(100, Math.round(pct)),
+    });
   const check = () => {
     if (opts.isCancelled?.()) throw new SeedCancelled();
   };
@@ -158,13 +219,27 @@ export async function seedDataset(
   const metas = metaTableDefs();
   report("schema", undefined, 0);
   for (const m of metas) await exec(renderCreateTable(dialect, m));
-  for (const t of ds.tables.slice().sort((a, b) => ds.order.indexOf(a.name) - ds.order.indexOf(b.name))) {
+  for (const t of ds.tables
+    .slice()
+    .sort((a, b) => ds.order.indexOf(a.name) - ds.order.indexOf(b.name))) {
     await exec(renderCreateTable(dialect, t));
   }
   report("schema", undefined, 3);
 
   const h = sqlHelpers(dialect);
-  const info: Cell[][] = [[ds.id, ds.title, ds.version, seed, opts.scale, ds.asOf, new Date().toISOString().slice(0, 19).replace("T", " "), "bun-rad-studio samples", SYNTHETIC_NOTICE]];
+  const info: Cell[][] = [
+    [
+      ds.id,
+      ds.title,
+      ds.version,
+      seed,
+      opts.scale,
+      ds.asOf,
+      new Date().toISOString().slice(0, 19).replace("T", " "),
+      "bun-rad-studio samples",
+      SYNTHETIC_NOTICE,
+    ],
+  ];
   for (const b of insertStatements(dialect, metas[0]!, info)) await exec(b.sql);
 
   let batches = 0;
@@ -182,18 +257,39 @@ export async function seedDataset(
 
   const dict: Cell[][] = [];
   let did = 0;
-  const dictRow = (obj: string, col: string | null, type: string, dataType: string | null, desc: string) => dict.push([++did, obj, col, type, dataType, desc]);
+  const dictRow = (
+    obj: string,
+    col: string | null,
+    type: string,
+    dataType: string | null,
+    desc: string,
+  ) => dict.push([++did, obj, col, type, dataType, desc]);
   for (const t of ds.tables) {
     dictRow(t.name, null, "table", null, t.comment);
-    for (const c of t.columns) dictRow(t.name, c.name, "column", columnType(dialect, c), columnDoc(t, c));
+    for (const c of t.columns)
+      dictRow(
+        t.name,
+        c.name,
+        "column",
+        columnType(dialect, c),
+        columnDoc(t, c),
+      );
   }
   for (const v of ds.views) dictRow(v.name, null, "view", null, v.comment);
   for (const b of insertStatements(dialect, metas[1]!, dict)) await exec(b.sql);
-  const qrows: Cell[][] = ds.queries.map((q, i) => [i + 1, q.id, q.title, q.description, q.sql(h).trim()]);
-  for (const b of insertStatements(dialect, metas[2]!, qrows)) await exec(b.sql);
+  const qrows: Cell[][] = ds.queries.map((q, i) => [
+    i + 1,
+    q.id,
+    q.title,
+    q.description,
+    q.sql(h).trim(),
+  ]);
+  for (const b of insertStatements(dialect, metas[2]!, qrows))
+    await exec(b.sql);
 
   report("indexes", undefined, 90);
-  for (const t of ds.tables) for (const sql of renderIndexes(dialect, t)) await exec(sql);
+  for (const t of ds.tables)
+    for (const sql of renderIndexes(dialect, t)) await exec(sql);
   await opts.yieldNow?.();
   report("views", undefined, 95);
   for (const sql of renderViews(dialect, ds)) await exec(sql);

@@ -57,8 +57,16 @@ describe("🎨 Chroma Studio Pro — Advanced Paint & Vector Coloring Studio Sui
     expect(COLORING_LIBRARY.length).toBe(106);
 
     const requiredCategories = [
-      "animals", "mandala", "fantasy", "nature", "space",
-      "vehicles", "food", "architecture", "popart", "ocean"
+      "animals",
+      "mandala",
+      "fantasy",
+      "nature",
+      "space",
+      "vehicles",
+      "food",
+      "architecture",
+      "popart",
+      "ocean",
     ];
 
     const categoryCounts: Record<string, number> = {};
@@ -88,7 +96,11 @@ describe("🎨 Chroma Studio Pro — Advanced Paint & Vector Coloring Studio Sui
   });
 
   it("4. Studio factory generates correct defaults and instance contracts", () => {
-    const app = createPaintStudio({ fullscreen: false, width: 1380, height: 920 });
+    const app = createPaintStudio({
+      fullscreen: false,
+      width: 1380,
+      height: 920,
+    });
     expect(app.title).toContain("Chroma Studio Pro");
     expect(app.width).toBe(1380);
     expect(app.height).toBe(920);
@@ -123,7 +135,7 @@ describe("🎨 Chroma Studio Pro — Advanced Paint & Vector Coloring Studio Sui
       // Health check endpoint
       const resHealth = await fetch(`${base}/api/health`);
       expect(resHealth.status).toBe(200);
-      const healthData = await resHealth.json() as any;
+      const healthData = (await resHealth.json()) as any;
       expect(healthData.status).toBe("ok");
       expect(healthData.app).toBe("paint_studio");
       expect(healthData.totalVectorGraphics).toBe(106);
@@ -134,7 +146,9 @@ describe("🎨 Chroma Studio Pro — Advanced Paint & Vector Coloring Studio Sui
 
   it("6. Launcher Studio automatically registers and surfaces Chroma Studio Pro", () => {
     const apps = scanWorkspaceApps();
-    const found = apps.find((a) => a.name === "paint_studio" || a.id === "rad_paint_studio");
+    const found = apps.find(
+      (a) => a.name === "paint_studio" || a.id === "rad_paint_studio",
+    );
     expect(found).toBeDefined();
     expect(found?.displayName).toContain("Chroma Studio Pro");
     expect(found?.icon).toBe("🎨");
@@ -179,7 +193,9 @@ describe("🎨 Chroma Studio Pro — Advanced Paint & Vector Coloring Studio Sui
 
   it("8. All inline JavaScript blocks compile without syntax errors and every UI control has a help tip", async () => {
     const html = generatePaintStudioHtml();
-    const scriptMatches = [...html.matchAll(/<script(?![^>]*src=)[^>]*>([\s\S]*?)<\/script>/gi)];
+    const scriptMatches = [
+      ...html.matchAll(/<script(?![^>]*src=)[^>]*>([\s\S]*?)<\/script>/gi),
+    ];
     expect(scriptMatches.length).toBeGreaterThanOrEqual(3);
     for (const match of scriptMatches) {
       const code = match[1]!;
@@ -228,4 +244,3 @@ describe("🎨 Chroma Studio Pro — Advanced Paint & Vector Coloring Studio Sui
     expect(html).toContain("getSvgFillValue");
   });
 });
-

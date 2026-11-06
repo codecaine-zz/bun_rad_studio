@@ -3,7 +3,8 @@ import { join } from "path";
 import { Sys } from "../src/simplecli/sys";
 
 const SETTINGS_FILE = "/Users/codecaine/.bun_rad_studio/file_manager.json";
-const CHROME_BIN = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const CHROME_BIN =
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const OUTPUT_DIR = join(process.cwd(), "youtube_production", "frames");
 const FM_URL = "http://127.0.0.1:51292/";
 
@@ -169,13 +170,17 @@ const scenes: SceneConfig[] = [
 ];
 
 async function main() {
-  console.log(`🎬 Capturing ${scenes.length} Production UI Frames for Video Demo...`);
+  console.log(
+    `🎬 Capturing ${scenes.length} Production UI Frames for Video Demo...`,
+  );
   const originalConfigText = await Bun.file(SETTINGS_FILE).text();
   const baseConfig = JSON.parse(originalConfigText);
 
   for (let i = 0; i < scenes.length; i++) {
     const sc = scenes[i]!;
-    console.log(`[${i + 1}/${scenes.length}] Preparing: ${sc.name} (${sc.filename})...`);
+    console.log(
+      `[${i + 1}/${scenes.length}] Preparing: ${sc.name} (${sc.filename})...`,
+    );
 
     const cfg = {
       ...baseConfig,
@@ -199,7 +204,9 @@ async function main() {
     Sys.exec(cmd);
 
     const exists = await Bun.file(outPath).exists();
-    const size = exists ? (Bun.file(outPath).size / 1024).toFixed(1) + " KB" : "MISSING";
+    const size = exists
+      ? (Bun.file(outPath).size / 1024).toFixed(1) + " KB"
+      : "MISSING";
     console.log(`  ✔ Rendered: ${sc.filename} (${size})`);
   }
 

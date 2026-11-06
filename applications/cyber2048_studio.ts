@@ -133,7 +133,9 @@ export function startCyber2048Server(options: Cyber2048ServerOptions = {}) {
   );
 }
 
-export function createCyber2048Studio(options: Cyber2048StudioOptions = {}): Cyber2048StudioInstance {
+export function createCyber2048Studio(
+  options: Cyber2048StudioOptions = {},
+): Cyber2048StudioInstance {
   const fullscreen = options.fullscreen ?? false;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1140);
@@ -165,7 +167,8 @@ export function createCyber2048Studio(options: Cyber2048StudioOptions = {}): Cyb
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -185,11 +188,15 @@ export function createCyber2048Studio(options: Cyber2048StudioOptions = {}): Cyb
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -200,13 +207,19 @@ export function createCyber2048Studio(options: Cyber2048StudioOptions = {}): Cyb
 
         webview.setHTML(html);
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -229,10 +242,13 @@ if (process.argv.includes("--server")) {
   const port = parseInt(process.env.PORT || "0", 10);
   const srv = startCyber2048Server({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`🔢 Codecaine Cyber2048 Quantum Merge Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `🔢 Codecaine Cyber2048 Quantum Merge Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = process.argv.includes("--fullscreen") || process.argv.includes("-f");
+  const fullscreen =
+    process.argv.includes("--fullscreen") || process.argv.includes("-f");
   const app = createCyber2048Studio({ fullscreen });
   await app.run();
   process.exit(0);

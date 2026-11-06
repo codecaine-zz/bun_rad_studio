@@ -3,21 +3,25 @@
 ## 🏆 Best YouTube Titles (High-CTR + Search SEO Optimized)
 
 ### Option 1 — Primary Recommended (Best Balance of Curiosity + High-Volume Dev Keywords)
+
 ```text
 Build Native Desktop Apps in Seconds With Bun & TypeScript (Full v1.5 God-Mode Tutorial)
 ```
 
 ### Option 2 — Feature-Packed Power-User Hook (High CTR for IDE / Tooling / Linux / Mac / Windows Devs)
+
 ```text
 I Built an Entire Desktop IDE, 120Hz File Manager & Visual Form Designer in Bun (Open Source)
 ```
 
 ### Option 3 — Direct Product + Hardware Flagship Title
+
 ```text
 Bun RAD Studio v1.5 God-Mode Tutorial: File Manager, SimpleGUI API & Visual Designer (Mac/Win/Linux)
 ```
 
 ### Thumbnail Text Ideas (3–5 Words Max for High Mobile CTR)
+
 - `DELPHI FOR TYPESCRIPT?! ⚡`
 - `1 FILE = NATIVE APP`
 - `BUN v1.5 GOD MODE 🔥`

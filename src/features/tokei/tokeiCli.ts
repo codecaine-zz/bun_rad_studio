@@ -31,12 +31,20 @@ export function parseTokeiArguments(args: string[]): TokeiOptions {
   }
 
   const paths = positionals.length > 0 ? positionals : ["."];
-  const validSorts: TokeiSortField[] = ["files", "lines", "blank", "comment", "code"];
+  const validSorts: TokeiSortField[] = [
+    "files",
+    "lines",
+    "blank",
+    "comment",
+    "code",
+  ];
   const sort = validSorts.includes(values.sort as TokeiSortField)
     ? (values.sort as TokeiSortField)
     : "code";
 
-  const excludes = values.exclude ? values.exclude.split(",").map((s) => s.trim()) : undefined;
+  const excludes = values.exclude
+    ? values.exclude.split(",").map((s) => s.trim())
+    : undefined;
 
   return {
     paths,

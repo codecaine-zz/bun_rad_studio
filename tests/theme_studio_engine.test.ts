@@ -57,34 +57,59 @@ describe("High-Abstraction, Deep-Customization Theme Engine & Visual Theme Studi
     it("enforces readable WCAG text contrast against any background automatically", () => {
       // Hostile combinations: pale yellow on white, dark navy on midnight black
       const readableOnWhite = ensureContrastRatio("#fef08a", "#ffffff", 4.5);
-      expect(getContrastRatio(readableOnWhite, "#ffffff")).toBeGreaterThanOrEqual(4.5);
+      expect(
+        getContrastRatio(readableOnWhite, "#ffffff"),
+      ).toBeGreaterThanOrEqual(4.5);
 
       const readableOnBlack = ensureContrastRatio("#1e1b4b", "#05070d", 7.0);
-      expect(getContrastRatio(readableOnBlack, "#05070d")).toBeGreaterThanOrEqual(7.0);
+      expect(
+        getContrastRatio(readableOnBlack, "#05070d"),
+      ).toBeGreaterThanOrEqual(7.0);
 
-      for (const mode of ["light", "dark", "midnight", "high-contrast"] as BaseMode[]) {
+      for (const mode of [
+        "light",
+        "dark",
+        "midnight",
+        "high-contrast",
+      ] as BaseMode[]) {
         const sys = calculateThemeSystem({
           baseMode: mode,
           primaryColor: "#eab308", // bright yellow brand color
-          accentColor: "#22d3ee",  // bright cyan accent color
+          accentColor: "#22d3ee", // bright cyan accent color
         });
         const minExpected = mode === "high-contrast" ? 7.0 : 4.5;
-        expect(sys.text.panelBgContrastRatio).toBeGreaterThanOrEqual(minExpected);
-        expect(sys.text.primaryButtonContrastRatio).toBeGreaterThanOrEqual(minExpected);
-        expect(sys.text.accentButtonContrastRatio).toBeGreaterThanOrEqual(minExpected);
+        expect(sys.text.panelBgContrastRatio).toBeGreaterThanOrEqual(
+          minExpected,
+        );
+        expect(sys.text.primaryButtonContrastRatio).toBeGreaterThanOrEqual(
+          minExpected,
+        );
+        expect(sys.text.accentButtonContrastRatio).toBeGreaterThanOrEqual(
+          minExpected,
+        );
       }
     });
 
     it("calculates shadow depth, glass blur intensity, and border glow from Surface Vibe", () => {
-      const vibes: SurfaceVibe[] = ["flat", "frosted-glass", "matte", "neon-border"];
+      const vibes: SurfaceVibe[] = [
+        "flat",
+        "frosted-glass",
+        "matte",
+        "neon-border",
+      ];
       const results = Object.fromEntries(
-        vibes.map((v) => [v, computeSurfaceVibeTokens(v, "dark", "#3b82f6", "#8b5cf6")])
+        vibes.map((v) => [
+          v,
+          computeSurfaceVibeTokens(v, "dark", "#3b82f6", "#8b5cf6"),
+        ]),
       ) as Record<SurfaceVibe, ReturnType<typeof computeSurfaceVibeTokens>>;
 
       expect(results.flat.glassBlur).toBe("0px");
       expect(results.flat.surfaceBackdrop).toBe("none");
 
-      expect(parseInt(results["frosted-glass"].glassBlur, 10)).toBeGreaterThanOrEqual(16);
+      expect(
+        parseInt(results["frosted-glass"].glassBlur, 10),
+      ).toBeGreaterThanOrEqual(16);
       expect(results["frosted-glass"].surfaceBackdrop).toContain("blur(");
       expect(results["frosted-glass"].panelBgAlpha).toBeLessThan(1);
 
@@ -116,20 +141,27 @@ describe("High-Abstraction, Deep-Customization Theme Engine & Visual Theme Studi
     });
 
     it("maps Interface Density across Compact, Comfortable, and Spacious", () => {
-      const densities: InterfaceDensity[] = ["compact", "comfortable", "spacious"];
+      const densities: InterfaceDensity[] = [
+        "compact",
+        "comfortable",
+        "spacious",
+      ];
       const tokens = densities.map((d) => computeDensityTokens(d));
 
       expect(parseInt(tokens[0]!.controlHeightMd, 10)).toBeLessThan(
-        parseInt(tokens[1]!.controlHeightMd, 10)
+        parseInt(tokens[1]!.controlHeightMd, 10),
       );
       expect(parseInt(tokens[1]!.controlHeightMd, 10)).toBeLessThan(
-        parseInt(tokens[2]!.controlHeightMd, 10)
+        parseInt(tokens[2]!.controlHeightMd, 10),
       );
     });
 
     it("outputs all required semantic CSS custom properties and applies them to :root", () => {
-      const dom = new JSDOM("<!DOCTYPE html><html><head></head><body></body></html>");
-      const root = dom.window.document.documentElement as unknown as HTMLElement;
+      const dom = new JSDOM(
+        "<!DOCTYPE html><html><head></head><body></body></html>",
+      );
+      const root = dom.window.document
+        .documentElement as unknown as HTMLElement;
 
       const system = applyThemeToRoot(
         {
@@ -141,7 +173,7 @@ describe("High-Abstraction, Deep-Customization Theme Engine & Visual Theme Studi
           density: "comfortable",
         },
         {},
-        root
+        root,
       );
 
       const requiredProps: Array<`--${string}`> = [
@@ -190,10 +222,13 @@ describe("High-Abstraction, Deep-Customization Theme Engine & Visual Theme Studi
 
     it("mounts the Theme Customizer Drawer and updates :root in real time when controls or overrides change", () => {
       const dom = new JSDOM(
-        "<!DOCTYPE html><html><head></head><body><div id='app'></div></body></html>"
+        "<!DOCTYPE html><html><head></head><body><div id='app'></div></body></html>",
       );
-      const container = dom.window.document.getElementById("app") as unknown as HTMLElement;
-      const root = dom.window.document.documentElement as unknown as HTMLElement;
+      const container = dom.window.document.getElementById(
+        "app",
+      ) as unknown as HTMLElement;
+      const root = dom.window.document
+        .documentElement as unknown as HTMLElement;
       const storage = createMemoryStorage();
 
       const studio = mountThemeStudio(container, {
@@ -203,8 +238,14 @@ describe("High-Abstraction, Deep-Customization Theme Engine & Visual Theme Studi
 
       // Default tab is Quick Studio
       expect(studio.getState().activeTab).toBe("quick");
-      expect(container.querySelector("#tabPanelQuickStudio")?.hasAttribute("hidden")).toBe(false);
-      expect(container.querySelector("#tabPanelProInspector")?.hasAttribute("hidden")).toBe(true);
+      expect(
+        container.querySelector("#tabPanelQuickStudio")?.hasAttribute("hidden"),
+      ).toBe(false);
+      expect(
+        container
+          .querySelector("#tabPanelProInspector")
+          ?.hasAttribute("hidden"),
+      ).toBe(true);
 
       // Verify all 6 Quick Studio controls are rendered
       expect(container.querySelector("#ctrlBaseModeGroup")).not.toBeNull();
@@ -215,13 +256,17 @@ describe("High-Abstraction, Deep-Customization Theme Engine & Visual Theme Studi
       expect(container.querySelector("#ctrlDensityGroup")).not.toBeNull();
 
       // Verify presets work in 1 click (including God-Mode presets)
-      const swissPreset = THEME_STUDIO_PRESETS.find((p) => p.id === "swiss-editorial")!;
+      const swissPreset = THEME_STUDIO_PRESETS.find(
+        (p) => p.id === "swiss-editorial",
+      )!;
       studio.applyPreset(swissPreset.id);
       expect(studio.getState().surface.baseMode).toBe("light");
       expect(studio.getState().surface.cornerSharpness).toBe(0);
       expect(root.style.getPropertyValue("--radius-md")).toBe("0px");
 
-      const omegaPreset = THEME_STUDIO_PRESETS.find((p) => p.id === "omega-singularity")!;
+      const omegaPreset = THEME_STUDIO_PRESETS.find(
+        (p) => p.id === "omega-singularity",
+      )!;
       expect(omegaPreset).toBeDefined();
       studio.applyPreset(omegaPreset.id);
       expect(studio.getState().surface.baseMode).toBe("midnight");
@@ -231,9 +276,15 @@ describe("High-Abstraction, Deep-Customization Theme Engine & Visual Theme Studi
       // Switch to Tab 2: Pro Inspector and test deep CSS variable overrides
       studio.switchTab("inspector");
       expect(studio.getState().activeTab).toBe("inspector");
-      expect(container.querySelector("#tabPanelProInspector")?.hasAttribute("hidden")).toBe(false);
+      expect(
+        container
+          .querySelector("#tabPanelProInspector")
+          ?.hasAttribute("hidden"),
+      ).toBe(false);
 
-      const categoryHeaders = container.querySelectorAll("[data-inspector-category]");
+      const categoryHeaders = container.querySelectorAll(
+        "[data-inspector-category]",
+      );
       expect(categoryHeaders.length).toBe(8);
 
       // Override a single CSS variable in Pro Inspector
@@ -245,7 +296,7 @@ describe("High-Abstraction, Deep-Customization Theme Engine & Visual Theme Studi
       studio.removeOverride("--bg-app");
       expect(studio.getState().overrides["--bg-app"]).toBeUndefined();
       expect(root.style.getPropertyValue("--bg-app")).toBe(
-        studio.getState().system.computedVariables["--bg-app"]!
+        studio.getState().system.computedVariables["--bg-app"]!,
       );
 
       // Verify Live Preview Playground elements exist (buttons, inputs, table, tabs, modal, badges, 10-step scale)
@@ -253,7 +304,10 @@ describe("High-Abstraction, Deep-Customization Theme Engine & Visual Theme Studi
       expect(container.querySelector("#previewInputName")).not.toBeNull();
       expect(container.querySelector("#previewDataTable")).not.toBeNull();
       expect(container.querySelector("#tsLivePreviewModal")).not.toBeNull();
-      expect(container.querySelectorAll("#tsShadeScaleGrid [data-shade-step]").length).toBe(10);
+      expect(
+        container.querySelectorAll("#tsShadeScaleGrid [data-shade-step]")
+          .length,
+      ).toBe(10);
     });
   });
 
@@ -275,13 +329,15 @@ describe("High-Abstraction, Deep-Customization Theme Engine & Visual Theme Studi
             "--border-width": "2px",
           },
         },
-        storage
+        storage,
       );
 
       expect(themes.length).toBe(1);
       expect(saved.name).toBe("Neon Synthwave");
       expect(loadSavedThemes(storage).length).toBe(1);
-      expect(loadSavedThemes(storage)[0]!.overrides["--border-width"]).toBe("2px");
+      expect(loadSavedThemes(storage)[0]!.overrides["--border-width"]).toBe(
+        "2px",
+      );
     });
 
     it("exports clean JSON and validates imported JSON themes", () => {
@@ -325,16 +381,25 @@ describe("High-Abstraction, Deep-Customization Theme Engine & Visual Theme Studi
         expect(res.status).toBe(200);
         expect(await res.text()).toContain("Visual Theme Studio");
 
-        const compileRes = await fetch(`http://127.0.0.1:${server.port}/api/compile`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            surface: { baseMode: "light", primaryColor: "#2563eb", cornerSharpness: 20 },
-            overrides: { "--bg-app": "#f8fafc" },
-          }),
-        });
+        const compileRes = await fetch(
+          `http://127.0.0.1:${server.port}/api/compile`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              surface: {
+                baseMode: "light",
+                primaryColor: "#2563eb",
+                cornerSharpness: 20,
+              },
+              overrides: { "--bg-app": "#f8fafc" },
+            }),
+          },
+        );
         expect(compileRes.status).toBe(200);
-        const compiled = (await compileRes.json()) as { variables: Record<string, string> };
+        const compiled = (await compileRes.json()) as {
+          variables: Record<string, string>;
+        };
         expect(compiled.variables["--bg-app"]).toBe("#f8fafc");
         expect(compiled.variables["--radius-md"]).toBe("20px");
       } finally {

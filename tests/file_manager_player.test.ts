@@ -7,22 +7,75 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { AUDIO_MIME, VIDEO_MIME } from "../src/features/filemanager/fmQuickLook";
 import {
-  AUDIO_EXTS, DECK_HARDWARE_TIERS, EQ_BANDS, EQ_PRESETS, PLAYER_SKINS, PlayQueue, VIDEO_EXTS,
-  VIZ_MIX_PRESETS, VIZ_MODES, activeLrcIndex, clampBalance, clampGain, computeEqSpline, formatClock,
-  formatLedClock, formatM3u, formatVizLabel, isPlayableOrPlaylist, isPlaylistFile, mediaKindOfName,
-  normalizeVizSpec, parseFlac, parseId3, parseLrc, parseM3u, parseMp4Tags, parseOggTags, parseVizLayers,
-  renderAudioVisualizer, srtToVtt, subtitleText,
+  AUDIO_MIME,
+  VIDEO_MIME,
+} from "../src/features/filemanager/fmQuickLook";
+import {
+  AUDIO_EXTS,
+  DECK_HARDWARE_TIERS,
+  EQ_BANDS,
+  EQ_PRESETS,
+  PLAYER_SKINS,
+  PlayQueue,
+  VIDEO_EXTS,
+  VIZ_MIX_PRESETS,
+  VIZ_MODES,
+  activeLrcIndex,
+  clampBalance,
+  clampGain,
+  computeEqSpline,
+  formatClock,
+  formatLedClock,
+  formatM3u,
+  formatVizLabel,
+  isPlayableOrPlaylist,
+  isPlaylistFile,
+  mediaKindOfName,
+  normalizeVizSpec,
+  parseFlac,
+  parseId3,
+  parseLrc,
+  parseM3u,
+  parseMp4Tags,
+  parseOggTags,
+  parseVizLayers,
+  renderAudioVisualizer,
+  srtToVtt,
+  subtitleText,
 } from "../resources/file_manager/ui/mediacore.js";
-import { generateMediaPlayerStudioHtml, startMediaPlayerStudioServer } from "../applications/media_player_studio";
+import {
+  generateMediaPlayerStudioHtml,
+  startMediaPlayerStudioServer,
+} from "../applications/media_player_studio";
 
 const enc = new TextEncoder();
-const cat = (...parts: Array<Uint8Array | number[]>) => Uint8Array.from(parts.flatMap((p) => Array.from(p)));
-const be32 = (n: number) => [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255];
-const le32 = (n: number) => [n & 255, (n >>> 8) & 255, (n >>> 16) & 255, (n >>> 24) & 255];
-const sync = (n: number) => [(n >>> 21) & 127, (n >>> 14) & 127, (n >>> 7) & 127, n & 127];
-const PNG = Uint8Array.from(Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64"));
+const cat = (...parts: Array<Uint8Array | number[]>) =>
+  Uint8Array.from(parts.flatMap((p) => Array.from(p)));
+const be32 = (n: number) => [
+  (n >>> 24) & 255,
+  (n >>> 16) & 255,
+  (n >>> 8) & 255,
+  n & 255,
+];
+const le32 = (n: number) => [
+  n & 255,
+  (n >>> 8) & 255,
+  (n >>> 16) & 255,
+  (n >>> 24) & 255,
+];
+const sync = (n: number) => [
+  (n >>> 21) & 127,
+  (n >>> 14) & 127,
+  (n >>> 7) & 127,
+  n & 127,
+];
+const PNG = Uint8Array.from(
+  Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+    "base64",
+  ),
+);
 
 describe("which files play", () => {
   test("the page and the server agree on the formats", () => {
@@ -44,10 +97,13 @@ describe("clock text and subtitles", () => {
     expect(formatClock(5.9)).toBe("0:05");
     expect(formatClock(65)).toBe("1:05");
     expect(formatClock(3725)).toBe("1:02:05");
-    for (const bad of [NaN, Infinity, -3, undefined as any]) expect(formatClock(bad)).toBe("0:00");
+    for (const bad of [NaN, Infinity, -3, undefined as any])
+      expect(formatClock(bad)).toBe("0:00");
   });
   test("SubRip becomes WebVTT; a WebVTT file is left alone", () => {
-    const vtt = srtToVtt("\uFEFF1\r\n00:00:01,500 --> 00:00:03,000\r\nHello, world\r\n");
+    const vtt = srtToVtt(
+      "\uFEFF1\r\n00:00:01,500 --> 00:00:03,000\r\nHello, world\r\n",
+    );
     expect(vtt.startsWith("WEBVTT\n\n")).toBe(true);
     expect(vtt).toContain("00:00:01.500 --> 00:00:03.000");
     expect(vtt).toContain("Hello, world");
@@ -56,75 +112,196 @@ describe("clock text and subtitles", () => {
     expect(srtToVtt(already)).toBe(already);
   });
   test("subtitle text drops cue numbers and timestamps for the lyrics panel", () => {
-    expect(subtitleText("WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nFirst line\n\n2\n00:00:03,000 --> 00:00:04,000\nSecond line"))
-      .toBe("First line\n\nSecond line");
+    expect(
+      subtitleText(
+        "WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nFirst line\n\n2\n00:00:03,000 --> 00:00:04,000\nSecond line",
+      ),
+    ).toBe("First line\n\nSecond line");
   });
 });
 
 describe("ID3 tags (MP3)", () => {
-  const frame3 = (id: string, body: number[]) => [...enc.encode(id), ...be32(body.length), 0, 0, ...body];
+  const frame3 = (id: string, body: number[]) => [
+    ...enc.encode(id),
+    ...be32(body.length),
+    0,
+    0,
+    ...body,
+  ];
   const text = (s: string) => [3, ...enc.encode(s)]; // UTF-8
   test("v2.3 text frames and a front cover", () => {
     const apic = [0, ...enc.encode("image/png"), 0, 3, 0, ...PNG];
-    const frames = [...frame3("TIT2", text("Blue Train")), ...frame3("TPE1", text("John Coltrane")), ...frame3("TALB", text("Blue Train")), ...frame3("TYER", text("1958")), ...frame3("TRCK", text("2/5")), ...frame3("APIC", apic)];
-    const tag = cat(enc.encode("ID3"), [3, 0, 0], sync(frames.length), frames, new Array(40).fill(0));
+    const frames = [
+      ...frame3("TIT2", text("Blue Train")),
+      ...frame3("TPE1", text("John Coltrane")),
+      ...frame3("TALB", text("Blue Train")),
+      ...frame3("TYER", text("1958")),
+      ...frame3("TRCK", text("2/5")),
+      ...frame3("APIC", apic),
+    ];
+    const tag = cat(
+      enc.encode("ID3"),
+      [3, 0, 0],
+      sync(frames.length),
+      frames,
+      new Array(40).fill(0),
+    );
     const t = parseId3(tag)!;
-    expect([t.title, t.artist, t.album, t.year, t.track]).toEqual(["Blue Train", "John Coltrane", "Blue Train", "1958", "2/5"]);
+    expect([t.title, t.artist, t.album, t.year, t.track]).toEqual([
+      "Blue Train",
+      "John Coltrane",
+      "Blue Train",
+      "1958",
+      "2/5",
+    ]);
     expect((t as any).cover.mime).toBe("image/png");
     expect(Array.from((t as any).cover.data)).toEqual(Array.from(PNG));
   });
   test("v2.4 uses sync-safe frame sizes; UTF-16 text with a byte-order mark is read", () => {
-    const utf16 = [1, 0xff, 0xfe, ...Array.from("Żółć").flatMap((c) => [c.charCodeAt(0) & 255, c.charCodeAt(0) >> 8])];
+    const utf16 = [
+      1,
+      0xff,
+      0xfe,
+      ...Array.from("Żółć").flatMap((c) => [
+        c.charCodeAt(0) & 255,
+        c.charCodeAt(0) >> 8,
+      ]),
+    ];
     const f = [...enc.encode("TIT2"), ...sync(utf16.length), 0, 0, ...utf16];
     const tag = cat(enc.encode("ID3"), [4, 0, 0], sync(f.length), f);
     expect(parseId3(tag)!.title).toBe("Żółć");
   });
   test("v2.2 three-letter frames", () => {
     const body = [0, ...enc.encode("Old Song")];
-    const f = [...enc.encode("TT2"), (body.length >> 16) & 255, (body.length >> 8) & 255, body.length & 255, ...body];
+    const f = [
+      ...enc.encode("TT2"),
+      (body.length >> 16) & 255,
+      (body.length >> 8) & 255,
+      body.length & 255,
+      ...body,
+    ];
     const tag = cat(enc.encode("ID3"), [2, 0, 0], sync(f.length), f);
     expect(parseId3(tag)!.title).toBe("Old Song");
   });
   test("unsynchronized lyrics preserve line breaks", () => {
     const lyrics = enc.encode("First line\nSecond line");
     const body = [3, ...enc.encode("eng"), 0, ...lyrics];
-    const tag = cat(enc.encode("ID3"), [3, 0, 0], sync(frame3("USLT", body).length), frame3("USLT", body));
+    const tag = cat(
+      enc.encode("ID3"),
+      [3, 0, 0],
+      sync(frame3("USLT", body).length),
+      frame3("USLT", body),
+    );
     expect(parseId3(tag)!.lyrics).toBe("First line\nSecond line");
   });
   test("no tag, a damaged tag, or an empty one gives null and never throws", () => {
     expect(parseId3(new Uint8Array(0))).toBeNull();
     expect(parseId3(enc.encode("not an mp3 at all"))).toBeNull();
-    expect(parseId3(cat(enc.encode("ID3"), [3, 0, 0], sync(500), [1, 2, 3]))).toBeNull();
+    expect(
+      parseId3(cat(enc.encode("ID3"), [3, 0, 0], sync(500), [1, 2, 3])),
+    ).toBeNull();
     expect(parseId3(cat(enc.encode("ID3"), [9, 0, 0], sync(0)))).toBeNull();
   });
 });
 
 describe("MP4 / M4A tags", () => {
-  const box = (type: string, ...kids: Array<number[] | Uint8Array>) => { const body = cat(...kids); return cat(be32(8 + body.length), type.length === 4 ? Array.from(type, (c) => c.charCodeAt(0)) : [], body); };
-  const item = (type: string, flags: number, payload: Uint8Array | number[]) => box(type, box("data", [0, (flags >> 16) & 255, (flags >> 8) & 255, flags & 255, 0, 0, 0, 0], payload));
+  const box = (type: string, ...kids: Array<number[] | Uint8Array>) => {
+    const body = cat(...kids);
+    return cat(
+      be32(8 + body.length),
+      type.length === 4 ? Array.from(type, (c) => c.charCodeAt(0)) : [],
+      body,
+    );
+  };
+  const item = (type: string, flags: number, payload: Uint8Array | number[]) =>
+    box(
+      type,
+      box(
+        "data",
+        [0, (flags >> 16) & 255, (flags >> 8) & 255, flags & 255, 0, 0, 0, 0],
+        payload,
+      ),
+    );
   test("title, artist, album, year, track and cover from the iTunes atoms", () => {
-    const ilst = box("ilst", item("\u00a9nam", 1, enc.encode("AAC Tone")), item("\u00a9ART", 1, enc.encode("M4A Band")), item("\u00a9alb", 1, enc.encode("Atoms")), item("\u00a9day", 1, enc.encode("2026-01-02")), item("trkn", 0, [0, 0, 0, 7, 0, 9, 0, 0]), item("covr", 14, PNG));
+    const ilst = box(
+      "ilst",
+      item("\u00a9nam", 1, enc.encode("AAC Tone")),
+      item("\u00a9ART", 1, enc.encode("M4A Band")),
+      item("\u00a9alb", 1, enc.encode("Atoms")),
+      item("\u00a9day", 1, enc.encode("2026-01-02")),
+      item("trkn", 0, [0, 0, 0, 7, 0, 9, 0, 0]),
+      item("covr", 14, PNG),
+    );
     const moov = box("moov", box("udta", box("meta", [0, 0, 0, 0], ilst)));
     const t = parseMp4Tags(moov.subarray(8))!;
-    expect([t.title, t.artist, t.album, t.year, t.track]).toEqual(["AAC Tone", "M4A Band", "Atoms", "2026", "7"]);
+    expect([t.title, t.artist, t.album, t.year, t.track]).toEqual([
+      "AAC Tone",
+      "M4A Band",
+      "Atoms",
+      "2026",
+      "7",
+    ]);
     expect((t as any).cover.mime).toBe("image/png");
     expect((t as any).cover.data.length).toBe(PNG.length);
   });
   test("nothing useful, or a box that lies about its size, gives null", () => {
     expect(parseMp4Tags(new Uint8Array(0))).toBeNull();
-    expect(parseMp4Tags(cat(be32(9999), enc.encode("udta"), [1, 2, 3]))).toBeNull();
+    expect(
+      parseMp4Tags(cat(be32(9999), enc.encode("udta"), [1, 2, 3])),
+    ).toBeNull();
   });
 });
 
 describe("FLAC tags", () => {
-  const block = (type: number, last: boolean, body: number[]) => [(last ? 0x80 : 0) | type, (body.length >> 16) & 255, (body.length >> 8) & 255, body.length & 255, ...body];
+  const block = (type: number, last: boolean, body: number[]) => [
+    (last ? 0x80 : 0) | type,
+    (body.length >> 16) & 255,
+    (body.length >> 8) & 255,
+    body.length & 255,
+    ...body,
+  ];
   test("Vorbis comments and the front cover", () => {
-    const comments = ["TITLE=Flac Tone", "ARTIST=Flac Ensemble", "ALBUM=Lossless", "DATE=2026-03-04", "TRACKNUMBER=3", "LYRICS=First verse\nSecond line", "bad line"].map((c) => enc.encode(c));
-    const vorbis = [...le32(3), ...enc.encode("bun"), ...le32(comments.length), ...comments.flatMap((c) => [...le32(c.length), ...c])];
-    const picture = [...be32(3), ...be32(9), ...enc.encode("image/png"), ...be32(0), ...be32(1), ...be32(1), ...be32(24), ...be32(0), ...be32(PNG.length), ...PNG];
-    const file = cat(enc.encode("fLaC"), block(0, false, new Array(34).fill(0)), block(4, false, vorbis), block(6, true, picture));
+    const comments = [
+      "TITLE=Flac Tone",
+      "ARTIST=Flac Ensemble",
+      "ALBUM=Lossless",
+      "DATE=2026-03-04",
+      "TRACKNUMBER=3",
+      "LYRICS=First verse\nSecond line",
+      "bad line",
+    ].map((c) => enc.encode(c));
+    const vorbis = [
+      ...le32(3),
+      ...enc.encode("bun"),
+      ...le32(comments.length),
+      ...comments.flatMap((c) => [...le32(c.length), ...c]),
+    ];
+    const picture = [
+      ...be32(3),
+      ...be32(9),
+      ...enc.encode("image/png"),
+      ...be32(0),
+      ...be32(1),
+      ...be32(1),
+      ...be32(24),
+      ...be32(0),
+      ...be32(PNG.length),
+      ...PNG,
+    ];
+    const file = cat(
+      enc.encode("fLaC"),
+      block(0, false, new Array(34).fill(0)),
+      block(4, false, vorbis),
+      block(6, true, picture),
+    );
     const t = parseFlac(file)!;
-    expect([t.title, t.artist, t.album, t.year, t.track]).toEqual(["Flac Tone", "Flac Ensemble", "Lossless", "2026", "3"]);
+    expect([t.title, t.artist, t.album, t.year, t.track]).toEqual([
+      "Flac Tone",
+      "Flac Ensemble",
+      "Lossless",
+      "2026",
+      "3",
+    ]);
     expect(t.lyrics).toBe("First verse\nSecond line");
     expect((t as any).cover.mime).toBe("image/png");
     expect(Array.from((t as any).cover.data)).toEqual(Array.from(PNG));
@@ -132,7 +309,9 @@ describe("FLAC tags", () => {
 
   test("not FLAC, or cut short, gives null", () => {
     expect(parseFlac(enc.encode("RIFFxxxx"))).toBeNull();
-    expect(parseFlac(cat(enc.encode("fLaC"), [0x84, 0, 0xff, 0xff, 1, 2, 3]))).toBeNull();
+    expect(
+      parseFlac(cat(enc.encode("fLaC"), [0x84, 0, 0xff, 0xff, 1, 2, 3])),
+    ).toBeNull();
   });
 });
 
@@ -141,33 +320,130 @@ describe("Ogg embedded lyrics", () => {
     const vendor = enc.encode("test");
     const comment = enc.encode("LYRICS=First verse\nSecond line");
     const le = (n: number) => le32(n);
-    const tags = cat(enc.encode("OpusTags"), le(vendor.length), vendor, le(1), le(comment.length), comment);
+    const tags = cat(
+      enc.encode("OpusTags"),
+      le(vendor.length),
+      vendor,
+      le(1),
+      le(comment.length),
+      comment,
+    );
     expect(parseOggTags(tags)!.lyrics).toBe("First verse\nSecond line");
   });
 });
 
-const ffmpeg = ["/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg", Bun.which("ffmpeg") ?? ""].find((p) => p && existsSync(p) && Bun.spawnSync([p, "-version"]).exitCode === 0);
+const ffmpeg = [
+  "/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg",
+  Bun.which("ffmpeg") ?? "",
+].find(
+  (p) => p && existsSync(p) && Bun.spawnSync([p, "-version"]).exitCode === 0,
+);
 describe.skipIf(!ffmpeg)("real files made by ffmpeg", () => {
   let dir: string;
-  beforeAll(() => { dir = mkdtempSync(join(tmpdir(), "fm-player-")); });
-  afterAll(() => { rmSync(dir, { recursive: true, force: true }); });
-  const run = (args: string[]) => expect(Bun.spawnSync([ffmpeg!, "-y", "-loglevel", "error", ...args], { cwd: dir }).exitCode).toBe(0);
+  beforeAll(() => {
+    dir = mkdtempSync(join(tmpdir(), "fm-player-"));
+  });
+  afterAll(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+  const run = (args: string[]) =>
+    expect(
+      Bun.spawnSync([ffmpeg!, "-y", "-loglevel", "error", ...args], {
+        cwd: dir,
+      }).exitCode,
+    ).toBe(0);
   test("an MP3 with ID3 tags and a cover", () => {
     mkdirSync(dir, { recursive: true });
-    run(["-f", "lavfi", "-i", "testsrc2=size=64x64:rate=1", "-frames:v", "1", "cover.png"]);
-    run(["-f", "lavfi", "-i", "sine=duration=1", "-i", "cover.png", "-map", "0", "-map", "1", "-c:a", "libmp3lame", "-c:v", "copy", "-id3v2_version", "3", "-metadata", "title=Real Song", "-metadata", "artist=Real Artist", "-metadata", "album=Real Album", "-metadata", "date=2024", "-metadata", "track=4", "-disposition:v", "attached_pic", "a.mp3"]);
+    run([
+      "-f",
+      "lavfi",
+      "-i",
+      "testsrc2=size=64x64:rate=1",
+      "-frames:v",
+      "1",
+      "cover.png",
+    ]);
+    run([
+      "-f",
+      "lavfi",
+      "-i",
+      "sine=duration=1",
+      "-i",
+      "cover.png",
+      "-map",
+      "0",
+      "-map",
+      "1",
+      "-c:a",
+      "libmp3lame",
+      "-c:v",
+      "copy",
+      "-id3v2_version",
+      "3",
+      "-metadata",
+      "title=Real Song",
+      "-metadata",
+      "artist=Real Artist",
+      "-metadata",
+      "album=Real Album",
+      "-metadata",
+      "date=2024",
+      "-metadata",
+      "track=4",
+      "-disposition:v",
+      "attached_pic",
+      "a.mp3",
+    ]);
     const t = parseId3(new Uint8Array(readFileSync(join(dir, "a.mp3"))))!;
-    expect([t.title, t.artist, t.album, t.year, t.track]).toEqual(["Real Song", "Real Artist", "Real Album", "2024", "4"]);
+    expect([t.title, t.artist, t.album, t.year, t.track]).toEqual([
+      "Real Song",
+      "Real Artist",
+      "Real Album",
+      "2024",
+      "4",
+    ]);
     expect((t as any).cover.mime).toContain("png");
     expect((t as any).cover.data[1]).toBe(0x50);
   });
   test("a FLAC with Vorbis comments", () => {
-    run(["-f", "lavfi", "-i", "sine=duration=1", "-metadata", "title=Real Flac", "-metadata", "artist=Flac Artist", "b.flac"]);
+    run([
+      "-f",
+      "lavfi",
+      "-i",
+      "sine=duration=1",
+      "-metadata",
+      "title=Real Flac",
+      "-metadata",
+      "artist=Flac Artist",
+      "b.flac",
+    ]);
     const t = parseFlac(new Uint8Array(readFileSync(join(dir, "b.flac"))))!;
     expect([t.title, t.artist]).toEqual(["Real Flac", "Flac Artist"]);
   });
   test("an M4A with tags and a cover (the moov box is found and read)", () => {
-    run(["-f", "lavfi", "-i", "sine=duration=1", "-i", "cover.png", "-map", "0", "-map", "1", "-c:a", "aac", "-c:v", "copy", "-disposition:v", "attached_pic", "-metadata", "title=Real M4A", "-metadata", "artist=M4A Artist", "c.m4a"]);
+    run([
+      "-f",
+      "lavfi",
+      "-i",
+      "sine=duration=1",
+      "-i",
+      "cover.png",
+      "-map",
+      "0",
+      "-map",
+      "1",
+      "-c:a",
+      "aac",
+      "-c:v",
+      "copy",
+      "-disposition:v",
+      "attached_pic",
+      "-metadata",
+      "title=Real M4A",
+      "-metadata",
+      "artist=M4A Artist",
+      "c.m4a",
+    ]);
     const bytes = new Uint8Array(readFileSync(join(dir, "c.m4a")));
     // The page walks the top-level boxes; do the same here.
     let pos = 0;
@@ -176,7 +452,10 @@ describe.skipIf(!ffmpeg)("real files made by ffmpeg", () => {
     while (pos + 8 <= bytes.length) {
       const size = dv.getUint32(pos);
       const type = String.fromCharCode(...bytes.subarray(pos + 4, pos + 8));
-      if (type === "moov") { moov = bytes.subarray(pos + 8, pos + size); break; }
+      if (type === "moov") {
+        moov = bytes.subarray(pos + 8, pos + size);
+        break;
+      }
       pos += size;
     }
     const t = parseMp4Tags(moov!)!;
@@ -186,7 +465,10 @@ describe.skipIf(!ffmpeg)("real files made by ffmpeg", () => {
 });
 
 describe("the play queue", () => {
-  const seeded = (seed = 1) => { let s = seed; return () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646; };
+  const seeded = (seed = 1) => {
+    let s = seed;
+    return () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646;
+  };
   test("plays in order, then stops; Next at the end of a longer list wraps", () => {
     const q = new PlayQueue(3, 0);
     expect([q.next(true), q.next(true), q.next(true)]).toEqual([1, 2, null]);
@@ -218,7 +500,9 @@ describe("the play queue", () => {
     // Turning shuffle off keeps the current track and carries on in the list's own order.
     expect(q.index).toBe(seen.at(-1)!);
     const after = q.next(true);
-    expect(after === null ? q.index === 7 : after === seen.at(-1)! + 1).toBe(true);
+    expect(after === null ? q.index === 7 : after === seen.at(-1)! + 1).toBe(
+      true,
+    );
   });
   test("Previous restarts after the first seconds, and goes back before that", () => {
     const q = new PlayQueue(3, 2);
@@ -250,8 +534,19 @@ describe("the equalizer", () => {
     expect(EQ_PRESETS.Flat.every((g: number) => g === 0)).toBe(true);
   });
   test("gains and stereo balance are rounded and clamped; nonsense is 0", () => {
-    expect([clampGain(3.6), clampGain(99), clampGain(-99), clampGain("x"), clampGain(undefined)]).toEqual([4, 12, -12, 0, 0]);
-    expect([clampBalance(-150), clampBalance(45.4), clampBalance(150), clampBalance("bad")]).toEqual([-100, 45, 100, 0]);
+    expect([
+      clampGain(3.6),
+      clampGain(99),
+      clampGain(-99),
+      clampGain("x"),
+      clampGain(undefined),
+    ]).toEqual([4, 12, -12, 0, 0]);
+    expect([
+      clampBalance(-150),
+      clampBalance(45.4),
+      clampBalance(150),
+      clampBalance("bad"),
+    ]).toEqual([-100, 45, 100, 0]);
   });
   test("computeEqSpline builds smooth points and anchors for the 10-band curve", () => {
     const spline = computeEqSpline(3, EQ_PRESETS.Rock, 240, 60);
@@ -270,9 +565,14 @@ describe("Digital LED clock, synced LRC lyrics, and M3U8 playlists", () => {
   });
 
   test("parseLrc and activeLrcIndex parse synced karaoke lyrics and track active cues", () => {
-    const sample = "[ti:Cyber Song]\n[ar:Codecaine]\n[00:05.00]First line\n[00:12.50]Second line\n[00:25.00]Third line";
+    const sample =
+      "[ti:Cyber Song]\n[ar:Codecaine]\n[00:05.00]First line\n[00:12.50]Second line\n[00:25.00]Third line";
     const cues = parseLrc(sample);
-    expect(cues.map((c: any) => c.text)).toEqual(["First line", "Second line", "Third line"]);
+    expect(cues.map((c: any) => c.text)).toEqual([
+      "First line",
+      "Second line",
+      "Third line",
+    ]);
     expect(activeLrcIndex(cues, 2)).toBe(-1);
     expect(activeLrcIndex(cues, 5.1)).toBe(0);
     expect(activeLrcIndex(cues, 15)).toBe(1);
@@ -288,13 +588,23 @@ describe("Digital LED clock, synced LRC lyrics, and M3U8 playlists", () => {
     expect(m3uText).toContain("#EXTINF:185,Artist A - Track One");
     const items = parseM3u(m3uText);
     expect(items.length).toBe(2);
-    expect(items[0]).toEqual({ path: "/music/one.mp3", title: "Artist A - Track One", duration: 185 });
+    expect(items[0]).toEqual({
+      path: "/music/one.mp3",
+      title: "Artist A - Track One",
+      duration: 185,
+    });
     expect(items[1]!.path).toBe("/music/two.flac");
   });
 
   test("16 studio skins, 108 visualizer modes across Low/Medium/ARM Ultra tiers, multi-layer mixing, and 32 EQ presets", () => {
     expect(PLAYER_SKINS.length).toBe(16);
-    expect(PLAYER_SKINS.slice(0, 5).map((s: any) => s.id)).toEqual(["classic", "modern", "cyberpunk", "amber", "theme"]);
+    expect(PLAYER_SKINS.slice(0, 5).map((s: any) => s.id)).toEqual([
+      "classic",
+      "modern",
+      "cyberpunk",
+      "amber",
+      "theme",
+    ]);
     expect(PLAYER_SKINS.map((s: any) => s.id)).toContain("outrun");
     expect(PLAYER_SKINS.map((s: any) => s.id)).toContain("liquid_metal");
     expect(Object.keys(EQ_PRESETS).length).toBe(32);
@@ -324,16 +634,36 @@ describe("Digital LED clock, synced LRC lyrics, and M3U8 playlists", () => {
     ]);
 
     // Verify Low, Medium, and Modern ARM Ultra hardware tiers are populated
-    expect(DECK_HARDWARE_TIERS.map((t: any) => t.id)).toEqual(["auto", "low", "medium", "high", "ultra"]);
-    expect(VIZ_MODES.filter((m: any) => m.tier === "low").length).toBeGreaterThanOrEqual(25);
-    expect(VIZ_MODES.filter((m: any) => m.tier === "medium").length).toBeGreaterThanOrEqual(35);
-    expect(VIZ_MODES.filter((m: any) => m.tier === "ultra").length).toBeGreaterThanOrEqual(40);
+    expect(DECK_HARDWARE_TIERS.map((t: any) => t.id)).toEqual([
+      "auto",
+      "low",
+      "medium",
+      "high",
+      "ultra",
+    ]);
+    expect(
+      VIZ_MODES.filter((m: any) => m.tier === "low").length,
+    ).toBeGreaterThanOrEqual(25);
+    expect(
+      VIZ_MODES.filter((m: any) => m.tier === "medium").length,
+    ).toBeGreaterThanOrEqual(35);
+    expect(
+      VIZ_MODES.filter((m: any) => m.tier === "ultra").length,
+    ).toBeGreaterThanOrEqual(40);
 
     // Verify Multi-Layer Visualizer Mixing helpers & 12 Signature Mix Presets
     expect(VIZ_MIX_PRESETS.length).toBe(12);
-    expect(parseVizLayers("synthwave+spectrum+starfield")).toEqual(["synthwave", "spectrum", "starfield"]);
-    expect(normalizeVizSpec(" synthwave + spectrum + synthwave + invalid_id ")).toBe("synthwave+spectrum");
-    expect(formatVizLabel("synthwave+spectrum+starfield")).toContain("1984 Outrun Stage");
+    expect(parseVizLayers("synthwave+spectrum+starfield")).toEqual([
+      "synthwave",
+      "spectrum",
+      "starfield",
+    ]);
+    expect(
+      normalizeVizSpec(" synthwave + spectrum + synthwave + invalid_id "),
+    ).toBe("synthwave+spectrum");
+    expect(formatVizLabel("synthwave+spectrum+starfield")).toContain(
+      "1984 Outrun Stage",
+    );
 
     // Verify renderAudioVisualizer executes without error for all 108 modes AND multi-layer mixes
     const ops: string[] = [];
@@ -372,13 +702,33 @@ describe("Digital LED clock, synced LRC lyrics, and M3U8 playlists", () => {
     const peaks = new Float32Array(64);
     for (const mode of VIZ_MODES) {
       ops.length = 0;
-      renderAudioVisualizer(mockCtx, 360, 120, mode.id, freq, time, peaks, "#00ff44", 42);
+      renderAudioVisualizer(
+        mockCtx,
+        360,
+        120,
+        mode.id,
+        freq,
+        time,
+        peaks,
+        "#00ff44",
+        42,
+      );
       expect(ops.length, mode.id).toBeGreaterThan(1);
     }
 
     // Multi-layer composite rendering test
     ops.length = 0;
-    renderAudioVisualizer(mockCtx, 360, 120, "synthwave+spectrum+starfield", freq, time, peaks, "#00ff44", 42);
+    renderAudioVisualizer(
+      mockCtx,
+      360,
+      120,
+      "synthwave+spectrum+starfield",
+      freq,
+      time,
+      peaks,
+      "#00ff44",
+      42,
+    );
     expect(ops.filter((op) => op === "save").length).toBe(3);
     expect(ops.length).toBeGreaterThan(20);
 
@@ -409,7 +759,10 @@ describe("Digital LED clock, synced LRC lyrics, and M3U8 playlists", () => {
     expect(html).toContain("setStageFill");
     expect(html).toContain("studio-help:media_player_studio");
 
-    const deckJs = readFileSync(join(import.meta.dir, "../resources/file_manager/ui/playerDeck.js"), "utf8");
+    const deckJs = readFileSync(
+      join(import.meta.dir, "../resources/file_manager/ui/playerDeck.js"),
+      "utf8",
+    );
     expect(deckJs).toContain("wa-floating-pip");
     expect(deckJs).toContain("openFloatingPip");
     expect(deckJs).toContain("popOutNativeOsPip");
@@ -435,4 +788,3 @@ describe("Digital LED clock, synced LRC lyrics, and M3U8 playlists", () => {
     }
   });
 });
-

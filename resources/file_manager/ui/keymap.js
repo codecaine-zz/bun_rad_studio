@@ -1,7 +1,13 @@
 // The shortcuts in force on this page: the defaults with the person's changes (Settings → Keyboard shortcuts) on top.
 // The key handlers ask here; the Code tab's own table (codeKeys.js) is kept in step.
 import { KEYMAP } from "./codeKeys.js";
-import { ACTIONS, effectiveKeys, formatShortcut, matchShortcut, setBackspaceDeletes } from "./shortcuts.js";
+import {
+  ACTIONS,
+  effectiveKeys,
+  formatShortcut,
+  matchShortcut,
+  setBackspaceDeletes,
+} from "./shortcuts.js";
 import { state } from "./state.js";
 
 let signature = "";
@@ -17,7 +23,8 @@ function refresh() {
   setBackspaceDeletes(backspace);
   current = effectiveKeys(overrides, state.platform);
   // The Code tab reads its keys from this table (its menus, palette, help list and key handler).
-  for (const a of ACTIONS) if (a.command) KEYMAP[a.command] = [...(current.keys.get(a.id) ?? [])];
+  for (const a of ACTIONS)
+    if (a.command) KEYMAP[a.command] = [...(current.keys.get(a.id) ?? [])];
 }
 
 /** The shortcuts of an action now (["Mod+S"], or [] when it has none). */
@@ -44,7 +51,8 @@ export function hintOf(id) {
   return l ? ` (${l})` : "";
 }
 
-export const matchesAction = (e, id) => keysOf(id).some((spec) => matchShortcut(e, spec, state.platform));
+export const matchesAction = (e, id) =>
+  keysOf(id).some((spec) => matchShortcut(e, spec, state.platform));
 
 /** The first of `ids` (default: every action) whose shortcut this key press is, or null. */
 export function actionFor(e, ids = ACTIONS.map((a) => a.id)) {

@@ -1,13 +1,19 @@
 /**
  * ⚡ Bun RAD Studio - Redis Studio Pro Specification & Verification Suite
- * 
+ *
  * Tests the complete native Redis Studio Pro engine, background telemetry server,
  * data structure operations, CLI command runner, Pub/Sub system, and workstation HTML.
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
-import { startRedisStudioServer, RedisManager } from "../applications/redis_studio_server.ts";
-import { generateRedisStudioHtml, createRedisStudio } from "../applications/redis_studio.ts";
+import {
+  startRedisStudioServer,
+  RedisManager,
+} from "../applications/redis_studio_server.ts";
+import {
+  generateRedisStudioHtml,
+  createRedisStudio,
+} from "../applications/redis_studio.ts";
 import { describeRedis, TEST_REDIS_URL } from "./helpers/redis";
 
 describeRedis("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
@@ -47,7 +53,7 @@ describeRedis("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
   it("2. Telemetry and KPIs endpoint reports real-time metrics", async () => {
     const res = await fetch(`${baseUrl}/api/kpis`);
     expect(res.status).toBe(200);
-    const kpis = await res.json() as any;
+    const kpis = (await res.json()) as any;
     expect(kpis.connected).toBe(true);
     expect(typeof kpis.totalKeys).toBe("number");
     expect(typeof kpis.usedMemoryHuman).toBe("string");
@@ -58,7 +64,7 @@ describeRedis("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
   it("3. Enterprise Sample Dataset seeder populates rich multi-type keys", async () => {
     const res = await fetch(`${baseUrl}/api/seed`, { method: "POST" });
     expect(res.status).toBe(200);
-    const data = await res.json() as any;
+    const data = (await res.json()) as any;
     expect(data.success).toBe(true);
     expect(data.keysCreated).toBeGreaterThan(0);
   });
@@ -66,7 +72,7 @@ describeRedis("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
   it("4. Key scanner reflects seeded keys and calculates namespace hierarchies", async () => {
     const res = await fetch(`${baseUrl}/api/keys?pattern=*`);
     expect(res.status).toBe(200);
-    const data = await res.json() as any;
+    const data = (await res.json()) as any;
     expect(Array.isArray(data.keys)).toBe(true);
     expect(data.total).toBeGreaterThan(0);
 
@@ -80,50 +86,66 @@ describeRedis("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
 
   it("5. Key detail inspection inspects string, hash, list, set, and sorted set types", async () => {
     // String
-    const strRes = await fetch(`${baseUrl}/api/key/get?key=config:system:max_concurrency`);
-    const strData = await strRes.json() as any;
+    const strRes = await fetch(
+      `${baseUrl}/api/key/get?key=config:system:max_concurrency`,
+    );
+    const strData = (await strRes.json()) as any;
     expect(strData.type).toBe("string");
     expect(strData.value).toBe("5000");
 
     // Hash
-    const hashRes = await fetch(`${baseUrl}/api/key/get?key=catalog:product:SKU-9901`);
-    const hashData = await hashRes.json() as any;
+    const hashRes = await fetch(
+      `${baseUrl}/api/key/get?key=catalog:product:SKU-9901`,
+    );
+    const hashData = (await hashRes.json()) as any;
     expect(hashData.type).toBe("hash");
     expect(hashData.value.name).toBe("Quantum Pro Neural Accelerator");
     expect(hashData.value.category).toBe("Hardware");
 
     // List
-    const listRes = await fetch(`${baseUrl}/api/key/get?key=queue:worker:tasks`);
-    const listData = await listRes.json() as any;
+    const listRes = await fetch(
+      `${baseUrl}/api/key/get?key=queue:worker:tasks`,
+    );
+    const listData = (await listRes.json()) as any;
     expect(listData.type).toBe("list");
     expect(Array.isArray(listData.value)).toBe(true);
     expect(listData.length).toBeGreaterThan(0);
 
     // Set
-    const setRes = await fetch(`${baseUrl}/api/key/get?key=cluster:nodes:active`);
-    const setData = await setRes.json() as any;
+    const setRes = await fetch(
+      `${baseUrl}/api/key/get?key=cluster:nodes:active`,
+    );
+    const setData = (await setRes.json()) as any;
     expect(setData.type).toBe("set");
     expect(Array.isArray(setData.value)).toBe(true);
     expect(setData.length).toBeGreaterThan(0);
 
     // ZSet
-    const zsetRes = await fetch(`${baseUrl}/api/key/get?key=leaderboard:global_latency`);
-    const zsetData = await zsetRes.json() as any;
+    const zsetRes = await fetch(
+      `${baseUrl}/api/key/get?key=leaderboard:global_latency`,
+    );
+    const zsetData = (await zsetRes.json()) as any;
     expect(zsetData.type).toBe("zset");
     expect(Array.isArray(zsetData.value)).toBe(true);
-    expect(zsetData.value.some((it: any) => it.member === "edge-tokyo")).toBe(true);
+    expect(zsetData.value.some((it: any) => it.member === "edge-tokyo")).toBe(
+      true,
+    );
 
     // HyperLogLog (Clean Cardinality Counter inspection without binary text)
-    const hllRes = await fetch(`${baseUrl}/api/key/get?key=analytics:unique_visitors:today`);
-    const hllData = await hllRes.json() as any;
+    const hllRes = await fetch(
+      `${baseUrl}/api/key/get?key=analytics:unique_visitors:today`,
+    );
+    const hllData = (await hllRes.json()) as any;
     expect(hllData.type).toBe("hyperloglog");
     expect(hllData.isHyperLogLog).toBe(true);
     expect(hllData.value.cardinality).toBeGreaterThan(0);
     expect(hllData.value.rawHeader).toBe("HYLL");
 
     // Bitmap (Bit array offset inspection)
-    const bitRes = await fetch(`${baseUrl}/api/key/get?key=bitmap:user_active_days:usr_101`);
-    const bitData = await bitRes.json() as any;
+    const bitRes = await fetch(
+      `${baseUrl}/api/key/get?key=bitmap:user_active_days:usr_101`,
+    );
+    const bitData = (await bitRes.json()) as any;
     expect(bitData.type).toBe("bitmap");
     expect(bitData.isBitmap).toBe(true);
     expect(bitData.value.setBits).toBeGreaterThan(0);
@@ -137,14 +159,19 @@ describeRedis("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
     const setRes = await fetch(`${baseUrl}/api/key/set`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key: testKey, type: "string", value: "active", ttl: 300 }),
+      body: JSON.stringify({
+        key: testKey,
+        type: "string",
+        value: "active",
+        ttl: 300,
+      }),
     });
-    const setData = await setRes.json() as any;
+    const setData = (await setRes.json()) as any;
     expect(setData.success).toBe(true);
 
     // Verify TTL
     const getRes = await fetch(`${baseUrl}/api/key/get?key=${testKey}`);
-    const getData = await getRes.json() as any;
+    const getData = (await getRes.json()) as any;
     expect(getData.value).toBe("active");
     expect(getData.ttl).toBeGreaterThan(0);
 
@@ -154,12 +181,12 @@ describeRedis("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ key: testKey, ttl: 600 }),
     });
-    const ttlData = await ttlRes.json() as any;
+    const ttlData = (await ttlRes.json()) as any;
     expect(ttlData.success).toBe(true);
 
     // Query ground-truth TTL via GET /api/key/ttl
     const getTtlRes = await fetch(`${baseUrl}/api/key/ttl?key=${testKey}`);
-    const getTtlData = await getTtlRes.json() as any;
+    const getTtlData = (await getTtlRes.json()) as any;
     expect(getTtlData.success).toBe(true);
     expect(getTtlData.ttl).toBeGreaterThan(0);
     expect(getTtlData.ttl).toBeLessThanOrEqual(600);
@@ -170,7 +197,7 @@ describeRedis("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ oldKey: testKey, newKey: `${testKey}_renamed` }),
     });
-    const renameData = await renameRes.json() as any;
+    const renameData = (await renameRes.json()) as any;
     expect(renameData.success).toBe(true);
 
     // Delete
@@ -179,7 +206,7 @@ describeRedis("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ key: `${testKey}_renamed` }),
     });
-    const delData = await delRes.json() as any;
+    const delData = (await delRes.json()) as any;
     expect(delData.success).toBe(true);
   });
 
@@ -189,7 +216,7 @@ describeRedis("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ command: "PING" }),
     });
-    const cliData = await cliRes.json() as any;
+    const cliData = (await cliRes.json()) as any;
     expect(cliData.result).toBe("PONG");
     expect(typeof cliData.executionTimeMs).toBe("number");
 
@@ -199,7 +226,7 @@ describeRedis("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ command: "DBSIZE" }),
     });
-    const dbsizeData = await dbsizeRes.json() as any;
+    const dbsizeData = (await dbsizeRes.json()) as any;
     expect(typeof dbsizeData.result).toBe("number");
   });
 
@@ -210,34 +237,39 @@ describeRedis("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ channel: "alerts_test" }),
     });
-    const subData = await subRes.json() as any;
+    const subData = (await subRes.json()) as any;
     expect(subData.success).toBe(true);
 
     // Publish
     const pubRes = await fetch(`${baseUrl}/api/pubsub/publish`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ channel: "alerts_test", message: "CRITICAL: Server CPU spike" }),
+      body: JSON.stringify({
+        channel: "alerts_test",
+        message: "CRITICAL: Server CPU spike",
+      }),
     });
-    const pubData = await pubRes.json() as any;
+    const pubData = (await pubRes.json()) as any;
     expect(typeof pubData.receivers).toBe("number");
 
     // Fetch messages log
     const msgsRes = await fetch(`${baseUrl}/api/pubsub/messages`);
-    const msgsData = await msgsRes.json() as any;
+    const msgsData = (await msgsRes.json()) as any;
     expect(Array.isArray(msgsData.messages)).toBe(true);
-    expect(msgsData.messages.some((m: any) => m.channel === "alerts_test")).toBe(true);
+    expect(
+      msgsData.messages.some((m: any) => m.channel === "alerts_test"),
+    ).toBe(true);
   });
 
   it("9. Server info and slowlog inspection endpoints respond correctly", async () => {
     const infoRes = await fetch(`${baseUrl}/api/info?section=server`);
     expect(infoRes.status).toBe(200);
-    const infoData = await infoRes.json() as any;
+    const infoData = (await infoRes.json()) as any;
     expect(infoData.info).toContain("redis_version");
 
     const slowlogRes = await fetch(`${baseUrl}/api/slowlog`);
     expect(slowlogRes.status).toBe(200);
-    const slowlogData = await slowlogRes.json() as any;
+    const slowlogData = (await slowlogRes.json()) as any;
     expect(Array.isArray(slowlogData.slowlog)).toBe(true);
   });
 
@@ -254,46 +286,76 @@ describeRedis("⚡ Redis Studio Pro Enterprise Engine Suite", () => {
 
   it("11. Creating a Hash key via /api/key/set works with explicit field, JSON object, key:value lines, or plain string", async () => {
     const k1 = `test_hash_field_${Date.now()}`;
-    const r1 = await (await fetch(`${baseUrl}/api/key/set`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key: k1, type: "hash", field: "username", value: "alice", ttl: 120 }),
-    })).json() as any;
+    const r1 = (await (
+      await fetch(`${baseUrl}/api/key/set`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          key: k1,
+          type: "hash",
+          field: "username",
+          value: "alice",
+          ttl: 120,
+        }),
+      })
+    ).json()) as any;
     expect(r1.success).toBe(true);
-    const g1 = await (await fetch(`${baseUrl}/api/key/get?key=${encodeURIComponent(k1)}`)).json() as any;
+    const g1 = (await (
+      await fetch(`${baseUrl}/api/key/get?key=${encodeURIComponent(k1)}`)
+    ).json()) as any;
     expect(g1.type).toBe("hash");
     expect(g1.value).toEqual({ username: "alice" });
 
     const k2 = `test_hash_json_${Date.now()}`;
-    const r2 = await (await fetch(`${baseUrl}/api/key/set`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key: k2, type: "hash", value: '{"role":"admin","tier":"gold"}' }),
-    })).json() as any;
+    const r2 = (await (
+      await fetch(`${baseUrl}/api/key/set`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          key: k2,
+          type: "hash",
+          value: '{"role":"admin","tier":"gold"}',
+        }),
+      })
+    ).json()) as any;
     expect(r2.success).toBe(true);
-    const g2 = await (await fetch(`${baseUrl}/api/key/get?key=${encodeURIComponent(k2)}`)).json() as any;
+    const g2 = (await (
+      await fetch(`${baseUrl}/api/key/get?key=${encodeURIComponent(k2)}`)
+    ).json()) as any;
     expect(g2.type).toBe("hash");
     expect(g2.value).toEqual({ role: "admin", tier: "gold" });
 
     const k3 = `test_hash_lines_${Date.now()}`;
-    const r3 = await (await fetch(`${baseUrl}/api/key/set`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key: k3, type: "hash", value: "host:127.0.0.1\nport=6379" }),
-    })).json() as any;
+    const r3 = (await (
+      await fetch(`${baseUrl}/api/key/set`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          key: k3,
+          type: "hash",
+          value: "host:127.0.0.1\nport=6379",
+        }),
+      })
+    ).json()) as any;
     expect(r3.success).toBe(true);
-    const g3 = await (await fetch(`${baseUrl}/api/key/get?key=${encodeURIComponent(k3)}`)).json() as any;
+    const g3 = (await (
+      await fetch(`${baseUrl}/api/key/get?key=${encodeURIComponent(k3)}`)
+    ).json()) as any;
     expect(g3.type).toBe("hash");
     expect(g3.value).toEqual({ host: "127.0.0.1", port: "6379" });
 
     const k4 = `test_hash_plain_${Date.now()}`;
-    const r4 = await (await fetch(`${baseUrl}/api/key/set`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key: k4, type: "hash", value: "single_value" }),
-    })).json() as any;
+    const r4 = (await (
+      await fetch(`${baseUrl}/api/key/set`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: k4, type: "hash", value: "single_value" }),
+      })
+    ).json()) as any;
     expect(r4.success).toBe(true);
-    const g4 = await (await fetch(`${baseUrl}/api/key/get?key=${encodeURIComponent(k4)}`)).json() as any;
+    const g4 = (await (
+      await fetch(`${baseUrl}/api/key/get?key=${encodeURIComponent(k4)}`)
+    ).json()) as any;
     expect(g4.type).toBe("hash");
     expect(g4.value).toEqual({ field1: "single_value" });
 

@@ -8,10 +8,18 @@ function formatAccessCriterion(qualifiedField, criterionStr) {
   if (!criterionStr || !String(criterionStr).trim()) return "";
   const trimmed = String(criterionStr).trim();
   // Disallow semicolons and SQL comment markers to prevent statement injection
-  if (trimmed.includes(";") || trimmed.includes("--") || trimmed.includes("/*")) {
+  if (
+    trimmed.includes(";") ||
+    trimmed.includes("--") ||
+    trimmed.includes("/*")
+  ) {
     return qualifiedField + " = '" + trimmed.replace(/'/g, "''") + "'";
   }
-  if (/^(=|<>|!=|>|<|>=|<=|LIKE|NOT LIKE|ILIKE|NOT ILIKE|IN|NOT IN|BETWEEN|IS NULL|IS NOT NULL)/i.test(trimmed)) {
+  if (
+    /^(=|<>|!=|>|<|>=|<=|LIKE|NOT LIKE|ILIKE|NOT ILIKE|IN|NOT IN|BETWEEN|IS NULL|IS NOT NULL)/i.test(
+      trimmed,
+    )
+  ) {
     return qualifiedField + " " + trimmed;
   }
   if (/^['"].*['"]$/.test(trimmed)) {
@@ -34,24 +42,39 @@ function getSingularCandidate(tableName) {
 
 function getEntityMeta(name) {
   if (!currentSchema) return null;
-  return (currentSchema.tables || []).find(t => t.name === name) || (currentSchema.views || []).find(v => v.name === name) || null;
+  return (
+    (currentSchema.tables || []).find((t) => t.name === name) ||
+    (currentSchema.views || []).find((v) => v.name === name) ||
+    null
+  );
 }
 
 function formatPgTypeShort(rawType) {
-  if (!rawType) return 'ANY';
+  if (!rawType) return "ANY";
   let t = String(rawType).trim();
   const lower = t.toLowerCase();
-  if (lower.startsWith('timestamp with time zone')) return lower.replace('timestamp with time zone', 'timestamptz');
-  if (lower.startsWith('timestamp without time zone')) return lower.replace('timestamp without time zone', 'timestamp');
-  if (lower.startsWith('time with time zone')) return lower.replace('time with time zone', 'timetz');
-  if (lower.startsWith('time without time zone')) return lower.replace('time without time zone', 'time');
-  if (lower.startsWith('character varying')) return lower.replace('character varying', 'varchar');
-  if (lower === 'double precision') return 'float8';
+  if (lower.startsWith("timestamp with time zone"))
+    return lower.replace("timestamp with time zone", "timestamptz");
+  if (lower.startsWith("timestamp without time zone"))
+    return lower.replace("timestamp without time zone", "timestamp");
+  if (lower.startsWith("time with time zone"))
+    return lower.replace("time with time zone", "timetz");
+  if (lower.startsWith("time without time zone"))
+    return lower.replace("time without time zone", "time");
+  if (lower.startsWith("character varying"))
+    return lower.replace("character varying", "varchar");
+  if (lower === "double precision") return "float8";
   return t;
 }
 
 function findAllDesignerJoins(leftTableName, rightTableName) {
-  if (!currentSchema || !leftTableName || !rightTableName || leftTableName === rightTableName) return [];
+  if (
+    !currentSchema ||
+    !leftTableName ||
+    !rightTableName ||
+    leftTableName === rightTableName
+  )
+    return [];
   const leftMeta = getEntityMeta(leftTableName);
   const rightMeta = getEntityMeta(rightTableName);
   if (!leftMeta || !rightMeta) return [];
@@ -75,48 +98,107 @@ function findAllDesignerJoins(leftTableName, rightTableName) {
   }
 
   // 1. Explicit foreign key from leftMeta to rightMeta
-  (leftMeta.foreignKeys || []).forEach(fk => {
+  (leftMeta.foreignKeys || []).forEach((fk) => {
     if (fk.table === rightTableName) {
-      addCandidate(leftTableName, fk.from, rightTableName, fk.to || "id", "INNER", 100);
+      addCandidate(
+        leftTableName,
+        fk.from,
+        rightTableName,
+        fk.to || "id",
+        "INNER",
+        100,
+      );
     }
   });
 
   // 2. Reverse foreign key from rightMeta to leftMeta
-  (rightMeta.foreignKeys || []).forEach(fk => {
+  (rightMeta.foreignKeys || []).forEach((fk) => {
     if (fk.table === leftTableName) {
-      addCandidate(leftTableName, fk.to || "id", rightTableName, fk.from, "INNER", 100);
+      addCandidate(
+        leftTableName,
+        fk.to || "id",
+        rightTableName,
+        fk.from,
+        "INNER",
+        100,
+      );
     }
   });
 
   // 3. Conventional naming: leftTable has singular(rightTable)_id or rightTable_id column
   const rightSingular = getSingularCandidate(rightTableName).toLowerCase();
   const rightLower = rightTableName.toLowerCase();
-  (leftMeta.columns || []).forEach(c => {
+  (leftMeta.columns || []).forEach((c) => {
     const colLower = c.name.toLowerCase();
-    if (colLower === (rightSingular + "_id") || colLower === (rightLower + "_id") || colLower === (rightSingular + "id")) {
-      const targetPk = (rightMeta.columns || []).find(rc => rc.pk)?.name || "id";
-      addCandidate(leftTableName, c.name, rightTableName, targetPk, "INNER", 90);
+    if (
+      colLower === rightSingular + "_id" ||
+      colLower === rightLower + "_id" ||
+      colLower === rightSingular + "id"
+    ) {
+      const targetPk =
+        (rightMeta.columns || []).find((rc) => rc.pk)?.name || "id";
+      addCandidate(
+        leftTableName,
+        c.name,
+        rightTableName,
+        targetPk,
+        "INNER",
+        90,
+      );
     }
   });
 
   // Conventional naming: rightTable has singular(leftTable)_id or leftTable_id column
   const leftSingular = getSingularCandidate(leftTableName).toLowerCase();
   const leftLower = leftTableName.toLowerCase();
-  (rightMeta.columns || []).forEach(c => {
+  (rightMeta.columns || []).forEach((c) => {
     const colLower = c.name.toLowerCase();
-    if (colLower === (leftSingular + "_id") || colLower === (leftLower + "_id") || colLower === (leftSingular + "id")) {
-      const targetPk = (leftMeta.columns || []).find(lc => lc.pk)?.name || "id";
-      addCandidate(leftTableName, targetPk, rightTableName, c.name, "INNER", 90);
+    if (
+      colLower === leftSingular + "_id" ||
+      colLower === leftLower + "_id" ||
+      colLower === leftSingular + "id"
+    ) {
+      const targetPk =
+        (leftMeta.columns || []).find((lc) => lc.pk)?.name || "id";
+      addCandidate(
+        leftTableName,
+        targetPk,
+        rightTableName,
+        c.name,
+        "INNER",
+        90,
+      );
     }
   });
 
   // 4. Domain specific matching keys (excluding generic 'id' and standard audit fields)
-  const leftFields = (leftMeta.columns || []).map(c => c.name);
-  const rightFieldNames = new Set((rightMeta.columns || []).map(c => c.name));
-  const ignoredCols = new Set(["id", "created_at", "updated_at", "deleted_at", "status", "active", "type", "description", "name", "notes", "data", "metadata"]);
-  leftFields.forEach(c => {
+  const leftFields = (leftMeta.columns || []).map((c) => c.name);
+  const rightFieldNames = new Set((rightMeta.columns || []).map((c) => c.name));
+  const ignoredCols = new Set([
+    "id",
+    "created_at",
+    "updated_at",
+    "deleted_at",
+    "status",
+    "active",
+    "type",
+    "description",
+    "name",
+    "notes",
+    "data",
+    "metadata",
+  ]);
+  leftFields.forEach((c) => {
     const lower = c.toLowerCase();
-    if (rightFieldNames.has(c) && !ignoredCols.has(lower) && (lower.endsWith("_id") || lower.endsWith("_code") || lower.endsWith("_no") || lower.endsWith("_num") || lower.endsWith("_key"))) {
+    if (
+      rightFieldNames.has(c) &&
+      !ignoredCols.has(lower) &&
+      (lower.endsWith("_id") ||
+        lower.endsWith("_code") ||
+        lower.endsWith("_no") ||
+        lower.endsWith("_num") ||
+        lower.endsWith("_key"))
+    ) {
       addCandidate(leftTableName, c, rightTableName, c, "INNER", 80);
     }
   });
@@ -131,8 +213,12 @@ function suggestDesignerJoin(leftTableName, rightTableName) {
   const leftMeta = getEntityMeta(leftTableName);
   const rightMeta = getEntityMeta(rightTableName);
   if (!leftMeta || !rightMeta) return null;
-  const lf = (leftMeta.columns && leftMeta.columns[0]) ? leftMeta.columns[0].name : "id";
-  const rf = (rightMeta.columns && rightMeta.columns[0]) ? rightMeta.columns[0].name : "id";
+  const lf =
+    leftMeta.columns && leftMeta.columns[0] ? leftMeta.columns[0].name : "id";
+  const rf =
+    rightMeta.columns && rightMeta.columns[0]
+      ? rightMeta.columns[0].name
+      : "id";
   return {
     leftTable: leftTableName,
     rightTable: rightTableName,
@@ -144,7 +230,12 @@ function suggestDesignerJoin(leftTableName, rightTableName) {
 }
 
 function buildDesignerJoinPairs() {
-  if (!currentSchema || !queryDesignerState.selectedTables || !queryDesignerState.selectedTables.length) return [];
+  if (
+    !currentSchema ||
+    !queryDesignerState.selectedTables ||
+    !queryDesignerState.selectedTables.length
+  )
+    return [];
   const tables = queryDesignerState.selectedTables;
   if (tables.length === 1) return [];
 
@@ -181,8 +272,10 @@ function buildDesignerJoinPairs() {
     for (const edge of candidateEdges) {
       const leftIn = connected.has(edge.leftTable);
       const rightIn = connected.has(edge.rightTable);
-      if ((leftIn && !rightIn && unvisited.has(edge.rightTable)) ||
-          (rightIn && !leftIn && unvisited.has(edge.leftTable))) {
+      if (
+        (leftIn && !rightIn && unvisited.has(edge.rightTable)) ||
+        (rightIn && !leftIn && unvisited.has(edge.leftTable))
+      ) {
         if (edge.confidence > highestConfidence) {
           highestConfidence = edge.confidence;
           bestEdge = edge;
@@ -207,7 +300,14 @@ function buildDesignerJoinPairs() {
         type: "INNER",
       };
       treeEdges.push({
-        key: tables[0] + "." + fallback.leftField + "->" + island + "." + fallback.rightField,
+        key:
+          tables[0] +
+          "." +
+          fallback.leftField +
+          "->" +
+          island +
+          "." +
+          fallback.rightField,
         leftTable: fallback.leftTable,
         leftField: fallback.leftField,
         rightTable: fallback.rightTable,
@@ -230,34 +330,50 @@ function ensureQueryDesignerState() {
     queryDesignerState.columns = [];
     return;
   }
-  const tableNames = (currentSchema.tables || []).map(t => t.name).concat((currentSchema.views || []).map(v => v.name));
-  if (!Array.isArray(queryDesignerState.selectedTables) || !queryDesignerState.selectedTables.length) {
+  const tableNames = (currentSchema.tables || [])
+    .map((t) => t.name)
+    .concat((currentSchema.views || []).map((v) => v.name));
+  if (
+    !Array.isArray(queryDesignerState.selectedTables) ||
+    !queryDesignerState.selectedTables.length
+  ) {
     const defaultTable = currentSchema.tables[0].name;
     queryDesignerState.selectedTables = [defaultTable];
   }
-  const selectedTables = (queryDesignerState.selectedTables || []).filter(name => tableNames.includes(name));
+  const selectedTables = (queryDesignerState.selectedTables || []).filter(
+    (name) => tableNames.includes(name),
+  );
   if (selectedTables.length === 0 && currentSchema.tables.length > 0) {
     selectedTables.push(currentSchema.tables[0].name);
   }
   queryDesignerState.selectedTables = selectedTables;
 
-  if (queryDesignerState.joins === undefined || queryDesignerState.joins === null) {
+  if (
+    queryDesignerState.joins === undefined ||
+    queryDesignerState.joins === null
+  ) {
     queryDesignerState.joins = buildDesignerJoinPairs();
   } else {
-    queryDesignerState.joins = queryDesignerState.joins.filter(j => selectedTables.includes(j.leftTable) && selectedTables.includes(j.rightTable));
+    queryDesignerState.joins = queryDesignerState.joins.filter(
+      (j) =>
+        selectedTables.includes(j.leftTable) &&
+        selectedTables.includes(j.rightTable),
+    );
   }
 
   if (!Array.isArray(queryDesignerState.columns)) {
     queryDesignerState.columns = [];
   } else {
-    queryDesignerState.columns = queryDesignerState.columns.filter(col => selectedTables.includes(col.table));
+    queryDesignerState.columns = queryDesignerState.columns.filter((col) =>
+      selectedTables.includes(col.table),
+    );
   }
 
   if (!queryDesignerState.columns.length && selectedTables.length > 0) {
     const firstTable = selectedTables[0];
     const meta = getEntityMeta(firstTable);
     if (meta && meta.columns && meta.columns.length) {
-      meta.columns.slice(0, 5).forEach(c => {
+      meta.columns.slice(0, 5).forEach((c) => {
         queryDesignerState.columns.push({
           id: "col-" + Date.now() + "-" + Math.random().toString(16).slice(2),
           table: firstTable,
@@ -292,7 +408,10 @@ function ensureQueryDesignerState() {
 
 function setDesignerActiveView(view) {
   queryDesignerState.activeView = view;
-  if (view === "datasheet" && (!queryDesignerState.datasheet || queryDesignerState.datasheetLoading)) {
+  if (
+    view === "datasheet" &&
+    (!queryDesignerState.datasheet || queryDesignerState.datasheetLoading)
+  ) {
     runDesignerQuery();
   } else {
     renderQueryDesigner();
@@ -301,7 +420,7 @@ function setDesignerActiveView(view) {
 
 function toggleDesignerTotals() {
   queryDesignerState.showTotals = !queryDesignerState.showTotals;
-  (queryDesignerState.columns || []).forEach(col => {
+  (queryDesignerState.columns || []).forEach((col) => {
     if (queryDesignerState.showTotals) {
       if (!col.total || col.total === "None") col.total = "GroupBy";
     } else {
@@ -330,23 +449,43 @@ function addDesignerTableFromPicker() {
 }
 
 function addDesignerTable(tableName) {
-  if (!tableName || queryDesignerState.selectedTables.includes(tableName)) return;
+  if (!tableName || queryDesignerState.selectedTables.includes(tableName))
+    return;
   queryDesignerState.selectedTables.push(tableName);
   if (!queryDesignerState.joins) queryDesignerState.joins = [];
 
-  const existingTables = queryDesignerState.selectedTables.filter(t => t !== tableName);
+  const existingTables = queryDesignerState.selectedTables.filter(
+    (t) => t !== tableName,
+  );
   const addedJoins = [];
 
   for (const target of existingTables) {
     const found = findAllDesignerJoins(target, tableName);
     for (const rel of found) {
-      const alreadyExists = queryDesignerState.joins.some(j =>
-        (j.leftTable === rel.leftTable && j.rightTable === rel.rightTable && j.leftField === rel.leftField && j.rightField === rel.rightField) ||
-        (j.leftTable === rel.rightTable && j.rightTable === rel.leftTable && j.leftField === rel.rightField && j.rightField === rel.leftField)
+      const alreadyExists = queryDesignerState.joins.some(
+        (j) =>
+          (j.leftTable === rel.leftTable &&
+            j.rightTable === rel.rightTable &&
+            j.leftField === rel.leftField &&
+            j.rightField === rel.rightField) ||
+          (j.leftTable === rel.rightTable &&
+            j.rightTable === rel.leftTable &&
+            j.leftField === rel.rightField &&
+            j.rightField === rel.leftField),
       );
       if (!alreadyExists) {
         const newJoin = {
-          key: rel.leftTable + "." + rel.leftField + "->" + rel.rightTable + "." + rel.rightField + "-" + Date.now() + Math.random().toString(16).slice(2, 6),
+          key:
+            rel.leftTable +
+            "." +
+            rel.leftField +
+            "->" +
+            rel.rightTable +
+            "." +
+            rel.rightField +
+            "-" +
+            Date.now() +
+            Math.random().toString(16).slice(2, 6),
           ...rel,
         };
         queryDesignerState.joins.push(newJoin);
@@ -355,7 +494,8 @@ function addDesignerTable(tableName) {
     }
   }
 
-  if (!queryDesignerState.tablePositions) queryDesignerState.tablePositions = {};
+  if (!queryDesignerState.tablePositions)
+    queryDesignerState.tablePositions = {};
   const count = queryDesignerState.selectedTables.length - 1;
   queryDesignerState.tablePositions[tableName] = {
     x: 20 + (count % 4) * 280,
@@ -364,21 +504,39 @@ function addDesignerTable(tableName) {
 
   renderQueryDesigner();
   if (addedJoins.length > 0) {
-    showToast("Added table '" + tableName + "' (auto-connected " + addedJoins.length + " relationship" + (addedJoins.length > 1 ? "s" : "") + ")");
+    showToast(
+      "Added table '" +
+        tableName +
+        "' (auto-connected " +
+        addedJoins.length +
+        " relationship" +
+        (addedJoins.length > 1 ? "s" : "") +
+        ")",
+    );
   } else {
     showToast("Added table '" + tableName + "' to visual canvas");
   }
 }
 
 function removeDesignerTable(tableName) {
-  queryDesignerState.selectedTables = queryDesignerState.selectedTables.filter(t => t !== tableName);
-  queryDesignerState.joins = (queryDesignerState.joins || []).filter(j => j.leftTable !== tableName && j.rightTable !== tableName);
-  queryDesignerState.columns = (queryDesignerState.columns || []).filter(col => col.table !== tableName);
+  queryDesignerState.selectedTables = queryDesignerState.selectedTables.filter(
+    (t) => t !== tableName,
+  );
+  queryDesignerState.joins = (queryDesignerState.joins || []).filter(
+    (j) => j.leftTable !== tableName && j.rightTable !== tableName,
+  );
+  queryDesignerState.columns = (queryDesignerState.columns || []).filter(
+    (col) => col.table !== tableName,
+  );
   renderQueryDesigner();
 }
 
 function autoJoinDesignerTables() {
-  if (!currentSchema || !queryDesignerState.selectedTables || queryDesignerState.selectedTables.length < 2) {
+  if (
+    !currentSchema ||
+    !queryDesignerState.selectedTables ||
+    queryDesignerState.selectedTables.length < 2
+  ) {
     showToast("Add 2 or more tables to auto-detect joins");
     return;
   }
@@ -392,13 +550,30 @@ function autoJoinDesignerTables() {
       const t2 = tables[j];
       const rels = findAllDesignerJoins(t1, t2);
       for (const rel of rels) {
-        const alreadyExists = queryDesignerState.joins.some(j =>
-          (j.leftTable === rel.leftTable && j.rightTable === rel.rightTable && j.leftField === rel.leftField && j.rightField === rel.rightField) ||
-          (j.leftTable === rel.rightTable && j.rightTable === rel.leftTable && j.leftField === rel.rightField && j.rightField === rel.leftField)
+        const alreadyExists = queryDesignerState.joins.some(
+          (j) =>
+            (j.leftTable === rel.leftTable &&
+              j.rightTable === rel.rightTable &&
+              j.leftField === rel.leftField &&
+              j.rightField === rel.rightField) ||
+            (j.leftTable === rel.rightTable &&
+              j.rightTable === rel.leftTable &&
+              j.leftField === rel.rightField &&
+              j.rightField === rel.leftField),
         );
         if (!alreadyExists) {
           queryDesignerState.joins.push({
-            key: rel.leftTable + "." + rel.leftField + "->" + rel.rightTable + "." + rel.rightField + "-" + Date.now() + Math.random().toString(16).slice(2, 6),
+            key:
+              rel.leftTable +
+              "." +
+              rel.leftField +
+              "->" +
+              rel.rightTable +
+              "." +
+              rel.rightField +
+              "-" +
+              Date.now() +
+              Math.random().toString(16).slice(2, 6),
             ...rel,
           });
           newCount++;
@@ -414,9 +589,23 @@ function autoJoinDesignerTables() {
 
   renderQueryDesigner();
   if (newCount > 0) {
-    showToast("⚡ Auto-detected & linked " + newCount + " relationship" + (newCount > 1 ? "s" : "") + " across " + tables.length + " tables");
+    showToast(
+      "⚡ Auto-detected & linked " +
+        newCount +
+        " relationship" +
+        (newCount > 1 ? "s" : "") +
+        " across " +
+        tables.length +
+        " tables",
+    );
   } else {
-    showToast("All schema relationships across " + tables.length + " tables are already linked (" + queryDesignerState.joins.length + " active joins)");
+    showToast(
+      "All schema relationships across " +
+        tables.length +
+        " tables are already linked (" +
+        queryDesignerState.joins.length +
+        " active joins)",
+    );
   }
 }
 
@@ -427,7 +616,13 @@ let dragStartY = 0;
 let cardStartLeft = 0;
 let cardStartTop = 0;
 
-function openJoinPropertiesModal(joinKey, preferredLeft, preferredRight, preferredLeftField, preferredRightField) {
+function openJoinPropertiesModal(
+  joinKey,
+  preferredLeft,
+  preferredRight,
+  preferredLeftField,
+  preferredRightField,
+) {
   const modal = document.getElementById("accessJoinPropertiesModal");
   if (!modal) return;
   ensureQueryDesignerState();
@@ -446,7 +641,9 @@ function openJoinPropertiesModal(joinKey, preferredLeft, preferredRight, preferr
   let joinType = "INNER";
 
   if (currentEditingJoinKey) {
-    const existing = (queryDesignerState.joins || []).find(j => j.key === currentEditingJoinKey);
+    const existing = (queryDesignerState.joins || []).find(
+      (j) => j.key === currentEditingJoinKey,
+    );
     if (existing) {
       leftTable = existing.leftTable;
       rightTable = existing.rightTable;
@@ -459,8 +656,18 @@ function openJoinPropertiesModal(joinKey, preferredLeft, preferredRight, preferr
   const leftSelect = document.getElementById("jpLeftTable");
   const rightSelect = document.getElementById("jpRightTable");
   if (leftSelect && rightSelect) {
-    leftSelect.innerHTML = selectedTables.map(t => `<option value="${escapeHtml(t)}" ${t === leftTable ? 'selected' : ''}>${escapeHtml(t)}</option>`).join('');
-    rightSelect.innerHTML = selectedTables.map(t => `<option value="${escapeHtml(t)}" ${t === rightTable ? 'selected' : ''}>${escapeHtml(t)}</option>`).join('');
+    leftSelect.innerHTML = selectedTables
+      .map(
+        (t) =>
+          `<option value="${escapeHtml(t)}" ${t === leftTable ? "selected" : ""}>${escapeHtml(t)}</option>`,
+      )
+      .join("");
+    rightSelect.innerHTML = selectedTables
+      .map(
+        (t) =>
+          `<option value="${escapeHtml(t)}" ${t === rightTable ? "selected" : ""}>${escapeHtml(t)}</option>`,
+      )
+      .join("");
   }
 
   onJoinPropTableChange("left", leftField);
@@ -469,7 +676,8 @@ function openJoinPropertiesModal(joinKey, preferredLeft, preferredRight, preferr
   selectJoinPropType(joinType);
 
   const delBtn = document.getElementById("btnDeleteJoinProp");
-  if (delBtn) delBtn.style.display = currentEditingJoinKey ? "inline-flex" : "none";
+  if (delBtn)
+    delBtn.style.display = currentEditingJoinKey ? "inline-flex" : "none";
 
   modal.classList.add("open");
 }
@@ -481,32 +689,50 @@ function closeJoinPropertiesModal() {
 }
 
 function onJoinPropTableChange(side, defaultField) {
-  const tableSelect = document.getElementById(side === "left" ? "jpLeftTable" : "jpRightTable");
-  const fieldSelect = document.getElementById(side === "left" ? "jpLeftField" : "jpRightField");
+  const tableSelect = document.getElementById(
+    side === "left" ? "jpLeftTable" : "jpRightTable",
+  );
+  const fieldSelect = document.getElementById(
+    side === "left" ? "jpLeftField" : "jpRightField",
+  );
   if (!tableSelect || !fieldSelect) return;
 
   const tableName = tableSelect.value;
   const meta = getEntityMeta(tableName);
-  const cols = meta && meta.columns ? meta.columns.map(c => c.name) : ["id"];
+  const cols = meta && meta.columns ? meta.columns.map((c) => c.name) : ["id"];
 
-  let selectedCol = defaultField && cols.includes(defaultField) ? defaultField : "";
+  let selectedCol =
+    defaultField && cols.includes(defaultField) ? defaultField : "";
   if (!selectedCol) {
-    const pkCol = meta && meta.columns ? meta.columns.find(c => c.pk) : null;
+    const pkCol = meta && meta.columns ? meta.columns.find((c) => c.pk) : null;
     selectedCol = pkCol ? pkCol.name : cols[0];
   }
 
-  fieldSelect.innerHTML = cols.map(c => `<option value="${escapeHtml(c)}" ${c === selectedCol ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('');
+  fieldSelect.innerHTML = cols
+    .map(
+      (c) =>
+        `<option value="${escapeHtml(c)}" ${c === selectedCol ? "selected" : ""}>${escapeHtml(c)}</option>`,
+    )
+    .join("");
 
   updateJoinPropLabels();
-  updateJoinPropVennDiagram(getSelectedJoinPropType(), document.getElementById("jpLeftTable")?.value || "Left", document.getElementById("jpRightTable")?.value || "Right");
+  updateJoinPropVennDiagram(
+    getSelectedJoinPropType(),
+    document.getElementById("jpLeftTable")?.value || "Left",
+    document.getElementById("jpRightTable")?.value || "Right",
+  );
   updateJoinPropPreview();
 }
 
 function updateJoinPropLabels() {
   const lt = document.getElementById("jpLeftTable")?.value || "Left";
   const rt = document.getElementById("jpRightTable")?.value || "Right";
-  document.querySelectorAll(".jp-left-name").forEach(el => el.textContent = lt);
-  document.querySelectorAll(".jp-right-name").forEach(el => el.textContent = rt);
+  document
+    .querySelectorAll(".jp-left-name")
+    .forEach((el) => (el.textContent = lt));
+  document
+    .querySelectorAll(".jp-right-name")
+    .forEach((el) => (el.textContent = rt));
 }
 
 function swapJoinPropDirection() {
@@ -514,7 +740,8 @@ function swapJoinPropDirection() {
   const rightTableSel = document.getElementById("jpRightTable");
   const leftFieldSel = document.getElementById("jpLeftField");
   const rightFieldSel = document.getElementById("jpRightField");
-  if (!leftTableSel || !rightTableSel || !leftFieldSel || !rightFieldSel) return;
+  if (!leftTableSel || !rightTableSel || !leftFieldSel || !rightFieldSel)
+    return;
 
   const oldLT = leftTableSel.value;
   const oldRT = rightTableSel.value;
@@ -540,11 +767,17 @@ function getSelectedJoinPropType() {
 
 function selectJoinPropType(type) {
   const t = (type || "INNER").toUpperCase();
-  const radio = document.querySelector(`input[name="accessJoinType"][value="${t}"]`);
+  const radio = document.querySelector(
+    `input[name="accessJoinType"][value="${t}"]`,
+  );
   if (radio) radio.checked = true;
 
-  document.querySelectorAll(".access-join-radio-card").forEach(c => c.classList.remove("selected"));
-  const card = document.getElementById("cardJp" + (t === "FULL" ? "Full" : (t.charAt(0) + t.slice(1).toLowerCase())));
+  document
+    .querySelectorAll(".access-join-radio-card")
+    .forEach((c) => c.classList.remove("selected"));
+  const card = document.getElementById(
+    "cardJp" + (t === "FULL" ? "Full" : t.charAt(0) + t.slice(1).toLowerCase()),
+  );
   if (card) card.classList.add("selected");
 
   const lt = document.getElementById("jpLeftTable")?.value || "Left";
@@ -630,10 +863,29 @@ function updateJoinPropPreview() {
 
   let sql = "";
   if (type === "CROSS") {
-    sql = "FROM " + quoteSqlIdentifier(lt) + " CROSS JOIN " + quoteSqlIdentifier(rt);
+    sql =
+      "FROM " +
+      quoteSqlIdentifier(lt) +
+      " CROSS JOIN " +
+      quoteSqlIdentifier(rt);
   } else {
-    const effType = (type === "FULL" || type === "FULL OUTER") ? "FULL OUTER" : type;
-    sql = "FROM " + quoteSqlIdentifier(lt) + " " + effType + " JOIN " + quoteSqlIdentifier(rt) + "\n  ON " + quoteSqlIdentifier(lt) + "." + quoteSqlIdentifier(lf) + " = " + quoteSqlIdentifier(rt) + "." + quoteSqlIdentifier(rf);
+    const effType =
+      type === "FULL" || type === "FULL OUTER" ? "FULL OUTER" : type;
+    sql =
+      "FROM " +
+      quoteSqlIdentifier(lt) +
+      " " +
+      effType +
+      " JOIN " +
+      quoteSqlIdentifier(rt) +
+      "\n  ON " +
+      quoteSqlIdentifier(lt) +
+      "." +
+      quoteSqlIdentifier(lf) +
+      " = " +
+      quoteSqlIdentifier(rt) +
+      "." +
+      quoteSqlIdentifier(rf);
   }
   box.textContent = sql;
 }
@@ -657,7 +909,9 @@ function saveJoinProperties() {
   if (!queryDesignerState.joins) queryDesignerState.joins = [];
 
   if (currentEditingJoinKey) {
-    const idx = queryDesignerState.joins.findIndex(j => j.key === currentEditingJoinKey);
+    const idx = queryDesignerState.joins.findIndex(
+      (j) => j.key === currentEditingJoinKey,
+    );
     if (idx !== -1) {
       queryDesignerState.joins[idx] = {
         key: lt + "." + lf + "->" + rt + "." + rf + "-" + Date.now(),
@@ -681,7 +935,9 @@ function saveJoinProperties() {
 
   closeJoinPropertiesModal();
   renderQueryDesigner();
-  showToast("Updated relationship: " + lt + " ↔ " + rt + " (" + type + " JOIN)");
+  showToast(
+    "Updated relationship: " + lt + " ↔ " + rt + " (" + type + " JOIN)",
+  );
 }
 
 function deleteCurrentJoinFromProperties() {
@@ -689,7 +945,9 @@ function deleteCurrentJoinFromProperties() {
     closeJoinPropertiesModal();
     return;
   }
-  queryDesignerState.joins = (queryDesignerState.joins || []).filter(j => j.key !== currentEditingJoinKey);
+  queryDesignerState.joins = (queryDesignerState.joins || []).filter(
+    (j) => j.key !== currentEditingJoinKey,
+  );
   closeJoinPropertiesModal();
   renderQueryDesigner();
   showToast("Deleted relationship");
@@ -722,7 +980,9 @@ function onDesignerFieldDragLeave(e) {
 
 function onDesignerFieldDrop(e, targetTable, targetField) {
   e.preventDefault();
-  const targetEl = document.getElementById("qbeFieldRow_" + targetTable + "_" + targetField);
+  const targetEl = document.getElementById(
+    "qbeFieldRow_" + targetTable + "_" + targetField,
+  );
   if (targetEl) targetEl.classList.remove("qbe-field-drop-target");
 
   try {
@@ -736,20 +996,28 @@ function onDesignerFieldDrop(e, targetTable, targetField) {
       return;
     }
 
-    openJoinPropertiesModal(null, source.table, targetTable, source.field, targetField);
+    openJoinPropertiesModal(
+      null,
+      source.table,
+      targetTable,
+      source.field,
+      targetField,
+    );
   } catch (err) {
     console.error("Drop relationship error:", err);
   }
 }
 
 function onDesignerTableHeaderMouseDown(e, tableName) {
-  if (e.target && (e.target.tagName === 'BUTTON' || e.target.closest('button'))) return;
+  if (e.target && (e.target.tagName === "BUTTON" || e.target.closest("button")))
+    return;
   e.preventDefault();
   activeDraggingTable = tableName;
   dragStartX = e.clientX;
   dragStartY = e.clientY;
 
-  if (!queryDesignerState.tablePositions) queryDesignerState.tablePositions = {};
+  if (!queryDesignerState.tablePositions)
+    queryDesignerState.tablePositions = {};
   const pos = queryDesignerState.tablePositions[tableName] || { x: 20, y: 15 };
   cardStartLeft = pos.x;
   cardStartTop = pos.y;
@@ -764,7 +1032,10 @@ function onDesignerTableHeaderMouseDown(e, tableName) {
     const dy = (ev.clientY - dragStartY) / zoom;
     const newX = Math.max(10, cardStartLeft + dx);
     const newY = Math.max(10, cardStartTop + dy);
-    queryDesignerState.tablePositions[activeDraggingTable] = { x: newX, y: newY };
+    queryDesignerState.tablePositions[activeDraggingTable] = {
+      x: newX,
+      y: newY,
+    };
     const c = document.getElementById("qbeTableCard_" + activeDraggingTable);
     if (c) {
       c.style.left = newX + "px";
@@ -814,7 +1085,12 @@ function setDesignerCanvasZoom(newZoom) {
   if (select) {
     select.value = clamped.toString();
     if (![0.5, 0.75, 0.9, 1.0, 1.25, 1.5, 2.0].includes(clamped)) {
-      select.innerHTML = '<option value="' + clamped + '" selected>' + Math.round(clamped * 100) + '%</option>' +
+      select.innerHTML =
+        '<option value="' +
+        clamped +
+        '" selected>' +
+        Math.round(clamped * 100) +
+        "%</option>" +
         '<option value="0.5">50%</option><option value="0.75">75%</option><option value="0.9">90%</option><option value="1.0">100%</option><option value="1.25">125%</option><option value="1.5">150%</option><option value="2.0">200%</option>';
     }
   }
@@ -838,9 +1114,13 @@ function fitDesignerCanvasZoom() {
   const tables = queryDesignerState.selectedTables || [];
   if (!viewport || tables.length === 0) return;
 
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  tables.forEach(t => {
-    const pos = (queryDesignerState.tablePositions && queryDesignerState.tablePositions[t]) || { x: 20, y: 15 };
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
+  tables.forEach((t) => {
+    const pos = (queryDesignerState.tablePositions &&
+      queryDesignerState.tablePositions[t]) || { x: 20, y: 15 };
     minX = Math.min(minX, pos.x);
     minY = Math.min(minY, pos.y);
     maxX = Math.max(maxX, pos.x + 240);
@@ -859,7 +1139,13 @@ function fitDesignerCanvasZoom() {
   setDesignerCanvasZoom(fitZoom);
   viewport.scrollLeft = Math.max(0, (minX - 20) * fitZoom);
   viewport.scrollTop = Math.max(0, (minY - 20) * fitZoom);
-  showToast("Canvas fitted to all " + tables.length + " tables (" + Math.round(fitZoom * 100) + "%)");
+  showToast(
+    "Canvas fitted to all " +
+      tables.length +
+      " tables (" +
+      Math.round(fitZoom * 100) +
+      "%)",
+  );
 }
 
 function setDesignerRoomMode(mode) {
@@ -883,9 +1169,19 @@ function setDesignerRoomMode(mode) {
   queryDesignerState.canvasHeight = targetH;
   viewport.style.height = targetH + "px";
   viewport.style.maxHeight = targetH + "px";
-  document.documentElement.style.setProperty("--qbe-canvas-height", targetH + "px");
+  document.documentElement.style.setProperty(
+    "--qbe-canvas-height",
+    targetH + "px",
+  );
   updateCanvasSvg();
-  showToast("Room layout: " + (mode === "canvas-max" ? "Canvas Maximized" : mode === "grid-max" ? "Grid Focused" : "Balanced Split"));
+  showToast(
+    "Room layout: " +
+      (mode === "canvas-max"
+        ? "Canvas Maximized"
+        : mode === "grid-max"
+          ? "Grid Focused"
+          : "Balanced Split"),
+  );
 }
 
 function initResizerBar() {
@@ -918,7 +1214,10 @@ function initQbeSplitter() {
     queryDesignerState.canvasHeight = newH;
     viewport.style.height = newH + "px";
     viewport.style.maxHeight = newH + "px";
-    document.documentElement.style.setProperty("--qbe-canvas-height", newH + "px");
+    document.documentElement.style.setProperty(
+      "--qbe-canvas-height",
+      newH + "px",
+    );
     updateCanvasSvg();
   });
 
@@ -945,7 +1244,13 @@ function initCanvasPanAndZoom() {
 
   viewport.addEventListener("mousedown", (e) => {
     const target = e.target;
-    if (target.closest(".qbe-table-card") || target.closest(".qbe-svg-join-badge") || target.closest("button") || target.closest("select") || target.closest("input")) {
+    if (
+      target.closest(".qbe-table-card") ||
+      target.closest(".qbe-svg-join-badge") ||
+      target.closest("button") ||
+      target.closest("select") ||
+      target.closest("input")
+    ) {
       return;
     }
     isPanning = true;
@@ -971,14 +1276,18 @@ function initCanvasPanAndZoom() {
     }
   });
 
-  viewport.addEventListener("wheel", (e) => {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      const delta = e.deltaY < 0 ? 0.12 : -0.12;
-      const cur = queryDesignerState.canvasZoom || 1.0;
-      setDesignerCanvasZoom(cur + delta);
-    }
-  }, { passive: false });
+  viewport.addEventListener(
+    "wheel",
+    (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const delta = e.deltaY < 0 ? 0.12 : -0.12;
+        const cur = queryDesignerState.canvasZoom || 1.0;
+        setDesignerCanvasZoom(cur + delta);
+      }
+    },
+    { passive: false },
+  );
 }
 
 function setQbeGridDensity(density) {
@@ -993,7 +1302,10 @@ function setQbeGridDensity(density) {
     padding = "7px 10px";
   }
   document.documentElement.style.setProperty("--qbe-grid-font-size", fontSize);
-  document.documentElement.style.setProperty("--qbe-grid-cell-padding", padding);
+  document.documentElement.style.setProperty(
+    "--qbe-grid-cell-padding",
+    padding,
+  );
   renderQueryDesigner();
 }
 
@@ -1001,14 +1313,18 @@ function adjustSqlFontSize(delta) {
   const cur = queryDesignerState.sqlFontSize || 13;
   const next = Math.max(10, Math.min(24, cur + delta));
   queryDesignerState.sqlFontSize = next;
-  const area = document.getElementById("designerSqlPreview") || document.getElementById("customDesignerSqlArea");
+  const area =
+    document.getElementById("designerSqlPreview") ||
+    document.getElementById("customDesignerSqlArea");
   const badge = document.getElementById("sqlFontBadge");
   if (area) area.style.fontSize = next + "px";
   if (badge) badge.textContent = next + "px";
 }
 
 function toggleSqlEditorHeight() {
-  const area = document.getElementById("designerSqlPreview") || document.getElementById("customDesignerSqlArea");
+  const area =
+    document.getElementById("designerSqlPreview") ||
+    document.getElementById("customDesignerSqlArea");
   if (!area) return;
   const curH = parseInt(area.style.height || "380", 10);
   const newH = curH > 450 ? 380 : 640;
@@ -1035,7 +1351,9 @@ function adjustDatasheetFontSize(delta) {
 }
 
 function toggleSidebarCollapse() {
-  const aside = document.getElementById("mainSidebar") || document.getElementById("sidebar");
+  const aside =
+    document.getElementById("mainSidebar") ||
+    document.getElementById("sidebar");
   if (!aside) return;
   if (aside.style.display === "none") {
     aside.style.display = "flex";
@@ -1063,7 +1381,8 @@ function updateCanvasSvg() {
   const stageRect = stage.getBoundingClientRect();
 
   svg.style.width = Math.max(stage.scrollWidth, stage.offsetWidth, 3400) + "px";
-  svg.style.height = Math.max(stage.scrollHeight, stage.offsetHeight, 2400) + "px";
+  svg.style.height =
+    Math.max(stage.scrollHeight, stage.offsetHeight, 2400) + "px";
 
   let svgContent = `
     <defs>
@@ -1079,9 +1398,13 @@ function updateCanvasSvg() {
     </defs>
   `;
 
-  joins.forEach(j => {
-    const fieldLeft = document.getElementById("qbeFieldRow_" + j.leftTable + "_" + j.leftField);
-    const fieldRight = document.getElementById("qbeFieldRow_" + j.rightTable + "_" + j.rightField);
+  joins.forEach((j) => {
+    const fieldLeft = document.getElementById(
+      "qbeFieldRow_" + j.leftTable + "_" + j.leftField,
+    );
+    const fieldRight = document.getElementById(
+      "qbeFieldRow_" + j.rightTable + "_" + j.rightField,
+    );
     const cardLeft = document.getElementById("qbeTableCard_" + j.leftTable);
     const cardRight = document.getElementById("qbeTableCard_" + j.rightTable);
 
@@ -1104,8 +1427,8 @@ function updateCanvasSvg() {
       x2 = (rR.right - stageRect.left) / zoom;
     }
 
-    const y1 = ((rL.top + rL.height / 2) - stageRect.top) / zoom;
-    const y2 = ((rR.top + rR.height / 2) - stageRect.top) / zoom;
+    const y1 = (rL.top + rL.height / 2 - stageRect.top) / zoom;
+    const y2 = (rR.top + rR.height / 2 - stageRect.top) / zoom;
 
     const dx = Math.max(35, Math.abs(x2 - x1) * 0.45);
     const d = `M ${x1} ${y1} C ${x1 + (x2 >= x1 ? dx : -dx)} ${y1}, ${x2 + (x2 >= x1 ? -dx : dx)} ${y2}, ${x2} ${y2}`;
@@ -1130,7 +1453,8 @@ function updateCanvasSvg() {
     } else if (type === "FULL" || type === "FULL OUTER") {
       stroke = "#a855f7";
       dash = 'stroke-dasharray="6,4"';
-      markerAttr = 'marker-end="url(#marker-diamond-purple)" marker-start="url(#marker-diamond-purple)"';
+      markerAttr =
+        'marker-end="url(#marker-diamond-purple)" marker-start="url(#marker-diamond-purple)"';
       badgeIcon = "⟷";
     } else if (type === "CROSS") {
       stroke = "#f43f5e";
@@ -1141,19 +1465,34 @@ function updateCanvasSvg() {
     // Determine Cardinality Badges (1 to ∞)
     const leftMeta = getEntityMeta(j.leftTable);
     const rightMeta = getEntityMeta(j.rightTable);
-    const leftIsPk = Boolean(leftMeta && leftMeta.columns && leftMeta.columns.find(c => c.name === j.leftField)?.pk);
-    const rightIsPk = Boolean(rightMeta && rightMeta.columns && rightMeta.columns.find(c => c.name === j.rightField)?.pk);
+    const leftIsPk = Boolean(
+      leftMeta &&
+      leftMeta.columns &&
+      leftMeta.columns.find((c) => c.name === j.leftField)?.pk,
+    );
+    const rightIsPk = Boolean(
+      rightMeta &&
+      rightMeta.columns &&
+      rightMeta.columns.find((c) => c.name === j.rightField)?.pk,
+    );
 
     let leftCard = leftIsPk ? "1" : "∞";
     let rightCard = rightIsPk ? "1" : "∞";
     if (!leftIsPk && !rightIsPk) {
-      if (j.leftField.toLowerCase().endsWith("_id")) { leftCard = "∞"; rightCard = "1"; }
-      else if (j.rightField.toLowerCase().endsWith("_id")) { leftCard = "1"; rightCard = "∞"; }
-      else { leftCard = "1"; rightCard = "1"; }
+      if (j.leftField.toLowerCase().endsWith("_id")) {
+        leftCard = "∞";
+        rightCard = "1";
+      } else if (j.rightField.toLowerCase().endsWith("_id")) {
+        leftCard = "1";
+        rightCard = "∞";
+      } else {
+        leftCard = "1";
+        rightCard = "1";
+      }
     }
 
-    const cardOff1 = (x2 >= x1 ? 16 : -16);
-    const cardOff2 = (x2 >= x1 ? -16 : 16);
+    const cardOff1 = x2 >= x1 ? 16 : -16;
+    const cardOff2 = x2 >= x1 ? -16 : 16;
 
     svgContent += `
       <path d="${d}" class="qbe-svg-join-halo" onclick="openJoinPropertiesModal('${j.key}')" title="Click to edit Join Properties (${type} JOIN)"></path>
@@ -1197,12 +1536,14 @@ function loadFullSchemaErd() {
     return;
   }
   ensureQueryDesignerState();
-  const allNames = currentSchema.tables.map(t => t.name);
+  const allNames = currentSchema.tables.map((t) => t.name);
   queryDesignerState.selectedTables = [...allNames];
   autoArrangeDesignerTables();
   autoJoinDesignerTables();
   setDesignerActiveView("design");
-  showToast("Loaded Full Schema ERD (" + allNames.length + " tables connected)");
+  showToast(
+    "Loaded Full Schema ERD (" + allNames.length + " tables connected)",
+  );
 }
 
 function exportDesignerCanvasSvg() {
@@ -1219,11 +1560,14 @@ function exportDesignerCanvasSvg() {
   clone.setAttribute("width", w);
   clone.setAttribute("height", h);
 
-  const blob = new Blob([clone.outerHTML], { type: "image/svg+xml;charset=utf-8" });
+  const blob = new Blob([clone.outerHTML], {
+    type: "image/svg+xml;charset=utf-8",
+  });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = (currentSchema?.activeSchema || "postgres") + "_erd_relationships.svg";
+  a.download =
+    (currentSchema?.activeSchema || "postgres") + "_erd_relationships.svg";
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -1232,7 +1576,7 @@ function exportDesignerCanvasSvg() {
 }
 
 function updateDesignerJoin(key, prop, value) {
-  queryDesignerState.joins = (queryDesignerState.joins || []).map(j => {
+  queryDesignerState.joins = (queryDesignerState.joins || []).map((j) => {
     if (j.key === key) {
       return { ...j, [prop]: value };
     }
@@ -1242,7 +1586,7 @@ function updateDesignerJoin(key, prop, value) {
 }
 
 function updateDesignerJoinTable(key, side, newTableName) {
-  const join = (queryDesignerState.joins || []).find(j => j.key === key);
+  const join = (queryDesignerState.joins || []).find((j) => j.key === key);
   if (!join) return;
   if (side === "leftTable") {
     join.leftTable = newTableName;
@@ -1253,7 +1597,8 @@ function updateDesignerJoinTable(key, side, newTableName) {
       join.rightField = sugg.rightField;
     } else {
       const meta = getEntityMeta(newTableName);
-      join.leftField = meta && meta.columns && meta.columns[0] ? meta.columns[0].name : "id";
+      join.leftField =
+        meta && meta.columns && meta.columns[0] ? meta.columns[0].name : "id";
     }
   } else {
     join.rightTable = newTableName;
@@ -1264,14 +1609,17 @@ function updateDesignerJoinTable(key, side, newTableName) {
       join.rightField = sugg.rightField;
     } else {
       const meta = getEntityMeta(newTableName);
-      join.rightField = meta && meta.columns && meta.columns[0] ? meta.columns[0].name : "id";
+      join.rightField =
+        meta && meta.columns && meta.columns[0] ? meta.columns[0].name : "id";
     }
   }
   renderQueryDesigner();
 }
 
 function removeDesignerJoin(key) {
-  queryDesignerState.joins = (queryDesignerState.joins || []).filter(j => j.key !== key);
+  queryDesignerState.joins = (queryDesignerState.joins || []).filter(
+    (j) => j.key !== key,
+  );
   renderQueryDesigner();
 }
 
@@ -1279,7 +1627,8 @@ function addDesignerQbeColumn(table, field) {
   if (!table) table = queryDesignerState.selectedTables[0] || "";
   if (!field) {
     const meta = getEntityMeta(table);
-    field = meta && meta.columns && meta.columns[0] ? meta.columns[0].name : "*";
+    field =
+      meta && meta.columns && meta.columns[0] ? meta.columns[0].name : "*";
   }
   queryDesignerState.columns.push({
     id: "col-" + Date.now() + "-" + Math.random().toString(16).slice(2),
@@ -1297,7 +1646,7 @@ function addDesignerQbeColumn(table, field) {
 }
 
 function updateDesignerQbeColumn(id, prop, value) {
-  const col = (queryDesignerState.columns || []).find(c => c.id === id);
+  const col = (queryDesignerState.columns || []).find((c) => c.id === id);
   if (!col) return;
   col[prop] = value;
   if (prop === "table") {
@@ -1310,7 +1659,7 @@ function updateDesignerQbeColumn(id, prop, value) {
 }
 
 function moveDesignerQbeColumn(id, delta) {
-  const idx = (queryDesignerState.columns || []).findIndex(c => c.id === id);
+  const idx = (queryDesignerState.columns || []).findIndex((c) => c.id === id);
   if (idx === -1) return;
   const targetIdx = idx + delta;
   if (targetIdx < 0 || targetIdx >= queryDesignerState.columns.length) return;
@@ -1321,7 +1670,9 @@ function moveDesignerQbeColumn(id, delta) {
 }
 
 function removeDesignerQbeColumn(id) {
-  queryDesignerState.columns = (queryDesignerState.columns || []).filter(c => c.id !== id);
+  queryDesignerState.columns = (queryDesignerState.columns || []).filter(
+    (c) => c.id !== id,
+  );
   renderQueryDesigner();
 }
 
@@ -1349,33 +1700,36 @@ function runDesignerQuery() {
   queryDesignerState.datasheetError = null;
   renderQueryDesigner();
 
-  apiRequest('/api/query', 'POST', { sql }).then(res => {
-    if (res && res.success) {
-      queryDesignerState.datasheet = {
-        rows: res.rows || [],
-        columns: res.columns || [],
-        latencyMs: res.latencyMs ?? res.executionTimeMs ?? 0,
-        error: null,
-      };
-    } else {
+  apiRequest("/api/query", "POST", { sql })
+    .then((res) => {
+      if (res && res.success) {
+        queryDesignerState.datasheet = {
+          rows: res.rows || [],
+          columns: res.columns || [],
+          latencyMs: res.latencyMs ?? res.executionTimeMs ?? 0,
+          error: null,
+        };
+      } else {
+        queryDesignerState.datasheet = {
+          rows: [],
+          columns: [],
+          latencyMs: 0,
+          error: res ? res.error : "Execution failed",
+        };
+      }
+    })
+    .catch((err) => {
       queryDesignerState.datasheet = {
         rows: [],
         columns: [],
         latencyMs: 0,
-        error: res ? res.error : "Execution failed",
+        error: err.message,
       };
-    }
-  }).catch(err => {
-    queryDesignerState.datasheet = {
-      rows: [],
-      columns: [],
-      latencyMs: 0,
-      error: err.message,
-    };
-  }).finally(() => {
-    queryDesignerState.datasheetLoading = false;
-    renderQueryDesigner();
-  });
+    })
+    .finally(() => {
+      queryDesignerState.datasheetLoading = false;
+      renderQueryDesigner();
+    });
 }
 
 function loadSavedQueriesFromStorage() {
@@ -1390,19 +1744,22 @@ function loadSavedQueriesFromStorage() {
     {
       name: "Top Customers by Spend",
       sql: 'SELECT "customers"."name" AS "Customer", "customers"."tier" AS "Tier", SUM("orders"."total_amount") AS "TotalSpend", COUNT("orders"."id") AS "OrdersCount"\nFROM "customers"\nINNER JOIN "orders" ON "customers"."id" = "orders"."customer_id"\nGROUP BY "customers"."name", "customers"."tier"\nHAVING SUM("orders"."total_amount") > 0\nORDER BY "TotalSpend" DESC\nLIMIT 25;',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     },
     {
       name: "Low Stock Inventory Alert",
       sql: 'SELECT "products"."name" AS "Product", "products"."category" AS "Category", "products"."stock" AS "UnitsInStock", "products"."price" AS "Price"\nFROM "products"\nWHERE "products"."stock" < 50\nORDER BY "products"."stock" ASC\nLIMIT 50;',
-      createdAt: new Date().toISOString()
-    }
+      createdAt: new Date().toISOString(),
+    },
   ];
 }
 
 function persistSavedQueries() {
   try {
-    localStorage.setItem("postgres_studio_saved_queries", JSON.stringify(queryDesignerState.savedQueries || []));
+    localStorage.setItem(
+      "postgres_studio_saved_queries",
+      JSON.stringify(queryDesignerState.savedQueries || []),
+    );
   } catch (e) {}
 }
 
@@ -1421,25 +1778,92 @@ function applyDesignerPreset(presetKey) {
     return;
   }
 
-  const tableNames = currentSchema.tables.map(t => t.name);
+  const tableNames = currentSchema.tables.map((t) => t.name);
 
   if (presetKey === "ecommerce_multi") {
-    if (tableNames.includes("customers") && tableNames.includes("orders") && tableNames.includes("order_items") && tableNames.includes("products")) {
-      queryDesignerState.selectedTables = ["customers", "orders", "order_items", "products"];
+    if (
+      tableNames.includes("customers") &&
+      tableNames.includes("orders") &&
+      tableNames.includes("order_items") &&
+      tableNames.includes("products")
+    ) {
+      queryDesignerState.selectedTables = [
+        "customers",
+        "orders",
+        "order_items",
+        "products",
+      ];
       queryDesignerState.showTotals = true;
       queryDesignerState.distinct = false;
       queryDesignerState.topLimit = 50;
       queryDesignerState.joins = buildDesignerJoinPairs();
 
       queryDesignerState.columns = [
-        { id: "p1", table: "customers", field: "name", alias: "Customer", total: "GroupBy", sort: "ASC", show: true, criteria: "", or1: "", or2: "" },
-        { id: "p2", table: "products", field: "category", alias: "Category", total: "GroupBy", sort: "", show: true, criteria: "", or1: "", or2: "" },
-        { id: "p3", table: "products", field: "name", alias: "Product", total: "GroupBy", sort: "", show: true, criteria: "", or1: "", or2: "" },
-        { id: "p4", table: "order_items", field: "quantity", alias: "TotalUnits", total: "Sum", sort: "", show: true, criteria: "> 0", or1: "", or2: "" },
-        { id: "p5", table: "orders", field: "total_amount", alias: "Revenue", total: "Sum", sort: "DESC", show: true, criteria: "", or1: "", or2: "" }
+        {
+          id: "p1",
+          table: "customers",
+          field: "name",
+          alias: "Customer",
+          total: "GroupBy",
+          sort: "ASC",
+          show: true,
+          criteria: "",
+          or1: "",
+          or2: "",
+        },
+        {
+          id: "p2",
+          table: "products",
+          field: "category",
+          alias: "Category",
+          total: "GroupBy",
+          sort: "",
+          show: true,
+          criteria: "",
+          or1: "",
+          or2: "",
+        },
+        {
+          id: "p3",
+          table: "products",
+          field: "name",
+          alias: "Product",
+          total: "GroupBy",
+          sort: "",
+          show: true,
+          criteria: "",
+          or1: "",
+          or2: "",
+        },
+        {
+          id: "p4",
+          table: "order_items",
+          field: "quantity",
+          alias: "TotalUnits",
+          total: "Sum",
+          sort: "",
+          show: true,
+          criteria: "> 0",
+          or1: "",
+          or2: "",
+        },
+        {
+          id: "p5",
+          table: "orders",
+          field: "total_amount",
+          alias: "Revenue",
+          total: "Sum",
+          sort: "DESC",
+          show: true,
+          criteria: "",
+          or1: "",
+          or2: "",
+        },
       ];
       renderQueryDesigner();
-      showToast("Loaded 4-Table Enterprise Template (Customers, Orders, Items, Products)");
+      showToast(
+        "Loaded 4-Table Enterprise Template (Customers, Orders, Items, Products)",
+      );
       return;
     }
   }
@@ -1451,16 +1875,68 @@ function applyDesignerPreset(presetKey) {
       queryDesignerState.distinct = false;
       queryDesignerState.topLimit = 25;
       queryDesignerState.joins = buildDesignerJoinPairs();
-      const custMeta = currentSchema.tables.find(t => t.name === "customers");
-      const ordMeta = currentSchema.tables.find(t => t.name === "orders");
-      const segField = custMeta && custMeta.columns.some(c => c.name === "segment") ? "segment" : (custMeta && custMeta.columns.some(c => c.name === "tier") ? "tier" : "email");
-      const amtField = ordMeta && ordMeta.columns.some(c => c.name === "total_amount") ? "total_amount" : "amount";
+      const custMeta = currentSchema.tables.find((t) => t.name === "customers");
+      const ordMeta = currentSchema.tables.find((t) => t.name === "orders");
+      const segField =
+        custMeta && custMeta.columns.some((c) => c.name === "segment")
+          ? "segment"
+          : custMeta && custMeta.columns.some((c) => c.name === "tier")
+            ? "tier"
+            : "email";
+      const amtField =
+        ordMeta && ordMeta.columns.some((c) => c.name === "total_amount")
+          ? "total_amount"
+          : "amount";
 
       queryDesignerState.columns = [
-        { id: "p1", table: "customers", field: "name", alias: "Customer", total: "GroupBy", sort: "ASC", show: true, criteria: "", or1: "", or2: "" },
-        { id: "p2", table: "customers", field: segField, alias: "Segment", total: "GroupBy", sort: "", show: true, criteria: "", or1: "", or2: "" },
-        { id: "p3", table: "orders", field: amtField, alias: "TotalSpend", total: "Sum", sort: "DESC", show: true, criteria: "> 0", or1: "", or2: "" },
-        { id: "p4", table: "orders", field: "id", alias: "OrdersCount", total: "Count", sort: "", show: true, criteria: "", or1: "", or2: "" }
+        {
+          id: "p1",
+          table: "customers",
+          field: "name",
+          alias: "Customer",
+          total: "GroupBy",
+          sort: "ASC",
+          show: true,
+          criteria: "",
+          or1: "",
+          or2: "",
+        },
+        {
+          id: "p2",
+          table: "customers",
+          field: segField,
+          alias: "Segment",
+          total: "GroupBy",
+          sort: "",
+          show: true,
+          criteria: "",
+          or1: "",
+          or2: "",
+        },
+        {
+          id: "p3",
+          table: "orders",
+          field: amtField,
+          alias: "TotalSpend",
+          total: "Sum",
+          sort: "DESC",
+          show: true,
+          criteria: "> 0",
+          or1: "",
+          or2: "",
+        },
+        {
+          id: "p4",
+          table: "orders",
+          field: "id",
+          alias: "OrdersCount",
+          total: "Count",
+          sort: "",
+          show: true,
+          criteria: "",
+          or1: "",
+          or2: "",
+        },
       ];
       renderQueryDesigner();
       showToast("Loaded Template: Top Customers by Spend");
@@ -1473,13 +1949,64 @@ function applyDesignerPreset(presetKey) {
       queryDesignerState.distinct = false;
       queryDesignerState.topLimit = 50;
       queryDesignerState.joins = [
-        { key: "customers.id->orders.customer_id-left", leftTable: "customers", leftField: "id", rightTable: "orders", rightField: "customer_id", type: "LEFT" }
+        {
+          key: "customers.id->orders.customer_id-left",
+          leftTable: "customers",
+          leftField: "id",
+          rightTable: "orders",
+          rightField: "customer_id",
+          type: "LEFT",
+        },
       ];
       queryDesignerState.columns = [
-        { id: "jl1", table: "customers", field: "id", alias: "cust_id", total: "None", sort: "ASC", show: true, criteria: "", or1: "", or2: "" },
-        { id: "jl2", table: "customers", field: "name", alias: "customer_name", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" },
-        { id: "jl3", table: "orders", field: "id", alias: "order_id", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" },
-        { id: "jl4", table: "orders", field: "total_amount", alias: "order_amount", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" }
+        {
+          id: "jl1",
+          table: "customers",
+          field: "id",
+          alias: "cust_id",
+          total: "None",
+          sort: "ASC",
+          show: true,
+          criteria: "",
+          or1: "",
+          or2: "",
+        },
+        {
+          id: "jl2",
+          table: "customers",
+          field: "name",
+          alias: "customer_name",
+          total: "None",
+          sort: "",
+          show: true,
+          criteria: "",
+          or1: "",
+          or2: "",
+        },
+        {
+          id: "jl3",
+          table: "orders",
+          field: "id",
+          alias: "order_id",
+          total: "None",
+          sort: "",
+          show: true,
+          criteria: "",
+          or1: "",
+          or2: "",
+        },
+        {
+          id: "jl4",
+          table: "orders",
+          field: "total_amount",
+          alias: "order_amount",
+          total: "None",
+          sort: "",
+          show: true,
+          criteria: "",
+          or1: "",
+          or2: "",
+        },
       ];
       renderQueryDesigner();
       showToast("Loaded Option 2: LEFT OUTER JOIN (All Customers)");
@@ -1492,12 +2019,52 @@ function applyDesignerPreset(presetKey) {
       queryDesignerState.distinct = false;
       queryDesignerState.topLimit = 50;
       queryDesignerState.joins = [
-        { key: "customers.id->orders.customer_id-right", leftTable: "customers", leftField: "id", rightTable: "orders", rightField: "customer_id", type: "RIGHT" }
+        {
+          key: "customers.id->orders.customer_id-right",
+          leftTable: "customers",
+          leftField: "id",
+          rightTable: "orders",
+          rightField: "customer_id",
+          type: "RIGHT",
+        },
       ];
       queryDesignerState.columns = [
-        { id: "jr1", table: "customers", field: "name", alias: "customer_name", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" },
-        { id: "jr2", table: "orders", field: "id", alias: "order_id", total: "None", sort: "ASC", show: true, criteria: "", or1: "", or2: "" },
-        { id: "jr3", table: "orders", field: "total_amount", alias: "order_amount", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" }
+        {
+          id: "jr1",
+          table: "customers",
+          field: "name",
+          alias: "customer_name",
+          total: "None",
+          sort: "",
+          show: true,
+          criteria: "",
+          or1: "",
+          or2: "",
+        },
+        {
+          id: "jr2",
+          table: "orders",
+          field: "id",
+          alias: "order_id",
+          total: "None",
+          sort: "ASC",
+          show: true,
+          criteria: "",
+          or1: "",
+          or2: "",
+        },
+        {
+          id: "jr3",
+          table: "orders",
+          field: "total_amount",
+          alias: "order_amount",
+          total: "None",
+          sort: "",
+          show: true,
+          criteria: "",
+          or1: "",
+          or2: "",
+        },
       ];
       renderQueryDesigner();
       showToast("Loaded Option 3: RIGHT OUTER JOIN (All Orders)");
@@ -1510,13 +2077,64 @@ function applyDesignerPreset(presetKey) {
       queryDesignerState.distinct = false;
       queryDesignerState.topLimit = 50;
       queryDesignerState.joins = [
-        { key: "customers.id->orders.customer_id-full", leftTable: "customers", leftField: "id", rightTable: "orders", rightField: "customer_id", type: "FULL" }
+        {
+          key: "customers.id->orders.customer_id-full",
+          leftTable: "customers",
+          leftField: "id",
+          rightTable: "orders",
+          rightField: "customer_id",
+          type: "FULL",
+        },
       ];
       queryDesignerState.columns = [
-        { id: "jf1", table: "customers", field: "id", alias: "cust_id", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" },
-        { id: "jf2", table: "customers", field: "name", alias: "customer_name", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" },
-        { id: "jf3", table: "orders", field: "id", alias: "order_id", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" },
-        { id: "jf4", table: "orders", field: "total_amount", alias: "order_amount", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" }
+        {
+          id: "jf1",
+          table: "customers",
+          field: "id",
+          alias: "cust_id",
+          total: "None",
+          sort: "",
+          show: true,
+          criteria: "",
+          or1: "",
+          or2: "",
+        },
+        {
+          id: "jf2",
+          table: "customers",
+          field: "name",
+          alias: "customer_name",
+          total: "None",
+          sort: "",
+          show: true,
+          criteria: "",
+          or1: "",
+          or2: "",
+        },
+        {
+          id: "jf3",
+          table: "orders",
+          field: "id",
+          alias: "order_id",
+          total: "None",
+          sort: "",
+          show: true,
+          criteria: "",
+          or1: "",
+          or2: "",
+        },
+        {
+          id: "jf4",
+          table: "orders",
+          field: "total_amount",
+          alias: "order_amount",
+          total: "None",
+          sort: "",
+          show: true,
+          criteria: "",
+          or1: "",
+          or2: "",
+        },
       ];
       renderQueryDesigner();
       showToast("Loaded Option 4: FULL OUTER JOIN (Native PostgreSQL)");
@@ -1529,12 +2147,52 @@ function applyDesignerPreset(presetKey) {
       queryDesignerState.distinct = false;
       queryDesignerState.topLimit = 25;
       queryDesignerState.joins = [
-        { key: "customers->products-cross", leftTable: "customers", leftField: "id", rightTable: "products", rightField: "id", type: "CROSS" }
+        {
+          key: "customers->products-cross",
+          leftTable: "customers",
+          leftField: "id",
+          rightTable: "products",
+          rightField: "id",
+          type: "CROSS",
+        },
       ];
       queryDesignerState.columns = [
-        { id: "jc1", table: "customers", field: "name", alias: "customer_name", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" },
-        { id: "jc2", table: "products", field: "name", alias: "product_name", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" },
-        { id: "jc3", table: "products", field: "price", alias: "unit_price", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" }
+        {
+          id: "jc1",
+          table: "customers",
+          field: "name",
+          alias: "customer_name",
+          total: "None",
+          sort: "",
+          show: true,
+          criteria: "",
+          or1: "",
+          or2: "",
+        },
+        {
+          id: "jc2",
+          table: "products",
+          field: "name",
+          alias: "product_name",
+          total: "None",
+          sort: "",
+          show: true,
+          criteria: "",
+          or1: "",
+          or2: "",
+        },
+        {
+          id: "jc3",
+          table: "products",
+          field: "price",
+          alias: "unit_price",
+          total: "None",
+          sort: "",
+          show: true,
+          criteria: "",
+          or1: "",
+          or2: "",
+        },
       ];
       renderQueryDesigner();
       showToast("Loaded Option 5: CROSS JOIN (Cartesian Matrix)");
@@ -1547,14 +2205,61 @@ function applyDesignerPreset(presetKey) {
       queryDesignerState.distinct = false;
       queryDesignerState.topLimit = 50;
       queryDesignerState.joins = [];
-      const prodMeta = currentSchema.tables.find(t => t.name === "products");
-      const stockField = prodMeta && prodMeta.columns.some(c => c.name === "stock_quantity") ? "stock_quantity" : "stock";
+      const prodMeta = currentSchema.tables.find((t) => t.name === "products");
+      const stockField =
+        prodMeta && prodMeta.columns.some((c) => c.name === "stock_quantity")
+          ? "stock_quantity"
+          : "stock";
 
       queryDesignerState.columns = [
-        { id: "p1", table: "products", field: "name", alias: "Product", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" },
-        { id: "p2", table: "products", field: "category", alias: "Category", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" },
-        { id: "p3", table: "products", field: stockField, alias: "UnitsInStock", total: "None", sort: "ASC", show: true, criteria: "< 50", or1: "", or2: "" },
-        { id: "p4", table: "products", field: "price", alias: "Price", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" }
+        {
+          id: "p1",
+          table: "products",
+          field: "name",
+          alias: "Product",
+          total: "None",
+          sort: "",
+          show: true,
+          criteria: "",
+          or1: "",
+          or2: "",
+        },
+        {
+          id: "p2",
+          table: "products",
+          field: "category",
+          alias: "Category",
+          total: "None",
+          sort: "",
+          show: true,
+          criteria: "",
+          or1: "",
+          or2: "",
+        },
+        {
+          id: "p3",
+          table: "products",
+          field: stockField,
+          alias: "UnitsInStock",
+          total: "None",
+          sort: "ASC",
+          show: true,
+          criteria: "< 50",
+          or1: "",
+          or2: "",
+        },
+        {
+          id: "p4",
+          table: "products",
+          field: "price",
+          alias: "Price",
+          total: "None",
+          sort: "",
+          show: true,
+          criteria: "",
+          or1: "",
+          or2: "",
+        },
       ];
       renderQueryDesigner();
       showToast("Loaded Template: Low Stock Inventory Alert");
@@ -1567,14 +2272,61 @@ function applyDesignerPreset(presetKey) {
       queryDesignerState.distinct = false;
       queryDesignerState.topLimit = 50;
       queryDesignerState.joins = buildDesignerJoinPairs();
-      const ordMeta = currentSchema.tables.find(t => t.name === "orders");
-      const amtField = ordMeta && ordMeta.columns.some(c => c.name === "total_amount") ? "total_amount" : "amount";
+      const ordMeta = currentSchema.tables.find((t) => t.name === "orders");
+      const amtField =
+        ordMeta && ordMeta.columns.some((c) => c.name === "total_amount")
+          ? "total_amount"
+          : "amount";
 
       queryDesignerState.columns = [
-        { id: "p1", table: "orders", field: "id", alias: "OrderID", total: "None", sort: "DESC", show: true, criteria: "", or1: "", or2: "" },
-        { id: "p2", table: "customers", field: "name", alias: "Customer", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" },
-        { id: "p3", table: "orders", field: "status", alias: "Status", total: "None", sort: "", show: true, criteria: "<> 'cancelled'", or1: "", or2: "" },
-        { id: "p4", table: "orders", field: amtField, alias: "Amount", total: "None", sort: "", show: true, criteria: "", or1: "", or2: "" }
+        {
+          id: "p1",
+          table: "orders",
+          field: "id",
+          alias: "OrderID",
+          total: "None",
+          sort: "DESC",
+          show: true,
+          criteria: "",
+          or1: "",
+          or2: "",
+        },
+        {
+          id: "p2",
+          table: "customers",
+          field: "name",
+          alias: "Customer",
+          total: "None",
+          sort: "",
+          show: true,
+          criteria: "",
+          or1: "",
+          or2: "",
+        },
+        {
+          id: "p3",
+          table: "orders",
+          field: "status",
+          alias: "Status",
+          total: "None",
+          sort: "",
+          show: true,
+          criteria: "<> 'cancelled'",
+          or1: "",
+          or2: "",
+        },
+        {
+          id: "p4",
+          table: "orders",
+          field: amtField,
+          alias: "Amount",
+          total: "None",
+          sort: "",
+          show: true,
+          criteria: "",
+          or1: "",
+          or2: "",
+        },
       ];
       renderQueryDesigner();
       showToast("Loaded Template: Active Orders Pipeline");
@@ -1584,18 +2336,25 @@ function applyDesignerPreset(presetKey) {
 
   // Generic fallback for any user database
   queryDesignerState.selectedTables = [tableNames[0]];
-  if (tableNames.length > 1) queryDesignerState.selectedTables.push(tableNames[1]);
+  if (tableNames.length > 1)
+    queryDesignerState.selectedTables.push(tableNames[1]);
   queryDesignerState.joins = buildDesignerJoinPairs();
   queryDesignerState.columns = [];
   queryDesignerState.showTotals = false;
   queryDesignerState.distinct = false;
   ensureQueryDesignerState();
   renderQueryDesigner();
-  showToast("Initialized query layout for " + queryDesignerState.selectedTables.join(" & "));
+  showToast(
+    "Initialized query layout for " +
+      queryDesignerState.selectedTables.join(" & "),
+  );
 }
 
 function exportDesignerDatasheet(format) {
-  if (!queryDesignerState.datasheet || !queryDesignerState.datasheet.rows.length) {
+  if (
+    !queryDesignerState.datasheet ||
+    !queryDesignerState.datasheet.rows.length
+  ) {
     showToast("No data to export. Run the query first.");
     return;
   }
@@ -1610,10 +2369,18 @@ function exportDesignerDatasheet(format) {
     mime = "application/json";
   } else {
     const header = cols.join(",");
-    const body = rows.map(r => cols.map(c => {
-      const val = r[c] !== null && r[c] !== undefined ? String(r[c]) : "";
-      return val.includes(",") || val.includes('"') || val.includes("\n") ? '"' + val.replace(/"/g, '""') + '"' : val;
-    }).join(",")).join("\n");
+    const body = rows
+      .map((r) =>
+        cols
+          .map((c) => {
+            const val = r[c] !== null && r[c] !== undefined ? String(r[c]) : "";
+            return val.includes(",") || val.includes('"') || val.includes("\n")
+              ? '"' + val.replace(/"/g, '""') + '"'
+              : val;
+          })
+          .join(","),
+      )
+      .join("\n");
     content = header + "\n" + body;
     mime = "text/csv";
   }
@@ -1629,7 +2396,10 @@ function exportDesignerDatasheet(format) {
 }
 
 function copyDesignerDatasheetMarkdown() {
-  if (!queryDesignerState.datasheet || !queryDesignerState.datasheet.rows.length) {
+  if (
+    !queryDesignerState.datasheet ||
+    !queryDesignerState.datasheet.rows.length
+  ) {
     showToast("No data to copy. Run the query first.");
     return;
   }
@@ -1637,10 +2407,20 @@ function copyDesignerDatasheetMarkdown() {
   const cols = queryDesignerState.datasheet.columns;
   const header = "| " + cols.join(" | ") + " |";
   const sep = "| " + cols.map(() => "---").join(" | ") + " |";
-  const body = rows.map(r => "| " + cols.map(c => {
-    const val = r[c] !== null && r[c] !== undefined ? String(r[c]) : "NULL";
-    return val.replace(/\|/g, "\\|");
-  }).join(" | ") + " |").join("\n");
+  const body = rows
+    .map(
+      (r) =>
+        "| " +
+        cols
+          .map((c) => {
+            const val =
+              r[c] !== null && r[c] !== undefined ? String(r[c]) : "NULL";
+            return val.replace(/\|/g, "\\|");
+          })
+          .join(" | ") +
+        " |",
+    )
+    .join("\n");
   const md = header + "\n" + sep + "\n" + body;
   if (navigator.clipboard) {
     navigator.clipboard.writeText(md);
@@ -1649,23 +2429,38 @@ function copyDesignerDatasheetMarkdown() {
 }
 
 function copyDesignerDatasheetSqlInsert() {
-  if (!queryDesignerState.datasheet || !queryDesignerState.datasheet.rows.length) {
+  if (
+    !queryDesignerState.datasheet ||
+    !queryDesignerState.datasheet.rows.length
+  ) {
     showToast("No data to copy. Run the query first.");
     return;
   }
   const rows = queryDesignerState.datasheet.rows;
   const cols = queryDesignerState.datasheet.columns;
   const targetTable = queryDesignerState.selectedTables[0] || "results";
-  const colList = cols.map(c => quoteSqlIdentifier(c)).join(", ");
-  const inserts = rows.map(r => {
-    const vals = cols.map(c => {
-      const val = r[c];
-      if (val === null || val === undefined) return "NULL";
-      if (typeof val === "number") return val;
-      return "'" + String(val).replace(/'/g, "''") + "'";
-    }).join(", ");
-    return "INSERT INTO " + quoteSqlIdentifier(targetTable) + " (" + colList + ") VALUES (" + vals + ");";
-  }).join("\n");
+  const colList = cols.map((c) => quoteSqlIdentifier(c)).join(", ");
+  const inserts = rows
+    .map((r) => {
+      const vals = cols
+        .map((c) => {
+          const val = r[c];
+          if (val === null || val === undefined) return "NULL";
+          if (typeof val === "number") return val;
+          return "'" + String(val).replace(/'/g, "''") + "'";
+        })
+        .join(", ");
+      return (
+        "INSERT INTO " +
+        quoteSqlIdentifier(targetTable) +
+        " (" +
+        colList +
+        ") VALUES (" +
+        vals +
+        ");"
+      );
+    })
+    .join("\n");
   if (navigator.clipboard) {
     navigator.clipboard.writeText(inserts);
     showToast("Copied " + rows.length + " SQL INSERT statements");
@@ -1677,7 +2472,7 @@ function filterDesignerDatasheet(query) {
   if (!container) return;
   const q = (query || "").toLowerCase().trim();
   const rows = container.querySelectorAll("tr");
-  rows.forEach(r => {
+  rows.forEach((r) => {
     if (!q) {
       r.style.display = "";
       return;
@@ -1695,8 +2490,11 @@ function toggleCriteriaHelp() {
 
 function loadDesignerSqlToEditor() {
   const preview = document.getElementById("designerSqlPreview");
-  const value = (preview && preview.value.trim()) ? preview.value : buildDesignerSql();
-  const editor = document.getElementById("sqlEditorTextarea") || document.getElementById("sqlEditor");
+  const value =
+    preview && preview.value.trim() ? preview.value : buildDesignerSql();
+  const editor =
+    document.getElementById("sqlEditorTextarea") ||
+    document.getElementById("sqlEditor");
   if (editor) editor.value = value;
   if (typeof switchTab === "function") switchTab("sql");
   showToast("Designer SQL loaded into editor");
@@ -1704,7 +2502,8 @@ function loadDesignerSqlToEditor() {
 
 function copyDesignerSql() {
   const preview = document.getElementById("designerSqlPreview");
-  const value = (preview && preview.value.trim()) ? preview.value : buildDesignerSql();
+  const value =
+    preview && preview.value.trim() ? preview.value : buildDesignerSql();
   if (navigator.clipboard) {
     navigator.clipboard.writeText(value);
     showToast("SQL copied to clipboard");
@@ -1713,8 +2512,11 @@ function copyDesignerSql() {
 
 function explainDesignerQuery() {
   const preview = document.getElementById("designerSqlPreview");
-  const sql = (preview && preview.value.trim()) ? preview.value : buildDesignerSql();
-  const editor = document.getElementById("sqlEditorTextarea") || document.getElementById("sqlEditor");
+  const sql =
+    preview && preview.value.trim() ? preview.value : buildDesignerSql();
+  const editor =
+    document.getElementById("sqlEditorTextarea") ||
+    document.getElementById("sqlEditor");
   if (editor) editor.value = sql;
   explainCurrentQuery();
 }
@@ -1729,33 +2531,36 @@ function runCustomDesignerSql() {
   queryDesignerState.datasheetError = null;
   renderQueryDesigner();
 
-  apiRequest('/api/query', 'POST', { sql }).then(res => {
-    if (res && res.success) {
-      queryDesignerState.datasheet = {
-        rows: res.rows || [],
-        columns: res.columns || [],
-        latencyMs: res.latencyMs ?? res.executionTimeMs ?? 0,
-        error: null,
-      };
-    } else {
+  apiRequest("/api/query", "POST", { sql })
+    .then((res) => {
+      if (res && res.success) {
+        queryDesignerState.datasheet = {
+          rows: res.rows || [],
+          columns: res.columns || [],
+          latencyMs: res.latencyMs ?? res.executionTimeMs ?? 0,
+          error: null,
+        };
+      } else {
+        queryDesignerState.datasheet = {
+          rows: [],
+          columns: [],
+          latencyMs: 0,
+          error: res ? res.error : "Execution failed",
+        };
+      }
+    })
+    .catch((err) => {
       queryDesignerState.datasheet = {
         rows: [],
         columns: [],
         latencyMs: 0,
-        error: res ? res.error : "Execution failed",
+        error: err.message,
       };
-    }
-  }).catch(err => {
-    queryDesignerState.datasheet = {
-      rows: [],
-      columns: [],
-      latencyMs: 0,
-      error: err.message,
-    };
-  }).finally(() => {
-    queryDesignerState.datasheetLoading = false;
-    renderQueryDesigner();
-  });
+    })
+    .finally(() => {
+      queryDesignerState.datasheetLoading = false;
+      renderQueryDesigner();
+    });
 }
 
 function resetDesignerSqlToQbe() {
@@ -1768,13 +2573,26 @@ function resetDesignerSqlToQbe() {
 
 async function saveDesignerQuery() {
   const preview = document.getElementById("designerSqlPreview");
-  const sql = (queryDesignerState.activeView === "sql" && preview && preview.value.trim()) ? preview.value.trim() : buildDesignerSql();
-  const defaultName = "Query " + ((queryDesignerState.savedQueries || []).length + 1);
-  const name = await studioPrompt("Save this query as:", defaultName, { title: "Save query" });
+  const sql =
+    queryDesignerState.activeView === "sql" && preview && preview.value.trim()
+      ? preview.value.trim()
+      : buildDesignerSql();
+  const defaultName =
+    "Query " + ((queryDesignerState.savedQueries || []).length + 1);
+  const name = await studioPrompt("Save this query as:", defaultName, {
+    title: "Save query",
+  });
   if (!name) return;
   if (!queryDesignerState.savedQueries) queryDesignerState.savedQueries = [];
-  queryDesignerState.savedQueries.unshift({ name, sql, createdAt: new Date().toISOString() });
-  queryDesignerState.savedQueries = queryDesignerState.savedQueries.slice(0, 15);
+  queryDesignerState.savedQueries.unshift({
+    name,
+    sql,
+    createdAt: new Date().toISOString(),
+  });
+  queryDesignerState.savedQueries = queryDesignerState.savedQueries.slice(
+    0,
+    15,
+  );
   persistSavedQueries();
   showToast("Saved query: " + name);
   renderQueryDesigner();
@@ -1782,21 +2600,32 @@ async function saveDesignerQuery() {
 
 async function saveDesignerAsView() {
   const preview = document.getElementById("designerSqlPreview");
-  let querySql = (queryDesignerState.activeView === "sql" && preview && preview.value.trim()) ? preview.value.trim() : buildDesignerSql();
+  let querySql =
+    queryDesignerState.activeView === "sql" && preview && preview.value.trim()
+      ? preview.value.trim()
+      : buildDesignerSql();
   querySql = querySql.replace(/;+$/, "").trim();
   if (!querySql || querySql.startsWith("--")) {
     showToast("Cannot create view from empty query");
     return;
   }
 
-  const defaultViewName = "v_" + (queryDesignerState.selectedTables && queryDesignerState.selectedTables[0] ? queryDesignerState.selectedTables[0] : "custom") + "_view";
+  const defaultViewName =
+    "v_" +
+    (queryDesignerState.selectedTables && queryDesignerState.selectedTables[0]
+      ? queryDesignerState.selectedTables[0]
+      : "custom") +
+    "_view";
   StudioViews.openNew({ select: querySql, name: defaultViewName });
 }
 
 function loadSavedDesignerQuery(index) {
-  const item = queryDesignerState.savedQueries && queryDesignerState.savedQueries[index];
+  const item =
+    queryDesignerState.savedQueries && queryDesignerState.savedQueries[index];
   if (!item) return;
-  const editor = document.getElementById("sqlEditorTextarea") || document.getElementById("sqlEditor");
+  const editor =
+    document.getElementById("sqlEditorTextarea") ||
+    document.getElementById("sqlEditor");
   if (editor) editor.value = item.sql;
   const preview = document.getElementById("designerSqlPreview");
   if (preview) preview.value = item.sql;
@@ -1804,7 +2633,12 @@ function loadSavedDesignerQuery(index) {
 }
 
 function deleteSavedDesignerQuery(index) {
-  if (!queryDesignerState.savedQueries || index < 0 || index >= queryDesignerState.savedQueries.length) return;
+  if (
+    !queryDesignerState.savedQueries ||
+    index < 0 ||
+    index >= queryDesignerState.savedQueries.length
+  )
+    return;
   const removed = queryDesignerState.savedQueries.splice(index, 1);
   persistSavedQueries();
   renderQueryDesigner();
@@ -1813,7 +2647,10 @@ function deleteSavedDesignerQuery(index) {
 
 function buildDesignerSql() {
   ensureQueryDesignerState();
-  if (!queryDesignerState.selectedTables || !queryDesignerState.selectedTables.length) {
+  if (
+    !queryDesignerState.selectedTables ||
+    !queryDesignerState.selectedTables.length
+  ) {
     return "-- Add a table from the toolbar to start building your query";
   }
 
@@ -1827,14 +2664,23 @@ function buildDesignerSql() {
   const havingConditions = [];
   const orderByItems = [];
 
-  const activeColumns = (queryDesignerState.columns || []).filter(col => selectedTables.includes(col.table));
+  const activeColumns = (queryDesignerState.columns || []).filter((col) =>
+    selectedTables.includes(col.table),
+  );
 
   if (!activeColumns.length) {
     selectItems.push("*");
   } else {
-    activeColumns.forEach(col => {
-      const qualified = quoteSqlIdentifier(col.table) + "." + (col.field === "*" ? "*" : quoteSqlIdentifier(col.field));
-      const alias = col.alias ? quoteSqlIdentifier(col.alias) : (selectedTables.length > 1 ? quoteSqlIdentifier(col.table + "_" + col.field) : quoteSqlIdentifier(col.field));
+    activeColumns.forEach((col) => {
+      const qualified =
+        quoteSqlIdentifier(col.table) +
+        "." +
+        (col.field === "*" ? "*" : quoteSqlIdentifier(col.field));
+      const alias = col.alias
+        ? quoteSqlIdentifier(col.alias)
+        : selectedTables.length > 1
+          ? quoteSqlIdentifier(col.table + "_" + col.field)
+          : quoteSqlIdentifier(col.field);
       const total = col.total || (showTotals ? "GroupBy" : "None");
 
       let expr = qualified;
@@ -1855,19 +2701,36 @@ function buildDesignerSql() {
         selectItems.push(expr + (alias ? " AS " + alias : ""));
       }
 
-      if (showTotals && (total === "GroupBy" || (!isAggregate && total !== "Where" && total !== "Expression" && col.show !== false))) {
+      if (
+        showTotals &&
+        (total === "GroupBy" ||
+          (!isAggregate &&
+            total !== "Where" &&
+            total !== "Expression" &&
+            col.show !== false))
+      ) {
         if (!groupByItems.includes(qualified) && col.field !== "*") {
           groupByItems.push(qualified);
         }
       }
 
       const conds = [];
-      if (col.criteria && col.criteria.trim()) conds.push(formatAccessCriterion(isAggregate ? expr : qualified, col.criteria));
-      if (col.or1 && col.or1.trim()) conds.push(formatAccessCriterion(isAggregate ? expr : qualified, col.or1));
-      if (col.or2 && col.or2.trim()) conds.push(formatAccessCriterion(isAggregate ? expr : qualified, col.or2));
+      if (col.criteria && col.criteria.trim())
+        conds.push(
+          formatAccessCriterion(isAggregate ? expr : qualified, col.criteria),
+        );
+      if (col.or1 && col.or1.trim())
+        conds.push(
+          formatAccessCriterion(isAggregate ? expr : qualified, col.or1),
+        );
+      if (col.or2 && col.or2.trim())
+        conds.push(
+          formatAccessCriterion(isAggregate ? expr : qualified, col.or2),
+        );
 
       if (conds.length > 0) {
-        const combined = conds.length === 1 ? conds[0] : "(" + conds.join(" OR ") + ")";
+        const combined =
+          conds.length === 1 ? conds[0] : "(" + conds.join(" OR ") + ")";
         if (isAggregate) {
           havingConditions.push(combined);
         } else {
@@ -1891,9 +2754,13 @@ function buildDesignerSql() {
   const joinedTables = new Set([baseTable]);
   sqlLines.push("FROM " + quoteSqlIdentifier(baseTable));
 
-  const pendingJoins = [...(queryDesignerState.joins || []).filter(j => 
-    selectedTables.includes(j.leftTable) && selectedTables.includes(j.rightTable)
-  )];
+  const pendingJoins = [
+    ...(queryDesignerState.joins || []).filter(
+      (j) =>
+        selectedTables.includes(j.leftTable) &&
+        selectedTables.includes(j.rightTable),
+    ),
+  ];
 
   while (pendingJoins.length > 0) {
     let matchIdx = -1;
@@ -1905,11 +2772,17 @@ function buildDesignerSql() {
         matchIdx = i;
         isReversed = false;
         break;
-      } else if (joinedTables.has(j.rightTable) && !joinedTables.has(j.leftTable)) {
+      } else if (
+        joinedTables.has(j.rightTable) &&
+        !joinedTables.has(j.leftTable)
+      ) {
         matchIdx = i;
         isReversed = true;
         break;
-      } else if (joinedTables.has(j.leftTable) && joinedTables.has(j.rightTable)) {
+      } else if (
+        joinedTables.has(j.leftTable) &&
+        joinedTables.has(j.rightTable)
+      ) {
         matchIdx = i;
         isReversed = false;
         break;
@@ -1922,7 +2795,15 @@ function buildDesignerSql() {
 
       if (joinedTables.has(j.leftTable) && joinedTables.has(j.rightTable)) {
         if (rawJoinType !== "CROSS") {
-          whereConditions.push(quoteSqlIdentifier(j.leftTable) + "." + quoteSqlIdentifier(j.leftField) + " = " + quoteSqlIdentifier(j.rightTable) + "." + quoteSqlIdentifier(j.rightField));
+          whereConditions.push(
+            quoteSqlIdentifier(j.leftTable) +
+              "." +
+              quoteSqlIdentifier(j.leftField) +
+              " = " +
+              quoteSqlIdentifier(j.rightTable) +
+              "." +
+              quoteSqlIdentifier(j.rightField),
+          );
         }
         continue;
       }
@@ -1931,22 +2812,50 @@ function buildDesignerSql() {
         let effType = "INNER";
         if (rawJoinType === "LEFT") effType = "RIGHT";
         else if (rawJoinType === "RIGHT") effType = "LEFT";
-        else if (rawJoinType === "FULL" || rawJoinType === "FULL OUTER") effType = "FULL OUTER";
+        else if (rawJoinType === "FULL" || rawJoinType === "FULL OUTER")
+          effType = "FULL OUTER";
         else if (rawJoinType === "CROSS") effType = "CROSS";
         else effType = "INNER";
 
         if (effType === "CROSS") {
           sqlLines.push("CROSS JOIN " + quoteSqlIdentifier(j.leftTable));
         } else {
-          sqlLines.push(effType + " JOIN " + quoteSqlIdentifier(j.leftTable) + " ON " + quoteSqlIdentifier(j.rightTable) + "." + quoteSqlIdentifier(j.rightField) + " = " + quoteSqlIdentifier(j.leftTable) + "." + quoteSqlIdentifier(j.leftField));
+          sqlLines.push(
+            effType +
+              " JOIN " +
+              quoteSqlIdentifier(j.leftTable) +
+              " ON " +
+              quoteSqlIdentifier(j.rightTable) +
+              "." +
+              quoteSqlIdentifier(j.rightField) +
+              " = " +
+              quoteSqlIdentifier(j.leftTable) +
+              "." +
+              quoteSqlIdentifier(j.leftField),
+          );
         }
         joinedTables.add(j.leftTable);
       } else {
-        let effType = (rawJoinType === "FULL" || rawJoinType === "FULL OUTER") ? "FULL OUTER" : rawJoinType;
+        let effType =
+          rawJoinType === "FULL" || rawJoinType === "FULL OUTER"
+            ? "FULL OUTER"
+            : rawJoinType;
         if (effType === "CROSS") {
           sqlLines.push("CROSS JOIN " + quoteSqlIdentifier(j.rightTable));
         } else {
-          sqlLines.push(effType + " JOIN " + quoteSqlIdentifier(j.rightTable) + " ON " + quoteSqlIdentifier(j.leftTable) + "." + quoteSqlIdentifier(j.leftField) + " = " + quoteSqlIdentifier(j.rightTable) + "." + quoteSqlIdentifier(j.rightField));
+          sqlLines.push(
+            effType +
+              " JOIN " +
+              quoteSqlIdentifier(j.rightTable) +
+              " ON " +
+              quoteSqlIdentifier(j.leftTable) +
+              "." +
+              quoteSqlIdentifier(j.leftField) +
+              " = " +
+              quoteSqlIdentifier(j.rightTable) +
+              "." +
+              quoteSqlIdentifier(j.rightField),
+          );
         }
         joinedTables.add(j.rightTable);
       }
@@ -1957,7 +2866,7 @@ function buildDesignerSql() {
     }
   }
 
-  selectedTables.forEach(t => {
+  selectedTables.forEach((t) => {
     if (!joinedTables.has(t)) {
       sqlLines.push("CROSS JOIN " + quoteSqlIdentifier(t));
       joinedTables.add(t);
@@ -1995,41 +2904,42 @@ function renderQueryDesigner() {
   ensureQueryDesignerState();
 
   if (!currentSchema || (!currentSchema.tables && !currentSchema.views)) {
-    container.innerHTML = '<div class="designer-empty">Load a schema from the sidebar to begin building a query.</div>';
+    container.innerHTML =
+      '<div class="designer-empty">Load a schema from the sidebar to begin building a query.</div>';
     return;
   }
 
   const selectedTables = queryDesignerState.selectedTables || [];
   const tablesList = (currentSchema.tables || [])
-    .map(t => t.name)
-    .filter(name => !selectedTables.includes(name));
+    .map((t) => t.name)
+    .filter((name) => !selectedTables.includes(name));
   const viewsList = (currentSchema.views || [])
-    .map(v => v.name)
-    .filter(name => !selectedTables.includes(name));
+    .map((v) => v.name)
+    .filter((name) => !selectedTables.includes(name));
 
   // 1. Ribbon Toolbar
   const ribbonHtml = `
     <div class="qbe-ribbon">
       <div class="qbe-ribbon-group">
         <div class="qbe-view-switch">
-          <button id="btnDesignerViewDesign" class="qbe-view-btn ${queryDesignerState.activeView === 'design' ? 'active' : ''}" onclick="setDesignerActiveView('design')" title="Design View (QBE Matrix & Relationships)">📐 Design</button>
-          <button id="btnDesignerViewSql" class="qbe-view-btn ${queryDesignerState.activeView === 'sql' ? 'active' : ''}" onclick="setDesignerActiveView('sql')" title="SQL View (Direct SQL Preview)">💻 SQL</button>
-          <button id="btnDesignerViewDatasheet" class="qbe-view-btn ${queryDesignerState.activeView === 'datasheet' ? 'active' : ''}" onclick="setDesignerActiveView('datasheet')" title="Datasheet View (Live Data Results)">📋 Datasheet</button>
+          <button id="btnDesignerViewDesign" class="qbe-view-btn ${queryDesignerState.activeView === "design" ? "active" : ""}" onclick="setDesignerActiveView('design')" title="Design View (QBE Matrix & Relationships)">📐 Design</button>
+          <button id="btnDesignerViewSql" class="qbe-view-btn ${queryDesignerState.activeView === "sql" ? "active" : ""}" onclick="setDesignerActiveView('sql')" title="SQL View (Direct SQL Preview)">💻 SQL</button>
+          <button id="btnDesignerViewDatasheet" class="qbe-view-btn ${queryDesignerState.activeView === "datasheet" ? "active" : ""}" onclick="setDesignerActiveView('datasheet')" title="Datasheet View (Live Data Results)">📋 Datasheet</button>
         </div>
         <div class="qbe-divider"></div>
-        <button id="btnDesignerRun" class="btn btn-sm qbe-btn-run" onclick="runDesignerActive()" aria-keyshortcuts="Control+Enter F5" title="Run query and view Datasheet (Ctrl/⌘+Enter or F5)">! Run${window.StudioShortcuts ? StudioShortcuts.runHint() : ''}</button>
-        <button id="btnDesignerTotals" class="qbe-btn-toggle ${queryDesignerState.showTotals ? 'active' : ''}" onclick="toggleDesignerTotals()" title="Toggle Totals (Group By, Sum, Avg, Count, etc.)">Σ Totals</button>
-        <button id="btnDesignerDistinct" class="qbe-btn-toggle ${queryDesignerState.distinct ? 'active' : ''}" onclick="toggleDesignerDistinct()" title="Unique Values (SELECT DISTINCT)">Distinct</button>
+        <button id="btnDesignerRun" class="btn btn-sm qbe-btn-run" onclick="runDesignerActive()" aria-keyshortcuts="Control+Enter F5" title="Run query and view Datasheet (Ctrl/⌘+Enter or F5)">! Run${window.StudioShortcuts ? StudioShortcuts.runHint() : ""}</button>
+        <button id="btnDesignerTotals" class="qbe-btn-toggle ${queryDesignerState.showTotals ? "active" : ""}" onclick="toggleDesignerTotals()" title="Toggle Totals (Group By, Sum, Avg, Count, etc.)">Σ Totals</button>
+        <button id="btnDesignerDistinct" class="qbe-btn-toggle ${queryDesignerState.distinct ? "active" : ""}" onclick="toggleDesignerDistinct()" title="Unique Values (SELECT DISTINCT)">Distinct</button>
         <span style="font-size: 11px; color: var(--text-dim); margin-left: 2px;">Top:</span>
         <select class="qbe-select" onchange="setDesignerTopLimit(this.value)" style="width: 80px;">
-          <option value="0" ${queryDesignerState.topLimit === 0 ? 'selected' : ''}>All</option>
-          <option value="5" ${queryDesignerState.topLimit === 5 ? 'selected' : ''}>5</option>
-          <option value="10" ${queryDesignerState.topLimit === 10 ? 'selected' : ''}>10</option>
-          <option value="25" ${queryDesignerState.topLimit === 25 ? 'selected' : ''}>25</option>
-          <option value="50" ${queryDesignerState.topLimit === 50 ? 'selected' : ''}>50</option>
-          <option value="100" ${queryDesignerState.topLimit === 100 ? 'selected' : ''}>100</option>
-          <option value="500" ${queryDesignerState.topLimit === 500 ? 'selected' : ''}>500</option>
-          <option value="1000" ${queryDesignerState.topLimit === 1000 ? 'selected' : ''}>1000</option>
+          <option value="0" ${queryDesignerState.topLimit === 0 ? "selected" : ""}>All</option>
+          <option value="5" ${queryDesignerState.topLimit === 5 ? "selected" : ""}>5</option>
+          <option value="10" ${queryDesignerState.topLimit === 10 ? "selected" : ""}>10</option>
+          <option value="25" ${queryDesignerState.topLimit === 25 ? "selected" : ""}>25</option>
+          <option value="50" ${queryDesignerState.topLimit === 50 ? "selected" : ""}>50</option>
+          <option value="100" ${queryDesignerState.topLimit === 100 ? "selected" : ""}>100</option>
+          <option value="500" ${queryDesignerState.topLimit === 500 ? "selected" : ""}>500</option>
+          <option value="1000" ${queryDesignerState.topLimit === 1000 ? "selected" : ""}>1000</option>
         </select>
         <select id="designerPresetSelect" class="qbe-select" onchange="applyDesignerPreset(this.value); this.value='';" style="max-width: 175px; font-weight: 600; color: var(--amber);">
           <option value="">⚡ Presets / Templates</option>
@@ -2048,8 +2958,8 @@ function renderQueryDesigner() {
       <div class="qbe-ribbon-group">
         <select id="designerTablePicker" class="qbe-select" style="max-width: 155px;">
           <option value="">+ Add Table / View</option>
-          ${tablesList.length ? `<optgroup label="📋 Tables">${tablesList.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('')}</optgroup>` : ''}
-          ${viewsList.length ? `<optgroup label="👁️ Views">${viewsList.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)} (View)</option>`).join('')}</optgroup>` : ''}
+          ${tablesList.length ? `<optgroup label="📋 Tables">${tablesList.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("")}</optgroup>` : ""}
+          ${viewsList.length ? `<optgroup label="👁️ Views">${viewsList.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)} (View)</option>`).join("")}</optgroup>` : ""}
         </select>
         <button id="btnDesignerAddTable" class="btn btn-sm" onclick="addDesignerTableFromPicker()">Add</button>
         <button id="btnDesignerFullErd" class="btn btn-sm" onclick="loadFullSchemaErd()" title="Load full database ERD with all tables and relationships">🌐 Full Schema ERD</button>
@@ -2069,14 +2979,22 @@ function renderQueryDesigner() {
   // 2. View: SQL View
   if (queryDesignerState.activeView === "sql") {
     const sqlPreview = buildDesignerSql();
-    const savedList = (queryDesignerState.savedQueries || []).map((item, idx) => `
+    const savedList =
+      (queryDesignerState.savedQueries || [])
+        .map(
+          (item, idx) => `
       <div class="qbe-saved-chip">
         <button class="btn btn-sm" onclick="loadSavedDesignerQuery(${idx})" title="Click to load saved SQL">${escapeHtml(item.name)}</button>
         <button class="sidebar-mini-btn" onclick="deleteSavedDesignerQuery(${idx})" title="Delete saved query">✕</button>
       </div>
-    `).join('') || '<span style="color: var(--text-dim); font-size: 11px;">No saved queries yet.</span>';
+    `,
+        )
+        .join("") ||
+      '<span style="color: var(--text-dim); font-size: 11px;">No saved queries yet.</span>';
 
-    container.innerHTML = ribbonHtml + `
+    container.innerHTML =
+      ribbonHtml +
+      `
       <div class="designer-sql-panel">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap: wrap; gap: 6px;">
           <div style="display: flex; align-items: center; gap: 8px;">
@@ -2142,16 +3060,26 @@ function renderQueryDesigner() {
             <thead>
               <tr>
                 <th style="width: 40px; text-align: center;">#</th>
-                ${cols.map(c => `<th>${c}</th>`).join('')}
+                ${cols.map((c) => `<th>${c}</th>`).join("")}
               </tr>
             </thead>
             <tbody>
-              ${rows.length === 0 ? '<tr><td colspan="' + (cols.length + 1) + '" style="text-align:center; color:var(--text-dim); padding:20px;">0 records returned</td></tr>' : rows.map((r, idx) => `
+              ${
+                rows.length === 0
+                  ? '<tr><td colspan="' +
+                    (cols.length + 1) +
+                    '" style="text-align:center; color:var(--text-dim); padding:20px;">0 records returned</td></tr>'
+                  : rows
+                      .map(
+                        (r, idx) => `
                 <tr>
                   <td style="color: var(--text-dim); font-size: 10px; text-align: center;">${idx + 1}</td>
-                  ${cols.map(c => `<td>${r[c] !== null && r[c] !== undefined ? escapeHtml(String(r[c])) : '<span style="color:var(--text-dim);">NULL</span>'}</td>`).join('')}
+                  ${cols.map((c) => `<td>${r[c] !== null && r[c] !== undefined ? escapeHtml(String(r[c])) : '<span style="color:var(--text-dim);">NULL</span>'}</td>`).join("")}
                 </tr>
-              `).join('')}
+              `,
+                      )
+                      .join("")
+              }
             </tbody>
           </table>
         </div>
@@ -2164,19 +3092,21 @@ function renderQueryDesigner() {
       `;
     }
 
-    container.innerHTML = ribbonHtml + `
+    container.innerHTML =
+      ribbonHtml +
+      `
       <div class="qbe-datasheet-container">
         <div class="qbe-datasheet-toolbar">
           <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
             <span style="font-weight: 700; color: var(--cyan);">📋 Datasheet View</span>
-            ${ds ? `<span style="font-size: 10px; background: rgba(56, 189, 248, 0.15); color: var(--cyan); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono);">${ds.rows.length} rows (${ds.latencyMs}ms)</span>` : ''}
+            ${ds ? `<span style="font-size: 10px; background: rgba(56, 189, 248, 0.15); color: var(--cyan); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono);">${ds.rows.length} rows (${ds.latencyMs}ms)</span>` : ""}
             <input type="text" placeholder="🔍 Filter rows..." oninput="filterDesignerDatasheet(this.value)" style="padding: 4px 8px; font-size: 11px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); border-radius: 4px; color: var(--text-main); width: 130px; outline: none;">
             <!-- Datasheet Density & Font -->
             <div style="display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">
               <span style="font-size: 10px; color: var(--text-dim);">Density:</span>
-              <button class="btn btn-sm ${queryDesignerState.datasheetDensity === 'compact' ? 'btn-primary' : ''}" onclick="setDatasheetDensity('compact')" style="padding: 1px 5px; font-size: 10px;">Compact</button>
-              <button class="btn btn-sm ${!queryDesignerState.datasheetDensity || queryDesignerState.datasheetDensity === 'normal' ? 'btn-primary' : ''}" onclick="setDatasheetDensity('normal')" style="padding: 1px 5px; font-size: 10px;">Normal</button>
-              <button class="btn btn-sm ${queryDesignerState.datasheetDensity === 'spacious' ? 'btn-primary' : ''}" onclick="setDatasheetDensity('spacious')" style="padding: 1px 5px; font-size: 10px;">Spacious</button>
+              <button class="btn btn-sm ${queryDesignerState.datasheetDensity === "compact" ? "btn-primary" : ""}" onclick="setDatasheetDensity('compact')" style="padding: 1px 5px; font-size: 10px;">Compact</button>
+              <button class="btn btn-sm ${!queryDesignerState.datasheetDensity || queryDesignerState.datasheetDensity === "normal" ? "btn-primary" : ""}" onclick="setDatasheetDensity('normal')" style="padding: 1px 5px; font-size: 10px;">Normal</button>
+              <button class="btn btn-sm ${queryDesignerState.datasheetDensity === "spacious" ? "btn-primary" : ""}" onclick="setDatasheetDensity('spacious')" style="padding: 1px 5px; font-size: 10px;">Spacious</button>
               <span style="font-size: 10px; color: var(--text-dim); margin-left: 4px;">Text:</span>
               <button class="btn btn-sm" onclick="adjustDatasheetFontSize(-1)" style="padding: 1px 5px; font-size: 10px;">A−</button>
               <span id="dsFontBadge" style="font-size: 10px; color: var(--cyan); font-family: var(--font-mono);">${queryDesignerState.datasheetFontSize || 11}px</span>
@@ -2198,39 +3128,48 @@ function renderQueryDesigner() {
   }
 
   // 4. View: Design View (Workbench + QBE Grid)
-  const tableCardsHtml = selectedTables.map(tableName => {
-    const meta = getEntityMeta(tableName);
-    if (!meta) return "";
-    const isView = (currentSchema.views || []).some(v => v.name === tableName);
-    const icon = isView ? '👁️' : '🗄️';
-    const pos = (queryDesignerState.tablePositions && queryDesignerState.tablePositions[tableName]) || { x: 20, y: 15 };
-    const cardStyle = `position: absolute; left: ${pos.x}px; top: ${pos.y}px; width: 230px;`;
-    const columnsHtml = (meta.columns || []).map(c => {
-      const typeDisplay = formatPgTypeShort(c.type || 'ANY');
-      return `
-      <div class="qbe-field-row" id="qbeFieldRow_${tableName}_${c.name}" draggable="true" ondragstart="onDesignerFieldDragStart(event, '${tableName}', '${c.name}')" ondragover="onDesignerFieldDragOver(event)" ondragenter="onDesignerFieldDragEnter(event, '${tableName}', '${c.name}')" ondragleave="onDesignerFieldDragLeave(event)" ondrop="onDesignerFieldDrop(event, '${tableName}', '${c.name}')" onclick="addDesignerQbeColumn('${tableName}', '${c.name}')" title="Drag to another field to link, or click to add to QBE Grid (${c.type || 'ANY'})">
+  const tableCardsHtml =
+    selectedTables
+      .map((tableName) => {
+        const meta = getEntityMeta(tableName);
+        if (!meta) return "";
+        const isView = (currentSchema.views || []).some(
+          (v) => v.name === tableName,
+        );
+        const icon = isView ? "👁️" : "🗄️";
+        const pos = (queryDesignerState.tablePositions &&
+          queryDesignerState.tablePositions[tableName]) || { x: 20, y: 15 };
+        const cardStyle = `position: absolute; left: ${pos.x}px; top: ${pos.y}px; width: 230px;`;
+        const columnsHtml = (meta.columns || [])
+          .map((c) => {
+            const typeDisplay = formatPgTypeShort(c.type || "ANY");
+            return `
+      <div class="qbe-field-row" id="qbeFieldRow_${tableName}_${c.name}" draggable="true" ondragstart="onDesignerFieldDragStart(event, '${tableName}', '${c.name}')" ondragover="onDesignerFieldDragOver(event)" ondragenter="onDesignerFieldDragEnter(event, '${tableName}', '${c.name}')" ondragleave="onDesignerFieldDragLeave(event)" ondrop="onDesignerFieldDrop(event, '${tableName}', '${c.name}')" onclick="addDesignerQbeColumn('${tableName}', '${c.name}')" title="Drag to another field to link, or click to add to QBE Grid (${c.type || "ANY"})">
         <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;">
           <span class="qbe-field-connector" title="Drag to link this field">●</span>
-          <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${c.pk ? '🔑 ' : ''}${c.name}</span>
+          <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${c.pk ? "🔑 " : ""}${c.name}</span>
         </div>
         <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
-          <span style="font-size: 9px; color: var(--text-dim); max-width: 65px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block;" title="${c.type || 'ANY'}">${typeDisplay}</span>
+          <span style="font-size: 9px; color: var(--text-dim); max-width: 65px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block;" title="${c.type || "ANY"}">${typeDisplay}</span>
           <span class="qbe-field-add-icon">+</span>
         </div>
       </div>
     `;
-    }).join('');
+          })
+          .join("");
 
-    return `
+        return `
       <div class="qbe-table-card" id="qbeTableCard_${tableName}" style="${cardStyle}">
         <div class="qbe-table-card-header" onmousedown="onDesignerTableHeaderMouseDown(event, '${tableName}')" title="Drag header to move table on canvas">
-          <span style="pointer-events: none;">${icon} ${tableName}${isView ? ' <span style="font-size: 9px; opacity: 0.7; font-weight: normal;">(view)</span>' : ''}</span>
+          <span style="pointer-events: none;">${icon} ${tableName}${isView ? ' <span style="font-size: 9px; opacity: 0.7; font-weight: normal;">(view)</span>' : ""}</span>
           <button class="sidebar-mini-btn" onclick="removeDesignerTable('${tableName}')" title="Remove table">✕</button>
         </div>
         <div class="qbe-table-card-fields">${columnsHtml}</div>
       </div>
     `;
-  }).join('') || `
+      })
+      .join("") ||
+    `
     <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 22px 16px; background: rgba(255, 255, 255, 0.02); border: 1px dashed var(--border-subtle); border-radius: 8px; text-align: center; width: 100%;">
       <div style="font-size: 22px; margin-bottom: 6px;">🗂️</div>
       <div style="font-weight: 700; font-size: 13px; color: var(--text-main); margin-bottom: 4px;">Relationship Canvas Ready</div>
@@ -2250,11 +3189,13 @@ function renderQueryDesigner() {
   // Multi-table Topology Status
   const activeJoins = queryDesignerState.joins || [];
   const tablesInJoins = new Set();
-  activeJoins.forEach(j => {
+  activeJoins.forEach((j) => {
     tablesInJoins.add(j.leftTable);
     tablesInJoins.add(j.rightTable);
   });
-  const unconnectedTables = selectedTables.filter(t => !tablesInJoins.has(t) && selectedTables.length > 1);
+  const unconnectedTables = selectedTables.filter(
+    (t) => !tablesInJoins.has(t) && selectedTables.length > 1,
+  );
 
   let topologyStatusHtml = "";
   if (selectedTables.length > 1) {
@@ -2268,7 +3209,7 @@ function renderQueryDesigner() {
     } else {
       topologyStatusHtml = `
         <div style="display: inline-flex; align-items: center; gap: 6px; font-size: 10px; color: var(--amber); background: rgba(245, 158, 11, 0.1); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(245, 158, 11, 0.3);">
-          <span>⚠️ ${unconnectedTables.join(', ')} unconnected</span>
+          <span>⚠️ ${unconnectedTables.join(", ")} unconnected</span>
           <button class="btn btn-sm" onclick="autoJoinDesignerTables()" style="padding: 1px 6px; font-size: 9px;">⚡ Auto-Detect Joins</button>
         </div>
       `;
@@ -2276,65 +3217,95 @@ function renderQueryDesigner() {
   }
 
   // Active Joins Strip with Editable Tables & Fields
-  const joinsHtml = activeJoins.map(join => {
-    const leftMeta = getEntityMeta(join.leftTable);
-    const rightMeta = getEntityMeta(join.rightTable);
-    const leftFields = leftMeta && leftMeta.columns ? leftMeta.columns.map(c => c.name) : [];
-    const rightFields = rightMeta && rightMeta.columns ? rightMeta.columns.map(c => c.name) : [];
-    const joinTypes = [
-      { val: "INNER", label: "1: Only matching rows (INNER)" },
-      { val: "LEFT", label: "2: ALL records from " + join.leftTable + " (LEFT)" },
-      { val: "RIGHT", label: "3: ALL records from " + join.rightTable + " (RIGHT)" },
-      { val: "FULL", label: "4: ALL records from BOTH (FULL OUTER)" },
-      { val: "CROSS", label: "5: Cartesian product (CROSS)" },
-    ];
+  const joinsHtml =
+    activeJoins
+      .map((join) => {
+        const leftMeta = getEntityMeta(join.leftTable);
+        const rightMeta = getEntityMeta(join.rightTable);
+        const leftFields =
+          leftMeta && leftMeta.columns
+            ? leftMeta.columns.map((c) => c.name)
+            : [];
+        const rightFields =
+          rightMeta && rightMeta.columns
+            ? rightMeta.columns.map((c) => c.name)
+            : [];
+        const joinTypes = [
+          { val: "INNER", label: "1: Only matching rows (INNER)" },
+          {
+            val: "LEFT",
+            label: "2: ALL records from " + join.leftTable + " (LEFT)",
+          },
+          {
+            val: "RIGHT",
+            label: "3: ALL records from " + join.rightTable + " (RIGHT)",
+          },
+          { val: "FULL", label: "4: ALL records from BOTH (FULL OUTER)" },
+          { val: "CROSS", label: "5: Cartesian product (CROSS)" },
+        ];
 
-    return `
+        return `
       <div class="qbe-join-badge">
         <button class="btn btn-sm" onclick="openJoinPropertiesModal('${join.key}')" title="Configure in Join Properties dialog" style="padding: 2px 7px; font-size: 10px; font-weight: 700; color: var(--cyan); border-color: rgba(56, 189, 248, 0.4);">📐 Properties</button>
         <select class="qbe-select" onchange="updateDesignerJoin('${join.key}', 'type', this.value)" style="font-weight: 600; color: var(--cyan);">
-          ${joinTypes.map(j => `<option value="${j.val}" ${join.type === j.val ? 'selected' : ''}>${j.label}</option>`).join('')}
+          ${joinTypes.map((j) => `<option value="${j.val}" ${join.type === j.val ? "selected" : ""}>${j.label}</option>`).join("")}
         </select>
         <select class="qbe-select" onchange="updateDesignerJoinTable('${join.key}', 'leftTable', this.value)" style="font-weight: 700; color: var(--text-main);">
-          ${selectedTables.map(t => `<option value="${t}" ${join.leftTable === t ? 'selected' : ''}>${t}</option>`).join('')}
+          ${selectedTables.map((t) => `<option value="${t}" ${join.leftTable === t ? "selected" : ""}>${t}</option>`).join("")}
         </select>
         <span style="color: var(--text-dim); font-weight: bold;">.</span>
         <select class="qbe-select" onchange="updateDesignerJoin('${join.key}', 'leftField', this.value)">
-          ${leftFields.map(f => `<option value="${f}" ${join.leftField === f ? 'selected' : ''}>${f}</option>`).join('')}
+          ${leftFields.map((f) => `<option value="${f}" ${join.leftField === f ? "selected" : ""}>${f}</option>`).join("")}
         </select>
         <span style="color: var(--cyan); font-weight: bold; margin: 0 4px;">=</span>
         <select class="qbe-select" onchange="updateDesignerJoinTable('${join.key}', 'rightTable', this.value)" style="font-weight: 700; color: var(--text-main);">
-          ${selectedTables.map(t => `<option value="${t}" ${join.rightTable === t ? 'selected' : ''}>${t}</option>`).join('')}
+          ${selectedTables.map((t) => `<option value="${t}" ${join.rightTable === t ? "selected" : ""}>${t}</option>`).join("")}
         </select>
         <span style="color: var(--text-dim); font-weight: bold;">.</span>
         <select class="qbe-select" onchange="updateDesignerJoin('${join.key}', 'rightField', this.value)">
-          ${rightFields.map(f => `<option value="${f}" ${join.rightField === f ? 'selected' : ''}>${f}</option>`).join('')}
+          ${rightFields.map((f) => `<option value="${f}" ${join.rightField === f ? "selected" : ""}>${f}</option>`).join("")}
         </select>
         <button class="sidebar-mini-btn" onclick="removeDesignerJoin('${join.key}')" title="Delete join">✕</button>
       </div>
     `;
-  }).join('') || '<div style="color: var(--text-dim); font-size: 11px;">No relationships active. Click <strong>⚡ Auto-Detect Joins</strong> or <strong>+ Link / Join</strong>.</div>';
+      })
+      .join("") ||
+    '<div style="color: var(--text-dim); font-size: 11px;">No relationships active. Click <strong>⚡ Auto-Detect Joins</strong> or <strong>+ Link / Join</strong>.</div>';
 
   // Lower Pane: Classic QBE Matrix
   const columns = queryDesignerState.columns || [];
-  const totalsList = ["GroupBy", "Sum", "Avg", "Min", "Max", "Count", "Where", "Expression"];
+  const totalsList = [
+    "GroupBy",
+    "Sum",
+    "Avg",
+    "Min",
+    "Max",
+    "Count",
+    "Where",
+    "Expression",
+  ];
 
   // Generate rows of the matrix
   const headerRow = `
     <tr>
       <td class="qbe-matrix-header-cell">Field:</td>
-      ${columns.map(col => {
-        const tableMeta = getEntityMeta(col.table);
-        const fields = tableMeta && tableMeta.columns ? tableMeta.columns.map(c => c.name) : [];
-        return `
+      ${columns
+        .map((col) => {
+          const tableMeta = getEntityMeta(col.table);
+          const fields =
+            tableMeta && tableMeta.columns
+              ? tableMeta.columns.map((c) => c.name)
+              : [];
+          return `
           <td class="qbe-matrix-col-cell">
             <select onchange="updateDesignerQbeColumn('${col.id}', 'field', this.value)" style="font-weight: 600; color: var(--cyan);">
-              <option value="*" ${col.field === '*' ? 'selected' : ''}>* (All Fields)</option>
-              ${fields.map(f => `<option value="${f}" ${col.field === f ? 'selected' : ''}>${f}</option>`).join('')}
+              <option value="*" ${col.field === "*" ? "selected" : ""}>* (All Fields)</option>
+              ${fields.map((f) => `<option value="${f}" ${col.field === f ? "selected" : ""}>${f}</option>`).join("")}
             </select>
           </td>
         `;
-      }).join('')}
+        })
+        .join("")}
       <td class="qbe-matrix-col-cell" style="width: 60px; min-width: 60px; text-align: center;"></td>
     </tr>
   `;
@@ -2342,43 +3313,57 @@ function renderQueryDesigner() {
   const tableRow = `
     <tr>
       <td class="qbe-matrix-header-cell">Table:</td>
-      ${columns.map(col => `
+      ${columns
+        .map(
+          (col) => `
         <td class="qbe-matrix-col-cell">
           <select onchange="updateDesignerQbeColumn('${col.id}', 'table', this.value)">
-            ${selectedTables.map(t => `<option value="${t}" ${col.table === t ? 'selected' : ''}>${t}</option>`).join('')}
+            ${selectedTables.map((t) => `<option value="${t}" ${col.table === t ? "selected" : ""}>${t}</option>`).join("")}
           </select>
         </td>
-      `).join('')}
+      `,
+        )
+        .join("")}
       <td class="qbe-matrix-col-cell"></td>
     </tr>
   `;
 
-  const totalRow = queryDesignerState.showTotals ? `
+  const totalRow = queryDesignerState.showTotals
+    ? `
     <tr style="background: rgba(56, 189, 248, 0.03);">
       <td class="qbe-matrix-header-cell" style="color: var(--emerald);">Σ Total:</td>
-      ${columns.map(col => `
+      ${columns
+        .map(
+          (col) => `
         <td class="qbe-matrix-col-cell">
-          <select onchange="updateDesignerQbeColumn('${col.id}', 'total', this.value)" style="font-weight: 600; color: ${col.total === 'GroupBy' ? 'var(--cyan)' : (['Sum', 'Count', 'Avg'].includes(col.total) ? 'var(--emerald)' : 'var(--text-main)')};">
-            ${totalsList.map(tot => `<option value="${tot}" ${col.total === tot ? 'selected' : ''}>${tot}</option>`).join('')}
+          <select onchange="updateDesignerQbeColumn('${col.id}', 'total', this.value)" style="font-weight: 600; color: ${col.total === "GroupBy" ? "var(--cyan)" : ["Sum", "Count", "Avg"].includes(col.total) ? "var(--emerald)" : "var(--text-main)"};">
+            ${totalsList.map((tot) => `<option value="${tot}" ${col.total === tot ? "selected" : ""}>${tot}</option>`).join("")}
           </select>
         </td>
-      `).join('')}
+      `,
+        )
+        .join("")}
       <td class="qbe-matrix-col-cell"></td>
     </tr>
-  ` : "";
+  `
+    : "";
 
   const sortRow = `
     <tr>
       <td class="qbe-matrix-header-cell">Sort:</td>
-      ${columns.map(col => `
+      ${columns
+        .map(
+          (col) => `
         <td class="qbe-matrix-col-cell">
           <select onchange="updateDesignerQbeColumn('${col.id}', 'sort', this.value)">
-            <option value="" ${!col.sort ? 'selected' : ''}>(not sorted)</option>
-            <option value="ASC" ${col.sort === 'ASC' ? 'selected' : ''}>Ascending</option>
-            <option value="DESC" ${col.sort === 'DESC' ? 'selected' : ''}>Descending</option>
+            <option value="" ${!col.sort ? "selected" : ""}>(not sorted)</option>
+            <option value="ASC" ${col.sort === "ASC" ? "selected" : ""}>Ascending</option>
+            <option value="DESC" ${col.sort === "DESC" ? "selected" : ""}>Descending</option>
           </select>
         </td>
-      `).join('')}
+      `,
+        )
+        .join("")}
       <td class="qbe-matrix-col-cell"></td>
     </tr>
   `;
@@ -2386,11 +3371,15 @@ function renderQueryDesigner() {
   const showRow = `
     <tr>
       <td class="qbe-matrix-header-cell">Show:</td>
-      ${columns.map(col => `
+      ${columns
+        .map(
+          (col) => `
         <td class="qbe-matrix-col-cell qbe-show-checkbox">
-          <input type="checkbox" ${col.show !== false ? 'checked' : ''} onchange="updateDesignerQbeColumn('${col.id}', 'show', this.checked)">
+          <input type="checkbox" ${col.show !== false ? "checked" : ""} onchange="updateDesignerQbeColumn('${col.id}', 'show', this.checked)">
         </td>
-      `).join('')}
+      `,
+        )
+        .join("")}
       <td class="qbe-matrix-col-cell"></td>
     </tr>
   `;
@@ -2398,11 +3387,15 @@ function renderQueryDesigner() {
   const criteriaRow = `
     <tr>
       <td class="qbe-matrix-header-cell">Criteria:</td>
-      ${columns.map(col => `
+      ${columns
+        .map(
+          (col) => `
         <td class="qbe-matrix-col-cell">
-          <input value="${(col.criteria || '').replace(/"/g, '&quot;')}" placeholder="e.g. > 100, VIP" onchange="updateDesignerQbeColumn('${col.id}', 'criteria', this.value)">
+          <input value="${(col.criteria || "").replace(/"/g, "&quot;")}" placeholder="e.g. > 100, VIP" onchange="updateDesignerQbeColumn('${col.id}', 'criteria', this.value)">
         </td>
-      `).join('')}
+      `,
+        )
+        .join("")}
       <td class="qbe-matrix-col-cell"></td>
     </tr>
   `;
@@ -2410,11 +3403,15 @@ function renderQueryDesigner() {
   const or1Row = `
     <tr>
       <td class="qbe-matrix-header-cell" style="color: var(--text-dim); font-size: 10px;">or:</td>
-      ${columns.map(col => `
+      ${columns
+        .map(
+          (col) => `
         <td class="qbe-matrix-col-cell">
-          <input value="${(col.or1 || '').replace(/"/g, '&quot;')}" placeholder="or condition" onchange="updateDesignerQbeColumn('${col.id}', 'or1', this.value)">
+          <input value="${(col.or1 || "").replace(/"/g, "&quot;")}" placeholder="or condition" onchange="updateDesignerQbeColumn('${col.id}', 'or1', this.value)">
         </td>
-      `).join('')}
+      `,
+        )
+        .join("")}
       <td class="qbe-matrix-col-cell"></td>
     </tr>
   `;
@@ -2422,11 +3419,15 @@ function renderQueryDesigner() {
   const or2Row = `
     <tr>
       <td class="qbe-matrix-header-cell" style="color: var(--text-dim); font-size: 10px;">or:</td>
-      ${columns.map(col => `
+      ${columns
+        .map(
+          (col) => `
         <td class="qbe-matrix-col-cell">
-          <input value="${(col.or2 || '').replace(/"/g, '&quot;')}" placeholder="or condition" onchange="updateDesignerQbeColumn('${col.id}', 'or2', this.value)">
+          <input value="${(col.or2 || "").replace(/"/g, "&quot;")}" placeholder="or condition" onchange="updateDesignerQbeColumn('${col.id}', 'or2', this.value)">
         </td>
-      `).join('')}
+      `,
+        )
+        .join("")}
       <td class="qbe-matrix-col-cell"></td>
     </tr>
   `;
@@ -2434,13 +3435,17 @@ function renderQueryDesigner() {
   const actionsRow = `
     <tr>
       <td class="qbe-matrix-header-cell" style="color: var(--text-dim); font-size: 10px;">Order / Del:</td>
-      ${columns.map((col, idx) => `
+      ${columns
+        .map(
+          (col, idx) => `
         <td class="qbe-matrix-col-cell" style="text-align: center;">
-          <button class="sidebar-mini-btn" onclick="moveDesignerQbeColumn('${col.id}', -1)" ${idx === 0 ? 'disabled' : ''} title="Move left">◀</button>
-          <button class="sidebar-mini-btn" onclick="moveDesignerQbeColumn('${col.id}', 1)" ${idx === columns.length - 1 ? 'disabled' : ''} title="Move right">▶</button>
+          <button class="sidebar-mini-btn" onclick="moveDesignerQbeColumn('${col.id}', -1)" ${idx === 0 ? "disabled" : ""} title="Move left">◀</button>
+          <button class="sidebar-mini-btn" onclick="moveDesignerQbeColumn('${col.id}', 1)" ${idx === columns.length - 1 ? "disabled" : ""} title="Move right">▶</button>
           <button class="sidebar-mini-btn" onclick="removeDesignerQbeColumn('${col.id}')" title="Remove column">✕</button>
         </td>
-      `).join('')}
+      `,
+        )
+        .join("")}
       <td class="qbe-matrix-col-cell" style="text-align: center;">
         <button class="btn btn-sm btn-primary" onclick="addDesignerQbeColumn()" title="Add column">+ Add</button>
       </td>
@@ -2450,12 +3455,15 @@ function renderQueryDesigner() {
   const maxCanvasWidth = Math.max(
     800,
     selectedTables.reduce((max, t) => {
-      const p = (queryDesignerState.tablePositions && queryDesignerState.tablePositions[t]) || { x: 20 };
+      const p = (queryDesignerState.tablePositions &&
+        queryDesignerState.tablePositions[t]) || { x: 20 };
       return Math.max(max, p.x + 280);
-    }, 600)
+    }, 600),
   );
 
-  container.innerHTML = ribbonHtml + `
+  container.innerHTML =
+    ribbonHtml +
+    `
     <!-- Upper Relationship Workbench -->
     <div class="qbe-workbench">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
@@ -2469,13 +3477,13 @@ function renderQueryDesigner() {
             <span style="font-size: 10px; color: var(--text-dim); margin-right: 2px;">Zoom:</span>
             <button class="btn btn-sm" onclick="zoomOutDesignerCanvas()" title="Zoom out canvas (Ctrl + Wheel Down)" style="padding: 1px 6px; font-size: 11px;">🔍−</button>
             <select id="canvasZoomSelect" class="qbe-select" onchange="setDesignerCanvasZoom(parseFloat(this.value))" style="padding: 1px 4px; font-size: 10px; width: 62px; height: 22px;">
-              <option value="0.5" ${queryDesignerState.canvasZoom === 0.5 ? 'selected' : ''}>50%</option>
-              <option value="0.75" ${queryDesignerState.canvasZoom === 0.75 ? 'selected' : ''}>75%</option>
-              <option value="0.9" ${queryDesignerState.canvasZoom === 0.9 ? 'selected' : ''}>90%</option>
-              <option value="1" ${!queryDesignerState.canvasZoom || queryDesignerState.canvasZoom === 1 ? 'selected' : ''}>100%</option>
-              <option value="1.25" ${queryDesignerState.canvasZoom === 1.25 ? 'selected' : ''}>125%</option>
-              <option value="1.5" ${queryDesignerState.canvasZoom === 1.5 ? 'selected' : ''}>150%</option>
-              <option value="2" ${queryDesignerState.canvasZoom === 2 ? 'selected' : ''}>200%</option>
+              <option value="0.5" ${queryDesignerState.canvasZoom === 0.5 ? "selected" : ""}>50%</option>
+              <option value="0.75" ${queryDesignerState.canvasZoom === 0.75 ? "selected" : ""}>75%</option>
+              <option value="0.9" ${queryDesignerState.canvasZoom === 0.9 ? "selected" : ""}>90%</option>
+              <option value="1" ${!queryDesignerState.canvasZoom || queryDesignerState.canvasZoom === 1 ? "selected" : ""}>100%</option>
+              <option value="1.25" ${queryDesignerState.canvasZoom === 1.25 ? "selected" : ""}>125%</option>
+              <option value="1.5" ${queryDesignerState.canvasZoom === 1.5 ? "selected" : ""}>150%</option>
+              <option value="2" ${queryDesignerState.canvasZoom === 2 ? "selected" : ""}>200%</option>
             </select>
             <button class="btn btn-sm" onclick="zoomInDesignerCanvas()" title="Zoom in canvas (Ctrl + Wheel Up)" style="padding: 1px 6px; font-size: 11px;">🔍+</button>
             <button class="btn btn-sm" onclick="resetDesignerCanvasZoom()" title="Reset zoom to 100%" style="padding: 1px 6px; font-size: 10px;">1:1</button>
@@ -2485,9 +3493,9 @@ function renderQueryDesigner() {
           <!-- Room Controls -->
           <div class="qbe-room-controls" style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">
             <span style="font-size: 10px; color: var(--text-dim); margin-right: 2px;">Room:</span>
-            <button id="btnRoomCanvas" class="btn btn-sm ${queryDesignerState.canvasViewMode === 'canvas-max' ? 'btn-primary' : ''}" onclick="setDesignerRoomMode('canvas-max')" title="Maximize Canvas room" style="padding: 1px 6px; font-size: 10px;">⤢ Canvas</button>
-            <button id="btnRoomSplit" class="btn btn-sm ${!queryDesignerState.canvasViewMode || queryDesignerState.canvasViewMode === 'split' ? 'btn-primary' : ''}" onclick="setDesignerRoomMode('split')" title="Balanced Split room" style="padding: 1px 6px; font-size: 10px;">⤡ Split</button>
-            <button id="btnRoomGrid" class="btn btn-sm ${queryDesignerState.canvasViewMode === 'grid-max' ? 'btn-primary' : ''}" onclick="setDesignerRoomMode('grid-max')" title="Maximize Grid room" style="padding: 1px 6px; font-size: 10px;">⤢ Grid</button>
+            <button id="btnRoomCanvas" class="btn btn-sm ${queryDesignerState.canvasViewMode === "canvas-max" ? "btn-primary" : ""}" onclick="setDesignerRoomMode('canvas-max')" title="Maximize Canvas room" style="padding: 1px 6px; font-size: 10px;">⤢ Canvas</button>
+            <button id="btnRoomSplit" class="btn btn-sm ${!queryDesignerState.canvasViewMode || queryDesignerState.canvasViewMode === "split" ? "btn-primary" : ""}" onclick="setDesignerRoomMode('split')" title="Balanced Split room" style="padding: 1px 6px; font-size: 10px;">⤡ Split</button>
+            <button id="btnRoomGrid" class="btn btn-sm ${queryDesignerState.canvasViewMode === "grid-max" ? "btn-primary" : ""}" onclick="setDesignerRoomMode('grid-max')" title="Maximize Grid room" style="padding: 1px 6px; font-size: 10px;">⤢ Grid</button>
           </div>
 
           <button class="btn btn-sm" onclick="autoArrangeDesignerTables()" style="padding: 1px 7px; font-size: 10px;" title="Reset and arrange cards neatly">📐 Reset</button>
@@ -2525,9 +3533,9 @@ function renderQueryDesigner() {
       <div style="display: flex; align-items: center; gap: 8px;">
         <div style="display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-subtle);">
           <span style="font-size: 10px; color: var(--text-dim);">Grid Density:</span>
-          <button class="btn btn-sm ${queryDesignerState.gridDensity === 'compact' ? 'btn-primary' : ''}" onclick="setQbeGridDensity('compact')" style="padding: 1px 5px; font-size: 10px;">Compact</button>
-          <button class="btn btn-sm ${!queryDesignerState.gridDensity || queryDesignerState.gridDensity === 'normal' ? 'btn-primary' : ''}" onclick="setQbeGridDensity('normal')" style="padding: 1px 5px; font-size: 10px;">Normal</button>
-          <button class="btn btn-sm ${queryDesignerState.gridDensity === 'spacious' ? 'btn-primary' : ''}" onclick="setQbeGridDensity('spacious')" style="padding: 1px 5px; font-size: 10px;">Spacious</button>
+          <button class="btn btn-sm ${queryDesignerState.gridDensity === "compact" ? "btn-primary" : ""}" onclick="setQbeGridDensity('compact')" style="padding: 1px 5px; font-size: 10px;">Compact</button>
+          <button class="btn btn-sm ${!queryDesignerState.gridDensity || queryDesignerState.gridDensity === "normal" ? "btn-primary" : ""}" onclick="setQbeGridDensity('normal')" style="padding: 1px 5px; font-size: 10px;">Normal</button>
+          <button class="btn btn-sm ${queryDesignerState.gridDensity === "spacious" ? "btn-primary" : ""}" onclick="setQbeGridDensity('spacious')" style="padding: 1px 5px; font-size: 10px;">Spacious</button>
         </div>
         <span style="font-size: 10px; color: var(--text-dim);">${columns.length} columns defined</span>
       </div>

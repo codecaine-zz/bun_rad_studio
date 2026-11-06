@@ -10,21 +10,61 @@ import { existsSync, promises as fsp } from "fs";
 import * as nodePath from "path";
 import { CATALOG, CATALOG_BY_ID } from "./fmConvCatalog";
 import { formatEpubDocumentOutput, type BuiltinJob } from "./fmConvBuiltin";
-import { EXTRACT_LIMITS, Stage, publishFile, publishFolder, removeQuietly, runCommands, sanitizeExtracted, siblingTemp } from "./fmConvExec";
-import { applyPattern, validateOptions, validatePattern, type OptionDef, type OptionValues } from "./fmConvOptions";
+import {
+  EXTRACT_LIMITS,
+  Stage,
+  publishFile,
+  publishFolder,
+  removeQuietly,
+  runCommands,
+  sanitizeExtracted,
+  siblingTemp,
+} from "./fmConvExec";
+import {
+  applyPattern,
+  validateOptions,
+  validatePattern,
+  type OptionDef,
+  type OptionValues,
+} from "./fmConvOptions";
 import { runBuiltinInWorker } from "./fmConvRun";
-import { CONV_GROUPS, defAccepts, extOf, freeName, outExtOf, plannedName, type BuildContext, type ConvDef, type ConvGroup, type Engine } from "./fmConvTypes";
+import {
+  CONV_GROUPS,
+  defAccepts,
+  extOf,
+  freeName,
+  outExtOf,
+  plannedName,
+  type BuildContext,
+  type ConvDef,
+  type ConvGroup,
+  type Engine,
+} from "./fmConvTypes";
 import { ZipFileWriter } from "./fmConvZip";
-import { absolutePath, assertCreatable, pathApi, type FmContext } from "./fmCore";
+import {
+  absolutePath,
+  assertCreatable,
+  pathApi,
+  type FmContext,
+} from "./fmCore";
 import type { JobStepSpec, JobView, PreparedStep } from "./fmJobs";
 import { FmError, isDocumentPackageName, validateName } from "./fmPaths";
 import { extractFullEpubRich } from "./fmPreview";
-import { explainFailure, pdfEngineFor, resolveTool, toolStatus, type ToolStatus } from "./fmToolDetect";
+import {
+  explainFailure,
+  pdfEngineFor,
+  resolveTool,
+  toolStatus,
+  type ToolStatus,
+} from "./fmToolDetect";
 import { TOOLS, childEnv, missingCapability, type ToolId } from "./fmTools";
 
 /** Maximum number of input paths accepted in a single conversion request. */
 export const MAX_FILES = 500;
-const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+const collator = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: "base",
+});
 
 type Status = Awaited<ReturnType<typeof toolStatus>>;
 
@@ -39,9 +79,17 @@ export interface Selection {
 }
 
 /** The files and folders among the paths (anything that doesn't exist is ignored). */
-export async function classifyPaths(ctx: FmContext, paths: unknown): Promise<Selection> {
-  if (!Array.isArray(paths)) throw new FmError("BAD_REQUEST", "No files were given.");
-  if (paths.length > MAX_FILES) throw new FmError("TOO_MANY", `Please choose at most ${MAX_FILES} files at a time.`);
+export async function classifyPaths(
+  ctx: FmContext,
+  paths: unknown,
+): Promise<Selection> {
+  if (!Array.isArray(paths))
+    throw new FmError("BAD_REQUEST", "No files were given.");
+  if (paths.length > MAX_FILES)
+    throw new FmError(
+      "TOO_MANY",
+      `Please choose at most ${MAX_FILES} files at a time.`,
+    );
   const sel: Selection = { files: [], dirs: [] };
   const seen = new Set<string>();
   for (const raw of paths) {
@@ -58,7 +106,10 @@ export async function classifyPaths(ctx: FmContext, paths: unknown): Promise<Sel
   return sel;
 }
 
-async function packDocumentPackageDirToZip(bundleDir: string, targetZipPath: string): Promise<string> {
+async function packDocumentPackageDirToZip(
+  bundleDir: string,
+  targetZipPath: string,
+): Promise<string> {
   const writer = await ZipFileWriter.create(targetZipPath);
   const mimetypePath = nodePath.join(bundleDir, "mimetype");
   const mimeSt = await fsp.stat(mimetypePath).catch(() => null);
@@ -90,9 +141,15 @@ async function packDocumentPackageDirToZip(bundleDir: string, targetZipPath: str
 // Which engine can do it
 // ---------------------------------------------------------------------------------------------------------------
 
-const toolOf = (st: Status, id: ToolId): ToolStatus => st.tools.find((t) => t.id === id)!;
-const needList = (engine: Engine, ext: string, opts: OptionValues): string[] => {
-  const n = typeof engine.needs === "function" ? engine.needs(ext, opts) : engine.needs;
+const toolOf = (st: Status, id: ToolId): ToolStatus =>
+  st.tools.find((t) => t.id === id)!;
+const needList = (
+  engine: Engine,
+  ext: string,
+  opts: OptionValues,
+): string[] => {
+  const n =
+    typeof engine.needs === "function" ? engine.needs(ext, opts) : engine.needs;
   return n === undefined ? [] : Array.isArray(n) ? n : [n];
 };
 
@@ -116,21 +173,49 @@ interface Usable {
   install: ToolId[];
 }
 
-function engineUsable(ctx: FmContext, st: Status, engine: Engine, ext: string, opts: OptionValues): Usable {
-  const no = (why: string, missing = false, install: ToolId[] = []): Usable => ({ ok: false, skip: false, why, missing, install });
-  if (engine.accepts && !engine.accepts.has(ext)) return { ok: false, skip: true, why: "", missing: false, install: [] };
-  if (engine.tool === "builtin") return { ok: true, skip: false, why: "", missing: false, install: [] };
+function engineUsable(
+  ctx: FmContext,
+  st: Status,
+  engine: Engine,
+  ext: string,
+  opts: OptionValues,
+): Usable {
+  const no = (
+    why: string,
+    missing = false,
+    install: ToolId[] = [],
+  ): Usable => ({ ok: false, skip: false, why, missing, install });
+  if (engine.accepts && !engine.accepts.has(ext))
+    return { ok: false, skip: true, why: "", missing: false, install: [] };
+  if (engine.tool === "builtin")
+    return { ok: true, skip: false, why: "", missing: false, install: [] };
   const tool = toolOf(st, engine.tool);
-  if (!tool.installed) return no(`${tool.name} isn't installed yet. Install it below.`, true, [tool.id]);
-  if (engine.program && !resolveTool(ctx, engine.tool, engine.program)) return no(`${tool.name} is installed, but its "${engine.program}" program wasn't found.`);
-  const also = typeof engine.also === "function" ? engine.also(ext) : engine.also ?? [];
+  if (!tool.installed)
+    return no(`${tool.name} isn't installed yet. Install it below.`, true, [
+      tool.id,
+    ]);
+  if (engine.program && !resolveTool(ctx, engine.tool, engine.program))
+    return no(
+      `${tool.name} is installed, but its "${engine.program}" program wasn't found.`,
+    );
+  const also =
+    typeof engine.also === "function" ? engine.also(ext) : (engine.also ?? []);
   for (const id of also) {
     const t = toolOf(st, id);
-    if (!t.installed) return no(`This also needs ${t.name}, which isn't installed yet. Install it below.`, true, [id]);
+    if (!t.installed)
+      return no(
+        `This also needs ${t.name}, which isn't installed yet. Install it below.`,
+        true,
+        [id],
+      );
   }
   if (tool.capabilitiesKnown) {
     for (const need of needList(engine, ext, opts)) {
-      if (!hasCapability(tool.capabilities, need)) return no(missingCapability({ needs: need }, tool.capabilities, tool.id) ?? "That isn't available with the installed program.");
+      if (!hasCapability(tool.capabilities, need))
+        return no(
+          missingCapability({ needs: need }, tool.capabilities, tool.id) ??
+            "That isn't available with the installed program.",
+        );
     }
   }
   return { ok: true, skip: false, why: "", missing: false, install: [] };
@@ -144,18 +229,32 @@ interface Picked {
 }
 
 /** The first engine that works for every one of these file types. */
-export function pickEngine(ctx: FmContext, st: Status, def: ConvDef, exts: string[], opts: OptionValues): Picked {
+export function pickEngine(
+  ctx: FmContext,
+  st: Status,
+  def: ConvDef,
+  exts: string[],
+  opts: OptionValues,
+): Picked {
   let first: Usable | null = null;
   for (const engine of def.engines) {
     let verdict: Usable | null = null;
     for (const ext of exts) {
       const u = engineUsable(ctx, st, engine, ext, opts);
-      if (!u.ok) { verdict = u; break; }
+      if (!u.ok) {
+        verdict = u;
+        break;
+      }
     }
     if (!verdict) return { engine, why: "", missing: false, install: [] };
     if (!verdict.skip && !first) first = verdict;
   }
-  return { engine: null, why: first?.why || "No installed program can do this with these files.", missing: first?.missing ?? false, install: first?.install ?? [] };
+  return {
+    engine: null,
+    why: first?.why || "No installed program can do this with these files.",
+    missing: first?.missing ?? false,
+    install: first?.install ?? [],
+  };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -210,26 +309,54 @@ function toolsOfDef(def: ConvDef, st: Status): ToolStatus[] {
   return [...ids].map((id) => toolOf(st, id));
 }
 
-function choiceAvailable(def: ConvDef, st: Status, need: string | undefined): { ok: boolean; why: string } {
+function choiceAvailable(
+  def: ConvDef,
+  st: Status,
+  need: string | undefined,
+): { ok: boolean; why: string } {
   if (!need) return { ok: true, why: "" };
   const tools = toolsOfDef(def, st).filter((t) => t.installed);
   if (!tools.length) return { ok: true, why: "" };
-  if (tools.some((t) => !t.capabilitiesKnown || hasCapability(t.capabilities, need))) return { ok: true, why: "" };
-  return { ok: false, why: missingCapability({ needs: need }, tools[0]!.capabilities, tools[0]!.id) ?? "Not available with the installed program." };
+  if (
+    tools.some(
+      (t) => !t.capabilitiesKnown || hasCapability(t.capabilities, need),
+    )
+  )
+    return { ok: true, why: "" };
+  return {
+    ok: false,
+    why:
+      missingCapability(
+        { needs: need },
+        tools[0]!.capabilities,
+        tools[0]!.id,
+      ) ?? "Not available with the installed program.",
+  };
 }
 
 /** The values each choice option may have right now: narrowed by what the installed programs can do. */
-export function dynamicChoices(def: ConvDef, st: Status): Record<string, string[]> {
+export function dynamicChoices(
+  def: ConvDef,
+  st: Status,
+): Record<string, string[]> {
   const out: Record<string, string[]> = {};
   for (const opt of def.options ?? []) {
     if (opt.kind !== "choice") continue;
     if (opt.choicesFromCaps) {
-      const tools = toolsOfDef(def, st).filter((t) => t.installed && t.capabilitiesKnown);
+      const tools = toolsOfDef(def, st).filter(
+        (t) => t.installed && t.capabilitiesKnown,
+      );
       const prefix = opt.choicesFromCaps.prefix;
-      const fromCaps = tools.flatMap((t) => t.capabilities.filter((c) => c.startsWith(prefix)).map((c) => c.slice(prefix.length)));
+      const fromCaps = tools.flatMap((t) =>
+        t.capabilities
+          .filter((c) => c.startsWith(prefix))
+          .map((c) => c.slice(prefix.length)),
+      );
       if (fromCaps.length) out[opt.id] = fromCaps;
     } else if (opt.choices?.some((c) => c.needs)) {
-      out[opt.id] = opt.choices.filter((c) => choiceAvailable(def, st, c.needs).ok).map((c) => c.value);
+      out[opt.id] = opt.choices
+        .filter((c) => choiceAvailable(def, st, c.needs).ok)
+        .map((c) => c.value);
     }
   }
   return out;
@@ -241,9 +368,24 @@ function optionViews(def: ConvDef, st: Status): OptionView[] {
     if (opt.kind !== "choice") return rest;
     if (opt.choicesFromCaps) {
       const dyn = dynamicChoices(def, st)[opt.id];
-      if (dyn) return { ...rest, choices: dyn.map((v) => ({ value: v, label: v, available: true, why: "" })) };
+      if (dyn)
+        return {
+          ...rest,
+          choices: dyn.map((v) => ({
+            value: v,
+            label: v,
+            available: true,
+            why: "",
+          })),
+        };
     }
-    return { ...rest, choices: (choices ?? []).map((c) => { const a = choiceAvailable(def, st, c.needs); return { value: c.value, label: c.label, available: a.ok, why: a.why }; }) };
+    return {
+      ...rest,
+      choices: (choices ?? []).map((c) => {
+        const a = choiceAvailable(def, st, c.needs);
+        return { value: c.value, label: c.label, available: a.ok, why: a.why };
+      }),
+    };
   });
 }
 
@@ -252,21 +394,33 @@ export function defaultOptions(def: ConvDef): OptionValues {
   return validateOptions(def.options, {});
 }
 
-const engineName = (e: Engine) => (e.tool === "builtin" ? "Built in" : TOOLS[e.tool].name);
+const engineName = (e: Engine) =>
+  e.tool === "builtin" ? "Built in" : TOOLS[e.tool].name;
 
 /** Computes available conversion actions, tool statuses, and selection summary for the Convert & Process window. */
 export async function overview(ctx: FmContext, paths: unknown) {
   const status = await toolStatus(ctx);
-  const sel = Array.isArray(paths) && paths.length ? await classifyPaths(ctx, paths) : { files: [], dirs: [] };
+  const sel =
+    Array.isArray(paths) && paths.length
+      ? await classifyPaths(ctx, paths)
+      : { files: [], dirs: [] };
   const p = pathApi(ctx);
   const actions: ActionInfo[] = [];
   for (const def of CATALOG) {
     if (def.hidden) continue;
-    const accepted = [...sel.files.filter((f) => defAccepts(def, p.basename(f))), ...(def.dirs ? sel.dirs : [])];
-    const minFiles = def.mode === "all" ? def.minFiles ?? 1 : 1;
-    if (!accepted.length || (def.mode === "all" && accepted.length < minFiles)) continue;
+    const accepted = [
+      ...sel.files.filter((f) => defAccepts(def, p.basename(f))),
+      ...(def.dirs ? sel.dirs : []),
+    ];
+    const minFiles = def.mode === "all" ? (def.minFiles ?? 1) : 1;
+    if (!accepted.length || (def.mode === "all" && accepted.length < minFiles))
+      continue;
     const opts = defaultOptions(def);
-    const exts = [...new Set(accepted.map((f) => (sel.dirs.includes(f) ? "" : extOf(p.basename(f)))))];
+    const exts = [
+      ...new Set(
+        accepted.map((f) => (sel.dirs.includes(f) ? "" : extOf(p.basename(f)))),
+      ),
+    ];
     let picked: Picked;
     if (def.mode === "all") picked = pickEngine(ctx, status, def, exts, opts);
     else {
@@ -274,16 +428,42 @@ export async function overview(ctx: FmContext, paths: unknown) {
       const each = exts.map((e) => pickEngine(ctx, status, def, [e], opts));
       picked = each.find((x) => x.engine) ?? each[0]!;
     }
-    const applicable = def.engines.filter((e) => !e.accepts || exts.some((x) => e.accepts!.has(x)));
+    const applicable = def.engines.filter(
+      (e) => !e.accepts || exts.some((x) => e.accepts!.has(x)),
+    );
     const first = picked.engine ?? applicable[0] ?? def.engines[0]!;
     actions.push({
-      id: def.id, label: def.label, hint: def.hint, group: def.group, tool: first.tool, count: accepted.length, available: !!picked.engine, why: picked.engine ? "" : picked.why,
-      builtin: first.tool === "builtin", installTools: picked.engine ? [] : picked.install, mode: def.mode, outKind: def.outKind ?? "file", out: typeof def.out === "string" ? def.out : "",
-      options: optionViews(def, status), keywords: def.keywords ?? "", note: def.note ?? "", minFiles,
-      engines: applicable.map((e) => ({ tool: e.tool, name: engineName(e), usable: exts.some((x) => engineUsable(ctx, status, e, x, opts).ok) })),
+      id: def.id,
+      label: def.label,
+      hint: def.hint,
+      group: def.group,
+      tool: first.tool,
+      count: accepted.length,
+      available: !!picked.engine,
+      why: picked.engine ? "" : picked.why,
+      builtin: first.tool === "builtin",
+      installTools: picked.engine ? [] : picked.install,
+      mode: def.mode,
+      outKind: def.outKind ?? "file",
+      out: typeof def.out === "string" ? def.out : "",
+      options: optionViews(def, status),
+      keywords: def.keywords ?? "",
+      note: def.note ?? "",
+      minFiles,
+      engines: applicable.map((e) => ({
+        tool: e.tool,
+        name: engineName(e),
+        usable: exts.some((x) => engineUsable(ctx, status, e, x, opts).ok),
+      })),
     });
   }
-  return { ...status, selected: sel.files.length, folders: sel.dirs.length, groups: CONV_GROUPS, actions };
+  return {
+    ...status,
+    selected: sel.files.length,
+    folders: sel.dirs.length,
+    groups: CONV_GROUPS,
+    actions,
+  };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -327,12 +507,20 @@ async function mtimeOf(p: string): Promise<number> {
 }
 
 /** Validates a `ConvertRequest` and resolves the target engine and collision-free output path for each input. */
-export async function planConvert(ctx: FmContext, req: ConvertRequest): Promise<Plan> {
-  const def = typeof req.action === "string" ? CATALOG_BY_ID.get(req.action) : undefined;
+export async function planConvert(
+  ctx: FmContext,
+  req: ConvertRequest,
+): Promise<Plan> {
+  const def =
+    typeof req.action === "string" ? CATALOG_BY_ID.get(req.action) : undefined;
   if (!def) throw new FmError("UNKNOWN_ACTION", "That action isn't known.");
   const sel = await classifyPaths(ctx, req.paths);
   const status = await toolStatus(ctx);
-  const opts = validateOptions(def.options, req.options, dynamicChoices(def, status));
+  const opts = validateOptions(
+    def.options,
+    req.options,
+    dynamicChoices(def, status),
+  );
   const problem = def.check?.(opts);
   if (problem) throw new FmError("BAD_OPTION", problem);
   const pattern = validatePattern(req.pattern);
@@ -340,52 +528,130 @@ export async function planConvert(ctx: FmContext, req: ConvertRequest): Promise<
 
   const files = sel.files.filter((f) => defAccepts(def, p.basename(f), opts));
   const accepted = [...files, ...(def.dirs ? sel.dirs : [])];
-  if (!accepted.length) throw new FmError("NOTHING_TO_DO", "None of the selected files can be used for this.");
-  const skipped = sel.files.length + (def.dirs ? sel.dirs.length : 0) - accepted.length;
-  const minFiles = def.mode === "all" ? def.minFiles ?? 1 : 1;
-  if (accepted.length < minFiles) throw new FmError("NOTHING_TO_DO", `Select at least ${minFiles} ${minFiles === 2 ? "files" : "items"} for this.`);
+  if (!accepted.length)
+    throw new FmError(
+      "NOTHING_TO_DO",
+      "None of the selected files can be used for this.",
+    );
+  const skipped =
+    sel.files.length + (def.dirs ? sel.dirs.length : 0) - accepted.length;
+  const minFiles = def.mode === "all" ? (def.minFiles ?? 1) : 1;
+  if (accepted.length < minFiles)
+    throw new FmError(
+      "NOTHING_TO_DO",
+      `Select at least ${minFiles} ${minFiles === 2 ? "files" : "items"} for this.`,
+    );
 
   let outDir: string | null = null;
-  if (req.outputDir !== undefined && req.outputDir !== null && req.outputDir !== "") {
+  if (
+    req.outputDir !== undefined &&
+    req.outputDir !== null &&
+    req.outputDir !== ""
+  ) {
     outDir = absolutePath(ctx, req.outputDir);
     const st = await fsp.stat(outDir).catch(() => null);
-    if (!st?.isDirectory()) throw new FmError("NOT_A_FOLDER", "The folder for the new files doesn't exist. Choose another one.");
+    if (!st?.isDirectory())
+      throw new FmError(
+        "NOT_A_FOLDER",
+        "The folder for the new files doesn't exist. Choose another one.",
+      );
     assertCreatable(ctx, outDir);
   }
 
   const taken = new Set<string>();
-  const free = (dir: string) => (name: string) => taken.has(p.join(dir, name)) || existsSync(p.join(dir, name));
+  const free = (dir: string) => (name: string) =>
+    taken.has(p.join(dir, name)) || existsSync(p.join(dir, name));
   const items: PlanItem[] = [];
-  const makeItem = (originals: string[], dir: string, wanted: string): PlanItem => {
+  const makeItem = (
+    originals: string[],
+    dir: string,
+    wanted: string,
+  ): PlanItem => {
     assertCreatable(ctx, dir);
     const name = freeName(wanted, free(dir));
     const reason = validateName(name, ctx.platform);
-    if (reason) throw new FmError("BAD_NAME", `The new file's name "${name}" can't be used: ${reason}`);
+    if (reason)
+      throw new FmError(
+        "BAD_NAME",
+        `The new file's name "${name}" can't be used: ${reason}`,
+      );
     const path = p.join(dir, name);
     taken.add(path);
-    const exts = [...new Set(originals.map((o) => (sel.dirs.includes(o) ? "" : extOf(p.basename(o)))))];
+    const exts = [
+      ...new Set(
+        originals.map((o) =>
+          sel.dirs.includes(o) ? "" : extOf(p.basename(o)),
+        ),
+      ),
+    ];
     const picked = pickEngine(ctx, status, def, exts, opts);
-    return { originals, dir, name, path, engine: picked.engine, why: picked.why, missing: picked.missing };
+    return {
+      originals,
+      dir,
+      name,
+      path,
+      engine: picked.engine,
+      why: picked.why,
+      missing: picked.missing,
+    };
   };
 
   if (def.mode === "all") {
     const ordered = [...accepted];
     const order = String(opts.order ?? "name");
     if (order === "selected") {
-      const index = new Map((req.paths as unknown[]).map((x, i) => [typeof x === "string" ? p.resolve(x) : "", i]));
+      const index = new Map(
+        (req.paths as unknown[]).map((x, i) => [
+          typeof x === "string" ? p.resolve(x) : "",
+          i,
+        ]),
+      );
       ordered.sort((a, b) => (index.get(a) ?? 0) - (index.get(b) ?? 0));
     } else if (order === "modified") {
       const times = new Map<string, number>();
       for (const f of ordered) times.set(f, await mtimeOf(f));
-      ordered.sort((a, b) => times.get(a)! - times.get(b)! || collator.compare(p.basename(a), p.basename(b)));
-    } else ordered.sort((a, b) => collator.compare(p.basename(a), p.basename(b)));
+      ordered.sort(
+        (a, b) =>
+          times.get(a)! - times.get(b)! ||
+          collator.compare(p.basename(a), p.basename(b)),
+      );
+    } else
+      ordered.sort((a, b) => collator.compare(p.basename(a), p.basename(b)));
     const bad = def.checkFiles?.(ordered);
     if (bad) throw new FmError("BAD_OPTION", bad);
     const dir = outDir ?? p.dirname(ordered[0]!);
-    items.push(makeItem(ordered, dir, plannedName(def, p.basename(ordered[0]!), opts, ordered, pattern, 1, applyPattern)));
+    items.push(
+      makeItem(
+        ordered,
+        dir,
+        plannedName(
+          def,
+          p.basename(ordered[0]!),
+          opts,
+          ordered,
+          pattern,
+          1,
+          applyPattern,
+        ),
+      ),
+    );
   } else {
     accepted.forEach((f, i) => {
-      items.push(makeItem([f], outDir ?? p.dirname(f), plannedName(def, p.basename(f), opts, [f], pattern, i + 1, applyPattern)));
+      items.push(
+        makeItem(
+          [f],
+          outDir ?? p.dirname(f),
+          plannedName(
+            def,
+            p.basename(f),
+            opts,
+            [f],
+            pattern,
+            i + 1,
+            applyPattern,
+          ),
+        ),
+      );
     });
   }
   return { def, opts, items, skipped, status };
@@ -407,16 +673,33 @@ export async function previewConvert(ctx: FmContext, req: ConvertRequest) {
   const plan = await planConvert(ctx, req);
   const p = pathApi(ctx);
   const items: PreviewItem[] = plan.items.map((it) => ({
-    from: it.originals.map((o) => p.basename(o)), to: it.name, folder: it.dir, engine: it.engine ? engineName(it.engine) : "", problem: it.engine ? "" : it.why,
+    from: it.originals.map((o) => p.basename(o)),
+    to: it.name,
+    folder: it.dir,
+    engine: it.engine ? engineName(it.engine) : "",
+    problem: it.engine ? "" : it.why,
   }));
-  return { action: plan.def.id, mode: plan.def.mode, outKind: plan.def.outKind ?? "file", items, skipped: plan.skipped, options: plan.opts };
+  return {
+    action: plan.def.id,
+    mode: plan.def.mode,
+    outKind: plan.def.outKind ?? "file",
+    items,
+    skipped: plan.skipped,
+    options: plan.opts,
+  };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
 // Running
 // ---------------------------------------------------------------------------------------------------------------
 
-function stepFor(ctx: FmContext, plan: Plan, item: PlanItem, pdfEngine: string | undefined, env: Record<string, string>): JobStepSpec {
+function stepFor(
+  ctx: FmContext,
+  plan: Plan,
+  item: PlanItem,
+  pdfEngine: string | undefined,
+  env: Record<string, string>,
+): JobStepSpec {
   const { def, opts, status } = plan;
   const p = pathApi(ctx);
   const engine = item.engine!;
@@ -427,9 +710,14 @@ function stepFor(ctx: FmContext, plan: Plan, item: PlanItem, pdfEngine: string |
   const toolId = engine.tool === "builtin" ? null : engine.tool;
   const caps = toolId ? toolOf(status, toolId).capabilities : [];
   const spec: JobStepSpec = {
-    label, output: item.path, outputKind: folder ? "folder" : "file", env,
+    label,
+    output: item.path,
+    outputKind: folder ? "folder" : "file",
+    env,
     explain: (text, code) => explainFailure(engine.tool, text, code),
-    timeoutMs: engine.timeoutMs ?? (engine.tool === "builtin" ? 60 * 60 * 1000 : undefined),
+    timeoutMs:
+      engine.timeoutMs ??
+      (engine.tool === "builtin" ? 60 * 60 * 1000 : undefined),
     ...(engine.cwdIsInputFolder ? { cwd: p.dirname(item.originals[0]!) } : {}),
   };
   spec.prepare = async (): Promise<PreparedStep> => {
@@ -442,14 +730,23 @@ function stepFor(ctx: FmContext, plan: Plan, item: PlanItem, pdfEngine: string |
     };
     try {
       const staged = !!engine.stage;
-      const viaFile = staged || !!engine.stdoutIsOutput || engine.tool === "builtin";
+      const viaFile =
+        staged || !!engine.stdoutIsOutput || engine.tool === "builtin";
       if (folder) tmpOut = siblingTemp(item.path);
-      else if (viaFile) tmpOut = p.join(stage.dir(), `${staged && engine.stageBase ? engine.stageBase : "out"}${outExt ? `.${outExt}` : ""}`);
+      else if (viaFile)
+        tmpOut = p.join(
+          stage.dir(),
+          `${staged && engine.stageBase ? engine.stageBase : "out"}${outExt ? `.${outExt}` : ""}`,
+        );
       else tmpOut = item.path;
       const resolvedOriginals: string[] = [];
       for (let i = 0; i < item.originals.length; i++) {
         const orig = item.originals[i]!;
-        if (engine.tool !== "builtin" && engine.tool !== "sevenzip" && isDocumentPackageName(p.basename(orig))) {
+        if (
+          engine.tool !== "builtin" &&
+          engine.tool !== "sevenzip" &&
+          isDocumentPackageName(p.basename(orig))
+        ) {
           const origExt = extOf(p.basename(orig));
           const st = await fsp.stat(orig).catch(() => null);
           if (origExt === "epub" || engine.tool === "libreoffice") {
@@ -461,10 +758,18 @@ function stepFor(ctx: FmContext, plan: Plan, item: PlanItem, pdfEngine: string |
               continue;
             }
           } else if (st) {
-            const rich = await extractFullEpubRich(orig, st.isDirectory()).catch(() => null);
+            const rich = await extractFullEpubRich(
+              orig,
+              st.isDirectory(),
+            ).catch(() => null);
             if (rich && (rich.blocks.length > 0 || rich.plainText?.trim())) {
               const stemTitle = p.basename(orig).replace(/\.[^.]+$/, "");
-              const mdText = formatEpubDocumentOutput(rich, stemTitle, "md", false);
+              const mdText = formatEpubDocumentOutput(
+                rich,
+                stemTitle,
+                "md",
+                false,
+              );
               const stagedMd = stage.file(`pkg-${i + 1}.md`, mdText);
               resolvedOriginals.push(stagedMd);
               continue;
@@ -481,42 +786,87 @@ function stepFor(ctx: FmContext, plan: Plan, item: PlanItem, pdfEngine: string |
         resolvedOriginals.push(orig);
       }
       const inputs = staged
-        ? resolvedOriginals.map((o, i) => stage.safeInput(o, engine.stageBase && resolvedOriginals.length === 1 ? engine.stageBase : `in${String(i + 1).padStart(4, "0")}`, extOf(p.basename(o)).replace(/[^.a-z0-9]/g, "")))
+        ? resolvedOriginals.map((o, i) =>
+            stage.safeInput(
+              o,
+              engine.stageBase && resolvedOriginals.length === 1
+                ? engine.stageBase
+                : `in${String(i + 1).padStart(4, "0")}`,
+              extOf(p.basename(o)).replace(/[^.a-z0-9]/g, ""),
+            ),
+          )
         : resolvedOriginals;
       const publish = async () => {
         if (folder) {
-          if (engine.limitOutput) await sanitizeExtracted(tmpOut, EXTRACT_LIMITS);
+          if (engine.limitOutput)
+            await sanitizeExtracted(tmpOut, EXTRACT_LIMITS);
           publishFolder(tmpOut, item.path);
           published = true;
         } else if (tmpOut !== item.path) publishFile(tmpOut, item.path);
       };
 
       if (engine.tool === "builtin") {
-        const job: BuiltinJob = { kind: engine.builtin!.kind, inputs: item.originals, output: tmpOut, opts, params: engine.builtin!.params ?? {}, platform: ctx.platform, home: ctx.home };
-        return { work: (signal) => runBuiltinInWorker(job, signal), publish, cleanup };
+        const job: BuiltinJob = {
+          kind: engine.builtin!.kind,
+          inputs: item.originals,
+          output: tmpOut,
+          opts,
+          params: engine.builtin!.params ?? {},
+          platform: ctx.platform,
+          home: ctx.home,
+        };
+        return {
+          work: (signal) => runBuiltinInWorker(job, signal),
+          publish,
+          cleanup,
+        };
       }
 
       const exe = resolveTool(ctx, engine.tool, engine.program);
-      if (!exe) throw new Error("The program could not be found. Was it moved or uninstalled?");
+      if (!exe)
+        throw new Error(
+          "The program could not be found. Was it moved or uninstalled?",
+        );
       const bc: BuildContext = {
-        exe, inputs, output: tmpOut, opts, pdfEngine, title, originals: item.originals, platform: ctx.platform, caps,
+        exe,
+        inputs,
+        output: tmpOut,
+        opts,
+        pdfEngine,
+        title,
+        originals: item.originals,
+        platform: ctx.platform,
+        caps,
         program: (tool, name) => resolveTool(ctx, tool, name),
         tmpFile: (name, content) => stage.file(name, content),
         tmpDir: (name) => stage.subDir(name),
         tmpCopy: (source, name) => stage.copy(source, name),
       };
       const built = engine.argv!(bc);
-      const pipeline = built.length > 0 && (Array.isArray(built[0]) || typeof built[0] === "function");
-      if (!pipeline && !engine.stdoutIsOutput && !engine.limitOutput) return { argv: [exe, ...(built as string[])], publish, cleanup };
-      const steps = (pipeline ? built : [[exe, ...(built as string[])]]) as Array<string[] | (() => string[])>;
+      const pipeline =
+        built.length > 0 &&
+        (Array.isArray(built[0]) || typeof built[0] === "function");
+      if (!pipeline && !engine.stdoutIsOutput && !engine.limitOutput)
+        return { argv: [exe, ...(built as string[])], publish, cleanup };
+      const steps = (
+        pipeline ? built : [[exe, ...(built as string[])]]
+      ) as Array<string[] | (() => string[])>;
       return {
         work: async (signal, log) => {
           await runCommands(steps, {
-            env, cwd: spec.cwd, signal, log, explain: spec.explain!, stdoutTo: engine.stdoutIsOutput ? tmpOut : undefined,
-            watch: engine.limitOutput ? { dir: tmpOut, limits: EXTRACT_LIMITS } : undefined,
+            env,
+            cwd: spec.cwd,
+            signal,
+            log,
+            explain: spec.explain!,
+            stdoutTo: engine.stdoutIsOutput ? tmpOut : undefined,
+            watch: engine.limitOutput
+              ? { dir: tmpOut, limits: EXTRACT_LIMITS }
+              : undefined,
           });
         },
-        publish, cleanup,
+        publish,
+        cleanup,
       };
     } catch (err) {
       await cleanup();
@@ -527,12 +877,20 @@ function stepFor(ctx: FmContext, plan: Plan, item: PlanItem, pdfEngine: string |
 }
 
 /** Plans a conversion request and launches its steps as a cancellable background job. */
-export async function startConvert(ctx: FmContext, req: ConvertRequest): Promise<JobView> {
+export async function startConvert(
+  ctx: FmContext,
+  req: ConvertRequest,
+): Promise<JobView> {
   const plan = await planConvert(ctx, req);
   const failing = plan.items.filter((i) => !i.engine);
   if (failing.length === plan.items.length) {
     const first = failing[0]!;
-    throw new FmError(first.missing ? "TOOL_MISSING" : "UNAVAILABLE", first.missing ? `${first.why.replace(/ Install it below\.$/, "")} Choose Install in the Convert & process window.` : first.why);
+    throw new FmError(
+      first.missing ? "TOOL_MISSING" : "UNAVAILABLE",
+      first.missing
+        ? `${first.why.replace(/ Install it below\.$/, "")} Choose Install in the Convert & process window.`
+        : first.why,
+    );
   }
   const env = childEnv(ctx);
   const pdfEngine = pdfEngineFor(ctx) ?? undefined;
@@ -540,7 +898,17 @@ export async function startConvert(ctx: FmContext, req: ConvertRequest): Promise
   const steps: JobStepSpec[] = plan.items.map((item) =>
     item.engine
       ? stepFor(ctx, plan, item, pdfEngine, env)
-      : { label: `${p.basename(item.originals[0]!)} → ${item.name}`, prepare: async (): Promise<PreparedStep> => { throw new Error(item.why); } });
+      : {
+          label: `${p.basename(item.originals[0]!)} → ${item.name}`,
+          prepare: async (): Promise<PreparedStep> => {
+            throw new Error(item.why);
+          },
+        },
+  );
   const total = plan.items.reduce((n, i) => n + i.originals.length, 0);
-  return ctx.jobs.start({ kind: "convert", title: `${plan.def.label}: ${total} ${total === 1 ? "file" : "files"}`, steps });
+  return ctx.jobs.start({
+    kind: "convert",
+    title: `${plan.def.label}: ${total} ${total === 1 ? "file" : "files"}`,
+    steps,
+  });
 }

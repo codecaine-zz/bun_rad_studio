@@ -97,21 +97,39 @@ window.__stage={
 };
 </script></body></html>`;
 
-export interface StageServer { url: string; stop(): void }
+export interface StageServer {
+  url: string;
+  stop(): void;
+}
 
 export function serveStage(): StageServer {
-  const server = Bun.serve({ port: 0, hostname: "127.0.0.1", fetch: () => new Response(PAGE, { headers: { "Content-Type": "text/html; charset=utf-8" } }) });
-  return { url: `http://localhost:${server.port}/`, stop: () => server.stop(true) };
+  const server = Bun.serve({
+    port: 0,
+    hostname: "127.0.0.1",
+    fetch: () =>
+      new Response(PAGE, {
+        headers: { "Content-Type": "text/html; charset=utf-8" },
+      }),
+  });
+  return {
+    url: `http://localhost:${server.port}/`,
+    stop: () => server.stop(true),
+  };
 }
 
 /** The line numbers (1-based, inclusive) that start at the first line containing `from` and end at the first later line containing `to`. */
-export function rangeOf(source: string, from: string, to?: string): [number, number] {
+export function rangeOf(
+  source: string,
+  from: string,
+  to?: string,
+): [number, number] {
   const lines = source.split("\n");
   const a = lines.findIndex((l) => l.includes(from));
   if (a < 0) throw new Error(`the file has no line with "${from}"`);
   if (!to) return [a + 1, a + 1];
   const b = lines.findIndex((l, i) => i >= a && l.includes(to));
-  if (b < 0) throw new Error(`the file has no line with "${to}" after "${from}"`);
+  if (b < 0)
+    throw new Error(`the file has no line with "${to}" after "${from}"`);
   return [a + 1, b + 1];
 }
 
@@ -121,10 +139,17 @@ export const outputs: Record<string, string> = {};
 let source = "";
 
 /** Shows a file and what goes with it. */
-export async function loadStage(d: Pick<Do, "c">, o: StageOptions): Promise<void> {
+export async function loadStage(
+  d: Pick<Do, "c">,
+  o: StageOptions,
+): Promise<void> {
   source = readFileSync(o.file, "utf8");
-  await d.c.eval(`window.__stage.load(${JSON.stringify(o.title)}, ${JSON.stringify(o.file.replace(/^.*\/examples\//, "examples/"))}, ${JSON.stringify(source)})`);
-  await d.c.eval(`window.__stage.layout(${JSON.stringify(o.layout ?? "split")})`);
+  await d.c.eval(
+    `window.__stage.load(${JSON.stringify(o.title)}, ${JSON.stringify(o.file.replace(/^.*\/examples\//, "examples/"))}, ${JSON.stringify(source)})`,
+  );
+  await d.c.eval(
+    `window.__stage.layout(${JSON.stringify(o.layout ?? "split")})`,
+  );
   if (o.app) await d.c.eval(`window.__stage.app(${JSON.stringify(o.app)})`);
 }
 
@@ -135,9 +160,17 @@ export const stage = {
     const [a, b] = rangeOf(source, from, to);
     await d.c.eval(`window.__stage.hl(${a}, ${b})`);
   },
-  async layout(d: Do, mode: "split" | "code" | "right") { await d.c.eval(`window.__stage.layout(${JSON.stringify(mode)})`); },
-  async app(d: Do, url: string) { await d.c.eval(`window.__stage.app(${JSON.stringify(url)})`); },
-  async term(d: Do, command: string, output: string, ms = 45) { await d.c.eval(`window.__stage.term(${JSON.stringify(command)}, ${JSON.stringify(output)}, ${ms})`); },
+  async layout(d: Do, mode: "split" | "code" | "right") {
+    await d.c.eval(`window.__stage.layout(${JSON.stringify(mode)})`);
+  },
+  async app(d: Do, url: string) {
+    await d.c.eval(`window.__stage.app(${JSON.stringify(url)})`);
+  },
+  async term(d: Do, command: string, output: string, ms = 45) {
+    await d.c.eval(
+      `window.__stage.term(${JSON.stringify(command)}, ${JSON.stringify(output)}, ${ms})`,
+    );
+  },
   /** Where the program is on the page: use as the front of a selector, `${stage.inApp} input`. */
   inApp: "#appframe |||",
 };

@@ -55,9 +55,27 @@ function getLocalInterfaces(): NetworkInterfaceInfo[] {
   // If screenshot mode is active, use clean non-sensitive demonstration interfaces
   if (process.env.SCREENSHOT_MODE === "1") {
     return [
-      { name: "lo0", ip: "127.0.0.1", family: "IPv4", mac: "🔒 [Protected]", internal: true },
-      { name: "en0", ip: "192.168.1.*** (Protected)", family: "IPv4", mac: "🔒 [Protected]", internal: false },
-      { name: "en1", ip: "10.0.0.*** (Protected)", family: "IPv4", mac: "🔒 [Protected]", internal: false },
+      {
+        name: "lo0",
+        ip: "127.0.0.1",
+        family: "IPv4",
+        mac: "🔒 [Protected]",
+        internal: true,
+      },
+      {
+        name: "en0",
+        ip: "192.168.1.*** (Protected)",
+        family: "IPv4",
+        mac: "🔒 [Protected]",
+        internal: false,
+      },
+      {
+        name: "en1",
+        ip: "10.0.0.*** (Protected)",
+        family: "IPv4",
+        mac: "🔒 [Protected]",
+        internal: false,
+      },
     ];
   }
 
@@ -66,11 +84,19 @@ function getLocalInterfaces(): NetworkInterfaceInfo[] {
   for (const [name, list] of Object.entries(ifaces)) {
     if (!list) continue;
     for (const item of list) {
-      if (item.family === "IPv4" || (item.family === "IPv6" && !item.address.startsWith("fe80:"))) {
-        const isLoopback = item.internal || item.address === "127.0.0.1" || item.address === "::1";
+      if (
+        item.family === "IPv4" ||
+        (item.family === "IPv6" && !item.address.startsWith("fe80:"))
+      ) {
+        const isLoopback =
+          item.internal ||
+          item.address === "127.0.0.1" ||
+          item.address === "::1";
         res.push({
           name,
-          ip: isLoopback ? "127.0.0.1 (Loopback)" : "***.***.***.*** (Protected)",
+          ip: isLoopback
+            ? "127.0.0.1 (Loopback)"
+            : "***.***.***.*** (Protected)",
           family: item.family,
           mac: "🔒 [Protected]",
           internal: item.internal,
@@ -95,8 +121,13 @@ export function sanitizeHost(raw: string): string {
   return /^[A-Za-z0-9._:%-]+$/.test(h) ? h : "";
 }
 
-export function checkSocketSync(host: string, port: number, timeoutMs = 800): PortScanResult {
-  const service = COMMON_PORTS.find((p) => p.port === port)?.service || "Custom";
+export function checkSocketSync(
+  host: string,
+  port: number,
+  timeoutMs = 800,
+): PortScanResult {
+  const service =
+    COMMON_PORTS.find((p) => p.port === port)?.service || "Custom";
   const cleanHost = sanitizeHost(host) || "127.0.0.1";
   const targetHost = cleanHost === "localhost" ? "127.0.0.1" : cleanHost;
 
@@ -140,7 +171,11 @@ export function checkSocketSync(host: string, port: number, timeoutMs = 800): Po
   return { port, service, status: "CLOSED", latencyMs: 0 };
 }
 
-export function checkSocket(host: string, port: number, timeoutMs = 800): Promise<PortScanResult> {
+export function checkSocket(
+  host: string,
+  port: number,
+  timeoutMs = 800,
+): Promise<PortScanResult> {
   return Promise.resolve(checkSocketSync(host, port, timeoutMs));
 }
 
@@ -192,11 +227,21 @@ export function checkCommonSocketsSync(host: string): PortScanResult[] {
     const out = proc.stdout.toString().trim();
     if (out) return JSON.parse(out);
   } catch {}
-  return COMMON_PORTS.map((p) => ({ port: p.port, service: p.service, status: "CLOSED", latencyMs: 0 }));
+  return COMMON_PORTS.map((p) => ({
+    port: p.port,
+    service: p.service,
+    status: "CLOSED",
+    latencyMs: 0,
+  }));
 }
 
-function renderBaselineHtml(host: string, port: number, ifaces: NetworkInterfaceInfo[]): string {
-  const primaryIface = ifaces.find((i) => !i.internal && i.family === "IPv4")?.name || "lo0";
+function renderBaselineHtml(
+  host: string,
+  port: number,
+  ifaces: NetworkInterfaceInfo[],
+): string {
+  const primaryIface =
+    ifaces.find((i) => !i.internal && i.family === "IPv4")?.name || "lo0";
 
   const ifaceRows = ifaces
     .slice(0, 6)
@@ -208,7 +253,7 @@ function renderBaselineHtml(host: string, port: number, ifaces: NetworkInterface
         <td style="padding: 6px 10px;"><span style="background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; font-size: 11px;">${i.family}</span></td>
         <td style="padding: 6px 10px; font-family: ui-monospace, monospace; color: #94a3b8; font-size: 11px;">🔒 [Protected]</td>
         <td style="padding: 6px 10px;">${i.internal ? '<span style="color: #cbd5e1;">Loopback</span>' : '<span style="color: #4ade80; font-weight: 600;">Active Link</span>'}</td>
-      </tr>`
+      </tr>`,
     )
     .join("");
 
@@ -252,7 +297,12 @@ function renderBaselineHtml(host: string, port: number, ifaces: NetworkInterface
   `;
 }
 
-export function renderPortScanHtml(host: string, results: PortScanResult[], elapsedTotal: number, hiddenCount = 0): string {
+export function renderPortScanHtml(
+  host: string,
+  results: PortScanResult[],
+  elapsedTotal: number,
+  hiddenCount = 0,
+): string {
   const openCount = results.filter((r) => r.status === "OPEN").length;
   const closedCount = results.filter((r) => r.status === "CLOSED").length;
   const timeoutCount = results.filter((r) => r.status === "TIMEOUT").length;
@@ -263,10 +313,15 @@ export function renderPortScanHtml(host: string, results: PortScanResult[], elap
         r.status === "OPEN"
           ? '<span style="background: rgba(34,197,94,0.18); color: #4ade80; border: 1px solid rgba(34,197,94,0.35); padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">🟢 OPEN</span>'
           : r.status === "TIMEOUT"
-          ? '<span style="background: rgba(234,179,8,0.18); color: #facc15; border: 1px solid rgba(234,179,8,0.35); padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">🟡 TIMEOUT</span>'
-          : '<span style="background: rgba(239,68,68,0.18); color: #f87171; border: 1px solid rgba(239,68,68,0.35); padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">🔴 CLOSED</span>';
+            ? '<span style="background: rgba(234,179,8,0.18); color: #facc15; border: 1px solid rgba(234,179,8,0.35); padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">🟡 TIMEOUT</span>'
+            : '<span style="background: rgba(239,68,68,0.18); color: #f87171; border: 1px solid rgba(239,68,68,0.35); padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">🔴 CLOSED</span>';
 
-      const latencyColor = r.latencyMs < 50 ? "#4ade80" : r.latencyMs < 200 ? "#facc15" : "#94a3b8";
+      const latencyColor =
+        r.latencyMs < 50
+          ? "#4ade80"
+          : r.latencyMs < 200
+            ? "#facc15"
+            : "#94a3b8";
 
       return `
       <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
@@ -311,7 +366,8 @@ export function renderPortScanHtml(host: string, results: PortScanResult[], elap
   `;
 }
 
-export type DnsRecordType = "A" | "AAAA" | "MX" | "TXT" | "NS" | "SOA" | "CNAME" | "CAA";
+export type DnsRecordType =
+  "A" | "AAAA" | "MX" | "TXT" | "NS" | "SOA" | "CNAME" | "CAA";
 
 export interface DnsResolveResult {
   host: string;
@@ -322,17 +378,45 @@ export interface DnsResolveResult {
   isNoData: boolean;
 }
 
-export function resolveDnsRecordSync(host: string, type: DnsRecordType): DnsResolveResult {
+export function resolveDnsRecordSync(
+  host: string,
+  type: DnsRecordType,
+): DnsResolveResult {
   const cleanHost = sanitizeHost(host) || "google.com";
 
-  if (cleanHost === "localhost" || cleanHost === "127.0.0.1" || cleanHost === "::1") {
+  if (
+    cleanHost === "localhost" ||
+    cleanHost === "127.0.0.1" ||
+    cleanHost === "::1"
+  ) {
     if (type === "A") {
-      return { host: cleanHost, type, records: ["127.0.0.1"], elapsedMs: 0.1, source: "Local Loopback", isNoData: false };
+      return {
+        host: cleanHost,
+        type,
+        records: ["127.0.0.1"],
+        elapsedMs: 0.1,
+        source: "Local Loopback",
+        isNoData: false,
+      };
     }
     if (type === "AAAA") {
-      return { host: cleanHost, type, records: ["::1"], elapsedMs: 0.1, source: "Local Loopback", isNoData: false };
+      return {
+        host: cleanHost,
+        type,
+        records: ["::1"],
+        elapsedMs: 0.1,
+        source: "Local Loopback",
+        isNoData: false,
+      };
     }
-    return { host: cleanHost, type, records: [], elapsedMs: 0.1, source: "Local Loopback", isNoData: true };
+    return {
+      host: cleanHost,
+      type,
+      records: [],
+      elapsedMs: 0.1,
+      source: "Local Loopback",
+      isNoData: true,
+    };
   }
 
   const script = `
@@ -398,27 +482,101 @@ export function resolveDnsRecordSync(host: string, type: DnsRecordType): DnsReso
   } catch (e: any) {
     throw e;
   }
-  return { host: cleanHost, type, records: [], elapsedMs: 0, source: "Lookup Failed", isNoData: false };
+  return {
+    host: cleanHost,
+    type,
+    records: [],
+    elapsedMs: 0,
+    source: "Lookup Failed",
+    isNoData: false,
+  };
 }
 
-export function resolveDnsRecord(host: string, type: DnsRecordType): Promise<DnsResolveResult> {
+export function resolveDnsRecord(
+  host: string,
+  type: DnsRecordType,
+): Promise<DnsResolveResult> {
   return Promise.resolve(resolveDnsRecordSync(host, type));
 }
 
-export function resolveAllDnsRecordsSync(host: string): { results: DnsResolveResult[]; elapsedMs: number } {
+export function resolveAllDnsRecordsSync(host: string): {
+  results: DnsResolveResult[];
+  elapsedMs: number;
+} {
   const cleanHost = sanitizeHost(host) || "google.com";
-  const types: DnsRecordType[] = ["A", "AAAA", "MX", "TXT", "NS", "SOA", "CNAME"];
+  const types: DnsRecordType[] = [
+    "A",
+    "AAAA",
+    "MX",
+    "TXT",
+    "NS",
+    "SOA",
+    "CNAME",
+  ];
 
-  if (cleanHost === "localhost" || cleanHost === "127.0.0.1" || cleanHost === "::1") {
+  if (
+    cleanHost === "localhost" ||
+    cleanHost === "127.0.0.1" ||
+    cleanHost === "::1"
+  ) {
     return {
       results: [
-        { host: cleanHost, type: "A", records: ["127.0.0.1"], elapsedMs: 0.1, source: "Local Loopback", isNoData: false },
-        { host: cleanHost, type: "AAAA", records: ["::1"], elapsedMs: 0.1, source: "Local Loopback", isNoData: false },
-        { host: cleanHost, type: "MX", records: [], elapsedMs: 0.1, source: "Local Loopback", isNoData: true },
-        { host: cleanHost, type: "TXT", records: [], elapsedMs: 0.1, source: "Local Loopback", isNoData: true },
-        { host: cleanHost, type: "NS", records: [], elapsedMs: 0.1, source: "Local Loopback", isNoData: true },
-        { host: cleanHost, type: "SOA", records: null, elapsedMs: 0.1, source: "Local Loopback", isNoData: true },
-        { host: cleanHost, type: "CNAME", records: [], elapsedMs: 0.1, source: "Local Loopback", isNoData: true },
+        {
+          host: cleanHost,
+          type: "A",
+          records: ["127.0.0.1"],
+          elapsedMs: 0.1,
+          source: "Local Loopback",
+          isNoData: false,
+        },
+        {
+          host: cleanHost,
+          type: "AAAA",
+          records: ["::1"],
+          elapsedMs: 0.1,
+          source: "Local Loopback",
+          isNoData: false,
+        },
+        {
+          host: cleanHost,
+          type: "MX",
+          records: [],
+          elapsedMs: 0.1,
+          source: "Local Loopback",
+          isNoData: true,
+        },
+        {
+          host: cleanHost,
+          type: "TXT",
+          records: [],
+          elapsedMs: 0.1,
+          source: "Local Loopback",
+          isNoData: true,
+        },
+        {
+          host: cleanHost,
+          type: "NS",
+          records: [],
+          elapsedMs: 0.1,
+          source: "Local Loopback",
+          isNoData: true,
+        },
+        {
+          host: cleanHost,
+          type: "SOA",
+          records: null,
+          elapsedMs: 0.1,
+          source: "Local Loopback",
+          isNoData: true,
+        },
+        {
+          host: cleanHost,
+          type: "CNAME",
+          records: [],
+          elapsedMs: 0.1,
+          source: "Local Loopback",
+          isNoData: true,
+        },
       ],
       elapsedMs: 0.5,
     };
@@ -481,7 +639,14 @@ export function resolveAllDnsRecordsSync(host: string): { results: DnsResolveRes
     if (out) return JSON.parse(out);
   } catch {}
   return {
-    results: types.map((t) => ({ host: cleanHost, type: t, records: [], elapsedMs: 0, source: "Lookup Failed", isNoData: true })),
+    results: types.map((t) => ({
+      host: cleanHost,
+      type: t,
+      records: [],
+      elapsedMs: 0,
+      source: "Lookup Failed",
+      isNoData: true,
+    })),
     elapsedMs: 0,
   };
 }
@@ -510,26 +675,32 @@ export function renderDnsHtml(res: DnsResolveResult): string {
 
   let contentHtml = "";
   if (res.type === "A" || res.type === "AAAA" || res.type === "NS") {
-    const list: string[] = Array.isArray(res.records) ? res.records : [String(res.records)];
+    const list: string[] = Array.isArray(res.records)
+      ? res.records
+      : [String(res.records)];
     const pills = list
       .map(
         (item) => `
         <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); padding: 8px 12px; border-radius: 6px; margin-bottom: 6px;">
           <span style="font-family: ui-monospace, monospace; font-size: 13px; color: #7dd3fc; font-weight: 600;">${escapeHtml(item)}</span>
           <span style="background: rgba(56,189,248,0.15); color: #38bdf8; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600;">${res.type} Record</span>
-        </div>`
+        </div>`,
       )
       .join("");
     contentHtml = `<div>${pills}</div>`;
   } else if (res.type === "MX") {
-    const mxList: { exchange: string; priority: number }[] = Array.isArray(res.records) ? res.records : [];
+    const mxList: { exchange: string; priority: number }[] = Array.isArray(
+      res.records,
+    )
+      ? res.records
+      : [];
     const rows = mxList
       .map(
         (mx) => `
         <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
           <td style="padding: 8px 12px; font-weight: 700; color: #38bdf8;">${mx.priority}</td>
           <td style="padding: 8px 12px; font-family: ui-monospace, monospace; color: #f1f5f9;">${escapeHtml(mx.exchange)}</td>
-        </tr>`
+        </tr>`,
       )
       .join("");
     contentHtml = `
@@ -563,9 +734,14 @@ export function renderDnsHtml(res: DnsResolveResult): string {
     const cards = list
       .map((item) => {
         const isSpf = item.startsWith("v=spf1");
-        const isDk = item.includes("domainkey") || item.includes("verification");
+        const isDk =
+          item.includes("domainkey") || item.includes("verification");
         const badgeColor = isSpf ? "#34d399" : isDk ? "#a78bfa" : "#38bdf8";
-        const badgeText = isSpf ? "SPF Policy" : isDk ? "Verification Token" : "TXT Record";
+        const badgeText = isSpf
+          ? "SPF Policy"
+          : isDk
+            ? "Verification Token"
+            : "TXT Record";
         return `
           <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); padding: 8px 12px; border-radius: 6px; margin-bottom: 6px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
@@ -599,8 +775,16 @@ export function renderDnsHtml(res: DnsResolveResult): string {
   `;
 }
 
-export function renderDnsDossierHtml(host: string, results: DnsResolveResult[], totalElapsed: number): string {
-  const activeCount = results.filter((r) => !r.isNoData && (Array.isArray(r.records) ? r.records.length > 0 : !!r.records)).length;
+export function renderDnsDossierHtml(
+  host: string,
+  results: DnsResolveResult[],
+  totalElapsed: number,
+): string {
+  const activeCount = results.filter(
+    (r) =>
+      !r.isNoData &&
+      (Array.isArray(r.records) ? r.records.length > 0 : !!r.records),
+  ).length;
   const aRes = results.find((r) => r.type === "A");
   const aaaaRes = results.find((r) => r.type === "AAAA");
   const mxRes = results.find((r) => r.type === "MX");
@@ -609,42 +793,68 @@ export function renderDnsDossierHtml(host: string, results: DnsResolveResult[], 
   const soaRes = results.find((r) => r.type === "SOA");
 
   const ipv4List: string[] = Array.isArray(aRes?.records) ? aRes.records : [];
-  const ipv6List: string[] = Array.isArray(aaaaRes?.records) ? aaaaRes.records : [];
-  const mxList: { exchange: string; priority: number }[] = Array.isArray(mxRes?.records) ? mxRes.records : [];
+  const ipv6List: string[] = Array.isArray(aaaaRes?.records)
+    ? aaaaRes.records
+    : [];
+  const mxList: { exchange: string; priority: number }[] = Array.isArray(
+    mxRes?.records,
+  )
+    ? mxRes.records
+    : [];
   const txtList: string[] = Array.isArray(txtRes?.records)
     ? txtRes.records.map((r) => (Array.isArray(r) ? r.join("") : String(r)))
     : [];
   const nsList: string[] = Array.isArray(nsRes?.records) ? nsRes.records : [];
-  const soa = soaRes?.records && typeof soaRes.records === "object" ? soaRes.records : null;
+  const soa =
+    soaRes?.records && typeof soaRes.records === "object"
+      ? soaRes.records
+      : null;
 
   // Render IP list
   const ipBadges = [
-    ...ipv4List.map((ip) => `<span style="background: rgba(56,189,248,0.15); border: 1px solid rgba(56,189,248,0.3); color: #38bdf8; font-family: monospace; padding: 3px 8px; border-radius: 4px; font-size: 12px; margin-right: 6px; margin-bottom: 6px; display: inline-block;">IPv4: ${escapeHtml(ip)}</span>`),
-    ...ipv6List.map((ip) => `<span style="background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); color: #c084fc; font-family: monospace; padding: 3px 8px; border-radius: 4px; font-size: 12px; margin-right: 6px; margin-bottom: 6px; display: inline-block;">IPv6: ${escapeHtml(ip)}</span>`),
+    ...ipv4List.map(
+      (ip) =>
+        `<span style="background: rgba(56,189,248,0.15); border: 1px solid rgba(56,189,248,0.3); color: #38bdf8; font-family: monospace; padding: 3px 8px; border-radius: 4px; font-size: 12px; margin-right: 6px; margin-bottom: 6px; display: inline-block;">IPv4: ${escapeHtml(ip)}</span>`,
+    ),
+    ...ipv6List.map(
+      (ip) =>
+        `<span style="background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); color: #c084fc; font-family: monospace; padding: 3px 8px; border-radius: 4px; font-size: 12px; margin-right: 6px; margin-bottom: 6px; display: inline-block;">IPv6: ${escapeHtml(ip)}</span>`,
+    ),
   ].join("");
 
   // Render MX rows
-  const mxRows = mxList.length > 0
-    ? mxList
-        .map((m) => `<tr><td style="padding: 4px 8px; font-weight: 700; color: #38bdf8;">${m.priority}</td><td style="padding: 4px 8px; font-family: monospace; color: #f1f5f9;">${escapeHtml(m.exchange)}</td></tr>`)
-        .join("")
-    : `<tr><td colspan="2" style="padding: 6px 8px; color: #94a3b8; font-style: italic;">No MX mail exchangers advertised</td></tr>`;
+  const mxRows =
+    mxList.length > 0
+      ? mxList
+          .map(
+            (m) =>
+              `<tr><td style="padding: 4px 8px; font-weight: 700; color: #38bdf8;">${m.priority}</td><td style="padding: 4px 8px; font-family: monospace; color: #f1f5f9;">${escapeHtml(m.exchange)}</td></tr>`,
+          )
+          .join("")
+      : `<tr><td colspan="2" style="padding: 6px 8px; color: #94a3b8; font-style: italic;">No MX mail exchangers advertised</td></tr>`;
 
   // Render NS rows
-  const nsBadges = nsList.length > 0
-    ? nsList.map((ns) => `<span style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #f1f5f9; font-family: monospace; padding: 3px 8px; border-radius: 4px; font-size: 11px; margin-right: 6px; margin-bottom: 6px; display: inline-block;">${escapeHtml(ns)}</span>`).join("")
-    : `<span style="color: #94a3b8; font-style: italic;">No nameservers found</span>`;
+  const nsBadges =
+    nsList.length > 0
+      ? nsList
+          .map(
+            (ns) =>
+              `<span style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #f1f5f9; font-family: monospace; padding: 3px 8px; border-radius: 4px; font-size: 11px; margin-right: 6px; margin-bottom: 6px; display: inline-block;">${escapeHtml(ns)}</span>`,
+          )
+          .join("")
+      : `<span style="color: #94a3b8; font-style: italic;">No nameservers found</span>`;
 
   // Render TXT samples
-  const txtRows = txtList.length > 0
-    ? txtList
-        .slice(0, 8)
-        .map((t) => {
-          const isSpf = t.startsWith("v=spf1");
-          return `<div style="font-family: monospace; font-size: 11px; color: ${isSpf ? "#34d399" : "#cbd5e1"}; padding: 3px 6px; border-bottom: 1px solid rgba(255,255,255,0.05); word-break: break-all;">${escapeHtml(t)}</div>`;
-        })
-        .join("")
-    : `<div style="color: #94a3b8; font-style: italic; padding: 6px;">No TXT records configured</div>`;
+  const txtRows =
+    txtList.length > 0
+      ? txtList
+          .slice(0, 8)
+          .map((t) => {
+            const isSpf = t.startsWith("v=spf1");
+            return `<div style="font-family: monospace; font-size: 11px; color: ${isSpf ? "#34d399" : "#cbd5e1"}; padding: 3px 6px; border-bottom: 1px solid rgba(255,255,255,0.05); word-break: break-all;">${escapeHtml(t)}</div>`;
+          })
+          .join("")
+      : `<div style="color: #94a3b8; font-style: italic; padding: 6px;">No TXT records configured</div>`;
 
   return `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #e2e8f0;">
@@ -717,15 +927,27 @@ export function renderDnsDossierHtml(host: string, results: DnsResolveResult[], 
   `;
 }
 
-export function renderHttpProbeHtml(url: string, status: number, statusText: string, elapsed: string, headers: [string, string][], timings?: HttpTimings): string {
-  const statusCol = status >= 200 && status < 300 ? "#4ade80" : status >= 300 && status < 400 ? "#38bdf8" : "#f87171";
+export function renderHttpProbeHtml(
+  url: string,
+  status: number,
+  statusText: string,
+  elapsed: string,
+  headers: [string, string][],
+  timings?: HttpTimings,
+): string {
+  const statusCol =
+    status >= 200 && status < 300
+      ? "#4ade80"
+      : status >= 300 && status < 400
+        ? "#38bdf8"
+        : "#f87171";
   const headerRows = headers
     .map(
       ([k, v]) => `
       <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
         <td style="padding: 4px 8px; font-family: monospace; color: #38bdf8; width: 220px;">${escapeHtml(k)}</td>
         <td style="padding: 4px 8px; font-family: monospace; color: #cbd5e1; word-break: break-all;">${escapeHtml(v)}</td>
-      </tr>`
+      </tr>`,
     )
     .join("");
 
@@ -741,9 +963,24 @@ export function renderHttpProbeHtml(url: string, status: number, statusText: str
         </div>
       </div>
 
-      ${timings ? `<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; font-size: 11px;">${[
-        ["DNS", timings.dnsMs], ["TCP", timings.connectMs], ["TLS", timings.tlsMs], ["TTFB", timings.ttfbMs], ["Total", timings.totalMs],
-      ].map(([l, v]) => `<span style="background: rgba(56,189,248,0.12); border: 1px solid rgba(56,189,248,0.3); color: #7dd3fc; padding: 3px 8px; border-radius: 4px;">${l}: <b>${v}ms</b></span>`).join("")}${timings.redirects > 0 ? `<span style="background: rgba(234,179,8,0.15); color: #facc15; padding: 3px 8px; border-radius: 4px;">${timings.redirects} redirect(s) &rarr; ${escapeHtml(timings.finalUrl)}</span>` : ""}${timings.remoteIp ? `<span style="background: rgba(255,255,255,0.06); color: #cbd5e1; padding: 3px 8px; border-radius: 4px;">Remote IP: ${escapeHtml(timings.remoteIp)}</span>` : ""}</div>` : ""}
+      ${
+        timings
+          ? `<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; font-size: 11px;">${[
+              ["DNS", timings.dnsMs],
+              ["TCP", timings.connectMs],
+              ["TLS", timings.tlsMs],
+              ["TTFB", timings.ttfbMs],
+              ["Total", timings.totalMs],
+            ]
+              .map(
+                ([l, v]) =>
+                  `<span style="background: rgba(56,189,248,0.12); border: 1px solid rgba(56,189,248,0.3); color: #7dd3fc; padding: 3px 8px; border-radius: 4px;">${l}: <b>${v}ms</b></span>`,
+              )
+              .join(
+                "",
+              )}${timings.redirects > 0 ? `<span style="background: rgba(234,179,8,0.15); color: #facc15; padding: 3px 8px; border-radius: 4px;">${timings.redirects} redirect(s) &rarr; ${escapeHtml(timings.finalUrl)}</span>` : ""}${timings.remoteIp ? `<span style="background: rgba(255,255,255,0.06); color: #cbd5e1; padding: 3px 8px; border-radius: 4px;">Remote IP: ${escapeHtml(timings.remoteIp)}</span>` : ""}</div>`
+          : ""
+      }
       <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 6px;">Response Headers (${headers.length}):</div>
       <div style="background: #090d16; border: 1px solid #1e293b; border-radius: 6px; max-height: 180px; overflow: auto;">
         <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
@@ -754,28 +991,58 @@ export function renderHttpProbeHtml(url: string, status: number, statusText: str
   `;
 }
 
-export interface HttpTimings { dnsMs: number; connectMs: number; tlsMs: number; ttfbMs: number; totalMs: number; redirects: number; finalUrl: string; remoteIp: string }
+export interface HttpTimings {
+  dnsMs: number;
+  connectMs: number;
+  tlsMs: number;
+  ttfbMs: number;
+  totalMs: number;
+  redirects: number;
+  finalUrl: string;
+  remoteIp: string;
+}
 
-export function probeHttpSync(url: string): { success: boolean; status?: number; statusText?: string; elapsedMs: string; headers: [string, string][]; error?: string; timings?: HttpTimings } {
+export function probeHttpSync(url: string): {
+  success: boolean;
+  status?: number;
+  statusText?: string;
+  elapsedMs: string;
+  headers: [string, string][];
+  error?: string;
+  timings?: HttpTimings;
+} {
   const t0 = performance.now();
   try {
     const proc = Bun.spawnSync([
-      "curl", "-s", "-I", "-L",
-      "--connect-timeout", "2",
-      "-m", "4",
-      "-A", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-      "-w", "\n__RAD_META__\n%{http_code}\n%{time_total}\n%{time_namelookup}\n%{time_connect}\n%{time_appconnect}\n%{time_starttransfer}\n%{num_redirects}\n%{url_effective}\n%{remote_ip}\n",
+      "curl",
+      "-s",
+      "-I",
+      "-L",
+      "--connect-timeout",
+      "2",
+      "-m",
+      "4",
+      "-A",
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+      "-w",
+      "\n__RAD_META__\n%{http_code}\n%{time_total}\n%{time_namelookup}\n%{time_connect}\n%{time_appconnect}\n%{time_starttransfer}\n%{num_redirects}\n%{url_effective}\n%{remote_ip}\n",
       url,
     ]);
     const elapsedMs = (performance.now() - t0).toFixed(2);
     const out = proc.stdout.toString();
     if (!out && proc.exitCode !== 0) {
-      return { success: false, error: proc.stderr.toString().trim() || "Probe failed", elapsedMs, headers: [] };
+      return {
+        success: false,
+        error: proc.stderr.toString().trim() || "Probe failed",
+        elapsedMs,
+        headers: [],
+      };
     }
     const [headerText, metaText] = out.split("\n__RAD_META__\n");
     const meta = (metaText || "").trim().split("\n");
     const [codeStr] = meta;
-    const ms = (v: string | undefined) => Math.round(parseFloat(v || "0") * 1000 * 10) / 10 || 0;
+    const ms = (v: string | undefined) =>
+      Math.round(parseFloat(v || "0") * 1000 * 10) / 10 || 0;
     const status = parseInt(codeStr || "0", 10);
 
     // Parse headers
@@ -805,21 +1072,40 @@ export function probeHttpSync(url: string): { success: boolean; status?: number;
       },
     };
   } catch (e: any) {
-    return { success: false, error: e.message, elapsedMs: (performance.now() - t0).toFixed(2), headers: [] };
+    return {
+      success: false,
+      error: e.message,
+      elapsedMs: (performance.now() - t0).toFixed(2),
+      headers: [],
+    };
   }
 }
 
-export function probeHttp(url: string): Promise<{ success: boolean; status?: number; statusText?: string; elapsedMs: string; headers: [string, string][]; error?: string; timings?: HttpTimings }> {
+export function probeHttp(url: string): Promise<{
+  success: boolean;
+  status?: number;
+  statusText?: string;
+  elapsedMs: string;
+  headers: [string, string][];
+  error?: string;
+  timings?: HttpTimings;
+}> {
   return Promise.resolve(probeHttpSync(url));
 }
 
-
 /** Generic escaped key/value card used by the toolkit (TLS, TCP ping, reverse DNS). */
-function renderKeyValueHtml(title: string, subtitle: string, rows: string[][], tone: "ok" | "warn" | "bad" = "ok"): string {
-  const col = tone === "ok" ? "56,189,248" : tone === "warn" ? "234,179,8" : "239,68,68";
+function renderKeyValueHtml(
+  title: string,
+  subtitle: string,
+  rows: string[][],
+  tone: "ok" | "warn" | "bad" = "ok",
+): string {
+  const col =
+    tone === "ok" ? "56,189,248" : tone === "warn" ? "234,179,8" : "239,68,68";
   const body = rows
     .map(
-      ([k, v]) => `<tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td style="padding: 5px 10px; color: #94a3b8; width: 200px;">${escapeHtml(k)}</td><td style="padding: 5px 10px; font-family: ui-monospace, monospace; color: #e2e8f0; word-break: break-all;">${escapeHtml(v)}</td></tr>`
+      ([k, v]) =>
+        `<tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td style="padding: 5px 10px; color: #94a3b8; width: 200px;">${escapeHtml(k)}</td><td style="padding: 5px 10px; font-family: ui-monospace, monospace; color: #e2e8f0; word-break: break-all;">${escapeHtml(v)}</td></tr>`,
     )
     .join("");
   return `
@@ -839,13 +1125,20 @@ function textTable(rows: string[][]): string {
   return rows.map(([k, v]) => `${(k ?? "").padEnd(w)}${v}`).join("\n");
 }
 
-export function createNetworkStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
-  const win = newSimpleWindow("Network Forensics Studio Pro -- Socket Scanner & DNS Inspector", 1140, 1060, {
-    appId: "network_studio",
-    theme: options.theme || getSavedTheme() || "midnight",
-    autoSaveState: true,
-    fullscreen: options.fullscreen ?? true,
-  });
+export function createNetworkStudio(
+  options: { fullscreen?: boolean; theme?: string } = {},
+): SimpleWindow {
+  const win = newSimpleWindow(
+    "Network Forensics Studio Pro -- Socket Scanner & DNS Inspector",
+    1140,
+    1060,
+    {
+      appId: "network_studio",
+      theme: options.theme || getSavedTheme() || "midnight",
+      autoSaveState: true,
+      fullscreen: options.fullscreen ?? true,
+    },
+  );
 
   const localIfaces = getLocalInterfaces();
   const initialHtml = renderBaselineHtml("google.com", 443, localIfaces);
@@ -858,7 +1151,9 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
   win.addButton("btn_center", "Center Window");
   win.addButton("btn_fullscreen", "⛶ Fullscreen");
   win.endRow();
-  win.addCaption("Enterprise Socket Diagnostics, DNS Lookup & HTTP Latency Probe (Native Bun)");
+  win.addCaption(
+    "Enterprise Socket Diagnostics, DNS Lookup & HTTP Latency Probe (Native Bun)",
+  );
 
   // Target Input Row
   win.beginGroupBox("Target Host & Protocol Configuration");
@@ -897,7 +1192,13 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
   win.beginGroupBox("Productivity Toolkit");
   win.beginRow();
   win.addLabel("lbl_ports", "Ports:").width(50);
-  win.addInput("txt_ports", "22,80,443,3000,5432,8000-8010", "e.g. 22,80,443,8000-8010").width(280);
+  win
+    .addInput(
+      "txt_ports",
+      "22,80,443,3000,5432,8000-8010",
+      "e.g. 22,80,443,8000-8010",
+    )
+    .width(280);
   win.addLabel("lbl_timeout", "Timeout (ms):").width(95);
   win.addInput("txt_timeout", "500").width(70);
   win.addCheckbox("chk_open_only", "Show open ports only", false);
@@ -924,13 +1225,16 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
 
   // Status Bar
   win.beginRow();
-  win.addLabel("lbl_status", "Status: Ready  |  Interface: Active  |  Engine: Native Bun Socket & DNS");
+  win.addLabel(
+    "lbl_status",
+    "Status: Ready  |  Interface: Active  |  Engine: Native Bun Socket & DNS",
+  );
   win.endRow();
 
   // Store raw plain text representation for export
   win.setValue(
     "txt_net_results_raw",
-    `[Network Forensics Studio Initialized]\nTarget host: google.com:443\nDetected Local IP: ${localIfaces[0]?.ip || "127.0.0.1"}\n`
+    `[Network Forensics Studio Initialized]\nTarget host: google.com:443\nDetected Local IP: ${localIfaces[0]?.ip || "127.0.0.1"}\n`,
   );
 
   // Handlers
@@ -945,7 +1249,11 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
     if (!raw) return fallback;
     const h = sanitizeHost(raw);
     if (!h) {
-      win.toast(`"${raw}" is not a valid host name or IP address`, 3500, "error");
+      win.toast(
+        `"${raw}" is not a valid host name or IP address`,
+        3500,
+        "error",
+      );
       win.setStatus("Invalid host");
       return null;
     }
@@ -1003,28 +1311,44 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
   win.onClick("btn_preset_localhost", () => {
     win.setValue("txt_host", "127.0.0.1");
     win.setValue("txt_port", "3000");
-    win.appendConsole("net_console", "[Preset] Selected Localhost (127.0.0.1:3000)\n", 1);
+    win.appendConsole(
+      "net_console",
+      "[Preset] Selected Localhost (127.0.0.1:3000)\n",
+      1,
+    );
     win.setStatus("Target set to 127.0.0.1:3000");
   });
 
   win.onClick("btn_preset_cloudflare", () => {
     win.setValue("txt_host", "1.1.1.1");
     win.setValue("txt_port", "443");
-    win.appendConsole("net_console", "[Preset] Selected Cloudflare DNS (1.1.1.1:443)\n", 1);
+    win.appendConsole(
+      "net_console",
+      "[Preset] Selected Cloudflare DNS (1.1.1.1:443)\n",
+      1,
+    );
     win.setStatus("Target set to 1.1.1.1:443");
   });
 
   win.onClick("btn_preset_google", () => {
     win.setValue("txt_host", "google.com");
     win.setValue("txt_port", "443");
-    win.appendConsole("net_console", "[Preset] Selected Google (google.com:443)\n", 1);
+    win.appendConsole(
+      "net_console",
+      "[Preset] Selected Google (google.com:443)\n",
+      1,
+    );
     win.setStatus("Target set to google.com:443");
   });
 
   win.onClick("btn_preset_github", () => {
     win.setValue("txt_host", "github.com");
     win.setValue("txt_port", "443");
-    win.appendConsole("net_console", "[Preset] Selected GitHub (github.com:443)\n", 1);
+    win.appendConsole(
+      "net_console",
+      "[Preset] Selected GitHub (github.com:443)\n",
+      1,
+    );
     win.setStatus("Target set to github.com:443");
   });
 
@@ -1038,7 +1362,11 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
       win.setStatus("Invalid port");
       return;
     }
-    win.appendConsole("net_console", `[Scan] Connecting to ${host}:${port}...\n`, 1);
+    win.appendConsole(
+      "net_console",
+      `[Scan] Connecting to ${host}:${port}...\n`,
+      1,
+    );
     win.setStatus(`Testing socket ${host}:${port}...`);
 
     const t0 = performance.now();
@@ -1049,7 +1377,11 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
     const raw = `[Socket Test Result]\nHost:    ${host}\nPort:    ${port} (${res.service})\nStatus:  ${res.status}\nLatency: ${res.latencyMs}ms\n`;
 
     setResults(html, raw);
-    win.appendConsole("net_console", `[Scan Result] ${host}:${port} is ${res.status} (${res.latencyMs}ms)\n`, res.status === "OPEN" ? 2 : 3);
+    win.appendConsole(
+      "net_console",
+      `[Scan Result] ${host}:${port} is ${res.status} (${res.latencyMs}ms)\n`,
+      res.status === "OPEN" ? 2 : 3,
+    );
     win.setStatus(`${host}:${port} -> ${res.status} (${res.latencyMs}ms)`);
     win.toast(`Port ${port}: ${res.status} (${res.latencyMs}ms)`);
   });
@@ -1058,16 +1390,27 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
     const rawHost = win.getValue("txt_host") || "google.com";
     const host = pickHost("127.0.0.1");
     if (!host) return;
-    win.appendConsole("net_console", `[Batch Scan] Scanning ${COMMON_PORTS.length} common services on ${host}...\n`, 1);
+    win.appendConsole(
+      "net_console",
+      `[Batch Scan] Scanning ${COMMON_PORTS.length} common services on ${host}...\n`,
+      1,
+    );
     win.setStatus(`Scanning common ports on ${host}...`);
 
     const t0 = performance.now();
     const allResults = checkCommonSocketsSync(host);
     const elapsed = performance.now() - t0;
-    const results = win.getBool("chk_open_only") ? allResults.filter((r) => r.status === "OPEN") : allResults;
+    const results = win.getBool("chk_open_only")
+      ? allResults.filter((r) => r.status === "OPEN")
+      : allResults;
     lastScan = { host, results: allResults };
 
-    const html = renderPortScanHtml(host, results, elapsed, allResults.length - results.length);
+    const html = renderPortScanHtml(
+      host,
+      results,
+      elapsed,
+      allResults.length - results.length,
+    );
     const lines: string[] = [
       `========================================================================`,
       `PORT SCAN AUDIT REPORT: ${host}`,
@@ -1080,15 +1423,29 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
     for (const r of results) {
       const portStr = String(r.port).padEnd(9);
       const svcStr = r.service.padEnd(20);
-      const statStr = (r.status === "OPEN" ? "OPEN   " : r.status === "TIMEOUT" ? "TIMEOUT" : "CLOSED ").padEnd(12);
+      const statStr = (
+        r.status === "OPEN"
+          ? "OPEN   "
+          : r.status === "TIMEOUT"
+            ? "TIMEOUT"
+            : "CLOSED "
+      ).padEnd(12);
       lines.push(`${portStr} ${svcStr} ${statStr} ${r.latencyMs}ms`);
     }
 
     setResults(html, lines.join("\n"));
     const openCount = results.filter((r) => r.status === "OPEN").length;
-    win.appendConsole("net_console", `[Batch Scan] Finished auditing ${allResults.length} ports (${openCount} OPEN) in ${elapsed.toFixed(1)}ms\n`, 2);
-    win.setStatus(`Scan completed: ${openCount} open ports found (${elapsed.toFixed(0)}ms)`);
-    win.toast(`✅ Scanned ${results.length} ports: ${openCount} OPEN (${elapsed.toFixed(0)}ms)`);
+    win.appendConsole(
+      "net_console",
+      `[Batch Scan] Finished auditing ${allResults.length} ports (${openCount} OPEN) in ${elapsed.toFixed(1)}ms\n`,
+      2,
+    );
+    win.setStatus(
+      `Scan completed: ${openCount} open ports found (${elapsed.toFixed(0)}ms)`,
+    );
+    win.toast(
+      `✅ Scanned ${results.length} ports: ${openCount} OPEN (${elapsed.toFixed(0)}ms)`,
+    );
   });
 
   win.onClick("btn_ping_http", () => {
@@ -1105,12 +1462,23 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
       }
     }
 
-    win.appendConsole("net_console", `[HTTP Probe] Sending probe request to ${url}...\n`, 1);
+    win.appendConsole(
+      "net_console",
+      `[HTTP Probe] Sending probe request to ${url}...\n`,
+      1,
+    );
     win.setStatus(`Probing ${url}...`);
 
     const probeRes = probeHttpSync(url);
     if (probeRes.success) {
-      const html = renderHttpProbeHtml(url, probeRes.status!, probeRes.statusText || "", probeRes.elapsedMs, probeRes.headers, probeRes.timings);
+      const html = renderHttpProbeHtml(
+        url,
+        probeRes.status!,
+        probeRes.statusText || "",
+        probeRes.elapsedMs,
+        probeRes.headers,
+        probeRes.timings,
+      );
       const report = [
         `[HTTP Probe Response]`,
         `URL:             ${url}`,
@@ -1131,7 +1499,11 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
       ].join("\n");
 
       setResults(html, report);
-      win.appendConsole("net_console", `[HTTP Probe] ${probeRes.status} in ${probeRes.elapsedMs}ms\n`, 2);
+      win.appendConsole(
+        "net_console",
+        `[HTTP Probe] ${probeRes.status} in ${probeRes.elapsedMs}ms\n`,
+        2,
+      );
       win.setStatus(`HTTP ${probeRes.status} (${probeRes.elapsedMs}ms)`);
       win.toast(`✅ HTTP Probe: ${probeRes.status} in ${probeRes.elapsedMs}ms`);
     } else {
@@ -1141,13 +1513,25 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
           <div style="font-size: 12px; color: #e2e8f0;">Target: <code style="color: #38bdf8;">${escapeHtml(url)}</code> | Latency: ${probeRes.elapsedMs}ms</div>
           <div style="font-size: 12px; margin-top: 8px; color: #fca5a5;"><b>Error:</b> ${escapeHtml(probeRes.error || "Probe failed")}</div>
         </div>`;
-      setResults(errHtml, `[HTTP Probe Failed]\nTarget:  ${url}\nLatency: ${probeRes.elapsedMs}ms\nError:   ${probeRes.error || "Probe failed"}`);
-      win.appendConsole("net_console", `[HTTP Error] ${probeRes.error || "Probe failed"} (${probeRes.elapsedMs}ms)\n`, 3);
+      setResults(
+        errHtml,
+        `[HTTP Probe Failed]\nTarget:  ${url}\nLatency: ${probeRes.elapsedMs}ms\nError:   ${probeRes.error || "Probe failed"}`,
+      );
+      win.appendConsole(
+        "net_console",
+        `[HTTP Error] ${probeRes.error || "Probe failed"} (${probeRes.elapsedMs}ms)\n`,
+        3,
+      );
       win.setStatus("Probe failed");
     }
   });
 
-  const renderDnsError = (host: string, type: string, err: any, elapsed: number) => {
+  const renderDnsError = (
+    host: string,
+    type: string,
+    err: any,
+    elapsed: number,
+  ) => {
     const errHtml = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #f87171; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; padding: 12px;">
         <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px;">❌ DNS Lookup Failed</div>
@@ -1157,8 +1541,15 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
           💡 <b>Tip:</b> If your network or VPN blocks port 53 UDP traffic, test with <b>⚡ HTTP Probe</b> which queries through standard HTTPS port 443, or verify the domain spelling.
         </div>
       </div>`;
-    setResults(errHtml, `[DNS Lookup Failed]\nHost:    ${host}\nRecord:  ${type}\nLatency: ${elapsed}ms\nError:   ${err.message || String(err)}`);
-    win.appendConsole("net_console", `[DNS Error] ${err.message || String(err)} (${elapsed}ms)\n`, 3);
+    setResults(
+      errHtml,
+      `[DNS Lookup Failed]\nHost:    ${host}\nRecord:  ${type}\nLatency: ${elapsed}ms\nError:   ${err.message || String(err)}`,
+    );
+    win.appendConsole(
+      "net_console",
+      `[DNS Error] ${err.message || String(err)} (${elapsed}ms)\n`,
+      3,
+    );
     win.setStatus(`DNS error (${elapsed}ms)`);
   };
 
@@ -1166,7 +1557,11 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
     const rawHost = win.getValue("txt_host") || "google.com";
     const host = pickHost("google.com");
     if (!host) return;
-    win.appendConsole("net_console", `[DNS] Resolving ${type} records for ${host}...\n`, 1);
+    win.appendConsole(
+      "net_console",
+      `[DNS] Resolving ${type} records for ${host}...\n`,
+      1,
+    );
     win.setStatus(`Resolving ${type} for ${host}...`);
 
     const t0 = performance.now();
@@ -1177,16 +1572,26 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
         `========================================================================`,
         `DNS ${type} RECORDS: ${host} (Resolved in ${res.elapsedMs}ms via ${res.source})`,
         `========================================================================`,
-        res.isNoData ? `(No ${type} records configured for ${host})` : JSON.stringify(res.records, null, 2),
+        res.isNoData
+          ? `(No ${type} records configured for ${host})`
+          : JSON.stringify(res.records, null, 2),
       ].join("\n");
 
       setResults(html, formatted);
       if (res.isNoData) {
-        win.appendConsole("net_console", `[DNS Notice] No ${type} records configured for ${host} (${res.elapsedMs}ms)\n`, 4);
+        win.appendConsole(
+          "net_console",
+          `[DNS Notice] No ${type} records configured for ${host} (${res.elapsedMs}ms)\n`,
+          4,
+        );
         win.setStatus(`DNS ${type}: No records (${res.elapsedMs}ms)`);
         win.toast(`⚠️ DNS ${type}: No records found for ${host}`);
       } else {
-        win.appendConsole("net_console", `[DNS Success] Retrieved ${type} records in ${res.elapsedMs}ms (${res.source})\n`, 2);
+        win.appendConsole(
+          "net_console",
+          `[DNS Success] Retrieved ${type} records in ${res.elapsedMs}ms (${res.source})\n`,
+          2,
+        );
         win.setStatus(`✅ DNS ${type} loaded (${res.elapsedMs}ms) for ${host}`);
         win.toast(`✅ ${type} records loaded for ${host} (${res.elapsedMs}ms)`);
       }
@@ -1200,11 +1605,16 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
     const rawHost = win.getValue("txt_host") || "google.com";
     const host = pickHost("google.com");
     if (!host) return;
-    win.appendConsole("net_console", `[DNS Audit] Running full forensic inspection for ${host}...\n`, 1);
+    win.appendConsole(
+      "net_console",
+      `[DNS Audit] Running full forensic inspection for ${host}...\n`,
+      1,
+    );
     win.setStatus(`Auditing all DNS records for ${host}...`);
 
     try {
-      const { results, elapsedMs: totalElapsed } = resolveAllDnsRecordsSync(host);
+      const { results, elapsedMs: totalElapsed } =
+        resolveAllDnsRecordsSync(host);
       const html = renderDnsDossierHtml(host, results, totalElapsed);
 
       const lines: string[] = [
@@ -1215,7 +1625,9 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
         `========================================================================`,
       ];
       for (const res of results) {
-        lines.push(`--- [${res.type} RECORDS] (${res.source}, ${res.elapsedMs}ms) ---`);
+        lines.push(
+          `--- [${res.type} RECORDS] (${res.source}, ${res.elapsedMs}ms) ---`,
+        );
         if (res.isNoData) {
           lines.push(`  (No ${res.type} records configured / NODATA)`);
         } else {
@@ -1224,9 +1636,19 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
         lines.push("");
       }
       setResults(html, lines.join("\n"));
-      const activeCount = results.filter((r) => !r.isNoData && (Array.isArray(r.records) ? r.records.length > 0 : !!r.records)).length;
-      win.appendConsole("net_console", `[DNS Audit] Completed ${host}: ${activeCount}/${results.length} record sets found (${totalElapsed}ms)\n`, 2);
-      win.setStatus(`DNS Audit complete: ${activeCount} active sets (${totalElapsed}ms)`);
+      const activeCount = results.filter(
+        (r) =>
+          !r.isNoData &&
+          (Array.isArray(r.records) ? r.records.length > 0 : !!r.records),
+      ).length;
+      win.appendConsole(
+        "net_console",
+        `[DNS Audit] Completed ${host}: ${activeCount}/${results.length} record sets found (${totalElapsed}ms)\n`,
+        2,
+      );
+      win.setStatus(
+        `DNS Audit complete: ${activeCount} active sets (${totalElapsed}ms)`,
+      );
       win.toast(`✅ Full DNS audit complete for ${host} (${totalElapsed}ms)`);
     } catch (err: any) {
       renderDnsError(host, "ALL", err, 0);
@@ -1241,62 +1663,114 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
   win.onClick("btn_dns_soa", () => queryDns("SOA"));
   win.onClick("btn_dns_caa", () => queryDns("CAA"));
 
-  const currentReport = (): string => String(win.getValue("txt_net_results_raw") || "");
+  const currentReport = (): string =>
+    String(win.getValue("txt_net_results_raw") || "");
 
   win.onClick("btn_copy_report", () => {
     const t = currentReport();
-    if (!t.trim()) { win.toast("No diagnostics output to copy", 2500, "warning"); return; }
+    if (!t.trim()) {
+      win.toast("No diagnostics output to copy", 2500, "warning");
+      return;
+    }
     win.copyToClipboard(t);
     win.toast("Report copied", 2000, "success");
   });
 
   win.onClick("btn_export_diag", () => {
-    const rawContent = currentReport() || String(win.getValue("txt_net_results") || "");
+    const rawContent =
+      currentReport() || String(win.getValue("txt_net_results") || "");
     if (!rawContent.trim()) {
       win.toast("No diagnostics output to export");
       return;
     }
-    win.saveFile({ title: "Save network report (.txt or .csv)", defaultName: "network_report.txt" }, (p) => {
-      if (!p) return;
-      try {
-        const asCsv = p.toLowerCase().endsWith(".csv") && lastScan;
-        writeFileSync(p, asCsv ? scanResultsToCsv(lastScan!.host, lastScan!.results) : rawContent, "utf8");
-        win.appendConsole("net_console", `[Export] Saved network report to ${p}\n`, 2);
-        win.toast(`Report saved: ${basename(p)}`, 3000, "success");
-      } catch (e: any) {
-        win.appendConsole("net_console", `[Export Error] ${e.message}\n`, 3);
-        win.toast(`Save failed: ${e.message}`, 4000, "error");
-      }
-    });
+    win.saveFile(
+      {
+        title: "Save network report (.txt or .csv)",
+        defaultName: "network_report.txt",
+      },
+      (p) => {
+        if (!p) return;
+        try {
+          const asCsv = p.toLowerCase().endsWith(".csv") && lastScan;
+          writeFileSync(
+            p,
+            asCsv
+              ? scanResultsToCsv(lastScan!.host, lastScan!.results)
+              : rawContent,
+            "utf8",
+          );
+          win.appendConsole(
+            "net_console",
+            `[Export] Saved network report to ${p}\n`,
+            2,
+          );
+          win.toast(`Report saved: ${basename(p)}`, 3000, "success");
+        } catch (e: any) {
+          win.appendConsole("net_console", `[Export Error] ${e.message}\n`, 3);
+          win.toast(`Save failed: ${e.message}`, 4000, "error");
+        }
+      },
+    );
   });
 
   win.onClick("btn_scan_custom", () => {
     const host = pickHost("127.0.0.1");
     if (!host) return;
     const spec = parsePortSpec(String(win.getValue("txt_ports") || ""));
-    if (spec.error) { win.toast(spec.error, 3500, "error"); win.setStatus("Invalid port list"); return; }
+    if (spec.error) {
+      win.toast(spec.error, 3500, "error");
+      win.setStatus("Invalid port list");
+      return;
+    }
     const timeout = clampNum(win.getValue("txt_timeout"), 100, 5000, 500);
-    win.appendConsole("net_console", `[Port List] Scanning ${spec.ports.length} port(s) on ${host} (timeout ${timeout}ms)...\n`, 1);
+    win.appendConsole(
+      "net_console",
+      `[Port List] Scanning ${spec.ports.length} port(s) on ${host} (timeout ${timeout}ms)...\n`,
+      1,
+    );
     win.setStatus(`Scanning ${spec.ports.length} ports on ${host}...`);
     const t0 = performance.now();
     const all = checkPortsSync(host, spec.ports, timeout);
     const elapsed = performance.now() - t0;
-    const shown = win.getBool("chk_open_only") ? all.filter((r) => r.status === "OPEN") : all;
+    const shown = win.getBool("chk_open_only")
+      ? all.filter((r) => r.status === "OPEN")
+      : all;
     lastScan = { host, results: all };
-    const withNames = shown.map((r) => ({ ...r, service: serviceName(r.port) })) as PortScanResult[];
-    const html = renderPortScanHtml(host, withNames, elapsed, all.length - shown.length);
+    const withNames = shown.map((r) => ({
+      ...r,
+      service: serviceName(r.port),
+    })) as PortScanResult[];
+    const html = renderPortScanHtml(
+      host,
+      withNames,
+      elapsed,
+      all.length - shown.length,
+    );
     const lines = [
       `PORT LIST SCAN: ${host}`,
       `Timestamp: ${new Date().toISOString()}`,
       `Scanned ${all.length} port(s) in ${elapsed.toFixed(1)}ms (timeout ${timeout}ms)${spec.truncated ? ` - list truncated to ${spec.ports.length}` : ""}`,
       `PORT      SERVICE              STATUS       LATENCY`,
-      ...withNames.map((r) => `${String(r.port).padEnd(9)} ${r.service.padEnd(20)} ${r.status.padEnd(12)} ${r.latencyMs}ms`),
+      ...withNames.map(
+        (r) =>
+          `${String(r.port).padEnd(9)} ${r.service.padEnd(20)} ${r.status.padEnd(12)} ${r.latencyMs}ms`,
+      ),
     ];
     setResults(html, lines.join("\n"));
     const sum = summarizeScan(all);
-    win.appendConsole("net_console", `[Port List] ${sum.open} open, ${sum.closed} closed, ${sum.timeout} timeout in ${elapsed.toFixed(0)}ms\n`, 2);
-    win.setStatus(`Port list scan: ${sum.open} open of ${all.length} (${elapsed.toFixed(0)}ms)`);
-    win.toast(`Scanned ${all.length} ports: ${sum.open} open${spec.truncated ? " (list truncated)" : ""}`, 3000, sum.open > 0 ? "success" : "info");
+    win.appendConsole(
+      "net_console",
+      `[Port List] ${sum.open} open, ${sum.closed} closed, ${sum.timeout} timeout in ${elapsed.toFixed(0)}ms\n`,
+      2,
+    );
+    win.setStatus(
+      `Port list scan: ${sum.open} open of ${all.length} (${elapsed.toFixed(0)}ms)`,
+    );
+    win.toast(
+      `Scanned ${all.length} ports: ${sum.open} open${spec.truncated ? " (list truncated)" : ""}`,
+      3000,
+      sum.open > 0 ? "success" : "info",
+    );
   });
 
   win.onClick("btn_tcp_ping", () => {
@@ -1304,25 +1778,47 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
     if (!host) return;
     const port = pickPort();
     if (port === null) return;
-    const timeout = Math.max(500, clampNum(win.getValue("txt_timeout"), 100, 5000, 1000));
+    const timeout = Math.max(
+      500,
+      clampNum(win.getValue("txt_timeout"), 100, 5000, 1000),
+    );
     win.appendConsole("net_console", `[TCP Ping] ${host}:${port} x5...\n`, 1);
     win.setStatus(`TCP ping ${host}:${port}...`);
     const samples = tcpPingSync(host, port, 5, timeout);
     const sum = summarizeLatencies(samples);
-    const rows: string[][] = samples.map((v, i) => [`Reply ${i + 1}`, v === null ? "timeout / refused" : `${v}ms`]);
+    const rows: string[][] = samples.map((v, i) => [
+      `Reply ${i + 1}`,
+      v === null ? "timeout / refused" : `${v}ms`,
+    ]);
     rows.push(
       ["Sent / Received", `${sum.sent} / ${sum.received}`],
       ["Packet Loss", `${sum.lossPct}%`],
-      ["Min / Avg / Max", sum.min === null ? "-" : `${sum.min} / ${sum.avg} / ${sum.max} ms`],
-      ["Jitter", sum.jitter === null ? "-" : `${sum.jitter}ms`]
+      [
+        "Min / Avg / Max",
+        sum.min === null ? "-" : `${sum.min} / ${sum.avg} / ${sum.max} ms`,
+      ],
+      ["Jitter", sum.jitter === null ? "-" : `${sum.jitter}ms`],
     );
     const tone = sum.received === 0 ? "bad" : sum.lossPct > 0 ? "warn" : "ok";
     setResults(
-      renderKeyValueHtml(`TCP Ping: ${host}:${port}`, `${sum.received}/${sum.sent} connections succeeded`, rows, tone),
-      `[TCP Ping] ${host}:${port}\n` + textTable(rows)
+      renderKeyValueHtml(
+        `TCP Ping: ${host}:${port}`,
+        `${sum.received}/${sum.sent} connections succeeded`,
+        rows,
+        tone,
+      ),
+      `[TCP Ping] ${host}:${port}\n` + textTable(rows),
     );
-    win.appendConsole("net_console", `[TCP Ping] ${sum.received}/${sum.sent} replies, avg ${sum.avg ?? "-"}ms\n`, sum.received > 0 ? 2 : 3);
-    win.setStatus(sum.received > 0 ? `TCP ping avg ${sum.avg}ms, ${sum.lossPct}% loss` : `TCP ping failed: ${host}:${port} unreachable`);
+    win.appendConsole(
+      "net_console",
+      `[TCP Ping] ${sum.received}/${sum.sent} replies, avg ${sum.avg ?? "-"}ms\n`,
+      sum.received > 0 ? 2 : 3,
+    );
+    win.setStatus(
+      sum.received > 0
+        ? `TCP ping avg ${sum.avg}ms, ${sum.lossPct}% loss`
+        : `TCP ping failed: ${host}:${port} unreachable`,
+    );
   });
 
   win.onClick("btn_tls_cert", () => {
@@ -1330,40 +1826,90 @@ export function createNetworkStudio(options: { fullscreen?: boolean; theme?: str
     if (!host) return;
     const port = pickPort();
     if (port === null) return;
-    win.appendConsole("net_console", `[TLS] Inspecting certificate of ${host}:${port}...\n`, 1);
+    win.appendConsole(
+      "net_console",
+      `[TLS] Inspecting certificate of ${host}:${port}...\n`,
+      1,
+    );
     win.setStatus(`Inspecting TLS certificate for ${host}:${port}...`);
     const info = getTlsCertSync(host, port);
     const rows = describeCert(info);
     const failed = !!info.error;
-    const expired = rows.some((r) => r[0] === "Expiry Status" && /EXPIRED/.test(r[1]!));
-    const soon = rows.some((r) => r[0] === "Expiry Status" && /soon/.test(r[1]!));
+    const expired = rows.some(
+      (r) => r[0] === "Expiry Status" && /EXPIRED/.test(r[1]!),
+    );
+    const soon = rows.some(
+      (r) => r[0] === "Expiry Status" && /soon/.test(r[1]!),
+    );
     setResults(
       renderKeyValueHtml(
         failed ? "TLS Inspection Failed" : `TLS Certificate: ${host}:${port}`,
         failed ? info.error! : rows.find((r) => r[0] === "Expiry Status")![1]!,
         rows,
-        failed || expired ? "bad" : soon || !info.authorized ? "warn" : "ok"
+        failed || expired ? "bad" : soon || !info.authorized ? "warn" : "ok",
       ),
-      `[TLS Certificate] ${host}:${port}\n` + textTable(rows)
+      `[TLS Certificate] ${host}:${port}\n` + textTable(rows),
     );
-    win.appendConsole("net_console", failed ? `[TLS Error] ${info.error}\n` : `[TLS] ${rows.find((r) => r[0] === "Expiry Status")![1]}\n`, failed || expired ? 3 : 2);
-    win.setStatus(failed ? "TLS inspection failed" : `Certificate: ${rows.find((r) => r[0] === "Expiry Status")![1]}`);
+    win.appendConsole(
+      "net_console",
+      failed
+        ? `[TLS Error] ${info.error}\n`
+        : `[TLS] ${rows.find((r) => r[0] === "Expiry Status")![1]}\n`,
+      failed || expired ? 3 : 2,
+    );
+    win.setStatus(
+      failed
+        ? "TLS inspection failed"
+        : `Certificate: ${rows.find((r) => r[0] === "Expiry Status")![1]}`,
+    );
     if (failed) win.toast(info.error!, 3500, "error");
   });
 
   win.onClick("btn_dns_ptr", () => {
     const host = pickHost("8.8.8.8");
     if (!host) return;
-    win.appendConsole("net_console", `[PTR] Reverse lookup for ${host}...\n`, 1);
-    const res = reversePtrSync(host);
-    const rows: string[][] = res.hostnames.length > 0 ? res.hostnames.map((h, i) => [`PTR ${i + 1}`, h]) : [["Result", res.error ? `No PTR record (${res.error})` : "No PTR record"]];
-    setResults(
-      renderKeyValueHtml(`Reverse DNS: ${host}`, res.hostnames.length > 0 ? `${res.hostnames.length} name(s)` : "No hostname found", rows, res.hostnames.length > 0 ? "ok" : "warn"),
-      `[Reverse DNS] ${host}\n` + textTable(rows)
+    win.appendConsole(
+      "net_console",
+      `[PTR] Reverse lookup for ${host}...\n`,
+      1,
     );
-    win.appendConsole("net_console", res.hostnames.length > 0 ? `[PTR] ${res.hostnames.join(", ")}\n` : `[PTR] none (${res.error || "empty"})\n`, res.hostnames.length > 0 ? 2 : 4);
-    win.setStatus(res.hostnames.length > 0 ? `PTR: ${res.hostnames[0]}` : "No PTR record");
-    if (res.error && res.hostnames.length === 0 && /needs an IP/.test(res.error)) win.toast(res.error, 3500, "warning");
+    const res = reversePtrSync(host);
+    const rows: string[][] =
+      res.hostnames.length > 0
+        ? res.hostnames.map((h, i) => [`PTR ${i + 1}`, h])
+        : [
+            [
+              "Result",
+              res.error ? `No PTR record (${res.error})` : "No PTR record",
+            ],
+          ];
+    setResults(
+      renderKeyValueHtml(
+        `Reverse DNS: ${host}`,
+        res.hostnames.length > 0
+          ? `${res.hostnames.length} name(s)`
+          : "No hostname found",
+        rows,
+        res.hostnames.length > 0 ? "ok" : "warn",
+      ),
+      `[Reverse DNS] ${host}\n` + textTable(rows),
+    );
+    win.appendConsole(
+      "net_console",
+      res.hostnames.length > 0
+        ? `[PTR] ${res.hostnames.join(", ")}\n`
+        : `[PTR] none (${res.error || "empty"})\n`,
+      res.hostnames.length > 0 ? 2 : 4,
+    );
+    win.setStatus(
+      res.hostnames.length > 0 ? `PTR: ${res.hostnames[0]}` : "No PTR record",
+    );
+    if (
+      res.error &&
+      res.hostnames.length === 0 &&
+      /needs an IP/.test(res.error)
+    )
+      win.toast(res.error, 3500, "warning");
   });
 
   return win;
@@ -1373,7 +1919,9 @@ if (import.meta.main) {
   const argTarget = process.argv[2] ? sanitizeHost(process.argv[2]) : "";
   const target = argTarget || "google.com";
 
-  console.log(`⚡ Launching Network Forensics Studio Pro (Target: ${target})...`);
+  console.log(
+    `⚡ Launching Network Forensics Studio Pro (Target: ${target})...`,
+  );
   const win = createNetworkStudio({ fullscreen: true });
   if (argTarget) {
     win.setValue("txt_host", argTarget);
@@ -1381,7 +1929,8 @@ if (import.meta.main) {
 
   // Pre-resolve initial DNS records so output is immediately visible in terminal and GUI
   try {
-    const { results, elapsedMs: totalElapsed } = resolveAllDnsRecordsSync(target);
+    const { results, elapsedMs: totalElapsed } =
+      resolveAllDnsRecordsSync(target);
     const dossierHtml = renderDnsDossierHtml(target, results, totalElapsed);
 
     const lines: string[] = [
@@ -1391,13 +1940,18 @@ if (import.meta.main) {
     ];
     for (const res of results) {
       if (!res.isNoData && res.records) {
-        const payloadStr = typeof res.records === "object" ? JSON.stringify(res.records) : String(res.records);
+        const payloadStr =
+          typeof res.records === "object"
+            ? JSON.stringify(res.records)
+            : String(res.records);
         lines.push(`[${res.type.padEnd(5)}] ${payloadStr}`);
       } else {
         lines.push(`[${res.type.padEnd(5)}] (No records configured / NODATA)`);
       }
     }
-    lines.push(`========================================================================`);
+    lines.push(
+      `========================================================================`,
+    );
 
     const rawReport = lines.join("\n");
     win.setHtml("txt_net_results", dossierHtml);

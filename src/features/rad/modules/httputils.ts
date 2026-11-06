@@ -11,10 +11,14 @@ export function buildQuery(params: Record<string, any>): string {
     if (value === undefined || value === null) continue;
     if (Array.isArray(value)) {
       for (const item of value) {
-        parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(item))}`);
+        parts.push(
+          `${encodeURIComponent(key)}=${encodeURIComponent(String(item))}`,
+        );
       }
     } else {
-      parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
+      parts.push(
+        `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`,
+      );
     }
   }
   return parts.length > 0 ? `?${parts.join("&")}` : "";
@@ -25,7 +29,9 @@ export function buildQuery(params: Record<string, any>): string {
  * Parses a URL query string (with or without a leading `?`) into a decoded key-value dictionary.
  */
 export function parseQuery(queryString: string): Record<string, string> {
-  const clean = queryString.startsWith("?") ? queryString.slice(1) : queryString;
+  const clean = queryString.startsWith("?")
+    ? queryString.slice(1)
+    : queryString;
   if (!clean) return {};
   const result: Record<string, string> = {};
   const pairs = clean.split("&");
@@ -34,7 +40,8 @@ export function parseQuery(queryString: string): Record<string, string> {
     const [k, v] = pair.split("=");
     if (k) {
       const key = decodeURIComponent(k);
-      if (key === "__proto__" || key === "constructor" || key === "prototype") continue;
+      if (key === "__proto__" || key === "constructor" || key === "prototype")
+        continue;
       result[key] = v ? decodeURIComponent(v) : "";
     }
   }
@@ -49,7 +56,7 @@ export async function fetchWithRetry(
   url: string,
   init?: RequestInit,
   maxRetries = 3,
-  backoffMs = 200
+  backoffMs = 200,
 ): Promise<Response> {
   let attempt = 0;
   let delay = backoffMs;
@@ -70,20 +77,28 @@ export async function fetchWithRetry(
     delay *= 2;
     attempt++;
   }
-  throw lastError || new Error(`[httputils] Request failed after ${maxRetries} retries`);
+  throw (
+    lastError ||
+    new Error(`[httputils] Request failed after ${maxRetries} retries`)
+  );
 }
 
 // Coordinator: Ergonomic GET request parsing JSON response
 /**
  * Sends a `GET` request expecting JSON and resolves with the parsed response body, throwing on non-2xx status.
  */
-export async function getJson<T>(url: string, headers: Record<string, string> = {}): Promise<T> {
+export async function getJson<T>(
+  url: string,
+  headers: Record<string, string> = {},
+): Promise<T> {
   const res = await fetch(url, {
     method: "GET",
     headers: { Accept: "application/json", ...headers },
   });
   if (!res.ok) {
-    throw new Error(`[httputils] GET ${url} failed with status ${res.status}: ${await res.text()}`);
+    throw new Error(
+      `[httputils] GET ${url} failed with status ${res.status}: ${await res.text()}`,
+    );
   }
   return (await res.json()) as T;
 }
@@ -95,15 +110,21 @@ export async function getJson<T>(url: string, headers: Record<string, string> = 
 export async function postJson<T, R = any>(
   url: string,
   body: T,
-  headers: Record<string, string> = {}
+  headers: Record<string, string> = {},
 ): Promise<R> {
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json", ...headers },
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...headers,
+    },
     body: JSON.stringify(body),
   });
   if (!res.ok) {
-    throw new Error(`[httputils] POST ${url} failed with status ${res.status}: ${await res.text()}`);
+    throw new Error(
+      `[httputils] POST ${url} failed with status ${res.status}: ${await res.text()}`,
+    );
   }
   return (await res.json()) as R;
 }
@@ -115,15 +136,21 @@ export async function postJson<T, R = any>(
 export async function putJson<T, R = any>(
   url: string,
   body: T,
-  headers: Record<string, string> = {}
+  headers: Record<string, string> = {},
 ): Promise<R> {
   const res = await fetch(url, {
     method: "PUT",
-    headers: { "Content-Type": "application/json", Accept: "application/json", ...headers },
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      ...headers,
+    },
     body: JSON.stringify(body),
   });
   if (!res.ok) {
-    throw new Error(`[httputils] PUT ${url} failed with status ${res.status}: ${await res.text()}`);
+    throw new Error(
+      `[httputils] PUT ${url} failed with status ${res.status}: ${await res.text()}`,
+    );
   }
   return (await res.json()) as R;
 }
@@ -132,13 +159,18 @@ export async function putJson<T, R = any>(
 /**
  * Sends a `DELETE` request expecting JSON and resolves with the parsed response body, throwing on non-2xx status.
  */
-export async function deleteJson<R = any>(url: string, headers: Record<string, string> = {}): Promise<R> {
+export async function deleteJson<R = any>(
+  url: string,
+  headers: Record<string, string> = {},
+): Promise<R> {
   const res = await fetch(url, {
     method: "DELETE",
     headers: { Accept: "application/json", ...headers },
   });
   if (!res.ok) {
-    throw new Error(`[httputils] DELETE ${url} failed with status ${res.status}: ${await res.text()}`);
+    throw new Error(
+      `[httputils] DELETE ${url} failed with status ${res.status}: ${await res.text()}`,
+    );
   }
   return (await res.json()) as R;
 }
@@ -147,13 +179,18 @@ export async function deleteJson<R = any>(url: string, headers: Record<string, s
 /**
  * Sends a `GET` request and resolves with the UTF-8 response text, throwing on non-2xx status.
  */
-export async function getText(url: string, headers: Record<string, string> = {}): Promise<string> {
+export async function getText(
+  url: string,
+  headers: Record<string, string> = {},
+): Promise<string> {
   const res = await fetch(url, {
     method: "GET",
     headers: { ...headers },
   });
   if (!res.ok) {
-    throw new Error(`[httputils] GET ${url} failed with status ${res.status}: ${await res.text()}`);
+    throw new Error(
+      `[httputils] GET ${url} failed with status ${res.status}: ${await res.text()}`,
+    );
   }
   return await res.text();
 }

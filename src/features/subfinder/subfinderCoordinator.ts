@@ -39,25 +39,44 @@ export async function enumerateDomain(
   ports?: number[],
   detectWildcard: boolean = false,
   onProgress?: (msg: string) => void,
-  onBatch?: (batch: SubdomainResult[]) => void
+  onBatch?: (batch: SubdomainResult[]) => void,
 ): Promise<SubdomainResult[]> {
   const rootDomain = cleanDomain(domain);
   const capTimeout = Math.min(timeoutMs, 3000);
 
-  onProgress?.(`Querying OSINT sources (CertSpotter, HackerTarget, DNS-dict)...`);
+  onProgress?.(
+    `Querying OSINT sources (CertSpotter, HackerTarget, DNS-dict)...`,
+  );
 
   // Fast sources run immediately, crtsh/alienvault capped to 2.5s
-  const [hackertarget, crtsh, alienvault, anubis, certspotter, commonDns, wildcardIps] = await Promise.all([
+  const [
+    hackertarget,
+    crtsh,
+    alienvault,
+    anubis,
+    certspotter,
+    commonDns,
+    wildcardIps,
+  ] = await Promise.all([
     queryHackerTarget(rootDomain, capTimeout),
     queryCrtSh(rootDomain, Math.min(capTimeout, 2000)),
     queryAlienVault(rootDomain, Math.min(capTimeout, 1500)),
     queryAnubis(rootDomain, Math.min(capTimeout, 1500)),
     queryCertSpotter(rootDomain, capTimeout),
     queryCommonDns(rootDomain),
-    detectWildcard || active ? detectWildcardDns(rootDomain) : Promise.resolve([]),
+    detectWildcard || active
+      ? detectWildcardDns(rootDomain)
+      : Promise.resolve([]),
   ]);
 
-  const rawHosts = [...commonDns, ...certspotter, ...hackertarget, ...crtsh, ...alienvault, ...anubis];
+  const rawHosts = [
+    ...commonDns,
+    ...certspotter,
+    ...hackertarget,
+    ...crtsh,
+    ...alienvault,
+    ...anubis,
+  ];
   const cleaned = rawHosts
     .map((h) => cleanSubdomain(h, rootDomain))
     .filter((h): h is string => h !== null);
@@ -65,7 +84,9 @@ export async function enumerateDomain(
   const uniqueHosts = deduplicateSubdomains(cleaned);
   // Cap candidate pool to top 150 for rapid interactive responsiveness
   const candidatePool = uniqueHosts.slice(0, 150);
-  onProgress?.(`Discovered ${uniqueHosts.length} candidate hosts. Streaming DNS verification...`);
+  onProgress?.(
+    `Discovered ${uniqueHosts.length} candidate hosts. Streaming DNS verification...`,
+  );
 
   // 1. Resolve hosts in parallel chunks of 25 and stream results immediately
   const results: SubdomainResult[] = [];
@@ -89,7 +110,10 @@ export async function enumerateDomain(
         if (anubis.includes(host)) sources.push("anubis");
         if (sources.length === 0) sources.push("osint");
 
-        const isWildcard = ip && wildcardIps.length > 0 ? isWildcardMatch(ip, wildcardIps) : undefined;
+        const isWildcard =
+          ip && wildcardIps.length > 0
+            ? isWildcardMatch(ip, wildcardIps)
+            : undefined;
 
         let httpStatus: number | undefined = undefined;
         let httpTitle: string | undefined = undefined;
@@ -104,11 +128,21 @@ export async function enumerateDomain(
           openPorts = await probePorts(host, ports, 400);
         }
 
-        return { host, sources, ip, httpStatus, httpTitle, openPorts, isWildcard } as SubdomainResult;
-      })
+        return {
+          host,
+          sources,
+          ip,
+          httpStatus,
+          httpTitle,
+          openPorts,
+          isWildcard,
+        } as SubdomainResult;
+      }),
     );
 
-    const validBatch = batchVerified.filter((r): r is SubdomainResult => r !== null);
+    const validBatch = batchVerified.filter(
+      (r): r is SubdomainResult => r !== null,
+    );
     for (const r of validBatch) {
       results.push(r);
     }
@@ -117,7 +151,9 @@ export async function enumerateDomain(
       onBatch(validBatch);
     }
 
-    onProgress?.(`Streaming results: ${results.length} active host(s) found...`);
+    onProgress?.(
+      `Streaming results: ${results.length} active host(s) found...`,
+    );
   }
 
   return results;
@@ -128,7 +164,7 @@ export async function enumerateDomain(
  */
 export function formatSubdomainResult(
   res: SubdomainResult,
-  options: SubfinderOptions
+  options: SubfinderOptions,
 ): string {
   if (options.json) {
     return JSON.stringify(res);
@@ -137,12 +173,25 @@ export function formatSubdomainResult(
     return res.host;
   }
   const hostStr = colors.bold(colors.cyan(res.host));
-  const ipStr = res.ip && res.ip.length > 0 ? ` ${colors.dim(`[${res.ip.join(", ")}]`)}` : "";
+  const ipStr =
+    res.ip && res.ip.length > 0
+      ? ` ${colors.dim(`[${res.ip.join(", ")}]`)}`
+      : "";
   const wildcardStr = res.isWildcard ? ` ${colors.yellow("[wildcard]")}` : "";
-  const portsStr = res.openPorts && res.openPorts.length > 0 ? ` ${colors.magenta(`[ports: ${res.openPorts.join(",")}]`)}` : "";
-  const statusStr = res.httpStatus ? ` ${colors.green(`[${res.httpStatus}]`)}` : "";
-  const titleStr = res.httpTitle ? ` ${colors.dim(`("${res.httpTitle}")`)}` : "";
-  const srcStr = res.sources.length > 0 ? ` ${colors.yellow(`(${res.sources.join(",")})`)}` : "";
+  const portsStr =
+    res.openPorts && res.openPorts.length > 0
+      ? ` ${colors.magenta(`[ports: ${res.openPorts.join(",")}]`)}`
+      : "";
+  const statusStr = res.httpStatus
+    ? ` ${colors.green(`[${res.httpStatus}]`)}`
+    : "";
+  const titleStr = res.httpTitle
+    ? ` ${colors.dim(`("${res.httpTitle}")`)}`
+    : "";
+  const srcStr =
+    res.sources.length > 0
+      ? ` ${colors.yellow(`(${res.sources.join(",")})`)}`
+      : "";
   return `${hostStr}${ipStr}${wildcardStr}${portsStr}${statusStr}${titleStr}${srcStr}`;
 }
 
@@ -150,7 +199,7 @@ export function formatSubdomainResult(
  * Runs subdomain enumeration across all target domains in `options`, writes `outputFile` if configured, and returns formatted lines.
  */
 export async function runSubfinderCoordinator(
-  options: SubfinderOptions
+  options: SubfinderOptions,
 ): Promise<string[]> {
   const allResults: SubdomainResult[] = [];
 
@@ -161,7 +210,7 @@ export async function runSubfinderCoordinator(
       options.active,
       options.probe,
       options.ports,
-      options.detectWildcard
+      options.detectWildcard,
     );
     allResults.push(...domainResults);
   }
@@ -184,10 +233,12 @@ export function enumerateDomainSync(
   probe: boolean = false,
   ports?: number[],
   detectWildcard: boolean = false,
-  onProgress?: (msg: string) => void
+  onProgress?: (msg: string) => void,
 ): SubdomainResult[] {
   const rootDomain = cleanDomain(domain);
-  onProgress?.(`Querying OSINT sources & DNS dictionary for "${rootDomain}"...`);
+  onProgress?.(
+    `Querying OSINT sources & DNS dictionary for "${rootDomain}"...`,
+  );
 
   const dnsSubs = queryCommonDnsSync(rootDomain);
   const { certSubs, hackerSubs } = queryOsintSourcesSync(rootDomain);
@@ -203,7 +254,9 @@ export function enumerateDomainSync(
   }
 
   // Fast parallel probing if requested
-  const probeStatusMap = probe ? probeHostsHttpSync(uniqueHosts) : new Map<string, number>();
+  const probeStatusMap = probe
+    ? probeHostsHttpSync(uniqueHosts)
+    : new Map<string, number>();
 
   const results: SubdomainResult[] = [];
   for (const host of uniqueHosts) {

@@ -6,7 +6,18 @@
 import * as fs from "node:fs";
 import { promises as fsp } from "node:fs";
 import * as nodePath from "node:path";
-import { END_ENTRY, MAX_DEPTH, MAX_ENTRIES, MAX_PATH_BYTES, MAX_WARNINGS, componentProblem, encodeDirEntry, encodeFileEntry, encodeManifest, type Manifest } from "./fmVaultContainer";
+import {
+  END_ENTRY,
+  MAX_DEPTH,
+  MAX_ENTRIES,
+  MAX_PATH_BYTES,
+  MAX_WARNINGS,
+  componentProblem,
+  encodeDirEntry,
+  encodeFileEntry,
+  encodeManifest,
+  type Manifest,
+} from "./fmVaultContainer";
 import { VaultError, throwIfAborted } from "./fmVaultFormat";
 
 /** Pre-encryption scan summary of a source file or directory tree. */
@@ -38,7 +49,9 @@ class Warnings {
     else this.extra++;
   }
   result(): string[] {
-    return this.extra ? [...this.list, `…and ${this.extra} more items were skipped.`] : this.list;
+    return this.extra
+      ? [...this.list, `…and ${this.extra} more items were skipped.`]
+      : this.list;
   }
 }
 
@@ -46,15 +59,27 @@ const bytesOf = (s: string) => Buffer.byteLength(s, "utf8");
 const short = (rel: string) => (rel.length > 80 ? `${rel.slice(0, 77)}…` : rel);
 
 /** Walks a folder in a fixed (sorted) order, folders before their contents. Skips what can't be stored, with a warning. */
-async function* walk(root: string, signal: AbortSignal | undefined, warnings: Warnings): AsyncGenerator<WalkEntry> {
-  async function* inner(dirAbs: string, dirRel: string, depth: number): AsyncGenerator<WalkEntry> {
+async function* walk(
+  root: string,
+  signal: AbortSignal | undefined,
+  warnings: Warnings,
+): AsyncGenerator<WalkEntry> {
+  async function* inner(
+    dirAbs: string,
+    dirRel: string,
+    depth: number,
+  ): AsyncGenerator<WalkEntry> {
     throwIfAborted(signal);
     let names: string[];
     try {
-      names = (await fsp.readdir(dirAbs)).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+      names = (await fsp.readdir(dirAbs)).sort((a, b) =>
+        a < b ? -1 : a > b ? 1 : 0,
+      );
     } catch (err) {
       if (depth === 0) throw err;
-      warnings.add(`Skipped folder "${short(dirRel)}" (permission denied or vanished).`);
+      warnings.add(
+        `Skipped folder "${short(dirRel)}" (permission denied or vanished).`,
+      );
       return;
     }
     for (let i = 0; i < names.length; i += 64) {
@@ -69,7 +94,12 @@ async function* walk(root: string, signal: AbortSignal | undefined, warnings: Wa
             const st = await fsp.lstat(abs);
             return { name, problem: null, abs, st };
           } catch {
-            return { name, problem: "unreadable or missing metadata", abs, st: null };
+            return {
+              name,
+              problem: "unreadable or missing metadata",
+              abs,
+              st: null,
+            };
           }
         }),
       );
@@ -83,10 +113,20 @@ async function* walk(root: string, signal: AbortSignal | undefined, warnings: Wa
         const st = item.st!;
         const abs = item.abs;
         if (st.isSymbolicLink()) {
-          warnings.add(`Skipped the link "${short(rel)}" (links are not stored).`);
+          warnings.add(
+            `Skipped the link "${short(rel)}" (links are not stored).`,
+          );
         } else if (st.isDirectory() || st.isFile()) {
-          if (depth + 1 > MAX_DEPTH) throw new VaultError("TOO_DEEP", `"${short(rel)}" is nested more than ${MAX_DEPTH} folders deep, which can't be stored.`);
-          if (bytesOf(rel) > MAX_PATH_BYTES) throw new VaultError("PATH_TOO_LONG", `The path "${short(rel)}" is too long to store (the limit is ${MAX_PATH_BYTES} bytes).`);
+          if (depth + 1 > MAX_DEPTH)
+            throw new VaultError(
+              "TOO_DEEP",
+              `"${short(rel)}" is nested more than ${MAX_DEPTH} folders deep, which can't be stored.`,
+            );
+          if (bytesOf(rel) > MAX_PATH_BYTES)
+            throw new VaultError(
+              "PATH_TOO_LONG",
+              `The path "${short(rel)}" is too long to store (the limit is ${MAX_PATH_BYTES} bytes).`,
+            );
           if (st.isDirectory()) {
             yield { rel, abs, st, isDir: true };
             yield* inner(abs, rel, depth + 1);
@@ -94,7 +134,9 @@ async function* walk(root: string, signal: AbortSignal | undefined, warnings: Wa
             yield { rel, abs, st, isDir: false };
           }
         } else {
-          warnings.add(`Skipped "${short(rel)}": it isn't an ordinary file or folder.`);
+          warnings.add(
+            `Skipped "${short(rel)}": it isn't an ordinary file or folder.`,
+          );
         }
       }
     }
@@ -103,31 +145,75 @@ async function* walk(root: string, signal: AbortSignal | undefined, warnings: Wa
 }
 
 /** Looks at the item (a file or a folder) and counts what would be stored. Never reads file contents. */
-export async function scanSource(source: string, signal?: AbortSignal): Promise<ScanResult> {
+export async function scanSource(
+  source: string,
+  signal?: AbortSignal,
+): Promise<ScanResult> {
   const st = await fsp.lstat(source);
   const name = nodePath.basename(source);
   const problem = componentProblem(name);
-  if (problem) throw new VaultError("BAD_SOURCE", `"${short(name)}" can't be encrypted: it has ${problem}.`);
-  if (st.isSymbolicLink()) throw new VaultError("BAD_SOURCE", "That is a link, not a file or folder. Encrypt the item it points to instead.");
-  if (st.isFile()) return { kind: "file", name, entries: 1, files: 1, bytes: st.size, warnings: [] };
-  if (!st.isDirectory()) throw new VaultError("BAD_SOURCE", "That isn't an ordinary file or folder, so it can't be encrypted.");
+  if (problem)
+    throw new VaultError(
+      "BAD_SOURCE",
+      `"${short(name)}" can't be encrypted: it has ${problem}.`,
+    );
+  if (st.isSymbolicLink())
+    throw new VaultError(
+      "BAD_SOURCE",
+      "That is a link, not a file or folder. Encrypt the item it points to instead.",
+    );
+  if (st.isFile())
+    return {
+      kind: "file",
+      name,
+      entries: 1,
+      files: 1,
+      bytes: st.size,
+      warnings: [],
+    };
+  if (!st.isDirectory())
+    throw new VaultError(
+      "BAD_SOURCE",
+      "That isn't an ordinary file or folder, so it can't be encrypted.",
+    );
   const warnings = new Warnings();
   let entries = 0;
   let files = 0;
   let bytes = 0;
   for await (const e of walk(source, signal, warnings)) {
-    if (++entries > MAX_ENTRIES) throw new VaultError("TOO_MANY", `That folder holds more than ${MAX_ENTRIES.toLocaleString("en-US")} items, which is more than one encrypted file can hold. Encrypt smaller folders.`);
+    if (++entries > MAX_ENTRIES)
+      throw new VaultError(
+        "TOO_MANY",
+        `That folder holds more than ${MAX_ENTRIES.toLocaleString("en-US")} items, which is more than one encrypted file can hold. Encrypt smaller folders.`,
+      );
     if (!e.isDir) {
       files++;
       bytes += e.st.size;
     }
   }
-  return { kind: "folder", name, entries, files, bytes, warnings: warnings.result() };
+  return {
+    kind: "folder",
+    name,
+    entries,
+    files,
+    bytes,
+    warnings: warnings.result(),
+  };
 }
 
-const changed = (rel: string) => new VaultError("CHANGED", `"${short(rel)}" changed while it was being encrypted. Close whatever is using it and try again.`);
+const changed = (rel: string) =>
+  new VaultError(
+    "CHANGED",
+    `"${short(rel)}" changed while it was being encrypted. Close whatever is using it and try again.`,
+  );
 
-async function* fileEntry(abs: string, rel: string, expectedSize: number, signal: AbortSignal | undefined, onBytes?: (n: number) => void): AsyncGenerator<Buffer> {
+async function* fileEntry(
+  abs: string,
+  rel: string,
+  expectedSize: number,
+  signal: AbortSignal | undefined,
+  onBytes?: (n: number) => void,
+): AsyncGenerator<Buffer> {
   const fh = await fsp.open(abs, fs.constants.O_RDONLY | NO_FOLLOW);
   try {
     const st = await fh.stat();
@@ -149,8 +235,20 @@ async function* fileEntry(abs: string, rel: string, expectedSize: number, signal
 }
 
 /** The container as a stream of buffers: manifest, then every entry, then the end marker. */
-export async function* containerStream(source: string, scan: ScanResult, signal?: AbortSignal, onBytes?: (n: number) => void): AsyncGenerator<Buffer> {
-  const manifest: Manifest = { v: 1, kind: scan.kind, name: scan.name, created: new Date().toISOString(), count: scan.entries, bytes: scan.bytes };
+export async function* containerStream(
+  source: string,
+  scan: ScanResult,
+  signal?: AbortSignal,
+  onBytes?: (n: number) => void,
+): AsyncGenerator<Buffer> {
+  const manifest: Manifest = {
+    v: 1,
+    kind: scan.kind,
+    name: scan.name,
+    created: new Date().toISOString(),
+    count: scan.entries,
+    bytes: scan.bytes,
+  };
   yield encodeManifest(manifest);
   if (scan.kind === "file") {
     yield* fileEntry(source, scan.name, scan.bytes, signal, onBytes);
@@ -166,7 +264,8 @@ export async function* containerStream(source: string, scan: ScanResult, signal?
         bytes += e.st.size;
       }
     }
-    if (entries !== scan.entries || bytes !== scan.bytes) throw changed(scan.name);
+    if (entries !== scan.entries || bytes !== scan.bytes)
+      throw changed(scan.name);
   }
   yield END_ENTRY;
 }

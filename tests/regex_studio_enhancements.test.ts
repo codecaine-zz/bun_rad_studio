@@ -3,22 +3,48 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import {
-  buildFlags, validatePattern, looksCatastrophic, lineCol, runRegexSync, replaceSync, runRegexSafe, replaceSafe, markMatches,
-  groupsLabel, matchesToList, matchesToCsv, matchesToJson, explainPattern, generateCode, PRESETS, serializeWorkspace, parseWorkspace,
+  buildFlags,
+  validatePattern,
+  looksCatastrophic,
+  lineCol,
+  runRegexSync,
+  replaceSync,
+  runRegexSafe,
+  replaceSafe,
+  markMatches,
+  groupsLabel,
+  matchesToList,
+  matchesToCsv,
+  matchesToJson,
+  explainPattern,
+  generateCode,
+  PRESETS,
+  serializeWorkspace,
+  parseWorkspace,
   CHEATSHEET,
 } from "../src/regex_tools";
 import { createRegexStudio } from "../applications/regex_studio";
 import type { SimpleWindow } from "../src/simplegui";
 
-async function trigger(win: SimpleWindow, id: string, event = "click", val?: any) {
-  const h = win.eventHandlersMap.get(`${id}:on${event}`) || win.eventHandlersMap.get(`${id}:${event}`) || win.eventHandlersMap.get(id);
+async function trigger(
+  win: SimpleWindow,
+  id: string,
+  event = "click",
+  val?: any,
+) {
+  const h =
+    win.eventHandlersMap.get(`${id}:on${event}`) ||
+    win.eventHandlersMap.get(`${id}:${event}`) ||
+    win.eventHandlersMap.get(id);
   if (!h) throw new Error(`no handler for ${id}`);
   return await h(win, val);
 }
 
 describe("flags and validation", () => {
   test("buildFlags orders flags", () => {
-    expect(buildFlags({ g: true, i: true, m: true, s: true, u: true })).toBe("gimsu");
+    expect(buildFlags({ g: true, i: true, m: true, s: true, u: true })).toBe(
+      "gimsu",
+    );
     expect(buildFlags({})).toBe("");
   });
 
@@ -144,7 +170,9 @@ describe("code generation", () => {
     expect(c).toContain('new RegExp("a\\\\d", "gi")');
   });
   test("other languages", () => {
-    expect(generateCode("JavaScript", "x", "g")).toContain("// JavaScript RegExp");
+    expect(generateCode("JavaScript", "x", "g")).toContain(
+      "// JavaScript RegExp",
+    );
     const py = generateCode("Python", "(?<n>\\d)\\k<n>", "gim");
     expect(py).toContain("(?P<n>");
     expect(py).toContain("(?P=n)");
@@ -152,8 +180,12 @@ describe("code generation", () => {
     const go = generateCode("Go", "a(?=b)", "gi");
     expect(go).toContain("(?i)");
     expect(go).toContain("RE2");
-    expect(generateCode("Java", "\\d+", "gis")).toContain("Pattern.CASE_INSENSITIVE | Pattern.DOTALL");
-    expect(generateCode("PHP", "a/b'", "gi")).toContain("preg_match_all('/a\\/b\\'/i'");
+    expect(generateCode("Java", "\\d+", "gis")).toContain(
+      "Pattern.CASE_INSENSITIVE | Pattern.DOTALL",
+    );
+    expect(generateCode("PHP", "a/b'", "gi")).toContain(
+      "preg_match_all('/a\\/b\\'/i'",
+    );
   });
 });
 
@@ -161,12 +193,24 @@ describe("presets and workspace files", () => {
   test("every preset compiles and has a unique name", () => {
     const names = new Set(PRESETS.map((p) => p.name));
     expect(names.size).toBe(PRESETS.length);
-    for (const p of PRESETS) expect(validatePattern(p.pattern, "g").ok).toBe(true);
-    expect(runRegexSync(PRESETS.find((p) => p.name.includes("Duplicate"))!.pattern, "g", "the the cat").matches.length).toBe(1);
+    for (const p of PRESETS)
+      expect(validatePattern(p.pattern, "g").ok).toBe(true);
+    expect(
+      runRegexSync(
+        PRESETS.find((p) => p.name.includes("Duplicate"))!.pattern,
+        "g",
+        "the the cat",
+      ).matches.length,
+    ).toBe(1);
   });
 
   test("workspace round trip and rejects junk", () => {
-    const s = serializeWorkspace({ pattern: "a", subst: "b", corpus: "c", flags: { g: true, i: true, m: false, s: false, u: false } });
+    const s = serializeWorkspace({
+      pattern: "a",
+      subst: "b",
+      corpus: "c",
+      flags: { g: true, i: true, m: false, s: false, u: false },
+    });
     const w = parseWorkspace(s);
     expect(w.pattern).toBe("a");
     expect(w.flags.i).toBe(true);
@@ -182,7 +226,25 @@ describe("Regex Studio GUI", () => {
 
   test("renders new controls", () => {
     const html = make().generateHtml();
-    for (const id of ["chk_u", "chk_live", "dd_lang", "btn_explain", "btn_cheatsheet", "btn_load_corpus", "btn_copy_matches", "btn_copy_replaced", "btn_save_replaced", "btn_save_ws_file", "btn_load_ws_file", "txt_marked", "txt_group_n", "btn_gen_code", "btn_export_matches", "btn_replace", "dd_lib"]) {
+    for (const id of [
+      "chk_u",
+      "chk_live",
+      "dd_lang",
+      "btn_explain",
+      "btn_cheatsheet",
+      "btn_load_corpus",
+      "btn_copy_matches",
+      "btn_copy_replaced",
+      "btn_save_replaced",
+      "btn_save_ws_file",
+      "btn_load_ws_file",
+      "txt_marked",
+      "txt_group_n",
+      "btn_gen_code",
+      "btn_export_matches",
+      "btn_replace",
+      "dd_lib",
+    ]) {
       expect(html).toContain(id);
     }
   });
@@ -195,7 +257,9 @@ describe("Regex Studio GUI", () => {
     const r = rows(win);
     expect(r.length).toBe(2);
     expect(r[1]![5]).toBe("2:1");
-    expect(String(win.getValue("txt_marked"))).toBe("«Server 404»,\n«Worker 200»");
+    expect(String(win.getValue("txt_marked"))).toBe(
+      "«Server 404»,\n«Worker 200»",
+    );
     expect(String(win.getValue("lbl_status"))).toContain("Matches Found: 2");
   });
 
@@ -217,7 +281,9 @@ describe("Regex Studio GUI", () => {
     await trigger(win, "btn_test");
     expect(performance.now() - t0).toBeLessThan(8000);
     // JavaScriptCore bails out of runaway patterns after ~0.5s on its own; either way the UI must not hang.
-    expect(String(win.getValue("regex_console"))).toMatch(/backtracking|Evaluated/);
+    expect(String(win.getValue("regex_console"))).toMatch(
+      /backtracking|Evaluated/,
+    );
   }, 15000);
 
   test("replace preview, copy and save", async () => {
@@ -226,12 +292,16 @@ describe("Regex Studio GUI", () => {
     const win = make();
     (win as any).saveFile = (_o: any, cb: any) => cb(file);
     let copied = "";
-    (win as any).copyToClipboard = (t: string) => { copied = t; };
+    (win as any).copyToClipboard = (t: string) => {
+      copied = t;
+    };
     win.setValue("txt_pattern", "(\\w+)@(\\w+)");
     win.setValue("txt_corpus", "a@b c@d");
     win.setValue("txt_subst", "$2/$1");
     await trigger(win, "btn_replace");
-    expect(String(win.getValue("regex_console"))).toContain("[Substitution Preview]:\nb/a d/c");
+    expect(String(win.getValue("regex_console"))).toContain(
+      "[Substitution Preview]:\nb/a d/c",
+    );
     await trigger(win, "btn_copy_replaced");
     expect(copied).toBe("b/a d/c");
     await trigger(win, "btn_save_replaced");
@@ -242,12 +312,16 @@ describe("Regex Studio GUI", () => {
   test("code generator honours the language and copies", async () => {
     const win = make();
     let copied = "";
-    (win as any).copyToClipboard = (t: string) => { copied = t; };
+    (win as any).copyToClipboard = (t: string) => {
+      copied = t;
+    };
     win.setValue("txt_pattern", "\\d+");
     win.setValue("dd_lang", "Python");
     await trigger(win, "btn_gen_code");
     expect(copied).toContain("import re");
-    expect(String(win.getValue("regex_console"))).toContain("[Generated Code Snippet]");
+    expect(String(win.getValue("regex_console"))).toContain(
+      "[Generated Code Snippet]",
+    );
   });
 
   test("explain and cheat sheet write to the console", async () => {
@@ -263,7 +337,9 @@ describe("Regex Studio GUI", () => {
     const dir = tmp();
     const win = make();
     let copied = "";
-    (win as any).copyToClipboard = (t: string) => { copied = t; };
+    (win as any).copyToClipboard = (t: string) => {
+      copied = t;
+    };
     win.setValue("txt_pattern", "(\\d)(\\w)");
     win.setValue("txt_corpus", "1a 2b");
     await trigger(win, "btn_test");

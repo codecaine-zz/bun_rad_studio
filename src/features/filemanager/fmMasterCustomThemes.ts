@@ -49,8 +49,10 @@ const RAW_MASTER_ENTRIES: RawMasterEntry[] = [
     slug: "01_low_featherweight_eink_paper_daylight",
     tier: "low",
     tierLabel: "Low-End / Featherweight (0% GPU · Zero Blur)",
-    targetHardware: "Raspberry Pi, Chromebook, Intel Celeron/N100, Remote VNC/SSH, Laptop Battery Saver",
-    summary: "Archival warm Washi daylight paper with zero blur, zero particle shaders, and WCAG AAA 15:1 ink contrast.",
+    targetHardware:
+      "Raspberry Pi, Chromebook, Intel Celeron/N100, Remote VNC/SSH, Laptop Battery Saver",
+    summary:
+      "Archival warm Washi daylight paper with zero blur, zero particle shaders, and WCAG AAA 15:1 ink contrast.",
     draft: {
       name: "Featherweight E-Ink Paper Daylight",
       dark: false,
@@ -103,8 +105,10 @@ const RAW_MASTER_ENTRIES: RawMasterEntry[] = [
     slug: "02_low_featherweight_oled_pitch_black",
     tier: "low",
     tierLabel: "Low-End / Featherweight (0% GPU · Zero Blur)",
-    targetHardware: "OLED Laptops on Battery Saver, Ultrabooks, ThinkPad, Low-Power ARM Linux",
-    summary: "True #000000 pitch-black OLED pixel-off surfaces with zero blur and crisp emerald terminal telemetry.",
+    targetHardware:
+      "OLED Laptops on Battery Saver, Ultrabooks, ThinkPad, Low-Power ARM Linux",
+    summary:
+      "True #000000 pitch-black OLED pixel-off surfaces with zero blur and crisp emerald terminal telemetry.",
     draft: {
       name: "Featherweight OLED Pitch-Black",
       dark: true,
@@ -157,8 +161,10 @@ const RAW_MASTER_ENTRIES: RawMasterEntry[] = [
     slug: "03_low_featherweight_halloween_pumpkin_lite",
     tier: "low",
     tierLabel: "Low-End / Featherweight (0% GPU · Zero Blur)",
-    targetHardware: "Any Low-Spec PC/Mac wanting Halloween Jack-O'-Lantern aesthetics at 0% GPU usage",
-    summary: "Crisp Halloween pumpkin orange and witching-hour violet with festive 3D icons and zero GPU blur/particles.",
+    targetHardware:
+      "Any Low-Spec PC/Mac wanting Halloween Jack-O'-Lantern aesthetics at 0% GPU usage",
+    summary:
+      "Crisp Halloween pumpkin orange and witching-hour violet with festive 3D icons and zero GPU blur/particles.",
     draft: {
       name: "Featherweight Halloween Pumpkin Lite",
       dark: true,
@@ -211,8 +217,10 @@ const RAW_MASTER_ENTRIES: RawMasterEntry[] = [
     slug: "04_low_featherweight_polar_ice_lite",
     tier: "low",
     tierLabel: "Low-End / Featherweight (0% GPU · Zero Blur)",
-    targetHardware: "Any Low-Spec PC/Mac wanting Polar Night icy aesthetics with zero GPU load",
-    summary: "Deep Arctic slate and glacier cyan with Nordic ice 3D icons and zero backdrop blur or particle load.",
+    targetHardware:
+      "Any Low-Spec PC/Mac wanting Polar Night icy aesthetics with zero GPU load",
+    summary:
+      "Deep Arctic slate and glacier cyan with Nordic ice 3D icons and zero backdrop blur or particle load.",
     draft: {
       name: "Featherweight Polar Ice Lite",
       dark: true,
@@ -269,8 +277,10 @@ const RAW_MASTER_ENTRIES: RawMasterEntry[] = [
     slug: "05_medium_balanced_cupertino_sequoia_studio",
     tier: "medium",
     tierLabel: "Medium Balanced (60fps · Moderate Glass & Single-Layer FX)",
-    targetHardware: "MacBook Air M1/M2/M3, Surface Pro, ThinkPad X1 Carbon, Steam Deck, Mini PCs",
-    summary: "Refined macOS Sequoia ceramic bevel folders, moderate 12px glass blur, and gentle floating bokeh.",
+    targetHardware:
+      "MacBook Air M1/M2/M3, Surface Pro, ThinkPad X1 Carbon, Steam Deck, Mini PCs",
+    summary:
+      "Refined macOS Sequoia ceramic bevel folders, moderate 12px glass blur, and gentle floating bokeh.",
     draft: {
       name: "Balanced Cupertino Sequoia Studio",
       dark: true,
@@ -323,8 +333,10 @@ const RAW_MASTER_ENTRIES: RawMasterEntry[] = [
     slug: "06_medium_balanced_polar_nordic_frost_60fps",
     tier: "medium",
     tierLabel: "Medium Balanced (60fps · Moderate Glass & Single-Layer FX)",
-    targetHardware: "MacBook Air, Ultrabooks, Integrated Graphics Laptops running at 60Hz",
-    summary: "Polar Night frosted glass with hanging crystal icicles, gentle snowfall, and floating cryo-crystal icons.",
+    targetHardware:
+      "MacBook Air, Ultrabooks, Integrated Graphics Laptops running at 60Hz",
+    summary:
+      "Polar Night frosted glass with hanging crystal icicles, gentle snowfall, and floating cryo-crystal icons.",
     draft: {
       name: "Balanced Polar Nordic Frost 60fps",
       dark: true,
@@ -377,8 +389,10 @@ const RAW_MASTER_ENTRIES: RawMasterEntry[] = [
     slug: "07_medium_balanced_autumn_halloween_lantern",
     tier: "medium",
     tierLabel: "Medium Balanced (60fps · Moderate Glass & Single-Layer FX)",
-    targetHardware: "Everyday Laptops & Desktops wanting animated Halloween 3D icons at smooth 60fps",
-    summary: "Warm Jack-O'-Lantern amber glow with drifting autumn leaves, festive 3D icons, and spring-pop motion.",
+    targetHardware:
+      "Everyday Laptops & Desktops wanting animated Halloween 3D icons at smooth 60fps",
+    summary:
+      "Warm Jack-O'-Lantern amber glow with drifting autumn leaves, festive 3D icons, and spring-pop motion.",
     draft: {
       name: "Balanced Autumn Halloween Lantern",
       dark: true,
@@ -431,8 +445,10 @@ const RAW_MASTER_ENTRIES: RawMasterEntry[] = [
     slug: "08_medium_balanced_kyoto_matcha_botanical",
     tier: "medium",
     tierLabel: "Medium Balanced (60fps · Moderate Glass & Single-Layer FX)",
-    targetHardware: "Daylight Studio Laptops, MacBook Air, iPad/Surface Displays",
-    summary: "Soothing Kyoto botanical daylight theme with bioluminescent Eden 3D icons and gentle fireflies.",
+    targetHardware:
+      "Daylight Studio Laptops, MacBook Air, iPad/Surface Displays",
+    summary:
+      "Soothing Kyoto botanical daylight theme with bioluminescent Eden 3D icons and gentle fireflies.",
     draft: {
       name: "Balanced Kyoto Matcha Botanical",
       dark: false,
@@ -488,9 +504,12 @@ const RAW_MASTER_ENTRIES: RawMasterEntry[] = [
     id: "custom_00000009",
     slug: "09_high_tahoe_liquid_glass_pro",
     tier: "high",
-    tierLabel: "High-Spec (60–120Hz · Dual-Layer Shaders & Sculpted 3D Folders)",
-    targetHardware: "MacBook Pro M3/M4 Pro, iMac 24\", Desktop RTX 3060–4070 / Radeon RX Workstations",
-    summary: "macOS Tahoe Liquid Glass 3D folders with Apple Vision spatial glass icons and dual aurora + bokeh layers.",
+    tierLabel:
+      "High-Spec (60–120Hz · Dual-Layer Shaders & Sculpted 3D Folders)",
+    targetHardware:
+      'MacBook Pro M3/M4 Pro, iMac 24", Desktop RTX 3060–4070 / Radeon RX Workstations',
+    summary:
+      "macOS Tahoe Liquid Glass 3D folders with Apple Vision spatial glass icons and dual aurora + bokeh layers.",
     draft: {
       name: "High-Spec Tahoe Liquid Glass Pro",
       dark: true,
@@ -545,9 +564,12 @@ const RAW_MASTER_ENTRIES: RawMasterEntry[] = [
     id: "custom_0000000a",
     slug: "10_high_polar_glacier_subzero",
     tier: "high",
-    tierLabel: "High-Spec (60–120Hz · Dual-Layer Shaders & Sculpted 3D Folders)",
-    targetHardware: "MacBook Pro, High-Refresh Ultrabooks, Desktop Workstations",
-    summary: "Sub-zero Polar Night glass with hanging crystal icicles, orbital halo spin icons, and snow + aurora ribbons.",
+    tierLabel:
+      "High-Spec (60–120Hz · Dual-Layer Shaders & Sculpted 3D Folders)",
+    targetHardware:
+      "MacBook Pro, High-Refresh Ultrabooks, Desktop Workstations",
+    summary:
+      "Sub-zero Polar Night glass with hanging crystal icicles, orbital halo spin icons, and snow + aurora ribbons.",
     draft: {
       name: "High-Spec Polar Glacier Sub-Zero",
       dark: true,
@@ -602,9 +624,12 @@ const RAW_MASTER_ENTRIES: RawMasterEntry[] = [
     id: "custom_0000000b",
     slug: "11_high_cyberdeck_matrix_hud",
     tier: "high",
-    tierLabel: "High-Spec (60–120Hz · Dual-Layer Shaders & Sculpted 3D Folders)",
-    targetHardware: "Developer Workstations, Linux/macOS Cyberdecks, Dual-Monitor Coding Rigs",
-    summary: "Tactical LCARS & Cyberdeck HUD folders with Matrix digital rain, targeting reticles, and glitch-pulse 3D icons.",
+    tierLabel:
+      "High-Spec (60–120Hz · Dual-Layer Shaders & Sculpted 3D Folders)",
+    targetHardware:
+      "Developer Workstations, Linux/macOS Cyberdecks, Dual-Monitor Coding Rigs",
+    summary:
+      "Tactical LCARS & Cyberdeck HUD folders with Matrix digital rain, targeting reticles, and glitch-pulse 3D icons.",
     draft: {
       name: "High-Spec Cyberdeck Matrix HUD",
       dark: true,
@@ -658,9 +683,12 @@ const RAW_MASTER_ENTRIES: RawMasterEntry[] = [
     id: "custom_0000000c",
     slug: "12_high_sovereign_24k_gold_sapphire",
     tier: "high",
-    tierLabel: "High-Spec (60–120Hz · Dual-Layer Shaders & Sculpted 3D Folders)",
-    targetHardware: "Executive Pro Displays, MacBook Pro XDR, High-Contrast Studio Monitors",
-    summary: "Swiss Haute Horlogerie 24K brushed gold & sapphire crystal folders with mechanical tourbillon gear-tick icons.",
+    tierLabel:
+      "High-Spec (60–120Hz · Dual-Layer Shaders & Sculpted 3D Folders)",
+    targetHardware:
+      "Executive Pro Displays, MacBook Pro XDR, High-Contrast Studio Monitors",
+    summary:
+      "Swiss Haute Horlogerie 24K brushed gold & sapphire crystal folders with mechanical tourbillon gear-tick icons.",
     draft: {
       name: "High-Spec Sovereign 24K Gold",
       dark: true,
@@ -719,9 +747,12 @@ const RAW_MASTER_ENTRIES: RawMasterEntry[] = [
     id: "custom_0000000d",
     slug: "13_ultra_all_hallows_eve_6k_xdr",
     tier: "ultra",
-    tierLabel: "Ultra Flagship (120Hz ProMotion 6K XDR · 3-Layer Shaders & 3D Turntable Icons)",
-    targetHardware: "Apple Mac Studio M4 Ultra · 32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K @ 120Hz",
-    summary: "Flagship Halloween 6K XDR masterpiece with glowing Jack-O'-Lantern 3D folders, 120Hz 3D turntable spin, and autumn leaves + embers + fireflies.",
+    tierLabel:
+      "Ultra Flagship (120Hz ProMotion 6K XDR · 3-Layer Shaders & 3D Turntable Icons)",
+    targetHardware:
+      "Apple Mac Studio M4 Ultra · 32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K @ 120Hz",
+    summary:
+      "Flagship Halloween 6K XDR masterpiece with glowing Jack-O'-Lantern 3D folders, 120Hz 3D turntable spin, and autumn leaves + embers + fireflies.",
     draft: {
       name: "All Hallows Eve 6K XDR Ultra",
       dark: true,
@@ -776,7 +807,7 @@ const RAW_MASTER_ENTRIES: RawMasterEntry[] = [
           "focus-ring": "#ff9100",
         },
         customCss:
-          "#list.view-icons .row[data-kind=\"dir\"] { box-shadow: 0 14px 32px rgba(255, 109, 0, 0.24), inset 0 1px 0 rgba(255, 213, 79, 0.45); }",
+          '#list.view-icons .row[data-kind="dir"] { box-shadow: 0 14px 32px rgba(255, 109, 0, 0.24), inset 0 1px 0 rgba(255, 213, 79, 0.45); }',
       },
     },
   },
@@ -784,9 +815,12 @@ const RAW_MASTER_ENTRIES: RawMasterEntry[] = [
     id: "custom_0000000e",
     slug: "14_ultra_polar_aurora_borealis_6k",
     tier: "ultra",
-    tierLabel: "Ultra Flagship (120Hz ProMotion 6K XDR · 3-Layer Shaders & 3D Turntable Icons)",
-    targetHardware: "Apple Mac Studio M4 Ultra · 32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K @ 120Hz",
-    summary: "Flagship Polar Night 6K XDR edition with hanging crystal icicles, Nordic ice 3D icons, raytraced caustic refraction, and blizzard + aurora australis.",
+    tierLabel:
+      "Ultra Flagship (120Hz ProMotion 6K XDR · 3-Layer Shaders & 3D Turntable Icons)",
+    targetHardware:
+      "Apple Mac Studio M4 Ultra · 32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K @ 120Hz",
+    summary:
+      "Flagship Polar Night 6K XDR edition with hanging crystal icicles, Nordic ice 3D icons, raytraced caustic refraction, and blizzard + aurora australis.",
     draft: {
       name: "Polar Aurora Borealis 6K Ultra",
       dark: true,
@@ -840,7 +874,7 @@ const RAW_MASTER_ENTRIES: RawMasterEntry[] = [
           "focus-ring": "#64ffda",
         },
         customCss:
-          "#list.view-icons .row[data-kind=\"dir\"] { box-shadow: 0 14px 32px rgba(100, 255, 218, 0.22), inset 0 1px 0 rgba(224, 247, 250, 0.55); }",
+          '#list.view-icons .row[data-kind="dir"] { box-shadow: 0 14px 32px rgba(100, 255, 218, 0.22), inset 0 1px 0 rgba(224, 247, 250, 0.55); }',
       },
     },
   },
@@ -848,9 +882,12 @@ const RAW_MASTER_ENTRIES: RawMasterEntry[] = [
     id: "custom_0000000f",
     slug: "15_ultra_polar_daylight_glacier_6k",
     tier: "ultra",
-    tierLabel: "Ultra Flagship (120Hz ProMotion 6K XDR · 3-Layer Shaders & 3D Turntable Icons)",
-    targetHardware: "Apple Mac Studio M4 Ultra · Pro Display XDR 6K @ 1600 nits Daylight Reference",
-    summary: "Daylight Polar glacier glass with sculpted cryo-frost icicles, diamond-dust snow, and 120Hz 3D spinning crystal folders.",
+    tierLabel:
+      "Ultra Flagship (120Hz ProMotion 6K XDR · 3-Layer Shaders & 3D Turntable Icons)",
+    targetHardware:
+      "Apple Mac Studio M4 Ultra · Pro Display XDR 6K @ 1600 nits Daylight Reference",
+    summary:
+      "Daylight Polar glacier glass with sculpted cryo-frost icicles, diamond-dust snow, and 120Hz 3D spinning crystal folders.",
     draft: {
       name: "Polar Daylight Glacier 6K Ultra",
       dark: false,
@@ -904,7 +941,7 @@ const RAW_MASTER_ENTRIES: RawMasterEntry[] = [
           "focus-ring": "#0066cc",
         },
         customCss:
-          "#list.view-icons .row[data-kind=\"dir\"] { box-shadow: 0 12px 28px rgba(0, 102, 204, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.9); }",
+          '#list.view-icons .row[data-kind="dir"] { box-shadow: 0 12px 28px rgba(0, 102, 204, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.9); }',
       },
     },
   },
@@ -912,9 +949,12 @@ const RAW_MASTER_ENTRIES: RawMasterEntry[] = [
     id: "custom_00000010",
     slug: "16_ultra_m4_liquid_titanium_6k",
     tier: "ultra",
-    tierLabel: "Ultra Flagship (120Hz ProMotion 6K XDR · 3-Layer Shaders & 3D Turntable Icons)",
-    targetHardware: "Apple Mac Studio M4 Ultra · 32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K @ 120Hz",
-    summary: "CNC-machined M4 Ultra liquid titanium folders with Display-P3 specular rims, M4 liquid-metal morphing icons, and quantum lattice bokeh.",
+    tierLabel:
+      "Ultra Flagship (120Hz ProMotion 6K XDR · 3-Layer Shaders & 3D Turntable Icons)",
+    targetHardware:
+      "Apple Mac Studio M4 Ultra · 32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K @ 120Hz",
+    summary:
+      "CNC-machined M4 Ultra liquid titanium folders with Display-P3 specular rims, M4 liquid-metal morphing icons, and quantum lattice bokeh.",
     draft: {
       name: "M4 Ultra Liquid Titanium 6K",
       dark: true,
@@ -968,7 +1008,7 @@ const RAW_MASTER_ENTRIES: RawMasterEntry[] = [
           "focus-ring": "#38bdf8",
         },
         customCss:
-          "#list.view-icons .row[data-kind=\"dir\"] { box-shadow: 0 14px 34px rgba(56, 189, 248, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.45); }",
+          '#list.view-icons .row[data-kind="dir"] { box-shadow: 0 14px 34px rgba(56, 189, 248, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.45); }',
       },
     },
   },
@@ -976,9 +1016,12 @@ const RAW_MASTER_ENTRIES: RawMasterEntry[] = [
     id: "custom_00000011",
     slug: "17_ultra_crimson_blood_moon_crypt",
     tier: "ultra",
-    tierLabel: "Ultra Flagship (120Hz ProMotion 6K XDR · 3-Layer Shaders & 3D Turntable Icons)",
-    targetHardware: "Apple Mac Studio M4 Ultra · Pro Display XDR 6K · High-Contrast OLED/Mini-LED",
-    summary: "Nosferatu crimson blood-moon gothic crypt with 120Hz 3D origami vault-flip folders, horror crypt icons, and embers + fog + lightning.",
+    tierLabel:
+      "Ultra Flagship (120Hz ProMotion 6K XDR · 3-Layer Shaders & 3D Turntable Icons)",
+    targetHardware:
+      "Apple Mac Studio M4 Ultra · Pro Display XDR 6K · High-Contrast OLED/Mini-LED",
+    summary:
+      "Nosferatu crimson blood-moon gothic crypt with 120Hz 3D origami vault-flip folders, horror crypt icons, and embers + fog + lightning.",
     draft: {
       name: "Crimson Blood-Moon Crypt Ultra",
       dark: true,
@@ -1032,7 +1075,7 @@ const RAW_MASTER_ENTRIES: RawMasterEntry[] = [
           "focus-ring": "#ff1744",
         },
         customCss:
-          "#list.view-icons .row[data-kind=\"dir\"] { box-shadow: 0 14px 32px rgba(255, 23, 68, 0.28), inset 0 1px 0 rgba(255, 138, 128, 0.45); }",
+          '#list.view-icons .row[data-kind="dir"] { box-shadow: 0 14px 32px rgba(255, 23, 68, 0.28), inset 0 1px 0 rgba(255, 138, 128, 0.45); }',
       },
     },
   },
@@ -1040,9 +1083,12 @@ const RAW_MASTER_ENTRIES: RawMasterEntry[] = [
     id: "custom_00000012",
     slug: "18_ultra_compiz_hellfire_forge_120hz",
     tier: "ultra",
-    tierLabel: "Ultra Flagship (120Hz ProMotion 6K XDR · 3-Layer Shaders & 3D Turntable Icons)",
-    targetHardware: "Apple Mac Studio M4 Ultra · 80-Core GPU · 120Hz ProMotion Display",
-    summary: "Tribute to Linux Compiz Fusion burn shaders: roaring flame folders, inferno 3D icons, ember heat-shimmer, and flame wall + solar flare.",
+    tierLabel:
+      "Ultra Flagship (120Hz ProMotion 6K XDR · 3-Layer Shaders & 3D Turntable Icons)",
+    targetHardware:
+      "Apple Mac Studio M4 Ultra · 80-Core GPU · 120Hz ProMotion Display",
+    summary:
+      "Tribute to Linux Compiz Fusion burn shaders: roaring flame folders, inferno 3D icons, ember heat-shimmer, and flame wall + solar flare.",
     draft: {
       name: "Compiz Hellfire Forge 120Hz",
       dark: true,
@@ -1096,7 +1142,7 @@ const RAW_MASTER_ENTRIES: RawMasterEntry[] = [
           "focus-ring": "#ff9100",
         },
         customCss:
-          "#list.view-icons .row[data-kind=\"dir\"] { box-shadow: 0 16px 36px rgba(255, 87, 34, 0.30), inset 0 1px 0 rgba(255, 213, 79, 0.55); }",
+          '#list.view-icons .row[data-kind="dir"] { box-shadow: 0 16px 36px rgba(255, 87, 34, 0.30), inset 0 1px 0 rgba(255, 213, 79, 0.55); }',
       },
     },
   },
@@ -1104,9 +1150,12 @@ const RAW_MASTER_ENTRIES: RawMasterEntry[] = [
     id: "custom_00000013",
     slug: "19_ultra_bio_hazard_dali_screen_melt",
     tier: "ultra",
-    tierLabel: "Ultra Flagship (120Hz ProMotion 6K XDR · 3-Layer Shaders & 3D Turntable Icons)",
-    targetHardware: "Apple Mac Studio M4 Ultra · 80-Core GPU · 120Hz ProMotion Display",
-    summary: "Salvador Dalí surrealist screen-melt ooze folders with 120Hz liquid-jelly morphing bio-slime 3D icons and plasma spore storms.",
+    tierLabel:
+      "Ultra Flagship (120Hz ProMotion 6K XDR · 3-Layer Shaders & 3D Turntable Icons)",
+    targetHardware:
+      "Apple Mac Studio M4 Ultra · 80-Core GPU · 120Hz ProMotion Display",
+    summary:
+      "Salvador Dalí surrealist screen-melt ooze folders with 120Hz liquid-jelly morphing bio-slime 3D icons and plasma spore storms.",
     draft: {
       name: "Bio-Hazard Dali Screen-Melt",
       dark: true,
@@ -1160,7 +1209,7 @@ const RAW_MASTER_ENTRIES: RawMasterEntry[] = [
           "focus-ring": "#76ff03",
         },
         customCss:
-          "#list.view-icons .row[data-kind=\"dir\"] { box-shadow: 0 14px 32px rgba(118, 255, 3, 0.25), inset 0 1px 0 rgba(178, 255, 89, 0.50); }",
+          '#list.view-icons .row[data-kind="dir"] { box-shadow: 0 14px 32px rgba(118, 255, 3, 0.25), inset 0 1px 0 rgba(178, 255, 89, 0.50); }',
       },
     },
   },
@@ -1168,9 +1217,12 @@ const RAW_MASTER_ENTRIES: RawMasterEntry[] = [
     id: "custom_00000014",
     slug: "20_ultra_omega_pantheon_3099_singularity",
     tier: "ultra",
-    tierLabel: "Ultra Flagship (120Hz ProMotion 6K XDR · 3-Layer Shaders & 3D Turntable Icons)",
-    targetHardware: "Apple Mac Studio M4 Ultra · 32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K @ 120Hz",
-    summary: "Year-3099 post-singularity Omega Point theme with Dyson-lattice halo folders, Omni-Pantheon 3D icons, and 4D tesseract supernova shaders.",
+    tierLabel:
+      "Ultra Flagship (120Hz ProMotion 6K XDR · 3-Layer Shaders & 3D Turntable Icons)",
+    targetHardware:
+      "Apple Mac Studio M4 Ultra · 32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K @ 120Hz",
+    summary:
+      "Year-3099 post-singularity Omega Point theme with Dyson-lattice halo folders, Omni-Pantheon 3D icons, and 4D tesseract supernova shaders.",
     draft: {
       name: "Omega Pantheon 3099 Singularity",
       dark: true,
@@ -1225,53 +1277,64 @@ const RAW_MASTER_ENTRIES: RawMasterEntry[] = [
           "focus-ring": "#e040fb",
         },
         customCss:
-          "#list.view-icons .row[data-kind=\"dir\"] { box-shadow: 0 16px 36px rgba(224, 64, 251, 0.28), inset 0 1px 0 rgba(0, 229, 255, 0.55); }",
+          '#list.view-icons .row[data-kind="dir"] { box-shadow: 0 16px 36px rgba(224, 64, 251, 0.28), inset 0 1px 0 rgba(0, 229, 255, 0.55); }',
       },
     },
   },
 ];
 
 /** Full validated metadata + CustomTheme entries across `low`, `medium`, `high`, and `ultra` system tiers. */
-export const MASTER_CUSTOM_THEME_ENTRIES: MasterCustomThemeEntry[] = RAW_MASTER_ENTRIES.map((entry) => ({
-  id: entry.id,
-  slug: entry.slug,
-  tier: entry.tier,
-  tierLabel: entry.tierLabel,
-  targetHardware: entry.targetHardware,
-  summary: entry.summary,
-  theme: {
+export const MASTER_CUSTOM_THEME_ENTRIES: MasterCustomThemeEntry[] =
+  RAW_MASTER_ENTRIES.map((entry) => ({
     id: entry.id,
-    ...validateDraft(entry.draft),
-  },
-}));
+    slug: entry.slug,
+    tier: entry.tier,
+    tierLabel: entry.tierLabel,
+    targetHardware: entry.targetHardware,
+    summary: entry.summary,
+    theme: {
+      id: entry.id,
+      ...validateDraft(entry.draft),
+    },
+  }));
 
 /** Validated list of all 20 Master Designer Bespoke Custom Themes (`low`, `medium`, `high`, `ultra`). */
-export const MASTER_CUSTOM_THEMES: CustomTheme[] = MASTER_CUSTOM_THEME_ENTRIES.map((e) => e.theme);
+export const MASTER_CUSTOM_THEMES: CustomTheme[] =
+  MASTER_CUSTOM_THEME_ENTRIES.map((e) => e.theme);
 
 /** Validated list of only the Ultra-tier (`tier: "ultra"`) Master Custom Themes for the M4 Ultra showcase. */
-export const MASTER_ULTRA_ONLY_CUSTOM_THEMES: CustomTheme[] = MASTER_CUSTOM_THEME_ENTRIES.filter(
-  (e) => e.tier === "ultra"
-).map((e) => e.theme);
+export const MASTER_ULTRA_ONLY_CUSTOM_THEMES: CustomTheme[] =
+  MASTER_CUSTOM_THEME_ENTRIES.filter((e) => e.tier === "ultra").map(
+    (e) => e.theme,
+  );
 
 /** Returns the single-line `CCFM-PACK-v1:...` share code containing all 20 Master Designer Custom Themes. */
-export function getMasterCustomThemesPackShareCode(tierFilter?: HardwareTier): string {
+export function getMasterCustomThemesPackShareCode(
+  tierFilter?: HardwareTier,
+): string {
   const list = tierFilter
-    ? MASTER_CUSTOM_THEME_ENTRIES.filter((e) => e.tier === tierFilter).map((e) => e.theme)
+    ? MASTER_CUSTOM_THEME_ENTRIES.filter((e) => e.tier === tierFilter).map(
+        (e) => e.theme,
+      )
     : MASTER_CUSTOM_THEMES;
   return encodeThemePackShareCode(list);
 }
 
 /** Returns a formatted JSON pack object suitable for saving to `custom_themes/*.json`. */
-export function getMasterCustomThemesPackJson(tierFilter?: HardwareTier): Record<string, unknown> {
+export function getMasterCustomThemesPackJson(
+  tierFilter?: HardwareTier,
+): Record<string, unknown> {
   const entries = tierFilter
     ? MASTER_CUSTOM_THEME_ENTRIES.filter((e) => e.tier === tierFilter)
     : MASTER_CUSTOM_THEME_ENTRIES;
   const packTitles: Record<string, string> = {
     all: "Codecaine Master Designer Custom Themes — Complete All-Systems Pack (20 Themes: Low · Medium · High · Ultra)",
     low: "Codecaine Master Designer Custom Themes — Low-End / Featherweight Pack (4 Themes · 0% GPU · Zero Blur)",
-    medium: "Codecaine Master Designer Custom Themes — Medium Balanced 60fps Pack (4 Themes)",
+    medium:
+      "Codecaine Master Designer Custom Themes — Medium Balanced 60fps Pack (4 Themes)",
     high: "Codecaine Master Designer Custom Themes — High-Spec 60–120Hz Pack (4 Themes)",
-    ultra: "Codecaine Master Designer Custom Themes — Ultra Flagship 6K XDR 120Hz Pack (8 Themes)",
+    ultra:
+      "Codecaine Master Designer Custom Themes — Ultra Flagship 6K XDR 120Hz Pack (8 Themes)",
   };
   return {
     format: EXPORT_PACK_FORMAT,
@@ -1362,4 +1425,5 @@ export const ALL_US_HOLIDAY_ULTRA_THEME_KEYS = [
 ] as const;
 
 /** Union of all valid US Holiday Celebration Ultra Theme identifier keys. */
-export type UsHolidayUltraThemeKey = (typeof ALL_US_HOLIDAY_ULTRA_THEME_KEYS)[number];
+export type UsHolidayUltraThemeKey =
+  (typeof ALL_US_HOLIDAY_ULTRA_THEME_KEYS)[number];

@@ -62,7 +62,10 @@ export interface StoredDoc<T> {
  * ```
  */
 export function quoteIdent(name: string): string {
-  if (!name) throw new Error("[sqliteutils.quoteIdent] Identifier must be a non-empty string");
+  if (!name)
+    throw new Error(
+      "[sqliteutils.quoteIdent] Identifier must be a non-empty string",
+    );
   return `"${name.replace(/"/g, '""')}"`;
 }
 
@@ -76,12 +79,18 @@ export function quoteIdent(name: string): string {
  * const ro = sqliteutils.openDb("app.db", { readonly: true });
  * ```
  */
-export function openDb(path = ":memory:", options: boolean | OpenDbOptions = true): Database {
-  const opts: OpenDbOptions = typeof options === "boolean" ? { wal: options } : options;
+export function openDb(
+  path = ":memory:",
+  options: boolean | OpenDbOptions = true,
+): Database {
+  const opts: OpenDbOptions =
+    typeof options === "boolean" ? { wal: options } : options;
   const db = opts.readonly
     ? new Database(path, { readonly: true })
     : new Database(path, { create: opts.create ?? true });
-  db.run(`PRAGMA busy_timeout = ${Math.max(0, Math.floor(opts.busyTimeoutMs ?? 5000))};`);
+  db.run(
+    `PRAGMA busy_timeout = ${Math.max(0, Math.floor(opts.busyTimeoutMs ?? 5000))};`,
+  );
   if (opts.foreignKeys ?? true) db.run("PRAGMA foreign_keys = ON;");
   if ((opts.wal ?? true) && path !== ":memory:" && !opts.readonly) {
     db.run("PRAGMA journal_mode = WAL;");
@@ -105,7 +114,11 @@ export function closeDb(db: Database): void {
  * sqliteutils.execSql(db, "UPDATE users SET active = ? WHERE id = ?", [1, 42]);
  * ```
  */
-export function execSql(db: Database, sql: string, params: SqlParams = []): void {
+export function execSql(
+  db: Database,
+  sql: string,
+  params: SqlParams = [],
+): void {
   db.query(sql).run(...params);
 }
 
@@ -116,7 +129,11 @@ export function execSql(db: Database, sql: string, params: SqlParams = []): void
  * const admins = sqliteutils.queryAll<{ id: number }>(db, "SELECT id FROM users WHERE role = ?", ["admin"]);
  * ```
  */
-export function queryAll<T = Record<string, any>>(db: Database, sql: string, params: SqlParams = []): T[] {
+export function queryAll<T = Record<string, any>>(
+  db: Database,
+  sql: string,
+  params: SqlParams = [],
+): T[] {
   return db.query(sql).all(...params) as T[];
 }
 
@@ -127,7 +144,11 @@ export function queryAll<T = Record<string, any>>(db: Database, sql: string, par
  * const user = sqliteutils.queryOne<{ name: string }>(db, "SELECT name FROM users WHERE id = ?", [1]);
  * ```
  */
-export function queryOne<T = Record<string, any>>(db: Database, sql: string, params: SqlParams = []): T | null {
+export function queryOne<T = Record<string, any>>(
+  db: Database,
+  sql: string,
+  params: SqlParams = [],
+): T | null {
   return (db.query(sql).get(...params) as T | null) ?? null;
 }
 
@@ -138,7 +159,11 @@ export function queryOne<T = Record<string, any>>(db: Database, sql: string, par
  * const n = sqliteutils.queryValue<number>(db, "SELECT COUNT(*) FROM users"); // 12
  * ```
  */
-export function queryValue<T = unknown>(db: Database, sql: string, params: SqlParams = []): T | null {
+export function queryValue<T = unknown>(
+  db: Database,
+  sql: string,
+  params: SqlParams = [],
+): T | null {
   const row = db.query(sql).values(...params)[0];
   return row ? (row[0] as T) : null;
 }
@@ -164,7 +189,13 @@ export function transaction<T>(db: Database, fn: () => T): T {
  * @example `sqliteutils.tableExists(db, "users"); // true`
  */
 export function tableExists(db: Database, table: string): boolean {
-  return queryOne(db, "SELECT 1 AS ok FROM sqlite_master WHERE type IN ('table','view') AND name = ?;", [table]) !== null;
+  return (
+    queryOne(
+      db,
+      "SELECT 1 AS ok FROM sqlite_master WHERE type IN ('table','view') AND name = ?;",
+      [table],
+    ) !== null
+  );
 }
 
 /**
@@ -174,7 +205,7 @@ export function tableExists(db: Database, table: string): boolean {
 export function listTables(db: Database): string[] {
   const rows = queryAll<{ name: string }>(
     db,
-    "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name;"
+    "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name;",
   );
   return rows.map((r) => r.name);
 }
@@ -205,9 +236,20 @@ export function tableColumns(db: Database, table: string): ColumnInfo[] {
  * sqliteutils.countRows(db, "users", "active = ?", [1]); // 7
  * ```
  */
-export function countRows(db: Database, table: string, whereClause?: string, params: SqlParams = []): number {
+export function countRows(
+  db: Database,
+  table: string,
+  whereClause?: string,
+  params: SqlParams = [],
+): number {
   const where = whereClause ? ` WHERE ${whereClause}` : "";
-  return Number(queryValue(db, `SELECT COUNT(*) FROM ${quoteIdent(table)}${where};`, params) ?? 0);
+  return Number(
+    queryValue(
+      db,
+      `SELECT COUNT(*) FROM ${quoteIdent(table)}${where};`,
+      params,
+    ) ?? 0,
+  );
 }
 
 /**
@@ -216,7 +258,7 @@ export function countRows(db: Database, table: string, whereClause?: string, par
  */
 export function createKvTable(db: Database, table = "kv_store"): void {
   db.run(
-    `CREATE TABLE IF NOT EXISTS ${quoteIdent(table)} (key TEXT PRIMARY KEY, value TEXT, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);`
+    `CREATE TABLE IF NOT EXISTS ${quoteIdent(table)} (key TEXT PRIMARY KEY, value TEXT, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);`,
   );
 }
 
@@ -228,10 +270,15 @@ export function createKvTable(db: Database, table = "kv_store"): void {
  * sqliteutils.setKv(db, "settings", "limits", { max: 10 });
  * ```
  */
-export function setKv(db: Database, table: string, key: string, value: unknown): void {
+export function setKv(
+  db: Database,
+  table: string,
+  key: string,
+  value: unknown,
+): void {
   const strVal = typeof value === "string" ? value : JSON.stringify(value);
   db.query(
-    `INSERT INTO ${quoteIdent(table)} (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP;`
+    `INSERT INTO ${quoteIdent(table)} (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP;`,
   ).run(key, strVal);
 }
 
@@ -240,7 +287,9 @@ export function setKv(db: Database, table: string, key: string, value: unknown):
  * @example `sqliteutils.getKv(db, "settings", "theme"); // "dark"`
  */
 export function getKv(db: Database, table: string, key: string): string | null {
-  const row = db.query(`SELECT value FROM ${quoteIdent(table)} WHERE key = ?;`).get(key) as { value: string } | null;
+  const row = db
+    .query(`SELECT value FROM ${quoteIdent(table)} WHERE key = ?;`)
+    .get(key) as { value: string } | null;
   return row ? row.value : null;
 }
 
@@ -251,7 +300,12 @@ export function getKv(db: Database, table: string, key: string): string | null {
  * const limits = sqliteutils.getKvOr(db, "settings", "limits", { max: 5 }); // { max: 10 }
  * ```
  */
-export function getKvOr<T>(db: Database, table: string, key: string, fallback: T): T {
+export function getKvOr<T>(
+  db: Database,
+  table: string,
+  key: string,
+  fallback: T,
+): T {
   const val = getKv(db, table, key);
   if (val === null) return fallback;
   try {
@@ -275,15 +329,25 @@ export function hasKv(db: Database, table: string, key: string): boolean {
  * sqliteutils.incrementKv(db, "stats", "page_views", 5); // 6
  * ```
  */
-export function incrementKv(db: Database, table: string, key: string, by = 1): number {
+export function incrementKv(
+  db: Database,
+  table: string,
+  key: string,
+  by = 1,
+): number {
   // IMMEDIATE takes the write lock up front so concurrent processes can't interleave read/modify/write.
-  return db.transaction(() => {
-    const current = Number(getKv(db, table, key) ?? 0);
-    const next = current + by;
-    if (!Number.isFinite(next)) throw new Error(`[sqliteutils.incrementKv] ${table}.${key} is not numeric`);
-    setKv(db, table, key, String(next));
-    return next;
-  }).immediate();
+  return db
+    .transaction(() => {
+      const current = Number(getKv(db, table, key) ?? 0);
+      const next = current + by;
+      if (!Number.isFinite(next))
+        throw new Error(
+          `[sqliteutils.incrementKv] ${table}.${key} is not numeric`,
+        );
+      setKv(db, table, key, String(next));
+      return next;
+    })
+    .immediate();
 }
 
 /**
@@ -291,7 +355,10 @@ export function incrementKv(db: Database, table: string, key: string, by = 1): n
  * @example `sqliteutils.deleteKv(db, "settings", "theme");`
  */
 export function deleteKv(db: Database, table: string, key: string): boolean {
-  return db.query(`DELETE FROM ${quoteIdent(table)} WHERE key = ?;`).run(key).changes > 0;
+  return (
+    db.query(`DELETE FROM ${quoteIdent(table)} WHERE key = ?;`).run(key)
+      .changes > 0
+  );
 }
 
 /**
@@ -299,7 +366,10 @@ export function deleteKv(db: Database, table: string, key: string): boolean {
  * @example `sqliteutils.listKv(db, "settings"); // { theme: "dark" }`
  */
 export function listKv(db: Database, table: string): Record<string, string> {
-  const rows = queryAll<{ key: string; value: string }>(db, `SELECT key, value FROM ${quoteIdent(table)} ORDER BY key ASC;`);
+  const rows = queryAll<{ key: string; value: string }>(
+    db,
+    `SELECT key, value FROM ${quoteIdent(table)} ORDER BY key ASC;`,
+  );
   return Object.fromEntries(rows.map((r) => [r.key, r.value]));
 }
 
@@ -309,7 +379,7 @@ export function listKv(db: Database, table: string): Record<string, string> {
  */
 export function createJsonStore(db: Database, table = "json_store"): void {
   db.run(
-    `CREATE TABLE IF NOT EXISTS ${quoteIdent(table)} (id TEXT PRIMARY KEY, doc TEXT, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);`
+    `CREATE TABLE IF NOT EXISTS ${quoteIdent(table)} (id TEXT PRIMARY KEY, doc TEXT, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);`,
   );
 }
 
@@ -317,9 +387,14 @@ export function createJsonStore(db: Database, table = "json_store"): void {
  * Upsert a JSON document by id.
  * @example `sqliteutils.saveDoc(db, "users", "u1", { name: "Ada", role: "admin" });`
  */
-export function saveDoc<T>(db: Database, table: string, id: string, doc: T): void {
+export function saveDoc<T>(
+  db: Database,
+  table: string,
+  id: string,
+  doc: T,
+): void {
   db.query(
-    `INSERT INTO ${quoteIdent(table)} (id, doc, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(id) DO UPDATE SET doc = excluded.doc, updated_at = CURRENT_TIMESTAMP;`
+    `INSERT INTO ${quoteIdent(table)} (id, doc, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(id) DO UPDATE SET doc = excluded.doc, updated_at = CURRENT_TIMESTAMP;`,
   ).run(id, JSON.stringify(doc));
 }
 
@@ -328,7 +403,9 @@ export function saveDoc<T>(db: Database, table: string, id: string, doc: T): voi
  * @example `sqliteutils.loadDoc<{ name: string }>(db, "users", "u1")?.name; // "Ada"`
  */
 export function loadDoc<T>(db: Database, table: string, id: string): T | null {
-  const row = db.query(`SELECT doc FROM ${quoteIdent(table)} WHERE id = ?;`).get(id) as { doc: string } | null;
+  const row = db
+    .query(`SELECT doc FROM ${quoteIdent(table)} WHERE id = ?;`)
+    .get(id) as { doc: string } | null;
   return row ? (JSON.parse(row.doc) as T) : null;
 }
 
@@ -337,7 +414,10 @@ export function loadDoc<T>(db: Database, table: string, id: string): T | null {
  * @example `sqliteutils.deleteDoc(db, "users", "u1");`
  */
 export function deleteDoc(db: Database, table: string, id: string): boolean {
-  return db.query(`DELETE FROM ${quoteIdent(table)} WHERE id = ?;`).run(id).changes > 0;
+  return (
+    db.query(`DELETE FROM ${quoteIdent(table)} WHERE id = ?;`).run(id).changes >
+    0
+  );
 }
 
 /**
@@ -350,9 +430,13 @@ export function deleteDoc(db: Database, table: string, id: string): boolean {
 export function listDocs<T>(db: Database, table: string): StoredDoc<T>[] {
   const rows = queryAll<{ id: string; doc: string; updated_at: string }>(
     db,
-    `SELECT id, doc, updated_at FROM ${quoteIdent(table)} ORDER BY id ASC;`
+    `SELECT id, doc, updated_at FROM ${quoteIdent(table)} ORDER BY id ASC;`,
   );
-  return rows.map((r) => ({ id: r.id, doc: JSON.parse(r.doc) as T, updatedAt: r.updated_at }));
+  return rows.map((r) => ({
+    id: r.id,
+    doc: JSON.parse(r.doc) as T,
+    updatedAt: r.updated_at,
+  }));
 }
 
 /**
@@ -363,15 +447,24 @@ export function listDocs<T>(db: Database, table: string): StoredDoc<T>[] {
  * sqliteutils.findDocs<{ role: string }>(db, "users", "$.role", "admin"); // [{ id, doc, updatedAt }]
  * ```
  */
-export function findDocs<T>(db: Database, table: string, jsonPath: string, value: string | number | boolean | null): StoredDoc<T>[] {
+export function findDocs<T>(
+  db: Database,
+  table: string,
+  jsonPath: string,
+  value: string | number | boolean | null,
+): StoredDoc<T>[] {
   const bound = typeof value === "boolean" ? Number(value) : value;
   const op = value === null ? "IS" : "=";
   const rows = queryAll<{ id: string; doc: string; updated_at: string }>(
     db,
     `SELECT id, doc, updated_at FROM ${quoteIdent(table)} WHERE json_extract(doc, ?) ${op} ? ORDER BY id ASC;`,
-    [jsonPath, bound]
+    [jsonPath, bound],
   );
-  return rows.map((r) => ({ id: r.id, doc: JSON.parse(r.doc) as T, updatedAt: r.updated_at }));
+  return rows.map((r) => ({
+    id: r.id,
+    doc: JSON.parse(r.doc) as T,
+    updatedAt: r.updated_at,
+  }));
 }
 
 /**
@@ -379,12 +472,23 @@ export function findDocs<T>(db: Database, table: string, jsonPath: string, value
  * @throws On an empty record.
  * @example `const id = sqliteutils.insertRow(db, "items", { name: "Gadget", price: 9.99 });`
  */
-export function insertRow(db: Database, table: string, record: Record<string, any>): number {
+export function insertRow(
+  db: Database,
+  table: string,
+  record: Record<string, any>,
+): number {
   const keys = Object.keys(record);
-  if (keys.length === 0) throw new Error(`[sqliteutils.insertRow] Cannot insert empty record into ${table}`);
+  if (keys.length === 0)
+    throw new Error(
+      `[sqliteutils.insertRow] Cannot insert empty record into ${table}`,
+    );
   const cols = keys.map(quoteIdent).join(", ");
   const placeholders = keys.map(() => "?").join(", ");
-  const info = db.query(`INSERT INTO ${quoteIdent(table)} (${cols}) VALUES (${placeholders});`).run(...Object.values(record));
+  const info = db
+    .query(
+      `INSERT INTO ${quoteIdent(table)} (${cols}) VALUES (${placeholders});`,
+    )
+    .run(...Object.values(record));
   return Number(info.lastInsertRowid);
 }
 
@@ -397,7 +501,11 @@ export function insertRow(db: Database, table: string, record: Record<string, an
  * sqliteutils.insertMany(db, "items", [{ name: "A", price: 1 }, { name: "B", price: 2 }]); // 2
  * ```
  */
-export function insertMany(db: Database, table: string, records: Record<string, any>[]): number {
+export function insertMany(
+  db: Database,
+  table: string,
+  records: Record<string, any>[],
+): number {
   const first = records[0];
   if (!first) return 0;
   const keys = Object.keys(first);
@@ -417,12 +525,27 @@ export function insertMany(db: Database, table: string, records: Record<string, 
  * sqliteutils.upsertRow(db, "users", { email: "a@x.io", name: "Ada" }, ["email"]);
  * ```
  */
-export function upsertRow(db: Database, table: string, record: Record<string, any>, conflictColumns: string[]): number {
+export function upsertRow(
+  db: Database,
+  table: string,
+  record: Record<string, any>,
+  conflictColumns: string[],
+): number {
   const keys = Object.keys(record);
-  if (keys.length === 0) throw new Error(`[sqliteutils.upsertRow] Cannot upsert empty record into ${table}`);
-  if (conflictColumns.length === 0) throw new Error(`[sqliteutils.upsertRow] conflictColumns required for ${table}`);
-  const updates = keys.filter((k) => !conflictColumns.includes(k)).map((k) => `${quoteIdent(k)} = excluded.${quoteIdent(k)}`);
-  const action = updates.length ? `DO UPDATE SET ${updates.join(", ")}` : "DO NOTHING";
+  if (keys.length === 0)
+    throw new Error(
+      `[sqliteutils.upsertRow] Cannot upsert empty record into ${table}`,
+    );
+  if (conflictColumns.length === 0)
+    throw new Error(
+      `[sqliteutils.upsertRow] conflictColumns required for ${table}`,
+    );
+  const updates = keys
+    .filter((k) => !conflictColumns.includes(k))
+    .map((k) => `${quoteIdent(k)} = excluded.${quoteIdent(k)}`);
+  const action = updates.length
+    ? `DO UPDATE SET ${updates.join(", ")}`
+    : "DO NOTHING";
   const sql = `INSERT INTO ${quoteIdent(table)} (${keys.map(quoteIdent).join(", ")}) VALUES (${keys.map(() => "?").join(", ")})
     ON CONFLICT(${conflictColumns.map(quoteIdent).join(", ")}) ${action};`;
   return Number(db.query(sql).run(...Object.values(record)).lastInsertRowid);
@@ -440,19 +563,32 @@ export function selectRows<T = Record<string, any>>(
   table: string,
   columns: string[] = ["*"],
   whereClause?: string,
-  params: SqlParams = []
+  params: SqlParams = [],
 ): T[] {
   const cols = columns.map((c) => (c === "*" ? "*" : quoteIdent(c))).join(", ");
   const where = whereClause ? ` WHERE ${whereClause}` : "";
-  return queryAll<T>(db, `SELECT ${cols} FROM ${quoteIdent(table)}${where};`, params);
+  return queryAll<T>(
+    db,
+    `SELECT ${cols} FROM ${quoteIdent(table)}${where};`,
+    params,
+  );
 }
 
 /**
  * First matching row or `null` (convenience over {@link selectRows}).
  * @example `sqliteutils.selectOne(db, "users", "email = ?", ["a@x.io"]);`
  */
-export function selectOne<T = Record<string, any>>(db: Database, table: string, whereClause: string, params: SqlParams = []): T | null {
-  return queryOne<T>(db, `SELECT * FROM ${quoteIdent(table)} WHERE ${whereClause} LIMIT 1;`, params);
+export function selectOne<T = Record<string, any>>(
+  db: Database,
+  table: string,
+  whereClause: string,
+  params: SqlParams = [],
+): T | null {
+  return queryOne<T>(
+    db,
+    `SELECT * FROM ${quoteIdent(table)} WHERE ${whereClause} LIMIT 1;`,
+    params,
+  );
 }
 
 /**
@@ -464,22 +600,30 @@ export function updateRows(
   table: string,
   updates: Record<string, any>,
   whereClause?: string,
-  params: SqlParams = []
+  params: SqlParams = [],
 ): number {
   const setKeys = Object.keys(updates);
   if (setKeys.length === 0) return 0;
   const setExpr = setKeys.map((k) => `${quoteIdent(k)} = ?`).join(", ");
   const where = whereClause ? ` WHERE ${whereClause}` : "";
-  return db.query(`UPDATE ${quoteIdent(table)} SET ${setExpr}${where};`).run(...Object.values(updates), ...params).changes;
+  return db
+    .query(`UPDATE ${quoteIdent(table)} SET ${setExpr}${where};`)
+    .run(...Object.values(updates), ...params).changes;
 }
 
 /**
  * Delete matching rows (all rows when no clause). @returns Rows deleted.
  * @example `sqliteutils.deleteRows(db, "items", "price < ?", [1]);`
  */
-export function deleteRows(db: Database, table: string, whereClause?: string, params: SqlParams = []): number {
+export function deleteRows(
+  db: Database,
+  table: string,
+  whereClause?: string,
+  params: SqlParams = [],
+): number {
   const where = whereClause ? ` WHERE ${whereClause}` : "";
-  return db.query(`DELETE FROM ${quoteIdent(table)}${where};`).run(...params).changes;
+  return db.query(`DELETE FROM ${quoteIdent(table)}${where};`).run(...params)
+    .changes;
 }
 
 /**
@@ -495,21 +639,40 @@ export function deleteRows(db: Database, table: string, whereClause?: string, pa
  * ]);
  * ```
  */
-export function runMigrations(db: Database, migrations: SqlMigration[]): number {
-  db.run("CREATE TABLE IF NOT EXISTS _schema_migrations (version INTEGER PRIMARY KEY, applied_at DATETIME DEFAULT CURRENT_TIMESTAMP);");
+export function runMigrations(
+  db: Database,
+  migrations: SqlMigration[],
+): number {
+  db.run(
+    "CREATE TABLE IF NOT EXISTS _schema_migrations (version INTEGER PRIMARY KEY, applied_at DATETIME DEFAULT CURRENT_TIMESTAMP);",
+  );
   const versions = migrations.map((m) => m.version);
   const dup = versions.find((v, i) => versions.indexOf(v) !== i);
-  if (dup !== undefined) throw new Error(`[sqliteutils.runMigrations] Duplicate migration version ${dup}`);
-  const applied = new Set(queryAll<{ version: number }>(db, "SELECT version FROM _schema_migrations;").map((r) => r.version));
-  const pending = [...migrations].filter((m) => !applied.has(m.version)).sort((a, b) => a.version - b.version);
+  if (dup !== undefined)
+    throw new Error(
+      `[sqliteutils.runMigrations] Duplicate migration version ${dup}`,
+    );
+  const applied = new Set(
+    queryAll<{ version: number }>(
+      db,
+      "SELECT version FROM _schema_migrations;",
+    ).map((r) => r.version),
+  );
+  const pending = [...migrations]
+    .filter((m) => !applied.has(m.version))
+    .sort((a, b) => a.version - b.version);
   for (const m of pending) {
     try {
       transaction(db, () => {
         db.run(m.up);
-        db.query("INSERT INTO _schema_migrations (version) VALUES (?);").run(m.version);
+        db.query("INSERT INTO _schema_migrations (version) VALUES (?);").run(
+          m.version,
+        );
       });
     } catch (err: any) {
-      throw new Error(`[sqliteutils.runMigrations] Migration ${m.version}${m.name ? ` (${m.name})` : ""} failed: ${err.message}`);
+      throw new Error(
+        `[sqliteutils.runMigrations] Migration ${m.version}${m.name ? ` (${m.name})` : ""} failed: ${err.message}`,
+      );
     }
   }
   return pending.length;
@@ -521,23 +684,41 @@ export function runMigrations(db: Database, migrations: SqlMigration[]): number 
  */
 export function getSchemaVersion(db: Database): number {
   if (!tableExists(db, "_schema_migrations")) return 0;
-  return Number(queryValue(db, "SELECT COALESCE(MAX(version), 0) FROM _schema_migrations;") ?? 0);
+  return Number(
+    queryValue(
+      db,
+      "SELECT COALESCE(MAX(version), 0) FROM _schema_migrations;",
+    ) ?? 0,
+  );
 }
 
 /**
  * Create an FTS5 virtual table for full-text search.
  * @example `sqliteutils.createFtsTable(db, "articles", ["title", "body"]);`
  */
-export function createFtsTable(db: Database, table: string, columns: string[]): void {
-  if (columns.length === 0) throw new Error(`[sqliteutils.createFtsTable] ${table} needs at least one column`);
-  db.run(`CREATE VIRTUAL TABLE IF NOT EXISTS ${quoteIdent(table)} USING fts5(${columns.map(quoteIdent).join(", ")});`);
+export function createFtsTable(
+  db: Database,
+  table: string,
+  columns: string[],
+): void {
+  if (columns.length === 0)
+    throw new Error(
+      `[sqliteutils.createFtsTable] ${table} needs at least one column`,
+    );
+  db.run(
+    `CREATE VIRTUAL TABLE IF NOT EXISTS ${quoteIdent(table)} USING fts5(${columns.map(quoteIdent).join(", ")});`,
+  );
 }
 
 /**
  * Index one document into an FTS5 table.
  * @example `sqliteutils.indexFts(db, "articles", { title: "Bun", body: "fast runtime" });`
  */
-export function indexFts(db: Database, table: string, row: Record<string, string>): void {
+export function indexFts(
+  db: Database,
+  table: string,
+  row: Record<string, string>,
+): void {
   insertRow(db, table, row);
 }
 
@@ -545,9 +726,17 @@ export function indexFts(db: Database, table: string, row: Record<string, string
  * Full-text search using FTS5 `MATCH` syntax (`"exact phrase"`, `bun AND fast`, `pre*`).
  * @example `sqliteutils.searchFts(db, "articles", "fast", 10);`
  */
-export function searchFts<T = Record<string, any>>(db: Database, table: string, query: string, limit = 50): T[] {
+export function searchFts<T = Record<string, any>>(
+  db: Database,
+  table: string,
+  query: string,
+  limit = 50,
+): T[] {
   const t = quoteIdent(table);
-  return queryAll<T>(db, `SELECT * FROM ${t} WHERE ${t} MATCH ? LIMIT ?;`, [query, limit]);
+  return queryAll<T>(db, `SELECT * FROM ${t} WHERE ${t} MATCH ? LIMIT ?;`, [
+    query,
+    limit,
+  ]);
 }
 
 /**
@@ -558,9 +747,18 @@ export function searchFts<T = Record<string, any>>(db: Database, table: string, 
  * const hits = sqliteutils.searchFtsRanked<{ title: string; rank: number }>(db, "articles", "bun");
  * ```
  */
-export function searchFtsRanked<T = Record<string, any>>(db: Database, table: string, query: string, limit = 50): (T & { rank: number })[] {
+export function searchFtsRanked<T = Record<string, any>>(
+  db: Database,
+  table: string,
+  query: string,
+  limit = 50,
+): (T & { rank: number })[] {
   const t = quoteIdent(table);
-  return queryAll(db, `SELECT *, bm25(${t}) AS rank FROM ${t} WHERE ${t} MATCH ? ORDER BY rank LIMIT ?;`, [query, limit]);
+  return queryAll(
+    db,
+    `SELECT *, bm25(${t}) AS rank FROM ${t} WHERE ${t} MATCH ? ORDER BY rank LIMIT ?;`,
+    [query, limit],
+  );
 }
 
 /** Rebuild the file to reclaim free pages. @example `sqliteutils.vacuumDb(db);` */
@@ -614,7 +812,7 @@ export function registerFunction(
   db: Database,
   name: string,
   fn: ((...args: any[]) => any) | null,
-  options?: SqliteFunctionOptions
+  options?: SqliteFunctionOptions,
 ): void {
   if (fn === null) {
     (db as any).function(name, null);
@@ -651,15 +849,26 @@ export interface SqliteAggregateOptions<TAcc = any> {
  * });
  * ```
  */
-export function registerAggregate<TAcc = any>(db: Database, name: string, options: SqliteAggregateOptions<TAcc>): void {
+export function registerAggregate<TAcc = any>(
+  db: Database,
+  name: string,
+  options: SqliteAggregateOptions<TAcc>,
+): void {
   const { final, ...rest } = options;
-  db.aggregate(name, { ...rest, ...(final && !rest.result ? { result: final } : {}) } as any);
+  db.aggregate(name, {
+    ...rest,
+    ...(final && !rest.result ? { result: final } : {}),
+  } as any);
 }
 
 /**
  * Callback signature invoked by SQLite when a row is inserted, updated, or deleted.
  */
-export type SqliteRowChangeCallback = (database: any, table: string, rowid: number | bigint) => void;
+export type SqliteRowChangeCallback = (
+  database: any,
+  table: string,
+  rowid: number | bigint,
+) => void;
 
 /**
  * Row-level change listener callbacks passed to {@link onDatabaseChange}.
@@ -675,7 +884,10 @@ export interface SqliteChangeHooks {
  * `db.onInsert`, `db.onUpdate`, and `db.onDelete` hooks.
  * @returns An `off()` function that clears the registered hooks.
  */
-export function onDatabaseChange(db: Database, hooks: SqliteChangeHooks): () => void {
+export function onDatabaseChange(
+  db: Database,
+  hooks: SqliteChangeHooks,
+): () => void {
   if (hooks.onInsert !== undefined) db.onInsert = hooks.onInsert;
   if (hooks.onUpdate !== undefined) db.onUpdate = hooks.onUpdate;
   if (hooks.onDelete !== undefined) db.onDelete = hooks.onDelete;

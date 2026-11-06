@@ -44,7 +44,7 @@ export function isIpv4(str: string): boolean {
  */
 export function isIpv6(str: string): boolean {
   return /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^::$|^::1$|^([0-9a-fA-F]{1,4}:){1,7}:$|^:((:[0-9a-fA-F]{1,4}){1,7}|:)$/.test(
-    str.trim()
+    str.trim(),
   );
 }
 
@@ -53,7 +53,10 @@ export function isIpv6(str: string): boolean {
  * Returns `true` if `str` is a plausible E.164 or formatted domestic telephone number with at least 7 digits.
  */
 export function isPhone(str: string): boolean {
-  return /^\+?[0-9\s\-\(\)\.]{7,20}$/.test(str.trim()) && str.replace(/\D/g, "").length >= 7;
+  return (
+    /^\+?[0-9\s\-\(\)\.]{7,20}$/.test(str.trim()) &&
+    str.replace(/\D/g, "").length >= 7
+  );
 }
 
 // Doer: Validate alphanumeric string without spaces or symbols
@@ -78,7 +81,7 @@ export function inRange(val: number, min: number, max: number): boolean {
  */
 export function isUuid(str: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    str.trim()
+    str.trim(),
   );
 }
 

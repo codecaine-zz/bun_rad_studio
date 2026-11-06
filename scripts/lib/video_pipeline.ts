@@ -3,32 +3,68 @@
 import { createHash } from "crypto";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
-import { createWavHeader, parseWavPcm, splitTextForPhonon } from "../../src/features/filemanager/fmPhonon";
+import {
+  createWavHeader,
+  parseWavPcm,
+  splitTextForPhonon,
+} from "../../src/features/filemanager/fmPhonon";
 
 export const FFMPEG = "/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg";
 export const FFPROBE = "/opt/homebrew/opt/ffmpeg-full/bin/ffprobe";
-export const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+export const CHROME =
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const UVX = "/Users/codecaine/.local/bin/uvx";
 
 // TTS_ENGINE=edge or TTS_ENGINE=phonon ignores any Gemini key, so a video is never narrated by two voices.
-export const GEMINI_KEY = (process.env.TTS_ENGINE === "edge" || process.env.TTS_ENGINE === "phonon") ? "" : (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? "");
-export const GEMINI_MODEL = process.env.GEMINI_TTS_MODEL ?? "gemini-2.5-flash-preview-tts";
+export const GEMINI_KEY =
+  process.env.TTS_ENGINE === "edge" || process.env.TTS_ENGINE === "phonon"
+    ? ""
+    : (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? "");
+export const GEMINI_MODEL =
+  process.env.GEMINI_TTS_MODEL ?? "gemini-2.5-flash-preview-tts";
 /** Speed-up applied to a Gemini narration afterwards (1 = as spoken). Gemini voices read slowly, so the default is a little faster. */
 export const TTS_TEMPO = Number(process.env.TTS_TEMPO ?? "1.12");
 export const GEMINI_VOICE = process.env.GEMINI_TTS_VOICE ?? "Kore";
-export const EDGE_VOICE = process.env.EDGE_TTS_VOICE ?? "en-US-AvaMultilingualNeural";
+export const EDGE_VOICE =
+  process.env.EDGE_TTS_VOICE ?? "en-US-AvaMultilingualNeural";
 export const PHONON_VOICE = process.env.PHONON_VOICE ?? "Zoey";
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-export function sh(cmd: string[], opts: { cwd?: string; quiet?: boolean } = {}): string {
-  const r = Bun.spawnSync(cmd, { cwd: opts.cwd, stdout: "pipe", stderr: "pipe" });
-  if (r.exitCode !== 0 && !opts.quiet) throw new Error(`${cmd[0]} failed (${r.exitCode}): ${r.stderr.toString().slice(-400)}`);
+export function sh(
+  cmd: string[],
+  opts: { cwd?: string; quiet?: boolean } = {},
+): string {
+  const r = Bun.spawnSync(cmd, {
+    cwd: opts.cwd,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  if (r.exitCode !== 0 && !opts.quiet)
+    throw new Error(
+      `${cmd[0]} failed (${r.exitCode}): ${r.stderr.toString().slice(-400)}`,
+    );
   return r.stdout.toString();
 }
 
 export function durationOf(file: string): number {
-  return parseFloat(sh([FFPROBE, "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file], { quiet: true }).trim()) || 0;
+  return (
+    parseFloat(
+      sh(
+        [
+          FFPROBE,
+          "-v",
+          "error",
+          "-show_entries",
+          "format=duration",
+          "-of",
+          "csv=p=0",
+          file,
+        ],
+        { quiet: true },
+      ).trim(),
+    ) || 0
+  );
 }
 
 /** Spells out tokens a voice tends to read badly (names, acronyms, commands). */
@@ -70,12 +106,32 @@ async function gemini(text: string, out: string): Promise<boolean> {
   if (!GEMINI_KEY) return false;
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
   const body = {
-    contents: [{ parts: [{ text: `Read this as a friendly, upbeat, clear YouTube tutorial narrator at a brisk, energetic conversational pace (never drawn out), with only short natural pauses between sentences:\n\n${text}` }] }],
-    generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: GEMINI_VOICE } } } },
+    contents: [
+      {
+        parts: [
+          {
+            text: `Read this as a friendly, upbeat, clear YouTube tutorial narrator at a brisk, energetic conversational pace (never drawn out), with only short natural pauses between sentences:\n\n${text}`,
+          },
+        ],
+      },
+    ],
+    generationConfig: {
+      responseModalities: ["AUDIO"],
+      speechConfig: {
+        voiceConfig: { prebuiltVoiceConfig: { voiceName: GEMINI_VOICE } },
+      },
+    },
   };
   for (let attempt = 0; attempt < 8; attempt++) {
     try {
-      const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": GEMINI_KEY }, body: JSON.stringify(body) });
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-goog-api-key": GEMINI_KEY,
+        },
+        body: JSON.stringify(body),
+      });
       if (!res.ok) {
         console.warn(`    ⚠ Gemini TTS HTTP ${res.status}`);
         if ([400, 401, 403, 404].includes(res.status)) return false;
@@ -89,7 +145,26 @@ async function gemini(text: string, out: string): Promise<boolean> {
       await Bun.write(pcm, Buffer.from(b64, "base64"));
       // ffmpeg's mp3 encoder now and then fails on a perfectly good file; the same input works when tried again.
       for (let t = 0; t < 4; t++) {
-        const r = Bun.spawnSync([FFMPEG, "-y", "-f", "s16le", "-ar", "24000", "-ac", "1", "-i", pcm, "-c:a", "libmp3lame", "-q:a", "2", out], { stdout: "ignore", stderr: "ignore" });
+        const r = Bun.spawnSync(
+          [
+            FFMPEG,
+            "-y",
+            "-f",
+            "s16le",
+            "-ar",
+            "24000",
+            "-ac",
+            "1",
+            "-i",
+            pcm,
+            "-c:a",
+            "libmp3lame",
+            "-q:a",
+            "2",
+            out,
+          ],
+          { stdout: "ignore", stderr: "ignore" },
+        );
         if (r.exitCode === 0 && existsSync(out)) return true;
         await sleep(500);
       }
@@ -102,17 +177,51 @@ async function gemini(text: string, out: string): Promise<boolean> {
   return false;
 }
 
-function edge(text: string, out: string, dir: string, rate: string, gapSeconds: number): void {
-  const parts = (text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) ?? []).map((x) => x.trim()).filter(Boolean);
+function edge(
+  text: string,
+  out: string,
+  dir: string,
+  rate: string,
+  gapSeconds: number,
+): void {
+  const parts = (text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) ?? [])
+    .map((x) => x.trim())
+    .filter(Boolean);
   const gap = join(dir, "gap.wav");
-  sh([FFMPEG, "-y", "-f", "lavfi", "-i", "anullsrc=r=24000:cl=mono", "-t", String(gapSeconds), gap], { quiet: true });
+  sh(
+    [
+      FFMPEG,
+      "-y",
+      "-f",
+      "lavfi",
+      "-i",
+      "anullsrc=r=24000:cl=mono",
+      "-t",
+      String(gapSeconds),
+      gap,
+    ],
+    { quiet: true },
+  );
   const lines: string[] = [];
   parts.forEach((p, i) => {
     const mp3 = join(dir, `${i}.mp3`);
     const wav = join(dir, `${i}.wav`);
     let ok = false;
     for (let a = 0; a < 4 && !ok; a++) {
-      const r = Bun.spawnSync([UVX, "edge-tts", "--voice", EDGE_VOICE, `--rate=${rate}`, "--text", p, "--write-media", mp3], { stdout: "ignore", stderr: "ignore" });
+      const r = Bun.spawnSync(
+        [
+          UVX,
+          "edge-tts",
+          "--voice",
+          EDGE_VOICE,
+          `--rate=${rate}`,
+          "--text",
+          p,
+          "--write-media",
+          mp3,
+        ],
+        { stdout: "ignore", stderr: "ignore" },
+      );
       ok = r.exitCode === 0 && existsSync(mp3) && Bun.file(mp3).size > 1000;
     }
     if (!ok) throw new Error(`edge-tts failed: ${p}`);
@@ -121,10 +230,29 @@ function edge(text: string, out: string, dir: string, rate: string, gapSeconds: 
     if (i < parts.length - 1) lines.push(`file '${gap}'`);
   });
   writeFileSync(join(dir, "list.txt"), lines.join("\n"));
-  sh([FFMPEG, "-y", "-f", "concat", "-safe", "0", "-i", join(dir, "list.txt"), "-c:a", "libmp3lame", "-q:a", "2", out]);
+  sh([
+    FFMPEG,
+    "-y",
+    "-f",
+    "concat",
+    "-safe",
+    "0",
+    "-i",
+    join(dir, "list.txt"),
+    "-c:a",
+    "libmp3lame",
+    "-q:a",
+    "2",
+    out,
+  ]);
 }
 
-function phonon(text: string, out: string, voice: string, gapSeconds: number): boolean {
+function phonon(
+  text: string,
+  out: string,
+  voice: string,
+  gapSeconds: number,
+): boolean {
   const chunks = splitTextForPhonon(text, { maxChars: 420 });
   if (!chunks.length) return false;
   const pcmParts: Buffer[] = [];
@@ -144,7 +272,8 @@ function phonon(text: string, out: string, voice: string, gapSeconds: number): b
         env: {
           ...process.env,
           HOME: "/Users/codecaine",
-          OLLAMA_MODELS: process.env.OLLAMA_MODELS || "/Users/codecaine/.ollama/models",
+          OLLAMA_MODELS:
+            process.env.OLLAMA_MODELS || "/Users/codecaine/.ollama/models",
         },
       });
       if (res.exitCode === 0 && res.stdout.byteLength > 200) {
@@ -160,16 +289,27 @@ function phonon(text: string, out: string, voice: string, gapSeconds: number): b
     }
     if (!ok) return false;
     if (i + 1 < chunks.length) {
-      const gapSamples = Math.round(sampleRate * Math.min(0.28, Math.max(0.10, gapSeconds * 0.45)));
-      pcmParts.push(Buffer.alloc(gapSamples * numChannels * (bitsPerSample >> 3)));
+      const gapSamples = Math.round(
+        sampleRate * Math.min(0.28, Math.max(0.1, gapSeconds * 0.45)),
+      );
+      pcmParts.push(
+        Buffer.alloc(gapSamples * numChannels * (bitsPerSample >> 3)),
+      );
     }
   }
 
   const totalPcm = Buffer.concat(pcmParts);
-  const header = createWavHeader(totalPcm.length, sampleRate, numChannels, bitsPerSample);
+  const header = createWavHeader(
+    totalPcm.length,
+    sampleRate,
+    numChannels,
+    bitsPerSample,
+  );
   const tmpWav = `${out}.phonon.wav`;
   writeFileSync(tmpWav, Buffer.concat([header, totalPcm]));
-  sh([FFMPEG, "-y", "-i", tmpWav, "-c:a", "libmp3lame", "-q:a", "2", out], { quiet: true });
+  sh([FFMPEG, "-y", "-i", tmpWav, "-c:a", "libmp3lame", "-q:a", "2", out], {
+    quiet: true,
+  });
   rmSync(tmpWav, { force: true });
   return existsSync(out) && Bun.file(out).size > 500;
 }
@@ -178,7 +318,12 @@ function phonon(text: string, out: string, voice: string, gapSeconds: number): b
  * The narration for one scene, post-processed (EQ, level) with a little lead-in and tail. Cached by a hash of the
  * text and the voice: unchanged scenes are never synthesized (and never billed) again.
  */
-export async function narrate(id: string, narration: string, audioDir: string, opts: { rate?: string; gap?: number } = {}): Promise<string> {
+export async function narrate(
+  id: string,
+  narration: string,
+  audioDir: string,
+  opts: { rate?: string; gap?: number } = {},
+): Promise<string> {
   const rate = opts.rate ?? "-4%";
   const gap = opts.gap ?? 0.42;
   const usePhonon = process.env.TTS_ENGINE === "phonon";
@@ -194,18 +339,27 @@ export async function narrate(id: string, narration: string, audioDir: string, o
       ? `gemini:${GEMINI_MODEL}:${GEMINI_VOICE}:${TTS_TEMPO}:brisk`
       : `edge:${EDGE_VOICE}${rate === "-4%" && gap === 0.42 ? "" : `:${rate}:${gap}`}`;
   const key = createHash("sha1").update(`${engineKey}|${text}`).digest("hex");
-  const cached = existsSync(raw) && existsSync(final) && existsSync(keyFile) && readFileSync(keyFile, "utf8") === key;
+  const cached =
+    existsSync(raw) &&
+    existsSync(final) &&
+    existsSync(keyFile) &&
+    readFileSync(keyFile, "utf8") === key;
   if (!cached) {
     let synthesized = false;
     if (usePhonon) {
       synthesized = phonon(text, raw, PHONON_VOICE, gap);
       if (!synthesized && process.env.TTS_STRICT === "1") {
-        throw new Error(`Phonon voice ${PHONON_VOICE} failed for ${id}; not falling back (TTS_STRICT=1).`);
+        throw new Error(
+          `Phonon voice ${PHONON_VOICE} failed for ${id}; not falling back (TTS_STRICT=1).`,
+        );
       }
     }
     if (!synthesized && !(await gemini(text, raw))) {
       // A narrator that changes voice half way through a video is worse than a stopped build, so a chosen voice can forbid the fallback.
-      if (GEMINI_KEY && process.env.TTS_STRICT === "1") throw new Error(`Gemini voice ${GEMINI_VOICE} failed for ${id}; not falling back to Edge (TTS_STRICT=1). Re-run "audio" later: finished scenes are cached.`);
+      if (GEMINI_KEY && process.env.TTS_STRICT === "1")
+        throw new Error(
+          `Gemini voice ${GEMINI_VOICE} failed for ${id}; not falling back to Edge (TTS_STRICT=1). Re-run "audio" later: finished scenes are cached.`,
+        );
       const work = join(audioDir, `_edge_${id}`);
       mkdirSync(work, { recursive: true });
       edge(text, raw, work, rate, gap);
@@ -214,14 +368,55 @@ export async function narrate(id: string, narration: string, audioDir: string, o
     // Speeding up in the same ffmpeg run as the encoder can make some clips fail, so it is a step of its own.
     let source = raw;
     const activeTempo = usePhonon ? phononTempo : GEMINI_KEY ? TTS_TEMPO : 1;
-    if (activeTempo !== 1 && Number.isFinite(activeTempo) && activeTempo > 0.5 && activeTempo <= 2.0) {
+    if (
+      activeTempo !== 1 &&
+      Number.isFinite(activeTempo) &&
+      activeTempo > 0.5 &&
+      activeTempo <= 2.0
+    ) {
       source = `${raw}.tempo.wav`;
-      sh([FFMPEG, "-y", "-i", raw, "-af", `atempo=${activeTempo}`, "-ar", "24000", source], { quiet: true });
+      sh(
+        [
+          FFMPEG,
+          "-y",
+          "-i",
+          raw,
+          "-af",
+          `atempo=${activeTempo}`,
+          "-ar",
+          "24000",
+          source,
+        ],
+        { quiet: true },
+      );
     }
     // The filters write plain audio first: ffmpeg's mp3 encoder rejects some filtered clips when fed straight from the chain.
     const polished = `${raw}.polished.wav`;
-    sh([FFMPEG, "-y", "-i", source, "-af", "highpass=f=70,acompressor=threshold=-20dB:ratio=2:attack=20:release=250,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000,adelay=350|350,apad=pad_dur=0.75", "-ar", "48000", polished], { quiet: true });
-    sh([FFMPEG, "-y", "-i", polished, "-c:a", "libmp3lame", "-q:a", "2", final]);
+    sh(
+      [
+        FFMPEG,
+        "-y",
+        "-i",
+        source,
+        "-af",
+        "highpass=f=70,acompressor=threshold=-20dB:ratio=2:attack=20:release=250,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000,adelay=350|350,apad=pad_dur=0.75",
+        "-ar",
+        "48000",
+        polished,
+      ],
+      { quiet: true },
+    );
+    sh([
+      FFMPEG,
+      "-y",
+      "-i",
+      polished,
+      "-c:a",
+      "libmp3lame",
+      "-q:a",
+      "2",
+      final,
+    ]);
     rmSync(polished, { force: true });
     if (source !== raw) rmSync(source, { force: true });
     writeFileSync(keyFile, key);
@@ -229,10 +424,15 @@ export async function narrate(id: string, narration: string, audioDir: string, o
   return final;
 }
 
-const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const esc = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 /** The glass bar shown at the bottom of a recorded scene: chapter, title and a short list of what is on screen. */
-export function overlayHtml(chapter: string, title: string, bullets: string): string {
+export function overlayHtml(
+  chapter: string,
+  title: string,
+  bullets: string,
+): string {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{width:1920px;height:1080px;background:transparent;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;position:relative;overflow:hidden}
@@ -245,7 +445,12 @@ body{width:1920px;height:1080px;background:transparent;font-family:-apple-system
 }
 
 /** A full-screen title card (intro, chapter break, outro). */
-export function cardHtml(kicker: string, title: string, lines: string[], accent = "#6366f1"): string {
+export function cardHtml(
+  kicker: string,
+  title: string,
+  lines: string[],
+  accent = "#6366f1",
+): string {
   const h1Size = title.length > 80 ? 68 : title.length > 52 ? 86 : 114;
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -259,16 +464,37 @@ p{font-size:40px;color:#1e293b;line-height:1.35;max-width:1550px}
 </style></head><body><div class="k">${esc(kicker)}</div><h1>${esc(title)}</h1>${lines.length ? `<div>${lines.map((l) => `<span class="pill">${esc(l)}</span>`).join("")}</div>` : ""}</body></html>`;
 }
 
-export function screenshotHtml(html: string, png: string, workDir: string): void {
+export function screenshotHtml(
+  html: string,
+  png: string,
+  workDir: string,
+): void {
   mkdirSync(workDir, { recursive: true });
   const f = png.replace(/\.png$/, ".html").replace(/^.*\//, workDir + "/");
   writeFileSync(f, html);
-  sh([CHROME, "--headless=new", "--disable-gpu", "--user-data-dir=/tmp/video_pipeline_chrome", "--no-first-run", "--default-background-color=00000000", "--hide-scrollbars", `--screenshot=${png}`, "--window-size=1920,1080", `file://${f}`], { quiet: true });
+  sh(
+    [
+      CHROME,
+      "--headless=new",
+      "--disable-gpu",
+      "--user-data-dir=/tmp/video_pipeline_chrome",
+      "--no-first-run",
+      "--default-background-color=00000000",
+      "--hide-scrollbars",
+      `--screenshot=${png}`,
+      "--window-size=1920,1080",
+      `file://${f}`,
+    ],
+    { quiet: true },
+  );
   if (!existsSync(png)) throw new Error(`could not render ${png}`);
 }
 
 /** m:ss, or h:mm:ss from an hour on (the form YouTube needs to turn description times into chapters). */
 export const fmtTime = (sec: number) => {
-  const s = Math.floor(sec), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = String(s % 60).padStart(2, "0");
+  const s = Math.floor(sec),
+    h = Math.floor(s / 3600),
+    m = Math.floor((s % 3600) / 60),
+    ss = String(s % 60).padStart(2, "0");
   return h ? `${h}:${String(m).padStart(2, "0")}:${ss}` : `${m}:${ss}`;
 };

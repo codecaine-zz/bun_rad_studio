@@ -58,7 +58,11 @@ export function fetchRawProcessList(): string {
 6780 1 developer 2.4 4.5 S 1:02.15 /Applications/Google Chrome.app/Contents/MacOS/Google Chrome`;
   }
   try {
-    const proc = Bun.spawnSync(["ps", "-axo", "pid,ppid,user,%cpu,%mem,stat,time,command"]);
+    const proc = Bun.spawnSync([
+      "ps",
+      "-axo",
+      "pid,ppid,user,%cpu,%mem,stat,time,command",
+    ]);
     return proc.stdout ? proc.stdout.toString() : "";
   } catch {
     return "";
@@ -70,7 +74,7 @@ export function fetchRawProcessList(): string {
  */
 export function filterProcesses(
   procs: ProcessInfo[],
-  keyword?: string
+  keyword?: string,
 ): ProcessInfo[] {
   if (!keyword) return procs;
   const lower = keyword.toLowerCase();
@@ -86,7 +90,10 @@ export function filterProcesses(
 /**
  * Filters processes to those owned by the specified username (case-insensitive exact match).
  */
-export function filterProcessesByUser(procs: ProcessInfo[], user?: string): ProcessInfo[] {
+export function filterProcessesByUser(
+  procs: ProcessInfo[],
+  user?: string,
+): ProcessInfo[] {
   if (!user) return procs;
   const target = user.toLowerCase();
   return procs.filter((p) => p.user.toLowerCase() === target);
@@ -132,7 +139,7 @@ export function fetchListeningPorts(): Map<number, string[]> {
  */
 export function attachListeningPorts(
   processes: ProcessInfo[],
-  portMap: Map<number, string[]>
+  portMap: Map<number, string[]>,
 ): ProcessInfo[] {
   return processes.map((p) => {
     const ports = portMap.get(p.pid);
@@ -145,13 +152,14 @@ export function attachListeningPorts(
  */
 export function sortProcesses(
   procs: ProcessInfo[],
-  sortBy?: SortField
+  sortBy?: SortField,
 ): ProcessInfo[] {
   const copy = [...procs];
   if (sortBy === "cpu") return copy.sort((a, b) => b.cpu - a.cpu);
   if (sortBy === "mem") return copy.sort((a, b) => b.mem - a.mem);
   if (sortBy === "pid") return copy.sort((a, b) => a.pid - b.pid);
-  if (sortBy === "user") return copy.sort((a, b) => a.user.localeCompare(b.user));
+  if (sortBy === "user")
+    return copy.sort((a, b) => a.user.localeCompare(b.user));
   return copy;
 }
 
@@ -181,7 +189,7 @@ export function buildProcessTree(procs: ProcessInfo[]): ProcessTreeNode[] {
  */
 export function formatTreeLines(
   nodes: ProcessTreeNode[],
-  prefix: string = ""
+  prefix: string = "",
 ): string[] {
   const lines: string[] = [];
   nodes.forEach((node, idx) => {
@@ -203,21 +211,27 @@ export function formatTreeLines(
 export function formatProcessTable(procs: ProcessInfo[]): string {
   const hasPorts = procs.some((p) => p.ports && p.ports.length > 0);
   const columns: ColumnDef<ProcessInfo>[] = [
-    { header: "PID", align: "right", getValue: (p) => colors.bold(p.pid.toString()) },
+    {
+      header: "PID",
+      align: "right",
+      getValue: (p) => colors.bold(p.pid.toString()),
+    },
     { header: "USER", align: "left", getValue: (p) => colors.cyan(p.user) },
     ...(hasPorts
       ? [
           {
             header: "PORTS",
             align: "left" as const,
-            getValue: (p: ProcessInfo) => colors.green((p.ports ?? []).join(",")),
+            getValue: (p: ProcessInfo) =>
+              colors.green((p.ports ?? []).join(",")),
           },
         ]
       : []),
     {
       header: "%CPU",
       align: "right",
-      getValue: (p) => (p.cpu > 50 ? colors.red(p.cpu.toFixed(1)) : p.cpu.toFixed(1)),
+      getValue: (p) =>
+        p.cpu > 50 ? colors.red(p.cpu.toFixed(1)) : p.cpu.toFixed(1),
     },
     { header: "%MEM", align: "right", getValue: (p) => p.mem.toFixed(1) },
     { header: "STAT", align: "left", getValue: (p) => colors.dim(p.stat) },
@@ -225,7 +239,10 @@ export function formatProcessTable(procs: ProcessInfo[]): string {
     {
       header: "COMMAND",
       align: "left",
-      getValue: (p) => colors.yellow(p.command.length > 80 ? `${p.command.slice(0, 77)}...` : p.command),
+      getValue: (p) =>
+        colors.yellow(
+          p.command.length > 80 ? `${p.command.slice(0, 77)}...` : p.command,
+        ),
     },
   ];
 
@@ -235,7 +252,10 @@ export function formatProcessTable(procs: ProcessInfo[]): string {
 /**
  * Sends a POSIX signal (default `SIGTERM`) to a target process PID, rejecting PIDs `<= 1`.
  */
-export function killProcess(pid: number, signal: NodeJS.Signals = "SIGTERM"): boolean {
+export function killProcess(
+  pid: number,
+  signal: NodeJS.Signals = "SIGTERM",
+): boolean {
   if (!Number.isInteger(pid) || pid <= 1) {
     throw new Error(`[ProcsKill] Refusing to signal invalid PID ${pid}`);
   }
@@ -243,7 +263,9 @@ export function killProcess(pid: number, signal: NodeJS.Signals = "SIGTERM"): bo
     process.kill(pid, signal);
     return true;
   } catch (err: any) {
-    throw new Error(`[ProcsKill] Failed to kill PID ${pid} with ${signal}: ${err.message}`);
+    throw new Error(
+      `[ProcsKill] Failed to kill PID ${pid} with ${signal}: ${err.message}`,
+    );
   }
 }
 

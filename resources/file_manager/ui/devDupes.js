@@ -4,23 +4,61 @@
 import { announce, h } from "./dom.js";
 import { joinRoot, revealPath } from "./devActions.js";
 import { reviewPlan } from "./planDialog.js";
-import { btn, checkbox, createStatus, errorText, field, linkButton, num, runJob, seconds } from "./devCore.js";
+import {
+  btn,
+  checkbox,
+  createStatus,
+  errorText,
+  field,
+  linkButton,
+  num,
+  runJob,
+  seconds,
+} from "./devCore.js";
 import { formatSize, plural } from "./util.js";
 
-const SIZES = [["1 KB or more", 1024], ["100 KB or more", 100 * 1024], ["1 MB or more", 1024 * 1024], ["Any size", 1]];
+const SIZES = [
+  ["1 KB or more", 1024],
+  ["100 KB or more", 100 * 1024],
+  ["1 MB or more", 1024 * 1024],
+  ["Any size", 1],
+];
 
 export function createDupes(env) {
   const status = createStatus();
   const out = h("div", { class: "dev-dupes" });
-  const min = h("select", { id: "dev-dupes-min", title: "Ignore files smaller than this, so tiny files don't flood the list." }, SIZES.map(([label, v]) => h("option", { value: String(v) }, label)));
-  const vendored = checkbox("dev-dupes-vendored", "Include node_modules, target, dist, build", "Also compare files inside these folders. They hold a lot of legitimate copies, so they are left out by default.", false);
-  const run = btn("Find duplicates", "Look for files with identical content in this folder. Nothing is changed or deleted.", () => start(), { primary: true });
-  const cancel = btn("Cancel", "Stop the search.", () => {
-    if (!job) return;
-    cancel.disabled = true;
-    status.set("Stopping…");
-    job.cancel();
-  }, { danger: true });
+  const min = h(
+    "select",
+    {
+      id: "dev-dupes-min",
+      title:
+        "Ignore files smaller than this, so tiny files don't flood the list.",
+    },
+    SIZES.map(([label, v]) => h("option", { value: String(v) }, label)),
+  );
+  const vendored = checkbox(
+    "dev-dupes-vendored",
+    "Include node_modules, target, dist, build",
+    "Also compare files inside these folders. They hold a lot of legitimate copies, so they are left out by default.",
+    false,
+  );
+  const run = btn(
+    "Find duplicates",
+    "Look for files with identical content in this folder. Nothing is changed or deleted.",
+    () => start(),
+    { primary: true },
+  );
+  const cancel = btn(
+    "Cancel",
+    "Stop the search.",
+    () => {
+      if (!job) return;
+      cancel.disabled = true;
+      status.set("Stopping…");
+      job.cancel();
+    },
+    { danger: true },
+  );
   cancel.hidden = true;
   let job = null;
   let seq = 0;
@@ -29,45 +67,99 @@ export function createDupes(env) {
   const picked = new Set();
   let current = null;
   const pickedNote = h("span", { class: "pw-hint", role: "status" });
-  const cleanBtn = btn("Move the selected copies to the Recycle Bin…", "Shows exactly what would be moved, and where to get it back, before anything changes.", () => cleanUp());
-  const tickRest = btn("Tick all but the first copy of each group", "Keeps the first copy listed in every group and ticks the others. You can untick any of them.", () => {
+  const cleanBtn = btn(
+    "Move the selected copies to the Recycle Bin…",
+    "Shows exactly what would be moved, and where to get it back, before anything changes.",
+    () => cleanUp(),
+  );
+  const tickRest = btn(
+    "Tick all but the first copy of each group",
+    "Keeps the first copy listed in every group and ticks the others. You can untick any of them.",
+    () => {
+      picked.clear();
+      for (const g of current?.groups ?? [])
+        for (const f of g.files.slice(1)) picked.add(joinRoot(current.root, f));
+      paint();
+    },
+  );
+  const keepNewest = btn(
+    "Keep Newest",
+    "Keeps the most recently modified copy in each group and ticks the older copies.",
+    () => {
+      picked.clear();
+      for (const g of current?.groups ?? []) {
+        const mtimeMap = new Map(
+          (g.fileStats ?? []).map((s) => [s.path, s.mtimeMs]),
+        );
+        const sorted = [...g.files].sort(
+          (a, b) =>
+            (mtimeMap.get(b) ?? 0) - (mtimeMap.get(a) ?? 0) ||
+            a.length - b.length,
+        );
+        for (const f of sorted.slice(1)) picked.add(joinRoot(current.root, f));
+      }
+      paint();
+    },
+  );
+  const keepOldest = btn(
+    "Keep Oldest",
+    "Keeps the oldest copy in each group and ticks the newer copies.",
+    () => {
+      picked.clear();
+      for (const g of current?.groups ?? []) {
+        const mtimeMap = new Map(
+          (g.fileStats ?? []).map((s) => [s.path, s.mtimeMs]),
+        );
+        const sorted = [...g.files].sort(
+          (a, b) =>
+            (mtimeMap.get(a) ?? 0) - (mtimeMap.get(b) ?? 0) ||
+            a.length - b.length,
+        );
+        for (const f of sorted.slice(1)) picked.add(joinRoot(current.root, f));
+      }
+      paint();
+    },
+  );
+  const keepShortest = btn(
+    "Keep Shortest Path",
+    "Keeps the copy with the shortest path in each group and ticks the rest.",
+    () => {
+      picked.clear();
+      for (const g of current?.groups ?? []) {
+        const sorted = [...g.files].sort(
+          (a, b) =>
+            a.split(/[\\/]/).length - b.split(/[\\/]/).length ||
+            a.length - b.length ||
+            a.localeCompare(b),
+        );
+        for (const f of sorted.slice(1)) picked.add(joinRoot(current.root, f));
+      }
+      paint();
+    },
+  );
+  const clearTicks = btn("Clear the ticks", "Untick every copy.", () => {
     picked.clear();
-    for (const g of current?.groups ?? []) for (const f of g.files.slice(1)) picked.add(joinRoot(current.root, f));
     paint();
   });
-  const keepNewest = btn("Keep Newest", "Keeps the most recently modified copy in each group and ticks the older copies.", () => {
-    picked.clear();
-    for (const g of current?.groups ?? []) {
-      const mtimeMap = new Map((g.fileStats ?? []).map((s) => [s.path, s.mtimeMs]));
-      const sorted = [...g.files].sort((a, b) => (mtimeMap.get(b) ?? 0) - (mtimeMap.get(a) ?? 0) || a.length - b.length);
-      for (const f of sorted.slice(1)) picked.add(joinRoot(current.root, f));
-    }
-    paint();
-  });
-  const keepOldest = btn("Keep Oldest", "Keeps the oldest copy in each group and ticks the newer copies.", () => {
-    picked.clear();
-    for (const g of current?.groups ?? []) {
-      const mtimeMap = new Map((g.fileStats ?? []).map((s) => [s.path, s.mtimeMs]));
-      const sorted = [...g.files].sort((a, b) => (mtimeMap.get(a) ?? 0) - (mtimeMap.get(b) ?? 0) || a.length - b.length);
-      for (const f of sorted.slice(1)) picked.add(joinRoot(current.root, f));
-    }
-    paint();
-  });
-  const keepShortest = btn("Keep Shortest Path", "Keeps the copy with the shortest path in each group and ticks the rest.", () => {
-    picked.clear();
-    for (const g of current?.groups ?? []) {
-      const sorted = [...g.files].sort((a, b) => a.split(/[\\/]/).length - b.split(/[\\/]/).length || a.length - b.length || a.localeCompare(b));
-      for (const f of sorted.slice(1)) picked.add(joinRoot(current.root, f));
-    }
-    paint();
-  });
-  const clearTicks = btn("Clear the ticks", "Untick every copy.", () => { picked.clear(); paint(); });
-  const tools = h("div", { class: "pw-row dev-dupe-tools", hidden: true }, tickRest, keepNewest, keepOldest, keepShortest, clearTicks, cleanBtn, pickedNote);
+  const tools = h(
+    "div",
+    { class: "pw-row dev-dupe-tools", hidden: true },
+    tickRest,
+    keepNewest,
+    keepOldest,
+    keepShortest,
+    clearTicks,
+    cleanBtn,
+    pickedNote,
+  );
 
   function paint() {
-    for (const box of out.querySelectorAll("input[data-path]")) box.checked = picked.has(box.dataset.path);
+    for (const box of out.querySelectorAll("input[data-path]"))
+      box.checked = picked.has(box.dataset.path);
     cleanBtn.disabled = picked.size === 0;
-    pickedNote.textContent = picked.size ? `${plural(picked.size, "copy", "copies")} ticked` : "Nothing ticked";
+    pickedNote.textContent = picked.size
+      ? `${plural(picked.size, "copy", "copies")} ticked`
+      : "Nothing ticked";
   }
 
   function toggle(group, root, file, box) {
@@ -78,7 +170,10 @@ export function createDupes(env) {
         picked.delete(path);
         box.checked = false;
         announce("Keep at least one copy of each file.");
-        status.set("Keep at least one copy of every file: that one was not ticked.", true);
+        status.set(
+          "Keep at least one copy of every file: that one was not ticked.",
+          true,
+        );
       }
     } else picked.delete(path);
     paint();
@@ -87,7 +182,10 @@ export function createDupes(env) {
   async function cleanUp() {
     if (!picked.size) return;
     const removed = new Set(picked);
-    const outcome = await reviewPlan({ type: "delete", paths: [...picked], permanent: false }, { applyLabel: "Move to the Recycle Bin" });
+    const outcome = await reviewPlan(
+      { type: "delete", paths: [...picked], permanent: false },
+      { applyLabel: "Move to the Recycle Bin" },
+    );
     if (outcome.applied) {
       picked.clear();
       if (current?.groups?.length) {
@@ -95,15 +193,23 @@ export function createDupes(env) {
         for (const g of current.groups) {
           g.files = g.files.filter((f) => !removed.has(joinRoot(root, f)));
           if (Array.isArray(g.fileStats)) {
-            g.fileStats = g.fileStats.filter((st) => !removed.has(joinRoot(root, st.path)));
+            g.fileStats = g.fileStats.filter(
+              (st) => !removed.has(joinRoot(root, st.path)),
+            );
           }
           g.wasted = g.size * Math.max(0, g.files.length - 1);
         }
         current.groups = current.groups.filter((g) => g.files.length >= 2);
         current.groupCount = current.groups.length;
-        current.totalWasted = current.groups.reduce((sum, g) => sum + g.wasted, 0);
+        current.totalWasted = current.groups.reduce(
+          (sum, g) => sum + g.wasted,
+          0,
+        );
         render(current);
-        status.set(`${plural(current.groupCount, "group")} of duplicates remaining, ${formatSize(current.totalWasted)} could be freed.`, false);
+        status.set(
+          `${plural(current.groupCount, "group")} of duplicates remaining, ${formatSize(current.totalWasted)} could be freed.`,
+          false,
+        );
       } else {
         paint();
       }
@@ -115,14 +221,58 @@ export function createDupes(env) {
     current = r;
     picked.clear();
     tools.hidden = !r.groups.length;
-    out.replaceChildren(...r.groups.map((g, i) => h("section", { class: "dev-dupe-group", "aria-label": `Group ${i + 1}` },
-      h("h4", {}, `${g.files.length} identical copies of ${formatSize(g.size)} — ${formatSize(g.wasted)} could be freed`),
-      h("ul", { class: "dev-dupe-files" }, g.files.map((f) => {
-        const box = h("input", { type: "checkbox", "data-path": joinRoot(root, f), "aria-label": `Remove the copy ${f}`, title: "Tick the copies you want to move to the Recycle Bin. One copy of each file always stays.", onchange: () => toggle(g, root, f, box) });
-        return h("li", {}, box, " ", h("span", { class: "pw-mono" }, f), " ", linkButton("Show in file list", `Select ${f} in the file list.`, () => revealPath(joinRoot(root, f))));
-      })))));
-    if (!r.groups.length) out.append(h("p", { class: "pw-hint" }, "No duplicate files were found."));
-    if (r.groupCount > r.groups.length) out.append(h("p", { class: "pw-hint" }, `Showing the ${r.groups.length} groups that would free the most space, of ${num(r.groupCount)}.`));
+    out.replaceChildren(
+      ...r.groups.map((g, i) =>
+        h(
+          "section",
+          { class: "dev-dupe-group", "aria-label": `Group ${i + 1}` },
+          h(
+            "h4",
+            {},
+            `${g.files.length} identical copies of ${formatSize(g.size)} — ${formatSize(g.wasted)} could be freed`,
+          ),
+          h(
+            "ul",
+            { class: "dev-dupe-files" },
+            g.files.map((f) => {
+              const box = h("input", {
+                type: "checkbox",
+                "data-path": joinRoot(root, f),
+                "aria-label": `Remove the copy ${f}`,
+                title:
+                  "Tick the copies you want to move to the Recycle Bin. One copy of each file always stays.",
+                onchange: () => toggle(g, root, f, box),
+              });
+              return h(
+                "li",
+                {},
+                box,
+                " ",
+                h("span", { class: "pw-mono" }, f),
+                " ",
+                linkButton(
+                  "Show in file list",
+                  `Select ${f} in the file list.`,
+                  () => revealPath(joinRoot(root, f)),
+                ),
+              );
+            }),
+          ),
+        ),
+      ),
+    );
+    if (!r.groups.length)
+      out.append(
+        h("p", { class: "pw-hint" }, "No duplicate files were found."),
+      );
+    if (r.groupCount > r.groups.length)
+      out.append(
+        h(
+          "p",
+          { class: "pw-hint" },
+          `Showing the ${r.groups.length} groups that would free the most space, of ${num(r.groupCount)}.`,
+        ),
+      );
     paint();
   }
 
@@ -137,16 +287,34 @@ export function createDupes(env) {
     out.replaceChildren();
     status.set("Looking for duplicates…");
     try {
-      job = runJob("dev/dupes/start", { root, minBytes: Number(min.value), vendored: vendored.querySelector("input").checked }, (p, ms) => mine === seq && status.set(p.phase === "listing" ? `Listing files… ${num(p.files ?? 0)} (${seconds(ms)})` : `Comparing… ${num(p.checked ?? 0)} of ${num(p.of ?? 0)} sizes (${seconds(ms)})`));
+      job = runJob(
+        "dev/dupes/start",
+        {
+          root,
+          minBytes: Number(min.value),
+          vendored: vendored.querySelector("input").checked,
+        },
+        (p, ms) =>
+          mine === seq &&
+          status.set(
+            p.phase === "listing"
+              ? `Listing files… ${num(p.files ?? 0)} (${seconds(ms)})`
+              : `Comparing… ${num(p.checked ?? 0)} of ${num(p.of ?? 0)} sizes (${seconds(ms)})`,
+          ),
+      );
       const done = await job.promise;
       if (mine !== seq) return;
       const r = done.result;
       if (!r) return status.set("Cancelled.");
       render(r);
-      status.set(`${done.state === "cancelled" ? "Stopped early. " : ""}${plural(r.groupCount, "group")} of duplicates, ${formatSize(r.totalWasted)} could be freed (${seconds(r.elapsedMs)}).${r.stoppedBy ? ` Stopped at the limit for ${r.stoppedBy}.` : ""}`, false);
+      status.set(
+        `${done.state === "cancelled" ? "Stopped early. " : ""}${plural(r.groupCount, "group")} of duplicates, ${formatSize(r.totalWasted)} could be freed (${seconds(r.elapsedMs)}).${r.stoppedBy ? ` Stopped at the limit for ${r.stoppedBy}.` : ""}`,
+        false,
+      );
       announce(status.el.textContent);
     } catch (err) {
-      if (mine === seq) status.set(errorText(err, "The search didn't work."), true);
+      if (mine === seq)
+        status.set(errorText(err, "The search didn't work."), true);
     } finally {
       if (mine === seq) {
         run.disabled = false;
@@ -158,8 +326,22 @@ export function createDupes(env) {
   }
 
   return {
-    el: h("section", { class: "pw-card dev-dupes-card", "aria-label": "Duplicate files" }, h("h3", {}, "Duplicate files"),
-      h("div", { class: "pw-row" }, field("Smallest file", min), vendored, run, cancel), status.el, tools, out),
+    el: h(
+      "section",
+      { class: "pw-card dev-dupes-card", "aria-label": "Duplicate files" },
+      h("h3", {}, "Duplicate files"),
+      h(
+        "div",
+        { class: "pw-row" },
+        field("Smallest file", min),
+        vendored,
+        run,
+        cancel,
+      ),
+      status.el,
+      tools,
+      out,
+    ),
     start,
     cancel: () => job?.cancel(),
   };

@@ -31,7 +31,10 @@ export class RateLimiter {
   private refill(): void {
     const now = performance.now();
     const elapsedSec = (now - this.lastRefill) / 1000;
-    this.tokens = Math.min(this.capacity, this.tokens + elapsedSec * this.refillRatePerSec);
+    this.tokens = Math.min(
+      this.capacity,
+      this.tokens + elapsedSec * this.refillRatePerSec,
+    );
     this.lastRefill = now;
   }
 
@@ -56,7 +59,10 @@ export class RateLimiter {
   async wait(count = 1): Promise<void> {
     while (!this.allow(count)) {
       const needed = count - this.tokens;
-      const waitMs = Math.max(10, Math.ceil((needed / this.refillRatePerSec) * 1000));
+      const waitMs = Math.max(
+        10,
+        Math.ceil((needed / this.refillRatePerSec) * 1000),
+      );
       await Bun.sleep(waitMs);
     }
   }
@@ -94,7 +100,10 @@ export class CircuitBreaker {
    * `OPEN` to `HALF_OPEN` if the reset timeout has elapsed.
    */
   getState(): CircuitState {
-    if (this.state === "OPEN" && Date.now() - this.lastStateChange >= this.resetTimeoutMs) {
+    if (
+      this.state === "OPEN" &&
+      Date.now() - this.lastStateChange >= this.resetTimeoutMs
+    ) {
       this.state = "HALF_OPEN";
       this.lastStateChange = Date.now();
     }
@@ -123,7 +132,10 @@ export class CircuitBreaker {
    */
   recordFailure(): void {
     this.failureCount++;
-    if (this.failureCount >= this.failureThreshold || this.state === "HALF_OPEN") {
+    if (
+      this.failureCount >= this.failureThreshold ||
+      this.state === "HALF_OPEN"
+    ) {
       this.state = "OPEN";
       this.lastStateChange = Date.now();
     }
@@ -136,7 +148,9 @@ export class CircuitBreaker {
    */
   async execute<T>(fn: () => Promise<T>): Promise<T> {
     if (!this.canExecute()) {
-      throw new Error(`[flowutils] Circuit breaker is OPEN. Fast failing request.`);
+      throw new Error(
+        `[flowutils] Circuit breaker is OPEN. Fast failing request.`,
+      );
     }
     try {
       const result = await fn();
@@ -163,7 +177,7 @@ export async function retry<T>(
   maxAttempts = 3,
   delayMs = 100,
   multiplier = 2.0,
-  maxDelayMs = 5000
+  maxDelayMs = 5000,
 ): Promise<T> {
   let attempt = 0;
   let curDelay = delayMs;
@@ -191,7 +205,10 @@ export async function retry<T>(
  * @param fn - Function to debounce.
  * @param waitMs - Quiet period in milliseconds before invoking `fn`.
  */
-export function debounce<T extends (...args: any[]) => void>(fn: T, waitMs: number): T {
+export function debounce<T extends (...args: any[]) => void>(
+  fn: T,
+  waitMs: number,
+): T {
   let timer: any = null;
   return ((...args: any[]) => {
     if (timer) clearTimeout(timer);
@@ -208,7 +225,10 @@ export function debounce<T extends (...args: any[]) => void>(fn: T, waitMs: numb
  * @param fn - Function to throttle.
  * @param intervalMs - Minimum interval in milliseconds between invocations.
  */
-export function throttle<T extends (...args: any[]) => void>(fn: T, intervalMs: number): T {
+export function throttle<T extends (...args: any[]) => void>(
+  fn: T,
+  intervalMs: number,
+): T {
   let lastTime = 0;
   return ((...args: any[]) => {
     const now = Date.now();

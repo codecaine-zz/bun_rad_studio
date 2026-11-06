@@ -47,7 +47,7 @@ bridge using Windows PowerShell's built-in C# compiler. Hiding the panel keeps t
 shell running; Restart replaces it, and closing the app ends its terminal sessions.
 Commands run with your user permissions and bypass the File Manager's Recycle Bin
 and confirmations. **Follow terminal** also works on Windows: when PowerShell returns
-to its prompt after `cd`, `Set-Location`, `Push-Location` or `Pop-Location`, the file
+to its prompt after `cd`, `Set-Location`, `Push-Location`or`Pop-Location`, the file
 list follows its filesystem folder. Untick it to keep browsing independently.
 Registry and other non-filesystem PowerShell providers do not change the file list.
 
@@ -77,6 +77,7 @@ before launching the app, or supplied with `--tool-dirs` (semicolon-separated on
 You can select demos and applications using `run.ps1` or `run.cmd` from the repository root, or `.\run-demo-arm.ps1` from this folder. Actual functionality depends on the app's Windows compatibility.
 
 ### 1. Interactive Menu (Pick from any app/demo)
+
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\run.ps1
 # or simply (via CMD/PowerShell):
@@ -84,6 +85,7 @@ powershell -ExecutionPolicy Bypass -File .\run.ps1
 ```
 
 ### 2. Launch Specific Apps & Demos
+
 ```powershell
 # Run the Universal Calculator & STEM Studio
 powershell -ExecutionPolicy Bypass -File .\run.ps1 calculator
@@ -106,7 +108,9 @@ powershell -ExecutionPolicy Bypass -File .\run.ps1 -List
 ```
 
 ### 3. Using `windows-arm\run-demo-arm.ps1` Directly
+
 `run-demo-arm.ps1` accepts app or demo targets; it does not make Unix-dependent apps Windows-compatible. These examples run from the repository root:
+
 ```powershell
 # Run default showcase demo 23
 powershell -ExecutionPolicy Bypass -File .\windows-arm\run-demo-arm.ps1
@@ -123,6 +127,7 @@ powershell -ExecutionPolicy Bypass -File .\windows-arm\run-demo-arm.ps1 -Interac
 ## 💡 Windows ARM64 Architecture & Zero-Config Setup
 
 ### Why Does ARM64 Require Bun x64 for GUI Apps?
+
 - The `webview-bun` npm package ships with a precompiled `libwebview.dll` targeting **x86_64 (x64)**.
 - If native Bun ARM64 attempts to `dlopen` an x64 DLL, Windows throws:
   `error: Failed to open library "...libwebview.dll": error code 193 (ERR_DLOPEN_FAILED)`
@@ -130,7 +135,9 @@ powershell -ExecutionPolicy Bypass -File .\windows-arm\run-demo-arm.ps1 -Interac
 - **The Solution**: Windows 11 ARM64 features a built-in, hardware-accelerated x64 binary emulation layer (Prism).
 
 ### How `run.ps1` Solves This Automatically
+
 When you run `run.ps1` or `run-demo-arm.ps1` on an ARM64 system:
+
 1. It automatically detects `ARM64` CPU architecture.
 2. It looks for an x64 Bun runtime (`C:\Tools\bun-x64\bun-windows-x64\bun.exe` or `%LOCALAPPDATA%\bun-x64\bun.exe`).
 3. If not already installed, it **automatically downloads and configures official `bun-windows-x64`** (~25 MB one-time setup).
@@ -139,10 +146,13 @@ When you run `run.ps1` or `run-demo-arm.ps1` on an ARM64 system:
 ---
 
 ## Execution Policy Tip
+
 If Windows displays `running scripts is disabled on this system`, run this once in PowerShell:
+
 ```powershell
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force
 ```
+
 Or simply use `.\run.cmd <app>` or `powershell -ExecutionPolicy Bypass -File .\run.ps1 <app>`.
 
 ---

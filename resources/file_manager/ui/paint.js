@@ -30,7 +30,10 @@ registerPowerTab({
     const sendImport = (payload) => {
       try {
         const targetOrigin = new URL(embeddedUrl("paint")).origin;
-        frame.contentWindow?.postMessage({ fmPaintImport: payload }, targetOrigin);
+        frame.contentWindow?.postMessage(
+          { fmPaintImport: payload },
+          targetOrigin,
+        );
       } catch {
         // Ignore if frame is not ready
       }
@@ -54,13 +57,16 @@ registerPowerTab({
         if (loaded) sendImport(payload);
         else pending = payload;
       } catch (err) {
-        toast(err?.message || "Couldn't open that picture in Paint Studio.", { kind: "error" });
+        toast(err?.message || "Couldn't open that picture in Paint Studio.", {
+          kind: "error",
+        });
       }
     }
     return {
       show(opts) {
         frame.focus();
-        const filePath = opts?.path || (Array.isArray(opts?.paths) ? opts.paths[0] : null);
+        const filePath =
+          opts?.path || (Array.isArray(opts?.paths) ? opts.paths[0] : null);
         if (filePath) void importPath(filePath);
       },
     };

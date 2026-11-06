@@ -20,11 +20,13 @@ export function isEntryExecutable(mode: number): boolean {
  */
 export function buildMatcher(
   pattern?: string,
-  caseSensitive?: boolean
+  caseSensitive?: boolean,
 ): (name: string, path: string) => boolean {
   if (!pattern) return () => true;
   const isCase =
-    caseSensitive !== undefined ? caseSensitive : pattern !== pattern.toLowerCase();
+    caseSensitive !== undefined
+      ? caseSensitive
+      : pattern !== pattern.toLowerCase();
   try {
     const regex = new RegExp(pattern, isCase ? "" : "i");
     return (name: string, path: string) => regex.test(name) || regex.test(path);
@@ -62,7 +64,9 @@ export function matchesExtension(name: string, ext?: string): boolean {
  * Parses a human-readable file size filter expression (e.g. `"+10M"`, `"-1k"`, `"500"`)
  * into a comparison operator and threshold in bytes, or returns `null` if invalid.
  */
-export function parseSizeFilter(filter: string): { op: ">" | "<" | "="; bytes: number } | null {
+export function parseSizeFilter(
+  filter: string,
+): { op: ">" | "<" | "="; bytes: number } | null {
   const match = filter.trim().match(/^([+-]?)([\d.]+)\s*([kKmMgGtT]?[bB]?)$/);
   if (!match) return null;
   const sign = match[1];
@@ -83,7 +87,10 @@ export function parseSizeFilter(filter: string): { op: ">" | "<" | "="; bytes: n
 /**
  * Checks whether a file's byte `size` satisfies the given size `filter` expression.
  */
-export function matchesSize(size: number | undefined, filter?: string): boolean {
+export function matchesSize(
+  size: number | undefined,
+  filter?: string,
+): boolean {
   if (!filter) return true;
   if (size === undefined) return false;
   const parsed = parseSizeFilter(filter);
@@ -153,12 +160,14 @@ export async function readDirectoryEntries(
   dirPath: string,
   currentDepth: number,
   basePath: string,
-  showHidden: boolean
+  showHidden: boolean,
 ): Promise<FdEntry[]> {
   try {
     const dirEntries = await readdir(dirPath, { withFileTypes: true });
     const rootDir = resolve(basePath);
-    const visible = showHidden ? dirEntries : dirEntries.filter((d) => !d.name.startsWith("."));
+    const visible = showHidden
+      ? dirEntries
+      : dirEntries.filter((d) => !d.name.startsWith("."));
 
     const results = await Promise.all(
       visible.map(async (d): Promise<FdEntry> => {
@@ -180,7 +189,8 @@ export async function readDirectoryEntries(
         }
 
         const relFromRoot = relative(rootDir, fullPath);
-        const displayPath = basePath === "." ? relFromRoot : join(basePath, relFromRoot);
+        const displayPath =
+          basePath === "." ? relFromRoot : join(basePath, relFromRoot);
 
         return {
           path: fullPath,
@@ -210,13 +220,22 @@ export async function collectAllEntries(
   currentDepth: number,
   basePath: string,
   maxDepth: number | undefined,
-  showHidden: boolean
+  showHidden: boolean,
 ): Promise<FdEntry[]> {
   if (maxDepth !== undefined && currentDepth > maxDepth) return [];
-  const entries = await readDirectoryEntries(currentDir, currentDepth, basePath, showHidden);
+  const entries = await readDirectoryEntries(
+    currentDir,
+    currentDepth,
+    basePath,
+    showHidden,
+  );
   const subLists = await Promise.all(
     entries.map(async (entry) => {
-      if (entry.isDirectory && !entry.isSymlink && (maxDepth === undefined || currentDepth < maxDepth)) {
+      if (
+        entry.isDirectory &&
+        !entry.isSymlink &&
+        (maxDepth === undefined || currentDepth < maxDepth)
+      ) {
         const sub = await collectAllEntries(
           entry.path,
           currentDepth + 1,
@@ -249,7 +268,7 @@ export function formatFdEntry(entry: FdEntry, useAbsolute: boolean): string {
  */
 export async function executeCommand(
   cmdTemplate: string[],
-  targetPath: string
+  targetPath: string,
 ): Promise<number> {
   const args = cmdTemplate.map((arg) => (arg === "{}" ? targetPath : arg));
   const proc = Bun.spawn(args, {

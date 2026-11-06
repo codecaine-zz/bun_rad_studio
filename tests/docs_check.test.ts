@@ -1,25 +1,49 @@
 import { describe, it, expect } from "bun:test";
-import { DOCS, checkDocs, findCommandProblems, findSecrets, parseMarkdown, readMarkdown, slugify } from "../scripts/docs/check_docs";
+import {
+  DOCS,
+  checkDocs,
+  findCommandProblems,
+  findSecrets,
+  parseMarkdown,
+  readMarkdown,
+  slugify,
+} from "../scripts/docs/check_docs";
 import { renderAll } from "../scripts/docs/build_docs";
 import { readFileSync } from "fs";
 import { join } from "path";
 
 describe("documentation checker", () => {
   it("reads the legacy theme alias as its guide on symlink and plain-file checkouts", () => {
-    expect(readMarkdown(join(DOCS, "theme.md"))).toBe(readFileSync(join(DOCS, "THEMES.md"), "utf8"));
-    expect(parseMarkdown(readMarkdown(join(DOCS, "theme.md"))).headings.filter((h) => h.level === 1)).toHaveLength(1);
-    expect(readMarkdown(join(DOCS, "troubleshooting.md"))).toBe(readFileSync(join(DOCS, "troubleshooting.md"), "utf8"));
+    expect(readMarkdown(join(DOCS, "theme.md"))).toBe(
+      readFileSync(join(DOCS, "THEMES.md"), "utf8"),
+    );
+    expect(
+      parseMarkdown(readMarkdown(join(DOCS, "theme.md"))).headings.filter(
+        (h) => h.level === 1,
+      ),
+    ).toHaveLength(1);
+    expect(readMarkdown(join(DOCS, "troubleshooting.md"))).toBe(
+      readFileSync(join(DOCS, "troubleshooting.md"), "utf8"),
+    );
   });
 
   it("slugifies headings like GitHub (emoji-led headings keep a leading hyphen)", () => {
-    expect(slugify("Step 3: Install the packages")).toBe("step-3-install-the-packages");
-    expect(slugify("Import/export versus backup/restore")).toBe("importexport-versus-backuprestore");
+    expect(slugify("Step 3: Install the packages")).toBe(
+      "step-3-install-the-packages",
+    );
+    expect(slugify("Import/export versus backup/restore")).toBe(
+      "importexport-versus-backuprestore",
+    );
     expect(slugify("💻 How to Use Any Theme")).toBe("-how-to-use-any-theme");
-    expect(slugify("Compiling (`.app`) with Icons")).toBe("compiling-app-with-icons");
+    expect(slugify("Compiling (`.app`) with Icons")).toBe(
+      "compiling-app-with-icons",
+    );
   });
 
   it("finds links outside code, ignores fenced and inline code, and detects unclosed fences", () => {
-    const p = parseMarkdown("# T\n\n[a](x.md) `[no](y.md)`\n\n```\n[no](z.md)\n```\n\n## Next\n```bash\nopen\n");
+    const p = parseMarkdown(
+      "# T\n\n[a](x.md) `[no](y.md)`\n\n```\n[no](z.md)\n```\n\n## Next\n```bash\nopen\n",
+    );
     expect(p.links.map((l) => l.target)).toEqual(["x.md"]);
     expect(p.fenceProblems.length).toBe(1);
     expect([...p.anchors]).toEqual(["t", "next"]);
@@ -28,15 +52,26 @@ describe("documentation checker", () => {
   it("flags bun run commands whose script or file does not exist", () => {
     const scripts = new Set(["docs:build", "app:calc"]);
     const exists = (p: string) => p === "applications/pong_studio.ts";
-    const check = (line: string) => findCommandProblems([line], scripts, exists).map((c) => c.what);
+    const check = (line: string) =>
+      findCommandProblems([line], scripts, exists).map((c) => c.what);
     expect(check("Run `bun run docs:build` first")).toEqual([]);
-    expect(check("`bun run app:calc`, then `bun run nosuch`")).toEqual(["no such script in package.json"]);
-    expect(check("bun run docs:biuld")).toEqual(["no such script in package.json"]);
+    expect(check("`bun run app:calc`, then `bun run nosuch`")).toEqual([
+      "no such script in package.json",
+    ]);
+    expect(check("bun run docs:biuld")).toEqual([
+      "no such script in package.json",
+    ]);
     expect(check("bun run applications/pong_studio.ts --server")).toEqual([]);
     expect(check("bun run ./applications/pong_studio.ts")).toEqual([]);
-    expect(check("bun run applications/gone_studio.ts")).toEqual(["file does not exist"]);
+    expect(check("bun run applications/gone_studio.ts")).toEqual([
+      "file does not exist",
+    ]);
     // placeholders and built-ins are fine
-    expect(check("bun run <name>, bun run app:, bun run app.ts, bun run start, bun run build")).toEqual([]);
+    expect(
+      check(
+        "bun run <name>, bun run app:, bun run app.ts, bun run start, bun run build",
+      ),
+    ).toEqual([]);
   });
 
   it("flags secrets but not placeholders, code identifiers or documented examples", () => {
@@ -53,14 +88,24 @@ describe("documentation checker", () => {
 
   it("the real documentation has no broken links/anchors, orphans, unclosed fences or secrets", async () => {
     const { issues } = await checkDocs();
-    expect(issues.filter((i) => i.severity === "error").map((i) => `${i.file}:${i.line} ${i.message}`)).toEqual([]);
+    expect(
+      issues
+        .filter((i) => i.severity === "error")
+        .map((i) => `${i.file}:${i.line} ${i.message}`),
+    ).toEqual([]);
   });
 
   it("generated pages (table of contents, indexes, coverage matrix) are up to date", async () => {
     const out = await renderAll();
     for (const [rel, text] of Object.entries(out)) {
       // A Windows checkout can convert LF to CRLF; that is not a stale page.
-      expect(readFileSync(join(import.meta.dir, "..", rel), "utf8").replace(/\r\n/g, "\n"), `${rel} is stale: run bun run docs:build`).toBe(text);
+      expect(
+        readFileSync(join(import.meta.dir, "..", rel), "utf8").replace(
+          /\r\n/g,
+          "\n",
+        ),
+        `${rel} is stale: run bun run docs:build`,
+      ).toBe(text);
     }
   });
 });

@@ -1,9 +1,9 @@
 /**
  * ⚡ Bun RAD Studio - Redis Studio Pro Server Engine
- * 
+ *
  * High-performance background HTTP telemetry & database engine for Redis Studio Pro.
  * Powered 100% by Bun's native C-speed Redis client (`import { redis, RedisClient } from "bun"`).
- * 
+ *
  * Features:
  * - Direct native Redis client with sub-millisecond execution latency
  * - Comprehensive CRUD across all Redis types: String, Hash, List, Set, ZSet, Stream, Bitmap, HyperLogLog
@@ -24,8 +24,17 @@ type StudioRedisClient = RedisClient & {
   dbsize(): Promise<number>;
   pfcount(key: string): Promise<number>;
   xlen(key: string): Promise<number>;
-  xrevrange(key: string, end: string, start: string, ...options: string[]): Promise<unknown>;
-  xadd(key: string, id: string, ...fieldsAndValues: string[]): Promise<string | null>;
+  xrevrange(
+    key: string,
+    end: string,
+    start: string,
+    ...options: string[]
+  ): Promise<unknown>;
+  xadd(
+    key: string,
+    id: string,
+    ...fieldsAndValues: string[]
+  ): Promise<string | null>;
   client(subcommand: string, ...args: string[]): Promise<string>;
   flushdb(): Promise<unknown>;
 };
@@ -88,7 +97,10 @@ export interface KeySummary {
 
 /** The address as shown to the page: a password in it is hidden (the page only displays this, and may be framed by the File Manager). */
 export function maskUrlPassword(url: string): string {
-  return url.replace(/^([A-Za-z][A-Za-z0-9+.-]*:\/\/[^:/@?#\s]*:)[^@/?#\s]*@/, "$1••••@");
+  return url.replace(
+    /^([A-Za-z][A-Za-z0-9+.-]*:\/\/[^:/@?#\s]*:)[^@/?#\s]*@/,
+    "$1••••@",
+  );
 }
 
 export class RedisManager {
@@ -96,7 +108,11 @@ export class RedisManager {
   public subClient: RedisClient | null = null;
   public activeUrl: string;
   public activeDb: number;
-  public pubsubMessages: { channel: string; message: string; timestamp: string }[] = [];
+  public pubsubMessages: {
+    channel: string;
+    message: string;
+    timestamp: string;
+  }[] = [];
   public subscribedChannels: Set<string> = new Set();
 
   constructor(url: string = "redis://127.0.0.1:6379", db: number = 0) {
@@ -108,7 +124,10 @@ export class RedisManager {
     }
   }
 
-  public async connect(url: string, db: number = 0): Promise<{ success: boolean; error?: string }> {
+  public async connect(
+    url: string,
+    db: number = 0,
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       const normalizedUrl = url.trim() || "redis://127.0.0.1:6379";
       const newClient = new RedisClient(normalizedUrl) as StudioRedisClient;
@@ -120,9 +139,13 @@ export class RedisManager {
       }
 
       // Close previous client cleanly
-      try { this.client.close(); } catch {}
+      try {
+        this.client.close();
+      } catch {}
       if (this.subClient) {
-        try { this.subClient.close(); } catch {}
+        try {
+          this.subClient.close();
+        } catch {}
         this.subClient = null;
         this.subscribedChannels.clear();
       }
@@ -136,7 +159,9 @@ export class RedisManager {
     }
   }
 
-  public async selectDb(dbIndex: number): Promise<{ success: boolean; error?: string }> {
+  public async selectDb(
+    dbIndex: number,
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       await this.client.select(dbIndex);
       this.activeDb = dbIndex;
@@ -188,10 +213,18 @@ export class RedisManager {
         usedMemoryHuman: info.used_memory_human || "0B",
         usedMemoryBytes: parseInt(info.used_memory || "0", 10),
         usedMemoryPeakHuman: info.used_memory_peak_human || "0B",
-        memFragmentationRatio: parseFloat(info.mem_fragmentation_ratio || "1.0"),
+        memFragmentationRatio: parseFloat(
+          info.mem_fragmentation_ratio || "1.0",
+        ),
         connectedClients: parseInt(info.connected_clients || "1", 10),
-        instantaneousOpsPerSec: parseInt(info.instantaneous_ops_per_sec || "0", 10),
-        totalCommandsProcessed: parseInt(info.total_commands_processed || "0", 10),
+        instantaneousOpsPerSec: parseInt(
+          info.instantaneous_ops_per_sec || "0",
+          10,
+        ),
+        totalCommandsProcessed: parseInt(
+          info.total_commands_processed || "0",
+          10,
+        ),
         uptimeInSeconds: uptimeSec,
         uptimeFormatted,
         keyspaceHits: hits,
@@ -232,7 +265,10 @@ export class RedisManager {
   // Keys Explorer & Pattern Scanner
   // -----------------------------------------------------------------------------------------------
 
-  public async scanKeys(pattern: string = "*", limit: number = 250): Promise<{
+  public async scanKeys(
+    pattern: string = "*",
+    limit: number = 250,
+  ): Promise<{
     keys: KeySummary[];
     total: number;
     namespaces: { prefix: string; count: number }[];
@@ -243,7 +279,13 @@ export class RedisManager {
         const SCAN_CAP = 20000;
         let cursor = "0";
         do {
-          const res: any = await this.client.send("SCAN", [cursor, "MATCH", pattern || "*", "COUNT", "1000"]);
+          const res: any = await this.client.send("SCAN", [
+            cursor,
+            "MATCH",
+            pattern || "*",
+            "COUNT",
+            "1000",
+          ]);
           cursor = String(res[0]);
           for (const k of res[1] as string[]) allKeys.push(String(k));
         } while (cursor !== "0" && allKeys.length < SCAN_CAP);
@@ -263,7 +305,7 @@ export class RedisManager {
         try {
           const type = (await this.client.type(k)) || "none";
           const ttl = await this.client.ttl(k);
-          
+
           let length = 0;
           let detectedType: string = type;
           if (type === "string") {
@@ -277,14 +319,16 @@ export class RedisManager {
                 }
               } catch {}
             }
-            if (detectedType === "string" && (k.startsWith("bitmap:") || k.includes(":bitmap"))) {
+            if (
+              detectedType === "string" &&
+              (k.startsWith("bitmap:") || k.includes(":bitmap"))
+            ) {
               try {
                 detectedType = "bitmap";
                 length = await this.client.bitcount(k);
               } catch {}
             }
-          }
-          else if (type === "hash") length = await this.client.hlen(k);
+          } else if (type === "hash") length = await this.client.hlen(k);
           else if (type === "list") length = await this.client.llen(k);
           else if (type === "set") length = await this.client.scard(k);
           else if (type === "zset") length = await this.client.zcard(k);
@@ -333,7 +377,14 @@ export class RedisManager {
     try {
       const type = await this.client.type(key);
       if (!type || type === "none") {
-        return { key, type: "none", ttl: -2, value: null, length: 0, error: "Key does not exist" };
+        return {
+          key,
+          type: "none",
+          ttl: -2,
+          value: null,
+          length: 0,
+          error: "Key does not exist",
+        };
       }
 
       const ttl = await this.client.ttl(key);
@@ -357,7 +408,10 @@ export class RedisManager {
                 cardinality: count,
                 cardinalityFormatted: count.toLocaleString(),
                 rawHeader: "HYLL",
-                encoding: length <= 32 ? "Sparse register encoding" : "Dense register encoding (16,384 registers)",
+                encoding:
+                  length <= 32
+                    ? "Sparse register encoding"
+                    : "Dense register encoding (16,384 registers)",
                 memoryUsageFormatted: `${(length / 1024).toFixed(2)} KB (${length} bytes)`,
                 standardError: "0.81%",
               },
@@ -367,12 +421,20 @@ export class RedisManager {
           }
 
           // Check if this is a Bitmap
-          if (key.startsWith("bitmap:") || key.includes(":bitmap") || (raw && /[\x00-\x08\x0E-\x1F]/.test(raw))) {
+          if (
+            key.startsWith("bitmap:") ||
+            key.includes(":bitmap") ||
+            (raw && /[\x00-\x08\x0E-\x1F]/.test(raw))
+          ) {
             const setBits = await this.client.bitcount(key);
             const bitPositions: number[] = [];
             if (raw) {
               const buf = Buffer.from(raw, "latin1");
-              for (let byteIdx = 0; byteIdx < buf.length && bitPositions.length < 100; byteIdx++) {
+              for (
+                let byteIdx = 0;
+                byteIdx < buf.length && bitPositions.length < 100;
+                byteIdx++
+              ) {
                 const b = buf[byteIdx] ?? 0;
                 if (b > 0) {
                   for (let bit = 0; bit < 8; bit++) {
@@ -426,7 +488,12 @@ export class RedisManager {
         }
         case "zset": {
           // Fetch members with scores using raw send command for precision
-          const rawZset = await this.client.send("ZRANGE", [key, "0", "999", "WITHSCORES"]);
+          const rawZset = await this.client.send("ZRANGE", [
+            key,
+            "0",
+            "999",
+            "WITHSCORES",
+          ]);
           const items: { member: string; score: number }[] = [];
           if (Array.isArray(rawZset)) {
             if (rawZset.length > 0 && Array.isArray(rawZset[0])) {
@@ -455,7 +522,13 @@ export class RedisManager {
         }
         case "stream": {
           // Fetch latest 100 stream entries
-          const rawStream = await this.client.xrevrange(key, "+", "-", "COUNT", "100");
+          const rawStream = await this.client.xrevrange(
+            key,
+            "+",
+            "-",
+            "COUNT",
+            "100",
+          );
           value = rawStream;
           length = await this.client.xlen(key);
           break;
@@ -469,7 +542,14 @@ export class RedisManager {
 
       return { key, type, ttl, value, length, isJson };
     } catch (err: any) {
-      return { key, type: "unknown", ttl: -1, value: null, length: 0, error: err?.message || String(err) };
+      return {
+        key,
+        type: "unknown",
+        ttl: -1,
+        value: null,
+        length: 0,
+        error: err?.message || String(err),
+      };
     }
   }
 
@@ -491,7 +571,10 @@ export class RedisManager {
 
       switch (type) {
         case "string": {
-          const strVal = typeof value === "object" ? JSON.stringify(value) : String(value ?? "");
+          const strVal =
+            typeof value === "object"
+              ? JSON.stringify(value)
+              : String(value ?? "");
           if (ttl && ttl > 0) {
             await this.client.setex(key, ttl, strVal);
           } else {
@@ -501,15 +584,26 @@ export class RedisManager {
         }
         case "hash": {
           if (field && String(field).trim() !== "") {
-            const strVal = typeof value === "object" ? JSON.stringify(value) : String(value ?? "");
+            const strVal =
+              typeof value === "object"
+                ? JSON.stringify(value)
+                : String(value ?? "");
             await this.client.hset(key, String(field).trim(), strVal);
-          } else if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+          } else if (
+            typeof value === "object" &&
+            value !== null &&
+            !Array.isArray(value)
+          ) {
             const entries = Object.entries(value);
             if (entries.length === 0) {
               await this.client.hset(key, "field1", "");
             } else {
               for (const [f, v] of entries) {
-                await this.client.hset(key, f, typeof v === "object" ? JSON.stringify(v) : String(v ?? ""));
+                await this.client.hset(
+                  key,
+                  f,
+                  typeof v === "object" ? JSON.stringify(v) : String(v ?? ""),
+                );
               }
             }
           } else {
@@ -518,22 +612,38 @@ export class RedisManager {
             if (rawStr.startsWith("{") && rawStr.endsWith("}")) {
               try {
                 const candidate = JSON.parse(rawStr);
-                if (candidate && typeof candidate === "object" && !Array.isArray(candidate)) {
+                if (
+                  candidate &&
+                  typeof candidate === "object" &&
+                  !Array.isArray(candidate)
+                ) {
                   parsedObj = candidate;
                 }
               } catch {}
             }
             if (parsedObj && Object.keys(parsedObj).length > 0) {
               for (const [f, v] of Object.entries(parsedObj)) {
-                await this.client.hset(key, f, typeof v === "object" ? JSON.stringify(v) : String(v ?? ""));
+                await this.client.hset(
+                  key,
+                  f,
+                  typeof v === "object" ? JSON.stringify(v) : String(v ?? ""),
+                );
               }
             } else {
               const pairs: Array<[string, string]> = [];
               const segments = rawStr.includes("\n")
-                ? rawStr.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
+                ? rawStr
+                    .split(/\r?\n/)
+                    .map((l) => l.trim())
+                    .filter(Boolean)
                 : rawStr.includes(",") && /[:=]/.test(rawStr)
-                ? rawStr.split(",").map((l) => l.trim()).filter(Boolean)
-                : rawStr ? [rawStr] : [];
+                  ? rawStr
+                      .split(",")
+                      .map((l) => l.trim())
+                      .filter(Boolean)
+                  : rawStr
+                    ? [rawStr]
+                    : [];
               for (const seg of segments) {
                 const m = /^([^:=]+?)\s*[:=]\s*(.*)$/.exec(seg);
                 if (m && m[1]!.trim()) {
@@ -552,17 +662,26 @@ export class RedisManager {
           break;
         }
         case "list": {
-          const strVal = typeof value === "object" ? JSON.stringify(value) : String(value ?? "");
+          const strVal =
+            typeof value === "object"
+              ? JSON.stringify(value)
+              : String(value ?? "");
           await this.client.rpush(key, strVal);
           break;
         }
         case "set": {
-          const strVal = typeof value === "object" ? JSON.stringify(value) : String(value ?? "");
+          const strVal =
+            typeof value === "object"
+              ? JSON.stringify(value)
+              : String(value ?? "");
           await this.client.sadd(key, strVal);
           break;
         }
         case "zset": {
-          const strVal = typeof value === "object" ? JSON.stringify(value) : String(value ?? "");
+          const strVal =
+            typeof value === "object"
+              ? JSON.stringify(value)
+              : String(value ?? "");
           const numScore = score !== undefined ? Number(score) : 0;
           await this.client.zadd(key, numScore, strVal);
           break;
@@ -623,10 +742,15 @@ export class RedisManager {
     score?: number;
   }): Promise<{ success: boolean; error?: string }> {
     try {
-      const { key, type, op, field, index, member, oldMember, value, score } = payload;
+      const { key, type, op, field, index, member, oldMember, value, score } =
+        payload;
       if (!key) throw new Error("Key name is required");
-      if (op !== "update" && op !== "remove") throw new Error(`Unsupported operation: ${op}`);
-      const str = (v: any) => (typeof v === "object" && v !== null ? JSON.stringify(v) : String(v ?? ""));
+      if (op !== "update" && op !== "remove")
+        throw new Error(`Unsupported operation: ${op}`);
+      const str = (v: any) =>
+        typeof v === "object" && v !== null
+          ? JSON.stringify(v)
+          : String(v ?? "");
       const send = (cmd: string, args: string[]) => this.client.send(cmd, args);
 
       switch (type) {
@@ -638,7 +762,8 @@ export class RedisManager {
         }
         case "list": {
           const idx = Number(index);
-          if (!Number.isInteger(idx) || idx < 0) throw new Error("A valid list index is required");
+          if (!Number.isInteger(idx) || idx < 0)
+            throw new Error("A valid list index is required");
           if (op === "update") {
             await send("LSET", [key, String(idx), str(value)]);
           } else {
@@ -670,7 +795,8 @@ export class RedisManager {
             await send("ZREM", [key, String(old)]);
           } else {
             const numScore = Number(score);
-            if (!Number.isFinite(numScore)) throw new Error("Score must be a number");
+            if (!Number.isFinite(numScore))
+              throw new Error("Score must be a number");
             const next = value === undefined ? String(old) : str(value);
             if (next !== String(old)) await send("ZREM", [key, String(old)]);
             await send("ZADD", [key, String(numScore), next]);
@@ -686,7 +812,9 @@ export class RedisManager {
     }
   }
 
-  public async deleteKey(key: string): Promise<{ success: boolean; error?: string }> {
+  public async deleteKey(
+    key: string,
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       await this.client.del(key);
       return { success: true };
@@ -700,7 +828,13 @@ export class RedisManager {
     const out: string[] = [];
     let cursor = "0";
     do {
-      const res: any = await this.client.send("SCAN", [cursor, "MATCH", pattern, "COUNT", "1000"]);
+      const res: any = await this.client.send("SCAN", [
+        cursor,
+        "MATCH",
+        pattern,
+        "COUNT",
+        "1000",
+      ]);
       cursor = String(res[0]);
       for (const k of res[1] as string[]) {
         if (out.length < cap) out.push(String(k));
@@ -710,7 +844,9 @@ export class RedisManager {
   }
 
   /** Deletes every key matching a glob (UNLINK in batches). Empty patterns are rejected. */
-  public async deleteByPattern(rawPattern: string): Promise<{ success: boolean; deleted: number; error?: string }> {
+  public async deleteByPattern(
+    rawPattern: string,
+  ): Promise<{ success: boolean; deleted: number; error?: string }> {
     const norm = normalizeDeletePattern(rawPattern);
     if (!norm.ok) return { success: false, deleted: 0, error: norm.error };
     try {
@@ -725,13 +861,19 @@ export class RedisManager {
   }
 
   /** Copies a key to a new name (never overwrites). */
-  public async duplicateKey(src: string, dst: string): Promise<{ success: boolean; error?: string }> {
+  public async duplicateKey(
+    src: string,
+    dst: string,
+  ): Promise<{ success: boolean; error?: string }> {
     try {
-      if (!src || !dst) throw new Error("Source and destination key names are required");
+      if (!src || !dst)
+        throw new Error("Source and destination key names are required");
       if (src === dst) throw new Error("Destination must differ from source");
-      if (await this.client.exists(dst)) throw new Error(`Key '${dst}' already exists`);
+      if (await this.client.exists(dst))
+        throw new Error(`Key '${dst}' already exists`);
       const res: any = await this.client.send("COPY", [src, dst]);
-      if (Number(res) !== 1) throw new Error("Copy failed (does the source key exist?)");
+      if (Number(res) !== 1)
+        throw new Error("Copy failed (does the source key exist?)");
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err?.message || String(err) };
@@ -739,34 +881,66 @@ export class RedisManager {
   }
 
   /** Reads full values (not the 1000-item editor preview) for string/hash/list/set/zset keys. */
-  public async exportKeys(pattern: string = "*"): Promise<{ doc: any; skipped: number }> {
+  public async exportKeys(
+    pattern: string = "*",
+  ): Promise<{ doc: any; skipped: number }> {
     const keys = await this.collectKeys(pattern || "*", 5000);
     const out: RedisExportKey[] = [];
     let skipped = 0;
     for (const key of keys) {
       const type = String(await this.client.type(key)).toLowerCase();
-      if (!(REDIS_EXPORTABLE_TYPES as readonly string[]).includes(type)) { skipped++; continue; }
+      if (!(REDIS_EXPORTABLE_TYPES as readonly string[]).includes(type)) {
+        skipped++;
+        continue;
+      }
       const ttl = Number(await this.client.ttl(key));
       let value: any;
       if (type === "string") {
         value = await this.client.get(key);
-        if (value === null || value === undefined || /[\x00-\x08\x0E-\x1F]/.test(String(value))) { skipped++; continue; }
-        if (String(value).startsWith("HYLL")) { skipped++; continue; }
+        if (
+          value === null ||
+          value === undefined ||
+          /[\x00-\x08\x0E-\x1F]/.test(String(value))
+        ) {
+          skipped++;
+          continue;
+        }
+        if (String(value).startsWith("HYLL")) {
+          skipped++;
+          continue;
+        }
         value = String(value);
       } else if (type === "hash") {
         const h: any = await this.client.hgetall(key);
-        value = Array.isArray(h) ? Object.fromEntries(Array.from({ length: h.length / 2 }, (_, i) => [String(h[2 * i]), String(h[2 * i + 1])])) : h;
+        value = Array.isArray(h)
+          ? Object.fromEntries(
+              Array.from({ length: h.length / 2 }, (_, i) => [
+                String(h[2 * i]),
+                String(h[2 * i + 1]),
+              ]),
+            )
+          : h;
       } else if (type === "list") {
         value = (await this.client.lrange(key, 0, -1)).map(String);
       } else if (type === "set") {
         value = (await this.client.smembers(key)).map(String);
       } else {
-        const raw: any = await this.client.send("ZRANGE", [key, "0", "-1", "WITHSCORES"]);
+        const raw: any = await this.client.send("ZRANGE", [
+          key,
+          "0",
+          "-1",
+          "WITHSCORES",
+        ]);
         const items: { member: string; score: number }[] = [];
         if (Array.isArray(raw) && raw.length && Array.isArray(raw[0])) {
-          for (const e of raw) items.push({ member: String(e[0]), score: parseFloat(e[1]) });
+          for (const e of raw)
+            items.push({ member: String(e[0]), score: parseFloat(e[1]) });
         } else if (Array.isArray(raw)) {
-          for (let i = 0; i < raw.length; i += 2) items.push({ member: String(raw[i]), score: parseFloat(raw[i + 1]) });
+          for (let i = 0; i < raw.length; i += 2)
+            items.push({
+              member: String(raw[i]),
+              score: parseFloat(raw[i + 1]),
+            });
         }
         value = items;
       }
@@ -774,12 +948,25 @@ export class RedisManager {
     }
     return {
       skipped,
-      doc: { format: "redis-studio-export", version: REDIS_EXPORT_VERSION, db: this.activeDb, exportedAt: new Date().toISOString(), keys: out, skipped },
+      doc: {
+        format: "redis-studio-export",
+        version: REDIS_EXPORT_VERSION,
+        db: this.activeDb,
+        exportedAt: new Date().toISOString(),
+        keys: out,
+        skipped,
+      },
     };
   }
 
   /** Writes an export file into ~/Downloads (or the home directory) and returns its path. */
-  public async saveExportFile(pattern: string): Promise<{ success: boolean; path?: string; count?: number; skipped?: number; error?: string }> {
+  public async saveExportFile(pattern: string): Promise<{
+    success: boolean;
+    path?: string;
+    count?: number;
+    skipped?: number;
+    error?: string;
+  }> {
     try {
       const { doc, skipped } = await this.exportKeys(pattern);
       const dl = nodePath.join(homedir(), "Downloads");
@@ -797,26 +984,41 @@ export class RedisManager {
     input: unknown,
     overwrite = false,
     opts?: RedisImportOptions,
-  ): Promise<{ success: boolean; imported: number; skipped: number; errors: string[]; detectedFormat?: string }> {
+  ): Promise<{
+    success: boolean;
+    imported: number;
+    skipped: number;
+    errors: string[];
+    detectedFormat?: string;
+  }> {
     const v = await parseRedisImportPayload(input, opts);
-    if (!v.doc) return { success: false, imported: 0, skipped: 0, errors: v.errors };
+    if (!v.doc)
+      return { success: false, imported: 0, skipped: 0, errors: v.errors };
     let imported = 0;
     let skipped = 0;
     const errors = v.errors.slice();
     for (const k of v.doc.keys) {
       try {
         if (await this.client.exists(k.key)) {
-          if (!overwrite) { skipped++; continue; }
+          if (!overwrite) {
+            skipped++;
+            continue;
+          }
           await this.client.del(k.key);
         }
         if (k.type === "string") await this.client.set(k.key, k.value);
         else if (k.type === "hash") {
           const args: string[] = [k.key];
-          for (const [f, val] of Object.entries(k.value)) args.push(f, String(val));
+          for (const [f, val] of Object.entries(k.value))
+            args.push(f, String(val));
           if (args.length > 1) await this.client.send("HSET", args);
-        } else if (k.type === "list") { if (k.value.length) await this.client.send("RPUSH", [k.key, ...k.value]); }
-        else if (k.type === "set") { if (k.value.length) await this.client.send("SADD", [k.key, ...k.value]); }
-        else if (k.type === "zset") {
+        } else if (k.type === "list") {
+          if (k.value.length)
+            await this.client.send("RPUSH", [k.key, ...k.value]);
+        } else if (k.type === "set") {
+          if (k.value.length)
+            await this.client.send("SADD", [k.key, ...k.value]);
+        } else if (k.type === "zset") {
           const args: string[] = [k.key];
           for (const m of k.value) args.push(String(m.score), m.member);
           if (args.length > 1) await this.client.send("ZADD", args);
@@ -827,10 +1029,18 @@ export class RedisManager {
         errors.push(`'${k.key}': ${err?.message || err}`);
       }
     }
-    return { success: errors.length === 0 || imported > 0, imported, skipped, errors, detectedFormat: v.detectedFormat };
+    return {
+      success: errors.length === 0 || imported > 0,
+      imported,
+      skipped,
+      errors,
+      detectedFormat: v.detectedFormat,
+    };
   }
 
-  public async unlinkKey(key: string): Promise<{ success: boolean; error?: string }> {
+  public async unlinkKey(
+    key: string,
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       await this.client.unlink(key);
       return { success: true };
@@ -839,7 +1049,10 @@ export class RedisManager {
     }
   }
 
-  public async renameKey(oldKey: string, newKey: string): Promise<{ success: boolean; error?: string }> {
+  public async renameKey(
+    oldKey: string,
+    newKey: string,
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       await this.client.rename(oldKey, newKey);
       return { success: true };
@@ -848,7 +1061,10 @@ export class RedisManager {
     }
   }
 
-  public async setKeyTtl(key: string, ttl: number): Promise<{ success: boolean; error?: string }> {
+  public async setKeyTtl(
+    key: string,
+    ttl: number,
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       if (ttl === -1) {
         await this.client.persist(key);
@@ -861,12 +1077,19 @@ export class RedisManager {
     }
   }
 
-  public async getKeyTtl(key: string): Promise<{ success: boolean; key: string; ttl: number; error?: string }> {
+  public async getKeyTtl(
+    key: string,
+  ): Promise<{ success: boolean; key: string; ttl: number; error?: string }> {
     try {
       const ttl = await this.client.ttl(key);
       return { success: true, key, ttl };
     } catch (err: any) {
-      return { success: false, key, ttl: -2, error: err?.message || String(err) };
+      return {
+        success: false,
+        key,
+        ttl: -2,
+        error: err?.message || String(err),
+      };
     }
   }
 
@@ -882,7 +1105,12 @@ export class RedisManager {
   }> {
     const trimmed = (commandLine || "").trim();
     if (!trimmed) {
-      return { command: "", result: null, executionTimeMs: 0, error: "Empty command" };
+      return {
+        command: "",
+        result: null,
+        executionTimeMs: 0,
+        error: "Empty command",
+      };
     }
 
     const startTime = performance.now();
@@ -890,7 +1118,10 @@ export class RedisManager {
       // Split command string preserving quoted tokens
       const parts = trimmed.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) || [];
       const cleanParts = parts.map((p) => {
-        if ((p.startsWith('"') && p.endsWith('"')) || (p.startsWith("'") && p.endsWith("'"))) {
+        if (
+          (p.startsWith('"') && p.endsWith('"')) ||
+          (p.startsWith("'") && p.endsWith("'"))
+        ) {
           return p.slice(1, -1);
         }
         return p;
@@ -901,7 +1132,8 @@ export class RedisManager {
 
       // Execute dynamically via Bun native client's send method
       const result = await this.client.send(cmd, args);
-      const executionTimeMs = Math.round((performance.now() - startTime) * 100) / 100;
+      const executionTimeMs =
+        Math.round((performance.now() - startTime) * 100) / 100;
 
       return {
         command: trimmed,
@@ -909,7 +1141,8 @@ export class RedisManager {
         executionTimeMs,
       };
     } catch (err: any) {
-      const executionTimeMs = Math.round((performance.now() - startTime) * 100) / 100;
+      const executionTimeMs =
+        Math.round((performance.now() - startTime) * 100) / 100;
       return {
         command: trimmed,
         result: null,
@@ -923,7 +1156,10 @@ export class RedisManager {
   // Pub/Sub Broadcast & Monitoring
   // -----------------------------------------------------------------------------------------------
 
-  public async publishMessage(channel: string, message: string): Promise<{ receivers: number; error?: string }> {
+  public async publishMessage(
+    channel: string,
+    message: string,
+  ): Promise<{ receivers: number; error?: string }> {
     try {
       const receivers = await this.client.publish(channel, message);
       this.pubsubMessages.unshift({
@@ -940,7 +1176,9 @@ export class RedisManager {
     }
   }
 
-  public async subscribeChannel(channel: string): Promise<{ success: boolean; error?: string }> {
+  public async subscribeChannel(
+    channel: string,
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       if (!this.subClient) {
         this.subClient = new RedisClient(this.activeUrl);
@@ -988,7 +1226,9 @@ export class RedisManager {
             timestampFormatted: date.toLocaleTimeString(),
             executionTimeMicroseconds: micros,
             executionFormatted,
-            command: Array.isArray(entry[3]) ? entry[3].join(" ") : String(entry[3]),
+            command: Array.isArray(entry[3])
+              ? entry[3].join(" ")
+              : String(entry[3]),
             clientAddress: entry[4] || "N/A",
             clientName: entry[5] || "",
           };
@@ -1027,18 +1267,26 @@ export class RedisManager {
         const memBytes = parseInt(map["tot-mem"] || "0", 10);
 
         let ageFormatted = `${ageSec}s`;
-        if (ageSec >= 86400) ageFormatted = `${Math.floor(ageSec / 86400)}d ${Math.floor((ageSec % 86400) / 3600)}h`;
-        else if (ageSec >= 3600) ageFormatted = `${Math.floor(ageSec / 3600)}h ${Math.floor((ageSec % 3600) / 60)}m`;
-        else if (ageSec >= 60) ageFormatted = `${Math.floor(ageSec / 60)}m ${ageSec % 60}s`;
+        if (ageSec >= 86400)
+          ageFormatted = `${Math.floor(ageSec / 86400)}d ${Math.floor((ageSec % 86400) / 3600)}h`;
+        else if (ageSec >= 3600)
+          ageFormatted = `${Math.floor(ageSec / 3600)}h ${Math.floor((ageSec % 3600) / 60)}m`;
+        else if (ageSec >= 60)
+          ageFormatted = `${Math.floor(ageSec / 60)}m ${ageSec % 60}s`;
 
         let idleFormatted = idleSec === 0 ? "Active now" : `${idleSec}s ago`;
-        if (idleSec >= 60) idleFormatted = `${Math.floor(idleSec / 60)}m ${idleSec % 60}s ago`;
+        if (idleSec >= 60)
+          idleFormatted = `${Math.floor(idleSec / 60)}m ${idleSec % 60}s ago`;
 
         let memFormatted = `${memBytes} B`;
-        if (memBytes >= 1048576) memFormatted = `${(memBytes / 1048576).toFixed(1)} MB`;
-        else if (memBytes >= 1024) memFormatted = `${(memBytes / 1024).toFixed(1)} KB`;
+        if (memBytes >= 1048576)
+          memFormatted = `${(memBytes / 1048576).toFixed(1)} MB`;
+        else if (memBytes >= 1024)
+          memFormatted = `${(memBytes / 1024).toFixed(1)} KB`;
 
-        const cmdClean = (map["cmd"] || "idle").replace(/\|/g, " ").toUpperCase();
+        const cmdClean = (map["cmd"] || "idle")
+          .replace(/\|/g, " ")
+          .toUpperCase();
 
         return {
           id: map["id"] || "N/A",
@@ -1061,7 +1309,10 @@ export class RedisManager {
   // Enterprise Sample Dataset Seeder
   // -----------------------------------------------------------------------------------------------
 
-  public async seedEnterpriseDataset(): Promise<{ success: boolean; keysCreated: number }> {
+  public async seedEnterpriseDataset(): Promise<{
+    success: boolean;
+    keysCreated: number;
+  }> {
     try {
       // 1. Strings (Auth, Configurations, JSON Sessions)
       await this.client.set(
@@ -1082,23 +1333,55 @@ export class RedisManager {
       await this.client.set("metrics:cache:compression_ratio", "3.42");
 
       // 2. Hashes (Product Catalog, Customer Profiles)
-      await this.client.hset("catalog:product:SKU-9901", "name", "Quantum Pro Neural Accelerator");
+      await this.client.hset(
+        "catalog:product:SKU-9901",
+        "name",
+        "Quantum Pro Neural Accelerator",
+      );
       await this.client.hset("catalog:product:SKU-9901", "price", "4299.99");
       await this.client.hset("catalog:product:SKU-9901", "stock", "48");
-      await this.client.hset("catalog:product:SKU-9901", "category", "Hardware");
-      await this.client.hset("catalog:product:SKU-9901", "manufacturer", "Cyberdyne Corp");
+      await this.client.hset(
+        "catalog:product:SKU-9901",
+        "category",
+        "Hardware",
+      );
+      await this.client.hset(
+        "catalog:product:SKU-9901",
+        "manufacturer",
+        "Cyberdyne Corp",
+      );
 
-      await this.client.hset("customer:corp:apple", "tier", "Platinum Enterprise");
+      await this.client.hset(
+        "customer:corp:apple",
+        "tier",
+        "Platinum Enterprise",
+      );
       await this.client.hset("customer:corp:apple", "mrr", "125000");
-      await this.client.hset("customer:corp:apple", "account_rep", "Sarah Connor");
+      await this.client.hset(
+        "customer:corp:apple",
+        "account_rep",
+        "Sarah Connor",
+      );
       await this.client.hset("customer:corp:apple", "health_score", "98.5");
 
       // 3. Lists (Recent Event Logs, Message Queue)
       await this.client.del("queue:worker:tasks");
-      await this.client.rpush("queue:worker:tasks", "TASK-8812: Generate monthly compliance audit");
-      await this.client.rpush("queue:worker:tasks", "TASK-8813: Rebuild Vector Index partition #4");
-      await this.client.rpush("queue:worker:tasks", "TASK-8814: Sync Stripe billing webhooks");
-      await this.client.rpush("queue:worker:tasks", "TASK-8815: Invalidate edge CDN cache clusters");
+      await this.client.rpush(
+        "queue:worker:tasks",
+        "TASK-8812: Generate monthly compliance audit",
+      );
+      await this.client.rpush(
+        "queue:worker:tasks",
+        "TASK-8813: Rebuild Vector Index partition #4",
+      );
+      await this.client.rpush(
+        "queue:worker:tasks",
+        "TASK-8814: Sync Stripe billing webhooks",
+      );
+      await this.client.rpush(
+        "queue:worker:tasks",
+        "TASK-8815: Invalidate edge CDN cache clusters",
+      );
 
       // 4. Sets (Unique Visitors, Feature Flags, Active Nodes)
       await this.client.del("cluster:nodes:active");
@@ -1116,19 +1399,70 @@ export class RedisManager {
       await this.client.del("leaderboard:global_latency");
       await this.client.zadd("leaderboard:global_latency", 0.42, "edge-tokyo");
       await this.client.zadd("leaderboard:global_latency", 0.65, "edge-london");
-      await this.client.zadd("leaderboard:global_latency", 0.88, "edge-singapore");
-      await this.client.zadd("leaderboard:global_latency", 1.12, "edge-frankfurt");
-      await this.client.zadd("leaderboard:global_latency", 1.84, "edge-saopaulo");
+      await this.client.zadd(
+        "leaderboard:global_latency",
+        0.88,
+        "edge-singapore",
+      );
+      await this.client.zadd(
+        "leaderboard:global_latency",
+        1.12,
+        "edge-frankfurt",
+      );
+      await this.client.zadd(
+        "leaderboard:global_latency",
+        1.84,
+        "edge-saopaulo",
+      );
 
       await this.client.del("leaderboard:top_spenders");
-      await this.client.zadd("leaderboard:top_spenders", 245000, "Apex Financial");
-      await this.client.zadd("leaderboard:top_spenders", 188000, "Vertex AI Labs");
-      await this.client.zadd("leaderboard:top_spenders", 125000, "Titan Global");
+      await this.client.zadd(
+        "leaderboard:top_spenders",
+        245000,
+        "Apex Financial",
+      );
+      await this.client.zadd(
+        "leaderboard:top_spenders",
+        188000,
+        "Vertex AI Labs",
+      );
+      await this.client.zadd(
+        "leaderboard:top_spenders",
+        125000,
+        "Titan Global",
+      );
 
       // 6. Streams (Telemetry Event Log)
-      await this.client.xadd("stream:telemetry:sensor_feed", "*", "sensorId", "SN-4091", "tempC", "42.8", "pressureBar", "1.04");
-      await this.client.xadd("stream:telemetry:sensor_feed", "*", "sensorId", "SN-4092", "tempC", "43.1", "pressureBar", "1.05");
-      await this.client.xadd("stream:telemetry:sensor_feed", "*", "sensorId", "SN-4093", "tempC", "44.0", "pressureBar", "1.08");
+      await this.client.xadd(
+        "stream:telemetry:sensor_feed",
+        "*",
+        "sensorId",
+        "SN-4091",
+        "tempC",
+        "42.8",
+        "pressureBar",
+        "1.04",
+      );
+      await this.client.xadd(
+        "stream:telemetry:sensor_feed",
+        "*",
+        "sensorId",
+        "SN-4092",
+        "tempC",
+        "43.1",
+        "pressureBar",
+        "1.05",
+      );
+      await this.client.xadd(
+        "stream:telemetry:sensor_feed",
+        "*",
+        "sensorId",
+        "SN-4093",
+        "tempC",
+        "44.0",
+        "pressureBar",
+        "1.08",
+      );
 
       // 7. HyperLogLog & Bitmaps (Realistic unique visitor cardinality & activity)
       await this.client.send("PFADD", [
@@ -1190,7 +1524,10 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
       if (pathname === "/" || pathname === "/index.html") {
         const html = generateRedisStudioHtml();
         return new Response(html, {
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            ...corsHeaders,
+          },
         });
       }
 
@@ -1212,7 +1549,10 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
       if (pathname === "/api/key/get") {
         const key = url.searchParams.get("key");
         if (!key) {
-          return Response.json({ error: "Missing 'key' parameter" }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { error: "Missing 'key' parameter" },
+            { status: 400, headers: corsHeaders },
+          );
         }
         const details = await manager.getKeyDetails(key);
         return Response.json(details, { headers: corsHeaders });
@@ -1225,7 +1565,10 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
           const result = await manager.setKeyValue(body);
           return Response.json(result, { headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
@@ -1236,7 +1579,10 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
           const result = await manager.mutateElement(body);
           return Response.json(result, { headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
@@ -1245,11 +1591,18 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
         try {
           const body: any = await req.json();
           const key = body.key;
-          if (!key) return Response.json({ error: "Key required" }, { status: 400, headers: corsHeaders });
+          if (!key)
+            return Response.json(
+              { error: "Key required" },
+              { status: 400, headers: corsHeaders },
+            );
           const result = await manager.deleteKey(key);
           return Response.json(result, { headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
@@ -1259,12 +1612,18 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
           const body: any = await req.json();
           const { oldKey, newKey } = body;
           if (!oldKey || !newKey) {
-            return Response.json({ error: "oldKey and newKey required" }, { status: 400, headers: corsHeaders });
+            return Response.json(
+              { error: "oldKey and newKey required" },
+              { status: 400, headers: corsHeaders },
+            );
           }
           const result = await manager.renameKey(oldKey, newKey);
           return Response.json(result, { headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
@@ -1273,12 +1632,18 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
         try {
           const key = url.searchParams.get("key");
           if (!key) {
-            return Response.json({ error: "key required" }, { status: 400, headers: corsHeaders });
+            return Response.json(
+              { error: "key required" },
+              { status: 400, headers: corsHeaders },
+            );
           }
           const result = await manager.getKeyTtl(key);
           return Response.json(result, { headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
@@ -1287,12 +1652,18 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
           const body: any = await req.json();
           const { key, ttl } = body;
           if (!key || ttl === undefined) {
-            return Response.json({ error: "key and ttl required" }, { status: 400, headers: corsHeaders });
+            return Response.json(
+              { error: "key and ttl required" },
+              { status: 400, headers: corsHeaders },
+            );
           }
           const result = await manager.setKeyTtl(key, Number(ttl));
           return Response.json(result, { headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
@@ -1303,7 +1674,10 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
           const result = await manager.executeRawCommand(body.command || "");
           return Response.json(result, { headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
@@ -1312,10 +1686,16 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
         try {
           const body: any = await req.json();
           const { channel, message } = body;
-          const result = await manager.publishMessage(channel || "general", message || "");
+          const result = await manager.publishMessage(
+            channel || "general",
+            message || "",
+          );
           return Response.json(result, { headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
@@ -1326,25 +1706,39 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
           const result = await manager.subscribeChannel(channel || "general");
           return Response.json(result, { headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
       if (pathname === "/api/pubsub/messages") {
-        return Response.json({
-          messages: manager.pubsubMessages,
-          channels: Array.from(manager.subscribedChannels),
-        }, { headers: corsHeaders });
+        return Response.json(
+          {
+            messages: manager.pubsubMessages,
+            channels: Array.from(manager.subscribedChannels),
+          },
+          { headers: corsHeaders },
+        );
       }
 
       // 10. Server Info Sections
       if (pathname === "/api/info") {
         try {
           const section = url.searchParams.get("section") || "";
-          const rawInfo = section ? await manager.client.info(section) : await manager.client.info();
-          return Response.json({ section: section || "all", info: rawInfo }, { headers: corsHeaders });
+          const rawInfo = section
+            ? await manager.client.info(section)
+            : await manager.client.info();
+          return Response.json(
+            { section: section || "all", info: rawInfo },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ error: err.message }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { error: err.message },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
@@ -1358,7 +1752,10 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
       if (pathname === "/api/clients") {
         const clients = await manager.getClients();
         const parsedClients = await manager.getParsedClients();
-        return Response.json({ clients, parsedClients }, { headers: corsHeaders });
+        return Response.json(
+          { clients, parsedClients },
+          { headers: corsHeaders },
+        );
       }
 
       // 13. Dynamic Connection & DB Switcher
@@ -1369,7 +1766,10 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
           const result = await manager.connect(newUrl, newDb ?? 0);
           return Response.json(result, { headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
@@ -1380,7 +1780,10 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
           const result = await manager.selectDb(Number(newDb ?? 0));
           return Response.json(result, { headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
@@ -1394,9 +1797,15 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
       if (pathname === "/api/flushdb" && req.method === "POST") {
         try {
           await manager.client.flushdb();
-          return Response.json({ success: true, message: `Database ${manager.activeDb} flushed` }, { headers: corsHeaders });
+          return Response.json(
+            { success: true, message: `Database ${manager.activeDb} flushed` },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
@@ -1405,55 +1814,94 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
         try {
           const body: any = await req.json();
           const result = await manager.deleteByPattern(body.pattern || "");
-          return Response.json(result, { status: result.success ? 200 : 400, headers: corsHeaders });
+          return Response.json(result, {
+            status: result.success ? 200 : 400,
+            headers: corsHeaders,
+          });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
       if (pathname === "/api/key/duplicate" && req.method === "POST") {
         try {
           const body: any = await req.json();
-          const result = await manager.duplicateKey(body.key || "", body.newKey || "");
-          return Response.json(result, { status: result.success ? 200 : 400, headers: corsHeaders });
+          const result = await manager.duplicateKey(
+            body.key || "",
+            body.newKey || "",
+          );
+          return Response.json(result, {
+            status: result.success ? 200 : 400,
+            headers: corsHeaders,
+          });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
       if (pathname === "/api/export" && req.method === "GET") {
-        const { doc } = await manager.exportKeys(url.searchParams.get("pattern") || "*");
+        const { doc } = await manager.exportKeys(
+          url.searchParams.get("pattern") || "*",
+        );
         return Response.json(doc, { headers: corsHeaders });
       }
       if (pathname === "/api/export/save" && req.method === "POST") {
         try {
           const body: any = await req.json().catch(() => ({}));
           const result = await manager.saveExportFile(body.pattern || "*");
-          return Response.json(result, { status: result.success ? 200 : 500, headers: corsHeaders });
+          return Response.json(result, {
+            status: result.success ? 200 : 500,
+            headers: corsHeaders,
+          });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
       if (pathname === "/api/import" && req.method === "POST") {
         try {
           const body: any = await req.json();
-          const result = await manager.importKeys(body.doc ?? body.text ?? body.content, Boolean(body.overwrite), {
-            format: body.format,
-            fileName: body.fileName,
-            base64: body.base64,
-            keyPrefix: body.keyPrefix,
-            sheet: body.sheet,
+          const result = await manager.importKeys(
+            body.doc ?? body.text ?? body.content,
+            Boolean(body.overwrite),
+            {
+              format: body.format,
+              fileName: body.fileName,
+              base64: body.base64,
+              keyPrefix: body.keyPrefix,
+              sheet: body.sheet,
+            },
+          );
+          return Response.json(result, {
+            status: result.success ? 200 : 400,
+            headers: corsHeaders,
           });
-          return Response.json(result, { status: result.success ? 200 : 400, headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ success: false, imported: 0, skipped: 0, errors: [err.message] }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, imported: 0, skipped: 0, errors: [err.message] },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
       // 16. Shutdown / Close workstation
-      if ((pathname === "/api/shutdown" || pathname === "/api/close") && req.method === "POST") {
+      if (
+        (pathname === "/api/shutdown" || pathname === "/api/close") &&
+        req.method === "POST"
+      ) {
         if (!process.env.STUDIO_PARENT_PID) {
           setTimeout(() => process.exit(0), 100);
         }
-        return Response.json({ success: true, message: "Workstation shutting down..." }, { headers: corsHeaders });
+        return Response.json(
+          { success: true, message: "Workstation shutting down..." },
+          { headers: corsHeaders },
+        );
       }
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
@@ -1466,10 +1914,16 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
     port: server.port,
     url: `http://${host}:${server.port}`,
     close: () => {
-      try { server.stop(); } catch {}
-      try { manager.client.close(); } catch {}
+      try {
+        server.stop();
+      } catch {}
+      try {
+        manager.client.close();
+      } catch {}
       if (manager.subClient) {
-        try { manager.subClient.close(); } catch {}
+        try {
+          manager.subClient.close();
+        } catch {}
       }
     },
   };
@@ -1479,11 +1933,20 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
 // Worker Sub-Process Auto-Bootstrap Mode
 // -------------------------------------------------------------------------------------------------
 
-if (!Bun.isMainThread && (!process.env.STUDIO_WORKER || process.env.STUDIO_WORKER === "redis_studio")) {
+if (
+  !Bun.isMainThread &&
+  (!process.env.STUDIO_WORKER || process.env.STUDIO_WORKER === "redis_studio")
+) {
   const preferredPort = 0; // Dynamic ephemeral port prevents any collisions
   const initialUrl = process.env.REDIS_URL || "redis://127.0.0.1:6379";
-  const initialDb = process.env.REDIS_DB ? parseInt(process.env.REDIS_DB, 10) : 0;
-  const serverInstance = startRedisStudioServer({ port: preferredPort, url: initialUrl, db: initialDb });
+  const initialDb = process.env.REDIS_DB
+    ? parseInt(process.env.REDIS_DB, 10)
+    : 0;
+  const serverInstance = startRedisStudioServer({
+    port: preferredPort,
+    url: initialUrl,
+    db: initialDb,
+  });
 
   (globalThis as any).postMessage({
     ready: true,
@@ -1501,14 +1964,22 @@ if (import.meta.main) {
   const specifiedPort = Number(process.env.PORT);
   let serverInstance: any;
   if (specifiedPort) {
-    serverInstance = startRedisStudioServer({ port: specifiedPort, host: "127.0.0.1" });
+    serverInstance = startRedisStudioServer({
+      port: specifiedPort,
+      host: "127.0.0.1",
+    });
   } else {
     try {
-      serverInstance = startRedisStudioServer({ port: 5820, host: "127.0.0.1" });
+      serverInstance = startRedisStudioServer({
+        port: 5820,
+        host: "127.0.0.1",
+      });
     } catch {
       serverInstance = startRedisStudioServer({ port: 0, host: "127.0.0.1" });
     }
   }
   console.log(`READY:${serverInstance.port}`);
-  console.log(`⚡ Redis Studio Pro Telemetry Server active at: ${serverInstance.url}`);
+  console.log(
+    `⚡ Redis Studio Pro Telemetry Server active at: ${serverInstance.url}`,
+  );
 }

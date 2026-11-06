@@ -21,12 +21,16 @@ export type InterfaceDensity = "compact" | "comfortable" | "spacious";
 /**
  * The 10 canonical shade steps from 50 to 950 (plus 900 for compatibility with 11-step consumers).
  */
-export const SHADE_STEPS_10 = [50, 100, 200, 300, 400, 500, 600, 700, 800, 950] as const;
+export const SHADE_STEPS_10 = [
+  50, 100, 200, 300, 400, 500, 600, 700, 800, 950,
+] as const;
 
 /**
  * Complete 11-step shade stops from 50 through 950 (including 900).
  */
-export const SHADE_STEPS_ALL = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] as const;
+export const SHADE_STEPS_ALL = [
+  50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950,
+] as const;
 
 /**
  * Union of the 10 primary shade step numbers (`50` through `950`, excluding `900`).

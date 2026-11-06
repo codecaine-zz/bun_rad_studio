@@ -12,7 +12,14 @@
  * the games run in their own server mode. Nothing is faked; a scene that fails stops the recording.
  */
 import "./lib/tts_edge_default";
-import { copyFileSync, existsSync, mkdirSync, rmSync, statSync, writeFileSync } from "fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "fs";
 import { join } from "path";
 
 mkdirSync("/tmp/tut_envhome", { recursive: true });
@@ -21,7 +28,16 @@ process.env.HOME = "/tmp/tut_envhome";
 import { Cdp, sleep } from "./lib/cdp_recorder";
 import { hostApp, hostDesigner } from "./lib/host_app";
 import { seedDemoWorkspace } from "./lib/demo_workspace";
-import { FFMPEG, cardHtml, durationOf, fmtTime, narrate, overlayHtml, screenshotHtml, sh } from "./lib/video_pipeline";
+import {
+  FFMPEG,
+  cardHtml,
+  durationOf,
+  fmtTime,
+  narrate,
+  overlayHtml,
+  screenshotHtml,
+  sh,
+} from "./lib/video_pipeline";
 
 const ROOT = process.cwd();
 const PROD = join(ROOT, "youtube_production");
@@ -64,33 +80,82 @@ class Env {
   async start() {
     this.c = await Cdp.launch(9333, "/tmp/tut_chrome");
   }
-  onStop(fn: () => void) { this.extra.push(fn); }
+  onStop(fn: () => void) {
+    this.extra.push(fn);
+  }
   async stop() {
     resetSavedTheme();
-    for (const f of this.extra.splice(0)) { try { f(); } catch {} }
-    try { this.fm?.kill(9); } catch {}
+    for (const f of this.extra.splice(0)) {
+      try {
+        f();
+      } catch {}
+    }
+    try {
+      this.fm?.kill(9);
+    } catch {}
     this.fm = null;
     this.c.close();
   }
 
   /** The File Manager (a throwaway copy with sample files), opened on its start screen. */
   async fileManager(path = `${HOME}/Projects/shop-app`) {
-    if (this.fm && this.fmPath !== path) { try { this.fm.kill(9); } catch {} this.fm = null; await sleep(600); }
+    if (this.fm && this.fmPath !== path) {
+      try {
+        this.fm.kill(9);
+      } catch {}
+      this.fm = null;
+      await sleep(600);
+    }
     if (!this.fm) {
       this.fmPath = path;
-      this.fm = Bun.spawn([process.execPath, join(ROOT, "applications", "file_manager_studio.ts"), "--server", "--port", String(this.fmPort), "--home", HOME, "--data-dir", DATA, "--path", path],
-        { cwd: "/tmp", stdout: "ignore", stderr: "ignore", env: { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "", GRAVEYARD: GRAVE } });
-      for (let i = 0; i < 60; i++) { try { if ((await fetch(`http://127.0.0.1:${this.fmPort}/`)).ok) break; } catch {} await sleep(250); }
+      this.fm = Bun.spawn(
+        [
+          process.execPath,
+          join(ROOT, "applications", "file_manager_studio.ts"),
+          "--server",
+          "--port",
+          String(this.fmPort),
+          "--home",
+          HOME,
+          "--data-dir",
+          DATA,
+          "--path",
+          path,
+        ],
+        {
+          cwd: "/tmp",
+          stdout: "ignore",
+          stderr: "ignore",
+          env: {
+            PATH: process.env.PATH ?? "",
+            HOME: process.env.HOME ?? "",
+            GRAVEYARD: GRAVE,
+          },
+        },
+      );
+      for (let i = 0; i < 60; i++) {
+        try {
+          if ((await fetch(`http://127.0.0.1:${this.fmPort}/`)).ok) break;
+        } catch {}
+        await sleep(250);
+      }
     }
     await this.c.goto(`http://127.0.0.1:${this.fmPort}/`);
-    await this.c.eval(`[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Start')?.click()`);
+    await this.c.eval(
+      `[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Start')?.click()`,
+    );
     await sleep(500);
   }
 
   /** A desktop app (SimpleGUI) shown through the hosted bridge. */
   async app(stem: string, fn: string, opts: { theme?: string } = {}) {
     const mod: any = await import(`../applications/${stem}.ts`);
-    const host = await hostApp(() => mod[fn]({ fullscreen: false, ...(opts.theme ? { theme: opts.theme } : {}) }));
+    const host = await hostApp(() =>
+      mod[fn]({
+        fullscreen: false,
+        ...(opts.theme ? { theme: opts.theme } : {}),
+      }),
+    );
     this.onStop(() => host.stop());
     await this.c.goto(host.url, null);
     await sleep(1500);
@@ -99,9 +164,15 @@ class Env {
 }
 
 /** Switching themes on camera saves the choice globally; drop it so the recording leaves the user's setup as it found it. */
-const resetSavedTheme = () => rmSync(join(process.env.HOME ?? "", ".config", "simplegui", "theme.txt"), { force: true });
+const resetSavedTheme = () =>
+  rmSync(join(process.env.HOME ?? "", ".config", "simplegui", "theme.txt"), {
+    force: true,
+  });
 
-const until = async (t0: number, seconds: number) => { const left = seconds * 1000 - (performance.now() - t0); if (left > 0) await sleep(left); };
+const until = async (t0: number, seconds: number) => {
+  const left = seconds * 1000 - (performance.now() - t0);
+  if (left > 0) await sleep(left);
+};
 
 /** Pick an option of a <select> the way a person would: glide to it, click it, then set the value. */
 async function choose(c: Cdp, selector: string, optionText: string) {
@@ -124,13 +195,33 @@ async function term(c: Cdp, cmd: string, wait: number, perChar = 55) {
 
 const scenes: Scene[] = [
   {
-    id: "00_intro", chapter: "INTRODUCTION", title: "Bun RAD Studio", bullets: "", kind: "card",
-    card: { kicker: "The complete tutorial", title: "Bun RAD Studio", lines: ["67 desktop apps", "79 command-line tools", "A visual designer", "SimpleGUI"] },
-    narration: "Welcome to Bun RAD Studio, a toolbox of desktop apps, command line tools, and a visual form designer, all written in TypeScript and powered by Bun. In this tutorial you will install it, tour the apps, design a window by dragging, write your own app in a few lines, and package it for other people. Let's start.",
+    id: "00_intro",
+    chapter: "INTRODUCTION",
+    title: "Bun RAD Studio",
+    bullets: "",
+    kind: "card",
+    card: {
+      kicker: "The complete tutorial",
+      title: "Bun RAD Studio",
+      lines: [
+        "67 desktop apps",
+        "79 command-line tools",
+        "A visual designer",
+        "SimpleGUI",
+      ],
+    },
+    narration:
+      "Welcome to Bun RAD Studio, a toolbox of desktop apps, command line tools, and a visual form designer, all written in TypeScript and powered by Bun. In this tutorial you will install it, tour the apps, design a window by dragging, write your own app in a few lines, and package it for other people. Let's start.",
   },
   {
-    id: "01_overview", chapter: "THE LAUNCHER", title: "The Launcher: One App for Everything", bullets: "173 tools found automatically · Search · Categories · Launch or run inline", kind: "live",
-    narration: "Bun RAD Studio is a collection of real desktop apps: database studios, developer tools, network and security tools, system monitors, and even games. Each one runs on your own computer, with no account and nothing sent anywhere. This is the launcher, the main app. It scans the project and finds every app and command line tool automatically, a hundred and seventy two in all, sorted into categories. Click a category, or search by name. Select a tool and press Launch to open it in its own window, or run a command line tool inline and read the output right here.",
+    id: "01_overview",
+    chapter: "THE LAUNCHER",
+    title: "The Launcher: One App for Everything",
+    bullets:
+      "173 tools found automatically · Search · Categories · Launch or run inline",
+    kind: "live",
+    narration:
+      "Bun RAD Studio is a collection of real desktop apps: database studios, developer tools, network and security tools, system monitors, and even games. Each one runs on your own computer, with no account and nothing sent anywhere. This is the launcher, the main app. It scans the project and finds every app and command line tool automatically, a hundred and seventy two in all, sorted into categories. Click a category, or search by name. Select a tool and press Launch to open it in its own window, or run a command line tool inline and read the output right here.",
     async run(env, dur) {
       const t0 = performance.now();
       const { c } = env;
@@ -142,12 +233,15 @@ const scenes: Scene[] = [
       await c.hover("#btn_quick_api", 500);
       await c.scroll("body", 520, 8);
       await sleep(700);
-      for (const cat of ["#btn_cat_games", "#btn_cat_db", "#btn_cat_cli"]) await c.click(cat, { pause: 1500 });
+      for (const cat of ["#btn_cat_games", "#btn_cat_db", "#btn_cat_cli"])
+        await c.click(cat, { pause: 1500 });
       await c.click("#txt_search", { pause: 200 });
       await c.type("crypto", 120);
       await c.click("#btn_filter", { pause: 1200 });
       await choose(c, "#lst_apps", "CLI");
-      await c.eval(`(() => { const i = document.querySelector("#txt_cli_args"); i.value = ""; i.dispatchEvent(new Event("input", { bubbles: true })); })()`);
+      await c.eval(
+        `(() => { const i = document.querySelector("#txt_cli_args"); i.value = ""; i.dispatchEvent(new Event("input", { bubbles: true })); })()`,
+      );
       await c.click("#txt_cli_args", { pause: 200 });
       await c.type("hash sha256 hello", 70);
       await c.click("#btn_run_inline", { pause: 2500 });
@@ -156,8 +250,13 @@ const scenes: Scene[] = [
     },
   },
   {
-    id: "02_download", chapter: "GET IT", title: "Download or Install", bullets: "No coding needed · macOS · Windows · Linux · Intel & ARM", kind: "live",
-    narration: "There are two ways to get it. If you just want to use the apps, open the latest release on GitHub, pick the download for your computer, unzip it, and open it. There is a double click app for every Mac, and downloads for Windows and Linux, on both Intel and ARM. Nothing to compile. If you want to build with it, you can install from source.",
+    id: "02_download",
+    chapter: "GET IT",
+    title: "Download or Install",
+    bullets: "No coding needed · macOS · Windows · Linux · Intel & ARM",
+    kind: "live",
+    narration:
+      "There are two ways to get it. If you just want to use the apps, open the latest release on GitHub, pick the download for your computer, unzip it, and open it. There is a double click app for every Mac, and downloads for Windows and Linux, on both Intel and ARM. Nothing to compile. If you want to build with it, you can install from source.",
     async run(env, dur) {
       const t0 = performance.now();
       const { c } = env;
@@ -165,14 +264,22 @@ const scenes: Scene[] = [
       await sleep(2000);
       await c.startRecording();
       await sleep(1200);
-      for (let i = 0; i < 5; i++) { await c.scroll("body", 520, 8); await sleep(1100); }
+      for (let i = 0; i < 5; i++) {
+        await c.scroll("body", 520, 8);
+        await sleep(1100);
+      }
       await c.scroll("body", -2600, 10);
       await until(t0, dur);
     },
   },
   {
-    id: "03_install", chapter: "INSTALL", title: "Install from Source", bullets: "git clone · bun install · one command per app", kind: "live",
-    narration: "To install from source you need Bun, then clone the repository and run bun install. That takes a few seconds, because there are only a handful of dependencies. Every app has a bun run command, and the launcher can list everything it found: well over a hundred and seventy tools.",
+    id: "03_install",
+    chapter: "INSTALL",
+    title: "Install from Source",
+    bullets: "git clone · bun install · one command per app",
+    kind: "live",
+    narration:
+      "To install from source you need Bun, then clone the repository and run bun install. That takes a few seconds, because there are only a handful of dependencies. Every app has a bun run command, and the launcher can list everything it found: well over a hundred and seventy tools.",
     async run(env, dur) {
       const t0 = performance.now();
       const { c } = env;
@@ -180,15 +287,25 @@ const scenes: Scene[] = [
       await c.click("#status-terminal", { pause: 1800 });
       await c.click("#terminal-host", { pause: 300 });
       await c.startRecording();
-      await term(c, "git clone --depth 1 -q https://github.com/codecaine-zz/bun_rad_studio && cd bun_rad_studio", 9500, 15);
+      await term(
+        c,
+        "git clone --depth 1 -q https://github.com/codecaine-zz/bun_rad_studio && cd bun_rad_studio",
+        9500,
+        15,
+      );
       await term(c, "bun install", 2500, 30);
       await term(c, "bun run cli:launcher --list | head -14", 3500, 25);
       await until(t0, dur);
     },
   },
   {
-    id: "04_cli", chapter: "COMMAND LINE", title: "79 Command-Line Tools", bullets: "Hashing · Calculator · Code stats · JSON · Network · Git", kind: "live",
-    narration: "Every studio has a command line twin. These are fast, scriptable tools, with the same engine behind them. Here is a SHA 256 hash, a calculator, and a line count of the whole project across every language. You can pipe them together, use them in scripts, and they all answer dash dash help.",
+    id: "04_cli",
+    chapter: "COMMAND LINE",
+    title: "79 Command-Line Tools",
+    bullets: "Hashing · Calculator · Code stats · JSON · Network · Git",
+    kind: "live",
+    narration:
+      "Every studio has a command line twin. These are fast, scriptable tools, with the same engine behind them. Here is a SHA 256 hash, a calculator, and a line count of the whole project across every language. You can pipe them together, use them in scripts, and they all answer dash dash help.",
     async run(env, dur) {
       const t0 = performance.now();
       const { c } = env;
@@ -204,8 +321,14 @@ const scenes: Scene[] = [
     },
   },
   {
-    id: "05_designer", chapter: "VISUAL DESIGNER", title: "Drag, Drop, Preview, Export", bullets: "Delphi / VB style · 101 controls · Templates · Live preview · Bun TS code", kind: "live",
-    narration: "The visual designer works like Delphi or Visual Basic. Start from a template or drag controls from the palette, click one to edit its properties, and see the form take shape. Press Run for a live preview. The designer writes the code for you, as Bun TypeScript, plain HTML, React, Vue, or Python, ready to copy or export as a project.",
+    id: "05_designer",
+    chapter: "VISUAL DESIGNER",
+    title: "Drag, Drop, Preview, Export",
+    bullets:
+      "Delphi / VB style · 101 controls · Templates · Live preview · Bun TS code",
+    kind: "live",
+    narration:
+      "The visual designer works like Delphi or Visual Basic. Start from a template or drag controls from the palette, click one to edit its properties, and see the form take shape. Press Run for a live preview. The designer writes the code for you, as Bun TypeScript, plain HTML, React, Vue, or Python, ready to copy or export as a project.",
     async run(env, dur) {
       const t0 = performance.now();
       const { c } = env;
@@ -229,13 +352,21 @@ const scenes: Scene[] = [
     },
   },
   {
-    id: "06_code", chapter: "SIMPLEGUI", title: "Your First App in 15 Lines", bullets: "newSimpleWindow · addLabel · addInput · addButton · toast", kind: "live",
-    narration: "You can also write windows in code with SimpleGUI. This is a complete app: a window, a title, an input, and a button that greets you. It is plain TypeScript with chained calls, and you run it with one command. Here it is in the code editor, running, and responding when we type a name and click the button.",
+    id: "06_code",
+    chapter: "SIMPLEGUI",
+    title: "Your First App in 15 Lines",
+    bullets: "newSimpleWindow · addLabel · addInput · addButton · toast",
+    kind: "live",
+    narration:
+      "You can also write windows in code with SimpleGUI. This is a complete app: a window, a title, an input, and a button that greets you. It is plain TypeScript with chained calls, and you run it with one command. Here it is in the code editor, running, and responding when we type a name and click the button.",
     async run(env, dur) {
       const t0 = performance.now();
       const { c } = env;
       // The example is new, so a clone of the published repository may not have it yet.
-      copyFileSync(join(ROOT, "examples", "hello_simplegui.ts"), join(WORK, "bun_rad_studio", "examples", "hello_simplegui.ts"));
+      copyFileSync(
+        join(ROOT, "examples", "hello_simplegui.ts"),
+        join(WORK, "bun_rad_studio", "examples", "hello_simplegui.ts"),
+      );
       await env.fileManager(`${WORK}/bun_rad_studio/examples`);
       await c.click("#view-tools", { pause: 400 });
       await c.click("#power-tab-code", { pause: 1000 });
@@ -246,11 +377,27 @@ const scenes: Scene[] = [
       await sleep(1500);
       await until(t0, dur * 0.5);
       const sg: any = await import("../src/simplegui.ts");
-      rmSync(sg.getAppConfigDir("my_first_app"), { recursive: true, force: true });
-      rmSync(sg.getAppStateDir("my_first_app"), { recursive: true, force: true });
+      rmSync(sg.getAppConfigDir("my_first_app"), {
+        recursive: true,
+        force: true,
+      });
+      rmSync(sg.getAppStateDir("my_first_app"), {
+        recursive: true,
+        force: true,
+      });
       const hello: any = await import("../examples/hello_simplegui.ts");
       const h = await hostApp(() => hello.createHello());
-      env.onStop(() => { h.stop(); rmSync(sg.getAppConfigDir("my_first_app"), { recursive: true, force: true }); rmSync(sg.getAppStateDir("my_first_app"), { recursive: true, force: true }); });
+      env.onStop(() => {
+        h.stop();
+        rmSync(sg.getAppConfigDir("my_first_app"), {
+          recursive: true,
+          force: true,
+        });
+        rmSync(sg.getAppStateDir("my_first_app"), {
+          recursive: true,
+          force: true,
+        });
+      });
       await c.goto(h.url, null);
       await sleep(1200);
       await c.click("input", { pause: 300 });
@@ -263,8 +410,14 @@ const scenes: Scene[] = [
     },
   },
   {
-    id: "07_devtools", chapter: "DEVELOPER TOOLS", title: "Regex, JSON, Git and More", bullets: "Regex Studio · JQ Studio · Git Studio · Data Converter · API Studio", kind: "live",
-    narration: "The developer studios are where it gets useful every day. The regex tester highlights matches and explains patterns in plain words. The J Q studio runs queries on J S O N, formats it, and converts it to Y A M L. And the data converter turns a C S V table into J S O N, Markdown, or whatever format you need.",
+    id: "07_devtools",
+    chapter: "DEVELOPER TOOLS",
+    title: "Regex, JSON, Git and More",
+    bullets:
+      "Regex Studio · JQ Studio · Git Studio · Data Converter · API Studio",
+    kind: "live",
+    narration:
+      "The developer studios are where it gets useful every day. The regex tester highlights matches and explains patterns in plain words. The J Q studio runs queries on J S O N, formats it, and converts it to Y A M L. And the data converter turns a C S V table into J S O N, Markdown, or whatever format you need.",
     async run(env, dur) {
       const t0 = performance.now();
       const { c } = env;
@@ -285,8 +438,14 @@ const scenes: Scene[] = [
     },
   },
   {
-    id: "08_filemanager", chapter: "FILE MANAGER", title: "The File Manager", bullets: "Dual pane · Tasks & System Info · Databases · Media Deck · 180 Themes", kind: "live",
-    narration: "The flagship app is the File Manager. It has a dual pane view, an undoable recycle bin, a code editor, a terminal, database studios, an encrypted password vault, a live web server, and a download manager that splits files over several connections and resumes them. The API Studio, App Bundler, and Environment Studio also live inside it as tabs.",
+    id: "08_filemanager",
+    chapter: "FILE MANAGER",
+    title: "The File Manager",
+    bullets:
+      "Dual pane · Tasks & System Info · Databases · Media Deck · 180 Themes",
+    kind: "live",
+    narration:
+      "The flagship app is the File Manager. It has a dual pane view, an undoable recycle bin, a code editor, a terminal, database studios, an encrypted password vault, a live web server, and a download manager that splits files over several connections and resumes them. The API Studio, App Bundler, and Environment Studio also live inside it as tabs.",
     async run(env, dur) {
       const t0 = performance.now();
       const { c } = env;
@@ -306,8 +465,13 @@ const scenes: Scene[] = [
     },
   },
   {
-    id: "09_security", chapter: "SECURITY & CRYPTO", title: "Hashes, Keys and Secrets", bullets: "SHA-256 · HMAC · AES · UUID · JWT · Passwords", kind: "live",
-    narration: "For security work there is the crypto studio. It calculates hashes and H MAC signatures at once, encrypts and decrypts text with A E S, decodes J W T tokens, and generates U U I Ds, random keys, and strong passwords. Everything is computed on your machine, so your secrets never leave it.",
+    id: "09_security",
+    chapter: "SECURITY & CRYPTO",
+    title: "Hashes, Keys and Secrets",
+    bullets: "SHA-256 · HMAC · AES · UUID · JWT · Passwords",
+    kind: "live",
+    narration:
+      "For security work there is the crypto studio. It calculates hashes and H MAC signatures at once, encrypts and decrypts text with A E S, decodes J W T tokens, and generates U U I Ds, random keys, and strong passwords. Everything is computed on your machine, so your secrets never leave it.",
     async run(env, dur) {
       const t0 = performance.now();
       const { c } = env;
@@ -326,14 +490,21 @@ const scenes: Scene[] = [
     },
   },
   {
-    id: "10_system", chapter: "SYSTEM & FILES", title: "Disk Usage and Code Statistics", bullets: "Gdu Studio · Tokei Studio · Process monitors · Fd search", kind: "live",
-    narration: "There are system tools too. This disk usage studio shows where your space went, folder by folder, and the code statistics studio counts lines of code across more than a hundred languages. There are also process monitors, a fast file finder, a Git workbench, a Homebrew manager, and a network diagnostics studio.",
+    id: "10_system",
+    chapter: "SYSTEM & FILES",
+    title: "Disk Usage and Code Statistics",
+    bullets: "Gdu Studio · Tokei Studio · Process monitors · Fd search",
+    kind: "live",
+    narration:
+      "There are system tools too. This disk usage studio shows where your space went, folder by folder, and the code statistics studio counts lines of code across more than a hundred languages. There are also process monitors, a fast file finder, a Git workbench, a Homebrew manager, and a network diagnostics studio.",
     async run(env, dur) {
       const t0 = performance.now();
       const { c } = env;
       await env.app("tokei_studio", "createTokeiStudio");
       await c.startRecording();
-      await c.eval(`(() => { const i = document.querySelector("#txt_path"); i.value = ""; i.dispatchEvent(new Event("input", { bubbles: true })); })()`);
+      await c.eval(
+        `(() => { const i = document.querySelector("#txt_path"); i.value = ""; i.dispatchEvent(new Event("input", { bubbles: true })); })()`,
+      );
       await c.click("#txt_path", { pause: 200 });
       await c.type(`${WORK}/bun_rad_studio`, 12);
       await c.click("#btn_analyze", { pause: 3500 });
@@ -342,7 +513,9 @@ const scenes: Scene[] = [
       process.chdir(`${WORK}/bun_rad_studio`);
       await env.app("gdu_studio", "createGduStudio");
       process.chdir(ROOT);
-      await c.eval(`(() => { const i = document.querySelector("#txt_path"); i.value = ""; i.dispatchEvent(new Event("input", { bubbles: true })); })()`);
+      await c.eval(
+        `(() => { const i = document.querySelector("#txt_path"); i.value = ""; i.dispatchEvent(new Event("input", { bubbles: true })); })()`,
+      );
       await c.click("#txt_path", { pause: 200 });
       await c.type(`${WORK}/bun_rad_studio`, 12);
       await c.click("#btn_scan", { pause: 2500 });
@@ -351,19 +524,43 @@ const scenes: Scene[] = [
     },
   },
   {
-    id: "11_games", chapter: "GAMES", title: "24 Games Built the Same Way", bullets: "Pong · Pac-Man · Tetris · Snake · Poker · Minesweeper and more", kind: "live",
-    narration: "And yes, there are games. Twenty four of them, including Pong, Pac-Man, Tetris, Snake, Poker, and Minesweeper, all built with the same tools, and all playable right now. They are a good way to see what a SimpleGUI or web based window can do, and every one is open source, so you can read how it works.",
+    id: "11_games",
+    chapter: "GAMES",
+    title: "24 Games Built the Same Way",
+    bullets: "Pong · Pac-Man · Tetris · Snake · Poker · Minesweeper and more",
+    kind: "live",
+    narration:
+      "And yes, there are games. Twenty four of them, including Pong, Pac-Man, Tetris, Snake, Poker, and Minesweeper, all built with the same tools, and all playable right now. They are a good way to see what a SimpleGUI or web based window can do, and every one is open source, so you can read how it works.",
     async run(env, dur) {
       const t0 = performance.now();
       const { c } = env;
       const startGame = async (stem: string) => {
-        const p = Bun.spawn([process.execPath, join(ROOT, "applications", `${stem}.ts`), "--server"], { cwd: ROOT, stdout: "pipe", stderr: "ignore", env: { ...process.env, PORT: "0" } });
-        env.onStop(() => { try { p.kill(9); } catch {} });
+        const p = Bun.spawn(
+          [
+            process.execPath,
+            join(ROOT, "applications", `${stem}.ts`),
+            "--server",
+          ],
+          {
+            cwd: ROOT,
+            stdout: "pipe",
+            stderr: "ignore",
+            env: { ...process.env, PORT: "0" },
+          },
+        );
+        env.onStop(() => {
+          try {
+            p.kill(9);
+          } catch {}
+        });
         let out = "";
         const reader = (p.stdout as ReadableStream<Uint8Array>).getReader();
         const t = Date.now();
         while (Date.now() - t < 12000 && !/READY:(\d+)/.test(out)) {
-          const r = await Promise.race([reader.read(), sleep(12000 - (Date.now() - t)).then(() => null)]);
+          const r = await Promise.race([
+            reader.read(),
+            sleep(12000 - (Date.now() - t)).then(() => null),
+          ]);
           if (!r || r.done) break;
           out += new TextDecoder().decode(r.value);
         }
@@ -386,13 +583,29 @@ const scenes: Scene[] = [
       await startGame("pacman_studio");
       await sleep(900);
       await c.click("#startBtn", { pause: 800 });
-      for (const k of ["ArrowLeft", "ArrowUp", "ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp", "ArrowRight"]) { await c.key(k, k.replace("Arrow", "")); await sleep(350); }
+      for (const k of [
+        "ArrowLeft",
+        "ArrowUp",
+        "ArrowRight",
+        "ArrowDown",
+        "ArrowLeft",
+        "ArrowUp",
+        "ArrowRight",
+      ]) {
+        await c.key(k, k.replace("Arrow", ""));
+        await sleep(350);
+      }
       await until(t0, dur);
     },
   },
   {
-    id: "12_themes", chapter: "THEMES", title: "Over 100 Themes", bullets: "Cyberpunk · Neon · Apple Sonoma · Light & Dark · Live switching", kind: "live",
-    narration: "Every app shares the same theme engine, with well over a hundred themes: Apple style light and dark, neon and cyberpunk, retro terminals, and calm minimal palettes. Switch themes with a dropdown, live, with no restart. Your choice is remembered the next time you open the app.",
+    id: "12_themes",
+    chapter: "THEMES",
+    title: "Over 100 Themes",
+    bullets: "Cyberpunk · Neon · Apple Sonoma · Light & Dark · Live switching",
+    kind: "live",
+    narration:
+      "Every app shares the same theme engine, with well over a hundred themes: Apple style light and dark, neon and cyberpunk, retro terminals, and calm minimal palettes. Switch themes with a dropdown, live, with no restart. Your choice is remembered the next time you open the app.",
     async run(env, dur) {
       const t0 = performance.now();
       const { c } = env;
@@ -407,8 +620,13 @@ const scenes: Scene[] = [
     },
   },
   {
-    id: "13_ship", chapter: "SHIP IT", title: "Bundle and Share Your App", bullets: "App Bundler · Standalone binaries · macOS .app · Windows & Linux", kind: "live",
-    narration: "When your app is ready, the App Bundler packages it. It can produce a single bundled file, a standalone program that needs no Bun on the user's computer, or a macOS app with its own icon. The same tooling built every download in the release. Anyone can run the result, without knowing what TypeScript is.",
+    id: "13_ship",
+    chapter: "SHIP IT",
+    title: "Bundle and Share Your App",
+    bullets: "App Bundler · Standalone binaries · macOS .app · Windows & Linux",
+    kind: "live",
+    narration:
+      "When your app is ready, the App Bundler packages it. It can produce a single bundled file, a standalone program that needs no Bun on the user's computer, or a macOS app with its own icon. The same tooling built every download in the release. Anyone can run the result, without knowing what TypeScript is.",
     async run(env, dur) {
       const t0 = performance.now();
       const { c } = env;
@@ -426,9 +644,18 @@ const scenes: Scene[] = [
     },
   },
   {
-    id: "14_outro", chapter: "CONCLUSION", title: "Start Building", bullets: "", kind: "card",
-    card: { kicker: "Get started", title: "github.com/codecaine-zz/bun_rad_studio", lines: ["Download the release", "Star the repo", "Build something"] },
-    narration: "That was Bun RAD Studio. You can download the apps today from the releases page, or clone the repository and build your own. Everything is open source under the M I T license. If this was useful, star the project on GitHub, and subscribe for deeper dives into each studio. Thanks for watching.",
+    id: "14_outro",
+    chapter: "CONCLUSION",
+    title: "Start Building",
+    bullets: "",
+    kind: "card",
+    card: {
+      kicker: "Get started",
+      title: "github.com/codecaine-zz/bun_rad_studio",
+      lines: ["Download the release", "Star the repo", "Build something"],
+    },
+    narration:
+      "That was Bun RAD Studio. You can download the apps today from the releases page, or clone the repository and build your own. Everything is open source under the M I T license. If this was useful, star the project on GitHub, and subscribe for deeper dives into each studio. Thanks for watching.",
   },
 ];
 
@@ -449,7 +676,8 @@ async function phaseRecord(only: string[]) {
   rmSync(DATA, { recursive: true, force: true });
   rmSync(GRAVE, { recursive: true, force: true });
   // Later scenes browse the clone made in 03_install, so keep it unless that scene is being redone.
-  if (!only.length || only.includes("03_install")) rmSync(WORK, { recursive: true, force: true });
+  if (!only.length || only.includes("03_install"))
+    rmSync(WORK, { recursive: true, force: true });
   mkdirSync(DATA, { recursive: true });
   mkdirSync(WORK, { recursive: true });
   // Examples and the one folder the code scene browses are real files from this repository's own working tree.
@@ -458,17 +686,31 @@ async function phaseRecord(only: string[]) {
   await env.start();
   try {
     for (const sc of scenes) {
-      if (sc.kind !== "live" || (only.length && !only.includes(sc.id))) continue;
+      if (sc.kind !== "live" || (only.length && !only.includes(sc.id)))
+        continue;
       const dur = durationOf(join(AUDIO, `narration_${sc.id}.mp3`));
-      if (!dur) throw new Error(`No narration for ${sc.id}. Run: bun scripts/tutorial.ts audio`);
+      if (!dur)
+        throw new Error(
+          `No narration for ${sc.id}. Run: bun scripts/tutorial.ts audio`,
+        );
       resetSavedTheme();
       console.log(`🎬 ${sc.id} (${dur.toFixed(1)}s)`);
       const t0 = performance.now();
       let err: unknown;
-      try { await sc.run!(env, dur); } catch (e) { err = e; }
+      try {
+        await sc.run!(env, dur);
+      } catch (e) {
+        err = e;
+      }
       const took = (performance.now() - t0) / 1000;
-      const r = await env.c.stopRecording(join(LIVE, `live_${sc.id}.mp4`), join(LIVE, `_w_${sc.id}`), dur);
-      console.log(`   ${took.toFixed(1)}s of action, ${r.frames} frames${r.speed > 1 ? `, sped up ${r.speed.toFixed(2)}x` : ""}`);
+      const r = await env.c.stopRecording(
+        join(LIVE, `live_${sc.id}.mp4`),
+        join(LIVE, `_w_${sc.id}`),
+        dur,
+      );
+      console.log(
+        `   ${took.toFixed(1)}s of action, ${r.frames} frames${r.speed > 1 ? `, sped up ${r.speed.toFixed(2)}x` : ""}`,
+      );
       if (err) throw err;
     }
   } finally {
@@ -477,7 +719,10 @@ async function phaseRecord(only: string[]) {
 }
 
 async function phaseBuild() {
-  for (const d of [SEG, ASSETS]) { rmSync(d, { recursive: true, force: true }); mkdirSync(d, { recursive: true }); }
+  for (const d of [SEG, ASSETS]) {
+    rmSync(d, { recursive: true, force: true });
+    mkdirSync(d, { recursive: true });
+  }
   const parts: string[] = [];
   const chapters: Array<{ t: number; title: string }> = [];
   let t = 0;
@@ -488,35 +733,155 @@ async function phaseBuild() {
     const seg = join(SEG, `seg_${sc.id}.mp4`);
     if (sc.kind === "card") {
       const png = join(ASSETS, `${sc.id}.png`);
-      screenshotHtml(cardHtml(sc.card!.kicker, sc.card!.title, sc.card!.lines), png, ASSETS);
-      sh([FFMPEG, "-y", "-loop", "1", "-i", png, "-i", audio, "-c:v", "libx264", "-tune", "stillimage", "-c:a", "aac", "-b:a", "192k", "-pix_fmt", "yuv420p", "-t", dur.toFixed(3), "-r", "30", seg]);
+      screenshotHtml(
+        cardHtml(sc.card!.kicker, sc.card!.title, sc.card!.lines),
+        png,
+        ASSETS,
+      );
+      sh([
+        FFMPEG,
+        "-y",
+        "-loop",
+        "1",
+        "-i",
+        png,
+        "-i",
+        audio,
+        "-c:v",
+        "libx264",
+        "-tune",
+        "stillimage",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "192k",
+        "-pix_fmt",
+        "yuv420p",
+        "-t",
+        dur.toFixed(3),
+        "-r",
+        "30",
+        seg,
+      ]);
     } else {
       const clip = join(LIVE, `live_${sc.id}.mp4`);
-      if (!existsSync(clip)) throw new Error(`No recording for ${sc.id}. Run: bun scripts/tutorial.ts record ${sc.id}`);
+      if (!existsSync(clip))
+        throw new Error(
+          `No recording for ${sc.id}. Run: bun scripts/tutorial.ts record ${sc.id}`,
+        );
       const hud = join(ASSETS, `hud_${sc.id}.png`);
-      screenshotHtml(overlayHtml(sc.chapter, sc.title, sc.bullets), hud, ASSETS);
-      sh([FFMPEG, "-y", "-i", clip, "-i", hud, "-i", audio, "-filter_complex", "[0:v]fps=30,scale=1920:1080,tpad=stop_mode=clone:stop_duration=3[bg];[bg][1:v]overlay=0:0[v]", "-map", "[v]", "-map", "2:a",
-        "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-c:a", "aac", "-b:a", "192k", "-pix_fmt", "yuv420p", "-t", dur.toFixed(3), "-r", "30", seg]);
+      screenshotHtml(
+        overlayHtml(sc.chapter, sc.title, sc.bullets),
+        hud,
+        ASSETS,
+      );
+      sh([
+        FFMPEG,
+        "-y",
+        "-i",
+        clip,
+        "-i",
+        hud,
+        "-i",
+        audio,
+        "-filter_complex",
+        "[0:v]fps=30,scale=1920:1080,tpad=stop_mode=clone:stop_duration=3[bg];[bg][1:v]overlay=0:0[v]",
+        "-map",
+        "[v]",
+        "-map",
+        "2:a",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "medium",
+        "-crf",
+        "18",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "192k",
+        "-pix_fmt",
+        "yuv420p",
+        "-t",
+        dur.toFixed(3),
+        "-r",
+        "30",
+        seg,
+      ]);
     }
     console.log(`✔ ${sc.id} ${dur.toFixed(1)}s`);
-    chapters.push({ t, title: sc.kind === "card" && sc.id === "00_intro" ? "Introduction" : `${sc.title}` });
+    chapters.push({
+      t,
+      title:
+        sc.kind === "card" && sc.id === "00_intro"
+          ? "Introduction"
+          : `${sc.title}`,
+    });
     parts.push(seg);
     t += dur;
   }
   const list = join(SEG, "list.txt");
   writeFileSync(list, parts.map((p) => `file '${p}'`).join("\n"));
   const merged = join(SEG, "merged.mp4");
-  sh([FFMPEG, "-y", "-f", "concat", "-safe", "0", "-i", list, "-c", "copy", merged]);
+  sh([
+    FFMPEG,
+    "-y",
+    "-f",
+    "concat",
+    "-safe",
+    "0",
+    "-i",
+    list,
+    "-c",
+    "copy",
+    merged,
+  ]);
   const music = join(AUDIO, "bed.mp3");
   const total = t + 2;
-  sh([FFMPEG, "-y", "-f", "lavfi", "-i", `aevalsrc=sin(130.81*2*PI*t)*0.015+sin(196*2*PI*t)*0.012+sin(261.63*2*PI*t)*0.015+sin(329.63*2*PI*t)*0.01:s=48000:d=${total.toFixed(1)}`,
-    "-af", `lowpass=f=700,tremolo=f=0.15:d=0.35,aecho=0.8:0.7:60|120:0.3|0.2,volume=0.30,afade=t=in:ss=0:d=2,afade=t=out:st=${(total - 3).toFixed(1)}:d=3`, music]);
-  sh([FFMPEG, "-y", "-i", merged, "-i", music, "-filter_complex", "[0:a][1:a]amix=inputs=2:duration=first:weights=1.0 0.09[a]", "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-c:a", "aac", "-b:a", "256k", "-movflags", "+faststart", FINAL]);
+  sh([
+    FFMPEG,
+    "-y",
+    "-f",
+    "lavfi",
+    "-i",
+    `aevalsrc=sin(130.81*2*PI*t)*0.015+sin(196*2*PI*t)*0.012+sin(261.63*2*PI*t)*0.015+sin(329.63*2*PI*t)*0.01:s=48000:d=${total.toFixed(1)}`,
+    "-af",
+    `lowpass=f=700,tremolo=f=0.15:d=0.35,aecho=0.8:0.7:60|120:0.3|0.2,volume=0.30,afade=t=in:ss=0:d=2,afade=t=out:st=${(total - 3).toFixed(1)}:d=3`,
+    music,
+  ]);
+  sh([
+    FFMPEG,
+    "-y",
+    "-i",
+    merged,
+    "-i",
+    music,
+    "-filter_complex",
+    "[0:a][1:a]amix=inputs=2:duration=first:weights=1.0 0.09[a]",
+    "-map",
+    "0:v",
+    "-map",
+    "[a]",
+    "-c:v",
+    "copy",
+    "-c:a",
+    "aac",
+    "-b:a",
+    "256k",
+    "-movflags",
+    "+faststart",
+    FINAL,
+  ]);
   writeFileSync(NOTES, notesFile(chapters, t));
-  console.log(`\n🎉 ${FINAL}  (${(statSync(FINAL).size / 1048576).toFixed(1)} MB, ${fmtTime(t)})\n📝 ${NOTES}`);
+  console.log(
+    `\n🎉 ${FINAL}  (${(statSync(FINAL).size / 1048576).toFixed(1)} MB, ${fmtTime(t)})\n📝 ${NOTES}`,
+  );
 }
 
-function notesFile(chapters: Array<{ t: number; title: string }>, total: number): string {
+function notesFile(
+  chapters: Array<{ t: number; title: string }>,
+  total: number,
+): string {
   const stamps = chapters.map((c) => `${fmtTime(c.t)} ${c.title}`).join("\n");
   return `# Bun RAD Studio: the complete tutorial (${fmtTime(total)})
 
@@ -554,5 +919,8 @@ const only = (rest[0] ?? "").split(",").filter(Boolean);
 if (phase === "audio" || phase === "all") await phaseAudio();
 if (phase === "record" || phase === "all") await phaseRecord(only);
 if (phase === "build" || phase === "all") await phaseBuild();
-if (!["audio", "record", "build", "all"].includes(phase)) { console.error("Usage: bun scripts/tutorial.ts audio|record [ids]|build|all"); process.exit(1); }
+if (!["audio", "record", "build", "all"].includes(phase)) {
+  console.error("Usage: bun scripts/tutorial.ts audio|record [ids]|build|all");
+  process.exit(1);
+}
 process.exit(0);

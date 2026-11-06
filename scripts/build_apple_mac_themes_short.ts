@@ -34,7 +34,10 @@ const ROOT = process.cwd();
 const PROD = join(ROOT, "youtube_production");
 const WORK = join(PROD, "apple_mac_themes_short");
 const OUTPUT = join(PROD, "codecaine-file-manager-apple-mac-themes-short.mp4");
-const OUTPUT_THEMES_SHORT = join(PROD, "codecaine-file-manager-themes-short.mp4");
+const OUTPUT_THEMES_SHORT = join(
+  PROD,
+  "codecaine-file-manager-themes-short.mp4",
+);
 const NOTES = join(PROD, "APPLE_MAC_THEMES_SHORT_NOTES.md");
 const REPO = "https://github.com/codecaine-zz/bun_rad_studio";
 
@@ -45,7 +48,10 @@ const VIEW_W = 1920;
 const VIEW_H = 972;
 
 const ROOT_DIR = "/tmp/fm_apple_mac_short";
-const HOME = process.platform === "darwin" ? "/private/tmp/fm_apple_mac_short/home" : "/tmp/fm_apple_mac_short/home";
+const HOME =
+  process.platform === "darwin"
+    ? "/private/tmp/fm_apple_mac_short/home"
+    : "/tmp/fm_apple_mac_short/home";
 const DATA = `${ROOT_DIR}/data`;
 const GRAVE = `${ROOT_DIR}/grave`;
 const ZDOT = `${ROOT_DIR}/zdot`;
@@ -63,17 +69,33 @@ type SceneSpec = {
 
 function run(args: string[]): string {
   const result = Bun.spawnSync(args, { stdout: "pipe", stderr: "pipe" });
-  if (result.exitCode !== 0) throw new Error(`${args[0]} failed:\n${result.stderr.toString().slice(-4000)}`);
+  if (result.exitCode !== 0)
+    throw new Error(
+      `${args[0]} failed:\n${result.stderr.toString().slice(-4000)}`,
+    );
   return result.stdout.toString();
 }
 
 function duration(file: string): number {
-  const value = Number(run([FFPROBE, "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file]).trim());
-  if (!Number.isFinite(value) || value <= 0) throw new Error(`Invalid duration: ${file}`);
+  const value = Number(
+    run([
+      FFPROBE,
+      "-v",
+      "error",
+      "-show_entries",
+      "format=duration",
+      "-of",
+      "csv=p=0",
+      file,
+    ]).trim(),
+  );
+  if (!Number.isFinite(value) || value <= 0)
+    throw new Error(`Invalid duration: ${file}`);
   return value;
 }
 
-const esc = (text: string) => text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+const esc = (text: string) =>
+  text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 
 function seedAppleMacStudioWorkspace() {
   rmSync(ROOT_DIR, { recursive: true, force: true });
@@ -96,7 +118,17 @@ function seedAppleMacStudioWorkspace() {
   );
   writeFileSync(
     join(studioDir, "ProDisplay_XDR_Calibration.json"),
-    JSON.stringify({ display: "Apple Pro Display XDR 6K", peakNits: 1600, colorSpace: "Display-P3", refreshRateHz: 120, gpu: "Apple M4 Ultra 80-Core" }, null, 2),
+    JSON.stringify(
+      {
+        display: "Apple Pro Display XDR 6K",
+        peakNits: 1600,
+        colorSpace: "Display-P3",
+        refreshRateHz: 120,
+        gpu: "Apple M4 Ultra 80-Core",
+      },
+      null,
+      2,
+    ),
   );
   writeFileSync(
     join(studioDir, "Keynote_Design_Notes.md"),
@@ -133,7 +165,12 @@ function seedAppleMacStudioWorkspace() {
  * Injects an Apple Keynote-style floating glass callout banner inside the live recorded viewport
  * so each scene looks like an official Cupertino product film.
  */
-async function showAppleKeynoteBanner(c: Cdp, title: string, subtitle: string, pill = " M4 ULTRA · 6K XDR · 120HZ") {
+async function showAppleKeynoteBanner(
+  c: Cdp,
+  title: string,
+  subtitle: string,
+  pill = " M4 ULTRA · 6K XDR · 120HZ",
+) {
   await c.eval(`(() => {
     let el = document.getElementById("apple-keynote-hud");
     if (!el) {
@@ -187,7 +224,8 @@ const sceneSpecs: SceneSpec[] = [
     badge: "01 / 10 · SHOT ON MAC STUDIO M4 ULTRA 6K XDR",
     title: "DESIGNED FOR MAC.\n310 LIVE THEMES.",
     label: " MAC STUDIO M4 ULTRA · 80-CORE GPU · 120HZ PROMOTION",
-    extra: "macOS Tahoe 3D Liquid Glass, Big-Screen Gallery & 1-Click Optimize for Mac",
+    extra:
+      "macOS Tahoe 3D Liquid Glass, Big-Screen Gallery & 1-Click Optimize for Mac",
     bullets: [
       "🍎 1-Click Optimize for Mac (120Hz Metal 3)",
       "🧊 Mac Studio M4 Ultra Silver Vault Kit",
@@ -199,12 +237,20 @@ const sceneSpecs: SceneSpec[] = [
         const tm = await import('/ui/themes.js');
         await tm.applyJumpstartKit('macos_tahoe_3d_kit');
       })()`);
-      await showAppleKeynoteBanner(c, "macOS Tahoe 3D Glass & Pictures", "3D Sculpted Regular Folders · Display-P3 Caustics · 120Hz ProMotion");
+      await showAppleKeynoteBanner(
+        c,
+        "macOS Tahoe 3D Glass & Pictures",
+        "3D Sculpted Regular Folders · Display-P3 Caustics · 120Hz ProMotion",
+      );
       await sleep(1100);
 
       // Open Themes dropdown menu first to show scroll-isolated menu, then open full Theme Gallery
       await c.click("#tool-themes", { pause: 800 });
-      await showAppleKeynoteBanner(c, "Scroll-Isolated Themes Menu", "Mouse Wheel Scrolls Menu Only — Zero Pass-Through to Files");
+      await showAppleKeynoteBanner(
+        c,
+        "Scroll-Isolated Themes Menu",
+        "Mouse Wheel Scrolls Menu Only — Zero Pass-Through to Files",
+      );
       await sleep(700);
       await c.eval(`(async () => {
         const menus = await import('/ui/menus.js');
@@ -220,11 +266,27 @@ const sceneSpecs: SceneSpec[] = [
       await sleep(250);
 
       await c.click('[data-optimize-platform="macos"]', { pause: 900 });
-      await showAppleKeynoteBanner(c, "1-Click Optimize for Mac", "Metal 3 Zero-Readback Compositor · Ultra Hardware Budget");
-      await c.click('[data-jumpstart-kit="mac_studio_m4_ultra_kit"]', { pause: 1300 });
-      await showAppleKeynoteBanner(c, "Mac Studio M4 Ultra Silver Vault", "CNC Anodized Silver-Graphite · 3D Titanium XDR Folders");
-      await c.click('[data-jumpstart-kit="macbook_pro_space_black_kit"]', { pause: 1300 });
-      await showAppleKeynoteBanner(c, "MacBook Pro 16 M4 Max Space Black", "Mini-LED XDR Deep Blacks · Display-P3 Indigo Bloom");
+      await showAppleKeynoteBanner(
+        c,
+        "1-Click Optimize for Mac",
+        "Metal 3 Zero-Readback Compositor · Ultra Hardware Budget",
+      );
+      await c.click('[data-jumpstart-kit="mac_studio_m4_ultra_kit"]', {
+        pause: 1300,
+      });
+      await showAppleKeynoteBanner(
+        c,
+        "Mac Studio M4 Ultra Silver Vault",
+        "CNC Anodized Silver-Graphite · 3D Titanium XDR Folders",
+      );
+      await c.click('[data-jumpstart-kit="macbook_pro_space_black_kit"]', {
+        pause: 1300,
+      });
+      await showAppleKeynoteBanner(
+        c,
+        "MacBook Pro 16 M4 Max Space Black",
+        "Mini-LED XDR Deep Blacks · Display-P3 Indigo Bloom",
+      );
     },
   },
   {
@@ -232,7 +294,8 @@ const sceneSpecs: SceneSpec[] = [
     badge: "02 / 10 · PRO DISPLAY XDR 6K & STUDIO DISPLAY 5K",
     title: "6K XDR MASTERING &\n5K STUDIO DAYLIGHT.",
     label: "🖥️ MAC PRO 6K XDR · ☀️ 5K STUDIO DISPLAY · 🥽 VISION SPATIAL 8K",
-    extra: "1600-Nit Reference Mastering, 5K Nano-Texture Daylight & visionOS Glass",
+    extra:
+      "1600-Nit Reference Mastering, 5K Nano-Texture Daylight & visionOS Glass",
     bullets: [
       "🖥️ Mac Pro Afterburner & 6K XDR (1600 Nits)",
       "☀️ Apple Studio Display 5K Daylight Reference",
@@ -240,15 +303,35 @@ const sceneSpecs: SceneSpec[] = [
     ],
     say: "Every Apple display has a calibrated workstation profile. Try Mac Pro Afterburner with six-K X D R reference mastering, switch to Apple Studio Display five-K Daylight with nano-texture balance, or explore iMac M4 Spectrum P3 and Apple Vision Spatial Glass.",
     record: async (c) => {
-      await showAppleKeynoteBanner(c, "Mac Pro Afterburner & 6K XDR", "1600-Nit Reference Mastering · PCIe Gen5 Gold Accents");
+      await showAppleKeynoteBanner(
+        c,
+        "Mac Pro Afterburner & 6K XDR",
+        "1600-Nit Reference Mastering · PCIe Gen5 Gold Accents",
+      );
       await c.click('[data-jumpstart-kit="mac_pro_xdr_kit"]', { pause: 1400 });
-      await showAppleKeynoteBanner(c, "Apple Studio Display 5K Daylight", "600-Nit 5K Retina Daylight · Nano-Texture Anti-Reflective Glass");
-      await c.click('[data-jumpstart-kit="apple_studio_display_5k_kit"]', { pause: 1400 });
+      await showAppleKeynoteBanner(
+        c,
+        "Apple Studio Display 5K Daylight",
+        "600-Nit 5K Retina Daylight · Nano-Texture Anti-Reflective Glass",
+      );
+      await c.click('[data-jumpstart-kit="apple_studio_display_5k_kit"]', {
+        pause: 1400,
+      });
 
-      await c.click('[data-collection-pill="flagship_mac_xdr"]', { pause: 900 });
-      await showAppleKeynoteBanner(c, "Flagship Mac XDR Collection (10)", "iMac 24 M4 P3 · Sequoia Redwood XDR · Mac Spatial Vision 8K");
-      await c.click('.theme-card[data-key="imac_m4_spectrum_p3"]', { pause: 1200 });
-      await c.click('.theme-card[data-key="macos_vision_spatial_mac"]', { pause: 1300 });
+      await c.click('[data-collection-pill="flagship_mac_xdr"]', {
+        pause: 900,
+      });
+      await showAppleKeynoteBanner(
+        c,
+        "Flagship Mac XDR Collection (10)",
+        "iMac 24 M4 P3 · Sequoia Redwood XDR · Mac Spatial Vision 8K",
+      );
+      await c.click('.theme-card[data-key="imac_m4_spectrum_p3"]', {
+        pause: 1200,
+      });
+      await c.click('.theme-card[data-key="macos_vision_spatial_mac"]', {
+        pause: 1300,
+      });
     },
   },
   {
@@ -256,7 +339,8 @@ const sceneSpecs: SceneSpec[] = [
     badge: "03 / 10 · YEAR 3000+ POST-SINGULARITY GOD-MODE",
     title: "OMEGA SINGULARITY\n& PHOTONIC 3099.",
     label: "🌌 OMEGA POINT · 💎 PHOTONIC 3099 · ☀️ DYSON BRAIN · ⏳ AETHELGARD",
-    extra: "12 Post-Singularity Hyper-Material Themes With 3D Crown Halos & Prism Optics",
+    extra:
+      "12 Post-Singularity Hyper-Material Themes With 3D Crown Halos & Prism Optics",
     bullets: [
       "🌌 Omega Point Singularity (24K Gold & Violet Halo)",
       "💎 Photonic Metamaterial 3099 (Dichroic Crystal)",
@@ -265,22 +349,48 @@ const sceneSpecs: SceneSpec[] = [
     say: "Want next-century industrial design? Click the God-Mode Three Thousand collection to experience twelve post-singularity architectures: Omega Point Singularity with twenty-four-karat event-horizon halos, Photonic Metamaterial thirty-ninety-nine, Matrioshka Dyson Brain, and Chrono-Crystalline Aethelgard.",
     record: async (c) => {
       await c.click('[data-collection-pill="god_mode_3000"]', { pause: 900 });
-      await showAppleKeynoteBanner(c, "Omega Point Singularity", "24K Celestial Gold & Event-Horizon Crown Halos · 4D Tesseract");
-      await c.click('.theme-card[data-key="omega_point_singularity"]', { pause: 1450 });
-      await showAppleKeynoteBanner(c, "Photonic Metamaterial 3099", "Negative-Index Photonic Crystal · Display-P3 Dichroic Caustics");
-      await c.click('.theme-card[data-key="photonic_metamaterial_3099"]', { pause: 1450 });
-      await showAppleKeynoteBanner(c, "Matrioshka Dyson Brain", "Kardashev Type-II Stellar Megastructure · Computronium Lattice");
-      await c.click('.theme-card[data-key="matrioshka_dyson_brain"]', { pause: 1400 });
-      await showAppleKeynoteBanner(c, "Chrono-Crystalline Aethelgard", "Time-Dilated Horological Sapphire Crystal · Retrocausal Shimmer");
-      await c.click('.theme-card[data-key="chrono_crystalline_aethelgard"]', { pause: 1300 });
+      await showAppleKeynoteBanner(
+        c,
+        "Omega Point Singularity",
+        "24K Celestial Gold & Event-Horizon Crown Halos · 4D Tesseract",
+      );
+      await c.click('.theme-card[data-key="omega_point_singularity"]', {
+        pause: 1450,
+      });
+      await showAppleKeynoteBanner(
+        c,
+        "Photonic Metamaterial 3099",
+        "Negative-Index Photonic Crystal · Display-P3 Dichroic Caustics",
+      );
+      await c.click('.theme-card[data-key="photonic_metamaterial_3099"]', {
+        pause: 1450,
+      });
+      await showAppleKeynoteBanner(
+        c,
+        "Matrioshka Dyson Brain",
+        "Kardashev Type-II Stellar Megastructure · Computronium Lattice",
+      );
+      await c.click('.theme-card[data-key="matrioshka_dyson_brain"]', {
+        pause: 1400,
+      });
+      await showAppleKeynoteBanner(
+        c,
+        "Chrono-Crystalline Aethelgard",
+        "Time-Dilated Horological Sapphire Crystal · Retrocausal Shimmer",
+      );
+      await c.click('.theme-card[data-key="chrono_crystalline_aethelgard"]', {
+        pause: 1300,
+      });
     },
   },
   {
     id: "04_random_fx_finder_1click_remover",
     badge: "04 / 10 · AAA 10-ENGINE DIRECTOR'S CUT, ⌥C SWAP COLORS & ⌥I ICONS",
     title: "AAA 10-ENGINE STUDIO,\n⌥C COLORS & ⌥I ICONS.",
-    label: "🏆 ⌥M DIRECTOR'S CUT · 🌈 ⌥C KEEP FX SWAP COLORS · 🎭 ⌥I 49 ICON PACKS",
-    extra: "6 Icon Material Finishes, 3D Desktop Stage (⌥S), 8K Wallpapers (⌥W) & 1-Click FX Remover",
+    label:
+      "🏆 ⌥M DIRECTOR'S CUT · 🌈 ⌥C KEEP FX SWAP COLORS · 🎭 ⌥I 49 ICON PACKS",
+    extra:
+      "6 Icon Material Finishes, 3D Desktop Stage (⌥S), 8K Wallpapers (⌥W) & 1-Click FX Remover",
     bullets: [
       "🏆 10-Engine AAA Director's Cut Switchboard (⌥M)",
       "🌈 Swap Colors Keep FX (⌥C) & 49 Icon Packs (⌥I)",
@@ -289,11 +399,19 @@ const sceneSpecs: SceneSpec[] = [
     say: "Inside the ten-engine Triple-A Production Studio, click any Master Director's Cut preset or press Option M to orchestrate 3D Desktop Stage tilt, Ambilux backlight, 8K Wallpaper backplates, and six computer icon material finishes like 24-Karat Gold and Liquid Glass. Press Option C to swap colors while keeping your active effects, press Option I to shuffle forty-nine icon packs, or click X on any effect pill to drop it!",
     record: async (c) => {
       await c.click('[data-collection-pill="all"]', { pause: 450 });
-      await showAppleKeynoteBanner(c, "AAA 10-Engine Production Studio (⌥M)", "Cupertino M4 Ultra Keynote · 3D Stage Tilt · 24K Gold & Liquid Glass Icons");
-      await c.click('[data-aaa-director-preset]', { pause: 950 });
-      await c.click('[data-icon-finish-pill]', { pause: 750 });
-      await c.click('[data-stage-mode-pill]', { pause: 750 });
-      await showAppleKeynoteBanner(c, "Keep Active FX — Swap Colors Only (⌥C) & Shuffle 49 Icons (⌥I)", "Change Theme Colors Instantly While Preserving All Shaders & 3D Folders");
+      await showAppleKeynoteBanner(
+        c,
+        "AAA 10-Engine Production Studio (⌥M)",
+        "Cupertino M4 Ultra Keynote · 3D Stage Tilt · 24K Gold & Liquid Glass Icons",
+      );
+      await c.click("[data-aaa-director-preset]", { pause: 950 });
+      await c.click("[data-icon-finish-pill]", { pause: 750 });
+      await c.click("[data-stage-mode-pill]", { pause: 750 });
+      await showAppleKeynoteBanner(
+        c,
+        "Keep Active FX — Swap Colors Only (⌥C) & Shuffle 49 Icons (⌥I)",
+        "Change Theme Colors Instantly While Preserving All Shaders & 3D Folders",
+      );
       await c.click('[data-swap-color-only="dracula"]', { pause: 850 });
       await c.click('[data-picker-shuffle-icons="true"]', { pause: 850 });
 
@@ -303,8 +421,14 @@ const sceneSpecs: SceneSpec[] = [
         await tm.applyWorkspaceStageMode('off', { quiet: true });
         await tm.applyJumpstartKit('compiz_inferno_kit');
       })()`);
-      await c.click('.theme-card[data-key="inferno_fire_folders"]', { pause: 750 });
-      await showAppleKeynoteBanner(c, "1-Click Individual Effect Removal", "Click ✕ on Any Active FX Pill to Strip Only What You Don't Want");
+      await c.click('.theme-card[data-key="inferno_fire_folders"]', {
+        pause: 750,
+      });
+      await showAppleKeynoteBanner(
+        c,
+        "1-Click Individual Effect Removal",
+        "Click ✕ on Any Active FX Pill to Strip Only What You Don't Want",
+      );
       await c.click('[data-remove-active-fx="uiElementFx"]', { pause: 850 });
     },
   },
@@ -312,8 +436,10 @@ const sceneSpecs: SceneSpec[] = [
     id: "05_extreme_120hz_storms_tiedye",
     badge: "05 / 10 · 18 ANIMATED HOLIDAY BURSTS (⌥H), TORNADO & TIE-DYE",
     title: "18 HOLIDAY BURSTS (⌥H),\nEF5 TORNADO & TIE-DYE.",
-    label: "🎆 ⌥H 18 HOLIDAY CELEBRATIONS · 🌪️ EF5 TORNADO · 🔥 COMPIZ · 🌈 MANDALA",
-    extra: "Interactive Holiday Firework & Confetti Bursts, Custom Holiday Crests & 120Hz Physics",
+    label:
+      "🎆 ⌥H 18 HOLIDAY CELEBRATIONS · 🌪️ EF5 TORNADO · 🔥 COMPIZ · 🌈 MANDALA",
+    extra:
+      "Interactive Holiday Firework & Confetti Bursts, Custom Holiday Crests & 120Hz Physics",
     bullets: [
       "🎆 18 Animated US Holiday Themes + Particle Bursts (⌥H)",
       "🌪️ EF5 Tornado Debris & Compiz Blazing Fire Folders",
@@ -321,14 +447,37 @@ const sceneSpecs: SceneSpec[] = [
     ],
     say: "Celebrate all eighteen U S Holidays with bespoke multi-layer animations, custom 3D folder holiday crests, and interactive firework, confetti, snow, and shamrock celebration bursts via Option H! Then push Apple Silicon's eighty-core G P U with E F 5 Tornado Debris, Compiz Fire Folders, and Kaleidoscope Fractal Mandala.",
     record: async (c) => {
-      await showAppleKeynoteBanner(c, "18 Animated US Holiday Themes & Particle Bursts (⌥H)", "Custom Folder Holiday Crests · Fireworks, Snowflakes & Confetti Finale");
-      await c.click('[data-holiday-pill="holiday_fourth_of_july_fireworks"]', { pause: 1200 });
-      await c.click('[data-holiday-pill="holiday_christmas_nutcracker_hearth"]', { pause: 1200 });
-      await showAppleKeynoteBanner(c, "EF5 Tornado & 3D Storm Debris", "Tumbling Leaves, Newspapers & Wind-Buffeted Folders at 120Hz");
-      await c.click('[data-jumpstart-kit="storm_overdrive_kit"]', { pause: 1300 });
-      await showAppleKeynoteBanner(c, "Compiz Fire Folders & Kaleidoscope Mandala", "Blazing Molten Folders, Inferno Icons & 11D Prism Refraction");
-      await c.click('[data-jumpstart-kit="compiz_inferno_kit"]', { pause: 1200 });
-      await c.click('[data-jumpstart-kit="kaleidoscope_trip_kit"]', { pause: 1200 });
+      await showAppleKeynoteBanner(
+        c,
+        "18 Animated US Holiday Themes & Particle Bursts (⌥H)",
+        "Custom Folder Holiday Crests · Fireworks, Snowflakes & Confetti Finale",
+      );
+      await c.click('[data-holiday-pill="holiday_fourth_of_july_fireworks"]', {
+        pause: 1200,
+      });
+      await c.click(
+        '[data-holiday-pill="holiday_christmas_nutcracker_hearth"]',
+        { pause: 1200 },
+      );
+      await showAppleKeynoteBanner(
+        c,
+        "EF5 Tornado & 3D Storm Debris",
+        "Tumbling Leaves, Newspapers & Wind-Buffeted Folders at 120Hz",
+      );
+      await c.click('[data-jumpstart-kit="storm_overdrive_kit"]', {
+        pause: 1300,
+      });
+      await showAppleKeynoteBanner(
+        c,
+        "Compiz Fire Folders & Kaleidoscope Mandala",
+        "Blazing Molten Folders, Inferno Icons & 11D Prism Refraction",
+      );
+      await c.click('[data-jumpstart-kit="compiz_inferno_kit"]', {
+        pause: 1200,
+      });
+      await c.click('[data-jumpstart-kit="kaleidoscope_trip_kit"]', {
+        pause: 1200,
+      });
     },
   },
   {
@@ -336,7 +485,8 @@ const sceneSpecs: SceneSpec[] = [
     badge: "06 / 10 · BIG-SCREEN THEME DESIGNER & TEMPLATES",
     title: "CREATE YOUR OWN\nAPPLE MASTERPIECE.",
     label: "🏷️ STICKY NAME BAR (N/40) · 🖼️ VISUAL STARTING TEMPLATES GRID",
-    extra: "Always-Visible Name Input, Automatic 40-Char Fit & Big-Screen Template Grid",
+    extra:
+      "Always-Visible Name Input, Automatic 40-Char Fit & Big-Screen Template Grid",
     bullets: [
       "🏷️ Always-Visible Top Name Input + Live 40-Char Badge",
       "🖼️ Visual Starting Templates Grid (310 Templates)",
@@ -350,13 +500,27 @@ const sceneSpecs: SceneSpec[] = [
         void ed.openEditor({ from: 'mac_studio_m4_ultra' });
       })()`);
       await sleep(900);
-      await showAppleKeynoteBanner(c, "Always-Visible Theme Name & Active FX Bar", "Pinned at the Top of the Big-Screen Editor · Auto-Clamped to 40 Chars");
+      await showAppleKeynoteBanner(
+        c,
+        "Always-Visible Theme Name & Active FX Bar",
+        "Pinned at the Top of the Big-Screen Editor · Auto-Clamped to 40 Chars",
+      );
 
       // Filter visual template browser grid to FX templates and click template cards
       await c.click('[data-editor-template-filter="fx"]', { pause: 900 });
-      await c.click('[data-editor-template-card="tahoe_liquid_glass"], [data-editor-template-card]', { pause: 1000 });
-      await showAppleKeynoteBanner(c, "40-Character Auto-Fit Name Guard", "Long Template Names Automatically Fit <= 40 Characters Cleanly");
-      await c.click('[data-prebuilt-picture="godmode_photonic_3099_scene"], [data-editor-template-card]', { pause: 900 });
+      await c.click(
+        '[data-editor-template-card="tahoe_liquid_glass"], [data-editor-template-card]',
+        { pause: 1000 },
+      );
+      await showAppleKeynoteBanner(
+        c,
+        "40-Character Auto-Fit Name Guard",
+        "Long Template Names Automatically Fit <= 40 Characters Cleanly",
+      );
+      await c.click(
+        '[data-prebuilt-picture="godmode_photonic_3099_scene"], [data-editor-template-card]',
+        { pause: 900 },
+      );
 
       // Type custom name "Cupertino Titanium XDR Pro" into the always-visible top name input
       await c.eval(`(() => {
@@ -367,7 +531,11 @@ const sceneSpecs: SceneSpec[] = [
           inp.dispatchEvent(new Event("input", { bubbles: true }));
         }
       })()`);
-      await showAppleKeynoteBanner(c, 'Custom Name: "Cupertino Titanium XDR Pro"', "26 / 40 Characters · Live Preview Updates Across Window");
+      await showAppleKeynoteBanner(
+        c,
+        'Custom Name: "Cupertino Titanium XDR Pro"',
+        "26 / 40 Characters · Live Preview Updates Across Window",
+      );
       await sleep(1200);
     },
   },
@@ -376,7 +544,8 @@ const sceneSpecs: SceneSpec[] = [
     badge: "07 / 10 · 1-CLICK STYLE PRESETS, FX MIX & SAVE",
     title: "CUSTOM 3D FOLDERS,\nFX MIX & 1-CLICK SAVE.",
     label: "⚡ GOD-MODE STYLE PRESET · 🎲 RANDOM FX MIX · ✕ TRIM FX · 💾 SAVE",
-    extra: "Mix Shaders, Remove Unwanted Effects in 1 Click & Save to My Themes",
+    extra:
+      "Mix Shaders, Remove Unwanted Effects in 1 Click & Save to My Themes",
     bullets: [
       "⚡ Apply God-Mode Photonic & Tahoe Style Presets",
       "🎲 Roll Random FX Mix & Click ✕ on Unwanted FX",
@@ -385,11 +554,21 @@ const sceneSpecs: SceneSpec[] = [
     say: "Switch across any editor tab—your Theme Name and Active Effects bar stay visible at the top. Apply a God-Mode style preset, click Roll Random F X Mix to layer atmospheric shaders, click X on any effect pill you want to remove, and click Save Theme to apply Cupertino Titanium X D R Pro across your Mac!",
     record: async (c) => {
       await c.click('[data-editor-focus-tab="effects"]', { pause: 800 });
-      await showAppleKeynoteBanner(c, "Section 3: Glass, 3D & Folder FX", "Top Identity & Name Bar Stays Pinned While Switching Tabs");
-      await c.click('[data-fx-preset="godmode_photonic_3099"]', { pause: 1000 });
+      await showAppleKeynoteBanner(
+        c,
+        "Section 3: Glass, 3D & Folder FX",
+        "Top Identity & Name Bar Stays Pinned While Switching Tabs",
+      );
+      await c.click('[data-fx-preset="godmode_photonic_3099"]', {
+        pause: 1000,
+      });
 
       await c.click('[data-editor-random-fx-mix="true"]', { pause: 1000 });
-      await showAppleKeynoteBanner(c, "1-Click FX Trimming Inside Theme Editor", "Roll Random FX Mix -> Click ✕ to Drop Any Single Effect");
+      await showAppleKeynoteBanner(
+        c,
+        "1-Click FX Trimming Inside Theme Editor",
+        "Roll Random FX Mix -> Click ✕ to Drop Any Single Effect",
+      );
       await c.click('[data-editor-remove-fx="iconPackStyle"]', { pause: 900 });
 
       // Ensure signature Apple XDR look before saving
@@ -405,7 +584,11 @@ const sceneSpecs: SceneSpec[] = [
         const btn = [...document.querySelectorAll(".modal-backdrop button")].find((b) => b.textContent.trim() === "Save theme" || b.textContent.trim() === "Save");
         btn?.click();
       })()`);
-      await showAppleKeynoteBanner(c, 'Saved "Cupertino Titanium XDR Pro"!', "Listed First Under My Themes · Active Across File Manager & Terminal");
+      await showAppleKeynoteBanner(
+        c,
+        'Saved "Cupertino Titanium XDR Pro"!',
+        "Listed First Under My Themes · Active Across File Manager & Terminal",
+      );
       await sleep(1400);
     },
   },
@@ -414,7 +597,8 @@ const sceneSpecs: SceneSpec[] = [
     badge: "08 / 10 · 6-LAYER SHADER MIXER & VFD TELEMETRY",
     title: "6-LAYER SHADERS &\nAPPLE HIG TELEMETRY.",
     label: "🌌 194 PROCEDURAL SHADERS · 📟 P/E CORES & 16-BAND SPECTRUM",
-    extra: "Combine Up to 6 Simultaneous Shaders + Live Apple HIG Studio XDR Telemetry",
+    extra:
+      "Combine Up to 6 Simultaneous Shaders + Live Apple HIG Studio XDR Telemetry",
     bullets: [
       "🌌 Mix Up to 6 Simultaneous 120Hz GPU Shaders",
       "📟 Live 8 P-Core + 8 E-Core + 8 GPU Core Bars",
@@ -427,7 +611,11 @@ const sceneSpecs: SceneSpec[] = [
         st.emit('atmosphere-picker');
       })()`);
       await sleep(900);
-      await showAppleKeynoteBanner(c, "6-Layer Atmospheric Special Effects Studio", "194 Procedural Shaders · Per-Layer Hue, Speed & Opacity");
+      await showAppleKeynoteBanner(
+        c,
+        "6-Layer Atmospheric Special Effects Studio",
+        "194 Procedural Shaders · Per-Layer Hue, Speed & Opacity",
+      );
       await c.click('[data-atmo-step="1"]', { pause: 900 });
       await c.eval(`(() => {
         document.querySelectorAll('.modal-backdrop').forEach((e) => e.remove());
@@ -439,10 +627,20 @@ const sceneSpecs: SceneSpec[] = [
         await tm.showTelemetryPopoutHud();
       })()`);
       await sleep(900);
-      await showAppleKeynoteBanner(c, "Live CPU & GPU Hardware Telemetry HUD", "8 P-Cores · 8 E-Cores · 8 GPU Shader Cores · Dual-Trace Scope");
-      await c.click('[data-telemetry-phosphor-btn="cupertino_hig"]', { pause: 900 });
-      await c.click('[data-telemetry-skin-btn="winamp_spectrum"]', { pause: 1000 });
-      await c.click('[data-telemetry-skin-btn="quadrant_gauges"]', { pause: 950 });
+      await showAppleKeynoteBanner(
+        c,
+        "Live CPU & GPU Hardware Telemetry HUD",
+        "8 P-Cores · 8 E-Cores · 8 GPU Shader Cores · Dual-Trace Scope",
+      );
+      await c.click('[data-telemetry-phosphor-btn="cupertino_hig"]', {
+        pause: 900,
+      });
+      await c.click('[data-telemetry-skin-btn="winamp_spectrum"]', {
+        pause: 1000,
+      });
+      await c.click('[data-telemetry-skin-btn="quadrant_gauges"]', {
+        pause: 950,
+      });
       await c.eval(`(async () => {
         const tm = await import('/ui/themes.js');
         tm.closeTelemetryPopoutHud?.();
@@ -455,7 +653,8 @@ const sceneSpecs: SceneSpec[] = [
     badge: "09 / 10 · SPLIT COMPARATOR, OKLAB & SCREENSAVER",
     title: "SPLIT WIPE, OKLAB\n& 120HZ SCREENSAVER.",
     label: "⚖️ SPLIT-SCREEN COMPARATOR · 🧬 OKLAB BLEND · 🎬 CINEMA HUD SHOW",
-    extra: "Compare Any 2 Themes Side-by-Side, Crossfade in OKLab & Launch Theme Show",
+    extra:
+      "Compare Any 2 Themes Side-by-Side, Crossfade in OKLab & Launch Theme Show",
     bullets: [
       "⚖️ Interactive Split-Screen Theme Wipe Slider",
       "🧬 Perceptual OKLab Color & Shader Crossfader",
@@ -468,7 +667,11 @@ const sceneSpecs: SceneSpec[] = [
         void tm.showThemeCompareDialog(undefined, 'mac_studio_m4_ultra', 'omega_point_singularity');
       })()`);
       await sleep(1000);
-      await showAppleKeynoteBanner(c, "Side-by-Side Split-Screen Comparator", "Mac Studio M4 Ultra vs. Omega Point Singularity · Live Wipe");
+      await showAppleKeynoteBanner(
+        c,
+        "Side-by-Side Split-Screen Comparator",
+        "Mac Studio M4 Ultra vs. Omega Point Singularity · Live Wipe",
+      );
       await c.eval(`(() => {
         const slider = document.querySelector('[data-compare-split]');
         if (slider) {
@@ -478,7 +681,9 @@ const sceneSpecs: SceneSpec[] = [
       })()`);
       await sleep(1300);
       await c.click('[data-preview-blend="true"]', { pause: 900 });
-      await c.eval(`(() => { document.querySelectorAll('.modal-backdrop').forEach((e) => e.remove()); })()`);
+      await c.eval(
+        `(() => { document.querySelectorAll('.modal-backdrop').forEach((e) => e.remove()); })()`,
+      );
       await sleep(400);
 
       // Launch 🎬 Theme Show in Cinema HUD mode briefly
@@ -486,7 +691,11 @@ const sceneSpecs: SceneSpec[] = [
         const tm = await import('/ui/themes.js');
         await tm.startThemeShow({ mode: 'cinema_hud', channel: 'all_ultra', intervalSec: 8, boostTier: 'extreme', showClock: true });
       })()`);
-      await showAppleKeynoteBanner(c, "🎬 120Hz Cinema HUD Screensaver Show", "Full-Bleed M4 Ultra Showcase With Ambient Glass Clock & Telemetry");
+      await showAppleKeynoteBanner(
+        c,
+        "🎬 120Hz Cinema HUD Screensaver Show",
+        "Full-Bleed M4 Ultra Showcase With Ambient Glass Clock & Telemetry",
+      );
       await sleep(1700);
       await c.eval(`(() => {
         document.querySelector('[data-theme-show-exit]')?.click();
@@ -500,7 +709,8 @@ const sceneSpecs: SceneSpec[] = [
     badge: "10 / 10 · ⌥3 3D SPIN & FLASH 3000, ⌥F CRT, ⌥T TRAILS & ⌘⇧P",
     title: "⌥3 3D SPIN & FLASH,\n⌥F CRT & ⌥T TRAILS.",
     label: "💿 ⌥3 3D FOLDERS · 📺 ⌥F 34 FILTERS · 🌠 ⌥T CURSOR TRAILS · 🏆 ⌥M",
-    extra: "3D Spinning Folders, Flash 2Advanced 3000, 34 Screen Filters & Cursor Trails",
+    extra:
+      "3D Spinning Folders, Flash 2Advanced 3000, 34 Screen Filters & Cursor Trails",
     bullets: [
       "💿 ⌥3 3D Spinning Folders, Flash 3000 & C4D MoGraph",
       "📺 ⌥F 34 Screen Filters (Trinitron CRT, ACEScct, VHS)",
@@ -510,14 +720,28 @@ const sceneSpecs: SceneSpec[] = [
     record: async (c) => {
       const fireAltKey = async (label: string, key: string, code: string) => {
         await c.eval(`window.__cc.keys(${JSON.stringify([label])})`);
-        await c.eval(`window.dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(key)}, code: ${JSON.stringify(code)}, altKey: true, bubbles: true }))`);
+        await c.eval(
+          `window.dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(key)}, code: ${JSON.stringify(code)}, altKey: true, bubbles: true }))`,
+        );
         await sleep(780);
       };
-      await showAppleKeynoteBanner(c, "High-End 3D Folders, Flash 3000 & C4D MoGraph (⌥3)", "3D Spinning Folder Turntable · 2Advanced Vector HUD · C4D Step-Effector");
+      await showAppleKeynoteBanner(
+        c,
+        "High-End 3D Folders, Flash 3000 & C4D MoGraph (⌥3)",
+        "3D Spinning Folder Turntable · 2Advanced Vector HUD · C4D Step-Effector",
+      );
       await fireAltKey("⌥ + 3  (3D Spinning Folder Turntable)", "3", "Digit3");
-      await fireAltKey("⌥ + 3  (Futuristic Flash 2Advanced HUD)", "3", "Digit3");
+      await fireAltKey(
+        "⌥ + 3  (Futuristic Flash 2Advanced HUD)",
+        "3",
+        "Digit3",
+      );
 
-      await showAppleKeynoteBanner(c, "34 Screen Filters (⌥F), Cursor Trails (⌥T) & Holiday Burst (⌥H)", "Sony Trinitron CRT '95 · Holographic Cursor Spotlight · Holiday Fireworks");
+      await showAppleKeynoteBanner(
+        c,
+        "34 Screen Filters (⌥F), Cursor Trails (⌥T) & Holiday Burst (⌥H)",
+        "Sony Trinitron CRT '95 · Holographic Cursor Spotlight · Holiday Fireworks",
+      );
       await fireAltKey("⌥ + F  (Sony Trinitron CRT '95 Filter)", "f", "KeyF");
       await fireAltKey("⌥ + T  (Holographic Cursor Trail)", "t", "KeyT");
       await fireAltKey("⌥ + H  (Holiday Celebration Burst)", "h", "KeyH");
@@ -530,7 +754,11 @@ const sceneSpecs: SceneSpec[] = [
         const cp = await import('/ui/commandPalette.js');
         cp.openCommandPalette?.("");
       })()`);
-      await showAppleKeynoteBanner(c, "Universal Command Palette (⌘⇧P) — v1.5.0 AAA Release", "Search Actions, Starter Templates, Places, Tools & 310 Themes");
+      await showAppleKeynoteBanner(
+        c,
+        "Universal Command Palette (⌘⇧P) — v1.5.0 AAA Release",
+        "Search Actions, Starter Templates, Places, Tools & 310 Themes",
+      );
       await sleep(1400);
     },
   },
@@ -616,12 +844,18 @@ ${
 }`;
 }
 
-function notesMarkdown(seconds: number, tempo: number, sceneMarks: Array<{ at: number; scene: SceneSpec }>): string {
+function notesMarkdown(
+  seconds: number,
+  tempo: number,
+  sceneMarks: Array<{ at: number; scene: SceneSpec }>,
+): string {
   const fmt = (sec: number) => {
     const s = Math.floor(sec);
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   };
-  const stamps = sceneMarks.map((m, i) => `${fmt(i === 0 ? 0 : m.at)} ${m.scene.label}`).join("\n");
+  const stamps = sceneMarks
+    .map((m, i) => `${fmt(i === 0 ? 0 : m.at)} ${m.scene.label}`)
+    .join("\n");
   return `# Codecaine File Manager v1.5.0 on Mac Studio M4 Ultra 6K XDR — AAA 10-Engine Theme Studio, 18 Holiday Celebrations & 120Hz Shaders (Short, ${fmt(seconds)})
 
 ## Video Files (100% Freshly Recorded at Highest Quality CRF 14, Zero Reused Clips)
@@ -660,10 +894,14 @@ async function main() {
   seedAppleMacStudioWorkspace();
 
   // 1. Generate fresh voice narration for all 10 scenes
-  const narrated: Array<{ scene: SceneSpec; audio: string; seconds: number }> = [];
+  const narrated: Array<{ scene: SceneSpec; audio: string; seconds: number }> =
+    [];
   for (const scene of sceneSpecs) {
     console.log(`🎙️  Narrating ${scene.id}...`);
-    const narration = await narrate(scene.id, scene.say, join(WORK, "audio"), { rate: "+4%", gap: 0.22 });
+    const narration = await narrate(scene.id, scene.say, join(WORK, "audio"), {
+      rate: "+4%",
+      gap: 0.22,
+    });
     const audio = join(WORK, `${scene.id}.wav`);
     const seconds = Math.max(4.0, duration(narration) - 0.85);
     run([
@@ -688,7 +926,9 @@ async function main() {
   const total = narrated.reduce((sum, item) => sum + item.seconds, 0);
   // Target ~172-176s (< 180s 3-minute YouTube Short cap)
   const tempo = Math.max(1, total / 173);
-  console.log(`⏱️  Total narration ${total.toFixed(2)}s; pace factor ${tempo.toFixed(3)}x -> target ${(total / tempo).toFixed(1)}s`);
+  console.log(
+    `⏱️  Total narration ${total.toFixed(2)}s; pace factor ${tempo.toFixed(3)}x -> target ${(total / tempo).toFixed(1)}s`,
+  );
 
   // 2. Start live File Manager server and record every scene fresh in 2x Retina Display-P3 (1920x972 @ 2x DPR)
   const fm = Bun.spawn(
@@ -726,7 +966,12 @@ async function main() {
     await sleep(200);
   }
 
-  const recBrowser = await Cdp.launch(CDP_REC_PORT, join(WORK, "chrome-rec"), VIEW_W, VIEW_H);
+  const recBrowser = await Cdp.launch(
+    CDP_REC_PORT,
+    join(WORK, "chrome-rec"),
+    VIEW_W,
+    VIEW_H,
+  );
   const rawClips: Map<string, string> = new Map();
 
   try {
@@ -746,7 +991,11 @@ async function main() {
       await recBrowser.startRecording();
       await scene.record(recBrowser);
       await sleep(350);
-      await recBrowser.stopRecording(clipPath, join(WORK, `frames_${scene.id}`), item.seconds / tempo);
+      await recBrowser.stopRecording(
+        clipPath,
+        join(WORK, `frames_${scene.id}`),
+        item.seconds / tempo,
+      );
       rawClips.set(scene.id, clipPath);
     }
   } finally {
@@ -757,7 +1006,12 @@ async function main() {
   }
 
   // 3. Render vertical 1080x1920 Apple Keynote overlays and composite each segment
-  const ovlBrowser = await Cdp.launch(CDP_OVL_PORT, join(WORK, "chrome-ovl"), 1080, 1920);
+  const ovlBrowser = await Cdp.launch(
+    CDP_OVL_PORT,
+    join(WORK, "chrome-ovl"),
+    1080,
+    1920,
+  );
   const segments: string[] = [];
   const sceneMarks: Array<{ at: number; scene: SceneSpec }> = [];
   let at = 0;
@@ -774,7 +1028,9 @@ async function main() {
       const png = join(WORK, `${scene.id}.png`);
       writeFileSync(html, overlay(scene, index));
       await ovlBrowser.goto(`file://${html}`, null);
-      await ovlBrowser.send("Emulation.setDefaultBackgroundColorOverride", { color: { r: 0, g: 0, b: 0, a: 0 } });
+      await ovlBrowser.send("Emulation.setDefaultBackgroundColorOverride", {
+        color: { r: 0, g: 0, b: 0, a: 0 },
+      });
       const screenshot = await ovlBrowser.send("Page.captureScreenshot", {
         format: "png",
         captureBeyondViewport: false,
@@ -832,7 +1088,10 @@ async function main() {
   }
 
   const list = join(WORK, "concat.txt");
-  writeFileSync(list, segments.map((file) => `file '${file}'`).join("\n") + "\n");
+  writeFileSync(
+    list,
+    segments.map((file) => `file '${file}'`).join("\n") + "\n",
+  );
   run([
     FFMPEG,
     "-hide_banner",
@@ -876,7 +1135,9 @@ async function main() {
   const notes = notesMarkdown(finalSeconds, tempo, sceneMarks);
   writeFileSync(NOTES, notes);
   writeFileSync(join(WORK, "upload-guide.txt"), notes);
-  console.log(`✅ Built fresh Apple Mac Keynote Short: ${OUTPUT} (${finalSeconds.toFixed(2)}s)`);
+  console.log(
+    `✅ Built fresh Apple Mac Keynote Short: ${OUTPUT} (${finalSeconds.toFixed(2)}s)`,
+  );
   console.log(`✅ Updated ${OUTPUT_THEMES_SHORT}`);
   console.log(`📝 Wrote ${NOTES}`);
 }

@@ -23,11 +23,25 @@
  */
 import type { Webview } from "webview-bun";
 import { delimiter, resolve } from "path";
-import { APP_NAME, startFileManagerServer, type FileManagerServerOptions } from "../src/features/filemanager/fmServer";
-import { isFileManagerCliInvocation, runFileManagerCli } from "../src/features/filemanager/fmCli";
+import {
+  APP_NAME,
+  startFileManagerServer,
+  type FileManagerServerOptions,
+} from "../src/features/filemanager/fmServer";
+import {
+  isFileManagerCliInvocation,
+  runFileManagerCli,
+} from "../src/features/filemanager/fmCli";
 import { shutdownOllamaForFileManager } from "../src/features/filemanager/fmOllama";
 import { openManagedWindow } from "../src/features/filemanager/fmWindowControl";
-import { readWindowPrefs, reduceReport, resetWindowPrefs, sanitizeWindowState, windowDataDir, writeWindowPrefs } from "../src/features/filemanager/fmWindow";
+import {
+  readWindowPrefs,
+  reduceReport,
+  resetWindowPrefs,
+  sanitizeWindowState,
+  windowDataDir,
+  writeWindowPrefs,
+} from "../src/features/filemanager/fmWindow";
 import { createWindowNative } from "../src/windowNative";
 import { openCommand } from "../src/features/filemanager/fmOpen";
 import { DESKTOP_SHORTCUTS_SCRIPT } from "../src/shared/desktopShortcuts";
@@ -35,7 +49,7 @@ import {
   ensureValidWindowsWebViewLoader,
   ensureWindowsX64Bun,
   ensureWindowsX64VcRuntimeAndWebViewLoader,
-   initWindowsComSta,
+  initWindowsComSta,
   isPeX64,
 } from "../scripts/fix_windows_webview_runtime";
 
@@ -69,21 +83,35 @@ export { startFileManagerServer };
 
 /** The command that starts only the server, with the same options, in a separate process. */
 function serverCommand(options: FileManagerServerOptions): string[] {
-  const script = process.argv[1] || resolve(import.meta.dir, "file_manager_studio.ts");
-  const args = [process.execPath, script, "--server", "--parent-pid", String(process.pid)];
+  const script =
+    process.argv[1] || resolve(import.meta.dir, "file_manager_studio.ts");
+  const args = [
+    process.execPath,
+    script,
+    "--server",
+    "--parent-pid",
+    String(process.pid),
+  ];
   if (options.port) args.push("--port", String(options.port));
   if (options.startPath) args.push("--path", options.startPath);
   if (options.context?.home) args.push("--home", options.context.home);
-  if (options.context?.dataDir) args.push("--data-dir", options.context.dataDir);
-  if (options.context?.toolDirs) args.push("--tool-dirs", options.context.toolDirs.join(delimiter));
+  if (options.context?.dataDir)
+    args.push("--data-dir", options.context.dataDir);
+  if (options.context?.toolDirs)
+    args.push("--tool-dirs", options.context.toolDirs.join(delimiter));
   return args;
 }
 
 /** Reads the child's output until it announces `READY:<port>`; returns 0 if that doesn't happen in time. */
-async function readyPort(stream: ReadableStream<Uint8Array>, timeoutMs: number): Promise<number> {
+async function readyPort(
+  stream: ReadableStream<Uint8Array>,
+  timeoutMs: number,
+): Promise<number> {
   const reader = stream.getReader();
   const decoder = new TextDecoder();
-  const timer = setTimeout(() => { reader.cancel().catch(() => {}); }, timeoutMs);
+  const timer = setTimeout(() => {
+    reader.cancel().catch(() => {});
+  }, timeoutMs);
   let text = "";
   try {
     while (true) {
@@ -93,18 +121,23 @@ async function readyPort(stream: ReadableStream<Uint8Array>, timeoutMs: number):
       const m = text.match(/READY:(\d+)/);
       if (m?.[1]) return Number(m[1]);
     }
-  } catch {} finally {
+  } catch {
+  } finally {
     clearTimeout(timer);
     reader.releaseLock();
   }
   return 0;
 }
 
-export function createFileManagerStudio(options: FileManagerStudioOptions = {}): FileManagerStudioInstance {
+export function createFileManagerStudio(
+  options: FileManagerStudioOptions = {},
+): FileManagerStudioInstance {
   const width = options.width ?? 1280;
   const height = options.height ?? 820;
   const title = APP_NAME;
-  const openBrowser = Boolean(options.openBrowser || process.env.FM_OPEN_BROWSER === "1");
+  const openBrowser = Boolean(
+    options.openBrowser || process.env.FM_OPEN_BROWSER === "1",
+  );
   const app: FileManagerStudioInstance = {
     title,
     width,
@@ -117,10 +150,15 @@ export function createFileManagerStudio(options: FileManagerStudioOptions = {}):
       // 3. Initialize COM in Single-Threaded Apartment (STA) mode on the main thread before async fetch/spawn.
       if (process.platform === "win32" && !openBrowser) {
         ensureValidWindowsWebViewLoader();
-        if ((process.arch === "arm64" || !isPeX64(process.execPath)) && process.env.FM_REEXEC_X64 !== "1") {
+        if (
+          (process.arch === "arm64" || !isPeX64(process.execPath)) &&
+          process.env.FM_REEXEC_X64 !== "1"
+        ) {
           const bunX64 = await ensureWindowsX64Bun();
           if (bunX64) {
-            console.log(`📁 Windows ARM64 detected: launching native WebView window via x64 Bun runtime (${bunX64})...`);
+            console.log(
+              `📁 Windows ARM64 detected: launching native WebView window via x64 Bun runtime (${bunX64})...`,
+            );
             const reexec = Bun.spawn([bunX64, ...process.argv.slice(1)], {
               stdin: "inherit",
               stdout: "inherit",
@@ -128,7 +166,9 @@ export function createFileManagerStudio(options: FileManagerStudioOptions = {}):
               env: { ...process.env, FM_REEXEC_X64: "1" },
             });
             const forwardStop = () => {
-              try { reexec.kill(); } catch {}
+              try {
+                reexec.kill();
+              } catch {}
             };
             process.on("SIGINT", forwardStop);
             process.on("SIGTERM", forwardStop);
@@ -148,15 +188,25 @@ export function createFileManagerStudio(options: FileManagerStudioOptions = {}):
         if (stopping) return;
         stopping = true;
         if (app.server?.context) {
-          void shutdownOllamaForFileManager(app.server.context, { timeoutMs: 1800 }).finally(() => {
-            try { child?.kill(); } catch {}
-            try { app.server?.stop(true); } catch {}
+          void shutdownOllamaForFileManager(app.server.context, {
+            timeoutMs: 1800,
+          }).finally(() => {
+            try {
+              child?.kill();
+            } catch {}
+            try {
+              app.server?.stop(true);
+            } catch {}
             process.exit(0);
           });
           return;
         }
-        try { child?.kill(); } catch {}
-        try { app.server?.stop(true); } catch {}
+        try {
+          child?.kill();
+        } catch {}
+        try {
+          app.server?.stop(true);
+        } catch {}
         process.exit(0);
       };
       process.on("SIGINT", stop);
@@ -165,27 +215,49 @@ export function createFileManagerStudio(options: FileManagerStudioOptions = {}):
       if (!openBrowser) {
         for (let attempt = 1; attempt <= 2 && !port; attempt++) {
           try {
-            child = Bun.spawn(serverCommand(options), { stdout: "pipe", stderr: "inherit" });
+            child = Bun.spawn(serverCommand(options), {
+              stdout: "pipe",
+              stderr: "inherit",
+            });
             // Allow up to 30s on first launch (e.g. cold Windows Defender scan right after `bun install`).
-            port = await readyPort(child.stdout as ReadableStream<Uint8Array>, attempt === 1 ? 30000 : 20000);
+            port = await readyPort(
+              child.stdout as ReadableStream<Uint8Array>,
+              attempt === 1 ? 30000 : 20000,
+            );
             if (!port) {
-              try { child?.kill(); } catch {}
+              try {
+                child?.kill();
+              } catch {}
               child = undefined;
             }
           } catch (err) {
-            console.warn("Could not start the background File Manager server:", err);
-            try { child?.kill(); } catch {}
+            console.warn(
+              "Could not start the background File Manager server:",
+              err,
+            );
+            try {
+              child?.kill();
+            } catch {}
             child = undefined;
           }
         }
       }
       if (!port) {
         if (!openBrowser) {
-          console.warn("The background server did not become ready; starting the File Manager server in this process.");
+          console.warn(
+            "The background server did not become ready; starting the File Manager server in this process.",
+          );
         }
-        try { child?.kill(); } catch {}
+        try {
+          child?.kill();
+        } catch {}
         child = undefined;
-        app.server = startFileManagerServer({ port: options.port ?? 0, host: "127.0.0.1", context: options.context, startPath: options.startPath });
+        app.server = startFileManagerServer({
+          port: options.port ?? 0,
+          host: "127.0.0.1",
+          context: options.context,
+          startPath: options.startPath,
+        });
         port = app.server.port ?? 0;
       }
       const query = new URLSearchParams();
@@ -198,16 +270,40 @@ export function createFileManagerStudio(options: FileManagerStudioOptions = {}):
 
       // Only open in a web browser when the user explicitly opts in via `--browser` / `-b` (or FM_OPEN_BROWSER=1).
       if (openBrowser) {
-        console.log(`🌐 Opening the File Manager in your browser at: ${app.url}`);
-        const cmd = openCommand(process.platform === "win32" ? "win32" : process.platform === "darwin" ? "darwin" : "linux", app.url);
+        console.log(
+          `🌐 Opening the File Manager in your browser at: ${app.url}`,
+        );
+        const cmd = openCommand(
+          process.platform === "win32"
+            ? "win32"
+            : process.platform === "darwin"
+              ? "darwin"
+              : "linux",
+          app.url,
+        );
         try {
-          const browser = Bun.spawn([cmd.command, ...cmd.args], { stdout: "ignore", stderr: "pipe" });
-          const [code, stderr] = await Promise.all([browser.exited, new Response(browser.stderr).text()]);
-          if (code !== 0) throw new Error(stderr.trim() || `browser opener exited with code ${code}`);
+          const browser = Bun.spawn([cmd.command, ...cmd.args], {
+            stdout: "ignore",
+            stderr: "pipe",
+          });
+          const [code, stderr] = await Promise.all([
+            browser.exited,
+            new Response(browser.stderr).text(),
+          ]);
+          if (code !== 0)
+            throw new Error(
+              stderr.trim() || `browser opener exited with code ${code}`,
+            );
         } catch (openError) {
-          try { child?.kill(); } catch {}
-          try { app.server?.stop(true); } catch {}
-          throw new Error(`The browser could not be opened: ${String(openError)}`);
+          try {
+            child?.kill();
+          } catch {}
+          try {
+            app.server?.stop(true);
+          } catch {}
+          throw new Error(
+            `The browser could not be opened: ${String(openError)}`,
+          );
         }
         await new Promise(() => {});
         return;
@@ -215,14 +311,19 @@ export function createFileManagerStudio(options: FileManagerStudioOptions = {}):
 
       try {
         await fetch(`http://127.0.0.1:${port}/`).catch(() => {});
-        if (app.server) throw new Error("the server could not be started in the background");
+        if (app.server)
+          throw new Error("the server could not be started in the background");
         const { SizeHint, Webview } = await import("webview-bun");
         // The window is sized, placed and shown from the remembered preference (default: it fills the screen).
-        const fixedSize = options.width || options.height ? { width, height } : undefined;
+        const fixedSize =
+          options.width || options.height ? { width, height } : undefined;
         const managed = openManagedWindow({
           createWindow: (size) => {
             const w = new Webview(false, { ...size, hint: SizeHint.NONE });
-            if (!w.unsafeHandle) throw new Error("the native window could not be created (check the desktop session and web view runtime)");
+            if (!w.unsafeHandle)
+              throw new Error(
+                "the native window could not be created (check the desktop session and web view runtime)",
+              );
             w.title = title;
             return w;
           },
@@ -240,7 +341,10 @@ export function createFileManagerStudio(options: FileManagerStudioOptions = {}):
           try {
             const frame = native.getFrame();
             if (!frame) return;
-            const full = overrideFullscreen !== undefined ? overrideFullscreen : frame.fullscreen;
+            const full =
+              overrideFullscreen !== undefined
+                ? overrideFullscreen
+                : frame.fullscreen;
             const dataDir = windowDataDir(options.context);
             const current = readWindowPrefs(dataDir);
             if (current.mode === "fullscreen" && full) return;
@@ -249,8 +353,10 @@ export function createFileManagerStudio(options: FileManagerStudioOptions = {}):
               ...frame,
               fullscreen: full,
               maximized: full ? false : frame.maximized,
-              screenWidth: current.state?.screenWidth ?? primary?.width ?? frame.width,
-              screenHeight: current.state?.screenHeight ?? primary?.height ?? frame.height,
+              screenWidth:
+                current.state?.screenWidth ?? primary?.width ?? frame.width,
+              screenHeight:
+                current.state?.screenHeight ?? primary?.height ?? frame.height,
               dpr: current.state?.dpr ?? 2,
             });
             if (!nextState) return;
@@ -260,9 +366,11 @@ export function createFileManagerStudio(options: FileManagerStudioOptions = {}):
         };
         webview.bind("toggleNativeFullscreen", () => {
           const frame = native.getFrame();
-          if (!frame) throw new Error("The window's fullscreen state could not be read.");
+          if (!frame)
+            throw new Error("The window's fullscreen state could not be read.");
           const target = !frame.fullscreen;
-          if (!native.setFullscreen(target)) throw new Error("Fullscreen could not be changed.");
+          if (!native.setFullscreen(target))
+            throw new Error("Fullscreen could not be changed.");
           persistCurrentFrame(target);
         });
         // The window has no menu bar, so the page asks for these (Ctrl/Cmd+W and Ctrl/Cmd+Q).
@@ -271,22 +379,38 @@ export function createFileManagerStudio(options: FileManagerStudioOptions = {}):
           stop();
         });
         webview.navigate(app.url);
-        console.log("📁 Window open. Press Ctrl+W (Cmd+W on a Mac) or close the window to quit.");
+        console.log(
+          "📁 Window open. Press Ctrl+W (Cmd+W on a Mac) or close the window to quit.",
+        );
         webview.run();
         stop();
       } catch (err: any) {
-        try { child?.kill(); } catch {}
-        try { app.server?.stop(true); } catch {}
-        console.error(`The desktop window isn't available (${err?.message || err}).`);
+        try {
+          child?.kill();
+        } catch {}
+        try {
+          app.server?.stop(true);
+        } catch {}
+        console.error(
+          `The desktop window isn't available (${err?.message || err}).`,
+        );
         if (process.platform === "linux") {
-          console.error("For a native window, install GTK 4 and WebKitGTK 6.0 and run inside a graphical desktop session.");
+          console.error(
+            "For a native window, install GTK 4 and WebKitGTK 6.0 and run inside a graphical desktop session.",
+          );
         }
         if (process.platform === "win32") {
-          console.error("For a native window, install Microsoft Edge WebView2 and the Microsoft Visual C++ 2015-2022 Redistributable (x64).");
+          console.error(
+            "For a native window, install Microsoft Edge WebView2 and the Microsoft Visual C++ 2015-2022 Redistributable (x64).",
+          );
         }
-        console.error("To open the File Manager in your web browser instead, pass --browser (or --server for server-only mode).");
+        console.error(
+          "To open the File Manager in your web browser instead, pass --browser (or --server for server-only mode).",
+        );
         process.exitCode = 1;
-        throw new Error(`The desktop window could not be opened: ${err?.message || err}`);
+        throw new Error(
+          `The desktop window could not be opened: ${err?.message || err}`,
+        );
       }
     },
   };
@@ -309,26 +433,43 @@ if (import.meta.main) {
   const startTool = argValue(args, "--tool");
   const startGame = argValue(args, "--game");
   const startMax = args.includes("--max");
-  const openBrowser = args.includes("--browser") || args.includes("-b") || process.env.FM_OPEN_BROWSER === "1";
+  const openBrowser =
+    args.includes("--browser") ||
+    args.includes("-b") ||
+    process.env.FM_OPEN_BROWSER === "1";
   const home = argValue(args, "--home");
   const dataDir = argValue(args, "--data-dir");
   const toolDirs = argValue(args, "--tool-dirs");
-  const context = { ...(home ? { home: resolve(home) } : {}), ...(dataDir ? { dataDir: resolve(dataDir) } : {}), ...(toolDirs !== undefined ? { toolDirs: toolDirs.split(delimiter).filter(Boolean) } : {}) };
+  const context = {
+    ...(home ? { home: resolve(home) } : {}),
+    ...(dataDir ? { dataDir: resolve(dataDir) } : {}),
+    ...(toolDirs !== undefined
+      ? { toolDirs: toolDirs.split(delimiter).filter(Boolean) }
+      : {}),
+  };
   const resetWindow = args.includes("--reset-window");
   if (args.includes("--server") || args.includes("-s")) {
     if (resetWindow) {
       resetWindowPrefs(windowDataDir(context));
-      console.log("📁 The remembered window was forgotten: the File Manager fills the screen next time.");
+      console.log(
+        "📁 The remembered window was forgotten: the File Manager fills the screen next time.",
+      );
     }
     const server = startFileManagerServer({ port, startPath, context });
-    console.log(`📁 ${APP_NAME} server running at: http://127.0.0.1:${server.port}/`);
+    console.log(
+      `📁 ${APP_NAME} server running at: http://127.0.0.1:${server.port}/`,
+    );
     console.log(`READY:${server.port}`);
     let serverStopping = false;
     const gracefulServerStop = () => {
       if (serverStopping) return;
       serverStopping = true;
-      void shutdownOllamaForFileManager(server.context, { timeoutMs: 1800 }).finally(() => {
-        try { server.stop(true); } catch {}
+      void shutdownOllamaForFileManager(server.context, {
+        timeoutMs: 1800,
+      }).finally(() => {
+        try {
+          server.stop(true);
+        } catch {}
         process.exit(0);
       });
     };
@@ -338,7 +479,11 @@ if (import.meta.main) {
     const parentPid = Number(argValue(args, "--parent-pid")) || 0;
     if (parentPid) {
       setInterval(() => {
-        try { process.kill(parentPid, 0); } catch { gracefulServerStop(); }
+        try {
+          process.kill(parentPid, 0);
+        } catch {
+          gracefulServerStop();
+        }
       }, 2000);
     }
     await new Promise(() => {});
@@ -346,7 +491,18 @@ if (import.meta.main) {
     const width = Number(argValue(args, "--width")) || undefined;
     const height = Number(argValue(args, "--height")) || undefined;
     try {
-      await createFileManagerStudio({ port, startPath, context, width, height, resetWindow, startTool, startGame, startMax, openBrowser }).run();
+      await createFileManagerStudio({
+        port,
+        startPath,
+        context,
+        width,
+        height,
+        resetWindow,
+        startTool,
+        startGame,
+        startMax,
+        openBrowser,
+      }).run();
     } catch {
       process.exit(1);
     }

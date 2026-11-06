@@ -19,14 +19,18 @@ export const MAX_VERSION_CHARS = 100;
 /** Maximum character length of a semantic version range expression. */
 export const MAX_RANGE_CHARS = 200;
 
-const VERSION = /^[v=]?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+([0-9A-Za-z.-]+))?$/;
-const COMPARATOR = /^(?:[\^~]|>=?|<=?|=)?v?(?:\d+|[xX*])(?:\.(?:\d+|[xX*])){0,2}(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
+const VERSION =
+  /^[v=]?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+([0-9A-Za-z.-]+))?$/;
+const COMPARATOR =
+  /^(?:[\^~]|>=?|<=?|=)?v?(?:\d+|[xX*])(?:\.(?:\d+|[xX*])){0,2}(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 
 /** The version without a leading "v" or "=", or null when it isn't a full MAJOR.MINOR.PATCH version. */
 export function cleanVersion(text: unknown): string | null {
   if (typeof text !== "string") return null;
   const t = text.trim();
-  return t.length <= MAX_VERSION_CHARS && VERSION.test(t) ? t.replace(/^[v=]/, "") : null;
+  return t.length <= MAX_VERSION_CHARS && VERSION.test(t)
+    ? t.replace(/^[v=]/, "")
+    : null;
 }
 
 /** Is this a range written the way npm writes them? (alternatives with ||, spaces for "and", hyphen ranges) */
@@ -42,10 +46,15 @@ export function isRange(text: string): boolean {
   });
 }
 
-const notAVersion = (text: string) => new FmError("BAD_VERSION", `“${text.slice(0, 40)}” isn't a version. A version has three numbers separated by dots, like 1.4.2 (a leading v is fine). Pre-release labels such as 1.0.0-beta.2 are allowed.`);
+const notAVersion = (text: string) =>
+  new FmError(
+    "BAD_VERSION",
+    `“${text.slice(0, 40)}” isn't a version. A version has three numbers separated by dots, like 1.4.2 (a leading v is fine). Pre-release labels such as 1.0.0-beta.2 are allowed.`,
+  );
 
 function mustVersion(text: unknown, which: string): string {
-  if (typeof text !== "string" || !text.trim()) throw new FmError("BAD_REQUEST", `Type ${which} first.`);
+  if (typeof text !== "string" || !text.trim())
+    throw new FmError("BAD_REQUEST", `Type ${which} first.`);
   const v = cleanVersion(text);
   if (!v) throw notAVersion(text.trim());
   return v;
@@ -69,9 +78,20 @@ export function compareVersions(aText: unknown, bText: unknown): Comparison {
   const b = mustVersion(bText, "the second version");
   const order = Bun.semver.order(a, b) as -1 | 0 | 1;
   const notes: string[] = [];
-  if (preRelease(a) || preRelease(b)) notes.push("A pre-release (like 1.0.0-beta.1) comes before the finished version it leads up to (1.0.0).");
-  if (a.includes("+") || b.includes("+")) notes.push("Build information after a + is ignored when versions are compared.");
-  const message = order === 0 ? `${a} and ${b} are the same version.` : order < 0 ? `${a} is older than ${b}.` : `${a} is newer than ${b}.`;
+  if (preRelease(a) || preRelease(b))
+    notes.push(
+      "A pre-release (like 1.0.0-beta.1) comes before the finished version it leads up to (1.0.0).",
+    );
+  if (a.includes("+") || b.includes("+"))
+    notes.push(
+      "Build information after a + is ignored when versions are compared.",
+    );
+  const message =
+    order === 0
+      ? `${a} and ${b} are the same version.`
+      : order < 0
+        ? `${a} is older than ${b}.`
+        : `${a} is newer than ${b}.`;
   return { a, b, order, message, notes };
 }
 
@@ -85,17 +105,38 @@ export interface RangeCheck {
 }
 
 /** Does a version fit a range such as ^1.2.0 (1.2.0 up to, not including, 2.0.0)? */
-export function checkRange(versionText: unknown, rangeText: unknown): RangeCheck {
+export function checkRange(
+  versionText: unknown,
+  rangeText: unknown,
+): RangeCheck {
   const version = mustVersion(versionText, "a version");
-  if (typeof rangeText !== "string" || !rangeText.trim()) throw new FmError("BAD_REQUEST", "Type a range first, like ^1.2.0 or >=2 <3.");
+  if (typeof rangeText !== "string" || !rangeText.trim())
+    throw new FmError(
+      "BAD_REQUEST",
+      "Type a range first, like ^1.2.0 or >=2 <3.",
+    );
   const range = rangeText.trim();
   if (!isRange(range)) {
-    throw new FmError("BAD_RANGE", `“${range.slice(0, 40)}” isn't a range I can read. Examples: ^1.2.0 (compatible with 1.2.0), ~1.2.0 (patches only), >=2 <3 (between), 1.x (any 1.something), 1.2.3 - 2.0.0, or alternatives joined with ||.`);
+    throw new FmError(
+      "BAD_RANGE",
+      `“${range.slice(0, 40)}” isn't a range I can read. Examples: ^1.2.0 (compatible with 1.2.0), ~1.2.0 (patches only), >=2 <3 (between), 1.x (any 1.something), 1.2.3 - 2.0.0, or alternatives joined with ||.`,
+    );
   }
   const satisfies = Bun.semver.satisfies(version, range);
   const notes: string[] = [];
-  if (!satisfies && preRelease(version)) notes.push("A pre-release version only fits a range that names a pre-release of the same x.y.z, so a beta of 1.3.0 doesn't fit ^1.2.0.");
-  return { version, range, satisfies, message: satisfies ? `${version} fits ${range}.` : `${version} does not fit ${range}.`, notes };
+  if (!satisfies && preRelease(version))
+    notes.push(
+      "A pre-release version only fits a range that names a pre-release of the same x.y.z, so a beta of 1.3.0 doesn't fit ^1.2.0.",
+    );
+  return {
+    version,
+    range,
+    satisfies,
+    message: satisfies
+      ? `${version} fits ${range}.`
+      : `${version} does not fit ${range}.`,
+    notes,
+  };
 }
 
 /** Sorted list of valid semantic versions (newest first and oldest first) along with any invalid input lines. */
@@ -108,9 +149,17 @@ export interface SortedList {
 
 /** Sorts one version per line, oldest first (or newest first). Lines that aren't versions are listed, not guessed at. */
 export function sortVersions(text: unknown, descending = false): SortedList {
-  if (typeof text !== "string" || !text.trim()) throw new FmError("BAD_REQUEST", "Paste some versions first, one on each line.");
+  if (typeof text !== "string" || !text.trim())
+    throw new FmError(
+      "BAD_REQUEST",
+      "Paste some versions first, one on each line.",
+    );
   const lines = text.split(/\r?\n/);
-  if (lines.length > MAX_LIST_LINES) throw new FmError("TOO_LARGE", `That is more than ${MAX_LIST_LINES.toLocaleString("en-US")} lines. Sort a shorter list.`);
+  if (lines.length > MAX_LIST_LINES)
+    throw new FmError(
+      "TOO_LARGE",
+      `That is more than ${MAX_LIST_LINES.toLocaleString("en-US")} lines. Sort a shorter list.`,
+    );
   const good: string[] = [];
   const invalid: Array<[number, string]> = [];
   lines.forEach((line, i) => {
@@ -120,11 +169,19 @@ export function sortVersions(text: unknown, descending = false): SortedList {
     if (v) good.push(v);
     else invalid.push([i + 1, t.slice(0, 60)]);
   });
-  if (!good.length) throw new FmError("BAD_VERSION", "None of those lines is a version. A version has three numbers separated by dots, like 1.4.2.");
+  if (!good.length)
+    throw new FmError(
+      "BAD_VERSION",
+      "None of those lines is a version. A version has three numbers separated by dots, like 1.4.2.",
+    );
   const unique = [...new Set(good)];
   const sorted = unique.sort((x, y) => Bun.semver.order(x, y));
   if (descending) sorted.reverse();
-  return { sorted, invalid: invalid.slice(0, 50), duplicates: good.length - unique.length };
+  return {
+    sorted,
+    invalid: invalid.slice(0, 50),
+    duplicates: good.length - unique.length,
+  };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -143,8 +200,33 @@ export interface Requirement {
 }
 
 /** package.json "engines" names, .tool-versions names and others, mapped to the id of a developer tool. */
-const TOOL_ALIASES: Record<string, string> = { node: "node", nodejs: "node", bun: "bun", npm: "npm", pnpm: "pnpm", yarn: "yarn", deno: "deno", python: "python3", python3: "python3", golang: "go", go: "go", ruby: "ruby", php: "php", java: "java", rust: "rustc", rustc: "rustc", dotnet: "dotnet", "dotnet-core": "dotnet" };
-const PIN_FILES: Array<[file: string, tool: string]> = [[".nvmrc", "node"], [".node-version", "node"], [".bun-version", "bun"], [".python-version", "python3"], [".ruby-version", "ruby"]];
+const TOOL_ALIASES: Record<string, string> = {
+  node: "node",
+  nodejs: "node",
+  bun: "bun",
+  npm: "npm",
+  pnpm: "pnpm",
+  yarn: "yarn",
+  deno: "deno",
+  python: "python3",
+  python3: "python3",
+  golang: "go",
+  go: "go",
+  ruby: "ruby",
+  php: "php",
+  java: "java",
+  rust: "rustc",
+  rustc: "rustc",
+  dotnet: "dotnet",
+  "dotnet-core": "dotnet",
+};
+const PIN_FILES: Array<[file: string, tool: string]> = [
+  [".nvmrc", "node"],
+  [".node-version", "node"],
+  [".bun-version", "bun"],
+  [".python-version", "python3"],
+  [".ruby-version", "ruby"],
+];
 
 /** The version inside a tool's `--version` answer ("v20.11.0", "Python 3.12.1", "go1.22.0"), with .0 added when only two numbers were given. */
 export function versionIn(text: string | null | undefined): string | null {
@@ -160,19 +242,64 @@ export function pinRange(pin: string): string | null {
 }
 
 /** Decides whether the installed version meets a requirement, and if not, whether it is too old or too new. */
-export function judge(tool: string, source: string, wanted: string, range: string | null, installed: string | null): Requirement {
-  if (!range || !isRange(range)) return { tool, source, wanted, installed, status: "unknown", message: `“${wanted.slice(0, 40)}” isn't a version or range that can be checked here.` };
-  if (!installed) return { tool, source, wanted, installed: null, status: "missing", message: `${tool} isn't installed (or didn't report a version), so ${wanted} can't be met.` };
-  if (Bun.semver.satisfies(installed, range)) return { tool, source, wanted, installed, status: "ok", message: `${tool} ${installed} fits ${wanted}.` };
+export function judge(
+  tool: string,
+  source: string,
+  wanted: string,
+  range: string | null,
+  installed: string | null,
+): Requirement {
+  if (!range || !isRange(range))
+    return {
+      tool,
+      source,
+      wanted,
+      installed,
+      status: "unknown",
+      message: `“${wanted.slice(0, 40)}” isn't a version or range that can be checked here.`,
+    };
+  if (!installed)
+    return {
+      tool,
+      source,
+      wanted,
+      installed: null,
+      status: "missing",
+      message: `${tool} isn't installed (or didn't report a version), so ${wanted} can't be met.`,
+    };
+  if (Bun.semver.satisfies(installed, range))
+    return {
+      tool,
+      source,
+      wanted,
+      installed,
+      status: "ok",
+      message: `${tool} ${installed} fits ${wanted}.`,
+    };
   // Not fitting: is the installed one below the range or above it? The first number in the range is its lower end for the usual forms.
   const first = /(\d+)(?:\.(\d+|[xX*]))?(?:\.(\d+|[xX*]))?/.exec(range);
-  const part = (v: string | undefined) => (v !== undefined && /^\d+$/.test(v) ? v : "0");
-  const floor = first ? `${first[1]}.${part(first[2])}.${part(first[3])}` : null;
+  const part = (v: string | undefined) =>
+    v !== undefined && /^\d+$/.test(v) ? v : "0";
+  const floor = first
+    ? `${first[1]}.${part(first[2])}.${part(first[3])}`
+    : null;
   const older = floor !== null && Bun.semver.order(installed, floor) < 0;
-  return { tool, source, wanted, installed, status: older ? "older" : "newer", message: older ? `${tool} ${installed} is older than ${wanted}. Update it.` : `${tool} ${installed} is newer than ${wanted} allows.` };
+  return {
+    tool,
+    source,
+    wanted,
+    installed,
+    status: older ? "older" : "newer",
+    message: older
+      ? `${tool} ${installed} is older than ${wanted}. Update it.`
+      : `${tool} ${installed} is newer than ${wanted} allows.`,
+  };
 }
 
-async function readText(path: string, max = 256 * 1024): Promise<string | null> {
+async function readText(
+  path: string,
+  max = 256 * 1024,
+): Promise<string | null> {
   try {
     const st = await fsp.stat(path);
     if (!st.isFile() || st.size > max) return null;
@@ -183,9 +310,13 @@ async function readText(path: string, max = 256 * 1024): Promise<string | null> 
 }
 
 /** Compares the developer tools installed here with the versions a project folder asks for. Nothing is changed. */
-export async function checkProjectVersions(ctx: FmContext, root: string): Promise<{ requirements: Requirement[]; sources: string[] }> {
+export async function checkProjectVersions(
+  ctx: FmContext,
+  root: string,
+): Promise<{ requirements: Requirement[]; sources: string[] }> {
   const { tools } = await detectEnvironment(ctx, false);
-  const installedOf = (id: string): string | null => versionIn(tools.find((t) => t.id === id)?.version);
+  const installedOf = (id: string): string | null =>
+    versionIn(tools.find((t) => t.id === id)?.version);
   const requirements: Requirement[] = [];
   const sources: string[] = [];
   const pkg = await readText(join(root, "package.json"));
@@ -194,9 +325,20 @@ export async function checkProjectVersions(ctx: FmContext, root: string): Promis
       const engines = (JSON.parse(pkg) as { engines?: unknown }).engines;
       if (engines && typeof engines === "object" && !Array.isArray(engines)) {
         sources.push("package.json");
-        for (const [name, wanted] of Object.entries(engines as Record<string, unknown>).slice(0, 20)) {
+        for (const [name, wanted] of Object.entries(
+          engines as Record<string, unknown>,
+        ).slice(0, 20)) {
           const id = TOOL_ALIASES[name.toLowerCase()];
-          if (id && typeof wanted === "string") requirements.push(judge(name, "package.json engines", wanted.trim().slice(0, 80), wanted.trim(), installedOf(id)));
+          if (id && typeof wanted === "string")
+            requirements.push(
+              judge(
+                name,
+                "package.json engines",
+                wanted.trim().slice(0, 80),
+                wanted.trim(),
+                installedOf(id),
+              ),
+            );
         }
       }
     } catch {
@@ -209,7 +351,10 @@ export async function checkProjectVersions(ctx: FmContext, root: string): Promis
     for (const line of toolVersions.split(/\r?\n/).slice(0, 50)) {
       const [name, pin] = line.replace(/#.*/, "").trim().split(/\s+/);
       const id = name ? TOOL_ALIASES[name.toLowerCase()] : undefined;
-      if (id && pin) requirements.push(judge(name!, ".tool-versions", pin, pinRange(pin), installedOf(id)));
+      if (id && pin)
+        requirements.push(
+          judge(name!, ".tool-versions", pin, pinRange(pin), installedOf(id)),
+        );
     }
   }
   for (const [file, id] of PIN_FILES) {
@@ -217,7 +362,15 @@ export async function checkProjectVersions(ctx: FmContext, root: string): Promis
     const pin = text?.split(/\r?\n/)[0]?.trim();
     if (pin) {
       sources.push(file);
-      requirements.push(judge(id === "python3" ? "python" : id, file, pin, pinRange(pin), installedOf(id)));
+      requirements.push(
+        judge(
+          id === "python3" ? "python" : id,
+          file,
+          pin,
+          pinRange(pin),
+          installedOf(id),
+        ),
+      );
     }
   }
   return { requirements, sources };

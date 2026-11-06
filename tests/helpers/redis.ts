@@ -11,12 +11,18 @@
 import { describe } from "bun:test";
 import { RedisClient } from "bun";
 
-export const TEST_REDIS_URL: string | undefined = process.env.TEST_REDIS_URL || undefined;
+export const TEST_REDIS_URL: string | undefined =
+  process.env.TEST_REDIS_URL || undefined;
 
 async function reachable(url: string): Promise<boolean> {
   const client = new RedisClient(url);
   try {
-    await Promise.race([client.ping(), new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 1000))]);
+    await Promise.race([
+      client.ping(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("timeout")), 1000),
+      ),
+    ]);
     return true;
   } catch {
     return false;
@@ -27,7 +33,9 @@ async function reachable(url: string): Promise<boolean> {
   }
 }
 
-export const redisAvailable: boolean = TEST_REDIS_URL ? await reachable(TEST_REDIS_URL) : false;
+export const redisAvailable: boolean = TEST_REDIS_URL
+  ? await reachable(TEST_REDIS_URL)
+  : false;
 
 /** `describe` when a disposable Redis is configured and reachable, otherwise `describe.skip`. */
 export const describeRedis = redisAvailable ? describe : describe.skip;

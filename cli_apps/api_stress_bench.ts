@@ -1,20 +1,34 @@
 #!/usr/bin/env bun
-import { SimpleCLI, stdlib } from '../src/index.ts';
-import * as fs from 'node:fs';
+import { SimpleCLI, stdlib } from "../src/index.ts";
+import * as fs from "node:fs";
 
-const app = SimpleCLI.newApp('API-Stress-Bench', '1.0.0')
-  .setDescription('High-Performance HTTP API Benchmark & Latency Stress Tester');
+const app = SimpleCLI.newApp("API-Stress-Bench", "1.0.0").setDescription(
+  "High-Performance HTTP API Benchmark & Latency Stress Tester",
+);
 
-app.addFlagString('url', 'u', 'https://httpbin.org/get', 'Target URL to benchmark');
-app.addFlagString('method', 'm', 'GET', 'HTTP method (GET, POST, PUT, DELETE, HEAD)');
-app.addFlagString('body', 'b', '', 'Request payload string for POST/PUT');
-app.addFlagInt('requests', 'n', 20, 'Total number of requests to execute');
-app.addFlagInt('concurrency', 'c', 4, 'Number of concurrent worker threads');
-app.addFlagString('export', 'e', '', 'Export benchmark results to JSON file');
+app.addFlagString(
+  "url",
+  "u",
+  "https://httpbin.org/get",
+  "Target URL to benchmark",
+);
+app.addFlagString(
+  "method",
+  "m",
+  "GET",
+  "HTTP method (GET, POST, PUT, DELETE, HEAD)",
+);
+app.addFlagString("body", "b", "", "Request payload string for POST/PUT");
+app.addFlagInt("requests", "n", 20, "Total number of requests to execute");
+app.addFlagInt("concurrency", "c", 4, "Number of concurrent worker threads");
+app.addFlagString("export", "e", "", "Export benchmark results to JSON file");
 
 if (!app.parseCli()) process.exit(0);
 
-app.banner('API Stress Bench & Latency Analyzer', 'v1.0.0 - High-Throughput HTTP Engine');
+app.banner(
+  "API Stress Bench & Latency Analyzer",
+  "v1.0.0 - High-Throughput HTTP Engine",
+);
 
 interface RequestResult {
   durationMs: number;
@@ -24,26 +38,28 @@ interface RequestResult {
 }
 
 async function main() {
-  const targetUrl = app.getFlagString('url');
-  const method = app.getFlagString('method').toUpperCase();
-  const body = app.getFlagString('body');
-  const totalReqs = app.getFlagInt('requests');
-  const concurrency = app.getFlagInt('concurrency');
-  const exportPath = app.getFlagString('export');
+  const targetUrl = app.getFlagString("url");
+  const method = app.getFlagString("method").toUpperCase();
+  const body = app.getFlagString("body");
+  const totalReqs = app.getFlagInt("requests");
+  const concurrency = app.getFlagInt("concurrency");
+  const exportPath = app.getFlagString("export");
 
   if (!stdlib.isUrl(targetUrl)) {
-    app.error(`Invalid URL format: "${targetUrl}". Must start with http:// or https://`);
+    app.error(
+      `Invalid URL format: "${targetUrl}". Must start with http:// or https://`,
+    );
     return;
   }
 
   app.printKv({
-    'Target URL': targetUrl,
-    'HTTP Method': method,
-    'Total Count': `${totalReqs} requests`,
-    'Concurrency': `${concurrency} worker threads`,
+    "Target URL": targetUrl,
+    "HTTP Method": method,
+    "Total Count": `${totalReqs} requests`,
+    Concurrency: `${concurrency} worker threads`,
   });
 
-  app.step(1, 'Executing high-concurrency benchmark run');
+  app.step(1, "Executing high-concurrency benchmark run");
 
   const allResults: RequestResult[] = [];
   let reqsDone = 0;
@@ -55,8 +71,10 @@ async function main() {
       try {
         const res = await fetch(targetUrl, {
           method,
-          body: ['GET', 'HEAD'].includes(method) ? undefined : (body || undefined),
-          headers: body ? { 'Content-Type': 'application/json' } : undefined,
+          body: ["GET", "HEAD"].includes(method)
+            ? undefined
+            : body || undefined,
+          headers: body ? { "Content-Type": "application/json" } : undefined,
         });
         await res.text();
         const durationMs = performance.now() - t0;
@@ -64,7 +82,7 @@ async function main() {
           durationMs,
           statusCode: res.status,
           isSuccess: res.status >= 200 && res.status < 400,
-          errorMsg: '',
+          errorMsg: "",
         });
       } catch (err: any) {
         const durationMs = performance.now() - t0;
@@ -76,7 +94,7 @@ async function main() {
         });
       }
       reqsDone++;
-      app.progressBar(reqsDone, totalReqs, 'Requests Dispatched');
+      app.progressBar(reqsDone, totalReqs, "Requests Dispatched");
     }
   };
 
@@ -92,11 +110,12 @@ async function main() {
   await Promise.all(workers);
 
   const totalDurationSec = (performance.now() - startBench) / 1000;
-  const throughputRps = totalDurationSec > 0 ? allResults.length / totalDurationSec : 0;
+  const throughputRps =
+    totalDurationSec > 0 ? allResults.length / totalDurationSec : 0;
 
-  app.step(2, 'Computing Statistical Metrics & Latency Distribution');
+  app.step(2, "Computing Statistical Metrics & Latency Distribution");
 
-  const latencies = allResults.map(r => r.durationMs);
+  const latencies = allResults.map((r) => r.durationMs);
   const statusCounts: Record<number, number> = {};
   let successes = 0;
   let failures = 0;
@@ -116,31 +135,31 @@ async function main() {
   const p95Lat = stdlib.percentile(latencies, 95);
 
   app.printKv({
-    'Total Duration': `${totalDurationSec.toFixed(2)} seconds`,
-    'Throughput': `${throughputRps.toFixed(1)} req/sec`,
-    'Success / Fail': `${app.green(successes.toString())} success / ${failures > 0 ? app.red(failures.toString()) : '0'} errors`,
-    'Fastest (Min)': `${minLat.toFixed(2)} ms`,
-    'Slowest (Max)': `${maxLat.toFixed(2)} ms`,
-    'Average (Mean)': `${meanLat.toFixed(2)} ms`,
-    'Median (p50)': `${medianLat.toFixed(2)} ms`,
-    'p95 Latency': `${p95Lat.toFixed(2)} ms`,
-    'Std Deviation': `±${stdDevLat.toFixed(2)} ms`,
-    'Root Mean Sq': `${rmsLat.toFixed(2)} ms`,
-    'Latency Sparkline': app.sparkline(latencies.slice(0, 30)),
+    "Total Duration": `${totalDurationSec.toFixed(2)} seconds`,
+    Throughput: `${throughputRps.toFixed(1)} req/sec`,
+    "Success / Fail": `${app.green(successes.toString())} success / ${failures > 0 ? app.red(failures.toString()) : "0"} errors`,
+    "Fastest (Min)": `${minLat.toFixed(2)} ms`,
+    "Slowest (Max)": `${maxLat.toFixed(2)} ms`,
+    "Average (Mean)": `${meanLat.toFixed(2)} ms`,
+    "Median (p50)": `${medianLat.toFixed(2)} ms`,
+    "p95 Latency": `${p95Lat.toFixed(2)} ms`,
+    "Std Deviation": `±${stdDevLat.toFixed(2)} ms`,
+    "Root Mean Sq": `${rmsLat.toFixed(2)} ms`,
+    "Latency Sparkline": app.sparkline(latencies.slice(0, 30)),
   });
 
-  app.step(3, 'HTTP Status Code Distribution Breakdown');
+  app.step(3, "HTTP Status Code Distribution Breakdown");
   const statusRows: (string | number)[][] = [];
   for (const [codeStr, count] of Object.entries(statusCounts)) {
     const code = parseInt(codeStr, 10);
-    const codeLabel = code === 0 ? 'Network Error / Timeout' : code.toString();
-    const pct = ((count / allResults.length) * 100).toFixed(1) + '%';
+    const codeLabel = code === 0 ? "Network Error / Timeout" : code.toString();
+    const pct = ((count / allResults.length) * 100).toFixed(1) + "%";
     statusRows.push([codeLabel, count, pct]);
   }
-  app.table(['HTTP Status Code', 'Response Count', 'Percentage'], statusRows);
+  app.table(["HTTP Status Code", "Response Count", "Percentage"], statusRows);
 
   if (exportPath) {
-    app.step(4, 'Exporting Benchmark Metrics to JSON');
+    app.step(4, "Exporting Benchmark Metrics to JSON");
     const report = {
       target_url: targetUrl,
       method,
@@ -155,11 +174,11 @@ async function main() {
       latency_std_dev_ms: stdDevLat,
       latency_p95_ms: p95Lat,
     };
-    fs.writeFileSync(exportPath, JSON.stringify(report, null, 2), 'utf8');
+    fs.writeFileSync(exportPath, JSON.stringify(report, null, 2), "utf8");
     app.success(`Report saved to: ${exportPath}`);
   }
 
-  app.divider('─', 64);
+  app.divider("─", 64);
   app.success(`API benchmark completed in ${app.elapsedMs()} ms.`);
 }
 

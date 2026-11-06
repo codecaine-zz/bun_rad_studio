@@ -30,22 +30,22 @@ bun run cli:procs [keyword]
 
 When running `bun run cli:procs -i [keyword]` in a terminal:
 
-| Key | Action |
-| :--- | :--- |
-| `↑` / `k` | Move selection up |
-| `↓` / `j` | Move selection down |
-| `PageUp` / `PageDown` | Scroll 10 rows up / down |
-| `/` / `f` | Start live process filter (matches name, PID, user; `Enter`: save, `Esc`: clear) |
-| `c` | Sort processes by CPU usage descending |
-| `m` | Sort processes by Memory usage descending |
-| `p` | Sort processes by PID ascending |
-| `u` | Sort processes by User alphabetically |
-| `Space` | Pause / resume live 2-second background auto-refresh |
-| `Enter` / `d` | Inspect process details modal (child PIDs, listening ports, full command) |
-| `x` / `K` | Terminate selected process (`SIGTERM`) with auto-refresh |
-| `9` / `X` | Force kill selected process (`SIGKILL`) |
-| `r` | Refresh process table immediately from OS |
-| `q` / `Ctrl+C` | Exit interactive mode (or close details modal) |
+| Key                   | Action                                                                           |
+| :-------------------- | :------------------------------------------------------------------------------- |
+| `↑` / `k`             | Move selection up                                                                |
+| `↓` / `j`             | Move selection down                                                              |
+| `PageUp` / `PageDown` | Scroll 10 rows up / down                                                         |
+| `/` / `f`             | Start live process filter (matches name, PID, user; `Enter`: save, `Esc`: clear) |
+| `c`                   | Sort processes by CPU usage descending                                           |
+| `m`                   | Sort processes by Memory usage descending                                        |
+| `p`                   | Sort processes by PID ascending                                                  |
+| `u`                   | Sort processes by User alphabetically                                            |
+| `Space`               | Pause / resume live 2-second background auto-refresh                             |
+| `Enter` / `d`         | Inspect process details modal (child PIDs, listening ports, full command)        |
+| `x` / `K`             | Terminate selected process (`SIGTERM`) with auto-refresh                         |
+| `9` / `X`             | Force kill selected process (`SIGKILL`)                                          |
+| `r`                   | Refresh process table immediately from OS                                        |
+| `q` / `Ctrl+C`        | Exit interactive mode (or close details modal)                                   |
 
 ---
 
@@ -91,6 +91,7 @@ export interface ProcsOptions {
 ## 3. Comprehensive Code Examples
 
 ### Example 1: Query Processes by Keyword and Sort
+
 ```typescript
 import { getProcesses } from "./procsCoordinator.ts";
 
@@ -98,11 +99,14 @@ import { getProcesses } from "./procsCoordinator.ts";
 const procs = await getProcesses("bun", "cpu");
 
 for (const p of procs) {
-  console.log(`[PID ${p.pid}] ${p.user}: ${p.cpu}% CPU, ${p.mem}% MEM | ${p.command}`);
+  console.log(
+    `[PID ${p.pid}] ${p.user}: ${p.cpu}% CPU, ${p.mem}% MEM | ${p.command}`,
+  );
 }
 ```
 
 ### Example 2: Build & Traverse Hierarchical Process Tree
+
 ```typescript
 import { getProcesses } from "./procsCoordinator.ts";
 import { buildProcessTree, formatTreeLines } from "./procsDoers.ts";
@@ -116,6 +120,7 @@ console.log(lines.slice(0, 25).join("\n"));
 ```
 
 ### Example 3: Render Process Table Directly
+
 ```typescript
 import { runProcsCoordinator } from "./procsCoordinator.ts";
 
@@ -130,8 +135,13 @@ console.log(tableOutput);
 ```
 
 ### Example 4: Low-Level Process Fetching & Parsing
+
 ```typescript
-import { fetchRawProcessList, parsePsOutput, sortProcesses } from "./procsDoers.ts";
+import {
+  fetchRawProcessList,
+  parsePsOutput,
+  sortProcesses,
+} from "./procsDoers.ts";
 
 const rawPs = await fetchRawProcessList();
 const processes = parsePsOutput(rawPs);
@@ -144,6 +154,7 @@ for (const p of topCpu) {
 ```
 
 ### Example 5: Stream Process List as JSON with Limits
+
 ```typescript
 import { runProcsCoordinator } from "./procsCoordinator.ts";
 
@@ -158,6 +169,7 @@ console.log(`Retrieved ${processes.length} bun process(es).`);
 ```
 
 ### Example 6: Terminate a Runaway Process by PID
+
 ```typescript
 import { runProcsCoordinator } from "./procsCoordinator.ts";
 
@@ -170,6 +182,7 @@ console.log(result);
 ```
 
 ### Example 7: Interactive TUI State, Live Filtering & Action API
+
 ```typescript
 import { getProcesses } from "./procsCoordinator.ts";
 import {
@@ -206,6 +219,3 @@ state = applyProcsTuiAction(state, { type: "SET_SORT", sortBy: "mem" });
 const frame = renderProcsTuiFrame(state);
 console.log(frame);
 ```
-
-
-

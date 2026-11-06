@@ -16,21 +16,79 @@
 
 /** Identifier for the supported enterprise UI component types in `SimpleGUI`. */
 export type UIComponentType =
-    | "skeleton" | "paper" | "emptyState" | "result" | "appBar" | "bottomNav" | "fab" | "speedDial" | "backToTop"
-    | "drawer" | "backdrop" | "popover" | "popconfirm" | "tour" | "autocomplete" | "cascader" | "treeSelect"
-    | "mentions" | "signaturePad" | "richText" | "copyButton" | "loadingButton" | "avatarGroup" | "descriptions"
-    | "statistic" | "countdown" | "watermark" | "masonry" | "imageCompare" | "marquee" | "typography" | "chips"
-    | "virtualList" | "anchor" | "scrollProgress";
+  | "skeleton"
+  | "paper"
+  | "emptyState"
+  | "result"
+  | "appBar"
+  | "bottomNav"
+  | "fab"
+  | "speedDial"
+  | "backToTop"
+  | "drawer"
+  | "backdrop"
+  | "popover"
+  | "popconfirm"
+  | "tour"
+  | "autocomplete"
+  | "cascader"
+  | "treeSelect"
+  | "mentions"
+  | "signaturePad"
+  | "richText"
+  | "copyButton"
+  | "loadingButton"
+  | "avatarGroup"
+  | "descriptions"
+  | "statistic"
+  | "countdown"
+  | "watermark"
+  | "masonry"
+  | "imageCompare"
+  | "marquee"
+  | "typography"
+  | "chips"
+  | "virtualList"
+  | "anchor"
+  | "scrollProgress";
 
 /** Default `[width, height]` for each component (overridable with `width` / `height` options). */
 export const UI_DEFAULT_SIZES: Record<UIComponentType, [number, number]> = {
-    skeleton: [320, 60], paper: [320, 120], emptyState: [360, 220], result: [460, 260], appBar: [700, 56],
-    bottomNav: [420, 56], fab: [56, 56], speedDial: [56, 56], backToTop: [48, 8], drawer: [140, 38], backdrop: [120, 8],
-    popover: [140, 38], popconfirm: [140, 38], tour: [120, 8], autocomplete: [320, 40], cascader: [320, 40],
-    treeSelect: [320, 40], mentions: [360, 90], signaturePad: [420, 180], richText: [520, 220], copyButton: [140, 36],
-    loadingButton: [150, 38], avatarGroup: [260, 44], descriptions: [520, 170], statistic: [200, 80], countdown: [260, 80],
-    watermark: [420, 160], masonry: [520, 300], imageCompare: [420, 260], marquee: [520, 36], typography: [420, 32],
-    chips: [420, 36], virtualList: [360, 280], anchor: [200, 150], scrollProgress: [200, 6],
+  skeleton: [320, 60],
+  paper: [320, 120],
+  emptyState: [360, 220],
+  result: [460, 260],
+  appBar: [700, 56],
+  bottomNav: [420, 56],
+  fab: [56, 56],
+  speedDial: [56, 56],
+  backToTop: [48, 8],
+  drawer: [140, 38],
+  backdrop: [120, 8],
+  popover: [140, 38],
+  popconfirm: [140, 38],
+  tour: [120, 8],
+  autocomplete: [320, 40],
+  cascader: [320, 40],
+  treeSelect: [320, 40],
+  mentions: [360, 90],
+  signaturePad: [420, 180],
+  richText: [520, 220],
+  copyButton: [140, 36],
+  loadingButton: [150, 38],
+  avatarGroup: [260, 44],
+  descriptions: [520, 170],
+  statistic: [200, 80],
+  countdown: [260, 80],
+  watermark: [420, 160],
+  masonry: [520, 300],
+  imageCompare: [420, 260],
+  marquee: [520, 36],
+  typography: [420, 32],
+  chips: [420, 36],
+  virtualList: [360, 280],
+  anchor: [200, 150],
+  scrollProgress: [200, 6],
 };
 
 const UI_CSS = String.raw`
@@ -618,12 +676,23 @@ if (document.readyState === "loading") document.addEventListener("DOMContentLoad
 export const UI_CLIENT_HTML = `<style id="sgu-style">${UI_CSS}</style><script id="sgu-script">${UI_JS}</script>`;
 
 /** Build the markup for one component (used by SimpleWindow.ui()). */
-export function renderUIComponent(type: UIComponentType, cfg: Record<string, any>): string {
-    const { width: _w, height: _h, onChange: _c, onClick: _k, onEnter: _e, id: _i, ...clean } = cfg;
-    const json = JSON.stringify(clean)
-        .replace(/&/g, "&amp;")
-        .replace(/"/g, "&quot;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-    return `<div data-sgu="${type}" data-cfg="${json}"></div>`;
+export function renderUIComponent(
+  type: UIComponentType,
+  cfg: Record<string, any>,
+): string {
+  const {
+    width: _w,
+    height: _h,
+    onChange: _c,
+    onClick: _k,
+    onEnter: _e,
+    id: _i,
+    ...clean
+  } = cfg;
+  const json = JSON.stringify(clean)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  return `<div data-sgu="${type}" data-cfg="${json}"></div>`;
 }

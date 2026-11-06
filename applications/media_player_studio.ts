@@ -15,7 +15,14 @@
 import { injectHelp } from "../src/shared/helpTips";
 import type { SizeHint, Webview } from "webview-bun";
 import { resolve, join, extname, dirname, basename, sep } from "path";
-import { existsSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "fs";
+import {
+  existsSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+  writeFileSync,
+} from "fs";
 import { randomBytes, timingSafeEqual } from "crypto";
 import { guardLocalRequest } from "../src/localGuard";
 import {
@@ -106,11 +113,18 @@ export function scanMediaFolder(folderPath: string) {
   } catch {
     return { folder: dir, tracks: [], subtitles: [], playlists: [] };
   }
-  const tracks: Array<{ name: string; path: string; size: number; kind: string }> = [];
+  const tracks: Array<{
+    name: string;
+    path: string;
+    size: number;
+    kind: string;
+  }> = [];
   const subtitles: Array<{ name: string; path: string; size: number }> = [];
   const playlists: Array<{ name: string; path: string; size: number }> = [];
 
-  for (const name of names.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))) {
+  for (const name of names.sort((a, b) =>
+    a.localeCompare(b, undefined, { numeric: true }),
+  )) {
     if (name.startsWith(".")) continue;
     const full = join(dir, name);
     let st;
@@ -133,7 +147,10 @@ export function scanMediaFolder(folderPath: string) {
   return { folder: dir, tracks, subtitles, playlists };
 }
 
-function parseByteRange(header: string | null, total: number): [number, number] | null {
+function parseByteRange(
+  header: string | null,
+  total: number,
+): [number, number] | null {
   if (!header || !header.startsWith("bytes=") || total <= 0) return null;
   const spec = header.slice(6).trim();
   if (spec.includes(",")) return null;
@@ -145,17 +162,27 @@ function parseByteRange(header: string | null, total: number): [number, number] 
   }
   const start = Number(startStr);
   const end = endStr === "" ? total - 1 : Number(endStr);
-  if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || start > end || start >= total) {
+  if (
+    !Number.isInteger(start) ||
+    !Number.isInteger(end) ||
+    start < 0 ||
+    start > end ||
+    start >= total
+  ) {
     return null;
   }
   return [start, Math.min(total - 1, end)];
 }
 
-export function generateMediaPlayerStudioHtml(options: { apiUrl?: string; token?: string } = {}): string {
+export function generateMediaPlayerStudioHtml(
+  options: { apiUrl?: string; token?: string } = {},
+): string {
   return injectHelp(buildMediaPlayerHtml(options), "media_player_studio");
 }
 
-function buildMediaPlayerHtml(options: { apiUrl?: string; token?: string } = {}): string {
+function buildMediaPlayerHtml(
+  options: { apiUrl?: string; token?: string } = {},
+): string {
   const apiBase = options.apiUrl ?? "";
   const token = options.token ?? "";
   const defaultFolder = getDefaultMediaLibraryDir();
@@ -168,20 +195,25 @@ function buildMediaPlayerHtml(options: { apiUrl?: string; token?: string } = {})
   }
 
   const skinOptions = PLAYER_SKINS.map(
-    (s: { id: string; label: string }) => `<option value="${s.id}">${s.label}</option>`,
+    (s: { id: string; label: string }) =>
+      `<option value="${s.id}">${s.label}</option>`,
   ).join("");
 
   const presetOptions = [
-    ...Object.keys(EQ_PRESETS).map((name) => `<option value="${name}">${name}</option>`),
+    ...Object.keys(EQ_PRESETS).map(
+      (name) => `<option value="${name}">${name}</option>`,
+    ),
     `<option value="Custom">Custom</option>`,
   ].join("");
 
   const vizMixOptions = VIZ_MIX_PRESETS.map(
-    (p: { id: string; label: string; icon: string }) => `<option value="${p.id}">${p.icon} ${p.label}</option>`,
+    (p: { id: string; label: string; icon: string }) =>
+      `<option value="${p.id}">${p.icon} ${p.label}</option>`,
   ).join("");
 
   const vizOptions = VIZ_MODES.map(
-    (v: { id: string; label: string }) => `<option value="${v.id}">${v.label}</option>`,
+    (v: { id: string; label: string }) =>
+      `<option value="${v.id}">${v.label}</option>`,
   ).join("");
 
   const fxPresetButtonsHtml = VIZ_MIX_PRESETS.map(
@@ -190,7 +222,10 @@ function buildMediaPlayerHtml(options: { apiUrl?: string; token?: string } = {})
   ).join("");
 
   const fxTierButtonsHtml = DECK_HARDWARE_TIERS.map(
-    (t: { id: string; label: string; badge: string; desc: string }, idx: number) =>
+    (
+      t: { id: string; label: string; badge: string; desc: string },
+      idx: number,
+    ) =>
       `<button type="button" class="wa-pill-btn wa-fx-tier-btn${idx === 0 ? " is-on" : ""}" data-tier="${t.id}" title="${t.desc}">${t.label} (${t.badge})</button>`,
   ).join("");
 
@@ -1752,7 +1787,9 @@ function buildMediaPlayerHtml(options: { apiUrl?: string; token?: string } = {})
 </html>`;
 }
 
-export function startMediaPlayerStudioServer(options: { port?: number; host?: string; rootDir?: string } = {}) {
+export function startMediaPlayerStudioServer(
+  options: { port?: number; host?: string; rootDir?: string } = {},
+) {
   const port = options.port ?? 0;
   const host = options.host ?? "127.0.0.1";
   const token = randomBytes(16).toString("hex");
@@ -1786,7 +1823,8 @@ export function startMediaPlayerStudioServer(options: { port?: number; host?: st
   };
 
   const verifyOptionalToken = (req: Request, url: URL): boolean => {
-    const provided = url.searchParams.get("token") ?? req.headers.get("x-media-token");
+    const provided =
+      url.searchParams.get("token") ?? req.headers.get("x-media-token");
     if (provided === null) return true;
     const buf = Buffer.from(provided, "utf8");
     return buf.length === tokenBuf.length && timingSafeEqual(buf, tokenBuf);
@@ -1799,7 +1837,9 @@ export function startMediaPlayerStudioServer(options: { port?: number; host?: st
       const blocked = guardLocalRequest(req);
       if (blocked) return blocked;
       if (req.headers.get("sec-fetch-site") === "cross-site") {
-        return new Response("Forbidden (cross-site request rejected)", { status: 403 });
+        return new Response("Forbidden (cross-site request rejected)", {
+          status: 403,
+        });
       }
 
       const url = new URL(req.url);
@@ -1823,7 +1863,10 @@ export function startMediaPlayerStudioServer(options: { port?: number; host?: st
       }
 
       if (url.pathname === "/api/library") {
-        const folder = url.searchParams.get("folder") || options.rootDir || getDefaultMediaLibraryDir();
+        const folder =
+          url.searchParams.get("folder") ||
+          options.rootDir ||
+          getDefaultMediaLibraryDir();
         if (folder.includes("\0") || !isWithinAllowedRoot(folder)) {
           return new Response("Forbidden", { status: 403 });
         }
@@ -1839,7 +1882,8 @@ export function startMediaPlayerStudioServer(options: { port?: number; host?: st
           return new Response("Forbidden", { status: 403 });
         }
         const ext = extname(filePath).toLowerCase();
-        if (!SUB_AND_LYR_EXTS.has(ext)) return new Response("Forbidden", { status: 403 });
+        if (!SUB_AND_LYR_EXTS.has(ext))
+          return new Response("Forbidden", { status: 403 });
         let st;
         try {
           st = statSync(filePath);
@@ -1906,27 +1950,43 @@ export function startMediaPlayerStudioServer(options: { port?: number; host?: st
 
       if (url.pathname === "/api/playlist" && req.method === "POST") {
         const body = (await req.json().catch(() => ({}))) as any;
-        const folder = resolve(body.folder || options.rootDir || getDefaultMediaLibraryDir());
-        if (folder.includes("\0") || !isWithinAllowedRoot(folder) || !existsSync(folder)) {
+        const folder = resolve(
+          body.folder || options.rootDir || getDefaultMediaLibraryDir(),
+        );
+        if (
+          folder.includes("\0") ||
+          !isWithinAllowedRoot(folder) ||
+          !existsSync(folder)
+        ) {
           return new Response("Forbidden", { status: 403 });
         }
         try {
-          if (!statSync(folder).isDirectory()) return new Response("Forbidden", { status: 403 });
+          if (!statSync(folder).isDirectory())
+            return new Response("Forbidden", { status: 403 });
         } catch {
           return new Response("Forbidden", { status: 403 });
         }
         const rawTracks = Array.isArray(body.tracks)
           ? body.tracks
           : Array.isArray(body.paths)
-            ? body.paths.map((p: unknown) => ({ path: String(p ?? ""), name: basename(String(p ?? "")) }))
+            ? body.paths.map((p: unknown) => ({
+                path: String(p ?? ""),
+                name: basename(String(p ?? "")),
+              }))
             : null;
         if (body.action === "export" && rawTracks) {
           const sanitizedTracks = rawTracks
-            .filter((t: any) => t && typeof t.path === "string" && !t.path.includes("\0"))
+            .filter(
+              (t: any) =>
+                t && typeof t.path === "string" && !t.path.includes("\0"),
+            )
             .map((t: any) => ({
               ...t,
               path: String(t.path).replace(/[\r\n]+/g, ""),
-              name: typeof t.name === "string" ? t.name.replace(/[\r\n]+/g, "") : undefined,
+              name:
+                typeof t.name === "string"
+                  ? t.name.replace(/[\r\n]+/g, "")
+                  : undefined,
             }));
           const target = join(folder, "playlist.m3u8");
           const m3u = formatM3u(sanitizedTracks);
@@ -1941,23 +2001,31 @@ export function startMediaPlayerStudioServer(options: { port?: number; host?: st
           const items = parseM3u(raw);
           const baseDir = dirname(firstPl.path);
           const resolvedTracks = items
-            .map((item: { path: string; title?: string; duration?: number }) => {
-              const p = item.path.startsWith("/") ? item.path : resolve(baseDir, item.path);
-              if (!isWithinAllowedRoot(p) || !existsSync(p)) return null;
-              const name = basename(p);
-              const kind = mediaKindOfName(name);
-              if (!kind) return null;
-              let st;
-              try {
-                st = statSync(p);
-              } catch {
-                return null;
-              }
-              if (!st.isFile()) return null;
-              return { name, path: p, size: st.size, kind };
-            })
+            .map(
+              (item: { path: string; title?: string; duration?: number }) => {
+                const p = item.path.startsWith("/")
+                  ? item.path
+                  : resolve(baseDir, item.path);
+                if (!isWithinAllowedRoot(p) || !existsSync(p)) return null;
+                const name = basename(p);
+                const kind = mediaKindOfName(name);
+                if (!kind) return null;
+                let st;
+                try {
+                  st = statSync(p);
+                } catch {
+                  return null;
+                }
+                if (!st.isFile()) return null;
+                return { name, path: p, size: st.size, kind };
+              },
+            )
             .filter(Boolean);
-          return Response.json({ ok: true, path: firstPl.path, tracks: resolvedTracks });
+          return Response.json({
+            ok: true,
+            path: firstPl.path,
+            tracks: resolvedTracks,
+          });
         }
       }
 
@@ -1970,8 +2038,17 @@ export function startMediaPlayerStudioServer(options: { port?: number; host?: st
   return { server, port: server.port, url, token };
 }
 
-export function createMediaPlayerStudio(options: MediaPlayerStudioOptions = {}): MediaPlayerStudioInstance {
-  const { width = 1280, height = 840, fullscreen = false, alwaysOnTop = false, port = 0, host = "127.0.0.1" } = options;
+export function createMediaPlayerStudio(
+  options: MediaPlayerStudioOptions = {},
+): MediaPlayerStudioInstance {
+  const {
+    width = 1280,
+    height = 840,
+    fullscreen = false,
+    alwaysOnTop = false,
+    port = 0,
+    host = "127.0.0.1",
+  } = options;
   const title = "⚡ Media Player Studio Pro";
 
   return {
@@ -1981,18 +2058,27 @@ export function createMediaPlayerStudio(options: MediaPlayerStudioOptions = {}):
     fullscreen,
     generateHtml: () => generateMediaPlayerStudioHtml(),
     async run() {
-      const { server, url } = startMediaPlayerStudioServer({ port, host, rootDir: options.rootDir });
+      const { server, url } = startMediaPlayerStudioServer({
+        port,
+        host,
+        rootDir: options.rootDir,
+      });
       this.server = server;
       this.port = server.port;
       this.url = url;
 
-      const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+      const { SizeHint, Webview } =
+        (await import("webview-bun")) as typeof import("webview-bun");
       const webview = new Webview();
       this.webview = webview;
       webview.title = title;
 
       const dims = fullscreen ? getScreenDimensions() : { width, height };
-      webview.size = { width: dims.width, height: dims.height, hint: SizeHint.NONE };
+      webview.size = {
+        width: dims.width,
+        height: dims.height,
+        hint: SizeHint.NONE,
+      };
 
       attachWindowShortcuts(webview, {
         onFullscreen: () => toggleFullscreenNative(webview),

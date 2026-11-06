@@ -269,7 +269,11 @@ function studioIdeEnhancementsClient() {
   if (window.StudioIdeEnhancements || typeof document === "undefined") return;
 
   const getDialect = () => {
-    const inst = window.studioGridCols || (window.StudioCols && window.StudioCols.instances && window.StudioCols.instances.grid);
+    const inst =
+      window.studioGridCols ||
+      (window.StudioCols &&
+        window.StudioCols.instances &&
+        window.StudioCols.instances.grid);
     if (inst && inst.studio) return inst.studio;
     const title = (document.title || "").toLowerCase();
     if (title.includes("postgres")) return "postgres";
@@ -278,32 +282,67 @@ function studioIdeEnhancementsClient() {
   };
 
   const getSchema = () => {
-    try { if (typeof currentSchema !== "undefined" && currentSchema) return currentSchema; } catch (e) {}
+    try {
+      if (typeof currentSchema !== "undefined" && currentSchema)
+        return currentSchema;
+    } catch (e) {}
     return window.currentSchema || null;
   };
 
   const getActiveTable = () => {
-    try { if (typeof activeTable !== "undefined" && activeTable) return activeTable; } catch (e) {}
+    try {
+      if (typeof activeTable !== "undefined" && activeTable) return activeTable;
+    } catch (e) {}
     return window.activeTable || "";
   };
 
   const getActiveColumnFilters = () => {
-    try { if (typeof activeColumnFilters !== "undefined" && activeColumnFilters) return activeColumnFilters; } catch (e) {}
+    try {
+      if (typeof activeColumnFilters !== "undefined" && activeColumnFilters)
+        return activeColumnFilters;
+    } catch (e) {}
     if (!window.activeColumnFilters) window.activeColumnFilters = {};
     return window.activeColumnFilters;
   };
 
   const getGridRows = () => {
-    try { if (typeof currentGridRows !== "undefined" && Array.isArray(currentGridRows)) return currentGridRows; } catch (e) {}
+    try {
+      if (
+        typeof currentGridRows !== "undefined" &&
+        Array.isArray(currentGridRows)
+      )
+        return currentGridRows;
+    } catch (e) {}
     if (Array.isArray(window.currentGridRows)) return window.currentGridRows;
-    try { if (typeof currentGridData !== "undefined" && currentGridData && Array.isArray(currentGridData.rows)) return currentGridData.rows; } catch (e) {}
+    try {
+      if (
+        typeof currentGridData !== "undefined" &&
+        currentGridData &&
+        Array.isArray(currentGridData.rows)
+      )
+        return currentGridData.rows;
+    } catch (e) {}
     return [];
   };
 
   const getGridColumns = () => {
-    try { if (typeof currentGridColumns !== "undefined" && Array.isArray(currentGridColumns)) return currentGridColumns; } catch (e) {}
-    if (Array.isArray(window.currentGridColumns)) return window.currentGridColumns;
-    try { if (typeof currentGridData !== "undefined" && currentGridData && Array.isArray(currentGridData.columns)) return currentGridData.columns; } catch (e) {}
+    try {
+      if (
+        typeof currentGridColumns !== "undefined" &&
+        Array.isArray(currentGridColumns)
+      )
+        return currentGridColumns;
+    } catch (e) {}
+    if (Array.isArray(window.currentGridColumns))
+      return window.currentGridColumns;
+    try {
+      if (
+        typeof currentGridData !== "undefined" &&
+        currentGridData &&
+        Array.isArray(currentGridData.columns)
+      )
+        return currentGridData.columns;
+    } catch (e) {}
     const rows = getGridRows();
     return rows.length > 0 ? Object.keys(rows[0]) : [];
   };
@@ -311,14 +350,21 @@ function studioIdeEnhancementsClient() {
   const triggerTableReload = (resetPage) => {
     try {
       if (resetPage) {
-        try { if (typeof gridPage !== "undefined") gridPage = 1; } catch (e) {}
-        try { if (typeof gridCurrentPage !== "undefined") gridCurrentPage = 1; } catch (e) {}
+        try {
+          if (typeof gridPage !== "undefined") gridPage = 1;
+        } catch (e) {}
+        try {
+          if (typeof gridCurrentPage !== "undefined") gridCurrentPage = 1;
+        } catch (e) {}
       }
-      if (typeof window.fetchTableData === "function") return window.fetchTableData();
+      if (typeof window.fetchTableData === "function")
+        return window.fetchTableData();
       if (typeof fetchTableData === "function") return fetchTableData();
       const tbl = getActiveTable();
-      if (tbl && typeof window.loadTableData === "function") return window.loadTableData(tbl, resetPage ? 1 : undefined);
-      if (tbl && typeof loadTableData === "function") return loadTableData(tbl, resetPage ? 1 : undefined);
+      if (tbl && typeof window.loadTableData === "function")
+        return window.loadTableData(tbl, resetPage ? 1 : undefined);
+      if (tbl && typeof loadTableData === "function")
+        return loadTableData(tbl, resetPage ? 1 : undefined);
     } catch (e) {}
   };
 
@@ -331,7 +377,9 @@ function studioIdeEnhancementsClient() {
 
   const callApi = async (endpoint, payload) => {
     try {
-      const fn = window.apiRequest || (typeof apiRequest === "function" ? apiRequest : null);
+      const fn =
+        window.apiRequest ||
+        (typeof apiRequest === "function" ? apiRequest : null);
       if (fn) {
         return await fn(endpoint, payload);
       }
@@ -346,7 +394,12 @@ function studioIdeEnhancementsClient() {
     }
   };
 
-  const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const esc = (s) =>
+    String(s ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
 
   // =========================================================================
   // 1. Wrap apiRequest for columnFilters, sortColumns, Read-Only Guard & History
@@ -365,7 +418,10 @@ function studioIdeEnhancementsClient() {
   };
   const saveHistory = () => {
     try {
-      localStorage.setItem(HIST_KEY(), JSON.stringify((window.__studioQueryHistory || []).slice(0, 50)));
+      localStorage.setItem(
+        HIST_KEY(),
+        JSON.stringify((window.__studioQueryHistory || []).slice(0, 50)),
+      );
     } catch (e) {}
   };
 
@@ -388,7 +444,9 @@ function studioIdeEnhancementsClient() {
   };
 
   function wrapApiRequest() {
-    const orig = window.apiRequest || (typeof apiRequest === "function" ? apiRequest : null);
+    const orig =
+      window.apiRequest ||
+      (typeof apiRequest === "function" ? apiRequest : null);
     if (!orig || orig.__studioEnhanced) return;
     const wrapped = async function (endpoint, arg2, arg3) {
       let isThreeArg = typeof arg2 === "string";
@@ -397,32 +455,71 @@ function studioIdeEnhancementsClient() {
       if (endpoint === "/api/table/data" && body && typeof body === "object") {
         const filters = getActiveColumnFilters();
         if (filters && Object.keys(filters).length > 0 && !body.columnFilters) {
-          body = Object.assign({}, body, { columnFilters: Object.assign({}, filters) });
+          body = Object.assign({}, body, {
+            columnFilters: Object.assign({}, filters),
+          });
         }
-        if (Array.isArray(window.__studioSortColumns) && window.__studioSortColumns.length > 0 && !body.sortColumns) {
-          body = Object.assign({}, body, { sortColumns: window.__studioSortColumns.slice() });
+        if (
+          Array.isArray(window.__studioSortColumns) &&
+          window.__studioSortColumns.length > 0 &&
+          !body.sortColumns
+        ) {
+          body = Object.assign({}, body, {
+            sortColumns: window.__studioSortColumns.slice(),
+          });
         }
       }
 
       if (endpoint === "/api/query" && body && typeof body.sql === "string") {
         const sqlTrim = body.sql.trim();
-        if (window.__studioReadOnlyGuard && /^(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|REPLACE|GRANT|REVOKE|VACUUM)\b/i.test(sqlTrim)) {
-          notify("🔒 Read-Only Guard is active — disable it to run mutating SQL.");
-          return { success: false, error: "Blocked by Read-Only Guard (mutating statement prevented)" };
+        if (
+          window.__studioReadOnlyGuard &&
+          /^(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|REPLACE|GRANT|REVOKE|VACUUM)\b/i.test(
+            sqlTrim,
+          )
+        ) {
+          notify(
+            "🔒 Read-Only Guard is active — disable it to run mutating SQL.",
+          );
+          return {
+            success: false,
+            error: "Blocked by Read-Only Guard (mutating statement prevented)",
+          };
         }
         const t0 = performance.now();
-        const res = (isThreeArg && orig.length >= 3) ? await orig.call(this, endpoint, arg2, body) : await orig.call(this, endpoint, body);
-        const elapsed = (res && typeof res.latencyMs === "number") ? res.latencyMs : Math.round(performance.now() - t0);
-        const rowsCount = res && Array.isArray(res.rows) ? res.rows.length : (res && res.rowsAffected !== undefined ? res.rowsAffected : 0);
-        recordQueryHistory(sqlTrim, elapsed, rowsCount, res && res.success !== false, res && res.error);
+        const res =
+          isThreeArg && orig.length >= 3
+            ? await orig.call(this, endpoint, arg2, body)
+            : await orig.call(this, endpoint, body);
+        const elapsed =
+          res && typeof res.latencyMs === "number"
+            ? res.latencyMs
+            : Math.round(performance.now() - t0);
+        const rowsCount =
+          res && Array.isArray(res.rows)
+            ? res.rows.length
+            : res && res.rowsAffected !== undefined
+              ? res.rowsAffected
+              : 0;
+        recordQueryHistory(
+          sqlTrim,
+          elapsed,
+          rowsCount,
+          res && res.success !== false,
+          res && res.error,
+        );
         return res;
       }
 
-      return (isThreeArg && orig.length >= 3) ? await orig.call(this, endpoint, arg2, body) : await orig.call(this, endpoint, body);
+      return isThreeArg && orig.length >= 3
+        ? await orig.call(this, endpoint, arg2, body)
+        : await orig.call(this, endpoint, body);
     };
     wrapped.__studioEnhanced = true;
     window.apiRequest = wrapped;
-    try { apiRequest = wrapped; } catch (e) {}
+    try {
+      apiRequest = wrapped;
+    } catch (e) {}
   }
 
   // =========================================================================
@@ -432,7 +529,10 @@ function studioIdeEnhancementsClient() {
     if (preferredEditor && preferredEditor.tagName === "TEXTAREA") {
       return preferredEditor;
     }
-    if (document.activeElement && document.activeElement.id === "designerSqlPreview") {
+    if (
+      document.activeElement &&
+      document.activeElement.id === "designerSqlPreview"
+    ) {
       return document.activeElement;
     }
     const designerTabEl = document.getElementById("tabDesigner");
@@ -445,17 +545,27 @@ function studioIdeEnhancementsClient() {
       const ta = document.getElementById("sqlEditorTextarea");
       if (ta) return ta;
     }
-    return document.getElementById("sqlEditor") || document.getElementById("sqlEditorTextarea") || document.getElementById("designerSqlPreview");
+    return (
+      document.getElementById("sqlEditor") ||
+      document.getElementById("sqlEditorTextarea") ||
+      document.getElementById("designerSqlPreview")
+    );
   }
 
   function wrapRunEditorQuery() {
-    const orig = window.runEditorQuery || (typeof runEditorQuery === "function" ? runEditorQuery : null);
+    const orig =
+      window.runEditorQuery ||
+      (typeof runEditorQuery === "function" ? runEditorQuery : null);
     if (!orig || orig.__studioSelectionWrapped) return;
     const wrapped = async function () {
       const ed = getPrimaryEditor();
       const ed1 = document.getElementById("sqlEditor");
       const ed2 = document.getElementById("sqlEditorTextarea");
-      if (ed && typeof ed.selectionStart === "number" && ed.selectionStart !== ed.selectionEnd) {
+      if (
+        ed &&
+        typeof ed.selectionStart === "number" &&
+        ed.selectionStart !== ed.selectionEnd
+      ) {
         const fullVal = ed.value;
         const start = ed.selectionStart;
         const end = ed.selectionEnd;
@@ -470,7 +580,9 @@ function studioIdeEnhancementsClient() {
             ed.value = fullVal;
             if (ed1 && ed1 !== ed) ed1.value = fullVal;
             if (ed2 && ed2 !== ed) ed2.value = fullVal;
-            try { ed.setSelectionRange(start, end); } catch (e) {}
+            try {
+              ed.setSelectionRange(start, end);
+            } catch (e) {}
           }
         }
       }
@@ -479,7 +591,9 @@ function studioIdeEnhancementsClient() {
     wrapped.__studioSelectionWrapped = true;
     window.runEditorQuery = wrapped;
     window.executeCurrentQuery = wrapped;
-    try { runEditorQuery = wrapped; } catch (e) {}
+    try {
+      runEditorQuery = wrapped;
+    } catch (e) {}
   }
 
   // =========================================================================
@@ -507,25 +621,34 @@ function studioIdeEnhancementsClient() {
 
   function saveWorksheets() {
     try {
-      localStorage.setItem(WS_KEY(), JSON.stringify({ activeId: activeWsId, tabs: worksheets }));
+      localStorage.setItem(
+        WS_KEY(),
+        JSON.stringify({ activeId: activeWsId, tabs: worksheets }),
+      );
     } catch (e) {}
   }
 
   function renderWorksheetTabs() {
     const bar = document.getElementById("studioWorksheetBar");
     if (!bar) return;
-    const tabsHtml = worksheets.map((w) => {
-      const active = w.id === activeWsId ? " active" : "";
-      const closeBtn = worksheets.length > 1
-        ? `<span class="ws-close" data-ws-close="${esc(w.id)}" title="Close worksheet">×</span>`
-        : "";
-      return `<button type="button" class="studio-ws-tab${active}" data-ws-id="${esc(w.id)}" title="Double-click to rename">${esc(w.title)}${closeBtn}</button>`;
-    }).join("");
+    const tabsHtml = worksheets
+      .map((w) => {
+        const active = w.id === activeWsId ? " active" : "";
+        const closeBtn =
+          worksheets.length > 1
+            ? `<span class="ws-close" data-ws-close="${esc(w.id)}" title="Close worksheet">×</span>`
+            : "";
+        return `<button type="button" class="studio-ws-tab${active}" data-ws-id="${esc(w.id)}" title="Double-click to rename">${esc(w.title)}${closeBtn}</button>`;
+      })
+      .join("");
     bar.innerHTML = `${tabsHtml}<button type="button" class="studio-ws-add" id="btnAddWorksheet" title="New SQL Worksheet">+</button><span class="studio-sel-badge" id="studioSelectionBadge">Selection active — Execute runs highlighted SQL</span>`;
 
     bar.querySelectorAll(".studio-ws-tab").forEach((btn) => {
       btn.addEventListener("click", (e) => {
-        const closeId = e.target && e.target.getAttribute && e.target.getAttribute("data-ws-close");
+        const closeId =
+          e.target &&
+          e.target.getAttribute &&
+          e.target.getAttribute("data-ws-close");
         if (closeId) {
           e.stopPropagation();
           if (worksheets.length <= 1) return;
@@ -559,7 +682,10 @@ function studioIdeEnhancementsClient() {
         const id = btn.getAttribute("data-ws-id");
         const target = worksheets.find((w) => w.id === id);
         if (!target) return;
-        const newName = typeof studioPrompt === "function" ? await studioPrompt("Rename worksheet:", target.title) : null;
+        const newName =
+          typeof studioPrompt === "function"
+            ? await studioPrompt("Rename worksheet:", target.title)
+            : null;
         if (newName && newName.trim()) {
           target.title = newName.trim();
           saveWorksheets();
@@ -588,23 +714,47 @@ function studioIdeEnhancementsClient() {
 
   async function formatSingleEditor(ed) {
     if (!ed || typeof ed.value !== "string") return false;
-    const hasSel = typeof ed.selectionStart === "number" && ed.selectionStart !== ed.selectionEnd;
-    const rawSql = hasSel ? ed.value.slice(ed.selectionStart, ed.selectionEnd) : ed.value;
+    const hasSel =
+      typeof ed.selectionStart === "number" &&
+      ed.selectionStart !== ed.selectionEnd;
+    const rawSql = hasSel
+      ? ed.value.slice(ed.selectionStart, ed.selectionEnd)
+      : ed.value;
     if (!rawSql.trim()) return false;
-    const res = await callApi("/api/sql/format", { sql: rawSql, dialect: getDialect() });
-    const formattedSql = res && (typeof res.formatted === "string" ? res.formatted : typeof res.sql === "string" ? res.sql : null);
-    if (res && res.success && formattedSql !== null && formattedSql.trim().length > 0) {
+    const res = await callApi("/api/sql/format", {
+      sql: rawSql,
+      dialect: getDialect(),
+    });
+    const formattedSql =
+      res &&
+      (typeof res.formatted === "string"
+        ? res.formatted
+        : typeof res.sql === "string"
+          ? res.sql
+          : null);
+    if (
+      res &&
+      res.success &&
+      formattedSql !== null &&
+      formattedSql.trim().length > 0
+    ) {
       if (hasSel) {
         const start = ed.selectionStart;
         const end = ed.selectionEnd;
-        ed.value = ed.value.slice(0, start) + formattedSql + ed.value.slice(end);
-        try { ed.setSelectionRange(start, start + formattedSql.length); } catch (e) {}
+        ed.value =
+          ed.value.slice(0, start) + formattedSql + ed.value.slice(end);
+        try {
+          ed.setSelectionRange(start, start + formattedSql.length);
+        } catch (e) {}
       } else {
         ed.value = formattedSql;
       }
       if (ed.id === "sqlEditor") {
         const cur = worksheets.find((w) => w.id === activeWsId);
-        if (cur) { cur.sql = ed.value; saveWorksheets(); }
+        if (cur) {
+          cur.sql = ed.value;
+          saveWorksheets();
+        }
       }
       return { ok: true };
     }
@@ -612,7 +762,10 @@ function studioIdeEnhancementsClient() {
   }
 
   async function formatStudioSql(preferredEditor) {
-    const explicitEditor = (preferredEditor && preferredEditor.tagName === "TEXTAREA") ? preferredEditor : null;
+    const explicitEditor =
+      preferredEditor && preferredEditor.tagName === "TEXTAREA"
+        ? preferredEditor
+        : null;
     const ed = getPrimaryEditor(explicitEditor);
     if (!ed) return;
     if (!ed.value || !ed.value.trim()) {
@@ -622,11 +775,25 @@ function studioIdeEnhancementsClient() {
     const outcome = await formatSingleEditor(ed);
     // If invoked from top toolbar while Query Designer SQL preview is also open, format the other SQL editor too
     if (!explicitEditor) {
-      const topEd = document.getElementById("sqlEditor") || document.getElementById("sqlEditorTextarea");
+      const topEd =
+        document.getElementById("sqlEditor") ||
+        document.getElementById("sqlEditorTextarea");
       const designerEd = document.getElementById("designerSqlPreview");
-      if (ed === designerEd && topEd && topEd !== ed && topEd.value && topEd.value.trim()) {
+      if (
+        ed === designerEd &&
+        topEd &&
+        topEd !== ed &&
+        topEd.value &&
+        topEd.value.trim()
+      ) {
         await formatSingleEditor(topEd);
-      } else if (ed === topEd && designerEd && designerEd !== ed && designerEd.value && designerEd.value.trim()) {
+      } else if (
+        ed === topEd &&
+        designerEd &&
+        designerEd !== ed &&
+        designerEd.value &&
+        designerEd.value.trim()
+      ) {
         await formatSingleEditor(designerEd);
       }
     }
@@ -637,7 +804,8 @@ function studioIdeEnhancementsClient() {
     }
   }
   window.formatStudioSql = formatStudioSql;
-  window.formatDesignerSql = () => formatStudioSql(document.getElementById("designerSqlPreview"));
+  window.formatDesignerSql = () =>
+    formatStudioSql(document.getElementById("designerSqlPreview"));
 
   async function runTxCommand(cmd) {
     const prevGuard = window.__studioReadOnlyGuard;
@@ -648,7 +816,8 @@ function studioIdeEnhancementsClient() {
         if (/^BEGIN/i.test(cmd)) window.__studioInTx = true;
         else window.__studioInTx = false;
         const badge = document.getElementById("studioTxBadge");
-        if (badge) badge.style.display = window.__studioInTx ? "inline-block" : "none";
+        if (badge)
+          badge.style.display = window.__studioInTx ? "inline-block" : "none";
         notify("✓ Transaction: " + cmd);
         if (/^(COMMIT|ROLLBACK)/i.test(cmd)) triggerTableReload(false);
       } else {
@@ -665,9 +834,15 @@ function studioIdeEnhancementsClient() {
     const btn = document.getElementById("btnReadOnlyGuard");
     if (btn) {
       btn.classList.toggle("studio-ro-active", window.__studioReadOnlyGuard);
-      btn.textContent = window.__studioReadOnlyGuard ? "🔒 Read-Only: ON" : "🔓 Read-Only: OFF";
+      btn.textContent = window.__studioReadOnlyGuard
+        ? "🔒 Read-Only: ON"
+        : "🔓 Read-Only: OFF";
     }
-    notify(window.__studioReadOnlyGuard ? "🔒 Read-Only Guard enabled (mutations blocked)" : "🔓 Read-Only Guard disabled");
+    notify(
+      window.__studioReadOnlyGuard
+        ? "🔒 Read-Only Guard enabled (mutations blocked)"
+        : "🔓 Read-Only Guard disabled",
+    );
   }
   window.toggleStudioReadOnlyGuard = toggleReadOnlyGuard;
 
@@ -690,27 +865,39 @@ function studioIdeEnhancementsClient() {
       <div id="studioHistList" style="flex:1;overflow-y:auto;max-height:360px;"></div>
     `;
     document.body.appendChild(drawer);
-    document.getElementById("studioHistSearch").addEventListener("input", renderHistoryList);
-    document.getElementById("btnStudioHistClear").addEventListener("click", () => {
-      window.__studioQueryHistory = [];
-      saveHistory();
-      renderHistoryList();
-    });
-    document.getElementById("btnStudioHistClose").addEventListener("click", () => {
-      drawer.style.display = "none";
-    });
+    document
+      .getElementById("studioHistSearch")
+      .addEventListener("input", renderHistoryList);
+    document
+      .getElementById("btnStudioHistClear")
+      .addEventListener("click", () => {
+        window.__studioQueryHistory = [];
+        saveHistory();
+        renderHistoryList();
+      });
+    document
+      .getElementById("btnStudioHistClose")
+      .addEventListener("click", () => {
+        drawer.style.display = "none";
+      });
   }
 
   function renderHistoryList() {
     const listEl = document.getElementById("studioHistList");
     if (!listEl) return;
-    const q = (document.getElementById("studioHistSearch")?.value || "").toLowerCase().trim();
-    const items = (window.__studioQueryHistory || []).filter((h) => !q || h.sql.toLowerCase().includes(q));
+    const q = (document.getElementById("studioHistSearch")?.value || "")
+      .toLowerCase()
+      .trim();
+    const items = (window.__studioQueryHistory || []).filter(
+      (h) => !q || h.sql.toLowerCase().includes(q),
+    );
     if (!items.length) {
       listEl.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-muted,#94a3b8);font-size:11px;">No queries recorded yet.</div>`;
       return;
     }
-    listEl.innerHTML = items.map((h, idx) => `
+    listEl.innerHTML = items
+      .map(
+        (h, idx) => `
       <div class="studio-hist-item">
         <div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--text-muted,#94a3b8);">
           <span>${esc(h.ts)} • <b>${esc(h.latencyMs)}ms</b> • ${esc(h.rowCount)} rows ${h.ok ? '<span style="color:#10b981;">✓</span>' : '<span style="color:#ef4444;">⚠️</span>'}</span>
@@ -721,7 +908,9 @@ function studioIdeEnhancementsClient() {
         </div>
         <div style="font-family:var(--font-mono,monospace);font-size:11px;color:var(--text-main,#f8fafc);white-space:pre-wrap;max-height:54px;overflow:hidden;">${esc(h.sql)}</div>
       </div>
-    `).join("");
+    `,
+      )
+      .join("");
 
     listEl.querySelectorAll("[data-hist-load]").forEach((b) => {
       b.addEventListener("click", () => {
@@ -730,7 +919,10 @@ function studioIdeEnhancementsClient() {
         if (item && ed) {
           ed.value = item.sql;
           const cur = worksheets.find((w) => w.id === activeWsId);
-          if (cur) { cur.sql = item.sql; saveWorksheets(); }
+          if (cur) {
+            cur.sql = item.sql;
+            saveWorksheets();
+          }
         }
       });
     });
@@ -740,7 +932,8 @@ function studioIdeEnhancementsClient() {
         const ed = getPrimaryEditor();
         if (item && ed) {
           ed.value = item.sql;
-          document.getElementById("studioSqlHistoryDrawer").style.display = "none";
+          document.getElementById("studioSqlHistoryDrawer").style.display =
+            "none";
           window.runEditorQuery();
         }
       });
@@ -795,11 +988,19 @@ function studioIdeEnhancementsClient() {
       const tblPrefix = dotMatch[1].replace(/"/g, "").toLowerCase();
       const colPrefix = (dotMatch[2] || "").toLowerCase();
       acReplaceRange = [pos - (dotMatch[2] || "").length, pos];
-      const tbl = [...tables, ...views].find((t) => String(t.name).toLowerCase() === tblPrefix);
-      const cols = tbl ? (tbl.columns || []) : tables.flatMap((t) => t.columns || []);
+      const tbl = [...tables, ...views].find(
+        (t) => String(t.name).toLowerCase() === tblPrefix,
+      );
+      const cols = tbl
+        ? tbl.columns || []
+        : tables.flatMap((t) => t.columns || []);
       cols.forEach((c) => {
         if (!colPrefix || String(c.name).toLowerCase().startsWith(colPrefix)) {
-          list.push({ label: c.name, insert: c.name, kind: (c.pk ? "🔑 " : "") + (c.type || "col") });
+          list.push({
+            label: c.name,
+            insert: c.name,
+            kind: (c.pk ? "🔑 " : "") + (c.type || "col"),
+          });
         }
       });
       return list.slice(0, 30);
@@ -813,7 +1014,11 @@ function studioIdeEnhancementsClient() {
       }
       (t.columns || []).forEach((c) => {
         if (prefix && c.name.toLowerCase().startsWith(prefix)) {
-          list.push({ label: `${c.name} (${t.name})`, insert: c.name, kind: c.type || "column" });
+          list.push({
+            label: `${c.name} (${t.name})`,
+            insert: c.name,
+            kind: c.type || "column",
+          });
         }
       });
     });
@@ -822,7 +1027,24 @@ function studioIdeEnhancementsClient() {
         list.push({ label: v.name, insert: v.name, kind: "view" });
       }
     });
-    ["SELECT", "FROM", "WHERE", "JOIN", "LEFT JOIN", "INNER JOIN", "GROUP BY", "ORDER BY", "LIMIT", "INSERT INTO", "UPDATE", "DELETE FROM", "WITH", "HAVING", "DISTINCT", "COUNT(*)"].forEach((kw) => {
+    [
+      "SELECT",
+      "FROM",
+      "WHERE",
+      "JOIN",
+      "LEFT JOIN",
+      "INNER JOIN",
+      "GROUP BY",
+      "ORDER BY",
+      "LIMIT",
+      "INSERT INTO",
+      "UPDATE",
+      "DELETE FROM",
+      "WITH",
+      "HAVING",
+      "DISTINCT",
+      "COUNT(*)",
+    ].forEach((kw) => {
       if (!prefix || kw.toLowerCase().startsWith(prefix)) {
         list.push({ label: kw, insert: kw, kind: "sql" });
       }
@@ -836,7 +1058,9 @@ function studioIdeEnhancementsClient() {
     const [start, end] = acReplaceRange;
     acTargetEditor.value = v.slice(0, start) + item.insert + v.slice(end);
     const caret = start + item.insert.length;
-    try { acTargetEditor.setSelectionRange(caret, caret); } catch (e) {}
+    try {
+      acTargetEditor.setSelectionRange(caret, caret);
+    } catch (e) {}
     acTargetEditor.focus();
     closeSuggest();
   }
@@ -851,7 +1075,8 @@ function studioIdeEnhancementsClient() {
     }
     acIndex = 0;
     const rect = ed.getBoundingClientRect();
-    box.style.left = Math.min(window.innerWidth - 332, Math.max(8, rect.left + 24)) + "px";
+    box.style.left =
+      Math.min(window.innerWidth - 332, Math.max(8, rect.left + 24)) + "px";
     box.style.top = Math.min(window.innerHeight - 250, rect.bottom + 4) + "px";
     box.style.display = "block";
     renderSuggestItems();
@@ -860,12 +1085,16 @@ function studioIdeEnhancementsClient() {
   function renderSuggestItems() {
     const box = document.getElementById("studioSqlSuggest");
     if (!box) return;
-    box.innerHTML = acItems.map((it, idx) => `
+    box.innerHTML = acItems
+      .map(
+        (it, idx) => `
       <div class="studio-ac-item${idx === acIndex ? " active" : ""}" data-ac-idx="${idx}">
         <span>${esc(it.label)}</span>
         <span class="studio-ac-kind">${esc(it.kind)}</span>
       </div>
-    `).join("");
+    `,
+      )
+      .join("");
     box.querySelectorAll(".studio-ac-item").forEach((el) => {
       el.addEventListener("mousedown", (e) => {
         e.preventDefault();
@@ -881,7 +1110,10 @@ function studioIdeEnhancementsClient() {
     const updateSelectionBadge = () => {
       const badge = document.getElementById("studioSelectionBadge");
       if (!badge) return;
-      const hasSel = typeof ed.selectionStart === "number" && ed.selectionStart !== ed.selectionEnd && ed.value.slice(ed.selectionStart, ed.selectionEnd).trim().length > 0;
+      const hasSel =
+        typeof ed.selectionStart === "number" &&
+        ed.selectionStart !== ed.selectionEnd &&
+        ed.value.slice(ed.selectionStart, ed.selectionEnd).trim().length > 0;
       badge.style.display = hasSel ? "inline-block" : "none";
     };
 
@@ -898,7 +1130,9 @@ function studioIdeEnhancementsClient() {
       const pos = ed.selectionStart || 0;
       if (pos > 1 && ed.value[pos - 1] === ".") {
         showSuggestions(ed);
-      } else if (document.getElementById("studioSqlSuggest")?.style.display === "block") {
+      } else if (
+        document.getElementById("studioSqlSuggest")?.style.display === "block"
+      ) {
         showSuggestions(ed);
       }
     });
@@ -906,10 +1140,28 @@ function studioIdeEnhancementsClient() {
     ed.addEventListener("keydown", (e) => {
       const box = document.getElementById("studioSqlSuggest");
       if (box && box.style.display === "block" && acItems.length > 0) {
-        if (e.key === "ArrowDown") { e.preventDefault(); acIndex = (acIndex + 1) % acItems.length; renderSuggestItems(); return; }
-        if (e.key === "ArrowUp") { e.preventDefault(); acIndex = (acIndex - 1 + acItems.length) % acItems.length; renderSuggestItems(); return; }
-        if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); applySuggestion(acItems[acIndex]); return; }
-        if (e.key === "Escape") { e.preventDefault(); closeSuggest(); return; }
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          acIndex = (acIndex + 1) % acItems.length;
+          renderSuggestItems();
+          return;
+        }
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          acIndex = (acIndex - 1 + acItems.length) % acItems.length;
+          renderSuggestItems();
+          return;
+        }
+        if (e.key === "Enter" || e.key === "Tab") {
+          e.preventDefault();
+          applySuggestion(acItems[acIndex]);
+          return;
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          closeSuggest();
+          return;
+        }
       }
       if (e.ctrlKey && e.code === "Space") {
         e.preventDefault();
@@ -978,10 +1230,18 @@ function studioIdeEnhancementsClient() {
       `;
       controlsLeft.appendChild(txGroup);
 
-      document.getElementById("btnTxBegin")?.addEventListener("click", () => runTxCommand("BEGIN"));
-      document.getElementById("btnTxCommit")?.addEventListener("click", () => runTxCommand("COMMIT"));
-      document.getElementById("btnTxRollback")?.addEventListener("click", () => runTxCommand("ROLLBACK"));
-      document.getElementById("btnReadOnlyGuard")?.addEventListener("click", toggleReadOnlyGuard);
+      document
+        .getElementById("btnTxBegin")
+        ?.addEventListener("click", () => runTxCommand("BEGIN"));
+      document
+        .getElementById("btnTxCommit")
+        ?.addEventListener("click", () => runTxCommand("COMMIT"));
+      document
+        .getElementById("btnTxRollback")
+        ?.addEventListener("click", () => runTxCommand("ROLLBACK"));
+      document
+        .getElementById("btnReadOnlyGuard")
+        ?.addEventListener("click", toggleReadOnlyGuard);
     }
 
     bindEditorEnhancements(ed);
@@ -995,7 +1255,11 @@ function studioIdeEnhancementsClient() {
   function stripAccessDelimiters(raw) {
     const s = String(raw ?? "").trim();
     if (s.length >= 2) {
-      if ((s.startsWith("'") && s.endsWith("'")) || (s.startsWith('"') && s.endsWith('"')) || (s.startsWith("#") && s.endsWith("#"))) {
+      if (
+        (s.startsWith("'") && s.endsWith("'")) ||
+        (s.startsWith('"') && s.endsWith('"')) ||
+        (s.startsWith("#") && s.endsWith("#"))
+      ) {
         return s.slice(1, -1).trim();
       }
     }
@@ -1003,7 +1267,10 @@ function studioIdeEnhancementsClient() {
   }
 
   function parseAccessNumber(raw) {
-    const cleaned = stripAccessDelimiters(raw).replace(/^\$/, "").replace(/,/g, "").trim();
+    const cleaned = stripAccessDelimiters(raw)
+      .replace(/^\$/, "")
+      .replace(/,/g, "")
+      .trim();
     if (!cleaned || !/^[+-]?(\d+\.?\d*|\.\d+)$/.test(cleaned)) return null;
     const n = Number(cleaned);
     return Number.isFinite(n) ? n : null;
@@ -1022,13 +1289,19 @@ function studioIdeEnhancementsClient() {
       const iso = `${usDate[3]}-${usDate[1].padStart(2, "0")}-${usDate[2].padStart(2, "0")}`;
       return { iso, isDateOnly: true, ms: Date.parse(iso + "T00:00:00Z") };
     }
-    const isoTs = /^(\d{4})-(\d{1,2})-(\d{1,2})[T\s](\d{1,2}:\d{2}(?::\d{2})?)/.exec(s);
+    const isoTs =
+      /^(\d{4})-(\d{1,2})-(\d{1,2})[T\s](\d{1,2}:\d{2}(?::\d{2})?)/.exec(s);
     if (isoTs) {
       const tPart = isoTs[4].length === 4 ? "0" + isoTs[4] : isoTs[4];
       const fullTime = tPart.length === 5 ? tPart + ":00" : tPart;
       const iso = `${isoTs[1]}-${isoTs[2].padStart(2, "0")}-${isoTs[3].padStart(2, "0")} ${tPart}`;
       const dateOnly = `${isoTs[1]}-${isoTs[2].padStart(2, "0")}-${isoTs[3].padStart(2, "0")}`;
-      return { iso, dateOnly, isDateOnly: false, ms: Date.parse(`${dateOnly}T${fullTime}Z`) };
+      return {
+        iso,
+        dateOnly,
+        isDateOnly: false,
+        ms: Date.parse(`${dateOnly}T${fullTime}Z`),
+      };
     }
     return null;
   }
@@ -1052,29 +1325,59 @@ function studioIdeEnhancementsClient() {
 
     if (colName) {
       const esc = String(colName).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const prefixRe = new RegExp(`^(?:\\[?["\`]?${esc}["\`]?\\]?)\\s+(?=(?:>=|<=|!=|<>|>|<|=|between\\b|not\\b|in\\b|like\\b|is\\b|starts\\b|begins\\b|ends\\b|contains\\b))`, "i");
+      const prefixRe = new RegExp(
+        `^(?:\\[?["\`]?${esc}["\`]?\\]?)\\s+(?=(?:>=|<=|!=|<>|>|<|=|between\\b|not\\b|in\\b|like\\b|is\\b|starts\\b|begins\\b|ends\\b|contains\\b))`,
+        "i",
+      );
       expr = expr.replace(prefixRe, "").trim();
       if (!expr) return true;
     }
 
     // While user is mid-typing an operator with no operand yet, keep rows visible
-    if (/^(>=|<=|!=|<>|>|<|=|!|not|between|not\s+between|in|not\s+in|like|not\s+like|starts\s+with|begins\s+with|ends\s+with|contains|not\s+contains)$/i.test(expr)) {
+    if (
+      /^(>=|<=|!=|<>|>|<|=|!|not|between|not\s+between|in|not\s+in|like|not\s+like|starts\s+with|begins\s+with|ends\s+with|contains|not\s+contains)$/i.test(
+        expr,
+      )
+    ) {
       return true;
     }
 
-    const isNull = cellValue === null || cellValue === undefined || String(cellValue).trim() === "NULL";
+    const isNull =
+      cellValue === null ||
+      cellValue === undefined ||
+      String(cellValue).trim() === "NULL";
     const cellStr = isNull ? "" : String(cellValue).trim();
     const cellLower = cellStr.toLowerCase();
     const lower = expr.toLowerCase();
 
-    if (lower === "null" || lower === "is null" || lower === "= null" || lower === "=null" || lower === "empty" || lower === "is empty") {
+    if (
+      lower === "null" ||
+      lower === "is null" ||
+      lower === "= null" ||
+      lower === "=null" ||
+      lower === "empty" ||
+      lower === "is empty"
+    ) {
       return isNull || cellStr === "";
     }
-    if (lower === "!null" || lower === "not null" || lower === "is not null" || lower === "<> null" || lower === "!= null" || lower === "<>null" || lower === "!=null" || lower === "not empty" || lower === "is not empty") {
+    if (
+      lower === "!null" ||
+      lower === "not null" ||
+      lower === "is not null" ||
+      lower === "<> null" ||
+      lower === "!= null" ||
+      lower === "<>null" ||
+      lower === "!=null" ||
+      lower === "not empty" ||
+      lower === "is not empty"
+    ) {
       return !isNull && cellStr !== "";
     }
     if (isNull) {
-      if (/^(not\s+contains|!contains|does\s+not\s+contain)\s+/i.test(expr) || (expr.startsWith("!") && expr.length > 1 && !expr.startsWith("!="))) {
+      if (
+        /^(not\s+contains|!contains|does\s+not\s+contain)\s+/i.test(expr) ||
+        (expr.startsWith("!") && expr.length > 1 && !expr.startsWith("!="))
+      ) {
         return true;
       }
       return false;
@@ -1082,7 +1385,9 @@ function studioIdeEnhancementsClient() {
 
     // BETWEEN a AND b / NOT BETWEEN a AND b / a..b
     const betweenMatch = /^(not\s+)?between\s+(.+?)\s+and\s+(.+)$/i.exec(expr);
-    const dotsMatch = !betweenMatch ? /^([^.]+?)\s*\.\.\s*(.+)$/.exec(expr) : null;
+    const dotsMatch = !betweenMatch
+      ? /^([^.]+?)\s*\.\.\s*(.+)$/.exec(expr)
+      : null;
     if (betweenMatch || dotsMatch) {
       const isNot = Boolean(betweenMatch && betweenMatch[1]);
       const rawLow = (betweenMatch ? betweenMatch[2] : dotsMatch[1]).trim();
@@ -1118,7 +1423,10 @@ function studioIdeEnhancementsClient() {
     const inMatch = /^(not\s+)?in\s*\((.*)\)$/i.exec(expr);
     if (inMatch) {
       const isNot = Boolean(inMatch[1]);
-      const items = inMatch[2].split(",").map((s) => stripAccessDelimiters(s)).filter(Boolean);
+      const items = inMatch[2]
+        .split(",")
+        .map((s) => stripAccessDelimiters(s))
+        .filter(Boolean);
       if (items.length === 0) return true;
       const nCell = parseAccessNumber(cellStr);
       const matched = items.some((item) => {
@@ -1130,12 +1438,16 @@ function studioIdeEnhancementsClient() {
     }
 
     // STARTS WITH / BEGINS WITH / ENDS WITH / CONTAINS / NOT CONTAINS
-    const textFnMatch = /^(not\s+contains|!contains|does\s+not\s+contain|contains|starts\s+with|begins\s+with|ends\s+with)\s+(.+)$/i.exec(expr);
+    const textFnMatch =
+      /^(not\s+contains|!contains|does\s+not\s+contain|contains|starts\s+with|begins\s+with|ends\s+with)\s+(.+)$/i.exec(
+        expr,
+      );
     if (textFnMatch) {
       const fn = textFnMatch[1].toLowerCase().replace(/\s+/g, " ");
       const val = stripAccessDelimiters(textFnMatch[2]).toLowerCase();
       if (!val) return true;
-      if (fn === "starts with" || fn === "begins with") return cellLower.startsWith(val);
+      if (fn === "starts with" || fn === "begins with")
+        return cellLower.startsWith(val);
       if (fn === "ends with") return cellLower.endsWith(val);
       if (fn === "contains") return cellLower.includes(val);
       return !cellLower.includes(val);
@@ -1220,25 +1532,48 @@ function studioIdeEnhancementsClient() {
     const expr = String(rawExpr ?? "").trim();
     if (!expr) return true;
 
-    const isSingleBetween = /^\s*(?:not\s+)?between\s+.+\s+and\s+.+$/i.test(expr) && !/\s+or\s+/i.test(expr) && ((expr.match(/\band\b/gi) || []).length === 1);
+    const isSingleBetween =
+      /^\s*(?:not\s+)?between\s+.+\s+and\s+.+$/i.test(expr) &&
+      !/\s+or\s+/i.test(expr) &&
+      (expr.match(/\band\b/gi) || []).length === 1;
     if (!isSingleBetween) {
-      const orParts = expr.split(/\s+or\s+/i).map((s) => s.trim()).filter(Boolean);
+      const orParts = expr
+        .split(/\s+or\s+/i)
+        .map((s) => s.trim())
+        .filter(Boolean);
       if (orParts.length > 1) {
-        return orParts.some((part) => evaluateAccessFilter(cellValue, part, colName));
+        return orParts.some((part) =>
+          evaluateAccessFilter(cellValue, part, colName),
+        );
       }
       if (!/^\s*(?:not\s+)?between\b/i.test(expr)) {
-        const andParts = expr.split(/\s+and\s+/i).map((s) => s.trim()).filter(Boolean);
+        const andParts = expr
+          .split(/\s+and\s+/i)
+          .map((s) => s.trim())
+          .filter(Boolean);
         if (andParts.length > 1) {
-          return andParts.every((part) => evaluateSingleAccessAtom(cellValue, part, colName));
+          return andParts.every((part) =>
+            evaluateSingleAccessAtom(cellValue, part, colName),
+          );
         }
       }
     }
     return evaluateSingleAccessAtom(cellValue, expr, colName);
   }
 
-  function filterRowsWithAccessFilters(rows, activeFilters, searchQuery, columns) {
+  function filterRowsWithAccessFilters(
+    rows,
+    activeFilters,
+    searchQuery,
+    columns,
+  ) {
     if (!Array.isArray(rows)) return [];
-    const colList = Array.isArray(columns) && columns.length > 0 ? columns : (rows[0] ? Object.keys(rows[0]) : []);
+    const colList =
+      Array.isArray(columns) && columns.length > 0
+        ? columns
+        : rows[0]
+          ? Object.keys(rows[0])
+          : [];
     const colMap = new Map();
     colList.forEach((c) => colMap.set(String(c).toLowerCase(), String(c)));
 
@@ -1246,24 +1581,40 @@ function studioIdeEnhancementsClient() {
     let searchColTarget = null;
     let searchColExpr = null;
     if (rawSearch) {
-      const m = /^\[?["`]?([a-zA-Z0-9_]+)["`]?\]?\s*(>=|<=|!=|<>|>|<|=|\.\.|\b(?:between|not\s+between|in|not\s+in|like|not\s+like|is\s+null|is\s+not\s+null|starts\s+with|begins\s+with|ends\s+with|contains|not\s+contains)\b)(.*)$/i.exec(rawSearch);
+      const m =
+        /^\[?["`]?([a-zA-Z0-9_]+)["`]?\]?\s*(>=|<=|!=|<>|>|<|=|\.\.|\b(?:between|not\s+between|in|not\s+in|like|not\s+like|is\s+null|is\s+not\s+null|starts\s+with|begins\s+with|ends\s+with|contains|not\s+contains)\b)(.*)$/i.exec(
+          rawSearch,
+        );
       if (m && colMap.has(m[1].toLowerCase())) {
         searchColTarget = colMap.get(m[1].toLowerCase());
         searchColExpr = `${m[2]} ${m[3] || ""}`.trim();
       }
     }
 
-    const filterEntries = Object.entries(activeFilters || {}).filter(([, v]) => String(v ?? "").trim() !== "");
+    const filterEntries = Object.entries(activeFilters || {}).filter(
+      ([, v]) => String(v ?? "").trim() !== "",
+    );
 
     return rows.filter((row) => {
       if (rawSearch) {
         if (searchColTarget && searchColExpr) {
-          if (!evaluateAccessFilter(row[searchColTarget], searchColExpr, searchColTarget)) return false;
+          if (
+            !evaluateAccessFilter(
+              row[searchColTarget],
+              searchColExpr,
+              searchColTarget,
+            )
+          )
+            return false;
         } else {
           const isOpSearch = /^(>=|<=|!=|<>|>|<|=)\s*\S+/.test(rawSearch);
           const matchedSearch = Object.entries(row).some(([k, v]) => {
             if (isOpSearch) return evaluateAccessFilter(v, rawSearch, k);
-            return v !== null && v !== undefined && String(v).toLowerCase().includes(rawSearch.toLowerCase());
+            return (
+              v !== null &&
+              v !== undefined &&
+              String(v).toLowerCase().includes(rawSearch.toLowerCase())
+            );
           });
           if (!matchedSearch) return false;
         }
@@ -1278,7 +1629,8 @@ function studioIdeEnhancementsClient() {
   function detectAccessFilterOpPrefix(val) {
     const s = String(val ?? "").trim();
     if (!s) return "";
-    if (/^is\s+not\s+null$/i.test(s) || /^!null$/i.test(s)) return "IS NOT NULL";
+    if (/^is\s+not\s+null$/i.test(s) || /^!null$/i.test(s))
+      return "IS NOT NULL";
     if (/^is\s+null$/i.test(s) || /^null$/i.test(s)) return "IS NULL";
     if (/^between\b/i.test(s)) return "BETWEEN ";
     if (/^like\b/i.test(s)) return "LIKE ";
@@ -1293,9 +1645,18 @@ function studioIdeEnhancementsClient() {
 
   function renderAccessFilterCellHtml(colName, currentVal) {
     const val = String(currentVal ?? "");
-    const safeCol = String(colName).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "&quot;");
-    const safeAttrCol = String(colName).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
-    const safeVal = val.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+    const safeCol = String(colName)
+      .replace(/\\/g, "\\\\")
+      .replace(/'/g, "\\'")
+      .replace(/"/g, "&quot;");
+    const safeAttrCol = String(colName)
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;");
+    const safeVal = val
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;");
     const curOp = detectAccessFilterOpPrefix(val);
     const ops = [
       ["", "🔍"],
@@ -1315,12 +1676,17 @@ function studioIdeEnhancementsClient() {
       ["IS NOT NULL", "!∅"],
     ];
     const optionsHtml = ops
-      .map(([opVal, label]) => `<option value="${opVal}"${curOp === opVal ? " selected" : ""}>${label}</option>`)
+      .map(
+        ([opVal, label]) =>
+          `<option value="${opVal}"${curOp === opVal ? " selected" : ""}>${label}</option>`,
+      )
       .join("");
-    return `<div class="access-filter-cell">` +
+    return (
+      `<div class="access-filter-cell">` +
       `<select class="access-filter-op-select" data-filter-op-col="${safeAttrCol}" title="Microsoft Access filter operator for ${safeAttrCol} (=, <>, <, <=, >, >=, BETWEEN, LIKE, IN, IS NULL)" onchange="window.onAccessFilterOpSelect && window.onAccessFilterOpSelect('${safeCol}', this.value)">${optionsHtml}</select>` +
       `<input type="text" class="access-filter-input" data-filter-col="${safeAttrCol}" placeholder="Filter ${safeAttrCol} (e.g. <= 500, >= 2025-01-01, *text*)" value="${safeVal}" oninput="onColumnFilterInput('${safeCol}', this.value)" />` +
-      `</div>`;
+      `</div>`
+    );
   }
 
   function onAccessFilterOpSelect(colName, opPrefix) {
@@ -1336,7 +1702,10 @@ function studioIdeEnhancementsClient() {
     // Strip existing operator prefix
     cur = cur
       .replace(/^(?:is\s+not\s+null|is\s+null|!null|null)$/i, "")
-      .replace(/^(?:>=|<=|<>|!=|>|<|=|between|like|starts\s+with|ends\s+with|not\s+contains)\s*/i, "")
+      .replace(
+        /^(?:>=|<=|<>|!=|>|<|=|between|like|starts\s+with|ends\s+with|not\s+contains)\s*/i,
+        "",
+      )
       .replace(/^in\s*\((.*)\)$/i, "$1")
       .trim();
 
@@ -1344,7 +1713,11 @@ function studioIdeEnhancementsClient() {
     if (opPrefix === "IS NULL" || opPrefix === "IS NOT NULL") {
       nextVal = opPrefix;
     } else if (opPrefix === "BETWEEN ") {
-      nextVal = cur ? (/\band\b/i.test(cur) ? `BETWEEN ${cur}` : `BETWEEN ${cur} AND `) : "BETWEEN ";
+      nextVal = cur
+        ? /\band\b/i.test(cur)
+          ? `BETWEEN ${cur}`
+          : `BETWEEN ${cur} AND `
+        : "BETWEEN ";
     } else if (opPrefix === "IN (") {
       nextVal = cur ? `IN (${cur})` : "IN ()";
     } else if (opPrefix === "") {
@@ -1356,9 +1729,13 @@ function studioIdeEnhancementsClient() {
     input.value = nextVal;
     input.focus();
     if (nextVal === "IN ()") {
-      try { input.setSelectionRange(4, 4); } catch (e) {}
+      try {
+        input.setSelectionRange(4, 4);
+      } catch (e) {}
     } else {
-      try { input.setSelectionRange(nextVal.length, nextVal.length); } catch (e) {}
+      try {
+        input.setSelectionRange(nextVal.length, nextVal.length);
+      } catch (e) {}
     }
     if (typeof window.onColumnFilterInput === "function") {
       window.onColumnFilterInput(colName, nextVal);
@@ -1372,24 +1749,31 @@ function studioIdeEnhancementsClient() {
 
   let filterDebounceTimer = null;
   function wrapColumnFilterInput() {
-    const orig = window.onColumnFilterInput || (typeof onColumnFilterInput === "function" ? onColumnFilterInput : null);
+    const orig =
+      window.onColumnFilterInput ||
+      (typeof onColumnFilterInput === "function" ? onColumnFilterInput : null);
     if (!orig || orig.__studioServerWrapped) return;
     const wrapped = function (colName, filterVal) {
       const res = orig.apply(this, arguments);
       // Sync operator dropdown badge if present
       const filterRow = document.getElementById("gridFilterBarRow");
       if (filterRow) {
-        filterRow.querySelectorAll("select.access-filter-op-select").forEach((sel) => {
-          if (sel.getAttribute("data-filter-op-col") === colName) {
-            const detected = detectAccessFilterOpPrefix(filterVal);
-            if (sel.value !== detected) sel.value = detected;
-          }
-        });
+        filterRow
+          .querySelectorAll("select.access-filter-op-select")
+          .forEach((sel) => {
+            if (sel.getAttribute("data-filter-op-col") === colName) {
+              const detected = detectAccessFilterOpPrefix(filterVal);
+              if (sel.value !== detected) sel.value = detected;
+            }
+          });
       }
       if (filterDebounceTimer) clearTimeout(filterDebounceTimer);
       filterDebounceTimer = setTimeout(() => {
         const tbl = getActiveTable();
-        const isQuery = Boolean((window.crud && window.crud.source === "query") || window.__gridIsQuery);
+        const isQuery = Boolean(
+          (window.crud && window.crud.source === "query") ||
+          window.__gridIsQuery,
+        );
         if (tbl && !isQuery) {
           window.__keepFilterRow = true;
           Promise.resolve(triggerTableReload(true)).finally(() => {
@@ -1401,21 +1785,29 @@ function studioIdeEnhancementsClient() {
     };
     wrapped.__studioServerWrapped = true;
     window.onColumnFilterInput = wrapped;
-    try { onColumnFilterInput = wrapped; } catch (e) {}
+    try {
+      onColumnFilterInput = wrapped;
+    } catch (e) {}
   }
 
   function decorateMultiSortHeaders() {
     const thead = document.getElementById("gridHeaderRow");
     if (!thead) return;
-    thead.querySelectorAll(".studio-multisort-badge").forEach((b) => b.remove());
+    thead
+      .querySelectorAll(".studio-multisort-badge")
+      .forEach((b) => b.remove());
     const sorts = window.__studioSortColumns || [];
     if (!sorts.length) return;
     sorts.forEach((s, idx) => {
-      const th = thead.querySelector(`th[data-col="${typeof CSS !== "undefined" && CSS.escape ? CSS.escape(s.col) : s.col}"]`);
+      const th = thead.querySelector(
+        `th[data-col="${typeof CSS !== "undefined" && CSS.escape ? CSS.escape(s.col) : s.col}"]`,
+      );
       if (th) {
         const badge = document.createElement("span");
         badge.className = "studio-multisort-badge";
-        badge.textContent = (s.dir === "DESC" ? "▼" : "▲") + (sorts.length > 1 ? String(idx + 1) : "");
+        badge.textContent =
+          (s.dir === "DESC" ? "▼" : "▲") +
+          (sorts.length > 1 ? String(idx + 1) : "");
         th.appendChild(badge);
       }
     });
@@ -1425,27 +1817,32 @@ function studioIdeEnhancementsClient() {
     const thead = document.getElementById("gridHeaderRow");
     if (!thead || thead.__studioMultiSortBound) return;
     thead.__studioMultiSortBound = true;
-    thead.addEventListener("click", (e) => {
-      if (!e.shiftKey || thead.querySelector("th.sc-colsel")) return;
-      const th = e.target && e.target.closest && e.target.closest("th[data-col]");
-      if (!th || (e.target && e.target.closest(".sc-th-btn, .sc-rz"))) return;
-      const col = th.getAttribute("data-col");
-      if (!col || !getActiveTable()) return;
-      e.preventDefault();
-      e.stopPropagation();
-      const list = window.__studioSortColumns || [];
-      const existingIdx = list.findIndex((s) => s.col === col);
-      if (existingIdx === -1) {
-        list.push({ col, dir: "ASC" });
-      } else if (list[existingIdx].dir === "ASC") {
-        list[existingIdx].dir = "DESC";
-      } else {
-        list.splice(existingIdx, 1);
-      }
-      window.__studioSortColumns = list;
-      decorateMultiSortHeaders();
-      triggerTableReload(false);
-    }, true);
+    thead.addEventListener(
+      "click",
+      (e) => {
+        if (!e.shiftKey || thead.querySelector("th.sc-colsel")) return;
+        const th =
+          e.target && e.target.closest && e.target.closest("th[data-col]");
+        if (!th || (e.target && e.target.closest(".sc-th-btn, .sc-rz"))) return;
+        const col = th.getAttribute("data-col");
+        if (!col || !getActiveTable()) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const list = window.__studioSortColumns || [];
+        const existingIdx = list.findIndex((s) => s.col === col);
+        if (existingIdx === -1) {
+          list.push({ col, dir: "ASC" });
+        } else if (list[existingIdx].dir === "ASC") {
+          list[existingIdx].dir = "DESC";
+        } else {
+          list.splice(existingIdx, 1);
+        }
+        window.__studioSortColumns = list;
+        decorateMultiSortHeaders();
+        triggerTableReload(false);
+      },
+      true,
+    );
   }
 
   // =========================================================================
@@ -1473,7 +1870,10 @@ function studioIdeEnhancementsClient() {
     for (const k of Object.keys(filters)) delete filters[k];
     filters[refCol] = String(rawVal);
 
-    try { if (typeof accessFilterBarVisible !== "undefined") accessFilterBarVisible = true; } catch (e) {}
+    try {
+      if (typeof accessFilterBarVisible !== "undefined")
+        accessFilterBarVisible = true;
+    } catch (e) {}
     const filterBtn = document.getElementById("btnToggleFilterBar");
     if (filterBtn) filterBtn.classList.add("btn-primary");
 
@@ -1501,10 +1901,20 @@ function studioIdeEnhancementsClient() {
     Array.from(tbody.querySelectorAll("tr")).forEach((tr, rIdx) => {
       const rowData = rows[Number(tr.getAttribute("data-row") ?? rIdx)] || {};
       fkCols.forEach((col) => {
-        const td = tr.querySelector(`td[data-col="${typeof CSS !== "undefined" && CSS.escape ? CSS.escape(col) : col}"]`);
-        if (!td || td.querySelector(".studio-fk-jump") || td.classList.contains("cell-null") || td.classList.contains("sc-null")) return;
-        const val = rowData[col] !== undefined ? rowData[col] : td.textContent.trim();
-        if (val === null || val === undefined || val === "NULL" || val === "") return;
+        const td = tr.querySelector(
+          `td[data-col="${typeof CSS !== "undefined" && CSS.escape ? CSS.escape(col) : col}"]`,
+        );
+        if (
+          !td ||
+          td.querySelector(".studio-fk-jump") ||
+          td.classList.contains("cell-null") ||
+          td.classList.contains("sc-null")
+        )
+          return;
+        const val =
+          rowData[col] !== undefined ? rowData[col] : td.textContent.trim();
+        if (val === null || val === undefined || val === "NULL" || val === "")
+          return;
         const fk = fkMap[col];
         td.setAttribute("data-fk-table", fk.table);
         td.setAttribute("data-fk-col", fk.to);
@@ -1548,7 +1958,11 @@ function studioIdeEnhancementsClient() {
     splitWrap.appendChild(inspector);
 
     const filterBtn = document.getElementById("btnToggleFilterBar");
-    if (filterBtn && filterBtn.parentElement && !document.getElementById("btnToggleRowInspector")) {
+    if (
+      filterBtn &&
+      filterBtn.parentElement &&
+      !document.getElementById("btnToggleRowInspector")
+    ) {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "btn btn-sm";
@@ -1562,25 +1976,36 @@ function studioIdeEnhancementsClient() {
       filterBtn.parentElement.appendChild(btn);
     }
 
-    document.getElementById("btnCloseRowInspector")?.addEventListener("click", () => {
-      inspector.classList.remove("open");
-      document.getElementById("btnToggleRowInspector")?.classList.remove("btn-primary");
-    });
+    document
+      .getElementById("btnCloseRowInspector")
+      ?.addEventListener("click", () => {
+        inspector.classList.remove("open");
+        document
+          .getElementById("btnToggleRowInspector")
+          ?.classList.remove("btn-primary");
+      });
 
     const tbody = document.getElementById("gridBody");
     if (tbody) {
       tbody.addEventListener("click", (e) => {
-        const td = e.target && e.target.closest && e.target.closest("td[data-fk-table]");
+        const td =
+          e.target && e.target.closest && e.target.closest("td[data-fk-table]");
         if (td && e.altKey) {
           e.preventDefault();
           e.stopPropagation();
-          navigateToForeignKeyTarget(td.getAttribute("data-fk-table"), td.getAttribute("data-fk-col"), td.getAttribute("data-fk-val"));
+          navigateToForeignKeyTarget(
+            td.getAttribute("data-fk-table"),
+            td.getAttribute("data-fk-col"),
+            td.getAttribute("data-fk-val"),
+          );
           return;
         }
         const tr = e.target && e.target.closest && e.target.closest("tr");
         if (!tr) return;
         const rows = getGridRows();
-        const rIdx = tr.hasAttribute("data-row") ? Number(tr.getAttribute("data-row")) : Array.from(tbody.children).indexOf(tr);
+        const rIdx = tr.hasAttribute("data-row")
+          ? Number(tr.getAttribute("data-row"))
+          : Array.from(tbody.children).indexOf(tr);
         if (rows[rIdx]) renderInspectorRow(rows[rIdx], rIdx);
       });
     }
@@ -1592,40 +2017,52 @@ function studioIdeEnhancementsClient() {
     const cols = getGridColumns();
     const fkMap = getForeignKeyMapForActiveTable();
     const schema = getSchema();
-    const tblMeta = schema && Array.isArray(schema.tables) ? schema.tables.find((t) => t.name === getActiveTable()) : null;
+    const tblMeta =
+      schema && Array.isArray(schema.tables)
+        ? schema.tables.find((t) => t.name === getActiveTable())
+        : null;
     const colMeta = {};
-    if (tblMeta && Array.isArray(tblMeta.columns)) tblMeta.columns.forEach((c) => { colMeta[c.name] = c; });
+    if (tblMeta && Array.isArray(tblMeta.columns))
+      tblMeta.columns.forEach((c) => {
+        colMeta[c.name] = c;
+      });
 
-    body.innerHTML = `<div style="font-size:10px;color:var(--text-muted,#94a3b8);font-weight:700;">Row #${rIdx + 1} in ${esc(getActiveTable() || "Query Result")}</div>` +
-      cols.map((c) => {
-        const v = row[c];
-        const meta = colMeta[c] || {};
-        const fk = fkMap[c];
-        let displayVal = "";
-        let extraBadge = "";
-        if (v === null || v === undefined) {
-          displayVal = "<i style='color:var(--text-muted,#94a3b8);'>NULL</i>";
-        } else if (typeof v === "object") {
-          extraBadge = "<span class='sc-mark idx'>JSON</span>";
-          displayVal = `<pre style="margin:0;white-space:pre-wrap;color:#fde68a;font-family:var(--font-mono,monospace);">${esc(JSON.stringify(v, null, 2))}</pre>`;
-        } else {
-          const s = String(v);
-          if ((s.startsWith("{") && s.endsWith("}")) || (s.startsWith("[") && s.endsWith("]"))) {
-            try {
-              const parsed = JSON.parse(s);
-              extraBadge = "<span class='sc-mark idx'>JSON</span>";
-              displayVal = `<pre style="margin:0;white-space:pre-wrap;color:#fde68a;font-family:var(--font-mono,monospace);">${esc(JSON.stringify(parsed, null, 2))}</pre>`;
-            } catch (e) {
+    body.innerHTML =
+      `<div style="font-size:10px;color:var(--text-muted,#94a3b8);font-weight:700;">Row #${rIdx + 1} in ${esc(getActiveTable() || "Query Result")}</div>` +
+      cols
+        .map((c) => {
+          const v = row[c];
+          const meta = colMeta[c] || {};
+          const fk = fkMap[c];
+          let displayVal = "";
+          let extraBadge = "";
+          if (v === null || v === undefined) {
+            displayVal = "<i style='color:var(--text-muted,#94a3b8);'>NULL</i>";
+          } else if (typeof v === "object") {
+            extraBadge = "<span class='sc-mark idx'>JSON</span>";
+            displayVal = `<pre style="margin:0;white-space:pre-wrap;color:#fde68a;font-family:var(--font-mono,monospace);">${esc(JSON.stringify(v, null, 2))}</pre>`;
+          } else {
+            const s = String(v);
+            if (
+              (s.startsWith("{") && s.endsWith("}")) ||
+              (s.startsWith("[") && s.endsWith("]"))
+            ) {
+              try {
+                const parsed = JSON.parse(s);
+                extraBadge = "<span class='sc-mark idx'>JSON</span>";
+                displayVal = `<pre style="margin:0;white-space:pre-wrap;color:#fde68a;font-family:var(--font-mono,monospace);">${esc(JSON.stringify(parsed, null, 2))}</pre>`;
+              } catch (e) {
+                displayVal = esc(s);
+              }
+            } else {
               displayVal = esc(s);
             }
-          } else {
-            displayVal = esc(s);
           }
-        }
-        const fkBtn = fk && v !== null && v !== undefined
-          ? `<button type="button" class="studio-fk-jump" data-insp-fk-tbl="${esc(fk.table)}" data-insp-fk-col="${esc(fk.to)}" data-insp-fk-val="${esc(String(v))}">↗ ${esc(fk.table)}.${esc(fk.to)}</button>`
-          : "";
-        return `
+          const fkBtn =
+            fk && v !== null && v !== undefined
+              ? `<button type="button" class="studio-fk-jump" data-insp-fk-tbl="${esc(fk.table)}" data-insp-fk-col="${esc(fk.to)}" data-insp-fk-val="${esc(String(v))}">↗ ${esc(fk.table)}.${esc(fk.to)}</button>`
+              : "";
+          return `
           <div style="border:1px solid var(--sc-line,rgba(255,255,255,0.1));border-radius:6px;padding:6px 8px;background:rgba(0,0,0,0.2);">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:4px;">
               <span style="font-weight:700;font-family:var(--font-mono,monospace);color:var(--cyan,#38bdf8);">${meta.pk ? "🔑 " : ""}${esc(c)}</span>
@@ -1638,14 +2075,15 @@ function studioIdeEnhancementsClient() {
             <div style="font-family:var(--font-mono,monospace);word-break:break-all;max-height:140px;overflow:auto;">${displayVal}</div>
           </div>
         `;
-      }).join("");
+        })
+        .join("");
 
     body.querySelectorAll("[data-insp-fk-tbl]").forEach((b) => {
       b.addEventListener("click", () => {
         navigateToForeignKeyTarget(
           b.getAttribute("data-insp-fk-tbl"),
           b.getAttribute("data-insp-fk-col"),
-          b.getAttribute("data-insp-fk-val")
+          b.getAttribute("data-insp-fk-val"),
         );
       });
     });
@@ -1660,7 +2098,12 @@ function studioIdeEnhancementsClient() {
   function setupSchemaEnhancements() {
     const tabSchema = document.getElementById("tabSchema");
     const schemaContainer = document.getElementById("schemaContainer");
-    if (!tabSchema || !schemaContainer || document.getElementById("studioSchemaSubnav")) return;
+    if (
+      !tabSchema ||
+      !schemaContainer ||
+      document.getElementById("studioSchemaSubnav")
+    )
+      return;
 
     const subnav = document.createElement("div");
     subnav.id = "studioSchemaSubnav";
@@ -1682,12 +2125,14 @@ function studioIdeEnhancementsClient() {
 
     const erPane = document.createElement("div");
     erPane.id = "studioErDiagramPane";
-    erPane.style.cssText = "display:none;flex:1;overflow:auto;padding:14px;background:var(--bg-base,#060b14);min-height:420px;";
+    erPane.style.cssText =
+      "display:none;flex:1;overflow:auto;padding:14px;background:var(--bg-base,#060b14);min-height:420px;";
     tabSchema.appendChild(erPane);
 
     const diffPane = document.createElement("div");
     diffPane.id = "studioSchemaDiffPane";
-    diffPane.style.cssText = "display:none;flex:1;overflow:auto;padding:14px;min-height:420px;";
+    diffPane.style.cssText =
+      "display:none;flex:1;overflow:auto;padding:14px;min-height:420px;";
     diffPane.innerHTML = `
       <div class="card" style="padding:14px;margin-bottom:12px;">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
@@ -1708,9 +2153,15 @@ function studioIdeEnhancementsClient() {
     tabSchema.appendChild(diffPane);
 
     const setMode = (mode) => {
-      document.getElementById("btnSchemaModeTable")?.classList.toggle("btn-primary", mode === "table");
-      document.getElementById("btnSchemaModeEr")?.classList.toggle("btn-primary", mode === "er");
-      document.getElementById("btnSchemaModeDiff")?.classList.toggle("btn-primary", mode === "diff");
+      document
+        .getElementById("btnSchemaModeTable")
+        ?.classList.toggle("btn-primary", mode === "table");
+      document
+        .getElementById("btnSchemaModeEr")
+        ?.classList.toggle("btn-primary", mode === "er");
+      document
+        .getElementById("btnSchemaModeDiff")
+        ?.classList.toggle("btn-primary", mode === "diff");
       schemaContainer.style.display = mode === "table" ? "" : "none";
       erPane.style.display = mode === "er" ? "block" : "none";
       diffPane.style.display = mode === "diff" ? "block" : "none";
@@ -1719,9 +2170,15 @@ function studioIdeEnhancementsClient() {
       if (mode === "er") renderFullErDiagram();
     };
 
-    document.getElementById("btnSchemaModeTable")?.addEventListener("click", () => setMode("table"));
-    document.getElementById("btnSchemaModeEr")?.addEventListener("click", () => setMode("er"));
-    document.getElementById("btnSchemaModeDiff")?.addEventListener("click", () => setMode("diff"));
+    document
+      .getElementById("btnSchemaModeTable")
+      ?.addEventListener("click", () => setMode("table"));
+    document
+      .getElementById("btnSchemaModeEr")
+      ?.addEventListener("click", () => setMode("er"));
+    document
+      .getElementById("btnSchemaModeDiff")
+      ?.addEventListener("click", () => setMode("diff"));
 
     document.getElementById("btnErZoomIn")?.addEventListener("click", () => {
       erZoom = Math.min(2, Math.round((erZoom + 0.15) * 100) / 100);
@@ -1734,7 +2191,9 @@ function studioIdeEnhancementsClient() {
     document.getElementById("btnErExportSvg")?.addEventListener("click", () => {
       const svg = document.getElementById("studioErDiagramSvg");
       if (!svg) return;
-      const blob = new Blob([svg.outerHTML], { type: "image/svg+xml;charset=utf-8" });
+      const blob = new Blob([svg.outerHTML], {
+        type: "image/svg+xml;charset=utf-8",
+      });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -1744,32 +2203,41 @@ function studioIdeEnhancementsClient() {
       notify("📥 Exported ER Diagram SVG");
     });
 
-    document.getElementById("btnCaptureBaseline")?.addEventListener("click", () => {
-      const schema = getSchema();
-      baselineSnapshot = JSON.parse(JSON.stringify((schema && schema.tables) || []));
-      const info = document.getElementById("studioDiffBaselineInfo");
-      if (info) info.textContent = `Baseline captured at ${new Date().toLocaleTimeString()} (${baselineSnapshot.length} tables).`;
-      notify(`📸 Captured baseline snapshot (${baselineSnapshot.length} tables)`);
-    });
-
-    document.getElementById("btnRunSchemaDiff")?.addEventListener("click", async () => {
-      const schema = getSchema();
-      const targetTables = (schema && schema.tables) || [];
-      const baselineTables = baselineSnapshot || [];
-      const res = await callApi("/api/schema/diff", {
-        baselineTables,
-        targetTables,
-        dialect: getDialect(),
+    document
+      .getElementById("btnCaptureBaseline")
+      ?.addEventListener("click", () => {
+        const schema = getSchema();
+        baselineSnapshot = JSON.parse(
+          JSON.stringify((schema && schema.tables) || []),
+        );
+        const info = document.getElementById("studioDiffBaselineInfo");
+        if (info)
+          info.textContent = `Baseline captured at ${new Date().toLocaleTimeString()} (${baselineSnapshot.length} tables).`;
+        notify(
+          `📸 Captured baseline snapshot (${baselineSnapshot.length} tables)`,
+        );
       });
-      const out = document.getElementById("studioSchemaDiffOutput");
-      if (!out) return;
-      if (!res || res.success === false) {
-        out.innerHTML = `<div style="color:#ef4444;">Schema diff failed: ${esc(res?.error || "Unknown error")}</div>`;
-        return;
-      }
-      const s = res.summary || {};
-      const droppedList = s.removedTables || s.droppedTables || [];
-      out.innerHTML = `
+
+    document
+      .getElementById("btnRunSchemaDiff")
+      ?.addEventListener("click", async () => {
+        const schema = getSchema();
+        const targetTables = (schema && schema.tables) || [];
+        const baselineTables = baselineSnapshot || [];
+        const res = await callApi("/api/schema/diff", {
+          baselineTables,
+          targetTables,
+          dialect: getDialect(),
+        });
+        const out = document.getElementById("studioSchemaDiffOutput");
+        if (!out) return;
+        if (!res || res.success === false) {
+          out.innerHTML = `<div style="color:#ef4444;">Schema diff failed: ${esc(res?.error || "Unknown error")}</div>`;
+          return;
+        }
+        const s = res.summary || {};
+        const droppedList = s.removedTables || s.droppedTables || [];
+        out.innerHTML = `
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
           <span style="font-weight:700;font-size:12px;">Added: <b style="color:#10b981;">${(s.addedTables || []).length}</b> · Dropped: <b style="color:#ef4444;">${droppedList.length}</b> · Modified: <b style="color:#fbbf24;">${(s.modifiedTables || []).length}</b> (${(res.statements || []).length} DDL statements)</span>
           <div style="display:flex;gap:6px;">
@@ -1779,18 +2247,22 @@ function studioIdeEnhancementsClient() {
         </div>
         <textarea id="studioDiffDdlText" readonly spellcheck="false" style="width:100%;height:260px;font-family:var(--font-mono,monospace);font-size:11px;padding:10px;border-radius:6px;background:rgba(0,0,0,0.35);color:var(--cyan,#38bdf8);border:1px solid var(--sc-line,rgba(255,255,255,0.14));">${esc(res.ddl || "-- No differences")}</textarea>
       `;
-      document.getElementById("btnCopyDiffDdl")?.addEventListener("click", () => {
-        navigator.clipboard?.writeText(res.ddl || "");
-        notify("📋 Copied Migration DDL to clipboard");
+        document
+          .getElementById("btnCopyDiffDdl")
+          ?.addEventListener("click", () => {
+            navigator.clipboard?.writeText(res.ddl || "");
+            notify("📋 Copied Migration DDL to clipboard");
+          });
+        document
+          .getElementById("btnLoadDiffDdl")
+          ?.addEventListener("click", () => {
+            const ed = getPrimaryEditor();
+            if (ed && res.ddl) {
+              ed.value = res.ddl;
+              notify("📝 Loaded Migration DDL into SQL Editor");
+            }
+          });
       });
-      document.getElementById("btnLoadDiffDdl")?.addEventListener("click", () => {
-        const ed = getPrimaryEditor();
-        if (ed && res.ddl) {
-          ed.value = res.ddl;
-          notify("📝 Loaded Migration DDL into SQL Editor");
-        }
-      });
-    });
   }
 
   function renderFullErDiagram() {
@@ -1821,7 +2293,13 @@ function studioIdeEnhancementsClient() {
       const boxH = 34 + colCount * 20 + 10;
       const x = 28 + cIdx * (boxW + gapX);
       const y = colY[cIdx];
-      positions[t.name] = { x, y, w: boxW, h: boxH, cols: (t.columns || []).slice(0, 14) };
+      positions[t.name] = {
+        x,
+        y,
+        w: boxW,
+        h: boxH,
+        cols: (t.columns || []).slice(0, 14),
+      };
       colY[cIdx] += boxH + gapY;
       if (x + boxW + 40 > maxW) maxW = x + boxW + 40;
       if (colY[cIdx] + 20 > maxH) maxH = colY[cIdx] + 20;
@@ -1834,8 +2312,14 @@ function studioIdeEnhancementsClient() {
       (t.foreignKeys || []).forEach((fk) => {
         const dst = positions[fk.table];
         if (!dst) return;
-        const sIdx = Math.max(0, src.cols.findIndex((c) => c.name === fk.from));
-        const dIdx = Math.max(0, dst.cols.findIndex((c) => c.name === fk.to));
+        const sIdx = Math.max(
+          0,
+          src.cols.findIndex((c) => c.name === fk.from),
+        );
+        const dIdx = Math.max(
+          0,
+          dst.cols.findIndex((c) => c.name === fk.to),
+        );
         const y1 = src.y + 38 + sIdx * 20;
         const y2 = dst.y + 38 + dIdx * 20;
         const leftToRight = src.x <= dst.x;
@@ -1844,19 +2328,24 @@ function studioIdeEnhancementsClient() {
         const dx = Math.max(40, Math.abs(x2 - x1) * 0.45);
         const cx1 = leftToRight ? x1 + dx : x1 - dx;
         const cx2 = leftToRight ? x2 - dx : x2 + dx;
-        edges.push(`<path d="M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${x2} ${y2}" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-dasharray="4 2" opacity="0.85"><title>${esc(t.name)}.${esc(fk.from)} → ${esc(fk.table)}.${esc(fk.to)}</title></path><circle cx="${x1}" cy="${y1}" r="3.2" fill="#fbbf24"/><circle cx="${x2}" cy="${y2}" r="3.8" fill="#38bdf8"/>`);
+        edges.push(
+          `<path d="M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${x2} ${y2}" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-dasharray="4 2" opacity="0.85"><title>${esc(t.name)}.${esc(fk.from)} → ${esc(fk.table)}.${esc(fk.to)}</title></path><circle cx="${x1}" cy="${y1}" r="3.2" fill="#fbbf24"/><circle cx="${x2}" cy="${y2}" r="3.8" fill="#38bdf8"/>`,
+        );
       });
     });
 
-    const nodes = tables.map((t) => {
-      const p = positions[t.name];
-      const fkSet = new Set((t.foreignKeys || []).map((f) => f.from));
-      const rowsSvg = p.cols.map((c, i) => {
-        const cy = 44 + i * 20;
-        const icon = c.pk ? "🔑 " : fkSet.has(c.name) ? "🔗 " : "• ";
-        return `<text x="10" y="${cy}" fill="#e2e8f0" font-size="11" font-family="monospace">${icon}${esc(c.name)}</text><text x="${p.w - 8}" y="${cy}" fill="#94a3b8" font-size="10" font-family="monospace" text-anchor="end">${esc(String(c.type || "").slice(0, 12))}</text>`;
-      }).join("");
-      return `
+    const nodes = tables
+      .map((t) => {
+        const p = positions[t.name];
+        const fkSet = new Set((t.foreignKeys || []).map((f) => f.from));
+        const rowsSvg = p.cols
+          .map((c, i) => {
+            const cy = 44 + i * 20;
+            const icon = c.pk ? "🔑 " : fkSet.has(c.name) ? "🔗 " : "• ";
+            return `<text x="10" y="${cy}" fill="#e2e8f0" font-size="11" font-family="monospace">${icon}${esc(c.name)}</text><text x="${p.w - 8}" y="${cy}" fill="#94a3b8" font-size="10" font-family="monospace" text-anchor="end">${esc(String(c.type || "").slice(0, 12))}</text>`;
+          })
+          .join("");
+        return `
         <g class="studio-er-node" data-er-table="${esc(t.name)}" transform="translate(${p.x},${p.y})" style="cursor:pointer;">
           <rect width="${p.w}" height="${p.h}" rx="8" fill="#0f172a" stroke="${t.name === getActiveTable() ? "#38bdf8" : "#334155"}" stroke-width="${t.name === getActiveTable() ? "2.2" : "1.2"}"/>
           <rect width="${p.w}" height="28" rx="8" fill="#1e293b"/>
@@ -1865,15 +2354,18 @@ function studioIdeEnhancementsClient() {
           ${rowsSvg}
         </g>
       `;
-    }).join("");
+      })
+      .join("");
 
     pane.innerHTML = `<svg id="studioErDiagramSvg" width="${Math.round(maxW * erZoom)}" height="${Math.round(maxH * erZoom)}" viewBox="0 0 ${maxW} ${maxH}" xmlns="http://www.w3.org/2000/svg" style="display:block;">${edges.join("")}${nodes}</svg>`;
     pane.querySelectorAll(".studio-er-node").forEach((g) => {
       g.addEventListener("click", () => {
         const tName = g.getAttribute("data-er-table");
         if (!tName) return;
-        if (typeof window.selectEntity === "function") window.selectEntity(tName, "table", { switchTab: false });
-        else if (typeof window.selectTable === "function") window.selectTable(tName);
+        if (typeof window.selectEntity === "function")
+          window.selectEntity(tName, "table", { switchTab: false });
+        else if (typeof window.selectTable === "function")
+          window.selectTable(tName);
         renderFullErDiagram();
       });
     });

@@ -15,12 +15,47 @@ export const state = {
   drives: [],
   trashCount: 0,
   settings: {
-    favorites: [], favoriteNames: {}, recents: [], recentsEnabled: true, view: "details", sortBy: "name", sortDir: "asc", foldersFirst: true,
-    showHidden: false, showInfoPanel: false, theme: "auto", palette: "", textSize: 100, lastPath: "", seenWelcome: false, terminalFollow: true,
-    terminalOpen: false, terminalHeight: 300, terminalPath: "",
-    workspace: "files", startWith: "files", splitSide: "right", splitSize: 50, sidebarCollapsed: false, focusMode: false,
-    activeTool: "", splitTool: "", dualPath: "", typeWarnings: true, backspaceDeletes: true, shortcutsCantClose: false, serveOptions: { kind: "auto", liveReload: true, openBrowser: true }, deleteTo: "bin", dbShortcut: "window", mediaOpensIn: "manager",
-    columns: [], groupBy: "none", rowDensity: "comfortable", tags: {}, notes: {}, treeExpanded: false,
+    favorites: [],
+    favoriteNames: {},
+    recents: [],
+    recentsEnabled: true,
+    view: "details",
+    sortBy: "name",
+    sortDir: "asc",
+    foldersFirst: true,
+    showHidden: false,
+    showInfoPanel: false,
+    theme: "auto",
+    palette: "",
+    textSize: 100,
+    lastPath: "",
+    seenWelcome: false,
+    terminalFollow: true,
+    terminalOpen: false,
+    terminalHeight: 300,
+    terminalPath: "",
+    workspace: "files",
+    startWith: "files",
+    splitSide: "right",
+    splitSize: 50,
+    sidebarCollapsed: false,
+    focusMode: false,
+    activeTool: "",
+    splitTool: "",
+    dualPath: "",
+    typeWarnings: true,
+    backspaceDeletes: true,
+    shortcutsCantClose: false,
+    serveOptions: { kind: "auto", liveReload: true, openBrowser: true },
+    deleteTo: "bin",
+    dbShortcut: "window",
+    mediaOpensIn: "manager",
+    columns: [],
+    groupBy: "none",
+    rowDensity: "comfortable",
+    tags: {},
+    notes: {},
+    treeExpanded: false,
   },
   /** Ids of queued jobs that came from a reviewed plan (planDialog.js reports on those itself). */
   planJobs: new Set(),
@@ -80,7 +115,10 @@ export function emit(event, detail) {
     try {
       // A listener that is async reports its failure here too, instead of as an unhandled rejection.
       const result = fn(detail);
-      if (result && typeof result.catch === "function") result.catch((err) => console.error(`Listener for "${event}" failed`, err));
+      if (result && typeof result.catch === "function")
+        result.catch((err) =>
+          console.error(`Listener for "${event}" failed`, err),
+        );
     } catch (err) {
       console.error(`Listener for "${event}" failed`, err);
     }
@@ -88,4 +126,5 @@ export function emit(event, detail) {
 }
 
 export const inTrash = () => state.location.kind === "trash";
-export const currentPath = () => (state.location.kind === "folder" ? state.location.path : "");
+export const currentPath = () =>
+  state.location.kind === "folder" ? state.location.path : "";

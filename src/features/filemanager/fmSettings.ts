@@ -8,7 +8,10 @@ import { randomBytes } from "crypto";
 import * as nodePath from "path";
 import { pathApi, type FmContext } from "./fmCore";
 import { sanitizeOverrides } from "../../../resources/file_manager/ui/shortcuts.js";
-import { ATMOSPHERE_IDS, normalizeAtmosphereSpec } from "../../../resources/file_manager/ui/atmosphereCatalog.js";
+import {
+  ATMOSPHERE_IDS,
+  normalizeAtmosphereSpec,
+} from "../../../resources/file_manager/ui/atmosphereCatalog.js";
 
 /** Validated user preferences and workspace configuration persisted in `file_manager.json`. */
 export interface Settings {
@@ -154,7 +157,11 @@ export interface Settings {
   /** The code editor "Open in editor" starts: "default" uses $VISUAL / $EDITOR, or the first known editor found. */
   editor: "default" | "vscode" | "subl" | "webstorm" | "idea";
   /** The Serve tool's remembered form choices. The network (LAN) is never remembered. */
-  serveOptions: { kind: "auto" | "static" | "php"; liveReload: boolean; openBrowser: boolean };
+  serveOptions: {
+    kind: "auto" | "static" | "php";
+    liveReload: boolean;
+    openBrowser: boolean;
+  };
   /** Where Delete sends things: the File Manager's own Recycle Bin, or the Rip graveyard (shared with the `rip` tools). */
   deleteTo: "bin" | "graveyard";
   /** Where the quick-open buttons for saved database connections show the studio: its own desktop window, or the web browser. */
@@ -207,7 +214,21 @@ export interface Settings {
 }
 
 /** Supported audio and read-along video export formats for Ollama Phonon speech synthesis. */
-export const PHONON_AUDIO_FORMATS = ["wav", "mp3", "m4a", "aac", "flac", "ogg", "opus", "aiff", "wma", "mp4", "webm", "mov", "mkv"] as const;
+export const PHONON_AUDIO_FORMATS = [
+  "wav",
+  "mp3",
+  "m4a",
+  "aac",
+  "flac",
+  "ogg",
+  "opus",
+  "aiff",
+  "wma",
+  "mp4",
+  "webm",
+  "mov",
+  "mkv",
+] as const;
 /** Audio or video container format identifier for Ollama Phonon speech export. */
 export type PhononAudioFormat = (typeof PHONON_AUDIO_FORMATS)[number];
 
@@ -224,7 +245,15 @@ export const ROW_DENSITIES = ["compact", "comfortable", "spacious"] as const;
 /** Row spacing density preset for file lists. */
 export type RowDensity = (typeof ROW_DENSITIES)[number];
 /** Allowed color keys for user-assigned file and folder tags. */
-export const TAG_COLORS = ["red", "orange", "yellow", "green", "blue", "purple", "gray"] as const;
+export const TAG_COLORS = [
+  "red",
+  "orange",
+  "yellow",
+  "green",
+  "blue",
+  "purple",
+  "gray",
+] as const;
 /** Color key for a file or folder tag. */
 export type TagColor = (typeof TAG_COLORS)[number];
 /** Maximum number of tagged file/folder paths stored in settings (`500`). */
@@ -267,7 +296,14 @@ export const ATMOSPHERE_EFFECTS: readonly string[] = ATMOSPHERE_IDS;
 /** Atmospheric effect identifier or `+`-joined multi-layer effect specification. */
 export type AtmosphereEffect = string;
 /** Hardware graphics quality tiers for atmospheric canvas shaders. */
-export const ATMOSPHERE_TIERS = ["auto", "low", "medium", "high", "ultra", "extreme"] as const;
+export const ATMOSPHERE_TIERS = [
+  "auto",
+  "low",
+  "medium",
+  "high",
+  "ultra",
+  "extreme",
+] as const;
 /** Hardware graphics quality tier for atmospheric effects. */
 export type AtmosphereTier = (typeof ATMOSPHERE_TIERS)[number];
 /** Supported cross-platform compositor profile overrides (`""` for auto-detect). */
@@ -275,99 +311,438 @@ export const PLATFORM_PROFILES = ["", "macos", "windows", "linux"] as const;
 /** Cross-platform compositor profile override identifier. */
 export type PlatformProfile = (typeof PLATFORM_PROFILES)[number];
 /** Real-time reactive physics modulation modes for atmospheric effects. */
-export const ATMOSPHERE_REACTIVE_MODES = ["off", "activity", "telemetry", "audio"] as const;
+export const ATMOSPHERE_REACTIVE_MODES = [
+  "off",
+  "activity",
+  "telemetry",
+  "audio",
+] as const;
 /** Real-time reactive physics modulation mode for atmospheric effects. */
 export type AtmosphereReactiveMode = (typeof ATMOSPHERE_REACTIVE_MODES)[number];
 /** Targets that the Ambient Playlist automatic rotation can cycle through. */
-export const AMBIENT_PLAYLIST_TARGETS = ["themes", "atmosphere", "both"] as const;
+export const AMBIENT_PLAYLIST_TARGETS = [
+  "themes",
+  "atmosphere",
+  "both",
+] as const;
 /** Target aspect rotated by the Ambient Playlist (`"themes"`, `"atmosphere"`, or `"both"`). */
 export type AmbientPlaylistTarget = (typeof AMBIENT_PLAYLIST_TARGETS)[number];
 /** Source pools from which the Ambient Playlist selects themes or atmospheric effects. */
-export const AMBIENT_PLAYLIST_POOLS = ["favorites", "presets", "ultra", "all"] as const;
+export const AMBIENT_PLAYLIST_POOLS = [
+  "favorites",
+  "presets",
+  "ultra",
+  "all",
+] as const;
 /** Source pool identifier for the Ambient Playlist. */
 export type AmbientPlaylistPool = (typeof AMBIENT_PLAYLIST_POOLS)[number];
 /** Available UI typography font pairing profile IDs. */
-export const THEME_FONT_PROFILES = ["default", "scifi", "cyberpunk", "terminal", "editorial", "technical", "rounded", "humanist_hig", "swiss_grotesk", "drafting_cad"] as const;
+export const THEME_FONT_PROFILES = [
+  "default",
+  "scifi",
+  "cyberpunk",
+  "terminal",
+  "editorial",
+  "technical",
+  "rounded",
+  "humanist_hig",
+  "swiss_grotesk",
+  "drafting_cad",
+] as const;
 /** Typography font pairing profile identifier. */
 export type ThemeFontProfile = (typeof THEME_FONT_PROFILES)[number];
 /** Available UI border-radius / corner geometry profile IDs. */
-export const THEME_CORNER_PROFILES = ["default", "sharp", "chamfer", "chamfered", "rounded", "squircle_hig", "pill", "organic"] as const;
+export const THEME_CORNER_PROFILES = [
+  "default",
+  "sharp",
+  "chamfer",
+  "chamfered",
+  "rounded",
+  "squircle_hig",
+  "pill",
+  "organic",
+] as const;
 /** UI corner geometry profile identifier. */
 export type ThemeCornerProfile = (typeof THEME_CORNER_PROFILES)[number];
 /** Available icon drop-shadow and neon glow intensity profiles. */
-export const THEME_ICON_GLOWS = ["off", "subtle", "soft", "ambient_p3", "xdr_specular", "neon", "plasma", "hyper"] as const;
+export const THEME_ICON_GLOWS = [
+  "off",
+  "subtle",
+  "soft",
+  "ambient_p3",
+  "xdr_specular",
+  "neon",
+  "plasma",
+  "hyper",
+] as const;
 /** Icon drop-shadow and glow profile identifier. */
 export type ThemeIconGlow = (typeof THEME_ICON_GLOWS)[number];
 /** Available interactive 3D and shader animation choreography modes for icons. */
-export const THEME_ICON_ANIMATIONS = ["off", "spring_pop_3d", "levitate_float", "holo_foil_shimmer", "orbital_halo_spin", "cyber_glitch_pulse", "heartbeat_biolum", "clockwork_gear_tick", "liquid_jelly_morph", "jelly_squish_3d", "plasma_arc_surge", "fire_ember_flicker", "godmode_pantheon_ascend", "folder_3d_spin_turntable", "flash_2advanced_vector_hud", "folder_3d_flip_origami", "gyro_3d_cube_matrix", "flash_fwa_kinetic_eq", "hologram_3d_projector_beam", "quantum_3d_phase_split", "m4_liquid_metal_morph", "houdini_vex_particle_burst", "c4d_mograph_cloner_wave", "after_effects_graph_overshoot", "unreal_nanite_mesh_lod", "blender_geometry_nodes_bloom", "raytraced_caustic_refraction"] as const;
+export const THEME_ICON_ANIMATIONS = [
+  "off",
+  "spring_pop_3d",
+  "levitate_float",
+  "holo_foil_shimmer",
+  "orbital_halo_spin",
+  "cyber_glitch_pulse",
+  "heartbeat_biolum",
+  "clockwork_gear_tick",
+  "liquid_jelly_morph",
+  "jelly_squish_3d",
+  "plasma_arc_surge",
+  "fire_ember_flicker",
+  "godmode_pantheon_ascend",
+  "folder_3d_spin_turntable",
+  "flash_2advanced_vector_hud",
+  "folder_3d_flip_origami",
+  "gyro_3d_cube_matrix",
+  "flash_fwa_kinetic_eq",
+  "hologram_3d_projector_beam",
+  "quantum_3d_phase_split",
+  "m4_liquid_metal_morph",
+  "houdini_vex_particle_burst",
+  "c4d_mograph_cloner_wave",
+  "after_effects_graph_overshoot",
+  "unreal_nanite_mesh_lod",
+  "blender_geometry_nodes_bloom",
+  "raytraced_caustic_refraction",
+] as const;
 /** Interactive icon animation choreography identifier. */
 export type ThemeIconAnimation = (typeof THEME_ICON_ANIMATIONS)[number];
 /** Available UI element shader and material FX modes for folders, toolbars, and rows. */
-export const UI_ELEMENT_FX_MODES = ["auto", "off", "tahoe_glass_folders", "fluent_mica_folders", "xdr_titanium_folders", "google_material_folders", "cupertino_ceramic_bevel", "swiss_sapphire_chronograph", "teenage_field_anodized", "blueprint_cad_cyanotype", "kyoto_washi_sumi", "carbon_kevlar_weave", "fire_folders", "slime_drip", "cryo_frost", "tesla_arcs", "storm_wind", "mercury_chrome", "holo_glitch", "void_tentacles", "kaleidoscope_prism", "lava_wax", "acid_warp", "oil_slick_chrome", "shroom_spores", "holiday_festive_glow", "nerd_arcane_runes", "nerd_lcars_hud", "horror_blood_moon", "horror_vhs_static", "realworld_mahogany_brass", "realworld_stained_glass", "screen_melt_ooze", "molten_lava_melt", "crt_magnetic_warp", "fever_dream_ripple", "godmode_omega_halo", "godmode_photonic_crystal", "godmode_dyson_lattice", "godmode_chrono_crystal", "godmode_neural_synapse", "godmode_zero_point_arc", "flash_3000_vector_hud", "spinning_3d_holo_folders", "c4d_mograph_extrude_folders", "houdini_procedural_vex_hud"] as const;
+export const UI_ELEMENT_FX_MODES = [
+  "auto",
+  "off",
+  "tahoe_glass_folders",
+  "fluent_mica_folders",
+  "xdr_titanium_folders",
+  "google_material_folders",
+  "cupertino_ceramic_bevel",
+  "swiss_sapphire_chronograph",
+  "teenage_field_anodized",
+  "blueprint_cad_cyanotype",
+  "kyoto_washi_sumi",
+  "carbon_kevlar_weave",
+  "fire_folders",
+  "slime_drip",
+  "cryo_frost",
+  "tesla_arcs",
+  "storm_wind",
+  "mercury_chrome",
+  "holo_glitch",
+  "void_tentacles",
+  "kaleidoscope_prism",
+  "lava_wax",
+  "acid_warp",
+  "oil_slick_chrome",
+  "shroom_spores",
+  "holiday_festive_glow",
+  "nerd_arcane_runes",
+  "nerd_lcars_hud",
+  "horror_blood_moon",
+  "horror_vhs_static",
+  "realworld_mahogany_brass",
+  "realworld_stained_glass",
+  "screen_melt_ooze",
+  "molten_lava_melt",
+  "crt_magnetic_warp",
+  "fever_dream_ripple",
+  "godmode_omega_halo",
+  "godmode_photonic_crystal",
+  "godmode_dyson_lattice",
+  "godmode_chrono_crystal",
+  "godmode_neural_synapse",
+  "godmode_zero_point_arc",
+  "flash_3000_vector_hud",
+  "spinning_3d_holo_folders",
+  "c4d_mograph_extrude_folders",
+  "houdini_procedural_vex_hud",
+] as const;
 /** UI element shader and material FX mode identifier. */
 export type UiElementFx = (typeof UI_ELEMENT_FX_MODES)[number];
 /** Available visual icon pack style IDs for folders, files, and toolbars. */
-export const ICON_PACK_STYLES = ["auto", "default", "macos_tahoe_3d", "win11_fluent_pro", "pro_studio_xdr", "hdr_photo_studio", "linux_papirus_pro", "nordic_minimal", "google_material_3d", "cupertino_hig_studio", "swiss_horology_gold", "teenage_field_synth", "blueprint_cad_pro", "kyoto_zen_ink", "carbon_aerospace", "inferno", "inferno_burn", "slime", "bio_slime", "storm_tempest", "storm_weather", "neon_cyber", "liquid_gems", "liquid_chrome", "cryo_crystal", "retro_pixel", "arcane_glyphs", "xenotech_2126", "psychedelic_trip", "lava_groovy", "op_art_illusion", "us_holidays_festive", "nerd_rpg_arcane", "nerd_scifi_fleet", "nerd_hacker_retro", "horror_crypt", "realworld_objects", "godmode_celestial", "godmode_photonic", "godmode_quantum", "godmode_chrono", "godmode_omni_pantheon", "macos_sequoia_hig", "apple_vision_glass_3d", "dev_polyglot_pro", "creative_cinema_8k", "cyberdeck_matrix_hud", "royal_24k_gold_obsidian", "anime_mecha_neon", "steampunk_brass_clockwork", "bioluminescent_eden", "holo_prismatic_foil", "stained_glass_cathedral_pro", "synthwave_outrun_1984", "nasa_apollo_telemetry", "obsidian_blood_ruby", "aurora_nordic_ice", "vaporwave_marble_plaza", "quantum_superconductor", "classic_os_win95", "handheld_gameboy", "art_deco_gold", "bauhaus_primary", "memphis_80s_pop", "neo_brutalist_flat", "ukiyoe_woodblock", "pop_art_comic", "sketch_chalkboard", "clay_soft_3d", "origami_papercraft", "lowpoly_isometric", "thin_line_duotone", "mono_high_contrast", "terminal_ascii_tui", "deep_sea_biolum", "desert_sandstone", "cottagecore_botanical"] as const;
+export const ICON_PACK_STYLES = [
+  "auto",
+  "default",
+  "macos_tahoe_3d",
+  "win11_fluent_pro",
+  "pro_studio_xdr",
+  "hdr_photo_studio",
+  "linux_papirus_pro",
+  "nordic_minimal",
+  "google_material_3d",
+  "cupertino_hig_studio",
+  "swiss_horology_gold",
+  "teenage_field_synth",
+  "blueprint_cad_pro",
+  "kyoto_zen_ink",
+  "carbon_aerospace",
+  "inferno",
+  "inferno_burn",
+  "slime",
+  "bio_slime",
+  "storm_tempest",
+  "storm_weather",
+  "neon_cyber",
+  "liquid_gems",
+  "liquid_chrome",
+  "cryo_crystal",
+  "retro_pixel",
+  "arcane_glyphs",
+  "xenotech_2126",
+  "psychedelic_trip",
+  "lava_groovy",
+  "op_art_illusion",
+  "us_holidays_festive",
+  "nerd_rpg_arcane",
+  "nerd_scifi_fleet",
+  "nerd_hacker_retro",
+  "horror_crypt",
+  "realworld_objects",
+  "godmode_celestial",
+  "godmode_photonic",
+  "godmode_quantum",
+  "godmode_chrono",
+  "godmode_omni_pantheon",
+  "macos_sequoia_hig",
+  "apple_vision_glass_3d",
+  "dev_polyglot_pro",
+  "creative_cinema_8k",
+  "cyberdeck_matrix_hud",
+  "royal_24k_gold_obsidian",
+  "anime_mecha_neon",
+  "steampunk_brass_clockwork",
+  "bioluminescent_eden",
+  "holo_prismatic_foil",
+  "stained_glass_cathedral_pro",
+  "synthwave_outrun_1984",
+  "nasa_apollo_telemetry",
+  "obsidian_blood_ruby",
+  "aurora_nordic_ice",
+  "vaporwave_marble_plaza",
+  "quantum_superconductor",
+  "classic_os_win95",
+  "handheld_gameboy",
+  "art_deco_gold",
+  "bauhaus_primary",
+  "memphis_80s_pop",
+  "neo_brutalist_flat",
+  "ukiyoe_woodblock",
+  "pop_art_comic",
+  "sketch_chalkboard",
+  "clay_soft_3d",
+  "origami_papercraft",
+  "lowpoly_isometric",
+  "thin_line_duotone",
+  "mono_high_contrast",
+  "terminal_ascii_tui",
+  "deep_sea_biolum",
+  "desert_sandstone",
+  "cottagecore_botanical",
+] as const;
 /** Visual icon pack style identifier. */
 export type IconPackStyle = (typeof ICON_PACK_STYLES)[number];
 /** Available display and camera lens post-processing screen filter IDs. */
-export const SCREEN_FILTER_MODES = ["off", "crt_trinitron_95", "crt_amber_monochrome", "crt_green_p1_apple2", "vhs_camcorder_1994", "gameboy_dmg_olive", "virtual_boy_red_led", "kodachrome_64_film", "technicolor_3strip", "imax_70mm_anamorphic", "cyberpunk_chromatic_rgb", "night_vision_gen3", "flir_thermal_infrared", "blueprint_xray_neg", "sepia_daguerreotype_1888", "noir_sin_city_ink", "e_ink_carta_paper", "night_shift_warm_2700k", "pro_display_xdr_vivid", "nano_texture_matte_glass", "dreamcore_bloom_soft", "vhs_arcade_crt_curvature", "matrix_code_phosphor", "halftone_comic_spiderverse", "underwater_aquatic_refraction", "synthwave_sunset_grade", "hologram_pepper_ghost", "kaleidoscope_prism_lens", "davinci_aces_cct_grade", "nuke_anamorphic_flare_streak", "octane_spectral_iridescence", "red_v_raptor_8k_log", "arcane_painterly_brushwork", "substance_pbr_albedo_normal"] as const;
+export const SCREEN_FILTER_MODES = [
+  "off",
+  "crt_trinitron_95",
+  "crt_amber_monochrome",
+  "crt_green_p1_apple2",
+  "vhs_camcorder_1994",
+  "gameboy_dmg_olive",
+  "virtual_boy_red_led",
+  "kodachrome_64_film",
+  "technicolor_3strip",
+  "imax_70mm_anamorphic",
+  "cyberpunk_chromatic_rgb",
+  "night_vision_gen3",
+  "flir_thermal_infrared",
+  "blueprint_xray_neg",
+  "sepia_daguerreotype_1888",
+  "noir_sin_city_ink",
+  "e_ink_carta_paper",
+  "night_shift_warm_2700k",
+  "pro_display_xdr_vivid",
+  "nano_texture_matte_glass",
+  "dreamcore_bloom_soft",
+  "vhs_arcade_crt_curvature",
+  "matrix_code_phosphor",
+  "halftone_comic_spiderverse",
+  "underwater_aquatic_refraction",
+  "synthwave_sunset_grade",
+  "hologram_pepper_ghost",
+  "kaleidoscope_prism_lens",
+  "davinci_aces_cct_grade",
+  "nuke_anamorphic_flare_streak",
+  "octane_spectral_iridescence",
+  "red_v_raptor_8k_log",
+  "arcane_painterly_brushwork",
+  "substance_pbr_albedo_normal",
+] as const;
 /** Display and lens post-processing screen filter mode identifier. */
 export type ScreenFilterMode = (typeof SCREEN_FILTER_MODES)[number];
 /** Available physical icon material finish mode IDs. */
-export const ICON_FINISH_MODES = ["off", "macos_aqua_glass", "win11_fluent_acrylic", "pro_titanium_anodized", "neumorphic_tactile_studio", "holographic_collector_grade", "holiday_grand_celebration"] as const;
+export const ICON_FINISH_MODES = [
+  "off",
+  "macos_aqua_glass",
+  "win11_fluent_acrylic",
+  "pro_titanium_anodized",
+  "neumorphic_tactile_studio",
+  "holographic_collector_grade",
+  "holiday_grand_celebration",
+] as const;
 /** Physical icon material finish mode identifier. */
 export type IconFinishMode = (typeof ICON_FINISH_MODES)[number];
 /** Available 3D Desktop Stage and Ambilux backlight mode IDs. */
-export const WORKSPACE_STAGE_MODE_IDS = ["off", "ambilux_xdr_halo", "stage_manager_3d_tilt", "coverflow_3d_reflection", "anamorphic_cinema_letterbox", "isometric_architect_table", "holodeck_grid_horizon", "holiday_snowglobe_dome"] as const;
+export const WORKSPACE_STAGE_MODE_IDS = [
+  "off",
+  "ambilux_xdr_halo",
+  "stage_manager_3d_tilt",
+  "coverflow_3d_reflection",
+  "anamorphic_cinema_letterbox",
+  "isometric_architect_table",
+  "holodeck_grid_horizon",
+  "holiday_snowglobe_dome",
+] as const;
 /** 3D Desktop Stage and Ambilux backlight mode identifier. */
 export type WorkspaceStageMode = (typeof WORKSPACE_STAGE_MODE_IDS)[number];
 /** Available procedural WebAudio tactile UI soundscape profile IDs. */
-export const UI_SOUND_PROFILE_IDS = ["off", "apple_hig_tactile", "mechanical_thock_pro", "teenage_synth_op1", "scifi_lcars_bridge", "retro_crt_arcade", "cinema_sub_boom", "holiday_chimes_festive"] as const;
+export const UI_SOUND_PROFILE_IDS = [
+  "off",
+  "apple_hig_tactile",
+  "mechanical_thock_pro",
+  "teenage_synth_op1",
+  "scifi_lcars_bridge",
+  "retro_crt_arcade",
+  "cinema_sub_boom",
+  "holiday_chimes_festive",
+] as const;
 /** Procedural WebAudio UI soundscape profile identifier. */
 export type UiSoundProfile = (typeof UI_SOUND_PROFILE_IDS)[number];
 /** Available interactive pointer spotlight and 120Hz cursor trail mode IDs. */
-export const CURSOR_TRAIL_MODE_IDS = ["off", "holo_prism_spotlight", "stardust_comet_tail", "flash_2advanced_crosshair", "matrix_digital_wake", "cyber_plasma_arc", "sakura_petal_breeze", "holiday_magic_wand"] as const;
+export const CURSOR_TRAIL_MODE_IDS = [
+  "off",
+  "holo_prism_spotlight",
+  "stardust_comet_tail",
+  "flash_2advanced_crosshair",
+  "matrix_digital_wake",
+  "cyber_plasma_arc",
+  "sakura_petal_breeze",
+  "holiday_magic_wand",
+] as const;
 /** Interactive pointer spotlight and cursor trail mode identifier. */
 export type CursorTrailMode = (typeof CURSOR_TRAIL_MODE_IDS)[number];
 /** Available spring-loaded 3D folder hover and selection behavior IDs. */
-export const FOLDER_SPRING_MODE_IDS = ["off", "macos_spring_loaded", "spatial_glass_extrude", "magnetic_dock_magnify", "xray_content_wireframe", "holiday_gift_unwrap"] as const;
+export const FOLDER_SPRING_MODE_IDS = [
+  "off",
+  "macos_spring_loaded",
+  "spatial_glass_extrude",
+  "magnetic_dock_magnify",
+  "xray_content_wireframe",
+  "holiday_gift_unwrap",
+] as const;
 /** Spring-loaded 3D folder hover/selection mode identifier. */
 export type FolderSpringMode = (typeof FOLDER_SPRING_MODE_IDS)[number];
 /** Available procedural 8K desktop wallpaper backplate scene IDs. */
-export const DESKTOP_WALLPAPER_SCENE_IDS = ["off", "sequoia_redwood_dawn", "tahoe_alpine_lake", "win11_bloom_sculpture", "tokyo_neon_rain_alley", "cern_quantum_chamber", "deep_space_jwst_pillars", "holiday_winter_village"] as const;
+export const DESKTOP_WALLPAPER_SCENE_IDS = [
+  "off",
+  "sequoia_redwood_dawn",
+  "tahoe_alpine_lake",
+  "win11_bloom_sculpture",
+  "tokyo_neon_rain_alley",
+  "cern_quantum_chamber",
+  "deep_space_jwst_pillars",
+  "holiday_winter_village",
+] as const;
 /** Procedural desktop wallpaper backplate scene identifier. */
-export type DesktopWallpaperScene = (typeof DESKTOP_WALLPAPER_SCENE_IDS)[number];
+export type DesktopWallpaperScene =
+  (typeof DESKTOP_WALLPAPER_SCENE_IDS)[number];
 /** Available dual-pane active vs. target visual distinction mode IDs. */
-export const DUAL_PANE_FOCUS_MODE_IDS = ["off", "spotlight", "neon_rim", "dim_inactive", "source_target_badges"] as const;
+export const DUAL_PANE_FOCUS_MODE_IDS = [
+  "off",
+  "spotlight",
+  "neon_rim",
+  "dim_inactive",
+  "source_target_badges",
+] as const;
 /** Dual-pane focus visual distinction mode identifier. */
 export type DualPaneFocusMode = (typeof DUAL_PANE_FOCUS_MODE_IDS)[number];
 /** Available Chameleon folder mood auto-accent mode IDs. */
-export const CHAMELEON_FOLDER_MODE_IDS = ["off", "auto", "code", "media", "data", "docs", "archives", "security"] as const;
+export const CHAMELEON_FOLDER_MODE_IDS = [
+  "off",
+  "auto",
+  "code",
+  "media",
+  "data",
+  "docs",
+  "archives",
+  "security",
+] as const;
 /** Chameleon folder mood auto-accent mode identifier. */
 export type ChameleonFolderMode = (typeof CHAMELEON_FOLDER_MODE_IDS)[number];
 /** Available unfocused window and battery zero-watt governor mode IDs. */
-export const ZERO_WATT_GOVERNOR_MODE_IDS = ["auto", "always_120hz", "eco_saver"] as const;
+export const ZERO_WATT_GOVERNOR_MODE_IDS = [
+  "auto",
+  "always_120hz",
+  "eco_saver",
+] as const;
 /** Unfocused window and battery power governor mode identifier. */
 export type ZeroWattGovernorMode = (typeof ZERO_WATT_GOVERNOR_MODE_IDS)[number];
 /** Available Kelvin white-point and OLED true-black mastering mode IDs. */
-export const COLOR_TEMP_MODE_IDS = ["neutral_6500k", "candle_2700k", "golden_hour_3500k", "halogen_4300k", "daylight_d50_5000k", "cyber_cool_7500k", "arctic_blue_9300k", "oled_true_black"] as const;
+export const COLOR_TEMP_MODE_IDS = [
+  "neutral_6500k",
+  "candle_2700k",
+  "golden_hour_3500k",
+  "halogen_4300k",
+  "daylight_d50_5000k",
+  "cyber_cool_7500k",
+  "arctic_blue_9300k",
+  "oled_true_black",
+] as const;
 /** Kelvin white-point / OLED mastering color temperature mode identifier. */
 export type ColorTempMode = (typeof COLOR_TEMP_MODE_IDS)[number];
 /** Available color-vision deficiency (Daltonism) and high-contrast accessibility mode IDs. */
-export const COLOR_VISION_MODE_IDS = ["off", "protanopia_safe", "deuteranopia_safe", "tritanopia_safe", "achromatopsia_mono", "high_contrast_aaa"] as const;
+export const COLOR_VISION_MODE_IDS = [
+  "off",
+  "protanopia_safe",
+  "deuteranopia_safe",
+  "tritanopia_safe",
+  "achromatopsia_mono",
+  "high_contrast_aaa",
+] as const;
 /** Color-vision accessibility mode identifier. */
 export type ColorVisionMode = (typeof COLOR_VISION_MODE_IDS)[number];
 /** Available presentation modes for the built-in Theme Show / Screensaver. */
-export const THEME_SHOW_MODES = ["cinema_hud", "pure_canvas", "living_desktop", "retro_afterdark"] as const;
+export const THEME_SHOW_MODES = [
+  "cinema_hud",
+  "pure_canvas",
+  "living_desktop",
+  "retro_afterdark",
+] as const;
 /** Presentation mode identifier for the Theme Show / Screensaver. */
 export type ThemeShowMode = (typeof THEME_SHOW_MODES)[number];
 /** Available curated theme and FX channels for the Theme Show / Screensaver. */
-export const THEME_SHOW_CHANNELS = ["all_ultra", "storms_debris", "year_2126", "tesla_physics", "visceral_fx", "linux_retro", "us_holidays", "nerd_complete", "horror_nightmare", "realworld_objects", "favorites"] as const;
+export const THEME_SHOW_CHANNELS = [
+  "all_ultra",
+  "storms_debris",
+  "year_2126",
+  "tesla_physics",
+  "visceral_fx",
+  "linux_retro",
+  "us_holidays",
+  "nerd_complete",
+  "horror_nightmare",
+  "realworld_objects",
+  "favorites",
+] as const;
 /** Channel identifier for the Theme Show / Screensaver. */
 export type ThemeShowChannel = (typeof THEME_SHOW_CHANNELS)[number];
 /** Available scene transition styles for the Theme Show / Screensaver. */
-export const THEME_SHOW_TRANSITIONS = ["oklab_morph", "arc_surge", "glitch_cut"] as const;
+export const THEME_SHOW_TRANSITIONS = [
+  "oklab_morph",
+  "arc_surge",
+  "glitch_cut",
+] as const;
 /** Scene transition style identifier for the Theme Show / Screensaver. */
 export type ThemeShowTransition = (typeof THEME_SHOW_TRANSITIONS)[number];
 /** Available hardware tier boost overrides while the Theme Show is active. */
@@ -509,45 +884,92 @@ export const MAX_STUDIO_PRESETS = 50;
 /** Maximum character length of a saved Studio or Atmosphere preset name (`40`). */
 export const MAX_PRESET_NAME = 40;
 
-const oneOf = <T extends string>(value: unknown, allowed: readonly T[], fallback: T): T => (allowed.includes(value as T) ? (value as T) : fallback);
+const oneOf = <T extends string>(
+  value: unknown,
+  allowed: readonly T[],
+  fallback: T,
+): T => (allowed.includes(value as T) ? (value as T) : fallback);
 
 /** Keeps only what is valid, with defaults for the rest. Paths must be absolute for the platform. */
 export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
-  const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const r = (raw && typeof raw === "object" ? raw : {}) as Record<
+    string,
+    unknown
+  >;
   const p = pathApi(ctx);
-  const isPath = (v: unknown): v is string => typeof v === "string" && v.length > 0 && v.length < 4096 && !v.includes("\0") && p.isAbsolute(v);
+  const isPath = (v: unknown): v is string =>
+    typeof v === "string" &&
+    v.length > 0 &&
+    v.length < 4096 &&
+    !v.includes("\0") &&
+    p.isAbsolute(v);
   const favorites: string[] = [];
-  for (const f of Array.isArray(r.favorites) ? r.favorites : []) if (isPath(f) && !favorites.includes(p.resolve(f)) && favorites.length < MAX_FAVORITES) favorites.push(p.resolve(f));
+  for (const f of Array.isArray(r.favorites) ? r.favorites : [])
+    if (
+      isPath(f) &&
+      !favorites.includes(p.resolve(f)) &&
+      favorites.length < MAX_FAVORITES
+    )
+      favorites.push(p.resolve(f));
   const names: Record<string, string> = {};
-  const rawNames = r.favoriteNames && typeof r.favoriteNames === "object" && !Array.isArray(r.favoriteNames) ? (r.favoriteNames as Record<string, unknown>) : {};
+  const rawNames =
+    r.favoriteNames &&
+    typeof r.favoriteNames === "object" &&
+    !Array.isArray(r.favoriteNames)
+      ? (r.favoriteNames as Record<string, unknown>)
+      : {};
   for (const [key, value] of Object.entries(rawNames)) {
     if (!isPath(key) || typeof value !== "string") continue;
     const path = p.resolve(key);
     // eslint-disable-next-line no-control-regex
-    const name = value.replace(/[\x00-\x1f\x7f]/g, " ").trim().slice(0, MAX_FAVORITE_NAME);
+    const name = value
+      .replace(/[\x00-\x1f\x7f]/g, " ")
+      .trim()
+      .slice(0, MAX_FAVORITE_NAME);
     if (favorites.includes(path) && name) names[path] = name;
   }
   const recents: Settings["recents"] = [];
   for (const x of Array.isArray(r.recents) ? r.recents : []) {
     const item = x as { path?: unknown; at?: unknown };
-    if (isPath(item?.path) && recents.length < MAX_RECENTS && !recents.some((q) => q.path === p.resolve(item.path as string))) {
-      recents.push({ path: p.resolve(item.path as string), at: typeof item.at === "string" && !isNaN(Date.parse(item.at)) ? item.at : new Date(0).toISOString() });
+    if (
+      isPath(item?.path) &&
+      recents.length < MAX_RECENTS &&
+      !recents.some((q) => q.path === p.resolve(item.path as string))
+    ) {
+      recents.push({
+        path: p.resolve(item.path as string),
+        at:
+          typeof item.at === "string" && !isNaN(Date.parse(item.at))
+            ? item.at
+            : new Date(0).toISOString(),
+      });
     }
   }
   const favoriteThemes: string[] = [];
   for (const k of Array.isArray(r.favoriteThemes) ? r.favoriteThemes : []) {
-    if (typeof k === "string" && /^[a-z0-9_]{1,60}$/.test(k) && !favoriteThemes.includes(k) && favoriteThemes.length < MAX_FAVORITE_THEMES) {
+    if (
+      typeof k === "string" &&
+      /^[a-z0-9_]{1,60}$/.test(k) &&
+      !favoriteThemes.includes(k) &&
+      favoriteThemes.length < MAX_FAVORITE_THEMES
+    ) {
       favoriteThemes.push(k);
     }
   }
   const columns: ExtraColumn[] = [];
   for (const c of Array.isArray(r.columns) ? r.columns : []) {
-    if ((EXTRA_COLUMNS as readonly string[]).includes(c as string) && !columns.includes(c as ExtraColumn)) {
+    if (
+      (EXTRA_COLUMNS as readonly string[]).includes(c as string) &&
+      !columns.includes(c as ExtraColumn)
+    ) {
       columns.push(c as ExtraColumn);
     }
   }
   const tags: Record<string, TagColor> = {};
-  const rawTags = r.tags && typeof r.tags === "object" && !Array.isArray(r.tags) ? (r.tags as Record<string, unknown>) : {};
+  const rawTags =
+    r.tags && typeof r.tags === "object" && !Array.isArray(r.tags)
+      ? (r.tags as Record<string, unknown>)
+      : {};
   for (const [key, value] of Object.entries(rawTags)) {
     if (Object.keys(tags).length >= MAX_TAGS) break;
     if (!isPath(key) || typeof value !== "string") continue;
@@ -556,22 +978,48 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     }
   }
   const notes: Record<string, string> = {};
-  const rawNotes = r.notes && typeof r.notes === "object" && !Array.isArray(r.notes) ? (r.notes as Record<string, unknown>) : {};
+  const rawNotes =
+    r.notes && typeof r.notes === "object" && !Array.isArray(r.notes)
+      ? (r.notes as Record<string, unknown>)
+      : {};
   for (const [key, value] of Object.entries(rawNotes)) {
     if (Object.keys(notes).length >= MAX_NOTES) break;
     if (!isPath(key) || typeof value !== "string") continue;
     // eslint-disable-next-line no-control-regex
-    const cleanNote = value.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, " ").trim().slice(0, MAX_NOTE_LENGTH);
+    const cleanNote = value
+      .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, " ")
+      .trim()
+      .slice(0, MAX_NOTE_LENGTH);
     if (cleanNote) {
       notes[p.resolve(key)] = cleanNote;
     }
   }
-  const size = typeof r.textSize === "number" && isFinite(r.textSize) ? Math.round(Math.min(160, Math.max(80, r.textSize))) : DEFAULT_SETTINGS.textSize;
-  const atmosphereIntensity = typeof r.atmosphereIntensity === "number" && isFinite(r.atmosphereIntensity) ? Math.round(Math.min(100, Math.max(10, r.atmosphereIntensity))) : DEFAULT_SETTINGS.atmosphereIntensity;
-  const terminalHeight = typeof r.terminalHeight === "number" && isFinite(r.terminalHeight) ? Math.round(Math.min(TERMINAL_HEIGHT_MAX, Math.max(TERMINAL_HEIGHT_MIN, r.terminalHeight))) : DEFAULT_SETTINGS.terminalHeight;
-  const isPaletteKey = (v: unknown): v is string => typeof v === "string" && /^[a-z0-9_]{1,60}$/.test(v);
+  const size =
+    typeof r.textSize === "number" && isFinite(r.textSize)
+      ? Math.round(Math.min(160, Math.max(80, r.textSize)))
+      : DEFAULT_SETTINGS.textSize;
+  const atmosphereIntensity =
+    typeof r.atmosphereIntensity === "number" && isFinite(r.atmosphereIntensity)
+      ? Math.round(Math.min(100, Math.max(10, r.atmosphereIntensity)))
+      : DEFAULT_SETTINGS.atmosphereIntensity;
+  const terminalHeight =
+    typeof r.terminalHeight === "number" && isFinite(r.terminalHeight)
+      ? Math.round(
+          Math.min(
+            TERMINAL_HEIGHT_MAX,
+            Math.max(TERMINAL_HEIGHT_MIN, r.terminalHeight),
+          ),
+        )
+      : DEFAULT_SETTINGS.terminalHeight;
+  const isPaletteKey = (v: unknown): v is string =>
+    typeof v === "string" && /^[a-z0-9_]{1,60}$/.test(v);
   const folderThemes: Record<string, string> = {};
-  const rawFolderThemes = r.folderThemes && typeof r.folderThemes === "object" && !Array.isArray(r.folderThemes) ? (r.folderThemes as Record<string, unknown>) : {};
+  const rawFolderThemes =
+    r.folderThemes &&
+    typeof r.folderThemes === "object" &&
+    !Array.isArray(r.folderThemes)
+      ? (r.folderThemes as Record<string, unknown>)
+      : {};
   for (const [key, value] of Object.entries(rawFolderThemes)) {
     if (Object.keys(folderThemes).length >= MAX_FOLDER_THEMES) break;
     if (!isPath(key) || !isPaletteKey(value)) continue;
@@ -581,124 +1029,396 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     favorites,
     favoriteNames: names,
     recents,
-    recentsEnabled: typeof r.recentsEnabled === "boolean" ? r.recentsEnabled : DEFAULT_SETTINGS.recentsEnabled,
+    recentsEnabled:
+      typeof r.recentsEnabled === "boolean"
+        ? r.recentsEnabled
+        : DEFAULT_SETTINGS.recentsEnabled,
     view: oneOf(r.view, ["details", "list", "icons"], DEFAULT_SETTINGS.view),
-    sortBy: oneOf(r.sortBy, ["name", "modified", "size", "type"], DEFAULT_SETTINGS.sortBy),
+    sortBy: oneOf(
+      r.sortBy,
+      ["name", "modified", "size", "type"],
+      DEFAULT_SETTINGS.sortBy,
+    ),
     sortDir: oneOf(r.sortDir, ["asc", "desc"], DEFAULT_SETTINGS.sortDir),
-    foldersFirst: typeof r.foldersFirst === "boolean" ? r.foldersFirst : DEFAULT_SETTINGS.foldersFirst,
-    showHidden: typeof r.showHidden === "boolean" ? r.showHidden : DEFAULT_SETTINGS.showHidden,
-    showInfoPanel: typeof r.showInfoPanel === "boolean" ? r.showInfoPanel : DEFAULT_SETTINGS.showInfoPanel,
+    foldersFirst:
+      typeof r.foldersFirst === "boolean"
+        ? r.foldersFirst
+        : DEFAULT_SETTINGS.foldersFirst,
+    showHidden:
+      typeof r.showHidden === "boolean"
+        ? r.showHidden
+        : DEFAULT_SETTINGS.showHidden,
+    showInfoPanel:
+      typeof r.showInfoPanel === "boolean"
+        ? r.showInfoPanel
+        : DEFAULT_SETTINGS.showInfoPanel,
     theme: oneOf(r.theme, ["auto", "light", "dark"], DEFAULT_SETTINGS.theme),
     palette: isPaletteKey(r.palette) ? r.palette : "",
-    themeFxOff: typeof r.themeFxOff === "boolean" ? r.themeFxOff : DEFAULT_SETTINGS.themeFxOff,
-    folderFxOnly: typeof r.folderFxOnly === "boolean" ? r.folderFxOnly : DEFAULT_SETTINGS.folderFxOnly,
-    preferredLightPalette: isPaletteKey(r.preferredLightPalette) ? r.preferredLightPalette : "",
-    preferredDarkPalette: isPaletteKey(r.preferredDarkPalette) ? r.preferredDarkPalette : "",
-    solarScheduleEnabled: typeof r.solarScheduleEnabled === "boolean" ? r.solarScheduleEnabled : DEFAULT_SETTINGS.solarScheduleEnabled,
-    solarDawnPalette: isPaletteKey(r.solarDawnPalette) ? r.solarDawnPalette : "",
+    themeFxOff:
+      typeof r.themeFxOff === "boolean"
+        ? r.themeFxOff
+        : DEFAULT_SETTINGS.themeFxOff,
+    folderFxOnly:
+      typeof r.folderFxOnly === "boolean"
+        ? r.folderFxOnly
+        : DEFAULT_SETTINGS.folderFxOnly,
+    preferredLightPalette: isPaletteKey(r.preferredLightPalette)
+      ? r.preferredLightPalette
+      : "",
+    preferredDarkPalette: isPaletteKey(r.preferredDarkPalette)
+      ? r.preferredDarkPalette
+      : "",
+    solarScheduleEnabled:
+      typeof r.solarScheduleEnabled === "boolean"
+        ? r.solarScheduleEnabled
+        : DEFAULT_SETTINGS.solarScheduleEnabled,
+    solarDawnPalette: isPaletteKey(r.solarDawnPalette)
+      ? r.solarDawnPalette
+      : "",
     solarDayPalette: isPaletteKey(r.solarDayPalette) ? r.solarDayPalette : "",
-    solarDuskPalette: isPaletteKey(r.solarDuskPalette) ? r.solarDuskPalette : "",
-    solarNightPalette: isPaletteKey(r.solarNightPalette) ? r.solarNightPalette : "",
+    solarDuskPalette: isPaletteKey(r.solarDuskPalette)
+      ? r.solarDuskPalette
+      : "",
+    solarNightPalette: isPaletteKey(r.solarNightPalette)
+      ? r.solarNightPalette
+      : "",
     folderThemes,
     favoriteThemes,
-    atmosphere: normalizeAtmosphereSpec(r.atmosphere) || DEFAULT_SETTINGS.atmosphere,
+    atmosphere:
+      normalizeAtmosphereSpec(r.atmosphere) || DEFAULT_SETTINGS.atmosphere,
     atmosphereIntensity,
-    atmosphereTier: oneOf(r.atmosphereTier, ATMOSPHERE_TIERS, DEFAULT_SETTINGS.atmosphereTier),
-    platformProfile: oneOf(r.platformProfile === "auto" ? "" : r.platformProfile, PLATFORM_PROFILES, DEFAULT_SETTINGS.platformProfile),
-    atmosphereReactive: oneOf(r.atmosphereReactive, ATMOSPHERE_REACTIVE_MODES, DEFAULT_SETTINGS.atmosphereReactive),
+    atmosphereTier: oneOf(
+      r.atmosphereTier,
+      ATMOSPHERE_TIERS,
+      DEFAULT_SETTINGS.atmosphereTier,
+    ),
+    platformProfile: oneOf(
+      r.platformProfile === "auto" ? "" : r.platformProfile,
+      PLATFORM_PROFILES,
+      DEFAULT_SETTINGS.platformProfile,
+    ),
+    atmosphereReactive: oneOf(
+      r.atmosphereReactive,
+      ATMOSPHERE_REACTIVE_MODES,
+      DEFAULT_SETTINGS.atmosphereReactive,
+    ),
     atmospherePresets: sanitizeAtmospherePresets(r.atmospherePresets),
     atmosphereLayerMods: sanitizeAtmosphereLayerMods(r.atmosphereLayerMods),
-    ambientPlaylistEnabled: typeof r.ambientPlaylistEnabled === "boolean" ? r.ambientPlaylistEnabled : DEFAULT_SETTINGS.ambientPlaylistEnabled,
-    ambientPlaylistIntervalMin: typeof r.ambientPlaylistIntervalMin === "number" && isFinite(r.ambientPlaylistIntervalMin) ? Math.round(Math.min(240, Math.max(1, r.ambientPlaylistIntervalMin))) : DEFAULT_SETTINGS.ambientPlaylistIntervalMin,
-    ambientPlaylistTarget: oneOf(r.ambientPlaylistTarget, AMBIENT_PLAYLIST_TARGETS, DEFAULT_SETTINGS.ambientPlaylistTarget),
-    ambientPlaylistPool: oneOf(r.ambientPlaylistPool, AMBIENT_PLAYLIST_POOLS, DEFAULT_SETTINGS.ambientPlaylistPool),
-    themeFontProfile: oneOf(r.themeFontProfile, THEME_FONT_PROFILES, DEFAULT_SETTINGS.themeFontProfile),
-    themeCornerProfile: oneOf(r.themeCornerProfile, THEME_CORNER_PROFILES, DEFAULT_SETTINGS.themeCornerProfile),
-    themeIconGlow: oneOf(r.themeIconGlow, THEME_ICON_GLOWS, DEFAULT_SETTINGS.themeIconGlow),
-    themeIconAnimation: oneOf(r.themeIconAnimation, THEME_ICON_ANIMATIONS, DEFAULT_SETTINGS.themeIconAnimation),
-    uiElementFx: oneOf(r.uiElementFx, UI_ELEMENT_FX_MODES, DEFAULT_SETTINGS.uiElementFx),
-    iconPackStyle: oneOf(r.iconPackStyle, ICON_PACK_STYLES, DEFAULT_SETTINGS.iconPackStyle),
-    screenFilter: oneOf(r.screenFilter, SCREEN_FILTER_MODES, DEFAULT_SETTINGS.screenFilter),
-    iconFinishMode: oneOf(r.iconFinishMode, ICON_FINISH_MODES, DEFAULT_SETTINGS.iconFinishMode),
-    workspaceStageMode: oneOf(r.workspaceStageMode, WORKSPACE_STAGE_MODE_IDS, DEFAULT_SETTINGS.workspaceStageMode),
-    uiSoundProfile: oneOf(r.uiSoundProfile, UI_SOUND_PROFILE_IDS, DEFAULT_SETTINGS.uiSoundProfile),
-    cursorTrailMode: oneOf(r.cursorTrailMode, CURSOR_TRAIL_MODE_IDS, DEFAULT_SETTINGS.cursorTrailMode),
-    folderSpringMode: oneOf(r.folderSpringMode, FOLDER_SPRING_MODE_IDS, DEFAULT_SETTINGS.folderSpringMode),
-    desktopWallpaperScene: oneOf(r.desktopWallpaperScene, DESKTOP_WALLPAPER_SCENE_IDS, DEFAULT_SETTINGS.desktopWallpaperScene),
-    dualPaneFocusMode: oneOf(r.dualPaneFocusMode, DUAL_PANE_FOCUS_MODE_IDS, DEFAULT_SETTINGS.dualPaneFocusMode),
-    chameleonFolderMode: oneOf(r.chameleonFolderMode, CHAMELEON_FOLDER_MODE_IDS, DEFAULT_SETTINGS.chameleonFolderMode),
-    zeroWattGovernorMode: oneOf(r.zeroWattGovernorMode, ZERO_WATT_GOVERNOR_MODE_IDS, DEFAULT_SETTINGS.zeroWattGovernorMode),
-    colorTempMode: oneOf(r.colorTempMode, COLOR_TEMP_MODE_IDS, DEFAULT_SETTINGS.colorTempMode),
-    colorVisionMode: oneOf(r.colorVisionMode, COLOR_VISION_MODE_IDS, DEFAULT_SETTINGS.colorVisionMode),
-    themeShowMode: oneOf(r.themeShowMode, THEME_SHOW_MODES, DEFAULT_SETTINGS.themeShowMode),
-    themeShowChannel: oneOf(r.themeShowChannel, THEME_SHOW_CHANNELS, DEFAULT_SETTINGS.themeShowChannel),
-    themeShowIntervalSec: typeof r.themeShowIntervalSec === "number" && isFinite(r.themeShowIntervalSec) ? Math.round(Math.min(600, Math.max(5, r.themeShowIntervalSec))) : DEFAULT_SETTINGS.themeShowIntervalSec,
-    themeShowIdleMinutes: typeof r.themeShowIdleMinutes === "number" && isFinite(r.themeShowIdleMinutes) ? Math.round(Math.min(120, Math.max(0, r.themeShowIdleMinutes))) : DEFAULT_SETTINGS.themeShowIdleMinutes,
-    themeShowTransition: oneOf(r.themeShowTransition, THEME_SHOW_TRANSITIONS, DEFAULT_SETTINGS.themeShowTransition),
-    themeShowExitOnMove: typeof r.themeShowExitOnMove === "boolean" ? r.themeShowExitOnMove : DEFAULT_SETTINGS.themeShowExitOnMove,
-    themeShowClock: typeof r.themeShowClock === "boolean" ? r.themeShowClock : DEFAULT_SETTINGS.themeShowClock,
-    themeShowBoostTier: oneOf(r.themeShowBoostTier, THEME_SHOW_BOOST_TIERS, DEFAULT_SETTINGS.themeShowBoostTier),
+    ambientPlaylistEnabled:
+      typeof r.ambientPlaylistEnabled === "boolean"
+        ? r.ambientPlaylistEnabled
+        : DEFAULT_SETTINGS.ambientPlaylistEnabled,
+    ambientPlaylistIntervalMin:
+      typeof r.ambientPlaylistIntervalMin === "number" &&
+      isFinite(r.ambientPlaylistIntervalMin)
+        ? Math.round(Math.min(240, Math.max(1, r.ambientPlaylistIntervalMin)))
+        : DEFAULT_SETTINGS.ambientPlaylistIntervalMin,
+    ambientPlaylistTarget: oneOf(
+      r.ambientPlaylistTarget,
+      AMBIENT_PLAYLIST_TARGETS,
+      DEFAULT_SETTINGS.ambientPlaylistTarget,
+    ),
+    ambientPlaylistPool: oneOf(
+      r.ambientPlaylistPool,
+      AMBIENT_PLAYLIST_POOLS,
+      DEFAULT_SETTINGS.ambientPlaylistPool,
+    ),
+    themeFontProfile: oneOf(
+      r.themeFontProfile,
+      THEME_FONT_PROFILES,
+      DEFAULT_SETTINGS.themeFontProfile,
+    ),
+    themeCornerProfile: oneOf(
+      r.themeCornerProfile,
+      THEME_CORNER_PROFILES,
+      DEFAULT_SETTINGS.themeCornerProfile,
+    ),
+    themeIconGlow: oneOf(
+      r.themeIconGlow,
+      THEME_ICON_GLOWS,
+      DEFAULT_SETTINGS.themeIconGlow,
+    ),
+    themeIconAnimation: oneOf(
+      r.themeIconAnimation,
+      THEME_ICON_ANIMATIONS,
+      DEFAULT_SETTINGS.themeIconAnimation,
+    ),
+    uiElementFx: oneOf(
+      r.uiElementFx,
+      UI_ELEMENT_FX_MODES,
+      DEFAULT_SETTINGS.uiElementFx,
+    ),
+    iconPackStyle: oneOf(
+      r.iconPackStyle,
+      ICON_PACK_STYLES,
+      DEFAULT_SETTINGS.iconPackStyle,
+    ),
+    screenFilter: oneOf(
+      r.screenFilter,
+      SCREEN_FILTER_MODES,
+      DEFAULT_SETTINGS.screenFilter,
+    ),
+    iconFinishMode: oneOf(
+      r.iconFinishMode,
+      ICON_FINISH_MODES,
+      DEFAULT_SETTINGS.iconFinishMode,
+    ),
+    workspaceStageMode: oneOf(
+      r.workspaceStageMode,
+      WORKSPACE_STAGE_MODE_IDS,
+      DEFAULT_SETTINGS.workspaceStageMode,
+    ),
+    uiSoundProfile: oneOf(
+      r.uiSoundProfile,
+      UI_SOUND_PROFILE_IDS,
+      DEFAULT_SETTINGS.uiSoundProfile,
+    ),
+    cursorTrailMode: oneOf(
+      r.cursorTrailMode,
+      CURSOR_TRAIL_MODE_IDS,
+      DEFAULT_SETTINGS.cursorTrailMode,
+    ),
+    folderSpringMode: oneOf(
+      r.folderSpringMode,
+      FOLDER_SPRING_MODE_IDS,
+      DEFAULT_SETTINGS.folderSpringMode,
+    ),
+    desktopWallpaperScene: oneOf(
+      r.desktopWallpaperScene,
+      DESKTOP_WALLPAPER_SCENE_IDS,
+      DEFAULT_SETTINGS.desktopWallpaperScene,
+    ),
+    dualPaneFocusMode: oneOf(
+      r.dualPaneFocusMode,
+      DUAL_PANE_FOCUS_MODE_IDS,
+      DEFAULT_SETTINGS.dualPaneFocusMode,
+    ),
+    chameleonFolderMode: oneOf(
+      r.chameleonFolderMode,
+      CHAMELEON_FOLDER_MODE_IDS,
+      DEFAULT_SETTINGS.chameleonFolderMode,
+    ),
+    zeroWattGovernorMode: oneOf(
+      r.zeroWattGovernorMode,
+      ZERO_WATT_GOVERNOR_MODE_IDS,
+      DEFAULT_SETTINGS.zeroWattGovernorMode,
+    ),
+    colorTempMode: oneOf(
+      r.colorTempMode,
+      COLOR_TEMP_MODE_IDS,
+      DEFAULT_SETTINGS.colorTempMode,
+    ),
+    colorVisionMode: oneOf(
+      r.colorVisionMode,
+      COLOR_VISION_MODE_IDS,
+      DEFAULT_SETTINGS.colorVisionMode,
+    ),
+    themeShowMode: oneOf(
+      r.themeShowMode,
+      THEME_SHOW_MODES,
+      DEFAULT_SETTINGS.themeShowMode,
+    ),
+    themeShowChannel: oneOf(
+      r.themeShowChannel,
+      THEME_SHOW_CHANNELS,
+      DEFAULT_SETTINGS.themeShowChannel,
+    ),
+    themeShowIntervalSec:
+      typeof r.themeShowIntervalSec === "number" &&
+      isFinite(r.themeShowIntervalSec)
+        ? Math.round(Math.min(600, Math.max(5, r.themeShowIntervalSec)))
+        : DEFAULT_SETTINGS.themeShowIntervalSec,
+    themeShowIdleMinutes:
+      typeof r.themeShowIdleMinutes === "number" &&
+      isFinite(r.themeShowIdleMinutes)
+        ? Math.round(Math.min(120, Math.max(0, r.themeShowIdleMinutes)))
+        : DEFAULT_SETTINGS.themeShowIdleMinutes,
+    themeShowTransition: oneOf(
+      r.themeShowTransition,
+      THEME_SHOW_TRANSITIONS,
+      DEFAULT_SETTINGS.themeShowTransition,
+    ),
+    themeShowExitOnMove:
+      typeof r.themeShowExitOnMove === "boolean"
+        ? r.themeShowExitOnMove
+        : DEFAULT_SETTINGS.themeShowExitOnMove,
+    themeShowClock:
+      typeof r.themeShowClock === "boolean"
+        ? r.themeShowClock
+        : DEFAULT_SETTINGS.themeShowClock,
+    themeShowBoostTier: oneOf(
+      r.themeShowBoostTier,
+      THEME_SHOW_BOOST_TIERS,
+      DEFAULT_SETTINGS.themeShowBoostTier,
+    ),
     textSize: size,
     lastPath: isPath(r.lastPath) ? p.resolve(r.lastPath) : "",
-    seenWelcome: typeof r.seenWelcome === "boolean" ? r.seenWelcome : DEFAULT_SETTINGS.seenWelcome,
-    terminalFollow: typeof r.terminalFollow === "boolean" ? r.terminalFollow : DEFAULT_SETTINGS.terminalFollow,
-    terminalOpen: typeof r.terminalOpen === "boolean" ? r.terminalOpen : DEFAULT_SETTINGS.terminalOpen,
+    seenWelcome:
+      typeof r.seenWelcome === "boolean"
+        ? r.seenWelcome
+        : DEFAULT_SETTINGS.seenWelcome,
+    terminalFollow:
+      typeof r.terminalFollow === "boolean"
+        ? r.terminalFollow
+        : DEFAULT_SETTINGS.terminalFollow,
+    terminalOpen:
+      typeof r.terminalOpen === "boolean"
+        ? r.terminalOpen
+        : DEFAULT_SETTINGS.terminalOpen,
     terminalHeight,
     terminalPath: isPath(r.terminalPath) ? p.resolve(r.terminalPath) : "",
     workspace: oneOf(r.workspace, WORKSPACES, DEFAULT_SETTINGS.workspace),
-    startWith: oneOf(r.startWith, ["files", "home", "last"], DEFAULT_SETTINGS.startWith),
-    splitSide: oneOf(r.splitSide, ["right", "bottom"], DEFAULT_SETTINGS.splitSide),
-    splitSize: typeof r.splitSize === "number" && isFinite(r.splitSize) ? Math.round(Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, r.splitSize))) : DEFAULT_SETTINGS.splitSize,
-    sidebarCollapsed: typeof r.sidebarCollapsed === "boolean" ? r.sidebarCollapsed : DEFAULT_SETTINGS.sidebarCollapsed,
-    focusMode: typeof r.focusMode === "boolean" ? r.focusMode : DEFAULT_SETTINGS.focusMode,
-    activeTool: typeof r.activeTool === "string" && TOOL_ID.test(r.activeTool) ? r.activeTool : "",
-    splitTool: typeof r.splitTool === "string" && TOOL_ID.test(r.splitTool) ? r.splitTool : "",
+    startWith: oneOf(
+      r.startWith,
+      ["files", "home", "last"],
+      DEFAULT_SETTINGS.startWith,
+    ),
+    splitSide: oneOf(
+      r.splitSide,
+      ["right", "bottom"],
+      DEFAULT_SETTINGS.splitSide,
+    ),
+    splitSize:
+      typeof r.splitSize === "number" && isFinite(r.splitSize)
+        ? Math.round(Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, r.splitSize)))
+        : DEFAULT_SETTINGS.splitSize,
+    sidebarCollapsed:
+      typeof r.sidebarCollapsed === "boolean"
+        ? r.sidebarCollapsed
+        : DEFAULT_SETTINGS.sidebarCollapsed,
+    focusMode:
+      typeof r.focusMode === "boolean"
+        ? r.focusMode
+        : DEFAULT_SETTINGS.focusMode,
+    activeTool:
+      typeof r.activeTool === "string" && TOOL_ID.test(r.activeTool)
+        ? r.activeTool
+        : "",
+    splitTool:
+      typeof r.splitTool === "string" && TOOL_ID.test(r.splitTool)
+        ? r.splitTool
+        : "",
     dualPath: isPath(r.dualPath) ? p.resolve(r.dualPath) : "",
-    typeWarnings: typeof r.typeWarnings === "boolean" ? r.typeWarnings : DEFAULT_SETTINGS.typeWarnings,
-    backspaceDeletes: typeof r.backspaceDeletes === "boolean" ? r.backspaceDeletes : DEFAULT_SETTINGS.backspaceDeletes,
-    shortcutsCantClose: typeof r.shortcutsCantClose === "boolean" ? r.shortcutsCantClose : DEFAULT_SETTINGS.shortcutsCantClose,
-    editor: oneOf(r.editor, ["default", "vscode", "subl", "webstorm", "idea"], DEFAULT_SETTINGS.editor),
+    typeWarnings:
+      typeof r.typeWarnings === "boolean"
+        ? r.typeWarnings
+        : DEFAULT_SETTINGS.typeWarnings,
+    backspaceDeletes:
+      typeof r.backspaceDeletes === "boolean"
+        ? r.backspaceDeletes
+        : DEFAULT_SETTINGS.backspaceDeletes,
+    shortcutsCantClose:
+      typeof r.shortcutsCantClose === "boolean"
+        ? r.shortcutsCantClose
+        : DEFAULT_SETTINGS.shortcutsCantClose,
+    editor: oneOf(
+      r.editor,
+      ["default", "vscode", "subl", "webstorm", "idea"],
+      DEFAULT_SETTINGS.editor,
+    ),
     serveOptions: sanitizeServeOptions(r.serveOptions),
-    deleteTo: oneOf(r.deleteTo, ["bin", "graveyard"], DEFAULT_SETTINGS.deleteTo),
-    dbShortcut: oneOf(r.dbShortcut, ["window", "browser"], DEFAULT_SETTINGS.dbShortcut),
-    textOpensIn: oneOf(r.textOpensIn, ["builtin", "editor", "system"], DEFAULT_SETTINGS.textOpensIn),
-    mediaOpensIn: oneOf(r.mediaOpensIn, ["manager", "system"], DEFAULT_SETTINGS.mediaOpensIn),
-    shortcuts: sanitizeOverrides(r.shortcuts, ctx.platform) as Record<string, string[]>,
+    deleteTo: oneOf(
+      r.deleteTo,
+      ["bin", "graveyard"],
+      DEFAULT_SETTINGS.deleteTo,
+    ),
+    dbShortcut: oneOf(
+      r.dbShortcut,
+      ["window", "browser"],
+      DEFAULT_SETTINGS.dbShortcut,
+    ),
+    textOpensIn: oneOf(
+      r.textOpensIn,
+      ["builtin", "editor", "system"],
+      DEFAULT_SETTINGS.textOpensIn,
+    ),
+    mediaOpensIn: oneOf(
+      r.mediaOpensIn,
+      ["manager", "system"],
+      DEFAULT_SETTINGS.mediaOpensIn,
+    ),
+    shortcuts: sanitizeOverrides(r.shortcuts, ctx.platform) as Record<
+      string,
+      string[]
+    >,
     studioPresets: sanitizeStudioPresets(r.studioPresets),
     columns,
     groupBy: oneOf(r.groupBy, GROUP_BY_MODES, DEFAULT_SETTINGS.groupBy),
     rowDensity: oneOf(r.rowDensity, ROW_DENSITIES, DEFAULT_SETTINGS.rowDensity),
     tags,
     notes,
-    treeExpanded: typeof r.treeExpanded === "boolean" ? r.treeExpanded : DEFAULT_SETTINGS.treeExpanded,
-    phononVoice: typeof r.phononVoice === "string" && /^[A-Za-z0-9 _-]{1,48}$/.test(r.phononVoice.trim()) ? r.phononVoice.trim() : DEFAULT_SETTINGS.phononVoice,
-    phononFormat: oneOf(r.phononFormat, PHONON_AUDIO_FORMATS, DEFAULT_SETTINGS.phononFormat),
-    phononSpeed: typeof r.phononSpeed === "number" && isFinite(r.phononSpeed) ? Math.round(Math.min(2.5, Math.max(0.5, r.phononSpeed)) * 100) / 100 : DEFAULT_SETTINGS.phononSpeed,
-    phononCleanText: typeof r.phononCleanText === "boolean" ? r.phononCleanText : DEFAULT_SETTINGS.phononCleanText,
-    phononPauseMs: typeof r.phononPauseMs === "number" && isFinite(r.phononPauseMs) ? Math.round(Math.min(2000, Math.max(0, r.phononPauseMs))) : DEFAULT_SETTINGS.phononPauseMs,
-    phononPitch: typeof r.phononPitch === "number" && isFinite(r.phononPitch) ? Math.round(Math.min(6, Math.max(-6, r.phononPitch)) * 2) / 2 : DEFAULT_SETTINGS.phononPitch,
-    phononSyncOffsetMs: typeof r.phononSyncOffsetMs === "number" && isFinite(r.phononSyncOffsetMs) ? Math.round(Math.min(300, Math.max(-300, r.phononSyncOffsetMs))) : DEFAULT_SETTINGS.phononSyncOffsetMs,
+    treeExpanded:
+      typeof r.treeExpanded === "boolean"
+        ? r.treeExpanded
+        : DEFAULT_SETTINGS.treeExpanded,
+    phononVoice:
+      typeof r.phononVoice === "string" &&
+      /^[A-Za-z0-9 _-]{1,48}$/.test(r.phononVoice.trim())
+        ? r.phononVoice.trim()
+        : DEFAULT_SETTINGS.phononVoice,
+    phononFormat: oneOf(
+      r.phononFormat,
+      PHONON_AUDIO_FORMATS,
+      DEFAULT_SETTINGS.phononFormat,
+    ),
+    phononSpeed:
+      typeof r.phononSpeed === "number" && isFinite(r.phononSpeed)
+        ? Math.round(Math.min(2.5, Math.max(0.5, r.phononSpeed)) * 100) / 100
+        : DEFAULT_SETTINGS.phononSpeed,
+    phononCleanText:
+      typeof r.phononCleanText === "boolean"
+        ? r.phononCleanText
+        : DEFAULT_SETTINGS.phononCleanText,
+    phononPauseMs:
+      typeof r.phononPauseMs === "number" && isFinite(r.phononPauseMs)
+        ? Math.round(Math.min(2000, Math.max(0, r.phononPauseMs)))
+        : DEFAULT_SETTINGS.phononPauseMs,
+    phononPitch:
+      typeof r.phononPitch === "number" && isFinite(r.phononPitch)
+        ? Math.round(Math.min(6, Math.max(-6, r.phononPitch)) * 2) / 2
+        : DEFAULT_SETTINGS.phononPitch,
+    phononSyncOffsetMs:
+      typeof r.phononSyncOffsetMs === "number" && isFinite(r.phononSyncOffsetMs)
+        ? Math.round(Math.min(300, Math.max(-300, r.phononSyncOffsetMs)))
+        : DEFAULT_SETTINGS.phononSyncOffsetMs,
   };
 }
 
-function sanitizeAtmosphereLayerMods(raw: unknown): Record<string, AtmosphereLayerMod> {
+function sanitizeAtmosphereLayerMods(
+  raw: unknown,
+): Record<string, AtmosphereLayerMod> {
   const out: Record<string, AtmosphereLayerMod> = {};
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return out;
   for (const [id, val] of Object.entries(raw as Record<string, unknown>)) {
     if (Object.keys(out).length >= MAX_LAYER_MODS) break;
-    if (!id || id === "none" || !ATMOSPHERE_EFFECTS.includes(id) || !val || typeof val !== "object") continue;
+    if (
+      !id ||
+      id === "none" ||
+      !ATMOSPHERE_EFFECTS.includes(id) ||
+      !val ||
+      typeof val !== "object"
+    )
+      continue;
     const v = val as Record<string, unknown>;
     const mod: AtmosphereLayerMod = {};
     if (typeof v.opacity === "number" && isFinite(v.opacity)) {
       mod.opacity = Math.round(Math.min(150, Math.max(10, v.opacity)));
     }
     if (typeof v.speed === "number" && isFinite(v.speed)) {
-      mod.speed = Math.round(Math.min(3.0, Math.max(0.25, v.speed)) * 100) / 100;
+      mod.speed =
+        Math.round(Math.min(3.0, Math.max(0.25, v.speed)) * 100) / 100;
     }
-    if (typeof v.color === "string" && /^#[0-9a-fA-F]{6}$/.test(v.color.trim())) {
+    if (
+      typeof v.color === "string" &&
+      /^#[0-9a-fA-F]{6}$/.test(v.color.trim())
+    ) {
       mod.color = v.color.trim().toLowerCase();
     }
-    if (mod.opacity !== undefined || mod.speed !== undefined || mod.color !== undefined) {
+    if (
+      mod.opacity !== undefined ||
+      mod.speed !== undefined ||
+      mod.color !== undefined
+    ) {
       out[id] = mod;
     }
   }
@@ -708,17 +1428,49 @@ function sanitizeAtmosphereLayerMods(raw: unknown): Record<string, AtmosphereLay
 function sanitizeAtmospherePresets(raw: unknown): AtmospherePreset[] {
   const out: AtmospherePreset[] = [];
   for (const item of Array.isArray(raw) ? raw : []) {
-    if (out.length >= MAX_ATMOSPHERE_PRESETS || !item || typeof item !== "object") continue;
+    if (
+      out.length >= MAX_ATMOSPHERE_PRESETS ||
+      !item ||
+      typeof item !== "object"
+    )
+      continue;
     const x = item as Record<string, unknown>;
     // eslint-disable-next-line no-control-regex
-    const name = typeof x.name === "string" ? x.name.replace(/[\x00-\x1f\x7f]/g, " ").trim().slice(0, MAX_PRESET_NAME) : "";
+    const name =
+      typeof x.name === "string"
+        ? x.name
+            .replace(/[\x00-\x1f\x7f]/g, " ")
+            .trim()
+            .slice(0, MAX_PRESET_NAME)
+        : "";
     const effect = normalizeAtmosphereSpec(x.effect);
-    if (!name || !effect || effect === "none" || out.some((p) => p.name.toLowerCase() === name.toLowerCase())) continue;
-    const intensity = typeof x.intensity === "number" && isFinite(x.intensity) ? Math.round(Math.min(100, Math.max(10, x.intensity))) : DEFAULT_SETTINGS.atmosphereIntensity;
-    const tier = oneOf(x.tier, ATMOSPHERE_TIERS, DEFAULT_SETTINGS.atmosphereTier);
-    const reactive = oneOf(x.reactive, ATMOSPHERE_REACTIVE_MODES, DEFAULT_SETTINGS.atmosphereReactive);
+    if (
+      !name ||
+      !effect ||
+      effect === "none" ||
+      out.some((p) => p.name.toLowerCase() === name.toLowerCase())
+    )
+      continue;
+    const intensity =
+      typeof x.intensity === "number" && isFinite(x.intensity)
+        ? Math.round(Math.min(100, Math.max(10, x.intensity)))
+        : DEFAULT_SETTINGS.atmosphereIntensity;
+    const tier = oneOf(
+      x.tier,
+      ATMOSPHERE_TIERS,
+      DEFAULT_SETTINGS.atmosphereTier,
+    );
+    const reactive = oneOf(
+      x.reactive,
+      ATMOSPHERE_REACTIVE_MODES,
+      DEFAULT_SETTINGS.atmosphereReactive,
+    );
     const layerMods = sanitizeAtmosphereLayerMods(x.layerMods);
-    out.push(Object.keys(layerMods).length ? { name, effect, intensity, tier, reactive, layerMods } : { name, effect, intensity, tier, reactive });
+    out.push(
+      Object.keys(layerMods).length
+        ? { name, effect, intensity, tier, reactive, layerMods }
+        : { name, effect, intensity, tier, reactive },
+    );
   }
   return out;
 }
@@ -726,17 +1478,33 @@ function sanitizeAtmospherePresets(raw: unknown): AtmospherePreset[] {
 function sanitizePresetList(raw: unknown): StudioPreset[] {
   const out: StudioPreset[] = [];
   for (const item of Array.isArray(raw) ? raw : []) {
-    if (out.length >= MAX_STUDIO_PRESETS || !item || typeof item !== "object") continue;
+    if (out.length >= MAX_STUDIO_PRESETS || !item || typeof item !== "object")
+      continue;
     const x = item as { name?: unknown; options?: unknown };
     // eslint-disable-next-line no-control-regex
-    const name = typeof x.name === "string" ? x.name.replace(/[\x00-\x1f\x7f]/g, " ").trim().slice(0, MAX_PRESET_NAME) : "";
-    if (!name || out.some((p) => p.name.toLowerCase() === name.toLowerCase())) continue;
+    const name =
+      typeof x.name === "string"
+        ? x.name
+            .replace(/[\x00-\x1f\x7f]/g, " ")
+            .trim()
+            .slice(0, MAX_PRESET_NAME)
+        : "";
+    if (!name || out.some((p) => p.name.toLowerCase() === name.toLowerCase()))
+      continue;
     const options: StudioPreset["options"] = {};
-    const rawOpts = x.options && typeof x.options === "object" && !Array.isArray(x.options) ? (x.options as Record<string, unknown>) : {};
+    const rawOpts =
+      x.options && typeof x.options === "object" && !Array.isArray(x.options)
+        ? (x.options as Record<string, unknown>)
+        : {};
     for (const [k, v] of Object.entries(rawOpts).slice(0, 60)) {
       if (!/^[a-zA-Z][a-zA-Z0-9]{0,23}$/.test(k)) continue;
-      if (typeof v === "boolean" || (typeof v === "number" && Number.isFinite(v))) options[k] = v;
-      else if (typeof v === "string" && v.length <= 60 && !v.includes("\0")) options[k] = v;
+      if (
+        typeof v === "boolean" ||
+        (typeof v === "number" && Number.isFinite(v))
+      )
+        options[k] = v;
+      else if (typeof v === "string" && v.length <= 60 && !v.includes("\0"))
+        options[k] = v;
     }
     out.push({ name, options });
   }
@@ -744,36 +1512,57 @@ function sanitizePresetList(raw: unknown): StudioPreset[] {
 }
 
 function sanitizeStudioPresets(raw: unknown): Settings["studioPresets"] {
-  const r = (raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {}) as Record<string, unknown>;
-  return { image: sanitizePresetList(r.image), media: sanitizePresetList(r.media) };
+  const r = (
+    raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {}
+  ) as Record<string, unknown>;
+  return {
+    image: sanitizePresetList(r.image),
+    media: sanitizePresetList(r.media),
+  };
 }
 
 function sanitizeServeOptions(raw: unknown): Settings["serveOptions"] {
   const d = DEFAULT_SETTINGS.serveOptions;
-  const r = (raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {}) as Record<string, unknown>;
+  const r = (
+    raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {}
+  ) as Record<string, unknown>;
   return {
     kind: oneOf(r.kind, ["auto", "static", "php"], d.kind),
     liveReload: typeof r.liveReload === "boolean" ? r.liveReload : d.liveReload,
-    openBrowser: typeof r.openBrowser === "boolean" ? r.openBrowser : d.openBrowser,
+    openBrowser:
+      typeof r.openBrowser === "boolean" ? r.openBrowser : d.openBrowser,
   };
 }
 
-const settingsFile = (ctx: FmContext) => nodePath.join(ctx.dataDir, "file_manager.json");
+const settingsFile = (ctx: FmContext) =>
+  nodePath.join(ctx.dataDir, "file_manager.json");
 
 const writingQueues = new Map<string, Promise<unknown>>();
 
-function serializeSettings<T>(ctx: FmContext, fn: () => Promise<T>): Promise<T> {
+function serializeSettings<T>(
+  ctx: FmContext,
+  fn: () => Promise<T>,
+): Promise<T> {
   const key = settingsFile(ctx);
   const prev = writingQueues.get(key) ?? Promise.resolve();
   const next = prev.then(fn, fn);
-  writingQueues.set(key, next.catch(() => {}));
+  writingQueues.set(
+    key,
+    next.catch(() => {}),
+  );
   return next;
 }
 
 async function readSettingsRaw(ctx: FmContext): Promise<Settings> {
   try {
     const raw = JSON.parse(await fsp.readFile(settingsFile(ctx), "utf8"));
-    if (raw && typeof raw === "object" && !Array.isArray(raw) && raw.backspaceDeletes === false && raw.backspaceGoesUp !== true) {
+    if (
+      raw &&
+      typeof raw === "object" &&
+      !Array.isArray(raw) &&
+      raw.backspaceDeletes === false &&
+      raw.backspaceGoesUp !== true
+    ) {
       delete raw.backspaceDeletes;
     }
     return sanitizeSettings(raw, ctx);
@@ -789,12 +1578,20 @@ export async function loadSettings(ctx: FmContext): Promise<Settings> {
 }
 
 /** Callback that inspects the current `Settings` and returns a partial patch to apply, or `null` to skip saving. */
-export type SettingsMutator = (current: Settings) => Record<string, unknown> | null | Promise<Record<string, unknown> | null>;
+export type SettingsMutator = (
+  current: Settings,
+) => Record<string, unknown> | null | Promise<Record<string, unknown> | null>;
 
 /** Applies a mutator callback to the current settings, sanitizes the result, and atomically saves it. */
-export async function updateSettings(ctx: FmContext, change: SettingsMutator): Promise<Settings>;
+export async function updateSettings(
+  ctx: FmContext,
+  change: SettingsMutator,
+): Promise<Settings>;
 /** Applies a partial settings patch object, sanitizes the result, and atomically saves it. Unknown keys are ignored. */
-export async function updateSettings(ctx: FmContext, change: unknown): Promise<Settings>;
+export async function updateSettings(
+  ctx: FmContext,
+  change: unknown,
+): Promise<Settings>;
 /** Applies a partial change (or mutator function) and saves it. Unknown keys are ignored. */
 export async function updateSettings(
   ctx: FmContext,
@@ -802,16 +1599,25 @@ export async function updateSettings(
 ): Promise<Settings> {
   return serializeSettings(ctx, async () => {
     const current = await readSettingsRaw(ctx);
-    const resolvedChange = typeof change === "function" ? await (change as SettingsMutator)(current) : change;
+    const resolvedChange =
+      typeof change === "function"
+        ? await (change as SettingsMutator)(current)
+        : change;
     if (resolvedChange === null) return current;
-    const patch = resolvedChange && typeof resolvedChange === "object" ? (resolvedChange as Record<string, unknown>) : {};
+    const patch =
+      resolvedChange && typeof resolvedChange === "object"
+        ? (resolvedChange as Record<string, unknown>)
+        : {};
     const keys = Object.keys(DEFAULT_SETTINGS);
     const merged: Record<string, unknown> = { ...current };
     for (const k of keys) if (k in patch) merged[k] = patch[k];
     const next = sanitizeSettings(merged, ctx);
     await fsp.mkdir(ctx.dataDir, { recursive: true });
     const tmp = `${settingsFile(ctx)}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`;
-    const stored = next.backspaceDeletes === false ? { ...next, backspaceGoesUp: true } : next;
+    const stored =
+      next.backspaceDeletes === false
+        ? { ...next, backspaceGoesUp: true }
+        : next;
     const body = JSON.stringify(stored, null, 2);
     await fsp.writeFile(tmp, body, { mode: 0o600 });
     try {
@@ -825,18 +1631,27 @@ export async function updateSettings(
 }
 
 /** Remembers that an item was opened (newest first, no duplicates, at most 30). No-op when `recentsEnabled` is false. */
-export async function addRecent(ctx: FmContext, path: string): Promise<Settings> {
+export async function addRecent(
+  ctx: FmContext,
+  path: string,
+): Promise<Settings> {
   const p = pathApi(ctx);
   const resolved = p.resolve(path);
   return updateSettings(ctx, (current) => {
     if (!current.recentsEnabled) return null;
-    const recents = [{ path: resolved, at: new Date().toISOString() }, ...current.recents.filter((r) => r.path !== resolved)].slice(0, MAX_RECENTS);
+    const recents = [
+      { path: resolved, at: new Date().toISOString() },
+      ...current.recents.filter((r) => r.path !== resolved),
+    ].slice(0, MAX_RECENTS);
     return { recents };
   });
 }
 
 /** Removes one item from the Recent list by path. */
-export async function removeRecent(ctx: FmContext, path: string): Promise<Settings> {
+export async function removeRecent(
+  ctx: FmContext,
+  path: string,
+): Promise<Settings> {
   const p = pathApi(ctx);
   const resolved = p.resolve(path);
   return updateSettings(ctx, (current) => {
@@ -851,7 +1666,9 @@ export async function clearRecents(ctx: FmContext): Promise<Settings> {
 }
 
 /** Removes items from the Recent list whose file is no longer on disk. */
-export async function pruneRecents(ctx: FmContext): Promise<{ settings: Settings; removed: number }> {
+export async function pruneRecents(
+  ctx: FmContext,
+): Promise<{ settings: Settings; removed: number }> {
   let removed = 0;
   const settings = await updateSettings(ctx, async (current) => {
     const kept: Settings["recents"] = [];

@@ -1,11 +1,27 @@
 import { afterAll, beforeAll, describe, expect, mock, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { JSDOM } from "jsdom";
 import { startFileManagerServer } from "../src/features/filemanager/fmServer";
 
-const GLOBALS = ["document", "window", "Node", "Element", "HTMLElement", "HTMLInputElement", "navigator", "location", "fetch"] as const;
+const GLOBALS = [
+  "document",
+  "window",
+  "Node",
+  "Element",
+  "HTMLElement",
+  "HTMLInputElement",
+  "navigator",
+  "location",
+  "fetch",
+] as const;
 const saved = new Map<string, PropertyDescriptor | undefined>();
 const root = mkdtempSync(join(tmpdir(), "fm-recents-ui-"));
 const home = join(root, "home");
@@ -25,14 +41,23 @@ let codeDocs: any;
 let codeTabs: any;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const dialogButton = (text: string): any => [...doc.querySelectorAll(".modal-backdrop button")].find((b: any) => b.textContent.includes(text));
+const dialogButton = (text: string): any =>
+  [...doc.querySelectorAll(".modal-backdrop button")].find((b: any) =>
+    b.textContent.includes(text),
+  );
 const type = (el: any, value: string) => {
   el.value = value;
   el.dispatchEvent(new doc.defaultView.Event("input", { bubbles: true }));
 };
 const serverSettings = async () => (await api.call("settings")).settings;
-const recentSectionEl = (): any => [...doc.querySelectorAll("#sidebar .side-section")].find((s: any) => s.querySelector(".side-title")?.textContent === "Recent");
-const sidebarRecentLabels = (): string[] => [...(recentSectionEl()?.querySelectorAll(".side-item .sl") ?? [])].map((l: any) => l.textContent);
+const recentSectionEl = (): any =>
+  [...doc.querySelectorAll("#sidebar .side-section")].find(
+    (s: any) => s.querySelector(".side-title")?.textContent === "Recent",
+  );
+const sidebarRecentLabels = (): string[] =>
+  [...(recentSectionEl()?.querySelectorAll(".side-item .sl") ?? [])].map(
+    (l: any) => l.textContent,
+  );
 
 beforeAll(async () => {
   mkdirSync(docs, { recursive: true });
@@ -40,22 +65,50 @@ beforeAll(async () => {
   writeFileSync(fileB, "# beta");
   writeFileSync(fileC, '{"gamma":true}');
   mock.module("../resources/file_manager/ui/terminal.js", () => ({
-    terminalShell: () => "posix", terminalWsl: () => ({}),
-    terminalAvailable: () => true, typeInTerminal: () => true, showTerminal() {}, hideTerminal() {}, toggleTerminal() {}, isTerminalOpen: () => false, wireTerminal() {},
+    terminalShell: () => "posix",
+    terminalWsl: () => ({}),
+    terminalAvailable: () => true,
+    typeInTerminal: () => true,
+    showTerminal() {},
+    hideTerminal() {},
+    toggleTerminal() {},
+    isTerminalOpen: () => false,
+    wireTerminal() {},
   }));
-  server = startFileManagerServer({ port: 0, token: "ui-token", context: { home, dataDir: join(root, "data"), toolDirs: [] } });
+  server = startFileManagerServer({
+    port: 0,
+    token: "ui-token",
+    context: { home, dataDir: join(root, "data"), toolDirs: [] },
+  });
   const base = `http://127.0.0.1:${server.port}`;
-  const html = readFileSync(join(import.meta.dir, "..", "resources", "file_manager", "index.html"), "utf8")
+  const html = readFileSync(
+    join(import.meta.dir, "..", "resources", "file_manager", "index.html"),
+    "utf8",
+  )
     .replace(/__FM_TOKEN__/g, "ui-token")
-    .replace(/__FM_PLATFORM__/g, process.platform === "darwin" ? "darwin" : "linux")
+    .replace(
+      /__FM_PLATFORM__/g,
+      process.platform === "darwin" ? "darwin" : "linux",
+    )
     .replace(/__FM_NONCE__/g, "n")
     .replace(/__FM_START__/g, "");
   const dom = new JSDOM(html, { url: `${base}/` });
   const g = globalThis as any;
-  for (const key of GLOBALS) saved.set(key, Object.getOwnPropertyDescriptor(g, key));
-  for (const key of GLOBALS.filter((k) => k !== "fetch")) Object.defineProperty(g, key, { value: (dom.window as any)[key], configurable: true, writable: true });
+  for (const key of GLOBALS)
+    saved.set(key, Object.getOwnPropertyDescriptor(g, key));
+  for (const key of GLOBALS.filter((k) => k !== "fetch"))
+    Object.defineProperty(g, key, {
+      value: (dom.window as any)[key],
+      configurable: true,
+      writable: true,
+    });
   const realFetch = saved.get("fetch")!.value as typeof fetch;
-  Object.defineProperty(g, "fetch", { value: (u: any, o: any) => realFetch(typeof u === "string" && u.startsWith("/") ? base + u : u, o), configurable: true, writable: true });
+  Object.defineProperty(g, "fetch", {
+    value: (u: any, o: any) =>
+      realFetch(typeof u === "string" && u.startsWith("/") ? base + u : u, o),
+    configurable: true,
+    writable: true,
+  });
   doc = dom.window.document;
   state = (await import("../resources/file_manager/ui/state.js")).state;
   api = await import("../resources/file_manager/ui/api.js");
@@ -93,8 +146,12 @@ afterAll(() => {
 describe("Recent files in the sidebar, Home view, toolbar menu, and Manage dialog", () => {
   test("starts enabled with an empty hint in the sidebar and Home view", () => {
     expect(recents.isRecentsEnabled()).toBe(true);
-    expect(recentSectionEl()?.querySelector(".side-hint")?.textContent).toContain("Files you open appear here");
-    expect(doc.querySelector("#home")?.textContent).toContain("Files you open will be listed here");
+    expect(
+      recentSectionEl()?.querySelector(".side-hint")?.textContent,
+    ).toContain("Files you open appear here");
+    expect(doc.querySelector("#home")?.textContent).toContain(
+      "Files you open will be listed here",
+    );
   });
 
   test("adding recent files populates the sidebar and Home card, with per-item remove and controls", async () => {
@@ -105,17 +162,26 @@ describe("Recent files in the sidebar, Home view, toolbar menu, and Manage dialo
     sidebar.renderSidebar();
     homeView.renderHome();
 
-    expect(sidebarRecentLabels()).toEqual(["gamma.json", "beta.md", "alpha.txt"]);
+    expect(sidebarRecentLabels()).toEqual([
+      "gamma.json",
+      "beta.md",
+      "alpha.txt",
+    ]);
     const homeItems = [...doc.querySelectorAll("#home .home-recent-item")];
     expect(homeItems.length).toBe(3);
 
     // Click the per-item remove button on the Home card for beta.md
-    const removeBeta = homeItems.find((el: any) => el.textContent.includes("beta.md"))?.querySelector(".home-recent-rm");
+    const removeBeta = homeItems
+      .find((el: any) => el.textContent.includes("beta.md"))
+      ?.querySelector(".home-recent-rm");
     expect(removeBeta).toBeTruthy();
     removeBeta.click();
     await sleep(300);
 
-    expect((await serverSettings()).recents.map((x: any) => x.path)).toEqual([fileC, fileA]);
+    expect((await serverSettings()).recents.map((x: any) => x.path)).toEqual([
+      fileC,
+      fileA,
+    ]);
     expect(sidebarRecentLabels()).toEqual(["gamma.json", "alpha.txt"]);
   });
 
@@ -128,8 +194,12 @@ describe("Recent files in the sidebar, Home view, toolbar menu, and Manage dialo
     expect(recents.isRecentsEnabled()).toBe(false);
     expect((await serverSettings()).recentsEnabled).toBe(false);
     expect(sidebarRecentLabels()).toEqual([]);
-    expect(recentSectionEl()?.querySelector(".side-hint")?.textContent).toContain("turned off");
-    expect(doc.querySelector("#home")?.textContent).toContain("Recent files are turned off");
+    expect(
+      recentSectionEl()?.querySelector(".side-hint")?.textContent,
+    ).toContain("turned off");
+    expect(doc.querySelector("#home")?.textContent).toContain(
+      "Recent files are turned off",
+    );
 
     // Re-enable via sidebar button
     const resumeBtn = recentSectionEl()?.querySelector(".side-head .side-mini");
@@ -145,13 +215,23 @@ describe("Recent files in the sidebar, Home view, toolbar menu, and Manage dialo
   test("the Recent toolbar menu lists recent files, the Turn off toggle, Manage, and Clear", async () => {
     recents.showRecentsMenu({ x: 10, y: 10 });
     await sleep(50);
-    const items = [...doc.querySelectorAll("[role=menuitem], [role=menuitemcheckbox]")].map((i: any) => i.textContent);
+    const items = [
+      ...doc.querySelectorAll("[role=menuitem], [role=menuitemcheckbox]"),
+    ].map((i: any) => i.textContent);
     expect(items.some((t: string) => t.includes("gamma.json"))).toBe(true);
     expect(items.some((t: string) => t.includes("alpha.txt"))).toBe(true);
-    expect(items.some((t: string) => t.includes("Turn off recent files"))).toBe(true);
-    expect(items.some((t: string) => t.includes("Manage recent files"))).toBe(true);
-    expect(items.some((t: string) => t.includes("Clear recent files"))).toBe(true);
-    doc.defaultView.dispatchEvent(new doc.defaultView.KeyboardEvent("keydown", { key: "Escape" }));
+    expect(items.some((t: string) => t.includes("Turn off recent files"))).toBe(
+      true,
+    );
+    expect(items.some((t: string) => t.includes("Manage recent files"))).toBe(
+      true,
+    );
+    expect(items.some((t: string) => t.includes("Clear recent files"))).toBe(
+      true,
+    );
+    doc.defaultView.dispatchEvent(
+      new doc.defaultView.KeyboardEvent("keydown", { key: "Escape" }),
+    );
     doc.body.click();
   });
 
@@ -166,12 +246,16 @@ describe("Recent files in the sidebar, Home view, toolbar menu, and Manage dialo
 
     const rows = () => [...doc.querySelectorAll(".modal-backdrop .fav-row")];
     expect(rows().length).toBe(3);
-    const missingRow = rows().find((r: any) => r.textContent.includes("alpha.txt"));
+    const missingRow = rows().find((r: any) =>
+      r.textContent.includes("alpha.txt"),
+    );
     expect(missingRow?.classList.contains("fav-missing")).toBe(true);
     expect(missingRow?.textContent).toContain("isn't there any more");
 
     // Filter by name
-    const filterInput = doc.querySelector('.modal-backdrop input[type="search"]');
+    const filterInput = doc.querySelector(
+      '.modal-backdrop input[type="search"]',
+    );
     type(filterInput, "gamma");
     expect(rows().length).toBe(1);
     expect(rows()[0].textContent).toContain("gamma.json");
@@ -185,7 +269,10 @@ describe("Recent files in the sidebar, Home view, toolbar menu, and Manage dialo
     pruneBtn.click();
     await sleep(400);
     expect(rows().length).toBe(2);
-    expect((await serverSettings()).recents.map((x: any) => x.path)).toEqual([fileB, fileC]);
+    expect((await serverSettings()).recents.map((x: any) => x.path)).toEqual([
+      fileB,
+      fileC,
+    ]);
 
     // Clear all from dialog
     dialogButton("Clear all recent files").click();

@@ -39,7 +39,11 @@ describe("🎲 Yacht Dice Royale Deluxe — Classic Dice Board Studio Suite", ()
   });
 
   it("3. Studio factory generates correct defaults and instance contracts", () => {
-    const app = createYahtzeeStudio({ fullscreen: false, width: 1240, height: 860 });
+    const app = createYahtzeeStudio({
+      fullscreen: false,
+      width: 1240,
+      height: 860,
+    });
     expect(app.title).toContain("Yacht Dice Royale Deluxe");
     expect(app.width).toBe(1240);
     expect(app.height).toBe(860);
@@ -67,7 +71,7 @@ describe("🎲 Yacht Dice Royale Deluxe — Classic Dice Board Studio Suite", ()
       // Health check endpoint
       const resHealth = await fetch(`${base}/api/health`);
       expect(resHealth.status).toBe(200);
-      const healthData = await resHealth.json() as any;
+      const healthData = (await resHealth.json()) as any;
       expect(healthData.status).toBe("ok");
       expect(healthData.app).toBe("yahtzee_studio");
       expect(healthData.name).toContain("Yacht Dice Royale Deluxe");
@@ -78,7 +82,9 @@ describe("🎲 Yacht Dice Royale Deluxe — Classic Dice Board Studio Suite", ()
 
   it("5. Launcher Studio automatically registers and surfaces Yacht Dice Royale", () => {
     const apps = scanWorkspaceApps();
-    const found = apps.find((a) => a.name === "yahtzee_studio" || a.id === "rad_yahtzee_studio");
+    const found = apps.find(
+      (a) => a.name === "yahtzee_studio" || a.id === "rad_yahtzee_studio",
+    );
     expect(found).toBeDefined();
     expect(found?.displayName).toContain("Yacht Dice Royale Deluxe");
     expect(found?.icon).toBe("🎲");

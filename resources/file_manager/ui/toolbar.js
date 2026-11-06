@@ -12,7 +12,17 @@ import { lockSelection } from "./vault.js";
 import { showOperationHistory } from "./opHistory.js";
 import { $, buttonIconFor, clear, h } from "./dom.js";
 import { showMenu, toast } from "./menus.js";
-import { canGoUpIn, clearSearch, goBack, goForward, goTo, goUpIn, refresh, runSearch, visibleEntries } from "./nav.js";
+import {
+  canGoUpIn,
+  clearSearch,
+  goBack,
+  goForward,
+  goTo,
+  goUpIn,
+  refresh,
+  runSearch,
+  visibleEntries,
+} from "./nav.js";
 import * as ops from "./ops.js";
 import { activePane, hooks, isFolderView } from "./pane.js";
 import { emit, inTrash, on, state } from "./state.js";
@@ -21,7 +31,13 @@ import { selectAll, selectedEntries } from "./selection.js";
 import { openNewTab } from "./tabs.js";
 import { copyTerminalPaths } from "./fileurl.js";
 import { themeMenuItems } from "./themeMenu.js";
-import { baseName, collapseCrumbs, parentOf, plural, splitPath } from "./util.js";
+import {
+  baseName,
+  collapseCrumbs,
+  parentOf,
+  plural,
+  splitPath,
+} from "./util.js";
 
 const mod = () => (state.platform === "darwin" ? "⌘" : "Ctrl+");
 
@@ -37,54 +53,404 @@ function buttonSpecs() {
   const onLeft = () => activePane().side === "left";
   return [
     [
-      { id: "back", icon: "←", label: "Back", get tip() { return `Go back${hintOf("nav.back")}`; }, run: () => (onLeft() ? goBack() : hooks.goRightBack?.()), enabled: () => (onLeft() ? state.history.length > 0 : Boolean(hooks.canGoRightBack?.())) },
-      { id: "forward", icon: "→", label: "Forward", get tip() { return `Go forward${hintOf("nav.forward")}`; }, run: () => (onLeft() ? goForward() : hooks.goRightForward?.()), enabled: () => (onLeft() ? state.future.length > 0 : Boolean(hooks.canGoRightForward?.())) },
-      { id: "up", icon: "↑", label: "Up", get tip() { return `Go up one folder${hintOf("nav.up")}`; }, run: () => goUpIn(activePane()), enabled: () => canGoUpIn(activePane()) },
-      { id: "refresh", icon: "⟳", label: "Refresh", get tip() { return `Reload this folder${hintOf("nav.refresh")}`; }, run: () => refresh(), enabled: () => true },
+      {
+        id: "back",
+        icon: "←",
+        label: "Back",
+        get tip() {
+          return `Go back${hintOf("nav.back")}`;
+        },
+        run: () => (onLeft() ? goBack() : hooks.goRightBack?.()),
+        enabled: () =>
+          onLeft()
+            ? state.history.length > 0
+            : Boolean(hooks.canGoRightBack?.()),
+      },
+      {
+        id: "forward",
+        icon: "→",
+        label: "Forward",
+        get tip() {
+          return `Go forward${hintOf("nav.forward")}`;
+        },
+        run: () => (onLeft() ? goForward() : hooks.goRightForward?.()),
+        enabled: () =>
+          onLeft()
+            ? state.future.length > 0
+            : Boolean(hooks.canGoRightForward?.()),
+      },
+      {
+        id: "up",
+        icon: "↑",
+        label: "Up",
+        get tip() {
+          return `Go up one folder${hintOf("nav.up")}`;
+        },
+        run: () => goUpIn(activePane()),
+        enabled: () => canGoUpIn(activePane()),
+      },
+      {
+        id: "refresh",
+        icon: "⟳",
+        label: "Refresh",
+        get tip() {
+          return `Reload this folder${hintOf("nav.refresh")}`;
+        },
+        run: () => refresh(),
+        enabled: () => true,
+      },
     ],
     [
-      { id: "newFolder", icon: "📁", label: "New folder", get tip() { return `Make a new folder${hintOf("file.newFolder")}`; }, run: ops.newFolder, enabled: folderView, hide: inTrash },
-      { id: "newFile", icon: "📄", label: "New file", get tip() { return `Make a new empty file${hintOf("file.newFile")}`; }, run: ops.newFile, enabled: folderView, hide: inTrash },
-      { id: "newSqlite", icon: "🪶", label: "New SQLite", get tip() { return `Make a new SQLite database file${hintOf("file.newSqlite")}`; }, run: ops.newSqlite, enabled: folderView, hide: inTrash },
-      { id: "newTemplate", icon: "✨", label: "Template", get tip() { return `Make a new file from a starter template${hintOf("file.newTemplate")}`; }, run: () => emit("new-template-dialog"), enabled: folderView, hide: inTrash },
+      {
+        id: "newFolder",
+        icon: "📁",
+        label: "New folder",
+        get tip() {
+          return `Make a new folder${hintOf("file.newFolder")}`;
+        },
+        run: ops.newFolder,
+        enabled: folderView,
+        hide: inTrash,
+      },
+      {
+        id: "newFile",
+        icon: "📄",
+        label: "New file",
+        get tip() {
+          return `Make a new empty file${hintOf("file.newFile")}`;
+        },
+        run: ops.newFile,
+        enabled: folderView,
+        hide: inTrash,
+      },
+      {
+        id: "newSqlite",
+        icon: "🪶",
+        label: "New SQLite",
+        get tip() {
+          return `Make a new SQLite database file${hintOf("file.newSqlite")}`;
+        },
+        run: ops.newSqlite,
+        enabled: folderView,
+        hide: inTrash,
+      },
+      {
+        id: "newTemplate",
+        icon: "✨",
+        label: "Template",
+        get tip() {
+          return `Make a new file from a starter template${hintOf("file.newTemplate")}`;
+        },
+        run: () => emit("new-template-dialog"),
+        enabled: folderView,
+        hide: inTrash,
+      },
     ],
     [
-      { id: "selectAll", icon: "☑️", label: "Select all", get tip() { return `Select every item in this folder${hintOf("file.selectAll")}`; }, run: () => selectAll(), enabled: () => !inTrash() && visibleEntries(activePane()).length > 0, hide: inTrash },
-      { id: "toTerminal", icon: "⌨️", label: "To Terminal", get tip() { return `Copy the selected items' paths, quoted for a terminal${hintOf("file.copyTerminalPaths")}. Use Insert paths in Terminal from the right-click menu to type them into the built-in terminal.`; }, run: () => { const items = selectedEntries(); void copyTerminalPaths(items); }, enabled: () => sel() > 0 },
+      {
+        id: "selectAll",
+        icon: "☑️",
+        label: "Select all",
+        get tip() {
+          return `Select every item in this folder${hintOf("file.selectAll")}`;
+        },
+        run: () => selectAll(),
+        enabled: () => !inTrash() && visibleEntries(activePane()).length > 0,
+        hide: inTrash,
+      },
+      {
+        id: "toTerminal",
+        icon: "⌨️",
+        label: "To Terminal",
+        get tip() {
+          return `Copy the selected items' paths, quoted for a terminal${hintOf("file.copyTerminalPaths")}. Use Insert paths in Terminal from the right-click menu to type them into the built-in terminal.`;
+        },
+        run: () => {
+          const items = selectedEntries();
+          void copyTerminalPaths(items);
+        },
+        enabled: () => sel() > 0,
+      },
     ],
     [
-      { id: "cut", icon: "✂️", label: "Cut", get tip() { return `Cut${hintOf("file.cut")}`; }, run: ops.cutSelection, enabled: () => sel() > 0, hide: inTrash },
-      { id: "copy", icon: "📋", label: "Copy", get tip() { return `Copy${hintOf("file.copy")}`; }, run: ops.copySelection, enabled: () => sel() > 0, hide: inTrash },
-      { id: "paste", icon: "📥", label: "Paste", get tip() { return `Paste${hintOf("file.paste")}`; }, run: ops.paste, enabled: () => !!state.clipboard && folderView(), hide: inTrash },
+      {
+        id: "cut",
+        icon: "✂️",
+        label: "Cut",
+        get tip() {
+          return `Cut${hintOf("file.cut")}`;
+        },
+        run: ops.cutSelection,
+        enabled: () => sel() > 0,
+        hide: inTrash,
+      },
+      {
+        id: "copy",
+        icon: "📋",
+        label: "Copy",
+        get tip() {
+          return `Copy${hintOf("file.copy")}`;
+        },
+        run: ops.copySelection,
+        enabled: () => sel() > 0,
+        hide: inTrash,
+      },
+      {
+        id: "paste",
+        icon: "📥",
+        label: "Paste",
+        get tip() {
+          return `Paste${hintOf("file.paste")}`;
+        },
+        run: ops.paste,
+        enabled: () => !!state.clipboard && folderView(),
+        hide: inTrash,
+      },
     ],
     [
-      { id: "rename", icon: "✏️", label: "Rename", get tip() { return `Rename${hintOf("file.rename")}`; }, run: ops.renameSelection, enabled: () => sel() > 0, hide: inTrash },
-      { id: "delete", icon: "🗑️", label: "Delete", get tip() { return `Move to the Recycle Bin (${state.platform === "darwin" ? "⌫, ⌘⌫ or Fn+Delete" : state.settings?.backspaceDeletes !== false ? "Delete or Backspace" : "Delete"}). You can undo this.`; }, run: ops.trashSelection, enabled: () => sel() > 0, hide: inTrash },
-      { id: "restore", icon: "↩️", label: "Restore", tip: "Put the selected items back where they were", run: ops.restoreFromBin, enabled: () => sel() > 0, show: inTrash, primary: true },
-      { id: "deleteForever", icon: "❌", label: "Delete forever", tip: "Delete the selected items permanently", run: ops.trashSelection, enabled: () => sel() > 0, show: inTrash },
-      { id: "empty", icon: "🧹", label: "Empty bin", tip: "Delete everything in the Recycle Bin", run: ops.emptyBin, enabled: () => state.trashCount > 0, show: inTrash },
+      {
+        id: "rename",
+        icon: "✏️",
+        label: "Rename",
+        get tip() {
+          return `Rename${hintOf("file.rename")}`;
+        },
+        run: ops.renameSelection,
+        enabled: () => sel() > 0,
+        hide: inTrash,
+      },
+      {
+        id: "delete",
+        icon: "🗑️",
+        label: "Delete",
+        get tip() {
+          return `Move to the Recycle Bin (${state.platform === "darwin" ? "⌫, ⌘⌫ or Fn+Delete" : state.settings?.backspaceDeletes !== false ? "Delete or Backspace" : "Delete"}). You can undo this.`;
+        },
+        run: ops.trashSelection,
+        enabled: () => sel() > 0,
+        hide: inTrash,
+      },
+      {
+        id: "restore",
+        icon: "↩️",
+        label: "Restore",
+        tip: "Put the selected items back where they were",
+        run: ops.restoreFromBin,
+        enabled: () => sel() > 0,
+        show: inTrash,
+        primary: true,
+      },
+      {
+        id: "deleteForever",
+        icon: "❌",
+        label: "Delete forever",
+        tip: "Delete the selected items permanently",
+        run: ops.trashSelection,
+        enabled: () => sel() > 0,
+        show: inTrash,
+      },
+      {
+        id: "empty",
+        icon: "🧹",
+        label: "Empty bin",
+        tip: "Delete everything in the Recycle Bin",
+        run: ops.emptyBin,
+        enabled: () => state.trashCount > 0,
+        show: inTrash,
+      },
     ],
     [
-      { id: "undo", icon: "↶", label: "Undo", tip: `Undo the last action (${mod()}Z)`, run: ops.undo, enabled: () => state.undoStack.length > 0 },
-      { id: "activity", icon: "🕘", label: "Activity", get tip() { return `See what was copied, moved or renamed, and what did not finish${hintOf("app.activity")}`; }, run: showOperationHistory, enabled: () => true },
+      {
+        id: "undo",
+        icon: "↶",
+        label: "Undo",
+        tip: `Undo the last action (${mod()}Z)`,
+        run: ops.undo,
+        enabled: () => state.undoStack.length > 0,
+      },
+      {
+        id: "activity",
+        icon: "🕘",
+        label: "Activity",
+        get tip() {
+          return `See what was copied, moved or renamed, and what did not finish${hintOf("app.activity")}`;
+        },
+        run: showOperationHistory,
+        enabled: () => true,
+      },
     ],
     [
-      { id: "view", icon: "▦", label: "View", tip: "Change how files are shown and sorted", run: (btn) => showMenu(viewMenuItems(), { anchor: btn, label: "View" }), enabled: () => true, menu: true },
-      { id: "favorites", icon: "⭐", label: "Favorites", get tip() { return `Jump to your favorite folders, or add this one${hintOf("nav.favorites")}`; }, run: (btn) => showFavoritesMenu(btn), enabled: () => true, menu: true },
-      { id: "recent", icon: "🕘", label: "Recent", get tip() { return `Open a file you used lately, or turn recent files on, off or clear them${hintOf("nav.recents")}`; }, run: (btn) => showRecentsMenu(btn), enabled: () => true, menu: true },
-      { id: "info", icon: "ℹ️", label: "Details", get tip() { return `Show or hide the details panel${hintOf("view.info")}`; }, run: () => emit("toggle-info"), enabled: () => true, toggle: () => state.settings.showInfoPanel },
-      { id: "lock", icon: "🔒", label: "Lock", get tip() { return `Protect the selected files or folders with a password (encrypt), or unlock a selected .radenc file. A lost password can't be recovered.${hintOf("file.lock")}`; }, run: lockSelection, enabled: () => sel() > 0, hide: inTrash },
-      { id: "ollama", icon: "🤖", label: "Ollama AI", tip: "Open Built-In Ollama AI Assistant & Full Capability Router: chat, deep thinking, vision, SystemOne decision, cross-platform text-to-audio speech, meaning search, web search, and 1-click auto-install", run: () => openPower("ollama"), enabled: () => true },
-      { id: "bionic", icon: "🧬", label: "Bionic AI", tip: "Open Built-In LM Studio Bionic AI Studio: Apple Silicon MLX/oMLX/Splash LLMs & VLMs, @Skill Agent Hub, Bionic Projects, Phonon 40M Multilingual 24kHz TTS, ExecuTorch Whisper ASR, and Nomic Embeddings", run: () => openPower("bionic"), enabled: () => true },
-      ...(isPhononSupported() ? [{ id: "phonon", icon: "🗣️", label: "Ollama TTS", tip: "Open Ollama Text-to-Speech (Phonon Voice Reader): read text & documents out loud, convert to plain text, set default voice, and save as any audio file", run: () => { const readable = selectedEntries().filter((e) => !e.isDir && canReadWithPhonon(e)); openPower("phonon", readable.length ? { paths: readable.map((e) => e.path) } : undefined); }, enabled: () => true }] : []),
-      { id: "tools", icon: "🧰", label: "Convert", get tip() { return `Convert, shrink or combine pictures, video, sound and documents, and set up the helper programs${hintOf("file.convert")}`; }, run: showToolsDialog, enabled: () => !inTrash() },
-      { id: "power", icon: "🔎", label: "Find & more", get tip() { return `Power tools: advanced find, watch folders and run commands, hashes and encryption, IP lookup and network checks${hintOf("nav.findTool")}`; }, run: () => togglePower(), enabled: () => true, toggle: () => state.powerOpen === true },
-      { id: "databases", icon: "🗄️", label: "Databases", tip: "Open the Databases tool: saved connections and the SQLite, MySQL, PostgreSQL and Redis studios", run: () => openPower("databases"), enabled: () => true },
-      { id: "games", icon: "🕹️", label: "Games", tip: "Open Codecaine Games: play all 24 built-in Codecaine arcade, puzzle, card and casino games", run: () => openPower("games"), enabled: () => true },
-      { id: "terminal", icon: "⌨️", label: "Terminal", get tip() { return `Show or hide a terminal in this folder${hintOf("terminal.toggle")}`; }, run: () => emit("toggle-terminal"), enabled: () => true, toggle: () => state.terminalOpen },
-      { id: "themes", icon: "🎨", label: "Themes", get tip() { return `Change the colors: standard light or dark, themes you used lately, or all of them${hintOf("app.themes")}`; }, run: async (btn) => showMenu(await themeMenuItems(), { anchor: btn, label: "Themes" }), enabled: () => true, menu: true },
-      { id: "settings", icon: "⚙️", label: "Settings", get tip() { return `Colors, text size and more${hintOf("app.settings")}`; }, run: showSettings, enabled: () => true },
-      { id: "help", icon: "❓", label: "Help", get tip() { return `Help and keyboard shortcuts${hintOf("app.help")}`; }, run: showHelp, enabled: () => true },
+      {
+        id: "view",
+        icon: "▦",
+        label: "View",
+        tip: "Change how files are shown and sorted",
+        run: (btn) => showMenu(viewMenuItems(), { anchor: btn, label: "View" }),
+        enabled: () => true,
+        menu: true,
+      },
+      {
+        id: "favorites",
+        icon: "⭐",
+        label: "Favorites",
+        get tip() {
+          return `Jump to your favorite folders, or add this one${hintOf("nav.favorites")}`;
+        },
+        run: (btn) => showFavoritesMenu(btn),
+        enabled: () => true,
+        menu: true,
+      },
+      {
+        id: "recent",
+        icon: "🕘",
+        label: "Recent",
+        get tip() {
+          return `Open a file you used lately, or turn recent files on, off or clear them${hintOf("nav.recents")}`;
+        },
+        run: (btn) => showRecentsMenu(btn),
+        enabled: () => true,
+        menu: true,
+      },
+      {
+        id: "info",
+        icon: "ℹ️",
+        label: "Details",
+        get tip() {
+          return `Show or hide the details panel${hintOf("view.info")}`;
+        },
+        run: () => emit("toggle-info"),
+        enabled: () => true,
+        toggle: () => state.settings.showInfoPanel,
+      },
+      {
+        id: "lock",
+        icon: "🔒",
+        label: "Lock",
+        get tip() {
+          return `Protect the selected files or folders with a password (encrypt), or unlock a selected .radenc file. A lost password can't be recovered.${hintOf("file.lock")}`;
+        },
+        run: lockSelection,
+        enabled: () => sel() > 0,
+        hide: inTrash,
+      },
+      {
+        id: "ollama",
+        icon: "🤖",
+        label: "Ollama AI",
+        tip: "Open Built-In Ollama AI Assistant & Full Capability Router: chat, deep thinking, vision, SystemOne decision, cross-platform text-to-audio speech, meaning search, web search, and 1-click auto-install",
+        run: () => openPower("ollama"),
+        enabled: () => true,
+      },
+      {
+        id: "bionic",
+        icon: "🧬",
+        label: "Bionic AI",
+        tip: "Open Built-In LM Studio Bionic AI Studio: Apple Silicon MLX/oMLX/Splash LLMs & VLMs, @Skill Agent Hub, Bionic Projects, Phonon 40M Multilingual 24kHz TTS, ExecuTorch Whisper ASR, and Nomic Embeddings",
+        run: () => openPower("bionic"),
+        enabled: () => true,
+      },
+      ...(isPhononSupported()
+        ? [
+            {
+              id: "phonon",
+              icon: "🗣️",
+              label: "Ollama TTS",
+              tip: "Open Ollama Text-to-Speech (Phonon Voice Reader): read text & documents out loud, convert to plain text, set default voice, and save as any audio file",
+              run: () => {
+                const readable = selectedEntries().filter(
+                  (e) => !e.isDir && canReadWithPhonon(e),
+                );
+                openPower(
+                  "phonon",
+                  readable.length
+                    ? { paths: readable.map((e) => e.path) }
+                    : undefined,
+                );
+              },
+              enabled: () => true,
+            },
+          ]
+        : []),
+      {
+        id: "tools",
+        icon: "🧰",
+        label: "Convert",
+        get tip() {
+          return `Convert, shrink or combine pictures, video, sound and documents, and set up the helper programs${hintOf("file.convert")}`;
+        },
+        run: showToolsDialog,
+        enabled: () => !inTrash(),
+      },
+      {
+        id: "power",
+        icon: "🔎",
+        label: "Find & more",
+        get tip() {
+          return `Power tools: advanced find, watch folders and run commands, hashes and encryption, IP lookup and network checks${hintOf("nav.findTool")}`;
+        },
+        run: () => togglePower(),
+        enabled: () => true,
+        toggle: () => state.powerOpen === true,
+      },
+      {
+        id: "databases",
+        icon: "🗄️",
+        label: "Databases",
+        tip: "Open the Databases tool: saved connections and the SQLite, MySQL, PostgreSQL and Redis studios",
+        run: () => openPower("databases"),
+        enabled: () => true,
+      },
+      {
+        id: "games",
+        icon: "🕹️",
+        label: "Games",
+        tip: "Open Codecaine Games: play all 24 built-in Codecaine arcade, puzzle, card and casino games",
+        run: () => openPower("games"),
+        enabled: () => true,
+      },
+      {
+        id: "terminal",
+        icon: "⌨️",
+        label: "Terminal",
+        get tip() {
+          return `Show or hide a terminal in this folder${hintOf("terminal.toggle")}`;
+        },
+        run: () => emit("toggle-terminal"),
+        enabled: () => true,
+        toggle: () => state.terminalOpen,
+      },
+      {
+        id: "themes",
+        icon: "🎨",
+        label: "Themes",
+        get tip() {
+          return `Change the colors: standard light or dark, themes you used lately, or all of them${hintOf("app.themes")}`;
+        },
+        run: async (btn) =>
+          showMenu(await themeMenuItems(), { anchor: btn, label: "Themes" }),
+        enabled: () => true,
+        menu: true,
+      },
+      {
+        id: "settings",
+        icon: "⚙️",
+        label: "Settings",
+        get tip() {
+          return `Colors, text size and more${hintOf("app.settings")}`;
+        },
+        run: showSettings,
+        enabled: () => true,
+      },
+      {
+        id: "help",
+        icon: "❓",
+        label: "Help",
+        get tip() {
+          return `Help and keyboard shortcuts${hintOf("app.help")}`;
+        },
+        run: showHelp,
+        enabled: () => true,
+      },
     ],
   ];
 }
@@ -97,10 +463,30 @@ export function buildToolbar() {
   for (const group of buttonSpecs()) {
     const g = h("div", { class: "tool-group", role: "group" });
     for (const spec of group) {
-      const btn = h("button", { type: "button", class: `tool${spec.primary ? " primary" : ""}`, id: `tool-${spec.id}`, title: spec.tip, "aria-label": spec.label, onclick: () => spec.run(btn) },
-        h("span", { class: "ti", "aria-hidden": "true", dataset: { btnIcon: spec.id, defaultIcon: spec.icon } }, buttonIconFor(spec.id, undefined, spec.icon)),
+      const btn = h(
+        "button",
+        {
+          type: "button",
+          class: `tool${spec.primary ? " primary" : ""}`,
+          id: `tool-${spec.id}`,
+          title: spec.tip,
+          "aria-label": spec.label,
+          onclick: () => spec.run(btn),
+        },
+        h(
+          "span",
+          {
+            class: "ti",
+            "aria-hidden": "true",
+            dataset: { btnIcon: spec.id, defaultIcon: spec.icon },
+          },
+          buttonIconFor(spec.id, undefined, spec.icon),
+        ),
         h("span", { class: "tl" }, spec.label),
-        spec.menu ? h("span", { class: "caret", "aria-hidden": "true" }, "▾") : null);
+        spec.menu
+          ? h("span", { class: "caret", "aria-hidden": "true" }, "▾")
+          : null,
+      );
       buttons.set(spec.id, { btn, spec });
       g.append(btn);
     }
@@ -111,20 +497,26 @@ export function buildToolbar() {
 
 export function updateToolbar() {
   for (const { btn, spec } of buttons.values()) {
-    const hidden = Boolean((spec.hide?.() ?? false) || (spec.show ? !spec.show() : false));
+    const hidden = Boolean(
+      (spec.hide?.() ?? false) || (spec.show ? !spec.show() : false),
+    );
     if (btn.hidden !== hidden) btn.hidden = hidden;
     const disabled = !spec.enabled();
     if (btn.disabled !== disabled) btn.disabled = disabled;
     if (spec.toggle) {
       const pressed = String(!!spec.toggle());
-      if (btn.getAttribute("aria-pressed") !== pressed) btn.setAttribute("aria-pressed", pressed);
+      if (btn.getAttribute("aria-pressed") !== pressed)
+        btn.setAttribute("aria-pressed", pressed);
     }
     let nextTitle = spec.tip;
     if (spec.id === "delete" && state.settings.deleteTo === "graveyard") {
-      nextTitle = "Bury in the Rip graveyard (Delete, or Alt+Delete). You can undo this, and bring it back from Find & more → Graveyard.";
+      nextTitle =
+        "Bury in the Rip graveyard (Delete, or Alt+Delete). You can undo this, and bring it back from Find & more → Graveyard.";
     } else if (spec.id === "undo") {
       const top = state.undoStack.at(-1);
-      nextTitle = top ? `Undo: ${top.label} (${mod()}Z)` : `Nothing to undo (${mod()}Z)`;
+      nextTitle = top
+        ? `Undo: ${top.label} (${mod()}Z)`
+        : `Nothing to undo (${mod()}Z)`;
     }
     if (btn.title !== nextTitle) btn.title = nextTitle;
   }
@@ -162,19 +554,32 @@ export function updateAddressButtons() {
 
 async function showChildFoldersMenu(folderPath, anchorOrPoint) {
   try {
-    const res = await call("list", { path: folderPath, showHidden: state.settings.showHidden });
+    const res = await call("list", {
+      path: folderPath,
+      showHidden: state.settings.showHidden,
+    });
     const dirs = (res.entries ?? []).filter((e) => e.isDir).slice(0, 40);
     if (!dirs.length) {
-      toast(`No subfolders inside "${baseName(folderPath, state.sep) || folderPath}".`, { kind: "info" });
+      toast(
+        `No subfolders inside "${baseName(folderPath, state.sep) || folderPath}".`,
+        { kind: "info" },
+      );
       return;
     }
     const items = dirs.map((d) => ({
       label: d.name,
       icon: "📂",
-      checked: state.location.path === d.path || state.location.path.startsWith(d.path + state.sep),
+      checked:
+        state.location.path === d.path ||
+        state.location.path.startsWith(d.path + state.sep),
       action: () => goTo(d.path),
     }));
-    showMenu(items, { ...(anchorOrPoint instanceof Element ? { anchor: anchorOrPoint } : anchorOrPoint), label: `Subfolders of ${baseName(folderPath, state.sep) || folderPath}` });
+    showMenu(items, {
+      ...(anchorOrPoint instanceof Element
+        ? { anchor: anchorOrPoint }
+        : anchorOrPoint),
+      label: `Subfolders of ${baseName(folderPath, state.sep) || folderPath}`,
+    });
   } catch {
     toast("Couldn't list subfolders.", { kind: "error" });
   }
@@ -188,44 +593,66 @@ export function renderAddress() {
     return;
   }
   if (state.search) {
-    box.append(h("span", { class: "crumb current static" }, `🔍 Search results for “${state.search.query}”`), h("span", { class: "crumb-note" }, ` in ${baseName(state.search.root, state.sep) || state.search.root}`));
+    box.append(
+      h(
+        "span",
+        { class: "crumb current static" },
+        `🔍 Search results for “${state.search.query}”`,
+      ),
+      h(
+        "span",
+        { class: "crumb-note" },
+        ` in ${baseName(state.search.root, state.sep) || state.search.root}`,
+      ),
+    );
     return;
   }
   const parts = collapseCrumbs(splitPath(state.location.path, state.sep), 4);
   parts.forEach((c, i) => {
     const last = i === parts.length - 1;
     const label = c.root && state.sep === "/" ? "💻 Computer" : c.name;
-    const el = h("button", {
-      type: "button",
-      class: `crumb${last ? " current" : ""}`,
-      title: c.path,
-      "aria-current": last ? "page" : null,
-      onclick: () => goTo(c.path),
-      onauxclick: (e) => {
-        if (e.button === 1) {
+    const el = h(
+      "button",
+      {
+        type: "button",
+        class: `crumb${last ? " current" : ""}`,
+        title: c.path,
+        "aria-current": last ? "page" : null,
+        onclick: () => goTo(c.path),
+        onauxclick: (e) => {
+          if (e.button === 1) {
+            e.preventDefault();
+            void openNewTab(c.path);
+          }
+        },
+        oncontextmenu: (e) => {
           e.preventDefault();
-          void openNewTab(c.path);
-        }
+          e.stopPropagation();
+          const parent = parentOf(c.path, state.sep);
+          void showChildFoldersMenu(parent || c.path, {
+            x: e.clientX,
+            y: e.clientY,
+          });
+        },
       },
-      oncontextmenu: (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const parent = parentOf(c.path, state.sep);
-        void showChildFoldersMenu(parent || c.path, { x: e.clientX, y: e.clientY });
-      },
-    }, label);
+      label,
+    );
     attachDropTarget(el, { getPath: () => c.path });
     box.append(el);
     if (!last) {
-      const sepEl = h("span", {
-        class: "crumb-sep",
-        "aria-hidden": "true",
-        title: `Browse folders inside ${c.name || c.path}`,
-        onclick: (e) => {
-          e.stopPropagation();
-          void showChildFoldersMenu(c.path, sepEl);
+      const sepEl = h(
+        "span",
+        {
+          class: "crumb-sep",
+          "aria-hidden": "true",
+          title: `Browse folders inside ${c.name || c.path}`,
+          onclick: (e) => {
+            e.stopPropagation();
+            void showChildFoldersMenu(c.path, sepEl);
+          },
         },
-      }, "›");
+        "›",
+      );
       box.append(sepEl);
     }
   });
@@ -250,12 +677,17 @@ export const editAddress = showAddressEditor;
 
 async function goToTyped(text) {
   try {
-    const r = await call("typedpath", { text, cwd: state.location.path || state.home });
+    const r = await call("typedpath", {
+      text,
+      cwd: state.location.path || state.home,
+    });
     if (!r.exists) return toast(`"${text}" doesn't exist.`, { kind: "error" });
     if (r.isDir) await goTo(r.path);
     else await goTo(parentOf(r.path, state.sep) ?? r.path, { select: r.path });
   } catch (err) {
-    toast(err instanceof ApiError ? err.message : "That isn't a location.", { kind: "error" });
+    toast(err instanceof ApiError ? err.message : "That isn't a location.", {
+      kind: "error",
+    });
   }
 }
 
@@ -282,10 +714,12 @@ export function wireAddress() {
   input.addEventListener("blur", () => setTimeout(hideAddressEditor, 120));
   $("#edit-address").addEventListener("click", showAddressEditor);
   $("#pin-folder")?.addEventListener("click", () => {
-    if (!inTrash() && state.location.path) void ops.toggleFavorite(state.location.path);
+    if (!inTrash() && state.location.path)
+      void ops.toggleFavorite(state.location.path);
   });
   $("#copy-address")?.addEventListener("click", () => {
-    if (!inTrash() && state.location.path) void ops.copyPathOf([{ path: state.location.path }]);
+    if (!inTrash() && state.location.path)
+      void ops.copyPathOf([{ path: state.location.path }]);
   });
 }
 
@@ -303,8 +737,13 @@ export function focusSearch() {
 export function updateSearchBox() {
   const input = $("#search");
   input.disabled = inTrash();
-  const name = inTrash() ? "" : baseName(state.search?.root ?? state.location.path ?? "", state.sep) || "this computer";
-  input.placeholder = inTrash() ? "Search isn't available here" : `Search in ${name}`;
+  const name = inTrash()
+    ? ""
+    : baseName(state.search?.root ?? state.location.path ?? "", state.sep) ||
+      "this computer";
+  input.placeholder = inTrash()
+    ? "Search isn't available here"
+    : `Search in ${name}`;
   input.setAttribute("aria-label", input.placeholder);
   if (!state.search && document.activeElement !== input) input.value = "";
 }
@@ -326,7 +765,9 @@ export function wireSearch() {
       $("#list").focus();
     }
   });
-  $("#search-go").addEventListener("click", () => (input.value.trim() ? runSearch(input.value) : input.focus()));
+  $("#search-go").addEventListener("click", () =>
+    input.value.trim() ? runSearch(input.value) : input.focus(),
+  );
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -340,13 +781,45 @@ export function renderBanner() {
   if (state.search) {
     const s = state.search;
     const notes = [];
-    if (s.truncated) notes.push("The search stopped early. Try a more specific name.");
-    if (s.skipped) notes.push(`${plural(s.skipped, "folder")} couldn't be read.`);
-    content = [h("span", {}, `${plural(s.entries.length, "match", "matches")} for “${s.query}”. ${notes.join(" ")}`), h("button", { type: "button", class: "btn", onclick: clearSearch }, "Clear search")];
+    if (s.truncated)
+      notes.push("The search stopped early. Try a more specific name.");
+    if (s.skipped)
+      notes.push(`${plural(s.skipped, "folder")} couldn't be read.`);
+    content = [
+      h(
+        "span",
+        {},
+        `${plural(s.entries.length, "match", "matches")} for “${s.query}”. ${notes.join(" ")}`,
+      ),
+      h(
+        "button",
+        { type: "button", class: "btn", onclick: clearSearch },
+        "Clear search",
+      ),
+    ];
   } else if (inTrash()) {
-    content = [h("span", {}, "Deleted items stay here until you empty the Recycle Bin. Select an item and press Restore to get it back."), state.trashCount ? h("button", { type: "button", class: "btn", onclick: ops.emptyBin }, "Empty Recycle Bin") : null];
+    content = [
+      h(
+        "span",
+        {},
+        "Deleted items stay here until you empty the Recycle Bin. Select an item and press Restore to get it back.",
+      ),
+      state.trashCount
+        ? h(
+            "button",
+            { type: "button", class: "btn", onclick: ops.emptyBin },
+            "Empty Recycle Bin",
+          )
+        : null,
+    ];
   } else if (state.truncated) {
-    content = [h("span", {}, `This folder has ${state.total.toLocaleString()} items. Only the first 50,000 are listed.`)];
+    content = [
+      h(
+        "span",
+        {},
+        `This folder has ${state.total.toLocaleString()} items. Only the first 50,000 are listed.`,
+      ),
+    ];
   }
   banner.hidden = !content;
   if (content) banner.append(...content.filter(Boolean));
@@ -375,8 +848,13 @@ export function wireToolbar() {
       vbPhonon.remove();
     } else {
       vbPhonon.addEventListener("click", () => {
-        const readable = selectedEntries().filter((e) => !e.isDir && canReadWithPhonon(e));
-        openPower("phonon", readable.length ? { paths: readable.map((e) => e.path) } : undefined);
+        const readable = selectedEntries().filter(
+          (e) => !e.isDir && canReadWithPhonon(e),
+        );
+        openPower(
+          "phonon",
+          readable.length ? { paths: readable.map((e) => e.path) } : undefined,
+        );
       });
     }
   }
@@ -403,6 +881,10 @@ export function wireToolbar() {
     updateToolbar();
   });
   window.addEventListener("contextmenu", (e) => {
-    if (e.target instanceof Element && e.target.closest("#toolbar, #addressbar")) e.preventDefault();
+    if (
+      e.target instanceof Element &&
+      e.target.closest("#toolbar, #addressbar")
+    )
+      e.preventDefault();
   });
 }

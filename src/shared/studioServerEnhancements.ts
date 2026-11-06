@@ -17,10 +17,18 @@ export interface SortColumnSpec {
 }
 
 /** Formats a SQL query string using `sql-formatter` configured for the specified `dialect`, falling back to the trimmed input on syntax error. */
-export function formatSqlDialect(sql: string, dialect: StudioDialect = "sqlite"): string {
+export function formatSqlDialect(
+  sql: string,
+  dialect: StudioDialect = "sqlite",
+): string {
   const raw = String(sql ?? "").trim();
   if (!raw) return "";
-  const language = dialect === "postgres" ? "postgresql" : dialect === "mysql" ? "mysql" : "sqlite";
+  const language =
+    dialect === "postgres"
+      ? "postgresql"
+      : dialect === "mysql"
+        ? "mysql"
+        : "sqlite";
   try {
     return formatSql(raw, { language, tabWidth: 2, keywordCase: "upper" });
   } catch {
@@ -38,7 +46,11 @@ function quoteCol(col: string, dialect: StudioDialect): string {
 function stripFilterDelimiters(raw: string): string {
   const s = raw.trim();
   if (s.length >= 2) {
-    if ((s.startsWith("'") && s.endsWith("'")) || (s.startsWith('"') && s.endsWith('"')) || (s.startsWith("#") && s.endsWith("#"))) {
+    if (
+      (s.startsWith("'") && s.endsWith("'")) ||
+      (s.startsWith('"') && s.endsWith('"')) ||
+      (s.startsWith("#") && s.endsWith("#"))
+    ) {
       return s.slice(1, -1).trim();
     }
   }
@@ -46,13 +58,18 @@ function stripFilterDelimiters(raw: string): string {
 }
 
 function parseNumericFilterValue(raw: string): number | null {
-  const cleaned = stripFilterDelimiters(raw).replace(/^\$/, "").replace(/,/g, "").trim();
+  const cleaned = stripFilterDelimiters(raw)
+    .replace(/^\$/, "")
+    .replace(/,/g, "")
+    .trim();
   if (!cleaned || !/^[+-]?(\d+\.?\d*|\.\d+)$/.test(cleaned)) return null;
   const n = Number(cleaned);
   return Number.isFinite(n) ? n : null;
 }
 
-function normalizeDateFilterValue(raw: string): { iso: string; isDateOnly: boolean } | null {
+function normalizeDateFilterValue(
+  raw: string,
+): { iso: string; isDateOnly: boolean } | null {
   const s = stripFilterDelimiters(raw);
   const isoDate = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s);
   if (isoDate) {
@@ -68,7 +85,8 @@ function normalizeDateFilterValue(raw: string): { iso: string; isDateOnly: boole
     const yyyy = usDate[3]!;
     return { iso: `${yyyy}-${mm}-${dd}`, isDateOnly: true };
   }
-  const isoTs = /^(\d{4})-(\d{1,2})-(\d{1,2})[T\s](\d{1,2}:\d{2}(?::\d{2})?)/.exec(s);
+  const isoTs =
+    /^(\d{4})-(\d{1,2})-(\d{1,2})[T\s](\d{1,2}:\d{2}(?::\d{2})?)/.exec(s);
   if (isoTs) {
     const yyyy = isoTs[1]!;
     const mm = isoTs[2]!.padStart(2, "0");
@@ -79,18 +97,29 @@ function normalizeDateFilterValue(raw: string): { iso: string; isDateOnly: boole
   return null;
 }
 
-function splitCompoundAccessFilter(expr: string): { parts: string[]; combinator: "AND" | "OR" } | null {
+function splitCompoundAccessFilter(
+  expr: string,
+): { parts: string[]; combinator: "AND" | "OR" } | null {
   // Do not split if BETWEEN ... AND ... is present without extra clauses
-  if (/^\s*(?:not\s+)?between\s+.+\s+and\s+.+$/i.test(expr) && !/\s+or\s+/i.test(expr)) {
+  if (
+    /^\s*(?:not\s+)?between\s+.+\s+and\s+.+$/i.test(expr) &&
+    !/\s+or\s+/i.test(expr)
+  ) {
     const andMatches = expr.match(/\band\b/gi);
     if (andMatches && andMatches.length === 1) return null;
   }
-  const orSplit = expr.split(/\s+or\s+/i).map((s) => s.trim()).filter(Boolean);
+  const orSplit = expr
+    .split(/\s+or\s+/i)
+    .map((s) => s.trim())
+    .filter(Boolean);
   if (orSplit.length > 1) {
     return { parts: orSplit, combinator: "OR" };
   }
   if (!/^\s*(?:not\s+)?between\b/i.test(expr)) {
-    const andSplit = expr.split(/\s+and\s+/i).map((s) => s.trim()).filter(Boolean);
+    const andSplit = expr
+      .split(/\s+and\s+/i)
+      .map((s) => s.trim())
+      .filter(Boolean);
     if (andSplit.length > 1) {
       return { parts: andSplit, combinator: "AND" };
     }
@@ -113,7 +142,7 @@ export function buildColumnFilterWhere(
   columnFilters: Record<string, string> | undefined,
   validColumns: string[],
   dialect: StudioDialect,
-  startParamIndex: number = 1
+  startParamIndex: number = 1,
 ): { clauses: string[]; params: any[] } {
   const clauses: string[] = [];
   const params: any[] = [];
@@ -127,42 +156,80 @@ export function buildColumnFilterWhere(
   const castText = (qCol: string) =>
     dialect === "mysql" ? `CAST(${qCol} AS CHAR)` : `CAST(${qCol} AS TEXT)`;
   const castNum = (qCol: string) =>
-    dialect === "mysql" ? `CAST(${qCol} AS DECIMAL(65,10))` : dialect === "postgres" ? `CAST(${qCol} AS DOUBLE PRECISION)` : `CAST(${qCol} AS REAL)`;
+    dialect === "mysql"
+      ? `CAST(${qCol} AS DECIMAL(65,10))`
+      : dialect === "postgres"
+        ? `CAST(${qCol} AS DOUBLE PRECISION)`
+        : `CAST(${qCol} AS REAL)`;
   const likeOp = dialect === "postgres" ? "ILIKE" : "LIKE";
   const notLikeOp = dialect === "postgres" ? "NOT ILIKE" : "NOT LIKE";
 
-  const buildSingleAtom = (col: string, qCol: string, rawAtom: string): string | null => {
+  const buildSingleAtom = (
+    col: string,
+    qCol: string,
+    rawAtom: string,
+  ): string | null => {
     let expr = String(rawAtom ?? "").trim();
     if (!expr) return null;
 
     // Strip optional leading column name (e.g. `balance <= 500` or `[balance] <= 500` typed into `balance` column)
     const escCol = col.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const colPrefixRe = new RegExp(`^(?:\\[?["\`]?${escCol}["\`]?\\]?)\\s+(?=(?:>=|<=|!=|<>|>|<|=|between\\b|not\\b|in\\b|like\\b|is\\b|starts\\b|begins\\b|ends\\b|contains\\b))`, "i");
+    const colPrefixRe = new RegExp(
+      `^(?:\\[?["\`]?${escCol}["\`]?\\]?)\\s+(?=(?:>=|<=|!=|<>|>|<|=|between\\b|not\\b|in\\b|like\\b|is\\b|starts\\b|begins\\b|ends\\b|contains\\b))`,
+      "i",
+    );
     expr = expr.replace(colPrefixRe, "").trim();
     if (!expr) return null;
 
     // Skip incomplete operator-only inputs while the user is still typing in the filter box
-    if (/^(>=|<=|!=|<>|>|<|=|!|not|between|not\s+between|in|not\s+in|like|not\s+like|starts\s+with|begins\s+with|ends\s+with|contains|not\s+contains)$/i.test(expr)) {
+    if (
+      /^(>=|<=|!=|<>|>|<|=|!|not|between|not\s+between|in|not\s+in|like|not\s+like|starts\s+with|begins\s+with|ends\s+with|contains|not\s+contains)$/i.test(
+        expr,
+      )
+    ) {
       return null;
     }
 
     const lower = expr.toLowerCase();
 
     // 1. NULL / EMPTY checks
-    if (lower === "null" || lower === "is null" || lower === "= null" || lower === "=null" || lower === "empty" || lower === "is empty") {
+    if (
+      lower === "null" ||
+      lower === "is null" ||
+      lower === "= null" ||
+      lower === "=null" ||
+      lower === "empty" ||
+      lower === "is empty"
+    ) {
       return `${qCol} IS NULL`;
     }
-    if (lower === "!null" || lower === "not null" || lower === "is not null" || lower === "<> null" || lower === "!= null" || lower === "<>null" || lower === "!=null" || lower === "not empty" || lower === "is not empty") {
+    if (
+      lower === "!null" ||
+      lower === "not null" ||
+      lower === "is not null" ||
+      lower === "<> null" ||
+      lower === "!= null" ||
+      lower === "<>null" ||
+      lower === "!=null" ||
+      lower === "not empty" ||
+      lower === "is not empty"
+    ) {
       return `${qCol} IS NOT NULL`;
     }
 
     // 2. BETWEEN a AND b / NOT BETWEEN a AND b / a..b
     const betweenMatch = /^(not\s+)?between\s+(.+?)\s+and\s+(.+)$/i.exec(expr);
-    const rangeDotsMatch = !betweenMatch ? /^([^.]+?)\s*\.\.\s*(.+)$/.exec(expr) : null;
+    const rangeDotsMatch = !betweenMatch
+      ? /^([^.]+?)\s*\.\.\s*(.+)$/.exec(expr)
+      : null;
     if (betweenMatch || rangeDotsMatch) {
       const isNot = Boolean(betweenMatch && betweenMatch[1]);
-      const rawLow = (betweenMatch ? betweenMatch[2]! : rangeDotsMatch![1]!).trim();
-      const rawHigh = (betweenMatch ? betweenMatch[3]! : rangeDotsMatch![2]!).trim();
+      const rawLow = (
+        betweenMatch ? betweenMatch[2]! : rangeDotsMatch![1]!
+      ).trim();
+      const rawHigh = (
+        betweenMatch ? betweenMatch[3]! : rangeDotsMatch![2]!
+      ).trim();
       if (!rawLow || !rawHigh) return null;
 
       const kw = isNot ? "NOT BETWEEN" : "BETWEEN";
@@ -175,11 +242,17 @@ export function buildColumnFilterWhere(
       const dLow = normalizeDateFilterValue(rawLow);
       const dHigh = normalizeDateFilterValue(rawHigh);
       if (dLow && dHigh) {
-        const len = dLow.isDateOnly && dHigh.isDateOnly ? 10 : Math.max(dLow.iso.length, dHigh.iso.length);
+        const len =
+          dLow.isDateOnly && dHigh.isDateOnly
+            ? 10
+            : Math.max(dLow.iso.length, dHigh.iso.length);
         params.push(dLow.iso, dHigh.iso);
         return `SUBSTR(${castText(qCol)}, 1, ${len}) ${kw} ${nextPlaceholder()} AND ${nextPlaceholder()}`;
       }
-      params.push(stripFilterDelimiters(rawLow), stripFilterDelimiters(rawHigh));
+      params.push(
+        stripFilterDelimiters(rawLow),
+        stripFilterDelimiters(rawHigh),
+      );
       return `${castText(qCol)} ${kw} ${nextPlaceholder()} AND ${nextPlaceholder()}`;
     }
 
@@ -192,7 +265,9 @@ export function buildColumnFilterWhere(
         .map((s) => stripFilterDelimiters(s))
         .filter((s) => s.length > 0);
       if (items.length === 0) return null;
-      const allNumeric = items.every((item) => parseNumericFilterValue(item) !== null);
+      const allNumeric = items.every(
+        (item) => parseNumericFilterValue(item) !== null,
+      );
       const kw = isNot ? "NOT IN" : "IN";
       if (allNumeric) {
         const placeholders = items.map((item) => {
@@ -209,7 +284,10 @@ export function buildColumnFilterWhere(
     }
 
     // 4. STARTS WITH / BEGINS WITH / ENDS WITH / CONTAINS / NOT CONTAINS
-    const textFnMatch = /^(not\s+contains|!contains|does\s+not\s+contain|contains|starts\s+with|begins\s+with|ends\s+with)\s+(.+)$/i.exec(expr);
+    const textFnMatch =
+      /^(not\s+contains|!contains|does\s+not\s+contain|contains|starts\s+with|begins\s+with|ends\s+with)\s+(.+)$/i.exec(
+        expr,
+      );
     if (textFnMatch) {
       const fn = textFnMatch[1]!.toLowerCase().replace(/\s+/g, " ");
       const val = stripFilterDelimiters(textFnMatch[2]!);
@@ -266,14 +344,19 @@ export function buildColumnFilterWhere(
       }
 
       // Check numeric literal (e.g., `<= 500`, `< 50`, `= 450`, `<> 0`)
-      const numVal = !isExplicitlyQuotedString ? parseNumericFilterValue(rawRhs) : null;
+      const numVal = !isExplicitlyQuotedString
+        ? parseNumericFilterValue(rawRhs)
+        : null;
       if (numVal !== null) {
         params.push(numVal);
         return `${castNum(qCol)} ${op} ${nextPlaceholder()}`;
       }
 
       // If `= *foo*` or `<> *foo*` uses Access wildcards
-      if ((op === "=" || op === "<>") && (unquotedRhs.includes("*") || unquotedRhs.includes("?"))) {
+      if (
+        (op === "=" || op === "<>") &&
+        (unquotedRhs.includes("*") || unquotedRhs.includes("?"))
+      ) {
         const pattern = unquotedRhs.replace(/\*/g, "%").replace(/\?/g, "_");
         params.push(pattern);
         return `${castText(qCol)} ${op === "<>" ? notLikeOp : likeOp} ${nextPlaceholder()}`;
@@ -342,7 +425,7 @@ export function buildSearchFilterWhere(
   search: string | undefined,
   validColumns: string[],
   dialect: StudioDialect,
-  startParamIndex: number = 1
+  startParamIndex: number = 1,
 ): { clause: string | null; params: any[] } {
   const raw = String(search ?? "").trim();
   if (!raw || validColumns.length === 0) {
@@ -355,12 +438,20 @@ export function buildSearchFilterWhere(
     colLookup.set(c.toLowerCase(), c);
   }
 
-  const colExprMatch = /^\[?["`]?([a-zA-Z0-9_]+)["`]?\]?\s*(>=|<=|!=|<>|>|<|=|\.\.|\b(?:between|not\s+between|in|not\s+in|like|not\s+like|is\s+null|is\s+not\s+null|starts\s+with|begins\s+with|ends\s+with|contains|not\s+contains)\b)(.*)$/i.exec(raw);
+  const colExprMatch =
+    /^\[?["`]?([a-zA-Z0-9_]+)["`]?\]?\s*(>=|<=|!=|<>|>|<|=|\.\.|\b(?:between|not\s+between|in|not\s+in|like|not\s+like|is\s+null|is\s+not\s+null|starts\s+with|begins\s+with|ends\s+with|contains|not\s+contains)\b)(.*)$/i.exec(
+      raw,
+    );
   if (colExprMatch) {
     const matchedCol = colLookup.get(colExprMatch[1]!.toLowerCase());
     if (matchedCol) {
       const rhsExpr = `${colExprMatch[2]} ${colExprMatch[3] || ""}`.trim();
-      const res = buildColumnFilterWhere({ [matchedCol]: rhsExpr }, validColumns, dialect, startParamIndex);
+      const res = buildColumnFilterWhere(
+        { [matchedCol]: rhsExpr },
+        validColumns,
+        dialect,
+        startParamIndex,
+      );
       if (res.clauses.length > 0) {
         return { clause: res.clauses.join(" AND "), params: res.params };
       }
@@ -394,7 +485,7 @@ export function buildOrderClause(
     orderBy?: string;
     orderDir?: string;
     defaultPkColumn?: string;
-  }
+  },
 ): string {
   const validSet = new Set(validColumns);
   const parts: string[] = [];
@@ -402,13 +493,23 @@ export function buildOrderClause(
   if (Array.isArray(options.sortColumns) && options.sortColumns.length > 0) {
     const seen = new Set<string>();
     for (const sc of options.sortColumns) {
-      if (!sc || typeof sc.col !== "string" || !validSet.has(sc.col) || seen.has(sc.col)) continue;
+      if (
+        !sc ||
+        typeof sc.col !== "string" ||
+        !validSet.has(sc.col) ||
+        seen.has(sc.col)
+      )
+        continue;
       seen.add(sc.col);
-      const dir = String(sc.dir || "ASC").toUpperCase() === "DESC" ? "DESC" : "ASC";
+      const dir =
+        String(sc.dir || "ASC").toUpperCase() === "DESC" ? "DESC" : "ASC";
       parts.push(`${quoteCol(sc.col, dialect)} ${dir}`);
     }
   } else if (options.orderBy && validSet.has(options.orderBy)) {
-    const dir = String(options.orderDir || "ASC").toUpperCase() === "DESC" ? "DESC" : "ASC";
+    const dir =
+      String(options.orderDir || "ASC").toUpperCase() === "DESC"
+        ? "DESC"
+        : "ASC";
     parts.push(`${quoteCol(options.orderBy, dialect)} ${dir}`);
   } else if (options.defaultPkColumn && validSet.has(options.defaultPkColumn)) {
     parts.push(`${quoteCol(options.defaultPkColumn, dialect)} ASC`);
@@ -450,7 +551,7 @@ export interface SchemaDiffResult {
 export function computeSchemaDiffDdl(
   baselineTables: DiffTableShape[],
   currentTables: DiffTableShape[],
-  dialect: StudioDialect = "sqlite"
+  dialect: StudioDialect = "sqlite",
 ): SchemaDiffResult {
   const baseMap = new Map<string, DiffTableShape>();
   for (const t of baselineTables || []) {
@@ -471,11 +572,13 @@ export function computeSchemaDiffDdl(
 
   const safeDdlType = (rawType: unknown): string => {
     const s = String(rawType || "TEXT").trim() || "TEXT";
-    if (/;|--|\/\*|\*\//.test(s) || !/^[A-Za-z0-9_ (),.\[\]'"]+$/.test(s)) return "TEXT";
+    if (/;|--|\/\*|\*\//.test(s) || !/^[A-Za-z0-9_ (),.\[\]'"]+$/.test(s))
+      return "TEXT";
     return s;
   };
   const safeDdlDefault = (rawDflt: unknown): string => {
-    if (rawDflt === undefined || rawDflt === null || String(rawDflt) === "") return "";
+    if (rawDflt === undefined || rawDflt === null || String(rawDflt) === "")
+      return "";
     const s = String(rawDflt).trim();
     if (!s || /;|--|\/\*|\*\//.test(s)) return "";
     return ` DEFAULT ${s}`;
@@ -509,26 +612,40 @@ export function computeSchemaDiffDdl(
         addedColumns++;
         const typeStr = safeDdlType(col.type);
         const nnStr = col.notnull ? " NOT NULL" : "";
-        const dfltStr = safeDdlDefault(col.dflt_value) || (col.notnull ? " DEFAULT ''" : "");
-        statements.push(`ALTER TABLE ${qTable} ADD COLUMN ${qCol} ${typeStr}${nnStr}${dfltStr};`);
+        const dfltStr =
+          safeDdlDefault(col.dflt_value) || (col.notnull ? " DEFAULT ''" : "");
+        statements.push(
+          `ALTER TABLE ${qTable} ADD COLUMN ${qCol} ${typeStr}${nnStr}${dfltStr};`,
+        );
       } else {
         const oldCol = baseCols.get(colName)!;
         const oldType = safeDdlType(oldCol.type).toUpperCase().trim();
         const newType = safeDdlType(col.type).toUpperCase().trim();
-        if (oldType !== newType || Boolean(oldCol.notnull) !== Boolean(col.notnull)) {
+        if (
+          oldType !== newType ||
+          Boolean(oldCol.notnull) !== Boolean(col.notnull)
+        ) {
           tableModified = true;
           typeChanges++;
           if (dialect === "postgres") {
             if (oldType !== newType) {
-              statements.push(`ALTER TABLE ${qTable} ALTER COLUMN ${qCol} TYPE ${safeDdlType(col.type)};`);
+              statements.push(
+                `ALTER TABLE ${qTable} ALTER COLUMN ${qCol} TYPE ${safeDdlType(col.type)};`,
+              );
             }
             if (Boolean(oldCol.notnull) !== Boolean(col.notnull)) {
-              statements.push(`ALTER TABLE ${qTable} ALTER COLUMN ${qCol} ${col.notnull ? "SET NOT NULL" : "DROP NOT NULL"};`);
+              statements.push(
+                `ALTER TABLE ${qTable} ALTER COLUMN ${qCol} ${col.notnull ? "SET NOT NULL" : "DROP NOT NULL"};`,
+              );
             }
           } else if (dialect === "mysql") {
-            statements.push(`ALTER TABLE ${qTable} MODIFY COLUMN ${qCol} ${safeDdlType(col.type)}${col.notnull ? " NOT NULL" : " NULL"};`);
+            statements.push(
+              `ALTER TABLE ${qTable} MODIFY COLUMN ${qCol} ${safeDdlType(col.type)}${col.notnull ? " NOT NULL" : " NULL"};`,
+            );
           } else {
-            statements.push(`-- SQLite column modification on ${qTable}.${qCol}: ${oldType || "ANY"} -> ${newType || "ANY"} (use Table Redesign in SQLite Studio)`);
+            statements.push(
+              `-- SQLite column modification on ${qTable}.${qCol}: ${oldType || "ANY"} -> ${newType || "ANY"} (use Table Redesign in SQLite Studio)`,
+            );
           }
         }
       }
@@ -570,6 +687,8 @@ export function computeSchemaDiffDdl(
       typeChanges,
     },
     statements,
-    ddl: hasChanges ? `${header}\n\n${statements.join("\n\n")}` : `-- No schema differences detected (${dialect.toUpperCase()}).`,
+    ddl: hasChanges
+      ? `${header}\n\n${statements.join("\n\n")}`
+      : `-- No schema differences detected (${dialect.toUpperCase()}).`,
   };
 }

@@ -4,8 +4,11 @@ import { S, chooseAnywhere } from "./mysql_tutorial_helpers";
 /** Chapter 10: a CSV file in the file list goes into MySQL through the import wizard with staging, opened from its right-click menu. */
 export const importChapters: Chapter[] = [
   {
-    id: "11_import", chapter: "IMPORT", title: "Load a CSV file with staging, from the file list",
-    blurb: "Right-click a file, check it in a staging table, then promote it into a real table",
+    id: "11_import",
+    chapter: "IMPORT",
+    title: "Load a CSV file with staging, from the file list",
+    blurb:
+      "Right-click a file, check it in a staging table, then promote it into a real table",
     steps: [
       {
         cap: "Right-click a CSV: Load into a database",
@@ -19,7 +22,9 @@ export const importChapters: Chapter[] = [
         cap: "Choose the connection and where to open",
         say: "It asks which saved connection, and where to open the wizard: this tab, its own window, or my browser. The file is only read, never changed, and goes to a studio on this computer only.",
         act: async (d) => {
-          await d.click(".menu [role^=menuitem] >> Load into a database", { pause: 2000 });
+          await d.click(".menu [role^=menuitem] >> Load into a database", {
+            pause: 2000,
+          });
           await d.hover(".dialog select", 1000);
           await d.wait(2500);
         },
@@ -28,7 +33,9 @@ export const importChapters: Chapter[] = [
         cap: "The wizard opens with the file already chosen",
         say: "The wizard opens with the file already chosen. It detected comma separated, U T F eight, a header row, five columns with guessed types, and shows the first rows to check.",
         act: async (d) => {
-          await d.click(".dialog button >> Open the import wizard", { pause: 1500 });
+          await d.click(".dialog button >> Open the import wizard", {
+            pause: 1500,
+          });
           await d.waitFor(S + "#msgBoxBtnOk", 30000);
           await d.click(S + "#msgBoxBtnOk", { pause: 1000 });
           await d.click("#focus-toggle", { pause: 1200 });
@@ -39,7 +46,9 @@ export const importChapters: Chapter[] = [
         cap: "Map the columns to a table",
         say: "Next, I pick the products table, and the columns line up by name: S K U, name, category, price, stock. Missing ones use their defaults. The real table is untouched.",
         act: async (d) => {
-          await d.click(S + "button >> Next: choose where it goes", { pause: 2000 });
+          await d.click(S + "button >> Next: choose where it goes", {
+            pause: 2000,
+          });
           await chooseAnywhere(d, "products");
           await d.wait(3000);
         },
@@ -48,7 +57,9 @@ export const importChapters: Chapter[] = [
         cap: "Load to staging",
         say: "The rows are copied into a staging table, a holding area in the database. Five rows copied, and it says your table has not been touched.",
         act: async (d) => {
-          await d.click(S + "button >> Next: load into staging", { pause: 3500 });
+          await d.click(S + "button >> Next: load into staging", {
+            pause: 3500,
+          });
           await d.wait(3500);
         },
       },

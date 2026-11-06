@@ -10,7 +10,12 @@ export function createControls(): SimpleWindow {
   win.beginGrid(2, 16);
   win.beginCard("📝 Form");
   win.addFormField("Full name:", "txtName", "Jane Doe");
-  win.addFormDropdown("Environment:", "cmbEnv", ["Dev", "Staging", "Prod"], "Dev");
+  win.addFormDropdown(
+    "Environment:",
+    "cmbEnv",
+    ["Dev", "Staging", "Prod"],
+    "Dev",
+  );
   win.addFormSlider("Volume:", "sldVol", 80);
   win.addFormSwitch("Alerts:", "swtNotify", "Enable email alerts", true);
   win.endCard();
@@ -21,11 +26,15 @@ export function createControls(): SimpleWindow {
   win.endCard();
   win.endGrid();
 
-  win.addTable("tblLogs", ["Time", "Level", "Message"], [
-    ["12:00:01", "INFO", "Server started on port 3000"],
-    ["12:00:05", "WARN", "High memory load detected"],
-    ["12:00:09", "INFO", "Backup finished"],
-  ]);
+  win.addTable(
+    "tblLogs",
+    ["Time", "Level", "Message"],
+    [
+      ["12:00:01", "INFO", "Server started on port 3000"],
+      ["12:00:05", "WARN", "High memory load detected"],
+      ["12:00:09", "INFO", "Backup finished"],
+    ],
+  );
   win.addBadge("Everything is running", "success");
   return win;
 }

@@ -6,7 +6,14 @@
  * and report exporting (JSON, CSV, Markdown, HTML).
  */
 import { promises as fsp } from "fs";
-import { absolutePath, assertCreatable, assertFolder, pathApi, type FmContext, type FmHandler } from "./fmCore";
+import {
+  absolutePath,
+  assertCreatable,
+  assertFolder,
+  pathApi,
+  type FmContext,
+  type FmHandler,
+} from "./fmCore";
 import { FmError, uniqueName, validateName } from "./fmPaths";
 import {
   SYSINFO_PROBE_CATALOG,
@@ -19,7 +26,11 @@ import {
 } from "./fmSysinfo";
 
 /** Ordered list of System Information UI sections with display labels and icons. */
-export const SYSINFO_SECTIONS: Array<{ id: SysinfoSectionId; label: string; icon: string }> = [
+export const SYSINFO_SECTIONS: Array<{
+  id: SysinfoSectionId;
+  label: string;
+  icon: string;
+}> = [
   { id: "overview", label: "Overview", icon: "📊" },
   { id: "hardware", label: "Hardware & BIOS", icon: "🔧" },
   { id: "cpu", label: "CPU & Thermal", icon: "🧠" },
@@ -36,7 +47,10 @@ const EXPORT_FORMATS = ["json", "csv", "md", "html"] as const;
 type SysinfoExportFormat = (typeof EXPORT_FORMATS)[number];
 
 function parseFormat(raw: unknown): SysinfoExportFormat {
-  if (typeof raw === "string" && (EXPORT_FORMATS as readonly string[]).includes(raw)) {
+  if (
+    typeof raw === "string" &&
+    (EXPORT_FORMATS as readonly string[]).includes(raw)
+  ) {
     return raw as SysinfoExportFormat;
   }
   throw new FmError("BAD_FORMAT", "Choose JSON, CSV, Markdown, or HTML.");
@@ -59,7 +73,10 @@ async function resolveExportPayload(
       ctx.platform,
       ctx.sysinfo,
     );
-    return { title: `Probe: ${probe.label} (${probe.method})`, data: probe.data };
+    return {
+      title: `Probe: ${probe.label} (${probe.method})`,
+      data: probe.data,
+    };
   }
   const section = b.section ? parseSection(b.section) : "overview";
   if (section === "overview") {
@@ -81,7 +98,11 @@ async function writeUniqueReport(
   await assertFolder(folder, "That folder");
   assertCreatable(ctx, folder);
   const p = pathApi(ctx);
-  const safeBase = baseName.replace(/[^\w.-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "system-report";
+  const safeBase =
+    baseName
+      .replace(/[^\w.-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 48) || "system-report";
   const wanted = `${safeBase}.${ext}`;
   const problem = validateName(wanted, ctx.platform);
   if (problem) throw new FmError("BAD_NAME", problem);
@@ -118,9 +139,13 @@ export const sysinfoOperations: Record<string, FmHandler> = {
 
   async "sysinfo/probe"(ctx, b) {
     const method = typeof b.method === "string" ? b.method.trim() : "";
-    if (!method) throw new FmError("BAD_REQUEST", "Choose a system probe to run.");
+    if (!method)
+      throw new FmError("BAD_REQUEST", "Choose a system probe to run.");
     if (!SYSINFO_PROBE_CATALOG.some((c) => c.method === method)) {
-      throw new FmError("BAD_REQUEST", `Unsupported system probe: "${method}".`);
+      throw new FmError(
+        "BAD_REQUEST",
+        `Unsupported system probe: "${method}".`,
+      );
     }
     const param = typeof b.param === "string" ? b.param.slice(0, 200) : "";
     try {
@@ -132,7 +157,10 @@ export const sysinfoOperations: Record<string, FmHandler> = {
 
   async "sysinfo/diff"(_ctx, b) {
     if (b.before === undefined || b.after === undefined) {
-      throw new FmError("BAD_REQUEST", "Provide both 'before' and 'after' snapshots to compare.");
+      throw new FmError(
+        "BAD_REQUEST",
+        "Provide both 'before' and 'after' snapshots to compare.",
+      );
     }
     return {
       diff: diffSysinfoSnapshots(b.before, b.after),
@@ -151,9 +179,19 @@ export const sysinfoOperations: Record<string, FmHandler> = {
     const { title, data } = await resolveExportPayload(ctx, b);
     const text = formatSysinfoReport(title, data, format, ctx.platform);
     const stamp = new Date().toISOString().slice(0, 10);
-    const defaultName = typeof b.method === "string" && b.method ? `sysinfo-${b.method}-${stamp}` : `system-report-${stamp}`;
-    const baseName = typeof b.name === "string" && b.name.trim() ? b.name.trim() : defaultName;
-    const saved = await writeUniqueReport(ctx, b.folder, baseName, format, text);
+    const defaultName =
+      typeof b.method === "string" && b.method
+        ? `sysinfo-${b.method}-${stamp}`
+        : `system-report-${stamp}`;
+    const baseName =
+      typeof b.name === "string" && b.name.trim() ? b.name.trim() : defaultName;
+    const saved = await writeUniqueReport(
+      ctx,
+      b.folder,
+      baseName,
+      format,
+      text,
+    );
     return { ...saved, format, title };
   },
 };

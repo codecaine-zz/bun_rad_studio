@@ -1,6 +1,7 @@
 (function (root, factory) {
   if (typeof define === "function" && define.amd) define([], factory);
-  else if (typeof module === "object" && module.exports) module.exports = factory();
+  else if (typeof module === "object" && module.exports)
+    module.exports = factory();
   else root.MazeEngine = factory();
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
@@ -9,7 +10,7 @@
   // Seeded PRNG (Mulberry32) & String Hash
   // ---------------------------------------------------------------------------
   function hashSeed(str) {
-    if (typeof str === "number") return (str >>> 0) || 1;
+    if (typeof str === "number") return str >>> 0 || 1;
     str = String(str || "default-maze-seed");
     var h = 2166136261 >>> 0;
     for (var i = 0; i < str.length; i++) {
@@ -20,7 +21,7 @@
   }
 
   function mulberry32(a) {
-    var s = (a >>> 0) || 1;
+    var s = a >>> 0 || 1;
     return function () {
       s = (s + 0x6d2b79f5) >>> 0;
       var t = Math.imul(s ^ (s >>> 15), 1 | s);
@@ -41,30 +42,87 @@
 
   var MODES = {
     classic: { name: "Classic", desc: "Pure exploration at your own pace" },
-    timeAttack: { name: "Time Attack", desc: "Beat the neural countdown timer" },
-    darkness: { name: "Fog of War", desc: "Darkness with a rotating sonar sweep" },
-    solver: { name: "AI Solver", desc: "Watch algorithms explore and navigate" },
+    timeAttack: {
+      name: "Time Attack",
+      desc: "Beat the neural countdown timer",
+    },
+    darkness: {
+      name: "Fog of War",
+      desc: "Darkness with a rotating sonar sweep",
+    },
+    solver: {
+      name: "AI Solver",
+      desc: "Watch algorithms explore and navigate",
+    },
   };
 
   var ALGORITHMS = {
-    dfs: { name: "DFS Backtracker", desc: "Long winding corridors with deep solution paths" },
-    prim: { name: "Randomized Prim's", desc: "Highly branched labyrinth with numerous dead ends" },
-    kruskal: { name: "Randomized Kruskal's", desc: "Balanced tree built via disjoint set edge merges" },
-    wilson: { name: "Wilson's (Loop-Erased)", desc: "Completely uniform unbiased random spanning tree" },
-    braided: { name: "Braided (Loops)", desc: "Corridors with selective loop connections (no dead ends)" },
+    dfs: {
+      name: "DFS Backtracker",
+      desc: "Long winding corridors with deep solution paths",
+    },
+    prim: {
+      name: "Randomized Prim's",
+      desc: "Highly branched labyrinth with numerous dead ends",
+    },
+    kruskal: {
+      name: "Randomized Kruskal's",
+      desc: "Balanced tree built via disjoint set edge merges",
+    },
+    wilson: {
+      name: "Wilson's (Loop-Erased)",
+      desc: "Completely uniform unbiased random spanning tree",
+    },
+    braided: {
+      name: "Braided (Loops)",
+      desc: "Corridors with selective loop connections (no dead ends)",
+    },
   };
 
   var SOLVERS = {
-    astar: { name: "A* Search", desc: "Heuristic-driven shortest path via Manhattan distance" },
-    dijkstra: { name: "Dijkstra Wavefront", desc: "Exhaustive uniform-cost wavefront expansion" },
-    bfs: { name: "Breadth-First Search", desc: "Standard level-order breadth exploration" },
+    astar: {
+      name: "A* Search",
+      desc: "Heuristic-driven shortest path via Manhattan distance",
+    },
+    dijkstra: {
+      name: "Dijkstra Wavefront",
+      desc: "Exhaustive uniform-cost wavefront expansion",
+    },
+    bfs: {
+      name: "Breadth-First Search",
+      desc: "Standard level-order breadth exploration",
+    },
   };
 
   var THEMES = {
-    cyan: { wall: "#00f0ff", glow: "rgba(0, 240, 255, 0.45)", bg: "#04070d", node: "#00f0ff", name: "Cyan Matrix" },
-    magenta: { wall: "#ff0077", glow: "rgba(255, 0, 119, 0.45)", bg: "#0b040a", node: "#ff0077", name: "Neon Sunset" },
-    green: { wall: "#00ff9d", glow: "rgba(0, 255, 157, 0.45)", bg: "#030a06", node: "#00ff9d", name: "Emerald Grid" },
-    amber: { wall: "#ffd43b", glow: "rgba(255, 212, 59, 0.45)", bg: "#0a0802", node: "#ffd43b", name: "Solar Flare" },
+    cyan: {
+      wall: "#00f0ff",
+      glow: "rgba(0, 240, 255, 0.45)",
+      bg: "#04070d",
+      node: "#00f0ff",
+      name: "Cyan Matrix",
+    },
+    magenta: {
+      wall: "#ff0077",
+      glow: "rgba(255, 0, 119, 0.45)",
+      bg: "#0b040a",
+      node: "#ff0077",
+      name: "Neon Sunset",
+    },
+    green: {
+      wall: "#00ff9d",
+      glow: "rgba(0, 255, 157, 0.45)",
+      bg: "#030a06",
+      node: "#00ff9d",
+      name: "Emerald Grid",
+    },
+    amber: {
+      wall: "#ffd43b",
+      glow: "rgba(255, 212, 59, 0.45)",
+      bg: "#0a0802",
+      node: "#ffd43b",
+      name: "Solar Flare",
+    },
   };
 
   // ---------------------------------------------------------------------------
@@ -101,11 +159,16 @@
 
     while (visitedCount < total) {
       var neighbors = [];
-      var c = current.c, r = current.r;
-      if (r > 0 && !grid[r - 1][c].visited) neighbors.push({ cell: grid[r - 1][c], dir: "top", opp: "bottom" });
-      if (c < cols - 1 && !grid[r][c + 1].visited) neighbors.push({ cell: grid[r][c + 1], dir: "right", opp: "left" });
-      if (r < rows - 1 && !grid[r + 1][c].visited) neighbors.push({ cell: grid[r + 1][c], dir: "bottom", opp: "top" });
-      if (c > 0 && !grid[r][c - 1].visited) neighbors.push({ cell: grid[r][c - 1], dir: "left", opp: "right" });
+      var c = current.c,
+        r = current.r;
+      if (r > 0 && !grid[r - 1][c].visited)
+        neighbors.push({ cell: grid[r - 1][c], dir: "top", opp: "bottom" });
+      if (c < cols - 1 && !grid[r][c + 1].visited)
+        neighbors.push({ cell: grid[r][c + 1], dir: "right", opp: "left" });
+      if (r < rows - 1 && !grid[r + 1][c].visited)
+        neighbors.push({ cell: grid[r + 1][c], dir: "bottom", opp: "top" });
+      if (c > 0 && !grid[r][c - 1].visited)
+        neighbors.push({ cell: grid[r][c - 1], dir: "left", opp: "right" });
 
       if (neighbors.length > 0) {
         var pick = neighbors[Math.floor(rng() * neighbors.length)];
@@ -131,11 +194,36 @@
     startCell.visited = true;
 
     function addWalls(cell) {
-      var c = cell.c, r = cell.r;
-      if (r > 0 && !grid[r - 1][c].visited) wallsList.push({ c1: cell, c2: grid[r - 1][c], dir: "top", opp: "bottom" });
-      if (c < cols - 1 && !grid[r][c + 1].visited) wallsList.push({ c1: cell, c2: grid[r][c + 1], dir: "right", opp: "left" });
-      if (r < rows - 1 && !grid[r + 1][c].visited) wallsList.push({ c1: cell, c2: grid[r + 1][c], dir: "bottom", opp: "top" });
-      if (c > 0 && !grid[r][c - 1].visited) wallsList.push({ c1: cell, c2: grid[r][c - 1], dir: "left", opp: "right" });
+      var c = cell.c,
+        r = cell.r;
+      if (r > 0 && !grid[r - 1][c].visited)
+        wallsList.push({
+          c1: cell,
+          c2: grid[r - 1][c],
+          dir: "top",
+          opp: "bottom",
+        });
+      if (c < cols - 1 && !grid[r][c + 1].visited)
+        wallsList.push({
+          c1: cell,
+          c2: grid[r][c + 1],
+          dir: "right",
+          opp: "left",
+        });
+      if (r < rows - 1 && !grid[r + 1][c].visited)
+        wallsList.push({
+          c1: cell,
+          c2: grid[r + 1][c],
+          dir: "bottom",
+          opp: "top",
+        });
+      if (c > 0 && !grid[r][c - 1].visited)
+        wallsList.push({
+          c1: cell,
+          c2: grid[r][c - 1],
+          dir: "left",
+          opp: "right",
+        });
     }
 
     addWalls(startCell);
@@ -173,7 +261,8 @@
     }
 
     function union(x, y) {
-      var rx = find(x), ry = find(y);
+      var rx = find(x),
+        ry = find(y);
       if (rx === ry) return false;
       if (rank[rx] < rank[ry]) parent[rx] = ry;
       else if (rank[rx] > rank[ry]) parent[ry] = rx;
@@ -190,10 +279,28 @@
       for (var c = 0; c < cols; c++) {
         var idx = r * cols + c;
         if (c < cols - 1) {
-          edges.push({ r1: r, c1: c, r2: r, c2: c + 1, dir: "right", opp: "left", idx1: idx, idx2: idx + 1 });
+          edges.push({
+            r1: r,
+            c1: c,
+            r2: r,
+            c2: c + 1,
+            dir: "right",
+            opp: "left",
+            idx1: idx,
+            idx2: idx + 1,
+          });
         }
         if (r < rows - 1) {
-          edges.push({ r1: r, c1: c, r2: r + 1, c2: c, dir: "bottom", opp: "top", idx1: idx, idx2: idx + cols });
+          edges.push({
+            r1: r,
+            c1: c,
+            r2: r + 1,
+            c2: c,
+            dir: "bottom",
+            opp: "top",
+            idx1: idx,
+            idx2: idx + cols,
+          });
         }
       }
     }
@@ -254,7 +361,10 @@
       }
       if (startIdx === -1) {
         for (var j = 0; j < n; j++) {
-          if (!inTree[j]) { startIdx = j; break; }
+          if (!inTree[j]) {
+            startIdx = j;
+            break;
+          }
         }
       }
 
@@ -313,10 +423,30 @@
 
         if (wallCount >= 3 && rng() < factor) {
           var candidates = [];
-          if (cell.walls.top && r > 0) candidates.push({ dir: "top", opp: "bottom", target: grid[r - 1][c] });
-          if (cell.walls.right && c < cols - 1) candidates.push({ dir: "right", opp: "left", target: grid[r][c + 1] });
-          if (cell.walls.bottom && r < rows - 1) candidates.push({ dir: "bottom", opp: "top", target: grid[r + 1][c] });
-          if (cell.walls.left && c > 0) candidates.push({ dir: "left", opp: "right", target: grid[r][c - 1] });
+          if (cell.walls.top && r > 0)
+            candidates.push({
+              dir: "top",
+              opp: "bottom",
+              target: grid[r - 1][c],
+            });
+          if (cell.walls.right && c < cols - 1)
+            candidates.push({
+              dir: "right",
+              opp: "left",
+              target: grid[r][c + 1],
+            });
+          if (cell.walls.bottom && r < rows - 1)
+            candidates.push({
+              dir: "bottom",
+              opp: "top",
+              target: grid[r + 1][c],
+            });
+          if (cell.walls.left && c > 0)
+            candidates.push({
+              dir: "left",
+              opp: "right",
+              target: grid[r][c - 1],
+            });
 
           if (candidates.length > 0) {
             var pick = candidates[Math.floor(rng() * candidates.length)];
@@ -360,7 +490,8 @@
 
     for (var i = 0; i < deadEnds.length; i++) {
       var de = deadEnds[i];
-      if ((de.x === 0 && de.y === 0) || (de.x === exit.x && de.y === exit.y)) continue;
+      if ((de.x === 0 && de.y === 0) || (de.x === exit.x && de.y === exit.y))
+        continue;
       if (rng() < shardRatio) {
         shards.push({ id: shardId++, x: de.x, y: de.y, collected: false });
       }
@@ -370,7 +501,8 @@
     if (shards.length === 0 && deadEnds.length > 0) {
       for (var j = 0; j < deadEnds.length; j++) {
         var pt = deadEnds[j];
-        if ((pt.x === 0 && pt.y === 0) || (pt.x === exit.x && pt.y === exit.y)) continue;
+        if ((pt.x === 0 && pt.y === 0) || (pt.x === exit.x && pt.y === exit.y))
+          continue;
         shards.push({ id: 0, x: pt.x, y: pt.y, collected: false });
         break;
       }
@@ -416,7 +548,12 @@
     var visited = new Set();
 
     if (startKey === endKey) {
-      return { path: [start], visitedOrder: [start], nodesExplored: 1, cost: 0 };
+      return {
+        path: [start],
+        visitedOrder: [start],
+        nodesExplored: 1,
+        cost: 0,
+      };
     }
 
     // A* Search
@@ -442,7 +579,12 @@
 
         if (current.key === endKey) {
           var pA = reconstructPath(cameFrom, endKey);
-          return { path: pA, visitedOrder: visitedOrder, nodesExplored: visitedOrder.length, cost: pA.length - 1 };
+          return {
+            path: pA,
+            visitedOrder: visitedOrder,
+            nodesExplored: visitedOrder.length,
+            cost: pA.length - 1,
+          };
         }
 
         var neighborsA = getMoves(grid, cols, rows, current.x, current.y);
@@ -473,7 +615,12 @@
           }
         }
       }
-      return { path: null, visitedOrder: visitedOrder, nodesExplored: visitedOrder.length, cost: 0 };
+      return {
+        path: null,
+        visitedOrder: visitedOrder,
+        nodesExplored: visitedOrder.length,
+        cost: 0,
+      };
     }
 
     // Dijkstra / Wavefront
@@ -494,7 +641,12 @@
 
         if (currD.key === endKey) {
           var pD = reconstructPath(cameFrom, endKey);
-          return { path: pD, visitedOrder: visitedOrder, nodesExplored: visitedOrder.length, cost: pD.length - 1 };
+          return {
+            path: pD,
+            visitedOrder: visitedOrder,
+            nodesExplored: visitedOrder.length,
+            cost: pD.length - 1,
+          };
         }
 
         var neighborsD = getMoves(grid, cols, rows, currD.x, currD.y);
@@ -509,7 +661,12 @@
           }
         }
       }
-      return { path: null, visitedOrder: visitedOrder, nodesExplored: visitedOrder.length, cost: 0 };
+      return {
+        path: null,
+        visitedOrder: visitedOrder,
+        nodesExplored: visitedOrder.length,
+        cost: 0,
+      };
     }
 
     // Standard BFS
@@ -522,7 +679,12 @@
 
       if (currB.key === endKey) {
         var pB = reconstructPath(cameFrom, endKey);
-        return { path: pB, visitedOrder: visitedOrder, nodesExplored: visitedOrder.length, cost: pB.length - 1 };
+        return {
+          path: pB,
+          visitedOrder: visitedOrder,
+          nodesExplored: visitedOrder.length,
+          cost: pB.length - 1,
+        };
       }
 
       var neighborsB = getMoves(grid, cols, rows, currB.x, currB.y);
@@ -536,7 +698,12 @@
         }
       }
     }
-    return { path: null, visitedOrder: visitedOrder, nodesExplored: visitedOrder.length, cost: 0 };
+    return {
+      path: null,
+      visitedOrder: visitedOrder,
+      nodesExplored: visitedOrder.length,
+      cost: 0,
+    };
   }
 
   // ---------------------------------------------------------------------------
@@ -549,8 +716,11 @@
     var cols = options.cols || diffInfo.size;
     var rows = options.rows || diffInfo.size;
     var algo = options.algo || "dfs";
-    var braidFactor = typeof options.braidFactor === "number" ? options.braidFactor : 0.4;
-    var seedStr = options.seed ? String(options.seed) : Math.random().toString(36).slice(2, 10);
+    var braidFactor =
+      typeof options.braidFactor === "number" ? options.braidFactor : 0.4;
+    var seedStr = options.seed
+      ? String(options.seed)
+      : Math.random().toString(36).slice(2, 10);
     var rng = mulberry32(hashSeed(seedStr));
 
     var grid = createGrid(cols, rows);
@@ -593,13 +763,15 @@
   function formatTime(ms) {
     if (typeof ms !== "number" || isNaN(ms) || ms < 0) ms = 0;
     var totalSec = Math.floor(ms / 1000);
-    var m = Math.floor(totalSec / 60).toString().padStart(2, "0");
+    var m = Math.floor(totalSec / 60)
+      .toString()
+      .padStart(2, "0");
     var s = (totalSec % 60).toString().padStart(2, "0");
     return m + ":" + s;
   }
 
   function calculateStars(steps, cols, rows, optimalSteps) {
-    optimalSteps = optimalSteps || ((cols + rows) * 1.2);
+    optimalSteps = optimalSteps || (cols + rows) * 1.2;
     var parSteps = Math.max(optimalSteps * 1.35, (cols + rows) * 1.35);
     if (steps <= parSteps * 1.3) return "★★★";
     if (steps <= parSteps * 1.7) return "★★☆";
@@ -649,11 +821,21 @@
   function sanitizeSettings(s) {
     s = s && typeof s === "object" && !Array.isArray(s) ? s : {};
     return {
-      mode: ["classic", "timeAttack", "darkness", "solver"].includes(s.mode) ? s.mode : "classic",
-      diff: ["easy", "medium", "hard", "insane"].includes(s.diff) ? s.diff : "medium",
-      algo: ["dfs", "prim", "kruskal", "wilson", "braided"].includes(s.algo) ? s.algo : "dfs",
-      solver: ["astar", "dijkstra", "bfs"].includes(s.solver) ? s.solver : "astar",
-      theme: ["cyan", "magenta", "green", "amber"].includes(s.theme) ? s.theme : "cyan",
+      mode: ["classic", "timeAttack", "darkness", "solver"].includes(s.mode)
+        ? s.mode
+        : "classic",
+      diff: ["easy", "medium", "hard", "insane"].includes(s.diff)
+        ? s.diff
+        : "medium",
+      algo: ["dfs", "prim", "kruskal", "wilson", "braided"].includes(s.algo)
+        ? s.algo
+        : "dfs",
+      solver: ["astar", "dijkstra", "bfs"].includes(s.solver)
+        ? s.solver
+        : "astar",
+      theme: ["cyan", "magenta", "green", "amber"].includes(s.theme)
+        ? s.theme
+        : "cyan",
       sound: typeof s.sound === "boolean" ? s.sound : true,
       drone: typeof s.drone === "boolean" ? s.drone : false,
       trail: typeof s.trail === "boolean" ? s.trail : true,
@@ -664,11 +846,23 @@
   function sanitizeStats(s) {
     if (!s || typeof s !== "object" || Array.isArray(s)) return emptyStats();
     var out = {
-      played: typeof s.played === "number" && s.played >= 0 ? Math.floor(s.played) : 0,
+      played:
+        typeof s.played === "number" && s.played >= 0
+          ? Math.floor(s.played)
+          : 0,
       won: typeof s.won === "number" && s.won >= 0 ? Math.floor(s.won) : 0,
-      surrendered: typeof s.surrendered === "number" && s.surrendered >= 0 ? Math.floor(s.surrendered) : 0,
-      totalSteps: typeof s.totalSteps === "number" && s.totalSteps >= 0 ? Math.floor(s.totalSteps) : 0,
-      shardsCollected: typeof s.shardsCollected === "number" && s.shardsCollected >= 0 ? Math.floor(s.shardsCollected) : 0,
+      surrendered:
+        typeof s.surrendered === "number" && s.surrendered >= 0
+          ? Math.floor(s.surrendered)
+          : 0,
+      totalSteps:
+        typeof s.totalSteps === "number" && s.totalSteps >= 0
+          ? Math.floor(s.totalSteps)
+          : 0,
+      shardsCollected:
+        typeof s.shardsCollected === "number" && s.shardsCollected >= 0
+          ? Math.floor(s.shardsCollected)
+          : 0,
       best: {},
     };
     if (s.best && typeof s.best === "object" && !Array.isArray(s.best)) {
@@ -677,8 +871,10 @@
           var b = s.best[k];
           if (b && typeof b === "object") {
             out.best[k] = {
-              timeMs: typeof b.timeMs === "number" && b.timeMs > 0 ? b.timeMs : null,
-              steps: typeof b.steps === "number" && b.steps > 0 ? b.steps : null,
+              timeMs:
+                typeof b.timeMs === "number" && b.timeMs > 0 ? b.timeMs : null,
+              steps:
+                typeof b.steps === "number" && b.steps > 0 ? b.steps : null,
             };
           }
         }
@@ -694,7 +890,8 @@
     if (result.won) stats.won++;
     if (result.surrendered) stats.surrendered++;
     if (typeof result.steps === "number") stats.totalSteps += result.steps;
-    if (typeof result.shards === "number") stats.shardsCollected += result.shards;
+    if (typeof result.shards === "number")
+      stats.shardsCollected += result.shards;
 
     var mode = result.mode || "classic";
     var diff = result.diff || "medium";
@@ -710,7 +907,10 @@
         stats.best[key].timeMs = result.timeMs;
         isNewBestTime = true;
       }
-      if (typeof result.steps === "number" && (!prev || !prev.steps || result.steps < prev.steps)) {
+      if (
+        typeof result.steps === "number" &&
+        (!prev || !prev.steps || result.steps < prev.steps)
+      ) {
         stats.best[key] = stats.best[key] || {};
         stats.best[key].steps = result.steps;
         isNewBestSteps = true;

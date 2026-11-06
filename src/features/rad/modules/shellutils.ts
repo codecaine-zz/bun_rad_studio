@@ -36,7 +36,10 @@ export function whichCmd(cmd: string): string | null {
 /**
  * Executes a shell command string quietly without throwing on non-zero exit codes.
  */
-export async function execCmd(command: string, options: ShellOptions = {}): Promise<ShellExecResult> {
+export async function execCmd(
+  command: string,
+  options: ShellOptions = {},
+): Promise<ShellExecResult> {
   const runner = $`${{ raw: command }}`.quiet().nothrow();
   if (options.cwd) runner.cwd(options.cwd);
   if (options.env) runner.env({ ...process.env, ...options.env });
@@ -56,10 +59,15 @@ export async function execCmd(command: string, options: ShellOptions = {}): Prom
 /**
  * Executes a shell command and returns trimmed non-empty lines from `stdout`, throwing on non-zero exit status.
  */
-export async function execLines(command: string, options: ShellOptions = {}): Promise<string[]> {
+export async function execLines(
+  command: string,
+  options: ShellOptions = {},
+): Promise<string[]> {
   const res = await execCmd(command, options);
   if (!res.success) {
-    throw new Error(`[shellutils.execLines] Command failed with exit code ${res.exitCode}: ${res.stderr.trim()}`);
+    throw new Error(
+      `[shellutils.execLines] Command failed with exit code ${res.exitCode}: ${res.stderr.trim()}`,
+    );
   }
   return res.stdout
     .split("\n")
@@ -71,7 +79,10 @@ export async function execLines(command: string, options: ShellOptions = {}): Pr
 /**
  * Executes `cmd1 | cmd2` in the shell and returns the combined {@link ShellExecResult}.
  */
-export async function pipeCmds(cmd1: string, cmd2: string): Promise<ShellExecResult> {
+export async function pipeCmds(
+  cmd1: string,
+  cmd2: string,
+): Promise<ShellExecResult> {
   return execCmd(`${cmd1} | ${cmd2}`);
 }
 

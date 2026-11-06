@@ -1,14 +1,38 @@
 #!/usr/bin/env bun
 import { SimpleCLI } from "../src/index.ts";
-import { createCalculatorStudio, startCalculatorStudioServer } from "../applications/calculator_studio.ts";
+import {
+  createCalculatorStudio,
+  startCalculatorStudioServer,
+} from "../applications/calculator_studio.ts";
 
-const app = SimpleCLI.newApp("calculator-cli", "2.7.0")
-  .setDescription("Orbit Universal Computing Suite & Scientific Calculator CLI");
+const app = SimpleCLI.newApp("calculator-cli", "2.7.0").setDescription(
+  "Orbit Universal Computing Suite & Scientific Calculator CLI",
+);
 
-app.addFlagBool("gui", "g", false, "Launch Orbit Universal Computing Suite desktop application");
-app.addFlagBool("server", "s", false, "Launch background web server without opening window");
-app.addFlagInt("port", "p", 0, "Specific HTTP port to bind to when running as server");
-app.addFlagString("eval", "e", "", "Evaluate mathematical expression (e.g. 'sin(pi/4) + sqrt(16)')");
+app.addFlagBool(
+  "gui",
+  "g",
+  false,
+  "Launch Orbit Universal Computing Suite desktop application",
+);
+app.addFlagBool(
+  "server",
+  "s",
+  false,
+  "Launch background web server without opening window",
+);
+app.addFlagInt(
+  "port",
+  "p",
+  0,
+  "Specific HTTP port to bind to when running as server",
+);
+app.addFlagString(
+  "eval",
+  "e",
+  "",
+  "Evaluate mathematical expression (e.g. 'sin(pi/4) + sqrt(16)')",
+);
 
 if (!app.parseCli()) process.exit(0);
 
@@ -48,9 +72,9 @@ if (app.getFlagBool("server")) {
     const result = fn();
     app.banner("Orbit Math Evaluator", "v2.7.0");
     app.printKv({
-      "Expression": expr,
-      "Result": String(result),
-      "Type": typeof result,
+      Expression: expr,
+      Result: String(result),
+      Type: typeof result,
     });
   } catch (err: any) {
     console.error(`Evaluation Error: ${err?.message || err}`);
@@ -78,8 +102,8 @@ if (app.getFlagBool("server")) {
       const result = fn();
       app.banner("Orbit Math Evaluator", "v2.7.0");
       app.printKv({
-        "Expression": expr,
-        "Result": String(result),
+        Expression: expr,
+        Result: String(result),
       });
     } catch (err: any) {
       console.error(`Evaluation Error: ${err?.message || err}`);

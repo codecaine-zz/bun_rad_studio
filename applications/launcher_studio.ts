@@ -1,22 +1,38 @@
 /**
  * ⚡ Bun RAD Studio - Launcher Studio Pro
- * 
+ *
  * Unified Project Application & CLI Workstation Launcher
  * Automatically discovers, categorizes, monitors, and launches ALL tools in this project:
  * 1. Project Studio Applications (applications/*.ts)
  * 2. Project CLI Utilities (cli_apps/*.ts)
  * 3. Project Interactive Showcase Demos (demos/*.ts)
- * 
+ *
  * Scope: Exclusively tailored for applications and CLI tools inside this project repository.
  */
 
 import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
 import { writeClipboardSync } from "../src/localGuard";
 import { resolve, join, basename } from "path";
-import { existsSync, readdirSync, readFileSync, writeFileSync, renameSync, mkdirSync } from "fs";
+import {
+  existsSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+  renameSync,
+  mkdirSync,
+} from "fs";
 import { tmpdir } from "os";
 import {
-  parseArgs, buildShellCommand, buildWindowsCommand, windowsCmdQuote, searchScore, sortApps, sortModeFromLabel, SORT_LABELS, usageLabel, isScriptProcess,
+  parseArgs,
+  buildShellCommand,
+  buildWindowsCommand,
+  windowsCmdQuote,
+  searchScore,
+  sortApps,
+  sortModeFromLabel,
+  SORT_LABELS,
+  usageLabel,
+  isScriptProcess,
   type SortMode,
 } from "../src/launcher_tools";
 
@@ -82,607 +98,709 @@ export const KNOWN_STUDIO_META: Record<
     displayName: "SQLite Studio Pro",
     category: "Database & Storage",
     icon: "🗄️",
-    description: "Enterprise embedded database workstation & query IDE with zero-latency execution",
+    description:
+      "Enterprise embedded database workstation & query IDE with zero-latency execution",
   },
   mysql_studio: {
     displayName: "MySQL Studio Pro",
     category: "Database & Storage",
     icon: "🐬",
-    description: "Enterprise MySQL database workstation, query IDE, schema visualizer & InnoDB performance suite",
+    description:
+      "Enterprise MySQL database workstation, query IDE, schema visualizer & InnoDB performance suite",
   },
   postgres_studio: {
     displayName: "Postgres Studio Pro",
     category: "Database & Storage",
     icon: "🐘",
-    description: "Enterprise PostgreSQL database workstation, schemas, materialized views, extensions & process diagnostics",
+    description:
+      "Enterprise PostgreSQL database workstation, schemas, materialized views, extensions & process diagnostics",
   },
   redis_studio: {
     displayName: "Redis Studio Pro",
     category: "Database & Storage",
     icon: "⚡",
-    description: "Real-time Redis telemetry, live key-value inspector & memory diagnostics",
+    description:
+      "Real-time Redis telemetry, live key-value inspector & memory diagnostics",
   },
   system_studio: {
     displayName: "System Information Studio Pro",
     category: "System & Hardware",
     icon: "🖥️",
-    description: "Hardware intelligence & telemetry workstation covering all 10 domain areas",
+    description:
+      "Hardware intelligence & telemetry workstation covering all 10 domain areas",
   },
   file_manager_studio: {
     displayName: "Codecaine File Manager",
     category: "File & Directory Tools",
     icon: "📁",
-    description: "Easy, safe file manager for Windows, macOS & Linux: browse, search, copy, move, rename, zip, Recycle Bin with Undo",
+    description:
+      "Easy, safe file manager for Windows, macOS & Linux: browse, search, copy, move, rename, zip, Recycle Bin with Undo",
   },
   fd_studio: {
     displayName: "Fd Studio Pro",
     category: "File & Directory Tools",
     icon: "🔍",
-    description: "Ultra-fast native Bun filesystem traversal, globbing & quarantine manager",
+    description:
+      "Ultra-fast native Bun filesystem traversal, globbing & quarantine manager",
   },
   rip_studio: {
     displayName: "Rip Studio Pro",
     category: "File & Directory Tools",
     icon: "🪦",
-    description: "Safe file quarantine, seance recovery & graveyard deletion workbench",
+    description:
+      "Safe file quarantine, seance recovery & graveyard deletion workbench",
   },
   network_studio: {
     displayName: "Network Diagnostics Studio",
     category: "Network & Cloud",
     icon: "🌐",
-    description: "Comprehensive socket inspector, port scanner, DNS testing & HTTP client",
+    description:
+      "Comprehensive socket inspector, port scanner, DNS testing & HTTP client",
   },
   api_studio: {
     displayName: "API Testing Studio Pro",
     category: "Developer Tools",
     icon: "📡",
-    description: "REST & HTTP client with benchmark metrics, headers editor & response inspector",
+    description:
+      "REST & HTTP client with benchmark metrics, headers editor & response inspector",
   },
   git_studio: {
     displayName: "Git Version Control Studio",
     category: "Developer Tools",
     icon: "🌿",
-    description: "Visual diff inspector, working tree controller & commit audit trail",
+    description:
+      "Visual diff inspector, working tree controller & commit audit trail",
   },
   devtools_studio: {
     displayName: "DevTools & OmniTool Studio",
     category: "Developer Tools",
     icon: "🛠️",
-    description: "Unified developer CLI toolkit with 6 developer engines powered natively",
+    description:
+      "Unified developer CLI toolkit with 6 developer engines powered natively",
   },
   omnitool_studio: {
     displayName: "OmniTool Studio Pro",
     category: "Developer Tools",
     icon: "🧰",
-    description: "Swiss-army knife for encoding, decoding, hash generation & text processing",
+    description:
+      "Swiss-army knife for encoding, decoding, hash generation & text processing",
   },
   rad_studio: {
     displayName: "RAD Utilities Studio Pro",
     category: "Developer Tools",
     icon: "⚡",
-    description: "44 high-velocity development modules for Rapid Application Development with live recipes & testing",
+    description:
+      "44 high-velocity development modules for Rapid Application Development with live recipes & testing",
   },
   task_manager: {
     displayName: "Task Manager & Process Studio",
     category: "System & Hardware",
     icon: "📊",
-    description: "Live CPU/Memory monitor, process tree visualizer & port listener",
+    description:
+      "Live CPU/Memory monitor, process tree visualizer & port listener",
   },
   process_studio: {
     displayName: "Process Monitor Studio",
     category: "System & Hardware",
     icon: "📈",
-    description: "Real-time process telemetry, signal dispatcher & TCP connection inspector",
+    description:
+      "Real-time process telemetry, signal dispatcher & TCP connection inspector",
   },
   procs_studio: {
     displayName: "Procs Process Workstation",
     category: "System & Hardware",
     icon: "⚙️",
-    description: "Modern top/ps replacement with Docker container detection and tree view",
+    description:
+      "Modern top/ps replacement with Docker container detection and tree view",
   },
   app_bundler_studio: {
     displayName: "App Bundler Studio Pro",
     category: "Developer Tools",
     icon: "📦",
-    description: "Single-executable compiler & macOS .app bundle packager with icons",
+    description:
+      "Single-executable compiler & macOS .app bundle packager with icons",
   },
   markdown_studio: {
     displayName: "Markdown Live Editor Studio",
     category: "Productivity & Text",
     icon: "📝",
-    description: "Real-time dual-pane WYSIWYG Markdown editor with live HTML preview & exports",
+    description:
+      "Real-time dual-pane WYSIWYG Markdown editor with live HTML preview & exports",
   },
   calculator_studio: {
     displayName: "Universal Calculator & IntuitionLab Studio",
     category: "Productivity & Text",
     icon: "🧮",
-    description: "Apple-grade scientific calculator, unit converter, time-series charts, 64-bit programmer lab, calculus studio & IntuitionLab visual STEM simulations",
+    description:
+      "Apple-grade scientific calculator, unit converter, time-series charts, 64-bit programmer lab, calculus studio & IntuitionLab visual STEM simulations",
   },
   codecaine_bros_studio: {
     displayName: "Codecaine Bros. Arcade",
     category: "Games & Entertainment",
     icon: "🍄",
-    description: "Authentic 1983 Codecaine Bros. arcade remaster with high-speed bumping physics, POW block & 4-channel sound",
+    description:
+      "Authentic 1983 Codecaine Bros. arcade remaster with high-speed bumping physics, POW block & 4-channel sound",
   },
   connect4_studio: {
     displayName: "Codecaine Cyberpunk QuadLink 4",
     category: "Games & Entertainment",
     icon: "🔴",
-    description: "Neon QuadLink 4 arcade with minimax AI heuristics, 2-player local battle & particle drop physics",
+    description:
+      "Neon QuadLink 4 arcade with minimax AI heuristics, 2-player local battle & particle drop physics",
   },
   dr_codecaine_studio: {
     displayName: "Codecaine Dr. Codecaine Arcade",
     category: "Games & Entertainment",
     icon: "💊",
-    description: "Triple-A remastered Dr. Codecaine capsule puzzle game with polyphonic synthesizers & pathogen AI",
+    description:
+      "Triple-A remastered Dr. Codecaine capsule puzzle game with polyphonic synthesizers & pathogen AI",
   },
   interval_timer_studio: {
     displayName: "Interval Timer & Workout Suite",
     category: "Productivity & Text",
     icon: "⏱️",
-    description: "High-performance interval timer with Keith Baar isometric tendon training protocols & audio engine",
+    description:
+      "High-performance interval timer with Keith Baar isometric tendon training protocols & audio engine",
   },
   media_player_studio: {
     displayName: "Media Player Studio Pro",
     category: "Productivity & Text",
     icon: "🎛️",
-    description: "Modular rack media player with 10-band graphic EQ, preamp, spectrum & radial visualizers, M3U8 playlists & karaoke LRC lyrics",
+    description:
+      "Modular rack media player with 10-band graphic EQ, preamp, spectrum & radial visualizers, M3U8 playlists & karaoke LRC lyrics",
   },
   lolo_studio: {
     displayName: "Codecaine Adventures of Caine Remaster",
     category: "Games & Entertainment",
     icon: "👾",
-    description: "Cyberpunk remastered Adventures of Caine with procedural puzzles, sound engine & visual manual",
+    description:
+      "Cyberpunk remastered Adventures of Caine with procedural puzzles, sound engine & visual manual",
   },
   maze_generator_studio: {
     displayName: "Codecaine Cyberpunk Maze Runner",
     category: "Games & Entertainment",
     icon: "🌀",
-    description: "Procedural neon labyrinth with Recursive Backtracking, Prim's, Wilson's, fog of war & A* AI solver",
+    description:
+      "Procedural neon labyrinth with Recursive Backtracking, Prim's, Wilson's, fog of war & A* AI solver",
   },
   pacman_studio: {
     displayName: "Codecaine CyberChomp Arcade",
     category: "Games & Entertainment",
     icon: "🟡",
-    description: "Authentic CyberChomp arcade remaster with 4-ghost AI personalities, sound synthesis & particle effects",
+    description:
+      "Authentic CyberChomp arcade remaster with 4-ghost AI personalities, sound synthesis & particle effects",
   },
   breakout_studio: {
     displayName: "Codecaine CyberBrick Breaker Deluxe",
     category: "Games & Entertainment",
     icon: "🧱",
-    description: "Deluxe CyberBrick Breaker arcade with continuous swept physics, 8 powerups, combo synth melodies & gamepad support",
+    description:
+      "Deluxe CyberBrick Breaker arcade with continuous swept physics, 8 powerups, combo synth melodies & gamepad support",
   },
   skifree_studio: {
     displayName: "Codecaine CyberSki Deluxe",
     category: "Games & Entertainment",
     icon: "⛷️",
-    description: "Authentic downhill alpine skiing with freestyle tricks, slalom gates & the ravenous Yeti chase",
+    description:
+      "Authentic downhill alpine skiing with freestyle tricks, slalom gates & the ravenous Yeti chase",
   },
   balatro_studio: {
     displayName: "Codecaine Joker Royale Deluxe",
     category: "Games & Entertainment",
     icon: "🃏",
-    description: "Roguelike poker deckbuilder with Ante & Blind runs, 30+ Jokers, 3D card tilt physics & synth audio",
+    description:
+      "Roguelike poker deckbuilder with Ante & Blind runs, 30+ Jokers, 3D card tilt physics & synth audio",
   },
   rat_screw_studio: {
     displayName: "Codecaine Egyptian Rat Screw Royale",
     category: "Games & Entertainment",
     icon: "🎴",
-    description: "High-speed reflex card slapper with authentic Codecaine Royale vector cards, face card challenges, customizable slap rules & multi-CPU AI",
+    description:
+      "High-speed reflex card slapper with authentic Codecaine Royale vector cards, face card challenges, customizable slap rules & multi-CPU AI",
   },
   poker_studio: {
     displayName: "Codecaine Texas Hold'em & 5-Card Draw Poker Royale",
     category: "Games & Entertainment",
     icon: "♠️",
-    description: "Deluxe casino poker table featuring No-Limit Texas Hold'em and 5-Card Draw, 6-max AI personalities, Codecaine Royale cards & hand evaluation",
+    description:
+      "Deluxe casino poker table featuring No-Limit Texas Hold'em and 5-Card Draw, 6-max AI personalities, Codecaine Royale cards & hand evaluation",
   },
   blackjack_studio: {
     displayName: "Codecaine Blackjack Royale VIP",
     category: "Games & Entertainment",
     icon: "🪙",
-    description: "High-roller multi-hand VIP casino Blackjack with 3-spot betting, Codecaine Royale vector cards, 6-deck shoe Hi-Lo telemetry, split/double, & side bets",
+    description:
+      "High-roller multi-hand VIP casino Blackjack with 3-spot betting, Codecaine Royale vector cards, 6-deck shoe Hi-Lo telemetry, split/double, & side bets",
   },
   yahtzee_studio: {
     displayName: "Codecaine Yacht Dice Royale Deluxe",
     category: "Games & Entertainment",
     icon: "🎲",
-    description: "Deluxe classic Yacht Dice board studio with 3D tactile dice, authentic Codecaine championship scorecard, +35 upper bonus, Yacht Jokers & AI opponent",
+    description:
+      "Deluxe classic Yacht Dice board studio with 3D tactile dice, authentic Codecaine championship scorecard, +35 upper bonus, Yacht Jokers & AI opponent",
   },
   paint_studio: {
     displayName: "Chroma Studio Pro",
     category: "Design & Media",
     icon: "🎨",
-    description: "Advanced paint & drawing workstation featuring 106+ vector coloring book graphics, multi-layer canvas, airbrush, flood fill & curated palettes",
+    description:
+      "Advanced paint & drawing workstation featuring 106+ vector coloring book graphics, multi-layer canvas, airbrush, flood fill & curated palettes",
   },
   code_studio: {
     displayName: "NovaCode Studio Pro",
     category: "Developer Tools",
     icon: "⚡",
-    description: "Advanced developer-focused code editor & workstation with multi-file tabs, lexical syntax highlighting, interactive minimap, terminal runner, and split preview",
+    description:
+      "Advanced developer-focused code editor & workstation with multi-file tabs, lexical syntax highlighting, interactive minimap, terminal runner, and split preview",
   },
   math_munchers_studio: {
     displayName: "Codecaine CyberMunch Math Deluxe",
     category: "Games & Entertainment",
     icon: "👾",
-    description: "Cyberpunk CyberMunch Math classic with Glitchers AI, CRT shaders, pentatonic synth & multiple game modes",
+    description:
+      "Cyberpunk CyberMunch Math classic with Glitchers AI, CRT shaders, pentatonic synth & multiple game modes",
   },
   flappy_bird_studio: {
     displayName: "Codecaine CyberWing Deluxe",
     category: "Games & Entertainment",
     icon: "🐦",
-    description: "Cyberpunk kinetic CyberWing arcade with energy conduits, medal achievements, parallax sky & WebAudio synth",
+    description:
+      "Cyberpunk kinetic CyberWing arcade with energy conduits, medal achievements, parallax sky & WebAudio synth",
   },
   typing_studio: {
     displayName: "Codecaine CyberType Deluxe",
     category: "Games & Entertainment",
     icon: "⌨️",
-    description: "Modern touch-typing academy with 10-step guided tutorial, 18-lesson curriculum, Codecaine Adaptive AI, multi-layout keyboard, and WebAudio switches.",
+    description:
+      "Modern touch-typing academy with 10-step guided tutorial, 18-lesson curriculum, Codecaine Adaptive AI, multi-layout keyboard, and WebAudio switches.",
   },
   minesweeper_studio: {
     displayName: "Codecaine Minesweeper Pro Championship",
     category: "Games & Entertainment",
     icon: "💣",
-    description: "Championship Minesweeper with safe first-click, chord clearing, 3BV benchmark & multi-theme engine",
+    description:
+      "Championship Minesweeper with safe first-click, chord clearing, 3BV benchmark & multi-theme engine",
   },
   pong_studio: {
     displayName: "Codecaine Neon Cyber Paddle",
     category: "Games & Entertainment",
     icon: "🏓",
-    description: "High-speed kinetic Cyber Paddle with fluid spin physics, multi-tier AI opponents & local 2-player battle",
+    description:
+      "High-speed kinetic Cyber Paddle with fluid spin physics, multi-tier AI opponents & local 2-player battle",
   },
   rodents_revenge_studio: {
     displayName: "Codecaine CyberMouse Trap Deluxe",
     category: "Games & Entertainment",
     icon: "🧀",
-    description: "Deluxe arcade revival of CyberMouse Trap with neon retro maze, cat trapping & high scores",
+    description:
+      "Deluxe arcade revival of CyberMouse Trap with neon retro maze, cat trapping & high scores",
   },
   tetris_studio: {
     displayName: "Codecaine TetroGrid Ultra Deluxe",
     category: "Games & Entertainment",
     icon: "🧱",
-    description: "Modern 7-bag SRS block puzzle with T-Spin/B2B telemetry, 4 modes, 3-next queue & synthwave themes",
+    description:
+      "Modern 7-bag SRS block puzzle with T-Spin/B2B telemetry, 4 modes, 3-next queue & synthwave themes",
   },
   snake_studio: {
     displayName: "Codecaine Neon Snake Deluxe",
     category: "Games & Entertainment",
     icon: "🐍",
-    description: "High-speed glowing cyber snake with looping walls and combo multipliers",
+    description:
+      "High-speed glowing cyber snake with looping walls and combo multipliers",
   },
   frogger_studio: {
     displayName: "Codecaine CyberFrog Deluxe",
     category: "Games & Entertainment",
     icon: "🐸",
-    description: "Navigate a cyberpunk highway and acid river with fluid interpolation physics",
+    description:
+      "Navigate a cyberpunk highway and acid river with fluid interpolation physics",
   },
   jezzball_studio: {
     displayName: "Codecaine CyberJezz Containment Deluxe",
     category: "Games & Entertainment",
     icon: "⚡",
-    description: "1992 JezzBall remaster: capture 75%+ of the cyber-grid with laser containment walls, cryo slow-mo & shielded beams",
+    description:
+      "1992 JezzBall remaster: capture 75%+ of the cyber-grid with laser containment walls, cryo slow-mo & shielded beams",
   },
   chips_challenge_studio: {
     displayName: "Codecaine CyberChip's Labyrinth",
     category: "Games & Entertainment",
     icon: "💾",
-    description: "Tile-based puzzle gauntlet with microchips, elemental boots (fire, flippers, cleats, suction), keys, blocks & undo",
+    description:
+      "Tile-based puzzle gauntlet with microchips, elemental boots (fire, flippers, cleats, suction), keys, blocks & undo",
   },
   pipe_dream_studio: {
     displayName: "Codecaine CyberPipe Flow Deluxe",
     category: "Games & Entertainment",
     icon: "🔧",
-    description: "High-pressure pipe-routing puzzle with cross-junction loop bonuses, reservoir tanks, 5-piece queue & neon coolant flow",
+    description:
+      "High-pressure pipe-routing puzzle with cross-junction loop bonuses, reservoir tanks, 5-piece queue & neon coolant flow",
   },
   solitaire_studio: {
     displayName: "Codecaine Solitaire Royale: Klondike, Spider & FreeCell",
     category: "Games & Entertainment",
     icon: "🃏",
-    description: "3-in-1 Championship Solitaire (Klondike, Spider, FreeCell) with auto-foundation, hints, undo & bouncing cards waterfall",
+    description:
+      "3-in-1 Championship Solitaire (Klondike, Spider, FreeCell) with auto-foundation, hints, undo & bouncing cards waterfall",
   },
   pinball_studio: {
     displayName: "Codecaine CyberCadet Pinball 2099",
     category: "Games & Entertainment",
     icon: "🛸",
-    description: "Space Cadet pinball table with 60fps flipper physics, pop bumpers, hyperspace ramp, wormhole multiball & fleet ranks",
+    description:
+      "Space Cadet pinball table with 60fps flipper physics, pop bumpers, hyperspace ramp, wormhole multiball & fleet ranks",
   },
   asteroids_studio: {
     displayName: "Codecaine VoidVector Asteroids Deluxe",
     category: "Games & Entertainment",
     icon: "☄️",
-    description: "360° Newtonian vector shooter with splitting asteroids, hunter-seeker UFOs, shields, hyperspace warp & weapon power-ups",
+    description:
+      "360° Newtonian vector shooter with splitting asteroids, hunter-seeker UFOs, shields, hyperspace warp & weapon power-ups",
   },
   space_invaders_studio: {
     displayName: "Codecaine CyberInvaders: StarSwarm",
     category: "Games & Entertainment",
     icon: "👾",
-    description: "Galactic alien formation & dive-bomber shooter with destructible plasma bunkers, mystery UFOs & overcharge wave beam",
+    description:
+      "Galactic alien formation & dive-bomber shooter with destructible plasma bunkers, mystery UFOs & overcharge wave beam",
   },
   bomberman_studio: {
     displayName: "Codecaine CyberBomber Grid Arena",
     category: "Games & Entertainment",
     icon: "🧨",
-    description: "Destructible grid arena with chain-reaction plasma bombs, kick boots, Campaign, AI Battle Royale & 2-Player Versus",
+    description:
+      "Destructible grid arena with chain-reaction plasma bombs, kick boots, Campaign, AI Battle Royale & 2-Player Versus",
   },
   missile_command_studio: {
     displayName: "Codecaine CyberDefense: ICBM Interceptor",
     category: "Games & Entertainment",
     icon: "🚀",
-    description: "Defend 6 neon megacities with 3 counter-missile batteries and chain-reaction shockwaves against MIRV warheads",
+    description:
+      "Defend 6 neon megacities with 3 counter-missile batteries and chain-reaction shockwaves against MIRV warheads",
   },
   qbert_studio: {
     displayName: "Codecaine CyberCube Hopper",
     category: "Games & Entertainment",
     icon: "🟧",
-    description: "Isometric 28-cube 3D pyramid color-flipper with Coily the cyber-snake, spinning escape discs & chrono-freeze orbs",
+    description:
+      "Isometric 28-cube 3D pyramid color-flipper with Coily the cyber-snake, spinning escape discs & chrono-freeze orbs",
   },
   centipede_studio: {
     displayName: "Codecaine CyberCentipede Blaster",
     category: "Games & Entertainment",
     icon: "🐛",
-    description: "High-speed spore-field shooter with splitting centipede chains, bouncing spiders, fleas & poison scorpions",
+    description:
+      "High-speed spore-field shooter with splitting centipede chains, bouncing spiders, fleas & poison scorpions",
   },
   artillery_studio: {
     displayName: "Codecaine CyberArtillery: Scorched Skyline",
     category: "Games & Entertainment",
     icon: "🎯",
-    description: "Turn-based wind & gravity trajectory artillery across destructible city skylines with MIRVs, Funky Bombs & AI/2P modes",
+    description:
+      "Turn-based wind & gravity trajectory artillery across destructible city skylines with MIRVs, Funky Bombs & AI/2P modes",
   },
   pool_studio: {
     displayName: "Codecaine 8-Ball Pool Royale: Cyber Billiards Suite",
     category: "Games & Entertainment",
     icon: "🎱",
-    description: "10-mode Billiards & Snooker suite (8-Ball, 9-Ball, 10-Ball, 14.1, One-Pocket, Snooker, Bank Pool & 12 Trick Shots) with Masse & Jump physics",
+    description:
+      "10-mode Billiards & Snooker suite (8-Ball, 9-Ball, 10-Ball, 14.1, One-Pocket, Snooker, Bank Pool & 12 Trick Shots) with Masse & Jump physics",
   },
   lunar_lander_studio: {
     displayName: "Codecaine CyberLander: Vector Descent",
     category: "Games & Entertainment",
     icon: "🌕",
-    description: "Precision vector thruster & fuel simulator across Moon, Mars & Titan craters with multiplier landing pads",
+    description:
+      "Precision vector thruster & fuel simulator across Moon, Mars & Titan craters with multiplier landing pads",
   },
   cyber2048_studio: {
     displayName: "Codecaine Cyber2048 Quantum Merge",
     category: "Games & Entertainment",
     icon: "🔢",
-    description: "Power-of-2 sliding neon tile synthesizer with 3x3/4x4/5x5 grids, temporal undo, tile zap & AI expectimax hints",
+    description:
+      "Power-of-2 sliding neon tile synthesizer with 3x3/4x4/5x5 grids, temporal undo, tile zap & AI expectimax hints",
   },
   sokoban_studio: {
     displayName: "Codecaine CyberCrate Sokoban",
     category: "Games & Entertainment",
     icon: "📦",
-    description: "100 verified warehouse puzzle chambers + multi-difficulty winnable random generator, AI BFS solver & deadlock warnings",
+    description:
+      "100 verified warehouse puzzle chambers + multi-difficulty winnable random generator, AI BFS solver & deadlock warnings",
   },
   reversi_checkers_studio: {
     displayName: "Codecaine CyberReversi & Checkers AI",
     category: "Games & Entertainment",
     icon: "⚫",
-    description: "Dual 8x8 strategy suite: Reversi (Othello) & Championship Checkers with 3-tier Minimax AI, flip previews & 2P local",
+    description:
+      "Dual 8x8 strategy suite: Reversi (Othello) & Championship Checkers with 3-tier Minimax AI, flip previews & 2P local",
   },
   uno_studio: {
     displayName: "Codecaine UNO Royale: Wild Cascade Edition",
     category: "Games & Entertainment",
     icon: "🎴",
-    description: "Realistic 4-player tabletop UNO with authentic vector cards, +2/+4 Stacking, 7-0 Hand Swap, UNO Catch & 500-Pt Cup",
+    description:
+      "Realistic 4-player tabletop UNO with authentic vector cards, +2/+4 Stacking, 7-0 Hand Swap, UNO Catch & 500-Pt Cup",
   },
   bowling_studio: {
     displayName: "Codecaine CyberStrike Bowling: 300 Perfect Club",
     category: "Games & Entertainment",
     icon: "🎳",
-    description: "AAA 3D-perspective 10-frame PBA bowling with lane oil hook physics, 10-pin domino scatter, split clinic & 300 Perfect Club",
+    description:
+      "AAA 3D-perspective 10-frame PBA bowling with lane oil hook physics, 10-pin domino scatter, split clinic & 300 Perfect Club",
   },
   darts_studio: {
     displayName: "Codecaine Pro Darts Royale: 501 & Cricket Arena",
     category: "Games & Entertainment",
     icon: "🎯",
-    description: "14-game Pro Darts Arena (501, 301, 701, Cricket, Cut-Throat, Tactics, Shanghai, Killer, Bob's 27, Halve-It, Baseball & Golf) with 4-tier Ballistics",
+    description:
+      "14-game Pro Darts Arena (501, 301, 701, Cricket, Cut-Throat, Tactics, Shanghai, Killer, Bob's 27, Halve-It, Baseball & Golf) with 4-tier Ballistics",
   },
   bejeweled_studio: {
-    displayName: "Codecaine CyberJewel 12-Mode Blitz: Diamond Mine & Prism Royale",
+    displayName:
+      "Codecaine CyberJewel 12-Mode Blitz: Diamond Mine & Prism Royale",
     category: "Games & Entertainment",
     icon: "💎",
-    description: "12-mode Match-3 gem symphony with 3D ray-traced jewelry shaders, interactive Mini-Game Stage Canvas & active [SPACE] gadgets",
+    description:
+      "12-mode Match-3 gem symphony with 3D ray-traced jewelry shaders, interactive Mini-Game Stage Canvas & active [SPACE] gadgets",
   },
   balloon_fight_studio: {
     displayName: "Codecaine CyberBalloon Fight: Sky Joust & Storm Trip",
     category: "Games & Entertainment",
     icon: "🎈",
-    description: "6-mode NES Balloon Fight & Balloon Trip remaster: Sky Arena, Endless Lightning Trip, Roguelike Perks, Boss Storm, 2P Co-Op & 2P Dogfight",
+    description:
+      "6-mode NES Balloon Fight & Balloon Trip remaster: Sky Arena, Endless Lightning Trip, Roguelike Perks, Boss Storm, 2P Co-Op & 2P Dogfight",
   },
   marble_madness_studio: {
     displayName: "Codecaine CyberMarble Madness: Isometric Gravity Odyssey",
     category: "Games & Entertainment",
     icon: "🔮",
-    description: "8-mode 3D isometric Marble Madness & Marble Blast suite with slope gravity, Black Steel Knockers, Gem Hunt, Tilt Labyrinth & 2P Race",
+    description:
+      "8-mode 3D isometric Marble Madness & Marble Blast suite with slope gravity, Black Steel Knockers, Gem Hunt, Tilt Labyrinth & 2P Race",
   },
   mappy_studio: {
     displayName: "Codecaine CyberMappy: Mansion Heist & Trampoline Police",
     category: "Games & Entertainment",
     icon: "🐭",
-    description: "8-mode Namco Mappy mansion remaster with color-changing trampolines, Microwave Shockwave Doors, Goro loot multipliers & Roof Balloon Bonus",
+    description:
+      "8-mode Namco Mappy mansion remaster with color-changing trampolines, Microwave Shockwave Doors, Goro loot multipliers & Roof Balloon Bonus",
   },
   cyber_maker_studio: {
     displayName: "Codecaine CyberMaker Studio: OS Kernel World Architect",
     category: "Games & Entertainment",
     icon: "🏗️",
-    description: "Super Mario Maker-style level architect & platformer with Linux Tux, macOS Dock/Beachball, FreeBSD Beastie & Windows BSOD/Clippy objects",
+    description:
+      "Super Mario Maker-style level architect & platformer with Linux Tux, macOS Dock/Beachball, FreeBSD Beastie & Windows BSOD/Clippy objects",
   },
   lemmings_studio: {
     displayName: "Codecaine CyberLemmings: Kernel Thread Rescue",
     category: "Games & Entertainment",
     icon: "🧵",
-    description: "8-mode destructible terrain puzzle with 8 assignable daemon thread roles (Climber, Floater, Bomber, Blocker, Builder, Basher, Miner, Digger)",
+    description:
+      "8-mode destructible terrain puzzle with 8 assignable daemon thread roles (Climber, Floater, Bomber, Blocker, Builder, Basher, Miner, Digger)",
   },
   lode_runner_studio: {
     displayName: "Codecaine CyberLode: Gold Cache Heist",
     category: "Games & Entertainment",
     icon: "⛏️",
-    description: "8-mode Lode Runner remaster with brick floor drilling, AI guard trapping, monkey-bar zip-lines, escape ladders & built-in level editor",
+    description:
+      "8-mode Lode Runner remaster with brick floor drilling, AI guard trapping, monkey-bar zip-lines, escape ladders & built-in level editor",
   },
   chuchu_rocket_studio: {
     displayName: "Codecaine CyberRocket: Arrow Tile Panic",
     category: "Games & Entertainment",
     icon: "🚀",
-    description: "8-mode Dreamcast ChuChu Rocket! action puzzle: place directional arrows to herd mice into your rocket while routing cats into AI rivals",
+    description:
+      "8-mode Dreamcast ChuChu Rocket! action puzzle: place directional arrows to herd mice into your rocket while routing cats into AI rivals",
   },
   rampart_studio: {
     displayName: "Codecaine CyberRampart: Fortress Build & Cannon Siege",
     category: "Games & Entertainment",
     icon: "🏰",
-    description: "8-mode 3-phase Rampart strategy arcade: deploy cannons, bombard invading warships, and patch castle walls with Tetris polyominoes",
+    description:
+      "8-mode 3-phase Rampart strategy arcade: deploy cannons, bombard invading warships, and patch castle walls with Tetris polyominoes",
   },
   qix_studio: {
     displayName: "Codecaine CyberQix: Laser Territory Claim",
     category: "Games & Entertainment",
     icon: "⚡",
-    description: "8-mode Qix & Volfied laser territory slicer with harmonic plasma Qix, Split-Qix multipliers, Sparx patrols & Volfied power cubes",
+    description:
+      "8-mode Qix & Volfied laser territory slicer with harmonic plasma Qix, Split-Qix multipliers, Sparx patrols & Volfied power cubes",
   },
   magical_drop_studio: {
     displayName: "Codecaine CyberDrop: Grab & Throw Chain Blitz",
     category: "Games & Entertainment",
     icon: "🃏",
-    description: "8-mode Neo-Geo Magical Drop III & Money Idol Exchanger action puzzle with 6 Tarot Arcana fighters, Ice/Rainbow orbs & cascade chains",
+    description:
+      "8-mode Neo-Geo Magical Drop III & Money Idol Exchanger action puzzle with 6 Tarot Arcana fighters, Ice/Rainbow orbs & cascade chains",
   },
   peggle_studio: {
     displayName: "Codecaine CyberPeggle: Extreme Pachinko Odyssey",
     category: "Games & Entertainment",
     icon: "🌈",
-    description: "8-mode Peggle pachinko spectacle with 25 Orange Pegs, 8 Zen Master power-ups, slow-motion zoom & Ode to Joy Extreme Fever fanfare",
+    description:
+      "8-mode Peggle pachinko spectacle with 25 Orange Pegs, 8 Zen Master power-ups, slow-motion zoom & Ode to Joy Extreme Fever fanfare",
   },
   memory_match_studio: {
     displayName: "Codecaine CyberRecall Royale: Holo-Vault Memory Match",
     category: "Games & Entertainment",
     icon: "🧠",
-    description: "8-mode 3D Hologram Card-Flip & Memory Match Casino Royale with 5 Deck Themes, Triad Match-3, 60s Blitz, Minefield & VS Neural AI Duel",
+    description:
+      "8-mode 3D Hologram Card-Flip & Memory Match Casino Royale with 5 Deck Themes, Triad Match-3, 60s Blitz, Minefield & VS Neural AI Duel",
   },
   vampire_survivors_studio: {
     displayName: "Codecaine NightSavior: Vampire Survivors & Dark Force",
     category: "Games & Entertainment",
     icon: "🧛",
-    description: "8-mode Gothic Bullet-Heaven & Vampire Savior Dark Force Odyssey with 6 Night-Lords, 10 Weapon Evolutions, Chest Jackpots & 1v1 Darkstalker Duel",
+    description:
+      "8-mode Gothic Bullet-Heaven & Vampire Savior Dark Force Odyssey with 6 Night-Lords, 10 Weapon Evolutions, Chest Jackpots & 1v1 Darkstalker Duel",
   },
   game_show_studio: {
     displayName: "Codecaine Mr. Game Show Royale: TV Studio Mega-Pack",
     category: "Games & Entertainment",
     icon: "🎩",
-    description: "8-in-1 TV Game Show Mega-Studio: Wheel of Fortune, Press Your Luck No Whammies, Survey Feud, Cyber-Jeopardy, Plinko, Deal Cases & Millionaire",
+    description:
+      "8-in-1 TV Game Show Mega-Studio: Wheel of Fortune, Press Your Luck No Whammies, Survey Feud, Cyber-Jeopardy, Plinko, Deal Cases & Millionaire",
   },
   slots_studio: {
     displayName: "Codecaine Vegas Jackpot Slots Royale: Hold & Spin",
     category: "Games & Entertainment",
     icon: "🎰",
-    description: "8-machine Vegas High-Limit Casino Slots suite with Lightning Link Hold & Spin, 4 Progressive Jackpots, Buffalo Stampede, Cascading Gems & Free Spins",
+    description:
+      "8-machine Vegas High-Limit Casino Slots suite with Lightning Link Hold & Spin, 4 Progressive Jackpots, Buffalo Stampede, Cascading Gems & Free Spins",
   },
   tictactoe_studio: {
     displayName: "Codecaine Neon Tic-Tac-Toe Arcade",
     category: "Games & Entertainment",
     icon: "❌",
-    description: "Unbeatable Minimax AI and 2-player local versus battle with glowing neon canvas & audio synthesis",
+    description:
+      "Unbeatable Minimax AI and 2-player local versus battle with glowing neon canvas & audio synthesis",
   },
   word_search_studio: {
     displayName: "Codecaine Neon Word Search Labyrinth",
     category: "Games & Entertainment",
     icon: "🔤",
-    description: "AAA cyber word search with Web Audio synthesizer, neon particle visual effects & procedural dictionaries",
+    description:
+      "AAA cyber word search with Web Audio synthesizer, neon particle visual effects & procedural dictionaries",
   },
   world_time_zones_studio: {
     displayName: "World Time Zones Studio Pro",
     category: "Productivity & Text",
     icon: "🌐",
-    description: "Real-time global time zones workstation with interactive search, UTC offsets & local clock synchronization",
+    description:
+      "Real-time global time zones workstation with interactive search, UTC offsets & local clock synchronization",
   },
   color_studio: {
     displayName: "Color Palette Studio Pro",
     category: "Design & UX",
     icon: "🎨",
-    description: "Color token generator, WCAG contrast analyzer & palette harmonizer",
+    description:
+      "Color token generator, WCAG contrast analyzer & palette harmonizer",
   },
   env_studio: {
     displayName: "Environment Variable Studio",
     category: "Developer Tools",
     icon: "🔐",
-    description: "Secure .env configuration manager, secret vault & encryption workbench",
+    description:
+      "Secure .env configuration manager, secret vault & encryption workbench",
   },
   crypto_studio: {
     displayName: "Cryptography & Hashing Studio",
     category: "Security & Crypto",
     icon: "🔒",
-    description: "SHA-256, HMAC, AES-GCM cipher workbench with password entropy testing",
+    description:
+      "SHA-256, HMAC, AES-GCM cipher workbench with password entropy testing",
   },
   dataconvert_studio: {
     displayName: "Data Format Converter Studio",
     category: "Developer Tools",
     icon: "🔄",
-    description: "Instant converter between JSON, YAML, TOML, CSV, XML & TS interfaces",
+    description:
+      "Instant converter between JSON, YAML, TOML, CSV, XML & TS interfaces",
   },
   regex_studio: {
     displayName: "Regex Pattern Testing Studio",
     category: "Developer Tools",
     icon: "🎯",
-    description: "Interactive regex validator with match highlight, group capture & cheat-sheet",
+    description:
+      "Interactive regex validator with match highlight, group capture & cheat-sheet",
   },
   jq_studio: {
     displayName: "JQ JSON Query Studio",
     category: "Developer Tools",
     icon: "📋",
-    description: "Interactive JSON query & transformation workstation powered by native JQ filters",
+    description:
+      "Interactive JSON query & transformation workstation powered by native JQ filters",
   },
   json_studio: {
     displayName: "JSON Formatter & Validator",
     category: "Developer Tools",
     icon: "📄",
-    description: "High-speed syntax validator, schema checker & minifier/beautifier",
+    description:
+      "High-speed syntax validator, schema checker & minifier/beautifier",
   },
   gdu_studio: {
     displayName: "Disk Usage Studio (GDU)",
     category: "File & Directory Tools",
     icon: "💾",
-    description: "Fast disk usage analyzer with interactive directory space allocation",
+    description:
+      "Fast disk usage analyzer with interactive directory space allocation",
   },
   tokei_studio: {
     displayName: "Code Statistics Studio (Tokei)",
     category: "Developer Tools",
     icon: "📊",
-    description: "Lines of code counter, comment-to-code ratio & language breakdown",
+    description:
+      "Lines of code counter, comment-to-code ratio & language breakdown",
   },
   ipinfo_studio: {
     displayName: "IP Geolocation Studio",
     category: "Network & Cloud",
     icon: "🌍",
-    description: "Public IP resolver, ASN lookup, geo-coordinates & WHOIS inspector",
+    description:
+      "Public IP resolver, ASN lookup, geo-coordinates & WHOIS inspector",
   },
   doggo_studio: {
     displayName: "DNS Query Studio (Doggo)",
     category: "Network & Cloud",
     icon: "🐕",
-    description: "Modern DNS lookup client with DoH, DoT, trace recursion & record browser",
+    description:
+      "Modern DNS lookup client with DoH, DoT, trace recursion & record browser",
   },
   subfinder_studio: {
     displayName: "Subdomain Finder Studio",
     category: "Security & Crypto",
     icon: "🕵️",
-    description: "Passive DNS and Certificate Transparency subdomain discovery engine",
+    description:
+      "Passive DNS and Certificate Transparency subdomain discovery engine",
   },
   sd_studio: {
     displayName: "Stream Editor Studio (SD)",
     category: "Developer Tools",
     icon: "✏️",
-    description: "Intuitive find & replace utility with string, regex & dry-run diff preview",
+    description:
+      "Intuitive find & replace utility with string, regex & dry-run diff preview",
   },
   watcher_studio: {
     displayName: "Filesystem Watcher Studio",
     category: "Developer Tools",
     icon: "👀",
-    description: "Live filesystem trigger dispatcher and task runner on file changes",
+    description:
+      "Live filesystem trigger dispatcher and task runner on file changes",
   },
   watchexec_studio: {
     displayName: "WatchExec Studio Pro",
     category: "Developer Tools",
     icon: "⏱️",
-    description: "Automated command execution engine reacting to directory updates",
+    description:
+      "Automated command execution engine reacting to directory updates",
   },
   subprocess_pipe_studio: {
     displayName: "Subprocess Pipe Pro",
     category: "Developer Tools",
     icon: "🔀",
-    description: "Multi-stage subprocess orchestrator, stream pipelining (stdout ➔ stdin), privilege elevation & shell master",
+    description:
+      "Multi-stage subprocess orchestrator, stream pipelining (stdout ➔ stdin), privilege elevation & shell master",
   },
   brew_studio: {
     displayName: "Homebrew Package Studio",
@@ -694,7 +812,8 @@ export const KNOWN_STUDIO_META: Record<
     displayName: "Unified Database Studio",
     category: "Database & Storage",
     icon: "🗄️",
-    description: "Universal SQL query runner and connection dispatcher for SQLite & Redis",
+    description:
+      "Universal SQL query runner and connection dispatcher for SQLite & Redis",
   },
 };
 
@@ -711,13 +830,16 @@ const KNOWN_DEMO_TITLES: Record<string, string> = {
   "10_db_studio_query_editor_template": "DB Query Editor & Schema Viewer",
   "11_app_settings_preferences_template": "App Preferences & Settings Modal",
   "12_advanced_desktop_app_controls": "Advanced Desktop Application Controls",
-  "13_productivity_controls_studio": "Modern Productivity UI Controls (Kanban/Tabs)",
+  "13_productivity_controls_studio":
+    "Modern Productivity UI Controls (Kanban/Tabs)",
   "14_simplegui_fluent_form_demo": "SimpleGUI Fluent Form Builder",
-  "15_simplegui_all_controls_showcase": "All SimpleGUI Controls Complete Showcase",
+  "15_simplegui_all_controls_showcase":
+    "All SimpleGUI Controls Complete Showcase",
   "16_simplegui_parity_api_demo": "SimpleGUI Parity API Demo",
   "17_simplegui_layout_types_showcase": "Layout Systems (Stack/Row/Grid/Card)",
   "18_simplegui_ergonomics_demo": "Zero-Boilerplate Ergonomics Demo",
-  "19_state_persistence_and_binding_demo": "State Persistence & Reactive Binding",
+  "19_state_persistence_and_binding_demo":
+    "State Persistence & Reactive Binding",
   "20_codefreelance_theme_demo": "CodeFreelance Theme Showcase",
   "21_vlang_parity_controls_showcase": "V-Lang GUI Parity Controls Showcase",
   "22_context_menu_and_menu_demo": "Native Menus & Context Menu Actions",
@@ -730,7 +852,10 @@ const KNOWN_DEMO_TITLES: Record<string, string> = {
 
 /** History lives next to the project; LAUNCHER_HISTORY_FILE overrides it (used by tests). */
 function historyFile(): string {
-  return process.env.LAUNCHER_HISTORY_FILE || resolve(process.cwd(), ".launcher_history.json");
+  return (
+    process.env.LAUNCHER_HISTORY_FILE ||
+    resolve(process.cwd(), ".launcher_history.json")
+  );
 }
 
 export function loadHistory(): HistoryData {
@@ -740,8 +865,13 @@ export function loadHistory(): HistoryData {
       const parsed = JSON.parse(readFileSync(file, "utf-8"));
       // Tolerate hand-edited or older files with missing/invalid fields.
       return {
-        favorites: Array.isArray(parsed?.favorites) ? parsed.favorites.filter((f: any) => typeof f === "string") : [],
-        launchHistory: parsed?.launchHistory && typeof parsed.launchHistory === "object" ? parsed.launchHistory : {},
+        favorites: Array.isArray(parsed?.favorites)
+          ? parsed.favorites.filter((f: any) => typeof f === "string")
+          : [],
+        launchHistory:
+          parsed?.launchHistory && typeof parsed.launchHistory === "object"
+            ? parsed.launchHistory
+            : {},
       };
     }
   } catch {}
@@ -809,7 +939,7 @@ export function getRunningProcesses(): RunningProcessInfo[] {
         "-NoProfile",
         "-NonInteractive",
         "-Command",
-        "Get-CimInstance Win32_Process | ForEach-Object { \"$($_.ProcessId)`t$($_.Name)`t$($_.CommandLine)\" }",
+        'Get-CimInstance Win32_Process | ForEach-Object { "$($_.ProcessId)`t$($_.Name)`t$($_.CommandLine)" }',
       ]);
       if (proc.exitCode !== 0) {
         const tl = Bun.spawnSync(["tasklist.exe", "/fo", "csv", "/nh"]);
@@ -891,7 +1021,10 @@ export function getAliveChildren(id: string): ActiveChildProcessInfo[] {
   return alive;
 }
 
-export function registerChildProcess(id: string, info: ActiveChildProcessInfo): void {
+export function registerChildProcess(
+  id: string,
+  info: ActiveChildProcessInfo,
+): void {
   const list = getAliveChildren(id);
   list.push(info);
   ACTIVE_CHILD_PROCESSES.set(id, list);
@@ -904,7 +1037,9 @@ export function unregisterChildProcess(id: string, pid?: number): void {
   }
   const list = ACTIVE_CHILD_PROCESSES.get(id);
   if (!list) return;
-  const remaining = list.filter((item) => item.pid !== pid && isPidAlive(item.pid));
+  const remaining = list.filter(
+    (item) => item.pid !== pid && isPidAlive(item.pid),
+  );
   if (remaining.length === 0) {
     ACTIVE_CHILD_PROCESSES.delete(id);
   } else {
@@ -1006,8 +1141,16 @@ export function getCategoryIcon(cat: string): string {
  * Resiliently tests whether an application's category matches the user-selected category choice,
  * supporting exact names, abbreviations, emojis, and aliases (e.g. Games, Game, Arcade, Database, DevTools).
  */
-export function matchAppCategory(appCategory: string, selectedChoice: string): boolean {
-  if (!selectedChoice || selectedChoice.includes("All Categories") || selectedChoice.includes("All Tools")) return true;
+export function matchAppCategory(
+  appCategory: string,
+  selectedChoice: string,
+): boolean {
+  if (
+    !selectedChoice ||
+    selectedChoice.includes("All Categories") ||
+    selectedChoice.includes("All Tools")
+  )
+    return true;
   const choiceLower = selectedChoice.toLowerCase();
   const appCatLower = appCategory.toLowerCase();
 
@@ -1026,7 +1169,10 @@ export function matchAppCategory(appCategory: string, selectedChoice: string): b
 
   // 3. Database & Storage aliases
   if (
-    (choiceLower.includes("database") || choiceLower.includes("storage") || choiceLower.includes("db") || choiceLower.includes("sql")) &&
+    (choiceLower.includes("database") ||
+      choiceLower.includes("storage") ||
+      choiceLower.includes("db") ||
+      choiceLower.includes("sql")) &&
     appCatLower.includes("database")
   ) {
     return true;
@@ -1034,7 +1180,9 @@ export function matchAppCategory(appCategory: string, selectedChoice: string): b
 
   // 4. Developer Tools aliases
   if (
-    (choiceLower.includes("developer") || choiceLower.includes("devtools") || choiceLower.includes("dev")) &&
+    (choiceLower.includes("developer") ||
+      choiceLower.includes("devtools") ||
+      choiceLower.includes("dev")) &&
     appCatLower.includes("developer")
   ) {
     return true;
@@ -1042,7 +1190,9 @@ export function matchAppCategory(appCategory: string, selectedChoice: string): b
 
   // 5. System & Hardware aliases
   if (
-    (choiceLower.includes("system") || choiceLower.includes("hardware") || choiceLower.includes("sys")) &&
+    (choiceLower.includes("system") ||
+      choiceLower.includes("hardware") ||
+      choiceLower.includes("sys")) &&
     appCatLower.includes("system")
   ) {
     return true;
@@ -1050,7 +1200,10 @@ export function matchAppCategory(appCategory: string, selectedChoice: string): b
 
   // 6. File & Directory Tools aliases
   if (
-    (choiceLower.includes("file") || choiceLower.includes("directory") || choiceLower.includes("dir") || choiceLower.includes("disk")) &&
+    (choiceLower.includes("file") ||
+      choiceLower.includes("directory") ||
+      choiceLower.includes("dir") ||
+      choiceLower.includes("disk")) &&
     appCatLower.includes("file")
   ) {
     return true;
@@ -1058,7 +1211,9 @@ export function matchAppCategory(appCategory: string, selectedChoice: string): b
 
   // 7. Network & Cloud aliases
   if (
-    (choiceLower.includes("network") || choiceLower.includes("cloud") || choiceLower.includes("net")) &&
+    (choiceLower.includes("network") ||
+      choiceLower.includes("cloud") ||
+      choiceLower.includes("net")) &&
     appCatLower.includes("network")
   ) {
     return true;
@@ -1066,7 +1221,9 @@ export function matchAppCategory(appCategory: string, selectedChoice: string): b
 
   // 8. Productivity & Text aliases
   if (
-    (choiceLower.includes("productivity") || choiceLower.includes("text") || choiceLower.includes("prod")) &&
+    (choiceLower.includes("productivity") ||
+      choiceLower.includes("text") ||
+      choiceLower.includes("prod")) &&
     appCatLower.includes("productivity")
   ) {
     return true;
@@ -1074,17 +1231,16 @@ export function matchAppCategory(appCategory: string, selectedChoice: string): b
 
   // 9. Security & Crypto aliases
   if (
-    (choiceLower.includes("security") || choiceLower.includes("crypto") || choiceLower.includes("sec")) &&
+    (choiceLower.includes("security") ||
+      choiceLower.includes("crypto") ||
+      choiceLower.includes("sec")) &&
     appCatLower.includes("security")
   ) {
     return true;
   }
 
   // 10. Design & UX / Media aliases
-  if (
-    choiceLower.includes("design") &&
-    appCatLower.includes("design")
-  ) {
+  if (choiceLower.includes("design") && appCatLower.includes("design")) {
     return true;
   }
 
@@ -1097,15 +1253,15 @@ export function matchAppCategory(appCategory: string, selectedChoice: string): b
   }
 
   // 12. CLI Utilities aliases
-  if (
-    choiceLower.includes("cli") &&
-    appCatLower.includes("cli")
-  ) {
+  if (choiceLower.includes("cli") && appCatLower.includes("cli")) {
     return true;
   }
 
   // Fallback: strip leading non-alphanumeric chars (emojis, spaces) and count suffix
-  const clean = choiceLower.replace(/^[^\p{L}\p{N}]+/u, "").replace(/\s*\(\d+\)\s*$/, "").trim();
+  const clean = choiceLower
+    .replace(/^[^\p{L}\p{N}]+/u, "")
+    .replace(/\s*\(\d+\)\s*$/, "")
+    .trim();
   if (clean && (appCatLower.includes(clean) || clean.includes(appCatLower))) {
     return true;
   }
@@ -1148,7 +1304,7 @@ export function scanWorkspaceApps(): DetectedApp[] {
             !f.includes("_engine.") &&
             !f.includes("_ops.") &&
             f !== "launcher_studio.ts" &&
-            !NON_APP_MODULES.has(f)
+            !NON_APP_MODULES.has(f),
         )
         .sort();
 
@@ -1169,8 +1325,8 @@ export function scanWorkspaceApps(): DetectedApp[] {
           instanceCount = children.length;
         }
         if (!isRunning) {
-          const matchedProc = runningProcs.find(
-            (p) => isScriptProcess(p.comm, p.args, relPath)
+          const matchedProc = runningProcs.find((p) =>
+            isScriptProcess(p.comm, p.args, relPath),
           );
           if (matchedProc) {
             isRunning = true;
@@ -1211,7 +1367,10 @@ export function scanWorkspaceApps(): DetectedApp[] {
   if (existsSync(cliDir)) {
     try {
       const files = readdirSync(cliDir)
-        .filter((f) => (f.endsWith(".ts") || f.endsWith(".js")) && !f.endsWith(".d.ts"))
+        .filter(
+          (f) =>
+            (f.endsWith(".ts") || f.endsWith(".js")) && !f.endsWith(".d.ts"),
+        )
         .sort();
 
       for (const file of files) {
@@ -1231,8 +1390,8 @@ export function scanWorkspaceApps(): DetectedApp[] {
           instanceCount = children.length;
         }
         if (!isRunning) {
-          const matchedProc = runningProcs.find(
-            (p) => isScriptProcess(p.comm, p.args, relPath)
+          const matchedProc = runningProcs.find((p) =>
+            isScriptProcess(p.comm, p.args, relPath),
           );
           if (matchedProc) {
             isRunning = true;
@@ -1273,7 +1432,10 @@ export function scanWorkspaceApps(): DetectedApp[] {
   if (existsSync(demosDir)) {
     try {
       const files = readdirSync(demosDir)
-        .filter((f) => (f.endsWith(".ts") || f.endsWith(".js")) && !f.endsWith(".d.ts"))
+        .filter(
+          (f) =>
+            (f.endsWith(".ts") || f.endsWith(".js")) && !f.endsWith(".d.ts"),
+        )
         .sort();
 
       for (const file of files) {
@@ -1293,8 +1455,8 @@ export function scanWorkspaceApps(): DetectedApp[] {
           instanceCount = children.length;
         }
         if (!isRunning) {
-          const matchedProc = runningProcs.find(
-            (p) => isScriptProcess(p.comm, p.args, relPath)
+          const matchedProc = runningProcs.find((p) =>
+            isScriptProcess(p.comm, p.args, relPath),
           );
           if (matchedProc) {
             isRunning = true;
@@ -1379,7 +1541,9 @@ export function getBunExecutable(): string {
   if (process.execPath && existsSync(process.execPath)) {
     return process.execPath;
   }
-  const whichBun = Bun.which("bun") || (process.platform === "win32" ? Bun.which("bun.exe") : null);
+  const whichBun =
+    Bun.which("bun") ||
+    (process.platform === "win32" ? Bun.which("bun.exe") : null);
   if (whichBun && existsSync(whichBun)) {
     return whichBun;
   }
@@ -1416,7 +1580,9 @@ export function ensureWebView2Loader(projectRoot = process.cwd()): boolean {
     return true;
   }
 
-  try { mkdirSync(buildDir, { recursive: true }); } catch {}
+  try {
+    mkdirSync(buildDir, { recursive: true });
+  } catch {}
 
   const localApp = process.env.LOCALAPPDATA || "";
   const searchRoots = [
@@ -1442,7 +1608,10 @@ export function ensureWebView2Loader(projectRoot = process.cwd()): boolean {
         const entries = readdirSync(dir, { withFileTypes: true });
         for (const e of entries) {
           const full = join(dir, e.name);
-          if (!e.isDirectory() && e.name.toLowerCase() === "webview2loader.dll") {
+          if (
+            !e.isDirectory() &&
+            e.name.toLowerCase() === "webview2loader.dll"
+          ) {
             return full;
           } else if (e.isDirectory()) {
             const res = findDll(full, depth + 1);
@@ -1483,7 +1652,13 @@ export function getAvailableLinuxTerminal(): {
   if (envTerm && check(envTerm)) {
     return {
       binary: envTerm,
-      buildArgs: (cmd, cwd) => [envTerm, "-e", "bash", "-c", `cd "${cwd.replace(/"/g, '\\"')}" && ${cmd}; exec bash`],
+      buildArgs: (cmd, cwd) => [
+        envTerm,
+        "-e",
+        "bash",
+        "-c",
+        `cd "${cwd.replace(/"/g, '\\"')}" && ${cmd}; exec bash`,
+      ],
     };
   }
 
@@ -1493,55 +1668,136 @@ export function getAvailableLinuxTerminal(): {
   }> = [
     {
       binary: "gnome-terminal",
-      buildArgs: (cmd, cwd) => ["gnome-terminal", `--working-directory=${cwd}`, "--", "bash", "-c", `${cmd}; exec bash`],
+      buildArgs: (cmd, cwd) => [
+        "gnome-terminal",
+        `--working-directory=${cwd}`,
+        "--",
+        "bash",
+        "-c",
+        `${cmd}; exec bash`,
+      ],
     },
     {
       binary: "ptyxis",
-      buildArgs: (cmd, cwd) => ["ptyxis", `--working-directory=${cwd}`, "--", "bash", "-c", `${cmd}; exec bash`],
+      buildArgs: (cmd, cwd) => [
+        "ptyxis",
+        `--working-directory=${cwd}`,
+        "--",
+        "bash",
+        "-c",
+        `${cmd}; exec bash`,
+      ],
     },
     {
       binary: "konsole",
-      buildArgs: (cmd, cwd) => ["konsole", "--workdir", cwd, "-e", "bash", "-c", `${cmd}; exec bash`],
+      buildArgs: (cmd, cwd) => [
+        "konsole",
+        "--workdir",
+        cwd,
+        "-e",
+        "bash",
+        "-c",
+        `${cmd}; exec bash`,
+      ],
     },
     {
       binary: "xfce4-terminal",
-      buildArgs: (cmd, cwd) => ["xfce4-terminal", `--working-directory=${cwd}`, "-e", `bash -c "${cmd.replace(/"/g, '\\"')}; exec bash"`],
+      buildArgs: (cmd, cwd) => [
+        "xfce4-terminal",
+        `--working-directory=${cwd}`,
+        "-e",
+        `bash -c "${cmd.replace(/"/g, '\\"')}; exec bash"`,
+      ],
     },
     {
       binary: "mate-terminal",
-      buildArgs: (cmd, cwd) => ["mate-terminal", `--working-directory=${cwd}`, "-e", `bash -c "${cmd.replace(/"/g, '\\"')}; exec bash"`],
+      buildArgs: (cmd, cwd) => [
+        "mate-terminal",
+        `--working-directory=${cwd}`,
+        "-e",
+        `bash -c "${cmd.replace(/"/g, '\\"')}; exec bash"`,
+      ],
     },
     {
       binary: "kitty",
-      buildArgs: (cmd, cwd) => ["kitty", "--directory", cwd, "bash", "-c", `${cmd}; exec bash`],
+      buildArgs: (cmd, cwd) => [
+        "kitty",
+        "--directory",
+        cwd,
+        "bash",
+        "-c",
+        `${cmd}; exec bash`,
+      ],
     },
     {
       binary: "alacritty",
-      buildArgs: (cmd, cwd) => ["alacritty", "--working-directory", cwd, "-e", "bash", "-c", `${cmd}; exec bash`],
+      buildArgs: (cmd, cwd) => [
+        "alacritty",
+        "--working-directory",
+        cwd,
+        "-e",
+        "bash",
+        "-c",
+        `${cmd}; exec bash`,
+      ],
     },
     {
       binary: "foot",
-      buildArgs: (cmd, cwd) => ["foot", "-D", cwd, "bash", "-c", `${cmd}; exec bash`],
+      buildArgs: (cmd, cwd) => [
+        "foot",
+        "-D",
+        cwd,
+        "bash",
+        "-c",
+        `${cmd}; exec bash`,
+      ],
     },
     {
       binary: "terminator",
-      buildArgs: (cmd, cwd) => ["terminator", `--working-directory=${cwd}`, "-e", `bash -c "${cmd.replace(/"/g, '\\"')}; exec bash"`],
+      buildArgs: (cmd, cwd) => [
+        "terminator",
+        `--working-directory=${cwd}`,
+        "-e",
+        `bash -c "${cmd.replace(/"/g, '\\"')}; exec bash"`,
+      ],
     },
     {
       binary: "tilix",
-      buildArgs: (cmd, cwd) => ["tilix", `--working-directory=${cwd}`, "-e", `bash -c "${cmd.replace(/"/g, '\\"')}; exec bash"`],
+      buildArgs: (cmd, cwd) => [
+        "tilix",
+        `--working-directory=${cwd}`,
+        "-e",
+        `bash -c "${cmd.replace(/"/g, '\\"')}; exec bash"`,
+      ],
     },
     {
       binary: "lxterminal",
-      buildArgs: (cmd, cwd) => ["lxterminal", `--working-directory=${cwd}`, "-e", `bash -c "${cmd.replace(/"/g, '\\"')}; exec bash"`],
+      buildArgs: (cmd, cwd) => [
+        "lxterminal",
+        `--working-directory=${cwd}`,
+        "-e",
+        `bash -c "${cmd.replace(/"/g, '\\"')}; exec bash"`,
+      ],
     },
     {
       binary: "x-terminal-emulator",
-      buildArgs: (cmd, cwd) => ["x-terminal-emulator", "-e", "bash", "-c", `cd "${cwd.replace(/"/g, '\\"')}" && ${cmd}; exec bash`],
+      buildArgs: (cmd, cwd) => [
+        "x-terminal-emulator",
+        "-e",
+        "bash",
+        "-c",
+        `cd "${cwd.replace(/"/g, '\\"')}" && ${cmd}; exec bash`,
+      ],
     },
     {
       binary: "xterm",
-      buildArgs: (cmd, cwd) => ["xterm", "-e", "bash", "-c", `cd "${cwd.replace(/"/g, '\\"')}" && ${cmd}; exec bash`],
+      buildArgs: (cmd, cwd) => [
+        "xterm",
+        "-e",
+        "bash",
+        "-c",
+        `cd "${cwd.replace(/"/g, '\\"')}" && ${cmd}; exec bash`,
+      ],
     },
   ];
 
@@ -1561,11 +1817,14 @@ export function getAvailableLinuxTerminal(): {
 export function launchInTerminal(
   command: string,
   cwd = process.cwd(),
-  options: { dryRun?: boolean } = {}
+  options: { dryRun?: boolean } = {},
 ): { success: boolean; message: string; terminalEmulator?: string } {
   try {
     if (options.dryRun) {
-      return { success: true, message: `[Dry Run] Validated terminal launch for: ${command}` };
+      return {
+        success: true,
+        message: `[Dry Run] Validated terminal launch for: ${command}`,
+      };
     }
 
     if (process.platform === "darwin") {
@@ -1601,20 +1860,52 @@ end tell`;
 
       const proc = Bun.spawnSync(["osascript", "-e", script]);
       if (proc.exitCode === 0) {
-        return { success: true, message: `Opened CLI in macOS Terminal: ${command}`, terminalEmulator: "Terminal.app" };
+        return {
+          success: true,
+          message: `Opened CLI in macOS Terminal: ${command}`,
+          terminalEmulator: "Terminal.app",
+        };
       } else {
-        const err = proc.stderr?.toString() || proc.stdout?.toString() || "Unknown osascript error";
-        return { success: false, message: `Failed to launch Terminal on macOS: ${err}` };
+        const err =
+          proc.stderr?.toString() ||
+          proc.stdout?.toString() ||
+          "Unknown osascript error";
+        return {
+          success: false,
+          message: `Failed to launch Terminal on macOS: ${err}`,
+        };
       }
     } else if (process.platform === "win32") {
       const title = (options as any).title || "Bun RAD Studio";
       const wt = Bun.which("wt.exe") || Bun.which("wt");
       if (wt) {
-        Bun.spawn([wt, "-d", cwd, "cmd.exe", "/k", command], { cwd, detached: true });
-        return { success: true, message: `Opened CLI in Windows Terminal: ${command}`, terminalEmulator: "wt.exe" };
+        Bun.spawn([wt, "-d", cwd, "cmd.exe", "/k", command], {
+          cwd,
+          detached: true,
+        });
+        return {
+          success: true,
+          message: `Opened CLI in Windows Terminal: ${command}`,
+          terminalEmulator: "wt.exe",
+        };
       }
-      Bun.spawn(["cmd.exe", "/c", "start", title, "cmd.exe", "/k", `cd /d "${cwd}" && ${command}`], { cwd, detached: true });
-      return { success: true, message: `Opened CLI in Command Prompt: ${command}`, terminalEmulator: "cmd.exe" };
+      Bun.spawn(
+        [
+          "cmd.exe",
+          "/c",
+          "start",
+          title,
+          "cmd.exe",
+          "/k",
+          `cd /d "${cwd}" && ${command}`,
+        ],
+        { cwd, detached: true },
+      );
+      return {
+        success: true,
+        message: `Opened CLI in Command Prompt: ${command}`,
+        terminalEmulator: "cmd.exe",
+      };
     } else {
       // Linux & Unix-like desktop environments
       const linuxTerm = getAvailableLinuxTerminal();
@@ -1641,7 +1932,12 @@ end tell`;
 export async function launchApplication(
   appId: string,
   extraArgs = "",
-  options: { openTerminal?: boolean; timeoutMs?: number; onExit?: () => void; earlyExitMs?: number } = {}
+  options: {
+    openTerminal?: boolean;
+    timeoutMs?: number;
+    onExit?: () => void;
+    earlyExitMs?: number;
+  } = {},
 ): Promise<{
   success: boolean;
   message: string;
@@ -1657,7 +1953,7 @@ export async function launchApplication(
         a.id.toLowerCase() === lowerTarget ||
         a.id.toLowerCase() === `rad_${lowerTarget}` ||
         a.id.toLowerCase() === `cli_${lowerTarget}` ||
-        a.id.toLowerCase() === `demo_${lowerTarget}`
+        a.id.toLowerCase() === `demo_${lowerTarget}`,
     ) ||
     // 2. Exact script name match
     apps.find((a) => a.name.toLowerCase() === lowerTarget) ||
@@ -1668,7 +1964,7 @@ export async function launchApplication(
     apps.find(
       (a) =>
         a.name.toLowerCase().includes(lowerTarget) ||
-        a.displayName.toLowerCase().includes(lowerTarget)
+        a.displayName.toLowerCase().includes(lowerTarget),
     );
 
   if (!app) {
@@ -1679,7 +1975,12 @@ export async function launchApplication(
     const bunExe = getBunExecutable();
     const env = { ...process.env };
     if (process.platform === "win32") {
-      const buildDir = resolve(process.cwd(), "node_modules", "webview-bun", "build");
+      const buildDir = resolve(
+        process.cwd(),
+        "node_modules",
+        "webview-bun",
+        "build",
+      );
       const bunDir = resolve(bunExe, "..");
       env.PATH = `${buildDir};${bunDir};${env.PATH || ""}`;
       ensureWebView2Loader(process.cwd());
@@ -1689,7 +1990,9 @@ export async function launchApplication(
       // Launch GUI Studio application in independent detached process.
       // stderr goes to a log file so a crash on startup can be reported instead of silently vanishing.
       const logDir = join(tmpdir(), "rad_launcher_logs");
-      try { mkdirSync(logDir, { recursive: true }); } catch {}
+      try {
+        mkdirSync(logDir, { recursive: true });
+      } catch {}
       const logPath = join(logDir, `${app.id}.log`);
 
       let proc;
@@ -1705,7 +2008,7 @@ export async function launchApplication(
         if (process.platform === "win32") {
           const fallbackProc = Bun.spawn(
             ["cmd.exe", "/c", "start", "", bunExe, "run", app.path],
-            { cwd: process.cwd(), detached: true, env }
+            { cwd: process.cwd(), detached: true, env },
           );
           const pid = fallbackProc.pid;
           registerChildProcess(app.id, {
@@ -1731,24 +2034,35 @@ export async function launchApplication(
       });
 
       // Automatically prune child process record and notify when GUI app closes
-      proc.exited.then(() => {
-        unregisterChildProcess(app.id, pid);
-        if (options.onExit) {
-          try {
-            options.onExit();
-          } catch {}
-        }
-      }).catch(() => {});
+      proc.exited
+        .then(() => {
+          unregisterChildProcess(app.id, pid);
+          if (options.onExit) {
+            try {
+              options.onExit();
+            } catch {}
+          }
+        })
+        .catch(() => {});
 
       proc.unref();
 
       // If it dies almost immediately it crashed (syntax error, missing dependency, port clash...).
       const earlyMs = options.earlyExitMs ?? 800;
       if (earlyMs > 0) {
-        const early = await Promise.race([proc.exited, Bun.sleep(earlyMs).then(() => null)]);
+        const early = await Promise.race([
+          proc.exited,
+          Bun.sleep(earlyMs).then(() => null),
+        ]);
         if (early !== null && early !== 0) {
           let tail = "";
-          try { tail = readFileSync(logPath, "utf-8").trim().split("\n").slice(-12).join("\n"); } catch {}
+          try {
+            tail = readFileSync(logPath, "utf-8")
+              .trim()
+              .split("\n")
+              .slice(-12)
+              .join("\n");
+          } catch {}
           return {
             success: false,
             message: `${app.displayName} exited immediately (code ${early}).`,
@@ -1771,14 +2085,17 @@ export async function launchApplication(
       const splitArgs = parsed.length ? parsed : ["--help"];
       const fullCmd = [bunExe, "run", app.path, ...splitArgs];
       // For the terminal, format command line appropriately for current OS
-      const fullCmdStr = process.platform === "win32"
-        ? buildWindowsCommand(fullCmd)
-        : buildShellCommand(fullCmd);
+      const fullCmdStr =
+        process.platform === "win32"
+          ? buildWindowsCommand(fullCmd)
+          : buildShellCommand(fullCmd);
 
       recordLaunch(app.id);
 
       if (options.openTerminal) {
-        const termRes = launchInTerminal(fullCmdStr, process.cwd(), { title: app.displayName } as any);
+        const termRes = launchInTerminal(fullCmdStr, process.cwd(), {
+          title: app.displayName,
+        } as any);
         return {
           success: termRes.success,
           message: termRes.message,
@@ -1797,20 +2114,30 @@ export async function launchApplication(
 
       let timeoutHandle: any;
       const timeoutPromise = new Promise<{ timedOut: true }>((resolve) => {
-        timeoutHandle = setTimeout(() => resolve({ timedOut: true }), timeoutMs);
+        timeoutHandle = setTimeout(
+          () => resolve({ timedOut: true }),
+          timeoutMs,
+        );
       });
 
       const execPromise = Promise.all([
         new Response(proc.stdout).text(),
         new Response(proc.stderr).text(),
         proc.exited,
-      ]).then(([stdout, stderr, exitCode]) => ({ timedOut: false, stdout, stderr, exitCode }));
+      ]).then(([stdout, stderr, exitCode]) => ({
+        timedOut: false,
+        stdout,
+        stderr,
+        exitCode,
+      }));
 
       const outcome = await Promise.race([execPromise, timeoutPromise]);
       clearTimeout(timeoutHandle);
 
       if (outcome.timedOut) {
-        try { proc.kill(); } catch {}
+        try {
+          proc.kill();
+        } catch {}
         return {
           success: true,
           message: `Executed ${app.displayName} (Continuous / Interactive Process)`,
@@ -1819,7 +2146,11 @@ export async function launchApplication(
         };
       }
 
-      const output = (outcome.stdout || outcome.stderr || `(Command exited with code ${outcome.exitCode})`).trim();
+      const output = (
+        outcome.stdout ||
+        outcome.stderr ||
+        `(Command exited with code ${outcome.exitCode})`
+      ).trim();
 
       return {
         success: outcome.exitCode === 0,
@@ -1833,11 +2164,21 @@ export async function launchApplication(
   }
 }
 
-export function killApplication(appId: string, pid?: number): { success: boolean; message: string } {
+export function killApplication(
+  appId: string,
+  pid?: number,
+): { success: boolean; message: string } {
   if (pid !== undefined) {
     const targetPid = Number(pid);
-    if (!Number.isInteger(targetPid) || targetPid <= 1 || targetPid === process.pid) {
-      return { success: false, message: `Refusing to signal invalid or protected PID ${targetPid}.` };
+    if (
+      !Number.isInteger(targetPid) ||
+      targetPid <= 1 ||
+      targetPid === process.pid
+    ) {
+      return {
+        success: false,
+        message: `Refusing to signal invalid or protected PID ${targetPid}.`,
+      };
     }
     try {
       process.kill(targetPid, "SIGTERM");
@@ -1847,7 +2188,10 @@ export function killApplication(appId: string, pid?: number): { success: boolean
       try {
         process.kill(targetPid, "SIGKILL");
         unregisterChildProcess(appId, targetPid);
-        return { success: true, message: `Force-killed process PID ${targetPid}.` };
+        return {
+          success: true,
+          message: `Force-killed process PID ${targetPid}.`,
+        };
       } catch (e2: any) {
         unregisterChildProcess(appId, targetPid);
         return { success: false, message: e2.message };
@@ -1863,7 +2207,12 @@ export function killApplication(appId: string, pid?: number): { success: boolean
 
     for (const child of aliveChildren) {
       const childPid = child.pid;
-      if (!Number.isInteger(childPid) || childPid <= 1 || childPid === process.pid) continue;
+      if (
+        !Number.isInteger(childPid) ||
+        childPid <= 1 ||
+        childPid === process.pid
+      )
+        continue;
       try {
         process.kill(childPid, "SIGTERM");
         killedPids.push(childPid);
@@ -1883,7 +2232,10 @@ export function killApplication(appId: string, pid?: number): { success: boolean
         message: `Terminated ${killedPids.length} active instance(s) [PIDs: ${killedPids.join(", ")}].`,
       };
     }
-    return { success: false, message: errors.join("; ") || "Failed to terminate instances." };
+    return {
+      success: false,
+      message: errors.join("; ") || "Failed to terminate instances.",
+    };
   }
 
   // Fallback to external process scan
@@ -1896,13 +2248,22 @@ export function killApplication(appId: string, pid?: number): { success: boolean
   }
 
   targetPid = Number(targetPid);
-  if (!Number.isInteger(targetPid) || targetPid <= 1 || targetPid === process.pid) {
-    return { success: false, message: `Refusing to signal invalid or protected PID ${targetPid}.` };
+  if (
+    !Number.isInteger(targetPid) ||
+    targetPid <= 1 ||
+    targetPid === process.pid
+  ) {
+    return {
+      success: false,
+      message: `Refusing to signal invalid or protected PID ${targetPid}.`,
+    };
   }
 
   try {
     if (process.platform === "win32") {
-      try { Bun.spawnSync(["taskkill.exe", "/F", "/T", "/PID", String(targetPid)]); } catch {}
+      try {
+        Bun.spawnSync(["taskkill.exe", "/F", "/T", "/PID", String(targetPid)]);
+      } catch {}
     } else {
       process.kill(targetPid, "SIGTERM");
     }
@@ -1911,12 +2272,23 @@ export function killApplication(appId: string, pid?: number): { success: boolean
   } catch (err: any) {
     try {
       if (process.platform === "win32") {
-        try { Bun.spawnSync(["taskkill.exe", "/F", "/T", "/PID", String(targetPid)]); } catch {}
+        try {
+          Bun.spawnSync([
+            "taskkill.exe",
+            "/F",
+            "/T",
+            "/PID",
+            String(targetPid),
+          ]);
+        } catch {}
       } else {
         process.kill(targetPid, "SIGKILL");
       }
       unregisterChildProcess(appId);
-      return { success: true, message: `Force-killed process PID ${targetPid}.` };
+      return {
+        success: true,
+        message: `Force-killed process PID ${targetPid}.`,
+      };
     } catch (e2: any) {
       unregisterChildProcess(appId);
       return { success: false, message: e2.message };
@@ -1924,7 +2296,10 @@ export function killApplication(appId: string, pid?: number): { success: boolean
   }
 }
 
-export function revealInFinder(filePath: string): { success: boolean; message: string } {
+export function revealInFinder(filePath: string): {
+  success: boolean;
+  message: string;
+} {
   try {
     if (process.platform === "darwin") {
       Bun.spawn(["open", "-R", filePath]);
@@ -1947,17 +2322,32 @@ export function copyToClipboard(text: string): { success: boolean } {
 }
 
 /** Open a tool's source file in VS Code if installed, otherwise the OS default text editor. */
-export function openInEditor(filePath: string): { success: boolean; message: string } {
+export function openInEditor(filePath: string): {
+  success: boolean;
+  message: string;
+} {
   try {
-    if (!existsSync(filePath)) return { success: false, message: `File not found: ${filePath}` };
-    const code = Bun.which("code") || (process.platform === "win32" ? Bun.which("code.cmd") : null);
+    if (!existsSync(filePath))
+      return { success: false, message: `File not found: ${filePath}` };
+    const code =
+      Bun.which("code") ||
+      (process.platform === "win32" ? Bun.which("code.cmd") : null);
     if (code) {
       Bun.spawn([code, filePath], { stdout: "ignore", stderr: "ignore" });
       return { success: true, message: "Opened in VS Code" };
     }
-    if (process.platform === "darwin") Bun.spawn(["open", "-t", filePath], { stdout: "ignore", stderr: "ignore" });
-    else if (process.platform === "win32") Bun.spawn(["cmd.exe", "/c", "start", "", filePath.replace(/\//g, "\\")], { stdout: "ignore", stderr: "ignore" });
-    else Bun.spawn(["xdg-open", filePath], { stdout: "ignore", stderr: "ignore" });
+    if (process.platform === "darwin")
+      Bun.spawn(["open", "-t", filePath], {
+        stdout: "ignore",
+        stderr: "ignore",
+      });
+    else if (process.platform === "win32")
+      Bun.spawn(["cmd.exe", "/c", "start", "", filePath.replace(/\//g, "\\")], {
+        stdout: "ignore",
+        stderr: "ignore",
+      });
+    else
+      Bun.spawn(["xdg-open", filePath], { stdout: "ignore", stderr: "ignore" });
     return { success: true, message: "Opened in default editor" };
   } catch (err: any) {
     return { success: false, message: err.message };
@@ -1970,7 +2360,10 @@ export function stopAllApplications(): { stopped: number; messages: string[] } {
   let stopped = 0;
   for (const a of scanAllApplications().apps) {
     if (!a.isRunning) continue;
-    const r = killApplication(a.id, getAliveChildren(a.id).length ? undefined : a.pid);
+    const r = killApplication(
+      a.id,
+      getAliveChildren(a.id).length ? undefined : a.pid,
+    );
     messages.push(`${a.displayName}: ${r.message}`);
     if (r.success) stopped++;
   }
@@ -1981,7 +2374,9 @@ export function stopAllApplications(): { stopped: number; messages: string[] } {
 // Primary SimpleGUI Desktop Application Window
 // -------------------------------------------------------------------------------------------------
 
-export function createLauncherStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
+export function createLauncherStudio(
+  options: { fullscreen?: boolean; theme?: string } = {},
+): SimpleWindow {
   const fullscreen = options.fullscreen ?? true;
   const initialData = scanAllApplications();
   let currentApps = initialData.apps;
@@ -1994,7 +2389,9 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
 
   const categoryDropdownOptions = [
     `📁 All Categories (${initialData.apps.length})`,
-    ...initialData.categories.map((cat) => `${getCategoryIcon(cat)} ${cat} (${catCounts[cat] || 0})`),
+    ...initialData.categories.map(
+      (cat) => `${getCategoryIcon(cat)} ${cat} (${catCounts[cat] || 0})`,
+    ),
   ];
 
   const win = newSimpleWindow(
@@ -2006,7 +2403,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
       theme: options.theme || getSavedTheme() || "midnight",
       autoSaveState: false,
       fullscreen,
-    }
+    },
   );
 
   // 1. Top Header Row
@@ -2019,23 +2416,31 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   win.addButton("btn_save_state", "💾 Save Config");
   win.endRow();
   win.addCaption(
-    `Dedicated Project Tool Workstation  |  ${initialData.kpis.radStudios} Studio Apps  |  ${initialData.kpis.cliTools} CLI Tools  |  ${initialData.kpis.demos} Demos  |  Zero External Clutter`
+    `Dedicated Project Tool Workstation  |  ${initialData.kpis.radStudios} Studio Apps  |  ${initialData.kpis.cliTools} CLI Tools  |  ${initialData.kpis.demos} Demos  |  Zero External Clutter`,
   );
 
   // 2. Telemetry Summary Cards Row
   win.beginGroupBox("Project Tools Telemetry & Workspace Scope");
   win.beginRow();
   win.addLabel("lbl_kpi_total", `⚡ Total Tools: ${initialData.kpis.total}`);
-  win.addLabel("lbl_kpi_studios", `🖥️ Studio Applications: ${initialData.kpis.radStudios}`);
+  win.addLabel(
+    "lbl_kpi_studios",
+    `🖥️ Studio Applications: ${initialData.kpis.radStudios}`,
+  );
   win.addLabel("lbl_kpi_cli", `🛠️ CLI Utilities: ${initialData.kpis.cliTools}`);
   win.addLabel("lbl_kpi_demos", `🎮 Showcase Demos: ${initialData.kpis.demos}`);
-  win.addLabel("lbl_kpi_running", `🟢 Active Running: ${initialData.kpis.running}`);
+  win.addLabel(
+    "lbl_kpi_running",
+    `🟢 Active Running: ${initialData.kpis.running}`,
+  );
   win.addLabel("lbl_kpi_favs", `⭐ Favorites: ${initialData.kpis.favorites}`);
   win.endRow();
   win.endGroupBox();
 
   // 3. 1-Click Quick Launch Toolbar for Popular Tools & Pinned Favorites
-  win.beginGroupBox("⚡ 1-Click Quick Launch: Popular Project Studios & CLI Tools");
+  win.beginGroupBox(
+    "⚡ 1-Click Quick Launch: Popular Project Studios & CLI Tools",
+  );
   win.beginRow();
   win.addButton("btn_quick_sqlite", "🗄️ SQLite Studio");
   win.addButton("btn_quick_redis", "⚡ Redis Studio");
@@ -2102,11 +2507,21 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   // Action Dispatcher Buttons & CLI Arguments Row
   win.beginRow();
   win.addLabel("lbl_pick", "Selected Tool:");
-  win.addDropdown("dd_select_app", dropdownItems, dropdownItems[0] || "None", { width: 390 });
+  win.addDropdown("dd_select_app", dropdownItems, dropdownItems[0] || "None", {
+    width: 390,
+  });
   win.addLabel("lbl_args", "CLI Flags / Args:");
-  win.addInput("txt_cli_args", "--help", "Arguments e.g. --telemetry, --search...", { width: 140 });
+  win.addInput(
+    "txt_cli_args",
+    "--help",
+    "Arguments e.g. --telemetry, --search...",
+    { width: 140 },
+  );
   win.addButton("btn_launch", "🚀 Launch");
-  win.addButton("btn_fav", selectedApp?.isFavorite ? "★ Unfavorite" : "☆ Favorite");
+  win.addButton(
+    "btn_fav",
+    selectedApp?.isFavorite ? "★ Unfavorite" : "☆ Favorite",
+  );
   win.addButton("btn_terminal", "🖥️ Terminal");
   win.addButton("btn_run_inline", "⚡ Inline");
   win.addButton("btn_kill", "🛑 Stop");
@@ -2125,7 +2540,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   win.beginRow();
   win.addLabel(
     "lbl_listbox_info",
-    "📋 Interactive Project Tools ListBox (Click any item to select & sync, double-click or Enter to auto-launch):"
+    "📋 Interactive Project Tools ListBox (Click any item to select & sync, double-click or Enter to auto-launch):",
   );
   win.endRow();
 
@@ -2149,11 +2564,13 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
       ondblclick: "on_lst_apps_doubleclick",
       onEnter: "on_lst_apps_enter",
       onenter: "on_lst_apps_enter",
-      onKeyDown: "if(event.key==='Enter'||event.keyCode===13){event.preventDefault();if(window.on_lst_apps_enter){window.on_lst_apps_enter(this.value);}else if(window.on_lst_apps_doubleclick){window.on_lst_apps_doubleclick(this.value);}}",
+      onKeyDown:
+        "if(event.key==='Enter'||event.keyCode===13){event.preventDefault();if(window.on_lst_apps_enter){window.on_lst_apps_enter(this.value);}else if(window.on_lst_apps_doubleclick){window.on_lst_apps_doubleclick(this.value);}}",
       event_handlers: {
-        onKeyDown: "if(event.key==='Enter'||event.keyCode===13){event.preventDefault();if(window.on_lst_apps_enter){window.on_lst_apps_enter(this.value);}else if(window.on_lst_apps_doubleclick){window.on_lst_apps_doubleclick(this.value);}}",
+        onKeyDown:
+          "if(event.key==='Enter'||event.keyCode===13){event.preventDefault();if(window.on_lst_apps_enter){window.on_lst_apps_enter(this.value);}else if(window.on_lst_apps_doubleclick){window.on_lst_apps_doubleclick(this.value);}}",
       },
-    }
+    },
   );
   win.endRow();
 
@@ -2163,7 +2580,12 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   win.beginGroupBox("Catalog Search & Category Filter");
   win.beginRow();
   win.addLabel("lbl_search", "🔍 Search:");
-  win.addInput("txt_search", "", "Search tools by name, command, or keyword...", { width: 200 });
+  win.addInput(
+    "txt_search",
+    "",
+    "Search tools by name, command, or keyword...",
+    { width: 200 },
+  );
   win.addLabel("lbl_cat", "Scope:");
   win.addDropdown(
     "dd_category",
@@ -2177,17 +2599,19 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
       "🕘 Recently Used",
     ],
     "🌟 All Project Tools",
-    { width: 175 }
+    { width: 175 },
   );
   win.addLabel("lbl_app_cat", "Category:");
   win.addDropdown(
     "dd_app_category",
     categoryDropdownOptions,
     categoryDropdownOptions[0],
-    { width: 220 }
+    { width: 220 },
   );
   win.addLabel("lbl_sort", "Sort:");
-  win.addDropdown("dd_sort", Object.values(SORT_LABELS), SORT_LABELS.default, { width: 160 });
+  win.addDropdown("dd_sort", Object.values(SORT_LABELS), SORT_LABELS.default, {
+    width: 160,
+  });
   win.addButton("btn_quick_favs", "⭐ Favs Only");
   win.addButton("btn_filter", "🔍 Apply");
   win.addButton("btn_clear_filter", "✕ Show All");
@@ -2197,22 +2621,61 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   win.beginRow();
   win.addLabel("lbl_quick_cats", "📂 Apps by Category:");
   win.addButton("btn_cat_all", "🌟 All Tools");
-  win.addButton("btn_cat_db", `🗄️ Database (${catCounts["Database & Storage"] || 0})`);
-  win.addButton("btn_cat_devtools", `🛠️ DevTools (${catCounts["Developer Tools"] || 0})`);
-  win.addButton("btn_cat_system", `🖥️ System (${catCounts["System & Hardware"] || 0})`);
-  win.addButton("btn_cat_files", `🔍 Files (${catCounts["File & Directory Tools"] || 0})`);
-  win.addButton("btn_cat_network", `🌐 Network (${catCounts["Network & Cloud"] || 0})`);
-  win.addButton("btn_cat_prod", `📝 Productivity (${catCounts["Productivity & Text"] || 0})`);
-  win.addButton("btn_cat_games", `🎮 Games (${catCounts["Games & Entertainment"] || 0})`);
-  win.addButton("btn_cat_security", `🔒 Security (${catCounts["Security & Crypto"] || 0})`);
-  win.addButton("btn_cat_design", `🎨 Design (${(catCounts["Design & UX"] || 0) + (catCounts["Design & Media"] || 0)})`);
-  win.addButton("btn_cat_demos", `🧪 Demos (${catCounts["Demos & Templates"] || 0})`);
+  win.addButton(
+    "btn_cat_db",
+    `🗄️ Database (${catCounts["Database & Storage"] || 0})`,
+  );
+  win.addButton(
+    "btn_cat_devtools",
+    `🛠️ DevTools (${catCounts["Developer Tools"] || 0})`,
+  );
+  win.addButton(
+    "btn_cat_system",
+    `🖥️ System (${catCounts["System & Hardware"] || 0})`,
+  );
+  win.addButton(
+    "btn_cat_files",
+    `🔍 Files (${catCounts["File & Directory Tools"] || 0})`,
+  );
+  win.addButton(
+    "btn_cat_network",
+    `🌐 Network (${catCounts["Network & Cloud"] || 0})`,
+  );
+  win.addButton(
+    "btn_cat_prod",
+    `📝 Productivity (${catCounts["Productivity & Text"] || 0})`,
+  );
+  win.addButton(
+    "btn_cat_games",
+    `🎮 Games (${catCounts["Games & Entertainment"] || 0})`,
+  );
+  win.addButton(
+    "btn_cat_security",
+    `🔒 Security (${catCounts["Security & Crypto"] || 0})`,
+  );
+  win.addButton(
+    "btn_cat_design",
+    `🎨 Design (${(catCounts["Design & UX"] || 0) + (catCounts["Design & Media"] || 0)})`,
+  );
+  win.addButton(
+    "btn_cat_demos",
+    `🧪 Demos (${catCounts["Demos & Templates"] || 0})`,
+  );
   win.addButton("btn_cat_cli", `💻 CLI (${catCounts["CLI Utilities"] || 0})`);
   win.endRow();
   win.endGroupBox();
 
   // 6. Project Tools Data Table
-  const tableHeaders = ["ID", "Fav", "Type", "Name", "Category", "Status", "Used", "Command Path"];
+  const tableHeaders = [
+    "ID",
+    "Fav",
+    "Type",
+    "Name",
+    "Category",
+    "Status",
+    "Used",
+    "Command Path",
+  ];
   const formatRow = (a: DetectedApp) => [
     a.id,
     a.isFavorite ? "⭐ Fav" : "☆ Regular",
@@ -2220,9 +2683,9 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     `${a.icon || "⚡"} ${a.displayName}`,
     a.category,
     a.isRunning
-      ? (a.instanceCount && a.instanceCount > 1
-          ? `🟢 Running (${a.instanceCount}x)`
-          : `🟢 Running (#${a.pid || "?"})`)
+      ? a.instanceCount && a.instanceCount > 1
+        ? `🟢 Running (${a.instanceCount}x)`
+        : `🟢 Running (#${a.pid || "?"})`
       : "⚪ Ready",
     a.launchCount ? usageLabel(a) : "0× (Never)",
     a.command,
@@ -2230,22 +2693,32 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
 
   const initialRows = currentApps.map(formatRow);
 
-  win.beginGroupBox(`Project Tools Catalog (${initialData.kpis.total} Total Tools in Workspace)`);
-  win.addTable("tbl_apps", tableHeaders, initialRows, (w, rowPid: any) => {
-    // Exact match on rowPid since cell[0] is app.id!
-    const found = currentApps.find((a) => a.id === String(rowPid).trim()) || findAppFromSelection(rowPid);
-    if (found) {
-      selectedApp = found;
-      updateSelectedView(w, found);
-    }
-  }, { height: 260 });
+  win.beginGroupBox(
+    `Project Tools Catalog (${initialData.kpis.total} Total Tools in Workspace)`,
+  );
+  win.addTable(
+    "tbl_apps",
+    tableHeaders,
+    initialRows,
+    (w, rowPid: any) => {
+      // Exact match on rowPid since cell[0] is app.id!
+      const found =
+        currentApps.find((a) => a.id === String(rowPid).trim()) ||
+        findAppFromSelection(rowPid);
+      if (found) {
+        selectedApp = found;
+        updateSelectedView(w, found);
+      }
+    },
+    { height: 260 },
+  );
   win.endGroupBox();
 
   // 7. Real-Time Command Output & Execution Results
   win.beginGroupBox("Real-Time Command Output & Execution Results");
   win.addTextarea(
     "txt_output",
-    `[Project Application & CLI Launcher Pro Initialized]\nTotal Tools Indexed: ${initialData.kpis.total}\n\nSelect any application or CLI tool above and click '🚀 Launch Selected Tool', or click any 1-Click Quick Launch button to run it immediately.`
+    `[Project Application & CLI Launcher Pro Initialized]\nTotal Tools Indexed: ${initialData.kpis.total}\n\nSelect any application or CLI tool above and click '🚀 Launch Selected Tool', or click any 1-Click Quick Launch button to run it immediately.`,
   );
   win.endGroupBox();
 
@@ -2258,7 +2731,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   win.beginRow();
   win.addLabel(
     "lbl_status",
-    `Ready  |  ${initialData.kpis.radStudios} Studio Apps  |  ${initialData.kpis.cliTools} CLI Tools  |  ${initialData.kpis.demos} Demos  |  ⭐ ${initialData.kpis.favorites} Favorites  |  Running: ${initialData.kpis.running}`
+    `Ready  |  ${initialData.kpis.radStudios} Studio Apps  |  ${initialData.kpis.cliTools} CLI Tools  |  ${initialData.kpis.demos} Demos  |  ⭐ ${initialData.kpis.favorites} Favorites  |  Running: ${initialData.kpis.running}`,
   );
   win.endRow();
 
@@ -2268,15 +2741,21 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
 
   function findAppFromSelection(val: any): DetectedApp | null {
     if (val === null || val === undefined) return null;
-    const str = Array.isArray(val) ? String(val[0] || "").trim() : String(val).trim();
+    const str = Array.isArray(val)
+      ? String(val[0] || "").trim()
+      : String(val).trim();
     if (!str || str === "None") return null;
 
     // 1. Direct ID match
-    let found = currentApps.find((a) => a.id === str || a.id.toLowerCase() === str.toLowerCase());
+    let found = currentApps.find(
+      (a) => a.id === str || a.id.toLowerCase() === str.toLowerCase(),
+    );
     if (found) return found;
 
     // 2. Exact displayPath match (e.g. within parentheses or trailing)
-    found = currentApps.find((a) => str.includes(`(${a.displayPath})`) || str.endsWith(a.displayPath));
+    found = currentApps.find(
+      (a) => str.includes(`(${a.displayPath})`) || str.endsWith(a.displayPath),
+    );
     if (found) return found;
 
     // 3. Match on full displayPath
@@ -2307,7 +2786,10 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     // Synchronize Favorite button
     const favLabel = app.isFavorite ? "★ Unfavorite" : "☆ Favorite";
     w.setValue("btn_fav", favLabel);
-    w.setValue("btn_quick_toggle_fav", app.isFavorite ? "⭐ Unpin Favorite" : "⭐ Pin Favorite");
+    w.setValue(
+      "btn_quick_toggle_fav",
+      app.isFavorite ? "⭐ Unpin Favorite" : "⭐ Pin Favorite",
+    );
 
     // Set intelligent preset arguments if empty or default
     if (app.source === "cli_tool") {
@@ -2321,7 +2803,9 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
       }
     }
 
-    w.setStatus(`Selected Tool: ${app.displayName} (${app.displayPath}) [${app.category}] ${app.isFavorite ? "⭐ [Favorite]" : ""}`);
+    w.setStatus(
+      `Selected Tool: ${app.displayName} (${app.displayPath}) [${app.category}] ${app.isFavorite ? "⭐ [Favorite]" : ""}`,
+    );
 
     const summary = [
       `=== Tool Selected: ${app.displayName} ===`,
@@ -2518,7 +3002,7 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     app: DetectedApp,
     w: SimpleWindow,
     overrideArgs?: string,
-    inTerminal?: boolean
+    inTerminal?: boolean,
   ) {
     const now = Date.now();
     const lastLaunch = lastLaunchTimes.get(app.id) || 0;
@@ -2529,13 +3013,17 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     lastLaunchTimes.set(app.id, now);
 
     try {
-      const rawArgs = overrideArgs !== undefined ? overrideArgs : (w.getValue("txt_cli_args") || "");
-      const openInTerminal = inTerminal !== undefined ? inTerminal : (app.source === "cli_tool");
+      const rawArgs =
+        overrideArgs !== undefined
+          ? overrideArgs
+          : w.getValue("txt_cli_args") || "";
+      const openInTerminal =
+        inTerminal !== undefined ? inTerminal : app.source === "cli_tool";
 
       w.appendConsole(
         "launcher_console",
         `[Launch Dispatcher] Executing ${app.displayName} ('${app.command} ${rawArgs}') [mode: ${openInTerminal ? "terminal" : "inline"}]...\n`,
-        1
+        1,
       );
       w.setStatus(`Running ${app.displayName}...`);
 
@@ -2551,29 +3039,40 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
       });
 
       if (launchResult.success) {
-        w.appendConsole("launcher_console", `[Success] ${launchResult.message}\n`, 2);
+        w.appendConsole(
+          "launcher_console",
+          `[Success] ${launchResult.message}\n`,
+          2,
+        );
         w.toast(`✅ ${launchResult.message}`);
 
         if (app.source === "rad_studio" || app.source === "rad_demo") {
           w.setText(
             "txt_output",
-            `[Desktop GUI Application Launched]\nApplication: ${app.displayName}\nPID: ${launchResult.pid}\nPath: ${app.path}\nCommand: bun run ${app.displayPath}\nStatus: The application window should now be open on your desktop!`
+            `[Desktop GUI Application Launched]\nApplication: ${app.displayName}\nPID: ${launchResult.pid}\nPath: ${app.path}\nCommand: bun run ${app.displayPath}\nStatus: The application window should now be open on your desktop!`,
           );
         } else if (openInTerminal) {
           w.setText(
             "txt_output",
-            `[Terminal Client Launched]\nApplication: ${app.displayName}\nCategory:    ${app.category}\nScript Path: ${app.path}\nCommand:     bun run ${app.displayPath} ${rawArgs || "--help"}\nStatus:      Active interactive Terminal session opened on your desktop!`
+            `[Terminal Client Launched]\nApplication: ${app.displayName}\nCategory:    ${app.category}\nScript Path: ${app.path}\nCommand:     bun run ${app.displayPath} ${rawArgs || "--help"}\nStatus:      Active interactive Terminal session opened on your desktop!`,
           );
         } else {
           w.setText(
             "txt_output",
-            `=== CLI Output: ${app.displayName} ===\nCommand: bun run ${app.displayPath} ${rawArgs || "--help"}\n\n${launchResult.output || "(No console output returned)"}`
+            `=== CLI Output: ${app.displayName} ===\nCommand: bun run ${app.displayPath} ${rawArgs || "--help"}\n\n${launchResult.output || "(No console output returned)"}`,
           );
         }
         setTimeout(() => applyFilters(w, undefined, true), 800);
       } else {
-        w.appendConsole("launcher_console", `[Launch Error] ${launchResult.message}\n`, 3);
-        w.setText("txt_output", `[Error Launching Tool]\n${launchResult.message}${launchResult.output ? `\n\n${launchResult.output}` : ""}`);
+        w.appendConsole(
+          "launcher_console",
+          `[Launch Error] ${launchResult.message}\n`,
+          3,
+        );
+        w.setText(
+          "txt_output",
+          `[Error Launching Tool]\n${launchResult.message}${launchResult.output ? `\n\n${launchResult.output}` : ""}`,
+        );
         w.toast(`❌ ${launchResult.message}`);
       }
     } finally {
@@ -2584,7 +3083,11 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   // Debounced entry point: collapses rapid keystroke/dropdown events into one filter pass
   // so overlapping IPC callbacks cannot interleave DOM rebuilds.
   let filterTimer: ReturnType<typeof setTimeout> | null = null;
-  function scheduleFilters(w: SimpleWindow, overrides?: { query?: string; cat?: string; appCat?: string }, delay = 120) {
+  function scheduleFilters(
+    w: SimpleWindow,
+    overrides?: { query?: string; cat?: string; appCat?: string },
+    delay = 120,
+  ) {
     if (filterTimer) clearTimeout(filterTimer);
     filterTimer = setTimeout(() => {
       filterTimer = null;
@@ -2612,7 +3115,11 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     w.setValue("lbl_kpi_favs", `⭐ Favorites: ${k.favorites}`);
   }
 
-  function applyFilters(w: SimpleWindow, overrides?: { query?: string; cat?: string; appCat?: string }, forceScan = false) {
+  function applyFilters(
+    w: SimpleWindow,
+    overrides?: { query?: string; cat?: string; appCat?: string },
+    forceScan = false,
+  ) {
     try {
       applyFiltersInner(w, overrides, forceScan);
     } catch (err) {
@@ -2620,25 +3127,48 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     }
   }
 
-  function applyFiltersInner(w: SimpleWindow, overrides?: { query?: string; cat?: string; appCat?: string }, forceScan = false) {
-    const rawQuery = overrides?.query !== undefined ? overrides.query : w.getValue("txt_search");
-    const query = String(rawQuery ?? "").trim().toLowerCase();
-    const rawCat = overrides?.cat !== undefined ? overrides.cat : w.getValue("dd_category");
+  function applyFiltersInner(
+    w: SimpleWindow,
+    overrides?: { query?: string; cat?: string; appCat?: string },
+    forceScan = false,
+  ) {
+    const rawQuery =
+      overrides?.query !== undefined
+        ? overrides.query
+        : w.getValue("txt_search");
+    const query = String(rawQuery ?? "")
+      .trim()
+      .toLowerCase();
+    const rawCat =
+      overrides?.cat !== undefined ? overrides.cat : w.getValue("dd_category");
     const catChoice = String(rawCat || "🌟 All Project Tools");
-    const rawAppCat = overrides?.appCat !== undefined ? overrides.appCat : w.getValue("dd_app_category");
+    const rawAppCat =
+      overrides?.appCat !== undefined
+        ? overrides.appCat
+        : w.getValue("dd_app_category");
     const appCatChoice = String(rawAppCat || "📁 All Categories");
-    const sortMode: SortMode = sortModeFromLabel(String(w.getValue("dd_sort") || SORT_LABELS.default));
+    const sortMode: SortMode = sortModeFromLabel(
+      String(w.getValue("dd_sort") || SORT_LABELS.default),
+    );
 
     const fresh = getScan(forceScan);
 
     const scores = new Map<string, number>();
     currentApps = fresh.apps.filter((a) => {
       // 1. Source Scope / State filter (do not restrict source scope if a specific functional category is selected)
-      const isSpecificCat = Boolean(appCatChoice && !appCatChoice.includes("All Categories"));
+      const isSpecificCat = Boolean(
+        appCatChoice && !appCatChoice.includes("All Categories"),
+      );
       if (!isSpecificCat) {
-        if (catChoice.includes("Studio Applications") && a.source !== "rad_studio") return false;
-        if (catChoice.includes("CLI Utilities") && a.source !== "cli_tool") return false;
-        if (catChoice.includes("Showcase Demos") && a.source !== "rad_demo") return false;
+        if (
+          catChoice.includes("Studio Applications") &&
+          a.source !== "rad_studio"
+        )
+          return false;
+        if (catChoice.includes("CLI Utilities") && a.source !== "cli_tool")
+          return false;
+        if (catChoice.includes("Showcase Demos") && a.source !== "rad_demo")
+          return false;
       }
       if (catChoice.includes("Running Processes") && !a.isRunning) return false;
       if (catChoice.includes("Pinned Favorites") && !a.isFavorite) return false;
@@ -2672,11 +3202,17 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     });
 
     // "Recently Used" implies newest first unless the user picked another order.
-    const effectiveSort: SortMode = catChoice.includes("Recently Used") && sortMode === "default" ? "recent" : sortMode;
+    const effectiveSort: SortMode =
+      catChoice.includes("Recently Used") && sortMode === "default"
+        ? "recent"
+        : sortMode;
     currentApps = sortApps(currentApps, effectiveSort);
     // With a search query the best match comes first (stable, keeps the chosen order for ties).
     if (query && effectiveSort === "default") {
-      currentApps = currentApps.map((a, i) => ({ a, i })).sort((x, y) => (scores.get(y.a.id)! - scores.get(x.a.id)!) || x.i - y.i).map((x) => x.a);
+      currentApps = currentApps
+        .map((a, i) => ({ a, i }))
+        .sort((x, y) => scores.get(y.a.id)! - scores.get(x.a.id)! || x.i - y.i)
+        .map((x) => x.a);
     }
 
     const rows = currentApps.map(formatRow);
@@ -2687,24 +3223,30 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     w.setListItems("dd_select_app", filteredItems);
 
     updateKpiLabels(w, fresh.kpis);
-    const catNotice = appCatChoice && !appCatChoice.includes("All Categories")
-      ? `  |  Category: ${appCatChoice.replace(/\s*\(\d+\)\s*$/, "")}`
-      : "";
+    const catNotice =
+      appCatChoice && !appCatChoice.includes("All Categories")
+        ? `  |  Category: ${appCatChoice.replace(/\s*\(\d+\)\s*$/, "")}`
+        : "";
     w.setText(
       "lbl_status",
-      `Filtered: ${currentApps.length} / ${fresh.apps.length} project tools${catNotice}  |  Studios: ${fresh.kpis.radStudios}  |  CLI: ${fresh.kpis.cliTools}  |  Favorites: ${fresh.kpis.favorites}`
+      `Filtered: ${currentApps.length} / ${fresh.apps.length} project tools${catNotice}  |  Studios: ${fresh.kpis.radStudios}  |  CLI: ${fresh.kpis.cliTools}  |  Favorites: ${fresh.kpis.favorites}`,
     );
 
     // Stable selection resolution:
     // If selectedApp is still present in currentApps, keep it selected!
     // Otherwise fallback to currentApps[0].
     if (currentApps.length > 0) {
-      const stillPresent = selectedApp ? currentApps.find((a) => a.id === selectedApp?.id) : null;
+      const stillPresent = selectedApp
+        ? currentApps.find((a) => a.id === selectedApp?.id)
+        : null;
       selectedApp = stillPresent || currentApps[0]!;
       updateSelectedView(w, selectedApp);
     } else {
       selectedApp = null;
-      w.setText("txt_output", "No project tools matched the specified search and category filter criteria.");
+      w.setText(
+        "txt_output",
+        "No project tools matched the specified search and category filter criteria.",
+      );
       w.setStatus("No tools match filter");
       w.evalJS(`
         (function() {
@@ -2737,7 +3279,11 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     w.setValue("txt_search", "");
     w.setValue("dd_category", "🌟 All Project Tools");
     w.setValue("dd_app_category", categoryDropdownOptions[0]);
-    applyFilters(w, { query: "", cat: "🌟 All Project Tools", appCat: "📁 All Categories" }, true);
+    applyFilters(
+      w,
+      { query: "", cat: "🌟 All Project Tools", appCat: "📁 All Categories" },
+      true,
+    );
   });
 
   // Category Quick Filter Buttons
@@ -2748,12 +3294,24 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     w.setValue("dd_category", "🌟 All Project Tools");
     // 3. Set category dropdown value
     const matching =
-      categoryDropdownOptions.find((opt) => !opt.includes("All Categories") && matchAppCategory(categorySearch, opt)) ||
-      categoryDropdownOptions.find((opt) => !opt.includes("All Categories") && opt.toLowerCase().includes(categorySearch.toLowerCase())) ||
+      categoryDropdownOptions.find(
+        (opt) =>
+          !opt.includes("All Categories") &&
+          matchAppCategory(categorySearch, opt),
+      ) ||
+      categoryDropdownOptions.find(
+        (opt) =>
+          !opt.includes("All Categories") &&
+          opt.toLowerCase().includes(categorySearch.toLowerCase()),
+      ) ||
       categorySearch;
     w.setValue("dd_app_category", matching);
     // 4. Apply filter immediately
-    applyFilters(w, { query: "", cat: "🌟 All Project Tools", appCat: matching }, true);
+    applyFilters(
+      w,
+      { query: "", cat: "🌟 All Project Tools", appCat: matching },
+      true,
+    );
     w.toast(`📂 Filtered to Category: ${categorySearch}`);
   };
 
@@ -2762,16 +3320,34 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     applyFilters(w, { appCat: "📁 All Categories" }, true);
     w.toast("📂 Showing All Categories");
   });
-  win.onClick("btn_cat_db", (w) => filterByAppCategory(w, "Database & Storage"));
-  win.onClick("btn_cat_devtools", (w) => filterByAppCategory(w, "Developer Tools"));
-  win.onClick("btn_cat_system", (w) => filterByAppCategory(w, "System & Hardware"));
-  win.onClick("btn_cat_files", (w) => filterByAppCategory(w, "File & Directory Tools"));
-  win.onClick("btn_cat_network", (w) => filterByAppCategory(w, "Network & Cloud"));
-  win.onClick("btn_cat_prod", (w) => filterByAppCategory(w, "Productivity & Text"));
-  win.onClick("btn_cat_games", (w) => filterByAppCategory(w, "Games & Entertainment"));
-  win.onClick("btn_cat_security", (w) => filterByAppCategory(w, "Security & Crypto"));
+  win.onClick("btn_cat_db", (w) =>
+    filterByAppCategory(w, "Database & Storage"),
+  );
+  win.onClick("btn_cat_devtools", (w) =>
+    filterByAppCategory(w, "Developer Tools"),
+  );
+  win.onClick("btn_cat_system", (w) =>
+    filterByAppCategory(w, "System & Hardware"),
+  );
+  win.onClick("btn_cat_files", (w) =>
+    filterByAppCategory(w, "File & Directory Tools"),
+  );
+  win.onClick("btn_cat_network", (w) =>
+    filterByAppCategory(w, "Network & Cloud"),
+  );
+  win.onClick("btn_cat_prod", (w) =>
+    filterByAppCategory(w, "Productivity & Text"),
+  );
+  win.onClick("btn_cat_games", (w) =>
+    filterByAppCategory(w, "Games & Entertainment"),
+  );
+  win.onClick("btn_cat_security", (w) =>
+    filterByAppCategory(w, "Security & Crypto"),
+  );
   win.onClick("btn_cat_design", (w) => filterByAppCategory(w, "Design"));
-  win.onClick("btn_cat_demos", (w) => filterByAppCategory(w, "Demos & Templates"));
+  win.onClick("btn_cat_demos", (w) =>
+    filterByAppCategory(w, "Demos & Templates"),
+  );
   win.onClick("btn_cat_cli", (w) => filterByAppCategory(w, "CLI Utilities"));
 
   // Quick Favorites Filter Action
@@ -2779,12 +3355,20 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     w.setValue("txt_search", "");
     w.setValue("dd_category", "⭐ Pinned Favorites");
     w.setValue("dd_app_category", "📁 All Categories");
-    applyFilters(w, { query: "", cat: "⭐ Pinned Favorites", appCat: "📁 All Categories" }, true);
+    applyFilters(
+      w,
+      { query: "", cat: "⭐ Pinned Favorites", appCat: "📁 All Categories" },
+      true,
+    );
     const count = currentApps.length;
     if (count === 0) {
-      w.toast("No favorites pinned yet! Select any tool and click '☆ Favorite' to pin it.");
+      w.toast(
+        "No favorites pinned yet! Select any tool and click '☆ Favorite' to pin it.",
+      );
     } else {
-      w.toast(`⭐ Filtered to ${count} Pinned Favorite${count === 1 ? "" : "s"}`);
+      w.toast(
+        `⭐ Filtered to ${count} Pinned Favorite${count === 1 ? "" : "s"}`,
+      );
     }
   };
   win.onClick("btn_quick_favs", filterToFavorites);
@@ -2801,7 +3385,11 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     let target = favs[0];
     if (!target) {
       // Auto-fallback: pick SQLite Studio, selectedApp, or first studio tool
-      target = selectedApp || fresh.apps.find((a) => a.id === "rad_sqlite_studio") || fresh.apps.find((a) => a.source === "rad_studio") || fresh.apps[0];
+      target =
+        selectedApp ||
+        fresh.apps.find((a) => a.id === "rad_sqlite_studio") ||
+        fresh.apps.find((a) => a.source === "rad_studio") ||
+        fresh.apps[0];
       if (target) {
         toggleFavorite(target.id);
         target.isFavorite = true;
@@ -2824,7 +3412,11 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     if (!selectedApp) {
       const lstVal = w.getValue("lst_apps");
       const ddVal = w.getValue("dd_select_app");
-      selectedApp = findAppFromSelection(lstVal) || findAppFromSelection(ddVal) || currentApps[0] || null;
+      selectedApp =
+        findAppFromSelection(lstVal) ||
+        findAppFromSelection(ddVal) ||
+        currentApps[0] ||
+        null;
     }
     if (!selectedApp) {
       w.toast("No tool selected to favorite.");
@@ -2832,7 +3424,11 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     }
     const isFav = toggleFavorite(selectedApp.id);
     selectedApp.isFavorite = isFav;
-    w.toast(isFav ? `⭐ Favorited: ${selectedApp.displayName}` : `☆ Removed Favorite: ${selectedApp.displayName}`);
+    w.toast(
+      isFav
+        ? `⭐ Favorited: ${selectedApp.displayName}`
+        : `☆ Removed Favorite: ${selectedApp.displayName}`,
+    );
 
     const fresh = getScan(true);
     w.setValue("lbl_kpi_favs", `⭐ Favorites: ${fresh.kpis.favorites}`);
@@ -2844,14 +3440,22 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   win.onClick("btn_quick_toggle_fav", handleToggleFavorite);
 
   // Real-time filter reactivity on input / dropdown change
-  win.onEnter("txt_search", (w, val: any) => scheduleFilters(w, { query: typeof val === "string" ? val : undefined }, 0));
-  win.onChange("txt_search", (w, val: any) => scheduleFilters(w, { query: typeof val === "string" ? val : undefined }));
+  win.onEnter("txt_search", (w, val: any) =>
+    scheduleFilters(w, { query: typeof val === "string" ? val : undefined }, 0),
+  );
+  win.onChange("txt_search", (w, val: any) =>
+    scheduleFilters(w, { query: typeof val === "string" ? val : undefined }),
+  );
   win.onChange("dd_category", (w, val: any) => {
     const selected = typeof val === "string" ? val : "";
     if (selected && selected.includes("Pinned Favorites")) {
       w.setValue("dd_app_category", "📁 All Categories");
       w.setValue("txt_search", "");
-      scheduleFilters(w, { query: "", cat: "⭐ Pinned Favorites", appCat: "📁 All Categories" }, 0);
+      scheduleFilters(
+        w,
+        { query: "", cat: "⭐ Pinned Favorites", appCat: "📁 All Categories" },
+        0,
+      );
     } else {
       scheduleFilters(w, { cat: selected || undefined }, 0);
     }
@@ -2861,7 +3465,11 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     if (selected && !selected.includes("All Categories")) {
       w.setValue("txt_search", "");
       w.setValue("dd_category", "🌟 All Project Tools");
-      scheduleFilters(w, { query: "", cat: "🌟 All Project Tools", appCat: selected }, 0);
+      scheduleFilters(
+        w,
+        { query: "", cat: "🌟 All Project Tools", appCat: selected },
+        0,
+      );
     } else {
       scheduleFilters(w, { appCat: selected }, 0);
     }
@@ -2871,40 +3479,72 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   win.onClick("btn_rescan", (w) => {
     applyFilters(w, undefined, true);
     const fresh = getScan(false);
-    w.appendConsole("launcher_console", `[Rescan] Discovered ${fresh.kpis.total} project tools (${fresh.kpis.radStudios} Studios, ${fresh.kpis.cliTools} CLI tools, ${fresh.kpis.favorites} Favorites).\n`, 2);
+    w.appendConsole(
+      "launcher_console",
+      `[Rescan] Discovered ${fresh.kpis.total} project tools (${fresh.kpis.radStudios} Studios, ${fresh.kpis.cliTools} CLI tools, ${fresh.kpis.favorites} Favorites).\n`,
+      2,
+    );
     w.toast(`Rescanned: ${fresh.kpis.total} tools ready`);
   });
 
   // Open the tool's source in an editor
   win.onClick("btn_edit", (w) => {
-    if (!selectedApp) { w.toast("No tool selected."); return; }
+    if (!selectedApp) {
+      w.toast("No tool selected.");
+      return;
+    }
     const r = openInEditor(selectedApp.path);
-    w.appendConsole("launcher_console", `[Open Source] ${selectedApp.displayPath}: ${r.message}\n`, r.success ? 1 : 3);
+    w.appendConsole(
+      "launcher_console",
+      `[Open Source] ${selectedApp.displayPath}: ${r.message}\n`,
+      r.success ? 1 : 3,
+    );
     w.toast(r.success ? `📝 ${r.message}` : `❌ ${r.message}`);
   });
 
   win.onClick("btn_copy_path", (w) => {
-    if (!selectedApp) { w.toast("No tool selected."); return; }
+    if (!selectedApp) {
+      w.toast("No tool selected.");
+      return;
+    }
     copyToClipboard(selectedApp.path);
     w.toast(`Copied: ${selectedApp.path}`);
   });
 
   win.onClick("btn_stop_all", async (w) => {
     const running = getScan(true).apps.filter((a) => a.isRunning);
-    if (running.length === 0) { w.toast("Nothing is running."); return; }
-    const ok = await w.confirm(`Stop ${running.length} running tool(s)?\n\n${running.map((a) => `• ${a.displayName}`).join("\n")}`);
-    if (!ok) { w.appendConsole("launcher_console", "[Stop All] Cancelled.\n", 1); return; }
+    if (running.length === 0) {
+      w.toast("Nothing is running.");
+      return;
+    }
+    const ok = await w.confirm(
+      `Stop ${running.length} running tool(s)?\n\n${running.map((a) => `• ${a.displayName}`).join("\n")}`,
+    );
+    if (!ok) {
+      w.appendConsole("launcher_console", "[Stop All] Cancelled.\n", 1);
+      return;
+    }
     const res = stopAllApplications();
-    w.appendConsole("launcher_console", `[Stop All] Stopped ${res.stopped} of ${running.length}.\n${res.messages.map((m) => `  ${m}\n`).join("")}`, res.stopped ? 2 : 3);
+    w.appendConsole(
+      "launcher_console",
+      `[Stop All] Stopped ${res.stopped} of ${running.length}.\n${res.messages.map((m) => `  ${m}\n`).join("")}`,
+      res.stopped ? 2 : 3,
+    );
     w.toast(`⏹ Stopped ${res.stopped} of ${running.length}`);
     setTimeout(() => applyFilters(w, undefined, true), 600);
   });
 
   win.onClick("btn_clear_history", async (w) => {
-    const ok = await w.confirm("Clear launch counts and last-used times for every tool? Favorites are kept.");
+    const ok = await w.confirm(
+      "Clear launch counts and last-used times for every tool? Favorites are kept.",
+    );
     if (!ok) return;
     clearLaunchHistory();
-    w.appendConsole("launcher_console", "[History] Usage history cleared.\n", 2);
+    w.appendConsole(
+      "launcher_console",
+      "[History] Usage history cleared.\n",
+      2,
+    );
     w.toast("Usage history cleared");
     applyFilters(w, undefined, true);
   });
@@ -2943,7 +3583,9 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
 
   // Table selection change and click
   win.onClick("tbl_apps", (w, val: any) => {
-    const matched = currentApps.find((a) => a.id === String(val).trim()) || findAppFromSelection(val);
+    const matched =
+      currentApps.find((a) => a.id === String(val).trim()) ||
+      findAppFromSelection(val);
     if (matched) {
       selectedApp = matched;
       updateSelectedView(w, matched);
@@ -2951,7 +3593,9 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   });
 
   win.onChange("tbl_apps", (w, val: any) => {
-    const matched = currentApps.find((a) => a.id === String(val).trim()) || findAppFromSelection(val);
+    const matched =
+      currentApps.find((a) => a.id === String(val).trim()) ||
+      findAppFromSelection(val);
     if (matched) {
       selectedApp = matched;
       updateSelectedView(w, matched);
@@ -2960,7 +3604,10 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
 
   win.onDoubleClick("tbl_apps", (w, val: any) => {
     const rawVal = String(val || "").trim();
-    const matched = currentApps.find((a) => a.id === rawVal) || findAppFromSelection(rawVal) || selectedApp;
+    const matched =
+      currentApps.find((a) => a.id === rawVal) ||
+      findAppFromSelection(rawVal) ||
+      selectedApp;
     if (matched) {
       selectedApp = matched;
       updateSelectedView(w, matched);
@@ -2983,13 +3630,22 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     if (!selectedApp) {
       const lstVal = w.getValue("lst_apps");
       const ddVal = w.getValue("dd_select_app");
-      selectedApp = findAppFromSelection(lstVal) || findAppFromSelection(ddVal) || currentApps[0] || null;
+      selectedApp =
+        findAppFromSelection(lstVal) ||
+        findAppFromSelection(ddVal) ||
+        currentApps[0] ||
+        null;
     }
     if (!selectedApp) {
       w.toast("Please select a tool to launch.");
       return;
     }
-    executeToolLaunch(selectedApp, w, undefined, selectedApp.source === "cli_tool");
+    executeToolLaunch(
+      selectedApp,
+      w,
+      undefined,
+      selectedApp.source === "cli_tool",
+    );
   });
 
   // Dedicated Open in Terminal Button
@@ -2997,7 +3653,11 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     if (!selectedApp) {
       const lstVal = w.getValue("lst_apps");
       const ddVal = w.getValue("dd_select_app");
-      selectedApp = findAppFromSelection(lstVal) || findAppFromSelection(ddVal) || currentApps[0] || null;
+      selectedApp =
+        findAppFromSelection(lstVal) ||
+        findAppFromSelection(ddVal) ||
+        currentApps[0] ||
+        null;
     }
     if (!selectedApp) {
       w.toast("Please select a tool to launch.");
@@ -3011,7 +3671,11 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     if (!selectedApp) {
       const lstVal = w.getValue("lst_apps");
       const ddVal = w.getValue("dd_select_app");
-      selectedApp = findAppFromSelection(lstVal) || findAppFromSelection(ddVal) || currentApps[0] || null;
+      selectedApp =
+        findAppFromSelection(lstVal) ||
+        findAppFromSelection(ddVal) ||
+        currentApps[0] ||
+        null;
     }
     if (!selectedApp) {
       w.toast("Please select a tool to run.");
@@ -3025,7 +3689,8 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     if (!selectedApp) {
       const lstVal = w.getValue("lst_apps");
       const ddVal = w.getValue("dd_select_app");
-      selectedApp = findAppFromSelection(lstVal) || findAppFromSelection(ddVal) || null;
+      selectedApp =
+        findAppFromSelection(lstVal) || findAppFromSelection(ddVal) || null;
     }
     if (!selectedApp) {
       w.toast("No tool selected.");
@@ -3033,7 +3698,11 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     }
     const res = killApplication(selectedApp.id, selectedApp.pid);
     if (res.success) {
-      w.appendConsole("launcher_console", `[Process Terminated] ${res.message}\n`, 3);
+      w.appendConsole(
+        "launcher_console",
+        `[Process Terminated] ${res.message}\n`,
+        3,
+      );
       w.toast(`🛑 ${res.message}`);
       setTimeout(() => applyFilters(w, undefined, true), 600);
     } else {
@@ -3046,14 +3715,19 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     if (!selectedApp) {
       const lstVal = w.getValue("lst_apps");
       const ddVal = w.getValue("dd_select_app");
-      selectedApp = findAppFromSelection(lstVal) || findAppFromSelection(ddVal) || null;
+      selectedApp =
+        findAppFromSelection(lstVal) || findAppFromSelection(ddVal) || null;
     }
     if (!selectedApp) {
       w.toast("No tool selected.");
       return;
     }
     revealInFinder(selectedApp.path);
-    w.appendConsole("launcher_console", `[Reveal] Revealed in Finder: ${selectedApp.path}\n`, 1);
+    w.appendConsole(
+      "launcher_console",
+      `[Reveal] Revealed in Finder: ${selectedApp.path}\n`,
+      1,
+    );
     w.toast(`Revealed: ${selectedApp.displayName}`);
   });
 
@@ -3062,7 +3736,8 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
     if (!selectedApp) {
       const lstVal = w.getValue("lst_apps");
       const ddVal = w.getValue("dd_select_app");
-      selectedApp = findAppFromSelection(lstVal) || findAppFromSelection(ddVal) || null;
+      selectedApp =
+        findAppFromSelection(lstVal) || findAppFromSelection(ddVal) || null;
     }
     if (!selectedApp) {
       w.toast("No tool selected.");
@@ -3075,7 +3750,12 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
   });
 
   // Quick Launch Handlers for Common Studios
-  const bindQuick = (btnId: string, appId: string, defaultArgs = "", inTerminal?: boolean) => {
+  const bindQuick = (
+    btnId: string,
+    appId: string,
+    defaultArgs = "",
+    inTerminal?: boolean,
+  ) => {
     win.onClick(btnId, (w) => {
       const fresh = scanAllApplications();
       const lower = appId.toLowerCase();
@@ -3085,14 +3765,14 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
             a.id.toLowerCase() === `rad_${lower}` ||
             a.id.toLowerCase() === `cli_${lower}` ||
             a.name.toLowerCase() === lower ||
-            a.id.toLowerCase() === lower
+            a.id.toLowerCase() === lower,
         ) ||
         fresh.apps.find(
           (a) =>
             a.id.toLowerCase() === `rad_${lower}` ||
             a.id.toLowerCase() === `cli_${lower}` ||
             a.name.toLowerCase() === lower ||
-            a.id.toLowerCase() === lower
+            a.id.toLowerCase() === lower,
         ) ||
         currentApps.find((a) => a.id.toLowerCase().includes(lower)) ||
         fresh.apps.find((a) => a.id.toLowerCase().includes(lower));
@@ -3160,11 +3840,13 @@ export function createLauncherStudio(options: { fullscreen?: boolean; theme?: st
       fav: a.isFavorite ? "⭐ Fav" : "☆ Regular",
       isFav: Boolean(a.isFavorite),
       status: a.isRunning
-        ? (a.instanceCount && a.instanceCount > 1 ? `🟢 Running (${a.instanceCount}x)` : `🟢 Running (#${a.pid || "?"})`)
+        ? a.instanceCount && a.instanceCount > 1
+          ? `🟢 Running (${a.instanceCount}x)`
+          : `🟢 Running (#${a.pid || "?"})`
         : "⚪ Ready",
       used: a.launchCount ? usageLabel(a) : "0× (Never)",
       itemStr: formatItemStr(a),
-    }))
+    })),
   );
 
   win.addScript(`

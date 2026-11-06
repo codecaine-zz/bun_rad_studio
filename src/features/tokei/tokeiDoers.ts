@@ -19,29 +19,107 @@ import { renderTable, type ColumnDef } from "../../shared/table.ts";
  * Registry of supported programming and markup languages with their file extensions and comment rules.
  */
 export const LANGUAGES: LanguageSpec[] = [
-  { name: "TypeScript", extensions: [".ts", ".tsx"], commentRule: { single: ["//"], multi: [["/*", "*/"]] } },
-  { name: "JavaScript", extensions: [".js", ".jsx", ".mjs", ".cjs"], commentRule: { single: ["//"], multi: [["/*", "*/"]] } },
-  { name: "Rust", extensions: [".rs"], commentRule: { single: ["//"], multi: [["/*", "*/"]] } },
-  { name: "Python", extensions: [".py"], commentRule: { single: ["#"], multi: [['"""', '"""'], ["'''", "'''"]] } },
-  { name: "Go", extensions: [".go"], commentRule: { single: ["//"], multi: [["/*", "*/"]] } },
-  { name: "C/C++", extensions: [".c", ".h", ".cpp", ".hpp", ".cc"], commentRule: { single: ["//"], multi: [["/*", "*/"]] } },
+  {
+    name: "TypeScript",
+    extensions: [".ts", ".tsx"],
+    commentRule: { single: ["//"], multi: [["/*", "*/"]] },
+  },
+  {
+    name: "JavaScript",
+    extensions: [".js", ".jsx", ".mjs", ".cjs"],
+    commentRule: { single: ["//"], multi: [["/*", "*/"]] },
+  },
+  {
+    name: "Rust",
+    extensions: [".rs"],
+    commentRule: { single: ["//"], multi: [["/*", "*/"]] },
+  },
+  {
+    name: "Python",
+    extensions: [".py"],
+    commentRule: {
+      single: ["#"],
+      multi: [
+        ['"""', '"""'],
+        ["'''", "'''"],
+      ],
+    },
+  },
+  {
+    name: "Go",
+    extensions: [".go"],
+    commentRule: { single: ["//"], multi: [["/*", "*/"]] },
+  },
+  {
+    name: "C/C++",
+    extensions: [".c", ".h", ".cpp", ".hpp", ".cc"],
+    commentRule: { single: ["//"], multi: [["/*", "*/"]] },
+  },
   { name: "Zig", extensions: [".zig"], commentRule: { single: ["//"] } },
-  { name: "Kotlin", extensions: [".kt", ".kts"], commentRule: { single: ["//"], multi: [["/*", "*/"]] } },
-  { name: "Swift", extensions: [".swift"], commentRule: { single: ["//"], multi: [["/*", "*/"]] } },
-  { name: "Dart", extensions: [".dart"], commentRule: { single: ["//"], multi: [["/*", "*/"]] } },
-  { name: "Svelte", extensions: [".svelte"], commentRule: { multi: [["<!--", "-->"]] } },
-  { name: "Vue", extensions: [".vue"], commentRule: { multi: [["<!--", "-->"]] } },
-  { name: "Astro", extensions: [".astro"], commentRule: { multi: [["<!--", "-->"]] } },
+  {
+    name: "Kotlin",
+    extensions: [".kt", ".kts"],
+    commentRule: { single: ["//"], multi: [["/*", "*/"]] },
+  },
+  {
+    name: "Swift",
+    extensions: [".swift"],
+    commentRule: { single: ["//"], multi: [["/*", "*/"]] },
+  },
+  {
+    name: "Dart",
+    extensions: [".dart"],
+    commentRule: { single: ["//"], multi: [["/*", "*/"]] },
+  },
+  {
+    name: "Svelte",
+    extensions: [".svelte"],
+    commentRule: { multi: [["<!--", "-->"]] },
+  },
+  {
+    name: "Vue",
+    extensions: [".vue"],
+    commentRule: { multi: [["<!--", "-->"]] },
+  },
+  {
+    name: "Astro",
+    extensions: [".astro"],
+    commentRule: { multi: [["<!--", "-->"]] },
+  },
   { name: "Nix", extensions: [".nix"], commentRule: { single: ["#"] } },
-  { name: "Shell", extensions: [".sh", ".bash", ".zsh"], commentRule: { single: ["#"] } },
-  { name: "Markdown", extensions: [".md", ".markdown"], commentRule: { multi: [["<!--", "-->"]] } },
+  {
+    name: "Shell",
+    extensions: [".sh", ".bash", ".zsh"],
+    commentRule: { single: ["#"] },
+  },
+  {
+    name: "Markdown",
+    extensions: [".md", ".markdown"],
+    commentRule: { multi: [["<!--", "-->"]] },
+  },
   { name: "JSON", extensions: [".json"], commentRule: {} },
-  { name: "HTML", extensions: [".html", ".htm"], commentRule: { multi: [["<!--", "-->"]] } },
+  {
+    name: "HTML",
+    extensions: [".html", ".htm"],
+    commentRule: { multi: [["<!--", "-->"]] },
+  },
   { name: "CSS", extensions: [".css"], commentRule: { multi: [["/*", "*/"]] } },
-  { name: "YAML", extensions: [".yaml", ".yml"], commentRule: { single: ["#"] } },
-  { name: "SQL", extensions: [".sql"], commentRule: { single: ["--"], multi: [["/*", "*/"]] } },
+  {
+    name: "YAML",
+    extensions: [".yaml", ".yml"],
+    commentRule: { single: ["#"] },
+  },
+  {
+    name: "SQL",
+    extensions: [".sql"],
+    commentRule: { single: ["--"], multi: [["/*", "*/"]] },
+  },
   { name: "TOML", extensions: [".toml"], commentRule: { single: ["#"] } },
-  { name: "GraphQL", extensions: [".graphql", ".gql"], commentRule: { single: ["#"] } },
+  {
+    name: "GraphQL",
+    extensions: [".graphql", ".gql"],
+    commentRule: { single: ["#"] },
+  },
 ];
 
 /**
@@ -78,7 +156,9 @@ export function analyzeLines(content: string, rule: CommentRule): LineStats {
       continue;
     }
 
-    const matchedStart = rule.multi?.find(([start]) => trimmed.startsWith(start));
+    const matchedStart = rule.multi?.find(([start]) =>
+      trimmed.startsWith(start),
+    );
     if (matchedStart) {
       comment++;
       if (!trimmed.endsWith(matchedStart[1]) || trimmed === matchedStart[0]) {
@@ -130,7 +210,7 @@ export function aggregateStats(fileStats: FileStat[]): LanguageReport[] {
  */
 export function sortReports(
   reports: LanguageReport[],
-  sort: TokeiSortField
+  sort: TokeiSortField,
 ): LanguageReport[] {
   const copy = [...reports];
   return copy.sort((a, b) => {
@@ -150,12 +230,32 @@ export function formatTokeiTable(reports: LanguageReport[]): string {
   const totalCode = reports.reduce((acc, r) => acc + r.stats.code, 0);
 
   const columns: ColumnDef<LanguageReport>[] = [
-    { header: "Language", align: "left", getValue: (r) => colors.bold(colors.cyan(r.language)) },
+    {
+      header: "Language",
+      align: "left",
+      getValue: (r) => colors.bold(colors.cyan(r.language)),
+    },
     { header: "Files", align: "right", getValue: (r) => r.files.toString() },
-    { header: "Lines", align: "right", getValue: (r) => colors.dim(r.stats.lines.toString()) },
-    { header: "Blank", align: "right", getValue: (r) => colors.dim(r.stats.blank.toString()) },
-    { header: "Comment", align: "right", getValue: (r) => colors.green(r.stats.comment.toString()) },
-    { header: "Code", align: "right", getValue: (r) => colors.yellow(r.stats.code.toString()) },
+    {
+      header: "Lines",
+      align: "right",
+      getValue: (r) => colors.dim(r.stats.lines.toString()),
+    },
+    {
+      header: "Blank",
+      align: "right",
+      getValue: (r) => colors.dim(r.stats.blank.toString()),
+    },
+    {
+      header: "Comment",
+      align: "right",
+      getValue: (r) => colors.green(r.stats.comment.toString()),
+    },
+    {
+      header: "Code",
+      align: "right",
+      getValue: (r) => colors.yellow(r.stats.code.toString()),
+    },
   ];
 
   const tableBody = renderTable(columns, reports);
@@ -178,8 +278,9 @@ export function formatJsonReports(reports: LanguageReport[]): string {
 export function formatMarkdownTable(reports: LanguageReport[]): string {
   const header = "| Language | Files | Lines | Blank | Comment | Code |";
   const divider = "|:---|---:|---:|---:|---:|---:|";
-  const rows = reports.map((r) =>
-    `| ${r.language} | ${r.files} | ${r.stats.lines} | ${r.stats.blank} | ${r.stats.comment} | ${r.stats.code} |`
+  const rows = reports.map(
+    (r) =>
+      `| ${r.language} | ${r.files} | ${r.stats.lines} | ${r.stats.blank} | ${r.stats.comment} | ${r.stats.code} |`,
   );
   const totalFiles = reports.reduce((acc, r) => acc + r.files, 0);
   const totalLines = reports.reduce((acc, r) => acc + r.stats.lines, 0);
@@ -197,16 +298,33 @@ export function formatMarkdownTable(reports: LanguageReport[]): string {
 export function formatFilesBreakdown(reports: LanguageReport[]): string {
   const lines: string[] = [];
   for (const report of reports) {
-    lines.push(`\n${colors.bold(colors.cyan(`--- ${report.language} (${report.files} files) ---`))}`);
+    lines.push(
+      `\n${colors.bold(colors.cyan(`--- ${report.language} (${report.files} files) ---`))}`,
+    );
     const columns: ColumnDef<FileStat>[] = [
       { header: "File", align: "left", getValue: (f) => f.path },
-      { header: "Lines", align: "right", getValue: (f) => colors.dim(f.stats.lines.toString()) },
-      { header: "Blank", align: "right", getValue: (f) => colors.dim(f.stats.blank.toString()) },
-      { header: "Comment", align: "right", getValue: (f) => colors.green(f.stats.comment.toString()) },
-      { header: "Code", align: "right", getValue: (f) => colors.yellow(f.stats.code.toString()) },
+      {
+        header: "Lines",
+        align: "right",
+        getValue: (f) => colors.dim(f.stats.lines.toString()),
+      },
+      {
+        header: "Blank",
+        align: "right",
+        getValue: (f) => colors.dim(f.stats.blank.toString()),
+      },
+      {
+        header: "Comment",
+        align: "right",
+        getValue: (f) => colors.green(f.stats.comment.toString()),
+      },
+      {
+        header: "Code",
+        align: "right",
+        getValue: (f) => colors.yellow(f.stats.code.toString()),
+      },
     ];
     lines.push(renderTable(columns, report.fileDetails));
   }
   return lines.join("\n");
 }
-

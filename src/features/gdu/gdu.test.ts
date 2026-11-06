@@ -60,8 +60,22 @@ devfs                204       204         0   100%     708          0  100%   /
 
   it("sorts disk items by name and count", () => {
     const items = [
-      { name: "z_file", path: "/z", size: 100, itemCount: 10, isDirectory: false, mtime: new Date() },
-      { name: "a_file", path: "/a", size: 200, itemCount: 5, isDirectory: false, mtime: new Date() },
+      {
+        name: "z_file",
+        path: "/z",
+        size: 100,
+        itemCount: 10,
+        isDirectory: false,
+        mtime: new Date(),
+      },
+      {
+        name: "a_file",
+        path: "/a",
+        size: 200,
+        itemCount: 5,
+        isDirectory: false,
+        mtime: new Date(),
+      },
     ];
     const byName = sortDiskItems(items, "name");
     expect(byName[0]?.name).toBe("a_file");
@@ -80,7 +94,14 @@ devfs                204       204         0   100%     708          0  100%   /
 
   it("formats disk items as json", () => {
     const { formatGduJson } = require("./gduDoers.ts");
-    const item = { name: "test", path: "/test", size: 1024, itemCount: 1, isDirectory: false, mtime: new Date() };
+    const item = {
+      name: "test",
+      path: "/test",
+      size: 1024,
+      itemCount: 1,
+      isDirectory: false,
+      mtime: new Date(),
+    };
     const jsonStr = formatGduJson(item);
     expect(jsonStr).toContain('"name": "test"');
     expect(JSON.parse(jsonStr).size).toBe(1024);

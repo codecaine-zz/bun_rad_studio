@@ -4,7 +4,11 @@
  * files in the graveyard.
  */
 import { join, resolve } from "node:path";
-import type { GraveyardManifest, GraveyardRecord, RipOptions } from "./ripTypes.ts";
+import type {
+  GraveyardManifest,
+  GraveyardRecord,
+  RipOptions,
+} from "./ripTypes.ts";
 import {
   ensureDirectoryExists,
   formatGraveyardRecord,
@@ -24,7 +28,7 @@ import { colors } from "../../shared/colors.ts";
  */
 export async function buryTarget(
   target: string,
-  graveyardDir: string
+  graveyardDir: string,
 ): Promise<GraveyardRecord> {
   const fullPath = resolve(target);
   const info = await inspectPath(fullPath);
@@ -55,7 +59,7 @@ export async function buryTarget(
  */
 export async function unburyTarget(
   graveyardDir: string,
-  targetQuery?: string
+  targetQuery?: string,
 ): Promise<GraveyardRecord> {
   const manifest = await readManifest(graveyardDir);
   if (manifest.records.length === 0) {
@@ -69,7 +73,7 @@ export async function unburyTarget(
       index = num - 1;
     } else {
       const foundIndex = manifest.records.findLastIndex(
-        (r) => r.id === targetQuery || r.originalPath.includes(targetQuery)
+        (r) => r.id === targetQuery || r.originalPath.includes(targetQuery),
       );
       if (foundIndex === -1) {
         throw new Error(`[RipUnbury] No buried item matched: ${targetQuery}`);
@@ -94,7 +98,7 @@ export async function unburyTarget(
  */
 export async function getRecordInfo(
   graveyardDir: string,
-  query: string
+  query: string,
 ): Promise<GraveyardRecord> {
   const manifest = await readManifest(graveyardDir);
   const num = parseInt(query, 10);
@@ -103,7 +107,7 @@ export async function getRecordInfo(
     record = manifest.records[num - 1];
   } else {
     record = manifest.records.find(
-      (r) => r.id === query || r.originalPath.includes(query)
+      (r) => r.id === query || r.originalPath.includes(query),
     );
   }
   if (!record) {
@@ -118,7 +122,7 @@ export async function getRecordInfo(
  */
 export async function pruneGraveyard(
   graveyardDir: string,
-  days: number
+  days: number,
 ): Promise<number> {
   const manifest = await readManifest(graveyardDir);
   const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
@@ -147,14 +151,18 @@ export async function seanceGraveyard(graveyardDir: string): Promise<string[]> {
   if (manifest.records.length === 0) {
     return ["Graveyard is empty."];
   }
-  return manifest.records.map((r, i) => `${colors.dim(`[${i + 1}]`)} ${formatGraveyardRecord(r)}`);
+  return manifest.records.map(
+    (r, i) => `${colors.dim(`[${i + 1}]`)} ${formatGraveyardRecord(r)}`,
+  );
 }
 
 /**
  * Permanently deletes all buried items in the graveyard and resets the manifest.
  * Returns the count of deleted items.
  */
-export async function decomposeGraveyard(graveyardDir: string): Promise<number> {
+export async function decomposeGraveyard(
+  graveyardDir: string,
+): Promise<number> {
   const manifest = await readManifest(graveyardDir);
   const count = manifest.records.length;
   for (const record of manifest.records) {
@@ -167,7 +175,9 @@ export async function decomposeGraveyard(graveyardDir: string): Promise<number> 
 /**
  * Executes the primary `rip` workflow according to `options` and returns output lines for display.
  */
-export async function runRipCoordinator(options: RipOptions): Promise<string[]> {
+export async function runRipCoordinator(
+  options: RipOptions,
+): Promise<string[]> {
   const graveyardDir = resolveGraveyardDir(options.graveyardDir);
   await ensureDirectoryExists(graveyardDir);
 

@@ -13,9 +13,36 @@ import type { ProcessInfo } from "./procsTypes.ts";
 
 describe("procs TUI module", () => {
   const sampleProcs: ProcessInfo[] = [
-    { pid: 101, ppid: 1, user: "alice", cpu: 5.2, mem: 1.8, stat: "S", time: "0:01", command: "bun test" },
-    { pid: 102, ppid: 1, user: "bob", cpu: 0.1, mem: 0.5, stat: "S", time: "0:00", command: "zsh" },
-    { pid: 103, ppid: 101, user: "alice", cpu: 12.0, mem: 4.2, stat: "R", time: "0:15", command: "node server.js" },
+    {
+      pid: 101,
+      ppid: 1,
+      user: "alice",
+      cpu: 5.2,
+      mem: 1.8,
+      stat: "S",
+      time: "0:01",
+      command: "bun test",
+    },
+    {
+      pid: 102,
+      ppid: 1,
+      user: "bob",
+      cpu: 0.1,
+      mem: 0.5,
+      stat: "S",
+      time: "0:00",
+      command: "zsh",
+    },
+    {
+      pid: 103,
+      ppid: 101,
+      user: "alice",
+      cpu: 12.0,
+      mem: 4.2,
+      stat: "R",
+      time: "0:15",
+      command: "node server.js",
+    },
   ];
 
   function createTestState(overrides?: Partial<ProcsTuiState>): ProcsTuiState {
@@ -51,7 +78,10 @@ describe("procs TUI module", () => {
     expect(handleProcsTuiKey("q").type).toBe("QUIT");
 
     // Filtering mode
-    expect(handleProcsTuiKey("a", true)).toEqual({ type: "FILTER_CHAR", char: "a" });
+    expect(handleProcsTuiKey("a", true)).toEqual({
+      type: "FILTER_CHAR",
+      char: "a",
+    });
     expect(handleProcsTuiKey("\b", true).type).toBe("FILTER_BACKSPACE");
     expect(handleProcsTuiKey("\r", true).type).toBe("FILTER_CONFIRM");
     expect(handleProcsTuiKey("\u001b", true).type).toBe("FILTER_CLEAR");
@@ -139,7 +169,9 @@ describe("procs TUI module", () => {
 
     // Can also test renderProcsDetails directly
     const details = renderProcsDetails(sampleProcs[0]!, sampleProcs);
-    expect(details.replace(/\u001b\[[0-9;]*m/g, "")).toContain("Child PIDs      : 103");
+    expect(details.replace(/\u001b\[[0-9;]*m/g, "")).toContain(
+      "Child PIDs      : 103",
+    );
   });
 
   it("auto-refreshes processes state upon KILL action", () => {

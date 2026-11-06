@@ -15,7 +15,10 @@ import {
   writeContentSync,
   processFileSync,
 } from "../src/features/sd/sdDoers.ts";
-import { processFile, runSdCoordinator } from "../src/features/sd/sdCoordinator.ts";
+import {
+  processFile,
+  runSdCoordinator,
+} from "../src/features/sd/sdCoordinator.ts";
 import type { FileTransformResult } from "../src/features/sd/sdTypes.ts";
 import {
   SD_PRESETS,
@@ -35,7 +38,9 @@ import {
 import * as path from "node:path";
 import * as fs from "node:fs";
 
-export function createSdStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
+export function createSdStudio(
+  options: { fullscreen?: boolean; theme?: string } = {},
+): SimpleWindow {
   const win = newSimpleWindow(
     "Sd Studio Pro -- Intuitive Search & Displace (Find & Replace Engine)",
     1240,
@@ -45,14 +50,20 @@ export function createSdStudio(options: { fullscreen?: boolean; theme?: string }
       theme: options.theme || getSavedTheme() || "midnight",
       autoSaveState: true,
       fullscreen: options.fullscreen ?? true,
-    }
+    },
   );
 
   let currentResults: FileTransformResult[] = [];
   let selectedFile: FileTransformResult | null = null;
   let rowFiles: string[] = [];
   let lastUndo: UndoRecord[] = [];
-  let lastReport: { mode: string; find: string; replace: string; rows: ReportRow[]; skipped: number } | null = null;
+  let lastReport: {
+    mode: string;
+    find: string;
+    replace: string;
+    rows: ReportRow[];
+    skipped: number;
+  } | null = null;
 
   // -----------------------------------------------------------------------------------------------
   // 1. Header Toolbar
@@ -64,17 +75,31 @@ export function createSdStudio(options: { fullscreen?: boolean; theme?: string }
   win.addButton("btn_save_state", "💾 Save Config");
   win.addButton("btn_center", "Center");
   win.endRow();
-  win.addCaption("Intuitive Search & Displace -- Modern sed Alternative with Live Diffs & Regex Captures");
+  win.addCaption(
+    "Intuitive Search & Displace -- Modern sed Alternative with Live Diffs & Regex Captures",
+  );
 
   // -------------------------------------------------------------------------------------------  // 2. Telemetry Cards
   // -----------------------------------------------------------------------------------------------
   const isShot = process.env.SCREENSHOT_MODE === "1";
   win.beginGroupBox("Search & Replace Telemetry");
   win.beginRow();
-  win.addLabel("lbl_metric_files", isShot ? "Files Analyzed: 14" : "Files Analyzed: 0");
-  win.addLabel("lbl_metric_matches", isShot ? "Matches Found: 8" : "Matches Found: 0");
-  win.addLabel("lbl_metric_modified", isShot ? "Files Modified: 3 (Preview)" : "Files Modified: 0");
-  win.addLabel("lbl_metric_status", isShot ? "Engine: Preview Ready" : "Engine: Ready");
+  win.addLabel(
+    "lbl_metric_files",
+    isShot ? "Files Analyzed: 14" : "Files Analyzed: 0",
+  );
+  win.addLabel(
+    "lbl_metric_matches",
+    isShot ? "Matches Found: 8" : "Matches Found: 0",
+  );
+  win.addLabel(
+    "lbl_metric_modified",
+    isShot ? "Files Modified: 3 (Preview)" : "Files Modified: 0",
+  );
+  win.addLabel(
+    "lbl_metric_status",
+    isShot ? "Engine: Preview Ready" : "Engine: Ready",
+  );
   win.endRow();
   win.endGroupBox();
 
@@ -84,14 +109,29 @@ export function createSdStudio(options: { fullscreen?: boolean; theme?: string }
   win.beginGroupBox("Pattern & Replacement Configuration");
   win.beginRow();
   win.addLabel("lbl_find", "Find Pattern:");
-  win.addInput("txt_find", isShot ? "function ([a-zA-Z0-9_]+)Async" : "", "Regex (e.g. \\b\\w+Service) or literal text...", { width: 340 });
+  win.addInput(
+    "txt_find",
+    isShot ? "function ([a-zA-Z0-9_]+)Async" : "",
+    "Regex (e.g. \\b\\w+Service) or literal text...",
+    { width: 340 },
+  );
   win.addLabel("lbl_replace", "Replace With:");
-  win.addInput("txt_replace", isShot ? "function $1Sync" : "", "Replacement text (supports $1, $2 captures)...", { width: 340 });
+  win.addInput(
+    "txt_replace",
+    isShot ? "function $1Sync" : "",
+    "Replacement text (supports $1, $2 captures)...",
+    { width: 340 },
+  );
   win.endRow();
 
   win.beginRow();
   win.addLabel("lbl_targets", "Target Files / Dirs:");
-  win.addInput("txt_targets", "./src", "Files or directories to modify (e.g. src, index.ts)...", { width: 440 });
+  win.addInput(
+    "txt_targets",
+    "./src",
+    "Files or directories to modify (e.g. src, index.ts)...",
+    { width: 440 },
+  );
   win.addButton("btn_browse_target", "📄 Browse File...", { width: 120 });
   win.addButton("btn_browse_folder", "📁 Browse Folder...", { width: 130 });
   win.addButton("btn_count_matches", "🔍 Count Matches", { width: 140 });
@@ -114,12 +154,19 @@ export function createSdStudio(options: { fullscreen?: boolean; theme?: string }
 
   win.beginRow();
   win.addLabel("lbl_preset", "Preset:");
-  win.addDropdown("dd_preset", [SD_PRESET_NONE, ...SD_PRESETS.map((p) => p.label)], SD_PRESET_NONE, { width: 240 });
+  win.addDropdown(
+    "dd_preset",
+    [SD_PRESET_NONE, ...SD_PRESETS.map((p) => p.label)],
+    SD_PRESET_NONE,
+    { width: 240 },
+  );
   win.addButton("btn_swap", "⇄ Swap Find/Replace", { width: 150 });
   win.addLabel("lbl_exts", "Only extensions:");
   win.addInput("txt_exts", "", "e.g. ts,tsx,md (blank = all)", { width: 170 });
   win.addLabel("lbl_exclude", "Exclude:");
-  win.addInput("txt_exclude", "", "e.g. *.min.js, vendor, test/**", { width: 220 });
+  win.addInput("txt_exclude", "", "e.g. *.min.js, vendor, test/**", {
+    width: 220,
+  });
   win.endRow();
 
   win.beginRow();
@@ -135,11 +182,23 @@ export function createSdStudio(options: { fullscreen?: boolean; theme?: string }
   // -----------------------------------------------------------------------------------------------
   win.beginGroupBox("Modified & Matching Files");
   const tableHeaders = ["File Path", "Matches", "Diff Hunks", "Status"];
-  const demoFiles = isShot ? [
-    ["src/features/ipinfo/ipinfoDoers.ts", "3 matches", "2 hunks", "Preview OK"],
-    ["src/features/procs/procsDoers.ts", "3 matches", "2 hunks", "Preview OK"],
-    ["src/features/gdu/gduDoers.ts", "2 matches", "1 hunk", "Preview OK"],
-  ] : [];
+  const demoFiles = isShot
+    ? [
+        [
+          "src/features/ipinfo/ipinfoDoers.ts",
+          "3 matches",
+          "2 hunks",
+          "Preview OK",
+        ],
+        [
+          "src/features/procs/procsDoers.ts",
+          "3 matches",
+          "2 hunks",
+          "Preview OK",
+        ],
+        ["src/features/gdu/gduDoers.ts", "2 matches", "1 hunk", "Preview OK"],
+      ]
+    : [];
   win.addTable("tbl_files", tableHeaders, demoFiles, { height: 260 });
   win.endGroupBox();
 
@@ -154,7 +213,10 @@ export function createSdStudio(options: { fullscreen?: boolean; theme?: string }
   // 6. Status Bar
   // -----------------------------------------------------------------------------------------------
   win.beginRow();
-  win.addLabel("lbl_status_bar", "Ready. Specify a search pattern and target files to begin.");
+  win.addLabel(
+    "lbl_status_bar",
+    "Ready. Specify a search pattern and target files to begin.",
+  );
   win.endRow();
 
   // -----------------------------------------------------------------------------------------------
@@ -163,7 +225,9 @@ export function createSdStudio(options: { fullscreen?: boolean; theme?: string }
   const executeOperation = (mode: "count" | "preview" | "replace") => {
     const findPattern = win.getValue("txt_find")?.trim();
     const replaceRaw = win.getValue("txt_replace") || "";
-    const replacePattern = win.getBool("chk_escapes") ? unescapeReplacement(replaceRaw) : replaceRaw;
+    const replacePattern = win.getBool("chk_escapes")
+      ? unescapeReplacement(replaceRaw)
+      : replaceRaw;
     const targetsStr = win.getValue("txt_targets")?.trim() || ".";
     const stringMode = win.getBool("chk_string_mode");
     const wholeWord = win.getBool("chk_whole_word");
@@ -173,30 +237,54 @@ export function createSdStudio(options: { fullscreen?: boolean; theme?: string }
     const flags = win.getValue("txt_flags")?.trim() || "g";
 
     if (!findPattern) {
-      win.setValue("lbl_status_bar", "⚠️ Error: Please specify a Find pattern.");
+      win.setValue(
+        "lbl_status_bar",
+        "⚠️ Error: Please specify a Find pattern.",
+      );
       return;
     }
 
-    win.setValue("lbl_status_bar", `Running ${mode.toUpperCase()} on targets...`);
+    win.setValue(
+      "lbl_status_bar",
+      `Running ${mode.toUpperCase()} on targets...`,
+    );
     win.clearConsole("console_diffs");
 
     try {
-      const regex = buildReplacerRegex(findPattern, stringMode, flags, ignoreCase, wholeWord);
+      const regex = buildReplacerRegex(
+        findPattern,
+        stringMode,
+        flags,
+        ignoreCase,
+        wholeWord,
+      );
       const targetPaths = targetsStr.split(/[\s,]+/).filter(Boolean);
       const fileFilter = {
         exts: parseExtList(String(win.getValue("txt_exts") || "")),
-        exclude: String(win.getValue("txt_exclude") || "").split(/[\s,;]+/).filter(Boolean),
+        exclude: String(win.getValue("txt_exclude") || "")
+          .split(/[\s,;]+/)
+          .filter(Boolean),
       };
       let skipped = 0;
       const resolvedFiles = expandTargetsSync(targetPaths).filter((f) => {
         if (!passesFileFilter(f, fileFilter)) return false;
         try {
           const st = fs.statSync(f);
-          if (st.size > SD_MAX_FILE_BYTES) { skipped++; return false; }
+          if (st.size > SD_MAX_FILE_BYTES) {
+            skipped++;
+            return false;
+          }
           const fd = fs.openSync(f, "r");
           const buf = Buffer.alloc(Math.min(8192, st.size));
-          try { fs.readSync(fd, buf, 0, buf.length, 0); } finally { fs.closeSync(fd); }
-          if (isLikelyBinary(buf)) { skipped++; return false; }
+          try {
+            fs.readSync(fd, buf, 0, buf.length, 0);
+          } finally {
+            fs.closeSync(fd);
+          }
+          if (isLikelyBinary(buf)) {
+            skipped++;
+            return false;
+          }
         } catch {
           return false;
         }
@@ -221,7 +309,10 @@ export function createSdStudio(options: { fullscreen?: boolean; theme?: string }
               tableRows.push([file, String(count), "N/A", "Matches Found"]);
               rowResults.push(null);
               rowFiles.push(file);
-              win.appendConsole("console_diffs", `[MATCH] ${file}: ${count} match(es)\n`);
+              win.appendConsole(
+                "console_diffs",
+                `[MATCH] ${file}: ${count} match(es)\n`,
+              );
             } else {
               const res = processFileSync(file, regex, replacePattern);
               results.push(res);
@@ -231,13 +322,26 @@ export function createSdStudio(options: { fullscreen?: boolean; theme?: string }
                   if (createBak) {
                     createBackupSync(file, backupExt);
                   }
-                  undoBatch.push({ filePath: file, original: res.originalContent });
+                  undoBatch.push({
+                    filePath: file,
+                    original: res.originalContent,
+                  });
                   writeContentSync(file, res.newContent);
-                  tableRows.push([file, String(count), String(res.diffHunks.length), createBak ? `Replaced (${backupExt})` : "Replaced"]);
+                  tableRows.push([
+                    file,
+                    String(count),
+                    String(res.diffHunks.length),
+                    createBak ? `Replaced (${backupExt})` : "Replaced",
+                  ]);
                   rowResults.push(res);
                   rowFiles.push(file);
                 } else {
-                  tableRows.push([file, String(count), String(res.diffHunks.length), "Diff Ready"]);
+                  tableRows.push([
+                    file,
+                    String(count),
+                    String(res.diffHunks.length),
+                    "Diff Ready",
+                  ]);
                   rowResults.push(res);
                   rowFiles.push(file);
                 }
@@ -255,23 +359,49 @@ export function createSdStudio(options: { fullscreen?: boolean; theme?: string }
 
       currentResults = rowResults as FileTransformResult[];
       win.setTableData("tbl_files", tableRows);
-      win.setValue("lbl_metric_files", `Files Analyzed: ${resolvedFiles.length}`);
+      win.setValue(
+        "lbl_metric_files",
+        `Files Analyzed: ${resolvedFiles.length}`,
+      );
       win.setValue("lbl_metric_matches", `Matches Found: ${totalMatches}`);
-      win.setValue("lbl_metric_modified", `Files Modified: ${mode === "replace" ? modifiedCount : 0}`);
+      win.setValue(
+        "lbl_metric_modified",
+        `Files Modified: ${mode === "replace" ? modifiedCount : 0}`,
+      );
       win.setValue("lbl_metric_status", `Engine: Completed (${mode})`);
-      const skipNote = skipped ? ` Skipped ${skipped} binary/oversized file(s).` : "";
-      win.setValue("lbl_status_bar", `✓ Completed ${mode} across ${resolvedFiles.length} file(s). Found ${totalMatches} match(es).${skipNote}`);
+      const skipNote = skipped
+        ? ` Skipped ${skipped} binary/oversized file(s).`
+        : "";
+      win.setValue(
+        "lbl_status_bar",
+        `✓ Completed ${mode} across ${resolvedFiles.length} file(s). Found ${totalMatches} match(es).${skipNote}`,
+      );
       if (mode === "replace" && undoBatch.length) lastUndo = undoBatch;
       lastReport = {
         mode,
         find: findPattern,
         replace: replaceRaw,
         skipped,
-        rows: tableRows.map((r) => ({ filePath: r[0]!, matches: Number(r[1]) || 0, hunks: Number(r[2]) || 0, status: r[3]! })),
+        rows: tableRows.map((r) => ({
+          filePath: r[0]!,
+          matches: Number(r[1]) || 0,
+          hunks: Number(r[2]) || 0,
+          status: r[3]!,
+        })),
       };
       if (totalMatches === 0) win.toast("No matches found", 2500, "warning");
-      else if (mode === "replace") win.toast(`Replaced in ${modifiedCount} file(s) \u2014 use Undo Last Replace to revert`, 4000, "success");
-      else win.toast(`${totalMatches} match(es) in ${tableRows.length} file(s)`, 2500, "success");
+      else if (mode === "replace")
+        win.toast(
+          `Replaced in ${modifiedCount} file(s) \u2014 use Undo Last Replace to revert`,
+          4000,
+          "success",
+        );
+      else
+        win.toast(
+          `${totalMatches} match(es) in ${tableRows.length} file(s)`,
+          2500,
+          "success",
+        );
     } catch (err: any) {
       win.setValue("lbl_status_bar", `❌ Error: ${err.message}`);
       win.toast(`Error: ${err.message}`, 4000, "error");
@@ -284,14 +414,17 @@ export function createSdStudio(options: { fullscreen?: boolean; theme?: string }
   win.on("btn_apply_replace", "click", async () => {
     const find = win.getValue("txt_find")?.trim();
     if (!find) {
-      win.setValue("lbl_status_bar", "⚠️ Error: Please specify a Find pattern.");
+      win.setValue(
+        "lbl_status_bar",
+        "⚠️ Error: Please specify a Find pattern.",
+      );
       return;
     }
     const targets = win.getValue("txt_targets")?.trim() || ".";
     const backup = win.getBool("chk_backup");
     const ok = await win.confirm(
       `Replace "${find}" in files under: ${targets}\n\n${backup ? "Backups will be created." : "No backups will be created — this cannot be undone."}\n\nTip: run Preview Diffs first. Continue?`,
-      "Confirm Replace In Files"
+      "Confirm Replace In Files",
     );
     if (!ok) {
       win.setValue("lbl_status_bar", "Replace cancelled.");
@@ -326,7 +459,10 @@ export function createSdStudio(options: { fullscreen?: boolean; theme?: string }
     win.setValue("chk_whole_word", preset.wholeWord);
     win.setValue("chk_ignore_case", preset.ignoreCase);
     win.setValue("chk_escapes", Boolean(preset.escapes));
-    win.setValue("lbl_status_bar", `Preset loaded: ${preset.label}. Click Preview Diffs to review.`);
+    win.setValue(
+      "lbl_status_bar",
+      `Preset loaded: ${preset.label}. Click Preview Diffs to review.`,
+    );
   });
 
   win.on("btn_swap", "click", () => {
@@ -342,7 +478,10 @@ export function createSdStudio(options: { fullscreen?: boolean; theme?: string }
       win.toast("Nothing to undo", 2500, "warning");
       return;
     }
-    const ok = await win.confirm(`Restore ${lastUndo.length} file(s) to their content before the last replace?`, "Undo Last Replace");
+    const ok = await win.confirm(
+      `Restore ${lastUndo.length} file(s) to their content before the last replace?`,
+      "Undo Last Replace",
+    );
     if (!ok) return;
     let restored = 0;
     for (const rec of lastUndo) {
@@ -350,31 +489,52 @@ export function createSdStudio(options: { fullscreen?: boolean; theme?: string }
         writeContentSync(rec.filePath, rec.original);
         restored++;
       } catch (e: any) {
-        win.appendConsole("console_diffs", `[UNDO ERROR] ${rec.filePath}: ${e.message}\n`);
+        win.appendConsole(
+          "console_diffs",
+          `[UNDO ERROR] ${rec.filePath}: ${e.message}\n`,
+        );
       }
     }
     lastUndo = [];
-    win.setValue("lbl_status_bar", `Undo complete: restored ${restored} file(s).`);
+    win.setValue(
+      "lbl_status_bar",
+      `Undo complete: restored ${restored} file(s).`,
+    );
     win.toast(`Restored ${restored} file(s)`, 3000, "success");
   });
 
   const diffTexts = (): string[] =>
-    currentResults.filter((r): r is FileTransformResult => !!r && r.hasChanged).map((r) => formatDiffPreview(r));
+    currentResults
+      .filter((r): r is FileTransformResult => !!r && r.hasChanged)
+      .map((r) => formatDiffPreview(r));
 
   win.on("btn_copy_diff", "click", () => {
     const text = joinDiffs(diffTexts());
     if (!text) {
-      win.toast("No diff to copy \u2014 run Preview Diffs first", 3000, "warning");
+      win.toast(
+        "No diff to copy \u2014 run Preview Diffs first",
+        3000,
+        "warning",
+      );
       return;
     }
     win.copyToClipboard(text);
     win.toast("Diff copied to clipboard", 2000, "success");
   });
 
-  const saveText = (title: string, defaultName: string, filter: string, make: () => string | null) => {
+  const saveText = (
+    title: string,
+    defaultName: string,
+    filter: string,
+    make: () => string | null,
+  ) => {
     const text = make();
     if (!text) {
-      win.toast("Nothing to save yet \u2014 run Count or Preview first", 3000, "warning");
+      win.toast(
+        "Nothing to save yet \u2014 run Count or Preview first",
+        3000,
+        "warning",
+      );
       return;
     }
     win.saveFile({ title, defaultName, filter }, (p) => {
@@ -388,9 +548,18 @@ export function createSdStudio(options: { fullscreen?: boolean; theme?: string }
       }
     });
   };
-  win.on("btn_save_patch", "click", () => saveText("Save diff", "sd_changes.diff", "diff,patch,txt", () => joinDiffs(diffTexts()) || null));
+  win.on("btn_save_patch", "click", () =>
+    saveText(
+      "Save diff",
+      "sd_changes.diff",
+      "diff,patch,txt",
+      () => joinDiffs(diffTexts()) || null,
+    ),
+  );
   win.on("btn_save_report", "click", () =>
-    saveText("Save report", "sd_report.md", "md,txt", () => (lastReport && lastReport.rows.length ? formatReport(lastReport) : null))
+    saveText("Save report", "sd_report.md", "md,txt", () =>
+      lastReport && lastReport.rows.length ? formatReport(lastReport) : null,
+    ),
   );
 
   win.on("btn_clear", "click", () => {
@@ -402,7 +571,12 @@ export function createSdStudio(options: { fullscreen?: boolean; theme?: string }
   });
 
   win.on("tbl_files", "click", (w, val) => {
-    const idx = typeof val === "number" ? val : /^\d+$/.test(String(val)) ? Number(val) : rowFiles.indexOf(String(val));
+    const idx =
+      typeof val === "number"
+        ? val
+        : /^\d+$/.test(String(val))
+          ? Number(val)
+          : rowFiles.indexOf(String(val));
     if (idx >= 0 && currentResults[idx]) {
       selectedFile = currentResults[idx] ?? null;
       if (selectedFile) {

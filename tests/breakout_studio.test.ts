@@ -31,7 +31,11 @@ describe("⚡ CyberBrick Breaker Deluxe — Arcade Master Edition Suite", () => 
   });
 
   it("3. Studio factory generates correct defaults and instance contracts", () => {
-    const app = createBreakoutStudio({ fullscreen: false, width: 1000, height: 800 });
+    const app = createBreakoutStudio({
+      fullscreen: false,
+      width: 1000,
+      height: 800,
+    });
     expect(app.title).toContain("CyberBrick Breaker Deluxe");
     expect(app.width).toBe(1000);
     expect(app.height).toBe(800);
@@ -59,7 +63,7 @@ describe("⚡ CyberBrick Breaker Deluxe — Arcade Master Edition Suite", () => 
       // Health check endpoint
       const resHealth = await fetch(`${base}/api/health`);
       expect(resHealth.status).toBe(200);
-      const healthData = await resHealth.json() as any;
+      const healthData = (await resHealth.json()) as any;
       expect(healthData.status).toBe("ok");
       expect(healthData.app).toBe("breakout_studio");
       expect(healthData.name).toContain("CyberBrick Breaker Deluxe");
@@ -70,7 +74,9 @@ describe("⚡ CyberBrick Breaker Deluxe — Arcade Master Edition Suite", () => 
 
   it("5. Launcher Studio automatically registers and surfaces CyberBrick Breaker", () => {
     const apps = scanWorkspaceApps();
-    const found = apps.find((a) => a.name === "breakout_studio" || a.id === "rad_breakout_studio");
+    const found = apps.find(
+      (a) => a.name === "breakout_studio" || a.id === "rad_breakout_studio",
+    );
     expect(found).toBeDefined();
     expect(found?.displayName).toBe("Codecaine CyberBrick Breaker Deluxe");
     expect(found?.icon).toBe("🧱");

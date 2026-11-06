@@ -7,7 +7,8 @@ export class GifError extends Error {}
 const CLEAR_DELAY_MS = 100;
 
 /** How long a frame is shown: browsers treat a delay of 0 or 1 hundredth of a second as 0.1 s, and so do we. */
-export const frameMs = (delayCs) => (delayCs <= 1 ? CLEAR_DELAY_MS : delayCs * 10);
+export const frameMs = (delayCs) =>
+  delayCs <= 1 ? CLEAR_DELAY_MS : delayCs * 10;
 
 function lzwDecode(data, minCodeSize, pixelCount) {
   const out = new Uint8Array(pixelCount);
@@ -82,7 +83,12 @@ function lzwDecode(data, minCodeSize, pixelCount) {
 function deinterlace(pixels, w, h) {
   const out = new Uint8Array(pixels.length);
   let src = 0;
-  for (const [start, step] of [[0, 8], [4, 8], [2, 4], [1, 2]]) {
+  for (const [start, step] of [
+    [0, 8],
+    [4, 8],
+    [2, 4],
+    [1, 2],
+  ]) {
     for (let y = start; y < h; y += step) {
       out.set(pixels.subarray(src * w, src * w + w), y * w);
       src++;
@@ -99,7 +105,8 @@ function deinterlace(pixels, w, h) {
 export function parseGif(bytes, { maxFrames = 2000 } = {}) {
   const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
   const sig = String.fromCharCode(...b.subarray(0, 6));
-  if (sig !== "GIF87a" && sig !== "GIF89a") throw new GifError("This isn't a GIF file.");
+  if (sig !== "GIF87a" && sig !== "GIF89a")
+    throw new GifError("This isn't a GIF file.");
   const u16 = (i) => b[i] | (b[i + 1] << 8);
   const width = u16(6);
   const height = u16(8);
@@ -127,14 +134,23 @@ export function parseGif(bytes, { maxFrames = 2000 } = {}) {
       const label = b[p++];
       if (label === 0xf9 && b[p] === 4) {
         const f = b[p + 1];
-        gce = { disposal: (f >> 2) & 7, delay: u16(p + 2), transparent: f & 1 ? b[p + 4] : -1 };
+        gce = {
+          disposal: (f >> 2) & 7,
+          delay: u16(p + 2),
+          transparent: f & 1 ? b[p + 4] : -1,
+        };
         p += 6;
         continue;
       }
       if (label === 0xff && b[p] === 11) {
         const name = String.fromCharCode(...b.subarray(p + 1, p + 12));
         p += 12;
-        if ((name === "NETSCAPE2.0" || name === "ANIMEXTS1.0") && b[p] >= 3 && b[p + 1] === 1) loop = u16(p + 2);
+        if (
+          (name === "NETSCAPE2.0" || name === "ANIMEXTS1.0") &&
+          b[p] >= 3 &&
+          b[p + 1] === 1
+        )
+          loop = u16(p + 2);
         skipBlocks();
         continue;
       }
@@ -151,7 +167,8 @@ export function parseGif(bytes, { maxFrames = 2000 } = {}) {
       skipBlocks();
       continue;
     }
-    if (tag !== 0x2c) throw new GifError("This GIF is damaged (an unknown part was found).");
+    if (tag !== 0x2c)
+      throw new GifError("This GIF is damaged (an unknown part was found).");
     if (p + 9 > b.length) break;
     const x = u16(p);
     const y = u16(p + 2);
@@ -167,7 +184,8 @@ export function parseGif(bytes, { maxFrames = 2000 } = {}) {
     }
     if (!palette) throw new GifError("This GIF has no colors.");
     const minCode = b[p++];
-    if (minCode < 1 || minCode > 11) throw new GifError("This GIF is damaged (a bad color size).");
+    if (minCode < 1 || minCode > 11)
+      throw new GifError("This GIF is damaged (a bad color size).");
     const chunks = [];
     let total = 0;
     while (p < b.length && b[p] !== 0) {
@@ -178,23 +196,42 @@ export function parseGif(bytes, { maxFrames = 2000 } = {}) {
     p++;
     const data = new Uint8Array(total);
     let at = 0;
-    for (const c of chunks) { data.set(c, at); at += c.length; }
+    for (const c of chunks) {
+      data.set(c, at);
+      at += c.length;
+    }
     const decoded = lzwDecode(data, minCode, w * h);
     let pixels = decoded.pixels;
     if (f & 0x40) pixels = deinterlace(pixels, w, h);
-    frames.push({ x, y, w, h, delay: gce.delay, disposal: gce.disposal, transparent: gce.transparent, palette, pixels, partial: decoded.filled < w * h });
+    frames.push({
+      x,
+      y,
+      w,
+      h,
+      delay: gce.delay,
+      disposal: gce.disposal,
+      transparent: gce.transparent,
+      palette,
+      pixels,
+      partial: decoded.filled < w * h,
+    });
     gce = { delay: 0, disposal: 0, transparent: -1 };
-    if (frames.length > maxFrames) throw new GifError(`This GIF has more than ${maxFrames} frames, which is too many to show frame by frame.`);
+    if (frames.length > maxFrames)
+      throw new GifError(
+        `This GIF has more than ${maxFrames} frames, which is too many to show frame by frame.`,
+      );
   }
   if (!frames.length) throw new GifError("This GIF has no pictures in it.");
   return { width, height, loop, frames, comment };
 }
 
 /** Total time of one pass in milliseconds. */
-export const durationMs = (gif) => gif.frames.reduce((sum, f) => sum + frameMs(f.delay), 0);
+export const durationMs = (gif) =>
+  gif.frames.reduce((sum, f) => sum + frameMs(f.delay), 0);
 
 /** The memory the joined frames take, in bytes. */
-export const composedBytes = (gif) => gif.width * gif.height * 4 * gif.frames.length;
+export const composedBytes = (gif) =>
+  gif.width * gif.height * 4 * gif.frames.length;
 
 /**
  * Joins the frames into whole pictures: an array of Uint8ClampedArray (RGBA, width*height*4), one per frame. A frame's
@@ -209,8 +246,14 @@ export function composeFrames(gif) {
   for (const f of gif.frames) {
     if (prev) {
       if (prev.disposal === 2) {
-        for (let y = prev.y; y < Math.min(H, prev.y + prev.h); y++) canvas.fill(0, (y * W + prev.x) * 4, (y * W + Math.min(W, prev.x + prev.w)) * 4);
-      } else if (prev.disposal === 3 && before) canvas = new Uint8ClampedArray(before);
+        for (let y = prev.y; y < Math.min(H, prev.y + prev.h); y++)
+          canvas.fill(
+            0,
+            (y * W + prev.x) * 4,
+            (y * W + Math.min(W, prev.x + prev.w)) * 4,
+          );
+      } else if (prev.disposal === 3 && before)
+        canvas = new Uint8ClampedArray(before);
     }
     before = f.disposal === 3 ? new Uint8ClampedArray(canvas) : null;
     const pal = f.palette;
@@ -243,7 +286,12 @@ export function describeGif(gif) {
     frames: n,
     seconds: ms / 1000,
     fps: n > 1 && ms > 0 ? Math.round(((n * 1000) / ms) * 10) / 10 : 0,
-    loop: gif.loop === 0 ? "forever" : gif.loop < 0 ? "once" : `${gif.loop + 1} times`,
+    loop:
+      gif.loop === 0
+        ? "forever"
+        : gif.loop < 0
+          ? "once"
+          : `${gif.loop + 1} times`,
     animated: n > 1,
     transparent: gif.frames.some((f) => f.transparent >= 0),
   };

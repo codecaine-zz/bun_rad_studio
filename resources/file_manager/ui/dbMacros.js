@@ -6,7 +6,14 @@ import { ApiError, call } from "./api.js";
 import { confirmBox, openDialog, promptBox } from "./dialogs.js";
 import { clear, h } from "./dom.js";
 import { isSqliteFile } from "./dbFiles.js";
-import { db, engineInfo, errorText, field, loadOverview, summaryOf } from "./dbState.js";
+import {
+  db,
+  engineInfo,
+  errorText,
+  field,
+  loadOverview,
+  summaryOf,
+} from "./dbState.js";
 import { toast } from "./menus.js";
 import { state } from "./state.js";
 import { baseName } from "./util.js";
@@ -65,7 +72,8 @@ function parseParamsInput(rawText) {
   if (trimmed.startsWith("{")) {
     try {
       const parsed = JSON.parse(trimmed);
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed))
+        return parsed;
     } catch {}
   }
   const out = {};
@@ -97,7 +105,10 @@ export async function showMacrosDialog(opts = {}) {
     try {
       await loadOverview();
     } catch (err) {
-      toast(errorText(err, "The saved database connections couldn't be loaded."), { kind: "error" });
+      toast(
+        errorText(err, "The saved database connections couldn't be loaded."),
+        { kind: "error" },
+      );
       return null;
     }
   }
@@ -106,7 +117,9 @@ export async function showMacrosDialog(opts = {}) {
   try {
     listRes = await call("db/macros/list", {});
   } catch (err) {
-    toast(errorText(err, "Database macros couldn't be loaded."), { kind: "error" });
+    toast(errorText(err, "Database macros couldn't be loaded."), {
+      kind: "error",
+    });
     return null;
   }
 
@@ -122,18 +135,19 @@ export async function showMacrosDialog(opts = {}) {
         ? db.selectedId
         : TARGET_MEMORY;
 
-  let current = macros.find((m) => m.id === opts.macroId) ?? macros[0] ?? {
-    id: "",
-    name: "New Bun JS Macro",
-    description: "",
-    mode: "code",
-    engine: "any",
-    code: `// Bun JS Macro — use CurrentDb, DoCmd, DCount, DLookup, DSum, TempVars, MsgBox, Debug.print\nconst tables = await CurrentDb.tables();\nDebug.print("Tables:", tables.length);\nreturn tables;`,
-    actions: [],
-    transaction: false,
-    timeoutMs: 10000,
-    defaultParams: {},
-  };
+  let current = macros.find((m) => m.id === opts.macroId) ??
+    macros[0] ?? {
+      id: "",
+      name: "New Bun JS Macro",
+      description: "",
+      mode: "code",
+      engine: "any",
+      code: `// Bun JS Macro — use CurrentDb, DoCmd, DCount, DLookup, DSum, TempVars, MsgBox, Debug.print\nconst tables = await CurrentDb.tables();\nDebug.print("Tables:", tables.length);\nreturn tables;`,
+      actions: [],
+      transaction: false,
+      timeoutMs: 10000,
+      defaultParams: {},
+    };
   current = structuredClone(current);
 
   let searchFilter = "";
@@ -152,7 +166,8 @@ export async function showMacrosDialog(opts = {}) {
     {
       type: "button",
       class: "pw-btn",
-      title: "Create a new macro written in Bun JavaScript / TypeScript with CurrentDb and DoCmd",
+      title:
+        "Create a new macro written in Bun JavaScript / TypeScript with CurrentDb and DoCmd",
     },
     "＋ Bun JS",
   );
@@ -165,7 +180,11 @@ export async function showMacrosDialog(opts = {}) {
     },
     "＋ Visual Actions",
   );
-  const macroListBox = h("div", { class: "db-macro-list", role: "listbox", "aria-label": "Saved database macros" });
+  const macroListBox = h("div", {
+    class: "db-macro-list",
+    role: "listbox",
+    "aria-label": "Saved database macros",
+  });
 
   // Editor header controls
   const nameInput = h("input", {
@@ -189,7 +208,8 @@ export async function showMacrosDialog(opts = {}) {
     {
       class: "text-input",
       "aria-label": "Macro target engine compatibility",
-      title: "Restrict this macro to a specific database engine or allow any engine",
+      title:
+        "Restrict this macro to a specific database engine or allow any engine",
     },
     h("option", { value: "any" }, "🌐 Any Engine"),
     h("option", { value: "sqlite" }, "🪶 SQLite"),
@@ -204,9 +224,14 @@ export async function showMacrosDialog(opts = {}) {
     {
       class: "text-input",
       "aria-label": "Target database connection",
-      title: "Choose which database connection, SQLite file, or scratch database to run this macro against",
+      title:
+        "Choose which database connection, SQLite file, or scratch database to run this macro against",
     },
-    h("option", { value: TARGET_MEMORY, selected: initialTargetVal === TARGET_MEMORY }, "🧪 Scratch SQLite (In-Memory Demo DB)"),
+    h(
+      "option",
+      { value: TARGET_MEMORY, selected: initialTargetVal === TARGET_MEMORY },
+      "🧪 Scratch SQLite (In-Memory Demo DB)",
+    ),
     ...db.profiles.map((p) => {
       const info = engineInfo(p.engine);
       return h(
@@ -215,7 +240,14 @@ export async function showMacrosDialog(opts = {}) {
         `${info.icon} ${p.name} (${info.label} · ${summaryOf(p)})`,
       );
     }),
-    h("option", { value: TARGET_SQLITE_FILE, selected: initialTargetVal === TARGET_SQLITE_FILE }, "🪶 SQLite file on disk…"),
+    h(
+      "option",
+      {
+        value: TARGET_SQLITE_FILE,
+        selected: initialTargetVal === TARGET_SQLITE_FILE,
+      },
+      "🪶 SQLite file on disk…",
+    ),
   );
 
   const sqlitePathInput = h("input", {
@@ -230,7 +262,12 @@ export async function showMacrosDialog(opts = {}) {
   const sqliteFileWrap = h(
     "div",
     { class: "pw-row", hidden: initialTargetVal !== TARGET_SQLITE_FILE },
-    field("SQLite file path", sqlitePathInput, "Full path to a local SQLite database file.", "db-wide"),
+    field(
+      "SQLite file path",
+      sqlitePathInput,
+      "Full path to a local SQLite database file.",
+      "db-wide",
+    ),
   );
 
   const txCheck = h("input", {
@@ -241,7 +278,8 @@ export async function showMacrosDialog(opts = {}) {
   const dryRunCheck = h("input", {
     type: "checkbox",
     checked: false,
-    "aria-label": "Dry run mode: execute macro and roll back all changes at the end",
+    "aria-label":
+      "Dry run mode: execute macro and roll back all changes at the end",
   });
   const paramsInput = h("input", {
     type: "text",
@@ -258,7 +296,8 @@ export async function showMacrosDialog(opts = {}) {
     {
       type: "button",
       class: "pw-btn",
-      title: "Author macro using Bun JavaScript / TypeScript code (like Access VBA modules)",
+      title:
+        "Author macro using Bun JavaScript / TypeScript code (like Access VBA modules)",
     },
     "🥟 Bun JS Code (VBA Style)",
   );
@@ -267,7 +306,8 @@ export async function showMacrosDialog(opts = {}) {
     {
       type: "button",
       class: "pw-btn",
-      title: "Author macro using visual action rows (like the Access Macro Designer)",
+      title:
+        "Author macro using visual action rows (like the Access Macro Designer)",
     },
     "⚡ Visual Actions (DoCmd)",
   );
@@ -276,7 +316,8 @@ export async function showMacrosDialog(opts = {}) {
     {
       type: "button",
       class: "pw-btn",
-      title: "Convert visual action rows into Bun JavaScript code (like Access 'Convert Macro to Visual Basic')",
+      title:
+        "Convert visual action rows into Bun JavaScript code (like Access 'Convert Macro to Visual Basic')",
     },
     "⇄ Convert Actions to Bun JS",
   );
@@ -285,7 +326,8 @@ export async function showMacrosDialog(opts = {}) {
     {
       type: "button",
       class: "pw-btn",
-      title: "Transpile and validate macro syntax with Bun.Transpiler without executing it",
+      title:
+        "Transpile and validate macro syntax with Bun.Transpiler without executing it",
     },
     "✓ Check Syntax",
   );
@@ -296,13 +338,18 @@ export async function showMacrosDialog(opts = {}) {
     rows: 13,
     spellcheck: "false",
     "aria-label": "Bun JavaScript macro source code",
-    placeholder: "// Write Bun JavaScript or TypeScript using CurrentDb, DoCmd, DLookup, DCount, TempVars, MsgBox, Debug.print…",
+    placeholder:
+      "// Write Bun JavaScript or TypeScript using CurrentDb, DoCmd, DLookup, DCount, TempVars, MsgBox, Debug.print…",
   });
   codeTextarea.value = safeStr(current.code);
 
   const snippetRow = h(
     "div",
-    { class: "pw-row db-macro-snippets", role: "group", "aria-label": "Insert Access-style Bun JS snippet" },
+    {
+      class: "pw-row db-macro-snippets",
+      role: "group",
+      "aria-label": "Insert Access-style Bun JS snippet",
+    },
     h("span", { class: "pw-hint" }, "Insert snippet:"),
     ...CODE_SNIPPETS.map((s) =>
       h(
@@ -313,7 +360,9 @@ export async function showMacrosDialog(opts = {}) {
           title: s.tip,
           onclick: () => {
             const cur = codeTextarea.value;
-            codeTextarea.value = cur.trim() ? `${cur.trimEnd()}\n\n${s.code}\n` : `${s.code}\n`;
+            codeTextarea.value = cur.trim()
+              ? `${cur.trimEnd()}\n\n${s.code}\n`
+              : `${s.code}\n`;
             current.code = codeTextarea.value;
             codeTextarea.focus();
           },
@@ -354,7 +403,11 @@ export async function showMacrosDialog(opts = {}) {
   );
 
   // Visual actions builder pane
-  const actionRowsBox = h("div", { class: "db-macro-actions-list", role: "region", "aria-label": "Visual macro action steps" });
+  const actionRowsBox = h("div", {
+    class: "db-macro-actions-list",
+    role: "region",
+    "aria-label": "Visual macro action steps",
+  });
   const addActionStepBtn = h(
     "button",
     {
@@ -372,17 +425,64 @@ export async function showMacrosDialog(opts = {}) {
   );
 
   // Action bar buttons (Save, Duplicate, Delete, Export)
-  const saveBtn = h("button", { type: "button", class: "pw-btn", title: "Save changes to this macro" }, "💾 Save Macro");
-  const dupBtn = h("button", { type: "button", class: "pw-btn", title: "Duplicate this macro" }, "📋 Duplicate");
-  const delBtn = h("button", { type: "button", class: "pw-btn danger", title: "Delete this saved macro" }, "🗑️ Delete");
-  const exportBunBtn = h("button", { type: "button", class: "pw-btn", title: "Export as a standalone runnable Bun TypeScript script (.ts)" }, "🥟 Export .ts");
-  const exportVbaBtn = h("button", { type: "button", class: "pw-btn", title: "Export as a Microsoft Access VBA Module (.bas)" }, "🧾 Export VBA");
-  const exportSqlBtn = h("button", { type: "button", class: "pw-btn", title: "Export SQL statements from this macro (.sql)" }, "📄 Export .sql");
+  const saveBtn = h(
+    "button",
+    { type: "button", class: "pw-btn", title: "Save changes to this macro" },
+    "💾 Save Macro",
+  );
+  const dupBtn = h(
+    "button",
+    { type: "button", class: "pw-btn", title: "Duplicate this macro" },
+    "📋 Duplicate",
+  );
+  const delBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "pw-btn danger",
+      title: "Delete this saved macro",
+    },
+    "🗑️ Delete",
+  );
+  const exportBunBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "pw-btn",
+      title: "Export as a standalone runnable Bun TypeScript script (.ts)",
+    },
+    "🥟 Export .ts",
+  );
+  const exportVbaBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "pw-btn",
+      title: "Export as a Microsoft Access VBA Module (.bas)",
+    },
+    "🧾 Export VBA",
+  );
+  const exportSqlBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "pw-btn",
+      title: "Export SQL statements from this macro (.sql)",
+    },
+    "📄 Export .sql",
+  );
 
   // Validation / Export / Immediate output boxes
-  const statusBanner = h("div", { class: "db-macro-status", role: "status", "aria-live": "polite" });
+  const statusBanner = h("div", {
+    class: "db-macro-status",
+    role: "status",
+    "aria-live": "polite",
+  });
   const exportBox = h("div", { class: "db-macro-export", hidden: true });
-  const outputBox = h("div", { class: "db-macro-output", "aria-live": "polite" });
+  const outputBox = h("div", {
+    class: "db-macro-output",
+    "aria-live": "polite",
+  });
 
   function syncDraftFromInputs() {
     current.name = nameInput.value.trim() || "Untitled Macro";
@@ -404,7 +504,9 @@ export async function showMacrosDialog(opts = {}) {
         m.mode.toLowerCase().includes(q),
     );
     if (filtered.length === 0) {
-      macroListBox.append(h("p", { class: "pw-hint" }, "No macros match your filter."));
+      macroListBox.append(
+        h("p", { class: "pw-hint" }, "No macros match your filter."),
+      );
       return;
     }
     for (const m of filtered) {
@@ -429,7 +531,13 @@ export async function showMacrosDialog(opts = {}) {
           h("strong", {}, safeStr(m.name)),
           h("span", { class: "db-tag" }, badgeText),
         ),
-        m.description ? h("div", { class: "db-macro-item-desc pw-hint" }, safeStr(m.description)) : null,
+        m.description
+          ? h(
+              "div",
+              { class: "db-macro-item-desc pw-hint" },
+              safeStr(m.description),
+            )
+          : null,
       );
       macroListBox.append(item);
     }
@@ -449,7 +557,8 @@ export async function showMacrosDialog(opts = {}) {
     }
 
     current.actions.forEach((row, idx) => {
-      const catEntry = catalog.find((c) => c.action === row.action) ?? catalog[0];
+      const catEntry =
+        catalog.find((c) => c.action === row.action) ?? catalog[0];
       const enabledChk = h("input", {
         type: "checkbox",
         checked: row.enabled !== false,
@@ -473,7 +582,11 @@ export async function showMacrosDialog(opts = {}) {
           },
         },
         ...catalog.map((c) =>
-          h("option", { value: c.action, selected: c.action === row.action }, `${c.label} — ${c.category}`),
+          h(
+            "option",
+            { value: c.action, selected: c.action === row.action },
+            `${c.label} — ${c.category}`,
+          ),
         ),
       );
 
@@ -564,7 +677,8 @@ export async function showMacrosDialog(opts = {}) {
         type: "text",
         class: "text-input pw-mono",
         value: safeStr(row.condition ?? ""),
-        placeholder: "Optional JS condition, e.g. Number(TempVars.vipCount) > 0",
+        placeholder:
+          "Optional JS condition, e.g. Number(TempVars.vipCount) > 0",
         "aria-label": `Step ${idx + 1} condition expression`,
         autocomplete: "off",
         oninput: (e) => {
@@ -593,12 +707,18 @@ export async function showMacrosDialog(opts = {}) {
           h("span", { class: "db-tag" }, `#${idx + 1}`),
           enabledChk,
           actSelect,
-          h("span", { class: "pw-hint db-macro-step-desc" }, safeStr(catEntry?.description ?? "")),
+          h(
+            "span",
+            { class: "pw-hint db-macro-step-desc" },
+            safeStr(catEntry?.description ?? ""),
+          ),
           moveUpBtn,
           moveDownBtn,
           removeStepBtn,
         ),
-        paramFields.length > 0 ? h("div", { class: "pw-row db-macro-step-params" }, ...paramFields) : null,
+        paramFields.length > 0
+          ? h("div", { class: "pw-row db-macro-step-params" }, ...paramFields)
+          : null,
         h(
           "div",
           { class: "pw-row db-macro-step-meta" },
@@ -656,17 +776,33 @@ export async function showMacrosDialog(opts = {}) {
       { class: "pw-row db-macro-run-summary" },
       h("span", { class: `db-env ${statusBadgeClass}` }, statusLabel),
       h("strong", {}, safeStr(res.macroName)),
-      h("span", { class: "pw-hint" }, `Target: ${safeStr(res.target?.label)} (${safeStr(res.target?.engineLabel)})`),
+      h(
+        "span",
+        { class: "pw-hint" },
+        `Target: ${safeStr(res.target?.label)} (${safeStr(res.target?.engineLabel)})`,
+      ),
       h("span", { class: "db-tag" }, `${Number(res.elapsedMs ?? 0)} ms`),
-      h("span", { class: "db-tag" }, `${Number(res.affectedRows ?? 0)} row(s) affected`),
-      res.beeps > 0 ? h("span", { class: "db-tag" }, `🔔 ${Number(res.beeps)} beep(s)`) : null,
+      h(
+        "span",
+        { class: "db-tag" },
+        `${Number(res.affectedRows ?? 0)} row(s) affected`,
+      ),
+      res.beeps > 0
+        ? h("span", { class: "db-tag" }, `🔔 ${Number(res.beeps)} beep(s)`)
+        : null,
     );
     outputBox.append(summaryBar);
 
     if (res.error) {
-      const loc = res.error.line ? ` (line ${res.error.line}${res.error.column ? `:${res.error.column}` : ""})` : "";
+      const loc = res.error.line
+        ? ` (line ${res.error.line}${res.error.column ? `:${res.error.column}` : ""})`
+        : "";
       outputBox.append(
-        h("p", { class: "power-error", role: "alert" }, `${safeStr(res.error.message)}${loc}`),
+        h(
+          "p",
+          { class: "power-error", role: "alert" },
+          `${safeStr(res.error.message)}${loc}`,
+        ),
       );
     }
 
@@ -678,7 +814,10 @@ export async function showMacrosDialog(opts = {}) {
         ...res.messages.map((m) =>
           h(
             "div",
-            { class: `db-macro-msgbox db-macro-msg-${safeStr(m.type || "info")}`, role: "status" },
+            {
+              class: `db-macro-msgbox db-macro-msg-${safeStr(m.type || "info")}`,
+              role: "status",
+            },
             h("strong", {}, `${safeStr(m.title || "Macro")}: `),
             h("span", {}, safeStr(m.message)),
           ),
@@ -699,11 +838,7 @@ export async function showMacrosDialog(opts = {}) {
             ? h(
                 "thead",
                 {},
-                h(
-                  "tr",
-                  {},
-                  ...cols.map((c) => h("th", {}, safeStr(c))),
-                ),
+                h("tr", {}, ...cols.map((c) => h("th", {}, safeStr(c)))),
               )
             : null,
           h(
@@ -714,14 +849,23 @@ export async function showMacrosDialog(opts = {}) {
                   h(
                     "tr",
                     {},
-                    ...cols.map((c) => h("td", { class: "pw-mono" }, safeStr(r?.[c]))),
+                    ...cols.map((c) =>
+                      h("td", { class: "pw-mono" }, safeStr(r?.[c])),
+                    ),
                   ),
                 )
               : [
                   h(
                     "tr",
                     {},
-                    h("td", { colspan: String(Math.max(1, cols.length)), class: "pw-hint" }, "(0 rows)"),
+                    h(
+                      "td",
+                      {
+                        colspan: String(Math.max(1, cols.length)),
+                        class: "pw-hint",
+                      },
+                      "(0 rows)",
+                    ),
                   ),
                 ]),
           ),
@@ -733,8 +877,14 @@ export async function showMacrosDialog(opts = {}) {
             h(
               "div",
               { class: "pw-row" },
-              h("h5", { class: "db-h2" }, `${safeStr(rs.label)} (${Number(rs.rowCount ?? rows.length)} row(s))`),
-              rs.sql ? h("code", { class: "pw-hint pw-mono" }, safeStr(rs.sql)) : null,
+              h(
+                "h5",
+                { class: "db-h2" },
+                `${safeStr(rs.label)} (${Number(rs.rowCount ?? rows.length)} row(s))`,
+              ),
+              rs.sql
+                ? h("code", { class: "pw-hint pw-mono" }, safeStr(rs.sql))
+                : null,
             ),
             h("div", { class: "db-clone-table-wrap" }, tbl),
           ),
@@ -743,13 +893,26 @@ export async function showMacrosDialog(opts = {}) {
     }
 
     // Return value (when not already rendered as a row table)
-    if (res.returnValue !== undefined && !(Array.isArray(res.returnValue) && res.returnValue.length > 0 && typeof res.returnValue[0] === "object")) {
+    if (
+      res.returnValue !== undefined &&
+      !(
+        Array.isArray(res.returnValue) &&
+        res.returnValue.length > 0 &&
+        typeof res.returnValue[0] === "object"
+      )
+    ) {
       outputBox.append(
         h(
           "div",
           { class: "db-macro-return" },
           h("h5", { class: "db-h2" }, "Return Value"),
-          h("pre", { class: "pw-mono db-macro-pre" }, typeof res.returnValue === "object" ? JSON.stringify(res.returnValue, null, 2) : safeStr(res.returnValue)),
+          h(
+            "pre",
+            { class: "pw-mono db-macro-pre" },
+            typeof res.returnValue === "object"
+              ? JSON.stringify(res.returnValue, null, 2)
+              : safeStr(res.returnValue),
+          ),
         ),
       );
     }
@@ -760,7 +923,11 @@ export async function showMacrosDialog(opts = {}) {
         h(
           "div",
           { class: "db-macro-immediate" },
-          h("h5", { class: "db-h2" }, `Immediate Window / Console (${res.logs.length})`),
+          h(
+            "h5",
+            { class: "db-h2" },
+            `Immediate Window / Console (${res.logs.length})`,
+          ),
           h(
             "div",
             { class: "db-macro-log-lines pw-mono" },
@@ -768,7 +935,11 @@ export async function showMacrosDialog(opts = {}) {
               h(
                 "div",
                 { class: `db-macro-log-line db-log-${safeStr(l.level)}` },
-                h("span", { class: "pw-hint" }, `[+${Number(l.elapsedMs ?? 0)}ms] `),
+                h(
+                  "span",
+                  { class: "pw-hint" },
+                  `[+${Number(l.elapsedMs ?? 0)}ms] `,
+                ),
                 h("span", {}, safeStr(l.text)),
               ),
             ),
@@ -778,7 +949,10 @@ export async function showMacrosDialog(opts = {}) {
     }
 
     // TempVars snapshot
-    const tvEntries = res.tempVars && typeof res.tempVars === "object" ? Object.entries(res.tempVars) : [];
+    const tvEntries =
+      res.tempVars && typeof res.tempVars === "object"
+        ? Object.entries(res.tempVars)
+        : [];
     if (tvEntries.length > 0) {
       outputBox.append(
         h(
@@ -788,7 +962,13 @@ export async function showMacrosDialog(opts = {}) {
           h(
             "div",
             { class: "pw-row" },
-            ...tvEntries.map(([k, v]) => h("span", { class: "db-tag pw-mono" }, `${safeStr(k)} = ${safeStr(v)}`)),
+            ...tvEntries.map(([k, v]) =>
+              h(
+                "span",
+                { class: "db-tag pw-mono" },
+                `${safeStr(k)} = ${safeStr(v)}`,
+              ),
+            ),
           ),
         ),
       );
@@ -841,8 +1021,15 @@ export async function showMacrosDialog(opts = {}) {
       outputBox.append(
         h(
           "details",
-          { class: "db-macro-steps-details", open: !res.ok || res.steps.length <= 8 },
-          h("summary", { class: "db-h2" }, `Execution Step Trace (${res.steps.length} step(s))`),
+          {
+            class: "db-macro-steps-details",
+            open: !res.ok || res.steps.length <= 8,
+          },
+          h(
+            "summary",
+            { class: "db-h2" },
+            `Execution Step Trace (${res.steps.length} step(s))`,
+          ),
           h("div", { class: "db-clone-table-wrap" }, stepTable),
         ),
       );
@@ -852,14 +1039,21 @@ export async function showMacrosDialog(opts = {}) {
   function buildTargetSpec() {
     const val = targetSelect.value;
     if (val === TARGET_MEMORY) return { kind: "memory" };
-    if (val === TARGET_SQLITE_FILE) return { kind: "sqliteFile", path: sqlitePathInput.value.trim() };
+    if (val === TARGET_SQLITE_FILE)
+      return { kind: "sqliteFile", path: sqlitePathInput.value.trim() };
     return { kind: "profile", profileId: val };
   }
 
-  async function executeCurrentMacro(forceDryRun, confirmWrites = false, extraParams = {}) {
+  async function executeCurrentMacro(
+    forceDryRun,
+    confirmWrites = false,
+    extraParams = {},
+  ) {
     syncDraftFromInputs();
     clear(statusBanner);
-    statusBanner.append(h("p", { class: "pw-hint" }, "Running macro on Bun runtime…"));
+    statusBanner.append(
+      h("p", { class: "pw-hint" }, "Running macro on Bun runtime…"),
+    );
 
     const mergedParams = { ...current.defaultParams, ...extraParams };
     const dryRun = forceDryRun ? true : dryRunCheck.checked;
@@ -876,7 +1070,11 @@ export async function showMacrosDialog(opts = {}) {
       clear(statusBanner);
 
       // Handle interactive [Enter ...] prompts if any were discovered
-      if (!res.ok && Array.isArray(res.promptsRequired) && res.promptsRequired.length > 0) {
+      if (
+        !res.ok &&
+        Array.isArray(res.promptsRequired) &&
+        res.promptsRequired.length > 0
+      ) {
         const collected = { ...extraParams };
         for (const promptName of res.promptsRequired) {
           const val = await promptBox({
@@ -906,7 +1104,13 @@ export async function showMacrosDialog(opts = {}) {
         }
         return;
       }
-      statusBanner.append(h("p", { class: "power-error", role: "alert" }, errorText(err, "Macro execution failed.")));
+      statusBanner.append(
+        h(
+          "p",
+          { class: "power-error", role: "alert" },
+          errorText(err, "Macro execution failed."),
+        ),
+      );
     }
   }
 
@@ -983,7 +1187,9 @@ export async function showMacrosDialog(opts = {}) {
         {
           id: "step-1",
           action: "RunCode",
-          params: { code: current.code || "Debug.print('Hello from RunCode');" },
+          params: {
+            code: current.code || "Debug.print('Hello from RunCode');",
+          },
           comment: "Bun JS code step",
           enabled: true,
         },
@@ -1006,14 +1212,19 @@ export async function showMacrosDialog(opts = {}) {
   convertToCodeBtn.addEventListener("click", async () => {
     syncDraftFromInputs();
     try {
-      const res = await call("db/macros/convert", { name: current.name, actions: current.actions });
+      const res = await call("db/macros/convert", {
+        name: current.name,
+        actions: current.actions,
+      });
       current.code = safeStr(res.code);
       current.mode = "code";
       codeTextarea.value = current.code;
       updateModeVisibility();
       toast("Converted visual actions to Bun JavaScript.", { kind: "info" });
     } catch (err) {
-      toast(errorText(err, "Couldn't convert macro actions."), { kind: "error" });
+      toast(errorText(err, "Couldn't convert macro actions."), {
+        kind: "error",
+      });
     }
   });
 
@@ -1036,15 +1247,29 @@ export async function showMacrosDialog(opts = {}) {
         );
       } else {
         for (const e of res.errors || []) {
-          const loc = e.line ? ` (line ${e.line}${e.column ? `:${e.column}` : ""})` : "";
-          statusBanner.append(h("p", { class: "power-error", role: "alert" }, `Syntax Error${loc}: ${safeStr(e.message)}`));
+          const loc = e.line
+            ? ` (line ${e.line}${e.column ? `:${e.column}` : ""})`
+            : "";
+          statusBanner.append(
+            h(
+              "p",
+              { class: "power-error", role: "alert" },
+              `Syntax Error${loc}: ${safeStr(e.message)}`,
+            ),
+          );
         }
       }
       for (const w of res.warnings || []) {
         statusBanner.append(h("p", { class: "pw-hint" }, `⚠️ ${safeStr(w)}`));
       }
     } catch (err) {
-      statusBanner.append(h("p", { class: "power-error", role: "alert" }, errorText(err, "Validation failed.")));
+      statusBanner.append(
+        h(
+          "p",
+          { class: "power-error", role: "alert" },
+          errorText(err, "Validation failed."),
+        ),
+      );
     }
   });
 
@@ -1094,18 +1319,20 @@ export async function showMacrosDialog(opts = {}) {
     try {
       const res = await call("db/macros/delete", { id: current.id });
       macros = Array.isArray(res.macros) ? res.macros : [];
-      current = structuredClone(macros[0] ?? {
-        id: "",
-        name: "New Macro",
-        description: "",
-        mode: "code",
-        engine: "any",
-        code: "return await CurrentDb.tables();",
-        actions: [],
-        transaction: false,
-        timeoutMs: 10000,
-        defaultParams: {},
-      });
+      current = structuredClone(
+        macros[0] ?? {
+          id: "",
+          name: "New Macro",
+          description: "",
+          mode: "code",
+          engine: "any",
+          code: "return await CurrentDb.tables();",
+          actions: [],
+          transaction: false,
+          timeoutMs: 10000,
+          defaultParams: {},
+        },
+      );
       loadMacroIntoEditor();
       toast("Macro deleted.", { kind: "info" });
     } catch (err) {
@@ -1128,7 +1355,9 @@ export async function showMacrosDialog(opts = {}) {
           onclick: async () => {
             try {
               await navigator.clipboard?.writeText(safeStr(res.content));
-              toast(`Copied ${safeStr(res.filename)} to clipboard.`, { kind: "info" });
+              toast(`Copied ${safeStr(res.filename)} to clipboard.`, {
+                kind: "info",
+              });
             } catch {}
           },
         },
@@ -1197,8 +1426,18 @@ export async function showMacrosDialog(opts = {}) {
       h(
         "div",
         { class: "pw-row db-macro-flags" },
-        h("label", { class: "pw-check" }, txCheck, "Atomic transaction (BEGIN / COMMIT / ROLLBACK)"),
-        h("label", { class: "pw-check" }, dryRunCheck, "Dry run (preview & roll back all writes)"),
+        h(
+          "label",
+          { class: "pw-check" },
+          txCheck,
+          "Atomic transaction (BEGIN / COMMIT / ROLLBACK)",
+        ),
+        h(
+          "label",
+          { class: "pw-check" },
+          dryRunCheck,
+          "Dry run (preview & roll back all writes)",
+        ),
       ),
       h(
         "div",
@@ -1266,7 +1505,8 @@ export async function showMacrosDialog(opts = {}) {
 
 /** Context-menu item for running a Bun JS macro directly on a SQLite file in the File Manager. */
 export function macroSqliteMenuItems(entries) {
-  if (entries.length !== 1 || entries[0].isDir || !isSqliteFile(entries[0])) return [];
+  if (entries.length !== 1 || entries[0].isDir || !isSqliteFile(entries[0]))
+    return [];
   const e = entries[0];
   return [
     {

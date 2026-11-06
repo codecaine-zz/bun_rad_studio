@@ -1,5 +1,12 @@
 import { expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "fs";
 import { tmpdir } from "os";
 import { join, resolve } from "path";
 import { bundleApps, copyAppBundle } from "../scripts/release/suite";
@@ -13,13 +20,31 @@ import {
   isPeX64,
 } from "../scripts/fix_windows_webview_runtime";
 
-const script = resolve(import.meta.dir, "../applications/file_manager_studio.ts");
+const script = resolve(
+  import.meta.dir,
+  "../applications/file_manager_studio.ts",
+);
 
 test("the server process started by the window stops when the window's process is gone", async () => {
   const dir = mkdtempSync(join(tmpdir(), "fm-studio-"));
-  const parent = Bun.spawn([process.execPath, "-e", "setTimeout(() => {}, 3000)"], { stdout: "ignore", stderr: "ignore" });
+  const parent = Bun.spawn(
+    [process.execPath, "-e", "setTimeout(() => {}, 3000)"],
+    { stdout: "ignore", stderr: "ignore" },
+  );
   const child = Bun.spawn(
-    [process.execPath, script, "--server", "--port", "0", "--parent-pid", String(parent.pid), "--home", dir, "--data-dir", dir],
+    [
+      process.execPath,
+      script,
+      "--server",
+      "--port",
+      "0",
+      "--parent-pid",
+      String(parent.pid),
+      "--home",
+      dir,
+      "--data-dir",
+      dir,
+    ],
     { stdout: "pipe", stderr: "ignore" },
   );
   try {
@@ -34,7 +59,10 @@ test("the server process started by the window stops when the window's process i
     reader.releaseLock();
     parent.kill();
     await parent.exited;
-    const result = await Promise.race([child.exited, Bun.sleep(8000).then(() => "still running")]);
+    const result = await Promise.race([
+      child.exited,
+      Bun.sleep(8000).then(() => "still running"),
+    ]);
     expect(result).not.toBe("still running");
   } finally {
     child.kill();
@@ -48,9 +76,26 @@ test("the packaged File Manager never opens a browser unless --browser is explic
   const dir = mkdtempSync(join(tmpdir(), "fm-no-webview-"));
   let child: ReturnType<typeof Bun.spawn> | undefined;
   try {
-    const bundles = await bundleApps([{ name: "file-manager-studio", entry: "applications/file_manager_studio.ts", kind: "gui" }], dir, 1);
+    const bundles = await bundleApps(
+      [
+        {
+          name: "file-manager-studio",
+          entry: "applications/file_manager_studio.ts",
+          kind: "gui",
+        },
+      ],
+      dir,
+      1,
+    );
     expect(bundles.failed).toEqual([]);
-    const relocated = join(dir, "Applications", "Codecaine File Manager.app", "Contents", "Resources", "app");
+    const relocated = join(
+      dir,
+      "Applications",
+      "Codecaine File Manager.app",
+      "Contents",
+      "Resources",
+      "app",
+    );
     mkdirSync(relocated, { recursive: true });
     copyAppBundle(bundles.built[0]!, relocated, dir);
     rmSync(join(dir, "apps"), { recursive: true });
@@ -61,9 +106,21 @@ test("the packaged File Manager never opens a browser unless --browser is explic
     const urlFile = join(dir, "opened-url");
     const bin = join(dir, "bin");
     mkdirSync(bin);
-    writeFileSync(join(bin, process.platform === "darwin" ? "open" : "xdg-open"), '#!/bin/sh\nprintf "%s" "$1" > "$FM_TEST_URL"\n', { mode: 0o755 });
-    const env = { ...process.env, WEBVIEW_PATH: join(dir, "missing-native-library"), PATH: `${bin}:${process.env.PATH}`, FM_TEST_URL: urlFile };
-    const server = Bun.spawn([process.execPath, app, "--server", "--home", dir, "--data-dir", dir], { env, stdout: "pipe", stderr: "pipe" });
+    writeFileSync(
+      join(bin, process.platform === "darwin" ? "open" : "xdg-open"),
+      '#!/bin/sh\nprintf "%s" "$1" > "$FM_TEST_URL"\n',
+      { mode: 0o755 },
+    );
+    const env = {
+      ...process.env,
+      WEBVIEW_PATH: join(dir, "missing-native-library"),
+      PATH: `${bin}:${process.env.PATH}`,
+      FM_TEST_URL: urlFile,
+    };
+    const server = Bun.spawn(
+      [process.execPath, app, "--server", "--home", dir, "--data-dir", dir],
+      { env, stdout: "pipe", stderr: "pipe" },
+    );
     child = server;
     const reader = server.stdout.getReader();
     let output = "";
@@ -81,18 +138,28 @@ test("the packaged File Manager never opens a browser unless --browser is explic
     const search = await fetch(`${serverUrl}/api/find/search`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-fm-token": token! },
-      body: JSON.stringify({ root: dir, pattern: "packaged-find-needle.txt", mode: "fixed", type: "file" }),
+      body: JSON.stringify({
+        root: dir,
+        pattern: "packaged-find-needle.txt",
+        mode: "fixed",
+        type: "file",
+      }),
       signal: AbortSignal.timeout(10000),
     });
     expect(search.status).toBe(200);
     const result = await search.json();
     expect(result.ok).toBe(true);
-    expect(result.items.map((item: { path: string }) => item.path)).toEqual([needle]);
+    expect(result.items.map((item: { path: string }) => item.path)).toEqual([
+      needle,
+    ]);
     child.kill();
     await child.exited;
 
     // 1. Default invocation (without --browser): must NOT open a web browser when native library is missing
-    const desktopNoBrowser = Bun.spawn([process.execPath, app, "--home", dir, "--data-dir", dir], { env, stdout: "pipe", stderr: "pipe" });
+    const desktopNoBrowser = Bun.spawn(
+      [process.execPath, app, "--home", dir, "--data-dir", dir],
+      { env, stdout: "pipe", stderr: "pipe" },
+    );
     child = desktopNoBrowser;
     const exitCode = await desktopNoBrowser.exited;
     expect(exitCode).not.toBe(0);
@@ -102,7 +169,10 @@ test("the packaged File Manager never opens a browser unless --browser is explic
     expect(noBrowserErrors).toContain("--browser");
 
     // 2. Explicit --browser invocation: serves and opens the URL in the browser
-    const desktopWithBrowser = Bun.spawn([process.execPath, app, "--browser", "--home", dir, "--data-dir", dir], { env, stdout: "pipe", stderr: "pipe" });
+    const desktopWithBrowser = Bun.spawn(
+      [process.execPath, app, "--browser", "--home", dir, "--data-dir", dir],
+      { env, stdout: "pipe", stderr: "pipe" },
+    );
     child = desktopWithBrowser;
     for (let i = 0; i < 150 && !existsSync(urlFile); i++) await Bun.sleep(100);
     expect(existsSync(urlFile)).toBe(true);
@@ -123,7 +193,10 @@ test("the packaged File Manager never opens a browser unless --browser is explic
 }, 30000);
 
 test("Windows WebView runtime validator accepts only x64 (0x8664) PE DLLs and removes ARM64/x86 WebView2Loader.dll", () => {
-  const realLibwebview = resolve(import.meta.dir, "../node_modules/webview-bun/build/libwebview.dll");
+  const realLibwebview = resolve(
+    import.meta.dir,
+    "../node_modules/webview-bun/build/libwebview.dll",
+  );
   expect(getPeMachineType(realLibwebview)).toBe(PE_MACHINE_X64);
   expect(isPeX64(realLibwebview)).toBe(true);
 
@@ -178,11 +251,29 @@ test("the compiled download launcher records hidden startup failures and preserv
     mkdirSync(join(dir, "resources"));
     const stub = join(dir, "launcher.ts");
     writeFileSync(stub, LAUNCHER_STUB);
-    const exe = join(dir, process.platform === "win32" ? "launcher.exe" : "launcher");
-    const build = Bun.spawnSync([process.execPath, "build", "--compile", `--outfile=${exe}`, stub]);
+    const exe = join(
+      dir,
+      process.platform === "win32" ? "launcher.exe" : "launcher",
+    );
+    const build = Bun.spawnSync([
+      process.execPath,
+      "build",
+      "--compile",
+      `--outfile=${exe}`,
+      stub,
+    ]);
     expect(build.exitCode, build.stderr.toString()).toBe(0);
-    writeFileSync(join(dir, "app", "file-manager-studio.js"), 'console.log("fixture started"); console.error("fixture failure"); process.exitCode = 17;');
-    const env = { ...process.env, HOME: dir, USERPROFILE: dir, BUN_BE_BUN: undefined, FM_START_NO_DIALOG: "1" };
+    writeFileSync(
+      join(dir, "app", "file-manager-studio.js"),
+      'console.log("fixture started"); console.error("fixture failure"); process.exitCode = 17;',
+    );
+    const env = {
+      ...process.env,
+      HOME: dir,
+      USERPROFILE: dir,
+      BUN_BE_BUN: undefined,
+      FM_START_NO_DIALOG: "1",
+    };
     const run = Bun.spawnSync([exe], { env });
     expect(run.exitCode).toBe(17);
     const log = join(dir, ".bun_rad_studio", "file-manager-startup.log");

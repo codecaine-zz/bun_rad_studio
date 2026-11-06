@@ -66,7 +66,11 @@ export interface PreparedStep {
   /** The program to run. Left out for a step that does its work in this process (see `work`). */
   argv?: string[];
   /** In-process work (the built-in converters): replaces starting a program. It must stop soon after `signal` aborts. */
-  work?: (signal: AbortSignal, log: (text: string) => void, progress: StepProgress) => Promise<string | void>;
+  work?: (
+    signal: AbortSignal,
+    log: (text: string) => void,
+    progress: StepProgress,
+  ) => Promise<string | void>;
   /** Called after a successful run to move the result to its final place; throws if that is not possible. */
   publish?: () => Promise<void>;
   /** Always called when the step is over, whatever happened (removes temporary files). */
@@ -96,7 +100,16 @@ export interface JobStepSpec {
 
 /** Definition of a multi-step background job submitted to the JobHub. */
 export interface JobSpec {
-  kind: "convert" | "install" | "permissions" | "graveyard" | "copy" | "move" | "rename" | "delete" | "mixed";
+  kind:
+    | "convert"
+    | "install"
+    | "permissions"
+    | "graveyard"
+    | "copy"
+    | "move"
+    | "rename"
+    | "delete"
+    | "mixed";
   title: string;
   steps: JobStepSpec[];
   /** Steps that did not finish can be run again with `retry`. */
@@ -179,7 +192,11 @@ const ANSI = /\x1b\[[0-9;?]*[A-Za-z]/g;
 
 /** The last meaningful line of a program's error text, as the generic explanation. */
 export function lastLines(text: string, count = 1): string {
-  const lines = text.replace(ANSI, "").split(/\r?\n|\r/).map((l) => l.trim()).filter(Boolean);
+  const lines = text
+    .replace(ANSI, "")
+    .split(/\r?\n|\r/)
+    .map((l) => l.trim())
+    .filter(Boolean);
   return lines.slice(-count).join("\n").slice(0, 400);
 }
 
@@ -192,7 +209,10 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
-async function safely(hook: ((view: JobView) => void | Promise<void>) | undefined, view: JobView): Promise<void> {
+async function safely(
+  hook: ((view: JobView) => void | Promise<void>) | undefined,
+  view: JobView,
+): Promise<void> {
   try {
     await hook?.(view);
   } catch {
@@ -218,7 +238,9 @@ export function createJobHub(maxRunning = 2, hooks: JobHooks = {}): JobHub {
 
   function trim() {
     while (jobs.length > MAX_JOBS) {
-      const i = jobs.findIndex((j) => j.view.state !== "running" && j.view.state !== "waiting");
+      const i = jobs.findIndex(
+        (j) => j.view.state !== "running" && j.view.state !== "waiting",
+      );
       if (i < 0) break;
       jobs.splice(i, 1);
     }
@@ -234,17 +256,31 @@ export function createJobHub(maxRunning = 2, hooks: JobHooks = {}): JobHub {
     let tail = "";
     const addTail = (chunk: string) => {
       tail = (tail + chunk).slice(-MAX_TAIL);
-      job.view.log = tail.replace(ANSI, "").split(/\r?\n|\r/).filter((l) => l.trim()).slice(-12).join("\n");
+      job.view.log = tail
+        .replace(ANSI, "")
+        .split(/\r?\n|\r/)
+        .filter((l) => l.trim())
+        .slice(-12)
+        .join("\n");
     };
     // Only a file this step made may be removed. One that was already there belongs to the user.
     let mayRemoveOutput = false;
     const removeOutput = async () => {
-      if (step.output && mayRemoveOutput) await fsp.rm(step.output, { force: true, recursive: step.outputKind === "folder" }).catch(() => {});
+      if (step.output && mayRemoveOutput)
+        await fsp
+          .rm(step.output, {
+            force: true,
+            recursive: step.outputKind === "folder",
+          })
+          .catch(() => {});
     };
     try {
-      if (step.output && (await exists(step.output))) throw new Error("A file with that name already exists.");
+      if (step.output && (await exists(step.output)))
+        throw new Error("A file with that name already exists.");
       mayRemoveOutput = true;
-      prepared = step.prepare ? await step.prepare() : { argv: step.argv ?? [] };
+      prepared = step.prepare
+        ? await step.prepare()
+        : { argv: step.argv ?? [] };
       let timedOut = false;
       let code: number | null = 0;
       let note = "";
@@ -252,18 +288,37 @@ export function createJobHub(maxRunning = 2, hooks: JobHooks = {}): JobHub {
       if (prepared.work) {
         const abort = new AbortController();
         job.abort = abort;
-        const timer = setTimeout(() => { timedOut = true; abort.abort(); }, step.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+        const timer = setTimeout(() => {
+          timedOut = true;
+          abort.abort();
+        }, step.timeoutMs ?? DEFAULT_TIMEOUT_MS);
         const progress: StepProgress = {
-          bytes: (count) => { job.view.progress.bytesDone += count; },
-          files: (count = 1) => { job.view.progress.filesDone += count; },
-          item: (patch) => { view.item = { source: "", destination: null, bytes: null, files: null, ...view.item, ...patch }; },
-          note: (text) => { view.message = text.slice(0, 600); },
+          bytes: (count) => {
+            job.view.progress.bytesDone += count;
+          },
+          files: (count = 1) => {
+            job.view.progress.filesDone += count;
+          },
+          item: (patch) => {
+            view.item = {
+              source: "",
+              destination: null,
+              bytes: null,
+              files: null,
+              ...view.item,
+              ...patch,
+            };
+          },
+          note: (text) => {
+            view.message = text.slice(0, 600);
+          },
         };
         try {
           note = (await prepared.work(abort.signal, addTail, progress)) ?? "";
           workFinished = true;
         } catch (err) {
-          if (err instanceof StepSkip || (!job.cancelled && !timedOut)) throw err;
+          if (err instanceof StepSkip || (!job.cancelled && !timedOut))
+            throw err;
         } finally {
           clearTimeout(timer);
           job.abort = null;
@@ -273,16 +328,35 @@ export function createJobHub(maxRunning = 2, hooks: JobHooks = {}): JobHub {
         if (!argv.length) throw new Error("Nothing to run.");
         let proc: ReturnType<typeof Bun.spawn>;
         try {
-          proc = Bun.spawn(argv, { stdin: "ignore", stdout: "pipe", stderr: "pipe", env: step.env, cwd: step.cwd });
+          proc = Bun.spawn(argv, {
+            stdin: "ignore",
+            stdout: "pipe",
+            stderr: "pipe",
+            env: step.env,
+            cwd: step.cwd,
+          });
         } catch (err: any) {
-          throw new Error(err?.code === "ENOENT" ? "The program could not be found. Was it moved or uninstalled?" : `The program could not be started: ${err?.message ?? err}`);
+          throw new Error(
+            err?.code === "ENOENT"
+              ? "The program could not be found. Was it moved or uninstalled?"
+              : `The program could not be started: ${err?.message ?? err}`,
+          );
         }
         job.proc = proc;
-        const timer = setTimeout(() => { timedOut = true; try { proc.kill(); } catch {} }, step.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+        const timer = setTimeout(() => {
+          timedOut = true;
+          try {
+            proc.kill();
+          } catch {}
+        }, step.timeoutMs ?? DEFAULT_TIMEOUT_MS);
         const decoder = new TextDecoder();
         const readers: Array<{ cancel(): Promise<void> }> = [];
         const drain = async (stream: unknown) => {
-          if (!stream || typeof (stream as ReadableStream).getReader !== "function") return;
+          if (
+            !stream ||
+            typeof (stream as ReadableStream).getReader !== "function"
+          )
+            return;
           const reader = (stream as ReadableStream<Uint8Array>).getReader();
           readers.push(reader);
           try {
@@ -314,7 +388,9 @@ export function createJobHub(maxRunning = 2, hooks: JobHooks = {}): JobHub {
       }
       if (timedOut) throw new Error("It took too long and was stopped.");
       if (code !== 0) {
-        view.message = step.explain ? step.explain(tail, code) : lastLines(tail) || `It stopped with an error (code ${code}).`;
+        view.message = step.explain
+          ? step.explain(tail, code)
+          : lastLines(tail) || `It stopped with an error (code ${code}).`;
         view.state = "failed";
         await removeOutput();
         return;
@@ -326,7 +402,9 @@ export function createJobHub(maxRunning = 2, hooks: JobHooks = {}): JobHub {
           // A file with that name appeared while we worked. It is not ours, so it must stay.
           if (err?.code === "EEXIST" || err?.code === "ENOTEMPTY") {
             mayRemoveOutput = false;
-            throw new Error("A file with that name appeared while this was running, so it was left alone and nothing was saved.");
+            throw new Error(
+              "A file with that name appeared while this was running, so it was left alone and nothing was saved.",
+            );
           }
           throw err;
         }
@@ -334,11 +412,18 @@ export function createJobHub(maxRunning = 2, hooks: JobHooks = {}): JobHub {
       if (step.output) {
         const st = await fsp.stat(step.output).catch(() => null);
         const folder = step.outputKind === "folder";
-        const made = !!st && (folder ? st.isDirectory() && (await fsp.readdir(step.output).catch(() => [])).length > 0 : st.isFile() && st.size > 0);
+        const made =
+          !!st &&
+          (folder
+            ? st.isDirectory() &&
+              (await fsp.readdir(step.output).catch(() => [])).length > 0
+            : st.isFile() && st.size > 0);
         if (!made) {
           await removeOutput();
           view.state = "failed";
-          view.message = folder ? "It finished but did not make any files." : "The program finished but did not make a file.";
+          view.message = folder
+            ? "It finished but did not make any files."
+            : "The program finished but did not make a file.";
           return;
         }
         view.output = step.output;
@@ -375,9 +460,17 @@ export function createJobHub(maxRunning = 2, hooks: JobHooks = {}): JobHub {
       for (let i = 0; i < job.spec.steps.length; i++) {
         if (job.cancelled) return;
         const measure = job.spec.steps[i]!.measure;
-        const size = measure ? await measure(abort.signal).catch(() => null) : null;
+        const size = measure
+          ? await measure(abort.signal).catch(() => null)
+          : null;
         const view = job.view.steps[i]!;
-        view.item = { source: "", destination: null, ...view.item, bytes: size?.bytes ?? null, files: size?.files ?? null };
+        view.item = {
+          source: "",
+          destination: null,
+          ...view.item,
+          bytes: size?.bytes ?? null,
+          files: size?.files ?? null,
+        };
         files = files === null || !size ? null : files + size.files;
         bytes = bytes === null || !size ? null : bytes + size.bytes;
       }
@@ -399,7 +492,12 @@ export function createJobHub(maxRunning = 2, hooks: JobHooks = {}): JobHub {
         if (job.cancelled) {
           for (let j = i; j < job.spec.steps.length; j++) {
             const s = job.view.steps[j]!;
-            if (s.state === "waiting") { s.state = "skipped"; s.skipReason = "cancelled"; s.message = "Cancelled before it started. Nothing was changed."; job.view.skipped++; }
+            if (s.state === "waiting") {
+              s.state = "skipped";
+              s.skipReason = "cancelled";
+              s.message = "Cancelled before it started. Nothing was changed.";
+              job.view.skipped++;
+            }
           }
           break;
         }
@@ -413,8 +511,14 @@ export function createJobHub(maxRunning = 2, hooks: JobHooks = {}): JobHub {
       job.view.current = "";
       job.view.finishedAt = Date.now();
       // "Cancelled" only if the request changed the outcome; a Cancel that arrived after the last item finished is moot.
-      const cutShort = job.cancelled && job.view.steps.some((s) => s.skipReason === "cancelled");
-      job.view.state = cutShort ? "cancelled" : job.view.failed > 0 ? "failed" : "done";
+      const cutShort =
+        job.cancelled &&
+        job.view.steps.some((s) => s.skipReason === "cancelled");
+      job.view.state = cutShort
+        ? "cancelled"
+        : job.view.failed > 0
+          ? "failed"
+          : "done";
       running--;
       await safely(hooks.onFinish, job.view);
       job.release();
@@ -435,7 +539,13 @@ export function createJobHub(maxRunning = 2, hooks: JobHooks = {}): JobHub {
       done: 0,
       failed: 0,
       skipped: 0,
-      progress: { measuring: false, bytesDone: 0, bytesTotal: null, filesDone: 0, filesTotal: null },
+      progress: {
+        measuring: false,
+        bytesDone: 0,
+        bytesTotal: null,
+        filesDone: 0,
+        filesTotal: null,
+      },
       retryable: spec.retryable === true,
       retryOf,
       retriedBy: null,
@@ -445,7 +555,14 @@ export function createJobHub(maxRunning = 2, hooks: JobHooks = {}): JobHub {
         state: "waiting",
         message: "",
         output: null,
-        item: s.item ? { source: s.item.source, destination: s.item.destination ?? null, bytes: null, files: null } : null,
+        item: s.item
+          ? {
+              source: s.item.source,
+              destination: s.item.destination ?? null,
+              bytes: null,
+              files: null,
+            }
+          : null,
         skipReason: null,
       })),
       outputs: [],
@@ -453,7 +570,15 @@ export function createJobHub(maxRunning = 2, hooks: JobHooks = {}): JobHub {
       startedAt: Date.now(),
       finishedAt: null,
     };
-    const job: InternalJob = { view, spec, cancelled: false, proc: null, abort: null, finished, release };
+    const job: InternalJob = {
+      view,
+      spec,
+      cancelled: false,
+      proc: null,
+      abort: null,
+      finished,
+      release,
+    };
     jobs.push(job);
     trim();
     if (running < maxRunning) void runJob(job);
@@ -467,10 +592,29 @@ export function createJobHub(maxRunning = 2, hooks: JobHooks = {}): JobHub {
     },
     retry(id) {
       const job = jobs.find((j) => j.view.id === id);
-      if (!job || !job.spec.retryable || job.view.retriedBy || job.view.state === "running" || job.view.state === "waiting") return null;
-      const again = job.view.steps.flatMap((s, i) => (s.state === "failed" || (s.state === "skipped" && s.skipReason === "cancelled") ? [i] : []));
+      if (
+        !job ||
+        !job.spec.retryable ||
+        job.view.retriedBy ||
+        job.view.state === "running" ||
+        job.view.state === "waiting"
+      )
+        return null;
+      const again = job.view.steps.flatMap((s, i) =>
+        s.state === "failed" ||
+        (s.state === "skipped" && s.skipReason === "cancelled")
+          ? [i]
+          : [],
+      );
       if (!again.length) return null;
-      const view = create({ ...job.spec, title: `${job.spec.title} (retry)`, steps: again.map((i) => job.spec.steps[i]!) }, id);
+      const view = create(
+        {
+          ...job.spec,
+          title: `${job.spec.title} (retry)`,
+          steps: again.map((i) => job.spec.steps[i]!),
+        },
+        id,
+      );
       job.view.retriedBy = view.id;
       return view;
     },
@@ -479,18 +623,28 @@ export function createJobHub(maxRunning = 2, hooks: JobHooks = {}): JobHub {
     },
     cancel(id) {
       const job = jobs.find((j) => j.view.id === id);
-      if (!job || (job.view.state !== "running" && job.view.state !== "waiting")) return false;
+      if (
+        !job ||
+        (job.view.state !== "running" && job.view.state !== "waiting")
+      )
+        return false;
       job.cancelled = true;
       if (job.view.state === "waiting") {
         const i = waiting.indexOf(job);
         if (i >= 0) waiting.splice(i, 1);
-        for (const s of job.view.steps) { s.state = "skipped"; s.skipReason = "cancelled"; s.message = "Cancelled before it started. Nothing was changed."; }
+        for (const s of job.view.steps) {
+          s.state = "skipped";
+          s.skipReason = "cancelled";
+          s.message = "Cancelled before it started. Nothing was changed.";
+        }
         job.view.skipped = job.view.steps.length;
         job.view.state = "cancelled";
         job.view.finishedAt = Date.now();
         job.release();
       } else {
-        try { job.proc?.kill(); } catch {}
+        try {
+          job.proc?.kill();
+        } catch {}
         job.abort?.abort();
       }
       return true;
@@ -499,7 +653,10 @@ export function createJobHub(maxRunning = 2, hooks: JobHooks = {}): JobHub {
       let removed = 0;
       for (let i = jobs.length - 1; i >= 0; i--) {
         const s = jobs[i]!.view.state;
-        if (s !== "running" && s !== "waiting") { jobs.splice(i, 1); removed++; }
+        if (s !== "running" && s !== "waiting") {
+          jobs.splice(i, 1);
+          removed++;
+        }
       }
       return removed;
     },
@@ -510,7 +667,9 @@ export function createJobHub(maxRunning = 2, hooks: JobHooks = {}): JobHub {
       return job.view;
     },
     cancelAll() {
-      for (const j of jobs) if (j.view.state === "running" || j.view.state === "waiting") this.cancel(j.view.id);
+      for (const j of jobs)
+        if (j.view.state === "running" || j.view.state === "waiting")
+          this.cancel(j.view.id);
     },
   };
 }

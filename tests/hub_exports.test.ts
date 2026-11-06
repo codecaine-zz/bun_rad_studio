@@ -22,6 +22,7 @@ describe("src/index.ts (unified export hub), D-027", () => {
   });
 
   test("the hub still exposes the main entry points", () => {
-    for (const name of ["SimpleCLI", "SimpleWindow", "rad"]) expect((hub as Record<string, unknown>)[name]).toBeDefined();
+    for (const name of ["SimpleCLI", "SimpleWindow", "rad"])
+      expect((hub as Record<string, unknown>)[name]).toBeDefined();
   });
 });

@@ -57,7 +57,8 @@ const uiState = {
     {
       id: "q_noul",
       type: "noul",
-      instructions: "Does this file or image contain an error, crash, or urgent issue?",
+      instructions:
+        "Does this file or image contain an error, crash, or urgent issue?",
       criteriaText: "",
     },
     {
@@ -101,7 +102,8 @@ const uiState = {
   pullResult: null,
   customModelName: "",
   customModelFrom: "qwen3.5:latest",
-  customModelSystem: "You are a helpful coding and file organization assistant.",
+  customModelSystem:
+    "You are a helpful coding and file organization assistant.",
   apiKeyInput: "",
   inspectedModelInfo: null,
 };
@@ -118,7 +120,10 @@ function formatElapsedTime(sec) {
   return `${String(mins).padStart(2, "0")}:${String(rem).padStart(2, "0")}s`;
 }
 
-export function getClientModelThinkingCapabilities(modelName, statusModels = []) {
+export function getClientModelThinkingCapabilities(
+  modelName,
+  statusModels = [],
+) {
   const clean = String(modelName || "qwen3.5:latest").trim();
   const found = (statusModels || []).find(
     (m) => (m.name || m.id || "").toLowerCase() === clean.toLowerCase(),
@@ -159,7 +164,7 @@ export function getClientModelThinkingCapabilities(modelName, statusModels = [])
       supportsThinkingBudget: false,
       badgeLabel: "Thinking Levels: Low / Med / High",
       description:
-        "Multi-level reasoning model (gpt-oss): choose Low, Medium, or High thinking effort (passes think: \"low\" | \"medium\" | \"high\").",
+        'Multi-level reasoning model (gpt-oss): choose Low, Medium, or High thinking effort (passes think: "low" | "medium" | "high").',
     };
   }
   if (
@@ -223,7 +228,8 @@ export function getClientModelThinkingCapabilities(modelName, statusModels = [])
     defaultLevel: "off",
     supportsThinkingBudget: false,
     badgeLabel: "Standard Direct Response (No Thinking)",
-    description: "Standard direct response model without chain-of-thought thinking overhead.",
+    description:
+      "Standard direct response model without chain-of-thought thinking overhead.",
   };
 }
 
@@ -237,13 +243,24 @@ export function getClientModelFeatureProfile(modelName, statusModels = []) {
   }
   const lower = clean.toLowerCase();
   const thinkingCaps = getClientModelThinkingCapabilities(clean, statusModels);
-  const badges = new Set((found?.badges || []).map((b) => String(b).toLowerCase()));
+  const badges = new Set(
+    (found?.badges || []).map((b) => String(b).toLowerCase()),
+  );
 
   const isPhonon = lower.includes("phonon");
-  const isAudioSpeech = isPhonon || badges.has("speech") || lower.includes("omni") || lower.includes("tts");
-  const isDecision = badges.has("decision") || lower.startsWith("d3:") || lower === "d3";
-  const isEmbedding = badges.has("embeddings") || lower.includes("embed") || lower.includes("bge-");
-  const isChat = !isPhonon && !isEmbedding && (!isDecision || badges.has("chat"));
+  const isAudioSpeech =
+    isPhonon ||
+    badges.has("speech") ||
+    lower.includes("omni") ||
+    lower.includes("tts");
+  const isDecision =
+    badges.has("decision") || lower.startsWith("d3:") || lower === "d3";
+  const isEmbedding =
+    badges.has("embeddings") ||
+    lower.includes("embed") ||
+    lower.includes("bge-");
+  const isChat =
+    !isPhonon && !isEmbedding && (!isDecision || badges.has("chat"));
   const isVision =
     Boolean(found?.vision) ||
     badges.has("vision") ||
@@ -290,7 +307,8 @@ export function getClientModelFeatureProfile(modelName, statusModels = []) {
     badges.has("bionic cloud") ||
     lower.endsWith(":cloud") ||
     lower.includes("-cloud");
-  const isMlx = badges.has("mlx") || lower.includes("mlx") || lower.includes("mxfp");
+  const isMlx =
+    badges.has("mlx") || lower.includes("mlx") || lower.includes("mxfp");
 
   const indicators = [];
   const useCases = [];
@@ -300,25 +318,34 @@ export function getClientModelFeatureProfile(modelName, statusModels = []) {
       id: "thinking_levels",
       icon: "🧠",
       label: "Thinking Levels (Low / Med / High)",
-      description: "Choose Low, Medium, or High reasoning effort before generating.",
+      description:
+        "Choose Low, Medium, or High reasoning effort before generating.",
     });
-    useCases.push("Select Low, Medium, or High reasoning effort for complex tasks");
+    useCases.push(
+      "Select Low, Medium, or High reasoning effort for complex tasks",
+    );
   } else if (thinkingCaps.thinkingMode === "toggle") {
     indicators.push({
       id: "thinking_toggle",
       icon: "🔀",
       label: "Thinking Toggle (On / Off)",
-      description: "Turn Deep Thinking On for step-by-step reasoning or Off for instant direct replies.",
+      description:
+        "Turn Deep Thinking On for step-by-step reasoning or Off for instant direct replies.",
     });
-    useCases.push("Toggle Thinking On for deep analysis or Off for fast replies");
+    useCases.push(
+      "Toggle Thinking On for deep analysis or Off for fast replies",
+    );
   } else if (thinkingCaps.thinkingMode === "always_on") {
     indicators.push({
       id: "thinking_always_on",
       icon: "🧠",
       label: "Always-On Reasoning (<think>)",
-      description: "Always performs multi-step chain-of-thought verification before answering.",
+      description:
+        "Always performs multi-step chain-of-thought verification before answering.",
     });
-    useCases.push("Step-by-step math proofs, logic verification & root-cause bug hunting");
+    useCases.push(
+      "Step-by-step math proofs, logic verification & root-cause bug hunting",
+    );
   } else if (isChat) {
     indicators.push({
       id: "direct_fast",
@@ -334,7 +361,8 @@ export function getClientModelFeatureProfile(modelName, statusModels = []) {
       id: "vision",
       icon: "👁",
       label: "Vision (Images & Screenshots)",
-      description: "Inspects PNG/JPG/WebP images, receipts, diagrams, and UI screenshots.",
+      description:
+        "Inspects PNG/JPG/WebP images, receipts, diagrams, and UI screenshots.",
     });
     useCases.push("Inspect images, receipts, diagrams, and UI screenshots");
   }
@@ -344,7 +372,8 @@ export function getClientModelFeatureProfile(modelName, statusModels = []) {
       id: "speech",
       icon: "🔊",
       label: "Speech & Audio Synthesis",
-      description: "Reads files and answers aloud with natural voice synthesis.",
+      description:
+        "Reads files and answers aloud with natural voice synthesis.",
     });
     useCases.push("Read documents aloud and export spoken WAV/PCM audio");
   }
@@ -354,9 +383,12 @@ export function getClientModelFeatureProfile(modelName, statusModels = []) {
       id: "decision",
       icon: "⚖️",
       label: "SystemOne Decision (noul / choice / score)",
-      description: "Scores Yes/No probabilities, multi-choice buckets (A-Z), and 1-10 ratings.",
+      description:
+        "Scores Yes/No probabilities, multi-choice buckets (A-Z), and 1-10 ratings.",
     });
-    useCases.push("Triage files with Yes/No (noul), A-Z categories, and 1-10 urgency scores");
+    useCases.push(
+      "Triage files with Yes/No (noul), A-Z categories, and 1-10 urgency scores",
+    );
   }
 
   if (isEmbedding) {
@@ -364,7 +396,8 @@ export function getClientModelFeatureProfile(modelName, statusModels = []) {
       id: "embeddings",
       icon: "🧭",
       label: "Semantic Embeddings (/api/embed)",
-      description: "Generates dense vector embeddings for meaning-based file search.",
+      description:
+        "Generates dense vector embeddings for meaning-based file search.",
     });
     useCases.push("Search files by meaning and cluster related documents");
   }
@@ -374,9 +407,12 @@ export function getClientModelFeatureProfile(modelName, statusModels = []) {
       id: "code",
       icon: "💻",
       label: "Chat & Code Analysis",
-      description: "Summarizes files, writes/refactors code, and explains logs.",
+      description:
+        "Summarizes files, writes/refactors code, and explains logs.",
     });
-    useCases.push("Summarize files, refactor code, and explain logs in plain English");
+    useCases.push(
+      "Summarize files, refactor code, and explain logs in plain English",
+    );
   }
 
   if (isTools) {
@@ -384,9 +420,12 @@ export function getClientModelFeatureProfile(modelName, statusModels = []) {
       id: "tools",
       icon: "🛠",
       label: "Tool Calling",
-      description: "Can propose safe file creation/rename actions with visual confirmation.",
+      description:
+        "Can propose safe file creation/rename actions with visual confirmation.",
     });
-    useCases.push("Run safe file creation & organization tools with confirmation");
+    useCases.push(
+      "Run safe file creation & organization tools with confirmation",
+    );
   }
 
   if (isStructuredJson) {
@@ -394,9 +433,12 @@ export function getClientModelFeatureProfile(modelName, statusModels = []) {
       id: "structured_json",
       icon: "📐",
       label: "Structured JSON",
-      description: "Outputs schema-validated JSON for batch renames, audits, and tables.",
+      description:
+        "Outputs schema-validated JSON for batch renames, audits, and tables.",
     });
-    useCases.push("Generate schema-validated JSON plans (batch rename, code review, tables)");
+    useCases.push(
+      "Generate schema-validated JSON plans (batch rename, code review, tables)",
+    );
   }
 
   if (isCloud) {
@@ -476,7 +518,10 @@ function buildSamplingPayload() {
 }
 
 function resolveEffectiveThinkArgs() {
-  const caps = getClientModelThinkingCapabilities(uiState.selectedModel, uiState.statusData?.models);
+  const caps = getClientModelThinkingCapabilities(
+    uiState.selectedModel,
+    uiState.statusData?.models,
+  );
   if (caps.thinkingMode === "none" || !caps.supportsThinking) {
     return { think: false, thinkingLevel: "off" };
   }
@@ -502,25 +547,41 @@ function resolveEffectiveThinkArgs() {
   return { think: true, thinkingLevel: "on" };
 }
 
-function startLiveTaskTicker(title, initialStep, initialPercent = 8, pollBackend = false) {
+function startLiveTaskTicker(
+  title,
+  initialStep,
+  initialPercent = 8,
+  pollBackend = false,
+) {
   stopLiveTaskTicker();
   uiState.longTaskTitle = title || "Working...";
   uiState.longTaskStep = initialStep || "Processing request...";
   uiState.longTaskPercent = initialPercent;
   uiState.longTaskStartedAt = Date.now();
   uiState.longTaskElapsedSec = 0;
-  uiState.longTaskStepsLog = [{ step: uiState.longTaskStep, percent: initialPercent }];
+  uiState.longTaskStepsLog = [
+    { step: uiState.longTaskStep, percent: initialPercent },
+  ];
 
   liveTickerInterval = setInterval(async () => {
-    uiState.longTaskElapsedSec = Math.max(0, Math.floor((Date.now() - uiState.longTaskStartedAt) / 1000));
+    uiState.longTaskElapsedSec = Math.max(
+      0,
+      Math.floor((Date.now() - uiState.longTaskStartedAt) / 1000),
+    );
     if (pollBackend) {
       try {
         const st = await call("ollama/installStatus", {});
         if (st?.longTask?.active) {
           uiState.longTaskTitle = st.longTask.title || uiState.longTaskTitle;
           uiState.longTaskStep = st.longTask.step || uiState.longTaskStep;
-          uiState.longTaskPercent = typeof st.longTask.percent === "number" ? st.longTask.percent : uiState.longTaskPercent;
-          if (Array.isArray(st.longTask.stepsLog) && st.longTask.stepsLog.length > 0) {
+          uiState.longTaskPercent =
+            typeof st.longTask.percent === "number"
+              ? st.longTask.percent
+              : uiState.longTaskPercent;
+          if (
+            Array.isArray(st.longTask.stepsLog) &&
+            st.longTask.stepsLog.length > 0
+          ) {
             uiState.longTaskStepsLog = st.longTask.stepsLog;
           }
         }
@@ -535,7 +596,8 @@ function startLiveTaskTicker(title, initialStep, initialPercent = 8, pollBackend
     const stepEl = rootContainer?.querySelector(".ollama-live-step");
     const pctEl = rootContainer?.querySelector(".ollama-live-pct");
     const fillEl = rootContainer?.querySelector(".ollama-progress-fill");
-    if (elapsedEl) elapsedEl.textContent = `Elapsed: ${formatElapsedTime(uiState.longTaskElapsedSec)}`;
+    if (elapsedEl)
+      elapsedEl.textContent = `Elapsed: ${formatElapsedTime(uiState.longTaskElapsedSec)}`;
     if (stepEl) stepEl.textContent = uiState.longTaskStep;
     if (pctEl) pctEl.textContent = `${uiState.longTaskPercent}%`;
     if (fillEl) fillEl.style.width = `${Math.max(6, uiState.longTaskPercent)}%`;
@@ -582,7 +644,9 @@ async function copyOllamaOutput(text, label = "Ollama output", btnEl = null) {
       btnEl.classList.remove("is-copied");
     }, 1800);
   }
-  toast(`Copied ${label} to clipboard (${clean.length.toLocaleString()} chars)`);
+  toast(
+    `Copied ${label} to clipboard (${clean.length.toLocaleString()} chars)`,
+  );
   return true;
 }
 
@@ -619,7 +683,11 @@ function clearOllamaOutput(scope = "assistant") {
     if (assistantTextareaEl) assistantTextareaEl.value = "";
     if (speechTextareaEl) speechTextareaEl.value = "";
   }
-  toast(scope === "all" ? "Cleared all prompts and Ollama outputs." : "Cleared Ollama output.");
+  toast(
+    scope === "all"
+      ? "Cleared all prompts and Ollama outputs."
+      : "Cleared Ollama output.",
+  );
   renderOllamaPanel();
 }
 
@@ -650,7 +718,12 @@ async function speakTextWithOllama(text) {
     return;
   }
   uiState.loading = true;
-  startLiveTaskTicker("Reading Output Aloud", "Synthesizing speech audio for AI output...", 25, false);
+  startLiveTaskTicker(
+    "Reading Output Aloud",
+    "Synthesizing speech audio for AI output...",
+    25,
+    false,
+  );
   renderOllamaPanel();
   try {
     const res = await call("ollama/speech", {
@@ -662,7 +735,9 @@ async function speakTextWithOllama(text) {
     if (res.audioUrl) {
       uiState.lastAudioUrl = `${res.audioUrl}&token=${encodeURIComponent(getToken())}`;
     }
-    toast(`Speaking output aloud with ${res.model || "speech engine"} (${res.voice})`);
+    toast(
+      `Speaking output aloud with ${res.model || "speech engine"} (${res.voice})`,
+    );
   } catch (err) {
     toast(err.message || "Could not speak output", { kind: "error" });
   } finally {
@@ -681,7 +756,11 @@ function computeTextTelemetry(text) {
   return { chars, words, lines };
 }
 
-function renderFormattedOutputBody(rawText, title = "Ollama AI Output", clearScope = "assistant") {
+function renderFormattedOutputBody(
+  rawText,
+  title = "Ollama AI Output",
+  clearScope = "assistant",
+) {
   const text = String(rawText ?? "");
   if (uiState.markdownView) {
     const mdBuilt = buildBionicMarkdownDom(text, clearScope);
@@ -731,7 +810,12 @@ function renderFormattedOutputBody(rawText, title = "Ollama AI Output", clearSco
               type: "button",
               class: "ollama-btn is-mini",
               title: `Copy ${lang} snippet to clipboard`,
-              onclick: (e) => void copyOllamaOutput(codeBody, `${lang} code snippet`, e.currentTarget),
+              onclick: (e) =>
+                void copyOllamaOutput(
+                  codeBody,
+                  `${lang} code snippet`,
+                  e.currentTarget,
+                ),
             },
             "📋 Copy Code",
           ),
@@ -760,9 +844,13 @@ function renderFormattedOutputBody(rawText, title = "Ollama AI Output", clearSco
 }
 
 function scrollConsoleOutput(btnEl, direction) {
-  const consoleEl = btnEl?.closest?.(".ollama-output-console") || rootContainer?.querySelector(".ollama-output-console");
+  const consoleEl =
+    btnEl?.closest?.(".ollama-output-console") ||
+    rootContainer?.querySelector(".ollama-output-console");
   if (!consoleEl) return;
-  const boxes = consoleEl.querySelectorAll(".bionic-md-viewer, .ollama-output-box, .ollama-thinking-box");
+  const boxes = consoleEl.querySelectorAll(
+    ".bionic-md-viewer, .ollama-output-box, .ollama-thinking-box",
+  );
   for (const box of boxes) {
     if (direction === "top") {
       box.scrollTo?.({ top: 0, behavior: "smooth" });
@@ -813,7 +901,10 @@ function renderStudioOutputConsole({
         ? content
         : thinking;
 
-  const mdBuilt = hasContent && uiState.markdownView ? buildBionicMarkdownDom(content, clearScope) : null;
+  const mdBuilt =
+    hasContent && uiState.markdownView
+      ? buildBionicMarkdownDom(content, clearScope)
+      : null;
   const headingList = mdBuilt?.headings || [];
   const isExpanded = Boolean(uiState.outputExpanded);
   const isFullscreen = Boolean(uiState.outputFullscreen);
@@ -895,7 +986,8 @@ function renderStudioOutputConsole({
               type: "button",
               class: `ollama-btn is-mini${uiState.markdownView ? " is-primary" : ""}`,
               "aria-pressed": uiState.markdownView ? "true" : "false",
-              title: "Toggle between formatted Markdown reader view and raw source text",
+              title:
+                "Toggle between formatted Markdown reader view and raw source text",
               onclick: () => {
                 uiState.markdownView = !uiState.markdownView;
                 renderOllamaPanel();
@@ -968,7 +1060,8 @@ function renderStudioOutputConsole({
                   class: "ollama-btn is-mini",
                   "data-ollama-action": "scroll-bottom",
                   title: "Scroll output to bottom",
-                  onclick: (e) => scrollConsoleOutput(e.currentTarget, "bottom"),
+                  onclick: (e) =>
+                    scrollConsoleOutput(e.currentTarget, "bottom"),
                 },
                 "⬇ Bottom",
               )
@@ -981,7 +1074,12 @@ function renderStudioOutputConsole({
               "data-ollama-action": "copy-output",
               disabled: !hasContent && !hasThinking ? "disabled" : null,
               title: "Copy Ollama output to clipboard",
-              onclick: (e) => void copyOllamaOutput(hasContent ? content : thinking, title, e.currentTarget),
+              onclick: (e) =>
+                void copyOllamaOutput(
+                  hasContent ? content : thinking,
+                  title,
+                  e.currentTarget,
+                ),
             },
             "📋 Copy Output",
           ),
@@ -993,7 +1091,12 @@ function renderStudioOutputConsole({
                   class: "ollama-btn is-mini",
                   "data-ollama-action": "copy-thinking",
                   title: "Copy only the step-by-step thinking trace",
-                  onclick: (e) => void copyOllamaOutput(thinking, "Thinking trace", e.currentTarget),
+                  onclick: (e) =>
+                    void copyOllamaOutput(
+                      thinking,
+                      "Thinking trace",
+                      e.currentTarget,
+                    ),
                 },
                 "🧠 Copy Thinking",
               )
@@ -1006,7 +1109,12 @@ function renderStudioOutputConsole({
                   class: "ollama-btn is-mini",
                   "data-ollama-action": "copy-both",
                   title: "Copy both Thinking trace and Final Answer",
-                  onclick: (e) => void copyOllamaOutput(combinedCopyText, "Thinking + Answer", e.currentTarget),
+                  onclick: (e) =>
+                    void copyOllamaOutput(
+                      combinedCopyText,
+                      "Thinking + Answer",
+                      e.currentTarget,
+                    ),
                 },
                 "📋 Copy Both",
               )
@@ -1031,8 +1139,10 @@ function renderStudioOutputConsole({
                   type: "button",
                   class: "ollama-btn is-mini",
                   "data-ollama-action": "save-output",
-                  title: "Save this output as a .txt file in the active folder pane",
-                  onclick: () => void saveOllamaOutputToFolder(combinedCopyText, saveName),
+                  title:
+                    "Save this output as a .txt file in the active folder pane",
+                  onclick: () =>
+                    void saveOllamaOutputToFolder(combinedCopyText, saveName),
                 },
                 "💾 Save to Folder",
               )
@@ -1043,7 +1153,8 @@ function renderStudioOutputConsole({
               type: "button",
               class: "ollama-btn is-danger is-clear-btn",
               "data-ollama-action": "clear-output",
-              disabled: !hasContent && !hasThinking && !audioUrl ? "disabled" : null,
+              disabled:
+                !hasContent && !hasThinking && !audioUrl ? "disabled" : null,
               title: "Clear this Ollama output console",
               onclick: () => clearOllamaOutput(clearScope),
             },
@@ -1054,7 +1165,11 @@ function renderStudioOutputConsole({
       hasThinking
         ? h("details", { class: "ollama-thinking-details", open: "open" }, [
             h("summary", { class: "ollama-thinking-summary" }, [
-              h("span", {}, `🧠 Step-by-Step Deep Reasoning Trace (${thinking.length.toLocaleString()} chars)`),
+              h(
+                "span",
+                {},
+                `🧠 Step-by-Step Deep Reasoning Trace (${thinking.length.toLocaleString()} chars)`,
+              ),
             ]),
             h(
               "div",
@@ -1085,7 +1200,10 @@ function renderStudioOutputConsole({
                     type: "button",
                     class: "bionic-md-outline-chip",
                     onclick: () => {
-                      hd.el?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+                      hd.el?.scrollIntoView?.({
+                        behavior: "smooth",
+                        block: "start",
+                      });
                     },
                   },
                   `${"#".repeat(Math.min(hd.level, 3))} ${hd.text}`,
@@ -1112,7 +1230,11 @@ function renderStudioOutputConsole({
           : null,
       audioUrl
         ? h("div", { class: "ollama-audio-bar" }, [
-            h("span", { class: "ollama-pill is-mlx" }, "🔊 Synthesized 24kHz Audio Ready"),
+            h(
+              "span",
+              { class: "ollama-pill is-mlx" },
+              "🔊 Synthesized 24kHz Audio Ready",
+            ),
             createAudioPlayerEl(audioUrl),
           ])
         : null,
@@ -1123,7 +1245,12 @@ function renderStudioOutputConsole({
 async function runOneClickAutoInstall() {
   if (uiState.installing) return;
   const hw = uiState.statusData?.hardware;
-  const osLabel = hw?.platform === "win32" ? "Windows" : hw?.platform === "linux" ? "Linux" : "macOS";
+  const osLabel =
+    hw?.platform === "win32"
+      ? "Windows"
+      : hw?.platform === "linux"
+        ? "Linux"
+        : "macOS";
   uiState.installing = true;
   uiState.loading = true;
   uiState.lastInstallSummary = null;
@@ -1173,7 +1300,12 @@ function currentFolderRel() {
 
 function resolveMatchTargetPaths(m) {
   const sep = state.sep || "/";
-  const baseDir = (currentPath() || state.location?.path || state.home || "/").replace(/[\\/]+$/, "");
+  const baseDir = (
+    currentPath() ||
+    state.location?.path ||
+    state.home ||
+    "/"
+  ).replace(/[\\/]+$/, "");
   const rawFile = String(m.absPath || m.path || "").trim();
   const isAbs = rawFile.startsWith("/") || /^[A-Za-z]:[\\/]/.test(rawFile);
   const fullFilePath = isAbs
@@ -1183,12 +1315,17 @@ function resolveMatchTargetPaths(m) {
       : baseDir;
 
   const rawFolder = String(m.folderPath || "").trim();
-  const isFolderAbs = rawFolder.startsWith("/") || /^[A-Za-z]:[\\/]/.test(rawFolder);
+  const isFolderAbs =
+    rawFolder.startsWith("/") || /^[A-Za-z]:[\\/]/.test(rawFolder);
   if (isFolderAbs) {
     return { folderPath: rawFolder, filePath: fullFilePath };
   }
-  const lastSlash = Math.max(fullFilePath.lastIndexOf("/"), fullFilePath.lastIndexOf("\\"));
-  const folderPath = lastSlash > 0 ? fullFilePath.slice(0, lastSlash) : baseDir || "/";
+  const lastSlash = Math.max(
+    fullFilePath.lastIndexOf("/"),
+    fullFilePath.lastIndexOf("\\"),
+  );
+  const folderPath =
+    lastSlash > 0 ? fullFilePath.slice(0, lastSlash) : baseDir || "/";
   return { folderPath, filePath: fullFilePath };
 }
 
@@ -1223,11 +1360,21 @@ function createBadgeEl(badge) {
 }
 
 function syncSelectedModelCapabilitiesState() {
-  const caps = getClientModelThinkingCapabilities(uiState.selectedModel, uiState.statusData?.models);
-  const profile = getClientModelFeatureProfile(uiState.selectedModel, uiState.statusData?.models);
+  const caps = getClientModelThinkingCapabilities(
+    uiState.selectedModel,
+    uiState.statusData?.models,
+  );
+  const profile = getClientModelFeatureProfile(
+    uiState.selectedModel,
+    uiState.statusData?.models,
+  );
   const feat = profile.features || {};
   if (caps.thinkingMode === "levels") {
-    if (uiState.thinkingLevel !== "low" && uiState.thinkingLevel !== "medium" && uiState.thinkingLevel !== "high") {
+    if (
+      uiState.thinkingLevel !== "low" &&
+      uiState.thinkingLevel !== "medium" &&
+      uiState.thinkingLevel !== "high"
+    ) {
       uiState.thinkingLevel = caps.defaultLevel || "medium";
     }
     uiState.thinkEnabled = true;
@@ -1260,11 +1407,18 @@ export async function refreshOllamaStatus(silent = false) {
   try {
     const res = await call("ollama/status", {});
     uiState.statusData = res;
-    uiState.pendingActions = Array.isArray(res.pendingActions) ? res.pendingActions : [];
-    if (!uiState.selectedModel && Array.isArray(res.models) && res.models.length > 0) {
+    uiState.pendingActions = Array.isArray(res.pendingActions)
+      ? res.pendingActions
+      : [];
+    if (
+      !uiState.selectedModel &&
+      Array.isArray(res.models) &&
+      res.models.length > 0
+    ) {
       const chatModel =
-        res.models.find((m) => m.badges?.includes("Chat") && !m.badges?.includes("Speech")) ||
-        res.models.find((m) => m.badges?.includes("Chat"));
+        res.models.find(
+          (m) => m.badges?.includes("Chat") && !m.badges?.includes("Speech"),
+        ) || res.models.find((m) => m.badges?.includes("Chat"));
       if (chatModel) uiState.selectedModel = chatModel.name;
     }
     syncSelectedModelCapabilitiesState();
@@ -1276,7 +1430,8 @@ export async function refreshOllamaStatus(silent = false) {
       uiState.speechModel = res.speechCapabilities.defaultSpeechModel;
     }
   } catch (err) {
-    if (!silent) toast(err.message || "Could not load Ollama status", { kind: "error" });
+    if (!silent)
+      toast(err.message || "Could not load Ollama status", { kind: "error" });
   } finally {
     uiState.loading = false;
     renderOllamaPanel();
@@ -1288,7 +1443,11 @@ async function runSmartAutoRouter(customPrompt) {
   const livePrompt =
     customPrompt !== undefined
       ? String(customPrompt).trim()
-      : String(assistantTextareaEl ? assistantTextareaEl.value : uiState.promptText || "").trim();
+      : String(
+          assistantTextareaEl
+            ? assistantTextareaEl.value
+            : uiState.promptText || "",
+        ).trim();
   if (customPrompt === undefined) {
     uiState.promptText = livePrompt;
   }
@@ -1308,7 +1467,9 @@ async function runSmartAutoRouter(customPrompt) {
   }
   const abortController = new AbortController();
   uiState.abortController = abortController;
-  const hasImageSel = paths.some((p) => /\.(png|jpe?g|webp|gif|bmp|heic|tiff?|avif)$/i.test(String(p || "")));
+  const hasImageSel = paths.some((p) =>
+    /\.(png|jpe?g|webp|gif|bmp|heic|tiff?|avif)$/i.test(String(p || "")),
+  );
   const prompt =
     livePrompt ||
     (!uiState.speakReply && paths.length > 0
@@ -1326,7 +1487,9 @@ async function runSmartAutoRouter(customPrompt) {
       ? `Analyzing selected image (${paths[0]}) with Multimodal Vision...`
       : "Routing your request to the optimal Ollama capability...";
   startLiveTaskTicker(
-    !prompt ? "Synthesizing Speech for Selected File" : "Running Ollama AI Capability Router",
+    !prompt
+      ? "Synthesizing Speech for Selected File"
+      : "Running Ollama AI Capability Router",
     uiState.routeBanner,
     18,
     false,
@@ -1338,7 +1501,10 @@ async function runSmartAutoRouter(customPrompt) {
     const samplingArgs = buildSamplingPayload();
     const hasExplicitThink = Boolean(thinkArgs.think);
 
-    if (prompt && (uiState.schemaPreset || uiState.useWebSearch || hasExplicitThink)) {
+    if (
+      prompt &&
+      (uiState.schemaPreset || uiState.useWebSearch || hasExplicitThink)
+    ) {
       const chatRes = await call(
         "ollama/chat",
         {
@@ -1360,7 +1526,10 @@ async function runSmartAutoRouter(customPrompt) {
       uiState.thinkingOutput = chatRes.thinkingText || "";
       uiState.answerOutput = chatRes.content || "";
       uiState.structuredOutput = chatRes.structuredJson || null;
-      if (Array.isArray(chatRes.pendingActions) && chatRes.pendingActions.length > 0) {
+      if (
+        Array.isArray(chatRes.pendingActions) &&
+        chatRes.pendingActions.length > 0
+      ) {
         uiState.pendingActions = chatRes.pendingActions;
       }
       if (chatRes.speechResult?.audioUrl) {
@@ -1383,12 +1552,15 @@ async function runSmartAutoRouter(customPrompt) {
         },
         { signal: abortController.signal },
       );
-      uiState.routeBanner = routed.routeExplanation || `Routed to ${routed.routedCapability}`;
+      uiState.routeBanner =
+        routed.routeExplanation || `Routed to ${routed.routedCapability}`;
       const r = routed.result || {};
       if (routed.routedCapability === "speech") {
         uiState.thinkingOutput = "";
         uiState.answerOutput = `Speech Read-Aloud (${r.model || "speech"}, voice: ${r.voice}, ${r.chunksCount} chunk(s), ~${r.durationSecondsEstimate}s):\n\n${r.cleanedText}`;
-        uiState.lastAudioUrl = r.audioUrl ? `${r.audioUrl}&token=${encodeURIComponent(getToken())}` : "";
+        uiState.lastAudioUrl = r.audioUrl
+          ? `${r.audioUrl}&token=${encodeURIComponent(getToken())}`
+          : "";
         uiState.lastSavedAudioPath = r.savedRelativePath || "";
         if (r.savedRelativePath) refresh();
       } else if (routed.routedCapability === "decision") {
@@ -1397,7 +1569,10 @@ async function runSmartAutoRouter(customPrompt) {
       } else if (routed.routedCapability === "semantic_search") {
         uiState.meaningMatches = r.matches || [];
         uiState.answerOutput = (r.matches || [])
-          .map((m, idx) => `${idx + 1}. ${m.path} (similarity: ${(m.similarity * 100).toFixed(1)}%)\n   ${m.preview}`)
+          .map(
+            (m, idx) =>
+              `${idx + 1}. ${m.path} (similarity: ${(m.similarity * 100).toFixed(1)}%)\n   ${m.preview}`,
+          )
           .join("\n\n");
       } else {
         uiState.thinkingOutput = r.thinkingText || "";
@@ -1412,12 +1587,19 @@ async function runSmartAutoRouter(customPrompt) {
       }
     }
   } catch (err) {
-    if (err?.name === "AbortError" || err?.code === "ABORTED" || abortController.signal.aborted) {
+    if (
+      err?.name === "AbortError" ||
+      err?.code === "ABORTED" ||
+      abortController.signal.aborted
+    ) {
       uiState.routeBanner = "⏹ Generation stopped by user.";
       if (!uiState.answerOutput) {
         uiState.answerOutput = "[Generation stopped by user]";
       }
-    } else if (err.code === "HARDWARE_RAM_REFUSAL" || err.code === "HARDWARE_MLX_EXCLUSIVITY") {
+    } else if (
+      err.code === "HARDWARE_RAM_REFUSAL" ||
+      err.code === "HARDWARE_MLX_EXCLUSIVITY"
+    ) {
       uiState.refusalBanner = {
         code: err.code,
         message: err.message,
@@ -1438,8 +1620,12 @@ async function runSmartAutoRouter(customPrompt) {
 
 async function runLiveStreamChat() {
   const paths = selectedFilePaths();
-  const hasImageSel = paths.some((p) => /\.(png|jpe?g|webp|gif|bmp|heic|tiff?|avif)$/i.test(String(p || "")));
-  let prompt = String(assistantTextareaEl ? assistantTextareaEl.value : uiState.promptText || "").trim();
+  const hasImageSel = paths.some((p) =>
+    /\.(png|jpe?g|webp|gif|bmp|heic|tiff?|avif)$/i.test(String(p || "")),
+  );
+  let prompt = String(
+    assistantTextareaEl ? assistantTextareaEl.value : uiState.promptText || "",
+  ).trim();
   uiState.promptText = prompt;
   if (prompt) {
     uiState.lastSubmittedPrompt = prompt;
@@ -1502,7 +1688,10 @@ async function runLiveStreamChat() {
       const errData = await res.json().catch(() => ({}));
       const msg = errData?.error?.message || `HTTP ${res.status}`;
       const code = errData?.error?.code || "STREAM_ERR";
-      if (code === "HARDWARE_RAM_REFUSAL" || code === "HARDWARE_MLX_EXCLUSIVITY") {
+      if (
+        code === "HARDWARE_RAM_REFUSAL" ||
+        code === "HARDWARE_MLX_EXCLUSIVITY"
+      ) {
         uiState.refusalBanner = { code, message: msg };
       } else {
         uiState.answerOutput = `Stream Error: ${msg}`;
@@ -1512,7 +1701,8 @@ async function runLiveStreamChat() {
       return;
     }
 
-    const usedModel = res.headers.get("X-Ollama-Model") || uiState.selectedModel || "mlx";
+    const usedModel =
+      res.headers.get("X-Ollama-Model") || uiState.selectedModel || "mlx";
     const usedCtx = res.headers.get("X-Ollama-Num-Ctx") || "8192";
     uiState.routeBanner = `Live Streaming via /api/chat (Model: ${usedModel}, Context: ${usedCtx} tokens)`;
     renderOllamaPanel();
@@ -1531,8 +1721,10 @@ async function runLiveStreamChat() {
             if (!trimmed) continue;
             try {
               const pkt = JSON.parse(trimmed);
-              if (pkt.message?.thinking) uiState.thinkingOutput += pkt.message.thinking;
-              if (pkt.message?.content) uiState.answerOutput += pkt.message.content;
+              if (pkt.message?.thinking)
+                uiState.thinkingOutput += pkt.message.thinking;
+              if (pkt.message?.content)
+                uiState.answerOutput += pkt.message.content;
             } catch {}
           }
         }
@@ -1561,18 +1753,32 @@ async function runLiveStreamChat() {
         }
       }
       if (updatedThinking || updatedAnswer) {
-        const thinkingBox = rootContainer?.querySelector(".ollama-thinking-box");
+        const thinkingBox = rootContainer?.querySelector(
+          ".ollama-thinking-box",
+        );
         const outputBox = rootContainer?.querySelector(".ollama-output-box");
-        if (uiState.markdownView || (updatedThinking && !thinkingBox) || (updatedAnswer && !outputBox)) {
+        if (
+          uiState.markdownView ||
+          (updatedThinking && !thinkingBox) ||
+          (updatedAnswer && !outputBox)
+        ) {
           renderOllamaPanel();
         } else {
           if (updatedThinking && thinkingBox) {
-            const stickBottom = thinkingBox.scrollHeight - thinkingBox.scrollTop - thinkingBox.clientHeight <= 80;
+            const stickBottom =
+              thinkingBox.scrollHeight -
+                thinkingBox.scrollTop -
+                thinkingBox.clientHeight <=
+              80;
             thinkingBox.textContent = uiState.thinkingOutput;
             if (stickBottom) thinkingBox.scrollTop = thinkingBox.scrollHeight;
           }
           if (updatedAnswer && outputBox) {
-            const stickBottom = outputBox.scrollHeight - outputBox.scrollTop - outputBox.clientHeight <= 80;
+            const stickBottom =
+              outputBox.scrollHeight -
+                outputBox.scrollTop -
+                outputBox.clientHeight <=
+              80;
             outputBox.textContent = uiState.answerOutput;
             if (stickBottom) outputBox.scrollTop = outputBox.scrollHeight;
           }
@@ -1580,7 +1786,11 @@ async function runLiveStreamChat() {
       }
     }
 
-    if (uiState.speakReply && uiState.answerOutput.trim() && !abortController.signal.aborted) {
+    if (
+      uiState.speakReply &&
+      uiState.answerOutput.trim() &&
+      !abortController.signal.aborted
+    ) {
       const spk = await call(
         "ollama/speech",
         {
@@ -1596,8 +1806,13 @@ async function runLiveStreamChat() {
       }
     }
   } catch (err) {
-    if (err?.name === "AbortError" || err?.code === "ABORTED" || abortController.signal.aborted) {
-      uiState.routeBanner = "⏹ Live stream stopped by user (partial output preserved).";
+    if (
+      err?.name === "AbortError" ||
+      err?.code === "ABORTED" ||
+      abortController.signal.aborted
+    ) {
+      uiState.routeBanner =
+        "⏹ Live stream stopped by user (partial output preserved).";
       if (!uiState.answerOutput && !uiState.thinkingOutput) {
         uiState.answerOutput = "[Live stream stopped by user]";
       }
@@ -1624,10 +1839,27 @@ function renderHeroBanner() {
   const pills = [];
   if (hw) {
     if (hw.isAppleSiliconMac) {
-      pills.push(h("span", { class: "ollama-pill is-mlx" }, `Apple Silicon MLX Exclusive (${hw.cpuModel})`));
+      pills.push(
+        h(
+          "span",
+          { class: "ollama-pill is-mlx" },
+          `Apple Silicon MLX Exclusive (${hw.cpuModel})`,
+        ),
+      );
     } else {
-      const osTag = hw.platform === "win32" ? "Windows" : hw.platform === "linux" ? "Linux" : hw.platform;
-      pills.push(h("span", { class: "ollama-pill" }, `${osTag}/${hw.arch} (${hw.cpuCores} cores)`));
+      const osTag =
+        hw.platform === "win32"
+          ? "Windows"
+          : hw.platform === "linux"
+            ? "Linux"
+            : hw.platform;
+      pills.push(
+        h(
+          "span",
+          { class: "ollama-pill" },
+          `${osTag}/${hw.arch} (${hw.cpuCores} cores)`,
+        ),
+      );
     }
     pills.push(
       h(
@@ -1642,7 +1874,9 @@ function renderHeroBanner() {
       h(
         "span",
         { class: `ollama-pill${ver.reachable ? "" : " is-warn"}` },
-        ver.reachable ? `Ollama v${ver.version}` : "Ollama Offline — 1-Click Auto-Install Ready",
+        ver.reachable
+          ? `Ollama v${ver.version}`
+          : "Ollama Offline — 1-Click Auto-Install Ready",
       ),
     );
   }
@@ -1683,8 +1917,20 @@ function renderHeroBanner() {
   return h("div", { class: "ollama-hero-banner" }, [
     h("div", { class: "ollama-hero-left" }, [
       h("div", { class: "ollama-hero-title-row" }, [
-        uiState.loading || uiState.installing ? h("span", { class: "ollama-spinner", title: "Live AI / Install Activity in Progress" }) : h("span", { class: "ollama-status-pulse", title: "Ollama AI Router Active" }),
-        h("span", { class: "ollama-hero-title" }, "Ollama AI Assistant & Full Capability Router"),
+        uiState.loading || uiState.installing
+          ? h("span", {
+              class: "ollama-spinner",
+              title: "Live AI / Install Activity in Progress",
+            })
+          : h("span", {
+              class: "ollama-status-pulse",
+              title: "Ollama AI Router Active",
+            }),
+        h(
+          "span",
+          { class: "ollama-hero-title" },
+          "Ollama AI Assistant & Full Capability Router",
+        ),
         ...pills,
       ]),
       h(
@@ -1711,12 +1957,19 @@ function renderHeroBanner() {
               onchange: async (e) => {
                 const nextPolicy = e.target.value;
                 try {
-                  const updated = await call("ollama/lifecycle", { exitPolicy: nextPolicy });
-                  if (uiState.statusData) uiState.statusData.lifecycle = updated;
-                  toast(`Updated Ollama close behavior: ${updated.summaryLabel}`);
+                  const updated = await call("ollama/lifecycle", {
+                    exitPolicy: nextPolicy,
+                  });
+                  if (uiState.statusData)
+                    uiState.statusData.lifecycle = updated;
+                  toast(
+                    `Updated Ollama close behavior: ${updated.summaryLabel}`,
+                  );
                   renderOllamaPanel();
                 } catch (err) {
-                  toast(err.message || "Could not update exit policy", { kind: "error" });
+                  toast(err.message || "Could not update exit policy", {
+                    kind: "error",
+                  });
                 }
               },
             },
@@ -1733,7 +1986,8 @@ function renderHeroBanner() {
                 "option",
                 {
                   value: "unload_all",
-                  selected: activeExitPolicy === "unload_all" ? "selected" : null,
+                  selected:
+                    activeExitPolicy === "unload_all" ? "selected" : null,
                 },
                 "Unload All Models on Close (Keep Ollama Open)",
               ),
@@ -1749,7 +2003,8 @@ function renderHeroBanner() {
                 "option",
                 {
                   value: "keep_open",
-                  selected: activeExitPolicy === "keep_open" ? "selected" : null,
+                  selected:
+                    activeExitPolicy === "keep_open" ? "selected" : null,
                 },
                 "Keep Ollama & Loaded Models Open on Close",
               ),
@@ -1762,7 +2017,8 @@ function renderHeroBanner() {
         {
           type: "button",
           class: "ollama-btn is-primary",
-          title: "1-Click Auto-Install Ollama & OS-Matched Starter Models (Linux ~/.local/bin, Windows winget/OllamaSetup, macOS Homebrew/Bundle)",
+          title:
+            "1-Click Auto-Install Ollama & OS-Matched Starter Models (Linux ~/.local/bin, Windows winget/OllamaSetup, macOS Homebrew/Bundle)",
           onclick: () => void runOneClickAutoInstall(),
         },
         uiState.installing
@@ -1774,7 +2030,8 @@ function renderHeroBanner() {
         {
           type: "button",
           class: "ollama-btn is-danger",
-          title: "Unload running models from RAM immediately with keep_alive: 0",
+          title:
+            "Unload running models from RAM immediately with keep_alive: 0",
           onclick: async () => {
             try {
               const res = await call("ollama/freeRam", {});
@@ -1798,7 +2055,9 @@ function renderHeroBanner() {
           class: "ollama-btn",
           onclick: () => void refreshOllamaStatus(false),
         },
-        uiState.loading ? [h("span", { class: "ollama-spinner" }), " Working..."] : "Refresh Status",
+        uiState.loading
+          ? [h("span", { class: "ollama-spinner" }), " Working..."]
+          : "Refresh Status",
       ),
     ]),
   ]);
@@ -1806,67 +2065,120 @@ function renderHeroBanner() {
 
 function renderLiveActivityBanner() {
   const backendTask = uiState.statusData?.longTask;
-  const isActive = uiState.loading || uiState.installing || Boolean(backendTask?.active);
+  const isActive =
+    uiState.loading || uiState.installing || Boolean(backendTask?.active);
   if (!isActive) return null;
 
-  const title = uiState.longTaskTitle || backendTask?.title || "Ollama AI Operation in Progress";
-  const step = uiState.longTaskStep || backendTask?.step || uiState.routeBanner || "Processing request...";
-  const pct = Math.max(6, Math.min(100, Number(uiState.longTaskPercent || backendTask?.percent || 15)));
+  const title =
+    uiState.longTaskTitle ||
+    backendTask?.title ||
+    "Ollama AI Operation in Progress";
+  const step =
+    uiState.longTaskStep ||
+    backendTask?.step ||
+    uiState.routeBanner ||
+    "Processing request...";
+  const pct = Math.max(
+    6,
+    Math.min(
+      100,
+      Number(uiState.longTaskPercent || backendTask?.percent || 15),
+    ),
+  );
   const elapsedSec =
     uiState.longTaskElapsedSec ||
     (backendTask?.elapsedMs ? Math.floor(backendTask.elapsedMs / 1000) : 0);
   const stepsLog =
-    Array.isArray(uiState.longTaskStepsLog) && uiState.longTaskStepsLog.length > 0
+    Array.isArray(uiState.longTaskStepsLog) &&
+    uiState.longTaskStepsLog.length > 0
       ? uiState.longTaskStepsLog
       : Array.isArray(backendTask?.stepsLog)
         ? backendTask.stepsLog
         : [];
 
-  return h("div", { class: "ollama-live-progress-banner", role: "status", "aria-live": "polite" }, [
-    h("div", { class: "ollama-row" }, [
-      h("span", { class: "ollama-spinner" }),
-      h("strong", {}, title),
-      h("span", { class: "ollama-pill is-mlx ollama-live-pct" }, `${pct}%`),
-      h("span", { class: "ollama-pill is-ram ollama-live-elapsed" }, `Elapsed: ${formatElapsedTime(elapsedSec)}`),
-      h("span", { class: "ollama-pill" }, "Live Activity — App is NOT Frozen"),
-      uiState.loading
+  return h(
+    "div",
+    {
+      class: "ollama-live-progress-banner",
+      role: "status",
+      "aria-live": "polite",
+    },
+    [
+      h("div", { class: "ollama-row" }, [
+        h("span", { class: "ollama-spinner" }),
+        h("strong", {}, title),
+        h("span", { class: "ollama-pill is-mlx ollama-live-pct" }, `${pct}%`),
+        h(
+          "span",
+          { class: "ollama-pill is-ram ollama-live-elapsed" },
+          `Elapsed: ${formatElapsedTime(elapsedSec)}`,
+        ),
+        h(
+          "span",
+          { class: "ollama-pill" },
+          "Live Activity — App is NOT Frozen",
+        ),
+        uiState.loading
+          ? h(
+              "button",
+              {
+                type: "button",
+                class: "ollama-btn is-danger is-mini",
+                "data-ollama-action": "stop-generation",
+                title: "Stop LLM generation immediately",
+                onclick: () => stopOllamaGeneration(),
+              },
+              "⏹ Stop Generation",
+            )
+          : null,
+      ]),
+      h("div", { class: "ollama-live-step" }, step),
+      h("div", { class: "ollama-progress-track" }, [
+        h("div", { class: "ollama-progress-fill", style: `width: ${pct}%;` }),
+      ]),
+      stepsLog.length > 1
         ? h(
-            "button",
-            {
-              type: "button",
-              class: "ollama-btn is-danger is-mini",
-              "data-ollama-action": "stop-generation",
-              title: "Stop LLM generation immediately",
-              onclick: () => stopOllamaGeneration(),
-            },
-            "⏹ Stop Generation",
+            "div",
+            { class: "ollama-step-log" },
+            stepsLog
+              .slice(-5)
+              .map((entry) =>
+                h("div", {}, `• [${entry.percent ?? pct}%] ${entry.step}`),
+              ),
           )
         : null,
-    ]),
-    h("div", { class: "ollama-live-step" }, step),
-    h("div", { class: "ollama-progress-track" }, [
-      h("div", { class: "ollama-progress-fill", style: `width: ${pct}%;` }),
-    ]),
-    stepsLog.length > 1
-      ? h(
-          "div",
-          { class: "ollama-step-log" },
-          stepsLog.slice(-5).map((entry) => h("div", {}, `• [${entry.percent ?? pct}%] ${entry.step}`)),
-        )
-      : null,
-  ]);
+    ],
+  );
 }
 
 function renderCrossPlatformSetupBanner() {
   const inst = uiState.statusData?.installStatus;
   const ver = uiState.statusData?.version;
   const models = uiState.statusData?.models || [];
-  const installedNames = new Set(models.map((m) => String(m.name || "").toLowerCase()));
-  const hasQwen = installedNames.has("qwen3.5:latest") || installedNames.has("qwen3.5:4b") || [...installedNames].some((n) => n.startsWith("qwen3.5"));
-  const hasOmni = installedNames.has("lfm3-omni:latest") || [...installedNames].some((n) => n.startsWith("lfm3-omni"));
-  const needsSetup = !inst || !inst.binaryInstalled || !ver?.reachable || models.length === 0 || !hasQwen || !hasOmni;
+  const installedNames = new Set(
+    models.map((m) => String(m.name || "").toLowerCase()),
+  );
+  const hasQwen =
+    installedNames.has("qwen3.5:latest") ||
+    installedNames.has("qwen3.5:4b") ||
+    [...installedNames].some((n) => n.startsWith("qwen3.5"));
+  const hasOmni =
+    installedNames.has("lfm3-omni:latest") ||
+    [...installedNames].some((n) => n.startsWith("lfm3-omni"));
+  const needsSetup =
+    !inst ||
+    !inst.binaryInstalled ||
+    !ver?.reachable ||
+    models.length === 0 ||
+    !hasQwen ||
+    !hasOmni;
 
-  const osName = inst?.platform === "win32" ? "Windows" : inst?.platform === "linux" ? "Linux" : "macOS";
+  const osName =
+    inst?.platform === "win32"
+      ? "Windows"
+      : inst?.platform === "linux"
+        ? "Linux"
+        : "macOS";
   const starterList = inst?.recommendedStarterModels?.length
     ? inst.recommendedStarterModels
     : ["qwen3.5:latest", "qwen3.5:4b", "lfm3-omni:latest"];
@@ -1880,7 +2192,12 @@ function renderCrossPlatformSetupBanner() {
           ? `1-Click ${osName} Auto-Install & Starter Model Setup`
           : `1-Click ${osName} Ollama & Starter Models Ready (${starterList.slice(0, 3).join(", ")})`,
       ),
-      h("span", { class: "ollama-pill is-mlx" }, inst?.installMethodLabel || `${osName} User-Space Auto-Installer (Zero Sudo)`),
+      h(
+        "span",
+        { class: "ollama-pill is-mlx" },
+        inst?.installMethodLabel ||
+          `${osName} User-Space Auto-Installer (Zero Sudo)`,
+      ),
     ]),
     h(
       "div",
@@ -1898,7 +2215,10 @@ function renderCrossPlatformSetupBanner() {
           onclick: () => void runOneClickAutoInstall(),
         },
         uiState.installing
-          ? [h("span", { class: "ollama-spinner" }), ` Installing on ${osName}...`]
+          ? [
+              h("span", { class: "ollama-spinner" }),
+              ` Installing on ${osName}...`,
+            ]
           : `⚡ 1-Click Auto-Install Ollama & Starter Models on ${osName}`,
       ),
       h(
@@ -1920,7 +2240,11 @@ function renderModeTabs() {
   ];
   return h(
     "div",
-    { class: "ollama-mode-nav", role: "tablist", "aria-label": "Ollama AI Modes" },
+    {
+      class: "ollama-mode-nav",
+      role: "tablist",
+      "aria-label": "Ollama AI Modes",
+    },
     tabs.map((t, idx) =>
       h(
         "button",
@@ -1936,17 +2260,25 @@ function renderModeTabs() {
             renderOllamaPanel();
           },
           onkeydown: (e) => {
-            if (e.key === "ArrowRight" || e.key === "ArrowLeft" || e.key === "Home" || e.key === "End") {
+            if (
+              e.key === "ArrowRight" ||
+              e.key === "ArrowLeft" ||
+              e.key === "Home" ||
+              e.key === "End"
+            ) {
               e.preventDefault();
               const nextIdx =
                 e.key === "Home"
                   ? 0
                   : e.key === "End"
                     ? tabs.length - 1
-                    : (idx + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+                    : (idx + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) %
+                      tabs.length;
               uiState.subTab = tabs[nextIdx].id;
               renderOllamaPanel();
-              const btns = rootContainer?.querySelectorAll(".ollama-mode-nav [role='tab']");
+              const btns = rootContainer?.querySelectorAll(
+                ".ollama-mode-nav [role='tab']",
+              );
               btns?.[nextIdx]?.focus?.();
             }
           },
@@ -1965,8 +2297,18 @@ function renderSelectedFilesStrip() {
       h("strong", {}, `Active Folder: ${folder}`),
       h("span", {}, " | Selected Files:"),
       ...(sel.length > 0
-        ? sel.slice(0, 6).map((p) => h("span", { class: "ollama-file-chip" }, p.split("/").pop() || p))
-        : [h("span", {}, "None (click any file or image in the file list to inspect it)")]),
+        ? sel
+            .slice(0, 6)
+            .map((p) =>
+              h("span", { class: "ollama-file-chip" }, p.split("/").pop() || p),
+            )
+        : [
+            h(
+              "span",
+              {},
+              "None (click any file or image in the file list to inspect it)",
+            ),
+          ]),
     ]),
   ]);
 }
@@ -1974,7 +2316,8 @@ function renderSelectedFilesStrip() {
 function renderRefusalBanner() {
   if (!uiState.refusalBanner) return null;
   const hw = uiState.statusData?.hardware;
-  const suggestedLocal = hw?.safeMemoryBudgetGb >= 12 ? "qwen3.5:latest" : "qwen3.5:4b";
+  const suggestedLocal =
+    hw?.safeMemoryBudgetGb >= 12 ? "qwen3.5:latest" : "qwen3.5:4b";
   return h("div", { class: "ollama-refusal-banner" }, [
     h("strong", {}, "Polite Hardware Safety Protection Triggered"),
     h("div", {}, uiState.refusalBanner.message),
@@ -2012,7 +2355,9 @@ function renderRefusalBanner() {
 }
 
 function renderPendingConfirmations() {
-  const pending = (uiState.pendingActions || []).filter((a) => a.status === "pending");
+  const pending = (uiState.pendingActions || []).filter(
+    (a) => a.status === "pending",
+  );
   if (pending.length === 0) return null;
   return h(
     "div",
@@ -2029,7 +2374,10 @@ function renderPendingConfirmations() {
               class: "ollama-btn is-primary",
               onclick: async () => {
                 try {
-                  await call("ollama/tool/confirm", { actionId: act.actionId, decision: "confirm" });
+                  await call("ollama/tool/confirm", {
+                    actionId: act.actionId,
+                    decision: "confirm",
+                  });
                   toast(`Executed: ${act.title}`);
                   refresh();
                   void refreshOllamaStatus(true);
@@ -2046,7 +2394,10 @@ function renderPendingConfirmations() {
               type: "button",
               class: "ollama-btn is-danger",
               onclick: async () => {
-                await call("ollama/tool/confirm", { actionId: act.actionId, decision: "cancel" });
+                await call("ollama/tool/confirm", {
+                  actionId: act.actionId,
+                  decision: "cancel",
+                });
                 toast("Cancelled tool action.");
                 void refreshOllamaStatus(true);
               },
@@ -2072,25 +2423,32 @@ function renderSelectedModelCapabilitiesCard(profile) {
       "data-thinking-mode": f.thinkingMode || "none",
     },
     [
-      h("div", { class: "ollama-row", style: "flex-wrap:wrap;gap:6px;align-items:center;" }, [
-        h(
-          "strong",
-          { style: "font-size:12px;" },
-          `Selected Model Capabilities (${profile.modelName || "Auto: qwen3.5:latest"}):`,
-        ),
-        ...(profile.indicators || []).map((ind) =>
+      h(
+        "div",
+        {
+          class: "ollama-row",
+          style: "flex-wrap:wrap;gap:6px;align-items:center;",
+        },
+        [
           h(
-            "span",
-            {
-              class: "ollama-pill is-mlx",
-              "data-model-indicator": ind.id,
-              title: ind.description,
-              style: "font-size:11px;padding:2px 8px;",
-            },
-            `${ind.icon} ${ind.label}`,
+            "strong",
+            { style: "font-size:12px;" },
+            `Selected Model Capabilities (${profile.modelName || "Auto: qwen3.5:latest"}):`,
           ),
-        ),
-      ]),
+          ...(profile.indicators || []).map((ind) =>
+            h(
+              "span",
+              {
+                class: "ollama-pill is-mlx",
+                "data-model-indicator": ind.id,
+                title: ind.description,
+                style: "font-size:11px;padding:2px 8px;",
+              },
+              `${ind.icon} ${ind.label}`,
+            ),
+          ),
+        ],
+      ),
       h(
         "div",
         { class: "ollama-model-use-cases" },
@@ -2101,7 +2459,10 @@ function renderSelectedModelCapabilitiesCard(profile) {
 }
 
 function renderThinkingControlBar() {
-  const caps = getClientModelThinkingCapabilities(uiState.selectedModel, uiState.statusData?.models);
+  const caps = getClientModelThinkingCapabilities(
+    uiState.selectedModel,
+    uiState.statusData?.models,
+  );
   const thinkArgs = resolveEffectiveThinkArgs();
   const activeLevel = thinkArgs.thinkingLevel;
 
@@ -2152,20 +2513,41 @@ function renderThinkingControlBar() {
   const pillDefs =
     caps.thinkingMode === "levels"
       ? [
-          { id: "low", label: "Low Effort", hint: "think: \"low\" — Fast reasoning pass (gpt-oss)" },
-          { id: "medium", label: "Medium Effort", hint: "think: \"medium\" — Balanced chain-of-thought (gpt-oss)" },
-          { id: "high", label: "High Effort", hint: "think: \"high\" — Deep multi-step reasoning (gpt-oss)" },
+          {
+            id: "low",
+            label: "Low Effort",
+            hint: 'think: "low" — Fast reasoning pass (gpt-oss)',
+          },
+          {
+            id: "medium",
+            label: "Medium Effort",
+            hint: 'think: "medium" — Balanced chain-of-thought (gpt-oss)',
+          },
+          {
+            id: "high",
+            label: "High Effort",
+            hint: 'think: "high" — Deep multi-step reasoning (gpt-oss)',
+          },
         ]
       : caps.thinkingMode === "toggle"
         ? [
-            { id: "off", label: "Off (Fast)", hint: "think: false — Skip chain-of-thought for instant reply" },
-            { id: "on", label: "On (Think)", hint: "think: true — Enable step-by-step chain-of-thought reasoning" },
+            {
+              id: "off",
+              label: "Off (Fast)",
+              hint: "think: false — Skip chain-of-thought for instant reply",
+            },
+            {
+              id: "on",
+              label: "On (Think)",
+              hint: "think: true — Enable step-by-step chain-of-thought reasoning",
+            },
           ]
         : [];
 
   const showBudgetControl =
     caps.supportsThinkingBudget &&
-    (caps.thinkingMode === "always_on" || (caps.thinkingMode === "toggle" && activeLevel !== "off"));
+    (caps.thinkingMode === "always_on" ||
+      (caps.thinkingMode === "toggle" && activeLevel !== "off"));
 
   return h(
     "div",
@@ -2211,37 +2593,44 @@ function renderThinkingControlBar() {
           )
         : null,
       showBudgetControl
-        ? h("label", { class: "ollama-row", style: "font-size:12px;gap:4px;" }, [
-            h("span", {}, "Thinking Budget:"),
-            h(
-              "select",
-              {
-                class: "ollama-select",
-                "data-ollama-select": "thinking-budget",
-                style: "padding:2px 6px;font-size:12px;",
-                onchange: (e) => {
-                  uiState.thinkingBudget = Number(e.target.value) || 0;
-                },
-              },
-              [
-                { val: 0, label: "Auto (Unlimited)" },
-                { val: 1024, label: "1,024 tokens" },
-                { val: 4096, label: "4,096 tokens" },
-                { val: 8192, label: "8,192 tokens" },
-                { val: 16384, label: "16,384 tokens" },
-                { val: 32768, label: "32,768 tokens" },
-              ].map((opt) =>
-                h(
-                  "option",
-                  {
-                    value: String(opt.val),
-                    selected: Number(uiState.thinkingBudget) === opt.val ? "selected" : null,
+        ? h(
+            "label",
+            { class: "ollama-row", style: "font-size:12px;gap:4px;" },
+            [
+              h("span", {}, "Thinking Budget:"),
+              h(
+                "select",
+                {
+                  class: "ollama-select",
+                  "data-ollama-select": "thinking-budget",
+                  style: "padding:2px 6px;font-size:12px;",
+                  onchange: (e) => {
+                    uiState.thinkingBudget = Number(e.target.value) || 0;
                   },
-                  opt.label,
+                },
+                [
+                  { val: 0, label: "Auto (Unlimited)" },
+                  { val: 1024, label: "1,024 tokens" },
+                  { val: 4096, label: "4,096 tokens" },
+                  { val: 8192, label: "8,192 tokens" },
+                  { val: 16384, label: "16,384 tokens" },
+                  { val: 32768, label: "32,768 tokens" },
+                ].map((opt) =>
+                  h(
+                    "option",
+                    {
+                      value: String(opt.val),
+                      selected:
+                        Number(uiState.thinkingBudget) === opt.val
+                          ? "selected"
+                          : null,
+                    },
+                    opt.label,
+                  ),
                 ),
               ),
-            ),
-          ])
+            ],
+          )
         : null,
       samplingBtn,
     ],
@@ -2258,198 +2647,220 @@ function renderAdvancedSamplingPanel() {
       "aria-label": "Ollama Runtime and Sampling Parameters",
     },
     [
-      h("div", { class: "ollama-row", style: "justify-content:space-between;" }, [
-        h("strong", { style: "font-size:12px;" }, "⚙️ Ollama Runtime, Context & Sampling Parameters (/api/chat options)"),
-        h(
-          "button",
-          {
-            type: "button",
-            class: "ollama-btn",
-            style: "padding:2px 8px;font-size:11px;",
-            onclick: () => {
-              uiState.numCtx = 8192;
-              uiState.temperature = 0.4;
-              uiState.topP = 0.9;
-              uiState.topK = 40;
-              uiState.minP = 0.0;
-              uiState.repeatPenalty = 1.1;
-              uiState.numPredict = 16384;
-              uiState.seed = "";
-              uiState.stopSequences = "";
-              uiState.keepAlive = "5m";
-              uiState.customSystemPrompt = "";
-              renderOllamaPanel();
-            },
-          },
-          "Reset Defaults",
-        ),
-      ]),
-      h("div", { class: "ollama-row", style: "flex-wrap:wrap;gap:10px;font-size:12px;" }, [
-        h("label", { class: "ollama-row", style: "gap:4px;" }, [
-          h("span", {}, "Context (num_ctx):"),
+      h(
+        "div",
+        { class: "ollama-row", style: "justify-content:space-between;" },
+        [
           h(
-            "select",
+            "strong",
+            { style: "font-size:12px;" },
+            "⚙️ Ollama Runtime, Context & Sampling Parameters (/api/chat options)",
+          ),
+          h(
+            "button",
             {
-              class: "ollama-select",
-              onchange: (e) => {
-                uiState.numCtx = Number(e.target.value) || 8192;
+              type: "button",
+              class: "ollama-btn",
+              style: "padding:2px 8px;font-size:11px;",
+              onclick: () => {
+                uiState.numCtx = 8192;
+                uiState.temperature = 0.4;
+                uiState.topP = 0.9;
+                uiState.topK = 40;
+                uiState.minP = 0.0;
+                uiState.repeatPenalty = 1.1;
+                uiState.numPredict = 16384;
+                uiState.seed = "";
+                uiState.stopSequences = "";
+                uiState.keepAlive = "5m";
+                uiState.customSystemPrompt = "";
+                renderOllamaPanel();
               },
             },
-            [2048, 4096, 8192, 16384, 32768, 65536, 131072].map((ctxVal) =>
-              h(
-                "option",
-                {
-                  value: String(ctxVal),
-                  selected: Number(uiState.numCtx) === ctxVal ? "selected" : null,
-                },
-                `${ctxVal.toLocaleString()} tokens`,
-              ),
-            ),
+            "Reset Defaults",
           ),
-        ]),
-        h("label", { class: "ollama-row", style: "gap:4px;" }, [
-          h("span", {}, "Temperature:"),
-          h("input", {
-            type: "number",
-            class: "ollama-input",
-            style: "width:68px;",
-            step: "0.05",
-            min: "0",
-            max: "2",
-            value: String(uiState.temperature),
-            oninput: (e) => {
-              uiState.temperature = Number(e.target.value);
-            },
-          }),
-        ]),
-        h("label", { class: "ollama-row", style: "gap:4px;" }, [
-          h("span", {}, "Top-P:"),
-          h("input", {
-            type: "number",
-            class: "ollama-input",
-            style: "width:68px;",
-            step: "0.05",
-            min: "0",
-            max: "1",
-            value: String(uiState.topP),
-            oninput: (e) => {
-              uiState.topP = Number(e.target.value);
-            },
-          }),
-        ]),
-        h("label", { class: "ollama-row", style: "gap:4px;" }, [
-          h("span", {}, "Top-K:"),
-          h("input", {
-            type: "number",
-            class: "ollama-input",
-            style: "width:68px;",
-            step: "1",
-            min: "1",
-            max: "200",
-            value: String(uiState.topK),
-            oninput: (e) => {
-              uiState.topK = Number(e.target.value);
-            },
-          }),
-        ]),
-        h("label", { class: "ollama-row", style: "gap:4px;" }, [
-          h("span", {}, "Min-P:"),
-          h("input", {
-            type: "number",
-            class: "ollama-input",
-            style: "width:68px;",
-            step: "0.01",
-            min: "0",
-            max: "1",
-            value: String(uiState.minP),
-            oninput: (e) => {
-              uiState.minP = Number(e.target.value);
-            },
-          }),
-        ]),
-        h("label", { class: "ollama-row", style: "gap:4px;" }, [
-          h("span", {}, "Repeat Penalty:"),
-          h("input", {
-            type: "number",
-            class: "ollama-input",
-            style: "width:68px;",
-            step: "0.05",
-            min: "0.5",
-            max: "2.0",
-            value: String(uiState.repeatPenalty),
-            oninput: (e) => {
-              uiState.repeatPenalty = Number(e.target.value);
-            },
-          }),
-        ]),
-        h("label", { class: "ollama-row", style: "gap:4px;" }, [
-          h("span", {}, "Max Tokens (num_predict):"),
-          h("input", {
-            type: "number",
-            class: "ollama-input",
-            style: "width:82px;",
-            step: "256",
-            min: "64",
-            max: "131072",
-            value: String(uiState.numPredict),
-            oninput: (e) => {
-              uiState.numPredict = Number(e.target.value);
-            },
-          }),
-        ]),
-        h("label", { class: "ollama-row", style: "gap:4px;" }, [
-          h("span", {}, "Seed:"),
-          h("input", {
-            type: "text",
-            class: "ollama-input",
-            style: "width:76px;",
-            placeholder: "Random",
-            value: String(uiState.seed),
-            oninput: (e) => {
-              uiState.seed = e.target.value;
-            },
-          }),
-        ]),
-        h("label", { class: "ollama-row", style: "gap:4px;" }, [
-          h("span", {}, "Keep Alive:"),
-          h(
-            "select",
-            {
-              class: "ollama-select",
-              onchange: (e) => {
-                uiState.keepAlive = e.target.value;
+        ],
+      ),
+      h(
+        "div",
+        {
+          class: "ollama-row",
+          style: "flex-wrap:wrap;gap:10px;font-size:12px;",
+        },
+        [
+          h("label", { class: "ollama-row", style: "gap:4px;" }, [
+            h("span", {}, "Context (num_ctx):"),
+            h(
+              "select",
+              {
+                class: "ollama-select",
+                onchange: (e) => {
+                  uiState.numCtx = Number(e.target.value) || 8192;
+                },
               },
-            },
-            ["5m", "15m", "30m", "60m", "-1", "0"].map((ka) =>
-              h(
-                "option",
-                {
-                  value: ka,
-                  selected: String(uiState.keepAlive) === ka ? "selected" : null,
-                },
-                ka === "-1" ? "Keep Loaded (-1)" : ka === "0" ? "Unload Immediately (0)" : ka,
+              [2048, 4096, 8192, 16384, 32768, 65536, 131072].map((ctxVal) =>
+                h(
+                  "option",
+                  {
+                    value: String(ctxVal),
+                    selected:
+                      Number(uiState.numCtx) === ctxVal ? "selected" : null,
+                  },
+                  `${ctxVal.toLocaleString()} tokens`,
+                ),
               ),
             ),
-          ),
-        ]),
-        h("label", { class: "ollama-row", style: "gap:4px;" }, [
-          h("span", {}, "Stop Sequences:"),
-          h("input", {
-            type: "text",
-            class: "ollama-input",
-            style: "width:130px;",
-            placeholder: "e.g. <|eot_id|>, STOP",
-            value: String(uiState.stopSequences),
-            oninput: (e) => {
-              uiState.stopSequences = e.target.value;
-            },
-          }),
-        ]),
-      ]),
+          ]),
+          h("label", { class: "ollama-row", style: "gap:4px;" }, [
+            h("span", {}, "Temperature:"),
+            h("input", {
+              type: "number",
+              class: "ollama-input",
+              style: "width:68px;",
+              step: "0.05",
+              min: "0",
+              max: "2",
+              value: String(uiState.temperature),
+              oninput: (e) => {
+                uiState.temperature = Number(e.target.value);
+              },
+            }),
+          ]),
+          h("label", { class: "ollama-row", style: "gap:4px;" }, [
+            h("span", {}, "Top-P:"),
+            h("input", {
+              type: "number",
+              class: "ollama-input",
+              style: "width:68px;",
+              step: "0.05",
+              min: "0",
+              max: "1",
+              value: String(uiState.topP),
+              oninput: (e) => {
+                uiState.topP = Number(e.target.value);
+              },
+            }),
+          ]),
+          h("label", { class: "ollama-row", style: "gap:4px;" }, [
+            h("span", {}, "Top-K:"),
+            h("input", {
+              type: "number",
+              class: "ollama-input",
+              style: "width:68px;",
+              step: "1",
+              min: "1",
+              max: "200",
+              value: String(uiState.topK),
+              oninput: (e) => {
+                uiState.topK = Number(e.target.value);
+              },
+            }),
+          ]),
+          h("label", { class: "ollama-row", style: "gap:4px;" }, [
+            h("span", {}, "Min-P:"),
+            h("input", {
+              type: "number",
+              class: "ollama-input",
+              style: "width:68px;",
+              step: "0.01",
+              min: "0",
+              max: "1",
+              value: String(uiState.minP),
+              oninput: (e) => {
+                uiState.minP = Number(e.target.value);
+              },
+            }),
+          ]),
+          h("label", { class: "ollama-row", style: "gap:4px;" }, [
+            h("span", {}, "Repeat Penalty:"),
+            h("input", {
+              type: "number",
+              class: "ollama-input",
+              style: "width:68px;",
+              step: "0.05",
+              min: "0.5",
+              max: "2.0",
+              value: String(uiState.repeatPenalty),
+              oninput: (e) => {
+                uiState.repeatPenalty = Number(e.target.value);
+              },
+            }),
+          ]),
+          h("label", { class: "ollama-row", style: "gap:4px;" }, [
+            h("span", {}, "Max Tokens (num_predict):"),
+            h("input", {
+              type: "number",
+              class: "ollama-input",
+              style: "width:82px;",
+              step: "256",
+              min: "64",
+              max: "131072",
+              value: String(uiState.numPredict),
+              oninput: (e) => {
+                uiState.numPredict = Number(e.target.value);
+              },
+            }),
+          ]),
+          h("label", { class: "ollama-row", style: "gap:4px;" }, [
+            h("span", {}, "Seed:"),
+            h("input", {
+              type: "text",
+              class: "ollama-input",
+              style: "width:76px;",
+              placeholder: "Random",
+              value: String(uiState.seed),
+              oninput: (e) => {
+                uiState.seed = e.target.value;
+              },
+            }),
+          ]),
+          h("label", { class: "ollama-row", style: "gap:4px;" }, [
+            h("span", {}, "Keep Alive:"),
+            h(
+              "select",
+              {
+                class: "ollama-select",
+                onchange: (e) => {
+                  uiState.keepAlive = e.target.value;
+                },
+              },
+              ["5m", "15m", "30m", "60m", "-1", "0"].map((ka) =>
+                h(
+                  "option",
+                  {
+                    value: ka,
+                    selected:
+                      String(uiState.keepAlive) === ka ? "selected" : null,
+                  },
+                  ka === "-1"
+                    ? "Keep Loaded (-1)"
+                    : ka === "0"
+                      ? "Unload Immediately (0)"
+                      : ka,
+                ),
+              ),
+            ),
+          ]),
+          h("label", { class: "ollama-row", style: "gap:4px;" }, [
+            h("span", {}, "Stop Sequences:"),
+            h("input", {
+              type: "text",
+              class: "ollama-input",
+              style: "width:130px;",
+              placeholder: "e.g. <|eot_id|>, STOP",
+              value: String(uiState.stopSequences),
+              oninput: (e) => {
+                uiState.stopSequences = e.target.value;
+              },
+            }),
+          ]),
+        ],
+      ),
       h("input", {
         type: "text",
         class: "ollama-input",
-        placeholder: "Optional Custom System Prompt override (e.g., 'Always answer in TypeScript with strict types')...",
+        placeholder:
+          "Optional Custom System Prompt override (e.g., 'Always answer in TypeScript with strict types')...",
         value: uiState.customSystemPrompt,
         oninput: (e) => {
           uiState.customSystemPrompt = e.target.value;
@@ -2462,10 +2873,17 @@ function renderAdvancedSamplingPanel() {
 function renderAssistantTab() {
   const models = (uiState.statusData?.models || []).filter(
     (m) =>
-      (!m.badges?.includes("Speech") && !m.badges?.includes("Embeddings") && !m.badges?.includes("Decision")) ||
+      (!m.badges?.includes("Speech") &&
+        !m.badges?.includes("Embeddings") &&
+        !m.badges?.includes("Decision")) ||
       m.badges?.includes("Chat"),
   );
-  const voices = uiState.statusData?.phononVoices || ["default", "Zoey", "Easton", "Freya"];
+  const voices = uiState.statusData?.phononVoices || [
+    "default",
+    "Zoey",
+    "Easton",
+    "Freya",
+  ];
   const installedModelNames = new Set(models.map((m) => m.name));
 
   const modelOptions = [
@@ -2482,7 +2900,8 @@ function renderAssistantTab() {
           "option",
           {
             value: "qwen3.5:latest",
-            selected: uiState.selectedModel === "qwen3.5:latest" ? "selected" : null,
+            selected:
+              uiState.selectedModel === "qwen3.5:latest" ? "selected" : null,
           },
           "qwen3.5:latest (Default General-Purpose Chat, Vision, Toggleable Thinking On/Off & Tools)",
         )
@@ -2492,7 +2911,8 @@ function renderAssistantTab() {
           "option",
           {
             value: "qwen3.5:4b",
-            selected: uiState.selectedModel === "qwen3.5:4b" ? "selected" : null,
+            selected:
+              uiState.selectedModel === "qwen3.5:4b" ? "selected" : null,
           },
           "qwen3.5:4b (Qwen 3.5 4B — Compact Multimodal + Toggleable Thinking)",
         )
@@ -2502,7 +2922,8 @@ function renderAssistantTab() {
           "option",
           {
             value: "gpt-oss:20b",
-            selected: uiState.selectedModel === "gpt-oss:20b" ? "selected" : null,
+            selected:
+              uiState.selectedModel === "gpt-oss:20b" ? "selected" : null,
           },
           "gpt-oss:20b (OpenAI gpt-oss 20B — Multi-Level Thinking: Low / Medium / High)",
         )
@@ -2512,7 +2933,8 @@ function renderAssistantTab() {
           "option",
           {
             value: "gpt-oss:120b",
-            selected: uiState.selectedModel === "gpt-oss:120b" ? "selected" : null,
+            selected:
+              uiState.selectedModel === "gpt-oss:120b" ? "selected" : null,
           },
           "gpt-oss:120b (OpenAI gpt-oss 120B — Multi-Level Thinking: Low / Medium / High)",
         )
@@ -2522,7 +2944,8 @@ function renderAssistantTab() {
           "option",
           {
             value: "deepseek-r1:8b",
-            selected: uiState.selectedModel === "deepseek-r1:8b" ? "selected" : null,
+            selected:
+              uiState.selectedModel === "deepseek-r1:8b" ? "selected" : null,
           },
           "deepseek-r1:8b (DeepSeek-R1 8B — Native Chain-of-Thought Reasoning)",
         )
@@ -2542,7 +2965,8 @@ function renderAssistantTab() {
           "option",
           {
             value: "lfm3-omni:latest",
-            selected: uiState.selectedModel === "lfm3-omni:latest" ? "selected" : null,
+            selected:
+              uiState.selectedModel === "lfm3-omni:latest" ? "selected" : null,
           },
           "lfm3-omni:latest (Liquid LFM3-Omni 2B — Omni Audio, Speech, Vision & Chat)",
         )
@@ -2552,7 +2976,8 @@ function renderAssistantTab() {
           "option",
           {
             value: "qwen2.5-coder:7b",
-            selected: uiState.selectedModel === "qwen2.5-coder:7b" ? "selected" : null,
+            selected:
+              uiState.selectedModel === "qwen2.5-coder:7b" ? "selected" : null,
           },
           "qwen2.5-coder:7b (Fast Direct Code & Chat — No Thinking Overhead)",
         )
@@ -2577,34 +3002,66 @@ function renderAssistantTab() {
     ),
   ].filter(Boolean);
 
-  const selectedProfile = getClientModelFeatureProfile(uiState.selectedModel, uiState.statusData?.models);
+  const selectedProfile = getClientModelFeatureProfile(
+    uiState.selectedModel,
+    uiState.statusData?.models,
+  );
   const feat = selectedProfile.features || {};
 
   // Filter quick prompts so only capabilities that apply to the selected model are displayed
   const quickPrompts = [
     feat.chat
-      ? { label: "Summarize Selected File", text: "Summarize the selected file in plain English and highlight key takeaways." }
+      ? {
+          label: "Summarize Selected File",
+          text: "Summarize the selected file in plain English and highlight key takeaways.",
+        }
       : null,
     feat.vision
-      ? { label: "👁 Inspect Selected Image / Screenshot", text: "Inspect the selected image or screenshot and describe its contents, text, and layout." }
+      ? {
+          label: "👁 Inspect Selected Image / Screenshot",
+          text: "Inspect the selected image or screenshot and describe its contents, text, and layout.",
+        }
       : null,
     feat.thinkingLevels
-      ? { label: "🧠 Multi-Level Architecture Audit (gpt-oss)", text: "Perform a deep architectural and security audit of the selected code." }
+      ? {
+          label: "🧠 Multi-Level Architecture Audit (gpt-oss)",
+          text: "Perform a deep architectural and security audit of the selected code.",
+        }
       : null,
     feat.thinking
-      ? { label: "🧠 Deep-Think Code Debug", text: "Debug this code step-by-step and explain how to fix any edge cases." }
+      ? {
+          label: "🧠 Deep-Think Code Debug",
+          text: "Debug this code step-by-step and explain how to fix any edge cases.",
+        }
       : null,
     feat.structuredJson
-      ? { label: "📐 Batch Rename Plan (JSON)", text: "Create a clean batch-rename JSON plan for the selected files." }
+      ? {
+          label: "📐 Batch Rename Plan (JSON)",
+          text: "Create a clean batch-rename JSON plan for the selected files.",
+        }
       : null,
-    { label: "🔊 Read Out Loud (Phonon)", text: "Read this out loud with natural date pronunciation." },
-    { label: "⚖️ Crash Check (SystemOne noul)", text: "Does this file contain a crash, bug, or error? Return probability." },
-    { label: "⚖️ Auto-Sort Category (SystemOne choice)", text: "Classify into billing, bug_report, source_code, or personal." },
-    { label: "⚖️ Score Urgency (SystemOne score)", text: "Score urgency across Routine, Soon, or Immediate." },
+    {
+      label: "🔊 Read Out Loud (Phonon)",
+      text: "Read this out loud with natural date pronunciation.",
+    },
+    {
+      label: "⚖️ Crash Check (SystemOne noul)",
+      text: "Does this file contain a crash, bug, or error? Return probability.",
+    },
+    {
+      label: "⚖️ Auto-Sort Category (SystemOne choice)",
+      text: "Classify into billing, bug_report, source_code, or personal.",
+    },
+    {
+      label: "⚖️ Score Urgency (SystemOne score)",
+      text: "Score urgency across Routine, Soon, or Immediate.",
+    },
   ].filter(Boolean);
 
   const sel = selectedFilePaths();
-  const hasImageSel = sel.some((p) => /\.(png|jpe?g|webp|gif|bmp|heic|tiff?|avif)$/i.test(String(p || "")));
+  const hasImageSel = sel.some((p) =>
+    /\.(png|jpe?g|webp|gif|bmp|heic|tiff?|avif)$/i.test(String(p || "")),
+  );
   assistantTextareaEl = h(
     "textarea",
     {
@@ -2631,13 +3088,20 @@ function renderAssistantTab() {
           void runSmartAutoRouter();
           return;
         }
-        if (e.key === "ArrowUp" && !String(e.target?.value || "").trim() && uiState.lastSubmittedPrompt) {
+        if (
+          e.key === "ArrowUp" &&
+          !String(e.target?.value || "").trim() &&
+          uiState.lastSubmittedPrompt
+        ) {
           e.preventDefault();
           uiState.promptText = uiState.lastSubmittedPrompt;
           if (e.target) e.target.value = uiState.lastSubmittedPrompt;
           return;
         }
-        if (e.key === "Escape" && (uiState.outputFullscreen || uiState.outputExpanded)) {
+        if (
+          e.key === "Escape" &&
+          (uiState.outputFullscreen || uiState.outputExpanded)
+        ) {
           e.preventDefault();
           uiState.outputFullscreen = false;
           uiState.outputExpanded = false;
@@ -2650,9 +3114,26 @@ function renderAssistantTab() {
 
   return h("div", { class: "ollama-card" }, [
     h("div", { class: "ollama-card-title" }, [
-      h("span", {}, "Conversational AI Assistant & Automatic Capability Router"),
-      h("span", { class: "ollama-pill is-mlx" }, "Zero-JSON Plain English Mode"),
-      h("span", { class: "ollama-pill", "data-ollama-kbd-hint": "true", title: "Press Enter (or Cmd/Ctrl+Enter) to submit, Shift+Enter for a newline, Up Arrow in an empty prompt to recall your last prompt, or Esc to exit fullscreen" }, "⌨️ Enter to send • Shift+Enter newline • ↑ recall"),
+      h(
+        "span",
+        {},
+        "Conversational AI Assistant & Automatic Capability Router",
+      ),
+      h(
+        "span",
+        { class: "ollama-pill is-mlx" },
+        "Zero-JSON Plain English Mode",
+      ),
+      h(
+        "span",
+        {
+          class: "ollama-pill",
+          "data-ollama-kbd-hint": "true",
+          title:
+            "Press Enter (or Cmd/Ctrl+Enter) to submit, Shift+Enter for a newline, Up Arrow in an empty prompt to recall your last prompt, or Esc to exit fullscreen",
+        },
+        "⌨️ Enter to send • Shift+Enter newline • ↑ recall",
+      ),
       h(
         "button",
         {
@@ -2660,13 +3141,16 @@ function renderAssistantTab() {
           class: `ollama-btn is-mini${uiState.compactControls ? " is-primary" : ""}`,
           "data-ollama-action": "toggle-compact-controls",
           "aria-pressed": String(Boolean(uiState.compactControls)),
-          title: "Collapse or restore prompt banners and model cards so the LLM Output Console gets maximum vertical space",
+          title:
+            "Collapse or restore prompt banners and model cards so the LLM Output Console gets maximum vertical space",
           onclick: () => {
             uiState.compactControls = !uiState.compactControls;
             renderOllamaPanel();
           },
         },
-        uiState.compactControls ? "🔽 Show Prompt Controls" : "🔼 Compact Controls",
+        uiState.compactControls
+          ? "🔽 Show Prompt Controls"
+          : "🔼 Compact Controls",
       ),
     ]),
     renderSelectedModelCapabilitiesCard(selectedProfile),
@@ -2777,7 +3261,10 @@ function renderAssistantTab() {
                 "option",
                 {
                   value: "batch_rename_plan",
-                  selected: uiState.schemaPreset === "batch_rename_plan" ? "selected" : null,
+                  selected:
+                    uiState.schemaPreset === "batch_rename_plan"
+                      ? "selected"
+                      : null,
                 },
                 "Structured JSON: Batch Rename Plan",
               ),
@@ -2785,7 +3272,10 @@ function renderAssistantTab() {
                 "option",
                 {
                   value: "folder_organization_plan",
-                  selected: uiState.schemaPreset === "folder_organization_plan" ? "selected" : null,
+                  selected:
+                    uiState.schemaPreset === "folder_organization_plan"
+                      ? "selected"
+                      : null,
                 },
                 "Structured JSON: Folder Organization Plan",
               ),
@@ -2793,7 +3283,10 @@ function renderAssistantTab() {
                 "option",
                 {
                   value: "table_extraction",
-                  selected: uiState.schemaPreset === "table_extraction" ? "selected" : null,
+                  selected:
+                    uiState.schemaPreset === "table_extraction"
+                      ? "selected"
+                      : null,
                 },
                 "Structured JSON: Table Extraction",
               ),
@@ -2801,7 +3294,10 @@ function renderAssistantTab() {
                 "option",
                 {
                   value: "code_review_report",
-                  selected: uiState.schemaPreset === "code_review_report" ? "selected" : null,
+                  selected:
+                    uiState.schemaPreset === "code_review_report"
+                      ? "selected"
+                      : null,
                 },
                 "Structured JSON: Code Review Report",
               ),
@@ -2809,7 +3305,10 @@ function renderAssistantTab() {
                 "option",
                 {
                   value: "security_audit_report",
-                  selected: uiState.schemaPreset === "security_audit_report" ? "selected" : null,
+                  selected:
+                    uiState.schemaPreset === "security_audit_report"
+                      ? "selected"
+                      : null,
                 },
                 "Structured JSON: Security Audit Report",
               ),
@@ -2826,7 +3325,9 @@ function renderAssistantTab() {
           "data-ollama-action": "send-auto-route",
           onclick: () => void runSmartAutoRouter(),
         },
-        uiState.loading ? [h("span", { class: "ollama-spinner" }), " Running..."] : "Send & Auto-Route Request",
+        uiState.loading
+          ? [h("span", { class: "ollama-spinner" }), " Running..."]
+          : "Send & Auto-Route Request",
       ),
       h(
         "button",
@@ -2845,7 +3346,8 @@ function renderAssistantTab() {
               type: "button",
               class: "ollama-btn is-danger",
               "data-ollama-action": "stop-generation",
-              title: "Stop LLM generation immediately (preserves tokens generated so far)",
+              title:
+                "Stop LLM generation immediately (preserves tokens generated so far)",
               onclick: () => stopOllamaGeneration(),
             },
             "⏹ Stop Generation",
@@ -2875,7 +3377,8 @@ function renderAssistantTab() {
           class: `ollama-btn${uiState.outputExpanded ? " is-primary" : ""}`,
           "data-ollama-action": "toggle-expand-output",
           "aria-pressed": String(Boolean(uiState.outputExpanded)),
-          title: "Expand Output Console and collapse prompt banners above so the LLM response fills the viewport",
+          title:
+            "Expand Output Console and collapse prompt banners above so the LLM response fills the viewport",
           onclick: () => {
             uiState.outputExpanded = !uiState.outputExpanded;
             if (!uiState.outputExpanded) uiState.outputFullscreen = false;
@@ -2906,7 +3409,12 @@ function renderAssistantTab() {
           type: "button",
           class: "ollama-btn",
           title: "Copy AI output to system clipboard",
-          onclick: (e) => void copyOllamaOutput(uiState.answerOutput || uiState.thinkingOutput, "AI response", e.currentTarget),
+          onclick: (e) =>
+            void copyOllamaOutput(
+              uiState.answerOutput || uiState.thinkingOutput,
+              "AI response",
+              e.currentTarget,
+            ),
         },
         "📋 Copy Output",
       ),
@@ -2970,12 +3478,24 @@ function parseDecisionQuestionsFromUi() {
       .split(/[,\n]/)
       .map((s) => s.trim())
       .filter(Boolean);
-    return { id, type: "score", instructions: q.instructions, criteria: levels };
+    return {
+      id,
+      type: "score",
+      instructions: q.instructions,
+      criteria: levels,
+    };
   });
 }
 
 function renderDecisionTab() {
-  const decisionModels = ["d3:9b-mxfp8", "nimble", "clef-flash", "clef", "tev1", "clef:cloud"];
+  const decisionModels = [
+    "d3:9b-mxfp8",
+    "nimble",
+    "clef-flash",
+    "clef",
+    "tev1",
+    "clef:cloud",
+  ];
 
   return h("div", { class: "ollama-card" }, [
     h("div", { class: "ollama-card-title" }, [
@@ -2997,7 +3517,11 @@ function renderDecisionTab() {
           },
         },
         [
-          h("option", { value: "" }, "Auto-Select Best Installed Decision Model"),
+          h(
+            "option",
+            { value: "" },
+            "Auto-Select Best Installed Decision Model",
+          ),
           ...decisionModels.map((m) =>
             h(
               "option",
@@ -3040,11 +3564,15 @@ function renderDecisionTab() {
               const res = await call("ollama/decision", {
                 model: uiState.decisionModel || undefined,
                 paths: selectedFilePaths(),
-                state: uiState.promptText || "Evaluate the selected workspace files or text.",
+                state:
+                  uiState.promptText ||
+                  "Evaluate the selected workspace files or text.",
                 questions,
               });
               uiState.decisionResult = res;
-              toast(`SystemOne scored ${Object.keys(res.answers || {}).length} question(s) via ${res.model}`);
+              toast(
+                `SystemOne scored ${Object.keys(res.answers || {}).length} question(s) via ${res.model}`,
+              );
             } catch (e) {
               toast(e.message, { kind: "error" });
             } finally {
@@ -3089,17 +3617,26 @@ function renderDecisionTab() {
             [
               h(
                 "option",
-                { value: "noul", selected: q.type === "noul" ? "selected" : null },
+                {
+                  value: "noul",
+                  selected: q.type === "noul" ? "selected" : null,
+                },
                 "noul (Yes/No Probability 0..1)",
               ),
               h(
                 "option",
-                { value: "choice", selected: q.type === "choice" ? "selected" : null },
+                {
+                  value: "choice",
+                  selected: q.type === "choice" ? "selected" : null,
+                },
                 "choice (2..26 Named Labels)",
               ),
               h(
                 "option",
-                { value: "score", selected: q.type === "score" ? "selected" : null },
+                {
+                  value: "score",
+                  selected: q.type === "score" ? "selected" : null,
+                },
                 "score (2..10 Ordered Rubric Levels)",
               ),
             ],
@@ -3158,24 +3695,47 @@ function renderDecisionTab() {
 }
 
 function renderSpeechTab() {
-  const voices = uiState.statusData?.phononVoices || ["default", "Zoey", "Easton", "Freya"];
+  const voices = uiState.statusData?.phononVoices || [
+    "default",
+    "Zoey",
+    "Easton",
+    "Freya",
+  ];
   const speechCaps = uiState.statusData?.speechCapabilities;
   const availableSpeechModels = speechCaps?.availableSpeechModels || [
     { name: "phonon", label: "Gradium Phonon TTS (Apple Silicon MLX)" },
-    { name: "lfm3-omni:latest", label: "Liquid LFM3-Omni 2B (Cross-Platform Omni Audio, Speech, Vision & Chat LLM)" },
-    { name: "orpheus:latest", label: "Orpheus TTS 3B (Cross-Platform Text-to-Audio LLM)" },
-    { name: "kokoro:latest", label: "Kokoro 82M TTS (Ultra-Light Cross-Platform Speech)" },
-    { name: "oute-tts:latest", label: "OuteTTS 1B (Cross-Platform Voice & Audio LLM)" },
-    { name: "parler-tts:latest", label: "Parler-TTS Mini (Prompt-Controlled Text-to-Audio)" },
+    {
+      name: "lfm3-omni:latest",
+      label:
+        "Liquid LFM3-Omni 2B (Cross-Platform Omni Audio, Speech, Vision & Chat LLM)",
+    },
+    {
+      name: "orpheus:latest",
+      label: "Orpheus TTS 3B (Cross-Platform Text-to-Audio LLM)",
+    },
+    {
+      name: "kokoro:latest",
+      label: "Kokoro 82M TTS (Ultra-Light Cross-Platform Speech)",
+    },
+    {
+      name: "oute-tts:latest",
+      label: "OuteTTS 1B (Cross-Platform Voice & Audio LLM)",
+    },
+    {
+      name: "parler-tts:latest",
+      label: "Parler-TTS Mini (Prompt-Controlled Text-to-Audio)",
+    },
   ];
-  const activeSpeechModel = uiState.speechModel || speechCaps?.defaultSpeechModel || "phonon";
+  const activeSpeechModel =
+    uiState.speechModel || speechCaps?.defaultSpeechModel || "phonon";
   const sel = selectedFilePaths();
 
   speechTextareaEl = h(
     "textarea",
     {
       class: "ollama-textarea",
-      "aria-label": "Text to synthesize with Ollama speech or text-to-audio LLM",
+      "aria-label":
+        "Text to synthesize with Ollama speech or text-to-audio LLM",
       placeholder:
         sel.length > 0
           ? `Leave blank to read selected file (${sel[0]}) aloud, or type custom text with dates like 10/28 and **markdown**...`
@@ -3201,7 +3761,9 @@ function renderSpeechTab() {
     const currentSel = selectedFilePaths();
     const liveSpeechText = overrideBlankForFile
       ? ""
-      : String(speechTextareaEl ? speechTextareaEl.value : uiState.speechText || "").trim();
+      : String(
+          speechTextareaEl ? speechTextareaEl.value : uiState.speechText || "",
+        ).trim();
     uiState.speechText = liveSpeechText;
     if (overrideBlankForFile && speechTextareaEl) {
       speechTextareaEl.value = "";
@@ -3220,7 +3782,8 @@ function renderSpeechTab() {
       const res = await call("ollama/speech", {
         model: activeSpeechModel,
         input: liveSpeechText || undefined,
-        path: !liveSpeechText && currentSel.length > 0 ? currentSel[0] : undefined,
+        path:
+          !liveSpeechText && currentSel.length > 0 ? currentSel[0] : undefined,
         voice: uiState.selectedVoice,
         mode: uiState.speechMode,
         responseFormat: uiState.speechFormat,
@@ -3230,10 +3793,14 @@ function renderSpeechTab() {
       uiState.speechResult = res;
       uiState.lastAudioUrl = `${res.audioUrl}&token=${encodeURIComponent(getToken())}`;
       if (res.savedRelativePath) {
-        toast(`Saved ${res.responseFormat.toUpperCase()} file: ${res.savedRelativePath}`);
+        toast(
+          `Saved ${res.responseFormat.toUpperCase()} file: ${res.savedRelativePath}`,
+        );
         refresh();
       } else {
-        toast(`Playing ${res.model} voice "${res.voice}" (~${res.durationSecondsEstimate}s)`);
+        toast(
+          `Playing ${res.model} voice "${res.voice}" (~${res.durationSecondsEstimate}s)`,
+        );
       }
     } catch (e) {
       toast(e.message, { kind: "error" });
@@ -3246,7 +3813,11 @@ function renderSpeechTab() {
 
   return h("div", { class: "ollama-card" }, [
     h("div", { class: "ollama-card-title" }, [
-      h("span", {}, "Speech & Cross-Platform Text-to-Audio LLMs (/v1/audio/speech + OS/LLM Synthesis)"),
+      h(
+        "span",
+        {},
+        "Speech & Cross-Platform Text-to-Audio LLMs (/v1/audio/speech + OS/LLM Synthesis)",
+      ),
       h(
         "span",
         { class: "ollama-pill is-mlx" },
@@ -3263,7 +3834,8 @@ function renderSpeechTab() {
         "select",
         {
           class: "ollama-select",
-          title: "Choose Phonon (Apple Silicon MLX) or a Cross-Platform Text-to-Audio LLM for Linux & Windows",
+          title:
+            "Choose Phonon (Apple Silicon MLX) or a Cross-Platform Text-to-Audio LLM for Linux & Windows",
           onchange: (e) => {
             uiState.speechModel = e.target.value;
             renderOllamaPanel();
@@ -3313,12 +3885,18 @@ function renderSpeechTab() {
         [
           h(
             "option",
-            { value: "speaker", selected: uiState.speechMode === "speaker" ? "selected" : null },
+            {
+              value: "speaker",
+              selected: uiState.speechMode === "speaker" ? "selected" : null,
+            },
             "Speaker Mode (Stream & Play Now)",
           ),
           h(
             "option",
-            { value: "file", selected: uiState.speechMode === "file" ? "selected" : null },
+            {
+              value: "file",
+              selected: uiState.speechMode === "file" ? "selected" : null,
+            },
             "File Mode (Save 24kHz Mono WAV/PCM to Active Pane)",
           ),
         ],
@@ -3334,12 +3912,18 @@ function renderSpeechTab() {
         [
           h(
             "option",
-            { value: "wav", selected: uiState.speechFormat === "wav" ? "selected" : null },
+            {
+              value: "wav",
+              selected: uiState.speechFormat === "wav" ? "selected" : null,
+            },
             "Format: 24kHz Mono WAV",
           ),
           h(
             "option",
-            { value: "pcm", selected: uiState.speechFormat === "pcm" ? "selected" : null },
+            {
+              value: "pcm",
+              selected: uiState.speechFormat === "pcm" ? "selected" : null,
+            },
             "Format: Raw 24kHz PCM",
           ),
         ],
@@ -3390,7 +3974,12 @@ function renderSpeechTab() {
             {
               type: "button",
               class: "ollama-btn",
-              onclick: (e) => void copyOllamaOutput(uiState.speechResult.cleanedText || "", "Cleaned speech text", e.currentTarget),
+              onclick: (e) =>
+                void copyOllamaOutput(
+                  uiState.speechResult.cleanedText || "",
+                  "Cleaned speech text",
+                  e.currentTarget,
+                ),
             },
             "📋 Copy Cleaned Text",
           )
@@ -3456,13 +4045,18 @@ function renderMeaningAndWebTab() {
   };
   return h("div", { class: "ollama-card" }, [
     h("div", { class: "ollama-card-title" }, [
-      h("span", {}, "Semantic Meaning Search (POST /api/embed) & Live Web Search (32,000+ num_ctx)"),
+      h(
+        "span",
+        {},
+        "Semantic Meaning Search (POST /api/embed) & Live Web Search (32,000+ num_ctx)",
+      ),
     ]),
     h("div", { class: "ollama-row" }, [
       h("input", {
         class: "ollama-input",
         "aria-label": "Semantic meaning search query",
-        placeholder: "Search active folder by meaning (e.g., 'where is the database login or token verification logic')...",
+        placeholder:
+          "Search active folder by meaning (e.g., 'where is the database login or token verification logic')...",
         value: uiState.meaningQuery,
         oninput: (e) => {
           uiState.meaningQuery = e.target.value;
@@ -3504,7 +4098,11 @@ function renderMeaningAndWebTab() {
             h("div", { class: "ollama-model-card" }, [
               h("div", { class: "ollama-row" }, [
                 h("strong", {}, m.name),
-                h("span", { class: "ollama-pill is-mlx" }, `${(m.similarity * 100).toFixed(1)}% match`),
+                h(
+                  "span",
+                  { class: "ollama-pill is-mlx" },
+                  `${(m.similarity * 100).toFixed(1)}% match`,
+                ),
               ]),
               h("div", {}, m.path),
               h("div", {}, m.preview),
@@ -3515,7 +4113,8 @@ function renderMeaningAndWebTab() {
                     type: "button",
                     class: "ollama-btn",
                     onclick: async () => {
-                      const { folderPath, filePath } = resolveMatchTargetPaths(m);
+                      const { folderPath, filePath } =
+                        resolveMatchTargetPaths(m);
                       const ok = await goTo(folderPath, { select: filePath });
                       if (ok) {
                         if (state.workspace !== "split") closePower();
@@ -3530,7 +4129,12 @@ function renderMeaningAndWebTab() {
                   {
                     type: "button",
                     class: "ollama-btn is-mini",
-                    onclick: (e) => void copyOllamaOutput(m.preview || m.path, `${m.name} preview`, e.currentTarget),
+                    onclick: (e) =>
+                      void copyOllamaOutput(
+                        m.preview || m.path,
+                        `${m.name} preview`,
+                        e.currentTarget,
+                      ),
                   },
                   "📋 Copy Snippet",
                 ),
@@ -3540,8 +4144,16 @@ function renderMeaningAndWebTab() {
         )
       : null,
     h("div", { class: "ollama-card-title" }, [
-      h("span", {}, "Ollama Cloud Web Search & Web Fetch (https://ollama.com/api/web_search)"),
-      h("span", { class: "ollama-pill is-ram" }, "Auto-Enforces num_ctx >= 32,000 Tokens"),
+      h(
+        "span",
+        {},
+        "Ollama Cloud Web Search & Web Fetch (https://ollama.com/api/web_search)",
+      ),
+      h(
+        "span",
+        { class: "ollama-pill is-ram" },
+        "Auto-Enforces num_ctx >= 32,000 Tokens",
+      ),
     ]),
     h("div", { class: "ollama-row" }, [
       h("input", {
@@ -3603,7 +4215,11 @@ function renderModelsAndAccountTab() {
 
   return h("div", { class: "ollama-card" }, [
     h("div", { class: "ollama-card-title" }, [
-      h("span", {}, "Hardware Guard, Installed Models (/api/tags, /api/show, /api/ps) & Cloud Account"),
+      h(
+        "span",
+        {},
+        "Hardware Guard, Installed Models (/api/tags, /api/show, /api/ps) & Cloud Account",
+      ),
       hw
         ? h(
             "span",
@@ -3616,7 +4232,8 @@ function renderModelsAndAccountTab() {
       h("input", {
         class: "ollama-input",
         "aria-label": "Model name to pull with Hardware Guard",
-        placeholder: "Pull model (e.g. qwen3.5:4b, lfm3-omni:latest, qwen3.5:latest, lfm3:latest, nimble, llama3:70b)...",
+        placeholder:
+          "Pull model (e.g. qwen3.5:4b, lfm3-omni:latest, qwen3.5:latest, lfm3:latest, nimble, llama3:70b)...",
         value: uiState.pullModelName,
         oninput: (e) => {
           uiState.pullModelName = e.target.value;
@@ -3625,7 +4242,9 @@ function renderModelsAndAccountTab() {
           if (e.isComposing || e.keyCode === 229) return;
           if (e.key === "Enter" && !uiState.loading) {
             e.preventDefault();
-            e.currentTarget.parentElement?.querySelector("button.ollama-btn.is-primary")?.click();
+            e.currentTarget.parentElement
+              ?.querySelector("button.ollama-btn.is-primary")
+              ?.click();
           }
         },
       }),
@@ -3646,7 +4265,9 @@ function renderModelsAndAccountTab() {
             );
             renderOllamaPanel();
             try {
-              const res = await call("ollama/pull", { model: uiState.pullModelName.trim() });
+              const res = await call("ollama/pull", {
+                model: uiState.pullModelName.trim(),
+              });
               uiState.pullResult = res;
               if (!res.ok) {
                 uiState.refusalBanner = {
@@ -3666,7 +4287,9 @@ function renderModelsAndAccountTab() {
             }
           },
         },
-        uiState.loading ? [h("span", { class: "ollama-spinner" }), " Pulling Model..."] : "Hardware-Checked Pull (/api/pull)",
+        uiState.loading
+          ? [h("span", { class: "ollama-spinner" }), " Pulling Model..."]
+          : "Hardware-Checked Pull (/api/pull)",
       ),
       h(
         "button",
@@ -3691,115 +4314,142 @@ function renderModelsAndAccountTab() {
       "div",
       { class: "ollama-model-grid" },
       models.map((m) => {
-        const mProfile = m.featureProfile || getClientModelFeatureProfile(m.name, models);
-        return h("div", { class: "ollama-model-card", "data-ollama-model-card": m.name }, [
-          h("div", { class: "ollama-row" }, [
-            h("strong", {}, m.name),
-            h("span", { class: "ollama-pill" }, `${m.parameterSize} • ${m.sizeGb} GB`),
-          ]),
-          h("div", { class: "ollama-badge-row" }, (m.badges || []).map(createBadgeEl)),
-          mProfile?.indicators?.length
-            ? h(
-                "div",
-                { class: "ollama-badge-row" },
-                mProfile.indicators.map((ind) =>
-                  h(
-                    "span",
-                    {
-                      class: "ollama-pill",
-                      title: ind.tip || ind.label,
-                      "data-model-indicator": ind.id,
-                    },
-                    `${ind.icon ? `${ind.icon} ` : ""}${ind.label}`,
+        const mProfile =
+          m.featureProfile || getClientModelFeatureProfile(m.name, models);
+        return h(
+          "div",
+          { class: "ollama-model-card", "data-ollama-model-card": m.name },
+          [
+            h("div", { class: "ollama-row" }, [
+              h("strong", {}, m.name),
+              h(
+                "span",
+                { class: "ollama-pill" },
+                `${m.parameterSize} • ${m.sizeGb} GB`,
+              ),
+            ]),
+            h(
+              "div",
+              { class: "ollama-badge-row" },
+              (m.badges || []).map(createBadgeEl),
+            ),
+            mProfile?.indicators?.length
+              ? h(
+                  "div",
+                  { class: "ollama-badge-row" },
+                  mProfile.indicators.map((ind) =>
+                    h(
+                      "span",
+                      {
+                        class: "ollama-pill",
+                        title: ind.tip || ind.label,
+                        "data-model-indicator": ind.id,
+                      },
+                      `${ind.icon ? `${ind.icon} ` : ""}${ind.label}`,
+                    ),
                   ),
-                ),
-              )
-            : null,
-          mProfile?.useCases?.length
-            ? h(
-                "div",
-                { style: "font-size: 11px; color: var(--fg-muted);" },
-                `Use for: ${mProfile.useCases.slice(0, 3).join(" • ")}`,
-              )
-            : null,
-          h(
-            "div",
-            {},
-            `Runner: ${m.runner} | Quant: ${m.quantization || "native"} | Ctx: ${m.contextLength}${m.voices?.length ? ` | Voices: ${m.voices.length}` : ""}`,
-          ),
-          h("div", { class: "ollama-row" }, [
+                )
+              : null,
+            mProfile?.useCases?.length
+              ? h(
+                  "div",
+                  { style: "font-size: 11px; color: var(--fg-muted);" },
+                  `Use for: ${mProfile.useCases.slice(0, 3).join(" • ")}`,
+                )
+              : null,
             h(
-              "button",
-              {
-                type: "button",
-                class: `ollama-btn is-mini${uiState.selectedModel === m.name ? " is-primary" : ""}`,
-                onclick: () => {
-                  uiState.selectedModel = m.name;
-                  syncSelectedModelCapabilitiesState();
-                  uiState.subTab = "assistant";
-                  renderOllamaPanel();
-                },
-              },
-              uiState.selectedModel === m.name ? "✓ Selected Model" : "Select Model",
+              "div",
+              {},
+              `Runner: ${m.runner} | Quant: ${m.quantization || "native"} | Ctx: ${m.contextLength}${m.voices?.length ? ` | Voices: ${m.voices.length}` : ""}`,
             ),
-            h(
-              "button",
-              {
-                type: "button",
-                class: "ollama-btn",
-                onclick: async () => {
-                  const info = await call("ollama/show", { model: m.name, forceRefresh: true });
-                  uiState.inspectedModelInfo = { name: m.name, info };
-                  renderOllamaPanel();
+            h("div", { class: "ollama-row" }, [
+              h(
+                "button",
+                {
+                  type: "button",
+                  class: `ollama-btn is-mini${uiState.selectedModel === m.name ? " is-primary" : ""}`,
+                  onclick: () => {
+                    uiState.selectedModel = m.name;
+                    syncSelectedModelCapabilitiesState();
+                    uiState.subTab = "assistant";
+                    renderOllamaPanel();
+                  },
                 },
-              },
-              "Inspect (/api/show)",
-            ),
-            h(
-              "button",
-              {
-                type: "button",
-                class: "ollama-btn",
-                onclick: async () => {
-                  await call("ollama/freeRam", { model: m.name });
-                  toast(`Unloaded ${m.name} from RAM (keep_alive: 0)`);
-                  void refreshOllamaStatus(true);
+                uiState.selectedModel === m.name
+                  ? "✓ Selected Model"
+                  : "Select Model",
+              ),
+              h(
+                "button",
+                {
+                  type: "button",
+                  class: "ollama-btn",
+                  onclick: async () => {
+                    const info = await call("ollama/show", {
+                      model: m.name,
+                      forceRefresh: true,
+                    });
+                    uiState.inspectedModelInfo = { name: m.name, info };
+                    renderOllamaPanel();
+                  },
                 },
-              },
-              "Unload RAM",
-            ),
-            h(
-              "button",
-              {
-                type: "button",
-                class: "ollama-btn is-danger",
-                onclick: async () => {
-                  try {
-                    await call("ollama/delete", { model: m.name });
-                    toast(`Deleted ${m.name}`);
+                "Inspect (/api/show)",
+              ),
+              h(
+                "button",
+                {
+                  type: "button",
+                  class: "ollama-btn",
+                  onclick: async () => {
+                    await call("ollama/freeRam", { model: m.name });
+                    toast(`Unloaded ${m.name} from RAM (keep_alive: 0)`);
                     void refreshOllamaStatus(true);
-                  } catch (e) {
-                    toast(e.message, { kind: "error" });
-                  }
+                  },
                 },
-              },
-              "Delete",
-            ),
-          ]),
-        ]);
+                "Unload RAM",
+              ),
+              h(
+                "button",
+                {
+                  type: "button",
+                  class: "ollama-btn is-danger",
+                  onclick: async () => {
+                    try {
+                      await call("ollama/delete", { model: m.name });
+                      toast(`Deleted ${m.name}`);
+                      void refreshOllamaStatus(true);
+                    } catch (e) {
+                      toast(e.message, { kind: "error" });
+                    }
+                  },
+                },
+                "Delete",
+              ),
+            ]),
+          ],
+        );
       }),
     ),
     uiState.inspectedModelInfo
       ? renderStudioOutputConsole({
           title: `Model Inspector (/api/show: ${uiState.inspectedModelInfo.name})`,
           badge: "Manifest & Tensor Metadata",
-          content: JSON.stringify(uiState.inspectedModelInfo.info?.details || uiState.inspectedModelInfo.info, null, 2),
+          content: JSON.stringify(
+            uiState.inspectedModelInfo.info?.details ||
+              uiState.inspectedModelInfo.info,
+            null,
+            2,
+          ),
           clearScope: "inspector",
           saveName: `model-inspect-${String(uiState.inspectedModelInfo.name || "model").replace(/[^a-z0-9_-]/gi, "-")}`,
         })
       : null,
     h("div", { class: "ollama-card-title" }, [
-      h("span", {}, "Custom Modelfile Preset (/api/create, /api/copy, /api/push) & Cloud API Key (/api/usage, /api/balance)"),
+      h(
+        "span",
+        {},
+        "Custom Modelfile Preset (/api/create, /api/copy, /api/push) & Cloud API Key (/api/usage, /api/balance)",
+      ),
     ]),
     h("div", { class: "ollama-row" }, [
       h("input", {
@@ -3812,7 +4462,8 @@ function renderModelsAndAccountTab() {
       }),
       h("input", {
         class: "ollama-input",
-        placeholder: "Base model (e.g. lfm3-omni:latest, qwen3.5:latest, lfm3:latest)",
+        placeholder:
+          "Base model (e.g. lfm3-omni:latest, qwen3.5:latest, lfm3:latest)",
         value: uiState.customModelFrom,
         oninput: (e) => {
           uiState.customModelFrom = e.target.value;
@@ -3887,110 +4538,136 @@ function renderModelsAndAccountTab() {
         )
       : null,
     catalog.length > 0
-      ? h("div", { class: "ollama-card-title" }, [h("span", {}, "Hardware-Evaluated Model Catalog")])
+      ? h("div", { class: "ollama-card-title" }, [
+          h("span", {}, "Hardware-Evaluated Model Catalog"),
+        ])
       : null,
     h(
       "div",
       { class: "ollama-model-grid" },
       catalog.map((c) => {
-        const cProfile = c.featureProfile || getClientModelFeatureProfile(c.name, models);
-        return h("div", { class: "ollama-model-card", "data-ollama-catalog-card": c.name }, [
-          h("div", { class: "ollama-row" }, [
-            h("strong", {}, c.label),
+        const cProfile =
+          c.featureProfile || getClientModelFeatureProfile(c.name, models);
+        return h(
+          "div",
+          { class: "ollama-model-card", "data-ollama-catalog-card": c.name },
+          [
+            h("div", { class: "ollama-row" }, [
+              h("strong", {}, c.label),
+              h(
+                "span",
+                {
+                  class: `ollama-pill ${c.hardwareVerdict?.allowed ? "is-mlx" : "is-warn"}`,
+                },
+                c.hardwareVerdict?.allowed
+                  ? `Fits RAM (~${c.estimatedRamGb} GB)`
+                  : "Blocked by RAM Guard",
+              ),
+            ]),
             h(
-              "span",
-              { class: `ollama-pill ${c.hardwareVerdict?.allowed ? "is-mlx" : "is-warn"}` },
-              c.hardwareVerdict?.allowed ? `Fits RAM (~${c.estimatedRamGb} GB)` : "Blocked by RAM Guard",
+              "div",
+              { class: "ollama-badge-row" },
+              (c.badges || []).map(createBadgeEl),
             ),
-          ]),
-          h("div", { class: "ollama-badge-row" }, (c.badges || []).map(createBadgeEl)),
-          cProfile?.indicators?.length
-            ? h(
-                "div",
-                { class: "ollama-badge-row" },
-                cProfile.indicators.map((ind) =>
-                  h(
-                    "span",
-                    {
-                      class: "ollama-pill",
-                      title: ind.tip || ind.label,
-                      "data-model-indicator": ind.id,
-                    },
-                    `${ind.icon ? `${ind.icon} ` : ""}${ind.label}`,
+            cProfile?.indicators?.length
+              ? h(
+                  "div",
+                  { class: "ollama-badge-row" },
+                  cProfile.indicators.map((ind) =>
+                    h(
+                      "span",
+                      {
+                        class: "ollama-pill",
+                        title: ind.tip || ind.label,
+                        "data-model-indicator": ind.id,
+                      },
+                      `${ind.icon ? `${ind.icon} ` : ""}${ind.label}`,
+                    ),
                   ),
-                ),
-              )
-            : null,
-          cProfile?.useCases?.length
-            ? h(
-                "div",
-                { style: "font-size: 11px; color: var(--fg-muted);" },
-                `Use for: ${cProfile.useCases.slice(0, 3).join(" • ")}`,
-              )
-            : null,
-          h("div", {}, c.description),
-          c.hardwareVerdict?.allowed && !c.name.endsWith(":cloud")
-            ? h("div", { class: "ollama-row" }, [
-                h(
-                  "button",
-                  {
-                    type: "button",
-                    class: `ollama-btn is-mini${uiState.selectedModel === c.name ? " is-primary" : ""}`,
-                    onclick: () => {
-                      uiState.selectedModel = c.name;
-                      syncSelectedModelCapabilitiesState();
-                      uiState.subTab = "assistant";
-                      renderOllamaPanel();
-                    },
-                  },
-                  uiState.selectedModel === c.name ? "✓ Selected Model" : "Select Model",
-                ),
-                h(
-                  "button",
-                  {
-                    type: "button",
-                    class: "ollama-btn is-mini",
-                    onclick: async () => {
-                      uiState.pullModelName = c.name;
-                      uiState.loading = true;
-                      startLiveTaskTicker(
-                        `Pulling ${c.name}`,
-                        `Downloading ${c.label} (${c.name}) via POST /api/pull...`,
-                        8,
-                        true,
-                      );
-                      renderOllamaPanel();
-                      try {
-                        const res = await call("ollama/pull", { model: c.name });
-                        if (res.ok) {
-                          toast(`Pulled ${c.name}`);
-                          void refreshOllamaStatus(true);
-                        } else {
-                          toast(res.status || `Failed to pull ${c.name}`, { kind: "error" });
-                        }
-                      } catch (e) {
-                        toast(e.message, { kind: "error" });
-                      } finally {
-                        stopLiveTaskTicker();
-                        uiState.loading = false;
+                )
+              : null,
+            cProfile?.useCases?.length
+              ? h(
+                  "div",
+                  { style: "font-size: 11px; color: var(--fg-muted);" },
+                  `Use for: ${cProfile.useCases.slice(0, 3).join(" • ")}`,
+                )
+              : null,
+            h("div", {}, c.description),
+            c.hardwareVerdict?.allowed && !c.name.endsWith(":cloud")
+              ? h("div", { class: "ollama-row" }, [
+                  h(
+                    "button",
+                    {
+                      type: "button",
+                      class: `ollama-btn is-mini${uiState.selectedModel === c.name ? " is-primary" : ""}`,
+                      onclick: () => {
+                        uiState.selectedModel = c.name;
+                        syncSelectedModelCapabilitiesState();
+                        uiState.subTab = "assistant";
                         renderOllamaPanel();
-                      }
+                      },
                     },
-                  },
-                  `⬇ Pull ${c.name}`,
-                ),
-                h(
-                  "button",
-                  {
-                    type: "button",
-                    class: "ollama-btn is-mini",
-                    onclick: (e) => void copyOllamaOutput(`ollama run ${c.name}`, `ollama run ${c.name}`, e.currentTarget),
-                  },
-                  `📋 Copy CLI: ollama run ${c.name}`,
-                ),
-              ])
-            : null,
-        ]);
+                    uiState.selectedModel === c.name
+                      ? "✓ Selected Model"
+                      : "Select Model",
+                  ),
+                  h(
+                    "button",
+                    {
+                      type: "button",
+                      class: "ollama-btn is-mini",
+                      onclick: async () => {
+                        uiState.pullModelName = c.name;
+                        uiState.loading = true;
+                        startLiveTaskTicker(
+                          `Pulling ${c.name}`,
+                          `Downloading ${c.label} (${c.name}) via POST /api/pull...`,
+                          8,
+                          true,
+                        );
+                        renderOllamaPanel();
+                        try {
+                          const res = await call("ollama/pull", {
+                            model: c.name,
+                          });
+                          if (res.ok) {
+                            toast(`Pulled ${c.name}`);
+                            void refreshOllamaStatus(true);
+                          } else {
+                            toast(res.status || `Failed to pull ${c.name}`, {
+                              kind: "error",
+                            });
+                          }
+                        } catch (e) {
+                          toast(e.message, { kind: "error" });
+                        } finally {
+                          stopLiveTaskTicker();
+                          uiState.loading = false;
+                          renderOllamaPanel();
+                        }
+                      },
+                    },
+                    `⬇ Pull ${c.name}`,
+                  ),
+                  h(
+                    "button",
+                    {
+                      type: "button",
+                      class: "ollama-btn is-mini",
+                      onclick: (e) =>
+                        void copyOllamaOutput(
+                          `ollama run ${c.name}`,
+                          `ollama run ${c.name}`,
+                          e.currentTarget,
+                        ),
+                    },
+                    `📋 Copy CLI: ollama run ${c.name}`,
+                  ),
+                ])
+              : null,
+          ],
+        );
       }),
     ),
   ]);
@@ -4004,9 +4681,14 @@ export function renderOllamaPanel() {
   const prevSuiteScrollTop = prevSuiteEl ? prevSuiteEl.scrollTop || 0 : 0;
   const savedBoxScrolls = new Map();
   if (rootContainer.querySelectorAll) {
-    for (const consoleEl of rootContainer.querySelectorAll("[data-ollama-output-console]")) {
-      const scope = consoleEl.getAttribute("data-ollama-output-console") || "default";
-      const outBox = consoleEl.querySelector(".bionic-md-viewer, .ollama-output-box");
+    for (const consoleEl of rootContainer.querySelectorAll(
+      "[data-ollama-output-console]",
+    )) {
+      const scope =
+        consoleEl.getAttribute("data-ollama-output-console") || "default";
+      const outBox = consoleEl.querySelector(
+        ".bionic-md-viewer, .ollama-output-box",
+      );
       const thinkBox = consoleEl.querySelector(".ollama-thinking-box");
       savedBoxScrolls.set(scope, {
         outTop: outBox ? outBox.scrollTop || 0 : 0,
@@ -4062,11 +4744,16 @@ export function renderOllamaPanel() {
   if (prevRootScrollTop > 0) rootContainer.scrollTop = prevRootScrollTop;
   if (prevSuiteScrollTop > 0) suite.scrollTop = prevSuiteScrollTop;
   if (savedBoxScrolls.size > 0 && rootContainer.querySelectorAll) {
-    for (const consoleEl of rootContainer.querySelectorAll("[data-ollama-output-console]")) {
-      const scope = consoleEl.getAttribute("data-ollama-output-console") || "default";
+    for (const consoleEl of rootContainer.querySelectorAll(
+      "[data-ollama-output-console]",
+    )) {
+      const scope =
+        consoleEl.getAttribute("data-ollama-output-console") || "default";
       const saved = savedBoxScrolls.get(scope);
       if (!saved) continue;
-      const outBox = consoleEl.querySelector(".bionic-md-viewer, .ollama-output-box");
+      const outBox = consoleEl.querySelector(
+        ".bionic-md-viewer, .ollama-output-box",
+      );
       const thinkBox = consoleEl.querySelector(".ollama-thinking-box");
       if (outBox) {
         if (saved.outTop > 0) outBox.scrollTop = saved.outTop;
@@ -4098,8 +4785,10 @@ export function mountOllamaTool(container) {
     }
     if (params.get("compact") === "1") uiState.compactControls = true;
     if (params.get("demo") === "1" && !uiState.answerOutput) {
-      uiState.thinkingOutput = "1. Checking model capabilities and reasoning effort level.\n2. Generating syntax-highlighted TypeScript implementation and Markdown summary table.";
-      uiState.answerOutput = "## Architecture & Performance Audit\n\n> [!TIP] Expanded Output Mode Active\n> All bulky headers, banners, and prompt cards above the console are collapsed so you can read long LLM responses and code blocks across the full viewport.\n\n```typescript\nexport async function streamWithStopSignal(prompt: string, signal: AbortSignal): Promise<string> {\n  const res = await fetch(\"/api/ollama/stream\", { method: \"POST\", body: JSON.stringify({ prompt }), signal });\n  if (!res.ok) throw new Error(`HTTP ${res.status}`);\n  return await res.text();\n}\n```\n\n| Feature | Control | Shortcut / Action |\n| :--- | :--- | :--- |\n| **Expand Output** | `⤢ Expand Output` / `⤡ Compact View` | Collapses top chrome & fills viewport |\n| **Fullscreen Reader** | `⛶ Fullscreen` / `✕ Exit Fullscreen` | Pins Output Console across entire window |\n| **Stop LLM Anytime** | `⏹ Stop Generation` | Aborts both Smart Auto-Router & Live Stream |";
+      uiState.thinkingOutput =
+        "1. Checking model capabilities and reasoning effort level.\n2. Generating syntax-highlighted TypeScript implementation and Markdown summary table.";
+      uiState.answerOutput =
+        '## Architecture & Performance Audit\n\n> [!TIP] Expanded Output Mode Active\n> All bulky headers, banners, and prompt cards above the console are collapsed so you can read long LLM responses and code blocks across the full viewport.\n\n```typescript\nexport async function streamWithStopSignal(prompt: string, signal: AbortSignal): Promise<string> {\n  const res = await fetch("/api/ollama/stream", { method: "POST", body: JSON.stringify({ prompt }), signal });\n  if (!res.ok) throw new Error(`HTTP ${res.status}`);\n  return await res.text();\n}\n```\n\n| Feature | Control | Shortcut / Action |\n| :--- | :--- | :--- |\n| **Expand Output** | `⤢ Expand Output` / `⤡ Compact View` | Collapses top chrome & fills viewport |\n| **Fullscreen Reader** | `⛶ Fullscreen` / `✕ Exit Fullscreen` | Pins Output Console across entire window |\n| **Stop LLM Anytime** | `⏹ Stop Generation` | Aborts both Smart Auto-Router & Live Stream |';
     }
   }
   renderOllamaPanel();
@@ -4124,14 +4813,22 @@ export function mountOllamaTool(container) {
     }
   });
   const onEscapeFullscreen = (e) => {
-    if (e.key === "Escape" && rootContainer && !rootContainer.hidden && uiState.outputFullscreen) {
+    if (
+      e.key === "Escape" &&
+      rootContainer &&
+      !rootContainer.hidden &&
+      uiState.outputFullscreen
+    ) {
       e.preventDefault();
       e.stopPropagation();
       uiState.outputFullscreen = false;
       renderOllamaPanel();
     }
   };
-  if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
+  if (
+    typeof document !== "undefined" &&
+    typeof document.addEventListener === "function"
+  ) {
     document.addEventListener("keydown", onEscapeFullscreen);
   }
   return {
@@ -4150,14 +4847,20 @@ export function mountOllamaTool(container) {
     dispose() {
       offSelection?.();
       offTheme?.();
-      if (typeof document !== "undefined" && typeof document.removeEventListener === "function") {
+      if (
+        typeof document !== "undefined" &&
+        typeof document.removeEventListener === "function"
+      ) {
         document.removeEventListener("keydown", onEscapeFullscreen);
       }
     },
   };
 }
 
-if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+if (
+  typeof window !== "undefined" &&
+  typeof window.addEventListener === "function"
+) {
   window.addEventListener("pagehide", () => {
     try {
       const token = getToken();

@@ -33,7 +33,8 @@ export function runJob(startOp, body, onProgress) {
         r();
       };
     });
-  const sendCancel = () => (id ? call("dev/job/cancel", { id }).catch(() => {}) : Promise.resolve());
+  const sendCancel = () =>
+    id ? call("dev/job/cancel", { id }).catch(() => {}) : Promise.resolve();
   const promise = (async () => {
     const started = await call(startOp, body);
     id = started.id;
@@ -42,9 +43,16 @@ export function runJob(startOp, body, onProgress) {
     for (;;) {
       const p = await call("dev/job/poll", { id, since });
       since = p.seq;
-      if (p.state === "failed") throw new ApiError(p.error?.message ?? "The scan failed.", p.error?.code ?? "FAILED", 400);
-      if (p.state !== "running") return { id, state: p.state, result: p.result, elapsedMs: p.elapsedMs };
-      if (!p.unchanged && !cancelNow) onProgress?.(p.progress ?? {}, p.elapsedMs);
+      if (p.state === "failed")
+        throw new ApiError(
+          p.error?.message ?? "The scan failed.",
+          p.error?.code ?? "FAILED",
+          400,
+        );
+      if (p.state !== "running")
+        return { id, state: p.state, result: p.result, elapsedMs: p.elapsedMs };
+      if (!p.unchanged && !cancelNow)
+        onProgress?.(p.progress ?? {}, p.elapsedMs);
       await waitPoll(cancelNow ? Math.min(pollMs, 25) : pollMs);
     }
   })();
@@ -67,27 +75,57 @@ export function runJob(startOp, body, onProgress) {
 }
 
 /** A button with visible text and a tooltip. */
-export function btn(label, title, onclick, { primary = false, danger = false } = {}) {
-  return h("button", { type: "button", class: `pw-btn${primary ? " primary" : ""}${danger ? " danger" : ""}`, title, onclick }, label);
+export function btn(
+  label,
+  title,
+  onclick,
+  { primary = false, danger = false } = {},
+) {
+  return h(
+    "button",
+    {
+      type: "button",
+      class: `pw-btn${primary ? " primary" : ""}${danger ? " danger" : ""}`,
+      title,
+      onclick,
+    },
+    label,
+  );
 }
 
 /** A labeled input/select/checkbox. `control` already has its own title. */
 export function field(label, control, { inline = false } = {}) {
-  return h("label", { class: inline ? "dev-check" : "pw-field" }, inline ? [control, " ", label] : [label, control]);
+  return h(
+    "label",
+    { class: inline ? "dev-check" : "pw-field" },
+    inline ? [control, " ", label] : [label, control],
+  );
 }
 
 export function checkbox(id, label, title, checked) {
-  return field(label, h("input", { type: "checkbox", id, title, checked: checked || null }), { inline: true });
+  return field(
+    label,
+    h("input", { type: "checkbox", id, title, checked: checked || null }),
+    { inline: true },
+  );
 }
 
-export const num = (n) => (Number.isFinite(n) ? Math.round(n).toLocaleString() : "");
-export const signed = (n) => (n > 0 ? `+${num(n)}` : n < 0 ? `−${num(Math.abs(n))}` : "0");
-export const percent = (part, whole) => (whole > 0 ? `${Math.round((part / whole) * 1000) / 10}%` : "0%");
-export const seconds = (ms) => (ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} s`);
+export const num = (n) =>
+  Number.isFinite(n) ? Math.round(n).toLocaleString() : "";
+export const signed = (n) =>
+  n > 0 ? `+${num(n)}` : n < 0 ? `−${num(Math.abs(n))}` : "0";
+export const percent = (part, whole) =>
+  whole > 0 ? `${Math.round((part / whole) * 1000) / 10}%` : "0%";
+export const seconds = (ms) =>
+  ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} s`;
 
 /** A shown path with an easy way to select it (a button-looking link) — never HTML. */
 export function linkButton(text, title, onclick) {
-  return h("button", { type: "button", class: "dev-link", title, onclick }, text);
+  return h(
+    "button",
+    { type: "button", class: "dev-link", title, onclick },
+    text,
+  );
 }
 
 /**
@@ -98,12 +136,39 @@ export function linkButton(text, title, onclick) {
 export function createTable({ caption, columns, onSort, className = "" }) {
   const head = h("tr", {});
   const body = h("tbody", {});
-  const table = h("table", { class: `pw-table dev-table ${className}` }, h("caption", { class: "dev-caption" }, caption), h("thead", {}, head), body);
+  const table = h(
+    "table",
+    { class: `pw-table dev-table ${className}` },
+    h("caption", { class: "dev-caption" }, caption),
+    h("thead", {}, head),
+    body,
+  );
   const wrap = h("div", { class: "pw-table-wrap dev-table-wrap" }, table);
   let sort = { key: null, dir: "desc" };
   const headCells = columns.map((c) => {
-    const th = h("th", { scope: "col", class: c.num ? "num" : "", "aria-sort": c.sort ? "none" : null });
-    if (c.sort) th.append(h("button", { type: "button", class: "dev-sort", title: c.title ?? `Sort by ${c.label}. Press again to reverse.`, onclick: () => onSort?.(c.key, sort.key === c.key && sort.dir === "desc" ? "asc" : "desc") }, c.label, h("span", { class: "dev-sort-mark", "aria-hidden": "true" })));
+    const th = h("th", {
+      scope: "col",
+      class: c.num ? "num" : "",
+      "aria-sort": c.sort ? "none" : null,
+    });
+    if (c.sort)
+      th.append(
+        h(
+          "button",
+          {
+            type: "button",
+            class: "dev-sort",
+            title: c.title ?? `Sort by ${c.label}. Press again to reverse.`,
+            onclick: () =>
+              onSort?.(
+                c.key,
+                sort.key === c.key && sort.dir === "desc" ? "asc" : "desc",
+              ),
+          },
+          c.label,
+          h("span", { class: "dev-sort-mark", "aria-hidden": "true" }),
+        ),
+      );
     else th.append(c.label);
     head.append(th);
     return th;
@@ -112,8 +177,15 @@ export function createTable({ caption, columns, onSort, className = "" }) {
     columns.forEach((c, i) => {
       if (!c.sort) return;
       const on = sort.key === c.key;
-      headCells[i].setAttribute("aria-sort", on ? (sort.dir === "asc" ? "ascending" : "descending") : "none");
-      headCells[i].querySelector(".dev-sort-mark").textContent = on ? (sort.dir === "asc" ? " ▲" : " ▼") : "";
+      headCells[i].setAttribute(
+        "aria-sort",
+        on ? (sort.dir === "asc" ? "ascending" : "descending") : "none",
+      );
+      headCells[i].querySelector(".dev-sort-mark").textContent = on
+        ? sort.dir === "asc"
+          ? " ▲"
+          : " ▼"
+        : "";
     });
   }
   return {
@@ -126,10 +198,27 @@ export function createTable({ caption, columns, onSort, className = "" }) {
     render(rows) {
       body.replaceChildren();
       for (const r of rows) {
-        const tr = h("tr", { "aria-selected": r.selected ? "true" : null, tabindex: r.onclick || r.ondblclick ? "0" : null, class: r.onclick || r.ondblclick ? "dev-row-click" : "", dataset: r.key ? { key: r.key } : null });
-        r.cells.forEach((cell, i) => tr.append(h(columns[i]?.rowHeader ? "th" : "td", { class: columns[i]?.num ? "num" : "", scope: columns[i]?.rowHeader ? "row" : null }, cell)));
+        const tr = h("tr", {
+          "aria-selected": r.selected ? "true" : null,
+          tabindex: r.onclick || r.ondblclick ? "0" : null,
+          class: r.onclick || r.ondblclick ? "dev-row-click" : "",
+          dataset: r.key ? { key: r.key } : null,
+        });
+        r.cells.forEach((cell, i) =>
+          tr.append(
+            h(
+              columns[i]?.rowHeader ? "th" : "td",
+              {
+                class: columns[i]?.num ? "num" : "",
+                scope: columns[i]?.rowHeader ? "row" : null,
+              },
+              cell,
+            ),
+          ),
+        );
         if (r.onclick) tr.addEventListener("click", () => r.onclick(tr));
-        if (r.ondblclick) tr.addEventListener("dblclick", () => r.ondblclick(tr));
+        if (r.ondblclick)
+          tr.addEventListener("dblclick", () => r.ondblclick(tr));
         if (r.onclick || r.ondblclick) {
           tr.addEventListener("keydown", (e) => {
             if (e.target !== tr) return;
@@ -144,14 +233,29 @@ export function createTable({ caption, columns, onSort, className = "" }) {
         }
         body.append(tr);
       }
-      if (!rows.length) body.append(h("tr", {}, h("td", { colspan: String(columns.length), class: "dev-empty" }, "Nothing to show.")));
+      if (!rows.length)
+        body.append(
+          h(
+            "tr",
+            {},
+            h(
+              "td",
+              { colspan: String(columns.length), class: "dev-empty" },
+              "Nothing to show.",
+            ),
+          ),
+        );
     },
   };
 }
 
 /** The message under a section's buttons. Plain text; `bad` colors it and adds a ✗ so color isn't the only signal. */
 export function createStatus() {
-  const el = h("p", { class: "pw-status dev-status", role: "status", "aria-live": "polite" });
+  const el = h("p", {
+    class: "pw-status dev-status",
+    role: "status",
+    "aria-live": "polite",
+  });
   return {
     el,
     set(text, bad = false) {
@@ -161,7 +265,8 @@ export function createStatus() {
   };
 }
 
-export const errorText = (err, fallback = "That didn't work.") => (err instanceof ApiError ? err.message : fallback);
+export const errorText = (err, fallback = "That didn't work.") =>
+  err instanceof ApiError ? err.message : fallback;
 
 /** A key/value list of facts as a real description list. */
 export function factList(facts) {

@@ -3,7 +3,13 @@
  * start real studios, or read this machine's environment.
  */
 import { existsSync, readdirSync } from "fs";
-import { basename, dirname, join, posix as posixPath, win32 as win32Path } from "path";
+import {
+  basename,
+  dirname,
+  join,
+  posix as posixPath,
+  win32 as win32Path,
+} from "path";
 import type { ConnectionConfig, DbAdapter } from "../../db/types";
 import { detectSecretStore, type SecretStore } from "../../db/profiles";
 import { testConnection, type TestInput, type TestResult } from "./fmDbTest";
@@ -53,7 +59,10 @@ export interface DatabasesHooks {
   now(): number;
   spawn(command: string[], options: SpawnOptions): DbProcess;
   /** Starts a desktop window that outlives this program. Resolves once it has stayed up for a moment, or with the reason it didn't. */
-  spawnWindow(command: string[], options: SpawnOptions): Promise<{ ok: true } | { ok: false; reason: string }>;
+  spawnWindow(
+    command: string[],
+    options: SpawnOptions,
+  ): Promise<{ ok: true } | { ok: false; reason: string }>;
   studioCommand(engine: DbEngine): StudioCommand | null;
   /** One attempt to connect (Test connection). */
   testConnection(input: TestInput): Promise<TestResult>;
@@ -89,17 +98,37 @@ const dashed = (s: string) => s.replace(/_/g, "-");
 
 /** Returns the `StudioLayout` backed by the running Bun process and real filesystem. */
 export function realLayout(): StudioLayout {
-  return { execPath: process.execPath, argv1: process.argv[1] ?? "", repoRoot: join(import.meta.dir, "..", "..", ".."), exists: existsSync, readdir: (p) => { try { return readdirSync(p); } catch { return []; } } };
+  return {
+    execPath: process.execPath,
+    argv1: process.argv[1] ?? "",
+    repoRoot: join(import.meta.dir, "..", "..", ".."),
+    exists: existsSync,
+    readdir: (p) => {
+      try {
+        return readdirSync(p);
+      } catch {
+        return [];
+      }
+    },
+  };
 }
 
-const layoutPath = (layout: StudioLayout) => ([layout.execPath, layout.argv1, layout.repoRoot].some((s) => s.includes("\\") || /^[A-Za-z]:/.test(s)) ? win32Path : posixPath);
+const layoutPath = (layout: StudioLayout) =>
+  [layout.execPath, layout.argv1, layout.repoRoot].some(
+    (s) => s.includes("\\") || /^[A-Za-z]:/.test(s),
+  )
+    ? win32Path
+    : posixPath;
 
 /** The folder with this program's own files: the project when running from source, the release folder (or the .app's Resources) otherwise. */
 export function installRoot(layout: StudioLayout): string {
   const p = layoutPath(layout);
-  if (layout.exists(p.join(layout.repoRoot, "applications"))) return layout.repoRoot;
+  if (layout.exists(p.join(layout.repoRoot, "applications")))
+    return layout.repoRoot;
   const dir = p.dirname(layout.argv1 || layout.execPath);
-  return ["apps", "app", "cli"].includes(p.basename(dir)) ? p.dirname(dir) : dir;
+  return ["apps", "app", "cli"].includes(p.basename(dir))
+    ? p.dirname(dir)
+    : dir;
 }
 
 /**
@@ -109,17 +138,31 @@ export function installRoot(layout: StudioLayout): string {
  *  - a compiled executable named like the studio next to this one;
  *  - from source: `applications/<name>.ts` run by Bun.
  */
-export function resolveStudioCommand(engine: DbEngine, layout: StudioLayout = realLayout()): StudioCommand | null {
+export function resolveStudioCommand(
+  engine: DbEngine,
+  layout: StudioLayout = realLayout(),
+): StudioCommand | null {
   const p = layoutPath(layout);
   const script = ENGINES[engine].script;
   const bundle = `${dashed(script)}.js`;
   const argvDir = layout.argv1 ? p.dirname(layout.argv1) : "";
-  const run = (exe: string, file: string, kind: StudioCommand["kind"]): StudioCommand => ({ kind, where: file, build: (bunArgs, studioArgs) => [exe, ...bunArgs, file, ...studioArgs] });
+  const run = (
+    exe: string,
+    file: string,
+    kind: StudioCommand["kind"],
+  ): StudioCommand => ({
+    kind,
+    where: file,
+    build: (bunArgs, studioArgs) => [exe, ...bunArgs, file, ...studioArgs],
+  });
 
-  if (argvDir && layout.exists(p.join(argvDir, bundle))) return run(layout.execPath, p.join(argvDir, bundle), "bundle");
+  if (argvDir && layout.exists(p.join(argvDir, bundle)))
+    return run(layout.execPath, p.join(argvDir, bundle), "bundle");
 
   // Mac: X.app/Contents/Resources/app/<this>.js, with the other tools as sibling .app folders.
-  const m = /^(.*\.app)\/Contents\/Resources\/app$/.exec(argvDir.replace(/\\/g, "/"));
+  const m = /^(.*\.app)\/Contents\/Resources\/app$/.exec(
+    argvDir.replace(/\\/g, "/"),
+  );
   if (m) {
     const holder = p.dirname(m[1]!);
     for (const name of layout.readdir(holder)) {
@@ -127,13 +170,28 @@ export function resolveStudioCommand(engine: DbEngine, layout: StudioLayout = re
       const res = p.join(holder, name, "Contents", "Resources");
       const file = p.join(res, "app", bundle);
       const runtime = p.join(res, "runtime", "bun");
-      if (layout.exists(file) && layout.exists(runtime)) return run(runtime, file, "app");
+      if (layout.exists(file) && layout.exists(runtime))
+        return run(runtime, file, "app");
     }
   }
 
   for (const suffix of ["", ".exe"]) {
-    const exe = p.join(p.dirname(layout.execPath), `${dashed(script)}${suffix}`);
-    if (p.basename(layout.execPath).toLowerCase().replace(/\.exe$/, "") !== dashed(script) && layout.exists(exe)) return { kind: "executable", where: exe, build: (_bunArgs, studioArgs) => [exe, ...studioArgs] };
+    const exe = p.join(
+      p.dirname(layout.execPath),
+      `${dashed(script)}${suffix}`,
+    );
+    if (
+      p
+        .basename(layout.execPath)
+        .toLowerCase()
+        .replace(/\.exe$/, "") !== dashed(script) &&
+      layout.exists(exe)
+    )
+      return {
+        kind: "executable",
+        where: exe,
+        build: (_bunArgs, studioArgs) => [exe, ...studioArgs],
+      };
   }
 
   for (const dir of [argvDir, p.join(layout.repoRoot, "applications")]) {
@@ -149,7 +207,16 @@ export function resolveStudioCommand(engine: DbEngine, layout: StudioLayout = re
 function killTree(pid: number, signal: "SIGTERM" | "SIGKILL") {
   if (process.platform === "win32") {
     try {
-      Bun.spawn(["taskkill", "/PID", String(pid), "/T", ...(signal === "SIGKILL" ? ["/F"] : [])], { stdout: "ignore", stderr: "ignore" });
+      Bun.spawn(
+        [
+          "taskkill",
+          "/PID",
+          String(pid),
+          "/T",
+          ...(signal === "SIGKILL" ? ["/F"] : []),
+        ],
+        { stdout: "ignore", stderr: "ignore" },
+      );
     } catch {}
     return;
   }
@@ -173,27 +240,62 @@ export function defaultDatabasesHooks(): DatabasesHooks {
     appRoots: () => [installRoot(realLayout())],
     now: () => Date.now(),
     spawn(command, options) {
-      const child = Bun.spawn(command, { env: options.env, cwd: options.cwd, stdin: "ignore", stdout: "pipe", stderr: "pipe", detached: process.platform !== "win32" });
-      return { pid: child.pid, stdout: child.stdout as ReadableStream<Uint8Array>, stderr: child.stderr as ReadableStream<Uint8Array>, exited: child.exited, kill: (sig) => killTree(child.pid, sig) };
+      const child = Bun.spawn(command, {
+        env: options.env,
+        cwd: options.cwd,
+        stdin: "ignore",
+        stdout: "pipe",
+        stderr: "pipe",
+        detached: process.platform !== "win32",
+      });
+      return {
+        pid: child.pid,
+        stdout: child.stdout as ReadableStream<Uint8Array>,
+        stderr: child.stderr as ReadableStream<Uint8Array>,
+        exited: child.exited,
+        kill: (sig) => killTree(child.pid, sig),
+      };
     },
     async spawnWindow(command, options) {
       try {
-        const child = Bun.spawn(command, { env: options.env, cwd: options.cwd, stdin: "ignore", stdout: "ignore", stderr: "ignore", detached: true });
-        const early = await Promise.race([child.exited, new Promise<"up">((r) => setTimeout(() => r("up"), 2500))]);
+        const child = Bun.spawn(command, {
+          env: options.env,
+          cwd: options.cwd,
+          stdin: "ignore",
+          stdout: "ignore",
+          stderr: "ignore",
+          detached: true,
+        });
+        const early = await Promise.race([
+          child.exited,
+          new Promise<"up">((r) => setTimeout(() => r("up"), 2500)),
+        ]);
         if (early === "up") {
           child.unref();
           return { ok: true };
         }
-        return { ok: false, reason: "The window closed again straight away. Desktop windows need the window library for this computer." };
+        return {
+          ok: false,
+          reason:
+            "The window closed again straight away. Desktop windows need the window library for this computer.",
+        };
       } catch (err) {
-        return { ok: false, reason: err instanceof Error ? err.message.slice(0, 200) : "It could not be started." };
+        return {
+          ok: false,
+          reason:
+            err instanceof Error
+              ? err.message.slice(0, 200)
+              : "It could not be started.",
+        };
       }
     },
     studioCommand: (engine) => resolveStudioCommand(engine),
     testConnection: (input) => testConnection(input),
     async probe(port) {
       try {
-        const res = await fetch(`http://127.0.0.1:${port}/`, { signal: AbortSignal.timeout(2500) });
+        const res = await fetch(`http://127.0.0.1:${port}/`, {
+          signal: AbortSignal.timeout(2500),
+        });
         await res.arrayBuffer().catch(() => {});
         return res.status < 500;
       } catch {

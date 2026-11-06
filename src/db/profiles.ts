@@ -2,7 +2,14 @@
  * Database connection profile storage (`ProfileStore`), input sanitization, and OS credential store
  * integration (`KeychainSecretStore` / `MemorySecretStore`).
  */
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync, chmodSync } from "fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+  chmodSync,
+} from "fs";
 import { homedir } from "os";
 import { dirname, join } from "path";
 import { randomUUID } from "crypto";
@@ -92,7 +99,9 @@ export class MemorySecretStore implements SecretStore {
 }
 
 /** Use the OS credential store when it works, otherwise the in-memory store (and say so). */
-export async function detectSecretStore(service = SERVICE): Promise<SecretStore> {
+export async function detectSecretStore(
+  service = SERVICE,
+): Promise<SecretStore> {
   try {
     const probe = `probe-${randomUUID()}`;
     await Bun.secrets.set({ service, name: probe, value: "x" });
@@ -105,29 +114,50 @@ export async function detectSecretStore(service = SERVICE): Promise<SecretStore>
 
 /** Returns the directory where `connections.json` is stored (`STUDIO_DB_PROFILE_DIR` or `~/.bun_rad_studio`). */
 export function defaultProfileDir(): string {
-  return process.env.STUDIO_DB_PROFILE_DIR || join(homedir(), ".bun_rad_studio");
+  return (
+    process.env.STUDIO_DB_PROFILE_DIR || join(homedir(), ".bun_rad_studio")
+  );
 }
 
-const ENVIRONMENTS: Environment[] = ["development", "test", "staging", "production"];
+const ENVIRONMENTS: Environment[] = [
+  "development",
+  "test",
+  "staging",
+  "production",
+];
 const bad = (m: string) => new DbError("INVALID_REQUEST", m);
-const str = (v: unknown, field: string, max: number, required = false): string | undefined => {
+const str = (
+  v: unknown,
+  field: string,
+  max: number,
+  required = false,
+): string | undefined => {
   if (v === undefined || v === null || v === "") {
     if (required) throw bad(`${field} is required`);
     return undefined;
   }
-  if (typeof v !== "string" || v.length > max || v.includes("\0")) throw bad(`${field} must be text up to ${max} characters`);
+  if (typeof v !== "string" || v.length > max || v.includes("\0"))
+    throw bad(`${field} must be text up to ${max} characters`);
   return v;
 };
 
 /** Validate untrusted profile input (ids, timestamps and passwords are never taken from it). */
-export function sanitizeProfileInput(input: unknown, existing?: ConnectionProfile): Omit<ConnectionProfile, "id" | "createdAt" | "lastUsedAt"> {
-  if (typeof input !== "object" || input === null) throw bad("Profile must be an object");
+export function sanitizeProfileInput(
+  input: unknown,
+  existing?: ConnectionProfile,
+): Omit<ConnectionProfile, "id" | "createdAt" | "lastUsedAt"> {
+  if (typeof input !== "object" || input === null)
+    throw bad("Profile must be an object");
   const o = input as Record<string, unknown>;
   const engine = o.engine;
-  if (engine !== "sqlite" && engine !== "mysql" && engine !== "postgres") throw bad("engine must be sqlite, mysql or postgres");
+  if (engine !== "sqlite" && engine !== "mysql" && engine !== "postgres")
+    throw bad("engine must be sqlite, mysql or postgres");
   const environment = (o.environment ?? "development") as Environment;
-  if (!ENVIRONMENTS.includes(environment)) throw bad("environment must be development, test, staging or production");
-  const tags = Array.isArray(o.tags) ? o.tags.map((t) => str(t, "tag", 40, true)!).slice(0, 20) : [];
+  if (!ENVIRONMENTS.includes(environment))
+    throw bad("environment must be development, test, staging or production");
+  const tags = Array.isArray(o.tags)
+    ? o.tags.map((t) => str(t, "tag", 40, true)!).slice(0, 20)
+    : [];
   const out: Omit<ConnectionProfile, "id" | "createdAt" | "lastUsedAt"> = {
     name: str(o.name, "name", 80, true)!,
     engine,
@@ -139,15 +169,22 @@ export function sanitizeProfileInput(input: unknown, existing?: ConnectionProfil
   };
   if (engine === "sqlite") {
     const mode = (o.sqliteMode ?? "readwrite") as string;
-    if (!["readwrite", "readonly", "create", "memory"].includes(mode)) throw bad("Invalid SQLite mode");
+    if (!["readwrite", "readonly", "create", "memory"].includes(mode))
+      throw bad("Invalid SQLite mode");
     out.sqliteMode = mode as ConnectionProfile["sqliteMode"];
     out.path = mode === "memory" ? ":memory:" : str(o.path, "path", 1024, true);
     if (mode === "readonly") out.readOnly = true;
   } else {
     out.host = str(o.host, "host", 255) ?? "localhost";
-    if (!/^[A-Za-z0-9._:\-\[\]]+$/.test(out.host)) throw bad("host contains invalid characters");
-    const port = o.port === undefined || o.port === "" ? undefined : Number(o.port);
-    if (port !== undefined && (!Number.isInteger(port) || port < 1 || port > 65535)) throw bad("port must be 1-65535");
+    if (!/^[A-Za-z0-9._:\-\[\]]+$/.test(out.host))
+      throw bad("host contains invalid characters");
+    const port =
+      o.port === undefined || o.port === "" ? undefined : Number(o.port);
+    if (
+      port !== undefined &&
+      (!Number.isInteger(port) || port < 1 || port > 65535)
+    )
+      throw bad("port must be 1-65535");
     out.port = port;
     out.user = str(o.user, "user", 128);
     out.database = str(o.database, "database", 128);
@@ -157,24 +194,31 @@ export function sanitizeProfileInput(input: unknown, existing?: ConnectionProfil
       if (typeof tls === "boolean") out.tls = tls;
       else if (typeof tls === "object") {
         const t = tls as Record<string, unknown>;
-        out.tls = { ...(t.ca ? { ca: str(t.ca, "tls.ca", 100_000) } : {}), ...(t.verify === false ? { verify: false } : {}) };
+        out.tls = {
+          ...(t.ca ? { ca: str(t.ca, "tls.ca", 100_000) } : {}),
+          ...(t.verify === false ? { verify: false } : {}),
+        };
       } else throw bad("tls must be boolean or an object");
     }
     out.passwordEnv = str(o.passwordEnv, "passwordEnv", 128);
-    if (out.passwordEnv && !/^[A-Za-z_][A-Za-z0-9_]*$/.test(out.passwordEnv)) throw bad("passwordEnv must be an environment variable name");
+    if (out.passwordEnv && !/^[A-Za-z_][A-Za-z0-9_]*$/.test(out.passwordEnv))
+      throw bad("passwordEnv must be an environment variable name");
     if (o.statementTimeoutMs !== undefined && o.statementTimeoutMs !== "") {
       const ms = Number(o.statementTimeoutMs);
-      if (!Number.isInteger(ms) || ms < 0 || ms > 3_600_000) throw bad("statementTimeoutMs must be 0-3600000");
+      if (!Number.isInteger(ms) || ms < 0 || ms > 3_600_000)
+        throw bad("statementTimeoutMs must be 0-3600000");
       out.statementTimeoutMs = ms;
     }
     if (o.connectTimeoutMs !== undefined && o.connectTimeoutMs !== "") {
       const ms = Number(o.connectTimeoutMs);
-      if (!Number.isInteger(ms) || ms < 1000 || ms > 120_000) throw bad("connectTimeoutMs must be 1000-120000");
+      if (!Number.isInteger(ms) || ms < 1000 || ms > 120_000)
+        throw bad("connectTimeoutMs must be 1000-120000");
       out.connectTimeoutMs = ms;
     }
     if (o.allowPublicKeyRetrieval) out.allowPublicKeyRetrieval = true;
   }
-  if (existing && existing.engine !== out.engine) throw bad("A profile's engine cannot be changed; create a new profile");
+  if (existing && existing.engine !== out.engine)
+    throw bad("A profile's engine cannot be changed; create a new profile");
   return out;
 }
 
@@ -213,7 +257,11 @@ export class ProfileStore {
   private persist() {
     mkdirSync(dirname(this.file), { recursive: true });
     const tmp = `${this.file}.${process.pid}.tmp`;
-    writeFileSync(tmp, JSON.stringify({ version: 1, profiles: this.profiles }, null, 2), { mode: 0o600 });
+    writeFileSync(
+      tmp,
+      JSON.stringify({ version: 1, profiles: this.profiles }, null, 2),
+      { mode: 0o600 },
+    );
     renameSync(tmp, this.file);
     try {
       chmodSync(this.file, 0o600);
@@ -221,7 +269,11 @@ export class ProfileStore {
   }
 
   private async pub(p: ConnectionProfile): Promise<PublicProfile> {
-    return { ...p, hasPassword: Boolean(p.passwordEnv) || (await this.secrets.get(p.id)) !== null };
+    return {
+      ...p,
+      hasPassword:
+        Boolean(p.passwordEnv) || (await this.secrets.get(p.id)) !== null,
+    };
   }
 
   /** Returns all saved profiles enriched with `hasPassword` status from the credential store or `passwordEnv`. */
@@ -243,18 +295,31 @@ export class ProfileStore {
   }
 
   /** Create (no id) or update (existing id). `password`: string to store, "" to clear, undefined to keep. */
-  async save(input: unknown, password?: string, id?: string): Promise<PublicProfile> {
+  async save(
+    input: unknown,
+    password?: string,
+    id?: string,
+  ): Promise<PublicProfile> {
     this.load();
     const existing = id ? this.get(id) : undefined;
-    if (id && !existing) throw new DbError("INVALID_REQUEST", "Unknown connection profile");
+    if (id && !existing)
+      throw new DbError("INVALID_REQUEST", "Unknown connection profile");
     const clean = sanitizeProfileInput(input, existing);
-    if (password !== undefined && (typeof password !== "string" || password.length > 1024)) throw bad("Invalid password");
+    if (
+      password !== undefined &&
+      (typeof password !== "string" || password.length > 1024)
+    )
+      throw bad("Invalid password");
     let profile: ConnectionProfile;
     if (existing) {
       profile = { ...existing, ...clean };
       this.profiles[this.profiles.indexOf(existing)] = profile;
     } else {
-      profile = { ...clean, id: randomUUID(), createdAt: new Date().toISOString() };
+      profile = {
+        ...clean,
+        id: randomUUID(),
+        createdAt: new Date().toISOString(),
+      };
       this.profiles.push(profile);
     }
     if (password !== undefined) {
@@ -269,7 +334,8 @@ export class ProfileStore {
   async remove(id: string): Promise<void> {
     this.load();
     const i = this.profiles.findIndex((p) => p.id === id);
-    if (i < 0) throw new DbError("INVALID_REQUEST", "Unknown connection profile");
+    if (i < 0)
+      throw new DbError("INVALID_REQUEST", "Unknown connection profile");
     this.profiles.splice(i, 1);
     await this.secrets.delete(id);
     this.persist();
@@ -279,8 +345,16 @@ export class ProfileStore {
   async duplicate(id: string, copyPassword = true): Promise<PublicProfile> {
     this.load();
     const src = this.get(id);
-    if (!src) throw new DbError("INVALID_REQUEST", "Unknown connection profile");
-    const copy: ConnectionProfile = { ...src, id: randomUUID(), name: `${src.name} (copy)`.slice(0, 80), createdAt: new Date().toISOString(), lastUsedAt: undefined, favorite: false };
+    if (!src)
+      throw new DbError("INVALID_REQUEST", "Unknown connection profile");
+    const copy: ConnectionProfile = {
+      ...src,
+      id: randomUUID(),
+      name: `${src.name} (copy)`.slice(0, 80),
+      createdAt: new Date().toISOString(),
+      lastUsedAt: undefined,
+      favorite: false,
+    };
     this.profiles.push(copy);
     const pw = copyPassword ? await this.secrets.get(id) : null;
     if (pw !== null) await this.secrets.set(copy.id, pw);
@@ -305,17 +379,34 @@ export class ProfileStore {
   }
 
   /** Build the adapter config, fetching the password from the keychain / environment (never from the file). */
-  async resolveConfig(id: string, passwordOverride?: string): Promise<ConnectionConfig> {
+  async resolveConfig(
+    id: string,
+    passwordOverride?: string,
+  ): Promise<ConnectionConfig> {
     const p = this.get(id);
     if (!p) throw new DbError("INVALID_REQUEST", "Unknown connection profile");
-    return profileToConfig(p, passwordOverride ?? (p.passwordEnv ? process.env[p.passwordEnv] : undefined) ?? (await this.secrets.get(id)) ?? undefined);
+    return profileToConfig(
+      p,
+      passwordOverride ??
+        (p.passwordEnv ? process.env[p.passwordEnv] : undefined) ??
+        (await this.secrets.get(id)) ??
+        undefined,
+    );
   }
 }
 
 /** Converts a `ConnectionProfile` and optional resolved `password` into an adapter `ConnectionConfig`. */
-export function profileToConfig(p: ConnectionProfile, password?: string): ConnectionConfig {
+export function profileToConfig(
+  p: ConnectionProfile,
+  password?: string,
+): ConnectionConfig {
   if (p.engine === "sqlite") {
-    return { engine: "sqlite", path: p.path, sqliteMode: p.sqliteMode, readOnly: p.readOnly };
+    return {
+      engine: "sqlite",
+      path: p.path,
+      sqliteMode: p.sqliteMode,
+      readOnly: p.readOnly,
+    };
   }
   return {
     engine: p.engine,

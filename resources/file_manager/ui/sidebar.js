@@ -1,7 +1,11 @@
 // The sidebar: Favorites, Places, Folder tree, Drives (with free space), Tags, Recent items and the Recycle Bin.
 import { showMenu } from "./menus.js";
 import { attachDropTarget } from "./dnd.js";
-import { favoriteMenuItems, favoriteName, favoritesSection } from "./favorites.js";
+import {
+  favoriteMenuItems,
+  favoriteName,
+  favoritesSection,
+} from "./favorites.js";
 import { folderTreeSection } from "./folderTree.js";
 import { recentSection } from "./recents.js";
 import { tagsSection } from "./tags.js";
@@ -15,41 +19,87 @@ import { canReadWithPhonon, isPhononSupported } from "./phonon.js";
 import { emit, inTrash, on, state } from "./state.js";
 import { driveFor, formatSize, plural } from "./util.js";
 
-function sideItem({ icon, label, title, active, onClick, onMenu, dropPath, trash = false, extra = null, badge = null, ariaLabel = null, placeId = null }) {
-  const resolvedIcon = placeId ? placeIconFor(placeId, label, undefined, icon) : icon;
-  const btn = h("button", {
-    type: "button",
-    class: `side-item${active ? " active" : ""}`,
-    title,
-    "aria-label": ariaLabel,
-    "aria-current": active ? "page" : null,
-    onclick: onClick,
-    ...(dropPath && !trash
-      ? {
-          onauxclick: (e) => {
-            if (e.button === 1) {
-              e.preventDefault();
-              void openNewTab(dropPath);
+function sideItem({
+  icon,
+  label,
+  title,
+  active,
+  onClick,
+  onMenu,
+  dropPath,
+  trash = false,
+  extra = null,
+  badge = null,
+  ariaLabel = null,
+  placeId = null,
+}) {
+  const resolvedIcon = placeId
+    ? placeIconFor(placeId, label, undefined, icon)
+    : icon;
+  const btn = h(
+    "button",
+    {
+      type: "button",
+      class: `side-item${active ? " active" : ""}`,
+      title,
+      "aria-label": ariaLabel,
+      "aria-current": active ? "page" : null,
+      onclick: onClick,
+      ...(dropPath && !trash
+        ? {
+            onauxclick: (e) => {
+              if (e.button === 1) {
+                e.preventDefault();
+                void openNewTab(dropPath);
+              }
+            },
+          }
+        : {}),
+    },
+    h(
+      "span",
+      {
+        class: "si",
+        "aria-hidden": "true",
+        ...(placeId
+          ? {
+              dataset: {
+                placeIcon: placeId,
+                placeName: label,
+                defaultIcon: icon,
+              },
             }
-          },
-        }
-      : {}),
-  },
-    h("span", { class: "si", "aria-hidden": "true", ...(placeId ? { dataset: { placeIcon: placeId, placeName: label, defaultIcon: icon } } : {}) }, resolvedIcon),
-    h("span", { class: "sl" }, label, badge !== null ? h("span", { class: "badge" }, String(badge)) : null),
-    extra);
-  if (onMenu) btn.addEventListener("contextmenu", (e) => {
-    e.preventDefault();
-    if (state.platform !== "darwin" && e.ctrlKey) return;
-    onMenu({ x: e.clientX, y: e.clientY });
-  });
-  if (dropPath || trash) attachDropTarget(btn, { getPath: () => dropPath ?? null, trash });
+          : {}),
+      },
+      resolvedIcon,
+    ),
+    h(
+      "span",
+      { class: "sl" },
+      label,
+      badge !== null ? h("span", { class: "badge" }, String(badge)) : null,
+    ),
+    extra,
+  );
+  if (onMenu)
+    btn.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      if (state.platform !== "darwin" && e.ctrlKey) return;
+      onMenu({ x: e.clientX, y: e.clientY });
+    });
+  if (dropPath || trash)
+    attachDropTarget(btn, { getPath: () => dropPath ?? null, trash });
   return btn;
 }
 
 function section(title, items) {
   if (!items.length) return null;
-  return h("section", { class: "side-section" }, title ? h("h2", { class: "side-title" }, title) : null, ...items);
+  return h(
+    "section",
+    { class: "side-section" },
+    title ? h("h2", { class: "side-title" }, title) : null,
+    ...items,
+  );
 }
 
 function driveSpace(d) {
@@ -57,76 +107,196 @@ function driveSpace(d) {
   const used = Math.max(0, Math.min(1, 1 - d.freeBytes / d.totalBytes));
   const fill = h("div", { class: `bar-fill${used > 0.9 ? " low" : ""}` });
   fill.style.width = `${Math.round(used * 100)}%`;
-  return h("span", { class: "space" }, h("span", { class: "bar", role: "img", "aria-label": `${formatSize(d.freeBytes)} free of ${formatSize(d.totalBytes)}` }, fill), h("span", { class: "space-text" }, `${formatSize(d.freeBytes)} free`));
+  return h(
+    "span",
+    { class: "space" },
+    h(
+      "span",
+      {
+        class: "bar",
+        role: "img",
+        "aria-label": `${formatSize(d.freeBytes)} free of ${formatSize(d.totalBytes)}`,
+      },
+      fill,
+    ),
+    h("span", { class: "space-text" }, `${formatSize(d.freeBytes)} free`),
+  );
 }
 
 export function renderSidebar() {
   const nav = clear($("#sidebar"));
   const here = state.location.kind === "folder" ? state.location.path : null;
-  const same = (p) => here !== null && (state.sep === "\\" ? p.toLowerCase() === here.toLowerCase() : p === here);
-  const favorites = state.settings.favorites.map((path) => sideItem({
-    icon: "⭐", label: favoriteName(path), title: path, active: same(path), dropPath: path, placeId: "favorites", onClick: () => goTo(path),
-    onMenu: (pt) => showMenu(favoriteMenuItems(path), { ...pt, label: "Favorite" }),
-  }));
-  const places = state.places.map((p) => sideItem({ icon: p.icon, label: p.name, title: p.path, active: same(p.path), dropPath: p.path, placeId: p.name.toLowerCase(), onClick: () => goTo(p.path) }));
+  const same = (p) =>
+    here !== null &&
+    (state.sep === "\\" ? p.toLowerCase() === here.toLowerCase() : p === here);
+  const favorites = state.settings.favorites.map((path) =>
+    sideItem({
+      icon: "⭐",
+      label: favoriteName(path),
+      title: path,
+      active: same(path),
+      dropPath: path,
+      placeId: "favorites",
+      onClick: () => goTo(path),
+      onMenu: (pt) =>
+        showMenu(favoriteMenuItems(path), { ...pt, label: "Favorite" }),
+    }),
+  );
+  const places = state.places.map((p) =>
+    sideItem({
+      icon: p.icon,
+      label: p.name,
+      title: p.path,
+      active: same(p.path),
+      dropPath: p.path,
+      placeId: p.name.toLowerCase(),
+      onClick: () => goTo(p.path),
+    }),
+  );
   if (state.cliUtilsDir) {
-    places.push(sideItem({
-      icon: "🛠️",
-      label: "CLI Utilities",
-      placeId: "scripts",
-      title: `${state.cliUtilsDir} — Built-in RAD Studio CLI utilities (open terminal here and run ./<tool-name>)`,
-      active: same(state.cliUtilsDir),
-      onClick: () => {
-        goTo(state.cliUtilsDir);
-        if (state.terminalOpen) emit("terminal-here", state.cliUtilsDir);
-      },
-      onMenu: (pt) => showMenu([
-        { label: "Open CLI Utilities folder", icon: "📁", action: () => goTo(state.cliUtilsDir) },
-        { label: "Open terminal in CLI Utilities (./)", icon: "⌨️", action: () => { goTo(state.cliUtilsDir); emit("terminal-here", state.cliUtilsDir); } },
-        { label: "Browse CLI Utilities catalog…", icon: "🛠️", action: () => emit("open-cliutils-tool") },
-      ], { ...pt, label: "CLI Utilities" }),
-    }));
-    if (isPhononSupported()) {
-      places.push(sideItem({
-        icon: "🗣️",
-        label: "Ollama TTS",
-        placeId: "phonon",
-        title: "Ollama Phonon Voice Reader — Read text & documents out loud, convert to plain text, set default voice, and save as any audio file",
-        active: state.powerOpen && state.powerTab === "phonon",
+    places.push(
+      sideItem({
+        icon: "🛠️",
+        label: "CLI Utilities",
+        placeId: "scripts",
+        title: `${state.cliUtilsDir} — Built-in RAD Studio CLI utilities (open terminal here and run ./<tool-name>)`,
+        active: same(state.cliUtilsDir),
         onClick: () => {
-          const readable = selectedEntries().filter((e) => !e.isDir && canReadWithPhonon(e));
-          openPower("phonon", readable.length ? { paths: readable.map((e) => e.path) } : undefined);
+          goTo(state.cliUtilsDir);
+          if (state.terminalOpen) emit("terminal-here", state.cliUtilsDir);
         },
-      }));
+        onMenu: (pt) =>
+          showMenu(
+            [
+              {
+                label: "Open CLI Utilities folder",
+                icon: "📁",
+                action: () => goTo(state.cliUtilsDir),
+              },
+              {
+                label: "Open terminal in CLI Utilities (./)",
+                icon: "⌨️",
+                action: () => {
+                  goTo(state.cliUtilsDir);
+                  emit("terminal-here", state.cliUtilsDir);
+                },
+              },
+              {
+                label: "Browse CLI Utilities catalog…",
+                icon: "🛠️",
+                action: () => emit("open-cliutils-tool"),
+              },
+            ],
+            { ...pt, label: "CLI Utilities" },
+          ),
+      }),
+    );
+    if (isPhononSupported()) {
+      places.push(
+        sideItem({
+          icon: "🗣️",
+          label: "Ollama TTS",
+          placeId: "phonon",
+          title:
+            "Ollama Phonon Voice Reader — Read text & documents out loud, convert to plain text, set default voice, and save as any audio file",
+          active: state.powerOpen && state.powerTab === "phonon",
+          onClick: () => {
+            const readable = selectedEntries().filter(
+              (e) => !e.isDir && canReadWithPhonon(e),
+            );
+            openPower(
+              "phonon",
+              readable.length
+                ? { paths: readable.map((e) => e.path) }
+                : undefined,
+            );
+          },
+        }),
+      );
     }
   }
-  places.push(sideItem({
-    icon: "🤖",
-    label: "Ollama AI",
-    placeId: "ollama",
-    title: "Built-In Ollama AI Assistant & Full Capability Router — Chat, Deep Thinking, Vision, SystemOne Decision, Text-to-Audio LLMs, Meaning Search, Web Search & 1-Click Auto-Install",
-    active: state.powerOpen && state.powerTab === "ollama",
-    onClick: () => openPower("ollama"),
-  }));
-  places.push(sideItem({
-    icon: "🧬",
-    label: "LM Studio Bionic",
-    placeId: "bionic",
-    title: "Built-In LM Studio Bionic AI Studio — Apple Silicon MLX/oMLX/Splash LLMs & VLMs, @Skill Agent Hub, Bionic Workspace Projects, Phonon 40M Multilingual 24kHz Metal TTS, ExecuTorch Whisper ASR & Nomic Embeddings",
-    active: state.powerOpen && state.powerTab === "bionic",
-    onClick: () => openPower("bionic"),
-  }));
+  places.push(
+    sideItem({
+      icon: "🤖",
+      label: "Ollama AI",
+      placeId: "ollama",
+      title:
+        "Built-In Ollama AI Assistant & Full Capability Router — Chat, Deep Thinking, Vision, SystemOne Decision, Text-to-Audio LLMs, Meaning Search, Web Search & 1-Click Auto-Install",
+      active: state.powerOpen && state.powerTab === "ollama",
+      onClick: () => openPower("ollama"),
+    }),
+  );
+  places.push(
+    sideItem({
+      icon: "🧬",
+      label: "LM Studio Bionic",
+      placeId: "bionic",
+      title:
+        "Built-In LM Studio Bionic AI Studio — Apple Silicon MLX/oMLX/Splash LLMs & VLMs, @Skill Agent Hub, Bionic Workspace Projects, Phonon 40M Multilingual 24kHz Metal TTS, ExecuTorch Whisper ASR & Nomic Embeddings",
+      active: state.powerOpen && state.powerTab === "bionic",
+      onClick: () => openPower("bionic"),
+    }),
+  );
   const activeDrive = here ? driveFor(here, state.drives, state.sep) : null;
-  const placeMatch = here !== null && [...state.places, ...(state.cliUtilsDir ? [{ path: state.cliUtilsDir }] : []), ...state.settings.favorites.map((path) => ({ path }))].some((p) => same(p.path));
-  const drives = state.drives.map((d) => sideItem({
-    icon: d.icon, label: d.name, title: d.path, active: same(d.path) || (!placeMatch && activeDrive?.path === d.path && !inTrash()), dropPath: d.path, onClick: () => goTo(d.path), extra: driveSpace(d),
-  }));
+  const placeMatch =
+    here !== null &&
+    [
+      ...state.places,
+      ...(state.cliUtilsDir ? [{ path: state.cliUtilsDir }] : []),
+      ...state.settings.favorites.map((path) => ({ path })),
+    ].some((p) => same(p.path));
+  const drives = state.drives.map((d) =>
+    sideItem({
+      icon: d.icon,
+      label: d.name,
+      title: d.path,
+      active:
+        same(d.path) ||
+        (!placeMatch && activeDrive?.path === d.path && !inTrash()),
+      dropPath: d.path,
+      onClick: () => goTo(d.path),
+      extra: driveSpace(d),
+    }),
+  );
   const bin = sideItem({
-    icon: "🗑️", label: "Recycle Bin", placeId: "recycle", title: state.trashCount ? `${plural(state.trashCount, "deleted item")}` : "Empty", active: inTrash(), trash: true, badge: state.trashCount || null,
-    ariaLabel: state.trashCount ? `Recycle Bin, ${plural(state.trashCount, "item")}` : "Recycle Bin, empty", onClick: () => showTrash(),
-    onMenu: (pt) => showMenu([{ label: "Open Recycle Bin", action: () => showTrash() }, { label: "Empty Recycle Bin…", danger: true, disabled: !state.trashCount, action: ops.emptyBin }], { ...pt, label: "Recycle Bin" }),
+    icon: "🗑️",
+    label: "Recycle Bin",
+    placeId: "recycle",
+    title: state.trashCount
+      ? `${plural(state.trashCount, "deleted item")}`
+      : "Empty",
+    active: inTrash(),
+    trash: true,
+    badge: state.trashCount || null,
+    ariaLabel: state.trashCount
+      ? `Recycle Bin, ${plural(state.trashCount, "item")}`
+      : "Recycle Bin, empty",
+    onClick: () => showTrash(),
+    onMenu: (pt) =>
+      showMenu(
+        [
+          { label: "Open Recycle Bin", action: () => showTrash() },
+          {
+            label: "Empty Recycle Bin…",
+            danger: true,
+            disabled: !state.trashCount,
+            action: ops.emptyBin,
+          },
+        ],
+        { ...pt, label: "Recycle Bin" },
+      ),
   });
-  nav.append(...[favoritesSection(favorites), section("Places", places), folderTreeSection(), section("Drives", drives), tagsSection(), recentSection(sideItem), section("", [bin])].filter(Boolean));
+  nav.append(
+    ...[
+      favoritesSection(favorites),
+      section("Places", places),
+      folderTreeSection(),
+      section("Drives", drives),
+      tagsSection(),
+      recentSection(sideItem),
+      section("", [bin]),
+    ].filter(Boolean),
+  );
 }
 
 export function wireSidebar() {

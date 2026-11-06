@@ -26,8 +26,11 @@ import {
   getScreenDimensions,
 } from "../index.ts";
 
-const injectGameMasterFx = (html: string, _title?: string, _accent?: string): string =>
-  injectGameMasterFxBase(html);
+const injectGameMasterFx = (
+  html: string,
+  _title?: string,
+  _accent?: string,
+): string => injectGameMasterFxBase(html);
 
 export const APP_PORT = Number(process.env.PEGGLE_PORT || 3274);
 export const DEFAULT_PORT = APP_PORT;
@@ -144,7 +147,11 @@ ${getWindowShortcutsScript()}
     html += desktopHooks;
   }
 
-  return injectGameMasterFx(html, "Codecaine CyberPeggle: Extreme Pachinko Odyssey", "amber");
+  return injectGameMasterFx(
+    html,
+    "Codecaine CyberPeggle: Extreme Pachinko Odyssey",
+    "amber",
+  );
 }
 
 const FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
@@ -180,7 +187,10 @@ export function startPeggleServer(options: PeggleServerOptions = {}) {
 
       if (pathname === "/" || pathname === "/index.html") {
         return new Response(generatePeggleStudioHtml(), {
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            ...corsHeaders,
+          },
         });
       }
 
@@ -219,7 +229,9 @@ export function startPeggleServer(options: PeggleServerOptions = {}) {
         return new Response("Forbidden", { status: 403 });
       }
       if (existsSync(directCandidate)) {
-        return new Response(Bun.file(directCandidate), { headers: corsHeaders });
+        return new Response(Bun.file(directCandidate), {
+          headers: corsHeaders,
+        });
       }
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
@@ -227,7 +239,9 @@ export function startPeggleServer(options: PeggleServerOptions = {}) {
   });
 }
 
-export function createPeggleStudio(options: PeggleStudioOptions = {}): PeggleStudioInstance {
+export function createPeggleStudio(
+  options: PeggleStudioOptions = {},
+): PeggleStudioInstance {
   const fullscreen = options.fullscreen ?? false;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1380);
@@ -259,7 +273,8 @@ export function createPeggleStudio(options: PeggleStudioOptions = {}): PeggleStu
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -279,11 +294,15 @@ export function createPeggleStudio(options: PeggleStudioOptions = {}): PeggleStu
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -294,7 +313,9 @@ export function createPeggleStudio(options: PeggleStudioOptions = {}): PeggleStu
 
         webview.setHTML(html);
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
         console.warn(
@@ -302,7 +323,9 @@ export function createPeggleStudio(options: PeggleStudioOptions = {}): PeggleStu
         );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -325,10 +348,13 @@ if (process.argv.includes("--server")) {
   const port = Number(process.env.PEGGLE_PORT || process.env.PORT || APP_PORT);
   const srv = startPeggleServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`🌈 ${APP_TITLE} Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `🌈 ${APP_TITLE} Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = process.argv.includes("--fullscreen") || process.argv.includes("-f");
+  const fullscreen =
+    process.argv.includes("--fullscreen") || process.argv.includes("-f");
   const app = createPeggleStudio({ fullscreen });
   await app.run();
   process.exit(0);

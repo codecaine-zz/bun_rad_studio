@@ -28,7 +28,9 @@ afterAll(() => {
 });
 
 const resetState = (obj?: unknown) => {
-  try { fs.rmSync(stateFile); } catch {}
+  try {
+    fs.rmSync(stateFile);
+  } catch {}
   if (obj !== undefined) fs.writeFileSync(stateFile, JSON.stringify(obj));
 };
 
@@ -42,7 +44,11 @@ describe("maze engine: generation algorithms", () => {
 
     for (const algo of algos) {
       for (const diff of ["easy", "medium"]) {
-        const p = E.generatePuzzle({ algo, diff, seed: `test-seed-${algo}-${diff}` });
+        const p = E.generatePuzzle({
+          algo,
+          diff,
+          seed: `test-seed-${algo}-${diff}`,
+        });
         expect(p.grid.length).toBe(p.rows);
         expect(p.grid[0].length).toBe(p.cols);
         expect(p.exit).toEqual({ x: p.cols - 1, y: p.rows - 1 });
@@ -65,9 +71,21 @@ describe("maze engine: generation algorithms", () => {
   });
 
   test("seeded PRNG is deterministic across repeated runs", () => {
-    const p1 = E.generatePuzzle({ algo: "kruskal", diff: "medium", seed: "cyber-seed-42" });
-    const p2 = E.generatePuzzle({ algo: "kruskal", diff: "medium", seed: "cyber-seed-42" });
-    const p3 = E.generatePuzzle({ algo: "kruskal", diff: "medium", seed: "different-seed-99" });
+    const p1 = E.generatePuzzle({
+      algo: "kruskal",
+      diff: "medium",
+      seed: "cyber-seed-42",
+    });
+    const p2 = E.generatePuzzle({
+      algo: "kruskal",
+      diff: "medium",
+      seed: "cyber-seed-42",
+    });
+    const p3 = E.generatePuzzle({
+      algo: "kruskal",
+      diff: "medium",
+      seed: "different-seed-99",
+    });
 
     expect(JSON.stringify(p1.grid)).toBe(JSON.stringify(p2.grid));
     expect(p1.solutionPath).toEqual(p2.solutionPath);
@@ -75,17 +93,34 @@ describe("maze engine: generation algorithms", () => {
   });
 
   test("braided maze reduces dead ends compared to standard tree mazes", () => {
-    const unbraided = E.generatePuzzle({ algo: "dfs", diff: "medium", seed: "braid-check" });
-    const braided = E.generatePuzzle({ algo: "braided", diff: "medium", seed: "braid-check", braidFactor: 0.8 });
+    const unbraided = E.generatePuzzle({
+      algo: "dfs",
+      diff: "medium",
+      seed: "braid-check",
+    });
+    const braided = E.generatePuzzle({
+      algo: "braided",
+      diff: "medium",
+      seed: "braid-check",
+      braidFactor: 0.8,
+    });
 
-    const deUnbraided = E.findDeadEnds(unbraided.grid, unbraided.cols, unbraided.rows);
+    const deUnbraided = E.findDeadEnds(
+      unbraided.grid,
+      unbraided.cols,
+      unbraided.rows,
+    );
     const deBraided = E.findDeadEnds(braided.grid, braided.cols, braided.rows);
 
     expect(deBraided.length).toBeLessThan(deUnbraided.length);
   });
 
   test("shards are placed in dead ends and exclude start and exit", () => {
-    const p = E.generatePuzzle({ algo: "prim", diff: "medium", seed: "shard-test" });
+    const p = E.generatePuzzle({
+      algo: "prim",
+      diff: "medium",
+      seed: "shard-test",
+    });
     expect(p.shards.length).toBeGreaterThan(0);
 
     for (const s of p.shards) {
@@ -101,11 +136,36 @@ describe("maze engine: generation algorithms", () => {
 // ---------------------------------------------------------------------------------------------
 describe("maze engine: pathfinding solvers", () => {
   test("A*, Dijkstra, and BFS all find optimal paths, while A* explores fewer or equal nodes", () => {
-    const p = E.generatePuzzle({ algo: "dfs", diff: "medium", seed: "solver-compare" });
+    const p = E.generatePuzzle({
+      algo: "dfs",
+      diff: "medium",
+      seed: "solver-compare",
+    });
 
-    const astar = E.solveMaze(p.grid, p.cols, p.rows, { x: 0, y: 0 }, p.exit, "astar");
-    const dijkstra = E.solveMaze(p.grid, p.cols, p.rows, { x: 0, y: 0 }, p.exit, "dijkstra");
-    const bfs = E.solveMaze(p.grid, p.cols, p.rows, { x: 0, y: 0 }, p.exit, "bfs");
+    const astar = E.solveMaze(
+      p.grid,
+      p.cols,
+      p.rows,
+      { x: 0, y: 0 },
+      p.exit,
+      "astar",
+    );
+    const dijkstra = E.solveMaze(
+      p.grid,
+      p.cols,
+      p.rows,
+      { x: 0, y: 0 },
+      p.exit,
+      "dijkstra",
+    );
+    const bfs = E.solveMaze(
+      p.grid,
+      p.cols,
+      p.rows,
+      { x: 0, y: 0 },
+      p.exit,
+      "bfs",
+    );
 
     expect(astar.path).not.toBeNull();
     expect(dijkstra.path).not.toBeNull();
@@ -149,7 +209,9 @@ describe("maze engine: telemetry, daily challenges, and statistics", () => {
   });
 
   test("statistics sanitization and record tracking", () => {
-    expect(E.sanitizeSettings({ mode: "invalid", diff: "insane" })).toMatchObject({
+    expect(
+      E.sanitizeSettings({ mode: "invalid", diff: "insane" }),
+    ).toMatchObject({
       mode: "classic",
       diff: "insane",
       algo: "dfs",
@@ -159,7 +221,14 @@ describe("maze engine: telemetry, daily challenges, and statistics", () => {
     let stats = E.emptyStats();
     expect(stats.played).toBe(0);
 
-    const r1 = E.recordGame(stats, { won: true, mode: "classic", diff: "medium", timeMs: 45000, steps: 50, shards: 3 });
+    const r1 = E.recordGame(stats, {
+      won: true,
+      mode: "classic",
+      diff: "medium",
+      timeMs: 45000,
+      steps: 50,
+      shards: 3,
+    });
     stats = r1.stats;
     expect(stats.played).toBe(1);
     expect(stats.won).toBe(1);
@@ -168,14 +237,27 @@ describe("maze engine: telemetry, daily challenges, and statistics", () => {
     expect(r1.isNewBestTime).toBe(true);
 
     // Slower game does not overwrite best
-    const r2 = E.recordGame(stats, { won: true, mode: "classic", diff: "medium", timeMs: 60000, steps: 80, shards: 1 });
+    const r2 = E.recordGame(stats, {
+      won: true,
+      mode: "classic",
+      diff: "medium",
+      timeMs: 60000,
+      steps: 80,
+      shards: 1,
+    });
     stats = r2.stats;
     expect(stats.played).toBe(2);
     expect(stats.best["classic|medium"].timeMs).toBe(45000);
     expect(r2.isNewBestTime).toBe(false);
 
     // Surrendered game recorded
-    const r3 = E.recordGame(stats, { won: false, surrendered: true, mode: "classic", diff: "medium", steps: 20 });
+    const r3 = E.recordGame(stats, {
+      won: false,
+      surrendered: true,
+      mode: "classic",
+      diff: "medium",
+      steps: 20,
+    });
     stats = r3.stats;
     expect(stats.played).toBe(3);
     expect(stats.surrendered).toBe(1);
@@ -187,7 +269,10 @@ describe("maze engine: telemetry, daily challenges, and statistics", () => {
 // ---------------------------------------------------------------------------------------------
 describe("maze studio server & persistence", () => {
   test("generated HTML inlines the engine and injects escaped state", () => {
-    resetState({ settings: { theme: "magenta" }, stats: { played: 5, note: "</script><b>" } });
+    resetState({
+      settings: { theme: "magenta" },
+      stats: { played: 5, note: "</script><b>" },
+    });
     const html = generateMazeStudioHtml();
 
     expect(html).not.toContain('src="engine.js"');
@@ -201,8 +286,15 @@ describe("maze studio server & persistence", () => {
     resetState();
     expect(loadMazeState()).toEqual({});
 
-    expect(saveMazeState(JSON.stringify({ settings: { theme: "amber" }, stats: { played: 1 } }))).toBe(true);
-    expect(loadMazeState()).toEqual({ settings: { theme: "amber" }, stats: { played: 1 } });
+    expect(
+      saveMazeState(
+        JSON.stringify({ settings: { theme: "amber" }, stats: { played: 1 } }),
+      ),
+    ).toBe(true);
+    expect(loadMazeState()).toEqual({
+      settings: { theme: "amber" },
+      stats: { played: 1 },
+    });
 
     expect(saveMazeState("not json")).toBe(false);
     expect(saveMazeState("[1, 2, 3]")).toBe(false);
@@ -211,7 +303,9 @@ describe("maze studio server & persistence", () => {
     // Corrupted file falls back to {}
     fs.writeFileSync(getMazeStatePath(), "{{broken json");
     expect(loadMazeState()).toEqual({});
-    expect(fs.readdirSync(tmp).filter((f) => f.endsWith(".tmp")).length).toBe(0);
+    expect(fs.readdirSync(tmp).filter((f) => f.endsWith(".tmp")).length).toBe(
+      0,
+    );
   });
 
   test("HTTP server endpoints: root, engine.js, health, state GET/POST, origin protection", async () => {
@@ -230,7 +324,9 @@ describe("maze studio server & persistence", () => {
       expect(await resEng.text()).toContain("MazeEngine");
 
       // 2. Health check
-      const resHealth = await (await fetch(`${base}/api/health`)).json() as any;
+      const resHealth = (await (
+        await fetch(`${base}/api/health`)
+      ).json()) as any;
       expect(resHealth.status).toBe("ok");
       expect(resHealth.app).toBe("maze_generator_studio");
 
@@ -238,7 +334,10 @@ describe("maze studio server & persistence", () => {
       const resGet1 = await (await fetch(`${base}/api/state`)).json();
       expect(resGet1).toEqual({});
 
-      const postData = { settings: { theme: "green", diff: "hard" }, stats: { played: 2 } };
+      const postData = {
+        settings: { theme: "green", diff: "hard" },
+        stats: { played: 2 },
+      };
       const resPost = await fetch(`${base}/api/state`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -252,13 +351,19 @@ describe("maze studio server & persistence", () => {
       // 4. Cross-origin rejection
       const evilPost = await fetch(`${base}/api/state`, {
         method: "POST",
-        headers: { Origin: "https://attacker.example", "Content-Type": "application/json" },
+        headers: {
+          Origin: "https://attacker.example",
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(postData),
       });
       expect(evilPost.status).toBe(403);
 
       // 5. Malformed payload & unsupported method
-      const badPost = await fetch(`${base}/api/state`, { method: "POST", body: "not-json" });
+      const badPost = await fetch(`${base}/api/state`, {
+        method: "POST",
+        body: "not-json",
+      });
       expect(badPost.status).toBe(400);
 
       const badMethod = await fetch(`${base}/api/state`, { method: "DELETE" });
@@ -281,10 +386,22 @@ describe("maze page (jsdom, run under node)", () => {
     resetState();
     const baseFile = path.join(tmp, "base.html");
     fs.writeFileSync(baseFile, generateMazeStudioHtml());
-    const r = Bun.spawnSync(["node", "--test", "--test-reporter=spec", path.join(import.meta.dir, "maze_generator_page.node.mjs")], {
-      cwd: path.join(import.meta.dir, ".."),
-      env: { ...process.env, MAZE_BASE_HTML: baseFile, MAZE_STATE_FILE: stateFile },
-    });
+    const r = Bun.spawnSync(
+      [
+        "node",
+        "--test",
+        "--test-reporter=spec",
+        path.join(import.meta.dir, "maze_generator_page.node.mjs"),
+      ],
+      {
+        cwd: path.join(import.meta.dir, ".."),
+        env: {
+          ...process.env,
+          MAZE_BASE_HTML: baseFile,
+          MAZE_STATE_FILE: stateFile,
+        },
+      },
+    );
     const out = r.stdout.toString() + r.stderr.toString();
     if (r.exitCode !== 0) console.log(out);
     expect(r.exitCode).toBe(0);

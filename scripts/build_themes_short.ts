@@ -25,7 +25,12 @@ const OUTPUT = join(PROD, "codecaine-file-manager-themes-short.mp4");
 const NOTES = join(PROD, "THEMES_SHORT_NOTES.md");
 const REPO = "https://github.com/codecaine-zz/bun_rad_studio";
 const SOURCE_MP4 = join(PROD, "file_manager_tutorial", "live", "22_themes.mp4");
-const TIMELINE_JSON = join(PROD, "file_manager_tutorial", "timelines", "22_themes.json");
+const TIMELINE_JSON = join(
+  PROD,
+  "file_manager_tutorial",
+  "timelines",
+  "22_themes.json",
+);
 
 type SceneSpec = {
   id: string;
@@ -50,8 +55,13 @@ const sceneSpecs: SceneSpec[] = [
     badge: "01 / 17 · GOD-MODE THEMES & SHADER STUDIO",
     title: "310 THEMES.\n194 LIVE SHADERS.",
     label: "APPLE M4 ULTRA 80-CORE · 192GB RAM · PRO DISPLAY XDR 6K 120HZ",
-    extra: "Recorded on Flagship Mac Studio M4 Ultra 6K XDR · Windows, macOS & Linux",
-    bullets: ["310 Themes + Year 3000+ God-Mode", "🍎 Flagship Mac M4 Ultra 6K XDR", "⚡ 120Hz ProMotion Zero-Lag Shaders"],
+    extra:
+      "Recorded on Flagship Mac Studio M4 Ultra 6K XDR · Windows, macOS & Linux",
+    bullets: [
+      "310 Themes + Year 3000+ God-Mode",
+      "🍎 Flagship Mac M4 Ultra 6K XDR",
+      "⚡ 120Hz ProMotion Zero-Lag Shaders",
+    ],
     say: "Wait until you see the new God-Mode Theme and Shader Studio in the Codecaine File Manager, recorded on an Apple M4 Ultra six-K Pro Display X D R with three hundred and ten themes and one hundred and ninety-four live shaders.",
   },
   {
@@ -60,8 +70,13 @@ const sceneSpecs: SceneSpec[] = [
     badge: "02 / 17 · MAC, WINDOWS & LINUX ZERO-LAG",
     title: "MAC, WIN & LINUX\nZERO-LAG + VFD.",
     label: "🍎 MAC METAL · 🪟 WIN11 DX12 · 🐧 UBUNTU/VM · 📟 VFD TELEMETRY",
-    extra: "1-Click Optimize for Mac, Windows & Linux/VM + Pop-Out VFD Telemetry HUD",
-    bullets: ["🍎 Optimize for Mac M4 ProMotion", "🪟 Optimize for Windows 11 DX12", "🐧 Optimize for Ubuntu Linux & VM"],
+    extra:
+      "1-Click Optimize for Mac, Windows & Linux/VM + Pop-Out VFD Telemetry HUD",
+    bullets: [
+      "🍎 Optimize for Mac M4 ProMotion",
+      "🪟 Optimize for Windows 11 DX12",
+      "🐧 Optimize for Ubuntu Linux & VM",
+    ],
     say: "Browse three hundred and ten zero-lag themes with one-click Optimize for Mac, Windows, and Linux buttons, plus a live V F D Telemetry Deck.",
   },
   {
@@ -70,8 +85,13 @@ const sceneSpecs: SceneSpec[] = [
     badge: "03 / 17 · YEAR 3000+ & FLAGSHIP MAC KITS",
     title: "YEAR 3000+ KITS &\nMAC M4 ULTRA 6K.",
     label: "🪐 OMEGA SINGULARITY · 💎 PHOTONIC 3099 · 🖥️ M4 ULTRA 6K XDR",
-    extra: "1-Click Workstation Jumpstart Kits for Year 3000+ & Flagship Mac Displays",
-    bullets: ["🪐 Year 3000+ Omega & Photonic Kits", "🖥️ Mac Studio M4 Ultra 6K XDR Kit", "🍎 5K Studio Display & Tahoe 3D"],
+    extra:
+      "1-Click Workstation Jumpstart Kits for Year 3000+ & Flagship Mac Displays",
+    bullets: [
+      "🪐 Year 3000+ Omega & Photonic Kits",
+      "🖥️ Mac Studio M4 Ultra 6K XDR Kit",
+      "🍎 5K Studio Display & Tahoe 3D",
+    ],
     say: "Click any One-Click Jumpstart Kit to transform your entire desktop: try Year Three Thousand Omega Point Singularity and Photonic Metamaterial, or Mac Studio M4 Ultra six-K X D R and five-K Studio Display.",
   },
   {
@@ -80,8 +100,13 @@ const sceneSpecs: SceneSpec[] = [
     badge: "04 / 17 · SINGULARITY, M4 XDR & 120HZ TIE-DYE",
     title: "OMEGA 3000, M4 XDR\n& 120HZ TIE-DYE.",
     label: "OMEGA POINT · MATRIOSHKA DYSON · M4 ULTRA · 120HZ TIE-DYE '67",
-    extra: "Post-Singularity Hyper-Materials, 120Hz Lava-Wax Tie-Dye & EF5 Tornado",
-    bullets: ["🪐 Omega Point & Dyson Brain 3000", "🫧 120Hz Haight-Ashbury Tie-Dye '67", "🔥 Inferno Fire & 🌪️ EF5 Tornado"],
+    extra:
+      "Post-Singularity Hyper-Materials, 120Hz Lava-Wax Tie-Dye & EF5 Tornado",
+    bullets: [
+      "🪐 Omega Point & Dyson Brain 3000",
+      "🫧 120Hz Haight-Ashbury Tie-Dye '67",
+      "🔥 Inferno Fire & 🌪️ EF5 Tornado",
+    ],
     say: "Test Omega Point Singularity and Matrioshka Dyson Brain, switch to Mac Studio M4 Ultra, then run Haight-Ashbury Tie-Dye sixty-seven at a locked one hundred and twenty Hertz alongside Inferno Fire and E F 5 Tornado.",
   },
   {
@@ -90,8 +115,13 @@ const sceneSpecs: SceneSpec[] = [
     badge: "05 / 17 · NERD, HOLIDAYS, HORROR & CLASSICS",
     title: "D&D GRIMOIRE, LCARS,\nBeOS & OS/2 WARP.",
     label: "🎲 NERD COMPLETE · 🎄 18 US HOLIDAYS · 🧛 HORROR · 🕹️ CLASSIC OS",
-    extra: "D&D Arcane Grimoire, Starfleet LCARS, BeOS R5, OS/2 Warp & Surprise Me",
-    bullets: ["🎲 D&D Grimoire & Starfleet LCARS", "🎄 18 US Holidays & 🧛 Screen-Melt", "🕹️ BeOS R5, OS/2 Warp & Surprise Me"],
+    extra:
+      "D&D Arcane Grimoire, Starfleet LCARS, BeOS R5, OS/2 Warp & Surprise Me",
+    bullets: [
+      "🎲 D&D Grimoire & Starfleet LCARS",
+      "🎄 18 US Holidays & 🧛 Screen-Melt",
+      "🕹️ BeOS R5, OS/2 Warp & Surprise Me",
+    ],
     say: "Explore eighteen U S Holiday themes, ten Nerd Complete themes like D and D Arcane Grimoire and Starfleet L C A R S Bridge, Horror screen-melt themes, and classics like BeOS R 5 and O S 2 Warp 4.",
   },
   {
@@ -100,8 +130,13 @@ const sceneSpecs: SceneSpec[] = [
     badge: "06 / 17 · ⌘V PASTE, BULK IMPORT & CONFLICTS",
     title: "⌘V PASTE, BULK IMPORT\n& CONFLICT MODAL.",
     label: "📋 ⌘V CLIPBOARD PASTE · 📦 BULK IMPORT · ⚠️ AUTO CONFLICT MODAL",
-    extra: "Paste With ⌘V or Bulk Import Files With Replace, Keep Both, Merge FX or Skip",
-    bullets: ["📋 ⌘V Instant Clipboard Paste", "📦 Bulk Import Codes & Packs", "⚠️ Replace, Keep Both or Merge FX"],
+    extra:
+      "Paste With ⌘V or Bulk Import Files With Replace, Keep Both, Merge FX or Skip",
+    bullets: [
+      "📋 ⌘V Instant Clipboard Paste",
+      "📦 Bulk Import Codes & Packs",
+      "⚠️ Replace, Keep Both or Merge FX",
+    ],
     say: "Pin themes per folder, press Command V anywhere to paste a theme code from your clipboard, or bulk-import packs with an automatic Conflict Resolution modal.",
   },
   {
@@ -111,7 +146,11 @@ const sceneSpecs: SceneSpec[] = [
     title: "COMPARE & BLEND\n2 THEMES LIVE.",
     label: "⚖️ SPLIT-SCREEN WIPE · 🧬 LIVE OKLAB THEME BLENDER",
     extra: "Drag Wipe Slider or Perceptually Crossfade Theme A × Theme B",
-    bullets: ["Live Split-Screen Wipe Slider", "🧬 OKLab Perceptual Crossfader", "Preview & Save Hybrid Themes"],
+    bullets: [
+      "Live Split-Screen Wipe Slider",
+      "🧬 OKLab Perceptual Crossfader",
+      "Preview & Save Hybrid Themes",
+    ],
     say: "Open Compare and Blend to drag a live split-screen wipe slider across any two themes, or use the O K Lab Theme Blender to perceptually crossfade them into a brand-new hybrid.",
   },
   {
@@ -121,7 +160,11 @@ const sceneSpecs: SceneSpec[] = [
     title: "SOLAR SCHEDULE &\nAMBIENT PLAYLIST.",
     label: "🌅 DAWN · ☀️ DAY · 🌆 DUSK · 🌌 MIDNIGHT · 📻 AUTO-PLAYLIST",
     extra: "✨ Auto-Fill Sci-Fi Solar Cycle + Timed Theme & Shader Rotation",
-    bullets: ["4-Stage Solar Clock Schedule", "✨ 1-Click Sci-Fi Solar Preset", "📻 Ambient Playlist Rotation"],
+    bullets: [
+      "4-Stage Solar Clock Schedule",
+      "✨ 1-Click Sci-Fi Solar Preset",
+      "📻 Ambient Playlist Rotation",
+    ],
     say: "In Day Night and Playlist, link light and dark themes, auto-fill the four-stage Solar Cycle for Dawn, Day, Dusk, and Midnight, or enable Ambient Playlist auto-rotation.",
   },
   {
@@ -130,8 +173,13 @@ const sceneSpecs: SceneSpec[] = [
     badge: "09 / 17 · 194 SHADERS & EF5 TORNADOES",
     title: "194 SHADERS, M4 120HZ\n& EF5 TORNADOES.",
     label: "M4 MAX EXTREME 120HZ · EF5 DEBRIS TORNADO · NOR'EASTER GALE",
-    extra: "3D-Tumbling Leaves, Roof Shingles, Flying Papers & Cat 5 Hurricanes",
-    bullets: ["194 Real-Time 2D Shaders", "M4 Max Extreme Uncapped 120Hz", "EF5 Tornado & Autumn Leaf Gale"],
+    extra:
+      "3D-Tumbling Leaves, Roof Shingles, Flying Papers & Cat 5 Hurricanes",
+    bullets: [
+      "194 Real-Time 2D Shaders",
+      "M4 Max Extreme Uncapped 120Hz",
+      "EF5 Tornado & Autumn Leaf Gale",
+    ],
     say: "Open Atmosphere FX for one hundred and ninety-four live shaders up to M4 Max Extreme 120 Hertz, including E F 5 Debris Tornadoes, October Nor'easter Leaf Gales, and Category 5 Hurricanes.",
   },
   {
@@ -140,8 +188,13 @@ const sceneSpecs: SceneSpec[] = [
     badge: "10 / 17 · YEAR 2126 & TESLA PHYSICS FX",
     title: "4D TESSERACTS &\n12M-VOLT TESLA ARCS.",
     label: "🛸 YEAR 2126 HYPER-DIMENSIONAL · ⚡ SCI-FI PHYSICS",
-    extra: "11D Calabi-Yau · Klein Bottle · Wardenclyffe · Tokamak · Ferrofluid",
-    bullets: ["4D Tesseract & 11D Calabi-Yau", "Wardenclyffe Mega-Tesla Coils", "ITER Tokamak & Ferrofluid Spikes"],
+    extra:
+      "11D Calabi-Yau · Klein Bottle · Wardenclyffe · Tokamak · Ferrofluid",
+    bullets: [
+      "4D Tesseract & 11D Calabi-Yau",
+      "Wardenclyffe Mega-Tesla Coils",
+      "ITER Tokamak & Ferrofluid Spikes",
+    ],
     say: "Explore Year 2126 Hyper-Dimensional effects like the 4D Tesseract and 11D Calabi-Yau Manifold, or Tesla and Physics simulations like Wardenclyffe Coils, ITER Tokamak, and Ferrofluid Spikes.",
   },
   {
@@ -151,7 +204,11 @@ const sceneSpecs: SceneSpec[] = [
     title: "REACT TO TYPING,\nCPU LOAD & AUDIO.",
     label: "⚡ TYPING VELOCITY · 📊 TELEMETRY PULSE · 🎵 SYNTH BEAT",
     extra: "Plus ⚡ Trigger Arc Surge for an Instant High-Voltage Impulse",
-    bullets: ["⚡ Typing & Cursor Velocity", "📊 Live System Telemetry Pulse", "🎵 Audio Beat & ⚡ Arc Surge"],
+    bullets: [
+      "⚡ Typing & Cursor Velocity",
+      "📊 Live System Telemetry Pulse",
+      "🎵 Audio Beat & ⚡ Arc Surge",
+    ],
     say: "Turn on Reactive Physics so shaders accelerate with your typing and cursor velocity, pulse with live C P U telemetry, or sync to audio beats, and click Trigger Arc Surge anytime.",
   },
   {
@@ -161,7 +218,11 @@ const sceneSpecs: SceneSpec[] = [
     title: "STACK 6 SHADERS\n& TINT EACH LAYER.",
     label: "🔀 6-LAYER MIXER · PER-LAYER COLOR/SPEED · 48 SIGNATURE MIXES",
     extra: "Combine Up to 6 Shaders With Per-Layer Modifiers & Shareable Codes",
-    bullets: ["Stack Up to 6 Live Layers", "Per-Layer Tint, Opacity & Speed", "48 Curated Signature Mixes"],
+    bullets: [
+      "Stack Up to 6 Live Layers",
+      "Per-Layer Tint, Opacity & Speed",
+      "48 Curated Signature Mixes",
+    ],
     say: "With the Multi-Effect Layer Mixer, stack up to six shaders at once with per-layer color tint and speed sliders, pick from forty-eight Signature Mixes, and save named presets.",
   },
   {
@@ -171,7 +232,11 @@ const sceneSpecs: SceneSpec[] = [
     title: "THEME SHOW OSD,\nSCREENSAVER & ⌘⇧T.",
     label: "🎬 4 SHOW MODES · 7 CHANNELS · RETRO XSCREENSAVER OSD · ⌘⇧T",
     extra: "Full-Bleed Cinema HUD, Living File Manager & Retro After Dark Mode",
-    bullets: ["🎬 4 Modes & 7 Show Channels", "📺 Retro XScreenSaver OSD", "⌘⇧T & Right ⌥ + T Anywhere"],
+    bullets: [
+      "🎬 4 Modes & 7 Show Channels",
+      "📺 Retro XScreenSaver OSD",
+      "⌘⇧T & Right ⌥ + T Anywhere",
+    ],
     say: "Launch the Theme Show and Screensaver Studio with Cinema H U D, Living File Manager, and Retro XScreenSaver modes across seven channels, or press Command Shift T anytime.",
   },
   {
@@ -181,7 +246,11 @@ const sceneSpecs: SceneSpec[] = [
     title: "PRE-BUILT PICTURES,\nHARMONY & WCAG.",
     label: "🖼️ PRE-BUILT 8K STUDIO PICTURES · 🎨 HARMONY · WCAG AA/AAA",
     extra: "1-Click Tahoe 8K, Pro Display XDR Nebula & Hasselblad Golden Hour",
-    bullets: ["🖼️ 6 Pre-Built Studio Pictures", "🎨 Auto-Harmonize & Wallpaper Extract", "Live WCAG AA / AAA Inspector"],
+    bullets: [
+      "🖼️ 6 Pre-Built Studio Pictures",
+      "🎨 Auto-Harmonize & Wallpaper Extract",
+      "Live WCAG AA / AAA Inspector",
+    ],
     say: "In the Theme Editor, click Pre-Built Studio Pictures like Tahoe Aerial Coast 8K or Pro Display X D R Nebula, auto-harmonize from accent, and verify live W C A G contrast grades.",
   },
   {
@@ -190,8 +259,13 @@ const sceneSpecs: SceneSpec[] = [
     badge: "15 / 17 · 12 PRESETS & THEME HACKER LAB",
     title: "COMPIZ BURN, 90S\nCDE & CUSTOM CSS.",
     label: "🛠️ THEME HACKER LAB · 8 MUTATORS · --* TOKENS · CUSTOM CSS",
-    extra: "Hack Any Theme With Compiz Burn, 90s Linux CDE Bevels & Wobbly Hover",
-    bullets: ["🔥 Compiz Burn & 🧪 Bio-Slime", "🐧 90s Linux / CDE 3D Chisel", "💉 Custom --* Tokens & CSS"],
+    extra:
+      "Hack Any Theme With Compiz Burn, 90s Linux CDE Bevels & Wobbly Hover",
+    bullets: [
+      "🔥 Compiz Burn & 🧪 Bio-Slime",
+      "🐧 90s Linux / CDE 3D Chisel",
+      "💉 Custom --* Tokens & CSS",
+    ],
     say: "Pick from twelve Effect Style Presets, then open the Theme Hacker Lab to inject Compiz burning folders, 90s Linux C D E bevels, green-phosphor C R T shaders, and custom C S S snippets.",
   },
   {
@@ -201,7 +275,11 @@ const sceneSpecs: SceneSpec[] = [
     title: "BIND SHADER MIXES,\nEXPORT & SHARE.",
     label: "ATTACH ANY OF 194 SHADERS OR 48 MIXES · CCFM-THEME-v1 EXPORT",
     extra: "Save Custom Hacked Themes to Your Gallery or Share as 1-Line Codes",
-    bullets: ["Bind Multi-Layer FX to Theme", "Save to My Themes Gallery", "1-Click CCFM-THEME-v1 Share"],
+    bullets: [
+      "Bind Multi-Layer FX to Theme",
+      "Save to My Themes Gallery",
+      "1-Click CCFM-THEME-v1 Share",
+    ],
     say: "Bind any atmospheric effect or multi-layer mix directly to your custom theme, name it Midnight Liquid Glass, export as a one-line C C F M Theme share code, and save it.",
   },
   {
@@ -209,26 +287,48 @@ const sceneSpecs: SceneSpec[] = [
     stepIndex: 16,
     badge: "17 / 17 · ⌥R / ⌥E / ⌥P RANDOM & ⌥] HUD",
     title: "⌥R / ⌥E / ⌥P RANDOM\n& ⌥] LIVE HUD!",
-    label: "🎲 ⌥R ANY · ✨ ⌥E FX · ⏹️ ⌥P PLAIN · 🚀 ⌥U ULTRA · 🛑 ⌥0 TOGGLE · ⌥] HUD",
-    extra: "Zero-Dialog Instant Random Themes + Watch Full Master Tutorial Below!",
-    bullets: ["🎲 ⌥R Random · ✨ ⌥E FX · ⏹️ ⌥P Plain", "🚀 ⌥U Ultra · 🛑 ⌥0 Toggle FX", "🎛️ Right ⌥ + ] Live Swatch HUD"],
+    label:
+      "🎲 ⌥R ANY · ✨ ⌥E FX · ⏹️ ⌥P PLAIN · 🚀 ⌥U ULTRA · 🛑 ⌥0 TOGGLE · ⌥] HUD",
+    extra:
+      "Zero-Dialog Instant Random Themes + Watch Full Master Tutorial Below!",
+    bullets: [
+      "🎲 ⌥R Random · ✨ ⌥E FX · ⏹️ ⌥P Plain",
+      "🚀 ⌥U Ultra · 🛑 ⌥0 Toggle FX",
+      "🎛️ Right ⌥ + ] Live Swatch HUD",
+    ],
     say: "Press Option R, E, P, or Zero for instant random themes with zero dialogs, or Right Option and brackets for the live H U D! Tap below for the full tutorial!",
   },
 ];
 
 function run(args: string[]): string {
   const result = Bun.spawnSync(args, { stdout: "pipe", stderr: "pipe" });
-  if (result.exitCode !== 0) throw new Error(`${args[0]} failed:\n${result.stderr.toString().slice(-4000)}`);
+  if (result.exitCode !== 0)
+    throw new Error(
+      `${args[0]} failed:\n${result.stderr.toString().slice(-4000)}`,
+    );
   return result.stdout.toString();
 }
 
 function duration(file: string): number {
-  const value = Number(run([FFPROBE, "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file]).trim());
-  if (!Number.isFinite(value) || value <= 0) throw new Error(`Invalid duration: ${file}`);
+  const value = Number(
+    run([
+      FFPROBE,
+      "-v",
+      "error",
+      "-show_entries",
+      "format=duration",
+      "-of",
+      "csv=p=0",
+      file,
+    ]).trim(),
+  );
+  if (!Number.isFinite(value) || value <= 0)
+    throw new Error(`Invalid duration: ${file}`);
   return value;
 }
 
-const esc = (text: string) => text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+const esc = (text: string) =>
+  text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 
 function overlay(scene: ResolvedScene, index: number): string {
   const isLast = index === sceneSpecs.length - 1;
@@ -269,12 +369,18 @@ function demoFilter(scene: ResolvedScene, seconds: number): string {
   return `${timing},scale=1080:-2:flags=lanczos[demo];[2:v]scale=1080:1920:flags=lanczos[bg];[bg][demo]overlay=0:630:shortest=1,format=yuv420p[v]`;
 }
 
-function notesMarkdown(seconds: number, tempo: number, sceneMarks: Array<{ at: number; scene: ResolvedScene }>): string {
+function notesMarkdown(
+  seconds: number,
+  tempo: number,
+  sceneMarks: Array<{ at: number; scene: ResolvedScene }>,
+): string {
   const fmt = (sec: number) => {
     const s = Math.floor(sec);
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   };
-  const stamps = sceneMarks.map((m, i) => `${fmt(i === 0 ? 0 : m.at)} ${m.scene.label}`).join("\n");
+  const stamps = sceneMarks
+    .map((m, i) => `${fmt(i === 0 ? 0 : m.at)} ${m.scene.label}`)
+    .join("\n");
   return `# Codecaine File Manager — 310 Themes, Year 3000+ God-Mode & Flagship Mac M4 Ultra 6K XDR Short (${fmt(seconds)})
 
 ## Video Files
@@ -325,8 +431,10 @@ ${stamps}
 
 async function main() {
   mkdirSync(WORK, { recursive: true });
-  if (!existsSync(SOURCE_MP4)) throw new Error(`Missing source video: ${SOURCE_MP4}`);
-  if (!existsSync(TIMELINE_JSON)) throw new Error(`Missing timeline JSON: ${TIMELINE_JSON}`);
+  if (!existsSync(SOURCE_MP4))
+    throw new Error(`Missing source video: ${SOURCE_MP4}`);
+  if (!existsSync(TIMELINE_JSON))
+    throw new Error(`Missing timeline JSON: ${TIMELINE_JSON}`);
 
   const srcDur = duration(SOURCE_MP4);
   const timeline = JSON.parse(readFileSync(TIMELINE_JSON, "utf8")) as {
@@ -336,21 +444,34 @@ async function main() {
   const scenes: ResolvedScene[] = sceneSpecs.map((spec) => {
     const step = timeline.steps[spec.stepIndex];
     if (!step) {
-      throw new Error(`Step index ${spec.stepIndex} not found in ${TIMELINE_JSON} (has ${timeline.steps.length} steps)`);
+      throw new Error(
+        `Step index ${spec.stepIndex} not found in ${TIMELINE_JSON} (has ${timeline.steps.length} steps)`,
+      );
     }
-    const start = Math.max(0, Math.min(srcDur - 1, Number(step.start.toFixed(2))));
+    const start = Math.max(
+      0,
+      Math.min(srcDur - 1, Number(step.start.toFixed(2))),
+    );
     const rawLen = Math.max(2, Number((step.end - step.start).toFixed(2)));
     const length = Math.min(rawLen, Number((srcDur - start).toFixed(2)));
     return { ...spec, start, length };
   });
 
-  const narrated: Array<{ scene: ResolvedScene; audio: string; seconds: number }> = [];
+  const narrated: Array<{
+    scene: ResolvedScene;
+    audio: string;
+    seconds: number;
+  }> = [];
   for (const scene of scenes) {
     console.log(`🎙️  Narrating ${scene.id}...`);
-    const narration = await narrate(scene.id, scene.say, join(WORK, "audio"), { rate: "+3%", gap: 0.22 });
+    const narration = await narrate(scene.id, scene.say, join(WORK, "audio"), {
+      rate: "+3%",
+      gap: 0.22,
+    });
     const audio = join(WORK, `${scene.id}.wav`);
     const seconds = duration(narration) - 0.85;
-    if (seconds <= 0) throw new Error(`Narration is too short to trim: ${scene.id}`);
+    if (seconds <= 0)
+      throw new Error(`Narration is too short to trim: ${scene.id}`);
     run([
       FFMPEG,
       "-hide_banner",
@@ -373,11 +494,20 @@ async function main() {
   const total = narrated.reduce((sum, item) => sum + item.seconds, 0);
   const tempo = Math.max(1, total / 176.5);
   if (tempo > 1.22) {
-    throw new Error(`Narration is too long (${total.toFixed(1)}s); shorten the script rather than rushing it.`);
+    throw new Error(
+      `Narration is too long (${total.toFixed(1)}s); shorten the script rather than rushing it.`,
+    );
   }
-  console.log(`⏱️  Raw narration ${total.toFixed(2)}s; pace adjustment ${tempo.toFixed(3)}x`);
+  console.log(
+    `⏱️  Raw narration ${total.toFixed(2)}s; pace adjustment ${tempo.toFixed(3)}x`,
+  );
 
-  const browser = await Cdp.launch(9361, join(WORK, "chrome-profile"), 1080, 1920);
+  const browser = await Cdp.launch(
+    9361,
+    join(WORK, "chrome-profile"),
+    1080,
+    1920,
+  );
   const segments: string[] = [];
   const sceneMarks: Array<{ at: number; scene: ResolvedScene }> = [];
   let at = 0;
@@ -385,14 +515,21 @@ async function main() {
   try {
     for (const [index, item] of narrated.entries()) {
       const { scene, audio } = item;
-      console.log(`🎬 Building ${scene.id} (clip ${scene.start.toFixed(1)}s + ${scene.length.toFixed(1)}s)...`);
+      console.log(
+        `🎬 Building ${scene.id} (clip ${scene.start.toFixed(1)}s + ${scene.length.toFixed(1)}s)...`,
+      );
       const seconds = item.seconds / tempo;
       const html = join(WORK, `${scene.id}.html`);
       const png = join(WORK, `${scene.id}.png`);
       writeFileSync(html, overlay(scene, index));
       await browser.goto(`file://${html}`, null);
-      await browser.send("Emulation.setDefaultBackgroundColorOverride", { color: { r: 0, g: 0, b: 0, a: 0 } });
-      const screenshot = await browser.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
+      await browser.send("Emulation.setDefaultBackgroundColorOverride", {
+        color: { r: 0, g: 0, b: 0, a: 0 },
+      });
+      const screenshot = await browser.send("Page.captureScreenshot", {
+        format: "png",
+        captureBeyondViewport: false,
+      });
       writeFileSync(png, Buffer.from(screenshot.data, "base64"));
 
       const segment = join(WORK, `${scene.id}.mp4`);
@@ -452,7 +589,12 @@ async function main() {
   }
 
   const list = join(WORK, "concat.txt");
-  writeFileSync(list, segments.map((file) => `file '${file.replaceAll("'", "'\\''")}'`).join("\n"));
+  writeFileSync(
+    list,
+    segments
+      .map((file) => `file '${file.replaceAll("'", "'\\''")}'`)
+      .join("\n"),
+  );
   run([
     FFMPEG,
     "-hide_banner",
@@ -473,22 +615,38 @@ async function main() {
   ]);
 
   const seconds = duration(OUTPUT);
-  if (seconds >= 180) throw new Error(`Short exceeds three minutes: ${seconds}`);
+  if (seconds >= 180)
+    throw new Error(`Short exceeds three minutes: ${seconds}`);
 
   const md = notesMarkdown(seconds, tempo, sceneMarks);
   writeFileSync(NOTES, md);
   writeFileSync(join(WORK, "upload-guide.txt"), md);
-  console.log(`\n✔ Created ${OUTPUT} (${seconds.toFixed(2)}s, ${(Bun.file(OUTPUT).size / 1048576).toFixed(1)} MB)`);
+  console.log(
+    `\n✔ Created ${OUTPUT} (${seconds.toFixed(2)}s, ${(Bun.file(OUTPUT).size / 1048576).toFixed(1)} MB)`,
+  );
   console.log(`📝 ${NOTES}`);
 
   // Also package the standalone Long-Form Themes Masterclass MP4 + Notes from the built 22_themes segment
-  const segCard = join(PROD, "file_manager_tutorial", "segments", "22_themes_card.mp4");
-  const segBody = join(PROD, "file_manager_tutorial", "segments", "22_themes.mp4");
+  const segCard = join(
+    PROD,
+    "file_manager_tutorial",
+    "segments",
+    "22_themes_card.mp4",
+  );
+  const segBody = join(
+    PROD,
+    "file_manager_tutorial",
+    "segments",
+    "22_themes.mp4",
+  );
   const longOut = join(PROD, "codecaine-file-manager-themes-tutorial.mp4");
   const longNotes = join(PROD, "THEMES_TUTORIAL_NOTES.md");
   if (existsSync(segCard) && existsSync(segBody)) {
     const longList = join(WORK, "concat_long.txt");
-    writeFileSync(longList, `file '${segCard.replaceAll("'", "'\\''")}'\nfile '${segBody.replaceAll("'", "'\\''")}'\n`);
+    writeFileSync(
+      longList,
+      `file '${segCard.replaceAll("'", "'\\''")}'\nfile '${segBody.replaceAll("'", "'\\''")}'\n`,
+    );
     run([
       FFMPEG,
       "-hide_banner",
@@ -512,7 +670,9 @@ async function main() {
       const s = Math.floor(sec);
       return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
     };
-    const longStamps = timeline.steps.map((st, idx) => `${fmt(idx === 0 ? 0 : st.start + 3.5)} ${st.cap}`).join("\n");
+    const longStamps = timeline.steps
+      .map((st, idx) => `${fmt(idx === 0 ? 0 : st.start + 3.5)} ${st.cap}`)
+      .join("\n");
     const longMd = `# Codecaine File Manager — Complete Themes & Atmospheric Shader Studio Masterclass (${fmt(longDur)})
 
 ## Video File
@@ -527,10 +687,11 @@ ${longStamps}
 \`\`\`
 `;
     writeFileSync(longNotes, longMd);
-    console.log(`✔ Created standalone Long-Form Themes Masterclass: ${longOut} (${longDur.toFixed(1)}s, ${(Bun.file(longOut).size / 1048576).toFixed(1)} MB)`);
+    console.log(
+      `✔ Created standalone Long-Form Themes Masterclass: ${longOut} (${longDur.toFixed(1)}s, ${(Bun.file(longOut).size / 1048576).toFixed(1)} MB)`,
+    );
     console.log(`📝 ${longNotes}`);
   }
 }
 
 await main();
-

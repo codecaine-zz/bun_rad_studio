@@ -249,8 +249,8 @@ Every script in `package.json`, run as `bun run <name>` from the repository root
 | `bun run test` | `bun test --timeout 30000` |
 | `bun run typecheck` | `bun run scripts/typecheck_ratchet.ts` |
 | `bun run check` | `bun check --no-script` |
-| `bun run fmt` | `bun fmt` |
-| `bun run fmt:check` | `bun fmt --check` |
+| `bun run fmt` | `bun fmt --no-script` |
+| `bun run fmt:check` | `bun fmt --no-script --check` |
 | `bun run workbench` | `bun run src/db/workbench_server.ts` |
 | `bun run ide:build` | `bun run scripts/build_ide.ts` |
 | `bun run ide:check` | `bun run scripts/build_ide.ts --check` |

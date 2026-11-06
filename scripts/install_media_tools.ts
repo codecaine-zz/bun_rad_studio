@@ -20,18 +20,32 @@
  * Where the package manager itself is missing, it prints how to get it instead of guessing. Nothing is installed
  * without your confirmation.
  */
-import { detectManagers, toolStatus } from "../src/features/filemanager/fmBatch";
+import {
+  detectManagers,
+  toolStatus,
+} from "../src/features/filemanager/fmBatch";
 import { createContext } from "../src/features/filemanager/fmCore";
-import { TOOLS, TOOL_IDS, type ToolId } from "../src/features/filemanager/fmTools";
+import {
+  TOOLS,
+  TOOL_IDS,
+  type ToolId,
+} from "../src/features/filemanager/fmTools";
 
 const args = process.argv.slice(2);
-const command = args[0] === "install" || args[0] === "check" ? args[0] : "check";
+const command =
+  args[0] === "install" || args[0] === "check" ? args[0] : "check";
 const yes = args.includes("--yes") || args.includes("-y");
 const all = args.includes("--all");
-const named = args.filter((a) => (TOOL_IDS as string[]).includes(a)) as ToolId[];
-const unknown = args.slice(args[0] === "install" || args[0] === "check" ? 1 : 0).filter((a) => !a.startsWith("-") && !(TOOL_IDS as string[]).includes(a));
+const named = args.filter((a) =>
+  (TOOL_IDS as string[]).includes(a),
+) as ToolId[];
+const unknown = args
+  .slice(args[0] === "install" || args[0] === "check" ? 1 : 0)
+  .filter((a) => !a.startsWith("-") && !(TOOL_IDS as string[]).includes(a));
 if (unknown.length) {
-  console.error(`Unknown program: ${unknown.join(", ")}. Choose from: ${TOOL_IDS.join(", ")}.`);
+  console.error(
+    `Unknown program: ${unknown.join(", ")}. Choose from: ${TOOL_IDS.join(", ")}.`,
+  );
   process.exit(2);
 }
 
@@ -44,18 +58,39 @@ console.log(`\nHelper programs on ${ctx.platform}:\n`);
 for (const t of status.tools) {
   const mark = t.installed ? "✔" : "✖";
   const note = t.optional ? " (optional)" : "";
-  console.log(`  ${mark} ${t.name.padEnd(24)} ${t.installed ? `${t.version ?? ""}  ${t.path}` : `not installed${note}`}`);
+  console.log(
+    `  ${mark} ${t.name.padEnd(24)} ${t.installed ? `${t.version ?? ""}  ${t.path}` : `not installed${note}`}`,
+  );
 }
 const managerNames = Object.keys(detectManagers(ctx));
-console.log(`\n  Package managers found: ${managerNames.length ? managerNames.join(", ") : "none"}\n`);
+console.log(
+  `\n  Package managers found: ${managerNames.length ? managerNames.join(", ") : "none"}\n`,
+);
 
-const missing = status.tools.filter((t) => !t.installed && wanted.includes(t.id));
+const missing = status.tools.filter(
+  (t) => !t.installed && wanted.includes(t.id),
+);
 if (command === "check" || !missing.length) {
-  if (command === "install" && !missing.length) console.log("Nothing to install.");
-  if (command === "check" && status.tools.some((t) => !t.installed && !t.optional)) console.log(`To install the main programs: bun run tools:install\n`);
-  if (command === "check" && status.tools.some((t) => !t.installed && t.optional)) console.log(`The optional ones (PDF tools, Office, e-books, OCR, fonts, archives): bun run tools:install --all\n`);
+  if (command === "install" && !missing.length)
+    console.log("Nothing to install.");
+  if (
+    command === "check" &&
+    status.tools.some((t) => !t.installed && !t.optional)
+  )
+    console.log(`To install the main programs: bun run tools:install\n`);
+  if (
+    command === "check" &&
+    status.tools.some((t) => !t.installed && t.optional)
+  )
+    console.log(
+      `The optional ones (PDF tools, Office, e-books, OCR, fonts, archives): bun run tools:install --all\n`,
+    );
   // Only the main programs make "check" fail: the optional ones are never required.
-  process.exit(status.tools.some((t) => !t.installed && !t.optional) && command === "check" ? 1 : 0);
+  process.exit(
+    status.tools.some((t) => !t.installed && !t.optional) && command === "check"
+      ? 1
+      : 0,
+  );
 }
 
 async function confirm(question: string): Promise<boolean> {
@@ -71,7 +106,10 @@ for (const t of missing) {
   console.log(`${TOOLS[t.id].name}: ${plan.note}`);
   if (!plan.argv) {
     console.log(`  How to get it: ${plan.display}`);
-    if (plan.missingManager) console.log(`  ${plan.missingManager.name} (${plan.missingManager.url}):\n    ${plan.missingManager.command}\n  ${plan.missingManager.note}`);
+    if (plan.missingManager)
+      console.log(
+        `  ${plan.missingManager.name} (${plan.missingManager.url}):\n    ${plan.missingManager.command}\n  ${plan.missingManager.note}`,
+      );
     console.log(`  Or download it from ${t.website}\n`);
     failed = true;
     continue;
@@ -79,14 +117,24 @@ for (const t of missing) {
   // Big downloads are always asked about, even with --yes, unless --yes was given on purpose together with the name.
   const big = !!plan.size && !named.includes(t.id) && yes;
   if (big) {
-    console.log(`  Skipped (${plan.size}). Name it to install it: bun run tools:install ${t.id} --yes\n`);
+    console.log(
+      `  Skipped (${plan.size}). Name it to install it: bun run tools:install ${t.id} --yes\n`,
+    );
     continue;
   }
-  if (!(await confirm(`  Run: ${plan.display} ?${plan.size ? ` (${plan.size})` : ""}`))) {
+  if (
+    !(await confirm(
+      `  Run: ${plan.display} ?${plan.size ? ` (${plan.size})` : ""}`,
+    ))
+  ) {
     console.log("  Skipped.\n");
     continue;
   }
-  const proc = Bun.spawn(plan.argv, { stdin: "inherit", stdout: "inherit", stderr: "inherit" });
+  const proc = Bun.spawn(plan.argv, {
+    stdin: "inherit",
+    stdout: "inherit",
+    stderr: "inherit",
+  });
   const code = await proc.exited;
   if (code !== 0) {
     console.log(`  The installer stopped with an error (code ${code}).\n`);
@@ -96,5 +144,10 @@ for (const t of missing) {
   }
 }
 const after = await toolStatus(ctx);
-for (const t of after.tools.filter((x) => wanted.includes(x.id))) console.log(`  ${t.installed ? "✔" : "✖"} ${t.name}`);
-process.exit(failed || after.tools.some((t) => wanted.includes(t.id) && !t.installed) ? 1 : 0);
+for (const t of after.tools.filter((x) => wanted.includes(x.id)))
+  console.log(`  ${t.installed ? "✔" : "✖"} ${t.name}`);
+process.exit(
+  failed || after.tools.some((t) => wanted.includes(t.id) && !t.installed)
+    ? 1
+    : 0,
+);

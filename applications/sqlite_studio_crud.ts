@@ -121,8 +121,16 @@ export function crudClientMain() {
         if (v === undefined || v === null || v === false) continue;
         if (k === "class") el.className = v;
         else if (k === "style") el.style.cssText = v;
-        else if (k.startsWith("on") && typeof v === "function") el.addEventListener(k.slice(2), v);
-        else if (k === "value" || k === "checked" || k === "disabled" || k === "readOnly" || k === "selected") el[k] = v;
+        else if (k.startsWith("on") && typeof v === "function")
+          el.addEventListener(k.slice(2), v);
+        else if (
+          k === "value" ||
+          k === "checked" ||
+          k === "disabled" ||
+          k === "readOnly" ||
+          k === "selected"
+        )
+          el[k] = v;
         else el.setAttribute(k, v === true ? "" : v);
       }
     }
@@ -155,11 +163,20 @@ export function crudClientMain() {
         body: JSON.stringify(body || {}),
       });
       let data = null;
-      try { data = await res.json(); } catch {}
-      if (!data) return { success: false, error: "HTTP " + res.status + " " + res.statusText };
+      try {
+        data = await res.json();
+      } catch {}
+      if (!data)
+        return {
+          success: false,
+          error: "HTTP " + res.status + " " + res.statusText,
+        };
       return data;
     } catch (err) {
-      return { success: false, error: String(err && err.message ? err.message : err) };
+      return {
+        success: false,
+        error: String(err && err.message ? err.message : err),
+      };
     }
   }
 
@@ -175,15 +192,25 @@ export function crudClientMain() {
 
   function esc(s) {
     return String(s === null || s === undefined ? "" : s)
-      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
   }
-  function qid(n) { return '"' + String(n).replace(/"/g, '""') + '"'; }
+  function qid(n) {
+    return '"' + String(n).replace(/"/g, '""') + '"';
+  }
 
   function tableMeta(name) {
     if (!currentSchema) return null;
-    return currentSchema.tables.find((t) => t.name === name) || currentSchema.views.find((v) => v.name === name) || null;
+    return (
+      currentSchema.tables.find((t) => t.name === name) ||
+      currentSchema.views.find((v) => v.name === name) ||
+      null
+    );
   }
-  function allTableNames() { return currentSchema ? currentSchema.tables.map((t) => t.name) : []; }
+  function allTableNames() {
+    return currentSchema ? currentSchema.tables.map((t) => t.name) : [];
+  }
 
   function affinity(type) {
     const t = String(type || "").toUpperCase();
@@ -207,12 +234,15 @@ export function crudClientMain() {
     } else {
       activeTable = "";
       crud.editable = false;
-      currentGridRows = []; currentGridColumns = [];
+      currentGridRows = [];
+      currentGridColumns = [];
       $("gridTargetTitle").textContent = "No tables yet";
       renderDataGrid([], []);
       updateToolbar();
       const sc = $("schemaContainer");
-      if (sc) sc.innerHTML = '<div class="card"><div class="card-title">No tables yet. Use ➕ New Table or 📥 Import to get started.</div></div>';
+      if (sc)
+        sc.innerHTML =
+          '<div class="card"><div class="card-title">No tables yet. Use ➕ New Table or 📥 Import to get started.</div></div>';
     }
   }
 
@@ -221,13 +251,29 @@ export function crudClientMain() {
   // -------------------------------------------------------------------------------------------
   const modalStack = [];
   function openModal(opts) {
-    const overlay = h("div", { class: "modal-overlay open crud-overlay" + (modalStack.length ? " crud-top" : "") });
-    const card = h("div", { class: "modal-card crud-modal-card" + (opts.wide ? " crud-wide" : "") + (opts.small ? " crud-small" : "") });
+    const overlay = h("div", {
+      class:
+        "modal-overlay open crud-overlay" +
+        (modalStack.length ? " crud-top" : ""),
+    });
+    const card = h("div", {
+      class:
+        "modal-card crud-modal-card" +
+        (opts.wide ? " crud-wide" : "") +
+        (opts.small ? " crud-small" : ""),
+    });
     const errorBox = h("div", { class: "crud-error", style: "display:none" });
-    const body = h("div", { class: "modal-body crud-body" }, errorBox, opts.body);
+    const body = h(
+      "div",
+      { class: "modal-body crud-body" },
+      errorBox,
+      opts.body,
+    );
     const footer = h("div", { class: "crud-footer" });
     const api = {
-      el: overlay, body, footer,
+      el: overlay,
+      body,
+      footer,
       close() {
         const i = modalStack.indexOf(api);
         if (i >= 0) modalStack.splice(i, 1);
@@ -244,9 +290,22 @@ export function crudClientMain() {
         (btns || []).forEach((b) => footer.appendChild(b));
       },
     };
-    card.appendChild(h("div", { class: "modal-header" },
-      h("div", { class: "modal-title" }, opts.title),
-      h("button", { class: "modal-close", title: "Close (Esc)", onclick: () => api.close() }, "✕")));
+    card.appendChild(
+      h(
+        "div",
+        { class: "modal-header" },
+        h("div", { class: "modal-title" }, opts.title),
+        h(
+          "button",
+          {
+            class: "modal-close",
+            title: "Close (Esc)",
+            onclick: () => api.close(),
+          },
+          "✕",
+        ),
+      ),
+    );
     card.appendChild(body);
     card.appendChild(footer);
     api.setButtons(opts.buttons);
@@ -257,8 +316,20 @@ export function crudClientMain() {
   }
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
-      if (menuEl) { e.preventDefault(); e.stopPropagation(); closeMenu(); return; }
-      if (modalStack.length && !(e.target && e.target.classList && e.target.classList.contains("crud-inline"))) {
+      if (menuEl) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeMenu();
+        return;
+      }
+      if (
+        modalStack.length &&
+        !(
+          e.target &&
+          e.target.classList &&
+          e.target.classList.contains("crud-inline")
+        )
+      ) {
         e.preventDefault();
         e.stopPropagation();
         modalStack[modalStack.length - 1].close();
@@ -274,16 +345,34 @@ export function crudClientMain() {
     opts = opts || {};
     return new Promise((resolve) => {
       let done = false;
-      const finish = (v) => { if (done) return; done = true; m.close(); resolve(v); };
+      const finish = (v) => {
+        if (done) return;
+        done = true;
+        m.close();
+        resolve(v);
+      };
       const m = openModal({
         title: opts.title || "Please confirm",
         small: true,
-        body: h("div", { style: "font-size:13px;line-height:1.5;white-space:pre-wrap" }, message),
-        onClose: () => { if (!done) { done = true; resolve(false); } },
+        body: h(
+          "div",
+          { style: "font-size:13px;line-height:1.5;white-space:pre-wrap" },
+          message,
+        ),
+        onClose: () => {
+          if (!done) {
+            done = true;
+            resolve(false);
+          }
+        },
       });
       m.setButtons([
         btn("Cancel", () => finish(false)),
-        btn(opts.okText || "OK", () => finish(true), opts.danger ? "btn-danger" : "btn-primary"),
+        btn(
+          opts.okText || "OK",
+          () => finish(true),
+          opts.danger ? "btn-danger" : "btn-primary",
+        ),
       ]);
     });
   }
@@ -292,15 +381,39 @@ export function crudClientMain() {
     return new Promise((resolve) => {
       let done = false;
       const input = h("input", { type: "text", value: def || "" });
-      const finish = (v) => { if (done) return; done = true; m.close(); resolve(v); };
+      const finish = (v) => {
+        if (done) return;
+        done = true;
+        m.close();
+        resolve(v);
+      };
       const m = openModal({
-        title, small: true,
-        body: h("div", { class: "crud-body", style: "gap:6px" }, h("div", { style: "font-size:12px" }, label), input),
-        onClose: () => { if (!done) { done = true; resolve(null); } },
+        title,
+        small: true,
+        body: h(
+          "div",
+          { class: "crud-body", style: "gap:6px" },
+          h("div", { style: "font-size:12px" }, label),
+          input,
+        ),
+        onClose: () => {
+          if (!done) {
+            done = true;
+            resolve(null);
+          }
+        },
       });
-      input.addEventListener("keydown", (e) => { if (e.key === "Enter") finish(input.value.trim() || null); });
-      m.setButtons([btn("Cancel", () => finish(null)), btn("OK", () => finish(input.value.trim() || null), "btn-primary")]);
-      setTimeout(() => { input.focus(); input.select(); }, 30);
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") finish(input.value.trim() || null);
+      });
+      m.setButtons([
+        btn("Cancel", () => finish(null)),
+        btn("OK", () => finish(input.value.trim() || null), "btn-primary"),
+      ]);
+      setTimeout(() => {
+        input.focus();
+        input.select();
+      }, 30);
     });
   }
 
@@ -308,24 +421,50 @@ export function crudClientMain() {
   // Context menu
   // -------------------------------------------------------------------------------------------
   let menuEl = null;
-  function closeMenu() { if (menuEl) { menuEl.remove(); menuEl = null; } }
+  function closeMenu() {
+    if (menuEl) {
+      menuEl.remove();
+      menuEl = null;
+    }
+  }
   function showMenu(x, y, items) {
     closeMenu();
     const m = h("div", { class: "crud-menu" });
     items.forEach((it) => {
-      if (it === "-") { m.appendChild(h("div", { class: "crud-msep" })); return; }
-      m.appendChild(h("div", {
-        class: "crud-mi" + (it.danger ? " danger" : "") + (it.disabled ? " disabled" : ""),
-        onclick: (e) => { e.stopPropagation(); closeMenu(); it.onclick && it.onclick(); },
-      }, h("span", null, it.icon || ""), h("span", null, it.label)));
+      if (it === "-") {
+        m.appendChild(h("div", { class: "crud-msep" }));
+        return;
+      }
+      m.appendChild(
+        h(
+          "div",
+          {
+            class:
+              "crud-mi" +
+              (it.danger ? " danger" : "") +
+              (it.disabled ? " disabled" : ""),
+            onclick: (e) => {
+              e.stopPropagation();
+              closeMenu();
+              it.onclick && it.onclick();
+            },
+          },
+          h("span", null, it.icon || ""),
+          h("span", null, it.label),
+        ),
+      );
     });
     document.body.appendChild(m);
     const r = m.getBoundingClientRect();
-    m.style.left = Math.max(4, Math.min(x, window.innerWidth - r.width - 6)) + "px";
-    m.style.top = Math.max(4, Math.min(y, window.innerHeight - r.height - 6)) + "px";
+    m.style.left =
+      Math.max(4, Math.min(x, window.innerWidth - r.width - 6)) + "px";
+    m.style.top =
+      Math.max(4, Math.min(y, window.innerHeight - r.height - 6)) + "px";
     menuEl = m;
   }
-  document.addEventListener("mousedown", (e) => { if (menuEl && !menuEl.contains(e.target)) closeMenu(); });
+  document.addEventListener("mousedown", (e) => {
+    if (menuEl && !menuEl.contains(e.target)) closeMenu();
+  });
   window.addEventListener("blur", closeMenu);
   document.addEventListener("scroll", closeMenu, true);
 
@@ -341,8 +480,12 @@ export function crudClientMain() {
     if (!activeTable) return;
     const searchVal = ($("gridSearchInput") || {}).value || "";
     const res = await apiRequest("/api/table/data", {
-      table: activeTable, page: gridPage, pageSize: gridPageSize,
-      orderBy: gridSortCol || undefined, orderDir: gridSortDir, search: searchVal,
+      table: activeTable,
+      page: gridPage,
+      pageSize: gridPageSize,
+      orderBy: gridSortCol || undefined,
+      orderDir: gridSortDir,
+      search: searchVal,
     });
     if (res && res.success) {
       if ((res.rows || []).length === 0 && gridPage > 1 && res.totalRows > 0) {
@@ -356,16 +499,35 @@ export function crudClientMain() {
       crud.totalRows = res.totalRows || 0;
       crud.rowIds = (res.rows || []).map((r) => r.__rowid__);
       crud.sel.clear();
-      currentGridRows = (res.rows || []).map((r) => { const c = Object.assign({}, r); delete c.__rowid__; return c; });
+      currentGridRows = (res.rows || []).map((r) => {
+        const c = Object.assign({}, r);
+        delete c.__rowid__;
+        return c;
+      });
       currentGridColumns = res.columns || [];
-      if (!activeColumnFilters || Object.keys(activeColumnFilters).length === 0) {
+      if (
+        !activeColumnFilters ||
+        Object.keys(activeColumnFilters).length === 0
+      ) {
         currentGridRawRows = [...currentGridRows];
       }
       renderDataGrid(currentGridColumns, currentGridRows);
-      $("gridPageInfo").textContent = "Page " + res.page + " of " + res.totalPages + " (" + res.totalRows + " records)";
+      $("gridPageInfo").textContent =
+        "Page " +
+        res.page +
+        " of " +
+        res.totalPages +
+        " (" +
+        res.totalRows +
+        " records)";
       $("kpiLatency").textContent = res.latencyMs + " ms";
-      $("resultSummary").textContent = res.totalRows + " total rows (" + res.rows.length + " on page)";
-      $("jsonInspectorBox").textContent = JSON.stringify(currentGridRows, null, 2);
+      $("resultSummary").textContent =
+        res.totalRows + " total rows (" + res.rows.length + " on page)";
+      $("jsonInspectorBox").textContent = JSON.stringify(
+        currentGridRows,
+        null,
+        2,
+      );
     } else {
       showToast("Error loading table: " + ((res && res.error) || "Unknown"));
     }
@@ -393,7 +555,10 @@ export function crudClientMain() {
 
     if (editable) {
       const th = h("th", { class: "crud-check" });
-      const all = h("input", { type: "checkbox", title: "Select all rows on this page" });
+      const all = h("input", {
+        type: "checkbox",
+        title: "Select all rows on this page",
+      });
       all.addEventListener("change", () => {
         crud.sel.clear();
         if (all.checked) rows.forEach((_, i) => crud.sel.add(i));
@@ -406,14 +571,25 @@ export function crudClientMain() {
 
     columns.forEach((col) => {
       const th = document.createElement("th");
-      const sortIcon = gridSortCol === col ? (gridSortDir === "ASC" ? " ▲" : " ▼") : "";
+      const sortIcon =
+        gridSortCol === col ? (gridSortDir === "ASC" ? " ▲" : " ▼") : "";
       const ci = colInfo[col];
       th.textContent = (ci && ci.pk ? "🔑 " : "") + col + sortIcon;
-      if (ci) th.title = col + " — " + (ci.type || "ANY") + (ci.notnull ? " • NOT NULL" : "") + (ci.pk ? " • PRIMARY KEY" : "");
+      if (ci)
+        th.title =
+          col +
+          " — " +
+          (ci.type || "ANY") +
+          (ci.notnull ? " • NOT NULL" : "") +
+          (ci.pk ? " • PRIMARY KEY" : "");
       th.onclick = () => {
         if (crud.source !== "table") return;
-        if (gridSortCol === col) gridSortDir = gridSortDir === "ASC" ? "DESC" : "ASC";
-        else { gridSortCol = col; gridSortDir = "ASC"; }
+        if (gridSortCol === col)
+          gridSortDir = gridSortDir === "ASC" ? "DESC" : "ASC";
+        else {
+          gridSortCol = col;
+          gridSortDir = "ASC";
+        }
         fetchTableData();
       };
       studioGridCols.decorate(th, col);
@@ -421,16 +597,42 @@ export function crudClientMain() {
     });
 
     if (updateFilter !== false) renderFilterBar(allColumns);
-    updateAccessTotalsRow(rows, allColumns, crud.source === "table" ? crud.totalRows : rows.length);
+    updateAccessTotalsRow(
+      rows,
+      allColumns,
+      crud.source === "table" ? crud.totalRows : rows.length,
+    );
 
     if (rows.length === 0) {
       const colspan = columns.length + (editable ? 2 : 1);
-      const td = h("td", { colspan: String(colspan), class: "crud-empty" }, "No records found.");
+      const td = h(
+        "td",
+        { colspan: String(colspan), class: "crud-empty" },
+        "No records found.",
+      );
       if (editable) {
         td.appendChild(h("br"));
-        td.appendChild(btn("➕ Add a row", () => openRowDialog("insert"), "btn-primary btn-sm"));
-        td.appendChild(btn("📥 Import data", () => openImportWizard({ table: activeTable }), "btn-sm"));
-        td.appendChild(btn("📋 Paste from clipboard", () => openImportWizard({ table: activeTable, fromClipboard: true }), "btn-sm"));
+        td.appendChild(
+          btn(
+            "➕ Add a row",
+            () => openRowDialog("insert"),
+            "btn-primary btn-sm",
+          ),
+        );
+        td.appendChild(
+          btn(
+            "📥 Import data",
+            () => openImportWizard({ table: activeTable }),
+            "btn-sm",
+          ),
+        );
+        td.appendChild(
+          btn(
+            "📋 Paste from clipboard",
+            () => openImportWizard({ table: activeTable, fromClipboard: true }),
+            "btn-sm",
+          ),
+        );
       }
       tbody.appendChild(h("tr", null, td));
       return;
@@ -443,7 +645,8 @@ export function crudClientMain() {
       if (editable) {
         const cb = h("input", { type: "checkbox" });
         cb.addEventListener("change", () => {
-          if (cb.checked) crud.sel.add(idx); else crud.sel.delete(idx);
+          if (cb.checked) crud.sel.add(idx);
+          else crud.sel.delete(idx);
           syncSelection();
         });
         tr.appendChild(h("td", { class: "crud-check" }, cb));
@@ -454,13 +657,16 @@ export function crudClientMain() {
           showMenu(e.clientX, e.clientY, rowMenuItems(idx, col));
         });
       }
-      tr.appendChild(h("td", { class: "crud-rownum" }, String(offset + idx + 1)));
+      tr.appendChild(
+        h("td", { class: "crud-rownum" }, String(offset + idx + 1)),
+      );
       columns.forEach((col) => {
         const td = document.createElement("td");
         const val = row[col];
         td.dataset.col = col;
         td.textContent = displayVal(val);
-        if (val === null || val === undefined) td.style.color = "var(--text-dim)";
+        if (val === null || val === undefined)
+          td.style.color = "var(--text-dim)";
         td.title = td.textContent;
         if (editable) {
           td.classList.add("crud-cell");
@@ -481,43 +687,120 @@ export function crudClientMain() {
       if (cb) cb.checked = on;
     });
     const all = document.querySelector("#gridHeaderRow th.crud-check input");
-    if (all) all.checked = currentGridRows.length > 0 && crud.sel.size === currentGridRows.length;
+    if (all)
+      all.checked =
+        currentGridRows.length > 0 && crud.sel.size === currentGridRows.length;
     updateToolbar();
   }
   window.crudSyncSelection = syncSelection;
 
   function rowMenuItems(idx, col) {
     const items = [];
-    if (col) items.push({ icon: "✏️", label: "Edit cell", onclick: () => {
-      const td = document.querySelector('#gridBody tr[data-idx="' + idx + '"] td[data-col="' + col.replace(/"/g, '\\"') + '"]');
-      if (td) startInlineEdit(td, idx, col);
-    } });
+    if (col)
+      items.push({
+        icon: "✏️",
+        label: "Edit cell",
+        onclick: () => {
+          const td = document.querySelector(
+            '#gridBody tr[data-idx="' +
+              idx +
+              '"] td[data-col="' +
+              col.replace(/"/g, '\\"') +
+              '"]',
+          );
+          if (td) startInlineEdit(td, idx, col);
+        },
+      });
     if (col) {
-      const ci = (tableMeta(activeTable) || { columns: [] }).columns.find((c) => c.name === col);
-      items.push({ icon: "∅", label: "Set cell to NULL", disabled: ci && ci.notnull, onclick: async () => {
-        const r = await updateRow(idx, { [col]: null });
-        if (r.success) { showToast("Cell set to NULL"); fetchTableData(); } else showToast("Error: " + r.error);
-      } });
-      items.push({ icon: "📋", label: "Copy cell value", onclick: () => copyText(String(currentGridRows[idx][col] === null ? "" : displayVal(currentGridRows[idx][col]))).then(() => showToast("Copied")) });
+      const ci = (tableMeta(activeTable) || { columns: [] }).columns.find(
+        (c) => c.name === col,
+      );
+      items.push({
+        icon: "∅",
+        label: "Set cell to NULL",
+        disabled: ci && ci.notnull,
+        onclick: async () => {
+          const r = await updateRow(idx, { [col]: null });
+          if (r.success) {
+            showToast("Cell set to NULL");
+            fetchTableData();
+          } else showToast("Error: " + r.error);
+        },
+      });
+      items.push({
+        icon: "📋",
+        label: "Copy cell value",
+        onclick: () =>
+          copyText(
+            String(
+              currentGridRows[idx][col] === null
+                ? ""
+                : displayVal(currentGridRows[idx][col]),
+            ),
+          ).then(() => showToast("Copied")),
+      });
       const cellVal = currentGridRows[idx][col];
-      const cellExprVal = cellVal === null || cellVal === undefined ? "NULL" : String(cellVal);
-      items.push({ icon: "🔍", label: "Filter = " + cellExprVal, onclick: () => filterByColumnValue(col, cellVal === null ? "IS NULL" : "= " + cellExprVal) });
-      items.push({ icon: "🚫", label: "Filter <> " + cellExprVal, onclick: () => filterByColumnValue(col, cellVal === null ? "IS NOT NULL" : "<> " + cellExprVal) });
-      items.push({ icon: "≤", label: "Filter <= " + cellExprVal, onclick: () => filterByColumnValue(col, "<= " + cellExprVal) });
-      items.push({ icon: "≥", label: "Filter >= " + cellExprVal, onclick: () => filterByColumnValue(col, ">= " + cellExprVal) });
+      const cellExprVal =
+        cellVal === null || cellVal === undefined ? "NULL" : String(cellVal);
+      items.push({
+        icon: "🔍",
+        label: "Filter = " + cellExprVal,
+        onclick: () =>
+          filterByColumnValue(
+            col,
+            cellVal === null ? "IS NULL" : "= " + cellExprVal,
+          ),
+      });
+      items.push({
+        icon: "🚫",
+        label: "Filter <> " + cellExprVal,
+        onclick: () =>
+          filterByColumnValue(
+            col,
+            cellVal === null ? "IS NOT NULL" : "<> " + cellExprVal,
+          ),
+      });
+      items.push({
+        icon: "≤",
+        label: "Filter <= " + cellExprVal,
+        onclick: () => filterByColumnValue(col, "<= " + cellExprVal),
+      });
+      items.push({
+        icon: "≥",
+        label: "Filter >= " + cellExprVal,
+        onclick: () => filterByColumnValue(col, ">= " + cellExprVal),
+      });
       items.push("-");
     }
-    items.push({ icon: "📝", label: "Edit row…", onclick: () => openRowDialog("edit", idx) });
-    items.push({ icon: "📄", label: "Duplicate row…", onclick: () => openRowDialog("duplicate", idx) });
-    items.push({ icon: "📋", label: "Copy row (TSV)", onclick: () => copyRows([idx]) });
+    items.push({
+      icon: "📝",
+      label: "Edit row…",
+      onclick: () => openRowDialog("edit", idx),
+    });
+    items.push({
+      icon: "📄",
+      label: "Duplicate row…",
+      onclick: () => openRowDialog("duplicate", idx),
+    });
+    items.push({
+      icon: "📋",
+      label: "Copy row (TSV)",
+      onclick: () => copyRows([idx]),
+    });
     items.push("-");
-    items.push({ icon: "🗑️", label: "Delete row", danger: true, onclick: () => deleteRows([idx]) });
+    items.push({
+      icon: "🗑️",
+      label: "Delete row",
+      danger: true,
+      onclick: () => deleteRows([idx]),
+    });
     return items;
   }
 
   async function updateRow(idx, data) {
     return call("/api/table/mutate", {
-      table: activeTable, action: "update",
+      table: activeTable,
+      action: "update",
       payload: { useRowid: true, rowId: crud.rowIds[idx], data },
     });
   }
@@ -526,28 +809,56 @@ export function crudClientMain() {
     if (!crud.editable || td.querySelector("input")) return;
     const row = currentGridRows[idx];
     const orig = row[col];
-    if (typeof orig === "string" && /^\[BLOB \d+ bytes\]$/.test(orig)) { showToast("BLOB cells can't be edited here"); return; }
+    if (typeof orig === "string" && /^\[BLOB \d+ bytes\]$/.test(orig)) {
+      showToast("BLOB cells can't be edited here");
+      return;
+    }
     const prevText = td.textContent;
-    const input = h("input", { class: "crud-inline", type: "text", value: orig === null || orig === undefined ? "" : (typeof orig === "object" ? JSON.stringify(orig) : String(orig)) });
+    const input = h("input", {
+      class: "crud-inline",
+      type: "text",
+      value:
+        orig === null || orig === undefined
+          ? ""
+          : typeof orig === "object"
+            ? JSON.stringify(orig)
+            : String(orig),
+    });
     td.textContent = "";
     td.classList.add("crud-editing");
     td.appendChild(input);
-    input.focus(); input.select();
+    input.focus();
+    input.select();
     let done = false;
-    const restore = () => { td.classList.remove("crud-editing"); td.textContent = prevText; };
+    const restore = () => {
+      td.classList.remove("crud-editing");
+      td.textContent = prevText;
+    };
     const finish = async (save) => {
-      if (done) return; done = true;
+      if (done) return;
+      done = true;
       if (!save) return restore();
       const nv = input.value;
       if ((orig === null || orig === undefined) && nv === "") return restore();
       if (String(orig) === nv) return restore();
       const r = await updateRow(idx, { [col]: nv });
-      if (r.success) { showToast("Saved"); await fetchTableData(); }
-      else { restore(); showToast("Not saved: " + r.error); }
+      if (r.success) {
+        showToast("Saved");
+        await fetchTableData();
+      } else {
+        restore();
+        showToast("Not saved: " + r.error);
+      }
     };
     input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") { e.preventDefault(); finish(true); }
-      else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); finish(false); }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        finish(true);
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        finish(false);
+      }
     });
     input.addEventListener("blur", () => finish(true));
   }
@@ -555,19 +866,34 @@ export function crudClientMain() {
   async function deleteRows(idxList) {
     if (!idxList.length) return;
     const n = idxList.length;
-    const ok = await crudConfirm("Delete " + n + " row" + (n === 1 ? "" : "s") + " from '" + activeTable + "'?\n\nThis cannot be undone.", { okText: "🗑️ Delete", danger: true, title: "Delete rows" });
+    const ok = await crudConfirm(
+      "Delete " +
+        n +
+        " row" +
+        (n === 1 ? "" : "s") +
+        " from '" +
+        activeTable +
+        "'?\n\nThis cannot be undone.",
+      { okText: "🗑️ Delete", danger: true, title: "Delete rows" },
+    );
     if (!ok) return;
     const r = await call("/api/table/mutate", {
-      table: activeTable, action: "delete",
+      table: activeTable,
+      action: "delete",
       payload: { useRowid: true, rowIds: idxList.map((i) => crud.rowIds[i]) },
     });
     if (r.success) {
       showToast("Deleted " + (r.rowsAffected || 0) + " row(s)");
-      logAudit("[DELETE] " + activeTable + " — " + (r.rowsAffected || 0) + " row(s)");
+      logAudit(
+        "[DELETE] " + activeTable + " — " + (r.rowsAffected || 0) + " row(s)",
+      );
       await refreshAll();
       await fetchTableData();
     } else {
-      crudConfirm("Could not delete:\n\n" + r.error, { okText: "OK", title: "Delete failed" });
+      crudConfirm("Could not delete:\n\n" + r.error, {
+        okText: "OK",
+        title: "Delete failed",
+      });
     }
   }
 
@@ -575,8 +901,19 @@ export function crudClientMain() {
     const rows = idxList.map((i) => currentGridRows[i]);
     const cols = studioGridCols.exportColumns(currentGridColumns);
     const text = buildDelimited(cols, rows, "\t", true);
-    const note = cols.length < currentGridColumns.length ? " (" + cols.length + " of " + currentGridColumns.length + " columns)" : "";
-    copyText(text).then(() => showToast("Copied " + rows.length + " row(s)" + note + " — paste into Excel / Sheets"));
+    const note =
+      cols.length < currentGridColumns.length
+        ? " (" + cols.length + " of " + currentGridColumns.length + " columns)"
+        : "";
+    copyText(text).then(() =>
+      showToast(
+        "Copied " +
+          rows.length +
+          " row(s)" +
+          note +
+          " — paste into Excel / Sheets",
+      ),
+    );
   }
 
   // -------------------------------------------------------------------------------------------
@@ -586,29 +923,108 @@ export function crudClientMain() {
   function buildToolbar() {
     const tab = $("tabGrid");
     if (!tab || $("crudToolbar")) return;
-    tb.add = btn("➕ New Row", () => openRowDialog("insert"), "btn-primary btn-sm");
-    tb.edit = btn("📝 Edit", () => { const i = [...crud.sel][0]; if (i !== undefined) openRowDialog("edit", i); }, "btn-sm");
-    tb.dup = btn("📄 Duplicate", () => { const i = [...crud.sel][0]; if (i !== undefined) openRowDialog("duplicate", i); }, "btn-sm");
-    tb.del = btn("🗑️ Delete", () => deleteRows([...crud.sel].sort((a, b) => a - b)), "btn-sm btn-danger");
-    tb.copy = btn("📋 Copy", () => copyRows(crud.sel.size ? [...crud.sel] : currentGridRows.map((_, i) => i)), "btn-sm");
-    tb.refresh = btn("↻ Refresh", () => { crud.source === "table" ? fetchTableData() : runEditorQuery(); }, "btn-sm");
-    tb.import = btn("📥 Import", () => openImportWizard({ table: crud.source === "table" && crud.editable ? activeTable : "" }), "btn-sm");
-    tb.paste = btn("📋 Paste rows", () => openImportWizard({ table: activeTable, fromClipboard: true }), "btn-sm");
+    tb.add = btn(
+      "➕ New Row",
+      () => openRowDialog("insert"),
+      "btn-primary btn-sm",
+    );
+    tb.edit = btn(
+      "📝 Edit",
+      () => {
+        const i = [...crud.sel][0];
+        if (i !== undefined) openRowDialog("edit", i);
+      },
+      "btn-sm",
+    );
+    tb.dup = btn(
+      "📄 Duplicate",
+      () => {
+        const i = [...crud.sel][0];
+        if (i !== undefined) openRowDialog("duplicate", i);
+      },
+      "btn-sm",
+    );
+    tb.del = btn(
+      "🗑️ Delete",
+      () => deleteRows([...crud.sel].sort((a, b) => a - b)),
+      "btn-sm btn-danger",
+    );
+    tb.copy = btn(
+      "📋 Copy",
+      () =>
+        copyRows(
+          crud.sel.size ? [...crud.sel] : currentGridRows.map((_, i) => i),
+        ),
+      "btn-sm",
+    );
+    tb.refresh = btn(
+      "↻ Refresh",
+      () => {
+        crud.source === "table" ? fetchTableData() : runEditorQuery();
+      },
+      "btn-sm",
+    );
+    tb.import = btn(
+      "📥 Import",
+      () =>
+        openImportWizard({
+          table: crud.source === "table" && crud.editable ? activeTable : "",
+        }),
+      "btn-sm",
+    );
+    tb.paste = btn(
+      "📋 Paste rows",
+      () => openImportWizard({ table: activeTable, fromClipboard: true }),
+      "btn-sm",
+    );
     tb.export = btn("📤 Export", () => openExportDialog(), "btn-sm");
-    tb.design = btn("🛠️ Design Table", () => openTableDesigner(activeTable), "btn-sm");
-    tb.more = btn("⋯ More", (e) => {
-      const r = e.currentTarget.getBoundingClientRect();
-      showMenu(r.left, r.bottom + 2, tableMenuItems(activeTable));
-    }, "btn-sm");
-    const pageSel = mkSelect(["25", "50", "100", "250", "500"], String(gridPageSize), (v) => {
-      gridPageSize = Number(v); gridPage = 1; if (crud.source === "table") fetchTableData();
-    }, { title: "Rows per page" });
+    tb.design = btn(
+      "🛠️ Design Table",
+      () => openTableDesigner(activeTable),
+      "btn-sm",
+    );
+    tb.more = btn(
+      "⋯ More",
+      (e) => {
+        const r = e.currentTarget.getBoundingClientRect();
+        showMenu(r.left, r.bottom + 2, tableMenuItems(activeTable));
+      },
+      "btn-sm",
+    );
+    const pageSel = mkSelect(
+      ["25", "50", "100", "250", "500"],
+      String(gridPageSize),
+      (v) => {
+        gridPageSize = Number(v);
+        gridPage = 1;
+        if (crud.source === "table") fetchTableData();
+      },
+      { title: "Rows per page" },
+    );
     tb.pageSel = pageSel;
-    const bar = h("div", { class: "crud-bar", id: "crudToolbar" },
-      tb.add, tb.edit, tb.dup, tb.del, h("span", { class: "crud-sep" }),
-      tb.import, tb.paste, tb.export, tb.copy, h("span", { class: "crud-sep" }),
-      tb.design, tb.refresh, tb.more, pageSel,
-      h("span", { class: "crud-hint" }, "Double-click a cell to edit • Right-click a row for more"));
+    const bar = h(
+      "div",
+      { class: "crud-bar", id: "crudToolbar" },
+      tb.add,
+      tb.edit,
+      tb.dup,
+      tb.del,
+      h("span", { class: "crud-sep" }),
+      tb.import,
+      tb.paste,
+      tb.export,
+      tb.copy,
+      h("span", { class: "crud-sep" }),
+      tb.design,
+      tb.refresh,
+      tb.more,
+      pageSel,
+      h(
+        "span",
+        { class: "crud-hint" },
+        "Double-click a cell to edit • Right-click a row for more",
+      ),
+    );
     tab.insertBefore(bar, tab.firstChild);
     updateToolbar();
   }
@@ -641,7 +1057,9 @@ export function crudClientMain() {
     crud.sel.clear();
     try {
       await origRunEditorQuery();
-    } catch (e) { /* surfaced by the original handler */ }
+    } catch (e) {
+      /* surfaced by the original handler */
+    }
     const title = ($("gridTargetTitle") || {}).textContent || "";
     if (!title.startsWith("Ad-Hoc")) {
       crud.editable = prevEditable;
@@ -655,7 +1073,10 @@ export function crudClientMain() {
   // Add / Edit / Duplicate row form
   // -------------------------------------------------------------------------------------------
   async function openRowDialog(mode, idx) {
-    if (!crud.editable) { showToast("This object is read-only"); return; }
+    if (!crud.editable) {
+      showToast("This object is read-only");
+      return;
+    }
     const meta = tableMeta(activeTable);
     if (!meta) return;
     const src = idx !== undefined ? currentGridRows[idx] : null;
@@ -668,17 +1089,36 @@ export function crudClientMain() {
     for (const c of meta.columns) {
       const aff = affinity(c.type);
       const autoPk = c.pk && pkCols.length === 1 && aff === "INTEGER";
-      const hasDefault = (c.dflt_value !== null && c.dflt_value !== undefined) || autoPk;
+      const hasDefault =
+        (c.dflt_value !== null && c.dflt_value !== undefined) || autoPk;
       const rawVal = src ? src[c.name] : undefined;
-      const isBlob = typeof rawVal === "string" && /^\[BLOB \d+ bytes\]$/.test(rawVal);
+      const isBlob =
+        typeof rawVal === "string" && /^\[BLOB \d+ bytes\]$/.test(rawVal);
       const fk = fkByCol[c.name];
 
       let input;
       const tUp = String(c.type || "").toUpperCase();
-      const startVal = rawVal === null || rawVal === undefined ? "" : (typeof rawVal === "object" ? JSON.stringify(rawVal) : String(rawVal));
+      const startVal =
+        rawVal === null || rawVal === undefined
+          ? ""
+          : typeof rawVal === "object"
+            ? JSON.stringify(rawVal)
+            : String(rawVal);
       if (/BOOL/.test(tUp)) {
-        input = mkSelect([{ value: "", label: "—" }, { value: "1", label: "1 (Yes / True)" }, { value: "0", label: "0 (No / False)" }], startVal);
-      } else if (aff === "TEXT" && (startVal.includes("\n") || startVal.length > 80 || /desc|note|comment|body|content|address|bio|summary/i.test(c.name))) {
+        input = mkSelect(
+          [
+            { value: "", label: "—" },
+            { value: "1", label: "1 (Yes / True)" },
+            { value: "0", label: "0 (No / False)" },
+          ],
+          startVal,
+        );
+      } else if (
+        aff === "TEXT" &&
+        (startVal.includes("\n") ||
+          startVal.length > 80 ||
+          /desc|note|comment|body|content|address|bio|summary/i.test(c.name))
+      ) {
         input = h("textarea", { rows: "3", value: startVal });
       } else {
         input = h("input", { type: "text", value: startVal });
@@ -686,53 +1126,139 @@ export function crudClientMain() {
           const dlId = "crudDl_" + c.name.replace(/\W/g, "_");
           input.setAttribute("list", dlId);
           const dl = h("datalist", { id: dlId });
-          call("/api/query", { sql: "SELECT DISTINCT " + qid(fk.to || "rowid") + " AS v FROM " + qid(fk.table) + " LIMIT 500" }).then((r) => {
-            if (r.success) r.rows.forEach((x) => dl.appendChild(h("option", { value: String(x.v) })));
+          call("/api/query", {
+            sql:
+              "SELECT DISTINCT " +
+              qid(fk.to || "rowid") +
+              " AS v FROM " +
+              qid(fk.table) +
+              " LIMIT 500",
+          }).then((r) => {
+            if (r.success)
+              r.rows.forEach((x) =>
+                dl.appendChild(h("option", { value: String(x.v) })),
+              );
           });
           form.appendChild(dl);
         }
       }
-      if (isBlob) { input.disabled = true; input.value = rawVal; }
+      if (isBlob) {
+        input.disabled = true;
+        input.value = rawVal;
+      }
 
       let defCb = null;
       if (mode !== "edit" && hasDefault) {
-        defCb = h("input", { type: "checkbox", checked: mode === "insert" || autoPk });
-        const sync = () => { input.disabled = defCb.checked || isBlob; input.style.opacity = defCb.checked ? "0.45" : "1"; };
+        defCb = h("input", {
+          type: "checkbox",
+          checked: mode === "insert" || autoPk,
+        });
+        const sync = () => {
+          input.disabled = defCb.checked || isBlob;
+          input.style.opacity = defCb.checked ? "0.45" : "1";
+        };
         defCb.addEventListener("change", sync);
         sync();
-        if (mode === "insert") input.placeholder = autoPk ? "(auto-numbered)" : "(default: " + c.dflt_value + ")";
+        if (mode === "insert")
+          input.placeholder = autoPk
+            ? "(auto-numbered)"
+            : "(default: " + c.dflt_value + ")";
       } else if (!c.notnull) {
         input.placeholder = "NULL";
       }
 
       const extras = [];
       if (/DATE|TIME/.test(tUp)) {
-        extras.push(btn("Now", () => {
-          const d = new Date(); const p = (n) => String(n).padStart(2, "0");
-          const dateOnly = /^DATE$/.test(tUp);
-          input.value = d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + (dateOnly ? "" : " " + p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds()));
-          if (defCb) { defCb.checked = false; defCb.dispatchEvent(new Event("change")); }
-        }, "btn-sm"));
+        extras.push(
+          btn(
+            "Now",
+            () => {
+              const d = new Date();
+              const p = (n) => String(n).padStart(2, "0");
+              const dateOnly = /^DATE$/.test(tUp);
+              input.value =
+                d.getFullYear() +
+                "-" +
+                p(d.getMonth() + 1) +
+                "-" +
+                p(d.getDate()) +
+                (dateOnly
+                  ? ""
+                  : " " +
+                    p(d.getHours()) +
+                    ":" +
+                    p(d.getMinutes()) +
+                    ":" +
+                    p(d.getSeconds()));
+              if (defCb) {
+                defCb.checked = false;
+                defCb.dispatchEvent(new Event("change"));
+              }
+            },
+            "btn-sm",
+          ),
+        );
       }
-      const row = h("div", { class: "crud-field-row" }, input, extras,
-        defCb ? h("label", { title: "Let the database fill this in" }, defCb, "default") : null);
-      const label = h("div", { class: "crud-label" },
+      const row = h(
+        "div",
+        { class: "crud-field-row" },
+        input,
+        extras,
+        defCb
+          ? h(
+              "label",
+              { title: "Let the database fill this in" },
+              defCb,
+              "default",
+            )
+          : null,
+      );
+      const label = h(
+        "div",
+        { class: "crud-label" },
         c.name,
         c.pk ? h("span", { class: "crud-badge" }, "PK") : null,
         c.notnull ? h("span", { class: "crud-badge nn" }, "required") : null,
-        fk ? h("span", { class: "crud-badge fk", title: "→ " + fk.table + "(" + fk.to + ")" }, "FK") : null,
-        h("small", null, c.type || "ANY"));
+        fk
+          ? h(
+              "span",
+              {
+                class: "crud-badge fk",
+                title: "→ " + fk.table + "(" + fk.to + ")",
+              },
+              "FK",
+            )
+          : null,
+        h("small", null, c.type || "ANY"),
+      );
       form.appendChild(label);
       form.appendChild(row);
       fields.push({ c, aff, input, defCb, orig: rawVal, isBlob });
     }
 
-    const titles = { insert: "➕ New row in " + activeTable, edit: "📝 Edit row in " + activeTable, duplicate: "📄 Duplicate row into " + activeTable };
-    const body = h("div", { class: "crud-body", style: "gap:10px" },
-      mode === "duplicate" ? h("div", { class: "crud-info" }, "Values are copied from the selected row. Unique / primary-key values must be changed for the copy to save.") : null,
-      form);
+    const titles = {
+      insert: "➕ New row in " + activeTable,
+      edit: "📝 Edit row in " + activeTable,
+      duplicate: "📄 Duplicate row into " + activeTable,
+    };
+    const body = h(
+      "div",
+      { class: "crud-body", style: "gap:10px" },
+      mode === "duplicate"
+        ? h(
+            "div",
+            { class: "crud-info" },
+            "Values are copied from the selected row. Unique / primary-key values must be changed for the copy to save.",
+          )
+        : null,
+      form,
+    );
     let saving = false;
-    const m = openModal({ title: titles[mode], body, wide: meta.columns.length > 10 });
+    const m = openModal({
+      title: titles[mode],
+      body,
+      wide: meta.columns.length > 10,
+    });
 
     const collect = () => {
       const data = {};
@@ -740,9 +1266,19 @@ export function crudClientMain() {
         if (f.isBlob) continue;
         if (f.defCb && f.defCb.checked) continue;
         let v = f.input.value;
-        if (v === "") v = f.c.notnull ? (f.aff === "TEXT" || f.aff === "BLOB" ? "" : null) : null;
+        if (v === "")
+          v = f.c.notnull
+            ? f.aff === "TEXT" || f.aff === "BLOB"
+              ? ""
+              : null
+            : null;
         if (mode === "edit") {
-          const o = f.orig === null || f.orig === undefined ? "" : (typeof f.orig === "object" ? JSON.stringify(f.orig) : String(f.orig));
+          const o =
+            f.orig === null || f.orig === undefined
+              ? ""
+              : typeof f.orig === "object"
+                ? JSON.stringify(f.orig)
+                : String(f.orig);
           const nv = v === null ? "" : String(v);
           if (o === nv && !(f.orig === null && v !== null)) continue;
         }
@@ -755,42 +1291,85 @@ export function crudClientMain() {
       if (saving) return;
       m.error("");
       const data = collect();
-      if (mode === "edit" && Object.keys(data).length === 0) { m.close(); showToast("No changes"); return; }
+      if (mode === "edit" && Object.keys(data).length === 0) {
+        m.close();
+        showToast("No changes");
+        return;
+      }
       for (const f of fields) {
-        if (f.c.notnull && !(f.defCb && f.defCb.checked) && !f.isBlob && (data[f.c.name] === null || data[f.c.name] === undefined) && (mode !== "edit" || f.c.name in data)) {
+        if (
+          f.c.notnull &&
+          !(f.defCb && f.defCb.checked) &&
+          !f.isBlob &&
+          (data[f.c.name] === null || data[f.c.name] === undefined) &&
+          (mode !== "edit" || f.c.name in data)
+        ) {
           m.error("'" + f.c.name + "' is required — please enter a value.");
           f.input.focus();
           return;
         }
       }
       saving = true;
-      const r = mode === "edit"
-        ? await updateRow(idx, data)
-        : await call("/api/table/mutate", { table: activeTable, action: "insert", payload: { data } });
+      const r =
+        mode === "edit"
+          ? await updateRow(idx, data)
+          : await call("/api/table/mutate", {
+              table: activeTable,
+              action: "insert",
+              payload: { data },
+            });
       saving = false;
-      if (!r.success) { m.error(r.error || "Save failed"); return; }
+      if (!r.success) {
+        m.error(r.error || "Save failed");
+        return;
+      }
       logAudit("[" + mode.toUpperCase() + "] " + activeTable);
       await refreshAll();
-      if (mode !== "edit" && !gridSortCol && !($("gridSearchInput") || {}).value) {
+      if (
+        mode !== "edit" &&
+        !gridSortCol &&
+        !($("gridSearchInput") || {}).value
+      ) {
         gridPage = Math.max(1, Math.ceil((crud.totalRows + 1) / gridPageSize));
       }
       await fetchTableData();
-      showToast(mode === "edit" ? "Row updated" : "Row added" + (r.lastInsertRowid ? " (#" + r.lastInsertRowid + ")" : ""));
+      showToast(
+        mode === "edit"
+          ? "Row updated"
+          : "Row added" +
+              (r.lastInsertRowid ? " (#" + r.lastInsertRowid + ")" : ""),
+      );
       if (another) {
-        fields.forEach((f) => { if (f.defCb) { f.defCb.checked = true; f.defCb.dispatchEvent(new Event("change")); } if (!f.defCb) f.input.value = ""; else f.input.value = ""; });
+        fields.forEach((f) => {
+          if (f.defCb) {
+            f.defCb.checked = true;
+            f.defCb.dispatchEvent(new Event("change"));
+          }
+          if (!f.defCb) f.input.value = "";
+          else f.input.value = "";
+        });
         fields[0] && fields[0].input.focus();
       } else {
         m.close();
       }
     };
 
-    m.setButtons([
-      btn("Cancel", () => m.close()),
-      mode !== "edit" ? btn("Save & add another", () => save(true)) : null,
-      btn(mode === "edit" ? "💾 Save changes" : "💾 Save row", () => save(false), "btn-primary"),
-    ].filter(Boolean));
+    m.setButtons(
+      [
+        btn("Cancel", () => m.close()),
+        mode !== "edit" ? btn("Save & add another", () => save(true)) : null,
+        btn(
+          mode === "edit" ? "💾 Save changes" : "💾 Save row",
+          () => save(false),
+          "btn-primary",
+        ),
+      ].filter(Boolean),
+    );
     body.addEventListener("keydown", (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); save(false); }
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+        e.preventDefault();
+        save(false);
+      }
     });
     setTimeout(() => {
       const first = fields.find((f) => !f.input.disabled);
@@ -823,30 +1402,59 @@ export function crudClientMain() {
     const lit = (v) => {
       const s = String(v).trim();
       if (/^-?\d+(\.\d+)?$/.test(s)) return s;
-      if (/^(CURRENT_TIMESTAMP|CURRENT_DATE|CURRENT_TIME|NULL|TRUE|FALSE)$/i.test(s)) return s.toUpperCase();
+      if (
+        /^(CURRENT_TIMESTAMP|CURRENT_DATE|CURRENT_TIME|NULL|TRUE|FALSE)$/i.test(
+          s,
+        )
+      )
+        return s.toUpperCase();
       return "'" + s.replace(/'/g, "''") + "'";
     };
     const parts = cols.map((c) => {
       let d = qid(c.name || "?") + (c.type ? " " + c.type : "");
-      if (inline && c.pk) { d += " PRIMARY KEY"; if (c.autoinc && /^INTEGER$/i.test(c.type)) d += " AUTOINCREMENT"; }
+      if (inline && c.pk) {
+        d += " PRIMARY KEY";
+        if (c.autoinc && /^INTEGER$/i.test(c.type)) d += " AUTOINCREMENT";
+      }
       if (c.notnull && !(inline && c.pk)) d += " NOT NULL";
       if (c.unique && !c.pk) d += " UNIQUE";
-      if (c.default !== undefined && c.default !== null && String(c.default) !== "") d += " DEFAULT " + lit(c.default);
-      if (c.check && String(c.check).trim()) d += " CHECK (" + String(c.check).trim() + ")";
+      if (
+        c.default !== undefined &&
+        c.default !== null &&
+        String(c.default) !== ""
+      )
+        d += " DEFAULT " + lit(c.default);
+      if (c.check && String(c.check).trim())
+        d += " CHECK (" + String(c.check).trim() + ")";
       if (c.fkTable) {
-        d += " REFERENCES " + qid(c.fkTable) + (c.fkColumn ? "(" + qid(c.fkColumn) + ")" : "");
+        d +=
+          " REFERENCES " +
+          qid(c.fkTable) +
+          (c.fkColumn ? "(" + qid(c.fkColumn) + ")" : "");
         if (c.fkOnDelete) d += " ON DELETE " + c.fkOnDelete;
       }
       return d;
     });
-    if (pks.length > 1) parts.push("PRIMARY KEY (" + pks.map((c) => qid(c.name)).join(", ") + ")");
-    return "CREATE TABLE " + qid(name || "?") + " (\n  " + parts.join(",\n  ") + "\n);";
+    if (pks.length > 1)
+      parts.push(
+        "PRIMARY KEY (" + pks.map((c) => qid(c.name)).join(", ") + ")",
+      );
+    return (
+      "CREATE TABLE " +
+      qid(name || "?") +
+      " (\n  " +
+      parts.join(",\n  ") +
+      "\n);"
+    );
   }
 
   async function openTableDesigner(tableName, opts) {
     opts = opts || {};
     const meta = tableName ? tableMeta(tableName) : null;
-    if (meta && meta.type === "view") { showToast("Views can't be redesigned — drop and re-create it instead."); return; }
+    if (meta && meta.type === "view") {
+      showToast("Views can't be redesigned — drop and re-create it instead.");
+      return;
+    }
 
     let warn = "";
     let cols = [];
@@ -856,137 +1464,415 @@ export function crudClientMain() {
       const hasAuto = /AUTOINCREMENT/i.test(ddl);
       const fkMap = {};
       const fkGroups = {};
-      (meta.foreignKeys || []).forEach((f) => { fkMap[f.from] = f; fkGroups[f.id] = (fkGroups[f.id] || 0) + 1; });
+      (meta.foreignKeys || []).forEach((f) => {
+        fkMap[f.from] = f;
+        fkGroups[f.id] = (fkGroups[f.id] || 0) + 1;
+      });
       const uniqueCols = new Set();
       let compositeUnique = false;
       (meta.indices || []).forEach((ix) => {
-        if (ix.unique && ix.origin === "u") { if (ix.columns.length === 1) uniqueCols.add(ix.columns[0]); else compositeUnique = true; }
+        if (ix.unique && ix.origin === "u") {
+          if (ix.columns.length === 1) uniqueCols.add(ix.columns[0]);
+          else compositeUnique = true;
+        }
       });
       const pkCount = meta.columns.filter((c) => c.pk).length;
       cols = meta.columns.map((c) => {
         const fk = fkMap[c.name];
         let def = c.dflt_value;
         return {
-          origName: c.name, name: c.name, type: c.type || "", pk: !!c.pk,
+          origName: c.name,
+          name: c.name,
+          type: c.type || "",
+          pk: !!c.pk,
           autoinc: hasAuto && c.pk && pkCount === 1,
-          notnull: !!c.notnull && !c.pk, unique: uniqueCols.has(c.name),
-          default: def === null || def === undefined ? "" : String(def).replace(/^'(.*)'$/s, "$1"),
-          check: "", fkTable: fk ? fk.table : "", fkColumn: fk ? fk.to : "", fkOnDelete: fk ? (fk.on_delete && fk.on_delete !== "NO ACTION" ? fk.on_delete : "") : "",
+          notnull: !!c.notnull && !c.pk,
+          unique: uniqueCols.has(c.name),
+          default:
+            def === null || def === undefined
+              ? ""
+              : String(def).replace(/^'(.*)'$/s, "$1"),
+          check: "",
+          fkTable: fk ? fk.table : "",
+          fkColumn: fk ? fk.to : "",
+          fkOnDelete: fk
+            ? fk.on_delete && fk.on_delete !== "NO ACTION"
+              ? fk.on_delete
+              : ""
+            : "",
         };
       });
       const notes = [];
       if (/\bCHECK\s*\(/i.test(ddl)) notes.push("CHECK constraints");
       if (compositeUnique) notes.push("multi-column UNIQUE constraints");
-      if (Object.values(fkGroups).some((n) => n > 1)) notes.push("multi-column foreign keys");
-      if (notes.length) warn = "This table uses " + notes.join(", ") + " which the designer can't represent — they would be dropped when you save. Use the SQL editor for that table instead, or accept this.";
+      if (Object.values(fkGroups).some((n) => n > 1))
+        notes.push("multi-column foreign keys");
+      if (notes.length)
+        warn =
+          "This table uses " +
+          notes.join(", ") +
+          " which the designer can't represent — they would be dropped when you save. Use the SQL editor for that table instead, or accept this.";
     } else {
-      cols = (opts.columns && opts.columns.length) ? opts.columns : [
-        { name: "id", type: "INTEGER", pk: true, autoinc: true, notnull: false, unique: false, default: "" },
-        { name: "name", type: "TEXT", pk: false, autoinc: false, notnull: true, unique: false, default: "" },
-      ];
+      cols =
+        opts.columns && opts.columns.length
+          ? opts.columns
+          : [
+              {
+                name: "id",
+                type: "INTEGER",
+                pk: true,
+                autoinc: true,
+                notnull: false,
+                unique: false,
+                default: "",
+              },
+              {
+                name: "name",
+                type: "TEXT",
+                pk: false,
+                autoinc: false,
+                notnull: true,
+                unique: false,
+                default: "",
+              },
+            ];
     }
 
-    const nameInput = h("input", { type: "text", value: meta ? meta.name : (opts.name || ""), placeholder: "e.g. customers" });
+    const nameInput = h("input", {
+      type: "text",
+      value: meta ? meta.name : opts.name || "",
+      placeholder: "e.g. customers",
+    });
     const tbody = h("tbody");
     const preview = h("div", { class: "crud-code" });
-    const tbl = h("table", { class: "crud-table" },
-      h("thead", null, h("tr", null,
-        h("th", null, ""), h("th", null, "Column name"), h("th", null, "Data type"),
-        h("th", { class: "crud-center", title: "Primary key (the unique ID of each row)" }, "🔑 PK"),
-        h("th", { class: "crud-center", title: "Auto-number (INTEGER primary key only)" }, "Auto #"),
-        h("th", { class: "crud-center" }, "Required"), h("th", { class: "crud-center" }, "Unique"),
-        h("th", null, "Default value"), h("th", null, "Link to table (foreign key)"), h("th", null, ""))),
-      tbody);
+    const tbl = h(
+      "table",
+      { class: "crud-table" },
+      h(
+        "thead",
+        null,
+        h(
+          "tr",
+          null,
+          h("th", null, ""),
+          h("th", null, "Column name"),
+          h("th", null, "Data type"),
+          h(
+            "th",
+            {
+              class: "crud-center",
+              title: "Primary key (the unique ID of each row)",
+            },
+            "🔑 PK",
+          ),
+          h(
+            "th",
+            {
+              class: "crud-center",
+              title: "Auto-number (INTEGER primary key only)",
+            },
+            "Auto #",
+          ),
+          h("th", { class: "crud-center" }, "Required"),
+          h("th", { class: "crud-center" }, "Unique"),
+          h("th", null, "Default value"),
+          h("th", null, "Link to table (foreign key)"),
+          h("th", null, ""),
+        ),
+      ),
+      tbody,
+    );
 
-    const refresh = () => { preview.textContent = buildSqlClient(nameInput.value.trim() || (meta ? meta.name : "new_table"), cols); };
+    const refresh = () => {
+      preview.textContent = buildSqlClient(
+        nameInput.value.trim() || (meta ? meta.name : "new_table"),
+        cols,
+      );
+    };
     const typeOptions = (cur) => {
       const list = TYPE_CHOICES.slice();
-      if (cur && !list.some((t) => t.value.toUpperCase() === String(cur).toUpperCase())) list.unshift({ value: cur, label: cur });
+      if (
+        cur &&
+        !list.some((t) => t.value.toUpperCase() === String(cur).toUpperCase())
+      )
+        list.unshift({ value: cur, label: cur });
       return list;
     };
 
     function renderRows() {
       tbody.innerHTML = "";
       cols.forEach((c, i) => {
-        const nameI = h("input", { type: "text", value: c.name, placeholder: "column_name" });
-        nameI.addEventListener("input", () => { c.name = nameI.value; refresh(); });
-        const typeS = mkSelect(typeOptions(c.type), c.type || "TEXT", (v) => { c.type = v; refresh(); });
+        const nameI = h("input", {
+          type: "text",
+          value: c.name,
+          placeholder: "column_name",
+        });
+        nameI.addEventListener("input", () => {
+          c.name = nameI.value;
+          refresh();
+        });
+        const typeS = mkSelect(typeOptions(c.type), c.type || "TEXT", (v) => {
+          c.type = v;
+          refresh();
+        });
         if (!c.type) c.type = typeS.value;
         const mkCheck = (key, onChange) => {
           const cb = h("input", { type: "checkbox", checked: !!c[key] });
-          cb.addEventListener("change", () => { c[key] = cb.checked; if (onChange) onChange(); refresh(); });
+          cb.addEventListener("change", () => {
+            c[key] = cb.checked;
+            if (onChange) onChange();
+            refresh();
+          });
           return h("td", { class: "crud-center" }, cb);
         };
-        const defI = h("input", { type: "text", value: c.default || "", placeholder: "e.g. 0, 'new', CURRENT_TIMESTAMP" });
-        defI.addEventListener("input", () => { c.default = defI.value; refresh(); });
-        const fkTbl = mkSelect([{ value: "", label: "— none —" }].concat(allTableNames().filter((n) => !meta || n !== meta.name || true).map((n) => ({ value: n, label: n }))), c.fkTable || "", (v) => {
-          c.fkTable = v;
-          const t = tableMeta(v);
-          const pk = t && t.columns.find((x) => x.pk);
-          c.fkColumn = pk ? pk.name : (t && t.columns[0] ? t.columns[0].name : "");
-          const refCol = t && t.columns.find((x) => x.name === c.fkColumn);
-          if (refCol && refCol.type && (!c.type || /^TEXT$/i.test(c.type))) c.type = refCol.type;
-          renderRows(); refresh();
+        const defI = h("input", {
+          type: "text",
+          value: c.default || "",
+          placeholder: "e.g. 0, 'new', CURRENT_TIMESTAMP",
         });
-        const fkCell = h("td", null, h("div", { class: "crud-field-row" }, fkTbl));
+        defI.addEventListener("input", () => {
+          c.default = defI.value;
+          refresh();
+        });
+        const fkTbl = mkSelect(
+          [{ value: "", label: "— none —" }].concat(
+            allTableNames()
+              .filter((n) => !meta || n !== meta.name || true)
+              .map((n) => ({ value: n, label: n })),
+          ),
+          c.fkTable || "",
+          (v) => {
+            c.fkTable = v;
+            const t = tableMeta(v);
+            const pk = t && t.columns.find((x) => x.pk);
+            c.fkColumn = pk
+              ? pk.name
+              : t && t.columns[0]
+                ? t.columns[0].name
+                : "";
+            const refCol = t && t.columns.find((x) => x.name === c.fkColumn);
+            if (refCol && refCol.type && (!c.type || /^TEXT$/i.test(c.type)))
+              c.type = refCol.type;
+            renderRows();
+            refresh();
+          },
+        );
+        const fkCell = h(
+          "td",
+          null,
+          h("div", { class: "crud-field-row" }, fkTbl),
+        );
         if (c.fkTable) {
           const t = tableMeta(c.fkTable);
-          const colOpts = (t ? t.columns.map((x) => x.name) : [c.fkColumn]).filter(Boolean);
-          fkCell.firstChild.appendChild(mkSelect(colOpts, c.fkColumn, (v) => { c.fkColumn = v; refresh(); }));
-          fkCell.firstChild.appendChild(mkSelect([{ value: "", label: "on delete: block" }, { value: "CASCADE", label: "on delete: delete too" }, { value: "SET NULL", label: "on delete: set empty" }], c.fkOnDelete || "", (v) => { c.fkOnDelete = v; refresh(); }));
+          const colOpts = (
+            t ? t.columns.map((x) => x.name) : [c.fkColumn]
+          ).filter(Boolean);
+          fkCell.firstChild.appendChild(
+            mkSelect(colOpts, c.fkColumn, (v) => {
+              c.fkColumn = v;
+              refresh();
+            }),
+          );
+          fkCell.firstChild.appendChild(
+            mkSelect(
+              [
+                { value: "", label: "on delete: block" },
+                { value: "CASCADE", label: "on delete: delete too" },
+                { value: "SET NULL", label: "on delete: set empty" },
+              ],
+              c.fkOnDelete || "",
+              (v) => {
+                c.fkOnDelete = v;
+                refresh();
+              },
+            ),
+          );
         }
-        const tr = h("tr", null,
-          h("td", null,
-            h("span", { class: "crud-move", title: "Move up", onclick: () => { if (i > 0) { [cols[i - 1], cols[i]] = [cols[i], cols[i - 1]]; renderRows(); refresh(); } } }, "▲"),
-            h("span", { class: "crud-move", title: "Move down", onclick: () => { if (i < cols.length - 1) { [cols[i + 1], cols[i]] = [cols[i], cols[i + 1]]; renderRows(); refresh(); } } }, "▼")),
+        const tr = h(
+          "tr",
+          null,
+          h(
+            "td",
+            null,
+            h(
+              "span",
+              {
+                class: "crud-move",
+                title: "Move up",
+                onclick: () => {
+                  if (i > 0) {
+                    [cols[i - 1], cols[i]] = [cols[i], cols[i - 1]];
+                    renderRows();
+                    refresh();
+                  }
+                },
+              },
+              "▲",
+            ),
+            h(
+              "span",
+              {
+                class: "crud-move",
+                title: "Move down",
+                onclick: () => {
+                  if (i < cols.length - 1) {
+                    [cols[i + 1], cols[i]] = [cols[i], cols[i + 1]];
+                    renderRows();
+                    refresh();
+                  }
+                },
+              },
+              "▼",
+            ),
+          ),
           h("td", null, nameI),
           h("td", null, typeS),
-          mkCheck("pk", () => { if (!c.pk) c.autoinc = false; renderRows(); }),
+          mkCheck("pk", () => {
+            if (!c.pk) c.autoinc = false;
+            renderRows();
+          }),
           (() => {
             const td = mkCheck("autoinc");
             const cb = td.firstChild;
-            const ok = c.pk && /^INTEGER$/i.test(c.type) && cols.filter((x) => x.pk).length === 1;
-            cb.disabled = !ok; if (!ok) { cb.checked = false; c.autoinc = false; }
+            const ok =
+              c.pk &&
+              /^INTEGER$/i.test(c.type) &&
+              cols.filter((x) => x.pk).length === 1;
+            cb.disabled = !ok;
+            if (!ok) {
+              cb.checked = false;
+              c.autoinc = false;
+            }
             return td;
           })(),
           mkCheck("notnull"),
           mkCheck("unique"),
           h("td", null, defI),
           fkCell,
-          h("td", null, h("button", { class: "btn btn-sm btn-danger", title: "Remove column", onclick: () => { cols.splice(i, 1); renderRows(); refresh(); } }, "✕")));
+          h(
+            "td",
+            null,
+            h(
+              "button",
+              {
+                class: "btn btn-sm btn-danger",
+                title: "Remove column",
+                onclick: () => {
+                  cols.splice(i, 1);
+                  renderRows();
+                  refresh();
+                },
+              },
+              "✕",
+            ),
+          ),
+        );
         tbody.appendChild(tr);
       });
     }
 
     const addCol = (spec) => {
-      cols.push(Object.assign({ name: "", type: "TEXT", pk: false, autoinc: false, notnull: false, unique: false, default: "" }, spec || {}));
-      renderRows(); refresh();
+      cols.push(
+        Object.assign(
+          {
+            name: "",
+            type: "TEXT",
+            pk: false,
+            autoinc: false,
+            notnull: false,
+            unique: false,
+            default: "",
+          },
+          spec || {},
+        ),
+      );
+      renderRows();
+      refresh();
       const inputs = tbody.querySelectorAll('input[type="text"]');
-      setTimeout(() => { const last = tbody.lastChild && tbody.lastChild.querySelector("input"); if (last) last.focus(); }, 20);
+      setTimeout(() => {
+        const last = tbody.lastChild && tbody.lastChild.querySelector("input");
+        if (last) last.focus();
+      }, 20);
     };
 
     nameInput.addEventListener("input", refresh);
-    const body = h("div", { class: "crud-body" },
-      meta ? h("div", { class: "crud-info" }, "Changing a table rebuilds it safely: all rows are copied over, and indexes & triggers are restored. Removed columns lose their data. Rename a column by editing its name.") : h("div", { class: "crud-info" }, "Pick a name, add your columns, and choose a primary key (a unique ID for each row). No SQL needed — the SQL preview below updates as you go."),
+    const body = h(
+      "div",
+      { class: "crud-body" },
+      meta
+        ? h(
+            "div",
+            { class: "crud-info" },
+            "Changing a table rebuilds it safely: all rows are copied over, and indexes & triggers are restored. Removed columns lose their data. Rename a column by editing its name.",
+          )
+        : h(
+            "div",
+            { class: "crud-info" },
+            "Pick a name, add your columns, and choose a primary key (a unique ID for each row). No SQL needed — the SQL preview below updates as you go.",
+          ),
       warn ? h("div", { class: "crud-note" }, "⚠️ " + warn) : null,
-      h("div", { class: "crud-row" }, h("label", { style: "font-weight:700;color:var(--text-main)" }, "Table name"), h("div", { style: "flex:1;min-width:220px" }, nameInput)),
-      h("div", { class: "crud-row" },
+      h(
+        "div",
+        { class: "crud-row" },
+        h(
+          "label",
+          { style: "font-weight:700;color:var(--text-main)" },
+          "Table name",
+        ),
+        h("div", { style: "flex:1;min-width:220px" }, nameInput),
+      ),
+      h(
+        "div",
+        { class: "crud-row" },
         h("span", { class: "crud-section-title" }, "Columns"),
         h("span", { style: "flex:1" }),
-        h("span", { style: "font-size:11px;color:var(--text-dim)" }, "Quick add:"),
-        btn("🔑 id", () => addCol({ name: "id", type: "INTEGER", pk: true, autoinc: true }), "btn-sm"),
+        h(
+          "span",
+          { style: "font-size:11px;color:var(--text-dim)" },
+          "Quick add:",
+        ),
+        btn(
+          "🔑 id",
+          () =>
+            addCol({ name: "id", type: "INTEGER", pk: true, autoinc: true }),
+          "btn-sm",
+        ),
         btn("📝 Text", () => addCol({ type: "TEXT" }), "btn-sm"),
         btn("🔢 Number", () => addCol({ type: "REAL" }), "btn-sm"),
         btn("📅 Date", () => addCol({ type: "DATE" }), "btn-sm"),
-        btn("✅ Yes/No", () => addCol({ type: "BOOLEAN", default: "0" }), "btn-sm"),
-        btn("🕒 created_at", () => addCol({ name: "created_at", type: "DATETIME", default: "CURRENT_TIMESTAMP" }), "btn-sm")),
+        btn(
+          "✅ Yes/No",
+          () => addCol({ type: "BOOLEAN", default: "0" }),
+          "btn-sm",
+        ),
+        btn(
+          "🕒 created_at",
+          () =>
+            addCol({
+              name: "created_at",
+              type: "DATETIME",
+              default: "CURRENT_TIMESTAMP",
+            }),
+          "btn-sm",
+        ),
+      ),
       h("div", { class: "crud-scroll", style: "max-height:340px" }, tbl),
-      h("div", { class: "crud-row" }, btn("➕ Add column", () => addCol(), "btn-primary btn-sm")),
+      h(
+        "div",
+        { class: "crud-row" },
+        btn("➕ Add column", () => addCol(), "btn-primary btn-sm"),
+      ),
       h("div", { class: "crud-section-title" }, "SQL preview"),
-      preview);
+      preview,
+    );
 
-    const m = openModal({ title: meta ? "🛠️ Design table: " + meta.name : "➕ New table", body, wide: true });
-    renderRows(); refresh();
+    const m = openModal({
+      title: meta ? "🛠️ Design table: " + meta.name : "➕ New table",
+      body,
+      wide: true,
+    });
+    renderRows();
+    refresh();
     if (opts.focusNewColumn) addCol();
 
     let busy = false;
@@ -994,19 +1880,46 @@ export function crudClientMain() {
       if (busy) return;
       m.error("");
       const name = nameInput.value.trim();
-      if (!name) { m.error("Please give the table a name."); nameInput.focus(); return; }
-      if (!cols.length) { m.error("Add at least one column."); return; }
-      if (cols.some((c) => !String(c.name || "").trim())) { m.error("Every column needs a name."); return; }
+      if (!name) {
+        m.error("Please give the table a name.");
+        nameInput.focus();
+        return;
+      }
+      if (!cols.length) {
+        m.error("Add at least one column.");
+        return;
+      }
+      if (cols.some((c) => !String(c.name || "").trim())) {
+        m.error("Every column needs a name.");
+        return;
+      }
       busy = true;
       let r;
       if (meta) {
-        if (!(await crudConfirm("Apply changes to '" + meta.name + "'?\nThe table will be rebuilt and its data copied over.", { okText: "Apply changes", title: "Redesign table" }))) { busy = false; return; }
-        r = await call("/api/schema/redesign-table", { table: meta.name, newName: name, columns: cols });
+        if (
+          !(await crudConfirm(
+            "Apply changes to '" +
+              meta.name +
+              "'?\nThe table will be rebuilt and its data copied over.",
+            { okText: "Apply changes", title: "Redesign table" },
+          ))
+        ) {
+          busy = false;
+          return;
+        }
+        r = await call("/api/schema/redesign-table", {
+          table: meta.name,
+          newName: name,
+          columns: cols,
+        });
       } else {
         r = await call("/api/schema/create-table", { name, columns: cols });
       }
       busy = false;
-      if (!r.success) { m.error(r.error || "Failed"); return; }
+      if (!r.success) {
+        m.error(r.error || "Failed");
+        return;
+      }
       m.close();
       showToast(meta ? "Table updated" : "Table '" + name + "' created");
       logAudit("[" + (meta ? "REDESIGN" : "CREATE") + " TABLE] " + name);
@@ -1014,7 +1927,11 @@ export function crudClientMain() {
       if (!meta && opts.thenImport) openImportWizard({ table: name });
     };
     m.setButtons([
-      h("span", { class: "crud-footer-left" }, meta ? "" : "Tip: after creating, use 📥 Import to load data."),
+      h(
+        "span",
+        { class: "crud-footer-left" },
+        meta ? "" : "Tip: after creating, use 📥 Import to load data.",
+      ),
       btn("Cancel", () => m.close()),
       btn(meta ? "💾 Apply changes" : "✅ Create table", save, "btn-primary"),
     ]);
@@ -1026,23 +1943,62 @@ export function crudClientMain() {
   // Views / indexes / drop / rename / truncate
   // -------------------------------------------------------------------------------------------
   function openViewDialog() {
-    const nameI = h("input", { type: "text", placeholder: "e.g. active_customers" });
+    const nameI = h("input", {
+      type: "text",
+      placeholder: "e.g. active_customers",
+    });
     const ed = $("sqlEditor");
-    const sqlI = h("textarea", { rows: "7", placeholder: "SELECT * FROM customers WHERE tier = 'VIP'" });
-    if (ed && /^\s*(SELECT|WITH)\b/i.test(ed.value)) sqlI.value = ed.value.trim().replace(/;+\s*$/, "");
+    const sqlI = h("textarea", {
+      rows: "7",
+      placeholder: "SELECT * FROM customers WHERE tier = 'VIP'",
+    });
+    if (ed && /^\s*(SELECT|WITH)\b/i.test(ed.value))
+      sqlI.value = ed.value.trim().replace(/;+\s*$/, "");
     const m = openModal({
       title: "👁️ Create view",
-      body: h("div", { class: "crud-body" },
-        h("div", { class: "crud-info" }, "A view is a saved query that behaves like a read-only table. Paste or type a SELECT statement (the SQL editor's current query is pre-filled)."),
-        h("div", null, h("div", { class: "crud-section-title" }, "View name"), nameI),
-        h("div", null, h("div", { class: "crud-section-title" }, "SELECT statement"), sqlI)),
+      body: h(
+        "div",
+        { class: "crud-body" },
+        h(
+          "div",
+          { class: "crud-info" },
+          "A view is a saved query that behaves like a read-only table. Paste or type a SELECT statement (the SQL editor's current query is pre-filled).",
+        ),
+        h(
+          "div",
+          null,
+          h("div", { class: "crud-section-title" }, "View name"),
+          nameI,
+        ),
+        h(
+          "div",
+          null,
+          h("div", { class: "crud-section-title" }, "SELECT statement"),
+          sqlI,
+        ),
+      ),
     });
-    m.setButtons([btn("Cancel", () => m.close()), btn("✅ Create view", async () => {
-      m.error("");
-      const r = await call("/api/schema/create-view", { name: nameI.value.trim(), sql: sqlI.value });
-      if (!r.success) { m.error(r.error); return; }
-      m.close(); showToast("View created"); await afterSchemaChange(nameI.value.trim());
-    }, "btn-primary")]);
+    m.setButtons([
+      btn("Cancel", () => m.close()),
+      btn(
+        "✅ Create view",
+        async () => {
+          m.error("");
+          const r = await call("/api/schema/create-view", {
+            name: nameI.value.trim(),
+            sql: sqlI.value,
+          });
+          if (!r.success) {
+            m.error(r.error);
+            return;
+          }
+          m.close();
+          showToast("View created");
+          await afterSchemaChange(nameI.value.trim());
+        },
+        "btn-primary",
+      ),
+    ]);
     setTimeout(() => nameI.focus(), 40);
   }
 
@@ -1051,35 +2007,96 @@ export function crudClientMain() {
     if (!meta) return;
     const nameI = h("input", { type: "text" });
     const uniq = h("input", { type: "checkbox" });
-    const checks = meta.columns.map((c) => ({ c, cb: h("input", { type: "checkbox" }) }));
+    const checks = meta.columns.map((c) => ({
+      c,
+      cb: h("input", { type: "checkbox" }),
+    }));
     const autoName = () => {
       const picked = checks.filter((x) => x.cb.checked).map((x) => x.c.name);
-      nameI.value = "idx_" + tableName + (picked.length ? "_" + picked.join("_") : "");
+      nameI.value =
+        "idx_" + tableName + (picked.length ? "_" + picked.join("_") : "");
     };
     checks.forEach((x) => x.cb.addEventListener("change", autoName));
     autoName();
     const m = openModal({
       title: "⚡ New index on " + tableName,
-      body: h("div", { class: "crud-body" },
-        h("div", { class: "crud-info" }, "An index makes searching and sorting on the chosen columns much faster. Tick the columns to include."),
-        h("div", { class: "crud-colchecks" }, checks.map((x) => h("label", { class: "crud-chip" }, x.cb, " ", x.c.name))),
-        h("div", null, h("div", { class: "crud-section-title" }, "Index name"), nameI),
-        h("label", { style: "font-size:12px;display:inline-flex;gap:6px;align-items:center" }, uniq, "Unique (no two rows may share the same value)")),
+      body: h(
+        "div",
+        { class: "crud-body" },
+        h(
+          "div",
+          { class: "crud-info" },
+          "An index makes searching and sorting on the chosen columns much faster. Tick the columns to include.",
+        ),
+        h(
+          "div",
+          { class: "crud-colchecks" },
+          checks.map((x) =>
+            h("label", { class: "crud-chip" }, x.cb, " ", x.c.name),
+          ),
+        ),
+        h(
+          "div",
+          null,
+          h("div", { class: "crud-section-title" }, "Index name"),
+          nameI,
+        ),
+        h(
+          "label",
+          {
+            style:
+              "font-size:12px;display:inline-flex;gap:6px;align-items:center",
+          },
+          uniq,
+          "Unique (no two rows may share the same value)",
+        ),
+      ),
     });
-    m.setButtons([btn("Cancel", () => m.close()), btn("✅ Create index", async () => {
-      m.error("");
-      const picked = checks.filter((x) => x.cb.checked).map((x) => x.c.name);
-      const r = await call("/api/schema/create-index", { name: nameI.value.trim(), table: tableName, columns: picked, unique: uniq.checked });
-      if (!r.success) { m.error(r.error); return; }
-      m.close(); showToast("Index created"); await afterSchemaChange();
-    }, "btn-primary")]);
+    m.setButtons([
+      btn("Cancel", () => m.close()),
+      btn(
+        "✅ Create index",
+        async () => {
+          m.error("");
+          const picked = checks
+            .filter((x) => x.cb.checked)
+            .map((x) => x.c.name);
+          const r = await call("/api/schema/create-index", {
+            name: nameI.value.trim(),
+            table: tableName,
+            columns: picked,
+            unique: uniq.checked,
+          });
+          if (!r.success) {
+            m.error(r.error);
+            return;
+          }
+          m.close();
+          showToast("Index created");
+          await afterSchemaChange();
+        },
+        "btn-primary",
+      ),
+    ]);
   }
 
   async function dropObject(kind, name) {
-    const ok = await crudConfirm("Permanently delete the " + kind + " '" + name + "'" + (kind === "table" ? " and ALL of its rows" : "") + "?\n\nThis cannot be undone.", { okText: "🗑️ Delete " + kind, danger: true, title: "Delete " + kind });
+    const ok = await crudConfirm(
+      "Permanently delete the " +
+        kind +
+        " '" +
+        name +
+        "'" +
+        (kind === "table" ? " and ALL of its rows" : "") +
+        "?\n\nThis cannot be undone.",
+      { okText: "🗑️ Delete " + kind, danger: true, title: "Delete " + kind },
+    );
     if (!ok) return;
     const r = await call("/api/schema/drop", { kind, name });
-    if (!r.success) { crudConfirm(r.error, { title: "Could not delete" }); return; }
+    if (!r.success) {
+      crudConfirm(r.error, { title: "Could not delete" });
+      return;
+    }
     showToast(kind + " '" + name + "' deleted");
     logAudit("[DROP " + kind.toUpperCase() + "] " + name);
     if (activeTable === name) activeTable = "";
@@ -1087,20 +2104,38 @@ export function crudClientMain() {
   }
 
   async function renameTable(name) {
-    const nn = await crudPrompt("Rename table", "New name for '" + name + "':", name);
+    const nn = await crudPrompt(
+      "Rename table",
+      "New name for '" + name + "':",
+      name,
+    );
     if (!nn || nn === name) return;
-    const r = await call("/api/schema/rename-table", { table: name, newName: nn });
-    if (!r.success) { crudConfirm(r.error, { title: "Rename failed" }); return; }
+    const r = await call("/api/schema/rename-table", {
+      table: name,
+      newName: nn,
+    });
+    if (!r.success) {
+      crudConfirm(r.error, { title: "Rename failed" });
+      return;
+    }
     showToast("Renamed to '" + nn + "'");
     if (activeTable === name) activeTable = nn;
     await afterSchemaChange(nn);
   }
 
   async function emptyTable(name) {
-    const ok = await crudConfirm("Delete ALL rows from '" + name + "'? The table itself stays.\n\nThis cannot be undone.", { okText: "🧹 Empty table", danger: true, title: "Empty table" });
+    const ok = await crudConfirm(
+      "Delete ALL rows from '" +
+        name +
+        "'? The table itself stays.\n\nThis cannot be undone.",
+      { okText: "🧹 Empty table", danger: true, title: "Empty table" },
+    );
     if (!ok) return;
     const r = await call("/api/query", { sql: "DELETE FROM " + qid(name) });
-    if (!r.success) { crudConfirm(r.error, { title: "Failed" }); return; }
+    if (!r.success) {
+      crudConfirm(r.error, { title: "Failed" });
+      return;
+    }
     showToast("Deleted " + (r.rowsAffected || 0) + " rows");
     await afterSchemaChange(name);
   }
@@ -1109,23 +2144,79 @@ export function crudClientMain() {
     const meta = tableMeta(name);
     if (!meta) return [];
     const isView = meta.type === "view";
-    const items = [{ icon: "📂", label: "Open data", onclick: () => selectTable(name) }];
+    const items = [
+      { icon: "📂", label: "Open data", onclick: () => selectTable(name) },
+    ];
     if (!isView) {
-      items.push({ icon: "➕", label: "Add row…", onclick: async () => { if (activeTable !== name) await selectTable(name); openRowDialog("insert"); } });
-      items.push({ icon: "🛠️", label: "Design table…", onclick: () => openTableDesigner(name) });
-      items.push({ icon: "➕", label: "Add column…", onclick: () => openTableDesigner(name, { focusNewColumn: true }) });
-      items.push({ icon: "⚡", label: "New index…", onclick: () => openIndexDialog(name) });
-      items.push({ icon: "📥", label: "Import data into…", onclick: () => openImportWizard({ table: name }) });
+      items.push({
+        icon: "➕",
+        label: "Add row…",
+        onclick: async () => {
+          if (activeTable !== name) await selectTable(name);
+          openRowDialog("insert");
+        },
+      });
+      items.push({
+        icon: "🛠️",
+        label: "Design table…",
+        onclick: () => openTableDesigner(name),
+      });
+      items.push({
+        icon: "➕",
+        label: "Add column…",
+        onclick: () => openTableDesigner(name, { focusNewColumn: true }),
+      });
+      items.push({
+        icon: "⚡",
+        label: "New index…",
+        onclick: () => openIndexDialog(name),
+      });
+      items.push({
+        icon: "📥",
+        label: "Import data into…",
+        onclick: () => openImportWizard({ table: name }),
+      });
     }
-    items.push({ icon: "📤", label: "Export…", onclick: async () => { if (activeTable !== name) await selectTable(name); openExportDialog(name); } });
-    if (isView) items.push({ icon: "✏️", label: "Edit view definition…", onclick: () => StudioViews.openEdit(name) });
-    items.push({ icon: "📋", label: "Copy name", onclick: () => copyText(name).then(() => showToast("Copied")) });
+    items.push({
+      icon: "📤",
+      label: "Export…",
+      onclick: async () => {
+        if (activeTable !== name) await selectTable(name);
+        openExportDialog(name);
+      },
+    });
+    if (isView)
+      items.push({
+        icon: "✏️",
+        label: "Edit view definition…",
+        onclick: () => StudioViews.openEdit(name),
+      });
+    items.push({
+      icon: "📋",
+      label: "Copy name",
+      onclick: () => copyText(name).then(() => showToast("Copied")),
+    });
     if (!isView) {
       items.push("-");
-      items.push({ icon: "✏️", label: "Rename…", onclick: () => renameTable(name) });
-      items.push({ icon: "🧹", label: "Empty table…", danger: true, onclick: () => emptyTable(name) });
+      items.push({
+        icon: "✏️",
+        label: "Rename…",
+        onclick: () => renameTable(name),
+      });
+      items.push({
+        icon: "🧹",
+        label: "Empty table…",
+        danger: true,
+        onclick: () => emptyTable(name),
+      });
     }
-    items.push({ icon: "🗑️", label: isView ? "Drop view…" : "Delete table…", danger: true, onclick: () => (isView ? StudioViews.drop(name) : dropObject("table", name)) });
+    items.push({
+      icon: "🗑️",
+      label: isView ? "Drop view…" : "Delete table…",
+      danger: true,
+      onclick: () =>
+        isView ? StudioViews.drop(name) : dropObject("table", name),
+    });
     return items;
   }
   window.crudTableMenuItems = tableMenuItems;
@@ -1134,15 +2225,24 @@ export function crudClientMain() {
   const origRenderObjectTree = window.renderObjectTree;
   window.renderObjectTree = function () {
     origRenderObjectTree();
-    document.querySelectorAll("#objectTreeContainer .tree-item").forEach((el) => {
-      const title = el.querySelector(".tree-item-title");
-      if (!title || el.querySelector(".crud-dots")) return;
-      const name = title.textContent;
-      const dots = h("span", { class: "crud-dots", title: "Actions" }, "⋯");
-      dots.addEventListener("click", (e) => { e.stopPropagation(); const r = dots.getBoundingClientRect(); showMenu(r.left, r.bottom + 2, tableMenuItems(name)); });
-      title.parentNode.insertBefore(dots, title.nextSibling);
-      el.addEventListener("contextmenu", (e) => { e.preventDefault(); showMenu(e.clientX, e.clientY, tableMenuItems(name)); });
-    });
+    document
+      .querySelectorAll("#objectTreeContainer .tree-item")
+      .forEach((el) => {
+        const title = el.querySelector(".tree-item-title");
+        if (!title || el.querySelector(".crud-dots")) return;
+        const name = title.textContent;
+        const dots = h("span", { class: "crud-dots", title: "Actions" }, "⋯");
+        dots.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const r = dots.getBoundingClientRect();
+          showMenu(r.left, r.bottom + 2, tableMenuItems(name));
+        });
+        title.parentNode.insertBefore(dots, title.nextSibling);
+        el.addEventListener("contextmenu", (e) => {
+          e.preventDefault();
+          showMenu(e.clientX, e.clientY, tableMenuItems(name));
+        });
+      });
   };
 
   // Schema tab: management cards (actions, indexes, foreign keys, triggers)
@@ -1153,44 +2253,178 @@ export function crudClientMain() {
     const meta = tableMeta(tableName);
     if (!container || !meta) return;
     const isView = meta.type === "view";
-    const actions = h("div", { class: "card" },
-      h("div", { class: "card-title" }, "🧰 Manage " + (isView ? "view" : "table")),
-      h("div", { class: "crud-row", style: "margin-top:8px" },
-        isView ? null : btn("🛠️ Design / edit columns", () => openTableDesigner(tableName), "btn-primary btn-sm"),
-        isView ? null : btn("➕ Add column", () => openTableDesigner(tableName, { focusNewColumn: true }), "btn-sm"),
-        isView ? null : btn("⚡ New index", () => openIndexDialog(tableName), "btn-sm"),
-        isView ? null : btn("✏️ Rename", () => renameTable(tableName), "btn-sm"),
-        isView ? null : btn("📥 Import data", () => openImportWizard({ table: tableName }), "btn-sm"),
+    const actions = h(
+      "div",
+      { class: "card" },
+      h(
+        "div",
+        { class: "card-title" },
+        "🧰 Manage " + (isView ? "view" : "table"),
+      ),
+      h(
+        "div",
+        { class: "crud-row", style: "margin-top:8px" },
+        isView
+          ? null
+          : btn(
+              "🛠️ Design / edit columns",
+              () => openTableDesigner(tableName),
+              "btn-primary btn-sm",
+            ),
+        isView
+          ? null
+          : btn(
+              "➕ Add column",
+              () => openTableDesigner(tableName, { focusNewColumn: true }),
+              "btn-sm",
+            ),
+        isView
+          ? null
+          : btn("⚡ New index", () => openIndexDialog(tableName), "btn-sm"),
+        isView
+          ? null
+          : btn("✏️ Rename", () => renameTable(tableName), "btn-sm"),
+        isView
+          ? null
+          : btn(
+              "📥 Import data",
+              () => openImportWizard({ table: tableName }),
+              "btn-sm",
+            ),
         btn("📤 Export", () => openExportDialog(tableName), "btn-sm"),
-        isView ? null : btn("🧹 Empty", () => emptyTable(tableName), "btn-sm btn-danger"),
-        btn("🗑️ Delete " + (isView ? "view" : "table"), () => dropObject(isView ? "view" : "table", tableName), "btn-sm btn-danger")));
+        isView
+          ? null
+          : btn("🧹 Empty", () => emptyTable(tableName), "btn-sm btn-danger"),
+        btn(
+          "🗑️ Delete " + (isView ? "view" : "table"),
+          () => dropObject(isView ? "view" : "table", tableName),
+          "btn-sm btn-danger",
+        ),
+      ),
+    );
     container.insertBefore(actions, container.firstChild);
 
     if (!isView) {
-      const idxCard = h("div", { class: "card" }, h("div", { class: "card-title" }, "⚡ Indexes (" + (meta.indices || []).length + ")"));
-      if (!(meta.indices || []).length) idxCard.appendChild(h("div", { style: "font-size:11px;color:var(--text-dim);margin-top:6px" }, "No indexes yet. Add one to speed up searches."));
+      const idxCard = h(
+        "div",
+        { class: "card" },
+        h(
+          "div",
+          { class: "card-title" },
+          "⚡ Indexes (" + (meta.indices || []).length + ")",
+        ),
+      );
+      if (!(meta.indices || []).length)
+        idxCard.appendChild(
+          h(
+            "div",
+            { style: "font-size:11px;color:var(--text-dim);margin-top:6px" },
+            "No indexes yet. Add one to speed up searches.",
+          ),
+        );
       (meta.indices || []).forEach((ix) => {
         const droppable = ix.origin === "c";
-        idxCard.appendChild(h("div", { class: "crud-idx-row" },
-          h("div", null, h("code", null, ix.name), " on (" + ix.columns.join(", ") + ")",
-            ix.unique ? h("span", { class: "crud-badge" }, "UNIQUE") : null,
-            !droppable ? h("span", { class: "crud-badge", title: "Created automatically by a PRIMARY KEY / UNIQUE constraint" }, "auto") : null),
-          droppable ? btn("🗑️", () => dropObject("index", ix.name), "btn-sm btn-danger") : null));
+        idxCard.appendChild(
+          h(
+            "div",
+            { class: "crud-idx-row" },
+            h(
+              "div",
+              null,
+              h("code", null, ix.name),
+              " on (" + ix.columns.join(", ") + ")",
+              ix.unique ? h("span", { class: "crud-badge" }, "UNIQUE") : null,
+              !droppable
+                ? h(
+                    "span",
+                    {
+                      class: "crud-badge",
+                      title:
+                        "Created automatically by a PRIMARY KEY / UNIQUE constraint",
+                    },
+                    "auto",
+                  )
+                : null,
+            ),
+            droppable
+              ? btn(
+                  "🗑️",
+                  () => dropObject("index", ix.name),
+                  "btn-sm btn-danger",
+                )
+              : null,
+          ),
+        );
       });
-      idxCard.appendChild(h("div", { style: "margin-top:8px" }, btn("➕ New index", () => openIndexDialog(tableName), "btn-sm")));
+      idxCard.appendChild(
+        h(
+          "div",
+          { style: "margin-top:8px" },
+          btn("➕ New index", () => openIndexDialog(tableName), "btn-sm"),
+        ),
+      );
       container.appendChild(idxCard);
 
       if ((meta.foreignKeys || []).length) {
-        const fkCard = h("div", { class: "card" }, h("div", { class: "card-title" }, "🔗 Relationships (foreign keys)"));
-        meta.foreignKeys.forEach((f) => fkCard.appendChild(h("div", { class: "crud-idx-row" },
-          h("div", null, h("code", null, tableName + "." + f.from), " → ", h("code", null, f.table + "." + f.to), f.on_delete && f.on_delete !== "NO ACTION" ? h("span", { class: "crud-badge" }, "ON DELETE " + f.on_delete) : null))));
+        const fkCard = h(
+          "div",
+          { class: "card" },
+          h("div", { class: "card-title" }, "🔗 Relationships (foreign keys)"),
+        );
+        meta.foreignKeys.forEach((f) =>
+          fkCard.appendChild(
+            h(
+              "div",
+              { class: "crud-idx-row" },
+              h(
+                "div",
+                null,
+                h("code", null, tableName + "." + f.from),
+                " → ",
+                h("code", null, f.table + "." + f.to),
+                f.on_delete && f.on_delete !== "NO ACTION"
+                  ? h(
+                      "span",
+                      { class: "crud-badge" },
+                      "ON DELETE " + f.on_delete,
+                    )
+                  : null,
+              ),
+            ),
+          ),
+        );
         container.appendChild(fkCard);
       }
       call("/api/schema/details", { table: tableName }).then((r) => {
-        if (!r.success || !r.triggers || !r.triggers.length || activeTable !== tableName) return;
-        const tc = h("div", { class: "card" }, h("div", { class: "card-title" }, "⚙️ Triggers (" + r.triggers.length + ")"));
+        if (
+          !r.success ||
+          !r.triggers ||
+          !r.triggers.length ||
+          activeTable !== tableName
+        )
+          return;
+        const tc = h(
+          "div",
+          { class: "card" },
+          h(
+            "div",
+            { class: "card-title" },
+            "⚙️ Triggers (" + r.triggers.length + ")",
+          ),
+        );
         r.triggers.forEach((t) => {
-          tc.appendChild(h("div", { class: "crud-idx-row" }, h("code", null, t.name), btn("🗑️", () => dropObject("trigger", t.name), "btn-sm btn-danger")));
+          tc.appendChild(
+            h(
+              "div",
+              { class: "crud-idx-row" },
+              h("code", null, t.name),
+              btn(
+                "🗑️",
+                () => dropObject("trigger", t.name),
+                "btn-sm btn-danger",
+              ),
+            ),
+          );
           tc.appendChild(h("div", { class: "crud-code" }, t.sql));
         });
         container.appendChild(tc);
@@ -1208,7 +2442,9 @@ export function crudClientMain() {
   function buildDelimited(cols, rows, delim, header) {
     const q = (v) => {
       const s = cellText(v);
-      return s.includes(delim) || /["\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+      return s.includes(delim) || /["\r\n]/.test(s)
+        ? '"' + s.replace(/"/g, '""') + '"'
+        : s;
     };
     const lines = [];
     if (header) lines.push(cols.map(q).join(delim));
@@ -1219,29 +2455,66 @@ export function crudClientMain() {
     if (v === null || v === undefined) return "NULL";
     if (typeof v === "number") return String(v);
     if (typeof v === "boolean") return v ? "1" : "0";
-    return "'" + String(typeof v === "object" ? JSON.stringify(v) : v).replace(/'/g, "''") + "'";
+    return (
+      "'" +
+      String(typeof v === "object" ? JSON.stringify(v) : v).replace(
+        /'/g,
+        "''",
+      ) +
+      "'"
+    );
   }
   function buildExport(fmt, name, cols, rows, opts) {
     opts = opts || {};
     switch (fmt) {
-      case "csv": return buildDelimited(cols, rows, ",", opts.header !== false);
-      case "tsv": return buildDelimited(cols, rows, "\t", opts.header !== false);
-      case "json": return JSON.stringify(rows, null, 2);
-      case "jsonl": return rows.map((r) => JSON.stringify(r)).join("\n");
+      case "csv":
+        return buildDelimited(cols, rows, ",", opts.header !== false);
+      case "tsv":
+        return buildDelimited(cols, rows, "\t", opts.header !== false);
+      case "json":
+        return JSON.stringify(rows, null, 2);
+      case "jsonl":
+        return rows.map((r) => JSON.stringify(r)).join("\n");
       case "md": {
         const e = (v) => cellText(v).replace(/\|/g, "\\|").replace(/\n/g, " ");
-        return "| " + cols.join(" | ") + " |\n| " + cols.map(() => "---").join(" | ") + " |\n" + rows.map((r) => "| " + cols.map((c) => e(r[c])).join(" | ") + " |").join("\n");
+        return (
+          "| " +
+          cols.join(" | ") +
+          " |\n| " +
+          cols.map(() => "---").join(" | ") +
+          " |\n" +
+          rows
+            .map((r) => "| " + cols.map((c) => e(r[c])).join(" | ") + " |")
+            .join("\n")
+        );
       }
       case "sql": {
         const lines = [];
         if (opts.ddl) lines.push(opts.ddl.replace(/;?\s*$/, ";"));
-        rows.forEach((r) => lines.push("INSERT INTO " + qid(name) + " (" + cols.map(qid).join(", ") + ") VALUES (" + cols.map((c) => sqlLit(r[c])).join(", ") + ");"));
+        rows.forEach((r) =>
+          lines.push(
+            "INSERT INTO " +
+              qid(name) +
+              " (" +
+              cols.map(qid).join(", ") +
+              ") VALUES (" +
+              cols.map((c) => sqlLit(r[c])).join(", ") +
+              ");",
+          ),
+        );
         return lines.join("\n");
       }
     }
     return "";
   }
-  const EXT = { csv: "csv", tsv: "tsv", json: "json", jsonl: "jsonl", md: "md", sql: "sql" };
+  const EXT = {
+    csv: "csv",
+    tsv: "tsv",
+    json: "json",
+    jsonl: "jsonl",
+    md: "md",
+    sql: "sql",
+  };
 
   async function saveFile(filename, content) {
     const r = await call("/api/export-file", { filename, content });
@@ -1255,35 +2528,95 @@ export function crudClientMain() {
   }
 
   async function openExportDialog(tableName) {
-    const name = tableName || (crud.source === "table" ? activeTable : "query_result");
+    const name =
+      tableName || (crud.source === "table" ? activeTable : "query_result");
     const isTable = !!tableName || crud.source === "table";
     let fmt = "csv";
     const optHeader = h("input", { type: "checkbox", checked: true });
     const optDdl = h("input", { type: "checkbox", checked: true });
     const chips = {};
     const chipRow = h("div", { class: "crud-tabs", style: "flex-wrap:wrap" });
-    [["csv", "CSV"], ["tsv", "TSV (Excel)"], ["json", "JSON"], ["jsonl", "JSON Lines"], ["sql", "SQL INSERTs"], ["md", "Markdown"]].forEach(([k, label]) => {
-      chips[k] = h("div", { class: "crud-chip" + (k === fmt ? " active" : ""), onclick: () => { fmt = k; Object.keys(chips).forEach((x) => chips[x].classList.toggle("active", x === k)); } }, label);
+    [
+      ["csv", "CSV"],
+      ["tsv", "TSV (Excel)"],
+      ["json", "JSON"],
+      ["jsonl", "JSON Lines"],
+      ["sql", "SQL INSERTs"],
+      ["md", "Markdown"],
+    ].forEach(([k, label]) => {
+      chips[k] = h(
+        "div",
+        {
+          class: "crud-chip" + (k === fmt ? " active" : ""),
+          onclick: () => {
+            fmt = k;
+            Object.keys(chips).forEach((x) =>
+              chips[x].classList.toggle("active", x === k),
+            );
+          },
+        },
+        label,
+      );
       chipRow.appendChild(chips[k]);
     });
     const gridScoped = !isTable || name === activeTable;
-    const pickCols = (cols) => (gridScoped ? studioGridCols.exportColumns(cols) : cols);
-    const project = (cols, rows) => rows.map((r) => { const o = {}; cols.forEach((c) => { o[c] = r[c]; }); return o; });
-    const scopeNote = gridScoped && studioGridCols.state().hidden.length ? " Columns: " + studioGridCols.exportLabel() + " (change in the Columns picker)." : "";
+    const pickCols = (cols) =>
+      gridScoped ? studioGridCols.exportColumns(cols) : cols;
+    const project = (cols, rows) =>
+      rows.map((r) => {
+        const o = {};
+        cols.forEach((c) => {
+          o[c] = r[c];
+        });
+        return o;
+      });
+    const scopeNote =
+      gridScoped && studioGridCols.state().hidden.length
+        ? " Columns: " +
+          studioGridCols.exportLabel() +
+          " (change in the Columns picker)."
+        : "";
     const m = openModal({
-      title: "📤 Export " + (isTable ? "table '" + name + "'" : "current result"), small: true,
-      body: h("div", { class: "crud-body" },
-        h("div", { class: "crud-info" }, (isTable ? "Exports every row of the table (not just the current page)." : "Exports the current query result.") + scopeNote),
+      title:
+        "📤 Export " + (isTable ? "table '" + name + "'" : "current result"),
+      small: true,
+      body: h(
+        "div",
+        { class: "crud-body" },
+        h(
+          "div",
+          { class: "crud-info" },
+          (isTable
+            ? "Exports every row of the table (not just the current page)."
+            : "Exports the current query result.") + scopeNote,
+        ),
         chipRow,
-        h("label", { class: "crud-row" }, optHeader, "Include header row (CSV / TSV)"),
-        h("label", { class: "crud-row" }, optDdl, "Include CREATE TABLE statement (SQL)")),
+        h(
+          "label",
+          { class: "crud-row" },
+          optHeader,
+          "Include header row (CSV / TSV)",
+        ),
+        h(
+          "label",
+          { class: "crud-row" },
+          optDdl,
+          "Include CREATE TABLE statement (SQL)",
+        ),
+      ),
     });
     const gather = async () => {
       if (isTable) {
         const r = await call("/api/table/all", { table: name });
-        if (!r.success) { m.error(r.error); return null; }
+        if (!r.success) {
+          m.error(r.error);
+          return null;
+        }
         let ddl = "";
-        if (fmt === "sql" && optDdl.checked) { const d = await call("/api/schema/details", { table: name }); ddl = (d && d.sql) || ""; }
+        if (fmt === "sql" && optDdl.checked) {
+          const d = await call("/api/schema/details", { table: name });
+          ddl = (d && d.sql) || "";
+        }
         const cols = pickCols(r.columns);
         return { cols, rows: project(cols, r.rows), ddl };
       }
@@ -1293,25 +2626,59 @@ export function crudClientMain() {
     m.setButtons([
       btn("Cancel", () => m.close()),
       btn("📋 Copy to clipboard", async () => {
-        const d = await gather(); if (!d) return;
-        const ok = await copyText(buildExport(fmt, name, d.cols, d.rows, { header: optHeader.checked, ddl: d.ddl }));
-        if (ok) { showToast("Copied " + d.rows.length + " rows"); m.close(); } else m.error("Clipboard unavailable");
+        const d = await gather();
+        if (!d) return;
+        const ok = await copyText(
+          buildExport(fmt, name, d.cols, d.rows, {
+            header: optHeader.checked,
+            ddl: d.ddl,
+          }),
+        );
+        if (ok) {
+          showToast("Copied " + d.rows.length + " rows");
+          m.close();
+        } else m.error("Clipboard unavailable");
       }),
-      btn("💾 Save file", async () => {
-        const d = await gather(); if (!d) return;
-        const p = await saveFile(name + "." + EXT[fmt], buildExport(fmt, name, d.cols, d.rows, { header: optHeader.checked, ddl: d.ddl }));
-        if (p) m.close();
-      }, "btn-primary"),
+      btn(
+        "💾 Save file",
+        async () => {
+          const d = await gather();
+          if (!d) return;
+          const p = await saveFile(
+            name + "." + EXT[fmt],
+            buildExport(fmt, name, d.cols, d.rows, {
+              header: optHeader.checked,
+              ddl: d.ddl,
+            }),
+          );
+          if (p) m.close();
+        },
+        "btn-primary",
+      ),
     ]);
   }
   window.openExportDialog = openExportDialog;
 
   async function backupDatabase() {
     const r = await call("/api/dump", {});
-    if (!r.success) { showToast("Backup failed: " + r.error); return; }
-    const base = ((currentKpis && currentKpis.dbName) || "database").replace(/[^\w.-]+/g, "_").replace(/:/g, "");
-    const p = await saveFile(base + "_backup_" + new Date().toISOString().slice(0, 10) + ".sql", r.sql);
-    if (p) crudConfirm("SQL backup written to:\n" + p + "\n\nIt can be restored any time with 📥 Import → SQL script.", { okText: "OK", title: "Backup complete" });
+    if (!r.success) {
+      showToast("Backup failed: " + r.error);
+      return;
+    }
+    const base = ((currentKpis && currentKpis.dbName) || "database")
+      .replace(/[^\w.-]+/g, "_")
+      .replace(/:/g, "");
+    const p = await saveFile(
+      base + "_backup_" + new Date().toISOString().slice(0, 10) + ".sql",
+      r.sql,
+    );
+    if (p)
+      crudConfirm(
+        "SQL backup written to:\n" +
+          p +
+          "\n\nIt can be restored any time with 📥 Import → SQL script.",
+        { okText: "OK", title: "Backup complete" },
+      );
   }
 
   // -------------------------------------------------------------------------------------------
@@ -1319,36 +2686,90 @@ export function crudClientMain() {
   // -------------------------------------------------------------------------------------------
   function parseDelimited(text, delim) {
     const rows = [];
-    let row = [], field = "", inQ = false, i = 0;
+    let row = [],
+      field = "",
+      inQ = false,
+      i = 0;
     const n = text.length;
     while (i < n) {
       const ch = text[i];
       if (inQ) {
         if (ch === '"') {
-          if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
-          inQ = false; i++; continue;
+          if (text[i + 1] === '"') {
+            field += '"';
+            i += 2;
+            continue;
+          }
+          inQ = false;
+          i++;
+          continue;
         }
-        field += ch; i++; continue;
+        field += ch;
+        i++;
+        continue;
       }
-      if (ch === '"' && field === "") { inQ = true; i++; continue; }
-      if (ch === delim) { row.push(field); field = ""; i++; continue; }
-      if (ch === "\r") { if (text[i + 1] === "\n") i++; row.push(field); rows.push(row); row = []; field = ""; i++; continue; }
-      if (ch === "\n") { row.push(field); rows.push(row); row = []; field = ""; i++; continue; }
-      field += ch; i++;
+      if (ch === '"' && field === "") {
+        inQ = true;
+        i++;
+        continue;
+      }
+      if (ch === delim) {
+        row.push(field);
+        field = "";
+        i++;
+        continue;
+      }
+      if (ch === "\r") {
+        if (text[i + 1] === "\n") i++;
+        row.push(field);
+        rows.push(row);
+        row = [];
+        field = "";
+        i++;
+        continue;
+      }
+      if (ch === "\n") {
+        row.push(field);
+        rows.push(row);
+        row = [];
+        field = "";
+        i++;
+        continue;
+      }
+      field += ch;
+      i++;
     }
-    if (field !== "" || row.length) { row.push(field); rows.push(row); }
+    if (field !== "" || row.length) {
+      row.push(field);
+      rows.push(row);
+    }
     return rows.filter((r) => !(r.length === 1 && r[0] === ""));
   }
 
   function detectDelimiter(text) {
-    const sample = text.split(/\r?\n/).slice(0, 6).filter((l) => l.trim());
-    let best = ",", bestScore = -1;
+    const sample = text
+      .split(/\r?\n/)
+      .slice(0, 6)
+      .filter((l) => l.trim());
+    let best = ",",
+      bestScore = -1;
     [",", "\t", ";", "|"].forEach((d) => {
-      const counts = sample.map((l) => { let c = 0, q = false; for (const ch of l) { if (ch === '"') q = !q; else if (ch === d && !q) c++; } return c; });
+      const counts = sample.map((l) => {
+        let c = 0,
+          q = false;
+        for (const ch of l) {
+          if (ch === '"') q = !q;
+          else if (ch === d && !q) c++;
+        }
+        return c;
+      });
       if (!counts.length || counts[0] === 0) return;
       const consistent = counts.every((c) => c === counts[0]);
       const score = counts[0] * (consistent ? 10 : 1);
-      if (score > bestScore) { bestScore = score; best = d; }
+      if (score > bestScore) {
+        bestScore = score;
+        best = d;
+      }
     });
     return best;
   }
@@ -1373,19 +2794,34 @@ export function crudClientMain() {
     if (/\.psv$/.test(name)) return "psv";
     if (/\.csv$/.test(name)) return "csv";
     const t = text.replace(/^\uFEFF/, "").trimStart();
-    if (/^(INSERT\s|CREATE\s|BEGIN\b|PRAGMA\s|DROP\s|--|\/\*|REPLACE\s|ALTER\s|UPDATE\s|DELETE\s|COPY\s)/i.test(t)) return "sql";
-    if (/^<\?xml[\s>]/i.test(t)) return /<!DOCTYPE\s+plist|<plist[\s>]/i.test(t) ? "plist" : "xml";
+    if (
+      /^(INSERT\s|CREATE\s|BEGIN\b|PRAGMA\s|DROP\s|--|\/\*|REPLACE\s|ALTER\s|UPDATE\s|DELETE\s|COPY\s)/i.test(
+        t,
+      )
+    )
+      return "sql";
+    if (/^<\?xml[\s>]/i.test(t))
+      return /<!DOCTYPE\s+plist|<plist[\s>]/i.test(t) ? "plist" : "xml";
     if (/^<!DOCTYPE\s+html|<html[\s>]|<table[\s>]/i.test(t)) return "html";
     if (/^</.test(t) && /<\/[a-zA-Z0-9_:-]+>\s*$/.test(t)) return "xml";
     if (t[0] === "[" || t[0] === "{") {
-      try { JSON.parse(t); return "json"; } catch {}
+      try {
+        JSON.parse(t);
+        return "json";
+      } catch {}
       const lines = t.split(/\r?\n/).filter((l) => l.trim());
-      if (lines.length && lines.every((l) => l.trim()[0] === "{")) return "jsonl";
+      if (lines.length && lines.every((l) => l.trim()[0] === "{"))
+        return "jsonl";
       return "json";
     }
-    if (/^---\s*\r?\n/.test(t) || /^\s*-\s+[a-zA-Z0-9_"-]+\s*:/.test(t)) return "yaml";
+    if (/^---\s*\r?\n/.test(t) || /^\s*-\s+[a-zA-Z0-9_"-]+\s*:/.test(t))
+      return "yaml";
     if (/^\s*\[\[[a-zA-Z0-9_.-]+\]\]/m.test(t)) return "toml";
-    if (/^\s*\[[a-zA-Z0-9_.-]+\]\s*$/m.test(t) && /^\s*[a-zA-Z0-9_.-]+\s*=/m.test(t)) return "ini";
+    if (
+      /^\s*\[[a-zA-Z0-9_.-]+\]\s*$/m.test(t) &&
+      /^\s*[a-zA-Z0-9_.-]+\s*=/m.test(t)
+    )
+      return "ini";
     if (/^\s*\|.+\|\s*$/m.test(t.split(/\r?\n/)[0] || "")) return "md";
     const first = t.split(/\r?\n/)[0] || "";
     if (first.includes("\t")) return "tsv";
@@ -1395,52 +2831,106 @@ export function crudClientMain() {
 
   function normalizeTable(headers, rows, useHeader) {
     let width = headers ? headers.length : 0;
-    rows.forEach((r) => { if (r.length > width) width = r.length; });
+    rows.forEach((r) => {
+      if (r.length > width) width = r.length;
+    });
     let hdr = headers ? headers.slice() : [];
     while (hdr.length < width) hdr.push("");
     const seen = {};
     hdr = hdr.map((x, i) => {
       let name = String(x === null || x === undefined ? "" : x).trim();
-      if (!name || !useHeader) name = useHeader ? "column_" + (i + 1) : "column_" + (i + 1);
+      if (!name || !useHeader)
+        name = useHeader ? "column_" + (i + 1) : "column_" + (i + 1);
       const key = name.toLowerCase();
-      if (seen[key]) { seen[key]++; name = name + "_" + seen[key]; } else seen[key] = 1;
+      if (seen[key]) {
+        seen[key]++;
+        name = name + "_" + seen[key];
+      } else seen[key] = 1;
       return name;
     });
-    const out = rows.map((r) => { const c = r.slice(0, width); while (c.length < width) c.push(null); return c; });
+    const out = rows.map((r) => {
+      const c = r.slice(0, width);
+      while (c.length < width) c.push(null);
+      return c;
+    });
     return { headers: hdr, rows: out };
   }
 
-  const SERVER_PARSED_FORMATS = new Set(["xlsx", "ods", "yaml", "toml", "xml", "plist", "html", "ini", "env", "properties", "sql_table"]);
+  const SERVER_PARSED_FORMATS = new Set([
+    "xlsx",
+    "ods",
+    "yaml",
+    "toml",
+    "xml",
+    "plist",
+    "html",
+    "ini",
+    "env",
+    "properties",
+    "sql_table",
+  ]);
 
   function parseSource(text, opts) {
     const clean = text.replace(/^\uFEFF/, "");
-    const fmt = opts.format === "auto" ? detectFormat(clean, opts.fileName) : opts.format;
+    const fmt =
+      opts.format === "auto" ? detectFormat(clean, opts.fileName) : opts.format;
     const info = { format: fmt, delimiter: null };
     if (fmt === "sql") return { info, sql: true };
     if (SERVER_PARSED_FORMATS.has(fmt)) return { info, needsServer: true };
     if (fmt === "csv" || fmt === "tsv" || fmt === "psv") {
-      const delim = opts.delimiter === "auto" ? (fmt === "tsv" ? "\t" : fmt === "psv" ? "|" : detectDelimiter(clean)) : opts.delimiter;
+      const delim =
+        opts.delimiter === "auto"
+          ? fmt === "tsv"
+            ? "\t"
+            : fmt === "psv"
+              ? "|"
+              : detectDelimiter(clean)
+          : opts.delimiter;
       info.delimiter = delim;
       const all = parseDelimited(clean, delim);
       if (!all.length) return { info, headers: [], rows: [] };
-      const t = opts.header ? normalizeTable(all[0], all.slice(1), true) : normalizeTable([], all, false);
+      const t = opts.header
+        ? normalizeTable(all[0], all.slice(1), true)
+        : normalizeTable([], all, false);
       return { info, headers: t.headers, rows: t.rows };
     }
     if (fmt === "md") {
-      const lines = clean.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.startsWith("|"));
-      const cells = (l) => l.replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
-      const data = lines.filter((l) => !/^\|?\s*:?-{2,}/.test(l.replace(/\s/g, "").replace(/\|/g, "|")) || !/^[\s|:\-]+$/.test(l));
+      const lines = clean
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter((l) => l.startsWith("|"));
+      const cells = (l) =>
+        l
+          .replace(/^\||\|$/g, "")
+          .split("|")
+          .map((c) => c.trim());
+      const data = lines.filter(
+        (l) =>
+          !/^\|?\s*:?-{2,}/.test(l.replace(/\s/g, "").replace(/\|/g, "|")) ||
+          !/^[\s|:\-]+$/.test(l),
+      );
       const all = data.map(cells);
       if (!all.length) return { info, headers: [], rows: [] };
-      const t = opts.header ? normalizeTable(all[0], all.slice(1), true) : normalizeTable([], all, false);
+      const t = opts.header
+        ? normalizeTable(all[0], all.slice(1), true)
+        : normalizeTable([], all, false);
       return { info, headers: t.headers, rows: t.rows };
     }
     // JSON / JSON lines
     let data;
     if (fmt === "jsonl" || fmt === "ndjson") {
-      data = clean.split(/\r?\n/).filter((l) => l.trim()).map((l, i) => {
-        try { return JSON.parse(l); } catch (e) { throw new Error("Line " + (i + 1) + " is not valid JSON: " + e.message); }
-      });
+      data = clean
+        .split(/\r?\n/)
+        .filter((l) => l.trim())
+        .map((l, i) => {
+          try {
+            return JSON.parse(l);
+          } catch (e) {
+            throw new Error(
+              "Line " + (i + 1) + " is not valid JSON: " + e.message,
+            );
+          }
+        });
     } else {
       try {
         data = JSON.parse(clean);
@@ -1451,32 +2941,70 @@ export function crudClientMain() {
       if (!Array.isArray(data) && data && typeof data === "object") {
         const arrKey = Object.keys(data).find((k) => Array.isArray(data[k]));
         if (arrKey) data = data[arrKey];
-        else if (Object.values(data).every((v) => v && typeof v === "object")) data = Object.keys(data).map((k) => Object.assign({ _key: k }, data[k]));
+        else if (Object.values(data).every((v) => v && typeof v === "object"))
+          data = Object.keys(data).map((k) =>
+            Object.assign({ _key: k }, data[k]),
+          );
         else data = [data];
       }
     }
-    if (!Array.isArray(data)) throw new Error("JSON must contain an array of rows");
-    const conv = (v) => v === undefined ? null : (v === null ? null : (typeof v === "boolean" ? (v ? 1 : 0) : (typeof v === "object" ? JSON.stringify(v) : v)));
+    if (!Array.isArray(data))
+      throw new Error("JSON must contain an array of rows");
+    const conv = (v) =>
+      v === undefined
+        ? null
+        : v === null
+          ? null
+          : typeof v === "boolean"
+            ? v
+              ? 1
+              : 0
+            : typeof v === "object"
+              ? JSON.stringify(v)
+              : v;
     if (data.length && Array.isArray(data[0])) {
-      const t = opts.header ? normalizeTable(data[0], data.slice(1).map((r) => r.map(conv)), true) : normalizeTable([], data.map((r) => r.map(conv)), false);
+      const t = opts.header
+        ? normalizeTable(
+            data[0],
+            data.slice(1).map((r) => r.map(conv)),
+            true,
+          )
+        : normalizeTable(
+            [],
+            data.map((r) => r.map(conv)),
+            false,
+          );
       return { info, headers: t.headers, rows: t.rows };
     }
     const keys = [];
     const seen = new Set();
-    data.forEach((o) => { if (o && typeof o === "object") Object.keys(o).forEach((k) => { if (!seen.has(k)) { seen.add(k); keys.push(k); } }); });
-    const rows = data.map((o) => keys.map((k) => (o && typeof o === "object" ? conv(o[k]) : null)));
+    data.forEach((o) => {
+      if (o && typeof o === "object")
+        Object.keys(o).forEach((k) => {
+          if (!seen.has(k)) {
+            seen.add(k);
+            keys.push(k);
+          }
+        });
+    });
+    const rows = data.map((o) =>
+      keys.map((k) => (o && typeof o === "object" ? conv(o[k]) : null)),
+    );
     return { info, headers: keys, rows };
   }
 
   function inferType(values) {
-    let allInt = true, allNum = true, seen = 0;
+    let allInt = true,
+      allNum = true,
+      seen = 0;
     for (let i = 0; i < values.length && seen < 5000; i++) {
       const v = values[i];
       if (v === null || v === undefined || v === "") continue;
       seen++;
       const s = String(v).trim();
       if (!/^-?(0|[1-9]\d{0,14})$/.test(s)) allInt = false;
-      if (!/^-?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(s) || /^-?0\d/.test(s)) allNum = false;
+      if (!/^-?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(s) || /^-?0\d/.test(s))
+        allNum = false;
       if (!allInt && !allNum) break;
     }
     if (!seen) return "TEXT";
@@ -1487,8 +3015,20 @@ export function crudClientMain() {
     if (v === null || v === undefined) return null;
     let s = typeof v === "string" ? (trim ? v.trim() : v) : v;
     if (typeof s === "string" && s === "") return emptyNull ? null : "";
-    if (type === "INTEGER" && typeof s === "string" && /^-?\d+$/.test(s.trim()) && s.trim().length <= 15) return parseInt(s, 10);
-    if ((type === "REAL" || type === "NUMERIC") && typeof s === "string" && /^-?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(s.trim()) && !/^-?0\d/.test(s.trim())) return parseFloat(s);
+    if (
+      type === "INTEGER" &&
+      typeof s === "string" &&
+      /^-?\d+$/.test(s.trim()) &&
+      s.trim().length <= 15
+    )
+      return parseInt(s, 10);
+    if (
+      (type === "REAL" || type === "NUMERIC") &&
+      typeof s === "string" &&
+      /^-?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(s.trim()) &&
+      !/^-?0\d/.test(s.trim())
+    )
+      return parseFloat(s);
     return s;
   }
 
@@ -1505,48 +3045,116 @@ export function crudClientMain() {
   async function openImportWizard(opts) {
     opts = opts || {};
     const st = {
-      text: "", base64: "", fileName: "", fromFile: false,
-      format: "auto", delimiter: "auto", header: true, trim: true, emptyNull: true, sheet: "",
-      parsed: null, parseError: "",
+      text: "",
+      base64: "",
+      fileName: "",
+      fromFile: false,
+      format: "auto",
+      delimiter: "auto",
+      header: true,
+      trim: true,
+      emptyNull: true,
+      sheet: "",
+      parsed: null,
+      parseError: "",
       target: opts.table ? "existing" : "new",
-      newName: "", existing: opts.table || (allTableNames()[0] || ""),
-      mode: "append", conflict: "abort", addId: false,
-      colNames: [], colTypes: [], map: [],
+      newName: "",
+      existing: opts.table || allTableNames()[0] || "",
+      mode: "append",
+      conflict: "abort",
+      addId: false,
+      colNames: [],
+      colTypes: [],
+      map: [],
     };
 
-    const dropzone = h("div", { class: "crud-drop" }, h("div", { style: "font-size:22px" }, "📥"), h("div", null, "Drop CSV, TSV, JSON, Excel (.xlsx), ODS, YAML, TOML, XML, HTML, Markdown, INI/ENV or SQL file here, or click to choose"));
-    const fileInput = h("input", { type: "file", style: "display:none", accept: ".csv,.tsv,.tab,.psv,.txt,.dat,.log,.json,.jsonc,.json5,.jsonl,.ndjson,.xlsx,.ods,.yaml,.yml,.toml,.xml,.plist,.sql,.md,.markdown,.html,.htm,.ini,.cfg,.conf,.env,.properties,text/*,application/json,application/xml" });
-    const ta = h("textarea", { rows: "4", placeholder: "…or paste data here: copy cells from Excel / Google Sheets / a web table, or paste CSV, JSON, YAML, TOML, XML, HTML, INI, .env, Markdown or SQL text." });
+    const dropzone = h(
+      "div",
+      { class: "crud-drop" },
+      h("div", { style: "font-size:22px" }, "📥"),
+      h(
+        "div",
+        null,
+        "Drop CSV, TSV, JSON, Excel (.xlsx), ODS, YAML, TOML, XML, HTML, Markdown, INI/ENV or SQL file here, or click to choose",
+      ),
+    );
+    const fileInput = h("input", {
+      type: "file",
+      style: "display:none",
+      accept:
+        ".csv,.tsv,.tab,.psv,.txt,.dat,.log,.json,.jsonc,.json5,.jsonl,.ndjson,.xlsx,.ods,.yaml,.yml,.toml,.xml,.plist,.sql,.md,.markdown,.html,.htm,.ini,.cfg,.conf,.env,.properties,text/*,application/json,application/xml",
+    });
+    const ta = h("textarea", {
+      rows: "4",
+      placeholder:
+        "…or paste data here: copy cells from Excel / Google Sheets / a web table, or paste CSV, JSON, YAML, TOML, XML, HTML, INI, .env, Markdown or SQL text.",
+    });
     const fileBadge = h("div", { class: "crud-info", style: "display:none" });
     const optsBox = h("div");
     const mapBox = h("div");
     const previewBox = h("div");
     const m = openModal({
-      title: "📥 Import data", wide: true,
-      body: h("div", { class: "crud-body" },
+      title: "📥 Import data",
+      wide: true,
+      body: h(
+        "div",
+        { class: "crud-body" },
         h("div", { class: "crud-section-title" }, "1 · Choose your data"),
-        h("div", { class: "crud-row" },
+        h(
+          "div",
+          { class: "crud-row" },
           btn("🖥️ Browse files…", () => pickViaServer(), "btn-sm"),
           btn("📋 Paste from clipboard", () => pasteFromClipboard(), "btn-sm"),
-          btn("✕ Clear", () => clearSource(), "btn-sm")),
-        dropzone, fileInput, ta, fileBadge,
-        optsBox, previewBox, mapBox),
+          btn("✕ Clear", () => clearSource(), "btn-sm"),
+        ),
+        dropzone,
+        fileInput,
+        ta,
+        fileBadge,
+        optsBox,
+        previewBox,
+        mapBox,
+      ),
     });
 
     function setSource(text, name, fromFile, base64) {
-      st.text = text || ""; st.base64 = base64 || ""; st.fileName = name || ""; st.fromFile = !!fromFile; st.sheet = "";
+      st.text = text || "";
+      st.base64 = base64 || "";
+      st.fileName = name || "";
+      st.fromFile = !!fromFile;
+      st.sheet = "";
       if (fromFile) {
-        ta.value = ""; ta.disabled = true;
+        ta.value = "";
+        ta.disabled = true;
         fileBadge.style.display = "block";
-        const sizeKb = base64 ? (base64.length * 0.75 / 1024).toFixed(1) : ((text || "").length / 1024).toFixed(1);
+        const sizeKb = base64
+          ? ((base64.length * 0.75) / 1024).toFixed(1)
+          : ((text || "").length / 1024).toFixed(1);
         fileBadge.textContent = "📄 " + name + " — " + sizeKb + " KB loaded";
       } else {
-        ta.disabled = false; fileBadge.style.display = "none";
+        ta.disabled = false;
+        fileBadge.style.display = "none";
       }
-      if (!st.newName) st.newName = (name || "imported_data").replace(/\.[^.]+$/, "").replace(/[^\w]+/g, "_").replace(/^_+|_+$/g, "").toLowerCase() || "imported_data";
+      if (!st.newName)
+        st.newName =
+          (name || "imported_data")
+            .replace(/\.[^.]+$/, "")
+            .replace(/[^\w]+/g, "_")
+            .replace(/^_+|_+$/g, "")
+            .toLowerCase() || "imported_data";
       reparse();
     }
-    function clearSource() { st.text = ""; st.base64 = ""; st.fileName = ""; st.fromFile = false; st.sheet = ""; ta.value = ""; ta.disabled = false; fileBadge.style.display = "none"; reparse(); }
+    function clearSource() {
+      st.text = "";
+      st.base64 = "";
+      st.fileName = "";
+      st.fromFile = false;
+      st.sheet = "";
+      ta.value = "";
+      ta.disabled = false;
+      fileBadge.style.display = "none";
+      reparse();
+    }
     async function readFile(file) {
       const lower = (file.name || "").toLowerCase();
       if (/\.xlsx$|\.ods$/.test(lower)) {
@@ -1569,25 +3177,51 @@ export function crudClientMain() {
       m.error("");
       try {
         const t = await navigator.clipboard.readText();
-        if (!t) { m.error("Clipboard is empty."); return; }
-        ta.disabled = false; ta.value = t; setSource(t, "", false, "");
+        if (!t) {
+          m.error("Clipboard is empty.");
+          return;
+        }
+        ta.disabled = false;
+        ta.value = t;
+        setSource(t, "", false, "");
       } catch {
-        m.error("Clipboard access was blocked — click in the box below and press Ctrl/Cmd+V instead.");
+        m.error(
+          "Clipboard access was blocked — click in the box below and press Ctrl/Cmd+V instead.",
+        );
         ta.focus();
       }
     }
     dropzone.addEventListener("click", () => fileInput.click());
-    fileInput.addEventListener("change", () => { if (fileInput.files[0]) readFile(fileInput.files[0]); });
-    ["dragover", "dragenter"].forEach((ev) => dropzone.addEventListener(ev, (e) => { e.preventDefault(); e.stopPropagation(); dropzone.classList.add("dragover"); }));
-    dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
-    dropzone.addEventListener("drop", (e) => { e.preventDefault(); e.stopPropagation(); dropzone.classList.remove("dragover"); if (e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]); });
-    ta.addEventListener("input", () => { setSource(ta.value, "", false, ""); });
+    fileInput.addEventListener("change", () => {
+      if (fileInput.files[0]) readFile(fileInput.files[0]);
+    });
+    ["dragover", "dragenter"].forEach((ev) =>
+      dropzone.addEventListener(ev, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.add("dragover");
+      }),
+    );
+    dropzone.addEventListener("dragleave", () =>
+      dropzone.classList.remove("dragover"),
+    );
+    dropzone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.remove("dragover");
+      if (e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]);
+    });
+    ta.addEventListener("input", () => {
+      setSource(ta.value, "", false, "");
+    });
 
     function applyParsedColumns() {
       if (st.parsed && !st.parsed.sql) {
         const p = st.parsed;
         st.colNames = p.headers.slice();
-        st.colTypes = p.headers.map((_, i) => inferType(p.rows.map((r) => r[i])));
+        st.colTypes = p.headers.map((_, i) =>
+          inferType(p.rows.map((r) => r[i])),
+        );
         const meta = tableMeta(st.existing);
         const lower = meta ? meta.columns.map((c) => c.name.toLowerCase()) : [];
         st.map = p.headers.map((hd, i) => {
@@ -1606,17 +3240,27 @@ export function crudClientMain() {
     let parseSeq = 0;
     async function reparse() {
       const seq = ++parseSeq;
-      st.parsed = null; st.parseError = "";
+      st.parsed = null;
+      st.parseError = "";
       if (!st.text.trim() && !st.base64) {
-        renderOptions(); renderPreview(); renderMapping(); renderFooter();
+        renderOptions();
+        renderPreview();
+        renderMapping();
+        renderFooter();
         return;
       }
       if (st.base64) {
-        const fmt = st.format === "auto" ? detectFormat("", st.fileName) : st.format;
+        const fmt =
+          st.format === "auto" ? detectFormat("", st.fileName) : st.format;
         const r = await call("/api/parse-import", {
           base64: st.base64,
           fileName: st.fileName,
-          format: fmt === "sql_table" ? "sql" : (st.format === "auto" ? undefined : st.format),
+          format:
+            fmt === "sql_table"
+              ? "sql"
+              : st.format === "auto"
+                ? undefined
+                : st.format,
           hasHeader: st.header,
           sheet: st.sheet || undefined,
         });
@@ -1627,18 +3271,30 @@ export function crudClientMain() {
           st.parsed = {
             info: { format: r.format || fmt, delimiter: null },
             headers: r.columns || [],
-            rows: (r.rows || []).map((row) => Array.isArray(row) ? row : (r.columns || []).map((c) => row[c] ?? null)),
+            rows: (r.rows || []).map((row) =>
+              Array.isArray(row)
+                ? row
+                : (r.columns || []).map((c) => row[c] ?? null),
+            ),
             sheets: r.sheets || [],
             selectedSheet: r.selectedSheet || "",
           };
           applyParsedColumns();
         }
-        renderOptions(); renderPreview(); renderMapping(); renderFooter();
+        renderOptions();
+        renderPreview();
+        renderMapping();
+        renderFooter();
         return;
       }
 
       try {
-        const local = parseSource(st.text, { format: st.format, delimiter: st.delimiter, header: st.header, fileName: st.fileName });
+        const local = parseSource(st.text, {
+          format: st.format,
+          delimiter: st.delimiter,
+          header: st.header,
+          fileName: st.fileName,
+        });
         if (local && local.needsServer) {
           const fmt = local.info.format;
           const r = await call("/api/parse-import", {
@@ -1654,9 +3310,16 @@ export function crudClientMain() {
             st.parseError = r.error || "Could not parse input";
           } else {
             st.parsed = {
-              info: { format: fmt === "sql_table" ? "sql_table" : (r.format || fmt), delimiter: null },
+              info: {
+                format: fmt === "sql_table" ? "sql_table" : r.format || fmt,
+                delimiter: null,
+              },
               headers: r.columns || [],
-              rows: (r.rows || []).map((row) => Array.isArray(row) ? row : (r.columns || []).map((c) => row[c] ?? null)),
+              rows: (r.rows || []).map((row) =>
+                Array.isArray(row)
+                  ? row
+                  : (r.columns || []).map((c) => row[c] ?? null),
+              ),
               sheets: r.sheets || [],
               selectedSheet: r.selectedSheet || "",
             };
@@ -1669,61 +3332,113 @@ export function crudClientMain() {
       } catch (e) {
         st.parseError = e.message || String(e);
       }
-      renderOptions(); renderPreview(); renderMapping(); renderFooter();
+      renderOptions();
+      renderPreview();
+      renderMapping();
+      renderFooter();
     }
 
     function renderOptions() {
       optsBox.innerHTML = "";
       if (!st.text.trim() && !st.base64) return;
       const sqlMode = st.parsed && st.parsed.sql;
-      const fmtSel = mkSelect([
-        { value: "auto", label: "Auto-detect" },
-        { value: "csv", label: "CSV / delimited text" },
-        { value: "tsv", label: "TSV (Excel / Sheets paste)" },
-        { value: "psv", label: "PSV (pipe-separated)" },
-        { value: "json", label: "JSON / JSONC / JSON5" },
-        { value: "jsonl", label: "JSON Lines (NDJSON)" },
-        { value: "xlsx", label: "Excel Workbook (.xlsx)" },
-        { value: "ods", label: "OpenDocument Spreadsheet (.ods)" },
-        { value: "yaml", label: "YAML (.yaml / .yml)" },
-        { value: "toml", label: "TOML (.toml)" },
-        { value: "xml", label: "XML records (.xml)" },
-        { value: "plist", label: "Apple Property List (.plist)" },
-        { value: "html", label: "HTML <table> (.html)" },
-        { value: "md", label: "Markdown table (.md)" },
-        { value: "ini", label: "INI / Config (.ini / .cfg)" },
-        { value: "env", label: "Dotenv (.env)" },
-        { value: "properties", label: "Java .properties" },
-        { value: "sql", label: "SQL script (execute DDL/DML)" },
-        { value: "sql_table", label: "SQL dump → extract table rows" },
-      ], st.format, (v) => { st.format = v; reparse(); });
-      const row = h("div", { class: "crud-row" }, h("span", { class: "crud-section-title" }, "2 · Format"), fmtSel);
+      const fmtSel = mkSelect(
+        [
+          { value: "auto", label: "Auto-detect" },
+          { value: "csv", label: "CSV / delimited text" },
+          { value: "tsv", label: "TSV (Excel / Sheets paste)" },
+          { value: "psv", label: "PSV (pipe-separated)" },
+          { value: "json", label: "JSON / JSONC / JSON5" },
+          { value: "jsonl", label: "JSON Lines (NDJSON)" },
+          { value: "xlsx", label: "Excel Workbook (.xlsx)" },
+          { value: "ods", label: "OpenDocument Spreadsheet (.ods)" },
+          { value: "yaml", label: "YAML (.yaml / .yml)" },
+          { value: "toml", label: "TOML (.toml)" },
+          { value: "xml", label: "XML records (.xml)" },
+          { value: "plist", label: "Apple Property List (.plist)" },
+          { value: "html", label: "HTML <table> (.html)" },
+          { value: "md", label: "Markdown table (.md)" },
+          { value: "ini", label: "INI / Config (.ini / .cfg)" },
+          { value: "env", label: "Dotenv (.env)" },
+          { value: "properties", label: "Java .properties" },
+          { value: "sql", label: "SQL script (execute DDL/DML)" },
+          { value: "sql_table", label: "SQL dump → extract table rows" },
+        ],
+        st.format,
+        (v) => {
+          st.format = v;
+          reparse();
+        },
+      );
+      const row = h(
+        "div",
+        { class: "crud-row" },
+        h("span", { class: "crud-section-title" }, "2 · Format"),
+        fmtSel,
+      );
       row.firstChild.nextSibling.style.maxWidth = "220px";
       if (st.parsed) {
-        row.appendChild(h("span", { class: "crud-badge" }, "detected: " + st.parsed.info.format.toUpperCase()));
+        row.appendChild(
+          h(
+            "span",
+            { class: "crud-badge" },
+            "detected: " + st.parsed.info.format.toUpperCase(),
+          ),
+        );
         if (st.parsed.sheets && st.parsed.sheets.length > 1) {
           const shSel = mkSelect(
-            st.parsed.sheets.map((s) => ({ value: s, label: "Sheet/Table: " + s })),
+            st.parsed.sheets.map((s) => ({
+              value: s,
+              label: "Sheet/Table: " + s,
+            })),
             st.sheet || st.parsed.selectedSheet || st.parsed.sheets[0],
-            (v) => { st.sheet = v; reparse(); }
+            (v) => {
+              st.sheet = v;
+              reparse();
+            },
           );
           shSel.style.maxWidth = "200px";
           row.appendChild(shSel);
         }
-        if (st.parsed.info.format === "csv" || st.parsed.info.format === "tsv" || st.parsed.info.format === "psv") {
-          const dSel = mkSelect([{ value: "auto", label: "delimiter: auto" }, { value: ",", label: "delimiter: comma" }, { value: ";", label: "delimiter: semicolon" }, { value: "\t", label: "delimiter: tab" }, { value: "|", label: "delimiter: pipe" }], st.delimiter, (v) => { st.delimiter = v; reparse(); });
+        if (
+          st.parsed.info.format === "csv" ||
+          st.parsed.info.format === "tsv" ||
+          st.parsed.info.format === "psv"
+        ) {
+          const dSel = mkSelect(
+            [
+              { value: "auto", label: "delimiter: auto" },
+              { value: ",", label: "delimiter: comma" },
+              { value: ";", label: "delimiter: semicolon" },
+              { value: "\t", label: "delimiter: tab" },
+              { value: "|", label: "delimiter: pipe" },
+            ],
+            st.delimiter,
+            (v) => {
+              st.delimiter = v;
+              reparse();
+            },
+          );
           dSel.style.maxWidth = "170px";
           row.appendChild(dSel);
         }
         if (!sqlMode) {
           const hb = h("input", { type: "checkbox", checked: st.header });
-          hb.addEventListener("change", () => { st.header = hb.checked; reparse(); });
+          hb.addEventListener("change", () => {
+            st.header = hb.checked;
+            reparse();
+          });
           row.appendChild(h("label", null, hb, "First row is a header"));
           const tb2 = h("input", { type: "checkbox", checked: st.trim });
-          tb2.addEventListener("change", () => { st.trim = tb2.checked; renderPreview(); });
+          tb2.addEventListener("change", () => {
+            st.trim = tb2.checked;
+            renderPreview();
+          });
           row.appendChild(h("label", null, tb2, "Trim spaces"));
           const eb = h("input", { type: "checkbox", checked: st.emptyNull });
-          eb.addEventListener("change", () => { st.emptyNull = eb.checked; });
+          eb.addEventListener("change", () => {
+            st.emptyNull = eb.checked;
+          });
           row.appendChild(h("label", null, eb, "Empty cells → NULL"));
         }
       }
@@ -1732,18 +3447,76 @@ export function crudClientMain() {
 
     function renderPreview() {
       previewBox.innerHTML = "";
-      if (st.parseError) { previewBox.appendChild(h("div", { class: "crud-error" }, "Couldn't read this data: " + st.parseError)); return; }
+      if (st.parseError) {
+        previewBox.appendChild(
+          h(
+            "div",
+            { class: "crud-error" },
+            "Couldn't read this data: " + st.parseError,
+          ),
+        );
+        return;
+      }
       if (!st.parsed) return;
       if (st.parsed.sql) {
-        previewBox.appendChild(h("div", { class: "crud-info" }, "SQL script detected — it will be executed inside one transaction (all-or-nothing). Tip: Switch Format to 'SQL dump → extract table rows' to map INSERT/COPY rows into a table."));
-        previewBox.appendChild(h("div", { class: "crud-code" }, st.text.slice(0, 1500) + (st.text.length > 1500 ? "\n…" : "")));
+        previewBox.appendChild(
+          h(
+            "div",
+            { class: "crud-info" },
+            "SQL script detected — it will be executed inside one transaction (all-or-nothing). Tip: Switch Format to 'SQL dump → extract table rows' to map INSERT/COPY rows into a table.",
+          ),
+        );
+        previewBox.appendChild(
+          h(
+            "div",
+            { class: "crud-code" },
+            st.text.slice(0, 1500) + (st.text.length > 1500 ? "\n…" : ""),
+          ),
+        );
         return;
       }
       const p = st.parsed;
-      previewBox.appendChild(h("div", { class: "crud-section-title" }, "Preview — " + p.rows.length.toLocaleString() + " rows × " + p.headers.length + " columns"));
-      const tbl = h("table", null,
-        h("thead", null, h("tr", null, p.headers.map((x) => h("th", null, x)))),
-        h("tbody", null, p.rows.slice(0, 8).map((r) => h("tr", null, r.map((v) => h("td", { style: v === null ? "color:var(--text-dim)" : "" }, v === null ? "NULL" : String(v)))))));
+      previewBox.appendChild(
+        h(
+          "div",
+          { class: "crud-section-title" },
+          "Preview — " +
+            p.rows.length.toLocaleString() +
+            " rows × " +
+            p.headers.length +
+            " columns",
+        ),
+      );
+      const tbl = h(
+        "table",
+        null,
+        h(
+          "thead",
+          null,
+          h(
+            "tr",
+            null,
+            p.headers.map((x) => h("th", null, x)),
+          ),
+        ),
+        h(
+          "tbody",
+          null,
+          p.rows.slice(0, 8).map((r) =>
+            h(
+              "tr",
+              null,
+              r.map((v) =>
+                h(
+                  "td",
+                  { style: v === null ? "color:var(--text-dim)" : "" },
+                  v === null ? "NULL" : String(v),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
       previewBox.appendChild(h("div", { class: "crud-scroll" }, tbl));
     }
 
@@ -1751,63 +3524,249 @@ export function crudClientMain() {
       mapBox.innerHTML = "";
       if (!st.parsed || st.parsed.sql || st.parseError) return;
       const p = st.parsed;
-      mapBox.appendChild(h("div", { class: "crud-section-title" }, "3 · Where should it go?"));
+      mapBox.appendChild(
+        h("div", { class: "crud-section-title" }, "3 · Where should it go?"),
+      );
       const names = allTableNames();
-      const rNew = h("input", { type: "radio", name: "crudTarget", checked: st.target === "new" });
-      const rEx = h("input", { type: "radio", name: "crudTarget", checked: st.target === "existing", disabled: names.length === 0 });
-      rNew.addEventListener("change", () => { st.target = "new"; renderMapping(); renderFooter(); });
-      rEx.addEventListener("change", () => { st.target = "existing"; reparse(); });
-      mapBox.appendChild(h("div", { class: "crud-row" },
-        h("label", null, rNew, "Create a new table"),
-        h("label", null, rEx, "Add to an existing table")));
+      const rNew = h("input", {
+        type: "radio",
+        name: "crudTarget",
+        checked: st.target === "new",
+      });
+      const rEx = h("input", {
+        type: "radio",
+        name: "crudTarget",
+        checked: st.target === "existing",
+        disabled: names.length === 0,
+      });
+      rNew.addEventListener("change", () => {
+        st.target = "new";
+        renderMapping();
+        renderFooter();
+      });
+      rEx.addEventListener("change", () => {
+        st.target = "existing";
+        reparse();
+      });
+      mapBox.appendChild(
+        h(
+          "div",
+          { class: "crud-row" },
+          h("label", null, rNew, "Create a new table"),
+          h("label", null, rEx, "Add to an existing table"),
+        ),
+      );
 
       if (st.target === "new") {
-        const nameI = h("input", { type: "text", value: st.newName, placeholder: "table name", style: "max-width:260px" });
-        nameI.addEventListener("input", () => { st.newName = nameI.value; renderFooter(); });
+        const nameI = h("input", {
+          type: "text",
+          value: st.newName,
+          placeholder: "table name",
+          style: "max-width:260px",
+        });
+        nameI.addEventListener("input", () => {
+          st.newName = nameI.value;
+          renderFooter();
+        });
         const idCb = h("input", { type: "checkbox", checked: st.addId });
-        idCb.addEventListener("change", () => { st.addId = idCb.checked; });
-        mapBox.appendChild(h("div", { class: "crud-row" }, h("label", null, "Table name"), nameI, h("label", null, idCb, "Add an auto-number 'id' key column")));
+        idCb.addEventListener("change", () => {
+          st.addId = idCb.checked;
+        });
+        mapBox.appendChild(
+          h(
+            "div",
+            { class: "crud-row" },
+            h("label", null, "Table name"),
+            nameI,
+            h("label", null, idCb, "Add an auto-number 'id' key column"),
+          ),
+        );
         const tb = h("tbody");
         p.headers.forEach((hd, i) => {
           const nI = h("input", { type: "text", value: st.colNames[i] });
-          nI.addEventListener("input", () => { st.colNames[i] = nI.value; });
-          const tS = mkSelect(["TEXT", "INTEGER", "REAL", "NUMERIC", "BOOLEAN", "DATE", "DATETIME", "BLOB"], st.colTypes[i], (v) => { st.colTypes[i] = v; });
-          const skip = h("input", { type: "checkbox", checked: st.map[i] !== "__skip__" });
-          skip.addEventListener("change", () => { st.map[i] = skip.checked ? "" : "__skip__"; });
-          tb.appendChild(h("tr", null, h("td", { class: "crud-center" }, skip), h("td", null, hd), h("td", null, nI), h("td", null, tS)));
+          nI.addEventListener("input", () => {
+            st.colNames[i] = nI.value;
+          });
+          const tS = mkSelect(
+            [
+              "TEXT",
+              "INTEGER",
+              "REAL",
+              "NUMERIC",
+              "BOOLEAN",
+              "DATE",
+              "DATETIME",
+              "BLOB",
+            ],
+            st.colTypes[i],
+            (v) => {
+              st.colTypes[i] = v;
+            },
+          );
+          const skip = h("input", {
+            type: "checkbox",
+            checked: st.map[i] !== "__skip__",
+          });
+          skip.addEventListener("change", () => {
+            st.map[i] = skip.checked ? "" : "__skip__";
+          });
+          tb.appendChild(
+            h(
+              "tr",
+              null,
+              h("td", { class: "crud-center" }, skip),
+              h("td", null, hd),
+              h("td", null, nI),
+              h("td", null, tS),
+            ),
+          );
         });
-        mapBox.appendChild(h("div", { class: "crud-scroll", style: "max-height:200px" }, h("table", { class: "crud-table" },
-          h("thead", null, h("tr", null, h("th", { class: "crud-center" }, "Import"), h("th", null, "Source column"), h("th", null, "Column name in table"), h("th", null, "Type"))), tb)));
+        mapBox.appendChild(
+          h(
+            "div",
+            { class: "crud-scroll", style: "max-height:200px" },
+            h(
+              "table",
+              { class: "crud-table" },
+              h(
+                "thead",
+                null,
+                h(
+                  "tr",
+                  null,
+                  h("th", { class: "crud-center" }, "Import"),
+                  h("th", null, "Source column"),
+                  h("th", null, "Column name in table"),
+                  h("th", null, "Type"),
+                ),
+              ),
+              tb,
+            ),
+          ),
+        );
       } else {
-        const exSel = mkSelect(names, st.existing, (v) => { st.existing = v; reparse(); }, { style: "max-width:260px" });
-        const modeSel = mkSelect([{ value: "append", label: "Add rows to the end" }, { value: "replace", label: "Replace all existing rows" }], st.mode, (v) => { st.mode = v; renderFooter(); });
-        const confSel = mkSelect([{ value: "abort", label: "On duplicate: stop with an error" }, { value: "ignore", label: "On duplicate: skip the row" }, { value: "replace", label: "On duplicate: overwrite the row" }], st.conflict, (v) => { st.conflict = v; });
-        mapBox.appendChild(h("div", { class: "crud-row" }, exSel, modeSel, confSel));
+        const exSel = mkSelect(
+          names,
+          st.existing,
+          (v) => {
+            st.existing = v;
+            reparse();
+          },
+          { style: "max-width:260px" },
+        );
+        const modeSel = mkSelect(
+          [
+            { value: "append", label: "Add rows to the end" },
+            { value: "replace", label: "Replace all existing rows" },
+          ],
+          st.mode,
+          (v) => {
+            st.mode = v;
+            renderFooter();
+          },
+        );
+        const confSel = mkSelect(
+          [
+            { value: "abort", label: "On duplicate: stop with an error" },
+            { value: "ignore", label: "On duplicate: skip the row" },
+            { value: "replace", label: "On duplicate: overwrite the row" },
+          ],
+          st.conflict,
+          (v) => {
+            st.conflict = v;
+          },
+        );
+        mapBox.appendChild(
+          h("div", { class: "crud-row" }, exSel, modeSel, confSel),
+        );
         const meta = tableMeta(st.existing);
         const tcols = meta ? meta.columns.map((c) => c.name) : [];
         const tb = h("tbody");
         p.headers.forEach((hd, i) => {
-          const sel = mkSelect([{ value: "", label: "— skip this column —" }].concat(tcols.map((c) => ({ value: c, label: c }))), st.map[i] === "__skip__" ? "" : st.map[i], (v) => { st.map[i] = v; renderFooter(); });
-          tb.appendChild(h("tr", null, h("td", null, hd), h("td", null, "→"), h("td", null, sel)));
+          const sel = mkSelect(
+            [{ value: "", label: "— skip this column —" }].concat(
+              tcols.map((c) => ({ value: c, label: c })),
+            ),
+            st.map[i] === "__skip__" ? "" : st.map[i],
+            (v) => {
+              st.map[i] = v;
+              renderFooter();
+            },
+          );
+          tb.appendChild(
+            h(
+              "tr",
+              null,
+              h("td", null, hd),
+              h("td", null, "→"),
+              h("td", null, sel),
+            ),
+          );
         });
-        mapBox.appendChild(h("div", { class: "crud-scroll", style: "max-height:220px" }, h("table", { class: "crud-table" },
-          h("thead", null, h("tr", null, h("th", null, "Source column"), h("th", null, ""), h("th", null, "Goes into table column"))), tb)));
-        const missing = meta ? meta.columns.filter((c) => c.notnull && c.dflt_value == null && !(c.pk && /INT/i.test(c.type)) && !st.map.includes(c.name)) : [];
-        if (missing.length) mapBox.appendChild(h("div", { class: "crud-note" }, "⚠️ Required column(s) not mapped: " + missing.map((c) => c.name).join(", ") + ". The import will fail unless they get a value."));
+        mapBox.appendChild(
+          h(
+            "div",
+            { class: "crud-scroll", style: "max-height:220px" },
+            h(
+              "table",
+              { class: "crud-table" },
+              h(
+                "thead",
+                null,
+                h(
+                  "tr",
+                  null,
+                  h("th", null, "Source column"),
+                  h("th", null, ""),
+                  h("th", null, "Goes into table column"),
+                ),
+              ),
+              tb,
+            ),
+          ),
+        );
+        const missing = meta
+          ? meta.columns.filter(
+              (c) =>
+                c.notnull &&
+                c.dflt_value == null &&
+                !(c.pk && /INT/i.test(c.type)) &&
+                !st.map.includes(c.name),
+            )
+          : [];
+        if (missing.length)
+          mapBox.appendChild(
+            h(
+              "div",
+              { class: "crud-note" },
+              "⚠️ Required column(s) not mapped: " +
+                missing.map((c) => c.name).join(", ") +
+                ". The import will fail unless they get a value.",
+            ),
+          );
       }
     }
 
     const importBtn = btn("📥 Import", doImport, "btn-primary");
     const info = h("span", { class: "crud-footer-left" });
     function renderFooter() {
-      let label = "📥 Import", ok = !!(st.parsed && !st.parseError);
+      let label = "📥 Import",
+        ok = !!(st.parsed && !st.parseError);
       if (st.parsed && st.parsed.sql) label = "▶ Run SQL script";
       else if (st.parsed) {
         const n = st.parsed.rows.length;
-        label = "📥 Import " + n.toLocaleString() + " row" + (n === 1 ? "" : "s");
+        label =
+          "📥 Import " + n.toLocaleString() + " row" + (n === 1 ? "" : "s");
         if (st.target === "new" && !st.newName.trim()) ok = false;
-        if (st.target === "existing" && !st.map.some((x) => x && x !== "__skip__")) ok = false;
-        info.textContent = st.target === "existing" && st.mode === "replace" ? "⚠️ existing rows will be deleted first" : "";
+        if (
+          st.target === "existing" &&
+          !st.map.some((x) => x && x !== "__skip__")
+        )
+          ok = false;
+        info.textContent =
+          st.target === "existing" && st.mode === "replace"
+            ? "⚠️ existing rows will be deleted first"
+            : "";
       }
       importBtn.textContent = label;
       importBtn.classList.toggle("disabled", !ok);
@@ -1819,46 +3778,127 @@ export function crudClientMain() {
     async function doImport() {
       if (busy || !st.parsed) return;
       m.error("");
-      busy = true; importBtn.textContent = "Working…";
+      busy = true;
+      importBtn.textContent = "Working…";
       try {
         if (st.parsed.sql) {
-          if (!(await crudConfirm("Run this SQL script against the current database?\nIt executes in a single transaction.", { okText: "Run script", title: "Run SQL script" }))) return;
+          if (
+            !(await crudConfirm(
+              "Run this SQL script against the current database?\nIt executes in a single transaction.",
+              { okText: "Run script", title: "Run SQL script" },
+            ))
+          )
+            return;
           const r = await call("/api/script", { sql: st.text });
-          if (!r.success) { m.error(r.error); return; }
-          m.close(); showToast("Script executed");
+          if (!r.success) {
+            m.error(r.error);
+            return;
+          }
+          m.close();
+          showToast("Script executed");
           logAudit("[SCRIPT] executed " + (st.fileName || "pasted SQL"));
-          await afterSchemaChange(activeTable && tableMeta(activeTable) ? activeTable : undefined);
+          await afterSchemaChange(
+            activeTable && tableMeta(activeTable) ? activeTable : undefined,
+          );
           return;
         }
         const p = st.parsed;
-        let columns = [], idxs = [], createColumns = null, types = [], table = "";
+        let columns = [],
+          idxs = [],
+          createColumns = null,
+          types = [],
+          table = "";
         if (st.target === "new") {
           table = st.newName.trim();
-          p.headers.forEach((_, i) => { if (st.map[i] !== "__skip__") idxs.push(i); });
-          if (!idxs.length) { m.error("Select at least one column to import."); return; }
-          columns = idxs.map((i) => st.colNames[i].trim() || ("column_" + (i + 1)));
+          p.headers.forEach((_, i) => {
+            if (st.map[i] !== "__skip__") idxs.push(i);
+          });
+          if (!idxs.length) {
+            m.error("Select at least one column to import.");
+            return;
+          }
+          columns = idxs.map(
+            (i) => st.colNames[i].trim() || "column_" + (i + 1),
+          );
           types = idxs.map((i) => st.colTypes[i]);
           createColumns = columns.map((n, k) => ({ name: n, type: types[k] }));
-          if (st.addId) createColumns.unshift({ name: "id", type: "INTEGER", pk: true, autoinc: true });
+          if (st.addId)
+            createColumns.unshift({
+              name: "id",
+              type: "INTEGER",
+              pk: true,
+              autoinc: true,
+            });
         } else {
           table = st.existing;
           const meta = tableMeta(table);
-          p.headers.forEach((_, i) => { if (st.map[i] && st.map[i] !== "__skip__") idxs.push(i); });
+          p.headers.forEach((_, i) => {
+            if (st.map[i] && st.map[i] !== "__skip__") idxs.push(i);
+          });
           columns = idxs.map((i) => st.map[i]);
           const dup = columns.find((c, k) => columns.indexOf(c) !== k);
-          if (dup) { m.error("Column '" + dup + "' is mapped more than once."); return; }
-          types = columns.map((c) => { const ci = meta.columns.find((x) => x.name === c); return ci ? affinity(ci.type) : "TEXT"; });
-          if (st.mode === "replace" && !(await crudConfirm("This will DELETE all current rows in '" + table + "' before importing.\n\nContinue?", { okText: "Replace rows", danger: true, title: "Replace table data" }))) return;
+          if (dup) {
+            m.error("Column '" + dup + "' is mapped more than once.");
+            return;
+          }
+          types = columns.map((c) => {
+            const ci = meta.columns.find((x) => x.name === c);
+            return ci ? affinity(ci.type) : "TEXT";
+          });
+          if (
+            st.mode === "replace" &&
+            !(await crudConfirm(
+              "This will DELETE all current rows in '" +
+                table +
+                "' before importing.\n\nContinue?",
+              {
+                okText: "Replace rows",
+                danger: true,
+                title: "Replace table data",
+              },
+            ))
+          )
+            return;
         }
-        const rows = p.rows.map((r) => idxs.map((i, k) => convertCell(r[i], types[k], st.emptyNull, st.trim)));
+        const rows = p.rows.map((r) =>
+          idxs.map((i, k) =>
+            convertCell(r[i], types[k], st.emptyNull, st.trim),
+          ),
+        );
         const r = await call("/api/import", {
-          table, create: st.target === "new", createColumns, columns, rows,
-          mode: st.mode, onConflict: st.conflict,
+          table,
+          create: st.target === "new",
+          createColumns,
+          columns,
+          rows,
+          mode: st.mode,
+          onConflict: st.conflict,
         });
-        if (!r.success) { m.error(r.error + "\n\nNothing was imported (all changes rolled back)."); return; }
+        if (!r.success) {
+          m.error(
+            r.error + "\n\nNothing was imported (all changes rolled back).",
+          );
+          return;
+        }
         m.close();
-        showToast("Imported " + r.inserted.toLocaleString() + " rows" + (r.skipped ? " (" + r.skipped + " skipped)" : "") + " into '" + table + "'");
-        logAudit("[IMPORT] " + table + " — " + r.inserted + " rows in " + r.latencyMs + "ms");
+        showToast(
+          "Imported " +
+            r.inserted.toLocaleString() +
+            " rows" +
+            (r.skipped ? " (" + r.skipped + " skipped)" : "") +
+            " into '" +
+            table +
+            "'",
+        );
+        logAudit(
+          "[IMPORT] " +
+            table +
+            " — " +
+            r.inserted +
+            " rows in " +
+            r.latencyMs +
+            "ms",
+        );
         gridPage = 1;
         await afterSchemaChange(table);
       } finally {
@@ -1871,7 +3911,8 @@ export function crudClientMain() {
       pasteFromClipboard();
     }
     if (opts.text) {
-      ta.value = opts.text; setSource(opts.text, "", false);
+      ta.value = opts.text;
+      setSource(opts.text, "", false);
     }
     setTimeout(() => ta.focus(), 50);
   }
@@ -1881,8 +3922,13 @@ export function crudClientMain() {
   document.addEventListener("paste", (e) => {
     const t = e.target;
     if (modalStack.length) return;
-    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
-    if (activeTab !== "grid" || !crud.editable || crud.source !== "table") return;
+    if (
+      t &&
+      (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)
+    )
+      return;
+    if (activeTab !== "grid" || !crud.editable || crud.source !== "table")
+      return;
     const text = (e.clipboardData && e.clipboardData.getData("text")) || "";
     if (!text || !/[\t\n,]/.test(text)) return;
     e.preventDefault();
@@ -1896,25 +3942,46 @@ export function crudClientMain() {
     const headerActions = document.querySelector(".header-actions");
     if (headerActions && !$("crudHdrNew")) {
       const anchor = headerActions.querySelector("#btnFullscreen");
-      const mk = (id, label, fn, title) => h("button", { class: "btn", id, onclick: fn, title }, label);
+      const mk = (id, label, fn, title) =>
+        h("button", { class: "btn", id, onclick: fn, title }, label);
       const els = [
-        mk("crudHdrNew", "➕ New Table", () => openTableDesigner(), "Create a table with the visual designer"),
-        mk("crudHdrImport", "📥 Import", () => openImportWizard({}), "Import CSV / JSON / SQL / clipboard data"),
-        mk("crudHdrBackup", "💾 Backup", backupDatabase, "Save the whole database as a .sql file"),
+        mk(
+          "crudHdrNew",
+          "➕ New Table",
+          () => openTableDesigner(),
+          "Create a table with the visual designer",
+        ),
+        mk(
+          "crudHdrImport",
+          "📥 Import",
+          () => openImportWizard({}),
+          "Import CSV / JSON / SQL / clipboard data",
+        ),
+        mk(
+          "crudHdrBackup",
+          "💾 Backup",
+          backupDatabase,
+          "Save the whole database as a .sql file",
+        ),
       ];
       els.forEach((el) => {
-        if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(el, anchor);
+        if (anchor && anchor.parentNode)
+          anchor.parentNode.insertBefore(el, anchor);
         else headerActions.appendChild(el);
       });
     }
     const sbSearch = document.querySelector(".sidebar-search-box");
     if (sbSearch && !$("crudSidebarActions")) {
-      const mk = (label, fn, title) => h("button", { class: "sidebar-mini-btn", onclick: fn, title }, label);
-      const box = h("div", { class: "crud-sidebar-actions", id: "crudSidebarActions" },
+      const mk = (label, fn, title) =>
+        h("button", { class: "sidebar-mini-btn", onclick: fn, title }, label);
+      const box = h(
+        "div",
+        { class: "crud-sidebar-actions", id: "crudSidebarActions" },
         mk("➕ New Table", () => openTableDesigner(), "Create a table"),
         mk("📥 Import", () => openImportWizard({}), "Import data"),
         mk("👁️ New View", openViewDialog, "Create a saved query"),
-        mk("💾 Backup", backupDatabase, "Export entire DB as SQL"));
+        mk("💾 Backup", backupDatabase, "Export entire DB as SQL"),
+      );
       sbSearch.parentNode.insertBefore(box, sbSearch);
     }
   }
@@ -1928,7 +3995,8 @@ export function crudClientMain() {
       if (activeTable) renderSchemaDesigner(activeTable);
     }
   }
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+  if (document.readyState === "loading")
+    document.addEventListener("DOMContentLoaded", boot);
   else boot();
 }
 

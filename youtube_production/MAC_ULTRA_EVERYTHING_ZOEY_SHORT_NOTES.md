@@ -1,6 +1,7 @@
 # Codecaine File Manager — Complete Apple Mac Studio M4 Ultra 3-Minute YouTube Short (Narrated by Phonon `Zoey`)
 
 ## Generated Video Files
+
 - **YouTube Short (9:16 Vertical, 1080×1920)**: `youtube_production/codecaine-file-manager-mac-ultra-everything-zoey-short.mp4` (173.5s, 30 fps, H.264 CRF 14 + 256 kbps AAC)
 - **Updated All-in-One Short**: `youtube_production/codecaine-file-manager-all-in-one-short.mp4` (173.5s)
 - **Widescreen Showcase (16:9, 1920×1080)**: `youtube_production/codecaine_file_manager_mac_ultra_everything_zoey_1080p.mp4` (173.5s)
@@ -8,11 +9,13 @@
 - **Narrator**: `ollama run phonon --voice Zoey` (100% local Apple Silicon MLX neural TTS, pace factor 1.098x)
 
 ## YouTube Titles (Pick One)
+
 1. **This Free Mac File Manager Has 33 Built-In Dev & AI Tools?! (Narrated by Local Phonon TTS Zoey) #Shorts**
 2. **Apple M4 Ultra File Manager Tour: 33 Tools, Phonon TTS Zoey, Local Ollama AI, 310+ Themes & 60 Games! #Shorts**
 3. **Everything Codecaine File Manager Can Do in 3 Minutes (Narrated by Ollama Phonon --voice Zoey) #Shorts**
 
 ## YouTube Description (Copy & Paste)
+
 ```text
 🎙️ Narrated 100% locally on our Flagship Apple Mac Studio M4 Ultra (32-Core CPU · 80-Core GPU · 192GB Unified Memory · Pro Display XDR 6K @ 120Hz) by Ollama Phonon TTS (`ollama run phonon --voice Zoey`)!
 

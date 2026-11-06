@@ -27,7 +27,10 @@ export function parseSdArguments(args: string[]): SdOptions {
     allowPositionals: true,
   });
 
-  if (values.help || (values.count ? positionals.length < 1 : positionals.length < 2)) {
+  if (
+    values.help ||
+    (values.count ? positionals.length < 1 : positionals.length < 2)
+  ) {
     printSdHelp();
     process.exit(values.help ? 0 : 1);
   }

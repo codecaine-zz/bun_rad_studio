@@ -1,7 +1,8 @@
 import { spawn } from "child_process";
 import { writeFileSync } from "fs";
 
-const CHROME_BIN = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const CHROME_BIN =
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const PORT = 9224;
 
 async function sleep(ms: number) {
@@ -9,7 +10,9 @@ async function sleep(ms: number) {
 }
 
 async function main() {
-  console.log("Launching Headless Chrome with Remote Debugging on port " + PORT);
+  console.log(
+    "Launching Headless Chrome with Remote Debugging on port " + PORT,
+  );
   const chromeProc = spawn(CHROME_BIN, [
     "--headless=new",
     "--disable-gpu",
@@ -42,8 +45,13 @@ async function main() {
   console.log("Connected to Chrome:", wsUrl);
 
   // Create new target
-  const newPageRes = await fetch(`http://127.0.0.1:${PORT}/json/new?http://127.0.0.1:54321/`, { method: "PUT" });
-  const pageData = (await newPageRes.json()) as { webSocketDebuggerUrl: string };
+  const newPageRes = await fetch(
+    `http://127.0.0.1:${PORT}/json/new?http://127.0.0.1:54321/`,
+    { method: "PUT" },
+  );
+  const pageData = (await newPageRes.json()) as {
+    webSocketDebuggerUrl: string;
+  };
   const pageWsUrl = pageData.webSocketDebuggerUrl;
 
   const ws = new WebSocket(pageWsUrl);
@@ -104,13 +112,14 @@ async function main() {
         rect: modal ? modal.getBoundingClientRect() : null
       };
     })()`,
-    returnByValue: true
+    returnByValue: true,
   });
   console.log("Evaluate result:", JSON.stringify(evalRes, null, 2));
   await sleep(1000);
 
   const reportShot = await send("Page.captureScreenshot", { format: "png" });
-  const reportPath = "/Users/codecaine/.gemini/antigravity-ide/brain/4205c847-f2cc-4335-96b0-60138148d8af/access_report_modal_verified.png";
+  const reportPath =
+    "/Users/codecaine/.gemini/antigravity-ide/brain/4205c847-f2cc-4335-96b0-60138148d8af/access_report_modal_verified.png";
   writeFileSync(reportPath, Buffer.from(reportShot.data, "base64"));
   console.log("✅ Saved:", reportPath);
 
@@ -130,7 +139,8 @@ async function main() {
   await sleep(1500);
 
   const dumpShot = await send("Page.captureScreenshot", { format: "png" });
-  const dumpPath = "/Users/codecaine/.gemini/antigravity-ide/brain/4205c847-f2cc-4335-96b0-60138148d8af/backup_dump_modal_verified.png";
+  const dumpPath =
+    "/Users/codecaine/.gemini/antigravity-ide/brain/4205c847-f2cc-4335-96b0-60138148d8af/backup_dump_modal_verified.png";
   writeFileSync(dumpPath, Buffer.from(dumpShot.data, "base64"));
   console.log("✅ Saved:", dumpPath);
 
@@ -146,7 +156,8 @@ async function main() {
   await sleep(500);
 
   const enumShot = await send("Page.captureScreenshot", { format: "png" });
-  const enumPath = "/Users/codecaine/.gemini/antigravity-ide/brain/4205c847-f2cc-4335-96b0-60138148d8af/create_enum_modal_verified.png";
+  const enumPath =
+    "/Users/codecaine/.gemini/antigravity-ide/brain/4205c847-f2cc-4335-96b0-60138148d8af/create_enum_modal_verified.png";
   writeFileSync(enumPath, Buffer.from(enumShot.data, "base64"));
   console.log("✅ Saved:", enumPath);
 

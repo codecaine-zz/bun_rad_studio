@@ -10,15 +10,24 @@ console.log(rad.arrutils.at(["alpha", "beta", "gamma"], -1));
 console.log(rad.validutils.isEmail("team@bun.sh"));
 
 // Files and a database
-await rad.fileutils.saveJson("/tmp/rad_tutorial.json", { tool: "rad", version: "1.0.0" });
-console.log((await rad.fileutils.loadJson<{ tool: string }>("/tmp/rad_tutorial.json")).tool);
+await rad.fileutils.saveJson("/tmp/rad_tutorial.json", {
+  tool: "rad",
+  version: "1.0.0",
+});
+console.log(
+  (await rad.fileutils.loadJson<{ tool: string }>("/tmp/rad_tutorial.json"))
+    .tool,
+);
 const db = rad.sqliteutils.openDb(":memory:");
 rad.sqliteutils.createKvTable(db, "config");
 rad.sqliteutils.setKv(db, "config", "env", "production");
 console.log(rad.sqliteutils.getKv(db, "config", "env"));
 
 // Maths, time, versions
-console.log(rad.statutils.mean([10, 20, 30]), rad.statutils.median([10, 20, 30]));
+console.log(
+  rad.statutils.mean([10, 20, 30]),
+  rad.statutils.median([10, 20, 30]),
+);
 console.log(rad.timeutils.timeAgo(new Date(Date.now() - 3600 * 1000)));
 console.log(rad.semverutils.satisfiesRange("2.4.1", "^2.0.0"));
 console.log(rad.cliutils.renderSparkline([1, 3, 6, 8, 4, 9, 2]));

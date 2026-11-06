@@ -84,18 +84,22 @@ export interface DoggoOptions {
 ## 3. Comprehensive Code Examples
 
 ### Example 1: Standard DNS Lookup with Query Metrics
+
 ```typescript
 import { lookupDomain } from "./doggoCoordinator.ts";
 
 const res = await lookupDomain("example.com", "A");
 
-console.log(`Domain: ${res.domain} (resolved in ${res.queryTimeMs}ms via ${res.server})`);
+console.log(
+  `Domain: ${res.domain} (resolved in ${res.queryTimeMs}ms via ${res.server})`,
+);
 for (const ans of res.answers) {
   console.log(`- ${ans.name} [${ans.type}] ${ans.data} (TTL: ${ans.ttl})`);
 }
 ```
 
 ### Example 2: Query MX & TXT Records with a Custom Nameserver
+
 ```typescript
 import { lookupDomain } from "./doggoCoordinator.ts";
 
@@ -115,6 +119,7 @@ for (const ans of txtRes.answers) {
 ```
 
 ### Example 3: Scripting with Short Answer Mode (like `dig +short`)
+
 ```typescript
 import { lookupDomain } from "./doggoCoordinator.ts";
 import { formatShortOutput } from "./doggoDoers.ts";
@@ -127,6 +132,7 @@ console.log("Resolved IPs:", ipList);
 ```
 
 ### Example 4: Full Coordinator with Table or JSON Formatting
+
 ```typescript
 import { runDoggoCoordinator } from "./doggoCoordinator.ts";
 
@@ -153,28 +159,36 @@ console.log(jsonString);
 ```
 
 ### Example 5: Positional Argument Parser Doer
+
 ```typescript
 import { parseTargetArgs } from "./doggoDoers.ts";
 
 const parsed = parseTargetArgs(["example.com", "MX", "@1.1.1.1"]);
-console.log(parsed.domain);     // "example.com"
-console.log(parsed.type);       // "MX"
+console.log(parsed.domain); // "example.com"
+console.log(parsed.type); // "MX"
 console.log(parsed.nameserver); // "1.1.1.1"
 ```
 
 ### Example 6: DNS-over-HTTPS (DoH) & Raw Record Formatting
+
 ```typescript
 import { performDohLookup, formatRecordData } from "./doggoDoers.ts";
 
 // Execute secure DNS-over-HTTPS query against Cloudflare JSON API
-const dohRes = await performDohLookup("example.com", "A", "https://cloudflare-dns.com/dns-query");
+const dohRes = await performDohLookup(
+  "example.com",
+  "A",
+  "https://cloudflare-dns.com/dns-query",
+);
 console.log(`DoH Server: ${dohRes.server} (Protocol: ${dohRes.protocol})`);
 for (const ans of dohRes.answers) {
   console.log(`${ans.name} [${ans.type}]: ${ans.data}`);
 }
 
 // Format arbitrary DNS record answers to human-readable strings
-const formatted = formatRecordData("MX", { exchange: "mail.example.com", preference: 10 });
+const formatted = formatRecordData("MX", {
+  exchange: "mail.example.com",
+  preference: 10,
+});
 console.log(formatted); // "10 mail.example.com"
 ```
-

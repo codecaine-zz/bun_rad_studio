@@ -5,7 +5,12 @@
 import { rmSync, lstatSync, readdirSync } from "node:fs";
 import { lstat, readdir } from "node:fs/promises";
 import { join } from "node:path";
-import type { DiskUsageItem, GduOptions, GduSortBy, MountedDisk } from "./gduTypes.ts";
+import type {
+  DiskUsageItem,
+  GduOptions,
+  GduSortBy,
+  MountedDisk,
+} from "./gduTypes.ts";
 import { colors } from "../../shared/colors.ts";
 
 /**
@@ -18,7 +23,10 @@ export function formatBytes(bytes: number, si: boolean = false): string {
     : ["B", "KiB", "MiB", "GiB", "TiB"];
 
   if (bytes < base) return `${bytes} B`.padStart(10);
-  const exp = Math.min(Math.floor(Math.log(bytes) / Math.log(base)), units.length - 1);
+  const exp = Math.min(
+    Math.floor(Math.log(bytes) / Math.log(base)),
+    units.length - 1,
+  );
   const val = (bytes / Math.pow(base, exp)).toFixed(1);
   return `${val} ${units[exp]}`.padStart(10);
 }
@@ -71,7 +79,7 @@ export function shouldIgnoreItem(
   name: string,
   fullPath: string,
   ignoreDirs: string[] = [],
-  noHidden: boolean = false
+  noHidden: boolean = false,
 ): boolean {
   if (noHidden && name.startsWith(".")) return true;
   if (!ignoreDirs || !Array.isArray(ignoreDirs)) return false;
@@ -83,11 +91,16 @@ export function shouldIgnoreItem(
  */
 export function sortDiskItems(
   items: DiskUsageItem[],
-  sortBy: "size" | "name" | "count" | "mtime" = "size"
+  sortBy: "size" | "name" | "count" | "mtime" = "size",
 ): DiskUsageItem[] {
-  if (sortBy === "name") return [...items].sort((a, b) => a.name.localeCompare(b.name));
-  if (sortBy === "count") return [...items].sort((a, b) => b.itemCount - a.itemCount);
-  if (sortBy === "mtime") return [...items].sort((a, b) => new Date(b.mtime).getTime() - new Date(a.mtime).getTime());
+  if (sortBy === "name")
+    return [...items].sort((a, b) => a.name.localeCompare(b.name));
+  if (sortBy === "count")
+    return [...items].sort((a, b) => b.itemCount - a.itemCount);
+  if (sortBy === "mtime")
+    return [...items].sort(
+      (a, b) => new Date(b.mtime).getTime() - new Date(a.mtime).getTime(),
+    );
   return [...items].sort((a, b) => b.size - a.size);
 }
 
@@ -117,7 +130,7 @@ export async function scanItem(
   ignoreDirs: string[] = [],
   noHidden: boolean = false,
   depth: number = 0,
-  maxDepth?: number
+  maxDepth?: number,
 ): Promise<DiskUsageItem> {
   const s = await lstat(itemPath);
   if (!s.isDirectory()) {
@@ -147,7 +160,14 @@ export async function scanItem(
         activeEntries.map(async (entry) => {
           const childPath = join(itemPath, entry.name);
           try {
-            return await scanItem(childPath, entry.name, ignoreDirs, noHidden, depth + 1, maxDepth);
+            return await scanItem(
+              childPath,
+              entry.name,
+              ignoreDirs,
+              noHidden,
+              depth + 1,
+              maxDepth,
+            );
           } catch {
             return null;
           }
@@ -187,7 +207,7 @@ export function scanItemSync(
   ignoreDirs: string[] = [],
   noHidden: boolean = false,
   depth: number = 0,
-  maxDepth?: number
+  maxDepth?: number,
 ): DiskUsageItem {
   let s;
   try {
@@ -228,7 +248,14 @@ export function scanItemSync(
           continue;
         }
         try {
-          const child = scanItemSync(childPath, entry.name, ignoreDirs, noHidden, depth + 1, maxDepth);
+          const child = scanItemSync(
+            childPath,
+            entry.name,
+            ignoreDirs,
+            noHidden,
+            depth + 1,
+            maxDepth,
+          );
           totalSize += child.size;
           totalCount += child.itemCount;
           if (child.mtime > latestMtime) latestMtime = child.mtime;
@@ -269,7 +296,14 @@ export function parseDfOutput(raw: string): MountedDisk[] {
     const mountPoint = parts[parts.length - 1]!;
 
     if (filesystem.startsWith("/dev/")) {
-      disks.push({ filesystem, size, used, available, percentUsed, mountPoint });
+      disks.push({
+        filesystem,
+        size,
+        used,
+        available,
+        percentUsed,
+        mountPoint,
+      });
     }
   }
   return disks;
@@ -303,15 +337,25 @@ export async function fetchMountedDisks(): Promise<MountedDisk[]> {
 export function formatGduLine(
   item: DiskUsageItem,
   maxSize: number,
-  options: GduOptions
+  options: GduOptions,
 ): string {
   const sizeStr = colors.bold(formatBytes(item.size, options.si));
-  const countStr = options.showItemCount ? colors.dim(formatCount(item.itemCount)) : "";
+  const countStr = options.showItemCount
+    ? colors.dim(formatCount(item.itemCount))
+    : "";
   const ratio = maxSize > 0 ? item.size / maxSize : 0;
-  const pctStr = options.showRelativeSize ? colors.dim(`[${(ratio * 100).toFixed(1).padStart(5)}%]`) : "";
-  const barStr = options.showRelativeSize ? colors.green(formatRelativeBar(ratio)) : "";
-  const displayName = item.isDirectory ? colors.blue(`/${item.name}`) : item.name;
+  const pctStr = options.showRelativeSize
+    ? colors.dim(`[${(ratio * 100).toFixed(1).padStart(5)}%]`)
+    : "";
+  const barStr = options.showRelativeSize
+    ? colors.green(formatRelativeBar(ratio))
+    : "";
+  const displayName = item.isDirectory
+    ? colors.blue(`/${item.name}`)
+    : item.name;
 
-  const cols = [sizeStr, countStr, pctStr, barStr, displayName].filter((s) => s.length > 0);
+  const cols = [sizeStr, countStr, pctStr, barStr, displayName].filter(
+    (s) => s.length > 0,
+  );
   return cols.join("  ");
 }

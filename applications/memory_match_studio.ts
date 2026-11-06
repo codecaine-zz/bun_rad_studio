@@ -32,12 +32,16 @@ import {
   getScreenDimensions,
 } from "../index.ts";
 
-const injectGameMasterFx = (html: string, _title?: string, _accent?: string): string =>
-  injectGameMasterFxBase(html);
+const injectGameMasterFx = (
+  html: string,
+  _title?: string,
+  _accent?: string,
+): string => injectGameMasterFxBase(html);
 
 export const APP_PORT = Number(process.env.MEMORY_MATCH_PORT || 3288);
 export const DEFAULT_PORT = APP_PORT;
-export const APP_TITLE = "Codecaine CyberRecall Royale: Holo-Vault Memory Match";
+export const APP_TITLE =
+  "Codecaine CyberRecall Royale: Holo-Vault Memory Match";
 
 export interface MemoryMatchStudioOptions {
   fullscreen?: boolean;
@@ -187,7 +191,10 @@ export function startMemoryMatchServer(options: MemoryMatchServerOptions = {}) {
 
       if (pathname === "/" || pathname === "/index.html") {
         return new Response(generateMemoryMatchStudioHtml(), {
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            ...corsHeaders,
+          },
         });
       }
 
@@ -226,7 +233,9 @@ export function startMemoryMatchServer(options: MemoryMatchServerOptions = {}) {
         return new Response("Forbidden", { status: 403 });
       }
       if (existsSync(directCandidate)) {
-        return new Response(Bun.file(directCandidate), { headers: corsHeaders });
+        return new Response(Bun.file(directCandidate), {
+          headers: corsHeaders,
+        });
       }
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
@@ -234,7 +243,9 @@ export function startMemoryMatchServer(options: MemoryMatchServerOptions = {}) {
   });
 }
 
-export function createMemoryMatchStudio(options: MemoryMatchStudioOptions = {}): MemoryMatchStudioInstance {
+export function createMemoryMatchStudio(
+  options: MemoryMatchStudioOptions = {},
+): MemoryMatchStudioInstance {
   const fullscreen = options.fullscreen ?? false;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1420);
@@ -266,7 +277,8 @@ export function createMemoryMatchStudio(options: MemoryMatchStudioOptions = {}):
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -286,11 +298,15 @@ export function createMemoryMatchStudio(options: MemoryMatchStudioOptions = {}):
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -301,7 +317,9 @@ export function createMemoryMatchStudio(options: MemoryMatchStudioOptions = {}):
 
         webview.setHTML(html);
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
         console.warn(
@@ -309,7 +327,9 @@ export function createMemoryMatchStudio(options: MemoryMatchStudioOptions = {}):
         );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -329,13 +349,18 @@ export const createMemoryMatchApp = createMemoryMatchStudio;
 export const startMemoryMatchStudioServer = startMemoryMatchServer;
 
 if (process.argv.includes("--server")) {
-  const port = Number(process.env.MEMORY_MATCH_PORT || process.env.PORT || APP_PORT);
+  const port = Number(
+    process.env.MEMORY_MATCH_PORT || process.env.PORT || APP_PORT,
+  );
   const srv = startMemoryMatchServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`🧠 ${APP_TITLE} Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `🧠 ${APP_TITLE} Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = process.argv.includes("--fullscreen") || process.argv.includes("-f");
+  const fullscreen =
+    process.argv.includes("--fullscreen") || process.argv.includes("-f");
   const app = createMemoryMatchStudio({ fullscreen });
   await app.run();
   process.exit(0);

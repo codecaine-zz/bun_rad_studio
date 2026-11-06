@@ -12,9 +12,23 @@ import { ending } from "./fm_tutorial_ch_ending";
 // list follows it, so the sample home must already be written that way to stay the same folder on screen.
 const WORKER_ID = Number(process.env.FM_TUTORIAL_WORKER || 0);
 const WORKER_ROOT = WORKER_ID > 0 ? `/tmp/fmv_w${WORKER_ID}` : "/tmp/fmv";
-export const FM_HOME = process.platform === "darwin" ? `/private${WORKER_ROOT}/home` : `${WORKER_ROOT}/home`;
+export const FM_HOME =
+  process.platform === "darwin"
+    ? `/private${WORKER_ROOT}/home`
+    : `${WORKER_ROOT}/home`;
 
-const place = (c: Chapter): Chapter => ({ ...c, path: c.path?.replace("<HOME>", FM_HOME) });
+const place = (c: Chapter): Chapter => ({
+  ...c,
+  path: c.path?.replace("<HOME>", FM_HOME),
+});
 
-export const chapters: Chapter[] = [...basics, ...operations, ...toolsAndSafety, ...finale, ...power, ...studios, ...ending].map(place);
+export const chapters: Chapter[] = [
+  ...basics,
+  ...operations,
+  ...toolsAndSafety,
+  ...finale,
+  ...power,
+  ...studios,
+  ...ending,
+].map(place);
 export type { Chapter, Step, World } from "./fm_tutorial_types";

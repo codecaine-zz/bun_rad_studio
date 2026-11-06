@@ -17,13 +17,17 @@ export function startDrag(e, paths, labelText) {
 export function endDrag() {
   drag.paths = [];
   document.body.classList.remove("dragging");
-  document.querySelectorAll(".drop-target").forEach((el) => el.classList.remove("drop-target"));
+  document
+    .querySelectorAll(".drop-target")
+    .forEach((el) => el.classList.remove("drop-target"));
 }
 
 /** A folder can't be dropped on itself or on something inside itself. */
 function acceptable(destPath) {
   if (!drag.paths.length) return false;
-  return !drag.paths.some((p) => isInside(destPath, p, state.sep, state.sep === "\\"));
+  return !drag.paths.some((p) =>
+    isInside(destPath, p, state.sep, state.sep === "\\"),
+  );
 }
 
 /**
@@ -41,7 +45,11 @@ export function attachDropTarget(el, { getPath, trash = false }) {
   el.addEventListener("dragover", (e) => {
     if (!ok()) return;
     e.preventDefault();
-    e.dataTransfer.dropEffect = trash ? "move" : wantsCopy(e, state.platform) ? "copy" : "move";
+    e.dataTransfer.dropEffect = trash
+      ? "move"
+      : wantsCopy(e, state.platform)
+        ? "copy"
+        : "move";
     el.classList.add("drop-target");
   });
   el.addEventListener("dragleave", (e) => {

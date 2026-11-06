@@ -1,4 +1,12 @@
-import { afterAll, beforeAll, describe, expect, mock, setDefaultTimeout, test } from "bun:test";
+import {
+  afterAll,
+  beforeAll,
+  describe,
+  expect,
+  mock,
+  setDefaultTimeout,
+  test,
+} from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -36,7 +44,9 @@ class FakeRedisStore {
           const matchIdx = args.findIndex((a) => a.toUpperCase() === "MATCH");
           const pattern = matchIdx >= 0 ? (args[matchIdx + 1] ?? "*") : "*";
           const prefix = pattern.endsWith("*") ? pattern.slice(0, -1) : pattern;
-          const keys = [...store.keys()].filter((k) => !prefix || k.startsWith(prefix)).sort();
+          const keys = [...store.keys()]
+            .filter((k) => !prefix || k.startsWith(prefix))
+            .sort();
           return ["0", keys];
         }
         if (u === "TYPE") {
@@ -67,7 +77,11 @@ class FakeRedisStore {
           return entry?.type === "string" ? (entry.str ?? "") : null;
         }
         if (u === "SET") {
-          store.set(args[0]!, { type: "string", ttlMs: null, str: String(args[1] ?? "") });
+          store.set(args[0]!, {
+            type: "string",
+            ttlMs: null,
+            str: String(args[1] ?? ""),
+          });
           return "OK";
         }
         if (u === "HGETALL") {
@@ -139,7 +153,10 @@ let dbFiles: any;
 let dbMacros: any;
 const saved = new Map<string, PropertyDescriptor | undefined>();
 
-async function call(op: string, payload: unknown = {}): Promise<{ status: number; body: any }> {
+async function call(
+  op: string,
+  payload: unknown = {},
+): Promise<{ status: number; body: any }> {
   const res = await fetch(`${base}/api/${op}`, {
     method: "POST",
     headers: { "content-type": "application/json", "x-fm-token": "ui-token" },
@@ -153,19 +170,37 @@ function pane(): HTMLElement {
 }
 
 function top(): HTMLElement | null {
-  return ([...doc.querySelectorAll(".modal-backdrop")].at(-1) as HTMLElement | undefined) ?? null;
+  return (
+    ([...doc.querySelectorAll(".modal-backdrop")].at(-1) as
+      HTMLElement | undefined) ?? null
+  );
 }
 
 function click(el: Element | null | undefined) {
   expect(el).toBeTruthy();
-  el!.dispatchEvent(new win.MouseEvent("click", { bubbles: true, cancelable: true }));
+  el!.dispatchEvent(
+    new win.MouseEvent("click", { bubbles: true, cancelable: true }),
+  );
 }
 
-function button(label: string, scope: ParentNode = doc): HTMLButtonElement | undefined {
-  return [...scope.querySelectorAll("button")].find((b) => (b.textContent ?? "").trim().includes(label)) as HTMLButtonElement | undefined;
+function button(
+  label: string,
+  scope: ParentNode = doc,
+): HTMLButtonElement | undefined {
+  return [...scope.querySelectorAll("button")].find((b) =>
+    (b.textContent ?? "").trim().includes(label),
+  ) as HTMLButtonElement | undefined;
 }
 
-function setValue(el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null | undefined, value: string) {
+function setValue(
+  el:
+    | HTMLInputElement
+    | HTMLTextAreaElement
+    | HTMLSelectElement
+    | null
+    | undefined,
+  value: string,
+) {
   expect(el).toBeTruthy();
   el!.value = value;
   el!.dispatchEvent(new win.Event("input", { bubbles: true }));
@@ -260,7 +295,10 @@ beforeAll(async () => {
   });
 
   base = `http://127.0.0.1:${server.port}`;
-  const html = readFileSync(join(import.meta.dir, "..", "resources", "file_manager", "index.html"), "utf8")
+  const html = readFileSync(
+    join(import.meta.dir, "..", "resources", "file_manager", "index.html"),
+    "utf8",
+  )
     .replace(/__FM_TOKEN__/g, "ui-token")
     .replace(/__FM_PLATFORM__/g, "linux")
     .replace(/__FM_NONCE__/g, "n")
@@ -270,11 +308,16 @@ beforeAll(async () => {
   const g = globalThis as any;
   for (const k of GLOBALS) saved.set(k, Object.getOwnPropertyDescriptor(g, k));
   for (const k of GLOBALS.filter((x) => x !== "fetch")) {
-    Object.defineProperty(g, k, { value: (win as any)[k], configurable: true, writable: true });
+    Object.defineProperty(g, k, {
+      value: (win as any)[k],
+      configurable: true,
+      writable: true,
+    });
   }
   const realFetch = saved.get("fetch")!.value as typeof fetch;
   Object.defineProperty(g, "fetch", {
-    value: (u: any, o: any) => realFetch(typeof u === "string" && u.startsWith("/") ? base + u : u, o),
+    value: (u: any, o: any) =>
+      realFetch(typeof u === "string" && u.startsWith("/") ? base + u : u, o),
     configurable: true,
     writable: true,
   });
@@ -302,7 +345,14 @@ afterAll(() => {
   }
   mock.restore();
   server?.stop(true);
-  try { rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); } catch {}
+  try {
+    rmSync(root, {
+      recursive: true,
+      force: true,
+      maxRetries: 10,
+      retryDelay: 100,
+    });
+  } catch {}
 });
 
 describe("File Manager Databases: Bun JS Macros Backend", () => {
@@ -356,7 +406,9 @@ describe("File Manager Databases: Bun JS Macros Backend", () => {
     });
     expect(badJs.status).toBe(200);
     expect(badJs.body.valid).toBe(false);
-    expect(badJs.body.issues.some((i: any) => i.severity === "error")).toBe(true);
+    expect(badJs.body.issues.some((i: any) => i.severity === "error")).toBe(
+      true,
+    );
 
     const warnJs = await call("db/macros/validate", {
       macro: {
@@ -367,7 +419,9 @@ describe("File Manager Databases: Bun JS Macros Backend", () => {
     });
     expect(warnJs.status).toBe(200);
     expect(warnJs.body.valid).toBe(true);
-    expect(warnJs.body.issues.some((i: any) => i.severity === "warning")).toBe(true);
+    expect(warnJs.body.issues.some((i: any) => i.severity === "warning")).toBe(
+      true,
+    );
 
     const badActions = await call("db/macros/validate", {
       macro: {
@@ -375,15 +429,30 @@ describe("File Manager Databases: Bun JS Macros Backend", () => {
         mode: "actions",
         actions: [
           { id: "1", action: "RunSQL", enabled: true, parameters: {} },
-          { id: "2", action: "DeleteRecord", enabled: true, parameters: { table: "customers" } },
-          { id: "3", action: "RunMacro", enabled: true, parameters: { macroName: "NonExistentMacro" } },
+          {
+            id: "2",
+            action: "DeleteRecord",
+            enabled: true,
+            parameters: { table: "customers" },
+          },
+          {
+            id: "3",
+            action: "RunMacro",
+            enabled: true,
+            parameters: { macroName: "NonExistentMacro" },
+          },
         ],
       },
     });
     expect(badActions.status).toBe(200);
     expect(badActions.body.valid).toBe(false);
-    expect(badActions.body.issues.filter((i: any) => i.severity === "error").length).toBe(2);
-    expect(badActions.body.issues.filter((i: any) => i.severity === "warning").length).toBe(1);
+    expect(
+      badActions.body.issues.filter((i: any) => i.severity === "error").length,
+    ).toBe(2);
+    expect(
+      badActions.body.issues.filter((i: any) => i.severity === "warning")
+        .length,
+    ).toBe(1);
   });
 
   test("4. db/macros/convert & db/macros/export convert visual DoCmd macros to Bun JS, Access VBA, SQL, and JSON", async () => {
@@ -393,22 +462,56 @@ describe("File Manager Databases: Bun JS Macros Backend", () => {
       description: "Upgrades high spenders",
       mode: "actions" as const,
       actions: [
-        { id: "s1", action: "SetTempVar", enabled: true, parameters: { name: "cutoff", expression: "1000" } },
-        { id: "s2", action: "UpdateRecord", enabled: true, condition: "[cutoff] >= 500", parameters: { table: "customers", setValues: "tier = 'VIP'", whereCondition: "spent >= 1000" } },
-        { id: "s3", action: "RunCode", enabled: true, parameters: { code: "TempVars.vipCount = await DCount('*', 'customers', \"tier = 'VIP'\");" } },
-        { id: "s4", action: "MessageBox", enabled: true, parameters: { message: "Upgraded [vipCount] VIPs", title: "VIP Upgrade", type: "info" } },
+        {
+          id: "s1",
+          action: "SetTempVar",
+          enabled: true,
+          parameters: { name: "cutoff", expression: "1000" },
+        },
+        {
+          id: "s2",
+          action: "UpdateRecord",
+          enabled: true,
+          condition: "[cutoff] >= 500",
+          parameters: {
+            table: "customers",
+            setValues: "tier = 'VIP'",
+            whereCondition: "spent >= 1000",
+          },
+        },
+        {
+          id: "s3",
+          action: "RunCode",
+          enabled: true,
+          parameters: {
+            code: "TempVars.vipCount = await DCount('*', 'customers', \"tier = 'VIP'\");",
+          },
+        },
+        {
+          id: "s4",
+          action: "MessageBox",
+          enabled: true,
+          parameters: {
+            message: "Upgraded [vipCount] VIPs",
+            title: "VIP Upgrade",
+            type: "info",
+          },
+        },
       ],
     };
 
     const conv = await call("db/macros/convert", { macro: visualMacro });
     expect(conv.status).toBe(200);
-    expect(conv.body.code).toContain("DoCmd.SetTempVar(\"cutoff\"");
-    expect(conv.body.code).toContain("DoCmd.UpdateRecord(\"customers\"");
+    expect(conv.body.code).toContain('DoCmd.SetTempVar("cutoff"');
+    expect(conv.body.code).toContain('DoCmd.UpdateRecord("customers"');
     expect(conv.body.code).toContain("DCount('*', 'customers'");
-    expect(conv.body.code).toContain("MsgBox(\"Upgraded [vipCount] VIPs\"");
+    expect(conv.body.code).toContain('MsgBox("Upgraded [vipCount] VIPs"');
 
     for (const format of ["bun", "vba", "sql", "json"] as const) {
-      const exp = await call("db/macros/export", { macro: visualMacro, format });
+      const exp = await call("db/macros/export", {
+        macro: visualMacro,
+        format,
+      });
       expect(exp.status).toBe(200);
       expect(exp.body.format).toBe(format);
       expect(exp.body.content.length).toBeGreaterThan(20);
@@ -491,8 +594,12 @@ describe("File Manager Databases: Bun JS Macros Backend", () => {
       vipCount: 3,
       totalSpent: 7465.5,
     });
-    expect(r.messages[0].message).toBe("Top customer: Margaret Hamilton, VIPs: 3");
-    expect(r.logs.some((l: any) => l.text.includes("Visited: Ada Lovelace"))).toBe(true);
+    expect(r.messages[0].message).toBe(
+      "Top customer: Margaret Hamilton, VIPs: 3",
+    );
+    expect(
+      r.logs.some((l: any) => l.text.includes("Visited: Ada Lovelace")),
+    ).toBe(true);
     expect(r.resultSets.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -518,7 +625,9 @@ describe("File Manager Databases: Bun JS Macros Backend", () => {
 
     // Verify file still has 3 customers
     let checkDb = new Database(sqliteFilePath, { readonly: true });
-    expect((checkDb.query("SELECT COUNT(*) AS c FROM customers").get() as any).c).toBe(3);
+    expect(
+      (checkDb.query("SELECT COUNT(*) AS c FROM customers").get() as any).c,
+    ).toBe(3);
     checkDb.close();
 
     // 2. Atomic transaction rolls back earlier writes when an error is thrown
@@ -540,7 +649,9 @@ describe("File Manager Databases: Bun JS Macros Backend", () => {
     expect(failTx.body.error.message).toContain("Simulated failure mid-macro");
 
     checkDb = new Database(sqliteFilePath, { readonly: true });
-    expect((checkDb.query("SELECT COUNT(*) AS c FROM customers").get() as any).c).toBe(3);
+    expect(
+      (checkDb.query("SELECT COUNT(*) AS c FROM customers").get() as any).c,
+    ).toBe(3);
     checkDb.close();
 
     // 3. Real commit persists changes
@@ -562,7 +673,9 @@ describe("File Manager Databases: Bun JS Macros Backend", () => {
     expect(commitRes.body.returnValue).toBe(4);
 
     checkDb = new Database(sqliteFilePath, { readonly: true });
-    expect((checkDb.query("SELECT COUNT(*) AS c FROM customers").get() as any).c).toBe(4);
+    expect(
+      (checkDb.query("SELECT COUNT(*) AS c FROM customers").get() as any).c,
+    ).toBe(4);
     checkDb.close();
   });
 
@@ -616,7 +729,10 @@ describe("File Manager Databases: Bun JS Macros Backend", () => {
     });
     expect(withPrompt.status).toBe(200);
     expect(withPrompt.body.ok).toBe(true);
-    expect(withPrompt.body.returnValue.map((r: any) => r.name)).toEqual(["Donald Knuth", "Grace Hopper"]);
+    expect(withPrompt.body.returnValue.map((r: any) => r.name)).toEqual([
+      "Donald Knuth",
+      "Grace Hopper",
+    ]);
 
     // 2. Redis macro execution + cross-connection access via connections.use()
     const redisRun = await call("db/macros/run", {
@@ -701,7 +817,13 @@ describe("File Manager Databases: Bun JS Macros Backend", () => {
 describe("File Manager Databases: Bun JS Macros UI Dialog & Integration", () => {
   test("1. right-clicking a SQLite file offers Run Bun JS macro on database… after probing", async () => {
     const paneMod = await import("../resources/file_manager/ui/pane.js");
-    const entry = { name: "store.sqlite", path: sqliteFilePath, isDir: false, size: 8192, mtimeMs: 100 };
+    const entry = {
+      name: "store.sqlite",
+      path: sqliteFilePath,
+      isDir: false,
+      size: 8192,
+      mtimeMs: 100,
+    };
     (paneMod.left as any).entries = [entry];
     await dbFiles.probeSqliteFiles();
     const items = dbMacros.macroSqliteMenuItems([entry]);
@@ -711,17 +833,27 @@ describe("File Manager Databases: Bun JS Macros UI Dialog & Integration", () => 
 
   test("2. toolbar Macros (Bun JS)… button opens the Macro Studio dialog, runs a Bun JS macro, and converts visual actions to Bun JS", async () => {
     power.openPower("databases", {});
-    await until(() => pane() && !pane().hidden && pane().querySelector(".db-toolbar"), "the Databases tab");
+    await until(
+      () => pane() && !pane().hidden && pane().querySelector(".db-toolbar"),
+      "the Databases tab",
+    );
     await until(() => dbState.db.loaded, "the Databases overview");
 
     const macroBtn = button("⚡ Macros (Bun JS)…", pane());
     expect(macroBtn).toBeTruthy();
     click(macroBtn);
 
-    await until(() => top()?.querySelector(".db-macro-studio"), "the Macros dialog to open");
+    await until(
+      () => top()?.querySelector(".db-macro-studio"),
+      "the Macros dialog to open",
+    );
     const dlg = top()!;
-    expect(dlg.querySelector("[role=dialog]")?.getAttribute("aria-modal")).toBe("true");
-    expect(dlg.querySelectorAll(".db-macro-item").length).toBeGreaterThanOrEqual(5);
+    expect(dlg.querySelector("[role=dialog]")?.getAttribute("aria-modal")).toBe(
+      "true",
+    );
+    expect(
+      dlg.querySelectorAll(".db-macro-item").length,
+    ).toBeGreaterThanOrEqual(5);
 
     // Click "▶ Run Macro" on the default selected macro
     const runBtn = button("▶ Run Macro", dlg);
@@ -732,7 +864,9 @@ describe("File Manager Databases: Bun JS Macros UI Dialog & Integration", () => 
       () => dlg.querySelector(".db-macro-run-summary"),
       "the macro execution result to render",
     );
-    expect(dlg.querySelector(".db-macro-run-summary")?.textContent).toContain("Completed");
+    expect(dlg.querySelector(".db-macro-run-summary")?.textContent).toContain(
+      "Completed",
+    );
 
     // Select the visual DoCmd macro ("Quick VIP Report (Visual DoCmd + RunCode)")
     const visualItem = [...dlg.querySelectorAll(".db-macro-item")].find((el) =>
@@ -741,16 +875,26 @@ describe("File Manager Databases: Bun JS Macros UI Dialog & Integration", () => 
     expect(visualItem).toBeTruthy();
     click(visualItem);
 
-    await until(() => dlg.querySelector(".db-macro-step-card"), "the visual DoCmd action matrix rows");
-    expect(dlg.querySelectorAll(".db-macro-step-card").length).toBeGreaterThanOrEqual(4);
+    await until(
+      () => dlg.querySelector(".db-macro-step-card"),
+      "the visual DoCmd action matrix rows",
+    );
+    expect(
+      dlg.querySelectorAll(".db-macro-step-card").length,
+    ).toBeGreaterThanOrEqual(4);
 
     // Click "⇄ Convert Actions to Bun JS"
     const convertBtn = button("Convert Actions to Bun JS", dlg);
     expect(convertBtn).toBeTruthy();
     click(convertBtn);
 
-    await until(() => !dlg.querySelector(".db-macro-code")?.closest("[hidden]"), "the converted Bun JS code editor");
-    const codeEditor = dlg.querySelector(".db-macro-code") as HTMLTextAreaElement;
+    await until(
+      () => !dlg.querySelector(".db-macro-code")?.closest("[hidden]"),
+      "the converted Bun JS code editor",
+    );
+    const codeEditor = dlg.querySelector(
+      ".db-macro-code",
+    ) as HTMLTextAreaElement;
     expect(codeEditor.value).toContain("DoCmd");
 
     // Verify no leaked secrets or [object Object] in DOM

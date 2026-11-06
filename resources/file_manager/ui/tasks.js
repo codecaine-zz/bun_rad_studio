@@ -28,55 +28,99 @@ function mountTasks(root) {
   let busy = false;
 
   const status = createStatus();
-  const banner = h("div", { class: "tasks-banner", role: "region", "aria-label": "Platform engine" });
-  const kpiGrid = h("div", { class: "tasks-kpi-grid", role: "region", "aria-label": "System telemetry" });
+  const banner = h("div", {
+    class: "tasks-banner",
+    role: "region",
+    "aria-label": "Platform engine",
+  });
+  const kpiGrid = h("div", {
+    class: "tasks-kpi-grid",
+    role: "region",
+    "aria-label": "System telemetry",
+  });
 
   const searchInput = h("input", {
     type: "search",
     class: "tasks-search",
     placeholder: "Filter by name, PID, :port, user:name, cpu>10, mem>5...",
     "aria-label": "Filter processes",
-    title: "Filter processes by name, PID, port (:3000), user (user:root), or threshold (cpu>10, mem>5, rss>100).",
+    title:
+      "Filter processes by name, PID, port (:3000), user (user:root), or threshold (cpu>10, mem>5, rss>100).",
   });
-  const scopeSelect = h("select", { title: "Filter which category of processes is shown." },
+  const scopeSelect = h(
+    "select",
+    { title: "Filter which category of processes is shown." },
     h("option", { value: "all" }, "All processes"),
     h("option", { value: "mine" }, "My processes only"),
     h("option", { value: "ports" }, "Listening on a TCP port"),
     h("option", { value: "dev" }, "Dev servers & runtimes"),
   );
-  const viewSelect = h("select", { title: "Choose how processes are organized in the table." },
+  const viewSelect = h(
+    "select",
+    { title: "Choose how processes are organized in the table." },
     h("option", { value: "flat" }, "Flat process list"),
     h("option", { value: "tree" }, "Process tree (by parent PID)"),
     h("option", { value: "grouped" }, "Grouped by application"),
   );
-  const intervalSelect = h("select", { title: "How often to refresh the process list automatically while this tab is open." },
+  const intervalSelect = h(
+    "select",
+    {
+      title:
+        "How often to refresh the process list automatically while this tab is open.",
+    },
     h("option", { value: "0" }, "Manual refresh"),
     h("option", { value: "3000" }, "Auto-refresh: 3s"),
     h("option", { value: "5000" }, "Auto-refresh: 5s"),
     h("option", { value: "10000" }, "Auto-refresh: 10s"),
   );
-  const refreshBtn = btn("Refresh Now", "Fetch the latest process list, CPU/memory metrics, and listening ports.", () => loadSnapshot(), { primary: true });
+  const refreshBtn = btn(
+    "Refresh Now",
+    "Fetch the latest process list, CPU/memory metrics, and listening ports.",
+    () => loadSnapshot(),
+    { primary: true },
+  );
 
   const portInput = h("input", {
     type: "text",
     class: "tasks-port-input",
     placeholder: "3000",
-    title: "Enter a TCP port number (1-65535) to find and stop any process listening on it.",
+    title:
+      "Enter a TCP port number (1-65535) to find and stop any process listening on it.",
   });
-  const killPortBtn = btn("Free Port", "Find and terminate the process listening on the entered TCP port.", () => killByPort(), { danger: true });
-  const cleanDevBtn = btn("Clean Rogue Dev Servers", "Find and terminate orphaned or port-listening dev servers owned by you.", () => cleanRogueDev());
+  const killPortBtn = btn(
+    "Free Port",
+    "Find and terminate the process listening on the entered TCP port.",
+    () => killByPort(),
+    { danger: true },
+  );
+  const cleanDevBtn = btn(
+    "Clean Rogue Dev Servers",
+    "Find and terminate orphaned or port-listening dev servers owned by you.",
+    () => cleanRogueDev(),
+  );
 
-  const formatSelect = h("select", { title: "Choose the file format for exporting the process list." },
+  const formatSelect = h(
+    "select",
+    { title: "Choose the file format for exporting the process list." },
     h("option", { value: "csv" }, "CSV (.csv)"),
     h("option", { value: "json" }, "JSON (.json)"),
     h("option", { value: "tsv" }, "TSV (.tsv)"),
     h("option", { value: "md" }, "Markdown (.md)"),
   );
-  const copyExportBtn = btn("Copy Snapshot", "Copy the formatted process table to the system clipboard.", () => copySnapshot());
-  const saveExportBtn = btn("Save to Folder", "Save the process snapshot as a new file in the current folder.", () => saveSnapshot());
+  const copyExportBtn = btn(
+    "Copy Snapshot",
+    "Copy the formatted process table to the system clipboard.",
+    () => copySnapshot(),
+  );
+  const saveExportBtn = btn(
+    "Save to Folder",
+    "Save the process snapshot as a new file in the current folder.",
+    () => saveSnapshot(),
+  );
 
   const table = createTable({
-    caption: "Running processes. Click a row to inspect or run platform actions.",
+    caption:
+      "Running processes. Click a row to inspect or run platform actions.",
     columns: TASK_COLUMNS,
     className: "tasks-table",
     onSort: (key, dir) => {
@@ -85,24 +129,38 @@ function mountTasks(root) {
     },
   });
 
-  const inspectorHost = h("div", { class: "pw-card tasks-inspector", role: "region", "aria-label": "Selected process inspector" });
+  const inspectorHost = h("div", {
+    class: "pw-card tasks-inspector",
+    role: "region",
+    "aria-label": "Selected process inspector",
+  });
 
   root.append(
-    h("div", { class: "tasks-root" },
-      h("div", { class: "pw-card tasks-top-card" },
-        h("div", { class: "tasks-header-row" },
+    h(
+      "div",
+      { class: "tasks-root" },
+      h(
+        "div",
+        { class: "pw-card tasks-top-card" },
+        h(
+          "div",
+          { class: "tasks-header-row" },
           h("h3", {}, "Process & Task Manager"),
           banner,
         ),
         kpiGrid,
-        h("div", { class: "pw-row tasks-filter-row" },
+        h(
+          "div",
+          { class: "pw-row tasks-filter-row" },
           searchInput,
           field("Scope", scopeSelect),
           field("View", viewSelect),
           field("Refresh", intervalSelect),
           refreshBtn,
         ),
-        h("div", { class: "pw-row tasks-tools-row" },
+        h(
+          "div",
+          { class: "pw-row tasks-tools-row" },
           field("TCP Port", portInput),
           killPortBtn,
           cleanDevBtn,
@@ -172,9 +230,12 @@ function mountTasks(root) {
     return [...list].sort((a, b) => {
       let cmp = 0;
       if (key === "pid") cmp = Number(a.pid) - Number(b.pid);
-      else if (key === "cpu" || key === "mem" || key === "rssKb") cmp = (a[key] || 0) - (b[key] || 0);
-      else if (key === "uptimeSec") cmp = (a.uptimeSec ?? -1) - (b.uptimeSec ?? -1);
-      else if (key === "ports") cmp = (a.ports?.length || 0) - (b.ports?.length || 0);
+      else if (key === "cpu" || key === "mem" || key === "rssKb")
+        cmp = (a[key] || 0) - (b[key] || 0);
+      else if (key === "uptimeSec")
+        cmp = (a.uptimeSec ?? -1) - (b.uptimeSec ?? -1);
+      else if (key === "ports")
+        cmp = (a.ports?.length || 0) - (b.ports?.length || 0);
       else cmp = String(a[key] || "").localeCompare(String(b[key] || ""));
       return cmp * sign || Number(a.pid) - Number(b.pid);
     });
@@ -186,7 +247,9 @@ function mountTasks(root) {
     const scope = scopeSelect.value;
     const mode = viewSelect.value;
 
-    const filtered = snapshot.processes.filter((p) => matchesProcessFilter(p, query, scope));
+    const filtered = snapshot.processes.filter((p) =>
+      matchesProcessFilter(p, query, scope),
+    );
     renderTelemetryCards(kpiGrid, snapshot.telemetry, filtered.length);
     table.setSort(sort.key, sort.dir);
 
@@ -200,7 +263,14 @@ function mountTasks(root) {
       }
       const groups = [];
       for (const [name, list] of byName) {
-        const top = list.reduce((best, cur) => (cur.cpu > best.cpu || (cur.cpu === best.cpu && cur.rssKb > best.rssKb) ? cur : best), list[0]);
+        const top = list.reduce(
+          (best, cur) =>
+            cur.cpu > best.cpu ||
+            (cur.cpu === best.cpu && cur.rssKb > best.rssKb)
+              ? cur
+              : best,
+          list[0],
+        );
         const rssKb = list.reduce((s, x) => s + x.rssKb, 0);
         groups.push({
           ...top,
@@ -219,7 +289,10 @@ function mountTasks(root) {
         .filter((node) => allowedPids.has(node.pid))
         .map((node) => ({
           ...node.process,
-          _treePrefix: node.depth > 0 ? `${"  ".repeat(Math.min(node.depth - 1, 6))}└─ ` : "",
+          _treePrefix:
+            node.depth > 0
+              ? `${"  ".repeat(Math.min(node.depth - 1, 6))}└─ `
+              : "",
         }));
     } else {
       displayRows = sortItems(filtered);
@@ -236,13 +309,29 @@ function mountTasks(root) {
         },
         cells: [
           p.pid,
-          h("span", { class: "tasks-name-cell" },
-            p._treePrefix ? h("span", { class: "tasks-tree-indent", "aria-hidden": "true" }, p._treePrefix) : null,
+          h(
+            "span",
+            { class: "tasks-name-cell" },
+            p._treePrefix
+              ? h(
+                  "span",
+                  { class: "tasks-tree-indent", "aria-hidden": "true" },
+                  p._treePrefix,
+                )
+              : null,
             h("span", { class: "tasks-proc-name" }, p.name),
           ),
-          p.ports?.length ? h("span", { class: "tasks-port-pill" }, p.ports.join(" ")) : "—",
-          h("span", { class: "dev-share-cell" },
-            barCell(Math.min(100, p.cpu), 100, `${p.name}: ${p.cpu.toFixed(1)}% CPU`),
+          p.ports?.length
+            ? h("span", { class: "tasks-port-pill" }, p.ports.join(" "))
+            : "—",
+          h(
+            "span",
+            { class: "dev-share-cell" },
+            barCell(
+              Math.min(100, p.cpu),
+              100,
+              `${p.name}: ${p.cpu.toFixed(1)}% CPU`,
+            ),
             h("span", { class: "dev-share-text" }, `${p.cpu.toFixed(1)}%`),
           ),
           `${p.mem.toFixed(1)}%`,
@@ -250,7 +339,11 @@ function mountTasks(root) {
           p.user || "—",
           p.stateText || p.state,
           p.uptime || "—",
-          h("span", { class: "tasks-cmd-preview", title: p.command }, p.windowTitle ? `[${p.windowTitle}] ${p.command}` : p.command),
+          h(
+            "span",
+            { class: "tasks-cmd-preview", title: p.command },
+            p.windowTitle ? `[${p.windowTitle}] ${p.command}` : p.command,
+          ),
         ],
       })),
     );
@@ -258,7 +351,8 @@ function mountTasks(root) {
   }
 
   function renderInspector() {
-    const proc = snapshot?.processes?.find((p) => p.pid === selectedPid) ?? null;
+    const proc =
+      snapshot?.processes?.find((p) => p.pid === selectedPid) ?? null;
     renderSelectedProcessBar({
       hostEl: inspectorHost,
       proc,
@@ -289,7 +383,11 @@ function mountTasks(root) {
 
   async function executeAction(pid, action, confirmed = false) {
     try {
-      const res = await call("tasks/action", { pid, action, confirm: confirmed });
+      const res = await call("tasks/action", {
+        pid,
+        action,
+        confirm: confirmed,
+      });
       toast(res.message || "Action completed.");
       announce(res.message || "Action completed.");
       status.set(res.message || "Action completed.");
@@ -312,7 +410,11 @@ function mountTasks(root) {
 
   async function killByPort(confirmed = false) {
     const port = portInput.value.trim();
-    if (!port) return status.set("Enter a TCP port number (like 3000 or 8080) first.", true);
+    if (!port)
+      return status.set(
+        "Enter a TCP port number (like 3000 or 8080) first.",
+        true,
+      );
     try {
       const res = await call("tasks/kill-port", { port, confirm: confirmed });
       status.set(res.message);
@@ -358,16 +460,24 @@ function mountTasks(root) {
     try {
       const res = await call("tasks/export", { format: formatSelect.value });
       await copyToClipboard(res.text);
-      status.set(`Copied ${res.count} processes as ${res.format.toUpperCase()} to the clipboard.`);
+      status.set(
+        `Copied ${res.count} processes as ${res.format.toUpperCase()} to the clipboard.`,
+      );
     } catch (err) {
       status.set(errorText(err, "Couldn't copy snapshot."), true);
     }
   }
 
   async function saveSnapshot() {
-    const folder = state.location?.kind === "folder" && state.location.path ? state.location.path : state.home;
+    const folder =
+      state.location?.kind === "folder" && state.location.path
+        ? state.location.path
+        : state.home;
     try {
-      const res = await call("tasks/save", { folder, format: formatSelect.value });
+      const res = await call("tasks/save", {
+        folder,
+        format: formatSelect.value,
+      });
       status.set(`Saved ${res.name} (${res.count} processes) in ${folder}.`);
       toast(`Saved ${res.name}`);
       if (state.location?.path === folder) refresh();

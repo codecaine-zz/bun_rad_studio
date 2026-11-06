@@ -37,7 +37,10 @@ export interface StaticStudioConfig {
 }
 
 /** Starts a local Bun HTTP server for a static studio with loopback protection and asset serving. */
-export function startStaticStudioServer(config: StaticStudioConfig, options: StudioServerOptions = {}) {
+export function startStaticStudioServer(
+  config: StaticStudioConfig,
+  options: StudioServerOptions = {},
+) {
   const port = options.port ?? 0;
   const host = options.host ?? "127.0.0.1";
   const { assetsDir } = config;
@@ -64,7 +67,10 @@ export function startStaticStudioServer(config: StaticStudioConfig, options: Stu
 
       if (pathname === "/" || pathname === "/index.html") {
         return new Response(injectGameMasterFx(config.generateHtml()), {
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            ...corsHeaders,
+          },
         });
       }
 
@@ -86,18 +92,24 @@ export function startStaticStudioServer(config: StaticStudioConfig, options: Stu
             version: config.version,
             timestamp: Date.now(),
           },
-          { headers: corsHeaders }
+          { headers: corsHeaders },
         );
       }
 
       // Static file, only from inside the assets folder.
       const sanitized = pathname.replace(/^\/+/, "");
       const directCandidate = join(assetsDir, sanitized);
-      if (directCandidate !== assetsDir && !directCandidate.startsWith(assetsDir + "/") && !directCandidate.startsWith(assetsDir + "\\")) {
+      if (
+        directCandidate !== assetsDir &&
+        !directCandidate.startsWith(assetsDir + "/") &&
+        !directCandidate.startsWith(assetsDir + "\\")
+      ) {
         return new Response("Forbidden", { status: 403 });
       }
       if (existsSync(directCandidate)) {
-        return new Response(Bun.file(directCandidate), { headers: corsHeaders });
+        return new Response(Bun.file(directCandidate), {
+          headers: corsHeaders,
+        });
       }
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });

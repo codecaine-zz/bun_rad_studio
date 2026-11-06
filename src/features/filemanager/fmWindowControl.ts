@@ -75,7 +75,11 @@ export interface WindowController {
   reset(): ApplyResult;
   /** Applies a mode to the open window now (the preference itself is saved by the server operation `window/set`). */
   apply(mode: unknown): ApplyResult;
-  setAlwaysOnTop(on: unknown): { ok: boolean; alwaysOnTop: boolean; message?: string };
+  setAlwaysOnTop(on: unknown): {
+    ok: boolean;
+    alwaysOnTop: boolean;
+    message?: string;
+  };
 }
 
 const guard = <T>(fn: () => T, fallback: T): T => {
@@ -89,13 +93,17 @@ const guard = <T>(fn: () => T, fallback: T): T => {
 const MAX_FILL_RETRIES = 12;
 
 /** Creates a `WindowController` backed by the provided native window adapter and preferences directory. */
-export function createWindowController(options: WindowControllerOptions): WindowController {
+export function createWindowController(
+  options: WindowControllerOptions,
+): WindowController {
   const { native, dataDir } = options;
   const persist = options.persist !== false;
   const defaults = options.defaults ?? DEFAULT_WINDOW_SIZE;
   const now = options.now ?? Date.now;
   const graceMs = options.graceMs ?? 1500;
-  let loaded: WindowPrefs = persist ? readWindowPrefs(dataDir) : { mode: "fill", state: null };
+  let loaded: WindowPrefs = persist
+    ? readWindowPrefs(dataDir)
+    : { mode: "fill", state: null };
   let graceUntil = 0;
   let screens: FmScreen[] | null = null;
   let fillRetries = 0;
@@ -121,7 +129,17 @@ export function createWindowController(options: WindowControllerOptions): Window
     if (guard(() => native.maximize(), false)) return true;
     // Maximising isn't possible (yet): at least make the window as big as the usable screen.
     const work = workArea();
-    if (work) guard(() => native.setBounds({ x: work.x, y: work.y, width: work.width, height: work.height }), undefined);
+    if (work)
+      guard(
+        () =>
+          native.setBounds({
+            x: work.x,
+            y: work.y,
+            width: work.width,
+            height: work.height,
+          }),
+        undefined,
+      );
     return true;
   }
 
@@ -133,22 +151,56 @@ export function createWindowController(options: WindowControllerOptions): Window
     },
     open(plan) {
       guard(() => native.hide(), undefined);
-      guard(() => native.setBounds({ x: plan.x, y: plan.y, width: plan.width, height: plan.height }), undefined);
+      guard(
+        () =>
+          native.setBounds({
+            x: plan.x,
+            y: plan.y,
+            width: plan.width,
+            height: plan.height,
+          }),
+        undefined,
+      );
       if (plan.mode === "maximize") {
         if (!guard(() => native.maximize(), false)) {
-          if (plan.work) guard(() => native.setBounds({ x: plan.work!.x, y: plan.work!.y, width: plan.work!.width, height: plan.work!.height }), undefined);
+          if (plan.work)
+            guard(
+              () =>
+                native.setBounds({
+                  x: plan.work!.x,
+                  y: plan.work!.y,
+                  width: plan.work!.width,
+                  height: plan.work!.height,
+                }),
+              undefined,
+            );
           fillPending = true;
         }
       } else if (plan.mode === "fullscreen") {
         if (!guard(() => native.setFullscreen(true), false)) {
-          if (plan.work) guard(() => native.setBounds({ x: plan.work!.x, y: plan.work!.y, width: plan.work!.width, height: plan.work!.height }), undefined);
+          if (plan.work)
+            guard(
+              () =>
+                native.setBounds({
+                  x: plan.work!.x,
+                  y: plan.work!.y,
+                  width: plan.work!.width,
+                  height: plan.work!.height,
+                }),
+              undefined,
+            );
           fillPending = true;
         } else {
           fullscreenPending = true;
         }
       }
-      if (loaded.alwaysOnTop && !guard(() => native.setAlwaysOnTop?.(true), false)) {
-        console.warn("The saved always-on-top preference could not be applied.");
+      if (
+        loaded.alwaysOnTop &&
+        !guard(() => native.setAlwaysOnTop?.(true), false)
+      ) {
+        console.warn(
+          "The saved always-on-top preference could not be applied.",
+        );
       }
       guard(() => native.show(), undefined);
       startGrace();
@@ -173,19 +225,30 @@ export function createWindowController(options: WindowControllerOptions): Window
           fullscreenPending = false;
         }
       }
-      if (!fullscreenPending && !leavingFullscreen && persist && frame?.fullscreen) {
+      if (
+        !fullscreenPending &&
+        !leavingFullscreen &&
+        persist &&
+        frame?.fullscreen
+      ) {
         try {
           loaded = readWindowPrefs(dataDir);
           if (loaded.mode !== "fullscreen" && !loaded.state?.fullscreen) {
             const primary = getScreens()[0];
             const state = sanitizeWindowState({
               ...frame,
-              screenWidth: loaded.state?.screenWidth ?? primary?.width ?? frame.width,
-              screenHeight: loaded.state?.screenHeight ?? primary?.height ?? frame.height,
+              screenWidth:
+                loaded.state?.screenWidth ?? primary?.width ?? frame.width,
+              screenHeight:
+                loaded.state?.screenHeight ?? primary?.height ?? frame.height,
               dpr: loaded.state?.dpr ?? 2,
             });
             if (state) {
-              loaded = writeWindowPrefs(dataDir, { ...loaded, mode: "remember", state: mergeNormalBounds(loaded.state, state) });
+              loaded = writeWindowPrefs(dataDir, {
+                ...loaded,
+                mode: "remember",
+                state: mergeNormalBounds(loaded.state, state),
+              });
             }
           }
         } catch {}
@@ -193,7 +256,14 @@ export function createWindowController(options: WindowControllerOptions): Window
       return frame;
     },
     changed(report) {
-      const result = (extra: Partial<ChangeResult>): ChangeResult => ({ ok: true, saved: false, ignored: false, mode: loaded.mode, modeSwitched: false, ...extra });
+      const result = (extra: Partial<ChangeResult>): ChangeResult => ({
+        ok: true,
+        saved: false,
+        ignored: false,
+        mode: loaded.mode,
+        modeSwitched: false,
+        ...extra,
+      });
       if (!persist) return result({});
       if (now() < graceUntil) return result({ ignored: true });
       try {
@@ -202,7 +272,11 @@ export function createWindowController(options: WindowControllerOptions): Window
         const r = reduceReport(loaded, report);
         if (!r.save) return result({});
         loaded = writeWindowPrefs(dataDir, r.prefs);
-        return result({ saved: true, mode: loaded.mode, modeSwitched: r.modeSwitched });
+        return result({
+          saved: true,
+          mode: loaded.mode,
+          modeSwitched: r.modeSwitched,
+        });
       } catch {
         return result({ ok: false });
       }
@@ -210,27 +284,40 @@ export function createWindowController(options: WindowControllerOptions): Window
     save(report) {
       if (!persist) return { ok: false, mode: loaded.mode };
       try {
-        const page = report && typeof report === "object" ? (report as Record<string, unknown>) : {};
+        const page =
+          report && typeof report === "object"
+            ? (report as Record<string, unknown>)
+            : {};
         const frame = guard(() => native.getFrame(), null);
         const state = sanitizeWindowState({ ...page, ...(frame ?? {}) });
         if (!state) return { ok: false, mode: loaded.mode };
         const previous = readWindowPrefs(dataDir);
-        loaded = writeWindowPrefs(dataDir, { ...previous, mode: "remember", state: mergeNormalBounds(previous.state, state) });
+        loaded = writeWindowPrefs(dataDir, {
+          ...previous,
+          mode: "remember",
+          state: mergeNormalBounds(previous.state, state),
+        });
         return { ok: true, mode: loaded.mode };
       } catch {
         return { ok: false, mode: loaded.mode };
       }
     },
     reset() {
-      if (loaded.alwaysOnTop && !guard(() => native.setAlwaysOnTop?.(false), false)) {
-        console.warn("Could not turn off always-on-top while resetting the window.");
+      if (
+        loaded.alwaysOnTop &&
+        !guard(() => native.setAlwaysOnTop?.(false), false)
+      ) {
+        console.warn(
+          "Could not turn off always-on-top while resetting the window.",
+        );
         return { ok: false, settled: false, mode: loaded.mode };
       }
       try {
         loaded = resetWindowPrefs(dataDir);
       } catch (error) {
         console.warn("Could not reset the window preference:", error);
-        if (loaded.alwaysOnTop) guard(() => native.setAlwaysOnTop?.(true), false);
+        if (loaded.alwaysOnTop)
+          guard(() => native.setAlwaysOnTop?.(true), false);
         return { ok: false, settled: false, mode: loaded.mode };
       }
       fillPending = false;
@@ -239,7 +326,8 @@ export function createWindowController(options: WindowControllerOptions): Window
       return { ok: true, settled: fill(), mode: "fill" };
     },
     apply(mode) {
-      if (!isWindowMode(mode)) return { ok: false, settled: false, mode: loaded.mode };
+      if (!isWindowMode(mode))
+        return { ok: false, settled: false, mode: loaded.mode };
       fillPending = false;
       fullscreenPending = false;
       startGrace();
@@ -255,18 +343,41 @@ export function createWindowController(options: WindowControllerOptions): Window
     },
     setAlwaysOnTop(on) {
       const previous = loaded.alwaysOnTop === true;
-      if (typeof on !== "boolean") return { ok: false, alwaysOnTop: previous, message: "Always on top must be on or off." };
-      if (!persist) return { ok: false, alwaysOnTop: previous, message: "Window preferences are disabled when an explicit window size is supplied." };
+      if (typeof on !== "boolean")
+        return {
+          ok: false,
+          alwaysOnTop: previous,
+          message: "Always on top must be on or off.",
+        };
+      if (!persist)
+        return {
+          ok: false,
+          alwaysOnTop: previous,
+          message:
+            "Window preferences are disabled when an explicit window size is supplied.",
+        };
       if (!guard(() => native.setAlwaysOnTop?.(on), false)) {
-        return { ok: false, alwaysOnTop: previous, message: "Always on top isn't available for this window." };
+        return {
+          ok: false,
+          alwaysOnTop: previous,
+          message: "Always on top isn't available for this window.",
+        };
       }
       try {
-        loaded = writeWindowPrefs(dataDir, { ...readWindowPrefs(dataDir), alwaysOnTop: on });
+        loaded = writeWindowPrefs(dataDir, {
+          ...readWindowPrefs(dataDir),
+          alwaysOnTop: on,
+        });
         return { ok: true, alwaysOnTop: on };
       } catch (error) {
-        if (!guard(() => native.setAlwaysOnTop?.(previous), false)) console.warn("Could not restore the previous always-on-top setting.");
+        if (!guard(() => native.setAlwaysOnTop?.(previous), false))
+          console.warn("Could not restore the previous always-on-top setting.");
         console.warn("Could not save always-on-top:", error);
-        return { ok: false, alwaysOnTop: previous, message: "The always-on-top preference couldn't be saved." };
+        return {
+          ok: false,
+          alwaysOnTop: previous,
+          message: "The always-on-top preference couldn't be saved.",
+        };
       }
     },
   };
@@ -278,14 +389,59 @@ export interface Bindable {
 }
 
 /** The functions the page can call (`window.fmWindowPoll()` and so on). They never throw: a failure is an `{ ok: false }` answer. */
-export function bindWindowControl(webview: Bindable, controller: WindowController): void {
-  const safe = <A extends unknown[], R>(fn: (...a: A) => R, fallback: R) => (...a: A): R => guard(() => fn(...a), fallback);
-  webview.bind("fmWindowPoll", safe(() => controller.poll(), null));
-  webview.bind("fmWindowChanged", safe((report: unknown) => controller.changed(report), { ok: false, saved: false, ignored: false, mode: "fill" as WindowMode, modeSwitched: false }));
-  webview.bind("fmWindowSave", safe((report?: unknown) => controller.save(report), { ok: false, mode: "fill" as WindowMode }));
-  webview.bind("fmWindowReset", safe(() => controller.reset(), { ok: false, settled: false, mode: "fill" as WindowMode }));
-  webview.bind("fmWindowApply", safe((mode: unknown) => controller.apply(mode), { ok: false, settled: false, mode: "fill" as WindowMode }));
-  webview.bind("fmWindowAlwaysOnTop", safe((on: unknown) => controller.setAlwaysOnTop(on), { ok: false, alwaysOnTop: false, message: "Couldn't change always on top." }));
+export function bindWindowControl(
+  webview: Bindable,
+  controller: WindowController,
+): void {
+  const safe =
+    <A extends unknown[], R>(fn: (...a: A) => R, fallback: R) =>
+    (...a: A): R =>
+      guard(() => fn(...a), fallback);
+  webview.bind(
+    "fmWindowPoll",
+    safe(() => controller.poll(), null),
+  );
+  webview.bind(
+    "fmWindowChanged",
+    safe((report: unknown) => controller.changed(report), {
+      ok: false,
+      saved: false,
+      ignored: false,
+      mode: "fill" as WindowMode,
+      modeSwitched: false,
+    }),
+  );
+  webview.bind(
+    "fmWindowSave",
+    safe((report?: unknown) => controller.save(report), {
+      ok: false,
+      mode: "fill" as WindowMode,
+    }),
+  );
+  webview.bind(
+    "fmWindowReset",
+    safe(() => controller.reset(), {
+      ok: false,
+      settled: false,
+      mode: "fill" as WindowMode,
+    }),
+  );
+  webview.bind(
+    "fmWindowApply",
+    safe((mode: unknown) => controller.apply(mode), {
+      ok: false,
+      settled: false,
+      mode: "fill" as WindowMode,
+    }),
+  );
+  webview.bind(
+    "fmWindowAlwaysOnTop",
+    safe((on: unknown) => controller.setAlwaysOnTop(on), {
+      ok: false,
+      alwaysOnTop: false,
+      message: "Couldn't change always on top.",
+    }),
+  );
 }
 
 /** Options for opening and binding a managed application window via `openManagedWindow`. */
@@ -313,13 +469,21 @@ export interface ManagedWindow<W extends Bindable> {
  * be drawn), size and place it, maximise or full-screen it, show it, and give the page its functions. Nothing here
  * throws: whatever the system refuses, the window just stays at the size it was made with.
  */
-export function openManagedWindow<W extends Bindable>(options: ManagedWindowOptions<W>): ManagedWindow<W> {
+export function openManagedWindow<W extends Bindable>(
+  options: ManagedWindowOptions<W>,
+): ManagedWindow<W> {
   if (options.reset) guard(() => resetWindowPrefs(options.dataDir), undefined);
   const defaults = options.fixedSize ?? DEFAULT_WINDOW_SIZE;
   const window = options.createWindow(defaults);
   const native = options.createNative(window);
   guard(() => native.hide(), undefined);
-  const controller = createWindowController({ native, dataDir: options.dataDir, persist: !options.fixedSize, defaults, now: options.now });
+  const controller = createWindowController({
+    native,
+    dataDir: options.dataDir,
+    persist: !options.fixedSize,
+    defaults,
+    now: options.now,
+  });
   const plan = controller.plan();
   controller.open(plan);
   bindWindowControl(window, controller);

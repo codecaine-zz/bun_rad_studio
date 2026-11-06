@@ -166,8 +166,14 @@
   --wa-bg: #1e2029;
   --wa-rack-bg: linear-gradient(180deg, #2d3140 0%, #1d202b 100%);
   --wa-rack-border: #525973;
-  --wa-rack-bevel: inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 -1px 0 rgba(0, 0, 0, 0.65);
-  --wa-titlebar-bg: linear-gradient(90deg, #1b2a4a 0%, #3b5384 50%, #1b2a4a 100%);
+  --wa-rack-bevel:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 -1px 0 rgba(0, 0, 0, 0.65);
+  --wa-titlebar-bg: linear-gradient(
+    90deg,
+    #1b2a4a 0%,
+    #3b5384 50%,
+    #1b2a4a 100%
+  );
   --wa-titlebar-text: #f1f5f9;
   --wa-lcd-bg: #050a06;
   --wa-lcd-border: #374151;
@@ -190,14 +196,23 @@
   box-sizing: border-box;
   background: var(--wa-bg);
   color: var(--wa-text);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
   user-select: none;
   outline: none;
 }
 
 .wa-shell[data-skin="modern"] {
   --wa-bg: #0b1120;
-  --wa-rack-bg: linear-gradient(165deg, rgba(30, 41, 59, 0.88) 0%, rgba(15, 23, 42, 0.94) 100%);
+  --wa-rack-bg: linear-gradient(
+    165deg,
+    rgba(30, 41, 59, 0.88) 0%,
+    rgba(15, 23, 42, 0.94) 100%
+  );
   --wa-rack-border: rgba(148, 163, 184, 0.25);
   --wa-rack-bevel: 0 10px 25px -5px rgba(0, 0, 0, 0.45);
   --wa-titlebar-bg: linear-gradient(90deg, #0f172a 0%, #1e293b 100%);
@@ -216,7 +231,8 @@
   --wa-bg: #0c0414;
   --wa-rack-bg: linear-gradient(180deg, #1b0a2e 0%, #10051d 100%);
   --wa-rack-border: #ff007f;
-  --wa-rack-bevel: 0 0 14px rgba(255, 0, 127, 0.28), inset 0 0 8px rgba(0, 245, 255, 0.14);
+  --wa-rack-bevel:
+    0 0 14px rgba(255, 0, 127, 0.28), inset 0 0 8px rgba(0, 245, 255, 0.14);
   --wa-titlebar-bg: linear-gradient(90deg, #380036 0%, #0cbaba 100%);
   --wa-lcd-bg: #06010c;
   --wa-led: #00f5ff;
@@ -233,8 +249,14 @@
   --wa-bg: #161009;
   --wa-rack-bg: linear-gradient(180deg, #2b1f13 0%, #1b130b 100%);
   --wa-rack-border: #855828;
-  --wa-rack-bevel: inset 0 1px 0 rgba(255, 200, 120, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.75);
-  --wa-titlebar-bg: linear-gradient(90deg, #3b240c 0%, #6b4218 50%, #3b240c 100%);
+  --wa-rack-bevel:
+    inset 0 1px 0 rgba(255, 200, 120, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.75);
+  --wa-titlebar-bg: linear-gradient(
+    90deg,
+    #3b240c 0%,
+    #6b4218 50%,
+    #3b240c 100%
+  );
   --wa-lcd-bg: #0e0803;
   --wa-led: #ffaa00;
   --wa-led-dim: rgba(255, 170, 0, 0.25);
@@ -255,7 +277,10 @@
   --wa-rack-bevel: none;
   --wa-titlebar-bg: var(--surface-elevated, var(--panel, #374151));
   --wa-titlebar-text: var(--text, #f9fafb);
-  --wa-lcd-bg: var(--surface-sunken, color-mix(in oklab, var(--bg, #000) 88%, #000));
+  --wa-lcd-bg: var(
+    --surface-sunken,
+    color-mix(in oklab, var(--bg, #000) 88%, #000)
+  );
   --wa-led: var(--accent, #22c55e);
   --wa-led-dim: color-mix(in oklab, var(--accent, #22c55e) 22%, transparent);
   --wa-led-amber: var(--warn-text, var(--accent, #22c55e));
@@ -531,8 +556,14 @@
     animation-play-state: paused;
   }
   @keyframes waMarquee {
-    0%, 15% { transform: translateX(0%); }
-    85%, 100% { transform: translateX(-35%); }
+    0%,
+    15% {
+      transform: translateX(0%);
+    }
+    85%,
+    100% {
+      transform: translateX(-35%);
+    }
   }
 }
 .wa-badges {
@@ -719,7 +750,11 @@
 /* Modern cross-browser range input styling (following modern-web-guidance slider pattern) */
 .wa-slider {
   --track-height: 0.38rem;
-  --track-fill: progress(var(--control-value, 50), var(--attr-min, 0), var(--attr-max, 100));
+  --track-fill: progress(
+    var(--control-value, 50),
+    var(--attr-min, 0),
+    var(--attr-max, 100)
+  );
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
@@ -731,7 +766,7 @@
   .wa-slider {
     --track-fill: calc(
       (var(--control-value, 50) - var(--attr-min, 0)) /
-      (var(--attr-max, 100) - var(--attr-min, 0))
+        (var(--attr-max, 100) - var(--attr-min, 0))
     );
   }
 }
@@ -1106,7 +1141,10 @@
   font: inherit;
   font-size: 0.86rem;
   cursor: pointer;
-  transition: color 120ms ease, background 120ms ease, transform 120ms ease;
+  transition:
+    color 120ms ease,
+    background 120ms ease,
+    transform 120ms ease;
 }
 .wa-lrc-time {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -1158,7 +1196,12 @@
   --wa-bg: #0d061a;
   --wa-rack-bg: linear-gradient(180deg, #210b3a 0%, #110521 100%);
   --wa-rack-border: #ff2a85;
-  --wa-titlebar-bg: linear-gradient(90deg, #ff2a85 0%, #7928ca 50%, #00f0ff 100%);
+  --wa-titlebar-bg: linear-gradient(
+    90deg,
+    #ff2a85 0%,
+    #7928ca 50%,
+    #00f0ff 100%
+  );
   --wa-lcd-bg: #070210;
   --wa-led: #00f0ff;
   --wa-led-dim: rgba(0, 240, 255, 0.24);
@@ -1176,7 +1219,12 @@
   --wa-bg: #191a24;
   --wa-rack-bg: linear-gradient(180deg, #282a36 0%, #1e1f29 100%);
   --wa-rack-border: #6272a4;
-  --wa-titlebar-bg: linear-gradient(90deg, #282a36 0%, #44475a 50%, #282a36 100%);
+  --wa-titlebar-bg: linear-gradient(
+    90deg,
+    #282a36 0%,
+    #44475a 50%,
+    #282a36 100%
+  );
   --wa-lcd-bg: #111218;
   --wa-led: #bd93f9;
   --wa-led-dim: rgba(189, 147, 249, 0.24);
@@ -1212,7 +1260,12 @@
   --wa-bg: #16161e;
   --wa-rack-bg: linear-gradient(180deg, #24283b 0%, #1a1b26 100%);
   --wa-rack-border: #414868;
-  --wa-titlebar-bg: linear-gradient(90deg, #1a1b26 0%, #3d59a1 50%, #1a1b26 100%);
+  --wa-titlebar-bg: linear-gradient(
+    90deg,
+    #1a1b26 0%,
+    #3d59a1 50%,
+    #1a1b26 100%
+  );
   --wa-lcd-bg: #0f0f14;
   --wa-led: #7aa2f7;
   --wa-led-dim: rgba(122, 162, 247, 0.24);
@@ -1230,7 +1283,12 @@
   --wa-bg: #030d08;
   --wa-rack-bg: linear-gradient(180deg, #062115 0%, #03120b 100%);
   --wa-rack-border: #10b981;
-  --wa-titlebar-bg: linear-gradient(90deg, #022c22 0%, #059669 50%, #022c22 100%);
+  --wa-titlebar-bg: linear-gradient(
+    90deg,
+    #022c22 0%,
+    #059669 50%,
+    #022c22 100%
+  );
   --wa-lcd-bg: #010804;
   --wa-led: #10b981;
   --wa-led-dim: rgba(16, 185, 129, 0.25);
@@ -1248,7 +1306,12 @@
   --wa-bg: #12100b;
   --wa-rack-bg: linear-gradient(180deg, #241f14 0%, #14110b 100%);
   --wa-rack-border: #ca8a04;
-  --wa-titlebar-bg: linear-gradient(90deg, #422006 0%, #a16207 50%, #422006 100%);
+  --wa-titlebar-bg: linear-gradient(
+    90deg,
+    #422006 0%,
+    #a16207 50%,
+    #422006 100%
+  );
   --wa-lcd-bg: #090805;
   --wa-led: #facc15;
   --wa-led-dim: rgba(250, 204, 21, 0.25);
@@ -1266,7 +1329,12 @@
   --wa-bg: #0f141c;
   --wa-rack-bg: linear-gradient(180deg, #334155 0%, #1e293b 100%);
   --wa-rack-border: #94a3b8;
-  --wa-titlebar-bg: linear-gradient(90deg, #1e293b 0%, #475569 50%, #1e293b 100%);
+  --wa-titlebar-bg: linear-gradient(
+    90deg,
+    #1e293b 0%,
+    #475569 50%,
+    #1e293b 100%
+  );
   --wa-lcd-bg: #090d14;
   --wa-led: #38bdf8;
   --wa-led-dim: rgba(56, 189, 248, 0.25);
@@ -1284,7 +1352,12 @@
   --wa-bg: #17070c;
   --wa-rack-bg: linear-gradient(180deg, #2e0f18 0%, #19070d 100%);
   --wa-rack-border: #e11d48;
-  --wa-titlebar-bg: linear-gradient(90deg, #4c0519 0%, #9f1239 50%, #4c0519 100%);
+  --wa-titlebar-bg: linear-gradient(
+    90deg,
+    #4c0519 0%,
+    #9f1239 50%,
+    #4c0519 100%
+  );
   --wa-lcd-bg: #0d0306;
   --wa-led: #fb7185;
   --wa-led-dim: rgba(251, 113, 133, 0.25);
@@ -1300,9 +1373,18 @@
 .wa-shell[data-skin="arctic_glass"],
 .mp[data-skin="arctic_glass"] {
   --wa-bg: #081420;
-  --wa-rack-bg: linear-gradient(165deg, rgba(14, 116, 144, 0.36) 0%, rgba(15, 23, 42, 0.92) 100%);
+  --wa-rack-bg: linear-gradient(
+    165deg,
+    rgba(14, 116, 144, 0.36) 0%,
+    rgba(15, 23, 42, 0.92) 100%
+  );
   --wa-rack-border: #38bdf8;
-  --wa-titlebar-bg: linear-gradient(90deg, #0c4a6e 0%, #0284c7 50%, #0c4a6e 100%);
+  --wa-titlebar-bg: linear-gradient(
+    90deg,
+    #0c4a6e 0%,
+    #0284c7 50%,
+    #0c4a6e 100%
+  );
   --wa-lcd-bg: #040b12;
   --wa-led: #38bdf8;
   --wa-led-dim: rgba(56, 189, 248, 0.25);
@@ -1337,9 +1419,19 @@
 .wa-shell[data-skin="hologram_prism"],
 .mp[data-skin="hologram_prism"] {
   --wa-bg: #090d1a;
-  --wa-rack-bg: linear-gradient(135deg, rgba(45, 212, 191, 0.16) 0%, rgba(192, 132, 252, 0.18) 50%, rgba(15, 23, 42, 0.94) 100%);
+  --wa-rack-bg: linear-gradient(
+    135deg,
+    rgba(45, 212, 191, 0.16) 0%,
+    rgba(192, 132, 252, 0.18) 50%,
+    rgba(15, 23, 42, 0.94) 100%
+  );
   --wa-rack-border: #2dd4bf;
-  --wa-titlebar-bg: linear-gradient(90deg, #0d9488 0%, #7c3aed 50%, #db2777 100%);
+  --wa-titlebar-bg: linear-gradient(
+    90deg,
+    #0d9488 0%,
+    #7c3aed 50%,
+    #db2777 100%
+  );
   --wa-lcd-bg: #050710;
   --wa-led: #2dd4bf;
   --wa-led-dim: rgba(45, 212, 191, 0.25);
@@ -1365,7 +1457,9 @@
   font-weight: 700;
   letter-spacing: 0.03em;
   cursor: pointer;
-  transition: border-color 0.15s ease, transform 0.12s ease;
+  transition:
+    border-color 0.15s ease,
+    transform 0.12s ease;
 }
 .wa-studio-clock:hover {
   border-color: var(--wa-led);
@@ -1496,7 +1590,10 @@
   background: rgba(8, 12, 22, 0.78);
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.12s ease, border-color 0.14s ease, box-shadow 0.14s ease;
+  transition:
+    transform 0.12s ease,
+    border-color 0.14s ease,
+    box-shadow 0.14s ease;
 }
 .wa-fx-card:hover {
   transform: translateY(-2px);
@@ -1504,7 +1601,9 @@
 }
 .wa-fx-card.is-active {
   border-color: var(--wa-led);
-  box-shadow: 0 0 0 1px var(--wa-led), 0 6px 16px rgba(0, 0, 0, 0.45);
+  box-shadow:
+    0 0 0 1px var(--wa-led),
+    0 6px 16px rgba(0, 0, 0, 0.45);
 }
 .wa-fx-card-preview {
   display: flex;
@@ -1656,8 +1755,12 @@
   animation: waSnapFlash 0.36s ease-out forwards;
 }
 @keyframes waSnapFlash {
-  0% { opacity: 0.92; }
-  100% { opacity: 0; }
+  0% {
+    opacity: 0.92;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 .wa-seek-tooltip {
   position: absolute;
@@ -1730,7 +1833,11 @@
   font-size: 0.68rem;
   font-weight: 800;
   cursor: pointer;
-  transition: border-color 0.14s ease, background 0.14s ease, color 0.14s ease, transform 0.1s ease;
+  transition:
+    border-color 0.14s ease,
+    background 0.14s ease,
+    color 0.14s ease,
+    transform 0.1s ease;
 }
 .wa-cue-btn:hover {
   border-color: var(--wa-led, #00ff44);
@@ -1760,10 +1867,16 @@
   right: 1.25rem;
   bottom: 2.75rem;
   width: 24.5rem;
-  background: linear-gradient(165deg, rgba(9, 14, 26, 0.96) 0%, rgba(4, 8, 16, 0.98) 100%);
+  background: linear-gradient(
+    165deg,
+    rgba(9, 14, 26, 0.96) 0%,
+    rgba(4, 8, 16, 0.98) 100%
+  );
   border: 1px solid var(--wa-led, #00ff44);
   border-radius: 0.65rem;
-  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.78), 0 0 0 1px rgba(0, 255, 68, 0.22);
+  box-shadow:
+    0 18px 46px rgba(0, 0, 0, 0.78),
+    0 0 0 1px rgba(0, 255, 68, 0.22);
   color: #f8fafc;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   z-index: 99990;
@@ -1791,7 +1904,11 @@
   justify-content: space-between;
   gap: 0.4rem;
   padding: 0.35rem 0.55rem;
-  background: linear-gradient(90deg, rgba(0, 255, 68, 0.16) 0%, rgba(15, 23, 42, 0.92) 100%);
+  background: linear-gradient(
+    90deg,
+    rgba(0, 255, 68, 0.16) 0%,
+    rgba(15, 23, 42, 0.92) 100%
+  );
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   cursor: move;
 }
@@ -1895,7 +2012,10 @@
   font-size: 0.68rem;
   font-weight: 800;
   cursor: pointer;
-  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+  transition:
+    border-color 0.12s ease,
+    color 0.12s ease,
+    background 0.12s ease;
 }
 .wa-pip-btn:hover,
 .wa-pip-btn.is-on {

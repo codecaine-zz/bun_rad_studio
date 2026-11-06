@@ -44,7 +44,9 @@ describe("ipinfo doers", () => {
   });
 
   it("cleans target domain/url string", () => {
-    expect(cleanTarget("https://codefreelance.net/about")).toBe("codefreelance.net");
+    expect(cleanTarget("https://codefreelance.net/about")).toBe(
+      "codefreelance.net",
+    );
     expect(cleanTarget("  example.com  ")).toBe("example.com");
   });
 

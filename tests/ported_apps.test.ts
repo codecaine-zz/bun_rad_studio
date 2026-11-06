@@ -87,7 +87,7 @@ describe("⚡ Ported Applications Suite (Dr Codecaine, Interval Timer, Lolo, Rod
 
         const resHealth = await fetch(`${base}/api/health`);
         expect(resHealth.status).toBe(200);
-        const data = await resHealth.json() as any;
+        const data = (await resHealth.json()) as any;
         expect(data.status).toBe("ok");
         expect(data.app).toBe("dr_codecaine_studio");
       } finally {
@@ -105,7 +105,9 @@ describe("⚡ Ported Applications Suite (Dr Codecaine, Interval Timer, Lolo, Rod
       expect(existsSync(join(dir, "index.html"))).toBe(true);
       expect(existsSync(join(dir, "favicon.png"))).toBe(true);
       expect(existsSync(join(dir, "cache/codecaine_playlist.json"))).toBe(true);
-      expect(existsSync(join(dir, "assets/animations/towel_single_arm_pull.gif"))).toBe(true);
+      expect(
+        existsSync(join(dir, "assets/animations/towel_single_arm_pull.gif")),
+      ).toBe(true);
 
       const html = readFileSync(join(dir, "index.html"), "utf8");
       expect(html).toContain("music-companion-panel");
@@ -132,16 +134,18 @@ describe("⚡ Ported Applications Suite (Dr Codecaine, Interval Timer, Lolo, Rod
 
         const resSync = await fetch(`${base}/api/sync_playlist`);
         expect(resSync.status).toBe(200);
-        const syncData = await resSync.json() as any;
+        const syncData = (await resSync.json()) as any;
         expect(syncData.success).toBe(true);
         expect(syncData.count).toBeGreaterThan(0);
 
-        const resAnim = await fetch(`${base}/assets/animations/towel_single_arm_pull.gif`);
+        const resAnim = await fetch(
+          `${base}/assets/animations/towel_single_arm_pull.gif`,
+        );
         expect(resAnim.status).toBe(200);
 
         const resHealth = await fetch(`${base}/api/health`);
         expect(resHealth.status).toBe(200);
-        const data = await resHealth.json() as any;
+        const data = (await resHealth.json()) as any;
         expect(data.status).toBe("ok");
         expect(data.app).toBe("interval_timer_studio");
       } finally {
@@ -187,7 +191,7 @@ describe("⚡ Ported Applications Suite (Dr Codecaine, Interval Timer, Lolo, Rod
 
         const resHealth = await fetch(`${base}/api/health`);
         expect(resHealth.status).toBe(200);
-        const data = await resHealth.json() as any;
+        const data = (await resHealth.json()) as any;
         expect(data.status).toBe("ok");
         expect(data.app).toBe("lolo_studio");
       } finally {
@@ -232,7 +236,7 @@ describe("⚡ Ported Applications Suite (Dr Codecaine, Interval Timer, Lolo, Rod
 
         const resHealth = await fetch(`${base}/api/health`);
         expect(resHealth.status).toBe(200);
-        const data = await resHealth.json() as any;
+        const data = (await resHealth.json()) as any;
         expect(data.status).toBe("ok");
         expect(data.app).toBe("rodents_revenge_studio");
       } finally {
@@ -278,7 +282,7 @@ describe("⚡ Ported Applications Suite (Dr Codecaine, Interval Timer, Lolo, Rod
 
         const resHealth = await fetch(`${base}/api/health`);
         expect(resHealth.status).toBe(200);
-        const data = await resHealth.json() as any;
+        const data = (await resHealth.json()) as any;
         expect(data.status).toBe("ok");
         expect(data.app).toBe("word_search_studio");
       } finally {
@@ -325,7 +329,7 @@ describe("⚡ Ported Applications Suite (Dr Codecaine, Interval Timer, Lolo, Rod
 
         const resHealth = await fetch(`${base}/api/health`);
         expect(resHealth.status).toBe(200);
-        const data = await resHealth.json() as any;
+        const data = (await resHealth.json()) as any;
         expect(data.status).toBe("ok");
         expect(data.app).toBe("world_time_zones_studio");
       } finally {
@@ -371,7 +375,7 @@ describe("⚡ Ported Applications Suite (Dr Codecaine, Interval Timer, Lolo, Rod
 
         const resHealth = await fetch(`${base}/api/health`);
         expect(resHealth.status).toBe(200);
-        const data = await resHealth.json() as any;
+        const data = (await resHealth.json()) as any;
         expect(data.status).toBe("ok");
         expect(data.app).toBe("pacman_studio");
       } finally {

@@ -7,29 +7,47 @@
 /**
  * Formats a timestamp or `Date` as a human-readable relative time phrase (e.g., `"2 hours ago"`, `"in 3 days"`).
  */
-export function timeAgo(input: Date | number | string, now = new Date()): string {
+export function timeAgo(
+  input: Date | number | string,
+  now = new Date(),
+): string {
   const d = input instanceof Date ? input : new Date(input);
   const diffMs = now.getTime() - d.getTime();
   const isPast = diffMs >= 0;
   const absSec = Math.floor(Math.abs(diffMs) / 1000);
 
   if (absSec < 5) return "just now";
-  if (absSec < 60) return isPast ? `${absSec} seconds ago` : `in ${absSec} seconds`;
+  if (absSec < 60)
+    return isPast ? `${absSec} seconds ago` : `in ${absSec} seconds`;
 
   const absMin = Math.floor(absSec / 60);
-  if (absMin < 60) return isPast ? `${absMin} minute${absMin === 1 ? "" : "s"} ago` : `in ${absMin} minute${absMin === 1 ? "" : "s"}`;
+  if (absMin < 60)
+    return isPast
+      ? `${absMin} minute${absMin === 1 ? "" : "s"} ago`
+      : `in ${absMin} minute${absMin === 1 ? "" : "s"}`;
 
   const absHours = Math.floor(absMin / 60);
-  if (absHours < 24) return isPast ? `${absHours} hour${absHours === 1 ? "" : "s"} ago` : `in ${absHours} hour${absHours === 1 ? "" : "s"}`;
+  if (absHours < 24)
+    return isPast
+      ? `${absHours} hour${absHours === 1 ? "" : "s"} ago`
+      : `in ${absHours} hour${absHours === 1 ? "" : "s"}`;
 
   const absDays = Math.floor(absHours / 24);
-  if (absDays < 30) return isPast ? `${absDays} day${absDays === 1 ? "" : "s"} ago` : `in ${absDays} day${absDays === 1 ? "" : "s"}`;
+  if (absDays < 30)
+    return isPast
+      ? `${absDays} day${absDays === 1 ? "" : "s"} ago`
+      : `in ${absDays} day${absDays === 1 ? "" : "s"}`;
 
   const absMonths = Math.floor(absDays / 30);
-  if (absMonths < 12) return isPast ? `${absMonths} month${absMonths === 1 ? "" : "s"} ago` : `in ${absMonths} month${absMonths === 1 ? "" : "s"}`;
+  if (absMonths < 12)
+    return isPast
+      ? `${absMonths} month${absMonths === 1 ? "" : "s"} ago`
+      : `in ${absMonths} month${absMonths === 1 ? "" : "s"}`;
 
   const absYears = Math.floor(absDays / 365);
-  return isPast ? `${absYears} year${absYears === 1 ? "" : "s"} ago` : `in ${absYears} year${absYears === 1 ? "" : "s"}`;
+  return isPast
+    ? `${absYears} year${absYears === 1 ? "" : "s"} ago`
+    : `in ${absYears} year${absYears === 1 ? "" : "s"}`;
 }
 
 // Doer: Format date as ISO 8601 string

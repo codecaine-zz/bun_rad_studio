@@ -21,10 +21,19 @@ import { colors } from "../../shared/colors.ts";
 /**
  * Asynchronously scans the target directory specified in `options` and returns the root `DiskUsageItem` tree.
  */
-export async function analyzeDirectory(options: GduOptions): Promise<DiskUsageItem> {
+export async function analyzeDirectory(
+  options: GduOptions,
+): Promise<DiskUsageItem> {
   const fullPath = resolve(options.targetDir);
   const name = basename(fullPath) || fullPath;
-  return await scanItem(fullPath, name, options.ignoreDirs ?? [], options.noHidden ?? false, 0, options.maxDepth);
+  return await scanItem(
+    fullPath,
+    name,
+    options.ignoreDirs ?? [],
+    options.noHidden ?? false,
+    0,
+    options.maxDepth,
+  );
 }
 
 /**
@@ -33,7 +42,14 @@ export async function analyzeDirectory(options: GduOptions): Promise<DiskUsageIt
 export function analyzeDirectorySync(options: GduOptions): DiskUsageItem {
   const fullPath = resolve(options.targetDir);
   const name = basename(fullPath) || fullPath;
-  return scanItemSync(fullPath, name, options.ignoreDirs ?? [], options.noHidden ?? false, 0, options.maxDepth);
+  return scanItemSync(
+    fullPath,
+    name,
+    options.ignoreDirs ?? [],
+    options.noHidden ?? false,
+    0,
+    options.maxDepth,
+  );
 }
 
 /**
@@ -41,12 +57,24 @@ export function analyzeDirectorySync(options: GduOptions): DiskUsageItem {
  */
 export function formatDisksTable(disks: MountedDisk[]): string {
   const columns: ColumnDef<MountedDisk>[] = [
-    { header: "Filesystem", align: "left", getValue: (d) => colors.bold(d.filesystem) },
+    {
+      header: "Filesystem",
+      align: "left",
+      getValue: (d) => colors.bold(d.filesystem),
+    },
     { header: "Size", align: "right", getValue: (d) => formatBytes(d.size) },
     { header: "Used", align: "right", getValue: (d) => formatBytes(d.used) },
-    { header: "Avail", align: "right", getValue: (d) => colors.green(formatBytes(d.available)) },
+    {
+      header: "Avail",
+      align: "right",
+      getValue: (d) => colors.green(formatBytes(d.available)),
+    },
     { header: "Use%", align: "right", getValue: (d) => d.percentUsed },
-    { header: "Mounted on", align: "left", getValue: (d) => colors.cyan(d.mountPoint) },
+    {
+      header: "Mounted on",
+      align: "left",
+      getValue: (d) => colors.cyan(d.mountPoint),
+    },
   ];
   return renderTable(columns, disks);
 }
@@ -54,7 +82,10 @@ export function formatDisksTable(disks: MountedDisk[]): string {
 /**
  * Formats a scanned `DiskUsageItem` tree into report lines (JSON, summary line, or sorted/filtered child rows).
  */
-export function formatReport(root: DiskUsageItem, options: GduOptions): string[] {
+export function formatReport(
+  root: DiskUsageItem,
+  options: GduOptions,
+): string[] {
   if (options.json) {
     return [formatGduJson(root)];
   }
@@ -65,7 +96,10 @@ export function formatReport(root: DiskUsageItem, options: GduOptions): string[]
 
   let rawItems = root.children ?? [];
   if (options.minSize) {
-    const minBytes = typeof options.minSize === "number" ? options.minSize : parseByteSize(options.minSize);
+    const minBytes =
+      typeof options.minSize === "number"
+        ? options.minSize
+        : parseByteSize(options.minSize);
     rawItems = rawItems.filter((item) => item.size >= minBytes);
   }
 
@@ -79,7 +113,9 @@ export function formatReport(root: DiskUsageItem, options: GduOptions): string[]
 /**
  * Runs the non-interactive `gdu` workflow (either listing mounted disks or scanning and formatting a directory report).
  */
-export async function runGduCoordinator(options: GduOptions): Promise<string[]> {
+export async function runGduCoordinator(
+  options: GduOptions,
+): Promise<string[]> {
   if (options.showDisks) {
     const disks = await fetchMountedDisks();
     return [formatDisksTable(disks)];

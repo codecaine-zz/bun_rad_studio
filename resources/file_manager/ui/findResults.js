@@ -16,50 +16,173 @@ export function createResults(hooks) {
   let focusIndex = -1;
   let anchorIndex = -1;
 
-  const count = h("span", { class: "pw-status", role: "status", "aria-live": "polite" }, "No search yet.");
+  const count = h(
+    "span",
+    { class: "pw-status", role: "status", "aria-live": "polite" },
+    "No search yet.",
+  );
   const filter = h("input", {
-    type: "search", class: "find-input find-w-m", placeholder: "Narrow these results…", "aria-label": "Narrow these results",
-    title: "Type part of a name or folder to show fewer of the results below. Nothing is searched again.", spellcheck: "false", autocomplete: "off",
+    type: "search",
+    class: "find-input find-w-m",
+    placeholder: "Narrow these results…",
+    "aria-label": "Narrow these results",
+    title:
+      "Type part of a name or folder to show fewer of the results below. Nothing is searched again.",
+    spellcheck: "false",
+    autocomplete: "off",
     oninput: debounce(() => setViewOptions({ filter: filter.value }), 200),
   });
-  const sort = dropdown(["Default order"], { label: "Sort the results", tip: "Change the order of the results below", onchange: () => setViewOptions({ sort: sort.value }) });
-  const selectAll = button("Select all", () => { setSelection(fs.view.map((i) => i.path)); table.focus(); }, { tip: "Select every result that is shown (Ctrl+A or ⌘A in the table)" });
-  const selectNone = button("Select none", () => setSelection([]), { tip: "Clear the selection" });
-  const more = button("Show more", () => { shown += PAGE; renderRows(); }, { tip: "Show the next results in the table" });
+  const sort = dropdown(["Default order"], {
+    label: "Sort the results",
+    tip: "Change the order of the results below",
+    onchange: () => setViewOptions({ sort: sort.value }),
+  });
+  const selectAll = button(
+    "Select all",
+    () => {
+      setSelection(fs.view.map((i) => i.path));
+      table.focus();
+    },
+    { tip: "Select every result that is shown (Ctrl+A or ⌘A in the table)" },
+  );
+  const selectNone = button("Select none", () => setSelection([]), {
+    tip: "Clear the selection",
+  });
+  const more = button(
+    "Show more",
+    () => {
+      shown += PAGE;
+      renderRows();
+    },
+    { tip: "Show the next results in the table" },
+  );
 
-  const head = h("thead", {}, h("tr", { role: "row" }, ["Name", "Folder", "Type", "Size", "Changed", "Permissions"].map((t) => h("th", { scope: "col", role: "columnheader", class: t === "Size" ? "num" : t === "Permissions" ? "find-col-perms" : "" }, t))));
+  const head = h(
+    "thead",
+    {},
+    h(
+      "tr",
+      { role: "row" },
+      ["Name", "Folder", "Type", "Size", "Changed", "Permissions"].map((t) =>
+        h(
+          "th",
+          {
+            scope: "col",
+            role: "columnheader",
+            class:
+              t === "Size"
+                ? "num"
+                : t === "Permissions"
+                  ? "find-col-perms"
+                  : "",
+          },
+          t,
+        ),
+      ),
+    ),
+  );
   const body = h("tbody", {});
-  const table = h("table", {
-    class: "pw-table find-table", role: "grid", tabindex: "0", "aria-multiselectable": "true", "aria-label": "Search results. Arrow keys move, Space selects, Enter opens.",
-    onkeydown: onKey,
-  }, head, body);
+  const table = h(
+    "table",
+    {
+      class: "pw-table find-table",
+      role: "grid",
+      tabindex: "0",
+      "aria-multiselectable": "true",
+      "aria-label":
+        "Search results. Arrow keys move, Space selects, Enter opens.",
+      onkeydown: onKey,
+    },
+    head,
+    body,
+  );
   const wrap = h("div", { class: "pw-table-wrap find-table-wrap" }, table);
   // The Copy button copies every result that matches the filter, not only the rows drawn so far.
-  registerCopySource(table, () => {
-    const rows = [["Name", "Folder", "Type", "Size", "Changed", "Permissions"], ...fs.view.map((i) => [i.name, dirOf(i.relativePath) || "·", typeLabel(i.type), i.type === "directory" ? "—" : formatSize(i.sizeBytes), formatDate(i.mtimeMs), fs.meta.posix ? i.permStr : "—"])];
-    if (rows.length === 1) return null;
-    return { text: rowsToTsv(rows), tsv: rowsToTsv(rows), markdown: rowsToMarkdown(rows), json: rowsToJson(rows) };
-  }, "Search results");
+  registerCopySource(
+    table,
+    () => {
+      const rows = [
+        ["Name", "Folder", "Type", "Size", "Changed", "Permissions"],
+        ...fs.view.map((i) => [
+          i.name,
+          dirOf(i.relativePath) || "·",
+          typeLabel(i.type),
+          i.type === "directory" ? "—" : formatSize(i.sizeBytes),
+          formatDate(i.mtimeMs),
+          fs.meta.posix ? i.permStr : "—",
+        ]),
+      ];
+      if (rows.length === 1) return null;
+      return {
+        text: rowsToTsv(rows),
+        tsv: rowsToTsv(rows),
+        markdown: rowsToMarkdown(rows),
+        json: rowsToJson(rows),
+      };
+    },
+    "Search results",
+  );
 
-  const el = h("section", { class: "pw-card find-results", "aria-label": "Results" },
-    h("div", { class: "pw-row find-results-head" }, h("h3", {}, "Results"), count),
+  const el = h(
+    "section",
+    { class: "pw-card find-results", "aria-label": "Results" },
+    h(
+      "div",
+      { class: "pw-row find-results-head" },
+      h("h3", {}, "Results"),
+      count,
+    ),
     h("div", { class: "pw-row" }, filter, sort, selectAll, selectNone),
     wrap,
     h("div", { class: "pw-row" }, more),
   );
 
   function rowFor(item, index) {
-    const tr = h("tr", {
-      role: "row", id: `find-row-${index}`, "aria-selected": fs.selected.has(item.path) ? "true" : "false", dataset: { index: String(index) }, title: item.path,
-      onclick: (e) => click(index, e),
-      ondblclick: () => hooks.onActivate(item),
-    },
-      h("td", { role: "gridcell", class: "find-name" }, h("span", { "aria-hidden": "true" }, `${iconFor(item.name, item.type === "directory")} `), item.name, item.type === "symlink" && item.targetSymlink ? h("span", { class: "pw-hint" }, ` → ${item.targetSymlink}`) : null),
-      h("td", { role: "gridcell", class: "find-dir", title: "Where it is inside the search folder" }, dirOf(item.relativePath) || "·"),
+    const tr = h(
+      "tr",
+      {
+        role: "row",
+        id: `find-row-${index}`,
+        "aria-selected": fs.selected.has(item.path) ? "true" : "false",
+        dataset: { index: String(index) },
+        title: item.path,
+        onclick: (e) => click(index, e),
+        ondblclick: () => hooks.onActivate(item),
+      },
+      h(
+        "td",
+        { role: "gridcell", class: "find-name" },
+        h(
+          "span",
+          { "aria-hidden": "true" },
+          `${iconFor(item.name, item.type === "directory")} `,
+        ),
+        item.name,
+        item.type === "symlink" && item.targetSymlink
+          ? h("span", { class: "pw-hint" }, ` → ${item.targetSymlink}`)
+          : null,
+      ),
+      h(
+        "td",
+        {
+          role: "gridcell",
+          class: "find-dir",
+          title: "Where it is inside the search folder",
+        },
+        dirOf(item.relativePath) || "·",
+      ),
       h("td", { role: "gridcell" }, typeLabel(item.type)),
-      h("td", { role: "gridcell", class: "num" }, item.type === "directory" ? "—" : formatSize(item.sizeBytes)),
+      h(
+        "td",
+        { role: "gridcell", class: "num" },
+        item.type === "directory" ? "—" : formatSize(item.sizeBytes),
+      ),
       h("td", { role: "gridcell" }, formatDate(item.mtimeMs)),
-      h("td", { role: "gridcell", class: "pw-mono find-col-perms" }, fs.meta.posix ? item.permStr : "—"),
+      h(
+        "td",
+        { role: "gridcell", class: "pw-mono find-col-perms" },
+        fs.meta.posix ? item.permStr : "—",
+      ),
     );
     return tr;
   }
@@ -67,8 +190,18 @@ export function createResults(hooks) {
   function renderRows() {
     const rows = fs.view.slice(0, shown);
     if (!rows.length) {
-      const text = fs.stats ? (fs.items.length ? "Nothing matches the words in the box above. Clear it to see all results." : "Nothing was found. Try a different word or fewer filters.") : "Type something above and press Find to see matches here.";
-      body.replaceChildren(h("tr", { role: "row" }, h("td", { role: "gridcell", colspan: "6", class: "pw-hint" }, text)));
+      const text = fs.stats
+        ? fs.items.length
+          ? "Nothing matches the words in the box above. Clear it to see all results."
+          : "Nothing was found. Try a different word or fewer filters."
+        : "Type something above and press Find to see matches here.";
+      body.replaceChildren(
+        h(
+          "tr",
+          { role: "row" },
+          h("td", { role: "gridcell", colspan: "6", class: "pw-hint" }, text),
+        ),
+      );
     } else {
       body.replaceChildren(...rows.map(rowFor));
     }
@@ -83,7 +216,9 @@ export function createResults(hooks) {
       count.textContent = "No search yet.";
       return;
     }
-    const parts = [`${plural(fs.view.length, "match", "matches")}${fs.view.length !== fs.items.length ? ` shown of ${fs.items.length}` : ""}`];
+    const parts = [
+      `${plural(fs.view.length, "match", "matches")}${fs.view.length !== fs.items.length ? ` shown of ${fs.items.length}` : ""}`,
+    ];
     if (fs.selected.size) parts.push(`${fs.selected.size} selected`);
     count.textContent = parts.join(" · ");
   }
@@ -91,13 +226,18 @@ export function createResults(hooks) {
   function paintSelection() {
     for (const tr of body.children) {
       const item = fs.view[Number(tr.dataset.index)];
-      if (item) tr.setAttribute("aria-selected", fs.selected.has(item.path) ? "true" : "false");
+      if (item)
+        tr.setAttribute(
+          "aria-selected",
+          fs.selected.has(item.path) ? "true" : "false",
+        );
     }
     paintCount();
   }
 
   function paintFocus() {
-    for (const tr of body.querySelectorAll(".find-focus")) tr.classList.remove("find-focus");
+    for (const tr of body.querySelectorAll(".find-focus"))
+      tr.classList.remove("find-focus");
     const tr = document.getElementById(`find-row-${focusIndex}`);
     if (tr && body.contains(tr)) {
       tr.classList.add("find-focus");
@@ -148,12 +288,30 @@ export function createResults(hooks) {
     const mod = e.ctrlKey || e.metaKey;
     const start = focusIndex < 0 ? 0 : focusIndex;
     switch (e.key) {
-      case "ArrowDown": e.preventDefault(); return moveTo(focusIndex < 0 ? 0 : focusIndex + 1, { extend: e.shiftKey, keep: mod });
-      case "ArrowUp": e.preventDefault(); return moveTo(focusIndex < 0 ? 0 : focusIndex - 1, { extend: e.shiftKey, keep: mod });
-      case "PageDown": e.preventDefault(); return moveTo(start + 10, { extend: e.shiftKey });
-      case "PageUp": e.preventDefault(); return moveTo(start - 10, { extend: e.shiftKey });
-      case "Home": e.preventDefault(); return moveTo(0, { extend: e.shiftKey });
-      case "End": e.preventDefault(); return moveTo(fs.view.length - 1, { extend: e.shiftKey });
+      case "ArrowDown":
+        e.preventDefault();
+        return moveTo(focusIndex < 0 ? 0 : focusIndex + 1, {
+          extend: e.shiftKey,
+          keep: mod,
+        });
+      case "ArrowUp":
+        e.preventDefault();
+        return moveTo(focusIndex < 0 ? 0 : focusIndex - 1, {
+          extend: e.shiftKey,
+          keep: mod,
+        });
+      case "PageDown":
+        e.preventDefault();
+        return moveTo(start + 10, { extend: e.shiftKey });
+      case "PageUp":
+        e.preventDefault();
+        return moveTo(start - 10, { extend: e.shiftKey });
+      case "Home":
+        e.preventDefault();
+        return moveTo(0, { extend: e.shiftKey });
+      case "End":
+        e.preventDefault();
+        return moveTo(fs.view.length - 1, { extend: e.shiftKey });
       case " ": {
         e.preventDefault();
         const item = fs.view[start];

@@ -18,8 +18,18 @@ function stringSource(text: string, name: string) {
   return memorySource(text, name);
 }
 
-function makeOdsBuffer(sheets: Array<{ name: string; rows: Array<Array<string | number | boolean>> }>): Buffer {
-  const escXml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+function makeOdsBuffer(
+  sheets: Array<{
+    name: string;
+    rows: Array<Array<string | number | boolean>>;
+  }>,
+): Buffer {
+  const escXml = (s: string) =>
+    s
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
   const tablesXml = sheets
     .map((sh) => {
       const rowsXml = sh.rows
@@ -43,7 +53,10 @@ function makeOdsBuffer(sheets: Array<{ name: string; rows: Array<Array<string | 
     .join("");
   const content = `<office:document-content><office:body><office:spreadsheet>${tablesXml}</office:spreadsheet></office:body></office:document-content>`;
   return zipBuffer([
-    { name: "mimetype", data: Buffer.from("application/vnd.oasis.opendocument.spreadsheet") },
+    {
+      name: "mimetype",
+      data: Buffer.from("application/vnd.oasis.opendocument.spreadsheet"),
+    },
     { name: "content.xml", data: Buffer.from(content) },
   ]);
 }
@@ -125,13 +138,26 @@ describe("Universal Multi-Format Database Import Suite", () => {
     const aXlsx = await analyzeSource(xlsxSrc, {}, 50);
     expect(aXlsx.settings.format).toBe("xlsx");
     expect(aXlsx.sheets).toEqual(["Employees", "Departments"]);
-    expect(aXlsx.columns.map((c) => c.name)).toEqual(["id", "name", "salary", "active"]);
+    expect(aXlsx.columns.map((c) => c.name)).toEqual([
+      "id",
+      "name",
+      "salary",
+      "active",
+    ]);
     const rowsXlsx = await collectRows(xlsxSrc, aXlsx.settings);
     expect(rowsXlsx.length).toBe(2);
-    expect(rowsXlsx[0]).toEqual({ id: "1", name: "Ada Lovelace", salary: "145000.5", active: "true" });
+    expect(rowsXlsx[0]).toEqual({
+      id: "1",
+      name: "Ada Lovelace",
+      salary: "145000.5",
+      active: "true",
+    });
 
     // Select second sheet ("Departments") in XLSX
-    const aXlsxDept = await analyzeSource(xlsxSrc, { format: "xlsx", sheet: "Departments" });
+    const aXlsxDept = await analyzeSource(xlsxSrc, {
+      format: "xlsx",
+      sheet: "Departments",
+    });
     expect(aXlsxDept.columns.map((c) => c.name)).toEqual(["dept_id", "title"]);
     const rowsDept = await collectRows(xlsxSrc, aXlsxDept.settings);
     expect(rowsDept).toEqual([
@@ -150,7 +176,11 @@ describe("Universal Multi-Format Database Import Suite", () => {
 
     // In-memory base64 parsing via parseUniversalTable (used by Studio CRUD wizards)
     const xlsxBase64 = Buffer.from(readFileSync(xlsxPath)).toString("base64");
-    const parsedFromB64 = await parseUniversalTable({ base64: xlsxBase64, fileName: "workbook.xlsx", sheet: "Departments" });
+    const parsedFromB64 = await parseUniversalTable({
+      base64: xlsxBase64,
+      fileName: "workbook.xlsx",
+      sheet: "Departments",
+    });
     expect(parsedFromB64.format).toBe("xlsx");
     expect(parsedFromB64.columns).toEqual(["dept_id", "title"]);
     expect(parsedFromB64.rows.length).toBe(2);
@@ -228,11 +258,21 @@ cores = 32
     const src = stringSource(xmlText, "books.xml");
     const a = await analyzeSource(src);
     expect(a.settings.format).toBe("xml");
-    expect(a.columns.map((c) => c.name)).toEqual(["@id", "@category", "title", "price"]);
+    expect(a.columns.map((c) => c.name)).toEqual([
+      "@id",
+      "@category",
+      "title",
+      "price",
+    ]);
     const rows = await collectRows(src, a.settings);
     expect(rows).toEqual([
       { "@id": "bk101", "@category": "cs", title: "Compilers", price: "59.95" },
-      { "@id": "bk102", "@category": "math", title: "Linear Algebra", price: "45.00" },
+      {
+        "@id": "bk102",
+        "@category": "math",
+        title: "Linear Algebra",
+        price: "45.00",
+      },
     ]);
   });
 
@@ -287,15 +327,26 @@ COPY orders (order_id, customer_id, total) FROM stdin;
     const aCustomers = await analyzeSource(src);
     expect(aCustomers.settings.format).toBe("sql");
     expect(aCustomers.sheets).toEqual(["customers", "orders"]);
-    expect(aCustomers.columns.map((c) => c.name)).toEqual(["id", "name", "tier"]);
+    expect(aCustomers.columns.map((c) => c.name)).toEqual([
+      "id",
+      "name",
+      "tier",
+    ]);
     const custRows = await collectRows(src, aCustomers.settings);
     expect(custRows).toEqual([
       { id: "1", name: "Acme Corp", tier: "enterprise" },
       { id: "2", name: "Globex", tier: "pro" },
     ]);
 
-    const aOrders = await analyzeSource(src, { format: "sql", sheet: "orders" });
-    expect(aOrders.columns.map((c) => c.name)).toEqual(["order_id", "customer_id", "total"]);
+    const aOrders = await analyzeSource(src, {
+      format: "sql",
+      sheet: "orders",
+    });
+    expect(aOrders.columns.map((c) => c.name)).toEqual([
+      "order_id",
+      "customer_id",
+      "total",
+    ]);
     const orderRows = await collectRows(src, aOrders.settings);
     expect(orderRows).toEqual([
       { order_id: "1001", customer_id: "1", total: "250.75" },
@@ -456,9 +507,13 @@ app.threads : 8
 
       // Verify rows in SQLite database
       const checkDb = new Database(dbPath, { readonly: true });
-      const items = checkDb.query("SELECT code, qty FROM yaml_items ORDER BY code").all();
+      const items = checkDb
+        .query("SELECT code, qty FROM yaml_items ORDER BY code")
+        .all();
       expect(items.length).toBe(2);
-      const prods = checkDb.query("SELECT sku, title, price FROM xlsx_products ORDER BY sku").all();
+      const prods = checkDb
+        .query("SELECT sku, title, price FROM xlsx_products ORDER BY sku")
+        .all();
       expect(prods.length).toBe(2);
       checkDb.close();
     } finally {
@@ -467,7 +522,24 @@ app.threads : 8
   });
 
   test("10. File Manager IMPORT_EXTENSIONS and fileSource support all new formats", async () => {
-    for (const ext of ["xlsx", "ods", "yaml", "yml", "toml", "xml", "plist", "sql", "md", "html", "ini", "env", "properties", "json5", "jsonc", "psv"]) {
+    for (const ext of [
+      "xlsx",
+      "ods",
+      "yaml",
+      "yml",
+      "toml",
+      "xml",
+      "plist",
+      "sql",
+      "md",
+      "html",
+      "ini",
+      "env",
+      "properties",
+      "json5",
+      "jsonc",
+      "psv",
+    ]) {
       expect(IMPORT_EXTENSIONS.has(ext)).toBe(true);
     }
     const yamlFile = join(dir, "sample.yaml");
@@ -479,7 +551,10 @@ app.threads : 8
 
   test("11. Redis Multi-Format Import (JSON, CSV, YAML, TOML, XML, SQL, INI, .env, XLSX, Redis CLI)", async () => {
     // CSV with key,value
-    const csvRes = await parseRedisImportPayload("key,value\ncache:a,100\ncache:b,200", { format: "csv" });
+    const csvRes = await parseRedisImportPayload(
+      "key,value\ncache:a,100\ncache:b,200",
+      { format: "csv" },
+    );
     expect(csvRes.ok).toBe(true);
     expect(csvRes.doc?.keys).toEqual([
       { key: "cache:a", type: "string", ttl: -1, value: "100" },
@@ -487,13 +562,26 @@ app.threads : 8
     ]);
 
     // General tabular CSV -> Redis Hash keys per row
-    const tableCsv = await parseRedisImportPayload("id,name,role\n101,Alice,admin\n102,Bob,user", {
-      fileName: "users.csv",
-    });
+    const tableCsv = await parseRedisImportPayload(
+      "id,name,role\n101,Alice,admin\n102,Bob,user",
+      {
+        fileName: "users.csv",
+      },
+    );
     expect(tableCsv.ok).toBe(true);
     expect(tableCsv.doc?.keys).toEqual([
-      { key: "users:101", type: "hash", ttl: -1, value: { id: "101", name: "Alice", role: "admin" } },
-      { key: "users:102", type: "hash", ttl: -1, value: { id: "102", name: "Bob", role: "user" } },
+      {
+        key: "users:101",
+        type: "hash",
+        ttl: -1,
+        value: { id: "101", name: "Alice", role: "admin" },
+      },
+      {
+        key: "users:102",
+        type: "hash",
+        ttl: -1,
+        value: { id: "102", name: "Bob", role: "user" },
+      },
     ]);
 
     // YAML key-value map
@@ -512,18 +600,31 @@ tags:
     expect(yamlRes.ok).toBe(true);
     expect(yamlRes.doc?.keys).toEqual([
       { key: "app:title", type: "string", ttl: -1, value: "Bun RAD" },
-      { key: "user:profile", type: "hash", ttl: -1, value: { name: "Ada", role: "architect" } },
+      {
+        key: "user:profile",
+        type: "hash",
+        ttl: -1,
+        value: { name: "Ada", role: "architect" },
+      },
       { key: "tags", type: "list", ttl: -1, value: ["fast", "native"] },
     ]);
 
     // INI sections -> Redis hashes
-    const iniRes = await parseRedisImportPayload("[db]\nhost=localhost\nport=5432\n", {
-      format: "ini",
-      keyPrefix: "cfg:",
-    });
+    const iniRes = await parseRedisImportPayload(
+      "[db]\nhost=localhost\nport=5432\n",
+      {
+        format: "ini",
+        keyPrefix: "cfg:",
+      },
+    );
     expect(iniRes.ok).toBe(true);
     expect(iniRes.doc?.keys).toEqual([
-      { key: "cfg:db", type: "hash", ttl: -1, value: { host: "localhost", port: "5432" } },
+      {
+        key: "cfg:db",
+        type: "hash",
+        ttl: -1,
+        value: { host: "localhost", port: "5432" },
+      },
     ]);
 
     // Redis CLI command script
@@ -536,7 +637,12 @@ ZADD leaderboard 99.5 alice 88.0 bob
 `);
     expect(cliRes.ok).toBe(true);
     expect(cliRes.doc?.keys.length).toBe(5);
-    expect(cliRes.doc?.keys[0]).toEqual({ key: "session:1", type: "string", ttl: 120, value: "active user" });
+    expect(cliRes.doc?.keys[0]).toEqual({
+      key: "session:1",
+      type: "string",
+      ttl: 120,
+      value: "active user",
+    });
     expect(cliRes.doc?.keys[1]).toEqual({
       key: "profile:1",
       type: "hash",

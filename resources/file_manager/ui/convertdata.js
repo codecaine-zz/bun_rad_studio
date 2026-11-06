@@ -2,7 +2,18 @@
 // searched and labeled. Nothing here touches the page, so it is easy to test.
 
 /** The groups of the list, in the order they are shown. The server sends the same names. */
-export const GROUP_ORDER = ["Pictures", "Video", "Sound", "Documents", "Data & text", "Archives", "PDF tools", "Ebooks", "Fonts", "Other"];
+export const GROUP_ORDER = [
+  "Pictures",
+  "Video",
+  "Sound",
+  "Documents",
+  "Data & text",
+  "Archives",
+  "PDF tools",
+  "Ebooks",
+  "Fonts",
+  "Other",
+];
 
 export const GROUP_BLURB = {
   Pictures: "Photos and drawings",
@@ -18,20 +29,48 @@ export const GROUP_BLURB = {
 };
 
 const KINDS = [
-  ["picture", "pictures", "jpg jpeg png gif webp bmp tif tiff heic heif avif ico svg icns"],
+  [
+    "picture",
+    "pictures",
+    "jpg jpeg png gif webp bmp tif tiff heic heif avif ico svg icns",
+  ],
   ["video", "videos", "mp4 mov mkv avi webm m4v wmv flv mpg mpeg 3gp ts"],
-  ["sound file", "sound files", "mp3 wav flac aac m4a ogg opus wma aiff aif m4r"],
+  [
+    "sound file",
+    "sound files",
+    "mp3 wav flac aac m4a ogg opus wma aiff aif m4r",
+  ],
   ["subtitle file", "subtitle files", "srt vtt ass ssa"],
   ["PDF", "PDFs", "pdf"],
   ["spreadsheet", "spreadsheets", "xls xlsx xlsm ods csv tsv numbers"],
-  ["Office document", "Office documents", "doc docx dot dotx odt rtf rtfd wps pages ppt pptx odp key oo3 mindnode graffle"],
+  [
+    "Office document",
+    "Office documents",
+    "doc docx dot dotx odt rtf rtfd wps pages ppt pptx odp key oo3 mindnode graffle",
+  ],
   ["e-book", "e-books", "epub ibooks mobi azw azw3 fb2"],
-  ["data file", "data files", "json jsonc json5 yaml yml toml xml ndjson jsonl ini env properties plist sql"],
-  ["text file", "text files", "txt md markdown textbundle scriv ulysses playground playgroundbook log html htm tex rst org textile adoc"],
-  ["archive", "archives", "zip tar tar.gz tar.bz2 tar.xz tar.zst gz tgz bz2 xz zst 7z rar iso dmg cab br"],
+  [
+    "data file",
+    "data files",
+    "json jsonc json5 yaml yml toml xml ndjson jsonl ini env properties plist sql",
+  ],
+  [
+    "text file",
+    "text files",
+    "txt md markdown textbundle scriv ulysses playground playgroundbook log html htm tex rst org textile adoc",
+  ],
+  [
+    "archive",
+    "archives",
+    "zip tar tar.gz tar.bz2 tar.xz tar.zst gz tgz bz2 xz zst 7z rar iso dmg cab br",
+  ],
   ["font", "fonts", "ttf otf woff woff2"],
 ];
-const KIND_BY_EXT = new Map(KINDS.flatMap(([one, many, list]) => list.split(" ").map((e) => [e, [one, many]])));
+const KIND_BY_EXT = new Map(
+  KINDS.flatMap(([one, many, list]) =>
+    list.split(" ").map((e) => [e, [one, many]]),
+  ),
+);
 
 /** The lower-case extension without the dot; "a.tar.gz" gives "tar.gz". */
 export function extensionOfName(name) {
@@ -46,7 +85,9 @@ const isDocPackageEntry = (e) =>
   !!(
     e &&
     e.isDir &&
-    /\.(epub|ibooks|rtfd|textbundle|scriv|ulysses|pages|numbers|key|playground|playgroundbook|oo3|mindnode|graffle)$/i.test(String(e.name ?? ""))
+    /\.(epub|ibooks|rtfd|textbundle|scriv|ulysses|pages|numbers|key|playground|playgroundbook|oo3|mindnode|graffle)$/i.test(
+      String(e.name ?? ""),
+    )
   );
 
 /**
@@ -57,19 +98,33 @@ export function describeSelection(entries) {
   /** @type {Map<string, { one: string, many: string, n: number }>} */
   const counts = new Map();
   for (const e of entries) {
-    const [one, many] = e.isDir && !isDocPackageEntry(e) ? ["folder", "folders"] : KIND_BY_EXT.get(extensionOfName(e.name)) ?? ["other file", "other files"];
+    const [one, many] =
+      e.isDir && !isDocPackageEntry(e)
+        ? ["folder", "folders"]
+        : (KIND_BY_EXT.get(extensionOfName(e.name)) ?? [
+            "other file",
+            "other files",
+          ]);
     const c = counts.get(one) ?? { one, many, n: 0 };
     c.n++;
     counts.set(one, c);
   }
-  const parts = [...counts.values()].map((c) => `${c.n} ${c.n === 1 ? c.one : c.many}`);
+  const parts = [...counts.values()].map(
+    (c) => `${c.n} ${c.n === 1 ? c.one : c.many}`,
+  );
   if (parts.length <= 1) return parts[0] ?? "nothing";
   return `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}`;
 }
 
 /** @param {Array<{ name: string, isDir?: boolean }>} entries */
 export function extensionsOf(entries) {
-  return [...new Set(entries.filter((e) => !e.isDir || isDocPackageEntry(e)).map((e) => extensionOfName(e.name)))];
+  return [
+    ...new Set(
+      entries
+        .filter((e) => !e.isDir || isDocPackageEntry(e))
+        .map((e) => extensionOfName(e.name)),
+    ),
+  ];
 }
 
 /**
@@ -83,7 +138,8 @@ export function searchActions(actions, query, group = "") {
   actions.forEach((a, index) => {
     if (group && a.group !== group) return;
     const label = a.label.toLowerCase();
-    const rest = `${a.hint} ${a.group} ${a.out} ${a.keywords} ${a.engines.map((e) => e.name).join(" ")}`.toLowerCase();
+    const rest =
+      `${a.hint} ${a.group} ${a.out} ${a.keywords} ${a.engines.map((e) => e.name).join(" ")}`.toLowerCase();
     let score = 0;
     for (const w of words) {
       if (label.startsWith(w) || label.includes(` ${w}`)) score += 3;
@@ -94,12 +150,19 @@ export function searchActions(actions, query, group = "") {
     scored.push({ a, score, index });
   });
   if (!words.length) return scored.map((s) => s.a);
-  return scored.sort((x, y) => y.score - x.score || x.index - y.index).map((s) => s.a);
+  return scored
+    .sort((x, y) => y.score - x.score || x.index - y.index)
+    .map((s) => s.a);
 }
 
 /** Splits actions into the groups, in order, dropping empty ones. */
 export function groupActions(actions, order = GROUP_ORDER) {
-  return order.map((group) => ({ group, items: actions.filter((a) => a.group === group) })).filter((g) => g.items.length);
+  return order
+    .map((group) => ({
+      group,
+      items: actions.filter((a) => a.group === group),
+    }))
+    .filter((g) => g.items.length);
 }
 
 /**
@@ -109,18 +172,22 @@ export function groupActions(actions, order = GROUP_ORDER) {
 export function badgeFor(action, toolNames) {
   if (action.available) {
     const used = action.engines.find((e) => e.usable);
-    if (!used || used.tool === "builtin") return { kind: "builtin", text: "Built in" };
+    if (!used || used.tool === "builtin")
+      return { kind: "builtin", text: "Built in" };
     return { kind: "tool", text: `Uses ${used.name}` };
   }
   const names = (action.installTools ?? []).map((id) => toolNames[id] ?? id);
-  return names.length ? { kind: "missing", text: `Needs ${names.join(" and ")}` } : { kind: "missing", text: "Not available" };
+  return names.length
+    ? { kind: "missing", text: `Needs ${names.join(" and ")}` }
+    : { kind: "missing", text: "Not available" };
 }
 
 /** One sentence about how many new files you get. */
 export function modeText(action, selectedCount) {
   const n = action.count ?? selectedCount;
   const what = action.outKind === "folder" ? "folder" : "file";
-  if (action.mode === "all") return `One new ${what} is made from all ${n} selected items together.`;
+  if (action.mode === "all")
+    return `One new ${what} is made from all ${n} selected items together.`;
   if (n === 1) return `One new ${what} is made.`;
   return `A new ${what} is made for each of the ${n} selected items.`;
 }
@@ -132,11 +199,17 @@ export function optionApplies(option, exts) {
 
 /** The line for one item of the preview. */
 export function previewLine(item) {
-  const from = item.from.length === 1 ? item.from[0] : `${item.from.length} items`;
+  const from =
+    item.from.length === 1 ? item.from[0] : `${item.from.length} items`;
   return `${from} → ${item.to}`;
 }
 
 /** The size of a quality-like number option allows a slider. */
 export function wantsSlider(option) {
-  return option.kind === "number" && option.max !== undefined && option.min !== undefined && option.max - option.min <= 120;
+  return (
+    option.kind === "number" &&
+    option.max !== undefined &&
+    option.min !== undefined &&
+    option.max - option.min <= 120
+  );
 }

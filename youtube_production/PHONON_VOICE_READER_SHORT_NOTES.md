@@ -10,21 +10,25 @@
 ## High-CTR YouTube Titles (Under 100 Characters — Copy & Paste)
 
 ### Option 1 — Best Overall Complete Tutorial Hook (98 chars)
+
 ```text
 Complete Ollama Phonon TTS & AI Assistant Tutorial on Mac (Voice Zoey, Voice Cloning & Read-Along)
 ```
 
 ### Option 2 — YouTube Short / Viral Hook (97 chars)
+
 ```text
 Read Any File or Massive Book with Local AI Voice Zoey! (Ollama Phonon · 112MB Low RAM) #Shorts
 ```
 
 ### Option 3 — Developer / Apple Silicon MLX Hook (99 chars)
+
 ```text
 We Built Ollama Phonon TTS, Voice Cloning & Read-Along Video Into a File Manager (Apple MLX · Zoey)
 ```
 
 ### Option 4 — Audiobook & EPUB-to-MP4 Hook (96 chars)
+
 ```text
 Convert Full EPUB Books & 25+ Formats to Audio or Read-Along MP4 in Seconds! (Ollama Phonon Mac)
 ```

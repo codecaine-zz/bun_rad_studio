@@ -1,6 +1,6 @@
 /**
  * ⚡ Cyberpunk Maze Runner - Neon Labyrinth Studio
- * 
+ *
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
  * - Production procedural maze engines (Recursive Backtracking, Prim's, Kruskal's, Wilson's)
@@ -72,7 +72,10 @@ export function getMazeAssetsDir(): string {
 
 /** Where settings and statistics live. MAZE_GENERATOR_STATE_FILE overrides it (used by tests). */
 export function getMazeStatePath(): string {
-  return process.env.MAZE_GENERATOR_STATE_FILE || resolve(process.cwd(), ".maze_generator_state.json");
+  return (
+    process.env.MAZE_GENERATOR_STATE_FILE ||
+    resolve(process.cwd(), ".maze_generator_state.json")
+  );
 }
 
 /** Read saved settings/statistics; anything unreadable yields an empty object (the page sanitises the rest). */
@@ -81,7 +84,9 @@ export function loadMazeState(): { settings?: unknown; stats?: unknown } {
     const file = getMazeStatePath();
     if (!existsSync(file)) return {};
     const parsed = JSON.parse(readFileSync(file, "utf8"));
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? { settings: parsed.settings, stats: parsed.stats } : {};
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? { settings: parsed.settings, stats: parsed.stats }
+      : {};
   } catch {
     return {};
   }
@@ -92,7 +97,10 @@ export function saveMazeState(raw: unknown): boolean {
   try {
     const data = typeof raw === "string" ? JSON.parse(raw) : raw;
     if (!data || typeof data !== "object" || Array.isArray(data)) return false;
-    const body = JSON.stringify({ settings: (data as any).settings ?? {}, stats: (data as any).stats ?? {} });
+    const body = JSON.stringify({
+      settings: (data as any).settings ?? {},
+      stats: (data as any).stats ?? {},
+    });
     if (body.length > 64 * 1024) return false;
     const file = getMazeStatePath();
     const tmp = `${file}.${process.pid}.tmp`;
@@ -111,7 +119,9 @@ export function generateMazeStudioHtml(): string {
   const assetsDir = getMazeAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Cyberpunk Maze Runner</h1>";
+  let html = existsSync(indexPath)
+    ? readFileSync(indexPath, "utf8")
+    : "<h1>Cyberpunk Maze Runner</h1>";
 
   // The desktop window loads this HTML with no base URL, so relative scripts cannot load: inline the engine,
   // and inject the saved state so settings and records are there on the first frame.
@@ -224,7 +234,10 @@ export function startMazeStudioServer(options: MazeServerOptions = {}) {
       if (pathname === "/" || pathname === "/index.html") {
         const html = generateMazeStudioHtml();
         return new Response(html, {
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            ...corsHeaders,
+          },
         });
       }
 
@@ -233,7 +246,10 @@ export function startMazeStudioServer(options: MazeServerOptions = {}) {
         const filePath = join(assetsDir, "engine.js");
         if (existsSync(filePath)) {
           return new Response(Bun.file(filePath), {
-            headers: { "Content-Type": "application/javascript; charset=utf-8", ...corsHeaders },
+            headers: {
+              "Content-Type": "application/javascript; charset=utf-8",
+              ...corsHeaders,
+            },
           });
         }
       }
@@ -269,7 +285,10 @@ export function startMazeStudioServer(options: MazeServerOptions = {}) {
             try {
               const u = new URL(origin);
               if (u.host !== hostHeader) {
-                return new Response("Forbidden: Cross-origin state mutation rejected", { status: 403 });
+                return new Response(
+                  "Forbidden: Cross-origin state mutation rejected",
+                  { status: 403 },
+                );
               }
             } catch {
               return new Response("Forbidden", { status: 403 });
@@ -278,10 +297,16 @@ export function startMazeStudioServer(options: MazeServerOptions = {}) {
           try {
             const body = await req.json();
             const ok = saveMazeState(body);
-            if (!ok) return new Response("Bad Request: Invalid state structure or size", { status: 400 });
+            if (!ok)
+              return new Response(
+                "Bad Request: Invalid state structure or size",
+                { status: 400 },
+              );
             return Response.json({ success: true, saved: loadMazeState() });
           } catch {
-            return new Response("Bad Request: Malformed JSON body", { status: 400 });
+            return new Response("Bad Request: Malformed JSON body", {
+              status: 400,
+            });
           }
         }
         return new Response("Method Not Allowed", { status: 405 });
@@ -297,18 +322,24 @@ export function startMazeStudioServer(options: MazeServerOptions = {}) {
             version: "2.5.0",
             timestamp: Date.now(),
           },
-          { headers: corsHeaders }
+          { headers: corsHeaders },
         );
       }
 
       // Fallback: static file in assets directory
       const sanitized = pathname.replace(/^\/+/, "");
       const directCandidate = join(assetsDir, sanitized);
-      if (directCandidate !== assetsDir && !directCandidate.startsWith(assetsDir + "/") && !directCandidate.startsWith(assetsDir + "\\")) {
+      if (
+        directCandidate !== assetsDir &&
+        !directCandidate.startsWith(assetsDir + "/") &&
+        !directCandidate.startsWith(assetsDir + "\\")
+      ) {
         return new Response("Forbidden", { status: 403 });
       }
       if (existsSync(directCandidate)) {
-        return new Response(Bun.file(directCandidate), { headers: corsHeaders });
+        return new Response(Bun.file(directCandidate), {
+          headers: corsHeaders,
+        });
       }
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
@@ -321,7 +352,9 @@ export function startMazeStudioServer(options: MazeServerOptions = {}) {
 /**
  * Creates the complete native desktop instance of Maze Runner.
  */
-export function createMazeStudio(options: MazeStudioOptions = {}): MazeStudioInstance {
+export function createMazeStudio(
+  options: MazeStudioOptions = {},
+): MazeStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1200);
@@ -353,7 +386,8 @@ export function createMazeStudio(options: MazeStudioOptions = {}): MazeStudioIns
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -373,11 +407,15 @@ export function createMazeStudio(options: MazeStudioOptions = {}): MazeStudioIns
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -391,16 +429,24 @@ export function createMazeStudio(options: MazeStudioOptions = {}): MazeStudioIns
         });
 
         webview.setHTML(html);
-        console.log(`⚡ Desktop window open (Fullscreen: ${fullscreen ? 'Enabled' : 'Disabled'}).`);
+        console.log(
+          `⚡ Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`,
+        );
 
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -417,10 +463,13 @@ if (process.argv.includes("--server")) {
   const port = parseInt(process.env.PORT || "0", 10);
   const srv = startMazeStudioServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`⚡ Cyberpunk Maze Runner Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `⚡ Cyberpunk Maze Runner Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
+  const fullscreen =
+    !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
   const app = createMazeStudio({ fullscreen });
   await app.run();
   process.exit(0);

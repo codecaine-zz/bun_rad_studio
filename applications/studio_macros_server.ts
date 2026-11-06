@@ -74,12 +74,19 @@ interface StoreFile {
 }
 
 export class MacroStore {
-  constructor(private dialect: Exclude<MacroDialect, "sqlite">, private keyFn: () => string) {}
+  constructor(
+    private dialect: Exclude<MacroDialect, "sqlite">,
+    private keyFn: () => string,
+  ) {}
 
   private file(): string {
-    const dir = process.env.STUDIO_MACRO_STORE_DIR || join(homedir(), ".bun_rad_studio", "macros");
+    const dir =
+      process.env.STUDIO_MACRO_STORE_DIR ||
+      join(homedir(), ".bun_rad_studio", "macros");
     mkdirSync(dir, { recursive: true });
-    const safe = `${this.dialect}_${this.keyFn()}`.replace(/[^A-Za-z0-9_.-]+/g, "_").slice(0, 120);
+    const safe = `${this.dialect}_${this.keyFn()}`
+      .replace(/[^A-Za-z0-9_.-]+/g, "_")
+      .slice(0, 120);
     return join(dir, `${safe}.json`);
   }
 
@@ -91,7 +98,10 @@ export class MacroStore {
         return { macros: parsed.macros || [], queries: parsed.queries || [] };
       } catch {}
     }
-    const fresh: StoreFile = { macros: createDefaultMacros(this.dialect), queries: [] };
+    const fresh: StoreFile = {
+      macros: createDefaultMacros(this.dialect),
+      queries: [],
+    };
     this.write(fresh);
     return fresh;
   }
@@ -101,16 +111,34 @@ export class MacroStore {
   }
 
   getMacros(): MacroDefinition[] {
-    return [...this.read().macros].sort((a, b) => Number(!!b.isAutoExec) - Number(!!a.isAutoExec) || a.name.localeCompare(b.name));
+    return [...this.read().macros].sort(
+      (a, b) =>
+        Number(!!b.isAutoExec) - Number(!!a.isAutoExec) ||
+        a.name.localeCompare(b.name),
+    );
   }
 
-  saveMacro(macro: MacroDefinition): { success: boolean; macro?: MacroDefinition; error?: string } {
-    if (!macro || !macro.name || !String(macro.name).trim()) return { success: false, error: "Macro name is required" };
+  saveMacro(macro: MacroDefinition): {
+    success: boolean;
+    macro?: MacroDefinition;
+    error?: string;
+  } {
+    if (!macro || !macro.name || !String(macro.name).trim())
+      return { success: false, error: "Macro name is required" };
     const data = this.read();
     const name = macro.name.trim();
-    const id = macro.id || `macro_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-    if (data.macros.some((m) => m.id !== id && m.name.toLowerCase() === name.toLowerCase())) {
-      return { success: false, error: `A macro named '${name}' already exists` };
+    const id =
+      macro.id ||
+      `macro_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    if (
+      data.macros.some(
+        (m) => m.id !== id && m.name.toLowerCase() === name.toLowerCase(),
+      )
+    ) {
+      return {
+        success: false,
+        error: `A macro named '${name}' already exists`,
+      };
     }
     const now = new Date().toISOString();
     const existing = data.macros.find((m) => m.id === id);
@@ -125,7 +153,10 @@ export class MacroStore {
       createdAt: existing?.createdAt || now,
       updatedAt: now,
     };
-    if (saved.isAutoExec) data.macros.forEach((m) => { if (m.id !== id) m.isAutoExec = false; });
+    if (saved.isAutoExec)
+      data.macros.forEach((m) => {
+        if (m.id !== id) m.isAutoExec = false;
+      });
     data.macros = data.macros.filter((m) => m.id !== id).concat(saved);
     this.write(data);
     return { success: true, macro: saved };
@@ -133,24 +164,38 @@ export class MacroStore {
 
   deleteMacro(idOrName: string): { success: boolean; error?: string } {
     const data = this.read();
-    data.macros = data.macros.filter((m) => m.id !== idOrName && m.name !== idOrName);
+    data.macros = data.macros.filter(
+      (m) => m.id !== idOrName && m.name !== idOrName,
+    );
     this.write(data);
     return { success: true };
   }
 
   getSavedQueries(): SavedQueryDefinition[] {
-    return [...this.read().queries].sort((a, b) => a.name.localeCompare(b.name));
+    return [...this.read().queries].sort((a, b) =>
+      a.name.localeCompare(b.name),
+    );
   }
 
-  saveQuery(query: SavedQueryDefinition): { success: boolean; query?: SavedQueryDefinition; error?: string } {
-    if (!query || !query.name?.trim() || !query.sql?.trim()) return { success: false, error: "Query name and SQL are required" };
+  saveQuery(query: SavedQueryDefinition): {
+    success: boolean;
+    query?: SavedQueryDefinition;
+    error?: string;
+  } {
+    if (!query || !query.name?.trim() || !query.sql?.trim())
+      return { success: false, error: "Query name and SQL are required" };
     const data = this.read();
     const name = query.name.trim();
-    const existing = data.queries.find((q) => q.id === query.id) || data.queries.find((q) => q.name.toLowerCase() === name.toLowerCase());
+    const existing =
+      data.queries.find((q) => q.id === query.id) ||
+      data.queries.find((q) => q.name.toLowerCase() === name.toLowerCase());
     const now = new Date().toISOString();
     const saved: SavedQueryDefinition = {
       ...query,
-      id: existing?.id || query.id || `query_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      id:
+        existing?.id ||
+        query.id ||
+        `query_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       name,
       createdAt: existing?.createdAt || now,
       updatedAt: now,
@@ -162,7 +207,9 @@ export class MacroStore {
 
   deleteQuery(idOrName: string): { success: boolean; error?: string } {
     const data = this.read();
-    data.queries = data.queries.filter((q) => q.id !== idOrName && q.name !== idOrName);
+    data.queries = data.queries.filter(
+      (q) => q.id !== idOrName && q.name !== idOrName,
+    );
     this.write(data);
     return { success: true };
   }
@@ -183,16 +230,23 @@ const DDL_PATTERN = /^\s*(CREATE|DROP|ALTER|TRUNCATE|RENAME)\b/i;
 const FORBIDDEN_STUDIO_MACRO_RE =
   /(?:\b(?:process\b|Bun\b|globalThis\b|Reflect\b|Proxy\b|constructor\b|__proto__\b|prototype\b|require\s*\(|import\s*\(|child_process\b|Function\b|eval\b|WebSocket\b|XMLHttpRequest\b|fetch\b|Worker\b|Deno\b)|\[\s*(?:['"`]|[^\]]*\+))/;
 
-function evaluateCondition(condition: string, variables: Record<string, any>): boolean {
+function evaluateCondition(
+  condition: string,
+  variables: Record<string, any>,
+): boolean {
   const expr = condition.trim().replace(/\[([a-zA-Z0-9_]+)\]/g, (_, name) => {
     if (Object.prototype.hasOwnProperty.call(variables, name)) {
       const val = variables[name];
-      return typeof val === "number" || typeof val === "boolean" ? String(val) : JSON.stringify(val);
+      return typeof val === "number" || typeof val === "boolean"
+        ? String(val)
+        : JSON.stringify(val);
     }
     return "0";
   });
   if (FORBIDDEN_STUDIO_MACRO_RE.test(expr) || /[;\[\]]/.test(expr)) {
-    throw new Error("Macro condition references restricted host or process APIs");
+    throw new Error(
+      "Macro condition references restricted host or process APIs",
+    );
   }
   const safeKeys = Object.keys(variables).filter(
     (k) =>
@@ -214,12 +268,30 @@ function evaluateCondition(condition: string, variables: Record<string, any>): b
     ...safeKeys,
     `"use strict"; return Boolean(${expr});`,
   );
-  return Boolean(fn.call(null, undefined, undefined, undefined, undefined, undefined, undefined, ...safeVals));
+  return Boolean(
+    fn.call(
+      null,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      ...safeVals,
+    ),
+  );
 }
 
-function resolvePrompts(sql: string, values: Record<string, any>, dialect: MacroDialect): string {
+function resolvePrompts(
+  sql: string,
+  values: Record<string, any>,
+  dialect: MacroDialect,
+): string {
   const missing = extractPromptParams(sql).filter((n) => !(n in values));
-  if (missing.length > 0) throw new Error(`Missing parameter value(s): ${missing.map((n) => `[${n}]`).join(", ")}`);
+  if (missing.length > 0)
+    throw new Error(
+      `Missing parameter value(s): ${missing.map((n) => `[${n}]`).join(", ")}`,
+    );
   return applyPromptParams(sql, values, dialect === "mysql");
 }
 
@@ -243,8 +315,16 @@ export async function runMacroAsync(
     } catch (err: any) {
       return {
         success: false,
-        macroName: typeof macroOrId === "string" ? macroOrId : macroOrId?.name || "Unknown",
-        totalSteps: 0, executedSteps: 0, skippedSteps: 0, failedSteps: 1, totalLatencyMs: 0, logs: [],
+        macroName:
+          typeof macroOrId === "string"
+            ? macroOrId
+            : macroOrId?.name || "Unknown",
+        totalSteps: 0,
+        executedSteps: 0,
+        skippedSteps: 0,
+        failedSteps: 1,
+        totalLatencyMs: 0,
+        logs: [],
         error: `Cannot start transaction: ${err?.message || err}`,
       };
     }
@@ -253,9 +333,22 @@ export async function runMacroAsync(
   const exec: MacroQueryFn = tx ? tx.query : adapter.query;
   let result: MacroExecutionResult;
   try {
-    result = await runCore(adapter, store, exec, !!tx, macroOrId, initialVariables, opts.params || {}, 0);
+    result = await runCore(
+      adapter,
+      store,
+      exec,
+      !!tx,
+      macroOrId,
+      initialVariables,
+      opts.params || {},
+      0,
+    );
   } catch (err) {
-    if (tx) { try { await tx.rollback(); } catch {} }
+    if (tx) {
+      try {
+        await tx.rollback();
+      } catch {}
+    }
     throw err;
   }
 
@@ -269,7 +362,9 @@ export async function runMacroAsync(
         result.rolledBack = true;
       }
     } catch (err: any) {
-      try { await tx.rollback(); } catch {}
+      try {
+        await tx.rollback();
+      } catch {}
       result.success = false;
       result.rolledBack = true;
       result.error = `Transaction finalize failed: ${err?.message || err}`;
@@ -294,23 +389,55 @@ async function runCore(
   const all = store.getMacros();
   const macro: MacroDefinition | null =
     typeof macroOrId === "string"
-      ? all.find((m) => m.id === macroOrId || m.name.toLowerCase() === macroOrId.toLowerCase()) || null
+      ? all.find(
+          (m) =>
+            m.id === macroOrId ||
+            m.name.toLowerCase() === macroOrId.toLowerCase(),
+        ) || null
       : macroOrId;
 
-  const fail = (name: string, total: number, error: string, failed = 1): MacroExecutionResult => ({
-    success: false, macroName: name, totalSteps: total, executedSteps: 0, skippedSteps: 0, failedSteps: failed,
-    totalLatencyMs: 0, logs: [], error,
+  const fail = (
+    name: string,
+    total: number,
+    error: string,
+    failed = 1,
+  ): MacroExecutionResult => ({
+    success: false,
+    macroName: name,
+    totalSteps: total,
+    executedSteps: 0,
+    skippedSteps: 0,
+    failedSteps: failed,
+    totalLatencyMs: 0,
+    logs: [],
+    error,
   });
 
-  if (!macro) return fail(typeof macroOrId === "string" ? macroOrId : "Unknown", 0, `Macro '${typeof macroOrId === "string" ? macroOrId : ""}' not found`);
-  if (depth > MAX_MACRO_DEPTH) return fail(macro.name, macro.actions.length, "RunMacro nesting too deep (possible recursion)");
+  if (!macro)
+    return fail(
+      typeof macroOrId === "string" ? macroOrId : "Unknown",
+      0,
+      `Macro '${typeof macroOrId === "string" ? macroOrId : ""}' not found`,
+    );
+  if (depth > MAX_MACRO_DEPTH)
+    return fail(
+      macro.name,
+      macro.actions.length,
+      "RunMacro nesting too deep (possible recursion)",
+    );
 
-  const blocking = validateMacro(macro, all.map((m) => m.name)).filter((i) => i.severity === "error");
+  const blocking = validateMacro(
+    macro,
+    all.map((m) => m.name),
+  ).filter((i) => i.severity === "error");
   if (blocking.length > 0) {
     return fail(
       macro.name,
       macro.actions.length,
-      "Validation failed: " + blocking.map((i) => (i.stepIndex ? `step ${i.stepIndex}: ` : "") + i.message).join("; "),
+      "Validation failed: " +
+        blocking
+          .map((i) => (i.stepIndex ? `step ${i.stepIndex}: ` : "") + i.message)
+          .join("; "),
       blocking.length,
     );
   }
@@ -323,17 +450,34 @@ async function runCore(
   let failedSteps = 0;
   const total = macro.actions.length;
   const elapsed = () => Number((performance.now() - tStart).toFixed(2));
-  const summary = (extra: Partial<MacroExecutionResult> = {}): MacroExecutionResult => ({
-    success: true, macroName: macro.name, totalSteps: total, executedSteps, skippedSteps, failedSteps,
-    totalLatencyMs: elapsed(), logs, variables, ...extra,
+  const summary = (
+    extra: Partial<MacroExecutionResult> = {},
+  ): MacroExecutionResult => ({
+    success: true,
+    macroName: macro.name,
+    totalSteps: total,
+    executedSteps,
+    skippedSteps,
+    failedSteps,
+    totalLatencyMs: elapsed(),
+    logs,
+    variables,
+    ...extra,
   });
 
   const lookupQuerySql = (name: string): string | undefined =>
-    store.getSavedQueries().find((q) => q.name.toLowerCase() === String(name).toLowerCase() || q.id === name)?.sql;
+    store
+      .getSavedQueries()
+      .find(
+        (q) =>
+          q.name.toLowerCase() === String(name).toLowerCase() || q.id === name,
+      )?.sql;
 
   const run = async (sql: string, what: string): Promise<MacroQueryResult> => {
     if (inTx && d === "mysql" && DDL_PATTERN.test(sql)) {
-      throw new Error(`${what}: MySQL commits implicitly on DDL, so it cannot run in a dry-run/atomic macro`);
+      throw new Error(
+        `${what}: MySQL commits implicitly on DDL, so it cannot run in a dry-run/atomic macro`,
+      );
     }
     const res = await exec(sql);
     if (!res.success) throw new Error(res.error || `${what} failed`);
@@ -353,9 +497,15 @@ async function runCore(
         if (!evaluateCondition(act.condition, variables)) {
           skippedSteps++;
           logs.push({
-            stepIndex: i + 1, actionId: act.id, action: act.action, condition: act.condition, conditionMet: false,
-            parameters: act.parameters || {}, status: "skipped",
-            message: `Skipped: condition [${act.condition}] evaluated to false`, latencyMs: 0,
+            stepIndex: i + 1,
+            actionId: act.id,
+            action: act.action,
+            condition: act.condition,
+            conditionMet: false,
+            parameters: act.parameters || {},
+            status: "skipped",
+            message: `Skipped: condition [${act.condition}] evaluated to false`,
+            latencyMs: 0,
           });
           continue;
         }
@@ -378,9 +528,17 @@ async function runCore(
           const targetTbl = tbl || variables.activeTable;
           if (!targetTbl) throw new Error("OpenTable requires target table");
           variables.activeTable = targetTbl;
-          const res = await run(`SELECT * FROM ${qi(targetTbl)} LIMIT 100;`, "OpenTable");
+          const res = await run(
+            `SELECT * FROM ${qi(targetTbl)} LIMIT 100;`,
+            "OpenTable",
+          );
           variables.totalRows = res.rows?.length || 0;
-          output = { table: targetTbl, columns: res.columns, rows: res.rows, rowsCount: res.rows?.length || 0 };
+          output = {
+            table: targetTbl,
+            columns: res.columns,
+            rows: res.rows,
+            rowsCount: res.rows?.length || 0,
+          };
           message = `Opened table '${targetTbl}' (${res.rows?.length || 0} rows)`;
           break;
         }
@@ -392,9 +550,18 @@ async function runCore(
             break;
           }
           const resolvedCond = resolvePrompts(String(cond), promptParams, d);
-          const res = await run(`SELECT * FROM ${qi(targetTbl)} WHERE ${resolvedCond} LIMIT 100;`, "ApplyFilter");
+          const res = await run(
+            `SELECT * FROM ${qi(targetTbl)} WHERE ${resolvedCond} LIMIT 100;`,
+            "ApplyFilter",
+          );
           variables.totalRows = res.rows?.length || 0;
-          output = { table: targetTbl, condition: resolvedCond, columns: res.columns, rows: res.rows, rowsCount: res.rows?.length || 0 };
+          output = {
+            table: targetTbl,
+            condition: resolvedCond,
+            columns: res.columns,
+            rows: res.rows,
+            rowsCount: res.rows?.length || 0,
+          };
           message = `Applied filter '${resolvedCond}' (${res.rows?.length || 0} matching records)`;
           break;
         }
@@ -403,34 +570,65 @@ async function runCore(
           if (p.queryName) {
             const found = lookupQuerySql(p.queryName);
             if (found) sql = found;
-            else if (!sql) throw new Error(`Saved query '${p.queryName}' not found`);
+            else if (!sql)
+              throw new Error(`Saved query '${p.queryName}' not found`);
           }
-          if (!sql) throw new Error("OpenQuery missing SQL query or query name");
-          const res = await run(resolvePrompts(sql, promptParams, d), "OpenQuery");
+          if (!sql)
+            throw new Error("OpenQuery missing SQL query or query name");
+          const res = await run(
+            resolvePrompts(sql, promptParams, d),
+            "OpenQuery",
+          );
           output = { columns: res.columns, rowsCount: res.rows?.length || 0 };
           message = `Executed query '${p.queryName || "custom"}' (${res.rows?.length || 0} rows returned)`;
           break;
         }
         case "RunSQL": {
-          const res = await run(resolvePrompts(p.sql, promptParams, d), "RunSQL");
-          variables.lastRowsAffected = res.rowsAffected ?? res.rows?.length ?? 0;
+          const res = await run(
+            resolvePrompts(p.sql, promptParams, d),
+            "RunSQL",
+          );
+          variables.lastRowsAffected =
+            res.rowsAffected ?? res.rows?.length ?? 0;
           message = `Executed SQL (${variables.lastRowsAffected} rows)`;
           break;
         }
         case "InsertRecord": {
-          await run(parseRecordFieldsToInsertSql(tbl, p.fields || p.record || p.values, d), "InsertRecord");
+          await run(
+            parseRecordFieldsToInsertSql(
+              tbl,
+              p.fields || p.record || p.values,
+              d,
+            ),
+            "InsertRecord",
+          );
           variables.lastRowsAffected = 1;
           message = `Appended 1 record into '${tbl}'`;
           break;
         }
         case "UpdateRecord": {
-          const res = await run(buildUpdateRecordSql(tbl, p.setValues || p.set || p.updates, p.whereCondition || p.where || p.condition, d), "UpdateRecord");
+          const res = await run(
+            buildUpdateRecordSql(
+              tbl,
+              p.setValues || p.set || p.updates,
+              p.whereCondition || p.where || p.condition,
+              d,
+            ),
+            "UpdateRecord",
+          );
           variables.lastRowsAffected = res.rowsAffected ?? 0;
           message = `Updated records in '${tbl}' (${variables.lastRowsAffected} rows affected)`;
           break;
         }
         case "DeleteRecord": {
-          const res = await run(buildDeleteRecordSql(tbl, p.whereCondition || p.where || p.condition, d), "DeleteRecord");
+          const res = await run(
+            buildDeleteRecordSql(
+              tbl,
+              p.whereCondition || p.where || p.condition,
+              d,
+            ),
+            "DeleteRecord",
+          );
           variables.lastRowsAffected = res.rowsAffected ?? 0;
           message = `Deleted records from '${tbl}' (${variables.lastRowsAffected} rows affected)`;
           break;
@@ -442,14 +640,26 @@ async function runCore(
         }
         case "MakeTable": {
           const newTbl = p.newTable || p.newTableName || p.tableName || p.table;
-          let selectSql: string | undefined = p.selectSql || p.sourceSql || p.sql;
+          let selectSql: string | undefined =
+            p.selectSql || p.sourceSql || p.sql;
           if (p.queryName) {
             const found = lookupQuerySql(p.queryName);
             if (found) selectSql = found;
-            else if (!selectSql) throw new Error(`Saved query '${p.queryName}' not found for MakeTable`);
+            else if (!selectSql)
+              throw new Error(
+                `Saved query '${p.queryName}' not found for MakeTable`,
+              );
           }
-          if (!selectSql) throw new Error("MakeTable requires source SELECT query or saved query name");
-          for (const stmt of buildMakeTableStatements(newTbl, resolvePrompts(selectSql, promptParams, d), p.dropExisting !== false, d)) {
+          if (!selectSql)
+            throw new Error(
+              "MakeTable requires source SELECT query or saved query name",
+            );
+          for (const stmt of buildMakeTableStatements(
+            newTbl,
+            resolvePrompts(selectSql, promptParams, d),
+            p.dropExisting !== false,
+            d,
+          )) {
             await run(stmt, "MakeTable");
           }
           output = { newTable: newTbl };
@@ -457,7 +667,10 @@ async function runCore(
           break;
         }
         case "VacuumDatabase": {
-          if (inTx) throw new Error("Maintenance cannot run inside a transaction; run it as a separate (non-transactional) macro");
+          if (inTx)
+            throw new Error(
+              "Maintenance cannot run inside a transaction; run it as a separate (non-transactional) macro",
+            );
           message = await adapter.maintenance(Boolean(p.analyze));
           break;
         }
@@ -488,20 +701,33 @@ async function runCore(
           const code = String(p.code ?? p.functionName ?? "").trim();
           if (!code) throw new Error("RunCode requires code");
           if (FORBIDDEN_STUDIO_MACRO_RE.test(code)) {
-            throw new Error("RunCode references restricted host or process APIs");
+            throw new Error(
+              "RunCode references restricted host or process APIs",
+            );
           }
-          const transpiler = new Bun.Transpiler({ loader: "ts", target: "bun" });
-          const jsBody = transpiler.transformSync(`async function __studioRunCode() {\n${code}\n}`);
+          const transpiler = new Bun.Transpiler({
+            loader: "ts",
+            target: "bun",
+          });
+          const jsBody = transpiler.transformSync(
+            `async function __studioRunCode() {\n${code}\n}`,
+          );
           const debugLogs: string[] = [];
           const CurrentDb = {
             dialect: d,
             RecordsAffected: 0,
             async query(sql: string) {
-              const r = await run(resolvePrompts(sql, promptParams, d), "RunCode.query");
+              const r = await run(
+                resolvePrompts(sql, promptParams, d),
+                "RunCode.query",
+              );
               return r.rows || [];
             },
             async execute(sql: string) {
-              const r = await run(resolvePrompts(sql, promptParams, d), "RunCode.execute");
+              const r = await run(
+                resolvePrompts(sql, promptParams, d),
+                "RunCode.execute",
+              );
               this.RecordsAffected = r.rowsAffected ?? 0;
               variables.lastRowsAffected = this.RecordsAffected;
               return { affectedRows: this.RecordsAffected };
@@ -510,32 +736,69 @@ async function runCore(
               return await adapter.listTables();
             },
           };
-          const DCount = async (expr = "*", domain: string, criteria?: string) => {
-            const w = criteria && criteria.trim() ? ` WHERE ${criteria.trim()}` : "";
-            const r = await CurrentDb.query(`SELECT COUNT(${expr || "*"}) AS c FROM ${quoteIdentFor(d, domain)}${w}`);
+          const DCount = async (
+            expr = "*",
+            domain: string,
+            criteria?: string,
+          ) => {
+            const w =
+              criteria && criteria.trim() ? ` WHERE ${criteria.trim()}` : "";
+            const r = await CurrentDb.query(
+              `SELECT COUNT(${expr || "*"}) AS c FROM ${quoteIdentFor(d, domain)}${w}`,
+            );
             return Number(r[0]?.c ?? Object.values(r[0] || {})[0] ?? 0);
           };
-          const DLookup = async (expr: string, domain: string, criteria?: string) => {
-            const w = criteria && criteria.trim() ? ` WHERE ${criteria.trim()}` : "";
-            const r = await CurrentDb.query(`SELECT ${expr} AS v FROM ${quoteIdentFor(d, domain)}${w} LIMIT 1`);
+          const DLookup = async (
+            expr: string,
+            domain: string,
+            criteria?: string,
+          ) => {
+            const w =
+              criteria && criteria.trim() ? ` WHERE ${criteria.trim()}` : "";
+            const r = await CurrentDb.query(
+              `SELECT ${expr} AS v FROM ${quoteIdentFor(d, domain)}${w} LIMIT 1`,
+            );
             return r[0]?.v ?? (r[0] ? Object.values(r[0])[0] : null) ?? null;
           };
-          const DSum = async (expr: string, domain: string, criteria?: string) => {
-            const w = criteria && criteria.trim() ? ` WHERE ${criteria.trim()}` : "";
-            const r = await CurrentDb.query(`SELECT COALESCE(SUM(${expr}), 0) AS s FROM ${quoteIdentFor(d, domain)}${w}`);
+          const DSum = async (
+            expr: string,
+            domain: string,
+            criteria?: string,
+          ) => {
+            const w =
+              criteria && criteria.trim() ? ` WHERE ${criteria.trim()}` : "";
+            const r = await CurrentDb.query(
+              `SELECT COALESCE(SUM(${expr}), 0) AS s FROM ${quoteIdentFor(d, domain)}${w}`,
+            );
             return Number(r[0]?.s ?? Object.values(r[0] || {})[0] ?? 0);
           };
           const DoCmd = {
             RunSQL: (sql: string) => CurrentDb.execute(sql),
             OpenQuery: (sql: string) => CurrentDb.query(sql),
-            SetTempVar: (k: string, v: any) => { variables[k] = v; },
-            RemoveTempVar: (k: string) => { delete variables[k]; },
-            MessageBox: (msg: any) => { debugLogs.push(String(msg)); },
+            SetTempVar: (k: string, v: any) => {
+              variables[k] = v;
+            },
+            RemoveTempVar: (k: string) => {
+              delete variables[k];
+            },
+            MessageBox: (msg: any) => {
+              debugLogs.push(String(msg));
+            },
             Beep: () => {},
           };
           const Debug = {
-            print: (...args: any[]) => debugLogs.push(args.map((x) => (typeof x === "string" ? x : JSON.stringify(x))).join(" ")),
-            Print: (...args: any[]) => debugLogs.push(args.map((x) => (typeof x === "string" ? x : JSON.stringify(x))).join(" ")),
+            print: (...args: any[]) =>
+              debugLogs.push(
+                args
+                  .map((x) => (typeof x === "string" ? x : JSON.stringify(x)))
+                  .join(" "),
+              ),
+            Print: (...args: any[]) =>
+              debugLogs.push(
+                args
+                  .map((x) => (typeof x === "string" ? x : JSON.stringify(x)))
+                  .join(" "),
+              ),
           };
           const fn = new Function(
             "CurrentDb",
@@ -577,16 +840,36 @@ async function runCore(
             undefined,
           );
           output = { returnValue: ret, debugLogs };
-          message = debugLogs.length > 0 ? `RunCode: ${debugLogs.join(" | ")}` : `Executed Bun JS RunCode`;
+          message =
+            debugLogs.length > 0
+              ? `RunCode: ${debugLogs.join(" | ")}`
+              : `Executed Bun JS RunCode`;
           break;
         }
         case "RunMacro": {
-          const sub = await runCore(adapter, store, exec, inTx, p.macroName, variables, promptParams, depth + 1);
+          const sub = await runCore(
+            adapter,
+            store,
+            exec,
+            inTx,
+            p.macroName,
+            variables,
+            promptParams,
+            depth + 1,
+          );
           logs.push({
-            stepIndex: i + 1, actionId: act.id, action: act.action, condition: act.condition, conditionMet: true,
-            parameters: p, status: sub.success ? "success" : "error",
-            message: sub.success ? `Sub-macro '${sub.macroName}' finished (${sub.executedSteps} steps)` : `Sub-macro '${sub.macroName}' failed: ${sub.error}`,
-            output: { logs: sub.logs }, latencyMs: lat(),
+            stepIndex: i + 1,
+            actionId: act.id,
+            action: act.action,
+            condition: act.condition,
+            conditionMet: true,
+            parameters: p,
+            status: sub.success ? "success" : "error",
+            message: sub.success
+              ? `Sub-macro '${sub.macroName}' finished (${sub.executedSteps} steps)`
+              : `Sub-macro '${sub.macroName}' failed: ${sub.error}`,
+            output: { logs: sub.logs },
+            latencyMs: lat(),
           });
           executedSteps += sub.executedSteps;
           skippedSteps += sub.skippedSteps;
@@ -601,8 +884,15 @@ async function runCore(
         }
         case "StopMacro": {
           logs.push({
-            stepIndex: i + 1, actionId: act.id, action: act.action, condition: act.condition, conditionMet: true,
-            parameters: p, status: "success", message: `Macro halted: ${p.reason || "Normal"}`, latencyMs: lat(),
+            stepIndex: i + 1,
+            actionId: act.id,
+            action: act.action,
+            condition: act.condition,
+            conditionMet: true,
+            parameters: p,
+            status: "success",
+            message: `Macro halted: ${p.reason || "Normal"}`,
+            latencyMs: lat(),
           });
           executedSteps++;
           return summary({ halted: true });
@@ -613,15 +903,30 @@ async function runCore(
       }
 
       logs.push({
-        stepIndex: i + 1, actionId: act.id, action: act.action, condition: act.condition, conditionMet: true,
-        parameters: p, status: "success", message, output, latencyMs: lat(),
+        stepIndex: i + 1,
+        actionId: act.id,
+        action: act.action,
+        condition: act.condition,
+        conditionMet: true,
+        parameters: p,
+        status: "success",
+        message,
+        output,
+        latencyMs: lat(),
       });
       executedSteps++;
     } catch (err: any) {
       failedSteps++;
       logs.push({
-        stepIndex: i + 1, actionId: act.id, action: act.action, condition: act.condition, conditionMet: true,
-        parameters: act.parameters || {}, status: "error", message: err?.message || String(err), latencyMs: lat(),
+        stepIndex: i + 1,
+        actionId: act.id,
+        action: act.action,
+        condition: act.condition,
+        conditionMet: true,
+        parameters: act.parameters || {},
+        status: "error",
+        message: err?.message || String(err),
+        latencyMs: lat(),
       });
       if (act.continueOnError ?? macro.onError === "continue") continue;
       return summary({ success: false, error: err?.message || String(err) });
@@ -643,14 +948,25 @@ export async function handleMacroRoute(
   pathname: string,
   headers: Record<string, string>,
 ): Promise<Response | null> {
-  if (!pathname.startsWith("/api/macros") && !pathname.startsWith("/api/queries") && pathname !== "/api/codegen") return null;
-  const ok = (body: any, status = 200) => Response.json(body, { status, headers });
-  const bad = (err: any, status = 400) => ok({ success: false, error: err?.message || String(err) }, status);
-  const readBody = async () => ((await req.json().catch(() => ({}))) || {}) as any;
+  if (
+    !pathname.startsWith("/api/macros") &&
+    !pathname.startsWith("/api/queries") &&
+    pathname !== "/api/codegen"
+  )
+    return null;
+  const ok = (body: any, status = 200) =>
+    Response.json(body, { status, headers });
+  const bad = (err: any, status = 400) =>
+    ok({ success: false, error: err?.message || String(err) }, status);
+  const readBody = async () =>
+    ((await req.json().catch(() => ({}))) || {}) as any;
   const isPost = req.method === "POST";
 
   try {
-    if ((pathname === "/api/macros/list" || pathname === "/api/macros") && (req.method === "GET" || isPost)) {
+    if (
+      (pathname === "/api/macros/list" || pathname === "/api/macros") &&
+      (req.method === "GET" || isPost)
+    ) {
       return ok({ success: true, macros: store.getMacros() });
     }
     if (pathname === "/api/macros/save" && isPost) {
@@ -664,26 +980,45 @@ export async function handleMacroRoute(
     }
     if (pathname === "/api/macros/run" && isPost) {
       const body = await readBody();
-      const result = await runMacroAsync(adapter, store, body.macro || body.id || body.name || "", body.variables || {}, {
-        transaction: body.transaction, dryRun: body.dryRun, params: body.params,
-      });
+      const result = await runMacroAsync(
+        adapter,
+        store,
+        body.macro || body.id || body.name || "",
+        body.variables || {},
+        {
+          transaction: body.transaction,
+          dryRun: body.dryRun,
+          params: body.params,
+        },
+      );
       return ok({ success: result.success, result });
     }
     if (pathname === "/api/macros/validate" && isPost) {
       const body = await readBody();
-      return ok({ success: true, issues: validateMacro(body.macro, store.getMacros().map((m) => m.name)) });
+      return ok({
+        success: true,
+        issues: validateMacro(
+          body.macro,
+          store.getMacros().map((m) => m.name),
+        ),
+      });
     }
     if (pathname === "/api/macros/export" && isPost) {
       const body = await readBody();
-      const macro: MacroDefinition | undefined = body.macro || store.getMacros().find((m) => m.id === body.id || m.name === body.id);
+      const macro: MacroDefinition | undefined =
+        body.macro ||
+        store.getMacros().find((m) => m.id === body.id || m.name === body.id);
       if (!macro) return ok({ success: false, error: "Macro not found" }, 404);
       const queries = store.getSavedQueries();
       const format = body.format || "json";
       const content =
-        format === "sql" ? macroToSqlScript(macro, queries, adapter.dialect)
-        : format === "vba" ? macroToVba(macro, queries, adapter.dialect)
-        : format === "bun" ? macroToBunJs(macro, queries, adapter.dialect)
-        : JSON.stringify(macro, null, 2);
+        format === "sql"
+          ? macroToSqlScript(macro, queries, adapter.dialect)
+          : format === "vba"
+            ? macroToVba(macro, queries, adapter.dialect)
+            : format === "bun"
+              ? macroToBunJs(macro, queries, adapter.dialect)
+              : JSON.stringify(macro, null, 2);
       return ok({ success: true, format, content });
     }
     if (pathname === "/api/codegen" && isPost) {
@@ -692,7 +1027,10 @@ export async function handleMacroRoute(
         sourceDialect: adapter.dialect,
         queries: store.getSavedQueries(),
         macros: store.getMacros(),
-        appName: adapter.dialect === "mysql" ? "MySQL Studio Pro" : "Postgres Studio Pro",
+        appName:
+          adapter.dialect === "mysql"
+            ? "MySQL Studio Pro"
+            : "Postgres Studio Pro",
       });
       return ok({ success: true, ...result });
     }

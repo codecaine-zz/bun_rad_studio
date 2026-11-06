@@ -20,16 +20,25 @@ export function scanMarkup(line, state, inner) {
       const lower = line.toLowerCase();
       const close = lower.indexOf(`</${name}`, i);
       const piece = line.slice(i, close < 0 ? n : close);
-      const result = inner(name === "script" ? "javascript" : "css", piece, rest.join("|"));
+      const result = inner(
+        name === "script" ? "javascript" : "css",
+        piece,
+        rest.join("|"),
+      );
       for (const t of result.tokens) push(out, t.text, t.type);
-      if (close < 0) return { tokens: out, state: `raw|${name}|${result.state}` };
+      if (close < 0)
+        return { tokens: out, state: `raw|${name}|${result.state}` };
       state = "";
       i = close;
       continue;
     }
     if (state === "c") {
       const end = line.indexOf("-->", i);
-      if (end < 0) return { tokens: [...out, { text: line.slice(i), type: "comment" }], state: "c" };
+      if (end < 0)
+        return {
+          tokens: [...out, { text: line.slice(i), type: "comment" }],
+          state: "c",
+        };
       push(out, line.slice(i, end + 3), "comment");
       i = end + 3;
       state = "";
@@ -39,7 +48,11 @@ export function scanMarkup(line, state, inner) {
       const [, name, quote] = state.split("|");
       if (quote) {
         const end = line.indexOf(quote, i);
-        if (end < 0) return { tokens: [...out, { text: line.slice(i), type: "string" }], state };
+        if (end < 0)
+          return {
+            tokens: [...out, { text: line.slice(i), type: "string" }],
+            state,
+          };
         push(out, line.slice(i, end + 1), "string");
         i = end + 1;
         state = `t|${name}|`;
@@ -83,7 +96,12 @@ export function scanMarkup(line, state, inner) {
       const amp = line.indexOf("&", k);
       if (amp < 0 || amp >= stop) break;
       const semi = line.indexOf(";", amp);
-      if (semi > amp && semi < stop && semi - amp < 12 && /^&#?\w+;$/.test(line.slice(amp, semi + 1))) {
+      if (
+        semi > amp &&
+        semi < stop &&
+        semi - amp < 12 &&
+        /^&#?\w+;$/.test(line.slice(amp, semi + 1))
+      ) {
         push(out, line.slice(k, amp), "");
         push(out, line.slice(amp, semi + 1), "constant");
         k = semi + 1;
@@ -97,7 +115,11 @@ export function scanMarkup(line, state, inner) {
     if (i >= n) break;
     if (line.startsWith("<!--", i)) {
       const end = line.indexOf("-->", i + 4);
-      if (end < 0) return { tokens: [...out, { text: line.slice(i), type: "comment" }], state: "c" };
+      if (end < 0)
+        return {
+          tokens: [...out, { text: line.slice(i), type: "comment" }],
+          state: "c",
+        };
       push(out, line.slice(i, end + 3), "comment");
       i = end + 3;
     } else if (line.startsWith("<![CDATA[", i)) {
@@ -160,7 +182,10 @@ export function scanCss(line, state) {
       push(out, "/*", "comment");
       i += 2;
       mode = "c";
-    } else if (line.startsWith("//", i) && (i === 0 || /[\s;{}]/.test(line[i - 1]))) {
+    } else if (
+      line.startsWith("//", i) &&
+      (i === 0 || /[\s;{}]/.test(line[i - 1]))
+    ) {
       push(out, line.slice(i), "comment");
       i = n;
     } else if (c === '"' || c === "'") {
@@ -197,7 +222,11 @@ export function scanCss(line, state) {
       if (isProp) {
         const rest = line.slice(k + 1);
         const brace = rest.indexOf("{");
-        const semi = Math.min(...[rest.indexOf(";"), rest.indexOf("}")].map((x) => (x < 0 ? Infinity : x)));
+        const semi = Math.min(
+          ...[rest.indexOf(";"), rest.indexOf("}")].map((x) =>
+            x < 0 ? Infinity : x,
+          ),
+        );
         if (brace >= 0 && brace < semi) isProp = false;
       }
       push(out, line.slice(i, j), isProp ? "property" : "tag");
@@ -247,17 +276,25 @@ function cssValue(line, i, out) {
   if (c === "#") {
     while (j < n && /[0-9a-fA-F]/.test(line[j])) j++;
     push(out, line.slice(i, j), j > i + 1 ? "number" : "");
-  } else if (/[0-9]/.test(c) || ((c === "-" || c === ".") && /[0-9.]/.test(line[i + 1] ?? ""))) {
+  } else if (
+    /[0-9]/.test(c) ||
+    ((c === "-" || c === ".") && /[0-9.]/.test(line[i + 1] ?? ""))
+  ) {
     while (j < n && /[0-9.]/.test(line[j])) j++;
     while (j < n && /[a-zA-Z%]/.test(line[j])) j++;
     push(out, line.slice(i, j), "number");
-  } else if (c === "!" ) {
+  } else if (c === "!") {
     while (j < n && /[a-z]/i.test(line[j])) j++;
     push(out, line.slice(i, j), "keyword");
   } else if (/[A-Za-z_-]/.test(c)) {
     while (j < n && isWord(line[j])) j++;
     const word = line.slice(i, j);
-    if (line[j] === "(" && word === "url" && line[j + 1] !== '"' && line[j + 1] !== "'") {
+    if (
+      line[j] === "(" &&
+      word === "url" &&
+      line[j + 1] !== '"' &&
+      line[j + 1] !== "'"
+    ) {
       const end = line.indexOf(")", j);
       push(out, "url(", "function");
       push(out, line.slice(j + 1, end < 0 ? n : end), "string");
@@ -275,16 +312,25 @@ export function scanMarkdown(line, state) {
   const out = [];
   if (state.startsWith("f:")) {
     const fence = state.slice(2);
-    if (line.trimStart().startsWith(fence)) return { tokens: [{ text: line, type: "meta" }], state: "" };
+    if (line.trimStart().startsWith(fence))
+      return { tokens: [{ text: line, type: "meta" }], state: "" };
     return { tokens: [{ text: line, type: "string" }], state };
   }
   const fence = /^ {0,3}(`{3,}|~{3,})/.exec(line);
-  if (fence) return { tokens: [{ text: line, type: "meta" }], state: `f:${fence[1].slice(0, 3)}` };
-  if (/^ {0,3}#{1,6}(\s|$)/.test(line)) return { tokens: [{ text: line, type: "heading" }], state: "" };
-  if (/^ {0,3}([-*_])( ?\1){2,} *$/.test(line)) return { tokens: [{ text: line, type: "meta" }], state: "" };
+  if (fence)
+    return {
+      tokens: [{ text: line, type: "meta" }],
+      state: `f:${fence[1].slice(0, 3)}`,
+    };
+  if (/^ {0,3}#{1,6}(\s|$)/.test(line))
+    return { tokens: [{ text: line, type: "heading" }], state: "" };
+  if (/^ {0,3}([-*_])( ?\1){2,} *$/.test(line))
+    return { tokens: [{ text: line, type: "meta" }], state: "" };
   let rest = line;
   const quote = /^\s*(>\s?)+/.exec(line);
-  const list = quote ? null : /^\s*(?:[-*+]|\d{1,9}[.)])\s+(\[[ xX]\]\s+)?/.exec(line);
+  const list = quote
+    ? null
+    : /^\s*(?:[-*+]|\d{1,9}[.)])\s+(\[[ xX]\]\s+)?/.exec(line);
   const lead = quote ?? list;
   if (lead) {
     push(out, lead[0], quote ? "comment" : "keyword");
@@ -316,7 +362,11 @@ function inline(text, out) {
       const end = text.indexOf(c + c, i + 2);
       if (end > i + 2) take(i, end + 2, "strong");
       else i += 2;
-    } else if ((c === "*" || c === "_") && !isSpace(text[i + 1] ?? " ") && (c === "*" || !isWord(text[i - 1] ?? " "))) {
+    } else if (
+      (c === "*" || c === "_") &&
+      !isSpace(text[i + 1] ?? " ") &&
+      (c === "*" || !isWord(text[i - 1] ?? " "))
+    ) {
       const end = text.indexOf(c, i + 1);
       if (end > i + 1 && !isSpace(text[end - 1])) take(i, end + 1, "emphasis");
       else i++;
@@ -332,7 +382,11 @@ function inline(text, out) {
       else i++;
     } else if (c === "<") {
       const end = text.indexOf(">", i + 1);
-      if (end > i + 1 && /^<\/?[A-Za-z][^<>]*>$|^<https?:[^<>\s]*>$/.test(text.slice(i, end + 1))) take(i, end + 1, "tag");
+      if (
+        end > i + 1 &&
+        /^<\/?[A-Za-z][^<>]*>$|^<https?:[^<>\s]*>$/.test(text.slice(i, end + 1))
+      )
+        take(i, end + 1, "tag");
       else i++;
     } else i++;
   }
@@ -345,7 +399,12 @@ function inline(text, out) {
 
 export function scanDiff(line) {
   let type = "";
-  if (/^(diff |index |--- |\+\+\+ |new file|deleted file|similarity|rename |old mode|new mode|Binary files)/.test(line)) type = "keyword";
+  if (
+    /^(diff |index |--- |\+\+\+ |new file|deleted file|similarity|rename |old mode|new mode|Binary files)/.test(
+      line,
+    )
+  )
+    type = "keyword";
   else if (line.startsWith("@@")) type = "meta";
   else if (line.startsWith("+")) type = "inserted";
   else if (line.startsWith("-")) type = "deleted";

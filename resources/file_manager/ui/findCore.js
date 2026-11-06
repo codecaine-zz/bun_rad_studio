@@ -2,27 +2,44 @@
 // The sort and filter work like Fd Studio's (src/fd_helpers.ts) so the page and the server agree on what is shown.
 import { plural } from "./util.js";
 
-const byName = (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true });
+const byName = (a, b) =>
+  a.name.localeCompare(b.name, undefined, {
+    sensitivity: "base",
+    numeric: true,
+  });
 
 /** A new, sorted array. "Default order" (or an unknown key) keeps the order the search gave. */
 export function sortItems(items, key) {
   const out = items.slice();
   switch (key) {
-    case "Name (A→Z)": return out.sort(byName);
-    case "Name (Z→A)": return out.sort((a, b) => byName(b, a));
-    case "Size (largest)": return out.sort((a, b) => b.sizeBytes - a.sizeBytes);
-    case "Size (smallest)": return out.sort((a, b) => a.sizeBytes - b.sizeBytes);
-    case "Modified (newest)": return out.sort((a, b) => b.mtimeMs - a.mtimeMs);
-    case "Modified (oldest)": return out.sort((a, b) => a.mtimeMs - b.mtimeMs);
-    default: return out;
+    case "Name (A→Z)":
+      return out.sort(byName);
+    case "Name (Z→A)":
+      return out.sort((a, b) => byName(b, a));
+    case "Size (largest)":
+      return out.sort((a, b) => b.sizeBytes - a.sizeBytes);
+    case "Size (smallest)":
+      return out.sort((a, b) => a.sizeBytes - b.sizeBytes);
+    case "Modified (newest)":
+      return out.sort((a, b) => b.mtimeMs - a.mtimeMs);
+    case "Modified (oldest)":
+      return out.sort((a, b) => a.mtimeMs - b.mtimeMs);
+    default:
+      return out;
   }
 }
 
 /** Keeps the items whose name or relative path contains `query` (ignoring letter case). Empty keeps everything. */
 export function filterItems(items, query) {
-  const q = String(query ?? "").trim().toLowerCase();
+  const q = String(query ?? "")
+    .trim()
+    .toLowerCase();
   if (!q) return items.slice();
-  return items.filter((it) => it.name.toLowerCase().includes(q) || (it.relativePath || "").toLowerCase().includes(q));
+  return items.filter(
+    (it) =>
+      it.name.toLowerCase().includes(q) ||
+      (it.relativePath || "").toLowerCase().includes(q),
+  );
 }
 
 /** Puts `entry` first in the list of recent searches (no repeats, at most `cap`). */
@@ -38,17 +55,31 @@ export function dirOf(relativePath) {
   return i < 0 ? "" : relativePath.slice(0, i);
 }
 
-const TYPE_LABELS = { file: "File", directory: "Folder", symlink: "Link", executable: "Program", socket: "Socket", pipe: "Pipe", empty: "Empty", other: "Other" };
+const TYPE_LABELS = {
+  file: "File",
+  directory: "Folder",
+  symlink: "Link",
+  executable: "Program",
+  socket: "Socket",
+  pipe: "Pipe",
+  empty: "Empty",
+  other: "Other",
+};
 export const typeLabel = (type) => TYPE_LABELS[type] ?? "Other";
 
 /** The text of a list of paths for the clipboard or a file: one per line. */
 export function pathsText(items, kind) {
-  return items.map((i) => (kind === "relative" ? i.relativePath : i.path)).join("\n");
+  return items
+    .map((i) => (kind === "relative" ? i.relativePath : i.path))
+    .join("\n");
 }
 
 /** Adds up the sizes of the files (folders have no size of their own). */
 export function totalBytes(items) {
-  return items.reduce((n, i) => n + (i.type === "directory" ? 0 : i.sizeBytes), 0);
+  return items.reduce(
+    (n, i) => n + (i.type === "directory" ? 0 : i.sizeBytes),
+    0,
+  );
 }
 
 /** The indexes from `a` to `b`, whichever is larger. */

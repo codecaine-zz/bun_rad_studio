@@ -13,8 +13,35 @@ const POLL_MS = 300;
 
 function mount(root) {
   root.classList.add("net-root");
-  const S = { task: null, busy: false, report: "", showing: "", lastScan: null, scanId: null, activitySince: 0, hidden: false, folderTouched: false, wake: null, timer: 0, paintKey: "" };
-  const ui = buildLayout(root, { httpCheck, checkPort, scanTop, scanList, dns: runDns, dnsAll, tls: runTls, ping, cancel, copy, save, clear: clearAll, useFolder });
+  const S = {
+    task: null,
+    busy: false,
+    report: "",
+    showing: "",
+    lastScan: null,
+    scanId: null,
+    activitySince: 0,
+    hidden: false,
+    folderTouched: false,
+    wake: null,
+    timer: 0,
+    paintKey: "",
+  };
+  const ui = buildLayout(root, {
+    httpCheck,
+    checkPort,
+    scanTop,
+    scanList,
+    dns: runDns,
+    dnsAll,
+    tls: runTls,
+    ping,
+    cancel,
+    copy,
+    save,
+    clear: clearAll,
+    useFolder,
+  });
 
   // ---- small helpers -------------------------------------------------------------------------------------------
   function setBusy(on) {
@@ -31,7 +58,8 @@ function mount(root) {
     while (el.childElementCount > 500) el.firstElementChild.remove();
     if (atBottom) el.scrollTop = el.scrollHeight;
   }
-  const logAll = (lines) => (lines ?? []).forEach((l) => log(l.level, l.text, l.at));
+  const logAll = (lines) =>
+    (lines ?? []).forEach((l) => log(l.level, l.text, l.at));
 
   function show(result, kind, message) {
     ui.results.replaceChildren(result.node);
@@ -41,7 +69,8 @@ function mount(root) {
   }
 
   function fail(title, err) {
-    const message = err instanceof ApiError ? err.message : "Something went wrong.";
+    const message =
+      err instanceof ApiError ? err.message : "Something went wrong.";
     show(view.renderError(title, message), "error", `${title} ${message}`);
     log("error", message);
   }
@@ -57,7 +86,9 @@ function mount(root) {
   function needPort() {
     const value = ui.port.value.trim();
     if (value) return value;
-    toast("Type a port number first (for example 443 for secure websites).", { kind: "error" });
+    toast("Type a port number first (for example 443 for secure websites).", {
+      kind: "error",
+    });
     ui.port.focus();
     return null;
   }
@@ -68,8 +99,10 @@ function mount(root) {
     try {
       const res = await call("net/activity", { since: S.activitySince });
       S.activitySince = res.total;
-      for (const row of res.rows.slice(-200)) ui.auditBody.prepend(view.activityRow(row));
-      while (ui.auditBody.childElementCount > 200) ui.auditBody.lastElementChild.remove();
+      for (const row of res.rows.slice(-200))
+        ui.auditBody.prepend(view.activityRow(row));
+      while (ui.auditBody.childElementCount > 200)
+        ui.auditBody.lastElementChild.remove();
       ui.auditEmpty.hidden = ui.auditBody.childElementCount > 0;
     } catch {
       // The audit list is a convenience; a missed refresh isn't worth an error.
@@ -97,11 +130,21 @@ function mount(root) {
     const host = needHost();
     if (!host) return;
     quick(`Checking the website at ${host}`, async () => {
-      const body = { host, scheme: ui.scheme.value, method: ui.readBody.checked ? "GET" : "HEAD" };
+      const body = {
+        host,
+        scheme: ui.scheme.value,
+        method: ui.readBody.checked ? "GET" : "HEAD",
+      };
       if (ui.port.value.trim()) body.port = ui.port.value.trim();
       const res = await call("net/probe", body);
       logAll(res.log);
-      show(view.renderProbe(res), "probe", res.error ? res.error.message : `Web check finished: ${res.status} ${res.statusText}`);
+      show(
+        view.renderProbe(res),
+        "probe",
+        res.error
+          ? res.error.message
+          : `Web check finished: ${res.status} ${res.statusText}`,
+      );
     });
   }
 
@@ -123,7 +166,10 @@ function mount(root) {
     quick(`Looking up ${type} records for ${host}`, async () => {
       const res = await call("net/dns", { host, type });
       const r = res.result;
-      log(r.error ? "error" : r.lines.length ? "ok" : "warn", `${type} for ${host}: ${r.error ? r.error.message : r.lines.length ? `${r.lines.length} line(s) from ${r.sourceLabel}` : "no records"} (${r.elapsedMs} ms)`);
+      log(
+        r.error ? "error" : r.lines.length ? "ok" : "warn",
+        `${type} for ${host}: ${r.error ? r.error.message : r.lines.length ? `${r.lines.length} line(s) from ${r.sourceLabel}` : "no records"} (${r.elapsedMs} ms)`,
+      );
       show(view.renderDns(res), "dns", `${type} lookup finished`);
     });
   }
@@ -133,31 +179,41 @@ function mount(root) {
     if (!host) return;
     quick(`Running a full DNS audit of ${host}`, async () => {
       const res = await call("net/dns", { host, type: "ALL" });
-      log("ok", `DNS audit of ${host}: ${res.active} of ${res.results.length} record types have data (${res.elapsedMs} ms)`);
+      log(
+        "ok",
+        `DNS audit of ${host}: ${res.active} of ${res.results.length} record types have data (${res.elapsedMs} ms)`,
+      );
       show(view.renderDnsAudit(res), "dns", "DNS audit finished");
     });
   }
 
   // ---- background tasks (scan, ping) -----------------------------------------------------------------------------
-  const nap = (ms) => new Promise((resolve) => {
-    S.wake = () => {
-      clearTimeout(S.timer);
-      S.wake = null;
-      resolve();
-    };
-    S.timer = setTimeout(S.wake, ms);
-  });
+  const nap = (ms) =>
+    new Promise((resolve) => {
+      S.wake = () => {
+        clearTimeout(S.timer);
+        S.wake = null;
+        resolve();
+      };
+      S.timer = setTimeout(S.wake, ms);
+    });
 
   function paint(task) {
     const key = `${task.state}/${task.done}/${ui.openOnly.checked}`;
     if (key !== S.paintKey) {
       S.paintKey = key;
-      show(task.kind === "ping" ? view.renderPing(task) : view.renderScan(task, ui.openOnly.checked), task.kind === "ping" ? "ping" : "scan");
+      show(
+        task.kind === "ping"
+          ? view.renderPing(task)
+          : view.renderScan(task, ui.openOnly.checked),
+        task.kind === "ping" ? "ping" : "scan",
+      );
     }
     ui.progress.hidden = task.state !== "running";
     ui.progress.max = Math.max(1, task.total);
     ui.progress.value = task.done;
-    ui.status.textContent = task.state === "running" ? `${task.done} of ${task.total} done` : "";
+    ui.status.textContent =
+      task.state === "running" ? `${task.done} of ${task.total} done` : "";
   }
 
   /** Polls a task until it ends (or the tab is left). Returns the final picture of the task, or null. */
@@ -172,7 +228,13 @@ function mount(root) {
       if (snap.state !== "running") return picture;
       await nap(POLL_MS);
       if (S.hidden) return null;
-      snap = (await call("net/status", { id: first.id, logFrom: snap.logCount, resultFrom: snap.resultCount })).task;
+      snap = (
+        await call("net/status", {
+          id: first.id,
+          logFrom: snap.logCount,
+          resultFrom: snap.resultCount,
+        })
+      ).task;
       refreshAudit();
     }
   }
@@ -194,7 +256,9 @@ function mount(root) {
           ui.format.querySelector('option[value="csv"]').disabled = false;
         }
         announce(done.summary || "Finished");
-        toast(done.summary || "Finished.", { kind: done.error ? "error" : "info" });
+        toast(done.summary || "Finished.", {
+          kind: done.error ? "error" : "info",
+        });
       }
     } catch (err) {
       fail("The check couldn't start.", err);
@@ -210,12 +274,22 @@ function mount(root) {
   function checkPort() {
     const host = needHost();
     const port = host && needPort();
-    if (host && port) startTask("net/scan", { host, mode: "single", port, timeoutMs: timeoutMs() }, `Checking port ${port} on ${host}...`);
+    if (host && port)
+      startTask(
+        "net/scan",
+        { host, mode: "single", port, timeoutMs: timeoutMs() },
+        `Checking port ${port} on ${host}...`,
+      );
   }
 
   function scanTop() {
     const host = needHost();
-    if (host) startTask("net/scan", { host, mode: "top", timeoutMs: timeoutMs() }, `Scanning the common ports on ${host}...`);
+    if (host)
+      startTask(
+        "net/scan",
+        { host, mode: "top", timeoutMs: timeoutMs() },
+        `Scanning the common ports on ${host}...`,
+      );
   }
 
   function scanList() {
@@ -223,11 +297,17 @@ function mount(root) {
     if (!host) return;
     const ports = ui.ports.value.trim();
     if (!ports) {
-      toast("Type the ports to scan, like 22,80,443 or 8000-8010.", { kind: "error" });
+      toast("Type the ports to scan, like 22,80,443 or 8000-8010.", {
+        kind: "error",
+      });
       ui.ports.focus();
       return;
     }
-    startTask("net/scan", { host, mode: "list", ports, timeoutMs: timeoutMs() }, `Scanning your list of ports on ${host}...`);
+    startTask(
+      "net/scan",
+      { host, mode: "list", ports, timeoutMs: timeoutMs() },
+      `Scanning your list of ports on ${host}...`,
+    );
   }
 
   function ping() {
@@ -246,7 +326,9 @@ function mount(root) {
       log("warn", "Cancel requested. Closing the connections...");
       S.wake?.();
     } catch (err) {
-      toast(err instanceof ApiError ? err.message : "Couldn't cancel.", { kind: "error" });
+      toast(err instanceof ApiError ? err.message : "Couldn't cancel.", {
+        kind: "error",
+      });
     } finally {
       ui.cancel.disabled = false;
     }
@@ -254,43 +336,79 @@ function mount(root) {
 
   // ---- report: copy, save, clear ---------------------------------------------------------------------------------
   async function copy() {
-    if (!S.report.trim()) return toast("Nothing to copy yet. Run a check first.", { kind: "error" });
-    const text = S.report.length > 99000 ? `${S.report.slice(0, 99000)}\n(report cut short)` : S.report;
+    if (!S.report.trim())
+      return toast("Nothing to copy yet. Run a check first.", {
+        kind: "error",
+      });
+    const text =
+      S.report.length > 99000
+        ? `${S.report.slice(0, 99000)}\n(report cut short)`
+        : S.report;
     try {
       const res = await call("copytext", { text });
-      toast(res.copied ? "Report copied. Paste it where you need it." : "Couldn't copy to the clipboard.", { kind: res.copied ? "success" : "error" });
+      toast(
+        res.copied
+          ? "Report copied. Paste it where you need it."
+          : "Couldn't copy to the clipboard.",
+        { kind: res.copied ? "success" : "error" },
+      );
     } catch (err) {
-      toast(err instanceof ApiError ? err.message : "Couldn't copy that.", { kind: "error" });
+      toast(err instanceof ApiError ? err.message : "Couldn't copy that.", {
+        kind: "error",
+      });
     }
   }
 
   async function save() {
     const asCsv = ui.format.value === "csv";
-    if (!asCsv && !S.report.trim()) return toast("There is nothing to save yet. Run a check first.", { kind: "error" });
+    if (!asCsv && !S.report.trim())
+      return toast("There is nothing to save yet. Run a check first.", {
+        kind: "error",
+      });
     const folder = ui.folder.value.trim();
     if (!folder) {
-      toast("Type the folder to save in, like ~/Documents (or press \"Use current folder\").", { kind: "error" });
+      toast(
+        'Type the folder to save in, like ~/Documents (or press "Use current folder").',
+        { kind: "error" },
+      );
       ui.folder.focus();
       return;
     }
     try {
-      const res = await call("net/save", { folder, name: ui.name.value.trim() || undefined, text: S.report, format: asCsv ? "csv" : "text", taskId: asCsv ? S.scanId : undefined });
+      const res = await call("net/save", {
+        folder,
+        name: ui.name.value.trim() || undefined,
+        text: S.report,
+        format: asCsv ? "csv" : "text",
+        taskId: asCsv ? S.scanId : undefined,
+      });
       toast(`Saved as "${res.name}".`, { kind: "success" });
       log("ok", `Report saved to ${res.path}`);
     } catch (err) {
-      toast(err instanceof ApiError ? err.message : "Couldn't save the report.", { kind: "error" });
+      toast(
+        err instanceof ApiError ? err.message : "Couldn't save the report.",
+        { kind: "error" },
+      );
     }
   }
 
   function useFolder() {
     const here = currentPath();
-    if (!here) return toast("You aren't in a normal folder right now. Type a folder instead.", { kind: "error" });
+    if (!here)
+      return toast(
+        "You aren't in a normal folder right now. Type a folder instead.",
+        { kind: "error" },
+      );
     ui.folder.value = here;
     S.folderTouched = true;
   }
 
   async function clearAll() {
-    if (S.busy) return toast("Wait for the running check to finish, or cancel it first.", { kind: "error" });
+    if (S.busy)
+      return toast(
+        "Wait for the running check to finish, or cancel it first.",
+        { kind: "error" },
+      );
     try {
       await call("net/clear", {});
     } catch {
@@ -311,12 +429,16 @@ function mount(root) {
   function pick(preset) {
     ui.host.value = preset.host;
     ui.port.value = String(preset.port);
-    log("info", `Target set to ${preset.host}:${preset.port} (${preset.label}).`);
+    log(
+      "info",
+      `Target set to ${preset.host}:${preset.port} (${preset.label}).`,
+    );
     announce(`Target set to ${preset.host} port ${preset.port}`);
   }
 
   ui.openOnly.addEventListener("change", () => {
-    if (S.lastScan && S.showing === "scan" && !S.busy) show(view.renderScan(S.lastScan, ui.openOnly.checked), "scan");
+    if (S.lastScan && S.showing === "scan" && !S.busy)
+      show(view.renderScan(S.lastScan, ui.openOnly.checked), "scan");
   });
   ui.folder.addEventListener("input", () => (S.folderTouched = true));
   const onEnter = (action) => (e) => {
@@ -332,13 +454,34 @@ function mount(root) {
   ui.timeout.addEventListener("keydown", onEnter(scanList));
 
   show(view.renderWelcome([], null), "welcome");
-  call("net/presets").then((res) => {
-    ui.presetRow.append(
-      h("span", { class: "pw-hint" }, "Quick targets:"),
-      ...res.presets.map((p) => h("button", { type: "button", class: "pw-btn net-run", title: `${p.note} Fills in ${p.host} and port ${p.port}.`, onclick: () => pick(p) }, p.label)),
+  call("net/presets")
+    .then((res) => {
+      ui.presetRow.append(
+        h("span", { class: "pw-hint" }, "Quick targets:"),
+        ...res.presets.map((p) =>
+          h(
+            "button",
+            {
+              type: "button",
+              class: "pw-btn net-run",
+              title: `${p.note} Fills in ${p.host} and port ${p.port}.`,
+              onclick: () => pick(p),
+            },
+            p.label,
+          ),
+        ),
+      );
+      if (S.showing === "welcome")
+        show(view.renderWelcome(res.connections, res.limits), "welcome");
+    })
+    .catch((err) =>
+      log(
+        "warn",
+        err instanceof ApiError
+          ? err.message
+          : "Couldn't load the quick targets.",
+      ),
     );
-    if (S.showing === "welcome") show(view.renderWelcome(res.connections, res.limits), "welcome");
-  }).catch((err) => log("warn", err instanceof ApiError ? err.message : "Couldn't load the quick targets."));
 
   return {
     show(opts) {
@@ -348,7 +491,10 @@ function mount(root) {
       if (typeof opts?.host === "string" && opts.host) {
         ui.host.value = opts.host.slice(0, 300);
         ui.port.value = "";
-        log("info", `Target set to ${ui.host.value} (from the Subdomains tab).`);
+        log(
+          "info",
+          `Target set to ${ui.host.value} (from the Subdomains tab).`,
+        );
       }
       ui.host.focus();
     },
@@ -364,7 +510,10 @@ function mount(root) {
 }
 
 registerPowerTab({
-  id: "net", label: "Network", icon: "📡", tip: "Ports, DNS, TLS certificates and connection checks",
+  id: "net",
+  label: "Network",
+  icon: "📡",
+  tip: "Ports, DNS, TLS certificates and connection checks",
   mount,
 });
 

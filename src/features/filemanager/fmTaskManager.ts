@@ -156,7 +156,10 @@ export interface TaskCommandResult {
 /** Dependency injection hooks for testing Task Manager discovery, inspection, and signal commands across platforms. */
 export interface TaskManagerHooks {
   /** Override OS command runner for deterministic cross-platform tests. */
-  execCommand?: (cmd: string[], platform: Platform) => Promise<TaskCommandResult>;
+  execCommand?: (
+    cmd: string[],
+    platform: Platform,
+  ) => Promise<TaskCommandResult>;
   /** Override current username. */
   currentUser?: string;
   /** Override this server's PID. */
@@ -212,7 +215,11 @@ export const WIN_CRITICAL_NAMES = [
 ];
 
 /** Returns `true` if `pid` or `name` identifies a protected OS kernel or init/system service process on `platform`. */
-export function isCriticalProcess(name: string, pid: string, platform: Platform): boolean {
+export function isCriticalProcess(
+  name: string,
+  pid: string,
+  platform: Platform,
+): boolean {
   if (pid === "0") return true;
   const lower = (name || "").trim().toLowerCase();
   if (platform === "win32") {
@@ -224,7 +231,10 @@ export function isCriticalProcess(name: string, pid: string, platform: Platform)
 }
 
 /** POSIX signal numbers by platform (`SIGSTOP` and `SIGCONT` differ between macOS/BSD and Linux). */
-export function posixSignalNumber(signal: "SIGTERM" | "SIGKILL" | "SIGSTOP" | "SIGCONT" | "SIGHUP", platform: Platform): number {
+export function posixSignalNumber(
+  signal: "SIGTERM" | "SIGKILL" | "SIGSTOP" | "SIGCONT" | "SIGHUP",
+  platform: Platform,
+): number {
   switch (signal) {
     case "SIGHUP":
       return 1;
@@ -240,13 +250,16 @@ export function posixSignalNumber(signal: "SIGTERM" | "SIGKILL" | "SIGSTOP" | "S
 }
 
 /** Builds the `TaskPlatformProfile` describing process discovery, port mapping, and available actions for `platform`. */
-export function getTaskPlatformProfile(platform: Platform): TaskPlatformProfile {
+export function getTaskPlatformProfile(
+  platform: Platform,
+): TaskPlatformProfile {
   if (platform === "win32") {
     return {
       platform: "win32",
       osLabel: "Windows",
       family: "windows",
-      listMechanism: "PowerShell CIM (Win32_Process + Get-Process) / tasklist /V /FO CSV",
+      listMechanism:
+        "PowerShell CIM (Win32_Process + Get-Process) / tasklist /V /FO CSV",
       portMechanism: "netstat -ano -p tcp",
       killMechanism: "taskkill (/PID, /F, /T)",
       priorityMechanism: "PowerShell PriorityClass = BelowNormal",
@@ -259,7 +272,8 @@ export function getTaskPlatformProfile(platform: Platform): TaskPlatformProfile 
           id: "terminate",
           label: "End Task",
           shortLabel: "End Task",
-          description: "Ask the Windows process to close gracefully via taskkill /PID.",
+          description:
+            "Ask the Windows process to close gracefully via taskkill /PID.",
           commandHint: "taskkill /PID <pid>",
           danger: false,
         },
@@ -267,7 +281,8 @@ export function getTaskPlatformProfile(platform: Platform): TaskPlatformProfile 
           id: "kill",
           label: "Force End Task (/F)",
           shortLabel: "Force Kill",
-          description: "Immediately terminate the Windows process via taskkill /F /PID.",
+          description:
+            "Immediately terminate the Windows process via taskkill /F /PID.",
           commandHint: "taskkill /F /PID <pid>",
           danger: true,
         },
@@ -275,7 +290,8 @@ export function getTaskPlatformProfile(platform: Platform): TaskPlatformProfile 
           id: "tree",
           label: "Kill Process Tree (/T /F)",
           shortLabel: "Kill Tree",
-          description: "Terminate the process and all child processes started by it via taskkill /T /F /PID.",
+          description:
+            "Terminate the process and all child processes started by it via taskkill /T /F /PID.",
           commandHint: "taskkill /T /F /PID <pid>",
           danger: true,
         },
@@ -283,7 +299,8 @@ export function getTaskPlatformProfile(platform: Platform): TaskPlatformProfile 
           id: "group",
           label: "End All Same-Name Tasks",
           shortLabel: "End Group",
-          description: "Terminate all running instances sharing this executable name.",
+          description:
+            "Terminate all running instances sharing this executable name.",
           commandHint: "taskkill /F /PID <pids...>",
           danger: true,
         },
@@ -291,7 +308,8 @@ export function getTaskPlatformProfile(platform: Platform): TaskPlatformProfile 
           id: "priority",
           label: "Lower Priority (BelowNormal)",
           shortLabel: "BelowNormal",
-          description: "Set Windows process PriorityClass to BelowNormal so background tasks yield CPU.",
+          description:
+            "Set Windows process PriorityClass to BelowNormal so background tasks yield CPU.",
           commandHint: "(Get-Process -Id <pid>).PriorityClass = 'BelowNormal'",
           danger: false,
         },
@@ -307,8 +325,15 @@ export function getTaskPlatformProfile(platform: Platform): TaskPlatformProfile 
     osLabel: isLinux ? "Linux" : "macOS",
     family: "unix",
     listMechanism: "ps -axo pid,ppid,pcpu,pmem,rss,state,user,etime,command",
-    portMechanism: isLinux ? "lsof -iTCP / ss -tlnp" : "lsof -iTCP -sTCP:LISTEN -n -P",
-    killMechanism: "POSIX kill (-15 SIGTERM, -9 SIGKILL, -" + stopNum + " SIGSTOP, -" + contNum + " SIGCONT, -1 SIGHUP)",
+    portMechanism: isLinux
+      ? "lsof -iTCP / ss -tlnp"
+      : "lsof -iTCP -sTCP:LISTEN -n -P",
+    killMechanism:
+      "POSIX kill (-15 SIGTERM, -9 SIGKILL, -" +
+      stopNum +
+      " SIGSTOP, -" +
+      contNum +
+      " SIGCONT, -1 SIGHUP)",
     priorityMechanism: "renice 10 -p <pid>",
     supportsPosixSignals: true,
     supportsSuspendResume: true,
@@ -319,7 +344,8 @@ export function getTaskPlatformProfile(platform: Platform): TaskPlatformProfile 
         id: "terminate",
         label: "Terminate (SIGTERM)",
         shortLabel: "SIGTERM",
-        description: "Send polite POSIX SIGTERM (15) so the process can flush state and exit cleanly.",
+        description:
+          "Send polite POSIX SIGTERM (15) so the process can flush state and exit cleanly.",
         commandHint: "kill -15 <pid>",
         danger: false,
       },
@@ -327,7 +353,8 @@ export function getTaskPlatformProfile(platform: Platform): TaskPlatformProfile 
         id: "kill",
         label: "Force Kill (SIGKILL)",
         shortLabel: "SIGKILL",
-        description: "Send immediate POSIX SIGKILL (9). Cannot be caught or ignored.",
+        description:
+          "Send immediate POSIX SIGKILL (9). Cannot be caught or ignored.",
         commandHint: "kill -9 <pid>",
         danger: true,
       },
@@ -351,7 +378,8 @@ export function getTaskPlatformProfile(platform: Platform): TaskPlatformProfile 
         id: "reload",
         label: "Reload Config (SIGHUP)",
         shortLabel: "SIGHUP",
-        description: "Send SIGHUP (1) to ask daemons/servers to reload their configuration.",
+        description:
+          "Send SIGHUP (1) to ask daemons/servers to reload their configuration.",
         commandHint: "kill -1 <pid>",
         danger: false,
       },
@@ -359,7 +387,8 @@ export function getTaskPlatformProfile(platform: Platform): TaskPlatformProfile 
         id: "tree",
         label: "Kill Process Tree",
         shortLabel: "Kill Tree",
-        description: "Terminate all descendant child processes deepest-first, then the root process.",
+        description:
+          "Terminate all descendant child processes deepest-first, then the root process.",
         commandHint: "kill -15 <children...> <pid>",
         danger: true,
       },
@@ -367,7 +396,8 @@ export function getTaskPlatformProfile(platform: Platform): TaskPlatformProfile 
         id: "group",
         label: "Terminate Same-Name Group",
         shortLabel: "Kill Group",
-        description: "Send SIGTERM to every running process with the same application name.",
+        description:
+          "Send SIGTERM to every running process with the same application name.",
         commandHint: "kill -15 <group...>",
         danger: true,
       },
@@ -375,7 +405,8 @@ export function getTaskPlatformProfile(platform: Platform): TaskPlatformProfile 
         id: "priority",
         label: "Lower Priority (renice +10)",
         shortLabel: "Renice +10",
-        description: "Increase nice value to +10 so CPU-heavy jobs yield to interactive apps.",
+        description:
+          "Increase nice value to +10 so CPU-heavy jobs yield to interactive apps.",
         commandHint: "renice 10 -p <pid>",
         danger: false,
       },
@@ -384,11 +415,18 @@ export function getTaskPlatformProfile(platform: Platform): TaskPlatformProfile 
 }
 
 /** Extract a human-readable process name from a command line or executable path across Windows and *nix. */
-export function extractProcessName(command: string, platform: Platform = "darwin"): string {
+export function extractProcessName(
+  command: string,
+  platform: Platform = "darwin",
+): string {
   const trimmed = (command || "").trim();
   if (!trimmed) return "unknown";
 
-  if (platform === "win32" || /^[A-Za-z]:\\/.test(trimmed) || /^"[A-Za-z]:\\/.test(trimmed)) {
+  if (
+    platform === "win32" ||
+    /^[A-Za-z]:\\/.test(trimmed) ||
+    /^"[A-Za-z]:\\/.test(trimmed)
+  ) {
     let token = trimmed;
     if (token.startsWith('"')) {
       const endQuote = token.indexOf('"', 1);
@@ -406,7 +444,8 @@ export function extractProcessName(command: string, platform: Platform = "darwin
   let firstToken = trimmed;
   if (firstToken.startsWith('"')) {
     const endQuote = firstToken.indexOf('"', 1);
-    firstToken = endQuote > 1 ? firstToken.slice(1, endQuote) : firstToken.slice(1);
+    firstToken =
+      endQuote > 1 ? firstToken.slice(1, endQuote) : firstToken.slice(1);
   } else {
     firstToken = firstToken.split(/\s+/)[0] || "";
   }
@@ -415,15 +454,28 @@ export function extractProcessName(command: string, platform: Platform = "darwin
 }
 
 /** Best-effort absolute path to the executable or .app bundle for revelar/navigation in File Manager. */
-export function executablePath(command: string, platform: Platform = "darwin", explicitExe?: string | null): string | null {
+export function executablePath(
+  command: string,
+  platform: Platform = "darwin",
+  explicitExe?: string | null,
+): string | null {
   if (explicitExe && typeof explicitExe === "string" && explicitExe.trim()) {
     const clean = explicitExe.trim();
-    if (platform === "win32" ? /^[A-Za-z]:[\\/]/.test(clean) : clean.startsWith("/")) return clean;
+    if (
+      platform === "win32"
+        ? /^[A-Za-z]:[\\/]/.test(clean)
+        : clean.startsWith("/")
+    )
+      return clean;
   }
   const trimmed = (command || "").trim();
   if (!trimmed) return null;
 
-  if (platform === "win32" || /^[A-Za-z]:\\/.test(trimmed) || /^"[A-Za-z]:\\/.test(trimmed)) {
+  if (
+    platform === "win32" ||
+    /^[A-Za-z]:\\/.test(trimmed) ||
+    /^"[A-Za-z]:\\/.test(trimmed)
+  ) {
     if (trimmed.startsWith('"')) {
       const end = trimmed.indexOf('"', 1);
       if (end > 1) {
@@ -431,7 +483,8 @@ export function executablePath(command: string, platform: Platform = "darwin", e
         return /^[A-Za-z]:[\\/]/.test(candidate) ? candidate : null;
       }
     }
-    const exeMatch = /^([A-Za-z]:[\\/][^\r\n"]*?\.(?:exe|cmd|bat|com|ps1))\b/i.exec(trimmed);
+    const exeMatch =
+      /^([A-Za-z]:[\\/][^\r\n"]*?\.(?:exe|cmd|bat|com|ps1))\b/i.exec(trimmed);
     if (exeMatch) return exeMatch[1]!;
     const first = trimmed.split(/\s+/)[0] || "";
     return /^[A-Za-z]:[\\/]/.test(first) ? first : null;
@@ -441,7 +494,8 @@ export function executablePath(command: string, platform: Platform = "darwin", e
   if (app) return app[1]!;
   if (trimmed.startsWith('"')) {
     const end = trimmed.indexOf('"', 1);
-    if (end > 1 && trimmed.slice(1, end).startsWith("/")) return trimmed.slice(1, end);
+    if (end > 1 && trimmed.slice(1, end).startsWith("/"))
+      return trimmed.slice(1, end);
   }
   const first = trimmed.split(/\s+/)[0] || "";
   return first.startsWith("/") ? first : null;
@@ -450,14 +504,21 @@ export function executablePath(command: string, platform: Platform = "darwin", e
 /** Returns `true` if `command` or `name` matches a known runtime, web server, bundler, database, or container tool. */
 export function isDevServerProcess(command: string, name: string): boolean {
   const hay = `${name} ${command}`.toLowerCase();
-  return /\b(bun|node|deno|vite|next|ts-node|tsx|esbuild|webpack|turbopack|python|python3|uvicorn|gunicorn|flask|fastapi|ruby|rails|cargo|rustc|go|redis-server|postgres|mysqld|mongod|docker|caddy|nginx|php|dotnet|java)\b/i.test(hay);
+  return /\b(bun|node|deno|vite|next|ts-node|tsx|esbuild|webpack|turbopack|python|python3|uvicorn|gunicorn|flask|fastapi|ruby|rails|cargo|rustc|go|redis-server|postgres|mysqld|mongod|docker|caddy|nginx|php|dotnet|java)\b/i.test(
+    hay,
+  );
 }
 
 /** Parse `ps` elapsed time (`[[dd-]hh:]mm:ss`) to seconds. */
 export function parseEtime(s: string): number | undefined {
   const m = /^(?:(\d+)-)?(?:(\d+):)?(\d+):(\d+)$/.exec((s || "").trim());
   if (!m) return undefined;
-  return Number(m[1] || 0) * 86400 + Number(m[2] || 0) * 3600 + Number(m[3]) * 60 + Number(m[4]);
+  return (
+    Number(m[1] || 0) * 86400 +
+    Number(m[2] || 0) * 3600 +
+    Number(m[3]) * 60 +
+    Number(m[4])
+  );
 }
 
 /** Formats an elapsed uptime in seconds into a compact human string (e.g. `"45s"`, `"12m"`, `"3h 14m"`, `"2d 5h"`). */
@@ -465,7 +526,8 @@ export function formatUptime(sec: number | undefined): string {
   if (sec === undefined || !Number.isFinite(sec) || sec < 0) return "—";
   if (sec < 60) return `${Math.floor(sec)}s`;
   if (sec < 3600) return `${Math.floor(sec / 60)}m`;
-  if (sec < 86400) return `${Math.floor(sec / 3600)}h ${Math.floor((sec % 3600) / 60)}m`;
+  if (sec < 86400)
+    return `${Math.floor(sec / 3600)}h ${Math.floor((sec % 3600) / 60)}m`;
   return `${Math.floor(sec / 86400)}d ${Math.floor((sec % 86400) / 3600)}h`;
 }
 
@@ -475,7 +537,10 @@ export function formatMb(kb: number): string {
 }
 
 /** Translates a raw `ps` or Windows process state code into a human-readable status label. */
-export function stateLabel(state: string, platform: Platform = "darwin"): string {
+export function stateLabel(
+  state: string,
+  platform: Platform = "darwin",
+): string {
   const raw = (state || "?").trim();
   if (platform === "win32") {
     const upper = raw.toUpperCase();
@@ -619,7 +684,13 @@ export function parseWindowsNetstat(out: string): Map<string, string[]> {
     const localAddr = parts[1] || "";
     const state = parts[3]!.toUpperCase();
     const pid = parts[4] || "";
-    if (proto !== "TCP" || state !== "LISTENING" || !/^\d+$/.test(pid) || pid === "0") continue;
+    if (
+      proto !== "TCP" ||
+      state !== "LISTENING" ||
+      !/^\d+$/.test(pid) ||
+      pid === "0"
+    )
+      continue;
     const portMatch = /:(\d+)$/.exec(localAddr);
     if (!portMatch) continue;
     const port = `:${portMatch[1]}`;
@@ -647,9 +718,14 @@ export function parseWindowsProcessJson(
   } catch {
     return [];
   }
-  const list = Array.isArray(parsed) ? parsed : parsed && typeof parsed === "object" ? [parsed] : [];
+  const list = Array.isArray(parsed)
+    ? parsed
+    : parsed && typeof parsed === "object"
+      ? [parsed]
+      : [];
   const items: TaskProcessItem[] = [];
-  const safeTotalMem = totalMemBytes > 0 ? totalMemBytes : 8 * 1024 * 1024 * 1024;
+  const safeTotalMem =
+    totalMemBytes > 0 ? totalMemBytes : 8 * 1024 * 1024 * 1024;
 
   for (const row of list) {
     if (!row || typeof row !== "object") continue;
@@ -660,18 +736,35 @@ export function parseWindowsProcessJson(
     if (!/^\d+$/.test(pid)) continue;
     const ppid = String(r.ParentProcessId ?? r.ppid ?? 0).trim();
     const rawName = String(r.Name ?? r.ProcessName ?? "").trim();
-    const exe = typeof r.ExecutablePath === "string" && r.ExecutablePath.trim() ? r.ExecutablePath.trim() : typeof r.Path === "string" && r.Path.trim() ? r.Path.trim() : null;
-    const cmdLine = typeof r.CommandLine === "string" && r.CommandLine.trim() ? r.CommandLine.trim() : exe || rawName || "unknown";
+    const exe =
+      typeof r.ExecutablePath === "string" && r.ExecutablePath.trim()
+        ? r.ExecutablePath.trim()
+        : typeof r.Path === "string" && r.Path.trim()
+          ? r.Path.trim()
+          : null;
+    const cmdLine =
+      typeof r.CommandLine === "string" && r.CommandLine.trim()
+        ? r.CommandLine.trim()
+        : exe || rawName || "unknown";
     const name = rawName ? rawName : extractProcessName(cmdLine, "win32");
-    const wsBytes = Number(r.WorkingSetSize ?? r.WorkingSet64 ?? r.WS ?? 0) || 0;
+    const wsBytes =
+      Number(r.WorkingSetSize ?? r.WorkingSet64 ?? r.WS ?? 0) || 0;
     const rssKb = Math.max(0, Math.round(wsBytes / 1024));
-    const mem = Math.round(((wsBytes / safeTotalMem) * 100) * 10) / 10;
+    const mem = Math.round((wsBytes / safeTotalMem) * 100 * 10) / 10;
     const cpu = Math.round((Number(r.CpuPercent ?? r.CPU ?? 0) || 0) * 10) / 10;
     const responding = r.Responding !== false;
     const state = responding ? "R" : "NR";
-    const user = String(r.UserName ?? r.Owner ?? currentUser ?? "SYSTEM").trim() || "SYSTEM";
-    const uptimeSec = Number.isFinite(Number(r.ElapsedSeconds)) && Number(r.ElapsedSeconds) >= 0 ? Math.floor(Number(r.ElapsedSeconds)) : undefined;
-    const winTitle = typeof r.MainWindowTitle === "string" && r.MainWindowTitle.trim() ? r.MainWindowTitle.trim() : undefined;
+    const user =
+      String(r.UserName ?? r.Owner ?? currentUser ?? "SYSTEM").trim() ||
+      "SYSTEM";
+    const uptimeSec =
+      Number.isFinite(Number(r.ElapsedSeconds)) && Number(r.ElapsedSeconds) >= 0
+        ? Math.floor(Number(r.ElapsedSeconds))
+        : undefined;
+    const winTitle =
+      typeof r.MainWindowTitle === "string" && r.MainWindowTitle.trim()
+        ? r.MainWindowTitle.trim()
+        : undefined;
 
     items.push({
       pid,
@@ -741,7 +834,8 @@ export function parseWindowsTasklistCsv(
 ): TaskProcessItem[] {
   const lines = (csvText || "").trim().split(/\r?\n/);
   const items: TaskProcessItem[] = [];
-  const safeTotalMem = totalMemBytes > 0 ? totalMemBytes : 8 * 1024 * 1024 * 1024;
+  const safeTotalMem =
+    totalMemBytes > 0 ? totalMemBytes : 8 * 1024 * 1024 * 1024;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]?.trim();
@@ -750,13 +844,17 @@ export function parseWindowsTasklistCsv(
     if (cols.length < 5) continue;
     const imageName = (cols[0] || "").trim();
     const pid = (cols[1] || "").trim();
-    if (i === 0 && (imageName.toLowerCase() === "image name" || !/^\d+$/.test(pid))) continue;
+    if (
+      i === 0 &&
+      (imageName.toLowerCase() === "image name" || !/^\d+$/.test(pid))
+    )
+      continue;
     if (!/^\d+$/.test(pid)) continue;
 
     // Mem Usage looks like "45,120 K"
     const memRaw = (cols[4] || "").replace(/[^0-9]/g, "");
     const rssKb = parseInt(memRaw || "0", 10) || 0;
-    const mem = Math.round((((rssKb * 1024) / safeTotalMem) * 100) * 10) / 10;
+    const mem = Math.round(((rssKb * 1024) / safeTotalMem) * 100 * 10) / 10;
     const statusRaw = (cols[5] || "Running").trim();
     const state = /not responding/i.test(statusRaw) ? "NR" : "R";
     const userRaw = (cols[6] || "").trim();
@@ -764,7 +862,10 @@ export function parseWindowsTasklistCsv(
     const cpuTimeRaw = (cols[7] || "").trim();
     const uptimeSec = parseEtime(cpuTimeRaw);
     const windowTitleRaw = (cols[8] || "").trim();
-    const windowTitle = windowTitleRaw && !/^n\/a$/i.test(windowTitleRaw) ? windowTitleRaw : undefined;
+    const windowTitle =
+      windowTitleRaw && !/^n\/a$/i.test(windowTitleRaw)
+        ? windowTitleRaw
+        : undefined;
 
     items.push({
       pid,
@@ -823,7 +924,10 @@ export function groupProcesses(procs: TaskProcessItem[]): TaskProcessGroup[] {
 }
 
 /** Returns direct child processes of `pid` from `procs`. */
-export function childrenOf(procs: TaskProcessItem[], pid: string): TaskProcessItem[] {
+export function childrenOf(
+  procs: TaskProcessItem[],
+  pid: string,
+): TaskProcessItem[] {
   return procs.filter((p) => p.ppid === pid && p.pid !== pid);
 }
 
@@ -881,7 +985,8 @@ export function buildProcessTree(procs: TaskProcessItem[]): TaskTreeRow[] {
     }
   }
 
-  const sortFn = (a: TaskProcessItem, b: TaskProcessItem) => b.cpu - a.cpu || b.rssKb - a.rssKb || Number(a.pid) - Number(b.pid);
+  const sortFn = (a: TaskProcessItem, b: TaskProcessItem) =>
+    b.cpu - a.cpu || b.rssKb - a.rssKb || Number(a.pid) - Number(b.pid);
   roots.sort(sortFn);
   for (const list of childrenMap.values()) list.sort(sortFn);
 
@@ -929,16 +1034,28 @@ export function assessTaskAction(
   ctx: TaskSafetyContext,
 ): TaskActionAssessment {
   if (!/^\d+$/.test(pid) || pid === "0") {
-    return { allowed: false, reason: "Please choose a valid numeric process ID (PID)." };
+    return {
+      allowed: false,
+      reason: "Please choose a valid numeric process ID (PID).",
+    };
   }
   if (pid === ctx.selfPid) {
-    return { allowed: false, reason: "Refusing to stop the File Manager's own server process." };
+    return {
+      allowed: false,
+      reason: "Refusing to stop the File Manager's own server process.",
+    };
   }
   if (ctx.platform === "win32" && pid === "4") {
-    return { allowed: false, reason: "Refusing to terminate PID 4 (Windows System kernel process)." };
+    return {
+      allowed: false,
+      reason: "Refusing to terminate PID 4 (Windows System kernel process).",
+    };
   }
   if (ctx.platform !== "win32" && pid === "1") {
-    return { allowed: false, reason: "Refusing to signal PID 1 (launchd/systemd/init)." };
+    return {
+      allowed: false,
+      reason: "Refusing to signal PID 1 (launchd/systemd/init).",
+    };
   }
   if (proc && isCriticalProcess(proc.name, pid, ctx.platform)) {
     return {
@@ -946,7 +1063,10 @@ export function assessTaskAction(
       reason: `Refusing to modify ${proc.name} (PID ${pid}): it is a protected ${ctx.platform === "win32" ? "Windows" : "system"} operating system process.`,
     };
   }
-  if (ctx.platform === "win32" && (action === "suspend" || action === "resume" || action === "reload")) {
+  if (
+    ctx.platform === "win32" &&
+    (action === "suspend" || action === "resume" || action === "reload")
+  ) {
     return {
       allowed: false,
       reason: `POSIX signal action "${action}" is not supported on Windows. Use End Task, Force End Task (/F), Kill Process Tree (/T /F), or Lower Priority instead.`,
@@ -960,19 +1080,29 @@ export function assessTaskAction(
   const label = proc ? `${proc.name} (PID ${pid})` : `PID ${pid}`;
   const notes: string[] = [];
   if (!proc) {
-    notes.push("Process details could not be verified in the current snapshot.");
+    notes.push(
+      "Process details could not be verified in the current snapshot.",
+    );
   }
   if (pid === ctx.parentPid) {
-    notes.push("This is the parent process that launched the File Manager window.");
+    notes.push(
+      "This is the parent process that launched the File Manager window.",
+    );
   }
   if (proc && !proc.isUserApp) {
-    notes.push(`It belongs to "${proc.user}", not "${ctx.currentUser}". Stopping system processes may require administrator privileges or affect stability.`);
+    notes.push(
+      `It belongs to "${proc.user}", not "${ctx.currentUser}". Stopping system processes may require administrator privileges or affect stability.`,
+    );
   }
   if (proc && proc.ports.length > 0) {
     notes.push(`It is listening on ${proc.ports.join(", ")}.`);
   }
 
-  const alwaysConfirm = action === "kill" || action === "suspend" || action === "tree" || action === "group";
+  const alwaysConfirm =
+    action === "kill" ||
+    action === "suspend" ||
+    action === "tree" ||
+    action === "group";
   if (alwaysConfirm || notes.length > 0) {
     const verb =
       action === "kill"
@@ -1001,7 +1131,10 @@ export function assessTaskAction(
 }
 
 /** Rogue dev servers: user-owned dev server processes that are listening on a port or orphaned, excluding our own process tree. */
-export function findRogueDevServers(procs: TaskProcessItem[], ctx: TaskSafetyContext): TaskProcessItem[] {
+export function findRogueDevServers(
+  procs: TaskProcessItem[],
+  ctx: TaskSafetyContext,
+): TaskProcessItem[] {
   const protectedPids = new Set<string>([
     ctx.selfPid,
     ctx.parentPid,
@@ -1026,13 +1159,17 @@ export function findRogueDevServers(procs: TaskProcessItem[], ctx: TaskSafetyCon
  * - `cpu>10`, `mem>5`, `rss>100`
  * - free text across name, command, pid, user, ports, windowTitle
  */
-export function matchesTaskQuery(p: TaskProcessItem, rawQuery: string): boolean {
+export function matchesTaskQuery(
+  p: TaskProcessItem,
+  rawQuery: string,
+): boolean {
   const q = (rawQuery || "").trim().toLowerCase();
   if (!q) return true;
   const tokens = q.split(/\s+/).filter(Boolean);
   for (const tok of tokens) {
     if (tok.startsWith(":")) {
-      if (!p.ports.some((port) => port.toLowerCase().includes(tok))) return false;
+      if (!p.ports.some((port) => port.toLowerCase().includes(tok)))
+        return false;
       continue;
     }
     if (tok.startsWith("pid:")) {
@@ -1050,7 +1187,8 @@ export function matchesTaskQuery(p: TaskProcessItem, rawQuery: string): boolean 
       const metric = cmp[1]!;
       const op = cmp[2]!;
       const threshold = parseFloat(cmp[3]!);
-      const actual = metric === "cpu" ? p.cpu : metric === "mem" ? p.mem : p.rssKb / 1024;
+      const actual =
+        metric === "cpu" ? p.cpu : metric === "mem" ? p.mem : p.rssKb / 1024;
       if (op === ">" && !(actual > threshold)) return false;
       if (op === ">=" && !(actual >= threshold)) return false;
       if (op === "<" && !(actual < threshold)) return false;
@@ -1058,7 +1196,8 @@ export function matchesTaskQuery(p: TaskProcessItem, rawQuery: string): boolean 
       if (op === "=" && Math.abs(actual - threshold) > 0.05) return false;
       continue;
     }
-    const hay = `${p.name} ${p.pid} ${p.user} ${p.ports.join(" ")} ${p.command} ${p.windowTitle ?? ""}`.toLowerCase();
+    const hay =
+      `${p.name} ${p.pid} ${p.user} ${p.ports.join(" ")} ${p.command} ${p.windowTitle ?? ""}`.toLowerCase();
     if (!hay.includes(tok)) return false;
   }
   return true;
@@ -1084,7 +1223,19 @@ function csvCell(v: unknown): string {
 
 /** Formats a list of `TaskProcessItem` records as a spreadsheet-safe CSV document. */
 export function processesToCsv(procs: TaskProcessItem[]): string {
-  const head = ["pid", "ppid", "name", "user", "state", "cpu_percent", "mem_percent", "rss_mb", "uptime", "ports", "command"];
+  const head = [
+    "pid",
+    "ppid",
+    "name",
+    "user",
+    "state",
+    "cpu_percent",
+    "mem_percent",
+    "rss_mb",
+    "uptime",
+    "ports",
+    "command",
+  ];
   const rows = procs.map((p) => [
     p.pid,
     p.ppid,
@@ -1102,7 +1253,10 @@ export function processesToCsv(procs: TaskProcessItem[]): string {
 }
 
 /** Formats a list of `TaskProcessItem` records and optional metadata as pretty-printed JSON. */
-export function processesToJson(procs: TaskProcessItem[], meta: Record<string, unknown> = {}): string {
+export function processesToJson(
+  procs: TaskProcessItem[],
+  meta: Record<string, unknown> = {},
+): string {
   return (
     JSON.stringify(
       {
@@ -1134,7 +1288,19 @@ export function processesToJson(procs: TaskProcessItem[], meta: Record<string, u
 
 /** Formats a list of `TaskProcessItem` records as a tab-separated values (TSV) table. */
 export function processesToTsv(procs: TaskProcessItem[]): string {
-  const head = ["PID", "PPID", "Name", "Ports", "CPU %", "MEM %", "RSS", "User", "State", "Uptime", "Command"].join("\t");
+  const head = [
+    "PID",
+    "PPID",
+    "Name",
+    "Ports",
+    "CPU %",
+    "MEM %",
+    "RSS",
+    "User",
+    "State",
+    "Uptime",
+    "Command",
+  ].join("\t");
   return (
     head +
     "\n" +
@@ -1160,7 +1326,10 @@ export function processesToTsv(procs: TaskProcessItem[]): string {
 }
 
 /** Formats a list of `TaskProcessItem` records as a Markdown report table for `platform`. */
-export function processesToMarkdown(procs: TaskProcessItem[], platform: Platform): string {
+export function processesToMarkdown(
+  procs: TaskProcessItem[],
+  platform: Platform,
+): string {
   const esc = (s: string) => s.replace(/\|/g, "\\|").replace(/[\r\n]+/g, " ");
   const lines = [
     `# Process & Task Snapshot (${platform})`,
@@ -1184,7 +1353,10 @@ export function processesToMarkdown(procs: TaskProcessItem[], platform: Platform
 // ---------------------------------------------------------------------------
 
 /** Spawns `cmd` with a 5-second timeout and returns its exit code, stdout, and stderr without throwing. */
-export async function defaultExecCommand(cmd: string[], _platform: Platform): Promise<TaskCommandResult> {
+export async function defaultExecCommand(
+  cmd: string[],
+  _platform: Platform,
+): Promise<TaskCommandResult> {
   try {
     const proc = Bun.spawn(cmd, {
       stdout: "pipe",
@@ -1241,7 +1413,14 @@ export const WINDOWS_PS_SNAPSHOT_SCRIPT = [
 /** Build the OS command to execute a single process action on Windows vs *nix. */
 export function buildProcessActionCommand(
   platform: Platform,
-  action: "terminate" | "kill" | "suspend" | "resume" | "reload" | "tree" | "priority",
+  action:
+    | "terminate"
+    | "kill"
+    | "suspend"
+    | "resume"
+    | "reload"
+    | "tree"
+    | "priority",
   pid: string,
 ): string[] {
   if (!/^\d+$/.test(pid) || pid === "0") {
@@ -1295,7 +1474,10 @@ export async function collectPortMap(
     const res = await exec(["netstat", "-ano", "-p", "tcp"], platform);
     return parseWindowsNetstat(res.stdout);
   }
-  const lsofRes = await exec(["lsof", "-iTCP", "-sTCP:LISTEN", "-n", "-P"], platform);
+  const lsofRes = await exec(
+    ["lsof", "-iTCP", "-sTCP:LISTEN", "-n", "-P"],
+    platform,
+  );
   const map = parseLsofListen(lsofRes.stdout);
   if (map.size === 0 && platform === "linux") {
     const ssRes = await exec(["ss", "-tlnp"], platform);
@@ -1328,32 +1510,78 @@ export async function collectTaskSnapshot(
       }
     })();
   const selfPid = hooks.selfPid ?? String(process.pid);
-  const parentPid = hooks.parentPid ?? String(process.env.STUDIO_PARENT_PID || process.ppid || "");
+  const parentPid =
+    hooks.parentPid ??
+    String(process.env.STUDIO_PARENT_PID || process.ppid || "");
   const totalMemBytes = hooks.totalMemBytes ?? os.totalmem();
-  const freeMemBytes = hooks.freeMemBytes ?? (hooks.execCommand ? os.freemem() : Sys.ramFree());
+  const freeMemBytes =
+    hooks.freeMemBytes ?? (hooks.execCommand ? os.freemem() : Sys.ramFree());
 
   if (platform === "win32") {
     const [portMap, psRes] = await Promise.all([
       collectPortMap(platform, exec),
-      exec(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", WINDOWS_PS_SNAPSHOT_SCRIPT], platform),
+      exec(
+        [
+          "powershell.exe",
+          "-NoProfile",
+          "-NonInteractive",
+          "-Command",
+          WINDOWS_PS_SNAPSHOT_SCRIPT,
+        ],
+        platform,
+      ),
     ]);
-    let processes = parseWindowsProcessJson(psRes.stdout, portMap, currentUser, totalMemBytes);
+    let processes = parseWindowsProcessJson(
+      psRes.stdout,
+      portMap,
+      currentUser,
+      totalMemBytes,
+    );
     if (processes.length === 0) {
       const tlRes = await exec(["tasklist", "/V", "/FO", "CSV"], platform);
-      processes = parseWindowsTasklistCsv(tlRes.stdout, portMap, currentUser, totalMemBytes);
+      processes = parseWindowsTasklistCsv(
+        tlRes.stdout,
+        portMap,
+        currentUser,
+        totalMemBytes,
+      );
     }
-    return finalizeTaskSnapshot(platform, processes, portMap, selfPid, parentPid, currentUser, totalMemBytes, freeMemBytes);
+    return finalizeTaskSnapshot(
+      platform,
+      processes,
+      portMap,
+      selfPid,
+      parentPid,
+      currentUser,
+      totalMemBytes,
+      freeMemBytes,
+    );
   }
   const [portMap, firstPsRes] = await Promise.all([
     collectPortMap(platform, exec),
-    exec(["ps", "-axo", "pid,ppid,pcpu,pmem,rss,state,user,etime,command"], platform),
+    exec(
+      ["ps", "-axo", "pid,ppid,pcpu,pmem,rss,state,user,etime,command"],
+      platform,
+    ),
   ]);
   let psRes = firstPsRes;
   if (psRes.exitCode !== 0 || !psRes.stdout.trim()) {
-    psRes = await exec(["ps", "-eo", "pid,ppid,pcpu,pmem,rss,stat,user,etime,args"], platform);
+    psRes = await exec(
+      ["ps", "-eo", "pid,ppid,pcpu,pmem,rss,stat,user,etime,args"],
+      platform,
+    );
   }
   const processes = parsePsOutput(psRes.stdout, portMap, currentUser, platform);
-  return finalizeTaskSnapshot(platform, processes, portMap, selfPid, parentPid, currentUser, totalMemBytes, freeMemBytes);
+  return finalizeTaskSnapshot(
+    platform,
+    processes,
+    portMap,
+    selfPid,
+    parentPid,
+    currentUser,
+    totalMemBytes,
+    freeMemBytes,
+  );
 }
 
 function finalizeTaskSnapshot(
@@ -1366,14 +1594,19 @@ function finalizeTaskSnapshot(
   totalMemBytes: number,
   freeMemBytes: number,
 ) {
-
   const cpus = os.cpus();
   const cpuCores = Math.max(1, cpus.length);
   const cpuModel = (cpus[0]?.model || "CPU").trim();
   const totalProcCpu = processes.reduce((acc, p) => acc + p.cpu, 0);
-  const cpuPercent = Math.min(100, Math.round((totalProcCpu / cpuCores) * 10) / 10);
+  const cpuPercent = Math.min(
+    100,
+    Math.round((totalProcCpu / cpuCores) * 10) / 10,
+  );
   const memUsedBytes = Math.max(0, totalMemBytes - freeMemBytes);
-  const memPercent = totalMemBytes > 0 ? Math.round((memUsedBytes / totalMemBytes) * 1000) / 10 : 0;
+  const memPercent =
+    totalMemBytes > 0
+      ? Math.round((memUsedBytes / totalMemBytes) * 1000) / 10
+      : 0;
   const loadAvg1m = Math.round((os.loadavg()[0] ?? 0) * 100) / 100;
 
   let listeningPortCount = 0;
@@ -1417,8 +1650,12 @@ export async function inspectTaskProcess(
   const proc = snap.processes.find((p) => p.pid === pid) ?? null;
   const byPid = new Map(snap.processes.map((p) => [p.pid, p]));
 
-  const parentProc = proc && proc.ppid && proc.ppid !== "0" ? byPid.get(proc.ppid) : undefined;
-  const parent = proc && proc.ppid && proc.ppid !== "0" ? { pid: proc.ppid, name: parentProc?.name ?? "unknown" } : null;
+  const parentProc =
+    proc && proc.ppid && proc.ppid !== "0" ? byPid.get(proc.ppid) : undefined;
+  const parent =
+    proc && proc.ppid && proc.ppid !== "0"
+      ? { pid: proc.ppid, name: parentProc?.name ?? "unknown" }
+      : null;
   const ancestors = ancestorsOf(snap.processes, pid).map((aPid) => ({
     pid: aPid,
     name: byPid.get(aPid)?.name ?? "unknown",
@@ -1463,7 +1700,12 @@ export async function inspectTaskProcess(
     parentPid: snap.parentPid,
     currentUser: snap.currentUser,
   };
-  const check = assessTaskAction(proc ?? undefined, pid, "terminate", safetyCtx);
+  const check = assessTaskAction(
+    proc ?? undefined,
+    pid,
+    "terminate",
+    safetyCtx,
+  );
 
   return {
     pid,

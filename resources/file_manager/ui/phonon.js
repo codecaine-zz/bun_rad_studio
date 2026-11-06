@@ -23,14 +23,99 @@ function stemOf(name) {
  * spreadsheets, presentations, subtitles, data files, and OCR images.
  */
 const READABLE_EXTS = new Set([
-  "txt", "md", "markdown", "rst", "org", "adoc", "asciidoc", "tex", "textile", "wiki", "mediawiki", "log",
-  "html", "htm", "xhtml", "svg", "xml", "json", "jsonl", "ndjson", "yaml", "yml", "toml", "ini", "cfg", "conf", "env", "properties", "plist",
-  "csv", "tsv", "xlsx", "xlsm", "ods", "numbers",
-  "docx", "odt", "rtf", "rtfd", "doc", "pages", "key", "epub", "ibooks", "fb2", "mobi", "azw", "azw3",
-  "textbundle", "scriv", "ulysses", "oo3", "mindnode", "graffle", "playground", "playgroundbook",
-  "pptx", "ppsx", "odp", "pdf", "ipynb",
-  "srt", "vtt", "sbv", "ass", "ssa", "lrc", "ics", "vcs", "vcf", "vcard",
-  "js", "mjs", "cjs", "ts", "tsx", "jsx", "py", "rs", "go", "java", "c", "cpp", "h", "hpp", "cs", "rb", "php", "sh", "bash", "zsh", "sql", "css",
+  "txt",
+  "md",
+  "markdown",
+  "rst",
+  "org",
+  "adoc",
+  "asciidoc",
+  "tex",
+  "textile",
+  "wiki",
+  "mediawiki",
+  "log",
+  "html",
+  "htm",
+  "xhtml",
+  "svg",
+  "xml",
+  "json",
+  "jsonl",
+  "ndjson",
+  "yaml",
+  "yml",
+  "toml",
+  "ini",
+  "cfg",
+  "conf",
+  "env",
+  "properties",
+  "plist",
+  "csv",
+  "tsv",
+  "xlsx",
+  "xlsm",
+  "ods",
+  "numbers",
+  "docx",
+  "odt",
+  "rtf",
+  "rtfd",
+  "doc",
+  "pages",
+  "key",
+  "epub",
+  "ibooks",
+  "fb2",
+  "mobi",
+  "azw",
+  "azw3",
+  "textbundle",
+  "scriv",
+  "ulysses",
+  "oo3",
+  "mindnode",
+  "graffle",
+  "playground",
+  "playgroundbook",
+  "pptx",
+  "ppsx",
+  "odp",
+  "pdf",
+  "ipynb",
+  "srt",
+  "vtt",
+  "sbv",
+  "ass",
+  "ssa",
+  "lrc",
+  "ics",
+  "vcs",
+  "vcf",
+  "vcard",
+  "js",
+  "mjs",
+  "cjs",
+  "ts",
+  "tsx",
+  "jsx",
+  "py",
+  "rs",
+  "go",
+  "java",
+  "c",
+  "cpp",
+  "h",
+  "hpp",
+  "cs",
+  "rb",
+  "php",
+  "sh",
+  "bash",
+  "zsh",
+  "sql",
+  "css",
 ]);
 
 export function canReadWithPhonon(entry) {
@@ -39,7 +124,13 @@ export function canReadWithPhonon(entry) {
   if (entry.isDir && !isDocumentPackageEntry(entry)) return false;
   const ext = extensionOf(entry.name || entry.path || "");
   if (READABLE_EXTS.has(ext) || isDocumentPackageEntry(entry)) return true;
-  if (entry.kind === "text" || entry.kind === "code" || entry.kind === "document" || entry.kind === "data") return true;
+  if (
+    entry.kind === "text" ||
+    entry.kind === "code" ||
+    entry.kind === "document" ||
+    entry.kind === "data"
+  )
+    return true;
   return false;
 }
 
@@ -47,7 +138,10 @@ export function canReadWithPhonon(entry) {
  * Finds readable files or document bundles (.epub / .rtfd) selected or focused in any File Manager pane.
  */
 function getSelectedReadableEntries() {
-  const isCandidate = (e) => Boolean(e && (!e.isDir || isDocumentPackageEntry(e) || canReadWithPhonon(e)));
+  const isCandidate = (e) =>
+    Boolean(
+      e && (!e.isDir || isDocumentPackageEntry(e) || canReadWithPhonon(e)),
+    );
   const activeSel = selectedEntries().filter(isCandidate);
   if (activeSel.length > 0) return activeSel;
   for (const p of [left, right]) {
@@ -86,7 +180,31 @@ function rawFileUrl(absPath) {
 const VIDEO_EXT_SET = new Set(["mp4", "webm", "mov", "mkv"]);
 
 const COMMON_FUNCTION_WORDS = new Set([
-  "a", "an", "the", "to", "of", "in", "on", "at", "by", "for", "or", "and", "as", "is", "it", "be", "we", "he", "me", "my", "so", "up", "if", "no", "do",
+  "a",
+  "an",
+  "the",
+  "to",
+  "of",
+  "in",
+  "on",
+  "at",
+  "by",
+  "for",
+  "or",
+  "and",
+  "as",
+  "is",
+  "it",
+  "be",
+  "we",
+  "he",
+  "me",
+  "my",
+  "so",
+  "up",
+  "if",
+  "no",
+  "do",
 ]);
 
 /**
@@ -95,7 +213,10 @@ const COMMON_FUNCTION_WORDS = new Set([
  * digit strings, compound hyphenated words, and short function words.
  */
 function estimateSpokenWordWeightClient(rawWord) {
-  const core = String(rawWord || "").replace(/^[^A-Za-z0-9\u00C0-\u024F]+|[^A-Za-z0-9\u00C0-\u024F]+$/g, "");
+  const core = String(rawWord || "").replace(
+    /^[^A-Za-z0-9\u00C0-\u024F]+|[^A-Za-z0-9\u00C0-\u024F]+$/g,
+    "",
+  );
   if (!core) return 1.2;
 
   const lower = core.toLowerCase();
@@ -105,8 +226,13 @@ function estimateSpokenWordWeightClient(rawWord) {
 
   const upperCount = (core.match(/[A-Z]/g) || []).length;
   const digitCount = (core.match(/[0-9]/g) || []).length;
-  const isAllUpperAcronym = core.length >= 2 && core.length <= 6 && upperCount === core.length;
-  const isAlphaNumAcronym = core.length >= 2 && core.length <= 8 && digitCount > 0 && (upperCount + digitCount === core.length || /^[A-Za-z]{1,4}\d+/.test(core));
+  const isAllUpperAcronym =
+    core.length >= 2 && core.length <= 6 && upperCount === core.length;
+  const isAlphaNumAcronym =
+    core.length >= 2 &&
+    core.length <= 8 &&
+    digitCount > 0 &&
+    (upperCount + digitCount === core.length || /^[A-Za-z]{1,4}\d+/.test(core));
 
   let weight;
   if (isAllUpperAcronym) {
@@ -119,7 +245,12 @@ function estimateSpokenWordWeightClient(rawWord) {
   } else {
     const parts = core.split(/[-–—/]+/).filter(Boolean);
     if (parts.length > 1) {
-      weight = parts.reduce((acc, p) => acc + Math.max(1.35, Math.pow(p.length, 0.78)), 0) + (parts.length - 1) * 0.45;
+      weight =
+        parts.reduce(
+          (acc, p) => acc + Math.max(1.35, Math.pow(p.length, 0.78)),
+          0,
+        ) +
+        (parts.length - 1) * 0.45;
     } else {
       weight = Math.max(1.4, Math.pow(core.length, 0.78));
       if (upperCount >= 2 && core.length <= 6) {
@@ -159,11 +290,14 @@ function buildClientWordCues(text, durationSec = 0) {
   }
   if (!rawTokens.length) return { words: [], cues: [], durationMs: 0 };
 
-  const estDurationMs = durationSec > 0
-    ? Math.max(80, Math.round(durationSec * 1000))
-    : Math.max(1000, Math.round((rawTokens.length / 2.5) * 1000));
-  const preRollMs = estDurationMs > 900 ? Math.min(130, Math.round(estDurationMs * 0.02)) : 0;
-  const postRollMs = estDurationMs > 1200 ? Math.min(380, Math.round(estDurationMs * 0.045)) : 0;
+  const estDurationMs =
+    durationSec > 0
+      ? Math.max(80, Math.round(durationSec * 1000))
+      : Math.max(1000, Math.round((rawTokens.length / 2.5) * 1000));
+  const preRollMs =
+    estDurationMs > 900 ? Math.min(130, Math.round(estDurationMs * 0.02)) : 0;
+  const postRollMs =
+    estDurationMs > 1200 ? Math.min(380, Math.round(estDurationMs * 0.045)) : 0;
   const activeSpanMs = Math.max(60, estDurationMs - preRollMs - postRollMs);
 
   const totalWeight = rawTokens.reduce((acc, t) => acc + t.weight, 0) || 1;
@@ -172,14 +306,23 @@ function buildClientWordCues(text, durationSec = 0) {
 
   for (let i = 0; i < rawTokens.length; i++) {
     const tok = rawTokens[i];
-    const startMs = i === 0
-      ? preRollMs
-      : Math.max(words[i - 1].endMs, preRollMs + Math.round((cum / totalWeight) * activeSpanMs));
+    const startMs =
+      i === 0
+        ? preRollMs
+        : Math.max(
+            words[i - 1].endMs,
+            preRollMs + Math.round((cum / totalWeight) * activeSpanMs),
+          );
     const wordSpeakEndCum = cum + tok.speakWeight;
     cum += tok.weight;
-    const endMs = i === rawTokens.length - 1
-      ? Math.max(startMs + 1, preRollMs + activeSpanMs)
-      : Math.max(startMs + 1, preRollMs + Math.round((wordSpeakEndCum / totalWeight) * activeSpanMs));
+    const endMs =
+      i === rawTokens.length - 1
+        ? Math.max(startMs + 1, preRollMs + activeSpanMs)
+        : Math.max(
+            startMs + 1,
+            preRollMs +
+              Math.round((wordSpeakEndCum / totalWeight) * activeSpanMs),
+          );
     words.push({
       word: tok.word,
       wordIndex: i,
@@ -211,13 +354,17 @@ function buildClientWordCues(text, durationSec = 0) {
   };
 
   for (const w of words) {
-    const nextChars = curChars === 0 ? w.word.length : curChars + 1 + w.word.length;
+    const nextChars =
+      curChars === 0 ? w.word.length : curChars + 1 + w.word.length;
     if (curWords.length >= 10 || (curWords.length > 0 && nextChars > 56)) {
       flush();
     }
     curWords.push(w);
     curChars = curChars === 0 ? w.word.length : curChars + 1 + w.word.length;
-    if (/[.!?…]['"”’)\]]*$/.test(w.word) && (curWords.length >= 3 || curChars >= 18)) {
+    if (
+      /[.!?…]['"”’)\]]*$/.test(w.word) &&
+      (curWords.length >= 3 || curChars >= 18)
+    ) {
       flush();
     }
   }
@@ -325,7 +472,8 @@ function mountPhononStudio(root, payload) {
       const Ctx = window.AudioContext || window.webkitAudioContext;
       if (!Ctx) return;
       const ctx = new Ctx();
-      const hwSec = (Number(ctx.outputLatency) || 0) + (Number(ctx.baseLatency) || 0);
+      const hwSec =
+        (Number(ctx.outputLatency) || 0) + (Number(ctx.baseLatency) || 0);
       if (hwSec > 0.01 && hwSec < 0.6) {
         probedOutputLatencyMs = Math.round(hwSec * 1000);
       }
@@ -336,12 +484,19 @@ function mountPhononStudio(root, payload) {
 
   function getEffectiveAudioLatencyMs() {
     const rateStretchLatency = Math.round(Math.abs(speed - 1) * 95);
-    const pitchShiftLatency = Math.abs(pitch) >= 0.25 ? Math.round(50 + Math.abs(pitch) * 8) : 0;
+    const pitchShiftLatency =
+      Math.abs(pitch) >= 0.25 ? Math.round(50 + Math.abs(pitch) * 8) : 0;
     const elapsedSinceChange = performance.now() - rateOrPitchChangedAt;
-    const settleLatency = elapsedSinceChange >= 0 && elapsedSinceChange < 380
-      ? Math.round((1 - elapsedSinceChange / 380) * 110)
-      : 0;
-    return probedOutputLatencyMs + rateStretchLatency + pitchShiftLatency + settleLatency;
+    const settleLatency =
+      elapsedSinceChange >= 0 && elapsedSinceChange < 380
+        ? Math.round((1 - elapsedSinceChange / 380) * 110)
+        : 0;
+    return (
+      probedOutputLatencyMs +
+      rateStretchLatency +
+      pitchShiftLatency +
+      settleLatency
+    );
   }
 
   function applyAudioPlaybackSettings() {
@@ -352,7 +507,10 @@ function mountPhononStudio(root, payload) {
       audioEl.preservesPitch = false;
       audioEl.webkitPreservesPitch = false;
       audioEl.mozPreservesPitch = false;
-      audioEl.playbackRate = Math.max(0.25, Math.min(4.0, speed * residualFactor));
+      audioEl.playbackRate = Math.max(
+        0.25,
+        Math.min(4.0, speed * residualFactor),
+      );
     } else {
       audioEl.preservesPitch = true;
       audioEl.webkitPreservesPitch = true;
@@ -391,8 +549,15 @@ function mountPhononStudio(root, payload) {
 
   // DOM references
   const bannerBox = h("div", { class: "phonon-banner" });
-  const voiceSelect = h("select", { id: "phonon-voice-select", class: "input phonon-select" });
-  const defaultVoiceBadge = h("span", { class: "phonon-badge phonon-badge-accent" }, `Default: ${selectedVoice}`);
+  const voiceSelect = h("select", {
+    id: "phonon-voice-select",
+    class: "input phonon-select",
+  });
+  const defaultVoiceBadge = h(
+    "span",
+    { class: "phonon-badge phonon-badge-accent" },
+    `Default: ${selectedVoice}`,
+  );
   const voiceDescEl = h("span", { class: "hint phonon-voice-desc" }, "");
   const speedSlider = h("input", {
     id: "phonon-speed-range",
@@ -402,7 +567,11 @@ function mountPhononStudio(root, payload) {
     step: "0.05",
     value: String(speed),
   });
-  const speedValueLabel = h("span", { class: "phonon-metric-val" }, `${speed.toFixed(2).replace(/\.00$/, ".0")}×`);
+  const speedValueLabel = h(
+    "span",
+    { class: "phonon-metric-val" },
+    `${speed.toFixed(2).replace(/\.00$/, ".0")}×`,
+  );
   const pitchSlider = h("input", {
     id: "phonon-pitch-range",
     type: "range",
@@ -411,7 +580,11 @@ function mountPhononStudio(root, payload) {
     step: "0.5",
     value: String(pitch),
   });
-  const pitchValueLabel = h("span", { class: "phonon-metric-val" }, formatPitchLabel(pitch));
+  const pitchValueLabel = h(
+    "span",
+    { class: "phonon-metric-val" },
+    formatPitchLabel(pitch),
+  );
   const syncOffsetSlider = h("input", {
     id: "phonon-sync-offset-range",
     type: "range",
@@ -420,7 +593,11 @@ function mountPhononStudio(root, payload) {
     step: "10",
     value: String(syncOffsetMs),
   });
-  const syncOffsetValueLabel = h("span", { class: "phonon-metric-val" }, formatSyncOffsetLabel(syncOffsetMs));
+  const syncOffsetValueLabel = h(
+    "span",
+    { class: "phonon-metric-val" },
+    formatSyncOffsetLabel(syncOffsetMs),
+  );
   const pauseSlider = h("input", {
     id: "phonon-pause-range",
     type: "range",
@@ -429,10 +606,20 @@ function mountPhononStudio(root, payload) {
     step: "50",
     value: String(pauseMs),
   });
-  const pauseValueLabel = h("span", { class: "phonon-metric-val" }, `${pauseMs} ms`);
-  const chunkLimitSelect = h("select", { id: "phonon-chunk-limit", class: "input phonon-select" },
+  const pauseValueLabel = h(
+    "span",
+    { class: "phonon-metric-val" },
+    `${pauseMs} ms`,
+  );
+  const chunkLimitSelect = h(
+    "select",
+    { id: "phonon-chunk-limit", class: "input phonon-select" },
     h("option", { value: "360" }, "360 chars — Ultra-Fast Live Start"),
-    h("option", { value: "520", selected: true }, "520 chars — Balanced Streaming (Recommended)"),
+    h(
+      "option",
+      { value: "520", selected: true },
+      "520 chars — Balanced Streaming (Recommended)",
+    ),
     h("option", { value: "850" }, "850 chars — Long Paragraph / Audiobook"),
     h("option", { value: "1100" }, "1100 chars — Max Phonon 8K Context Safe"),
   );
@@ -441,30 +628,71 @@ function mountPhononStudio(root, payload) {
     id: "phonon-source-path",
     type: "text",
     class: "input phonon-path-input",
-    placeholder: "File path to convert to plain text (PDF, DOCX, EPUB, HTML, MD, JSON, SRT, TXT…)",
+    placeholder:
+      "File path to convert to plain text (PDF, DOCX, EPUB, HTML, MD, JSON, SRT, TXT…)",
   });
-  const sourceFormatBadge = h("span", { class: "phonon-badge" }, "Format: Direct Text");
-  const statsSummaryBadge = h("span", { class: "phonon-badge phonon-badge-muted" }, "0 words · 0 chunks");
+  const sourceFormatBadge = h(
+    "span",
+    { class: "phonon-badge" },
+    "Format: Direct Text",
+  );
+  const statsSummaryBadge = h(
+    "span",
+    { class: "phonon-badge phonon-badge-muted" },
+    "0 words · 0 chunks",
+  );
 
   const textArea = h("textarea", {
     id: "phonon-text-editor",
     class: "input phonon-textarea",
     rows: "7",
-    placeholder: "Paste or type any text here — or load any document/file above to convert it into plain text, read it out loud with live word-by-word highlighting, and save as an Audio or Read-Along Video file.",
+    placeholder:
+      "Paste or type any text here — or load any document/file above to convert it into plain text, read it out loud with live word-by-word highlighting, and save as an Audio or Read-Along Video file.",
   });
 
-  const formatSelect = h("select", { id: "phonon-format-select", class: "input phonon-select" });
+  const formatSelect = h("select", {
+    id: "phonon-format-select",
+    class: "input phonon-select",
+  });
   const formatHintEl = h("p", { class: "hint phonon-format-hint" }, "");
-  const videoAspectSelect = h("select", { id: "phonon-video-aspect", class: "input phonon-select" },
-    h("option", { value: "16:9", selected: true }, "16:9 Widescreen (1920×1080 — YouTube / Desktop)"),
-    h("option", { value: "9:16" }, "9:16 Vertical Short (1080×1920 — Shorts / Reels / TikTok)"),
+  const videoAspectSelect = h(
+    "select",
+    { id: "phonon-video-aspect", class: "input phonon-select" },
+    h(
+      "option",
+      { value: "16:9", selected: true },
+      "16:9 Widescreen (1920×1080 — YouTube / Desktop)",
+    ),
+    h(
+      "option",
+      { value: "9:16" },
+      "9:16 Vertical Short (1080×1920 — Shorts / Reels / TikTok)",
+    ),
     h("option", { value: "1:1" }, "1:1 Square (1080×1080 — Social Feed)"),
   );
-  const videoThemeSelect = h("select", { id: "phonon-video-theme", class: "input phonon-select" },
-    h("option", { value: "midnight", selected: true }, "Midnight Studio (Electric Cyan Highlight)"),
-    h("option", { value: "parchment" }, "Warm Book Page (Amber Gold Highlight)"),
-    h("option", { value: "cyber" }, "Cyber Neon (Neon Cyan & Violet Highlight)"),
-    h("option", { value: "high_contrast" }, "Accessible High Contrast (WCAG AAA Yellow)"),
+  const videoThemeSelect = h(
+    "select",
+    { id: "phonon-video-theme", class: "input phonon-select" },
+    h(
+      "option",
+      { value: "midnight", selected: true },
+      "Midnight Studio (Electric Cyan Highlight)",
+    ),
+    h(
+      "option",
+      { value: "parchment" },
+      "Warm Book Page (Amber Gold Highlight)",
+    ),
+    h(
+      "option",
+      { value: "cyber" },
+      "Cyber Neon (Neon Cyan & Violet Highlight)",
+    ),
+    h(
+      "option",
+      { value: "high_contrast" },
+      "Accessible High Contrast (WCAG AAA Yellow)",
+    ),
   );
   const outNameInput = h("input", {
     id: "phonon-out-name",
@@ -481,29 +709,85 @@ function mountPhononStudio(root, payload) {
     placeholder: "Output folder path",
   });
 
-  const playBtn = h("button", { type: "button", class: "btn primary phonon-play-btn", onclick: () => startOrResumeReading() }, "▶️ Read Out Loud");
-  const pauseBtn = h("button", { type: "button", class: "btn", disabled: true, onclick: () => togglePauseReading() }, "⏸ Pause");
-  const stopBtn = h("button", { type: "button", class: "btn", disabled: true, onclick: () => stopReading() }, "⏹ Stop");
-  const prevChunkBtn = h("button", { type: "button", class: "btn", disabled: true, onclick: () => stepChunk(-1) }, "⏮ Prev");
-  const nextChunkBtn = h("button", { type: "button", class: "btn", disabled: true, onclick: () => stepChunk(1) }, "⏭ Next");
-  const nowPlayingStatus = h("div", { class: "phonon-now-playing" }, "Ready to read. Press Read Out Loud to listen and follow along word by word.");
+  const playBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "btn primary phonon-play-btn",
+      onclick: () => startOrResumeReading(),
+    },
+    "▶️ Read Out Loud",
+  );
+  const pauseBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "btn",
+      disabled: true,
+      onclick: () => togglePauseReading(),
+    },
+    "⏸ Pause",
+  );
+  const stopBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "btn",
+      disabled: true,
+      onclick: () => stopReading(),
+    },
+    "⏹ Stop",
+  );
+  const prevChunkBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "btn",
+      disabled: true,
+      onclick: () => stepChunk(-1),
+    },
+    "⏮ Prev",
+  );
+  const nextChunkBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "btn",
+      disabled: true,
+      onclick: () => stepChunk(1),
+    },
+    "⏭ Next",
+  );
+  const nowPlayingStatus = h(
+    "div",
+    { class: "phonon-now-playing" },
+    "Ready to read. Press Read Out Loud to listen and follow along word by word.",
+  );
 
   // Live Follow-Along Teleprompter DOM
-  const teleprompterWordBadge = h("span", { class: "phonon-badge phonon-badge-accent" }, "Follow-Along Ready");
+  const teleprompterWordBadge = h(
+    "span",
+    { class: "phonon-badge phonon-badge-accent" },
+    "Follow-Along Ready",
+  );
   const teleprompterStage = h("div", {
     class: `phonon-teleprompter-stage theme-${selectedVideoTheme} size-${teleprompterSize}`,
     role: "region",
     "aria-label": "Follow-Along Synchronized Text Reader",
   });
-  const teleprompterProgressFill = h("div", { class: "phonon-teleprompter-progress-fill" });
-  const teleprompterSizeSelect = h("select", {
-    class: "input phonon-select phonon-sm-select",
-    "aria-label": "Follow-along reader font size",
-    onchange: (e) => {
-      teleprompterSize = e.target.value;
-      updateTeleprompterClasses();
+  const teleprompterProgressFill = h("div", {
+    class: "phonon-teleprompter-progress-fill",
+  });
+  const teleprompterSizeSelect = h(
+    "select",
+    {
+      class: "input phonon-select phonon-sm-select",
+      "aria-label": "Follow-along reader font size",
+      onchange: (e) => {
+        teleprompterSize = e.target.value;
+        updateTeleprompterClasses();
+      },
     },
-  },
     h("option", { value: "sm" }, "Text: Compact"),
     h("option", { value: "md" }, "Text: Comfortable"),
     h("option", { value: "lg", selected: true }, "Text: Large Teleprompter"),
@@ -517,23 +801,39 @@ function mountPhononStudio(root, payload) {
     playsinline: true,
     preload: "metadata",
   });
-  const videoPlayerCaptionLabel = h("span", { class: "phonon-badge phonon-badge-accent" }, "🎬 Read-Along Video Preview");
+  const videoPlayerCaptionLabel = h(
+    "span",
+    { class: "phonon-badge phonon-badge-accent" },
+    "🎬 Read-Along Video Preview",
+  );
   const videoPlayerPathLabel = h("span", { class: "hint" }, "");
-  const videoPlayerBox = h("div", { class: "phonon-video-preview-card", hidden: true },
-    h("div", { class: "phonon-video-preview-head" },
-      h("div", { class: "phonon-inline-row" },
+  const videoPlayerBox = h(
+    "div",
+    { class: "phonon-video-preview-card", hidden: true },
+    h(
+      "div",
+      { class: "phonon-video-preview-head" },
+      h(
+        "div",
+        { class: "phonon-inline-row" },
         videoPlayerCaptionLabel,
         videoPlayerPathLabel,
       ),
-      h("div", { class: "phonon-inline-row" },
-        h("button", {
-          type: "button",
-          class: "btn phonon-sm-btn",
-          onclick: () => {
-            videoPlayerEl.pause();
-            videoPlayerBox.hidden = true;
+      h(
+        "div",
+        { class: "phonon-inline-row" },
+        h(
+          "button",
+          {
+            type: "button",
+            class: "btn phonon-sm-btn",
+            onclick: () => {
+              videoPlayerEl.pause();
+              videoPlayerBox.hidden = true;
+            },
           },
-        }, "✕ Hide Video Player"),
+          "✕ Hide Video Player",
+        ),
       ),
     ),
     videoPlayerEl,
@@ -552,7 +852,16 @@ function mountPhononStudio(root, payload) {
 
   function updateVoiceDropdown() {
     clear(voiceSelect);
-    const list = voices.length ? voices : [{ id: "Zoey", label: "Zoey", category: "Conversational", desc: "Default voice" }];
+    const list = voices.length
+      ? voices
+      : [
+          {
+            id: "Zoey",
+            label: "Zoey",
+            category: "Conversational",
+            desc: "Default voice",
+          },
+        ];
     const groups = new Map();
     for (const v of list) {
       const cat = v.category || "Conversational";
@@ -560,17 +869,25 @@ function mountPhononStudio(root, payload) {
       groups.get(cat).push(v);
     }
     for (const [cat, items] of groups) {
-      const optgroup = h("optgroup", { label: `${cat} Voices (${items.length})` });
+      const optgroup = h("optgroup", {
+        label: `${cat} Voices (${items.length})`,
+      });
       for (const v of items) {
         optgroup.append(
-          h("option", { value: v.id, selected: v.id === selectedVoice }, `${v.label}${v.id === (state.settings?.phononVoice || "Zoey") ? " ★ (Default)" : ""} — ${v.desc}`),
+          h(
+            "option",
+            { value: v.id, selected: v.id === selectedVoice },
+            `${v.label}${v.id === (state.settings?.phononVoice || "Zoey") ? " ★ (Default)" : ""} — ${v.desc}`,
+          ),
         );
       }
       voiceSelect.append(optgroup);
     }
     voiceSelect.value = selectedVoice;
     const currentInfo = list.find((v) => v.id === selectedVoice);
-    voiceDescEl.textContent = currentInfo ? `${currentInfo.category}: ${currentInfo.desc}` : "";
+    voiceDescEl.textContent = currentInfo
+      ? `${currentInfo.category}: ${currentInfo.desc}`
+      : "";
     defaultVoiceBadge.textContent = `Default: ${state.settings?.phononVoice || "Zoey"}`;
   }
 
@@ -578,21 +895,87 @@ function mountPhononStudio(root, payload) {
     const aud = audioFormats.length
       ? audioFormats
       : [
-          { id: "wav", label: "WAV (24 kHz PCM — Native)", needsFfmpeg: false, isVideo: false, desc: "Uncompressed studio WAV directly from Phonon." },
-          { id: "mp3", label: "MP3 (Universal Audio)", needsFfmpeg: true, isVideo: false, desc: "Compact MP3 audio file." },
-          { id: "m4a", label: "M4A / AAC (Apple & Podcast)", needsFfmpeg: true, isVideo: false, desc: "High-efficiency M4A audio." },
-          { id: "flac", label: "FLAC (Lossless)", needsFfmpeg: true, isVideo: false, desc: "Lossless compressed FLAC." },
-          { id: "ogg", label: "OGG Vorbis", needsFfmpeg: true, isVideo: false, desc: "Open-source Ogg Vorbis." },
-          { id: "opus", label: "Opus (Best Speech Compression)", needsFfmpeg: true, isVideo: false, desc: "Modern speech codec." },
-          { id: "aiff", label: "AIFF (Apple PCM — Native)", needsFfmpeg: false, isVideo: false, desc: "Uncompressed Apple AIFF." },
+          {
+            id: "wav",
+            label: "WAV (24 kHz PCM — Native)",
+            needsFfmpeg: false,
+            isVideo: false,
+            desc: "Uncompressed studio WAV directly from Phonon.",
+          },
+          {
+            id: "mp3",
+            label: "MP3 (Universal Audio)",
+            needsFfmpeg: true,
+            isVideo: false,
+            desc: "Compact MP3 audio file.",
+          },
+          {
+            id: "m4a",
+            label: "M4A / AAC (Apple & Podcast)",
+            needsFfmpeg: true,
+            isVideo: false,
+            desc: "High-efficiency M4A audio.",
+          },
+          {
+            id: "flac",
+            label: "FLAC (Lossless)",
+            needsFfmpeg: true,
+            isVideo: false,
+            desc: "Lossless compressed FLAC.",
+          },
+          {
+            id: "ogg",
+            label: "OGG Vorbis",
+            needsFfmpeg: true,
+            isVideo: false,
+            desc: "Open-source Ogg Vorbis.",
+          },
+          {
+            id: "opus",
+            label: "Opus (Best Speech Compression)",
+            needsFfmpeg: true,
+            isVideo: false,
+            desc: "Modern speech codec.",
+          },
+          {
+            id: "aiff",
+            label: "AIFF (Apple PCM — Native)",
+            needsFfmpeg: false,
+            isVideo: false,
+            desc: "Uncompressed Apple AIFF.",
+          },
         ];
     const vid = videoFormats.length
       ? videoFormats
       : [
-          { id: "mp4", label: "MP4 Read-Along Video (H.264 + Highlighted Text)", needsFfmpeg: true, isVideo: true, desc: "Universal 1080p MP4 Read-Along Video with synchronized word-by-word text highlighting and .SRT/.VTT subtitles." },
-          { id: "webm", label: "WebM Read-Along Video (VP9 + Highlighted Text)", needsFfmpeg: true, isVideo: true, desc: "Open-web VP9/Opus Read-Along Video with synchronized text highlighting." },
-          { id: "mov", label: "MOV QuickTime Read-Along Video (Apple H.264)", needsFfmpeg: true, isVideo: true, desc: "Apple QuickTime MOV Read-Along Video with synchronized text highlighting." },
-          { id: "mkv", label: "MKV Matroska Read-Along Video (H.264 + Subtitles)", needsFfmpeg: true, isVideo: true, desc: "Archival MKV Read-Along Video with synchronized text highlighting." },
+          {
+            id: "mp4",
+            label: "MP4 Read-Along Video (H.264 + Highlighted Text)",
+            needsFfmpeg: true,
+            isVideo: true,
+            desc: "Universal 1080p MP4 Read-Along Video with synchronized word-by-word text highlighting and .SRT/.VTT subtitles.",
+          },
+          {
+            id: "webm",
+            label: "WebM Read-Along Video (VP9 + Highlighted Text)",
+            needsFfmpeg: true,
+            isVideo: true,
+            desc: "Open-web VP9/Opus Read-Along Video with synchronized text highlighting.",
+          },
+          {
+            id: "mov",
+            label: "MOV QuickTime Read-Along Video (Apple H.264)",
+            needsFfmpeg: true,
+            isVideo: true,
+            desc: "Apple QuickTime MOV Read-Along Video with synchronized text highlighting.",
+          },
+          {
+            id: "mkv",
+            label: "MKV Matroska Read-Along Video (H.264 + Subtitles)",
+            needsFfmpeg: true,
+            isVideo: true,
+            desc: "Archival MKV Read-Along Video with synchronized text highlighting.",
+          },
         ];
     return { aud, vid, all: [...aud, ...vid] };
   }
@@ -600,18 +983,31 @@ function mountPhononStudio(root, payload) {
   function updateFormatDropdown() {
     clear(formatSelect);
     const { aud, vid, all } = allFormatsList();
-    const audioGroup = h("optgroup", { label: "🎵 Audio Formats (Speech Only)" });
+    const audioGroup = h("optgroup", {
+      label: "🎵 Audio Formats (Speech Only)",
+    });
     for (const fmt of aud) {
       const needsFf = fmt.needsFfmpeg && status && !status.ffmpegInstalled;
       audioGroup.append(
-        h("option", { value: fmt.id, selected: fmt.id === selectedFormat }, `${fmt.label}${needsFf ? " (install ffmpeg first)" : ""}`),
+        h(
+          "option",
+          { value: fmt.id, selected: fmt.id === selectedFormat },
+          `${fmt.label}${needsFf ? " (install ffmpeg first)" : ""}`,
+        ),
       );
     }
-    const videoGroup = h("optgroup", { label: "🎬 Read-Along Video Formats (Voice + Synchronized Highlighted Text)" });
+    const videoGroup = h("optgroup", {
+      label:
+        "🎬 Read-Along Video Formats (Voice + Synchronized Highlighted Text)",
+    });
     for (const fmt of vid) {
       const needsFf = fmt.needsFfmpeg && status && !status.ffmpegInstalled;
       videoGroup.append(
-        h("option", { value: fmt.id, selected: fmt.id === selectedFormat }, `${fmt.label}${needsFf ? " (install ffmpeg first)" : ""}`),
+        h(
+          "option",
+          { value: fmt.id, selected: fmt.id === selectedFormat },
+          `${fmt.label}${needsFf ? " (install ffmpeg first)" : ""}`,
+        ),
       );
     }
     formatSelect.append(audioGroup, videoGroup);
@@ -623,7 +1019,13 @@ function mountPhononStudio(root, payload) {
   function renderStatusBanner() {
     clear(bannerBox);
     if (!status) {
-      bannerBox.append(h("div", { class: "phonon-banner-row" }, h("span", {}, "Checking Ollama & Phonon voice engine…")));
+      bannerBox.append(
+        h(
+          "div",
+          { class: "phonon-banner-row" },
+          h("span", {}, "Checking Ollama & Phonon voice engine…"),
+        ),
+      );
       return;
     }
 
@@ -632,65 +1034,131 @@ function mountPhononStudio(root, payload) {
     const modelOk = status.modelInstalled;
     const ffOk = status.ffmpegInstalled;
 
-    const pills = h("div", { class: "phonon-status-pills" },
-      h("span", { class: `phonon-pill ${status.supported !== false ? "ok" : "warn"}` }, status.supported !== false ? "🍎 Apple Silicon MLX (macOS ARM64)" : "⚠ Requires Apple Silicon Mac (MLX)"),
-      h("span", { class: `phonon-pill ${ollamaOk ? "ok" : "warn"}` }, ollamaOk ? `✔ Ollama (${status.ollamaVersion || "installed"})` : "✖ Ollama not installed"),
-      h("span", { class: `phonon-pill ${modelOk ? "ok" : "warn"}` }, modelOk ? "✔ Phonon TTS Model (38 voices)" : "✖ Phonon model not pulled"),
-      h("span", { class: `phonon-pill ${ffOk ? "ok" : "muted"}` }, ffOk ? "✔ ffmpeg (All Audio + Read-Along MP4 Video)" : "ℹ WAV & AIFF ready (install ffmpeg for MP3 & Read-Along Video)"),
-      h("code", { class: "phonon-cli-badge" }, `ollama run phonon --voice ${selectedVoice.includes(" ") ? `"${selectedVoice}"` : selectedVoice}`),
+    const pills = h(
+      "div",
+      { class: "phonon-status-pills" },
+      h(
+        "span",
+        { class: `phonon-pill ${status.supported !== false ? "ok" : "warn"}` },
+        status.supported !== false
+          ? "🍎 Apple Silicon MLX (macOS ARM64)"
+          : "⚠ Requires Apple Silicon Mac (MLX)",
+      ),
+      h(
+        "span",
+        { class: `phonon-pill ${ollamaOk ? "ok" : "warn"}` },
+        ollamaOk
+          ? `✔ Ollama (${status.ollamaVersion || "installed"})`
+          : "✖ Ollama not installed",
+      ),
+      h(
+        "span",
+        { class: `phonon-pill ${modelOk ? "ok" : "warn"}` },
+        modelOk
+          ? "✔ Phonon TTS Model (38 voices)"
+          : "✖ Phonon model not pulled",
+      ),
+      h(
+        "span",
+        { class: `phonon-pill ${ffOk ? "ok" : "muted"}` },
+        ffOk
+          ? "✔ ffmpeg (All Audio + Read-Along MP4 Video)"
+          : "ℹ WAV & AIFF ready (install ffmpeg for MP3 & Read-Along Video)",
+      ),
+      h(
+        "code",
+        { class: "phonon-cli-badge" },
+        `ollama run phonon --voice ${selectedVoice.includes(" ") ? `"${selectedVoice}"` : selectedVoice}`,
+      ),
     );
 
     const actions = h("div", { class: "phonon-banner-actions" });
 
     if (!ready) {
-      const btnLabel = !ollamaOk ? "⚡ Auto-Install Ollama & Phonon (1-Click)" : "⚡ Download Phonon Voice Model (1-Click)";
+      const btnLabel = !ollamaOk
+        ? "⚡ Auto-Install Ollama & Phonon (1-Click)"
+        : "⚡ Download Phonon Voice Model (1-Click)";
       actions.append(
-        h("button", {
-          type: "button",
-          class: "btn primary phonon-install-btn",
-          onclick: () => triggerOneClickInstall(),
-        }, btnLabel),
+        h(
+          "button",
+          {
+            type: "button",
+            class: "btn primary phonon-install-btn",
+            onclick: () => triggerOneClickInstall(),
+          },
+          btnLabel,
+        ),
       );
     } else {
       actions.append(
-        h("button", {
-          type: "button",
-          class: "btn phonon-sm-btn",
-          title: "Run `ollama pull phonon` to make sure you have the latest Phonon voice model",
-          onclick: () => triggerOneClickInstall(),
-        }, "↻ Update Phonon Model"),
+        h(
+          "button",
+          {
+            type: "button",
+            class: "btn phonon-sm-btn",
+            title:
+              "Run `ollama pull phonon` to make sure you have the latest Phonon voice model",
+            onclick: () => triggerOneClickInstall(),
+          },
+          "↻ Update Phonon Model",
+        ),
       );
     }
 
     if (!ffOk) {
       actions.append(
-        h("button", {
-          type: "button",
-          class: "btn phonon-sm-btn",
-          title: "Install ffmpeg with one click to unlock Read-Along Video (MP4/WebM/MOV/MKV) and MP3/M4A/FLAC export",
-          onclick: () => installFfmpegHelper(),
-        }, "⚡ 1-Click Install ffmpeg"),
+        h(
+          "button",
+          {
+            type: "button",
+            class: "btn phonon-sm-btn",
+            title:
+              "Install ffmpeg with one click to unlock Read-Along Video (MP4/WebM/MOV/MKV) and MP3/M4A/FLAC export",
+            onclick: () => installFfmpegHelper(),
+          },
+          "⚡ 1-Click Install ffmpeg",
+        ),
       );
     }
 
     actions.append(
-      h("button", {
-        type: "button",
-        class: "btn phonon-sm-btn",
-        onclick: () => refreshStatus(),
-      }, "Check Again"),
-      h("button", {
-        type: "button",
-        class: "btn phonon-sm-btn",
-        onclick: () => showToolsDialog(),
-      }, "All Helper Apps…"),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "btn phonon-sm-btn",
+          onclick: () => refreshStatus(),
+        },
+        "Check Again",
+      ),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "btn phonon-sm-btn",
+          onclick: () => showToolsDialog(),
+        },
+        "All Helper Apps…",
+      ),
     );
 
     bannerBox.append(
-      h("div", { class: `phonon-banner-card ${ready ? "is-ready" : "needs-setup"}` },
-        h("div", { class: "phonon-banner-main" },
-          h("div", { class: "phonon-banner-title" },
-            h("strong", {}, ready ? "🗣️ Ollama Phonon Neural TTS & Read-Along Video Studio — Ready" : "🗣️ Set Up Ollama Phonon Voice Engine"),
+      h(
+        "div",
+        { class: `phonon-banner-card ${ready ? "is-ready" : "needs-setup"}` },
+        h(
+          "div",
+          { class: "phonon-banner-main" },
+          h(
+            "div",
+            { class: "phonon-banner-title" },
+            h(
+              "strong",
+              {},
+              ready
+                ? "🗣️ Ollama Phonon Neural TTS & Read-Along Video Studio — Ready"
+                : "🗣️ Set Up Ollama Phonon Voice Engine",
+            ),
             h("span", { class: "hint" }, status.install?.note || ""),
           ),
           pills,
@@ -704,7 +1172,14 @@ function mountPhononStudio(root, payload) {
   // Live Synchronized Follow-Along Teleprompter
   // -------------------------------------------------------------------------------------------------------------
 
-  function renderTeleprompterForChunk(chunkIndex, customWords, customCues, durationSec, pcmAligned = false, synthesizedPitch = 0) {
+  function renderTeleprompterForChunk(
+    chunkIndex,
+    customWords,
+    customCues,
+    durationSec,
+    pcmAligned = false,
+    synthesizedPitch = 0,
+  ) {
     clear(teleprompterStage);
     wordSpanNodes = [];
     cueRowNodes = [];
@@ -713,20 +1188,31 @@ function mountPhononStudio(root, payload) {
 
     if (!chunks.length) {
       teleprompterStage.append(
-        h("div", { class: "phonon-teleprompter-empty" }, "Load a document or type text above to follow along word by word as Phonon reads aloud."),
+        h(
+          "div",
+          { class: "phonon-teleprompter-empty" },
+          "Load a document or type text above to follow along word by word as Phonon reads aloud.",
+        ),
       );
       teleprompterWordBadge.textContent = "0 words";
       teleprompterProgressFill.style.width = "0%";
       return;
     }
 
-    const idx = Math.max(0, Math.min(chunks.length - 1, chunkIndex < 0 ? 0 : chunkIndex));
+    const idx = Math.max(
+      0,
+      Math.min(chunks.length - 1, chunkIndex < 0 ? 0 : chunkIndex),
+    );
     const chunk = chunks[idx];
     const fallback = buildClientWordCues(chunk.text, durationSec);
     const hasCustomWords = Array.isArray(customWords) && customWords.length > 0;
     const words = hasCustomWords ? customWords : fallback.words;
-    const cues = Array.isArray(customCues) && customCues.length ? customCues : fallback.cues;
-    const durationMs = durationSec > 0 ? Math.round(durationSec * 1000) : fallback.durationMs;
+    const cues =
+      Array.isArray(customCues) && customCues.length
+        ? customCues
+        : fallback.cues;
+    const durationMs =
+      durationSec > 0 ? Math.round(durationSec * 1000) : fallback.durationMs;
 
     currentTeleprompterData = {
       chunkIndex: idx,
@@ -740,13 +1226,18 @@ function mountPhononStudio(root, payload) {
     // Previous chunk context line (if available)
     if (idx > 0 && chunks[idx - 1]) {
       const prevText = chunks[idx - 1].text;
-      const snippet = prevText.length > 110 ? `…${prevText.slice(-110)}` : prevText;
+      const snippet =
+        prevText.length > 110 ? `…${prevText.slice(-110)}` : prevText;
       teleprompterStage.append(
-        h("div", {
-          class: "phonon-teleprompter-context is-prev",
-          title: "Click to jump to previous segment",
-          onclick: () => playFromChunk(idx - 1),
-        }, `↑ Prev (#${idx}): ${snippet}`),
+        h(
+          "div",
+          {
+            class: "phonon-teleprompter-context is-prev",
+            title: "Click to jump to previous segment",
+            onclick: () => playFromChunk(idx - 1),
+          },
+          `↑ Prev (#${idx}): ${snippet}`,
+        ),
       );
     }
 
@@ -760,20 +1251,25 @@ function mountPhononStudio(root, payload) {
       const cueWords = cue.words || words.filter((w) => w.cueIndex === cIdx);
       for (let k = 0; k < cueWords.length; k++) {
         const w = cueWords[k];
-        const wIdx = typeof w.wordIndex === "number" ? w.wordIndex : wordSpanNodes.length;
-        const span = h("span", {
-          class: "phonon-word is-upcoming",
-          dataset: {
-            wordIdx: String(wIdx),
-            startMs: String(w.startMs),
-            endMs: String(w.endMs),
+        const wIdx =
+          typeof w.wordIndex === "number" ? w.wordIndex : wordSpanNodes.length;
+        const span = h(
+          "span",
+          {
+            class: "phonon-word is-upcoming",
+            dataset: {
+              wordIdx: String(wIdx),
+              startMs: String(w.startMs),
+              endMs: String(w.endMs),
+            },
+            title: `Click to read from "${w.word}" (${(w.startMs / 1000).toFixed(2)}s)`,
+            onclick: (ev) => {
+              ev.stopPropagation();
+              seekToWordInTeleprompter(idx, w);
+            },
           },
-          title: `Click to read from "${w.word}" (${(w.startMs / 1000).toFixed(2)}s)`,
-          onclick: (ev) => {
-            ev.stopPropagation();
-            seekToWordInTeleprompter(idx, w);
-          },
-        }, w.word);
+          w.word,
+        );
         wordSpanNodes[wIdx] = span;
         lineEl.append(span, k < cueWords.length - 1 ? " " : "");
       }
@@ -785,13 +1281,18 @@ function mountPhononStudio(root, payload) {
     // Next chunk context preview (if available)
     if (idx + 1 < chunks.length && chunks[idx + 1]) {
       const nextText = chunks[idx + 1].text;
-      const snippet = nextText.length > 110 ? `${nextText.slice(0, 110)}…` : nextText;
+      const snippet =
+        nextText.length > 110 ? `${nextText.slice(0, 110)}…` : nextText;
       teleprompterStage.append(
-        h("div", {
-          class: "phonon-teleprompter-context is-next",
-          title: "Click to jump to next segment",
-          onclick: () => playFromChunk(idx + 1),
-        }, `↓ Next (#${idx + 2}): ${snippet}`),
+        h(
+          "div",
+          {
+            class: "phonon-teleprompter-context is-next",
+            title: "Click to jump to next segment",
+            onclick: () => playFromChunk(idx + 1),
+          },
+          `↓ Next (#${idx + 2}): ${snippet}`,
+        ),
       );
     }
 
@@ -817,7 +1318,10 @@ function mountPhononStudio(root, payload) {
     const { words, chunkIndex } = currentTeleprompterData;
     if (!words.length) return;
 
-    const pct = totalDurationMs > 0 ? Math.min(100, Math.max(0, (currentMs / totalDurationMs) * 100)) : 0;
+    const pct =
+      totalDurationMs > 0
+        ? Math.min(100, Math.max(0, (currentMs / totalDurationMs) * 100))
+        : 0;
     teleprompterProgressFill.style.width = `${pct.toFixed(1)}%`;
 
     let foundIdx = -1;
@@ -863,7 +1367,10 @@ function mountPhononStudio(root, payload) {
         row.classList.toggle("is-past-cue", c < cueIdx);
       }
       if (teleprompterAutoScroll && cueRowNodes[cueIdx]) {
-        cueRowNodes[cueIdx].scrollIntoView({ block: "nearest", behavior: "smooth" });
+        cueRowNodes[cueIdx].scrollIntoView({
+          block: "nearest",
+          behavior: "smooth",
+        });
       }
     }
 
@@ -873,18 +1380,24 @@ function mountPhononStudio(root, payload) {
 
   function syncTeleprompterHighlight() {
     if (!isPlaying || isPaused) return;
-    const durSec = Number.isFinite(audioEl.duration) && audioEl.duration > 0
-      ? audioEl.duration
-      : (currentTeleprompterData.durationMs / 1000) || 1;
+    const durSec =
+      Number.isFinite(audioEl.duration) && audioEl.duration > 0
+        ? audioEl.duration
+        : currentTeleprompterData.durationMs / 1000 || 1;
     // When word timings are aligned directly to the WAV PCM samples (pcmAligned),
     // do not warp audioEl.currentTime by a synthetic duration scale factor.
-    const scale = (!currentTeleprompterData.pcmAligned && currentTeleprompterData.durationMs > 0)
-      ? currentTeleprompterData.durationMs / (durSec * 1000)
-      : 1;
+    const scale =
+      !currentTeleprompterData.pcmAligned &&
+      currentTeleprompterData.durationMs > 0
+        ? currentTeleprompterData.durationMs / (durSec * 1000)
+        : 1;
     const rawMediaMs = Math.max(0, audioEl.currentTime * 1000 * scale);
     const latencyMs = getEffectiveAudioLatencyMs();
     const currentMs = Math.max(0, rawMediaMs - latencyMs + syncOffsetMs);
-    highlightWordAtTimeMs(currentMs, currentTeleprompterData.durationMs || durSec * 1000);
+    highlightWordAtTimeMs(
+      currentMs,
+      currentTeleprompterData.durationMs || durSec * 1000,
+    );
   }
 
   function startTeleprompterLoop() {
@@ -923,14 +1436,22 @@ function mountPhononStudio(root, payload) {
       if (err instanceof ApiError && err.code === "MANUAL_INSTALL") {
         showToolsDialog();
       } else {
-        toast(err instanceof ApiError ? err.message : "Could not start installation.", { kind: "error" });
+        toast(
+          err instanceof ApiError
+            ? err.message
+            : "Could not start installation.",
+          { kind: "error" },
+        );
       }
     }
   }
 
   async function installFfmpegHelper() {
     try {
-      const { job } = await call("tools/install", { tools: ["ffmpeg"], confirm: true });
+      const { job } = await call("tools/install", {
+        tools: ["ffmpeg"],
+        confirm: true,
+      });
       emit("job-started", job);
       toast("Installing ffmpeg in the background…", { kind: "info" });
       pollJobUntilDone(job.id, () => refreshStatus());
@@ -944,12 +1465,21 @@ function mountPhononStudio(root, payload) {
       try {
         const { jobs } = await call("jobs/list");
         const found = jobs.find((j) => j.id === jobId);
-        if (!found || found.state === "done" || found.state === "failed" || found.state === "cancelled") {
+        if (
+          !found ||
+          found.state === "done" ||
+          found.state === "failed" ||
+          found.state === "cancelled"
+        ) {
           if (found?.state === "done") {
             onDone?.(found);
           } else if (found?.state === "failed") {
-            const failedStep = (found.steps || []).find((s) => s.state === "failed");
-            const msg = failedStep?.message || "Installation or export step failed. Check the Tasks panel for details.";
+            const failedStep = (found.steps || []).find(
+              (s) => s.state === "failed",
+            );
+            const msg =
+              failedStep?.message ||
+              "Installation or export step failed. Check the Tasks panel for details.";
             nowPlayingStatus.textContent = `❌ Export failed: ${msg}`;
             toast(msg, { kind: "error" });
             refreshStatus();
@@ -970,7 +1500,10 @@ function mountPhononStudio(root, payload) {
       status = await call("phonon/status");
       voices = status.voices || [];
       customVoices = status.customVoices || [];
-      if (Array.isArray(status.calibrationScripts) && status.calibrationScripts.length) {
+      if (
+        Array.isArray(status.calibrationScripts) &&
+        status.calibrationScripts.length
+      ) {
         calibrationScripts = status.calibrationScripts;
       }
       audioFormats = status.audioFormats || [];
@@ -998,7 +1531,12 @@ function mountPhononStudio(root, payload) {
       renderCustomVoicesList();
       renderActiveVoiceFingerprint();
     } catch (err) {
-      toast(err instanceof ApiError ? err.message : "Could not check Phonon status.", { kind: "error" });
+      toast(
+        err instanceof ApiError
+          ? err.message
+          : "Could not check Phonon status.",
+        { kind: "error" },
+      );
     }
   }
 
@@ -1015,10 +1553,15 @@ function mountPhononStudio(root, payload) {
       });
       if (res.settings) state.settings = res.settings;
       updateVoiceDropdown();
-      toast(`"${selectedVoice}" is now your default Phonon voice.`, { kind: "success" });
+      toast(`"${selectedVoice}" is now your default Phonon voice.`, {
+        kind: "success",
+      });
       announce(`${selectedVoice} set as default voice`);
     } catch (err) {
-      toast(err instanceof ApiError ? err.message : "Could not save default voice.", { kind: "error" });
+      toast(
+        err instanceof ApiError ? err.message : "Could not save default voice.",
+        { kind: "error" },
+      );
     }
   }
 
@@ -1035,7 +1578,11 @@ function mountPhononStudio(root, payload) {
       recStateBadge.textContent = `⏳ Synthesizing AI Voice preview for "${spokenName}" (${matchedCustom.profile?.medianF0Hz} Hz)…`;
     }
     try {
-      const res = await call("phonon/speak", { text: sample, voice: selectedVoice, pitch });
+      const res = await call("phonon/speak", {
+        text: sample,
+        voice: selectedVoice,
+        pitch,
+      });
       currentTeleprompterData.synthesizedPitch = Number(res.pitch) || 0;
       audioEl.src = audioUrlWithToken(res.url);
       applyAudioPlaybackSettings();
@@ -1049,8 +1596,10 @@ function mountPhononStudio(root, payload) {
         toast(statusMsg, { kind: "info" });
       }
     } catch (err) {
-      nowPlayingStatus.textContent = err instanceof ApiError ? err.message : "Voice preview failed.";
-      if (matchedCustom) recStateBadge.textContent = `⚠ ${nowPlayingStatus.textContent}`;
+      nowPlayingStatus.textContent =
+        err instanceof ApiError ? err.message : "Voice preview failed.";
+      if (matchedCustom)
+        recStateBadge.textContent = `⚠ ${nowPlayingStatus.textContent}`;
       toast(nowPlayingStatus.textContent, { kind: "error" });
     }
   }
@@ -1077,13 +1626,18 @@ function mountPhononStudio(root, payload) {
       return;
     }
     try {
-      const res = await call("phonon/chunk", { text: raw, maxChars: maxChunkChars });
+      const res = await call("phonon/chunk", {
+        text: raw,
+        maxChars: maxChunkChars,
+      });
       chunks = res.chunks || [];
       statsSummaryBadge.textContent = `${res.wordCount.toLocaleString()} words · ${res.charCount.toLocaleString()} chars · ${res.chunkCount.toLocaleString()} Phonon chunk${res.chunkCount === 1 ? "" : "s"} (~${formatDuration(res.estimatedSeconds)})`;
       if (chunkPage * CHUNKS_PER_PAGE >= chunks.length) chunkPage = 0;
       renderChunkList();
       if (!isPlaying) {
-        renderTeleprompterForChunk(activeChunkIndex >= 0 ? activeChunkIndex : 0);
+        renderTeleprompterForChunk(
+          activeChunkIndex >= 0 ? activeChunkIndex : 0,
+        );
       }
     } catch {
       // Fallback client-side count if server is busy
@@ -1096,7 +1650,11 @@ function mountPhononStudio(root, payload) {
 
     if (!chunks.length) {
       chunkListContainer.append(
-        h("div", { class: "phonon-empty-chunks" }, "No text chunks yet. Load a file or paste text above to split it into Phonon-safe speech segments."),
+        h(
+          "div",
+          { class: "phonon-empty-chunks" },
+          "No text chunks yet. Load a file or paste text above to split it into Phonon-safe speech segments.",
+        ),
       );
       return;
     }
@@ -1104,19 +1662,37 @@ function mountPhononStudio(root, payload) {
     const totalPages = Math.ceil(chunks.length / CHUNKS_PER_PAGE);
     if (totalPages > 1) {
       chunkPagerContainer.append(
-        h("button", {
-          type: "button",
-          class: "btn phonon-sm-btn",
-          disabled: chunkPage <= 0,
-          onclick: () => { chunkPage = Math.max(0, chunkPage - 1); renderChunkList(); },
-        }, "← Prev Page"),
-        h("span", { class: "hint" }, `Showing chunks ${chunkPage * CHUNKS_PER_PAGE + 1}–${Math.min(chunks.length, (chunkPage + 1) * CHUNKS_PER_PAGE)} of ${chunks.length.toLocaleString()}`),
-        h("button", {
-          type: "button",
-          class: "btn phonon-sm-btn",
-          disabled: chunkPage >= totalPages - 1,
-          onclick: () => { chunkPage = Math.min(totalPages - 1, chunkPage + 1); renderChunkList(); },
-        }, "Next Page →"),
+        h(
+          "button",
+          {
+            type: "button",
+            class: "btn phonon-sm-btn",
+            disabled: chunkPage <= 0,
+            onclick: () => {
+              chunkPage = Math.max(0, chunkPage - 1);
+              renderChunkList();
+            },
+          },
+          "← Prev Page",
+        ),
+        h(
+          "span",
+          { class: "hint" },
+          `Showing chunks ${chunkPage * CHUNKS_PER_PAGE + 1}–${Math.min(chunks.length, (chunkPage + 1) * CHUNKS_PER_PAGE)} of ${chunks.length.toLocaleString()}`,
+        ),
+        h(
+          "button",
+          {
+            type: "button",
+            class: "btn phonon-sm-btn",
+            disabled: chunkPage >= totalPages - 1,
+            onclick: () => {
+              chunkPage = Math.min(totalPages - 1, chunkPage + 1);
+              renderChunkList();
+            },
+          },
+          "Next Page →",
+        ),
       );
     }
 
@@ -1127,15 +1703,33 @@ function mountPhononStudio(root, payload) {
       const isCurrent = chunk.index === activeChunkIndex;
       const cacheKey = `${selectedVoice}|${pitch}|${chunk.text}`;
       const isCached = chunkAudioCache.has(cacheKey);
-      const itemEl = h("div", {
-        class: `phonon-chunk-item${isCurrent ? " is-active" : ""}${isCached ? " is-cached" : ""}`,
-        dataset: { index: String(chunk.index) },
-        onclick: () => playFromChunk(chunk.index),
-      },
-        h("div", { class: "phonon-chunk-meta" },
+      const itemEl = h(
+        "div",
+        {
+          class: `phonon-chunk-item${isCurrent ? " is-active" : ""}${isCached ? " is-cached" : ""}`,
+          dataset: { index: String(chunk.index) },
+          onclick: () => playFromChunk(chunk.index),
+        },
+        h(
+          "div",
+          { class: "phonon-chunk-meta" },
           h("span", { class: "phonon-chunk-num" }, `#${chunk.index + 1}`),
-          h("span", { class: "phonon-chunk-info" }, `Para ${chunk.paragraphIndex + 1} · ${chunk.wordCount} words · ${chunk.charCount}/${maxChunkChars} chars`),
-          h("span", { class: "phonon-chunk-state" }, isCurrent ? (isPaused ? "⏸ Paused" : "🔊 Speaking & Following Along") : isCached ? "✔ Cached" : "▶ Click to read & follow along"),
+          h(
+            "span",
+            { class: "phonon-chunk-info" },
+            `Para ${chunk.paragraphIndex + 1} · ${chunk.wordCount} words · ${chunk.charCount}/${maxChunkChars} chars`,
+          ),
+          h(
+            "span",
+            { class: "phonon-chunk-state" },
+            isCurrent
+              ? isPaused
+                ? "⏸ Paused"
+                : "🔊 Speaking & Following Along"
+              : isCached
+                ? "✔ Cached"
+                : "▶ Click to read & follow along",
+          ),
         ),
         h("div", { class: "phonon-chunk-text" }, chunk.text),
       );
@@ -1154,7 +1748,10 @@ function mountPhononStudio(root, payload) {
     sourcePathInput.value = filePath;
     const stem = stemOf(baseName(filePath, state.sep)) || "speech";
     outNameInput.value = stem;
-    const parentIdx = Math.max(filePath.lastIndexOf("/"), filePath.lastIndexOf("\\"));
+    const parentIdx = Math.max(
+      filePath.lastIndexOf("/"),
+      filePath.lastIndexOf("\\"),
+    );
     if (parentIdx > 0) outDirInput.value = filePath.slice(0, parentIdx);
 
     nowPlayingStatus.textContent = `Converting "${baseName(filePath, state.sep)}" to plain text…`;
@@ -1180,9 +1777,15 @@ function mountPhononStudio(root, payload) {
       renderChunkList();
       renderTeleprompterForChunk(0);
       nowPlayingStatus.textContent = `Converted "${baseName(filePath, state.sep)}" (${sourceFormatLabel}) into ${res.chunkCount.toLocaleString()} Phonon-safe plain-text chunk${res.chunkCount === 1 ? "" : "s"}.`;
-      toast(`Converted ${baseName(filePath, state.sep)} to plain text (${res.wordCount.toLocaleString()} words).`, { kind: "info" });
+      toast(
+        `Converted ${baseName(filePath, state.sep)} to plain text (${res.wordCount.toLocaleString()} words).`,
+        { kind: "info" },
+      );
     } catch (err) {
-      nowPlayingStatus.textContent = err instanceof ApiError ? err.message : "Could not extract plain text from that file.";
+      nowPlayingStatus.textContent =
+        err instanceof ApiError
+          ? err.message
+          : "Could not extract plain text from that file.";
       toast(nowPlayingStatus.textContent, { kind: "error" });
     }
   }
@@ -1211,9 +1814,13 @@ function mountPhononStudio(root, payload) {
       statsSummaryBadge.textContent = `${res.wordCount.toLocaleString()} words · ${res.charCount.toLocaleString()} chars · ${res.chunkCount.toLocaleString()} Phonon chunk${res.chunkCount === 1 ? "" : "s"} (~${formatDuration(res.estimatedSeconds)})`;
       renderChunkList();
       renderTeleprompterForChunk(0);
-      toast("Converted & cleaned text into speech-ready plain text.", { kind: "info" });
+      toast("Converted & cleaned text into speech-ready plain text.", {
+        kind: "info",
+      });
     } catch (err) {
-      toast(err instanceof ApiError ? err.message : "Could not clean text.", { kind: "error" });
+      toast(err instanceof ApiError ? err.message : "Could not clean text.", {
+        kind: "error",
+      });
     }
   }
 
@@ -1229,12 +1836,19 @@ function mountPhononStudio(root, payload) {
         outputDir: outDirInput.value.trim() || currentPath() || state.home,
         outputName: `${outNameInput.value.trim() || "plain-text"}`,
       });
-      toast(`Saved plain text: ${baseName(res.path, state.sep)}`, { kind: "success" });
+      toast(`Saved plain text: ${baseName(res.path, state.sep)}`, {
+        kind: "success",
+      });
       if (currentPath() && res.path.startsWith(currentPath())) {
         void refresh().then(() => selectKeys([res.path]));
       }
     } catch (err) {
-      toast(err instanceof ApiError ? err.message : "Could not save plain text file.", { kind: "error" });
+      toast(
+        err instanceof ApiError
+          ? err.message
+          : "Could not save plain text file.",
+        { kind: "error" },
+      );
     }
   }
 
@@ -1246,7 +1860,10 @@ function mountPhononStudio(root, payload) {
         void loadFileAndExtract(typed);
         return;
       }
-      toast("Select a file or e-book in the File Manager first, or type a path into the box.", { kind: "info" });
+      toast(
+        "Select a file or e-book in the File Manager first, or type a path into the box.",
+        { kind: "info" },
+      );
       return;
     }
     void loadFileAndExtract(sel[0].path);
@@ -1263,25 +1880,39 @@ function mountPhononStudio(root, payload) {
     const key = `${voiceName}|${normPitch}|${chunk.text}`;
     let pending = chunkAudioCache.get(key);
     if (!pending) {
-      pending = call("phonon/speak", { text: chunk.text, voice: voiceName, pitch: normPitch }).then((res) => {
-        renderChunkList();
-        return res;
-      }).catch((err) => {
-        chunkAudioCache.delete(key);
-        throw err;
-      });
+      pending = call("phonon/speak", {
+        text: chunk.text,
+        voice: voiceName,
+        pitch: normPitch,
+      })
+        .then((res) => {
+          renderChunkList();
+          return res;
+        })
+        .catch((err) => {
+          chunkAudioCache.delete(key);
+          throw err;
+        });
       chunkAudioCache.set(key, pending);
     }
     return pending;
   }
 
   function updateTransportButtons() {
-    playBtn.textContent = isPlaying && isPaused ? "▶️ Resume Reading" : isPlaying ? "🔄 Restart from Top" : "▶️ Read Out Loud";
+    playBtn.textContent =
+      isPlaying && isPaused
+        ? "▶️ Resume Reading"
+        : isPlaying
+          ? "🔄 Restart from Top"
+          : "▶️ Read Out Loud";
     pauseBtn.disabled = !isPlaying;
     pauseBtn.textContent = isPaused ? "▶️ Resume" : "⏸ Pause";
     stopBtn.disabled = !isPlaying && activeChunkIndex < 0;
     prevChunkBtn.disabled = !chunks.length || activeChunkIndex <= 0;
-    nextChunkBtn.disabled = !chunks.length || activeChunkIndex < 0 || activeChunkIndex >= chunks.length - 1;
+    nextChunkBtn.disabled =
+      !chunks.length ||
+      activeChunkIndex < 0 ||
+      activeChunkIndex >= chunks.length - 1;
   }
 
   async function startOrResumeReading() {
@@ -1336,7 +1967,10 @@ function mountPhononStudio(root, payload) {
 
   function stepChunk(delta) {
     if (!chunks.length) return;
-    const nextIdx = Math.min(chunks.length - 1, Math.max(0, (activeChunkIndex < 0 ? 0 : activeChunkIndex) + delta));
+    const nextIdx = Math.min(
+      chunks.length - 1,
+      Math.max(0, (activeChunkIndex < 0 ? 0 : activeChunkIndex) + delta),
+    );
     void playFromChunk(nextIdx);
   }
 
@@ -1354,7 +1988,9 @@ function mountPhononStudio(root, payload) {
     renderChunkList();
     renderTeleprompterForChunk(startIndex);
 
-    const activeRow = chunkListContainer.querySelector(`.phonon-chunk-item[data-index="${startIndex}"]`);
+    const activeRow = chunkListContainer.querySelector(
+      `.phonon-chunk-item[data-index="${startIndex}"]`,
+    );
     activeRow?.scrollIntoView({ block: "nearest", behavior: "smooth" });
 
     const voiceToUse = selectedVoice;
@@ -1363,15 +1999,25 @@ function mountPhononStudio(root, payload) {
 
     try {
       // Start current chunk synthesis first so it is queued ahead of background lookahead prefetches
-      const currentFetchPromise = fetchChunkAudio(startIndex, voiceToUse, pitchToUse);
+      const currentFetchPromise = fetchChunkAudio(
+        startIndex,
+        voiceToUse,
+        pitchToUse,
+      );
       if (startIndex + 1 < chunks.length) {
         setTimeout(() => {
-          if (playbackSessionId === session) void fetchChunkAudio(startIndex + 1, voiceToUse, pitchToUse).catch(() => {});
+          if (playbackSessionId === session)
+            void fetchChunkAudio(startIndex + 1, voiceToUse, pitchToUse).catch(
+              () => {},
+            );
         }, 60);
       }
       if (startIndex + 2 < chunks.length) {
         setTimeout(() => {
-          if (playbackSessionId === session) void fetchChunkAudio(startIndex + 2, voiceToUse, pitchToUse).catch(() => {});
+          if (playbackSessionId === session)
+            void fetchChunkAudio(startIndex + 2, voiceToUse, pitchToUse).catch(
+              () => {},
+            );
         }, 350);
       }
       const res = await currentFetchPromise;
@@ -1399,7 +2045,10 @@ function mountPhononStudio(root, payload) {
       stopTeleprompterLoop();
       updateTransportButtons();
       renderChunkList();
-      nowPlayingStatus.textContent = err instanceof ApiError ? err.message : "Could not synthesize speech chunk.";
+      nowPlayingStatus.textContent =
+        err instanceof ApiError
+          ? err.message
+          : "Could not synthesize speech chunk.";
       toast(nowPlayingStatus.textContent, { kind: "error" });
     }
   }
@@ -1412,16 +2061,22 @@ function mountPhononStudio(root, payload) {
     if (nextIdx < chunks.length) {
       const currentChunk = chunks[activeChunkIndex];
       const nextChunk = chunks[nextIdx];
-      const delay = nextChunk && currentChunk && nextChunk.paragraphIndex !== currentChunk.paragraphIndex
-        ? pauseMs
-        : Math.min(100, Math.round(pauseMs * 0.4));
+      const delay =
+        nextChunk &&
+        currentChunk &&
+        nextChunk.paragraphIndex !== currentChunk.paragraphIndex
+          ? pauseMs
+          : Math.min(100, Math.round(pauseMs * 0.4));
       setTimeout(() => {
         if (playbackSessionId === session && isPlaying && !isPaused) {
           void playFromChunk(nextIdx);
         }
       }, delay);
     } else {
-      highlightWordAtTimeMs(currentTeleprompterData.durationMs, currentTeleprompterData.durationMs);
+      highlightWordAtTimeMs(
+        currentTeleprompterData.durationMs,
+        currentTeleprompterData.durationMs,
+      );
       isPlaying = false;
       isPaused = false;
       activeChunkIndex = -1;
@@ -1444,7 +2099,8 @@ function mountPhononStudio(root, payload) {
     videoPlayerEl.src = rawFileUrl(videoPath);
     // Attach companion .vtt subtitle track if saved alongside the video
     const dotIdx = videoPath.lastIndexOf(".");
-    const vttPath = dotIdx > 0 ? `${videoPath.slice(0, dotIdx)}.vtt` : `${videoPath}.vtt`;
+    const vttPath =
+      dotIdx > 0 ? `${videoPath.slice(0, dotIdx)}.vtt` : `${videoPath}.vtt`;
     const trackEl = h("track", {
       kind: "subtitles",
       srclang: "en",
@@ -1463,7 +2119,9 @@ function mountPhononStudio(root, payload) {
         }
       } catch {}
     };
-    videoPlayerEl.addEventListener("loadedmetadata", activateSubtitleTrack, { once: true });
+    videoPlayerEl.addEventListener("loadedmetadata", activateSubtitleTrack, {
+      once: true,
+    });
     setTimeout(activateSubtitleTrack, 120);
 
     videoPlayerPathLabel.textContent = baseName(videoPath, state.sep);
@@ -1497,7 +2155,8 @@ function mountPhononStudio(root, payload) {
         pauseMs,
         cleanText: false,
         outputDir: outDirInput.value.trim() || currentPath() || state.home,
-        outputName: outNameInput.value.trim() || (isVid ? "read-along-video" : "speech"),
+        outputName:
+          outNameInput.value.trim() || (isVid ? "read-along-video" : "speech"),
         maxChunkChars: Math.max(maxChunkChars, 750),
         aspectRatio: selectedAspectRatio,
         videoTheme: selectedVideoTheme,
@@ -1505,9 +2164,13 @@ function mountPhononStudio(root, payload) {
         title: outNameInput.value.trim() || "Ollama Phonon Read-Along",
       });
       emit("job-started", res.job);
-      const kindDesc = isVid ? `Read-Along Video (.${fmt.toUpperCase()}, ${selectedAspectRatio})` : `.${fmt.toUpperCase()} audio`;
+      const kindDesc = isVid
+        ? `Read-Along Video (.${fmt.toUpperCase()}, ${selectedAspectRatio})`
+        : `.${fmt.toUpperCase()} audio`;
       nowPlayingStatus.textContent = `⏳ Rendering ${kindDesc} (${chunks.length} chunks, voice: ${selectedVoice})… See Tasks tray for live progress.`;
-      toast(`Started rendering ${kindDesc} with voice "${selectedVoice}".`, { kind: "info" });
+      toast(`Started rendering ${kindDesc} with voice "${selectedVoice}".`, {
+        kind: "info",
+      });
       pollJobUntilDone(
         res.job.id,
         (finishedJob) => {
@@ -1515,7 +2178,10 @@ function mountPhononStudio(root, payload) {
           nowPlayingStatus.textContent = out
             ? `✔ Saved ${isVid ? "Read-Along Video" : "audio file"}: ${out}`
             : `✔ ${isVid ? "Read-Along Video" : "Audio"} export complete!`;
-          toast(`Saved ${isVid ? "Read-Along Video" : "audio"}: ${out ? baseName(out, state.sep) : fmt.toUpperCase()}`, { kind: "success" });
+          toast(
+            `Saved ${isVid ? "Read-Along Video" : "audio"}: ${out ? baseName(out, state.sep) : fmt.toUpperCase()}`,
+            { kind: "success" },
+          );
           if (isVid && out) {
             loadExportedVideoIntoPreview(out);
           }
@@ -1533,24 +2199,33 @@ function mountPhononStudio(root, payload) {
         },
       );
     } catch (err) {
-      toast(err instanceof ApiError ? err.message : "Could not start export.", { kind: "error" });
+      toast(err instanceof ApiError ? err.message : "Could not start export.", {
+        kind: "error",
+      });
     }
   }
 
   async function batchConvertSelectedFiles(forceVideo = false) {
     const sel = getSelectedReadableEntries();
     if (!sel.length) {
-      toast("Select one or more files or e-books in the File Manager list first.", { kind: "info" });
+      toast(
+        "Select one or more files or e-books in the File Manager list first.",
+        { kind: "info" },
+      );
       return;
     }
     if (isPlaying || isPaused) {
       stopReading();
     }
     const fmt = forceVideo
-      ? (VIDEO_EXT_SET.has(selectedFormat) ? selectedFormat : "mp4")
+      ? VIDEO_EXT_SET.has(selectedFormat)
+        ? selectedFormat
+        : "mp4"
       : selectedFormat;
     const isVid = VIDEO_EXT_SET.has(fmt);
-    const kindDesc = isVid ? `Read-Along Video (.${fmt.toUpperCase()}, ${selectedAspectRatio})` : `.${fmt.toUpperCase()} audio`;
+    const kindDesc = isVid
+      ? `Read-Along Video (.${fmt.toUpperCase()}, ${selectedAspectRatio})`
+      : `.${fmt.toUpperCase()} audio`;
     try {
       const res = await call(isVid ? "phonon/video" : "phonon/save", {
         paths: sel.map((e) => e.path),
@@ -1579,7 +2254,10 @@ function mountPhononStudio(root, payload) {
           nowPlayingStatus.textContent = out
             ? `✔ Saved ${isVid ? "Read-Along Video" : "audio file"}: ${out}`
             : `✔ ${isVid ? "Read-Along Video" : "Audio"} batch export complete!`;
-          toast(`Saved ${isVid ? "Read-Along Video" : "audio"}: ${out ? baseName(out, state.sep) : fmt.toUpperCase()}`, { kind: "success" });
+          toast(
+            `Saved ${isVid ? "Read-Along Video" : "audio"}: ${out ? baseName(out, state.sep) : fmt.toUpperCase()}`,
+            { kind: "success" },
+          );
           if (isVid && out) loadExportedVideoIntoPreview(out);
           if (currentPath() && out && out.startsWith(currentPath())) {
             void refresh().then(() => selectKeys(finishedJob.outputs || [out]));
@@ -1595,7 +2273,12 @@ function mountPhononStudio(root, payload) {
         },
       );
     } catch (err) {
-      toast(err instanceof ApiError ? err.message : "Could not start batch conversion.", { kind: "error" });
+      toast(
+        err instanceof ApiError
+          ? err.message
+          : "Could not start batch conversion.",
+        { kind: "error" },
+      );
     }
   }
 
@@ -1604,13 +2287,18 @@ function mountPhononStudio(root, payload) {
     const targetPath = sourcePath || sel[0]?.path || "";
     const raw = textArea.value.trim();
     if (!targetPath && !raw) {
-      toast("Load a book/document or enter text before exporting a chaptered audiobook.", { kind: "info" });
+      toast(
+        "Load a book/document or enter text before exporting a chaptered audiobook.",
+        { kind: "info" },
+      );
       return;
     }
     if (isPlaying || isPaused) {
       stopReading();
     }
-    const fmt = VIDEO_EXT_SET.has(selectedFormat) ? "wav" : (selectedFormat || "wav");
+    const fmt = VIDEO_EXT_SET.has(selectedFormat)
+      ? "wav"
+      : selectedFormat || "wav";
     try {
       const res = await call("phonon/audiobook", {
         path: targetPath || undefined,
@@ -1626,13 +2314,19 @@ function mountPhononStudio(root, payload) {
       });
       if (res.job) emit("job-started", res.job);
       nowPlayingStatus.textContent = `⏳ Exporting Chaptered Audiobook "${res.bookTitle}" (${res.chapterCount} chapters, voice: ${selectedVoice}) → ${res.audiobookDir}…`;
-      toast(`Started exporting ${res.chapterCount}-chapter audiobook "${res.bookTitle}" (${selectedVoice}).`, { kind: "info" });
+      toast(
+        `Started exporting ${res.chapterCount}-chapter audiobook "${res.bookTitle}" (${selectedVoice}).`,
+        { kind: "info" },
+      );
       if (res.job?.id) {
         pollJobUntilDone(
           res.job.id,
           () => {
             nowPlayingStatus.textContent = `✔ Saved ${res.chapterCount}-chapter audiobook + M3U8 playlist in: ${res.audiobookDir}`;
-            toast(`Saved chaptered audiobook "${res.bookTitle}" (${res.chapterCount} chapters).`, { kind: "success" });
+            toast(
+              `Saved chaptered audiobook "${res.bookTitle}" (${res.chapterCount} chapters).`,
+              { kind: "success" },
+            );
             if (currentPath()) void refresh();
           },
           (runningJob) => {
@@ -1646,7 +2340,12 @@ function mountPhononStudio(root, payload) {
         );
       }
     } catch (err) {
-      toast(err instanceof ApiError ? err.message : "Could not export chaptered audiobook.", { kind: "error" });
+      toast(
+        err instanceof ApiError
+          ? err.message
+          : "Could not export chaptered audiobook.",
+        { kind: "error" },
+      );
     }
   }
 
@@ -1658,11 +2357,15 @@ function mountPhononStudio(root, payload) {
       );
     }
     sourcePath = "";
-    sourceFormatBadge.textContent = "Large Multi-Chapter Sample (18 Paragraphs)";
+    sourceFormatBadge.textContent =
+      "Large Multi-Chapter Sample (18 Paragraphs)";
     outNameInput.value = "large-audiobook-sample";
     textArea.value = paragraphs.join("\n\n");
     void recomputeChunksFromEditor();
-    toast("Loaded 18-paragraph large text sample to demonstrate multi-chunk Phonon streaming, follow-along & video stitching.", { kind: "info" });
+    toast(
+      "Loaded 18-paragraph large text sample to demonstrate multi-chunk Phonon streaming, follow-along & video stitching.",
+      { kind: "info" },
+    );
   }
 
   // -------------------------------------------------------------------------------------------------------------
@@ -1676,13 +2379,30 @@ function mountPhononStudio(root, payload) {
     value: "My Studio Voice",
     placeholder: "Name your AI voice (e.g. My Voice, Alex Narrator)",
   });
-  const micDeviceSelect = h("select", { id: "phonon-mic-select", class: "input phonon-select" },
+  const micDeviceSelect = h(
+    "select",
+    { id: "phonon-mic-select", class: "input phonon-select" },
     h("option", { value: "" }, "🎙️ Default System Microphone"),
   );
-  const calibrationScriptSelect = h("select", { id: "phonon-calibration-script", class: "input phonon-select" });
-  const calibrationPromptBox = h("div", { class: "phonon-calibration-prompt" }, "");
-  const recStateBadge = h("span", { class: "phonon-badge phonon-badge-accent" }, "🎙️ 24 kHz Studio Recorder Ready");
-  const recTimerLabel = h("span", { class: "phonon-rec-timer" }, "00:00.0 / 00:15.0");
+  const calibrationScriptSelect = h("select", {
+    id: "phonon-calibration-script",
+    class: "input phonon-select",
+  });
+  const calibrationPromptBox = h(
+    "div",
+    { class: "phonon-calibration-prompt" },
+    "",
+  );
+  const recStateBadge = h(
+    "span",
+    { class: "phonon-badge phonon-badge-accent" },
+    "🎙️ 24 kHz Studio Recorder Ready",
+  );
+  const recTimerLabel = h(
+    "span",
+    { class: "phonon-rec-timer" },
+    "00:00.0 / 00:15.0",
+  );
   const recDbMeterFill = h("div", { class: "phonon-db-meter-fill" });
   const recDbLabel = h("span", { class: "phonon-rec-db-label" }, "-∞ dB");
   const waveformCanvas = h("canvas", {
@@ -1692,18 +2412,26 @@ function mountPhononStudio(root, payload) {
     "aria-label": "Voice recording waveform oscilloscope",
   });
 
-  const recordVoiceBtn = h("button", {
-    type: "button",
-    class: "btn phonon-record-btn",
-    onclick: () => toggleVoiceRecording(),
-  }, "🔴 Record My Voice");
+  const recordVoiceBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "btn phonon-record-btn",
+      onclick: () => toggleVoiceRecording(),
+    },
+    "🔴 Record My Voice",
+  );
 
-  const playRecordedSampleBtn = h("button", {
-    type: "button",
-    class: "btn",
-    disabled: true,
-    onclick: () => playCurrentRecordedSample(),
-  }, "🎧 Hear My Recording");
+  const playRecordedSampleBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "btn",
+      disabled: true,
+      onclick: () => playCurrentRecordedSample(),
+    },
+    "🎧 Hear My Recording",
+  );
 
   const hiddenVoiceFileInput = h("input", {
     type: "file",
@@ -1718,42 +2446,76 @@ function mountPhononStudio(root, payload) {
     },
   });
 
-  const importVoiceFileBtn = h("button", {
-    type: "button",
-    class: "btn",
-    title: "Import an existing voice recording file (.WAV, .MP3, .M4A, .FLAC, .OGG) from your computer",
-    onclick: () => hiddenVoiceFileInput.click(),
-  }, "📂 Import Voice File");
+  const importVoiceFileBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "btn",
+      title:
+        "Import an existing voice recording file (.WAV, .MP3, .M4A, .FLAC, .OGG) from your computer",
+      onclick: () => hiddenVoiceFileInput.click(),
+    },
+    "📂 Import Voice File",
+  );
 
-  const cloneVoiceBtn = h("button", {
-    type: "button",
-    class: "btn primary phonon-clone-btn",
-    disabled: true,
-    onclick: () => createMyAiVoiceNow(),
-  }, "✨ Create My AI Voice & Use for Reading");
+  const cloneVoiceBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "btn primary phonon-clone-btn",
+      disabled: true,
+      onclick: () => createMyAiVoiceNow(),
+    },
+    "✨ Create My AI Voice & Use for Reading",
+  );
 
-  const voiceFingerprintBox = h("div", { class: "phonon-voice-fingerprint-box" });
+  const voiceFingerprintBox = h("div", {
+    class: "phonon-voice-fingerprint-box",
+  });
   const customVoicesListBox = h("div", { class: "phonon-custom-voices-list" });
 
   function updateCalibrationScriptUI() {
     clear(calibrationScriptSelect);
     for (const sc of calibrationScripts) {
       calibrationScriptSelect.append(
-        h("option", { value: sc.id, selected: sc.id === selectedCalibrationScriptId }, sc.label),
+        h(
+          "option",
+          { value: sc.id, selected: sc.id === selectedCalibrationScriptId },
+          sc.label,
+        ),
       );
     }
     calibrationScriptSelect.append(
-      h("option", { value: "editor", selected: selectedCalibrationScriptId === "editor" }, "📖 Read from Current Editor Text"),
+      h(
+        "option",
+        { value: "editor", selected: selectedCalibrationScriptId === "editor" },
+        "📖 Read from Current Editor Text",
+      ),
     );
-    const matched = calibrationScripts.find((s) => s.id === selectedCalibrationScriptId);
-    const promptText = selectedCalibrationScriptId === "editor"
-      ? (textArea.value.trim().slice(0, 260) || calibrationScripts[0].text)
-      : (matched?.text || calibrationScripts[0].text);
+    const matched = calibrationScripts.find(
+      (s) => s.id === selectedCalibrationScriptId,
+    );
+    const promptText =
+      selectedCalibrationScriptId === "editor"
+        ? textArea.value.trim().slice(0, 260) || calibrationScripts[0].text
+        : matched?.text || calibrationScripts[0].text;
     clear(calibrationPromptBox);
     calibrationPromptBox.append(
-      h("div", { class: "phonon-calibration-prompt-head" },
-        h("strong", {}, "📜 Guided Reading Script (Read this out loud at a natural, comfortable pace):"),
-        h("span", { class: "hint" }, matched?.durationHint ? `Target length: ${matched.durationHint}` : "8–15 sec recommended"),
+      h(
+        "div",
+        { class: "phonon-calibration-prompt-head" },
+        h(
+          "strong",
+          {},
+          "📜 Guided Reading Script (Read this out loud at a natural, comfortable pace):",
+        ),
+        h(
+          "span",
+          { class: "hint" },
+          matched?.durationHint
+            ? `Target length: ${matched.durationHint}`
+            : "8–15 sec recommended",
+        ),
       ),
       h("div", { class: "phonon-calibration-prompt-text" }, `"${promptText}"`),
     );
@@ -1770,11 +2532,17 @@ function mountPhononStudio(root, payload) {
       const devs = await navigator.mediaDevices.enumerateDevices();
       const mics = devs.filter((d) => d.kind === "audioinput");
       clear(micDeviceSelect);
-      micDeviceSelect.append(h("option", { value: "" }, "🎙️ Default System Microphone"));
+      micDeviceSelect.append(
+        h("option", { value: "" }, "🎙️ Default System Microphone"),
+      );
       mics.forEach((m, idx) => {
         if (!m.deviceId || m.deviceId === "default") return;
         micDeviceSelect.append(
-          h("option", { value: m.deviceId, selected: m.deviceId === selectedMicDeviceId }, `🎙️ ${m.label || `Microphone ${idx + 1}`}`),
+          h(
+            "option",
+            { value: m.deviceId, selected: m.deviceId === selectedMicDeviceId },
+            `🎙️ ${m.label || `Microphone ${idx + 1}`}`,
+          ),
         );
       });
     } catch {}
@@ -1805,7 +2573,11 @@ function mountPhononStudio(root, payload) {
       ctx2d.fillStyle = "rgba(148, 163, 184, 0.65)";
       ctx2d.font = "12px ui-monospace, SFMono-Regular, Menlo, monospace";
       ctx2d.textAlign = "center";
-      ctx2d.fillText("Click '🔴 Record My Voice' and read the passage above (or import an audio file)", W / 2, H / 2 + 4);
+      ctx2d.fillText(
+        "Click '🔴 Record My Voice' and read the passage above (or import an audio file)",
+        W / 2,
+        H / 2 + 4,
+      );
       return;
     }
 
@@ -1832,9 +2604,10 @@ function mountPhononStudio(root, payload) {
   function encodeFloat32ToWav24k(monoFloats, srcRate) {
     const targetRate = 24000;
     const maxOutSamples = targetRate * 18; // Cap at 18 seconds
-    const rawOutSamples = srcRate === targetRate
-      ? monoFloats.length
-      : Math.max(1, Math.round((monoFloats.length * targetRate) / srcRate));
+    const rawOutSamples =
+      srcRate === targetRate
+        ? monoFloats.length
+        : Math.max(1, Math.round((monoFloats.length * targetRate) / srcRate));
     const outSamples = Math.min(maxOutSamples, rawOutSamples);
     const resampled = new Float32Array(outSamples);
 
@@ -1855,7 +2628,8 @@ function mountPhononStudio(root, payload) {
     const buffer = new ArrayBuffer(44 + pcmBytes);
     const view = new DataView(buffer);
     const writeAscii = (off, str) => {
-      for (let i = 0; i < str.length; i++) view.setUint8(off + i, str.charCodeAt(i));
+      for (let i = 0; i < str.length; i++)
+        view.setUint8(off + i, str.charCodeAt(i));
     };
     writeAscii(0, "RIFF");
     view.setUint32(4, 36 + pcmBytes, true);
@@ -1880,7 +2654,10 @@ function mountPhononStudio(root, payload) {
     let binary = "";
     const chunkStep = 0x8000;
     for (let i = 0; i < uint8.length; i += chunkStep) {
-      binary += String.fromCharCode.apply(null, uint8.subarray(i, i + chunkStep));
+      binary += String.fromCharCode.apply(
+        null,
+        uint8.subarray(i, i + chunkStep),
+      );
     }
     const base64 = btoa(binary);
     const blob = new Blob([buffer], { type: "audio/wav" });
@@ -1901,15 +2678,27 @@ function mountPhononStudio(root, payload) {
     samplePreviewAudioEl.pause();
 
     if (!navigator.mediaDevices?.getUserMedia) {
-      toast("Microphone recording is not available in this window. Use '📂 Import Voice File' instead.", { kind: "error" });
+      toast(
+        "Microphone recording is not available in this window. Use '📂 Import Voice File' instead.",
+        { kind: "error" },
+      );
       return;
     }
 
     try {
       const constraints = {
         audio: selectedMicDeviceId
-          ? { deviceId: { exact: selectedMicDeviceId }, echoCancellation: false, noiseSuppression: true, autoGainControl: true }
-          : { echoCancellation: false, noiseSuppression: true, autoGainControl: true },
+          ? {
+              deviceId: { exact: selectedMicDeviceId },
+              echoCancellation: false,
+              noiseSuppression: true,
+              autoGainControl: true,
+            }
+          : {
+              echoCancellation: false,
+              noiseSuppression: true,
+              autoGainControl: true,
+            },
       };
       recStream = await navigator.mediaDevices.getUserMedia(constraints);
       void refreshMicrophoneDevices();
@@ -1951,8 +2740,14 @@ function mountPhononStudio(root, payload) {
           sumSq += s * s;
         }
         const rms = Math.sqrt(sumSq / timeDomainBuf.length);
-        const db = rms > 0.0001 ? Math.max(-60, Math.min(0, Math.round(20 * Math.log10(rms)))) : -60;
-        const pct = Math.max(2, Math.min(100, Math.round(((db + 60) / 60) * 100)));
+        const db =
+          rms > 0.0001
+            ? Math.max(-60, Math.min(0, Math.round(20 * Math.log10(rms))))
+            : -60;
+        const pct = Math.max(
+          2,
+          Math.min(100, Math.round(((db + 60) / 60) * 100)),
+        );
         recDbMeterFill.style.width = `${pct}%`;
         recDbLabel.textContent = `${db} dB`;
 
@@ -1988,7 +2783,10 @@ function mountPhononStudio(root, payload) {
         }
       }, 100);
     } catch (err) {
-      toast(`Could not access microphone: ${err?.message || "Permission denied"}. You can also click '📂 Import Voice File'.`, { kind: "error" });
+      toast(
+        `Could not access microphone: ${err?.message || "Permission denied"}. You can also click '📂 Import Voice File'.`,
+        { kind: "error" },
+      );
     }
   }
 
@@ -1997,15 +2795,23 @@ function mountPhononStudio(root, payload) {
     recRafId = 0;
     clearInterval(recTimerId);
     recTimerId = 0;
-    try { recProcessorNode?.disconnect(); } catch {}
-    try { recAnalyserNode?.disconnect(); } catch {}
-    try { recSourceNode?.disconnect(); } catch {}
+    try {
+      recProcessorNode?.disconnect();
+    } catch {}
+    try {
+      recAnalyserNode?.disconnect();
+    } catch {}
+    try {
+      recSourceNode?.disconnect();
+    } catch {}
     recProcessorNode = null;
     recAnalyserNode = null;
     recSourceNode = null;
     if (recStream) {
       for (const track of recStream.getTracks()) {
-        try { track.stop(); } catch {}
+        try {
+          track.stop();
+        } catch {}
       }
       recStream = null;
     }
@@ -2035,7 +2841,10 @@ function mountPhononStudio(root, payload) {
 
     if (merged.length < capturedRate * 1.2) {
       recStateBadge.textContent = "⚠ Recording too short (< 1.5s)";
-      toast("Please record at least 2–10 seconds of speech so Phonon can capture your voice profile.", { kind: "info" });
+      toast(
+        "Please record at least 2–10 seconds of speech so Phonon can capture your voice profile.",
+        { kind: "info" },
+      );
       drawIdleOrStaticWaveform(null);
       return;
     }
@@ -2051,7 +2860,10 @@ function mountPhononStudio(root, payload) {
     playRecordedSampleBtn.disabled = false;
     cloneVoiceBtn.disabled = false;
     drawIdleOrStaticWaveform(recordedSamplesPreview, false);
-    toast(`Captured ${recordedDurationSec.toFixed(1)}s voice sample! Click '✨ Create My AI Voice' to clone and use your voice.`, { kind: "success" });
+    toast(
+      `Captured ${recordedDurationSec.toFixed(1)}s voice sample! Click '✨ Create My AI Voice' to clone and use your voice.`,
+      { kind: "success" },
+    );
   }
 
   async function importVoiceAudioFileFromPicker(file) {
@@ -2073,13 +2885,20 @@ function mountPhononStudio(root, payload) {
             mono[i] += chData[i] / numCh;
           }
         }
-        const encoded = encodeFloat32ToWav24k(mono, audioBuffer.sampleRate || 24000);
+        const encoded = encodeFloat32ToWav24k(
+          mono,
+          audioBuffer.sampleRate || 24000,
+        );
         recordedWavBlob = encoded.blob;
         recordedWavBase64 = encoded.base64;
         recordedDurationSec = encoded.durationSec;
         recordedSamplesPreview = encoded.resampled;
         const stem = stemOf(file.name);
-        if (stem && (!customVoiceNameInput.value.trim() || customVoiceNameInput.value === "My Studio Voice")) {
+        if (
+          stem &&
+          (!customVoiceNameInput.value.trim() ||
+            customVoiceNameInput.value === "My Studio Voice")
+        ) {
           customVoiceNameInput.value = stem.slice(0, 32);
         }
         recStateBadge.textContent = `✔ Imported "${file.name}" (${recordedDurationSec.toFixed(1)}s · 24 kHz WAV)`;
@@ -2087,12 +2906,18 @@ function mountPhononStudio(root, payload) {
         playRecordedSampleBtn.disabled = false;
         cloneVoiceBtn.disabled = false;
         drawIdleOrStaticWaveform(recordedSamplesPreview, false);
-        toast(`Loaded voice sample "${file.name}" (${recordedDurationSec.toFixed(1)}s). Click '✨ Create My AI Voice' to use it!`, { kind: "info" });
+        toast(
+          `Loaded voice sample "${file.name}" (${recordedDurationSec.toFixed(1)}s). Click '✨ Create My AI Voice' to use it!`,
+          { kind: "info" },
+        );
       } finally {
         void decodeCtx.close().catch(() => {});
       }
     } catch {
-      toast("Could not decode that audio file in the browser. Please choose a .WAV, .MP3, .M4A, or .OGG file.", { kind: "error" });
+      toast(
+        "Could not decode that audio file in the browser. Please choose a .WAV, .MP3, .M4A, or .OGG file.",
+        { kind: "error" },
+      );
       recStateBadge.textContent = "⚠ Could not decode audio file";
     }
   }
@@ -2106,7 +2931,8 @@ function mountPhononStudio(root, payload) {
       void samplePreviewAudioEl.play().catch(() => {});
       return;
     }
-    const activeCustom = customVoices.find((cv) => cv.id === selectedVoice) || customVoices[0];
+    const activeCustom =
+      customVoices.find((cv) => cv.id === selectedVoice) || customVoices[0];
     if (activeCustom?.sampleUrl) {
       samplePreviewAudioEl.src = audioUrlWithToken(activeCustom.sampleUrl);
       void samplePreviewAudioEl.play().catch(() => {});
@@ -2116,14 +2942,17 @@ function mountPhononStudio(root, payload) {
   async function createMyAiVoiceNow() {
     if (isCloningVoice) return;
     if (!recordedWavBase64) {
-      toast("Record your voice or import a voice audio file first.", { kind: "info" });
+      toast("Record your voice or import a voice audio file first.", {
+        kind: "info",
+      });
       return;
     }
     const voiceName = customVoiceNameInput.value.trim() || "My Studio Voice";
     isCloningVoice = true;
     cloneVoiceBtn.disabled = true;
     cloneVoiceBtn.textContent = "⏳ Cloning Your Real Voice with F5-TTS MLX…";
-    recStateBadge.textContent = "🧬 Aligning Voice Sample (Whisper ASR) & Building Zero-Shot Neural Clone…";
+    recStateBadge.textContent =
+      "🧬 Aligning Voice Sample (Whisper ASR) & Building Zero-Shot Neural Clone…";
 
     try {
       const res = await call("phonon/clone-voice", {
@@ -2141,10 +2970,16 @@ function mountPhononStudio(root, payload) {
       renderCustomVoicesList();
       renderActiveVoiceFingerprint();
       recStateBadge.textContent = `✨ AI Voice "${created.label}" Ready (${created.profile.medianF0Hz} Hz · ${created.profile.voiceRegister})`;
-      toast(`Created your AI voice "${created.label}" (${created.profile.medianF0Hz} Hz ${created.profile.voiceRegister})! Click Read Out Loud to hear your voice.`, { kind: "success" });
+      toast(
+        `Created your AI voice "${created.label}" (${created.profile.medianF0Hz} Hz ${created.profile.voiceRegister})! Click Read Out Loud to hear your voice.`,
+        { kind: "success" },
+      );
       announce(`Created custom AI voice ${created.label}`);
     } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Could not create custom AI voice.";
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : "Could not create custom AI voice.";
       recStateBadge.textContent = `⚠ ${msg}`;
       toast(msg, { kind: "error" });
     } finally {
@@ -2163,13 +2998,19 @@ function mountPhononStudio(root, payload) {
       await refreshStatus();
       toast(`Removed custom voice "${label || voiceId}".`, { kind: "info" });
     } catch (err) {
-      toast(err instanceof ApiError ? err.message : "Could not delete custom voice.", { kind: "error" });
+      toast(
+        err instanceof ApiError
+          ? err.message
+          : "Could not delete custom voice.",
+        { kind: "error" },
+      );
     }
   }
 
   function renderActiveVoiceFingerprint() {
     clear(voiceFingerprintBox);
-    const activeCustom = customVoices.find((cv) => cv.id === selectedVoice) || customVoices[0];
+    const activeCustom =
+      customVoices.find((cv) => cv.id === selectedVoice) || customVoices[0];
     if (!activeCustom || !activeCustom.profile) {
       voiceFingerprintBox.hidden = true;
       return;
@@ -2177,13 +3018,25 @@ function mountPhononStudio(root, payload) {
     voiceFingerprintBox.hidden = false;
     const p = activeCustom.profile;
     const blendBadges = (p.blendComponents || []).map((c) =>
-      h("span", { class: "phonon-pill ok" }, `${c.voiceId}: ${Math.round(c.weight * 100)}% (${c.f0Hz} Hz)`),
+      h(
+        "span",
+        { class: "phonon-pill ok" },
+        `${c.voiceId}: ${Math.round(c.weight * 100)}% (${c.f0Hz} Hz)`,
+      ),
     );
 
     voiceFingerprintBox.append(
-      h("div", { class: "phonon-fingerprint-head" },
-        h("strong", {}, `🧬 Acoustic Voice Biometric Profile — "${activeCustom.label}" (${activeCustom.id})`),
-        h("span", { class: "phonon-pill ok" },
+      h(
+        "div",
+        { class: "phonon-fingerprint-head" },
+        h(
+          "strong",
+          {},
+          `🧬 Acoustic Voice Biometric Profile — "${activeCustom.label}" (${activeCustom.id})`,
+        ),
+        h(
+          "span",
+          { class: "phonon-pill ok" },
           activeCustom.cloningEngine === "f5-tts-mlx"
             ? "✔ Zero-Shot Neural Voice Clone (F5-TTS MLX · 24 kHz)"
             : activeCustom.ollamaRegistered
@@ -2191,25 +3044,81 @@ function mountPhononStudio(root, payload) {
               : `✔ Calibrated Neural Profile (${activeCustom.baseVoiceId})`,
         ),
       ),
-      h("div", { class: "phonon-fingerprint-grid" },
-        h("div", { class: "phonon-fingerprint-stat" },
-          h("span", { class: "phonon-fingerprint-label" }, "Fundamental Pitch (F0)"),
-          h("strong", { class: "phonon-fingerprint-val" }, `${p.medianF0Hz} Hz (${p.f0MinHz}–${p.f0MaxHz} Hz)`),
-          h("span", { class: "hint" }, `${p.voiceRegister} · ±${p.f0StdSemitones} st inflection`),
+      h(
+        "div",
+        { class: "phonon-fingerprint-grid" },
+        h(
+          "div",
+          { class: "phonon-fingerprint-stat" },
+          h(
+            "span",
+            { class: "phonon-fingerprint-label" },
+            "Fundamental Pitch (F0)",
+          ),
+          h(
+            "strong",
+            { class: "phonon-fingerprint-val" },
+            `${p.medianF0Hz} Hz (${p.f0MinHz}–${p.f0MaxHz} Hz)`,
+          ),
+          h(
+            "span",
+            { class: "hint" },
+            `${p.voiceRegister} · ±${p.f0StdSemitones} st inflection`,
+          ),
         ),
-        h("div", { class: "phonon-fingerprint-stat" },
-          h("span", { class: "phonon-fingerprint-label" }, "Spectral Timbre & Formants"),
-          h("strong", { class: "phonon-fingerprint-val" }, `${p.spectralCentroidHz} Hz (${p.timbreLabel})`),
-          h("span", { class: "hint" }, `Low ${Math.round((p.formantBands?.low || 0) * 100)}% · Mid ${Math.round(((p.formantBands?.midLow || 0) + (p.formantBands?.midHigh || 0)) * 100)}% · Air ${Math.round((p.formantBands?.air || 0) * 100)}%`),
+        h(
+          "div",
+          { class: "phonon-fingerprint-stat" },
+          h(
+            "span",
+            { class: "phonon-fingerprint-label" },
+            "Spectral Timbre & Formants",
+          ),
+          h(
+            "strong",
+            { class: "phonon-fingerprint-val" },
+            `${p.spectralCentroidHz} Hz (${p.timbreLabel})`,
+          ),
+          h(
+            "span",
+            { class: "hint" },
+            `Low ${Math.round((p.formantBands?.low || 0) * 100)}% · Mid ${Math.round(((p.formantBands?.midLow || 0) + (p.formantBands?.midHigh || 0)) * 100)}% · Air ${Math.round((p.formantBands?.air || 0) * 100)}%`,
+          ),
         ),
-        h("div", { class: "phonon-fingerprint-stat" },
-          h("span", { class: "phonon-fingerprint-label" }, "Zero-Shot Voice Cloning Engine"),
-          h("strong", { class: "phonon-fingerprint-val" }, activeCustom.cloningEngine === "f5-tts-mlx" ? "F5-TTS MLX (Direct Reference Audio)" : `${p.speakingRateSylPerSec} syl/sec · ${p.snrDb} dB SNR`),
-          h("span", { class: "hint" }, activeCustom.refTranscript ? `Ref: "${activeCustom.refTranscript}"` : `Closed-Loop F0 Lock (${p.medianF0Hz} Hz) + 4-Band Formant Transfer`),
+        h(
+          "div",
+          { class: "phonon-fingerprint-stat" },
+          h(
+            "span",
+            { class: "phonon-fingerprint-label" },
+            "Zero-Shot Voice Cloning Engine",
+          ),
+          h(
+            "strong",
+            { class: "phonon-fingerprint-val" },
+            activeCustom.cloningEngine === "f5-tts-mlx"
+              ? "F5-TTS MLX (Direct Reference Audio)"
+              : `${p.speakingRateSylPerSec} syl/sec · ${p.snrDb} dB SNR`,
+          ),
+          h(
+            "span",
+            { class: "hint" },
+            activeCustom.refTranscript
+              ? `Ref: "${activeCustom.refTranscript}"`
+              : `Closed-Loop F0 Lock (${p.medianF0Hz} Hz) + 4-Band Formant Transfer`,
+          ),
         ),
       ),
-      h("div", { class: "phonon-fingerprint-blend-row" },
-        h("span", { class: "hint" }, activeCustom.cloningEngine === "f5-tts-mlx" ? "Conditioned directly on your recorded 24 kHz voice waveform · Fallback Tensor:" : "AdaIN [1, 512, 125] Neural Latent Blend:"),
+      h(
+        "div",
+        { class: "phonon-fingerprint-blend-row" },
+        h(
+          "span",
+          { class: "hint" },
+          activeCustom.cloningEngine === "f5-tts-mlx"
+            ? "Conditioned directly on your recorded 24 kHz voice waveform · Fallback Tensor:"
+            : "AdaIN [1, 512, 125] Neural Latent Blend:",
+        ),
         ...blendBadges,
       ),
     );
@@ -2223,9 +3132,15 @@ function mountPhononStudio(root, payload) {
     }
     customVoicesListBox.hidden = false;
     customVoicesListBox.append(
-      h("div", { class: "phonon-custom-voices-head" },
+      h(
+        "div",
+        { class: "phonon-custom-voices-head" },
         h("strong", {}, `🎙️ My Recorded AI Voices (${customVoices.length})`),
-        h("span", { class: "hint" }, "Select any of your recorded voices below to read documents aloud or export audio & video in your own voice."),
+        h(
+          "span",
+          { class: "hint" },
+          "Select any of your recorded voices below to read documents aloud or export audio & video in your own voice.",
+        ),
       ),
     );
 
@@ -2233,58 +3148,88 @@ function mountPhononStudio(root, payload) {
     for (const cv of customVoices) {
       const isSelected = cv.id === selectedVoice;
       rowsWrap.append(
-        h("div", { class: `phonon-custom-voice-row${isSelected ? " is-active" : ""}` },
-          h("div", { class: "phonon-custom-voice-info" },
-            h("div", { class: "phonon-inline-row" },
+        h(
+          "div",
+          { class: `phonon-custom-voice-row${isSelected ? " is-active" : ""}` },
+          h(
+            "div",
+            { class: "phonon-custom-voice-info" },
+            h(
+              "div",
+              { class: "phonon-inline-row" },
               h("strong", {}, `🎙️ ${cv.label}`),
               h("code", { class: "phonon-cli-badge" }, `--voice ${cv.id}`),
-              isSelected ? h("span", { class: "phonon-pill ok" }, "★ Active Voice") : null,
+              isSelected
+                ? h("span", { class: "phonon-pill ok" }, "★ Active Voice")
+                : null,
             ),
-            h("span", { class: "hint" }, `${cv.profile?.medianF0Hz || 160} Hz ${cv.profile?.voiceRegister || ""} · ${cv.profile?.timbreLabel || ""} · ${cv.durationSec}s sample`),
+            h(
+              "span",
+              { class: "hint" },
+              `${cv.profile?.medianF0Hz || 160} Hz ${cv.profile?.voiceRegister || ""} · ${cv.profile?.timbreLabel || ""} · ${cv.durationSec}s sample`,
+            ),
           ),
-          h("div", { class: "phonon-inline-row" },
-            h("button", {
-              type: "button",
-              class: `btn phonon-sm-btn${isSelected ? " primary" : ""}`,
-              onclick: () => {
-                selectedVoice = cv.id;
-                voiceSelect.value = cv.id;
-                updateVoiceDropdown();
-                renderStatusBanner();
-                renderCustomVoicesList();
-                renderActiveVoiceFingerprint();
-                void saveAsDefaultVoice();
+          h(
+            "div",
+            { class: "phonon-inline-row" },
+            h(
+              "button",
+              {
+                type: "button",
+                class: `btn phonon-sm-btn${isSelected ? " primary" : ""}`,
+                onclick: () => {
+                  selectedVoice = cv.id;
+                  voiceSelect.value = cv.id;
+                  updateVoiceDropdown();
+                  renderStatusBanner();
+                  renderCustomVoicesList();
+                  renderActiveVoiceFingerprint();
+                  void saveAsDefaultVoice();
+                },
               },
-            }, isSelected ? "✓ Using Voice" : "Use My Voice"),
-            h("button", {
-              type: "button",
-              class: "btn phonon-sm-btn",
-              title: "Listen to your original recorded microphone sample",
-              onclick: () => {
-                stopReading();
-                samplePreviewAudioEl.src = audioUrlWithToken(cv.sampleUrl);
-                void samplePreviewAudioEl.play().catch(() => {});
+              isSelected ? "✓ Using Voice" : "Use My Voice",
+            ),
+            h(
+              "button",
+              {
+                type: "button",
+                class: "btn phonon-sm-btn",
+                title: "Listen to your original recorded microphone sample",
+                onclick: () => {
+                  stopReading();
+                  samplePreviewAudioEl.src = audioUrlWithToken(cv.sampleUrl);
+                  void samplePreviewAudioEl.play().catch(() => {});
+                },
               },
-            }, "🎧 My Recording"),
-            h("button", {
-              type: "button",
-              class: "btn phonon-sm-btn",
-              title: "Synthesize speech using your cloned AI voice",
-              onclick: () => {
-                selectedVoice = cv.id;
-                voiceSelect.value = cv.id;
-                updateVoiceDropdown();
-                renderCustomVoicesList();
-                renderActiveVoiceFingerprint();
-                void previewSelectedVoice();
+              "🎧 My Recording",
+            ),
+            h(
+              "button",
+              {
+                type: "button",
+                class: "btn phonon-sm-btn",
+                title: "Synthesize speech using your cloned AI voice",
+                onclick: () => {
+                  selectedVoice = cv.id;
+                  voiceSelect.value = cv.id;
+                  updateVoiceDropdown();
+                  renderCustomVoicesList();
+                  renderActiveVoiceFingerprint();
+                  void previewSelectedVoice();
+                },
               },
-            }, "🔊 Preview AI Voice"),
-            h("button", {
-              type: "button",
-              class: "btn phonon-sm-btn",
-              title: "Delete this custom voice",
-              onclick: () => removeCustomVoiceById(cv.id, cv.label),
-            }, "🗑"),
+              "🔊 Preview AI Voice",
+            ),
+            h(
+              "button",
+              {
+                type: "button",
+                class: "btn phonon-sm-btn",
+                title: "Delete this custom voice",
+                onclick: () => removeCustomVoiceById(cv.id, cv.label),
+              },
+              "🗑",
+            ),
           ),
         ),
       );
@@ -2300,7 +3245,9 @@ function mountPhononStudio(root, payload) {
   voiceSelect.addEventListener("change", () => {
     selectedVoice = voiceSelect.value;
     const currentInfo = voices.find((v) => v.id === selectedVoice);
-    voiceDescEl.textContent = currentInfo ? `${currentInfo.category}: ${currentInfo.desc}` : "";
+    voiceDescEl.textContent = currentInfo
+      ? `${currentInfo.category}: ${currentInfo.desc}`
+      : "";
     renderStatusBanner();
     renderChunkList();
     renderCustomVoicesList();
@@ -2345,8 +3292,14 @@ function mountPhononStudio(root, payload) {
   pitchSlider.addEventListener("change", () => {
     void saveSettings({ phononPitch: pitch });
     renderChunkList();
-    if (isPlaying && activeChunkIndex >= 0 && status?.ffmpegInstalled !== false) {
-      const resumeSec = Number.isFinite(audioEl.currentTime) ? audioEl.currentTime : 0;
+    if (
+      isPlaying &&
+      activeChunkIndex >= 0 &&
+      status?.ffmpegInstalled !== false
+    ) {
+      const resumeSec = Number.isFinite(audioEl.currentTime)
+        ? audioEl.currentTime
+        : 0;
       void playFromChunk(activeChunkIndex, resumeSec);
     }
   });
@@ -2378,51 +3331,115 @@ function mountPhononStudio(root, payload) {
   });
 
   // Build Layout
-  const voiceCard = h("section", { class: "phonon-card" },
-    h("div", { class: "phonon-card-head" },
-      h("h3", { class: "phonon-card-title" }, "1. Default Voice & Speech Engine Settings"),
+  const voiceCard = h(
+    "section",
+    { class: "phonon-card" },
+    h(
+      "div",
+      { class: "phonon-card-head" },
+      h(
+        "h3",
+        { class: "phonon-card-title" },
+        "1. Default Voice & Speech Engine Settings",
+      ),
       defaultVoiceBadge,
     ),
-    h("div", { class: "phonon-grid-2" },
-      h("div", { class: "phonon-field" },
-        h("label", { class: "phonon-label", for: "phonon-voice-select" }, "Ollama Phonon Voice (38 Neural Voices)"),
-        h("div", { class: "phonon-inline-row" },
+    h(
+      "div",
+      { class: "phonon-grid-2" },
+      h(
+        "div",
+        { class: "phonon-field" },
+        h(
+          "label",
+          { class: "phonon-label", for: "phonon-voice-select" },
+          "Ollama Phonon Voice (38 Neural Voices)",
+        ),
+        h(
+          "div",
+          { class: "phonon-inline-row" },
           voiceSelect,
-          h("button", { id: "phonon-preview-voice-btn", type: "button", class: "btn", onclick: () => previewSelectedVoice() }, "🔊 Preview"),
-          h("button", { id: "phonon-set-default-btn", type: "button", class: "btn primary", onclick: () => saveAsDefaultVoice() }, "⭐ Set Default Voice"),
+          h(
+            "button",
+            {
+              id: "phonon-preview-voice-btn",
+              type: "button",
+              class: "btn",
+              onclick: () => previewSelectedVoice(),
+            },
+            "🔊 Preview",
+          ),
+          h(
+            "button",
+            {
+              id: "phonon-set-default-btn",
+              type: "button",
+              class: "btn primary",
+              onclick: () => saveAsDefaultVoice(),
+            },
+            "⭐ Set Default Voice",
+          ),
         ),
         voiceDescEl,
       ),
-      h("div", { class: "phonon-field" },
-        h("label", { class: "phonon-label", for: "phonon-chunk-limit" }, "Large-Text Context Window Chunking"),
+      h(
+        "div",
+        { class: "phonon-field" },
+        h(
+          "label",
+          { class: "phonon-label", for: "phonon-chunk-limit" },
+          "Large-Text Context Window Chunking",
+        ),
         chunkLimitSelect,
-        h("span", { class: "hint" }, "Automatically splits books and huge texts into safe segments inside Phonon's 8,192-token limit."),
+        h(
+          "span",
+          { class: "hint" },
+          "Automatically splits books and huge texts into safe segments inside Phonon's 8,192-token limit.",
+        ),
       ),
     ),
-    h("div", { class: "phonon-grid-4 phonon-sliders-row" },
-      h("div", { class: "phonon-field" },
-        h("label", { class: "phonon-label", for: "phonon-speed-range" },
+    h(
+      "div",
+      { class: "phonon-grid-4 phonon-sliders-row" },
+      h(
+        "div",
+        { class: "phonon-field" },
+        h(
+          "label",
+          { class: "phonon-label", for: "phonon-speed-range" },
           h("span", {}, "Speaking Speed"),
           speedValueLabel,
         ),
         speedSlider,
       ),
-      h("div", { class: "phonon-field" },
-        h("label", { class: "phonon-label", for: "phonon-pitch-range" },
+      h(
+        "div",
+        { class: "phonon-field" },
+        h(
+          "label",
+          { class: "phonon-label", for: "phonon-pitch-range" },
           h("span", {}, "Voice Pitch (Time-Locked)"),
           pitchValueLabel,
         ),
         pitchSlider,
       ),
-      h("div", { class: "phonon-field" },
-        h("label", { class: "phonon-label", for: "phonon-sync-offset-range" },
+      h(
+        "div",
+        { class: "phonon-field" },
+        h(
+          "label",
+          { class: "phonon-label", for: "phonon-sync-offset-range" },
           h("span", {}, "Audio-Text Sync Offset"),
           syncOffsetValueLabel,
         ),
         syncOffsetSlider,
       ),
-      h("div", { class: "phonon-field" },
-        h("label", { class: "phonon-label", for: "phonon-pause-range" },
+      h(
+        "div",
+        { class: "phonon-field" },
+        h(
+          "label",
+          { class: "phonon-label", for: "phonon-pause-range" },
           h("span", {}, "Paragraph Pause Gap"),
           pauseValueLabel,
         ),
@@ -2430,46 +3447,92 @@ function mountPhononStudio(root, payload) {
       ),
     ),
     // AI Voice Recorder & Voice Cloning Studio Box
-    h("div", { class: "phonon-voice-recorder-box" },
-      h("div", { class: "phonon-recorder-head" },
-        h("div", { class: "phonon-inline-row" },
-          h("strong", { class: "phonon-recorder-title" }, "🎙️ AI Voice Recorder — Record & Clone Your Own Voice for Reading"),
-          h("span", { class: "hint" }, "Record 5–15 seconds of your voice (or import a WAV/MP3/M4A sample) to synthesize a custom [1, 512, 125] Phonon voice embedding."),
+    h(
+      "div",
+      { class: "phonon-voice-recorder-box" },
+      h(
+        "div",
+        { class: "phonon-recorder-head" },
+        h(
+          "div",
+          { class: "phonon-inline-row" },
+          h(
+            "strong",
+            { class: "phonon-recorder-title" },
+            "🎙️ AI Voice Recorder — Record & Clone Your Own Voice for Reading",
+          ),
+          h(
+            "span",
+            { class: "hint" },
+            "Record 5–15 seconds of your voice (or import a WAV/MP3/M4A sample) to synthesize a custom [1, 512, 125] Phonon voice embedding.",
+          ),
         ),
         recStateBadge,
       ),
-      h("div", { class: "phonon-grid-3" },
-        h("div", { class: "phonon-field" },
-          h("label", { class: "phonon-label", for: "phonon-custom-voice-name" }, "Your Custom AI Voice Name"),
+      h(
+        "div",
+        { class: "phonon-grid-3" },
+        h(
+          "div",
+          { class: "phonon-field" },
+          h(
+            "label",
+            { class: "phonon-label", for: "phonon-custom-voice-name" },
+            "Your Custom AI Voice Name",
+          ),
           customVoiceNameInput,
         ),
-        h("div", { class: "phonon-field" },
-          h("label", { class: "phonon-label", for: "phonon-mic-select" }, "Microphone Input"),
-          h("div", { class: "phonon-inline-row" },
+        h(
+          "div",
+          { class: "phonon-field" },
+          h(
+            "label",
+            { class: "phonon-label", for: "phonon-mic-select" },
+            "Microphone Input",
+          ),
+          h(
+            "div",
+            { class: "phonon-inline-row" },
             micDeviceSelect,
-            h("button", {
-              type: "button",
-              class: "btn phonon-sm-btn",
-              title: "Refresh available microphones",
-              onclick: () => refreshMicrophoneDevices(),
-            }, "↻"),
+            h(
+              "button",
+              {
+                type: "button",
+                class: "btn phonon-sm-btn",
+                title: "Refresh available microphones",
+                onclick: () => refreshMicrophoneDevices(),
+              },
+              "↻",
+            ),
           ),
         ),
-        h("div", { class: "phonon-field" },
-          h("label", { class: "phonon-label", for: "phonon-calibration-script" }, "Calibration Reading Script"),
+        h(
+          "div",
+          { class: "phonon-field" },
+          h(
+            "label",
+            { class: "phonon-label", for: "phonon-calibration-script" },
+            "Calibration Reading Script",
+          ),
           calibrationScriptSelect,
         ),
       ),
       calibrationPromptBox,
-      h("div", { class: "phonon-waveform-row" },
+      h(
+        "div",
+        { class: "phonon-waveform-row" },
         waveformCanvas,
-        h("div", { class: "phonon-meter-col" },
+        h(
+          "div",
+          { class: "phonon-meter-col" },
           recTimerLabel,
           h("div", { class: "phonon-db-meter-track" }, recDbMeterFill),
           recDbLabel,
         ),
       ),
-      h("div", { class: "phonon-recorder-actions" },
+      h(
+        "div",
+        { class: "phonon-recorder-actions" },
         recordVoiceBtn,
         playRecordedSampleBtn,
         importVoiceFileBtn,
@@ -2487,72 +3550,160 @@ function mountPhononStudio(root, payload) {
       checked,
       onchange: () => onChange(input.checked),
     });
-    return h("label", { class: "phonon-check-pill" }, input, h("span", {}, label));
+    return h(
+      "label",
+      { class: "phonon-check-pill" },
+      input,
+      h("span", {}, label),
+    );
   };
 
-  const converterCard = h("section", { class: "phonon-card" },
-    h("div", { class: "phonon-card-head" },
-      h("h3", { class: "phonon-card-title" }, "2. Convert Any Format to Plain Text & Edit"),
-      h("div", { class: "phonon-head-badges" }, sourceFormatBadge, statsSummaryBadge),
+  const converterCard = h(
+    "section",
+    { class: "phonon-card" },
+    h(
+      "div",
+      { class: "phonon-card-head" },
+      h(
+        "h3",
+        { class: "phonon-card-title" },
+        "2. Convert Any Format to Plain Text & Edit",
+      ),
+      h(
+        "div",
+        { class: "phonon-head-badges" },
+        sourceFormatBadge,
+        statsSummaryBadge,
+      ),
     ),
-    h("div", { class: "phonon-inline-row" },
-      h("label", { class: "sr-only", for: "phonon-source-path" }, "Source file path to convert to plain text"),
+    h(
+      "div",
+      { class: "phonon-inline-row" },
+      h(
+        "label",
+        { class: "sr-only", for: "phonon-source-path" },
+        "Source file path to convert to plain text",
+      ),
       sourcePathInput,
-      h("button", {
-        type: "button",
-        class: "btn",
-        onclick: () => {
-          const p = sourcePathInput.value.trim();
-          if (p) void loadFileAndExtract(p);
-          else loadSelectedFromFileManager();
+      h(
+        "button",
+        {
+          type: "button",
+          class: "btn",
+          onclick: () => {
+            const p = sourcePathInput.value.trim();
+            if (p) void loadFileAndExtract(p);
+            else loadSelectedFromFileManager();
+          },
         },
-      }, "📄 Convert File to Plain Text"),
-      h("button", {
-        type: "button",
-        class: "btn",
-        title: "Load the currently selected file from the File Manager list and convert it to plain text",
-        onclick: () => loadSelectedFromFileManager(),
-      }, "📥 Use Selected File"),
-      h("button", {
-        type: "button",
-        class: "btn",
-        title: "Load a multi-chapter large text sample to test out-of-limit chunking and streaming",
-        onclick: () => loadLargeTextStressSample(),
-      }, "📚 Load Large Text Sample"),
+        "📄 Convert File to Plain Text",
+      ),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "btn",
+          title:
+            "Load the currently selected file from the File Manager list and convert it to plain text",
+          onclick: () => loadSelectedFromFileManager(),
+        },
+        "📥 Use Selected File",
+      ),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "btn",
+          title:
+            "Load a multi-chapter large text sample to test out-of-limit chunking and streaming",
+          onclick: () => loadLargeTextStressSample(),
+        },
+        "📚 Load Large Text Sample",
+      ),
     ),
-    h("div", { class: "phonon-cleanup-bar" },
+    h(
+      "div",
+      { class: "phonon-cleanup-bar" },
       h("span", { class: "phonon-cleanup-title" }, "Plain-Text Cleanup:"),
-      makeToggle("Strip Markdown", stripMarkdown, (v) => { stripMarkdown = v; }),
-      makeToggle("Strip HTML Tags", stripHtml, (v) => { stripHtml = v; }),
-      makeToggle("Omit Code Blocks", stripCodeBlocks, (v) => { stripCodeBlocks = v; }),
-      makeToggle("Simplify URLs", simplifyUrls, (v) => { simplifyUrls = v; }),
-      makeToggle("Strip Subtitle Timestamps", stripTimestamps, (v) => { stripTimestamps = v; }),
-      makeToggle("Unwrap Line Breaks", unwrapLines, (v) => { unwrapLines = v; }),
-      h("button", { type: "button", class: "btn phonon-sm-btn", onclick: () => cleanEditorTextNow() }, "✨ Clean to Plain Text"),
-      h("button", { type: "button", class: "btn phonon-sm-btn", onclick: () => saveConvertedPlainText() }, "💾 Save as .TXT"),
-      h("button", {
-        type: "button",
-        class: "btn phonon-sm-btn",
-        onclick: () => {
-          stopReading();
-          textArea.value = "";
-          sourcePath = "";
-          sourceFormatBadge.textContent = "Format: Direct Text";
-          void recomputeChunksFromEditor();
+      makeToggle("Strip Markdown", stripMarkdown, (v) => {
+        stripMarkdown = v;
+      }),
+      makeToggle("Strip HTML Tags", stripHtml, (v) => {
+        stripHtml = v;
+      }),
+      makeToggle("Omit Code Blocks", stripCodeBlocks, (v) => {
+        stripCodeBlocks = v;
+      }),
+      makeToggle("Simplify URLs", simplifyUrls, (v) => {
+        simplifyUrls = v;
+      }),
+      makeToggle("Strip Subtitle Timestamps", stripTimestamps, (v) => {
+        stripTimestamps = v;
+      }),
+      makeToggle("Unwrap Line Breaks", unwrapLines, (v) => {
+        unwrapLines = v;
+      }),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "btn phonon-sm-btn",
+          onclick: () => cleanEditorTextNow(),
         },
-      }, "Clear"),
+        "✨ Clean to Plain Text",
+      ),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "btn phonon-sm-btn",
+          onclick: () => saveConvertedPlainText(),
+        },
+        "💾 Save as .TXT",
+      ),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "btn phonon-sm-btn",
+          onclick: () => {
+            stopReading();
+            textArea.value = "";
+            sourcePath = "";
+            sourceFormatBadge.textContent = "Format: Direct Text";
+            void recomputeChunksFromEditor();
+          },
+        },
+        "Clear",
+      ),
     ),
-    h("label", { class: "sr-only", for: "phonon-text-editor" }, "Plain text content to read out loud or export as audio or video"),
+    h(
+      "label",
+      { class: "sr-only", for: "phonon-text-editor" },
+      "Plain text content to read out loud or export as audio or video",
+    ),
     textArea,
   );
 
-  const playerAndExportCard = h("section", { class: "phonon-card" },
-    h("div", { class: "phonon-card-head" },
-      h("h3", { class: "phonon-card-title" }, "3. Read Out Loud, Follow Along Word-by-Word & Convert to Audio or Video"),
+  const playerAndExportCard = h(
+    "section",
+    { class: "phonon-card" },
+    h(
+      "div",
+      { class: "phonon-card-head" },
+      h(
+        "h3",
+        { class: "phonon-card-title" },
+        "3. Read Out Loud, Follow Along Word-by-Word & Convert to Audio or Video",
+      ),
       teleprompterWordBadge,
     ),
-    h("div", { class: "phonon-player-bar" },
-      h("div", { class: "phonon-transport-btns" },
+    h(
+      "div",
+      { class: "phonon-player-bar" },
+      h(
+        "div",
+        { class: "phonon-transport-btns" },
         playBtn,
         pauseBtn,
         stopBtn,
@@ -2563,115 +3714,231 @@ function mountPhononStudio(root, payload) {
     ),
     nowPlayingStatus,
     // Interactive Follow-Along Teleprompter Box
-    h("div", { class: "phonon-teleprompter-box" },
-      h("div", { class: "phonon-teleprompter-toolbar" },
-        h("div", { class: "phonon-inline-row" },
-          h("strong", { class: "phonon-teleprompter-title" }, "📖 Live Follow-Along Teleprompter"),
-          h("span", { class: "hint" }, "Words light up as they are spoken — click any word to jump!"),
+    h(
+      "div",
+      { class: "phonon-teleprompter-box" },
+      h(
+        "div",
+        { class: "phonon-teleprompter-toolbar" },
+        h(
+          "div",
+          { class: "phonon-inline-row" },
+          h(
+            "strong",
+            { class: "phonon-teleprompter-title" },
+            "📖 Live Follow-Along Teleprompter",
+          ),
+          h(
+            "span",
+            { class: "hint" },
+            "Words light up as they are spoken — click any word to jump!",
+          ),
         ),
-        h("div", { class: "phonon-inline-row" },
+        h(
+          "div",
+          { class: "phonon-inline-row" },
           teleprompterSizeSelect,
-          makeToggle("Auto-Scroll", teleprompterAutoScroll, (v) => { teleprompterAutoScroll = v; }),
+          makeToggle("Auto-Scroll", teleprompterAutoScroll, (v) => {
+            teleprompterAutoScroll = v;
+          }),
         ),
       ),
       teleprompterStage,
-      h("div", { class: "phonon-teleprompter-progress" }, teleprompterProgressFill),
+      h(
+        "div",
+        { class: "phonon-teleprompter-progress" },
+        teleprompterProgressFill,
+      ),
     ),
     // Inline Read-Along Video Player Preview (revealed when a video is exported)
     videoPlayerBox,
     // Audio & Read-Along Video Export Box
-    h("div", { class: "phonon-export-box" },
-      h("div", { class: "phonon-grid-3" },
-        h("div", { class: "phonon-field" },
-          h("label", { class: "phonon-label", for: "phonon-format-select" }, "Output Format (Audio or Read-Along Video)"),
+    h(
+      "div",
+      { class: "phonon-export-box" },
+      h(
+        "div",
+        { class: "phonon-grid-3" },
+        h(
+          "div",
+          { class: "phonon-field" },
+          h(
+            "label",
+            { class: "phonon-label", for: "phonon-format-select" },
+            "Output Format (Audio or Read-Along Video)",
+          ),
           formatSelect,
           formatHintEl,
         ),
-        h("div", { class: "phonon-field" },
-          h("label", { class: "phonon-label", for: "phonon-out-name" }, "Output Filename"),
+        h(
+          "div",
+          { class: "phonon-field" },
+          h(
+            "label",
+            { class: "phonon-label", for: "phonon-out-name" },
+            "Output Filename",
+          ),
           outNameInput,
         ),
-        h("div", { class: "phonon-field" },
-          h("label", { class: "phonon-label", for: "phonon-out-dir" }, "Save in Folder"),
-          h("div", { class: "phonon-inline-row" },
+        h(
+          "div",
+          { class: "phonon-field" },
+          h(
+            "label",
+            { class: "phonon-label", for: "phonon-out-dir" },
+            "Save in Folder",
+          ),
+          h(
+            "div",
+            { class: "phonon-inline-row" },
             outDirInput,
-            h("button", {
-              type: "button",
-              class: "btn phonon-sm-btn",
-              title: "Use the folder currently open in the File Manager",
-              onclick: () => { outDirInput.value = currentPath() || state.home || ""; },
-            }, "Current Folder"),
+            h(
+              "button",
+              {
+                type: "button",
+                class: "btn phonon-sm-btn",
+                title: "Use the folder currently open in the File Manager",
+                onclick: () => {
+                  outDirInput.value = currentPath() || state.home || "";
+                },
+              },
+              "Current Folder",
+            ),
           ),
         ),
       ),
-      h("div", { class: "phonon-grid-2 phonon-video-options-row" },
-        h("div", { class: "phonon-field" },
-          h("label", { class: "phonon-label", for: "phonon-video-aspect" }, "🎬 Read-Along Video Aspect Ratio"),
+      h(
+        "div",
+        { class: "phonon-grid-2 phonon-video-options-row" },
+        h(
+          "div",
+          { class: "phonon-field" },
+          h(
+            "label",
+            { class: "phonon-label", for: "phonon-video-aspect" },
+            "🎬 Read-Along Video Aspect Ratio",
+          ),
           videoAspectSelect,
         ),
-        h("div", { class: "phonon-field" },
-          h("label", { class: "phonon-label", for: "phonon-video-theme" }, "🎨 Read-Along Video & Teleprompter Theme"),
-          h("div", { class: "phonon-inline-row" },
+        h(
+          "div",
+          { class: "phonon-field" },
+          h(
+            "label",
+            { class: "phonon-label", for: "phonon-video-theme" },
+            "🎨 Read-Along Video & Teleprompter Theme",
+          ),
+          h(
+            "div",
+            { class: "phonon-inline-row" },
             videoThemeSelect,
-            makeToggle("Save .SRT & .VTT Subtitles", saveCompanionSubtitles, (v) => { saveCompanionSubtitles = v; }),
+            makeToggle(
+              "Save .SRT & .VTT Subtitles",
+              saveCompanionSubtitles,
+              (v) => {
+                saveCompanionSubtitles = v;
+              },
+            ),
           ),
         ),
       ),
-      h("div", { class: "phonon-export-actions" },
-        h("button", {
-          type: "button",
-          class: "btn primary phonon-save-audio-btn",
-          onclick: () => {
-            const fmt = VIDEO_EXT_SET.has(selectedFormat) ? "wav" : selectedFormat;
-            void exportEditorTextWithFormat(fmt);
+      h(
+        "div",
+        { class: "phonon-export-actions" },
+        h(
+          "button",
+          {
+            type: "button",
+            class: "btn primary phonon-save-audio-btn",
+            onclick: () => {
+              const fmt = VIDEO_EXT_SET.has(selectedFormat)
+                ? "wav"
+                : selectedFormat;
+              void exportEditorTextWithFormat(fmt);
+            },
           },
-        }, "💾 Save Audio File"),
-        h("button", {
-          type: "button",
-          class: "btn primary phonon-save-video-btn",
-          title: "Convert text to speech AND render a synchronized Read-Along Video (.MP4/.WebM/.MOV/.MKV) where every word lights up as you follow along",
-          onclick: () => {
-            const vidFmt = VIDEO_EXT_SET.has(selectedFormat) ? selectedFormat : "mp4";
-            selectedFormat = vidFmt;
-            formatSelect.value = vidFmt;
-            void exportEditorTextWithFormat(vidFmt);
+          "💾 Save Audio File",
+        ),
+        h(
+          "button",
+          {
+            type: "button",
+            class: "btn primary phonon-save-video-btn",
+            title:
+              "Convert text to speech AND render a synchronized Read-Along Video (.MP4/.WebM/.MOV/.MKV) where every word lights up as you follow along",
+            onclick: () => {
+              const vidFmt = VIDEO_EXT_SET.has(selectedFormat)
+                ? selectedFormat
+                : "mp4";
+              selectedFormat = vidFmt;
+              formatSelect.value = vidFmt;
+              void exportEditorTextWithFormat(vidFmt);
+            },
           },
-        }, "🎬 Save Read-Along Video (.MP4)"),
-        h("button", {
-          type: "button",
-          class: "btn phonon-audiobook-btn",
-          title: "Export a multi-chapter book or document (.epub, .ibooks, .scriv, .textbundle, .md) as numbered per-chapter audio files plus an M3U8 playlist & chapters.json manifest",
-          onclick: () => void exportChapteredAudiobook(),
-        }, "📖 Export Chaptered Audiobook"),
-        h("button", {
-          type: "button",
-          class: "btn",
-          title: "Convert all selected files in the File Manager into audio files using your Phonon voice",
-          onclick: () => batchConvertSelectedFiles(false),
-        }, "📚 Batch Save Selected as Audio"),
-        h("button", {
-          type: "button",
-          class: "btn",
-          title: "Convert all selected files in the File Manager into synchronized Read-Along MP4 Videos",
-          onclick: () => batchConvertSelectedFiles(true),
-        }, "🎬 Batch Convert Selected to Video"),
-        h("button", {
-          type: "button",
-          class: "btn",
-          title: "Open the destination folder in the File Manager",
-          onclick: () => {
-            const dir = outDirInput.value.trim();
-            if (dir) {
-              emit("workspace-go", "files");
-              void goTo(dir);
-            }
+          "🎬 Save Read-Along Video (.MP4)",
+        ),
+        h(
+          "button",
+          {
+            type: "button",
+            class: "btn phonon-audiobook-btn",
+            title:
+              "Export a multi-chapter book or document (.epub, .ibooks, .scriv, .textbundle, .md) as numbered per-chapter audio files plus an M3U8 playlist & chapters.json manifest",
+            onclick: () => void exportChapteredAudiobook(),
           },
-        }, "📂 Open Output Folder"),
+          "📖 Export Chaptered Audiobook",
+        ),
+        h(
+          "button",
+          {
+            type: "button",
+            class: "btn",
+            title:
+              "Convert all selected files in the File Manager into audio files using your Phonon voice",
+            onclick: () => batchConvertSelectedFiles(false),
+          },
+          "📚 Batch Save Selected as Audio",
+        ),
+        h(
+          "button",
+          {
+            type: "button",
+            class: "btn",
+            title:
+              "Convert all selected files in the File Manager into synchronized Read-Along MP4 Videos",
+            onclick: () => batchConvertSelectedFiles(true),
+          },
+          "🎬 Batch Convert Selected to Video",
+        ),
+        h(
+          "button",
+          {
+            type: "button",
+            class: "btn",
+            title: "Open the destination folder in the File Manager",
+            onclick: () => {
+              const dir = outDirInput.value.trim();
+              if (dir) {
+                emit("workspace-go", "files");
+                void goTo(dir);
+              }
+            },
+          },
+          "📂 Open Output Folder",
+        ),
       ),
     ),
-    h("div", { class: "phonon-chunks-section" },
-      h("div", { class: "phonon-chunks-header" },
-        h("strong", {}, "Phonon Context-Safe Speech Queue (Click any segment to jump & follow along)"),
+    h(
+      "div",
+      { class: "phonon-chunks-section" },
+      h(
+        "div",
+        { class: "phonon-chunks-header" },
+        h(
+          "strong",
+          {},
+          "Phonon Context-Safe Speech Queue (Click any segment to jump & follow along)",
+        ),
         chunkPagerContainer,
       ),
       chunkListContainer,
@@ -2721,7 +3988,9 @@ function mountPhononStudio(root, payload) {
         }
       });
     } else {
-      const sel = getSelectedReadableEntries().filter((e) => canReadWithPhonon(e));
+      const sel = getSelectedReadableEntries().filter((e) =>
+        canReadWithPhonon(e),
+      );
       if (sel.length === 1 && textArea.value === DEFAULT_SAMPLE_TEXT) {
         void loadFileAndExtract(sel[0].path);
       }

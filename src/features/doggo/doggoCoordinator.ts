@@ -18,7 +18,7 @@ import {
 export async function lookupDomain(
   domain: string,
   type: DoggoOptions["queryType"] = "A",
-  nameserver?: string
+  nameserver?: string,
 ): Promise<DoggoResponse> {
   if (type === "ALL") {
     return await performAllLookup(domain, nameserver);
@@ -29,14 +29,28 @@ export async function lookupDomain(
 /**
  * Executes the configured `doggo` query workflow and formats the response as short text, JSON, or a table.
  */
-export async function runDoggoCoordinator(options: DoggoOptions): Promise<string> {
+export async function runDoggoCoordinator(
+  options: DoggoOptions,
+): Promise<string> {
   let response: DoggoResponse;
   if (options.all || options.queryType === "ALL") {
-    response = await performAllLookup(options.domain, options.nameserver, options.doh);
+    response = await performAllLookup(
+      options.domain,
+      options.nameserver,
+      options.doh,
+    );
   } else if (options.doh) {
-    response = await performDohLookup(options.domain, options.queryType, options.dohUrl);
+    response = await performDohLookup(
+      options.domain,
+      options.queryType,
+      options.dohUrl,
+    );
   } else {
-    response = await lookupDomain(options.domain, options.queryType, options.nameserver);
+    response = await lookupDomain(
+      options.domain,
+      options.queryType,
+      options.nameserver,
+    );
   }
 
   if (options.short) {

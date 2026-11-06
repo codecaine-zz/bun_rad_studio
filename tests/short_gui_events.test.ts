@@ -4,7 +4,9 @@ import { createClickDemo } from "../examples/short_gui_events";
 test("the Short's SimpleGUI example wires a click event that updates the label", () => {
   const win = createClickDemo();
   const spec = win.buildFormSpec();
-  expect(spec.controls.find((control) => control.id === "status")?.text).toBe("Ready");
+  expect(spec.controls.find((control) => control.id === "status")?.text).toBe(
+    "Ready",
+  );
   expect(win.generateHtml()).toContain("Ready");
   const button = spec.controls.find((control) => control.text === "Click me");
   if (!button) throw new Error("The example has no button");

@@ -31,7 +31,11 @@ describe("🐦 CyberWing Deluxe — Cyber Legends Arcade Suite", () => {
   });
 
   it("3. Studio factory generates correct defaults and instance contracts", () => {
-    const app = createFlappyBirdStudio({ fullscreen: false, width: 950, height: 750 });
+    const app = createFlappyBirdStudio({
+      fullscreen: false,
+      width: 950,
+      height: 750,
+    });
     expect(app.title).toContain("CyberWing Deluxe");
     expect(app.width).toBe(950);
     expect(app.height).toBe(750);
@@ -59,7 +63,7 @@ describe("🐦 CyberWing Deluxe — Cyber Legends Arcade Suite", () => {
       // Health check endpoint
       const resHealth = await fetch(`${base}/api/health`);
       expect(resHealth.status).toBe(200);
-      const healthData = await resHealth.json() as any;
+      const healthData = (await resHealth.json()) as any;
       expect(healthData.status).toBe("ok");
       expect(healthData.app).toBe("flappy_bird_studio");
       expect(healthData.name).toContain("CyberWing Deluxe");
@@ -70,7 +74,10 @@ describe("🐦 CyberWing Deluxe — Cyber Legends Arcade Suite", () => {
 
   it("5. Launcher Studio automatically registers and surfaces CyberWing", () => {
     const apps = scanWorkspaceApps();
-    const found = apps.find((a) => a.name === "flappy_bird_studio" || a.id === "rad_flappy_bird_studio");
+    const found = apps.find(
+      (a) =>
+        a.name === "flappy_bird_studio" || a.id === "rad_flappy_bird_studio",
+    );
     expect(found).toBeDefined();
     expect(found?.displayName).toBe("Codecaine CyberWing Deluxe");
     expect(found?.icon).toBe("🐦");

@@ -10,10 +10,18 @@
   background: linear-gradient(
     135deg,
     color-mix(in oklab, var(--bionic-violet, #8b5cf6) 22%, var(--ollama-panel)),
-    color-mix(in oklab, var(--bionic-emerald, #10b981) 18%, var(--ollama-panel)),
+    color-mix(
+      in oklab,
+      var(--bionic-emerald, #10b981) 18%,
+      var(--ollama-panel)
+    ),
     var(--ollama-elevated)
   );
-  border-color: color-mix(in oklab, var(--bionic-violet, #8b5cf6) 44%, var(--ollama-border));
+  border-color: color-mix(
+    in oklab,
+    var(--bionic-violet, #8b5cf6) 44%,
+    var(--ollama-border)
+  );
 }
 
 .bionic-engine-grid {
@@ -47,12 +55,15 @@
   border-radius: var(--fx-radius-sm, 8px);
   background: var(--ollama-elevated);
   border: 1px solid var(--ollama-border);
-  transition: border-color 0.14s ease, box-shadow 0.14s ease;
+  transition:
+    border-color 0.14s ease,
+    box-shadow 0.14s ease;
 }
 
 .bionic-skill-card:hover {
   border-color: var(--ollama-accent);
-  box-shadow: 0 2px 10px color-mix(in oklab, var(--ollama-accent) 12%, transparent);
+  box-shadow: 0 2px 10px
+    color-mix(in oklab, var(--ollama-accent) 12%, transparent);
 }
 
 .bionic-skill-token {
@@ -63,8 +74,13 @@
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-size: 11px;
   font-weight: 700;
-  background: color-mix(in oklab, var(--bionic-violet, #8b5cf6) 18%, var(--ollama-panel));
-  border: 1px solid color-mix(in oklab, var(--bionic-violet, #8b5cf6) 45%, var(--ollama-border));
+  background: color-mix(
+    in oklab,
+    var(--bionic-violet, #8b5cf6) 18%,
+    var(--ollama-panel)
+  );
+  border: 1px solid
+    color-mix(in oklab, var(--bionic-violet, #8b5cf6) 45%, var(--ollama-border));
   color: var(--ollama-text);
 }
 
@@ -90,7 +106,11 @@
   align-items: center;
   gap: 6px;
   padding: 7px 12px;
-  background: color-mix(in oklab, var(--bionic-violet, #8b5cf6) 8%, var(--ollama-elevated));
+  background: color-mix(
+    in oklab,
+    var(--bionic-violet, #8b5cf6) 8%,
+    var(--ollama-elevated)
+  );
   border-bottom: 1px solid var(--ollama-border);
   font-size: 11.5px;
 }
@@ -107,13 +127,19 @@
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
-  transition: border-color 0.12s ease, background-color 0.12s ease;
+  transition:
+    border-color 0.12s ease,
+    background-color 0.12s ease;
 }
 
 .bionic-md-outline-chip:hover,
 .bionic-md-outline-chip:focus-visible {
   border-color: var(--ollama-accent);
-  background: color-mix(in oklab, var(--ollama-accent) 16%, var(--ollama-panel));
+  background: color-mix(
+    in oklab,
+    var(--ollama-accent) 16%,
+    var(--ollama-panel)
+  );
   outline: none;
 }
 
@@ -145,7 +171,14 @@
   flex-direction: column;
   gap: 10px;
   padding: 16px 20px;
-  font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+  font-family: var(
+    --font-sans,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif
+  );
   font-size: var(--bionic-md-font-size, 14px);
   line-height: 1.65;
   white-space: normal;
@@ -159,7 +192,8 @@
   overflow-x: auto;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
-  scrollbar-color: var(--scrollbar-thumb, var(--ollama-border-strong)) var(--ollama-sunken);
+  scrollbar-color: var(--scrollbar-thumb, var(--ollama-border-strong))
+    var(--ollama-sunken);
   scrollbar-width: thin;
   user-select: text;
   -webkit-user-select: text;
@@ -221,10 +255,19 @@
   border-radius: var(--fx-radius-sm, 8px);
   background: linear-gradient(
     135deg,
-    color-mix(in oklab, var(--bionic-violet, #8b5cf6) 14%, var(--ollama-elevated)),
-    color-mix(in oklab, var(--bionic-emerald, #10b981) 10%, var(--ollama-elevated))
+    color-mix(
+      in oklab,
+      var(--bionic-violet, #8b5cf6) 14%,
+      var(--ollama-elevated)
+    ),
+    color-mix(
+      in oklab,
+      var(--bionic-emerald, #10b981) 10%,
+      var(--ollama-elevated)
+    )
   );
-  border: 1px solid color-mix(in oklab, var(--bionic-violet, #8b5cf6) 40%, var(--ollama-border));
+  border: 1px solid
+    color-mix(in oklab, var(--bionic-violet, #8b5cf6) 40%, var(--ollama-border));
 }
 
 .bionic-md-fm-title {
@@ -341,7 +384,14 @@
   display: inline;
   padding: 2px 6.5px;
   border-radius: 5px;
-  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-family: var(
+    --font-mono,
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace
+  );
   font-size: 0.92em;
   font-weight: 600;
   background: var(--bionic-inline-code-bg, rgba(15, 23, 42, 0.92));
@@ -389,7 +439,11 @@
   padding: 8px 12px;
   border-inline-start: 3.5px solid var(--ollama-accent);
   border-radius: 0 var(--fx-radius-sm, 7px) var(--fx-radius-sm, 7px) 0;
-  background: color-mix(in oklab, var(--ollama-accent) 9%, var(--ollama-elevated));
+  background: color-mix(
+    in oklab,
+    var(--ollama-accent) 9%,
+    var(--ollama-elevated)
+  );
   color: var(--ollama-text);
   display: flex;
   flex-direction: column;
@@ -455,7 +509,14 @@
   align-items: center;
   padding: 2px 8px;
   border-radius: 5px;
-  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-family: var(
+    --font-mono,
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace
+  );
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.05em;
@@ -482,7 +543,15 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
-  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace);
+  font-family: var(
+    --font-mono,
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    "Liberation Mono",
+    monospace
+  );
   font-size: calc(var(--bionic-md-font-size, 14px) - 0.5px);
   line-height: 1.62;
   font-weight: 500;
@@ -629,7 +698,11 @@
 }
 
 .bionic-md-table tbody tr:nth-child(even) td {
-  background: color-mix(in oklab, var(--ollama-sunken) 45%, var(--ollama-elevated));
+  background: color-mix(
+    in oklab,
+    var(--ollama-sunken) 45%,
+    var(--ollama-elevated)
+  );
 }
 
 @container (width < 520px) {
@@ -666,5 +739,3 @@
 .bionic-md-viewer :is(p, li, blockquote) {
   text-wrap: pretty;
 }
-
-

@@ -25,9 +25,13 @@ describe("watchexec doers", () => {
   });
 
   it("identifies ignore patterns", () => {
-    expect(shouldIgnore("node_modules/pkg/index.js", ["node_modules", ".git"])).toBe(true);
+    expect(
+      shouldIgnore("node_modules/pkg/index.js", ["node_modules", ".git"]),
+    ).toBe(true);
     expect(shouldIgnore(".git/HEAD", ["node_modules", ".git"])).toBe(true);
-    expect(shouldIgnore("src/features/app.ts", ["node_modules", ".git"])).toBe(false);
+    expect(shouldIgnore("src/features/app.ts", ["node_modules", ".git"])).toBe(
+      false,
+    );
   });
 
   it("filters filenames by pattern filter", () => {
@@ -54,13 +58,19 @@ describe("watchexec doers", () => {
     expect(exitCode).not.toBe(0);
   });
 
-  it.skipIf(process.platform === "win32")("terminates entire process trees via killProcessTree", async () => {
-    const proc = Bun.spawn(["/bin/sh", "-c", "sleep 10"], { stdout: "ignore", stderr: "ignore" });
-    expect(proc.pid).toBeGreaterThan(0);
-    killProcessTree(proc.pid);
-    const exitCode = await proc.exited;
-    expect(exitCode).not.toBe(0);
-  });
+  it.skipIf(process.platform === "win32")(
+    "terminates entire process trees via killProcessTree",
+    async () => {
+      const proc = Bun.spawn(["/bin/sh", "-c", "sleep 10"], {
+        stdout: "ignore",
+        stderr: "ignore",
+      });
+      expect(proc.pid).toBeGreaterThan(0);
+      killProcessTree(proc.pid);
+      const exitCode = await proc.exited;
+      expect(exitCode).not.toBe(0);
+    },
+  );
 
   it("Watchexec Studio Pro window attaches onClose lifecycle listener", () => {
     const win = createWatchexecStudio({ fullscreen: false });
@@ -75,7 +85,14 @@ describe("watchexec doers", () => {
   });
 
   it("formats shell commands appropriately", () => {
-    expect(formatShellCommand(["echo", "hello"], undefined)).toEqual(["echo", "hello"]);
-    expect(formatShellCommand(["echo", "hello"], "bash")).toEqual(["bash", "-c", "echo hello"]);
+    expect(formatShellCommand(["echo", "hello"], undefined)).toEqual([
+      "echo",
+      "hello",
+    ]);
+    expect(formatShellCommand(["echo", "hello"], "bash")).toEqual([
+      "bash",
+      "-c",
+      "echo hello",
+    ]);
   });
 });

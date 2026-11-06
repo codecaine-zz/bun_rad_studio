@@ -3,13 +3,29 @@
  * and query timeout base class (`BunSqlAdapter`) for MySQL and PostgreSQL adapters.
  */
 import { SQL } from "bun";
-import type { Capabilities, ConnectionConfig, DbSession, ObjectRef, Param, QueryOptions, QueryResult, ServerInfo, WireValue } from "../types";
+import type {
+  Capabilities,
+  ConnectionConfig,
+  DbSession,
+  ObjectRef,
+  Param,
+  QueryOptions,
+  QueryResult,
+  ServerInfo,
+  WireValue,
+} from "../types";
 import { DbError, assertReadOnlyStatement, normalizeError } from "../errors";
 import { leadingKeyword, splitStatements } from "../splitter";
 import { decodeParams, toWire } from "../wire";
 import { BaseAdapter, type Executor } from "./base";
 
-const WRITE_KEYWORDS = new Set(["INSERT", "UPDATE", "DELETE", "REPLACE", "MERGE"]);
+const WRITE_KEYWORDS = new Set([
+  "INSERT",
+  "UPDATE",
+  "DELETE",
+  "REPLACE",
+  "MERGE",
+]);
 
 type Conn = { unsafe(sql: string, params?: unknown[]): Promise<any> };
 type Reserved = Conn & { release(): void };
@@ -38,7 +54,11 @@ export abstract class BunSqlAdapter extends BaseAdapter {
 
   /** Returns the active `Bun.SQL` pool or throws `CONNECTION_LOST` if `connect()` has not completed. */
   protected get p(): SQL {
-    if (!this.pool) throw new DbError("CONNECTION_LOST", "Not connected. Call connect() first.");
+    if (!this.pool)
+      throw new DbError(
+        "CONNECTION_LOST",
+        "Not connected. Call connect() first.",
+      );
     return this.pool;
   }
 
@@ -47,7 +67,10 @@ export abstract class BunSqlAdapter extends BaseAdapter {
     const t = this.config.tls;
     if (!t) return false;
     if (t === true) return { rejectUnauthorized: true };
-    return { rejectUnauthorized: t.verify !== false, ...(t.ca ? { ca: t.ca } : {}) };
+    return {
+      rejectUnauthorized: t.verify !== false,
+      ...(t.ca ? { ca: t.ca } : {}),
+    };
   }
 
   /** Creates the `Bun.SQL` connection pool and verifies connectivity with `SELECT 1`. */
@@ -86,8 +109,15 @@ export abstract class BunSqlAdapter extends BaseAdapter {
   async ping(): Promise<ServerInfo> {
     const t = performance.now();
     try {
-      const r = (await this.p.unsafe(this.versionSql)) as { v: string; d: string | null }[];
-      return { version: String(r[0]?.v ?? ""), currentDatabase: r[0]?.d ?? null, latencyMs: Math.round((performance.now() - t) * 100) / 100 };
+      const r = (await this.p.unsafe(this.versionSql)) as {
+        v: string;
+        d: string | null;
+      }[];
+      return {
+        version: String(r[0]?.v ?? ""),
+        currentDatabase: r[0]?.d ?? null,
+        latencyMs: Math.round((performance.now() - t) * 100) / 100,
+      };
     } catch (e) {
       throw normalizeError(this.engine, e, [this.password]);
     }
@@ -99,22 +129,41 @@ export abstract class BunSqlAdapter extends BaseAdapter {
   }
 
   /** Converts a raw `Bun.SQL` result array/metadata into a normalized `QueryResult` with wire-safe values. */
-  protected toResult(raw: any, kw: string, started: number, maxRows?: number): QueryResult {
-    const all: Record<string, unknown>[] = Array.isArray(raw) ? Array.from(raw as Record<string, unknown>[]) : [];
+  protected toResult(
+    raw: any,
+    kw: string,
+    started: number,
+    maxRows?: number,
+  ): QueryResult {
+    const all: Record<string, unknown>[] = Array.isArray(raw)
+      ? Array.from(raw as Record<string, unknown>[])
+      : [];
     const truncated = maxRows !== undefined && all.length > maxRows;
-    const rows = (truncated ? all.slice(0, maxRows) : all).map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, toWire(v)])) as Record<string, WireValue>);
+    const rows = (truncated ? all.slice(0, maxRows) : all).map(
+      (r) =>
+        Object.fromEntries(
+          Object.entries(r).map(([k, v]) => [k, toWire(v)]),
+        ) as Record<string, WireValue>,
+    );
     const write = WRITE_KEYWORDS.has(kw);
     const count = raw?.affectedRows ?? raw?.count;
-    const lastId = this.engine === "mysql" && write ? raw?.lastInsertRowid : null;
+    const lastId =
+      this.engine === "mysql" && write ? raw?.lastInsertRowid : null;
     const serverCols = Array.isArray(raw?.columns)
-      ? raw.columns.map((c: any) => (typeof c === "string" ? c : String(c?.name ?? ""))).filter(Boolean)
+      ? raw.columns
+          .map((c: any) => (typeof c === "string" ? c : String(c?.name ?? "")))
+          .filter(Boolean)
       : [];
     return {
       columns: rows[0] ? Object.keys(rows[0]) : serverCols,
       rows,
       rowCount: rows.length,
-      affectedRows: write && count !== undefined && count !== null ? Number(count) : null,
-      lastInsertId: lastId !== null && lastId !== undefined && String(lastId) !== "0" ? String(lastId) : null,
+      affectedRows:
+        write && count !== undefined && count !== null ? Number(count) : null,
+      lastInsertId:
+        lastId !== null && lastId !== undefined && String(lastId) !== "0"
+          ? String(lastId)
+          : null,
       truncated,
       elapsedMs: Math.round((performance.now() - started) * 100) / 100,
     };
@@ -122,7 +171,13 @@ export abstract class BunSqlAdapter extends BaseAdapter {
 
   private single(sql: string): string {
     const stmts = splitStatements(sql, { engine: this.engine });
-    if (stmts.length !== 1) throw new DbError("INVALID_REQUEST", stmts.length === 0 ? "Empty statement." : "Run one statement at a time (use the script runner for several).");
+    if (stmts.length !== 1)
+      throw new DbError(
+        "INVALID_REQUEST",
+        stmts.length === 0
+          ? "Empty statement."
+          : "Run one statement at a time (use the script runner for several).",
+      );
     const text = stmts[0]!.sql;
     if (this.readOnly) assertReadOnlyStatement(this.engine, text);
     return text;
@@ -142,14 +197,16 @@ export abstract class BunSqlAdapter extends BaseAdapter {
       const conn = (await this.p.reserve()) as unknown as Reserved;
       let began = false;
       try {
-        for (const s of this.readOnly ? this.prepareReadOnlyConnection() : []) await conn.unsafe(s);
+        for (const s of this.readOnly ? this.prepareReadOnlyConnection() : [])
+          await conn.unsafe(s);
         began = await this.enterGuard(conn, timeout);
         const raw = await conn.unsafe(text, bound);
         await this.leaveGuard(conn, began, timeout, false);
         began = false;
         return this.toResult(raw, kw, started, options?.maxRows);
       } catch (e) {
-        if (began) await this.leaveGuard(conn, true, timeout, true).catch(() => {});
+        if (began)
+          await this.leaveGuard(conn, true, timeout, true).catch(() => {});
         throw e;
       } finally {
         conn.release();
@@ -160,9 +217,17 @@ export abstract class BunSqlAdapter extends BaseAdapter {
   };
 
   /**Start the per-statement guard (read-only transaction and/or timeout). Returns true if a transaction was opened. */
-  protected abstract enterGuard(conn: Conn, timeoutMs: number): Promise<boolean>;
+  protected abstract enterGuard(
+    conn: Conn,
+    timeoutMs: number,
+  ): Promise<boolean>;
   /** Cleans up the per-statement guard (commits/rolls back transaction and resets timeout) after execution. */
-  protected abstract leaveGuard(conn: Conn, began: boolean, timeoutMs: number, failed: boolean): Promise<void>;
+  protected abstract leaveGuard(
+    conn: Conn,
+    began: boolean,
+    timeoutMs: number,
+    failed: boolean,
+  ): Promise<void>;
 
   /** Reserves a pooled connection and wraps it in a `DbSession` supporting transactions and server-side query cancellation. */
   async openSession(): Promise<DbSession> {
@@ -174,7 +239,8 @@ export abstract class BunSqlAdapter extends BaseAdapter {
     let activeQuery: { cancel?: () => unknown } | null = null;
     const timeout = this.config.statementTimeoutMs ?? 0;
     try {
-      if (this.readOnly) for (const s of this.prepareReadOnlyConnection()) await conn.unsafe(s);
+      if (this.readOnly)
+        for (const s of this.prepareReadOnlyConnection()) await conn.unsafe(s);
       if (timeout) await conn.unsafe(this.setTimeoutSql(timeout));
       const idRow = (await conn.unsafe(this.backendIdSql)) as { id: unknown }[];
       backendId = String(idRow[0]?.id ?? "");
@@ -182,7 +248,11 @@ export abstract class BunSqlAdapter extends BaseAdapter {
       conn.release();
       throw normalizeError(this.engine, e, [this.password]);
     }
-    const exec = async (sql: string, params: Param[] = [], options?: QueryOptions): Promise<QueryResult> => {
+    const exec = async (
+      sql: string,
+      params: Param[] = [],
+      options?: QueryOptions,
+    ): Promise<QueryResult> => {
       const text = self.single(sql);
       const started = performance.now();
       try {
@@ -193,7 +263,12 @@ export abstract class BunSqlAdapter extends BaseAdapter {
           const q = conn.unsafe(text, decodeParams(params, self.engine));
           activeQuery = q as unknown as { cancel?: () => unknown };
           const raw = await q;
-          return self.toResult(raw, leadingKeyword(text), started, options?.maxRows);
+          return self.toResult(
+            raw,
+            leadingKeyword(text),
+            started,
+            options?.maxRows,
+          );
         } finally {
           activeQuery = null;
           if (guard) await conn.unsafe("ROLLBACK").catch(() => {});
@@ -208,14 +283,21 @@ export abstract class BunSqlAdapter extends BaseAdapter {
       },
       query: exec,
       async begin() {
-        if (inTx) throw new DbError("INVALID_REQUEST", "A transaction is already open.");
-        await conn.unsafe(self.readOnly ? self.beginReadOnlySql : self.beginSql).catch((e) => {
-          throw normalizeError(self.engine, e, [self.password]);
-        });
+        if (inTx)
+          throw new DbError(
+            "INVALID_REQUEST",
+            "A transaction is already open.",
+          );
+        await conn
+          .unsafe(self.readOnly ? self.beginReadOnlySql : self.beginSql)
+          .catch((e) => {
+            throw normalizeError(self.engine, e, [self.password]);
+          });
         inTx = true;
       },
       async commit() {
-        if (!inTx) throw new DbError("INVALID_REQUEST", "No transaction is open.");
+        if (!inTx)
+          throw new DbError("INVALID_REQUEST", "No transaction is open.");
         await conn.unsafe("COMMIT").catch((e) => {
           throw normalizeError(self.engine, e, [self.password]);
         });
@@ -249,7 +331,8 @@ export abstract class BunSqlAdapter extends BaseAdapter {
         released = true;
         try {
           if (inTx) await conn.unsafe("ROLLBACK").catch(() => {});
-          if (timeout) await conn.unsafe(self.resetTimeoutSql()).catch(() => {});
+          if (timeout)
+            await conn.unsafe(self.resetTimeoutSql()).catch(() => {});
         } finally {
           inTx = false;
           conn.release();

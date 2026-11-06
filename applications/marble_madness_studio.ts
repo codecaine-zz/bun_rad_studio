@@ -19,7 +19,8 @@ import {
 } from "../index.ts";
 
 export const DEFAULT_PORT = 3264;
-export const APP_TITLE = "Codecaine CyberMarble Madness: Isometric Gravity Odyssey";
+export const APP_TITLE =
+  "Codecaine CyberMarble Madness: Isometric Gravity Odyssey";
 
 export interface MarbleMadnessStudioOptions {
   fullscreen?: boolean;
@@ -121,7 +122,9 @@ ${getWindowShortcutsScript()}
   return injectGameMasterFx(html);
 }
 
-export function startMarbleMadnessServer(options: MarbleMadnessServerOptions = {}) {
+export function startMarbleMadnessServer(
+  options: MarbleMadnessServerOptions = {},
+) {
   return startStaticStudioServer(
     {
       app: "marble_madness_studio",
@@ -134,7 +137,9 @@ export function startMarbleMadnessServer(options: MarbleMadnessServerOptions = {
   );
 }
 
-export function createMarbleMadnessStudio(options: MarbleMadnessStudioOptions = {}): MarbleMadnessStudioInstance {
+export function createMarbleMadnessStudio(
+  options: MarbleMadnessStudioOptions = {},
+): MarbleMadnessStudioInstance {
   const fullscreen = options.fullscreen ?? false;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1280);
@@ -148,7 +153,9 @@ export function createMarbleMadnessStudio(options: MarbleMadnessStudioOptions = 
     fullscreen,
     generateHtml: () => generateMarbleMadnessStudioHtml(),
     run: async () => {
-      console.log("🔮 Launching Codecaine CyberMarble Madness: Isometric Gravity Odyssey...");
+      console.log(
+        "🔮 Launching Codecaine CyberMarble Madness: Isometric Gravity Odyssey...",
+      );
       const html = generateMarbleMadnessStudioHtml();
 
       let srv: any = null;
@@ -166,7 +173,8 @@ export function createMarbleMadnessStudio(options: MarbleMadnessStudioOptions = 
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -186,11 +194,15 @@ export function createMarbleMadnessStudio(options: MarbleMadnessStudioOptions = 
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -201,13 +213,19 @@ export function createMarbleMadnessStudio(options: MarbleMadnessStudioOptions = 
 
         webview.setHTML(html);
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -227,13 +245,19 @@ export const createMarbleMadnessApp = createMarbleMadnessStudio;
 export const startMarbleMadnessStudioServer = startMarbleMadnessServer;
 
 if (process.argv.includes("--server")) {
-  const port = parseInt(process.env.MARBLE_MADNESS_PORT || process.env.PORT || "0", 10);
+  const port = parseInt(
+    process.env.MARBLE_MADNESS_PORT || process.env.PORT || "0",
+    10,
+  );
   const srv = startMarbleMadnessServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`🔮 Codecaine CyberMarble Madness Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `🔮 Codecaine CyberMarble Madness Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = process.argv.includes("--fullscreen") || process.argv.includes("-f");
+  const fullscreen =
+    process.argv.includes("--fullscreen") || process.argv.includes("-f");
   const app = createMarbleMadnessStudio({ fullscreen });
   await app.run();
   process.exit(0);

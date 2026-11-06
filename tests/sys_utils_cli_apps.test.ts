@@ -2,7 +2,15 @@ import { describe, it, expect } from "bun:test";
 import { resolve } from "node:path";
 
 describe("⚡ Bun Sys Utils Modern CLI Suite Specification", () => {
-  const runCli = async (script: string, args: string[] = []): Promise<{ stdout: string; stderr: string; output: string; exitCode: number }> => {
+  const runCli = async (
+    script: string,
+    args: string[] = [],
+  ): Promise<{
+    stdout: string;
+    stderr: string;
+    output: string;
+    exitCode: number;
+  }> => {
     const fullScript = resolve(process.cwd(), script);
     const proc = Bun.spawn([process.execPath, fullScript, ...args], {
       stdout: "pipe",
@@ -23,7 +31,11 @@ describe("⚡ Bun Sys Utils Modern CLI Suite Specification", () => {
   });
 
   it("2. Sd CLI counts pattern matches without modifying files", async () => {
-    const res = await runCli("cli_apps/sd_cli.ts", ["-c", "name", "package.json"]);
+    const res = await runCli("cli_apps/sd_cli.ts", [
+      "-c",
+      "name",
+      "package.json",
+    ]);
     expect(res.exitCode).toBe(0);
     expect(res.output).toMatch(/match\(es\)/);
   });
@@ -35,7 +47,11 @@ describe("⚡ Bun Sys Utils Modern CLI Suite Specification", () => {
   });
 
   it("4. Doggo CLI performs DNS query", async () => {
-    const res = await runCli("cli_apps/doggo_cli.ts", ["example.com", "A", "--short"]);
+    const res = await runCli("cli_apps/doggo_cli.ts", [
+      "example.com",
+      "A",
+      "--short",
+    ]);
     expect(res.exitCode).toBe(0);
     expect(res.output).toMatch(/\d+\.\d+\.\d+\.\d+/);
   });
@@ -83,4 +99,3 @@ describe("⚡ Bun Sys Utils Modern CLI Suite Specification", () => {
     expect(res.output).toContain("File & Storage");
   });
 });
-

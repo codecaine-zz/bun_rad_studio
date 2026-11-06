@@ -94,12 +94,29 @@ describe("rip features", () => {
   });
 
   it("computes graveyard size and summary", () => {
-    const { computeGraveyardSize, formatGraveyardSummary } = require("./ripDoers.ts");
+    const {
+      computeGraveyardSize,
+      formatGraveyardSummary,
+    } = require("./ripDoers.ts");
     const manifest = {
       version: 1,
       records: [
-        { id: "1", originalPath: "/a", graveyardPath: "/g/1", deletedAt: new Date().toISOString(), isDirectory: false, size: 2048 },
-        { id: "2", originalPath: "/b", graveyardPath: "/g/2", deletedAt: new Date().toISOString(), isDirectory: false, size: 4096 },
+        {
+          id: "1",
+          originalPath: "/a",
+          graveyardPath: "/g/1",
+          deletedAt: new Date().toISOString(),
+          isDirectory: false,
+          size: 2048,
+        },
+        {
+          id: "2",
+          originalPath: "/b",
+          graveyardPath: "/g/2",
+          deletedAt: new Date().toISOString(),
+          isDirectory: false,
+          size: 4096,
+        },
       ],
     };
     const sizeInfo = computeGraveyardSize(manifest);
@@ -111,4 +128,3 @@ describe("rip features", () => {
     expect(summary).toContain("6.0 KB");
   });
 });
-

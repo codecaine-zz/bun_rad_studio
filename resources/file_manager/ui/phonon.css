@@ -22,7 +22,11 @@
 }
 
 .phonon-banner-card.is-ready {
-  border-color: color-mix(in srgb, var(--accent, #3b82f6) 45%, var(--border, #444));
+  border-color: color-mix(
+    in srgb,
+    var(--accent, #3b82f6) 45%,
+    var(--border, #444)
+  );
 }
 
 .phonon-banner-card.needs-setup {
@@ -63,12 +67,20 @@
 
 .phonon-pill.ok {
   color: var(--good, #10b981);
-  border-color: color-mix(in srgb, var(--good, #10b981) 42%, var(--border, rgba(16, 185, 129, 0.38)));
+  border-color: color-mix(
+    in srgb,
+    var(--good, #10b981) 42%,
+    var(--border, rgba(16, 185, 129, 0.38))
+  );
 }
 
 .phonon-pill.warn {
   color: var(--warn-text, #f59e0b);
-  border-color: color-mix(in srgb, var(--warn-text, #f59e0b) 45%, var(--border, rgba(245, 158, 11, 0.45)));
+  border-color: color-mix(
+    in srgb,
+    var(--warn-text, #f59e0b) 45%,
+    var(--border, rgba(245, 158, 11, 0.45))
+  );
 }
 
 .phonon-pill.muted {
@@ -272,7 +284,12 @@
   display: flex;
   flex-direction: column;
   border-radius: var(--fx-radius-md, 10px);
-  border: 1px solid color-mix(in srgb, var(--accent, #38bdf8) 38%, var(--border, rgba(128, 128, 128, 0.25)));
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--accent, #38bdf8) 38%,
+      var(--border, rgba(128, 128, 128, 0.25))
+    );
   background: var(--surface-sunken, var(--bg, rgba(11, 16, 32, 0.92)));
   overflow: hidden;
 }
@@ -284,8 +301,13 @@
   justify-content: space-between;
   gap: 0.5rem;
   padding: 0.5rem 0.8rem;
-  border-bottom: 1px solid var(--border-subtle, var(--border, rgba(148, 163, 184, 0.18)));
-  background: color-mix(in srgb, var(--panel, rgba(15, 23, 42, 0.75)) 88%, var(--surface-sunken, var(--bg)));
+  border-bottom: 1px solid
+    var(--border-subtle, var(--border, rgba(148, 163, 184, 0.18)));
+  background: color-mix(
+    in srgb,
+    var(--panel, rgba(15, 23, 42, 0.75)) 88%,
+    var(--surface-sunken, var(--bg))
+  );
 }
 
 .phonon-teleprompter-title {
@@ -306,7 +328,9 @@
   padding: 0.85rem 1rem;
   max-height: 220px;
   overflow-y: auto;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .phonon-teleprompter-stage.theme-midnight {
@@ -379,7 +403,10 @@
   padding: 0.38rem 0.65rem;
   border-radius: 8px;
   border-left: 3px solid transparent;
-  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease;
 }
 
 .phonon-teleprompter-line.is-active-cue {
@@ -397,7 +424,10 @@
   margin: 0 -0.05rem;
   border-radius: 5px;
   cursor: pointer;
-  transition: background-color 0.09s ease, color 0.09s ease, box-shadow 0.09s ease;
+  transition:
+    background-color 0.09s ease,
+    color 0.09s ease,
+    box-shadow 0.09s ease;
 }
 
 .phonon-word:hover {
@@ -413,7 +443,9 @@
   color: #ffffff;
   font-weight: 800;
   background: var(--tp-accent-bg, rgba(56, 189, 248, 0.28));
-  box-shadow: 0 0 0 1px var(--tp-accent, #38bdf8), 0 0 12px rgba(56, 189, 248, 0.35);
+  box-shadow:
+    0 0 0 1px var(--tp-accent, #38bdf8),
+    0 0 12px rgba(56, 189, 248, 0.35);
   text-decoration: underline;
   text-decoration-color: var(--tp-accent, #38bdf8);
   text-decoration-thickness: 2px;
@@ -467,8 +499,13 @@
   gap: 0.55rem;
   padding: 0.75rem 0.85rem;
   border-radius: var(--fx-radius-md, 10px);
-  border: 1px solid color-mix(in srgb, var(--accent, #38bdf8) 45%, var(--border, transparent));
-  background: color-mix(in srgb, var(--panel, rgba(11, 16, 32, 0.88)) 86%, var(--surface-sunken, var(--bg)));
+  border: 1px solid
+    color-mix(in srgb, var(--accent, #38bdf8) 45%, var(--border, transparent));
+  background: color-mix(
+    in srgb,
+    var(--panel, rgba(11, 16, 32, 0.88)) 86%,
+    var(--surface-sunken, var(--bg))
+  );
 }
 
 .phonon-video-preview-card[hidden],
@@ -560,7 +597,9 @@
   border: 1px solid var(--border, rgba(128, 128, 128, 0.2));
   background: var(--bg, rgba(0, 0, 0, 0.15));
   cursor: pointer;
-  transition: border-color 0.15s ease, background-color 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .phonon-chunk-item:hover {
@@ -569,7 +608,11 @@
 
 .phonon-chunk-item.is-active {
   border-color: var(--accent, #38bdf8);
-  background: color-mix(in srgb, var(--accent, #38bdf8) 14%, var(--bg, rgba(0, 0, 0, 0.2)));
+  background: color-mix(
+    in srgb,
+    var(--accent, #38bdf8) 14%,
+    var(--bg, rgba(0, 0, 0, 0.2))
+  );
 }
 
 .phonon-chunk-meta {
@@ -619,11 +662,26 @@
   margin-top: 0.35rem;
   padding: 0.8rem 0.9rem;
   border-radius: var(--fx-radius-md, 10px);
-  border: 1px solid color-mix(in srgb, var(--accent, #38bdf8) 42%, var(--border, rgba(128, 128, 128, 0.25)));
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--accent, #38bdf8) 42%,
+      var(--border, rgba(128, 128, 128, 0.25))
+    );
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--panel, rgba(15, 23, 42, 0.62)) 88%, var(--accent-soft, transparent)) 0%,
-    color-mix(in srgb, var(--surface-sunken, var(--bg, rgba(11, 16, 32, 0.78))) 92%, var(--panel)) 100%
+    color-mix(
+        in srgb,
+        var(--panel, rgba(15, 23, 42, 0.62)) 88%,
+        var(--accent-soft, transparent)
+      )
+      0%,
+    color-mix(
+        in srgb,
+        var(--surface-sunken, var(--bg, rgba(11, 16, 32, 0.78))) 92%,
+        var(--panel)
+      )
+      100%
   );
 }
 
@@ -701,7 +759,11 @@
   width: 100%;
   height: 9px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--border, rgba(148, 163, 184, 0.35)) 55%, var(--surface-sunken, var(--bg)));
+  background: color-mix(
+    in srgb,
+    var(--border, rgba(148, 163, 184, 0.35)) 55%,
+    var(--surface-sunken, var(--bg))
+  );
   overflow: hidden;
 }
 
@@ -744,7 +806,12 @@
   gap: 0.5rem;
   padding: 0.65rem 0.75rem;
   border-radius: var(--fx-radius-sm, 8px);
-  border: 1px solid color-mix(in srgb, var(--accent, #38bdf8) 32%, var(--border, rgba(56, 189, 248, 0.28)));
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--accent, #38bdf8) 32%,
+      var(--border, rgba(56, 189, 248, 0.28))
+    );
   background: var(--surface-sunken, var(--bg, rgba(9, 14, 28, 0.65)));
 }
 
@@ -776,7 +843,8 @@
   padding: 0.45rem 0.6rem;
   border-radius: 7px;
   background: var(--panel, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--border-subtle, var(--border, rgba(148, 163, 184, 0.14)));
+  border: 1px solid
+    var(--border-subtle, var(--border, rgba(148, 163, 184, 0.14)));
 }
 
 .phonon-fingerprint-label {
@@ -811,13 +879,18 @@
   gap: 0.5rem;
   padding: 0.45rem 0.65rem;
   border-radius: 7px;
-  border: 1px solid var(--border-subtle, var(--border, rgba(148, 163, 184, 0.18)));
+  border: 1px solid
+    var(--border-subtle, var(--border, rgba(148, 163, 184, 0.18)));
   background: var(--panel, rgba(255, 255, 255, 0.03));
 }
 
 .phonon-custom-voice-row.is-active {
   border-color: var(--accent, #38bdf8);
-  background: color-mix(in srgb, var(--accent, #38bdf8) 12%, var(--panel, transparent));
+  background: color-mix(
+    in srgb,
+    var(--accent, #38bdf8) 12%,
+    var(--panel, transparent)
+  );
 }
 
 .phonon-custom-voice-info {

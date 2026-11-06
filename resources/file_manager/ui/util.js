@@ -1,6 +1,9 @@
 // Pure helpers for the File Manager page: no DOM and no network, so they can be tested on their own.
 
-const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+const collator = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: "base",
+});
 
 /** "File 2" sorts before "File 10", and case is ignored. */
 export const naturalCompare = (a, b) => collator.compare(a, b);
@@ -28,12 +31,20 @@ export function formatDate(ms, now = Date.now(), locale = undefined) {
   if (!Number.isFinite(ms) || ms <= 0) return "";
   const d = new Date(ms);
   const today = new Date(now);
-  const startOfDay = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const startOfDay = (x) =>
+    new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
   const days = Math.round((startOfDay(today) - startOfDay(d)) / 86_400_000);
-  const time = d.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" });
+  const time = d.toLocaleTimeString(locale, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
   if (days === 0) return `Today, ${time}`;
   if (days === 1) return `Yesterday, ${time}`;
-  return d.toLocaleDateString(locale, { year: "numeric", month: "short", day: "numeric" });
+  return d.toLocaleDateString(locale, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 export function plural(n, word, pluralWord = `${word}s`) {
@@ -41,7 +52,9 @@ export function plural(n, word, pluralWord = `${word}s`) {
 }
 
 export function isDocumentPackageName(name) {
-  return /\.(?:epub|ibooks|rtfd|textbundle|scriv|ulysses|pages|numbers|key|playground|playgroundbook|oo3|mindnode|graffle)$/i.test(String(name || "").trim());
+  return /\.(?:epub|ibooks|rtfd|textbundle|scriv|ulysses|pages|numbers|key|playground|playgroundbook|oo3|mindnode|graffle)$/i.test(
+    String(name || "").trim(),
+  );
 }
 
 export function isDocumentPackageEntry(entry) {
@@ -57,22 +70,35 @@ export function isDocumentPackageEntry(entry) {
 const KIND_ORDER = (e) => (e.isDir && !isDocumentPackageEntry(e) ? 0 : 1);
 
 /** Sorted copy of `entries`. `by`: name | modified | size | type. Folders can be kept on top. */
-export function sortEntries(entries, { by = "name", dir = "asc", foldersFirst = true } = {}) {
+export function sortEntries(
+  entries,
+  { by = "name", dir = "asc", foldersFirst = true } = {},
+) {
   const sign = dir === "desc" ? -1 : 1;
   const compare = (a, b) => {
     switch (by) {
-      case "modified": return a.mtimeMs - b.mtimeMs;
+      case "modified":
+        return a.mtimeMs - b.mtimeMs;
       case "size": {
-        const sa = a.isDir && !a.folderSizeCalculated && !isDocumentPackageEntry(a) ? -1 : a.size;
-        const sb = b.isDir && !b.folderSizeCalculated && !isDocumentPackageEntry(b) ? -1 : b.size;
+        const sa =
+          a.isDir && !a.folderSizeCalculated && !isDocumentPackageEntry(a)
+            ? -1
+            : a.size;
+        const sb =
+          b.isDir && !b.folderSizeCalculated && !isDocumentPackageEntry(b)
+            ? -1
+            : b.size;
         return sa - sb;
       }
-      case "type": return naturalCompare(a.label, b.label);
-      default: return naturalCompare(a.name, b.name);
+      case "type":
+        return naturalCompare(a.label, b.label);
+      default:
+        return naturalCompare(a.name, b.name);
     }
   };
   return [...entries].sort((a, b) => {
-    if (foldersFirst && KIND_ORDER(a) !== KIND_ORDER(b)) return KIND_ORDER(a) - KIND_ORDER(b);
+    if (foldersFirst && KIND_ORDER(a) !== KIND_ORDER(b))
+      return KIND_ORDER(a) - KIND_ORDER(b);
     return sign * compare(a, b) || naturalCompare(a.name, b.name);
   });
 }
@@ -89,8 +115,14 @@ export function joinPath(dir, name, sep) {
   return dir.endsWith(sep) ? dir + name : dir + sep + name;
 }
 
-export function baseName(path, sep = isWindowsPath(String(path || "")) ? "\\" : "/") {
-  const trimmed = path.length > 1 && path.endsWith(sep) && !/^[A-Za-z]:\\$/.test(path) ? path.slice(0, -1) : path;
+export function baseName(
+  path,
+  sep = isWindowsPath(String(path || "")) ? "\\" : "/",
+) {
+  const trimmed =
+    path.length > 1 && path.endsWith(sep) && !/^[A-Za-z]:\\$/.test(path)
+      ? path.slice(0, -1)
+      : path;
   const i = trimmed.lastIndexOf(sep);
   return i < 0 ? trimmed : trimmed.slice(i + 1) || trimmed;
 }
@@ -160,7 +192,12 @@ export function isInside(path, folder, sep, ignoreCase = false) {
 export function driveFor(path, drives, sep) {
   const ci = sep === "\\";
   let best = null;
-  for (const d of drives) if (isInside(path, d.path, sep, ci) && (!best || d.path.length > best.path.length)) best = d;
+  for (const d of drives)
+    if (
+      isInside(path, d.path, sep, ci) &&
+      (!best || d.path.length > best.path.length)
+    )
+      best = d;
   return best;
 }
 
@@ -174,7 +211,12 @@ export function typeaheadFind(entries, text, from = -1) {
   if (!t) return -1;
   const n = entries.length;
   // typing the same letter again moves to the next entry starting with it
-  const start = t.length > 1 && new Set(t).size === 1 ? from + 1 : t.length === 1 ? from + 1 : Math.max(from, 0);
+  const start =
+    t.length > 1 && new Set(t).size === 1
+      ? from + 1
+      : t.length === 1
+        ? from + 1
+        : Math.max(from, 0);
   const needle = t.length > 1 && new Set(t).size === 1 ? t[0] : t;
   for (let i = 0; i < n; i++) {
     const idx = (start + i) % n;
@@ -190,24 +232,62 @@ export function rangeIndexes(a, b) {
 }
 
 /** Ctrl on Windows/Linux, Cmd on macOS. */
-export const isModifier = (e, platform) => (platform === "darwin" ? e.metaKey : e.ctrlKey);
+export const isModifier = (e, platform) =>
+  platform === "darwin" ? e.metaKey : e.ctrlKey;
 
 /** Holding Ctrl (Windows/Linux) or Option (macOS) while dropping copies instead of moving. */
-export const wantsCopy = (e, platform) => (platform === "darwin" ? e.altKey : e.ctrlKey);
+export const wantsCopy = (e, platform) =>
+  platform === "darwin" ? e.altKey : e.ctrlKey;
 
 /** The lower-case ending of a file name without the dot: "photo.JPG" gives "jpg"; no ending gives "". */
 export function extensionOf(name) {
   const dot = name.lastIndexOf(".");
-  return dot > 0 && dot < name.length - 1 ? name.slice(dot + 1).toLowerCase() : "";
+  return dot > 0 && dot < name.length - 1
+    ? name.slice(dot + 1).toLowerCase()
+    : "";
 }
 
 export const EXTRACTABLE_EXTENSIONS = [
-  "zip", "cbz", "whl", "jar", "apk", "ipa", "xpi",
-  "tar", "tar.gz", "tgz", "tar.zst", "tzst",
-  "gz", "svgz", "zst", "br",
-  "tar.bz2", "tbz2", "tbz", "tar.xz", "txz", "tar.lz4", "tar.lzma", "tlz",
-  "7z", "rar", "iso", "cab", "dmg", "cpio", "lzh", "lha", "xar", "ar", "rpm",
-  "bz2", "xz", "lzma", "lz4", "z",
+  "zip",
+  "cbz",
+  "whl",
+  "jar",
+  "apk",
+  "ipa",
+  "xpi",
+  "tar",
+  "tar.gz",
+  "tgz",
+  "tar.zst",
+  "tzst",
+  "gz",
+  "svgz",
+  "zst",
+  "br",
+  "tar.bz2",
+  "tbz2",
+  "tbz",
+  "tar.xz",
+  "txz",
+  "tar.lz4",
+  "tar.lzma",
+  "tlz",
+  "7z",
+  "rar",
+  "iso",
+  "cab",
+  "dmg",
+  "cpio",
+  "lzh",
+  "lha",
+  "xar",
+  "ar",
+  "rpm",
+  "bz2",
+  "xz",
+  "lzma",
+  "lz4",
+  "z",
 ];
 
 const EXTRACTABLE_SET = new Set(EXTRACTABLE_EXTENSIONS);
@@ -240,9 +320,15 @@ export function describeSelection(selected) {
   if (selected.length === 0) return "";
   const files = selected.filter((e) => !e.isDir || isDocumentPackageEntry(e));
   const folders = selected.length - files.length;
-  const sizedFolders = selected.filter((e) => e.isDir && !isDocumentPackageEntry(e) && e.folderSizeCalculated);
-  const bytes = files.reduce((n, e) => n + (Number(e.size) || 0), 0) + sizedFolders.reduce((n, e) => n + (Number(e.size) || 0), 0);
-  const showBytes = files.some((e) => !e.isDir || (Number(e.size) || 0) > 0) || sizedFolders.length > 0;
+  const sizedFolders = selected.filter(
+    (e) => e.isDir && !isDocumentPackageEntry(e) && e.folderSizeCalculated,
+  );
+  const bytes =
+    files.reduce((n, e) => n + (Number(e.size) || 0), 0) +
+    sizedFolders.reduce((n, e) => n + (Number(e.size) || 0), 0);
+  const showBytes =
+    files.some((e) => !e.isDir || (Number(e.size) || 0) > 0) ||
+    sizedFolders.length > 0;
   const parts = [];
   if (folders) parts.push(plural(folders, "folder"));
   if (files.length) parts.push(plural(files.length, "file"));
@@ -261,11 +347,15 @@ export function parseByteSizeToken(raw) {
   const num = Number(m[1]);
   if (!Number.isFinite(num) || num < 0) return null;
   const unit = m[2] || "b";
-  const mult = unit.startsWith("t") ? 1024 ** 4
-    : unit.startsWith("g") ? 1024 ** 3
-    : unit.startsWith("m") ? 1024 ** 2
-    : unit.startsWith("k") ? 1024
-    : 1;
+  const mult = unit.startsWith("t")
+    ? 1024 ** 4
+    : unit.startsWith("g")
+      ? 1024 ** 3
+      : unit.startsWith("m")
+        ? 1024 ** 2
+        : unit.startsWith("k")
+          ? 1024
+          : 1;
   return Math.round(num * mult);
 }
 
@@ -275,11 +365,16 @@ export function parseByteSizeToken(raw) {
 export function detectSnippetInfo(text) {
   const raw = typeof text === "string" ? text : "";
   const trimmed = raw.trim();
-  if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
+  if (
+    (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+    (trimmed.startsWith("[") && trimmed.endsWith("]"))
+  ) {
     try {
       JSON.parse(trimmed);
       return { ext: "json", baseName: "Pasted data", label: "JSON data" };
-    } catch { /* not valid JSON */ }
+    } catch {
+      /* not valid JSON */
+    }
   }
   if (trimmed.startsWith("#!/")) {
     return { ext: "sh", baseName: "Pasted script", label: "Shell script" };
@@ -290,13 +385,25 @@ export function detectSnippetInfo(text) {
   if (/^<svg\b[\s\S]*<\/svg>$/i.test(trimmed)) {
     return { ext: "svg", baseName: "Pasted vector", label: "SVG image" };
   }
-  if (/^\s*(SELECT|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM|CREATE\s+(?:TABLE|VIEW|INDEX)|ALTER\s+TABLE|WITH\s+\w+\s+AS)\b/i.test(trimmed)) {
+  if (
+    /^\s*(SELECT|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM|CREATE\s+(?:TABLE|VIEW|INDEX)|ALTER\s+TABLE|WITH\s+\w+\s+AS)\b/i.test(
+      trimmed,
+    )
+  ) {
     return { ext: "sql", baseName: "Pasted query", label: "SQL query" };
   }
-  if (/^(?:import\s+[\s\S]+?\s+from\s+["']|export\s+(?:const|let|function|async\s+function|class|default|interface|type)\s+)/m.test(trimmed)) {
+  if (
+    /^(?:import\s+[\s\S]+?\s+from\s+["']|export\s+(?:const|let|function|async\s+function|class|default|interface|type)\s+)/m.test(
+      trimmed,
+    )
+  ) {
     return { ext: "ts", baseName: "Pasted module", label: "TypeScript module" };
   }
-  if (/^#{1,6}\s+\S/m.test(trimmed) || /\[[^\]]+\]\(https?:\/\/[^)]+\)/.test(trimmed) || /^```[\w-]*$/m.test(trimmed)) {
+  if (
+    /^#{1,6}\s+\S/m.test(trimmed) ||
+    /\[[^\]]+\]\(https?:\/\/[^)]+\)/.test(trimmed) ||
+    /^```[\w-]*$/m.test(trimmed)
+  ) {
     return { ext: "md", baseName: "Pasted note", label: "Markdown note" };
   }
   const lines = trimmed.split(/\r?\n/).filter((l) => l.trim().length > 0);
@@ -318,13 +425,19 @@ export function detectSnippetInfo(text) {
  */
 export function collapseCrumbs(crumbs, keep = 4) {
   if (crumbs.length <= keep + 1) return crumbs;
-  return [crumbs[0], { name: "…", path: crumbs[crumbs.length - keep - 1].path, ellipsis: true }, ...crumbs.slice(-keep)];
+  return [
+    crumbs[0],
+    { name: "…", path: crumbs[crumbs.length - keep - 1].path, ellipsis: true },
+    ...crumbs.slice(-keep),
+  ];
 }
 
 /** Friendly sentence for a count of results. */
 export function summarizeCount(total, shown) {
   if (total === 0) return "This folder is empty";
-  return shown < total ? `Showing ${shown.toLocaleString()} of ${total.toLocaleString()} items` : plural(total, "item");
+  return shown < total
+    ? `Showing ${shown.toLocaleString()} of ${total.toLocaleString()} items`
+    : plural(total, "item");
 }
 
 // Which kinds of helper work a file name allows. The server has the same lists (fmTools.ts); a test keeps them equal.
@@ -338,5 +451,7 @@ const KIND_EXTENSIONS = {
 /** @param {string} name @returns {string[]} */
 export function kindsForName(name) {
   const ext = extensionOf(name);
-  return Object.entries(KIND_EXTENSIONS).filter(([, list]) => list.split(" ").includes(ext)).map(([kind]) => kind);
+  return Object.entries(KIND_EXTENSIONS)
+    .filter(([, list]) => list.split(" ").includes(ext))
+    .map(([kind]) => kind);
 }

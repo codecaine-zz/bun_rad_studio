@@ -6,7 +6,12 @@
  *   Uses ONLY pure Bun APIs (`Bun.spawn`, `Bun.spawnSync`, `Bun.file`, `Bun.write`, `Bun.which`,
  *   `Bun.CryptoHasher`, and native `fetch`).
  */
-import { absolutePath, assertCreatable, assertModifiable, type FmContext } from "./fmCore";
+import {
+  absolutePath,
+  assertCreatable,
+  assertModifiable,
+  type FmContext,
+} from "./fmCore";
 import { FmError } from "./fmPaths";
 import {
   basenamePath,
@@ -48,7 +53,8 @@ import {
 // ---------------------------------------------------------------------------------------------------------------
 
 /** Shutdown policy controlling whether Bionic models are unloaded or the server is stopped when File Manager closes. */
-export type BionicExitPolicy = "smart" | "unload_all" | "stop_server" | "keep_open";
+export type BionicExitPolicy =
+  "smart" | "unload_all" | "stop_server" | "keep_open";
 
 /** Metadata describing an installed LM Studio / Bionic inference backend engine extension. */
 export interface BionicBackendEngineInfo {
@@ -109,7 +115,8 @@ export interface BionicSkillSpec {
   name: string;
   displayName: string;
   description: string;
-  scope: "bionic-builtin" | "lmstudio-global" | "project-local" | "external-harness";
+  scope:
+    "bionic-builtin" | "lmstudio-global" | "project-local" | "external-harness";
   folderPath: string;
   skillMdPath: string;
   userInvocable: boolean;
@@ -143,7 +150,10 @@ export interface BionicPendingAction {
 // 2. Session State, Audio Cache & Tool Action Staging
 // ---------------------------------------------------------------------------------------------------------------
 
-const bionicAudioCache = new Map<string, { absPath: string; mime: string; createdAt: number }>();
+const bionicAudioCache = new Map<
+  string,
+  { absPath: string; mime: string; createdAt: number }
+>();
 const bionicPendingActions = new Map<string, BionicPendingAction>();
 
 let bionicExitPolicy: BionicExitPolicy = "smart";
@@ -151,7 +161,9 @@ let bionicServerStartedByFm = false;
 const bionicSessionLoadedModels = new Set<string>();
 
 /** Looks up a synthesized TTS audio file in the in-memory Bionic audio cache by ID. */
-export function getCachedBionicAudioFile(audioId: string): { absPath: string; mime: string } | null {
+export function getCachedBionicAudioFile(
+  audioId: string,
+): { absPath: string; mime: string } | null {
   const cleanId = String(audioId || "").trim();
   if (!cleanId) return null;
   const entry = bionicAudioCache.get(cleanId);
@@ -166,7 +178,12 @@ export function setBionicExitPolicy(policy: string): {
   sessionLoadedModels: string[];
   summaryLabel: string;
 } {
-  if (policy === "smart" || policy === "unload_all" || policy === "stop_server" || policy === "keep_open") {
+  if (
+    policy === "smart" ||
+    policy === "unload_all" ||
+    policy === "stop_server" ||
+    policy === "keep_open"
+  ) {
     bionicExitPolicy = policy;
   }
   return getBionicLifecycleStatus();
@@ -202,7 +219,11 @@ export function getBionicLifecycleStatus(): {
 /** Resolves the LM Studio / Bionic home directory (`~/.lmstudio` or `LMSTUDIO_HOME`). */
 export function getLmStudioHomeDir(ctx?: FmContext): string {
   if (process.env.LMSTUDIO_HOME) return process.env.LMSTUDIO_HOME;
-  const home = ctx?.home || process.env.HOME || process.env.USERPROFILE || "/Users/codecaine";
+  const home =
+    ctx?.home ||
+    process.env.HOME ||
+    process.env.USERPROFILE ||
+    "/Users/codecaine";
   return joinPath([home, ".lmstudio"], ctx?.platform || process.platform);
 }
 
@@ -211,7 +232,10 @@ export function resolveLmsCliPath(ctx?: FmContext): string | null {
   if (process.env.LMS_CLI_PATH) return process.env.LMS_CLI_PATH;
   const lmHome = getLmStudioHomeDir(ctx);
   const platform = ctx?.platform || process.platform;
-  const candidate = joinPath([lmHome, "bin", platform === "win32" ? "lms.exe" : "lms"], platform);
+  const candidate = joinPath(
+    [lmHome, "bin", platform === "win32" ? "lms.exe" : "lms"],
+    platform,
+  );
   try {
     if (Bun.file(candidate).size > 0) return candidate;
   } catch {}
@@ -239,7 +263,10 @@ export function detectBionicApps(ctx?: FmContext): {
   const platform = ctx?.platform || process.platform;
   const lmHome = getLmStudioHomeDir(ctx);
   const bionicStateDir = joinPath([lmHome, "apps", "bionic"], platform);
-  const bionicHttpJsonPath = joinPath([bionicStateDir, ".internal", "http-server.json"], platform);
+  const bionicHttpJsonPath = joinPath(
+    [bionicStateDir, ".internal", "http-server.json"],
+    platform,
+  );
 
   let bionicInternalPort: number | null = null;
   let bionicInternalPid: number | null = null;
@@ -256,25 +283,46 @@ export function detectBionicApps(ctx?: FmContext): {
     platform === "darwin"
       ? "/Applications/Bionic.app"
       : platform === "win32"
-        ? joinPath([process.env.LOCALAPPDATA || "C:\\Users\\Default\\AppData\\Local", "Programs", "Bionic", "Bionic.exe"], "win32")
+        ? joinPath(
+            [
+              process.env.LOCALAPPDATA || "C:\\Users\\Default\\AppData\\Local",
+              "Programs",
+              "Bionic",
+              "Bionic.exe",
+            ],
+            "win32",
+          )
         : "/usr/bin/bionic";
 
   const lmStudioAppPath =
     platform === "darwin"
       ? "/Applications/LM Studio.app"
       : platform === "win32"
-        ? joinPath([process.env.LOCALAPPDATA || "C:\\Users\\Default\\AppData\\Local", "Programs", "LM Studio", "LM Studio.exe"], "win32")
+        ? joinPath(
+            [
+              process.env.LOCALAPPDATA || "C:\\Users\\Default\\AppData\\Local",
+              "Programs",
+              "LM Studio",
+              "LM Studio.exe",
+            ],
+            "win32",
+          )
         : "/usr/bin/lm-studio";
 
   const bionicBinCheck =
-    platform === "darwin" ? "/Applications/Bionic.app/Contents/MacOS/Bionic" : bionicAppPath;
+    platform === "darwin"
+      ? "/Applications/Bionic.app/Contents/MacOS/Bionic"
+      : bionicAppPath;
   const lmStudioBinCheck =
-    platform === "darwin" ? "/Applications/LM Studio.app/Contents/MacOS/LM Studio" : lmStudioAppPath;
+    platform === "darwin"
+      ? "/Applications/LM Studio.app/Contents/MacOS/LM Studio"
+      : lmStudioAppPath;
 
   let bionicAppInstalled = false;
   let lmStudioAppInstalled = false;
   try {
-    bionicAppInstalled = Bun.file(bionicBinCheck).size > 0 || bionicInternalPort !== null;
+    bionicAppInstalled =
+      Bun.file(bionicBinCheck).size > 0 || bionicInternalPort !== null;
   } catch {}
   try {
     lmStudioAppInstalled = Bun.file(lmStudioBinCheck).size > 0;
@@ -306,13 +354,21 @@ export async function resolveBionicServerStatus(ctx?: FmContext): Promise<{
   baseUrl: string;
   source: "env" | "lms-status" | "probe" | "offline";
 }> {
-  const envHost = (process.env.BIONIC_HOST || process.env.LMSTUDIO_HOST || "").trim();
+  const envHost = (
+    process.env.BIONIC_HOST ||
+    process.env.LMSTUDIO_HOST ||
+    ""
+  ).trim();
   if (envHost) {
-    const baseUrl = envHost.startsWith("http") ? envHost.replace(/\/+$/, "") : `http://${envHost.replace(/\/+$/, "")}`;
+    const baseUrl = envHost.startsWith("http")
+      ? envHost.replace(/\/+$/, "")
+      : `http://${envHost.replace(/\/+$/, "")}`;
     const portMatch = /:(\d+)$/.exec(baseUrl);
     const port = portMatch ? Number(portMatch[1]) : 1234;
     try {
-      const res = await fetch(`${baseUrl}/v1/models`, { signal: AbortSignal.timeout(1500) });
+      const res = await fetch(`${baseUrl}/v1/models`, {
+        signal: AbortSignal.timeout(1500),
+      });
       if (res.ok) {
         return { running: true, port, baseUrl, source: "env" };
       }
@@ -329,7 +385,9 @@ export async function resolveBionicServerStatus(ctx?: FmContext): Promise<{
       });
       if (res.exitCode === 0) {
         const text = res.stdout.toString("utf8").trim();
-        const jsonLine = text.split(/\r?\n/).find((l) => l.trim().startsWith("{"));
+        const jsonLine = text
+          .split(/\r?\n/)
+          .find((l) => l.trim().startsWith("{"));
         if (jsonLine) {
           const parsed = JSON.parse(jsonLine);
           if (parsed.running && typeof parsed.port === "number") {
@@ -383,7 +441,10 @@ export async function ensureBionicServerRunning(ctx?: FmContext): Promise<{
   const lmsCli = resolveLmsCliPath(ctx);
   if (lmsCli && !process.env.BIONIC_HOST) {
     try {
-      Bun.spawnSync([lmsCli, "server", "start"], { stdout: "pipe", stderr: "pipe" });
+      Bun.spawnSync([lmsCli, "server", "start"], {
+        stdout: "pipe",
+        stderr: "pipe",
+      });
       const after = await resolveBionicServerStatus(ctx);
       if (after.running) {
         bionicServerStartedByFm = true;
@@ -397,7 +458,10 @@ export async function ensureBionicServerRunning(ctx?: FmContext): Promise<{
 /** Starts, stops, queries status, or launches the desktop app for the Bionic / LM Studio server. */
 export async function controlBionicServer(
   ctx: FmContext,
-  payload: { action?: "start" | "stop" | "status" | "launch_app"; port?: number },
+  payload: {
+    action?: "start" | "stop" | "status" | "launch_app";
+    port?: number;
+  },
 ): Promise<any> {
   const action = payload.action || "status";
   const lmsCli = resolveLmsCliPath(ctx);
@@ -405,8 +469,13 @@ export async function controlBionicServer(
   if (action === "launch_app") {
     const apps = detectBionicApps(ctx);
     if (ctx.platform === "darwin") {
-      const targetApp = apps.bionicAppInstalled ? "/Applications/Bionic.app" : "/Applications/LM Studio.app";
-      Bun.spawnSync(["open", "-a", targetApp], { stdout: "ignore", stderr: "ignore" });
+      const targetApp = apps.bionicAppInstalled
+        ? "/Applications/Bionic.app"
+        : "/Applications/LM Studio.app";
+      Bun.spawnSync(["open", "-a", targetApp], {
+        stdout: "ignore",
+        stderr: "ignore",
+      });
       return { launched: true, app: targetApp };
     }
     const targetBin = apps.bionicAppInstalled
@@ -416,14 +485,19 @@ export async function controlBionicServer(
         : Bun.which("lm-studio") || Bun.which("bionic") || "";
     if (targetBin) {
       try {
-        const proc = Bun.spawn([targetBin], { stdin: "ignore", stdout: "ignore", stderr: "ignore" });
+        const proc = Bun.spawn([targetBin], {
+          stdin: "ignore",
+          stdout: "ignore",
+          stderr: "ignore",
+        });
         proc.unref();
         return { launched: true, app: targetBin };
       } catch {}
     }
     return {
       launched: false,
-      message: "Desktop app launch is supported when Bionic or LM Studio is installed.",
+      message:
+        "Desktop app launch is supported when Bionic or LM Studio is installed.",
     };
   }
 
@@ -441,7 +515,10 @@ export async function controlBionicServer(
 
   if (action === "stop") {
     if (lmsCli && !process.env.BIONIC_HOST) {
-      Bun.spawnSync([lmsCli, "server", "stop"], { stdout: "pipe", stderr: "pipe" });
+      Bun.spawnSync([lmsCli, "server", "stop"], {
+        stdout: "pipe",
+        stderr: "pipe",
+      });
     }
     return await resolveBionicServerStatus(ctx);
   }
@@ -453,7 +530,12 @@ export async function controlBionicServer(
 export async function shutdownBionicForFileManager(
   ctx: FmContext,
   options?: { policyOverride?: BionicExitPolicy },
-): Promise<{ ok: boolean; policy: BionicExitPolicy; unloadedModels: string[]; serverStopped: boolean }> {
+): Promise<{
+  ok: boolean;
+  policy: BionicExitPolicy;
+  unloadedModels: string[];
+  serverStopped: boolean;
+}> {
   const policy = options?.policyOverride || bionicExitPolicy;
   const unloadedModels: string[] = [];
   let serverStopped = false;
@@ -469,13 +551,19 @@ export async function shutdownBionicForFileManager(
 
   if (policy === "unload_all" || policy === "stop_server") {
     try {
-      Bun.spawnSync([lmsCli, "unload", "--all"], { stdout: "ignore", stderr: "ignore" });
+      Bun.spawnSync([lmsCli, "unload", "--all"], {
+        stdout: "ignore",
+        stderr: "ignore",
+      });
       unloadedModels.push(...bionicSessionLoadedModels);
       bionicSessionLoadedModels.clear();
     } catch {}
     if (policy === "stop_server") {
       try {
-        Bun.spawnSync([lmsCli, "server", "stop"], { stdout: "ignore", stderr: "ignore" });
+        Bun.spawnSync([lmsCli, "server", "stop"], {
+          stdout: "ignore",
+          stderr: "ignore",
+        });
         serverStopped = true;
       } catch {}
     }
@@ -485,7 +573,10 @@ export async function shutdownBionicForFileManager(
   // "smart" policy: only unload models that File Manager explicitly loaded in this session
   for (const modelKey of bionicSessionLoadedModels) {
     try {
-      Bun.spawnSync([lmsCli, "unload", modelKey], { stdout: "ignore", stderr: "ignore" });
+      Bun.spawnSync([lmsCli, "unload", modelKey], {
+        stdout: "ignore",
+        stderr: "ignore",
+      });
       unloadedModels.push(modelKey);
     } catch {}
   }
@@ -510,7 +601,10 @@ export function listInstalledBionicBackends(ctx?: FmContext): {
 
   for (const entry of entries) {
     if (!entry.isDir || entry.name === "vendor") continue;
-    const manifestPath = joinPath([entry.path, "backend-manifest.json"], platform);
+    const manifestPath = joinPath(
+      [entry.path, "backend-manifest.json"],
+      platform,
+    );
     const displayPath = joinPath([entry.path, "display-data.json"], platform);
     let name = entry.name;
     let version = "";
@@ -525,7 +619,9 @@ export function listInstalledBionicBackends(ctx?: FmContext): {
         name = m.name || name;
         version = m.version || version;
         format = m.modelFormat || m.format || format;
-        platformArch = m.platform ? `${m.platform}-${m.arch || "arm64"}` : platformArch;
+        platformArch = m.platform
+          ? `${m.platform}-${m.arch || "arm64"}`
+          : platformArch;
       } catch {}
     }
     const rawDisplay = readTextFileSyncPure(displayPath);
@@ -539,22 +635,27 @@ export function listInstalledBionicBackends(ctx?: FmContext): {
 
     if (entry.name.startsWith("mlx-llm")) {
       format = "mlx / safetensors";
-      description = "Apple Silicon Metal MLX LLM & VLM Engine (safetensors, MXFP4, 4-bit)";
+      description =
+        "Apple Silicon Metal MLX LLM & VLM Engine (safetensors, MXFP4, 4-bit)";
     } else if (entry.name.startsWith("omlx")) {
       format = "omlx / safetensors";
-      description = "Apple Silicon oMLX Engine with Rotating VLM Prompt Cache & Outlines Structured Generation";
+      description =
+        "Apple Silicon oMLX Engine with Rotating VLM Prompt Cache & Outlines Structured Generation";
     } else if (entry.name.startsWith("splash")) {
       format = "splash / metal";
       description = "Apple Silicon M3+ Splash Ultra-Low-Latency Metal Engine";
     } else if (entry.name.startsWith("llama.cpp")) {
       format = "gguf";
-      description = "Apple Metal llama.cpp Engine for GGUF LLMs & Nomic BERT Embeddings";
+      description =
+        "Apple Metal llama.cpp Engine for GGUF LLMs & Nomic BERT Embeddings";
     } else if (entry.name.startsWith("xn-ptts")) {
       format = "tts-bundle";
-      description = "Native Apple Metal Phonon 40M Multilingual Text-to-Speech Engine (24kHz)";
+      description =
+        "Native Apple Metal Phonon 40M Multilingual Text-to-Speech Engine (24kHz)";
     } else if (entry.name.startsWith("executorch-asr")) {
       format = "pte / whisper";
-      description = "ExecuTorch Whisper Apple Metal Automatic Speech Recognition (ASR) Engine";
+      description =
+        "ExecuTorch Whisper Apple Metal Automatic Speech Recognition (ASR) Engine";
     }
 
     backends.push({
@@ -573,13 +674,19 @@ export function listInstalledBionicBackends(ctx?: FmContext): {
   for (const b of backends) {
     const family = b.name.toLowerCase();
     const prev = latestByFamily.get(family);
-    if (!prev || b.version.localeCompare(prev.version, undefined, { numeric: true }) >= 0) {
+    if (
+      !prev ||
+      b.version.localeCompare(prev.version, undefined, { numeric: true }) >= 0
+    ) {
       latestByFamily.set(family, b);
     }
   }
   const deduplicatedBackends = [...latestByFamily.values()];
 
-  const pluginsDir = joinPath([lmHome, "extensions", "plugins", "lmstudio"], platform);
+  const pluginsDir = joinPath(
+    [lmHome, "extensions", "plugins", "lmstudio"],
+    platform,
+  );
   const pluginEntries = listDirectoryEntriesPure(pluginsDir, platform);
   const plugins = pluginEntries.filter((e) => e.isDir).map((e) => e.name);
 
@@ -654,7 +761,9 @@ export const DEFAULT_BIONIC_CLOUD_MODELS: Array<{
 ];
 
 /** Returns host hardware specs, local models on disk, currently loaded models, and cloud models with hardware verdicts. */
-export async function listBionicModelsAndHardwareStatus(ctx: FmContext): Promise<{
+export async function listBionicModelsAndHardwareStatus(
+  ctx: FmContext,
+): Promise<{
   hardware: OllamaHardwareSpecs;
   models: BionicModelInfo[];
   loadedModels: BionicModelInfo[];
@@ -688,14 +797,20 @@ export async function listBionicModelsAndHardwareStatus(ctx: FmContext): Promise
   let cliLoadedModels: any[] = [];
   if (lmsCli && !process.env.BIONIC_HOST) {
     try {
-      const lsRes = Bun.spawnSync([lmsCli, "ls", "--json"], { stdout: "pipe", stderr: "ignore" });
+      const lsRes = Bun.spawnSync([lmsCli, "ls", "--json"], {
+        stdout: "pipe",
+        stderr: "ignore",
+      });
       if (lsRes.exitCode === 0) {
         const parsed = JSON.parse(lsRes.stdout.toString("utf8").trim() || "[]");
         if (Array.isArray(parsed)) cliDiskModels = parsed;
       }
     } catch {}
     try {
-      const psRes = Bun.spawnSync([lmsCli, "ps", "--json"], { stdout: "pipe", stderr: "ignore" });
+      const psRes = Bun.spawnSync([lmsCli, "ps", "--json"], {
+        stdout: "pipe",
+        stderr: "ignore",
+      });
       if (psRes.exitCode === 0) {
         const parsed = JSON.parse(psRes.stdout.toString("utf8").trim() || "[]");
         if (Array.isArray(parsed)) cliLoadedModels = parsed;
@@ -714,7 +829,9 @@ export async function listBionicModelsAndHardwareStatus(ctx: FmContext): Promise
   const buildModelInfo = (raw: any, fromApi?: any): BionicModelInfo => {
     const id = String(raw.modelKey || raw.id || fromApi?.id || "").trim();
     const displayName = String(raw.displayName || fromApi?.id || id);
-    const format = String(raw.format || fromApi?.compatibility_type || "safetensors").toLowerCase();
+    const format = String(
+      raw.format || fromApi?.compatibility_type || "safetensors",
+    ).toLowerCase();
     const quant =
       typeof raw.quantization === "object" && raw.quantization?.name
         ? String(raw.quantization.name)
@@ -722,29 +839,57 @@ export async function listBionicModelsAndHardwareStatus(ctx: FmContext): Promise
     const arch = String(raw.architecture || fromApi?.arch || "transformer");
     const publisher = String(raw.publisher || fromApi?.publisher || "local");
     const sizeBytes = Number(raw.sizeBytes || 0);
-    const sizeGb = sizeBytes > 0 ? Math.round((sizeBytes / 1024 ** 3) * 100) / 100 : 0.08;
-    const paramsString = String(raw.paramsString || (id.includes("30b") ? "30B" : id.includes("20b") ? "20B" : id.includes("9b") ? "9B" : id.includes("40m") ? "40M" : "1B"));
+    const sizeGb =
+      sizeBytes > 0 ? Math.round((sizeBytes / 1024 ** 3) * 100) / 100 : 0.08;
+    const paramsString = String(
+      raw.paramsString ||
+        (id.includes("30b")
+          ? "30B"
+          : id.includes("20b")
+            ? "20B"
+            : id.includes("9b")
+              ? "9B"
+              : id.includes("40m")
+                ? "40M"
+                : "1B"),
+    );
     const psEntry = loadedMap.get(id);
     const isLoaded = Boolean(psEntry || fromApi?.state === "loaded");
-    const maxCtx = Number(raw.maxContextLength || fromApi?.max_context_length || fromApi?.loaded_context_length || 32768);
-    const loadedCtx = Number(psEntry?.contextLength || fromApi?.loaded_context_length || 0) || null;
+    const maxCtx = Number(
+      raw.maxContextLength ||
+        fromApi?.max_context_length ||
+        fromApi?.loaded_context_length ||
+        32768,
+    );
+    const loadedCtx =
+      Number(psEntry?.contextLength || fromApi?.loaded_context_length || 0) ||
+      null;
     const vision = Boolean(raw.vision || fromApi?.type === "vlm");
     const trainedForToolUse = Boolean(
-      raw.trainedForToolUse || (Array.isArray(fromApi?.capabilities) && fromApi.capabilities.includes("tool_use")),
+      raw.trainedForToolUse ||
+      (Array.isArray(fromApi?.capabilities) &&
+        fromApi.capabilities.includes("tool_use")),
     );
-    const isEmbedding = raw.type === "embedding" || fromApi?.type === "embeddings" || id.includes("embed");
+    const isEmbedding =
+      raw.type === "embedding" ||
+      fromApi?.type === "embeddings" ||
+      id.includes("embed");
     const isTts = id.includes("phonon") || id.includes("tts");
     const isMlx =
       format === "mlx" ||
       format === "safetensors" ||
       publisher.toLowerCase().includes("mlx") ||
-      String(raw.path || "").toLowerCase().includes("mlx") ||
+      String(raw.path || "")
+        .toLowerCase()
+        .includes("mlx") ||
       quant.toLowerCase().includes("mxfp");
 
     const thinkingCapabilities = getModelThinkingCapabilities({
       name: id,
       family: arch,
-      capabilities: Array.isArray(fromApi?.capabilities) ? fromApi.capabilities : [],
+      capabilities: Array.isArray(fromApi?.capabilities)
+        ? fromApi.capabilities
+        : [],
     });
     const reasoningCapable =
       thinkingCapabilities.supportsThinking ||
@@ -828,14 +973,23 @@ export async function listBionicModelsAndHardwareStatus(ctx: FmContext): Promise
 
   for (const [apiId, apiItem] of apiModelsById.entries()) {
     if (!modelsMap.has(apiId)) {
-      modelsMap.set(apiId, buildModelInfo({ id: apiId, modelKey: apiId }, apiItem));
+      modelsMap.set(
+        apiId,
+        buildModelInfo({ id: apiId, modelKey: apiId }, apiItem),
+      );
     }
   }
 
   // Ensure phonon-40m-multilingual is listed if installed in extensions/models
   if (!modelsMap.has("phonon-40m-multilingual")) {
     const phononBundle = joinPath(
-      [lmHome, "extensions", "models", "phonon-40m-multilingual-mac-arm64-apple-metal-0.1.1", "tts-bundle.json"],
+      [
+        lmHome,
+        "extensions",
+        "models",
+        "phonon-40m-multilingual-mac-arm64-apple-metal-0.1.1",
+        "tts-bundle.json",
+      ],
       ctx.platform,
     );
     if (await fileExistsPure(phononBundle)) {
@@ -866,16 +1020,28 @@ export async function listBionicModelsAndHardwareStatus(ctx: FmContext): Promise
   const cloudModels: BionicModelInfo[] = [];
   const rawCloudSpecs = new Map<
     string,
-    { modelIdentifier: string; label?: string; maxContextLength?: number; vision?: boolean }
+    {
+      modelIdentifier: string;
+      label?: string;
+      maxContextLength?: number;
+      vision?: boolean;
+    }
   >();
 
-  const osHome = process.env.HOME || process.env.USERPROFILE || "/Users/codecaine";
+  const osHome =
+    process.env.HOME || process.env.USERPROFILE || "/Users/codecaine";
   const osLmHome = joinPath([osHome, ".lmstudio"], ctx.platform);
   const candidateLmHomes = [...new Set([lmHome, osLmHome].filter(Boolean))];
 
   for (const baseLmHome of candidateLmHomes) {
-    const cloudJsonPath = joinPath([baseLmHome, "apps", "bionic", ".internal", "ng-cloud-models.json"], ctx.platform);
-    const cloudAccountPath = joinPath([baseLmHome, "apps", "bionic", ".internal", "cloud-account.json"], ctx.platform);
+    const cloudJsonPath = joinPath(
+      [baseLmHome, "apps", "bionic", ".internal", "ng-cloud-models.json"],
+      ctx.platform,
+    );
+    const cloudAccountPath = joinPath(
+      [baseLmHome, "apps", "bionic", ".internal", "cloud-account.json"],
+      ctx.platform,
+    );
     for (const candidatePath of [cloudJsonPath, cloudAccountPath]) {
       let rawText = "";
       try {
@@ -896,7 +1062,11 @@ export async function listBionicModelsAndHardwareStatus(ctx: FmContext): Promise
             ? parsed.payload.models
             : [];
         for (const cm of list) {
-          if (cm && typeof cm.modelIdentifier === "string" && cm.modelIdentifier.trim()) {
+          if (
+            cm &&
+            typeof cm.modelIdentifier === "string" &&
+            cm.modelIdentifier.trim()
+          ) {
             const id = cm.modelIdentifier.trim();
             if (!rawCloudSpecs.has(id)) {
               rawCloudSpecs.set(id, cm);
@@ -920,7 +1090,10 @@ export async function listBionicModelsAndHardwareStatus(ctx: FmContext): Promise
     const badges = ["Bionic Cloud", "Zero Local RAM", "Chat", "Reasoning"];
     if (vision) badges.push("Vision VLM");
     badges.push("Tools");
-    const verdict = evaluateModelHardwareGuard({ name: `${id}:cloud`, runner: "cloud" }, hardware);
+    const verdict = evaluateModelHardwareGuard(
+      { name: `${id}:cloud`, runner: "cloud" },
+      hardware,
+    );
     cloudModels.push({
       id,
       modelKey: id,
@@ -950,7 +1123,13 @@ export async function listBionicModelsAndHardwareStatus(ctx: FmContext): Promise
       }),
       featureProfile: getModelFeatureProfile({
         name: id,
-        capabilities: ["completion", "tools", "thinking", "cloud", ...(vision ? ["vision"] : [])],
+        capabilities: [
+          "completion",
+          "tools",
+          "thinking",
+          "cloud",
+          ...(vision ? ["vision"] : []),
+        ],
         isMlx: false,
         isCloud: true,
       }),
@@ -985,11 +1164,17 @@ export async function loadBionicModel(
 ): Promise<any> {
   const modelKey = String(payload.model || "").trim();
   if (!modelKey) {
-    throw new FmError("INVALID_INPUT", "Model identifier is required to load into Metal RAM.");
+    throw new FmError(
+      "INVALID_INPUT",
+      "Model identifier is required to load into Metal RAM.",
+    );
   }
 
-  const { hardware, models, cloudModels } = await listBionicModelsAndHardwareStatus(ctx);
-  const existingCloud = cloudModels.find((m) => m.id === modelKey || m.modelKey === modelKey);
+  const { hardware, models, cloudModels } =
+    await listBionicModelsAndHardwareStatus(ctx);
+  const existingCloud = cloudModels.find(
+    (m) => m.id === modelKey || m.modelKey === modelKey,
+  );
   if (existingCloud) {
     return {
       ok: true,
@@ -997,7 +1182,8 @@ export async function loadBionicModel(
       status: "cloud_ready",
       output: `${existingCloud.displayName} (${modelKey}) is a Bionic Cloud model (0 GB local Metal RAM required).`,
       appliedLoadConfig: {
-        contextLength: payload.contextLength ?? existingCloud.maxContextLength ?? 256000,
+        contextLength:
+          payload.contextLength ?? existingCloud.maxContextLength ?? 256000,
         ttlSeconds: payload.ttlSeconds ?? 0,
         gpuOffload: "max",
         flashAttention: true,
@@ -1006,7 +1192,9 @@ export async function loadBionicModel(
       hardwareVerdict: existingCloud.hardwareVerdict,
     };
   }
-  const existing = models.find((m) => m.id === modelKey || m.modelKey === modelKey);
+  const existing = models.find(
+    (m) => m.id === modelKey || m.modelKey === modelKey,
+  );
   const verdict = existing
     ? existing.hardwareVerdict
     : evaluateModelHardwareGuard({ name: modelKey }, hardware);
@@ -1034,8 +1222,16 @@ export async function loadBionicModel(
   }
 
   const effectiveCtxLength =
-    typeof payload.contextLength === "number" && payload.contextLength >= 512 ? payload.contextLength : 32768;
-  const args = ["load", modelKey, "-y", "--context-length", String(effectiveCtxLength)];
+    typeof payload.contextLength === "number" && payload.contextLength >= 512
+      ? payload.contextLength
+      : 32768;
+  const args = [
+    "load",
+    modelKey,
+    "-y",
+    "--context-length",
+    String(effectiveCtxLength),
+  ];
   if (typeof payload.ttlSeconds === "number" && payload.ttlSeconds > 0) {
     args.push("--ttl", String(payload.ttlSeconds));
   }
@@ -1043,11 +1239,17 @@ export async function loadBionicModel(
     args.push("--gpu", String(payload.gpuOffload));
   }
 
-  const res = Bun.spawnSync([lmsCli, ...args], { stdout: "pipe", stderr: "pipe" });
+  const res = Bun.spawnSync([lmsCli, ...args], {
+    stdout: "pipe",
+    stderr: "pipe",
+  });
   const out = res.stdout.toString("utf8").trim();
   const err = res.stderr.toString("utf8").trim();
   if (res.exitCode !== 0 && !out.toLowerCase().includes("already loaded")) {
-    throw new FmError("BIONIC_LOAD_FAILED", err || out || `Failed to load model ${modelKey}`);
+    throw new FmError(
+      "BIONIC_LOAD_FAILED",
+      err || out || `Failed to load model ${modelKey}`,
+    );
   }
 
   bionicSessionLoadedModels.add(modelKey);
@@ -1082,18 +1284,24 @@ export async function unloadBionicModel(
     return {
       ok: true,
       unloaded: list,
-      message: unloadAll ? "Unloaded all Bionic models from RAM." : `Unloaded ${target} from RAM.`,
+      message: unloadAll
+        ? "Unloaded all Bionic models from RAM."
+        : `Unloaded ${target} from RAM.`,
     };
   }
 
   if (unloadAll) {
-    Bun.spawnSync([lmsCli, "unload", "--all"], { stdout: "pipe", stderr: "pipe" });
+    Bun.spawnSync([lmsCli, "unload", "--all"], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
     const prev = [...bionicSessionLoadedModels];
     bionicSessionLoadedModels.clear();
     return {
       ok: true,
       unloaded: prev,
-      message: "Unloaded all models from LM Studio Bionic Metal RAM (`lms unload --all`).",
+      message:
+        "Unloaded all models from LM Studio Bionic Metal RAM (`lms unload --all`).",
     };
   }
 
@@ -1110,15 +1318,27 @@ export async function unloadBionicModel(
 export async function downloadBionicModel(
   ctx: FmContext,
   payload: { model: string },
-): Promise<{ ok: boolean; model: string; status: string; verdict: HardwareGuardVerdict }> {
+): Promise<{
+  ok: boolean;
+  model: string;
+  status: string;
+  verdict: HardwareGuardVerdict;
+}> {
   const modelSpec = String(payload.model || "").trim();
   if (!modelSpec) {
-    throw new FmError("INVALID_INPUT", "Specify a model name or HuggingFace / LM Studio Hub identifier (e.g. qwen/qwen3.5-9b).");
+    throw new FmError(
+      "INVALID_INPUT",
+      "Specify a model name or HuggingFace / LM Studio Hub identifier (e.g. qwen/qwen3.5-9b).",
+    );
   }
   const hw = inspectOllamaHardware(ctx);
-  const verdict = evaluateModelHardwareGuard({ name: modelSpec, runner: "mlx" }, hw, {
-    allowNonMlxStandardOnMac: true,
-  });
+  const verdict = evaluateModelHardwareGuard(
+    { name: modelSpec, runner: "mlx" },
+    hw,
+    {
+      allowNonMlxStandardOnMac: true,
+    },
+  );
   if (!verdict.allowed) {
     return {
       ok: false,
@@ -1165,7 +1385,8 @@ export const BIONIC_DEFAULT_VOICES: BionicVoiceSpec[] = [
     locale: "en-us",
     gender: "female",
     age: "Adult",
-    description: "Playful, upbeat, expressive studio narrator (Default Codecaine & Bionic voice)",
+    description:
+      "Playful, upbeat, expressive studio narrator (Default Codecaine & Bionic voice)",
     bundled: true,
   },
   {
@@ -1263,7 +1484,11 @@ export function getBionicTtsConfigAndVoices(ctx?: FmContext): {
   const backendsDir = joinPath([lmHome, "extensions", "backends"], platform);
   const modelsDir = joinPath([lmHome, "extensions", "models"], platform);
   let enginePath = joinPath(
-    [backendsDir, "xn-ptts-mac-arm64-apple-metal-advsimd-0.1.5", "tts_engine.node"],
+    [
+      backendsDir,
+      "xn-ptts-mac-arm64-apple-metal-advsimd-0.1.5",
+      "tts_engine.node",
+    ],
     platform,
   );
   let bundleDir = joinPath(
@@ -1279,7 +1504,9 @@ export function getBionicTtsConfigAndVoices(ctx?: FmContext): {
         enginePath = joinPath([foundBackend.path, "tts_engine.node"], platform);
       }
     }
-    if (!(Bun.file(joinPath([bundleDir, "tts-bundle.json"], platform)).size > 0)) {
+    if (
+      !(Bun.file(joinPath([bundleDir, "tts-bundle.json"], platform)).size > 0)
+    ) {
       const foundModel = listDirectoryEntriesPure(modelsDir, platform).find(
         (e) => e.isDir && e.name.startsWith("phonon-40m-multilingual"),
       );
@@ -1289,11 +1516,15 @@ export function getBionicTtsConfigAndVoices(ctx?: FmContext): {
     }
   } catch {}
   const bundlePath = joinPath([bundleDir, "tts-bundle.json"], platform);
-  const ttsSelectionPath = joinPath([lmHome, ".internal", "tts-model-selection.json"], platform);
+  const ttsSelectionPath = joinPath(
+    [lmHome, ".internal", "tts-model-selection.json"],
+    platform,
+  );
 
   let engineInstalled = false;
   try {
-    engineInstalled = Bun.file(enginePath).size > 0 && Bun.file(bundlePath).size > 0;
+    engineInstalled =
+      Bun.file(enginePath).size > 0 && Bun.file(bundlePath).size > 0;
   } catch {}
 
   let selection = {
@@ -1311,7 +1542,10 @@ export function getBionicTtsConfigAndVoices(ctx?: FmContext): {
     try {
       const parsed = JSON.parse(rawSelection);
       const voiceId = String(parsed.voice || selection.voice);
-      const matched = BIONIC_DEFAULT_VOICES.find((v) => v.id === voiceId || v.name.toLowerCase() === voiceId.toLowerCase());
+      const matched = BIONIC_DEFAULT_VOICES.find(
+        (v) =>
+          v.id === voiceId || v.name.toLowerCase() === voiceId.toLowerCase(),
+      );
       selection = {
         enabled: parsed.enabled !== false,
         voice: matched ? matched.id : voiceId,
@@ -1338,20 +1572,43 @@ export function getBionicTtsConfigAndVoices(ctx?: FmContext): {
 /** Updates and persists Bionic TTS voice, language, speed, and thread settings. */
 export async function updateBionicTtsConfig(
   ctx: FmContext,
-  payload: { voice?: string; language?: string; playbackSpeed?: number; cpuThreads?: number; enabled?: boolean },
+  payload: {
+    voice?: string;
+    language?: string;
+    playbackSpeed?: number;
+    cpuThreads?: number;
+    enabled?: boolean;
+  },
 ): Promise<ReturnType<typeof getBionicTtsConfigAndVoices>> {
   const current = getBionicTtsConfigAndVoices(ctx);
-  const requestedVoice = String(payload.voice || current.selection.voice).trim();
+  const requestedVoice = String(
+    payload.voice || current.selection.voice,
+  ).trim();
   const matchedVoice = BIONIC_DEFAULT_VOICES.find(
-    (v) => v.id === requestedVoice || v.name.toLowerCase() === requestedVoice.toLowerCase(),
+    (v) =>
+      v.id === requestedVoice ||
+      v.name.toLowerCase() === requestedVoice.toLowerCase(),
   );
   const nextVoiceId = matchedVoice ? matchedVoice.id : requestedVoice;
-  const nextLang = String(payload.language || current.selection.language || "en").trim();
-  const nextSpeed = Number(payload.playbackSpeed || current.selection.playbackSpeed || 1);
-  const nextThreads = Math.max(1, Math.min(16, Number(payload.cpuThreads || current.selection.cpuThreads || 4)));
+  const nextLang = String(
+    payload.language || current.selection.language || "en",
+  ).trim();
+  const nextSpeed = Number(
+    payload.playbackSpeed || current.selection.playbackSpeed || 1,
+  );
+  const nextThreads = Math.max(
+    1,
+    Math.min(
+      16,
+      Number(payload.cpuThreads || current.selection.cpuThreads || 4),
+    ),
+  );
 
   const updatedJson = {
-    enabled: payload.enabled !== undefined ? Boolean(payload.enabled) : current.selection.enabled,
+    enabled:
+      payload.enabled !== undefined
+        ? Boolean(payload.enabled)
+        : current.selection.enabled,
     model: {
       name: "phonon-40m-multilingual-mac-arm64-apple-metal",
       version: "0.1.1",
@@ -1364,8 +1621,14 @@ export async function updateBionicTtsConfig(
   };
 
   try {
-    ensureDirectoryPure(dirnamePath(current.ttsSelectionPath, ctx.platform), ctx.platform);
-    await Bun.write(current.ttsSelectionPath, JSON.stringify(updatedJson, null, 2));
+    ensureDirectoryPure(
+      dirnamePath(current.ttsSelectionPath, ctx.platform),
+      ctx.platform,
+    );
+    await Bun.write(
+      current.ttsSelectionPath,
+      JSON.stringify(updatedJson, null, 2),
+    );
   } catch {}
 
   return getBionicTtsConfigAndVoices(ctx);
@@ -1374,7 +1637,10 @@ export async function updateBionicTtsConfig(
 /**
  * Encodes Float32Array mono PCM samples [-1.0, 1.0] into a standard 16-bit PCM RIFF WAV Uint8Array.
  */
-export function encodeFloat32SamplesToWav(samples: Float32Array, sampleRate = 24000): Uint8Array {
+export function encodeFloat32SamplesToWav(
+  samples: Float32Array,
+  sampleRate = 24000,
+): Uint8Array {
   const numSamples = samples.length;
   const dataBytes = numSamples * 2;
   const buffer = new ArrayBuffer(44 + dataBytes);
@@ -1448,7 +1714,8 @@ export async function runBionicSpeech(
   let sourceStem = "bionic-speech";
   const targetFilePath = payload.path || payload.filePath;
   const targetSaveFilename = payload.filename || payload.saveFilename;
-  const effectiveMode = payload.mode || (targetSaveFilename ? "file" : "speaker");
+  const effectiveMode =
+    payload.mode || (targetSaveFilename ? "file" : "speaker");
 
   if (!rawText && targetFilePath) {
     if (isSupportedVisionImagePath(targetFilePath)) {
@@ -1463,24 +1730,40 @@ export async function runBionicSpeech(
   }
 
   if (!rawText) {
-    throw new FmError("INVALID_INPUT", "Provide text or select a file to synthesize with Bionic Phonon 40M Multilingual TTS.");
+    throw new FmError(
+      "INVALID_INPUT",
+      "Provide text or select a file to synthesize with Bionic Phonon 40M Multilingual TTS.",
+    );
   }
 
   const cleanedText = cleanTextForPhononSpeech(rawText);
   const chunks = splitSpeechTextIntoChunks(cleanedText, 420);
   const ttsCfg = getBionicTtsConfigAndVoices(ctx);
-  const requestedVoice = String(payload.voice || ttsCfg.selection.voiceName || "Zoey").trim();
+  const requestedVoice = String(
+    payload.voice || ttsCfg.selection.voiceName || "Zoey",
+  ).trim();
   const matchedVoice =
     BIONIC_DEFAULT_VOICES.find(
-      (v) => v.id === requestedVoice || v.name.toLowerCase() === requestedVoice.toLowerCase(),
+      (v) =>
+        v.id === requestedVoice ||
+        v.name.toLowerCase() === requestedVoice.toLowerCase(),
     ) || BIONIC_DEFAULT_VOICES[0]!;
-  const language = String(payload.language || matchedVoice.language || ttsCfg.selection.language || "en").trim();
+  const language = String(
+    payload.language ||
+      matchedVoice.language ||
+      ttsCfg.selection.language ||
+      "en",
+  ).trim();
 
   if (ttsCfg.engineInstalled && !process.env.BIONIC_FORCE_FALLBACK_TTS) {
     try {
       const ttsAddon = require(ttsCfg.enginePath);
       const engine = new ttsAddon.TtsEngine();
-      const loadInfo = await engine.load(ttsCfg.bundlePath, "metal", ttsCfg.selection.cpuThreads || 4);
+      const loadInfo = await engine.load(
+        ttsCfg.bundlePath,
+        "metal",
+        ttsCfg.selection.cpuThreads || 4,
+      );
       const sampleRate = Number(loadInfo?.sampleRate || 24000);
       const allSampleArrays: Float32Array[] = [];
       let totalSamples = 0;
@@ -1494,7 +1777,8 @@ export async function runBionicSpeech(
             seed: 42,
           });
           while (true) {
-            const audioChunk: Float32Array | null = await engine.readNextAudio();
+            const audioChunk: Float32Array | null =
+              await engine.readNextAudio();
             if (!audioChunk || audioChunk.length === 0) break;
             allSampleArrays.push(audioChunk);
             totalSamples += audioChunk.length;
@@ -1516,7 +1800,10 @@ export async function runBionicSpeech(
 
       const wavBytes = encodeFloat32SamplesToWav(merged, sampleRate);
       const audioId = `bionic_tts_${Date.now()}_${sha256Hex(cleanedText).slice(0, 10)}`;
-      const tempWavPath = joinPath([tempDirPath(ctx.platform), `${audioId}.wav`], ctx.platform);
+      const tempWavPath = joinPath(
+        [tempDirPath(ctx.platform), `${audioId}.wav`],
+        ctx.platform,
+      );
       await Bun.write(tempWavPath, wavBytes);
 
       bionicAudioCache.set(audioId, {
@@ -1529,7 +1816,10 @@ export async function runBionicSpeech(
       let savedRelativePath: string | null = null;
       if (effectiveMode === "file") {
         const targetDirAbs = resolveSandboxPath(ctx, payload.saveDir || ".");
-        const cleanName = String(targetSaveFilename || `${sourceStem}-${matchedVoice.name.toLowerCase()}.wav`)
+        const cleanName = String(
+          targetSaveFilename ||
+            `${sourceStem}-${matchedVoice.name.toLowerCase()}.wav`,
+        )
           .replace(/[^a-zA-Z0-9._-]/g, "-")
           .replace(/(\.wav)?$/i, ".wav");
         savedFilePath = joinPath([targetDirAbs, cleanName], ctx.platform);
@@ -1538,7 +1828,10 @@ export async function runBionicSpeech(
         savedRelativePath = toSandboxRelative(ctx, savedFilePath);
       }
 
-      const durationSecondsEstimate = Math.max(0.5, Math.round((totalSamples / sampleRate) * 10) / 10);
+      const durationSecondsEstimate = Math.max(
+        0.5,
+        Math.round((totalSamples / sampleRate) * 10) / 10,
+      );
       return {
         ok: true,
         engine: "xn-ptts-mac-arm64-apple-metal-advsimd-0.1.5",
@@ -1563,7 +1856,10 @@ export async function runBionicSpeech(
   // Standalone Bionic fallback (zero dependency on Ollama): uses macOS /usr/bin/say (24kHz LEI16 WAV) or pure Bun 24kHz WAV synthesis
   const sampleRate = 24000;
   const audioId = `bionic_tts_${Date.now()}_${sha256Hex(cleanedText).slice(0, 10)}`;
-  const tempWavPath = joinPath([tempDirPath(ctx.platform), `${audioId}.wav`], ctx.platform);
+  const tempWavPath = joinPath(
+    [tempDirPath(ctx.platform), `${audioId}.wav`],
+    ctx.platform,
+  );
   let wavBytes: Uint8Array | null = null;
   let engineLabel = "bionic-metal-tts-fallback";
 
@@ -1575,7 +1871,14 @@ export async function runBionicSpeech(
     const sayBin = Bun.which("say") || "/usr/bin/say";
     try {
       const sayProc = Bun.spawnSync(
-        [sayBin, "-o", tempWavPath, "--data-format=LEI16@24000", "--", cleanedText.slice(0, 8000)],
+        [
+          sayBin,
+          "-o",
+          tempWavPath,
+          "--data-format=LEI16@24000",
+          "--",
+          cleanedText.slice(0, 8000),
+        ],
         { stdout: "ignore", stderr: "ignore" },
       );
       if (sayProc.exitCode === 0 && (await fileExistsPure(tempWavPath))) {
@@ -1594,7 +1897,12 @@ export async function runBionicSpeech(
     for (let i = 0; i < totalSamples; i++) {
       const t = i / sampleRate;
       const env = 0.55 + 0.45 * Math.sin(2 * Math.PI * 3.8 * t);
-      const fade = i < 480 ? i / 480 : i > totalSamples - 480 ? Math.max(0, (totalSamples - i) / 480) : 1.0;
+      const fade =
+        i < 480
+          ? i / 480
+          : i > totalSamples - 480
+            ? Math.max(0, (totalSamples - i) / 480)
+            : 1.0;
       const wave =
         Math.sin(2 * Math.PI * baseFreq * t) +
         0.4 * Math.sin(2 * Math.PI * (baseFreq * 2.02) * t) +
@@ -1615,7 +1923,10 @@ export async function runBionicSpeech(
   let savedRelativePath: string | null = null;
   if (effectiveMode === "file") {
     const targetDirAbs = resolveSandboxPath(ctx, payload.saveDir || ".");
-    const cleanName = String(targetSaveFilename || `${sourceStem}-${matchedVoice.name.toLowerCase()}.wav`)
+    const cleanName = String(
+      targetSaveFilename ||
+        `${sourceStem}-${matchedVoice.name.toLowerCase()}.wav`,
+    )
       .replace(/[^a-zA-Z0-9._-]/g, "-")
       .replace(/(\.wav)?$/i, ".wav");
     savedFilePath = joinPath([targetDirAbs, cleanName], ctx.platform);
@@ -1625,7 +1936,10 @@ export async function runBionicSpeech(
   }
 
   const pcmBytes = Math.max(0, wavBytes.byteLength - 44);
-  const durationSecondsEstimate = Math.max(0.5, Math.round((pcmBytes / (sampleRate * 2)) * 10) / 10);
+  const durationSecondsEstimate = Math.max(
+    0.5,
+    Math.round((pcmBytes / (sampleRate * 2)) * 10) / 10,
+  );
 
   return {
     ok: true,
@@ -1650,7 +1964,10 @@ export async function runBionicSpeech(
 // ---------------------------------------------------------------------------------------------------------------
 
 /** Parses YAML frontmatter from a `SKILL.md` file to extract skill name, display name, description, and invocation flags. */
-export function parseSkillFrontmatter(markdown: string, fallbackName: string): {
+export function parseSkillFrontmatter(
+  markdown: string,
+  fallbackName: string,
+): {
   name: string;
   displayName: string;
   description: string;
@@ -1672,17 +1989,28 @@ export function parseSkillFrontmatter(markdown: string, fallbackName: string): {
       const key = m[1]!.toLowerCase();
       const val = m[2]!.trim().replace(/^["']|["']$/g, "");
       if (key === "name") name = val;
-      else if (key === "display-name" || key === "display_name") displayName = val;
+      else if (key === "display-name" || key === "display_name")
+        displayName = val;
       else if (key === "description") description = val;
       else if (key === "user-invocable") userInvocable = val !== "false";
-      else if (key === "disable-model-invocation") disableModelInvocation = val === "true";
+      else if (key === "disable-model-invocation")
+        disableModelInvocation = val === "true";
     }
   }
-  return { name, displayName, description, userInvocable, disableModelInvocation };
+  return {
+    name,
+    displayName,
+    description,
+    userInvocable,
+    disableModelInvocation,
+  };
 }
 
 /** Discovers and lists built-in, global, project-local, and external-harness Bionic agent skills. */
-export function listBionicSkills(ctx: FmContext, dirPath?: string): {
+export function listBionicSkills(
+  ctx: FmContext,
+  dirPath?: string,
+): {
   skills: BionicSkillSpec[];
   counts: {
     builtin: number;
@@ -1695,7 +2023,11 @@ export function listBionicSkills(ctx: FmContext, dirPath?: string): {
   const platform = ctx.platform;
   const skills: BionicSkillSpec[] = [];
 
-  const scanSkillsDir = (rootDir: string, scope: BionicSkillSpec["scope"], maxItems = 40) => {
+  const scanSkillsDir = (
+    rootDir: string,
+    scope: BionicSkillSpec["scope"],
+    maxItems = 40,
+  ) => {
     const entries = listDirectoryEntriesPure(rootDir, platform);
     let count = 0;
     for (const entry of entries) {
@@ -1722,22 +2054,34 @@ export function listBionicSkills(ctx: FmContext, dirPath?: string): {
   };
 
   // 1. Bionic Built-in Skills (~/.lmstudio/apps/bionic/.internal/skills)
-  scanSkillsDir(joinPath([lmHome, "apps", "bionic", ".internal", "skills"], platform), "bionic-builtin");
+  scanSkillsDir(
+    joinPath([lmHome, "apps", "bionic", ".internal", "skills"], platform),
+    "bionic-builtin",
+  );
 
   // 2. LM Studio Global Skills (~/.lmstudio/skills & ~/.lmstudio/apps/bionic/hub/skills)
   scanSkillsDir(joinPath([lmHome, "skills"], platform), "lmstudio-global");
-  scanSkillsDir(joinPath([lmHome, "apps", "bionic", "hub", "skills"], platform), "lmstudio-global");
+  scanSkillsDir(
+    joinPath([lmHome, "apps", "bionic", "hub", "skills"], platform),
+    "lmstudio-global",
+  );
 
   // 3. Active Project Skills (<activeFolder>/.agents/skills)
   if (dirPath) {
     try {
       const folderAbs = resolveSandboxPath(ctx, dirPath);
-      scanSkillsDir(joinPath([folderAbs, ".agents", "skills"], platform), "project-local");
+      scanSkillsDir(
+        joinPath([folderAbs, ".agents", "skills"], platform),
+        "project-local",
+      );
     } catch {}
   }
 
   // 4. External Harness Skills configured in Bionic settings.json (e.g. ~/.gemini/config/skills)
-  const settingsPath = joinPath([lmHome, "apps", "bionic", ".internal", "settings.json"], platform);
+  const settingsPath = joinPath(
+    [lmHome, "apps", "bionic", ".internal", "settings.json"],
+    platform,
+  );
   const rawSettings = readTextFileSyncPure(settingsPath);
   if (rawSettings) {
     try {
@@ -1773,15 +2117,28 @@ export async function readBionicSkillDetail(
   content: string;
   companionFiles: string[];
 }> {
-  const query = String(payload.nameOrPath || "").trim().replace(/^@/, "");
-  if (!query) throw new FmError("INVALID_INPUT", "Specify a Bionic skill name to inspect.");
+  const query = String(payload.nameOrPath || "")
+    .trim()
+    .replace(/^@/, "");
+  if (!query)
+    throw new FmError(
+      "INVALID_INPUT",
+      "Specify a Bionic skill name to inspect.",
+    );
 
   const { skills } = listBionicSkills(ctx, payload.dirPath);
   const found = skills.find(
-    (s) => s.name === query || s.id === query || s.skillMdPath === query || s.folderPath === query,
+    (s) =>
+      s.name === query ||
+      s.id === query ||
+      s.skillMdPath === query ||
+      s.folderPath === query,
   );
   if (!found) {
-    throw new FmError("SKILL_NOT_FOUND", `Bionic skill "${query}" was not found.`);
+    throw new FmError(
+      "SKILL_NOT_FOUND",
+      `Bionic skill "${query}" was not found.`,
+    );
   }
 
   const content = readTextFileSyncPure(found.skillMdPath);
@@ -1822,9 +2179,14 @@ export async function createBionicSkill(
   }
 
   const displayName = String(payload.displayName || rawName).trim();
-  const description = String(payload.description || `Reusable Bionic skill for ${displayName}`).trim();
-  const instructions = String(payload.instructions || "Follow these steps when this skill is triggered.").trim();
-  const scope = payload.scope === "lmstudio-global" ? "lmstudio-global" : "project-local";
+  const description = String(
+    payload.description || `Reusable Bionic skill for ${displayName}`,
+  ).trim();
+  const instructions = String(
+    payload.instructions || "Follow these steps when this skill is triggered.",
+  ).trim();
+  const scope =
+    payload.scope === "lmstudio-global" ? "lmstudio-global" : "project-local";
 
   let skillFolder = "";
   if (scope === "lmstudio-global" && !ctx.sandboxRoot) {
@@ -1832,7 +2194,10 @@ export async function createBionicSkill(
     skillFolder = joinPath([lmHome, "skills", rawName], ctx.platform);
   } else {
     const baseFolder = resolveSandboxPath(ctx, payload.dirPath || ".");
-    skillFolder = joinPath([baseFolder, ".agents", "skills", rawName], ctx.platform);
+    skillFolder = joinPath(
+      [baseFolder, ".agents", "skills", rawName],
+      ctx.platform,
+    );
   }
 
   const skillMdPath = joinPath([skillFolder, "SKILL.md"], ctx.platform);
@@ -1873,10 +2238,15 @@ export async function createBionicSkill(
 }
 
 /** Reads the Bionic projects registry and returns metadata and file counts for each project. */
-export function listBionicProjects(ctx: FmContext): { projects: BionicProjectSpec[] } {
+export function listBionicProjects(ctx: FmContext): {
+  projects: BionicProjectSpec[];
+} {
   const lmHome = getLmStudioHomeDir(ctx);
   const platform = ctx.platform;
-  const registryPath = joinPath([lmHome, "apps", "bionic", ".internal", "projects-registry.json"], platform);
+  const registryPath = joinPath(
+    [lmHome, "apps", "bionic", ".internal", "projects-registry.json"],
+    platform,
+  );
   const raw = readTextFileSyncPure(registryPath);
   const projects: BionicProjectSpec[] = [];
 
@@ -1890,10 +2260,18 @@ export function listBionicProjects(ctx: FmContext): { projects: BionicProjectSpe
           const id = String(pair[0] || "");
           const info = pair[1] || {};
           const projectDir = String(info.path || "");
-          const workspaceDir = String(info.projectWorkingDirectoryPath || joinPath([projectDir, "workspace"], platform));
-          let name = id === "default-project-identifier" ? "Bionic Default Workspace" : id.slice(0, 8);
+          const workspaceDir = String(
+            info.projectWorkingDirectoryPath ||
+              joinPath([projectDir, "workspace"], platform),
+          );
+          let name =
+            id === "default-project-identifier"
+              ? "Bionic Default Workspace"
+              : id.slice(0, 8);
           let projectType = "regular";
-          const projJsonRaw = readTextFileSyncPure(joinPath([projectDir, "project.json"], platform));
+          const projJsonRaw = readTextFileSyncPure(
+            joinPath([projectDir, "project.json"], platform),
+          );
           if (projJsonRaw) {
             try {
               const pj = JSON.parse(projJsonRaw);
@@ -1933,7 +2311,13 @@ export function getBionicAsrStatus(ctx?: FmContext): {
   const lmHome = getLmStudioHomeDir(ctx);
   const platform = ctx?.platform || process.platform;
   const backendPath = joinPath(
-    [lmHome, "extensions", "backends", "executorch-asr-mac-arm64-apple-metal-advsimd-0.0.8", "whisper_engine_executorch_metal.node"],
+    [
+      lmHome,
+      "extensions",
+      "backends",
+      "executorch-asr-mac-arm64-apple-metal-advsimd-0.0.8",
+      "whisper_engine_executorch_metal.node",
+    ],
     platform,
   );
   const transcriptionsDir = joinPath([lmHome, "transcriptions"], platform);
@@ -1946,7 +2330,9 @@ export function getBionicAsrStatus(ctx?: FmContext): {
     installed,
     backendPath,
     transcriptionsDir,
-    recentTranscriptions: entries.filter((e) => !e.isDir).map((e) => ({ name: e.name, path: e.path })),
+    recentTranscriptions: entries
+      .filter((e) => !e.isDir)
+      .map((e) => ({ name: e.name, path: e.path })),
   };
 }
 
@@ -1970,11 +2356,17 @@ export async function transcribeWithBionicAsr(
   engine: string;
 }> {
   if (!payload.path) {
-    throw new FmError("INVALID_INPUT", "Select an audio, video, or subtitle/transcript file to transcribe.");
+    throw new FmError(
+      "INVALID_INPUT",
+      "Select an audio, video, or subtitle/transcript file to transcribe.",
+    );
   }
   const abs = resolveSandboxPath(ctx, payload.path);
   if (!(await fileExistsPure(abs))) {
-    throw new FmError("FILE_NOT_FOUND", `Audio/media file not found: ${payload.path}`);
+    throw new FmError(
+      "FILE_NOT_FOUND",
+      `Audio/media file not found: ${payload.path}`,
+    );
   }
 
   const ext = extnameLower(abs);
@@ -2004,7 +2396,16 @@ export async function transcribeWithBionicAsr(
     if (ffprobe) {
       try {
         const pr = Bun.spawnSync(
-          [ffprobe, "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", abs],
+          [
+            ffprobe,
+            "-v",
+            "quiet",
+            "-print_format",
+            "json",
+            "-show_format",
+            "-show_streams",
+            abs,
+          ],
           { stdout: "pipe", stderr: "ignore" },
         );
         if (pr.exitCode === 0) {
@@ -2051,8 +2452,18 @@ export async function transcribeWithBionicAsr(
 
   let savedRelativePath: string | null = null;
   if (payload.saveToFolder) {
-    const outExt = format === "json" ? "json" : format === "srt" ? "srt" : format === "txt" ? "txt" : "md";
-    const outAbs = joinPath([parentDir, `${stem}-bionic-transcript.${outExt}`], ctx.platform);
+    const outExt =
+      format === "json"
+        ? "json"
+        : format === "srt"
+          ? "srt"
+          : format === "txt"
+            ? "txt"
+            : "md";
+    const outAbs = joinPath(
+      [parentDir, `${stem}-bionic-transcript.${outExt}`],
+      ctx.platform,
+    );
     await assertCreatable(ctx, outAbs);
     await Bun.write(outAbs, finalOutput);
     savedRelativePath = toSandboxRelative(ctx, outAbs);
@@ -2097,11 +2508,18 @@ export async function runBionicEmbeddings(
 ): Promise<{ model: string; embeddings: number[][]; dimensions: number }> {
   const server = await ensureBionicServerRunning(ctx);
   if (!server.running) {
-    throw new FmError("BIONIC_SERVER_OFFLINE", "LM Studio Bionic HTTP Server is offline. Click 'Start Bionic Server' first.");
+    throw new FmError(
+      "BIONIC_SERVER_OFFLINE",
+      "LM Studio Bionic HTTP Server is offline. Click 'Start Bionic Server' first.",
+    );
   }
 
-  const model = String(payload.model || "text-embedding-nomic-embed-text-v1.5").trim();
-  const inputs = Array.isArray(payload.input) ? payload.input : [String(payload.input || "")];
+  const model = String(
+    payload.model || "text-embedding-nomic-embed-text-v1.5",
+  ).trim();
+  const inputs = Array.isArray(payload.input)
+    ? payload.input
+    : [String(payload.input || "")];
 
   const res = await fetch(`${server.baseUrl}/v1/embeddings`, {
     method: "POST",
@@ -2146,7 +2564,11 @@ function loadEmbeddingCacheIntoMemory(ctx: FmContext): void {
     const entries = parsed?.entries;
     if (entries && typeof entries === "object") {
       for (const [k, vec] of Object.entries(entries)) {
-        if (Array.isArray(vec) && vec.length > 0 && typeof vec[0] === "number") {
+        if (
+          Array.isArray(vec) &&
+          vec.length > 0 &&
+          typeof vec[0] === "number"
+        ) {
           bionicEmbeddingMemoryCache.set(k, vec as number[]);
         }
       }
@@ -2165,7 +2587,10 @@ async function persistEmbeddingCacheToDisk(ctx: FmContext): Promise<void> {
       const v = bionicEmbeddingMemoryCache.get(k);
       if (v) entries[k] = v;
     }
-    await Bun.write(cacheFile, JSON.stringify({ version: 1, updatedAt: Date.now(), entries }));
+    await Bun.write(
+      cacheFile,
+      JSON.stringify({ version: 1, updatedAt: Date.now(), entries }),
+    );
   } catch {}
 }
 
@@ -2190,19 +2615,69 @@ export async function runBionicSemanticSearch(
 }> {
   const query = String(payload.query || "").trim();
   if (!query) {
-    throw new FmError("INVALID_INPUT", "Enter a meaning search query to search files with Bionic Embeddings.");
+    throw new FmError(
+      "INVALID_INPUT",
+      "Enter a meaning search query to search files with Bionic Embeddings.",
+    );
   }
 
-  const model = String(payload.model || "text-embedding-nomic-embed-text-v1.5").trim();
+  const model = String(
+    payload.model || "text-embedding-nomic-embed-text-v1.5",
+  ).trim();
   const dirAbs = resolveSandboxPath(ctx, payload.dirPath || ".");
-  const entries = listDirectoryWithBun(dirAbs, { recursive: true, maxEntries: 30 });
+  const entries = listDirectoryWithBun(dirAbs, {
+    recursive: true,
+    maxEntries: 30,
+  });
   const textExts = new Set([
-    "ts", "tsx", "js", "jsx", "mjs", "cjs", "json", "md", "txt", "py", "rs", "go", "css", "html", "yml", "yaml", "toml", "sh", "sql", "log",
-    "epub", "ibooks", "rtfd", "textbundle", "scriv", "ulysses", "pages", "numbers", "key", "playground", "playgroundbook", "oo3", "mindnode", "graffle",
-    "pdf", "docx", "odt", "rtf", "fb2",
+    "ts",
+    "tsx",
+    "js",
+    "jsx",
+    "mjs",
+    "cjs",
+    "json",
+    "md",
+    "txt",
+    "py",
+    "rs",
+    "go",
+    "css",
+    "html",
+    "yml",
+    "yaml",
+    "toml",
+    "sh",
+    "sql",
+    "log",
+    "epub",
+    "ibooks",
+    "rtfd",
+    "textbundle",
+    "scriv",
+    "ulysses",
+    "pages",
+    "numbers",
+    "key",
+    "playground",
+    "playgroundbook",
+    "oo3",
+    "mindnode",
+    "graffle",
+    "pdf",
+    "docx",
+    "odt",
+    "rtf",
+    "fb2",
   ]);
 
-  const candidates: Array<{ name: string; absPath: string; relPath: string; snippet: string; cacheKey: string }> = [];
+  const candidates: Array<{
+    name: string;
+    absPath: string;
+    relPath: string;
+    snippet: string;
+    cacheKey: string;
+  }> = [];
   for (const item of entries) {
     const ext = extnameLower(item.absPath);
     if (!textExts.has(ext)) continue;
@@ -2306,7 +2781,10 @@ export async function runBionicSemanticSearch(
 // ---------------------------------------------------------------------------------------------------------------
 
 /** Built-in JSON Schema presets for structured output generation in Bionic chat. */
-export const BIONIC_SCHEMA_PRESETS: Record<string, { name: string; schema: Record<string, any> }> = {
+export const BIONIC_SCHEMA_PRESETS: Record<
+  string,
+  { name: string; schema: Record<string, any> }
+> = {
   batch_rename_plan: {
     name: "batch_rename_plan",
     schema: {
@@ -2372,7 +2850,10 @@ export const BIONIC_SCHEMA_PRESETS: Record<string, { name: string; schema: Recor
       type: "object",
       properties: {
         summary: { type: "string" },
-        overallRisk: { type: "string", enum: ["low", "medium", "high", "critical"] },
+        overallRisk: {
+          type: "string",
+          enum: ["low", "medium", "high", "critical"],
+        },
         findings: {
           type: "array",
           items: {
@@ -2380,7 +2861,10 @@ export const BIONIC_SCHEMA_PRESETS: Record<string, { name: string; schema: Recor
             properties: {
               file: { type: "string" },
               line: { type: "number" },
-              severity: { type: "string", enum: ["info", "warning", "error", "critical"] },
+              severity: {
+                type: "string",
+                enum: ["info", "warning", "error", "critical"],
+              },
               issue: { type: "string" },
               fixSuggestion: { type: "string" },
             },
@@ -2397,14 +2881,20 @@ export const BIONIC_SCHEMA_PRESETS: Record<string, { name: string; schema: Recor
       type: "object",
       properties: {
         summary: { type: "string" },
-        status: { type: "string", enum: ["safe", "attention_needed", "vulnerable"] },
+        status: {
+          type: "string",
+          enum: ["safe", "attention_needed", "vulnerable"],
+        },
         vulnerabilities: {
           type: "array",
           items: {
             type: "object",
             properties: {
               category: { type: "string" },
-              severity: { type: "string", enum: ["low", "medium", "high", "critical"] },
+              severity: {
+                type: "string",
+                enum: ["low", "medium", "high", "critical"],
+              },
               description: { type: "string" },
               remediation: { type: "string" },
             },
@@ -2426,8 +2916,10 @@ export async function selectBestBionicModel(
   requireVision = false,
   excludeModels?: ReadonlySet<string>,
 ): Promise<{ model: string; verdict: HardwareGuardVerdict }> {
-  const { hardware, models, loadedModels, cloudModels } = await listBionicModelsAndHardwareStatus(ctx);
-  const isExcluded = (id: string) => Boolean(bionicFailedToLoadModels.has(id) || excludeModels?.has(id));
+  const { hardware, models, loadedModels, cloudModels } =
+    await listBionicModelsAndHardwareStatus(ctx);
+  const isExcluded = (id: string) =>
+    Boolean(bionicFailedToLoadModels.has(id) || excludeModels?.has(id));
   const chatCapableModels = models.filter(
     (m) => (m.type === "llm" || m.type === "vlm") && !isExcluded(m.id),
   );
@@ -2453,12 +2945,20 @@ export async function selectBestBionicModel(
         clean.toLowerCase().includes("glm-5.3-flash") ||
         clean.toLowerCase().includes("kimi-k3") ||
         clean.toLowerCase().includes("muse-spark");
-      if (!requireVision || hasVisionSupport || !chatCapableModels.some((m) => m.vision && m.hardwareVerdict.allowed)) {
+      if (
+        !requireVision ||
+        hasVisionSupport ||
+        !chatCapableModels.some((m) => m.vision && m.hardwareVerdict.allowed)
+      ) {
         const verdict = found
           ? found.hardwareVerdict
-          : evaluateModelHardwareGuard({ name: clean, runner: "mlx" }, hardware, {
-              allowNonMlxStandardOnMac: true,
-            });
+          : evaluateModelHardwareGuard(
+              { name: clean, runner: "mlx" },
+              hardware,
+              {
+                allowNonMlxStandardOnMac: true,
+              },
+            );
         if (!verdict.allowed) {
           throw new FmError(verdict.code, verdict.reason);
         }
@@ -2472,22 +2972,44 @@ export async function selectBestBionicModel(
     (m) => (m.type === "llm" || m.type === "vlm") && !isExcluded(m.id),
   );
   if (requireVision) {
-    const loadedVlm = chatLoaded.find((m) => m.vision && m.hardwareVerdict.allowed);
-    if (loadedVlm) return { model: loadedVlm.id, verdict: loadedVlm.hardwareVerdict };
+    const loadedVlm = chatLoaded.find(
+      (m) => m.vision && m.hardwareVerdict.allowed,
+    );
+    if (loadedVlm)
+      return { model: loadedVlm.id, verdict: loadedVlm.hardwareVerdict };
     const preferredGlimmerVlm = chatCapableModels.find(
-      (m) => m.vision && m.hardwareVerdict.allowed && m.id.toLowerCase().includes("glimmer"),
+      (m) =>
+        m.vision &&
+        m.hardwareVerdict.allowed &&
+        m.id.toLowerCase().includes("glimmer"),
     );
-    if (preferredGlimmerVlm) return { model: preferredGlimmerVlm.id, verdict: preferredGlimmerVlm.hardwareVerdict };
+    if (preferredGlimmerVlm)
+      return {
+        model: preferredGlimmerVlm.id,
+        verdict: preferredGlimmerVlm.hardwareVerdict,
+      };
     const preferredQwenVlm = chatCapableModels.find(
-      (m) => m.vision && m.hardwareVerdict.allowed && m.id.toLowerCase().includes("qwen3.5"),
+      (m) =>
+        m.vision &&
+        m.hardwareVerdict.allowed &&
+        m.id.toLowerCase().includes("qwen3.5"),
     );
-    if (preferredQwenVlm) return { model: preferredQwenVlm.id, verdict: preferredQwenVlm.hardwareVerdict };
-    const anyVlm = chatCapableModels.find((m) => m.vision && m.hardwareVerdict.allowed);
+    if (preferredQwenVlm)
+      return {
+        model: preferredQwenVlm.id,
+        verdict: preferredQwenVlm.hardwareVerdict,
+      };
+    const anyVlm = chatCapableModels.find(
+      (m) => m.vision && m.hardwareVerdict.allowed,
+    );
     if (anyVlm) return { model: anyVlm.id, verdict: anyVlm.hardwareVerdict };
   }
 
   if (chatLoaded.length > 0 && chatLoaded[0]!.hardwareVerdict.allowed) {
-    return { model: chatLoaded[0]!.id, verdict: chatLoaded[0]!.hardwareVerdict };
+    return {
+      model: chatLoaded[0]!.id,
+      verdict: chatLoaded[0]!.hardwareVerdict,
+    };
   }
 
   const firstAllowed = chatCapableModels.find((m) => m.hardwareVerdict.allowed);
@@ -2498,7 +3020,10 @@ export async function selectBestBionicModel(
   const fallback = "openai/gpt-oss-20b";
   return {
     model: fallback,
-    verdict: evaluateModelHardwareGuard({ name: fallback, runner: "mlx" }, hardware),
+    verdict: evaluateModelHardwareGuard(
+      { name: fallback, runner: "mlx" },
+      hardware,
+    ),
   };
 }
 
@@ -2584,7 +3109,12 @@ export async function runBionicChat(
     inspectedFiles.push(rel);
     if (isSupportedVisionImagePath(abs)) {
       const b64 = await readImageAsBase64(abs);
-      const ext = extnameLower(abs) === "png" ? "png" : extnameLower(abs) === "webp" ? "webp" : "jpeg";
+      const ext =
+        extnameLower(abs) === "png"
+          ? "png"
+          : extnameLower(abs) === "webp"
+            ? "webp"
+            : "jpeg";
       imageDataUrls.push(`data:image/${ext};base64,${b64}`);
       fileSnippets.push(`[Attached Vision Image: ${name} (${rel})]`);
     } else {
@@ -2598,7 +3128,8 @@ export async function runBionicChat(
   const skillContexts: string[] = [];
   const { skills } = listBionicSkills(ctx, payload.dirPath);
   const requestedSkillNames = new Set<string>();
-  if (payload.skill) requestedSkillNames.add(payload.skill.replace(/^@/, "").trim());
+  if (payload.skill)
+    requestedSkillNames.add(payload.skill.replace(/^@/, "").trim());
   const mentionMatches = rawPrompt.matchAll(/(?:^|\s)@([a-z0-9-]{2,63})\b/gi);
   for (const m of mentionMatches) {
     if (m[1]) requestedSkillNames.add(m[1].toLowerCase());
@@ -2610,12 +3141,18 @@ export async function runBionicChat(
       const skillBody = readTextFileSyncPure(matched.skillMdPath);
       if (skillBody) {
         injectedSkills.push(matched.name);
-        skillContexts.push(`=== Bionic Skill (@${matched.name}) [Path: ${matched.folderPath}] ===\n${skillBody.slice(0, 6000)}`);
+        skillContexts.push(
+          `=== Bionic Skill (@${matched.name}) [Path: ${matched.folderPath}] ===\n${skillBody.slice(0, 6000)}`,
+        );
       }
     }
   }
 
-  let { model, verdict } = await selectBestBionicModel(ctx, payload.model, imageDataUrls.length > 0);
+  let { model, verdict } = await selectBestBionicModel(
+    ctx,
+    payload.model,
+    imageDataUrls.length > 0,
+  );
   bionicSessionLoadedModels.add(model);
 
   const isAutoPrompt =
@@ -2648,25 +3185,45 @@ export async function runBionicChat(
     systemParts.push(thinkResolution.systemReasoningDirective);
   }
   if (skillContexts.length > 0) {
-    systemParts.push("Active Bionic Agent Skills injected for this turn:\n\n" + skillContexts.join("\n\n"));
+    systemParts.push(
+      "Active Bionic Agent Skills injected for this turn:\n\n" +
+        skillContexts.join("\n\n"),
+    );
   }
 
-  const fullUserText = [rawPrompt, ...fileSnippets].filter(Boolean).join("\n\n");
+  const fullUserText = [rawPrompt, ...fileSnippets]
+    .filter(Boolean)
+    .join("\n\n");
   const userContent: any =
     imageDataUrls.length > 0
       ? [
           { type: "text", text: fullUserText },
-          ...imageDataUrls.map((url) => ({ type: "image_url", image_url: { url } })),
+          ...imageDataUrls.map((url) => ({
+            type: "image_url",
+            image_url: { url },
+          })),
         ]
       : fullUserText;
 
-  const temperature = typeof payload.temperature === "number" && Number.isFinite(payload.temperature) ? payload.temperature : 0.4;
+  const temperature =
+    typeof payload.temperature === "number" &&
+    Number.isFinite(payload.temperature)
+      ? payload.temperature
+      : 0.4;
   const requestedMaxTokens =
-    typeof payload.maxTokens === "number" && Number.isFinite(payload.maxTokens) ? Math.round(payload.maxTokens) : undefined;
+    typeof payload.maxTokens === "number" && Number.isFinite(payload.maxTokens)
+      ? Math.round(payload.maxTokens)
+      : undefined;
   const maxTokens =
-    imageDataUrls.length > 0 && (!requestedMaxTokens || requestedMaxTokens === 2048 || requestedMaxTokens === 16384)
+    imageDataUrls.length > 0 &&
+    (!requestedMaxTokens ||
+      requestedMaxTokens === 2048 ||
+      requestedMaxTokens === 16384)
       ? 380
-      : isAutoPrompt && (!requestedMaxTokens || requestedMaxTokens === 2048 || requestedMaxTokens === 16384)
+      : isAutoPrompt &&
+          (!requestedMaxTokens ||
+            requestedMaxTokens === 2048 ||
+            requestedMaxTokens === 16384)
         ? 380
         : requestedMaxTokens || 16384;
 
@@ -2683,13 +3240,25 @@ export async function runBionicChat(
   if (typeof payload.topP === "number" && Number.isFinite(payload.topP)) {
     requestBody.top_p = Math.max(0, Math.min(1, payload.topP));
   }
-  if (typeof payload.topK === "number" && Number.isFinite(payload.topK) && payload.topK > 0) {
+  if (
+    typeof payload.topK === "number" &&
+    Number.isFinite(payload.topK) &&
+    payload.topK > 0
+  ) {
     requestBody.top_k = Math.round(payload.topK);
   }
-  if (typeof payload.minP === "number" && Number.isFinite(payload.minP) && payload.minP >= 0) {
+  if (
+    typeof payload.minP === "number" &&
+    Number.isFinite(payload.minP) &&
+    payload.minP >= 0
+  ) {
     requestBody.min_p = Math.max(0, Math.min(1, payload.minP));
   }
-  if (typeof payload.repeatPenalty === "number" && Number.isFinite(payload.repeatPenalty) && payload.repeatPenalty > 0) {
+  if (
+    typeof payload.repeatPenalty === "number" &&
+    Number.isFinite(payload.repeatPenalty) &&
+    payload.repeatPenalty > 0
+  ) {
     requestBody.repeat_penalty = payload.repeatPenalty;
   }
   if (typeof payload.seed === "number" && Number.isFinite(payload.seed)) {
@@ -2735,12 +3304,17 @@ export async function runBionicChat(
     requestBody.reasoning_effort = effort;
     chatTemplateKwargs.reasoning_effort = effort;
     chatTemplateKwargs.enable_thinking = true;
-  } else if (thinkResolution.thinkingMode === "toggle" || thinkResolution.thinkingMode === "always_on") {
+  } else if (
+    thinkResolution.thinkingMode === "toggle" ||
+    thinkResolution.thinkingMode === "always_on"
+  ) {
     requestBody.enable_thinking = thinkResolution.thinkEnabled;
     chatTemplateKwargs.enable_thinking = thinkResolution.thinkEnabled;
     const effort =
       thinkResolution.reasoningEffort ||
-      (effectiveThinkingLevel === "low" || effectiveThinkingLevel === "medium" || effectiveThinkingLevel === "high"
+      (effectiveThinkingLevel === "low" ||
+      effectiveThinkingLevel === "medium" ||
+      effectiveThinkingLevel === "high"
         ? effectiveThinkingLevel
         : undefined);
     if (effort) {
@@ -2748,7 +3322,10 @@ export async function runBionicChat(
       chatTemplateKwargs.reasoning_effort = effort;
     }
   }
-  if (typeof payload.thinkingBudget === "number" && payload.thinkingBudget > 0) {
+  if (
+    typeof payload.thinkingBudget === "number" &&
+    payload.thinkingBudget > 0
+  ) {
     requestBody.thinking_budget = Math.round(payload.thinkingBudget);
     chatTemplateKwargs.thinking_budget = Math.round(payload.thinkingBudget);
   }
@@ -2756,7 +3333,10 @@ export async function runBionicChat(
     requestBody.chat_template_kwargs = chatTemplateKwargs;
   }
 
-  if (payload.customJsonSchema && typeof payload.customJsonSchema === "object") {
+  if (
+    payload.customJsonSchema &&
+    typeof payload.customJsonSchema === "object"
+  ) {
     requestBody.response_format = {
       type: "json_schema",
       json_schema: {
@@ -2765,7 +3345,10 @@ export async function runBionicChat(
         schema: payload.customJsonSchema,
       },
     };
-  } else if (payload.schemaPreset && BIONIC_SCHEMA_PRESETS[payload.schemaPreset]) {
+  } else if (
+    payload.schemaPreset &&
+    BIONIC_SCHEMA_PRESETS[payload.schemaPreset]
+  ) {
     const preset = BIONIC_SCHEMA_PRESETS[payload.schemaPreset]!;
     requestBody.response_format = {
       type: "json_schema",
@@ -2836,10 +3419,17 @@ export async function runBionicChat(
           model,
           messages: [
             { role: "system", content: systemParts.join("\n\n") },
-            { role: "user", content: retryHasVision ? userContent : fullUserText },
+            {
+              role: "user",
+              content: retryHasVision ? userContent : fullUserText,
+            },
           ],
         };
-        if ( !fastDirectSummary && (retryThink.thinkingMode === "toggle" || retryThink.thinkingMode === "always_on") ) {
+        if (
+          !fastDirectSummary &&
+          (retryThink.thinkingMode === "toggle" ||
+            retryThink.thinkingMode === "always_on")
+        ) {
           retryBody.enable_thinking = retryThink.thinkEnabled;
           retryBody.chat_template_kwargs = {
             ...(retryBody.chat_template_kwargs || {}),
@@ -2851,16 +3441,27 @@ export async function runBionicChat(
         const retryErr = await res.text();
         if (/failed to load model/i.test(retryErr)) {
           bionicFailedToLoadModels.add(model);
-        } else if (/no models loaded|just-in-time.*disabled|model.*not found|invalid model identifier/i.test(retryErr)) {
+        } else if (
+          /no models loaded|just-in-time.*disabled|model.*not found|invalid model identifier/i.test(
+            retryErr,
+          )
+        ) {
           try {
-            await loadBionicModel(ctx, { model, contextLength: payload.contextLength || 32768, force: true });
+            await loadBionicModel(ctx, {
+              model,
+              contextLength: payload.contextLength || 32768,
+              force: true,
+            });
             res = await sendCompletionRequest(retryBody);
             if (res.ok) break;
           } catch {}
         }
       }
     } else {
-      throw new FmError("BIONIC_CHAT_ERROR", firstErrText || `HTTP ${res.status}`);
+      throw new FmError(
+        "BIONIC_CHAT_ERROR",
+        firstErrText || `HTTP ${res.status}`,
+      );
     }
   }
 
@@ -2888,9 +3489,10 @@ export async function runBionicChat(
   // Stage visual confirmation action if requested via natural language tool trigger
   const stagedActions: BionicPendingAction[] = [];
   if (payload.enableTools) {
-    const createMatch = /\bcreate\s+(?:a\s+)?file\s+(?:named|called)\s+([^\s"']+)[\s\S]*?(?:with\s+content|:)\s*([\s\S]+)$/i.exec(
-      rawPrompt,
-    );
+    const createMatch =
+      /\bcreate\s+(?:a\s+)?file\s+(?:named|called)\s+([^\s"']+)[\s\S]*?(?:with\s+content|:)\s*([\s\S]+)$/i.exec(
+        rawPrompt,
+      );
     if (createMatch) {
       const fileName = createMatch[1]!.trim();
       const fileBody = createMatch[2]!.trim();
@@ -2900,7 +3502,11 @@ export async function runBionicChat(
         toolName: "create_file",
         title: `Create File: ${fileName}`,
         description: `Bionic staged creating "${fileName}" (${fileBody.length} chars) in the active folder.`,
-        args: { dirPath: payload.dirPath || ".", name: fileName, content: fileBody },
+        args: {
+          dirPath: payload.dirPath || ".",
+          name: fileName,
+          content: fileBody,
+        },
         createdAt: Date.now(),
         status: "pending",
       };
@@ -2945,12 +3551,17 @@ export async function runBionicChat(
       thinkingBudget: requestBody.thinking_budget,
     },
     stats: {
-      tokensPerSecond: Math.round(Number(data?.stats?.tokens_per_second || 0) * 10) / 10,
-      timeToFirstToken: Math.round(Number(data?.stats?.time_to_first_token || 0) * 1000) / 1000,
-      generationTime: Math.round(Number(data?.stats?.generation_time || 0) * 100) / 100,
+      tokensPerSecond:
+        Math.round(Number(data?.stats?.tokens_per_second || 0) * 10) / 10,
+      timeToFirstToken:
+        Math.round(Number(data?.stats?.time_to_first_token || 0) * 1000) / 1000,
+      generationTime:
+        Math.round(Number(data?.stats?.generation_time || 0) * 100) / 100,
       promptTokens: Number(data?.usage?.prompt_tokens || 0),
       completionTokens: Number(data?.usage?.completion_tokens || 0),
-      reasoningTokens: Number(data?.usage?.completion_tokens_details?.reasoning_tokens || 0),
+      reasoningTokens: Number(
+        data?.usage?.completion_tokens_details?.reasoning_tokens || 0,
+      ),
     },
     runtime: data?.runtime
       ? {
@@ -2974,7 +3585,10 @@ export async function executeConfirmedBionicAction(
 ): Promise<{ ok: boolean; action: BionicPendingAction; createdPath?: string }> {
   const act = bionicPendingActions.get(actionId);
   if (!act) {
-    throw new FmError("ACTION_NOT_FOUND", `Staged Bionic action "${actionId}" was not found.`);
+    throw new FmError(
+      "ACTION_NOT_FOUND",
+      `Staged Bionic action "${actionId}" was not found.`,
+    );
   }
   if (decision === "cancel") {
     act.status = "cancelled";
@@ -2983,11 +3597,18 @@ export async function executeConfirmedBionicAction(
 
   if (act.toolName === "create_file") {
     const dirAbs = resolveSandboxPath(ctx, act.args.dirPath || ".");
-    const targetAbs = joinPath([dirAbs, String(act.args.name || "bionic-note.txt")], ctx.platform);
+    const targetAbs = joinPath(
+      [dirAbs, String(act.args.name || "bionic-note.txt")],
+      ctx.platform,
+    );
     await assertCreatable(ctx, targetAbs);
     await Bun.write(targetAbs, String(act.args.content || ""));
     act.status = "confirmed";
-    return { ok: true, action: act, createdPath: toSandboxRelative(ctx, targetAbs) };
+    return {
+      ok: true,
+      action: act,
+      createdPath: toSandboxRelative(ctx, targetAbs),
+    };
   }
 
   act.status = "confirmed";
@@ -3044,7 +3665,11 @@ export async function routeBionicRequest(
 
   if (!prompt && paths.length > 0) {
     const firstExt = extnameLower(paths[0]!);
-    if (["wav", "mp3", "m4a", "flac", "ogg", "mp4", "mov", "webm"].includes(firstExt)) {
+    if (
+      ["wav", "mp3", "m4a", "flac", "ogg", "mp4", "mov", "webm"].includes(
+        firstExt,
+      )
+    ) {
       const result = await transcribeWithBionicAsr(ctx, {
         path: paths[0]!,
         format: "markdown",
@@ -3060,7 +3685,9 @@ export async function routeBionicRequest(
     const shouldReadAloud =
       !hasSelectedImages &&
       (payload.speakReply === true ||
-        Boolean(payload.model && payload.model.toLowerCase().includes("phonon")));
+        Boolean(
+          payload.model && payload.model.toLowerCase().includes("phonon"),
+        ));
     if (shouldReadAloud) {
       const result = await runBionicSpeech(ctx, {
         path: paths[0]!,
@@ -3081,7 +3708,10 @@ export async function routeBionicRequest(
   }
 
   if (!prompt) {
-    throw new FmError("INVALID_INPUT", "Type a plain-English request or select a file for LM Studio Bionic.");
+    throw new FmError(
+      "INVALID_INPUT",
+      "Type a plain-English request or select a file for LM Studio Bionic.",
+    );
   }
 
   const pLower = prompt.toLowerCase();
@@ -3092,11 +3722,17 @@ export async function routeBionicRequest(
       pLower,
     );
   if (explicitSpeechPrompt && !hasSelectedImages) {
-    const saveAsFile = /\b(save\s+as|export\s+wav|save\s+audio|file\s+mode)\b/i.test(pLower);
+    const saveAsFile =
+      /\b(save\s+as|export\s+wav|save\s+audio|file\s+mode)\b/i.test(pLower);
     const speechInput =
       paths.length > 0
         ? undefined
-        : prompt.replace(/^(please\s+)?(read\s+(this\s+)?(out\s+loud|aloud)\s*:?\s*|speak\s*:?\s*)/i, "").trim() || prompt;
+        : prompt
+            .replace(
+              /^(please\s+)?(read\s+(this\s+)?(out\s+loud|aloud)\s*:?\s*|speak\s*:?\s*)/i,
+              "",
+            )
+            .trim() || prompt;
     const result = await runBionicSpeech(ctx, {
       input: speechInput,
       path: paths[0],
@@ -3111,10 +3747,16 @@ export async function routeBionicRequest(
       result,
     };
   }
-  const effectiveSpeakReply = Boolean(payload.speakReply) || (explicitSpeechPrompt && hasSelectedImages);
+  const effectiveSpeakReply =
+    Boolean(payload.speakReply) || (explicitSpeechPrompt && hasSelectedImages);
 
   // 2. Audio / Video ASR Transcription
-  if (/\b(transcribe|speech[\s-]to[\s-]text|whisper|asr|audio\s+to\s+markdown|extract\s+transcript)\b/i.test(pLower) && paths.length > 0) {
+  if (
+    /\b(transcribe|speech[\s-]to[\s-]text|whisper|asr|audio\s+to\s+markdown|extract\s+transcript)\b/i.test(
+      pLower,
+    ) &&
+    paths.length > 0
+  ) {
     const result = await transcribeWithBionicAsr(ctx, {
       path: paths[0]!,
       format: "markdown",
@@ -3129,7 +3771,11 @@ export async function routeBionicRequest(
   }
 
   // 3. Semantic Meaning Search (/v1/embeddings)
-  if (/\b(find\s+the\s+file\s+where|search\s+by\s+meaning|semantic\s+search|which\s+file\s+(has|contains|implements|wrote))\b/i.test(pLower)) {
+  if (
+    /\b(find\s+the\s+file\s+where|search\s+by\s+meaning|semantic\s+search|which\s+file\s+(has|contains|implements|wrote))\b/i.test(
+      pLower,
+    )
+  ) {
     const result = await runBionicSemanticSearch(ctx, {
       query: prompt,
       dirPath: payload.dirPath || ".",
@@ -3142,7 +3788,11 @@ export async function routeBionicRequest(
   }
 
   // 4. Structured JSON Output
-  if (/\b(batch[\s-]rename|rename\s+plan|organize\s+folder|organization\s+plan|extract\s+table|as\s+json)\b/i.test(pLower)) {
+  if (
+    /\b(batch[\s-]rename|rename\s+plan|organize\s+folder|organization\s+plan|extract\s+table|as\s+json)\b/i.test(
+      pLower,
+    )
+  ) {
     const schemaPreset = /\b(rename)\b/i.test(pLower)
       ? "batch_rename_plan"
       : /\b(table)\b/i.test(pLower)
@@ -3218,10 +3868,20 @@ export async function routeBionicRequest(
 // ---------------------------------------------------------------------------------------------------------------
 
 /** Handles streaming SSE requests for Bionic chat completions and real-time token/reasoning events. */
-export async function handleBionicStreamRequest(ctx: FmContext, req: Request): Promise<Response> {
-  if (!(req.headers.get("content-type") ?? "").toLowerCase().startsWith("application/json")) {
+export async function handleBionicStreamRequest(
+  ctx: FmContext,
+  req: Request,
+): Promise<Response> {
+  if (
+    !(req.headers.get("content-type") ?? "")
+      .toLowerCase()
+      .startsWith("application/json")
+  ) {
     return new Response(
-      JSON.stringify({ ok: false, error: { code: "NOT_JSON", message: "Requests must be JSON." } }),
+      JSON.stringify({
+        ok: false,
+        error: { code: "NOT_JSON", message: "Requests must be JSON." },
+      }),
       { status: 415, headers: { "Content-Type": "application/json" } },
     );
   }
@@ -3230,7 +3890,10 @@ export async function handleBionicStreamRequest(ctx: FmContext, req: Request): P
     body = JSON.parse((await req.text()) || "{}");
   } catch {
     return new Response(
-      JSON.stringify({ ok: false, error: { code: "BAD_JSON", message: "Invalid JSON body." } }),
+      JSON.stringify({
+        ok: false,
+        error: { code: "BAD_JSON", message: "Invalid JSON body." },
+      }),
       { status: 400, headers: { "Content-Type": "application/json" } },
     );
   }
@@ -3241,7 +3904,10 @@ export async function handleBionicStreamRequest(ctx: FmContext, req: Request): P
       return new Response(
         JSON.stringify({
           ok: false,
-          error: { code: "BIONIC_SERVER_OFFLINE", message: "LM Studio Bionic HTTP Server is offline." },
+          error: {
+            code: "BIONIC_SERVER_OFFLINE",
+            message: "LM Studio Bionic HTTP Server is offline.",
+          },
         }),
         { status: 400, headers: { "Content-Type": "application/json" } },
       );
@@ -3255,7 +3921,12 @@ export async function handleBionicStreamRequest(ctx: FmContext, req: Request): P
       const name = basenamePath(abs);
       if (isSupportedVisionImagePath(abs)) {
         const b64 = await readImageAsBase64(abs);
-        const ext = extnameLower(abs) === "png" ? "png" : extnameLower(abs) === "webp" ? "webp" : "jpeg";
+        const ext =
+          extnameLower(abs) === "png"
+            ? "png"
+            : extnameLower(abs) === "webp"
+              ? "webp"
+              : "jpeg";
         imageDataUrls.push(`data:image/${ext};base64,${b64}`);
         fileSnippets.push(`[Attached Vision Image: ${name} (${rel})]`);
       } else {
@@ -3264,11 +3935,17 @@ export async function handleBionicStreamRequest(ctx: FmContext, req: Request): P
       }
     }
 
-    let { model, verdict } = await selectBestBionicModel(ctx, body.model, imageDataUrls.length > 0);
+    let { model, verdict } = await selectBestBionicModel(
+      ctx,
+      body.model,
+      imageDataUrls.length > 0,
+    );
     bionicSessionLoadedModels.add(model);
 
     const effectiveThinkingLevel: ThinkingEffortChoice | undefined =
-      imageDataUrls.length > 0 && (!body.thinkingLevel || body.thinkingLevel === "auto") && body.think === undefined
+      imageDataUrls.length > 0 &&
+      (!body.thinkingLevel || body.thinkingLevel === "auto") &&
+      body.think === undefined
         ? "low"
         : body.thinkingLevel;
 
@@ -3280,7 +3957,10 @@ export async function handleBionicStreamRequest(ctx: FmContext, req: Request): P
     });
 
     const sysParts = [
-      String(body.systemPrompt || "You are LM Studio Bionic running inside Codecaine File Manager.").trim(),
+      String(
+        body.systemPrompt ||
+          "You are LM Studio Bionic running inside Codecaine File Manager.",
+      ).trim(),
       thinkResolution.systemReasoningDirective,
     ].filter(Boolean);
 
@@ -3295,7 +3975,10 @@ export async function handleBionicStreamRequest(ctx: FmContext, req: Request): P
       imageDataUrls.length > 0
         ? [
             { type: "text", text: promptText },
-            ...imageDataUrls.map((url) => ({ type: "image_url", image_url: { url } })),
+            ...imageDataUrls.map((url) => ({
+              type: "image_url",
+              image_url: { url },
+            })),
           ]
         : promptText;
     const defaultMaxTokens = imageDataUrls.length > 0 ? 4096 : 16384;
@@ -3310,16 +3993,33 @@ export async function handleBionicStreamRequest(ctx: FmContext, req: Request): P
       ],
       stream: true,
       max_tokens: Number(body.maxTokens || defaultMaxTokens),
-      temperature: typeof body.temperature === "number" ? body.temperature : 0.4,
+      temperature:
+        typeof body.temperature === "number" ? body.temperature : 0.4,
     };
 
-    if (typeof body.topP === "number" && Number.isFinite(body.topP)) streamPayload.top_p = body.topP;
-    if (typeof body.topK === "number" && Number.isFinite(body.topK) && body.topK > 0) streamPayload.top_k = Math.round(body.topK);
-    if (typeof body.minP === "number" && Number.isFinite(body.minP) && body.minP >= 0) streamPayload.min_p = body.minP;
-    if (typeof body.repeatPenalty === "number" && Number.isFinite(body.repeatPenalty) && body.repeatPenalty > 0) {
+    if (typeof body.topP === "number" && Number.isFinite(body.topP))
+      streamPayload.top_p = body.topP;
+    if (
+      typeof body.topK === "number" &&
+      Number.isFinite(body.topK) &&
+      body.topK > 0
+    )
+      streamPayload.top_k = Math.round(body.topK);
+    if (
+      typeof body.minP === "number" &&
+      Number.isFinite(body.minP) &&
+      body.minP >= 0
+    )
+      streamPayload.min_p = body.minP;
+    if (
+      typeof body.repeatPenalty === "number" &&
+      Number.isFinite(body.repeatPenalty) &&
+      body.repeatPenalty > 0
+    ) {
       streamPayload.repeat_penalty = body.repeatPenalty;
     }
-    if (typeof body.seed === "number" && Number.isFinite(body.seed)) streamPayload.seed = Math.round(body.seed);
+    if (typeof body.seed === "number" && Number.isFinite(body.seed))
+      streamPayload.seed = Math.round(body.seed);
     if (body.stop) {
       const stops = Array.isArray(body.stop)
         ? body.stop.map((s: any) => String(s)).filter(Boolean)
@@ -3339,7 +4039,10 @@ export async function handleBionicStreamRequest(ctx: FmContext, req: Request): P
       streamPayload.reasoning_effort = effort;
       chatTemplateKwargs.reasoning_effort = effort;
       chatTemplateKwargs.enable_thinking = true;
-    } else if (thinkResolution.thinkingMode === "toggle" || thinkResolution.thinkingMode === "always_on") {
+    } else if (
+      thinkResolution.thinkingMode === "toggle" ||
+      thinkResolution.thinkingMode === "always_on"
+    ) {
       streamPayload.enable_thinking = thinkResolution.thinkEnabled;
       chatTemplateKwargs.enable_thinking = thinkResolution.thinkEnabled;
       if (thinkResolution.reasoningEffort) {
@@ -3392,7 +4095,10 @@ export async function handleBionicStreamRequest(ctx: FmContext, req: Request): P
             thinkingBudget: body.thinkingBudget,
             speakReply: Boolean(body.speakReply),
           });
-          if (retryThink.thinkingMode === "toggle" || retryThink.thinkingMode === "always_on") {
+          if (
+            retryThink.thinkingMode === "toggle" ||
+            retryThink.thinkingMode === "always_on"
+          ) {
             streamPayload.enable_thinking = retryThink.thinkEnabled;
             streamPayload.chat_template_kwargs = {
               ...(streamPayload.chat_template_kwargs || {}),
@@ -3409,9 +4115,17 @@ export async function handleBionicStreamRequest(ctx: FmContext, req: Request): P
           const retryErr = await upstream.text();
           if (/failed to load model/i.test(retryErr)) {
             bionicFailedToLoadModels.add(model);
-          } else if (/no models loaded|just-in-time.*disabled|model.*not found|invalid model identifier/i.test(retryErr)) {
+          } else if (
+            /no models loaded|just-in-time.*disabled|model.*not found|invalid model identifier/i.test(
+              retryErr,
+            )
+          ) {
             try {
-              await loadBionicModel(ctx, { model, contextLength: body.contextLength || 32768, force: true });
+              await loadBionicModel(ctx, {
+                model,
+                contextLength: body.contextLength || 32768,
+                force: true,
+              });
               upstream = await fetch(`${server.baseUrl}/v1/chat/completions`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -3426,7 +4140,10 @@ export async function handleBionicStreamRequest(ctx: FmContext, req: Request): P
         return new Response(
           JSON.stringify({
             ok: false,
-            error: { code: "BIONIC_STREAM_ERROR", message: firstErr || `HTTP ${upstream.status}` },
+            error: {
+              code: "BIONIC_STREAM_ERROR",
+              message: firstErr || `HTTP ${upstream.status}`,
+            },
           }),
           { status: 400, headers: { "Content-Type": "application/json" } },
         );
@@ -3438,7 +4155,10 @@ export async function handleBionicStreamRequest(ctx: FmContext, req: Request): P
       return new Response(
         JSON.stringify({
           ok: false,
-          error: { code: "BIONIC_STREAM_ERROR", message: errText || `HTTP ${upstream.status}` },
+          error: {
+            code: "BIONIC_STREAM_ERROR",
+            message: errText || `HTTP ${upstream.status}`,
+          },
         }),
         { status: 400, headers: { "Content-Type": "application/json" } },
       );
@@ -3481,18 +4201,65 @@ export async function handleBionicStreamRequest(ctx: FmContext, req: Request): P
   } catch (err) {
     const code = err instanceof FmError ? err.code : "BIONIC_STREAM_FAILED";
     const message = (err as Error).message || "Stream failed";
-    return new Response(JSON.stringify({ ok: false, error: { code, message } }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ ok: false, error: { code, message } }),
+      {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   }
 }
 
 const SYNTHESIS_STOP_WORDS = new Set([
-  "the", "and", "for", "that", "this", "with", "from", "have", "are", "was", "were", "will", "would",
-  "could", "should", "into", "about", "there", "their", "they", "them", "then", "than", "when", "where",
-  "which", "while", "what", "your", "more", "some", "such", "only", "other", "also", "been", "being",
-  "each", "over", "under", "after", "before", "between", "through", "during", "file", "package", "chapter",
+  "the",
+  "and",
+  "for",
+  "that",
+  "this",
+  "with",
+  "from",
+  "have",
+  "are",
+  "was",
+  "were",
+  "will",
+  "would",
+  "could",
+  "should",
+  "into",
+  "about",
+  "there",
+  "their",
+  "they",
+  "them",
+  "then",
+  "than",
+  "when",
+  "where",
+  "which",
+  "while",
+  "what",
+  "your",
+  "more",
+  "some",
+  "such",
+  "only",
+  "other",
+  "also",
+  "been",
+  "being",
+  "each",
+  "over",
+  "under",
+  "after",
+  "before",
+  "between",
+  "through",
+  "during",
+  "file",
+  "package",
+  "chapter",
 ]);
 
 function extractTopKeywordsFromText(text: string, limit = 8): string[] {
@@ -3578,7 +4345,10 @@ function buildDeterministicSynthesisReport(
     ...docs.map(
       (d) =>
         `| **${d.name.replace(/\|/g, "\\|")}** | \`.${d.ext || "txt"}\` | ${d.wordCount.toLocaleString("en-US")} | ${d.lineCount.toLocaleString("en-US")} | ${
-          d.keywords.slice(0, 5).map((k) => `\`${k}\``).join(", ") || "—"
+          d.keywords
+            .slice(0, 5)
+            .map((k) => `\`${k}\``)
+            .join(", ") || "—"
         } |`,
     ),
     "",
@@ -3595,12 +4365,18 @@ function buildDeterministicSynthesisReport(
   for (let i = 0; i < docs.length; i++) {
     const d = docs[i]!;
     lines.push(`### ${i + 1}. ${d.name} (\`${d.path}\`)`);
-    lines.push(`- **Metrics:** ${d.wordCount.toLocaleString("en-US")} words · ${d.lineCount.toLocaleString("en-US")} lines · ${d.charCount.toLocaleString("en-US")} chars`);
+    lines.push(
+      `- **Metrics:** ${d.wordCount.toLocaleString("en-US")} words · ${d.lineCount.toLocaleString("en-US")} lines · ${d.charCount.toLocaleString("en-US")} chars`,
+    );
     if (d.headings.length) {
-      lines.push(`- **Sections / Headings:** ${d.headings.map((h) => `*${h}*`).join(" · ")}`);
+      lines.push(
+        `- **Sections / Headings:** ${d.headings.map((h) => `*${h}*`).join(" · ")}`,
+      );
     }
     if (d.keywords.length) {
-      lines.push(`- **Key Terms:** ${d.keywords.map((k) => `\`${k}\``).join(", ")}`);
+      lines.push(
+        `- **Key Terms:** ${d.keywords.map((k) => `\`${k}\``).join(", ")}`,
+      );
     }
     const cleanExcerpt = d.excerpt
       .split(/\r?\n/)
@@ -3645,13 +4421,20 @@ export async function runBionicSynthesize(
   reportMarkdown: string;
   savedRelativePath: string | null;
 }> {
-  const rawPaths = Array.isArray(payload?.paths) ? payload.paths.map((p) => String(p || "").trim()).filter(Boolean) : [];
+  const rawPaths = Array.isArray(payload?.paths)
+    ? payload.paths.map((p) => String(p || "").trim()).filter(Boolean)
+    : [];
   if (rawPaths.length === 0) {
-    throw new FmError("INVALID_INPUT", "Select at least one file or document package to synthesize.");
+    throw new FmError(
+      "INVALID_INPUT",
+      "Select at least one file or document package to synthesize.",
+    );
   }
 
   const mode =
-    payload.mode === "summarize" || payload.mode === "study-guide" || payload.mode === "action-items"
+    payload.mode === "summarize" ||
+    payload.mode === "study-guide" ||
+    payload.mode === "action-items"
       ? payload.mode
       : "compare";
 
@@ -3731,10 +4514,16 @@ export async function runBionicSynthesize(
   if (payload.saveToFile) {
     const baseDir = resolveSandboxPath(
       ctx,
-      payload.dirPath || (rawPaths[0] ? dirnamePath(resolveSandboxPath(ctx, rawPaths[0]), ctx.platform) : "."),
+      payload.dirPath ||
+        (rawPaths[0]
+          ? dirnamePath(resolveSandboxPath(ctx, rawPaths[0]), ctx.platform)
+          : "."),
     );
     const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-    const outAbs = joinPath([baseDir, `Bionic-Synthesis-${stamp}.md`], ctx.platform);
+    const outAbs = joinPath(
+      [baseDir, `Bionic-Synthesis-${stamp}.md`],
+      ctx.platform,
+    );
     await assertCreatable(ctx, outAbs);
     await Bun.write(outAbs, reportMarkdown);
     savedRelativePath = toSandboxRelative(ctx, outAbs);
@@ -3759,10 +4548,14 @@ export async function runBionicSynthesize(
 }
 
 /** Aggregates complete Bionic status including apps, server, hardware, models, backends, skills, projects, TTS, and ASR. */
-export async function getFullBionicStatus(ctx: FmContext, payload?: { dirPath?: string }) {
+export async function getFullBionicStatus(
+  ctx: FmContext,
+  payload?: { dirPath?: string },
+) {
   const apps = detectBionicApps(ctx);
   const server = await ensureBionicServerRunning(ctx);
-  const { hardware, models, loadedModels, cloudModels } = await listBionicModelsAndHardwareStatus(ctx);
+  const { hardware, models, loadedModels, cloudModels } =
+    await listBionicModelsAndHardwareStatus(ctx);
   const { backends, plugins } = listInstalledBionicBackends(ctx);
   const skillsInfo = listBionicSkills(ctx, payload?.dirPath);
   const projectsInfo = listBionicProjects(ctx);
@@ -3784,22 +4577,33 @@ export async function getFullBionicStatus(ctx: FmContext, payload?: { dirPath?: 
     tts: ttsInfo,
     asr: asrInfo,
     lifecycle: getBionicLifecycleStatus(),
-    pendingActions: [...bionicPendingActions.values()].filter((a) => a.status === "pending"),
+    pendingActions: [...bionicPendingActions.values()].filter(
+      (a) => a.status === "pending",
+    ),
   };
 }
 
 /** Map of File Manager API operation handlers for all `bionic/*` endpoints. */
-export const BIONIC_OPS: Record<string, (ctx: FmContext, payload: any) => Promise<any>> = {
+export const BIONIC_OPS: Record<
+  string,
+  (ctx: FmContext, payload: any) => Promise<any>
+> = {
   "bionic/status": (ctx, p) => getFullBionicStatus(ctx, p),
   "bionic/server": (ctx, p) => controlBionicServer(ctx, p || {}),
   "bionic/lifecycle": async (_ctx, p) =>
-    p?.exitPolicy ? setBionicExitPolicy(String(p.exitPolicy)) : getBionicLifecycleStatus(),
+    p?.exitPolicy
+      ? setBionicExitPolicy(String(p.exitPolicy))
+      : getBionicLifecycleStatus(),
   "bionic/shutdown": (ctx, p) => shutdownBionicForFileManager(ctx, p || {}),
   "bionic/hardware": async (ctx) => inspectOllamaHardware(ctx),
   "bionic/guard": async (ctx, p) => {
     const hw = inspectOllamaHardware(ctx);
     return evaluateModelHardwareGuard(
-      p?.model ? (typeof p.model === "string" ? { name: p.model, runner: "mlx" } : p.model) : { name: "" },
+      p?.model
+        ? typeof p.model === "string"
+          ? { name: p.model, runner: "mlx" }
+          : p.model
+        : { name: "" },
       hw,
       { allowNonMlxStandardOnMac: true },
     );
@@ -3826,5 +4630,9 @@ export const BIONIC_OPS: Record<string, (ctx: FmContext, payload: any) => Promis
   "bionic/skill/create": (ctx, p) => createBionicSkill(ctx, p || {}),
   "bionic/projects": async (ctx) => listBionicProjects(ctx),
   "bionic/tool/confirm": (ctx, p) =>
-    executeConfirmedBionicAction(ctx, String(p?.actionId || ""), p?.decision === "cancel" ? "cancel" : "confirm"),
+    executeConfirmedBionicAction(
+      ctx,
+      String(p?.actionId || ""),
+      p?.decision === "cancel" ? "cancel" : "confirm",
+    ),
 };

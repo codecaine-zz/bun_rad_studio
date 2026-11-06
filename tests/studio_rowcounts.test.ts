@@ -5,15 +5,23 @@ import { PostgresManager } from "../applications/postgres_studio_server.ts";
 // The sidebar's row counts must be real counts, not the database's planner estimates (which are stale after a bulk load or a
 // delete, so a full table could show 0 and an emptied one could still show rows). No server is needed: the connection is stubbed.
 
-
 function pgManager(opts: { estimate: number; exact: number }) {
   const seen: string[] = [];
-  const manager = new PostgresManager("", { host: "127.0.0.1", port: 1, user: "u", password: "placeholder", database: "d", schema: "public" } as any);
+  const manager = new PostgresManager("", {
+    host: "127.0.0.1",
+    port: 1,
+    user: "u",
+    password: "placeholder",
+    database: "d",
+    schema: "public",
+  } as any);
   (manager as any).sql_conn = {
     unsafe: async (sql: string) => {
       seen.push(sql);
-      if (/information_schema\.schemata/.test(sql)) return [{ schema_name: "public" }];
-      if (/FROM information_schema\.tables/.test(sql)) return [{ table_name: "t", table_type: "BASE TABLE" }];
+      if (/information_schema\.schemata/.test(sql))
+        return [{ schema_name: "public" }];
+      if (/FROM information_schema\.tables/.test(sql))
+        return [{ table_name: "t", table_type: "BASE TABLE" }];
       if (/reltuples/.test(sql)) return [{ rc: opts.estimate }];
       if (/LIMIT 100001/.test(sql)) return [{ rc: opts.exact }];
       return [];
@@ -24,11 +32,24 @@ function pgManager(opts: { estimate: number; exact: number }) {
 
 function myManager(opts: { estimate: number; exact: number }) {
   const seen: string[] = [];
-  const manager = new MysqlManager("", { host: "127.0.0.1", port: 1, user: "u", password: "placeholder", database: "d" } as any);
+  const manager = new MysqlManager("", {
+    host: "127.0.0.1",
+    port: 1,
+    user: "u",
+    password: "placeholder",
+    database: "d",
+  } as any);
   (manager as any).sql_conn = {
     unsafe: async (sql: string) => {
       seen.push(sql);
-      if (/FROM information_schema\.tables/.test(sql)) return [{ TABLE_NAME: "t", TABLE_TYPE: "BASE TABLE", TABLE_ROWS: opts.estimate }];
+      if (/FROM information_schema\.tables/.test(sql))
+        return [
+          {
+            TABLE_NAME: "t",
+            TABLE_TYPE: "BASE TABLE",
+            TABLE_ROWS: opts.estimate,
+          },
+        ];
       if (/LIMIT 100001/.test(sql)) return [{ c: opts.exact }];
       return [];
     },

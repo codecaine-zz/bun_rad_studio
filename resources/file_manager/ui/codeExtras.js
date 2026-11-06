@@ -15,8 +15,17 @@
 import { findMatchingBracket } from "./codeEditing.js";
 import { lineEnd, lineStart, touchedLines, wordAt } from "./codeLines.js";
 
-export const TODO_TAGS = ["TODO", "FIXME", "BUG", "HACK", "NOTE", "XXX", "OPTIMIZE"];
-const TODO_RE = /\b(TODO|FIXME|BUG|HACK|NOTE|XXX|OPTIMIZE)\b(?:\(([^)\n]{1,40})\))?\s*:?\s*(.*)$/i;
+export const TODO_TAGS = [
+  "TODO",
+  "FIXME",
+  "BUG",
+  "HACK",
+  "NOTE",
+  "XXX",
+  "OPTIMIZE",
+];
+const TODO_RE =
+  /\b(TODO|FIXME|BUG|HACK|NOTE|XXX|OPTIMIZE)\b(?:\(([^)\n]{1,40})\))?\s*:?\s*(.*)$/i;
 
 /**
  * Finds TODO / FIXME / BUG / HACK / NOTE / XXX / OPTIMIZE comments in `text`.
@@ -33,7 +42,13 @@ export function extractTodos(text) {
     const m = TODO_RE.exec(searchIn);
     if (!m) continue;
     // If there is no comment marker on the line, only accept when the line itself starts with the tag or comment-like prefix.
-    if (commentStart < 0 && !/^\s*(?:[-*•]|\d+\.)?\s*(?:TODO|FIXME|BUG|HACK|NOTE|XXX|OPTIMIZE)\b/i.test(line)) continue;
+    if (
+      commentStart < 0 &&
+      !/^\s*(?:[-*•]|\d+\.)?\s*(?:TODO|FIXME|BUG|HACK|NOTE|XXX|OPTIMIZE)\b/i.test(
+        line,
+      )
+    )
+      continue;
     const tag = m[1].toUpperCase();
     const col = (commentStart >= 0 ? commentStart : 0) + m.index + 1;
     const body = (m[3] ?? "").replace(/\*\/\s*$|-+>\s*$/, "").trim();
@@ -76,7 +91,8 @@ export function findWordOccurrences(text, start, end, maxTextLen = 400_000) {
   const matches = [];
   let current = -1;
   for (let m = re.exec(text); m !== null; m = re.exec(text)) {
-    if (m.index === wordStart || (start !== end && m.index === start)) current = matches.length;
+    if (m.index === wordStart || (start !== end && m.index === start))
+      current = matches.length;
     matches.push({ index: m.index, length: word.length });
     if (matches.length >= 2000) break;
   }
@@ -92,7 +108,8 @@ export function findWordOccurrences(text, start, end, maxTextLen = 400_000) {
  */
 export function renameSymbolInText(text, start, end, newName) {
   const occ = findWordOccurrences(text, start, end, 2_000_000);
-  if (!occ) return { message: "Put the cursor on a word or variable name first." };
+  if (!occ)
+    return { message: "Put the cursor on a word or variable name first." };
   const clean = String(newName ?? "").trim();
   if (!clean) return { message: "Type the new name." };
   if (clean === occ.word) return { message: "That is already its name." };
@@ -129,16 +146,27 @@ function enclosingDelimiter(text, start, end) {
     for (const q of ['"', "'", "`"]) {
       let open = -1;
       for (let i = ls; i < le; i++) {
-        if (text[i] === "\\" && i + 1 < le) { i++; continue; }
+        if (text[i] === "\\" && i + 1 < le) {
+          i++;
+          continue;
+        }
         if (text[i] === q) {
           if (open < 0) open = i;
           else {
             const innerStart = open + 1;
             const innerEnd = i;
-            if (innerStart <= start && end <= innerEnd && (start > innerStart || end < innerEnd)) {
+            if (
+              innerStart <= start &&
+              end <= innerEnd &&
+              (start > innerStart || end < innerEnd)
+            ) {
               return { selStart: innerStart, selEnd: innerEnd };
             }
-            if (open <= start && end <= i + 1 && (start > open || end < i + 1)) {
+            if (
+              open <= start &&
+              end <= i + 1 &&
+              (start > open || end < i + 1)
+            ) {
               return { selStart: open, selEnd: i + 1 };
             }
             open = -1;
@@ -161,8 +189,10 @@ function enclosingDelimiter(text, start, end) {
         if (m && m.close >= end) {
           const innerStart = m.open + 1;
           const innerEnd = m.close;
-          if (start > innerStart || end < innerEnd) return { selStart: innerStart, selEnd: innerEnd };
-          if (start > m.open || end < m.close + 1) return { selStart: m.open, selEnd: m.close + 1 };
+          if (start > innerStart || end < innerEnd)
+            return { selStart: innerStart, selEnd: innerEnd };
+          if (start > m.open || end < m.close + 1)
+            return { selStart: m.open, selEnd: m.close + 1 };
         }
       }
     }
@@ -184,12 +214,19 @@ export function expandSelection(text, start, end) {
   const delim = enclosingDelimiter(text, start, end);
   const ls = lineStart(text, start);
   const le = lineEnd(text, end);
-  const trimStartOffset = ls + (/^[ \t]*/.exec(text.slice(ls, le))?.[0].length ?? 0);
-  const trimEndOffset = le - (/[ \t]*$/.exec(text.slice(ls, le))?.[0].length ?? 0);
+  const trimStartOffset =
+    ls + (/^[ \t]*/.exec(text.slice(ls, le))?.[0].length ?? 0);
+  const trimEndOffset =
+    le - (/[ \t]*$/.exec(text.slice(ls, le))?.[0].length ?? 0);
 
   // If delimiter is within the same line or smaller than the current selection's enclosing block, prefer it
-  if (delim && (delim.selStart >= ls && delim.selEnd <= le)) return delim;
-  if (start >= trimStartOffset && end <= trimEndOffset && (start > trimStartOffset || end < trimEndOffset) && trimEndOffset > trimStartOffset) {
+  if (delim && delim.selStart >= ls && delim.selEnd <= le) return delim;
+  if (
+    start >= trimStartOffset &&
+    end <= trimEndOffset &&
+    (start > trimStartOffset || end < trimEndOffset) &&
+    trimEndOffset > trimStartOffset
+  ) {
     return { selStart: trimStartOffset, selEnd: trimEndOffset };
   }
   if (start >= ls && end <= le && (start > ls || end < le)) {
@@ -247,7 +284,10 @@ for (const group of TOGGLE_GROUPS) {
 function matchCasePattern(source, replacement) {
   if (/^[A-Za-z]+$/.test(source)) {
     if (source === source.toUpperCase()) return replacement.toUpperCase();
-    if (source[0] === source[0].toUpperCase() && source.slice(1) === source.slice(1).toLowerCase()) {
+    if (
+      source[0] === source[0].toUpperCase() &&
+      source.slice(1) === source.slice(1).toLowerCase()
+    ) {
       return replacement[0].toUpperCase() + replacement.slice(1).toLowerCase();
     }
   }
@@ -270,19 +310,32 @@ export function toggleValueAtCaret(text, start, end) {
         const piece = text.slice(a, b);
         if (TOGGLE_MAP.has(piece) && !/^[A-Za-z0-9]+$/.test(piece)) {
           const next = TOGGLE_MAP.get(piece);
-          return { from: a, to: b, insert: next, selStart: a, selEnd: a + next.length };
+          return {
+            from: a,
+            to: b,
+            insert: next,
+            selStart: a,
+            selEnd: a + next.length,
+          };
         }
       }
     }
     const w = wordAt(text, start);
-    if (!w) return { message: "Put the cursor on a word or operator like true, false, const, ===, yes, on, or 0." };
+    if (!w)
+      return {
+        message:
+          "Put the cursor on a word or operator like true, false, const, ===, yes, on, or 0.",
+      };
     from = w.selStart;
     to = w.selEnd;
   }
   const current = text.slice(from, to);
   const lower = current.toLowerCase();
   const target = TOGGLE_MAP.get(lower);
-  if (!target) return { message: `"${current.slice(0, 24)}" doesn't have a opposite to flip to.` };
+  if (!target)
+    return {
+      message: `"${current.slice(0, 24)}" doesn't have a opposite to flip to.`,
+    };
   const insert = matchCasePattern(current, target);
   return { from, to, insert, selStart: from, selEnd: from + insert.length };
 }
@@ -299,18 +352,29 @@ export function toggleQuotes(text, start, end) {
   let closePos = -1;
   let quote = "";
 
-  if (start !== end && QUOTE_CYCLE.includes(text[start]) && text[end - 1] === text[start] && end - start >= 2) {
+  if (
+    start !== end &&
+    QUOTE_CYCLE.includes(text[start]) &&
+    text[end - 1] === text[start] &&
+    end - start >= 2
+  ) {
     openPos = start;
     closePos = end - 1;
     quote = text[start];
   } else {
     for (let i = ls; i < le; i++) {
       const c = text[i];
-      if (c === "\\" && i + 1 < le) { i++; continue; }
+      if (c === "\\" && i + 1 < le) {
+        i++;
+        continue;
+      }
       if (QUOTE_CYCLE.includes(c)) {
         let j = i + 1;
         while (j < le) {
-          if (text[j] === "\\") { j += 2; continue; }
+          if (text[j] === "\\") {
+            j += 2;
+            continue;
+          }
           if (text[j] === c) break;
           j++;
         }
@@ -324,11 +388,16 @@ export function toggleQuotes(text, start, end) {
       }
     }
   }
-  if (openPos < 0 || closePos < 0) return { message: "Put the cursor inside a quoted string first." };
-  const nextQuote = QUOTE_CYCLE[(QUOTE_CYCLE.indexOf(quote) + 1) % QUOTE_CYCLE.length];
+  if (openPos < 0 || closePos < 0)
+    return { message: "Put the cursor inside a quoted string first." };
+  const nextQuote =
+    QUOTE_CYCLE[(QUOTE_CYCLE.indexOf(quote) + 1) % QUOTE_CYCLE.length];
   const inner = text.slice(openPos + 1, closePos);
   const unescaped = inner.replaceAll(`\\${quote}`, quote);
-  const reescaped = unescaped.replace(new RegExp(`(?<!\\\\)\\${nextQuote}`, "g"), `\\${nextQuote}`);
+  const reescaped = unescaped.replace(
+    new RegExp(`(?<!\\\\)\\${nextQuote}`, "g"),
+    `\\${nextQuote}`,
+  );
   const insert = `${nextQuote}${reescaped}${nextQuote}`;
   return {
     from: openPos,
@@ -339,12 +408,29 @@ export function toggleQuotes(text, start, end) {
   };
 }
 
-const VOID_TAGS = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
+const VOID_TAGS = new Set([
+  "area",
+  "base",
+  "br",
+  "col",
+  "embed",
+  "hr",
+  "img",
+  "input",
+  "link",
+  "meta",
+  "param",
+  "source",
+  "track",
+  "wbr",
+]);
 
 function parseSingleTagSpec(spec) {
   const clean = spec.trim();
   if (!clean) return null;
-  const m = /^([A-Za-z][\w:-]*)?((?:[.#][\w-]+)*)(?:\[([^\]]+)\])?(\*)?$/.exec(clean);
+  const m = /^([A-Za-z][\w:-]*)?((?:[.#][\w-]+)*)(?:\[([^\]]+)\])?(\*)?$/.exec(
+    clean,
+  );
   if (!m) return null;
   const tag = m[1] || "div";
   const modifiers = m[2] || "";
@@ -369,10 +455,18 @@ function parseSingleTagSpec(spec) {
  * Wraps the selection (or current line) with an HTML/XML tag or simple Emmet abbreviation like `div.card#hero` or `ul>li*`.
  */
 export function wrapWithTag(text, start, end, spec = "div") {
-  const parts = String(spec ?? "").trim().split(/\s*>\s*/).filter(Boolean);
-  if (!parts.length) return { message: "Type a tag name, such as div, span.badge, or ul>li*." };
+  const parts = String(spec ?? "")
+    .trim()
+    .split(/\s*>\s*/)
+    .filter(Boolean);
+  if (!parts.length)
+    return { message: "Type a tag name, such as div, span.badge, or ul>li*." };
   const parsed = parts.map(parseSingleTagSpec);
-  if (parsed.some((p) => !p)) return { message: "That tag isn't valid. Try a name like div, section.card, or ul>li*." };
+  if (parsed.some((p) => !p))
+    return {
+      message:
+        "That tag isn't valid. Try a name like div, section.card, or ul>li*.",
+    };
 
   let from = start;
   let to = end;
@@ -396,7 +490,10 @@ export function wrapWithTag(text, start, end, spec = "div") {
         .join("\n");
     } else if (result.includes("\n") && parsed.length > 1) {
       const lead = /^[ \t]*/.exec(result)?.[0] ?? "";
-      const indented = result.split("\n").map((l) => (l.trim() ? `${lead}  ${l.trimStart()}` : l)).join("\n");
+      const indented = result
+        .split("\n")
+        .map((l) => (l.trim() ? `${lead}  ${l.trimStart()}` : l))
+        .join("\n");
       result = `${lead}${p.open}\n${indented}\n${lead}${p.close}`;
     } else {
       result = `${p.open}${result}${p.close}`;
@@ -441,19 +538,41 @@ const MATH_CONSTS = {
 };
 
 export function evaluateMath(expr) {
-  const clean = String(expr ?? "").trim().replace(/=\s*$/, "").trim();
-  if (!clean || clean.length > 500) return { error: "Select a math expression to calculate (for example 1920 * 1080 / 1024)." };
+  const clean = String(expr ?? "")
+    .trim()
+    .replace(/=\s*$/, "")
+    .trim();
+  if (!clean || clean.length > 500)
+    return {
+      error:
+        "Select a math expression to calculate (for example 1920 * 1080 / 1024).",
+    };
   const tokens = [];
-  for (let i = 0; i < clean.length; ) {
+  for (let i = 0; i < clean.length;) {
     const c = clean[i];
-    if (/\s/.test(c)) { i++; continue; }
-    if (c === "*" && clean[i + 1] === "*") { tokens.push({ t: "op", v: "**" }); i += 2; continue; }
-    if ("+-*/%^(),|&".includes(c)) { tokens.push({ t: "op", v: c }); i++; continue; }
-    const numMatch = /^(?:0x[0-9a-fA-F_]+|0b[01_]+|0o[0-7_]+|\d[\d_]*(?:\.[\d_]*)?(?:[eE][+-]?\d+)?|\.\d+)/.exec(clean.slice(i));
+    if (/\s/.test(c)) {
+      i++;
+      continue;
+    }
+    if (c === "*" && clean[i + 1] === "*") {
+      tokens.push({ t: "op", v: "**" });
+      i += 2;
+      continue;
+    }
+    if ("+-*/%^(),|&".includes(c)) {
+      tokens.push({ t: "op", v: c });
+      i++;
+      continue;
+    }
+    const numMatch =
+      /^(?:0x[0-9a-fA-F_]+|0b[01_]+|0o[0-7_]+|\d[\d_]*(?:\.[\d_]*)?(?:[eE][+-]?\d+)?|\.\d+)/.exec(
+        clean.slice(i),
+      );
     if (numMatch) {
       const raw = numMatch[0].replaceAll("_", "");
       const val = Number(raw);
-      if (!Number.isFinite(val)) return { error: `"${numMatch[0]}" isn't a valid number.` };
+      if (!Number.isFinite(val))
+        return { error: `"${numMatch[0]}" isn't a valid number.` };
       tokens.push({ t: "num", v: val });
       i += numMatch[0].length;
       continue;
@@ -466,7 +585,8 @@ export function evaluateMath(expr) {
     }
     return { error: `Unexpected character "${c}" in math expression.` };
   }
-  if (!tokens.length) return { error: "There is no math expression to calculate." };
+  if (!tokens.length)
+    return { error: "There is no math expression to calculate." };
 
   let pos = 0;
   const peek = () => tokens[pos];
@@ -484,11 +604,16 @@ export function evaluateMath(expr) {
 
   function parseTerm() {
     let left = parsePower();
-    while (peek()?.t === "op" && (peek().v === "*" || peek().v === "/" || peek().v === "%")) {
+    while (
+      peek()?.t === "op" &&
+      (peek().v === "*" || peek().v === "/" || peek().v === "%")
+    ) {
       const op = next().v;
       const right = parsePower();
-      if ((op === "/" || op === "%") && right === 0) throw new Error("Division by zero.");
-      left = op === "*" ? left * right : op === "/" ? left / right : left % right;
+      if ((op === "/" || op === "%") && right === 0)
+        throw new Error("Division by zero.");
+      left =
+        op === "*" ? left * right : op === "/" ? left / right : left % right;
     }
     return left;
   }
@@ -525,7 +650,8 @@ export function evaluateMath(expr) {
             args.push(parseExpr());
           }
         }
-        if (!(peek()?.t === "op" && peek().v === ")")) throw new Error("Missing closing parenthesis ')'.");
+        if (!(peek()?.t === "op" && peek().v === ")"))
+          throw new Error("Missing closing parenthesis ')'.");
         next();
         const fn = MATH_FUNCS[tok.v];
         if (!fn) throw new Error(`Unknown math function "${tok.v}".`);
@@ -536,7 +662,8 @@ export function evaluateMath(expr) {
     }
     if (tok.t === "op" && tok.v === "(") {
       const val = parseExpr();
-      if (!(peek()?.t === "op" && peek().v === ")")) throw new Error("Missing closing parenthesis ')'.");
+      if (!(peek()?.t === "op" && peek().v === ")"))
+        throw new Error("Missing closing parenthesis ')'.");
       next();
       return val;
     }
@@ -545,12 +672,18 @@ export function evaluateMath(expr) {
 
   try {
     const value = parseExpr();
-    if (pos < tokens.length) return { error: `Unexpected "${tokens[pos].v}" in expression.` };
-    if (!Number.isFinite(value)) return { error: "The result isn't a finite number." };
-    const formatted = Number.isInteger(value) ? String(value) : String(Number(value.toPrecision(12)));
+    if (pos < tokens.length)
+      return { error: `Unexpected "${tokens[pos].v}" in expression.` };
+    if (!Number.isFinite(value))
+      return { error: "The result isn't a finite number." };
+    const formatted = Number.isInteger(value)
+      ? String(value)
+      : String(Number(value.toPrecision(12)));
     return { value, text: formatted };
   } catch (err) {
-    return { error: err?.message || "That math expression couldn't be calculated." };
+    return {
+      error: err?.message || "That math expression couldn't be calculated.",
+    };
   }
 }
 
@@ -572,7 +705,9 @@ export function evaluateMathEdit(text, start, end) {
   const res = evaluateMath(expr);
   if (res.error) return { message: res.error };
   const appendMode = /=\s*$/.test(expr);
-  const insert = appendMode ? `${expr.replace(/\s*$/, "")} ${res.text}` : res.text;
+  const insert = appendMode
+    ? `${expr.replace(/\s*$/, "")} ${res.text}`
+    : res.text;
   return {
     from,
     to,
@@ -588,9 +723,11 @@ export function evaluateMathEdit(text, start, end) {
 // ---------------------------------------------------------------------------------------------------------------
 
 export function generateUuidV4() {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function")
+    return crypto.randomUUID();
   const bytes = new Uint8Array(16);
-  if (typeof crypto !== "undefined" && crypto.getRandomValues) crypto.getRandomValues(bytes);
+  if (typeof crypto !== "undefined" && crypto.getRandomValues)
+    crypto.getRandomValues(bytes);
   else for (let i = 0; i < 16; i++) bytes[i] = Math.floor(Math.random() * 256);
   bytes[6] = (bytes[6] & 0x0f) | 0x40;
   bytes[8] = (bytes[8] & 0x3f) | 0x80;
@@ -599,14 +736,56 @@ export function generateUuidV4() {
 }
 
 export const GENERATOR_ITEMS = [
-  { id: "uuid", label: "UUID v4", detail: "Random unique identifier (e.g. 550e8400-e29b-41d4-a716-446655440000)", build: () => generateUuidV4() },
-  { id: "iso", label: "ISO-8601 date & time (UTC)", detail: "e.g. 2026-10-17T20:30:00.000Z", build: () => new Date().toISOString() },
-  { id: "date", label: "Today's date (YYYY-MM-DD)", detail: "e.g. 2026-10-17", build: () => new Date().toISOString().slice(0, 10) },
-  { id: "unix", label: "Unix timestamp (seconds)", detail: "Seconds since 1970-01-01 UTC", build: () => String(Math.floor(Date.now() / 1000)) },
-  { id: "unixMs", label: "Unix timestamp (milliseconds)", detail: "Milliseconds since 1970-01-01 UTC", build: () => String(Date.now()) },
-  { id: "hex16", label: "Random 16-byte hex token", detail: "32 hex characters for keys or salts", build: () => generateUuidV4().replaceAll("-", "") },
-  { id: "seq10", label: "Number sequence 1 to 10 (lines)", detail: "1, 2, 3 … 10, one per line", build: () => Array.from({ length: 10 }, (_, i) => String(i + 1)).join("\n") },
-  { id: "lorem", label: "Lorem ipsum paragraph", detail: "Standard placeholder paragraph", build: () => "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat." },
+  {
+    id: "uuid",
+    label: "UUID v4",
+    detail:
+      "Random unique identifier (e.g. 550e8400-e29b-41d4-a716-446655440000)",
+    build: () => generateUuidV4(),
+  },
+  {
+    id: "iso",
+    label: "ISO-8601 date & time (UTC)",
+    detail: "e.g. 2026-10-17T20:30:00.000Z",
+    build: () => new Date().toISOString(),
+  },
+  {
+    id: "date",
+    label: "Today's date (YYYY-MM-DD)",
+    detail: "e.g. 2026-10-17",
+    build: () => new Date().toISOString().slice(0, 10),
+  },
+  {
+    id: "unix",
+    label: "Unix timestamp (seconds)",
+    detail: "Seconds since 1970-01-01 UTC",
+    build: () => String(Math.floor(Date.now() / 1000)),
+  },
+  {
+    id: "unixMs",
+    label: "Unix timestamp (milliseconds)",
+    detail: "Milliseconds since 1970-01-01 UTC",
+    build: () => String(Date.now()),
+  },
+  {
+    id: "hex16",
+    label: "Random 16-byte hex token",
+    detail: "32 hex characters for keys or salts",
+    build: () => generateUuidV4().replaceAll("-", ""),
+  },
+  {
+    id: "seq10",
+    label: "Number sequence 1 to 10 (lines)",
+    detail: "1, 2, 3 … 10, one per line",
+    build: () => Array.from({ length: 10 }, (_, i) => String(i + 1)).join("\n"),
+  },
+  {
+    id: "lorem",
+    label: "Lorem ipsum paragraph",
+    detail: "Standard placeholder paragraph",
+    build: () =>
+      "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+  },
 ];
 
 function sortKeysDeep(value) {
@@ -629,13 +808,24 @@ export function sortJsonKeys(text, unit = "  ") {
   try {
     parsed = JSON.parse(text);
   } catch (err) {
-    return { message: `That isn't valid JSON: ${String(err?.message ?? err).slice(0, 100)}` };
+    return {
+      message: `That isn't valid JSON: ${String(err?.message ?? err).slice(0, 100)}`,
+    };
   }
   const sorted = sortKeysDeep(parsed);
   const indent = unit === "\t" ? "\t" : unit.length || 2;
-  const formatted = JSON.stringify(sorted, null, indent) + (text.endsWith("\n") ? "\n" : "");
-  if (formatted === text) return { message: "The JSON keys are already in alphabetical order." };
-  return { from: 0, to: text.length, insert: formatted, selStart: 0, selEnd: 0, message: "Sorted JSON keys alphabetically." };
+  const formatted =
+    JSON.stringify(sorted, null, indent) + (text.endsWith("\n") ? "\n" : "");
+  if (formatted === text)
+    return { message: "The JSON keys are already in alphabetical order." };
+  return {
+    from: 0,
+    to: text.length,
+    insert: formatted,
+    selStart: 0,
+    selEnd: 0,
+    message: "Sorted JSON keys alphabetically.",
+  };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -652,7 +842,11 @@ export function detectCsvDelimiter(text) {
   return ",";
 }
 
-export function parseCsvTable(text, delimiter = detectCsvDelimiter(text), maxRows = 500) {
+export function parseCsvTable(
+  text,
+  delimiter = detectCsvDelimiter(text),
+  maxRows = 500,
+) {
   const rows = [];
   let row = [];
   let cell = "";
@@ -662,8 +856,10 @@ export function parseCsvTable(text, delimiter = detectCsvDelimiter(text), maxRow
     const c = src[i];
     if (inQuotes) {
       if (c === '"') {
-        if (src[i + 1] === '"') { cell += '"'; i++; }
-        else inQuotes = false;
+        if (src[i + 1] === '"') {
+          cell += '"';
+          i++;
+        } else inQuotes = false;
       } else cell += c;
     } else if (c === '"') {
       inQuotes = true;
@@ -687,14 +883,42 @@ export function parseCsvTable(text, delimiter = detectCsvDelimiter(text), maxRow
   const colCount = rows.reduce((m, r) => Math.max(m, r.length), 0);
   const headers = rows[0] ?? [];
   const body = rows.slice(1);
-  return { headers, rows: body, allRows: rows, colCount, rowCount: body.length, delimiter };
+  return {
+    headers,
+    rows: body,
+    allRows: rows,
+    colCount,
+    rowCount: body.length,
+    delimiter,
+  };
 }
 
 export function csvToMarkdownTable(text) {
   const { allRows, colCount } = parseCsvTable(text);
-  if (!allRows.length || colCount === 0) throw new Error("There are no rows to turn into a table.");
-  const widths = Array.from({ length: colCount }, (_, c) => Math.max(3, ...allRows.map((r) => String(r[c] ?? "").trim().replace(/\|/g, "\\|").length)));
-  const formatRow = (r) => "| " + widths.map((w, c) => String(r[c] ?? "").trim().replace(/\|/g, "\\|").padEnd(w, " ")).join(" | ") + " |";
+  if (!allRows.length || colCount === 0)
+    throw new Error("There are no rows to turn into a table.");
+  const widths = Array.from({ length: colCount }, (_, c) =>
+    Math.max(
+      3,
+      ...allRows.map(
+        (r) =>
+          String(r[c] ?? "")
+            .trim()
+            .replace(/\|/g, "\\|").length,
+      ),
+    ),
+  );
+  const formatRow = (r) =>
+    "| " +
+    widths
+      .map((w, c) =>
+        String(r[c] ?? "")
+          .trim()
+          .replace(/\|/g, "\\|")
+          .padEnd(w, " "),
+      )
+      .join(" | ") +
+    " |";
   const sep = "| " + widths.map((w) => "-".repeat(w)).join(" | ") + " |";
   const out = [formatRow(allRows[0]), sep, ...allRows.slice(1).map(formatRow)];
   return out.join("\n");
@@ -705,38 +929,50 @@ export function csvToMarkdownTable(text) {
 // ---------------------------------------------------------------------------------------------------------------
 
 function parseHexColor(str) {
-  const m = /^#([0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.exec(str.trim());
+  const m = /^#([0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.exec(
+    str.trim(),
+  );
   if (!m) return null;
   const h = m[1];
   if (h.length === 3 || h.length === 4) {
     const r = parseInt(h[0] + h[0], 16);
     const g = parseInt(h[1] + h[1], 16);
     const b = parseInt(h[2] + h[2], 16);
-    const a = h.length === 4 ? +(parseInt(h[3] + h[3], 16) / 255).toFixed(2) : 1;
+    const a =
+      h.length === 4 ? +(parseInt(h[3] + h[3], 16) / 255).toFixed(2) : 1;
     return { r, g, b, a };
   }
   const r = parseInt(h.slice(0, 2), 16);
   const g = parseInt(h.slice(2, 4), 16);
   const b = parseInt(h.slice(4, 6), 16);
-  const a = h.length === 8 ? +(parseInt(h.slice(6, 8), 16) / 255).toFixed(2) : 1;
+  const a =
+    h.length === 8 ? +(parseInt(h.slice(6, 8), 16) / 255).toFixed(2) : 1;
   return { r, g, b, a };
 }
 
 function parseRgbOrHsl(str) {
-  const rgb = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})(?:\s*[,/]\s*([0-9.]+))?\s*\)$/i.exec(str.trim());
+  const rgb =
+    /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})(?:\s*[,/]\s*([0-9.]+))?\s*\)$/i.exec(
+      str.trim(),
+    );
   if (rgb) {
     const r = Math.min(255, Number(rgb[1]));
     const g = Math.min(255, Number(rgb[2]));
     const b = Math.min(255, Number(rgb[3]));
-    const a = rgb[4] !== undefined ? Math.min(1, Math.max(0, Number(rgb[4]))) : 1;
+    const a =
+      rgb[4] !== undefined ? Math.min(1, Math.max(0, Number(rgb[4]))) : 1;
     return { r, g, b, a };
   }
-  const hsl = /^hsla?\(\s*(\d{1,3})\s*,\s*(\d{1,3})%\s*,\s*(\d{1,3})%(?:\s*[,/]\s*([0-9.]+))?\s*\)$/i.exec(str.trim());
+  const hsl =
+    /^hsla?\(\s*(\d{1,3})\s*,\s*(\d{1,3})%\s*,\s*(\d{1,3})%(?:\s*[,/]\s*([0-9.]+))?\s*\)$/i.exec(
+      str.trim(),
+    );
   if (hsl) {
     const h = (Number(hsl[1]) % 360) / 360;
     const s = Math.min(100, Number(hsl[2])) / 100;
     const l = Math.min(100, Number(hsl[3])) / 100;
-    const a = hsl[4] !== undefined ? Math.min(1, Math.max(0, Number(hsl[4]))) : 1;
+    const a =
+      hsl[4] !== undefined ? Math.min(1, Math.max(0, Number(hsl[4]))) : 1;
     const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
     const p = 2 * l - q;
     const hue2rgb = (t) => {
@@ -748,9 +984,11 @@ function parseRgbOrHsl(str) {
       if (tt < 2 / 3) return p + (q - p) * (2 / 3 - tt) * 6;
       return p;
     };
-    const r = s === 0 ? Math.round(l * 255) : Math.round(hue2rgb(h + 1 / 3) * 255);
+    const r =
+      s === 0 ? Math.round(l * 255) : Math.round(hue2rgb(h + 1 / 3) * 255);
     const g = s === 0 ? Math.round(l * 255) : Math.round(hue2rgb(h) * 255);
-    const b = s === 0 ? Math.round(l * 255) : Math.round(hue2rgb(h - 1 / 3) * 255);
+    const b =
+      s === 0 ? Math.round(l * 255) : Math.round(hue2rgb(h - 1 / 3) * 255);
     return { r, g, b, a };
   }
   return null;
@@ -771,24 +1009,42 @@ export function formatColorFormats({ r, g, b, a = 1 }) {
     const d = max - min;
     s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
     switch (max) {
-      case rn: h = (gn - bn) / d + (gn < bn ? 6 : 0); break;
-      case gn: h = (bn - rn) / d + 2; break;
-      default: h = (rn - gn) / d + 4; break;
+      case rn:
+        h = (gn - bn) / d + (gn < bn ? 6 : 0);
+        break;
+      case gn:
+        h = (bn - rn) / d + 2;
+        break;
+      default:
+        h = (rn - gn) / d + 4;
+        break;
     }
     h /= 6;
   }
-  const hsl = a < 1
-    ? `hsla(${Math.round(h * 360)}, ${Math.round(s * 100)}%, ${Math.round(l * 100)}%, ${a})`
-    : `hsl(${Math.round(h * 360)}, ${Math.round(s * 100)}%, ${Math.round(l * 100)}%)`;
-  const srgb = [rn, gn, bn].map((v) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)));
+  const hsl =
+    a < 1
+      ? `hsla(${Math.round(h * 360)}, ${Math.round(s * 100)}%, ${Math.round(l * 100)}%, ${a})`
+      : `hsl(${Math.round(h * 360)}, ${Math.round(s * 100)}%, ${Math.round(l * 100)}%)`;
+  const srgb = [rn, gn, bn].map((v) =>
+    v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4),
+  );
   const lum = 0.2126 * srgb[0] + 0.7152 * srgb[1] + 0.0722 * srgb[2];
-  const contrastWhite = +((1.05) / (lum + 0.05)).toFixed(2);
+  const contrastWhite = +(1.05 / (lum + 0.05)).toFixed(2);
   const contrastBlack = +((lum + 0.05) / 0.05).toFixed(2);
-  return { hex, rgb, hsl, luminance: +lum.toFixed(3), contrastWhite, contrastBlack };
+  return {
+    hex,
+    rgb,
+    hsl,
+    luminance: +lum.toFixed(3),
+    contrastWhite,
+    contrastBlack,
+  };
 }
 
 function decodeJwtToken(token) {
-  const m = /^([A-Za-z0-9_-]{4,})\.([A-Za-z0-9_-]{4,})\.([A-Za-z0-9_-]*)$/.exec(token.trim());
+  const m = /^([A-Za-z0-9_-]{4,})\.([A-Za-z0-9_-]{4,})\.([A-Za-z0-9_-]*)$/.exec(
+    token.trim(),
+  );
   if (!m) return null;
   const decodePart = (b64) => {
     const pad = b64.replaceAll("-", "+").replaceAll("_", "/");
@@ -799,40 +1055,73 @@ function decodeJwtToken(token) {
   try {
     const header = decodePart(m[1]);
     const payload = decodePart(m[2]);
-    if (!header || typeof header !== "object" || !payload || typeof payload !== "object") return null;
-    return { header, payload, signature: m[3] ? `${m[3].slice(0, 16)}…` : "(none)" };
+    if (
+      !header ||
+      typeof header !== "object" ||
+      !payload ||
+      typeof payload !== "object"
+    )
+      return null;
+    return {
+      header,
+      payload,
+      signature: m[3] ? `${m[3].slice(0, 16)}…` : "(none)",
+    };
   } catch {
     return null;
   }
 }
 
 function explainCron(str) {
-  const clean = str.trim().replace(/^["'`]|["'`]$/g, "").trim();
+  const clean = str
+    .trim()
+    .replace(/^["'`]|["'`]$/g, "")
+    .trim();
   const parts = clean.split(/\s+/);
   if (parts.length !== 5) return null;
   if (!parts.every((p) => /^[\d*,/-]+$/.test(p))) return null;
   const [min, hour, dom, mon, dow] = parts;
   const pieces = [];
   if (min === "*" && hour === "*") pieces.push("Every minute");
-  else if (min.startsWith("*/") && hour === "*") pieces.push(`Every ${min.slice(2)} minutes`);
-  else if (min === "0" && hour.startsWith("*/")) pieces.push(`Every ${hour.slice(2)} hours (on the hour)`);
-  else if (/^\d+$/.test(min) && /^\d+$/.test(hour)) pieces.push(`At ${hour.padStart(2, "0")}:${min.padStart(2, "0")}`);
+  else if (min.startsWith("*/") && hour === "*")
+    pieces.push(`Every ${min.slice(2)} minutes`);
+  else if (min === "0" && hour.startsWith("*/"))
+    pieces.push(`Every ${hour.slice(2)} hours (on the hour)`);
+  else if (/^\d+$/.test(min) && /^\d+$/.test(hour))
+    pieces.push(`At ${hour.padStart(2, "0")}:${min.padStart(2, "0")}`);
   else pieces.push(`Minute ${min}, hour ${hour}`);
   if (dom !== "*") pieces.push(`on day ${dom} of the month`);
   if (mon !== "*") pieces.push(`in month ${mon}`);
   if (dow !== "*") {
-    const days = { 0: "Sun", 1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat", 7: "Sun" };
+    const days = {
+      0: "Sun",
+      1: "Mon",
+      2: "Tue",
+      3: "Wed",
+      4: "Thu",
+      5: "Fri",
+      6: "Sat",
+      7: "Sun",
+    };
     pieces.push(`on day-of-week ${dow.replace(/\d/g, (d) => days[d] ?? d)}`);
   }
-  return { expression: clean, summary: pieces.join(" "), fields: { minute: min, hour, dayOfMonth: dom, month: mon, dayOfWeek: dow } };
+  return {
+    expression: clean,
+    summary: pieces.join(" "),
+    fields: { minute: min, hour, dayOfMonth: dom, month: mon, dayOfWeek: dow },
+  };
 }
 
 function explainOctalPerm(str) {
   const m = /^(?:0o?|chmod\s+)?([0-7]{3,4})$/.exec(str.trim());
   if (!m) return null;
   const digits = m[1].length === 4 ? m[1].slice(1) : m[1];
-  const rwx = (n) => `${n & 4 ? "r" : "-"}${n & 2 ? "w" : "-"}${n & 1 ? "x" : "-"}`;
-  const words = (n) => [n & 4 ? "read" : "", n & 2 ? "write" : "", n & 1 ? "execute" : ""].filter(Boolean).join(", ") || "none";
+  const rwx = (n) =>
+    `${n & 4 ? "r" : "-"}${n & 2 ? "w" : "-"}${n & 1 ? "x" : "-"}`;
+  const words = (n) =>
+    [n & 4 ? "read" : "", n & 2 ? "write" : "", n & 1 ? "execute" : ""]
+      .filter(Boolean)
+      .join(", ") || "none";
   const u = Number(digits[0]);
   const g = Number(digits[1]);
   const o = Number(digits[2]);
@@ -898,8 +1187,14 @@ export function inspectTokenAtCaret(text, start, end) {
         ["Hex", fmt.hex],
         ["RGB", fmt.rgb],
         ["HSL", fmt.hsl],
-        ["Contrast vs white", `${fmt.contrastWhite}:1 (${fmt.contrastWhite >= 4.5 ? "AA pass" : "low"})`],
-        ["Contrast vs black", `${fmt.contrastBlack}:1 (${fmt.contrastBlack >= 4.5 ? "AA pass" : "low"})`],
+        [
+          "Contrast vs white",
+          `${fmt.contrastWhite}:1 (${fmt.contrastWhite >= 4.5 ? "AA pass" : "low"})`,
+        ],
+        [
+          "Contrast vs black",
+          `${fmt.contrastBlack}:1 (${fmt.contrastBlack >= 4.5 ? "AA pass" : "low"})`,
+        ],
       ],
       replacements: [
         { label: `Use ${fmt.hex}`, value: fmt.hex },
@@ -918,7 +1213,10 @@ export function inspectTokenAtCaret(text, start, end) {
     ];
     for (const k of ["exp", "iat", "nbf"]) {
       if (typeof jwt.payload[k] === "number") {
-        rows.push([`${k} (UTC)`, new Date(jwt.payload[k] * 1000).toISOString()]);
+        rows.push([
+          `${k} (UTC)`,
+          new Date(jwt.payload[k] * 1000).toISOString(),
+        ]);
       }
     }
     cards.push({ kind: "jwt", title: "JSON Web Token (JWT)", rows });
@@ -952,7 +1250,10 @@ export function inspectTokenAtCaret(text, start, end) {
       rows: [
         ["Schedule", cron.summary],
         ["Minute / Hour", `${cron.fields.minute} / ${cron.fields.hour}`],
-        ["Day / Month / Weekday", `${cron.fields.dayOfMonth} / ${cron.fields.month} / ${cron.fields.dayOfWeek}`],
+        [
+          "Day / Month / Weekday",
+          `${cron.fields.dayOfMonth} / ${cron.fields.month} / ${cron.fields.dayOfWeek}`,
+        ],
       ],
     });
   }
@@ -990,7 +1291,10 @@ export function inspectTokenAtCaret(text, start, end) {
         ["Octal", oct],
       ];
       if (n >= 1024) {
-        rows.push(["Bytes", `${(n / 1024).toFixed(2)} KB · ${(n / (1024 * 1024)).toFixed(2)} MB`]);
+        rows.push([
+          "Bytes",
+          `${(n / 1024).toFixed(2)} KB · ${(n / (1024 * 1024)).toFixed(2)} MB`,
+        ]);
       }
       cards.push({
         kind: "number",
@@ -1016,7 +1320,12 @@ export function inspectTokenAtCaret(text, start, end) {
       ];
       for (const [k, v] of u.searchParams.entries()) rows.push([`?${k}`, v]);
       if (u.hash) rows.push(["Hash", u.hash]);
-      cards.push({ kind: "url", title: "Web address (URL)", url: u.href, rows });
+      cards.push({
+        kind: "url",
+        title: "Web address (URL)",
+        url: u.href,
+        rows,
+      });
     } catch {}
   }
 
@@ -1034,7 +1343,10 @@ export function inspectTokenAtCaret(text, start, end) {
       title: "Characters & UTF-8 bytes",
       rows: [
         ["Characters", points.join(" · ")],
-        ["UTF-8 bytes", `${bytes.length} ${bytes.length === 1 ? "byte" : "bytes"} (${[...bytes.slice(0, 16)].map((b) => b.toString(16).padStart(2, "0")).join(" ")}${bytes.length > 16 ? " …" : ""})`],
+        [
+          "UTF-8 bytes",
+          `${bytes.length} ${bytes.length === 1 ? "byte" : "bytes"} (${[...bytes.slice(0, 16)].map((b) => b.toString(16).padStart(2, "0")).join(" ")}${bytes.length > 16 ? " …" : ""})`,
+        ],
       ],
     });
   }
@@ -1050,8 +1362,20 @@ export function inspectTokenAtCaret(text, start, end) {
  * Computes a unified diff between `oldText` and `newText` with `context` surrounding lines.
  * Returns { diff, added, removed, identical, hunks, ops }.
  */
-export function computeLineDiff(oldText, newText, { oldLabel = "Saved", newLabel = "Current", context = 3 } = {}) {
-  if (oldText === newText) return { diff: "", added: 0, removed: 0, identical: true, hunks: [], ops: [] };
+export function computeLineDiff(
+  oldText,
+  newText,
+  { oldLabel = "Saved", newLabel = "Current", context = 3 } = {},
+) {
+  if (oldText === newText)
+    return {
+      diff: "",
+      added: 0,
+      removed: 0,
+      identical: true,
+      hunks: [],
+      ops: [],
+    };
   const a = String(oldText).split("\n");
   const b = String(newText).split("\n");
 
@@ -1068,7 +1392,8 @@ export function computeLineDiff(oldText, newText, { oldLabel = "Saved", newLabel
   const midA = a.slice(start, endA);
   const midB = b.slice(start, endB);
   const ops = [];
-  for (let i = 0; i < start; i++) ops.push({ type: " ", line: a[i], oldLine: i + 1, newLine: i + 1 });
+  for (let i = 0; i < start; i++)
+    ops.push({ type: " ", line: a[i], oldLine: i + 1, newLine: i + 1 });
 
   if (midA.length * midB.length <= 250_000) {
     // Exact LCS matrix on the changed middle window
@@ -1077,29 +1402,75 @@ export function computeLineDiff(oldText, newText, { oldLabel = "Saved", newLabel
     const dp = Array.from({ length: m + 1 }, () => new Int32Array(n + 1));
     for (let i = m - 1; i >= 0; i--) {
       for (let j = n - 1; j >= 0; j--) {
-        dp[i][j] = midA[i] === midB[j] ? 1 + dp[i + 1][j + 1] : Math.max(dp[i + 1][j], dp[i][j + 1]);
+        dp[i][j] =
+          midA[i] === midB[j]
+            ? 1 + dp[i + 1][j + 1]
+            : Math.max(dp[i + 1][j], dp[i][j + 1]);
       }
     }
     let i = 0;
     let j = 0;
     while (i < m && j < n) {
       if (midA[i] === midB[j]) {
-        ops.push({ type: " ", line: midA[i], oldLine: start + i + 1, newLine: start + j + 1 });
+        ops.push({
+          type: " ",
+          line: midA[i],
+          oldLine: start + i + 1,
+          newLine: start + j + 1,
+        });
         i++;
         j++;
       } else if (dp[i + 1][j] >= dp[i][j + 1]) {
-        ops.push({ type: "-", line: midA[i], oldLine: start + i + 1, newLine: null });
+        ops.push({
+          type: "-",
+          line: midA[i],
+          oldLine: start + i + 1,
+          newLine: null,
+        });
         i++;
       } else {
-        ops.push({ type: "+", line: midB[j], oldLine: null, newLine: start + j + 1 });
+        ops.push({
+          type: "+",
+          line: midB[j],
+          oldLine: null,
+          newLine: start + j + 1,
+        });
         j++;
       }
     }
-    while (i < m) { ops.push({ type: "-", line: midA[i], oldLine: start + i + 1, newLine: null }); i++; }
-    while (j < n) { ops.push({ type: "+", line: midB[j], oldLine: null, newLine: start + j + 1 }); j++; }
+    while (i < m) {
+      ops.push({
+        type: "-",
+        line: midA[i],
+        oldLine: start + i + 1,
+        newLine: null,
+      });
+      i++;
+    }
+    while (j < n) {
+      ops.push({
+        type: "+",
+        line: midB[j],
+        oldLine: null,
+        newLine: start + j + 1,
+      });
+      j++;
+    }
   } else {
-    for (let i = 0; i < midA.length; i++) ops.push({ type: "-", line: midA[i], oldLine: start + i + 1, newLine: null });
-    for (let j = 0; j < midB.length; j++) ops.push({ type: "+", line: midB[j], oldLine: null, newLine: start + j + 1 });
+    for (let i = 0; i < midA.length; i++)
+      ops.push({
+        type: "-",
+        line: midA[i],
+        oldLine: start + i + 1,
+        newLine: null,
+      });
+    for (let j = 0; j < midB.length; j++)
+      ops.push({
+        type: "+",
+        line: midB[j],
+        oldLine: null,
+        newLine: start + j + 1,
+      });
   }
 
   for (let i = endA, j = endB; i < a.length; i++, j++) {
@@ -1110,8 +1481,13 @@ export function computeLineDiff(oldText, newText, { oldLabel = "Saved", newLabel
   let removed = 0;
   const changedIdx = [];
   ops.forEach((op, idx) => {
-    if (op.type === "+") { added++; changedIdx.push(idx); }
-    else if (op.type === "-") { removed++; changedIdx.push(idx); }
+    if (op.type === "+") {
+      added++;
+      changedIdx.push(idx);
+    } else if (op.type === "-") {
+      removed++;
+      changedIdx.push(idx);
+    }
   });
 
   // Group into context hunks
@@ -1153,7 +1529,14 @@ export function computeLineDiff(oldText, newText, { oldLabel = "Saved", newLabel
     });
   });
 
-  return { diff: outLines.join("\n") + "\n", added, removed, identical: false, hunks, ops };
+  return {
+    diff: outLines.join("\n") + "\n",
+    added,
+    removed,
+    identical: false,
+    hunks,
+    ops,
+  };
 }
 
 /**
@@ -1165,20 +1548,44 @@ export function computeLineDiff(oldText, newText, { oldLabel = "Saved", newLabel
 export function computeDiffHunks(
   oldText,
   newText,
-  { oldLabel = "Current", newLabel = "Proposed", context = 2, mergeGap = 0 } = {},
+  {
+    oldLabel = "Current",
+    newLabel = "Proposed",
+    context = 2,
+    mergeGap = 0,
+  } = {},
 ) {
   const rawOld = String(oldText ?? "").replace(/\r\n/g, "\n");
   const rawNew = String(newText ?? "").replace(/\r\n/g, "\n");
-  const preserveTrailingNewline = rawOld.endsWith("\n") && !rawNew.endsWith("\n") && rawNew.length > 0;
+  const preserveTrailingNewline =
+    rawOld.endsWith("\n") && !rawNew.endsWith("\n") && rawNew.length > 0;
   const normOld = rawOld;
   const normNew = preserveTrailingNewline ? `${rawNew}\n` : rawNew;
   if (normOld === normNew) {
-    return { diff: "", added: 0, removed: 0, identical: true, hunks: [], ops: [] };
+    return {
+      diff: "",
+      added: 0,
+      removed: 0,
+      identical: true,
+      hunks: [],
+      ops: [],
+    };
   }
-  const base = computeLineDiff(normOld, normNew, { oldLabel, newLabel, context });
+  const base = computeLineDiff(normOld, normNew, {
+    oldLabel,
+    newLabel,
+    context,
+  });
   const ops = base.ops || [];
   if (!ops.length) {
-    return { diff: "", added: 0, removed: 0, identical: true, hunks: [], ops: [] };
+    return {
+      diff: "",
+      added: 0,
+      removed: 0,
+      identical: true,
+      hunks: [],
+      ops: [],
+    };
   }
 
   // Group changed ops (- / +) into discrete change blocks separated by > mergeGap unchanged lines
@@ -1190,7 +1597,9 @@ export function computeDiffHunks(
     if (prev) {
       const gap = idx - prev.changeHi - 1;
       const singleBlankBridge =
-        gap === 1 && ops[prev.changeHi + 1].type === " " && ops[prev.changeHi + 1].line.trim() === "";
+        gap === 1 &&
+        ops[prev.changeHi + 1].type === " " &&
+        ops[prev.changeHi + 1].line.trim() === "";
       if (gap <= mergeGap || singleBlankBridge) {
         prev.changeHi = idx;
         continue;
@@ -1205,7 +1614,10 @@ export function computeDiffHunks(
   for (let k = 0; k < changeBlocks.length; k++) {
     const block = changeBlocks[k];
     const minCtxLo = k > 0 ? changeBlocks[k - 1].changeHi + 1 : 0;
-    const maxCtxHi = k + 1 < changeBlocks.length ? changeBlocks[k + 1].changeLo - 1 : ops.length - 1;
+    const maxCtxHi =
+      k + 1 < changeBlocks.length
+        ? changeBlocks[k + 1].changeLo - 1
+        : ops.length - 1;
     const ctxLo = Math.max(minCtxLo, block.changeLo - context);
     const ctxHi = Math.min(maxCtxHi, block.changeHi + context);
     const slice = ops.slice(ctxLo, ctxHi + 1);
@@ -1214,25 +1626,38 @@ export function computeDiffHunks(
     let fallbackOld = 1;
     let fallbackNew = 1;
     for (let p = ctxLo - 1; p >= 0; p--) {
-      if (fallbackOld === 1 && ops[p].oldLine !== null) fallbackOld = ops[p].oldLine + 1;
-      if (fallbackNew === 1 && ops[p].newLine !== null) fallbackNew = ops[p].newLine + 1;
+      if (fallbackOld === 1 && ops[p].oldLine !== null)
+        fallbackOld = ops[p].oldLine + 1;
+      if (fallbackNew === 1 && ops[p].newLine !== null)
+        fallbackNew = ops[p].newLine + 1;
       if (fallbackOld !== 1 && fallbackNew !== 1) break;
     }
 
-    const firstOld = slice.find((x) => x.oldLine !== null)?.oldLine ?? fallbackOld;
-    const firstNew = slice.find((x) => x.newLine !== null)?.newLine ?? fallbackNew;
-    const changeOldStart = changeSlice.find((x) => x.oldLine !== null)?.oldLine ?? firstOld;
-    const changeNewStart = changeSlice.find((x) => x.newLine !== null)?.newLine ?? firstNew;
+    const firstOld =
+      slice.find((x) => x.oldLine !== null)?.oldLine ?? fallbackOld;
+    const firstNew =
+      slice.find((x) => x.newLine !== null)?.newLine ?? fallbackNew;
+    const changeOldStart =
+      changeSlice.find((x) => x.oldLine !== null)?.oldLine ?? firstOld;
+    const changeNewStart =
+      changeSlice.find((x) => x.newLine !== null)?.newLine ?? firstNew;
     const oldCount = slice.filter((x) => x.type !== "+").length;
     const newCount = slice.filter((x) => x.type !== "-").length;
     const hunkAdded = changeSlice.filter((x) => x.type === "+").length;
     const hunkRemoved = changeSlice.filter((x) => x.type === "-").length;
     const header = `@@ -${firstOld},${oldCount} +${firstNew},${newCount} @@`;
     const previewLine =
-      changeSlice.find((x) => x.type === "+" && x.line.trim().length > 0)?.line.trim() ||
+      changeSlice
+        .find((x) => x.type === "+" && x.line.trim().length > 0)
+        ?.line.trim() ||
       changeSlice.find((x) => x.line.trim().length > 0)?.line.trim() ||
       "";
-    const kind = hunkAdded > 0 && hunkRemoved > 0 ? "modify" : hunkAdded > 0 ? "add" : "delete";
+    const kind =
+      hunkAdded > 0 && hunkRemoved > 0
+        ? "modify"
+        : hunkAdded > 0
+          ? "add"
+          : "delete";
 
     outLines.push(header);
     for (const s of slice) outLines.push(`${s.type}${s.line}`);
@@ -1273,10 +1698,16 @@ export function computeDiffHunks(
  * Reconstructs the text resulting from applying ONLY `selectedHunkIds` (an Array, Set, or single number of 0-based hunk IDs)
  * from the diff between `oldText` and `newText`, keeping unselected hunks untouched from `oldText`.
  */
-export function applySelectedDiffHunks(oldText, newText, selectedHunkIds, options = {}) {
+export function applySelectedDiffHunks(
+  oldText,
+  newText,
+  selectedHunkIds,
+  options = {},
+) {
   const rawOld = String(oldText ?? "").replace(/\r\n/g, "\n");
   const rawNew = String(newText ?? "").replace(/\r\n/g, "\n");
-  const preserveTrailingNewline = rawOld.endsWith("\n") && !rawNew.endsWith("\n") && rawNew.length > 0;
+  const preserveTrailingNewline =
+    rawOld.endsWith("\n") && !rawNew.endsWith("\n") && rawNew.length > 0;
   const normOld = rawOld;
   const normNew = preserveTrailingNewline ? `${rawNew}\n` : rawNew;
   const diffRes = computeDiffHunks(normOld, normNew, options);
@@ -1295,7 +1726,8 @@ export function applySelectedDiffHunks(oldText, newText, selectedHunkIds, option
   const selectedSet = new Set(
     typeof selectedHunkIds === "number"
       ? [selectedHunkIds]
-      : selectedHunkIds && typeof selectedHunkIds[Symbol.iterator] === "function"
+      : selectedHunkIds &&
+          typeof selectedHunkIds[Symbol.iterator] === "function"
         ? Array.from(selectedHunkIds, (id) => Number(id))
         : [],
   );
@@ -1331,7 +1763,9 @@ export function applySelectedDiffHunks(oldText, newText, selectedHunkIds, option
     }
   }
 
-  const appliedHunkIds = diffRes.hunks.filter((h) => selectedSet.has(h.id)).map((h) => h.id);
+  const appliedHunkIds = diffRes.hunks
+    .filter((h) => selectedSet.has(h.id))
+    .map((h) => h.id);
   return {
     text: outLines.join("\n"),
     appliedCount: appliedHunkIds.length,
@@ -1380,10 +1814,17 @@ function countLineBracesOutsideStrings(line) {
  * - Else if `proposedCode` is a short partial snippet in a large file that does not match the file's structure, returns `mode: "snippet"` so it isn't diffed as a destructive whole-file wipe.
  * - Otherwise targets the full `fileText`.
  */
-export function locateTargetRangeInFile(fileText, proposedCode, selectionInfo = null) {
+export function locateTargetRangeInFile(
+  fileText,
+  proposedCode,
+  selectionInfo = null,
+) {
   const rawFile = String(fileText ?? "");
   const normFile = rawFile.replace(/\r\n/g, "\n");
-  const normProp = String(proposedCode ?? "").replace(/\r\n/g, "\n").replace(/^\n+/, "").replace(/\n+$/, "");
+  const normProp = String(proposedCode ?? "")
+    .replace(/\r\n/g, "\n")
+    .replace(/^\n+/, "")
+    .replace(/\n+$/, "");
 
   if (selectionInfo?.hasSelection && selectionInfo.end > selectionInfo.start) {
     return {
@@ -1399,7 +1840,11 @@ export function locateTargetRangeInFile(fileText, proposedCode, selectionInfo = 
   const fileLines = normFile.split("\n");
   const propLines = normProp.split("\n");
 
-  if (rawFile.trim() && propLines.length >= 2 && fileLines.length >= propLines.length + 1) {
+  if (
+    rawFile.trim() &&
+    propLines.length >= 2 &&
+    fileLines.length >= propLines.length + 1
+  ) {
     // Skip leading comment/JSDoc lines in propLines to locate the primary declaration or anchor line
     let firstCodeIdx = 0;
     let inBlockComment = false;
@@ -1418,11 +1863,21 @@ export function locateTargetRangeInFile(fileText, proposedCode, selectionInfo = 
       firstCodeIdx = i;
       break;
     }
-    const firstNonEmpty = propLines[firstCodeIdx]?.trim() || propLines.find((l) => l.trim().length > 0)?.trim() || "";
-    const lastNonEmpty = [...propLines].reverse().find((l) => l.trim().length > 0)?.trim() || "";
-    const declRe = /^(?:export\s+)?(?:default\s+)?(?:async\s+)?(?:function\*?|class|const|let|var|interface|type|enum|def|fn|pub\s+fn|func)\s+([A-Za-z_$][\w$]*)/;
-    const methodRe = /^(?:(?:public|private|protected|static|async|get|set)\s+)*([A-Za-z_$][\w$]*)\s*\([^;]*\)\s*(?::\s*[^{]+)?\{/;
-    const propDeclMatch = declRe.exec(firstNonEmpty) || methodRe.exec(firstNonEmpty);
+    const firstNonEmpty =
+      propLines[firstCodeIdx]?.trim() ||
+      propLines.find((l) => l.trim().length > 0)?.trim() ||
+      "";
+    const lastNonEmpty =
+      [...propLines]
+        .reverse()
+        .find((l) => l.trim().length > 0)
+        ?.trim() || "";
+    const declRe =
+      /^(?:export\s+)?(?:default\s+)?(?:async\s+)?(?:function\*?|class|const|let|var|interface|type|enum|def|fn|pub\s+fn|func)\s+([A-Za-z_$][\w$]*)/;
+    const methodRe =
+      /^(?:(?:public|private|protected|static|async|get|set)\s+)*([A-Za-z_$][\w$]*)\s*\([^;]*\)\s*(?::\s*[^{]+)?\{/;
+    const propDeclMatch =
+      declRe.exec(firstNonEmpty) || methodRe.exec(firstNonEmpty);
 
     const candidates = [];
     for (let i = 0; i < fileLines.length; i++) {
@@ -1438,17 +1893,23 @@ export function locateTargetRangeInFile(fileText, proposedCode, selectionInfo = 
 
     if (candidates.length >= 1) {
       const caretLine = selectionInfo?.startLine || 1;
-      candidates.sort((a, b) => Math.abs(a + 1 - caretLine) - Math.abs(b + 1 - caretLine));
+      candidates.sort(
+        (a, b) => Math.abs(a + 1 - caretLine) - Math.abs(b + 1 - caretLine),
+      );
       let sIdx = candidates[0];
       let eIdx = -1;
 
       // Strategy A: Brace depth matching for brace-delimited blocks
-      const opensBraceNearStart = fileLines.slice(sIdx, Math.min(fileLines.length, sIdx + 3)).some((l) => l.includes("{"));
+      const opensBraceNearStart = fileLines
+        .slice(sIdx, Math.min(fileLines.length, sIdx + 3))
+        .some((l) => l.includes("{"));
       if (opensBraceNearStart && lastNonEmpty.endsWith("}")) {
         let depth = 0;
         let sawOpen = false;
         for (let i = sIdx; i < fileLines.length; i++) {
-          const { delta, sawOpen: lineOpened } = countLineBracesOutsideStrings(fileLines[i]);
+          const { delta, sawOpen: lineOpened } = countLineBracesOutsideStrings(
+            fileLines[i],
+          );
           if (lineOpened) sawOpen = true;
           depth += delta;
           if (sawOpen && depth <= 0) {
@@ -1460,7 +1921,10 @@ export function locateTargetRangeInFile(fileText, proposedCode, selectionInfo = 
 
       // Strategy B: Matching closing line within a reasonable window
       if (eIdx < 0 && lastNonEmpty.length >= 1) {
-        const maxScan = Math.min(fileLines.length - 1, sIdx + Math.max(propLines.length * 2, propLines.length + 12));
+        const maxScan = Math.min(
+          fileLines.length - 1,
+          sIdx + Math.max(propLines.length * 2, propLines.length + 12),
+        );
         for (let i = sIdx + 1; i <= maxScan; i++) {
           if (fileLines[i].trim() === lastNonEmpty) {
             eIdx = i;
@@ -1473,7 +1937,12 @@ export function locateTargetRangeInFile(fileText, proposedCode, selectionInfo = 
       if (firstCodeIdx > 0 && sIdx > 0) {
         while (sIdx > 0) {
           const prevTrim = fileLines[sIdx - 1].trim();
-          if (prevTrim.startsWith("//") || prevTrim.startsWith("/*") || prevTrim.startsWith("*") || prevTrim.endsWith("*/")) {
+          if (
+            prevTrim.startsWith("//") ||
+            prevTrim.startsWith("/*") ||
+            prevTrim.startsWith("*") ||
+            prevTrim.endsWith("*/")
+          ) {
             sIdx--;
           } else {
             break;
@@ -1502,8 +1971,13 @@ export function locateTargetRangeInFile(fileText, proposedCode, selectionInfo = 
 
     // If no subblock matched and the proposed snippet is much shorter than the file without sharing top/bottom lines,
     // treat it as a standalone snippet to insert at cursor rather than wiping the whole file.
-    const firstFileLine = fileLines.find((l) => l.trim().length > 0)?.trim() || "";
-    const lastFileLine = [...fileLines].reverse().find((l) => l.trim().length > 0)?.trim() || "";
+    const firstFileLine =
+      fileLines.find((l) => l.trim().length > 0)?.trim() || "";
+    const lastFileLine =
+      [...fileLines]
+        .reverse()
+        .find((l) => l.trim().length > 0)
+        ?.trim() || "";
     if (
       fileLines.length >= 12 &&
       propLines.length < fileLines.length * 0.5 &&
@@ -1538,13 +2012,23 @@ export function locateTargetRangeInFile(fileText, proposedCode, selectionInfo = 
  * returns [{ from, to, color }].
  */
 export function findLineColors(line) {
-  if (!line || line.length > 500 || (!line.includes("#") && !/rgba?\(|hsla?\(/i.test(line))) return [];
+  if (
+    !line ||
+    line.length > 500 ||
+    (!line.includes("#") && !/rgba?\(|hsla?\(/i.test(line))
+  )
+    return [];
   const out = [];
-  const re = /#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b|(?:rgba?|hsla?)\(\s*\d{1,3}\s*,\s*\d{1,3}%?\s*,\s*\d{1,3}%?(?:\s*[,/]\s*[0-9.]+)?\s*\)/g;
+  const re =
+    /#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b|(?:rgba?|hsla?)\(\s*\d{1,3}\s*,\s*\d{1,3}%?\s*,\s*\d{1,3}%?(?:\s*[,/]\s*[0-9.]+)?\s*\)/g;
   for (let m = re.exec(line); m !== null; m = re.exec(line)) {
     const parsed = parseHexColor(m[0]) ?? parseRgbOrHsl(m[0]);
     if (parsed) {
-      out.push({ from: m.index, to: m.index + m[0].length, color: formatColorFormats(parsed).hex });
+      out.push({
+        from: m.index,
+        to: m.index + m[0].length,
+        color: formatColorFormats(parsed).hex,
+      });
     }
   }
   return out;
@@ -1579,7 +2063,8 @@ export function detectFoldableRanges(text, lang = "plain") {
         }
       }
       while (endLine > cur.line && !lines[endLine - 1]?.trim()) endLine--;
-      if (endLine > cur.line) ranges.push({ startLine: cur.line, endLine, label: cur.label });
+      if (endLine > cur.line)
+        ranges.push({ startLine: cur.line, endLine, label: cur.label });
     }
     return ranges;
   }
@@ -1593,14 +2078,23 @@ export function detectFoldableRanges(text, lang = "plain") {
     for (let c = 0; c < line.length; c++) {
       const ch = line[c];
       if (ch === "{" || ch === "[") {
-        stack.push({ ch, close: ch === "{" ? "}" : "]", startLine: i + 1, label: trimmed.slice(0, 48) });
+        stack.push({
+          ch,
+          close: ch === "{" ? "}" : "]",
+          startLine: i + 1,
+          label: trimmed.slice(0, 48),
+        });
       } else if (ch === "}" || ch === "]") {
         for (let s = stack.length - 1; s >= 0; s--) {
           if (stack[s].close === ch) {
             const top = stack.splice(s)[0];
             if (i + 1 > top.startLine) {
               if (!ranges.some((r) => r.startLine === top.startLine)) {
-                ranges.push({ startLine: top.startLine, endLine: i + 1, label: top.label });
+                ranges.push({
+                  startLine: top.startLine,
+                  endLine: i + 1,
+                  label: top.label,
+                });
               }
             }
             break;
@@ -1633,7 +2127,12 @@ export function detectFoldableRanges(text, lang = "plain") {
           if (indentOf(lines[k]) <= base) break;
           end = k;
         }
-        if (end > i) ranges.push({ startLine: i + 1, endLine: end + 1, label: lines[i].trim().slice(0, 48) });
+        if (end > i)
+          ranges.push({
+            startLine: i + 1,
+            endLine: end + 1,
+            label: lines[i].trim().slice(0, 48),
+          });
       }
     }
   }
@@ -1671,7 +2170,12 @@ export function diagnoseSyntax(text, lang = "plain") {
       } else {
         // Fallback: check trailing comma or bracket mismatch
         for (let i = 0; i < lines.length; i++) {
-          if (/,\s*[}\]]/.test(lines[i]) || (i + 1 < lines.length && /,\s*$/.test(lines[i]) && /^\s*[}\]]/.test(lines[i + 1]))) {
+          if (
+            /,\s*[}\]]/.test(lines[i]) ||
+            (i + 1 < lines.length &&
+              /,\s*$/.test(lines[i]) &&
+              /^\s*[}\]]/.test(lines[i + 1]))
+          ) {
             line = i + 1;
             col = Math.max(1, lines[i].lastIndexOf(",") + 1);
             break;
@@ -1705,7 +2209,22 @@ export function diagnoseSyntax(text, lang = "plain") {
     return diags;
   }
 
-  const codeLangs = new Set(["javascript", "typescript", "v", "c", "cpp", "rust", "go", "java", "csharp", "css", "python", "php", "swift", "kotlin"]);
+  const codeLangs = new Set([
+    "javascript",
+    "typescript",
+    "v",
+    "c",
+    "cpp",
+    "rust",
+    "go",
+    "java",
+    "csharp",
+    "css",
+    "python",
+    "php",
+    "swift",
+    "kotlin",
+  ]);
   if (!codeLangs.has(lang)) return diags;
 
   // Scan for unmatched brackets (), [], {} outside strings and comments
@@ -1722,24 +2241,43 @@ export function diagnoseSyntax(text, lang = "plain") {
       const ch = line[c];
       const next = line[c + 1];
       if (inBlockComment) {
-        if (ch === "*" && next === "/") { inBlockComment = false; c++; }
+        if (ch === "*" && next === "/") {
+          inBlockComment = false;
+          c++;
+        }
         continue;
       }
       if (inTemplate) {
-        if (ch === "\\") { c++; continue; }
+        if (ch === "\\") {
+          c++;
+          continue;
+        }
         if (ch === "`") inTemplate = false;
         continue;
       }
       if (inString) {
-        if (ch === "\\") { c++; continue; }
+        if (ch === "\\") {
+          c++;
+          continue;
+        }
         if (ch === inString) inString = "";
         continue;
       }
       if (ch === "/" && next === "/") break;
       if (lang === "python" && ch === "#") break;
-      if (ch === "/" && next === "*") { inBlockComment = true; c++; continue; }
-      if (ch === "`") { inTemplate = true; continue; }
-      if (ch === '"' || ch === "'") { inString = ch; continue; }
+      if (ch === "/" && next === "*") {
+        inBlockComment = true;
+        c++;
+        continue;
+      }
+      if (ch === "`") {
+        inTemplate = true;
+        continue;
+      }
+      if (ch === '"' || ch === "'") {
+        inString = ch;
+        continue;
+      }
       if (pairs[ch]) {
         stack.push({ ch, expected: pairs[ch], line: i + 1, col: c + 1 });
       } else if (closers.has(ch)) {
@@ -1749,7 +2287,9 @@ export function diagnoseSyntax(text, lang = "plain") {
             line: i + 1,
             col: c + 1,
             endCol: c + 2,
-            message: last ? `Mismatched bracket '${ch}' (expected '${last.expected}' for '${last.ch}' on line ${last.line}).` : `Unexpected closing bracket '${ch}'.`,
+            message: last
+              ? `Mismatched bracket '${ch}' (expected '${last.expected}' for '${last.ch}' on line ${last.line}).`
+              : `Unexpected closing bracket '${ch}'.`,
             severity: "error",
           });
         }
@@ -1774,7 +2314,12 @@ export function diagnoseSyntax(text, lang = "plain") {
  */
 export function computeGutterLineChanges(savedText, currentText) {
   const changes = new Map();
-  if (savedText === currentText || savedText === undefined || savedText === null) return changes;
+  if (
+    savedText === currentText ||
+    savedText === undefined ||
+    savedText === null
+  )
+    return changes;
   const diff = computeLineDiff(savedText, currentText, { context: 0 });
   for (const hunk of diff.hunks) {
     let sawMinus = false;
@@ -1803,9 +2348,11 @@ export function editAllOccurrences(text, start, end, replacement) {
     const w = wordAt(text, start);
     if (w) target = text.slice(w.selStart, w.selEnd);
   }
-  if (!target) return { message: "Select text or place the cursor on a word first." };
+  if (!target)
+    return { message: "Select text or place the cursor on a word first." };
   const rep = String(replacement ?? "");
-  if (rep === target) return { message: "Replacement is identical to the current text." };
+  if (rep === target)
+    return { message: "Replacement is identical to the current text." };
   const parts = text.split(target);
   const count = parts.length - 1;
   if (count <= 0) return { message: "No occurrences found." };
@@ -1824,17 +2371,30 @@ export function editAllOccurrences(text, start, end, replacement) {
 /**
  * Adds `prefix` and/or `suffix` to every line in the selection (or the current line when nothing is selected).
  */
-export function addLinePrefixSuffix(text, start, end, prefixOrOpts = "", maybeSuffix = "") {
+export function addLinePrefixSuffix(
+  text,
+  start,
+  end,
+  prefixOrOpts = "",
+  maybeSuffix = "",
+) {
   const isObj = typeof prefixOrOpts === "object" && prefixOrOpts !== null;
-  const pre = String(isObj ? (prefixOrOpts.prefix ?? "") : (prefixOrOpts ?? ""));
+  const pre = String(
+    isObj ? (prefixOrOpts.prefix ?? "") : (prefixOrOpts ?? ""),
+  );
   const suf = String(isObj ? (prefixOrOpts.suffix ?? "") : (maybeSuffix ?? ""));
   const skipEmpty = isObj ? Boolean(prefixOrOpts.skipEmpty) : false;
   if (!pre && !suf) return { message: "No prefix or suffix given." };
   const ls = lineStart(text, start);
-  const le = lineEnd(text, end > start && text[end - 1] === "\n" ? end - 1 : end);
+  const le = lineEnd(
+    text,
+    end > start && text[end - 1] === "\n" ? end - 1 : end,
+  );
   const block = text.slice(ls, le);
   const lines = block.split("\n");
-  const updated = lines.map((line) => (skipEmpty && !line.trim() ? line : `${pre}${line}${suf}`)).join("\n");
+  const updated = lines
+    .map((line) => (skipEmpty && !line.trim() ? line : `${pre}${line}${suf}`))
+    .join("\n");
   return {
     from: ls,
     to: le,
@@ -1848,13 +2408,22 @@ export function addLinePrefixSuffix(text, start, end, prefixOrOpts = "", maybeSu
 /**
  * Prepends sequential line numbers (1. , 2. , ...) to every line in the selection (or all lines if nothing is selected).
  */
-export function numberSelectedLines(text, start, end, { startAt = 1, step = 1, separator = ". " } = {}) {
+export function numberSelectedLines(
+  text,
+  start,
+  end,
+  { startAt = 1, step = 1, separator = ". " } = {},
+) {
   const hasSel = start < end;
   const ls = hasSel ? lineStart(text, start) : 0;
-  const le = hasSel ? lineEnd(text, text[end - 1] === "\n" ? end - 1 : end) : text.length;
+  const le = hasSel
+    ? lineEnd(text, text[end - 1] === "\n" ? end - 1 : end)
+    : text.length;
   const block = text.slice(ls, le);
   const lines = block.split("\n");
-  const updated = lines.map((line, idx) => `${startAt + idx * step}${separator}${line}`).join("\n");
+  const updated = lines
+    .map((line, idx) => `${startAt + idx * step}${separator}${line}`)
+    .join("\n");
   return {
     from: ls,
     to: le,
@@ -1864,4 +2433,3 @@ export function numberSelectedLines(text, start, end, { startAt = 1, step = 1, s
     message: `Numbered ${lines.length} ${lines.length === 1 ? "line" : "lines"}.`,
   };
 }
-

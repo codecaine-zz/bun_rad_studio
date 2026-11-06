@@ -29,123 +29,242 @@ export const STUDIO_SHORTCUTS_STYLE = `
 
 function studioShortcutsClient() {
   if (window.StudioShortcuts) return;
-  const isMac = /Mac|iPhone|iPad/i.test((navigator && (navigator.platform || navigator.userAgent)) || "");
+  const isMac = /Mac|iPhone|iPad/i.test(
+    (navigator && (navigator.platform || navigator.userAgent)) || "",
+  );
   const MOD = isMac ? "\u2318" : "Ctrl";
   const groups = [];
   const add = (group, keys, desc) => {
     let g = groups.find((x) => x.name === group);
-    if (!g) { g = { name: group, items: [] }; groups.push(g); }
+    if (!g) {
+      g = { name: group, items: [] };
+      groups.push(g);
+    }
     if (!g.items.some((i) => i.keys === keys)) g.items.push({ keys, desc });
   };
   const fmt = (keys) => String(keys).replace(/\bMod\b/g, MOD);
 
-  add("Visual Query Designer", "Mod+Enter", "Run the query (Design / Datasheet) or the SQL as written (SQL view)");
-  add("Visual Query Designer", "F5", "Run the query, same as Mod+Enter (the page does not reload)");
+  add(
+    "Visual Query Designer",
+    "Mod+Enter",
+    "Run the query (Design / Datasheet) or the SQL as written (SQL view)",
+  );
+  add(
+    "Visual Query Designer",
+    "F5",
+    "Run the query, same as Mod+Enter (the page does not reload)",
+  );
   add("Macro Automation", "Mod+Enter", "Run the current macro");
   add("Macro Automation", "F5", "Run the current macro, same as Mod+Enter");
   add("SQL console", "Mod+Enter", "Run the statement in the SQL editor");
   add("Everywhere", "Mod+/", "Show this list (F1 works too)");
-  add("Everywhere", "Esc", "Close the open dialog, menu or popover (only that one)");
+  add(
+    "Everywhere",
+    "Esc",
+    "Close the open dialog, menu or popover (only that one)",
+  );
   add("Window", "F11", "Toggle the application window's full screen");
-  add("Window", "Right Option+/", "Toggle the application window's full screen (Esc never leaves it)");
+  add(
+    "Window",
+    "Right Option+/",
+    "Toggle the application window's full screen (Esc never leaves it)",
+  );
   add("Window", "Right Option+]", "Next theme");
   add("Window", "Right Option+[", "Previous theme");
-  add("Window", "Mod+Q", "Quit the desktop app, including from inputs and dialogs");
+  add(
+    "Window",
+    "Mod+Q",
+    "Quit the desktop app, including from inputs and dialogs",
+  );
 
   function dialogOpen() {
-    if (window.StudioDialogs && window.StudioDialogs.isOpen && window.StudioDialogs.isOpen()) return true;
+    if (
+      window.StudioDialogs &&
+      window.StudioDialogs.isOpen &&
+      window.StudioDialogs.isOpen()
+    )
+      return true;
     if (!document.querySelector) return false;
-    if (document.querySelector(".modal-overlay.open, .modal-overlay.active, .modal-backdrop.active, .stg-overlay:not([hidden]), .crud-menu, .sc-menu, .sc-pop, #studioSqlHistoryDrawer.open, #studioRowInspector.open")) return true;
+    if (
+      document.querySelector(
+        ".modal-overlay.open, .modal-overlay.active, .modal-backdrop.active, .stg-overlay:not([hidden]), .crud-menu, .sc-menu, .sc-pop, #studioSqlHistoryDrawer.open, #studioRowInspector.open",
+      )
+    )
+      return true;
     const sug = document.getElementById("studioSqlSuggest");
-    if (sug && sug.style && sug.style.display !== "none" && sug.children && sug.children.length > 0) return true;
+    if (
+      sug &&
+      sug.style &&
+      sug.style.display !== "none" &&
+      sug.children &&
+      sug.children.length > 0
+    )
+      return true;
     return false;
   }
 
   // What the Run button does for the view that is showing
   window.runDesignerActive = function () {
-    const st = typeof queryDesignerState !== "undefined" ? queryDesignerState : null;
-    if (st && st.activeView === "sql" && typeof runCustomDesignerSql === "function") return runCustomDesignerSql();
+    const st =
+      typeof queryDesignerState !== "undefined" ? queryDesignerState : null;
+    if (
+      st &&
+      st.activeView === "sql" &&
+      typeof runCustomDesignerSql === "function"
+    )
+      return runCustomDesignerSql();
     if (typeof runDesignerQuery === "function") return runDesignerQuery();
   };
 
-  function designerShowing() { try { return typeof activeTab !== "undefined" && activeTab === "designer"; } catch (e) { return false; } }
+  function designerShowing() {
+    try {
+      return typeof activeTab !== "undefined" && activeTab === "designer";
+    } catch (e) {
+      return false;
+    }
+  }
   function macrosShowing() {
     try {
-      if (typeof activeTab !== "undefined" && activeTab === "macros") return true;
-      const pane = document.getElementById && document.getElementById("tabMacros");
-      return Boolean(pane && pane.classList && pane.classList.contains("active"));
+      if (typeof activeTab !== "undefined" && activeTab === "macros")
+        return true;
+      const pane =
+        document.getElementById && document.getElementById("tabMacros");
+      return Boolean(
+        pane && pane.classList && pane.classList.contains("active"),
+      );
     } catch (e) {
       return false;
     }
   }
 
-  window.addEventListener("keydown", (e) => {
-    const mod = e.metaKey || e.ctrlKey;
-    const k = String(e.key || "").toLowerCase();
-    const isCloseChord = ((mod && !e.altKey && !e.shiftKey) && (k === "q" || k === "w" || e.code === "KeyQ" || e.code === "KeyW")) ||
-      (e.altKey && !mod && !e.shiftKey && (e.key === "F4" || e.code === "F4" || k === "q" || k === "w" || e.code === "KeyQ" || e.code === "KeyW"));
-    if (isCloseChord && window.parent && window.parent !== window) {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      if (e.repeat || e.isComposing) return;
-      try { window.top.postMessage({ fmCloseApp: true }, "*"); } catch (_) {}
-      if (window.parent !== window.top) {
-        try { window.parent.postMessage({ fmCloseApp: true }, "*"); } catch (_) {}
-      }
-      return;
-    }
-    const isF11 = e.key === "F11" || e.code === "F11" || e.key === "\uF70E" || e.keyCode === 122;
-    const isExpandChord = isF11 || (e.ctrlKey && e.metaKey && !e.altKey && (k === "f" || e.code === "KeyF")) || (mod && e.shiftKey && !e.altKey && (k === "u" || e.code === "KeyU"));
-    if (isExpandChord) {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      if (e.repeat || e.isComposing) return;
-      if (window.parent && window.parent !== window) {
-        try { window.top.postMessage({ fmToggleExpand: true }, "*"); } catch (_) {}
-      } else if (typeof window.doToggleFullscreen === "function") {
-        window.doToggleFullscreen();
-      } else if (typeof window.toggleNativeFullscreen === "function") {
-        try { window.toggleNativeFullscreen(); } catch (_) {}
-      }
-      return;
-    }
-    const run = (mod && !e.altKey && !e.shiftKey && e.key === "Enter") || (e.key === "F5" && !mod && !e.altKey && !e.shiftKey);
-    if (run && designerShowing()) {
-      if (dialogOpen()) return;
-      // consume: the console handler, the textarea's inline handler and the browser's reload must not run
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      if (e.repeat || e.isComposing) return;
-      window.runDesignerActive();
-      return;
-    }
-    if (run && macrosShowing()) {
-      if (dialogOpen()) return;
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      if (e.repeat || e.isComposing) return;
-      if (document.activeElement && typeof document.activeElement.dispatchEvent === "function") {
+  window.addEventListener(
+    "keydown",
+    (e) => {
+      const mod = e.metaKey || e.ctrlKey;
+      const k = String(e.key || "").toLowerCase();
+      const isCloseChord =
+        (mod &&
+          !e.altKey &&
+          !e.shiftKey &&
+          (k === "q" || k === "w" || e.code === "KeyQ" || e.code === "KeyW")) ||
+        (e.altKey &&
+          !mod &&
+          !e.shiftKey &&
+          (e.key === "F4" ||
+            e.code === "F4" ||
+            k === "q" ||
+            k === "w" ||
+            e.code === "KeyQ" ||
+            e.code === "KeyW"));
+      if (isCloseChord && window.parent && window.parent !== window) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        if (e.repeat || e.isComposing) return;
         try {
-          document.activeElement.dispatchEvent(new Event("input", { bubbles: true }));
-          document.activeElement.dispatchEvent(new Event("change", { bubbles: true }));
+          window.top.postMessage({ fmCloseApp: true }, "*");
         } catch (_) {}
+        if (window.parent !== window.top) {
+          try {
+            window.parent.postMessage({ fmCloseApp: true }, "*");
+          } catch (_) {}
+        }
+        return;
       }
-      if (typeof window.runCurrentMacro === "function") window.runCurrentMacro(false);
-      else if (typeof runCurrentMacro === "function") runCurrentMacro(false);
-      return;
-    }
-    if ((mod && e.key === "/") || (e.key === "F1" && !mod)) {
-      if (dialogOpen()) return;
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      show();
-    }
-  }, true);
+      const isF11 =
+        e.key === "F11" ||
+        e.code === "F11" ||
+        e.key === "\uF70E" ||
+        e.keyCode === 122;
+      const isExpandChord =
+        isF11 ||
+        (e.ctrlKey &&
+          e.metaKey &&
+          !e.altKey &&
+          (k === "f" || e.code === "KeyF")) ||
+        (mod && e.shiftKey && !e.altKey && (k === "u" || e.code === "KeyU"));
+      if (isExpandChord) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        if (e.repeat || e.isComposing) return;
+        if (window.parent && window.parent !== window) {
+          try {
+            window.top.postMessage({ fmToggleExpand: true }, "*");
+          } catch (_) {}
+        } else if (typeof window.doToggleFullscreen === "function") {
+          window.doToggleFullscreen();
+        } else if (typeof window.toggleNativeFullscreen === "function") {
+          try {
+            window.toggleNativeFullscreen();
+          } catch (_) {}
+        }
+        return;
+      }
+      const run =
+        (mod && !e.altKey && !e.shiftKey && e.key === "Enter") ||
+        (e.key === "F5" && !mod && !e.altKey && !e.shiftKey);
+      if (run && designerShowing()) {
+        if (dialogOpen()) return;
+        // consume: the console handler, the textarea's inline handler and the browser's reload must not run
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        if (e.repeat || e.isComposing) return;
+        window.runDesignerActive();
+        return;
+      }
+      if (run && macrosShowing()) {
+        if (dialogOpen()) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        if (e.repeat || e.isComposing) return;
+        if (
+          document.activeElement &&
+          typeof document.activeElement.dispatchEvent === "function"
+        ) {
+          try {
+            document.activeElement.dispatchEvent(
+              new Event("input", { bubbles: true }),
+            );
+            document.activeElement.dispatchEvent(
+              new Event("change", { bubbles: true }),
+            );
+          } catch (_) {}
+        }
+        if (typeof window.runCurrentMacro === "function")
+          window.runCurrentMacro(false);
+        else if (typeof runCurrentMacro === "function") runCurrentMacro(false);
+        return;
+      }
+      if ((mod && e.key === "/") || (e.key === "F1" && !mod)) {
+        if (dialogOpen()) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        show();
+      }
+    },
+    true,
+  );
 
   window.addEventListener("keydown", (e) => {
-    if (e.key !== "Escape" || e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
-    if (e.target && e.target.classList && e.target.classList.contains("crud-inline")) return;
-    const openModals = document.querySelectorAll ? document.querySelectorAll(".modal-overlay.open, .modal-overlay.active, .modal-backdrop.active") : [];
+    if (
+      e.key !== "Escape" ||
+      e.defaultPrevented ||
+      e.metaKey ||
+      e.ctrlKey ||
+      e.altKey ||
+      e.shiftKey
+    )
+      return;
+    if (
+      e.target &&
+      e.target.classList &&
+      e.target.classList.contains("crud-inline")
+    )
+      return;
+    const openModals = document.querySelectorAll
+      ? document.querySelectorAll(
+          ".modal-overlay.open, .modal-overlay.active, .modal-backdrop.active",
+        )
+      : [];
     if (openModals.length > 0) {
       const topModal = openModals[openModals.length - 1];
       topModal.classList.remove("open", "active");
@@ -155,31 +274,61 @@ function studioShortcutsClient() {
     }
     if (!dialogOpen() && window.parent && window.parent !== window) {
       e.preventDefault();
-      try { window.top.postMessage({ fmEscapeExpand: true }, "*"); } catch (_) {}
+      try {
+        window.top.postMessage({ fmEscapeExpand: true }, "*");
+      } catch (_) {}
     }
   });
 
   function show() {
     const D = window.StudioDialogs;
     if (!D) return null;
-    const body = D.el("div", null, ...groups.flatMap((g) => [
-      D.el("h3", { class: "ss-sc-group" }, g.name),
-      D.el("dl", { class: "ss-sc-list" }, ...g.items.flatMap((i) => [
-        D.el("dt", null, ...fmt(i.keys).split("+").map((k) => D.el("kbd", { class: "ss-key" }, k))),
-        D.el("dd", null, fmt(i.desc)),
-      ])),
-    ]));
-    const ctl = D.open({ title: "Keyboard shortcuts", body, buttons: [{ label: "Close", kind: "primary", id: "ssClose", onClick: (c) => c.close(null) }] });
+    const body = D.el(
+      "div",
+      null,
+      ...groups.flatMap((g) => [
+        D.el("h3", { class: "ss-sc-group" }, g.name),
+        D.el(
+          "dl",
+          { class: "ss-sc-list" },
+          ...g.items.flatMap((i) => [
+            D.el(
+              "dt",
+              null,
+              ...fmt(i.keys)
+                .split("+")
+                .map((k) => D.el("kbd", { class: "ss-key" }, k)),
+            ),
+            D.el("dd", null, fmt(i.desc)),
+          ]),
+        ),
+      ]),
+    );
+    const ctl = D.open({
+      title: "Keyboard shortcuts",
+      body,
+      buttons: [
+        {
+          label: "Close",
+          kind: "primary",
+          id: "ssClose",
+          onClick: (c) => c.close(null),
+        },
+      ],
+    });
     ctl.node.setAttribute("data-ss-dialog", "shortcuts");
     return ctl;
   }
 
   // The Run button shows its shortcut; the designers call StudioShortcuts.runHint() while rendering
-  const runHint = () => '<span class="ss-kbd" aria-hidden="true">' + MOD + "+Enter</span>";
-  const runTitle = (t) => (t || "Run query and view Datasheet") + " (" + MOD + "+Enter or F5)";
+  const runHint = () =>
+    '<span class="ss-kbd" aria-hidden="true">' + MOD + "+Enter</span>";
+  const runTitle = (t) =>
+    (t || "Run query and view Datasheet") + " (" + MOD + "+Enter or F5)";
 
   function mountButton() {
-    if (!document.querySelector || document.getElementById("btnShortcuts")) return;
+    if (!document.querySelector || document.getElementById("btnShortcuts"))
+      return;
     const make = (id, cls, text) => {
       const b = document.createElement("button");
       b.type = "button";
@@ -194,13 +343,32 @@ function studioShortcutsClient() {
     };
     const anchor = document.getElementById("btnFullscreen");
     const host = anchor ? anchor.parentNode : document.querySelector("header");
-    if (host) host.insertBefore(make("btnShortcuts", "btn ss-btn", "\u2328 Shortcuts"), anchor || null);
+    if (host)
+      host.insertBefore(
+        make("btnShortcuts", "btn ss-btn", "\u2328 Shortcuts"),
+        anchor || null,
+      );
     // the header can be wider than a narrow window: the footer always shows a way in as well
-    const left = document.querySelector("footer > div") || (document.getElementById("footerClock") || {}).parentNode;
-    if (left) { const f = make("btnShortcutsFooter", "ss-foot-btn", "\u2328 Shortcuts"); f.style.marginLeft = "12px"; left.appendChild(f); }
+    const left =
+      document.querySelector("footer > div") ||
+      (document.getElementById("footerClock") || {}).parentNode;
+    if (left) {
+      const f = make("btnShortcutsFooter", "ss-foot-btn", "\u2328 Shortcuts");
+      f.style.marginLeft = "12px";
+      left.appendChild(f);
+    }
   }
 
-  window.StudioShortcuts = { add, show, runHint, runTitle, isMac, mod: MOD, mountButton, groups };
+  window.StudioShortcuts = {
+    add,
+    show,
+    runHint,
+    runTitle,
+    isMac,
+    mod: MOD,
+    mountButton,
+    groups,
+  };
   mountButton();
 }
 

@@ -1,5 +1,14 @@
 import { createHash } from "crypto";
-import { chmodSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "fs";
+import {
+  chmodSync,
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from "fs";
 import { dirname, join, posix } from "path";
 import { VERSION, xmlEscape } from "./common";
 
@@ -7,7 +16,10 @@ export const APPSTREAM_ID = "io.github.codecaine_zz.CodecaineFileManager";
 export const DEB_PACKAGE_NAME = "codecaine-file-manager";
 export const DEFAULT_REPO = "codecaine-zz/bun_rad_studio";
 
-export function debFileName(arch: "amd64" | "arm64", version = VERSION): string {
+export function debFileName(
+  arch: "amd64" | "arm64",
+  version = VERSION,
+): string {
   return `${DEB_PACKAGE_NAME}_${version}_${arch}.deb`;
 }
 
@@ -21,7 +33,11 @@ export function debArchForDownload(id: string): "amd64" | "arm64" | null {
  * FreeDesktop AppStream MetaInfo XML required by GNOME Software, KDE Discover,
  * Ubuntu App Center, Linux Mint Software Manager, Pop!_OS Cosmic Store, and Flathub.
  */
-export function appStreamMetaInfoXml(version = VERSION, releaseDate = new Date().toISOString().slice(0, 10), repo = DEFAULT_REPO): string {
+export function appStreamMetaInfoXml(
+  version = VERSION,
+  releaseDate = new Date().toISOString().slice(0, 10),
+  repo = DEFAULT_REPO,
+): string {
   const v = xmlEscape(version);
   const d = xmlEscape(releaseDate);
   const r = xmlEscape(repo);
@@ -109,7 +125,12 @@ Keywords=file;manager;explorer;dual-pane;sqlite;postgres;mysql;redis;ollama;deve
 `;
 }
 
-export function debControlFile(opts: { version: string; arch: "amd64" | "arm64"; installedSizeKb: number; repo?: string }): string {
+export function debControlFile(opts: {
+  version: string;
+  arch: "amd64" | "arm64";
+  installedSizeKb: number;
+  repo?: string;
+}): string {
   const repo = opts.repo ?? DEFAULT_REPO;
   return [
     `Package: ${DEB_PACKAGE_NAME}`,
@@ -212,7 +233,12 @@ interface TarEntry {
   mtime?: number;
 }
 
-function writeOctal(buf: Uint8Array, offset: number, length: number, value: number): void {
+function writeOctal(
+  buf: Uint8Array,
+  offset: number,
+  length: number,
+  value: number,
+): void {
   const str = value.toString(8).padStart(length - 1, "0");
   for (let i = 0; i < str.length && i < length - 1; i++) {
     buf[offset + i] = str.charCodeAt(i);
@@ -220,7 +246,12 @@ function writeOctal(buf: Uint8Array, offset: number, length: number, value: numb
   buf[offset + length - 1] = 0;
 }
 
-function writeAscii(buf: Uint8Array, offset: number, length: number, text: string): void {
+function writeAscii(
+  buf: Uint8Array,
+  offset: number,
+  length: number,
+  text: string,
+): void {
   const bytes = Buffer.from(text, "utf8");
   const n = Math.min(bytes.length, length);
   buf.set(bytes.subarray(0, n), offset);
@@ -265,7 +296,10 @@ function makeTarHeader(opts: {
  * Serializes a deterministic GNU/USTAR tar archive owned by root:root (0:0).
  * Supports arbitrary path lengths via GNU `././@LongLink` headers.
  */
-export function buildTarArchive(entries: TarEntry[], defaultMtime = 1700000000): Uint8Array<ArrayBuffer> {
+export function buildTarArchive(
+  entries: TarEntry[],
+  defaultMtime = 1700000000,
+): Uint8Array<ArrayBuffer> {
   const chunks: Uint8Array[] = [];
   const pushPadded = (data: Uint8Array) => {
     chunks.push(data);
@@ -275,7 +309,10 @@ export function buildTarArchive(entries: TarEntry[], defaultMtime = 1700000000):
 
   for (const entry of entries) {
     const mtime = entry.mtime ?? defaultMtime;
-    const rawPath = entry.type === "dir" && !entry.path.endsWith("/") ? `${entry.path}/` : entry.path;
+    const rawPath =
+      entry.type === "dir" && !entry.path.endsWith("/")
+        ? `${entry.path}/`
+        : entry.path;
     const pathBytes = Buffer.from(rawPath, "utf8");
     if (pathBytes.byteLength > 99) {
       const longData = new Uint8Array(pathBytes.byteLength + 1);
@@ -344,7 +381,14 @@ export function buildTarArchive(entries: TarEntry[], defaultMtime = 1700000000):
 /**
  * Serializes a standard Unix `ar` archive used by Debian `.deb` packages.
  */
-export function buildArArchive(members: Array<{ name: string; data: Uint8Array; mtime?: number; mode?: number }>): Uint8Array {
+export function buildArArchive(
+  members: Array<{
+    name: string;
+    data: Uint8Array;
+    mtime?: number;
+    mode?: number;
+  }>,
+): Uint8Array {
   const chunks: Uint8Array[] = [Buffer.from("!<arch>\n", "ascii")];
   for (const m of members) {
     const header = Buffer.alloc(60, 0x20);
@@ -372,8 +416,23 @@ export function buildArArchive(members: Array<{ name: string; data: Uint8Array; 
   return out;
 }
 
-function collectStageFiles(rootDir: string, relDir = ""): Array<{ rel: string; full: string; isDir: boolean; mode: number; size: number }> {
-  const out: Array<{ rel: string; full: string; isDir: boolean; mode: number; size: number }> = [];
+function collectStageFiles(
+  rootDir: string,
+  relDir = "",
+): Array<{
+  rel: string;
+  full: string;
+  isDir: boolean;
+  mode: number;
+  size: number;
+}> {
+  const out: Array<{
+    rel: string;
+    full: string;
+    isDir: boolean;
+    mode: number;
+    size: number;
+  }> = [];
   const current = relDir ? join(rootDir, relDir) : rootDir;
   for (const name of readdirSync(current).sort()) {
     const rel = relDir ? posix.join(relDir, name) : name;
@@ -383,8 +442,18 @@ function collectStageFiles(rootDir: string, relDir = ""): Array<{ rel: string; f
       out.push({ rel, full, isDir: true, mode: 0o755, size: 0 });
       out.push(...collectStageFiles(rootDir, rel));
     } else if (st.isFile()) {
-      const exec = name === "codecaine-file-manager" || name.endsWith(".sh") || name.endsWith(".so") || (st.mode & 0o111) !== 0;
-      out.push({ rel, full, isDir: false, mode: exec ? 0o755 : 0o644, size: st.size });
+      const exec =
+        name === "codecaine-file-manager" ||
+        name.endsWith(".sh") ||
+        name.endsWith(".so") ||
+        (st.mode & 0o111) !== 0;
+      out.push({
+        rel,
+        full,
+        isDir: false,
+        mode: exec ? 0o755 : 0o644,
+        size: st.size,
+      });
     }
   }
   return out;
@@ -398,7 +467,12 @@ function collectStageFiles(rootDir: string, relDir = ""): Array<{ rel: string; f
 export async function buildDebPackage(
   stageDir: string,
   outDebPath: string,
-  opts: { version?: string; arch: "amd64" | "arm64"; repo?: string; iconPngPath?: string | null },
+  opts: {
+    version?: string;
+    arch: "amd64" | "arm64";
+    repo?: string;
+    iconPngPath?: string | null;
+  },
 ): Promise<string> {
   const version = opts.version ?? VERSION;
   const repo = opts.repo ?? DEFAULT_REPO;
@@ -452,23 +526,46 @@ export async function buildDebPackage(
   });
 
   // Desktop files (both reverse-DNS AppStream launchable ID and short CLI name)
-  const desktopBytes = Buffer.from(systemDesktopEntry("/usr/bin/codecaine-file-manager %U", APPSTREAM_ID), "utf8");
-  addFile(`./usr/share/applications/${APPSTREAM_ID}.desktop`, desktopBytes, 0o644);
+  const desktopBytes = Buffer.from(
+    systemDesktopEntry("/usr/bin/codecaine-file-manager %U", APPSTREAM_ID),
+    "utf8",
+  );
+  addFile(
+    `./usr/share/applications/${APPSTREAM_ID}.desktop`,
+    desktopBytes,
+    0o644,
+  );
 
   // AppStream MetaInfo XML (makes the package appear with rich GUI metadata in GNOME Software, KDE Discover, Ubuntu App Center)
-  const metainfoBytes = Buffer.from(appStreamMetaInfoXml(version, new Date().toISOString().slice(0, 10), repo), "utf8");
-  addFile(`./usr/share/metainfo/${APPSTREAM_ID}.metainfo.xml`, metainfoBytes, 0o644);
+  const metainfoBytes = Buffer.from(
+    appStreamMetaInfoXml(version, new Date().toISOString().slice(0, 10), repo),
+    "utf8",
+  );
+  addFile(
+    `./usr/share/metainfo/${APPSTREAM_ID}.metainfo.xml`,
+    metainfoBytes,
+    0o644,
+  );
 
   // Icons in hicolor + pixmaps
-  const iconCandidate = opts.iconPngPath && existsSync(opts.iconPngPath)
-    ? opts.iconPngPath
-    : existsSync(join(stageDir, "codecaine-file-manager.png"))
-      ? join(stageDir, "codecaine-file-manager.png")
-      : null;
+  const iconCandidate =
+    opts.iconPngPath && existsSync(opts.iconPngPath)
+      ? opts.iconPngPath
+      : existsSync(join(stageDir, "codecaine-file-manager.png"))
+        ? join(stageDir, "codecaine-file-manager.png")
+        : null;
   if (iconCandidate) {
     const iconBytes = new Uint8Array(readFileSync(iconCandidate));
-    addFile(`./usr/share/icons/hicolor/512x512/apps/${APPSTREAM_ID}.png`, iconBytes, 0o644);
-    addFile(`./usr/share/icons/hicolor/512x512/apps/codecaine-file-manager.png`, iconBytes, 0o644);
+    addFile(
+      `./usr/share/icons/hicolor/512x512/apps/${APPSTREAM_ID}.png`,
+      iconBytes,
+      0o644,
+    );
+    addFile(
+      `./usr/share/icons/hicolor/512x512/apps/codecaine-file-manager.png`,
+      iconBytes,
+      0o644,
+    );
     addFile(`./usr/share/pixmaps/codecaine-file-manager.png`, iconBytes, 0o644);
   }
 
@@ -480,10 +577,30 @@ export async function buildDebPackage(
   });
   const controlEntries: TarEntry[] = [
     { path: "./", mode: 0o755, type: "dir" },
-    { path: "./control", mode: 0o644, type: "file", data: Buffer.from(controlText, "utf8") },
-    { path: "./md5sums", mode: 0o644, type: "file", data: Buffer.from(md5Lines.join("\n") + "\n", "utf8") },
-    { path: "./postinst", mode: 0o755, type: "file", data: Buffer.from(debPostinstScript(), "utf8") },
-    { path: "./prerm", mode: 0o755, type: "file", data: Buffer.from(debPrermScript(), "utf8") },
+    {
+      path: "./control",
+      mode: 0o644,
+      type: "file",
+      data: Buffer.from(controlText, "utf8"),
+    },
+    {
+      path: "./md5sums",
+      mode: 0o644,
+      type: "file",
+      data: Buffer.from(md5Lines.join("\n") + "\n", "utf8"),
+    },
+    {
+      path: "./postinst",
+      mode: 0o755,
+      type: "file",
+      data: Buffer.from(debPostinstScript(), "utf8"),
+    },
+    {
+      path: "./prerm",
+      mode: 0o755,
+      type: "file",
+      data: Buffer.from(debPrermScript(), "utf8"),
+    },
   ];
 
   const controlTarGz = Bun.gzipSync(buildTarArchive(controlEntries));
@@ -562,7 +679,9 @@ modules:
 /**
  * Generates the Snap Store manifest (`snapcraft.yaml`) for Ubuntu App Center.
  */
-export function snapcraftYaml(opts: { version?: string; repo?: string } = {}): string {
+export function snapcraftYaml(
+  opts: { version?: string; repo?: string } = {},
+): string {
   const version = opts.version ?? VERSION;
   const repo = opts.repo ?? DEFAULT_REPO;
   return `name: codecaine-file-manager
@@ -723,7 +842,9 @@ pkgname = codecaine-file-manager-bin
 /**
  * Generates the RPM `.spec` file for Fedora, RHEL, openSUSE, and Fedora COPR.
  */
-export function rpmSpecFile(opts: { version?: string; repo?: string } = {}): string {
+export function rpmSpecFile(
+  opts: { version?: string; repo?: string } = {},
+): string {
   const version = opts.version ?? VERSION;
   const repo = opts.repo ?? DEFAULT_REPO;
   return `%global debug_package %{nil}
@@ -829,7 +950,9 @@ fi
 `;
 }
 
-export function linuxStoresReadme(opts: { version?: string; repo?: string } = {}): string {
+export function linuxStoresReadme(
+  opts: { version?: string; repo?: string } = {},
+): string {
   const version = opts.version ?? VERSION;
   const repo = opts.repo ?? DEFAULT_REPO;
   return `# Linux GUI Package Managers & App Stores — Codecaine File Manager v${version}
@@ -915,23 +1038,50 @@ export function writeLinuxStoreManifests(
   }
 
   const metainfo = appStreamMetaInfoXml(version, releaseDate, repo);
-  const desktopFlatpak = systemDesktopEntry("codecaine-file-manager %U", APPSTREAM_ID);
+  const desktopFlatpak = systemDesktopEntry(
+    "codecaine-file-manager %U",
+    APPSTREAM_ID,
+  );
 
-  writeFileSync(join(flathubDir, `${APPSTREAM_ID}.yml`), flathubManifestYaml({ version, repo, sha256X64, sha256Arm64 }));
+  writeFileSync(
+    join(flathubDir, `${APPSTREAM_ID}.yml`),
+    flathubManifestYaml({ version, repo, sha256X64, sha256Arm64 }),
+  );
   writeFileSync(join(flathubDir, `${APPSTREAM_ID}.metainfo.xml`), metainfo);
   writeFileSync(join(flathubDir, `${APPSTREAM_ID}.desktop`), desktopFlatpak);
-  writeFileSync(join(flathubDir, "flathub.json"), JSON.stringify({ "only-arches": ["x86_64", "aarch64"] }, null, 2) + "\n");
+  writeFileSync(
+    join(flathubDir, "flathub.json"),
+    JSON.stringify({ "only-arches": ["x86_64", "aarch64"] }, null, 2) + "\n",
+  );
   if (opts.iconPngPath && existsSync(opts.iconPngPath)) {
     cpSync(opts.iconPngPath, join(flathubDir, "codecaine-file-manager.png"));
   }
 
-  writeFileSync(join(snapDir, "snapcraft.yaml"), snapcraftYaml({ version, repo }));
-  writeFileSync(join(aurDir, "PKGBUILD"), aurPkgbuild({ version, repo, sha256X64, sha256Arm64 }));
-  writeFileSync(join(aurDir, ".SRCINFO"), aurSrcinfo({ version, repo, sha256X64, sha256Arm64 }));
-  writeFileSync(join(rpmDir, "codecaine-file-manager.spec"), rpmSpecFile({ version, repo }));
+  writeFileSync(
+    join(snapDir, "snapcraft.yaml"),
+    snapcraftYaml({ version, repo }),
+  );
+  writeFileSync(
+    join(aurDir, "PKGBUILD"),
+    aurPkgbuild({ version, repo, sha256X64, sha256Arm64 }),
+  );
+  writeFileSync(
+    join(aurDir, ".SRCINFO"),
+    aurSrcinfo({ version, repo, sha256X64, sha256Arm64 }),
+  );
+  writeFileSync(
+    join(rpmDir, "codecaine-file-manager.spec"),
+    rpmSpecFile({ version, repo }),
+  );
   writeFileSync(join(appimageDir, "AppRun"), appImageRunScript());
   chmodSync(join(appimageDir, "AppRun"), 0o755);
-  writeFileSync(join(appimageDir, "build-appimage.sh"), appImageBuildScript(version));
+  writeFileSync(
+    join(appimageDir, "build-appimage.sh"),
+    appImageBuildScript(version),
+  );
   chmodSync(join(appimageDir, "build-appimage.sh"), 0o755);
-  writeFileSync(join(outDir, "README.md"), linuxStoresReadme({ version, repo }));
+  writeFileSync(
+    join(outDir, "README.md"),
+    linuxStoresReadme({ version, repo }),
+  );
 }

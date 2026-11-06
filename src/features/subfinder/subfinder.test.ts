@@ -20,15 +20,22 @@ describe("subfinder doers", () => {
   });
 
   it("filters and cleans subdomains", () => {
-    expect(cleanSubdomain("api.example.com", "example.com")).toBe("api.example.com");
-    expect(cleanSubdomain("*.dev.example.com", "example.com")).toBe("dev.example.com");
+    expect(cleanSubdomain("api.example.com", "example.com")).toBe(
+      "api.example.com",
+    );
+    expect(cleanSubdomain("*.dev.example.com", "example.com")).toBe(
+      "dev.example.com",
+    );
     expect(cleanSubdomain("otherdomain.org", "example.com")).toBeNull();
     expect(cleanSubdomain("example.com", "example.com")).toBe("example.com");
   });
 
   it("deduplicates subdomain list", () => {
     const list = ["b.example.com", "a.example.com", "b.example.com"];
-    expect(deduplicateSubdomains(list)).toEqual(["a.example.com", "b.example.com"]);
+    expect(deduplicateSubdomains(list)).toEqual([
+      "a.example.com",
+      "b.example.com",
+    ]);
   });
 
   it("resolves DNS address for localhost", async () => {

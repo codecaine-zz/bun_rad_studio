@@ -6,7 +6,11 @@ export const MAX_READ_SIDE = 4096;
 export const MAX_READ_PIXELS = 60_000_000;
 
 /** Draws a code (qr from encodeQr) into a canvas: each module is `scale` pixels, with `border` modules around. */
-export function drawCode(canvas, qr, { scale = 8, border = 4, fg = "#000000", bg = "#ffffff" } = {}) {
+export function drawCode(
+  canvas,
+  qr,
+  { scale = 8, border = 4, fg = "#000000", bg = "#ffffff" } = {},
+) {
   const side = (qr.size + border * 2) * scale;
   canvas.width = side;
   canvas.height = side;
@@ -17,10 +21,18 @@ export function drawCode(canvas, qr, { scale = 8, border = 4, fg = "#000000", bg
   for (let y = 0; y < qr.size; y++) {
     let x = 0;
     while (x < qr.size) {
-      if (!qr.modules[y * qr.size + x]) { x++; continue; }
+      if (!qr.modules[y * qr.size + x]) {
+        x++;
+        continue;
+      }
       let w = 1;
       while (x + w < qr.size && qr.modules[y * qr.size + x + w]) w++;
-      ctx.fillRect((x + border) * scale, (y + border) * scale, w * scale, scale);
+      ctx.fillRect(
+        (x + border) * scale,
+        (y + border) * scale,
+        w * scale,
+        scale,
+      );
       x += w;
     }
   }
@@ -29,12 +41,16 @@ export function drawCode(canvas, qr, { scale = 8, border = 4, fg = "#000000", bg
 
 /** The pixel size of a picture of the code, kept within what can be saved (a side of at most `limit` pixels). */
 export function pictureScale(qr, wanted, border, limit = MAX_READ_SIDE) {
-  return Math.max(1, Math.min(wanted, Math.floor(limit / (qr.size + border * 2))));
+  return Math.max(
+    1,
+    Math.min(wanted, Math.floor(limit / (qr.size + border * 2))),
+  );
 }
 
 function bytesToBase64(bytes) {
   let s = "";
-  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  for (let i = 0; i < bytes.length; i += 0x8000)
+    s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   return btoa(s);
 }
 
@@ -42,13 +58,26 @@ function bytesToBase64(bytes) {
 export async function pngBase64(qr, opts) {
   const canvas = document.createElement("canvas");
   drawCode(canvas, qr, opts);
-  const blob = await new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("The picture couldn't be made."))), "image/png"));
-  return { base64: bytesToBase64(new Uint8Array(await blob.arrayBuffer())), blob, width: canvas.width };
+  const blob = await new Promise((resolve, reject) =>
+    canvas.toBlob(
+      (b) =>
+        b ? resolve(b) : reject(new Error("The picture couldn't be made.")),
+      "image/png",
+    ),
+  );
+  return {
+    base64: bytesToBase64(new Uint8Array(await blob.arrayBuffer())),
+    blob,
+    width: canvas.width,
+  };
 }
 
 /** Pixels (RGBA) of a bitmap or image, shrunk to fit MAX_READ_SIDE. Throws a sentence when the picture is too big. */
 export function imageDataOf(source, width, height) {
-  if (width * height > MAX_READ_PIXELS) throw new Error(`That picture is ${(width * height / 1e6).toFixed(0)} million pixels, which is too big to search. Crop it or shrink it first.`);
+  if (width * height > MAX_READ_PIXELS)
+    throw new Error(
+      `That picture is ${((width * height) / 1e6).toFixed(0)} million pixels, which is too big to search. Crop it or shrink it first.`,
+    );
   const k = Math.min(1, MAX_READ_SIDE / Math.max(width, height));
   const w = Math.max(1, Math.round(width * k));
   const h = Math.max(1, Math.round(height * k));
@@ -65,9 +94,15 @@ export function imageDataOf(source, width, height) {
 
 /** Loads a picture from a Blob or File. */
 export async function imageDataFromBlob(blob) {
-  if (!blob || !(blob.type || "").startsWith("image/")) throw new Error("That isn't a picture. Choose a PNG, JPEG, WebP, GIF or similar picture.");
+  if (!blob || !(blob.type || "").startsWith("image/"))
+    throw new Error(
+      "That isn't a picture. Choose a PNG, JPEG, WebP, GIF or similar picture.",
+    );
   const bitmap = await createImageBitmap(blob).catch(() => null);
-  if (!bitmap) throw new Error("This picture couldn't be opened. Its format may not be supported here.");
+  if (!bitmap)
+    throw new Error(
+      "This picture couldn't be opened. Its format may not be supported here.",
+    );
   try {
     return imageDataOf(bitmap, bitmap.width, bitmap.height);
   } finally {
@@ -117,7 +152,10 @@ export function drawPreview(canvas, image, corners, maxSide = 320) {
     const dy = p.y - cy;
     const len = Math.hypot(dx, dy) || 1;
     const extra = tl.size * 3.5;
-    return { x: (p.x + (dx / len) * extra) * k, y: (p.y + (dy / len) * extra) * k };
+    return {
+      x: (p.x + (dx / len) * extra) * k,
+      y: (p.y + (dy / len) * extra) * k,
+    };
   };
   const pts = [tl, tr, br, bl].map(grow);
   ctx.lineWidth = 3;

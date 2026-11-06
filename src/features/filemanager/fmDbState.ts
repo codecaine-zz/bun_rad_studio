@@ -7,7 +7,12 @@ import { promises as fsp } from "fs";
 import { dirname } from "path";
 import { DbError } from "../../db/errors";
 import type { ConnectionProfile, SecretStore } from "../../db/profiles";
-import { absolutePath, assertCreatable, assertModifiable, type FmContext } from "./fmCore";
+import {
+  absolutePath,
+  assertCreatable,
+  assertModifiable,
+  type FmContext,
+} from "./fmCore";
 import { defaultDatabasesHooks, type DatabasesHooks } from "./fmDbHooks";
 import { buildEnvView, type EnvView } from "./fmDbEnvView";
 import { connectionFingerprint, type DbEngine } from "./fmDbModel";
@@ -77,7 +82,10 @@ const states = new WeakMap<FmContext, DbState>();
 export function dbState(ctx: FmContext): DbState {
   let s = states.get(ctx);
   if (s) return s;
-  const hooks: DatabasesHooks = { ...defaultDatabasesHooks(), ...ctx.databases };
+  const hooks: DatabasesHooks = {
+    ...defaultDatabasesHooks(),
+    ...ctx.databases,
+  };
   const studios = new StudioManager(hooks);
   const secrets = new LazySecretStore(() => hooks.secretStore());
   s = {
@@ -109,12 +117,21 @@ export async function secretKind(ctx: FmContext): Promise<SecretStore["kind"]> {
 /** Builds a fresh `EnvView` of connection environment variables and `.env` files for `ctx`. */
 export async function envView(ctx: FmContext): Promise<EnvView> {
   const { hooks } = dbState(ctx);
-  return buildEnvView({ env: hooks.env(), cwd: hooks.cwd(), roots: hooks.appRoots(), home: ctx.home });
+  return buildEnvView({
+    env: hooks.env(),
+    cwd: hooks.cwd(),
+    roots: hooks.appRoots(),
+    home: ctx.home,
+  });
 }
 
 /** Turns a validation error from the database layer into the File Manager's error type (a plain message, never a secret). */
 export function asFmError(err: unknown): unknown {
-  if (err instanceof DbError) return new FmError(err.code === "INVALID_REQUEST" ? "BAD_REQUEST" : err.code, err.message);
+  if (err instanceof DbError)
+    return new FmError(
+      err.code === "INVALID_REQUEST" ? "BAD_REQUEST" : err.code,
+      err.message,
+    );
   return err;
 }
 
@@ -128,42 +145,79 @@ export async function guarded<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 /** A salted hash for comparing two secrets without keeping or showing either (the salt only lives in this process). */
-export function sameSecret(state: DbState, a: string | undefined | null, b: string | undefined | null): boolean {
-  const h = (x: string | undefined | null) => createHash("sha256").update(state.salt).update(x ?? "").digest();
+export function sameSecret(
+  state: DbState,
+  a: string | undefined | null,
+  b: string | undefined | null,
+): boolean {
+  const h = (x: string | undefined | null) =>
+    createHash("sha256")
+      .update(state.salt)
+      .update(x ?? "")
+      .digest();
   return timingSafeEqual(h(a), h(b));
 }
 
 /** Temporarily stashes a password parsed from a pasted connection URL in memory and returns a short-lived token. */
-export function stashPassword(state: DbState, engine: DbEngine, password: string): string {
+export function stashPassword(
+  state: DbState,
+  engine: DbEngine,
+  password: string,
+): string {
   const now = state.hooks.now();
   for (const [k, v] of state.stash) if (v.expires < now) state.stash.delete(k);
-  while (state.stash.size >= 12) state.stash.delete(state.stash.keys().next().value!);
+  while (state.stash.size >= 12)
+    state.stash.delete(state.stash.keys().next().value!);
   const token = randomUUID();
   state.stash.set(token, { engine, password, expires: now + 5 * 60_000 });
   return token;
 }
 
 /** Retrieves and validates a stashed password by token and engine, throwing if expired. */
-export function takeStashed(state: DbState, token: unknown, engine: DbEngine): string | undefined {
+export function takeStashed(
+  state: DbState,
+  token: unknown,
+  engine: DbEngine,
+): string | undefined {
   if (typeof token !== "string") return undefined;
   const hit = state.stash.get(token);
-  if (!hit) throw new FmError("BAD_REQUEST", "The password from the pasted address has expired. Paste the address again.");
+  if (!hit)
+    throw new FmError(
+      "BAD_REQUEST",
+      "The password from the pasted address has expired. Paste the address again.",
+    );
   if (hit.expires < state.hooks.now() || hit.engine !== engine) {
     state.stash.delete(token);
-    throw new FmError("BAD_REQUEST", "The password from the pasted address has expired. Paste the address again.");
+    throw new FmError(
+      "BAD_REQUEST",
+      "The password from the pasted address has expired. Paste the address again.",
+    );
   }
   return hit.password;
 }
 
 /** Computes the non-secret connection fingerprint for a saved SQL or Redis profile. */
 export function profileFingerprint(p: DbProfile): string {
-  if (p.engine === "sqlite") return connectionFingerprint("sqlite", { path: (p as ConnectionProfile).path });
+  if (p.engine === "sqlite")
+    return connectionFingerprint("sqlite", {
+      path: (p as ConnectionProfile).path,
+    });
   if (p.engine === "redis") {
     const r = p as RedisProfile;
-    return connectionFingerprint("redis", { host: r.host, port: r.port, user: r.user, dbIndex: r.dbIndex });
+    return connectionFingerprint("redis", {
+      host: r.host,
+      port: r.port,
+      user: r.user,
+      dbIndex: r.dbIndex,
+    });
   }
   const c = p as ConnectionProfile;
-  return connectionFingerprint(c.engine, { host: c.host, port: c.port, user: c.user, database: c.database });
+  return connectionFingerprint(c.engine, {
+    host: c.host,
+    port: c.port,
+    user: c.user,
+    database: c.database,
+  });
 }
 
 /** True for SQLite's header ("SQLite format 3") or an empty file. */
@@ -185,20 +239,36 @@ export async function looksLikeSqlite(path: string): Promise<boolean> {
 }
 
 /** Checks a SQLite file path from the page: a full path, a real SQLite file (or a place a new one may be made), nothing protected. */
-export async function checkSqlitePath(ctx: FmContext, input: unknown, mode: string): Promise<string> {
+export async function checkSqlitePath(
+  ctx: FmContext,
+  input: unknown,
+  mode: string,
+): Promise<string> {
   if (mode === "memory") return ":memory:";
   const path = absolutePath(ctx, input);
   const st = await fsp.stat(path).catch(() => null);
   if (st) {
     if (!st.isFile()) throw new FmError("NOT_A_FILE", "That isn't a file.");
-    if (!(await looksLikeSqlite(path))) throw new FmError("NOT_SQLITE", "That file isn't an SQLite database (it doesn't start with SQLite's header).");
+    if (!(await looksLikeSqlite(path)))
+      throw new FmError(
+        "NOT_SQLITE",
+        "That file isn't an SQLite database (it doesn't start with SQLite's header).",
+      );
     if (mode !== "readonly") assertModifiable(ctx, path);
     return path;
   }
-  if (mode !== "create") throw new FmError("NOT_FOUND", "That database file doesn't exist. Choose \"Create it if missing\" to make a new one.");
+  if (mode !== "create")
+    throw new FmError(
+      "NOT_FOUND",
+      'That database file doesn\'t exist. Choose "Create it if missing" to make a new one.',
+    );
   const parent = dirname(path);
   const pst = await fsp.stat(parent).catch(() => null);
-  if (!pst?.isDirectory()) throw new FmError("NOT_FOUND", "The folder for the new database doesn't exist.");
+  if (!pst?.isDirectory())
+    throw new FmError(
+      "NOT_FOUND",
+      "The folder for the new database doesn't exist.",
+    );
   assertCreatable(ctx, parent);
   return path;
 }

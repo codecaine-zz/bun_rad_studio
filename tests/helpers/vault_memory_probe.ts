@@ -10,7 +10,10 @@ import { createHash, randomBytes } from "node:crypto";
 import { createReadStream, mkdirSync } from "node:fs";
 import { open as openFile } from "node:fs/promises";
 import { join } from "node:path";
-import { decryptFile, encryptItem } from "../../src/features/filemanager/fmVaultEngine";
+import {
+  decryptFile,
+  encryptItem,
+} from "../../src/features/filemanager/fmVaultEngine";
 
 const dir = process.argv[2]!;
 mkdirSync(dir, { recursive: true });
@@ -38,19 +41,36 @@ const want = hash.digest("hex");
 Bun.gc(true);
 const baseline = process.memoryUsage().rss;
 let peak = baseline;
-const timer = setInterval(() => (peak = Math.max(peak, process.memoryUsage().rss)), 10);
+const timer = setInterval(
+  () => (peak = Math.max(peak, process.memoryUsage().rss)),
+  10,
+);
 const t0 = performance.now();
-const r = await encryptItem({ source: src, outputDir: dir, password: PW, level: "standard", compress: false, hideName: false, internal: { kdf: FAST } });
+const r = await encryptItem({
+  source: src,
+  outputDir: dir,
+  password: PW,
+  level: "standard",
+  compress: false,
+  hideName: false,
+  internal: { kdf: FAST },
+});
 const t1 = performance.now();
 const outDir = join(dir, "out");
 mkdirSync(outDir);
-const d = await decryptFile({ source: r.output, outputDir: outDir, password: PW });
+const d = await decryptFile({
+  source: r.output,
+  outputDir: outDir,
+  password: PW,
+});
 const t2 = performance.now();
 clearInterval(timer);
 const mb = 100 * 1.048576;
-console.log(JSON.stringify({
-  ok: (await shaFile(d.output)) === want,
-  growthMB: (peak - baseline) / 1048576,
-  encryptMBps: mb / ((t1 - t0) / 1000),
-  decryptMBps: mb / ((t2 - t1) / 1000),
-}));
+console.log(
+  JSON.stringify({
+    ok: (await shaFile(d.output)) === want,
+    growthMB: (peak - baseline) / 1048576,
+    encryptMBps: mb / ((t1 - t0) / 1000),
+    decryptMBps: mb / ((t2 - t1) / 1000),
+  }),
+);

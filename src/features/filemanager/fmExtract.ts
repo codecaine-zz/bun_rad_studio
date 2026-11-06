@@ -16,22 +16,69 @@
  */
 import { lstatSync, promises as fsp, readdirSync } from "fs";
 import * as nodePath from "path";
-import { absolutePath, assertCreatable, assertFolder, pathApi, type FmContext } from "./fmCore";
-import { extractTarGz, gunzipFile, unbrotliFile, unzstdFile } from "./fmConvArchive";
+import {
+  absolutePath,
+  assertCreatable,
+  assertFolder,
+  pathApi,
+  type FmContext,
+} from "./fmCore";
+import {
+  extractTarGz,
+  gunzipFile,
+  unbrotliFile,
+  unzstdFile,
+} from "./fmConvArchive";
 import { ConvError } from "./fmConvCommon";
-import { Stage, publishFile, publishFolder, removeQuietly, runCommands, sanitizeExtracted, siblingTemp, type TreeLimits } from "./fmConvExec";
+import {
+  Stage,
+  publishFile,
+  publishFolder,
+  removeQuietly,
+  runCommands,
+  sanitizeExtracted,
+  siblingTemp,
+  type TreeLimits,
+} from "./fmConvExec";
 import { FmError, splitName, uniqueName } from "./fmPaths";
 import { explainFailure, resolveTool } from "./fmToolDetect";
 import { childEnv, type ToolId } from "./fmTools";
 import { DEFAULT_ZIP_LIMITS, extractZip, type ZipLimits } from "./fmZip";
 
-const BUILTIN_ZIP_EXTS = new Set(["zip", "cbz", "whl", "jar", "apk", "ipa", "xpi"]);
+const BUILTIN_ZIP_EXTS = new Set([
+  "zip",
+  "cbz",
+  "whl",
+  "jar",
+  "apk",
+  "ipa",
+  "xpi",
+]);
 const BUILTIN_TAR_EXTS = new Set(["tar", "tar.gz", "tgz", "tar.zst", "tzst"]);
 const BUILTIN_SINGLE_EXTS = new Set(["gz", "svgz", "zst", "br"]);
-const EXTERNAL_TAR_EXTS = new Set(["tar.bz2", "tbz2", "tbz", "tar.xz", "txz", "tar.lz4", "tar.lzma", "tlz"]);
+const EXTERNAL_TAR_EXTS = new Set([
+  "tar.bz2",
+  "tbz2",
+  "tbz",
+  "tar.xz",
+  "txz",
+  "tar.lz4",
+  "tar.lzma",
+  "tlz",
+]);
 const EXTERNAL_ARCHIVE_EXTS = new Set([
   ...EXTERNAL_TAR_EXTS,
-  "7z", "rar", "iso", "cab", "dmg", "cpio", "lzh", "lha", "xar", "ar", "rpm",
+  "7z",
+  "rar",
+  "iso",
+  "cab",
+  "dmg",
+  "cpio",
+  "lzh",
+  "lha",
+  "xar",
+  "ar",
+  "rpm",
 ]);
 const EXTERNAL_SINGLE_EXTS = new Set(["bz2", "xz", "lzma", "lz4", "z"]);
 
@@ -59,7 +106,8 @@ export function isExtractableName(name: string): boolean {
 }
 
 function archiveStem(fileName: string, ext: string): string {
-  if (ext === "svgz") return `${fileName.slice(0, fileName.length - 5)}.svg` || "image.svg";
+  if (ext === "svgz")
+    return `${fileName.slice(0, fileName.length - 5)}.svg` || "image.svg";
   const [stem] = splitName(fileName);
   return stem || "Extracted";
 }
@@ -101,12 +149,21 @@ export interface ExtractBatchResult {
 }
 
 /** Picks an installed external extractor (`unar`, `sevenzip`, or `bsdtar`) that handles `ext`. */
-function pickExternalExtractor(ctx: FmContext, ext: string): { tool: ToolId; bin: string } {
+function pickExternalExtractor(
+  ctx: FmContext,
+  ext: string,
+): { tool: ToolId; bin: string } {
   const sevenzip = resolveTool(ctx, "sevenzip");
   const unar = resolveTool(ctx, "unar");
   const bsdtar = resolveTool(ctx, "bsdtar");
 
-  if (EXTERNAL_TAR_EXTS.has(ext) || ext === "cpio" || ext === "xar" || ext === "ar" || ext === "rpm") {
+  if (
+    EXTERNAL_TAR_EXTS.has(ext) ||
+    ext === "cpio" ||
+    ext === "xar" ||
+    ext === "ar" ||
+    ext === "rpm"
+  ) {
     if (bsdtar) return { tool: "bsdtar", bin: bsdtar };
     if (unar) return { tool: "unar", bin: unar };
     if (sevenzip) return { tool: "sevenzip", bin: sevenzip };
@@ -136,10 +193,16 @@ async function extractWithExternalTool(
   const p = pathApi(ctx);
   const baseName = p.basename(filePath);
   const { tool, bin } = pickExternalExtractor(ctx, ext);
-  const treeLimits: TreeLimits = { maxBytes: limits.maxTotalBytes, maxEntries: limits.maxEntries };
+  const treeLimits: TreeLimits = {
+    maxBytes: limits.maxTotalBytes,
+    maxEntries: limits.maxEntries,
+  };
   const stage = new Stage();
   const taken = new Set(await fsp.readdir(destDir));
-  const folderCandidate = p.join(destDir, uniqueName(archiveStem(baseName, ext), (n) => taken.has(n)));
+  const folderCandidate = p.join(
+    destDir,
+    uniqueName(archiveStem(baseName, ext), (n) => taken.has(n)),
+  );
   const work = siblingTemp(folderCandidate);
 
   try {
@@ -154,21 +217,64 @@ async function extractWithExternalTool(
         if (EXTERNAL_TAR_EXTS.has(ext)) {
           const tarDir = stage.subDir("tar");
           steps.push(
-            [bin, "x", "-y", "-bd", "-p", "-bb0", "-snl-", `-o${tarDir}`, "--", safeIn],
+            [
+              bin,
+              "x",
+              "-y",
+              "-bd",
+              "-p",
+              "-bb0",
+              "-snl-",
+              `-o${tarDir}`,
+              "--",
+              safeIn,
+            ],
             () => {
               let tarFile = nodePath.join(tarDir, "input.tar");
               try {
-                const found = readdirSync(tarDir).find((n: string) => lstatSync(nodePath.join(tarDir, n)).isFile());
+                const found = readdirSync(tarDir).find((n: string) =>
+                  lstatSync(nodePath.join(tarDir, n)).isFile(),
+                );
                 if (found) tarFile = nodePath.join(tarDir, found);
               } catch {}
-              return [bin, "x", "-y", "-bd", "-p", "-bb0", "-snl-", `-o${work}`, "--", tarFile];
+              return [
+                bin,
+                "x",
+                "-y",
+                "-bd",
+                "-p",
+                "-bb0",
+                "-snl-",
+                `-o${work}`,
+                "--",
+                tarFile,
+              ];
             },
           );
         } else {
-          steps.push([bin, "x", "-y", "-bd", "-p", "-bb0", "-snl-", `-o${work}`, "--", safeIn]);
+          steps.push([
+            bin,
+            "x",
+            "-y",
+            "-bd",
+            "-p",
+            "-bb0",
+            "-snl-",
+            `-o${work}`,
+            "--",
+            safeIn,
+          ]);
         }
       } else {
-        steps.push([bin, "--no-same-owner", "--no-same-permissions", "-xf", safeIn, "-C", work]);
+        steps.push([
+          bin,
+          "--no-same-owner",
+          "--no-same-permissions",
+          "-xf",
+          safeIn,
+          "-C",
+          work,
+        ]);
       }
 
       await runCommands(steps, {
@@ -183,7 +289,12 @@ async function extractWithExternalTool(
     }
 
     const sanitized = await sanitizeExtracted(work, treeLimits);
-    const skipped = sanitized.removedLinks > 0 ? [`${sanitized.removedLinks} symbolic link${sanitized.removedLinks === 1 ? " was" : "s were"} skipped.`] : [];
+    const skipped =
+      sanitized.removedLinks > 0
+        ? [
+            `${sanitized.removedLinks} symbolic link${sanitized.removedLinks === 1 ? " was" : "s were"} skipped.`,
+          ]
+        : [];
 
     // For single-file compressed formats (.bz2, .xz, .lzma, .lz4, .z), if the tool produced a single file, place that file directly.
     if (expectSingleFile) {
@@ -192,7 +303,10 @@ async function extractWithExternalTool(
         const onlyPath = nodePath.join(work, names[0]!);
         const onlyStat = await fsp.lstat(onlyPath);
         if (onlyStat.isFile()) {
-          const targetName = uniqueName(singleFileTargetName(baseName, ext), (n) => taken.has(n));
+          const targetName = uniqueName(
+            singleFileTargetName(baseName, ext),
+            (n) => taken.has(n),
+          );
           const finalFile = p.join(destDir, targetName);
           publishFile(onlyPath, finalFile);
           await removeQuietly(work);
@@ -241,7 +355,10 @@ async function extractWithExternalTool(
     await removeQuietly(work);
     if (err instanceof FmError) throw err;
     if (err instanceof ConvError) throw new FmError("BAD_ARCHIVE", err.message);
-    throw new FmError("EXTRACT_FAILED", String(err?.message ?? "Could not extract this archive."));
+    throw new FmError(
+      "EXTRACT_FAILED",
+      String(err?.message ?? "Could not extract this archive."),
+    );
   } finally {
     stage.cleanup();
   }
@@ -259,12 +376,16 @@ export async function extractArchive(
 ): Promise<ArchiveExtracted> {
   const filePath = absolutePath(ctx, fileInput);
   const p = pathApi(ctx);
-  const destDir = destInput === undefined ? p.dirname(filePath) : absolutePath(ctx, destInput);
+  const destDir =
+    destInput === undefined
+      ? p.dirname(filePath)
+      : absolutePath(ctx, destInput);
   await assertFolder(destDir, "The destination");
   assertCreatable(ctx, destDir);
 
   const st = await fsp.stat(filePath);
-  if (!st.isFile()) throw new FmError("NOT_A_FILE", "That isn't a compressed file or archive.");
+  if (!st.isFile())
+    throw new FmError("NOT_A_FILE", "That isn't a compressed file or archive.");
 
   const baseName = p.basename(filePath);
   const ext = archiveExtensionOf(baseName);
@@ -272,7 +393,10 @@ export async function extractArchive(
   // 1. Built-in Zip formats (.zip, .cbz, .whl, .jar, .apk, .ipa, .xpi)
   if (BUILTIN_ZIP_EXTS.has(ext) || !ext) {
     if (!BUILTIN_ZIP_EXTS.has(ext)) {
-      throw new FmError("UNSUPPORTED", `"${baseName}" isn't a supported compressed file or archive.`);
+      throw new FmError(
+        "UNSUPPORTED",
+        `"${baseName}" isn't a supported compressed file or archive.`,
+      );
     }
     const r = await extractZip(ctx, filePath, destDir, limits);
     return { ...r, output: r.folder, isFolder: true };
@@ -281,7 +405,10 @@ export async function extractArchive(
   // 2. Built-in Tar formats (.tar, .tar.gz, .tgz, .tar.zst, .tzst)
   if (BUILTIN_TAR_EXTS.has(ext)) {
     const taken = new Set(await fsp.readdir(destDir));
-    const root = p.join(destDir, uniqueName(archiveStem(baseName, ext), (n) => taken.has(n)));
+    const root = p.join(
+      destDir,
+      uniqueName(archiveStem(baseName, ext), (n) => taken.has(n)),
+    );
     await fsp.mkdir(root);
     try {
       const r = await extractTarGz(filePath, root, ctx.platform, {
@@ -300,14 +427,21 @@ export async function extractArchive(
     } catch (err: any) {
       await fsp.rm(root, { recursive: true, force: true }).catch(() => {});
       if (err instanceof FmError) throw err;
-      throw new FmError("BAD_ARCHIVE", String(err?.message ?? "This archive is damaged and couldn't be unpacked."));
+      throw new FmError(
+        "BAD_ARCHIVE",
+        String(
+          err?.message ?? "This archive is damaged and couldn't be unpacked.",
+        ),
+      );
     }
   }
 
   // 3. Built-in single-file compressed formats (.gz, .svgz, .zst, .br)
   if (BUILTIN_SINGLE_EXTS.has(ext)) {
     const taken = new Set(await fsp.readdir(destDir));
-    const outName = uniqueName(singleFileTargetName(baseName, ext), (n) => taken.has(n));
+    const outName = uniqueName(singleFileTargetName(baseName, ext), (n) =>
+      taken.has(n),
+    );
     const outPath = p.join(destDir, outName);
     try {
       if (ext === "gz" || ext === "svgz") {
@@ -331,21 +465,44 @@ export async function extractArchive(
     } catch (err: any) {
       await fsp.rm(outPath, { force: true }).catch(() => {});
       if (err instanceof FmError) throw err;
-      throw new FmError("BAD_ARCHIVE", String(err?.message ?? "This compressed file is damaged and couldn't be unpacked."));
+      throw new FmError(
+        "BAD_ARCHIVE",
+        String(
+          err?.message ??
+            "This compressed file is damaged and couldn't be unpacked.",
+        ),
+      );
     }
   }
 
   // 4. External single-file compressed formats (.bz2, .xz, .lzma, .lz4, .z)
   if (EXTERNAL_SINGLE_EXTS.has(ext)) {
-    return await extractWithExternalTool(ctx, filePath, destDir, ext, true, limits);
+    return await extractWithExternalTool(
+      ctx,
+      filePath,
+      destDir,
+      ext,
+      true,
+      limits,
+    );
   }
 
   // 5. External multi-file archives (.7z, .rar, .tar.xz, .txz, .tar.bz2, .tbz2, .iso, .cab, .dmg, etc.)
   if (EXTERNAL_ARCHIVE_EXTS.has(ext)) {
-    return await extractWithExternalTool(ctx, filePath, destDir, ext, false, limits);
+    return await extractWithExternalTool(
+      ctx,
+      filePath,
+      destDir,
+      ext,
+      false,
+      limits,
+    );
   }
 
-  throw new FmError("UNSUPPORTED", `"${baseName}" isn't a supported compressed file or archive.`);
+  throw new FmError(
+    "UNSUPPORTED",
+    `"${baseName}" isn't a supported compressed file or archive.`,
+  );
 }
 
 /**
@@ -376,7 +533,10 @@ export async function extractItems(
   }
 
   if (candidateFiles.length === 0) {
-    throw new FmError("NOTHING_TO_EXTRACT", "None of the selected items is a compressed file or archive that can be extracted.");
+    throw new FmError(
+      "NOTHING_TO_EXTRACT",
+      "None of the selected items is a compressed file or archive that can be extracted.",
+    );
   }
 
   const results: ExtractItemResult[] = [];
@@ -389,7 +549,10 @@ export async function extractItems(
       results.push({ ...extracted, source: filePath });
     } catch (err: any) {
       firstErr ??= err;
-      errors.push({ path: filePath, message: String(err?.message ?? "Could not extract this archive.") });
+      errors.push({
+        path: filePath,
+        message: String(err?.message ?? "Could not extract this archive."),
+      });
     }
   }
 

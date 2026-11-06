@@ -12,11 +12,13 @@ const pad2 = (n) => String(n).padStart(2, "0");
 
 /** ISO-8601 week number (1..53) for a Date. */
 export function isoWeekOf(date) {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const d = new Date(
+    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
+  );
   const dayNum = d.getUTCDay() || 7;
   d.setUTCDate(d.getUTCDate() + 4 - dayNum);
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 }
 
 /** 1-based day of the year (1..366) and total days in that year (365 or 366). */
@@ -24,7 +26,8 @@ export function dayOfYearOf(date) {
   const y = date.getFullYear();
   const start = new Date(y, 0, 1);
   const current = new Date(y, date.getMonth(), date.getDate());
-  const dayOfYear = Math.round((current.getTime() - start.getTime()) / 86400000) + 1;
+  const dayOfYear =
+    Math.round((current.getTime() - start.getTime()) / 86400000) + 1;
   const leap = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
   return { dayOfYear, daysInYear: leap ? 366 : 365 };
 }
@@ -82,35 +85,64 @@ export function dateMetrics(now = new Date()) {
 
 /** Human-readable relative day label ("Today", "Tomorrow", "Yesterday", "In 4 days", "3 days ago"). */
 export function relativeDayLabel(target, ref = new Date()) {
-  const a = new Date(target.getFullYear(), target.getMonth(), target.getDate()).getTime();
-  const b = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate()).getTime();
+  const a = new Date(
+    target.getFullYear(),
+    target.getMonth(),
+    target.getDate(),
+  ).getTime();
+  const b = new Date(
+    ref.getFullYear(),
+    ref.getMonth(),
+    ref.getDate(),
+  ).getTime();
   const diffDays = Math.round((a - b) / 86400000);
   if (diffDays === 0) return "Today";
   if (diffDays === 1) return "Tomorrow";
   if (diffDays === -1) return "Yesterday";
-  return diffDays > 0 ? `In ${diffDays} days` : `${Math.abs(diffDays)} days ago`;
+  return diffDays > 0
+    ? `In ${diffDays} days`
+    : `${Math.abs(diffDays)} days ago`;
 }
 
 /** Parses a Unix timestamp (seconds or milliseconds) or ISO/date string for the Epoch Converter. */
 export function parseFlexibleTimestamp(raw, ref = new Date()) {
   const s = String(raw ?? "").trim();
   if (!s || s.toLowerCase() === "now") {
-    return { ok: true, date: new Date(ref.getTime()), kind: "Current time", metrics: dateMetrics(ref) };
+    return {
+      ok: true,
+      date: new Date(ref.getTime()),
+      kind: "Current time",
+      metrics: dateMetrics(ref),
+    };
   }
   if (/^[+-]?\d+(\.\d+)?$/.test(s)) {
     const n = Number(s);
-    if (!Number.isFinite(n)) return { ok: false, error: "That number is out of range." };
+    if (!Number.isFinite(n))
+      return { ok: false, error: "That number is out of range." };
     // Values under 10^11 (~year 5138 in seconds) are treated as Unix seconds; larger values as milliseconds.
     const isSeconds = Math.abs(n) < 1e11;
     const ms = isSeconds ? Math.round(n * 1000) : Math.round(n);
     const d = new Date(ms);
-    if (Number.isNaN(d.getTime())) return { ok: false, error: "That timestamp is outside the supported date range." };
-    return { ok: true, date: d, kind: isSeconds ? "Unix seconds" : "Unix milliseconds", metrics: dateMetrics(d) };
+    if (Number.isNaN(d.getTime()))
+      return {
+        ok: false,
+        error: "That timestamp is outside the supported date range.",
+      };
+    return {
+      ok: true,
+      date: d,
+      kind: isSeconds ? "Unix seconds" : "Unix milliseconds",
+      metrics: dateMetrics(d),
+    };
   }
   const normalized = /^\d{4}-\d{2}-\d{2}$/.test(s) ? `${s}T00:00:00` : s;
   const d = new Date(normalized);
   if (Number.isNaN(d.getTime())) {
-    return { ok: false, error: "Enter a Unix timestamp (e.g. 1792285509) or an ISO date (e.g. 2026-10-17T19:05:00)." };
+    return {
+      ok: false,
+      error:
+        "Enter a Unix timestamp (e.g. 1792285509) or an ISO date (e.g. 2026-10-17T19:05:00).",
+    };
   }
   return { ok: true, date: d, kind: "Date string", metrics: dateMetrics(d) };
 }
@@ -125,7 +157,11 @@ export function buildMonthGrid(year, month, today = new Date()) {
   for (let w = 0; w < 6; w++) {
     const days = [];
     for (let d = 0; d < 7; d++) {
-      const cell = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + w * 7 + d);
+      const cell = new Date(
+        gridStart.getFullYear(),
+        gridStart.getMonth(),
+        gridStart.getDate() + w * 7 + d,
+      );
       const cy = cell.getFullYear();
       const cm = cell.getMonth();
       const cd = cell.getDate();
@@ -173,7 +209,10 @@ export function formatWorldZone(zone, now = new Date(), use24h = false) {
     }).format(now);
     return { time, day };
   } catch {
-    return { time: now.toISOString().slice(11, 19), day: now.toISOString().slice(0, 10) };
+    return {
+      time: now.toISOString().slice(11, 19),
+      day: now.toISOString().slice(0, 10),
+    };
   }
 }
 
@@ -181,7 +220,10 @@ export function formatWorldZone(zone, now = new Date(), use24h = false) {
 export async function copyTimestamp(text, label = "timestamp") {
   try {
     const r = await call("copytext", { text: String(text) });
-    toast(r.copied ? `Copied ${label}: ${text}` : "Couldn't copy to the clipboard.", { kind: r.copied ? "success" : "error" });
+    toast(
+      r.copied ? `Copied ${label}: ${text}` : "Couldn't copy to the clipboard.",
+      { kind: r.copied ? "success" : "error" },
+    );
     return !!r.copied;
   } catch {
     toast("Couldn't copy to the clipboard.", { kind: "error" });
@@ -190,7 +232,11 @@ export async function copyTimestamp(text, label = "timestamp") {
 }
 
 function ensureInFilesThen(fn) {
-  if (state.workspace !== "files" && state.workspace !== "split" && state.workspace !== "dual") {
+  if (
+    state.workspace !== "files" &&
+    state.workspace !== "split" &&
+    state.workspace !== "dual"
+  ) {
     emit("workspace-go", "files");
   }
   return fn();
@@ -203,7 +249,9 @@ export function showClockMenu(anchor, prefs) {
   const fullReadable = `${new Intl.DateTimeFormat(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" }).format(now)} · ${new Intl.DateTimeFormat(undefined, { hour: prefs.is24h() ? "2-digit" : "numeric", minute: "2-digit", second: "2-digit", hour12: !prefs.is24h() }).format(now)}`;
   const canCreateHere = isFolderView(activePane()) && !inTrash();
   const items = [
-    { header: `Week ${m.isoWeek} · Day ${m.dayOfYear}/${m.daysInYear} · Q${m.quarter} · ${m.utcOffset}` },
+    {
+      header: `Week ${m.isoWeek} · Day ${m.dayOfYear}/${m.daysInYear} · Q${m.quarter} · ${m.utcOffset}`,
+    },
     {
       label: "Calendar, World Clocks & Timestamps…",
       icon: "🗓️",
@@ -284,7 +332,8 @@ export function showClockMenu(anchor, prefs) {
     },
   ];
   const rect = anchor?.getBoundingClientRect?.();
-  if (rect && rect.width > 0) showMenu(items, { anchor, label: "Clock and calendar actions" });
+  if (rect && rect.width > 0)
+    showMenu(items, { anchor, label: "Clock and calendar actions" });
   else showMenu(items, { x: 240, y: 36, label: "Clock and calendar actions" });
 }
 
@@ -292,21 +341,46 @@ export function showClockMenu(anchor, prefs) {
 export function showCalendarDialog(initialDate = new Date(), prefs = null) {
   let viewYear = initialDate.getFullYear();
   let viewMonth = initialDate.getMonth();
-  let selectedDate = new Date(initialDate.getFullYear(), initialDate.getMonth(), initialDate.getDate());
+  let selectedDate = new Date(
+    initialDate.getFullYear(),
+    initialDate.getMonth(),
+    initialDate.getDate(),
+  );
   const use24h = () => (prefs ? prefs.is24h() : false);
 
   const nowMetrics = dateMetrics(initialDate);
-  const summaryBadges = h("div", { class: "cal-badges" },
+  const summaryBadges = h(
+    "div",
+    { class: "cal-badges" },
     h("span", { class: "cal-badge" }, `📅 Week ${nowMetrics.isoWeek}`),
-    h("span", { class: "cal-badge" }, `📆 Day ${nowMetrics.dayOfYear} of ${nowMetrics.daysInYear}`),
-    h("span", { class: "cal-badge" }, `📊 Q${nowMetrics.quarter} ${initialDate.getFullYear()}`),
-    h("span", { class: "cal-badge" }, `🌍 ${nowMetrics.timeZone} (${nowMetrics.utcOffset})`),
+    h(
+      "span",
+      { class: "cal-badge" },
+      `📆 Day ${nowMetrics.dayOfYear} of ${nowMetrics.daysInYear}`,
+    ),
+    h(
+      "span",
+      { class: "cal-badge" },
+      `📊 Q${nowMetrics.quarter} ${initialDate.getFullYear()}`,
+    ),
+    h(
+      "span",
+      { class: "cal-badge" },
+      `🌍 ${nowMetrics.timeZone} (${nowMetrics.utcOffset})`,
+    ),
   );
 
   // --- Interactive Monthly Calendar ---
-  const monthLabel = h("strong", { id: "cal-month-label", class: "cal-month-label", "aria-live": "polite" });
+  const monthLabel = h("strong", {
+    id: "cal-month-label",
+    class: "cal-month-label",
+    "aria-live": "polite",
+  });
   const calGridBody = h("tbody", { id: "cal-grid-body" });
-  const selectedInfo = h("span", { id: "cal-selected-info", class: "cal-selected-info" });
+  const selectedInfo = h("span", {
+    id: "cal-selected-info",
+    class: "cal-selected-info",
+  });
   const copySelectedBtn = h("button", {
     type: "button",
     class: "btn",
@@ -318,7 +392,8 @@ export function showCalendarDialog(initialDate = new Date(), prefs = null) {
     type: "button",
     class: "btn",
     id: "cal-folder-selected",
-    title: "Create a new folder named after the selected YYYY-MM-DD date in the current folder",
+    title:
+      "Create a new folder named after the selected YYYY-MM-DD date in the current folder",
     onclick: async () => {
       const stamp = ops.localDateStamp(selectedDate);
       dlg.close(null);
@@ -329,7 +404,8 @@ export function showCalendarDialog(initialDate = new Date(), prefs = null) {
     type: "button",
     class: "btn",
     id: "cal-note-selected",
-    title: "Create a new Markdown note named after the selected YYYY-MM-DD date in the current folder",
+    title:
+      "Create a new Markdown note named after the selected YYYY-MM-DD date in the current folder",
     onclick: async () => {
       const stamp = ops.localDateStamp(selectedDate);
       dlg.close(null);
@@ -339,32 +415,52 @@ export function showCalendarDialog(initialDate = new Date(), prefs = null) {
 
   function renderCalendar() {
     const monthDate = new Date(viewYear, viewMonth, 1);
-    monthLabel.textContent = new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" }).format(monthDate);
+    monthLabel.textContent = new Intl.DateTimeFormat(undefined, {
+      month: "long",
+      year: "numeric",
+    }).format(monthDate);
     const weeks = buildMonthGrid(viewYear, viewMonth, new Date());
     const selStr = ops.localDateStamp(selectedDate);
     clear(calGridBody);
     for (const wk of weeks) {
-      const tr = h("tr", {}, h("td", { class: "cal-wk", title: `ISO Week ${wk.isoWeek}` }, `W${wk.isoWeek}`));
+      const tr = h(
+        "tr",
+        {},
+        h(
+          "td",
+          { class: "cal-wk", title: `ISO Week ${wk.isoWeek}` },
+          `W${wk.isoWeek}`,
+        ),
+      );
       for (const cell of wk.days) {
         const isSel = cell.localDate === selStr;
-        const btn = h("button", {
-          type: "button",
-          class: `cal-day${cell.inMonth ? "" : " outside"}${cell.isToday ? " today" : ""}${isSel ? " selected" : ""}`,
-          "aria-label": `${cell.localDate}${cell.isToday ? " (Today)" : ""}`,
-          "aria-pressed": String(isSel),
-          dataset: { date: cell.localDate },
-          onclick: () => {
-            selectedDate = cell.date;
-            viewYear = cell.year;
-            viewMonth = cell.month;
-            renderCalendar();
+        const btn = h(
+          "button",
+          {
+            type: "button",
+            class: `cal-day${cell.inMonth ? "" : " outside"}${cell.isToday ? " today" : ""}${isSel ? " selected" : ""}`,
+            "aria-label": `${cell.localDate}${cell.isToday ? " (Today)" : ""}`,
+            "aria-pressed": String(isSel),
+            dataset: { date: cell.localDate },
+            onclick: () => {
+              selectedDate = cell.date;
+              viewYear = cell.year;
+              viewMonth = cell.month;
+              renderCalendar();
+            },
           },
-        }, String(cell.day));
+          String(cell.day),
+        );
         tr.append(h("td", {}, btn));
       }
       calGridBody.append(tr);
     }
-    const selFull = new Intl.DateTimeFormat(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" }).format(selectedDate);
+    const selFull = new Intl.DateTimeFormat(undefined, {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(selectedDate);
     const rel = relativeDayLabel(selectedDate, new Date());
     selectedInfo.textContent = `${selFull} · ${rel}`;
     copySelectedBtn.textContent = `📋 Copy ${selStr}`;
@@ -372,59 +468,101 @@ export function showCalendarDialog(initialDate = new Date(), prefs = null) {
     noteSelectedBtn.textContent = `📝 New note "${selStr}.md"`;
   }
 
-  const calSection = h("section", { class: "cal-section", "aria-label": "Monthly calendar" },
-    h("div", { class: "cal-nav" },
-      h("button", {
-        type: "button",
-        class: "btn",
-        id: "cal-prev-month",
-        title: "Previous month",
-        "aria-label": "Previous month",
-        onclick: () => {
-          viewMonth--;
-          if (viewMonth < 0) { viewMonth = 11; viewYear--; }
-          renderCalendar();
+  const calSection = h(
+    "section",
+    { class: "cal-section", "aria-label": "Monthly calendar" },
+    h(
+      "div",
+      { class: "cal-nav" },
+      h(
+        "button",
+        {
+          type: "button",
+          class: "btn",
+          id: "cal-prev-month",
+          title: "Previous month",
+          "aria-label": "Previous month",
+          onclick: () => {
+            viewMonth--;
+            if (viewMonth < 0) {
+              viewMonth = 11;
+              viewYear--;
+            }
+            renderCalendar();
+          },
         },
-      }, "← Prev"),
+        "← Prev",
+      ),
       monthLabel,
-      h("button", {
-        type: "button",
-        class: "btn",
-        id: "cal-today-btn",
-        title: "Jump back to today",
-        onclick: () => {
-          const t = new Date();
-          viewYear = t.getFullYear();
-          viewMonth = t.getMonth();
-          selectedDate = new Date(t.getFullYear(), t.getMonth(), t.getDate());
-          renderCalendar();
+      h(
+        "button",
+        {
+          type: "button",
+          class: "btn",
+          id: "cal-today-btn",
+          title: "Jump back to today",
+          onclick: () => {
+            const t = new Date();
+            viewYear = t.getFullYear();
+            viewMonth = t.getMonth();
+            selectedDate = new Date(t.getFullYear(), t.getMonth(), t.getDate());
+            renderCalendar();
+          },
         },
-      }, "Today"),
-      h("button", {
-        type: "button",
-        class: "btn",
-        id: "cal-next-month",
-        title: "Next month",
-        "aria-label": "Next month",
-        onclick: () => {
-          viewMonth++;
-          if (viewMonth > 11) { viewMonth = 0; viewYear++; }
-          renderCalendar();
+        "Today",
+      ),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "btn",
+          id: "cal-next-month",
+          title: "Next month",
+          "aria-label": "Next month",
+          onclick: () => {
+            viewMonth++;
+            if (viewMonth > 11) {
+              viewMonth = 0;
+              viewYear++;
+            }
+            renderCalendar();
+          },
         },
-      }, "Next →"),
+        "Next →",
+      ),
     ),
-    h("table", { class: "cal-table", role: "grid", "aria-label": "Calendar days" },
-      h("thead", {},
-        h("tr", {},
-          h("th", { scope: "col", class: "cal-wk-head", title: "ISO week number" }, "Wk"),
-          ...["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => h("th", { scope: "col" }, d)),
+    h(
+      "table",
+      { class: "cal-table", role: "grid", "aria-label": "Calendar days" },
+      h(
+        "thead",
+        {},
+        h(
+          "tr",
+          {},
+          h(
+            "th",
+            { scope: "col", class: "cal-wk-head", title: "ISO week number" },
+            "Wk",
+          ),
+          ...["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) =>
+            h("th", { scope: "col" }, d),
+          ),
         ),
       ),
       calGridBody,
     ),
-    h("div", { class: "cal-selected-bar" },
+    h(
+      "div",
+      { class: "cal-selected-bar" },
       selectedInfo,
-      h("div", { class: "cal-selected-actions" }, copySelectedBtn, folderSelectedBtn, noteSelectedBtn),
+      h(
+        "div",
+        { class: "cal-selected-actions" },
+        copySelectedBtn,
+        folderSelectedBtn,
+        noteSelectedBtn,
+      ),
     ),
   );
 
@@ -435,7 +573,9 @@ export function showCalendarDialog(initialDate = new Date(), prefs = null) {
     for (const z of WORLD_ZONES) {
       const f = formatWorldZone(z.zone, now, use24h());
       worldGrid.append(
-        h("div", { class: "cal-world-card", dataset: { zone: z.id } },
+        h(
+          "div",
+          { class: "cal-world-card", dataset: { zone: z.id } },
           h("div", { class: "cal-world-city" }, `${z.icon} ${z.label}`),
           h("div", { class: "cal-world-time" }, f.time),
           h("div", { class: "cal-world-day" }, f.day),
@@ -444,7 +584,9 @@ export function showCalendarDialog(initialDate = new Date(), prefs = null) {
     }
   }
 
-  const worldSection = h("section", { class: "cal-section", "aria-label": "World clocks" },
+  const worldSection = h(
+    "section",
+    { class: "cal-section", "aria-label": "World clocks" },
     h("h3", { class: "cal-subhead" }, "🌐 World Clocks"),
     worldGrid,
   );
@@ -461,13 +603,18 @@ export function showCalendarDialog(initialDate = new Date(), prefs = null) {
     "data-own-enter": "true",
     "aria-label": "Unix timestamp or ISO date to convert",
   });
-  const epochResult = h("div", { id: "cal-epoch-result", class: "cal-epoch-result" });
+  const epochResult = h("div", {
+    id: "cal-epoch-result",
+    class: "cal-epoch-result",
+  });
 
   function renderEpochConverter() {
     clear(epochResult);
     const parsed = parseFlexibleTimestamp(epochInput.value, new Date());
     if (!parsed.ok) {
-      epochResult.append(h("p", { class: "cal-epoch-error", role: "alert" }, parsed.error));
+      epochResult.append(
+        h("p", { class: "cal-epoch-error", role: "alert" }, parsed.error),
+      );
       return;
     }
     const { date, kind, metrics } = parsed;
@@ -491,15 +638,21 @@ export function showCalendarDialog(initialDate = new Date(), prefs = null) {
     ];
     for (const [label, display, copyVal] of rows) {
       epochResult.append(
-        h("div", { class: "cal-epoch-row" },
+        h(
+          "div",
+          { class: "cal-epoch-row" },
           h("span", { class: "cal-epoch-k" }, label),
           h("code", { class: "cal-epoch-v" }, display),
-          h("button", {
-            type: "button",
-            class: "btn cal-copy-mini",
-            title: `Copy ${label}`,
-            onclick: () => copyTimestamp(copyVal, label.toLowerCase()),
-          }, "Copy"),
+          h(
+            "button",
+            {
+              type: "button",
+              class: "btn cal-copy-mini",
+              title: `Copy ${label}`,
+              onclick: () => copyTimestamp(copyVal, label.toLowerCase()),
+            },
+            "Copy",
+          ),
         ),
       );
     }
@@ -507,20 +660,31 @@ export function showCalendarDialog(initialDate = new Date(), prefs = null) {
 
   epochInput.addEventListener("input", renderEpochConverter);
 
-  const epochSection = h("section", { class: "cal-section", "aria-label": "Timestamp and Unix epoch converter" },
+  const epochSection = h(
+    "section",
+    {
+      class: "cal-section",
+      "aria-label": "Timestamp and Unix epoch converter",
+    },
     h("h3", { class: "cal-subhead" }, "⏱️ Timestamp & Unix Epoch Converter"),
-    h("div", { class: "cal-epoch-bar" },
+    h(
+      "div",
+      { class: "cal-epoch-bar" },
       epochInput,
-      h("button", {
-        type: "button",
-        class: "btn",
-        id: "cal-epoch-now",
-        title: "Fill with the current Unix timestamp in seconds",
-        onclick: () => {
-          epochInput.value = String(Math.floor(Date.now() / 1000));
-          renderEpochConverter();
+      h(
+        "button",
+        {
+          type: "button",
+          class: "btn",
+          id: "cal-epoch-now",
+          title: "Fill with the current Unix timestamp in seconds",
+          onclick: () => {
+            epochInput.value = String(Math.floor(Date.now() / 1000));
+            renderEpochConverter();
+          },
         },
-      }, "Now"),
+        "Now",
+      ),
     ),
     epochResult,
   );
@@ -529,9 +693,16 @@ export function showCalendarDialog(initialDate = new Date(), prefs = null) {
   renderWorldClocks(initialDate);
   renderEpochConverter();
 
-  const body = h("div", { class: "cal-dialog" },
+  const body = h(
+    "div",
+    { class: "cal-dialog" },
     summaryBadges,
-    h("div", { class: "cal-columns" }, calSection, h("div", { class: "cal-side" }, worldSection, epochSection)),
+    h(
+      "div",
+      { class: "cal-columns" },
+      calSection,
+      h("div", { class: "cal-side" }, worldSection, epochSection),
+    ),
   );
 
   const dlg = openDialog({

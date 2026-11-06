@@ -21,6 +21,7 @@ bun run cli:tokei [paths...]
 ```
 
 ### Supported Languages
+
 TypeScript, JavaScript, Rust, Python, Go, C/C++, Zig, Kotlin, Swift, Dart, Svelte, Vue, Astro, Nix, Shell, Markdown, JSON, HTML, CSS, YAML, SQL, TOML, GraphQL.
 
 ---
@@ -66,6 +67,7 @@ export interface TokeiOptions {
 ## 3. Comprehensive Code Examples
 
 ### Example 1: Compute Codebase Stats Programmatically
+
 ```typescript
 import { computeCodeStats } from "./tokeiCoordinator.ts";
 
@@ -77,11 +79,14 @@ const reports = await computeCodeStats({
 });
 
 for (const r of reports) {
-  console.log(`${r.language}: ${r.files} files | ${r.stats.code} code | ${r.stats.comment} comments | ${r.stats.blank} blank`);
+  console.log(
+    `${r.language}: ${r.files} files | ${r.stats.code} code | ${r.stats.comment} comments | ${r.stats.blank} blank`,
+  );
 }
 ```
 
 ### Example 2: Render Formatted ASCII Table Output
+
 ```typescript
 import { runTokeiCoordinator } from "./tokeiCoordinator.ts";
 
@@ -96,6 +101,7 @@ console.log(tableOutput);
 ```
 
 ### Example 3: Inspect Per-File Breakdown for a Language
+
 ```typescript
 import { computeCodeStats } from "./tokeiCoordinator.ts";
 
@@ -110,12 +116,15 @@ const tsReport = reports.find((r) => r.language === "TypeScript");
 if (tsReport) {
   console.log(`TypeScript files breakdown:`);
   for (const file of tsReport.fileDetails) {
-    console.log(`- ${file.path}: ${file.stats.code} LOC (${file.stats.lines} total)`);
+    console.log(
+      `- ${file.path}: ${file.stats.code} LOC (${file.stats.lines} total)`,
+    );
   }
 }
 ```
 
 ### Example 4: In-Memory String Code Counter Doer
+
 ```typescript
 import { analyzeLines } from "./tokeiDoers.ts";
 
@@ -140,6 +149,7 @@ console.log(stats);
 ```
 
 ### Example 5: Modern Language Detection, JSON & Markdown Tables
+
 ```typescript
 import {
   detectLanguage,
@@ -156,11 +166,15 @@ const svelte = detectLanguage("App.svelte");
 console.log(`Detected: ${svelte?.name}`); // "Svelte"
 
 // Format report as Markdown table or JSON
-const reports = await computeCodeStats({ paths: ["src"], sort: "code", showFiles: false, hidden: false });
+const reports = await computeCodeStats({
+  paths: ["src"],
+  sort: "code",
+  showFiles: false,
+  hidden: false,
+});
 const mdTable = formatMarkdownTable(reports);
 console.log(mdTable);
 
 const jsonReports = formatJsonReports(reports);
 console.log(`JSON length: ${jsonReports.length} bytes`);
 ```
-

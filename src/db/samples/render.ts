@@ -1,15 +1,25 @@
 /** Renders a dataset (model.ts) to DDL, indexes, views, triggers, comments and INSERT statements for one dialect. */
 import { literal, quoteId, quoteString, sqlHelpers } from "./dialect";
 import {
-  type ColumnDef, type DatasetDef, type Dialect, type IndexDef, type TableDef, type Cell,
-  insertableColumns, table,
+  type ColumnDef,
+  type DatasetDef,
+  type Dialect,
+  type IndexDef,
+  type TableDef,
+  type Cell,
+  insertableColumns,
+  table,
 } from "./model";
 
 /** Name of the PostgreSQL trigger function that updates `updated_at` columns on `UPDATE`. */
 export const TOUCH_FN = "_sample_touch_updated_at";
 
 /** Names of the bookkeeping tables every sample database gets. */
-export const META_TABLES = ["_sample_info", "_sample_dictionary", "_sample_queries"] as const;
+export const META_TABLES = [
+  "_sample_info",
+  "_sample_dictionary",
+  "_sample_queries",
+] as const;
 
 /** Standard disclaimer stored in `_sample_info` stating that all records in the sample database are synthetic. */
 export const SYNTHETIC_NOTICE =
@@ -19,30 +29,58 @@ export const SYNTHETIC_NOTICE =
 function shortName(name: string): string {
   if (name.length <= 60) return name;
   let h = 0;
-  for (let i = 0; i < name.length; i++) h = (Math.imul(h, 31) + name.charCodeAt(i)) >>> 0;
+  for (let i = 0; i < name.length; i++)
+    h = (Math.imul(h, 31) + name.charCodeAt(i)) >>> 0;
   return `${name.slice(0, 52)}_${h.toString(36).slice(0, 7)}`;
 }
 
 /** Maps a dialect-neutral `ColumnDef` to its native SQL column type string for the target dialect. */
 export function columnType(d: Dialect, c: ColumnDef): string {
   switch (c.type) {
-    case "id": return d === "mysql" ? "INT" : "INTEGER";
-    case "int": return d === "mysql" ? "INT" : "INTEGER";
-    case "bigint": return d === "sqlite" ? "INTEGER" : "BIGINT";
-    case "smallint": return d === "sqlite" ? "INTEGER" : "SMALLINT";
-    case "str": return d === "sqlite" ? "TEXT" : `VARCHAR(${c.len})`;
-    case "enum": return d === "sqlite" ? "TEXT" : `VARCHAR(${c.len})`;
-    case "char": return d === "sqlite" ? "TEXT" : `CHAR(${c.len})`;
-    case "text": return "TEXT";
-    case "dec": return d === "mysql" ? `DECIMAL(${c.prec},${c.scale})` : `NUMERIC(${c.prec},${c.scale})`;
-    case "real": return d === "sqlite" ? "REAL" : d === "mysql" ? "DOUBLE" : "DOUBLE PRECISION";
-    case "bool": return d === "sqlite" ? "INTEGER" : d === "mysql" ? "TINYINT(1)" : "BOOLEAN";
-    case "date": return d === "sqlite" ? "TEXT" : "DATE";
-    case "ts": return d === "sqlite" ? "TEXT" : d === "mysql" ? "DATETIME" : "TIMESTAMP";
-    case "time": return d === "sqlite" ? "TEXT" : "TIME";
-    case "json": return d === "sqlite" ? "TEXT" : d === "mysql" ? "JSON" : "JSONB";
-    case "tags": return d === "sqlite" ? "TEXT" : d === "mysql" ? "JSON" : "TEXT[]";
-    case "uuid": return d === "sqlite" ? "TEXT" : d === "mysql" ? "CHAR(36)" : "UUID";
+    case "id":
+      return d === "mysql" ? "INT" : "INTEGER";
+    case "int":
+      return d === "mysql" ? "INT" : "INTEGER";
+    case "bigint":
+      return d === "sqlite" ? "INTEGER" : "BIGINT";
+    case "smallint":
+      return d === "sqlite" ? "INTEGER" : "SMALLINT";
+    case "str":
+      return d === "sqlite" ? "TEXT" : `VARCHAR(${c.len})`;
+    case "enum":
+      return d === "sqlite" ? "TEXT" : `VARCHAR(${c.len})`;
+    case "char":
+      return d === "sqlite" ? "TEXT" : `CHAR(${c.len})`;
+    case "text":
+      return "TEXT";
+    case "dec":
+      return d === "mysql"
+        ? `DECIMAL(${c.prec},${c.scale})`
+        : `NUMERIC(${c.prec},${c.scale})`;
+    case "real":
+      return d === "sqlite"
+        ? "REAL"
+        : d === "mysql"
+          ? "DOUBLE"
+          : "DOUBLE PRECISION";
+    case "bool":
+      return d === "sqlite"
+        ? "INTEGER"
+        : d === "mysql"
+          ? "TINYINT(1)"
+          : "BOOLEAN";
+    case "date":
+      return d === "sqlite" ? "TEXT" : "DATE";
+    case "ts":
+      return d === "sqlite" ? "TEXT" : d === "mysql" ? "DATETIME" : "TIMESTAMP";
+    case "time":
+      return d === "sqlite" ? "TEXT" : "TIME";
+    case "json":
+      return d === "sqlite" ? "TEXT" : d === "mysql" ? "JSON" : "JSONB";
+    case "tags":
+      return d === "sqlite" ? "TEXT" : d === "mysql" ? "JSON" : "TEXT[]";
+    case "uuid":
+      return d === "sqlite" ? "TEXT" : d === "mysql" ? "CHAR(36)" : "UUID";
   }
 }
 
@@ -52,10 +90,13 @@ export function columnDoc(t: TableDef, c: ColumnDef): string {
   if (c.pk && c.type === "id") return "Surrogate primary key.";
   if (c.ref) return `Foreign key to ${c.ref.table}.${c.ref.column}.`;
   if (c.generated) return `Computed column: ${c.generated}.`;
-  if (c.type === "enum") return `${cap(c.name)}; one of: ${c.enumValues!.join(", ")}.`;
+  if (c.type === "enum")
+    return `${cap(c.name)}; one of: ${c.enumValues!.join(", ")}.`;
   if (c.name === "created_at") return "When the row was created.";
-  if (c.name === "updated_at") return "When the row was last changed (maintained by the database).";
-  if (c.name === "deleted_at") return "Soft-delete marker; NULL while the row is active.";
+  if (c.name === "updated_at")
+    return "When the row was last changed (maintained by the database).";
+  if (c.name === "deleted_at")
+    return "Soft-delete marker; NULL while the row is active.";
   return `${cap(c.name)}.`;
 }
 
@@ -71,7 +112,8 @@ function defaultClause(d: Dialect, c: ColumnDef): string {
   if (c.type === "text" || c.type === "json" || c.type === "tags") return "";
   const v = def.value;
   if (v === null) return " DEFAULT NULL";
-  if (typeof v === "boolean") return ` DEFAULT ${d === "postgres" ? (v ? "TRUE" : "FALSE") : v ? "1" : "0"}`;
+  if (typeof v === "boolean")
+    return ` DEFAULT ${d === "postgres" ? (v ? "TRUE" : "FALSE") : v ? "1" : "0"}`;
   if (typeof v === "number") return ` DEFAULT ${v}`;
   return ` DEFAULT ${quoteString(d, v)}`;
 }
@@ -87,8 +129,13 @@ function uniqueSets(t: TableDef): string[][] {
  */
 export function allIndexes(t: TableDef): IndexDef[] {
   const out: IndexDef[] = t.indexes.map((i) => ({ ...i }));
-  for (const c of t.columns) if (c.indexed) out.push({ cols: [c.name], unique: false });
-  const leading = new Set<string>([t.pk[0] ?? "", ...uniqueSets(t).map((u) => u[0]!), ...out.map((i) => i.cols[0]!)]);
+  for (const c of t.columns)
+    if (c.indexed) out.push({ cols: [c.name], unique: false });
+  const leading = new Set<string>([
+    t.pk[0] ?? "",
+    ...uniqueSets(t).map((u) => u[0]!),
+    ...out.map((i) => i.cols[0]!),
+  ]);
   for (const c of t.columns) {
     if (c.ref && !leading.has(c.name)) {
       out.push({ cols: [c.name], unique: false });
@@ -103,18 +150,21 @@ function renderColumn(d: Dialect, t: TableDef, c: ColumnDef): string {
   let s = `${q} ${columnType(d, c)}`;
   if (c.generated) {
     s += ` GENERATED ALWAYS AS (${c.generated}) STORED`;
-    if (d === "mysql") s += ` COMMENT ${quoteString(d, columnDoc(t, c).slice(0, 1000))}`;
+    if (d === "mysql")
+      s += ` COMMENT ${quoteString(d, columnDoc(t, c).slice(0, 1000))}`;
     return s;
   }
   if (c.type === "id") {
     if (d === "sqlite") return `${q} INTEGER PRIMARY KEY`;
-    if (d === "mysql") return `${q} INT NOT NULL AUTO_INCREMENT COMMENT ${quoteString(d, columnDoc(t, c))}`;
+    if (d === "mysql")
+      return `${q} INT NOT NULL AUTO_INCREMENT COMMENT ${quoteString(d, columnDoc(t, c))}`;
     return `${q} INTEGER GENERATED BY DEFAULT AS IDENTITY NOT NULL`;
   }
   if (c.notNull) s += " NOT NULL";
   s += defaultClause(d, c);
   if (d === "mysql" && c.touch) s += " ON UPDATE CURRENT_TIMESTAMP";
-  if (d === "mysql") s += ` COMMENT ${quoteString(d, columnDoc(t, c).slice(0, 1000))}`;
+  if (d === "mysql")
+    s += ` COMMENT ${quoteString(d, columnDoc(t, c).slice(0, 1000))}`;
   return s;
 }
 
@@ -122,12 +172,28 @@ function colChecks(d: Dialect, t: TableDef): string[] {
   const out: string[] = [];
   for (const c of t.columns) {
     const q = quoteId(d, c.name);
-    if (c.type === "enum") out.push(`CONSTRAINT ${quoteId(d, shortName(`ck_${t.name}_${c.name}`))} CHECK (${q} IN (${c.enumValues!.map((v) => quoteString(d, v)).join(", ")}))`);
-    else if (c.type === "bool" && d === "sqlite") out.push(`CONSTRAINT ${quoteId(d, shortName(`ck_${t.name}_${c.name}`))} CHECK (${q} IN (0, 1))`);
-    else if (c.type === "json" && d === "sqlite") out.push(`CONSTRAINT ${quoteId(d, shortName(`ck_${t.name}_${c.name}`))} CHECK (json_valid(${q}))`);
-    else if (c.type === "tags" && d === "sqlite") out.push(`CONSTRAINT ${quoteId(d, shortName(`ck_${t.name}_${c.name}`))} CHECK (json_valid(${q}))`);
+    if (c.type === "enum")
+      out.push(
+        `CONSTRAINT ${quoteId(d, shortName(`ck_${t.name}_${c.name}`))} CHECK (${q} IN (${c.enumValues!.map((v) => quoteString(d, v)).join(", ")}))`,
+      );
+    else if (c.type === "bool" && d === "sqlite")
+      out.push(
+        `CONSTRAINT ${quoteId(d, shortName(`ck_${t.name}_${c.name}`))} CHECK (${q} IN (0, 1))`,
+      );
+    else if (c.type === "json" && d === "sqlite")
+      out.push(
+        `CONSTRAINT ${quoteId(d, shortName(`ck_${t.name}_${c.name}`))} CHECK (json_valid(${q}))`,
+      );
+    else if (c.type === "tags" && d === "sqlite")
+      out.push(
+        `CONSTRAINT ${quoteId(d, shortName(`ck_${t.name}_${c.name}`))} CHECK (json_valid(${q}))`,
+      );
   }
-  t.checks.forEach((expr, i) => out.push(`CONSTRAINT ${quoteId(d, shortName(`ck_${t.name}_${i + 1}`))} CHECK (${expr})`));
+  t.checks.forEach((expr, i) =>
+    out.push(
+      `CONSTRAINT ${quoteId(d, shortName(`ck_${t.name}_${i + 1}`))} CHECK (${expr})`,
+    ),
+  );
   return out;
 }
 
@@ -136,12 +202,19 @@ function colChecks(d: Dialect, t: TableDef): string[] {
  */
 export function renderCreateTable(d: Dialect, t: TableDef): string {
   const lines: string[] = t.columns.map((c) => renderColumn(d, t, c));
-  const hasInlinePk = d === "sqlite" && t.columns.some((c) => c.type === "id") && t.pk.length === 1;
+  const hasInlinePk =
+    d === "sqlite" &&
+    t.columns.some((c) => c.type === "id") &&
+    t.pk.length === 1;
   if (!hasInlinePk && t.pk.length) {
-    lines.push(`CONSTRAINT ${quoteId(d, shortName(`pk_${t.name}`))} PRIMARY KEY (${t.pk.map((c) => quoteId(d, c)).join(", ")})`);
+    lines.push(
+      `CONSTRAINT ${quoteId(d, shortName(`pk_${t.name}`))} PRIMARY KEY (${t.pk.map((c) => quoteId(d, c)).join(", ")})`,
+    );
   }
   for (const u of uniqueSets(t)) {
-    lines.push(`CONSTRAINT ${quoteId(d, shortName(`uq_${t.name}_${u.join("_")}`))} UNIQUE (${u.map((c) => quoteId(d, c)).join(", ")})`);
+    lines.push(
+      `CONSTRAINT ${quoteId(d, shortName(`uq_${t.name}_${u.join("_")}`))} UNIQUE (${u.map((c) => quoteId(d, c)).join(", ")})`,
+    );
   }
   for (const c of t.columns) {
     if (!c.ref) continue;
@@ -151,7 +224,8 @@ export function renderCreateTable(d: Dialect, t: TableDef): string {
   }
   lines.push(...colChecks(d, t));
   let sql = `CREATE TABLE ${quoteId(d, t.name)} (\n  ${lines.join(",\n  ")}\n)`;
-  if (d === "mysql") sql += ` ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT=${quoteString(d, t.comment.slice(0, 1800))}`;
+  if (d === "mysql")
+    sql += ` ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT=${quoteString(d, t.comment.slice(0, 1800))}`;
   return sql;
 }
 
@@ -164,7 +238,9 @@ export function renderIndexes(d: Dialect, t: TableDef): string[] {
     if (ix.where && d === "mysql" && ix.unique) continue;
     const name = quoteId(d, shortName(`ix_${t.name}_${ix.cols.join("_")}`));
     const where = ix.where && d !== "mysql" ? ` WHERE ${ix.where}` : "";
-    out.push(`CREATE ${ix.unique && !(ix.where && d === "mysql") ? "UNIQUE " : ""}INDEX ${name} ON ${quoteId(d, t.name)} (${ix.cols.map((c) => quoteId(d, c)).join(", ")})${where}`);
+    out.push(
+      `CREATE ${ix.unique && !(ix.where && d === "mysql") ? "UNIQUE " : ""}INDEX ${name} ON ${quoteId(d, t.name)} (${ix.cols.map((c) => quoteId(d, c)).join(", ")})${where}`,
+    );
   }
   return out;
 }
@@ -176,15 +252,21 @@ export function renderTriggers(d: Dialect, ds: DatasetDef): string[] {
   const out: string[] = [];
   const touched = ds.tables.filter((t) => t.columns.some((c) => c.touch));
   if (d === "postgres" && touched.length) {
-    out.push(`CREATE FUNCTION ${TOUCH_FN}() RETURNS trigger LANGUAGE plpgsql AS $fn$ BEGIN NEW.updated_at := CURRENT_TIMESTAMP; RETURN NEW; END $fn$`);
+    out.push(
+      `CREATE FUNCTION ${TOUCH_FN}() RETURNS trigger LANGUAGE plpgsql AS $fn$ BEGIN NEW.updated_at := CURRENT_TIMESTAMP; RETURN NEW; END $fn$`,
+    );
   }
   for (const t of touched) {
     const tn = quoteId(d, t.name);
     const trg = quoteId(d, shortName(`trg_${t.name}_touch`));
     if (d === "sqlite") {
-      out.push(`CREATE TRIGGER ${trg} AFTER UPDATE ON ${tn} FOR EACH ROW WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE ${tn} SET updated_at = CURRENT_TIMESTAMP WHERE rowid = NEW.rowid; END`);
+      out.push(
+        `CREATE TRIGGER ${trg} AFTER UPDATE ON ${tn} FOR EACH ROW WHEN NEW.updated_at IS OLD.updated_at BEGIN UPDATE ${tn} SET updated_at = CURRENT_TIMESTAMP WHERE rowid = NEW.rowid; END`,
+      );
     } else if (d === "postgres") {
-      out.push(`CREATE TRIGGER ${trg} BEFORE UPDATE ON ${tn} FOR EACH ROW EXECUTE FUNCTION ${TOUCH_FN}()`);
+      out.push(
+        `CREATE TRIGGER ${trg} BEFORE UPDATE ON ${tn} FOR EACH ROW EXECUTE FUNCTION ${TOUCH_FN}()`,
+      );
     }
   }
   out.push(...(ds.triggers[d] ?? []));
@@ -197,20 +279,33 @@ export function renderTriggers(d: Dialect, ds: DatasetDef): string[] {
 export function renderViews(d: Dialect, ds: DatasetDef): string[] {
   const h = sqlHelpers(d);
   return ds.views.map((v) => {
-    const kw = v.materialized && d === "postgres" ? "MATERIALIZED VIEW" : "VIEW";
+    const kw =
+      v.materialized && d === "postgres" ? "MATERIALIZED VIEW" : "VIEW";
     return `CREATE ${kw} ${quoteId(d, v.name)} AS\n${v.sql(h).trim()}`;
   });
 }
 
 /** COMMENT ON statements (PostgreSQL). MySQL carries its comments inside CREATE TABLE; SQLite uses _sample_dictionary. */
-export function renderComments(d: Dialect, ds: DatasetDef, metaTables: TableDef[] = []): string[] {
+export function renderComments(
+  d: Dialect,
+  ds: DatasetDef,
+  metaTables: TableDef[] = [],
+): string[] {
   if (d !== "postgres") return [];
   const out: string[] = [];
   for (const t of [...ds.tables, ...metaTables]) {
-    out.push(`COMMENT ON TABLE ${quoteId(d, t.name)} IS ${quoteString(d, t.comment)}`);
-    for (const c of t.columns) out.push(`COMMENT ON COLUMN ${quoteId(d, t.name)}.${quoteId(d, c.name)} IS ${quoteString(d, columnDoc(t, c))}`);
+    out.push(
+      `COMMENT ON TABLE ${quoteId(d, t.name)} IS ${quoteString(d, t.comment)}`,
+    );
+    for (const c of t.columns)
+      out.push(
+        `COMMENT ON COLUMN ${quoteId(d, t.name)}.${quoteId(d, c.name)} IS ${quoteString(d, columnDoc(t, c))}`,
+      );
   }
-  for (const v of ds.views) out.push(`COMMENT ON ${v.materialized ? "MATERIALIZED VIEW" : "VIEW"} ${quoteId(d, v.name)} IS ${quoteString(d, v.comment)}`);
+  for (const v of ds.views)
+    out.push(
+      `COMMENT ON ${v.materialized ? "MATERIALIZED VIEW" : "VIEW"} ${quoteId(d, v.name)} IS ${quoteString(d, v.comment)}`,
+    );
   return out;
 }
 
@@ -218,20 +313,32 @@ export function renderComments(d: Dialect, ds: DatasetDef, metaTables: TableDef[
 export function renderDrop(d: Dialect, ds: DatasetDef): string[] {
   const out: string[] = [];
   for (const v of [...ds.views].reverse()) {
-    out.push(`DROP ${v.materialized && d === "postgres" ? "MATERIALIZED VIEW" : "VIEW"} IF EXISTS ${quoteId(d, v.name)}`);
+    out.push(
+      `DROP ${v.materialized && d === "postgres" ? "MATERIALIZED VIEW" : "VIEW"} IF EXISTS ${quoteId(d, v.name)}`,
+    );
   }
-  for (const name of [...ds.order].reverse()) out.push(`DROP TABLE IF EXISTS ${quoteId(d, name)}`);
-  for (const name of META_TABLES) out.push(`DROP TABLE IF EXISTS ${quoteId(d, name)}`);
+  for (const name of [...ds.order].reverse())
+    out.push(`DROP TABLE IF EXISTS ${quoteId(d, name)}`);
+  for (const name of META_TABLES)
+    out.push(`DROP TABLE IF EXISTS ${quoteId(d, name)}`);
   if (d === "postgres") {
-    if (ds.tables.some((t) => t.columns.some((c) => c.touch))) out.push(`DROP FUNCTION IF EXISTS ${TOUCH_FN}()`);
-    for (const fn of ds.triggers.postgresFunctions ?? []) out.push(`DROP FUNCTION IF EXISTS ${fn}`);
+    if (ds.tables.some((t) => t.columns.some((c) => c.touch)))
+      out.push(`DROP FUNCTION IF EXISTS ${TOUCH_FN}()`);
+    for (const fn of ds.triggers.postgresFunctions ?? [])
+      out.push(`DROP FUNCTION IF EXISTS ${fn}`);
   }
   return out;
 }
 
 /** Every object name (tables, views, bookkeeping tables) a dataset creates. */
-export function objectNames(ds: DatasetDef): { tables: string[]; views: string[] } {
-  return { tables: [...ds.tables.map((t) => t.name), ...META_TABLES], views: ds.views.map((v) => v.name) };
+export function objectNames(ds: DatasetDef): {
+  tables: string[];
+  views: string[];
+} {
+  return {
+    tables: [...ds.tables.map((t) => t.name), ...META_TABLES],
+    views: ds.views.map((v) => v.name),
+  };
 }
 
 /**
@@ -247,7 +354,11 @@ export function fixSequence(d: Dialect, t: TableDef): string | null {
 
 /** Multi-row INSERT statements. Batches stop at `maxRows` rows or about `maxChars` characters. */
 export function* insertStatements(
-  d: Dialect, t: TableDef, rows: Cell[][], maxRows = 500, maxChars = 400_000,
+  d: Dialect,
+  t: TableDef,
+  rows: Cell[][],
+  maxRows = 500,
+  maxChars = 400_000,
 ): Generator<{ sql: string; rows: number }> {
   const cols = insertableColumns(t);
   const head = `INSERT INTO ${quoteId(d, t.name)} (${cols.map((c) => quoteId(d, c.name)).join(", ")}) VALUES\n`;
@@ -269,31 +380,46 @@ export function* insertStatements(
 /** The bookkeeping tables: dataset info, data dictionary and the "Try these queries" list. */
 export function metaTableDefs(): TableDef[] {
   return [
-    table("_sample_info", "Which sample dataset this database holds, how it was generated, and the synthetic-data notice.", [
-      "dataset_id str(64) uq # Catalog id of the dataset",
-      "title str(160) # Dataset title",
-      "version str(16) # Dataset definition version",
-      "seed int # Seed of the pseudo-random generator; the same seed and scale always produce the same data",
-      "scale str(10) # small, medium or large",
-      "as_of date # The reference 'today' used by the views and queries so results are reproducible",
-      "created_at ts def:now # When the sample was created",
-      "generator str(64) # Generator that produced the data",
-      "synthetic_notice text # Statement that all data is synthetic",
-    ], { rows: [] }),
-    table("_sample_dictionary", "Data dictionary: one row per table, view and column of the sample.", [
-      "id id",
-      "object_name str(64) # Table or view name",
-      "column_name str(64) null # Column name, NULL for the table or view itself",
-      "object_type str(16) # table, view or column",
-      "data_type str(40) null # Neutral data type",
-      "description text # What it holds",
-    ], { rows: [] }),
-    table("_sample_queries", "Example analytical queries for this dataset (\"Try these queries\").", [
-      "id id",
-      "query_key str(64) uq # Stable id",
-      "title str(160) # Short name",
-      "description text # What the query shows",
-      "sql text # The statement, ready to run",
-    ], { rows: [] }),
+    table(
+      "_sample_info",
+      "Which sample dataset this database holds, how it was generated, and the synthetic-data notice.",
+      [
+        "dataset_id str(64) uq # Catalog id of the dataset",
+        "title str(160) # Dataset title",
+        "version str(16) # Dataset definition version",
+        "seed int # Seed of the pseudo-random generator; the same seed and scale always produce the same data",
+        "scale str(10) # small, medium or large",
+        "as_of date # The reference 'today' used by the views and queries so results are reproducible",
+        "created_at ts def:now # When the sample was created",
+        "generator str(64) # Generator that produced the data",
+        "synthetic_notice text # Statement that all data is synthetic",
+      ],
+      { rows: [] },
+    ),
+    table(
+      "_sample_dictionary",
+      "Data dictionary: one row per table, view and column of the sample.",
+      [
+        "id id",
+        "object_name str(64) # Table or view name",
+        "column_name str(64) null # Column name, NULL for the table or view itself",
+        "object_type str(16) # table, view or column",
+        "data_type str(40) null # Neutral data type",
+        "description text # What it holds",
+      ],
+      { rows: [] },
+    ),
+    table(
+      "_sample_queries",
+      'Example analytical queries for this dataset ("Try these queries").',
+      [
+        "id id",
+        "query_key str(64) uq # Stable id",
+        "title str(160) # Short name",
+        "description text # What the query shows",
+        "sql text # The statement, ready to run",
+      ],
+      { rows: [] },
+    ),
   ];
 }

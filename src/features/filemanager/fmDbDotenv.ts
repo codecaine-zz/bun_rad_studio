@@ -21,13 +21,19 @@ export type DotenvMode = "production" | "development" | "test";
 
 /** Normalizes a `NODE_ENV` value into its corresponding `DotenvMode`. */
 export function dotenvMode(nodeEnv: string | undefined): DotenvMode {
-  return nodeEnv === "production" ? "production" : nodeEnv === "test" ? "test" : "development";
+  return nodeEnv === "production"
+    ? "production"
+    : nodeEnv === "test"
+      ? "test"
+      : "development";
 }
 
 /** The files Bun reads for a NODE_ENV, lowest precedence first. */
 export function dotenvFileNames(nodeEnv: string | undefined): string[] {
   const mode = dotenvMode(nodeEnv);
-  return mode === "test" ? [".env", ".env.test", ".env.test.local"] : [".env", `.env.${mode}`, ".env.local", `.env.${mode}.local`];
+  return mode === "test"
+    ? [".env", ".env.test", ".env.test.local"]
+    : [".env", `.env.${mode}`, ".env.local", `.env.${mode}.local`];
 }
 
 /** An unexpanded `NAME=value` assignment parsed from a `.env` file along with its quote style. */
@@ -91,9 +97,18 @@ function findClose(body: string, q: string): number {
 }
 
 /** Expands `$NAME`, `${NAME}` and `${NAME:-fallback}`; `\$` stays a dollar sign. Unknown names become empty. */
-export function expandValue(raw: string, quote: RawEntry["quote"], lookup: (name: string) => string | undefined): string {
+export function expandValue(
+  raw: string,
+  quote: RawEntry["quote"],
+  lookup: (name: string) => string | undefined,
+): string {
   let text = raw;
-  if (quote === '"') text = text.replace(/\\n/g, "\n").replace(/\\r/g, "\r").replace(/\\t/g, "\t").replace(/\\"/g, '"');
+  if (quote === '"')
+    text = text
+      .replace(/\\n/g, "\n")
+      .replace(/\\r/g, "\r")
+      .replace(/\\t/g, "\t")
+      .replace(/\\"/g, '"');
   let out = "";
   for (let i = 0; i < text.length; i++) {
     const c = text[i]!;
@@ -106,7 +121,9 @@ export function expandValue(raw: string, quote: RawEntry["quote"], lookup: (name
       out += c;
       continue;
     }
-    const braced = /^\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?\}/.exec(text.slice(i));
+    const braced = /^\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?\}/.exec(
+      text.slice(i),
+    );
     if (braced) {
       const got = lookup(braced[1]!);
       out += got !== undefined && got !== "" ? got : (braced[2] ?? "");
@@ -151,7 +168,11 @@ export interface DotenvFolder {
 }
 
 /** Reads one file without following a link; null when it doesn't exist. */
-export async function readDotenvFile(path: string): Promise<{ text: string } | { skipped: NonNullable<DotenvFile["skipped"]> } | null> {
+export async function readDotenvFile(
+  path: string,
+): Promise<
+  { text: string } | { skipped: NonNullable<DotenvFile["skipped"]> } | null
+> {
   let st;
   try {
     st = await fsp.lstat(path);
@@ -174,7 +195,11 @@ export async function readDotenvFile(path: string): Promise<{ text: string } | {
  * Reads the `.env*` files Bun would load from `dir`, in Bun's order, and returns the final value of each name.
  * `realEnv` is what the process already had: it wins, and is also used when a value refers to `$OTHER`.
  */
-export async function readDotenvFolder(dir: string, nodeEnv: string | undefined, realEnv: Record<string, string | undefined>): Promise<DotenvFolder> {
+export async function readDotenvFolder(
+  dir: string,
+  nodeEnv: string | undefined,
+  realEnv: Record<string, string | undefined>,
+): Promise<DotenvFolder> {
   const files: DotenvFile[] = [];
   const values = new Map<string, DotenvValue>();
   for (const name of dotenvFileNames(nodeEnv)) {

@@ -30,12 +30,12 @@ bun run cli:rip <targets...>
 
 ```typescript
 export interface GraveyardRecord {
-  id: string;             // Unique timestamped ID
-  originalPath: string;   // Absolute original path
-  graveyardPath: string;  // Path inside graveyard folder
-  deletedAt: string;      // ISO timestamp
+  id: string; // Unique timestamped ID
+  originalPath: string; // Absolute original path
+  graveyardPath: string; // Path inside graveyard folder
+  deletedAt: string; // ISO timestamp
   isDirectory: boolean;
-  size: number;           // Size in bytes
+  size: number; // Size in bytes
 }
 
 export interface GraveyardManifest {
@@ -64,6 +64,7 @@ export interface RipOptions {
 ## 3. Comprehensive Code Examples
 
 ### Example 1: Bury a File Safely into the Graveyard
+
 ```typescript
 import { buryTarget } from "./ripCoordinator.ts";
 import { resolveGraveyardDir } from "./ripDoers.ts";
@@ -78,6 +79,7 @@ console.log(`- Size: ${record.size} bytes`);
 ```
 
 ### Example 2: Restore / Unbury the Most Recently Deleted File
+
 ```typescript
 import { unburyTarget } from "./ripCoordinator.ts";
 import { resolveGraveyardDir } from "./ripDoers.ts";
@@ -88,6 +90,7 @@ console.log(`Restored item back to: ${restored.originalPath}`);
 ```
 
 ### Example 3: Restore a Specific Item by Filename Query
+
 ```typescript
 import { unburyTarget } from "./ripCoordinator.ts";
 import { resolveGraveyardDir } from "./ripDoers.ts";
@@ -99,6 +102,7 @@ console.log(`Restored: ${restored.originalPath}`);
 ```
 
 ### Example 4: List Buried Files in Graveyard (Seance)
+
 ```typescript
 import { readManifest, resolveGraveyardDir } from "./ripDoers.ts";
 
@@ -112,6 +116,7 @@ for (const item of manifest.records) {
 ```
 
 ### Example 5: Permanently Decompose Graveyard
+
 ```typescript
 import { decomposeGraveyard } from "./ripCoordinator.ts";
 import { resolveGraveyardDir } from "./ripDoers.ts";
@@ -122,6 +127,7 @@ console.log(`Permanently purged ${purgedCount} items from disk.`);
 ```
 
 ### Example 6: Prune Graveyard, Compute Size & Inspect Record Details
+
 ```typescript
 import { getRecordInfo, pruneGraveyard } from "./ripCoordinator.ts";
 import {
@@ -147,4 +153,3 @@ console.log(formatGraveyardSummary(totalBytes, count));
 const pruned = await pruneGraveyard(graveyard, 30);
 console.log(`Pruned ${pruned} stale graveyard records.`);
 ```
-

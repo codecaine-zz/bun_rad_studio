@@ -1,6 +1,6 @@
 /**
  * ⚡ Bun RAD Studio - Postgres Studio Pro Server Engine
- * 
+ *
  * High-performance background HTTP telemetry & database engine for Postgres Studio Pro.
  * Runs on a dedicated OS thread (via Bun Worker) or standalone web server, providing
  * sub-millisecond query execution, schema reflection, extensions management,
@@ -25,20 +25,36 @@ import {
 import { quoteIdent } from "../src/db/quote";
 import { SQL } from "bun";
 import { resolve, basename } from "path";
-import { existsSync, statSync, writeFileSync, mkdirSync, readFileSync } from "fs";
+import {
+  existsSync,
+  statSync,
+  writeFileSync,
+  mkdirSync,
+  readFileSync,
+} from "fs";
 import { homedir } from "os";
 import { generatePostgresStudioHtml } from "./postgres_studio.ts";
-import { MacroStore, handleMacroRoute, type MacroAdapter, type MacroQueryResult } from "./studio_macros_server.ts";
+import {
+  MacroStore,
+  handleMacroRoute,
+  type MacroAdapter,
+  type MacroQueryResult,
+} from "./studio_macros_server.ts";
 import { postgresSampleApi } from "../src/db/samples/wiring";
 
 /** Quote a PostgreSQL identifier (doubles embedded quotes). Never splice names into SQL without it. */
-const pgq = (name: unknown): string => quoteIdent("postgres", String(name ?? ""));
+const pgq = (name: unknown): string =>
+  quoteIdent("postgres", String(name ?? ""));
 /** Type names and default expressions are SQL fragments by nature; refuse anything that could start another statement. */
 function assertSafeSqlFragment(what: string, text: string): void {
-  if (/;|--|\/\*/.test(String(text ?? ""))) throw new Error(`Invalid ${what}: statement separators and comments are not allowed`);
+  if (/;|--|\/\*/.test(String(text ?? "")))
+    throw new Error(
+      `Invalid ${what}: statement separators and comments are not allowed`,
+    );
 }
 /** Quote a PostgreSQL string literal (standard_conforming_strings is on, so only quotes need doubling). */
-const pgl = (value: unknown): string => "'" + String(value ?? "").replace(/'/g, "''") + "'";
+const pgl = (value: unknown): string =>
+  "'" + String(value ?? "").replace(/'/g, "''") + "'";
 
 export interface PostgresConnectionConfig {
   host?: string;
@@ -87,8 +103,19 @@ export interface TableSchemaMeta {
   sql: string;
   rowCount: number;
   columns: TableColumnMeta[];
-  indices: { name: string; unique: boolean; columns: string[]; indexDef?: string }[];
-  foreignKeys: { id: number; seq: number; table: string; from: string; to: string }[];
+  indices: {
+    name: string;
+    unique: boolean;
+    columns: string[];
+    indexDef?: string;
+  }[];
+  foreignKeys: {
+    id: number;
+    seq: number;
+    table: string;
+    from: string;
+    to: string;
+  }[];
 }
 
 export interface DatabaseKpis {
@@ -223,20 +250,27 @@ export class PostgresManager {
 
   public macroStore = new MacroStore("postgres", () => {
     const c = this.dbConfig;
-    return c ? `${c.host}:${c.port}/${c.database}/${this.activeSchema}` : "postgres";
+    return c
+      ? `${c.host}:${c.port}/${c.database}/${this.activeSchema}`
+      : "postgres";
   });
 
-  constructor(initialDb: string = "", initialConfig?: Partial<PostgresConnectionConfig>) {
+  constructor(
+    initialDb: string = "",
+    initialConfig?: Partial<PostgresConnectionConfig>,
+  ) {
     this.loadEnvFile();
-    this.activePath = initialDb 
-      || initialConfig?.database 
-      || process.env.PG_DATABASE 
-      || process.env.PG_NAME 
-      || process.env.PG_DB 
-      || process.env.POSTGRES_DB 
-      || process.env.DB_NAME 
-      || "mydb";
-    this.activeSchema = initialConfig?.schema || process.env.PG_SCHEMA || "public";
+    this.activePath =
+      initialDb ||
+      initialConfig?.database ||
+      process.env.PG_DATABASE ||
+      process.env.PG_NAME ||
+      process.env.PG_DB ||
+      process.env.POSTGRES_DB ||
+      process.env.DB_NAME ||
+      "mydb";
+    this.activeSchema =
+      initialConfig?.schema || process.env.PG_SCHEMA || "public";
     this.parseConfig(initialDb, initialConfig);
     this.initConnection();
   }
@@ -253,7 +287,10 @@ export class PostgresManager {
           if (eqIdx > 0) {
             const key = trimmed.slice(0, eqIdx).trim();
             let val = trimmed.slice(eqIdx + 1).trim();
-            if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+            if (
+              (val.startsWith('"') && val.endsWith('"')) ||
+              (val.startsWith("'") && val.endsWith("'"))
+            ) {
               val = val.slice(1, -1);
             }
             process.env[key] = val;
@@ -263,55 +300,83 @@ export class PostgresManager {
     } catch {}
   }
 
-  private parseConfig(overrideDb: string = "", customConfig?: Partial<PostgresConnectionConfig>) {
+  private parseConfig(
+    overrideDb: string = "",
+    customConfig?: Partial<PostgresConnectionConfig>,
+  ) {
     this.loadEnvFile();
 
-    let host = customConfig?.host 
-      || process.env.PG_HOST 
-      || process.env.POSTGRES_HOST 
-      || process.env.DB_HOST 
-      || "localhost";
-    let port = customConfig?.port 
-      ? Number(customConfig.port) 
-      : (Number(process.env.PG_PORT || process.env.POSTGRES_PORT || process.env.DB_PORT) || 5432);
-    let user = customConfig?.user 
-      || process.env.PG_USER 
-      || process.env.POSTGRES_USER 
-      || process.env.DB_USER 
-      || "postgres";
-    let password = customConfig?.password !== undefined 
-      ? customConfig.password 
-      : (process.env.PG_PASSWORD !== undefined 
-          ? process.env.PG_PASSWORD 
-          : (process.env.POSTGRES_PASSWORD !== undefined ? process.env.POSTGRES_PASSWORD : (process.env.DB_PASSWORD || "")));
-    let database = customConfig?.database 
-      || overrideDb 
-      || process.env.PG_DATABASE 
-      || process.env.PG_NAME 
-      || process.env.PG_DB 
-      || process.env.POSTGRES_DB 
-      || process.env.DB_NAME 
-      || "mydb";
+    let host =
+      customConfig?.host ||
+      process.env.PG_HOST ||
+      process.env.POSTGRES_HOST ||
+      process.env.DB_HOST ||
+      "localhost";
+    let port = customConfig?.port
+      ? Number(customConfig.port)
+      : Number(
+          process.env.PG_PORT ||
+            process.env.POSTGRES_PORT ||
+            process.env.DB_PORT,
+        ) || 5432;
+    let user =
+      customConfig?.user ||
+      process.env.PG_USER ||
+      process.env.POSTGRES_USER ||
+      process.env.DB_USER ||
+      "postgres";
+    let password =
+      customConfig?.password !== undefined
+        ? customConfig.password
+        : process.env.PG_PASSWORD !== undefined
+          ? process.env.PG_PASSWORD
+          : process.env.POSTGRES_PASSWORD !== undefined
+            ? process.env.POSTGRES_PASSWORD
+            : process.env.DB_PASSWORD || "";
+    let database =
+      customConfig?.database ||
+      overrideDb ||
+      process.env.PG_DATABASE ||
+      process.env.PG_NAME ||
+      process.env.PG_DB ||
+      process.env.POSTGRES_DB ||
+      process.env.DB_NAME ||
+      "mydb";
     let schema = customConfig?.schema || process.env.PG_SCHEMA || "public";
-    let tls = customConfig?.tls !== undefined 
-      ? Boolean(customConfig.tls) 
-      : (process.env.PG_TLS === "1" || process.env.PG_TLS === "true" || process.env.PG_SSL === "1" || process.env.PG_SSL === "true");
+    let tls =
+      customConfig?.tls !== undefined
+        ? Boolean(customConfig.tls)
+        : process.env.PG_TLS === "1" ||
+          process.env.PG_TLS === "true" ||
+          process.env.PG_SSL === "1" ||
+          process.env.PG_SSL === "true";
 
-    const urlCandidate = customConfig?.url || process.env.PG_URL || process.env.DATABASE_URL;
+    const urlCandidate =
+      customConfig?.url || process.env.PG_URL || process.env.DATABASE_URL;
     if (urlCandidate) {
       try {
-        const u = new URL(urlCandidate.replace(/^(postgres|postgresql):\/\//i, "http://"));
+        const u = new URL(
+          urlCandidate.replace(/^(postgres|postgresql):\/\//i, "http://"),
+        );
         if (u.hostname) host = u.hostname;
         if (u.port) port = Number(u.port);
         if (u.username) user = decodeURIComponent(u.username);
         if (u.password) password = decodeURIComponent(u.password);
-        if (u.pathname && u.pathname.length > 1 && !overrideDb && !customConfig?.database) {
+        if (
+          u.pathname &&
+          u.pathname.length > 1 &&
+          !overrideDb &&
+          !customConfig?.database
+        ) {
           database = decodeURIComponent(u.pathname.slice(1));
         }
         if (u.searchParams.get("schema")) {
           schema = u.searchParams.get("schema")!;
         }
-        if (u.searchParams.get("sslmode") === "require" || u.searchParams.get("tls") === "true") {
+        if (
+          u.searchParams.get("sslmode") === "require" ||
+          u.searchParams.get("tls") === "true"
+        ) {
           tls = true;
         }
       } catch {}
@@ -351,7 +416,9 @@ export class PostgresManager {
         tls: this.dbConfig.tls ?? false,
       });
       // Apply search path
-      this.sql_conn.unsafe(`SET search_path TO ${pgq(this.activeSchema)}, public;`).catch(() => {});
+      this.sql_conn
+        .unsafe(`SET search_path TO ${pgq(this.activeSchema)}, public;`)
+        .catch(() => {});
     } catch (e: any) {
       console.error("Failed to initialize Postgres connection:", e);
     }
@@ -362,7 +429,10 @@ export class PostgresManager {
     if (!clean) return false;
     try {
       // PostgreSQL accepts a non-existent schema in search_path; only switch to schemas that really exist.
-      const found = await this.sql_conn.unsafe("SELECT 1 FROM pg_namespace WHERE nspname = $1", [clean]);
+      const found = await this.sql_conn.unsafe(
+        "SELECT 1 FROM pg_namespace WHERE nspname = $1",
+        [clean],
+      );
       if (found.length === 0) return false;
       await this.sql_conn.unsafe(`SET search_path TO ${pgq(clean)}, public;`);
       this.activeSchema = clean;
@@ -388,22 +458,40 @@ export class PostgresManager {
     }
   }
 
-  public async createSchema(schemaName: string): Promise<{ success: boolean; schema: string; error?: string }> {
+  public async createSchema(
+    schemaName: string,
+  ): Promise<{ success: boolean; schema: string; error?: string }> {
     const clean = (schemaName || "").trim();
-    if (!clean) return { success: false, schema: schemaName, error: "Schema name cannot be empty" };
+    if (!clean)
+      return {
+        success: false,
+        schema: schemaName,
+        error: "Schema name cannot be empty",
+      };
     if (!/^[a-zA-Z0-9_$-]+$/.test(clean)) {
-      return { success: false, schema: schemaName, error: "Invalid schema name: only alphanumeric characters, underscore, and dash are permitted" };
+      return {
+        success: false,
+        schema: schemaName,
+        error:
+          "Invalid schema name: only alphanumeric characters, underscore, and dash are permitted",
+      };
     }
     try {
       await this.sql_conn.unsafe(`CREATE SCHEMA IF NOT EXISTS ${pgq(clean)};`);
       await this.setSchema(clean);
       return { success: true, schema: clean };
     } catch (err: any) {
-      return { success: false, schema: schemaName, error: err?.message || String(err) };
+      return {
+        success: false,
+        schema: schemaName,
+        error: err?.message || String(err),
+      };
     }
   }
 
-  public async testConnection(candidateConfig?: Partial<PostgresConnectionConfig>): Promise<{
+  public async testConnection(
+    candidateConfig?: Partial<PostgresConnectionConfig>,
+  ): Promise<{
     success: boolean;
     latencyMs: number;
     version?: string;
@@ -414,13 +502,24 @@ export class PostgresManager {
     let host = candidateConfig?.host || this.dbConfig.host || "localhost";
     let port = Number(candidateConfig?.port || this.dbConfig.port || 5432);
     let user = candidateConfig?.user || this.dbConfig.user || "postgres";
-    let password = candidateConfig?.password !== undefined ? candidateConfig.password : this.dbConfig.password;
-    let database = candidateConfig?.database !== undefined ? candidateConfig.database : this.dbConfig.database;
+    let password =
+      candidateConfig?.password !== undefined
+        ? candidateConfig.password
+        : this.dbConfig.password;
+    let database =
+      candidateConfig?.database !== undefined
+        ? candidateConfig.database
+        : this.dbConfig.database;
     let tls = candidateConfig?.tls ?? this.dbConfig.tls ?? false;
 
     if (candidateConfig?.url) {
       try {
-        const u = new URL(candidateConfig.url.replace(/^(postgres|postgresql):\/\//i, "http://"));
+        const u = new URL(
+          candidateConfig.url.replace(
+            /^(postgres|postgresql):\/\//i,
+            "http://",
+          ),
+        );
         if (u.hostname) host = u.hostname;
         if (u.port) port = Number(u.port);
         if (u.username) user = decodeURIComponent(u.username);
@@ -429,7 +528,11 @@ export class PostgresManager {
           database = decodeURIComponent(u.pathname.slice(1));
         }
       } catch (err: any) {
-        return { success: false, latencyMs: 0, error: `Invalid connection URL: ${err.message}` };
+        return {
+          success: false,
+          latencyMs: 0,
+          error: `Invalid connection URL: ${err.message}`,
+        };
       }
     }
 
@@ -449,12 +552,18 @@ export class PostgresManager {
       const latencyMs = Math.round((performance.now() - start) * 100) / 100;
       const rawVer = String(versionRows?.[0]?.version || "PostgreSQL");
       const versionMatch = rawVer.match(/PostgreSQL\s+([\d.]+)/i);
-      const version = versionMatch ? `PostgreSQL ${versionMatch[1]}` : rawVer.split(",")[0];
+      const version = versionMatch
+        ? `PostgreSQL ${versionMatch[1]}`
+        : rawVer.split(",")[0];
 
       let databases: string[] = [];
       try {
-        const dbRows = await testConn.unsafe("SELECT datname FROM pg_database WHERE datistemplate = false ORDER BY datname;");
-        databases = (dbRows || []).map((r: any) => String(r.datname || "")).filter(Boolean);
+        const dbRows = await testConn.unsafe(
+          "SELECT datname FROM pg_database WHERE datistemplate = false ORDER BY datname;",
+        );
+        databases = (dbRows || [])
+          .map((r: any) => String(r.datname || ""))
+          .filter(Boolean);
       } catch {}
 
       let schemas: string[] = ["public"];
@@ -464,7 +573,9 @@ export class PostgresManager {
           WHERE schema_name NOT IN ('pg_catalog', 'information_schema') AND schema_name NOT LIKE 'pg_%' 
           ORDER BY schema_name;
         `);
-        schemas = (scRows || []).map((r: any) => String(r.schema_name || "")).filter(Boolean);
+        schemas = (scRows || [])
+          .map((r: any) => String(r.schema_name || ""))
+          .filter(Boolean);
       } catch {}
 
       await testConn.end?.().catch(() => {});
@@ -485,14 +596,26 @@ export class PostgresManager {
     let host = (newConfig.host ?? this.dbConfig.host ?? "localhost").trim();
     let port = Number(newConfig.port ?? this.dbConfig.port ?? 5432);
     let user = (newConfig.user ?? this.dbConfig.user ?? "postgres").trim();
-    let password = newConfig.password !== undefined ? newConfig.password : this.dbConfig.password;
-    let database = (newConfig.database ?? this.dbConfig.database ?? "mydb").trim();
+    let password =
+      newConfig.password !== undefined
+        ? newConfig.password
+        : this.dbConfig.password;
+    let database = (
+      newConfig.database ??
+      this.dbConfig.database ??
+      "mydb"
+    ).trim();
     let schema = (newConfig.schema ?? this.activeSchema ?? "public").trim();
-    let tls = newConfig.tls !== undefined ? Boolean(newConfig.tls) : (this.dbConfig.tls ?? false);
+    let tls =
+      newConfig.tls !== undefined
+        ? Boolean(newConfig.tls)
+        : (this.dbConfig.tls ?? false);
 
     if (newConfig.url) {
       try {
-        const u = new URL(newConfig.url.replace(/^(postgres|postgresql):\/\//i, "http://"));
+        const u = new URL(
+          newConfig.url.replace(/^(postgres|postgresql):\/\//i, "http://"),
+        );
         if (u.hostname) host = u.hostname;
         if (u.port) port = Number(u.port);
         if (u.username) user = decodeURIComponent(u.username);
@@ -503,7 +626,10 @@ export class PostgresManager {
         if (u.searchParams.get("schema")) {
           schema = u.searchParams.get("schema")!;
         }
-        if (u.searchParams.get("sslmode") === "require" || u.searchParams.get("tls") === "true") {
+        if (
+          u.searchParams.get("sslmode") === "require" ||
+          u.searchParams.get("tls") === "true"
+        ) {
           tls = true;
         }
       } catch (err: any) {
@@ -515,7 +641,15 @@ export class PostgresManager {
       }
     }
 
-    const test = await this.testConnection({ host, port, user, password, database, schema, tls });
+    const test = await this.testConnection({
+      host,
+      port,
+      user,
+      password,
+      database,
+      schema,
+      tls,
+    });
     if (!test.success) {
       return {
         success: false,
@@ -524,7 +658,9 @@ export class PostgresManager {
       };
     }
 
-    try { this.sql_conn?.end?.(); } catch {}
+    try {
+      this.sql_conn?.end?.();
+    } catch {}
 
     this.dbConfig = { host, port, user, password, database, schema, tls };
     this.activePath = database;
@@ -532,7 +668,11 @@ export class PostgresManager {
     this.configSource = "manual";
     this.initConnection();
 
-    await this.logAudit("DB_CONFIG", "SYSTEM", `Updated manual PostgreSQL connection: ${user}@${host}:${port}/${database} (schema: ${schema})`);
+    await this.logAudit(
+      "DB_CONFIG",
+      "SYSTEM",
+      `Updated manual PostgreSQL connection: ${user}@${host}:${port}/${database} (schema: ${schema})`,
+    );
 
     return {
       success: true,
@@ -542,8 +682,13 @@ export class PostgresManager {
     };
   }
 
-  public resetToEnv(): { success: boolean; config: PostgresConnectionConfigSanitized } {
-    try { this.sql_conn?.end?.(); } catch {}
+  public resetToEnv(): {
+    success: boolean;
+    config: PostgresConnectionConfigSanitized;
+  } {
+    try {
+      this.sql_conn?.end?.();
+    } catch {}
     this.configSource = "env";
     this.loadEnvFile();
     this.parseConfig();
@@ -551,12 +696,19 @@ export class PostgresManager {
     return { success: true, config: this.getConfig() };
   }
 
-  public async createDatabase(dbName: string): Promise<{ success: boolean; database: string; name: string; error?: string }> {
+  public async createDatabase(dbName: string): Promise<{
+    success: boolean;
+    database: string;
+    name: string;
+    error?: string;
+  }> {
     try {
       const clean = (dbName || "").trim();
       if (!clean) throw new Error("Database name cannot be empty");
       if (!/^[a-zA-Z0-9_$-]+$/.test(clean)) {
-        throw new Error("Invalid database name: only alphanumeric characters, underscore, and dash are permitted");
+        throw new Error(
+          "Invalid database name: only alphanumeric characters, underscore, and dash are permitted",
+        );
       }
       const rootSql = new SQL({
         adapter: "postgres",
@@ -574,15 +726,25 @@ export class PostgresManager {
       }
       return { success: true, database: clean, name: clean };
     } catch (err: any) {
-      return { success: false, database: dbName, name: dbName, error: err?.message || String(err) };
+      return {
+        success: false,
+        database: dbName,
+        name: dbName,
+        error: err?.message || String(err),
+      };
     }
   }
 
-  public async connect(newDb: string, newSchema?: string): Promise<{ success: boolean; path: string; error?: string }> {
+  public async connect(
+    newDb: string,
+    newSchema?: string,
+  ): Promise<{ success: boolean; path: string; error?: string }> {
     try {
       const targetDb = newDb || this.dbConfig.database;
       const targetSchema = newSchema || this.activeSchema || "public";
-      try { this.sql_conn?.end?.(); } catch {}
+      try {
+        this.sql_conn?.end?.();
+      } catch {}
 
       this.dbConfig.database = targetDb;
       this.activePath = targetDb;
@@ -590,14 +752,20 @@ export class PostgresManager {
       this.dbConfig.schema = targetSchema;
       this.initConnection();
 
-      await this.logAudit("CONNECT", targetDb, `Connected to database: ${targetDb}.${targetSchema}`);
+      await this.logAudit(
+        "CONNECT",
+        targetDb,
+        `Connected to database: ${targetDb}.${targetSchema}`,
+      );
       return { success: true, path: `${targetDb}.${targetSchema}` };
     } catch (err: any) {
       return { success: false, path: newDb, error: err.message };
     }
   }
 
-  public async getWorkspaceDatabases(): Promise<{ name: string; path: string; sizeFormatted: string; isCurrent?: boolean }[]> {
+  public async getWorkspaceDatabases(): Promise<
+    { name: string; path: string; sizeFormatted: string; isCurrent?: boolean }[]
+  > {
     try {
       const rows = await this.sql_conn.unsafe(`
         SELECT datname, pg_size_pretty(pg_database_size(datname)) as size 
@@ -640,7 +808,9 @@ export class PostgresManager {
       let sizeBytes = 0;
       let sizeFormatted = "0 B";
       try {
-        const szRes = await this.sql_conn.unsafe("SELECT pg_database_size(current_database()) as size_bytes, pg_size_pretty(pg_database_size(current_database())) as size_str;");
+        const szRes = await this.sql_conn.unsafe(
+          "SELECT pg_database_size(current_database()) as size_bytes, pg_size_pretty(pg_database_size(current_database())) as size_str;",
+        );
         sizeBytes = Number(szRes?.[0]?.size_bytes || 0);
         sizeFormatted = String(szRes?.[0]?.size_str || "0 B");
       } catch {}
@@ -661,7 +831,9 @@ export class PostgresManager {
       } catch {}
 
       try {
-        const mvRes = await this.sql_conn.unsafe(`SELECT count(*) as c FROM pg_matviews WHERE schemaname = ${pgl(schema)};`);
+        const mvRes = await this.sql_conn.unsafe(
+          `SELECT count(*) as c FROM pg_matviews WHERE schemaname = ${pgl(schema)};`,
+        );
         matViewCount = Number(mvRes?.[0]?.c || 0);
       } catch {}
 
@@ -678,7 +850,9 @@ export class PostgresManager {
 
       let activeConnections = 1;
       try {
-        const connRes = await this.sql_conn.unsafe("SELECT count(*) as c FROM pg_stat_activity WHERE datname = current_database();");
+        const connRes = await this.sql_conn.unsafe(
+          "SELECT count(*) as c FROM pg_stat_activity WHERE datname = current_database();",
+        );
         activeConnections = Number(connRes?.[0]?.c || 1);
       } catch {}
 
@@ -742,7 +916,9 @@ export class PostgresManager {
     }
   }
 
-  public async getSchema(targetSchema?: string): Promise<DatabaseSchemaResponse> {
+  public async getSchema(
+    targetSchema?: string,
+  ): Promise<DatabaseSchemaResponse> {
     const schema = targetSchema || this.activeSchema || "public";
     const tablesMeta: TableSchemaMeta[] = [];
     const viewsMeta: TableSchemaMeta[] = [];
@@ -856,7 +1032,9 @@ export class PostgresManager {
         // still show rows and a new one can show none. Count the small and medium tables for real.
         if (isTable && rowCount <= 100000) {
           try {
-            const exactRes = await this.sql_conn.unsafe(`SELECT count(*) as rc FROM (SELECT 1 FROM ${pgq(schema)}.${pgq(tname)} LIMIT 100001) AS t;`);
+            const exactRes = await this.sql_conn.unsafe(
+              `SELECT count(*) as rc FROM (SELECT 1 FROM ${pgq(schema)}.${pgq(tname)} LIMIT 100001) AS t;`,
+            );
             rowCount = Number(exactRes?.[0]?.rc || 0);
           } catch {}
         }
@@ -971,17 +1149,30 @@ export class PostgresManager {
     }
   }
 
-  public async toggleExtension(extName: string, enable: boolean): Promise<{ success: boolean; error?: string }> {
+  public async toggleExtension(
+    extName: string,
+    enable: boolean,
+  ): Promise<{ success: boolean; error?: string }> {
     const clean = (extName || "").trim();
-    if (!clean) return { success: false, error: "Extension name cannot be empty" };
-    if (!/^[a-zA-Z0-9_$-]+$/.test(clean)) return { success: false, error: "Invalid extension name" };
+    if (!clean)
+      return { success: false, error: "Extension name cannot be empty" };
+    if (!/^[a-zA-Z0-9_$-]+$/.test(clean))
+      return { success: false, error: "Invalid extension name" };
 
     try {
       if (enable) {
-        await this.sql_conn.unsafe(`CREATE EXTENSION IF NOT EXISTS ${pgq(clean)};`);
-        await this.logAudit("EXTENSION", clean, `Installed extension: ${clean}`);
+        await this.sql_conn.unsafe(
+          `CREATE EXTENSION IF NOT EXISTS ${pgq(clean)};`,
+        );
+        await this.logAudit(
+          "EXTENSION",
+          clean,
+          `Installed extension: ${clean}`,
+        );
       } else {
-        await this.sql_conn.unsafe(`DROP EXTENSION IF EXISTS ${pgq(clean)} CASCADE;`);
+        await this.sql_conn.unsafe(
+          `DROP EXTENSION IF EXISTS ${pgq(clean)} CASCADE;`,
+        );
         await this.logAudit("EXTENSION", clean, `Dropped extension: ${clean}`);
       }
       return { success: true };
@@ -1068,18 +1259,26 @@ export class PostgresManager {
     }
   }
 
-  public async terminateBackend(pid: number): Promise<{ success: boolean; error?: string }> {
+  public async terminateBackend(
+    pid: number,
+  ): Promise<{ success: boolean; error?: string }> {
     try {
-      const res = await this.sql_conn.unsafe(`SELECT pg_terminate_backend(${Number(pid)}) as ok;`);
+      const res = await this.sql_conn.unsafe(
+        `SELECT pg_terminate_backend(${Number(pid)}) as ok;`,
+      );
       return { success: Boolean(res?.[0]?.ok) };
     } catch (err: any) {
       return { success: false, error: err?.message || String(err) };
     }
   }
 
-  public async cancelBackend(pid: number): Promise<{ success: boolean; error?: string }> {
+  public async cancelBackend(
+    pid: number,
+  ): Promise<{ success: boolean; error?: string }> {
     try {
-      const res = await this.sql_conn.unsafe(`SELECT pg_cancel_backend(${Number(pid)}) as ok;`);
+      const res = await this.sql_conn.unsafe(
+        `SELECT pg_cancel_backend(${Number(pid)}) as ok;`,
+      );
       return { success: Boolean(res?.[0]?.ok) };
     } catch (err: any) {
       return { success: false, error: err?.message || String(err) };
@@ -1090,30 +1289,53 @@ export class PostgresManager {
   // Materialized Views & Maintenance (Specialty Features)
   // -----------------------------------------------------------------------------------------------
 
-  public async refreshMaterializedView(matviewName: string, concurrently: boolean = false): Promise<{ success: boolean; error?: string }> {
+  public async refreshMaterializedView(
+    matviewName: string,
+    concurrently: boolean = false,
+  ): Promise<{ success: boolean; error?: string }> {
     const clean = (matviewName || "").trim();
-    if (!clean) return { success: false, error: "Materialized view name cannot be empty" };
+    if (!clean)
+      return {
+        success: false,
+        error: "Materialized view name cannot be empty",
+      };
     try {
       const sql = concurrently
         ? `REFRESH MATERIALIZED VIEW CONCURRENTLY ${pgq(this.activeSchema)}.${pgq(clean)};`
         : `REFRESH MATERIALIZED VIEW ${pgq(this.activeSchema)}.${pgq(clean)};`;
       await this.sql_conn.unsafe(sql);
-      await this.logAudit("MATVIEW", clean, `Refreshed materialized view: ${clean}`);
+      await this.logAudit(
+        "MATVIEW",
+        clean,
+        `Refreshed materialized view: ${clean}`,
+      );
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err?.message || String(err) };
     }
   }
 
-  public async vacuum(full: boolean = false, analyze: boolean = true, table?: string, schema?: string): Promise<{ success: boolean; details: string; error?: string }> {
+  public async vacuum(
+    full: boolean = false,
+    analyze: boolean = true,
+    table?: string,
+    schema?: string,
+  ): Promise<{ success: boolean; details: string; error?: string }> {
     try {
-      const target = table ? `${pgq(schema || this.activeSchema)}.${pgq(table)}` : "";
-      const cmd = `VACUUM ${full ? "FULL " : ""}${analyze ? "ANALYZE " : ""}${target};`.trim();
+      const target = table
+        ? `${pgq(schema || this.activeSchema)}.${pgq(table)}`
+        : "";
+      const cmd =
+        `VACUUM ${full ? "FULL " : ""}${analyze ? "ANALYZE " : ""}${target};`.trim();
       await this.sql_conn.unsafe(cmd);
       await this.logAudit("VACUUM", this.activePath, `Executed ${cmd}`);
       return { success: true, details: `Executed ${cmd} successfully.` };
     } catch (err: any) {
-      return { success: false, details: "", error: err?.message || String(err) };
+      return {
+        success: false,
+        details: "",
+        error: err?.message || String(err),
+      };
     }
   }
 
@@ -1122,43 +1344,67 @@ export class PostgresManager {
   // -----------------------------------------------------------------------------------------------
 
   // Macro Designer adapter (shared engine in studio_macros_server.ts)
-  private static async runMacroSql(conn: any, sqlText: string): Promise<MacroQueryResult> {
+  private static async runMacroSql(
+    conn: any,
+    sqlText: string,
+  ): Promise<MacroQueryResult> {
     try {
       const res = await conn.unsafe(sqlText);
       const rows: any[] = Array.isArray(res) ? Array.from(res) : [];
-      const columns = rows.length > 0 && typeof rows[0] === "object" ? Object.keys(rows[0]) : [];
+      const columns =
+        rows.length > 0 && typeof rows[0] === "object"
+          ? Object.keys(rows[0])
+          : [];
       const isSelect = res?.command === "SELECT" || res?.command === "SHOW";
       return {
         success: true,
         rows,
         columns,
         rowCount: rows.length,
-        rowsAffected: !isSelect && typeof res?.count === "number" ? res.count : undefined,
+        rowsAffected:
+          !isSelect && typeof res?.count === "number" ? res.count : undefined,
       };
     } catch (err: any) {
-      return { success: false, rows: [], columns: [], rowCount: 0, error: err?.message || String(err) };
+      return {
+        success: false,
+        rows: [],
+        columns: [],
+        rowCount: 0,
+        error: err?.message || String(err),
+      };
     }
   }
 
   public getMacroAdapter(): MacroAdapter {
     return {
       dialect: "postgres",
-      connectionKey: () => `${this.dbConfig.host}:${this.dbConfig.port}/${this.dbConfig.database}/${this.activeSchema}`,
+      connectionKey: () =>
+        `${this.dbConfig.host}:${this.dbConfig.port}/${this.dbConfig.database}/${this.activeSchema}`,
       query: (sqlText) => PostgresManager.runMacroSql(this.sql_conn, sqlText),
       beginTransaction: async () => {
         const c = await this.sql_conn.reserve();
         try {
-          await c.unsafe(`SET search_path TO ${pgq(this.activeSchema)}, public`);
+          await c.unsafe(
+            `SET search_path TO ${pgq(this.activeSchema)}, public`,
+          );
           await c.unsafe("BEGIN");
         } catch (err) {
-          try { c.release(); } catch {}
+          try {
+            c.release();
+          } catch {}
           throw err;
         }
         let finished = false;
         const finish = async (verb: "COMMIT" | "ROLLBACK") => {
           if (finished) return;
           finished = true;
-          try { await c.unsafe(verb); } finally { try { c.release(); } catch {} }
+          try {
+            await c.unsafe(verb);
+          } finally {
+            try {
+              c.release();
+            } catch {}
+          }
         };
         return {
           query: (sqlText: string) => PostgresManager.runMacroSql(c, sqlText),
@@ -1172,7 +1418,9 @@ export class PostgresManager {
         return res.details || `Executed VACUUM${analyze ? " ANALYZE" : ""}`;
       },
       backup: async (mode) => {
-        const dump = await this.generateDatabaseDump({ mode: mode === "full" ? "all" : (mode as "all" | "schema" | "data") });
+        const dump = await this.generateDatabaseDump({
+          mode: mode === "full" ? "all" : (mode as "all" | "schema" | "data"),
+        });
         return `SQL dump generated (${mode}, ${dump.length} characters)`;
       },
       listTables: async () => {
@@ -1186,7 +1434,10 @@ export class PostgresManager {
   }
 
   /** Create / check / edit / drop a view (see src/shared/studioViews.ts). PostgreSQL DDL is transactional. */
-  public async viewOp(op: "check" | "create" | "definition" | "drop", body: any) {
+  public async viewOp(
+    op: "check" | "create" | "definition" | "drop",
+    body: any,
+  ) {
     const run = async (s: string) => {
       const r = await this.sql_conn.unsafe(s);
       return (Array.isArray(r) ? r : []) as any[];
@@ -1197,22 +1448,42 @@ export class PostgresManager {
       schema: this.activeSchema || "public",
       run,
       tx: async (fn: (r: typeof run) => Promise<void>) => {
-        await this.sql_conn.begin(async (tx: any) => { await fn(async (s: string) => { const r = await tx.unsafe(s); return (Array.isArray(r) ? r : []) as any[]; }); });
+        await this.sql_conn.begin(async (tx: any) => {
+          await fn(async (s: string) => {
+            const r = await tx.unsafe(s);
+            return (Array.isArray(r) ? r : []) as any[];
+          });
+        });
       },
       rollbackProbe: async (fn: (r: typeof run) => Promise<void>) => {
         try {
           await this.sql_conn.begin(async (tx: any) => {
-            await fn(async (s: string) => { const r = await tx.unsafe(s); return (Array.isArray(r) ? r : []) as any[]; });
+            await fn(async (s: string) => {
+              const r = await tx.unsafe(s);
+              return (Array.isArray(r) ? r : []) as any[];
+            });
             throw ROLLBACK;
           });
-        } catch (e) { if (e !== ROLLBACK) throw e; }
+        } catch (e) {
+          if (e !== ROLLBACK) throw e;
+        }
       },
     });
-    if (res.success && (op === "create" || op === "drop")) await this.logAudit(op === "drop" ? "DROP_VIEW" : "CREATE_VIEW", String(body.name), String(res.ddl || "").replace(/\s+/g, " ").slice(0, 150));
+    if (res.success && (op === "create" || op === "drop"))
+      await this.logAudit(
+        op === "drop" ? "DROP_VIEW" : "CREATE_VIEW",
+        String(body.name),
+        String(res.ddl || "")
+          .replace(/\s+/g, " ")
+          .slice(0, 150),
+      );
     return res;
   }
 
-  public async query(sqlText: string, params: any[] = []): Promise<{
+  public async query(
+    sqlText: string,
+    params: any[] = [],
+  ): Promise<{
     success: boolean;
     columns: string[];
     rows: any[];
@@ -1223,7 +1494,8 @@ export class PostgresManager {
     const start = performance.now();
     try {
       let resultRows = await this.sql_conn.unsafe(sqlText, params);
-      const executionTimeMs = Math.round((performance.now() - start) * 100) / 100;
+      const executionTimeMs =
+        Math.round((performance.now() - start) * 100) / 100;
 
       let rows: any[] = [];
       let columns: string[] = [];
@@ -1245,7 +1517,8 @@ export class PostgresManager {
         executionTimeMs,
       };
     } catch (err: any) {
-      const executionTimeMs = Math.round((performance.now() - start) * 100) / 100;
+      const executionTimeMs =
+        Math.round((performance.now() - start) * 100) / 100;
       return {
         success: false,
         columns: [],
@@ -1276,7 +1549,8 @@ export class PostgresManager {
     error?: string;
   }> {
     const trimmed = (sqlStr || "").trim();
-    if (!trimmed) return { success: false, error: "SQL statement is required for explain" };
+    if (!trimmed)
+      return { success: false, error: "SQL statement is required for explain" };
 
     const t0 = performance.now();
     try {
@@ -1284,27 +1558,47 @@ export class PostgresManager {
         .replace(/^EXPLAIN\s*(\([^)]*\))?\s*/i, "")
         .replace(/;+$/, "")
         .trim();
-      if (!cleanSql) return { success: false, error: "SQL statement is required for explain" };
+      if (!cleanSql)
+        return {
+          success: false,
+          error: "SQL statement is required for explain",
+        };
 
       let rawPlan: any = null;
       try {
-        const jsonRes = await this.sql_conn.unsafe(`EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${cleanSql};`);
-        const planJson = jsonRes?.[0]?.["QUERY PLAN"] || jsonRes?.[0]?.[Object.keys(jsonRes[0])[0] ?? ""];
-        rawPlan = typeof planJson === "string" ? JSON.parse(planJson) : planJson;
+        const jsonRes = await this.sql_conn.unsafe(
+          `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${cleanSql};`,
+        );
+        const planJson =
+          jsonRes?.[0]?.["QUERY PLAN"] ||
+          jsonRes?.[0]?.[Object.keys(jsonRes[0])[0] ?? ""];
+        rawPlan =
+          typeof planJson === "string" ? JSON.parse(planJson) : planJson;
       } catch (errJson) {
         // Fallback without ANALYZE (e.g., if query fails in analyze mode or write statement)
-        const jsonRes2 = await this.sql_conn.unsafe(`EXPLAIN (FORMAT JSON) ${cleanSql};`);
-        const planJson2 = jsonRes2?.[0]?.["QUERY PLAN"] || jsonRes2?.[0]?.[Object.keys(jsonRes2[0])[0] ?? ""];
-        rawPlan = typeof planJson2 === "string" ? JSON.parse(planJson2) : planJson2;
+        const jsonRes2 = await this.sql_conn.unsafe(
+          `EXPLAIN (FORMAT JSON) ${cleanSql};`,
+        );
+        const planJson2 =
+          jsonRes2?.[0]?.["QUERY PLAN"] ||
+          jsonRes2?.[0]?.[Object.keys(jsonRes2[0])[0] ?? ""];
+        rawPlan =
+          typeof planJson2 === "string" ? JSON.parse(planJson2) : planJson2;
       }
 
       let rawTextLines = "";
       try {
-        const textRes = await this.sql_conn.unsafe(`EXPLAIN (ANALYZE, BUFFERS) ${cleanSql};`);
-        rawTextLines = (textRes || []).map((r: any) => Object.values(r)[0]).join("\n");
+        const textRes = await this.sql_conn.unsafe(
+          `EXPLAIN (ANALYZE, BUFFERS) ${cleanSql};`,
+        );
+        rawTextLines = (textRes || [])
+          .map((r: any) => Object.values(r)[0])
+          .join("\n");
       } catch {
         const textRes2 = await this.sql_conn.unsafe(`EXPLAIN ${cleanSql};`);
-        rawTextLines = (textRes2 || []).map((r: any) => Object.values(r)[0]).join("\n");
+        rawTextLines = (textRes2 || [])
+          .map((r: any) => Object.values(r)[0])
+          .join("\n");
       }
 
       const latencyMs = Number((performance.now() - t0).toFixed(2));
@@ -1349,7 +1643,8 @@ export class PostgresManager {
         detail += ` | Cost: ${startupCost}..${totalCost} | Est. Rows: ${planRows}`;
         if (actualRows !== null) detail += ` | Actual Rows: ${actualRows}`;
         if (actualTime !== null) detail += ` (${actualTime}ms)`;
-        if (sharedHitBlocks !== null) detail += ` | Buffers: ${sharedHitBlocks} hit`;
+        if (sharedHitBlocks !== null)
+          detail += ` | Buffers: ${sharedHitBlocks} hit`;
 
         queryPlan.push({
           id: currentId,
@@ -1358,24 +1653,33 @@ export class PostgresManager {
           isScan,
           isIndex,
           cost: `${startupCost}..${totalCost}`,
-          rows: actualRows !== null ? `${actualRows} (est: ${planRows})` : `${planRows}`,
+          rows:
+            actualRows !== null
+              ? `${actualRows} (est: ${planRows})`
+              : `${planRows}`,
           actualTime: actualTime !== null ? `${actualTime}ms` : undefined,
-          buffers: sharedHitBlocks !== null ? `${sharedHitBlocks} hits` : undefined,
+          buffers:
+            sharedHitBlocks !== null ? `${sharedHitBlocks} hits` : undefined,
         });
 
         if (Array.isArray(node["Plans"])) {
-          node["Plans"].forEach((subNode: any) => traverseNode(subNode, currentId));
+          node["Plans"].forEach((subNode: any) =>
+            traverseNode(subNode, currentId),
+          );
         }
       }
 
-      const rootPlan = Array.isArray(rawPlan) && rawPlan[0] && rawPlan[0]["Plan"] ? rawPlan[0]["Plan"] : rawPlan;
+      const rootPlan =
+        Array.isArray(rawPlan) && rawPlan[0] && rawPlan[0]["Plan"]
+          ? rawPlan[0]["Plan"]
+          : rawPlan;
       if (rootPlan) {
         traverseNode(rootPlan, 0);
       }
 
       // If for any reason JSON plan traversal produced no nodes, build from text lines
       if (queryPlan.length === 0 && rawTextLines) {
-        const lines = rawTextLines.split("\n").filter(l => l.trim());
+        const lines = rawTextLines.split("\n").filter((l) => l.trim());
         lines.forEach((line, idx) => {
           const isScan = /Seq\s*Scan/i.test(line);
           const isIndex = /Index\s*Scan/i.test(line);
@@ -1404,7 +1708,10 @@ export class PostgresManager {
     }
   }
 
-  public async explainQuery(sqlText: string, analyze: boolean = true): Promise<{
+  public async explainQuery(
+    sqlText: string,
+    analyze: boolean = true,
+  ): Promise<{
     success: boolean;
     plan: any;
     rawText: string;
@@ -1415,7 +1722,7 @@ export class PostgresManager {
     return {
       success: res.success,
       plan: res.rawPlan,
-      rawText: res.rawText || (res.error || ""),
+      rawText: res.rawText || res.error || "",
       executionTimeMs: res.latencyMs || 0,
       error: res.error,
     };
@@ -1436,7 +1743,7 @@ export class PostgresManager {
     extraOptions?: {
       columnFilters?: Record<string, string>;
       sortColumns?: SortColumnSpec[];
-    }
+    },
   ): Promise<{
     success: boolean;
     columns: string[];
@@ -1460,12 +1767,17 @@ export class PostgresManager {
 
       const needCols = Boolean(
         (search && search.trim()) ||
-        (extraOptions?.columnFilters && Object.keys(extraOptions.columnFilters).length > 0) ||
-        (extraOptions?.sortColumns && extraOptions.sortColumns.length > 0)
+        (extraOptions?.columnFilters &&
+          Object.keys(extraOptions.columnFilters).length > 0) ||
+        (extraOptions?.sortColumns && extraOptions.sortColumns.length > 0),
       );
       if (needCols) {
         const schemaMeta = await this.getSchema(schema);
-        const allItems = [...schemaMeta.tables, ...schemaMeta.views, ...schemaMeta.matviews];
+        const allItems = [
+          ...schemaMeta.tables,
+          ...schemaMeta.views,
+          ...schemaMeta.matviews,
+        ];
         const tbl = allItems.find((t) => t.name === tableName);
         if (tbl && tbl.columns.length > 0) {
           validColNames = tbl.columns.map((c) => c.name);
@@ -1473,7 +1785,12 @@ export class PostgresManager {
       }
 
       if (search && search.trim() && validColNames.length > 0) {
-        const searchFilter = buildSearchFilterWhere(search, validColNames, "postgres", params.length + 1);
+        const searchFilter = buildSearchFilterWhere(
+          search,
+          validColNames,
+          "postgres",
+          params.length + 1,
+        );
         if (searchFilter.clause) {
           whereParts.push(searchFilter.clause);
           params.push(...searchFilter.params);
@@ -1481,7 +1798,12 @@ export class PostgresManager {
       }
 
       if (extraOptions?.columnFilters && validColNames.length > 0) {
-        const colFilter = buildColumnFilterWhere(extraOptions.columnFilters, validColNames, "postgres", params.length + 1);
+        const colFilter = buildColumnFilterWhere(
+          extraOptions.columnFilters,
+          validColNames,
+          "postgres",
+          params.length + 1,
+        );
         if (colFilter.clauses.length > 0) {
           whereParts.push(...colFilter.clauses);
           params.push(...colFilter.params);
@@ -1494,7 +1816,11 @@ export class PostgresManager {
         dataSql += whereStr;
       }
 
-      if (extraOptions?.sortColumns && extraOptions.sortColumns.length > 0 && validColNames.length > 0) {
+      if (
+        extraOptions?.sortColumns &&
+        extraOptions.sortColumns.length > 0 &&
+        validColNames.length > 0
+      ) {
         const orderClause = buildOrderClause(validColNames, "postgres", {
           sortColumns: extraOptions.sortColumns,
           orderBy,
@@ -1535,7 +1861,11 @@ export class PostgresManager {
     }
   }
 
-  public async insertRow(tableName: string, rowData: Record<string, any>, schemaName?: string): Promise<{ success: boolean; insertedId?: any; error?: string }> {
+  public async insertRow(
+    tableName: string,
+    rowData: Record<string, any>,
+    schemaName?: string,
+  ): Promise<{ success: boolean; insertedId?: any; error?: string }> {
     const schema = schemaName || this.activeSchema || "public";
     try {
       const keys = Object.keys(rowData);
@@ -1547,16 +1877,20 @@ export class PostgresManager {
         const allItems = [...schemaMeta.tables, ...schemaMeta.views];
         const tbl = allItems.find((t) => t.name === tableName);
         if (tbl && tbl.columns) {
-          colTypeMap = new Map(tbl.columns.map((c) => [c.name, (c.type || "").toUpperCase()]));
+          colTypeMap = new Map(
+            tbl.columns.map((c) => [c.name, (c.type || "").toUpperCase()]),
+          );
         }
       } catch {}
 
       const cols = keys.map((k) => `${pgq(k)}`).join(", ");
-      const placeholders = keys.map((k, i) => {
-        const type = colTypeMap.get(k) || "";
-        if (type.includes("JSON")) return `$${i + 1}::jsonb`;
-        return `$${i + 1}`;
-      }).join(", ");
+      const placeholders = keys
+        .map((k, i) => {
+          const type = colTypeMap.get(k) || "";
+          if (type.includes("JSON")) return `$${i + 1}::jsonb`;
+          return `$${i + 1}`;
+        })
+        .join(", ");
 
       const values = keys.map((k) => {
         const val = rowData[k];
@@ -1569,7 +1903,11 @@ export class PostgresManager {
       const sql = `INSERT INTO ${pgq(schema)}.${pgq(tableName)} (${cols}) VALUES (${placeholders}) RETURNING *;`;
       const res = await this.sql_conn.unsafe(sql, values);
 
-      await this.logAudit("INSERT", tableName, JSON.stringify(rowData).slice(0, 150));
+      await this.logAudit(
+        "INSERT",
+        tableName,
+        JSON.stringify(rowData).slice(0, 150),
+      );
       return { success: true, insertedId: res?.[0] };
     } catch (err: any) {
       return { success: false, error: err.message };
@@ -1581,7 +1919,7 @@ export class PostgresManager {
     pkCol: string,
     pkVal: any,
     rowData: Record<string, any>,
-    schemaName?: string
+    schemaName?: string,
   ): Promise<{ success: boolean; error?: string }> {
     const schema = schemaName || this.activeSchema || "public";
     try {
@@ -1594,15 +1932,19 @@ export class PostgresManager {
         const allItems = [...schemaMeta.tables, ...schemaMeta.views];
         const tbl = allItems.find((t) => t.name === tableName);
         if (tbl && tbl.columns) {
-          colTypeMap = new Map(tbl.columns.map((c) => [c.name, (c.type || "").toUpperCase()]));
+          colTypeMap = new Map(
+            tbl.columns.map((c) => [c.name, (c.type || "").toUpperCase()]),
+          );
         }
       } catch {}
 
-      const sets = keys.map((k, i) => {
-        const type = colTypeMap.get(k) || "";
-        if (type.includes("JSON")) return `${pgq(k)} = $${i + 1}::jsonb`;
-        return `${pgq(k)} = $${i + 1}`;
-      }).join(", ");
+      const sets = keys
+        .map((k, i) => {
+          const type = colTypeMap.get(k) || "";
+          if (type.includes("JSON")) return `${pgq(k)} = $${i + 1}::jsonb`;
+          return `${pgq(k)} = $${i + 1}`;
+        })
+        .join(", ");
 
       const values = keys.map((k) => {
         const val = rowData[k];
@@ -1623,7 +1965,12 @@ export class PostgresManager {
     }
   }
 
-  public async deleteRow(tableName: string, pkCol: string, pkVal: any, schemaName?: string): Promise<{ success: boolean; error?: string }> {
+  public async deleteRow(
+    tableName: string,
+    pkCol: string,
+    pkVal: any,
+    schemaName?: string,
+  ): Promise<{ success: boolean; error?: string }> {
     const schema = schemaName || this.activeSchema || "public";
     try {
       const sql = `DELETE FROM ${pgq(schema)}.${pgq(tableName)} WHERE ${pgq(pkCol)} = $1;`;
@@ -1638,20 +1985,32 @@ export class PostgresManager {
 
   public async createTable(
     tableName: string,
-    columns: { name: string; type: string; notnull?: boolean; pk?: boolean; dflt_value?: any }[],
-    schemaName?: string
+    columns: {
+      name: string;
+      type: string;
+      notnull?: boolean;
+      pk?: boolean;
+      dflt_value?: any;
+    }[],
+    schemaName?: string,
   ): Promise<{ success: boolean; error?: string }> {
     const schema = schemaName || this.activeSchema || "public";
     try {
-      if (!tableName || columns.length === 0) throw new Error("Table name and columns required");
+      if (!tableName || columns.length === 0)
+        throw new Error("Table name and columns required");
 
       const colDefs = columns.map((c) => {
         assertSafeSqlFragment("column type", c.type);
-        if (c.dflt_value !== undefined && c.dflt_value !== null) assertSafeSqlFragment("default expression", String(c.dflt_value));
+        if (c.dflt_value !== undefined && c.dflt_value !== null)
+          assertSafeSqlFragment("default expression", String(c.dflt_value));
         let def = `${pgq(c.name)} ${c.type}`;
         if (c.pk) def += " PRIMARY KEY";
         if (c.notnull) def += " NOT NULL";
-        if (c.dflt_value !== undefined && c.dflt_value !== null && c.dflt_value !== "") {
+        if (
+          c.dflt_value !== undefined &&
+          c.dflt_value !== null &&
+          c.dflt_value !== ""
+        ) {
           def += ` DEFAULT ${c.dflt_value}`;
         }
         return def;
@@ -1660,7 +2019,11 @@ export class PostgresManager {
       const sql = `CREATE TABLE ${pgq(schema)}.${pgq(tableName)} (\n  ${colDefs.join(",\n  ")}\n);`;
       await this.sql_conn.unsafe(sql);
 
-      await this.logAudit("CREATE_TABLE", tableName, `Created table with ${columns.length} columns`);
+      await this.logAudit(
+        "CREATE_TABLE",
+        tableName,
+        `Created table with ${columns.length} columns`,
+      );
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message };
@@ -1670,8 +2033,14 @@ export class PostgresManager {
   public async redesignTable(
     oldTable: string,
     newTable: string,
-    columns: { name: string; type: string; notnull?: boolean; pk?: boolean; dflt_value?: any }[],
-    schemaName?: string
+    columns: {
+      name: string;
+      type: string;
+      notnull?: boolean;
+      pk?: boolean;
+      dflt_value?: any;
+    }[],
+    schemaName?: string,
   ): Promise<{ success: boolean; error?: string }> {
     const schema = schemaName || this.activeSchema || "public";
     const tmpName = `_tmp_redesign_${Date.now()}`;
@@ -1688,36 +2057,60 @@ export class PostgresManager {
           [schema, oldTable],
         );
         const oldCols = new Set(oldColsRes.map((r: any) => r.column_name));
-        const sharedCols = columns.filter((c) => oldCols.has(c.name)).map((c) => `${pgq(c.name)}`);
+        const sharedCols = columns
+          .filter((c) => oldCols.has(c.name))
+          .map((c) => `${pgq(c.name)}`);
 
         if (sharedCols.length > 0) {
           const colList = sharedCols.join(", ");
-          await this.sql_conn.unsafe(`INSERT INTO ${pgq(schema)}.${pgq(tmpName)} (${colList}) SELECT ${colList} FROM ${pgq(schema)}.${pgq(oldTable)};`);
+          await this.sql_conn.unsafe(
+            `INSERT INTO ${pgq(schema)}.${pgq(tmpName)} (${colList}) SELECT ${colList} FROM ${pgq(schema)}.${pgq(oldTable)};`,
+          );
         }
       } catch (err: any) {
         // Never drop the original table when its data could not be copied.
-        await this.sql_conn.unsafe(`DROP TABLE IF EXISTS ${pgq(schema)}.${pgq(tmpName)};`).catch(() => {});
-        return { success: false, error: `Data could not be copied to the new structure; the original table was left unchanged. ${err.message}` };
+        await this.sql_conn
+          .unsafe(`DROP TABLE IF EXISTS ${pgq(schema)}.${pgq(tmpName)};`)
+          .catch(() => {});
+        return {
+          success: false,
+          error: `Data could not be copied to the new structure; the original table was left unchanged. ${err.message}`,
+        };
       }
 
       // PostgreSQL DDL is transactional: swap the tables atomically.
       await this.sql_conn.begin(async (tx: any) => {
         await tx.unsafe(`DROP TABLE ${pgq(schema)}.${pgq(oldTable)} CASCADE;`);
-        await tx.unsafe(`ALTER TABLE ${pgq(schema)}.${pgq(tmpName)} RENAME TO ${pgq(targetName)};`);
+        await tx.unsafe(
+          `ALTER TABLE ${pgq(schema)}.${pgq(tmpName)} RENAME TO ${pgq(targetName)};`,
+        );
       });
 
-      await this.logAudit("REDESIGN_TABLE", targetName, `Redesigned table structure`);
+      await this.logAudit(
+        "REDESIGN_TABLE",
+        targetName,
+        `Redesigned table structure`,
+      );
       return { success: true };
     } catch (err: any) {
-      if (tmpCreated) await this.sql_conn.unsafe(`DROP TABLE IF EXISTS ${pgq(schema)}.${pgq(tmpName)};`).catch(() => {});
+      if (tmpCreated)
+        await this.sql_conn
+          .unsafe(`DROP TABLE IF EXISTS ${pgq(schema)}.${pgq(tmpName)};`)
+          .catch(() => {});
       return { success: false, error: err.message };
     }
   }
 
-  public async renameTable(oldTable: string, newTable: string, schemaName?: string): Promise<{ success: boolean; error?: string }> {
+  public async renameTable(
+    oldTable: string,
+    newTable: string,
+    schemaName?: string,
+  ): Promise<{ success: boolean; error?: string }> {
     const schema = schemaName || this.activeSchema || "public";
     try {
-      await this.sql_conn.unsafe(`ALTER TABLE ${pgq(schema)}.${pgq(oldTable)} RENAME TO ${pgq(newTable)};`);
+      await this.sql_conn.unsafe(
+        `ALTER TABLE ${pgq(schema)}.${pgq(oldTable)} RENAME TO ${pgq(newTable)};`,
+      );
       await this.logAudit("RENAME_TABLE", newTable, `Renamed from ${oldTable}`);
       return { success: true };
     } catch (err: any) {
@@ -1725,7 +2118,11 @@ export class PostgresManager {
     }
   }
 
-  public async dropObject(kind: "table" | "view" | "matview", name: string, schemaName?: string): Promise<{ success: boolean; error?: string }> {
+  public async dropObject(
+    kind: "table" | "view" | "matview",
+    name: string,
+    schemaName?: string,
+  ): Promise<{ success: boolean; error?: string }> {
     const schema = schemaName || this.activeSchema || "public";
     try {
       let sql = "";
@@ -1747,21 +2144,31 @@ export class PostgresManager {
   public async addColumn(
     tableName: string,
     column: { name: string; type: string; notnull?: boolean; dflt_value?: any },
-    schemaName?: string
+    schemaName?: string,
   ): Promise<{ success: boolean; error?: string }> {
     const schema = schemaName || this.activeSchema || "public";
     try {
-      if (!tableName || !column?.name) throw new Error("Table name and column name required");
+      if (!tableName || !column?.name)
+        throw new Error("Table name and column name required");
       assertSafeSqlFragment("column type", column.type || "");
-      if (column.dflt_value !== undefined && column.dflt_value !== null) assertSafeSqlFragment("default expression", String(column.dflt_value));
+      if (column.dflt_value !== undefined && column.dflt_value !== null)
+        assertSafeSqlFragment("default expression", String(column.dflt_value));
       let def = `${pgq(column.name)} ${column.type || "text"}`;
       if (column.notnull) def += " NOT NULL";
-      if (column.dflt_value !== undefined && column.dflt_value !== null && column.dflt_value !== "") {
+      if (
+        column.dflt_value !== undefined &&
+        column.dflt_value !== null &&
+        column.dflt_value !== ""
+      ) {
         def += ` DEFAULT ${column.dflt_value}`;
       }
       const sql = `ALTER TABLE ${pgq(schema)}.${pgq(tableName)} ADD COLUMN ${def};`;
       await this.sql_conn.unsafe(sql);
-      await this.logAudit("ADD_COLUMN", tableName, `Added column ${pgq(column.name)} (${column.type})`);
+      await this.logAudit(
+        "ADD_COLUMN",
+        tableName,
+        `Added column ${pgq(column.name)} (${column.type})`,
+      );
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message };
@@ -1772,14 +2179,19 @@ export class PostgresManager {
     tableName: string,
     columnName: string,
     cascade: boolean = false,
-    schemaName?: string
+    schemaName?: string,
   ): Promise<{ success: boolean; error?: string }> {
     const schema = schemaName || this.activeSchema || "public";
     try {
-      if (!tableName || !columnName) throw new Error("Table name and column name required");
+      if (!tableName || !columnName)
+        throw new Error("Table name and column name required");
       const sql = `ALTER TABLE ${pgq(schema)}.${pgq(tableName)} DROP COLUMN ${pgq(columnName)}${cascade ? " CASCADE" : ""};`;
       await this.sql_conn.unsafe(sql);
-      await this.logAudit("DROP_COLUMN", tableName, `Dropped column ${pgq(columnName)}`);
+      await this.logAudit(
+        "DROP_COLUMN",
+        tableName,
+        `Dropped column ${pgq(columnName)}`,
+      );
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message };
@@ -1790,7 +2202,8 @@ export class PostgresManager {
   public async getEnumTypes(schemaName?: string): Promise<PostgresEnumMeta[]> {
     const s = schemaName || this.activeSchema;
     try {
-      const rows = await this.sql_conn.unsafe(`
+      const rows = await this.sql_conn.unsafe(
+        `
         SELECT 
           t.typname AS name,
           n.nspname AS schema,
@@ -1801,7 +2214,9 @@ export class PostgresManager {
         WHERE n.nspname = $1
         GROUP BY t.typname, n.nspname
         ORDER BY t.typname;
-      `, [s]);
+      `,
+        [s],
+      );
 
       return (rows || []).map((r: any) => ({
         name: r.name,
@@ -1814,13 +2229,22 @@ export class PostgresManager {
     }
   }
 
-  public async createEnumType(name: string, values: string[], schemaName?: string): Promise<{ success: boolean; error?: string }> {
+  public async createEnumType(
+    name: string,
+    values: string[],
+    schemaName?: string,
+  ): Promise<{ success: boolean; error?: string }> {
     const s = schemaName || this.activeSchema;
     try {
       if (!name) throw new Error("Enum type name required");
-      if (!values || values.length === 0) throw new Error("At least one enum value required");
-      const escapedVals = values.map(v => `'${v.replace(/'/g, "''")}'`).join(", ");
-      await this.sql_conn.unsafe(`CREATE TYPE ${pgq(s)}.${pgq(name)} AS ENUM (${escapedVals});`);
+      if (!values || values.length === 0)
+        throw new Error("At least one enum value required");
+      const escapedVals = values
+        .map((v) => `'${v.replace(/'/g, "''")}'`)
+        .join(", ");
+      await this.sql_conn.unsafe(
+        `CREATE TYPE ${pgq(s)}.${pgq(name)} AS ENUM (${escapedVals});`,
+      );
       await this.logAudit("CREATE_TYPE", name, `Values: ${values.join(", ")}`);
       return { success: true };
     } catch (err: any) {
@@ -1828,11 +2252,17 @@ export class PostgresManager {
     }
   }
 
-  public async addEnumValue(name: string, value: string, schemaName?: string): Promise<{ success: boolean; error?: string }> {
+  public async addEnumValue(
+    name: string,
+    value: string,
+    schemaName?: string,
+  ): Promise<{ success: boolean; error?: string }> {
     const s = schemaName || this.activeSchema;
     try {
       if (!name || !value) throw new Error("Enum name and new value required");
-      await this.sql_conn.unsafe(`ALTER TYPE ${pgq(s)}.${pgq(name)} ADD VALUE '${value.replace(/'/g, "''")}';`);
+      await this.sql_conn.unsafe(
+        `ALTER TYPE ${pgq(s)}.${pgq(name)} ADD VALUE '${value.replace(/'/g, "''")}';`,
+      );
       await this.logAudit("ALTER_TYPE", name, `Added value: ${value}`);
       return { success: true };
     } catch (err: any) {
@@ -1840,7 +2270,10 @@ export class PostgresManager {
     }
   }
 
-  public async dropEnumType(name: string, schemaName?: string): Promise<{ success: boolean; error?: string }> {
+  public async dropEnumType(
+    name: string,
+    schemaName?: string,
+  ): Promise<{ success: boolean; error?: string }> {
     const s = schemaName || this.activeSchema;
     try {
       if (!name) throw new Error("Enum type name required");
@@ -1853,10 +2286,13 @@ export class PostgresManager {
   }
 
   // PostgreSQL Partitioned Tables Inspection
-  public async getPartitionedTables(schemaName?: string): Promise<PostgresPartitionMeta[]> {
+  public async getPartitionedTables(
+    schemaName?: string,
+  ): Promise<PostgresPartitionMeta[]> {
     const s = schemaName || this.activeSchema;
     try {
-      const rows = await this.sql_conn.unsafe(`
+      const rows = await this.sql_conn.unsafe(
+        `
         SELECT 
           pt.relname AS parent_table,
           pn.nspname AS parent_schema,
@@ -1877,7 +2313,9 @@ export class PostgresManager {
         JOIN pg_class c ON c.oid = i.inhrelid
         WHERE pn.nspname = $1
         ORDER BY pt.relname, c.relname;
-      `, [s]);
+      `,
+        [s],
+      );
 
       return (rows || []).map((r: any) => ({
         parentTable: r.parent_table,
@@ -1919,7 +2357,9 @@ export class PostgresManager {
         flushLag: s.flush_lag || "00:00:00",
         replayLag: s.replay_lag || "00:00:00",
       }));
-    } catch { /* ignored */ }
+    } catch {
+      /* ignored */
+    }
 
     try {
       const slots = await this.sql_conn.unsafe(`
@@ -1933,7 +2373,9 @@ export class PostgresManager {
         active: Boolean(sl.active),
         walStatus: sl.wal_status,
       }));
-    } catch { /* ignored */ }
+    } catch {
+      /* ignored */
+    }
 
     try {
       const wal = await this.sql_conn.unsafe(`
@@ -1943,22 +2385,36 @@ export class PostgresManager {
       if (wal && wal.length > 0) {
         result.walStats = wal[0];
       }
-    } catch { /* ignored */ }
+    } catch {
+      /* ignored */
+    }
 
     return result;
   }
 
   // Full Database SQL Dump & Backup Generator
-  public async generateDatabaseDump(options: { mode?: "all" | "schema" | "data"; tables?: string[]; schema?: string } = {}): Promise<string> {
+  public async generateDatabaseDump(
+    options: {
+      mode?: "all" | "schema" | "data";
+      tables?: string[];
+      schema?: string;
+    } = {},
+  ): Promise<string> {
     const s = options.schema || this.activeSchema;
     const mode = options.mode || "all";
     const out: string[] = [];
-    out.push(`-- =========================================================================`);
-    out.push(`-- 🐘 POSTGRES STUDIO PRO - ENTERPRISE DATABASE DUMP & RECOVERY SCRIPT`);
+    out.push(
+      `-- =========================================================================`,
+    );
+    out.push(
+      `-- 🐘 POSTGRES STUDIO PRO - ENTERPRISE DATABASE DUMP & RECOVERY SCRIPT`,
+    );
     out.push(`-- Generated: ${new Date().toISOString()}`);
     out.push(`-- Schema: ${pgq(s)} | Mode: ${mode.toUpperCase()}`);
     out.push(`-- Database: ${this.dbConfig?.database ?? ""}`);
-    out.push(`-- =========================================================================\n`);
+    out.push(
+      `-- =========================================================================\n`,
+    );
 
     out.push(`SET statement_timeout = 0;`);
     out.push(`SET lock_timeout = 0;`);
@@ -1968,9 +2424,10 @@ export class PostgresManager {
     out.push(`SET client_min_messages = warning;\n`);
 
     const schemaRes = await this.getSchema(s);
-    const tableNames = options.tables && options.tables.length > 0
-      ? options.tables
-      : schemaRes.tables.map(t => t.name);
+    const tableNames =
+      options.tables && options.tables.length > 0
+        ? options.tables
+        : schemaRes.tables.map((t) => t.name);
 
     // 1. Custom Enums
     if (mode === "all" || mode === "schema") {
@@ -1978,8 +2435,12 @@ export class PostgresManager {
       if (enums.length > 0) {
         out.push(`-- Custom Enum Types`);
         for (const e of enums) {
-          const vals = e.values.map(v => `'${v.replace(/'/g, "''")}'`).join(", ");
-          out.push(`DO $$ BEGIN CREATE TYPE ${pgq(s)}.${pgq(e.name)} AS ENUM (${vals}); EXCEPTION WHEN duplicate_object THEN null; END $$;`);
+          const vals = e.values
+            .map((v) => `'${v.replace(/'/g, "''")}'`)
+            .join(", ");
+          out.push(
+            `DO $$ BEGIN CREATE TYPE ${pgq(s)}.${pgq(e.name)} AS ENUM (${vals}); EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+          );
         }
         out.push("");
       }
@@ -1997,7 +2458,11 @@ export class PostgresManager {
         for (const col of tblMeta.columns) {
           let line = `  ${pgq(col.name)} ${col.type}`;
           if (col.notnull) line += ` NOT NULL`;
-          if (col.dflt_value !== null && col.dflt_value !== undefined && col.dflt_value !== "") {
+          if (
+            col.dflt_value !== null &&
+            col.dflt_value !== undefined &&
+            col.dflt_value !== ""
+          ) {
             line += ` DEFAULT ${col.dflt_value}`;
           }
           if (col.pk) {
@@ -2013,7 +2478,9 @@ export class PostgresManager {
           for (const idx of tblMeta.indices) {
             if (idx.name.endsWith("_pkey")) continue;
             const unique = idx.unique ? "UNIQUE " : "";
-            out.push(`CREATE ${unique}INDEX IF NOT EXISTS ${pgq(idx.name)} ON ${pgq(s)}.${pgq(tName)} (${idx.columns.map(c => `${pgq(c)}`).join(", ")});`);
+            out.push(
+              `CREATE ${unique}INDEX IF NOT EXISTS ${pgq(idx.name)} ON ${pgq(s)}.${pgq(tName)} (${idx.columns.map((c) => `${pgq(c)}`).join(", ")});`,
+            );
           }
           out.push("");
         }
@@ -2022,19 +2489,27 @@ export class PostgresManager {
       // 3. Table Data
       if (mode === "all" || mode === "data") {
         try {
-          const rows = await this.sql_conn.unsafe(`SELECT * FROM ${pgq(s)}.${pgq(tName)} LIMIT 5000;`);
+          const rows = await this.sql_conn.unsafe(
+            `SELECT * FROM ${pgq(s)}.${pgq(tName)} LIMIT 5000;`,
+          );
           if (rows && rows.length > 0) {
-            out.push(`-- Data for Table: ${pgq(s)}.${pgq(tName)} (${rows.length} rows)`);
+            out.push(
+              `-- Data for Table: ${pgq(s)}.${pgq(tName)} (${rows.length} rows)`,
+            );
             const colNames = Object.keys(rows[0]);
-            const escapedCols = colNames.map(c => `${pgq(c)}`).join(", ");
-            out.push(`INSERT INTO ${pgq(s)}.${pgq(tName)} (${escapedCols}) VALUES`);
+            const escapedCols = colNames.map((c) => `${pgq(c)}`).join(", ");
+            out.push(
+              `INSERT INTO ${pgq(s)}.${pgq(tName)} (${escapedCols}) VALUES`,
+            );
             const rowValues: string[] = [];
             for (const r of rows) {
-              const vals = colNames.map(c => {
+              const vals = colNames.map((c) => {
                 const val = r[c];
                 if (val === null || val === undefined) return "NULL";
-                if (typeof val === "number" || typeof val === "boolean") return String(val);
-                if (typeof val === "object") return `'${JSON.stringify(val).replace(/'/g, "''")}'::jsonb`;
+                if (typeof val === "number" || typeof val === "boolean")
+                  return String(val);
+                if (typeof val === "object")
+                  return `'${JSON.stringify(val).replace(/'/g, "''")}'::jsonb`;
                 return `'${String(val).replace(/'/g, "''")}'`;
               });
               rowValues.push(`  (${vals.join(", ")})`);
@@ -2057,7 +2532,9 @@ export class PostgresManager {
           for (const fk of tblMeta.foreignKeys) {
             if (!tableNames.includes(fk.table)) continue;
             const constraintName = `${tblMeta.name}_${fk.from}_fkey`;
-            out.push(`DO $$ BEGIN ALTER TABLE ${pgq(s)}.${pgq(tblMeta.name)} ADD CONSTRAINT ${pgq(constraintName)} FOREIGN KEY (${pgq(fk.from)}) REFERENCES ${pgq(s)}.${pgq(fk.table)} (${pgq(fk.to)}) ON DELETE CASCADE; EXCEPTION WHEN duplicate_object THEN null; END $$;`);
+            out.push(
+              `DO $$ BEGIN ALTER TABLE ${pgq(s)}.${pgq(tblMeta.name)} ADD CONSTRAINT ${pgq(constraintName)} FOREIGN KEY (${pgq(fk.from)}) REFERENCES ${pgq(s)}.${pgq(fk.table)} (${pgq(fk.to)}) ON DELETE CASCADE; EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+            );
           }
         }
       }
@@ -2067,48 +2544,79 @@ export class PostgresManager {
     // 5. Views
     if (mode === "all" || mode === "schema") {
       try {
-        const views = await this.sql_conn.unsafe(`
+        const views = await this.sql_conn.unsafe(
+          `
           SELECT table_name, view_definition
           FROM information_schema.views
           WHERE table_schema = $1;
-        `, [s]);
+        `,
+          [s],
+        );
         if (views && views.length > 0) {
           out.push(`-- Views`);
           for (const v of views) {
-            out.push(`CREATE OR REPLACE VIEW ${pgq(s)}.${pgq(v.table_name)} AS\n${v.view_definition};\n`);
+            out.push(
+              `CREATE OR REPLACE VIEW ${pgq(s)}.${pgq(v.table_name)} AS\n${v.view_definition};\n`,
+            );
           }
         }
-      } catch { /* ignored */ }
+      } catch {
+        /* ignored */
+      }
     }
 
-    out.push(`-- =========================================================================`);
+    out.push(
+      `-- =========================================================================`,
+    );
     out.push(`-- Dump complete.`);
-    out.push(`-- =========================================================================`);
+    out.push(
+      `-- =========================================================================`,
+    );
     return out.join("\n");
   }
 
   // Totals Row & Aggregates Computer
-  public async getTableAggregates(tableName: string, schemaName?: string): Promise<Record<string, any>> {
+  public async getTableAggregates(
+    tableName: string,
+    schemaName?: string,
+  ): Promise<Record<string, any>> {
     const s = schemaName || this.activeSchema;
     try {
-      const cols = await this.sql_conn.unsafe(`
+      const cols = await this.sql_conn.unsafe(
+        `
         SELECT column_name, data_type
         FROM information_schema.columns
         WHERE table_schema = $1 AND table_name = $2;
-      `, [s, tableName]);
+      `,
+        [s, tableName],
+      );
 
       const aggSelects: string[] = ["COUNT(*)::bigint AS _total_count"];
       const numericCols: string[] = [];
 
       for (const c of cols) {
         const type = String(c.data_type).toLowerCase();
-        const isNum = type.includes("int") || type.includes("numeric") || type.includes("decimal") || type.includes("float") || type.includes("double") || type.includes("real");
+        const isNum =
+          type.includes("int") ||
+          type.includes("numeric") ||
+          type.includes("decimal") ||
+          type.includes("float") ||
+          type.includes("double") ||
+          type.includes("real");
         if (isNum) {
           numericCols.push(c.column_name);
-          aggSelects.push(`ROUND(SUM(${pgq(c.column_name)})::numeric, 2) AS "${c.column_name}__sum"`);
-          aggSelects.push(`ROUND(AVG(${pgq(c.column_name)})::numeric, 2) AS "${c.column_name}__avg"`);
-          aggSelects.push(`MIN(${pgq(c.column_name)}) AS "${c.column_name}__min"`);
-          aggSelects.push(`MAX(${pgq(c.column_name)}) AS "${c.column_name}__max"`);
+          aggSelects.push(
+            `ROUND(SUM(${pgq(c.column_name)})::numeric, 2) AS "${c.column_name}__sum"`,
+          );
+          aggSelects.push(
+            `ROUND(AVG(${pgq(c.column_name)})::numeric, 2) AS "${c.column_name}__avg"`,
+          );
+          aggSelects.push(
+            `MIN(${pgq(c.column_name)}) AS "${c.column_name}__min"`,
+          );
+          aggSelects.push(
+            `MAX(${pgq(c.column_name)}) AS "${c.column_name}__max"`,
+          );
         }
       }
 
@@ -2121,8 +2629,14 @@ export class PostgresManager {
       for (const col of numericCols) {
         result[col] = {
           count: totalCount,
-          sum: row[`${col}__sum`] !== null ? Number(row[`${col}__sum`]) : undefined,
-          avg: row[`${col}__avg`] !== null ? Number(row[`${col}__avg`]) : undefined,
+          sum:
+            row[`${col}__sum`] !== null
+              ? Number(row[`${col}__sum`])
+              : undefined,
+          avg:
+            row[`${col}__avg`] !== null
+              ? Number(row[`${col}__avg`])
+              : undefined,
           min: row[`${col}__min`],
           max: row[`${col}__max`],
         };
@@ -2134,7 +2648,11 @@ export class PostgresManager {
     }
   }
 
-  public async truncateTable(tableName: string, cascade: boolean = false, schemaName?: string): Promise<{ success: boolean; error?: string }> {
+  public async truncateTable(
+    tableName: string,
+    cascade: boolean = false,
+    schemaName?: string,
+  ): Promise<{ success: boolean; error?: string }> {
     const schema = schemaName || this.activeSchema || "public";
     try {
       const sql = `TRUNCATE TABLE ${pgq(schema)}.${pgq(tableName)} ${cascade ? "CASCADE" : "RESTRICT"};`;
@@ -2152,12 +2670,23 @@ export class PostgresManager {
     schemaName?: string,
     extra?: {
       create?: boolean;
-      createColumns?: { name: string; type?: string; pk?: boolean; notnull?: boolean }[];
+      createColumns?: {
+        name: string;
+        type?: string;
+        pk?: boolean;
+        notnull?: boolean;
+      }[];
       columns?: string[];
       mode?: "append" | "replace";
       onConflict?: "abort" | "ignore" | "replace";
     },
-  ): Promise<{ success: boolean; importedCount: number; inserted?: number; skipped?: number; error?: string }> {
+  ): Promise<{
+    success: boolean;
+    importedCount: number;
+    inserted?: number;
+    skipped?: number;
+    error?: string;
+  }> {
     return this.importRows({
       table: tableName,
       schema: schemaName,
@@ -2170,12 +2699,25 @@ export class PostgresManager {
     table: string;
     schema?: string;
     create?: boolean;
-    createColumns?: { name: string; type?: string; pk?: boolean; notnull?: boolean }[];
+    createColumns?: {
+      name: string;
+      type?: string;
+      pk?: boolean;
+      notnull?: boolean;
+    }[];
     columns?: string[];
     rows: any[];
     mode?: "append" | "replace";
     onConflict?: "abort" | "ignore" | "replace";
-  }): Promise<{ success: boolean; importedCount: number; imported: number; inserted: number; skipped: number; latencyMs?: number; error?: string }> {
+  }): Promise<{
+    success: boolean;
+    importedCount: number;
+    imported: number;
+    inserted: number;
+    skipped: number;
+    latencyMs?: number;
+    error?: string;
+  }> {
     const t0 = performance.now();
     const schema = spec.schema || this.activeSchema || "public";
     try {
@@ -2183,13 +2725,24 @@ export class PostgresManager {
       if (!tableName) throw new Error("Target table is required");
       const rawRows = Array.isArray(spec.rows) ? spec.rows : [];
       if (rawRows.length === 0 && !spec.create) {
-        return { success: true, importedCount: 0, imported: 0, inserted: 0, skipped: 0, latencyMs: 0 };
+        return {
+          success: true,
+          importedCount: 0,
+          imported: 0,
+          inserted: 0,
+          skipped: 0,
+          latencyMs: 0,
+        };
       }
 
       let columns = Array.isArray(spec.columns) ? [...spec.columns] : [];
       let recordRows: Record<string, any>[] = [];
 
-      if (columns.length > 0 && rawRows.length > 0 && Array.isArray(rawRows[0])) {
+      if (
+        columns.length > 0 &&
+        rawRows.length > 0 &&
+        Array.isArray(rawRows[0])
+      ) {
         recordRows = rawRows.map((arr: any[]) => {
           const obj: Record<string, any> = {};
           columns.forEach((c, i) => {
@@ -2198,10 +2751,13 @@ export class PostgresManager {
           return obj;
         });
       } else {
-        recordRows = rawRows.filter((r) => r && typeof r === "object" && !Array.isArray(r));
+        recordRows = rawRows.filter(
+          (r) => r && typeof r === "object" && !Array.isArray(r),
+        );
         if (columns.length === 0) {
           const colSet = new Set<string>();
-          for (const r of recordRows) for (const k of Object.keys(r)) colSet.add(k);
+          for (const r of recordRows)
+            for (const k of Object.keys(r)) colSet.add(k);
           columns = Array.from(colSet);
         }
       }
@@ -2211,15 +2767,21 @@ export class PostgresManager {
           spec.createColumns && spec.createColumns.length
             ? spec.createColumns.map((c) => ({
                 name: c.name,
-                type: !c.type || c.type.toUpperCase() === "REAL" ? "DOUBLE PRECISION" : c.type,
+                type:
+                  !c.type || c.type.toUpperCase() === "REAL"
+                    ? "DOUBLE PRECISION"
+                    : c.type,
                 pk: c.pk,
                 notnull: c.notnull,
               }))
             : columns.map((n) => ({ name: n, type: "TEXT" }));
         const cr = await this.createTable(tableName, cols, schema);
-        if (!cr.success) throw new Error(cr.error || `Failed to create table '${tableName}'`);
+        if (!cr.success)
+          throw new Error(cr.error || `Failed to create table '${tableName}'`);
       } else if (spec.mode === "replace") {
-        await this.sql_conn.unsafe(`DELETE FROM ${pgq(schema)}.${pgq(tableName)};`);
+        await this.sql_conn.unsafe(
+          `DELETE FROM ${pgq(schema)}.${pgq(tableName)};`,
+        );
       }
 
       let imported = 0;
@@ -2243,15 +2805,26 @@ export class PostgresManager {
         latencyMs: Number((performance.now() - t0).toFixed(2)),
       };
     } catch (err: any) {
-      return { success: false, importedCount: 0, imported: 0, inserted: 0, skipped: 0, error: err?.message || String(err) };
+      return {
+        success: false,
+        importedCount: 0,
+        imported: 0,
+        inserted: 0,
+        skipped: 0,
+        error: err?.message || String(err),
+      };
     }
   }
 
-  public async runScript(sql: string): Promise<{ success: boolean; executed?: number; error?: string }> {
+  public async runScript(
+    sql: string,
+  ): Promise<{ success: boolean; executed?: number; error?: string }> {
     try {
       const text = String(sql || "").trim();
       if (!text) throw new Error("Script is empty");
-      const stmts = splitStatements(text, { engine: "postgres" }).map((s) => s.sql);
+      const stmts = splitStatements(text, { engine: "postgres" }).map(
+        (s) => s.sql,
+      );
       let executed = 0;
       for (const st of stmts) {
         await this.sql_conn.unsafe(st);
@@ -2263,7 +2836,10 @@ export class PostgresManager {
     }
   }
 
-  public async getIndexes(tableName?: string, schemaName?: string): Promise<any[]> {
+  public async getIndexes(
+    tableName?: string,
+    schemaName?: string,
+  ): Promise<any[]> {
     const schema = schemaName || this.activeSchema || "public";
     try {
       let sql = `
@@ -2296,31 +2872,50 @@ export class PostgresManager {
     columns: string[],
     indexType: string = "btree",
     unique: boolean = false,
-    schemaName?: string
+    schemaName?: string,
   ): Promise<{ success: boolean; error?: string }> {
     const schema = schemaName || this.activeSchema || "public";
     try {
-      const allowedTypes = new Set(["btree", "hash", "gist", "spgist", "gin", "brin"]);
+      const allowedTypes = new Set([
+        "btree",
+        "hash",
+        "gist",
+        "spgist",
+        "gin",
+        "brin",
+      ]);
       const cleanType = (indexType || "btree").trim().toLowerCase();
       if (!allowedTypes.has(cleanType)) {
-        return { success: false, error: `Unsupported index type: ${indexType}` };
+        return {
+          success: false,
+          error: `Unsupported index type: ${indexType}`,
+        };
       }
-      const safeCols = columns.map(c => `${pgq(c)}`).join(", ");
+      const safeCols = columns.map((c) => `${pgq(c)}`).join(", ");
       const uq = unique ? "UNIQUE " : "";
       const usingClause = cleanType !== "btree" ? `USING ${cleanType} ` : "";
       const sql = `CREATE ${uq}INDEX IF NOT EXISTS ${pgq(indexName)} ON ${pgq(schema)}.${pgq(tableName)} ${usingClause}(${safeCols});`;
       await this.sql_conn.unsafe(sql);
-      await this.logAudit("CREATE_INDEX", indexName, `Created ${cleanType} index on ${tableName}`);
+      await this.logAudit(
+        "CREATE_INDEX",
+        indexName,
+        `Created ${cleanType} index on ${tableName}`,
+      );
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message };
     }
   }
 
-  public async dropIndex(indexName: string, schemaName?: string): Promise<{ success: boolean; error?: string }> {
+  public async dropIndex(
+    indexName: string,
+    schemaName?: string,
+  ): Promise<{ success: boolean; error?: string }> {
     const schema = schemaName || this.activeSchema || "public";
     try {
-      await this.sql_conn.unsafe(`DROP INDEX IF EXISTS ${pgq(schema)}.${pgq(indexName)};`);
+      await this.sql_conn.unsafe(
+        `DROP INDEX IF EXISTS ${pgq(schema)}.${pgq(indexName)};`,
+      );
       await this.logAudit("DROP_INDEX", indexName, `Dropped index`);
       return { success: true };
     } catch (err: any) {
@@ -2351,11 +2946,21 @@ export class PostgresManager {
     }
   }
 
-  public async restartSequence(seqName: string, restartVal: number = 1, schemaName?: string): Promise<{ success: boolean; error?: string }> {
+  public async restartSequence(
+    seqName: string,
+    restartVal: number = 1,
+    schemaName?: string,
+  ): Promise<{ success: boolean; error?: string }> {
     const schema = schemaName || this.activeSchema || "public";
     try {
-      await this.sql_conn.unsafe(`ALTER SEQUENCE ${pgq(schema)}.${pgq(seqName)} RESTART WITH ${Number(restartVal)};`);
-      await this.logAudit("RESTART_SEQ", seqName, `Restarted sequence at ${restartVal}`);
+      await this.sql_conn.unsafe(
+        `ALTER SEQUENCE ${pgq(schema)}.${pgq(seqName)} RESTART WITH ${Number(restartVal)};`,
+      );
+      await this.logAudit(
+        "RESTART_SEQ",
+        seqName,
+        `Restarted sequence at ${restartVal}`,
+      );
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message };
@@ -2382,7 +2987,10 @@ export class PostgresManager {
     }
   }
 
-  public async getTriggers(tableName?: string, schemaName?: string): Promise<any[]> {
+  public async getTriggers(
+    tableName?: string,
+    schemaName?: string,
+  ): Promise<any[]> {
     const schema = schemaName || this.activeSchema || "public";
     try {
       let sql = `
@@ -2528,12 +3136,16 @@ export class PostgresManager {
   // Enterprise Starter Relational Dataset Seeder (Tailored for PostgreSQL)
   // -----------------------------------------------------------------------------------------------
 
-  public async seedSampleDataset(targetSchema?: string): Promise<{ success: boolean; error?: string }> {
+  public async seedSampleDataset(
+    targetSchema?: string,
+  ): Promise<{ success: boolean; error?: string }> {
     const s = targetSchema || this.activeSchema || "public";
     try {
       // 1. Enable UUID extension if available
       try {
-        await this.sql_conn.unsafe(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`);
+        await this.sql_conn.unsafe(
+          `CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`,
+        );
       } catch {}
 
       // 2. Drop existing sample objects if they exist
@@ -2787,7 +3399,11 @@ export class PostgresManager {
         await this.sql_conn.unsafe(`ANALYZE;`);
       } catch {}
 
-      await this.logAudit("SEED_SAMPLE", s, "Provisions enterprise PostgreSQL relational starter suite with JSONB, Arrays, Views & Materialized View");
+      await this.logAudit(
+        "SEED_SAMPLE",
+        s,
+        "Provisions enterprise PostgreSQL relational starter suite with JSONB, Arrays, Views & Materialized View",
+      );
       return { success: true };
     } catch (err: any) {
       console.error("seedSampleDataset error:", err);
@@ -2799,7 +3415,7 @@ export class PostgresManager {
     try {
       await this.sql_conn.unsafe(
         `INSERT INTO ${pgq(this.activeSchema)}."audit_logs" (action, entity, details) VALUES ($1, $2, $3::jsonb);`,
-        [action, entity, JSON.stringify({ message: details })]
+        [action, entity, JSON.stringify({ message: details })],
       );
     } catch {}
   }
@@ -2808,7 +3424,7 @@ export class PostgresManager {
     try {
       const rows = await this.sql_conn.unsafe(
         `SELECT id, action, entity, details, timestamp FROM ${pgq(this.activeSchema)}."audit_logs" ORDER BY id DESC LIMIT $1;`,
-        [Math.min(200, Math.max(1, limit))]
+        [Math.min(200, Math.max(1, limit))],
       );
       return Array.isArray(rows) ? rows : [];
     } catch {
@@ -2831,7 +3447,7 @@ export class PostgresManager {
     try {
       const tables = await this.sql_conn.unsafe(
         `SELECT table_name FROM information_schema.tables WHERE table_schema = $1 AND table_type = 'BASE TABLE' ORDER BY table_name;`,
-        [s]
+        [s],
       );
 
       for (const t of tables) {
@@ -2841,7 +3457,9 @@ export class PostgresManager {
 
         // 1. Verify table access & row counting
         try {
-          const countRes = await this.sql_conn.unsafe(`SELECT count(*) AS c FROM ${pgq(s)}.${pgq(tbl)};`);
+          const countRes = await this.sql_conn.unsafe(
+            `SELECT count(*) AS c FROM ${pgq(s)}.${pgq(tbl)};`,
+          );
           const count = Number(countRes[0]?.c || 0);
 
           // 2. Check index validity
@@ -2852,25 +3470,35 @@ export class PostgresManager {
              JOIN pg_class t ON t.oid = ix.indrelid 
              JOIN pg_namespace n ON n.oid = t.relnamespace 
              WHERE n.nspname = $1 AND t.relname = $2;`,
-            [s, tbl]
+            [s, tbl],
           );
 
           let idxStatus = "All indexes valid";
           for (const idx of idxRes) {
             if (!idx.indisvalid) {
-              issues.push(`Index ${pgq(idx.index_name)} on table ${pgq(tbl)} is INVALID`);
+              issues.push(
+                `Index ${pgq(idx.index_name)} on table ${pgq(tbl)} is INVALID`,
+              );
               idxStatus = `INVALID index: ${idx.index_name}`;
             }
           }
 
-          outputs.push(`Table ${pgq(s)}.${pgq(tbl)}: ${count} rows, ${idxRes.length} index(es) OK (${idxStatus})`);
+          outputs.push(
+            `Table ${pgq(s)}.${pgq(tbl)}: ${count} rows, ${idxRes.length} index(es) OK (${idxStatus})`,
+          );
         } catch (tableErr: any) {
           issues.push(`Error checking table ${pgq(tbl)}: ${tableErr.message}`);
-          outputs.push(`Table ${pgq(s)}.${pgq(tbl)}: ERROR (${tableErr.message})`);
+          outputs.push(
+            `Table ${pgq(s)}.${pgq(tbl)}: ERROR (${tableErr.message})`,
+          );
         }
       }
 
-      await this.logAudit("INTEGRITY_CHECK", s, `Checked ${tablesChecked} tables. Issues found: ${issues.length}`);
+      await this.logAudit(
+        "INTEGRITY_CHECK",
+        s,
+        `Checked ${tablesChecked} tables. Issues found: ${issues.length}`,
+      );
 
       return {
         success: issues.length === 0,
@@ -2898,7 +3526,10 @@ export class PostgresManager {
 export function startPostgresStudioServer(options: ServerOptions = {}) {
   const port = options.port ?? 0;
   const hostname = options.host ?? "127.0.0.1";
-  const manager = new PostgresManager(options.initialDbPath || "", options.config);
+  const manager = new PostgresManager(
+    options.initialDbPath || "",
+    options.config,
+  );
   const staging = postgresStaging(manager);
   const samples = postgresSampleApi(manager);
   if (options.initialSchema) {
@@ -2914,8 +3545,13 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
       // CORS & Local Guard
       const __blocked = guardLocalRequest(req);
       if (__blocked) return __blocked;
-      if (url.pathname === "/workbench" || url.pathname.startsWith("/api/v2/")) {
-        const __workbench = await (await getSharedWorkbench("PostgreSQL Studio · Workbench")).handle(req);
+      if (
+        url.pathname === "/workbench" ||
+        url.pathname.startsWith("/api/v2/")
+      ) {
+        const __workbench = await (
+          await getSharedWorkbench("PostgreSQL Studio · Workbench")
+        ).handle(req);
         if (__workbench) return __workbench;
       }
       if (url.pathname.startsWith("/api/staging/")) {
@@ -2935,7 +3571,10 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
       // 1. Webstation App UI Entry point
       if (url.pathname === "/" || url.pathname === "/index.html") {
         return new Response(generatePostgresStudioHtml(), {
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            ...corsHeaders,
+          },
         });
       }
 
@@ -2943,20 +3582,30 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
       if (url.pathname === "/api/kpis") {
         try {
           const kpis = await manager.getKpis();
-          return Response.json({ success: true, kpis, ...kpis }, { headers: corsHeaders });
+          return Response.json(
+            { success: true, kpis, ...kpis },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ error: err.message }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { error: err.message },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
       // 3. Schema Structure (Tables, Views, MatViews, Columns, FKs, Indices)
       if (url.pathname === "/api/schema") {
         try {
-          const targetSchema = url.searchParams.get("schema") || manager.activeSchema;
+          const targetSchema =
+            url.searchParams.get("schema") || manager.activeSchema;
           const schema = await manager.getSchema(targetSchema);
           return Response.json(schema, { headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ error: err.message }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { error: err.message },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
@@ -2964,9 +3613,15 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
       if (url.pathname === "/api/schemas" && req.method === "GET") {
         try {
           const schemas = await manager.getSchemas();
-          return Response.json({ success: true, schemas, activeSchema: manager.activeSchema }, { headers: corsHeaders });
+          return Response.json(
+            { success: true, schemas, activeSchema: manager.activeSchema },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
@@ -2974,9 +3629,15 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
         try {
           const body = (await req.json()) as { schema: string };
           const ok = await manager.setSchema(body.schema);
-          return Response.json({ success: ok, activeSchema: manager.activeSchema }, { headers: corsHeaders });
+          return Response.json(
+            { success: ok, activeSchema: manager.activeSchema },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
@@ -2984,16 +3645,27 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
         try {
           const body = (await req.json()) as { schema: string };
           const res = await manager.createSchema(body.schema);
-          return Response.json(res, { status: res.success ? 200 : 400, headers: corsHeaders });
+          return Response.json(res, {
+            status: res.success ? 200 : 400,
+            headers: corsHeaders,
+          });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
       // 4. SQL Execution & EXPLAIN ANALYZE
       if (url.pathname === "/api/query" && req.method === "POST") {
         try {
-          const body = (await req.json()) as { sql: string; params?: any[]; explain?: boolean; analyze?: boolean };
+          const body = (await req.json()) as {
+            sql: string;
+            params?: any[];
+            explain?: boolean;
+            analyze?: boolean;
+          };
           if (body.explain) {
             const result = await manager.explain(body.sql);
             return Response.json(result, { headers: corsHeaders });
@@ -3001,18 +3673,32 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
           const result = await manager.query(body.sql, body.params || []);
           return Response.json(result, { headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
       // 4a. Views: check / create / definition / drop (src/shared/studioViews.ts)
-      const viewMatch = /^\/api\/view\/(check|create|definition|drop)$/.exec(url.pathname);
+      const viewMatch = /^\/api\/view\/(check|create|definition|drop)$/.exec(
+        url.pathname,
+      );
       if (viewMatch && req.method === "POST") {
         try {
-          const result = await manager.viewOp(viewMatch[1] as any, await req.json());
-          return Response.json(result, { status: result.success ? 200 : 400, headers: corsHeaders });
+          const result = await manager.viewOp(
+            viewMatch[1] as any,
+            await req.json(),
+          );
+          return Response.json(result, {
+            status: result.success ? 200 : 400,
+            headers: corsHeaders,
+          });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
@@ -3023,7 +3709,10 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
           const result = await manager.explain(body.sql);
           return Response.json(result, { headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
@@ -3031,9 +3720,15 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
       if (url.pathname === "/api/extensions" && req.method === "GET") {
         try {
           const extensions = await manager.getExtensions();
-          return Response.json({ success: true, extensions }, { headers: corsHeaders });
+          return Response.json(
+            { success: true, extensions },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
@@ -3041,39 +3736,84 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
         try {
           const body = (await req.json()) as { name: string; enable: boolean };
           const res = await manager.toggleExtension(body.name, body.enable);
-          return Response.json(res, { status: res.success ? 200 : 400, headers: corsHeaders });
+          return Response.json(res, {
+            status: res.success ? 200 : 400,
+            headers: corsHeaders,
+          });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
       // 5b. Custom Enum Types API
       if (url.pathname === "/api/types/enums" && req.method === "GET") {
         try {
-          const enums = await manager.getEnumTypes(url.searchParams.get("schema") || undefined);
-          return Response.json({ success: true, enums }, { headers: corsHeaders });
+          const enums = await manager.getEnumTypes(
+            url.searchParams.get("schema") || undefined,
+          );
+          return Response.json(
+            { success: true, enums },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
       if (url.pathname === "/api/types/enums/create" && req.method === "POST") {
         try {
-          const body = (await req.json()) as { name: string; values: string[]; schema?: string };
-          const res = await manager.createEnumType(body.name, body.values, body.schema);
-          return Response.json(res, { status: res.success ? 200 : 400, headers: corsHeaders });
+          const body = (await req.json()) as {
+            name: string;
+            values: string[];
+            schema?: string;
+          };
+          const res = await manager.createEnumType(
+            body.name,
+            body.values,
+            body.schema,
+          );
+          return Response.json(res, {
+            status: res.success ? 200 : 400,
+            headers: corsHeaders,
+          });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
-      if (url.pathname === "/api/types/enums/add-value" && req.method === "POST") {
+      if (
+        url.pathname === "/api/types/enums/add-value" &&
+        req.method === "POST"
+      ) {
         try {
-          const body = (await req.json()) as { name: string; value: string; schema?: string };
-          const res = await manager.addEnumValue(body.name, body.value, body.schema);
-          return Response.json(res, { status: res.success ? 200 : 400, headers: corsHeaders });
+          const body = (await req.json()) as {
+            name: string;
+            value: string;
+            schema?: string;
+          };
+          const res = await manager.addEnumValue(
+            body.name,
+            body.value,
+            body.schema,
+          );
+          return Response.json(res, {
+            status: res.success ? 200 : 400,
+            headers: corsHeaders,
+          });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
@@ -3081,19 +3821,33 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
         try {
           const body = (await req.json()) as { name: string; schema?: string };
           const res = await manager.dropEnumType(body.name, body.schema);
-          return Response.json(res, { status: res.success ? 200 : 400, headers: corsHeaders });
+          return Response.json(res, {
+            status: res.success ? 200 : 400,
+            headers: corsHeaders,
+          });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
       // 5c. Partitioned Tables API
       if (url.pathname === "/api/partitions" && req.method === "GET") {
         try {
-          const partitions = await manager.getPartitionedTables(url.searchParams.get("schema") || undefined);
-          return Response.json({ success: true, partitions }, { headers: corsHeaders });
+          const partitions = await manager.getPartitionedTables(
+            url.searchParams.get("schema") || undefined,
+          );
+          return Response.json(
+            { success: true, partitions },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
@@ -3101,20 +3855,41 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
       if (url.pathname === "/api/replication" && req.method === "GET") {
         try {
           const replication = await manager.getReplicationStatus();
-          return Response.json({ success: true, replication }, { headers: corsHeaders });
+          return Response.json(
+            { success: true, replication },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
       // 5e. Full Database SQL Dump & Backup Generator API
       if (url.pathname === "/api/database/dump" && req.method === "POST") {
         try {
-          const body = (await req.json()) as { mode?: "all" | "schema" | "data"; tables?: string[]; schema?: string };
+          const body = (await req.json()) as {
+            mode?: "all" | "schema" | "data";
+            tables?: string[];
+            schema?: string;
+          };
           const sqlDump = await manager.generateDatabaseDump(body);
-          return Response.json({ success: true, sql: sqlDump, mode: body.mode || "all", timestamp: new Date().toISOString() }, { headers: corsHeaders });
+          return Response.json(
+            {
+              success: true,
+              sql: sqlDump,
+              mode: body.mode || "all",
+              timestamp: new Date().toISOString(),
+            },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
@@ -3122,21 +3897,40 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
       if (url.pathname === "/api/table/aggregates" && req.method === "POST") {
         try {
           const body = (await req.json()) as { table: string; schema?: string };
-          const aggregates = await manager.getTableAggregates(body.table, body.schema);
-          return Response.json({ success: true, aggregates }, { headers: corsHeaders });
+          const aggregates = await manager.getTableAggregates(
+            body.table,
+            body.schema,
+          );
+          return Response.json(
+            { success: true, aggregates },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
       // 6. Live Activity & Process Monitor API (Postgres Specialty)
-      if ((url.pathname === "/api/activity" || url.pathname === "/api/activity/locks") && req.method === "GET") {
+      if (
+        (url.pathname === "/api/activity" ||
+          url.pathname === "/api/activity/locks") &&
+        req.method === "GET"
+      ) {
         try {
           const activity = await manager.getActivity();
           const blockedLocks = await manager.getBlockedLocks();
-          return Response.json({ success: true, activity, blockedLocks }, { headers: corsHeaders });
+          return Response.json(
+            { success: true, activity, blockedLocks },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
@@ -3146,7 +3940,10 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
           const res = await manager.terminateBackend(body.pid);
           return Response.json(res, { headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
@@ -3156,29 +3953,57 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
           const res = await manager.cancelBackend(body.pid);
           return Response.json(res, { headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
       // 7. Materialized View Refresh (Postgres Specialty)
       if (url.pathname === "/api/matviews/refresh" && req.method === "POST") {
         try {
-          const body = (await req.json()) as { name: string; concurrently?: boolean };
-          const res = await manager.refreshMaterializedView(body.name, body.concurrently);
-          return Response.json(res, { status: res.success ? 200 : 400, headers: corsHeaders });
+          const body = (await req.json()) as {
+            name: string;
+            concurrently?: boolean;
+          };
+          const res = await manager.refreshMaterializedView(
+            body.name,
+            body.concurrently,
+          );
+          return Response.json(res, {
+            status: res.success ? 200 : 400,
+            headers: corsHeaders,
+          });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
       // 8. Maintenance (VACUUM ANALYZE)
       if (url.pathname === "/api/vacuum" && req.method === "POST") {
         try {
-          const body = ((await req.json().catch(() => ({}))) || {}) as { full?: boolean; analyze?: boolean; table?: string; schema?: string };
-          const res = await manager.vacuum(body.full, body.analyze !== false, body.table, body.schema);
+          const body = ((await req.json().catch(() => ({}))) || {}) as {
+            full?: boolean;
+            analyze?: boolean;
+            table?: string;
+            schema?: string;
+          };
+          const res = await manager.vacuum(
+            body.full,
+            body.analyze !== false,
+            body.table,
+            body.schema,
+          );
           return Response.json(res, { headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
@@ -3187,19 +4012,29 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
       if (__samples) return __samples;
 
       // 9. Starter Dataset Seeding
-      if ((url.pathname === "/api/seed-sample" || url.pathname === "/api/seed") && (req.method === "POST" || req.method === "GET")) {
+      if (
+        (url.pathname === "/api/seed-sample" || url.pathname === "/api/seed") &&
+        (req.method === "POST" || req.method === "GET")
+      ) {
         try {
-          let schema: string | undefined = url.searchParams.get("schema") || undefined;
+          let schema: string | undefined =
+            url.searchParams.get("schema") || undefined;
           if (req.method === "POST") {
             try {
-              const body = (await req.json()) as { schema?: string; table?: string };
+              const body = (await req.json()) as {
+                schema?: string;
+                table?: string;
+              };
               if (body?.schema) schema = body.schema;
             } catch {}
           }
           const res = await manager.seedSampleDataset(schema);
           return Response.json(res, { headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
@@ -3208,9 +4043,15 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
         try {
           const body = (await req.json()) as { sql: string };
           const formatted = formatSqlDialect(body.sql || "", "postgres");
-          return Response.json({ success: true, formatted }, { headers: corsHeaders });
+          return Response.json(
+            { success: true, formatted },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
@@ -3236,11 +4077,20 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
             body.orderDir,
             body.search,
             body.schema,
-            { columnFilters: body.columnFilters, sortColumns: body.sortColumns }
+            {
+              columnFilters: body.columnFilters,
+              sortColumns: body.sortColumns,
+            },
           );
-          return Response.json({ ...data, total: data.totalRows }, { headers: corsHeaders });
+          return Response.json(
+            { ...data, total: data.totalRows },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
@@ -3258,7 +4108,12 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
             tls?: boolean;
             url?: string;
           };
-          if (body.host || body.user || body.url || (body.port && body.port !== 5432)) {
+          if (
+            body.host ||
+            body.user ||
+            body.url ||
+            (body.port && body.port !== 5432)
+          ) {
             const configResult = await manager.updateConfig({
               host: body.host,
               port: body.port,
@@ -3270,7 +4125,10 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
               url: body.url,
             });
             if (!configResult.success) {
-              return Response.json(configResult, { status: 400, headers: corsHeaders });
+              return Response.json(configResult, {
+                status: 400,
+                headers: corsHeaders,
+              });
             }
             return Response.json(
               {
@@ -3280,11 +4138,14 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
                 kpis: await manager.getKpis(),
                 schema: await manager.getSchema(),
               },
-              { headers: corsHeaders }
+              { headers: corsHeaders },
             );
           }
 
-          const result = await manager.connect(body.path || body.database || "", body.schema);
+          const result = await manager.connect(
+            body.path || body.database || "",
+            body.schema,
+          );
           if (!result.success) {
             return Response.json(result, { status: 400, headers: corsHeaders });
           }
@@ -3295,40 +4156,57 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
               kpis: await manager.getKpis(),
               schema: await manager.getSchema(),
             },
-            { headers: corsHeaders }
+            { headers: corsHeaders },
           );
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
       // 12. Connection Config Endpoints
       if (url.pathname === "/api/config" && req.method === "GET") {
-        return Response.json({ success: true, config: manager.getConfig() }, { headers: corsHeaders });
+        return Response.json(
+          { success: true, config: manager.getConfig() },
+          { headers: corsHeaders },
+        );
       }
 
       if (url.pathname === "/api/config" && req.method === "POST") {
         try {
-          const body = (await req.json()) as PostgresConnectionConfig & { resetToEnv?: boolean };
+          const body = (await req.json()) as PostgresConnectionConfig & {
+            resetToEnv?: boolean;
+          };
           if (body.resetToEnv) {
             const res = manager.resetToEnv();
-            return Response.json({
-              ...res,
-              kpis: await manager.getKpis(),
-              schema: await manager.getSchema(),
-            }, { headers: corsHeaders });
+            return Response.json(
+              {
+                ...res,
+                kpis: await manager.getKpis(),
+                schema: await manager.getSchema(),
+              },
+              { headers: corsHeaders },
+            );
           }
           const result = await manager.updateConfig(body);
           if (!result.success) {
             return Response.json(result, { status: 400, headers: corsHeaders });
           }
-          return Response.json({
-            ...result,
-            kpis: await manager.getKpis(),
-            schema: await manager.getSchema(),
-          }, { headers: corsHeaders });
+          return Response.json(
+            {
+              ...result,
+              kpis: await manager.getKpis(),
+              schema: await manager.getSchema(),
+            },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
@@ -3338,13 +4216,19 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
           const result = await manager.testConnection(body);
           return Response.json(result, { headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
       if (url.pathname === "/api/create-database" && req.method === "POST") {
         try {
-          const body = (await req.json()) as { name?: string; database?: string };
+          const body = (await req.json()) as {
+            name?: string;
+            database?: string;
+          };
           const dbName = body.name || body.database || "";
           const result = await manager.createDatabase(dbName);
           if (!result.success) {
@@ -3352,16 +4236,25 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
           }
           return Response.json(result, { headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
       if (url.pathname === "/api/workspace-databases" && req.method === "GET") {
         try {
           const databases = await manager.getWorkspaceDatabases();
-          return Response.json({ success: true, databases }, { headers: corsHeaders });
+          return Response.json(
+            { success: true, databases },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
@@ -3373,36 +4266,79 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
           let result: any;
           switch (op) {
             case "create-table":
-              result = await manager.createTable(body.name || body.table, body.columns, body.schema);
+              result = await manager.createTable(
+                body.name || body.table,
+                body.columns,
+                body.schema,
+              );
               break;
             case "redesign-table":
-              result = await manager.redesignTable(body.table || body.name, body.newName, body.columns, body.schema);
+              result = await manager.redesignTable(
+                body.table || body.name,
+                body.newName,
+                body.columns,
+                body.schema,
+              );
               break;
             case "rename-table":
-              result = await manager.renameTable(body.table || body.name, body.newName, body.schema);
+              result = await manager.renameTable(
+                body.table || body.name,
+                body.newName,
+                body.schema,
+              );
               break;
             case "drop-table":
             case "drop":
-              result = await manager.dropObject(body.kind || "table", body.name || body.table, body.schema);
+              result = await manager.dropObject(
+                body.kind || "table",
+                body.name || body.table,
+                body.schema,
+              );
               break;
             case "add-column":
-              result = await manager.addColumn(body.table || body.name, body.column, body.schema);
+              result = await manager.addColumn(
+                body.table || body.name,
+                body.column,
+                body.schema,
+              );
               break;
             case "drop-column":
-              result = await manager.dropColumn(body.table || body.name, body.column || body.columnName, body.cascade, body.schema);
+              result = await manager.dropColumn(
+                body.table || body.name,
+                body.column || body.columnName,
+                body.cascade,
+                body.schema,
+              );
               break;
             case "diff": {
-              const currentTables = Array.isArray(body.targetTables) ? body.targetTables : (await manager.getSchema(body.schema)).tables;
-              const baselineTables = Array.isArray(body.baselineTables) ? body.baselineTables : [];
-              result = { success: true, ...computeSchemaDiffDdl(baselineTables, currentTables, "postgres") };
+              const currentTables = Array.isArray(body.targetTables)
+                ? body.targetTables
+                : (await manager.getSchema(body.schema)).tables;
+              const baselineTables = Array.isArray(body.baselineTables)
+                ? body.baselineTables
+                : [];
+              result = {
+                success: true,
+                ...computeSchemaDiffDdl(
+                  baselineTables,
+                  currentTables,
+                  "postgres",
+                ),
+              };
               break;
             }
             default:
-              return Response.json({ success: false, error: `Unknown op ${op}` }, { status: 400, headers: corsHeaders });
+              return Response.json(
+                { success: false, error: `Unknown op ${op}` },
+                { status: 400, headers: corsHeaders },
+              );
           }
           return Response.json(result, { headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
@@ -3413,22 +4349,50 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
           let result: any;
           switch (op) {
             case "insert":
-              result = await manager.insertRow(body.table, body.row, body.schema);
+              result = await manager.insertRow(
+                body.table,
+                body.row,
+                body.schema,
+              );
               break;
             case "update":
-              result = await manager.updateRow(body.table, body.pkCol, body.pkVal, body.row, body.schema);
+              result = await manager.updateRow(
+                body.table,
+                body.pkCol,
+                body.pkVal,
+                body.row,
+                body.schema,
+              );
               break;
             case "delete":
-              result = await manager.deleteRow(body.table, body.pkCol, body.pkVal, body.schema);
+              result = await manager.deleteRow(
+                body.table,
+                body.pkCol,
+                body.pkVal,
+                body.schema,
+              );
               break;
             case "import-batch": {
               if (body?.filePath) {
-                return Response.json({ success: false, error: "Server-side filePath is not allowed; send content or base64" }, { status: 400, headers: corsHeaders });
+                return Response.json(
+                  {
+                    success: false,
+                    error:
+                      "Server-side filePath is not allowed; send content or base64",
+                  },
+                  { status: 400, headers: corsHeaders },
+                );
               }
               let rows = body.rows;
               let cols = body.columns;
-              if (!Array.isArray(rows) && (body.content !== undefined || body.base64 !== undefined)) {
-                const parsed = await parseUniversalTable({ ...body, filePath: undefined });
+              if (
+                !Array.isArray(rows) &&
+                (body.content !== undefined || body.base64 !== undefined)
+              ) {
+                const parsed = await parseUniversalTable({
+                  ...body,
+                  filePath: undefined,
+                });
                 rows = parsed.records;
                 cols = parsed.columns;
               }
@@ -3442,11 +4406,20 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
               break;
             }
             default:
-              return Response.json({ success: false, error: `Unknown row op ${op}` }, { status: 400, headers: corsHeaders });
+              return Response.json(
+                { success: false, error: `Unknown row op ${op}` },
+                { status: 400, headers: corsHeaders },
+              );
           }
-          return Response.json(result, { status: result.success !== false ? 200 : 400, headers: corsHeaders });
+          return Response.json(result, {
+            status: result.success !== false ? 200 : 400,
+            headers: corsHeaders,
+          });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
@@ -3454,12 +4427,28 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
         try {
           const body = (await req.json()) as any;
           if (body?.filePath) {
-            return Response.json({ success: false, error: "Server-side filePath is not allowed; send content or base64" }, { status: 400, headers: corsHeaders });
+            return Response.json(
+              {
+                success: false,
+                error:
+                  "Server-side filePath is not allowed; send content or base64",
+              },
+              { status: 400, headers: corsHeaders },
+            );
           }
-          const parsed = await parseUniversalTable({ ...body, filePath: undefined });
-          return Response.json({ success: true, ...parsed }, { headers: corsHeaders });
+          const parsed = await parseUniversalTable({
+            ...body,
+            filePath: undefined,
+          });
+          return Response.json(
+            { success: true, ...parsed },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
@@ -3467,21 +4456,43 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
         try {
           const body = (await req.json()) as any;
           if (body?.filePath) {
-            return Response.json({ success: false, error: "Server-side filePath is not allowed; send content or base64" }, { status: 400, headers: corsHeaders });
+            return Response.json(
+              {
+                success: false,
+                error:
+                  "Server-side filePath is not allowed; send content or base64",
+              },
+              { status: 400, headers: corsHeaders },
+            );
           }
-          if (!Array.isArray(body.rows) && (body.content !== undefined || body.base64 !== undefined)) {
-            const parsed = await parseUniversalTable({ ...body, filePath: undefined });
+          if (
+            !Array.isArray(body.rows) &&
+            (body.content !== undefined || body.base64 !== undefined)
+          ) {
+            const parsed = await parseUniversalTable({
+              ...body,
+              filePath: undefined,
+            });
             const res = await manager.importRows({
               ...body,
               columns: body.columns?.length ? body.columns : parsed.columns,
               rows: parsed.rows,
             });
-            return Response.json(res, { status: res.success ? 200 : 400, headers: corsHeaders });
+            return Response.json(res, {
+              status: res.success ? 200 : 400,
+              headers: corsHeaders,
+            });
           }
           const res = await manager.importRows(body);
-          return Response.json(res, { status: res.success ? 200 : 400, headers: corsHeaders });
+          return Response.json(res, {
+            status: res.success ? 200 : 400,
+            headers: corsHeaders,
+          });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
@@ -3489,20 +4500,40 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
         try {
           const body = (await req.json()) as { sql: string };
           const res = await manager.runScript(body.sql);
-          return Response.json(res, { status: res.success ? 200 : 400, headers: corsHeaders });
+          return Response.json(res, {
+            status: res.success ? 200 : 400,
+            headers: corsHeaders,
+          });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
       // 14. Table Truncate & Batch Operations
       if (url.pathname === "/api/table/truncate" && req.method === "POST") {
         try {
-          const body = (await req.json()) as { table: string; cascade?: boolean; schema?: string };
-          const res = await manager.truncateTable(body.table, body.cascade, body.schema);
-          return Response.json(res, { status: res.success ? 200 : 400, headers: corsHeaders });
+          const body = (await req.json()) as {
+            table: string;
+            cascade?: boolean;
+            schema?: string;
+          };
+          const res = await manager.truncateTable(
+            body.table,
+            body.cascade,
+            body.schema,
+          );
+          return Response.json(res, {
+            status: res.success ? 200 : 400,
+            headers: corsHeaders,
+          });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
@@ -3510,12 +4541,25 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
         try {
           const body = (await req.json()) as any;
           if (body?.filePath) {
-            return Response.json({ success: false, error: "Server-side filePath is not allowed; send content or base64" }, { status: 400, headers: corsHeaders });
+            return Response.json(
+              {
+                success: false,
+                error:
+                  "Server-side filePath is not allowed; send content or base64",
+              },
+              { status: 400, headers: corsHeaders },
+            );
           }
           let rows = body.rows;
           let cols = body.columns;
-          if (!Array.isArray(rows) && (body.content !== undefined || body.base64 !== undefined)) {
-            const parsed = await parseUniversalTable({ ...body, filePath: undefined });
+          if (
+            !Array.isArray(rows) &&
+            (body.content !== undefined || body.base64 !== undefined)
+          ) {
+            const parsed = await parseUniversalTable({
+              ...body,
+              filePath: undefined,
+            });
             rows = parsed.records;
             cols = parsed.columns;
           }
@@ -3526,28 +4570,46 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
             columns: cols,
             rows: rows || [],
           });
-          return Response.json(res, { status: res.success ? 200 : 400, headers: corsHeaders });
+          return Response.json(res, {
+            status: res.success ? 200 : 400,
+            headers: corsHeaders,
+          });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
       // 15. Indexes Management
-      if (url.pathname === "/api/indexes" && (req.method === "GET" || req.method === "POST")) {
+      if (
+        url.pathname === "/api/indexes" &&
+        (req.method === "GET" || req.method === "POST")
+      ) {
         try {
           let table = url.searchParams.get("table") || undefined;
           let schema = url.searchParams.get("schema") || undefined;
           if (req.method === "POST") {
             try {
-              const body = (await req.json()) as { schema?: string; table?: string };
+              const body = (await req.json()) as {
+                schema?: string;
+                table?: string;
+              };
               if (body?.table) table = body.table;
               if (body?.schema) schema = body.schema;
             } catch {}
           }
           const indexes = await manager.getIndexes(table, schema);
-          return Response.json({ success: true, indexes }, { headers: corsHeaders });
+          return Response.json(
+            { success: true, indexes },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
@@ -3561,10 +4623,23 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
             unique?: boolean;
             schema?: string;
           };
-          const res = await manager.createIndex(body.name, body.table, body.columns, body.type, body.unique, body.schema);
-          return Response.json(res, { status: res.success ? 200 : 400, headers: corsHeaders });
+          const res = await manager.createIndex(
+            body.name,
+            body.table,
+            body.columns,
+            body.type,
+            body.unique,
+            body.schema,
+          );
+          return Response.json(res, {
+            status: res.success ? 200 : 400,
+            headers: corsHeaders,
+          });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
@@ -3572,127 +4647,228 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
         try {
           const body = (await req.json()) as { name: string; schema?: string };
           const res = await manager.dropIndex(body.name, body.schema);
-          return Response.json(res, { status: res.success ? 200 : 400, headers: corsHeaders });
+          return Response.json(res, {
+            status: res.success ? 200 : 400,
+            headers: corsHeaders,
+          });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
       // 16. Sequences Inspection & Operations
-      if (url.pathname === "/api/sequences" && (req.method === "GET" || req.method === "POST")) {
+      if (
+        url.pathname === "/api/sequences" &&
+        (req.method === "GET" || req.method === "POST")
+      ) {
         try {
           let schema = url.searchParams.get("schema") || undefined;
           if (req.method === "POST") {
             try {
-              const body = (await req.json()) as { schema?: string; table?: string };
+              const body = (await req.json()) as {
+                schema?: string;
+                table?: string;
+              };
               if (body?.schema) schema = body.schema;
             } catch {}
           }
           const sequences = await manager.getSequences(schema);
-          return Response.json({ success: true, sequences }, { headers: corsHeaders });
+          return Response.json(
+            { success: true, sequences },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
       if (url.pathname === "/api/sequences/restart" && req.method === "POST") {
         try {
-          const body = (await req.json()) as { name: string; restartVal?: number; schema?: string };
-          const res = await manager.restartSequence(body.name, body.restartVal || 1, body.schema);
-          return Response.json(res, { status: res.success ? 200 : 400, headers: corsHeaders });
+          const body = (await req.json()) as {
+            name: string;
+            restartVal?: number;
+            schema?: string;
+          };
+          const res = await manager.restartSequence(
+            body.name,
+            body.restartVal || 1,
+            body.schema,
+          );
+          return Response.json(res, {
+            status: res.success ? 200 : 400,
+            headers: corsHeaders,
+          });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
       // 17. Roles & Privileges
-      if (url.pathname === "/api/roles" && (req.method === "GET" || req.method === "POST")) {
+      if (
+        url.pathname === "/api/roles" &&
+        (req.method === "GET" || req.method === "POST")
+      ) {
         try {
           const roles = await manager.getRoles();
-          return Response.json({ success: true, roles }, { headers: corsHeaders });
+          return Response.json(
+            { success: true, roles },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
       // 18. Triggers & Functions
-      if (url.pathname === "/api/triggers" && (req.method === "GET" || req.method === "POST")) {
+      if (
+        url.pathname === "/api/triggers" &&
+        (req.method === "GET" || req.method === "POST")
+      ) {
         try {
           let table = url.searchParams.get("table") || undefined;
           let schema = url.searchParams.get("schema") || undefined;
           if (req.method === "POST") {
             try {
-              const body = (await req.json()) as { schema?: string; table?: string };
+              const body = (await req.json()) as {
+                schema?: string;
+                table?: string;
+              };
               if (body?.table) table = body.table;
               if (body?.schema) schema = body.schema;
             } catch {}
           }
           const triggers = await manager.getTriggers(table, schema);
-          return Response.json({ success: true, triggers }, { headers: corsHeaders });
+          return Response.json(
+            { success: true, triggers },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
-      if (url.pathname === "/api/functions" && (req.method === "GET" || req.method === "POST")) {
+      if (
+        url.pathname === "/api/functions" &&
+        (req.method === "GET" || req.method === "POST")
+      ) {
         try {
           let schema = url.searchParams.get("schema") || undefined;
           if (req.method === "POST") {
             try {
-              const body = (await req.json()) as { schema?: string; table?: string };
+              const body = (await req.json()) as {
+                schema?: string;
+                table?: string;
+              };
               if (body?.schema) schema = body.schema;
             } catch {}
           }
           const functions = await manager.getFunctions(schema);
-          return Response.json({ success: true, functions }, { headers: corsHeaders });
+          return Response.json(
+            { success: true, functions },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
       // 19. Table Bloat & Performance Telemetry
-      if (url.pathname === "/api/table/stats" && (req.method === "GET" || req.method === "POST")) {
+      if (
+        url.pathname === "/api/table/stats" &&
+        (req.method === "GET" || req.method === "POST")
+      ) {
         try {
           let schema = url.searchParams.get("schema") || undefined;
           if (req.method === "POST") {
             try {
-              const body = (await req.json()) as { schema?: string; table?: string };
+              const body = (await req.json()) as {
+                schema?: string;
+                table?: string;
+              };
               if (body?.schema) schema = body.schema;
             } catch {}
           }
           const stats = await manager.getTableStats(schema);
-          return Response.json({ success: true, stats }, { headers: corsHeaders });
+          return Response.json(
+            { success: true, stats },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
-      if (url.pathname === "/api/telemetry" && (req.method === "GET" || req.method === "POST")) {
+      if (
+        url.pathname === "/api/telemetry" &&
+        (req.method === "GET" || req.method === "POST")
+      ) {
         try {
           const telemetry = await manager.getPerformanceMetrics();
-          return Response.json({ success: true, telemetry }, { headers: corsHeaders });
+          return Response.json(
+            { success: true, telemetry },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
       // Integrity Check
-      if (url.pathname === "/api/integrity" && (req.method === "GET" || req.method === "POST")) {
+      if (
+        url.pathname === "/api/integrity" &&
+        (req.method === "GET" || req.method === "POST")
+      ) {
         try {
           const result = await manager.checkIntegrity();
           return Response.json(result, { headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
       // Audit Logs Trail
-      if (url.pathname === "/api/audit-logs" && (req.method === "GET" || req.method === "POST")) {
+      if (
+        url.pathname === "/api/audit-logs" &&
+        (req.method === "GET" || req.method === "POST")
+      ) {
         try {
           const logs = await manager.getAuditLogs();
-          return Response.json({ success: true, logs }, { headers: corsHeaders });
+          return Response.json(
+            { success: true, logs },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
@@ -3703,7 +4879,10 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
           writeClipboardSync(body.text || "");
           return Response.json({ success: true }, { headers: corsHeaders });
         } catch {
-          return Response.json({ success: true, fallback: "Clipboard simulated" }, { headers: corsHeaders });
+          return Response.json(
+            { success: true, fallback: "Clipboard simulated" },
+            { headers: corsHeaders },
+          );
         }
       }
 
@@ -3713,7 +4892,12 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
           const body = (await req.json()) as {
             table: string;
             action: "insert" | "update" | "delete";
-            payload: { rowId?: any; rowIds?: any[]; pkColumn?: string; data?: Record<string, any> };
+            payload: {
+              rowId?: any;
+              rowIds?: any[];
+              pkColumn?: string;
+              data?: Record<string, any>;
+            };
             schema?: string;
           };
           const tbl = body.table;
@@ -3723,19 +4907,37 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
           if (body.action === "insert") {
             result = await manager.insertRow(tbl, body.payload.data || {}, s);
           } else if (body.action === "update") {
-            result = await manager.updateRow(tbl, body.payload.pkColumn || "id", body.payload.rowId, body.payload.data || {}, s);
+            result = await manager.updateRow(
+              tbl,
+              body.payload.pkColumn || "id",
+              body.payload.rowId,
+              body.payload.data || {},
+              s,
+            );
           } else if (body.action === "delete") {
-            result = await manager.deleteRow(tbl, body.payload.pkColumn || "id", body.payload.rowId, s);
+            result = await manager.deleteRow(
+              tbl,
+              body.payload.pkColumn || "id",
+              body.payload.rowId,
+              s,
+            );
           }
 
           return Response.json(result, { headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
       // Export file generation (CSV / JSON / SQL)
-      if ((url.pathname === "/api/export" || url.pathname === "/api/export-file") && req.method === "POST") {
+      if (
+        (url.pathname === "/api/export" ||
+          url.pathname === "/api/export-file") &&
+        req.method === "POST"
+      ) {
         try {
           const body = (await req.json()) as {
             format?: "json" | "csv" | "sql";
@@ -3747,14 +4949,17 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
           const fmt = rawFmt === "csv" || rawFmt === "sql" ? rawFmt : "json";
           const rows = Array.isArray(body.rows) ? body.rows : [];
           const exportsDir = resolve(homedir(), ".bun_rad_studio", "exports");
-          if (!existsSync(exportsDir)) mkdirSync(exportsDir, { recursive: true });
+          if (!existsSync(exportsDir))
+            mkdirSync(exportsDir, { recursive: true });
 
           const filename = `pg_export_${Date.now()}.${fmt}`;
           const exportPath = resolve(exportsDir, filename);
 
           let content = "";
           const allKeys: string[] = [];
-          for (const r of rows) for (const k of Object.keys(r || {})) if (!allKeys.includes(k) && k !== "__rowid__") allKeys.push(k);
+          for (const r of rows)
+            for (const k of Object.keys(r || {}))
+              if (!allKeys.includes(k) && k !== "__rowid__") allKeys.push(k);
 
           if (fmt === "json") {
             content = JSON.stringify(rows, null, 2);
@@ -3770,9 +4975,14 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
             }
             content = lines.join("\r\n");
           } else if (fmt === "sql") {
-            const tbl = (body.tableName || "exported_records").replace(/"/g, '""');
+            const tbl = (body.tableName || "exported_records").replace(
+              /"/g,
+              '""',
+            );
             const headers = allKeys;
-            const escapedHeaders = headers.map((h) => `"${h.replace(/"/g, '""')}"`).join(", ");
+            const escapedHeaders = headers
+              .map((h) => `"${h.replace(/"/g, '""')}"`)
+              .join(", ");
             const lines = rows.map((r) => {
               const vals = headers.map((h) => {
                 const v = r[h];
@@ -3787,20 +4997,37 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
           }
 
           writeFileSync(exportPath, content, "utf8");
-          return Response.json({ success: true, filename, path: exportPath, rowCount: rows.length }, { headers: corsHeaders });
+          return Response.json(
+            {
+              success: true,
+              filename,
+              path: exportPath,
+              rowCount: rows.length,
+            },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
       // PRAGMA / Server Setting Query & Maintenance
-      if (url.pathname === "/api/pragma" && (req.method === "GET" || req.method === "POST")) {
+      if (
+        url.pathname === "/api/pragma" &&
+        (req.method === "GET" || req.method === "POST")
+      ) {
         try {
           let param = url.searchParams.get("pragma") || "";
           let value: any = url.searchParams.get("value");
           if (req.method === "POST") {
             try {
-              const body = (await req.json()) as { pragma?: string; value?: unknown };
+              const body = (await req.json()) as {
+                pragma?: string;
+                value?: unknown;
+              };
               if (body.pragma) param = body.pragma;
               if (body.value !== undefined) value = body.value;
             } catch {}
@@ -3808,47 +5035,84 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
 
           const cleanParam = (param || "").trim().toLowerCase();
           if (cleanParam && !/^[a-z_][a-z0-9_.]*$/.test(cleanParam)) {
-            return Response.json({ success: false, error: "Invalid setting name" }, { status: 400, headers: corsHeaders });
+            return Response.json(
+              { success: false, error: "Invalid setting name" },
+              { status: 400, headers: corsHeaders },
+            );
           }
           if (cleanParam === "vacuum") {
             const vacRes = await manager.vacuum(false, true);
-            return Response.json({ success: true, result: JSON.stringify(vacRes, null, 2) }, { headers: corsHeaders });
+            return Response.json(
+              { success: true, result: JSON.stringify(vacRes, null, 2) },
+              { headers: corsHeaders },
+            );
           }
           if (cleanParam === "integrity_check" || cleanParam === "integrity") {
             const intRes = await manager.checkIntegrity();
-            return Response.json({ success: intRes.success, result: intRes.result }, { headers: corsHeaders });
+            return Response.json(
+              { success: intRes.success, result: intRes.result },
+              { headers: corsHeaders },
+            );
           }
 
           if (value !== undefined && value !== null) {
             if (!cleanParam) {
-              return Response.json({ success: false, error: "Setting name required" }, { status: 400, headers: corsHeaders });
+              return Response.json(
+                { success: false, error: "Setting name required" },
+                { status: 400, headers: corsHeaders },
+              );
             }
-            await manager.query(`SET ${cleanParam} = '${String(value).replace(/'/g, "''")}';`);
-            return Response.json({ success: true, result: `${cleanParam} = ${value}` }, { headers: corsHeaders });
+            await manager.query(
+              `SET ${cleanParam} = '${String(value).replace(/'/g, "''")}';`,
+            );
+            return Response.json(
+              { success: true, result: `${cleanParam} = ${value}` },
+              { headers: corsHeaders },
+            );
           } else {
             const settingRes = await manager.query(
-              cleanParam ? `SHOW ${cleanParam};` : `SELECT name, setting, unit, category, context, short_desc, boot_val, min_val, max_val FROM pg_settings ORDER BY category, name;`
+              cleanParam
+                ? `SHOW ${cleanParam};`
+                : `SELECT name, setting, unit, category, context, short_desc, boot_val, min_val, max_val FROM pg_settings ORDER BY category, name;`,
             );
-            return Response.json({
-              success: true,
-              result: JSON.stringify(settingRes.rows, null, 2),
-              settings: settingRes.rows,
-            }, { headers: corsHeaders });
+            return Response.json(
+              {
+                success: true,
+                result: JSON.stringify(settingRes.rows, null, 2),
+                settings: settingRes.rows,
+              },
+              { headers: corsHeaders },
+            );
           }
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
       // Shutdown / Close workstation
-      if ((url.pathname === "/api/shutdown" || url.pathname === "/api/close") && req.method === "POST") {
+      if (
+        (url.pathname === "/api/shutdown" || url.pathname === "/api/close") &&
+        req.method === "POST"
+      ) {
         if (!process.env.STUDIO_PARENT_PID) {
           setTimeout(() => process.exit(0), 100);
         }
-        return Response.json({ success: true, message: "Workstation shutting down..." }, { headers: corsHeaders });
+        return Response.json(
+          { success: true, message: "Workstation shutting down..." },
+          { headers: corsHeaders },
+        );
       }
 
-      const macroRes = await handleMacroRoute(manager.getMacroAdapter(), manager.macroStore, req, url.pathname, corsHeaders);
+      const macroRes = await handleMacroRoute(
+        manager.getMacroAdapter(),
+        manager.macroStore,
+        req,
+        url.pathname,
+        corsHeaders,
+      );
       if (macroRes) return macroRes;
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
@@ -3862,17 +5126,26 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
 // Worker Message Handling (Isolated OS Background Thread)
 // -------------------------------------------------------------------------------------------------
 
-if (!Bun.isMainThread && (!process.env.STUDIO_WORKER || process.env.STUDIO_WORKER === "postgres_studio")) {
+if (
+  !Bun.isMainThread &&
+  (!process.env.STUDIO_WORKER ||
+    process.env.STUDIO_WORKER === "postgres_studio")
+) {
   const preferredPort = 0;
-  const initialDbPath = process.env.PG_DB_PATH 
-    || process.env.PG_DATABASE 
-    || process.env.PG_NAME 
-    || process.env.PG_DB 
-    || process.env.POSTGRES_DB 
-    || process.env.DB_NAME 
-    || "mydb";
+  const initialDbPath =
+    process.env.PG_DB_PATH ||
+    process.env.PG_DATABASE ||
+    process.env.PG_NAME ||
+    process.env.PG_DB ||
+    process.env.POSTGRES_DB ||
+    process.env.DB_NAME ||
+    "mydb";
   const initialSchema = process.env.PG_SCHEMA || "public";
-  const server = startPostgresStudioServer({ port: preferredPort, initialDbPath, initialSchema });
+  const server = startPostgresStudioServer({
+    port: preferredPort,
+    initialDbPath,
+    initialSchema,
+  });
 
   (globalThis as any).postMessage({
     ready: true,

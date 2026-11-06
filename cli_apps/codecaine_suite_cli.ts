@@ -2,12 +2,16 @@
 /**
  * ⚡ Codecaine Utility Suite - Master CLI & Application Hub
  * Unified command-line runner and package manager companion for macOS and Linux.
- * 
+ *
  * Provides unified access to all 65+ Desktop Studio Applications and 77+ CLI Utilities.
  */
 
 import { SimpleCLI, sys } from "../src/index.ts";
-import { scanAllApplications, launchApplication, type DetectedApp } from "../applications/launcher_studio.ts";
+import {
+  scanAllApplications,
+  launchApplication,
+  type DetectedApp,
+} from "../applications/launcher_studio.ts";
 import { resolve, join } from "path";
 import { existsSync, readdirSync, readFileSync } from "fs";
 import * as os from "os";
@@ -20,7 +24,9 @@ const firstArg = rawArgs[0]?.toLowerCase() ?? "";
 
 // Fast path for --version / -v
 if (firstArg === "--version" || firstArg === "-v" || firstArg === "version") {
-  console.log(`${SUITE_NAME} v${SUITE_VERSION} (Bun v${Bun.version}, ${process.platform}-${process.arch})`);
+  console.log(
+    `${SUITE_NAME} v${SUITE_VERSION} (Bun v${Bun.version}, ${process.platform}-${process.arch})`,
+  );
   process.exit(0);
 }
 
@@ -31,7 +37,9 @@ if (firstArg === "--help" || firstArg === "-h" || firstArg === "help") {
 }
 
 function printBanner() {
-  console.log(`\x1b[1m\x1b[36m⚡ ${SUITE_NAME}\x1b[0m \x1b[33mv${SUITE_VERSION}\x1b[0m — \x1b[2mComplete Desktop & CLI Suite for Linux & macOS\x1b[0m`);
+  console.log(
+    `\x1b[1m\x1b[36m⚡ ${SUITE_NAME}\x1b[0m \x1b[33mv${SUITE_VERSION}\x1b[0m — \x1b[2mComplete Desktop & CLI Suite for Linux & macOS\x1b[0m`,
+  );
 }
 
 function printHelp() {
@@ -99,25 +107,40 @@ function getProjectRoot(): string {
  * Matches target tool by name, id, or alias.
  */
 function findTool(query: string, apps: DetectedApp[]): DetectedApp | null {
-  const q = query.toLowerCase().trim().replace(/^codecaine[-_]/, "");
-  
+  const q = query
+    .toLowerCase()
+    .trim()
+    .replace(/^codecaine[-_]/, "");
+
   // Exact ID match
-  let found = apps.find(a => a.id.toLowerCase() === q || a.id.toLowerCase() === `cli_${q}` || a.id.toLowerCase() === `demo_${q}`);
+  let found = apps.find(
+    (a) =>
+      a.id.toLowerCase() === q ||
+      a.id.toLowerCase() === `cli_${q}` ||
+      a.id.toLowerCase() === `demo_${q}`,
+  );
   if (found) return found;
 
   // Exact name match
-  found = apps.find(a => a.name.toLowerCase() === q);
+  found = apps.find((a) => a.name.toLowerCase() === q);
   if (found) return found;
 
   // Base filename match (e.g. 'sqlite_studio', 'database_cli')
-  found = apps.find(a => {
-    const base = a.displayPath.replace(/^.*[\\\/]/, "").replace(/\.ts$/, "").toLowerCase();
-    return base === q || base.replace(/_studio$/, "") === q || base.replace(/_cli$/, "") === q;
+  found = apps.find((a) => {
+    const base = a.displayPath
+      .replace(/^.*[\\\/]/, "")
+      .replace(/\.ts$/, "")
+      .toLowerCase();
+    return (
+      base === q ||
+      base.replace(/_studio$/, "") === q ||
+      base.replace(/_cli$/, "") === q
+    );
   });
   if (found) return found;
 
   // DisplayName contains
-  found = apps.find(a => a.displayName.toLowerCase().includes(q));
+  found = apps.find((a) => a.displayName.toLowerCase().includes(q));
   if (found) return found;
 
   return null;
@@ -126,7 +149,10 @@ function findTool(query: string, apps: DetectedApp[]): DetectedApp | null {
 /**
  * Executes a target application or CLI tool with forwarded arguments.
  */
-async function executeTool(tool: DetectedApp, extraArgs: string[] = []): Promise<number> {
+async function executeTool(
+  tool: DetectedApp,
+  extraArgs: string[] = [],
+): Promise<number> {
   const root = getProjectRoot();
   const scriptPath = join(root, tool.displayPath);
 
@@ -135,11 +161,14 @@ async function executeTool(tool: DetectedApp, extraArgs: string[] = []): Promise
     return 1;
   }
 
-  const bunExec = Bun.which("bun") || (process.platform === "win32" ? "bun.exe" : "bun");
+  const bunExec =
+    Bun.which("bun") || (process.platform === "win32" ? "bun.exe" : "bun");
   const isGui = tool.source === "rad_studio" || tool.source === "rad_demo";
 
   if (isGui) {
-    console.log(`\x1b[36m🚀 Launching ${tool.displayName}\x1b[0m (${tool.sourceLabel})...`);
+    console.log(
+      `\x1b[36m🚀 Launching ${tool.displayName}\x1b[0m (${tool.sourceLabel})...`,
+    );
   }
 
   const proc = Bun.spawn([bunExec, "run", scriptPath, ...extraArgs], {
@@ -167,57 +196,100 @@ async function main() {
       const appsOnly = rawArgs.includes("--apps") || rawArgs.includes("-a");
       const cliOnly = rawArgs.includes("--cli") || rawArgs.includes("-c");
       const demosOnly = rawArgs.includes("--demos") || rawArgs.includes("-d");
-      
-      const catIdx = Math.max(rawArgs.indexOf("--category"), rawArgs.indexOf("-C"));
-      const catFilter = catIdx !== -1 ? (rawArgs[catIdx + 1]?.toLowerCase() ?? "") : "";
 
-      const searchIdx = Math.max(rawArgs.indexOf("--search"), rawArgs.indexOf("-s"));
-      const searchFilter = searchIdx !== -1 ? (rawArgs[searchIdx + 1]?.toLowerCase() ?? "") : "";
+      const catIdx = Math.max(
+        rawArgs.indexOf("--category"),
+        rawArgs.indexOf("-C"),
+      );
+      const catFilter =
+        catIdx !== -1 ? (rawArgs[catIdx + 1]?.toLowerCase() ?? "") : "";
+
+      const searchIdx = Math.max(
+        rawArgs.indexOf("--search"),
+        rawArgs.indexOf("-s"),
+      );
+      const searchFilter =
+        searchIdx !== -1 ? (rawArgs[searchIdx + 1]?.toLowerCase() ?? "") : "";
 
       let filtered = apps;
-      if (appsOnly) filtered = filtered.filter(a => a.source === "rad_studio");
-      if (cliOnly) filtered = filtered.filter(a => a.source === "cli_tool");
-      if (demosOnly) filtered = filtered.filter(a => a.source === "rad_demo");
-      if (catFilter) filtered = filtered.filter(a => a.category.toLowerCase().includes(catFilter));
+      if (appsOnly)
+        filtered = filtered.filter((a) => a.source === "rad_studio");
+      if (cliOnly) filtered = filtered.filter((a) => a.source === "cli_tool");
+      if (demosOnly) filtered = filtered.filter((a) => a.source === "rad_demo");
+      if (catFilter)
+        filtered = filtered.filter((a) =>
+          a.category.toLowerCase().includes(catFilter),
+        );
       if (searchFilter) {
-        filtered = filtered.filter(a => 
-          a.displayName.toLowerCase().includes(searchFilter) ||
-          a.name.toLowerCase().includes(searchFilter) ||
-          a.category.toLowerCase().includes(searchFilter) ||
-          a.description.toLowerCase().includes(searchFilter)
+        filtered = filtered.filter(
+          (a) =>
+            a.displayName.toLowerCase().includes(searchFilter) ||
+            a.name.toLowerCase().includes(searchFilter) ||
+            a.category.toLowerCase().includes(searchFilter) ||
+            a.description.toLowerCase().includes(searchFilter),
         );
       }
 
       if (isJson) {
-        console.log(JSON.stringify({
-          suite: SUITE_NAME,
-          version: SUITE_VERSION,
-          count: filtered.length,
-          kpis,
-          categories,
-          tools: filtered.map(t => ({
-            id: t.id,
-            name: t.name,
-            displayName: t.displayName,
-            type: t.sourceLabel,
-            category: t.category,
-            description: t.description,
-            command: `codecaine run ${t.name}`,
-            script: t.displayPath,
-          })),
-        }, null, 2));
+        console.log(
+          JSON.stringify(
+            {
+              suite: SUITE_NAME,
+              version: SUITE_VERSION,
+              count: filtered.length,
+              kpis,
+              categories,
+              tools: filtered.map((t) => ({
+                id: t.id,
+                name: t.name,
+                displayName: t.displayName,
+                type: t.sourceLabel,
+                category: t.category,
+                description: t.description,
+                command: `codecaine run ${t.name}`,
+                script: t.displayPath,
+              })),
+            },
+            null,
+            2,
+          ),
+        );
         process.exit(0);
       }
 
       printBanner();
-      console.log(`\x1b[1m📊 Catalog Overview:\x1b[0m ${kpis.total} Total Tools (\x1b[32m${kpis.radStudios} GUI Studios\x1b[0m | \x1b[34m${kpis.cliTools} CLI Tools\x1b[0m | \x1b[35m${kpis.demos} Demos\x1b[0m)\n`);
+      console.log(
+        `\x1b[1m📊 Catalog Overview:\x1b[0m ${kpis.total} Total Tools (\x1b[32m${kpis.radStudios} GUI Studios\x1b[0m | \x1b[34m${kpis.cliTools} CLI Tools\x1b[0m | \x1b[35m${kpis.demos} Demos\x1b[0m)\n`,
+      );
       console.log(`Showing ${filtered.length} matching tools:\n`);
 
-      console.log(" " + "TYPE".padEnd(12) + " | " + "NAME".padEnd(32) + " | " + "CATEGORY".padEnd(24) + " | " + "RUN COMMAND");
-      console.log("-".repeat(12) + "-+-" + "-".repeat(32) + "-+-" + "-".repeat(24) + "-+-" + "-".repeat(30));
+      console.log(
+        " " +
+          "TYPE".padEnd(12) +
+          " | " +
+          "NAME".padEnd(32) +
+          " | " +
+          "CATEGORY".padEnd(24) +
+          " | " +
+          "RUN COMMAND",
+      );
+      console.log(
+        "-".repeat(12) +
+          "-+-" +
+          "-".repeat(32) +
+          "-+-" +
+          "-".repeat(24) +
+          "-+-" +
+          "-".repeat(30),
+      );
 
       for (const t of filtered) {
-        const typeColor = t.source === "rad_studio" ? "\x1b[32m" : (t.source === "cli_tool" ? "\x1b[34m" : "\x1b[35m");
+        const typeColor =
+          t.source === "rad_studio"
+            ? "\x1b[32m"
+            : t.source === "cli_tool"
+              ? "\x1b[34m"
+              : "\x1b[35m";
         const typeStr = `${typeColor}${t.sourceLabel.padEnd(12)}\x1b[0m`;
         const nameStr = t.displayName.slice(0, 32).padEnd(32);
         const catStr = t.category.slice(0, 24).padEnd(24);
@@ -225,7 +297,9 @@ async function main() {
         console.log(` ${typeStr} | ${nameStr} | ${catStr} | ${cmdStr}`);
       }
 
-      console.log(`\n\x1b[2mTip: Run any tool with: codecaine run <name>\x1b[0m\n`);
+      console.log(
+        `\n\x1b[2mTip: Run any tool with: codecaine run <name>\x1b[0m\n`,
+      );
       process.exit(0);
     }
 
@@ -236,17 +310,22 @@ async function main() {
         console.error("\x1b[31mUsage:\x1b[0m codecaine search <term>");
         process.exit(1);
       }
-      const matches = apps.filter(a =>
-        a.displayName.toLowerCase().includes(term) ||
-        a.name.toLowerCase().includes(term) ||
-        a.category.toLowerCase().includes(term) ||
-        a.description.toLowerCase().includes(term)
+      const matches = apps.filter(
+        (a) =>
+          a.displayName.toLowerCase().includes(term) ||
+          a.name.toLowerCase().includes(term) ||
+          a.category.toLowerCase().includes(term) ||
+          a.description.toLowerCase().includes(term),
       );
       printBanner();
-      console.log(`\x1b[1mSearch results for "${term}" (${matches.length} matches):\x1b[0m\n`);
+      console.log(
+        `\x1b[1mSearch results for "${term}" (${matches.length} matches):\x1b[0m\n`,
+      );
       for (const m of matches) {
         const icon = m.icon || "⚡";
-        console.log(` ${icon} \x1b[1m${m.displayName}\x1b[0m (\x1b[36m${m.sourceLabel}\x1b[0m) [${m.category}]`);
+        console.log(
+          ` ${icon} \x1b[1m${m.displayName}\x1b[0m (\x1b[36m${m.sourceLabel}\x1b[0m) [${m.category}]`,
+        );
         console.log(`    \x1b[2m${m.description}\x1b[0m`);
         console.log(`    \x1b[33mcodecaine run ${m.name}\x1b[0m\n`);
       }
@@ -256,13 +335,19 @@ async function main() {
     case "run": {
       const target = rawArgs[1];
       if (!target) {
-        console.error("\x1b[31mUsage:\x1b[0m codecaine run <tool_name_or_id> [arguments...]");
+        console.error(
+          "\x1b[31mUsage:\x1b[0m codecaine run <tool_name_or_id> [arguments...]",
+        );
         process.exit(1);
       }
       const tool = findTool(target, apps);
       if (!tool) {
-        console.error(`\x1b[31m❌ Error:\x1b[0m Tool '${target}' not found in Codecaine Utility Suite.`);
-        console.error(`Run \x1b[33mcodecaine search ${target}\x1b[0m or \x1b[33mcodecaine list\x1b[0m to find available tools.`);
+        console.error(
+          `\x1b[31m❌ Error:\x1b[0m Tool '${target}' not found in Codecaine Utility Suite.`,
+        );
+        console.error(
+          `Run \x1b[33mcodecaine search ${target}\x1b[0m or \x1b[33mcodecaine list\x1b[0m to find available tools.`,
+        );
         process.exit(1);
       }
       const exitCode = await executeTool(tool, rawArgs.slice(2));
@@ -272,13 +357,17 @@ async function main() {
     case "app": {
       const target = rawArgs[1];
       if (!target) {
-        console.error("\x1b[31mUsage:\x1b[0m codecaine app <studio_name> [arguments...]");
+        console.error(
+          "\x1b[31mUsage:\x1b[0m codecaine app <studio_name> [arguments...]",
+        );
         process.exit(1);
       }
-      const studios = apps.filter(a => a.source === "rad_studio");
+      const studios = apps.filter((a) => a.source === "rad_studio");
       const tool = findTool(target, studios) || findTool(target, apps);
       if (!tool) {
-        console.error(`\x1b[31m❌ Error:\x1b[0m Studio application '${target}' not found.`);
+        console.error(
+          `\x1b[31m❌ Error:\x1b[0m Studio application '${target}' not found.`,
+        );
         process.exit(1);
       }
       const exitCode = await executeTool(tool, rawArgs.slice(2));
@@ -288,13 +377,17 @@ async function main() {
     case "cli": {
       const target = rawArgs[1];
       if (!target) {
-        console.error("\x1b[31mUsage:\x1b[0m codecaine cli <tool_name> [arguments...]");
+        console.error(
+          "\x1b[31mUsage:\x1b[0m codecaine cli <tool_name> [arguments...]",
+        );
         process.exit(1);
       }
-      const cliTools = apps.filter(a => a.source === "cli_tool");
+      const cliTools = apps.filter((a) => a.source === "cli_tool");
       const tool = findTool(target, cliTools) || findTool(target, apps);
       if (!tool) {
-        console.error(`\x1b[31m❌ Error:\x1b[0m CLI utility '${target}' not found.`);
+        console.error(
+          `\x1b[31m❌ Error:\x1b[0m CLI utility '${target}' not found.`,
+        );
         process.exit(1);
       }
       const exitCode = await executeTool(tool, rawArgs.slice(2));
@@ -304,10 +397,12 @@ async function main() {
     case "demo": {
       const target = rawArgs[1];
       if (!target) {
-        console.error("\x1b[31mUsage:\x1b[0m codecaine demo <demo_name> [arguments...]");
+        console.error(
+          "\x1b[31mUsage:\x1b[0m codecaine demo <demo_name> [arguments...]",
+        );
         process.exit(1);
       }
-      const demos = apps.filter(a => a.source === "rad_demo");
+      const demos = apps.filter((a) => a.source === "rad_demo");
       const tool = findTool(target, demos) || findTool(target, apps);
       if (!tool) {
         console.error(`\x1b[31m❌ Error:\x1b[0m Demo '${target}' not found.`);
@@ -318,7 +413,7 @@ async function main() {
     }
 
     case "launcher": {
-      const launcherApp = apps.find(a => a.name === "launcher_studio");
+      const launcherApp = apps.find((a) => a.name === "launcher_studio");
       if (launcherApp) {
         const exitCode = await executeTool(launcherApp, rawArgs.slice(1));
         process.exit(exitCode);
@@ -327,7 +422,7 @@ async function main() {
     }
 
     case "launcher-cli": {
-      const launcherCli = apps.find(a => a.name === "launcher_cli");
+      const launcherCli = apps.find((a) => a.name === "launcher_cli");
       if (launcherCli) {
         const exitCode = await executeTool(launcherCli, rawArgs.slice(1));
         process.exit(exitCode);
@@ -381,9 +476,12 @@ async function main() {
       }
 
       // No arguments: If GUI available, launch Launcher Studio Pro GUI
-      const hasGui = process.platform === "darwin" || Boolean(process.env.DISPLAY) || Boolean(process.env.WAYLAND_DISPLAY);
+      const hasGui =
+        process.platform === "darwin" ||
+        Boolean(process.env.DISPLAY) ||
+        Boolean(process.env.WAYLAND_DISPLAY);
       if (hasGui && process.stdout.isTTY && !rawArgs.includes("--cli")) {
-        const launcherApp = apps.find(a => a.name === "launcher_studio");
+        const launcherApp = apps.find((a) => a.name === "launcher_studio");
         if (launcherApp) {
           const code = await executeTool(launcherApp);
           process.exit(code);
@@ -407,8 +505,12 @@ async function handleBrewSubcommand(subArgs: string[]) {
       console.log("\x1b[1m🍺 Homebrew Integration Status:\x1b[0m\n");
       const [brewVer, bCode] = sys.exec("brew --version");
       if (bCode !== 0) {
-        console.log("\x1b[31m✖ Homebrew is not installed or not in PATH.\x1b[0m");
-        console.log("Visit https://brew.sh to install Homebrew on macOS or Linux.\n");
+        console.log(
+          "\x1b[31m✖ Homebrew is not installed or not in PATH.\x1b[0m",
+        );
+        console.log(
+          "Visit https://brew.sh to install Homebrew on macOS or Linux.\n",
+        );
         return;
       }
       const [prefix] = sys.exec("brew --prefix");
@@ -417,19 +519,32 @@ async function handleBrewSubcommand(subArgs: string[]) {
 
       console.log(`  • Homebrew Version:  ${brewVer.split("\n")[0]}`);
       console.log(`  • Homebrew Prefix:   ${prefix.trim()}`);
-      console.log(`  • Formula Present:   ${existsSync(formulaFile) ? "\x1b[32m✔ Formula/codecaine-utility-suite.rb\x1b[0m" : "\x1b[31m✖ Missing\x1b[0m"}`);
-      console.log(`  • Active Taps:       ${tapList.trim().replace(/\n/g, ", ") || "None"}\n`);
+      console.log(
+        `  • Formula Present:   ${existsSync(formulaFile) ? "\x1b[32m✔ Formula/codecaine-utility-suite.rb\x1b[0m" : "\x1b[31m✖ Missing\x1b[0m"}`,
+      );
+      console.log(
+        `  • Active Taps:       ${tapList.trim().replace(/\n/g, ", ") || "None"}\n`,
+      );
       break;
     }
 
     case "check": {
-      console.log("\x1b[36m🔍 Checking Homebrew dependencies from Brewfile...\x1b[0m\n");
+      console.log(
+        "\x1b[36m🔍 Checking Homebrew dependencies from Brewfile...\x1b[0m\n",
+      );
       const checkScript = join(root, "scripts", "install_dependencies.ts");
       if (existsSync(checkScript)) {
-        const proc = Bun.spawn(["bun", "run", checkScript], { stdout: "inherit", stderr: "inherit", cwd: root });
+        const proc = Bun.spawn(["bun", "run", checkScript], {
+          stdout: "inherit",
+          stderr: "inherit",
+          cwd: root,
+        });
         await proc.exited;
       } else {
-        const proc = Bun.spawn(["brew", "bundle", "check", "--file", join(root, "Brewfile")], { stdout: "inherit", stderr: "inherit", cwd: root });
+        const proc = Bun.spawn(
+          ["brew", "bundle", "check", "--file", join(root, "Brewfile")],
+          { stdout: "inherit", stderr: "inherit", cwd: root },
+        );
         await proc.exited;
       }
       break;
@@ -437,23 +552,38 @@ async function handleBrewSubcommand(subArgs: string[]) {
 
     case "install-deps":
     case "bundle": {
-      console.log("\x1b[36m⬇️ Installing Homebrew dependencies from Brewfile...\x1b[0m\n");
+      console.log(
+        "\x1b[36m⬇️ Installing Homebrew dependencies from Brewfile...\x1b[0m\n",
+      );
       const installScript = join(root, "install_homebrew_dependencies.sh");
       if (existsSync(installScript)) {
-        const proc = Bun.spawn([installScript], { stdout: "inherit", stderr: "inherit", cwd: root });
+        const proc = Bun.spawn([installScript], {
+          stdout: "inherit",
+          stderr: "inherit",
+          cwd: root,
+        });
         await proc.exited;
       } else {
-        const proc = Bun.spawn(["brew", "bundle", "--file", join(root, "Brewfile")], { stdout: "inherit", stderr: "inherit", cwd: root });
+        const proc = Bun.spawn(
+          ["brew", "bundle", "--file", join(root, "Brewfile")],
+          { stdout: "inherit", stderr: "inherit", cwd: root },
+        );
         await proc.exited;
       }
       break;
     }
 
     case "link": {
-      console.log("\x1b[36m🔗 Linking Codecaine Utility Suite binaries to Homebrew prefix...\x1b[0m\n");
+      console.log(
+        "\x1b[36m🔗 Linking Codecaine Utility Suite binaries to Homebrew prefix...\x1b[0m\n",
+      );
       const installerScript = join(root, "install_homebrew_suite.sh");
       if (existsSync(installerScript)) {
-        const proc = Bun.spawn([installerScript, "--link"], { stdout: "inherit", stderr: "inherit", cwd: root });
+        const proc = Bun.spawn([installerScript, "--link"], {
+          stdout: "inherit",
+          stderr: "inherit",
+          cwd: root,
+        });
         await proc.exited;
       } else {
         console.error("Installer script not found.");
@@ -462,10 +592,16 @@ async function handleBrewSubcommand(subArgs: string[]) {
     }
 
     case "unlink": {
-      console.log("\x1b[33mUnlinking Codecaine Utility Suite binaries from Homebrew prefix...\x1b[0m\n");
+      console.log(
+        "\x1b[33mUnlinking Codecaine Utility Suite binaries from Homebrew prefix...\x1b[0m\n",
+      );
       const installerScript = join(root, "install_homebrew_suite.sh");
       if (existsSync(installerScript)) {
-        const proc = Bun.spawn([installerScript, "--unlink"], { stdout: "inherit", stderr: "inherit", cwd: root });
+        const proc = Bun.spawn([installerScript, "--unlink"], {
+          stdout: "inherit",
+          stderr: "inherit",
+          cwd: root,
+        });
         await proc.exited;
       } else {
         console.error("Installer script not found.");
@@ -474,11 +610,13 @@ async function handleBrewSubcommand(subArgs: string[]) {
     }
 
     default:
-      console.error(`Unknown brew subcommand: ${sub}. Valid: status | check | install-deps | link | unlink`);
+      console.error(
+        `Unknown brew subcommand: ${sub}. Valid: status | check | install-deps | link | unlink`,
+      );
   }
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error("Fatal error in codecaine CLI:", err);
   process.exit(1);
 });

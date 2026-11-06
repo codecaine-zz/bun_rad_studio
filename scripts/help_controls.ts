@@ -16,13 +16,17 @@ if (!appId) {
 const html = await pageFor(appId);
 const helpId = helpIdOf(html) ?? appId;
 const controls = await auditHtml(html, HELP_TIPS[helpId] ?? {});
-console.log(`page: ${appId}   dictionary id: ${helpId}   (src/shared/help/${helpId}.ts)\n`);
+console.log(
+  `page: ${appId}   dictionary id: ${helpId}   (src/shared/help/${helpId}.ts)\n`,
+);
 const missingOnly = process.argv.includes("--missing");
 const gaps = new Set(uncovered(controls, HELP_SKIP[helpId] ?? []));
 for (const c of controls) {
   const mark = c.tip ? "✔" : gaps.has(c) ? "✖" : "–";
   if (missingOnly && mark !== "✖") continue;
-  console.log(`${mark} ${describe(c)}${c.tip ? `  → ${c.tip.slice(0, 60)}` : ""}`);
+  console.log(
+    `${mark} ${describe(c)}${c.tip ? `  → ${c.tip.slice(0, 60)}` : ""}`,
+  );
 }
 console.log(`\n${controls.length} controls; ${gaps.size} still need a tip.`);
 process.exit(0);

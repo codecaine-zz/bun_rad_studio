@@ -7,7 +7,11 @@ import { mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { createAdapter, type DbAdapter } from "../../src/db";
-import { AdapterStageDb, SqliteStageDb, type StageDb } from "../../src/db/staging/db";
+import {
+  AdapterStageDb,
+  SqliteStageDb,
+  type StageDb,
+} from "../../src/db/staging/db";
 import { provisionTestDb, type TestDb } from "./testdb";
 import { rmDir } from "./rm";
 
@@ -67,7 +71,9 @@ export async function makeRig(name: Rig["name"]): Promise<Rig | null> {
         const c = new Database(path);
         try {
           const st = c.query(text);
-          return st.columnNames.length ? (st.all(...(params as any[])) as any[]) : (st.run(...(params as any[])), []);
+          return st.columnNames.length
+            ? (st.all(...(params as any[])) as any[])
+            : (st.run(...(params as any[])), []);
         } finally {
           c.close();
         }
@@ -82,7 +88,14 @@ export async function makeRig(name: Rig["name"]): Promise<Rig | null> {
     rmDir(dir);
     return null;
   }
-  const adapter: DbAdapter = createAdapter({ engine: name, ...t.config, ...(name === "mysql" ? { allowPublicKeyRetrieval: true } : { schema: "public" }), maxConnections: 4 });
+  const adapter: DbAdapter = createAdapter({
+    engine: name,
+    ...t.config,
+    ...(name === "mysql"
+      ? { allowPublicKeyRetrieval: true }
+      : { schema: "public" }),
+    maxConnections: 4,
+  });
   await adapter.connect();
   for (const s of SCHEMAS[name]) await adapter.query(s);
   return {

@@ -9,7 +9,8 @@ import * as path from "node:path";
 import * as os from "node:os";
 import { createHash } from "node:crypto";
 
-export type RipFileType = "file" | "directory" | "symlink" | "other" | "missing";
+export type RipFileType =
+  "file" | "directory" | "symlink" | "other" | "missing";
 export type BurialStatus = "buried" | "unburied" | "decomposed";
 
 export interface GraveyardItem {
@@ -95,7 +96,10 @@ export interface DecomposeResult {
 export function formatHumanSize(bytes: number): string {
   if (bytes <= 0 || isNaN(bytes)) return "0 B";
   const units = ["B", "KB", "MB", "GB", "TB", "PB"];
-  const unitIndex = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const unitIndex = Math.min(
+    Math.floor(Math.log(bytes) / Math.log(1024)),
+    units.length - 1,
+  );
   const scaledSize = bytes / Math.pow(1024, unitIndex);
   return `${scaledSize >= 100 || unitIndex === 0 ? scaledSize.toFixed(0) : scaledSize.toFixed(1)} ${units[unitIndex]}`;
 }
@@ -189,7 +193,10 @@ export function pathExistsNoFollow(target: string): boolean {
   }
 }
 
-export function ensureGraveyardStructure(graveyardDir: string): { entriesDir: string; manifestPath: string } {
+export function ensureGraveyardStructure(graveyardDir: string): {
+  entriesDir: string;
+  manifestPath: string;
+} {
   const entriesDir = path.join(graveyardDir, "entries");
   const manifestPath = path.join(graveyardDir, "manifest.json");
 
@@ -237,19 +244,37 @@ export function loadManifest(graveyardDir?: string): GraveyardManifest {
  * Like `loadManifest`, but says when the record file exists and can't be read (damaged), instead of quietly answering
  * with an empty list that the next save would write over it. Never creates or changes anything.
  */
-export function loadManifestChecked(graveyardDir?: string): { manifest: GraveyardManifest; exists: boolean; damaged: boolean } {
+export function loadManifestChecked(graveyardDir?: string): {
+  manifest: GraveyardManifest;
+  exists: boolean;
+  damaged: boolean;
+} {
   const dir = getGraveyardDir(graveyardDir);
-  const empty = (): GraveyardManifest => ({ version: "1.0.0", graveyardRoot: dir, lastUpdated: new Date().toISOString(), items: [] });
+  const empty = (): GraveyardManifest => ({
+    version: "1.0.0",
+    graveyardRoot: dir,
+    lastUpdated: new Date().toISOString(),
+    items: [],
+  });
   let raw: string;
   try {
     raw = fs.readFileSync(path.join(dir, "manifest.json"), "utf-8");
   } catch (err: any) {
-    return { manifest: empty(), exists: false, damaged: err?.code !== "ENOENT" && err?.code !== "ENOTDIR" };
+    return {
+      manifest: empty(),
+      exists: false,
+      damaged: err?.code !== "ENOENT" && err?.code !== "ENOTDIR",
+    };
   }
   try {
     const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.items)) return { manifest: empty(), exists: true, damaged: true };
-    return { manifest: parsed as GraveyardManifest, exists: true, damaged: false };
+    if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.items))
+      return { manifest: empty(), exists: true, damaged: true };
+    return {
+      manifest: parsed as GraveyardManifest,
+      exists: true,
+      damaged: false,
+    };
   } catch {
     return { manifest: empty(), exists: true, damaged: true };
   }
@@ -296,7 +321,10 @@ export function newBurialId(now: Date = new Date()): string {
   return `rip_${now.getTime()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export function saveManifest(graveyardDir: string | undefined, manifest: GraveyardManifest): void {
+export function saveManifest(
+  graveyardDir: string | undefined,
+  manifest: GraveyardManifest,
+): void {
   const dir = getGraveyardDir(graveyardDir);
   const { manifestPath } = ensureGraveyardStructure(dir);
   manifest.lastUpdated = new Date().toISOString();
@@ -342,13 +370,15 @@ const CRITICAL_SYSTEM_PATHS = new Set([
 
 export function isProtectedPath(
   targetPath: string,
-  options: { cwd?: string; graveyardDir?: string } = {}
+  options: { cwd?: string; graveyardDir?: string } = {},
 ): { protected: boolean; reason?: string } {
   const cwd = options.cwd ? path.resolve(options.cwd) : process.cwd();
   const resolved = path.resolve(cwd, targetPath);
   const normalized = path.normalize(resolved);
   const home = os.homedir() ? path.normalize(path.resolve(os.homedir())) : "";
-  const graveyard = options.graveyardDir ? path.normalize(path.resolve(options.graveyardDir)) : getGraveyardDir();
+  const graveyard = options.graveyardDir
+    ? path.normalize(path.resolve(options.graveyardDir))
+    : getGraveyardDir();
 
   // 1. Root check
   if (normalized === "/" || /^[a-zA-Z]:\\?$/.test(normalized)) {
@@ -362,7 +392,10 @@ export function isProtectedPath(
 
   // 3. Current or parent directory check
   if (targetPath === "." || normalized === cwd) {
-    return { protected: true, reason: "Cannot bury current working directory (.)" };
+    return {
+      protected: true,
+      reason: "Cannot bury current working directory (.)",
+    };
   }
   if (targetPath === ".." || normalized === path.dirname(cwd)) {
     return { protected: true, reason: "Cannot bury parent directory (..)" };
@@ -370,12 +403,18 @@ export function isProtectedPath(
 
   // 4. Critical system paths
   if (CRITICAL_SYSTEM_PATHS.has(normalized)) {
-    return { protected: true, reason: `Cannot bury critical system path (${normalized})` };
+    return {
+      protected: true,
+      reason: `Cannot bury critical system path (${normalized})`,
+    };
   }
 
   // 5. Cannot bury the graveyard or its contents inside itself
   if (normalized === graveyard || normalized.startsWith(graveyard + path.sep)) {
-    return { protected: true, reason: "Cannot bury the graveyard directory into itself" };
+    return {
+      protected: true,
+      reason: "Cannot bury the graveyard directory into itself",
+    };
   }
 
   return { protected: false };
@@ -385,7 +424,11 @@ export function isProtectedPath(
 // Directory Metrics (Recursive Size & File Count)
 // -----------------------------------------------------------------------------
 
-export function calculatePathMetrics(targetPath: string): { sizeBytes: number; fileCount: number; isGitRepo: boolean } {
+export function calculatePathMetrics(targetPath: string): {
+  sizeBytes: number;
+  fileCount: number;
+  isGitRepo: boolean;
+} {
   try {
     const stats = fs.lstatSync(targetPath);
     if (!stats.isDirectory()) {
@@ -424,7 +467,11 @@ export function calculatePathMetrics(targetPath: string): { sizeBytes: number; f
       }
     }
 
-    return { sizeBytes: totalSize, fileCount: Math.max(1, fileCount), isGitRepo };
+    return {
+      sizeBytes: totalSize,
+      fileCount: Math.max(1, fileCount),
+      isGitRepo,
+    };
   } catch {
     return { sizeBytes: 0, fileCount: 0, isGitRepo: false };
   }
@@ -441,16 +488,28 @@ export function calculatePathMetrics(targetPath: string): { sizeBytes: number; f
 export function compareTreesSync(source: string, copy: string): string | null {
   const a = fs.lstatSync(source);
   const b = fs.lstatSync(copy);
-  if (a.isSymbolicLink() !== b.isSymbolicLink() || a.isDirectory() !== b.isDirectory() || a.isFile() !== b.isFile()) return `${path.basename(source)} has a different kind of item in the copy`;
-  if (a.isSymbolicLink()) return fs.readlinkSync(source) === fs.readlinkSync(copy) ? null : `the link ${path.basename(source)} points somewhere else in the copy`;
+  if (
+    a.isSymbolicLink() !== b.isSymbolicLink() ||
+    a.isDirectory() !== b.isDirectory() ||
+    a.isFile() !== b.isFile()
+  )
+    return `${path.basename(source)} has a different kind of item in the copy`;
+  if (a.isSymbolicLink())
+    return fs.readlinkSync(source) === fs.readlinkSync(copy)
+      ? null
+      : `the link ${path.basename(source)} points somewhere else in the copy`;
   if (a.isFile()) {
-    if (a.size !== b.size) return `${path.basename(source)} has a different size in the copy`;
-    return (a.mode & 0o777) === (b.mode & 0o777) ? null : `${path.basename(source)} has different permissions in the copy`;
+    if (a.size !== b.size)
+      return `${path.basename(source)} has a different size in the copy`;
+    return (a.mode & 0o777) === (b.mode & 0o777)
+      ? null
+      : `${path.basename(source)} has different permissions in the copy`;
   }
   if (!a.isDirectory()) return null;
   const names = fs.readdirSync(source).sort();
   const copied = fs.readdirSync(copy).sort();
-  if (names.length !== copied.length || names.some((n, i) => n !== copied[i])) return `${path.basename(source)} has different contents in the copy`;
+  if (names.length !== copied.length || names.some((n, i) => n !== copied[i]))
+    return `${path.basename(source)} has different contents in the copy`;
   for (const n of names) {
     const problem = compareTreesSync(path.join(source, n), path.join(copy, n));
     if (problem) return problem;
@@ -472,15 +531,24 @@ export function safeMove(source: string, destination: string): void {
       // Cross-filesystem move fallback: copy recursively (links stay links), check the copy, then remove the source.
       const existedBefore = pathExistsNoFollow(destination);
       try {
-        fs.cpSync(source, destination, { recursive: true, preserveTimestamps: true, verbatimSymlinks: true, errorOnExist: true, force: false });
+        fs.cpSync(source, destination, {
+          recursive: true,
+          preserveTimestamps: true,
+          verbatimSymlinks: true,
+          errorOnExist: true,
+          force: false,
+        });
       } catch (copyErr) {
-        if (!existedBefore) fs.rmSync(destination, { recursive: true, force: true });
+        if (!existedBefore)
+          fs.rmSync(destination, { recursive: true, force: true });
         throw copyErr;
       }
       const problem = compareTreesSync(source, destination);
       if (problem) {
         fs.rmSync(destination, { recursive: true, force: true });
-        throw new Error(`The copy could not be verified (${problem}), so the original was left where it is.`);
+        throw new Error(
+          `The copy could not be verified (${problem}), so the original was left where it is.`,
+        );
       }
       fs.rmSync(source, { recursive: true, force: true });
     } else {
@@ -495,7 +563,7 @@ export function safeMove(source: string, destination: string): void {
 
 export function inspectTargetsSync(
   targets: string[],
-  options: { cwd?: string; graveyardDir?: string } = {}
+  options: { cwd?: string; graveyardDir?: string } = {},
 ): InspectResult {
   const cwd = options.cwd ? path.resolve(options.cwd) : process.cwd();
   const items: InspectItem[] = [];
@@ -509,7 +577,10 @@ export function inspectTargetsSync(
     const baseName = path.basename(resolvedPath) || resolvedPath;
 
     // Safety guard
-    const safety = isProtectedPath(t, { cwd, graveyardDir: options.graveyardDir });
+    const safety = isProtectedPath(t, {
+      cwd,
+      graveyardDir: options.graveyardDir,
+    });
     if (safety.protected) {
       hasProtected = true;
       warnings.push(`[PROTECTED] ${t}: ${safety.reason}`);
@@ -579,11 +650,14 @@ export function inspectTargetsSync(
         warnings.push(`[GIT REPO] ${t}: ${itemWarning}`);
       }
       if (isReadOnly) {
-        itemWarning = (itemWarning ? `${itemWarning}; ` : "") + "Target is read-only";
+        itemWarning =
+          (itemWarning ? `${itemWarning}; ` : "") + "Target is read-only";
         warnings.push(`[READ-ONLY] ${t}: Target is read-only`);
       }
       if (metrics.sizeBytes > 100 * 1024 * 1024) {
-        itemWarning = (itemWarning ? `${itemWarning}; ` : "") + `Large payload (${formatHumanSize(metrics.sizeBytes)})`;
+        itemWarning =
+          (itemWarning ? `${itemWarning}; ` : "") +
+          `Large payload (${formatHumanSize(metrics.sizeBytes)})`;
         warnings.push(`[LARGE] ${t}: ${formatHumanSize(metrics.sizeBytes)}`);
       }
 
@@ -633,7 +707,7 @@ export function inspectTargetsSync(
 
 export async function inspectTargets(
   targets: string[],
-  options: { cwd?: string; graveyardDir?: string } = {}
+  options: { cwd?: string; graveyardDir?: string } = {},
 ): Promise<InspectResult> {
   return inspectTargetsSync(targets, options);
 }
@@ -644,7 +718,7 @@ export async function inspectTargets(
 
 export function buryTargetsSync(
   targets: string[],
-  options: { graveyardDir?: string; cwd?: string; force?: boolean } = {}
+  options: { graveyardDir?: string; cwd?: string; force?: boolean } = {},
 ): BuryResult {
   const cwd = options.cwd ? path.resolve(options.cwd) : process.cwd();
   const graveyardDir = getGraveyardDir(options.graveyardDir);
@@ -664,7 +738,10 @@ export function buryTargetsSync(
     // 1. Safety verification
     const safety = isProtectedPath(target, { cwd, graveyardDir });
     if (safety.protected) {
-      failed.push({ target, error: safety.reason || "Protected system target" });
+      failed.push({
+        target,
+        error: safety.reason || "Protected system target",
+      });
       continue;
     }
 
@@ -750,7 +827,7 @@ export function buryTargetsSync(
 
 export async function buryTargets(
   targets: string[],
-  options: { graveyardDir?: string; cwd?: string; force?: boolean } = {}
+  options: { graveyardDir?: string; cwd?: string; force?: boolean } = {},
 ): Promise<BuryResult> {
   return buryTargetsSync(targets, options);
 }
@@ -761,7 +838,7 @@ export async function buryTargets(
 
 export function unburyTargetsSync(
   targets?: string[],
-  options: { graveyardDir?: string; cwd?: string; force?: boolean } = {}
+  options: { graveyardDir?: string; cwd?: string; force?: boolean } = {},
 ): UnburyResult {
   const cwd = options.cwd ? path.resolve(options.cwd) : process.cwd();
   const graveyardDir = getGraveyardDir(options.graveyardDir);
@@ -797,12 +874,19 @@ export function unburyTargetsSync(
     });
 
     if (!item) {
-      failed.push({ target, error: `No buried item matching '${target}' found in graveyard.` });
+      failed.push({
+        target,
+        error: `No buried item matching '${target}' found in graveyard.`,
+      });
       continue;
     }
 
     if (!fs.existsSync(item.graveyardPath)) {
-      failed.push({ item, target, error: `Graveyard payload missing: ${item.graveyardPath}` });
+      failed.push({
+        item,
+        target,
+        error: `Graveyard payload missing: ${item.graveyardPath}`,
+      });
       continue;
     }
 
@@ -874,7 +958,7 @@ export function unburyTargetsSync(
 
 export async function unburyTargets(
   targets?: string[],
-  options: { graveyardDir?: string; cwd?: string; force?: boolean } = {}
+  options: { graveyardDir?: string; cwd?: string; force?: boolean } = {},
 ): Promise<UnburyResult> {
   return unburyTargetsSync(targets, options);
 }
@@ -884,7 +968,12 @@ export async function unburyTargets(
 // -----------------------------------------------------------------------------
 
 export function seanceGraveyard(
-  options: { graveyardDir?: string; cwd?: string; all?: boolean; status?: BurialStatus } = {}
+  options: {
+    graveyardDir?: string;
+    cwd?: string;
+    all?: boolean;
+    status?: BurialStatus;
+  } = {},
 ): GraveyardItem[] {
   const cwd = options.cwd ? path.resolve(options.cwd) : process.cwd();
   const graveyardDir = getGraveyardDir(options.graveyardDir);
@@ -916,7 +1005,7 @@ export function decomposeGraveyardSync(
     targets?: string[];
     olderThanMs?: number;
     all?: boolean;
-  } = {}
+  } = {},
 ): DecomposeResult {
   const graveyardDir = getGraveyardDir(options.graveyardDir);
   const { entriesDir } = ensureGraveyardStructure(graveyardDir);
@@ -935,7 +1024,9 @@ export function decomposeGraveyardSync(
 
     // If specific targets requested, match by id, name, or originalPath
     if (options.targets && options.targets.length > 0) {
-      return options.targets.some((t) => t === item.id || t === item.name || t === item.originalPath);
+      return options.targets.some(
+        (t) => t === item.id || t === item.name || t === item.originalPath,
+      );
     }
 
     // For age or default with no filter: only items still in the graveyard can be purged
@@ -955,9 +1046,16 @@ export function decomposeGraveyardSync(
     try {
       if (item.graveyardPath) {
         const itemDir = path.dirname(item.graveyardPath);
-        if (itemDir.startsWith(entriesDir) && itemDir !== entriesDir && fs.existsSync(itemDir)) {
+        if (
+          itemDir.startsWith(entriesDir) &&
+          itemDir !== entriesDir &&
+          fs.existsSync(itemDir)
+        ) {
           fs.rmSync(itemDir, { recursive: true, force: true });
-        } else if (item.graveyardPath.startsWith(entriesDir) && fs.existsSync(item.graveyardPath)) {
+        } else if (
+          item.graveyardPath.startsWith(entriesDir) &&
+          fs.existsSync(item.graveyardPath)
+        ) {
           fs.rmSync(item.graveyardPath, { recursive: true, force: true });
         }
       }
@@ -1012,7 +1110,7 @@ export async function decomposeGraveyard(
     targets?: string[];
     olderThanMs?: number;
     all?: boolean;
-  } = {}
+  } = {},
 ): Promise<DecomposeResult> {
   return decomposeGraveyardSync(options);
 }
@@ -1069,7 +1167,9 @@ export function getGraveyardStats(graveyardDir?: string): {
 // Shell Completions Generator (zsh / bash / fish)
 // -----------------------------------------------------------------------------
 
-export function generateCompletions(shell: "zsh" | "bash" | "fish" = "zsh"): string {
+export function generateCompletions(
+  shell: "zsh" | "bash" | "fish" = "zsh",
+): string {
   if (shell === "fish") {
     return `# Fish completions for rip
 complete -c rip -s i -l inspect -d "Inspect files before burying"

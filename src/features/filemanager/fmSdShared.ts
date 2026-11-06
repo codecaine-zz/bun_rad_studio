@@ -48,8 +48,19 @@ export interface SdFilter {
 
 /** Discriminated union of jobs sent to the background search-and-replace worker thread. */
 export type SdJob =
-  | { kind: "scan"; mode: "count" | "preview"; spec: SdSpec; targets: string[]; filter: SdFilter }
-  | { kind: "transform"; spec: SdSpec; files: Array<{ path: string; hash: string }>; maxBytes: number }
+  | {
+      kind: "scan";
+      mode: "count" | "preview";
+      spec: SdSpec;
+      targets: string[];
+      filter: SdFilter;
+    }
+  | {
+      kind: "transform";
+      spec: SdSpec;
+      files: Array<{ path: string; hash: string }>;
+      maxBytes: number;
+    }
   | { kind: "spin"; ms: number };
 
 /** Counts of files skipped during a scan, grouped by reason. */
@@ -112,22 +123,55 @@ export interface Compiled {
 /** Turns what the person typed into a regular expression, or throws a plain-language error. */
 export function compileSpec(spec: SdSpec): Compiled {
   if (!spec.find) throw new FmError("BAD_REQUEST", "Type what to look for.");
-  if (spec.find.length > SD_MAX_FIND) throw new FmError("BAD_REQUEST", `The text to find is too long (the limit is ${SD_MAX_FIND} characters).`);
-  if (spec.replace.length > SD_MAX_REPLACE) throw new FmError("BAD_REQUEST", `The replacement is too long (the limit is ${SD_MAX_REPLACE} characters).`);
-  if (!/^[gimsu]*$/.test(spec.flags)) throw new FmError("BAD_FLAGS", "The flags can only use the letters g, i, m, s and u.");
+  if (spec.find.length > SD_MAX_FIND)
+    throw new FmError(
+      "BAD_REQUEST",
+      `The text to find is too long (the limit is ${SD_MAX_FIND} characters).`,
+    );
+  if (spec.replace.length > SD_MAX_REPLACE)
+    throw new FmError(
+      "BAD_REQUEST",
+      `The replacement is too long (the limit is ${SD_MAX_REPLACE} characters).`,
+    );
+  if (!/^[gimsu]*$/.test(spec.flags))
+    throw new FmError(
+      "BAD_FLAGS",
+      "The flags can only use the letters g, i, m, s and u.",
+    );
   const flags = [...new Set(spec.flags)].join("");
-  const notRegex = new FmError("BAD_PATTERN", 'That isn\'t a valid pattern. Tick "Plain text" if you want to find the characters exactly as you typed them.');
+  const notRegex = new FmError(
+    "BAD_PATTERN",
+    'That isn\'t a valid pattern. Tick "Plain text" if you want to find the characters exactly as you typed them.',
+  );
   let re: RegExp;
   try {
     if (!spec.literal) new RegExp(spec.find, flags);
     // Grouped, so "cat|dog" with "whole word" means (cat or dog) as a whole word.
-    const body = spec.wholeWord && !spec.literal ? `(?:${spec.find})` : spec.find;
-    re = buildReplacerRegex(body, spec.literal, flags, spec.ignoreCase, spec.wholeWord);
+    const body =
+      spec.wholeWord && !spec.literal ? `(?:${spec.find})` : spec.find;
+    re = buildReplacerRegex(
+      body,
+      spec.literal,
+      flags,
+      spec.ignoreCase,
+      spec.wholeWord,
+    );
   } catch (err) {
-    throw new FmError(notRegex.code, `${notRegex.message} (${String((err as Error)?.message ?? err).replace(/^Invalid regular expression: /, "")})`);
+    throw new FmError(
+      notRegex.code,
+      `${notRegex.message} (${String((err as Error)?.message ?? err).replace(/^Invalid regular expression: /, "")})`,
+    );
   }
-  const mentionsCr = spec.literal ? spec.find.includes("\r") : /\\r|\\x0d|\\u000d|\\cM|\r/i.test(spec.find);
-  return { re, replacement: spec.escapes ? unescapeReplacement(spec.replace) : spec.replace, mentionsCr };
+  const mentionsCr = spec.literal
+    ? spec.find.includes("\r")
+    : /\\r|\\x0d|\\u000d|\\cM|\r/i.test(spec.find);
+  return {
+    re,
+    replacement: spec.escapes
+      ? unescapeReplacement(spec.replace)
+      : spec.replace,
+    mentionsCr,
+  };
 }
 
 /** Detected line-ending style of a text file (`crlf`, `lf`, `mixed`, or `none`). */
@@ -142,7 +186,8 @@ export function eolOf(text: string): Eol {
     if (i > 0 && text.charCodeAt(i - 1) === 13) crlf++;
     else lf++;
   }
-  for (let i = text.indexOf("\r"); i >= 0; i = text.indexOf("\r", i + 1)) if (text.charCodeAt(i + 1) !== 10) cr++;
+  for (let i = text.indexOf("\r"); i >= 0; i = text.indexOf("\r", i + 1))
+    if (text.charCodeAt(i + 1) !== 10) cr++;
   if (crlf === 0 && lf === 0 && cr === 0) return "none";
   if (crlf > 0 && lf === 0 && cr === 0) return "crlf";
   if (crlf === 0 && cr === 0) return "lf";
@@ -173,13 +218,26 @@ export function countMatches(text: string, re: RegExp, limit: number): number {
  * way people expect) and written back with CRLF, unless the pattern mentions `\r` itself. `budget.left` is the
  * number of replacements this run may still make; it is lowered by what this file uses.
  */
-export function rewriteText(text: string, c: Compiled, budget: { left: number }, countOnly = false): Rewrite {
+export function rewriteText(
+  text: string,
+  c: Compiled,
+  budget: { left: number },
+  countOnly = false,
+): Rewrite {
   const normalize = !c.mentionsCr && eolOf(text) === "crlf";
   const before = normalize ? text.replaceAll("\r\n", "\n") : text;
   const matches = countMatches(before, c.re, budget.left);
-  if (matches > budget.left) return { before, after: before, final: text, matches: 0, capped: true };
+  if (matches > budget.left)
+    return { before, after: before, final: text, matches: 0, capped: true };
   budget.left -= matches;
-  if (matches === 0 || countOnly) return { before, after: before, final: text, matches, capped: false };
+  if (matches === 0 || countOnly)
+    return { before, after: before, final: text, matches, capped: false };
   const after = before.replace(c.re, c.replacement);
-  return { before, after, final: normalize ? after.replace(/\r?\n/g, "\r\n") : after, matches, capped: false };
+  return {
+    before,
+    after,
+    final: normalize ? after.replace(/\r?\n/g, "\r\n") : after,
+    matches,
+    capped: false,
+  };
 }

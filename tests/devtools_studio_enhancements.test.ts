@@ -18,11 +18,22 @@ import {
   clampInt,
   formatBytes,
 } from "../src/devtools_tools";
-import { createOmnitoolStudio, bunNativeRipgrep } from "../applications/omnitool_studio";
+import {
+  createOmnitoolStudio,
+  bunNativeRipgrep,
+} from "../applications/omnitool_studio";
 import type { SimpleWindow } from "../src/simplegui";
 
-async function trigger(win: SimpleWindow, id: string, event = "click", val?: any) {
-  const h = win.eventHandlersMap.get(`${id}:on${event}`) || win.eventHandlersMap.get(`${id}:${event}`) || win.eventHandlersMap.get(id);
+async function trigger(
+  win: SimpleWindow,
+  id: string,
+  event = "click",
+  val?: any,
+) {
+  const h =
+    win.eventHandlersMap.get(`${id}:on${event}`) ||
+    win.eventHandlersMap.get(`${id}:${event}`) ||
+    win.eventHandlersMap.get(id);
   if (!h) throw new Error(`no handler for ${id}`);
   return await h(win, val);
 }
@@ -59,7 +70,11 @@ describe("globs", () => {
     expect(globToRegExp("a.ts").test("axts")).toBe(false);
   });
   test("parseGlobList keeps braces together", () => {
-    expect(parseGlobList("*.ts, *.{js,jsx} !*.test.ts")).toEqual(["*.ts", "*.{js,jsx}", "!*.test.ts"]);
+    expect(parseGlobList("*.ts, *.{js,jsx} !*.test.ts")).toEqual([
+      "*.ts",
+      "*.{js,jsx}",
+      "!*.test.ts",
+    ]);
     expect(parseGlobList("")).toEqual([]);
   });
   test("passesGlobs include and exclude", () => {
@@ -71,7 +86,9 @@ describe("globs", () => {
     expect(passesGlobs("a.js", compileGlobs(["!*.test.ts"]))).toBe(true);
   });
   test("parseGitignore", () => {
-    const ig = parseGitignore("# c\nignored/\n*.log\n/rootonly\nlogs/*.tmp\n!keep\n");
+    const ig = parseGitignore(
+      "# c\nignored/\n*.log\n/rootonly\nlogs/*.tmp\n!keep\n",
+    );
     expect(ig("ignored", true)).toBe(true);
     expect(ig("ignored/skip.txt", false)).toBe(true);
     expect(ig("ignored", false)).toBe(false);
@@ -86,20 +103,30 @@ describe("globs", () => {
 describe("search", () => {
   test("regression: global-flag lastIndex no longer skips matching lines", () => {
     // 'foo' appears on consecutive lines; stateful /g regex used to skip every other hit
-    const r = searchCode(root, "foo", { caseSensitive: true, gitignore: false });
+    const r = searchCode(root, "foo", {
+      caseSensitive: true,
+      gitignore: false,
+    });
     expect(r.output).toContain("a.ts:2:");
     expect(r.output).toContain("b.js:1:".replace("b.js", "src/b.js"));
     expect(r.output).toContain("src/b.js:3:");
   });
   test("case sensitivity", () => {
     const ci = searchCode(root, "foo", { gitignore: false });
-    const cs = searchCode(root, "foo", { caseSensitive: true, gitignore: false });
+    const cs = searchCode(root, "foo", {
+      caseSensitive: true,
+      gitignore: false,
+    });
     expect(ci.matches).toBeGreaterThan(cs.matches);
     expect(ci.output).toContain("notes.md:1:");
     expect(cs.output).not.toContain("notes.md");
   });
   test("whole word and literal", () => {
-    const r = searchCode(root, "foo", { caseSensitive: true, wholeWord: true, gitignore: false });
+    const r = searchCode(root, "foo", {
+      caseSensitive: true,
+      wholeWord: true,
+      gitignore: false,
+    });
     expect(r.output).toContain("a.ts:2:");
     expect(r.output).not.toContain("foobar");
     expect(r.output).not.toContain("foo2");
@@ -144,7 +171,10 @@ describe("search", () => {
     expect(r.output).toContain("b.js-3- let foo2 = 2;");
   });
   test("single file target and no match", () => {
-    expect(searchCode(path.join(root, "a.ts"), "Foo", { caseSensitive: true }).matches).toBe(1);
+    expect(
+      searchCode(path.join(root, "a.ts"), "Foo", { caseSensitive: true })
+        .matches,
+    ).toBe(1);
     expect(searchCode(root, "zzzzqqq").output).toBe("(No matches found)");
   });
   test("bunNativeRipgrep wrapper keeps working", () => {
@@ -157,12 +187,18 @@ describe("find", () => {
   test("type filters", () => {
     expect(findPaths(root, "src", { type: "dir" }).output).toContain("[DIR]");
     expect(findPaths(root, "src", { type: "file" }).output).toContain("b.js");
-    expect(findPaths(root, "^src$", { type: "file" }).output).toContain("No matching");
+    expect(findPaths(root, "^src$", { type: "file" }).output).toContain(
+      "No matching",
+    );
   });
   test("hidden, gitignore and globs", () => {
     expect(findPaths(root, "secret").output).toContain("No matching");
-    expect(findPaths(root, "secret", { hidden: true }).output).toContain("secret.txt");
-    expect(findPaths(root, "skip", { gitignore: true }).output).toContain("No matching");
+    expect(findPaths(root, "secret", { hidden: true }).output).toContain(
+      "secret.txt",
+    );
+    expect(findPaths(root, "skip", { gitignore: true }).output).toContain(
+      "No matching",
+    );
     expect(findPaths(root, "b", { include: "*.js" }).output).toContain("b.js");
   });
   test("cap and invalid regex", () => {
@@ -176,7 +212,11 @@ describe("find", () => {
 describe("replace", () => {
   test("dry run previews and does not write", () => {
     const before = fs.readFileSync(path.join(root, "a.ts"), "utf-8");
-    const r = replaceInFiles(root, "foo", "BAR", { dryRun: true, caseSensitive: true, gitignore: true });
+    const r = replaceInFiles(root, "foo", "BAR", {
+      dryRun: true,
+      caseSensitive: true,
+      gitignore: true,
+    });
     expect(r.output).toContain("[DRY RUN PREVIEW]");
     expect(r.output).toContain("- const foo = 2;");
     expect(r.output).toContain("+ const BAR = 2;");
@@ -184,27 +224,55 @@ describe("replace", () => {
   });
   test("literal mode treats $ and regex chars literally", () => {
     w("lit.txt", "price (a) and a.b\n");
-    replaceInFiles(path.join(root, "lit.txt"), "(a)", "$1$&", { dryRun: false, fixed: true, caseSensitive: true });
-    expect(fs.readFileSync(path.join(root, "lit.txt"), "utf-8")).toBe("price $1$& and a.b\n");
+    replaceInFiles(path.join(root, "lit.txt"), "(a)", "$1$&", {
+      dryRun: false,
+      fixed: true,
+      caseSensitive: true,
+    });
+    expect(fs.readFileSync(path.join(root, "lit.txt"), "utf-8")).toBe(
+      "price $1$& and a.b\n",
+    );
   });
   test("regex mode supports capture groups, whole word, backup and include", () => {
     w("re.txt", "foo foobar foo\n");
     w("re.md", "foo\n");
-    const r = replaceInFiles(root, "(f)oo", "$1_", { dryRun: false, wholeWord: true, caseSensitive: true, include: "re.txt", backup: true });
+    const r = replaceInFiles(root, "(f)oo", "$1_", {
+      dryRun: false,
+      wholeWord: true,
+      caseSensitive: true,
+      include: "re.txt",
+      backup: true,
+    });
     expect(r.replacements).toBe(2);
-    expect(fs.readFileSync(path.join(root, "re.txt"), "utf-8")).toBe("f_ foobar f_\n");
-    expect(fs.readFileSync(path.join(root, "re.txt.bak"), "utf-8")).toBe("foo foobar foo\n");
+    expect(fs.readFileSync(path.join(root, "re.txt"), "utf-8")).toBe(
+      "f_ foobar f_\n",
+    );
+    expect(fs.readFileSync(path.join(root, "re.txt.bak"), "utf-8")).toBe(
+      "foo foobar foo\n",
+    );
     expect(fs.readFileSync(path.join(root, "re.md"), "utf-8")).toBe("foo\n");
   });
   test("skips binary files, rejects empty and invalid patterns", () => {
     w("bindir/bin.dat", Buffer.from([102, 111, 111, 0, 1, 2]));
     w("bindir/t.txt", "foo\n");
-    replaceInFiles(path.join(root, "bindir"), "foo", "x", { dryRun: false, caseSensitive: true });
+    replaceInFiles(path.join(root, "bindir"), "foo", "x", {
+      dryRun: false,
+      caseSensitive: true,
+    });
     expect(fs.readFileSync(path.join(root, "bindir/bin.dat"))[0]).toBe(102);
-    expect(fs.readFileSync(path.join(root, "bindir/t.txt"), "utf-8")).toBe("x\n");
-    expect(replaceInFiles(root, "", "x", { dryRun: true }).output).toContain("empty");
-    expect(replaceInFiles(root, "(", "x", { dryRun: true }).output).toContain("[Invalid Regex]");
-    expect(replaceInFiles(path.join(root, "nope"), "a", "b", { dryRun: true }).output).toContain("does not exist");
+    expect(fs.readFileSync(path.join(root, "bindir/t.txt"), "utf-8")).toBe(
+      "x\n",
+    );
+    expect(replaceInFiles(root, "", "x", { dryRun: true }).output).toContain(
+      "empty",
+    );
+    expect(replaceInFiles(root, "(", "x", { dryRun: true }).output).toContain(
+      "[Invalid Regex]",
+    );
+    expect(
+      replaceInFiles(path.join(root, "nope"), "a", "b", { dryRun: true })
+        .output,
+    ).toContain("does not exist");
   });
 });
 
@@ -219,12 +287,18 @@ describe("trash with undo", () => {
     expect(getLastTrash()).not.toBeNull();
     const u = undoLastTrash();
     expect(u.success).toBe(true);
-    expect(fs.readFileSync(path.join(victim, "file.txt"), "utf-8")).toBe("keep me");
+    expect(fs.readFileSync(path.join(victim, "file.txt"), "utf-8")).toBe(
+      "keep me",
+    );
     expect(undoLastTrash().success).toBe(false);
   });
   test("refuses protected paths and missing targets; undo won't overwrite", () => {
-    expect(trashPath(process.cwd(), path.join(root, "_t2")).success).toBe(false);
-    expect(trashPath(path.join(root, "missing"), path.join(root, "_t2")).output).toContain("does not exist");
+    expect(trashPath(process.cwd(), path.join(root, "_t2")).success).toBe(
+      false,
+    );
+    expect(
+      trashPath(path.join(root, "missing"), path.join(root, "_t2")).output,
+    ).toContain("does not exist");
     w("dup.txt", "one");
     const p = path.join(root, "dup.txt");
     trashPath(p, path.join(root, "_t3"));
@@ -252,7 +326,23 @@ describe("DevTools Studio GUI", () => {
 
   test("renders the new controls", () => {
     const html = make().generateHtml();
-    for (const id of ["btn_browse_folder", "btn_browse_target_file", "txt_include", "txt_max", "txt_context", "dd_fd_type", "chk_word", "chk_fixed", "chk_hidden", "chk_gitignore", "chk_files_only", "chk_backup", "btn_copy_results", "btn_save_results", "btn_undo_trash"]) {
+    for (const id of [
+      "btn_browse_folder",
+      "btn_browse_target_file",
+      "txt_include",
+      "txt_max",
+      "txt_context",
+      "dd_fd_type",
+      "chk_word",
+      "chk_fixed",
+      "chk_hidden",
+      "chk_gitignore",
+      "chk_files_only",
+      "chk_backup",
+      "btn_copy_results",
+      "btn_save_results",
+      "btn_undo_trash",
+    ]) {
       expect(html).toContain(id);
     }
   });
@@ -291,7 +381,9 @@ describe("DevTools Studio GUI", () => {
     win.setValue("txt_replace", "THING");
     await trigger(win, "btn_run_omni");
     expect(String(win.getValue("txt_results"))).toContain("[DRY RUN PREVIEW]");
-    expect(fs.readFileSync(path.join(root, "src/b.js"), "utf-8")).toContain("other");
+    expect(fs.readFileSync(path.join(root, "src/b.js"), "utf-8")).toContain(
+      "other",
+    );
   });
 
   test("a missing target path toasts instead of running", async () => {

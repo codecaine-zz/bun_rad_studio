@@ -189,4 +189,3 @@ describe("⚡ Bun Sys Utils GUI Desktop Workstations Suite", () => {
     expect(ids).toContain("console_rad");
   });
 });
-

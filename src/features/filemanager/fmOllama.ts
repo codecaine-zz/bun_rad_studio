@@ -16,7 +16,13 @@
  *     Safe Memory Budget, explains in plain language that it would freeze the computer, and
  *     automatically suggests the best model that fits their RAM or the `:cloud` version.
  */
-import { absolutePath, assertCreatable, assertModifiable, type FmContext, type FmHandler } from "./fmCore";
+import {
+  absolutePath,
+  assertCreatable,
+  assertModifiable,
+  type FmContext,
+  type FmHandler,
+} from "./fmCore";
 import { FmError, isDocumentPackageName, isSameOrInside } from "./fmPaths";
 import { extractReadableDocumentText } from "./fmPreview";
 
@@ -34,7 +40,10 @@ export function pathSep(platform = process.platform): string {
 /**
  * Normalizes path separators in `p` to match the target platform.
  */
-export function normalizeSlashes(p: string, platform = process.platform): string {
+export function normalizeSlashes(
+  p: string,
+  platform = process.platform,
+): string {
   if (platform === "win32") return p.replace(/\//g, "\\");
   return p.replace(/\\/g, "/");
 }
@@ -50,7 +59,9 @@ export function joinPath(parts: string[], platform = process.platform): string {
     if (!raw) continue;
     const norm = normalizeSlashes(raw, platform);
     if (i === 0) {
-      cleaned.push(norm.length > 1 && norm.endsWith(sep) ? norm.slice(0, -1) : norm);
+      cleaned.push(
+        norm.length > 1 && norm.endsWith(sep) ? norm.slice(0, -1) : norm,
+      );
     } else {
       const stripped = norm.replace(/^[\\/]+|[\\/]+$/g, "");
       if (stripped) cleaned.push(stripped);
@@ -58,7 +69,9 @@ export function joinPath(parts: string[], platform = process.platform): string {
   }
   if (cleaned.length === 0) return sep;
   if (cleaned.length === 1) return cleaned[0]!;
-  return cleaned[0] === sep ? `${sep}${cleaned.slice(1).join(sep)}` : cleaned.join(sep);
+  return cleaned[0] === sep
+    ? `${sep}${cleaned.slice(1).join(sep)}`
+    : cleaned.join(sep);
 }
 
 /**
@@ -113,7 +126,12 @@ export function sha256Hex(input: string | Uint8Array): string {
  * Resolves the system temporary directory path from environment variables or platform defaults.
  */
 export function tempDirPath(platform = process.platform): string {
-  return process.env.TMPDIR || process.env.TEMP || process.env.TMP || (platform === "win32" ? "C:\\Temp" : "/tmp");
+  return (
+    process.env.TMPDIR ||
+    process.env.TEMP ||
+    process.env.TMP ||
+    (platform === "win32" ? "C:\\Temp" : "/tmp")
+  );
 }
 
 /**
@@ -151,7 +169,10 @@ export function readTextFileSyncPure(filePath: string): string {
       );
       return res.exitCode === 0 ? res.stdout.toString("utf8") : "";
     }
-    const res = Bun.spawnSync(["cat", "--", filePath], { stdout: "pipe", stderr: "ignore" });
+    const res = Bun.spawnSync(["cat", "--", filePath], {
+      stdout: "pipe",
+      stderr: "ignore",
+    });
     return res.exitCode === 0 ? res.stdout.toString("utf8") : "";
   } catch {
     return "";
@@ -161,7 +182,10 @@ export function readTextFileSyncPure(filePath: string): string {
 /**
  * Synchronously creates a directory and any missing parent directories using pure Bun spawning.
  */
-export function ensureDirectoryPure(dirPath: string, _platform = process.platform): void {
+export function ensureDirectoryPure(
+  dirPath: string,
+  _platform = process.platform,
+): void {
   if (!dirPath || dirPath.includes("\0")) return;
   if (process.platform === "win32") {
     Bun.spawnSync(
@@ -223,7 +247,10 @@ export function listDirectoryEntriesPure(
           isDir: Boolean(x.PSIsContainer),
         }));
     }
-    const res = Bun.spawnSync(["ls", "-1Ap", "--", dirPath], { stdout: "pipe", stderr: "ignore" });
+    const res = Bun.spawnSync(["ls", "-1Ap", "--", dirPath], {
+      stdout: "pipe",
+      stderr: "ignore",
+    });
     if (res.exitCode !== 0) return [];
     const lines = res.stdout
       .toString("utf8")
@@ -251,7 +278,8 @@ export function listDirectoryEntriesPure(
 /**
  * Host system memory classification tier used to enforce the 70% RAM safety ceiling for local models.
  */
-export type RamSafetyTier = "under_8gb" | "8gb_to_16gb" | "17gb_to_32gb" | "33gb_plus";
+export type RamSafetyTier =
+  "under_8gb" | "8gb_to_16gb" | "17gb_to_32gb" | "33gb_plus";
 
 /**
  * Detected host CPU, architecture, total RAM, 70% safe memory budget, and parameter ceiling specifications.
@@ -283,11 +311,15 @@ let cachedNativeHostCpuCores = 0;
  * under Windows 11 ARM64 emulation (e.g., Parallels Desktop on Apple Silicon Mac where
  * `process.arch` is `"x64"` but `PROCESSOR_ARCHITEW6432` / `PROCESSOR_ARCHITECTURE` is `"ARM64"`).
  */
-export function detectNativeHostArch(platform: string, overrideArch?: string): string {
+export function detectNativeHostArch(
+  platform: string,
+  overrideArch?: string,
+): string {
   if (overrideArch) return overrideArch;
   if (platform === "darwin" && process.platform !== "darwin") return "arm64";
   if (platform === "win32") {
-    const winEnvArch = `${process.env.PROCESSOR_ARCHITEW6432 || ""} ${process.env.PROCESSOR_ARCHITECTURE || ""}`.toLowerCase();
+    const winEnvArch =
+      `${process.env.PROCESSOR_ARCHITEW6432 || ""} ${process.env.PROCESSOR_ARCHITECTURE || ""}`.toLowerCase();
     if (winEnvArch.includes("arm64") || winEnvArch.includes("aarch64")) {
       return "arm64";
     }
@@ -309,11 +341,19 @@ export function inspectOllamaHardware(
     cpuCores?: number;
   },
 ): OllamaHardwareSpecs {
-  const platform = overrides?.platform ?? ctx?.ollama?.platform ?? ctx?.platform ?? process.platform;
-  const arch = detectNativeHostArch(platform, overrides?.arch ?? ctx?.ollama?.arch);
+  const platform =
+    overrides?.platform ??
+    ctx?.ollama?.platform ??
+    ctx?.platform ??
+    process.platform;
+  const arch = detectNativeHostArch(
+    platform,
+    overrides?.arch ?? ctx?.ollama?.arch,
+  );
   const isAppleSiliconMac = platform === "darwin" && arch === "arm64";
 
-  let totalRamBytes = overrides?.totalRamBytes ?? ctx?.ollama?.totalRamBytes ?? 0;
+  let totalRamBytes =
+    overrides?.totalRamBytes ?? ctx?.ollama?.totalRamBytes ?? 0;
   let cpuModel = overrides?.cpuModel ?? ctx?.ollama?.cpuModel ?? "";
   let cpuCores = overrides?.cpuCores ?? ctx?.ollama?.cpuCores ?? 0;
 
@@ -323,20 +363,31 @@ export function inspectOllamaHardware(
     } else {
       try {
         if (platform === "darwin" && process.platform === "darwin") {
-          const memOut = Bun.spawnSync(["sysctl", "-n", "hw.memsize"], { stdout: "pipe", stderr: "ignore" })
+          const memOut = Bun.spawnSync(["sysctl", "-n", "hw.memsize"], {
+            stdout: "pipe",
+            stderr: "ignore",
+          })
             .stdout.toString()
             .trim();
           const parsed = Number(memOut);
           if (Number.isFinite(parsed) && parsed > 0) totalRamBytes = parsed;
         } else if (platform === "linux" && process.platform === "linux") {
-          const memOut = Bun.spawnSync(["grep", "MemTotal", "/proc/meminfo"], { stdout: "pipe", stderr: "ignore" })
+          const memOut = Bun.spawnSync(["grep", "MemTotal", "/proc/meminfo"], {
+            stdout: "pipe",
+            stderr: "ignore",
+          })
             .stdout.toString()
             .trim();
           const m = /(\d+)\s*kB/i.exec(memOut);
           if (m) totalRamBytes = Number(m[1]) * 1024;
         } else if (platform === "win32" && process.platform === "win32") {
           const memOut = Bun.spawnSync(
-            ["powershell", "-NoProfile", "-Command", "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory"],
+            [
+              "powershell",
+              "-NoProfile",
+              "-Command",
+              "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory",
+            ],
             { stdout: "pipe", stderr: "ignore" },
           )
             .stdout.toString()
@@ -363,15 +414,26 @@ export function inspectOllamaHardware(
     } else {
       try {
         if (platform === "darwin" && process.platform === "darwin") {
-          cpuModel = Bun.spawnSync(["sysctl", "-n", "machdep.cpu.brand_string"], { stdout: "pipe", stderr: "ignore" })
+          cpuModel = Bun.spawnSync(
+            ["sysctl", "-n", "machdep.cpu.brand_string"],
+            { stdout: "pipe", stderr: "ignore" },
+          )
             .stdout.toString()
             .trim();
-          const cOut = Bun.spawnSync(["sysctl", "-n", "hw.ncpu"], { stdout: "pipe", stderr: "ignore" })
+          const cOut = Bun.spawnSync(["sysctl", "-n", "hw.ncpu"], {
+            stdout: "pipe",
+            stderr: "ignore",
+          })
             .stdout.toString()
             .trim();
           if (Number(cOut) > 0) cpuCores = Number(cOut);
         } else if (platform === "linux" && process.platform === "linux") {
-          const cOut = Bun.spawnSync(["nproc"], { stdout: "pipe", stderr: "ignore" }).stdout.toString().trim();
+          const cOut = Bun.spawnSync(["nproc"], {
+            stdout: "pipe",
+            stderr: "ignore",
+          })
+            .stdout.toString()
+            .trim();
           if (Number(cOut) > 0) cpuCores = Number(cOut);
         }
         if (platform === process.platform) {
@@ -382,13 +444,17 @@ export function inspectOllamaHardware(
     }
   }
 
-  if (!cpuModel) cpuModel = isAppleSiliconMac ? "Apple Silicon (ARM64)" : `${platform.toUpperCase()} ${arch}`;
+  if (!cpuModel)
+    cpuModel = isAppleSiliconMac
+      ? "Apple Silicon (ARM64)"
+      : `${platform.toUpperCase()} ${arch}`;
   if (!cpuCores || cpuCores <= 0) cpuCores = 8;
 
   const totalRamGb = Math.round((totalRamBytes / 1024 ** 3) * 100) / 100;
   // Rule B: Strict 70% RAM Safety Ceiling (keeping 30% free for the OS and Codecaine File Manager)
   const safeMemoryBudgetBytes = Math.floor(totalRamBytes * 0.7);
-  const safeMemoryBudgetGb = Math.round((safeMemoryBudgetBytes / 1024 ** 3) * 100) / 100;
+  const safeMemoryBudgetGb =
+    Math.round((safeMemoryBudgetBytes / 1024 ** 3) * 100) / 100;
 
   let ramTier: RamSafetyTier;
   let tierLabel: string;
@@ -487,17 +553,36 @@ export function resolveSandboxPath(ctx: FmContext, relOrAbs: string): string {
     throw new FmError("BAD_PATH", "Invalid path containing null byte.");
   }
   const base = ctx.sandboxRoot || ctx.home;
-  const isAbs = raw.startsWith("/") || (ctx.platform === "win32" && /^[A-Za-z]:[\\/]/.test(raw));
-  const candidate = raw === "." || raw === "" ? base : isAbs ? raw : joinPath([base, raw], ctx.platform);
+  const isAbs =
+    raw.startsWith("/") ||
+    (ctx.platform === "win32" && /^[A-Za-z]:[\\/]/.test(raw));
+  const candidate =
+    raw === "." || raw === ""
+      ? base
+      : isAbs
+        ? raw
+        : joinPath([base, raw], ctx.platform);
   const resolved = absolutePath(ctx, candidate);
-  if (ctx.sandboxRoot && !isSameOrInside(resolved, ctx.sandboxRoot, ctx.platform)) {
-    throw new FmError("PROTECTED_PATH", "Path escapes the configured workspace sandbox root.");
+  if (
+    ctx.sandboxRoot &&
+    !isSameOrInside(resolved, ctx.sandboxRoot, ctx.platform)
+  ) {
+    throw new FmError(
+      "PROTECTED_PATH",
+      "Path escapes the configured workspace sandbox root.",
+    );
   }
   if (!isAbs && !isSameOrInside(resolved, base, ctx.platform)) {
-    throw new FmError("PROTECTED_PATH", "Relative path traversal outside the workspace root is not permitted.");
+    throw new FmError(
+      "PROTECTED_PATH",
+      "Relative path traversal outside the workspace root is not permitted.",
+    );
   }
   if (ctx.trashRoot && isSameOrInside(resolved, ctx.trashRoot, ctx.platform)) {
-    throw new FmError("TRASH_PROTECTED", "The Recycle Bin can only be changed through Recycle Bin actions.");
+    throw new FmError(
+      "TRASH_PROTECTED",
+      "The Recycle Bin can only be changed through Recycle Bin actions.",
+    );
   }
   return resolved;
 }
@@ -547,7 +632,11 @@ export async function readImageAsBase64(absPath: string): Promise<string> {
   if (!(await file.exists())) {
     throw new FmError("FILE_NOT_FOUND", `Image file not found: ${absPath}`);
   }
-  if (process.platform === "darwin" && file.size > 120_000 && Bun.which("sips")) {
+  if (
+    process.platform === "darwin" &&
+    file.size > 120_000 &&
+    Bun.which("sips")
+  ) {
     try {
       const ext = extnameLower(absPath) === "png" ? "png" : "jpg";
       const tmpOut = `${tempDirPath()}/fm_vlm_thumb_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.${ext}`;
@@ -559,9 +648,14 @@ export async function readImageAsBase64(absPath: string): Promise<string> {
       if (sipsRes.exitCode === 0) {
         const resizedFile = Bun.file(tmpOut);
         if (await resizedFile.exists()) {
-          const b64 = Buffer.from(await resizedFile.arrayBuffer()).toString("base64");
+          const b64 = Buffer.from(await resizedFile.arrayBuffer()).toString(
+            "base64",
+          );
           try {
-            Bun.spawnSync(["/bin/rm", "-f", tmpOut], { stdout: "ignore", stderr: "ignore" });
+            Bun.spawnSync(["/bin/rm", "-f", tmpOut], {
+              stdout: "ignore",
+              stderr: "ignore",
+            });
           } catch {}
           if (b64.length > 0) return b64;
         }
@@ -574,17 +668,62 @@ export async function readImageAsBase64(absPath: string): Promise<string> {
 /**
  * Reads a text or rich-document snippet up to `maxChars` from a file, package bundle, or directory.
  */
-export async function readTextFileSnippet(absPath: string, maxChars = 24_000): Promise<string> {
+export async function readTextFileSnippet(
+  absPath: string,
+  maxChars = 24_000,
+): Promise<string> {
   const ext = extnameLower(absPath);
   const richExts = new Set([
-    "epub", "ibooks", "rtfd", "textbundle", "scriv", "ulysses",
-    "pages", "numbers", "key", "playground", "playgroundbook",
-    "oo3", "mindnode", "graffle",
-    "docx", "odt", "rtf", "fb2", "pdf", "pptx", "ppsx", "odp", "xlsx", "xlsm", "ods",
+    "epub",
+    "ibooks",
+    "rtfd",
+    "textbundle",
+    "scriv",
+    "ulysses",
+    "pages",
+    "numbers",
+    "key",
+    "playground",
+    "playgroundbook",
+    "oo3",
+    "mindnode",
+    "graffle",
+    "docx",
+    "odt",
+    "rtf",
+    "fb2",
+    "pdf",
+    "pptx",
+    "ppsx",
+    "odp",
+    "xlsx",
+    "xlsm",
+    "ods",
   ]);
   const binaryMediaExts = new Set([
-    "png", "jpg", "jpeg", "webp", "gif", "bmp", "heic", "tiff", "tif", "avif", "ico",
-    "mp3", "wav", "m4a", "flac", "ogg", "aac", "opus", "mp4", "mov", "webm", "mkv", "avi",
+    "png",
+    "jpg",
+    "jpeg",
+    "webp",
+    "gif",
+    "bmp",
+    "heic",
+    "tiff",
+    "tif",
+    "avif",
+    "ico",
+    "mp3",
+    "wav",
+    "m4a",
+    "flac",
+    "ogg",
+    "aac",
+    "opus",
+    "mp4",
+    "mov",
+    "webm",
+    "mkv",
+    "avi",
   ]);
   const file = Bun.file(absPath);
   const isRegularFile = await file.exists();
@@ -595,7 +734,9 @@ export async function readTextFileSnippet(absPath: string, maxChars = 24_000): P
   }
 
   if (!isRegularFile || richExts.has(ext)) {
-    const richText = await extractReadableDocumentText(absPath, maxChars).catch(() => null);
+    const richText = await extractReadableDocumentText(absPath, maxChars).catch(
+      () => null,
+    );
     if (richText) return richText;
   }
 
@@ -604,7 +745,9 @@ export async function readTextFileSnippet(absPath: string, maxChars = 24_000): P
     if (dirEntries.length > 0) {
       const listing = dirEntries
         .slice(0, 120)
-        .map((e) => (e.isDir && !isDocumentPackageName(e.name) ? `${e.name}/` : e.name))
+        .map((e) =>
+          e.isDir && !isDocumentPackageName(e.name) ? `${e.name}/` : e.name,
+        )
         .join("\n");
       const summary = `[Directory: ${basenamePath(absPath)} (${dirEntries.length} items)]\n${listing}`;
       return summary.length > maxChars ? summary.slice(0, maxChars) : summary;
@@ -647,7 +790,13 @@ export function listDirectoryWithBun(
 }
 
 /** Tiny specialized utility models that are always allowed on Apple Silicon and low-RAM tiers. */
-export const UTILITY_MODEL_NAMES = new Set(["phonon", "nimble", "tev1", "clef", "clef-flash"]);
+export const UTILITY_MODEL_NAMES = new Set([
+  "phonon",
+  "nimble",
+  "tev1",
+  "clef",
+  "clef-flash",
+]);
 
 /**
  * Cross-platform Text-to-Audio / Speech LLM models for Linux, Windows, and Intel macOS
@@ -672,32 +821,52 @@ export const CROSS_PLATFORM_SPEECH_MODEL_NAMES = new Set([
  * to verified upstream `registry.ollama.ai` model tags (`legraphista/Orpheus:latest`, `lfm3-omni:latest`, `mannix/outetts:0.3`)
  * whenever a real Ollama daemon reports `pull model manifest: file does not exist` for the un-namespaced alias.
  */
-export function resolveSpeechModelRegistryFallback(modelName: string): string | null {
+export function resolveSpeechModelRegistryFallback(
+  modelName: string,
+): string | null {
   const base = baseModelName(modelName);
-  const lower = String(modelName || "").trim().toLowerCase();
+  const lower = String(modelName || "")
+    .trim()
+    .toLowerCase();
   if (lower.includes("/")) return null;
-  if (base === "orpheus" || base === "orpheus-tts") return "legraphista/Orpheus:latest";
+  if (base === "orpheus" || base === "orpheus-tts")
+    return "legraphista/Orpheus:latest";
   if (base === "kokoro") return "lfm3-omni:latest";
   if (base === "oute-tts" || base === "outetts") return "mannix/outetts:0.3";
-  if (base === "parler-tts" || base === "llasa") return "legraphista/Orpheus:latest";
+  if (base === "parler-tts" || base === "llasa")
+    return "legraphista/Orpheus:latest";
   return null;
 }
 
 /**
  * Set of Ollama model names supporting the SystemOne (`/v1/systemone`) decision engine.
  */
-export const DECISION_MODEL_NAMES = new Set(["nimble", "tev1", "clef", "clef-flash", "clef:cloud", "d3"]);
+export const DECISION_MODEL_NAMES = new Set([
+  "nimble",
+  "tev1",
+  "clef",
+  "clef-flash",
+  "clef:cloud",
+  "d3",
+]);
 
 /**
  * Set of SystemOne decision models that also support multimodal vision inputs.
  */
-export const VISION_DECISION_MODEL_NAMES = new Set(["clef", "clef-flash", "clef:cloud", "d3"]);
+export const VISION_DECISION_MODEL_NAMES = new Set([
+  "clef",
+  "clef-flash",
+  "clef:cloud",
+  "d3",
+]);
 
 /**
  * Extracts the lowercase base model name without namespace prefix or tag suffix (e.g. `library/qwen3.5:4b` -> `qwen3.5`).
  */
 export function baseModelName(model: string): string {
-  const clean = String(model || "").trim().toLowerCase();
+  const clean = String(model || "")
+    .trim()
+    .toLowerCase();
   const colon = clean.indexOf(":");
   const base = colon >= 0 ? clean.slice(0, colon) : clean;
   const slash = base.lastIndexOf("/");
@@ -708,7 +877,9 @@ export function baseModelName(model: string): string {
  * Checks whether a model tag refers to a cloud-hosted Ollama model (`:cloud` or `-cloud`).
  */
 export function isCloudModelName(model: string): boolean {
-  const clean = String(model || "").trim().toLowerCase();
+  const clean = String(model || "")
+    .trim()
+    .toLowerCase();
   return clean.endsWith(":cloud") || clean.endsWith("-cloud");
 }
 
@@ -743,9 +914,14 @@ export function isUtilityModelName(model: string): boolean {
 /**
  * Checks whether a model supports the SystemOne (`/v1/systemone`) decision capability.
  */
-export function isDecisionModelName(model: string, capabilities: string[] = []): boolean {
+export function isDecisionModelName(
+  model: string,
+  capabilities: string[] = [],
+): boolean {
   if (capabilities.includes("decision")) return true;
-  const clean = String(model || "").trim().toLowerCase();
+  const clean = String(model || "")
+    .trim()
+    .toLowerCase();
   if (DECISION_MODEL_NAMES.has(clean)) return true;
   return DECISION_MODEL_NAMES.has(baseModelName(model));
 }
@@ -753,11 +929,19 @@ export function isDecisionModelName(model: string, capabilities: string[] = []):
 /**
  * Checks whether a model is a SystemOne decision model capable of evaluating images.
  */
-export function isVisionDecisionModel(model: string, capabilities: string[] = []): boolean {
-  const clean = String(model || "").trim().toLowerCase();
+export function isVisionDecisionModel(
+  model: string,
+  capabilities: string[] = [],
+): boolean {
+  const clean = String(model || "")
+    .trim()
+    .toLowerCase();
   const base = baseModelName(model);
-  if (base === "clef" || base === "clef-flash" || clean === "clef:cloud") return true;
-  return isDecisionModelName(model, capabilities) && capabilities.includes("vision");
+  if (base === "clef" || base === "clef-flash" || clean === "clef:cloud")
+    return true;
+  return (
+    isDecisionModelName(model, capabilities) && capabilities.includes("vision")
+  );
 }
 
 /**
@@ -780,7 +964,8 @@ export type ModelThinkingMode = "levels" | "toggle" | "always_on" | "none";
 /**
  * User-selectable reasoning effort or toggle level for thinking-capable models.
  */
-export type ThinkingEffortChoice = "auto" | "off" | "on" | "low" | "medium" | "high";
+export type ThinkingEffortChoice =
+  "auto" | "off" | "on" | "low" | "medium" | "high";
 
 /**
  * Descriptor of a model's chain-of-thought reasoning capabilities, supported effort levels, and UI labels.
@@ -811,10 +996,16 @@ export function getModelThinkingCapabilities(modelInput: {
   capabilities?: string[];
   reasoningCapable?: boolean;
 }): ModelThinkingCapabilities {
-  const rawName = String(modelInput.name || modelInput.id || "").trim().toLowerCase();
+  const rawName = String(modelInput.name || modelInput.id || "")
+    .trim()
+    .toLowerCase();
   const base = baseModelName(rawName);
-  const family = String(modelInput.family || "").trim().toLowerCase();
-  const caps = new Set((modelInput.capabilities || []).map((c) => String(c).toLowerCase()));
+  const family = String(modelInput.family || "")
+    .trim()
+    .toLowerCase();
+  const caps = new Set(
+    (modelInput.capabilities || []).map((c) => String(c).toLowerCase()),
+  );
 
   if (
     isSpeechModelName(rawName) ||
@@ -1017,17 +1208,33 @@ export function getModelFeatureProfile(modelInput: {
   isMlx?: boolean;
   isCloud?: boolean;
 }): ModelFeatureProfile {
-  const rawName = String(modelInput.name || modelInput.id || "qwen3.5:latest").trim();
+  const rawName = String(
+    modelInput.name || modelInput.id || "qwen3.5:latest",
+  ).trim();
   const lower = rawName.toLowerCase();
   const base = baseModelName(lower);
-  const caps = new Set((modelInput.capabilities || []).map((c) => String(c).toLowerCase()));
+  const caps = new Set(
+    (modelInput.capabilities || []).map((c) => String(c).toLowerCase()),
+  );
   const thinkingCaps = getModelThinkingCapabilities(modelInput);
 
   const isPhonon = isPhononModelName(lower);
-  const isAudioSpeech = isSpeechModelName(lower) || caps.has("speech") || caps.has("tts") || caps.has("audio") || lower.includes("omni");
+  const isAudioSpeech =
+    isSpeechModelName(lower) ||
+    caps.has("speech") ||
+    caps.has("tts") ||
+    caps.has("audio") ||
+    lower.includes("omni");
   const isDecision = isDecisionModelName(lower, modelInput.capabilities);
-  const isEmbedding = caps.has("embedding") || caps.has("embeddings") || lower.includes("embed") || lower.includes("bge-");
-  const isChat = !isPhonon && !isEmbedding && (!isDecision || caps.has("chat") || caps.has("completion"));
+  const isEmbedding =
+    caps.has("embedding") ||
+    caps.has("embeddings") ||
+    lower.includes("embed") ||
+    lower.includes("bge-");
+  const isChat =
+    !isPhonon &&
+    !isEmbedding &&
+    (!isDecision || caps.has("chat") || caps.has("completion"));
   const isVision =
     caps.has("vision") ||
     lower.includes("-vl") ||
@@ -1068,7 +1275,10 @@ export function getModelFeatureProfile(modelInput: {
   const isStructuredJson = isChat;
   const isWebSearch = isChat;
   const isCloud = Boolean(modelInput.isCloud) || isCloudModelName(lower);
-  const isMlx = Boolean(modelInput.isMlx) || lower.includes("mlx") || lower.includes("mxfp");
+  const isMlx =
+    Boolean(modelInput.isMlx) ||
+    lower.includes("mlx") ||
+    lower.includes("mxfp");
 
   const indicators: ModelFeatureIndicator[] = [];
   const useCases: string[] = [];
@@ -1078,25 +1288,34 @@ export function getModelFeatureProfile(modelInput: {
       id: "thinking_levels",
       icon: "🧠",
       label: "Thinking Levels (Low / Med / High)",
-      description: "Choose Low, Medium, or High reasoning effort before generating.",
+      description:
+        "Choose Low, Medium, or High reasoning effort before generating.",
     });
-    useCases.push("Select Low, Medium, or High reasoning effort for complex tasks");
+    useCases.push(
+      "Select Low, Medium, or High reasoning effort for complex tasks",
+    );
   } else if (thinkingCaps.thinkingMode === "toggle") {
     indicators.push({
       id: "thinking_toggle",
       icon: "🔀",
       label: "Thinking Toggle (On / Off)",
-      description: "Turn Deep Thinking On for step-by-step reasoning or Off for instant direct replies.",
+      description:
+        "Turn Deep Thinking On for step-by-step reasoning or Off for instant direct replies.",
     });
-    useCases.push("Toggle Thinking On for deep analysis or Off for fast replies");
+    useCases.push(
+      "Toggle Thinking On for deep analysis or Off for fast replies",
+    );
   } else if (thinkingCaps.thinkingMode === "always_on") {
     indicators.push({
       id: "thinking_always_on",
       icon: "🧠",
       label: "Always-On Reasoning (<think>)",
-      description: "Always performs multi-step chain-of-thought verification before answering.",
+      description:
+        "Always performs multi-step chain-of-thought verification before answering.",
     });
-    useCases.push("Step-by-step math proofs, logic verification & root-cause bug hunting");
+    useCases.push(
+      "Step-by-step math proofs, logic verification & root-cause bug hunting",
+    );
   } else if (isChat) {
     indicators.push({
       id: "direct_fast",
@@ -1112,7 +1331,8 @@ export function getModelFeatureProfile(modelInput: {
       id: "vision",
       icon: "👁",
       label: "Vision (Images & Screenshots)",
-      description: "Inspects PNG/JPG/WebP images, receipts, diagrams, and UI screenshots.",
+      description:
+        "Inspects PNG/JPG/WebP images, receipts, diagrams, and UI screenshots.",
     });
     useCases.push("Inspect images, receipts, diagrams, and UI screenshots");
   }
@@ -1122,7 +1342,8 @@ export function getModelFeatureProfile(modelInput: {
       id: "speech",
       icon: "🔊",
       label: "Speech & Audio Synthesis",
-      description: "Reads files and answers aloud with natural voice synthesis.",
+      description:
+        "Reads files and answers aloud with natural voice synthesis.",
     });
     useCases.push("Read documents aloud and export spoken WAV/PCM audio");
   }
@@ -1132,9 +1353,12 @@ export function getModelFeatureProfile(modelInput: {
       id: "decision",
       icon: "⚖️",
       label: "SystemOne Decision (noul / choice / score)",
-      description: "Scores Yes/No probabilities, multi-choice buckets (A-Z), and 1-10 ratings.",
+      description:
+        "Scores Yes/No probabilities, multi-choice buckets (A-Z), and 1-10 ratings.",
     });
-    useCases.push("Triage files with Yes/No (noul), A-Z categories, and 1-10 urgency scores");
+    useCases.push(
+      "Triage files with Yes/No (noul), A-Z categories, and 1-10 urgency scores",
+    );
   }
 
   if (isEmbedding) {
@@ -1142,7 +1366,8 @@ export function getModelFeatureProfile(modelInput: {
       id: "embeddings",
       icon: "🧭",
       label: "Semantic Embeddings (/api/embed)",
-      description: "Generates dense vector embeddings for meaning-based file search.",
+      description:
+        "Generates dense vector embeddings for meaning-based file search.",
     });
     useCases.push("Search files by meaning and cluster related documents");
   }
@@ -1152,9 +1377,12 @@ export function getModelFeatureProfile(modelInput: {
       id: "code",
       icon: "💻",
       label: "Chat & Code Analysis",
-      description: "Summarizes files, writes/refactors code, and explains logs.",
+      description:
+        "Summarizes files, writes/refactors code, and explains logs.",
     });
-    useCases.push("Summarize files, refactor code, and explain logs in plain English");
+    useCases.push(
+      "Summarize files, refactor code, and explain logs in plain English",
+    );
   }
 
   if (isTools) {
@@ -1162,9 +1390,12 @@ export function getModelFeatureProfile(modelInput: {
       id: "tools",
       icon: "🛠",
       label: "Tool Calling",
-      description: "Can propose safe file creation/rename actions with visual confirmation.",
+      description:
+        "Can propose safe file creation/rename actions with visual confirmation.",
     });
-    useCases.push("Run safe file creation & organization tools with confirmation");
+    useCases.push(
+      "Run safe file creation & organization tools with confirmation",
+    );
   }
 
   if (isStructuredJson) {
@@ -1172,9 +1403,12 @@ export function getModelFeatureProfile(modelInput: {
       id: "structured_json",
       icon: "📐",
       label: "Structured JSON",
-      description: "Outputs schema-validated JSON for batch renames, audits, and tables.",
+      description:
+        "Outputs schema-validated JSON for batch renames, audits, and tables.",
     });
-    useCases.push("Generate schema-validated JSON plans (batch rename, code review, tables)");
+    useCases.push(
+      "Generate schema-validated JSON plans (batch rename, code review, tables)",
+    );
   }
 
   if (isCloud) {
@@ -1250,8 +1484,13 @@ export function resolveOllamaThinkConfig(
   effortSystemHint: string | null;
   systemReasoningDirective: string;
 } {
-  const caps = getModelThinkingCapabilities({ name: modelName, capabilities: input.capabilities });
-  const rawLevel = String(input.thinkingLevel ?? "").trim().toLowerCase();
+  const caps = getModelThinkingCapabilities({
+    name: modelName,
+    capabilities: input.capabilities,
+  });
+  const rawLevel = String(input.thinkingLevel ?? "")
+    .trim()
+    .toLowerCase();
   const rawThink = input.think;
 
   // Rule B: When reading a reply out loud with Phonon/Speech, minimize or disable thinking
@@ -1282,10 +1521,21 @@ export function resolveOllamaThinkConfig(
     };
   }
 
-  let requestedLevel: "auto" | "off" | "on" | "low" | "medium" | "high" = "auto";
-  if (rawLevel === "low" || rawLevel === "medium" || rawLevel === "high" || rawLevel === "on" || rawLevel === "off") {
+  let requestedLevel: "auto" | "off" | "on" | "low" | "medium" | "high" =
+    "auto";
+  if (
+    rawLevel === "low" ||
+    rawLevel === "medium" ||
+    rawLevel === "high" ||
+    rawLevel === "on" ||
+    rawLevel === "off"
+  ) {
     requestedLevel = rawLevel;
-  } else if (rawThink === "low" || rawThink === "medium" || rawThink === "high") {
+  } else if (
+    rawThink === "low" ||
+    rawThink === "medium" ||
+    rawThink === "high"
+  ) {
     requestedLevel = rawThink;
   } else if (rawThink === "on" || rawThink === true) {
     requestedLevel = "on";
@@ -1294,19 +1544,24 @@ export function resolveOllamaThinkConfig(
   }
 
   const explicitBudget =
-    typeof input.thinkingBudget === "number" && Number.isFinite(input.thinkingBudget) && input.thinkingBudget > 0
+    typeof input.thinkingBudget === "number" &&
+    Number.isFinite(input.thinkingBudget) &&
+    input.thinkingBudget > 0
       ? Math.round(input.thinkingBudget)
       : null;
 
   // Case 1: `gpt-oss` and multi-level models where Ollama's `think` parameter accepts `"low" | "medium" | "high"`
   if (caps.thinkingMode === "levels") {
     const level: "low" | "medium" | "high" =
-      requestedLevel === "low" || requestedLevel === "medium" || requestedLevel === "high"
+      requestedLevel === "low" ||
+      requestedLevel === "medium" ||
+      requestedLevel === "high"
         ? requestedLevel
         : requestedLevel === "off"
           ? "low"
           : "medium";
-    const defaultBudget = level === "low" ? 1024 : level === "medium" ? 4096 : 16384;
+    const defaultBudget =
+      level === "low" ? 1024 : level === "medium" ? 4096 : 16384;
     const finalBudget = explicitBudget ?? defaultBudget;
     const directive = explicitBudget
       ? `Reasoning: ${level}\nKeep internal thinking within approximately ${explicitBudget} tokens.`
@@ -1347,9 +1602,17 @@ export function resolveOllamaThinkConfig(
   }
 
   const effectiveLevel: "on" | "low" | "medium" | "high" =
-    requestedLevel === "low" || requestedLevel === "medium" || requestedLevel === "high" ? requestedLevel : "on";
+    requestedLevel === "low" ||
+    requestedLevel === "medium" ||
+    requestedLevel === "high"
+      ? requestedLevel
+      : "on";
   const reasoningEffort: "low" | "medium" | "high" | undefined =
-    effectiveLevel === "low" || effectiveLevel === "medium" || effectiveLevel === "high" ? effectiveLevel : undefined;
+    effectiveLevel === "low" ||
+    effectiveLevel === "medium" ||
+    effectiveLevel === "high"
+      ? effectiveLevel
+      : undefined;
 
   const budgetForLevel =
     explicitBudget ??
@@ -1363,11 +1626,17 @@ export function resolveOllamaThinkConfig(
 
   const hintParts: string[] = [];
   if (effectiveLevel === "low") {
-    hintParts.push("Keep internal step-by-step thinking concise and brief (low reasoning effort).");
+    hintParts.push(
+      "Keep internal step-by-step thinking concise and brief (low reasoning effort).",
+    );
   } else if (effectiveLevel === "medium") {
-    hintParts.push("Use balanced step-by-step thinking (medium reasoning effort).");
+    hintParts.push(
+      "Use balanced step-by-step thinking (medium reasoning effort).",
+    );
   } else if (effectiveLevel === "high") {
-    hintParts.push("Perform thorough, exhaustive step-by-step reasoning and verification (high reasoning effort).");
+    hintParts.push(
+      "Perform thorough, exhaustive step-by-step reasoning and verification (high reasoning effort).",
+    );
   }
   if (budgetForLevel) {
     hintParts.push(`Target thinking token budget: ~${budgetForLevel} tokens.`);
@@ -1405,7 +1674,8 @@ export function extractThinkingAndFinalContent(
 
   // 1. Parse gpt-oss Harmony format channels if present
   if (content.includes("<|channel|>")) {
-    const analysisRegex = /<\|channel\|>(?:analysis|commentary)<\|message\|>([\s\S]*?)(?:<\|end\|>|(?=<\|start\|>|<\|channel\|>final)|$)/gi;
+    const analysisRegex =
+      /<\|channel\|>(?:analysis|commentary)<\|message\|>([\s\S]*?)(?:<\|end\|>|(?=<\|start\|>|<\|channel\|>final)|$)/gi;
     let match: RegExpExecArray | null;
     while ((match = analysisRegex.exec(content)) !== null) {
       const chunk = (match[1] || "").trim();
@@ -1413,13 +1683,19 @@ export function extractThinkingAndFinalContent(
         reasoningParts.push(chunk);
       }
     }
-    const finalMatch = /<\|channel\|>final<\|message\|>([\s\S]*?)(?:<\|end\|>|<\|return\|>|$)/i.exec(content);
+    const finalMatch =
+      /<\|channel\|>final<\|message\|>([\s\S]*?)(?:<\|end\|>|<\|return\|>|$)/i.exec(
+        content,
+      );
     if (finalMatch) {
       content = finalMatch[1]!.trim();
     } else {
       content = content
         .replace(/<\|start\|>assistant/gi, "")
-        .replace(/<\|channel\|>(?:analysis|commentary)<\|message\|>[\s\S]*?(?:<\|end\|>|$)/gi, "")
+        .replace(
+          /<\|channel\|>(?:analysis|commentary)<\|message\|>[\s\S]*?(?:<\|end\|>|$)/gi,
+          "",
+        )
         .replace(/<\|channel\|>final<\|message\|>/gi, "")
         .replace(/<\|(?:end|return)\|>/gi, "")
         .trim();
@@ -1427,13 +1703,16 @@ export function extractThinkingAndFinalContent(
   }
 
   // 2. Parse <think>...</think> and <reasoning>...</reasoning> blocks
-  content = content.replace(/<(?:think|reasoning)>([\s\S]*?)<\/(?:think|reasoning)>/gi, (_m, inner) => {
-    const trimmed = String(inner || "").trim();
-    if (trimmed && !reasoningParts.includes(trimmed)) {
-      reasoningParts.push(trimmed);
-    }
-    return "";
-  });
+  content = content.replace(
+    /<(?:think|reasoning)>([\s\S]*?)<\/(?:think|reasoning)>/gi,
+    (_m, inner) => {
+      const trimmed = String(inner || "").trim();
+      if (trimmed && !reasoningParts.includes(trimmed)) {
+        reasoningParts.push(trimmed);
+      }
+      return "";
+    },
+  );
 
   // Handle unclosed <think> tag if truncated
   const openThinkIdx = content.indexOf("<think>");
@@ -1507,20 +1786,40 @@ export function estimateModelMemoryAndParams(model: {
   parameterSize?: string;
   parameterCount?: number;
   quantization?: string;
-}): { parameterBillions: number; estimatedRamBytes: number; estimatedRamGb: number } {
+}): {
+  parameterBillions: number;
+  estimatedRamBytes: number;
+  estimatedRamGb: number;
+} {
   const nameLower = String(model.name || "").toLowerCase();
   if (isCloudModelName(nameLower)) {
     return { parameterBillions: 0, estimatedRamBytes: 0, estimatedRamGb: 0 };
   }
   const base = baseModelName(nameLower);
   if (base === "phonon") {
-    return { parameterBillions: 0.044, estimatedRamBytes: 220 * 1024 * 1024, estimatedRamGb: 0.22 };
+    return {
+      parameterBillions: 0.044,
+      estimatedRamBytes: 220 * 1024 * 1024,
+      estimatedRamGb: 0.22,
+    };
   }
   if (base === "kokoro") {
-    return { parameterBillions: 0.082, estimatedRamBytes: 340 * 1024 * 1024, estimatedRamGb: 0.34 };
+    return {
+      parameterBillions: 0.082,
+      estimatedRamBytes: 340 * 1024 * 1024,
+      estimatedRamGb: 0.34,
+    };
   }
-  if (base === "oute-tts" || base === "outetts" || base === "parler-tts" || base === "llasa") {
-    const sz = model.sizeBytes && model.sizeBytes > 0 ? model.sizeBytes : 1100 * 1024 * 1024;
+  if (
+    base === "oute-tts" ||
+    base === "outetts" ||
+    base === "parler-tts" ||
+    base === "llasa"
+  ) {
+    const sz =
+      model.sizeBytes && model.sizeBytes > 0
+        ? model.sizeBytes
+        : 1100 * 1024 * 1024;
     return {
       parameterBillions: 1.0,
       estimatedRamBytes: sz,
@@ -1528,7 +1827,10 @@ export function estimateModelMemoryAndParams(model: {
     };
   }
   if (base === "orpheus" || base === "orpheus-tts" || base === "bark") {
-    const sz = model.sizeBytes && model.sizeBytes > 0 ? model.sizeBytes : Math.round(2.1 * 1024 ** 3);
+    const sz =
+      model.sizeBytes && model.sizeBytes > 0
+        ? model.sizeBytes
+        : Math.round(2.1 * 1024 ** 3);
     return {
       parameterBillions: 3.0,
       estimatedRamBytes: sz,
@@ -1536,7 +1838,10 @@ export function estimateModelMemoryAndParams(model: {
     };
   }
   if (base === "nimble" || base === "clef-flash" || base === "tev1") {
-    const sz = model.sizeBytes && model.sizeBytes > 0 ? model.sizeBytes : 900 * 1024 * 1024;
+    const sz =
+      model.sizeBytes && model.sizeBytes > 0
+        ? model.sizeBytes
+        : 900 * 1024 * 1024;
     return {
       parameterBillions: 1.2,
       estimatedRamBytes: sz,
@@ -1544,7 +1849,10 @@ export function estimateModelMemoryAndParams(model: {
     };
   }
   if (base === "clef") {
-    const sz = model.sizeBytes && model.sizeBytes > 0 ? model.sizeBytes : Math.round(2.4 * 1024 ** 3);
+    const sz =
+      model.sizeBytes && model.sizeBytes > 0
+        ? model.sizeBytes
+        : Math.round(2.4 * 1024 ** 3);
     return {
       parameterBillions: 2.5,
       estimatedRamBytes: sz,
@@ -1555,7 +1863,10 @@ export function estimateModelMemoryAndParams(model: {
   let paramsB = 0;
   if (typeof model.parameterCount === "number" && model.parameterCount > 0) {
     paramsB = model.parameterCount / 1e9;
-  } else if (typeof model.parameterSize === "string" && model.parameterSize.trim()) {
+  } else if (
+    typeof model.parameterSize === "string" &&
+    model.parameterSize.trim()
+  ) {
     const m = /^([\d.]+)\s*([BMTK])/i.exec(model.parameterSize.trim());
     if (m) {
       const val = Number(m[1]);
@@ -1580,7 +1891,10 @@ export function estimateModelMemoryAndParams(model: {
 
   if (!paramsB) {
     if (model.sizeBytes && model.sizeBytes > 0) {
-      paramsB = Math.max(0.5, Math.round((model.sizeBytes / (0.75 * 1024 ** 3)) * 10) / 10);
+      paramsB = Math.max(
+        0.5,
+        Math.round((model.sizeBytes / (0.75 * 1024 ** 3)) * 10) / 10,
+      );
     } else {
       paramsB = 3.0;
     }
@@ -1592,11 +1906,19 @@ export function estimateModelMemoryAndParams(model: {
     estimatedRamBytes = Math.round(model.sizeBytes * 1.12);
   } else {
     const quant = String(model.quantization || nameLower).toLowerCase();
-    const bytesPerParam = quant.includes("bf16") || quant.includes("fp16") ? 2.1 : quant.includes("fp8") || quant.includes("q8") ? 1.15 : 0.72;
-    estimatedRamBytes = Math.round(paramsB * bytesPerParam * 1024 ** 3 + 350 * 1024 * 1024);
+    const bytesPerParam =
+      quant.includes("bf16") || quant.includes("fp16")
+        ? 2.1
+        : quant.includes("fp8") || quant.includes("q8")
+          ? 1.15
+          : 0.72;
+    estimatedRamBytes = Math.round(
+      paramsB * bytesPerParam * 1024 ** 3 + 350 * 1024 * 1024,
+    );
   }
 
-  const estimatedRamGb = Math.round((estimatedRamBytes / 1024 ** 3) * 100) / 100;
+  const estimatedRamGb =
+    Math.round((estimatedRamBytes / 1024 ** 3) * 100) / 100;
   return {
     parameterBillions: Math.round(paramsB * 100) / 100,
     estimatedRamBytes,
@@ -1656,43 +1978,51 @@ export const DEFAULT_COMPACT_CHAT_MODEL = "qwen3.5:4b";
 export const CURATED_MODEL_CATALOG: CatalogModelSpec[] = [
   {
     name: "qwen3.5:latest",
-    label: "Qwen 3.5 (Default General-Purpose Multimodal Chat, Vision, Deep Thinking & Tools — macOS, Windows & Linux)",
+    label:
+      "Qwen 3.5 (Default General-Purpose Multimodal Chat, Vision, Deep Thinking & Tools — macOS, Windows & Linux)",
     parameterSize: "4B",
     parameterBillions: 4.0,
     estimatedRamGb: 3.1,
     runner: "mlx",
     capabilities: ["completion", "vision", "tools", "thinking", "mlx"],
-    description: "Default general-purpose LLM across macOS, Windows, and Linux supporting Chat, Vision, Code, Deep Thinking, and Tool Calling (`ollama run qwen3.5`).",
+    description:
+      "Default general-purpose LLM across macOS, Windows, and Linux supporting Chat, Vision, Code, Deep Thinking, and Tool Calling (`ollama run qwen3.5`).",
   },
   {
     name: "qwen3.5:4b",
-    label: "Qwen 3.5 4B (Compact Multimodal Vision, Deep Thinking & Tools — Smaller Memory Computers)",
+    label:
+      "Qwen 3.5 4B (Compact Multimodal Vision, Deep Thinking & Tools — Smaller Memory Computers)",
     parameterSize: "4B",
     parameterBillions: 4.0,
     estimatedRamGb: 3.1,
     runner: "mlx",
     capabilities: ["completion", "vision", "tools", "thinking", "mlx"],
-    description: "Official Qwen 3.5 4B (`qwen3.5:4b`) multimodal Chat, Vision, Deep Thinking & Tool-Calling model tailored for smaller memory computers on macOS, Windows, and Linux.",
+    description:
+      "Official Qwen 3.5 4B (`qwen3.5:4b`) multimodal Chat, Vision, Deep Thinking & Tool-Calling model tailored for smaller memory computers on macOS, Windows, and Linux.",
   },
   {
     name: "gpt-oss:20b",
-    label: "OpenAI gpt-oss 20B (Multi-Level Reasoning: Low / Medium / High + Tools — MXFP4)",
+    label:
+      "OpenAI gpt-oss 20B (Multi-Level Reasoning: Low / Medium / High + Tools — MXFP4)",
     parameterSize: "20B",
     parameterBillions: 20.0,
     estimatedRamGb: 13.8,
     runner: "mlx",
     capabilities: ["completion", "tools", "thinking", "mlx"],
-    description: "OpenAI gpt-oss 20B open-weight reasoning model with selectable Low, Medium, and High thinking effort levels (`think: \"low\" | \"medium\" | \"high\"`).",
+    description:
+      'OpenAI gpt-oss 20B open-weight reasoning model with selectable Low, Medium, and High thinking effort levels (`think: "low" | "medium" | "high"`).',
   },
   {
     name: "gpt-oss:120b",
-    label: "OpenAI gpt-oss 120B (Pro Multi-Level Reasoning: Low / Medium / High + Tools — MXFP4)",
+    label:
+      "OpenAI gpt-oss 120B (Pro Multi-Level Reasoning: Low / Medium / High + Tools — MXFP4)",
     parameterSize: "120B",
     parameterBillions: 120.0,
     estimatedRamGb: 65.0,
     runner: "mlx",
     capabilities: ["completion", "tools", "thinking", "mlx"],
-    description: "OpenAI gpt-oss 120B frontier open-weight reasoning model with selectable Low, Medium, and High thinking effort levels (`think: \"low\" | \"medium\" | \"high\"`).",
+    description:
+      'OpenAI gpt-oss 120B frontier open-weight reasoning model with selectable Low, Medium, and High thinking effort levels (`think: "low" | "medium" | "high"`).',
   },
   {
     name: "deepseek-r1:8b",
@@ -1702,17 +2032,20 @@ export const CURATED_MODEL_CATALOG: CatalogModelSpec[] = [
     estimatedRamGb: 5.2,
     runner: "mlx",
     capabilities: ["completion", "thinking", "mlx"],
-    description: "DeepSeek-R1 8B reasoning model with `<think>...</think>` chain-of-thought traces and configurable thinking budget.",
+    description:
+      "DeepSeek-R1 8B reasoning model with `<think>...</think>` chain-of-thought traces and configurable thinking budget.",
   },
   {
     name: "cogito:8b",
-    label: "Cogito v1 8B (Hybrid Toggleable On/Off Deep Thinking & Tool Calling)",
+    label:
+      "Cogito v1 8B (Hybrid Toggleable On/Off Deep Thinking & Tool Calling)",
     parameterSize: "8B",
     parameterBillions: 8.0,
     estimatedRamGb: 5.1,
     runner: "mlx",
     capabilities: ["completion", "tools", "thinking", "mlx"],
-    description: "Hybrid reasoning model that lets you toggle thinking On (`think: true`) or Off (`think: false`) per message.",
+    description:
+      "Hybrid reasoning model that lets you toggle thinking On (`think: true`) or Off (`think: false`) per message.",
   },
   {
     name: "lfm3:latest",
@@ -1722,7 +2055,8 @@ export const CURATED_MODEL_CATALOG: CatalogModelSpec[] = [
     estimatedRamGb: 1.8,
     runner: "mlx",
     capabilities: ["completion", "tools", "thinking", "mlx"],
-    description: "Compact Apple Silicon MLX model with deep thinking and tool calling. Fits even under 8 GB RAM.",
+    description:
+      "Compact Apple Silicon MLX model with deep thinking and tool calling. Fits even under 8 GB RAM.",
   },
   {
     name: "lfm3-vl:2b-mlx-bf16",
@@ -1732,7 +2066,8 @@ export const CURATED_MODEL_CATALOG: CatalogModelSpec[] = [
     estimatedRamGb: 3.9,
     runner: "mlx",
     capabilities: ["completion", "vision", "tools", "thinking", "mlx"],
-    description: "Native Apple Silicon MLX vision-language model for inspecting screenshots, OCR, and multimodal chat.",
+    description:
+      "Native Apple Silicon MLX vision-language model for inspecting screenshots, OCR, and multimodal chat.",
   },
   {
     name: "lfm3-omni:2b-mlx-bf16",
@@ -1742,7 +2077,8 @@ export const CURATED_MODEL_CATALOG: CatalogModelSpec[] = [
     estimatedRamGb: 4.5,
     runner: "mlx",
     capabilities: ["completion", "vision", "tools", "audio", "speech", "mlx"],
-    description: "Native Apple Silicon MLX omni model supporting text, vision, tools, and audio.",
+    description:
+      "Native Apple Silicon MLX omni model supporting text, vision, tools, and audio.",
   },
   {
     name: "phonon",
@@ -1752,7 +2088,8 @@ export const CURATED_MODEL_CATALOG: CatalogModelSpec[] = [
     estimatedRamGb: 0.22,
     runner: "mlx",
     capabilities: ["speech", "mlx"],
-    description: "Dedicated real-time neural text-to-speech engine with 38+ voices (`/v1/audio/speech`).",
+    description:
+      "Dedicated real-time neural text-to-speech engine with 38+ voices (`/v1/audio/speech`).",
   },
   {
     name: "nimble",
@@ -1762,7 +2099,8 @@ export const CURATED_MODEL_CATALOG: CatalogModelSpec[] = [
     estimatedRamGb: 0.9,
     runner: "mlx",
     capabilities: ["decision"],
-    description: "Ultra-fast SystemOne decision model for yes/no probability (`noul`), `choice`, and `score` rubrics.",
+    description:
+      "Ultra-fast SystemOne decision model for yes/no probability (`noul`), `choice`, and `score` rubrics.",
   },
   {
     name: "clef-flash",
@@ -1772,7 +2110,8 @@ export const CURATED_MODEL_CATALOG: CatalogModelSpec[] = [
     estimatedRamGb: 1.2,
     runner: "mlx",
     capabilities: ["decision", "vision"],
-    description: "Fast SystemOne decision & image classifier for receipts, screenshots, and documents.",
+    description:
+      "Fast SystemOne decision & image classifier for receipts, screenshots, and documents.",
   },
   {
     name: "clef",
@@ -1782,7 +2121,8 @@ export const CURATED_MODEL_CATALOG: CatalogModelSpec[] = [
     estimatedRamGb: 2.4,
     runner: "mlx",
     capabilities: ["decision", "vision"],
-    description: "SystemOne decision engine that judges both text files and images (`PNG`, `JPEG`, `WebP`).",
+    description:
+      "SystemOne decision engine that judges both text files and images (`PNG`, `JPEG`, `WebP`).",
   },
   {
     name: "tev1",
@@ -1792,7 +2132,8 @@ export const CURATED_MODEL_CATALOG: CatalogModelSpec[] = [
     estimatedRamGb: 0.9,
     runner: "mlx",
     capabilities: ["decision"],
-    description: "Lightweight SystemOne decision and rubric scoring utility model.",
+    description:
+      "Lightweight SystemOne decision and rubric scoring utility model.",
   },
   {
     name: "d3:9b-mxfp8",
@@ -1802,57 +2143,68 @@ export const CURATED_MODEL_CATALOG: CatalogModelSpec[] = [
     estimatedRamGb: 10.1,
     runner: "mlx",
     capabilities: ["decision", "vision", "mlx"],
-    description: "Apple Silicon MLX 8.4B multimodal decision & vision scorer (requires 16+ GB RAM).",
+    description:
+      "Apple Silicon MLX 8.4B multimodal decision & vision scorer (requires 16+ GB RAM).",
   },
   {
     name: "lfm3-omni:latest",
-    label: "Liquid LFM3-Omni 2B (Official Omni Audio, Speech, Vision & Chat — Cross-Platform & MLX)",
+    label:
+      "Liquid LFM3-Omni 2B (Official Omni Audio, Speech, Vision & Chat — Cross-Platform & MLX)",
     parameterSize: "2B",
     parameterBillions: 2.0,
     estimatedRamGb: 1.9,
     runner: "mlx",
     capabilities: ["completion", "speech", "audio", "vision", "tools", "mlx"],
-    description: "Liquid AI LFM3-Omni 2B multimodal model supporting Audio/Speech, Vision, Chat, and Tool Calling (`ollama run lfm3-omni`).",
+    description:
+      "Liquid AI LFM3-Omni 2B multimodal model supporting Audio/Speech, Vision, Chat, and Tool Calling (`ollama run lfm3-omni`).",
   },
   {
     name: "orpheus:latest",
-    label: "Orpheus TTS 3B (Cross-Platform Text-to-Audio LLM — Linux, Windows & Mac)",
+    label:
+      "Orpheus TTS 3B (Cross-Platform Text-to-Audio LLM — Linux, Windows & Mac)",
     parameterSize: "3B",
     parameterBillions: 3.0,
     estimatedRamGb: 2.1,
     runner: "standard",
     capabilities: ["speech", "audio", "completion"],
-    description: "Expressive cross-platform Text-to-Audio LLM for Linux and Windows systems where Apple MLX Phonon is not available.",
+    description:
+      "Expressive cross-platform Text-to-Audio LLM for Linux and Windows systems where Apple MLX Phonon is not available.",
   },
   {
     name: "kokoro:latest",
-    label: "Kokoro 82M TTS (Ultra-Light Cross-Platform Text-to-Audio — Linux & Windows)",
+    label:
+      "Kokoro 82M TTS (Ultra-Light Cross-Platform Text-to-Audio — Linux & Windows)",
     parameterSize: "82M",
     parameterBillions: 0.082,
     estimatedRamGb: 0.34,
     runner: "standard",
     capabilities: ["speech", "audio"],
-    description: "Ultra-fast 82M cross-platform neural speech synthesizer for Linux and Windows (runs in under 350 MB RAM).",
+    description:
+      "Ultra-fast 82M cross-platform neural speech synthesizer for Linux and Windows (runs in under 350 MB RAM).",
   },
   {
     name: "oute-tts:latest",
-    label: "OuteTTS 1B (Cross-Platform Audio & Voice Cloning LLM — Linux & Windows)",
+    label:
+      "OuteTTS 1B (Cross-Platform Audio & Voice Cloning LLM — Linux & Windows)",
     parameterSize: "1B",
     parameterBillions: 1.0,
     estimatedRamGb: 1.1,
     runner: "standard",
     capabilities: ["speech", "audio", "completion"],
-    description: "Compact 1B cross-platform Text-to-Audio LLM for natural speech generation on Linux, Windows, and macOS.",
+    description:
+      "Compact 1B cross-platform Text-to-Audio LLM for natural speech generation on Linux, Windows, and macOS.",
   },
   {
     name: "parler-tts:latest",
-    label: "Parler-TTS Mini (Prompt-Controlled Text-to-Audio LLM — Linux & Windows)",
+    label:
+      "Parler-TTS Mini (Prompt-Controlled Text-to-Audio LLM — Linux & Windows)",
     parameterSize: "880M",
     parameterBillions: 0.88,
     estimatedRamGb: 1.0,
     runner: "standard",
     capabilities: ["speech", "audio"],
-    description: "Cross-platform Text-to-Audio model that generates natural speech on Linux and Windows without Apple MLX.",
+    description:
+      "Cross-platform Text-to-Audio model that generates natural speech on Linux and Windows without Apple MLX.",
   },
   {
     name: "qwen3.5:2b",
@@ -1862,7 +2214,8 @@ export const CURATED_MODEL_CATALOG: CatalogModelSpec[] = [
     estimatedRamGb: 1.9,
     runner: "mlx",
     capabilities: ["completion", "vision", "tools", "thinking", "mlx"],
-    description: "Ultra-compact Qwen 3.5 2B multimodal model for ultra-low memory machines across macOS, Windows, and Linux.",
+    description:
+      "Ultra-compact Qwen 3.5 2B multimodal model for ultra-low memory machines across macOS, Windows, and Linux.",
   },
   {
     name: "qwen2.5:3b",
@@ -1872,7 +2225,8 @@ export const CURATED_MODEL_CATALOG: CatalogModelSpec[] = [
     estimatedRamGb: 2.2,
     runner: "standard",
     capabilities: ["completion", "tools", "thinking"],
-    description: "Fast cross-platform Chat, Code & Tool-Calling model for Linux and Windows (fits under 8 GB RAM).",
+    description:
+      "Fast cross-platform Chat, Code & Tool-Calling model for Linux and Windows (fits under 8 GB RAM).",
   },
   {
     name: "moondream:latest",
@@ -1882,7 +2236,8 @@ export const CURATED_MODEL_CATALOG: CatalogModelSpec[] = [
     estimatedRamGb: 1.7,
     runner: "standard",
     capabilities: ["completion", "vision"],
-    description: "Compact cross-platform Vision & OCR model for inspecting images and screenshots on Linux and Windows.",
+    description:
+      "Compact cross-platform Vision & OCR model for inspecting images and screenshots on Linux and Windows.",
   },
   {
     name: "gemma4:cloud",
@@ -1892,7 +2247,8 @@ export const CURATED_MODEL_CATALOG: CatalogModelSpec[] = [
     estimatedRamGb: 0,
     runner: "cloud",
     capabilities: ["completion", "vision", "tools", "thinking", "cloud"],
-    description: "Runs massive Gemma 4 in the cloud via Ollama Cloud with zero local RAM usage.",
+    description:
+      "Runs massive Gemma 4 in the cloud via Ollama Cloud with zero local RAM usage.",
   },
   {
     name: "clef:cloud",
@@ -1902,7 +2258,8 @@ export const CURATED_MODEL_CATALOG: CatalogModelSpec[] = [
     estimatedRamGb: 0,
     runner: "cloud",
     capabilities: ["decision", "vision", "cloud"],
-    description: "Runs Clef multimodal decision scoring in the cloud without using local memory.",
+    description:
+      "Runs Clef multimodal decision scoring in the cloud without using local memory.",
   },
 ];
 
@@ -1926,7 +2283,12 @@ export function evaluateModelHardwareGuard(
   options?: {
     hasMlxAlternativeForTask?: boolean;
     allowNonMlxStandardOnMac?: boolean;
-    installedModels?: Array<{ name: string; isMlx?: boolean; fitsRam?: boolean; capabilities?: string[] }>;
+    installedModels?: Array<{
+      name: string;
+      isMlx?: boolean;
+      fitsRam?: boolean;
+      capabilities?: string[];
+    }>;
     taskCapability?: "chat" | "vision" | "decision" | "speech" | "embed";
   },
 ): HardwareGuardVerdict {
@@ -1934,14 +2296,21 @@ export function evaluateModelHardwareGuard(
   const isCloud = isCloudModelName(modelName);
   const isUtility = isUtilityModelName(modelName);
   const isMlx = isCloud ? false : isMlxOptimizedModel(modelInput);
-  const { parameterBillions, estimatedRamBytes, estimatedRamGb } = estimateModelMemoryAndParams(modelInput);
+  const { parameterBillions, estimatedRamBytes, estimatedRamGb } =
+    estimateModelMemoryAndParams(modelInput);
 
   // Pick best suggested local model that fits inside the 70% RAM budget
   const taskCap = options?.taskCapability ?? "chat";
   const installedFitting = (options?.installedModels ?? []).filter((m) => {
     if (m.fitsRam === false) return false;
-    if (hardware.isAppleSiliconMac && m.isMlx === false && !isUtilityModelName(m.name)) return false;
-    if (taskCap === "decision") return isDecisionModelName(m.name, m.capabilities);
+    if (
+      hardware.isAppleSiliconMac &&
+      m.isMlx === false &&
+      !isUtilityModelName(m.name)
+    )
+      return false;
+    if (taskCap === "decision")
+      return isDecisionModelName(m.name, m.capabilities);
     if (taskCap === "speech") return isSpeechModelName(m.name);
     if (taskCap === "vision") return m.capabilities?.includes("vision");
     return !isPhononModelName(m.name);
@@ -1958,7 +2327,10 @@ export function evaluateModelHardwareGuard(
           ? "kokoro:latest"
           : "orpheus:latest";
     } else if (taskCap === "vision" && hardware.safeMemoryBudgetGb >= 4.2) {
-      suggestedLocalModel = hardware.ramTier === "under_8gb" || hardware.ramTier === "8gb_to_16gb" ? "qwen3.5:4b" : "qwen3.5:latest";
+      suggestedLocalModel =
+        hardware.ramTier === "under_8gb" || hardware.ramTier === "8gb_to_16gb"
+          ? "qwen3.5:4b"
+          : "qwen3.5:latest";
     } else {
       suggestedLocalModel =
         hardware.ramTier === "under_8gb" || hardware.ramTier === "8gb_to_16gb"
@@ -2021,11 +2393,17 @@ export function evaluateModelHardwareGuard(
 
   // Rule B & C: Check RAM tier parameter ceiling AND 70% Safe Memory Budget
   const exceedsTierParamLimit =
-    (hardware.ramTier === "under_8gb" && (parameterBillions >= 7 || parameterBillions > hardware.maxParametersB)) ||
-    (hardware.ramTier === "8gb_to_16gb" && (parameterBillions >= 13 || parameterBillions > hardware.maxParametersB)) ||
-    (hardware.ramTier === "17gb_to_32gb" && (parameterBillions >= 70 || parameterBillions > hardware.maxParametersB));
+    (hardware.ramTier === "under_8gb" &&
+      (parameterBillions >= 7 ||
+        parameterBillions > hardware.maxParametersB)) ||
+    (hardware.ramTier === "8gb_to_16gb" &&
+      (parameterBillions >= 13 ||
+        parameterBillions > hardware.maxParametersB)) ||
+    (hardware.ramTier === "17gb_to_32gb" &&
+      (parameterBillions >= 70 || parameterBillions > hardware.maxParametersB));
 
-  const exceedsSafeRamBudget = estimatedRamBytes > hardware.safeMemoryBudgetBytes;
+  const exceedsSafeRamBudget =
+    estimatedRamBytes > hardware.safeMemoryBudgetBytes;
 
   if (exceedsTierParamLimit || exceedsSafeRamBudget) {
     const tierExplain =
@@ -2058,7 +2436,9 @@ export function evaluateModelHardwareGuard(
   }
 
   // Rule A: Mac Apple Silicon MLX Exclusivity
-  const mlxAltAvailable = (options?.hasMlxAlternativeForTask ?? true) && !options?.allowNonMlxStandardOnMac;
+  const mlxAltAvailable =
+    (options?.hasMlxAlternativeForTask ?? true) &&
+    !options?.allowNonMlxStandardOnMac;
   if (hardware.isAppleSiliconMac && mlxAltAvailable && !isMlx && !isUtility) {
     return {
       allowed: false,
@@ -2100,7 +2480,6 @@ export function evaluateModelHardwareGuard(
   };
 }
 
-
 // ============================================================================
 // 2. OLLAMA HTTP CLIENT, VERSION CHECK & LIFECYCLE MANAGEMENT (CAPABILITY K)
 // ============================================================================
@@ -2139,11 +2518,22 @@ export function setOllamaApiKey(ctx: FmContext, apiKey: string): void {
 /**
  * Resolves the base HTTP URL for either the local Ollama daemon (`127.0.0.1:11434`) or Ollama Cloud (`https://ollama.com`).
  */
-export function resolveOllamaBaseUrl(ctx: FmContext, useCloudHost = false): string {
+export function resolveOllamaBaseUrl(
+  ctx: FmContext,
+  useCloudHost = false,
+): string {
   if (useCloudHost) {
-    return (ctx.ollama?.cloudBaseUrl || Bun.env.OLLAMA_CLOUD_HOST || DEFAULT_OLLAMA_CLOUD_URL).replace(/\/+$/, "");
+    return (
+      ctx.ollama?.cloudBaseUrl ||
+      Bun.env.OLLAMA_CLOUD_HOST ||
+      DEFAULT_OLLAMA_CLOUD_URL
+    ).replace(/\/+$/, "");
   }
-  return (ctx.ollama?.baseUrl || Bun.env.OLLAMA_HOST || DEFAULT_OLLAMA_LOCAL_URL).replace(/\/+$/, "");
+  return (
+    ctx.ollama?.baseUrl ||
+    Bun.env.OLLAMA_HOST ||
+    DEFAULT_OLLAMA_LOCAL_URL
+  ).replace(/\/+$/, "");
 }
 
 function isSafeForApiKeyHeader(urlStr: string, useCloudHost: boolean): boolean {
@@ -2152,7 +2542,9 @@ function isSafeForApiKeyHeader(urlStr: string, useCloudHost: boolean): boolean {
     const parsed = new URL(urlStr);
     if (parsed.protocol === "https:") return true;
     const h = parsed.hostname.toLowerCase();
-    return h === "127.0.0.1" || h === "localhost" || h === "::1" || h === "[::1]";
+    return (
+      h === "127.0.0.1" || h === "localhost" || h === "::1" || h === "[::1]"
+    );
   } catch {
     return false;
   }
@@ -2168,7 +2560,8 @@ export async function ollamaFetchJson(
 ): Promise<{ ok: boolean; status: number; data: any; rawText: string }> {
   const useCloudHost = Boolean(init?.useCloudHost);
   const baseUrl = resolveOllamaBaseUrl(ctx, useCloudHost);
-  const isAbsoluteUrl = endpointPath.startsWith("http://") || endpointPath.startsWith("https://");
+  const isAbsoluteUrl =
+    endpointPath.startsWith("http://") || endpointPath.startsWith("https://");
   const url = isAbsoluteUrl
     ? endpointPath
     : `${baseUrl}${endpointPath.startsWith("/") ? endpointPath : `/${endpointPath}`}`;
@@ -2194,8 +2587,10 @@ export async function ollamaFetchJson(
       endpointPath === "/v1/audio/speech" ||
       endpointPath === "/api/embed")
   ) {
-    const bodyHead = init.body.length > 4096 ? init.body.slice(0, 4096) : init.body;
-    const isUnloadRequest = init.body.length <= 512 && /"keep_alive"\s*:\s*0\b/.test(bodyHead);
+    const bodyHead =
+      init.body.length > 4096 ? init.body.slice(0, 4096) : init.body;
+    const isUnloadRequest =
+      init.body.length <= 512 && /"keep_alive"\s*:\s*0\b/.test(bodyHead);
     if (!isUnloadRequest) {
       await captureOllamaStartupSnapshot(ctx);
       const modelMatch = bodyHead.match(/"model"\s*:\s*"([^"\\]+)"/);
@@ -2271,8 +2666,13 @@ export interface OllamaVersionReport {
 /**
  * Queries `GET /api/version` and checks whether the running Ollama daemon meets version requirements for Decision (`v0.35.1+`) and Speech (`v0.40.9+`).
  */
-export async function getOllamaVersionStatus(ctx: FmContext): Promise<OllamaVersionReport> {
-  const res = await ollamaFetchJson(ctx, "/api/version", { method: "GET", timeoutMs: 4000 });
+export async function getOllamaVersionStatus(
+  ctx: FmContext,
+): Promise<OllamaVersionReport> {
+  const res = await ollamaFetchJson(ctx, "/api/version", {
+    method: "GET",
+    timeoutMs: 4000,
+  });
   if (!res.ok || !res.data?.version) {
     return {
       online: false,
@@ -2280,7 +2680,11 @@ export async function getOllamaVersionStatus(ctx: FmContext): Promise<OllamaVers
       version: "offline",
       supportsDecision: false,
       supportsSpeech: false,
-      warnings: ["Local Ollama server is not reachable on " + resolveOllamaBaseUrl(ctx) + "."],
+      warnings: [
+        "Local Ollama server is not reachable on " +
+          resolveOllamaBaseUrl(ctx) +
+          ".",
+      ],
     };
   }
   const version = String(res.data.version);
@@ -2288,10 +2692,14 @@ export async function getOllamaVersionStatus(ctx: FmContext): Promise<OllamaVers
   const supportsSpeech = compareSemver(version, "0.40.9") >= 0;
   const warnings: string[] = [];
   if (!supportsDecision) {
-    warnings.push(`Ollama v${version} is older than v0.35.1 — Decision / SystemOne (/v1/systemone) requires v0.35.1+.`);
+    warnings.push(
+      `Ollama v${version} is older than v0.35.1 — Decision / SystemOne (/v1/systemone) requires v0.35.1+.`,
+    );
   }
   if (!supportsSpeech) {
-    warnings.push(`Ollama v${version} is older than v0.40.9 — Phonon Speech (/v1/audio/speech) requires v0.40.9+.`);
+    warnings.push(
+      `Ollama v${version} is older than v0.40.9 — Phonon Speech (/v1/audio/speech) requires v0.40.9+.`,
+    );
   }
   return {
     online: true,
@@ -2317,7 +2725,17 @@ export interface BadgedOllamaModel {
   format: string;
   runner: string;
   capabilities: string[];
-  badges: Array<"Chat" | "Vision" | "Speech" | "Decision" | "Thinking" | "MLX" | "Tools" | "Cloud" | "Embeddings">;
+  badges: Array<
+    | "Chat"
+    | "Vision"
+    | "Speech"
+    | "Decision"
+    | "Thinking"
+    | "MLX"
+    | "Tools"
+    | "Cloud"
+    | "Embeddings"
+  >;
   voices: string[];
   contextLength: number;
   isMlx: boolean;
@@ -2336,7 +2754,11 @@ const modelShowCache = new Map<string, { ts: number; data: any }>();
 /**
  * Fetches and caches `/api/show` metadata for a specific Ollama model.
  */
-export async function showModelDetails(ctx: FmContext, modelName: string, forceRefresh = false): Promise<any> {
+export async function showModelDetails(
+  ctx: FmContext,
+  modelName: string,
+  forceRefresh = false,
+): Promise<any> {
   const key = `${resolveOllamaBaseUrl(ctx)}::${modelName}`;
   const cached = modelShowCache.get(key);
   if (!forceRefresh && cached && Date.now() - cached.ts < 60_000) {
@@ -2362,21 +2784,57 @@ export function computeModelBadges(model: {
   capabilities: string[];
   isMlx: boolean;
   isCloud: boolean;
-}): Array<"Chat" | "Vision" | "Speech" | "Decision" | "Thinking" | "MLX" | "Tools" | "Cloud" | "Embeddings"> {
-  const badges: Array<"Chat" | "Vision" | "Speech" | "Decision" | "Thinking" | "MLX" | "Tools" | "Cloud" | "Embeddings"> = [];
+}): Array<
+  | "Chat"
+  | "Vision"
+  | "Speech"
+  | "Decision"
+  | "Thinking"
+  | "MLX"
+  | "Tools"
+  | "Cloud"
+  | "Embeddings"
+> {
+  const badges: Array<
+    | "Chat"
+    | "Vision"
+    | "Speech"
+    | "Decision"
+    | "Thinking"
+    | "MLX"
+    | "Tools"
+    | "Cloud"
+    | "Embeddings"
+  > = [];
   const caps = new Set(model.capabilities.map((c) => c.toLowerCase()));
   const nameLower = model.name.toLowerCase();
 
-  if (isSpeechModelName(nameLower) || caps.has("speech") || caps.has("tts") || caps.has("audio")) {
+  if (
+    isSpeechModelName(nameLower) ||
+    caps.has("speech") ||
+    caps.has("tts") ||
+    caps.has("audio")
+  ) {
     badges.push("Speech");
   }
   if (isDecisionModelName(nameLower, model.capabilities)) {
     badges.push("Decision");
   }
-  if (!isPhononModelName(nameLower) && (caps.has("completion") || caps.has("chat") || (!caps.has("decision") && !caps.has("embedding")))) {
+  if (
+    !isPhononModelName(nameLower) &&
+    (caps.has("completion") ||
+      caps.has("chat") ||
+      (!caps.has("decision") && !caps.has("embedding")))
+  ) {
     badges.push("Chat");
   }
-  if (caps.has("vision") || nameLower.includes("-vl") || nameLower.includes("omni") || baseModelName(nameLower) === "clef" || baseModelName(nameLower) === "clef-flash") {
+  if (
+    caps.has("vision") ||
+    nameLower.includes("-vl") ||
+    nameLower.includes("omni") ||
+    baseModelName(nameLower) === "clef" ||
+    baseModelName(nameLower) === "clef-flash"
+  ) {
     badges.push("Vision");
   }
   if (
@@ -2384,14 +2842,21 @@ export function computeModelBadges(model: {
     nameLower.includes("lfm3") ||
     nameLower.includes("r1") ||
     nameLower.includes("qwq") ||
-    getModelThinkingCapabilities({ name: model.name, capabilities: model.capabilities }).supportsThinking
+    getModelThinkingCapabilities({
+      name: model.name,
+      capabilities: model.capabilities,
+    }).supportsThinking
   ) {
     badges.push("Thinking");
   }
   if (caps.has("tools")) {
     badges.push("Tools");
   }
-  if (caps.has("embedding") || caps.has("embeddings") || nameLower.includes("embed")) {
+  if (
+    caps.has("embedding") ||
+    caps.has("embeddings") ||
+    nameLower.includes("embed")
+  ) {
     badges.push("Embeddings");
   }
   if (model.isMlx) {
@@ -2427,8 +2892,13 @@ export async function listModelsWithBadgesAndHardwareFilter(
   >;
 }> {
   const hardware = inspectOllamaHardware(ctx);
-  const tagsRes = await ollamaFetchJson(ctx, "/api/tags", { method: "GET", timeoutMs: 6000 });
-  const rawModels: any[] = Array.isArray(tagsRes.data?.models) ? tagsRes.data.models : [];
+  const tagsRes = await ollamaFetchJson(ctx, "/api/tags", {
+    method: "GET",
+    timeoutMs: 6000,
+  });
+  const rawModels: any[] = Array.isArray(tagsRes.data?.models)
+    ? tagsRes.data.models
+    : [];
 
   // Inspect details via /api/show in parallel
   const inspected = await Promise.all(
@@ -2437,21 +2907,34 @@ export async function listModelsWithBadgesAndHardwareFilter(
       const showData = await showModelDetails(ctx, name);
       const details = showData?.details || m.details || {};
       const modelInfo = showData?.model_info || {};
-      const capabilities: string[] = Array.isArray(showData?.capabilities) ? showData.capabilities : [];
+      const capabilities: string[] = Array.isArray(showData?.capabilities)
+        ? showData.capabilities
+        : [];
 
       let contextLength = 8192;
       let parameterCount = 0;
       let voices: string[] = [];
       for (const [k, v] of Object.entries(modelInfo)) {
-        if (k.endsWith(".context_length") && typeof v === "number") contextLength = v;
-        if (k === "general.parameter_count" && typeof v === "number") parameterCount = v;
+        if (k.endsWith(".context_length") && typeof v === "number")
+          contextLength = v;
+        if (k === "general.parameter_count" && typeof v === "number")
+          parameterCount = v;
         if (k.endsWith(".voices") && Array.isArray(v)) voices = v.map(String);
       }
       if (isPhononModelName(name) && voices.length === 0) {
         voices = ["default", "Zoey", "Easton", "Freya"];
       }
 
-      const runner = String(details.runner || (isMlxOptimizedModel({ name, format: details.format, quantization: details.quantization_level }) ? "mlx" : "standard"));
+      const runner = String(
+        details.runner ||
+          (isMlxOptimizedModel({
+            name,
+            format: details.format,
+            quantization: details.quantization_level,
+          })
+            ? "mlx"
+            : "standard"),
+      );
       const isCloud = isCloudModelName(name);
       const isUtility = isUtilityModelName(name);
       const isMlx = isCloud
@@ -2485,8 +2968,15 @@ export async function listModelsWithBadgesAndHardwareFilter(
     }),
   );
 
-  const hasAnyMlxChat = inspected.some((m) => m.isMlx && !isPhononModelName(m.name) && !isDecisionModelName(m.name, m.capabilities)) || true;
-  const hasAnyMlxVision = inspected.some((m) => m.isMlx && m.capabilities.includes("vision")) || true;
+  const hasAnyMlxChat =
+    inspected.some(
+      (m) =>
+        m.isMlx &&
+        !isPhononModelName(m.name) &&
+        !isDecisionModelName(m.name, m.capabilities),
+    ) || true;
+  const hasAnyMlxVision =
+    inspected.some((m) => m.isMlx && m.capabilities.includes("vision")) || true;
 
   const badgedAll: BadgedOllamaModel[] = inspected.map((item) => {
     const taskCap = isPhononModelName(item.name)
@@ -2496,7 +2986,12 @@ export async function listModelsWithBadgesAndHardwareFilter(
         : item.capabilities.includes("vision")
           ? "vision"
           : "chat";
-    const hasMlxAlt = taskCap === "vision" ? hasAnyMlxVision : taskCap === "chat" ? hasAnyMlxChat : true;
+    const hasMlxAlt =
+      taskCap === "vision"
+        ? hasAnyMlxVision
+        : taskCap === "chat"
+          ? hasAnyMlxChat
+          : true;
     const verdict = evaluateModelHardwareGuard(
       {
         name: item.name,
@@ -2570,7 +3065,9 @@ export async function listModelsWithBadgesAndHardwareFilter(
   const hiddenNonMlxModels = badgedAll.filter(
     (m) => hardware.isAppleSiliconMac && !m.isMlx && !m.isUtility && !m.isCloud,
   );
-  const blockedByRamModels = badgedAll.filter((m) => m.hardwareVerdict.code === "HARDWARE_RAM_REFUSAL");
+  const blockedByRamModels = badgedAll.filter(
+    (m) => m.hardwareVerdict.code === "HARDWARE_RAM_REFUSAL",
+  );
 
   const installedSet = new Set(badgedAll.map((m) => m.name.toLowerCase()));
   const installedBaseSet = new Set(badgedAll.map((m) => baseModelName(m.name)));
@@ -2590,7 +3087,9 @@ export async function listModelsWithBadgesAndHardwareFilter(
         installedModels: visibleModels,
       },
     );
-    const installed = installedSet.has(cat.name.toLowerCase()) || installedBaseSet.has(baseModelName(cat.name));
+    const installed =
+      installedSet.has(cat.name.toLowerCase()) ||
+      installedBaseSet.has(baseModelName(cat.name));
     return {
       ...cat,
       badges: computeModelBadges({
@@ -2613,7 +3112,11 @@ export async function listModelsWithBadgesAndHardwareFilter(
       installed,
     };
   }).filter((c) => {
-    if (hardware.isAppleSiliconMac && c.runner === "standard" && !isUtilityModelName(c.name)) {
+    if (
+      hardware.isAppleSiliconMac &&
+      c.runner === "standard" &&
+      !isUtilityModelName(c.name)
+    ) {
       return false;
     }
     return true;
@@ -2645,7 +3148,10 @@ export async function listRunningModelsPs(ctx: FmContext): Promise<{
   totalMemoryUsedBytes: number;
   totalMemoryUsedGb: number;
 }> {
-  const res = await ollamaFetchJson(ctx, "/api/ps", { method: "GET", timeoutMs: 5000 });
+  const res = await ollamaFetchJson(ctx, "/api/ps", {
+    method: "GET",
+    timeoutMs: 5000,
+  });
   const raw: any[] = Array.isArray(res.data?.models) ? res.data.models : [];
   let totalBytes = 0;
   const models = raw.map((m) => {
@@ -2658,7 +3164,9 @@ export async function listRunningModelsPs(ctx: FmContext): Promise<{
       sizeGb: Math.round((sizeBytes / 1024 ** 3) * 100) / 100,
       sizeVramBytes,
       sizeVramGb: Math.round((sizeVramBytes / 1024 ** 3) * 100) / 100,
-      processor: m.size_vram ? "100% GPU / Unified Memory" : "CPU / Unified Memory",
+      processor: m.size_vram
+        ? "100% GPU / Unified Memory"
+        : "CPU / Unified Memory",
       contextLength: Number(m.context_length || 4096),
       expiresAt: String(m.expires_at || ""),
     };
@@ -2687,7 +3195,11 @@ async function unloadModelListFromRam(
       if (!genRes.ok) {
         await ollamaFetchJson(ctx, "/api/chat", {
           method: "POST",
-          body: JSON.stringify({ model: item.name, messages: [], keep_alive: 0 }),
+          body: JSON.stringify({
+            model: item.name,
+            messages: [],
+            keep_alive: 0,
+          }),
           timeoutMs: 8000,
         });
       }
@@ -2713,7 +3225,13 @@ export async function unloadModelsFromRam(
 ): Promise<{ unloaded: string[]; freedBytes: number; freedGb: number }> {
   const running = await listRunningModelsPs(ctx);
   const toUnload = targetModel
-    ? [{ name: targetModel, sizeBytes: running.models.find((m) => m.name === targetModel)?.sizeBytes ?? 0 }]
+    ? [
+        {
+          name: targetModel,
+          sizeBytes:
+            running.models.find((m) => m.name === targetModel)?.sizeBytes ?? 0,
+        },
+      ]
     : running.models;
   return unloadModelListFromRam(ctx, toUnload);
 }
@@ -2723,7 +3241,8 @@ const spawnedOllamaDaemons = new Set<{ kill: () => void }>();
 /**
  * Policy governing whether loaded models are unloaded and whether `ollama serve` is stopped when the File Manager closes.
  */
-export type OllamaExitPolicy = "smart" | "unload_all" | "stop_all" | "keep_open";
+export type OllamaExitPolicy =
+  "smart" | "unload_all" | "stop_all" | "keep_open";
 
 interface OllamaLifecycleSessionState {
   snapshotCaptured: boolean;
@@ -2750,8 +3269,13 @@ function getLifecycleState(ctx?: FmContext): OllamaLifecycleSessionState {
   if (!st) {
     let savedPolicy: OllamaExitPolicy = "smart";
     try {
-      const dataDir = (ctx as any).dataDir || joinPath([ctx.home || "/tmp", ".codecaine-fm"], ctx.platform);
-      const cfgPath = joinPath([dataDir, "ollama-lifecycle.json"], ctx.platform);
+      const dataDir =
+        (ctx as any).dataDir ||
+        joinPath([ctx.home || "/tmp", ".codecaine-fm"], ctx.platform);
+      const cfgPath = joinPath(
+        [dataDir, "ollama-lifecycle.json"],
+        ctx.platform,
+      );
       const raw = readTextFileSyncPure(cfgPath);
       if (raw) {
         const parsed = JSON.parse(raw);
@@ -2782,13 +3306,18 @@ function getLifecycleState(ctx?: FmContext): OllamaLifecycleSessionState {
  * Captures whether `ollama serve` was already running and which models were already loaded in RAM
  * BEFORE Codecaine File Manager opened or started Ollama.
  */
-export async function captureOllamaStartupSnapshot(ctx: FmContext): Promise<OllamaLifecycleSessionState> {
+export async function captureOllamaStartupSnapshot(
+  ctx: FmContext,
+): Promise<OllamaLifecycleSessionState> {
   const st = getLifecycleState(ctx);
   if (st.snapshotCaptured) return st;
   st.snapshotCaptured = true;
 
   try {
-    const vRes = await ollamaFetchJson(ctx, "/api/version", { method: "GET", timeoutMs: 1200 });
+    const vRes = await ollamaFetchJson(ctx, "/api/version", {
+      method: "GET",
+      timeoutMs: 1200,
+    });
     if (vRes.ok && vRes.data?.version) {
       st.wasRunningBeforeFileManager = true;
       const psRes = await listRunningModelsPs(ctx);
@@ -2807,7 +3336,10 @@ export async function captureOllamaStartupSnapshot(ctx: FmContext): Promise<Olla
 /**
  * Records that a model was actively loaded/used by Codecaine File Manager during this session.
  */
-export function recordSessionLoadedModel(ctx: FmContext | undefined, modelName: string | undefined): void {
+export function recordSessionLoadedModel(
+  ctx: FmContext | undefined,
+  modelName: string | undefined,
+): void {
   const clean = String(modelName || "").trim();
   if (!clean) return;
   const st = getLifecycleState(ctx);
@@ -2823,13 +3355,20 @@ export function recordSessionLoadedModel(ctx: FmContext | undefined, modelName: 
  * - `"stop_all"`: Unload all models from RAM and stop the `ollama serve` daemon on close.
  * - `"keep_open"`: Leave both the `ollama serve` daemon and loaded models in RAM untouched on close.
  */
-export async function setOllamaExitPolicy(ctx: FmContext, policy: OllamaExitPolicy) {
+export async function setOllamaExitPolicy(
+  ctx: FmContext,
+  policy: OllamaExitPolicy,
+) {
   const valid: OllamaExitPolicy =
-    policy === "unload_all" || policy === "stop_all" || policy === "keep_open" ? policy : "smart";
+    policy === "unload_all" || policy === "stop_all" || policy === "keep_open"
+      ? policy
+      : "smart";
   const st = getLifecycleState(ctx);
   st.exitPolicy = valid;
   try {
-    const dataDir = (ctx as any).dataDir || joinPath([ctx.home || "/tmp", ".codecaine-fm"], ctx.platform);
+    const dataDir =
+      (ctx as any).dataDir ||
+      joinPath([ctx.home || "/tmp", ".codecaine-fm"], ctx.platform);
     ensureDirectoryPure(dataDir, ctx.platform);
     const cfgPath = joinPath([dataDir, "ollama-lifecycle.json"], ctx.platform);
     await Bun.write(cfgPath, JSON.stringify({ exitPolicy: valid }, null, 2));
@@ -2845,7 +3384,9 @@ export function getOllamaLifecycleStatus(ctx: FmContext) {
   const policy = st.exitPolicy;
   const willStopDaemonOnClose =
     policy === "stop_all" ||
-    (policy === "smart" && (st.daemonSpawnedByFileManager || (!st.wasRunningBeforeFileManager && spawnedOllamaDaemons.size > 0)));
+    (policy === "smart" &&
+      (st.daemonSpawnedByFileManager ||
+        (!st.wasRunningBeforeFileManager && spawnedOllamaDaemons.size > 0)));
   const willUnloadModelsOnClose = policy !== "keep_open";
 
   const originLabel = st.daemonSpawnedByFileManager
@@ -2882,7 +3423,10 @@ export function getOllamaLifecycleStatus(ctx: FmContext) {
  * Registers an `ollama serve` daemon process spawned by Codecaine File Manager so it is
  * tracked and stopped (when appropriate per the exit policy) when the File Manager closes.
  */
-export function registerSpawnedOllamaDaemon(proc: { kill: () => void } | null | undefined, ctx?: FmContext): void {
+export function registerSpawnedOllamaDaemon(
+  proc: { kill: () => void } | null | undefined,
+  ctx?: FmContext,
+): void {
   if (!proc || typeof proc.kill !== "function") return;
   const st = getLifecycleState(ctx);
   if (!st.snapshotCaptured) {
@@ -2917,7 +3461,8 @@ export async function shutdownOllamaForFileManager(
   daemonStopped: boolean;
 }> {
   const st = getLifecycleState(ctx);
-  const policy: OllamaExitPolicy = opts?.forcePolicy || st.exitPolicy || "smart";
+  const policy: OllamaExitPolicy =
+    opts?.forcePolicy || st.exitPolicy || "smart";
 
   if (policy === "keep_open" && opts?.stopSpawnedDaemon !== true) {
     return {
@@ -2940,11 +3485,18 @@ export async function shutdownOllamaForFileManager(
 
   try {
     const work = async () => {
-      if (policy === "smart" && st.wasRunningBeforeFileManager && !st.daemonSpawnedByFileManager) {
+      if (
+        policy === "smart" &&
+        st.wasRunningBeforeFileManager &&
+        !st.daemonSpawnedByFileManager
+      ) {
         // Ollama was already running before File Manager opened:
         // Only unload models that were loaded during this File Manager session (or weren't in preExistingLoadedModels).
         const running = await listRunningModelsPs(ctx);
-        const batchByModel = new Map<string, { name: string; sizeBytes: number }>();
+        const batchByModel = new Map<
+          string,
+          { name: string; sizeBytes: number }
+        >();
         for (const m of running.models) {
           const wasPreExisting = st.preExistingLoadedModels.has(m.name);
           const loadedBySession = st.sessionLoadedModels.has(m.name);
@@ -2956,7 +3508,10 @@ export async function shutdownOllamaForFileManager(
         }
         for (const sessionModel of st.sessionLoadedModels) {
           if (!batchByModel.has(sessionModel)) {
-            batchByModel.set(sessionModel, { name: sessionModel, sizeBytes: 0 });
+            batchByModel.set(sessionModel, {
+              name: sessionModel,
+              sizeBytes: 0,
+            });
           }
         }
         const r = await unloadModelListFromRam(ctx, [...batchByModel.values()]);
@@ -2974,14 +3529,18 @@ export async function shutdownOllamaForFileManager(
 
     await Promise.race([
       work(),
-      new Promise<void>((resolve) => setTimeout(resolve, opts?.timeoutMs ?? 2500)),
+      new Promise<void>((resolve) =>
+        setTimeout(resolve, opts?.timeoutMs ?? 2500),
+      ),
     ]);
   } catch {}
 
   const shouldStopDaemon =
     opts?.stopSpawnedDaemon === true ||
     policy === "stop_all" ||
-    (policy === "smart" && (st.daemonSpawnedByFileManager || (!st.wasRunningBeforeFileManager && spawnedOllamaDaemons.size > 0)));
+    (policy === "smart" &&
+      (st.daemonSpawnedByFileManager ||
+        (!st.wasRunningBeforeFileManager && spawnedOllamaDaemons.size > 0)));
 
   let daemonStopped = false;
   if (shouldStopDaemon) {
@@ -2993,7 +3552,10 @@ export async function shutdownOllamaForFileManager(
         } catch {}
         spawnedOllamaDaemons.delete(proc);
       }
-    } else if (policy === "stop_all" && (ctx.platform || process.platform) === process.platform) {
+    } else if (
+      policy === "stop_all" &&
+      (ctx.platform || process.platform) === process.platform
+    ) {
       try {
         if (process.platform === "win32") {
           const res = Bun.spawnSync(["taskkill", "/F", "/IM", "ollama.exe"], {
@@ -3065,15 +3627,25 @@ let currentOllamaLongTask: OllamaLongTaskStatus = {
 /**
  * Applies a partial status update to the active Ollama long-running task and appends step history.
  */
-export function updateOllamaLongTask(patch: Partial<OllamaLongTaskStatus>): OllamaLongTaskStatus {
+export function updateOllamaLongTask(
+  patch: Partial<OllamaLongTaskStatus>,
+): OllamaLongTaskStatus {
   const now = Date.now();
-  const startedAt = patch.startedAt ?? (currentOllamaLongTask.active ? currentOllamaLongTask.startedAt : now);
+  const startedAt =
+    patch.startedAt ??
+    (currentOllamaLongTask.active ? currentOllamaLongTask.startedAt : now);
   const nextStep = patch.step ?? currentOllamaLongTask.step;
-  const nextPercent = typeof patch.percent === "number" ? Math.max(0, Math.min(100, Math.round(patch.percent))) : currentOllamaLongTask.percent;
+  const nextPercent =
+    typeof patch.percent === "number"
+      ? Math.max(0, Math.min(100, Math.round(patch.percent)))
+      : currentOllamaLongTask.percent;
   const stepsLog = patch.stepsLog
     ? patch.stepsLog
     : nextStep && nextStep !== currentOllamaLongTask.step
-      ? [...currentOllamaLongTask.stepsLog.slice(-19), { time: now, step: nextStep, percent: nextPercent }]
+      ? [
+          ...currentOllamaLongTask.stepsLog.slice(-19),
+          { time: now, step: nextStep, percent: nextPercent },
+        ]
       : currentOllamaLongTask.stepsLog;
 
   currentOllamaLongTask = {
@@ -3095,17 +3667,24 @@ export function getLiveOllamaLongTaskStatus(): OllamaLongTaskStatus {
   const now = Date.now();
   return {
     ...currentOllamaLongTask,
-    elapsedMs: currentOllamaLongTask.active && currentOllamaLongTask.startedAt > 0
-      ? Math.max(0, now - currentOllamaLongTask.startedAt)
-      : currentOllamaLongTask.elapsedMs,
+    elapsedMs:
+      currentOllamaLongTask.active && currentOllamaLongTask.startedAt > 0
+        ? Math.max(0, now - currentOllamaLongTask.startedAt)
+        : currentOllamaLongTask.elapsedMs,
   };
 }
 
 /**
  * Searches PATH and standard OS installation locations for an installed `ollama` executable using pure Bun APIs.
  */
-export async function detectOllamaBinaryPure(ctx?: FmContext): Promise<string | null> {
-  if (ctx?.ollama && "ollamaBinPath" in ctx.ollama && ctx.ollama.ollamaBinPath !== undefined) {
+export async function detectOllamaBinaryPure(
+  ctx?: FmContext,
+): Promise<string | null> {
+  if (
+    ctx?.ollama &&
+    "ollamaBinPath" in ctx.ollama &&
+    ctx.ollama.ollamaBinPath !== undefined
+  ) {
     return ctx.ollama.ollamaBinPath;
   }
   const platform = ctx?.ollama?.platform || ctx?.platform || process.platform;
@@ -3117,8 +3696,20 @@ export async function detectOllamaBinaryPure(ctx?: FmContext): Promise<string | 
   const candidates =
     platform === "win32"
       ? [
-          joinPath([process.env.LOCALAPPDATA || joinPath([home, "AppData", "Local"], "win32"), "Programs", "Ollama", "ollama.exe"], "win32"),
-          joinPath([home, "AppData", "Local", "Programs", "Ollama", "ollama.exe"], "win32"),
+          joinPath(
+            [
+              process.env.LOCALAPPDATA ||
+                joinPath([home, "AppData", "Local"], "win32"),
+              "Programs",
+              "Ollama",
+              "ollama.exe",
+            ],
+            "win32",
+          ),
+          joinPath(
+            [home, "AppData", "Local", "Programs", "Ollama", "ollama.exe"],
+            "win32",
+          ),
           joinPath([home, ".ollama", "bin", "ollama.exe"], "win32"),
           "C:\\Program Files\\Ollama\\ollama.exe",
         ]
@@ -3133,8 +3724,29 @@ export async function detectOllamaBinaryPure(ctx?: FmContext): Promise<string | 
             "/opt/homebrew/bin/ollama",
             "/usr/local/bin/ollama",
             "/Applications/Ollama.app/Contents/Resources/ollama",
-            joinPath([home, "Applications", "Ollama.app", "Contents", "Resources", "ollama"], "darwin"),
-            joinPath([home, ".ollama", "bin", "Ollama.app", "Contents", "Resources", "ollama"], "darwin"),
+            joinPath(
+              [
+                home,
+                "Applications",
+                "Ollama.app",
+                "Contents",
+                "Resources",
+                "ollama",
+              ],
+              "darwin",
+            ),
+            joinPath(
+              [
+                home,
+                ".ollama",
+                "bin",
+                "Ollama.app",
+                "Contents",
+                "Resources",
+                "ollama",
+              ],
+              "darwin",
+            ),
             joinPath([home, ".ollama", "bin", "ollama"], "darwin"),
           ];
 
@@ -3168,11 +3780,13 @@ export function getSpeechCapabilitiesForHost(ctx?: FmContext): {
   const crossPlatformModels = [
     {
       name: "lfm3-omni:latest",
-      label: "Liquid LFM3-Omni 2B (Official Omni Audio, Speech, Vision & Chat LLM)",
+      label:
+        "Liquid LFM3-Omni 2B (Official Omni Audio, Speech, Vision & Chat LLM)",
       parameterSize: "2B",
       estimatedRamGb: 1.9,
       requiresAppleMlx: false,
-      description: "Official Ollama LFM3-Omni 2B audio, speech, vision & chat LLM (`ollama run lfm3-omni`) for Windows, Linux, and macOS.",
+      description:
+        "Official Ollama LFM3-Omni 2B audio, speech, vision & chat LLM (`ollama run lfm3-omni`) for Windows, Linux, and macOS.",
     },
     {
       name: "orpheus:latest",
@@ -3180,7 +3794,8 @@ export function getSpeechCapabilitiesForHost(ctx?: FmContext): {
       parameterSize: "3B",
       estimatedRamGb: 2.1,
       requiresAppleMlx: false,
-      description: "High-naturalness cross-platform Text-to-Audio LLM for Linux, Windows, and macOS.",
+      description:
+        "High-naturalness cross-platform Text-to-Audio LLM for Linux, Windows, and macOS.",
     },
     {
       name: "kokoro:latest",
@@ -3188,7 +3803,8 @@ export function getSpeechCapabilitiesForHost(ctx?: FmContext): {
       parameterSize: "82M",
       estimatedRamGb: 0.34,
       requiresAppleMlx: false,
-      description: "Ultra-fast 82M parameter Text-to-Audio model (<350 MB RAM) ideal for Linux & Windows.",
+      description:
+        "Ultra-fast 82M parameter Text-to-Audio model (<350 MB RAM) ideal for Linux & Windows.",
     },
     {
       name: "oute-tts:latest",
@@ -3196,7 +3812,8 @@ export function getSpeechCapabilitiesForHost(ctx?: FmContext): {
       parameterSize: "1B",
       estimatedRamGb: 1.1,
       requiresAppleMlx: false,
-      description: "1B cross-platform Text-to-Audio LLM supporting natural speech synthesis on Linux & Windows.",
+      description:
+        "1B cross-platform Text-to-Audio LLM supporting natural speech synthesis on Linux & Windows.",
     },
     {
       name: "parler-tts:latest",
@@ -3204,7 +3821,8 @@ export function getSpeechCapabilitiesForHost(ctx?: FmContext): {
       parameterSize: "880M",
       estimatedRamGb: 1.0,
       requiresAppleMlx: false,
-      description: "Cross-platform Text-to-Audio generator for Linux, Windows, and macOS.",
+      description:
+        "Cross-platform Text-to-Audio generator for Linux, Windows, and macOS.",
     },
     {
       name: "llasa:latest",
@@ -3212,7 +3830,8 @@ export function getSpeechCapabilitiesForHost(ctx?: FmContext): {
       parameterSize: "1B",
       estimatedRamGb: 1.1,
       requiresAppleMlx: false,
-      description: "Cross-platform LLaMA-based speech synthesis model for Linux & Windows.",
+      description:
+        "Cross-platform LLaMA-based speech synthesis model for Linux & Windows.",
     },
   ];
 
@@ -3224,7 +3843,8 @@ export function getSpeechCapabilitiesForHost(ctx?: FmContext): {
           parameterSize: "43.6M",
           estimatedRamGb: 0.22,
           requiresAppleMlx: true,
-          description: "Native Apple Silicon MLX speech engine with 38+ neural voices (/v1/audio/speech).",
+          description:
+            "Native Apple Silicon MLX speech engine with 38+ neural voices (/v1/audio/speech).",
         },
         ...crossPlatformModels,
       ]
@@ -3236,7 +3856,12 @@ export function getSpeechCapabilitiesForHost(ctx?: FmContext): {
       ? "kokoro:latest"
       : "lfm3-omni:latest";
 
-  const osName = hw.platform === "win32" ? "Windows" : hw.platform === "linux" ? "Linux" : "macOS";
+  const osName =
+    hw.platform === "win32"
+      ? "Windows"
+      : hw.platform === "linux"
+        ? "Linux"
+        : "macOS";
   const platformSpeechNote = phononSupported
     ? "Apple Silicon MLX detected: Gradium Phonon TTS (phonon) and Liquid LFM3-Omni (lfm3-omni) are natively accelerated."
     : `${osName} (${hw.arch}) detected: Gradium Phonon requires Apple Silicon MLX and is not available on ${osName}. Using cross-platform Omni & Text-to-Audio LLMs (${defaultSpeechModel}, orpheus:latest, kokoro:latest, oute-tts:latest) + OS speech synthesis.`;
@@ -3263,12 +3888,22 @@ export async function getOllamaInstallStatus(ctx: FmContext) {
     getOllamaVersionStatus(ctx),
   ]);
   const binaryInstalled = Boolean(binaryPath) || versionStatus.reachable;
-  const defaultChatModel = hw.ramTier === "under_8gb" || hw.ramTier === "8gb_to_16gb" ? "qwen3.5:4b" : "qwen3.5:latest";
+  const defaultChatModel =
+    hw.ramTier === "under_8gb" || hw.ramTier === "8gb_to_16gb"
+      ? "qwen3.5:4b"
+      : "qwen3.5:latest";
   const recommendedStarterModels = hw.isAppleSiliconMac
     ? [defaultChatModel, "lfm3-omni:latest", "phonon", "nimble", "lfm3:latest"]
     : hw.ramTier === "under_8gb" || hw.ramTier === "8gb_to_16gb"
       ? ["qwen3.5:4b", "lfm3-omni:latest", "kokoro:latest", "nimble"]
-      : ["qwen3.5:latest", "qwen3.5:4b", "lfm3-omni:latest", "orpheus:latest", "kokoro:latest", "nimble"];
+      : [
+          "qwen3.5:latest",
+          "qwen3.5:4b",
+          "lfm3-omni:latest",
+          "orpheus:latest",
+          "kokoro:latest",
+          "nimble",
+        ];
 
   const installMethodLabel =
     hw.platform === "linux"
@@ -3302,25 +3937,41 @@ export async function getOllamaInstallStatus(ctx: FmContext) {
 export async function pullModelWithHardwareGuard(
   ctx: FmContext,
   modelName: string,
-  options?: { keepExistingLongTask?: boolean; progressBasePercent?: number; progressSpanPercent?: number },
+  options?: {
+    keepExistingLongTask?: boolean;
+    progressBasePercent?: number;
+    progressSpanPercent?: number;
+  },
 ): Promise<{
   ok: boolean;
   status: string;
   verdict: HardwareGuardVerdict;
-  progressSteps: Array<{ status: string; completed?: number; total?: number; percent?: number }>;
+  progressSteps: Array<{
+    status: string;
+    completed?: number;
+    total?: number;
+    percent?: number;
+  }>;
 }> {
   const trimmed = String(modelName || "").trim();
-  if (!trimmed) throw new FmError("INVALID_INPUT", "Model name is required to pull.");
+  if (!trimmed)
+    throw new FmError("INVALID_INPUT", "Model name is required to pull.");
 
   const { hardware, models } = await listModelsWithBadgesAndHardwareFilter(ctx);
   const catalogMatch =
-    CURATED_MODEL_CATALOG.find((c) => c.name.toLowerCase() === trimmed.toLowerCase()) ||
-    CURATED_MODEL_CATALOG.find((c) => baseModelName(c.name) === baseModelName(trimmed));
+    CURATED_MODEL_CATALOG.find(
+      (c) => c.name.toLowerCase() === trimmed.toLowerCase(),
+    ) ||
+    CURATED_MODEL_CATALOG.find(
+      (c) => baseModelName(c.name) === baseModelName(trimmed),
+    );
   const verdict = evaluateModelHardwareGuard(
     {
       name: trimmed,
       parameterSize: catalogMatch?.parameterSize,
-      sizeBytes: catalogMatch ? Math.round(catalogMatch.estimatedRamGb * 0.88 * 1024 ** 3) : undefined,
+      sizeBytes: catalogMatch
+        ? Math.round(catalogMatch.estimatedRamGb * 0.88 * 1024 ** 3)
+        : undefined,
       runner: catalogMatch?.runner,
       capabilities: catalogMatch?.capabilities,
     },
@@ -3355,7 +4006,13 @@ export async function pullModelWithHardwareGuard(
       model: trimmed,
       completedBytes: 0,
       totalBytes: 0,
-      stepsLog: [{ time: Date.now(), step: `Starting pull for ${trimmed}`, percent: basePct }],
+      stepsLog: [
+        {
+          time: Date.now(),
+          step: `Starting pull for ${trimmed}`,
+          percent: basePct,
+        },
+      ],
       error: null,
     });
   } else {
@@ -3367,7 +4024,12 @@ export async function pullModelWithHardwareGuard(
   }
 
   const baseUrl = resolveOllamaBaseUrl(ctx, false);
-  const progressSteps: Array<{ status: string; completed?: number; total?: number; percent?: number }> = [];
+  const progressSteps: Array<{
+    status: string;
+    completed?: number;
+    total?: number;
+    percent?: number;
+  }> = [];
 
   const attemptPullStream = async (targetTag: string): Promise<void> => {
     const res = await fetch(`${baseUrl}/api/pull`, {
@@ -3379,7 +4041,10 @@ export async function pullModelWithHardwareGuard(
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new FmError("OLLAMA_PULL_ERROR", `Failed to pull "${targetTag}": ${errText || res.statusText}`);
+      throw new FmError(
+        "OLLAMA_PULL_ERROR",
+        `Failed to pull "${targetTag}": ${errText || res.statusText}`,
+      );
     }
 
     const processLine = (line: string) => {
@@ -3390,9 +4055,13 @@ export async function pullModelWithHardwareGuard(
         if (evt.error) {
           throw new FmError("OLLAMA_PULL_ERROR", String(evt.error));
         }
-        const completed = typeof evt.completed === "number" ? evt.completed : undefined;
+        const completed =
+          typeof evt.completed === "number" ? evt.completed : undefined;
         const total = typeof evt.total === "number" ? evt.total : undefined;
-        const percent = completed !== undefined && total && total > 0 ? Math.round((completed / total) * 100) : undefined;
+        const percent =
+          completed !== undefined && total && total > 0
+            ? Math.round((completed / total) * 100)
+            : undefined;
         const statusStr = String(evt.status || "pulling");
         progressSteps.push({
           status: statusStr,
@@ -3401,7 +4070,9 @@ export async function pullModelWithHardwareGuard(
           percent,
         });
         const scaledPct =
-          percent !== undefined ? Math.min(99, Math.round(basePct + (percent / 100) * spanPct)) : undefined;
+          percent !== undefined
+            ? Math.min(99, Math.round(basePct + (percent / 100) * spanPct))
+            : undefined;
         const mbInfo =
           completed !== undefined && total && total > 0
             ? ` (${(completed / 1024 ** 2).toFixed(1)} MB / ${(total / 1024 ** 2).toFixed(1)} MB — ${percent}%)`
@@ -3442,7 +4113,10 @@ export async function pullModelWithHardwareGuard(
     } catch (firstErr) {
       const fallbackTag = resolveSpeechModelRegistryFallback(trimmed);
       const errMsg = String((firstErr as Error)?.message || "");
-      if (fallbackTag && /manifest|does not exist|not found|404/i.test(errMsg)) {
+      if (
+        fallbackTag &&
+        /manifest|does not exist|not found|404/i.test(errMsg)
+      ) {
         updateOllamaLongTask({
           step: `Resolving ${trimmed} to verified registry manifest ${fallbackTag}...`,
         });
@@ -3512,7 +4186,12 @@ export async function runOllamaAutoInstall(
 }> {
   const hw = inspectOllamaHardware(ctx);
   const speechCaps = getSpeechCapabilitiesForHost(ctx);
-  const osLabel = hw.platform === "win32" ? "Windows" : hw.platform === "linux" ? "Linux" : "macOS";
+  const osLabel =
+    hw.platform === "win32"
+      ? "Windows"
+      : hw.platform === "linux"
+        ? "Linux"
+        : "macOS";
 
   updateOllamaLongTask({
     active: true,
@@ -3547,18 +4226,24 @@ export async function runOllamaAutoInstall(
       });
 
       if (ctx.ollama?.installBinaryHook) {
-        const hooked = await ctx.ollama.installBinaryHook(hw.platform, hw.arch, (step, pct) => {
-          updateOllamaLongTask({ step, percent: pct });
-        });
+        const hooked = await ctx.ollama.installBinaryHook(
+          hw.platform,
+          hw.arch,
+          (step, pct) => {
+            updateOllamaLongTask({ step, percent: pct });
+          },
+        );
         binPath = hooked.installedPath;
         if (ctx.ollama) ctx.ollama.ollamaBinPath = binPath;
       } else if (hw.platform === "linux") {
         // Pure-Bun Linux user-space install into ~/.local/bin/ollama (no root/sudo needed!)
-        const home = (ctx as any).homeDir || ctx.home || process.env.HOME || "/tmp";
+        const home =
+          (ctx as any).homeDir || ctx.home || process.env.HOME || "/tmp";
         const localDir = joinPath([home, ".local"], "linux");
         const localBinDir = joinPath([localDir, "bin"], "linux");
         ensureDirectoryPure(localBinDir, "linux");
-        const archSlug = hw.arch === "arm64" || hw.arch === "aarch64" ? "arm64" : "amd64";
+        const archSlug =
+          hw.arch === "arm64" || hw.arch === "aarch64" ? "arm64" : "amd64";
         const downloadUrl = `https://ollama.com/download/ollama-linux-${archSlug}.tar.zst`;
 
         updateOllamaLongTask({
@@ -3571,7 +4256,10 @@ export async function runOllamaAutoInstall(
           signal: AbortSignal.timeout(300_000),
         });
         if (!dlRes.ok) {
-          throw new FmError("OLLAMA_LINUX_INSTALL_FAILED", `Failed to download ${downloadUrl} (HTTP ${dlRes.status}).`);
+          throw new FmError(
+            "OLLAMA_LINUX_INSTALL_FAILED",
+            `Failed to download ${downloadUrl} (HTTP ${dlRes.status}).`,
+          );
         }
 
         const totalBytes = Number(dlRes.headers.get("content-length") || 0);
@@ -3586,10 +4274,16 @@ export async function runOllamaAutoInstall(
             if (value) {
               received += value.byteLength;
               if (received > MAX_INSTALL_ARCHIVE_BYTES) {
-                throw new FmError("OLLAMA_LINUX_INSTALL_FAILED", "Downloaded archive exceeded maximum allowed size (2 GB).");
+                throw new FmError(
+                  "OLLAMA_LINUX_INSTALL_FAILED",
+                  "Downloaded archive exceeded maximum allowed size (2 GB).",
+                );
               }
               chunks.push(value);
-              const dlPct = totalBytes > 0 ? Math.min(42, 18 + Math.round((received / totalBytes) * 24)) : 30;
+              const dlPct =
+                totalBytes > 0
+                  ? Math.min(42, 18 + Math.round((received / totalBytes) * 24))
+                  : 30;
               updateOllamaLongTask({
                 step: `Downloading ollama-linux-${archSlug}.tar.zst (${(received / 1024 ** 2).toFixed(1)} MB)...`,
                 percent: dlPct,
@@ -3606,33 +4300,59 @@ export async function runOllamaAutoInstall(
           percent: 45,
         });
         const tarBytes = Bun.zstdDecompressSync(compressed);
-        const tmpTarPath = joinPath([localDir, `.ollama-linux-${process.pid}-${Date.now()}.tar`], "linux");
+        const tmpTarPath = joinPath(
+          [localDir, `.ollama-linux-${process.pid}-${Date.now()}.tar`],
+          "linux",
+        );
         await Bun.write(tmpTarPath, tarBytes);
 
         updateOllamaLongTask({
           step: `Extracting Ollama into ${localDir}...`,
           percent: 49,
         });
-        const tarRes = Bun.spawnSync(["tar", "-xf", tmpTarPath, "-C", localDir], {
+        const tarRes = Bun.spawnSync(
+          ["tar", "-xf", tmpTarPath, "-C", localDir],
+          {
+            stdout: "ignore",
+            stderr: "pipe",
+          },
+        );
+        Bun.spawnSync(["rm", "-f", "--", tmpTarPath], {
           stdout: "ignore",
-          stderr: "pipe",
+          stderr: "ignore",
         });
-        Bun.spawnSync(["rm", "-f", "--", tmpTarPath], { stdout: "ignore", stderr: "ignore" });
         if (tarRes.exitCode !== 0) {
-          throw new FmError("OLLAMA_LINUX_INSTALL_FAILED", `Failed to extract Linux archive: ${tarRes.stderr.toString()}`);
+          throw new FmError(
+            "OLLAMA_LINUX_INSTALL_FAILED",
+            `Failed to extract Linux archive: ${tarRes.stderr.toString()}`,
+          );
         }
         const candidateBin = joinPath([localBinDir, "ollama"], "linux");
-        Bun.spawnSync(["chmod", "0755", "--", candidateBin], { stdout: "ignore", stderr: "ignore" });
+        Bun.spawnSync(["chmod", "0755", "--", candidateBin], {
+          stdout: "ignore",
+          stderr: "ignore",
+        });
         binPath = candidateBin;
       } else if (hw.platform === "win32") {
         // Pure-Bun Windows user-space install (supports both native Windows 11 ARM64 in Parallels and Windows x64)
-        const home = (ctx as any).homeDir || ctx.home || process.env.USERPROFILE || process.env.HOME || "C:\\Users\\Default";
-        const localAppData = process.env.LOCALAPPDATA || joinPath([home, "AppData", "Local"], "win32");
-        const installDir = joinPath([localAppData, "Programs", "Ollama"], "win32");
+        const home =
+          (ctx as any).homeDir ||
+          ctx.home ||
+          process.env.USERPROFILE ||
+          process.env.HOME ||
+          "C:\\Users\\Default";
+        const localAppData =
+          process.env.LOCALAPPDATA ||
+          joinPath([home, "AppData", "Local"], "win32");
+        const installDir = joinPath(
+          [localAppData, "Programs", "Ollama"],
+          "win32",
+        );
         const winTarget = joinPath([installDir, "ollama.exe"], "win32");
         ensureDirectoryPure(installDir, "win32");
 
-        const archSlug = hw.arch === "arm64" || hw.arch === "aarch64" ? "arm64" : "amd64";
+        const archSlug =
+          hw.arch === "arm64" || hw.arch === "aarch64" ? "arm64" : "amd64";
         const zipUrl = `https://ollama.com/download/ollama-windows-${archSlug}.zip`;
         updateOllamaLongTask({
           step: `Downloading Windows ${archSlug.toUpperCase()} package (${zipUrl})...`,
@@ -3657,10 +4377,19 @@ export async function runOllamaAutoInstall(
                 if (value) {
                   received += value.byteLength;
                   if (received > MAX_INSTALL_ARCHIVE_BYTES) {
-                    throw new FmError("OLLAMA_WINDOWS_INSTALL_FAILED", "Downloaded archive exceeded maximum allowed size (2 GB).");
+                    throw new FmError(
+                      "OLLAMA_WINDOWS_INSTALL_FAILED",
+                      "Downloaded archive exceeded maximum allowed size (2 GB).",
+                    );
                   }
                   chunks.push(value);
-                  const dlPct = totalBytes > 0 ? Math.min(42, 16 + Math.round((received / totalBytes) * 26)) : 30;
+                  const dlPct =
+                    totalBytes > 0
+                      ? Math.min(
+                          42,
+                          16 + Math.round((received / totalBytes) * 26),
+                        )
+                      : 30;
                   updateOllamaLongTask({
                     step: `Downloading ollama-windows-${archSlug}.zip (${(received / 1024 ** 2).toFixed(1)} MB)...`,
                     percent: dlPct,
@@ -3671,7 +4400,13 @@ export async function runOllamaAutoInstall(
               }
             }
             const zipBytes = new Uint8Array(Buffer.concat(chunks, received));
-            const tmpZipPath = joinPath([installDir, `.ollama-windows-${archSlug}-${process.pid}-${Date.now()}.zip`], "win32");
+            const tmpZipPath = joinPath(
+              [
+                installDir,
+                `.ollama-windows-${archSlug}-${process.pid}-${Date.now()}.zip`,
+              ],
+              "win32",
+            );
             await Bun.write(tmpZipPath, zipBytes);
 
             updateOllamaLongTask({
@@ -3680,12 +4415,17 @@ export async function runOllamaAutoInstall(
             });
 
             const sysTar = "C:\\Windows\\System32\\tar.exe";
-            const tarCmd = (await fileExistsPure(sysTar)) ? sysTar : (Bun.which("tar") || "tar");
-            const tarRes = Bun.spawnSync([tarCmd, "-xf", tmpZipPath, "-C", installDir], {
-              stdout: "ignore",
-              stderr: "pipe",
-              windowsHide: true,
-            });
+            const tarCmd = (await fileExistsPure(sysTar))
+              ? sysTar
+              : Bun.which("tar") || "tar";
+            const tarRes = Bun.spawnSync(
+              [tarCmd, "-xf", tmpZipPath, "-C", installDir],
+              {
+                stdout: "ignore",
+                stderr: "pipe",
+                windowsHide: true,
+              },
+            );
             if (tarRes.exitCode !== 0 || !(await fileExistsPure(winTarget))) {
               Bun.spawnSync(
                 [
@@ -3699,7 +4439,11 @@ export async function runOllamaAutoInstall(
                   stdout: "ignore",
                   stderr: "ignore",
                   windowsHide: true,
-                  env: { ...process.env, FM_ZIP_PATH: tmpZipPath, FM_DEST_DIR: installDir },
+                  env: {
+                    ...process.env,
+                    FM_ZIP_PATH: tmpZipPath,
+                    FM_DEST_DIR: installDir,
+                  },
                 },
               );
             }
@@ -3732,7 +4476,16 @@ export async function runOllamaAutoInstall(
               percent: 47,
             });
             Bun.spawnSync(
-              [winget, "install", "-e", "--id", "Ollama.Ollama", "--accept-package-agreements", "--accept-source-agreements", "--silent"],
+              [
+                winget,
+                "install",
+                "-e",
+                "--id",
+                "Ollama.Ollama",
+                "--accept-package-agreements",
+                "--accept-source-agreements",
+                "--silent",
+              ],
               { stdout: "ignore", stderr: "ignore", windowsHide: true },
             );
           }
@@ -3744,20 +4497,32 @@ export async function runOllamaAutoInstall(
             percent: 49,
           });
           try {
-            const dlRes = await fetch(setupUrl, { redirect: "follow", signal: AbortSignal.timeout(300_000) });
+            const dlRes = await fetch(setupUrl, {
+              redirect: "follow",
+              signal: AbortSignal.timeout(300_000),
+            });
             if (dlRes.ok) {
-              const tmpExe = joinPath([installDir, `OllamaSetup-${process.pid}-${Date.now()}.exe`], "win32");
+              const tmpExe = joinPath(
+                [installDir, `OllamaSetup-${process.pid}-${Date.now()}.exe`],
+                "win32",
+              );
               try {
-                await Bun.write(tmpExe, new Uint8Array(await dlRes.arrayBuffer()));
+                await Bun.write(
+                  tmpExe,
+                  new Uint8Array(await dlRes.arrayBuffer()),
+                );
                 updateOllamaLongTask({
                   step: "Running silent Windows Ollama installer (/VERYSILENT /SUPPRESSMSGBOXES /NORESTART)...",
                   percent: 52,
                 });
-                Bun.spawnSync([tmpExe, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"], {
-                  stdout: "ignore",
-                  stderr: "ignore",
-                  windowsHide: true,
-                });
+                Bun.spawnSync(
+                  [tmpExe, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"],
+                  {
+                    stdout: "ignore",
+                    stderr: "ignore",
+                    windowsHide: true,
+                  },
+                );
               } finally {
                 try {
                   Bun.spawnSync(
@@ -3791,14 +4556,18 @@ export async function runOllamaAutoInstall(
         binPath = (await detectOllamaBinaryPure(ctx)) || winTarget;
       } else {
         // macOS install via Homebrew or Ollama-darwin.zip
-        const home = (ctx as any).homeDir || ctx.home || process.env.HOME || "/tmp";
+        const home =
+          (ctx as any).homeDir || ctx.home || process.env.HOME || "/tmp";
         updateOllamaLongTask({
           step: "Installing Ollama on macOS via Homebrew / Ollama-darwin.zip...",
           percent: 22,
         });
         const brew = Bun.which("brew") || "/opt/homebrew/bin/brew";
         if (await fileExistsPure(brew)) {
-          Bun.spawnSync([brew, "install", "ollama"], { stdout: "ignore", stderr: "ignore" });
+          Bun.spawnSync([brew, "install", "ollama"], {
+            stdout: "ignore",
+            stderr: "ignore",
+          });
         }
         binPath = await detectOllamaBinaryPure(ctx);
         if (!binPath) {
@@ -3807,19 +4576,34 @@ export async function runOllamaAutoInstall(
             step: `Downloading macOS bundle (${zipUrl})...`,
             percent: 32,
           });
-          const dlRes = await fetch(zipUrl, { redirect: "follow", signal: AbortSignal.timeout(300_000) });
+          const dlRes = await fetch(zipUrl, {
+            redirect: "follow",
+            signal: AbortSignal.timeout(300_000),
+          });
           if (dlRes.ok) {
             const destDir = joinPath([home, ".ollama", "bin"], "darwin");
             ensureDirectoryPure(destDir, "darwin");
-            const tmpZip = joinPath([destDir, `Ollama-${Date.now()}.zip`], "darwin");
+            const tmpZip = joinPath(
+              [destDir, `Ollama-${Date.now()}.zip`],
+              "darwin",
+            );
             await Bun.write(tmpZip, new Uint8Array(await dlRes.arrayBuffer()));
             updateOllamaLongTask({
               step: "Extracting Ollama.app into ~/.ollama/bin...",
               percent: 45,
             });
-            Bun.spawnSync(["ditto", "-x", "-k", tmpZip, destDir], { stdout: "ignore", stderr: "ignore" });
-            Bun.spawnSync(["rm", "-f", "--", tmpZip], { stdout: "ignore", stderr: "ignore" });
-            binPath = joinPath([destDir, "Ollama.app", "Contents", "Resources", "ollama"], "darwin");
+            Bun.spawnSync(["ditto", "-x", "-k", tmpZip, destDir], {
+              stdout: "ignore",
+              stderr: "ignore",
+            });
+            Bun.spawnSync(["rm", "-f", "--", tmpZip], {
+              stdout: "ignore",
+              stderr: "ignore",
+            });
+            binPath = joinPath(
+              [destDir, "Ollama.app", "Contents", "Resources", "ollama"],
+              "darwin",
+            );
           }
         }
       }
@@ -3858,16 +4642,24 @@ export async function runOllamaAutoInstall(
     // Step 3: Determine OS-appropriate starter models to pull
     // Note: On Linux and Windows, Phonon is NOT supported (Apple Silicon MLX only), so we automatically
     // replace any "phonon" request with a cross-platform Text-to-Audio LLM (`orpheus:latest` or `kokoro:latest`)!
-    const defaultChatModel = hw.ramTier === "under_8gb" || hw.ramTier === "8gb_to_16gb" ? "qwen3.5:4b" : "qwen3.5:latest";
-    const requestedModels = Array.isArray(payload?.models) && payload!.models!.length > 0
-      ? payload!.models!
-      : hw.isAppleSiliconMac
-        ? [payload?.chatModel || defaultChatModel, "lfm3-omni:latest", payload?.speechModel || "phonon"]
-        : [
-            payload?.chatModel || defaultChatModel,
-            "lfm3-omni:latest",
-            payload?.speechModel || speechCaps.defaultSpeechModel,
-          ];
+    const defaultChatModel =
+      hw.ramTier === "under_8gb" || hw.ramTier === "8gb_to_16gb"
+        ? "qwen3.5:4b"
+        : "qwen3.5:latest";
+    const requestedModels =
+      Array.isArray(payload?.models) && payload!.models!.length > 0
+        ? payload!.models!
+        : hw.isAppleSiliconMac
+          ? [
+              payload?.chatModel || defaultChatModel,
+              "lfm3-omni:latest",
+              payload?.speechModel || "phonon",
+            ]
+          : [
+              payload?.chatModel || defaultChatModel,
+              "lfm3-omni:latest",
+              payload?.speechModel || speechCaps.defaultSpeechModel,
+            ];
 
     let skippedPhononForNonMlxOs = false;
     const normalizedModels: string[] = [];
@@ -3876,10 +4668,12 @@ export async function runOllamaAutoInstall(
       if (!clean) continue;
       if (!hw.isAppleSiliconMac && isPhononModelName(clean)) {
         skippedPhononForNonMlxOs = true;
-        const replacement = payload?.speechModel && !isPhononModelName(payload.speechModel)
-          ? payload.speechModel
-          : speechCaps.defaultSpeechModel;
-        if (!normalizedModels.includes(replacement)) normalizedModels.push(replacement);
+        const replacement =
+          payload?.speechModel && !isPhononModelName(payload.speechModel)
+            ? payload.speechModel
+            : speechCaps.defaultSpeechModel;
+        if (!normalizedModels.includes(replacement))
+          normalizedModels.push(replacement);
       } else if (!normalizedModels.includes(clean)) {
         normalizedModels.push(clean);
       }
@@ -3915,7 +4709,8 @@ export async function runOllamaAutoInstall(
     }
 
     const speechModelConfigured =
-      pulledModels.find((m) => isSpeechModelName(m)) || speechCaps.defaultSpeechModel;
+      pulledModels.find((m) => isSpeechModelName(m)) ||
+      speechCaps.defaultSpeechModel;
 
     updateOllamaLongTask({
       active: false,
@@ -3952,12 +4747,20 @@ export async function runOllamaAutoInstall(
  */
 export async function createCustomModel(
   ctx: FmContext,
-  payload: { model: string; from: string; system?: string; parameters?: Record<string, any> },
+  payload: {
+    model: string;
+    from: string;
+    system?: string;
+    parameters?: Record<string, any>;
+  },
 ): Promise<{ ok: boolean; model: string; status: string }> {
   const model = String(payload.model || "").trim();
   const from = String(payload.from || "").trim();
   if (!model || !from) {
-    throw new FmError("INVALID_INPUT", "Both 'model' name and base 'from' model are required.");
+    throw new FmError(
+      "INVALID_INPUT",
+      "Both 'model' name and base 'from' model are required.",
+    );
   }
   const hardware = inspectOllamaHardware(ctx);
   const verdict = evaluateModelHardwareGuard({ name: from }, hardware);
@@ -3976,7 +4779,10 @@ export async function createCustomModel(
     timeoutMs: 30_000,
   });
   if (!res.ok || res.data?.error) {
-    throw new FmError("OLLAMA_CREATE_ERROR", res.data?.error || `Failed to create model ${model}`);
+    throw new FmError(
+      "OLLAMA_CREATE_ERROR",
+      res.data?.error || `Failed to create model ${model}`,
+    );
   }
   modelShowCache.clear();
   return { ok: true, model, status: String(res.data?.status || "success") };
@@ -3985,13 +4791,23 @@ export async function createCustomModel(
 /**
  * Duplicates a local Ollama model tag from `source` to `destination` via `POST /api/copy`.
  */
-export async function copyModel(ctx: FmContext, source: string, destination: string): Promise<{ ok: boolean }> {
+export async function copyModel(
+  ctx: FmContext,
+  source: string,
+  destination: string,
+): Promise<{ ok: boolean }> {
   const res = await ollamaFetchJson(ctx, "/api/copy", {
     method: "POST",
-    body: JSON.stringify({ source: source.trim(), destination: destination.trim() }),
+    body: JSON.stringify({
+      source: source.trim(),
+      destination: destination.trim(),
+    }),
   });
   if (!res.ok) {
-    throw new FmError("OLLAMA_COPY_ERROR", res.data?.error || `Failed to copy ${source} to ${destination}`);
+    throw new FmError(
+      "OLLAMA_COPY_ERROR",
+      res.data?.error || `Failed to copy ${source} to ${destination}`,
+    );
   }
   modelShowCache.clear();
   return { ok: true };
@@ -4000,14 +4816,20 @@ export async function copyModel(ctx: FmContext, source: string, destination: str
 /**
  * Pushes a local Ollama model to the model registry via `POST /api/push`.
  */
-export async function pushModel(ctx: FmContext, model: string): Promise<{ ok: boolean; status: string }> {
+export async function pushModel(
+  ctx: FmContext,
+  model: string,
+): Promise<{ ok: boolean; status: string }> {
   const res = await ollamaFetchJson(ctx, "/api/push", {
     method: "POST",
     body: JSON.stringify({ model: model.trim(), stream: false }),
     timeoutMs: 60_000,
   });
   if (!res.ok || res.data?.error) {
-    throw new FmError("OLLAMA_PUSH_ERROR", res.data?.error || `Failed to push ${model}`);
+    throw new FmError(
+      "OLLAMA_PUSH_ERROR",
+      res.data?.error || `Failed to push ${model}`,
+    );
   }
   return { ok: true, status: String(res.data?.status || "pushed") };
 }
@@ -4015,13 +4837,19 @@ export async function pushModel(ctx: FmContext, model: string): Promise<{ ok: bo
 /**
  * Deletes an installed model from the local Ollama server via `DELETE /api/delete`.
  */
-export async function deleteModel(ctx: FmContext, model: string): Promise<{ ok: boolean; deleted: string }> {
+export async function deleteModel(
+  ctx: FmContext,
+  model: string,
+): Promise<{ ok: boolean; deleted: string }> {
   const res = await ollamaFetchJson(ctx, "/api/delete", {
     method: "DELETE",
     body: JSON.stringify({ model: model.trim() }),
   });
   if (!res.ok) {
-    throw new FmError("OLLAMA_DELETE_ERROR", res.data?.error || `Failed to delete ${model}`);
+    throw new FmError(
+      "OLLAMA_DELETE_ERROR",
+      res.data?.error || `Failed to delete ${model}`,
+    );
   }
   modelShowCache.clear();
   return { ok: true, deleted: model.trim() };
@@ -4046,8 +4874,16 @@ export async function getCloudUsageAndBalance(ctx: FmContext): Promise<{
 
   if (apiKey && (!usage || !balance)) {
     const [cloudUsage, cloudBalance] = await Promise.all([
-      ollamaFetchJson(ctx, "/api/usage", { method: "GET", useCloudHost: true, timeoutMs: 5000 }),
-      ollamaFetchJson(ctx, "/api/balance", { method: "GET", useCloudHost: true, timeoutMs: 5000 }),
+      ollamaFetchJson(ctx, "/api/usage", {
+        method: "GET",
+        useCloudHost: true,
+        timeoutMs: 5000,
+      }),
+      ollamaFetchJson(ctx, "/api/balance", {
+        method: "GET",
+        useCloudHost: true,
+        timeoutMs: 5000,
+      }),
     ]);
     if (!usage && cloudUsage.ok) usage = cloudUsage.data;
     if (!balance && cloudBalance.ok) balance = cloudBalance.data;
@@ -4055,8 +4891,16 @@ export async function getCloudUsageAndBalance(ctx: FmContext): Promise<{
 
   return {
     hasApiKey: Boolean(apiKey),
-    usage: usage || { status: apiKey ? "Connected via OLLAMA_API_KEY" : "Sign in or set OLLAMA_API_KEY to view cloud usage" },
-    balance: balance || { credits: apiKey ? "Active Cloud Key" : "Local Execution Mode (0 Cloud Credits Used)" },
+    usage: usage || {
+      status: apiKey
+        ? "Connected via OLLAMA_API_KEY"
+        : "Sign in or set OLLAMA_API_KEY to view cloud usage",
+    },
+    balance: balance || {
+      credits: apiKey
+        ? "Active Cloud Key"
+        : "Local Execution Mode (0 Cloud Credits Used)",
+    },
   };
 }
 
@@ -4113,14 +4957,20 @@ export function formatSystemOneQuestions(
     : Object.entries(questionsInput || {}).map(([key, q]) => ({ key, q }));
 
   if (list.length === 0) {
-    throw new FmError("INVALID_DECISION_QUESTIONS", "At least one SystemOne question ('noul', 'choice', or 'score') is required.");
+    throw new FmError(
+      "INVALID_DECISION_QUESTIONS",
+      "At least one SystemOne question ('noul', 'choice', or 'score') is required.",
+    );
   }
 
   for (const { key, q } of list) {
     const qType = String(q?.type || "noul").toLowerCase();
     const instructions = String(q?.instructions || q?.question || "").trim();
     if (!instructions) {
-      throw new FmError("INVALID_DECISION_QUESTIONS", `Question "${key}" is missing instructions.`);
+      throw new FmError(
+        "INVALID_DECISION_QUESTIONS",
+        `Question "${key}" is missing instructions.`,
+      );
     }
     if (qType === "noul") {
       formatted[key] = {
@@ -4134,7 +4984,9 @@ export function formatSystemOneQuestions(
           if (typeof item === "string") {
             criteriaObj[item] = `Matches category ${item}`;
           } else if (item && typeof item === "object" && item.label) {
-            criteriaObj[String(item.label)] = String(item.description || item.label);
+            criteriaObj[String(item.label)] = String(
+              item.description || item.label,
+            );
           }
         }
       } else if (q.criteria && typeof q.criteria === "object") {
@@ -4170,7 +5022,10 @@ export function formatSystemOneQuestions(
         criteria: levels,
       };
     } else {
-      throw new FmError("INVALID_DECISION_TYPE", `Unsupported SystemOne question type "${qType}". Use "noul", "choice", or "score".`);
+      throw new FmError(
+        "INVALID_DECISION_TYPE",
+        `Unsupported SystemOne question type "${qType}". Use "noul", "choice", or "score".`,
+      );
     }
   }
   return formatted;
@@ -4184,9 +5039,18 @@ export async function resolveDecisionModel(
   ctx: FmContext,
   requestedModel?: string,
   hasImages = false,
-): Promise<{ model: string; verdict: HardwareGuardVerdict; useCloudHost: boolean }> {
-  const { hardware, models } = await listModelsWithBadgesAndHardwareFilter(ctx, { includeHiddenForDiagnostics: true });
-  const allowedInstalled = models.filter((m) => m.hardwareVerdict.allowed && m.badges.includes("Decision"));
+): Promise<{
+  model: string;
+  verdict: HardwareGuardVerdict;
+  useCloudHost: boolean;
+}> {
+  const { hardware, models } = await listModelsWithBadgesAndHardwareFilter(
+    ctx,
+    { includeHiddenForDiagnostics: true },
+  );
+  const allowedInstalled = models.filter(
+    (m) => m.hardwareVerdict.allowed && m.badges.includes("Decision"),
+  );
 
   let chosen = String(requestedModel || "").trim();
   if (chosen && isPhononModelName(chosen)) {
@@ -4198,7 +5062,9 @@ export async function resolveDecisionModel(
 
   if (!chosen) {
     if (hasImages) {
-      const imgDecider = allowedInstalled.find((m) => canJudgeImagesInDecision(m.name, m.capabilities));
+      const imgDecider = allowedInstalled.find((m) =>
+        canJudgeImagesInDecision(m.name, m.capabilities),
+      );
       chosen = imgDecider?.name || "clef-flash";
     } else {
       const textDecider = allowedInstalled[0];
@@ -4206,7 +5072,11 @@ export async function resolveDecisionModel(
     }
   }
 
-  const installedMatch = models.find((m) => m.name.toLowerCase() === chosen.toLowerCase() || baseModelName(m.name) === baseModelName(chosen));
+  const installedMatch = models.find(
+    (m) =>
+      m.name.toLowerCase() === chosen.toLowerCase() ||
+      baseModelName(m.name) === baseModelName(chosen),
+  );
   const verdict = installedMatch
     ? installedMatch.hardwareVerdict
     : evaluateModelHardwareGuard(
@@ -4222,8 +5092,14 @@ export async function resolveDecisionModel(
     throw new FmError(verdict.code, verdict.reason);
   }
 
-  if (hasImages && !canJudgeImagesInDecision(chosen, installedMatch?.capabilities)) {
-    const fallbackImg = allowedInstalled.find((m) => canJudgeImagesInDecision(m.name, m.capabilities))?.name || "clef-flash";
+  if (
+    hasImages &&
+    !canJudgeImagesInDecision(chosen, installedMatch?.capabilities)
+  ) {
+    const fallbackImg =
+      allowedInstalled.find((m) =>
+        canJudgeImagesInDecision(m.name, m.capabilities),
+      )?.name || "clef-flash";
     chosen = fallbackImg;
   }
 
@@ -4260,7 +5136,9 @@ export async function runDecisionEngine(
     stateParts.push(String(payload.state).trim());
   }
 
-  const imagesBase64: string[] = Array.isArray(payload.images) ? [...payload.images] : [];
+  const imagesBase64: string[] = Array.isArray(payload.images)
+    ? [...payload.images]
+    : [];
   const paths = Array.isArray(payload.paths) ? payload.paths : [];
 
   for (const rel of paths) {
@@ -4277,8 +5155,13 @@ export async function runDecisionEngine(
     }
   }
 
-  const finalState = stateParts.join("\n\n").trim() || "Inspect the provided input.";
-  const { model, verdict, useCloudHost } = await resolveDecisionModel(ctx, payload.model, imagesBase64.length > 0);
+  const finalState =
+    stateParts.join("\n\n").trim() || "Inspect the provided input.";
+  const { model, verdict, useCloudHost } = await resolveDecisionModel(
+    ctx,
+    payload.model,
+    imagesBase64.length > 0,
+  );
 
   const reqBody: Record<string, any> = {
     model,
@@ -4299,7 +5182,9 @@ export async function runDecisionEngine(
   if (!res.ok || !res.data?.answers) {
     throw new FmError(
       "OLLAMA_SYSTEMONE_ERROR",
-      res.data?.error?.message || res.data?.error || `SystemOne decision call failed (HTTP ${res.status}).`,
+      res.data?.error?.message ||
+        res.data?.error ||
+        `SystemOne decision call failed (HTTP ${res.status}).`,
     );
   }
 
@@ -4312,7 +5197,6 @@ export async function runDecisionEngine(
   };
 }
 
-
 // ============================================================================
 // 4. CAPABILITY B: SPEECH / TEXT-TO-SPEECH (POST /v1/audio/speech, model: phonon)
 // ============================================================================
@@ -4320,7 +5204,12 @@ export async function runDecisionEngine(
 /**
  * Core baseline voice identifiers always available on the `phonon` TTS model.
  */
-export const CORE_PHONON_VOICES = ["default", "Zoey", "Easton", "Freya"] as const;
+export const CORE_PHONON_VOICES = [
+  "default",
+  "Zoey",
+  "Easton",
+  "Freya",
+] as const;
 
 const MONTH_NAMES = [
   "January",
@@ -4345,25 +5234,34 @@ export function convertNumericDatesToWords(input: string): string {
   let out = String(input || "");
 
   // ISO dates: YYYY-MM-DD (e.g. 2026-10-28 -> October 28, 2026)
-  out = out.replace(/\b(\d{4})-(0?[1-9]|1[0-2])-(0?[1-9]|[12]\d|3[01])\b/g, (_m, yearStr, monthStr, dayStr) => {
-    const monthIdx = Number.parseInt(monthStr, 10) - 1;
-    const dayNum = Number.parseInt(dayStr, 10);
-    return `${MONTH_NAMES[monthIdx]} ${dayNum}, ${yearStr}`;
-  });
+  out = out.replace(
+    /\b(\d{4})-(0?[1-9]|1[0-2])-(0?[1-9]|[12]\d|3[01])\b/g,
+    (_m, yearStr, monthStr, dayStr) => {
+      const monthIdx = Number.parseInt(monthStr, 10) - 1;
+      const dayNum = Number.parseInt(dayStr, 10);
+      return `${MONTH_NAMES[monthIdx]} ${dayNum}, ${yearStr}`;
+    },
+  );
 
   // US dates with year: MM/DD/YYYY (e.g. 10/28/2026 -> October 28, 2026)
-  out = out.replace(/\b(0?[1-9]|1[0-2])\/(0?[1-9]|[12]\d|3[01])\/(\d{4})\b/g, (_m, monthStr, dayStr, yearStr) => {
-    const monthIdx = Number.parseInt(monthStr, 10) - 1;
-    const dayNum = Number.parseInt(dayStr, 10);
-    return `${MONTH_NAMES[monthIdx]} ${dayNum}, ${yearStr}`;
-  });
+  out = out.replace(
+    /\b(0?[1-9]|1[0-2])\/(0?[1-9]|[12]\d|3[01])\/(\d{4})\b/g,
+    (_m, monthStr, dayStr, yearStr) => {
+      const monthIdx = Number.parseInt(monthStr, 10) - 1;
+      const dayNum = Number.parseInt(dayStr, 10);
+      return `${MONTH_NAMES[monthIdx]} ${dayNum}, ${yearStr}`;
+    },
+  );
 
   // Short numeric dates: MM/DD (e.g. 10/28 -> October 28) when not preceded/followed by another slash
-  out = out.replace(/(?<![\d/])\b(0?[1-9]|1[0-2])\/(0?[1-9]|[12]\d|3[01])\b(?![\d/])/g, (_m, monthStr, dayStr) => {
-    const monthIdx = Number.parseInt(monthStr, 10) - 1;
-    const dayNum = Number.parseInt(dayStr, 10);
-    return `${MONTH_NAMES[monthIdx]} ${dayNum}`;
-  });
+  out = out.replace(
+    /(?<![\d/])\b(0?[1-9]|1[0-2])\/(0?[1-9]|[12]\d|3[01])\b(?![\d/])/g,
+    (_m, monthStr, dayStr) => {
+      const monthIdx = Number.parseInt(monthStr, 10) - 1;
+      const dayNum = Number.parseInt(dayStr, 10);
+      return `${MONTH_NAMES[monthIdx]} ${dayNum}`;
+    },
+  );
 
   return out;
 }
@@ -4377,8 +5275,14 @@ export function convertNumericDatesToWords(input: string): string {
 export function cleanTextForPhononSpeech(rawText: string): string {
   let text = String(rawText || "");
   // Remove Harmony <|channel|>analysis<|message|>...<|end|> blocks (e.g. gpt-oss)
-  text = text.replace(/<\|(?:start\|>assistant<\|)?channel\|>(?:analysis|thinking|thought)<\|message\|>[\s\S]*?(?:<\|end\|>|<\|return\|>)/gi, " ");
-  text = text.replace(/<\|(?:start\|>assistant<\|)?channel\|>final<\|message\|>/gi, " ");
+  text = text.replace(
+    /<\|(?:start\|>assistant<\|)?channel\|>(?:analysis|thinking|thought)<\|message\|>[\s\S]*?(?:<\|end\|>|<\|return\|>)/gi,
+    " ",
+  );
+  text = text.replace(
+    /<\|(?:start\|>assistant<\|)?channel\|>final<\|message\|>/gi,
+    " ",
+  );
   text = text.replace(/<\|(?:end|return|start|channel|message)\|>/gi, " ");
   // Remove <think>...</think> and <reasoning>...</reasoning> blocks if any
   text = text.replace(/<think>[\s\S]*?<\/think>/gi, " ");
@@ -4402,7 +5306,10 @@ export function cleanTextForPhononSpeech(rawText: string): string {
  * Splits any text longer than `maxChars` (default 4,096 characters) into smaller chunks
  * at paragraph (`\n\n`), newline (`\n`), or sentence (`. `, `! `, `? `) boundaries.
  */
-export function splitSpeechTextIntoChunks(cleanedText: string, maxChars = 4096): string[] {
+export function splitSpeechTextIntoChunks(
+  cleanedText: string,
+  maxChars = 4096,
+): string[] {
   const text = String(cleanedText || "").trim();
   if (!text) return [];
   if (text.length <= maxChars) return [text];
@@ -4446,7 +5353,9 @@ export function splitSpeechTextIntoChunks(cleanedText: string, maxChars = 4096):
 /**
  * Queries `/api/show` for the `phonon` model and returns the combined list of core and dynamically discovered voices.
  */
-export async function getPhononSupportedVoices(ctx: FmContext): Promise<string[]> {
+export async function getPhononSupportedVoices(
+  ctx: FmContext,
+): Promise<string[]> {
   const showData = await showModelDetails(ctx, "phonon");
   const modelInfo = showData?.model_info || {};
   let dynamicVoices: string[] = [];
@@ -4463,12 +5372,17 @@ export async function getPhononSupportedVoices(ctx: FmContext): Promise<string[]
 /**
  * Validates a requested Phonon voice name against the model's supported voices (case-insensitively) or throws `INVALID_PHONON_VOICE`.
  */
-export async function validatePhononVoice(ctx: FmContext, requestedVoice?: string): Promise<string> {
+export async function validatePhononVoice(
+  ctx: FmContext,
+  requestedVoice?: string,
+): Promise<string> {
   const voice = String(requestedVoice || "default").trim() || "default";
   const supported = await getPhononSupportedVoices(ctx);
   const exact = supported.find((v) => v === voice);
   if (exact) return exact;
-  const caseInsensitive = supported.find((v) => v.toLowerCase() === voice.toLowerCase());
+  const caseInsensitive = supported.find(
+    (v) => v.toLowerCase() === voice.toLowerCase(),
+  );
   if (caseInsensitive) return caseInsensitive;
   throw new FmError(
     "INVALID_PHONON_VOICE",
@@ -4505,7 +5419,10 @@ function buildMono24kHzWavHeader(pcmByteLength: number): Uint8Array {
   return new Uint8Array(header);
 }
 
-function combineAudioChunks(chunks: Uint8Array[], format: "wav" | "pcm"): Uint8Array {
+function combineAudioChunks(
+  chunks: Uint8Array[],
+  format: "wav" | "pcm",
+): Uint8Array {
   if (chunks.length === 0) {
     return format === "wav" ? buildMono24kHzWavHeader(0) : new Uint8Array(0);
   }
@@ -4548,18 +5465,26 @@ function combineAudioChunks(chunks: Uint8Array[], format: "wav" | "pcm"): Uint8A
 }
 
 const MAX_CACHED_SPEECH_FILES = 64;
-const cachedSpeechFiles = new Map<string, { absPath: string; mime: string; createdAt: number }>();
+const cachedSpeechFiles = new Map<
+  string,
+  { absPath: string; mime: string; createdAt: number }
+>();
 
 /**
  * Retrieves a cached Ollama speech audio file entry (`absPath` and `mime`) by its audio ID.
  */
-export function getCachedOllamaAudioFile(id: string): { absPath: string; mime: string } | null {
+export function getCachedOllamaAudioFile(
+  id: string,
+): { absPath: string; mime: string } | null {
   const entry = cachedSpeechFiles.get(String(id || ""));
   if (!entry) return null;
   return { absPath: entry.absPath, mime: entry.mime };
 }
 
-function spawnOsSpeakerPlayback(ctx: FmContext, wavFilePath: string): { playedOnOsSpeaker: boolean; playerCommand: string } {
+function spawnOsSpeakerPlayback(
+  ctx: FmContext,
+  wavFilePath: string,
+): { playedOnOsSpeaker: boolean; playerCommand: string } {
   const platform = ctx.ollama?.platform || process.platform;
   if (ctx.ollama?.playAudioCommand) {
     if (typeof ctx.ollama.playAudioCommand === "function") {
@@ -4574,8 +5499,14 @@ function spawnOsSpeakerPlayback(ctx: FmContext, wavFilePath: string): { playedOn
       return { playedOnOsSpeaker: false, playerCommand: "disabled" };
     }
     try {
-      Bun.spawn([...ctx.ollama.playAudioCommand, wavFilePath], { stdout: "ignore", stderr: "ignore" });
-      return { playedOnOsSpeaker: true, playerCommand: ctx.ollama.playAudioCommand[0]! };
+      Bun.spawn([...ctx.ollama.playAudioCommand, wavFilePath], {
+        stdout: "ignore",
+        stderr: "ignore",
+      });
+      return {
+        playedOnOsSpeaker: true,
+        playerCommand: ctx.ollama.playAudioCommand[0]!,
+      };
     } catch {
       return { playedOnOsSpeaker: false, playerCommand: "none" };
     }
@@ -4584,7 +5515,10 @@ function spawnOsSpeakerPlayback(ctx: FmContext, wavFilePath: string): { playedOn
   try {
     if (platform === "darwin") {
       const afplay = Bun.which("afplay") || "/usr/bin/afplay";
-      Bun.spawn([afplay, "--", wavFilePath], { stdout: "ignore", stderr: "ignore" });
+      Bun.spawn([afplay, "--", wavFilePath], {
+        stdout: "ignore",
+        stderr: "ignore",
+      });
       return { playedOnOsSpeaker: true, playerCommand: "afplay" };
     }
     if (platform === "linux") {
@@ -4593,7 +5527,15 @@ function spawnOsSpeakerPlayback(ctx: FmContext, wavFilePath: string): { playedOn
         if (resolved) {
           const args =
             bin === "ffplay"
-              ? [resolved, "-nodisp", "-autoexit", "-loglevel", "quiet", "--", wavFilePath]
+              ? [
+                  resolved,
+                  "-nodisp",
+                  "-autoexit",
+                  "-loglevel",
+                  "quiet",
+                  "--",
+                  wavFilePath,
+                ]
               : [resolved, "--", wavFilePath];
           Bun.spawn(args, { stdout: "ignore", stderr: "ignore" });
           return { playedOnOsSpeaker: true, playerCommand: bin };
@@ -4616,7 +5558,10 @@ function spawnOsSpeakerPlayback(ctx: FmContext, wavFilePath: string): { playedOn
           env: { ...process.env, FM_WAV_PATH: wavFilePath },
         },
       );
-      return { playedOnOsSpeaker: true, playerCommand: "PowerShell SoundPlayer" };
+      return {
+        playedOnOsSpeaker: true,
+        playerCommand: "PowerShell SoundPlayer",
+      };
     }
   } catch {
     // Non-fatal if headless
@@ -4659,16 +5604,28 @@ async function synthesizeCrossPlatformSpeechChunk(
   const pcmBuf = new ArrayBuffer(pcmByteLength);
   const pcmView = new DataView(pcmBuf);
 
-  const baseFreq = voice.toLowerCase() === "easton" ? 135 : voice.toLowerCase() === "freya" ? 210 : 185;
+  const baseFreq =
+    voice.toLowerCase() === "easton"
+      ? 135
+      : voice.toLowerCase() === "freya"
+        ? 210
+        : 185;
   for (let i = 0; i < numSamples; i++) {
     const t = i / sampleRate;
     const syllableEnv = 0.55 + 0.45 * Math.sin(2 * Math.PI * 3.8 * t);
     const fade =
-      i < 480 ? i / 480 : i > numSamples - 480 ? Math.max(0, (numSamples - i) / 480) : 1.0;
+      i < 480
+        ? i / 480
+        : i > numSamples - 480
+          ? Math.max(0, (numSamples - i) / 480)
+          : 1.0;
     const f1 = Math.sin(2 * Math.PI * baseFreq * t);
     const f2 = 0.4 * Math.sin(2 * Math.PI * (baseFreq * 2.02) * t);
     const f3 = 0.2 * Math.sin(2 * Math.PI * (baseFreq * 3.1) * t);
-    const sample = Math.max(-1, Math.min(1, (f1 + f2 + f3) * 0.28 * syllableEnv * fade));
+    const sample = Math.max(
+      -1,
+      Math.min(1, (f1 + f2 + f3) * 0.28 * syllableEnv * fade),
+    );
     pcmView.setInt16(i * 2, Math.round(sample * 32767), true);
   }
 
@@ -4735,13 +5692,19 @@ export async function runOllamaSpeech(
     rawText = await readTextFileSnippet(abs, 60_000);
   }
   if (!rawText) {
-    throw new FmError("EMPTY_SPEECH_INPUT", "Please provide text or select a file to read aloud.");
+    throw new FmError(
+      "EMPTY_SPEECH_INPUT",
+      "Please provide text or select a file to read aloud.",
+    );
   }
 
   const voice = await validatePhononVoice(ctx, payload.voice);
   const cleanedText = cleanTextForPhononSpeech(rawText);
   if (!cleanedText) {
-    throw new FmError("EMPTY_SPEECH_INPUT", "After stripping markdown and thinking blocks, there was no speakable text left.");
+    throw new FmError(
+      "EMPTY_SPEECH_INPUT",
+      "After stripping markdown and thinking blocks, there was no speakable text left.",
+    );
   }
 
   const speechCaps = getSpeechCapabilitiesForHost(ctx);
@@ -4771,7 +5734,8 @@ export async function runOllamaSpeech(
 
   const textChunks = splitSpeechTextIntoChunks(cleanedText, 4096);
   const mode: "speaker" | "file" = payload.mode === "file" ? "file" : "speaker";
-  const responseFormat: "wav" | "pcm" = payload.responseFormat === "pcm" ? "pcm" : "wav";
+  const responseFormat: "wav" | "pcm" =
+    payload.responseFormat === "pcm" ? "pcm" : "wav";
 
   const baseUrl = resolveOllamaBaseUrl(ctx, false);
   const audioBuffers: Uint8Array[] = [];
@@ -4804,19 +5768,30 @@ export async function runOllamaSpeech(
     }
 
     if (!chunkBytes) {
-      chunkBytes = await synthesizeCrossPlatformSpeechChunk(ctx, effectiveModel, chunkText, voice, responseFormat);
+      chunkBytes = await synthesizeCrossPlatformSpeechChunk(
+        ctx,
+        effectiveModel,
+        chunkText,
+        voice,
+        responseFormat,
+      );
     }
     audioBuffers.push(chunkBytes);
   }
 
   const combinedBytes = combineAudioChunks(audioBuffers, responseFormat);
-  const wavForPlayback = responseFormat === "wav" ? combinedBytes : combineAudioChunks(audioBuffers, "wav");
+  const wavForPlayback =
+    responseFormat === "wav"
+      ? combinedBytes
+      : combineAudioChunks(audioBuffers, "wav");
 
   // Save cached audio file for instant browser playback and OS speaker playback
   const cacheDir = bunJoinPath(ctx.dataDir, "ollama_speech_cache");
   ensureDirSyncWithBun(cacheDir);
   const hasher = new Bun.CryptoHasher("sha256");
-  hasher.update(`${Date.now()}-${Math.random()}-${effectiveModel}-${voice}-${payload.path || ""}-${cleanedText}`);
+  hasher.update(
+    `${Date.now()}-${Math.random()}-${effectiveModel}-${voice}-${payload.path || ""}-${cleanedText}`,
+  );
   const audioId = hasher.digest("hex").slice(0, 16);
   const cacheWavPath = bunJoinPath(cacheDir, `speech_${audioId}.wav`);
   await Bun.write(cacheWavPath, wavForPlayback);
@@ -4840,11 +5815,18 @@ export async function runOllamaSpeech(
     ensureDirSyncWithBun(folderAbs);
     const ext = responseFormat === "pcm" ? ".pcm" : ".wav";
     const prefix = baseModelName(effectiveModel) || "speech";
-    const rawFileName = bunBasename(String(requestedSaveFilename || `${prefix}_${voice.toLowerCase()}_${Date.now()}${ext}`).trim());
+    const rawFileName = bunBasename(
+      String(
+        requestedSaveFilename ||
+          `${prefix}_${voice.toLowerCase()}_${Date.now()}${ext}`,
+      ).trim(),
+    );
     if (!rawFileName || rawFileName === "." || rawFileName === "..") {
       throw new FmError("BAD_NAME", "Invalid output filename.");
     }
-    const safeFileName = rawFileName.endsWith(ext) ? rawFileName : `${rawFileName.replace(/\.(wav|pcm)$/i, "")}${ext}`;
+    const safeFileName = rawFileName.endsWith(ext)
+      ? rawFileName
+      : `${rawFileName.replace(/\.(wav|pcm)$/i, "")}${ext}`;
     const outAbs = bunJoinPath(folderAbs, safeFileName);
     assertModifiable(ctx, outAbs);
     await Bun.write(outAbs, combinedBytes);
@@ -4914,7 +5896,9 @@ export async function runOllamaWebSearch(
   const apiKey = getOllamaApiKey(ctx);
 
   const cloudUrl = `${resolveOllamaBaseUrl(ctx, true)}/api/web_search`;
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
   if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
 
   try {
@@ -4948,7 +5932,9 @@ export async function runOllamaWebSearch(
     query,
     results: [
       {
-        title: apiKey ? `Web Search Result for "${query}"` : `OLLAMA_API_KEY Required for Live Ollama Web Search`,
+        title: apiKey
+          ? `Web Search Result for "${query}"`
+          : `OLLAMA_API_KEY Required for Live Ollama Web Search`,
         url: "https://ollama.com/api/web_search",
         content: apiKey
           ? `Search endpoint https://ollama.com/api/web_search was queried for "${query}".`
@@ -4975,10 +5961,13 @@ export async function runOllamaWebFetch(
   usedCloudApi: boolean;
 }> {
   const targetUrl = String(payload.url || "").trim();
-  if (!targetUrl) throw new FmError("INVALID_INPUT", "URL is required for web_fetch.");
+  if (!targetUrl)
+    throw new FmError("INVALID_INPUT", "URL is required for web_fetch.");
   const apiKey = getOllamaApiKey(ctx);
   const cloudEndpoint = `${resolveOllamaBaseUrl(ctx, true)}/api/web_fetch`;
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
   if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
 
   try {
@@ -5093,14 +6082,20 @@ export async function runOllamaEmbed(
     throw new FmError(verdict.code, verdict.reason);
   }
 
-  const inputs = Array.isArray(payload.input) ? payload.input.map(String) : [String(payload.input || "")];
+  const inputs = Array.isArray(payload.input)
+    ? payload.input.map(String)
+    : [String(payload.input || "")];
   const res = await ollamaFetchJson(ctx, "/api/embed", {
     method: "POST",
     body: JSON.stringify({ model: embedModel, input: inputs }),
     timeoutMs: 25_000,
   });
 
-  if (res.ok && Array.isArray(res.data?.embeddings) && res.data.embeddings.length > 0) {
+  if (
+    res.ok &&
+    Array.isArray(res.data?.embeddings) &&
+    res.data.embeddings.length > 0
+  ) {
     return {
       model: embedModel,
       embeddings: res.data.embeddings,
@@ -5141,14 +6136,26 @@ export async function runSemanticMeaningSearch(
   }>;
 }> {
   const query = String(payload.query || "").trim();
-  if (!query) throw new FmError("INVALID_INPUT", "Please provide a meaning search query.");
+  if (!query)
+    throw new FmError(
+      "INVALID_INPUT",
+      "Please provide a meaning search query.",
+    );
   const dirRel = String(payload.dirPath || ".");
   const dirAbs = resolveSandboxPath(ctx, dirRel);
   const topK = Math.max(1, Math.min(25, Number(payload.topK || 8)));
 
-  const candidateFiles = listDirectoryWithBun(dirAbs, { recursive: true, maxEntries: 60 }).filter((f) => {
+  const candidateFiles = listDirectoryWithBun(dirAbs, {
+    recursive: true,
+    maxEntries: 60,
+  }).filter((f) => {
     const ext = bunExtname(f.name);
-    return !isSupportedVisionImagePath(f.name) && ![".wav", ".pcm", ".zip", ".tar", ".gz", ".pdf", ".mp4", ".mp3"].includes(ext);
+    return (
+      !isSupportedVisionImagePath(f.name) &&
+      ![".wav", ".pcm", ".zip", ".tar", ".gz", ".pdf", ".mp4", ".mp3"].includes(
+        ext,
+      )
+    );
   });
 
   if (candidateFiles.length === 0) {
@@ -5183,7 +6190,9 @@ export async function runSemanticMeaningSearch(
 
   const queryVec = embedRes.embeddings[0] || buildFallbackSemanticVector(query);
   const scored = docs.map((doc, idx) => {
-    const docVec = embedRes.embeddings[idx + 1] || buildFallbackSemanticVector(doc.textForEmbed);
+    const docVec =
+      embedRes.embeddings[idx + 1] ||
+      buildFallbackSemanticVector(doc.textForEmbed);
     // Combine vector cosine similarity with keyword overlap boost
     const vecSim = cosineSimilarity(queryVec, docVec);
     const qWords = query
@@ -5195,8 +6204,12 @@ export async function runSemanticMeaningSearch(
     for (const w of qWords) {
       if (docLower.includes(w)) keywordHits++;
     }
-    const kwBoost = qWords.length > 0 ? (keywordHits / qWords.length) * 0.25 : 0;
-    const similarity = Math.min(0.999, Math.max(0, Math.round((vecSim * 0.85 + kwBoost) * 1000) / 1000));
+    const kwBoost =
+      qWords.length > 0 ? (keywordHits / qWords.length) * 0.25 : 0;
+    const similarity = Math.min(
+      0.999,
+      Math.max(0, Math.round((vecSim * 0.85 + kwBoost) * 1000) / 1000),
+    );
     return {
       path: doc.path,
       absPath: doc.absPath,
@@ -5217,7 +6230,6 @@ export async function runSemanticMeaningSearch(
     matches: scored.slice(0, topK),
   };
 }
-
 
 // ============================================================================
 // 7. CAPABILITY I: TOOL CALLING & FILE MANAGER ACTIONS WITH VISUAL CONFIRMATION
@@ -5248,12 +6260,20 @@ export const FILE_MANAGER_OLLAMA_TOOLS = [
     type: "function",
     function: {
       name: "create_file",
-      description: "Create or write a file in the Codecaine File Manager workspace (requires user confirmation before writing).",
+      description:
+        "Create or write a file in the Codecaine File Manager workspace (requires user confirmation before writing).",
       parameters: {
         type: "object",
         properties: {
-          path: { type: "string", description: "Relative file path to create, e.g. 'notes/summary.md'" },
-          content: { type: "string", description: "Text content to write into the file" },
+          path: {
+            type: "string",
+            description:
+              "Relative file path to create, e.g. 'notes/summary.md'",
+          },
+          content: {
+            type: "string",
+            description: "Text content to write into the file",
+          },
         },
         required: ["path", "content"],
       },
@@ -5263,12 +6283,19 @@ export const FILE_MANAGER_OLLAMA_TOOLS = [
     type: "function",
     function: {
       name: "move_file",
-      description: "Move or rename a file or folder inside the Codecaine File Manager workspace (requires visual confirmation).",
+      description:
+        "Move or rename a file or folder inside the Codecaine File Manager workspace (requires visual confirmation).",
       parameters: {
         type: "object",
         properties: {
-          sourcePath: { type: "string", description: "Existing relative path of the file or folder" },
-          destinationPath: { type: "string", description: "New relative destination path" },
+          sourcePath: {
+            type: "string",
+            description: "Existing relative path of the file or folder",
+          },
+          destinationPath: {
+            type: "string",
+            description: "New relative destination path",
+          },
         },
         required: ["sourcePath", "destinationPath"],
       },
@@ -5278,7 +6305,8 @@ export const FILE_MANAGER_OLLAMA_TOOLS = [
     type: "function",
     function: {
       name: "batch_rename",
-      description: "Batch rename multiple files in a directory with a clean naming plan (requires visual confirmation).",
+      description:
+        "Batch rename multiple files in a directory with a clean naming plan (requires visual confirmation).",
       parameters: {
         type: "object",
         properties: {
@@ -5303,12 +6331,20 @@ export const FILE_MANAGER_OLLAMA_TOOLS = [
     type: "function",
     function: {
       name: "archive_files",
-      description: "Create a .tar.gz or .zip archive from selected files or folders (requires visual confirmation).",
+      description:
+        "Create a .tar.gz or .zip archive from selected files or folders (requires visual confirmation).",
       parameters: {
         type: "object",
         properties: {
-          paths: { type: "array", items: { type: "string" }, description: "Relative paths to archive" },
-          archivePath: { type: "string", description: "Output archive relative path, e.g. 'backup.tar.gz'" },
+          paths: {
+            type: "array",
+            items: { type: "string" },
+            description: "Relative paths to archive",
+          },
+          archivePath: {
+            type: "string",
+            description: "Output archive relative path, e.g. 'backup.tar.gz'",
+          },
         },
         required: ["paths", "archivePath"],
       },
@@ -5318,12 +6354,19 @@ export const FILE_MANAGER_OLLAMA_TOOLS = [
     type: "function",
     function: {
       name: "search_directory",
-      description: "Search a directory for files matching a query or extension.",
+      description:
+        "Search a directory for files matching a query or extension.",
       parameters: {
         type: "object",
         properties: {
-          dirPath: { type: "string", description: "Relative directory path (default '.')" },
-          query: { type: "string", description: "Filename or content substring to search for" },
+          dirPath: {
+            type: "string",
+            description: "Relative directory path (default '.')",
+          },
+          query: {
+            type: "string",
+            description: "Filename or content substring to search for",
+          },
         },
         required: ["query"],
       },
@@ -5333,7 +6376,8 @@ export const FILE_MANAGER_OLLAMA_TOOLS = [
     type: "function",
     function: {
       name: "web_search",
-      description: "Search the live web via https://ollama.com/api/web_search (automatically uses 32,000+ token context).",
+      description:
+        "Search the live web via https://ollama.com/api/web_search (automatically uses 32,000+ token context).",
       parameters: {
         type: "object",
         properties: {
@@ -5347,7 +6391,8 @@ export const FILE_MANAGER_OLLAMA_TOOLS = [
     type: "function",
     function: {
       name: "web_fetch",
-      description: "Fetch and read a web page via https://ollama.com/api/web_fetch (automatically uses 32,000+ token context).",
+      description:
+        "Fetch and read a web page via https://ollama.com/api/web_fetch (automatically uses 32,000+ token context).",
       parameters: {
         type: "object",
         properties: {
@@ -5367,7 +6412,9 @@ export function stagePendingToolAction(
   args: Record<string, any>,
 ): PendingToolAction {
   const hasher = new Bun.CryptoHasher("sha256");
-  hasher.update(`${Date.now()}-${Math.random()}-${toolName}-${JSON.stringify(args)}`);
+  hasher.update(
+    `${Date.now()}-${Math.random()}-${toolName}-${JSON.stringify(args)}`,
+  );
   const actionId = `act_${hasher.digest("hex").slice(0, 12)}`;
 
   let title = "Confirm File Manager Action";
@@ -5413,7 +6460,9 @@ export function stagePendingToolAction(
  * Returns all currently pending tool actions awaiting user confirmation.
  */
 export function listPendingToolActions(): PendingToolAction[] {
-  return Array.from(pendingToolActions.values()).filter((a) => a.status === "pending");
+  return Array.from(pendingToolActions.values()).filter(
+    (a) => a.status === "pending",
+  );
 }
 
 /**
@@ -5426,7 +6475,10 @@ export async function executeConfirmedToolAction(
 ): Promise<PendingToolAction> {
   const pending = pendingToolActions.get(String(actionId || ""));
   if (!pending) {
-    throw new FmError("ACTION_NOT_FOUND", `Tool action "${actionId}" was not found or already completed.`);
+    throw new FmError(
+      "ACTION_NOT_FOUND",
+      `Tool action "${actionId}" was not found or already completed.`,
+    );
   }
   if (decision === "cancel") {
     pending.status = "cancelled";
@@ -5435,13 +6487,19 @@ export async function executeConfirmedToolAction(
 
   const args = pending.arguments;
   if (pending.toolName === "create_file") {
-    const targetAbs = resolveSandboxPath(ctx, String(args.path || "untitled.txt"));
+    const targetAbs = resolveSandboxPath(
+      ctx,
+      String(args.path || "untitled.txt"),
+    );
     const parentDir = bunDirname(targetAbs);
     assertCreatable(ctx, parentDir);
     assertModifiable(ctx, targetAbs);
     ensureDirSyncWithBun(parentDir);
     await Bun.write(targetAbs, String(args.content ?? ""));
-    pending.result = { createdPath: toSandboxRelative(ctx, targetAbs), bytesWritten: String(args.content ?? "").length };
+    pending.result = {
+      createdPath: toSandboxRelative(ctx, targetAbs),
+      bytesWritten: String(args.content ?? "").length,
+    };
   } else if (pending.toolName === "move_file") {
     const srcAbs = resolveSandboxPath(ctx, String(args.sourcePath || ""));
     const dstAbs = resolveSandboxPath(ctx, String(args.destinationPath || ""));
@@ -5450,11 +6508,20 @@ export async function executeConfirmedToolAction(
     assertCreatable(ctx, dstParent);
     assertModifiable(ctx, dstAbs);
     ensureDirSyncWithBun(dstParent);
-    const mv = Bun.spawnSync(["mv", "--", srcAbs, dstAbs], { stdout: "pipe", stderr: "pipe" });
+    const mv = Bun.spawnSync(["mv", "--", srcAbs, dstAbs], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
     if (mv.exitCode !== 0) {
-      throw new FmError("MOVE_FAILED", new TextDecoder().decode(mv.stderr) || "Failed to move file.");
+      throw new FmError(
+        "MOVE_FAILED",
+        new TextDecoder().decode(mv.stderr) || "Failed to move file.",
+      );
     }
-    pending.result = { movedFrom: toSandboxRelative(ctx, srcAbs), movedTo: toSandboxRelative(ctx, dstAbs) };
+    pending.result = {
+      movedFrom: toSandboxRelative(ctx, srcAbs),
+      movedTo: toSandboxRelative(ctx, dstAbs),
+    };
   } else if (pending.toolName === "batch_rename") {
     const renames = Array.isArray(args.renames) ? args.renames : [];
     const completed: Array<{ from: string; to: string }> = [];
@@ -5466,14 +6533,22 @@ export async function executeConfirmedToolAction(
       assertCreatable(ctx, toParent);
       assertModifiable(ctx, toAbs);
       ensureDirSyncWithBun(toParent);
-      const mv = Bun.spawnSync(["mv", "--", fromAbs, toAbs], { stdout: "pipe", stderr: "pipe" });
+      const mv = Bun.spawnSync(["mv", "--", fromAbs, toAbs], {
+        stdout: "pipe",
+        stderr: "pipe",
+      });
       if (mv.exitCode === 0) {
-        completed.push({ from: toSandboxRelative(ctx, fromAbs), to: toSandboxRelative(ctx, toAbs) });
+        completed.push({
+          from: toSandboxRelative(ctx, fromAbs),
+          to: toSandboxRelative(ctx, toAbs),
+        });
       }
     }
     pending.result = { renamedCount: completed.length, completed };
   } else if (pending.toolName === "archive_files") {
-    const relPaths: string[] = Array.isArray(args.paths) ? args.paths.map(String) : [];
+    const relPaths: string[] = Array.isArray(args.paths)
+      ? args.paths.map(String)
+      : [];
     const archiveRel = String(args.archivePath || "archive.tar.gz");
     const archiveAbs = resolveSandboxPath(ctx, archiveRel);
     const archiveParent = bunDirname(archiveAbs);
@@ -5484,7 +6559,10 @@ export async function executeConfirmedToolAction(
     const validatedRel = relPaths.map((p) => {
       const abs = resolveSandboxPath(ctx, p);
       if (!isSameOrInside(abs, archiveRoot, ctx.platform)) {
-        throw new FmError("PROTECTED_PATH", `Cannot archive path outside workspace root: ${p}`);
+        throw new FmError(
+          "PROTECTED_PATH",
+          `Cannot archive path outside workspace root: ${p}`,
+        );
       }
       const rel = toSandboxRelative(ctx, abs);
       if (rel.startsWith("-") || rel.startsWith("..")) {
@@ -5492,14 +6570,23 @@ export async function executeConfirmedToolAction(
       }
       return rel;
     });
-    const tar = Bun.spawnSync(["tar", "-czf", archiveAbs, "-C", archiveRoot, "--", ...validatedRel], {
-      stdout: "pipe",
-      stderr: "pipe",
-    });
+    const tar = Bun.spawnSync(
+      ["tar", "-czf", archiveAbs, "-C", archiveRoot, "--", ...validatedRel],
+      {
+        stdout: "pipe",
+        stderr: "pipe",
+      },
+    );
     if (tar.exitCode !== 0) {
-      throw new FmError("ARCHIVE_FAILED", new TextDecoder().decode(tar.stderr) || "Failed to create archive.");
+      throw new FmError(
+        "ARCHIVE_FAILED",
+        new TextDecoder().decode(tar.stderr) || "Failed to create archive.",
+      );
     }
-    pending.result = { archivePath: toSandboxRelative(ctx, archiveAbs), itemsArchived: validatedRel.length };
+    pending.result = {
+      archivePath: toSandboxRelative(ctx, archiveAbs),
+      itemsArchived: validatedRel.length,
+    };
   }
 
   pending.status = "executed";
@@ -5562,7 +6649,9 @@ export const STRUCTURED_SCHEMAS: Record<string, any> = {
         type: "array",
         items: {
           type: "object",
-          additionalProperties: { type: ["string", "number", "boolean", "null"] },
+          additionalProperties: {
+            type: ["string", "number", "boolean", "null"],
+          },
         },
       },
     },
@@ -5572,7 +6661,10 @@ export const STRUCTURED_SCHEMAS: Record<string, any> = {
     type: "object",
     properties: {
       summary: { type: "string" },
-      overallRisk: { type: "string", enum: ["low", "medium", "high", "critical"] },
+      overallRisk: {
+        type: "string",
+        enum: ["low", "medium", "high", "critical"],
+      },
       findings: {
         type: "array",
         items: {
@@ -5580,7 +6672,10 @@ export const STRUCTURED_SCHEMAS: Record<string, any> = {
           properties: {
             file: { type: "string" },
             line: { type: "number" },
-            severity: { type: "string", enum: ["info", "warning", "error", "critical"] },
+            severity: {
+              type: "string",
+              enum: ["info", "warning", "error", "critical"],
+            },
             issue: { type: "string" },
             fixSuggestion: { type: "string" },
           },
@@ -5594,14 +6689,20 @@ export const STRUCTURED_SCHEMAS: Record<string, any> = {
     type: "object",
     properties: {
       summary: { type: "string" },
-      status: { type: "string", enum: ["safe", "attention_needed", "vulnerable"] },
+      status: {
+        type: "string",
+        enum: ["safe", "attention_needed", "vulnerable"],
+      },
       vulnerabilities: {
         type: "array",
         items: {
           type: "object",
           properties: {
             category: { type: "string" },
-            severity: { type: "string", enum: ["low", "medium", "high", "critical"] },
+            severity: {
+              type: "string",
+              enum: ["low", "medium", "high", "critical"],
+            },
             description: { type: "string" },
             remediation: { type: "string" },
           },
@@ -5620,7 +6721,11 @@ export async function selectBestChatOrVisionModel(
   ctx: FmContext,
   requestedModel?: string,
   requireVision = false,
-): Promise<{ model: string; verdict: HardwareGuardVerdict; useCloudHost: boolean }> {
+): Promise<{
+  model: string;
+  verdict: HardwareGuardVerdict;
+  useCloudHost: boolean;
+}> {
   const reqTrimmed = String(requestedModel || "").trim();
   if (reqTrimmed && isPhononModelName(reqTrimmed)) {
     throw new FmError(
@@ -5629,31 +6734,52 @@ export async function selectBestChatOrVisionModel(
     );
   }
 
-  const { hardware, models } = await listModelsWithBadgesAndHardwareFilter(ctx, { includeHiddenForDiagnostics: true });
-  const allowedChatModels = models.filter((m) => m.hardwareVerdict.allowed && !isPhononModelName(m.name));
+  const { hardware, models } = await listModelsWithBadgesAndHardwareFilter(
+    ctx,
+    { includeHiddenForDiagnostics: true },
+  );
+  const allowedChatModels = models.filter(
+    (m) => m.hardwareVerdict.allowed && !isPhononModelName(m.name),
+  );
 
   let chosen = reqTrimmed;
   if (!chosen) {
-    const defaultQwenModel = hardware.ramTier === "under_8gb" || hardware.ramTier === "8gb_to_16gb" ? "qwen3.5:4b" : "qwen3.5:latest";
-    const installedQwen = allowedChatModels.find((m) => m.name.toLowerCase().startsWith("qwen3.5"));
+    const defaultQwenModel =
+      hardware.ramTier === "under_8gb" || hardware.ramTier === "8gb_to_16gb"
+        ? "qwen3.5:4b"
+        : "qwen3.5:latest";
+    const installedQwen = allowedChatModels.find((m) =>
+      m.name.toLowerCase().startsWith("qwen3.5"),
+    );
     if (requireVision) {
       const vis =
         installedQwen ||
-        allowedChatModels.find((m) => m.badges.includes("Vision") && m.badges.includes("Chat"));
-      chosen = vis?.name || allowedChatModels.find((m) => m.badges.includes("Vision"))?.name || defaultQwenModel;
+        allowedChatModels.find(
+          (m) => m.badges.includes("Vision") && m.badges.includes("Chat"),
+        );
+      chosen =
+        vis?.name ||
+        allowedChatModels.find((m) => m.badges.includes("Vision"))?.name ||
+        defaultQwenModel;
     } else {
       const chat =
         installedQwen ||
-        allowedChatModels.find((m) => m.badges.includes("Chat") && !m.badges.includes("Decision"));
+        allowedChatModels.find(
+          (m) => m.badges.includes("Chat") && !m.badges.includes("Decision"),
+        );
       chosen = chat?.name || allowedChatModels[0]?.name || defaultQwenModel;
     }
   }
 
   const installedMatch = models.find(
-    (m) => m.name.toLowerCase() === chosen.toLowerCase() || baseModelName(m.name) === baseModelName(chosen),
+    (m) =>
+      m.name.toLowerCase() === chosen.toLowerCase() ||
+      baseModelName(m.name) === baseModelName(chosen),
   );
   const catalogMatch = CURATED_MODEL_CATALOG.find(
-    (c) => c.name.toLowerCase() === chosen.toLowerCase() || baseModelName(c.name) === baseModelName(chosen),
+    (c) =>
+      c.name.toLowerCase() === chosen.toLowerCase() ||
+      baseModelName(c.name) === baseModelName(chosen),
   );
 
   const verdict = installedMatch
@@ -5662,7 +6788,9 @@ export async function selectBestChatOrVisionModel(
         {
           name: chosen,
           parameterSize: catalogMatch?.parameterSize,
-          sizeBytes: catalogMatch ? Math.round(catalogMatch.estimatedRamGb * 0.88 * 1024 ** 3) : undefined,
+          sizeBytes: catalogMatch
+            ? Math.round(catalogMatch.estimatedRamGb * 0.88 * 1024 ** 3)
+            : undefined,
           runner: catalogMatch?.runner,
           capabilities: catalogMatch?.capabilities,
         },
@@ -5746,7 +6874,9 @@ export async function runOllamaChatOrGenerate(
   speechResult: any | null;
 }> {
   const paths = Array.isArray(payload.paths) ? payload.paths : [];
-  const imagesBase64: string[] = Array.isArray(payload.images) ? [...payload.images] : [];
+  const imagesBase64: string[] = Array.isArray(payload.images)
+    ? [...payload.images]
+    : [];
   const inspectedFiles: string[] = [];
   const fileContextBlocks: string[] = [];
 
@@ -5790,7 +6920,10 @@ export async function runOllamaChatOrGenerate(
     webContextUsed = true;
     const q = String(payload.webSearchQuery || payload.prompt || "").trim();
     if (q) {
-      const searchRes = await runOllamaWebSearch(ctx, { query: q, maxResults: 4 });
+      const searchRes = await runOllamaWebSearch(ctx, {
+        query: q,
+        maxResults: 4,
+      });
       for (const r of searchRes.results) {
         webSources.push({ title: r.title, url: r.url });
         webSnippets.push(`[Web Source: ${r.title} (${r.url})]\n${r.content}`);
@@ -5802,46 +6935,76 @@ export async function runOllamaChatOrGenerate(
     webContextUsed = true;
     const fetchRes = await runOllamaWebFetch(ctx, { url: payload.webFetchUrl });
     webSources.push({ title: fetchRes.title, url: fetchRes.url });
-    webSnippets.push(`[Fetched Page: ${fetchRes.title} (${fetchRes.url})]\n${fetchRes.content.slice(0, 12_000)}`);
+    webSnippets.push(
+      `[Fetched Page: ${fetchRes.title} (${fetchRes.url})]\n${fetchRes.content.slice(0, 12_000)}`,
+    );
   }
 
   const requestedCtx = Number(payload.numCtx || 8192);
-  const enforcedNumCtx = webContextUsed ? Math.max(requestedCtx, MIN_WEB_SEARCH_NUM_CTX) : requestedCtx;
+  const enforcedNumCtx = webContextUsed
+    ? Math.max(requestedCtx, MIN_WEB_SEARCH_NUM_CTX)
+    : requestedCtx;
 
   const resolvedFormat =
     payload.schemaPreset && STRUCTURED_SCHEMAS[payload.schemaPreset]
       ? STRUCTURED_SCHEMAS[payload.schemaPreset]
       : payload.format || undefined;
 
-  const userPrompt = String(payload.prompt || "Describe or analyze the selected items.").trim();
+  const userPrompt = String(
+    payload.prompt || "Describe or analyze the selected items.",
+  ).trim();
   const fullUserContent = [
     userPrompt,
-    fileContextBlocks.length > 0 ? `\n\nSelected Workspace Files:\n${fileContextBlocks.join("\n\n")}` : "",
-    webSnippets.length > 0 ? `\n\nLive Web Context:\n${webSnippets.join("\n\n")}` : "",
+    fileContextBlocks.length > 0
+      ? `\n\nSelected Workspace Files:\n${fileContextBlocks.join("\n\n")}`
+      : "",
+    webSnippets.length > 0
+      ? `\n\nLive Web Context:\n${webSnippets.join("\n\n")}`
+      : "",
   ]
     .filter(Boolean)
     .join("");
 
-  const endpoint: "chat" | "generate" = payload.endpoint === "generate" ? "generate" : "chat";
+  const endpoint: "chat" | "generate" =
+    payload.endpoint === "generate" ? "generate" : "chat";
   const optionsObj: Record<string, any> = {
     num_ctx: enforcedNumCtx,
   };
-  if (typeof payload.temperature === "number" && Number.isFinite(payload.temperature)) {
+  if (
+    typeof payload.temperature === "number" &&
+    Number.isFinite(payload.temperature)
+  ) {
     optionsObj.temperature = Math.max(0, Math.min(2, payload.temperature));
   }
   if (typeof payload.topP === "number" && Number.isFinite(payload.topP)) {
     optionsObj.top_p = Math.max(0, Math.min(1, payload.topP));
   }
-  if (typeof payload.topK === "number" && Number.isFinite(payload.topK) && payload.topK > 0) {
+  if (
+    typeof payload.topK === "number" &&
+    Number.isFinite(payload.topK) &&
+    payload.topK > 0
+  ) {
     optionsObj.top_k = Math.round(payload.topK);
   }
-  if (typeof payload.minP === "number" && Number.isFinite(payload.minP) && payload.minP >= 0) {
+  if (
+    typeof payload.minP === "number" &&
+    Number.isFinite(payload.minP) &&
+    payload.minP >= 0
+  ) {
     optionsObj.min_p = Math.max(0, Math.min(1, payload.minP));
   }
-  if (typeof payload.repeatPenalty === "number" && Number.isFinite(payload.repeatPenalty) && payload.repeatPenalty > 0) {
+  if (
+    typeof payload.repeatPenalty === "number" &&
+    Number.isFinite(payload.repeatPenalty) &&
+    payload.repeatPenalty > 0
+  ) {
     optionsObj.repeat_penalty = payload.repeatPenalty;
   }
-  if (typeof payload.numPredict === "number" && Number.isFinite(payload.numPredict) && payload.numPredict > 0) {
+  if (
+    typeof payload.numPredict === "number" &&
+    Number.isFinite(payload.numPredict) &&
+    payload.numPredict > 0
+  ) {
     optionsObj.num_predict = Math.round(payload.numPredict);
   }
   if (typeof payload.seed === "number" && Number.isFinite(payload.seed)) {
@@ -5861,7 +7024,12 @@ export async function runOllamaChatOrGenerate(
     payload.systemPrompt ||
       "You are the Codecaine File Manager AI Assistant powered by Ollama. Be concise, helpful, and accurate.",
   ).trim();
-  const fullSystemContent = [baseSystemText, thinkResolution.systemReasoningDirective].filter(Boolean).join("\n\n");
+  const fullSystemContent = [
+    baseSystemText,
+    thinkResolution.systemReasoningDirective,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
   let content = "";
   let thinkingText = "";
@@ -5877,7 +7045,8 @@ export async function runOllamaChatOrGenerate(
       options: optionsObj,
     };
     if (payload.suffix) genReq.suffix = String(payload.suffix);
-    if (payload.keepAlive !== undefined && payload.keepAlive !== "") genReq.keep_alive = payload.keepAlive;
+    if (payload.keepAlive !== undefined && payload.keepAlive !== "")
+      genReq.keep_alive = payload.keepAlive;
     if (imagesBase64.length > 0) genReq.images = imagesBase64;
     if (resolvedFormat) genReq.format = resolvedFormat;
 
@@ -5911,7 +7080,12 @@ export async function runOllamaChatOrGenerate(
             topK: payload.topK,
             minP: payload.minP,
             repeatPenalty: payload.repeatPenalty,
-            maxTokens: payload.numPredict && payload.numPredict !== 2048 && payload.numPredict !== 16384 ? payload.numPredict : undefined,
+            maxTokens:
+              payload.numPredict &&
+              payload.numPredict !== 2048 &&
+              payload.numPredict !== 16384
+                ? payload.numPredict
+                : undefined,
             seed: payload.seed,
             stop: payload.stop,
             systemPrompt: payload.systemPrompt,
@@ -5941,7 +7115,10 @@ export async function runOllamaChatOrGenerate(
           // Fall through to OLLAMA_GENERATE_ERROR
         }
       }
-      throw new FmError("OLLAMA_GENERATE_ERROR", errMsg || `Ollama /api/generate failed (HTTP ${res.status}).`);
+      throw new FmError(
+        "OLLAMA_GENERATE_ERROR",
+        errMsg || `Ollama /api/generate failed (HTTP ${res.status}).`,
+      );
     }
     const extracted = extractThinkingAndFinalContent(
       String(res.data?.response || ""),
@@ -5950,28 +7127,31 @@ export async function runOllamaChatOrGenerate(
     content = extracted.content;
     thinkingText = extracted.thinkingText;
   } else {
-    const messages = Array.isArray(payload.messages) && payload.messages.length > 0
-      ? payload.messages.map((m, idx, arr) => {
-          if (idx === arr.length - 1 && m.role === "user") {
-            return {
+    const messages =
+      Array.isArray(payload.messages) && payload.messages.length > 0
+        ? payload.messages.map((m, idx, arr) => {
+            if (idx === arr.length - 1 && m.role === "user") {
+              return {
+                role: "user",
+                content: [m.content, ...fileContextBlocks, ...webSnippets]
+                  .filter(Boolean)
+                  .join("\n\n"),
+                images: imagesBase64.length > 0 ? imagesBase64 : m.images,
+              };
+            }
+            return m;
+          })
+        : [
+            {
+              role: "system",
+              content: fullSystemContent,
+            },
+            {
               role: "user",
-              content: [m.content, ...fileContextBlocks, ...webSnippets].filter(Boolean).join("\n\n"),
-              images: imagesBase64.length > 0 ? imagesBase64 : m.images,
-            };
-          }
-          return m;
-        })
-      : [
-          {
-            role: "system",
-            content: fullSystemContent,
-          },
-          {
-            role: "user",
-            content: fullUserContent,
-            ...(imagesBase64.length > 0 ? { images: imagesBase64 } : {}),
-          },
-        ];
+              content: fullUserContent,
+              ...(imagesBase64.length > 0 ? { images: imagesBase64 } : {}),
+            },
+          ];
 
     const chatReq: Record<string, any> = {
       model,
@@ -5980,7 +7160,8 @@ export async function runOllamaChatOrGenerate(
       ...(thinkParam !== undefined ? { think: thinkParam } : {}),
       options: optionsObj,
     };
-    if (payload.keepAlive !== undefined && payload.keepAlive !== "") chatReq.keep_alive = payload.keepAlive;
+    if (payload.keepAlive !== undefined && payload.keepAlive !== "")
+      chatReq.keep_alive = payload.keepAlive;
     if (resolvedFormat) chatReq.format = resolvedFormat;
     if (payload.enableTools) {
       chatReq.tools = FILE_MANAGER_OLLAMA_TOOLS;
@@ -6016,7 +7197,12 @@ export async function runOllamaChatOrGenerate(
             topK: payload.topK,
             minP: payload.minP,
             repeatPenalty: payload.repeatPenalty,
-            maxTokens: payload.numPredict && payload.numPredict !== 2048 && payload.numPredict !== 16384 ? payload.numPredict : undefined,
+            maxTokens:
+              payload.numPredict &&
+              payload.numPredict !== 2048 &&
+              payload.numPredict !== 16384
+                ? payload.numPredict
+                : undefined,
             seed: payload.seed,
             stop: payload.stop,
             systemPrompt: payload.systemPrompt,
@@ -6046,7 +7232,10 @@ export async function runOllamaChatOrGenerate(
           // Fall through to OLLAMA_CHAT_ERROR
         }
       }
-      throw new FmError("OLLAMA_CHAT_ERROR", errMsg || `Ollama /api/chat failed (HTTP ${res.status}).`);
+      throw new FmError(
+        "OLLAMA_CHAT_ERROR",
+        errMsg || `Ollama /api/chat failed (HTTP ${res.status}).`,
+      );
     }
     const msg = res.data?.message || {};
     const extracted = extractThinkingAndFinalContent(
@@ -6056,7 +7245,9 @@ export async function runOllamaChatOrGenerate(
     content = extracted.content;
     thinkingText = extracted.thinkingText;
 
-    const toolCalls: any[] = Array.isArray(msg.tool_calls) ? msg.tool_calls : [];
+    const toolCalls: any[] = Array.isArray(msg.tool_calls)
+      ? msg.tool_calls
+      : [];
     for (const tc of toolCalls) {
       const fnName = String(tc?.function?.name || "");
       let fnArgs = tc?.function?.arguments || {};
@@ -6076,8 +7267,11 @@ export async function runOllamaChatOrGenerate(
         const pending = stagePendingToolAction(fnName, fnArgs);
         stagedActions.push(pending);
       } else if (fnName === "web_search" && fnArgs.query) {
-        const ws = await runOllamaWebSearch(ctx, { query: String(fnArgs.query) });
-        for (const r of ws.results) webSources.push({ title: r.title, url: r.url });
+        const ws = await runOllamaWebSearch(ctx, {
+          query: String(fnArgs.query),
+        });
+        for (const r of ws.results)
+          webSources.push({ title: r.title, url: r.url });
       } else if (fnName === "web_fetch" && fnArgs.url) {
         const wf = await runOllamaWebFetch(ctx, { url: String(fnArgs.url) });
         webSources.push({ title: wf.title, url: wf.url });
@@ -6090,8 +7284,16 @@ export async function runOllamaChatOrGenerate(
     try {
       structuredJson = JSON.parse(content);
       // If structuredJson is a batch_rename_plan, also offer a 1-click PendingToolAction!
-      if (Array.isArray(structuredJson?.renames) && structuredJson.renames.length > 0 && stagedActions.length === 0) {
-        stagedActions.push(stagePendingToolAction("batch_rename", { renames: structuredJson.renames }));
+      if (
+        Array.isArray(structuredJson?.renames) &&
+        structuredJson.renames.length > 0 &&
+        stagedActions.length === 0
+      ) {
+        stagedActions.push(
+          stagePendingToolAction("batch_rename", {
+            renames: structuredJson.renames,
+          }),
+        );
       }
     } catch {
       structuredJson = null;
@@ -6190,11 +7392,16 @@ export async function routePlainEnglishRequest(
       const shouldReadAloud =
         !hasSelectedImages &&
         (payload.speakReply === true ||
-          (payload.speakReply === undefined && Boolean(payload.voice || payload.speechModel)) ||
+          (payload.speakReply === undefined &&
+            Boolean(payload.voice || payload.speechModel)) ||
           Boolean(payload.model && isSpeechModelName(payload.model)));
       if (shouldReadAloud) {
         const result = await runOllamaSpeech(ctx, {
-          model: payload.speechModel || (payload.model && isSpeechModelName(payload.model) ? payload.model : undefined),
+          model:
+            payload.speechModel ||
+            (payload.model && isSpeechModelName(payload.model)
+              ? payload.model
+              : undefined),
           path: paths[0],
           voice: payload.voice || "Zoey",
           mode: "speaker",
@@ -6211,14 +7418,20 @@ export async function routePlainEnglishRequest(
         ? "Describe and analyze the selected image in detail."
         : "Summarize and explain the selected file.";
     } else {
-      throw new FmError("INVALID_INPUT", "Please type a plain-English request or select a file for the AI assistant.");
+      throw new FmError(
+        "INVALID_INPUT",
+        "Please type a plain-English request or select a file for the AI assistant.",
+      );
     }
   }
   const pLower = prompt.toLowerCase();
 
   // 1. Check if user explicitly asks to download/run a specific model by name so Rule C triggers politely
-  const explicitModelMatch = prompt.match(/\b(?:run|use|download|pull|load)\s+([a-z0-9._-]+:[a-z0-9._-]+|[a-z0-9._-]+-\d+b)\b/i);
-  const requestedModel = payload.model || (explicitModelMatch ? explicitModelMatch[1] : undefined);
+  const explicitModelMatch = prompt.match(
+    /\b(?:run|use|download|pull|load)\s+([a-z0-9._-]+:[a-z0-9._-]+|[a-z0-9._-]+-\d+b)\b/i,
+  );
+  const requestedModel =
+    payload.model || (explicitModelMatch ? explicitModelMatch[1] : undefined);
 
   // 2. Speech / Read Out Loud detection (only when explicitly asking for read-aloud / TTS and not inspecting an image)
   const explicitSpeechPrompt =
@@ -6226,13 +7439,23 @@ export async function routePlainEnglishRequest(
       pLower,
     );
   if (explicitSpeechPrompt && !hasSelectedImages) {
-    const saveAsFile = /\b(save\s+as|export\s+wav|save\s+audio|file\s+mode)\b/i.test(pLower);
+    const saveAsFile =
+      /\b(save\s+as|export\s+wav|save\s+audio|file\s+mode)\b/i.test(pLower);
     const speechInput =
       paths.length > 0
         ? undefined
-        : prompt.replace(/^(please\s+)?(read\s+(this\s+)?(out\s+loud|aloud)\s*:?\s*|speak\s*:?\s*)/i, "").trim() || prompt;
+        : prompt
+            .replace(
+              /^(please\s+)?(read\s+(this\s+)?(out\s+loud|aloud)\s*:?\s*|speak\s*:?\s*)/i,
+              "",
+            )
+            .trim() || prompt;
     const result = await runOllamaSpeech(ctx, {
-      model: payload.speechModel || (requestedModel && isSpeechModelName(requestedModel) ? requestedModel : undefined),
+      model:
+        payload.speechModel ||
+        (requestedModel && isSpeechModelName(requestedModel)
+          ? requestedModel
+          : undefined),
       input: speechInput,
       path: paths[0],
       voice: payload.voice || "Zoey",
@@ -6246,7 +7469,8 @@ export async function routePlainEnglishRequest(
       result,
     };
   }
-  const effectiveSpeakReply = Boolean(payload.speakReply) || (explicitSpeechPrompt && hasSelectedImages);
+  const effectiveSpeakReply =
+    Boolean(payload.speakReply) || (explicitSpeechPrompt && hasSelectedImages);
 
   // 3. Decision / SystemOne Engine detection (yes/no probability, classify into labels, score urgency/rubric)
   if (
@@ -6264,7 +7488,11 @@ export async function routePlainEnglishRequest(
           criteria: ["Routine", "Soon", "Immediate"],
         },
       ];
-    } else if (/\b(classify|categorize|auto[\s-]sort|which\s+category|which\s+folder)\b/i.test(pLower)) {
+    } else if (
+      /\b(classify|categorize|auto[\s-]sort|which\s+category|which\s+folder)\b/i.test(
+        pLower,
+      )
+    ) {
       questions = [
         {
           id: "category_choice",
@@ -6273,7 +7501,8 @@ export async function routePlainEnglishRequest(
           criteria: {
             billing: "Invoices, receipts, payments, and financial records",
             bug_report: "Crash logs, stack traces, errors, and issue reports",
-            source_code: "Application source code, scripts, and configuration files",
+            source_code:
+              "Application source code, scripts, and configuration files",
             personal: "Personal notes, media, and everyday documents",
           },
         },
@@ -6301,7 +7530,11 @@ export async function routePlainEnglishRequest(
   }
 
   // 4. Semantic Meaning Search detection
-  if (/\b(find\s+the\s+file\s+where|search\s+by\s+meaning|semantic\s+search|which\s+file\s+(has|contains|implements|wrote))\b/i.test(pLower)) {
+  if (
+    /\b(find\s+the\s+file\s+where|search\s+by\s+meaning|semantic\s+search|which\s+file\s+(has|contains|implements|wrote))\b/i.test(
+      pLower,
+    )
+  ) {
     const result = await runSemanticMeaningSearch(ctx, {
       query: prompt,
       dirPath: payload.dirPath || ".",
@@ -6316,7 +7549,12 @@ export async function routePlainEnglishRequest(
 
   // 5. Web Search / Web Fetch detection (enforces num_ctx >= 32,000)
   const urlMatch = prompt.match(/https?:\/\/[^\s)]+/i);
-  if (urlMatch || /\b(search\s+the\s+web|web\s+search|latest\s+release|live\s+docs|look\s+up\s+online)\b/i.test(pLower)) {
+  if (
+    urlMatch ||
+    /\b(search\s+the\s+web|web\s+search|latest\s+release|live\s+docs|look\s+up\s+online)\b/i.test(
+      pLower,
+    )
+  ) {
     const result = await runOllamaChatOrGenerate(ctx, {
       model: requestedModel,
       prompt,
@@ -6335,7 +7573,11 @@ export async function routePlainEnglishRequest(
   }
 
   // 6. Structured JSON Output detection (batch rename plan, folder organization plan, table extraction)
-  if (/\b(batch[\s-]rename|rename\s+plan|organize\s+folder|organization\s+plan|extract\s+table|as\s+json)\b/i.test(pLower)) {
+  if (
+    /\b(batch[\s-]rename|rename\s+plan|organize\s+folder|organization\s+plan|extract\s+table|as\s+json)\b/i.test(
+      pLower,
+    )
+  ) {
     const schemaPreset = /\b(rename)\b/i.test(pLower)
       ? "batch_rename_plan"
       : /\b(table)\b/i.test(pLower)
@@ -6376,16 +7618,21 @@ export async function routePlainEnglishRequest(
 
   // 8. Thinking / Deep Reasoning vs Fast Chat
   const explicitThinkRequested =
-    payload.thinkingLevel && payload.thinkingLevel !== "auto" && payload.thinkingLevel !== "off";
+    payload.thinkingLevel &&
+    payload.thinkingLevel !== "auto" &&
+    payload.thinkingLevel !== "off";
   const needsDeepThinking =
     !effectiveSpeakReply &&
     (Boolean(explicitThinkRequested) ||
-      Boolean(payload.think && payload.think !== "off" && payload.think !== "auto") ||
+      Boolean(
+        payload.think && payload.think !== "off" && payload.think !== "auto",
+      ) ||
       /\b(debug|complex|step[\s-]by[\s-]step|architecture|refactor|prove|why\s+is\s+this\s+failing|reorganize|deep\s+think)\b/i.test(
         pLower,
       ));
 
-  const needsTools = /\b(create\s+a\s+file|move\s+file|archive|compress)\b/i.test(pLower);
+  const needsTools =
+    /\b(create\s+a\s+file|move\s+file|archive|compress)\b/i.test(pLower);
 
   const result = await runOllamaChatOrGenerate(ctx, {
     model: requestedModel,
@@ -6411,7 +7658,11 @@ export async function routePlainEnglishRequest(
   });
 
   return {
-    routedCapability: needsTools ? "tool_action" : result.thinkEnabled ? "thinking_chat" : "chat",
+    routedCapability: needsTools
+      ? "tool_action"
+      : result.thinkEnabled
+        ? "thinking_chat"
+        : "chat",
     routeExplanation: result.thinkEnabled
       ? `Routed to Deep Reasoning Chat (POST /api/chat, think: ${JSON.stringify(result.thinkParam)}, level: ${result.thinkingLevel}, model: ${result.model}).`
       : `Routed to Live Chat & Code Assistant (POST /api/chat, think: false, model: ${result.model}).`,
@@ -6426,10 +7677,20 @@ export async function routePlainEnglishRequest(
 /**
  * Handles `POST /api/ollama/stream` requests, streaming NDJSON chat and reasoning tokens from Ollama (or Bionic fallback).
  */
-export async function handleOllamaStreamRequest(ctx: FmContext, req: Request): Promise<Response> {
-  if (!(req.headers.get("content-type") ?? "").toLowerCase().startsWith("application/json")) {
+export async function handleOllamaStreamRequest(
+  ctx: FmContext,
+  req: Request,
+): Promise<Response> {
+  if (
+    !(req.headers.get("content-type") ?? "")
+      .toLowerCase()
+      .startsWith("application/json")
+  ) {
     return new Response(
-      JSON.stringify({ ok: false, error: { code: "NOT_JSON", message: "Requests must be JSON." } }),
+      JSON.stringify({
+        ok: false,
+        error: { code: "NOT_JSON", message: "Requests must be JSON." },
+      }),
       { status: 415, headers: { "Content-Type": "application/json" } },
     );
   }
@@ -6437,7 +7698,10 @@ export async function handleOllamaStreamRequest(ctx: FmContext, req: Request): P
   const declared = Number(req.headers.get("content-length") ?? 0);
   if (declared > maxBodyBytes) {
     return new Response(
-      JSON.stringify({ ok: false, error: { code: "TOO_LARGE", message: "That request is too large." } }),
+      JSON.stringify({
+        ok: false,
+        error: { code: "TOO_LARGE", message: "That request is too large." },
+      }),
       { status: 413, headers: { "Content-Type": "application/json" } },
     );
   }
@@ -6446,7 +7710,10 @@ export async function handleOllamaStreamRequest(ctx: FmContext, req: Request): P
     const rawText = await req.text();
     if (rawText.length > maxBodyBytes) {
       return new Response(
-        JSON.stringify({ ok: false, error: { code: "TOO_LARGE", message: "That request is too large." } }),
+        JSON.stringify({
+          ok: false,
+          error: { code: "TOO_LARGE", message: "That request is too large." },
+        }),
         { status: 413, headers: { "Content-Type": "application/json" } },
       );
     }
@@ -6455,15 +7722,23 @@ export async function handleOllamaStreamRequest(ctx: FmContext, req: Request): P
       throw new Error("Expected JSON object");
     }
   } catch {
-    return new Response(JSON.stringify({ ok: false, error: { code: "INVALID_JSON", message: "Invalid JSON body" } }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        ok: false,
+        error: { code: "INVALID_JSON", message: "Invalid JSON body" },
+      }),
+      {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   }
 
   try {
     const paths: string[] = Array.isArray(body.paths) ? body.paths : [];
-    const imagesBase64: string[] = Array.isArray(body.images) ? [...body.images] : [];
+    const imagesBase64: string[] = Array.isArray(body.images)
+      ? [...body.images]
+      : [];
     const fileSnippets: string[] = [];
 
     for (const rel of paths) {
@@ -6498,22 +7773,41 @@ export async function handleOllamaStreamRequest(ctx: FmContext, req: Request): P
       : Number(body.numCtx || 8192);
 
     const streamOptions: Record<string, any> = { num_ctx: enforcedNumCtx };
-    if (typeof body.temperature === "number" && Number.isFinite(body.temperature)) {
+    if (
+      typeof body.temperature === "number" &&
+      Number.isFinite(body.temperature)
+    ) {
       streamOptions.temperature = Math.max(0, Math.min(2, body.temperature));
     }
     if (typeof body.topP === "number" && Number.isFinite(body.topP)) {
       streamOptions.top_p = Math.max(0, Math.min(1, body.topP));
     }
-    if (typeof body.topK === "number" && Number.isFinite(body.topK) && body.topK > 0) {
+    if (
+      typeof body.topK === "number" &&
+      Number.isFinite(body.topK) &&
+      body.topK > 0
+    ) {
       streamOptions.top_k = Math.round(body.topK);
     }
-    if (typeof body.minP === "number" && Number.isFinite(body.minP) && body.minP >= 0) {
+    if (
+      typeof body.minP === "number" &&
+      Number.isFinite(body.minP) &&
+      body.minP >= 0
+    ) {
       streamOptions.min_p = Math.max(0, Math.min(1, body.minP));
     }
-    if (typeof body.repeatPenalty === "number" && Number.isFinite(body.repeatPenalty) && body.repeatPenalty > 0) {
+    if (
+      typeof body.repeatPenalty === "number" &&
+      Number.isFinite(body.repeatPenalty) &&
+      body.repeatPenalty > 0
+    ) {
       streamOptions.repeat_penalty = body.repeatPenalty;
     }
-    if (typeof body.numPredict === "number" && Number.isFinite(body.numPredict) && body.numPredict > 0) {
+    if (
+      typeof body.numPredict === "number" &&
+      Number.isFinite(body.numPredict) &&
+      body.numPredict > 0
+    ) {
       streamOptions.num_predict = Math.round(body.numPredict);
     }
     if (typeof body.seed === "number" && Number.isFinite(body.seed)) {
@@ -6529,23 +7823,31 @@ export async function handleOllamaStreamRequest(ctx: FmContext, req: Request): P
       if (stops.length > 0) streamOptions.stop = stops;
     }
 
-    const promptText = [String(body.prompt || "Hello"), ...fileSnippets].filter(Boolean).join("\n\n");
-    const sysText = [String(body.systemPrompt || "").trim(), thinkResolution.systemReasoningDirective]
+    const promptText = [String(body.prompt || "Hello"), ...fileSnippets]
       .filter(Boolean)
       .join("\n\n");
-    const messages = Array.isArray(body.messages) && body.messages.length > 0
-      ? body.messages
-      : [
-          ...(sysText ? [{ role: "system", content: sysText }] : []),
-          {
-            role: "user",
-            content: promptText,
-            ...(imagesBase64.length > 0 ? { images: imagesBase64 } : {}),
-          },
-        ];
+    const sysText = [
+      String(body.systemPrompt || "").trim(),
+      thinkResolution.systemReasoningDirective,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+    const messages =
+      Array.isArray(body.messages) && body.messages.length > 0
+        ? body.messages
+        : [
+            ...(sysText ? [{ role: "system", content: sysText }] : []),
+            {
+              role: "user",
+              content: promptText,
+              ...(imagesBase64.length > 0 ? { images: imagesBase64 } : {}),
+            },
+          ];
 
     const baseUrl = resolveOllamaBaseUrl(ctx, useCloudHost);
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
     const apiKey = getOllamaApiKey(ctx);
     if (apiKey && isSafeForApiKeyHeader(`${baseUrl}/api/chat`, useCloudHost)) {
       headers["Authorization"] = `Bearer ${apiKey}`;
@@ -6561,9 +7863,13 @@ export async function handleOllamaStreamRequest(ctx: FmContext, req: Request): P
           model,
           messages,
           stream: true,
-          ...(thinkResolution.thinkParam !== undefined ? { think: thinkResolution.thinkParam } : {}),
+          ...(thinkResolution.thinkParam !== undefined
+            ? { think: thinkResolution.thinkParam }
+            : {}),
           options: streamOptions,
-          ...(body.keepAlive !== undefined && body.keepAlive !== "" ? { keep_alive: body.keepAlive } : {}),
+          ...(body.keepAlive !== undefined && body.keepAlive !== ""
+            ? { keep_alive: body.keepAlive }
+            : {}),
           ...(body.format ? { format: body.format } : {}),
         }),
       });
@@ -6572,7 +7878,9 @@ export async function handleOllamaStreamRequest(ctx: FmContext, req: Request): P
     }
 
     if (!upstream || !upstream.ok || !upstream.body) {
-      const errText = upstream ? await upstream.text() : "Unable to connect to Ollama";
+      const errText = upstream
+        ? await upstream.text()
+        : "Unable to connect to Ollama";
       if (
         !upstream ||
         upstream.status === 404 ||
@@ -6594,7 +7902,12 @@ export async function handleOllamaStreamRequest(ctx: FmContext, req: Request): P
             topK: body.topK,
             minP: body.minP,
             repeatPenalty: body.repeatPenalty,
-            maxTokens: body.numPredict && body.numPredict !== 2048 && body.numPredict !== 16384 ? body.numPredict : undefined,
+            maxTokens:
+              body.numPredict &&
+              body.numPredict !== 2048 &&
+              body.numPredict !== 16384
+                ? body.numPredict
+                : undefined,
             seed: body.seed,
             stop: body.stop,
             systemPrompt: body.systemPrompt,
@@ -6626,7 +7939,10 @@ export async function handleOllamaStreamRequest(ctx: FmContext, req: Request): P
       return new Response(
         JSON.stringify({
           ok: false,
-          error: { code: "OLLAMA_STREAM_ERROR", message: errText || `HTTP ${upstream?.status || 500}` },
+          error: {
+            code: "OLLAMA_STREAM_ERROR",
+            message: errText || `HTTP ${upstream?.status || 500}`,
+          },
         }),
         { status: 400, headers: { "Content-Type": "application/json" } },
       );
@@ -6669,10 +7985,13 @@ export async function handleOllamaStreamRequest(ctx: FmContext, req: Request): P
   } catch (err) {
     const code = err instanceof FmError ? err.code : "OLLAMA_STREAM_FAILED";
     const message = (err as Error).message || "Stream failed";
-    return new Response(JSON.stringify({ ok: false, error: { code, message } }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ ok: false, error: { code, message } }),
+      {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   }
 }
 
@@ -6681,16 +8000,19 @@ export async function handleOllamaStreamRequest(ctx: FmContext, req: Request): P
  */
 export async function getFullOllamaStatus(ctx: FmContext, payload?: any) {
   await captureOllamaStartupSnapshot(ctx);
-  const [version, modelList, runningPs, cloudAccount, voices, installStatus] = await Promise.all([
-    getOllamaVersionStatus(ctx),
-    listModelsWithBadgesAndHardwareFilter(ctx, {
-      includeHiddenForDiagnostics: Boolean(payload?.includeHiddenForDiagnostics),
-    }),
-    listRunningModelsPs(ctx),
-    getCloudUsageAndBalance(ctx),
-    getPhononSupportedVoices(ctx),
-    getOllamaInstallStatus(ctx),
-  ]);
+  const [version, modelList, runningPs, cloudAccount, voices, installStatus] =
+    await Promise.all([
+      getOllamaVersionStatus(ctx),
+      listModelsWithBadgesAndHardwareFilter(ctx, {
+        includeHiddenForDiagnostics: Boolean(
+          payload?.includeHiddenForDiagnostics,
+        ),
+      }),
+      listRunningModelsPs(ctx),
+      getCloudUsageAndBalance(ctx),
+      getPhononSupportedVoices(ctx),
+      getOllamaInstallStatus(ctx),
+    ]);
 
   return {
     version,
@@ -6713,26 +8035,43 @@ export async function getFullOllamaStatus(ctx: FmContext, payload?: any) {
 /**
  * File Manager API operation handlers for the built-in Ollama AI Assistant (`ollama/*`).
  */
-export const OLLAMA_OPS: Record<string, (ctx: FmContext, payload: any) => Promise<any>> = {
+export const OLLAMA_OPS: Record<
+  string,
+  (ctx: FmContext, payload: any) => Promise<any>
+> = {
   "ollama/status": (ctx, p) => getFullOllamaStatus(ctx, p),
   "ollama/installStatus": (ctx) => getOllamaInstallStatus(ctx),
   "ollama/install": (ctx, p) => runOllamaAutoInstall(ctx, p || {}),
   "ollama/lifecycle": async (ctx, p) =>
-    p?.exitPolicy ? setOllamaExitPolicy(ctx, p.exitPolicy) : getOllamaLifecycleStatus(ctx),
+    p?.exitPolicy
+      ? setOllamaExitPolicy(ctx, p.exitPolicy)
+      : getOllamaLifecycleStatus(ctx),
   "ollama/shutdown": (ctx, p) => shutdownOllamaForFileManager(ctx, p || {}),
   "ollama/hardware": async (ctx) => inspectOllamaHardware(ctx),
   "ollama/guard": async (ctx, p) => {
     const hw = inspectOllamaHardware(ctx);
-    return evaluateModelHardwareGuard(p?.model ? (typeof p.model === "string" ? { name: p.model } : p.model) : { name: "" }, hw, p?.options);
+    return evaluateModelHardwareGuard(
+      p?.model
+        ? typeof p.model === "string"
+          ? { name: p.model }
+          : p.model
+        : { name: "" },
+      hw,
+      p?.options,
+    );
   },
   "ollama/version": (ctx) => getOllamaVersionStatus(ctx),
   "ollama/tags": (ctx, p) => listModelsWithBadgesAndHardwareFilter(ctx, p),
-  "ollama/show": (ctx, p) => showModelDetails(ctx, String(p?.model || ""), Boolean(p?.forceRefresh)),
+  "ollama/show": (ctx, p) =>
+    showModelDetails(ctx, String(p?.model || ""), Boolean(p?.forceRefresh)),
   "ollama/ps": (ctx) => listRunningModelsPs(ctx),
-  "ollama/freeRam": (ctx, p) => unloadModelsFromRam(ctx, p?.model ? String(p.model) : undefined),
-  "ollama/pull": (ctx, p) => pullModelWithHardwareGuard(ctx, String(p?.model || "")),
+  "ollama/freeRam": (ctx, p) =>
+    unloadModelsFromRam(ctx, p?.model ? String(p.model) : undefined),
+  "ollama/pull": (ctx, p) =>
+    pullModelWithHardwareGuard(ctx, String(p?.model || "")),
   "ollama/create": (ctx, p) => createCustomModel(ctx, p || {}),
-  "ollama/copy": (ctx, p) => copyModel(ctx, String(p?.source || ""), String(p?.destination || "")),
+  "ollama/copy": (ctx, p) =>
+    copyModel(ctx, String(p?.source || ""), String(p?.destination || "")),
   "ollama/push": (ctx, p) => pushModel(ctx, String(p?.model || "")),
   "ollama/delete": (ctx, p) => deleteModel(ctx, String(p?.model || "")),
   "ollama/account": async (ctx, p) => {
@@ -6744,14 +8083,22 @@ export const OLLAMA_OPS: Record<string, (ctx: FmContext, payload: any) => Promis
   "ollama/decision": (ctx, p) => runDecisionEngine(ctx, p || {}),
   "ollama/speech": (ctx, p) => runOllamaSpeech(ctx, p || {}),
   "ollama/voices": (ctx) => getPhononSupportedVoices(ctx),
-  "ollama/chat": (ctx, p) => runOllamaChatOrGenerate(ctx, { ...(p || {}), endpoint: "chat" }),
-  "ollama/generate": (ctx, p) => runOllamaChatOrGenerate(ctx, { ...(p || {}), endpoint: "generate" }),
+  "ollama/chat": (ctx, p) =>
+    runOllamaChatOrGenerate(ctx, { ...(p || {}), endpoint: "chat" }),
+  "ollama/generate": (ctx, p) =>
+    runOllamaChatOrGenerate(ctx, { ...(p || {}), endpoint: "generate" }),
   "ollama/embed": (ctx, p) => runOllamaEmbed(ctx, p || {}),
   "ollama/semanticSearch": (ctx, p) => runSemanticMeaningSearch(ctx, p || {}),
   "ollama/webSearch": (ctx, p) => runOllamaWebSearch(ctx, p || {}),
   "ollama/webFetch": (ctx, p) => runOllamaWebFetch(ctx, p || {}),
   "ollama/tool/confirm": (ctx, p) =>
-    executeConfirmedToolAction(ctx, String(p?.actionId || ""), p?.decision === "cancel" ? "cancel" : "confirm"),
-  "ollama/tool/pending": async () => ({ pendingActions: listPendingToolActions() }),
+    executeConfirmedToolAction(
+      ctx,
+      String(p?.actionId || ""),
+      p?.decision === "cancel" ? "cancel" : "confirm",
+    ),
+  "ollama/tool/pending": async () => ({
+    pendingActions: listPendingToolActions(),
+  }),
   "ollama/route": (ctx, p) => routePlainEnglishRequest(ctx, p || {}),
 };

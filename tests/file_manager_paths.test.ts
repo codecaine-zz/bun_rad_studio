@@ -1,10 +1,32 @@
 import { describe, expect, test } from "bun:test";
-import { FmError, classify, cleanName, describeFsError, extensionOf, formatSize, isHiddenName, isSameOrInside, parseTypedPath, protectedReason, splitName, uniqueName, validateName } from "../src/features/filemanager/fmPaths";
+import {
+  FmError,
+  classify,
+  cleanName,
+  describeFsError,
+  extensionOf,
+  formatSize,
+  isHiddenName,
+  isSameOrInside,
+  parseTypedPath,
+  protectedReason,
+  splitName,
+  uniqueName,
+  validateName,
+} from "../src/features/filemanager/fmPaths";
 
 describe("validateName", () => {
   test("accepts ordinary names everywhere", () => {
     for (const platform of ["win32", "darwin", "linux"] as const) {
-      for (const n of ["report.txt", "My Photos", "résumé (final).docx", ".gitignore", "日本語.txt", "a"]) expect(validateName(n, platform), `${platform} ${n}`).toBeNull();
+      for (const n of [
+        "report.txt",
+        "My Photos",
+        "résumé (final).docx",
+        ".gitignore",
+        "日本語.txt",
+        "a",
+      ])
+        expect(validateName(n, platform), `${platform} ${n}`).toBeNull();
     }
   });
 
@@ -29,7 +51,8 @@ describe("validateName", () => {
     expect(validateName("con.txt", "win32")).toContain("reserved");
     expect(validateName("Lpt1.log", "win32")).toContain("reserved");
     expect(validateName("conference.txt", "win32")).toBeNull();
-    for (const ok of ["what?.txt", "a:b", "CON", "name."]) expect(validateName(ok, "linux"), ok).toBeNull();
+    for (const ok of ["what?.txt", "a:b", "CON", "name."])
+      expect(validateName(ok, "linux"), ok).toBeNull();
     expect(validateName("a\\b", "linux")).toBeNull();
   });
 
@@ -59,16 +82,24 @@ describe("splitName and uniqueName", () => {
 
   test("numbered style: report.txt -> report (2).txt", () => {
     const taken = new Set(["report.txt", "report (2).txt"]);
-    expect(uniqueName("report.txt", (n) => taken.has(n))).toBe("report (3).txt");
+    expect(uniqueName("report.txt", (n) => taken.has(n))).toBe(
+      "report (3).txt",
+    );
     expect(uniqueName("fresh.txt", (n) => taken.has(n))).toBe("fresh.txt");
-    expect(uniqueName("archive.tar.gz", (n) => n === "archive.tar.gz")).toBe("archive (2).tar.gz");
+    expect(uniqueName("archive.tar.gz", (n) => n === "archive.tar.gz")).toBe(
+      "archive (2).tar.gz",
+    );
     expect(uniqueName(".env", (n) => n === ".env")).toBe(".env (2)");
   });
 
   test("copy style: report.txt -> report copy.txt, report copy 2.txt", () => {
     const taken = new Set(["report.txt", "report copy.txt"]);
-    expect(uniqueName("report.txt", (n) => taken.has(n), "copy")).toBe("report copy 2.txt");
-    expect(uniqueName("Folder", (n) => n === "Folder", "copy")).toBe("Folder copy");
+    expect(uniqueName("report.txt", (n) => taken.has(n), "copy")).toBe(
+      "report copy 2.txt",
+    );
+    expect(uniqueName("Folder", (n) => n === "Folder", "copy")).toBe(
+      "Folder copy",
+    );
   });
 
   test("gives up with an explanation instead of looping forever", () => {
@@ -84,18 +115,30 @@ describe("protectedReason", () => {
   test("the top of the file system, home and main personal folders can't be changed themselves", () => {
     expect(protectedReason("/", mac)).toContain("top of the computer");
     expect(protectedReason("/Users/sam", mac)).toContain("home folder");
-    expect(protectedReason("/Users/sam/Documents", mac)).toContain("personal folders");
-    expect(protectedReason("/Users/sam/Documents/", mac)).toContain("personal folders");
+    expect(protectedReason("/Users/sam/Documents", mac)).toContain(
+      "personal folders",
+    );
+    expect(protectedReason("/Users/sam/Documents/", mac)).toContain(
+      "personal folders",
+    );
     expect(protectedReason("/Users/sam/Documents/report.txt", mac)).toBeNull();
-    expect(protectedReason("/home/sam/Downloads", linux)).toContain("personal folders");
+    expect(protectedReason("/home/sam/Downloads", linux)).toContain(
+      "personal folders",
+    );
     expect(protectedReason("/home/sam/Downloads/a.zip", linux)).toBeNull();
   });
 
   test("system folders and everything inside them are protected, /usr/local is not", () => {
     expect(protectedReason("/usr", linux)).toContain("system folder");
-    expect(protectedReason("/usr/bin/ls", linux)).toContain("inside a system folder");
-    expect(protectedReason("/etc/hosts", linux)).toContain("inside a system folder");
-    expect(protectedReason("/System/Library/x", mac)).toContain("inside a system folder");
+    expect(protectedReason("/usr/bin/ls", linux)).toContain(
+      "inside a system folder",
+    );
+    expect(protectedReason("/etc/hosts", linux)).toContain(
+      "inside a system folder",
+    );
+    expect(protectedReason("/System/Library/x", mac)).toContain(
+      "inside a system folder",
+    );
     expect(protectedReason("/usr/local/bin/tool", linux)).toBeNull();
     expect(protectedReason("/tmp/work", linux)).toBeNull();
     expect(protectedReason("/var/folders/ab/cd/T/work", mac)).toBeNull();
@@ -104,7 +147,9 @@ describe("protectedReason", () => {
   });
 
   test("creating items: only the inside of system folders is blocked", () => {
-    expect(protectedReason("/usr/bin", linux, "create")).toContain("system folder");
+    expect(protectedReason("/usr/bin", linux, "create")).toContain(
+      "system folder",
+    );
     expect(protectedReason("/home/sam", linux, "create")).toBeNull();
     expect(protectedReason("/", linux, "create")).toBeNull();
     expect(protectedReason("/home/sam/Documents", linux, "create")).toBeNull();
@@ -114,13 +159,21 @@ describe("protectedReason", () => {
     expect(protectedReason("C:\\", win)).toContain("top of a drive");
     expect(protectedReason("d:\\", win)).toContain("top of a drive");
     expect(protectedReason("C:\\Windows", win)).toContain("system folder");
-    expect(protectedReason("c:\\windows\\system32\\cmd.exe", win)).toContain("inside a system folder");
-    expect(protectedReason("C:\\Program Files", win)).toContain("system folder");
+    expect(protectedReason("c:\\windows\\system32\\cmd.exe", win)).toContain(
+      "inside a system folder",
+    );
+    expect(protectedReason("C:\\Program Files", win)).toContain(
+      "system folder",
+    );
     expect(protectedReason("C:\\Program Files\\App\\app.exe", win)).toBeNull();
     expect(protectedReason("C:\\Users", win)).toContain("system folder");
     expect(protectedReason("C:\\Users\\Sam", win)).toContain("home folder");
-    expect(protectedReason("c:\\users\\sam\\documents", win)).toContain("personal folders");
-    expect(protectedReason("C:\\Users\\Sam\\Documents\\a.docx", win)).toBeNull();
+    expect(protectedReason("c:\\users\\sam\\documents", win)).toContain(
+      "personal folders",
+    );
+    expect(
+      protectedReason("C:\\Users\\Sam\\Documents\\a.docx", win),
+    ).toBeNull();
     expect(protectedReason("D:\\Projects", win)).toBeNull();
     expect(protectedReason("C:\\", win, "create")).toBeNull();
     expect(protectedReason("\\\\server\\share", win)).toContain("network");
@@ -128,10 +181,19 @@ describe("protectedReason", () => {
   });
 
   test("extra protected folders (the Recycle Bin) and everything in them are protected", () => {
-    const ctx = { ...linux, extraProtected: ["/home/sam/.bun_rad_studio/trash"] };
-    expect(protectedReason("/home/sam/.bun_rad_studio/trash", ctx)).toContain("Recycle Bin");
-    expect(protectedReason("/home/sam/.bun_rad_studio/trash/items/x/a.txt", ctx)).toContain("Recycle Bin");
-    expect(protectedReason("/home/sam/.bun_rad_studio/other.json", ctx)).toBeNull();
+    const ctx = {
+      ...linux,
+      extraProtected: ["/home/sam/.bun_rad_studio/trash"],
+    };
+    expect(protectedReason("/home/sam/.bun_rad_studio/trash", ctx)).toContain(
+      "Recycle Bin",
+    );
+    expect(
+      protectedReason("/home/sam/.bun_rad_studio/trash/items/x/a.txt", ctx),
+    ).toContain("Recycle Bin");
+    expect(
+      protectedReason("/home/sam/.bun_rad_studio/other.json", ctx),
+    ).toBeNull();
   });
 });
 
@@ -149,16 +211,30 @@ describe("isSameOrInside", () => {
 describe("parseTypedPath", () => {
   test("expands ~, strips quotes, resolves relative paths", () => {
     expect(parseTypedPath("~", "/x", "/home/sam", "linux")).toBe("/home/sam");
-    expect(parseTypedPath("~/Documents", "/x", "/home/sam", "linux")).toBe("/home/sam/Documents");
-    expect(parseTypedPath('"/tmp/a b"', "/x", "/home/sam", "linux")).toBe("/tmp/a b");
-    expect(parseTypedPath("sub/dir", "/work", "/home/sam", "linux")).toBe("/work/sub/dir");
-    expect(parseTypedPath("../up", "/work/here", "/home/sam", "linux")).toBe("/work/up");
+    expect(parseTypedPath("~/Documents", "/x", "/home/sam", "linux")).toBe(
+      "/home/sam/Documents",
+    );
+    expect(parseTypedPath('"/tmp/a b"', "/x", "/home/sam", "linux")).toBe(
+      "/tmp/a b",
+    );
+    expect(parseTypedPath("sub/dir", "/work", "/home/sam", "linux")).toBe(
+      "/work/sub/dir",
+    );
+    expect(parseTypedPath("../up", "/work/here", "/home/sam", "linux")).toBe(
+      "/work/up",
+    );
     expect(parseTypedPath("/a//b/./c/", "/x", "/h", "linux")).toBe("/a/b/c");
   });
   test("Windows: forward slashes and bare drive letters", () => {
-    expect(parseTypedPath("D:/Games", "C:\\x", "C:\\Users\\Sam", "win32")).toBe("D:\\Games");
-    expect(parseTypedPath("d:", "C:\\x", "C:\\Users\\Sam", "win32")).toBe("d:\\");
-    expect(parseTypedPath("~\\Desktop", "C:\\x", "C:\\Users\\Sam", "win32")).toBe("C:\\Users\\Sam\\Desktop");
+    expect(parseTypedPath("D:/Games", "C:\\x", "C:\\Users\\Sam", "win32")).toBe(
+      "D:\\Games",
+    );
+    expect(parseTypedPath("d:", "C:\\x", "C:\\Users\\Sam", "win32")).toBe(
+      "d:\\",
+    );
+    expect(
+      parseTypedPath("~\\Desktop", "C:\\x", "C:\\Users\\Sam", "win32"),
+    ).toBe("C:\\Users\\Sam\\Desktop");
   });
   test("refuses empty and null-containing input", () => {
     expect(parseTypedPath("", "/x", "/h", "linux")).toBeNull();
@@ -170,21 +246,67 @@ describe("parseTypedPath", () => {
 
 describe("classify", () => {
   test("folders, images, code, programs and unknown files", () => {
-    expect(classify("Stuff", true)).toMatchObject({ kind: "folder", label: "Folder", icon: "📁" });
-    expect(classify("Thing.app", true)).toMatchObject({ kind: "program", program: true });
-    expect(classify("photo.JPG", false)).toMatchObject({ kind: "image", label: "JPG image", preview: "image", program: false });
-    expect(classify("notes.md", false)).toMatchObject({ kind: "text", preview: "text" });
-    expect(classify("main.ts", false)).toMatchObject({ kind: "code", preview: "text" });
-    expect(classify("setup.exe", false)).toMatchObject({ kind: "program", program: true });
+    expect(classify("Stuff", true)).toMatchObject({
+      kind: "folder",
+      label: "Folder",
+      icon: "📁",
+    });
+    expect(classify("Thing.app", true)).toMatchObject({
+      kind: "program",
+      program: true,
+    });
+    expect(classify("photo.JPG", false)).toMatchObject({
+      kind: "image",
+      label: "JPG image",
+      preview: "image",
+      program: false,
+    });
+    expect(classify("notes.md", false)).toMatchObject({
+      kind: "text",
+      preview: "text",
+    });
+    expect(classify("main.ts", false)).toMatchObject({
+      kind: "code",
+      preview: "text",
+    });
+    expect(classify("setup.exe", false)).toMatchObject({
+      kind: "program",
+      program: true,
+    });
     expect(classify("run.sh", false)).toMatchObject({ program: true });
-    expect(classify("data.xyz", false)).toMatchObject({ kind: "other", label: "XYZ file", preview: null });
-    expect(classify("Makefile", false)).toMatchObject({ kind: "other", label: "File" });
-    expect(classify("tool", false, true)).toMatchObject({ kind: "program", program: true });
+    expect(classify("data.xyz", false)).toMatchObject({
+      kind: "other",
+      label: "XYZ file",
+      preview: null,
+    });
+    expect(classify("Makefile", false)).toMatchObject({
+      kind: "other",
+      label: "File",
+    });
+    expect(classify("tool", false, true)).toMatchObject({
+      kind: "program",
+      program: true,
+    });
     expect(classify("movie.mkv", false).kind).toBe("video");
     expect(classify("a.tar.gz", false).kind).toBe("archive");
   });
   test("every kind has an icon and a label", () => {
-    for (const n of ["a.png", "a.mp4", "a.mp3", "a.pdf", "a.docx", "a.xlsx", "a.pptx", "a.zip", "a.js", "a.txt", "a.exe", "a.dmg", "a.ttf", "a.zzz"]) {
+    for (const n of [
+      "a.png",
+      "a.mp4",
+      "a.mp3",
+      "a.pdf",
+      "a.docx",
+      "a.xlsx",
+      "a.pptx",
+      "a.zip",
+      "a.js",
+      "a.txt",
+      "a.exe",
+      "a.dmg",
+      "a.ttf",
+      "a.zzz",
+    ]) {
       const k = classify(n, false);
       expect(k.icon.length, n).toBeGreaterThan(0);
       expect(k.label.length, n).toBeGreaterThan(0);
@@ -222,7 +344,9 @@ describe("describeFsError", () => {
   test("common errors are explained in plain words", () => {
     const e = (code: string) => Object.assign(new Error("raw"), { code });
     expect(describeFsError(e("ENOENT")).message).toContain("doesn't exist");
-    expect(describeFsError(e("EACCES"), "copy that").message).toContain("permission to copy that");
+    expect(describeFsError(e("EACCES"), "copy that").message).toContain(
+      "permission to copy that",
+    );
     expect(describeFsError(e("EEXIST")).message).toContain("already exists");
     expect(describeFsError(e("ENOSPC")).message).toContain("free space");
     expect(describeFsError(e("EBUSY")).message).toContain("in use");
@@ -238,18 +362,34 @@ describe("symlink ancestor protection in assertModifiable and assertCreatable", 
     const { mkdtempSync, symlinkSync, rmSync } = require("fs");
     const { tmpdir } = require("os");
     const { join } = require("path");
-    const { assertModifiable, assertCreatable, createContext } = require("../src/features/filemanager/fmCore");
+    const {
+      assertModifiable,
+      assertCreatable,
+      createContext,
+    } = require("../src/features/filemanager/fmCore");
     const tmp = mkdtempSync(join(tmpdir(), "fm-symlink-guard-"));
     try {
-      const ctx = createContext({ home: join(tmp, "home"), dataDir: join(tmp, "data") });
-      const sysDir = process.platform === "win32" ? (process.env.SystemRoot || "C:\\Windows") : "/etc";
+      const ctx = createContext({
+        home: join(tmp, "home"),
+        dataDir: join(tmp, "data"),
+      });
+      const sysDir =
+        process.platform === "win32"
+          ? process.env.SystemRoot || "C:\\Windows"
+          : "/etc";
       const linkToEtc = join(tmp, "etc-link");
       try {
-        symlinkSync(sysDir, linkToEtc, process.platform === "win32" ? "junction" : "dir");
+        symlinkSync(
+          sysDir,
+          linkToEtc,
+          process.platform === "win32" ? "junction" : "dir",
+        );
       } catch {
         return;
       }
-      expect(() => assertModifiable(ctx, join(linkToEtc, "hosts"))).toThrow(FmError);
+      expect(() => assertModifiable(ctx, join(linkToEtc, "hosts"))).toThrow(
+        FmError,
+      );
       expect(() => assertCreatable(ctx, linkToEtc)).toThrow(FmError);
       // Deleting the symlink itself inside the user's folder remains allowed
       expect(() => assertModifiable(ctx, linkToEtc)).not.toThrow();

@@ -31,20 +31,20 @@ bun run cli:gdu [directory_to_scan]
 
 When launched in an interactive terminal (default when running `gdu` without `-n`), `gdu` enters interactive TUI mode:
 
-| Key | Action |
-| :--- | :--- |
-| `↑` / `k` | Move cursor up |
-| `↓` / `j` | Move cursor down |
-| `PageUp` / `PageDown` | Scroll 10 rows up / down |
-| `Enter` / `→` / `l` | Drill into directory (or inspect file details) |
-| `←` / `h` / `Backspace` | Drill up into parent directory |
-| `d` / `Delete` | **Delete selected file or folder** (prompts `[y/N]` confirmation, frees disk space) |
-| `/` / `f` | Start live filter search (`Enter`: save, `Esc`: clear) |
-| `s` | Cycle sort mode (Size → Name → Count → Modified Time) |
-| `i` | Inspect detailed item card (exact bytes, parent percentage, mtime) |
-| `o` | Open file or directory with system default viewer |
-| `r` | Rescan current directory |
-| `q` / `Ctrl+C` | Exit interactive TUI (or close inspection modal) |
+| Key                     | Action                                                                              |
+| :---------------------- | :---------------------------------------------------------------------------------- |
+| `↑` / `k`               | Move cursor up                                                                      |
+| `↓` / `j`               | Move cursor down                                                                    |
+| `PageUp` / `PageDown`   | Scroll 10 rows up / down                                                            |
+| `Enter` / `→` / `l`     | Drill into directory (or inspect file details)                                      |
+| `←` / `h` / `Backspace` | Drill up into parent directory                                                      |
+| `d` / `Delete`          | **Delete selected file or folder** (prompts `[y/N]` confirmation, frees disk space) |
+| `/` / `f`               | Start live filter search (`Enter`: save, `Esc`: clear)                              |
+| `s`                     | Cycle sort mode (Size → Name → Count → Modified Time)                               |
+| `i`                     | Inspect detailed item card (exact bytes, parent percentage, mtime)                  |
+| `o`                     | Open file or directory with system default viewer                                   |
+| `r`                     | Rescan current directory                                                            |
+| `q` / `Ctrl+C`          | Exit interactive TUI (or close inspection modal)                                    |
 
 ---
 
@@ -95,6 +95,7 @@ export interface GduOptions {
 ## 3. Comprehensive Code Examples
 
 ### Example 1: Scan Directory & Inspect Top Largest Subdirectories
+
 ```typescript
 import { analyzeDirectory } from "./gduCoordinator.ts";
 import { formatBytes } from "./gduDoers.ts";
@@ -111,26 +112,34 @@ const root = await analyzeDirectory({
   ignoreDirs: [],
 });
 
-console.log(`Directory: ${root.name} (${formatBytes(root.size)}, ${root.itemCount} items)`);
+console.log(
+  `Directory: ${root.name} (${formatBytes(root.size)}, ${root.itemCount} items)`,
+);
 
 // Top 5 largest items:
 const top5 = (root.children ?? []).slice(0, 5);
 for (const item of top5) {
-  console.log(`${formatBytes(item.size)} - ${item.name} (${item.itemCount} items)`);
+  console.log(
+    `${formatBytes(item.size)} - ${item.name} (${item.itemCount} items)`,
+  );
 }
 ```
 
 ### Example 2: Inspect Mounted Disks and Storage Free Space
+
 ```typescript
 import { fetchMountedDisks, formatBytes } from "./gduDoers.ts";
 
 const disks = await fetchMountedDisks();
 for (const disk of disks) {
-  console.log(`${disk.mountPoint} (${disk.filesystem}): ${formatBytes(disk.used)} used / ${formatBytes(disk.size)} total (${disk.percentUsed})`);
+  console.log(
+    `${disk.mountPoint} (${disk.filesystem}): ${formatBytes(disk.used)} used / ${formatBytes(disk.size)} total (${disk.percentUsed})`,
+  );
 }
 ```
 
 ### Example 3: Get Formatted Output Lines
+
 ```typescript
 import { runGduCoordinator } from "./gduCoordinator.ts";
 
@@ -151,16 +160,18 @@ console.log(lines.join("\n"));
 ```
 
 ### Example 4: Pure Formatting Helpers
+
 ```typescript
 import { formatBytes, formatCount, formatRelativeBar } from "./gduDoers.ts";
 
-console.log(formatBytes(1024 * 1024 * 50));        // "  50.0 MiB"
-console.log(formatBytes(1000 * 1000 * 50, true));  // "  50.0 MB"
-console.log(formatCount(12500));                   // "     12.5k"
-console.log(formatRelativeBar(0.75, 10));          // "[########  ]"
+console.log(formatBytes(1024 * 1024 * 50)); // "  50.0 MiB"
+console.log(formatBytes(1000 * 1000 * 50, true)); // "  50.0 MB"
+console.log(formatCount(12500)); // "     12.5k"
+console.log(formatRelativeBar(0.75, 10)); // "[########  ]"
 ```
 
 ### Example 5: Interactive TUI State, File Deletion & Search API
+
 ```typescript
 import { analyzeDirectory } from "./gduCoordinator.ts";
 import {
@@ -210,6 +221,7 @@ console.log(frame);
 ```
 
 ### Example 6: Pure Doers: File Operations & Byte Parsing
+
 ```typescript
 import {
   parseByteSize,

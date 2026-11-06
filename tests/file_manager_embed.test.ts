@@ -2,7 +2,11 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { EMBEDDED_APPS, alternateOrigin, startFileManagerServer } from "../src/features/filemanager/fmServer";
+import {
+  EMBEDDED_APPS,
+  alternateOrigin,
+  startFileManagerServer,
+} from "../src/features/filemanager/fmServer";
 
 const root = mkdtempSync(join(tmpdir(), "fm-embed-"));
 const TOKEN = "embed-token";
@@ -11,7 +15,12 @@ let port = 0;
 
 beforeAll(() => {
   mkdirSync(join(root, "home"));
-  server = startFileManagerServer({ port: 0, host: "127.0.0.1", token: TOKEN, context: { home: join(root, "home"), dataDir: join(root, "data") } });
+  server = startFileManagerServer({
+    port: 0,
+    host: "127.0.0.1",
+    token: TOKEN,
+    context: { home: join(root, "home"), dataDir: join(root, "data") },
+  });
   port = server.port!;
 });
 afterAll(() => {
@@ -20,8 +29,13 @@ afterAll(() => {
 });
 
 // Asking for the other spelling of the address: the server sees a Host of localhost:PORT, like a browser frame would.
-const asAlt = (path: string, init: RequestInit = {}) => fetch(`http://127.0.0.1:${port}${path}`, { ...init, headers: { Host: `localhost:${port}`, ...(init.headers ?? {}) } });
-const asMain = (path: string, init: RequestInit = {}) => fetch(`http://127.0.0.1:${port}${path}`, init);
+const asAlt = (path: string, init: RequestInit = {}) =>
+  fetch(`http://127.0.0.1:${port}${path}`, {
+    ...init,
+    headers: { Host: `localhost:${port}`, ...(init.headers ?? {}) },
+  });
+const asMain = (path: string, init: RequestInit = {}) =>
+  fetch(`http://127.0.0.1:${port}${path}`, init);
 
 describe("alternateOrigin", () => {
   test("swaps 127.0.0.1 and localhost and keeps the port", () => {
@@ -53,7 +67,9 @@ describe("embedded apps", () => {
       expect(csp).toContain("script-src 'self' 'unsafe-inline'");
       // Only the graphing calculator turns typed formulas into functions.
       expect(csp.includes("'unsafe-eval'"), id).toBe(id === "calc");
-      expect(csp).toContain(`frame-ancestors http://127.0.0.1:${port} http://localhost:${port}`);
+      expect(csp).toContain(
+        `frame-ancestors http://127.0.0.1:${port} http://localhost:${port}`,
+      );
       expect(csp).toContain("form-action 'none'");
       expect(csp).toContain("connect-src 'self'");
       const html = await res.text();
@@ -71,23 +87,50 @@ describe("embedded apps", () => {
     expect(EMBEDDED_APPS.timer!.frame).toEqual([]);
     expect(EMBEDDED_APPS.timer!.script.join(" ")).not.toContain("youtube");
     expect(EMBEDDED_APPS.paint!.script).toEqual([]);
-    expect(EMBEDDED_APPS.paint!.style).toEqual(["https://fonts.googleapis.com"]);
-    for (const app of Object.values(EMBEDDED_APPS)) for (const list of [app.script, app.style, app.font, app.img, app.frame, app.connect]) for (const origin of list) expect(origin).toMatch(/^https:\/\/[a-z0-9.-]+$/);
+    expect(EMBEDDED_APPS.paint!.style).toEqual([
+      "https://fonts.googleapis.com",
+    ]);
+    for (const app of Object.values(EMBEDDED_APPS))
+      for (const list of [
+        app.script,
+        app.style,
+        app.font,
+        app.img,
+        app.frame,
+        app.connect,
+      ])
+        for (const origin of list)
+          expect(origin).toMatch(/^https:\/\/[a-z0-9.-]+$/);
   });
 
   test("their own files load, and unknown or odd paths do not", async () => {
     expect((await asAlt("/app/calc/app.js")).status).toBe(200);
-    expect((await asAlt("/app/calc/styles.css")).headers.get("content-type")).toContain("text/css");
+    expect(
+      (await asAlt("/app/calc/styles.css")).headers.get("content-type"),
+    ).toContain("text/css");
     expect((await asAlt("/app/calc/intuitionlab/index.html")).status).toBe(200);
     const paintLib = await asAlt("/app/paint/coloring_library.js");
     expect(paintLib.status).toBe(200);
     const paintLibCode = await paintLib.text();
-    expect(paintLibCode).toContain("window.COLORING_LIBRARY = COLORING_LIBRARY");
+    expect(paintLibCode).toContain(
+      "window.COLORING_LIBRARY = COLORING_LIBRARY",
+    );
     expect(paintLibCode).toContain("coloring-library-loaded");
-    for (const bad of ["/app/calc/../../package.json", "/app/calc/%2e%2e/%2e%2e/package.json", "/app/calc/..%2f..%2fpackage.json", "/app/calc/a%00b.js", "/app/calc/sw.js.map", "/app/calc/nope.js", "/app/nothing/", "/app/Calc/", "/app/calc/app.js%5c..%5c..", "/app/calc//etc/passwd"]) {
+    for (const bad of [
+      "/app/calc/../../package.json",
+      "/app/calc/%2e%2e/%2e%2e/package.json",
+      "/app/calc/..%2f..%2fpackage.json",
+      "/app/calc/a%00b.js",
+      "/app/calc/sw.js.map",
+      "/app/calc/nope.js",
+      "/app/nothing/",
+      "/app/Calc/",
+      "/app/calc/app.js%5c..%5c..",
+      "/app/calc//etc/passwd",
+    ]) {
       const res = await asAlt(bad);
       expect(res.status, bad).toBe(404);
-      expect(await res.text()).not.toContain("\"name\": \"bun");
+      expect(await res.text()).not.toContain('"name": "bun');
     }
   });
 
@@ -96,7 +139,9 @@ describe("embedded apps", () => {
   });
 
   test("the timer's playlist question is answered from its own file", async () => {
-    const res = await asAlt("/app/timer/index.html?action=sync_codecaine_playlist");
+    const res = await asAlt(
+      "/app/timer/index.html?action=sync_codecaine_playlist",
+    );
     expect(res.status).toBe(200);
     const data = (await res.json()) as any;
     expect(data.success).toBe(true);
@@ -105,12 +150,24 @@ describe("embedded apps", () => {
   });
 
   test("a page on the other origin can't get the File Manager, its token or its API", async () => {
-    for (const path of ["/", "/index.html", "/api/health", "/ui/main.js", "/vendor/xterm.mjs", "/api/raw?path=/etc/hosts&token=x", "/api/terminal"]) {
+    for (const path of [
+      "/",
+      "/index.html",
+      "/api/health",
+      "/ui/main.js",
+      "/vendor/xterm.mjs",
+      "/api/raw?path=/etc/hosts&token=x",
+      "/api/terminal",
+    ]) {
       const res = await asAlt(path);
       expect(res.status, path).toBe(404);
       expect(await res.text()).not.toContain(TOKEN);
     }
-    const post = await asAlt("/api/places", { method: "POST", headers: { "Content-Type": "application/json", "x-fm-token": TOKEN }, body: "{}" });
+    const post = await asAlt("/api/places", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-fm-token": TOKEN },
+      body: "{}",
+    });
     expect(post.status).toBe(404);
   });
 
@@ -132,11 +189,30 @@ describe("embedded apps", () => {
 
   test("all 24 Codecaine games are served as embedded apps with Codecaine titles", async () => {
     const gameIds = [
-      "balatro", "blackjack", "breakout", "codecaine_bros", "connect4",
-      "dr_codecaine", "flappy_bird", "frogger", "lolo", "math_munchers",
-      "maze_generator", "minesweeper", "pacman", "poker", "pong",
-      "rat_screw", "rodents_revenge", "skifree", "snake", "tetris",
-      "tictactoe", "typing", "word_search", "yahtzee",
+      "balatro",
+      "blackjack",
+      "breakout",
+      "codecaine_bros",
+      "connect4",
+      "dr_codecaine",
+      "flappy_bird",
+      "frogger",
+      "lolo",
+      "math_munchers",
+      "maze_generator",
+      "minesweeper",
+      "pacman",
+      "poker",
+      "pong",
+      "rat_screw",
+      "rodents_revenge",
+      "skifree",
+      "snake",
+      "tetris",
+      "tictactoe",
+      "typing",
+      "word_search",
+      "yahtzee",
     ];
     for (const id of gameIds) {
       const res = await asAlt(`/app/${id}/`);
@@ -149,7 +225,9 @@ describe("embedded apps", () => {
   });
 
   test("foreign Host headers are still refused", async () => {
-    const res = await fetch(`http://127.0.0.1:${port}/app/calc/`, { headers: { Host: "evil.example" } });
+    const res = await fetch(`http://127.0.0.1:${port}/app/calc/`, {
+      headers: { Host: "evil.example" },
+    });
     expect(res.status).toBe(403);
   });
 });

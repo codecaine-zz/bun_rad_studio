@@ -18,20 +18,57 @@ function scriptsBlock(card, root) {
   if (!card.scripts?.length) return null;
   const rows = card.scripts.map((s) => {
     const cmd = scriptCommand(card.runner, s.name);
-    return h("li", { class: "dev-script" },
+    return h(
+      "li",
+      { class: "dev-script" },
       h("span", { class: "dev-script-name pw-mono" }, s.name),
-      h("span", { class: "dev-script-cmd pw-mono", title: s.command }, s.command),
-      cmd ? btn("▶ Run in terminal", `Type "${cmd}" in the Terminal, in this project's folder, after you confirm. It runs the project's own script.`, () => runInTerminal(root, cmd, cmd)) : h("span", { class: "pw-hint" }, "(unusual name, not offered)"));
+      h(
+        "span",
+        { class: "dev-script-cmd pw-mono", title: s.command },
+        s.command,
+      ),
+      cmd
+        ? btn(
+            "▶ Run in terminal",
+            `Type "${cmd}" in the Terminal, in this project's folder, after you confirm. It runs the project's own script.`,
+            () => runInTerminal(root, cmd, cmd),
+          )
+        : h("span", { class: "pw-hint" }, "(unusual name, not offered)"),
+    );
   });
-  return h("div", { class: "dev-block" }, h("h4", {}, `Scripts (${card.scripts.length})`), h("ul", { class: "dev-scripts" }, rows));
+  return h(
+    "div",
+    { class: "dev-block" },
+    h("h4", {}, `Scripts (${card.scripts.length})`),
+    h("ul", { class: "dev-scripts" }, rows),
+  );
 }
 
 function cardEl(card, root) {
-  return h("section", { class: `pw-card dev-proj dev-proj-${card.id}`, "aria-label": card.title },
-    h("h3", {}, h("span", { "aria-hidden": "true" }, `${card.icon} `), card.title),
+  return h(
+    "section",
+    { class: `pw-card dev-proj dev-proj-${card.id}`, "aria-label": card.title },
+    h(
+      "h3",
+      {},
+      h("span", { "aria-hidden": "true" }, `${card.icon} `),
+      card.title,
+    ),
     card.facts.length ? factList(card.facts) : null,
-    ...card.lists.map((l) => h("div", { class: "dev-block" }, h("h4", {}, l.label), h("ul", { class: "dev-chips" }, l.items.map((i) => h("li", { class: "dev-chip" }, i))))),
-    scriptsBlock(card, root));
+    ...card.lists.map((l) =>
+      h(
+        "div",
+        { class: "dev-block" },
+        h("h4", {}, l.label),
+        h(
+          "ul",
+          { class: "dev-chips" },
+          l.items.map((i) => h("li", { class: "dev-chip" }, i)),
+        ),
+      ),
+    ),
+    scriptsBlock(card, root),
+  );
 }
 
 export function createProject(env) {
@@ -48,20 +85,48 @@ export function createProject(env) {
       const info = await call("dev/project", { root });
       if (mine !== seq) return;
       host.replaceChildren(...info.cards.map((c) => cardEl(c, root)));
-      const kinds = info.cards.filter((c) => !["files", "ci", "make", "docker"].includes(c.id)).map((c) => c.title);
-      status.set(info.cards.length ? `Found: ${kinds.join(", ") || "project files"}.` : "No project files were recognized in this folder. Try a folder that has a package.json, Cargo.toml, go.mod, pyproject.toml or similar.");
+      const kinds = info.cards
+        .filter((c) => !["files", "ci", "make", "docker"].includes(c.id))
+        .map((c) => c.title);
+      status.set(
+        info.cards.length
+          ? `Found: ${kinds.join(", ") || "project files"}.`
+          : "No project files were recognized in this folder. Try a folder that has a package.json, Cargo.toml, go.mod, pyproject.toml or similar.",
+      );
       announce(status.el.textContent);
     } catch (err) {
-      if (mine === seq) status.set(errorText(err, "The project files couldn't be read."), true);
+      if (mine === seq)
+        status.set(errorText(err, "The project files couldn't be read."), true);
     }
   }
 
   return {
-    el: h("div", { class: "dev-section" },
-      h("div", { class: "pw-card" }, h("h3", {}, "Project overview"),
-        h("p", { class: "pw-hint" }, "Read from the project's own files (nothing is run and nothing is sent anywhere). Names of .env files are listed, but their contents are never read."),
-        h("div", { class: "pw-row" }, btn("Read project", "Look at this folder's project files and summarize them.", load, { primary: true })), status.el),
-      host),
+    el: h(
+      "div",
+      { class: "dev-section" },
+      h(
+        "div",
+        { class: "pw-card" },
+        h("h3", {}, "Project overview"),
+        h(
+          "p",
+          { class: "pw-hint" },
+          "Read from the project's own files (nothing is run and nothing is sent anywhere). Names of .env files are listed, but their contents are never read.",
+        ),
+        h(
+          "div",
+          { class: "pw-row" },
+          btn(
+            "Read project",
+            "Look at this folder's project files and summarize them.",
+            load,
+            { primary: true },
+          ),
+        ),
+        status.el,
+      ),
+      host,
+    ),
     load,
   };
 }

@@ -30,7 +30,8 @@ import {
 } from "../index.ts";
 
 export const DEFAULT_PORT = 3266;
-export const APP_TITLE = "Codecaine CyberMaker Studio: OS Kernel World Architect";
+export const APP_TITLE =
+  "Codecaine CyberMaker Studio: OS Kernel World Architect";
 
 export interface CyberMakerStudioOptions {
   fullscreen?: boolean;
@@ -159,7 +160,9 @@ export function startCyberMakerServer(options: CyberMakerServerOptions = {}) {
   );
 }
 
-export function createCyberMakerStudio(options: CyberMakerStudioOptions = {}): CyberMakerStudioInstance {
+export function createCyberMakerStudio(
+  options: CyberMakerStudioOptions = {},
+): CyberMakerStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1440);
@@ -191,7 +194,8 @@ export function createCyberMakerStudio(options: CyberMakerStudioOptions = {}): C
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -211,11 +215,15 @@ export function createCyberMakerStudio(options: CyberMakerStudioOptions = {}): C
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -225,16 +233,24 @@ export function createCyberMakerStudio(options: CyberMakerStudioOptions = {}): C
         });
 
         webview.setHTML(html);
-        console.log(`🏗️ Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`);
+        console.log(
+          `🏗️ Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`,
+        );
 
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -248,13 +264,19 @@ export const createCyberMakerApp = createCyberMakerStudio;
 export const startCyberMakerStudioServer = startCyberMakerServer;
 
 if (process.argv.includes("--server")) {
-  const port = parseInt(process.env.CYBER_MAKER_PORT || process.env.PORT || "0", 10);
+  const port = parseInt(
+    process.env.CYBER_MAKER_PORT || process.env.PORT || "0",
+    10,
+  );
   const srv = startCyberMakerServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`🏗️ ${APP_TITLE} Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `🏗️ ${APP_TITLE} Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
+  const fullscreen =
+    !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
   const app = createCyberMakerStudio({ fullscreen });
   await app.run();
   process.exit(0);

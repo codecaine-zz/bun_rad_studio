@@ -23,17 +23,23 @@ async function convert(d: Do, search: string, pick: string) {
 }
 
 /** Moves a studio slider by clicking along its track (`dx` pixels right of its middle, or left when negative). */
-const nudge = (d: Do, opt: string, dx: number) => d.click(`${PANE} input[data-opt=${opt}]`, { dx, pause: 1100 });
+const nudge = (d: Do, opt: string, dx: number) =>
+  d.click(`${PANE} input[data-opt=${opt}]`, { dx, pause: 1100 });
 
 /** Clicks a studio's quick look or recipe button by its text. */
-const quick = (d: Do, text: string, pause = 1800) => d.click(`${PANE} .st-preset >> ${text}`, { pause });
+const quick = (d: Do, text: string, pause = 1800) =>
+  d.click(`${PANE} .st-preset >> ${text}`, { pause });
 
 /** Holds a button down for a while (Hold to compare), then lets go. */
 async function hold(d: Do, selector: string, ms: number) {
   await d.hover(selector, 500);
-  await d.eval(`document.querySelector(${JSON.stringify(selector)})?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }))`);
+  await d.eval(
+    `document.querySelector(${JSON.stringify(selector)})?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }))`,
+  );
   await d.wait(ms);
-  await d.eval(`document.querySelector(${JSON.stringify(selector)})?.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }))`);
+  await d.eval(
+    `document.querySelector(${JSON.stringify(selector)})?.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }))`,
+  );
   await d.wait(600);
 }
 
@@ -46,14 +52,20 @@ async function saved(d: Do, look = 2200) {
 /** Chooses a saved preset from a studio's "My presets" list, as if picked from the drop-down. */
 async function choosePreset(d: Do, id: string, name: string) {
   await d.hover(`#${id}-preset`, 900);
-  await d.eval(`(() => { const s = document.querySelector("#${id}-preset"); s.value = ${JSON.stringify(name)}; s.dispatchEvent(new Event("change", { bubbles: true })); })()`);
+  await d.eval(
+    `(() => { const s = document.querySelector("#${id}-preset"); s.value = ${JSON.stringify(name)}; s.dispatchEvent(new Event("change", { bubbles: true })); })()`,
+  );
   await d.wait(1600);
 }
 
 /** Chapters after the toolbox: Home & Split views, Clock/Calendar/Timestamps, CLI utilities, one-click conversions, Image and Media Studios, presets, Recent, Media Deck, Paint Studio & Arcade Games. */
 export const studios: Chapter[] = [
   {
-    id: "21a_home_split_clock_cli", chapter: "HOME, SPLIT, CLOCK & CLI", title: "Home view, Split view, Calendar & World Clocks, and CLI Utilities", blurb: "Start page tiles, tools beside your files, interactive calendar and epoch converter, and built-in command-line utilities",
+    id: "21a_home_split_clock_cli",
+    chapter: "HOME, SPLIT, CLOCK & CLI",
+    title: "Home view, Split view, Calendar & World Clocks, and CLI Utilities",
+    blurb:
+      "Start page tiles, tools beside your files, interactive calendar and epoch converter, and built-in command-line utilities",
     path: "<HOME>/Projects/shop-app",
     steps: [
       {
@@ -76,7 +88,9 @@ export const studios: Chapter[] = [
           await d.menu("Calendar, World Clocks & Timestamps", { pause: 1500 });
           await d.hover(".cal-table", 1100).catch(() => {});
           await d.hover("#cal-world-grid", 1100).catch(() => {});
-          await d.click("#cal-epoch-result button", { pause: 1000 }).catch(() => {});
+          await d
+            .click("#cal-epoch-result button", { pause: 1000 })
+            .catch(() => {});
           await d.key("Escape", "Esc");
           await d.wait(500);
         },
@@ -90,7 +104,9 @@ export const studios: Chapter[] = [
           await d.type("cli", 90);
           await d.wait(800);
           await d.click("#power-tab-cliutils", { pause: 1400 });
-          await d.click(".cliutil-card button >> 📋 Copy", { pause: 1200 }).catch(() => {});
+          await d
+            .click(".cliutil-card button >> 📋 Copy", { pause: 1200 })
+            .catch(() => {});
           await d.click("#power-filter-clear", { pause: 700 }).catch(() => {});
           await d.click("#view-files", { pause: 800 });
         },
@@ -102,7 +118,8 @@ export const studios: Chapter[] = [
     id: "21aa_tasks_sysinfo",
     chapter: "TASKS & SYSTEM INFO",
     title: "Process & Task Manager, and System Information",
-    blurb: "Live cross-platform process and TCP port manager, process tree, and deep hardware & OS telemetry",
+    blurb:
+      "Live cross-platform process and TCP port manager, process tree, and deep hardware & OS telemetry",
     path: "<HOME>/Projects/shop-app",
     view: "#view-tools",
     steps: [
@@ -111,14 +128,26 @@ export const studios: Chapter[] = [
         say: "In the Tools panel, the Tasks tab is a live, cross-platform Process and Task Manager for Windows, mac O S, and Linux. At the top, telemetry cards show C P U load, memory usage, listening T C P ports, and dev runtimes. You can filter by name, port, or C P U threshold, switch between a flat list, a parent-child process tree, or grouped applications, free a stuck T C P port, or click any process row to inspect its command line, end the task, or export a snapshot.",
         act: async (d) => {
           await d.click("#power-tab-tasks", { pause: 1600 });
-          await d.hover("#power-pane-tasks .tasks-kpi-grid", 1400).catch(() => {});
-          await d.eval(`(() => { const s = document.querySelector('#power-pane-tasks select[title*="organized"]'); if (s) { s.value = 'tree'; s.dispatchEvent(new Event('change', { bubbles: true })); } })()`);
+          await d
+            .hover("#power-pane-tasks .tasks-kpi-grid", 1400)
+            .catch(() => {});
+          await d.eval(
+            `(() => { const s = document.querySelector('#power-pane-tasks select[title*="organized"]'); if (s) { s.value = 'tree'; s.dispatchEvent(new Event('change', { bubbles: true })); } })()`,
+          );
           await d.wait(1400);
-          await d.eval(`(() => { const s = document.querySelector('#power-pane-tasks select[title*="organized"]'); if (s) { s.value = 'flat'; s.dispatchEvent(new Event('change', { bubbles: true })); } })()`);
+          await d.eval(
+            `(() => { const s = document.querySelector('#power-pane-tasks select[title*="organized"]'); if (s) { s.value = 'flat'; s.dispatchEvent(new Event('change', { bubbles: true })); } })()`,
+          );
           await d.wait(900);
-          await d.click("#power-pane-tasks .tasks-table tbody tr", { pause: 1600 }).catch(() => {});
-          await d.hover("#power-pane-tasks .tasks-inspector", 1800).catch(() => {});
-          await d.click("#power-pane-tasks button >> Copy Snapshot", { pause: 1200 }).catch(() => {});
+          await d
+            .click("#power-pane-tasks .tasks-table tbody tr", { pause: 1600 })
+            .catch(() => {});
+          await d
+            .hover("#power-pane-tasks .tasks-inspector", 1800)
+            .catch(() => {});
+          await d
+            .click("#power-pane-tasks button >> Copy Snapshot", { pause: 1200 })
+            .catch(() => {});
         },
       },
       {
@@ -126,13 +155,33 @@ export const studios: Chapter[] = [
         say: "Right beside it, the System tab is a complete hardware and operating system telemetry dashboard. It shows live per-core C P U bars, memory and swap, mounted disks, network interfaces, G P U controllers and displays, batteries, and installed runtimes. You can also run over forty deep hardware probes, pin a baseline snapshot, compare changes over time, and copy or save a full diagnostic report as J S O N, Markdown, C S V, or H T M L.",
         act: async (d) => {
           await d.click("#power-tab-sysinfo", { pause: 1800 });
-          await d.hover("#power-pane-sysinfo .sys-kpi-grid", 1400).catch(() => {});
-          for (const sec of ["CPU & Thermal", "Memory (RAM)", "Disks & Volumes", "GPUs & Displays", "OS & Versions"]) {
-            await d.click(`#power-pane-sysinfo .sys-tab >> ${sec}`, { pause: 1100 }).catch(() => {});
+          await d
+            .hover("#power-pane-sysinfo .sys-kpi-grid", 1400)
+            .catch(() => {});
+          for (const sec of [
+            "CPU & Thermal",
+            "Memory (RAM)",
+            "Disks & Volumes",
+            "GPUs & Displays",
+            "OS & Versions",
+          ]) {
+            await d
+              .click(`#power-pane-sysinfo .sys-tab >> ${sec}`, { pause: 1100 })
+              .catch(() => {});
           }
-          await d.click("#power-pane-sysinfo button >> Pin Baseline", { pause: 1000 }).catch(() => {});
-          await d.click("#power-pane-sysinfo button >> Compare to Baseline", { pause: 1400 }).catch(() => {});
-          await d.click("#power-pane-sysinfo button >> Copy Report", { pause: 1100 }).catch(() => {});
+          await d
+            .click("#power-pane-sysinfo button >> Pin Baseline", {
+              pause: 1000,
+            })
+            .catch(() => {});
+          await d
+            .click("#power-pane-sysinfo button >> Compare to Baseline", {
+              pause: 1400,
+            })
+            .catch(() => {});
+          await d
+            .click("#power-pane-sysinfo button >> Copy Report", { pause: 1100 })
+            .catch(() => {});
           await d.click("#view-files", { pause: 800 });
         },
       },
@@ -140,13 +189,18 @@ export const studios: Chapter[] = [
   },
 
   {
-    id: "21b_convert_more", chapter: "ONE-CLICK EDITS", title: "One-click picture, video and sound edits", blurb: "Black and white, round pictures, sepia, shapes and more",
+    id: "21b_convert_more",
+    chapter: "ONE-CLICK EDITS",
+    title: "One-click picture, video and sound edits",
+    blurb: "Black and white, round pictures, sepia, shapes and more",
     path: "<HOME>/Media",
     steps: [
       {
         cap: "Media: a picture, a song and a video",
         say: "Convert has a lot more than file formats. There are dozens of one click edits for pictures, videos and sound. Here is a folder with a photo, a song and a short video, so let me show you a few.",
-        act: async (d) => { await d.hover("#list", 2200); },
+        act: async (d) => {
+          await d.hover("#list", 2200);
+        },
       },
       {
         cap: "A round picture, for a profile photo",
@@ -178,11 +232,15 @@ export const studios: Chapter[] = [
           await d.click("#cv-search", { pause: 400 });
           await d.type("sepia", 120);
           await d.wait(1600);
-          await d.eval(`(() => { const s = document.querySelector("#cv-search"); s.value = ""; s.dispatchEvent(new Event("input", { bubbles: true })); s.focus(); })()`);
+          await d.eval(
+            `(() => { const s = document.querySelector("#cv-search"); s.value = ""; s.dispatchEvent(new Event("input", { bubbles: true })); s.focus(); })()`,
+          );
           await d.wait(500);
           await d.type("shape", 120);
           await d.wait(3000);
-          await d.eval(`(() => { const s = document.querySelector("#cv-search"); s.value = ""; s.dispatchEvent(new Event("input", { bubbles: true })); s.focus(); })()`);
+          await d.eval(
+            `(() => { const s = document.querySelector("#cv-search"); s.value = ""; s.dispatchEvent(new Event("input", { bubbles: true })); s.focus(); })()`,
+          );
           await d.type("gif", 140);
           await d.wait(3500);
           await d.key("Escape", "Esc");
@@ -192,13 +250,18 @@ export const studios: Chapter[] = [
   },
 
   {
-    id: "21c_image_studio", chapter: "IMAGE STUDIO", title: "Image Studio: edit a picture with sliders", blurb: "See every change straight away, then save a copy",
+    id: "21c_image_studio",
+    chapter: "IMAGE STUDIO",
+    title: "Image Studio: edit a picture with sliders",
+    blurb: "See every change straight away, then save a copy",
     path: "<HOME>/Media",
     steps: [
       {
         cap: "Right-click a picture: Edit in Image Studio",
         say: "When you want more control, there is the Image Studio. I right click the sunset, and choose Edit in Image Studio. The picture opens on the left, with all the controls on the right. Every change shows up straight away.",
-        act: async (d) => { await rightClick(d, "sunset.jpg", "Edit in Image Studio", 2600); },
+        act: async (d) => {
+          await rightClick(d, "sunset.jpg", "Edit in Image Studio", 2600);
+        },
       },
       {
         cap: "Sliders: light, color, warmth",
@@ -213,7 +276,9 @@ export const studios: Chapter[] = [
       {
         cap: "Hold to compare with the original",
         say: "To see what I have changed, I hold down Hold to compare. While I hold it, I see the original. When I let go, my edit comes back.",
-        act: async (d) => { await hold(d, "#ist-compare", 2200); },
+        act: async (d) => {
+          await hold(d, "#ist-compare", 2200);
+        },
       },
       {
         cap: "Quick looks: one click styles",
@@ -239,13 +304,18 @@ export const studios: Chapter[] = [
   },
 
   {
-    id: "21d_media_studio", chapter: "MEDIA STUDIO", title: "Media Studio: trim, speed, sound and video", blurb: "Songs, voice recordings and videos, without a video editor",
+    id: "21d_media_studio",
+    chapter: "MEDIA STUDIO",
+    title: "Media Studio: trim, speed, sound and video",
+    blurb: "Songs, voice recordings and videos, without a video editor",
     path: "<HOME>/Media",
     steps: [
       {
         cap: "Right-click a video: Edit in Media Studio",
         say: "The Media Studio does the same for songs, voice recordings and videos. I right click the city clip, and choose Edit in Media Studio. The player is on the left, and the controls are on the right.",
-        act: async (d) => { await rightClick(d, "city-clip.mp4", "Edit in Media Studio", 2800); },
+        act: async (d) => {
+          await rightClick(d, "city-clip.mp4", "Edit in Media Studio", 2800);
+        },
       },
       {
         cap: "Trim: keep just the part you want",
@@ -274,7 +344,10 @@ export const studios: Chapter[] = [
       {
         cap: "Save a copy, with progress in the task panel",
         say: "I press Save a copy. The new clip is made in the background, and saved next to the original.",
-        act: async (d) => { await d.click("#mst-save", { pause: 1500 }); await saved(d, 1500); },
+        act: async (d) => {
+          await d.click("#mst-save", { pause: 1500 });
+          await saved(d, 1500);
+        },
       },
       {
         cap: "Songs: Podcast voice, Ringtone, MP3",
@@ -290,7 +363,10 @@ export const studios: Chapter[] = [
   },
 
   {
-    id: "21e_presets_bulk", chapter: "PRESETS + BULK", title: "Save a preset, then edit many files at once", blurb: "The same look for a whole folder of photos, in one go",
+    id: "21e_presets_bulk",
+    chapter: "PRESETS + BULK",
+    title: "Save a preset, then edit many files at once",
+    blurb: "The same look for a whole folder of photos, in one go",
     path: "<HOME>/Documents/Trip",
     steps: [
       {
@@ -337,35 +413,55 @@ export const studios: Chapter[] = [
       {
         cap: "Eight new photos, originals untouched",
         say: "Done. Every photo has a new edited copy, all with the same look, and the originals are still there, unchanged. The Media Studio has presets and bulk editing too, for a whole folder of songs or videos.",
-        act: async (d) => { await d.click("#view-files", { pause: 1500 }); await d.scroll("#list", 500, 6).catch(() => {}); await d.hover("#list", 2200); },
+        act: async (d) => {
+          await d.click("#view-files", { pause: 1500 });
+          await d.scroll("#list", 500, 6).catch(() => {});
+          await d.hover("#list", 2200);
+        },
       },
     ],
   },
 
   {
-    id: "21f_recent", chapter: "RECENT", title: "Recent files and media open right here", blurb: "Back to what you were working on, and pictures, songs and videos open in the File Manager by default",
+    id: "21f_recent",
+    chapter: "RECENT",
+    title: "Recent files and media open right here",
+    blurb:
+      "Back to what you were working on, and pictures, songs and videos open in the File Manager by default",
     path: "<HOME>/Media",
     before: async (d) => {
       const home = d.world.home;
-      await d.eval(`(async () => { const m = await import("/ui/api.js"); const st = await import("/ui/state.js"); for (const p of ${JSON.stringify(["Media/morning-song.mp3", "Media/city-clip.mp4", "Media/sunset.jpg"].map((r) => `${home}/${r}`))}) { const r = await m.call("recent/add", { path: p }); st.state.settings = r.settings; } st.emit("settings"); })()`);
+      await d.eval(
+        `(async () => { const m = await import("/ui/api.js"); const st = await import("/ui/state.js"); for (const p of ${JSON.stringify(["Media/morning-song.mp3", "Media/city-clip.mp4", "Media/sunset.jpg"].map((r) => `${home}/${r}`))}) { const r = await m.call("recent/add", { path: p }); st.state.settings = r.settings; } st.emit("settings"); })()`,
+      );
       await d.wait(800);
     },
     steps: [
       {
         cap: "Places panel: Recent",
         say: "Last, the Recent list. In the Places panel on the left, under Recent, are the files you opened lately. Click one, and it opens right here, inside the File Manager.",
-        act: async (d) => { await d.hover("#sidebar .side-section >> Recent", 1600); await d.click("#sidebar .side-item >> sunset.jpg", { pause: 2200 }); },
+        act: async (d) => {
+          await d.hover("#sidebar .side-section >> Recent", 1600);
+          await d.click("#sidebar .side-item >> sunset.jpg", { pause: 2200 });
+        },
       },
       {
         cap: "Quick Look: then Edit in Studio",
         say: "A picture opens in Quick Look, nice and big. From here, Edit in Studio takes it straight to the Image Studio. Escape closes it again.",
-        act: async (d) => { await d.hover(".ql-image", 2400).catch(() => {}); await d.hover("#ql-studio", 3500).catch(() => {}); await d.key("Escape", "Esc"); await d.wait(1200); },
+        act: async (d) => {
+          await d.hover(".ql-image", 2400).catch(() => {});
+          await d.hover("#ql-studio", 3500).catch(() => {});
+          await d.key("Escape", "Esc");
+          await d.wait(1200);
+        },
       },
       {
         cap: "Songs and videos play in place",
         say: "A song or a video plays right in Quick Look, with its own controls. Play, the volume, mute, and full size. Press Escape when you are done, and you are back exactly where you were.",
         act: async (d) => {
-          await d.click("#sidebar .side-item >> city-clip.mp4", { pause: 1500 });
+          await d.click("#sidebar .side-item >> city-clip.mp4", {
+            pause: 1500,
+          });
           await d.click(".mp .mp-play", { pause: 3000 }).catch(() => {});
           await d.hover(".mp", 4500).catch(() => {});
           await d.key("Escape", "Esc");
@@ -381,7 +477,9 @@ export const studios: Chapter[] = [
           await d.wait(2600);
           await d.key("Escape", "Esc");
           await d.wait(900);
-          await d.click("#list .row[data-key$='morning-song.mp3']", { pause: 1000 });
+          await d.click("#list .row[data-key$='morning-song.mp3']", {
+            pause: 1000,
+          });
           await d.key("Enter", "Enter");
           await d.wait(3200);
           await d.key("Escape", "Esc");
@@ -394,10 +492,20 @@ export const studios: Chapter[] = [
         act: async (d) => {
           await d.key("Meta+,", "⌘+,");
           await d.wait(900);
-          if (!(await d.eval<boolean>(`!!document.querySelector('.modal-backdrop')`))) await d.eval(`import('/ui/extras.js').then((m) => m.showSettings())`);
+          if (
+            !(await d.eval<boolean>(
+              `!!document.querySelector('.modal-backdrop')`,
+            ))
+          )
+            await d.eval(
+              `import('/ui/extras.js').then((m) => m.showSettings())`,
+            );
           await d.wait(1000);
-          const sel = ".dialog select[aria-label='Open pictures, sound and video with']";
-          await d.eval(`document.querySelector(${JSON.stringify(sel)})?.scrollIntoView({ block: 'center' })`);
+          const sel =
+            ".dialog select[aria-label='Open pictures, sound and video with']";
+          await d.eval(
+            `document.querySelector(${JSON.stringify(sel)})?.scrollIntoView({ block: 'center' })`,
+          );
           await d.hover(sel, 3200).catch(() => {});
           await d.key("Escape", "Esc");
           await d.wait(900);
@@ -407,7 +515,11 @@ export const studios: Chapter[] = [
   },
 
   {
-    id: "21g_player_paint_games", chapter: "MEDIA DECK, PAINT & 60 GAMES", title: "Media Deck, Paint Studio & All 60 Built-in Arcade Games", blurb: "10-band equalizer, 108 visualizers, pixel and vector Paint Studio, and all 60 arcade, puzzle, card, casino and TV game show games",
+    id: "21g_player_paint_games",
+    chapter: "MEDIA DECK, PAINT & 60 GAMES",
+    title: "Media Deck, Paint Studio & All 60 Built-in Arcade Games",
+    blurb:
+      "10-band equalizer, 108 visualizers, pixel and vector Paint Studio, and all 60 arcade, puzzle, card, casino and TV game show games",
     path: "<HOME>/Media",
     steps: [
       {
@@ -416,7 +528,9 @@ export const studios: Chapter[] = [
         act: async (d) => {
           await d.click("#view-tools", { pause: 900 });
           await d.click("#power-tab-player", { pause: 1300 });
-          await d.click(".wa-pill-btn >> 📂 Folder", { pause: 1600 }).catch(() => {});
+          await d
+            .click(".wa-pill-btn >> 📂 Folder", { pause: 1600 })
+            .catch(() => {});
           await d.hover(".wa-stage", 1200).catch(() => {});
           await d.hover(".wa-eq-rack", 1200).catch(() => {});
           await d.hover(".wa-skin-select", 1000).catch(() => {});
@@ -440,8 +554,10 @@ export const studios: Chapter[] = [
   {
     id: "21h_phonon_voice_studio",
     chapter: "PHONON VOICE STUDIO",
-    title: "Ollama Phonon TTS (Zoey), 5s Voice Cloning & Full-Book EPUB-to-MP4 Video Export",
-    blurb: "38 neural voices, persistent Zoey default, pitch-sync teleprompter, 5-second F5-TTS-MLX zero-shot voice cloning, 25+ document extractor, batch audiobooks & 242-chunk EPUB-to-MP4 Read-Along video export",
+    title:
+      "Ollama Phonon TTS (Zoey), 5s Voice Cloning & Full-Book EPUB-to-MP4 Video Export",
+    blurb:
+      "38 neural voices, persistent Zoey default, pitch-sync teleprompter, 5-second F5-TTS-MLX zero-shot voice cloning, 25+ document extractor, batch audiobooks & 242-chunk EPUB-to-MP4 Read-Along video export",
     path: "<HOME>/Projects/shop-app",
     steps: [
       {
@@ -462,7 +578,9 @@ export const studios: Chapter[] = [
             }
           })()`);
           await d.wait(1200);
-          await d.click("#phonon-set-default-btn", { pause: 1100 }).catch(() => {});
+          await d
+            .click("#phonon-set-default-btn", { pause: 1100 })
+            .catch(() => {});
           await d.hover("#phonon-speed-range", 900).catch(() => {});
           await d.hover("#phonon-pitch-range", 900).catch(() => {});
         },
@@ -479,7 +597,9 @@ export const studios: Chapter[] = [
             }
           })()`);
           await d.wait(1100);
-          await d.hover("#phonon-teleprompter, #phonon-text-input", 1500).catch(() => {});
+          await d
+            .hover("#phonon-teleprompter, #phonon-text-input", 1500)
+            .catch(() => {});
         },
       },
       {
@@ -503,7 +623,9 @@ export const studios: Chapter[] = [
             if (b) b.scrollIntoView({ behavior: 'smooth', block: 'center' });
           })()`);
           await d.wait(1200);
-          await d.hover("#phonon-save-video-btn, #phonon-export-btn", 1800).catch(() => {});
+          await d
+            .hover("#phonon-save-video-btn, #phonon-export-btn", 1800)
+            .catch(() => {});
         },
       },
     ],
@@ -512,8 +634,10 @@ export const studios: Chapter[] = [
   {
     id: "21i_ollama_ai_assistant",
     chapter: "LOCAL OLLAMA AI ASSISTANT",
-    title: "Built-In Local Ollama AI Assistant, Document Q&A & Read Aloud with Zoey",
-    blurb: "100% offline local LLM chat, active file & folder context injection, 1-click document summarize & Q&A, full capability router, and 1-click Read Aloud with Phonon Zoey",
+    title:
+      "Built-In Local Ollama AI Assistant, Document Q&A & Read Aloud with Zoey",
+    blurb:
+      "100% offline local LLM chat, active file & folder context injection, 1-click document summarize & Q&A, full capability router, and 1-click Read Aloud with Phonon Zoey",
     path: "<HOME>/Projects/shop-app",
     steps: [
       {
@@ -546,4 +670,3 @@ export const studios: Chapter[] = [
     ],
   },
 ];
-

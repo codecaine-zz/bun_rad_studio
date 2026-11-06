@@ -38,12 +38,28 @@ import { FFMPEG, FFPROBE, narrate, sh } from "./lib/video_pipeline";
 const ROOT = process.cwd();
 const PROD = join(ROOT, "youtube_production");
 const WORK = join(PROD, "ai_complete_tutorial");
-const OUTPUT_WIDE_MASTER = join(PROD, "codecaine_file_manager_ai_and_enhancements_complete_tutorial_1080p.mp4");
-const OUTPUT_SHORT_MASTER = join(PROD, "codecaine-file-manager-ai-complete-tutorial-short.mp4");
-const OUTPUT_WIDE_COMPAT = join(PROD, "phonon_ollama_complete_tutorial_1080p.mp4");
-const OUTPUT_SHORT_COMPAT = join(PROD, "phonon_ollama_complete_tutorial_short.mp4");
+const OUTPUT_WIDE_MASTER = join(
+  PROD,
+  "codecaine_file_manager_ai_and_enhancements_complete_tutorial_1080p.mp4",
+);
+const OUTPUT_SHORT_MASTER = join(
+  PROD,
+  "codecaine-file-manager-ai-complete-tutorial-short.mp4",
+);
+const OUTPUT_WIDE_COMPAT = join(
+  PROD,
+  "phonon_ollama_complete_tutorial_1080p.mp4",
+);
+const OUTPUT_SHORT_COMPAT = join(
+  PROD,
+  "phonon_ollama_complete_tutorial_short.mp4",
+);
 const NOTES_PROD = join(PROD, "AI_AND_ENHANCEMENTS_COMPLETE_TUTORIAL_NOTES.md");
-const DOCS_TUTORIAL = join(ROOT, "docs", "AI_AND_ENHANCEMENTS_COMPLETE_TUTORIAL.md");
+const DOCS_TUTORIAL = join(
+  ROOT,
+  "docs",
+  "AI_AND_ENHANCEMENTS_COMPLETE_TUTORIAL.md",
+);
 const REPO = "https://github.com/codecaine-zz/bun_rad_studio";
 
 const FM_PORT = 51862;
@@ -53,7 +69,10 @@ const VIEW_W = 1920;
 const VIEW_H = 972;
 
 const ROOT_DIR = "/tmp/fm_ai_complete_tutorial";
-const HOME = process.platform === "darwin" ? "/private/tmp/fm_ai_complete_tutorial/home" : "/tmp/fm_ai_complete_tutorial/home";
+const HOME =
+  process.platform === "darwin"
+    ? "/private/tmp/fm_ai_complete_tutorial/home"
+    : "/tmp/fm_ai_complete_tutorial/home";
 const DATA = `${ROOT_DIR}/data`;
 const GRAVE = `${ROOT_DIR}/grave`;
 const ZDOT = `${ROOT_DIR}/zdot`;
@@ -74,17 +93,33 @@ type SceneSpec = {
 
 function run(args: string[]): string {
   const result = Bun.spawnSync(args, { stdout: "pipe", stderr: "pipe" });
-  if (result.exitCode !== 0) throw new Error(`${args[0]} failed:\n${result.stderr.toString().slice(-4000)}`);
+  if (result.exitCode !== 0)
+    throw new Error(
+      `${args[0]} failed:\n${result.stderr.toString().slice(-4000)}`,
+    );
   return result.stdout.toString();
 }
 
 function duration(file: string): number {
-  const value = Number(run([FFPROBE, "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file]).trim());
-  if (!Number.isFinite(value) || value <= 0) throw new Error(`Invalid duration: ${file}`);
+  const value = Number(
+    run([
+      FFPROBE,
+      "-v",
+      "error",
+      "-show_entries",
+      "format=duration",
+      "-of",
+      "csv=p=0",
+      file,
+    ]).trim(),
+  );
+  if (!Number.isFinite(value) || value <= 0)
+    throw new Error(`Invalid duration: ${file}`);
   return value;
 }
 
-const esc = (text: string) => text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+const esc = (text: string) =>
+  text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 
 function seedTutorialWorkspace() {
   rmSync(ROOT_DIR, { recursive: true, force: true });
@@ -179,7 +214,10 @@ Every AI feature and file management enhancement has both a mouse button and a k
     const ch = idx + 1;
     return `Chapter ${ch}: Context-Safe Neural Speech & Local AI Synthesis\n\nWhen reading a multi-chapter book or analyzing large repositories, Codecaine File Manager splits text along natural paragraph and sentence boundaries so you never overflow the model's context window.`;
   }).join("\n\n");
-  writeFileSync(join(studioDir, "05_Complete_18_Chapter_Book.txt"), largeBookChapters);
+  writeFileSync(
+    join(studioDir, "05_Complete_18_Chapter_Book.txt"),
+    largeBookChapters,
+  );
 
   sh(
     [
@@ -395,7 +433,12 @@ async function showVisualLearnerHud(
   })()`);
 }
 
-async function spotlight(c: Cdp, selector: string, label: string, holdMs = 550) {
+async function spotlight(
+  c: Cdp,
+  selector: string,
+  label: string,
+  holdMs = 550,
+) {
   const r = await c.rect(selector, true);
   if (!r) return;
   await c.eval(`(() => {
@@ -469,10 +512,13 @@ const sceneSpecs: SceneSpec[] = [
     voice: "Zoey",
     badge: "01 / 12 · 1-CLICK AI SETUP, COMMAND PALETTE (⌘K) & 70% RAM GUARD",
     title: "1-CLICK LOCAL AI SETUP\n& 70% RAM SAFETY GUARD.",
-    label: "🦙 1-CLICK OLLAMA + PHONON INSTALL · ⌘K / Ctrl+K COMMAND PALETTE · KEEP_ALIVE: 0",
-    clickWay: "Click '🤖 Ollama AI' tab or 'Convert & process → Helper programs'",
+    label:
+      "🦙 1-CLICK OLLAMA + PHONON INSTALL · ⌘K / Ctrl+K COMMAND PALETTE · KEEP_ALIVE: 0",
+    clickWay:
+      "Click '🤖 Ollama AI' tab or 'Convert & process → Helper programs'",
     shortcutWay: "⌘K (Mac) / Ctrl+K (Win/Linux) → Type 'Ollama'",
-    extra: "Narrated by Natural Male Studio Voice · Both Mouse Click & Keyboard Shortcut Shown",
+    extra:
+      "Narrated by Natural Male Studio Voice · Both Mouse Click & Keyboard Shortcut Shown",
     bullets: [
       "🖱️ Click '🤖 Ollama AI' OR Press `⌘K` / `Ctrl+K` Command Palette",
       "⚡ 1-Click Auto-Install Ollama, Starter Models & Phonon Neural Voice",
@@ -483,12 +529,19 @@ const sceneSpecs: SceneSpec[] = [
       await installVisualLearnerDemoHarness(c);
       await showVisualLearnerHud(c, {
         stepBadge: "STEP 01 / 12",
-        title: "Open Ollama AI & 1-Click Setup (Both Ways: Mouse Click + Keyboard Shortcut)",
-        clickWay: "Click '🤖 Ollama AI' or 'Convert & process → Helper programs'",
+        title:
+          "Open Ollama AI & 1-Click Setup (Both Ways: Mouse Click + Keyboard Shortcut)",
+        clickWay:
+          "Click '🤖 Ollama AI' or 'Convert & process → Helper programs'",
         shortcutWay: "⌘K (Mac) / Ctrl+K (Win/Linux) → 'Open Ollama AI'",
       });
       await showKeycaps(c, ["⌘ / Ctrl", "K"], 650);
-      await spotlight(c, "#viewbar-palette", "⌨️ Press ⌘K / Ctrl+K or Click Command Palette", 450);
+      await spotlight(
+        c,
+        "#viewbar-palette",
+        "⌨️ Press ⌘K / Ctrl+K or Click Command Palette",
+        450,
+      );
       await c.click("#viewbar-palette", { pause: 550 }).catch(() => {});
       await sleep(450);
       await c.key("Escape", "Esc");
@@ -504,7 +557,9 @@ const sceneSpecs: SceneSpec[] = [
         if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
       })()`);
       await sleep(800);
-      await c.eval(`(() => { document.querySelectorAll('.modal-backdrop').forEach(b => b.remove()); })()`);
+      await c.eval(
+        `(() => { document.querySelectorAll('.modal-backdrop').forEach(b => b.remove()); })()`,
+      );
 
       await c.eval(`(async () => {
         const { openPower, setPowerExpanded } = await import('/ui/power.js');
@@ -512,19 +567,27 @@ const sceneSpecs: SceneSpec[] = [
         setPowerExpanded(true);
       })()`);
       await sleep(700);
-      await spotlight(c, '[data-ollama-select="assistant-model"]', "🦙 Ollama AI Studio Ready (70% RAM Guard Active)", 700);
+      await spotlight(
+        c,
+        '[data-ollama-select="assistant-model"]',
+        "🦙 Ollama AI Studio Ready (70% RAM Guard Active)",
+        700,
+      );
       await clearSpotlight(c);
     },
   },
   {
     id: "02_model_indicators_and_feature_gating",
     voice: "Zoey",
-    badge: "02 / 12 · PER-MODEL CAPABILITY INDICATORS & AUTOMATIC UI FEATURE GATING",
+    badge:
+      "02 / 12 · PER-MODEL CAPABILITY INDICATORS & AUTOMATIC UI FEATURE GATING",
     title: "PER-MODEL CAPABILITY BADGES\n& SMART UI FEATURE GATING.",
-    label: "🏷️ WHAT YOU CAN USE EACH MODEL FOR · HIDES UNSUPPORTED UI CONTROLS AUTOMATICALLY",
+    label:
+      "🏷️ WHAT YOU CAN USE EACH MODEL FOR · HIDES UNSUPPORTED UI CONTROLS AUTOMATICALLY",
     clickWay: "Click the 'Model:' dropdown in Ollama AI or Bionic AI",
     shortcutWay: "Tab to Model Selector → ↑ / ↓ Arrow Keys to Switch Models",
-    extra: "Each Model Shows What It Can Do · Unsupported Features Automatically Hidden",
+    extra:
+      "Each Model Shows What It Can Do · Unsupported Features Automatically Hidden",
     bullets: [
       "🏷️ Live Capability Badges: Chat, Thinking, Vision, Tools, Code, Embed, TTS",
       "📋 'What You Can Use This Model For' Summary Updates Instantly",
@@ -535,12 +598,23 @@ const sceneSpecs: SceneSpec[] = [
       await installVisualLearnerDemoHarness(c);
       await showVisualLearnerHud(c, {
         stepBadge: "STEP 02 / 12",
-        title: "Per-Model Capability Indicators & Smart UI Gating (Hides Unsupported Features)",
+        title:
+          "Per-Model Capability Indicators & Smart UI Gating (Hides Unsupported Features)",
         clickWay: "Click 'Model:' Dropdown → Choose Model",
         shortcutWay: "Tab to Model Picker → ↑ / ↓ Arrow Keys",
       });
-      await spotlight(c, '[data-ollama-select="assistant-model"]', "🖱️ Click Model Dropdown (or Tab + ↓ Arrow)", 500);
-      for (const modelName of ["qwen3.5:latest", "qwen2.5-coder:7b", "nomic-embed-text:latest", "gpt-oss:20b"]) {
+      await spotlight(
+        c,
+        '[data-ollama-select="assistant-model"]',
+        "🖱️ Click Model Dropdown (or Tab + ↓ Arrow)",
+        500,
+      );
+      for (const modelName of [
+        "qwen3.5:latest",
+        "qwen2.5-coder:7b",
+        "nomic-embed-text:latest",
+        "gpt-oss:20b",
+      ]) {
         await c.eval(`(() => {
           const sel = document.querySelector('[data-ollama-select="assistant-model"]');
           if (sel) {
@@ -561,12 +635,16 @@ const sceneSpecs: SceneSpec[] = [
   {
     id: "03_thinking_levels_and_toggles",
     voice: "Zoey",
-    badge: "03 / 12 · MULTI-LEVEL REASONING (GPT-OSS LOW/MED/HIGH) & THINKING TOGGLES",
+    badge:
+      "03 / 12 · MULTI-LEVEL REASONING (GPT-OSS LOW/MED/HIGH) & THINKING TOGGLES",
     title: "GPT-OSS LOW / MED / HIGH\n& THINKING ON / OFF TOGGLE.",
-    label: "🧠 GPT-OSS (LOW / MEDIUM / HIGH) · QWEN 3.5 (ON / OFF) · DEEPSEEK-R1 (ALWAYS-ON)",
-    clickWay: "Click 'Low / Medium / High' or 'On / Off' pills in the Thinking Bar",
+    label:
+      "🧠 GPT-OSS (LOW / MEDIUM / HIGH) · QWEN 3.5 (ON / OFF) · DEEPSEEK-R1 (ALWAYS-ON)",
+    clickWay:
+      "Click 'Low / Medium / High' or 'On / Off' pills in the Thinking Bar",
     shortcutWay: "Tab to Thinking Pill → Press Space or Enter to Toggle",
-    extra: "Full Parity with Ollama & LM Studio Reasoning Effort + Token Budget Control",
+    extra:
+      "Full Parity with Ollama & LM Studio Reasoning Effort + Token Budget Control",
     bullets: [
       "🧠 `gpt-oss`: Choose `Low`, `Medium`, or `High` Reasoning Effort",
       "🔀 `qwen3.5` / `gemma4` / `lfm3`: Toggle Thinking `On` or `Off`",
@@ -577,8 +655,10 @@ const sceneSpecs: SceneSpec[] = [
       await installVisualLearnerDemoHarness(c);
       await showVisualLearnerHud(c, {
         stepBadge: "STEP 03 / 12",
-        title: "Adaptive Reasoning Controls: Low / Medium / High Levels vs On / Off Toggle",
-        clickWay: "Click 'Low', 'Medium', 'High' or 'On / Off' in the Reasoning Bar",
+        title:
+          "Adaptive Reasoning Controls: Low / Medium / High Levels vs On / Off Toggle",
+        clickWay:
+          "Click 'Low', 'Medium', 'High' or 'On / Off' in the Reasoning Bar",
         shortcutWay: "Tab to Thinking Pill → Space / Enter",
       });
       await c.eval(`(() => {
@@ -587,17 +667,33 @@ const sceneSpecs: SceneSpec[] = [
       })()`);
       await sleep(300);
       for (const lvl of ["low", "medium", "high"]) {
-        await spotlight(c, `[data-thinking-level="${lvl}"]`, `🧠 gpt-oss Thinking Effort: ${lvl.toUpperCase()}`, 350);
-        await c.click(`[data-thinking-level="${lvl}"]`, { pause: 420 }).catch(() => {});
+        await spotlight(
+          c,
+          `[data-thinking-level="${lvl}"]`,
+          `🧠 gpt-oss Thinking Effort: ${lvl.toUpperCase()}`,
+          350,
+        );
+        await c
+          .click(`[data-thinking-level="${lvl}"]`, { pause: 420 })
+          .catch(() => {});
       }
       await c.eval(`(() => {
         const sel = document.querySelector('[data-ollama-select="assistant-model"]');
         if (sel) { sel.value = "qwen3.5:latest"; sel.dispatchEvent(new Event('change', { bubbles: true })); }
       })()`);
       await sleep(350);
-      await spotlight(c, ".ollama-thinking-control-bar", "🔀 Qwen 3.5: Toggle Thinking ON or OFF + Token Budget", 500);
-      await c.click('[data-thinking-level="off"]', { pause: 400 }).catch(() => {});
-      await c.click('[data-thinking-level="on"]', { pause: 450 }).catch(() => {});
+      await spotlight(
+        c,
+        ".ollama-thinking-control-bar",
+        "🔀 Qwen 3.5: Toggle Thinking ON or OFF + Token Budget",
+        500,
+      );
+      await c
+        .click('[data-thinking-level="off"]', { pause: 400 })
+        .catch(() => {});
+      await c
+        .click('[data-thinking-level="on"]', { pause: 450 })
+        .catch(() => {});
       await c.eval(`(() => {
         const sel = document.querySelector('[data-ollama-select="assistant-model"]');
         if (sel) { sel.value = "deepseek-r1:14b"; sel.dispatchEvent(new Event('change', { bubbles: true })); }
@@ -609,12 +705,17 @@ const sceneSpecs: SceneSpec[] = [
   {
     id: "04_ask_stream_and_stop_generation",
     voice: "Zoey",
-    badge: "04 / 12 · ASK AUTO-ROUTER, LIVE STREAMING & ⏹ STOP GENERATION ANYTIME",
+    badge:
+      "04 / 12 · ASK AUTO-ROUTER, LIVE STREAMING & ⏹ STOP GENERATION ANYTIME",
     title: "STREAM LIVE TOKENS &\n⏹ STOP GENERATION ANYTIME.",
-    label: "🚀 ASK AUTO-ROUTER (⌘ENTER) · 📡 STREAM LIVE TOKENS · ⏹ STOP GENERATION (ESC)",
-    clickWay: "Click '🚀 Ask' or '📡 Stream Live Tokens' → Click Red '⏹ Stop Generation'",
-    shortcutWay: "⌘Enter / Ctrl+Enter to Send · Esc to Stop Generation Immediately",
-    extra: "Preserves Partial Output & Thinking Trace When Stopped Mid-Generation",
+    label:
+      "🚀 ASK AUTO-ROUTER (⌘ENTER) · 📡 STREAM LIVE TOKENS · ⏹ STOP GENERATION (ESC)",
+    clickWay:
+      "Click '🚀 Ask' or '📡 Stream Live Tokens' → Click Red '⏹ Stop Generation'",
+    shortcutWay:
+      "⌘Enter / Ctrl+Enter to Send · Esc to Stop Generation Immediately",
+    extra:
+      "Preserves Partial Output & Thinking Trace When Stopped Mid-Generation",
     bullets: [
       "🚀 Click `🚀 Ask` / `📡 Stream Live Tokens` or Press `⌘Enter` (`Ctrl+Enter`)",
       "🧠 Collapsible Chain-of-Thought Thinking Trace + Syntax-Highlighted Code",
@@ -626,7 +727,8 @@ const sceneSpecs: SceneSpec[] = [
       await showVisualLearnerHud(c, {
         stepBadge: "STEP 04 / 12",
         title: "Ask / Stream Live Tokens & Stop LLM Generation Anytime",
-        clickWay: "Click '🚀 Ask' / '📡 Stream Live Tokens' → Click Red '⏹ Stop Generation'",
+        clickWay:
+          "Click '🚀 Ask' / '📡 Stream Live Tokens' → Click Red '⏹ Stop Generation'",
         shortcutWay: "⌘Enter / Ctrl+Enter to Send · Esc to Stop",
       });
       await c.eval(`(() => {
@@ -640,16 +742,43 @@ const sceneSpecs: SceneSpec[] = [
         }
       })()`);
       // 0.0s - 8.5s: Narrator explains clicking Ask or Stream Live Tokens, or pressing Cmd/Ctrl+Enter
-      await spotlight(c, '[data-ollama-action="send-auto-route"]', "🚀 Click 'Send & Auto-Route Request' (or Press ⌘Enter / Ctrl+Enter)", 1800);
+      await spotlight(
+        c,
+        '[data-ollama-action="send-auto-route"]',
+        "🚀 Click 'Send & Auto-Route Request' (or Press ⌘Enter / Ctrl+Enter)",
+        1800,
+      );
       await showKeycaps(c, ["⌘ / Ctrl", "Enter"], 1400);
-      await spotlight(c, '[data-ollama-action="stream-live-tokens"]', "📡 Or Click 'Stream Live Tokens (/api/chat)'", 2200);
+      await spotlight(
+        c,
+        '[data-ollama-action="stream-live-tokens"]',
+        "📡 Or Click 'Stream Live Tokens (/api/chat)'",
+        2200,
+      );
       await waitUntilSceneSec(c, 7.2);
-      await spotlight(c, '[data-ollama-action="send-auto-route"]', "🚀 Sending Prompt to gpt-oss:20b...", 400);
-      await c.click('[data-ollama-action="send-auto-route"]', { pause: 900 }).catch(() => {});
+      await spotlight(
+        c,
+        '[data-ollama-action="send-auto-route"]',
+        "🚀 Sending Prompt to gpt-oss:20b...",
+        400,
+      );
+      await c
+        .click('[data-ollama-action="send-auto-route"]', { pause: 900 })
+        .catch(() => {});
 
       // 8.5s - 14.8s: Narrator explains collapsible thinking trace and formatted response rendering live
-      await spotlight(c, ".ollama-thinking-summary", "🧠 Collapsible Step-by-Step Deep Reasoning Trace", 2600);
-      await spotlight(c, ".bionic-md-viewer", "✨ Formatted Markdown Summary Table & TypeScript Code", 2600);
+      await spotlight(
+        c,
+        ".ollama-thinking-summary",
+        "🧠 Collapsible Step-by-Step Deep Reasoning Trace",
+        2600,
+      );
+      await spotlight(
+        c,
+        ".bionic-md-viewer",
+        "✨ Formatted Markdown Summary Table & TypeScript Code",
+        2600,
+      );
       await waitUntilSceneSec(c, 14.8);
 
       // 14.8s - 24.5s: Narrator says: "And if a model is generating a long answer and you want to stop it,
@@ -671,12 +800,23 @@ const sceneSpecs: SceneSpec[] = [
           el.style.transform = "scale(1.10)";
         });
       })()`);
-      const stopSelector = '.ollama-assistant-actions-row [data-ollama-action="stop-generation"]';
-      await spotlight(c, stopSelector, "⏹ CLICK BRIGHT RED 'STOP GENERATION' BUTTON (OR PRESS ESC)!", 1200);
+      const stopSelector =
+        '.ollama-assistant-actions-row [data-ollama-action="stop-generation"]';
+      await spotlight(
+        c,
+        stopSelector,
+        "⏹ CLICK BRIGHT RED 'STOP GENERATION' BUTTON (OR PRESS ESC)!",
+        1200,
+      );
       await c.hover(stopSelector, 700).catch(() => {});
       await waitUntilSceneSec(c, 20.5);
       await showKeycaps(c, ["Esc"], 1400);
-      await spotlight(c, stopSelector, "⏹ Clicking Red 'Stop Generation' Button Now!", 1200);
+      await spotlight(
+        c,
+        stopSelector,
+        "⏹ Clicking Red 'Stop Generation' Button Now!",
+        1200,
+      );
       await waitUntilSceneSec(c, 24.0);
       await c.click(stopSelector, { pause: 700 }).catch(() => {});
       await c.eval(`(() => {
@@ -699,12 +839,16 @@ const sceneSpecs: SceneSpec[] = [
   {
     id: "05_expand_output_fullscreen_compact",
     voice: "Zoey",
-    badge: "05 / 12 · ⤢ EXPAND OUTPUT, ⛶ FULLSCREEN READER & 🔼 COMPACT CONTROLS",
+    badge:
+      "05 / 12 · ⤢ EXPAND OUTPUT, ⛶ FULLSCREEN READER & 🔼 COMPACT CONTROLS",
     title: "⤢ EXPAND OUTPUT VIEW\n& ⛶ FULLSCREEN READER.",
-    label: "⤢ EXPAND OUTPUT (1100PX+) · ⛶ FULLSCREEN MODAL (ESC TO EXIT) · 🔼 COMPACT CONTROLS",
-    clickWay: "Click '⤢ Expand Output', '⛶ Fullscreen', or '🔼 Compact Controls'",
+    label:
+      "⤢ EXPAND OUTPUT (1100PX+) · ⛶ FULLSCREEN MODAL (ESC TO EXIT) · 🔼 COMPACT CONTROLS",
+    clickWay:
+      "Click '⤢ Expand Output', '⛶ Fullscreen', or '🔼 Compact Controls'",
     shortcutWay: "Press Esc Anytime to Exit Fullscreen Reader Mode",
-    extra: "Auto-Scrolls Output Into View + Font Size A- / A+ + Copy Answer / Copy Thinking",
+    extra:
+      "Auto-Scrolls Output Into View + Font Size A- / A+ + Copy Answer / Copy Thinking",
     bullets: [
       "⤢ `⤢ Expand Output`: Enlarges Output Console to 1100px+ & Auto-Scrolls",
       "🔼 `🔼 Compact Controls`: Collapses Prompt Box so Output Fills the View",
@@ -721,21 +865,48 @@ const sceneSpecs: SceneSpec[] = [
       await sleep(250);
       await showVisualLearnerHud(c, {
         stepBadge: "STEP 05 / 12",
-        title: "See More LLM Output: ⤢ Expand Output, 🔼 Compact Controls & ⛶ Fullscreen",
-        clickWay: "Click '⤢ Expand Output' · '🔼 Compact Controls' · '⛶ Fullscreen'",
+        title:
+          "See More LLM Output: ⤢ Expand Output, 🔼 Compact Controls & ⛶ Fullscreen",
+        clickWay:
+          "Click '⤢ Expand Output' · '🔼 Compact Controls' · '⛶ Fullscreen'",
         shortcutWay: "Press Esc to Exit Fullscreen Reader Mode",
       });
-      await spotlight(c, '[data-ollama-action="toggle-expand-output"]', "⤢ Click 'Expand Output' to Enlarge & Scroll to Answer", 950);
+      await spotlight(
+        c,
+        '[data-ollama-action="toggle-expand-output"]',
+        "⤢ Click 'Expand Output' to Enlarge & Scroll to Answer",
+        950,
+      );
       await clearSpotlight(c);
-      await c.click('[data-ollama-action="toggle-expand-output"]', { pause: 1100 }).catch(() => {});
+      await c
+        .click('[data-ollama-action="toggle-expand-output"]', { pause: 1100 })
+        .catch(() => {});
 
-      await spotlight(c, '[data-ollama-action="toggle-compact-controls"]', "🔼 Click 'Compact Controls' to Hide Input Box", 950);
+      await spotlight(
+        c,
+        '[data-ollama-action="toggle-compact-controls"]',
+        "🔼 Click 'Compact Controls' to Hide Input Box",
+        950,
+      );
       await clearSpotlight(c);
-      await c.click('[data-ollama-action="toggle-compact-controls"]', { pause: 1100 }).catch(() => {});
+      await c
+        .click('[data-ollama-action="toggle-compact-controls"]', {
+          pause: 1100,
+        })
+        .catch(() => {});
 
-      await spotlight(c, '[data-ollama-action="toggle-fullscreen-output"]', "⛶ Click 'Fullscreen' for 100% Viewport Reader", 950);
+      await spotlight(
+        c,
+        '[data-ollama-action="toggle-fullscreen-output"]',
+        "⛶ Click 'Fullscreen' for 100% Viewport Reader",
+        950,
+      );
       await clearSpotlight(c);
-      await c.click('[data-ollama-action="toggle-fullscreen-output"]', { pause: 1800 }).catch(() => {});
+      await c
+        .click('[data-ollama-action="toggle-fullscreen-output"]', {
+          pause: 1800,
+        })
+        .catch(() => {});
 
       await showKeycaps(c, ["Esc"], 900);
       await c.eval(`(() => {
@@ -751,12 +922,15 @@ const sceneSpecs: SceneSpec[] = [
   {
     id: "06_sampling_systemone_semantic_search",
     voice: "Zoey",
-    badge: "06 / 12 · ADVANCED SAMPLING, SYSTEMONE (/V1/SYSTEMONE) & MEANING SEARCH",
+    badge:
+      "06 / 12 · ADVANCED SAMPLING, SYSTEMONE (/V1/SYSTEMONE) & MEANING SEARCH",
     title: "SAMPLING PARAMETERS,\nSYSTEMONE & EMBED SEARCH.",
-    label: "⚙️ 10 SAMPLING CONTROLS (4K–128K CTX) · ⚡ SYSTEMONE DECISIONS · 🔎 MEANING SEARCH",
+    label:
+      "⚙️ 10 SAMPLING CONTROLS (4K–128K CTX) · ⚡ SYSTEMONE DECISIONS · 🔎 MEANING SEARCH",
     clickWay: "Click '⚙️ Sampling & Runtime Parameters' or Mode Tabs 2 & 4",
     shortcutWay: "Tab / Enter to Toggle Parameters · ⌘K → 'Semantic Search'",
-    extra: "Fine-Tune num_ctx, Temperature, Top-P, Top-K, Min-P, Seed & Keep-Alive",
+    extra:
+      "Fine-Tune num_ctx, Temperature, Top-P, Top-K, Min-P, Seed & Keep-Alive",
     bullets: [
       "⚙️ 10 Runtime Controls: `num_ctx` (4K–128K), Temp, Top-P/K, Min-P, Seed",
       "⚡ Tab 2 `SystemOne (/v1/systemone)`: Sub-Second JSON Routing & Triage",
@@ -773,17 +947,26 @@ const sceneSpecs: SceneSpec[] = [
       })()`);
       await showVisualLearnerHud(c, {
         stepBadge: "STEP 06 / 12",
-        title: "Advanced Sampling Parameters (4K–128K Context), SystemOne & Semantic Search",
-        clickWay: "Click '⚙️ Sampling & Runtime Parameters' · Click Mode Tabs 2 & 4",
+        title:
+          "Advanced Sampling Parameters (4K–128K Context), SystemOne & Semantic Search",
+        clickWay:
+          "Click '⚙️ Sampling & Runtime Parameters' · Click Mode Tabs 2 & 4",
         shortcutWay: "⌘K / Ctrl+K → 'Ollama AI' · Tab + Space",
       });
       await c.eval(`(() => {
         const sBtn = document.querySelector('[data-ollama-action="toggle-sampling"]');
         if (sBtn) sBtn.scrollIntoView({ block: 'center', behavior: 'instant' });
       })()`);
-      await spotlight(c, '[data-ollama-action="toggle-sampling"]', "⚙️ Click 'Sampling & Runtime Parameters' (10 Engine Knobs)", 750);
+      await spotlight(
+        c,
+        '[data-ollama-action="toggle-sampling"]',
+        "⚙️ Click 'Sampling & Runtime Parameters' (10 Engine Knobs)",
+        750,
+      );
       await clearSpotlight(c);
-      await c.click('[data-ollama-action="toggle-sampling"]', { pause: 1200 }).catch(() => {});
+      await c
+        .click('[data-ollama-action="toggle-sampling"]', { pause: 1200 })
+        .catch(() => {});
 
       await c.eval(`(() => {
         const btn2 = Array.from(document.querySelectorAll('.ollama-mode-btn')).find(b => b.textContent && b.textContent.includes('2. Decision'));
@@ -817,12 +1000,15 @@ const sceneSpecs: SceneSpec[] = [
   {
     id: "07_lm_studio_bionic_synthesis_skills",
     voice: "Zoey",
-    badge: "07 / 12 · LM STUDIO BIONIC (⌥B / ALT+B), MULTI-FILE SYNTHESIS & SKILLS",
+    badge:
+      "07 / 12 · LM STUDIO BIONIC (⌥B / ALT+B), MULTI-FILE SYNTHESIS & SKILLS",
     title: "LM STUDIO BIONIC (⌥B),\nSYNTHESIS & AGENT SKILLS.",
-    label: "🧬 SHORTCUT ⌥B / ALT+B · SPECULATIVE DECODING · MULTI-FILE SYNTHESIS · SKILL.MD",
+    label:
+      "🧬 SHORTCUT ⌥B / ALT+B · SPECULATIVE DECODING · MULTI-FILE SYNTHESIS · SKILL.MD",
     clickWay: "Click '🧬 Bionic AI' in Top Ribbon or Power Tools Bar",
     shortcutWay: "Press ⌥B (Mac) / Alt+B (Windows & Linux) From Anywhere",
-    extra: "Draft-Model Speculative Decoding + GPU Offload + Flash Attention + KV Quantization",
+    extra:
+      "Draft-Model Speculative Decoding + GPU Offload + Flash Attention + KV Quantization",
     bullets: [
       "⌨️ Press `⌥B` (`Alt+B`) or Click `🧬 Bionic AI` in the Top Ribbon",
       "⚡ Speculative Decoding (`draftModel`), Metal GPU Offload & KV Cache Quant",
@@ -833,8 +1019,10 @@ const sceneSpecs: SceneSpec[] = [
       await installVisualLearnerDemoHarness(c);
       await showVisualLearnerHud(c, {
         stepBadge: "STEP 07 / 12",
-        title: "LM Studio Bionic Studio, Speculative Decoding, Multi-File Synthesis & Agent Skills",
-        clickWay: "Click '🧬 Bionic AI' Ribbon Button → Click '⚙️ Runtime & Sampling' or Subtabs",
+        title:
+          "LM Studio Bionic Studio, Speculative Decoding, Multi-File Synthesis & Agent Skills",
+        clickWay:
+          "Click '🧬 Bionic AI' Ribbon Button → Click '⚙️ Runtime & Sampling' or Subtabs",
         shortcutWay: "Press ⌥B (Mac) / Alt+B (Win/Linux)",
       });
       await showKeycaps(c, ["⌥ / Alt", "B"], 750);
@@ -849,12 +1037,21 @@ const sceneSpecs: SceneSpec[] = [
         setPowerExpanded(true);
       })()`);
       await sleep(950);
-      await spotlight(c, "[data-bionic-model-capabilities-card]", "🧬 Bionic Per-Model Indicators & Thinking Levels", 900);
+      await spotlight(
+        c,
+        "[data-bionic-model-capabilities-card]",
+        "🧬 Bionic Per-Model Indicators & Thinking Levels",
+        900,
+      );
       await clearSpotlight(c);
-      await c.click('[data-bionic-action="toggle-sampling"]', { pause: 950 }).catch(() => {});
+      await c
+        .click('[data-bionic-action="toggle-sampling"]', { pause: 950 })
+        .catch(() => {});
 
       for (const tabId of ["skills", "models", "assistant"]) {
-        await c.click(`[data-bionic-subtab="${tabId}"]`, { pause: 850 }).catch(() => {});
+        await c
+          .click(`[data-bionic-subtab="${tabId}"]`, { pause: 850 })
+          .catch(() => {});
       }
       await c.eval(`(() => {
         const synthBtn = Array.from(document.querySelectorAll('button')).find(b => b.textContent && b.textContent.includes('Synthesize Selected'));
@@ -872,12 +1069,16 @@ const sceneSpecs: SceneSpec[] = [
   {
     id: "08_code_editor_ai_chat_and_apply",
     voice: "Zoey",
-    badge: "08 / 12 · BUILT-IN CODE EDITOR AI CHAT DRAWER & 1-CLICK APPLY TO EDITOR",
+    badge:
+      "08 / 12 · BUILT-IN CODE EDITOR AI CHAT DRAWER & 1-CLICK APPLY TO EDITOR",
     title: "CODE EDITOR AI CHAT\n& 1-CLICK APPLY CODE.",
-    label: "💻 DOUBLE-CLICK CODE FILE → CLICK '🤖 AI CHAT' → THINKING & 1-CLICK APPLY",
-    clickWay: "Open File in Code Studio → Click '🤖 AI Chat' Button in Editor Toolbar",
+    label:
+      "💻 DOUBLE-CLICK CODE FILE → CLICK '🤖 AI CHAT' → THINKING & 1-CLICK APPLY",
+    clickWay:
+      "Open File in Code Studio → Click '🤖 AI Chat' Button in Editor Toolbar",
     shortcutWay: "⌘K / Ctrl+K → 'Code Studio' · ⌘S / Ctrl+S to Save File",
-    extra: "Side-by-Side Code Explanation, Refactoring, Capability Badges & Stop/Expand Controls",
+    extra:
+      "Side-by-Side Code Explanation, Refactoring, Capability Badges & Stop/Expand Controls",
     bullets: [
       "💻 Open Any Source File in Built-In Code Studio (`🤖 AI Chat` Drawer)",
       "🏷️ Full Model Capability Badges, Thinking Levels (`Low/Med/High`) & `⏹ Stop`",
@@ -888,7 +1089,8 @@ const sceneSpecs: SceneSpec[] = [
       await installVisualLearnerDemoHarness(c);
       await showVisualLearnerHud(c, {
         stepBadge: "STEP 08 / 12",
-        title: "Built-In Code Studio AI Chat Drawer: Refactor, Explain & Apply Code",
+        title:
+          "Built-In Code Studio AI Chat Drawer: Refactor, Explain & Apply Code",
         clickWay: "Open Code File → Click '🤖 AI Chat' in Code Editor Toolbar",
         shortcutWay: "⌘K / Ctrl+K → 'Code Studio' · ⌘S / Ctrl+S to Save",
       });
@@ -910,7 +1112,12 @@ const sceneSpecs: SceneSpec[] = [
         if (explainBtn) explainBtn.click();
       })()`);
       await sleep(950);
-      await spotlight(c, ".code-ai-drawer", "💻 Side-by-Side AI Coding Assistant + 1-Click Apply to Editor", 1100);
+      await spotlight(
+        c,
+        ".code-ai-drawer",
+        "💻 Side-by-Side AI Coding Assistant + 1-Click Apply to Editor",
+        1100,
+      );
       await showKeycaps(c, ["⌘ / Ctrl", "S"], 800);
       await clearSpotlight(c);
     },
@@ -918,12 +1125,16 @@ const sceneSpecs: SceneSpec[] = [
   {
     id: "09_phonon_voice_reader_audiobooks_video",
     voice: "Zoey",
-    badge: "09 / 12 · PHONON VOICE READER (--VOICE ZOEY), KARAOKE & 9 AUDIO / 4 VIDEO FORMATS",
+    badge:
+      "09 / 12 · PHONON VOICE READER (--VOICE ZOEY), KARAOKE & 9 AUDIO / 4 VIDEO FORMATS",
     title: "PHONON VOICE READER:\n38 VOICES, AUDIO & VIDEO.",
-    label: "🗣️ --VOICE ZOEY · WAVEFORM TELEPROMPTER · CHAPTERED AUDIOBOOKS · MP4 READ-ALONG",
+    label:
+      "🗣️ --VOICE ZOEY · WAVEFORM TELEPROMPTER · CHAPTERED AUDIOBOOKS · MP4 READ-ALONG",
     clickWay: "Click '🗣️ Speak Reply' or Open '🔊 Voice Reader' Studio Tab",
-    shortcutWay: "Right-Click Any File → 'Read out loud in Voice Reader' · ⌘K → 'Voice Reader'",
-    extra: "25+ Document Formats → 24 kHz Neural Speech, Chaptered .M3U8 Audiobooks & 1080p MP4",
+    shortcutWay:
+      "Right-Click Any File → 'Read out loud in Voice Reader' · ⌘K → 'Voice Reader'",
+    extra:
+      "25+ Document Formats → 24 kHz Neural Speech, Chaptered .M3U8 Audiobooks & 1080p MP4",
     bullets: [
       "🗣️ 38 Neural Voices (`Zoey` Default) + Zero-Shot Voice Cloning (`F5-TTS-MLX`)",
       "📖 Waveform-Synced Follow-Along Karaoke Teleprompter (4 Cinema Themes)",
@@ -934,8 +1145,10 @@ const sceneSpecs: SceneSpec[] = [
       await installVisualLearnerDemoHarness(c);
       await showVisualLearnerHud(c, {
         stepBadge: "STEP 09 / 12",
-        title: "Phonon Neural Voice Reader (`--voice Zoey`), Karaoke Teleprompter & Audio/Video Export",
-        clickWay: "Click '🔊 Voice Reader' Tab → '📥 Use Selected File' → '🔊 Read Out Loud'",
+        title:
+          "Phonon Neural Voice Reader (`--voice Zoey`), Karaoke Teleprompter & Audio/Video Export",
+        clickWay:
+          "Click '🔊 Voice Reader' Tab → '📥 Use Selected File' → '🔊 Read Out Loud'",
         shortcutWay: "Right-Click File → 'Read out loud in Voice Reader'",
       });
       await c.eval(`(async () => {
@@ -944,7 +1157,12 @@ const sceneSpecs: SceneSpec[] = [
         setPowerExpanded(true);
       })()`);
       await sleep(850);
-      await spotlight(c, "#phonon-voice-select", "🗣️ 38 Expressive Neural Voices (Zoey Selected)", 800);
+      await spotlight(
+        c,
+        "#phonon-voice-select",
+        "🗣️ 38 Expressive Neural Voices (Zoey Selected)",
+        800,
+      );
       await clearSpotlight(c);
       await c.eval(`(() => {
         const tp = document.querySelector('.phonon-teleprompter-box');
@@ -970,12 +1188,17 @@ const sceneSpecs: SceneSpec[] = [
   {
     id: "10_sticky_notes_and_2file_diff_viewer",
     voice: "Zoey",
-    badge: "10 / 12 · STICKY NOTES (📝) & UNIVERSAL 2-FILE TEXT & CODE DIFF VIEWER",
+    badge:
+      "10 / 12 · STICKY NOTES (📝) & UNIVERSAL 2-FILE TEXT & CODE DIFF VIEWER",
     title: "STICKY NOTES (📝) &\n2-FILE CODE DIFF VIEWER.",
-    label: "📝 FILE ANNOTATIONS & FILTER CHIP · 🔀 UNIFIED & SPLIT SIDE-BY-SIDE DIFF + .PATCH",
-    clickWay: "Right-Click File → '📝 Edit Note…' · Select 2 Files → Click '🔀 Diff Text'",
-    shortcutWay: "⌘K / Ctrl+K → 'Edit Sticky Note' or 'Compare / Diff Two Files'",
-    extra: "Filter with '📝 Annotated' Pill or 'is:noted' / 'note:' Query + 1-Click Save .patch",
+    label:
+      "📝 FILE ANNOTATIONS & FILTER CHIP · 🔀 UNIFIED & SPLIT SIDE-BY-SIDE DIFF + .PATCH",
+    clickWay:
+      "Right-Click File → '📝 Edit Note…' · Select 2 Files → Click '🔀 Diff Text'",
+    shortcutWay:
+      "⌘K / Ctrl+K → 'Edit Sticky Note' or 'Compare / Diff Two Files'",
+    extra:
+      "Filter with '📝 Annotated' Pill or 'is:noted' / 'note:' Query + 1-Click Save .patch",
     bullets: [
       "📝 Attach Sticky Notes to Any File/Folder (`📝` Badge + Details Card)",
       "🔎 Filter Instantly with the `📝 Annotated` Chip or `note:keyword`",
@@ -986,8 +1209,10 @@ const sceneSpecs: SceneSpec[] = [
       await installVisualLearnerDemoHarness(c);
       await showVisualLearnerHud(c, {
         stepBadge: "STEP 10 / 12",
-        title: "Sticky Notes & File Annotations (`📝`) + Universal 2-File Text & Code Diff Viewer",
-        clickWay: "Right-Click → '📝 Edit Note…' · Select 2 Files → Click '🔀 Diff Text'",
+        title:
+          "Sticky Notes & File Annotations (`📝`) + Universal 2-File Text & Code Diff Viewer",
+        clickWay:
+          "Right-Click → '📝 Edit Note…' · Select 2 Files → Click '🔀 Diff Text'",
         shortcutWay: "⌘K / Ctrl+K → 'Edit Sticky Note' or 'Compare / Diff'",
       });
       await c.eval(`(async () => {
@@ -1007,7 +1232,12 @@ const sceneSpecs: SceneSpec[] = [
         }
       })()`);
       await sleep(950);
-      await spotlight(c, "[data-note-badge]", "📝 Sticky Note Badge + Hover Tooltip on File Row", 950);
+      await spotlight(
+        c,
+        "[data-note-badge]",
+        "📝 Sticky Note Badge + Hover Tooltip on File Row",
+        950,
+      );
       await clearSpotlight(c);
 
       await c.eval(`(async () => {
@@ -1024,21 +1254,32 @@ const sceneSpecs: SceneSpec[] = [
         }
       })()`);
       await sleep(950);
-      await spotlight(c, '[data-diff-mode="split"]', "🔀 Switch Between Unified & Split Side-by-Side Diff", 750);
+      await spotlight(
+        c,
+        '[data-diff-mode="split"]',
+        "🔀 Switch Between Unified & Split Side-by-Side Diff",
+        750,
+      );
       await clearSpotlight(c);
-      await c.click('[data-diff-mode="split"]', { pause: 1400 }).catch(() => {});
+      await c
+        .click('[data-diff-mode="split"]', { pause: 1400 })
+        .catch(() => {});
       await clearSpotlight(c);
     },
   },
   {
     id: "11_bulk_rename_checksums_folder_inventory",
     voice: "Zoey",
-    badge: "11 / 12 · POWER BULK RENAME 2.0 (F2), SHA-256 CHECKSUMS & FOLDER INVENTORY",
+    badge:
+      "11 / 12 · POWER BULK RENAME 2.0 (F2), SHA-256 CHECKSUMS & FOLDER INVENTORY",
     title: "BULK RENAME 2.0 (F2),\nSHA-256 & TREE EXPORT.",
-    label: "✏️ SELECT MULTIPLE + PRESS F2 (REGEX & 6 CASE STYLES) · 🔐 SHA256SUMS · 📋 TREE EXPORT",
-    clickWay: "Select Files → Click '✏️ Bulk Rename' / '🔐 SHA-256' / '📋 Export Folder Inventory'",
+    label:
+      "✏️ SELECT MULTIPLE + PRESS F2 (REGEX & 6 CASE STYLES) · 🔐 SHA256SUMS · 📋 TREE EXPORT",
+    clickWay:
+      "Select Files → Click '✏️ Bulk Rename' / '🔐 SHA-256' / '📋 Export Folder Inventory'",
     shortcutWay: "Select Multiple Files + Press F2 for Power Bulk Rename 2.0",
-    extra: "Regex Capture Groups ($1, $2), kebab/snake/camel/Pascal Case, SHA256 Verify & ASCII/MD/CSV/JSON",
+    extra:
+      "Regex Capture Groups ($1, $2), kebab/snake/camel/Pascal Case, SHA256 Verify & ASCII/MD/CSV/JSON",
     bullets: [
       "⌨️ Select Multiple Files + Press `F2` (or Click `✏️ Bulk Rename`)",
       "🔤 Regex `$1`/`$2`, 6 Case Styles (`kebab`, `snake`, `camel`, `Pascal`) & Tokens",
@@ -1047,11 +1288,15 @@ const sceneSpecs: SceneSpec[] = [
     say: "Select multiple files and press F2—or click Bulk Rename in the selection bar—to open Power Bulk Rename 2.0, with Regex capture groups, six naming case styles like kebab-case, snake_case, and camelCase, plus date and folder tokens with a live diff preview. You can also generate and verify SHA-256 checksum manifests in one click, or export a complete Folder Inventory as an ASCII directory tree, Markdown table, CSV, or JSON.",
     record: async (c) => {
       await installVisualLearnerDemoHarness(c);
-      await c.eval(`(() => { document.querySelectorAll('.modal-backdrop').forEach(b => b.remove()); })()`);
+      await c.eval(
+        `(() => { document.querySelectorAll('.modal-backdrop').forEach(b => b.remove()); })()`,
+      );
       await showVisualLearnerHud(c, {
         stepBadge: "STEP 11 / 12",
-        title: "Power Bulk Rename 2.0 (`F2`), SHA-256 Checksum Verifier & Folder Inventory Exporter",
-        clickWay: "Select Files → Click '✏️ Bulk Rename' · '🔐 SHA-256' · '📋 Export Inventory'",
+        title:
+          "Power Bulk Rename 2.0 (`F2`), SHA-256 Checksum Verifier & Folder Inventory Exporter",
+        clickWay:
+          "Select Files → Click '✏️ Bulk Rename' · '🔐 SHA-256' · '📋 Export Inventory'",
         shortcutWay: "Select Files + Press F2 · ⌘K → 'Export Folder Inventory'",
       });
       await showKeycaps(c, ["F2"], 700);
@@ -1066,7 +1311,9 @@ const sceneSpecs: SceneSpec[] = [
         }
       })()`);
       await sleep(1300);
-      await c.eval(`(() => { document.querySelectorAll('.modal-backdrop').forEach(b => b.remove()); })()`);
+      await c.eval(
+        `(() => { document.querySelectorAll('.modal-backdrop').forEach(b => b.remove()); })()`,
+      );
 
       await c.eval(`(async () => {
         const { state } = await import('/ui/state.js');
@@ -1078,7 +1325,9 @@ const sceneSpecs: SceneSpec[] = [
         }
       })()`);
       await sleep(1300);
-      await c.eval(`(() => { document.querySelectorAll('.modal-backdrop').forEach(b => b.remove()); })()`);
+      await c.eval(
+        `(() => { document.querySelectorAll('.modal-backdrop').forEach(b => b.remove()); })()`,
+      );
 
       await c.eval(`(async () => {
         const { currentPath } = await import('/ui/state.js');
@@ -1092,12 +1341,17 @@ const sceneSpecs: SceneSpec[] = [
   {
     id: "12_quicklook_inspector_find_tidy",
     voice: "Zoey",
-    badge: "12 / 12 · QUICK LOOK (SPACEBAR) IMAGE INSPECTOR, FIND (⌘F) & SMART TIDY",
+    badge:
+      "12 / 12 · QUICK LOOK (SPACEBAR) IMAGE INSPECTOR, FIND (⌘F) & SMART TIDY",
     title: "QUICK LOOK INSPECTOR,\nIN-PREVIEW FIND & TIDY.",
-    label: "👁️ SPACEBAR QUICK LOOK · IMAGE ZOOM/ROTATE/FLIP · ⌘F IN-PREVIEW FIND · 🧹 SMART TIDY",
-    clickWay: "Click Quick Look (👁️) → Use Image Inspector Bar or Find Bar · Right-Click → Smart Tidy",
-    shortcutWay: "Spacebar to Preview · + / - / R / H / V / 0 for Images · ⌘F / Ctrl+F to Find",
-    extra: "Reading Progress Memory (🔖 Resumed) + Package Inspector (📦) + Smart Folder Tidy with ⌘Z Undo",
+    label:
+      "👁️ SPACEBAR QUICK LOOK · IMAGE ZOOM/ROTATE/FLIP · ⌘F IN-PREVIEW FIND · 🧹 SMART TIDY",
+    clickWay:
+      "Click Quick Look (👁️) → Use Image Inspector Bar or Find Bar · Right-Click → Smart Tidy",
+    shortcutWay:
+      "Spacebar to Preview · + / - / R / H / V / 0 for Images · ⌘F / Ctrl+F to Find",
+    extra:
+      "Reading Progress Memory (🔖 Resumed) + Package Inspector (📦) + Smart Folder Tidy with ⌘Z Undo",
     bullets: [
       "⌨️ Press `Spacebar` for Quick Look: Image Zoom (`+`/`-`), Rotate (`R`), Flip (`H`/`V`)",
       "🔎 Press `⌘F` (`Ctrl+F`) Inside Any Document Preview for Instant Highlighted Find",
@@ -1106,12 +1360,17 @@ const sceneSpecs: SceneSpec[] = [
     say: "Finally, select any file and press Spacebar—or click Quick Look—for instant previews. On images, use the interactive Image Inspector bar or press Plus, Minus, R to rotate, H or V to flip, and cycle between checkerboard, dark, and light backdrops. On documents and macOS packages, press Command F or Control F for highlighted in-preview search, resume right where you left off, click Ask AI or Speak, and use Smart Tidy Folder with one-click Command Z undo.",
     record: async (c) => {
       await installVisualLearnerDemoHarness(c);
-      await c.eval(`(() => { document.querySelectorAll('.modal-backdrop').forEach(b => b.remove()); })()`);
+      await c.eval(
+        `(() => { document.querySelectorAll('.modal-backdrop').forEach(b => b.remove()); })()`,
+      );
       await showVisualLearnerHud(c, {
         stepBadge: "STEP 12 / 12",
-        title: "Quick Look (`Spacebar`) Image Inspector, In-Preview Find (`⌘F`) & Smart Folder Tidy",
-        clickWay: "Click '👁️ Quick Look' → Click Zoom / Rotate / Flip / Backdrop / Find",
-        shortcutWay: "Spacebar to Open · + / - / R / H / V / 0 (Image) · ⌘F / Ctrl+F (Find)",
+        title:
+          "Quick Look (`Spacebar`) Image Inspector, In-Preview Find (`⌘F`) & Smart Folder Tidy",
+        clickWay:
+          "Click '👁️ Quick Look' → Click Zoom / Rotate / Flip / Backdrop / Find",
+        shortcutWay:
+          "Spacebar to Open · + / - / R / H / V / 0 (Image) · ⌘F / Ctrl+F (Find)",
       });
       await showKeycaps(c, ["Space"], 650);
       await c.eval(`(async () => {
@@ -1121,7 +1380,12 @@ const sceneSpecs: SceneSpec[] = [
         if (img) await openQuickLook(img);
       })()`);
       await sleep(750);
-      await spotlight(c, "[data-ql-img-inspector]", "🖼️ Interactive Image Inspector (+ / - / R / H / V / Backdrop)", 750);
+      await spotlight(
+        c,
+        "[data-ql-img-inspector]",
+        "🖼️ Interactive Image Inspector (+ / - / R / H / V / Backdrop)",
+        750,
+      );
       await clearSpotlight(c);
       await c.click("[data-ql-img-zoom-in]", { pause: 450 }).catch(() => {});
       await c.click("[data-ql-img-rot-right]", { pause: 450 }).catch(() => {});
@@ -1234,7 +1498,11 @@ ${
 }`;
 }
 
-function overlayWideStrip(scene: SceneSpec, index: number, totalScenes: number): string {
+function overlayWideStrip(
+  scene: SceneSpec,
+  index: number,
+  totalScenes: number,
+): string {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{width:1920px;height:1080px;background:transparent;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;position:relative;overflow:hidden}
@@ -1261,7 +1529,10 @@ function buildCompleteTutorialMarkdown(
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   };
   const chapters = wideMarks
-    .map((m, i) => `- **\`${fmt(i === 0 ? 0 : m.at)}\` — ${m.scene.badge}**: ${m.scene.label}\n  - 🖱️ **Mouse Click**: ${m.scene.clickWay}\n  - ⌨️ **Keyboard Shortcut**: \`${m.scene.shortcutWay}\``)
+    .map(
+      (m, i) =>
+        `- **\`${fmt(i === 0 ? 0 : m.at)}\` — ${m.scene.badge}**: ${m.scene.label}\n  - 🖱️ **Mouse Click**: ${m.scene.clickWay}\n  - ⌨️ **Keyboard Shortcut**: \`${m.scene.shortcutWay}\``,
+    )
     .join("\n");
 
   return `# Codecaine File Manager — Complete Visual-Learner AI & Enhancements Masterclass Tutorial (Narrated by Natural Male Studio Voice \`en-US-AndrewMultilingualNeural\`)
@@ -1316,8 +1587,13 @@ async function synthesizeSceneNarration(scene: SceneSpec): Promise<string> {
   const masteredWav = join(WORK, `andrew_${scene.id}.wav`);
 
   if (!existsSync(masteredWav)) {
-    console.log(`🎙️  Synthesizing ${scene.id} with natural male neural voice (en-US-AndrewMultilingualNeural)...`);
-    const narratedMp3 = await narrate(scene.id, scene.say, audioDir, { rate: "+2%", gap: 0.22 });
+    console.log(
+      `🎙️  Synthesizing ${scene.id} with natural male neural voice (en-US-AndrewMultilingualNeural)...`,
+    );
+    const narratedMp3 = await narrate(scene.id, scene.say, audioDir, {
+      rate: "+2%",
+      gap: 0.22,
+    });
     run([
       FFMPEG,
       "-hide_banner",
@@ -1343,13 +1619,17 @@ async function main() {
   seedTutorialWorkspace();
 
   // 1. Synthesize all 12 scene narrations using real `ollama run phonon --voice Zoey`!
-  const narrated: Array<{ scene: SceneSpec; audio: string; seconds: number }> = [];
+  const narrated: Array<{ scene: SceneSpec; audio: string; seconds: number }> =
+    [];
   for (const scene of sceneSpecs) {
     const audio = await synthesizeSceneNarration(scene);
     narrated.push({ scene, audio, seconds: duration(audio) });
   }
 
-  const totalNaturalSeconds = narrated.reduce((sum, item) => sum + item.seconds, 0);
+  const totalNaturalSeconds = narrated.reduce(
+    (sum, item) => sum + item.seconds,
+    0,
+  );
   // Widescreen Masterclass runs at natural 1.00x pace for effortless visual learning;
   // Vertical YouTube Short fits under 174s (<3 minutes) for YouTube Shorts eligibility.
   const shortTempo = Math.min(2.0, Math.max(1, totalNaturalSeconds / 172));
@@ -1393,7 +1673,12 @@ async function main() {
     await sleep(200);
   }
 
-  const recBrowser = await Cdp.launch(CDP_REC_PORT, join(WORK, "chrome-rec"), VIEW_W, VIEW_H);
+  const recBrowser = await Cdp.launch(
+    CDP_REC_PORT,
+    join(WORK, "chrome-rec"),
+    VIEW_W,
+    VIEW_H,
+  );
   const rawClips: Map<string, string> = new Map();
 
   try {
@@ -1408,13 +1693,25 @@ async function main() {
     for (const item of narrated) {
       const { scene } = item;
       const clipPath = join(WORK, `${scene.id}_raw.mp4`);
-      console.log(`🎥 Recording live visual-learner scene ${scene.id} (${item.seconds.toFixed(1)}s natural pace)...`);
+      console.log(
+        `🎥 Recording live visual-learner scene ${scene.id} (${item.seconds.toFixed(1)}s natural pace)...`,
+      );
       await recBrowser.startRecording();
       await scene.record(recBrowser);
       await sleep(350);
-      const actualElapsedSec = Math.max(4, (performance.now() - recBrowser.getRecordStartTime()) / 1000);
-      const targetRecSec = scene.id === "04_ask_stream_and_stop_generation" ? item.seconds : actualElapsedSec;
-      await recBrowser.stopRecording(clipPath, join(WORK, `frames_${scene.id}`), targetRecSec);
+      const actualElapsedSec = Math.max(
+        4,
+        (performance.now() - recBrowser.getRecordStartTime()) / 1000,
+      );
+      const targetRecSec =
+        scene.id === "04_ask_stream_and_stop_generation"
+          ? item.seconds
+          : actualElapsedSec;
+      await recBrowser.stopRecording(
+        clipPath,
+        join(WORK, `frames_${scene.id}`),
+        targetRecSec,
+      );
       rawClips.set(scene.id, clipPath);
     }
   } finally {
@@ -1425,8 +1722,18 @@ async function main() {
   }
 
   // 3. Composite both 1920x1080 Widescreen Masterclass (1.0x natural pace, CRF 12) AND 1080x1920 Vertical YouTube Short
-  const ovlBrowser = await Cdp.launch(CDP_OVL_PORT, join(WORK, "chrome-ovl"), 1080, 1920);
-  const wideBrowser = await Cdp.launch(CDP_OVL_PORT + 1, join(WORK, "chrome-wide"), 1920, 1080);
+  const ovlBrowser = await Cdp.launch(
+    CDP_OVL_PORT,
+    join(WORK, "chrome-ovl"),
+    1080,
+    1920,
+  );
+  const wideBrowser = await Cdp.launch(
+    CDP_OVL_PORT + 1,
+    join(WORK, "chrome-wide"),
+    1920,
+    1080,
+  );
   const shortSegments: string[] = [];
   const wideSegments: string[] = [];
   const wideMarks: Array<{ at: number; scene: SceneSpec }> = [];
@@ -1441,14 +1748,21 @@ async function main() {
       // A. Widescreen 1920x1080 Masterclass segment at 1.00x natural speaking speed (CRF 12, 320k AAC)
       const wideSeconds = item.seconds;
       const widePtsScale = (wideSeconds / clipDur).toFixed(5);
-      console.log(`🎬 Compositing 1080p Masterclass + 9:16 Short for ${scene.id} (${wideSeconds.toFixed(1)}s)...`);
+      console.log(
+        `🎬 Compositing 1080p Masterclass + 9:16 Short for ${scene.id} (${wideSeconds.toFixed(1)}s)...`,
+      );
 
       const wHtml = join(WORK, `${scene.id}_w.html`);
       const wPng = join(WORK, `${scene.id}_w.png`);
       writeFileSync(wHtml, overlayWideStrip(scene, index, narrated.length));
       await wideBrowser.goto(`file://${wHtml}`, null);
-      await wideBrowser.send("Emulation.setDefaultBackgroundColorOverride", { color: { r: 0, g: 0, b: 0, a: 0 } });
-      const wShot = await wideBrowser.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
+      await wideBrowser.send("Emulation.setDefaultBackgroundColorOverride", {
+        color: { r: 0, g: 0, b: 0, a: 0 },
+      });
+      const wShot = await wideBrowser.send("Page.captureScreenshot", {
+        format: "png",
+        captureBeyondViewport: false,
+      });
       writeFileSync(wPng, Buffer.from(wShot.data, "base64"));
 
       const wideSeg = join(WORK, `${scene.id}_wide.mp4`);
@@ -1502,8 +1816,13 @@ async function main() {
       const vPng = join(WORK, `${scene.id}_v.png`);
       writeFileSync(vHtml, overlayVertical(scene, index));
       await ovlBrowser.goto(`file://${vHtml}`, null);
-      await ovlBrowser.send("Emulation.setDefaultBackgroundColorOverride", { color: { r: 0, g: 0, b: 0, a: 0 } });
-      const vShot = await ovlBrowser.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
+      await ovlBrowser.send("Emulation.setDefaultBackgroundColorOverride", {
+        color: { r: 0, g: 0, b: 0, a: 0 },
+      });
+      const vShot = await ovlBrowser.send("Page.captureScreenshot", {
+        format: "png",
+        captureBeyondViewport: false,
+      });
       writeFileSync(vPng, Buffer.from(vShot.data, "base64"));
 
       const shortSeg = join(WORK, `${scene.id}_short.mp4`);
@@ -1555,7 +1874,10 @@ async function main() {
 
   // Concatenate Widescreen 1080p Masterclass MP4
   const wideList = join(WORK, "concat_wide.txt");
-  writeFileSync(wideList, wideSegments.map((f) => `file '${f}'`).join("\n") + "\n");
+  writeFileSync(
+    wideList,
+    wideSegments.map((f) => `file '${f}'`).join("\n") + "\n",
+  );
   run([
     FFMPEG,
     "-hide_banner",
@@ -1595,7 +1917,10 @@ async function main() {
 
   // Concatenate Vertical 9:16 YouTube Short MP4
   const shortList = join(WORK, "concat_short.txt");
-  writeFileSync(shortList, shortSegments.map((f) => `file '${f}'`).join("\n") + "\n");
+  writeFileSync(
+    shortList,
+    shortSegments.map((f) => `file '${f}'`).join("\n") + "\n",
+  );
   run([
     FFMPEG,
     "-hide_banner",
@@ -1638,7 +1963,11 @@ async function main() {
 
   const finalWideSec = duration(OUTPUT_WIDE_MASTER);
   const finalShortSec = duration(OUTPUT_SHORT_MASTER);
-  const md = buildCompleteTutorialMarkdown(finalWideSec, finalShortSec, wideMarks);
+  const md = buildCompleteTutorialMarkdown(
+    finalWideSec,
+    finalShortSec,
+    wideMarks,
+  );
   writeFileSync(NOTES_PROD, md);
   mkdirSync(join(ROOT, "docs"), { recursive: true });
   writeFileSync(DOCS_TUTORIAL, md);
@@ -1649,7 +1978,9 @@ async function main() {
   console.log(
     `✅ Built 9:16 Vertical YouTube Short (CRF 14):                 ${OUTPUT_SHORT_MASTER} (${finalShortSec.toFixed(1)}s, ${(Bun.file(OUTPUT_SHORT_MASTER).size / 1048576).toFixed(1)} MB)`,
   );
-  console.log(`📝 Wrote Complete Tutorial & Shortcut Guide:                   ${DOCS_TUTORIAL}`);
+  console.log(
+    `📝 Wrote Complete Tutorial & Shortcut Guide:                   ${DOCS_TUTORIAL}`,
+  );
 }
 
 await main();

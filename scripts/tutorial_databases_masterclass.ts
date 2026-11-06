@@ -22,7 +22,12 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
 
 const ROOT = process.cwd();
-const WORK = join(ROOT, "youtube_production", "databases_masterclass_tutorial", "_work");
+const WORK = join(
+  ROOT,
+  "youtube_production",
+  "databases_masterclass_tutorial",
+  "_work",
+);
 const HOME = join(WORK, "home");
 const DATA = join(WORK, "data");
 const GRAVE = join(WORK, "grave");
@@ -33,7 +38,12 @@ mkdirSync(join(WORK, "hosthome"), { recursive: true });
 process.env.HOME = join(WORK, "hosthome");
 
 import { Cdp, sleep } from "./lib/cdp_recorder";
-import { GEMINI_KEY, GEMINI_VOICE, EDGE_VOICE, fmtTime } from "./lib/video_pipeline";
+import {
+  GEMINI_KEY,
+  GEMINI_VOICE,
+  EDGE_VOICE,
+  fmtTime,
+} from "./lib/video_pipeline";
 import { runTutorial, type Do, type Suite } from "./lib/step_video";
 import type { Chapter, World } from "./lib/fm_tutorial_types";
 
@@ -64,7 +74,16 @@ let cdp: Cdp;
 
 function mysqlRun(sql: string, db = ""): string {
   const r = Bun.spawnSync(
-    [`${MYSQL_BIN}/mysql`, "-h127.0.0.1", `-P${MYSQL_PORT}`, "-uroot", "--batch", ...(db ? [db] : []), "-e", sql],
+    [
+      `${MYSQL_BIN}/mysql`,
+      "-h127.0.0.1",
+      `-P${MYSQL_PORT}`,
+      "-uroot",
+      "--batch",
+      ...(db ? [db] : []),
+      "-e",
+      sql,
+    ],
     { stdout: "pipe", stderr: "pipe" },
   );
   if (r.exitCode !== 0) throw new Error(`mysql: ${r.stderr.toString().trim()}`);
@@ -84,18 +103,37 @@ async function startMysql() {
   if (mysqlUp() && existsSync(MYSQL_DATA)) return;
   if (mysqlUp() && !existsSync(MYSQL_DATA)) {
     try {
-      Bun.spawnSync([`${MYSQL_BIN}/mysqladmin`, "-h127.0.0.1", `-P${MYSQL_PORT}`, "-uroot", "shutdown"]);
+      Bun.spawnSync([
+        `${MYSQL_BIN}/mysqladmin`,
+        "-h127.0.0.1",
+        `-P${MYSQL_PORT}`,
+        "-uroot",
+        "shutdown",
+      ]);
     } catch {}
     for (let i = 0; i < 20 && mysqlUp(); i++) await sleep(250);
   }
   if (!existsSync(MYSQL_DATA)) {
     mkdirSync(WORK, { recursive: true });
-    const prefix = Bun.spawnSync(["brew", "--prefix", "mysql"]).stdout.toString().trim();
-    const r = Bun.spawnSync([`${MYSQL_BIN}/mysqld`, "--initialize-insecure", `--datadir=${MYSQL_DATA}`, `--basedir=${prefix}`], {
-      stdout: "ignore",
-      stderr: "pipe",
-    });
-    if (r.exitCode !== 0) throw new Error(`mysqld --initialize-insecure failed: ${r.stderr.toString().slice(-400)}`);
+    const prefix = Bun.spawnSync(["brew", "--prefix", "mysql"])
+      .stdout.toString()
+      .trim();
+    const r = Bun.spawnSync(
+      [
+        `${MYSQL_BIN}/mysqld`,
+        "--initialize-insecure",
+        `--datadir=${MYSQL_DATA}`,
+        `--basedir=${prefix}`,
+      ],
+      {
+        stdout: "ignore",
+        stderr: "pipe",
+      },
+    );
+    if (r.exitCode !== 0)
+      throw new Error(
+        `mysqld --initialize-insecure failed: ${r.stderr.toString().slice(-400)}`,
+      );
   }
   mysqldProc = Bun.spawn(
     [
@@ -111,13 +149,22 @@ async function startMysql() {
     { stdout: "ignore", stderr: "ignore" },
   );
   for (let i = 0; i < 120 && !mysqlUp(); i++) await sleep(500);
-  if (!mysqlUp()) throw new Error("Throwaway MySQL server did not start on port " + MYSQL_PORT);
+  if (!mysqlUp())
+    throw new Error(
+      "Throwaway MySQL server did not start on port " + MYSQL_PORT,
+    );
 }
 
 async function stopMysql() {
   if (!mysqldProc) return;
   try {
-    Bun.spawnSync([`${MYSQL_BIN}/mysqladmin`, "-h127.0.0.1", `-P${MYSQL_PORT}`, "-uroot", "shutdown"]);
+    Bun.spawnSync([
+      `${MYSQL_BIN}/mysqladmin`,
+      "-h127.0.0.1",
+      `-P${MYSQL_PORT}`,
+      "-uroot",
+      "shutdown",
+    ]);
   } catch {}
   await Promise.race([mysqldProc.exited, sleep(10000)]);
   try {
@@ -127,19 +174,45 @@ async function stopMysql() {
 }
 
 function pgRun(sql: string, db = "postgres"): string {
-  const r = Bun.spawnSync([`${PG_BIN}/psql`, "-h", "127.0.0.1", "-p", String(PG_PORT), "-U", "postgres", "-d", db, "-tAc", sql], {
-    stdout: "pipe",
-    stderr: "pipe",
-  });
+  const r = Bun.spawnSync(
+    [
+      `${PG_BIN}/psql`,
+      "-h",
+      "127.0.0.1",
+      "-p",
+      String(PG_PORT),
+      "-U",
+      "postgres",
+      "-d",
+      db,
+      "-tAc",
+      sql,
+    ],
+    {
+      stdout: "pipe",
+      stderr: "pipe",
+    },
+  );
   if (r.exitCode !== 0) throw new Error(`psql: ${r.stderr.toString().trim()}`);
   return r.stdout.toString();
 }
 
 const pgUp = () => {
-  const r = Bun.spawnSync([`${PG_BIN}/pg_isready`, "-h", "127.0.0.1", "-p", String(PG_PORT), "-U", "postgres"], {
-    stdout: "ignore",
-    stderr: "ignore",
-  });
+  const r = Bun.spawnSync(
+    [
+      `${PG_BIN}/pg_isready`,
+      "-h",
+      "127.0.0.1",
+      "-p",
+      String(PG_PORT),
+      "-U",
+      "postgres",
+    ],
+    {
+      stdout: "ignore",
+      stderr: "ignore",
+    },
+  );
   return r.exitCode === 0;
 };
 
@@ -147,24 +220,57 @@ async function startPostgres() {
   if (pgUp()) return;
   if (!existsSync(PG_DATA)) {
     mkdirSync(WORK, { recursive: true });
-    const r = Bun.spawnSync([`${PG_BIN}/initdb`, "-D", PG_DATA, "-U", "postgres", "-A", "trust", "--encoding=UTF8", "--no-locale"], {
-      stdout: "ignore",
-      stderr: "pipe",
-    });
-    if (r.exitCode !== 0) throw new Error(`initdb failed: ${r.stderr.toString().slice(-400)}`);
+    const r = Bun.spawnSync(
+      [
+        `${PG_BIN}/initdb`,
+        "-D",
+        PG_DATA,
+        "-U",
+        "postgres",
+        "-A",
+        "trust",
+        "--encoding=UTF8",
+        "--no-locale",
+      ],
+      {
+        stdout: "ignore",
+        stderr: "pipe",
+      },
+    );
+    if (r.exitCode !== 0)
+      throw new Error(`initdb failed: ${r.stderr.toString().slice(-400)}`);
   }
-  pgProc = Bun.spawn([`${PG_BIN}/postgres`, "-D", PG_DATA, "-p", String(PG_PORT), "-h", "127.0.0.1", "-k", WORK], {
-    stdout: "ignore",
-    stderr: "ignore",
-  });
+  pgProc = Bun.spawn(
+    [
+      `${PG_BIN}/postgres`,
+      "-D",
+      PG_DATA,
+      "-p",
+      String(PG_PORT),
+      "-h",
+      "127.0.0.1",
+      "-k",
+      WORK,
+    ],
+    {
+      stdout: "ignore",
+      stderr: "ignore",
+    },
+  );
   for (let i = 0; i < 80 && !pgUp(); i++) await sleep(300);
-  if (!pgUp()) throw new Error("Throwaway PostgreSQL server did not start on port " + PG_PORT);
+  if (!pgUp())
+    throw new Error(
+      "Throwaway PostgreSQL server did not start on port " + PG_PORT,
+    );
 }
 
 async function stopPostgres() {
   if (!pgProc) return;
   try {
-    Bun.spawnSync([`${PG_BIN}/pg_ctl`, "-D", PG_DATA, "stop", "-m", "fast"], { stdout: "ignore", stderr: "ignore" });
+    Bun.spawnSync([`${PG_BIN}/pg_ctl`, "-D", PG_DATA, "stop", "-m", "fast"], {
+      stdout: "ignore",
+      stderr: "ignore",
+    });
   } catch {}
   await Promise.race([pgProc.exited, sleep(8000)]);
   try {
@@ -174,11 +280,22 @@ async function stopPostgres() {
 }
 
 function redisRun(args: string[]): string {
-  const r = Bun.spawnSync([`${REDIS_BIN}/redis-cli`, "-h", "127.0.0.1", "-p", String(REDIS_PORT), ...args], {
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  if (r.exitCode !== 0) throw new Error(`redis-cli: ${r.stderr.toString().trim()}`);
+  const r = Bun.spawnSync(
+    [
+      `${REDIS_BIN}/redis-cli`,
+      "-h",
+      "127.0.0.1",
+      "-p",
+      String(REDIS_PORT),
+      ...args,
+    ],
+    {
+      stdout: "pipe",
+      stderr: "pipe",
+    },
+  );
+  if (r.exitCode !== 0)
+    throw new Error(`redis-cli: ${r.stderr.toString().trim()}`);
   return r.stdout.toString().trim();
 }
 
@@ -210,7 +327,10 @@ async function startRedis() {
     { stdout: "ignore", stderr: "ignore" },
   );
   for (let i = 0; i < 60 && !redisUp(); i++) await sleep(250);
-  if (!redisUp()) throw new Error("Throwaway Redis server did not start on port " + REDIS_PORT);
+  if (!redisUp())
+    throw new Error(
+      "Throwaway Redis server did not start on port " + REDIS_PORT,
+    );
 }
 
 async function stopRedis() {
@@ -326,7 +446,9 @@ function seedSqliteShop(sqlitePath: string) {
 }
 
 function resetNetworkDatabases() {
-  mysqlRun("DROP DATABASE IF EXISTS shop_mysql; CREATE DATABASE shop_mysql CHARACTER SET utf8mb4;");
+  mysqlRun(
+    "DROP DATABASE IF EXISTS shop_mysql; CREATE DATABASE shop_mysql CHARACTER SET utf8mb4;",
+  );
   try {
     pgRun("DROP DATABASE IF EXISTS shop_pg WITH (FORCE);");
   } catch {
@@ -407,7 +529,12 @@ async function startFm(startPath = LAUNCH) {
       "--path",
       startPath,
     ],
-    { cwd: LAUNCH, stdout: "ignore", stderr: "ignore", env: { PATH: process.env.PATH ?? "", HOME, GRAVEYARD: GRAVE } },
+    {
+      cwd: LAUNCH,
+      stdout: "ignore",
+      stderr: "ignore",
+      env: { PATH: process.env.PATH ?? "", HOME, GRAVEYARD: GRAVE },
+    },
   );
   for (let i = 0; i < 80; i++) {
     try {
@@ -445,7 +572,9 @@ async function saveAllDetectedQuiet(c: Cdp) {
     }
   })()`);
   await c.goto(`http://127.0.0.1:${FM_PORT}/`);
-  await c.eval(`[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Start')?.click()`);
+  await c.eval(
+    `[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Start')?.click()`,
+  );
   await sleep(600);
   await openDatabasesTabQuiet(c);
 }
@@ -495,9 +624,13 @@ async function cloneAllEnginesQuiet(c: Cdp) {
 
 async function openExpandedSqliteStudioQuiet(c: Cdp) {
   await saveAllDetectedQuiet(c);
-  await c.eval(`[...document.querySelectorAll('.db-row')].find(r => r.textContent.includes('shop.sqlite'))?.click()`);
+  await c.eval(
+    `[...document.querySelectorAll('.db-row')].find(r => r.textContent.includes('shop.sqlite'))?.click()`,
+  );
   await sleep(400);
-  await c.eval(`[...document.querySelectorAll('button')].find(b => b.textContent.includes('Open in SQLite Studio'))?.click()`);
+  await c.eval(
+    `[...document.querySelectorAll('button')].find(b => b.textContent.includes('Open in SQLite Studio'))?.click()`,
+  );
   await c.waitFor(STUDIO + "#msgBoxBtnOk", 25000);
   await sleep(500);
   await c.click(STUDIO + "#msgBoxBtnOk");
@@ -535,7 +668,8 @@ const chapters: Chapter[] = [
     id: "01_files_and_sample",
     chapter: "DISCOVER & SEED",
     title: "SQLite files in the file list & one-click sample databases",
-    blurb: "Magic-byte inspection, right-click actions, and synthetic sample datasets",
+    blurb:
+      "Magic-byte inspection, right-click actions, and synthetic sample datasets",
     steps: [
       {
         cap: "Magic-byte SQLite recognition & right-click database commands",
@@ -544,10 +678,19 @@ const chapters: Chapter[] = [
           await d.hover("#list .row >> new_customers.csv", 800);
           await d.click("#list .row >> shop.sqlite", { pause: 900 });
           await d.rclick("#list .row >> shop.sqlite", { pause: 800 });
-          await d.hover(".menu [role^=menuitem] >> Open in SQLite Studio", 1000);
+          await d.hover(
+            ".menu [role^=menuitem] >> Open in SQLite Studio",
+            1000,
+          );
           await d.hover(".menu [role^=menuitem] >> in its own window", 900);
-          await d.hover(".menu [role^=menuitem] >> Add as database connection", 1000);
-          await d.hover(".menu [role^=menuitem] >> Clone database / tables", 1300);
+          await d.hover(
+            ".menu [role^=menuitem] >> Add as database connection",
+            1000,
+          );
+          await d.hover(
+            ".menu [role^=menuitem] >> Clone database / tables",
+            1300,
+          );
         },
       },
       {
@@ -562,7 +705,9 @@ const chapters: Chapter[] = [
           await d.scroll(".dialog label >> Hospital EHR", 140, 5);
           await d.click(".dialog label >> Hospital EHR", { pause: 900 });
           await d.click(".dialog label >> Small", { pause: 700 });
-          await d.click(".dialog button >> Create sample database", { pause: 2600 });
+          await d.click(".dialog button >> Create sample database", {
+            pause: 2600,
+          });
           await d.hover(".db-row >> Hospital", 1200);
         },
       },
@@ -573,7 +718,8 @@ const chapters: Chapter[] = [
     id: "02_all_four_connections",
     chapter: "ALL FOUR ENGINES",
     title: "Connecting SQLite, MySQL, PostgreSQL and Redis",
-    blurb: "Environment auto-detection, Effective Settings, and live connection tests",
+    blurb:
+      "Environment auto-detection, Effective Settings, and live connection tests",
     steps: [
       {
         cap: "Auto-detecting .env connections across SQLite, MySQL, PostgreSQL, and Redis",
@@ -610,7 +756,8 @@ const chapters: Chapter[] = [
     id: "03_clone_sql_to_postgres_and_mysql",
     chapter: "CROSS-ENGINE CLONING",
     title: "Cloning databases and tables across SQLite, PostgreSQL and MySQL",
-    blurb: "Schema inspection, canonical type translation, dry-run DDL preview, and live cloning",
+    blurb:
+      "Schema inspection, canonical type translation, dry-run DDL preview, and live cloning",
     steps: [
       {
         cap: "Opening the Clone wizard & inspecting tables, views, indexes, and foreign keys",
@@ -652,7 +799,10 @@ const chapters: Chapter[] = [
             if (opt) { sel.value = opt.value; sel.dispatchEvent(new Event('change', { bubbles: true })); }
           })()`);
           await d.wait(600);
-          await d.hover('select[aria-label="When a target table or key already exists"]', 1100);
+          await d.hover(
+            'select[aria-label="When a target table or key already exists"]',
+            1100,
+          );
           await d.click("button >> Preview plan & SQL", { pause: 1800 });
           await d.click(".dialog button >> Clone now", { pause: 2600 });
           await d.click(".db-row >> MySQL", { pause: 800 });
@@ -666,7 +816,8 @@ const chapters: Chapter[] = [
     id: "04_clone_redis_and_new_sqlite",
     chapter: "REDIS ↔ SQL CLONING",
     title: "Cloning SQL tables into Redis Hashes & back into a new SQLite file",
-    blurb: "Bidirectional SQL-to-Redis Hash mapping and instant SQLite file creation",
+    blurb:
+      "Bidirectional SQL-to-Redis Hash mapping and instant SQLite file creation",
     steps: [
       {
         cap: "Cloning SQL tables into Redis Hashes (<table>:<pk>)",
@@ -681,7 +832,10 @@ const chapters: Chapter[] = [
           })()`);
           await d.wait(500);
           await d.click("button >> Tables only", { pause: 700 });
-          await d.hover('select[aria-label="Redis key format when cloning SQL tables to Redis"]', 1000);
+          await d.hover(
+            'select[aria-label="Redis key format when cloning SQL tables to Redis"]',
+            1000,
+          );
           await d.click("button >> Preview plan & SQL", { pause: 1800 });
           await d.click(".dialog button >> Clone now", { pause: 2400 });
           await d.click(".db-row >> Redis", { pause: 800 });
@@ -717,7 +871,8 @@ const chapters: Chapter[] = [
     id: "05_bun_js_and_visual_macros",
     chapter: "BUN JS & VISUAL MACROS",
     title: "The Bun JavaScript & Visual Macro Studio across all engines",
-    blurb: "Access DAO/DoCmd API, cross-connection scripts, dry-run rollback, and TypeScript/VBA/SQL export",
+    blurb:
+      "Access DAO/DoCmd API, cross-connection scripts, dry-run rollback, and TypeScript/VBA/SQL export",
     steps: [
       {
         cap: "Opening the Bun JS & Visual Macro Studio & running Table Row Counter against shop.sqlite",
@@ -739,10 +894,14 @@ const chapters: Chapter[] = [
         cap: "DAO Recordset, DCount/DSum, Check Syntax, and Dry Run (Rollback)",
         say: "Select Customer Order Audit to see the Microsoft Access D A O and Do Command objects in action, alongside quick-insert snippet chips for Current D B query, Open Recordset, D Count, D Lookup, D Sum, transactions, and cross-connection queries. Click Check Syntax to validate the script with Bun's transpiler, then press Dry Run Rollback to execute the entire audit inside a transaction that automatically rolls back.",
         act: async (d) => {
-          await d.click(".db-macro-item >> Customer Order Audit", { pause: 1100 });
+          await d.click(".db-macro-item >> Customer Order Audit", {
+            pause: 1100,
+          });
           await d.hover(".db-macro-snippets", 1200);
           await d.click("button >> ✓ Check Syntax", { pause: 1400 });
-          await d.click(".dialog button >> 🧪 Dry Run (Rollback)", { pause: 2400 });
+          await d.click(".dialog button >> 🧪 Dry Run (Rollback)", {
+            pause: 2400,
+          });
           await d.scroll(".db-macro-output", 220, 5);
           await d.wait(1000);
         },
@@ -754,7 +913,9 @@ const chapters: Chapter[] = [
           await d.click(".db-macro-item >> Quick VIP Report", { pause: 900 });
           await d.hover(".db-macro-step-card", 800);
           await d.click(".dialog button >> ▶ Run Macro", { pause: 1800 });
-          await d.click("button >> ⇄ Convert Actions to Bun JS", { pause: 1100 });
+          await d.click("button >> ⇄ Convert Actions to Bun JS", {
+            pause: 1100,
+          });
           await d.click("button >> 🥟 Export .ts", { pause: 1000 });
           await d.click("button >> 🧾 Export VBA", { pause: 1000 });
           await d.click("button >> 📄 Export .sql", { pause: 1000 });
@@ -768,21 +929,26 @@ const chapters: Chapter[] = [
     id: "06_universal_import_and_staging",
     chapter: "15-FORMAT STAGING IMPORT",
     title: "Universal 15-format import & the 5-step Staging Wizard",
-    blurb: "Right-click Load into a database, schema mapping, row validation, and safe transactional promotion",
+    blurb:
+      "Right-click Load into a database, schema mapping, row validation, and safe transactional promotion",
     steps: [
       {
         cap: "Right-clicking a file → Load into a database (staging first)",
         say: "Every studio supports fifteen import formats—including C S V, T S V, J S O N, Parquet, Excel, Arrow, Avro, O R C, XML, Yaml, H T M L, and SQLite—and you can launch the staging wizard straight from the file list. Right-click new customers dot C S V, choose Load into a database, pick our saved shop dot sqlite connection, and click Open the import wizard.",
         act: async (d) => {
           await d.rclick("#list .row >> new_customers.csv", { pause: 900 });
-          await d.click(".menu [role^=menuitem] >> Load into a database", { pause: 1400 });
+          await d.click(".menu [role^=menuitem] >> Load into a database", {
+            pause: 1400,
+          });
           await d.eval(`(() => {
             const sel = document.querySelector('.dialog select');
             const opt = sel && [...sel.options].find(o => o.textContent.includes('shop.sqlite'));
             if (sel && opt) { sel.value = opt.value; sel.dispatchEvent(new Event('change', { bubbles: true })); }
           })()`);
           await d.hover(".dialog select", 900);
-          await d.click(".dialog button >> Open the import wizard", { pause: 800 });
+          await d.click(".dialog button >> Open the import wizard", {
+            pause: 800,
+          });
           await d.waitFor(STUDIO + "#msgBoxBtnOk", 25000);
           await d.wait(600);
           await d.click(STUDIO + "#msgBoxBtnOk", { pause: 1600 });
@@ -792,19 +958,30 @@ const chapters: Chapter[] = [
         cap: "Mapping columns, loading to staging, checking rows, and promoting in one transaction",
         say: "Step one auto-detects the delimiter, encoding, and headers. In step two, we choose the customers table so columns match automatically, then load the rows into an isolated staging table. Click Check the rows to validate types, required fields, and duplicates before touching real data. Finally, choose Add new rows only and click Promote to commit Barbara Liskov and Ken Thompson in one atomic transaction.",
         act: async (d) => {
-          await d.click(STUDIO + "button >> Next: choose where it goes", { pause: 1200 });
-          await d.c.evalFrame(".db-studio-frame ||| iframe", `(() => {
+          await d.click(STUDIO + "button >> Next: choose where it goes", {
+            pause: 1200,
+          });
+          await d.c.evalFrame(
+            ".db-studio-frame ||| iframe",
+            `(() => {
             const s = [...document.querySelectorAll('select')].find(x => x.textContent.includes('choose a table'));
             if (s) { s.value = 'customers'; s.dispatchEvent(new Event('change', { bubbles: true })); }
-          })()`);
+          })()`,
+          );
           await d.wait(1500);
-          await d.click(STUDIO + "button >> Next: load into staging", { pause: 2200 });
+          await d.click(STUDIO + "button >> Next: load into staging", {
+            pause: 2200,
+          });
           await d.click(STUDIO + "button >> Check the rows", { pause: 2200 });
-          await d.click(STUDIO + "button >> Next: review & promote", { pause: 1300 });
+          await d.click(STUDIO + "button >> Next: review & promote", {
+            pause: 1300,
+          });
           await d.click(STUDIO + "label >> Add new rows only", { pause: 800 });
           await d.click(STUDIO + "button >> Promote", { pause: 2200 });
           await d.click(STUDIO + ".stg-foot button >> Close", { pause: 900 });
-          await d.click(STUDIO + ".tree-item-title >> customers", { pause: 1400 });
+          await d.click(STUDIO + ".tree-item-title >> customers", {
+            pause: 1400,
+          });
         },
       },
     ],
@@ -814,15 +991,20 @@ const chapters: Chapter[] = [
     id: "07_studio_grid_crud_inspector",
     chapter: "DATA GRID PRO & INSPECTOR",
     title: "Per-column filter bar, Side Row Inspector, FK jump & backups",
-    blurb: "Studio IDE v2 data grid: instant column filters, side-by-side record/JSON inspector, and relational navigation",
+    blurb:
+      "Studio IDE v2 data grid: instant column filters, side-by-side record/JSON inspector, and relational navigation",
     steps: [
       {
         cap: "Per-column Filter Bar & the Side-by-Side Row / JSON Inspector",
         say: "Now let's explore the Studio I D E version two inside full-screen mode. In the Data Grid, toggle the Filter Bar to filter individual columns—let's type enterprise under tier—and open the Side Row Inspector. Clicking any customer row displays every column value, primary key badge, and formatted J S O N payload right beside the grid, with one-click Copy Row J S O N and Edit Row buttons.",
         act: async (d) => {
-          await d.click(STUDIO + ".tree-item-title >> customers", { pause: 900 });
+          await d.click(STUDIO + ".tree-item-title >> customers", {
+            pause: 900,
+          });
           await d.click(STUDIO + "#btnToggleFilterBar", { pause: 1000 });
-          await d.click(STUDIO + '.access-filter-input[data-col="tier"]', { pause: 400 });
+          await d.click(STUDIO + '.access-filter-input[data-col="tier"]', {
+            pause: 400,
+          });
           await d.type("enterprise", 80);
           await d.key("Enter");
           await d.wait(1300);
@@ -841,9 +1023,13 @@ const chapters: Chapter[] = [
           await d.click(STUDIO + "#btnToggleTotals", { pause: 1100 });
           await d.click(STUDIO + ".studio-fk-jump", { pause: 1600 });
           await d.click(STUDIO + "button >> 📤 Export", { pause: 1100 });
-          await d.click(STUDIO + "button >> 📋 Copy to clipboard", { pause: 900 });
+          await d.click(STUDIO + "button >> 📋 Copy to clipboard", {
+            pause: 900,
+          });
           await d.click(STUDIO + "#btnDbBackupDump", { pause: 1400 });
-          await d.click(STUDIO + 'button[onclick="closeDatabaseDumpModal()"]', { pause: 600 });
+          await d.click(STUDIO + 'button[onclick="closeDatabaseDumpModal()"]', {
+            pause: 600,
+          });
         },
       },
     ],
@@ -853,7 +1039,8 @@ const chapters: Chapter[] = [
     id: "08_sql_ide_er_diff_codegen",
     chapter: "SQL IDE, ER DIAGRAM & CODEGEN",
     title: "Multi-tab SQL IDE, Full ER Diagram, Schema Diff & Code Generation",
-    blurb: "SQL worksheets, Format SQL, Transaction & Read-Only Guard, ER diagram, Schema Diff, and 5-language codegen",
+    blurb:
+      "SQL worksheets, Format SQL, Transaction & Read-Only Guard, ER diagram, Schema Diff, and 5-language codegen",
     steps: [
       {
         cap: "Multi-tab SQL Worksheets, Format SQL, Query History, Transaction Bar & Explain Plan",
@@ -862,7 +1049,9 @@ const chapters: Chapter[] = [
           await d.click(STUDIO + "#btnAddWorksheet", { pause: 700 });
           await d.click(STUDIO + ".studio-ws-tab", { pause: 600 });
           await d.click(STUDIO + "#btnStudioFormatSql", { pause: 900 });
-          await d.click(STUDIO + 'button[onclick="runEditorQuery()"]', { pause: 1100 });
+          await d.click(STUDIO + 'button[onclick="runEditorQuery()"]', {
+            pause: 1100,
+          });
           await d.click(STUDIO + "#btnStudioSqlHistory", { pause: 1100 });
           await d.click(STUDIO + "#btnStudioHistClose", { pause: 500 });
           await d.click(STUDIO + "#btnTxBegin", { pause: 900 });
@@ -870,7 +1059,9 @@ const chapters: Chapter[] = [
           await d.click(STUDIO + "#btnReadOnlyGuard", { pause: 800 });
           await d.click(STUDIO + "#btnReadOnlyGuard", { pause: 600 });
           await d.click(STUDIO + "#tabBtnExplain", { pause: 800 });
-          await d.click(STUDIO + 'button[onclick="explainCurrentQuery()"]', { pause: 1200 });
+          await d.click(STUDIO + 'button[onclick="explainCurrentQuery()"]', {
+            pause: 1200,
+          });
         },
       },
       {
@@ -891,14 +1082,36 @@ const chapters: Chapter[] = [
         say: "Inside the studio's Macro Designer, you can combine visual actions with Run Code JavaScript blocks, open the embedded Bun J S Editor, or click Code to open the multi-language Code Generator. It translates your macro into native Bun dot S Q L, TypeScript, Bun SQLite, Python, or V-lang code ready to paste into your application.",
         act: async (d) => {
           await d.click(STUDIO + "#tabBtnMacros", { pause: 1100 });
-          await d.click(STUDIO + 'button[onclick="quickAddAction(\'RunCode\')"]', { pause: 900 });
-          await d.click(STUDIO + 'button[onclick="openMacroExportDialog(\'bun\')"]', { pause: 1100 });
-          await d.click(STUDIO + 'button[onclick="closeMacroJsonModal()"]', { pause: 600 });
-          await d.click(STUDIO + 'button[onclick="openCodeGenForCurrentMacro()"]', { pause: 1200 });
-          for (const lang of ["bun-sql", "typescript", "bun", "python", "vlang"]) {
-            await d.click(STUDIO + `#macroCodeTabs button[data-target="${lang}"]`, { pause: 750 });
+          await d.click(
+            STUDIO + "button[onclick=\"quickAddAction('RunCode')\"]",
+            { pause: 900 },
+          );
+          await d.click(
+            STUDIO + "button[onclick=\"openMacroExportDialog('bun')\"]",
+            { pause: 1100 },
+          );
+          await d.click(STUDIO + 'button[onclick="closeMacroJsonModal()"]', {
+            pause: 600,
+          });
+          await d.click(
+            STUDIO + 'button[onclick="openCodeGenForCurrentMacro()"]',
+            { pause: 1200 },
+          );
+          for (const lang of [
+            "bun-sql",
+            "typescript",
+            "bun",
+            "python",
+            "vlang",
+          ]) {
+            await d.click(
+              STUDIO + `#macroCodeTabs button[data-target="${lang}"]`,
+              { pause: 750 },
+            );
           }
-          await d.click(STUDIO + 'button[onclick="closeCodeGenModal()"]', { pause: 600 });
+          await d.click(STUDIO + 'button[onclick="closeCodeGenModal()"]', {
+            pause: 600,
+          });
           await d.click(STUDIO + "#tabBtnPragma", { pause: 1100 });
         },
       },
@@ -908,8 +1121,10 @@ const chapters: Chapter[] = [
   {
     id: "09_postgres_mysql_redis_studios",
     chapter: "POSTGRES, MYSQL & REDIS STUDIOS",
-    title: "Live PostgreSQL, MySQL and Redis Studios & the Open Studios Switcher",
-    blurb: "Inspecting cloned tables in PostgreSQL & MySQL, and exploring hashes, 15-format import & CLI in Redis Studio",
+    title:
+      "Live PostgreSQL, MySQL and Redis Studios & the Open Studios Switcher",
+    blurb:
+      "Inspecting cloned tables in PostgreSQL & MySQL, and exploring hashes, 15-format import & CLI in Redis Studio",
     steps: [
       {
         cap: "Launching PostgreSQL Studio & MySQL Studio and switching via the Open Studios bar",
@@ -944,12 +1159,21 @@ const chapters: Chapter[] = [
           await d.click(STUDIO + "#keyList .key-item", { pause: 1100 });
           await d.click(STUDIO + "button >> ⬆ Import", { pause: 1100 });
           await d.hover(STUDIO + "#importFormat", 800);
-          await d.click(STUDIO + 'button[onclick="closeModal(\'importModal\')"]', { pause: 600 });
-          await d.click(STUDIO + ".tab-btn >> Interactive CLI Console", { pause: 900 });
+          await d.click(
+            STUDIO + "button[onclick=\"closeModal('importModal')\"]",
+            { pause: 600 },
+          );
+          await d.click(STUDIO + ".tab-btn >> Interactive CLI Console", {
+            pause: 900,
+          });
           await d.click(STUDIO + "#cliInput", { pause: 300 });
           await d.type("HGETALL customers:1", 45);
-          await d.click(STUDIO + 'button[onclick="submitCli()"]', { pause: 1200 });
-          await d.click(STUDIO + ".tab-btn >> Server Telemetry", { pause: 1300 });
+          await d.click(STUDIO + 'button[onclick="submitCli()"]', {
+            pause: 1200,
+          });
+          await d.click(STUDIO + ".tab-btn >> Server Telemetry", {
+            pause: 1300,
+          });
         },
       },
     ],
@@ -983,7 +1207,9 @@ const chapters: Chapter[] = [
 async function openChapter(ch: Chapter, _world: World) {
   await startFm(LAUNCH);
   await cdp.goto(`http://127.0.0.1:${FM_PORT}/`);
-  await cdp.eval(`[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Start')?.click()`);
+  await cdp.eval(
+    `[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Start')?.click()`,
+  );
   await sleep(700);
 
   if (ch.id === "02_all_four_connections") {
@@ -998,7 +1224,10 @@ async function openChapter(ch: Chapter, _world: World) {
     await saveAllDetectedQuiet(cdp);
     await cdp.eval(`document.querySelector('#view-files')?.click()`);
     await sleep(600);
-  } else if (ch.id === "07_studio_grid_crud_inspector" || ch.id === "08_sql_ide_er_diff_codegen") {
+  } else if (
+    ch.id === "07_studio_grid_crud_inspector" ||
+    ch.id === "08_sql_ide_er_diff_codegen"
+  ) {
     await openExpandedSqliteStudioQuiet(cdp);
   } else if (ch.id === "09_postgres_mysql_redis_studios") {
     await saveAllDetectedQuiet(cdp);
@@ -1008,8 +1237,12 @@ async function openChapter(ch: Chapter, _world: World) {
 
 const notes = (marks: Array<{ at: number; title: string }>, total: number) => {
   const REPO = "https://github.com/codecaine-zz/bun_rad_studio";
-  const text = marks.map((m, i) => `${fmtTime(i === 0 ? 0 : m.at)} ${m.title}`).join("\n");
-  const voiceLabel = GEMINI_KEY ? `Google Gemini TTS (${GEMINI_VOICE})` : `Edge neural voice (${EDGE_VOICE})`;
+  const text = marks
+    .map((m, i) => `${fmtTime(i === 0 ? 0 : m.at)} ${m.title}`)
+    .join("\n");
+  const voiceLabel = GEMINI_KEY
+    ? `Google Gemini TTS (${GEMINI_VOICE})`
+    : `Edge neural voice (${EDGE_VOICE})`;
   return `# Complete Databases & Cross-Engine Cloning Masterclass (${fmtTime(total)})
 
 ## YouTube title
@@ -1064,7 +1297,8 @@ const suite: Suite = {
   cdp: () => cdp,
   notes,
   viewHeight: VIEW_H,
-  rigMark: "🍎 Mac Studio M4 Ultra · 32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K 120Hz",
+  rigMark:
+    "🍎 Mac Studio M4 Ultra · 32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K 120Hz",
 };
 
 await runTutorial(suite, process.argv.slice(2));

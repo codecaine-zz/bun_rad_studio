@@ -1,7 +1,7 @@
 import { injectGameMasterFx } from "../src/shared/gameMasterFx";
 /**
  * ⚡ Codecaine Bros. - Overclocked Retro Arcade Studio
- * 
+ *
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
  * - Authentic 1983 Codecaine Bros. arcade remaster with high-speed bumping physics
@@ -78,7 +78,9 @@ export function generateCodecaineBrosStudioHtml(): string {
   const assetsDir = getCodecaineBrosAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Codecaine Bros.</h1>";
+  let html = existsSync(indexPath)
+    ? readFileSync(indexPath, "utf8")
+    : "<h1>Codecaine Bros.</h1>";
 
   const storagePolyfill = `
   <script>
@@ -147,9 +149,17 @@ ${getWindowShortcutsScript()}
 /**
  * Starts the Bun.serve server hosting Codecaine Bros.
  */
-export function startCodecaineBrosStudioServer(options: CodecaineBrosServerOptions = {}) {
+export function startCodecaineBrosStudioServer(
+  options: CodecaineBrosServerOptions = {},
+) {
   return startStaticStudioServer(
-    { app: "codecaine_bros_studio", name: "Codecaine Bros. - Overclocked Retro Arcade", version: "1.0.0", assetsDir: getCodecaineBrosAssetsDir(), generateHtml: generateCodecaineBrosStudioHtml },
+    {
+      app: "codecaine_bros_studio",
+      name: "Codecaine Bros. - Overclocked Retro Arcade",
+      version: "1.0.0",
+      assetsDir: getCodecaineBrosAssetsDir(),
+      generateHtml: generateCodecaineBrosStudioHtml,
+    },
     options,
   );
 }
@@ -157,7 +167,9 @@ export function startCodecaineBrosStudioServer(options: CodecaineBrosServerOptio
 /**
  * Creates the complete native desktop instance of Codecaine Bros.
  */
-export function createCodecaineBrosStudio(options: CodecaineBrosStudioOptions = {}): CodecaineBrosStudioInstance {
+export function createCodecaineBrosStudio(
+  options: CodecaineBrosStudioOptions = {},
+): CodecaineBrosStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1200);
@@ -189,7 +201,8 @@ export function createCodecaineBrosStudio(options: CodecaineBrosStudioOptions = 
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -209,11 +222,15 @@ export function createCodecaineBrosStudio(options: CodecaineBrosStudioOptions = 
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -223,16 +240,24 @@ export function createCodecaineBrosStudio(options: CodecaineBrosStudioOptions = 
         });
 
         webview.setHTML(html);
-        console.log(`⚡ Desktop window open (Fullscreen: ${fullscreen ? 'Enabled' : 'Disabled'}).`);
+        console.log(
+          `⚡ Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`,
+        );
 
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -248,10 +273,13 @@ if (process.argv.includes("--server")) {
   const port = parseInt(process.env.PORT || "0", 10);
   const srv = startCodecaineBrosStudioServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`⚡ Codecaine Bros. Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `⚡ Codecaine Bros. Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
+  const fullscreen =
+    !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
   const app = createCodecaineBrosStudio({ fullscreen });
   await app.run();
   process.exit(0);

@@ -23,7 +23,9 @@ const FFPROBE = "/opt/homebrew/opt/ffmpeg-full/bin/ffprobe";
 
 const args = process.argv.slice(2);
 const wantShots = args.includes("--shots");
-const only = (args.find((a) => !a.startsWith("--")) ?? "").split(",").filter(Boolean);
+const only = (args.find((a) => !a.startsWith("--")) ?? "")
+  .split(",")
+  .filter(Boolean);
 
 type Page = Cdp;
 interface Scene {
@@ -41,7 +43,8 @@ async function quick(c: Page, js: string) {
   await c.eval(js);
   await sleep(500);
 }
-const goView = (c: Page, v: string) => quick(c, `document.querySelector('#view-${v}').click()`);
+const goView = (c: Page, v: string) =>
+  quick(c, `document.querySelector('#view-${v}').click()`);
 const goTool = async (c: Page, t: string) => {
   await goView(c, "tools");
   await quick(c, `document.querySelector('#power-tab-${t}').click()`);
@@ -64,21 +67,34 @@ const until = async (t0: number, seconds: number) => {
   if (left > 0) await sleep(left);
 };
 
-const shot = async (c: Page, name: string) => { if (wantShots) { await sleep(300); await c.screenshot(join(SHOTS, `${name}.png`)); } };
-const tab = (c: Page, id: string, pause = 700) => c.click(`#power-tab-${id}`, { pause });
+const shot = async (c: Page, name: string) => {
+  if (wantShots) {
+    await sleep(300);
+    await c.screenshot(join(SHOTS, `${name}.png`));
+  }
+};
+const tab = (c: Page, id: string, pause = 700) =>
+  c.click(`#power-tab-${id}`, { pause });
 const pane = (id: string) => `#power-pane-${id}`;
 const DEMO_PASSWORD = "Demo-Passphrase-2026!";
 
 const scenes: Scene[] = [
   {
     id: "01_install",
-    prepare: async (c) => { await goView(c, "files"); },
+    prepare: async (c) => {
+      await goView(c, "files");
+    },
     run: async (c, dur) => {
       const t0 = performance.now();
       await sleep(800);
       await c.click("#tool-terminal", { pause: 1800 });
       await c.click("#terminal-host", { pause: 300 });
-      const line = async (cmd: string, wait: number, per = 70) => { await c.type(cmd, per); await sleep(250); await c.key("Enter", "Enter"); await sleep(wait); };
+      const line = async (cmd: string, wait: number, per = 70) => {
+        await c.type(cmd, per);
+        await sleep(250);
+        await c.key("Enter", "Enter");
+        await sleep(wait);
+      };
       await line("cd ../starter && cat package.json", 1800);
       await line("bun install", 4500);
       await shot(c, "01_a");
@@ -91,7 +107,11 @@ const scenes: Scene[] = [
   },
   {
     id: "02_home",
-    prepare: async (c) => { await goView(c, "files"); await goView(c, "home"); await sleep(600); },
+    prepare: async (c) => {
+      await goView(c, "files");
+      await goView(c, "home");
+      await sleep(600);
+    },
     run: async (c, dur) => {
       const t0 = performance.now();
       await sleep(900);
@@ -108,7 +128,9 @@ const scenes: Scene[] = [
   },
   {
     id: "03_files",
-    prepare: async (c) => { await goView(c, "files"); },
+    prepare: async (c) => {
+      await goView(c, "files");
+    },
     run: async (c, dur) => {
       const t0 = performance.now();
       await sleep(600);
@@ -132,7 +154,12 @@ const scenes: Scene[] = [
   },
   {
     id: "04_dual",
-    prepare: async (c) => { await goView(c, "files"); await goFolder(c, app); await goView(c, "dual"); await sleep(600); },
+    prepare: async (c) => {
+      await goView(c, "files");
+      await goFolder(c, app);
+      await goView(c, "dual");
+      await sleep(600);
+    },
     run: async (c, dur) => {
       const t0 = performance.now();
       await sleep(500);
@@ -153,7 +180,9 @@ const scenes: Scene[] = [
   },
   {
     id: "05_split",
-    prepare: async (c) => { await goView(c, "files"); },
+    prepare: async (c) => {
+      await goView(c, "files");
+    },
     run: async (c, dur) => {
       const t0 = performance.now();
       await sleep(500);
@@ -174,13 +203,18 @@ const scenes: Scene[] = [
   },
   {
     id: "06_code",
-    prepare: async (c) => { await goTool(c, "code"); },
+    prepare: async (c) => {
+      await goTool(c, "code");
+    },
     run: async (c, dur) => {
       const t0 = performance.now();
       await sleep(500);
       await c.click(".code-tn >> app.js", { pause: 600 });
       await c.click(".code-ta", { dy: 160, pause: 300 });
-      await c.type("\n\nconst tax = (n) => n * 1.08;\nconsole.log(tax(total(products)));", 22);
+      await c.type(
+        "\n\nconst tax = (n) => n * 1.08;\nconsole.log(tax(total(products)));",
+        22,
+      );
       await sleep(400);
       await shot(c, "06_a");
       await c.click(".code-tn >> README.md", { pause: 700 });
@@ -196,18 +230,24 @@ const scenes: Scene[] = [
   },
   {
     id: "07_dev",
-    prepare: async (c) => { await goTool(c, "dev"); },
+    prepare: async (c) => {
+      await goTool(c, "dev");
+    },
     run: async (c, dur) => {
       const t0 = performance.now();
       await sleep(500);
-      await c.click(`${pane("dev")} button >> Use current folder`, { pause: 500 });
+      await c.click(`${pane("dev")} button >> Use current folder`, {
+        pause: 500,
+      });
       await c.click(`${pane("dev")} button >> Count code`, { pause: 1800 });
       await shot(c, "07_a");
       await c.scroll("#power-body", 420, 8);
       await sleep(700);
       await c.scroll("#power-body", -420, 8);
       await c.click("#dev-tab-git", { pause: 500 });
-      await c.click(`${pane("dev")} button >> Read Git history`, { pause: 2200 });
+      await c.click(`${pane("dev")} button >> Read Git history`, {
+        pause: 2200,
+      });
       await shot(c, "07_b");
       await c.click("#dev-tab-todo", { pause: 500 });
       await c.click(`${pane("dev")} button >> Find markers`, { pause: 2000 });
@@ -219,17 +259,25 @@ const scenes: Scene[] = [
     id: "08_database",
     prepare: async (c) => {
       await goTool(c, "databases");
-      await c.click(`${pane("databases")} button >> Add connection`, { ms: 150, pause: 400 });
+      await c.click(`${pane("databases")} button >> Add connection`, {
+        ms: 150,
+        pause: 400,
+      });
       await c.click("[role=menuitem] >> SQLite", { ms: 150, pause: 600 });
       await c.type("Shop analytics", 15);
-      await c.click("#overlay input >> @/Users/you/data.sqlite", { ms: 150, pause: 200 });
+      await c.click("#overlay input >> @/Users/you/data.sqlite", {
+        ms: 150,
+        pause: 200,
+      });
       await c.type(`${app}/data/shop.sqlite`, 8);
       await c.click("#overlay button >> Save", { ms: 150, pause: 1200 });
     },
     run: async (c, dur) => {
       const t0 = performance.now();
       await sleep(900);
-      await c.click(`${pane("databases")} button >> Open in SQLite Studio`, { pause: 500 });
+      await c.click(`${pane("databases")} button >> Open in SQLite Studio`, {
+        pause: 500,
+      });
       const frame = `${pane("databases")} iframe ||| iframe |||`;
       await c.waitFor(`${frame} button >> OK`, 20000);
       await sleep(600);
@@ -237,7 +285,10 @@ const scenes: Scene[] = [
       await c.click(`${frame} .tree-item-title >> orders`, { pause: 1200 });
       await c.click(`${frame} #sqlEditor`, { pause: 300 });
       await c.key("Meta+a", "⌘ A");
-      await c.type("SELECT c.name, ROUND(SUM(o.qty * p.price), 2) AS revenue FROM orders o JOIN customers c ON c.id = o.customer_id JOIN products p ON p.id = o.product_id GROUP BY c.name ORDER BY revenue DESC;", 6);
+      await c.type(
+        "SELECT c.name, ROUND(SUM(o.qty * p.price), 2) AS revenue FROM orders o JOIN customers c ON c.id = o.customer_id JOIN products p ON p.id = o.product_id GROUP BY c.name ORDER BY revenue DESC;",
+        6,
+      );
       await sleep(400);
       await c.click(`${frame} button >> Execute`, { pause: 1500 });
       await shot(c, "08_a");
@@ -253,8 +304,12 @@ const scenes: Scene[] = [
       await c.click("#vault-pw-1-again", { ms: 150, pause: 200 });
       await c.type(DEMO_PASSWORD, 8);
       await sleep(1200);
-      await c.click(`${pane("secrets")} button >> Create my vault`, { ms: 150, pause: 500 });
-      if (!(await c.waitFor("#overlay button >> Continue", 120000))) throw new Error("the vault was not created");
+      await c.click(`${pane("secrets")} button >> Create my vault`, {
+        ms: 150,
+        pause: 500,
+      });
+      if (!(await c.waitFor("#overlay button >> Continue", 120000)))
+        throw new Error("the vault was not created");
       await c.click("#overlay input", { ms: 150, pause: 300 });
       await c.click("#overlay button >> Continue", { ms: 150, pause: 2500 });
       await c.click("#overlay button >> Close", { ms: 150, pause: 600 });
@@ -281,35 +336,52 @@ const scenes: Scene[] = [
   },
   {
     id: "10_crypto",
-    prepare: async (c) => { await goTool(c, "crypto"); },
+    prepare: async (c) => {
+      await goTool(c, "crypto");
+    },
     run: async (c, dur) => {
       const t0 = performance.now();
       await sleep(500);
       await c.click("#crypto-text-1", { pause: 300 });
       await c.key("Meta+a", "⌘ A");
       await c.type("Codecaine File Manager v1.4.2", 55);
-      await c.click(`${pane("crypto")} button >> Calculate hashes`, { pause: 1500 });
+      await c.click(`${pane("crypto")} button >> Calculate hashes`, {
+        pause: 1500,
+      });
       await shot(c, "10_a");
       await c.scroll("#power-body", 700, 10);
       await sleep(900);
       await c.scroll("#power-body", 700, 10);
       await sleep(600);
-      await c.click(`${pane("crypto")} button >> Generate password`, { pause: 1200 });
+      await c.click(`${pane("crypto")} button >> Generate password`, {
+        pause: 1200,
+      });
       await shot(c, "10_b");
       await until(t0, dur);
     },
   },
   {
     id: "11_serve",
-    prepare: async (c) => { await goTool(c, "serve"); },
+    prepare: async (c) => {
+      await goTool(c, "serve");
+    },
     run: async (c, dur) => {
       const t0 = performance.now();
       await sleep(600);
-      await c.click(`${pane("serve")} button >> Use the folder I'm looking at`, { pause: 500 });
-      await c.click(`${pane("serve")} label >> Open my browser when it starts`, { pause: 500 });
+      await c.click(
+        `${pane("serve")} button >> Use the folder I'm looking at`,
+        { pause: 500 },
+      );
+      await c.click(
+        `${pane("serve")} label >> Open my browser when it starts`,
+        { pause: 500 },
+      );
       await c.click(`${pane("serve")} button >> Start server`, { pause: 2500 });
       await shot(c, "11_a");
-      for (const path of ["/", "/style.css", "/app.js"]) await fetch(`http://127.0.0.1:5500${path}`).then((r) => r.text()).catch(() => {});
+      for (const path of ["/", "/style.css", "/app.js"])
+        await fetch(`http://127.0.0.1:5500${path}`)
+          .then((r) => r.text())
+          .catch(() => {});
       await c.click(`${pane("serve")} button >> Show log`, { pause: 1800 });
       await shot(c, "11_b");
       await until(t0, dur);
@@ -317,31 +389,41 @@ const scenes: Scene[] = [
   },
   {
     id: "12_net",
-    prepare: async (c) => { await goTool(c, "ip"); },
+    prepare: async (c) => {
+      await goTool(c, "ip");
+    },
     run: async (c, dur) => {
       const t0 = performance.now();
       await sleep(500);
       await c.click(`${pane("ip")} input.ip-target`, { pause: 300 });
       await c.type("10.20.30.0/24", 70);
-      await c.click(`${pane("ip")} button >> Subnet calculator`, { pause: 1500 });
+      await c.click(`${pane("ip")} button >> Subnet calculator`, {
+        pause: 1500,
+      });
       await shot(c, "12_a");
       await c.click(`${pane("ip")} button >> Split block`, { pause: 1500 });
       await tab(c, "net", 800);
       await c.click(`${pane("net")} button >> Localhost`, { pause: 500 });
-      await c.click(`${pane("net")} button >> Scan common ports`, { pause: 2500 });
+      await c.click(`${pane("net")} button >> Scan common ports`, {
+        pause: 2500,
+      });
       await shot(c, "12_b");
       await until(t0, dur);
     },
   },
   {
     id: "13_subs",
-    prepare: async (c) => { await goTool(c, "subs"); },
+    prepare: async (c) => {
+      await goTool(c, "subs");
+    },
     run: async (c, dur) => {
       const t0 = performance.now();
       await sleep(500);
       await c.click(`${pane("subs")} input >> @example.com`, { pause: 300 });
       await c.type("example.com", 70);
-      await c.click(`${pane("subs")} button >> Find subdomains`, { pause: 500 });
+      await c.click(`${pane("subs")} button >> Find subdomains`, {
+        pause: 500,
+      });
       await sleep(6000);
       await shot(c, "13_a");
       await c.scroll("#power-body", 700, 10);
@@ -352,7 +434,9 @@ const scenes: Scene[] = [
   },
   {
     id: "14_grave",
-    prepare: async (c) => { await goView(c, "files"); },
+    prepare: async (c) => {
+      await goView(c, "files");
+    },
     run: async (c, dur) => {
       const t0 = performance.now();
       await sleep(500);
@@ -366,7 +450,9 @@ const scenes: Scene[] = [
       await c.click("#tool-power", { pause: 800 });
       await tab(c, "grave", 1500);
       await shot(c, "14_b");
-      await c.click(`${pane("grave")} button.grave-name >> to-delete`, { pause: 1300 });
+      await c.click(`${pane("grave")} button.grave-name >> to-delete`, {
+        pause: 1300,
+      });
       await c.click(`${pane("grave")} button >> Verify`, { pause: 1500 });
       await shot(c, "14_c");
       await until(t0, dur);
@@ -374,7 +460,9 @@ const scenes: Scene[] = [
   },
   {
     id: "15_find",
-    prepare: async (c) => { await goTool(c, "find"); },
+    prepare: async (c) => {
+      await goTool(c, "find");
+    },
     run: async (c, dur) => {
       const t0 = performance.now();
       await sleep(400);
@@ -387,16 +475,22 @@ const scenes: Scene[] = [
       await c.type("oldshop.example.com", 25);
       await c.click(`${pane("sd")} input >> @function $1Sync`, { pause: 200 });
       await c.type("shop.example.com", 25);
-      await c.click(`${pane("sd")} button >> Use the open folder`, { pause: 400 });
+      await c.click(`${pane("sd")} button >> Use the open folder`, {
+        pause: 400,
+      });
       await c.click(`${pane("sd")} button >> Preview changes`, { pause: 1800 });
-      await c.click(`${pane("sd")} button.sd-file >> deploy.md`, { pause: 1500 });
+      await c.click(`${pane("sd")} button.sd-file >> deploy.md`, {
+        pause: 1500,
+      });
       await shot(c, "15_b");
       await until(t0, dur);
     },
   },
   {
     id: "16_cyberpunk",
-    prepare: async (c) => { await goView(c, "files"); },
+    prepare: async (c) => {
+      await goView(c, "files");
+    },
     run: async (c, dur) => {
       const t0 = performance.now();
       await sleep(500);
@@ -421,7 +515,10 @@ const scenes: Scene[] = [
     prepare: async (c) => {
       await goView(c, "files");
       await c.click("#tool-settings", { ms: 150, pause: 600 });
-      await c.click("#overlay button >> Choose a theme", { ms: 150, pause: 800 });
+      await c.click("#overlay button >> Choose a theme", {
+        ms: 150,
+        pause: 800,
+      });
     },
     run: async (c, dur) => {
       const t0 = performance.now();
@@ -432,7 +529,9 @@ const scenes: Scene[] = [
       await sleep(600);
       await c.click(".theme-card >> Sonoma Emerald", { pause: 1500 });
       await shot(c, "17_a");
-      await c.click("#overlay button >> Create or edit a theme", { pause: 1800 });
+      await c.click("#overlay button >> Create or edit a theme", {
+        pause: 1800,
+      });
       await shot(c, "17_b");
       await until(t0, dur);
     },
@@ -441,7 +540,16 @@ const scenes: Scene[] = [
 
 async function audioSeconds(id: string): Promise<number> {
   const file = join(AUDIO_DIR, `narration_${id}.mp3`);
-  const p = Bun.spawnSync([FFPROBE, "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file]);
+  const p = Bun.spawnSync([
+    FFPROBE,
+    "-v",
+    "error",
+    "-show_entries",
+    "format=duration",
+    "-of",
+    "csv=p=0",
+    file,
+  ]);
   return parseFloat(p.stdout.toString()) || 15;
 }
 
@@ -452,11 +560,34 @@ async function startServer() {
   mkdirSync(DATA, { recursive: true });
   // Start from a folder with no .env so no real connection details are ever picked up.
   const proc = Bun.spawn(
-    [process.execPath, join(ROOT, "applications", "file_manager_studio.ts"), "--server", "--port", String(PORT), "--home", HOME, "--data-dir", DATA, "--path", app],
-    { cwd: "/tmp", stdout: "ignore", stderr: "ignore", env: { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "", GRAVEYARD: GRAVE } },
+    [
+      process.execPath,
+      join(ROOT, "applications", "file_manager_studio.ts"),
+      "--server",
+      "--port",
+      String(PORT),
+      "--home",
+      HOME,
+      "--data-dir",
+      DATA,
+      "--path",
+      app,
+    ],
+    {
+      cwd: "/tmp",
+      stdout: "ignore",
+      stderr: "ignore",
+      env: {
+        PATH: process.env.PATH ?? "",
+        HOME: process.env.HOME ?? "",
+        GRAVEYARD: GRAVE,
+      },
+    },
   );
   for (let i = 0; i < 60; i++) {
-    try { if ((await fetch(URL)).ok) return proc; } catch {}
+    try {
+      if ((await fetch(URL)).ok) return proc;
+    } catch {}
     await sleep(250);
   }
   throw new Error("file manager server did not start");
@@ -464,7 +595,9 @@ async function startServer() {
 
 /** Dismiss dialogs, toasts and the terminal left over from the previous scene. */
 async function closeLeftovers(c: Page) {
-  await quick(c, `(() => {
+  await quick(
+    c,
+    `(() => {
     const o = document.querySelector('#overlay');
     if (o && o.children.length) {
       const b = [...o.querySelectorAll('button')].find((x) => /^(Done|Close|Cancel|OK)$/.test(x.textContent.trim()));
@@ -472,16 +605,26 @@ async function closeLeftovers(c: Page) {
     }
     document.querySelectorAll('.toast .toast-close').forEach((b) => b.click());
     document.querySelector('#terminal-close')?.click();
-  })()`);
+  })()`,
+  );
   await sleep(300);
 }
 
 async function firstRunSetup(c: Page) {
   await c.goto(URL);
-  await quick(c, `[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Start')?.click()`);
+  await quick(
+    c,
+    `[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Start')?.click()`,
+  );
   await goTool(c, "databases");
-  await quick(c, `(() => { const a = document.querySelector('#db-detect-auto'); if (a && a.checked) a.click(); })()`);
-  await quick(c, `document.querySelectorAll('#toasts button, .toast button').forEach(b => b.click())`);
+  await quick(
+    c,
+    `(() => { const a = document.querySelector('#db-detect-auto'); if (a && a.checked) a.click(); })()`,
+  );
+  await quick(
+    c,
+    `document.querySelectorAll('#toasts button, .toast button').forEach(b => b.click())`,
+  );
   await goView(c, "files");
 }
 
@@ -502,12 +645,22 @@ async function main() {
       await c.startRecording();
       const t0 = performance.now();
       let err: unknown;
-      try { await sc.run(c, dur); } catch (e) { err = e; }
+      try {
+        await sc.run(c, dur);
+      } catch (e) {
+        err = e;
+      }
       const took = (performance.now() - t0) / 1000;
       if (wantShots) await c.screenshot(join(SHOTS, `${sc.id}_end.png`));
       const out = join(LIVE_DIR, `live_${sc.id}.mp4`);
-      const r = await c.stopRecording(out, join(LIVE_DIR, `_work_${sc.id}`), dur);
-      console.log(`   actions took ${took.toFixed(1)}s, ${r.frames} frames → ${out.replace(ROOT + "/", "")}${r.speed > 1 ? `  (sped up ${r.speed.toFixed(2)}x to fit)` : ""}${r.speed >= 1.35 && took > dur * 1.35 ? "  ⚠ still too long: tail trimmed" : ""}`);
+      const r = await c.stopRecording(
+        out,
+        join(LIVE_DIR, `_work_${sc.id}`),
+        dur,
+      );
+      console.log(
+        `   actions took ${took.toFixed(1)}s, ${r.frames} frames → ${out.replace(ROOT + "/", "")}${r.speed > 1 ? `  (sped up ${r.speed.toFixed(2)}x to fit)` : ""}${r.speed >= 1.35 && took > dur * 1.35 ? "  ⚠ still too long: tail trimmed" : ""}`,
+      );
       if (err) throw err;
     }
   } finally {
@@ -516,4 +669,7 @@ async function main() {
   }
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

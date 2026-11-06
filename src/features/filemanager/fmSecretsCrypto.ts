@@ -8,14 +8,20 @@ import { totalmem } from "node:os";
 import { FmError } from "./fmPaths";
 import { checkPasswordPolicy } from "./fmVaultPolicy";
 import { VAULT_WORDS } from "./fmVaultWords";
-import { KDF_LIMITS, kdfRefusal, passwordBytes, type KdfParams } from "./fmVaultFormat";
+import {
+  KDF_LIMITS,
+  kdfRefusal,
+  passwordBytes,
+  type KdfParams,
+} from "./fmVaultFormat";
 import type { SecretsKdfParams } from "./fmSecretsHooks";
 
 export { KDF_LIMITS, kdfRefusal, passwordBytes };
 export type { KdfParams };
 
 /** One message for every reason a vault cannot be opened, so a wrong password and a damaged file look the same. */
-export const WRONG_OR_DAMAGED = "Wrong password or key, or the vault file is damaged or has been changed.";
+export const WRONG_OR_DAMAGED =
+  "Wrong password or key, or the vault file is damaged or has been changed.";
 
 /** Error subclass thrown for Secrets vault format, cryptographic, or throttling failures. */
 export class SecretsError extends FmError {}
@@ -33,19 +39,48 @@ export const DEFAULT_LEVELS: Record<Strength, SecretsKdfParams> = {
 };
 
 /** Returns the preset `Strength` name matching `p`, or `"custom"` when its parameters differ from the presets. */
-export function strengthOf(p: SecretsKdfParams, levels: Record<Strength, SecretsKdfParams>): Strength | "custom" {
-  for (const s of STRENGTHS) if (levels[s].memoryKiB === p.memoryKiB && levels[s].passes === p.passes && levels[s].parallelism === p.parallelism) return s;
+export function strengthOf(
+  p: SecretsKdfParams,
+  levels: Record<Strength, SecretsKdfParams>,
+): Strength | "custom" {
+  for (const s of STRENGTHS)
+    if (
+      levels[s].memoryKiB === p.memoryKiB &&
+      levels[s].passes === p.passes &&
+      levels[s].parallelism === p.parallelism
+    )
+      return s;
   return "custom";
 }
 
 /** Derives a subkey of `length` bytes from input key material `ikm` using HKDF-SHA-256. */
-export function hkdf(ikm: Buffer, salt: Buffer, info: string, length = 32): Buffer {
+export function hkdf(
+  ikm: Buffer,
+  salt: Buffer,
+  info: string,
+  length = 32,
+): Buffer {
   return Buffer.from(hkdfSync("sha256", ikm, salt, info, length));
 }
 
-function argon2Async(message: Buffer, salt: Buffer, p: SecretsKdfParams): Promise<Buffer> {
+function argon2Async(
+  message: Buffer,
+  salt: Buffer,
+  p: SecretsKdfParams,
+): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    argon2("argon2id", { message, nonce: salt, parallelism: p.parallelism, tagLength: 32, memory: p.memoryKiB, passes: p.passes }, (err, key) => (err ? reject(err) : resolve(Buffer.from(key))));
+    argon2(
+      "argon2id",
+      {
+        message,
+        nonce: salt,
+        parallelism: p.parallelism,
+        tagLength: 32,
+        memory: p.memoryKiB,
+        passes: p.passes,
+      },
+      (err, key) => (err ? reject(err) : resolve(Buffer.from(key))),
+    );
   });
 }
 
@@ -53,7 +88,12 @@ function argon2Async(message: Buffer, salt: Buffer, p: SecretsKdfParams): Promis
  * Password (+ optional key file) -> Argon2id -> HKDF-SHA-256 -> the key that wraps the data key.
  * The parameters are checked first, so a hostile file cannot make this program allocate unreasonable memory.
  */
-export async function derivePasswordKek(password: string, keyFile: Buffer | null, salt: Buffer, params: SecretsKdfParams): Promise<Buffer> {
+export async function derivePasswordKek(
+  password: string,
+  keyFile: Buffer | null,
+  salt: Buffer,
+  params: SecretsKdfParams,
+): Promise<Buffer> {
   if (kdfRefusal(params)) throw new SecretsError("BAD_VAULT", WRONG_OR_DAMAGED);
   const pw = passwordBytes(password);
   let master: Buffer | null = null;
@@ -67,7 +107,10 @@ export async function derivePasswordKek(password: string, keyFile: Buffer | null
     return hkdf(ikm, salt, "radsec v1 password wrap key", 32);
   } catch (err) {
     if (err instanceof SecretsError) throw err;
-    throw new SecretsError("NO_MEMORY", `This computer can't spare the ${Math.round(params.memoryKiB / 1024)} MB of memory the vault's key settings need. Close other programs and try again, or choose a lighter strength.`);
+    throw new SecretsError(
+      "NO_MEMORY",
+      `This computer can't spare the ${Math.round(params.memoryKiB / 1024)} MB of memory the vault's key settings need. Close other programs and try again, or choose a lighter strength.`,
+    );
   } finally {
     pw.fill(0);
     master?.fill(0);
@@ -107,8 +150,12 @@ export function formatRecoveryKey(key: Buffer): string {
 /** The typed recovery key as bytes, or null when it isn't one. Case, spaces and dashes don't matter; O, I and L are read as 0, 1 and 1. */
 export function parseRecoveryKey(text: unknown): Buffer | null {
   if (typeof text !== "string" || text.length > 200) return null;
-  const clean = text.toUpperCase().replace(/[\s-]/g, "").replace(/O/g, "0").replace(/[IL]/g, "1");
-  if (clean.length !== RECOVERY_KEY_BYTES * 8 / 5) return null;
+  const clean = text
+    .toUpperCase()
+    .replace(/[\s-]/g, "")
+    .replace(/O/g, "0")
+    .replace(/[IL]/g, "1");
+  if (clean.length !== (RECOVERY_KEY_BYTES * 8) / 5) return null;
   const out = Buffer.alloc(RECOVERY_KEY_BYTES);
   let bits = 0;
   let acc = 0;
@@ -128,16 +175,19 @@ export function parseRecoveryKey(text: unknown): Buffer | null {
 }
 
 /** The key that wraps the data key for "Unlock with this computer": from the 256-bit device key kept in the OS credential store. */
-export const deviceKek = (deviceKey: Buffer, vaultId: Buffer): Buffer => hkdf(deviceKey, vaultId, "radsec v1 device wrap key", 32);
+export const deviceKek = (deviceKey: Buffer, vaultId: Buffer): Buffer =>
+  hkdf(deviceKey, vaultId, "radsec v1 device wrap key", 32);
 
 /** Derives the 256-bit key-encryption key used to wrap the vault data key with a recovery key and salt. */
-export const recoveryKek = (key: Buffer, recSalt: Buffer): Buffer => hkdf(key, recSalt, "radsec v1 recovery wrap key", 32);
+export const recoveryKek = (key: Buffer, recSalt: Buffer): Buffer =>
+  hkdf(key, recSalt, "radsec v1 recovery wrap key", 32);
 
 /** A random key file's bytes (64 of them). */
 export const newKeyFileBytes = (): Buffer => randomBytes(64);
 
 /** Computes the 32-byte SHA-256 digest of `data`. */
-export const sha256 = (data: Uint8Array): Buffer => createHash("sha256").update(data).digest();
+export const sha256 = (data: Uint8Array): Buffer =>
+  createHash("sha256").update(data).digest();
 
 // ---------------------------------------------------------------------------------------------------------------
 // How strong a password is (a rough estimate) and the master-password rules
@@ -147,8 +197,13 @@ const WORD_SET = new Set(VAULT_WORDS);
 
 /** Words in a passphrase-like text (letters only, at least 3 each, separated by spaces or punctuation). */
 export function passphraseWords(text: string): string[] {
-  const parts = text.normalize("NFKC").split(/[\s\-_.,;:+]+/u).filter(Boolean);
-  return parts.length >= 3 && parts.every((w) => /^\p{L}{3,}$/u.test(w)) ? parts : [];
+  const parts = text
+    .normalize("NFKC")
+    .split(/[\s\-_.,;:+]+/u)
+    .filter(Boolean);
+  return parts.length >= 3 && parts.every((w) => /^\p{L}{3,}$/u.test(w))
+    ? parts
+    : [];
 }
 
 /** Bits of guessing effort: random characters count fully; words, patterns and repeats are counted strictly. */
@@ -157,8 +212,14 @@ export function passwordBits(password: string): number {
   const length = chars.length;
   if (length === 0) return 0;
   const words = passphraseWords(password);
-  if (words.length >= 3 && new Set(words.map((w) => w.toLowerCase())).size === words.length) {
-    return words.reduce((sum, w) => sum + (WORD_SET.has(w.toLowerCase()) ? 11 : 8), 0);
+  if (
+    words.length >= 3 &&
+    new Set(words.map((w) => w.toLowerCase())).size === words.length
+  ) {
+    return words.reduce(
+      (sum, w) => sum + (WORD_SET.has(w.toLowerCase()) ? 11 : 8),
+      0,
+    );
   }
   let pool = 0;
   if (/[a-z]/.test(password)) pool += 26;
@@ -169,9 +230,15 @@ export function passwordBits(password: string): number {
   const unique = new Set(chars).size;
   if (unique < length / 2) bits *= unique / (length / 2);
   const letters = chars.filter((c) => /[A-Za-z]/.test(c)).length;
-  if (/^[A-Za-z]+([ _.-][A-Za-z]+)*$/.test(password)) bits = Math.min(bits, letters * 2 + (length - letters));
-  else if (/^[A-Za-z]{3,}[0-9]{1,6}[^A-Za-z0-9]{0,3}$/.test(password)) bits = Math.min(bits, letters * 2 + (length - letters) * 3.3 + 6);
-  if (/(.)\1{3,}/.test(password) || /(0123|1234|2345|3456|4567|5678|6789|abcd|qwer|asdf)/i.test(password)) bits *= 0.7;
+  if (/^[A-Za-z]+([ _.-][A-Za-z]+)*$/.test(password))
+    bits = Math.min(bits, letters * 2 + (length - letters));
+  else if (/^[A-Za-z]{3,}[0-9]{1,6}[^A-Za-z0-9]{0,3}$/.test(password))
+    bits = Math.min(bits, letters * 2 + (length - letters) * 3.3 + 6);
+  if (
+    /(.)\1{3,}/.test(password) ||
+    /(0123|1234|2345|3456|4567|5678|6789|abcd|qwer|asdf)/i.test(password)
+  )
+    bits *= 0.7;
   return Math.round(bits);
 }
 
@@ -184,18 +251,26 @@ export const MIN_MASTER_WORDS = 5;
 
 /** A plain sentence saying why this master password may not be used, or null when it is acceptable. */
 export function masterProblem(password: unknown): string | null {
-  if (typeof password !== "string" || password.length === 0) return "Type a master password first.";
+  if (typeof password !== "string" || password.length === 0)
+    return "Type a master password first.";
   try {
     checkPasswordPolicy(password);
   } catch (err) {
-    return err instanceof FmError ? err.message : "That password can't be used.";
+    return err instanceof FmError
+      ? err.message
+      : "That password can't be used.";
   }
   const length = [...password.normalize("NFKC")].length;
   const words = passphraseWords(password);
-  const phrase = words.length >= MIN_MASTER_WORDS && new Set(words.map((w) => w.toLowerCase())).size === words.length && length >= 20;
+  const phrase =
+    words.length >= MIN_MASTER_WORDS &&
+    new Set(words.map((w) => w.toLowerCase())).size === words.length &&
+    length >= 20;
   if (phrase) return null;
-  if (length < MIN_MASTER_CHARS) return `The master password is too short. Use at least ${MIN_MASTER_CHARS} characters, or a passphrase of ${MIN_MASTER_WORDS} or more random words.`;
+  if (length < MIN_MASTER_CHARS)
+    return `The master password is too short. Use at least ${MIN_MASTER_CHARS} characters, or a passphrase of ${MIN_MASTER_WORDS} or more random words.`;
   const bits = passwordBits(password);
-  if (bits < MIN_MASTER_BITS) return `The master password is too easy to guess (about ${bits} bits; at least ${MIN_MASTER_BITS} are needed). Make it longer or use a passphrase of ${MIN_MASTER_WORDS} or more random words.`;
+  if (bits < MIN_MASTER_BITS)
+    return `The master password is too easy to guess (about ${bits} bits; at least ${MIN_MASTER_BITS} are needed). Make it longer or use a passphrase of ${MIN_MASTER_WORDS} or more random words.`;
   return null;
 }

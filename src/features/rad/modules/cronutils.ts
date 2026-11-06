@@ -53,7 +53,9 @@ function parseCronField(field: string, min: number, max: number): Set<number> {
 export function parseCron(expr: string): CronSchedule {
   const fields = expr.trim().split(/\s+/);
   if (fields.length !== 5) {
-    throw new Error(`[cronutils] Cron expression must have exactly 5 fields, got: "${expr}"`);
+    throw new Error(
+      `[cronutils] Cron expression must have exactly 5 fields, got: "${expr}"`,
+    );
   }
 
   return {
@@ -113,16 +115,34 @@ export function cronToHuman(expr: string): string {
   const [min, hr, dom, mon, dow] = fields;
 
   if (expr === "* * * * *") return "Every minute";
-  if (min?.startsWith("*/") && hr === "*" && dom === "*" && mon === "*" && dow === "*") {
+  if (
+    min?.startsWith("*/") &&
+    hr === "*" &&
+    dom === "*" &&
+    mon === "*" &&
+    dow === "*"
+  ) {
     return `Every ${min.slice(2)} minutes`;
   }
   if (min === "0" && hr === "0" && dom === "*" && mon === "*" && dow === "*") {
     return "Every day at midnight";
   }
-  if (min === "0" && hr?.startsWith("*/") && dom === "*" && mon === "*" && dow === "*") {
+  if (
+    min === "0" &&
+    hr?.startsWith("*/") &&
+    dom === "*" &&
+    mon === "*" &&
+    dow === "*"
+  ) {
     return `Every ${hr.slice(2)} hours on the hour`;
   }
-  if (min === "0" && hr === "0" && dom === "*" && mon === "*" && (dow === "1-5" || dow === "1,2,3,4,5")) {
+  if (
+    min === "0" &&
+    hr === "0" &&
+    dom === "*" &&
+    mon === "*" &&
+    (dow === "1-5" || dow === "1,2,3,4,5")
+  ) {
     return "Every weekday at midnight";
   }
   return `At ${hr}:${min?.padStart(2, "0")}, day of month: ${dom}, month: ${mon}, day of week: ${dow}`;

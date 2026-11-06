@@ -15,13 +15,48 @@ import { registerPowerTab } from "./power.js";
 import { currentPath, state } from "./state.js";
 
 const SECTIONS = [
-  { id: "stats", label: "Code stats", tip: "Lines of code, comments and blanks per language (tokei studio)", make: createStats },
-  { id: "project", label: "Project", tip: "What kind of project this is: scripts, dependencies, license, CI", make: createProject },
-  { id: "git", label: "Git", tip: "Branch, history, contributors and activity", make: createGit },
-  { id: "disk", label: "Disk & files", tip: "Where the space goes, heavy folders, duplicates", make: createDisk },
-  { id: "todo", label: "TODO", tip: "TODO, FIXME and other markers in your code", make: createTodo },
-  { id: "tools", label: "Tools", tip: "Developer programs installed on this computer", make: createEnv },
-  { id: "versions", label: "Versions", tip: "Compare versions, check a range like ^1.2.0, sort a list, and check a project's required versions", make: createVersions },
+  {
+    id: "stats",
+    label: "Code stats",
+    tip: "Lines of code, comments and blanks per language (tokei studio)",
+    make: createStats,
+  },
+  {
+    id: "project",
+    label: "Project",
+    tip: "What kind of project this is: scripts, dependencies, license, CI",
+    make: createProject,
+  },
+  {
+    id: "git",
+    label: "Git",
+    tip: "Branch, history, contributors and activity",
+    make: createGit,
+  },
+  {
+    id: "disk",
+    label: "Disk & files",
+    tip: "Where the space goes, heavy folders, duplicates",
+    make: createDisk,
+  },
+  {
+    id: "todo",
+    label: "TODO",
+    tip: "TODO, FIXME and other markers in your code",
+    make: createTodo,
+  },
+  {
+    id: "tools",
+    label: "Tools",
+    tip: "Developer programs installed on this computer",
+    make: createEnv,
+  },
+  {
+    id: "versions",
+    label: "Versions",
+    tip: "Compare versions, check a range like ^1.2.0, sort a list, and check a project's required versions",
+    make: createVersions,
+  },
 ];
 
 function mount(root) {
@@ -32,8 +67,14 @@ function mount(root) {
   const status = createStatus();
 
   const rootInput = h("input", {
-    type: "text", id: "dev-root", class: "dev-root", spellcheck: "false", autocomplete: "off", placeholder: "/path/to/project",
-    title: "The folder to look at. Type a location (like ~/projects/app) or use the buttons. Nothing in it is changed.",
+    type: "text",
+    id: "dev-root",
+    class: "dev-root",
+    spellcheck: "false",
+    autocomplete: "off",
+    placeholder: "/path/to/project",
+    title:
+      "The folder to look at. Type a location (like ~/projects/app) or use the buttons. Nothing in it is changed.",
   });
   const env = { getRoot: () => rootInput.value.trim() };
 
@@ -41,7 +82,10 @@ function mount(root) {
     const text = rootInput.value.trim();
     if (!text) return false;
     try {
-      const res = await call("typedpath", { text, cwd: currentPath() || state.home });
+      const res = await call("typedpath", {
+        text,
+        cwd: currentPath() || state.home,
+      });
       if (!res.exists || !res.isDir) {
         status.set(`“${text}” isn't a folder that exists.`, true);
         return false;
@@ -56,7 +100,11 @@ function mount(root) {
   }
 
   function useFolder(path) {
-    if (!path) return status.set("There is no folder to use yet. Open a folder in the file list first.", true);
+    if (!path)
+      return status.set(
+        "There is no folder to use yet. Open a folder in the file list first.",
+        true,
+      );
     if (rootInput.value && rootInput.value !== path) {
       for (const s of built.values()) s.cancel?.();
     }
@@ -66,11 +114,17 @@ function mount(root) {
   }
 
   function selectedFolder() {
-    const picked = state.entries.filter((e) => state.selection.has(e.path) && e.isDir);
+    const picked = state.entries.filter(
+      (e) => state.selection.has(e.path) && e.isDir,
+    );
     return picked.length === 1 ? picked[0].path : "";
   }
 
-  const tablist = h("div", { class: "dev-tabs", role: "tablist", "aria-label": "Developer information" });
+  const tablist = h("div", {
+    class: "dev-tabs",
+    role: "tablist",
+    "aria-label": "Developer information",
+  });
   const panels = h("div", { class: "dev-panels" });
   const tabButtons = new Map();
 
@@ -79,7 +133,17 @@ function mount(root) {
     if (!s) {
       const def = SECTIONS.find((x) => x.id === id);
       s = def.make(env);
-      s.panel = h("div", { class: "dev-panel", role: "tabpanel", id: `dev-panel-${id}`, "aria-labelledby": `dev-tab-${id}`, hidden: true }, s.el);
+      s.panel = h(
+        "div",
+        {
+          class: "dev-panel",
+          role: "tabpanel",
+          id: `dev-panel-${id}`,
+          "aria-labelledby": `dev-tab-${id}`,
+          hidden: true,
+        },
+        s.el,
+      );
       panels.append(s.panel);
       built.set(id, s);
     }
@@ -101,13 +165,36 @@ function mount(root) {
   }
 
   for (const def of SECTIONS) {
-    const b = h("button", { type: "button", role: "tab", id: `dev-tab-${def.id}`, class: "dev-tab", "aria-selected": "false", "aria-controls": `dev-panel-${def.id}`, tabindex: "-1", title: `${def.label}: ${def.tip}`, onclick: () => select(def.id) }, def.label);
+    const b = h(
+      "button",
+      {
+        type: "button",
+        role: "tab",
+        id: `dev-tab-${def.id}`,
+        class: "dev-tab",
+        "aria-selected": "false",
+        "aria-controls": `dev-panel-${def.id}`,
+        tabindex: "-1",
+        title: `${def.label}: ${def.tip}`,
+        onclick: () => select(def.id),
+      },
+      def.label,
+    );
     tabButtons.set(def.id, b);
     tablist.append(b);
   }
   tablist.addEventListener("keydown", (e) => {
     const i = SECTIONS.findIndex((s) => s.id === active);
-    const next = e.key === "ArrowRight" ? (i + 1) % SECTIONS.length : e.key === "ArrowLeft" ? (i + SECTIONS.length - 1) % SECTIONS.length : e.key === "Home" ? 0 : e.key === "End" ? SECTIONS.length - 1 : -1;
+    const next =
+      e.key === "ArrowRight"
+        ? (i + 1) % SECTIONS.length
+        : e.key === "ArrowLeft"
+          ? (i + SECTIONS.length - 1) % SECTIONS.length
+          : e.key === "Home"
+            ? 0
+            : e.key === "End"
+              ? SECTIONS.length - 1
+              : -1;
     if (next >= 0) {
       e.preventDefault();
       select(SECTIONS[next].id, { focus: true });
@@ -123,14 +210,35 @@ function mount(root) {
   rootInput.addEventListener("change", normalize);
 
   root.append(
-    h("div", { class: "pw-card dev-target" },
+    h(
+      "div",
+      { class: "pw-card dev-target" },
       h("h3", {}, "Developer information"),
-      h("div", { class: "pw-row" },
-        h("label", { class: "pw-field dev-root-field" }, "Folder to look at", rootInput),
-        btn("Use current folder", "Look at the folder the file list is showing now.", () => useFolder(currentPath())),
-        btn("Use selected folder", "Look at the folder that is selected in the file list.", () => useFolder(selectedFolder()))),
-      status.el),
-    tablist, panels);
+      h(
+        "div",
+        { class: "pw-row" },
+        h(
+          "label",
+          { class: "pw-field dev-root-field" },
+          "Folder to look at",
+          rootInput,
+        ),
+        btn(
+          "Use current folder",
+          "Look at the folder the file list is showing now.",
+          () => useFolder(currentPath()),
+        ),
+        btn(
+          "Use selected folder",
+          "Look at the folder that is selected in the file list.",
+          () => useFolder(selectedFolder()),
+        ),
+      ),
+      status.el,
+    ),
+    tablist,
+    panels,
+  );
 
   return {
     show(opts) {
@@ -141,7 +249,9 @@ function mount(root) {
         autoRoot = currentPath() || state.home || "";
         rootInput.value = autoRoot;
       }
-      const wanted = SECTIONS.some((s) => s.id === opts?.section) ? opts.section : active;
+      const wanted = SECTIONS.some((s) => s.id === opts?.section)
+        ? opts.section
+        : active;
       select(wanted);
       if (opts?.root && opts.run !== false) {
         const s = section(wanted);
@@ -154,4 +264,11 @@ function mount(root) {
   };
 }
 
-registerPowerTab({ id: "dev", label: "Dev", icon: "🧑‍💻", tip: "Developer information about a folder: lines of code (tokei studio), project, Git, disk, TODO markers", group: "files", mount });
+registerPowerTab({
+  id: "dev",
+  label: "Dev",
+  icon: "🧑‍💻",
+  tip: "Developer information about a folder: lines of code (tokei studio), project, Git, disk, TODO markers",
+  group: "files",
+  mount,
+});

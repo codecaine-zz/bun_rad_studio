@@ -10,7 +10,15 @@
  */
 import { promises as fsp } from "fs";
 import * as nodePath from "path";
-import { formatHumanSize, getGraveyardDir, loadManifestChecked, saveManifest, type GraveyardItem, type GraveyardManifest, type RipFileType } from "../../../applications/rip_engine";
+import {
+  formatHumanSize,
+  getGraveyardDir,
+  loadManifestChecked,
+  saveManifest,
+  type GraveyardItem,
+  type GraveyardManifest,
+  type RipFileType,
+} from "../../../applications/rip_engine";
 import type { FmContext } from "./fmCore";
 import { FmError, isSameOrInside } from "./fmPaths";
 
@@ -26,28 +34,52 @@ export const MAX_QUERY_LENGTH = 200;
 export const MAX_PAGE_SIZE = 500;
 
 /** Resolves the active graveyard directory path for the given `FmContext`. */
-export const graveyardDirOf = (ctx: FmContext): string => getGraveyardDir(ctx.graveyardDir);
+export const graveyardDirOf = (ctx: FmContext): string =>
+  getGraveyardDir(ctx.graveyardDir);
 /** Returns the `<graveyard>/entries` subdirectory path holding buried item payloads. */
-export const entriesDirOf = (dir: string): string => nodePath.join(dir, "entries");
+export const entriesDirOf = (dir: string): string =>
+  nodePath.join(dir, "entries");
 /** Returns the `<graveyard>/.staging` directory path used for cross-device temporary copies. */
-export const stagingDirOf = (dir: string): string => nodePath.join(dir, ".staging");
+export const stagingDirOf = (dir: string): string =>
+  nodePath.join(dir, ".staging");
 /** Returns the `<graveyard>/manifest.json` file path storing graveyard records. */
-export const manifestFileOf = (dir: string): string => nodePath.join(dir, "manifest.json");
+export const manifestFileOf = (dir: string): string =>
+  nodePath.join(dir, "manifest.json");
 
 /** Checks that `name` is a single safe basename without path separators, NUL bytes, or `.`/`..`. */
 export function isPlainName(name: unknown): name is string {
-  return typeof name === "string" && name.length > 0 && name.length <= 255 && !/[/\\\0]/.test(name) && name !== "." && name !== "..";
+  return (
+    typeof name === "string" &&
+    name.length > 0 &&
+    name.length <= 255 &&
+    !/[/\\\0]/.test(name) &&
+    name !== "." &&
+    name !== ".."
+  );
 }
 
 /** Type guard verifying that a parsed manifest record has a valid burial `id`, plain `name`, `originalPath`, and timestamp. */
 export function isValidItem(item: any): item is GraveyardItem {
-  return !!item && typeof item === "object" && typeof item.id === "string" && ENTRY_ID.test(item.id) && isPlainName(item.name) && typeof item.originalPath === "string" && Number.isFinite(item.buriedAtMs) && typeof item.status === "string";
+  return (
+    !!item &&
+    typeof item === "object" &&
+    typeof item.id === "string" &&
+    ENTRY_ID.test(item.id) &&
+    isPlainName(item.name) &&
+    typeof item.originalPath === "string" &&
+    Number.isFinite(item.buriedAtMs) &&
+    typeof item.status === "string"
+  );
 }
 
 /** Where an item's files are: `<graveyard>/entries/<id>/<name>`. */
-export const payloadDirOf = (dir: string, id: string): string => nodePath.join(entriesDirOf(dir), id);
+export const payloadDirOf = (dir: string, id: string): string =>
+  nodePath.join(entriesDirOf(dir), id);
 /** Returns the full path to a buried item's payload inside `<graveyard>/entries/<id>/<name>`. */
-export const payloadOf = (dir: string, item: { id: string; name: string }): string => nodePath.join(payloadDirOf(dir, item.id), item.name);
+export const payloadOf = (
+  dir: string,
+  item: { id: string; name: string },
+): string => nodePath.join(payloadDirOf(dir, item.id), item.name);
 
 // ---------------------------------------------------------------------------------------------------------------
 // Reading
@@ -112,9 +144,21 @@ export async function readGrave(dir: string): Promise<GraveState> {
       truncated = true;
       break;
     }
-    buried.push({ item, key: `${item.name}\n${item.originalPath}`.toLowerCase() });
+    buried.push({
+      item,
+      key: `${item.name}\n${item.originalPath}`.toLowerCase(),
+    });
   }
-  const state: GraveState = { dir, exists, damaged, manifest, buried, history, invalid, truncated };
+  const state: GraveState = {
+    dir,
+    exists,
+    damaged,
+    manifest,
+    buried,
+    history,
+    invalid,
+    truncated,
+  };
   cache.set(dir, { sig, state });
   return state;
 }
@@ -129,15 +173,26 @@ const locks = new Map<string, Promise<unknown>>();
  * Loads the records fresh, lets `fn` change them, and saves them, one writer at a time per graveyard. `fn` must be
  * quick (no file work): slow things happen before or after. Refuses when the record file is damaged.
  */
-export function withManifest<T>(dir: string, fn: (manifest: GraveyardManifest) => T): Promise<T> {
+export function withManifest<T>(
+  dir: string,
+  fn: (manifest: GraveyardManifest) => T,
+): Promise<T> {
   const previous = locks.get(dir) ?? Promise.resolve();
   const run = async (): Promise<T> => {
     const { manifest, damaged } = loadManifestChecked(dir);
-    if (damaged) throw new FmError("DAMAGED", "The graveyard's record file is damaged, so nothing can be changed yet. Open Verify and choose Repair first.");
+    if (damaged)
+      throw new FmError(
+        "DAMAGED",
+        "The graveyard's record file is damaged, so nothing can be changed yet. Open Verify and choose Repair first.",
+      );
     const result = fn(manifest);
     const old = manifest.items.filter((i) => i && i.status !== "buried");
     if (old.length > MAX_HISTORY) {
-      const drop = new Set(old.sort((a, b) => (b.buriedAtMs ?? 0) - (a.buriedAtMs ?? 0)).slice(MAX_HISTORY));
+      const drop = new Set(
+        old
+          .sort((a, b) => (b.buriedAtMs ?? 0) - (a.buriedAtMs ?? 0))
+          .slice(MAX_HISTORY),
+      );
       manifest.items = manifest.items.filter((i) => !drop.has(i));
     }
     saveManifest(dir, manifest);
@@ -145,14 +200,21 @@ export function withManifest<T>(dir: string, fn: (manifest: GraveyardManifest) =
     return result;
   };
   const next = previous.then(run, run);
-  locks.set(dir, next.catch(() => {}));
+  locks.set(
+    dir,
+    next.catch(() => {}),
+  );
   return next;
 }
 
 /** Throws unless the records can be changed (the file isn't damaged). Called before anything is moved. */
 export async function assertWritable(dir: string): Promise<void> {
   const { damaged } = loadManifestChecked(dir);
-  if (damaged) throw new FmError("DAMAGED", "The graveyard's record file is damaged, so nothing can be changed yet. Open Verify and choose Repair first.");
+  if (damaged)
+    throw new FmError(
+      "DAMAGED",
+      "The graveyard's record file is damaged, so nothing can be changed yet. Open Verify and choose Repair first.",
+    );
 }
 
 /** Collects new records and saves them together, in small groups when the graveyard is big. */
@@ -162,7 +224,10 @@ export function createRecorder(dir: string, batch = 1) {
     if (!pending.length) return;
     const items = pending.splice(0, pending.length);
     try {
-      await withManifest(dir, (m) => void m.items.unshift(...[...items].reverse()));
+      await withManifest(
+        dir,
+        (m) => void m.items.unshift(...[...items].reverse()),
+      );
     } catch (err) {
       pending.unshift(...items);
       throw err;
@@ -180,7 +245,10 @@ export function createRecorder(dir: string, batch = 1) {
 const claimed = new Set<string>();
 
 /** Marks ids as being worked on, so two requests can't restore or delete the same item at once. */
-export function claim(dir: string, ids: string[]): { got: string[]; busy: string[]; release: () => void } {
+export function claim(
+  dir: string,
+  ids: string[],
+): { got: string[]; busy: string[]; release: () => void } {
   const got: string[] = [];
   const busy: string[] = [];
   for (const id of ids) {
@@ -191,7 +259,11 @@ export function claim(dir: string, ids: string[]): { got: string[]; busy: string
       got.push(id);
     }
   }
-  return { got, busy, release: () => got.forEach((id) => claimed.delete(`${dir}\0${id}`)) };
+  return {
+    got,
+    busy,
+    release: () => got.forEach((id) => claimed.delete(`${dir}\0${id}`)),
+  };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -218,8 +290,13 @@ export interface GraveRow {
 
 /** Converts a `GraveyardItem` record into a UI-ready `GraveRow`. */
 export function rowOf(item: GraveyardItem): GraveRow {
-  const size = Number.isFinite(item.sizeBytes) && item.sizeBytes > 0 ? item.sizeBytes : 0;
-  const type: RipFileType = (["file", "directory", "symlink", "other"] as const).includes(item.type as never) ? item.type : "file";
+  const size =
+    Number.isFinite(item.sizeBytes) && item.sizeBytes > 0 ? item.sizeBytes : 0;
+  const type: RipFileType = (
+    ["file", "directory", "symlink", "other"] as const
+  ).includes(item.type as never)
+    ? item.type
+    : "file";
   const unknown = !item.originalPath || !nodePath.isAbsolute(item.originalPath);
   return {
     id: item.id,
@@ -230,7 +307,10 @@ export function rowOf(item: GraveyardItem): GraveRow {
     sizeBytes: size,
     humanSize: formatHumanSize(size),
     fileCount: Number.isFinite(item.fileCount) ? item.fileCount : 0,
-    buriedAt: typeof item.buriedAt === "string" ? item.buriedAt : new Date(item.buriedAtMs).toISOString(),
+    buriedAt:
+      typeof item.buriedAt === "string"
+        ? item.buriedAt
+        : new Date(item.buriedAtMs).toISOString(),
     buriedAtMs: item.buriedAtMs,
     unknownOrigin: unknown,
   };
@@ -252,18 +332,48 @@ export interface GraveQuery {
   pageSize: number;
 }
 
-const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+const collator = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: "base",
+});
 
 /** Parses and validates a request body into a normalized `GraveQuery`. */
 export function parseQuery(body: Record<string, any>): GraveQuery {
-  const query = typeof body.query === "string" ? body.query.slice(0, MAX_QUERY_LENGTH) : "";
-  const filter: GraveFilter = body.filter === "here" || body.filter === "files" || body.filter === "folders" ? body.filter : "all";
-  const sort: GraveSort = body.sort === "name" || body.sort === "size" || body.sort === "folder" || body.sort === "type" ? body.sort : "buried";
-  const dir = body.dir === "asc" || body.dir === "desc" ? body.dir : sort === "buried" || sort === "size" ? "desc" : "asc";
+  const query =
+    typeof body.query === "string" ? body.query.slice(0, MAX_QUERY_LENGTH) : "";
+  const filter: GraveFilter =
+    body.filter === "here" ||
+    body.filter === "files" ||
+    body.filter === "folders"
+      ? body.filter
+      : "all";
+  const sort: GraveSort =
+    body.sort === "name" ||
+    body.sort === "size" ||
+    body.sort === "folder" ||
+    body.sort === "type"
+      ? body.sort
+      : "buried";
+  const dir =
+    body.dir === "asc" || body.dir === "desc"
+      ? body.dir
+      : sort === "buried" || sort === "size"
+        ? "desc"
+        : "asc";
   const pageNumber = Number(body.page);
   const sizeNumber = Number(body.pageSize);
-  const folder = typeof body.folder === "string" && body.folder && !body.folder.includes("\0") && nodePath.isAbsolute(body.folder) ? nodePath.resolve(body.folder) : "";
-  if (filter === "here" && !folder) throw new FmError("BAD_REQUEST", "Open a folder first: \"From the current folder\" needs one.");
+  const folder =
+    typeof body.folder === "string" &&
+    body.folder &&
+    !body.folder.includes("\0") &&
+    nodePath.isAbsolute(body.folder)
+      ? nodePath.resolve(body.folder)
+      : "";
+  if (filter === "here" && !folder)
+    throw new FmError(
+      "BAD_REQUEST",
+      'Open a folder first: "From the current folder" needs one.',
+    );
   return {
     query,
     filter,
@@ -271,7 +381,9 @@ export function parseQuery(body: Record<string, any>): GraveQuery {
     sort,
     dir,
     page: Number.isInteger(pageNumber) && pageNumber >= 1 ? pageNumber : 1,
-    pageSize: Number.isInteger(sizeNumber) ? Math.min(MAX_PAGE_SIZE, Math.max(1, sizeNumber)) : 100,
+    pageSize: Number.isInteger(sizeNumber)
+      ? Math.min(MAX_PAGE_SIZE, Math.max(1, sizeNumber))
+      : 100,
   };
 }
 
@@ -282,30 +394,54 @@ export function filterItems(state: GraveState, q: GraveQuery): Indexed[] {
   return state.buried.filter(({ item, key }) => {
     if (q.filter === "files" && item.type === "directory") return false;
     if (q.filter === "folders" && item.type !== "directory") return false;
-    if (q.filter === "here" && (!item.originalPath || item.originalPath === q.folder || !isSameOrInside(item.originalPath, q.folder))) return false;
+    if (
+      q.filter === "here" &&
+      (!item.originalPath ||
+        item.originalPath === q.folder ||
+        !isSameOrInside(item.originalPath, q.folder))
+    )
+      return false;
     return terms.every((t) => key.includes(t));
   });
 }
 
 /** Filters, sorts, and paginates buried items from `state` according to `q`. */
-export function runQuery(state: GraveState, q: GraveQuery): { total: number; pages: number; page: number; items: GraveyardItem[] } {
+export function runQuery(
+  state: GraveState,
+  q: GraveQuery,
+): { total: number; pages: number; page: number; items: GraveyardItem[] } {
   const list = filterItems(state, q);
   const sign = q.dir === "asc" ? 1 : -1;
-  const folderOf = (i: GraveyardItem) => (i.originalPath ? nodePath.dirname(i.originalPath) : "");
+  const folderOf = (i: GraveyardItem) =>
+    i.originalPath ? nodePath.dirname(i.originalPath) : "";
   const compare = (a: Indexed, b: Indexed): number => {
     let c = 0;
     if (q.sort === "name") c = collator.compare(a.item.name, b.item.name);
-    else if (q.sort === "size") c = (a.item.sizeBytes || 0) - (b.item.sizeBytes || 0);
-    else if (q.sort === "folder") c = collator.compare(folderOf(a.item), folderOf(b.item));
-    else if (q.sort === "type") c = collator.compare(a.item.type ?? "", b.item.type ?? "");
+    else if (q.sort === "size")
+      c = (a.item.sizeBytes || 0) - (b.item.sizeBytes || 0);
+    else if (q.sort === "folder")
+      c = collator.compare(folderOf(a.item), folderOf(b.item));
+    else if (q.sort === "type")
+      c = collator.compare(a.item.type ?? "", b.item.type ?? "");
     else c = a.item.buriedAtMs - b.item.buriedAtMs;
-    return c * sign || b.item.buriedAtMs - a.item.buriedAtMs || (a.item.id < b.item.id ? -1 : 1);
+    return (
+      c * sign ||
+      b.item.buriedAtMs - a.item.buriedAtMs ||
+      (a.item.id < b.item.id ? -1 : 1)
+    );
   };
   const sorted = list === state.buried ? [...list] : list;
   sorted.sort(compare);
   const pages = Math.max(1, Math.ceil(sorted.length / q.pageSize));
   const page = Math.min(q.page, pages);
-  return { total: sorted.length, pages, page, items: sorted.slice((page - 1) * q.pageSize, page * q.pageSize).map((x) => x.item) };
+  return {
+    total: sorted.length,
+    pages,
+    page,
+    items: sorted
+      .slice((page - 1) * q.pageSize, page * q.pageSize)
+      .map((x) => x.item),
+  };
 }
 
 /** High-level statistics and disk space summary for the graveyard status view. */
@@ -330,7 +466,10 @@ async function freeSpace(dir: string): Promise<GraveStats["free"]> {
   for (;;) {
     try {
       const s = await fsp.statfs(current);
-      return { freeBytes: Number(s.bavail) * Number(s.bsize), totalBytes: Number(s.blocks) * Number(s.bsize) };
+      return {
+        freeBytes: Number(s.bavail) * Number(s.bsize),
+        totalBytes: Number(s.blocks) * Number(s.bsize),
+      };
     } catch {
       const parent = nodePath.dirname(current);
       if (parent === current) return null;
@@ -373,15 +512,21 @@ export async function graveStats(ctx: FmContext): Promise<GraveStats> {
 }
 
 /** The buried items chosen by id. Ids that aren't in the graveyard are reported, never guessed at. */
-export function pickByIds(state: GraveState, ids: unknown): { items: GraveyardItem[]; unknown: string[] } {
-  if (!Array.isArray(ids) || ids.length === 0) throw new FmError("BAD_REQUEST", "Nothing was selected.");
-  if (ids.length > MAX_LISTED) throw new FmError("BAD_REQUEST", "That is too many items at once.");
+export function pickByIds(
+  state: GraveState,
+  ids: unknown,
+): { items: GraveyardItem[]; unknown: string[] } {
+  if (!Array.isArray(ids) || ids.length === 0)
+    throw new FmError("BAD_REQUEST", "Nothing was selected.");
+  if (ids.length > MAX_LISTED)
+    throw new FmError("BAD_REQUEST", "That is too many items at once.");
   const byId = new Map(state.buried.map((x) => [x.item.id, x.item]));
   const seen = new Set<string>();
   const items: GraveyardItem[] = [];
   const unknown: string[] = [];
   for (const id of ids) {
-    if (typeof id !== "string" || !ENTRY_ID.test(id)) throw new FmError("BAD_REQUEST", "That isn't a valid item.");
+    if (typeof id !== "string" || !ENTRY_ID.test(id))
+      throw new FmError("BAD_REQUEST", "That isn't a valid item.");
     if (seen.has(id)) continue;
     seen.add(id);
     const item = byId.get(id);

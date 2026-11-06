@@ -15,7 +15,14 @@ import { RedisClient } from "bun";
 import { createAdapter } from "../../db";
 import { DbError, redact } from "../../db/errors";
 import { placeholder, quoteIdent, quoteRef } from "../../db/quote";
-import type { ConnectionConfig, DbAdapter, Engine, ObjectRef, Param, WireValue } from "../../db/types";
+import type {
+  ConnectionConfig,
+  DbAdapter,
+  Engine,
+  ObjectRef,
+  Param,
+  WireValue,
+} from "../../db/types";
 import type { FmContext, FmHandler } from "./fmCore";
 import { effectiveFor, isObject, profileFor, testInputFor } from "./fmDbCommon";
 import type { CloneRedisClient } from "./fmDbHooks";
@@ -80,10 +87,21 @@ export interface DbMacro {
 /** Catalog metadata and parameter field schema for a visual macro action type. */
 export interface DbMacroCatalogEntry {
   action: DbMacroActionType;
-  category: "Data" | "Queries & Tables" | "Variables & Flow" | "Bun Runtime" | "UI & Alerts";
+  category:
+    | "Data"
+    | "Queries & Tables"
+    | "Variables & Flow"
+    | "Bun Runtime"
+    | "UI & Alerts";
   label: string;
   description: string;
-  fields: { key: string; label: string; placeholder: string; required?: boolean; multiline?: boolean }[];
+  fields: {
+    key: string;
+    label: string;
+    placeholder: string;
+    required?: boolean;
+    multiline?: boolean;
+  }[];
 }
 
 /** Target database specification for running a macro (saved profile, SQLite file on disk, or in-memory SQLite). */
@@ -177,15 +195,31 @@ export const FM_MACRO_ACTION_CATALOG: DbMacroCatalogEntry[] = [
     category: "Data",
     label: "RunSQL",
     description: "Execute an INSERT, UPDATE, DELETE, or DDL SQL statement.",
-    fields: [{ key: "sql", label: "SQL Statement", placeholder: "UPDATE customers SET tier = 'VIP' WHERE points >= 100", required: true, multiline: true }],
+    fields: [
+      {
+        key: "sql",
+        label: "SQL Statement",
+        placeholder: "UPDATE customers SET tier = 'VIP' WHERE points >= 100",
+        required: true,
+        multiline: true,
+      },
+    ],
   },
   {
     action: "OpenQuery",
     category: "Queries & Tables",
     label: "OpenQuery",
-    description: "Run a SELECT query and display its rows in the macro results pane.",
+    description:
+      "Run a SELECT query and display its rows in the macro results pane.",
     fields: [
-      { key: "sql", label: "SELECT Query", placeholder: "SELECT id, name, email, points FROM customers ORDER BY points DESC", required: true, multiline: true },
+      {
+        key: "sql",
+        label: "SELECT Query",
+        placeholder:
+          "SELECT id, name, email, points FROM customers ORDER BY points DESC",
+        required: true,
+        multiline: true,
+      },
       { key: "label", label: "Result Label", placeholder: "Top Customers" },
     ],
   },
@@ -195,7 +229,12 @@ export const FM_MACRO_ACTION_CATALOG: DbMacroCatalogEntry[] = [
     label: "OpenTable",
     description: "Open a table with optional filter and sort order.",
     fields: [
-      { key: "table", label: "Table Name", placeholder: "customers", required: true },
+      {
+        key: "table",
+        label: "Table Name",
+        placeholder: "customers",
+        required: true,
+      },
       { key: "where", label: "WHERE Filter", placeholder: "active = 1" },
       { key: "orderBy", label: "ORDER BY", placeholder: "id DESC" },
       { key: "limit", label: "Row Limit", placeholder: "100" },
@@ -207,18 +246,40 @@ export const FM_MACRO_ACTION_CATALOG: DbMacroCatalogEntry[] = [
     label: "InsertRecord",
     description: "Insert a new record into a table from a JSON object.",
     fields: [
-      { key: "table", label: "Table Name", placeholder: "audit_logs", required: true },
-      { key: "values", label: "Row Values (JSON)", placeholder: "{\"event\": \"macro_run\", \"detail\": \"Checked records\"}", required: true, multiline: true },
+      {
+        key: "table",
+        label: "Table Name",
+        placeholder: "audit_logs",
+        required: true,
+      },
+      {
+        key: "values",
+        label: "Row Values (JSON)",
+        placeholder: '{"event": "macro_run", "detail": "Checked records"}',
+        required: true,
+        multiline: true,
+      },
     ],
   },
   {
     action: "UpdateRecord",
     category: "Data",
     label: "UpdateRecord",
-    description: "Update matching records in a table using a JSON object and WHERE condition.",
+    description:
+      "Update matching records in a table using a JSON object and WHERE condition.",
     fields: [
-      { key: "table", label: "Table Name", placeholder: "customers", required: true },
-      { key: "values", label: "New Values (JSON)", placeholder: "{\"tier\": \"gold\"}", required: true },
+      {
+        key: "table",
+        label: "Table Name",
+        placeholder: "customers",
+        required: true,
+      },
+      {
+        key: "values",
+        label: "New Values (JSON)",
+        placeholder: '{"tier": "gold"}',
+        required: true,
+      },
       { key: "where", label: "WHERE Filter", placeholder: "points >= 100" },
     ],
   },
@@ -228,19 +289,45 @@ export const FM_MACRO_ACTION_CATALOG: DbMacroCatalogEntry[] = [
     label: "DeleteRecord",
     description: "Delete matching records from a table.",
     fields: [
-      { key: "table", label: "Table Name", placeholder: "audit_logs", required: true },
-      { key: "where", label: "WHERE Filter", placeholder: "created_at < '2020-01-01'" },
+      {
+        key: "table",
+        label: "Table Name",
+        placeholder: "audit_logs",
+        required: true,
+      },
+      {
+        key: "where",
+        label: "WHERE Filter",
+        placeholder: "created_at < '2020-01-01'",
+      },
     ],
   },
   {
     action: "MakeTable",
     category: "Queries & Tables",
     label: "MakeTable",
-    description: "Create a new table populated from a SELECT query (Access Make-Table Query).",
+    description:
+      "Create a new table populated from a SELECT query (Access Make-Table Query).",
     fields: [
-      { key: "targetTable", label: "New Table Name", placeholder: "vip_customers_snapshot", required: true },
-      { key: "sql", label: "Source SELECT Query", placeholder: "SELECT id, name, email, points FROM customers WHERE points >= 100", required: true, multiline: true },
-      { key: "replace", label: "Replace Existing (true/false)", placeholder: "true" },
+      {
+        key: "targetTable",
+        label: "New Table Name",
+        placeholder: "vip_customers_snapshot",
+        required: true,
+      },
+      {
+        key: "sql",
+        label: "Source SELECT Query",
+        placeholder:
+          "SELECT id, name, email, points FROM customers WHERE points >= 100",
+        required: true,
+        multiline: true,
+      },
+      {
+        key: "replace",
+        label: "Replace Existing (true/false)",
+        placeholder: "true",
+      },
     ],
   },
   {
@@ -248,18 +335,27 @@ export const FM_MACRO_ACTION_CATALOG: DbMacroCatalogEntry[] = [
     category: "Data",
     label: "EmptyTable",
     description: "Delete all rows from a table.",
-    fields: [{ key: "table", label: "Table Name", placeholder: "audit_logs", required: true }],
+    fields: [
+      {
+        key: "table",
+        label: "Table Name",
+        placeholder: "audit_logs",
+        required: true,
+      },
+    ],
   },
   {
     action: "RunCode",
     category: "Bun Runtime",
     label: "RunCode (Bun JS)",
-    description: "Execute a Bun JavaScript / TypeScript snippet with full access to CurrentDb, DoCmd, TempVars, and DLookup.",
+    description:
+      "Execute a Bun JavaScript / TypeScript snippet with full access to CurrentDb, DoCmd, TempVars, and DLookup.",
     fields: [
       {
         key: "code",
         label: "Bun JS / TS Code",
-        placeholder: "const total = await DCount('*', 'customers');\nTempVars.customerCount = total;\nDebug.print('Customers:', total);",
+        placeholder:
+          "const total = await DCount('*', 'customers');\nTempVars.customerCount = total;\nDebug.print('Customers:', total);",
         required: true,
         multiline: true,
       },
@@ -269,10 +365,21 @@ export const FM_MACRO_ACTION_CATALOG: DbMacroCatalogEntry[] = [
     action: "SetTempVar",
     category: "Variables & Flow",
     label: "SetTempVar",
-    description: "Store a value in TempVars for use in conditions, SQL templates (${TempVars.name}), or Bun JS.",
+    description:
+      "Store a value in TempVars for use in conditions, SQL templates (${TempVars.name}), or Bun JS.",
     fields: [
-      { key: "name", label: "Variable Name", placeholder: "minPoints", required: true },
-      { key: "expression", label: "Value or Expression", placeholder: "100", required: true },
+      {
+        key: "name",
+        label: "Variable Name",
+        placeholder: "minPoints",
+        required: true,
+      },
+      {
+        key: "expression",
+        label: "Value or Expression",
+        placeholder: "100",
+        required: true,
+      },
     ],
   },
   {
@@ -280,17 +387,34 @@ export const FM_MACRO_ACTION_CATALOG: DbMacroCatalogEntry[] = [
     category: "Variables & Flow",
     label: "RemoveTempVar",
     description: "Remove a variable from TempVars.",
-    fields: [{ key: "name", label: "Variable Name", placeholder: "minPoints", required: true }],
+    fields: [
+      {
+        key: "name",
+        label: "Variable Name",
+        placeholder: "minPoints",
+        required: true,
+      },
+    ],
   },
   {
     action: "MessageBox",
     category: "UI & Alerts",
     label: "MessageBox",
-    description: "Display a message box in the macro output (supports ${TempVars.name} placeholders).",
+    description:
+      "Display a message box in the macro output (supports ${TempVars.name} placeholders).",
     fields: [
-      { key: "message", label: "Message", placeholder: "Processed ${TempVars.customerCount} customer records.", required: true },
+      {
+        key: "message",
+        label: "Message",
+        placeholder: "Processed ${TempVars.customerCount} customer records.",
+        required: true,
+      },
       { key: "title", label: "Title", placeholder: "Macro Complete" },
-      { key: "type", label: "Type (info / warning / error / success)", placeholder: "info" },
+      {
+        key: "type",
+        label: "Type (info / warning / error / success)",
+        placeholder: "info",
+      },
     ],
   },
   {
@@ -305,16 +429,33 @@ export const FM_MACRO_ACTION_CATALOG: DbMacroCatalogEntry[] = [
     category: "Variables & Flow",
     label: "RunMacro",
     description: "Invoke another saved macro by name or ID.",
-    fields: [{ key: "macroName", label: "Macro Name or ID", placeholder: "Table Row Counter (Bun JS)", required: true }],
+    fields: [
+      {
+        key: "macroName",
+        label: "Macro Name or ID",
+        placeholder: "Table Row Counter (Bun JS)",
+        required: true,
+      },
+    ],
   },
   {
     action: "Assert",
     category: "Variables & Flow",
     label: "Assert",
-    description: "Verify a condition; abort the macro if it evaluates to false.",
+    description:
+      "Verify a condition; abort the macro if it evaluates to false.",
     fields: [
-      { key: "expression", label: "Condition Expression", placeholder: "Number(TempVars.customerCount) > 0", required: true },
-      { key: "message", label: "Failure Message", placeholder: "Expected at least one customer row." },
+      {
+        key: "expression",
+        label: "Condition Expression",
+        placeholder: "Number(TempVars.customerCount) > 0",
+        required: true,
+      },
+      {
+        key: "message",
+        label: "Failure Message",
+        placeholder: "Expected at least one customer row.",
+      },
     ],
   },
   {
@@ -322,13 +463,16 @@ export const FM_MACRO_ACTION_CATALOG: DbMacroCatalogEntry[] = [
     category: "Variables & Flow",
     label: "StopMacro",
     description: "Halt macro execution cleanly at this step.",
-    fields: [{ key: "reason", label: "Stop Reason", placeholder: "Completed early." }],
+    fields: [
+      { key: "reason", label: "Stop Reason", placeholder: "Completed early." },
+    ],
   },
   {
     action: "Comment",
     category: "Variables & Flow",
     label: "Comment",
-    description: "Documentation note inside the macro (no runtime side effect).",
+    description:
+      "Documentation note inside the macro (no runtime side effect).",
     fields: [{ key: "text", label: "Comment", placeholder: "Step note..." }],
   },
 ];
@@ -339,7 +483,8 @@ function defaultBuiltinMacros(): DbMacro[] {
     {
       id: "macro-table-inventory",
       name: "Table Row Counter (Bun JS)",
-      description: "Inspects all tables in the active database using CurrentDb and DCount, logs counts via Debug.print, and returns a summary table.",
+      description:
+        "Inspects all tables in the active database using CurrentDb and DCount, logs counts via Debug.print, and returns a summary table.",
       mode: "code",
       engine: "any",
       transaction: false,
@@ -370,7 +515,8 @@ return summary;`,
     {
       id: "macro-access-recordset-audit",
       name: "Customer Order Audit (Access VBA style)",
-      description: "Uses CurrentDb.OpenRecordset, DLookup, DSum, DoCmd, and TempVars just like Microsoft Access VBA modules.",
+      description:
+        "Uses CurrentDb.OpenRecordset, DLookup, DSum, DoCmd, and TempVars just like Microsoft Access VBA modules.",
       mode: "code",
       engine: "any",
       transaction: true,
@@ -416,7 +562,8 @@ return { totalCustomers, vipCount, totalRevenue, topCustomer, promoted };`,
     {
       id: "macro-safe-batch-update",
       name: "Loyalty Tier Promotion (Transactional)",
-      description: "Promotes high-point customers to VIP inside an atomic database transaction and writes an audit log entry.",
+      description:
+        "Promotes high-point customers to VIP inside an atomic database transaction and writes an audit log entry.",
       mode: "code",
       engine: "any",
       transaction: true,
@@ -453,7 +600,8 @@ return { promotedCount: updated, newTier, minPoints };`,
     {
       id: "macro-visual-actions-demo",
       name: "Quick VIP Report (Visual DoCmd + RunCode)",
-      description: "Visual Microsoft Access-style action table combining SetTempVar, RunCode (Bun JS), OpenQuery, and MessageBox.",
+      description:
+        "Visual Microsoft Access-style action table combining SetTempVar, RunCode (Bun JS), OpenQuery, and MessageBox.",
       mode: "actions",
       engine: "any",
       transaction: false,
@@ -495,7 +643,8 @@ return { promotedCount: updated, newTier, minPoints };`,
           id: "step-4",
           action: "MessageBox",
           params: {
-            message: "Found ${TempVars.vipCount} VIP customer(s) with at least ${TempVars.minPoints} points.",
+            message:
+              "Found ${TempVars.vipCount} VIP customer(s) with at least ${TempVars.minPoints} points.",
             title: "VIP Report",
             type: "success",
           },
@@ -506,7 +655,8 @@ return { promotedCount: updated, newTier, minPoints };`,
     {
       id: "macro-redis-and-multi-conn",
       name: "Redis Key Inspector & Cache Macro",
-      description: "Inspects Redis keys or SQL tables using the Bun runtime and reports key groups or table metrics.",
+      description:
+        "Inspects Redis keys or SQL tables using the Bun runtime and reports key groups or table metrics.",
       mode: "code",
       engine: "any",
       transaction: false,
@@ -544,46 +694,91 @@ function macroFilePath(ctx: FmContext): string {
 
 function sanitizeActionRow(raw: unknown, idx: number): DbMacroActionRow {
   const obj = isObject(raw) ? raw : {};
-  const validActions = new Set<string>(FM_MACRO_ACTION_CATALOG.map((c) => c.action));
-  const action = (typeof obj.action === "string" && validActions.has(obj.action) ? obj.action : "RunSQL") as DbMacroActionType;
+  const validActions = new Set<string>(
+    FM_MACRO_ACTION_CATALOG.map((c) => c.action),
+  );
+  const action = (
+    typeof obj.action === "string" && validActions.has(obj.action)
+      ? obj.action
+      : "RunSQL"
+  ) as DbMacroActionType;
   const params: Record<string, string> = {};
-  const srcParams = isObject(obj.params) ? obj.params : isObject(obj.parameters) ? obj.parameters : null;
+  const srcParams = isObject(obj.params)
+    ? obj.params
+    : isObject(obj.parameters)
+      ? obj.parameters
+      : null;
   if (srcParams) {
     for (const [k, v] of Object.entries(srcParams)) {
       if (v !== undefined && v !== null) {
-        params[String(k)] = typeof v === "object" ? JSON.stringify(v) : String(v);
+        params[String(k)] =
+          typeof v === "object" ? JSON.stringify(v) : String(v);
       }
     }
-    if (!params.where && params.whereCondition) params.where = params.whereCondition;
+    if (!params.where && params.whereCondition)
+      params.where = params.whereCondition;
     if (!params.values && params.setValues) params.values = params.setValues;
   }
   return {
-    id: typeof obj.id === "string" && obj.id.trim() ? obj.id.trim() : `step-${idx + 1}`,
+    id:
+      typeof obj.id === "string" && obj.id.trim()
+        ? obj.id.trim()
+        : `step-${idx + 1}`,
     action,
     params,
-    condition: typeof obj.condition === "string" && obj.condition.trim() ? obj.condition.trim() : undefined,
-    comment: typeof obj.comment === "string" && obj.comment.trim() ? obj.comment.trim() : undefined,
+    condition:
+      typeof obj.condition === "string" && obj.condition.trim()
+        ? obj.condition.trim()
+        : undefined,
+    comment:
+      typeof obj.comment === "string" && obj.comment.trim()
+        ? obj.comment.trim()
+        : undefined,
     enabled: obj.enabled !== false,
   };
 }
 
 function sanitizeMacroInput(raw: unknown, existing?: DbMacro): DbMacro {
-  if (!isObject(raw)) throw new FmError("BAD_REQUEST", "Provide a macro definition.");
-  const name = cleanName(typeof raw.name === "string" ? raw.name : existing?.name ?? "");
+  if (!isObject(raw))
+    throw new FmError("BAD_REQUEST", "Provide a macro definition.");
+  const name = cleanName(
+    typeof raw.name === "string" ? raw.name : (existing?.name ?? ""),
+  );
   if (!name) throw new FmError("BAD_REQUEST", "Give the macro a name.");
-  if (name.length > 120) throw new FmError("BAD_REQUEST", "Keep the macro name under 120 characters.");
+  if (name.length > 120)
+    throw new FmError(
+      "BAD_REQUEST",
+      "Keep the macro name under 120 characters.",
+    );
 
-  const mode: DbMacroMode = raw.mode === "actions" ? "actions" : raw.mode === "code" || raw.mode === "bun" ? "code" : existing?.mode ?? "code";
+  const mode: DbMacroMode =
+    raw.mode === "actions"
+      ? "actions"
+      : raw.mode === "code" || raw.mode === "bun"
+        ? "code"
+        : (existing?.mode ?? "code");
   const engine: DbMacroEngineFilter =
-    raw.engine === "any" || isEngine(raw.engine) ? raw.engine : existing?.engine ?? "any";
-  const description = typeof raw.description === "string" ? raw.description.trim().slice(0, 500) : existing?.description ?? "";
-  const code = typeof raw.code === "string" ? raw.code : existing?.code ?? "";
+    raw.engine === "any" || isEngine(raw.engine)
+      ? raw.engine
+      : (existing?.engine ?? "any");
+  const description =
+    typeof raw.description === "string"
+      ? raw.description.trim().slice(0, 500)
+      : (existing?.description ?? "");
+  const code = typeof raw.code === "string" ? raw.code : (existing?.code ?? "");
   const actions = Array.isArray(raw.actions)
     ? raw.actions.map((r, i) => sanitizeActionRow(r, i))
-    : existing?.actions ?? [];
-  const transaction = typeof raw.transaction === "boolean" ? raw.transaction : existing?.transaction ?? false;
-  const rawTimeout = Number(raw.timeoutMs ?? existing?.timeoutMs ?? DEFAULT_TIMEOUT_MS);
-  const timeoutMs = Number.isFinite(rawTimeout) ? Math.max(500, Math.min(MAX_TIMEOUT_MS, Math.trunc(rawTimeout))) : DEFAULT_TIMEOUT_MS;
+    : (existing?.actions ?? []);
+  const transaction =
+    typeof raw.transaction === "boolean"
+      ? raw.transaction
+      : (existing?.transaction ?? false);
+  const rawTimeout = Number(
+    raw.timeoutMs ?? existing?.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+  );
+  const timeoutMs = Number.isFinite(rawTimeout)
+    ? Math.max(500, Math.min(MAX_TIMEOUT_MS, Math.trunc(rawTimeout)))
+    : DEFAULT_TIMEOUT_MS;
 
   const defaultParams: Record<string, string> = {};
   if (isObject(raw.defaultParams)) {
@@ -597,7 +792,11 @@ function sanitizeMacroInput(raw: unknown, existing?: DbMacro): DbMacro {
 
   const now = new Date().toISOString();
   return {
-    id: existing?.id ?? (typeof raw.id === "string" && raw.id.trim() ? raw.id.trim() : `macro-${ crypto.randomUUID().slice(0, 8) }`),
+    id:
+      existing?.id ??
+      (typeof raw.id === "string" && raw.id.trim()
+        ? raw.id.trim()
+        : `macro-${crypto.randomUUID().slice(0, 8)}`),
     name,
     description,
     mode,
@@ -624,7 +823,12 @@ export function loadMacros(ctx: FmContext): DbMacro[] {
   try {
     const parsed = JSON.parse(readFileSync(file, "utf8"));
     if (Array.isArray(parsed?.macros)) {
-      return parsed.macros.map((m: unknown) => sanitizeMacroInput(m, isObject(m) ? (m as unknown as DbMacro) : undefined));
+      return parsed.macros.map((m: unknown) =>
+        sanitizeMacroInput(
+          m,
+          isObject(m) ? (m as unknown as DbMacro) : undefined,
+        ),
+      );
     }
   } catch {}
   const defaults = defaultBuiltinMacros();
@@ -635,7 +839,9 @@ export function loadMacros(ctx: FmContext): DbMacro[] {
 function saveMacrosFile(ctx: FmContext, macros: DbMacro[]): void {
   const file = macroFilePath(ctx);
   mkdirSync(dirname(file), { recursive: true });
-  writeFileSync(file, JSON.stringify({ version: 1, macros }, null, 2), { mode: 0o600 });
+  writeFileSync(file, JSON.stringify({ version: 1, macros }, null, 2), {
+    mode: 0o600,
+  });
 }
 
 /**
@@ -645,15 +851,24 @@ function saveMacrosFile(ctx: FmContext, macros: DbMacro[]): void {
  */
 function normalizeMacroSourceForAsyncBody(source: string): string {
   return source
-    .replace(/^\s*export\s+default\s+async\s+function\s*([A-Za-z_$][\w$]*)?/gm, (_m, fnName) =>
-      fnName ? `__exports.default = async function ${fnName}` : `__exports.default = async function`,
+    .replace(
+      /^\s*export\s+default\s+async\s+function\s*([A-Za-z_$][\w$]*)?/gm,
+      (_m, fnName) =>
+        fnName
+          ? `__exports.default = async function ${fnName}`
+          : `__exports.default = async function`,
     )
-    .replace(/^\s*export\s+default\s+function\s*([A-Za-z_$][\w$]*)?/gm, (_m, fnName) =>
-      fnName ? `__exports.default = function ${fnName}` : `__exports.default = function`,
+    .replace(
+      /^\s*export\s+default\s+function\s*([A-Za-z_$][\w$]*)?/gm,
+      (_m, fnName) =>
+        fnName
+          ? `__exports.default = function ${fnName}`
+          : `__exports.default = function`,
     )
     .replace(/^\s*export\s+default\s+/gm, "__exports.default = ")
-    .replace(/^\s*export\s+(async\s+)?function\s+([A-Za-z_$][\w$]*)/gm, (_m, asyncKw, fnName) =>
-      `${asyncKw ?? ""}function ${fnName}`,
+    .replace(
+      /^\s*export\s+(async\s+)?function\s+([A-Za-z_$][\w$]*)/gm,
+      (_m, asyncKw, fnName) => `${asyncKw ?? ""}function ${fnName}`,
     )
     .replace(/^\s*export\s+(const|let|var)\s+/gm, "$1 ");
 }
@@ -683,7 +898,10 @@ export function validateBunMacroCode(code: string): MacroValidationResult {
   }
 
   if (FORBIDDEN_MACRO_CODE_RE.test(trimmed)) {
-    errors.push({ message: "Access to host process, filesystem, or OS process APIs is restricted inside database macros." });
+    errors.push({
+      message:
+        "Access to host process, filesystem, or OS process APIs is restricted inside database macros.",
+    });
     return { valid: false, warnings, errors };
   }
 
@@ -693,15 +911,20 @@ export function validateBunMacroCode(code: string): MacroValidationResult {
   try {
     const js = tsTranspiler.transformSync(wrapped);
     if (/\bDROP\s+TABLE\b/i.test(code)) {
-      warnings.push("Macro contains DROP TABLE — consider running with Dry Run enabled first.");
+      warnings.push(
+        "Macro contains DROP TABLE — consider running with Dry Run enabled first.",
+      );
     }
     if (/\bDELETE\s+FROM\s+\w+\s*(?:;|$)/i.test(code)) {
-      warnings.push("Macro contains an unqualified DELETE FROM without a WHERE clause.");
+      warnings.push(
+        "Macro contains an unqualified DELETE FROM without a WHERE clause.",
+      );
     }
     return { valid: true, transpiledJs: js, warnings, errors };
   } catch (err: any) {
     const rawMsg = err instanceof Error ? err.message : String(err);
-    const posLine = typeof err?.line === "number" ? Math.max(1, err.line - 1) : undefined;
+    const posLine =
+      typeof err?.line === "number" ? Math.max(1, err.line - 1) : undefined;
     const posCol = typeof err?.column === "number" ? err?.column : undefined;
     errors.push({
       message: rawMsg.replace(/\s+/g, " ").trim(),
@@ -713,10 +936,15 @@ export function validateBunMacroCode(code: string): MacroValidationResult {
 }
 
 /** Validates a list of visual macro action rows for required fields, valid conditions, and JavaScript syntax. */
-export function validateMacroActions(actions: DbMacroActionRow[], knownMacroNames?: string[]): MacroValidationResult {
+export function validateMacroActions(
+  actions: DbMacroActionRow[],
+  knownMacroNames?: string[],
+): MacroValidationResult {
   const warnings: string[] = [];
   const errors: { message: string; line?: number; column?: number }[] = [];
-  const enabled = actions.filter((a) => a.enabled !== false && a.action !== "Comment");
+  const enabled = actions.filter(
+    (a) => a.enabled !== false && a.action !== "Comment",
+  );
   if (enabled.length === 0) {
     warnings.push("Macro has no enabled action rows.");
   }
@@ -726,25 +954,42 @@ export function validateMacroActions(actions: DbMacroActionRow[], knownMacroName
     if (!row.enabled || row.action === "Comment") continue;
     const cat = FM_MACRO_ACTION_CATALOG.find((c) => c.action === row.action);
     if (!cat) {
-      errors.push({ message: `Step ${i + 1}: Unknown action '${row.action}'.`, line: i + 1 });
+      errors.push({
+        message: `Step ${i + 1}: Unknown action '${row.action}'.`,
+        line: i + 1,
+      });
       continue;
     }
     for (const f of cat.fields) {
       if (f.required && !(row.params[f.key] ?? "").trim()) {
-        errors.push({ message: `Step ${i + 1} (${row.action}): '${f.label}' is required.`, line: i + 1 });
+        errors.push({
+          message: `Step ${i + 1} (${row.action}): '${f.label}' is required.`,
+          line: i + 1,
+        });
       }
     }
-    if ((row.action === "DeleteRecord" || row.action === "UpdateRecord") && !(row.params.where ?? "").trim()) {
-      warnings.push(`Step ${i + 1} (${row.action}): No WHERE filter specified; this will affect all rows in '${row.params.table || "table"}'.`);
+    if (
+      (row.action === "DeleteRecord" || row.action === "UpdateRecord") &&
+      !(row.params.where ?? "").trim()
+    ) {
+      warnings.push(
+        `Step ${i + 1} (${row.action}): No WHERE filter specified; this will affect all rows in '${row.params.table || "table"}'.`,
+      );
     }
     if (row.action === "InsertRecord" && (row.params.values ?? "").trim()) {
       try {
         const parsed = JSON.parse(row.params.values!);
         if (!isObject(parsed)) {
-          errors.push({ message: `Step ${i + 1} (${row.action}): 'Row Values' must be a JSON object.`, line: i + 1 });
+          errors.push({
+            message: `Step ${i + 1} (${row.action}): 'Row Values' must be a JSON object.`,
+            line: i + 1,
+          });
         }
       } catch {
-        errors.push({ message: `Step ${i + 1} (${row.action}): 'Row Values' must be valid JSON.`, line: i + 1 });
+        errors.push({
+          message: `Step ${i + 1} (${row.action}): 'Row Values' must be valid JSON.`,
+          line: i + 1,
+        });
       }
     }
     if (row.action === "UpdateRecord" && (row.params.values ?? "").trim()) {
@@ -753,40 +998,69 @@ export function validateMacroActions(actions: DbMacroActionRow[], knownMacroName
         try {
           const parsed = JSON.parse(v);
           if (!isObject(parsed)) {
-            errors.push({ message: `Step ${i + 1} (${row.action}): 'Values' must be a JSON object or SQL SET assignment.`, line: i + 1 });
+            errors.push({
+              message: `Step ${i + 1} (${row.action}): 'Values' must be a JSON object or SQL SET assignment.`,
+              line: i + 1,
+            });
           }
         } catch {
-          errors.push({ message: `Step ${i + 1} (${row.action}): Invalid JSON in 'Values'.`, line: i + 1 });
+          errors.push({
+            message: `Step ${i + 1} (${row.action}): Invalid JSON in 'Values'.`,
+            line: i + 1,
+          });
         }
       }
     }
-    if (row.action === "RunMacro" && knownMacroNames && (row.params.macroName ?? "").trim()) {
+    if (
+      row.action === "RunMacro" &&
+      knownMacroNames &&
+      (row.params.macroName ?? "").trim()
+    ) {
       const targetName = row.params.macroName!.trim().toLowerCase();
       if (!knownMacroNames.some((n) => n.toLowerCase() === targetName)) {
-        errors.push({ message: `Step ${i + 1} (RunMacro): Sub-macro '${row.params.macroName}' was not found.`, line: i + 1 });
+        errors.push({
+          message: `Step ${i + 1} (RunMacro): Sub-macro '${row.params.macroName}' was not found.`,
+          line: i + 1,
+        });
       }
     }
     if (row.action === "RunCode" && (row.params.code ?? "").trim()) {
       const check = validateBunMacroCode(row.params.code!);
       if (!check.valid) {
         for (const e of check.errors) {
-          errors.push({ message: `Step ${i + 1} (RunCode): ${e.message}`, line: i + 1 });
+          errors.push({
+            message: `Step ${i + 1} (RunCode): ${e.message}`,
+            line: i + 1,
+          });
         }
       }
     }
     if ((row.condition ?? "").trim()) {
-      const condCheck = validateBunMacroCode(row.condition!.replace(/\[([A-Za-z0-9_]+)\]/g, "TempVars.$1"));
+      const condCheck = validateBunMacroCode(
+        row.condition!.replace(/\[([A-Za-z0-9_]+)\]/g, "TempVars.$1"),
+      );
       if (!condCheck.valid) {
         for (const e of condCheck.errors) {
-          errors.push({ message: `Step ${i + 1} (Condition): ${e.message}`, line: i + 1 });
+          errors.push({
+            message: `Step ${i + 1} (Condition): ${e.message}`,
+            line: i + 1,
+          });
         }
       }
     }
-    if ((row.action === "SetTempVar" || row.action === "Assert") && (row.params.expression ?? "").trim()) {
-      const exprCheck = validateBunMacroCode(`return (${row.params.expression!});`);
+    if (
+      (row.action === "SetTempVar" || row.action === "Assert") &&
+      (row.params.expression ?? "").trim()
+    ) {
+      const exprCheck = validateBunMacroCode(
+        `return (${row.params.expression!});`,
+      );
       if (!exprCheck.valid) {
         for (const e of exprCheck.errors) {
-          errors.push({ message: `Step ${i + 1} (${row.action}): ${e.message}`, line: i + 1 });
+          errors.push({
+            message: `Step ${i + 1} (${row.action}): ${e.message}`,
+            line: i + 1,
+          });
         }
       }
     }
@@ -798,7 +1072,10 @@ export function validateMacroActions(actions: DbMacroActionRow[], knownMacroName
  * Converts visual Access-style Macro action rows into clean, idiomatic Bun JavaScript
  * (just like Microsoft Access's "Convert Macro to Visual Basic" command).
  */
-export function macroActionsToBunJs(name: string, actions: DbMacroActionRow[]): string {
+export function macroActionsToBunJs(
+  name: string,
+  actions: DbMacroActionRow[],
+): string {
   const lines: string[] = [
     `// Macro: ${name || "Untitled Macro"}`,
     `// Converted from Visual Actions to Bun JavaScript Runtime`,
@@ -822,7 +1099,10 @@ export function macroActionsToBunJs(name: string, actions: DbMacroActionRow[]): 
     const rawCond = (row.condition ?? "").trim();
     const cond = rawCond.replace(/\[([A-Za-z0-9_]+)\]/g, "TempVars.$1");
     if (cond && !validateBunMacroCode(cond).valid) {
-      throw new FmError("SYNTAX_ERROR", `Step ${i + 1}: Invalid condition expression.`);
+      throw new FmError(
+        "SYNTAX_ERROR",
+        `Step ${i + 1}: Invalid condition expression.`,
+      );
     }
     const indent = cond ? "  " : "";
     if (cond) {
@@ -832,7 +1112,9 @@ export function macroActionsToBunJs(name: string, actions: DbMacroActionRow[]): 
     const p = row.params;
     switch (row.action) {
       case "RunSQL":
-        lines.push(`${indent}await DoCmd.RunSQL(${JSON.stringify(p.sql ?? "")});`);
+        lines.push(
+          `${indent}await DoCmd.RunSQL(${JSON.stringify(p.sql ?? "")});`,
+        );
         break;
       case "OpenQuery":
         lines.push(
@@ -845,7 +1127,8 @@ export function macroActionsToBunJs(name: string, actions: DbMacroActionRow[]): 
         const opts: Record<string, unknown> = {};
         if (p.where?.trim()) opts.where = p.where.trim();
         if (p.orderBy?.trim()) opts.orderBy = p.orderBy.trim();
-        if (p.limit?.trim() && Number.isFinite(Number(p.limit))) opts.limit = Number(p.limit);
+        if (p.limit?.trim() && Number.isFinite(Number(p.limit)))
+          opts.limit = Number(p.limit);
         lines.push(
           Object.keys(opts).length > 0
             ? `${indent}await DoCmd.OpenTable(${JSON.stringify(p.table ?? "")}, ${JSON.stringify(opts)});`
@@ -858,7 +1141,9 @@ export function macroActionsToBunJs(name: string, actions: DbMacroActionRow[]): 
         try {
           objLiteral = JSON.stringify(JSON.parse(objLiteral));
         } catch {}
-        lines.push(`${indent}await DoCmd.InsertRecord(${JSON.stringify(p.table ?? "")}, ${objLiteral});`);
+        lines.push(
+          `${indent}await DoCmd.InsertRecord(${JSON.stringify(p.table ?? "")}, ${objLiteral});`,
+        );
         break;
       }
       case "UpdateRecord": {
@@ -875,7 +1160,9 @@ export function macroActionsToBunJs(name: string, actions: DbMacroActionRow[]): 
         break;
       }
       case "DeleteRecord":
-        lines.push(`${indent}await DoCmd.DeleteRecord(${JSON.stringify(p.table ?? "")}, ${JSON.stringify(p.where ?? "")});`);
+        lines.push(
+          `${indent}await DoCmd.DeleteRecord(${JSON.stringify(p.table ?? "")}, ${JSON.stringify(p.where ?? "")});`,
+        );
         break;
       case "MakeTable":
         lines.push(
@@ -883,18 +1170,27 @@ export function macroActionsToBunJs(name: string, actions: DbMacroActionRow[]): 
         );
         break;
       case "EmptyTable":
-        lines.push(`${indent}await DoCmd.EmptyTable(${JSON.stringify(p.table ?? "")});`);
+        lines.push(
+          `${indent}await DoCmd.EmptyTable(${JSON.stringify(p.table ?? "")});`,
+        );
         break;
       case "SetTempVar": {
         const expr = p.expression?.trim() || '""';
         if (!validateBunMacroCode(`return (${expr});`).valid) {
-          throw new FmError("SYNTAX_ERROR", `Step ${i + 1} (SetTempVar): Invalid expression.`);
+          throw new FmError(
+            "SYNTAX_ERROR",
+            `Step ${i + 1} (SetTempVar): Invalid expression.`,
+          );
         }
-        lines.push(`${indent}await DoCmd.SetTempVar(${JSON.stringify(p.name ?? "var")}, ${expr});`);
+        lines.push(
+          `${indent}await DoCmd.SetTempVar(${JSON.stringify(p.name ?? "var")}, ${expr});`,
+        );
         break;
       }
       case "RemoveTempVar":
-        lines.push(`${indent}await DoCmd.RemoveTempVar(${JSON.stringify(p.name ?? "")});`);
+        lines.push(
+          `${indent}await DoCmd.RemoveTempVar(${JSON.stringify(p.name ?? "")});`,
+        );
         break;
       case "MessageBox":
         lines.push(
@@ -905,12 +1201,17 @@ export function macroActionsToBunJs(name: string, actions: DbMacroActionRow[]): 
         lines.push(`${indent}DoCmd.Beep();`);
         break;
       case "RunMacro":
-        lines.push(`${indent}await DoCmd.RunMacro(${JSON.stringify(p.macroName ?? "")});`);
+        lines.push(
+          `${indent}await DoCmd.RunMacro(${JSON.stringify(p.macroName ?? "")});`,
+        );
         break;
       case "Assert": {
         const expr = p.expression?.trim() || "true";
         if (!validateBunMacroCode(`return (${expr});`).valid) {
-          throw new FmError("SYNTAX_ERROR", `Step ${i + 1} (Assert): Invalid expression.`);
+          throw new FmError(
+            "SYNTAX_ERROR",
+            `Step ${i + 1} (Assert): Invalid expression.`,
+          );
         }
         lines.push(
           `${indent}DoCmd.Assert(${expr}, ${JSON.stringify(p.message ?? "Macro assertion failed")});`,
@@ -918,7 +1219,9 @@ export function macroActionsToBunJs(name: string, actions: DbMacroActionRow[]): 
         break;
       }
       case "StopMacro":
-        lines.push(`${indent}DoCmd.StopMacro(${JSON.stringify(p.reason ?? "Stopped by macro")});`);
+        lines.push(
+          `${indent}DoCmd.StopMacro(${JSON.stringify(p.reason ?? "Stopped by macro")});`,
+        );
         break;
       case "RunCode": {
         const snippet = (p.code ?? "").trim();
@@ -944,9 +1247,17 @@ export function macroActionsToBunJs(name: string, actions: DbMacroActionRow[]): 
  * - `"sql"`: Extracted SQL statements
  * - `"json"`: Portable JSON macro bundle
  */
-export function exportMacroArtifact(macro: DbMacro, format: "bun" | "vba" | "sql" | "json"): { format: string; filename: string; mime: string; content: string } {
-  const safeSlug = macro.name.replace(/[^A-Za-z0-9_-]+/g, "_").replace(/^_+|_+$/g, "") || "macro";
-  const bodyCode = macro.mode === "actions" ? macroActionsToBunJs(macro.name, macro.actions) : macro.code;
+export function exportMacroArtifact(
+  macro: DbMacro,
+  format: "bun" | "vba" | "sql" | "json",
+): { format: string; filename: string; mime: string; content: string } {
+  const safeSlug =
+    macro.name.replace(/[^A-Za-z0-9_-]+/g, "_").replace(/^_+|_+$/g, "") ||
+    "macro";
+  const bodyCode =
+    macro.mode === "actions"
+      ? macroActionsToBunJs(macro.name, macro.actions)
+      : macro.code;
 
   if (format === "json") {
     return {
@@ -958,20 +1269,27 @@ export function exportMacroArtifact(macro: DbMacro, format: "bun" | "vba" | "sql
   }
 
   if (format === "sql") {
-    const sqlLines: string[] = [`-- Macro SQL Export: ${macro.name}`, `BEGIN TRANSACTION;`];
+    const sqlLines: string[] = [
+      `-- Macro SQL Export: ${macro.name}`,
+      `BEGIN TRANSACTION;`,
+    ];
     if (macro.mode === "actions") {
       for (const a of macro.actions) {
         if (!a.enabled) continue;
         if (a.comment) sqlLines.push(`-- ${a.comment}`);
         if (a.action === "RunSQL" || a.action === "OpenQuery") {
-          sqlLines.push(`${(a.params.sql ?? "").trim().replace(/;?\s*$/, ";")}`);
+          sqlLines.push(
+            `${(a.params.sql ?? "").trim().replace(/;?\s*$/, ";")}`,
+          );
         } else if (a.action === "OpenTable" && a.params.table) {
           const w = a.params.where ? ` WHERE ${a.params.where}` : "";
           const o = a.params.orderBy ? ` ORDER BY ${a.params.orderBy}` : "";
           sqlLines.push(`SELECT * FROM "${a.params.table}"${w}${o};`);
         } else if (a.action === "UpdateRecord" && a.params.table) {
           const w = a.params.where ? ` WHERE ${a.params.where}` : "";
-          sqlLines.push(`UPDATE "${a.params.table}" SET ${a.params.values ?? ""}${w};`);
+          sqlLines.push(
+            `UPDATE "${a.params.table}" SET ${a.params.values ?? ""}${w};`,
+          );
         } else if (a.action === "DeleteRecord" && a.params.table) {
           const w = a.params.where ? ` WHERE ${a.params.where}` : "";
           sqlLines.push(`DELETE FROM "${a.params.table}"${w};`);
@@ -980,7 +1298,11 @@ export function exportMacroArtifact(macro: DbMacro, format: "bun" | "vba" | "sql
         }
       }
     } else {
-      const matches = [...bodyCode.matchAll(/(?:RunSQL|OpenQuery|query|execute)\(\s*([`"'])([\s\S]*?)\1/g)];
+      const matches = [
+        ...bodyCode.matchAll(
+          /(?:RunSQL|OpenQuery|query|execute)\(\s*([`"'])([\s\S]*?)\1/g,
+        ),
+      ];
       for (const m of matches) {
         sqlLines.push(`${m[2]!.trim().replace(/;?\s*$/, ";")}`);
       }
@@ -1013,16 +1335,39 @@ export function exportMacroArtifact(macro: DbMacro, format: "bun" | "vba" | "sql
         if (!a.enabled) continue;
         if (a.comment) vba.push(`    ' ${a.comment}`);
         const esc = (s = "") => s.replace(/"/g, '""');
-        if (a.action === "RunSQL") vba.push(`    CurrentDb.Execute "${esc(a.params.sql)}", dbFailOnError`);
-        else if (a.action === "OpenQuery") vba.push(`    DoCmd.OpenQuery "${esc(a.params.label || a.params.sql)}"`);
-        else if (a.action === "OpenTable") vba.push(`    DoCmd.OpenTable "${esc(a.params.table)}"`);
-        else if (a.action === "UpdateRecord") vba.push(`    CurrentDb.Execute "UPDATE [${esc(a.params.table)}] SET ${esc(a.params.values)}${a.params.where ? ` WHERE ${esc(a.params.where)}` : ""}", dbFailOnError`);
-        else if (a.action === "DeleteRecord") vba.push(`    CurrentDb.Execute "DELETE FROM [${esc(a.params.table)}]${a.params.where ? ` WHERE ${esc(a.params.where)}` : ""}", dbFailOnError`);
-        else if (a.action === "SetTempVar") vba.push(`    TempVars.Add "${esc(a.params.name)}", ${a.params.expression || '""'}`);
-        else if (a.action === "RemoveTempVar") vba.push(`    TempVars.Remove "${esc(a.params.name)}"`);
-        else if (a.action === "MessageBox") vba.push(`    MsgBox "${esc(a.params.message)}", vbInformation, "${esc(a.params.title || "Macro")}"`);
+        if (a.action === "RunSQL")
+          vba.push(
+            `    CurrentDb.Execute "${esc(a.params.sql)}", dbFailOnError`,
+          );
+        else if (a.action === "OpenQuery")
+          vba.push(
+            `    DoCmd.OpenQuery "${esc(a.params.label || a.params.sql)}"`,
+          );
+        else if (a.action === "OpenTable")
+          vba.push(`    DoCmd.OpenTable "${esc(a.params.table)}"`);
+        else if (a.action === "UpdateRecord")
+          vba.push(
+            `    CurrentDb.Execute "UPDATE [${esc(a.params.table)}] SET ${esc(a.params.values)}${a.params.where ? ` WHERE ${esc(a.params.where)}` : ""}", dbFailOnError`,
+          );
+        else if (a.action === "DeleteRecord")
+          vba.push(
+            `    CurrentDb.Execute "DELETE FROM [${esc(a.params.table)}]${a.params.where ? ` WHERE ${esc(a.params.where)}` : ""}", dbFailOnError`,
+          );
+        else if (a.action === "SetTempVar")
+          vba.push(
+            `    TempVars.Add "${esc(a.params.name)}", ${a.params.expression || '""'}`,
+          );
+        else if (a.action === "RemoveTempVar")
+          vba.push(`    TempVars.Remove "${esc(a.params.name)}"`);
+        else if (a.action === "MessageBox")
+          vba.push(
+            `    MsgBox "${esc(a.params.message)}", vbInformation, "${esc(a.params.title || "Macro")}"`,
+          );
         else if (a.action === "Beep") vba.push(`    DoCmd.Beep`);
-        else if (a.action === "RunCode") vba.push(`    ' [Bun JS RunCode]: ${(a.params.code ?? "").replace(/\r?\n/g, " | ")}`);
+        else if (a.action === "RunCode")
+          vba.push(
+            `    ' [Bun JS RunCode]: ${(a.params.code ?? "").replace(/\r?\n/g, " | ")}`,
+          );
         else if (a.action === "StopMacro") vba.push(`    Exit Sub`);
       }
     } else {
@@ -1146,7 +1491,10 @@ interface ResolvedMacroTarget {
   readOnly: boolean;
 }
 
-async function resolveMacroTarget(ctx: FmContext, spec: unknown): Promise<ResolvedMacroTarget> {
+async function resolveMacroTarget(
+  ctx: FmContext,
+  spec: unknown,
+): Promise<ResolvedMacroTarget> {
   if (!isObject(spec) || !spec.kind || spec.kind === "memory") {
     return {
       kind: "memory",
@@ -1170,7 +1518,11 @@ async function resolveMacroTarget(ctx: FmContext, spec: unknown): Promise<Resolv
     const eff = await effectiveFor(ctx, profile.engine, profile);
     const ti = testInputFor(profile, eff.resolved);
     if (profile.engine === "sqlite" && ti.path) {
-      ti.path = await checkSqlitePath(ctx, ti.path, ti.sqliteMode ?? "readwrite");
+      ti.path = await checkSqlitePath(
+        ctx,
+        ti.path,
+        ti.sqliteMode ?? "readwrite",
+      );
     }
     return {
       kind: "profile",
@@ -1181,7 +1533,9 @@ async function resolveMacroTarget(ctx: FmContext, spec: unknown): Promise<Resolv
       testInput: ti,
       passwordSecret: eff.password ?? undefined,
       production: profile.environment === "production",
-      readOnly: profile.readOnly === true || (profile.engine === "sqlite" && ti.sqliteMode === "readonly"),
+      readOnly:
+        profile.readOnly === true ||
+        (profile.engine === "sqlite" && ti.sqliteMode === "readonly"),
     };
   }
 
@@ -1204,15 +1558,26 @@ async function resolveMacroTarget(ctx: FmContext, spec: unknown): Promise<Resolv
     };
   }
 
-  throw new FmError("BAD_REQUEST", "Choose a valid database connection, SQLite file, or the Scratch database.");
+  throw new FmError(
+    "BAD_REQUEST",
+    "Choose a valid database connection, SQLite file, or the Scratch database.",
+  );
 }
 
-async function openMacroSqlAdapter(ctx: FmContext, target: ResolvedMacroTarget): Promise<DbAdapter> {
+async function openMacroSqlAdapter(
+  ctx: FmContext,
+  target: ResolvedMacroTarget,
+): Promise<DbAdapter> {
   const i = target.testInput;
   const config: ConnectionConfig = {
     engine: target.engine as Engine,
     path: i.path,
-    sqliteMode: i.path === ":memory:" ? "memory" : i.sqliteMode === "create" ? "readwrite" : (i.sqliteMode ?? "readwrite"),
+    sqliteMode:
+      i.path === ":memory:"
+        ? "memory"
+        : i.sqliteMode === "create"
+          ? "readwrite"
+          : (i.sqliteMode ?? "readwrite"),
     host: i.host,
     port: i.port,
     user: i.user,
@@ -1221,7 +1586,10 @@ async function openMacroSqlAdapter(ctx: FmContext, target: ResolvedMacroTarget):
     schema: i.schema,
     tls: i.tls,
     readOnly: false,
-    connectTimeoutMs: Math.min(i.connectTimeoutMs ?? TEST_TIMEOUT_MS, TEST_TIMEOUT_MS),
+    connectTimeoutMs: Math.min(
+      i.connectTimeoutMs ?? TEST_TIMEOUT_MS,
+      TEST_TIMEOUT_MS,
+    ),
     allowPublicKeyRetrieval: target.engine === "mysql",
     maxConnections: 1,
   };
@@ -1279,7 +1647,10 @@ async function seedScratchDatabase(adapter: DbAdapter): Promise<void> {
     [],
   );
 
-  const existing = await adapter.query(`SELECT COUNT(*) AS c FROM customers`, []);
+  const existing = await adapter.query(
+    `SELECT COUNT(*) AS c FROM customers`,
+    [],
+  );
   if (Number(existing.rows[0]?.c ?? 0) === 0) {
     await adapter.query(
       `INSERT INTO customers (name, email, tier, points, spent, active) VALUES
@@ -1313,24 +1684,35 @@ async function seedScratchDatabase(adapter: DbAdapter): Promise<void> {
   }
 }
 
-async function openMacroRedisClient(ctx: FmContext, target: ResolvedMacroTarget): Promise<CloneRedisClient> {
+async function openMacroRedisClient(
+  ctx: FmContext,
+  target: ResolvedMacroTarget,
+): Promise<CloneRedisClient> {
   const hook = dbState(ctx).hooks.openRedis;
   const i = target.testInput;
   if (hook) return await hook(i);
   const tls = !!i.tls;
-  const auth = i.user || i.password ? `${i.user ? encodeURIComponent(i.user) : ""}${i.password ? `:${encodeURIComponent(i.password)}` : ""}@` : "";
+  const auth =
+    i.user || i.password
+      ? `${i.user ? encodeURIComponent(i.user) : ""}${i.password ? `:${encodeURIComponent(i.password)}` : ""}@`
+      : "";
   const url = `${tls ? "rediss" : "redis"}://${auth}${i.host?.includes(":") ? `[${i.host}]` : i.host}:${i.port}`;
-  const client = new RedisClient(
-    url,
-    {
-      connectionTimeout: Math.min(i.connectTimeoutMs ?? TEST_TIMEOUT_MS, TEST_TIMEOUT_MS),
-      autoReconnect: false,
-      maxRetries: 0,
-      ...(tls && typeof i.tls === "object"
-        ? { tls: { rejectUnauthorized: i.tls.verify !== false, ...(i.tls.ca ? { ca: i.tls.ca } : {}) } }
-        : {}),
-    } as never,
-  ) as RedisClient & { select(db: number): Promise<unknown> };
+  const client = new RedisClient(url, {
+    connectionTimeout: Math.min(
+      i.connectTimeoutMs ?? TEST_TIMEOUT_MS,
+      TEST_TIMEOUT_MS,
+    ),
+    autoReconnect: false,
+    maxRetries: 0,
+    ...(tls && typeof i.tls === "object"
+      ? {
+          tls: {
+            rejectUnauthorized: i.tls.verify !== false,
+            ...(i.tls.ca ? { ca: i.tls.ca } : {}),
+          },
+        }
+      : {}),
+  } as never) as RedisClient & { select(db: number): Promise<unknown> };
   await client.connect();
   await client.ping();
   if (i.dbIndex) await client.select(i.dbIndex);
@@ -1348,8 +1730,13 @@ async function openMacroRedisClient(ctx: FmContext, target: ResolvedMacroTarget)
  * Replaces `?` positional placeholders with `$1, $2, ...` when running on PostgreSQL
  * so user macros can write portable parameterized SQL (`WHERE points >= ?`) across SQLite, MySQL, and Postgres.
  */
-function adaptSqlPlaceholders(engine: Engine, sql: string, paramCount: number): string {
-  if (engine !== "postgres" || paramCount === 0 || !sql.includes("?")) return sql;
+function adaptSqlPlaceholders(
+  engine: Engine,
+  sql: string,
+  paramCount: number,
+): string {
+  if (engine !== "postgres" || paramCount === 0 || !sql.includes("?"))
+    return sql;
   let idx = 0;
   let inSingle = false;
   let inDouble = false;
@@ -1383,11 +1770,16 @@ function interpolateTemplate(
   interpolateBracketVars = false,
 ): string {
   if (!raw) return "";
-  let out = raw.replace(/\$\{\s*(?:TempVars\.|vars\.|params\.)?([A-Za-z0-9_]+)\s*\}/g, (_m, key) => {
-    if (key in tempVars && tempVars[key] !== undefined) return String(tempVars[key]);
-    if (key in params && params[key] !== undefined) return String(params[key]);
-    return "";
-  });
+  let out = raw.replace(
+    /\$\{\s*(?:TempVars\.|vars\.|params\.)?([A-Za-z0-9_]+)\s*\}/g,
+    (_m, key) => {
+      if (key in tempVars && tempVars[key] !== undefined)
+        return String(tempVars[key]);
+      if (key in params && params[key] !== undefined)
+        return String(params[key]);
+      return "";
+    },
+  );
   out = out.replace(/\[Enter ([^\]]+)\]/gi, (full, promptName) => {
     const clean = String(promptName).trim();
     const withEnter = `Enter ${clean}`;
@@ -1395,7 +1787,11 @@ function interpolateTemplate(
       if (k in params && params[k] !== undefined && String(params[k]) !== "") {
         return String(params[k]);
       }
-      if (k in tempVars && tempVars[k] !== undefined && String(tempVars[k]) !== "") {
+      if (
+        k in tempVars &&
+        tempVars[k] !== undefined &&
+        String(tempVars[k]) !== ""
+      ) {
         return String(tempVars[k]);
       }
     }
@@ -1404,8 +1800,10 @@ function interpolateTemplate(
   });
   if (interpolateBracketVars) {
     out = out.replace(/\[([A-Za-z0-9_]+)\]/g, (full, key) => {
-      if (key in tempVars && tempVars[key] !== undefined) return String(tempVars[key]);
-      if (key in params && params[key] !== undefined) return String(params[key]);
+      if (key in tempVars && tempVars[key] !== undefined)
+        return String(tempVars[key]);
+      if (key in params && params[key] !== undefined)
+        return String(params[key]);
       return full;
     });
   }
@@ -1450,7 +1848,10 @@ function createRecordSet(rows: Record<string, WireValue>[]) {
       return null;
     },
     GetRows(numRows?: number) {
-      const slice = numRows !== undefined ? rows.slice(cursor, cursor + numRows) : rows.slice(cursor);
+      const slice =
+        numRows !== undefined
+          ? rows.slice(cursor, cursor + numRows)
+          : rows.slice(cursor);
       cursor += slice.length;
       return slice;
     },
@@ -1465,7 +1866,13 @@ function createRecordSet(rows: Record<string, WireValue>[]) {
 
 function formatLogArg(val: unknown): string {
   if (typeof val === "string") return val;
-  if (val === null || val === undefined || typeof val === "number" || typeof val === "boolean") return String(val);
+  if (
+    val === null ||
+    val === undefined ||
+    typeof val === "number" ||
+    typeof val === "boolean"
+  )
+    return String(val);
   try {
     return JSON.stringify(val);
   } catch {
@@ -1485,18 +1892,29 @@ export interface RunMacroRequest {
 }
 
 /** Executes a database macro against a profile, SQLite file, or in-memory database with optional transaction wrapping and dry-run rollback. */
-export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Promise<DbMacroRunResult> {
+export async function executeDbMacro(
+  ctx: FmContext,
+  req: RunMacroRequest,
+): Promise<DbMacroRunResult> {
   const allMacros = loadMacros(ctx);
   let macro: DbMacro;
   if (req.macroId && !req.macro) {
-    const found = allMacros.find((m) => m.id === req.macroId || m.name.toLowerCase() === req.macroId!.toLowerCase());
-    if (!found) throw new FmError("NOT_FOUND", `Macro '${req.macroId}' was not found.`);
+    const found = allMacros.find(
+      (m) =>
+        m.id === req.macroId ||
+        m.name.toLowerCase() === req.macroId!.toLowerCase(),
+    );
+    if (!found)
+      throw new FmError("NOT_FOUND", `Macro '${req.macroId}' was not found.`);
     macro = found;
   } else if (req.macro) {
     const rawObj = isObject(req.macro) ? req.macro : {};
     macro = sanitizeMacroInput({
       ...rawObj,
-      name: typeof rawObj.name === "string" && rawObj.name.trim() ? rawObj.name : "Ad-hoc Macro",
+      name:
+        typeof rawObj.name === "string" && rawObj.name.trim()
+          ? rawObj.name
+          : "Ad-hoc Macro",
     });
   } else {
     throw new FmError("BAD_REQUEST", "Provide a macro to run.");
@@ -1504,7 +1922,11 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
 
   const target = await resolveMacroTarget(ctx, req.target);
   const dryRun = req.dryRun === true;
-  const useTransaction = dryRun || (typeof req.transaction === "boolean" ? req.transaction : macro.transaction);
+  const useTransaction =
+    dryRun ||
+    (typeof req.transaction === "boolean"
+      ? req.transaction
+      : macro.transaction);
 
   if (macro.engine !== "any" && macro.engine !== target.engine) {
     throw new FmError(
@@ -1514,7 +1936,11 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
   }
 
   // Guard production and read-only connections when not running in Dry Run mode
-  if (!dryRun && (target.production || target.readOnly) && req.confirmWrites !== true) {
+  if (
+    !dryRun &&
+    (target.production || target.readOnly) &&
+    req.confirmWrites !== true
+  ) {
     const reason = target.readOnly ? "readonly" : "production";
     throw new FmError(
       "NEEDS_CONFIRM",
@@ -1537,7 +1963,10 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
   let warningsEnabled = true;
 
   const tempVarsStore: Record<string, unknown> = {};
-  const inputParams: Record<string, unknown> = { ...macro.defaultParams, ...(isObject(req.params) ? req.params : {}) };
+  const inputParams: Record<string, unknown> = {
+    ...macro.defaultParams,
+    ...(isObject(req.params) ? req.params : {}),
+  };
   for (const [k, v] of Object.entries(inputParams)) {
     tempVarsStore[k] = v;
   }
@@ -1598,13 +2027,20 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
 
     const assertSql = (): DbAdapter => {
       if (!sqlAdapter) {
-        throw new FmError("BAD_REQUEST", `SQL operations are not available on a ${epTarget.engineLabel} connection. Use 'redis.*' commands instead.`);
+        throw new FmError(
+          "BAD_REQUEST",
+          `SQL operations are not available on a ${epTarget.engineLabel} connection. Use 'redis.*' commands instead.`,
+        );
       }
       return sqlAdapter;
     };
 
     const guardMysqlDryRunDdl = (sql: string) => {
-      if (dryRun && engine === "mysql" && /^\s*(CREATE|ALTER|DROP|TRUNCATE|RENAME)\b/i.test(sql)) {
+      if (
+        dryRun &&
+        engine === "mysql" &&
+        /^\s*(CREATE|ALTER|DROP|TRUNCATE|RENAME)\b/i.test(sql)
+      ) {
         throw new FmError(
           "BAD_REQUEST",
           "MySQL implicitly commits DDL statements (CREATE/ALTER/DROP/TRUNCATE), which cannot be rolled back in Dry Run mode.",
@@ -1623,15 +2059,32 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
 
       async query(rawSql: string, bindParams: Param[] = [], label?: string) {
         const ad = assertSql();
-        const interpolated = interpolateTemplate(String(rawSql ?? ""), tempVarsStore, inputParams, missingPrompts);
+        const interpolated = interpolateTemplate(
+          String(rawSql ?? ""),
+          tempVarsStore,
+          inputParams,
+          missingPrompts,
+        );
         if (missingPrompts.size > 0) {
-          throw new FmError("PROMPT_REQUIRED", `Provide parameter value(s): ${[...missingPrompts].join(", ")}`);
+          throw new FmError(
+            "PROMPT_REQUIRED",
+            `Provide parameter value(s): ${[...missingPrompts].join(", ")}`,
+          );
         }
-        const sql = adaptSqlPlaceholders(sqlEngine, interpolated, bindParams.length);
+        const sql = adaptSqlPlaceholders(
+          sqlEngine,
+          interpolated,
+          bindParams.length,
+        );
         const stepStart = performance.now();
         const res = await ad.query(sql, bindParams);
         const rows = res.rows.slice(0, MAX_RESULT_ROWS);
-        const cols = res.columns.length > 0 ? res.columns.map((c: any) => (typeof c === "string" ? c : c.name)) : rows[0] ? Object.keys(rows[0]) : [];
+        const cols =
+          res.columns.length > 0
+            ? res.columns.map((c: any) => (typeof c === "string" ? c : c.name))
+            : rows[0]
+              ? Object.keys(rows[0])
+              : [];
         if (resultSets.length < 25) {
           resultSets.push({
             label: label || `Query ${resultSets.length + 1}`,
@@ -1653,14 +2106,30 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
         return res.rows;
       },
 
-      async execute(rawSql: string, bindParams: Param[] = [], actionLabel = "execute") {
+      async execute(
+        rawSql: string,
+        bindParams: Param[] = [],
+        actionLabel = "execute",
+      ) {
         const ad = assertSql();
-        const interpolated = interpolateTemplate(String(rawSql ?? ""), tempVarsStore, inputParams, missingPrompts);
+        const interpolated = interpolateTemplate(
+          String(rawSql ?? ""),
+          tempVarsStore,
+          inputParams,
+          missingPrompts,
+        );
         if (missingPrompts.size > 0) {
-          throw new FmError("PROMPT_REQUIRED", `Provide parameter value(s): ${[...missingPrompts].join(", ")}`);
+          throw new FmError(
+            "PROMPT_REQUIRED",
+            `Provide parameter value(s): ${[...missingPrompts].join(", ")}`,
+          );
         }
         guardMysqlDryRunDdl(interpolated);
-        const sql = adaptSqlPlaceholders(sqlEngine, interpolated, bindParams.length);
+        const sql = adaptSqlPlaceholders(
+          sqlEngine,
+          interpolated,
+          bindParams.length,
+        );
         const stepStart = performance.now();
         const res = await ad.query(sql, bindParams);
         const affected = Number(res.affectedRows ?? 0);
@@ -1679,30 +2148,56 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
 
       async scalar(rawSql: string, bindParams: Param[] = []) {
         const ad = assertSql();
-        const interpolated = interpolateTemplate(String(rawSql ?? ""), tempVarsStore, inputParams, missingPrompts);
-        const sql = adaptSqlPlaceholders(sqlEngine, interpolated, bindParams.length);
+        const interpolated = interpolateTemplate(
+          String(rawSql ?? ""),
+          tempVarsStore,
+          inputParams,
+          missingPrompts,
+        );
+        const sql = adaptSqlPlaceholders(
+          sqlEngine,
+          interpolated,
+          bindParams.length,
+        );
         const res = await ad.query(sql, bindParams);
         const firstRow = res.rows[0];
         if (!firstRow) return null;
         const rawFirst = res.columns[0] as any;
-        const firstCol = (typeof rawFirst === "string" ? rawFirst : rawFirst?.name) ?? Object.keys(firstRow)[0];
+        const firstCol =
+          (typeof rawFirst === "string" ? rawFirst : rawFirst?.name) ??
+          Object.keys(firstRow)[0];
         return firstCol !== undefined ? (firstRow[firstCol] ?? null) : null;
       },
 
       async OpenRecordset(source: string, bindParams: Param[] = []) {
         const ad = assertSql();
         const trimmed = String(source ?? "").trim();
-        const isSelect = /^\s*(SELECT|WITH|PRAGMA|SHOW|EXPLAIN)\b/i.test(trimmed);
-        const rawSql = isSelect ? trimmed : `SELECT * FROM ${quoteIdent(sqlEngine, trimmed)}`;
-        const interpolated = interpolateTemplate(rawSql, tempVarsStore, inputParams, missingPrompts);
-        const sql = adaptSqlPlaceholders(sqlEngine, interpolated, bindParams.length);
+        const isSelect = /^\s*(SELECT|WITH|PRAGMA|SHOW|EXPLAIN)\b/i.test(
+          trimmed,
+        );
+        const rawSql = isSelect
+          ? trimmed
+          : `SELECT * FROM ${quoteIdent(sqlEngine, trimmed)}`;
+        const interpolated = interpolateTemplate(
+          rawSql,
+          tempVarsStore,
+          inputParams,
+          missingPrompts,
+        );
+        const sql = adaptSqlPlaceholders(
+          sqlEngine,
+          interpolated,
+          bindParams.length,
+        );
         const res = await ad.query(sql, bindParams);
         return createRecordSet(res.rows);
       },
 
       async tables() {
         const ad = assertSql();
-        const schema = epTarget.testInput.schema || (sqlEngine === "postgres" ? "public" : undefined);
+        const schema =
+          epTarget.testInput.schema ||
+          (sqlEngine === "postgres" ? "public" : undefined);
         const list = await ad.listObjects();
         return list.map((t) => ({
           name: t.name,
@@ -1716,7 +2211,9 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
         const ref: ObjectRef = {
           name: tableName,
           type: "table",
-          schema: epTarget.testInput.schema || (sqlEngine === "postgres" ? "public" : undefined),
+          schema:
+            epTarget.testInput.schema ||
+            (sqlEngine === "postgres" ? "public" : undefined),
         };
         const info = await ad.describeTable(ref);
         return {
@@ -1728,7 +2225,10 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
         };
       },
 
-      async insert(tableName: string, rowOrRows: Record<string, unknown> | Record<string, unknown>[]) {
+      async insert(
+        tableName: string,
+        rowOrRows: Record<string, unknown> | Record<string, unknown>[],
+      ) {
         const rows = Array.isArray(rowOrRows) ? rowOrRows : [rowOrRows];
         if (rows.length === 0) return 0;
         let count = 0;
@@ -1737,9 +2237,15 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
           const cols = Object.keys(r);
           const vals = cols.map((c) => r[c] as Param);
           const colSql = cols.map((c) => quoteIdent(sqlEngine, c)).join(", ");
-          const phSql = cols.map((_c, idx) => placeholder(sqlEngine, idx + 1)).join(", ");
+          const phSql = cols
+            .map((_c, idx) => placeholder(sqlEngine, idx + 1))
+            .join(", ");
           const sql = `INSERT INTO ${quoteIdent(sqlEngine, tableName)} (${colSql}) VALUES (${phSql})`;
-          const res = await dbApi.execute(sql, vals, `InsertRecord (${tableName})`);
+          const res = await dbApi.execute(
+            sql,
+            vals,
+            `InsertRecord (${tableName})`,
+          );
           count += res.affectedRows;
         }
         dbApi.RecordsAffected = count;
@@ -1753,25 +2259,50 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
         whereParams: Param[] = [],
       ) {
         if (typeof values === "string" && values.trim()) {
-          const interpolatedSet = interpolateTemplate(values.trim(), tempVarsStore, inputParams, missingPrompts);
+          const interpolatedSet = interpolateTemplate(
+            values.trim(),
+            tempVarsStore,
+            inputParams,
+            missingPrompts,
+          );
           let whereSql = "";
           if (whereClause && whereClause.trim()) {
-            const interpolatedWhere = interpolateTemplate(whereClause.trim(), tempVarsStore, inputParams, missingPrompts);
+            const interpolatedWhere = interpolateTemplate(
+              whereClause.trim(),
+              tempVarsStore,
+              inputParams,
+              missingPrompts,
+            );
             whereSql = ` WHERE ${adaptSqlPlaceholders(sqlEngine, interpolatedWhere, whereParams.length)}`;
           }
           const sql = `UPDATE ${quoteIdent(sqlEngine, tableName)} SET ${interpolatedSet}${whereSql}`;
-          const res = await dbApi.execute(sql, whereParams, `UpdateRecord (${tableName})`);
+          const res = await dbApi.execute(
+            sql,
+            whereParams,
+            `UpdateRecord (${tableName})`,
+          );
           return res.affectedRows;
         }
         if (!isObject(values) || Object.keys(values).length === 0) {
-          throw new FmError("BAD_REQUEST", "db.update requires a non-empty values object or SET clause.");
+          throw new FmError(
+            "BAD_REQUEST",
+            "db.update requires a non-empty values object or SET clause.",
+          );
         }
         const cols = Object.keys(values);
-        const setParts = cols.map((c, idx) => `${quoteIdent(sqlEngine, c)} = ${placeholder(sqlEngine, idx + 1)}`);
+        const setParts = cols.map(
+          (c, idx) =>
+            `${quoteIdent(sqlEngine, c)} = ${placeholder(sqlEngine, idx + 1)}`,
+        );
         const setVals = cols.map((c) => values[c] as Param);
         let whereSql = "";
         if (whereClause && whereClause.trim()) {
-          const interpolatedWhere = interpolateTemplate(whereClause.trim(), tempVarsStore, inputParams, missingPrompts);
+          const interpolatedWhere = interpolateTemplate(
+            whereClause.trim(),
+            tempVarsStore,
+            inputParams,
+            missingPrompts,
+          );
           if (sqlEngine === "postgres" && interpolatedWhere.includes("?")) {
             let pIdx = cols.length;
             whereSql = ` WHERE ${interpolatedWhere.replace(/\?/g, () => `$${++pIdx}`)}`;
@@ -1780,18 +2311,35 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
           }
         }
         const sql = `UPDATE ${quoteIdent(sqlEngine, tableName)} SET ${setParts.join(", ")}${whereSql}`;
-        const res = await dbApi.execute(sql, [...setVals, ...whereParams], `UpdateRecord (${tableName})`);
+        const res = await dbApi.execute(
+          sql,
+          [...setVals, ...whereParams],
+          `UpdateRecord (${tableName})`,
+        );
         return res.affectedRows;
       },
 
-      async delete(tableName: string, whereClause?: string, whereParams: Param[] = []) {
+      async delete(
+        tableName: string,
+        whereClause?: string,
+        whereParams: Param[] = [],
+      ) {
         let whereSql = "";
         if (whereClause && whereClause.trim()) {
-          const interpolatedWhere = interpolateTemplate(whereClause.trim(), tempVarsStore, inputParams, missingPrompts);
+          const interpolatedWhere = interpolateTemplate(
+            whereClause.trim(),
+            tempVarsStore,
+            inputParams,
+            missingPrompts,
+          );
           whereSql = ` WHERE ${adaptSqlPlaceholders(sqlEngine, interpolatedWhere, whereParams.length)}`;
         }
         const sql = `DELETE FROM ${quoteIdent(sqlEngine, tableName)}${whereSql}`;
-        const res = await dbApi.execute(sql, whereParams, `DeleteRecord (${tableName})`);
+        const res = await dbApi.execute(
+          sql,
+          whereParams,
+          `DeleteRecord (${tableName})`,
+        );
         return res.affectedRows;
       },
 
@@ -1800,10 +2348,16 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
         await dbApi.execute(`SAVEPOINT ${sp}`, [], "SAVEPOINT");
         try {
           const out = await fn(dbApi);
-          await dbApi.execute(`RELEASE SAVEPOINT ${sp}`, [], "RELEASE SAVEPOINT");
+          await dbApi.execute(
+            `RELEASE SAVEPOINT ${sp}`,
+            [],
+            "RELEASE SAVEPOINT",
+          );
           return out;
         } catch (err) {
-          await dbApi.execute(`ROLLBACK TO SAVEPOINT ${sp}`, [], "ROLLBACK TO SAVEPOINT").catch(() => {});
+          await dbApi
+            .execute(`ROLLBACK TO SAVEPOINT ${sp}`, [], "ROLLBACK TO SAVEPOINT")
+            .catch(() => {});
           throw err;
         }
       },
@@ -1823,7 +2377,11 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
     ) => {
       const ad = assertSql();
       const cleanDomain = String(domain ?? "").trim();
-      if (!cleanDomain) throw new FmError("BAD_REQUEST", `D${fnName} requires a table or view name.`);
+      if (!cleanDomain)
+        throw new FmError(
+          "BAD_REQUEST",
+          `D${fnName} requires a table or view name.`,
+        );
       const cleanExpr = String(expr ?? "*").trim() || "*";
       const fromSql = /^\s*select\b/i.test(cleanDomain)
         ? `(${cleanDomain}) AS __d`
@@ -1837,7 +2395,10 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
         const res = await ad.query(sql);
         return res.rows[0]?.__val ?? null;
       }
-      const aggExpr = fnName === "COUNT" && cleanExpr === "*" ? "COUNT(*)" : `${fnName}(${cleanExpr})`;
+      const aggExpr =
+        fnName === "COUNT" && cleanExpr === "*"
+          ? "COUNT(*)"
+          : `${fnName}(${cleanExpr})`;
       const sql = `SELECT ${aggExpr} AS __val FROM ${fromSql}${wherePart}`;
       const res = await ad.query(sql);
       const rawVal = res.rows[0]?.__val;
@@ -1845,17 +2406,39 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
       return rawVal !== undefined && rawVal !== null ? Number(rawVal) : null;
     };
 
-    const DCount = (expr = "*", domain: string, criteria?: string) => domainAggregate("COUNT", expr, domain, criteria);
-    const DLookup = (expr: string, domain: string, criteria?: string) => domainAggregate("LOOKUP", expr, domain, criteria);
-    const DSum = (expr: string, domain: string, criteria?: string) => domainAggregate("SUM", expr, domain, criteria);
-    const DAvg = (expr: string, domain: string, criteria?: string) => domainAggregate("AVG", expr, domain, criteria);
-    const DMin = (expr: string, domain: string, criteria?: string) => domainAggregate("MIN", expr, domain, criteria);
-    const DMax = (expr: string, domain: string, criteria?: string) => domainAggregate("MAX", expr, domain, criteria);
+    const DCount = (expr = "*", domain: string, criteria?: string) =>
+      domainAggregate("COUNT", expr, domain, criteria);
+    const DLookup = (expr: string, domain: string, criteria?: string) =>
+      domainAggregate("LOOKUP", expr, domain, criteria);
+    const DSum = (expr: string, domain: string, criteria?: string) =>
+      domainAggregate("SUM", expr, domain, criteria);
+    const DAvg = (expr: string, domain: string, criteria?: string) =>
+      domainAggregate("AVG", expr, domain, criteria);
+    const DMin = (expr: string, domain: string, criteria?: string) =>
+      domainAggregate("MIN", expr, domain, criteria);
+    const DMax = (expr: string, domain: string, criteria?: string) =>
+      domainAggregate("MAX", expr, domain, criteria);
 
-    const MsgBox = (message: unknown, title = "Macro", type: "info" | "warning" | "error" | "success" = "info") => {
+    const MsgBox = (
+      message: unknown,
+      title = "Macro",
+      type: "info" | "warning" | "error" | "success" = "info",
+    ) => {
       const rawText = formatLogArg(message);
-      const interpolated = redact(interpolateTemplate(rawText, tempVarsStore, inputParams, missingPrompts, true), secrets);
-      const validType = type === "warning" || type === "error" || type === "success" ? type : "info";
+      const interpolated = redact(
+        interpolateTemplate(
+          rawText,
+          tempVarsStore,
+          inputParams,
+          missingPrompts,
+          true,
+        ),
+        secrets,
+      );
+      const validType =
+        type === "warning" || type === "error" || type === "success"
+          ? type
+          : "info";
       messages.push({
         title: redact(String(title || "Macro"), secrets),
         message: interpolated,
@@ -1872,15 +2455,45 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
     };
 
     const READONLY_REDIS_CMDS = new Set([
-      "PING", "GET", "MGET", "HGET", "HMGET", "HGETALL", "HKEYS", "HVALS", "HLEN", "HEXISTS",
-      "LLEN", "LRANGE", "LINDEX", "SCARD", "SMEMBERS", "SISMEMBER", "ZCARD", "ZRANGE", "ZSCORE",
-      "TYPE", "TTL", "PTTL", "EXISTS", "SCAN", "HSCAN", "SSCAN", "ZSCAN", "DBSIZE", "INFO", "KEYS",
+      "PING",
+      "GET",
+      "MGET",
+      "HGET",
+      "HMGET",
+      "HGETALL",
+      "HKEYS",
+      "HVALS",
+      "HLEN",
+      "HEXISTS",
+      "LLEN",
+      "LRANGE",
+      "LINDEX",
+      "SCARD",
+      "SMEMBERS",
+      "SISMEMBER",
+      "ZCARD",
+      "ZRANGE",
+      "ZSCORE",
+      "TYPE",
+      "TTL",
+      "PTTL",
+      "EXISTS",
+      "SCAN",
+      "HSCAN",
+      "SSCAN",
+      "ZSCAN",
+      "DBSIZE",
+      "INFO",
+      "KEYS",
     ]);
 
     const redisApi = {
       async command(cmd: string, ...args: (string | number)[]) {
         if (!redisClient) {
-          throw new FmError("BAD_REQUEST", "This connection is not a Redis server.");
+          throw new FmError(
+            "BAD_REQUEST",
+            "This connection is not a Redis server.",
+          );
         }
         const upper = String(cmd).toUpperCase().trim();
         const stepStart = performance.now();
@@ -1889,7 +2502,10 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
             index: steps.length + 1,
             action: `Redis ${upper}`,
             status: "ok",
-            detail: redact(`[Dry Run — not executed] ${cmd} ${args.join(" ")}`.trim(), secrets),
+            detail: redact(
+              `[Dry Run — not executed] ${cmd} ${args.join(" ")}`.trim(),
+              secrets,
+            ),
             elapsedMs: Math.round(performance.now() - stepStart),
           });
           return "OK";
@@ -1909,7 +2525,13 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
       },
       async set(key: string, value: string | number, ttlSeconds?: number) {
         if (ttlSeconds && ttlSeconds > 0) {
-          return await redisApi.command("SET", key, String(value), "EX", Math.trunc(ttlSeconds));
+          return await redisApi.command(
+            "SET",
+            key,
+            String(value),
+            "EX",
+            Math.trunc(ttlSeconds),
+          );
         }
         return await redisApi.command("SET", key, String(value));
       },
@@ -1918,8 +2540,19 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
         return Number((await redisApi.command("DEL", ...keys)) ?? 0);
       },
       async keys(pattern = "*") {
-        const res: any = await redisApi.command("SCAN", "0", "MATCH", pattern, "COUNT", "200");
-        const arr = Array.isArray(res?.[1]) ? res[1].map(String) : Array.isArray(res) ? res.map(String) : [];
+        const res: any = await redisApi.command(
+          "SCAN",
+          "0",
+          "MATCH",
+          pattern,
+          "COUNT",
+          "200",
+        );
+        const arr = Array.isArray(res?.[1])
+          ? res[1].map(String)
+          : Array.isArray(res)
+            ? res.map(String)
+            : [];
         return arr.sort();
       },
       async hgetall(key: string) {
@@ -1927,7 +2560,8 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
         if (!raw) return {};
         if (Array.isArray(raw)) {
           const out: Record<string, string> = {};
-          for (let i = 0; i + 1 < raw.length; i += 2) out[String(raw[i])] = String(raw[i + 1] ?? "");
+          for (let i = 0; i + 1 < raw.length; i += 2)
+            out[String(raw[i])] = String(raw[i + 1] ?? "");
           return out;
         }
         return typeof raw === "object" ? raw : {};
@@ -1954,18 +2588,28 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
       },
       async OpenTable(
         tableName: string,
-        optionsOrWhere?: { where?: string; orderBy?: string; limit?: number } | string,
+        optionsOrWhere?:
+          { where?: string; orderBy?: string; limit?: number } | string,
         limitArg?: number,
       ) {
-        const options = typeof optionsOrWhere === "string"
-          ? { where: optionsOrWhere, limit: limitArg }
-          : optionsOrWhere;
+        const options =
+          typeof optionsOrWhere === "string"
+            ? { where: optionsOrWhere, limit: limitArg }
+            : optionsOrWhere;
         const qTable = quoteIdent(sqlEngine, tableName);
         let w = "";
         if (options?.where && options.where.trim()) {
-          const interpolatedWhere = interpolateTemplate(options.where.trim(), tempVarsStore, inputParams, missingPrompts);
+          const interpolatedWhere = interpolateTemplate(
+            options.where.trim(),
+            tempVarsStore,
+            inputParams,
+            missingPrompts,
+          );
           if (/;|--|\/\*|#|\bUNION\b/i.test(interpolatedWhere)) {
-            throw new FmError("BAD_REQUEST", "Invalid OpenTable WHERE clause: statement separators, UNION, and comments are not allowed.");
+            throw new FmError(
+              "BAD_REQUEST",
+              "Invalid OpenTable WHERE clause: statement separators, UNION, and comments are not allowed.",
+            );
           }
           w = ` WHERE ${interpolatedWhere}`;
         }
@@ -1973,32 +2617,63 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
         if (options?.orderBy && options.orderBy.trim()) {
           const cleanOrder = options.orderBy.trim();
           if (/;|--|\/\*|#|\bUNION\b/i.test(cleanOrder)) {
-            throw new FmError("BAD_REQUEST", "Invalid OpenTable ORDER BY clause: statement separators, UNION, and comments are not allowed.");
+            throw new FmError(
+              "BAD_REQUEST",
+              "Invalid OpenTable ORDER BY clause: statement separators, UNION, and comments are not allowed.",
+            );
           }
           o = ` ORDER BY ${cleanOrder}`;
         }
         const lim =
-          options?.limit && Number.isFinite(Number(options.limit)) && Number(options.limit) > 0
+          options?.limit &&
+          Number.isFinite(Number(options.limit)) &&
+          Number(options.limit) > 0
             ? ` LIMIT ${Math.min(MAX_RESULT_ROWS, Math.trunc(Number(options.limit)))}`
             : ` LIMIT ${MAX_RESULT_ROWS}`;
-        return await dbApi.query(`SELECT * FROM ${qTable}${w}${o}${lim}`, [], `Table: ${tableName}`);
+        return await dbApi.query(
+          `SELECT * FROM ${qTable}${w}${o}${lim}`,
+          [],
+          `Table: ${tableName}`,
+        );
       },
       async InsertRecord(tableName: string, values: Record<string, unknown>) {
         return await dbApi.insert(tableName, values);
       },
-      async UpdateRecord(tableName: string, values: Record<string, unknown> | string, where?: string, bindParams: Param[] = []) {
+      async UpdateRecord(
+        tableName: string,
+        values: Record<string, unknown> | string,
+        where?: string,
+        bindParams: Param[] = [],
+      ) {
         return await dbApi.update(tableName, values, where, bindParams);
       },
-      async DeleteRecord(tableName: string, where?: string, bindParams: Param[] = []) {
+      async DeleteRecord(
+        tableName: string,
+        where?: string,
+        bindParams: Param[] = [],
+      ) {
         return await dbApi.delete(tableName, where, bindParams);
       },
       async MakeTable(selectSql: string, targetTable: string, replace = true) {
         const qTarget = quoteIdent(sqlEngine, targetTable);
         if (replace) {
-          await dbApi.execute(`DROP TABLE IF EXISTS ${qTarget}`, [], `DropTable (${targetTable})`);
+          await dbApi.execute(
+            `DROP TABLE IF EXISTS ${qTarget}`,
+            [],
+            `DropTable (${targetTable})`,
+          );
         }
-        const interpolated = interpolateTemplate(selectSql, tempVarsStore, inputParams, missingPrompts);
-        return await dbApi.execute(`CREATE TABLE ${qTarget} AS ${interpolated}`, [], `MakeTable (${targetTable})`);
+        const interpolated = interpolateTemplate(
+          selectSql,
+          tempVarsStore,
+          inputParams,
+          missingPrompts,
+        );
+        return await dbApi.execute(
+          `CREATE TABLE ${qTarget} AS ${interpolated}`,
+          [],
+          `MakeTable (${targetTable})`,
+        );
       },
       async EmptyTable(tableName: string) {
         return await dbApi.delete(tableName);
@@ -2009,7 +2684,7 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
           index: steps.length + 1,
           action: "SetTempVar",
           status: "ok",
-          detail: `${name} = ${ redact(formatLogArg(value), secrets) }`,
+          detail: `${name} = ${redact(formatLogArg(value), secrets)}`,
           elapsedMs: 0,
         });
         return value;
@@ -2099,7 +2774,11 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
       }
     }
 
-    const primaryEnv = createDatabaseApi(target, primarySqlAdapter, primaryRedisClient);
+    const primaryEnv = createDatabaseApi(
+      target,
+      primarySqlAdapter,
+      primaryRedisClient,
+    );
 
     const connectionsApi = {
       list() {
@@ -2116,15 +2795,34 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
       async use(idOrName: string) {
         const st = dbState(ctx);
         const list = st.store.listPlain();
-        const found = list.find((p) => p.id === idOrName || p.name.toLowerCase() === String(idOrName).toLowerCase());
-        if (!found) throw new FmError("NOT_FOUND", `Saved connection '${idOrName}' was not found.`);
-        const subTarget = await resolveMacroTarget(ctx, { kind: "profile", profileId: found.id });
+        const found = list.find(
+          (p) =>
+            p.id === idOrName ||
+            p.name.toLowerCase() === String(idOrName).toLowerCase(),
+        );
+        if (!found)
+          throw new FmError(
+            "NOT_FOUND",
+            `Saved connection '${idOrName}' was not found.`,
+          );
+        const subTarget = await resolveMacroTarget(ctx, {
+          kind: "profile",
+          profileId: found.id,
+        });
         if (subTarget.passwordSecret) secrets.push(subTarget.passwordSecret);
-        if (!dryRun && (subTarget.production || subTarget.readOnly) && req.confirmWrites !== true) {
+        if (
+          !dryRun &&
+          (subTarget.production || subTarget.readOnly) &&
+          req.confirmWrites !== true
+        ) {
           throw new FmError(
             "NEEDS_CONFIRM",
             `Connection '${subTarget.label}' requires confirmation before macro access.`,
-            { reason: subTarget.readOnly ? "readonly" : "production", name: subTarget.label, engine: subTarget.engine },
+            {
+              reason: subTarget.readOnly ? "readonly" : "production",
+              name: subTarget.label,
+              engine: subTarget.engine,
+            },
           );
         }
         if (subTarget.engine === "redis") {
@@ -2150,7 +2848,10 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
       debug: (...args: unknown[]) => pushLog("debug", args),
       table: (data: unknown) => {
         if (Array.isArray(data) && data.length > 0 && isObject(data[0])) {
-          const rows = data.slice(0, MAX_RESULT_ROWS) as Record<string, WireValue>[];
+          const rows = data.slice(0, MAX_RESULT_ROWS) as Record<
+            string,
+            WireValue
+          >[];
           resultSets.push({
             label: `console.table (${resultSets.length + 1})`,
             columns: Object.keys(rows[0]!),
@@ -2165,14 +2866,17 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
     const DebugApi = {
       print: (...args: unknown[]) => pushLog("debug", args),
       Print: (...args: unknown[]) => pushLog("debug", args),
-      Assert: (cond: unknown, msg?: string) => primaryEnv.DoCmd.Assert(cond, msg),
-      assert: (cond: unknown, msg?: string) => primaryEnv.DoCmd.Assert(cond, msg),
+      Assert: (cond: unknown, msg?: string) =>
+        primaryEnv.DoCmd.Assert(cond, msg),
+      assert: (cond: unknown, msg?: string) =>
+        primaryEnv.DoCmd.Assert(cond, msg),
     };
 
     const safeBun = {
       version: Bun.version,
       nanoseconds: () => Bun.nanoseconds(),
-      sleep: (ms: number) => Bun.sleep(Math.min(Math.max(0, Number(ms) || 0), 2_000)),
+      sleep: (ms: number) =>
+        Bun.sleep(Math.min(Math.max(0, Number(ms) || 0), 2_000)),
       hash: (v: string | ArrayBufferView) => Bun.hash(v as any),
       inspect: (v: unknown) => Bun.inspect(v),
       escapeHTML: (s: string) => Bun.escapeHTML(s),
@@ -2184,9 +2888,14 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
       const trimmed = (exprCode ?? "").trim();
       if (!trimmed) return undefined;
       if (FORBIDDEN_MACRO_CODE_RE.test(trimmed)) {
-        throw new FmError("SYNTAX_ERROR", "Access to host process, filesystem, or OS process APIs is restricted inside database macros.");
+        throw new FmError(
+          "SYNTAX_ERROR",
+          "Access to host process, filesystem, or OS process APIs is restricted inside database macros.",
+        );
       }
-      const js = tsTranspiler.transformSync(`async function __eval(__c: any) { return (\n${trimmed}\n); }`);
+      const js = tsTranspiler.transformSync(
+        `async function __eval(__c: any) { return (\n${trimmed}\n); }`,
+      );
       const body = `${js}\nreturn await __eval(__ctx);`;
       const fn = new Function(
         "__ctx",
@@ -2253,10 +2962,17 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
       const check = validateBunMacroCode(codeSource);
       if (!check.valid) {
         const first = check.errors[0]!;
-        const err = new FmError("SYNTAX_ERROR", first.message, { line: first.line, column: first.column });
+        const err = new FmError("SYNTAX_ERROR", first.message, {
+          line: first.line,
+          column: first.column,
+        });
         throw err;
       }
-      const jsBody = check.transpiledJs ?? tsTranspiler.transformSync(`async function __userMain(__ctx: any) {\n${normalizeMacroSourceForAsyncBody(codeSource)}\n}`);
+      const jsBody =
+        check.transpiledJs ??
+        tsTranspiler.transformSync(
+          `async function __userMain(__ctx: any) {\n${normalizeMacroSourceForAsyncBody(codeSource)}\n}`,
+        );
       const runnerSource = `
         const __exports = {};
         ${jsBody}
@@ -2328,7 +3044,10 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
       );
     };
 
-    const runActionRows = async (rows: DbMacroActionRow[], depth: number): Promise<unknown> => {
+    const runActionRows = async (
+      rows: DbMacroActionRow[],
+      depth: number,
+    ): Promise<unknown> => {
       let lastResult: unknown = undefined;
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i]!;
@@ -2380,14 +3099,31 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
                 ? Object.fromEntries(
                     Object.entries(obj).map(([k, v]) => [
                       k,
-                      typeof v === "string" ? interpolateTemplate(v, tempVarsStore, inputParams, missingPrompts) : v,
+                      typeof v === "string"
+                        ? interpolateTemplate(
+                            v,
+                            tempVarsStore,
+                            inputParams,
+                            missingPrompts,
+                          )
+                        : v,
                     ]),
                   )
                 : {};
             } catch {
-              parsed = JSON.parse(interpolateTemplate(rawVals, tempVarsStore, inputParams, missingPrompts));
+              parsed = JSON.parse(
+                interpolateTemplate(
+                  rawVals,
+                  tempVarsStore,
+                  inputParams,
+                  missingPrompts,
+                ),
+              );
             }
-            lastResult = await primaryEnv.DoCmd.InsertRecord(p.table ?? "", parsed);
+            lastResult = await primaryEnv.DoCmd.InsertRecord(
+              p.table ?? "",
+              parsed,
+            );
             break;
           }
           case "UpdateRecord": {
@@ -2400,38 +3136,70 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
                   ? Object.fromEntries(
                       Object.entries(obj).map(([k, v]) => [
                         k,
-                        typeof v === "string" ? interpolateTemplate(v, tempVarsStore, inputParams, missingPrompts) : v,
+                        typeof v === "string"
+                          ? interpolateTemplate(
+                              v,
+                              tempVarsStore,
+                              inputParams,
+                              missingPrompts,
+                            )
+                          : v,
                       ]),
                     )
                   : rawVals;
               } catch {
-                parsed = JSON.parse(interpolateTemplate(rawVals, tempVarsStore, inputParams, missingPrompts));
+                parsed = JSON.parse(
+                  interpolateTemplate(
+                    rawVals,
+                    tempVarsStore,
+                    inputParams,
+                    missingPrompts,
+                  ),
+                );
               }
             } else {
               parsed = rawVals;
             }
-            lastResult = await primaryEnv.DoCmd.UpdateRecord(p.table ?? "", parsed, p.where ?? "");
+            lastResult = await primaryEnv.DoCmd.UpdateRecord(
+              p.table ?? "",
+              parsed,
+              p.where ?? "",
+            );
             break;
           }
           case "DeleteRecord":
-            lastResult = await primaryEnv.DoCmd.DeleteRecord(p.table ?? "", p.where ?? "");
+            lastResult = await primaryEnv.DoCmd.DeleteRecord(
+              p.table ?? "",
+              p.where ?? "",
+            );
             break;
           case "MakeTable":
-            lastResult = await primaryEnv.DoCmd.MakeTable(p.sql ?? "", p.targetTable ?? "", p.replace !== "false");
+            lastResult = await primaryEnv.DoCmd.MakeTable(
+              p.sql ?? "",
+              p.targetTable ?? "",
+              p.replace !== "false",
+            );
             break;
           case "EmptyTable":
             lastResult = await primaryEnv.DoCmd.EmptyTable(p.table ?? "");
             break;
           case "SetTempVar": {
             const val = await evaluateExpr(p.expression ?? '""');
-            lastResult = await primaryEnv.DoCmd.SetTempVar(p.name ?? "var", val);
+            lastResult = await primaryEnv.DoCmd.SetTempVar(
+              p.name ?? "var",
+              val,
+            );
             break;
           }
           case "RemoveTempVar":
             await primaryEnv.DoCmd.RemoveTempVar(p.name ?? "");
             break;
           case "MessageBox":
-            lastResult = primaryEnv.MsgBox(p.message ?? "", p.title || "Macro", (p.type as any) || "info");
+            lastResult = primaryEnv.MsgBox(
+              p.message ?? "",
+              p.title || "Macro",
+              (p.type as any) || "info",
+            );
             break;
           case "Beep":
             primaryEnv.DoCmd.Beep();
@@ -2440,11 +3208,18 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
             lastResult = await runCodeSnippet(p.code ?? "");
             break;
           case "RunMacro":
-            lastResult = await primaryEnv.DoCmd.RunMacro(p.macroName ?? "", {}, depth + 1);
+            lastResult = await primaryEnv.DoCmd.RunMacro(
+              p.macroName ?? "",
+              {},
+              depth + 1,
+            );
             break;
           case "Assert": {
             const ok = Boolean(await evaluateExpr(p.expression ?? "true"));
-            primaryEnv.DoCmd.Assert(ok, p.message || `Assertion failed: ${p.expression}`);
+            primaryEnv.DoCmd.Assert(
+              ok,
+              p.message || `Assertion failed: ${p.expression}`,
+            );
             break;
           }
           case "StopMacro":
@@ -2462,7 +3237,12 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
         index: steps.length + 1,
         action: "RunCode",
         status: "ok",
-        detail: redact(String(codeOrExpr ?? "").split("\n")[0]?.slice(0, 120) || "RunCode", secrets),
+        detail: redact(
+          String(codeOrExpr ?? "")
+            .split("\n")[0]
+            ?.slice(0, 120) || "RunCode",
+          secrets,
+        ),
         elapsedMs: Math.round(performance.now() - stepStart),
       });
       return out;
@@ -2474,12 +3254,21 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
       depth = 1,
     ) => {
       if (depth > MAX_MACRO_DEPTH) {
-        throw new FmError("BAD_REQUEST", `Maximum macro nesting depth (${MAX_MACRO_DEPTH}) exceeded.`);
+        throw new FmError(
+          "BAD_REQUEST",
+          `Maximum macro nesting depth (${MAX_MACRO_DEPTH}) exceeded.`,
+        );
       }
       const sub = allMacros.find(
-        (m) => m.id === macroNameOrId || m.name.toLowerCase() === String(macroNameOrId).toLowerCase(),
+        (m) =>
+          m.id === macroNameOrId ||
+          m.name.toLowerCase() === String(macroNameOrId).toLowerCase(),
       );
-      if (!sub) throw new FmError("NOT_FOUND", `Nested macro '${macroNameOrId}' was not found.`);
+      if (!sub)
+        throw new FmError(
+          "NOT_FOUND",
+          `Nested macro '${macroNameOrId}' was not found.`,
+        );
       Object.assign(inputParams, overrideParams);
       if (sub.mode === "actions") {
         return await runActionRows(sub.actions, depth);
@@ -2518,7 +3307,12 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
     let timer: ReturnType<typeof setTimeout> | undefined;
     const timeoutPromise = new Promise<never>((_resolve, reject) => {
       timer = setTimeout(() => {
-        reject(new FmError("TIMEOUT", `Macro execution timed out after ${macro.timeoutMs} ms.`));
+        reject(
+          new FmError(
+            "TIMEOUT",
+            `Macro execution timed out after ${macro.timeoutMs} ms.`,
+          ),
+        );
       }, macro.timeoutMs);
     });
 
@@ -2529,8 +3323,15 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
     }
 
     // If the macro returned an array of row objects, surface it as a result set automatically
-    if (Array.isArray(returnValue) && returnValue.length > 0 && isObject(returnValue[0])) {
-      const rows = returnValue.slice(0, MAX_RESULT_ROWS) as Record<string, WireValue>[];
+    if (
+      Array.isArray(returnValue) &&
+      returnValue.length > 0 &&
+      isObject(returnValue[0])
+    ) {
+      const rows = returnValue.slice(0, MAX_RESULT_ROWS) as Record<
+        string,
+        WireValue
+      >[];
       resultSets.push({
         label: "Return Value",
         columns: Object.keys(rows[0]!),
@@ -2580,7 +3381,8 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
       }
       const rawMsg = err instanceof Error ? err.message : String(err);
       const safeMsg = redact(rawMsg, secrets);
-      const details = err instanceof FmError && isObject(err.details) ? err.details : {};
+      const details =
+        err instanceof FmError && isObject(err.details) ? err.details : {};
       return {
         ok: false,
         status: "failed",
@@ -2606,12 +3408,16 @@ export async function executeDbMacro(ctx: FmContext, req: RunMacroRequest): Prom
         beeps,
         steps,
         resultSets,
-        tempVars: JSON.parse( redact(JSON.stringify(tempVarsStore), secrets) ),
-        ...(missingPrompts.size > 0 ? { promptsRequired: [...missingPrompts] } : {}),
+        tempVars: JSON.parse(redact(JSON.stringify(tempVarsStore), secrets)),
+        ...(missingPrompts.size > 0
+          ? { promptsRequired: [...missingPrompts] }
+          : {}),
         error: {
           message: safeMsg,
           ...(typeof details.line === "number" ? { line: details.line } : {}),
-          ...(typeof details.column === "number" ? { column: details.column } : {}),
+          ...(typeof details.column === "number"
+            ? { column: details.column }
+            : {}),
         },
       };
     }
@@ -2687,7 +3493,11 @@ export const macroOperations: Record<string, FmHandler> = {
       const check = validateBunMacroCode(saved.code);
       if (!check.valid) {
         const first = check.errors[0]!;
-        throw new FmError("BAD_REQUEST", `Syntax error in Bun JS macro: ${first.message}`, first);
+        throw new FmError(
+          "BAD_REQUEST",
+          `Syntax error in Bun JS macro: ${first.message}`,
+          first,
+        );
       }
     } else {
       const check = validateMacroActions(saved.actions);
@@ -2740,29 +3550,51 @@ export const macroOperations: Record<string, FmHandler> = {
     const knownNames = loadMacros(ctx).map((m) => m.name);
     const res =
       mode === "actions"
-        ? validateMacroActions(Array.isArray(src.actions) ? src.actions.map((r, i) => sanitizeActionRow(r, i)) : [], knownNames)
+        ? validateMacroActions(
+            Array.isArray(src.actions)
+              ? src.actions.map((r, i) => sanitizeActionRow(r, i))
+              : [],
+            knownNames,
+          )
         : validateBunMacroCode(typeof src.code === "string" ? src.code : "");
     const issues = [
-      ...res.errors.map((e) => ({ severity: "error" as const, message: e.message, line: e.line, column: e.column })),
-      ...res.warnings.map((w) => ({ severity: "warning" as const, message: w })),
+      ...res.errors.map((e) => ({
+        severity: "error" as const,
+        message: e.message,
+        line: e.line,
+        column: e.column,
+      })),
+      ...res.warnings.map((w) => ({
+        severity: "warning" as const,
+        message: w,
+      })),
     ];
     return { ...res, issues };
   },
 
   async "db/macros/convert"(_ctx, b) {
     const src = isObject(b.macro) ? b.macro : b;
-    const name = typeof src.name === "string" && src.name.trim() ? src.name.trim() : "Converted Macro";
-    const actions = Array.isArray(src.actions) ? src.actions.map((r, i) => sanitizeActionRow(r, i)) : [];
+    const name =
+      typeof src.name === "string" && src.name.trim()
+        ? src.name.trim()
+        : "Converted Macro";
+    const actions = Array.isArray(src.actions)
+      ? src.actions.map((r, i) => sanitizeActionRow(r, i))
+      : [];
     const code = macroActionsToBunJs(name, actions);
     return { code };
   },
 
   async "db/macros/export"(ctx, b) {
-    const format = b.format === "vba" || b.format === "sql" || b.format === "json" ? b.format : "bun";
+    const format =
+      b.format === "vba" || b.format === "sql" || b.format === "json"
+        ? b.format
+        : "bun";
     let macro: DbMacro;
     if (typeof b.id === "string" && !b.macro) {
       const found = loadMacros(ctx).find((m) => m.id === b.id);
-      if (!found) throw new FmError("NOT_FOUND", "That macro no longer exists.");
+      if (!found)
+        throw new FmError("NOT_FOUND", "That macro no longer exists.");
       macro = found;
     } else {
       macro = sanitizeMacroInput(isObject(b.macro) ? b.macro : b);
@@ -2777,7 +3609,8 @@ export const macroOperations: Record<string, FmHandler> = {
       target: b.target,
       params: isObject(b.params) ? b.params : undefined,
       dryRun: b.dryRun === true,
-      transaction: typeof b.transaction === "boolean" ? b.transaction : undefined,
+      transaction:
+        typeof b.transaction === "boolean" ? b.transaction : undefined,
       confirmWrites: b.confirmWrites === true,
     });
   },

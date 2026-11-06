@@ -1,14 +1,14 @@
 /**
  * ⚡ Bun RAD Studio - Postgres Studio Pro
- * 
+ *
  * Enterprise-Grade Embedded PostgreSQL Database Workstation & Query IDE
  * Powered by 100% native Bun SQL PostgreSQL client with sub-millisecond execution latency.
- * 
+ *
  * Architecture:
  * - Dedicated Background Worker & HTTP Telemetry Server (`postgres_studio_server.ts`)
  * - Native WebKit / Webview Desktop GUI with zero FFI deadlock and instant UI updates
  * - Also accessible in any browser via local workstation URL
- * 
+ *
  * Advanced PostgreSQL Features over MySQL:
  * - Schema Namespaces: Multi-schema switching (public, analytics, custom), schema creation & isolation
  * - Materialized Views: Dedicated section in Object Tree, inspection & 1-click REFRESH MATERIALIZED VIEW
@@ -36,12 +36,26 @@ import {
   type PostgresConnectionConfigSanitized,
 } from "./postgres_studio_server.ts";
 import { CRUD_STYLE, CRUD_SCRIPT } from "./postgres_studio_crud.ts";
-import { SAMPLES_STYLE, SAMPLES_SCRIPT_POSTGRES } from "../src/db/samples/ui.ts";
+import {
+  SAMPLES_STYLE,
+  SAMPLES_SCRIPT_POSTGRES,
+} from "../src/db/samples/ui.ts";
 import { POSTGRES_DESIGNER_SCRIPT } from "./postgres_studio_designer.ts";
 import { watchParentProcess } from "../src/parentWatch";
-import { MACRO_STYLE, MACRO_TAB_BTN, MACRO_HTML, buildMacroScript } from "./sqlite_studio_macros.ts";
-import { STUDIO_SHARED_STYLE, STUDIO_SHARED_SCRIPT } from "../src/shared/studioShared.ts";
-import { STUDIO_STAGING_STYLE, studioStagingScript } from "../src/shared/studioStaging.ts";
+import {
+  MACRO_STYLE,
+  MACRO_TAB_BTN,
+  MACRO_HTML,
+  buildMacroScript,
+} from "./sqlite_studio_macros.ts";
+import {
+  STUDIO_SHARED_STYLE,
+  STUDIO_SHARED_SCRIPT,
+} from "../src/shared/studioShared.ts";
+import {
+  STUDIO_STAGING_STYLE,
+  studioStagingScript,
+} from "../src/shared/studioStaging.ts";
 
 export interface PostgresStudioOptions {
   fullscreen?: boolean;
@@ -146,11 +160,14 @@ function getScreenDimensions(): { width: number; height: number } {
   let screenH = 900;
   try {
     if (process.platform === "darwin") {
-      const cg = dlopen("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics", {
-        CGMainDisplayID: { args: [], returns: FFIType.u32 },
-        CGDisplayPixelsWide: { args: [FFIType.u32], returns: FFIType.u64 },
-        CGDisplayPixelsHigh: { args: [FFIType.u32], returns: FFIType.u64 },
-      });
+      const cg = dlopen(
+        "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+        {
+          CGMainDisplayID: { args: [], returns: FFIType.u32 },
+          CGDisplayPixelsWide: { args: [FFIType.u32], returns: FFIType.u64 },
+          CGDisplayPixelsHigh: { args: [FFIType.u32], returns: FFIType.u64 },
+        },
+      );
       const mainId = cg.symbols.CGMainDisplayID();
       screenW = Number(cg.symbols.CGDisplayPixelsWide(mainId));
       screenH = Number(cg.symbols.CGDisplayPixelsHigh(mainId));
@@ -2330,7 +2347,7 @@ function buildPostgresHtml(): string {
               <span style="font-weight: 700; font-size: 11px; color: var(--cyan);">PostgreSQL Query IDE</span>
               <select onchange="applySqlPreset(this.value)" style="max-width: 280px; font-size: 11px; padding: 2px 20px 2px 6px;">
                 <option value="">⚡ PostgreSQL Presets &amp; Templates...</option>
-                ${POSTGRES_SQL_PRESETS.map((p, idx) => `<option value="${idx}">${p.name}</option>`).join('')}
+                ${POSTGRES_SQL_PRESETS.map((p, idx) => `<option value="${idx}">${p.name}</option>`).join("")}
               </select>
             </div>
             <div style="display: flex; align-items: center; gap: 6px;">
@@ -6378,22 +6395,26 @@ function buildPostgresHtml(): string {
 // Desktop Workstation Application Factory
 // -------------------------------------------------------------------------------------------------
 
-export function createPostgresStudio(options: PostgresStudioOptions = {}): PostgresStudioInstance {
+export function createPostgresStudio(
+  options: PostgresStudioOptions = {},
+): PostgresStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1260);
   const height = options.height ?? (fullscreen ? screen.height : 900);
-  const activeDbPath = options.initialDbPath 
-    || options.database 
-    || process.env.PG_DATABASE 
-    || process.env.PG_NAME 
-    || process.env.PG_DB 
-    || process.env.POSTGRES_DB 
-    || "mydb";
-  const activeSchema = options.initialSchema 
-    || options.schema 
-    || process.env.PG_SCHEMA 
-    || "public";
+  const activeDbPath =
+    options.initialDbPath ||
+    options.database ||
+    process.env.PG_DATABASE ||
+    process.env.PG_NAME ||
+    process.env.PG_DB ||
+    process.env.POSTGRES_DB ||
+    "mydb";
+  const activeSchema =
+    options.initialSchema ||
+    options.schema ||
+    process.env.PG_SCHEMA ||
+    "public";
   const title = "Postgres Studio Pro -- Enterprise Database Workstation";
 
   const app: PostgresStudioInstance = {
@@ -6405,43 +6426,58 @@ export function createPostgresStudio(options: PostgresStudioOptions = {}): Postg
     activeSchema,
     generateHtml: () => generatePostgresStudioHtml(),
     run: async () => {
-      console.log("⚡ Launching Postgres Studio Pro (Enterprise Database Workstation)...");
+      console.log(
+        "⚡ Launching Postgres Studio Pro (Enterprise Database Workstation)...",
+      );
 
       // 1. Launch Isolated Background Database Worker Engine
       process.env.STUDIO_WORKER = "postgres_studio";
       if (activeDbPath) process.env.PG_DB_PATH = activeDbPath;
       if (activeSchema) process.env.PG_SCHEMA = activeSchema;
 
-      const customConfig: Partial<PostgresConnectionConfig> = options.config || {
-        host: options.host,
-        port: options.pgPort || (options.port && options.port !== 5432 ? options.port : undefined),
-        user: options.user,
-        password: options.password,
-        database: options.database,
-        schema: options.schema,
-        tls: options.tls,
-        url: options.url,
-      };
+      const customConfig: Partial<PostgresConnectionConfig> =
+        options.config || {
+          host: options.host,
+          port:
+            options.pgPort ||
+            (options.port && options.port !== 5432 ? options.port : undefined),
+          user: options.user,
+          password: options.password,
+          database: options.database,
+          schema: options.schema,
+          tls: options.tls,
+          url: options.url,
+        };
 
       if (customConfig.host) process.env.PG_HOST = customConfig.host;
       if (customConfig.port) process.env.PG_PORT = String(customConfig.port);
       if (customConfig.user) process.env.PG_USER = customConfig.user;
-      if (customConfig.password !== undefined) process.env.PG_PASSWORD = customConfig.password;
-      if (customConfig.database) process.env.PG_DATABASE = customConfig.database;
+      if (customConfig.password !== undefined)
+        process.env.PG_PASSWORD = customConfig.password;
+      if (customConfig.database)
+        process.env.PG_DATABASE = customConfig.database;
       if (customConfig.schema) process.env.PG_SCHEMA = customConfig.schema;
-      if (customConfig.tls !== undefined) process.env.PG_TLS = customConfig.tls ? "true" : "false";
+      if (customConfig.tls !== undefined)
+        process.env.PG_TLS = customConfig.tls ? "true" : "false";
       if (customConfig.url) process.env.PG_URL = customConfig.url;
 
       let info: { ready: boolean; port: number; url: string; type?: string };
       let serverProc: any = null;
 
       try {
-        const workerUrl = new URL("./postgres_studio_server.ts", import.meta.url);
+        const workerUrl = new URL(
+          "./postgres_studio_server.ts",
+          import.meta.url,
+        );
         const worker = new Worker(workerUrl);
         app.worker = worker;
 
         info = await new Promise((res, rej) => {
-          const timer = setTimeout(() => rej(new Error("Timeout initializing background database engine")), 1500);
+          const timer = setTimeout(
+            () =>
+              rej(new Error("Timeout initializing background database engine")),
+            1500,
+          );
           worker.onmessage = (e) => {
             if (!e.data?.type || e.data.type === "postgres_studio") {
               clearTimeout(timer);
@@ -6456,13 +6492,21 @@ export function createPostgresStudio(options: PostgresStudioOptions = {}): Postg
       } catch {
         // Subprocess fallback
         const serverArgs = process.execPath.endsWith("bun")
-          ? [process.execPath, process.argv[1] || resolve(import.meta.dir, "postgres_studio.ts"), "--server"]
+          ? [
+              process.execPath,
+              process.argv[1] || resolve(import.meta.dir, "postgres_studio.ts"),
+              "--server",
+            ]
           : [process.execPath, "--server"];
 
         const proc = Bun.spawn(serverArgs, {
           stdout: "pipe",
           stderr: "ignore",
-          env: { ...process.env, PG_STUDIO_DB: activeDbPath, PG_SCHEMA: activeSchema },
+          env: {
+            ...process.env,
+            PG_STUDIO_DB: activeDbPath,
+            PG_SCHEMA: activeSchema,
+          },
         });
         serverProc = proc;
 
@@ -6472,7 +6516,9 @@ export function createPostgresStudio(options: PostgresStudioOptions = {}): Postg
         let detectedPort = 0;
 
         const timeout = setTimeout(() => {
-          try { reader.cancel(); } catch {}
+          try {
+            reader.cancel();
+          } catch {}
         }, 5000);
 
         while (true) {
@@ -6545,13 +6591,21 @@ export function createPostgresStudio(options: PostgresStudioOptions = {}): Postg
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { app.worker?.terminate(); } catch {}
-            try { serverProc?.kill(); } catch {}
+            try {
+              app.worker?.terminate();
+            } catch {}
+            try {
+              serverProc?.kill();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { app.worker?.terminate(); } catch {}
-            try { serverProc?.kill(); } catch {}
+            try {
+              app.worker?.terminate();
+            } catch {}
+            try {
+              serverProc?.kill();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -6561,18 +6615,30 @@ export function createPostgresStudio(options: PostgresStudioOptions = {}): Postg
         });
 
         webview.navigate(info.url);
-        console.log(`⚡ Native desktop workstation window open. (Also accessible in any browser at: ${info.url})`);
+        console.log(
+          `⚡ Native desktop workstation window open. (Also accessible in any browser at: ${info.url})`,
+        );
 
         // Start native desktop message loop on main thread
         webview.run();
-        try { app.worker?.terminate(); } catch {}
-        try { serverProc?.kill(); } catch {}
+        try {
+          app.worker?.terminate();
+        } catch {}
+        try {
+          serverProc?.kill();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running as web workstation at: ${info.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running as web workstation at: ${info.url}`,
+        );
       } finally {
-        try { app.worker?.terminate(); } catch {}
-        try { serverProc?.kill(); } catch {}
+        try {
+          app.worker?.terminate();
+        } catch {}
+        try {
+          serverProc?.kill();
+        } catch {}
         process.exit(0);
       }
     },
@@ -6588,7 +6654,10 @@ export function createPostgresStudio(options: PostgresStudioOptions = {}): Postg
 if (process.argv.includes("--server")) {
   const initialDb = process.env.PG_STUDIO_DB || "mydb";
   const initialSchema = process.env.PG_SCHEMA || "public";
-  const port = parseInt(process.env.PG_STUDIO_PORT || process.env.PORT || "54321", 10);
+  const port = parseInt(
+    process.env.PG_STUDIO_PORT || process.env.PORT || "54321",
+    10,
+  );
   const srv = startPostgresStudioServer({
     port,
     host: "127.0.0.1",
@@ -6600,7 +6669,10 @@ if (process.argv.includes("--server")) {
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
   const initialDb = process.argv[2] || "mydb";
-  const app = createPostgresStudio({ initialDbPath: initialDb, fullscreen: true });
+  const app = createPostgresStudio({
+    initialDbPath: initialDb,
+    fullscreen: true,
+  });
   await app.run();
   process.exit(0);
 }

@@ -84,7 +84,9 @@ export function generateSlotsStudioHtml(): string {
   return injectGameMasterFx(html);
 }
 
-export function startSlotsServer(options: { port?: number; host?: string } = {}) {
+export function startSlotsServer(
+  options: { port?: number; host?: string } = {},
+) {
   return startStaticStudioServer(
     {
       app: "slots_studio",
@@ -93,11 +95,13 @@ export function startSlotsServer(options: { port?: number; host?: string } = {})
       assetsDir: getSlotsAssetsDir(),
       generateHtml: generateSlotsStudioHtml,
     },
-    options
+    options,
   );
 }
 
-export function createSlotsStudio(options: SlotsStudioOptions = {}): SlotsStudioInstance {
+export function createSlotsStudio(
+  options: SlotsStudioOptions = {},
+): SlotsStudioInstance {
   const screen = getScreenDimensions();
   const width = options.width ?? Math.min(1440, screen.width);
   const height = options.height ?? Math.min(920, screen.height);
@@ -112,7 +116,10 @@ export function createSlotsStudio(options: SlotsStudioOptions = {}): SlotsStudio
     run: async () => {
       let srv: any = null;
       try {
-        srv = startSlotsServer({ port: options.port ?? 0, host: options.host ?? "127.0.0.1" });
+        srv = startSlotsServer({
+          port: options.port ?? 0,
+          host: options.host ?? "127.0.0.1",
+        });
         app.server = srv;
         app.port = srv.port;
         app.url = `http://127.0.0.1:${srv.port}`;
@@ -138,11 +145,15 @@ export function createSlotsStudio(options: SlotsStudioOptions = {}): SlotsStudio
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -153,13 +164,19 @@ export function createSlotsStudio(options: SlotsStudioOptions = {}): SlotsStudio
 
         webview.setHTML(html);
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -176,10 +193,13 @@ if (process.argv.includes("--server")) {
   const port = parseInt(process.env.SLOTS_PORT || process.env.PORT || "0", 10);
   const srv = startSlotsServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`🎰 ${APP_TITLE} Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `🎰 ${APP_TITLE} Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = process.argv.includes("--fullscreen") || process.argv.includes("-f");
+  const fullscreen =
+    process.argv.includes("--fullscreen") || process.argv.includes("-f");
   const app = createSlotsStudio({ fullscreen });
   await app.run();
   process.exit(0);

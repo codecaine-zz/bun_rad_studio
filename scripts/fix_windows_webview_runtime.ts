@@ -1,4 +1,14 @@
-import { closeSync, copyFileSync, existsSync, mkdirSync, openSync, readSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  closeSync,
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  openSync,
+  readSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { delimiter, join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -32,7 +42,12 @@ export function getPeMachineType(filePath: string): number | null {
       if (n < 6) return null;
     }
     // PE\0\0 signature (0x50, 0x45, 0x00, 0x00)
-    if (peBuf[0] !== 0x50 || peBuf[1] !== 0x45 || peBuf[2] !== 0x00 || peBuf[3] !== 0x00) {
+    if (
+      peBuf[0] !== 0x50 ||
+      peBuf[1] !== 0x45 ||
+      peBuf[2] !== 0x00 ||
+      peBuf[3] !== 0x00
+    ) {
       return null;
     }
     return peBuf.readUInt16LE(4);
@@ -40,7 +55,9 @@ export function getPeMachineType(filePath: string): number | null {
     return null;
   } finally {
     if (fd !== undefined) {
-      try { closeSync(fd); } catch {}
+      try {
+        closeSync(fd);
+      } catch {}
     }
   }
 }
@@ -97,7 +114,8 @@ function walkForX64WebView2Loader(dir: string, matches: string[], depth = 0) {
 }
 
 export function findWebView2Loader(customRoots?: string[]): string | undefined {
-  const progFilesX86 = process.env["ProgramFiles(x86)"] ?? "C:\\Program Files (x86)";
+  const progFilesX86 =
+    process.env["ProgramFiles(x86)"] ?? "C:\\Program Files (x86)";
   const progFiles = process.env.ProgramFiles ?? "C:\\Program Files";
   const localAppData = process.env.LOCALAPPDATA ?? "";
 
@@ -136,7 +154,9 @@ function prependWindowsDllSearchPath(dir: string) {
  * Ensures `node_modules/webview-bun/build/WebView2Loader.dll` is a valid x64 (0x8664) DLL if present,
  * removing any wrong-architecture (ARM64 / x86) copy that would break `libwebview.dll` (which is x64).
  */
-export function ensureValidWindowsWebViewLoader(rootDir = process.cwd()): string | undefined {
+export function ensureValidWindowsWebViewLoader(
+  rootDir = process.cwd(),
+): string | undefined {
   const webviewBuildDir = join(rootDir, "node_modules", "webview-bun", "build");
   const target = join(webviewBuildDir, "WebView2Loader.dll");
 
@@ -168,18 +188,29 @@ export function ensureValidWindowsWebViewLoader(rootDir = process.cwd()): string
     }
 
     copyFileSync(source, target);
-    console.log(`[windows-webview] Copied x64 WebView2Loader.dll: ${source} -> ${target}`);
+    console.log(
+      `[windows-webview] Copied x64 WebView2Loader.dll: ${source} -> ${target}`,
+    );
     return target;
   } catch (err: any) {
-    console.warn(`[windows-webview] Note: Unable to verify/copy WebView2Loader.dll (${err?.message ?? err}).`);
+    console.warn(
+      `[windows-webview] Note: Unable to verify/copy WebView2Loader.dll (${err?.message ?? err}).`,
+    );
     return undefined;
   }
 }
 
-const VC_RUNTIME_DLLS = ["msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll"] as const;
+const VC_RUNTIME_DLLS = [
+  "msvcp140.dll",
+  "vcruntime140.dll",
+  "vcruntime140_1.dll",
+] as const;
 
 function extractZipOnWindows(zipPath: string, destDir: string): boolean {
-  const tar = Bun.spawnSync(["tar.exe", "-xf", zipPath, "-C", destDir], { stdout: "ignore", stderr: "ignore" });
+  const tar = Bun.spawnSync(["tar.exe", "-xf", zipPath, "-C", destDir], {
+    stdout: "ignore",
+    stderr: "ignore",
+  });
   if (tar.exitCode === 0) return true;
   const ps = Bun.spawnSync(
     [
@@ -200,7 +231,9 @@ function extractZipOnWindows(zipPath: string, destDir: string): boolean {
  * `SetDllDirectoryW` so ARM64/x86 DLLs in `System32` or `PATH` on Windows 11 ARM64 (Parallels) never
  * trigger Win32 Error 193 (`ERROR_BAD_EXE_FORMAT`) when loading `libwebview.dll`.
  */
-export async function ensureWindowsX64VcRuntimeAndWebViewLoader(rootDir = process.cwd()): Promise<void> {
+export async function ensureWindowsX64VcRuntimeAndWebViewLoader(
+  rootDir = process.cwd(),
+): Promise<void> {
   if (process.platform !== "win32") return;
   const webviewBuildDir = join(rootDir, "node_modules", "webview-bun", "build");
   ensureValidWindowsWebViewLoader(rootDir);
@@ -220,14 +253,20 @@ export async function ensureWindowsX64VcRuntimeAndWebViewLoader(rootDir = proces
 
   // 2. If any of msvcp140.dll, vcruntime140.dll, vcruntime140_1.dll is still missing or non-x64,
   //    download Microsoft's official x64 Desktop VCLibs appx (standard zip, no UAC/admin required)
-  const missingVc = VC_RUNTIME_DLLS.some((dll) => !isPeX64(join(webviewBuildDir, dll)));
+  const missingVc = VC_RUNTIME_DLLS.some(
+    (dll) => !isPeX64(join(webviewBuildDir, dll)),
+  );
   if (missingVc) {
     const stageDir = join(tmpdir(), `vc-x64-${process.pid}-${Date.now()}`);
     const zipPath = join(stageDir, "vclibs-x64.zip");
     try {
       mkdirSync(stageDir, { recursive: true });
-      console.log("[windows-webview] Provisioning Microsoft x64 Visual C++ Runtime DLLs for native WebView2...");
-      const res = await fetch("https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx");
+      console.log(
+        "[windows-webview] Provisioning Microsoft x64 Visual C++ Runtime DLLs for native WebView2...",
+      );
+      const res = await fetch(
+        "https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx",
+      );
       if (res.ok) {
         writeFileSync(zipPath, new Uint8Array(await res.arrayBuffer()));
         if (extractZipOnWindows(zipPath, stageDir)) {
@@ -238,13 +277,19 @@ export async function ensureWindowsX64VcRuntimeAndWebViewLoader(rootDir = proces
               copyFileSync(extracted, dest);
             }
           }
-          console.log("[windows-webview] Installed x64 msvcp140.dll, vcruntime140.dll, and vcruntime140_1.dll.");
+          console.log(
+            "[windows-webview] Installed x64 msvcp140.dll, vcruntime140.dll, and vcruntime140_1.dll.",
+          );
         }
       }
     } catch (err: any) {
-      console.warn(`[windows-webview] Note: Could not auto-download VCLibs x64 (${err?.message ?? err}).`);
+      console.warn(
+        `[windows-webview] Note: Could not auto-download VCLibs x64 (${err?.message ?? err}).`,
+      );
     } finally {
-      try { rmSync(stageDir, { recursive: true, force: true }); } catch {}
+      try {
+        rmSync(stageDir, { recursive: true, force: true });
+      } catch {}
     }
   }
 
@@ -256,20 +301,33 @@ export async function ensureWindowsX64VcRuntimeAndWebViewLoader(rootDir = proces
     const zipPath = join(stageDir, "webview2.zip");
     try {
       mkdirSync(stageDir, { recursive: true });
-      console.log("[windows-webview] Provisioning Microsoft x64 WebView2Loader.dll...");
-      const res = await fetch("https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2");
+      console.log(
+        "[windows-webview] Provisioning Microsoft x64 WebView2Loader.dll...",
+      );
+      const res = await fetch(
+        "https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2",
+      );
       if (res.ok) {
         writeFileSync(zipPath, new Uint8Array(await res.arrayBuffer()));
         if (extractZipOnWindows(zipPath, stageDir)) {
-          const extracted = join(stageDir, "runtimes", "win-x64", "native", "WebView2Loader.dll");
+          const extracted = join(
+            stageDir,
+            "runtimes",
+            "win-x64",
+            "native",
+            "WebView2Loader.dll",
+          );
           if (isPeX64(extracted)) {
             copyFileSync(extracted, loaderTarget);
             console.log("[windows-webview] Installed x64 WebView2Loader.dll.");
           }
         }
       }
-    } catch {} finally {
-      try { rmSync(stageDir, { recursive: true, force: true }); } catch {}
+    } catch {
+    } finally {
+      try {
+        rmSync(stageDir, { recursive: true, force: true });
+      } catch {}
     }
   }
 
@@ -287,7 +345,10 @@ export async function ensureWindowsX64VcRuntimeAndWebViewLoader(rootDir = proces
 function isRunnableWindowsX64Bun(candidate: string): boolean {
   if (!existsSync(candidate) || !isPeX64(candidate)) return false;
   try {
-    const res = Bun.spawnSync([candidate, "--version"], { stdout: "ignore", stderr: "ignore" });
+    const res = Bun.spawnSync([candidate, "--version"], {
+      stdout: "ignore",
+      stderr: "ignore",
+    });
     return res.exitCode === 0;
   } catch {
     return false;
@@ -297,10 +358,12 @@ function isRunnableWindowsX64Bun(candidate: string): boolean {
 /** Locates an already-installed x64 Bun executable on Windows (used on Windows 11 ARM64 for x64 libwebview.dll). */
 export function findExistingWindowsX64Bun(): string | undefined {
   if (process.platform !== "win32") return undefined;
-  if (process.arch === "x64" && isPeX64(process.execPath)) return process.execPath;
+  if (process.arch === "x64" && isPeX64(process.execPath))
+    return process.execPath;
 
   const userProfile = process.env.USERPROFILE || "C:\\Users\\Default";
-  const localAppData = process.env.LOCALAPPDATA || join(userProfile, "AppData", "Local");
+  const localAppData =
+    process.env.LOCALAPPDATA || join(userProfile, "AppData", "Local");
   const targetDir = join(localAppData, "bun-x64");
 
   // Prefer baseline x64 on Windows ARM64 because Windows x64 emulation in ARM64 VMs (e.g. Apple Silicon M-series)
@@ -333,23 +396,31 @@ export async function ensureWindowsX64Bun(): Promise<string | undefined> {
   if (existing) return existing;
 
   const userProfile = process.env.USERPROFILE || "C:\\Users\\Default";
-  const localAppData = process.env.LOCALAPPDATA || join(userProfile, "AppData", "Local");
+  const localAppData =
+    process.env.LOCALAPPDATA || join(userProfile, "AppData", "Local");
   const targetDir = join(localAppData, "bun-x64");
   const baselineExe = join(targetDir, "bun-windows-x64-baseline", "bun.exe");
   const standardExe = join(targetDir, "bun-windows-x64", "bun.exe");
   const altExe = join(targetDir, "bun.exe");
   const zipPath = join(tmpdir(), `bun-windows-x64-baseline-${process.pid}.zip`);
 
-  console.log("[windows-webview] Windows ARM64 detected: setting up x64-baseline Bun runtime for native WebView2 (libwebview.dll is x64)...");
+  console.log(
+    "[windows-webview] Windows ARM64 detected: setting up x64-baseline Bun runtime for native WebView2 (libwebview.dll is x64)...",
+  );
   try {
     mkdirSync(targetDir, { recursive: true });
-    const res = await fetch("https://github.com/oven-sh/bun/releases/latest/download/bun-windows-x64-baseline.zip");
+    const res = await fetch(
+      "https://github.com/oven-sh/bun/releases/latest/download/bun-windows-x64-baseline.zip",
+    );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const bytes = new Uint8Array(await res.arrayBuffer());
     writeFileSync(zipPath, bytes);
 
     // Extract using Windows built-in tar.exe (fast) or PowerShell Expand-Archive as fallback
-    const tar = Bun.spawnSync(["tar.exe", "-xf", zipPath, "-C", targetDir], { stdout: "ignore", stderr: "ignore" });
+    const tar = Bun.spawnSync(["tar.exe", "-xf", zipPath, "-C", targetDir], {
+      stdout: "ignore",
+      stderr: "ignore",
+    });
     if (tar.exitCode !== 0) {
       Bun.spawnSync(
         [
@@ -359,27 +430,38 @@ export async function ensureWindowsX64Bun(): Promise<string | undefined> {
           "-Command",
           `Expand-Archive -Path '${zipPath.replace(/'/g, "''")}' -DestinationPath '${targetDir.replace(/'/g, "''")}' -Force`,
         ],
-        { stdout: "ignore", stderr: "ignore" }
+        { stdout: "ignore", stderr: "ignore" },
       );
     }
-    try { rmSync(zipPath, { force: true }); } catch {}
+    try {
+      rmSync(zipPath, { force: true });
+    } catch {}
 
     for (const candidate of [baselineExe, standardExe, altExe]) {
       if (isRunnableWindowsX64Bun(candidate)) {
         // Also populate bun-windows-x64\bun.exe if not already runnable so run.ps1 finds it immediately
-        if (candidate === baselineExe && !isRunnableWindowsX64Bun(standardExe)) {
+        if (
+          candidate === baselineExe &&
+          !isRunnableWindowsX64Bun(standardExe)
+        ) {
           try {
             mkdirSync(join(targetDir, "bun-windows-x64"), { recursive: true });
             copyFileSync(baselineExe, standardExe);
           } catch {}
         }
-        console.log(`[windows-webview] Configured x64-baseline Bun runtime at ${candidate}`);
+        console.log(
+          `[windows-webview] Configured x64-baseline Bun runtime at ${candidate}`,
+        );
         return candidate;
       }
     }
   } catch (err: any) {
-    try { rmSync(zipPath, { force: true }); } catch {}
-    console.warn(`[windows-webview] Automatic x64 Bun setup failed (${err?.message ?? err}).`);
+    try {
+      rmSync(zipPath, { force: true });
+    } catch {}
+    console.warn(
+      `[windows-webview] Automatic x64 Bun setup failed (${err?.message ?? err}).`,
+    );
   }
 
   return undefined;
@@ -395,7 +477,10 @@ export async function initWindowsComSta(): Promise<boolean> {
   try {
     const { dlopen, FFIType } = await import("bun:ffi");
     const ole32 = dlopen("ole32.dll", {
-      CoInitializeEx: { args: [FFIType.pointer, FFIType.u32], returns: FFIType.i32 },
+      CoInitializeEx: {
+        args: [FFIType.pointer, FFIType.u32],
+        returns: FFIType.i32,
+      },
     });
     // COINIT_APARTMENTTHREADED = 0x2; S_OK = 0, S_FALSE = 1
     const hr = ole32.symbols.CoInitializeEx(null, 0x2);

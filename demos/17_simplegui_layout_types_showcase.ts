@@ -1,6 +1,6 @@
 /**
  * ⚡ Bun RAD Studio Demo 17: SimpleGUI Layout Systems & Containers Showcase
- * 
+ *
  * Demonstrates the 5 distinct layout paradigms supported by SimpleGUI:
  * 1. Default Vertical Flow Layout (Automatic top-to-bottom auto-spacing)
  * 2. Horizontal Row Flex Layout (beginRow / endRow side-by-side alignment)
@@ -11,19 +11,28 @@
 
 import { simplegui } from "../index.ts";
 
-const win = simplegui.createWindow("SimpleGUI - Comprehensive Layout Systems Showcase", 900, 780, {
+const win = simplegui.createWindow(
+  "SimpleGUI - Comprehensive Layout Systems Showcase",
+  900,
+  780,
+  {
     theme: "apple_dark",
     padding: 20,
     spacing: 12,
-    alwaysOnTop: true
-});
+    alwaysOnTop: true,
+  },
+);
 
 // Header
-win.addLabel("📐 SimpleGUI Layout & Container Architecture")
-    .font(20, "#38bdf8", "700");
+win
+  .addLabel("📐 SimpleGUI Layout & Container Architecture")
+  .font(20, "#38bdf8", "700");
 
-win.addLabel("SimpleGUI supports vertical flow, horizontal rows, multi-column grids, and nested group cards.")
-    .font(13, "#94a3b8");
+win
+  .addLabel(
+    "SimpleGUI supports vertical flow, horizontal rows, multi-column grids, and nested group cards.",
+  )
+  .font(13, "#94a3b8");
 
 win.addDivider();
 
@@ -32,17 +41,30 @@ win.addDivider();
 // ---------------------------------------------------------
 win.beginCard("1. Horizontal Row Layout (beginRow / endRow)");
 
-win.addLabel("Controls placed inside beginRow() / endRow() align horizontally side-by-side:")
-    .font(12, "#cbd5e1");
+win
+  .addLabel(
+    "Controls placed inside beginRow() / endRow() align horizontally side-by-side:",
+  )
+  .font(12, "#cbd5e1");
 
 win.beginRow();
 win.addLabel("Search:").width(60);
 win.addTextInput("Type keywords...").id("txtSearchRow").width(240);
-win.addDropdown(["All Categories", "Documents", "Images", "Code"], "All Categories").id("cmbCategoryRow").width(160);
-win.addButton("🔍 Search", (w) => {
+win
+  .addDropdown(
+    ["All Categories", "Documents", "Images", "Code"],
+    "All Categories",
+  )
+  .id("cmbCategoryRow")
+  .width(160);
+win
+  .addButton("🔍 Search", (w) => {
     const query = w.getValue("txtSearchRow") || "all";
     w.showAlert(`Searching for: '${query}'`, "Row Action");
-}).bg("#0284c7").color("#ffffff").width(120);
+  })
+  .bg("#0284c7")
+  .color("#ffffff")
+  .width(120);
 win.endRow();
 
 win.endCard();
@@ -52,8 +74,11 @@ win.endCard();
 // ---------------------------------------------------------
 win.beginCard("2. Multi-Column Grid Layout (beginGrid(cols, gap) / endGrid)");
 
-win.addLabel("Controls inside beginGrid(cols) automatically compute cell widths and wrap into rows:")
-    .font(12, "#cbd5e1");
+win
+  .addLabel(
+    "Controls inside beginGrid(cols) automatically compute cell widths and wrap into rows:",
+  )
+  .font(12, "#cbd5e1");
 
 win.beginGrid(3, 16);
 
@@ -68,9 +93,12 @@ win.addDropdown(["Option A", "Option B", "Option C"], "Option A").id("grid_4");
 // Cell 5
 win.addSwitch("Grid Switch", true).id("grid_5");
 // Cell 6
-win.addButton("⚡ Grid Action", (w) => {
+win
+  .addButton("⚡ Grid Action", (w) => {
     w.showAlert("Grid button clicked!", "Grid Layout");
-}).bg("#059669").color("#ffffff");
+  })
+  .bg("#059669")
+  .color("#ffffff");
 
 win.endGrid();
 
@@ -92,7 +120,10 @@ win.endRow();
 
 win.beginRow();
 win.addLabel("Status:").width(90);
-win.addSegmentedControl(["Offline", "Online", "Busy"], 1).id("segStatus").width(200);
+win
+  .addSegmentedControl(["Offline", "Online", "Busy"], 1)
+  .id("segStatus")
+  .width(200);
 win.endRow();
 win.endCard();
 
@@ -117,20 +148,38 @@ win.endCard();
 // 4. ACTION BAR & FOOTER STATUS (Row Layout)
 // ---------------------------------------------------------
 win.beginRow();
-win.addButton("🎨 Toggle Dark/Light Theme", (w) => {
+win
+  .addButton("🎨 Toggle Dark/Light Theme", (w) => {
     const nextTheme = w.theme === "apple_dark" ? "apple_light" : "apple_dark";
     w.setTheme(nextTheme);
-}).bg("#475569").color("#ffffff").width(220).height(38);
+  })
+  .bg("#475569")
+  .color("#ffffff")
+  .width(220)
+  .height(38);
 
-win.addButton("📋 Print Form State", (w) => {
+win
+  .addButton("📋 Print Form State", (w) => {
     const vals = w.getFormValues();
     console.log("Current Layout Demo Form Values:", vals);
-    w.showAlert(`Collected Form Values:\n` + JSON.stringify(vals, null, 2), "Form State");
-}).bg("#0f766e").color("#ffffff").width(180).height(38);
+    w.showAlert(
+      `Collected Form Values:\n` + JSON.stringify(vals, null, 2),
+      "Form State",
+    );
+  })
+  .bg("#0f766e")
+  .color("#ffffff")
+  .width(180)
+  .height(38);
 
-win.addButton("❌ Close", (w) => {
+win
+  .addButton("❌ Close", (w) => {
     w.close();
-}).bg("#dc2626").color("#ffffff").width(120).height(38);
+  })
+  .bg("#dc2626")
+  .color("#ffffff")
+  .width(120)
+  .height(38);
 win.endRow();
 
 console.log("⚡ Launching SimpleGUI Layout Systems Demo 17...");

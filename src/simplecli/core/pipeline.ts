@@ -2,8 +2,8 @@
  * Multi-stage task execution pipeline with animated step spinners, timers, and summary reporting
  */
 
-import { Ansi } from './ansi.ts';
-import type { PipelineStep } from './types.ts';
+import { Ansi } from "./ansi.ts";
+import type { PipelineStep } from "./types.ts";
 
 /**
  * Sequential task execution pipeline that runs named steps with animated terminal spinners, timing, and summary output.
@@ -27,15 +27,15 @@ export class Pipeline {
 
   /** Executes all registered pipeline steps in order, stopping at the first failure, and returns `true` if all succeeded. */
   public async run(): Promise<boolean> {
-    const divider = '─'.repeat(Math.min(60, process.stdout.columns || 60));
-    console.log(`\n${Ansi.bold(Ansi.cyan('▶'))} ${Ansi.bold(this.title)}`);
+    const divider = "─".repeat(Math.min(60, process.stdout.columns || 60));
+    console.log(`\n${Ansi.bold(Ansi.cyan("▶"))} ${Ansi.bold(this.title)}`);
     console.log(Ansi.dim(divider));
 
     const totalStart = performance.now();
     let passedCount = 0;
     let failedCount = 0;
 
-    const spinnerFrames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+    const spinnerFrames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
     for (let i = 0; i < this.steps.length; i++) {
       const step = this.steps[i];
@@ -47,10 +47,14 @@ export class Pipeline {
       let spinnerTimer: any = null;
 
       if (process.stdout.isTTY && !this.noColor) {
-        process.stdout.write(`  ${Ansi.cyan(spinnerFrames[0] || '⠋')} ${stepPrefix}...`);
+        process.stdout.write(
+          `  ${Ansi.cyan(spinnerFrames[0] || "⠋")} ${stepPrefix}...`,
+        );
         spinnerTimer = setInterval(() => {
           frameIdx = (frameIdx + 1) % spinnerFrames.length;
-          process.stdout.write(`\r  ${Ansi.cyan(spinnerFrames[frameIdx] || '⠋')} ${stepPrefix}...`);
+          process.stdout.write(
+            `\r  ${Ansi.cyan(spinnerFrames[frameIdx] || "⠋")} ${stepPrefix}...`,
+          );
         }, 80);
       } else {
         console.log(`  ○ ${stepPrefix}...`);
@@ -70,19 +74,19 @@ export class Pipeline {
       }
 
       if (process.stdout.isTTY && !this.noColor) {
-        process.stdout.write('\r' + Ansi.clearLine());
+        process.stdout.write("\r" + Ansi.clearLine());
       }
 
       if (success) {
         passedCount++;
-        const check = this.noColor ? '[OK]' : Ansi.green('✓');
+        const check = this.noColor ? "[OK]" : Ansi.green("✓");
         const dur = Ansi.dim(`(${stepDuration} ms)`);
         console.log(`  ${check} ${stepPrefix} ${dur}`);
       } else {
         failedCount++;
-        const cross = this.noColor ? '[FAILED]' : Ansi.red('✖');
+        const cross = this.noColor ? "[FAILED]" : Ansi.red("✖");
         const dur = Ansi.dim(`(${stepDuration} ms)`);
-        console.log(`  ${cross} ${stepPrefix} ${dur} ${Ansi.red('[FAILED]')}`);
+        console.log(`  ${cross} ${stepPrefix} ${dur} ${Ansi.red("[FAILED]")}`);
         break; // Pipeline aborts on failure
       }
     }
@@ -91,12 +95,20 @@ export class Pipeline {
     console.log(Ansi.dim(divider));
 
     if (failedCount === 0) {
-      const tag = this.noColor ? 'SUCCESS' : Ansi.green(Ansi.bold('PIPELINE PASSED'));
-      console.log(`✨ ${tag}: Completed ${passedCount}/${this.steps.length} steps in ${totalDuration}s\n`);
+      const tag = this.noColor
+        ? "SUCCESS"
+        : Ansi.green(Ansi.bold("PIPELINE PASSED"));
+      console.log(
+        `✨ ${tag}: Completed ${passedCount}/${this.steps.length} steps in ${totalDuration}s\n`,
+      );
       return true;
     } else {
-      const tag = this.noColor ? 'FAILED' : Ansi.red(Ansi.bold('PIPELINE FAILED'));
-      console.log(`💥 ${tag}: Stopped at step ${passedCount + 1}/${this.steps.length} after ${totalDuration}s\n`);
+      const tag = this.noColor
+        ? "FAILED"
+        : Ansi.red(Ansi.bold("PIPELINE FAILED"));
+      console.log(
+        `💥 ${tag}: Stopped at step ${passedCount + 1}/${this.steps.length} after ${totalDuration}s\n`,
+      );
       return false;
     }
   }

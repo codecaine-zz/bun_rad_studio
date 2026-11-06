@@ -13,16 +13,34 @@
  *      FLAC, OGG, Opus, or WMA.
  */
 import { randomBytes, createHash } from "crypto";
-import { existsSync, mkdirSync, readFileSync, rmSync, promises as fsp } from "fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  promises as fsp,
+} from "fs";
 import { homedir, tmpdir } from "os";
 import * as nodePath from "path";
 import { absolutePath, type FmContext, type FmHandler } from "./fmCore";
 import { decodeBytes, htmlToText } from "./fmConvText";
 import { readSpreadsheet } from "./fmConvSheet";
-import { extensionOf, FmError, protectedReason, splitName, uniqueName } from "./fmPaths";
-import { recordSessionLoadedModel, registerSpawnedOllamaDaemon } from "./fmOllama";
+import {
+  extensionOf,
+  FmError,
+  protectedReason,
+  splitName,
+  uniqueName,
+} from "./fmPaths";
+import {
+  recordSessionLoadedModel,
+  registerSpawnedOllamaDaemon,
+} from "./fmOllama";
 
-async function publishStagedFile(srcPath: string, destPath: string): Promise<void> {
+async function publishStagedFile(
+  srcPath: string,
+  destPath: string,
+): Promise<void> {
   try {
     await fsp.rename(srcPath, destPath);
   } catch {
@@ -32,11 +50,24 @@ async function publishStagedFile(srcPath: string, destPath: string): Promise<voi
 }
 
 function uniqueOutputFilePath(dir: string, desiredName: string): string {
-  const chosen = uniqueName(desiredName, (candidate) => existsSync(nodePath.join(dir, candidate)));
+  const chosen = uniqueName(desiredName, (candidate) =>
+    existsSync(nodePath.join(dir, candidate)),
+  );
   return nodePath.join(dir, chosen);
 }
-import { extractFullEpubRich, inspectPackageDirectoryRich, inspectRichPreview, type DocBlock, type RichPreview } from "./fmPreview";
-import { loadSettings, PHONON_AUDIO_FORMATS, updateSettings, type PhononAudioFormat } from "./fmSettings";
+import {
+  extractFullEpubRich,
+  inspectPackageDirectoryRich,
+  inspectRichPreview,
+  type DocBlock,
+  type RichPreview,
+} from "./fmPreview";
+import {
+  loadSettings,
+  PHONON_AUDIO_FORMATS,
+  updateSettings,
+  type PhononAudioFormat,
+} from "./fmSettings";
 import { detectManagers, explainFailure, resolveTool } from "./fmToolDetect";
 import { findExecutable, installPlan, searchDirs, TOOLS } from "./fmTools";
 
@@ -152,44 +183,234 @@ export const VOICE_CALIBRATION_SCRIPTS: PhononCalibrationScript[] = [
  * All 38 voices built into Ollama's `phonon` (Gradium Phonon TTS) model, verified from `ollama show phonon`.
  */
 export const DEFAULT_PHONON_VOICES: PhononVoiceInfo[] = [
-  { id: "Zoey", label: "Zoey", category: "Conversational", desc: "Clear, warm everyday voice (Default)" },
-  { id: "default", label: "Default", category: "Conversational", desc: "Standard balanced Phonon reference voice" },
-  { id: "Alfie", label: "Alfie", category: "Conversational", desc: "Friendly, upbeat conversational voice" },
-  { id: "Bryony", label: "Bryony", category: "Conversational", desc: "Crisp, articulate studio voice" },
-  { id: "Delia", label: "Delia", category: "Conversational", desc: "Smooth, expressive reading voice" },
-  { id: "Easton", label: "Easton", category: "Conversational", desc: "Calm, modern conversational voice" },
-  { id: "Edwin", label: "Edwin", category: "Narrator", desc: "Measured, classic audiobook narrator" },
-  { id: "Elodie-Rose", label: "Elodie-Rose", category: "Narrator", desc: "Gentle, poised storytelling voice" },
-  { id: "Everly", label: "Everly", category: "Conversational", desc: "Bright, natural speaking voice" },
-  { id: "Freya", label: "Freya", category: "Narrator", desc: "Rich, steady narrative voice" },
-  { id: "Hadley", label: "Hadley", category: "Conversational", desc: "Relaxed, clear reading voice" },
-  { id: "Harper", label: "Harper", category: "Conversational", desc: "Direct, engaging modern voice" },
-  { id: "Hugh", label: "Hugh", category: "Narrator", desc: "Deep, composed documentary narrator" },
-  { id: "Imogen", label: "Imogen", category: "Narrator", desc: "Polished, expressive literary voice" },
-  { id: "Juniper", label: "Juniper", category: "Conversational", desc: "Lively, warm conversational voice" },
-  { id: "Lottie", label: "Lottie", category: "Conversational", desc: "Light, cheerful speaking voice" },
-  { id: "Maeve", label: "Maeve", category: "Narrator", desc: "Warm, resonant storytelling voice" },
-  { id: "Micah", label: "Micah", category: "Conversational", desc: "Smooth, balanced everyday reader" },
-  { id: "Miles", label: "Miles", category: "Conversational", desc: "Crisp, steady technical & article reader" },
-  { id: "Pippa", label: "Pippa", category: "Conversational", desc: "Bright, spirited reading voice" },
-  { id: "Preston", label: "Preston", category: "Narrator", desc: "Authoritative, clear announcer voice" },
-  { id: "Russell", label: "Russell", category: "Narrator", desc: "Grounded, mature narrative voice" },
-  { id: "Spencer", label: "Spencer", category: "Conversational", desc: "Natural, easygoing speaking voice" },
-  { id: "Teddy", label: "Teddy", category: "Conversational", desc: "Warm, approachable storyteller" },
-  { id: "Toby", label: "Toby", category: "Conversational", desc: "Energetic, clear conversational voice" },
-  { id: "Trevor", label: "Trevor", category: "Narrator", desc: "Steady, classic broadcast reader" },
-  { id: "Captain Silas Blackwater", label: "Captain Silas Blackwater", category: "Character", desc: "Weathered maritime captain character voice" },
-  { id: "Fairy Godmother", label: "Fairy Godmother", category: "Character", desc: "Whimsical, magical fairytale character voice" },
-  { id: "Fennick the Young Elf", label: "Fennick the Young Elf", category: "Character", desc: "Youthful fantasy adventurer voice" },
-  { id: "Grub the Ogre", label: "Grub the Ogre", category: "Character", desc: "Heavy, gravelly fantasy ogre voice" },
-  { id: "Master Aldric", label: "Master Aldric", category: "Character", desc: "Wise scholar & arcane mentor voice" },
-  { id: "Morwenna of the Deep", label: "Morwenna of the Deep", category: "Character", desc: "Ethereal, mythic oceanic character voice" },
-  { id: "Old Mortlake", label: "Old Mortlake", category: "Character", desc: "Aged, atmospheric tale-teller voice" },
-  { id: "Sir Bramwell", label: "Sir Bramwell", category: "Character", desc: "Noble chivalric knight character voice" },
-  { id: "The Snow Queen", label: "The Snow Queen", category: "Character", desc: "Regal, crystalline dramatic voice" },
-  { id: "The Thing Under the Stairs", label: "The Thing Under the Stairs", category: "Character", desc: "Eerie, whispered gothic creature voice" },
-  { id: "Vyrmathrax the Ancient", label: "Vyrmathrax the Ancient", category: "Character", desc: "Booming, ancient dragon character voice" },
-  { id: "Azgorath", label: "Azgorath", category: "Character", desc: "Dark, cinematic fantasy villain voice" },
+  {
+    id: "Zoey",
+    label: "Zoey",
+    category: "Conversational",
+    desc: "Clear, warm everyday voice (Default)",
+  },
+  {
+    id: "default",
+    label: "Default",
+    category: "Conversational",
+    desc: "Standard balanced Phonon reference voice",
+  },
+  {
+    id: "Alfie",
+    label: "Alfie",
+    category: "Conversational",
+    desc: "Friendly, upbeat conversational voice",
+  },
+  {
+    id: "Bryony",
+    label: "Bryony",
+    category: "Conversational",
+    desc: "Crisp, articulate studio voice",
+  },
+  {
+    id: "Delia",
+    label: "Delia",
+    category: "Conversational",
+    desc: "Smooth, expressive reading voice",
+  },
+  {
+    id: "Easton",
+    label: "Easton",
+    category: "Conversational",
+    desc: "Calm, modern conversational voice",
+  },
+  {
+    id: "Edwin",
+    label: "Edwin",
+    category: "Narrator",
+    desc: "Measured, classic audiobook narrator",
+  },
+  {
+    id: "Elodie-Rose",
+    label: "Elodie-Rose",
+    category: "Narrator",
+    desc: "Gentle, poised storytelling voice",
+  },
+  {
+    id: "Everly",
+    label: "Everly",
+    category: "Conversational",
+    desc: "Bright, natural speaking voice",
+  },
+  {
+    id: "Freya",
+    label: "Freya",
+    category: "Narrator",
+    desc: "Rich, steady narrative voice",
+  },
+  {
+    id: "Hadley",
+    label: "Hadley",
+    category: "Conversational",
+    desc: "Relaxed, clear reading voice",
+  },
+  {
+    id: "Harper",
+    label: "Harper",
+    category: "Conversational",
+    desc: "Direct, engaging modern voice",
+  },
+  {
+    id: "Hugh",
+    label: "Hugh",
+    category: "Narrator",
+    desc: "Deep, composed documentary narrator",
+  },
+  {
+    id: "Imogen",
+    label: "Imogen",
+    category: "Narrator",
+    desc: "Polished, expressive literary voice",
+  },
+  {
+    id: "Juniper",
+    label: "Juniper",
+    category: "Conversational",
+    desc: "Lively, warm conversational voice",
+  },
+  {
+    id: "Lottie",
+    label: "Lottie",
+    category: "Conversational",
+    desc: "Light, cheerful speaking voice",
+  },
+  {
+    id: "Maeve",
+    label: "Maeve",
+    category: "Narrator",
+    desc: "Warm, resonant storytelling voice",
+  },
+  {
+    id: "Micah",
+    label: "Micah",
+    category: "Conversational",
+    desc: "Smooth, balanced everyday reader",
+  },
+  {
+    id: "Miles",
+    label: "Miles",
+    category: "Conversational",
+    desc: "Crisp, steady technical & article reader",
+  },
+  {
+    id: "Pippa",
+    label: "Pippa",
+    category: "Conversational",
+    desc: "Bright, spirited reading voice",
+  },
+  {
+    id: "Preston",
+    label: "Preston",
+    category: "Narrator",
+    desc: "Authoritative, clear announcer voice",
+  },
+  {
+    id: "Russell",
+    label: "Russell",
+    category: "Narrator",
+    desc: "Grounded, mature narrative voice",
+  },
+  {
+    id: "Spencer",
+    label: "Spencer",
+    category: "Conversational",
+    desc: "Natural, easygoing speaking voice",
+  },
+  {
+    id: "Teddy",
+    label: "Teddy",
+    category: "Conversational",
+    desc: "Warm, approachable storyteller",
+  },
+  {
+    id: "Toby",
+    label: "Toby",
+    category: "Conversational",
+    desc: "Energetic, clear conversational voice",
+  },
+  {
+    id: "Trevor",
+    label: "Trevor",
+    category: "Narrator",
+    desc: "Steady, classic broadcast reader",
+  },
+  {
+    id: "Captain Silas Blackwater",
+    label: "Captain Silas Blackwater",
+    category: "Character",
+    desc: "Weathered maritime captain character voice",
+  },
+  {
+    id: "Fairy Godmother",
+    label: "Fairy Godmother",
+    category: "Character",
+    desc: "Whimsical, magical fairytale character voice",
+  },
+  {
+    id: "Fennick the Young Elf",
+    label: "Fennick the Young Elf",
+    category: "Character",
+    desc: "Youthful fantasy adventurer voice",
+  },
+  {
+    id: "Grub the Ogre",
+    label: "Grub the Ogre",
+    category: "Character",
+    desc: "Heavy, gravelly fantasy ogre voice",
+  },
+  {
+    id: "Master Aldric",
+    label: "Master Aldric",
+    category: "Character",
+    desc: "Wise scholar & arcane mentor voice",
+  },
+  {
+    id: "Morwenna of the Deep",
+    label: "Morwenna of the Deep",
+    category: "Character",
+    desc: "Ethereal, mythic oceanic character voice",
+  },
+  {
+    id: "Old Mortlake",
+    label: "Old Mortlake",
+    category: "Character",
+    desc: "Aged, atmospheric tale-teller voice",
+  },
+  {
+    id: "Sir Bramwell",
+    label: "Sir Bramwell",
+    category: "Character",
+    desc: "Noble chivalric knight character voice",
+  },
+  {
+    id: "The Snow Queen",
+    label: "The Snow Queen",
+    category: "Character",
+    desc: "Regal, crystalline dramatic voice",
+  },
+  {
+    id: "The Thing Under the Stairs",
+    label: "The Thing Under the Stairs",
+    category: "Character",
+    desc: "Eerie, whispered gothic creature voice",
+  },
+  {
+    id: "Vyrmathrax the Ancient",
+    label: "Vyrmathrax the Ancient",
+    category: "Character",
+    desc: "Booming, ancient dragon character voice",
+  },
+  {
+    id: "Azgorath",
+    label: "Azgorath",
+    category: "Character",
+    desc: "Dark, cinematic fantasy villain voice",
+  },
 ];
 
 /**
@@ -209,37 +430,151 @@ export interface PhononFormatInfo {
  * Supported audio-only export formats for Phonon speech synthesis.
  */
 export const AUDIO_FORMAT_INFO: PhononFormatInfo[] = [
-  { id: "wav", label: "WAV (24 kHz PCM — Native)", ext: "wav", mime: "audio/wav", needsFfmpeg: false, isVideo: false, desc: "Uncompressed studio-grade 24 kHz 16-bit mono WAV directly from Phonon. Works without ffmpeg." },
-  { id: "mp3", label: "MP3 (Universal Audio)", ext: "mp3", mime: "audio/mpeg", needsFfmpeg: true, isVideo: false, desc: "Compact MP3 audio file playable on every phone, car, and media player (uses ffmpeg)." },
-  { id: "m4a", label: "M4A / AAC (Apple & Podcast)", ext: "m4a", mime: "audio/mp4", needsFfmpeg: true, isVideo: false, desc: "High-efficiency AAC audio in an M4A container for Apple devices and audiobooks (uses ffmpeg)." },
-  { id: "aac", label: "AAC (Raw ADTS Stream)", ext: "aac", mime: "audio/aac", needsFfmpeg: true, isVideo: false, desc: "Advanced Audio Coding stream (uses ffmpeg)." },
-  { id: "flac", label: "FLAC (Lossless Compressed)", ext: "flac", mime: "audio/flac", needsFfmpeg: true, isVideo: false, desc: "Archival lossless compression, ~50% smaller than WAV with identical audio quality (uses ffmpeg)." },
-  { id: "ogg", label: "OGG Vorbis", ext: "ogg", mime: "audio/ogg", needsFfmpeg: true, isVideo: false, desc: "Open-source Ogg Vorbis audio format (uses ffmpeg)." },
-  { id: "opus", label: "Opus (Best Speech Compression)", ext: "opus", mime: "audio/opus", needsFfmpeg: true, isVideo: false, desc: "Modern low-bitrate voice codec ideal for long audiobooks and voice notes (uses ffmpeg)." },
-  { id: "aiff", label: "AIFF (Apple Uncompressed PCM)", ext: "aiff", mime: "audio/aiff", needsFfmpeg: false, isVideo: false, desc: "Uncompressed PCM AIFF audio file. Works natively even without ffmpeg." },
-  { id: "wma", label: "WMA (Windows Media Audio)", ext: "wma", mime: "audio/x-ms-wma", needsFfmpeg: true, isVideo: false, desc: "Windows Media Audio format (uses ffmpeg)." },
+  {
+    id: "wav",
+    label: "WAV (24 kHz PCM — Native)",
+    ext: "wav",
+    mime: "audio/wav",
+    needsFfmpeg: false,
+    isVideo: false,
+    desc: "Uncompressed studio-grade 24 kHz 16-bit mono WAV directly from Phonon. Works without ffmpeg.",
+  },
+  {
+    id: "mp3",
+    label: "MP3 (Universal Audio)",
+    ext: "mp3",
+    mime: "audio/mpeg",
+    needsFfmpeg: true,
+    isVideo: false,
+    desc: "Compact MP3 audio file playable on every phone, car, and media player (uses ffmpeg).",
+  },
+  {
+    id: "m4a",
+    label: "M4A / AAC (Apple & Podcast)",
+    ext: "m4a",
+    mime: "audio/mp4",
+    needsFfmpeg: true,
+    isVideo: false,
+    desc: "High-efficiency AAC audio in an M4A container for Apple devices and audiobooks (uses ffmpeg).",
+  },
+  {
+    id: "aac",
+    label: "AAC (Raw ADTS Stream)",
+    ext: "aac",
+    mime: "audio/aac",
+    needsFfmpeg: true,
+    isVideo: false,
+    desc: "Advanced Audio Coding stream (uses ffmpeg).",
+  },
+  {
+    id: "flac",
+    label: "FLAC (Lossless Compressed)",
+    ext: "flac",
+    mime: "audio/flac",
+    needsFfmpeg: true,
+    isVideo: false,
+    desc: "Archival lossless compression, ~50% smaller than WAV with identical audio quality (uses ffmpeg).",
+  },
+  {
+    id: "ogg",
+    label: "OGG Vorbis",
+    ext: "ogg",
+    mime: "audio/ogg",
+    needsFfmpeg: true,
+    isVideo: false,
+    desc: "Open-source Ogg Vorbis audio format (uses ffmpeg).",
+  },
+  {
+    id: "opus",
+    label: "Opus (Best Speech Compression)",
+    ext: "opus",
+    mime: "audio/opus",
+    needsFfmpeg: true,
+    isVideo: false,
+    desc: "Modern low-bitrate voice codec ideal for long audiobooks and voice notes (uses ffmpeg).",
+  },
+  {
+    id: "aiff",
+    label: "AIFF (Apple Uncompressed PCM)",
+    ext: "aiff",
+    mime: "audio/aiff",
+    needsFfmpeg: false,
+    isVideo: false,
+    desc: "Uncompressed PCM AIFF audio file. Works natively even without ffmpeg.",
+  },
+  {
+    id: "wma",
+    label: "WMA (Windows Media Audio)",
+    ext: "wma",
+    mime: "audio/x-ms-wma",
+    needsFfmpeg: true,
+    isVideo: false,
+    desc: "Windows Media Audio format (uses ffmpeg).",
+  },
 ];
 
 /**
  * Supported read-along video export formats with synchronized text highlighting and subtitles.
  */
 export const VIDEO_FORMAT_INFO: PhononFormatInfo[] = [
-  { id: "mp4", label: "MP4 Read-Along Video (H.264 + Highlighted Text)", ext: "mp4", mime: "video/mp4", needsFfmpeg: true, isVideo: true, desc: "Universal 1080p MP4 Read-Along Video with synchronized word-by-word karaoke text highlighting and companion .SRT/.VTT subtitles." },
-  { id: "webm", label: "WebM Read-Along Video (VP9 + Highlighted Text)", ext: "webm", mime: "video/webm", needsFfmpeg: true, isVideo: true, desc: "Open-web VP9/Opus Read-Along Video with synchronized word-by-word text highlighting." },
-  { id: "mov", label: "MOV QuickTime Read-Along Video (Apple H.264)", ext: "mov", mime: "video/quicktime", needsFfmpeg: true, isVideo: true, desc: "Apple QuickTime MOV Read-Along Video with synchronized text highlighting for macOS, iPad, and Final Cut." },
-  { id: "mkv", label: "MKV Matroska Read-Along Video (H.264 + Subtitles)", ext: "mkv", mime: "video/x-matroska", needsFfmpeg: true, isVideo: true, desc: "Archival MKV Read-Along Video with synchronized burned-in text highlighting and companion subtitle files." },
+  {
+    id: "mp4",
+    label: "MP4 Read-Along Video (H.264 + Highlighted Text)",
+    ext: "mp4",
+    mime: "video/mp4",
+    needsFfmpeg: true,
+    isVideo: true,
+    desc: "Universal 1080p MP4 Read-Along Video with synchronized word-by-word karaoke text highlighting and companion .SRT/.VTT subtitles.",
+  },
+  {
+    id: "webm",
+    label: "WebM Read-Along Video (VP9 + Highlighted Text)",
+    ext: "webm",
+    mime: "video/webm",
+    needsFfmpeg: true,
+    isVideo: true,
+    desc: "Open-web VP9/Opus Read-Along Video with synchronized word-by-word text highlighting.",
+  },
+  {
+    id: "mov",
+    label: "MOV QuickTime Read-Along Video (Apple H.264)",
+    ext: "mov",
+    mime: "video/quicktime",
+    needsFfmpeg: true,
+    isVideo: true,
+    desc: "Apple QuickTime MOV Read-Along Video with synchronized text highlighting for macOS, iPad, and Final Cut.",
+  },
+  {
+    id: "mkv",
+    label: "MKV Matroska Read-Along Video (H.264 + Subtitles)",
+    ext: "mkv",
+    mime: "video/x-matroska",
+    needsFfmpeg: true,
+    isVideo: true,
+    desc: "Archival MKV Read-Along Video with synchronized burned-in text highlighting and companion subtitle files.",
+  },
 ];
 
 /**
  * Combined list of all supported Phonon audio and read-along video export formats.
  */
-export const ALL_MEDIA_FORMAT_INFO: PhononFormatInfo[] = [...AUDIO_FORMAT_INFO, ...VIDEO_FORMAT_INFO];
+export const ALL_MEDIA_FORMAT_INFO: PhononFormatInfo[] = [
+  ...AUDIO_FORMAT_INFO,
+  ...VIDEO_FORMAT_INFO,
+];
 
 /**
  * Type guard checking whether a Phonon format identifier represents a read-along video container (`mp4`, `webm`, `mov`, or `mkv`).
  */
-export function isPhononVideoFormat(format: string): format is "mp4" | "webm" | "mov" | "mkv" {
-  return format === "mp4" || format === "webm" || format === "mov" || format === "mkv";
+export function isPhononVideoFormat(
+  format: string,
+): format is "mp4" | "webm" | "mov" | "mkv" {
+  return (
+    format === "mp4" ||
+    format === "webm" ||
+    format === "mov" ||
+    format === "mkv"
+  );
 }
 
 /**
@@ -270,7 +605,10 @@ export interface PhononVideoAspectInfo {
 /**
  * Lookup table mapping each Phonon video aspect ratio to its resolution and subtitle layout parameters.
  */
-export const VIDEO_ASPECT_INFO: Record<PhononVideoAspect, PhononVideoAspectInfo> = {
+export const VIDEO_ASPECT_INFO: Record<
+  PhononVideoAspect,
+  PhononVideoAspectInfo
+> = {
   "16:9": {
     id: "16:9",
     label: "16:9 Widescreen (1920×1080 — YouTube / Desktop)",
@@ -312,7 +650,12 @@ export const VIDEO_ASPECT_INFO: Record<PhononVideoAspect, PhononVideoAspectInfo>
 /**
  * Supported visual color themes for Phonon read-along videos.
  */
-export const PHONON_VIDEO_THEMES = ["midnight", "parchment", "cyber", "high_contrast"] as const;
+export const PHONON_VIDEO_THEMES = [
+  "midnight",
+  "parchment",
+  "cyber",
+  "high_contrast",
+] as const;
 /**
  * Color theme identifier for Phonon read-along videos.
  */
@@ -336,52 +679,53 @@ export interface PhononVideoThemeInfo {
 /**
  * Lookup table mapping each Phonon video theme to its canvas background and ASS karaoke color codes.
  */
-export const VIDEO_THEME_INFO: Record<PhononVideoTheme, PhononVideoThemeInfo> = {
-  midnight: {
-    id: "midnight",
-    label: "Midnight Studio (Electric Cyan Highlight)",
-    bgHex: "0b1020",
-    assPrimary: "&H00F8BD38", // #38BDF8 (BGR)
-    assSecondary: "&H00F8FAFC", // #FCFAF8
-    assContext: "&H55B8A394", // #94A3B8
-    assHeader: "&H00F8BD38",
-    assBack: "&H5520130C",
-    assOutline: "&H00180D07",
-  },
-  parchment: {
-    id: "parchment",
-    label: "Warm Book Page (Amber Gold Highlight)",
-    bgHex: "1c1611",
-    assPrimary: "&H000B9EF5", // #F59E0B (BGR)
-    assSecondary: "&H00C7F3FE", // #FEF3C7
-    assContext: "&H558A9CA8", // #A89C8A
-    assHeader: "&H0024BBFB",
-    assBack: "&H550C0907",
-    assOutline: "&H00090705",
-  },
-  cyber: {
-    id: "cyber",
-    label: "Cyber Neon (Neon Cyan & Violet Highlight)",
-    bgHex: "070812",
-    assPrimary: "&H00EED322", // #22D3EE (BGR)
-    assSecondary: "&H00FFECFA", // #FAECFF
-    assContext: "&H55B572A8", // #A872B5
-    assHeader: "&H00F755A8", // #A855F7
-    assBack: "&H55180914",
-    assOutline: "&H0012050E",
-  },
-  high_contrast: {
-    id: "high_contrast",
-    label: "Accessible High Contrast (WCAG AAA Yellow)",
-    bgHex: "000000",
-    assPrimary: "&H0015CCFA", // #FACC15 (BGR)
-    assSecondary: "&H00FFFFFF", // #FFFFFF
-    assContext: "&H35D4D4D4", // #D4D4D4
-    assHeader: "&H0015CCFA",
-    assBack: "&H30000000",
-    assOutline: "&H00000000",
-  },
-};
+export const VIDEO_THEME_INFO: Record<PhononVideoTheme, PhononVideoThemeInfo> =
+  {
+    midnight: {
+      id: "midnight",
+      label: "Midnight Studio (Electric Cyan Highlight)",
+      bgHex: "0b1020",
+      assPrimary: "&H00F8BD38", // #38BDF8 (BGR)
+      assSecondary: "&H00F8FAFC", // #FCFAF8
+      assContext: "&H55B8A394", // #94A3B8
+      assHeader: "&H00F8BD38",
+      assBack: "&H5520130C",
+      assOutline: "&H00180D07",
+    },
+    parchment: {
+      id: "parchment",
+      label: "Warm Book Page (Amber Gold Highlight)",
+      bgHex: "1c1611",
+      assPrimary: "&H000B9EF5", // #F59E0B (BGR)
+      assSecondary: "&H00C7F3FE", // #FEF3C7
+      assContext: "&H558A9CA8", // #A89C8A
+      assHeader: "&H0024BBFB",
+      assBack: "&H550C0907",
+      assOutline: "&H00090705",
+    },
+    cyber: {
+      id: "cyber",
+      label: "Cyber Neon (Neon Cyan & Violet Highlight)",
+      bgHex: "070812",
+      assPrimary: "&H00EED322", // #22D3EE (BGR)
+      assSecondary: "&H00FFECFA", // #FAECFF
+      assContext: "&H55B572A8", // #A872B5
+      assHeader: "&H00F755A8", // #A855F7
+      assBack: "&H55180914",
+      assOutline: "&H0012050E",
+    },
+    high_contrast: {
+      id: "high_contrast",
+      label: "Accessible High Contrast (WCAG AAA Yellow)",
+      bgHex: "000000",
+      assPrimary: "&H0015CCFA", // #FACC15 (BGR)
+      assSecondary: "&H00FFFFFF", // #FFFFFF
+      assContext: "&H35D4D4D4", // #D4D4D4
+      assHeader: "&H0015CCFA",
+      assBack: "&H30000000",
+      assOutline: "&H00000000",
+    },
+  };
 
 // ---------------------------------------------------------------------------------------------------------------
 // Synchronized Word-by-Word & Phrase Timing Engine (for Live Teleprompter + Read-Along Video & Subtitles)
@@ -446,7 +790,26 @@ export interface PhononReadAlongTimeline {
 }
 
 const FAST_FUNCTION_WORDS = new Set([
-  "a", "an", "the", "to", "of", "in", "on", "at", "by", "for", "as", "is", "be", "or", "and", "so", "if", "it", "us", "we",
+  "a",
+  "an",
+  "the",
+  "to",
+  "of",
+  "in",
+  "on",
+  "at",
+  "by",
+  "for",
+  "as",
+  "is",
+  "be",
+  "or",
+  "and",
+  "so",
+  "if",
+  "it",
+  "us",
+  "we",
 ]);
 
 /**
@@ -454,10 +817,15 @@ const FAST_FUNCTION_WORDS = new Set([
  * Accurately accounts for uppercase/alphanumeric acronyms (`TTS`, `MLX`, `MP4`, `MKV`, `MP3`, `M4A`) that neural TTS
  * spells out letter-by-letter with distinct pitch inflections, spoken digits, hyphenated compounds, and fast function words.
  */
-export function estimateSpokenWordWeight(rawWord: string): { weight: number; pauseAffinity: number; textOnlyWeight: number } {
+export function estimateSpokenWordWeight(rawWord: string): {
+  weight: number;
+  pauseAffinity: number;
+  textOnlyWeight: number;
+} {
   const stripped = rawWord.replace(/^['"“‘(\[]+|['"”’)\].!?,;:—–…]+$/g, "");
   let pauseAffinity = 0;
-  if (/[.!?…]['"”’)\]]*$/.test(rawWord) || rawWord.endsWith("...")) pauseAffinity = 3.0;
+  if (/[.!?…]['"”’)\]]*$/.test(rawWord) || rawWord.endsWith("..."))
+    pauseAffinity = 3.0;
   else if (/[;:—–]['"”’)\]]*$/.test(rawWord)) pauseAffinity = 2.2;
   else if (/,['"”’)\]]*$/.test(rawWord)) pauseAffinity = 1.8;
 
@@ -473,7 +841,9 @@ export function estimateSpokenWordWeight(rawWord: string): { weight: number; pau
     const letters = part.replace(/[^A-Za-z\u00C0-\u024F]/g, "");
     const upperCount = (letters.match(/[A-Z]/g) || []).length;
     const isAllCaps = letters.length >= 2 && upperCount === letters.length;
-    const isMixedAcronym = letters.length >= 2 && (upperCount >= 2 || (upperCount >= 1 && digits >= 1));
+    const isMixedAcronym =
+      letters.length >= 2 &&
+      (upperCount >= 2 || (upperCount >= 1 && digits >= 1));
 
     if (isAllCaps || isMixedAcronym) {
       const vowelCount = (letters.match(/[AEIOUYaeiouy]/g) || []).length;
@@ -485,8 +855,10 @@ export function estimateSpokenWordWeight(rawWord: string): { weight: number; pau
     } else {
       const lower = letters.toLowerCase();
       const vowelGroups = (lower.match(/[aeiouy\u00E0-\u00FC]+/g) || []).length;
-      const silentE = lower.endsWith("e") && !lower.endsWith("le") && vowelGroups > 1 ? 1 : 0;
-      const wordSyllables = letters.length > 0 ? Math.max(1, vowelGroups - silentE) : 0;
+      const silentE =
+        lower.endsWith("e") && !lower.endsWith("le") && vowelGroups > 1 ? 1 : 0;
+      const wordSyllables =
+        letters.length > 0 ? Math.max(1, vowelGroups - silentE) : 0;
       totalSyllables += wordSyllables + digits * 1.35;
     }
   }
@@ -538,8 +910,16 @@ export function computeWordTimingsForText(
     const word = match[0];
     const charStart = match.index;
     const charEnd = charStart + word.length;
-    const { weight, pauseAffinity, textOnlyWeight } = estimateSpokenWordWeight(word);
-    rawTokens.push({ word, charStart, charEnd, weight, pauseAffinity, textOnlyWeight });
+    const { weight, pauseAffinity, textOnlyWeight } =
+      estimateSpokenWordWeight(word);
+    rawTokens.push({
+      word,
+      charStart,
+      charEnd,
+      weight,
+      pauseAffinity,
+      textOnlyWeight,
+    });
   }
 
   if (rawTokens.length === 0) return [];
@@ -548,9 +928,13 @@ export function computeWordTimingsForText(
   const sampleRate = Math.max(8000, pcmOptions?.sampleRate || 24000);
   const safeSpeed = Math.max(0.25, Math.min(4.0, pcmOptions?.speed || 1));
   const frameMs = 10;
-  const samplesPerFrame = Math.max(1, Math.round((sampleRate * frameMs) / 1000));
+  const samplesPerFrame = Math.max(
+    1,
+    Math.round((sampleRate * frameMs) / 1000),
+  );
   const totalSamples = pcmData ? Math.floor(pcmData.length / 2) : 0;
-  const numFrames = totalSamples > 0 ? Math.ceil(totalSamples / samplesPerFrame) : 0;
+  const numFrames =
+    totalSamples > 0 ? Math.ceil(totalSamples / samplesPerFrame) : 0;
 
   // Use high-resolution PCM waveform alignment whenever we have real speech frames (>= 4 frames per word)
   if (pcmData && numFrames >= Math.max(16, rawTokens.length * 4)) {
@@ -594,7 +978,8 @@ export function computeWordTimingsForText(
 
       if (endF - startF >= rawTokens.length * 2) {
         // 1. Find acoustic pause valleys >= 110ms (11 frames) inside [startF, endF]
-        const valleys: Array<{ startF: number; endF: number; lenF: number }> = [];
+        const valleys: Array<{ startF: number; endF: number; lenF: number }> =
+          [];
         let inVal = false;
         let vStart = 0;
         for (let f = startF; f <= endF; f++) {
@@ -615,8 +1000,12 @@ export function computeWordTimingsForText(
           const active = f >= startF && f < endF && env[f]! >= voiceThresh;
           voicedCum[f + 1] = voicedCum[f]! + (active ? 1.0 : 0.01);
         }
-        const totalVoiced = Math.max(0.001, voicedCum[endF]! - voicedCum[startF]!);
-        const totalWordWeight = rawTokens.reduce((s, t) => s + t.weight, 0) || 1;
+        const totalVoiced = Math.max(
+          0.001,
+          voicedCum[endF]! - voicedCum[startF]!,
+        );
+        const totalWordWeight =
+          rawTokens.reduce((s, t) => s + t.weight, 0) || 1;
 
         const wordCumFrac: number[] = [];
         let wCum = 0;
@@ -627,15 +1016,24 @@ export function computeWordTimingsForText(
 
         // 3. Dynamic Programming monotonic sequence alignment between punctuated words and acoustic pause valleys
         const punctIndices = rawTokens
-          .map((t, idx) => ({ idx, frac: wordCumFrac[idx]!, affinity: t.pauseAffinity }))
+          .map((t, idx) => ({
+            idx,
+            frac: wordCumFrac[idx]!,
+            affinity: t.pauseAffinity,
+          }))
           .filter((p) => p.idx < rawTokens.length - 1 && p.affinity >= 1.5);
 
-        const vFracs = valleys.map((v) => (voicedCum[v.startF]! - voicedCum[startF]!) / totalVoiced);
+        const vFracs = valleys.map(
+          (v) => (voicedCum[v.startF]! - voicedCum[startF]!) / totalVoiced,
+        );
         const P = punctIndices.length;
         const V = valleys.length;
 
-        const dp: number[][] = Array.from({ length: P }, () => new Array(V).fill(-Infinity));
-        const parent: Array<Array<{ pi: number; vj: number } | null>> = Array.from({ length: P }, () => new Array(V).fill(null));
+        const dp: number[][] = Array.from({ length: P }, () =>
+          new Array(V).fill(-Infinity),
+        );
+        const parent: Array<Array<{ pi: number; vj: number } | null>> =
+          Array.from({ length: P }, () => new Array(V).fill(null));
         let bestEndScore = 0;
         let bestEndPair: { pi: number; vj: number } | null = null;
 
@@ -647,7 +1045,8 @@ export function computeWordTimingsForText(
             const absDist = Math.abs(vf - p.frac);
             if (absDist > 0.16) continue;
 
-            const baseReward = p.affinity * 0.10 + Math.min(0.08, v.lenF * 0.002) - absDist * 1.1;
+            const baseReward =
+              p.affinity * 0.1 + Math.min(0.08, v.lenF * 0.002) - absDist * 1.1;
             if (baseReward > dp[i]![j]!) {
               dp[i]![j] = baseReward;
               parent[i]![j] = null;
@@ -678,38 +1077,65 @@ export function computeWordTimingsForText(
           }
         }
 
-        const anchors: Array<{ wordIdx: number; valleyStartF: number; valleyEndF: number }> = [];
+        const anchors: Array<{
+          wordIdx: number;
+          valleyStartF: number;
+          valleyEndF: number;
+        }> = [];
         let cur = bestEndPair;
         while (cur) {
           const p = punctIndices[cur.pi]!;
           const v = valleys[cur.vj]!;
-          anchors.push({ wordIdx: p.idx, valleyStartF: v.startF, valleyEndF: v.endF });
+          anchors.push({
+            wordIdx: p.idx,
+            valleyStartF: v.startF,
+            valleyEndF: v.endF,
+          });
           cur = parent[cur.pi]![cur.vj]!;
         }
         anchors.reverse();
 
-        const segs: Array<{ wStart: number; wEnd: number; fStart: number; fEnd: number }> = [];
+        const segs: Array<{
+          wStart: number;
+          wEnd: number;
+          fStart: number;
+          fEnd: number;
+        }> = [];
         let prevW = 0;
         let prevF = startF;
         for (const a of anchors) {
-          segs.push({ wStart: prevW, wEnd: a.wordIdx, fStart: prevF, fEnd: a.valleyStartF });
+          segs.push({
+            wStart: prevW,
+            wEnd: a.wordIdx,
+            fStart: prevF,
+            fEnd: a.valleyStartF,
+          });
           prevW = a.wordIdx + 1;
           prevF = a.valleyEndF;
         }
-        segs.push({ wStart: prevW, wEnd: rawTokens.length - 1, fStart: prevF, fEnd: endF });
+        segs.push({
+          wStart: prevW,
+          wEnd: rawTokens.length - 1,
+          fStart: prevF,
+          fEnd: endF,
+        });
 
         const words: PhononWordTiming[] = [];
         for (const seg of segs) {
           const segTokens = rawTokens.slice(seg.wStart, seg.wEnd + 1);
           const segWTotal = segTokens.reduce((s, t) => s + t.weight, 0) || 1;
           const segVoicedStart = voicedCum[seg.fStart]!;
-          const segVoicedTotal = Math.max(0.001, voicedCum[seg.fEnd]! - segVoicedStart);
+          const segVoicedTotal = Math.max(
+            0.001,
+            voicedCum[seg.fEnd]! - segVoicedStart,
+          );
 
           const boundaryFrames: number[] = [seg.fStart];
           let localCum = 0;
           for (let k = 0; k < segTokens.length - 1; k++) {
             localCum += segTokens[k]!.weight;
-            const targetV = segVoicedStart + (localCum / segWTotal) * segVoicedTotal;
+            const targetV =
+              segVoicedStart + (localCum / segWTotal) * segVoicedTotal;
             let fB = seg.fStart;
             while (fB < seg.fEnd && voicedCum[fB]! < targetV) fB++;
             boundaryFrames.push(fB);
@@ -745,13 +1171,29 @@ export function computeWordTimingsForText(
             const fE = Math.max(fS + 1, boundaryFrames[k + 1]!);
             while (fS < fE - 1 && env[fS]! < voiceThresh) fS++;
             let fEndVoiced = fE;
-            while (fEndVoiced > fS + 1 && env[fEndVoiced - 1]! < voiceThresh * 0.8) fEndVoiced--;
+            while (
+              fEndVoiced > fS + 1 &&
+              env[fEndVoiced - 1]! < voiceThresh * 0.8
+            )
+              fEndVoiced--;
 
-            const prevEnd = words.length > 0 ? words[words.length - 1]!.endMs : startOffsetMs;
-            const rawStartMs = startOffsetMs + Math.round((fS * frameMs) / safeSpeed);
-            const rawEndMs = startOffsetMs + Math.round((fEndVoiced * frameMs) / safeSpeed);
-            const startMs = Math.max(prevEnd, Math.min(startOffsetMs + safeDuration - 1, rawStartMs));
-            const endMs = Math.max(startMs + 1, Math.min(startOffsetMs + safeDuration, Math.max(startMs + 20, rawEndMs)));
+            const prevEnd =
+              words.length > 0 ? words[words.length - 1]!.endMs : startOffsetMs;
+            const rawStartMs =
+              startOffsetMs + Math.round((fS * frameMs) / safeSpeed);
+            const rawEndMs =
+              startOffsetMs + Math.round((fEndVoiced * frameMs) / safeSpeed);
+            const startMs = Math.max(
+              prevEnd,
+              Math.min(startOffsetMs + safeDuration - 1, rawStartMs),
+            );
+            const endMs = Math.max(
+              startMs + 1,
+              Math.min(
+                startOffsetMs + safeDuration,
+                Math.max(startMs + 20, rawEndMs),
+              ),
+            );
 
             words.push({
               word: tok.word,
@@ -772,19 +1214,30 @@ export function computeWordTimingsForText(
   }
 
   // Analytical fallback when raw PCM samples are not provided (or for synthetic short test buffers)
-  const totalWeight = rawTokens.reduce((sum, t) => sum + t.textOnlyWeight, 0) || 1;
+  const totalWeight =
+    rawTokens.reduce((sum, t) => sum + t.textOnlyWeight, 0) || 1;
   const words: PhononWordTiming[] = [];
   let cumWeight = 0;
 
   for (let i = 0; i < rawTokens.length; i++) {
     const tok = rawTokens[i]!;
-    const startMs = i === 0
-      ? startOffsetMs
-      : Math.max(words[i - 1]!.endMs, startOffsetMs + Math.round((cumWeight / totalWeight) * safeDuration));
+    const startMs =
+      i === 0
+        ? startOffsetMs
+        : Math.max(
+            words[i - 1]!.endMs,
+            startOffsetMs +
+              Math.round((cumWeight / totalWeight) * safeDuration),
+          );
     cumWeight += tok.textOnlyWeight;
-    const endMs = i === rawTokens.length - 1
-      ? Math.max(startMs + 1, startOffsetMs + safeDuration)
-      : Math.max(startMs + 1, startOffsetMs + Math.round((cumWeight / totalWeight) * safeDuration));
+    const endMs =
+      i === rawTokens.length - 1
+        ? Math.max(startMs + 1, startOffsetMs + safeDuration)
+        : Math.max(
+            startMs + 1,
+            startOffsetMs +
+              Math.round((cumWeight / totalWeight) * safeDuration),
+          );
     words.push({
       word: tok.word,
       wordIndex: i,
@@ -806,9 +1259,15 @@ export function computeWordTimingsForText(
  */
 export function computeReadAlongTimeline(
   timedChunks: PhononTimedChunk[],
-  options: { aspectRatio?: PhononVideoAspect; maxLineChars?: number; maxWordsPerCue?: number } = {},
+  options: {
+    aspectRatio?: PhononVideoAspect;
+    maxLineChars?: number;
+    maxWordsPerCue?: number;
+  } = {},
 ): PhononReadAlongTimeline {
-  const aspect = VIDEO_ASPECT_INFO[options.aspectRatio ?? "16:9"] ?? VIDEO_ASPECT_INFO["16:9"];
+  const aspect =
+    VIDEO_ASPECT_INFO[options.aspectRatio ?? "16:9"] ??
+    VIDEO_ASPECT_INFO["16:9"];
   const maxLineChars = options.maxLineChars ?? aspect.maxLineChars;
   const maxWordsPerCue = options.maxWordsPerCue ?? aspect.maxWordsPerCue;
 
@@ -825,7 +1284,11 @@ export function computeReadAlongTimeline(
           chunk.startMs,
           chunk.index,
           chunk.pcmData
-            ? { pcmData: chunk.pcmData, sampleRate: chunk.sampleRate, speed: chunk.speed }
+            ? {
+                pcmData: chunk.pcmData,
+                sampleRate: chunk.sampleRate,
+                speed: chunk.speed,
+              }
             : undefined,
         );
     if (!chunkWords.length) continue;
@@ -859,28 +1322,48 @@ export function computeReadAlongTimeline(
 
       // If there was a major acoustic pause (>= 280ms) before this word and current cue already has >= 2 words, start a fresh cue
       const prevInCue = currentCueWords[currentCueWords.length - 1];
-      if (prevInCue && w.startMs - prevInCue.endMs >= 280 && currentCueWords.length >= 2) {
+      if (
+        prevInCue &&
+        w.startMs - prevInCue.endMs >= 280 &&
+        currentCueWords.length >= 2
+      ) {
         flushCue();
       }
 
-      const nextLen = currentCueChars === 0 ? w.word.length : currentCueChars + 1 + w.word.length;
-      if (currentCueWords.length >= maxWordsPerCue || (currentCueWords.length > 0 && nextLen > maxLineChars)) {
+      const nextLen =
+        currentCueChars === 0
+          ? w.word.length
+          : currentCueChars + 1 + w.word.length;
+      if (
+        currentCueWords.length >= maxWordsPerCue ||
+        (currentCueWords.length > 0 && nextLen > maxLineChars)
+      ) {
         flushCue();
       }
       currentCueWords.push(w);
-      currentCueChars = currentCueChars === 0 ? w.word.length : currentCueChars + 1 + w.word.length;
+      currentCueChars =
+        currentCueChars === 0
+          ? w.word.length
+          : currentCueChars + 1 + w.word.length;
 
       // Break naturally at sentence boundaries once the line has at least 3 words or 16 chars
-      if (/[.!?…]['"”’)\]]*$/.test(w.word) && (currentCueWords.length >= 3 || currentCueChars >= 16)) {
+      if (
+        /[.!?…]['"”’)\]]*$/.test(w.word) &&
+        (currentCueWords.length >= 3 || currentCueChars >= 16)
+      ) {
         flushCue();
       }
     }
     flushCue();
   }
 
-  const totalDurationMs = timedChunks.length > 0
-    ? Math.max(...timedChunks.map((c) => c.endMs), allWords[allWords.length - 1]?.endMs ?? 0)
-    : 0;
+  const totalDurationMs =
+    timedChunks.length > 0
+      ? Math.max(
+          ...timedChunks.map((c) => c.endMs),
+          allWords[allWords.length - 1]?.endMs ?? 0,
+        )
+      : 0;
 
   return {
     totalDurationMs,
@@ -920,7 +1403,10 @@ export function formatSrtSubtitles(timeline: PhononReadAlongTimeline): string {
   return timeline.cues
     .map((cue, idx) => {
       const startMs = Math.max(0, Math.round(cue.startMs));
-      const endMs = Math.max(startMs + 20, Math.min(startMs + 60_000, Math.round(cue.endMs)));
+      const endMs = Math.max(
+        startMs + 20,
+        Math.min(startMs + 60_000, Math.round(cue.endMs)),
+      );
       return `${idx + 1}\n${formatSrtTime(startMs)} --> ${formatSrtTime(endMs)}\n${cue.text}\n`;
     })
     .join("\n");
@@ -962,10 +1448,16 @@ export function formatAssKaraokeSubtitles(
     videoTheme?: PhononVideoTheme;
   } = {},
 ): string {
-  const aspect = VIDEO_ASPECT_INFO[options.aspectRatio ?? "16:9"] ?? VIDEO_ASPECT_INFO["16:9"];
-  const theme = VIDEO_THEME_INFO[options.videoTheme ?? "midnight"] ?? VIDEO_THEME_INFO.midnight;
+  const aspect =
+    VIDEO_ASPECT_INFO[options.aspectRatio ?? "16:9"] ??
+    VIDEO_ASPECT_INFO["16:9"];
+  const theme =
+    VIDEO_THEME_INFO[options.videoTheme ?? "midnight"] ??
+    VIDEO_THEME_INFO.midnight;
   const voiceLabel = escapeAssText((options.voice || "Zoey").trim());
-  const titleLabel = escapeAssText((options.title || "Ollama Phonon Read-Along").trim().slice(0, 72));
+  const titleLabel = escapeAssText(
+    (options.title || "Ollama Phonon Read-Along").trim().slice(0, 72),
+  );
   const cx = Math.round(aspect.width / 2);
   const cy = Math.round(aspect.height * 0.52);
   const prevY = cy - aspect.lineSpacingPx;
@@ -1006,7 +1498,9 @@ export function formatAssKaraokeSubtitles(
     // 1. Previous line context (above active line)
     if (i > 0) {
       const prevText = escapeAssText(timeline.cues[i - 1]!.text);
-      lines.push(`Dialogue: 1,${startStr},${endStr},ContextLine,,0,0,0,,{\\pos(${cx},${prevY})}${prevText}`);
+      lines.push(
+        `Dialogue: 1,${startStr},${endStr},ContextLine,,0,0,0,,{\\pos(${cx},${prevY})}${prevText}`,
+      );
     }
 
     // 2. Active Karaoke Read-Along Line (center stage, word-by-word highlight via \kf + \k pause hold)
@@ -1021,16 +1515,23 @@ export function formatAssKaraokeSubtitles(
       karaokeParts.push(`${prefix}{\\kf${wordCs}}${escapeAssText(w.word)}`);
       cursorCs = wordEndCs;
     }
-    lines.push(`Dialogue: 2,${startStr},${endStr},ActiveKaraoke,,0,0,0,,{\\pos(${cx},${cy})}${karaokeParts.join(" ")}`);
+    lines.push(
+      `Dialogue: 2,${startStr},${endStr},ActiveKaraoke,,0,0,0,,{\\pos(${cx},${cy})}${karaokeParts.join(" ")}`,
+    );
 
     // 3. Next line preview (below active line)
     if (i + 1 < totalCues) {
       const nextText = escapeAssText(timeline.cues[i + 1]!.text);
-      lines.push(`Dialogue: 1,${startStr},${endStr},ContextLine,,0,0,0,,{\\pos(${cx},${nextY})}${nextText}`);
+      lines.push(
+        `Dialogue: 1,${startStr},${endStr},ContextLine,,0,0,0,,{\\pos(${cx},${nextY})}${nextText}`,
+      );
     }
 
     // 4. Bottom progress indicator
-    const pct = Math.min(100, Math.round(((i + 1) / Math.max(1, totalCues)) * 100));
+    const pct = Math.min(
+      100,
+      Math.round(((i + 1) / Math.max(1, totalCues)) * 100),
+    );
     const filledBars = Math.round((pct / 100) * 16);
     const bar = `${"█".repeat(filledBars)}${"░".repeat(Math.max(0, 16 - filledBars))}`;
     const curSec = Math.round(cue.endMs / 1000);
@@ -1134,13 +1635,24 @@ function splitLongParagraph(para: string, maxChars: number): string[] {
     for (let i = windowEnd; i >= minCut; i--) {
       const ch = trimmed[i - 1];
       const next = trimmed[i] ?? " ";
-      if ((ch === "." || ch === "!" || ch === "?" || ch === "…" || ch === ";" || ch === "\n") && /\s/.test(next)) {
+      if (
+        (ch === "." ||
+          ch === "!" ||
+          ch === "?" ||
+          ch === "…" ||
+          ch === ";" ||
+          ch === "\n") &&
+        /\s/.test(next)
+      ) {
         cut = i;
         break;
       }
       if ((ch === '"' || ch === "'" || ch === ")" || ch === "]") && i >= 2) {
         const prev = trimmed[i - 2];
-        if ((prev === "." || prev === "!" || prev === "?" || prev === "…") && /\s/.test(next)) {
+        if (
+          (prev === "." || prev === "!" || prev === "?" || prev === "…") &&
+          /\s/.test(next)
+        ) {
           cut = i;
           break;
         }
@@ -1152,7 +1664,14 @@ function splitLongParagraph(para: string, maxChars: number): string[] {
       for (let i = windowEnd; i >= minCut; i--) {
         const ch = trimmed[i - 1];
         const next = trimmed[i] ?? " ";
-        if ((ch === "," || ch === ":" || ch === "—" || ch === "–" || ch === "-") && /\s/.test(next)) {
+        if (
+          (ch === "," ||
+            ch === ":" ||
+            ch === "—" ||
+            ch === "–" ||
+            ch === "-") &&
+          /\s/.test(next)
+        ) {
           cut = i;
           break;
         }
@@ -1185,7 +1704,10 @@ function splitLongParagraph(para: string, maxChars: number): string[] {
 /**
  * Splits arbitrarily large text into Phonon-safe chunks with paragraph tracking and word/character counts.
  */
-export function splitTextForPhonon(rawText: string, options: SplitTextOptions = {}): PhononTextChunk[] {
+export function splitTextForPhonon(
+  rawText: string,
+  options: SplitTextOptions = {},
+): PhononTextChunk[] {
   const maxChars = Math.min(
     PHONON_HARD_MAX_CHUNK_CHARS,
     Math.max(120, Math.round(options.maxChars ?? PHONON_DEFAULT_CHUNK_CHARS)),
@@ -1219,7 +1741,11 @@ export function splitTextForPhonon(rawText: string, options: SplitTextOptions = 
 
     const pieces = splitLongParagraph(cleanPara, maxChars);
     for (const piece of pieces) {
-      if (mergeShort && pendingText && pendingText.length + 1 + piece.length <= Math.floor(maxChars * 0.75)) {
+      if (
+        mergeShort &&
+        pendingText &&
+        pendingText.length + 1 + piece.length <= Math.floor(maxChars * 0.75)
+      ) {
         pendingText = `${pendingText}\n${piece}`;
       } else {
         flushPending();
@@ -1268,7 +1794,10 @@ export interface CleanTextOptions {
 /**
  * Cleans and normalizes text from Markdown, HTML, subtitles, logs, or documents so it reads naturally aloud.
  */
-export function cleanTextForSpeech(input: string, opts: CleanTextOptions = {}): string {
+export function cleanTextForSpeech(
+  input: string,
+  opts: CleanTextOptions = {},
+): string {
   const stripMarkdown = opts.stripMarkdown ?? true;
   const stripHtml = opts.stripHtml ?? true;
   const stripCodeBlocks = opts.stripCodeBlocks ?? false;
@@ -1280,25 +1809,43 @@ export function cleanTextForSpeech(input: string, opts: CleanTextOptions = {}): 
 
   // 1. Handle fenced code blocks first
   if (stripCodeBlocks) {
-    s = s.replace(/^ {0,3}(`{3,}|~{3,})[\s\S]*?^ {0,3}\1\s*$/gm, "\n[Code block omitted]\n");
+    s = s.replace(
+      /^ {0,3}(`{3,}|~{3,})[\s\S]*?^ {0,3}\1\s*$/gm,
+      "\n[Code block omitted]\n",
+    );
   } else if (stripMarkdown) {
-    s = s.replace(/^ {0,3}(?:`{3,}|~{3,})[^\n]*\n([\s\S]*?)^ {0,3}(?:`{3,}|~{3,})\s*$/gm, "\n$1\n");
+    s = s.replace(
+      /^ {0,3}(?:`{3,}|~{3,})[^\n]*\n([\s\S]*?)^ {0,3}(?:`{3,}|~{3,})\s*$/gm,
+      "\n$1\n",
+    );
   }
 
   // 2. Strip subtitle timestamps (SRT / VTT / LRC)
   if (stripTimestamps) {
     s = s.replace(/^WEBVTT[^\n]*\n+/i, "");
-    s = s.replace(/^\d+\s*\n\d{1,2}:\d{2}:\d{2}[,.]\d{1,3}\s*-->\s*\d{1,2}:\d{2}:\d{2}[,.]\d{1,3}[^\n]*\n/gm, "");
-    s = s.replace(/^\d{1,2}:\d{2}(?::\d{2})?[,.]\d{1,3}\s*-->\s*\d{1,2}:\d{2}(?::\d{2})?[,.]\d{1,3}[^\n]*\n/gm, "");
+    s = s.replace(
+      /^\d+\s*\n\d{1,2}:\d{2}:\d{2}[,.]\d{1,3}\s*-->\s*\d{1,2}:\d{2}:\d{2}[,.]\d{1,3}[^\n]*\n/gm,
+      "",
+    );
+    s = s.replace(
+      /^\d{1,2}:\d{2}(?::\d{2})?[,.]\d{1,3}\s*-->\s*\d{1,2}:\d{2}(?::\d{2})?[,.]\d{1,3}[^\n]*\n/gm,
+      "",
+    );
     s = s.replace(/^\[(\d{1,2}:\d{2}(?:\.\d{1,3})?)\]\s*/gm, "");
   }
 
   // 3. Strip HTML comments, script/style tags, and inline HTML tags if requested
   if (stripHtml) {
     s = s.replace(/<!--[\s\S]*?-->/g, "");
-    s = s.replace(/<(script|style|head|noscript|template|svg)\b[\s\S]*?<\/\1\s*>/gi, "");
+    s = s.replace(
+      /<(script|style|head|noscript|template|svg)\b[\s\S]*?<\/\1\s*>/gi,
+      "",
+    );
     s = s.replace(/<br\s*\/?>/gi, "\n");
-    s = s.replace(/<\/(p|div|h[1-6]|tr|li|blockquote|section|article)\s*>/gi, "\n\n");
+    s = s.replace(
+      /<\/(p|div|h[1-6]|tr|li|blockquote|section|article)\s*>/gi,
+      "\n\n",
+    );
     s = s.replace(/<[^>]{1,200}>/g, " ");
     s = s
       .replace(/&nbsp;/gi, " ")
@@ -1344,15 +1891,23 @@ export function cleanTextForSpeech(input: string, opts: CleanTextOptions = {}): 
     // Markdown table separator rows
     s = s.replace(/^\s*\|?(?:\s*:?-+:?\s*\|)+\s*:?-+:?\s*\|?\s*$/gm, "");
     // Markdown table pipes -> commas/spaces
-    s = s.replace(/^\s*\|\s*(.*?)\s*\|\s*$/gm, (_m, row: string) => row.split(/\s*\|\s*/).filter(Boolean).join(", "));
+    s = s.replace(/^\s*\|\s*(.*?)\s*\|\s*$/gm, (_m, row: string) =>
+      row
+        .split(/\s*\|\s*/)
+        .filter(Boolean)
+        .join(", "),
+    );
   }
 
   // 5. Simplify URLs so Phonon doesn't read 100-character query strings character by character
   if (simplifyUrls) {
-    s = s.replace(/https?:\/\/([^\s/$.?#].[^\s)>\]"']*)/gi, (_m, rest: string) => {
-      const host = rest.split("/")[0]?.replace(/^www\./i, "") ?? "website";
-      return host;
-    });
+    s = s.replace(
+      /https?:\/\/([^\s/$.?#].[^\s)>\]"']*)/gi,
+      (_m, rest: string) => {
+        const host = rest.split("/")[0]?.replace(/^www\./i, "") ?? "website";
+        return host;
+      },
+    );
   }
 
   // 6. Collapse repeated ASCII box-drawing or divider symbols (e.g. "========", "--------", "********")
@@ -1401,7 +1956,10 @@ function docBlocksToPlainText(blocks: DocBlock[]): string {
   for (const b of blocks) {
     if ("rows" in b) {
       for (const row of b.rows) {
-        const line = row.map((c) => c.trim()).filter(Boolean).join(", ");
+        const line = row
+          .map((c) => c.trim())
+          .filter(Boolean)
+          .join(", ");
         if (line) parts.push(line);
       }
     } else if (b.text.trim()) {
@@ -1411,12 +1969,18 @@ function docBlocksToPlainText(blocks: DocBlock[]): string {
   return parts.join("\n\n");
 }
 
-function richPreviewToPlainText(rich: RichPreview): { text: string; formatLabel: string; title?: string } | null {
+function richPreviewToPlainText(
+  rich: RichPreview,
+): { text: string; formatLabel: string; title?: string } | null {
   switch (rich.kind) {
     case "document": {
       const text = rich.plainText?.trim() || docBlocksToPlainText(rich.blocks);
       if (!text) return null;
-      return { text, formatLabel: rich.formatLabel, ...(rich.title ? { title: rich.title } : {}) };
+      return {
+        text,
+        formatLabel: rich.formatLabel,
+        ...(rich.title ? { title: rich.title } : {}),
+      };
     }
     case "pdf": {
       const text = rich.extractedText?.trim();
@@ -1426,7 +1990,10 @@ function richPreviewToPlainText(rich: RichPreview): { text: string; formatLabel:
     case "presentation": {
       const slidesText = rich.slides
         .map((s) => {
-          const lines = [`Slide ${s.number}${s.title ? `: ${s.title}` : ""}.`, ...s.bullets];
+          const lines = [
+            `Slide ${s.number}${s.title ? `: ${s.title}` : ""}.`,
+            ...s.bullets,
+          ];
           if (s.notes) lines.push(`Notes: ${s.notes}`);
           return lines.join("\n");
         })
@@ -1480,20 +2047,42 @@ function richPreviewToPlainText(rich: RichPreview): { text: string; formatLabel:
     }
     case "calendar": {
       const text = rich.events
-        .map((ev) => [ev.summary, ev.start ? `When: ${ev.start}` : "", ev.location ? `Where: ${ev.location}` : "", ev.description || ""].filter(Boolean).join(". "))
+        .map((ev) =>
+          [
+            ev.summary,
+            ev.start ? `When: ${ev.start}` : "",
+            ev.location ? `Where: ${ev.location}` : "",
+            ev.description || "",
+          ]
+            .filter(Boolean)
+            .join(". "),
+        )
         .join("\n\n");
       if (!text.trim()) return null;
       return { text, formatLabel: rich.formatLabel };
     }
     case "contact": {
       const text = rich.contacts
-        .map((c) => [c.fullName, c.org, c.title, ...(c.emails ?? []), ...(c.phones ?? []), c.note || ""].filter(Boolean).join(", "))
+        .map((c) =>
+          [
+            c.fullName,
+            c.org,
+            c.title,
+            ...(c.emails ?? []),
+            ...(c.phones ?? []),
+            c.note || "",
+          ]
+            .filter(Boolean)
+            .join(", "),
+        )
         .join("\n\n");
       if (!text.trim()) return null;
       return { text, formatLabel: rich.formatLabel };
     }
     case "playlist": {
-      const text = rich.tracks.map((t) => `${t.index}. ${t.title || t.path}`).join("\n");
+      const text = rich.tracks
+        .map((t) => `${t.index}. ${t.title || t.path}`)
+        .join("\n");
       if (!text.trim()) return null;
       return { text, formatLabel: rich.formatLabel };
     }
@@ -1501,19 +2090,34 @@ function richPreviewToPlainText(rich: RichPreview): { text: string; formatLabel:
       if (rich.table && rich.table.rows.length > 0) {
         const lines = rich.table.rows.map((r) =>
           r
-            .map((v, i) => (v ? (rich.table!.headers[i] ? `${rich.table!.headers[i]}: ${v}` : v) : ""))
+            .map((v, i) =>
+              v
+                ? rich.table!.headers[i]
+                  ? `${rich.table!.headers[i]}: ${v}`
+                  : v
+                : "",
+            )
             .filter(Boolean)
             .join(", "),
         );
         return { text: lines.join("\n"), formatLabel: rich.formatLabel };
       }
-      if (rich.formattedText) return { text: rich.formattedText, formatLabel: rich.formatLabel };
-      if (rich.data !== undefined) return { text: structuredDataToProse(rich.data), formatLabel: rich.formatLabel };
+      if (rich.formattedText)
+        return { text: rich.formattedText, formatLabel: rich.formatLabel };
+      if (rich.data !== undefined)
+        return {
+          text: structuredDataToProse(rich.data),
+          formatLabel: rich.formatLabel,
+        };
       return null;
     }
     case "archive": {
       if (rich.innerText?.trim()) {
-        return { text: rich.innerText.trim(), formatLabel: rich.formatLabel, ...(rich.innerName ? { title: rich.innerName } : {}) };
+        return {
+          text: rich.innerText.trim(),
+          formatLabel: rich.formatLabel,
+          ...(rich.innerName ? { title: rich.innerName } : {}),
+        };
       }
       return null;
     }
@@ -1524,7 +2128,12 @@ function richPreviewToPlainText(rich: RichPreview): { text: string; formatLabel:
 
 function structuredDataToProse(data: unknown, depth = 0): string {
   if (depth > 8 || data === null || data === undefined) return "";
-  if (typeof data === "string" || typeof data === "number" || typeof data === "boolean") return String(data);
+  if (
+    typeof data === "string" ||
+    typeof data === "number" ||
+    typeof data === "boolean"
+  )
+    return String(data);
   if (Array.isArray(data)) {
     return data
       .map((item) => structuredDataToProse(item, depth + 1))
@@ -1535,7 +2144,9 @@ function structuredDataToProse(data: unknown, depth = 0): string {
     const lines: string[] = [];
     for (const [k, v] of Object.entries(data as Record<string, unknown>)) {
       if (v === null || v === undefined || v === "") continue;
-      const humanizedKey = k.replace(/[_-]+/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2");
+      const humanizedKey = k
+        .replace(/[_-]+/g, " ")
+        .replace(/([a-z])([A-Z])/g, "$1 $2");
       if (typeof v === "object") {
         const sub = structuredDataToProse(v, depth + 1);
         if (sub) lines.push(`${humanizedKey}: ${sub}`);
@@ -1557,60 +2168,132 @@ async function runExternalTextExtractor(
   if (ext === "pdf") {
     const pdftotext = resolveTool(ctx, "poppler");
     if (pdftotext) {
-      const res = Bun.spawnSync([pdftotext, "-enc", "UTF-8", filePath, "-"], { stdout: "pipe", stderr: "pipe", timeout: 60_000 });
-      const out = res.stdout.toString("utf8").trim();
-      if (res.exitCode === 0 && out) {
-        return { text: out, method: "Poppler (pdftotext)", formatLabel: "PDF Document" };
-      }
-    }
-    const gs = resolveTool(ctx, "ghostscript");
-    if (gs) {
-      const res = Bun.spawnSync([gs, "-dSAFER", "-dBATCH", "-dNOPAUSE", "-dQUIET", "-sDEVICE=txtwrite", "-sOutputFile=-", filePath], {
+      const res = Bun.spawnSync([pdftotext, "-enc", "UTF-8", filePath, "-"], {
         stdout: "pipe",
         stderr: "pipe",
         timeout: 60_000,
       });
       const out = res.stdout.toString("utf8").trim();
       if (res.exitCode === 0 && out) {
-        return { text: out, method: "Ghostscript (txtwrite)", formatLabel: "PDF Document" };
+        return {
+          text: out,
+          method: "Poppler (pdftotext)",
+          formatLabel: "PDF Document",
+        };
+      }
+    }
+    const gs = resolveTool(ctx, "ghostscript");
+    if (gs) {
+      const res = Bun.spawnSync(
+        [
+          gs,
+          "-dSAFER",
+          "-dBATCH",
+          "-dNOPAUSE",
+          "-dQUIET",
+          "-sDEVICE=txtwrite",
+          "-sOutputFile=-",
+          filePath,
+        ],
+        {
+          stdout: "pipe",
+          stderr: "pipe",
+          timeout: 60_000,
+        },
+      );
+      const out = res.stdout.toString("utf8").trim();
+      if (res.exitCode === 0 && out) {
+        return {
+          text: out,
+          method: "Ghostscript (txtwrite)",
+          formatLabel: "PDF Document",
+        };
       }
     }
   }
 
   // 2. Images via Tesseract OCR
-  if (["png", "jpg", "jpeg", "webp", "tif", "tiff", "bmp", "gif"].includes(ext)) {
+  if (
+    ["png", "jpg", "jpeg", "webp", "tif", "tiff", "bmp", "gif"].includes(ext)
+  ) {
     const tesseract = resolveTool(ctx, "tesseract");
     if (tesseract) {
-      const res = Bun.spawnSync([tesseract, filePath, "stdout"], { stdout: "pipe", stderr: "pipe", timeout: 60_000 });
+      const res = Bun.spawnSync([tesseract, filePath, "stdout"], {
+        stdout: "pipe",
+        stderr: "pipe",
+        timeout: 60_000,
+      });
       const out = res.stdout.toString("utf8").trim();
       if (res.exitCode === 0 && out) {
-        return { text: out, method: "Tesseract OCR", formatLabel: `Image OCR (${ext.toUpperCase()})` };
+        return {
+          text: out,
+          method: "Tesseract OCR",
+          formatLabel: `Image OCR (${ext.toUpperCase()})`,
+        };
       }
     }
   }
 
   // 3. Pandoc for markup / documents (.docx, .odt, .rtf, .epub, .tex, .rst, .org, .adoc, .wiki, .textile)
-  if (["docx", "odt", "rtf", "epub", "fb2", "tex", "rst", "org", "adoc", "asciidoc", "wiki", "mediawiki", "textile", "ipynb"].includes(ext)) {
+  if (
+    [
+      "docx",
+      "odt",
+      "rtf",
+      "epub",
+      "fb2",
+      "tex",
+      "rst",
+      "org",
+      "adoc",
+      "asciidoc",
+      "wiki",
+      "mediawiki",
+      "textile",
+      "ipynb",
+    ].includes(ext)
+  ) {
     const pandoc = resolveTool(ctx, "pandoc");
     if (pandoc) {
-      const res = Bun.spawnSync([pandoc, "--wrap=none", "-t", "plain", filePath], { stdout: "pipe", stderr: "pipe", timeout: 60_000 });
+      const res = Bun.spawnSync(
+        [pandoc, "--wrap=none", "-t", "plain", filePath],
+        { stdout: "pipe", stderr: "pipe", timeout: 60_000 },
+      );
       const out = res.stdout.toString("utf8").trim();
       if (res.exitCode === 0 && out) {
-        return { text: out, method: "Pandoc", formatLabel: `${ext.toUpperCase()} Document` };
+        return {
+          text: out,
+          method: "Pandoc",
+          formatLabel: `${ext.toUpperCase()} Document`,
+        };
       }
     }
   }
 
   // 4. Calibre ebook-convert for MOBI / AZW3 / EPUB / FB2
-  if (["mobi", "azw", "azw3", "azw4", "epub", "fb2", "lit", "pdb"].includes(ext)) {
+  if (
+    ["mobi", "azw", "azw3", "azw4", "epub", "fb2", "lit", "pdb"].includes(ext)
+  ) {
     const calibre = resolveTool(ctx, "calibre");
     if (calibre) {
-      const tmpTxt = nodePath.join(tmpdir(), `fm-phonon-eb-${process.pid}-${randomBytes(4).toString("hex")}.txt`);
+      const tmpTxt = nodePath.join(
+        tmpdir(),
+        `fm-phonon-eb-${process.pid}-${randomBytes(4).toString("hex")}.txt`,
+      );
       try {
-        const res = Bun.spawnSync([calibre, filePath, tmpTxt], { stdout: "pipe", stderr: "pipe", timeout: 90_000 });
+        const res = Bun.spawnSync([calibre, filePath, tmpTxt], {
+          stdout: "pipe",
+          stderr: "pipe",
+          timeout: 90_000,
+        });
         if (res.exitCode === 0 && existsSync(tmpTxt)) {
           const out = (await fsp.readFile(tmpTxt, "utf8")).trim();
-          if (out) return { text: out, method: "Calibre (ebook-convert)", formatLabel: `E-Book (${ext.toUpperCase()})` };
+          if (out)
+            return {
+              text: out,
+              method: "Calibre (ebook-convert)",
+              formatLabel: `E-Book (${ext.toUpperCase()})`,
+            };
         }
       } finally {
         await fsp.rm(tmpTxt, { force: true }).catch(() => {});
@@ -1622,20 +2305,43 @@ async function runExternalTextExtractor(
   if (["doc", "dot", "wps", "wpd", "sxw", "pages"].includes(ext)) {
     const lo = resolveTool(ctx, "libreoffice");
     if (lo) {
-      const tmpDir = nodePath.join(tmpdir(), `fm-phonon-lo-${process.pid}-${randomBytes(4).toString("hex")}`);
+      const tmpDir = nodePath.join(
+        tmpdir(),
+        `fm-phonon-lo-${process.pid}-${randomBytes(4).toString("hex")}`,
+      );
       mkdirSync(tmpDir, { recursive: true });
       try {
-        const res = Bun.spawnSync([lo, "--headless", "--norestore", "--nolockcheck", "--convert-to", "txt:Text (encoded):UTF8", "--outdir", tmpDir, filePath], {
-          stdout: "pipe",
-          stderr: "pipe",
-          timeout: 90_000,
-        });
+        const res = Bun.spawnSync(
+          [
+            lo,
+            "--headless",
+            "--norestore",
+            "--nolockcheck",
+            "--convert-to",
+            "txt:Text (encoded):UTF8",
+            "--outdir",
+            tmpDir,
+            filePath,
+          ],
+          {
+            stdout: "pipe",
+            stderr: "pipe",
+            timeout: 90_000,
+          },
+        );
         if (res.exitCode === 0) {
           const files = await fsp.readdir(tmpDir);
           const txtFile = files.find((f) => f.endsWith(".txt"));
           if (txtFile) {
-            const out = (await fsp.readFile(nodePath.join(tmpDir, txtFile), "utf8")).trim();
-            if (out) return { text: out, method: "LibreOffice", formatLabel: `Office Document (${ext.toUpperCase()})` };
+            const out = (
+              await fsp.readFile(nodePath.join(tmpDir, txtFile), "utf8")
+            ).trim();
+            if (out)
+              return {
+                text: out,
+                method: "LibreOffice",
+                formatLabel: `Office Document (${ext.toUpperCase()})`,
+              };
           }
         }
       } finally {
@@ -1658,7 +2364,11 @@ export async function extractPlainTextFromFile(
 ): Promise<ExtractedPlainText> {
   const filePath = absolutePath(ctx, inputPath);
   const st = await fsp.stat(filePath).catch(() => null);
-  if (!st) throw new FmError("NOT_A_FILE", "Choose a file (not a folder) to read or convert to plain text.");
+  if (!st)
+    throw new FmError(
+      "NOT_A_FILE",
+      "Choose a file (not a folder) to read or convert to plain text.",
+    );
 
   const name = nodePath.basename(filePath);
   const ext = extensionOf(name);
@@ -1678,7 +2388,10 @@ export async function extractPlainTextFromFile(
     }).catch(() => null);
     const extracted = pkgRich ? richPreviewToPlainText(pkgRich) : null;
     if (!extracted || !extracted.text.trim()) {
-      throw new FmError("NOT_A_FILE", "Choose a file (not a folder) to read or convert to plain text.");
+      throw new FmError(
+        "NOT_A_FILE",
+        "Choose a file (not a folder) to read or convert to plain text.",
+      );
     }
     rawText = extracted.text;
     formatLabel = extracted.formatLabel;
@@ -1689,7 +2402,9 @@ export async function extractPlainTextFromFile(
 
     // 0. Full-Book EPUB / iBooks Extractor (reads all spine chapters without preview limits)
     if (lastExt === "epub" || lastExt === "ibooks") {
-      const fullEpub = await extractFullEpubRich(filePath, false).catch(() => null);
+      const fullEpub = await extractFullEpubRich(filePath, false).catch(
+        () => null,
+      );
       if (fullEpub) {
         const extracted = richPreviewToPlainText(fullEpub);
         if (extracted && extracted.text.trim()) {
@@ -1703,22 +2418,41 @@ export async function extractPlainTextFromFile(
   }
 
   // 1. Spreadsheets (.xlsx, .xlsm, .ods, .csv, .tsv) via full built-in reader
-  if (!rawText && !st.isDirectory() && ["xlsx", "xlsm", "ods", "csv", "tsv"].includes(lastExt) && st.size <= 50 * 1024 * 1024) {
+  if (
+    !rawText &&
+    !st.isDirectory() &&
+    ["xlsx", "xlsm", "ods", "csv", "tsv"].includes(lastExt) &&
+    st.size <= 50 * 1024 * 1024
+  ) {
     try {
-      const kind = lastExt === "ods" ? "ods" : lastExt === "csv" ? "csv" : lastExt === "tsv" ? "tsv" : "xlsx";
+      const kind =
+        lastExt === "ods"
+          ? "ods"
+          : lastExt === "csv"
+            ? "csv"
+            : lastExt === "tsv"
+              ? "tsv"
+              : "xlsx";
       if (kind === "xlsx" || kind === "ods") {
         const sheets = await readSpreadsheet(filePath);
         const lines: string[] = [];
         for (const sheet of sheets) {
-          if (sheets.length > 1 && sheet.name) lines.push(`Sheet: ${sheet.name}.`);
+          if (sheets.length > 1 && sheet.name)
+            lines.push(`Sheet: ${sheet.name}.`);
           const headerRow = sheet.rows[0] ?? [];
-          const dataRows = sheet.rows.length > 1 ? sheet.rows.slice(1) : sheet.rows;
+          const dataRows =
+            sheet.rows.length > 1 ? sheet.rows.slice(1) : sheet.rows;
           for (const row of dataRows) {
             const line = row
               .map((v, i) => {
                 const s = v === null || v === undefined ? "" : String(v).trim();
                 if (!s) return "";
-                const col = sheet.rows.length > 1 && headerRow[i] !== null && headerRow[i] !== undefined ? String(headerRow[i]).trim() : "";
+                const col =
+                  sheet.rows.length > 1 &&
+                  headerRow[i] !== null &&
+                  headerRow[i] !== undefined
+                    ? String(headerRow[i]).trim()
+                    : "";
                 return col ? `${col}: ${s}` : s;
               })
               .filter(Boolean)
@@ -1727,7 +2461,10 @@ export async function extractPlainTextFromFile(
           }
         }
         rawText = lines.join("\n");
-        formatLabel = kind === "ods" ? "OpenDocument Spreadsheet (ODS)" : "Excel Workbook (XLSX)";
+        formatLabel =
+          kind === "ods"
+            ? "OpenDocument Spreadsheet (ODS)"
+            : "Excel Workbook (XLSX)";
         method = "Built-in Spreadsheet Reader";
       }
     } catch {
@@ -1736,7 +2473,25 @@ export async function extractPlainTextFromFile(
   }
 
   // 2. For PDFs or OCR images or legacy Office/E-Books, try external helper first if installed (gets all pages of huge PDFs)
-  if (!rawText && ["pdf", "png", "jpg", "jpeg", "webp", "tif", "tiff", "bmp", "gif", "mobi", "azw", "azw3", "doc", "pages"].includes(lastExt)) {
+  if (
+    !rawText &&
+    [
+      "pdf",
+      "png",
+      "jpg",
+      "jpeg",
+      "webp",
+      "tif",
+      "tiff",
+      "bmp",
+      "gif",
+      "mobi",
+      "azw",
+      "azw3",
+      "doc",
+      "pages",
+    ].includes(lastExt)
+  ) {
     const extRes = await runExternalTextExtractor(ctx, filePath, lastExt);
     if (extRes) {
       rawText = extRes.text;
@@ -1755,7 +2510,14 @@ export async function extractPlainTextFromFile(
       const head = headBuf.subarray(0, bytesRead);
       const isBin = head.subarray(0, 8192).includes(0);
       const headText = !isBin ? decodeBytes(head, "auto", true).text : null;
-      const rich = await inspectRichPreview(handle, filePath, st.size, head, headText, false).catch(() => null);
+      const rich = await inspectRichPreview(
+        handle,
+        filePath,
+        st.size,
+        head,
+        headText,
+        false,
+      ).catch(() => null);
       if (rich) {
         const extracted = richPreviewToPlainText(rich);
         if (extracted && extracted.text.trim()) {
@@ -1792,8 +2554,14 @@ export async function extractPlainTextFromFile(
       // Reject true binary files (e.g. MP4, ZIP, EXE) that could not be extracted
       if (slice.subarray(0, 4096).includes(0)) {
         const sniffed = decodeBytes(slice, "auto", true);
-        if (sniffed.encoding !== "utf-16le" && sniffed.encoding !== "utf-16be") {
-          throw new FmError("BINARY_FILE", `"${name}" is a binary file (${formatLabel}) that doesn't contain readable text.`);
+        if (
+          sniffed.encoding !== "utf-16le" &&
+          sniffed.encoding !== "utf-16be"
+        ) {
+          throw new FmError(
+            "BINARY_FILE",
+            `"${name}" is a binary file (${formatLabel}) that doesn't contain readable text.`,
+          );
         }
       }
       const decoded = decodeBytes(slice, "auto", true);
@@ -1807,7 +2575,8 @@ export async function extractPlainTextFromFile(
           rawText = decoded.text;
         }
       } else {
-        if (["md", "markdown"].includes(lastExt)) formatLabel = "Markdown Document";
+        if (["md", "markdown"].includes(lastExt))
+          formatLabel = "Markdown Document";
         else if (lastExt === "txt") formatLabel = "Plain Text";
         rawText = decoded.text;
       }
@@ -1817,10 +2586,18 @@ export async function extractPlainTextFromFile(
   }
 
   const shouldClean = cleanOpts.clean ?? true;
-  const text = shouldClean ? cleanTextForSpeech(rawText, cleanOpts) : rawText.replace(/\r\n?/g, "\n").trim();
-  if (!text) throw new FmError("EMPTY_TEXT", `No readable words were found in "${name}".`);
+  const text = shouldClean
+    ? cleanTextForSpeech(rawText, cleanOpts)
+    : rawText.replace(/\r\n?/g, "\n").trim();
+  if (!text)
+    throw new FmError(
+      "EMPTY_TEXT",
+      `No readable words were found in "${name}".`,
+    );
 
-  const chunks = splitTextForPhonon(text, { maxChars: cleanOpts.maxChars ?? PHONON_DEFAULT_CHUNK_CHARS });
+  const chunks = splitTextForPhonon(text, {
+    maxChars: cleanOpts.maxChars ?? PHONON_DEFAULT_CHUNK_CHARS,
+  });
   const wordCount = chunks.reduce((acc, c) => acc + c.wordCount, 0);
   const estimatedSeconds = Math.max(1, Math.round((wordCount / 155) * 60));
 
@@ -1855,7 +2632,11 @@ export interface ParsedWav {
  * Extracts the PCM audio format and raw sample payload from a RIFF/WAVE buffer produced by `ollama run phonon`.
  */
 export function parseWavPcm(wav: Buffer): ParsedWav {
-  if (wav.length < 44 || wav.subarray(0, 4).toString("ascii") !== "RIFF" || wav.subarray(8, 12).toString("ascii") !== "WAVE") {
+  if (
+    wav.length < 44 ||
+    wav.subarray(0, 4).toString("ascii") !== "RIFF" ||
+    wav.subarray(8, 12).toString("ascii") !== "WAVE"
+  ) {
     throw new FmError("BAD_WAV", "Phonon did not return valid WAV audio data.");
   }
   let sampleRate = 24000;
@@ -1874,7 +2655,8 @@ export function parseWavPcm(wav: Buffer): ParsedWav {
     } else if (chunkId === "data") {
       // Streaming WAV writers sometimes set chunkSize to 0xFFFFFFFF or larger than remaining buffer; clamp safely.
       const available = wav.length - bodyStart;
-      const actualSize = chunkSize > 0 && chunkSize <= available ? chunkSize : available;
+      const actualSize =
+        chunkSize > 0 && chunkSize <= available ? chunkSize : available;
       const alignedSize = actualSize - (actualSize % 2);
       return {
         sampleRate,
@@ -1898,7 +2680,12 @@ export function parseWavPcm(wav: Buffer): ParsedWav {
 /**
  * Creates a standard 44-byte RIFF/WAVE header for 16-bit mono/stereo PCM audio.
  */
-export function createWavHeader(pcmByteLength: number, sampleRate = 24000, numChannels = 1, bitsPerSample = 16): Buffer {
+export function createWavHeader(
+  pcmByteLength: number,
+  sampleRate = 24000,
+  numChannels = 1,
+  bitsPerSample = 16,
+): Buffer {
   const header = Buffer.alloc(44);
   const byteRate = sampleRate * numChannels * (bitsPerSample >> 3);
   const blockAlign = numChannels * (bitsPerSample >> 3);
@@ -1921,11 +2708,17 @@ export function createWavHeader(pcmByteLength: number, sampleRate = 24000, numCh
 /**
  * Writes an uncompressed Apple AIFF file directly from 16-bit signed little-endian PCM samples (no ffmpeg needed).
  */
-export async function convertWavFileToAiffNative(wavPath: string, aiffPath: string): Promise<void> {
+export async function convertWavFileToAiffNative(
+  wavPath: string,
+  aiffPath: string,
+): Promise<void> {
   const wavBuf = await fsp.readFile(wavPath);
-  const { sampleRate, numChannels, bitsPerSample, pcmData } = parseWavPcm(wavBuf);
+  const { sampleRate, numChannels, bitsPerSample, pcmData } =
+    parseWavPcm(wavBuf);
   const bytesPerSample = bitsPerSample >> 3;
-  const numSampleFrames = Math.floor(pcmData.length / (numChannels * bytesPerSample));
+  const numSampleFrames = Math.floor(
+    pcmData.length / (numChannels * bytesPerSample),
+  );
 
   // AIFF uses big-endian signed 16-bit samples
   const bePcm = Buffer.from(pcmData);
@@ -1951,19 +2744,32 @@ export async function convertWavFileToAiffNative(wavPath: string, aiffPath: stri
   const formSize = 4 + (8 + commSize) + (8 + ssndSize);
   const header = Buffer.alloc(12 + 8 + commSize + 8 + 8);
   let o = 0;
-  header.write("FORM", o, "ascii"); o += 4;
-  header.writeUInt32BE(formSize, o); o += 4;
-  header.write("AIFF", o, "ascii"); o += 4;
-  header.write("COMM", o, "ascii"); o += 4;
-  header.writeUInt32BE(commSize, o); o += 4;
-  header.writeUInt16BE(numChannels, o); o += 2;
-  header.writeUInt32BE(numSampleFrames, o); o += 4;
-  header.writeUInt16BE(bitsPerSample, o); o += 2;
-  srExtended.copy(header, o); o += 10;
-  header.write("SSND", o, "ascii"); o += 4;
-  header.writeUInt32BE(ssndSize, o); o += 4;
-  header.writeUInt32BE(0, o); o += 4; // offset
-  header.writeUInt32BE(0, o); o += 4; // blockSize
+  header.write("FORM", o, "ascii");
+  o += 4;
+  header.writeUInt32BE(formSize, o);
+  o += 4;
+  header.write("AIFF", o, "ascii");
+  o += 4;
+  header.write("COMM", o, "ascii");
+  o += 4;
+  header.writeUInt32BE(commSize, o);
+  o += 4;
+  header.writeUInt16BE(numChannels, o);
+  o += 2;
+  header.writeUInt32BE(numSampleFrames, o);
+  o += 4;
+  header.writeUInt16BE(bitsPerSample, o);
+  o += 2;
+  srExtended.copy(header, o);
+  o += 10;
+  header.write("SSND", o, "ascii");
+  o += 4;
+  header.writeUInt32BE(ssndSize, o);
+  o += 4;
+  header.writeUInt32BE(0, o);
+  o += 4; // offset
+  header.writeUInt32BE(0, o);
+  o += 4; // blockSize
 
   const outHandle = await fsp.open(aiffPath, "w");
   try {
@@ -1993,12 +2799,17 @@ export function parseVoicesFromModelfile(showOutput: string): string[] {
     }
     if (inVoicesSection) {
       if (!trimmed) continue;
-      if (/^[A-Z][a-z]+:$/.test(trimmed) || /^(Parameters|System|Template|License)\b/i.test(trimmed)) {
+      if (
+        /^[A-Z][a-z]+:$/.test(trimmed) ||
+        /^(Parameters|System|Template|License)\b/i.test(trimmed)
+      ) {
         inVoicesSection = false;
         continue;
       }
       // Match lines like "    Zoey                    4096 tokens"
-      const m = /^\s{2,}([A-Za-z0-9][A-Za-z0-9 _-]*?)\s+\d+\s+tokens\s*$/i.exec(line);
+      const m = /^\s{2,}([A-Za-z0-9][A-Za-z0-9 _-]*?)\s+\d+\s+tokens\s*$/i.exec(
+        line,
+      );
       if (m?.[1]) {
         found.add(m[1].trim());
       }
@@ -2051,14 +2862,21 @@ async function runOllamaCommand(
       stderr: errBuf,
     };
   } catch (err) {
-    return { code: null, stdout: Buffer.alloc(0), stderr: (err as Error)?.message ?? String(err) };
+    return {
+      code: null,
+      stdout: Buffer.alloc(0),
+      stderr: (err as Error)?.message ?? String(err),
+    };
   }
 }
 
 /**
  * Ensures the local Ollama background server is running before executing `pull` or `run`.
  */
-export async function ensureOllamaDaemon(ctx: FmContext, ollamaExe: string): Promise<boolean> {
+export async function ensureOllamaDaemon(
+  ctx: FmContext,
+  ollamaExe: string,
+): Promise<boolean> {
   const check = await runOllamaCommand(ctx, ollamaExe, ["list"], 3500);
   if (check.code === 0) return true;
 
@@ -2110,34 +2928,233 @@ interface ReferenceVoiceAcousticTarget {
  * and 4-band formant energy distribution (`low` <400Hz, `midLow` 400-1200Hz, `midHigh` 1200-3400Hz, `air` >3400Hz).
  */
 const REFERENCE_PHONON_VOICE_TARGETS: ReferenceVoiceAcousticTarget[] = [
-  { voiceId: "Old Mortlake", f0Hz: 90.1, centroidHz: 950, expressiveness: 0.39, cadence: 4.5, isCharacter: true, formantBands: { low: 0.820, midLow: 0.130, midHigh: 0.033, air: 0.018 } },
-  { voiceId: "Captain Silas Blackwater", f0Hz: 98.8, centroidHz: 1447, expressiveness: 0.42, cadence: 4.6, isCharacter: true, formantBands: { low: 0.469, midLow: 0.200, midHigh: 0.161, air: 0.170 } },
-  { voiceId: "Preston", f0Hz: 105.8, centroidHz: 950, expressiveness: 0.52, cadence: 5.5, formantBands: { low: 0.709, midLow: 0.196, midHigh: 0.063, air: 0.033 } },
-  { voiceId: "Sir Bramwell", f0Hz: 113.8, centroidHz: 1481, expressiveness: 0.62, cadence: 5.4, isCharacter: true, formantBands: { low: 0.501, midLow: 0.205, midHigh: 0.124, air: 0.170 } },
-  { voiceId: "Hugh", f0Hz: 114.8, centroidHz: 950, expressiveness: 0.58, cadence: 5.3, formantBands: { low: 0.678, midLow: 0.182, midHigh: 0.075, air: 0.064 } },
-  { voiceId: "Russell", f0Hz: 117.0, centroidHz: 950, expressiveness: 0.60, cadence: 5.6, formantBands: { low: 0.773, midLow: 0.154, midHigh: 0.045, air: 0.028 } },
-  { voiceId: "Spencer", f0Hz: 119.5, centroidHz: 950, expressiveness: 0.54, cadence: 5.7, formantBands: { low: 0.774, midLow: 0.146, midHigh: 0.048, air: 0.032 } },
-  { voiceId: "Trevor", f0Hz: 120.2, centroidHz: 950, expressiveness: 0.57, cadence: 5.5, formantBands: { low: 0.657, midLow: 0.202, midHigh: 0.079, air: 0.062 } },
-  { voiceId: "Micah", f0Hz: 122.3, centroidHz: 1202, expressiveness: 0.61, cadence: 5.7, formantBands: { low: 0.589, midLow: 0.185, midHigh: 0.109, air: 0.117 } },
-  { voiceId: "Miles", f0Hz: 126.7, centroidHz: 1259, expressiveness: 0.55, cadence: 5.8, formantBands: { low: 0.529, midLow: 0.232, midHigh: 0.121, air: 0.118 } },
-  { voiceId: "Toby", f0Hz: 127.4, centroidHz: 950, expressiveness: 0.83, cadence: 5.1, formantBands: { low: 0.724, midLow: 0.173, midHigh: 0.061, air: 0.043 } },
-  { voiceId: "Alfie", f0Hz: 129.8, centroidHz: 1080, expressiveness: 0.93, cadence: 6.1, formantBands: { low: 0.558, midLow: 0.260, midHigh: 0.102, air: 0.080 } },
-  { voiceId: "Easton", f0Hz: 132.7, centroidHz: 950, expressiveness: 0.62, cadence: 5.6, formantBands: { low: 0.730, midLow: 0.172, midHigh: 0.057, air: 0.041 } },
-  { voiceId: "Teddy", f0Hz: 134.9, centroidHz: 1090, expressiveness: 0.95, cadence: 6.2, formantBands: { low: 0.630, midLow: 0.183, midHigh: 0.073, air: 0.113 } },
-  { voiceId: "Edwin", f0Hz: 135.3, centroidHz: 950, expressiveness: 0.68, cadence: 5.4, formantBands: { low: 0.666, midLow: 0.218, midHigh: 0.074, air: 0.042 } },
-  { voiceId: "Juniper", f0Hz: 166.8, centroidHz: 950, expressiveness: 0.84, cadence: 6.1, formantBands: { low: 0.757, midLow: 0.148, midHigh: 0.053, air: 0.042 } },
-  { voiceId: "Maeve", f0Hz: 167.5, centroidHz: 1010, expressiveness: 0.87, cadence: 6.1, formantBands: { low: 0.656, midLow: 0.193, midHigh: 0.079, air: 0.072 } },
-  { voiceId: "Everly", f0Hz: 170.5, centroidHz: 1120, expressiveness: 0.86, cadence: 6.1, formantBands: { low: 0.609, midLow: 0.191, midHigh: 0.096, air: 0.103 } },
-  { voiceId: "Hadley", f0Hz: 175.6, centroidHz: 1110, expressiveness: 0.85, cadence: 5.8, formantBands: { low: 0.621, midLow: 0.194, midHigh: 0.078, air: 0.107 } },
-  { voiceId: "Elodie-Rose", f0Hz: 178.3, centroidHz: 1260, expressiveness: 0.88, cadence: 5.6, formantBands: { low: 0.532, midLow: 0.235, midHigh: 0.115, air: 0.118 } },
-  { voiceId: "Delia", f0Hz: 180.4, centroidHz: 1020, expressiveness: 0.87, cadence: 5.9, formantBands: { low: 0.653, midLow: 0.215, midHigh: 0.080, air: 0.053 } },
-  { voiceId: "Bryony", f0Hz: 181.1, centroidHz: 980, expressiveness: 0.88, cadence: 6.1, formantBands: { low: 0.691, midLow: 0.195, midHigh: 0.072, air: 0.042 } },
-  { voiceId: "Harper", f0Hz: 186.9, centroidHz: 1010, expressiveness: 0.76, cadence: 5.1, formantBands: { low: 0.670, midLow: 0.198, midHigh: 0.078, air: 0.054 } },
-  { voiceId: "Freya", f0Hz: 191.7, centroidHz: 990, expressiveness: 0.82, cadence: 5.4, formantBands: { low: 0.706, midLow: 0.175, midHigh: 0.064, air: 0.055 } },
-  { voiceId: "Zoey", f0Hz: 192.0, centroidHz: 1050, expressiveness: 0.84, cadence: 5.8, formantBands: { low: 0.622, midLow: 0.208, midHigh: 0.096, air: 0.074 } },
-  { voiceId: "Imogen", f0Hz: 192.5, centroidHz: 1240, expressiveness: 0.89, cadence: 6.4, formantBands: { low: 0.531, midLow: 0.239, midHigh: 0.128, air: 0.102 } },
-  { voiceId: "Lottie", f0Hz: 194.6, centroidHz: 1270, expressiveness: 1.00, cadence: 6.2, formantBands: { low: 0.510, midLow: 0.266, midHigh: 0.132, air: 0.092 } },
-  { voiceId: "Pippa", f0Hz: 211.9, centroidHz: 1070, expressiveness: 0.81, cadence: 6.6, formantBands: { low: 0.631, midLow: 0.205, midHigh: 0.085, air: 0.078 } },
+  {
+    voiceId: "Old Mortlake",
+    f0Hz: 90.1,
+    centroidHz: 950,
+    expressiveness: 0.39,
+    cadence: 4.5,
+    isCharacter: true,
+    formantBands: { low: 0.82, midLow: 0.13, midHigh: 0.033, air: 0.018 },
+  },
+  {
+    voiceId: "Captain Silas Blackwater",
+    f0Hz: 98.8,
+    centroidHz: 1447,
+    expressiveness: 0.42,
+    cadence: 4.6,
+    isCharacter: true,
+    formantBands: { low: 0.469, midLow: 0.2, midHigh: 0.161, air: 0.17 },
+  },
+  {
+    voiceId: "Preston",
+    f0Hz: 105.8,
+    centroidHz: 950,
+    expressiveness: 0.52,
+    cadence: 5.5,
+    formantBands: { low: 0.709, midLow: 0.196, midHigh: 0.063, air: 0.033 },
+  },
+  {
+    voiceId: "Sir Bramwell",
+    f0Hz: 113.8,
+    centroidHz: 1481,
+    expressiveness: 0.62,
+    cadence: 5.4,
+    isCharacter: true,
+    formantBands: { low: 0.501, midLow: 0.205, midHigh: 0.124, air: 0.17 },
+  },
+  {
+    voiceId: "Hugh",
+    f0Hz: 114.8,
+    centroidHz: 950,
+    expressiveness: 0.58,
+    cadence: 5.3,
+    formantBands: { low: 0.678, midLow: 0.182, midHigh: 0.075, air: 0.064 },
+  },
+  {
+    voiceId: "Russell",
+    f0Hz: 117.0,
+    centroidHz: 950,
+    expressiveness: 0.6,
+    cadence: 5.6,
+    formantBands: { low: 0.773, midLow: 0.154, midHigh: 0.045, air: 0.028 },
+  },
+  {
+    voiceId: "Spencer",
+    f0Hz: 119.5,
+    centroidHz: 950,
+    expressiveness: 0.54,
+    cadence: 5.7,
+    formantBands: { low: 0.774, midLow: 0.146, midHigh: 0.048, air: 0.032 },
+  },
+  {
+    voiceId: "Trevor",
+    f0Hz: 120.2,
+    centroidHz: 950,
+    expressiveness: 0.57,
+    cadence: 5.5,
+    formantBands: { low: 0.657, midLow: 0.202, midHigh: 0.079, air: 0.062 },
+  },
+  {
+    voiceId: "Micah",
+    f0Hz: 122.3,
+    centroidHz: 1202,
+    expressiveness: 0.61,
+    cadence: 5.7,
+    formantBands: { low: 0.589, midLow: 0.185, midHigh: 0.109, air: 0.117 },
+  },
+  {
+    voiceId: "Miles",
+    f0Hz: 126.7,
+    centroidHz: 1259,
+    expressiveness: 0.55,
+    cadence: 5.8,
+    formantBands: { low: 0.529, midLow: 0.232, midHigh: 0.121, air: 0.118 },
+  },
+  {
+    voiceId: "Toby",
+    f0Hz: 127.4,
+    centroidHz: 950,
+    expressiveness: 0.83,
+    cadence: 5.1,
+    formantBands: { low: 0.724, midLow: 0.173, midHigh: 0.061, air: 0.043 },
+  },
+  {
+    voiceId: "Alfie",
+    f0Hz: 129.8,
+    centroidHz: 1080,
+    expressiveness: 0.93,
+    cadence: 6.1,
+    formantBands: { low: 0.558, midLow: 0.26, midHigh: 0.102, air: 0.08 },
+  },
+  {
+    voiceId: "Easton",
+    f0Hz: 132.7,
+    centroidHz: 950,
+    expressiveness: 0.62,
+    cadence: 5.6,
+    formantBands: { low: 0.73, midLow: 0.172, midHigh: 0.057, air: 0.041 },
+  },
+  {
+    voiceId: "Teddy",
+    f0Hz: 134.9,
+    centroidHz: 1090,
+    expressiveness: 0.95,
+    cadence: 6.2,
+    formantBands: { low: 0.63, midLow: 0.183, midHigh: 0.073, air: 0.113 },
+  },
+  {
+    voiceId: "Edwin",
+    f0Hz: 135.3,
+    centroidHz: 950,
+    expressiveness: 0.68,
+    cadence: 5.4,
+    formantBands: { low: 0.666, midLow: 0.218, midHigh: 0.074, air: 0.042 },
+  },
+  {
+    voiceId: "Juniper",
+    f0Hz: 166.8,
+    centroidHz: 950,
+    expressiveness: 0.84,
+    cadence: 6.1,
+    formantBands: { low: 0.757, midLow: 0.148, midHigh: 0.053, air: 0.042 },
+  },
+  {
+    voiceId: "Maeve",
+    f0Hz: 167.5,
+    centroidHz: 1010,
+    expressiveness: 0.87,
+    cadence: 6.1,
+    formantBands: { low: 0.656, midLow: 0.193, midHigh: 0.079, air: 0.072 },
+  },
+  {
+    voiceId: "Everly",
+    f0Hz: 170.5,
+    centroidHz: 1120,
+    expressiveness: 0.86,
+    cadence: 6.1,
+    formantBands: { low: 0.609, midLow: 0.191, midHigh: 0.096, air: 0.103 },
+  },
+  {
+    voiceId: "Hadley",
+    f0Hz: 175.6,
+    centroidHz: 1110,
+    expressiveness: 0.85,
+    cadence: 5.8,
+    formantBands: { low: 0.621, midLow: 0.194, midHigh: 0.078, air: 0.107 },
+  },
+  {
+    voiceId: "Elodie-Rose",
+    f0Hz: 178.3,
+    centroidHz: 1260,
+    expressiveness: 0.88,
+    cadence: 5.6,
+    formantBands: { low: 0.532, midLow: 0.235, midHigh: 0.115, air: 0.118 },
+  },
+  {
+    voiceId: "Delia",
+    f0Hz: 180.4,
+    centroidHz: 1020,
+    expressiveness: 0.87,
+    cadence: 5.9,
+    formantBands: { low: 0.653, midLow: 0.215, midHigh: 0.08, air: 0.053 },
+  },
+  {
+    voiceId: "Bryony",
+    f0Hz: 181.1,
+    centroidHz: 980,
+    expressiveness: 0.88,
+    cadence: 6.1,
+    formantBands: { low: 0.691, midLow: 0.195, midHigh: 0.072, air: 0.042 },
+  },
+  {
+    voiceId: "Harper",
+    f0Hz: 186.9,
+    centroidHz: 1010,
+    expressiveness: 0.76,
+    cadence: 5.1,
+    formantBands: { low: 0.67, midLow: 0.198, midHigh: 0.078, air: 0.054 },
+  },
+  {
+    voiceId: "Freya",
+    f0Hz: 191.7,
+    centroidHz: 990,
+    expressiveness: 0.82,
+    cadence: 5.4,
+    formantBands: { low: 0.706, midLow: 0.175, midHigh: 0.064, air: 0.055 },
+  },
+  {
+    voiceId: "Zoey",
+    f0Hz: 192.0,
+    centroidHz: 1050,
+    expressiveness: 0.84,
+    cadence: 5.8,
+    formantBands: { low: 0.622, midLow: 0.208, midHigh: 0.096, air: 0.074 },
+  },
+  {
+    voiceId: "Imogen",
+    f0Hz: 192.5,
+    centroidHz: 1240,
+    expressiveness: 0.89,
+    cadence: 6.4,
+    formantBands: { low: 0.531, midLow: 0.239, midHigh: 0.128, air: 0.102 },
+  },
+  {
+    voiceId: "Lottie",
+    f0Hz: 194.6,
+    centroidHz: 1270,
+    expressiveness: 1.0,
+    cadence: 6.2,
+    formantBands: { low: 0.51, midLow: 0.266, midHigh: 0.132, air: 0.092 },
+  },
+  {
+    voiceId: "Pippa",
+    f0Hz: 211.9,
+    centroidHz: 1070,
+    expressiveness: 0.81,
+    cadence: 6.6,
+    formantBands: { low: 0.631, midLow: 0.205, midHigh: 0.085, air: 0.078 },
+  },
 ];
 
 /**
@@ -2151,7 +3168,13 @@ async function ensureCustomVoicesDirGitIgnored(vDir: string): Promise<void> {
   await fsp.mkdir(vDir, { recursive: true, mode: 0o700 });
   const giPath = nodePath.join(vDir, ".gitignore");
   if (!existsSync(giPath)) {
-    await fsp.writeFile(giPath, "# Never commit or upload private user voice recordings\n*\n", { encoding: "utf8", mode: 0o600 }).catch(() => {});
+    await fsp
+      .writeFile(
+        giPath,
+        "# Never commit or upload private user voice recordings\n*\n",
+        { encoding: "utf8", mode: 0o600 },
+      )
+      .catch(() => {});
   }
 }
 
@@ -2170,7 +3193,9 @@ export function sanitizeCustomVoiceId(rawName: string): string {
     .replace(/^-+|-+$/g, "")
     .slice(0, 32);
   const base = cleaned && /^[A-Za-z0-9]/.test(cleaned) ? cleaned : "My-Voice";
-  const collidesWithBuiltin = DEFAULT_PHONON_VOICES.some((v) => v.id.toLowerCase() === base.toLowerCase());
+  const collidesWithBuiltin = DEFAULT_PHONON_VOICES.some(
+    (v) => v.id.toLowerCase() === base.toLowerCase(),
+  );
   return collidesWithBuiltin ? `${base}-Custom` : base;
 }
 
@@ -2184,8 +3209,15 @@ export function decodeAndResampleWavTo24kMono(wav: Buffer): {
   originalSampleRate: number;
   originalChannels: number;
 } {
-  if (wav.length < 44 || wav.subarray(0, 4).toString("ascii") !== "RIFF" || wav.subarray(8, 12).toString("ascii") !== "WAVE") {
-    throw new FmError("BAD_WAV", "That recording isn't a valid WAV audio file.");
+  if (
+    wav.length < 44 ||
+    wav.subarray(0, 4).toString("ascii") !== "RIFF" ||
+    wav.subarray(8, 12).toString("ascii") !== "WAVE"
+  ) {
+    throw new FmError(
+      "BAD_WAV",
+      "That recording isn't a valid WAV audio file.",
+    );
   }
 
   let audioFormat = 1;
@@ -2206,7 +3238,8 @@ export function decodeAndResampleWavTo24kMono(wav: Buffer): {
       bitsPerSample = wav.readUInt16LE(bodyStart + 14) || 16;
     } else if (chunkId === "data") {
       const available = wav.length - bodyStart;
-      const actualSize = chunkSize > 0 && chunkSize <= available ? chunkSize : available;
+      const actualSize =
+        chunkSize > 0 && chunkSize <= available ? chunkSize : available;
       dataSlice = wav.subarray(bodyStart, bodyStart + actualSize);
       break;
     }
@@ -2221,7 +3254,10 @@ export function decodeAndResampleWavTo24kMono(wav: Buffer): {
   const frameStride = numChannels * bytesPerSample;
   const numFrames = Math.floor(dataSlice.length / frameStride);
   if (numFrames < 400) {
-    throw new FmError("TOO_SHORT", "That voice recording is too short. Please record at least 1.5 seconds of clear speech.");
+    throw new FmError(
+      "TOO_SHORT",
+      "That voice recording is too short. Please record at least 1.5 seconds of clear speech.",
+    );
   }
 
   // Decode into mono Float32Array in [-1, 1]
@@ -2232,7 +3268,11 @@ export function decodeAndResampleWavTo24kMono(wav: Buffer): {
     for (let ch = 0; ch < numChannels; ch++) {
       const sampleOffset = base + ch * bytesPerSample;
       let val = 0;
-      if (audioFormat === 3 && bitsPerSample === 32 && sampleOffset + 4 <= dataSlice.length) {
+      if (
+        audioFormat === 3 &&
+        bitsPerSample === 32 &&
+        sampleOffset + 4 <= dataSlice.length
+      ) {
         val = dataSlice.readFloatLE(sampleOffset);
       } else if (bitsPerSample === 8) {
         val = (dataSlice.readUInt8(sampleOffset) - 128) / 128;
@@ -2256,7 +3296,10 @@ export function decodeAndResampleWavTo24kMono(wav: Buffer): {
   const targetRate = 24000;
   // Cap analysed/stored voice sample at 20 seconds so processing is instantaneous
   const maxTargetSamples = targetRate * 20;
-  const rawTargetSamples = sampleRate === targetRate ? numFrames : Math.max(1, Math.round((numFrames * targetRate) / sampleRate));
+  const rawTargetSamples =
+    sampleRate === targetRate
+      ? numFrames
+      : Math.max(1, Math.round((numFrames * targetRate) / sampleRate));
   const outSamples = Math.min(maxTargetSamples, rawTargetSamples);
   const pcm24k = Buffer.alloc(outSamples * 2);
 
@@ -2293,7 +3336,10 @@ export function decodeAndResampleWavTo24kMono(wav: Buffer): {
  *  3. Trims leading and trailing dead air while keeping natural breath padding
  *  4. Peak-normalizes to -1.5 dBFS (`27525 / 32767`)
  */
-export function cleanRecordedVoicePcm(pcm24k: Buffer, sampleRate = 24000): Buffer {
+export function cleanRecordedVoicePcm(
+  pcm24k: Buffer,
+  sampleRate = 24000,
+): Buffer {
   const numSamples = Math.floor(pcm24k.length / 2);
   if (numSamples < 200) return pcm24k;
 
@@ -2359,10 +3405,15 @@ export function cleanRecordedVoicePcm(pcm24k: Buffer, sampleRate = 24000): Buffe
 
   const padWins = 6; // 120 ms breath pad
   const startSample = Math.max(0, (firstActiveWin - padWins) * winLen);
-  const endSample = Math.min(numSamples, (lastActiveWin + padWins + 1) * winLen);
-  const sliceLen = endSample - startSample >= Math.min(numSamples, Math.round(sampleRate * 0.8))
-    ? endSample - startSample
-    : numSamples;
+  const endSample = Math.min(
+    numSamples,
+    (lastActiveWin + padWins + 1) * winLen,
+  );
+  const sliceLen =
+    endSample - startSample >=
+    Math.min(numSamples, Math.round(sampleRate * 0.8))
+      ? endSample - startSample
+      : numSamples;
   const sliceOffset = sliceLen === numSamples ? 0 : startSample;
 
   const targetPeak = 0.84; // -1.5 dBFS
@@ -2383,7 +3434,10 @@ export function cleanRecordedVoicePcm(pcm24k: Buffer, sampleRate = 24000): Buffe
  *  - Envelope peak syllabic speaking rate (syllables/sec) & SNR (dB)
  *  - Top-4 acoustically matched Phonon voice latents + residual semitone pitch calibration + 125-frame prosody contour
  */
-export function analyzeVoiceSamplePcm(pcm24k: Buffer, sampleRate = 24000): PhononVoiceAcousticProfile {
+export function analyzeVoiceSamplePcm(
+  pcm24k: Buffer,
+  sampleRate = 24000,
+): PhononVoiceAcousticProfile {
   const numSamples = Math.floor(pcm24k.length / 2);
   const samples = new Float32Array(numSamples);
   for (let i = 0; i < numSamples; i++) {
@@ -2392,7 +3446,10 @@ export function analyzeVoiceSamplePcm(pcm24k: Buffer, sampleRate = 24000): Phono
 
   const frameSize = Math.round(sampleRate * 0.03); // 30 ms (720 samples at 24 kHz)
   const hopSize = Math.round(sampleRate * 0.01); // 10 ms (240 samples at 24 kHz)
-  const numFrames = Math.max(1, Math.floor((numSamples - frameSize) / hopSize) + 1);
+  const numFrames = Math.max(
+    1,
+    Math.floor((numSamples - frameSize) / hopSize) + 1,
+  );
 
   const frameRms = new Float32Array(numFrames);
   const frameZcr = new Float32Array(numFrames);
@@ -2407,7 +3464,7 @@ export function analyzeVoiceSamplePcm(pcm24k: Buffer, sampleRate = 24000): Phono
     for (let i = start; i < end; i++) {
       const s = samples[i]!;
       sumSq += s * s;
-      if (i > start && (samples[i - 1]! >= 0) !== (s >= 0)) {
+      if (i > start && samples[i - 1]! >= 0 !== s >= 0) {
         zeroCrossings++;
       }
     }
@@ -2482,7 +3539,8 @@ export function analyzeVoiceSamplePcm(pcm24k: Buffer, sampleRate = 24000): Phono
     bandAirEnergy += eAir;
 
     const frameTotE = eLow + eMidLow + eMidHigh + eAir + 1e-9;
-    const frameCentroid = (eLow * 240 + eMidLow * 780 + eMidHigh * 2150 + eAir * 5100) / frameTotE;
+    const frameCentroid =
+      (eLow * 240 + eMidLow * 780 + eMidHigh * 2150 + eAir * 5100) / frameTotE;
     centroidWeightedSum += frameCentroid * rms;
     centroidWeightTotal += rms;
 
@@ -2535,15 +3593,18 @@ export function analyzeVoiceSamplePcm(pcm24k: Buffer, sampleRate = 24000): Phono
   }
 
   voicedF0s.sort((a, b) => a - b);
-  const medianF0Hz = voicedF0s.length > 0
-    ? Math.round(voicedF0s[Math.floor(voicedF0s.length * 0.5)]! * 10) / 10
-    : 165.0;
-  const f0MinHz = voicedF0s.length > 0
-    ? Math.round(voicedF0s[Math.floor(voicedF0s.length * 0.1)]! * 10) / 10
-    : Math.round(medianF0Hz * 0.85 * 10) / 10;
-  const f0MaxHz = voicedF0s.length > 0
-    ? Math.round(voicedF0s[Math.floor(voicedF0s.length * 0.9)]! * 10) / 10
-    : Math.round(medianF0Hz * 1.18 * 10) / 10;
+  const medianF0Hz =
+    voicedF0s.length > 0
+      ? Math.round(voicedF0s[Math.floor(voicedF0s.length * 0.5)]! * 10) / 10
+      : 165.0;
+  const f0MinHz =
+    voicedF0s.length > 0
+      ? Math.round(voicedF0s[Math.floor(voicedF0s.length * 0.1)]! * 10) / 10
+      : Math.round(medianF0Hz * 0.85 * 10) / 10;
+  const f0MaxHz =
+    voicedF0s.length > 0
+      ? Math.round(voicedF0s[Math.floor(voicedF0s.length * 0.9)]! * 10) / 10
+      : Math.round(medianF0Hz * 1.18 * 10) / 10;
 
   let f0StdSemitones = 2.1;
   if (voicedF0s.length >= 4) {
@@ -2552,7 +3613,13 @@ export function analyzeVoiceSamplePcm(pcm24k: Buffer, sampleRate = 24000): Phono
       const st = 12 * Math.log2(f0 / medianF0Hz);
       semitoneSqSum += st * st;
     }
-    f0StdSemitones = Math.round(Math.min(6.0, Math.max(0.4, Math.sqrt(semitoneSqSum / voicedF0s.length))) * 100) / 100;
+    f0StdSemitones =
+      Math.round(
+        Math.min(
+          6.0,
+          Math.max(0.4, Math.sqrt(semitoneSqSum / voicedF0s.length)),
+        ) * 100,
+      ) / 100;
   }
 
   let voiceRegister = "Tenor / Mid-Range";
@@ -2563,7 +3630,8 @@ export function analyzeVoiceSamplePcm(pcm24k: Buffer, sampleRate = 24000): Phono
   else if (medianF0Hz < 235) voiceRegister = "Mezzo-Soprano";
   else voiceRegister = "Bright Soprano";
 
-  const totalBandEnergy = bandLowEnergy + bandMidLowEnergy + bandMidHighEnergy + bandAirEnergy + 1e-9;
+  const totalBandEnergy =
+    bandLowEnergy + bandMidLowEnergy + bandMidHighEnergy + bandAirEnergy + 1e-9;
   const formantBands = {
     low: Math.round((bandLowEnergy / totalBandEnergy) * 1000) / 1000,
     midLow: Math.round((bandMidLowEnergy / totalBandEnergy) * 1000) / 1000,
@@ -2571,8 +3639,11 @@ export function analyzeVoiceSamplePcm(pcm24k: Buffer, sampleRate = 24000): Phono
     air: Math.round((bandAirEnergy / totalBandEnergy) * 1000) / 1000,
   };
 
-  const rawCentroid = centroidWeightTotal > 0 ? centroidWeightedSum / centroidWeightTotal : 1900;
-  const spectralCentroidHz = Math.round(Math.min(3600, Math.max(950, rawCentroid)));
+  const rawCentroid =
+    centroidWeightTotal > 0 ? centroidWeightedSum / centroidWeightTotal : 1900;
+  const spectralCentroidHz = Math.round(
+    Math.min(3600, Math.max(950, rawCentroid)),
+  );
   let timbreLabel = "Balanced Studio";
   if (spectralCentroidHz < 1620) timbreLabel = "Warm & Resonant";
   else if (spectralCentroidHz < 2100) timbreLabel = "Balanced Studio";
@@ -2594,18 +3665,34 @@ export function analyzeVoiceSamplePcm(pcm24k: Buffer, sampleRate = 24000): Phono
   let lastPeakFrame = -15;
   for (let f = 1; f < numFrames - 1; f++) {
     const cur = smoothedRms[f]!;
-    if (cur >= activeThreshold * 1.15 && cur >= smoothedRms[f - 1]! && cur >= smoothedRms[f + 1]! && f - lastPeakFrame >= 12) {
+    if (
+      cur >= activeThreshold * 1.15 &&
+      cur >= smoothedRms[f - 1]! &&
+      cur >= smoothedRms[f + 1]! &&
+      f - lastPeakFrame >= 12
+    ) {
       syllablePeaks++;
       lastPeakFrame = f;
     }
   }
   const activeSeconds = Math.max(0.5, (activeFrames * hopSize) / sampleRate);
   const rawSylRate = syllablePeaks > 1 ? syllablePeaks / activeSeconds : 4.2;
-  const speakingRateSylPerSec = Math.round(Math.min(6.8, Math.max(2.4, rawSylRate)) * 10) / 10;
+  const speakingRateSylPerSec =
+    Math.round(Math.min(6.8, Math.max(2.4, rawSylRate)) * 10) / 10;
 
   const meanActiveRms = activeFrames > 0 ? activeRmsSum / activeFrames : 0.1;
-  const snrDb = Math.round(Math.min(48, Math.max(8, 20 * Math.log10((meanActiveRms + 1e-5) / (noiseFloor + 1e-5)))) * 10) / 10;
-  const voicedRatio = Math.round((voicedF0s.length / Math.max(1, activeFrames)) * 100) / 100;
+  const snrDb =
+    Math.round(
+      Math.min(
+        48,
+        Math.max(
+          8,
+          20 * Math.log10((meanActiveRms + 1e-5) / (noiseFloor + 1e-5)),
+        ),
+      ) * 10,
+    ) / 10;
+  const voicedRatio =
+    Math.round((voicedF0s.length / Math.max(1, activeFrames)) * 100) / 100;
 
   // Match top-4 closest Phonon reference voices in perceptual acoustic space (F0 semitones + 4-band formant vocal tract resonance + expressiveness + cadence)
   const expressivenessNorm = Math.min(1, Math.max(0.2, f0StdSemitones / 4.2));
@@ -2617,47 +3704,70 @@ export function analyzeVoiceSamplePcm(pcm24k: Buffer, sampleRate = 24000): Phono
         Math.abs(formantBands.midHigh - target.formantBands.midHigh) * 1.8 +
         Math.abs(formantBands.air - target.formantBands.air) * 1.5) *
       8.0;
-    const centroidDist = Math.abs(Math.log2(spectralCentroidHz / target.centroidHz)) * 3.0;
+    const centroidDist =
+      Math.abs(Math.log2(spectralCentroidHz / target.centroidHz)) * 3.0;
     const exprDist = Math.abs(expressivenessNorm - target.expressiveness) * 2.0;
     const cadenceDist = Math.abs(speakingRateSylPerSec - target.cadence) * 0.6;
     // Prefer natural studio voices unless the speaker's F0 is in the ultra-deep <98 Hz range
     const characterPenalty = target.isCharacter && medianF0Hz >= 98 ? 4.5 : 0;
-    const distance = f0SemitoneDist * 1.65 + formantDist + centroidDist + exprDist + cadenceDist + characterPenalty;
+    const distance =
+      f0SemitoneDist * 1.65 +
+      formantDist +
+      centroidDist +
+      exprDist +
+      cadenceDist +
+      characterPenalty;
     return { ...target, distance };
   }).sort((a, b) => a.distance - b.distance);
 
   const top4 = scored.slice(0, 4);
   const rawWeights = top4.map((item) => Math.exp(-item.distance / 2.0));
   const weightSum = rawWeights.reduce((a, b) => a + b, 0) || 1;
-  const blendComponents: PhononVoiceBlendComponent[] = top4.map((item, idx) => ({
-    voiceId: item.voiceId,
-    weight: Math.round((rawWeights[idx]! / weightSum) * 1000) / 1000,
-    f0Hz: item.f0Hz,
-  }));
+  const blendComponents: PhononVoiceBlendComponent[] = top4.map(
+    (item, idx) => ({
+      voiceId: item.voiceId,
+      weight: Math.round((rawWeights[idx]! / weightSum) * 1000) / 1000,
+      f0Hz: item.f0Hz,
+    }),
+  );
 
   // Ensure weights sum to exactly 1.000
   const roundedSum = blendComponents.reduce((acc, c) => acc + c.weight, 0);
   if (blendComponents[0] && Math.abs(1 - roundedSum) > 0.0001) {
-    blendComponents[0].weight = Math.round((blendComponents[0].weight + (1 - roundedSum)) * 1000) / 1000;
+    blendComponents[0].weight =
+      Math.round((blendComponents[0].weight + (1 - roundedSum)) * 1000) / 1000;
   }
 
   // Compute residual pitch calibration between user's F0 and blended voice embedding's geometric F0
-  const logBlendF0 = blendComponents.reduce((acc, c) => acc + c.weight * Math.log2(c.f0Hz), 0);
+  const logBlendF0 = blendComponents.reduce(
+    (acc, c) => acc + c.weight * Math.log2(c.f0Hz),
+    0,
+  );
   const blendedBaseF0 = Math.pow(2, logBlendF0);
   const rawResidualSemitones = 12 * Math.log2(medianF0Hz / blendedBaseF0);
-  const recommendedPitchSemitones = Math.round(Math.min(4.0, Math.max(-4.0, rawResidualSemitones)) * 2) / 2;
+  const recommendedPitchSemitones =
+    Math.round(Math.min(4.0, Math.max(-4.0, rawResidualSemitones)) * 2) / 2;
 
   const rawSpeed = speakingRateSylPerSec / 5.4;
-  const recommendedSpeed = Math.round(Math.min(1.2, Math.max(0.85, rawSpeed)) * 20) / 20;
+  const recommendedSpeed =
+    Math.round(Math.min(1.2, Math.max(0.85, rawSpeed)) * 20) / 20;
 
   // Build 125-frame temporal prosody contour in [-1, 1] matching Phonon's [1, 512, 125] conditioning time axis
   const prosodyContour125: number[] = [];
   for (let t = 0; t < 125; t++) {
     const fIdx = Math.min(numFrames - 1, Math.floor((t / 125) * numFrames));
     const f0Val = frameF0[fIdx] || medianF0Hz;
-    const f0Dev = Math.max(-1, Math.min(1, (12 * Math.log2(f0Val / medianF0Hz)) / 6));
-    const rmsDev = maxRms > 0 ? Math.max(-1, Math.min(1, (frameRms[fIdx]! / maxRms - 0.45) * 1.5)) : 0;
-    prosodyContour125.push(Math.round((f0Dev * 0.65 + rmsDev * 0.35) * 1000) / 1000);
+    const f0Dev = Math.max(
+      -1,
+      Math.min(1, (12 * Math.log2(f0Val / medianF0Hz)) / 6),
+    );
+    const rmsDev =
+      maxRms > 0
+        ? Math.max(-1, Math.min(1, (frameRms[fIdx]! / maxRms - 0.45) * 1.5))
+        : 0;
+    prosodyContour125.push(
+      Math.round((f0Dev * 0.65 + rmsDev * 0.35) * 1000) / 1000,
+    );
   }
 
   return {
@@ -2682,9 +3792,30 @@ export function analyzeVoiceSamplePcm(pcm24k: Buffer, sampleRate = 24000): Phono
 
 function resolvePhononManifestReadPath(modelsDir: string): string | null {
   const candidates = [
-    nodePath.join(modelsDir, "manifests-v2", "ollama.com", "library", "phonon", "latest"),
-    nodePath.join(modelsDir, "manifests", "registry.ollama.ai", "library", "phonon", "latest"),
-    nodePath.join(modelsDir, "manifests", "ollama.com", "library", "phonon", "latest"),
+    nodePath.join(
+      modelsDir,
+      "manifests-v2",
+      "ollama.com",
+      "library",
+      "phonon",
+      "latest",
+    ),
+    nodePath.join(
+      modelsDir,
+      "manifests",
+      "registry.ollama.ai",
+      "library",
+      "phonon",
+      "latest",
+    ),
+    nodePath.join(
+      modelsDir,
+      "manifests",
+      "ollama.com",
+      "library",
+      "phonon",
+      "latest",
+    ),
   ];
   for (const p of candidates) {
     if (existsSync(p)) return p;
@@ -2707,14 +3838,17 @@ function getOllamaModelsReadDir(ctx: FmContext): string | null {
 }
 
 function getOllamaModelsWriteDir(ctx: FmContext): string | null {
-  const targetDir = process.env.OLLAMA_MODELS || nodePath.join(ctx.home, ".ollama", "models");
+  const targetDir =
+    process.env.OLLAMA_MODELS || nodePath.join(ctx.home, ".ollama", "models");
   if (resolvePhononManifestReadPath(targetDir)) {
     return targetDir;
   }
   return null;
 }
 
-function readVoiceTensorFloatsFromSafetensor(safetensorBuf: Buffer): Float32Array | null {
+function readVoiceTensorFloatsFromSafetensor(
+  safetensorBuf: Buffer,
+): Float32Array | null {
   if (safetensorBuf.length < 16) return null;
   const headerLen = Number(safetensorBuf.readBigUInt64LE(0));
   const dataOffset = 8 + headerLen;
@@ -2731,7 +3865,10 @@ function extractVoiceNameFromManifestLayer(layer: any): string | null {
   if (typeof layer.name === "string" && layer.name.startsWith("voices.")) {
     return layer.name.slice("voices.".length);
   }
-  if (typeof layer.mediaType === "string" && layer.mediaType.startsWith("voices.")) {
+  if (
+    typeof layer.mediaType === "string" &&
+    layer.mediaType.startsWith("voices.")
+  ) {
     return layer.mediaType.slice("voices.".length);
   }
   return null;
@@ -2749,7 +3886,11 @@ export async function buildCustomVoiceSafetensor(
   ctx: FmContext,
   voiceId: string,
   profile: PhononVoiceAcousticProfile,
-): Promise<{ safetensorBuf: Buffer; sha256: string; usedModelTensors: boolean }> {
+): Promise<{
+  safetensorBuf: Buffer;
+  sha256: string;
+  usedModelTensors: boolean;
+}> {
   const N = 512 * 125; // 64,000 float32 values = 256,000 bytes
   const combined = new Float32Array(N);
   let usedModelTensors = false;
@@ -2772,7 +3913,8 @@ export async function buildCustomVoiceSafetensor(
           }
         }
 
-        const loadedTensors: Array<{ weight: number; floats: Float32Array }> = [];
+        const loadedTensors: Array<{ weight: number; floats: Float32Array }> =
+          [];
         let loadedWeightSum = 0;
         let weightedMean = 0;
         let weightedStd = 0;
@@ -2780,9 +3922,15 @@ export async function buildCustomVoiceSafetensor(
         for (const comp of profile.blendComponents) {
           const sha = layerMap.get(comp.voiceId);
           if (!sha) continue;
-          const blobPath = nodePath.join(modelsReadDir, "blobs", `sha256-${sha}`);
+          const blobPath = nodePath.join(
+            modelsReadDir,
+            "blobs",
+            `sha256-${sha}`,
+          );
           if (!existsSync(blobPath)) continue;
-          const floats = readVoiceTensorFloatsFromSafetensor(await fsp.readFile(blobPath));
+          const floats = readVoiceTensorFloatsFromSafetensor(
+            await fsp.readFile(blobPath),
+          );
           if (!floats) continue;
 
           let m = 0;
@@ -2851,7 +3999,9 @@ export async function buildCustomVoiceSafetensor(
   if (!usedModelTensors) {
     // Deterministic acoustic-seeded latent synthesis when running in isolated test environments without ~/.ollama/models
     const seedHash = createHash("sha256")
-      .update(`${voiceId}:${profile.medianF0Hz}:${profile.spectralCentroidHz}:${profile.speakingRateSylPerSec}`)
+      .update(
+        `${voiceId}:${profile.medianF0Hz}:${profile.spectralCentroidHz}:${profile.speakingRateSylPerSec}`,
+      )
       .digest();
     let s0 = seedHash.readUInt32LE(0) || 0x12345678;
     let s1 = seedHash.readUInt32LE(4) || 0x9abcdef0;
@@ -2871,7 +4021,7 @@ export async function buildCustomVoiceSafetensor(
   const bandScales = [
     0.94 + Math.min(0.12, profile.formantBands.low * 0.22),
     0.94 + Math.min(0.12, profile.formantBands.midLow * 0.25),
-    0.94 + Math.min(0.12, profile.formantBands.midHigh * 0.30),
+    0.94 + Math.min(0.12, profile.formantBands.midHigh * 0.3),
     0.94 + Math.min(0.12, profile.formantBands.air * 0.35),
   ];
 
@@ -2880,7 +4030,8 @@ export async function buildCustomVoiceSafetensor(
     const rowOffset = c * 125;
     for (let t = 0; t < 125; t++) {
       const prosodyMod = 1 + (profile.prosodyContour125[t] ?? 0) * 0.035;
-      combined[rowOffset + t] = (combined[rowOffset + t] ?? 0) * bandScale * prosodyMod;
+      combined[rowOffset + t] =
+        (combined[rowOffset + t] ?? 0) * bandScale * prosodyMod;
     }
   }
 
@@ -2909,7 +4060,10 @@ export async function buildCustomVoiceSafetensor(
   };
   const rawHeaderStr = JSON.stringify(headerObj);
   const padBytes = (8 - (Buffer.byteLength(rawHeaderStr, "utf8") % 8)) % 8;
-  const paddedHeaderBuf = Buffer.from(rawHeaderStr + " ".repeat(padBytes), "utf8");
+  const paddedHeaderBuf = Buffer.from(
+    rawHeaderStr + " ".repeat(padBytes),
+    "utf8",
+  );
 
   const lenPrefix = Buffer.alloc(8);
   lenPrefix.writeBigUInt64LE(BigInt(paddedHeaderBuf.length), 0);
@@ -2941,8 +4095,22 @@ export async function syncCustomVoicesIntoOllamaManifest(
   const readManifestPath = resolvePhononManifestReadPath(modelsDir);
   if (!readManifestPath) return registered;
 
-  const outerManifestPath = nodePath.join(modelsDir, "manifests", "registry.ollama.ai", "library", "phonon", "latest");
-  const v2ManifestPath = nodePath.join(modelsDir, "manifests-v2", "ollama.com", "library", "phonon", "latest");
+  const outerManifestPath = nodePath.join(
+    modelsDir,
+    "manifests",
+    "registry.ollama.ai",
+    "library",
+    "phonon",
+    "latest",
+  );
+  const v2ManifestPath = nodePath.join(
+    modelsDir,
+    "manifests-v2",
+    "ollama.com",
+    "library",
+    "phonon",
+    "latest",
+  );
   const blobsDir = nodePath.join(modelsDir, "blobs");
 
   try {
@@ -2954,7 +4122,11 @@ export async function syncCustomVoicesIntoOllamaManifest(
     // Keep all non-voice layers (excluding trailing self-referential manifest.v2+json layer) and all 38 built-in voice layers
     const baseLayers = parsedManifest.layers.filter((layer: any) => {
       if (!layer || typeof layer.mediaType !== "string") return false;
-      if (layer.mediaType === "application/vnd.docker.distribution.manifest.v2+json") return false;
+      if (
+        layer.mediaType ===
+        "application/vnd.docker.distribution.manifest.v2+json"
+      )
+        return false;
       const vName = extractVoiceNameFromManifestLayer(layer);
       if (vName !== null) {
         return builtinIds.has(vName);
@@ -2984,7 +4156,9 @@ export async function syncCustomVoicesIntoOllamaManifest(
 
     const innerObj = {
       schemaVersion: parsedManifest.schemaVersion ?? 2,
-      mediaType: parsedManifest.mediaType ?? "application/vnd.docker.distribution.manifest.v2+json",
+      mediaType:
+        parsedManifest.mediaType ??
+        "application/vnd.docker.distribution.manifest.v2+json",
       config: parsedManifest.config,
       layers: baseLayers,
     };
@@ -3000,13 +4174,17 @@ export async function syncCustomVoicesIntoOllamaManifest(
     // Update manifests-v2 symlink (or file) if manifests-v2 directory exists
     const v2Parent = nodePath.dirname(v2ManifestPath);
     if (existsSync(v2Parent)) {
-      const curV2Raw = await fsp.readFile(v2ManifestPath, "utf8").catch(() => "");
+      const curV2Raw = await fsp
+        .readFile(v2ManifestPath, "utf8")
+        .catch(() => "");
       if (curV2Raw !== innerBuf.toString("utf8")) {
         manifestChanged = true;
         await fsp.rm(v2ManifestPath, { force: true }).catch(() => {});
-        await fsp.symlink(`../../../../blobs/sha256-${innerSha}`, v2ManifestPath).catch(async () => {
-          await fsp.writeFile(v2ManifestPath, innerBuf);
-        });
+        await fsp
+          .symlink(`../../../../blobs/sha256-${innerSha}`, v2ManifestPath)
+          .catch(async () => {
+            await fsp.writeFile(v2ManifestPath, innerBuf);
+          });
       }
     }
 
@@ -3025,7 +4203,9 @@ export async function syncCustomVoicesIntoOllamaManifest(
         ],
       };
       const updatedOuterStr = JSON.stringify(updatedOuterObj);
-      const curOuterRaw = await fsp.readFile(outerManifestPath, "utf8").catch(() => "");
+      const curOuterRaw = await fsp
+        .readFile(outerManifestPath, "utf8")
+        .catch(() => "");
       if (curOuterRaw !== updatedOuterStr) {
         manifestChanged = true;
         await fsp.writeFile(outerManifestPath, updatedOuterStr, "utf8");
@@ -3036,7 +4216,9 @@ export async function syncCustomVoicesIntoOllamaManifest(
     if (manifestChanged) {
       const ollamaExe = resolveTool(ctx, "ollama");
       if (ollamaExe) {
-        await runOllamaCommand(ctx, ollamaExe, ["stop", "phonon"], 2500).catch(() => {});
+        await runOllamaCommand(ctx, ollamaExe, ["stop", "phonon"], 2500).catch(
+          () => {},
+        );
       }
     }
   } catch {
@@ -3052,8 +4234,12 @@ export async function syncCustomVoicesIntoOllamaManifest(
  * Shifts fundamental frequency ($F_0$) by `pitchRatio` ($F_{0,\text{target}} / F_{0,\text{source}}$) while preserving
  * 100.0% exact sample count and word-boundary timing.
  */
-export function wsolaPitchShiftPcm(pcm24k: Buffer, pitchRatio: number, sampleRate = 24000): Buffer {
-  const ratio = Math.max(0.70, Math.min(1.45, pitchRatio));
+export function wsolaPitchShiftPcm(
+  pcm24k: Buffer,
+  pitchRatio: number,
+  sampleRate = 24000,
+): Buffer {
+  const ratio = Math.max(0.7, Math.min(1.45, pitchRatio));
   if (!Number.isFinite(ratio) || Math.abs(ratio - 1.0) < 0.012) return pcm24k;
 
   const numIn = Math.floor(pcm24k.length / 2);
@@ -3094,7 +4280,10 @@ export function wsolaPitchShiftPcm(pcm24k: Buffer, pitchRatio: number, sampleRat
 
     let chosenPos: number;
     // Advance contiguously without splicing until accumulated drift reaches ~65% of searchRadius
-    if (Math.abs(drift) < searchRadius * 0.65 && naturalNextPos + winSize < numIn) {
+    if (
+      Math.abs(drift) < searchRadius * 0.65 &&
+      naturalNextPos + winSize < numIn
+    ) {
       chosenPos = naturalNextPos;
     } else {
       let bestOffset = 0;
@@ -3117,12 +4306,16 @@ export function wsolaPitchShiftPcm(pcm24k: Buffer, pitchRatio: number, sampleRat
           }
         }
       }
-      chosenPos = Math.max(0, Math.min(numIn - winSize, idealAnalysisPos + bestOffset));
+      chosenPos = Math.max(
+        0,
+        Math.min(numIn - winSize, idealAnalysisPos + bestOffset),
+      );
     }
 
     for (let i = 0; i < winSize; i++) {
       const w = hann[i]!;
-      stretched[synthPos + i] = (stretched[synthPos + i] ?? 0) + input[chosenPos + i]! * w;
+      stretched[synthPos + i] =
+        (stretched[synthPos + i] ?? 0) + input[chosenPos + i]! * w;
       normWeight[synthPos + i] = (normWeight[synthPos + i] ?? 0) + w;
     }
     prevAnalysisPos = chosenPos;
@@ -3219,10 +4412,28 @@ export function applyFormantEnvelopeTransferPcm(
   const curMidHigh = e2 / totE;
   const curAir = e3 / totE;
 
-  const g0 = Math.max(0.48, Math.min(2.05, Math.sqrt((targetBands.low + 0.005) / (curLow + 0.005))));
-  const g1 = Math.max(0.48, Math.min(2.05, Math.sqrt((targetBands.midLow + 0.005) / (curMidLow + 0.005))));
-  const g2 = Math.max(0.48, Math.min(2.05, Math.sqrt((targetBands.midHigh + 0.005) / (curMidHigh + 0.005))));
-  const g3 = Math.max(0.48, Math.min(2.05, Math.sqrt((targetBands.air + 0.005) / (curAir + 0.005))));
+  const g0 = Math.max(
+    0.48,
+    Math.min(2.05, Math.sqrt((targetBands.low + 0.005) / (curLow + 0.005))),
+  );
+  const g1 = Math.max(
+    0.48,
+    Math.min(
+      2.05,
+      Math.sqrt((targetBands.midLow + 0.005) / (curMidLow + 0.005)),
+    ),
+  );
+  const g2 = Math.max(
+    0.48,
+    Math.min(
+      2.05,
+      Math.sqrt((targetBands.midHigh + 0.005) / (curMidHigh + 0.005)),
+    ),
+  );
+  const g3 = Math.max(
+    0.48,
+    Math.min(2.05, Math.sqrt((targetBands.air + 0.005) / (curAir + 0.005))),
+  );
 
   const outFloats = new Float32Array(n);
   let outPeak = 0;
@@ -3250,19 +4461,42 @@ export function applyFormantEnvelopeTransferPcm(
  *  2. Transfers the user's 4-band vocal tract formant envelope (`profile.formantBands`) so chest resonance,
  *     vowel warmth, presence, and air match the user's recorded voice.
  */
-export function applyCustomVoiceTransferToWav(wavBuf: Buffer, profile: PhononVoiceAcousticProfile): Buffer {
+export function applyCustomVoiceTransferToWav(
+  wavBuf: Buffer,
+  profile: PhononVoiceAcousticProfile,
+): Buffer {
   try {
     const parsed = parseWavPcm(wavBuf);
-    if (parsed.bitsPerSample !== 16 || parsed.numChannels !== 1 || parsed.pcmData.length < 2400) {
+    if (
+      parsed.bitsPerSample !== 16 ||
+      parsed.numChannels !== 1 ||
+      parsed.pcmData.length < 2400
+    ) {
       return wavBuf;
     }
     const genProfile = analyzeVoiceSamplePcm(parsed.pcmData, parsed.sampleRate);
-    const pitchRatio = Math.max(0.72, Math.min(1.42, profile.medianF0Hz / Math.max(70, genProfile.medianF0Hz)));
+    const pitchRatio = Math.max(
+      0.72,
+      Math.min(1.42, profile.medianF0Hz / Math.max(70, genProfile.medianF0Hz)),
+    );
     let pcm = wsolaPitchShiftPcm(parsed.pcmData, pitchRatio, parsed.sampleRate);
-    pcm = applyFormantEnvelopeTransferPcm(pcm, profile.formantBands, parsed.sampleRate);
-    pcm = applyFormantEnvelopeTransferPcm(pcm, profile.formantBands, parsed.sampleRate);
+    pcm = applyFormantEnvelopeTransferPcm(
+      pcm,
+      profile.formantBands,
+      parsed.sampleRate,
+    );
+    pcm = applyFormantEnvelopeTransferPcm(
+      pcm,
+      profile.formantBands,
+      parsed.sampleRate,
+    );
     return Buffer.concat([
-      createWavHeader(pcm.length, parsed.sampleRate, parsed.numChannels, parsed.bitsPerSample),
+      createWavHeader(
+        pcm.length,
+        parsed.sampleRate,
+        parsed.numChannels,
+        parsed.bitsPerSample,
+      ),
       pcm,
     ]);
   } catch {
@@ -3273,13 +4507,18 @@ export function applyCustomVoiceTransferToWav(wavBuf: Buffer, profile: PhononVoi
 /**
  * Synchronously reads the custom voices manifest from disk.
  */
-export function listCustomVoicesSync(ctx: FmContext): PhononCustomVoiceRecord[] {
+export function listCustomVoicesSync(
+  ctx: FmContext,
+): PhononCustomVoiceRecord[] {
   const manifestFile = customVoicesManifestPath(ctx);
   if (!existsSync(manifestFile)) return [];
   try {
     const parsed = JSON.parse(readFileSync(manifestFile, "utf8"));
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter((v): v is PhononCustomVoiceRecord => !!v && typeof v.id === "string" && typeof v.label === "string");
+    return parsed.filter(
+      (v): v is PhononCustomVoiceRecord =>
+        !!v && typeof v.id === "string" && typeof v.label === "string",
+    );
   } catch {
     return [];
   }
@@ -3650,7 +4889,9 @@ interface F5MlxWorkerHandle {
 let activeF5Worker: F5MlxWorkerHandle | null = null;
 let spawningF5WorkerPromise: Promise<F5MlxWorkerHandle | null> | null = null;
 
-async function getOrSpawnF5MlxWorker(ctx: FmContext): Promise<F5MlxWorkerHandle | null> {
+async function getOrSpawnF5MlxWorker(
+  ctx: FmContext,
+): Promise<F5MlxWorkerHandle | null> {
   const pythonExe = resolveF5MlxPython(ctx);
   if (!pythonExe) return null;
 
@@ -3663,12 +4904,21 @@ async function getOrSpawnF5MlxWorker(ctx: FmContext): Promise<F5MlxWorkerHandle 
 
   spawningF5WorkerPromise = (async (): Promise<F5MlxWorkerHandle | null> => {
     try {
-      const workerDir = nodePath.join(homedir(), ".bun_rad_studio", "phonon-custom-voices");
+      const workerDir = nodePath.join(
+        homedir(),
+        ".bun_rad_studio",
+        "phonon-custom-voices",
+      );
       await fsp.mkdir(workerDir, { recursive: true, mode: 0o700 });
       const scriptPath = nodePath.join(workerDir, "f5_mlx_worker.py");
-      const existingScript = await fsp.readFile(scriptPath, "utf8").catch(() => "");
+      const existingScript = await fsp
+        .readFile(scriptPath, "utf8")
+        .catch(() => "");
       if (existingScript !== F5_MLX_WORKER_PY) {
-        await fsp.writeFile(scriptPath, F5_MLX_WORKER_PY, { encoding: "utf8", mode: 0o600 });
+        await fsp.writeFile(scriptPath, F5_MLX_WORKER_PY, {
+          encoding: "utf8",
+          mode: 0o600,
+        });
       }
 
       const env = buildExecEnv(ctx);
@@ -3845,7 +5095,10 @@ export async function prepareF5MlxVoiceReference(
   voiceId: string,
   wavPath: string,
 ): Promise<{ refWavPath: string; refTranscript: string } | null> {
-  const refWavPath = nodePath.join(nodePath.dirname(wavPath), `${voiceId}.ref.wav`);
+  const refWavPath = nodePath.join(
+    nodePath.dirname(wavPath),
+    `${voiceId}.ref.wav`,
+  );
   try {
     const res = await callF5MlxWorker(
       ctx,
@@ -3859,7 +5112,8 @@ export async function prepareF5MlxVoiceReference(
     if (res && res.ok && existsSync(refWavPath)) {
       return {
         refWavPath,
-        refTranscript: typeof res.ref_text === "string" ? res.ref_text.trim() : "",
+        refTranscript:
+          typeof res.ref_text === "string" ? res.ref_text.trim() : "",
       };
     }
   } catch {}
@@ -3893,10 +5147,14 @@ export async function synthesizeWithF5MlxVoiceClone(
     }
   }
 
-  const outTmp = nodePath.join(tmpdir(), `fm-f5-synth-${process.pid}-${randomBytes(4).toString("hex")}.wav`);
+  const outTmp = nodePath.join(
+    tmpdir(),
+    `fm-f5-synth-${process.pid}-${randomBytes(4).toString("hex")}.wav`,
+  );
   try {
     for (let attemptIdx = 0; attemptIdx < 2; attemptIdx++) {
-      if (signal?.aborted) throw new FmError("CANCELLED", "Speech synthesis was cancelled.");
+      if (signal?.aborted)
+        throw new FmError("CANCELLED", "Speech synthesis was cancelled.");
       const res = await callF5MlxWorker(
         ctx,
         {
@@ -3915,7 +5173,10 @@ export async function synthesizeWithF5MlxVoiceClone(
       );
       if (res && res.ok && existsSync(outTmp)) {
         const wavBuf = await fsp.readFile(outTmp);
-        if (wavBuf.length > 44 && wavBuf.subarray(0, 4).toString("ascii") === "RIFF") {
+        if (
+          wavBuf.length > 44 &&
+          wavBuf.subarray(0, 4).toString("ascii") === "RIFF"
+        ) {
           return wavBuf;
         }
       }
@@ -3936,7 +5197,9 @@ const upgradedVoiceContexts = new WeakSet<FmContext>();
  * Phonon voice table, preparing the F5-TTS-MLX zero-shot reference clip & Whisper transcript, rebuilding the
  * `.safetensors` fallback, and syncing into Ollama's `manifests-v2`).
  */
-export async function ensureCustomVoicesUpgraded(ctx: FmContext): Promise<PhononCustomVoiceRecord[]> {
+export async function ensureCustomVoicesUpgraded(
+  ctx: FmContext,
+): Promise<PhononCustomVoiceRecord[]> {
   const voices = listCustomVoicesSync(ctx);
   if (voices.length === 0) return voices;
   if (upgradedVoiceContexts.has(ctx)) return voices;
@@ -3952,14 +5215,20 @@ export async function ensureCustomVoicesUpgraded(ctx: FmContext): Promise<Phonon
 
     // Check if this voice record used uncalibrated legacy targets (e.g., Master Aldric @ 100Hz or Russell @ 105Hz)
     const hasLegacyTarget = cv.profile?.blendComponents?.some(
-      (c) => (c.voiceId === "Master Aldric" && c.f0Hz === 100) || (c.voiceId === "Russell" && c.f0Hz === 105),
+      (c) =>
+        (c.voiceId === "Master Aldric" && c.f0Hz === 100) ||
+        (c.voiceId === "Russell" && c.f0Hz === 105),
     );
     if (hasLegacyTarget || !existsSync(stPath)) {
       try {
         const wavBuf = await fsp.readFile(wavPath);
         const decoded = decodeAndResampleWavTo24kMono(wavBuf);
         const profile = analyzeVoiceSamplePcm(decoded.pcm24k, 24000);
-        const { safetensorBuf, sha256 } = await buildCustomVoiceSafetensor(ctx, cv.id, profile);
+        const { safetensorBuf, sha256 } = await buildCustomVoiceSafetensor(
+          ctx,
+          cv.id,
+          profile,
+        );
         await fsp.writeFile(stPath, safetensorBuf);
         cv.profile = profile;
         cv.baseVoiceId = profile.baseVoiceId;
@@ -3969,7 +5238,12 @@ export async function ensureCustomVoicesUpgraded(ctx: FmContext): Promise<Phonon
     }
 
     // Prepare F5-TTS-MLX zero-shot reference clip + Whisper transcript if not yet prepared
-    if (shouldUseF5MlxForVoice(ctx, cv.durationSec) && (!existsSync(refWavPath) || !cv.refTranscript || cv.cloningEngine !== "f5-tts-mlx")) {
+    if (
+      shouldUseF5MlxForVoice(ctx, cv.durationSec) &&
+      (!existsSync(refWavPath) ||
+        !cv.refTranscript ||
+        cv.cloningEngine !== "f5-tts-mlx")
+    ) {
       const prep = await prepareF5MlxVoiceReference(ctx, cv.id, wavPath);
       if (prep && prep.refTranscript) {
         cv.refTranscript = prep.refTranscript;
@@ -3991,7 +5265,13 @@ export async function ensureCustomVoicesUpgraded(ctx: FmContext): Promise<Phonon
 
   if (modified) {
     await ensureCustomVoicesDirGitIgnored(vDir);
-    await fsp.writeFile(customVoicesManifestPath(ctx), JSON.stringify(voices, null, 2), "utf8").catch(() => {});
+    await fsp
+      .writeFile(
+        customVoicesManifestPath(ctx),
+        JSON.stringify(voices, null, 2),
+        "utf8",
+      )
+      .catch(() => {});
   }
   return voices;
 }
@@ -3999,14 +5279,19 @@ export async function ensureCustomVoicesUpgraded(ctx: FmContext): Promise<Phonon
 /**
  * Lists all custom user voices after ensuring their profiles, reference clips, and Ollama manifests are up to date.
  */
-export async function listCustomVoices(ctx: FmContext): Promise<PhononCustomVoiceRecord[]> {
+export async function listCustomVoices(
+  ctx: FmContext,
+): Promise<PhononCustomVoiceRecord[]> {
   return ensureCustomVoicesUpgraded(ctx);
 }
 
 /**
  * Resolves the on-disk WAV sample file path for a given custom voice ID, or `null` if not found.
  */
-export function getCustomVoiceSampleFile(ctx: FmContext, voiceId: string): string | null {
+export function getCustomVoiceSampleFile(
+  ctx: FmContext,
+  voiceId: string,
+): string | null {
   if (!/^[A-Za-z0-9][A-Za-z0-9 _-]{0,46}$/.test(voiceId)) return null;
   const wavPath = nodePath.join(customVoicesDir(ctx), `${voiceId}.wav`);
   return existsSync(wavPath) ? wavPath : null;
@@ -4020,33 +5305,61 @@ export function getCustomVoiceSampleFile(ctx: FmContext, voiceId: string): strin
 export async function createCustomVoiceFromAudio(
   ctx: FmContext,
   body: { name?: unknown; audioBase64?: unknown; sourcePath?: unknown },
-): Promise<{ voice: PhononCustomVoiceRecord; voices: PhononCustomVoiceRecord[] }> {
-  const rawName = typeof body.name === "string" && body.name.trim() ? body.name.trim().slice(0, 40) : "My Voice";
+): Promise<{
+  voice: PhononCustomVoiceRecord;
+  voices: PhononCustomVoiceRecord[];
+}> {
+  const rawName =
+    typeof body.name === "string" && body.name.trim()
+      ? body.name.trim().slice(0, 40)
+      : "My Voice";
   const voiceId = sanitizeCustomVoiceId(rawName);
 
   let rawAudioBuf: Buffer | null = null;
-  const sourcePath = typeof body.sourcePath === "string" && body.sourcePath.trim() ? absolutePath(ctx, body.sourcePath.trim()) : "";
+  const sourcePath =
+    typeof body.sourcePath === "string" && body.sourcePath.trim()
+      ? absolutePath(ctx, body.sourcePath.trim())
+      : "";
 
   if (typeof body.audioBase64 === "string" && body.audioBase64.trim()) {
-    const cleanedB64 = body.audioBase64.trim().replace(/^data:[^;]+;base64,/i, "");
+    const cleanedB64 = body.audioBase64
+      .trim()
+      .replace(/^data:[^;]+;base64,/i, "");
     rawAudioBuf = Buffer.from(cleanedB64, "base64");
   } else if (sourcePath) {
     const st = await fsp.stat(sourcePath).catch(() => null);
-    if (!st?.isFile()) throw new FmError("NOT_FOUND", "The selected voice audio file could not be found.");
-    if (st.size > 50 * 1024 * 1024) throw new FmError("TOO_LARGE", "Voice sample file must be under 50 MB.");
+    if (!st?.isFile())
+      throw new FmError(
+        "NOT_FOUND",
+        "The selected voice audio file could not be found.",
+      );
+    if (st.size > 50 * 1024 * 1024)
+      throw new FmError("TOO_LARGE", "Voice sample file must be under 50 MB.");
     rawAudioBuf = await fsp.readFile(sourcePath);
   } else {
-    throw new FmError("BAD_REQUEST", "Record a voice sample or select an audio file first.");
+    throw new FmError(
+      "BAD_REQUEST",
+      "Record a voice sample or select an audio file first.",
+    );
   }
 
   // If the input buffer isn't already a RIFF/WAVE file, convert it to 24 kHz 16-bit mono WAV via ffmpeg
-  const isRiffWav = rawAudioBuf.length >= 44 && rawAudioBuf.subarray(0, 4).toString("ascii") === "RIFF" && rawAudioBuf.subarray(8, 12).toString("ascii") === "WAVE";
+  const isRiffWav =
+    rawAudioBuf.length >= 44 &&
+    rawAudioBuf.subarray(0, 4).toString("ascii") === "RIFF" &&
+    rawAudioBuf.subarray(8, 12).toString("ascii") === "WAVE";
   if (!isRiffWav) {
     const ffmpegExe = resolveTool(ctx, "ffmpeg");
     if (!ffmpegExe) {
-      throw new FmError("BAD_WAV", "Please record in WAV format or install ffmpeg to import MP3/M4A/OGG voice files.");
+      throw new FmError(
+        "BAD_WAV",
+        "Please record in WAV format or install ffmpeg to import MP3/M4A/OGG voice files.",
+      );
     }
-    const tmpStage = nodePath.join(tmpdir(), `fm-voice-import-${process.pid}-${randomBytes(4).toString("hex")}`);
+    const tmpStage = nodePath.join(
+      tmpdir(),
+      `fm-voice-import-${process.pid}-${randomBytes(4).toString("hex")}`,
+    );
     await fsp.mkdir(tmpStage, { recursive: true });
     const inFile = nodePath.join(tmpStage, "input.audio");
     const outFile = nodePath.join(tmpStage, "output.wav");
@@ -4054,12 +5367,31 @@ export async function createCustomVoiceFromAudio(
       await fsp.writeFile(inFile, rawAudioBuf);
       const env = buildExecEnv(ctx);
       const proc = Bun.spawn(
-        [ffmpegExe, "-hide_banner", "-nostdin", "-y", "-i", inFile, "-t", "20", "-ac", "1", "-ar", "24000", "-c:a", "pcm_s16le", outFile],
+        [
+          ffmpegExe,
+          "-hide_banner",
+          "-nostdin",
+          "-y",
+          "-i",
+          inFile,
+          "-t",
+          "20",
+          "-ac",
+          "1",
+          "-ar",
+          "24000",
+          "-c:a",
+          "pcm_s16le",
+          outFile,
+        ],
         { stdout: "ignore", stderr: "ignore", stdin: "ignore", env },
       );
       const code = await proc.exited;
       if (code !== 0 || !existsSync(outFile)) {
-        throw new FmError("BAD_WAV", "Could not decode that audio file into a voice sample.");
+        throw new FmError(
+          "BAD_WAV",
+          "Could not decode that audio file into a voice sample.",
+        );
       }
       rawAudioBuf = await fsp.readFile(outFile);
     } finally {
@@ -4069,11 +5401,21 @@ export async function createCustomVoiceFromAudio(
 
   const decoded = decodeAndResampleWavTo24kMono(rawAudioBuf);
   const cleanedPcm = cleanRecordedVoicePcm(decoded.pcm24k, 24000);
-  const cleanWavBuf = Buffer.concat([createWavHeader(cleanedPcm.length, 24000, 1, 16), cleanedPcm]);
-  const durationSec = Math.max(0.5, Math.round((cleanedPcm.length / (24000 * 2)) * 100) / 100);
+  const cleanWavBuf = Buffer.concat([
+    createWavHeader(cleanedPcm.length, 24000, 1, 16),
+    cleanedPcm,
+  ]);
+  const durationSec = Math.max(
+    0.5,
+    Math.round((cleanedPcm.length / (24000 * 2)) * 100) / 100,
+  );
 
   const profile = analyzeVoiceSamplePcm(cleanedPcm, 24000);
-  const { safetensorBuf, sha256 } = await buildCustomVoiceSafetensor(ctx, voiceId, profile);
+  const { safetensorBuf, sha256 } = await buildCustomVoiceSafetensor(
+    ctx,
+    voiceId,
+    profile,
+  );
 
   const vDir = customVoicesDir(ctx);
   await ensureCustomVoicesDirGitIgnored(vDir);
@@ -4119,12 +5461,19 @@ export async function createCustomVoiceFromAudio(
   };
 
   const updatedList = [record, ...existing];
-  const registeredSet = await syncCustomVoicesIntoOllamaManifest(ctx, updatedList);
+  const registeredSet = await syncCustomVoicesIntoOllamaManifest(
+    ctx,
+    updatedList,
+  );
   for (const item of updatedList) {
     item.ollamaRegistered = registeredSet.has(item.id);
   }
 
-  await fsp.writeFile(customVoicesManifestPath(ctx), JSON.stringify(updatedList, null, 2), { encoding: "utf8", mode: 0o600 });
+  await fsp.writeFile(
+    customVoicesManifestPath(ctx),
+    JSON.stringify(updatedList, null, 2),
+    { encoding: "utf8", mode: 0o600 },
+  );
   await updateSettings(ctx, { phononVoice: voiceId });
 
   return { voice: record, voices: updatedList };
@@ -4138,7 +5487,8 @@ export async function deleteCustomVoice(
   body: { id?: unknown },
 ): Promise<{ deletedId: string; voices: PhononCustomVoiceRecord[] }> {
   const id = typeof body.id === "string" ? body.id.trim() : "";
-  if (!id) throw new FmError("BAD_REQUEST", "Provide the custom voice ID to delete.");
+  if (!id)
+    throw new FmError("BAD_REQUEST", "Provide the custom voice ID to delete.");
 
   const vDir = customVoicesDir(ctx);
   const existing = listCustomVoicesSync(ctx);
@@ -4147,16 +5497,29 @@ export async function deleteCustomVoice(
     throw new FmError("NOT_FOUND", `Custom voice "${id}" was not found.`);
   }
 
-  await fsp.rm(nodePath.join(vDir, `${id}.wav`), { force: true }).catch(() => {});
-  await fsp.rm(nodePath.join(vDir, `${id}.ref.wav`), { force: true }).catch(() => {});
-  await fsp.rm(nodePath.join(vDir, `${id}.safetensors`), { force: true }).catch(() => {});
+  await fsp
+    .rm(nodePath.join(vDir, `${id}.wav`), { force: true })
+    .catch(() => {});
+  await fsp
+    .rm(nodePath.join(vDir, `${id}.ref.wav`), { force: true })
+    .catch(() => {});
+  await fsp
+    .rm(nodePath.join(vDir, `${id}.safetensors`), { force: true })
+    .catch(() => {});
 
-  const registeredSet = await syncCustomVoicesIntoOllamaManifest(ctx, remaining);
+  const registeredSet = await syncCustomVoicesIntoOllamaManifest(
+    ctx,
+    remaining,
+  );
   for (const item of remaining) {
     item.ollamaRegistered = registeredSet.has(item.id);
   }
   await fsp.mkdir(vDir, { recursive: true });
-  await fsp.writeFile(customVoicesManifestPath(ctx), JSON.stringify(remaining, null, 2), "utf8");
+  await fsp.writeFile(
+    customVoicesManifestPath(ctx),
+    JSON.stringify(remaining, null, 2),
+    "utf8",
+  );
 
   const settings = await loadSettings(ctx);
   if (settings.phononVoice === id) {
@@ -4207,15 +5570,23 @@ export interface PhononStatusReport {
  * Ollama's `phonon` (`gradium_phonon_tts`) model requires Apple's MLX framework and is only supported on
  * Apple Silicon Macs (`darwin` + `arm64`). Windows, Linux, and Intel macOS builds hide the feature to avoid confusion.
  */
-export function isPhononSupportedPlatform(platform: string = process.platform, arch: string = process.arch): boolean {
+export function isPhononSupportedPlatform(
+  platform: string = process.platform,
+  arch: string = process.arch,
+): boolean {
   return platform === "darwin" && arch === "arm64";
 }
 
 /**
  * Probes local Ollama and Phonon model installation status, available voices, and active synthesis settings.
  */
-export async function getPhononStatus(ctx: FmContext): Promise<PhononStatusReport> {
-  const effectiveArch = ctx.platform === "darwin" && process.platform !== "darwin" ? "arm64" : process.arch;
+export async function getPhononStatus(
+  ctx: FmContext,
+): Promise<PhononStatusReport> {
+  const effectiveArch =
+    ctx.platform === "darwin" && process.platform !== "darwin"
+      ? "arm64"
+      : process.arch;
   const supported = isPhononSupportedPlatform(ctx.platform, effectiveArch);
   const settings = await loadSettings(ctx);
   const managers = detectManagers(ctx);
@@ -4259,17 +5630,28 @@ export async function getPhononStatus(ctx: FmContext): Promise<PhononStatusRepor
       runOllamaCommand(ctx, ollamaExe, ["--version"], 3500),
       runOllamaCommand(ctx, ollamaExe, ["show", "phonon"], 4500),
     ]);
-    const verText = `${verRes.stdout.toString("utf8")}\n${verRes.stderr}`.trim();
-    const verMatch = /ollama version is ([0-9A-Za-z._-]+)/i.exec(verText) ?? /([0-9]+\.[0-9]+\.[0-9]+)/.exec(verText);
-    ollamaVersion = verMatch?.[1] ?? (verText.split(/\r?\n/)[0]?.slice(0, 60) || "installed");
+    const verText =
+      `${verRes.stdout.toString("utf8")}\n${verRes.stderr}`.trim();
+    const verMatch =
+      /ollama version is ([0-9A-Za-z._-]+)/i.exec(verText) ??
+      /([0-9]+\.[0-9]+\.[0-9]+)/.exec(verText);
+    ollamaVersion =
+      verMatch?.[1] ?? (verText.split(/\r?\n/)[0]?.slice(0, 60) || "installed");
 
     if (showRes.code === 0) {
       daemonRunning = true;
       modelInstalled = true;
-      const discovered = parseVoicesFromModelfile(showRes.stdout.toString("utf8"));
+      const discovered = parseVoicesFromModelfile(
+        showRes.stdout.toString("utf8"),
+      );
       for (const v of discovered) {
         if (!voiceMap.has(v)) {
-          voiceMap.set(v, { id: v, label: v, category: "Conversational", desc: "Phonon neural voice" });
+          voiceMap.set(v, {
+            id: v,
+            label: v,
+            category: "Conversational",
+            desc: "Phonon neural voice",
+          });
         }
       }
     } else {
@@ -4341,14 +5723,20 @@ export async function synthesizePhononChunkWav(
   voice: string,
   signal?: AbortSignal,
 ): Promise<Buffer> {
-  const cleanVoice = /^[A-Za-z0-9 _-]{1,48}$/.test(voice.trim()) ? voice.trim() : "Zoey";
+  const cleanVoice = /^[A-Za-z0-9 _-]{1,48}$/.test(voice.trim())
+    ? voice.trim()
+    : "Zoey";
   const payload = text.trim();
-  if (!payload) throw new FmError("EMPTY_TEXT", "There is no text in this chunk to read.");
+  if (!payload)
+    throw new FmError("EMPTY_TEXT", "There is no text in this chunk to read.");
 
   // If a chunk contains only punctuation or divider symbols with no speakable letters/numbers, return a brief 120ms silence WAV
   if (!/[\p{L}\p{N}]/u.test(payload)) {
     const silentBytes = 24000 * 2 * 0.12;
-    return Buffer.concat([createWavHeader(silentBytes, 24000, 1, 16), Buffer.alloc(silentBytes)]);
+    return Buffer.concat([
+      createWavHeader(silentBytes, 24000, 1, 16),
+      Buffer.alloc(silentBytes),
+    ]);
   }
 
   const customVoices = await ensureCustomVoicesUpgraded(ctx);
@@ -4358,14 +5746,19 @@ export async function synthesizePhononChunkWav(
   const existingCache = audioCaches.get(ctx);
   if (existingCache) {
     const cacheKey = createHash("sha256")
-      .update(`v3\x00${cleanVoice}\x00${customVoice?.cloningEngine || ""}\x00${customVoice?.safetensorSha256 || ""}\x000\x00${payload}`)
+      .update(
+        `v3\x00${cleanVoice}\x00${customVoice?.cloningEngine || ""}\x00${customVoice?.safetensorSha256 || ""}\x000\x00${payload}`,
+      )
       .digest("hex")
       .slice(0, 24);
     const cachedItem = existingCache.items.get(cacheKey);
     if (cachedItem && existsSync(cachedItem.filePath)) {
       try {
         const cachedBuf = await fsp.readFile(cachedItem.filePath);
-        if (cachedBuf.length > 44 && cachedBuf.subarray(0, 4).toString("ascii") === "RIFF") {
+        if (
+          cachedBuf.length > 44 &&
+          cachedBuf.subarray(0, 4).toString("ascii") === "RIFF"
+        ) {
           return cachedBuf;
         }
       } catch {}
@@ -4376,15 +5769,29 @@ export async function synthesizePhononChunkWav(
   // cloning engine directly conditioned on the user's recorded `.wav` sample so it speaks with the user's
   // real vocal tract, pitch, accent, and cadence (rather than a built-in Ollama Phonon actor).
   if (customVoice && shouldUseF5MlxForVoice(ctx, customVoice.durationSec)) {
-    const f5Wav = await synthesizeWithF5MlxVoiceClone(ctx, customVoice, payload, signal);
+    const f5Wav = await synthesizeWithF5MlxVoiceClone(
+      ctx,
+      customVoice,
+      payload,
+      signal,
+    );
     if (f5Wav) {
       return f5Wav;
     }
   }
 
-  const primaryTargetVoice = customVoice && !customVoice.ollamaRegistered ? customVoice.baseVoiceId : cleanVoice;
+  const primaryTargetVoice =
+    customVoice && !customVoice.ollamaRegistered
+      ? customVoice.baseVoiceId
+      : cleanVoice;
 
-  const runOnce = async (targetVoice: string): Promise<{ wav: Buffer | null; errText: string; exitCode: number | null }> => {
+  const runOnce = async (
+    targetVoice: string,
+  ): Promise<{
+    wav: Buffer | null;
+    errText: string;
+    exitCode: number | null;
+  }> => {
     const env = buildExecEnv(ctx);
     const args = ["run", "phonon"];
     if (targetVoice && targetVoice !== "default") {
@@ -4421,8 +5828,13 @@ export async function synthesizePhononChunkWav(
         new Response(proc.stderr).text(),
         proc.exited,
       ]);
-      if (aborted) throw new FmError("CANCELLED", "Speech synthesis was cancelled.");
-      if (timedOut) throw new FmError("TIMEOUT", "Phonon took too long to synthesize this text chunk.");
+      if (aborted)
+        throw new FmError("CANCELLED", "Speech synthesis was cancelled.");
+      if (timedOut)
+        throw new FmError(
+          "TIMEOUT",
+          "Phonon took too long to synthesize this text chunk.",
+        );
 
       const wav = Buffer.from(outBuf);
       const riffIdx = wav.indexOf("RIFF");
@@ -4445,14 +5857,18 @@ export async function synthesizePhononChunkWav(
     attempt = await runOnce(primaryTargetVoice);
   }
   if (attempt.wav) {
-    return customVoice?.profile ? applyCustomVoiceTransferToWav(attempt.wav, customVoice.profile) : attempt.wav;
+    return customVoice?.profile
+      ? applyCustomVoiceTransferToWav(attempt.wav, customVoice.profile)
+      : attempt.wav;
   }
 
   // If a custom voice wasn't found by Ollama (e.g. model was re-pulled), fall back to its matched base voice + acoustic transfer
   if (customVoice && primaryTargetVoice !== customVoice.baseVoiceId) {
     attempt = await runOnce(customVoice.baseVoiceId);
     if (attempt.wav) {
-      return customVoice.profile ? applyCustomVoiceTransferToWav(attempt.wav, customVoice.profile) : attempt.wav;
+      return customVoice.profile
+        ? applyCustomVoiceTransferToWav(attempt.wav, customVoice.profile)
+        : attempt.wav;
     }
   }
 
@@ -4477,12 +5893,18 @@ interface CachedAudioItem {
 }
 
 const MAX_CACHED_CHUNKS = 60;
-const audioCaches = new WeakMap<FmContext, { dir: string; items: Map<string, CachedAudioItem> }>();
+const audioCaches = new WeakMap<
+  FmContext,
+  { dir: string; items: Map<string, CachedAudioItem> }
+>();
 
 function getAudioCache(ctx: FmContext) {
   let cache = audioCaches.get(ctx);
   if (!cache) {
-    const dir = nodePath.join(tmpdir(), `fm-phonon-cache-${process.pid}-${randomBytes(4).toString("hex")}`);
+    const dir = nodePath.join(
+      tmpdir(),
+      `fm-phonon-cache-${process.pid}-${randomBytes(4).toString("hex")}`,
+    );
     mkdirSync(dir, { recursive: true });
     const items = new Map<string, CachedAudioItem>();
     cache = { dir, items };
@@ -4517,25 +5939,36 @@ export async function speakChunk(
   cues: PhononReadAlongCue[];
 }> {
   const rawText = typeof input.text === "string" ? input.text.trim() : "";
-  if (!rawText) throw new FmError("BAD_REQUEST", "Provide text to read out loud.");
+  if (!rawText)
+    throw new FmError("BAD_REQUEST", "Provide text to read out loud.");
 
   const settings = await loadSettings(ctx);
-  const voice = typeof input.voice === "string" && /^[A-Za-z0-9 _-]{1,48}$/.test(input.voice.trim()) ? input.voice.trim() : settings.phononVoice || "Zoey";
-  const userPitch = typeof input.pitch === "number" && isFinite(input.pitch)
-    ? Math.round(Math.min(6, Math.max(-6, input.pitch)) * 2) / 2
-    : (settings.phononPitch ?? 0);
+  const voice =
+    typeof input.voice === "string" &&
+    /^[A-Za-z0-9 _-]{1,48}$/.test(input.voice.trim())
+      ? input.voice.trim()
+      : settings.phononVoice || "Zoey";
+  const userPitch =
+    typeof input.pitch === "number" && isFinite(input.pitch)
+      ? Math.round(Math.min(6, Math.max(-6, input.pitch)) * 2) / 2
+      : (settings.phononPitch ?? 0);
   const customVoices = await ensureCustomVoicesUpgraded(ctx);
   const customVoice = customVoices.find((cv) => cv.id === voice);
   // Note: custom voice F0 & formant transfer is applied directly inside synthesizePhononChunkWav
   const effectivePitch = userPitch;
 
   // Ensure the chunk is within Phonon's context window even if the caller passed a longer string
-  const safeChunks = splitTextForPhonon(rawText, { maxChars: PHONON_HARD_MAX_CHUNK_CHARS });
-  const chunkText = safeChunks[0]?.text ?? rawText.slice(0, PHONON_HARD_MAX_CHUNK_CHARS);
+  const safeChunks = splitTextForPhonon(rawText, {
+    maxChars: PHONON_HARD_MAX_CHUNK_CHARS,
+  });
+  const chunkText =
+    safeChunks[0]?.text ?? rawText.slice(0, PHONON_HARD_MAX_CHUNK_CHARS);
 
   const cache = getAudioCache(ctx);
   const key = createHash("sha256")
-    .update(`v3\0${voice}\0${customVoice?.cloningEngine || ""}\0${customVoice?.safetensorSha256 || ""}\0${effectivePitch}\0${chunkText}`)
+    .update(
+      `v3\0${voice}\0${customVoice?.cloningEngine || ""}\0${customVoice?.safetensorSha256 || ""}\0${effectivePitch}\0${chunkText}`,
+    )
     .digest("hex")
     .slice(0, 24);
   const existing = cache.items.get(key);
@@ -4557,13 +5990,29 @@ export async function speakChunk(
 
   const ollamaExe = resolveTool(ctx, "ollama");
   if (!ollamaExe) {
-    throw new FmError("MISSING_TOOL", "Ollama isn't installed yet. Click the Install Ollama & Phonon button to add it in one click.");
+    throw new FmError(
+      "MISSING_TOOL",
+      "Ollama isn't installed yet. Click the Install Ollama & Phonon button to add it in one click.",
+    );
   }
   await ensureOllamaDaemon(ctx, ollamaExe);
 
-  const wavBuf = await synthesizePhononChunkWav(ctx, ollamaExe, chunkText, voice);
+  const wavBuf = await synthesizePhononChunkWav(
+    ctx,
+    ollamaExe,
+    chunkText,
+    voice,
+  );
   let parsed = parseWavPcm(wavBuf);
-  let cleanWav = Buffer.concat([createWavHeader(parsed.pcmData.length, parsed.sampleRate, parsed.numChannels, parsed.bitsPerSample), parsed.pcmData]);
+  let cleanWav = Buffer.concat([
+    createWavHeader(
+      parsed.pcmData.length,
+      parsed.sampleRate,
+      parsed.numChannels,
+      parsed.bitsPerSample,
+    ),
+    parsed.pcmData,
+  ]);
 
   // If manual pitch shift is requested by the user and ffmpeg is installed, apply time-locked
   // pitch shift (`asetrate` + `aresample` + `atempo`) so the WAV keeps its exact speaking duration and word alignment.
@@ -4574,18 +6023,41 @@ export async function speakChunk(
     try {
       await fsp.writeFile(rawTmp, cleanWav);
       const env = buildExecEnv(ctx);
-      const filterArgs = buildAtempoFilter(1.0, effectivePitch, parsed.sampleRate);
+      const filterArgs = buildAtempoFilter(
+        1.0,
+        effectivePitch,
+        parsed.sampleRate,
+      );
       const proc = Bun.spawn(
-        [ffmpegExe, "-hide_banner", "-nostdin", "-y", "-i", rawTmp, ...filterArgs, "-c:a", "pcm_s16le", pitchedTmp],
+        [
+          ffmpegExe,
+          "-hide_banner",
+          "-nostdin",
+          "-y",
+          "-i",
+          rawTmp,
+          ...filterArgs,
+          "-c:a",
+          "pcm_s16le",
+          pitchedTmp,
+        ],
         { stdout: "ignore", stderr: "ignore", stdin: "ignore", env },
       );
       const exitCode = await proc.exited;
       if (exitCode === 0 && existsSync(pitchedTmp)) {
         const pitchedBuf = await fsp.readFile(pitchedTmp);
-        if (pitchedBuf.length > 44 && pitchedBuf.subarray(0, 4).toString("ascii") === "RIFF") {
+        if (
+          pitchedBuf.length > 44 &&
+          pitchedBuf.subarray(0, 4).toString("ascii") === "RIFF"
+        ) {
           parsed = parseWavPcm(pitchedBuf);
           cleanWav = Buffer.concat([
-            createWavHeader(parsed.pcmData.length, parsed.sampleRate, parsed.numChannels, parsed.bitsPerSample),
+            createWavHeader(
+              parsed.pcmData.length,
+              parsed.sampleRate,
+              parsed.numChannels,
+              parsed.bitsPerSample,
+            ),
             parsed.pcmData,
           ]);
         }
@@ -4598,8 +6070,14 @@ export async function speakChunk(
     }
   }
 
-  const bytesPerSec = Math.max(1, parsed.sampleRate * parsed.numChannels * (parsed.bitsPerSample >> 3));
-  const durationMs = Math.max(50, Math.round((parsed.pcmData.length / bytesPerSec) * 1000));
+  const bytesPerSec = Math.max(
+    1,
+    parsed.sampleRate * parsed.numChannels * (parsed.bitsPerSample >> 3),
+  );
+  const durationMs = Math.max(
+    50,
+    Math.round((parsed.pcmData.length / bytesPerSec) * 1000),
+  );
   const durationSec = Math.round((durationMs / 1000) * 1000) / 1000;
 
   // Evict oldest if cache is full
@@ -4722,15 +6200,20 @@ async function downloadFileToPath(
   log: (text: string) => void,
 ): Promise<void> {
   if (signal.aborted) throw new Error("Cancelled");
-  const curlExe = findExecutable(
-    ctx.platform,
-    ["curl"],
-    searchDirs(ctx),
-  );
+  const curlExe = findExecutable(ctx.platform, ["curl"], searchDirs(ctx));
   if (curlExe) {
     log(`Downloading ${url}…\n`);
     const res = await runSpawnLogged(
-      [curlExe, "--fail", "--location", "--silent", "--show-error", "-o", destPath, url],
+      [
+        curlExe,
+        "--fail",
+        "--location",
+        "--silent",
+        "--show-error",
+        "-o",
+        destPath,
+        url,
+      ],
       env,
       signal,
       log,
@@ -4746,7 +6229,9 @@ async function downloadFileToPath(
   log(`Downloading ${url} via HTTP stream…\n`);
   const res = await fetch(url, { redirect: "follow", signal });
   if (!res.ok || !res.body) {
-    throw new Error(`Download failed (${res.status} ${res.statusText}) from ${url}`);
+    throw new Error(
+      `Download failed (${res.status} ${res.statusText}) from ${url}`,
+    );
   }
   const fh = await fsp.open(destPath, "w");
   try {
@@ -4768,7 +6253,8 @@ async function downloadFileToPath(
 
 function detectCpuArch(): "arm64" | "amd64" {
   const arch = (process.arch || "").toLowerCase();
-  const winArch = `${process.env.PROCESSOR_ARCHITECTURE || ""} ${process.env.PROCESSOR_ARCHITEW6432 || ""}`.toLowerCase();
+  const winArch =
+    `${process.env.PROCESSOR_ARCHITECTURE || ""} ${process.env.PROCESSOR_ARCHITEW6432 || ""}`.toLowerCase();
   if (arch === "arm64" || arch === "aarch64" || winArch.includes("arm64")) {
     return "arm64";
   }
@@ -4813,34 +6299,57 @@ export async function installOllamaBinaryCrossPlatform(
     const installRoot = nodePath.join(ctx.home, ".local");
     const binDir = nodePath.join(installRoot, "bin");
     const libDir = nodePath.join(installRoot, "lib", "ollama");
-    const stageDir = nodePath.join(installRoot, "share", `ollama-install-${process.pid}-${randomBytes(4).toString("hex")}`);
+    const stageDir = nodePath.join(
+      installRoot,
+      "share",
+      `ollama-install-${process.pid}-${randomBytes(4).toString("hex")}`,
+    );
     await fsp.mkdir(binDir, { recursive: true });
     await fsp.mkdir(libDir, { recursive: true });
     await fsp.mkdir(stageDir, { recursive: true });
 
     try {
       const url = `https://ollama.com/download/ollama-linux-${arch}.tar.zst`;
-      const archiveZst = nodePath.join(stageDir, `ollama-linux-${arch}.tar.zst`);
-      log(`Installing Ollama for Linux (${arch}) into ${installRoot} (no root password needed)…\n`);
+      const archiveZst = nodePath.join(
+        stageDir,
+        `ollama-linux-${arch}.tar.zst`,
+      );
+      log(
+        `Installing Ollama for Linux (${arch}) into ${installRoot} (no root password needed)…\n`,
+      );
       await downloadFileToPath(ctx, url, archiveZst, env, signal, log);
       if (signal.aborted) throw new Error("Cancelled");
 
       const search = searchDirs(ctx);
       const zstdExe = findExecutable("linux", ["zstd", "unzstd"], search);
       const bsdtarExe = findExecutable("linux", ["bsdtar"], search);
-      const tarExe = findExecutable("linux", ["tar"], [...search, "/usr/bin", "/bin"]) ?? "/bin/tar";
-      const shExe = findExecutable("linux", ["bash", "sh"], ["/bin", "/usr/bin"]) ?? "/bin/sh";
+      const tarExe =
+        findExecutable("linux", ["tar"], [...search, "/usr/bin", "/bin"]) ??
+        "/bin/tar";
+      const shExe =
+        findExecutable("linux", ["bash", "sh"], ["/bin", "/usr/bin"]) ??
+        "/bin/sh";
 
       let extracted = false;
       if (zstdExe) {
         log("Extracting archive with zstd + tar…\n");
         const cmd = `"$1" -dc "$2" | "$3" -xf - -C "$4"`;
-        const r = await runSpawnLogged([shExe, "-c", cmd, "--", zstdExe, archiveZst, tarExe, installRoot], env, signal, log);
+        const r = await runSpawnLogged(
+          [shExe, "-c", cmd, "--", zstdExe, archiveZst, tarExe, installRoot],
+          env,
+          signal,
+          log,
+        );
         extracted = r.code === 0;
       }
       if (!extracted && bsdtarExe) {
         log("Extracting archive with bsdtar…\n");
-        const r = await runSpawnLogged([bsdtarExe, "-xf", archiveZst, "-C", installRoot], env, signal, log);
+        const r = await runSpawnLogged(
+          [bsdtarExe, "-xf", archiveZst, "-C", installRoot],
+          env,
+          signal,
+          log,
+        );
         extracted = r.code === 0;
       }
       if (!extracted) {
@@ -4850,7 +6359,12 @@ export async function installOllamaBinaryCrossPlatform(
         const tarBytes = Bun.zstdDecompressSync(zstBytes);
         const archiveTar = nodePath.join(stageDir, `ollama-linux-${arch}.tar`);
         await fsp.writeFile(archiveTar, tarBytes);
-        const r = await runSpawnLogged([tarExe, "-xf", archiveTar, "-C", installRoot], env, signal, log);
+        const r = await runSpawnLogged(
+          [tarExe, "-xf", archiveTar, "-C", installRoot],
+          env,
+          signal,
+          log,
+        );
         await fsp.rm(archiveTar, { force: true }).catch(() => {});
         extracted = r.code === 0;
       }
@@ -4867,35 +6381,61 @@ export async function installOllamaBinaryCrossPlatform(
       await fsp.rm(stageDir, { recursive: true, force: true }).catch(() => {});
     }
   } else if (ctx.platform === "win32") {
-    const localAppData = process.env.LOCALAPPDATA || nodePath.win32.join(ctx.home, "AppData", "Local");
+    const localAppData =
+      process.env.LOCALAPPDATA ||
+      nodePath.win32.join(ctx.home, "AppData", "Local");
     const installDir = nodePath.win32.join(localAppData, "Programs", "Ollama");
-    const stageDir = nodePath.win32.join(localAppData, "Temp", `ollama-install-${process.pid}-${randomBytes(4).toString("hex")}`);
+    const stageDir = nodePath.win32.join(
+      localAppData,
+      "Temp",
+      `ollama-install-${process.pid}-${randomBytes(4).toString("hex")}`,
+    );
     await fsp.mkdir(installDir, { recursive: true });
     await fsp.mkdir(stageDir, { recursive: true });
 
     try {
       const zipUrl = `https://ollama.com/download/ollama-windows-${arch}.zip`;
-      const zipPath = nodePath.win32.join(stageDir, `ollama-windows-${arch}.zip`);
+      const zipPath = nodePath.win32.join(
+        stageDir,
+        `ollama-windows-${arch}.zip`,
+      );
       log(`Downloading Ollama for Windows (${arch}) into ${installDir}…\n`);
       await downloadFileToPath(ctx, zipUrl, zipPath, env, signal, log);
       if (signal.aborted) throw new Error("Cancelled");
 
       const sys32 = "C:\\Windows\\System32";
-      const tarExe = findExecutable("win32", ["tar"], [sys32, ...searchDirs(ctx)]);
+      const tarExe = findExecutable(
+        "win32",
+        ["tar"],
+        [sys32, ...searchDirs(ctx)],
+      );
       let extracted = false;
       if (tarExe) {
         log("Extracting Ollama archive with Windows tar…\n");
-        const r = await runSpawnLogged([tarExe, "-xf", zipPath, "-C", installDir], env, signal, log);
+        const r = await runSpawnLogged(
+          [tarExe, "-xf", zipPath, "-C", installDir],
+          env,
+          signal,
+          log,
+        );
         extracted = r.code === 0;
       }
       if (!extracted) {
-        const psExe = findExecutable("win32", ["powershell", "pwsh"], [
-          `${sys32}\\WindowsPowerShell\\v1.0`,
-          ...searchDirs(ctx),
-        ]) ?? "powershell.exe";
+        const psExe =
+          findExecutable(
+            "win32",
+            ["powershell", "pwsh"],
+            [`${sys32}\\WindowsPowerShell\\v1.0`, ...searchDirs(ctx)],
+          ) ?? "powershell.exe";
         log("Extracting Ollama archive with PowerShell Expand-Archive…\n");
         const r = await runSpawnLogged(
-          [psExe, "-NoProfile", "-NonInteractive", "-Command", `Expand-Archive -LiteralPath '${zipPath.replace(/'/g, "''")}' -DestinationPath '${installDir.replace(/'/g, "''")}' -Force`],
+          [
+            psExe,
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            `Expand-Archive -LiteralPath '${zipPath.replace(/'/g, "''")}' -DestinationPath '${installDir.replace(/'/g, "''")}' -Force`,
+          ],
           env,
           signal,
           log,
@@ -4906,23 +6446,55 @@ export async function installOllamaBinaryCrossPlatform(
       if (!resolveTool(ctx, "ollama")) {
         // Fallback to silent Inno Setup installer
         const setupExe = nodePath.win32.join(stageDir, "OllamaSetup.exe");
-        await downloadFileToPath(ctx, "https://ollama.com/download/OllamaSetup.exe", setupExe, env, signal, log);
+        await downloadFileToPath(
+          ctx,
+          "https://ollama.com/download/OllamaSetup.exe",
+          setupExe,
+          env,
+          signal,
+          log,
+        );
         log("Running OllamaSetup.exe silently…\n");
-        await runSpawnLogged([setupExe, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"], env, signal, log);
+        await runSpawnLogged(
+          [setupExe, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"],
+          env,
+          signal,
+          log,
+        );
       }
     } finally {
       await fsp.rm(stageDir, { recursive: true, force: true }).catch(() => {});
     }
   } else if (ctx.platform === "darwin") {
-    const stageDir = nodePath.join(tmpdir(), `ollama-mac-install-${process.pid}-${randomBytes(4).toString("hex")}`);
+    const stageDir = nodePath.join(
+      tmpdir(),
+      `ollama-mac-install-${process.pid}-${randomBytes(4).toString("hex")}`,
+    );
     await fsp.mkdir(stageDir, { recursive: true });
     try {
       const zipPath = nodePath.join(stageDir, "Ollama-darwin.zip");
       log("Downloading Ollama for macOS…\n");
-      await downloadFileToPath(ctx, "https://ollama.com/download/Ollama-darwin.zip", zipPath, env, signal, log);
+      await downloadFileToPath(
+        ctx,
+        "https://ollama.com/download/Ollama-darwin.zip",
+        zipPath,
+        env,
+        signal,
+        log,
+      );
       if (signal.aborted) throw new Error("Cancelled");
-      const unzipExe = findExecutable("darwin", ["unzip"], ["/usr/bin", "/bin", ...searchDirs(ctx)]) ?? "/usr/bin/unzip";
-      await runSpawnLogged([unzipExe, "-q", zipPath, "-d", stageDir], env, signal, log);
+      const unzipExe =
+        findExecutable(
+          "darwin",
+          ["unzip"],
+          ["/usr/bin", "/bin", ...searchDirs(ctx)],
+        ) ?? "/usr/bin/unzip";
+      await runSpawnLogged(
+        [unzipExe, "-q", zipPath, "-d", stageDir],
+        env,
+        signal,
+        log,
+      );
       const extractedApp = nodePath.join(stageDir, "Ollama.app");
       if (existsSync(extractedApp)) {
         const userApps = nodePath.join(ctx.home, "Applications");
@@ -4931,18 +6503,25 @@ export async function installOllamaBinaryCrossPlatform(
         const targetUser = nodePath.join(userApps, "Ollama.app");
         let moved = false;
         try {
-          if (existsSync(targetSystem)) await fsp.rm(targetSystem, { recursive: true, force: true });
+          if (existsSync(targetSystem))
+            await fsp.rm(targetSystem, { recursive: true, force: true });
           await fsp.rename(extractedApp, targetSystem);
           moved = true;
         } catch {
           try {
-            if (existsSync(targetUser)) await fsp.rm(targetUser, { recursive: true, force: true });
+            if (existsSync(targetUser))
+              await fsp.rm(targetUser, { recursive: true, force: true });
             await fsp.rename(extractedApp, targetUser);
             moved = true;
           } catch {}
         }
         if (!moved) {
-          await runSpawnLogged(["/bin/cp", "-R", extractedApp, targetUser], env, signal, log);
+          await runSpawnLogged(
+            ["/bin/cp", "-R", extractedApp, targetUser],
+            env,
+            signal,
+            log,
+          );
         }
       }
     } finally {
@@ -4952,7 +6531,9 @@ export async function installOllamaBinaryCrossPlatform(
 
   const found = resolveTool(ctx, "ollama");
   if (!found) {
-    throw new Error(`Ollama could not be installed automatically. Download it from ${TOOLS.ollama.website} and try again.`);
+    throw new Error(
+      `Ollama could not be installed automatically. Download it from ${TOOLS.ollama.website} and try again.`,
+    );
   }
   return found;
 }
@@ -4979,19 +6560,29 @@ export function createOllamaInstallStep(ctx: FmContext) {
 export function createStarterModelsPullStep(ctx: FmContext) {
   const env = buildExecEnv(ctx);
   return {
-    label: "Download Starter AI Models (ollama pull qwen3.5:4b & lfm3-omni:latest)",
+    label:
+      "Download Starter AI Models (ollama pull qwen3.5:4b & lfm3-omni:latest)",
     timeoutMs: 35 * 60 * 1000,
     prepare: async () => ({
       work: async (signal: AbortSignal, log: (text: string) => void) => {
         const ollamaExe = resolveTool(ctx, "ollama");
         if (!ollamaExe) {
-          throw new Error("Ollama could not be found after installation. Check that Ollama is installed and try again.");
+          throw new Error(
+            "Ollama could not be found after installation. Check that Ollama is installed and try again.",
+          );
         }
-        log("Starting Ollama service & pulling Qwen 3.5 + LFM3-Omni starter AI models…\n");
+        log(
+          "Starting Ollama service & pulling Qwen 3.5 + LFM3-Omni starter AI models…\n",
+        );
         await ensureOllamaDaemon(ctx, ollamaExe);
         for (const modelName of ["qwen3.5:4b", "lfm3-omni:latest"]) {
           log(`Pulling ${modelName}…\n`);
-          await runSpawnLogged([ollamaExe, "pull", modelName], env, signal, log);
+          await runSpawnLogged(
+            [ollamaExe, "pull", modelName],
+            env,
+            signal,
+            log,
+          );
           if (signal.aborted) throw new Error("Cancelled");
         }
       },
@@ -5011,20 +6602,36 @@ export function createPhononPullStep(ctx: FmContext) {
       work: async (signal: AbortSignal, log: (text: string) => void) => {
         const ollamaExe = resolveTool(ctx, "ollama");
         if (!ollamaExe) {
-          throw new Error("Ollama could not be found after installation. Check that Ollama is installed and try again.");
+          throw new Error(
+            "Ollama could not be found after installation. Check that Ollama is installed and try again.",
+          );
         }
         log("Starting Ollama service & pulling Phonon voice model…\n");
         await ensureOllamaDaemon(ctx, ollamaExe);
-        const res = await runSpawnLogged([ollamaExe, "pull", "phonon"], env, signal, log);
+        const res = await runSpawnLogged(
+          [ollamaExe, "pull", "phonon"],
+          env,
+          signal,
+          log,
+        );
         if (signal.aborted) throw new Error("Cancelled");
         if (res.code !== 0) {
           if (ctx.platform !== "darwin") {
-            log("Phonon requires Apple Silicon MLX; pulling cross-platform Audio/Speech LLM (lfm3-omni:latest)…\n");
-            const fallbackRes = await runSpawnLogged([ollamaExe, "pull", "lfm3-omni:latest"], env, signal, log);
+            log(
+              "Phonon requires Apple Silicon MLX; pulling cross-platform Audio/Speech LLM (lfm3-omni:latest)…\n",
+            );
+            const fallbackRes = await runSpawnLogged(
+              [ollamaExe, "pull", "lfm3-omni:latest"],
+              env,
+              signal,
+              log,
+            );
             if (signal.aborted) throw new Error("Cancelled");
             if (fallbackRes.code === 0) return;
           }
-          throw new Error(explainFailure("ollama", `${res.out}\n${res.err}`, res.code));
+          throw new Error(
+            explainFailure("ollama", `${res.out}\n${res.err}`, res.code),
+          );
         }
       },
     }),
@@ -5034,9 +6641,15 @@ export function createPhononPullStep(ctx: FmContext) {
 /**
  * Starts a background installation job to install Ollama (if missing) and pull the `phonon` voice model.
  */
-export function startPhononInstall(ctx: FmContext, body: { confirm?: unknown }): ReturnType<FmContext["jobs"]["start"]> {
+export function startPhononInstall(
+  ctx: FmContext,
+  body: { confirm?: unknown },
+): ReturnType<FmContext["jobs"]["start"]> {
   if (body.confirm !== true) {
-    throw new FmError("NEEDS_CONFIRM", "Confirm to install Ollama and download the Phonon voice model.");
+    throw new FmError(
+      "NEEDS_CONFIRM",
+      "Confirm to install Ollama and download the Phonon voice model.",
+    );
   }
 
   const existingOllama = resolveTool(ctx, "ollama");
@@ -5047,7 +6660,9 @@ export function startPhononInstall(ctx: FmContext, body: { confirm?: unknown }):
 
   return ctx.jobs.start({
     kind: "install",
-    title: existingOllama ? "Download Phonon Voice Model" : "Install Ollama & Phonon Voice Model",
+    title: existingOllama
+      ? "Download Phonon Voice Model"
+      : "Install Ollama & Phonon Voice Model",
     steps,
   });
 }
@@ -5059,7 +6674,11 @@ export function startPhononInstall(ctx: FmContext, body: { confirm?: unknown }):
 /**
  * Builds ffmpeg `-af` filter arguments (`asetrate`, `aresample`, and chained `atempo` filters) for independent speed and pitch shifting.
  */
-export function buildAtempoFilter(speed: number, pitchSemitones = 0, sampleRate = 24000): string[] {
+export function buildAtempoFilter(
+  speed: number,
+  pitchSemitones = 0,
+  sampleRate = 24000,
+): string[] {
   const s = Math.min(2.5, Math.max(0.5, speed || 1));
   const p = Math.min(6, Math.max(-6, pitchSemitones || 0));
   const hasSpeed = Math.abs(s - 1) >= 0.01;
@@ -5093,7 +6712,12 @@ export function buildAtempoFilter(speed: number, pitchSemitones = 0, sampleRate 
   return parts.length ? ["-af", parts.join(",")] : [];
 }
 
-function ffmpegEncoderArgsForFormat(format: PhononAudioFormat, speed: number, pitchSemitones = 0, sampleRate = 24000): string[] {
+function ffmpegEncoderArgsForFormat(
+  format: PhononAudioFormat,
+  speed: number,
+  pitchSemitones = 0,
+  sampleRate = 24000,
+): string[] {
   const filter = buildAtempoFilter(speed, pitchSemitones, sampleRate);
   const aacBitrate = sampleRate <= 24000 ? "128k" : "192k";
   switch (format) {
@@ -5102,9 +6726,27 @@ function ffmpegEncoderArgsForFormat(format: PhononAudioFormat, speed: number, pi
     case "mp3":
       return [...filter, "-vn", "-c:a", "libmp3lame", "-q:a", "2"];
     case "m4a":
-      return [...filter, "-vn", "-c:a", "aac", "-b:a", aacBitrate, "-movflags", "+faststart"];
+      return [
+        ...filter,
+        "-vn",
+        "-c:a",
+        "aac",
+        "-b:a",
+        aacBitrate,
+        "-movflags",
+        "+faststart",
+      ];
     case "aac":
-      return [...filter, "-vn", "-c:a", "aac", "-b:a", aacBitrate, "-f", "adts"];
+      return [
+        ...filter,
+        "-vn",
+        "-c:a",
+        "aac",
+        "-b:a",
+        aacBitrate,
+        "-f",
+        "adts",
+      ];
     case "flac":
       return [...filter, "-vn", "-c:a", "flac"];
     case "ogg":
@@ -5119,36 +6761,58 @@ function ffmpegEncoderArgsForFormat(format: PhononAudioFormat, speed: number, pi
     case "mov":
       return [
         ...filter,
-        "-c:v", "libx264",
-        "-preset", "ultrafast",
-        "-tune", "stillimage",
-        "-crf", "23",
-        "-pix_fmt", "yuv420p",
-        "-c:a", "aac",
-        "-b:a", aacBitrate,
-        "-movflags", "+faststart",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "ultrafast",
+        "-tune",
+        "stillimage",
+        "-crf",
+        "23",
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "aac",
+        "-b:a",
+        aacBitrate,
+        "-movflags",
+        "+faststart",
       ];
     case "webm":
       return [
         ...filter,
-        "-c:v", "libvpx-vp9",
-        "-b:v", "1200k",
-        "-deadline", "realtime",
-        "-cpu-used", "5",
-        "-pix_fmt", "yuv420p",
-        "-c:a", "libopus",
-        "-b:a", "128k",
+        "-c:v",
+        "libvpx-vp9",
+        "-b:v",
+        "1200k",
+        "-deadline",
+        "realtime",
+        "-cpu-used",
+        "5",
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "libopus",
+        "-b:a",
+        "128k",
       ];
     case "mkv":
       return [
         ...filter,
-        "-c:v", "libx264",
-        "-preset", "ultrafast",
-        "-tune", "stillimage",
-        "-crf", "23",
-        "-pix_fmt", "yuv420p",
-        "-c:a", "aac",
-        "-b:a", aacBitrate,
+        "-c:v",
+        "libx264",
+        "-preset",
+        "ultrafast",
+        "-tune",
+        "stillimage",
+        "-crf",
+        "23",
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "aac",
+        "-b:a",
+        aacBitrate,
       ];
   }
 }
@@ -5216,9 +6880,13 @@ export async function synthesizeAndExportAudioFile(
     onChunkProgress,
     onStageLog,
   } = params;
-  if (!chunks.length) throw new FmError("EMPTY_TEXT", "There is no text to synthesize.");
+  if (!chunks.length)
+    throw new FmError("EMPTY_TEXT", "There is no text to synthesize.");
 
-  const tmpDir = nodePath.join(tmpdir(), `fm-phonon-export-${process.pid}-${randomBytes(6).toString("hex")}`);
+  const tmpDir = nodePath.join(
+    tmpdir(),
+    `fm-phonon-export-${process.pid}-${randomBytes(6).toString("hex")}`,
+  );
   await fsp.mkdir(tmpDir, { recursive: true });
   const stitchedWavPath = nodePath.join(tmpDir, "stitched.wav");
   const stagedOutPath = nodePath.join(tmpDir, `out.${format}`);
@@ -5239,7 +6907,13 @@ export async function synthesizeAndExportAudioFile(
       for (let i = 0; i < chunks.length; i++) {
         if (signal?.aborted) throw new Error("Cancelled");
         const chunk = chunks[i]!;
-        const wavBuf = await synthesizePhononChunkWav(ctx, ollamaExe, chunk.text, voice, signal);
+        const wavBuf = await synthesizePhononChunkWav(
+          ctx,
+          ollamaExe,
+          chunk.text,
+          voice,
+          signal,
+        );
         const parsed = parseWavPcm(wavBuf);
         if (i === 0) {
           sampleRate = parsed.sampleRate;
@@ -5247,11 +6921,21 @@ export async function synthesizeAndExportAudioFile(
           bitsPerSample = parsed.bitsPerSample;
         }
 
-        const bytesPerSec = Math.max(1, sampleRate * numChannels * (bitsPerSample >> 3));
-        const chunkStartMs = Math.round(((totalPcmBytes / bytesPerSec) * 1000) / safeSpeed);
+        const bytesPerSec = Math.max(
+          1,
+          sampleRate * numChannels * (bitsPerSample >> 3),
+        );
+        const chunkStartMs = Math.round(
+          ((totalPcmBytes / bytesPerSec) * 1000) / safeSpeed,
+        );
 
         if (parsed.pcmData.length > 0) {
-          await wavHandle.write(parsed.pcmData, 0, parsed.pcmData.length, 44 + totalPcmBytes);
+          await wavHandle.write(
+            parsed.pcmData,
+            0,
+            parsed.pcmData.length,
+            44 + totalPcmBytes,
+          );
           totalPcmBytes += parsed.pcmData.length;
         }
 
@@ -5265,7 +6949,11 @@ export async function synthesizeAndExportAudioFile(
           chunkDurationMs,
           chunkStartMs,
           chunk.index,
-          { pcmData: parsed.pcmData, sampleRate: parsed.sampleRate, speed: safeSpeed },
+          {
+            pcmData: parsed.pcmData,
+            sampleRate: parsed.sampleRate,
+            speed: safeSpeed,
+          },
         );
         timedChunks.push({
           index: chunk.index,
@@ -5282,13 +6970,21 @@ export async function synthesizeAndExportAudioFile(
         // Insert natural silence gap between chunks (longer pause between different paragraphs, short pause within a paragraph)
         if (i + 1 < chunks.length && pauseMs > 0) {
           const nextChunk = chunks[i + 1]!;
-          const gapMs = nextChunk.paragraphIndex !== chunk.paragraphIndex ? pauseMs : Math.min(120, Math.round(pauseMs * 0.5));
+          const gapMs =
+            nextChunk.paragraphIndex !== chunk.paragraphIndex
+              ? pauseMs
+              : Math.min(120, Math.round(pauseMs * 0.5));
           const bytesPerSample = numChannels * (bitsPerSample >> 3);
           const silenceSamples = Math.round((sampleRate * gapMs) / 1000);
           const silenceBytes = silenceSamples * bytesPerSample;
           if (silenceBytes > 0) {
             const silenceBuf = Buffer.alloc(silenceBytes);
-            await wavHandle.write(silenceBuf, 0, silenceBuf.length, 44 + totalPcmBytes);
+            await wavHandle.write(
+              silenceBuf,
+              0,
+              silenceBuf.length,
+              44 + totalPcmBytes,
+            );
             totalPcmBytes += silenceBuf.length;
           }
         }
@@ -5297,14 +6993,25 @@ export async function synthesizeAndExportAudioFile(
       }
 
       // Write final 44-byte RIFF/WAVE header at offset 0
-      const finalHeader = createWavHeader(totalPcmBytes, sampleRate, numChannels, bitsPerSample);
+      const finalHeader = createWavHeader(
+        totalPcmBytes,
+        sampleRate,
+        numChannels,
+        bitsPerSample,
+      );
       await wavHandle.write(finalHeader, 0, 44, 0);
     } finally {
       await wavHandle.close();
     }
 
-    const bytesPerSec = Math.max(1, sampleRate * numChannels * (bitsPerSample >> 3));
-    const expectedDurationSec = Math.max(1, Math.round((totalPcmBytes / bytesPerSec / safeSpeed) * 100) / 100);
+    const bytesPerSec = Math.max(
+      1,
+      sampleRate * numChannels * (bitsPerSample >> 3),
+    );
+    const expectedDurationSec = Math.max(
+      1,
+      Math.round((totalPcmBytes / bytesPerSec / safeSpeed) * 100) / 100,
+    );
     onStageLog?.(
       `All ${chunks.length} chunk${chunks.length === 1 ? "" : "s"} synthesized (${formatSecClock(expectedDurationSec)} audio). Encoding ${format.toUpperCase()}…`,
     );
@@ -5345,14 +7052,19 @@ export async function synthesizeAndExportAudioFile(
             const chunkStr = decoder.decode(value, { stream: true });
             fullErr += chunkStr;
             if (onStageLog && expectedDurationSec > 2) {
-              const matches = [...chunkStr.matchAll(/time=(\d+):(\d+):(\d+(?:\.\d+)?)/g)];
+              const matches = [
+                ...chunkStr.matchAll(/time=(\d+):(\d+):(\d+(?:\.\d+)?)/g),
+              ];
               const lastMatch = matches[matches.length - 1];
               if (lastMatch) {
                 const curSec =
                   Number(lastMatch[1]) * 3600 +
                   Number(lastMatch[2]) * 60 +
                   Number(lastMatch[3]);
-                const pct = Math.min(99, Math.max(1, Math.round((curSec / expectedDurationSec) * 100)));
+                const pct = Math.min(
+                  99,
+                  Math.max(1, Math.round((curSec / expectedDurationSec) * 100)),
+                );
                 const now = Date.now();
                 if (now - lastLogAt >= 850 && pct !== lastLoggedPct) {
                   lastLogAt = now;
@@ -5382,7 +7094,8 @@ export async function synthesizeAndExportAudioFile(
       }
     };
 
-    const needsSpeedOrPitchFilter = Math.abs(speed - 1) >= 0.01 || Math.abs(pitch) >= 0.25;
+    const needsSpeedOrPitchFilter =
+      Math.abs(speed - 1) >= 0.01 || Math.abs(pitch) >= 0.25;
     if (format === "wav" && (!needsSpeedOrPitchFilter || !ffmpegExe)) {
       await publishStagedFile(stitchedWavPath, outputPath);
     } else if (format === "aiff" && !ffmpegExe) {
@@ -5390,16 +7103,28 @@ export async function synthesizeAndExportAudioFile(
       await publishStagedFile(stagedOutPath, outputPath);
     } else if (isPhononVideoFormat(format)) {
       if (!ffmpegExe) {
-        throw new FmError("MISSING_TOOL", `Saving a Read-Along Video (.${format.toUpperCase()}) requires ffmpeg. Click 1-Click Install ffmpeg first.`);
+        throw new FmError(
+          "MISSING_TOOL",
+          `Saving a Read-Along Video (.${format.toUpperCase()}) requires ffmpeg. Click 1-Click Install ffmpeg first.`,
+        );
       }
-      const aspect = VIDEO_ASPECT_INFO[aspectRatio] ?? VIDEO_ASPECT_INFO["16:9"];
+      const aspect =
+        VIDEO_ASPECT_INFO[aspectRatio] ?? VIDEO_ASPECT_INFO["16:9"];
       const theme = VIDEO_THEME_INFO[videoTheme] ?? VIDEO_THEME_INFO.midnight;
-      const docTitle = title || splitName(nodePath.basename(outputPath))[0] || "Phonon Read-Along";
+      const docTitle =
+        title ||
+        splitName(nodePath.basename(outputPath))[0] ||
+        "Phonon Read-Along";
       const assPath = nodePath.join(tmpDir, "subtitles.ass");
       const tmpSrtPath = nodePath.join(tmpDir, "subtitles.srt");
       await fsp.writeFile(
         assPath,
-        formatAssKaraokeSubtitles(timeline, { voice, title: docTitle, aspectRatio, videoTheme }),
+        formatAssKaraokeSubtitles(timeline, {
+          voice,
+          title: docTitle,
+          aspectRatio,
+          videoTheme,
+        }),
         "utf8",
       );
       if (srtContent) {
@@ -5415,40 +7140,64 @@ export async function synthesizeAndExportAudioFile(
         "-hide_banner",
         "-nostdin",
         "-y",
-        "-f", "lavfi",
-        "-i", `color=c=0x${theme.bgHex}:s=${aspect.width}x${aspect.height}:r=${primaryFps}`,
-        "-i", "stitched.wav",
+        "-f",
+        "lavfi",
+        "-i",
+        `color=c=0x${theme.bgHex}:s=${aspect.width}x${aspect.height}:r=${primaryFps}`,
+        "-i",
+        "stitched.wav",
         "-shortest",
-        "-vf", "ass=subtitles.ass",
+        "-vf",
+        "ass=subtitles.ass",
         ...ffmpegEncoderArgsForFormat(format, speed, pitch, sampleRate),
         `out.${format}`,
       ];
-      let { outText, errText, exitCode } = await runFfmpegWithAbort(primaryArgs, tmpDir);
+      let { outText, errText, exitCode } = await runFfmpegWithAbort(
+        primaryArgs,
+        tmpDir,
+      );
 
       // 2. Fast fallback if this ffmpeg build does not have `libass` (`ass` filter) compiled in:
       //    embed synchronized soft subtitles (`mov_text` for MP4/MOV, `srt` for MKV) + low-fps stillimage H.264 canvas
       //    (renders a 100-minute 242-chunk book in ~4 seconds at ~1,500x real-time speed!).
-      if ((exitCode !== 0 || !existsSync(stagedOutPath)) && srtContent && (format === "mp4" || format === "mov" || format === "mkv")) {
+      if (
+        (exitCode !== 0 || !existsSync(stagedOutPath)) &&
+        srtContent &&
+        (format === "mp4" || format === "mov" || format === "mkv")
+      ) {
         const subCodec = format === "mkv" ? "srt" : "mov_text";
         const embeddedSubArgs = [
           "-hide_banner",
           "-nostdin",
           "-y",
-          "-f", "lavfi",
-          "-i", `color=c=0x${theme.bgHex}:s=${aspect.width}x${aspect.height}:r=${fallbackFps}`,
-          "-i", "stitched.wav",
-          "-i", "subtitles.srt",
-          "-map", "0:v:0",
-          "-map", "1:a:0",
-          "-map", "2:s:0",
+          "-f",
+          "lavfi",
+          "-i",
+          `color=c=0x${theme.bgHex}:s=${aspect.width}x${aspect.height}:r=${fallbackFps}`,
+          "-i",
+          "stitched.wav",
+          "-i",
+          "subtitles.srt",
+          "-map",
+          "0:v:0",
+          "-map",
+          "1:a:0",
+          "-map",
+          "2:s:0",
           "-shortest",
           ...ffmpegEncoderArgsForFormat(format, speed, pitch, sampleRate),
-          "-c:s", subCodec,
-          "-metadata:s:s:0", "language=eng",
-          "-disposition:s:0", "default",
+          "-c:s",
+          subCodec,
+          "-metadata:s:s:0",
+          "language=eng",
+          "-disposition:s:0",
+          "default",
           `out.${format}`,
         ];
-        ({ outText, errText, exitCode } = await runFfmpegWithAbort(embeddedSubArgs, tmpDir));
+        ({ outText, errText, exitCode } = await runFfmpegWithAbort(
+          embeddedSubArgs,
+          tmpDir,
+        ));
       }
 
       // 3. Final fallback without embedded subtitle stream (e.g. WebM or if subtitle muxing failed)
@@ -5457,24 +7206,35 @@ export async function synthesizeAndExportAudioFile(
           "-hide_banner",
           "-nostdin",
           "-y",
-          "-f", "lavfi",
-          "-i", `color=c=0x${theme.bgHex}:s=${aspect.width}x${aspect.height}:r=${fallbackFps}`,
-          "-i", "stitched.wav",
+          "-f",
+          "lavfi",
+          "-i",
+          `color=c=0x${theme.bgHex}:s=${aspect.width}x${aspect.height}:r=${fallbackFps}`,
+          "-i",
+          "stitched.wav",
           "-shortest",
           ...ffmpegEncoderArgsForFormat(format, speed, pitch, sampleRate),
           `out.${format}`,
         ];
-        ({ outText, errText, exitCode } = await runFfmpegWithAbort(fallbackCanvasArgs, tmpDir));
+        ({ outText, errText, exitCode } = await runFfmpegWithAbort(
+          fallbackCanvasArgs,
+          tmpDir,
+        ));
       }
 
       if (exitCode !== 0 || !existsSync(stagedOutPath)) {
-        throw new Error(explainFailure("ffmpeg", `${outText}\n${errText}`, exitCode));
+        throw new Error(
+          explainFailure("ffmpeg", `${outText}\n${errText}`, exitCode),
+        );
       }
       onStageLog?.(`Finalizing ${nodePath.basename(outputPath)}…`);
       await publishStagedFile(stagedOutPath, outputPath);
     } else {
       if (!ffmpegExe) {
-        throw new FmError("MISSING_TOOL", `Saving as .${format.toUpperCase()} requires ffmpeg. Install ffmpeg with one click, or choose WAV or AIFF.`);
+        throw new FmError(
+          "MISSING_TOOL",
+          `Saving as .${format.toUpperCase()} requires ffmpeg. Install ffmpeg with one click, or choose WAV or AIFF.`,
+        );
       }
       const ffArgs = [
         "-hide_banner",
@@ -5487,7 +7247,9 @@ export async function synthesizeAndExportAudioFile(
       ];
       const { outText, errText, exitCode } = await runFfmpegWithAbort(ffArgs);
       if (exitCode !== 0 || !existsSync(stagedOutPath)) {
-        throw new Error(explainFailure("ffmpeg", `${outText}\n${errText}`, exitCode));
+        throw new Error(
+          explainFailure("ffmpeg", `${outText}\n${errText}`, exitCode),
+        );
       }
       onStageLog?.(`Finalizing ${nodePath.basename(outputPath)}…`);
       await publishStagedFile(stagedOutPath, outputPath);
@@ -5496,11 +7258,19 @@ export async function synthesizeAndExportAudioFile(
     // Publish companion .srt and .vtt subtitle files after the video file is successfully written
     if (isPhononVideoFormat(format) && saveSubtitles) {
       const outDir = nodePath.dirname(outputPath);
-      const outBase = nodePath.basename(outputPath).replace(/\.(mp4|webm|mov|mkv)$/i, "") || "speech";
+      const outBase =
+        nodePath.basename(outputPath).replace(/\.(mp4|webm|mov|mkv)$/i, "") ||
+        "speech";
       srtPath = uniqueOutputFilePath(outDir, `${outBase}.srt`);
       vttPath = uniqueOutputFilePath(outDir, `${outBase}.vtt`);
-      await fsp.writeFile(srtPath, srtContent, { encoding: "utf8", flag: "wx" });
-      await fsp.writeFile(vttPath, vttContent, { encoding: "utf8", flag: "wx" });
+      await fsp.writeFile(srtPath, srtContent, {
+        encoding: "utf8",
+        flag: "wx",
+      });
+      await fsp.writeFile(vttPath, vttContent, {
+        encoding: "utf8",
+        flag: "wx",
+      });
     }
 
     const finalStat = await fsp.stat(outputPath);
@@ -5541,55 +7311,103 @@ export async function startPhononAudioExportJob(
     saveSubtitles?: unknown;
     title?: unknown;
   },
-): Promise<{ job: ReturnType<FmContext["jobs"]["start"]>; outputs: string[]; isVideo: boolean }> {
+): Promise<{
+  job: ReturnType<FmContext["jobs"]["start"]>;
+  outputs: string[];
+  isVideo: boolean;
+}> {
   const settings = await loadSettings(ctx);
-  const voice = typeof body.voice === "string" && /^[A-Za-z0-9 _-]{1,48}$/.test(body.voice.trim()) ? body.voice.trim() : settings.phononVoice || "Zoey";
-  const format: PhononAudioFormat = (PHONON_AUDIO_FORMATS as readonly string[]).includes(String(body.format ?? ""))
+  const voice =
+    typeof body.voice === "string" &&
+    /^[A-Za-z0-9 _-]{1,48}$/.test(body.voice.trim())
+      ? body.voice.trim()
+      : settings.phononVoice || "Zoey";
+  const format: PhononAudioFormat = (
+    PHONON_AUDIO_FORMATS as readonly string[]
+  ).includes(String(body.format ?? ""))
     ? (body.format as PhononAudioFormat)
     : settings.phononFormat || "wav";
-  const speed = typeof body.speed === "number" && isFinite(body.speed) ? Math.min(2.5, Math.max(0.5, body.speed)) : settings.phononSpeed || 1;
-  const userPitch = typeof body.pitch === "number" && isFinite(body.pitch)
-    ? Math.round(Math.min(6, Math.max(-6, body.pitch)) * 2) / 2
-    : (settings.phononPitch ?? 0);
+  const speed =
+    typeof body.speed === "number" && isFinite(body.speed)
+      ? Math.min(2.5, Math.max(0.5, body.speed))
+      : settings.phononSpeed || 1;
+  const userPitch =
+    typeof body.pitch === "number" && isFinite(body.pitch)
+      ? Math.round(Math.min(6, Math.max(-6, body.pitch)) * 2) / 2
+      : (settings.phononPitch ?? 0);
   const pitch = userPitch;
-  const pauseMs = typeof body.pauseMs === "number" && isFinite(body.pauseMs) ? Math.min(2000, Math.max(0, Math.round(body.pauseMs))) : settings.phononPauseMs ?? 200;
-  const cleanText = typeof body.cleanText === "boolean" ? body.cleanText : (settings.phononCleanText ?? true);
-  const maxChunkChars = typeof body.maxChunkChars === "number" && isFinite(body.maxChunkChars)
-    ? Math.min(PHONON_HARD_MAX_CHUNK_CHARS, Math.max(150, Math.round(body.maxChunkChars)))
-    : PHONON_BATCH_CHUNK_CHARS;
-  const aspectRatio: PhononVideoAspect = (PHONON_VIDEO_ASPECTS as readonly string[]).includes(String(body.aspectRatio ?? ""))
+  const pauseMs =
+    typeof body.pauseMs === "number" && isFinite(body.pauseMs)
+      ? Math.min(2000, Math.max(0, Math.round(body.pauseMs)))
+      : (settings.phononPauseMs ?? 200);
+  const cleanText =
+    typeof body.cleanText === "boolean"
+      ? body.cleanText
+      : (settings.phononCleanText ?? true);
+  const maxChunkChars =
+    typeof body.maxChunkChars === "number" && isFinite(body.maxChunkChars)
+      ? Math.min(
+          PHONON_HARD_MAX_CHUNK_CHARS,
+          Math.max(150, Math.round(body.maxChunkChars)),
+        )
+      : PHONON_BATCH_CHUNK_CHARS;
+  const aspectRatio: PhononVideoAspect = (
+    PHONON_VIDEO_ASPECTS as readonly string[]
+  ).includes(String(body.aspectRatio ?? ""))
     ? (body.aspectRatio as PhononVideoAspect)
     : "16:9";
-  const videoTheme: PhononVideoTheme = (PHONON_VIDEO_THEMES as readonly string[]).includes(String(body.videoTheme ?? ""))
+  const videoTheme: PhononVideoTheme = (
+    PHONON_VIDEO_THEMES as readonly string[]
+  ).includes(String(body.videoTheme ?? ""))
     ? (body.videoTheme as PhononVideoTheme)
     : "midnight";
-  const saveSubtitles = typeof body.saveSubtitles === "boolean" ? body.saveSubtitles : true;
+  const saveSubtitles =
+    typeof body.saveSubtitles === "boolean" ? body.saveSubtitles : true;
   const customTitle = typeof body.title === "string" ? body.title.trim() : "";
 
   const ollamaExe = resolveTool(ctx, "ollama");
   if (!ollamaExe) {
-    throw new FmError("MISSING_TOOL", "Ollama isn't installed yet. Click Install Ollama & Phonon first.");
+    throw new FmError(
+      "MISSING_TOOL",
+      "Ollama isn't installed yet. Click Install Ollama & Phonon first.",
+    );
   }
   const ffmpegExe = resolveTool(ctx, "ffmpeg");
-  const fmtInfo = ALL_MEDIA_FORMAT_INFO.find((f) => f.id === format) ?? AUDIO_FORMAT_INFO[0]!;
+  const fmtInfo =
+    ALL_MEDIA_FORMAT_INFO.find((f) => f.id === format) ?? AUDIO_FORMAT_INFO[0]!;
   if (fmtInfo.needsFfmpeg && !ffmpegExe) {
-    throw new FmError("MISSING_TOOL", `Saving as .${format.toUpperCase()} needs ffmpeg. Install ffmpeg or choose WAV / AIFF.`);
+    throw new FmError(
+      "MISSING_TOOL",
+      `Saving as .${format.toUpperCase()} needs ffmpeg. Install ffmpeg or choose WAV / AIFF.`,
+    );
   }
 
-  const rawPaths = Array.isArray(body.paths) ? body.paths.filter((p): p is string => typeof p === "string" && p.trim().length > 0) : [];
+  const rawPaths = Array.isArray(body.paths)
+    ? body.paths.filter(
+        (p): p is string => typeof p === "string" && p.trim().length > 0,
+      )
+    : [];
   const directText = typeof body.text === "string" ? body.text.trim() : "";
 
   if (!directText && rawPaths.length === 0) {
-    throw new FmError("BAD_REQUEST", "Provide text or select at least one file to save as audio or read-along video.");
+    throw new FmError(
+      "BAD_REQUEST",
+      "Provide text or select at least one file to save as audio or read-along video.",
+    );
   }
 
-  const targetDir = typeof body.outputDir === "string" && body.outputDir.trim()
-    ? absolutePath(ctx, body.outputDir)
-    : rawPaths.length > 0
-      ? nodePath.dirname(absolutePath(ctx, rawPaths[0]!))
-      : ctx.home;
+  const targetDir =
+    typeof body.outputDir === "string" && body.outputDir.trim()
+      ? absolutePath(ctx, body.outputDir)
+      : rawPaths.length > 0
+        ? nodePath.dirname(absolutePath(ctx, rawPaths[0]!))
+        : ctx.home;
 
-  const protectWhy = protectedReason(targetDir, { platform: ctx.platform, home: ctx.home, extraProtected: [ctx.trashRoot] }, "create");
+  const protectWhy = protectedReason(
+    targetDir,
+    { platform: ctx.platform, home: ctx.home, extraProtected: [ctx.trashRoot] },
+    "create",
+  );
   if (protectWhy) {
     throw new FmError("PROTECTED_PATH", protectWhy);
   }
@@ -5600,24 +7418,44 @@ export async function startPhononAudioExportJob(
     label: string;
     output: string;
     timeoutMs: number;
-    prepare: () => Promise<{ work: (signal: AbortSignal, log: (text: string) => void) => Promise<string | void> }>;
+    prepare: () => Promise<{
+      work: (
+        signal: AbortSignal,
+        log: (text: string) => void,
+      ) => Promise<string | void>;
+    }>;
   }> = [];
 
   const isVideo = isPhononVideoFormat(format);
 
   if (directText) {
     const cleaned = cleanText ? cleanTextForSpeech(directText) : directText;
-    const chunks = splitTextForPhonon(cleaned, { maxChars: maxChunkChars, mergeShortParagraphs: true });
-    if (!chunks.length) throw new FmError("EMPTY_TEXT", "There are no readable words to save.");
+    const chunks = splitTextForPhonon(cleaned, {
+      maxChars: maxChunkChars,
+      mergeShortParagraphs: true,
+    });
+    if (!chunks.length)
+      throw new FmError("EMPTY_TEXT", "There are no readable words to save.");
 
-    const rawOutName = typeof body.outputName === "string" && body.outputName.trim()
-      ? nodePath.basename(body.outputName.trim())
-      : isVideo
-        ? "read-along-video"
-        : "speech";
-    const rawBase = rawOutName.replace(/\.(wav|mp3|m4a|aac|flac|ogg|opus|aiff|wma|mp4|webm|mov|mkv|txt|md|epub|pdf|docx|rtf|html|htm|srt|vtt)$/i, "").trim() || "speech";
-    const safeStem = rawBase.replace(/[<>:"/\\|?*\x00-\x1f]/g, "_").slice(0, 120) || "speech";
-    const outPath = uniqueOutputFilePath(targetDir, `${safeStem}.${fmtInfo.ext}`);
+    const rawOutName =
+      typeof body.outputName === "string" && body.outputName.trim()
+        ? nodePath.basename(body.outputName.trim())
+        : isVideo
+          ? "read-along-video"
+          : "speech";
+    const rawBase =
+      rawOutName
+        .replace(
+          /\.(wav|mp3|m4a|aac|flac|ogg|opus|aiff|wma|mp4|webm|mov|mkv|txt|md|epub|pdf|docx|rtf|html|htm|srt|vtt)$/i,
+          "",
+        )
+        .trim() || "speech";
+    const safeStem =
+      rawBase.replace(/[<>:"/\\|?*\x00-\x1f]/g, "_").slice(0, 120) || "speech";
+    const outPath = uniqueOutputFilePath(
+      targetDir,
+      `${safeStem}.${fmtInfo.ext}`,
+    );
     outputs.push(outPath);
 
     steps.push({
@@ -5626,7 +7464,9 @@ export async function startPhononAudioExportJob(
       timeoutMs: Math.max(10 * 60 * 1000, chunks.length * 90_000),
       prepare: async () => ({
         work: async (signal: AbortSignal, log: (text: string) => void) => {
-          log(`Starting voice synthesis: 0 of ${chunks.length} chunks (${voice})…\n`);
+          log(
+            `Starting voice synthesis: 0 of ${chunks.length} chunks (${voice})…\n`,
+          );
           await ensureOllamaDaemon(ctx, ollamaExe);
           const res = await synthesizeAndExportAudioFile(ctx, {
             ollamaExe,
@@ -5650,7 +7490,10 @@ export async function startPhononAudioExportJob(
               log(`${line}\n`);
             },
           });
-          if (res.srtPath) log(`Saved synchronized subtitles: ${nodePath.basename(res.srtPath)} & ${nodePath.basename(res.vttPath || "")}\n`);
+          if (res.srtPath)
+            log(
+              `Saved synchronized subtitles: ${nodePath.basename(res.srtPath)} & ${nodePath.basename(res.vttPath || "")}\n`,
+            );
         },
       }),
     });
@@ -5658,7 +7501,10 @@ export async function startPhononAudioExportJob(
     for (const rawP of rawPaths) {
       const srcPath = absolutePath(ctx, rawP);
       const stem = splitName(nodePath.basename(srcPath))[0] || "speech";
-      const outDir = typeof body.outputDir === "string" && body.outputDir.trim() ? targetDir : nodePath.dirname(srcPath);
+      const outDir =
+        typeof body.outputDir === "string" && body.outputDir.trim()
+          ? targetDir
+          : nodePath.dirname(srcPath);
       const outPath = uniqueOutputFilePath(outDir, `${stem}.${fmtInfo.ext}`);
       outputs.push(outPath);
 
@@ -5670,10 +7516,21 @@ export async function startPhononAudioExportJob(
           work: async (signal: AbortSignal, log: (text: string) => void) => {
             log(`Extracting text from ${nodePath.basename(srcPath)}…\n`);
             await ensureOllamaDaemon(ctx, ollamaExe);
-            const extracted = await extractPlainTextFromFile(ctx, srcPath, { clean: cleanText, maxChars: maxChunkChars });
-            const chunks = splitTextForPhonon(extracted.text, { maxChars: maxChunkChars, mergeShortParagraphs: true });
-            if (!chunks.length) throw new Error(`No readable text in ${nodePath.basename(srcPath)}.`);
-            log(`Prepared ${chunks.length} chunks (${extracted.wordCount.toLocaleString()} words). Starting voice synthesis (${voice})…\n`);
+            const extracted = await extractPlainTextFromFile(ctx, srcPath, {
+              clean: cleanText,
+              maxChars: maxChunkChars,
+            });
+            const chunks = splitTextForPhonon(extracted.text, {
+              maxChars: maxChunkChars,
+              mergeShortParagraphs: true,
+            });
+            if (!chunks.length)
+              throw new Error(
+                `No readable text in ${nodePath.basename(srcPath)}.`,
+              );
+            log(
+              `Prepared ${chunks.length} chunks (${extracted.wordCount.toLocaleString()} words). Starting voice synthesis (${voice})…\n`,
+            );
             const res = await synthesizeAndExportAudioFile(ctx, {
               ollamaExe,
               ffmpegExe,
@@ -5690,13 +7547,18 @@ export async function startPhononAudioExportJob(
               title: customTitle || extracted.title || stem,
               signal,
               onChunkProgress: (done, total) => {
-                log(`Synthesized chunk ${done} of ${total} for ${nodePath.basename(srcPath)}\n`);
+                log(
+                  `Synthesized chunk ${done} of ${total} for ${nodePath.basename(srcPath)}\n`,
+                );
               },
               onStageLog: (line) => {
                 log(`${line}\n`);
               },
             });
-            if (res.srtPath) log(`Saved synchronized subtitles: ${nodePath.basename(res.srtPath)}\n`);
+            if (res.srtPath)
+              log(
+                `Saved synchronized subtitles: ${nodePath.basename(res.srtPath)}\n`,
+              );
           },
         }),
       });
@@ -5719,29 +7581,48 @@ export async function startPhononAudioExportJob(
  */
 export async function savePlainTextToFile(
   ctx: FmContext,
-  body: { text?: unknown; sourcePath?: unknown; outputDir?: unknown; outputName?: unknown },
+  body: {
+    text?: unknown;
+    sourcePath?: unknown;
+    outputDir?: unknown;
+    outputName?: unknown;
+  },
 ): Promise<{ path: string; size: number }> {
   const text = typeof body.text === "string" ? body.text : "";
-  if (!text.trim()) throw new FmError("EMPTY_TEXT", "There is no plain text to save.");
+  if (!text.trim())
+    throw new FmError("EMPTY_TEXT", "There is no plain text to save.");
 
-  const srcPath = typeof body.sourcePath === "string" && body.sourcePath.trim() ? absolutePath(ctx, body.sourcePath) : "";
-  const dir = typeof body.outputDir === "string" && body.outputDir.trim()
-    ? absolutePath(ctx, body.outputDir)
-    : srcPath
-      ? nodePath.dirname(srcPath)
-      : ctx.home;
+  const srcPath =
+    typeof body.sourcePath === "string" && body.sourcePath.trim()
+      ? absolutePath(ctx, body.sourcePath)
+      : "";
+  const dir =
+    typeof body.outputDir === "string" && body.outputDir.trim()
+      ? absolutePath(ctx, body.outputDir)
+      : srcPath
+        ? nodePath.dirname(srcPath)
+        : ctx.home;
 
-  const protectWhy = protectedReason(dir, { platform: ctx.platform, home: ctx.home, extraProtected: [ctx.trashRoot] }, "create");
+  const protectWhy = protectedReason(
+    dir,
+    { platform: ctx.platform, home: ctx.home, extraProtected: [ctx.trashRoot] },
+    "create",
+  );
   if (protectWhy) {
     throw new FmError("PROTECTED_PATH", protectWhy);
   }
   await fsp.mkdir(dir, { recursive: true });
 
-  const defaultStem = srcPath ? `${splitName(nodePath.basename(srcPath))[0]} (plain text)` : "plain-text";
-  const rawStem = typeof body.outputName === "string" && body.outputName.trim()
-    ? splitName(nodePath.basename(body.outputName.trim()))[0] || defaultStem
-    : defaultStem;
-  const safeStem = rawStem.replace(/[<>:"/\\|?*\x00-\x1f]/g, "_").slice(0, 120) || "plain-text";
+  const defaultStem = srcPath
+    ? `${splitName(nodePath.basename(srcPath))[0]} (plain text)`
+    : "plain-text";
+  const rawStem =
+    typeof body.outputName === "string" && body.outputName.trim()
+      ? splitName(nodePath.basename(body.outputName.trim()))[0] || defaultStem
+      : defaultStem;
+  const safeStem =
+    rawStem.replace(/[<>:"/\\|?*\x00-\x1f]/g, "_").slice(0, 120) ||
+    "plain-text";
   const outPath = uniqueOutputFilePath(dir, `${safeStem}.txt`);
   const normalized = `${text.replace(/\r\n?/g, "\n").trim()}\n`;
   await fsp.writeFile(outPath, normalized, "utf8");
@@ -5763,19 +7644,27 @@ export interface PhononAudiobookChapterPlan {
   estimatedSeconds: number;
 }
 
-function splitPlainTextIntoChapterSections(rawText: string, maxChapters = 60): Array<{ title: string; text: string }> {
+function splitPlainTextIntoChapterSections(
+  rawText: string,
+  maxChapters = 60,
+): Array<{ title: string; text: string }> {
   const lines = rawText.replace(/\r\n?/g, "\n").split("\n");
   const sections: Array<{ title: string; lines: string[] }> = [];
-  let current: { title: string; lines: string[] } = { title: "Chapter 1", lines: [] };
+  let current: { title: string; lines: string[] } = {
+    title: "Chapter 1",
+    lines: [],
+  };
 
   for (const line of lines) {
     const trimmed = line.trim();
     const mdHeading = /^#{1,3}\s+(.{2,90})$/.exec(trimmed);
-    const chapHeading = /^(?:chapter|part|book|section|prologue|epilogue)\s+(?:\d+|[ivxlcdm]+|[a-z]+)(?:\s*[:.—-]\s*(.{1,80}))?$/i.exec(
-      trimmed,
-    );
+    const chapHeading =
+      /^(?:chapter|part|book|section|prologue|epilogue)\s+(?:\d+|[ivxlcdm]+|[a-z]+)(?:\s*[:.—-]\s*(.{1,80}))?$/i.exec(
+        trimmed,
+      );
     const bannerHeading = /^===\s*(.{2,90}?)\s*===$/.exec(trimmed);
-    const matchedTitle = mdHeading?.[1] || bannerHeading?.[1] || (chapHeading ? trimmed : "");
+    const matchedTitle =
+      mdHeading?.[1] || bannerHeading?.[1] || (chapHeading ? trimmed : "");
     if (matchedTitle && sections.length < maxChapters) {
       if (current.lines.some((l) => l.trim().length > 0)) {
         sections.push(current);
@@ -5799,15 +7688,24 @@ function splitPlainTextIntoChapterSections(rawText: string, maxChapters = 60): A
   const full = nonEmpty[0]?.text || rawText.trim();
   const paras = full.split(/\n{2,}/).filter((p) => p.trim());
   if (paras.length <= 4 || countWords(full) <= 3000) {
-    return full ? [{ title: nonEmpty[0]?.title || "Chapter 1", text: full }] : [];
+    return full
+      ? [{ title: nonEmpty[0]?.title || "Chapter 1", text: full }]
+      : [];
   }
   const chunked: Array<{ title: string; text: string }> = [];
   let acc: string[] = [];
   let accWords = 0;
   for (const p of paras) {
     const w = countWords(p);
-    if (acc.length > 0 && accWords + w > 2500 && chunked.length < maxChapters - 1) {
-      chunked.push({ title: `Part ${chunked.length + 1}`, text: acc.join("\n\n") });
+    if (
+      acc.length > 0 &&
+      accWords + w > 2500 &&
+      chunked.length < maxChapters - 1
+    ) {
+      chunked.push({
+        title: `Part ${chunked.length + 1}`,
+        text: acc.join("\n\n"),
+      });
       acc = [];
       accWords = 0;
     }
@@ -5815,7 +7713,10 @@ function splitPlainTextIntoChapterSections(rawText: string, maxChapters = 60): A
     accWords += w;
   }
   if (acc.length > 0) {
-    chunked.push({ title: `Part ${chunked.length + 1}`, text: acc.join("\n\n") });
+    chunked.push({
+      title: `Part ${chunked.length + 1}`,
+      text: acc.join("\n\n"),
+    });
   }
   return chunked;
 }
@@ -5825,10 +7726,23 @@ function splitPlainTextIntoChapterSections(rawText: string, maxChapters = 60): A
  */
 export async function extractAudiobookChapters(
   ctx: FmContext,
-  input: { path?: unknown; text?: unknown; clean?: boolean; maxChapters?: number; ext?: string },
-): Promise<{ bookTitle: string; formatLabel: string; chapters: PhononAudiobookChapterPlan[] }> {
+  input: {
+    path?: unknown;
+    text?: unknown;
+    clean?: boolean;
+    maxChapters?: number;
+    ext?: string;
+  },
+): Promise<{
+  bookTitle: string;
+  formatLabel: string;
+  chapters: PhononAudiobookChapterPlan[];
+}> {
   const clean = input.clean ?? true;
-  const maxChapters = Math.max(1, Math.min(200, Number(input.maxChapters) || 80));
+  const maxChapters = Math.max(
+    1,
+    Math.min(200, Number(input.maxChapters) || 80),
+  );
   const audioExt = (input.ext || "wav").replace(/^\./, "").toLowerCase();
 
   let bookTitle = "Audiobook";
@@ -5868,7 +7782,14 @@ export async function extractAudiobookChapters(
           const head = headBuf.subarray(0, bytesRead);
           const isBin = head.subarray(0, 8192).includes(0);
           const headText = !isBin ? decodeBytes(head, "auto", true).text : null;
-          richDoc = await inspectRichPreview(handle, filePath, st.size, head, headText, false).catch(() => null);
+          richDoc = await inspectRichPreview(
+            handle,
+            filePath,
+            st.size,
+            head,
+            headText,
+            false,
+          ).catch(() => null);
         } finally {
           await handle.close().catch(() => {});
         }
@@ -5890,16 +7811,27 @@ export async function extractAudiobookChapters(
     }
 
     if (rawChapters.length === 0) {
-      const extracted = await extractPlainTextFromFile(ctx, filePath, { clean: false });
+      const extracted = await extractPlainTextFromFile(ctx, filePath, {
+        clean: false,
+      });
       if (extracted.title?.trim()) bookTitle = extracted.title.trim();
       formatLabel = extracted.formatLabel;
-      rawChapters = splitPlainTextIntoChapterSections(extracted.rawText || extracted.text, maxChapters);
+      rawChapters = splitPlainTextIntoChapterSections(
+        extracted.rawText || extracted.text,
+        maxChapters,
+      );
     }
   } else if (typeof input.text === "string" && input.text.trim()) {
-    rawChapters = splitPlainTextIntoChapterSections(input.text.trim(), maxChapters);
+    rawChapters = splitPlainTextIntoChapterSections(
+      input.text.trim(),
+      maxChapters,
+    );
     formatLabel = "Direct Text";
   } else {
-    throw new FmError("BAD_REQUEST", "Provide a book/document path or text to export as a chaptered audiobook.");
+    throw new FmError(
+      "BAD_REQUEST",
+      "Provide a book/document path or text to export as a chaptered audiobook.",
+    );
   }
 
   const padWidth = Math.max(2, String(rawChapters.length).length);
@@ -5931,7 +7863,10 @@ export async function extractAudiobookChapters(
   }
 
   if (chapters.length === 0) {
-    throw new FmError("EMPTY_TEXT", "No readable chapters or text found to export as an audiobook.");
+    throw new FmError(
+      "EMPTY_TEXT",
+      "No readable chapters or text found to export as an audiobook.",
+    );
   }
 
   return { bookTitle, formatLabel, chapters };
@@ -5967,12 +7902,16 @@ export async function startPhononAudiobookExportJob(
 }> {
   const settings = await loadSettings(ctx);
   const voice =
-    typeof body.voice === "string" && /^[A-Za-z0-9 _-]{1,48}$/.test(body.voice.trim())
+    typeof body.voice === "string" &&
+    /^[A-Za-z0-9 _-]{1,48}$/.test(body.voice.trim())
       ? body.voice.trim()
       : settings.phononVoice || "Zoey";
-  const requestedFmt = String(body.format ?? settings.phononFormat ?? "wav").toLowerCase();
+  const requestedFmt = String(
+    body.format ?? settings.phononFormat ?? "wav",
+  ).toLowerCase();
   const format: PhononAudioFormat =
-    (PHONON_AUDIO_FORMATS as readonly string[]).includes(requestedFmt) && !isPhononVideoFormat(requestedFmt)
+    (PHONON_AUDIO_FORMATS as readonly string[]).includes(requestedFmt) &&
+    !isPhononVideoFormat(requestedFmt)
       ? (requestedFmt as PhononAudioFormat)
       : "wav";
   const speed =
@@ -5987,14 +7926,21 @@ export async function startPhononAudiobookExportJob(
     typeof body.pauseMs === "number" && isFinite(body.pauseMs)
       ? Math.min(2000, Math.max(0, Math.round(body.pauseMs)))
       : (settings.phononPauseMs ?? 200);
-  const cleanText = typeof body.cleanText === "boolean" ? body.cleanText : (settings.phononCleanText ?? true);
+  const cleanText =
+    typeof body.cleanText === "boolean"
+      ? body.cleanText
+      : (settings.phononCleanText ?? true);
   const maxChunkChars =
     typeof body.maxChunkChars === "number" && isFinite(body.maxChunkChars)
-      ? Math.min(PHONON_HARD_MAX_CHUNK_CHARS, Math.max(150, Math.round(body.maxChunkChars)))
+      ? Math.min(
+          PHONON_HARD_MAX_CHUNK_CHARS,
+          Math.max(150, Math.round(body.maxChunkChars)),
+        )
       : PHONON_BATCH_CHUNK_CHARS;
   const previewOnly = Boolean(body.previewOnly);
 
-  const fmtInfo = ALL_MEDIA_FORMAT_INFO.find((f) => f.id === format) ?? AUDIO_FORMAT_INFO[0]!;
+  const fmtInfo =
+    ALL_MEDIA_FORMAT_INFO.find((f) => f.id === format) ?? AUDIO_FORMAT_INFO[0]!;
   const extracted = await extractAudiobookChapters(ctx, {
     path: body.path,
     text: body.text,
@@ -6004,7 +7950,9 @@ export async function startPhononAudiobookExportJob(
   });
 
   const rawBookTitle =
-    typeof body.bookTitle === "string" && body.bookTitle.trim() ? body.bookTitle.trim() : extracted.bookTitle;
+    typeof body.bookTitle === "string" && body.bookTitle.trim()
+      ? body.bookTitle.trim()
+      : extracted.bookTitle;
   const safeBookTitle =
     rawBookTitle
       .replace(/[<>:"/\\|?*\x00-\x1f]/g, " ")
@@ -6017,7 +7965,9 @@ export async function startPhononAudiobookExportJob(
       ? absolutePath(ctx, raw)
       : absolutePath(ctx, nodePath.join(ctx.sandboxRoot || ctx.home, raw));
   const srcAbs =
-    typeof body.path === "string" && body.path.trim() ? resolveRelOrAbs(body.path.trim()) : "";
+    typeof body.path === "string" && body.path.trim()
+      ? resolveRelOrAbs(body.path.trim())
+      : "";
   const parentDir =
     typeof body.outputDir === "string" && body.outputDir.trim()
       ? resolveRelOrAbs(body.outputDir.trim())
@@ -6038,7 +7988,10 @@ export async function startPhononAudiobookExportJob(
     estimatedSeconds: ch.estimatedSeconds,
   }));
   const totalWords = extracted.chapters.reduce((s, c) => s + c.wordCount, 0);
-  const estimatedTotalSeconds = extracted.chapters.reduce((s, c) => s + c.estimatedSeconds, 0);
+  const estimatedTotalSeconds = extracted.chapters.reduce(
+    (s, c) => s + c.estimatedSeconds,
+    0,
+  );
 
   if (previewOnly) {
     return {
@@ -6096,11 +8049,18 @@ export async function startPhononAudiobookExportJob(
       estimatedSeconds: c.estimatedSeconds,
     })),
   };
-  await fsp.writeFile(manifestPath, JSON.stringify(manifestData, null, 2), "utf8");
+  await fsp.writeFile(
+    manifestPath,
+    JSON.stringify(manifestData, null, 2),
+    "utf8",
+  );
 
   const ollamaExe = resolveTool(ctx, "ollama");
   if (!ollamaExe) {
-    throw new FmError("MISSING_TOOL", "Ollama isn't installed yet. Click Install Ollama & Phonon first.");
+    throw new FmError(
+      "MISSING_TOOL",
+      "Ollama isn't installed yet. Click Install Ollama & Phonon first.",
+    );
   }
   const ffmpegExe = resolveTool(ctx, "ffmpeg");
   if (fmtInfo.needsFfmpeg && !ffmpegExe) {
@@ -6112,14 +8072,19 @@ export async function startPhononAudiobookExportJob(
 
   const steps = extracted.chapters.map((ch) => {
     const outPath = nodePath.join(audiobookDir, ch.safeFileName);
-    const chunks = splitTextForPhonon(ch.text, { maxChars: maxChunkChars, mergeShortParagraphs: true });
+    const chunks = splitTextForPhonon(ch.text, {
+      maxChars: maxChunkChars,
+      mergeShortParagraphs: true,
+    });
     return {
       label: `Chapter ${ch.number}/${extracted.chapters.length}: ${ch.title} → ${ch.safeFileName}`,
       output: outPath,
       timeoutMs: Math.max(10 * 60 * 1000, chunks.length * 90_000),
       prepare: async () => ({
         work: async (signal: AbortSignal, log: (text: string) => void) => {
-          log(`Synthesizing Chapter ${ch.number}: "${ch.title}" (${chunks.length} chunks, ${ch.wordCount} words, voice: ${voice})…\n`);
+          log(
+            `Synthesizing Chapter ${ch.number}: "${ch.title}" (${chunks.length} chunks, ${ch.wordCount} words, voice: ${voice})…\n`,
+          );
           await ensureOllamaDaemon(ctx, ollamaExe);
           await synthesizeAndExportAudioFile(ctx, {
             ollamaExe,
@@ -6180,7 +8145,9 @@ export async function startPhononAudiobookExportJob(
  */
 export const PHONON_OPS: Record<string, FmHandler> = {
   "phonon/status": (ctx) => getPhononStatus(ctx),
-  "phonon/install": async (ctx, b) => ({ job: startPhononInstall(ctx, (b ?? {}) as { confirm?: unknown }) }),
+  "phonon/install": async (ctx, b) => ({
+    job: startPhononInstall(ctx, (b ?? {}) as { confirm?: unknown }),
+  }),
   "phonon/voice": async (ctx, b) => {
     const rec = (b ?? {}) as Record<string, unknown>;
     const patch: Record<string, unknown> = {};
@@ -6188,8 +8155,10 @@ export const PHONON_OPS: Record<string, FmHandler> = {
     if (typeof rec.format === "string") patch.phononFormat = rec.format;
     if (typeof rec.speed === "number") patch.phononSpeed = rec.speed;
     if (typeof rec.pitch === "number") patch.phononPitch = rec.pitch;
-    if (typeof rec.syncOffsetMs === "number") patch.phononSyncOffsetMs = rec.syncOffsetMs;
-    if (typeof rec.cleanText === "boolean") patch.phononCleanText = rec.cleanText;
+    if (typeof rec.syncOffsetMs === "number")
+      patch.phononSyncOffsetMs = rec.syncOffsetMs;
+    if (typeof rec.cleanText === "boolean")
+      patch.phononCleanText = rec.cleanText;
     if (typeof rec.pauseMs === "number") patch.phononPauseMs = rec.pauseMs;
     const settings = await updateSettings(ctx, patch);
     return {
@@ -6205,34 +8174,56 @@ export const PHONON_OPS: Record<string, FmHandler> = {
   },
   "phonon/extract": async (ctx, b) => {
     const rec = (b ?? {}) as Record<string, unknown>;
-    const maxChars = typeof rec.maxChars === "number" ? rec.maxChars : PHONON_DEFAULT_CHUNK_CHARS;
-    const cleanOpts: CleanTextOptions & { clean?: boolean; maxChars?: number } = {
-      clean: typeof rec.clean === "boolean" ? rec.clean : true,
-      stripMarkdown: typeof rec.stripMarkdown === "boolean" ? rec.stripMarkdown : true,
-      stripHtml: typeof rec.stripHtml === "boolean" ? rec.stripHtml : true,
-      stripCodeBlocks: typeof rec.stripCodeBlocks === "boolean" ? rec.stripCodeBlocks : false,
-      simplifyUrls: typeof rec.simplifyUrls === "boolean" ? rec.simplifyUrls : true,
-      stripTimestamps: typeof rec.stripTimestamps === "boolean" ? rec.stripTimestamps : true,
-      unwrapLines: typeof rec.unwrapLines === "boolean" ? rec.unwrapLines : false,
-      maxChars,
-    };
+    const maxChars =
+      typeof rec.maxChars === "number"
+        ? rec.maxChars
+        : PHONON_DEFAULT_CHUNK_CHARS;
+    const cleanOpts: CleanTextOptions & { clean?: boolean; maxChars?: number } =
+      {
+        clean: typeof rec.clean === "boolean" ? rec.clean : true,
+        stripMarkdown:
+          typeof rec.stripMarkdown === "boolean" ? rec.stripMarkdown : true,
+        stripHtml: typeof rec.stripHtml === "boolean" ? rec.stripHtml : true,
+        stripCodeBlocks:
+          typeof rec.stripCodeBlocks === "boolean"
+            ? rec.stripCodeBlocks
+            : false,
+        simplifyUrls:
+          typeof rec.simplifyUrls === "boolean" ? rec.simplifyUrls : true,
+        stripTimestamps:
+          typeof rec.stripTimestamps === "boolean" ? rec.stripTimestamps : true,
+        unwrapLines:
+          typeof rec.unwrapLines === "boolean" ? rec.unwrapLines : false,
+        maxChars,
+      };
     if (typeof rec.path === "string" && rec.path.trim()) {
-      const extracted = await extractPlainTextFromFile(ctx, rec.path, cleanOpts);
+      const extracted = await extractPlainTextFromFile(
+        ctx,
+        rec.path,
+        cleanOpts,
+      );
       const chunks = splitTextForPhonon(extracted.text, { maxChars });
       // Cap returned full text at 600 KB in JSON response if huge, while still returning all chunk objects
       const maxInlineText = 600 * 1024;
       const textTruncated = extracted.text.length > maxInlineText;
       return {
         ...extracted,
-        text: textTruncated ? extracted.text.slice(0, maxInlineText) : extracted.text,
-        rawText: extracted.rawText.length > maxInlineText ? extracted.rawText.slice(0, maxInlineText) : extracted.rawText,
+        text: textTruncated
+          ? extracted.text.slice(0, maxInlineText)
+          : extracted.text,
+        rawText:
+          extracted.rawText.length > maxInlineText
+            ? extracted.rawText.slice(0, maxInlineText)
+            : extracted.rawText,
         textTruncated,
         chunks,
       };
     }
     if (typeof rec.text === "string") {
       const rawText = rec.text;
-      const text = cleanOpts.clean ? cleanTextForSpeech(rawText, cleanOpts) : rawText.replace(/\r\n?/g, "\n").trim();
+      const text = cleanOpts.clean
+        ? cleanTextForSpeech(rawText, cleanOpts)
+        : rawText.replace(/\r\n?/g, "\n").trim();
       const chunks = splitTextForPhonon(text, { maxChars });
       const wordCount = chunks.reduce((acc, c) => acc + c.wordCount, 0);
       return {
@@ -6253,8 +8244,14 @@ export const PHONON_OPS: Record<string, FmHandler> = {
   "phonon/chunk": async (_ctx, b) => {
     const rec = (b ?? {}) as Record<string, unknown>;
     const raw = typeof rec.text === "string" ? rec.text : "";
-    const maxChars = typeof rec.maxChars === "number" ? rec.maxChars : PHONON_DEFAULT_CHUNK_CHARS;
-    const mergeShortParagraphs = typeof rec.mergeShortParagraphs === "boolean" ? rec.mergeShortParagraphs : false;
+    const maxChars =
+      typeof rec.maxChars === "number"
+        ? rec.maxChars
+        : PHONON_DEFAULT_CHUNK_CHARS;
+    const mergeShortParagraphs =
+      typeof rec.mergeShortParagraphs === "boolean"
+        ? rec.mergeShortParagraphs
+        : false;
     const chunks = splitTextForPhonon(raw, { maxChars, mergeShortParagraphs });
     const wordCount = chunks.reduce((acc, c) => acc + c.wordCount, 0);
     return {
@@ -6265,19 +8262,37 @@ export const PHONON_OPS: Record<string, FmHandler> = {
       chunks,
     };
   },
-  "phonon/speak": (ctx, b) => speakChunk(ctx, (b ?? {}) as { text?: unknown; voice?: unknown; pitch?: unknown }),
+  "phonon/speak": (ctx, b) =>
+    speakChunk(
+      ctx,
+      (b ?? {}) as { text?: unknown; voice?: unknown; pitch?: unknown },
+    ),
   "phonon/custom-voices": async (ctx) => ({
     voices: await listCustomVoices(ctx),
     calibrationScripts: VOICE_CALIBRATION_SCRIPTS,
   }),
-  "phonon/clone-voice": (ctx, b) => createCustomVoiceFromAudio(ctx, (b ?? {}) as { name?: unknown; audioBase64?: unknown; sourcePath?: unknown }),
-  "phonon/delete-voice": (ctx, b) => deleteCustomVoice(ctx, (b ?? {}) as { id?: unknown }),
-  "phonon/save": (ctx, b) => startPhononAudioExportJob(ctx, (b ?? {}) as Record<string, unknown>),
-  "phonon/audiobook": (ctx, b) => startPhononAudiobookExportJob(ctx, (b ?? {}) as Record<string, unknown>),
+  "phonon/clone-voice": (ctx, b) =>
+    createCustomVoiceFromAudio(
+      ctx,
+      (b ?? {}) as {
+        name?: unknown;
+        audioBase64?: unknown;
+        sourcePath?: unknown;
+      },
+    ),
+  "phonon/delete-voice": (ctx, b) =>
+    deleteCustomVoice(ctx, (b ?? {}) as { id?: unknown }),
+  "phonon/save": (ctx, b) =>
+    startPhononAudioExportJob(ctx, (b ?? {}) as Record<string, unknown>),
+  "phonon/audiobook": (ctx, b) =>
+    startPhononAudiobookExportJob(ctx, (b ?? {}) as Record<string, unknown>),
   "phonon/video": (ctx, b) => {
     const rec = (b ?? {}) as Record<string, unknown>;
-    const fmt = isPhononVideoFormat(String(rec.format ?? "")) ? rec.format : "mp4";
+    const fmt = isPhononVideoFormat(String(rec.format ?? ""))
+      ? rec.format
+      : "mp4";
     return startPhononAudioExportJob(ctx, { ...rec, format: fmt });
   },
-  "phonon/savetxt": (ctx, b) => savePlainTextToFile(ctx, (b ?? {}) as Record<string, unknown>),
+  "phonon/savetxt": (ctx, b) =>
+    savePlainTextToFile(ctx, (b ?? {}) as Record<string, unknown>),
 };

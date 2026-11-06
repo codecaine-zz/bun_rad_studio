@@ -1,7 +1,7 @@
 import { injectGameMasterFx } from "../src/shared/gameMasterFx";
 /**
  * ♠️ Texas Hold'em & 5-Card Draw Poker Royale — Deluxe Casino Studio
- * 
+ *
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
  * - Dual Iconic Poker Engines: No-Limit Texas Hold'em (community board, 4 betting rounds, 7-choose-5 showdown)
@@ -82,7 +82,9 @@ export function generatePokerStudioHtml(): string {
   const assetsDir = getPokerAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Poker Royale</h1>";
+  let html = existsSync(indexPath)
+    ? readFileSync(indexPath, "utf8")
+    : "<h1>Poker Royale</h1>";
 
   const storagePolyfill = `
   <script>
@@ -154,7 +156,13 @@ ${getWindowShortcutsScript()}
  */
 export function startPokerServer(options: PokerServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "poker_studio", name: "Codecaine Texas Hold'em & 5-Card Draw Poker Royale", version: "1.0.0", assetsDir: getPokerAssetsDir(), generateHtml: generatePokerStudioHtml },
+    {
+      app: "poker_studio",
+      name: "Codecaine Texas Hold'em & 5-Card Draw Poker Royale",
+      version: "1.0.0",
+      assetsDir: getPokerAssetsDir(),
+      generateHtml: generatePokerStudioHtml,
+    },
     options,
   );
 }
@@ -162,12 +170,15 @@ export function startPokerServer(options: PokerServerOptions = {}) {
 /**
  * Creates the complete native desktop instance of Poker Royale.
  */
-export function createPokerStudio(options: PokerStudioOptions = {}): PokerStudioInstance {
+export function createPokerStudio(
+  options: PokerStudioOptions = {},
+): PokerStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1240);
   const height = options.height ?? (fullscreen ? screen.height : 860);
-  const title = "Codecaine Texas Hold'em & 5-Card Draw Poker Royale — Casino Studio";
+  const title =
+    "Codecaine Texas Hold'em & 5-Card Draw Poker Royale — Casino Studio";
 
   const app: PokerStudioInstance = {
     title,
@@ -194,7 +205,8 @@ export function createPokerStudio(options: PokerStudioOptions = {}): PokerStudio
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -214,11 +226,15 @@ export function createPokerStudio(options: PokerStudioOptions = {}): PokerStudio
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -229,16 +245,24 @@ export function createPokerStudio(options: PokerStudioOptions = {}): PokerStudio
 
         // Set HTML directly into Webview memory (bypasses macOS ATS network restrictions)
         webview.setHTML(html);
-        console.log(`♠️ Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`);
+        console.log(
+          `♠️ Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`,
+        );
 
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -257,7 +281,9 @@ if (import.meta.main) {
 
   if (serverOnly) {
     const srv = startPokerServer({ port, host: "127.0.0.1" });
-    console.log(`♠️ Poker Royale server running at: http://127.0.0.1:${srv.port}/`);
+    console.log(
+      `♠️ Poker Royale server running at: http://127.0.0.1:${srv.port}/`,
+    );
     await new Promise(() => {});
   } else {
     const app = createPokerStudio({ fullscreen, port });

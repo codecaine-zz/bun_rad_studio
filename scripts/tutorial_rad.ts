@@ -15,7 +15,12 @@ import { Cdp, sleep } from "./lib/cdp_recorder";
 import { hostApp, hostDesigner, type HostedApp } from "./lib/host_app";
 import { EDGE_VOICE, fmtTime } from "./lib/video_pipeline";
 import { runTutorial, type Suite } from "./lib/step_video";
-import { loadStage, outputs, serveStage, type StageServer } from "./lib/rad_stage";
+import {
+  loadStage,
+  outputs,
+  serveStage,
+  type StageServer,
+} from "./lib/rad_stage";
 import { radChapters, stages } from "./lib/rad_tutorial_script";
 import type { Chapter, World } from "./lib/fm_tutorial_types";
 
@@ -32,18 +37,31 @@ let cdp: Cdp;
 let host: HostedApp | null = null;
 let stageServer: StageServer | null = null;
 
-const seedWorld = (): World => ({ home: WORK, data: WORK, big: "", put: () => {} });
-const clean = (s: string) => s.replace(/\u001b\[[0-9;]*m/g, "").replace(/\s+$/, "");
+const seedWorld = (): World => ({
+  home: WORK,
+  data: WORK,
+  big: "",
+  put: () => {},
+});
+const clean = (s: string) =>
+  s.replace(/\u001b\[[0-9;]*m/g, "").replace(/\s+$/, "");
 
 /** Runs a command for real and returns what it printed (the video shows exactly this). */
 function capture(cmd: string[], cwd: string): string {
-  const r = Bun.spawnSync(cmd, { cwd, stdout: "pipe", stderr: "pipe", env: { ...process.env, NO_COLOR: "1" } });
+  const r = Bun.spawnSync(cmd, {
+    cwd,
+    stdout: "pipe",
+    stderr: "pipe",
+    env: { ...process.env, NO_COLOR: "1" },
+  });
   return clean(r.stdout.toString() + r.stderr.toString());
 }
 
 async function open(ch: Chapter) {
-  host?.stop(); host = null;
-  stageServer?.stop(); stageServer = null;
+  host?.stop();
+  host = null;
+  stageServer?.stop();
+  stageServer = null;
   const spec = stages[ch.id];
   if (!spec) throw new Error(`no stage for ${ch.id}`);
 
@@ -58,8 +76,19 @@ async function open(ch: Chapter) {
   if (ch.id === "11_ship") {
     rmSync(WORK, { recursive: true, force: true });
     mkdirSync(WORK, { recursive: true });
-    const built = capture(["bun", "build", "--compile", join(ROOT, "examples/hello_simplegui.ts"), "--outfile", "hello"], WORK);
-    outputs[ch.id] = `${built}\n${capture(["ls", "-lh", "hello"], WORK)}`.replace(/^\s+/, "");
+    const built = capture(
+      [
+        "bun",
+        "build",
+        "--compile",
+        join(ROOT, "examples/hello_simplegui.ts"),
+        "--outfile",
+        "hello",
+      ],
+      WORK,
+    );
+    outputs[ch.id] =
+      `${built}\n${capture(["ls", "-lh", "hello"], WORK)}`.replace(/^\s+/, "");
   } else if (spec.term && "command" in spec.term) {
     outputs[ch.id] = capture(spec.term.command, ROOT);
   }
@@ -73,16 +102,32 @@ async function open(ch: Chapter) {
   }
   await cdp.goto(stageServer.url, null);
   await sleep(600);
-  await loadStage({ c: cdp }, { file: resolve(EXAMPLES, spec.file), title: spec.title, app, layout: "split" });
+  await loadStage(
+    { c: cdp },
+    {
+      file: resolve(EXAMPLES, spec.file),
+      title: spec.title,
+      app,
+      layout: "split",
+    },
+  );
   if (!app) await cdp.eval("window.__stage.idle()");
   await sleep(1500);
   // The program is drawn a little larger than it is, so it reads well in a video.
-  if (app) { await cdp.evalFrame("#appframe", `document.documentElement.style.zoom = ${JSON.stringify(String(spec.zoom ?? 1.2))}`); await sleep(500); }
+  if (app) {
+    await cdp.evalFrame(
+      "#appframe",
+      `document.documentElement.style.zoom = ${JSON.stringify(String(spec.zoom ?? 1.2))}`,
+    );
+    await sleep(500);
+  }
 }
 
 const notes = (marks: Array<{ at: number; title: string }>, total: number) => {
   const REPO = "https://github.com/codecaine-zz/bun_rad_studio";
-  const text = marks.map((m, i) => `${fmtTime(i === 0 ? 0 : m.at)} ${m.title}`).join("\n");
+  const text = marks
+    .map((m, i) => `${fmtTime(i === 0 ? 0 : m.at)} ${m.title}`)
+    .join("\n");
   return `# Bun RAD Studio: the complete RAD tutorial (${fmtTime(total)})
 
 ## YouTube title
@@ -118,8 +163,14 @@ const suite: Suite = {
   chapters: radChapters,
   seedWorld,
   open: (ch) => open(ch),
-  start: async () => { cdp = await Cdp.launch(CDP_PORT, "/tmp/rad_chrome", 1920, VIEW_H); },
-  stop: () => { host?.stop(); stageServer?.stop(); cdp?.close(); },
+  start: async () => {
+    cdp = await Cdp.launch(CDP_PORT, "/tmp/rad_chrome", 1920, VIEW_H);
+  },
+  stop: () => {
+    host?.stop();
+    stageServer?.stop();
+    cdp?.close();
+  },
   cdp: () => cdp,
   notes,
   viewHeight: VIEW_H,

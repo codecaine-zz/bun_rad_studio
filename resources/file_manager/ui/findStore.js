@@ -5,7 +5,14 @@ import { filterItems, sortItems } from "./findCore.js";
 
 export const fs = {
   /** Answer of find/meta: presets, sort keys, limits, whether permissions exist (not on Windows). */
-  meta: { presets: [], presetNone: "Presets…", sortKeys: ["Default order"], limits: { defaultMaxResults: 1500, maxResultsCap: 20000, maxPaths: 5000 }, posix: true, exportFormats: [] },
+  meta: {
+    presets: [],
+    presetNone: "Presets…",
+    sortKeys: ["Default order"],
+    limits: { defaultMaxResults: 1500, maxResultsCap: 20000, maxPaths: 5000 },
+    posix: true,
+    exportFormats: [],
+  },
   resultId: null,
   root: "",
   /** Everything the last search found, and what is shown (sorted and filtered). */
@@ -44,7 +51,14 @@ export function setResults(res) {
   fs.resultId = res.resultId;
   fs.root = res.root;
   fs.items = res.items;
-  fs.stats = { scanned: res.totalScanned, matches: res.matchedCount, ms: res.durationMs, bytes: res.totalSizeBytes, truncated: res.truncated, fallback: res.patternFallback };
+  fs.stats = {
+    scanned: res.totalScanned,
+    matches: res.matchedCount,
+    ms: res.durationMs,
+    bytes: res.totalSizeBytes,
+    truncated: res.truncated,
+    fallback: res.patternFallback,
+  };
   const still = new Set(res.items.map((i) => i.path));
   fs.selected = new Set([...fs.selected].filter((p) => still.has(p)));
   recompute();
@@ -81,7 +95,8 @@ export function setSelection(paths) {
   emitFind("selection");
 }
 
-export const selectedItems = () => fs.view.filter((i) => fs.selected.has(i.path));
+export const selectedItems = () =>
+  fs.view.filter((i) => fs.selected.has(i.path));
 
 export function setScope(scope) {
   fs.scope = scope === "selected" ? "selected" : "all";
@@ -89,7 +104,8 @@ export function setScope(scope) {
 }
 
 /** The items the actions work on, as the scope says. */
-export const scopeItems = () => (fs.scope === "selected" ? selectedItems() : fs.view);
+export const scopeItems = () =>
+  fs.scope === "selected" ? selectedItems() : fs.view;
 
 /**
  * The part of a request that says which items: the picked paths, or the whole search result with the same filter
@@ -100,5 +116,10 @@ export function targetBody() {
     const picked = selectedItems();
     return { paths: picked.map((i) => i.path), resultId: fs.resultId };
   }
-  return { resultId: fs.resultId, filter: fs.filter, sort: fs.sort, expectedCount: fs.view.length };
+  return {
+    resultId: fs.resultId,
+    filter: fs.filter,
+    sort: fs.sort,
+    expectedCount: fs.view.length,
+  };
 }

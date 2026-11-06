@@ -4,15 +4,25 @@ import { S } from "./mysql_tutorial_helpers";
 /** Chapter 5: the studio's own connection workbench. */
 export const workbenchChapters: Chapter[] = [
   {
-    id: "05_workbench", chapter: "WORKBENCH", title: "The studio's own connection workbench",
-    blurb: "Form fields or a connection address, presets, a safe connection test, and the databases on the server",
+    id: "05_workbench",
+    chapter: "WORKBENCH",
+    title: "The studio's own connection workbench",
+    blurb:
+      "Form fields or a connection address, presets, a safe connection test, and the databases on the server",
     steps: [
       {
         cap: "Connection Config: the manual workbench",
         say: "The studio has its own connection workbench, which is what you get when you start it by itself. Connection Config opens it. Host, port, user, a password box, and the database: here, one two seven dot zero dot zero dot one, thirty three ninety nine, root, no password.",
         act: async (d) => {
           await d.click(S + "button >> Connection Config", { pause: 2000 });
-          for (const id of ["#cfgHost", "#cfgPort", "#cfgUser", "#cfgPass", "#cfgDb"]) await d.hover(S + id, 900);
+          for (const id of [
+            "#cfgHost",
+            "#cfgPort",
+            "#cfgUser",
+            "#cfgPass",
+            "#cfgDb",
+          ])
+            await d.hover(S + id, 900);
           await d.wait(1500);
         },
       },
@@ -23,7 +33,13 @@ export const workbenchChapters: Chapter[] = [
           await d.click(S + "#btnModeUrl", { pause: 2200 });
           await d.hover(S + "#cfgUrl", 1500);
           await d.click(S + "#btnModeForm", { pause: 1200 });
-          for (const p of ["Localhost (3306)", "Docker", "Port 3307", "RDS Template"]) await d.hover(S + `.sidebar-mini-btn >> ${p}`, 700);
+          for (const p of [
+            "Localhost (3306)",
+            "Docker",
+            "Port 3307",
+            "RDS Template",
+          ])
+            await d.hover(S + `.sidebar-mini-btn >> ${p}`, 700);
         },
       },
       {
@@ -52,8 +68,11 @@ export const workbenchChapters: Chapter[] = [
 /** Chapters 12 and 13: back in the File Manager, then the goodbye. */
 export const endChapters: Chapter[] = [
   {
-    id: "12_back", chapter: "BACK IN THE FILE MANAGER", title: "Back to the File Manager: stop, shortcuts and safety",
-    blurb: "Stopping a studio, favorites and the Home tile, production warnings, and where the password lives",
+    id: "12_back",
+    chapter: "BACK IN THE FILE MANAGER",
+    title: "Back to the File Manager: stop, shortcuts and safety",
+    blurb:
+      "Stopping a studio, favorites and the Home tile, production warnings, and where the password lives",
     steps: [
       {
         cap: "Stop the studio, back to Connections",
@@ -67,7 +86,9 @@ export const endChapters: Chapter[] = [
         cap: "Favorite, and the Home tile",
         say: "I star the connection as a favorite. Favorites and recent connections get a tile on Home, one click away; Shift Enter does the same. Showing tiles never reads your keychain.",
         act: async (d) => {
-          await d.click("#power-pane-databases button >> Favorite", { pause: 1800 });
+          await d.click("#power-pane-databases button >> Favorite", {
+            pause: 1800,
+          });
           await d.click("#view-home", { pause: 2000 });
           await d.scroll("body", 900, 8);
           await d.wait(2500);
@@ -79,8 +100,12 @@ export const endChapters: Chapter[] = [
         act: async (d) => {
           await d.click("#view-tools", { pause: 1500 });
           await d.click("#power-tab-databases", { pause: 1500 });
-          await d.click("#power-pane-databases .db-row >> shop", { pause: 1200 });
-          await d.click("#power-pane-databases button >> Edit", { pause: 1800 });
+          await d.click("#power-pane-databases .db-row >> shop", {
+            pause: 1200,
+          });
+          await d.click("#power-pane-databases button >> Edit", {
+            pause: 1800,
+          });
           await d.hover(".dialog select", 1500);
           await d.wait(2500);
           await d.dialog("Cancel", { pause: 800 });
@@ -89,8 +114,19 @@ export const endChapters: Chapter[] = [
     ],
   },
   {
-    id: "13_outro", chapter: "THE END", title: "That is MySQL in the File Manager", kind: "card",
-    card: { kicker: "Free and open source", title: "Thank you for watching", lines: ["github.com/codecaine-zz/bun_rad_studio", "Guides: docs/userguides, 41 MySQL Studio and 43 File Manager", "The same Databases tool opens SQLite, PostgreSQL and Redis studios"] },
+    id: "13_outro",
+    chapter: "THE END",
+    title: "That is MySQL in the File Manager",
+    kind: "card",
+    card: {
+      kicker: "Free and open source",
+      title: "Thank you for watching",
+      lines: [
+        "github.com/codecaine-zz/bun_rad_studio",
+        "Guides: docs/userguides, 41 MySQL Studio and 43 File Manager",
+        "The same Databases tool opens SQLite, PostgreSQL and Redis studios",
+      ],
+    },
     steps: [
       {
         cap: "Thank you for watching",

@@ -1,0 +1,8 @@
+# Split HTML fragments and generated Designer bundle (see scripts/build_ide.ts & scripts/build_fx_assets.ts)
+src/ide/
+src/ide.html
+design_tokens.css
+
+# Generated documentation and showcase files (see scripts/docs/build_docs.ts & scripts/build_showcase.ts)
+SHOWCASE.md
+docs/

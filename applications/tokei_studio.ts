@@ -1,14 +1,22 @@
 import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
-import { computeCodeStats, computeCodeStatsSync } from "../src/features/tokei/tokeiCoordinator.ts";
+import {
+  computeCodeStats,
+  computeCodeStatsSync,
+} from "../src/features/tokei/tokeiCoordinator.ts";
 import {
   sortReports,
   formatMarkdownTable,
   formatJsonReports,
   formatFilesBreakdown,
 } from "../src/features/tokei/tokeiDoers.ts";
-import type { LanguageReport, TokeiSortField } from "../src/features/tokei/tokeiTypes.ts";
+import type {
+  LanguageReport,
+  TokeiSortField,
+} from "../src/features/tokei/tokeiTypes.ts";
 
-export function createTokeiStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
+export function createTokeiStudio(
+  options: { fullscreen?: boolean; theme?: string } = {},
+): SimpleWindow {
   const win = newSimpleWindow(
     "Tokei Studio Pro -- Fast Code & Lines-of-Code (LOC) Counter",
     1240,
@@ -18,7 +26,7 @@ export function createTokeiStudio(options: { fullscreen?: boolean; theme?: strin
       theme: options.theme || getSavedTheme() || "midnight",
       autoSaveState: true,
       fullscreen: options.fullscreen ?? true,
-    }
+    },
   );
 
   let currentReports: LanguageReport[] = [];
@@ -33,7 +41,9 @@ export function createTokeiStudio(options: { fullscreen?: boolean; theme?: strin
   win.addButton("btn_save_state", "💾 Save Config");
   win.addButton("btn_center", "Center");
   win.endRow();
-  win.addCaption("Code Statistics & Metrics -- Rapid Multi-Language LOC & Comment Analyzer");
+  win.addCaption(
+    "Code Statistics & Metrics -- Rapid Multi-Language LOC & Comment Analyzer",
+  );
 
   // 2. Telemetry Cards
   // -----------------------------------------------------------------------------------------------
@@ -41,10 +51,22 @@ export function createTokeiStudio(options: { fullscreen?: boolean; theme?: strin
   win.beginGroupBox("Codebase Metrics Telemetry");
   win.beginRow();
   win.addLabel("lbl_metric_langs", isShot ? "Languages: 5" : "Languages: 0");
-  win.addLabel("lbl_metric_files", isShot ? "Total Files: 52" : "Total Files: 0");
-  win.addLabel("lbl_metric_lines", isShot ? "Total Lines: 18,450" : "Total Lines: 0");
-  win.addLabel("lbl_metric_code", isShot ? "Code Lines: 14,200" : "Code Lines: 0");
-  win.addLabel("lbl_metric_comments", isShot ? "Comments: 2,150 (11.7%)" : "Comments: 0 (0%)");
+  win.addLabel(
+    "lbl_metric_files",
+    isShot ? "Total Files: 52" : "Total Files: 0",
+  );
+  win.addLabel(
+    "lbl_metric_lines",
+    isShot ? "Total Lines: 18,450" : "Total Lines: 0",
+  );
+  win.addLabel(
+    "lbl_metric_code",
+    isShot ? "Code Lines: 14,200" : "Code Lines: 0",
+  );
+  win.addLabel(
+    "lbl_metric_comments",
+    isShot ? "Comments: 2,150 (11.7%)" : "Comments: 0 (0%)",
+  );
   win.endRow();
   win.endGroupBox();
 
@@ -56,9 +78,19 @@ export function createTokeiStudio(options: { fullscreen?: boolean; theme?: strin
   win.addLabel("lbl_path", "Scan Directory:");
   win.addInput("txt_path", ".", "Target path to scan...", { width: 340 });
   win.addLabel("lbl_sort", "Sort Column:");
-  win.addDropdown("dd_sort", ["Code (Default)", "Files", "Lines", "Comments", "Blanks"], "Code (Default)", { width: 140 });
+  win.addDropdown(
+    "dd_sort",
+    ["Code (Default)", "Files", "Lines", "Comments", "Blanks"],
+    "Code (Default)",
+    { width: 140 },
+  );
   win.addLabel("lbl_exclude", "Exclude:");
-  win.addInput("txt_exclude", "node_modules,dist,.git,.graveyard", "Patterns to exclude...", { width: 240 });
+  win.addInput(
+    "txt_exclude",
+    "node_modules,dist,.git,.graveyard",
+    "Patterns to exclude...",
+    { width: 240 },
+  );
   win.addButton("btn_analyze", "📊 Analyze Codebase", { width: 150 });
   win.endRow();
 
@@ -75,14 +107,24 @@ export function createTokeiStudio(options: { fullscreen?: boolean; theme?: strin
   // 4. Language Statistics Table
   // -----------------------------------------------------------------------------------------------
   win.beginGroupBox("Language Breakdown & Lines of Code");
-  const tableHeaders = ["Language", "Files", "Total Lines", "Code", "Comments", "Blanks", "Code %"];
-  const demoTokei = isShot ? [
-    ["TypeScript", "32", "12,450", "9,800", "1,450", "1,200", "78.7%"],
-    ["HTML", "4", "2,800", "2,400", "150", "250", "85.7%"],
-    ["CSS", "3", "1,200", "950", "100", "150", "79.2%"],
-    ["JSON", "8", "1,100", "1,050", "0", "50", "95.5%"],
-    ["Markdown", "5", "900", "0", "450", "450", "0.0%"],
-  ] : [];
+  const tableHeaders = [
+    "Language",
+    "Files",
+    "Total Lines",
+    "Code",
+    "Comments",
+    "Blanks",
+    "Code %",
+  ];
+  const demoTokei = isShot
+    ? [
+        ["TypeScript", "32", "12,450", "9,800", "1,450", "1,200", "78.7%"],
+        ["HTML", "4", "2,800", "2,400", "150", "250", "85.7%"],
+        ["CSS", "3", "1,200", "950", "100", "150", "79.2%"],
+        ["JSON", "8", "1,100", "1,050", "0", "50", "95.5%"],
+        ["Markdown", "5", "900", "0", "450", "450", "0.0%"],
+      ]
+    : [];
   win.addTable("tbl_tokei", tableHeaders, demoTokei, { height: 280 });
   win.endGroupBox();
 
@@ -97,7 +139,10 @@ export function createTokeiStudio(options: { fullscreen?: boolean; theme?: strin
   // 6. Status Bar
   // -----------------------------------------------------------------------------------------------
   win.beginRow();
-  win.addLabel("lbl_status_bar", "Ready. Click Analyze Codebase to calculate lines of code.");
+  win.addLabel(
+    "lbl_status_bar",
+    "Ready. Click Analyze Codebase to calculate lines of code.",
+  );
   win.endRow();
 
   // -----------------------------------------------------------------------------------------------
@@ -106,7 +151,12 @@ export function createTokeiStudio(options: { fullscreen?: boolean; theme?: strin
   const analyzeCodebase = () => {
     const scanPath = win.getValue("txt_path")?.trim() || ".";
     const excludeStr = win.getValue("txt_exclude")?.trim();
-    const excludes = excludeStr ? excludeStr.split(",").map((s: string) => s.trim()).filter(Boolean) : undefined;
+    const excludes = excludeStr
+      ? excludeStr
+          .split(",")
+          .map((s: string) => s.trim())
+          .filter(Boolean)
+      : undefined;
     const hidden = win.getBool("chk_hidden");
     const showFiles = win.getBool("chk_files");
 
@@ -144,7 +194,10 @@ export function createTokeiStudio(options: { fullscreen?: boolean; theme?: strin
         totalComment += r.stats.comment;
         totalBlank += r.stats.blank;
 
-        const codePercent = r.stats.lines > 0 ? ((r.stats.code / r.stats.lines) * 100).toFixed(1) + "%" : "0%";
+        const codePercent =
+          r.stats.lines > 0
+            ? ((r.stats.code / r.stats.lines) * 100).toFixed(1) + "%"
+            : "0%";
         return [
           r.language,
           String(r.files),
@@ -157,7 +210,10 @@ export function createTokeiStudio(options: { fullscreen?: boolean; theme?: strin
       });
 
       // Append Total Row
-      const overallCodePct = totalLines > 0 ? ((totalCode / totalLines) * 100).toFixed(1) + "%" : "0%";
+      const overallCodePct =
+        totalLines > 0
+          ? ((totalCode / totalLines) * 100).toFixed(1) + "%"
+          : "0%";
       rows.push([
         "TOTAL",
         String(totalFiles),
@@ -170,12 +226,22 @@ export function createTokeiStudio(options: { fullscreen?: boolean; theme?: strin
 
       win.setTableData("tbl_tokei", rows);
 
-      const commentPct = totalLines > 0 ? ((totalComment / totalLines) * 100).toFixed(1) : "0";
+      const commentPct =
+        totalLines > 0 ? ((totalComment / totalLines) * 100).toFixed(1) : "0";
       win.setValue("lbl_metric_langs", `Languages: ${reports.length}`);
       win.setValue("lbl_metric_files", `Total Files: ${totalFiles}`);
-      win.setValue("lbl_metric_lines", `Total Lines: ${totalLines.toLocaleString()}`);
-      win.setValue("lbl_metric_code", `Code Lines: ${totalCode.toLocaleString()}`);
-      win.setValue("lbl_metric_comments", `Comments: ${totalComment.toLocaleString()} (${commentPct}%)`);
+      win.setValue(
+        "lbl_metric_lines",
+        `Total Lines: ${totalLines.toLocaleString()}`,
+      );
+      win.setValue(
+        "lbl_metric_code",
+        `Code Lines: ${totalCode.toLocaleString()}`,
+      );
+      win.setValue(
+        "lbl_metric_comments",
+        `Comments: ${totalComment.toLocaleString()} (${commentPct}%)`,
+      );
 
       win.clearConsole("console_tokei");
       if (showFiles) {
@@ -188,9 +254,15 @@ export function createTokeiStudio(options: { fullscreen?: boolean; theme?: strin
         win.appendConsole("console_tokei", md + "\n");
       }
 
-      win.setValue("lbl_status_bar", `✓ Completed scan of ${totalFiles} file(s) across ${reports.length} language(s).`);
+      win.setValue(
+        "lbl_status_bar",
+        `✓ Completed scan of ${totalFiles} file(s) across ${reports.length} language(s).`,
+      );
     } catch (err: any) {
-      win.setValue("lbl_status_bar", `❌ Error during analysis: ${err.message}`);
+      win.setValue(
+        "lbl_status_bar",
+        `❌ Error during analysis: ${err.message}`,
+      );
     }
   };
 
@@ -205,8 +277,16 @@ export function createTokeiStudio(options: { fullscreen?: boolean; theme?: strin
     win.clearConsole("console_tokei");
     win.appendConsole("console_tokei", md);
     let copied = false;
-    try { win.copyToClipboard(md); copied = true; } catch {}
-    win.setValue("lbl_status_bar", copied ? "✓ Markdown table generated and copied to clipboard." : "✓ Markdown table generated in preview console.");
+    try {
+      win.copyToClipboard(md);
+      copied = true;
+    } catch {}
+    win.setValue(
+      "lbl_status_bar",
+      copied
+        ? "✓ Markdown table generated and copied to clipboard."
+        : "✓ Markdown table generated in preview console.",
+    );
   });
 
   win.on("btn_export_json", "click", () => {
@@ -217,7 +297,10 @@ export function createTokeiStudio(options: { fullscreen?: boolean; theme?: strin
     const jsonStr = formatJsonReports(currentReports);
     win.clearConsole("console_tokei");
     win.appendConsole("console_tokei", jsonStr);
-    win.setValue("lbl_status_bar", "✓ JSON report generated in preview console.");
+    win.setValue(
+      "lbl_status_bar",
+      "✓ JSON report generated in preview console.",
+    );
   });
 
   win.on("btn_clear", "click", () => {

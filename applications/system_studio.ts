@@ -1,9 +1,9 @@
 /**
  * ⚡ Bun RAD Studio - System Information Studio Pro
- * 
+ *
  * Enterprise-Grade Cross-Platform Hardware Intelligence & Telemetry Workstation
  * Powered by 100% of the entire `systeminformation` API surface across all 10 domain areas.
- * 
+ *
  * Powered by local embedded zero-latency Bun server + WebKit / WebView native desktop GUI.
  * Guarantees 100% non-blocking async execution, zero FFI deadlocks, and instantaneous UI updates.
  */
@@ -13,7 +13,15 @@ import si from "systeminformation";
 import * as os from "os";
 import { writeFileSync, existsSync, mkdirSync } from "fs";
 import { resolve, join } from "path";
-import { setAlwaysOnTopNative, setWindowPositionNative, toggleFullscreenNative, setFullscreenNative, attachWindowShortcuts, getWindowShortcutsScript, getScreenDimensions } from "../index.ts";
+import {
+  setAlwaysOnTopNative,
+  setWindowPositionNative,
+  toggleFullscreenNative,
+  setFullscreenNative,
+  attachWindowShortcuts,
+  getWindowShortcutsScript,
+  getScreenDimensions,
+} from "../index.ts";
 import { startSystemStudioServer } from "./system_studio_server.ts";
 import {
   SYSTEM_STUDIO_EXTRA_CSS,
@@ -52,7 +60,7 @@ export const SI_CATEGORIES = [
   "Virtualization, Docker & Batch",
 ] as const;
 
-export type SiCategory = typeof SI_CATEGORIES[number];
+export type SiCategory = (typeof SI_CATEGORIES)[number];
 
 export const SI_METHODS: Record<string, SiMethodMeta> = {
   // 1. Hardware & Baseboard
@@ -97,13 +105,15 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
   osInfo: {
     name: "osInfo",
     category: "OS & Software Environment",
-    description: "Operating system platform, distribution, release, kernel & architecture",
+    description:
+      "Operating system platform, distribution, release, kernel & architecture",
     execute: async () => si.osInfo(),
   },
   versions: {
     name: "versions",
     category: "OS & Software Environment",
-    description: "Installed software runtime versions (Node, V8, Git, Bun, etc.)",
+    description:
+      "Installed software runtime versions (Node, V8, Git, Bun, etc.)",
     acceptsParam: true,
     paramPlaceholder: "Optional filter (e.g. node, git)",
     defaultParam: "",
@@ -126,7 +136,8 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
   cpu: {
     name: "cpu",
     category: "CPU, Load & Thermals",
-    description: "CPU manufacturer, brand, base speed, core count & socket type",
+    description:
+      "CPU manufacturer, brand, base speed, core count & socket type",
     execute: async () => si.cpu(),
   },
   cpuFlags: {
@@ -156,7 +167,8 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
   currentLoad: {
     name: "currentLoad",
     category: "CPU, Load & Thermals",
-    description: "Current CPU utilization (User, System, Idle & per-core breakdown)",
+    description:
+      "Current CPU utilization (User, System, Idle & per-core breakdown)",
     execute: async () => si.currentLoad(),
   },
   fullLoad: {
@@ -170,19 +182,22 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
   mem: {
     name: "mem",
     category: "Memory & Power / Battery",
-    description: "RAM metrics: total, used, free, active, available & swap space",
+    description:
+      "RAM metrics: total, used, free, active, available & swap space",
     execute: async () => si.mem(),
   },
   memLayout: {
     name: "memLayout",
     category: "Memory & Power / Battery",
-    description: "Physical RAM module layout, DIMM banks, clock speeds & voltages",
+    description:
+      "Physical RAM module layout, DIMM banks, clock speeds & voltages",
     execute: async () => si.memLayout(),
   },
   battery: {
     name: "battery",
     category: "Memory & Power / Battery",
-    description: "Battery charging state, percentage, health, cycles & AC connection",
+    description:
+      "Battery charging state, percentage, health, cycles & AC connection",
     execute: async () => si.battery(),
   },
 
@@ -198,7 +213,8 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
   fsSize: {
     name: "fsSize",
     category: "Disks & Filesystems",
-    description: "Mounted filesystem volumes, sizes, used capacity & mount points",
+    description:
+      "Mounted filesystem volumes, sizes, used capacity & mount points",
     execute: async () => si.fsSize(),
   },
   fsOpenFiles: {
@@ -228,7 +244,8 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
   diskLayout: {
     name: "diskLayout",
     category: "Disks & Filesystems",
-    description: "Hard drive / SSD hardware specifications, SMART status & geometry",
+    description:
+      "Hard drive / SSD hardware specifications, SMART status & geometry",
     execute: async () => si.diskLayout(),
   },
 
@@ -248,16 +265,19 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
   networkInterfaces: {
     name: "networkInterfaces",
     category: "Network, Sockets & Wi-Fi",
-    description: "All network interfaces, IPv4, IPv6, MAC, duplex & carrier states",
+    description:
+      "All network interfaces, IPv4, IPv6, MAC, duplex & carrier states",
     acceptsParam: true,
     paramPlaceholder: "Optional parent interface",
     defaultParam: "",
-    execute: async (param) => (param ? si.networkInterfaces(param) : si.networkInterfaces()),
+    execute: async (param) =>
+      param ? si.networkInterfaces(param) : si.networkInterfaces(),
   },
   networkStats: {
     name: "networkStats",
     category: "Network, Sockets & Wi-Fi",
-    description: "Real-time network transfer metrics (RX/TX bytes, packets, errors)",
+    description:
+      "Real-time network transfer metrics (RX/TX bytes, packets, errors)",
     acceptsParam: true,
     paramPlaceholder: "Interface name (e.g. en0, eth0)",
     defaultParam: "",
@@ -266,7 +286,8 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
   networkConnections: {
     name: "networkConnections",
     category: "Network, Sockets & Wi-Fi",
-    description: "Active TCP/UDP sockets, peer IPs, ports, states and owning PIDs",
+    description:
+      "Active TCP/UDP sockets, peer IPs, ports, states and owning PIDs",
     execute: async () => si.networkConnections(),
   },
   inetChecksite: {
@@ -290,7 +311,8 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
   wifiNetworks: {
     name: "wifiNetworks",
     category: "Network, Sockets & Wi-Fi",
-    description: "Scans nearby Wi-Fi access points, SSIDs, channels & signal strengths",
+    description:
+      "Scans nearby Wi-Fi access points, SSIDs, channels & signal strengths",
     execute: async () => si.wifiNetworks(),
   },
   wifiInterfaces: {
@@ -302,7 +324,8 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
   wifiConnections: {
     name: "wifiConnections",
     category: "Network, Sockets & Wi-Fi",
-    description: "Current active Wi-Fi connection parameters, SSID, BSSID & txRate",
+    description:
+      "Current active Wi-Fi connection parameters, SSID, BSSID & txRate",
     execute: async () => si.wifiConnections(),
   },
 
@@ -334,7 +357,8 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
   users: {
     name: "users",
     category: "Processes & Services",
-    description: "Currently logged in user accounts, terminals, and login timestamps",
+    description:
+      "Currently logged in user accounts, terminals, and login timestamps",
     execute: async () => si.users(),
   },
 
@@ -342,13 +366,15 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
   audio: {
     name: "audio",
     category: "Peripherals & Audio",
-    description: "Audio controllers, soundcards, inputs, outputs & channel status",
+    description:
+      "Audio controllers, soundcards, inputs, outputs & channel status",
     execute: async () => si.audio(),
   },
   bluetoothDevices: {
     name: "bluetoothDevices",
     category: "Peripherals & Audio",
-    description: "Paired and connected Bluetooth devices, battery status & MACs",
+    description:
+      "Paired and connected Bluetooth devices, battery status & MACs",
     execute: async () => si.bluetoothDevices(),
   },
   printer: {
@@ -368,7 +394,8 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
   dockerInfo: {
     name: "dockerInfo",
     category: "Virtualization, Docker & Batch",
-    description: "Docker engine configuration, server version, and container tallies",
+    description:
+      "Docker engine configuration, server version, and container tallies",
     execute: async () => si.dockerInfo(),
   },
   dockerImages: {
@@ -428,27 +455,32 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
   getStaticData: {
     name: "getStaticData",
     category: "Virtualization, Docker & Batch",
-    description: "Aggregated static hardware snapshot (CPU, BIOS, System, Memory Layout, Disk Layout)",
+    description:
+      "Aggregated static hardware snapshot (CPU, BIOS, System, Memory Layout, Disk Layout)",
     execute: async () => si.getStaticData(),
   },
   getDynamicData: {
     name: "getDynamicData",
     category: "Virtualization, Docker & Batch",
-    description: "Aggregated dynamic runtime metrics (Load, Memory, Disks IO, Network, Temp)",
+    description:
+      "Aggregated dynamic runtime metrics (Load, Memory, Disks IO, Network, Temp)",
     execute: async () => si.getDynamicData(),
   },
   getAllData: {
     name: "getAllData",
     category: "Virtualization, Docker & Batch",
-    description: "Exhaustive full system audit across all hardware, OS & software subsystems",
+    description:
+      "Exhaustive full system audit across all hardware, OS & software subsystems",
     execute: async () => si.getAllData(),
   },
   get: {
     name: "get",
     category: "Virtualization, Docker & Batch",
-    description: "Dynamic query builder for selective retrieval of specific data subsets",
+    description:
+      "Dynamic query builder for selective retrieval of specific data subsets",
     acceptsParam: true,
-    paramPlaceholder: "JSON query object (e.g. {\"cpu\": \"brand, speed\", \"mem\": \"total, free\"})",
+    paramPlaceholder:
+      'JSON query object (e.g. {"cpu": "brand, speed", "mem": "total, free"})',
     defaultParam: '{"cpu": "brand, speed", "mem": "total, free"}',
     execute: async (param) => {
       let query: any = { cpu: "brand, speed", mem: "total, free" };
@@ -457,7 +489,9 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
           query = JSON.parse(param);
         } catch {
           query = {};
-          param.split(",").forEach(k => { query[k.trim()] = "*"; });
+          param.split(",").forEach((k) => {
+            query[k.trim()] = "*";
+          });
         }
       }
       return si.get(query);
@@ -466,14 +500,18 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
   observe: {
     name: "observe",
     category: "Virtualization, Docker & Batch",
-    description: "Real-time observer stream sample (triggers a single observation cycle)",
+    description:
+      "Real-time observer stream sample (triggers a single observation cycle)",
     acceptsParam: true,
-    paramPlaceholder: "JSON observation object (default: {\"currentLoad\": \"currentLoad\", \"mem\": \"used\"})",
+    paramPlaceholder:
+      'JSON observation object (default: {"currentLoad": "currentLoad", "mem": "used"})',
     defaultParam: '{"currentLoad": "currentLoad", "mem": "used"}',
     execute: async (param) => {
       let query: any = { currentLoad: "currentLoad", mem: "used" };
       if (param) {
-        try { query = JSON.parse(param); } catch {}
+        try {
+          query = JSON.parse(param);
+        } catch {}
       }
       return new Promise((resolve) => {
         let handle: any = null;
@@ -481,32 +519,47 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
           if (handle) clearInterval(handle);
           resolve(data);
         });
-        setTimeout(() => resolve({ observation: "Observer sample initiated", query }), 1000);
+        setTimeout(
+          () => resolve({ observation: "Observer sample initiated", query }),
+          1000,
+        );
       });
     },
   },
   powerShellStart: {
     name: "powerShellStart",
     category: "Virtualization, Docker & Batch",
-    description: "Windows acceleration helper: initializes persistent background PowerShell process pool",
+    description:
+      "Windows acceleration helper: initializes persistent background PowerShell process pool",
     execute: async () => {
       if (process.platform === "win32") {
         si.powerShellStart();
-        return { status: "PowerShell process pool initialized for Windows acceleration" };
+        return {
+          status:
+            "PowerShell process pool initialized for Windows acceleration",
+        };
       }
-      return { status: "Skipped (powerShellStart is optimized for Windows platforms)", platform: process.platform };
+      return {
+        status: "Skipped (powerShellStart is optimized for Windows platforms)",
+        platform: process.platform,
+      };
     },
   },
   powerShellRelease: {
     name: "powerShellRelease",
     category: "Virtualization, Docker & Batch",
-    description: "Windows acceleration helper: terminates and cleans up PowerShell process pool",
+    description:
+      "Windows acceleration helper: terminates and cleans up PowerShell process pool",
     execute: async () => {
       if (process.platform === "win32") {
         si.powerShellRelease();
         return { status: "PowerShell process pool released and cleaned up" };
       }
-      return { status: "Skipped (powerShellRelease is optimized for Windows platforms)", platform: process.platform };
+      return {
+        status:
+          "Skipped (powerShellRelease is optimized for Windows platforms)",
+        platform: process.platform,
+      };
     },
   },
 };
@@ -514,7 +567,10 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
 /**
  * Execute any systeminformation method with timing and error isolation.
  */
-export async function executeSiMethod(methodName: string, param?: string): Promise<{
+export async function executeSiMethod(
+  methodName: string,
+  param?: string,
+): Promise<{
   success: boolean;
   method: string;
   category: string;
@@ -562,25 +618,33 @@ export async function executeSiMethod(methodName: string, param?: string): Promi
  * Build human-readable formatted summary of system metrics
  */
 export function formatDataSummary(method: string, data: any): string {
-  if (data === null || data === undefined) return "(No data returned or subsystem unavailable)";
+  if (data === null || data === undefined)
+    return "(No data returned or subsystem unavailable)";
 
-  if (typeof data === "string" || typeof data === "number" || typeof data === "boolean") {
+  if (
+    typeof data === "string" ||
+    typeof data === "number" ||
+    typeof data === "boolean"
+  ) {
     return `[${method}] Value: ${data}`;
   }
 
   if (Array.isArray(data)) {
     if (data.length === 0) return `[${method}] (Empty list / 0 entries found)`;
-    const preview = data.slice(0, 10).map((item, idx) => {
-      if (typeof item === "object") {
-        const entries = Object.entries(item)
-          .filter(([_, v]) => v !== null && v !== undefined && v !== "")
-          .slice(0, 5)
-          .map(([k, v]) => `${k}: ${v}`)
-          .join(" | ");
-        return `[#${idx + 1}] ${entries}`;
-      }
-      return `[#${idx + 1}] ${item}`;
-    }).join("\n");
+    const preview = data
+      .slice(0, 10)
+      .map((item, idx) => {
+        if (typeof item === "object") {
+          const entries = Object.entries(item)
+            .filter(([_, v]) => v !== null && v !== undefined && v !== "")
+            .slice(0, 5)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join(" | ");
+          return `[#${idx + 1}] ${entries}`;
+        }
+        return `[#${idx + 1}] ${item}`;
+      })
+      .join("\n");
     return `[${method}] Total items: ${data.length}\n${preview}${data.length > 10 ? `\n... (${data.length - 10} more items)` : ""}`;
   }
 
@@ -591,7 +655,9 @@ export function formatDataSummary(method: string, data: any): string {
       if (Array.isArray(value)) {
         lines.push(`  ${key}: [Array of ${value.length} items]`);
       } else {
-        lines.push(`  ${key}: {Object: ${Object.keys(value).slice(0, 4).join(", ")}...}`);
+        lines.push(
+          `  ${key}: {Object: ${Object.keys(value).slice(0, 4).join(", ")}...}`,
+        );
       }
     } else {
       lines.push(`  ${key}: ${value}`);
@@ -606,19 +672,30 @@ export function formatDataSummary(method: string, data: any): string {
 
 export async function fetchTelemetryKpis() {
   const [cpu, load, mem, netIface, netGateway, battery] = await Promise.all([
-    si.cpu().catch(() => ({ manufacturer: "Apple", brand: "Apple Silicon", speed: 2.4, cores: os.cpus().length })),
+    si.cpu().catch(() => ({
+      manufacturer: "Apple",
+      brand: "Apple Silicon",
+      speed: 2.4,
+      cores: os.cpus().length,
+    })),
     si.currentLoad().catch(() => ({ currentLoad: 0 })),
-    si.mem().catch(() => ({ total: os.totalmem(), used: os.totalmem() - os.freemem(), free: os.freemem() })),
+    si.mem().catch(() => ({
+      total: os.totalmem(),
+      used: os.totalmem() - os.freemem(),
+      free: os.freemem(),
+    })),
     si.networkInterfaceDefault().catch(() => "en0"),
     si.networkGatewayDefault().catch(() => "192.168.1.1"),
-    si.battery().catch(() => ({ hasBattery: false, percent: 100, isCharging: false })),
+    si
+      .battery()
+      .catch(() => ({ hasBattery: false, percent: 100, isCharging: false })),
   ]);
 
   const realUsedBytes = (mem as any).active
     ? Number((mem as any).active)
     : (mem as any).available
       ? Math.max(0, (mem.total || 0) - Number((mem as any).available))
-      : (mem.used || 0);
+      : mem.used || 0;
   const usedGb = (realUsedBytes / (1024 * 1024 * 1024)).toFixed(1);
   const totalGb = ((mem.total || 1) / (1024 * 1024 * 1024)).toFixed(1);
   const memPct = Math.round((realUsedBytes / (mem.total || 1)) * 100);
@@ -654,7 +731,7 @@ export function generateEnterpriseAppHtml(): string {
       acceptsParam: m.acceptsParam || false,
       paramPlaceholder: m.paramPlaceholder || "",
       defaultParam: m.defaultParam || "",
-    }))
+    })),
   );
 
   const categoriesJson = JSON.stringify(SI_CATEGORIES);
@@ -2766,12 +2843,15 @@ export interface SystemStudioInstance {
 /**
  * Creates the Complete Enterprise-Grade System Information Studio Application
  */
-export function createSystemInformationStudio(options: SystemStudioOptions = {}): SystemStudioInstance {
+export function createSystemInformationStudio(
+  options: SystemStudioOptions = {},
+): SystemStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1260);
   const height = options.height ?? (fullscreen ? screen.height : 900);
-  const title = "System Information Studio Pro -- Complete Cross-Platform Hardware Intelligence Suite";
+  const title =
+    "System Information Studio Pro -- Complete Cross-Platform Hardware Intelligence Suite";
 
   const app: SystemStudioInstance = {
     title,
@@ -2780,7 +2860,9 @@ export function createSystemInformationStudio(options: SystemStudioOptions = {})
     fullscreen,
     generateHtml: () => generateEnterpriseAppHtml(),
     run: async () => {
-      console.log("⚡ Launching System Information Studio Pro (All 60 APIs)...");
+      console.log(
+        "⚡ Launching System Information Studio Pro (All 60 APIs)...",
+      );
 
       // 1. Launch Isolated Background Telemetry Worker Engine
       // This runs on a dedicated OS thread with its own independent Bun event loop,
@@ -2796,7 +2878,13 @@ export function createSystemInformationStudio(options: SystemStudioOptions = {})
         app.worker = worker;
 
         info = await new Promise((res, rej) => {
-          const timer = setTimeout(() => rej(new Error("Timeout initializing background telemetry engine")), 1500);
+          const timer = setTimeout(
+            () =>
+              rej(
+                new Error("Timeout initializing background telemetry engine"),
+              ),
+            1500,
+          );
           worker.onmessage = (e) => {
             if (!e.data?.type || e.data.type === "system_studio") {
               clearTimeout(timer);
@@ -2811,7 +2899,11 @@ export function createSystemInformationStudio(options: SystemStudioOptions = {})
       } catch {
         // Subprocess fallback: Spawns the server as an isolated OS process with an active Bun event loop
         const serverArgs = process.execPath.endsWith("bun")
-          ? [process.execPath, process.argv[1] || resolve(import.meta.dir, "system_studio.ts"), "--server"]
+          ? [
+              process.execPath,
+              process.argv[1] || resolve(import.meta.dir, "system_studio.ts"),
+              "--server",
+            ]
           : [process.execPath, "--server"];
 
         const proc = Bun.spawn(serverArgs, {
@@ -2827,7 +2919,9 @@ export function createSystemInformationStudio(options: SystemStudioOptions = {})
         let detectedPort = 0;
 
         const timeout = setTimeout(() => {
-          try { reader.cancel(); } catch {}
+          try {
+            reader.cancel();
+          } catch {}
         }, 5000);
 
         while (true) {
@@ -2892,13 +2986,21 @@ export function createSystemInformationStudio(options: SystemStudioOptions = {})
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { app.worker?.terminate(); } catch {}
-            try { serverProc?.kill(); } catch {}
+            try {
+              app.worker?.terminate();
+            } catch {}
+            try {
+              serverProc?.kill();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { app.worker?.terminate(); } catch {}
-            try { serverProc?.kill(); } catch {}
+            try {
+              app.worker?.terminate();
+            } catch {}
+            try {
+              serverProc?.kill();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -2908,18 +3010,30 @@ export function createSystemInformationStudio(options: SystemStudioOptions = {})
         });
 
         webview.navigate(info.url);
-        console.log(`⚡ Native desktop workstation window open (Fullscreen: ${fullscreen ? 'Enabled' : 'Disabled'}). (Also accessible in any browser at: ${info.url})`);
+        console.log(
+          `⚡ Native desktop workstation window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}). (Also accessible in any browser at: ${info.url})`,
+        );
 
         // Start native desktop message loop on main thread
         webview.run();
-        try { app.worker?.terminate(); } catch {}
-        try { serverProc?.kill(); } catch {}
+        try {
+          app.worker?.terminate();
+        } catch {}
+        try {
+          serverProc?.kill();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running as web workstation at: ${info.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running as web workstation at: ${info.url}`,
+        );
       } finally {
-        try { app.worker?.terminate(); } catch {}
-        try { serverProc?.kill(); } catch {}
+        try {
+          app.worker?.terminate();
+        } catch {}
+        try {
+          serverProc?.kill();
+        } catch {}
         process.exit(0);
       }
     },
@@ -2953,5 +3067,3 @@ if (process.argv.includes("--server")) {
   await app.run();
   process.exit(0);
 }
-
-

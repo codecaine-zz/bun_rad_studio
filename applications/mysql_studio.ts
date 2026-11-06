@@ -1,9 +1,9 @@
 /**
  * ⚡ Bun RAD Studio - MySQL Studio Pro
- * 
+ *
  * Enterprise-Grade Embedded Database Workstation & Query IDE
  * Powered by 100% native `bun:mysql` with sub-millisecond execution latency.
- * 
+ *
  * Architecture:
  * - Dedicated Background Worker & HTTP Telemetry Server (`mysql_studio_server.ts`)
  * - Native WebKit / Webview Desktop GUI with zero FFI deadlock and instant UI updates
@@ -24,13 +24,28 @@ import {
   attachWindowShortcuts,
   getWindowShortcutsScript,
 } from "../index.ts";
-import { startMysqlStudioServer, type MysqlConnectionConfig, type MysqlConnectionConfigSanitized } from "./mysql_studio_server.ts";
+import {
+  startMysqlStudioServer,
+  type MysqlConnectionConfig,
+  type MysqlConnectionConfigSanitized,
+} from "./mysql_studio_server.ts";
 import { CRUD_STYLE, CRUD_SCRIPT } from "./mysql_studio_crud.ts";
 import { SAMPLES_STYLE, SAMPLES_SCRIPT_MYSQL } from "../src/db/samples/ui.ts";
 import { watchParentProcess } from "../src/parentWatch";
-import { MACRO_STYLE, MACRO_TAB_BTN, MACRO_HTML, buildMacroScript } from "./sqlite_studio_macros.ts";
-import { STUDIO_SHARED_STYLE, STUDIO_SHARED_SCRIPT } from "../src/shared/studioShared.ts";
-import { STUDIO_STAGING_STYLE, studioStagingScript } from "../src/shared/studioStaging.ts";
+import {
+  MACRO_STYLE,
+  MACRO_TAB_BTN,
+  MACRO_HTML,
+  buildMacroScript,
+} from "./sqlite_studio_macros.ts";
+import {
+  STUDIO_SHARED_STYLE,
+  STUDIO_SHARED_SCRIPT,
+} from "../src/shared/studioShared.ts";
+import {
+  STUDIO_STAGING_STYLE,
+  studioStagingScript,
+} from "../src/shared/studioStaging.ts";
 
 const MACRO_SCRIPT = buildMacroScript("mysql");
 
@@ -7480,11 +7495,14 @@ function getScreenDimensions(): { width: number; height: number } {
   let screenH = 1080;
   try {
     if (process.platform === "darwin") {
-      const cg = dlopen("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics", {
-        CGMainDisplayID: { args: [], returns: FFIType.u32 },
-        CGDisplayPixelsWide: { args: [FFIType.u32], returns: FFIType.u64 },
-        CGDisplayPixelsHigh: { args: [FFIType.u32], returns: FFIType.u64 },
-      });
+      const cg = dlopen(
+        "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+        {
+          CGMainDisplayID: { args: [], returns: FFIType.u32 },
+          CGDisplayPixelsWide: { args: [FFIType.u32], returns: FFIType.u64 },
+          CGDisplayPixelsHigh: { args: [FFIType.u32], returns: FFIType.u64 },
+        },
+      );
       const mainId = cg.symbols.CGMainDisplayID();
       screenW = Number(cg.symbols.CGDisplayPixelsWide(mainId));
       screenH = Number(cg.symbols.CGDisplayPixelsHigh(mainId));
@@ -7499,18 +7517,26 @@ function getScreenDimensions(): { width: number; height: number } {
   return { width: screenW, height: screenH };
 }
 
-export function createMysqlStudio(options: SystemStudioOptions = {}): MysqlStudioInstance {
+export function createMysqlStudio(
+  options: SystemStudioOptions = {},
+): MysqlStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1260);
   const height = options.height ?? (fullscreen ? screen.height : 900);
-  const defaultDb = process.env.MSQL_NAME 
-    || process.env.MYSQL_DATABASE 
-    || process.env.MSQL_DB 
-    || (process.env.MYSQL_DB_PATH && process.env.MYSQL_DB_PATH !== ":memory:" ? process.env.MYSQL_DB_PATH : "")
-    || process.env.DB_NAME 
-    || "my_app_dev";
-  const activeDbPath = (options.initialDbPath && options.initialDbPath !== ":memory:") ? options.initialDbPath : defaultDb;
+  const defaultDb =
+    process.env.MSQL_NAME ||
+    process.env.MYSQL_DATABASE ||
+    process.env.MSQL_DB ||
+    (process.env.MYSQL_DB_PATH && process.env.MYSQL_DB_PATH !== ":memory:"
+      ? process.env.MYSQL_DB_PATH
+      : "") ||
+    process.env.DB_NAME ||
+    "my_app_dev";
+  const activeDbPath =
+    options.initialDbPath && options.initialDbPath !== ":memory:"
+      ? options.initialDbPath
+      : defaultDb;
   const title = "MySQL Studio Pro -- Enterprise Embedded Database Workstation";
 
   const app: MysqlStudioInstance = {
@@ -7521,17 +7547,22 @@ export function createMysqlStudio(options: SystemStudioOptions = {}): MysqlStudi
     activeDbPath,
     generateHtml: () => generateMysqlStudioHtml(),
     run: async () => {
-      console.log("⚡ Launching MySQL Studio Pro (Enterprise Database Workstation)...");
+      console.log(
+        "⚡ Launching MySQL Studio Pro (Enterprise Database Workstation)...",
+      );
 
       // 1. Launch Isolated Background Database Worker Engine
       // This runs on a dedicated OS thread with its own independent Bun event loop,
       // guaranteeing zero deadlock and instant sub-millisecond responses while Webview runs on the main thread.
       process.env.STUDIO_WORKER = "mysql_studio";
-      if (activeDbPath && activeDbPath !== ":memory:") process.env.MYSQL_DB_PATH = activeDbPath;
+      if (activeDbPath && activeDbPath !== ":memory:")
+        process.env.MYSQL_DB_PATH = activeDbPath;
 
       const customConfig: Partial<MysqlConnectionConfig> = options.config || {
         host: options.host,
-        port: options.mysqlPort || (options.port && options.port !== 3306 ? options.port : undefined),
+        port:
+          options.mysqlPort ||
+          (options.port && options.port !== 3306 ? options.port : undefined),
         user: options.user,
         password: options.password,
         database: options.database,
@@ -7580,7 +7611,11 @@ export function createMysqlStudio(options: SystemStudioOptions = {}): MysqlStudi
         app.worker = worker;
 
         info = await new Promise((res, rej) => {
-          const timer = setTimeout(() => rej(new Error("Timeout initializing background database engine")), 1500);
+          const timer = setTimeout(
+            () =>
+              rej(new Error("Timeout initializing background database engine")),
+            1500,
+          );
           worker.onmessage = (e) => {
             if (!e.data?.type || e.data.type === "mysql_studio") {
               clearTimeout(timer);
@@ -7595,7 +7630,11 @@ export function createMysqlStudio(options: SystemStudioOptions = {}): MysqlStudi
       } catch {
         // Subprocess fallback: Spawns the server as an isolated OS process with an active Bun event loop
         const serverArgs = process.execPath.endsWith("bun")
-          ? [process.execPath, process.argv[1] || resolve(import.meta.dir, "mysql_studio.ts"), "--server"]
+          ? [
+              process.execPath,
+              process.argv[1] || resolve(import.meta.dir, "mysql_studio.ts"),
+              "--server",
+            ]
           : [process.execPath, "--server"];
 
         const proc = Bun.spawn(serverArgs, {
@@ -7611,7 +7650,9 @@ export function createMysqlStudio(options: SystemStudioOptions = {}): MysqlStudi
         let detectedPort = 0;
 
         const timeout = setTimeout(() => {
-          try { reader.cancel(); } catch {}
+          try {
+            reader.cancel();
+          } catch {}
         }, 5000);
 
         while (true) {
@@ -7683,13 +7724,21 @@ export function createMysqlStudio(options: SystemStudioOptions = {}): MysqlStudi
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { app.worker?.terminate(); } catch {}
-            try { serverProc?.kill(); } catch {}
+            try {
+              app.worker?.terminate();
+            } catch {}
+            try {
+              serverProc?.kill();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { app.worker?.terminate(); } catch {}
-            try { serverProc?.kill(); } catch {}
+            try {
+              app.worker?.terminate();
+            } catch {}
+            try {
+              serverProc?.kill();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -7699,18 +7748,30 @@ export function createMysqlStudio(options: SystemStudioOptions = {}): MysqlStudi
         });
 
         webview.navigate(info.url);
-        console.log(`⚡ Native desktop workstation window open (Fullscreen: ${fullscreen ? 'Enabled' : 'Disabled'}). (Also accessible in any browser at: ${info.url})`);
+        console.log(
+          `⚡ Native desktop workstation window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}). (Also accessible in any browser at: ${info.url})`,
+        );
 
         // Start native desktop message loop on main thread
         webview.run();
-        try { app.worker?.terminate(); } catch {}
-        try { serverProc?.kill(); } catch {}
+        try {
+          app.worker?.terminate();
+        } catch {}
+        try {
+          serverProc?.kill();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running as web workstation at: ${info.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running as web workstation at: ${info.url}`,
+        );
       } finally {
-        try { app.worker?.terminate(); } catch {}
-        try { serverProc?.kill(); } catch {}
+        try {
+          app.worker?.terminate();
+        } catch {}
+        try {
+          serverProc?.kill();
+        } catch {}
         process.exit(0);
       }
     },
@@ -7732,9 +7793,14 @@ export { startMysqlStudioServer } from "./mysql_studio_server.ts";
 // -------------------------------------------------------------------------------------------------
 
 if (process.argv.includes("--server")) {
-  const initialDb = (process.env.MYSQL_STUDIO_DB && process.env.MYSQL_STUDIO_DB !== ":memory:")
-    ? process.env.MYSQL_STUDIO_DB
-    : (process.env.MSQL_NAME || process.env.MYSQL_DATABASE || process.env.MSQL_DB || process.env.DB_NAME || "my_app_dev");
+  const initialDb =
+    process.env.MYSQL_STUDIO_DB && process.env.MYSQL_STUDIO_DB !== ":memory:"
+      ? process.env.MYSQL_STUDIO_DB
+      : process.env.MSQL_NAME ||
+        process.env.MYSQL_DATABASE ||
+        process.env.MSQL_DB ||
+        process.env.DB_NAME ||
+        "my_app_dev";
   const srv = startMysqlStudioServer({
     port: 0,
     host: "127.0.0.1",
@@ -7745,9 +7811,14 @@ if (process.argv.includes("--server")) {
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
   const argDb = process.argv[2];
-  const initialDb = (argDb && argDb !== ":memory:")
-    ? argDb
-    : (process.env.MSQL_NAME || process.env.MYSQL_DATABASE || process.env.MSQL_DB || process.env.DB_NAME || "my_app_dev");
+  const initialDb =
+    argDb && argDb !== ":memory:"
+      ? argDb
+      : process.env.MSQL_NAME ||
+        process.env.MYSQL_DATABASE ||
+        process.env.MSQL_DB ||
+        process.env.DB_NAME ||
+        "my_app_dev";
   const app = createMysqlStudio({ initialDbPath: initialDb, fullscreen: true });
   await app.run();
   process.exit(0);

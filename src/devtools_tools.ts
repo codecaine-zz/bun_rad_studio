@@ -2,15 +2,36 @@
  * Pure, dependency-free helpers behind DevTools Studio (ripgrep / fd / sd / rip engines).
  * Kept free of any GUI code so they can be unit-tested directly.
  */
-import { existsSync, readdirSync, statSync, readFileSync, writeFileSync, renameSync, mkdirSync, cpSync, rmSync } from "fs";
+import {
+  existsSync,
+  readdirSync,
+  statSync,
+  readFileSync,
+  writeFileSync,
+  renameSync,
+  mkdirSync,
+  cpSync,
+  rmSync,
+} from "fs";
 import { join, relative, basename, resolve } from "path";
 import { homedir } from "os";
 
 /** Directories that are never descended into. */
-export const ALWAYS_SKIP_DIRS = new Set(["node_modules", ".git", "dist", ".temp", ".temp_screens"]);
+export const ALWAYS_SKIP_DIRS = new Set([
+  "node_modules",
+  ".git",
+  "dist",
+  ".temp",
+  ".temp_screens",
+]);
 
 /** Parses `v` as a base-10 integer and clamps it to `[min, max]`, returning `fallback` when not finite. */
-export const clampInt = (v: any, min: number, max: number, fallback: number): number => {
+export const clampInt = (
+  v: any,
+  min: number,
+  max: number,
+  fallback: number,
+): number => {
   const n = parseInt(String(v), 10);
   if (!Number.isFinite(n)) return fallback;
   return Math.max(min, Math.min(max, n));
@@ -24,7 +45,10 @@ export function formatBytes(n: number): string {
   const units = ["KB", "MB", "GB", "TB"];
   let v = n / 1024;
   let i = 0;
-  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i++;
+  }
   return `${v.toFixed(1)} ${units[i]}`;
 }
 
@@ -40,14 +64,24 @@ export function globToRegExp(glob: string): RegExp {
     if (c === "*") {
       if (glob[i + 1] === "*") {
         i++;
-        if (glob[i + 1] === "/") { i++; re += "(?:.*/)?"; } else re += ".*";
+        if (glob[i + 1] === "/") {
+          i++;
+          re += "(?:.*/)?";
+        } else re += ".*";
       } else re += "[^/]*";
     } else if (c === "?") {
       re += "[^/]";
     } else if (c === "{") {
       const end = glob.indexOf("}", i);
       if (end > i) {
-        re += "(?:" + glob.slice(i + 1, end).split(",").map(escapeRe).join("|") + ")";
+        re +=
+          "(?:" +
+          glob
+            .slice(i + 1, end)
+            .split(",")
+            .map(escapeRe)
+            .join("|") +
+          ")";
         i = end;
       } else re += "\\{";
     } else re += escapeRe(c);
@@ -63,7 +97,12 @@ export function parseGlobList(text: string): string[] {
   for (const ch of String(text || "")) {
     if (ch === "{") depth++;
     if (ch === "}") depth = Math.max(0, depth - 1);
-    if ((/\s/.test(ch) || ch === ";" || ch === "|" || (ch === "," && depth === 0))) {
+    if (
+      /\s/.test(ch) ||
+      ch === ";" ||
+      ch === "|" ||
+      (ch === "," && depth === 0)
+    ) {
       if (cur) out.push(cur);
       cur = "";
     } else cur += ch;
@@ -72,7 +111,11 @@ export function parseGlobList(text: string): string[] {
   return out;
 }
 
-interface GlobRule { re: RegExp; slash: boolean; negate: boolean }
+interface GlobRule {
+  re: RegExp;
+  slash: boolean;
+  negate: boolean;
+}
 
 /** Compiles an array of include and `!exclude` glob strings into regex rules for path filtering. */
 export function compileGlobs(globs: string[]): GlobRule[] {
@@ -80,7 +123,11 @@ export function compileGlobs(globs: string[]): GlobRule[] {
     const negate = g.startsWith("!");
     const body = negate ? g.slice(1) : g;
     const slash = body.includes("/");
-    return { re: globToRegExp(slash ? body.replace(/^\.\//, "") : body), slash, negate };
+    return {
+      re: globToRegExp(slash ? body.replace(/^\.\//, "") : body),
+      slash,
+      negate,
+    };
   });
 }
 
@@ -140,7 +187,11 @@ export interface MatchOptions {
 }
 
 /** Build a (non-global, so `.test` is stateless) RegExp. Throws on an invalid regex. */
-export function buildMatcher(pattern: string, opts: MatchOptions = {}, global = false): RegExp {
+export function buildMatcher(
+  pattern: string,
+  opts: MatchOptions = {},
+  global = false,
+): RegExp {
   let src = opts.fixed ? escapeRe(pattern) : pattern;
   if (opts.wholeWord) src = `\\b(?:${src})\\b`;
   return new RegExp(src, (opts.caseSensitive ? "" : "i") + (global ? "g" : ""));
@@ -148,20 +199,28 @@ export function buildMatcher(pattern: string, opts: MatchOptions = {}, global = 
 
 /** Directory traversal options controlling glob filtering, dotfiles, `.gitignore` rules, and directory inclusion. */
 export interface WalkOptions {
-  include?: string;      // glob list, `!` prefix excludes
-  hidden?: boolean;      // include dotfiles / dot-directories
-  gitignore?: boolean;   // honour the root .gitignore
+  include?: string; // glob list, `!` prefix excludes
+  hidden?: boolean; // include dotfiles / dot-directories
+  gitignore?: boolean; // honour the root .gitignore
   includeDirs?: boolean; // yield directories as well as files
 }
 
 /** File or directory entry yielded by `walkEntries`. */
-export interface WalkEntry { full: string; rel: string; isDir: boolean }
+export interface WalkEntry {
+  full: string;
+  rel: string;
+  isDir: boolean;
+}
 
 /** Walk `root` (file or directory) honouring skip dirs, hidden, globs and .gitignore. */
 export function walkEntries(root: string, opts: WalkOptions = {}): WalkEntry[] {
   const out: WalkEntry[] = [];
   let st;
-  try { st = statSync(root); } catch { return out; }
+  try {
+    st = statSync(root);
+  } catch {
+    return out;
+  }
   if (st.isFile()) {
     out.push({ full: root, rel: basename(root), isDir: false });
     return out;
@@ -169,11 +228,19 @@ export function walkEntries(root: string, opts: WalkOptions = {}): WalkEntry[] {
   const rules = compileGlobs(parseGlobList(opts.include || ""));
   let ignored: IgnoreMatcher | null = null;
   if (opts.gitignore) {
-    try { ignored = parseGitignore(readFileSync(join(root, ".gitignore"), "utf-8")); } catch { /* none */ }
+    try {
+      ignored = parseGitignore(readFileSync(join(root, ".gitignore"), "utf-8"));
+    } catch {
+      /* none */
+    }
   }
   const walk = (dir: string) => {
     let entries;
-    try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
     entries.sort((a, b) => a.name.localeCompare(b.name));
     for (const e of entries) {
       const name = e.name;
@@ -183,7 +250,8 @@ export function walkEntries(root: string, opts: WalkOptions = {}): WalkEntry[] {
       if (e.isDirectory()) {
         if (ALWAYS_SKIP_DIRS.has(name)) continue;
         if (ignored && ignored(rel, true)) continue;
-        if (opts.includeDirs && passesGlobs(rel, rules)) out.push({ full, rel, isDir: true });
+        if (opts.includeDirs && passesGlobs(rel, rules))
+          out.push({ full, rel, isDir: true });
         walk(full);
       } else if (e.isFile()) {
         if (ignored && ignored(rel, false)) continue;
@@ -210,8 +278,8 @@ export function looksBinary(buf: Uint8Array): boolean {
 /** Options for ripgrep-style text search across files in a directory. */
 export interface SearchOptions extends MatchOptions, WalkOptions {
   maxResults?: number;
-  context?: number;     // lines of context before/after
-  filesOnly?: boolean;  // list matching files with counts only
+  context?: number; // lines of context before/after
+  filesOnly?: boolean; // list matching files with counts only
 }
 
 /** Aggregated output and match counts returned by `searchCode`. */
@@ -224,12 +292,22 @@ export interface SearchResult {
 }
 
 /** Searches non-binary files under `targetDir` for lines matching `pattern` with optional context lines. */
-export function searchCode(targetDir: string, pattern: string, options: SearchOptions = {}): SearchResult {
+export function searchCode(
+  targetDir: string,
+  pattern: string,
+  options: SearchOptions = {},
+): SearchResult {
   let regex: RegExp;
   try {
     regex = buildMatcher(pattern, options);
   } catch (e: any) {
-    return { output: `[Invalid Regex]: ${e.message}`, matches: 0, filesScanned: 0, filesMatched: 0, truncated: false };
+    return {
+      output: `[Invalid Regex]: ${e.message}`,
+      matches: 0,
+      filesScanned: 0,
+      filesMatched: 0,
+      truncated: false,
+    };
   }
   const max = clampInt(options.maxResults ?? 200, 1, 100000, 200);
   const ctx = clampInt(options.context ?? 0, 0, 20, 0);
@@ -240,7 +318,10 @@ export function searchCode(targetDir: string, pattern: string, options: SearchOp
   let truncated = false;
 
   for (const f of walkEntries(targetDir, { ...options, includeDirs: false })) {
-    if (matchCount >= max) { truncated = true; break; }
+    if (matchCount >= max) {
+      truncated = true;
+      break;
+    }
     scanned++;
     try {
       if (statSync(f.full).size > 1.5 * 1024 * 1024) continue;
@@ -258,7 +339,8 @@ export function searchCode(targetDir: string, pattern: string, options: SearchOp
           if (ctx > 0) {
             const from = Math.max(lastPrinted + 1, i - ctx);
             if (lastPrinted >= 0 && from > lastPrinted + 1) results.push("--");
-            for (let c = from; c < i; c++) results.push(`${f.rel}-${c + 1}- ${lines[c]!.trim()}`);
+            for (let c = from; c < i; c++)
+              results.push(`${f.rel}-${c + 1}- ${lines[c]!.trim()}`);
           }
           results.push(`${f.rel}:${i + 1}: ${line.trim()}`);
           if (ctx > 0) {
@@ -271,13 +353,19 @@ export function searchCode(targetDir: string, pattern: string, options: SearchOp
             lastPrinted = Math.max(lastPrinted, i);
           }
         }
-        if (matchCount >= max) { truncated = true; break; }
+        if (matchCount >= max) {
+          truncated = true;
+          break;
+        }
       }
       if (fileHits > 0) perFile.push([f.rel, fileHits]);
-    } catch { /* unreadable */ }
+    } catch {
+      /* unreadable */
+    }
   }
 
-  if (options.filesOnly) for (const [rel, n] of perFile) results.push(`${rel} (${n})`);
+  if (options.filesOnly)
+    for (const [rel, n] of perFile) results.push(`${rel} (${n})`);
   if (truncated) results.push(`\n... (Results capped at ${max} matches)`);
   return {
     output: results.length > 0 ? results.join("\n") : "(No matches found)",
@@ -299,12 +387,20 @@ export interface FindOptions extends MatchOptions, WalkOptions {
 }
 
 /** Finds files and directories under `targetDir` whose basename or relative path matches `pattern`. */
-export function findPaths(targetDir: string, pattern: string, options: FindOptions = {}): { output: string; matches: number; truncated: boolean } {
+export function findPaths(
+  targetDir: string,
+  pattern: string,
+  options: FindOptions = {},
+): { output: string; matches: number; truncated: boolean } {
   let regex: RegExp;
   try {
     regex = buildMatcher(pattern, options);
   } catch (e: any) {
-    return { output: `[Invalid Regex]: ${e.message}`, matches: 0, truncated: false };
+    return {
+      output: `[Invalid Regex]: ${e.message}`,
+      matches: 0,
+      truncated: false,
+    };
   }
   const max = clampInt(options.maxResults ?? 200, 1, 100000, 200);
   const type = options.type || "any";
@@ -314,14 +410,26 @@ export function findPaths(targetDir: string, pattern: string, options: FindOptio
     if (type === "file" && e.isDir) continue;
     if (type === "dir" && !e.isDir) continue;
     if (!(regex.test(basename(e.full)) || regex.test(e.rel))) continue;
-    if (results.length >= max) { truncated = true; break; }
+    if (results.length >= max) {
+      truncated = true;
+      break;
+    }
     let meta = "";
-    try { meta = e.isDir ? "" : ` (${(statSync(e.full).size / 1024).toFixed(1)} KB)`; } catch { /* gone */ }
+    try {
+      meta = e.isDir
+        ? ""
+        : ` (${(statSync(e.full).size / 1024).toFixed(1)} KB)`;
+    } catch {
+      /* gone */
+    }
     results.push(`${e.isDir ? "📁 [DIR] " : "📄 [FILE]"} ${e.rel}${meta}`);
   }
   if (truncated) results.push(`\n... (Results capped at ${max} items)`);
   return {
-    output: results.length > 0 ? results.join("\n") : "(No matching files or directories found)",
+    output:
+      results.length > 0
+        ? results.join("\n")
+        : "(No matching files or directories found)",
     matches: truncated ? max : results.length,
     truncated,
   };
@@ -342,19 +450,31 @@ export function replaceInFiles(
   targetPath: string,
   searchPattern: string,
   replaceWith: string,
-  options: ReplaceOptions
+  options: ReplaceOptions,
 ): { output: string; filesChanged: number; replacements: number } {
   if (!existsSync(targetPath)) {
-    return { output: `Target path does not exist: ${targetPath}`, filesChanged: 0, replacements: 0 };
+    return {
+      output: `Target path does not exist: ${targetPath}`,
+      filesChanged: 0,
+      replacements: 0,
+    };
   }
   let regex: RegExp;
   try {
     regex = buildMatcher(searchPattern, options, true);
   } catch (e: any) {
-    return { output: `[Invalid Regex]: ${e.message}`, filesChanged: 0, replacements: 0 };
+    return {
+      output: `[Invalid Regex]: ${e.message}`,
+      filesChanged: 0,
+      replacements: 0,
+    };
   }
   if (searchPattern === "") {
-    return { output: "Search pattern is empty.", filesChanged: 0, replacements: 0 };
+    return {
+      output: "Search pattern is empty.",
+      filesChanged: 0,
+      replacements: 0,
+    };
   }
   const summary: string[] = [];
   let filesChanged = 0;
@@ -371,7 +491,9 @@ export function replaceInFiles(
       if (count === 0) continue;
       filesChanged++;
       total += count;
-      summary.push(`${options.dryRun ? "🔍 [Dry Run]" : "✏️ [Replaced]"} ${relative(process.cwd(), f.full)}: ${count} occurrences`);
+      summary.push(
+        `${options.dryRun ? "🔍 [Dry Run]" : "✏️ [Replaced]"} ${relative(process.cwd(), f.full)}: ${count} occurrences`,
+      );
       const updated = text.replace(regex, replacer);
       if (options.dryRun) {
         const before = text.split("\n");
@@ -388,14 +510,16 @@ export function replaceInFiles(
         if (options.backup) writeFileSync(f.full + ".bak", text, "utf-8");
         writeFileSync(f.full, updated, "utf-8");
       }
-    } catch { /* unreadable */ }
+    } catch {
+      /* unreadable */
+    }
   }
 
   if (summary.length === 0) {
     summary.push(`No occurrences of "${searchPattern}" found in ${targetPath}`);
   } else {
     summary.unshift(
-      `${options.dryRun ? "[DRY RUN PREVIEW]" : "[REPLACEMENT COMPLETED]"}: Changed ${total} occurrence(s) across ${filesChanged} file(s).\n`
+      `${options.dryRun ? "[DRY RUN PREVIEW]" : "[REPLACEMENT COMPLETED]"}: Changed ${total} occurrence(s) across ${filesChanged} file(s).\n`,
     );
   }
   return { output: summary.join("\n"), filesChanged, replacements: total };
@@ -406,12 +530,17 @@ export function replaceInFiles(
 // ---------------------------------------------------------------------------
 
 /** Record of the most recently trashed path and its destination in the Trash folder for undo restoration. */
-export interface TrashRecord { from: string; to: string }
+export interface TrashRecord {
+  from: string;
+  to: string;
+}
 let lastTrash: TrashRecord | null = null;
 /** Returns the most recent `TrashRecord` from `trashPath`, or `null` if none is available. */
 export const getLastTrash = () => lastTrash;
 /** Clears the stored last-trash undo record. */
-export const clearLastTrash = () => { lastTrash = null; };
+export const clearLastTrash = () => {
+  lastTrash = null;
+};
 
 function moveAny(from: string, to: string) {
   try {
@@ -424,17 +553,31 @@ function moveAny(from: string, to: string) {
 }
 
 /** Safely moves a file or directory to `trashDir` with a timestamped name and records it for undo. */
-export function trashPath(targetPath: string, trashDir = join(homedir(), ".Trash")): { output: string; success: boolean } {
+export function trashPath(
+  targetPath: string,
+  trashDir = join(homedir(), ".Trash"),
+): { output: string; success: boolean } {
   if (!existsSync(targetPath)) {
-    return { output: `Target path does not exist: ${targetPath}`, success: false };
+    return {
+      output: `Target path does not exist: ${targetPath}`,
+      success: false,
+    };
   }
   const destName = `${basename(targetPath)}_deleted_${new Date().toISOString().replace(/[:.]/g, "-")}`;
   const destPath = join(trashDir, destName);
   try {
     if (!existsSync(trashDir)) mkdirSync(trashDir, { recursive: true });
-    const protectedPaths = new Set([resolve("/"), resolve(homedir()), resolve(process.cwd()), resolve(process.cwd(), "..")]);
+    const protectedPaths = new Set([
+      resolve("/"),
+      resolve(homedir()),
+      resolve(process.cwd()),
+      resolve(process.cwd(), ".."),
+    ]);
     if (protectedPaths.has(resolve(targetPath))) {
-      return { output: `Refusing to trash protected path: ${targetPath}\nChoose a specific file or sub-folder.`, success: false };
+      return {
+        output: `Refusing to trash protected path: ${targetPath}\nChoose a specific file or sub-folder.`,
+        success: false,
+      };
     }
     moveAny(targetPath, destPath);
     lastTrash = { from: resolve(targetPath), to: destPath };
@@ -453,10 +596,16 @@ export function undoLastTrash(): { output: string; success: boolean } {
   const { from, to } = lastTrash;
   if (!existsSync(to)) {
     lastTrash = null;
-    return { output: `Trashed item is no longer in the Trash: ${to}`, success: false };
+    return {
+      output: `Trashed item is no longer in the Trash: ${to}`,
+      success: false,
+    };
   }
   if (existsSync(from)) {
-    return { output: `Cannot restore: ${from} already exists.`, success: false };
+    return {
+      output: `Cannot restore: ${from} already exists.`,
+      success: false,
+    };
   }
   try {
     mkdirSync(join(from, ".."), { recursive: true });

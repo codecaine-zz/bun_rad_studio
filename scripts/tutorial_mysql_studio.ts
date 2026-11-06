@@ -35,7 +35,9 @@ const seedWorld = (): World => {
 
 const notes = (marks: Array<{ at: number; title: string }>, total: number) => {
   const REPO = "https://github.com/codecaine-zz/bun_rad_studio";
-  const text = marks.map((m, i) => `${fmtTime(i === 0 ? 0 : m.at)} ${m.title}`).join("\n");
+  const text = marks
+    .map((m, i) => `${fmtTime(i === 0 ? 0 : m.at)} ${m.title}`)
+    .join("\n");
   return `# MySQL in the Codecaine File Manager (${fmtTime(total)})
 
 ## YouTube title
@@ -93,7 +95,8 @@ const suite: Suite = {
   cdp: () => cdp,
   notes,
   viewHeight: VIEW_H,
-  rigMark: "🍎 Mac Studio M4 Ultra · 32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K 120Hz",
+  rigMark:
+    "🍎 Mac Studio M4 Ultra · 32c CPU · 80c GPU · 192GB Unified · Pro Display XDR 6K 120Hz",
 };
 
 await runTutorial(suite, process.argv.slice(2));

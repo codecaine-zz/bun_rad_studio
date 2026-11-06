@@ -200,7 +200,10 @@ describe("🔄 Data Converter Studio Pro - Elite Feature Suite", () => {
     expect(win.getValue("txt_input_data")).toContain("/api/v1/telemetry");
 
     // 3. Financial Performance Metrics
-    win.setValue("dd_samples", "Financial Performance Metrics (Markdown Table)");
+    win.setValue(
+      "dd_samples",
+      "Financial Performance Metrics (Markdown Table)",
+    );
     await trigger(win, "btn_load_sample");
     expect(win.getValue("dd_from")).toBe("Markdown Table");
     expect(win.getValue("txt_input_data")).toContain("Quarter");

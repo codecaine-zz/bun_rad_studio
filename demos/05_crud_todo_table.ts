@@ -1,6 +1,6 @@
 /**
  * ⚡ Bun RAD Studio Demo 5: Dynamic Table Control & Data Grid Operations
- * 
+ *
  * Demonstrates:
  * - Table control (`table`) rendering with initial columns & datasets
  * - Dynamic Row Operations: Add Row, Remove Selected Row, Clear Table, Reset Sample Data
@@ -16,77 +16,362 @@ import { SizeHint, Webview } from "webview-bun";
 import { generatePreviewHtml } from "../index.ts";
 
 const formSpec = {
-    title: "Demo 5 - Dynamic Table & Data Grid Control Studio",
-    width: 980,
-    height: 720,
-    background_color: "#0f172a",
-    font_color: "#e2e8f0",
-    padding: 24,
-    spacing: 14,
-    controls: [
-        // Header Title & Status
-        { id: "lblTitle", type: "label", caption: "📊 Dynamic Table & Data Grid Control Studio", left: 24, top: 16, width: 480, height: 26, font_size: 18, font_weight: "700" },
-        { id: "lblSub", type: "label", caption: "Interactive dynamic row & column manipulation with real-time state syncing", left: 24, top: 44, width: 480, height: 18, font_size: 11, font_color: "#38bdf8" },
+  title: "Demo 5 - Dynamic Table & Data Grid Control Studio",
+  width: 980,
+  height: 720,
+  background_color: "#0f172a",
+  font_color: "#e2e8f0",
+  padding: 24,
+  spacing: 14,
+  controls: [
+    // Header Title & Status
+    {
+      id: "lblTitle",
+      type: "label",
+      caption: "📊 Dynamic Table & Data Grid Control Studio",
+      left: 24,
+      top: 16,
+      width: 480,
+      height: 26,
+      font_size: 18,
+      font_weight: "700",
+    },
+    {
+      id: "lblSub",
+      type: "label",
+      caption:
+        "Interactive dynamic row & column manipulation with real-time state syncing",
+      left: 24,
+      top: 44,
+      width: 480,
+      height: 18,
+      font_size: 11,
+      font_color: "#38bdf8",
+    },
 
-        // KPI Summary Cards (Clean, uncluttered, spacious cards)
-        { id: "metRows", type: "metric_card", text: "Total Rows", value: "5", left: 545, top: 14, width: 125, height: 52, border_radius: 8, background_color: "rgba(30, 41, 59, 0.75)", border_color: "rgba(56, 189, 248, 0.3)", value_color: "#38bdf8" },
-        { id: "metCols", type: "metric_card", text: "Total Cols", value: "6", left: 685, top: 14, width: 125, height: 52, border_radius: 8, background_color: "rgba(30, 41, 59, 0.75)", border_color: "rgba(168, 85, 247, 0.3)", value_color: "#c084fc" },
-        { id: "metBudget", type: "metric_card", text: "Total Payroll", value: "$780k", left: 825, top: 14, width: 125, height: 52, border_radius: 8, background_color: "rgba(30, 41, 59, 0.75)", border_color: "rgba(16, 185, 129, 0.3)", value_color: "#34d399" },
+    // KPI Summary Cards (Clean, uncluttered, spacious cards)
+    {
+      id: "metRows",
+      type: "metric_card",
+      text: "Total Rows",
+      value: "5",
+      left: 545,
+      top: 14,
+      width: 125,
+      height: 52,
+      border_radius: 8,
+      background_color: "rgba(30, 41, 59, 0.75)",
+      border_color: "rgba(56, 189, 248, 0.3)",
+      value_color: "#38bdf8",
+    },
+    {
+      id: "metCols",
+      type: "metric_card",
+      text: "Total Cols",
+      value: "6",
+      left: 685,
+      top: 14,
+      width: 125,
+      height: 52,
+      border_radius: 8,
+      background_color: "rgba(30, 41, 59, 0.75)",
+      border_color: "rgba(168, 85, 247, 0.3)",
+      value_color: "#c084fc",
+    },
+    {
+      id: "metBudget",
+      type: "metric_card",
+      text: "Total Payroll",
+      value: "$780k",
+      left: 825,
+      top: 14,
+      width: 125,
+      height: 52,
+      border_radius: 8,
+      background_color: "rgba(30, 41, 59, 0.75)",
+      border_color: "rgba(16, 185, 129, 0.3)",
+      value_color: "#34d399",
+    },
 
-        // Left Control Panel (Row & Column Data Entry)
-        { id: "grpInputs", type: "groupbox", title: "⚙️ Table Data Controls", left: 24, top: 80, width: 240, height: 440 },
+    // Left Control Panel (Row & Column Data Entry)
+    {
+      id: "grpInputs",
+      type: "groupbox",
+      title: "⚙️ Table Data Controls",
+      left: 24,
+      top: 80,
+      width: 240,
+      height: 440,
+    },
 
-        { id: "lblInputName", type: "label", caption: "Full Name:", left: 36, top: 110, width: 100, height: 16, font_size: 11, font_weight: "600" },
-        { id: "txtName", type: "input", placeholder: "e.g. Alex Mercer", left: 36, top: 130, width: 216, height: 32 },
+    {
+      id: "lblInputName",
+      type: "label",
+      caption: "Full Name:",
+      left: 36,
+      top: 110,
+      width: 100,
+      height: 16,
+      font_size: 11,
+      font_weight: "600",
+    },
+    {
+      id: "txtName",
+      type: "input",
+      placeholder: "e.g. Alex Mercer",
+      left: 36,
+      top: 130,
+      width: 216,
+      height: 32,
+    },
 
-        { id: "lblInputRole", type: "label", caption: "Job Role:", left: 36, top: 170, width: 100, height: 16, font_size: 11, font_weight: "600" },
-        { id: "txtRole", type: "input", placeholder: "e.g. Senior Architect", left: 36, top: 190, width: 216, height: 32 },
+    {
+      id: "lblInputRole",
+      type: "label",
+      caption: "Job Role:",
+      left: 36,
+      top: 170,
+      width: 100,
+      height: 16,
+      font_size: 11,
+      font_weight: "600",
+    },
+    {
+      id: "txtRole",
+      type: "input",
+      placeholder: "e.g. Senior Architect",
+      left: 36,
+      top: 190,
+      width: 216,
+      height: 32,
+    },
 
-        { id: "lblInputDept", type: "label", caption: "Department:", left: 36, top: 230, width: 100, height: 16, font_size: 11, font_weight: "600" },
-        { id: "txtDept", type: "input", placeholder: "e.g. Engineering", left: 36, top: 250, width: 216, height: 32 },
+    {
+      id: "lblInputDept",
+      type: "label",
+      caption: "Department:",
+      left: 36,
+      top: 230,
+      width: 100,
+      height: 16,
+      font_size: 11,
+      font_weight: "600",
+    },
+    {
+      id: "txtDept",
+      type: "input",
+      placeholder: "e.g. Engineering",
+      left: 36,
+      top: 250,
+      width: 216,
+      height: 32,
+    },
 
-        { id: "lblInputSalary", type: "label", caption: "Salary ($):", left: 36, top: 290, width: 100, height: 16, font_size: 11, font_weight: "600" },
-        { id: "txtSalary", type: "input", placeholder: "e.g. 150000", left: 36, top: 310, width: 216, height: 32 },
+    {
+      id: "lblInputSalary",
+      type: "label",
+      caption: "Salary ($):",
+      left: 36,
+      top: 290,
+      width: 100,
+      height: 16,
+      font_size: 11,
+      font_weight: "600",
+    },
+    {
+      id: "txtSalary",
+      type: "input",
+      placeholder: "e.g. 150000",
+      left: 36,
+      top: 310,
+      width: 216,
+      height: 32,
+    },
 
-        { id: "btnAddRow", type: "button", caption: "➕ Add New Row", left: 36, top: 355, width: 216, height: 36, background_color: "#0284c7", font_weight: "700" },
-        { id: "btnRemoveRow", type: "button", caption: "➖ Delete Selected Row", left: 36, top: 400, width: 216, height: 32, background_color: "#dc2626" },
+    {
+      id: "btnAddRow",
+      type: "button",
+      caption: "➕ Add New Row",
+      left: 36,
+      top: 355,
+      width: 216,
+      height: 36,
+      background_color: "#0284c7",
+      font_weight: "700",
+    },
+    {
+      id: "btnRemoveRow",
+      type: "button",
+      caption: "➖ Delete Selected Row",
+      left: 36,
+      top: 400,
+      width: 216,
+      height: 32,
+      background_color: "#dc2626",
+    },
 
-        { id: "lblInputCol", type: "label", caption: "Custom Column Name:", left: 36, top: 440, width: 180, height: 16, font_size: 11, font_weight: "600" },
-        { id: "txtColName", type: "input", placeholder: "e.g. Location", left: 36, top: 460, width: 130, height: 32 },
-        { id: "btnAddCol", type: "button", caption: "📐 Add Col", left: 172, top: 460, width: 80, height: 32, background_color: "#059669", font_weight: "600" },
+    {
+      id: "lblInputCol",
+      type: "label",
+      caption: "Custom Column Name:",
+      left: 36,
+      top: 440,
+      width: 180,
+      height: 16,
+      font_size: 11,
+      font_weight: "600",
+    },
+    {
+      id: "txtColName",
+      type: "input",
+      placeholder: "e.g. Location",
+      left: 36,
+      top: 460,
+      width: 130,
+      height: 32,
+    },
+    {
+      id: "btnAddCol",
+      type: "button",
+      caption: "📐 Add Col",
+      left: 172,
+      top: 460,
+      width: 80,
+      height: 32,
+      background_color: "#059669",
+      font_weight: "600",
+    },
 
-        { id: "btnRemoveCol", type: "button", caption: "❌ Remove Last Col", left: 36, top: 500, width: 216, height: 32, background_color: "#475569" },
+    {
+      id: "btnRemoveCol",
+      type: "button",
+      caption: "❌ Remove Last Col",
+      left: 36,
+      top: 500,
+      width: 216,
+      height: 32,
+      background_color: "#475569",
+    },
 
-        // Top Table Bar (Search & Table Level Actions)
-        { id: "txtSearch", type: "search", placeholder: "🔍 Filter rows by name, role, dept...", left: 280, top: 80, width: 325, height: 36 },
-        { id: "btnSort", type: "button", caption: "🔀 Sort (Name)", left: 620, top: 80, width: 100, height: 36, background_color: "#334155" },
-        { id: "btnReset", type: "button", caption: "🔄 Reset Data", left: 730, top: 80, width: 105, height: 36, background_color: "#334155" },
-        { id: "btnClear", type: "button", caption: "🧹 Clear All", left: 845, top: 80, width: 105, height: 36, background_color: "#991b1b" },
+    // Top Table Bar (Search & Table Level Actions)
+    {
+      id: "txtSearch",
+      type: "search",
+      placeholder: "🔍 Filter rows by name, role, dept...",
+      left: 280,
+      top: 80,
+      width: 325,
+      height: 36,
+    },
+    {
+      id: "btnSort",
+      type: "button",
+      caption: "🔀 Sort (Name)",
+      left: 620,
+      top: 80,
+      width: 100,
+      height: 36,
+      background_color: "#334155",
+    },
+    {
+      id: "btnReset",
+      type: "button",
+      caption: "🔄 Reset Data",
+      left: 730,
+      top: 80,
+      width: 105,
+      height: 36,
+      background_color: "#334155",
+    },
+    {
+      id: "btnClear",
+      type: "button",
+      caption: "🧹 Clear All",
+      left: 845,
+      top: 80,
+      width: 105,
+      height: 36,
+      background_color: "#991b1b",
+    },
 
-        // Dynamic Table Control
-        {
-            id: "tblMainGrid",
-            type: "table",
-            left: 280,
-            top: 130,
-            width: 670,
-            height: 390,
-            background_color: "#1e293b",
-            border_radius: 8,
-            columns: ["ID", "Name", "Role", "Department", "Salary", "Status"],
-            rows: [
-                ["101", "Alex Mercer", "Lead Architect", "Engineering", "$165,000", "Active"],
-                ["102", "Elena Rostova", "Staff Designer", "Design", "$140,000", "Active"],
-                ["103", "Marcus Vance", "Product Manager", "Product", "$155,000", "Active"],
-                ["104", "Sophia Chen", "Data Scientist", "AI & ML", "$170,000", "Active"],
-                ["105", "David Kim", "DevOps Engineer", "Infrastructure", "$150,000", "On Leave"]
-            ]
-        },
+    // Dynamic Table Control
+    {
+      id: "tblMainGrid",
+      type: "table",
+      left: 280,
+      top: 130,
+      width: 670,
+      height: 390,
+      background_color: "#1e293b",
+      border_radius: 8,
+      columns: ["ID", "Name", "Role", "Department", "Salary", "Status"],
+      rows: [
+        [
+          "101",
+          "Alex Mercer",
+          "Lead Architect",
+          "Engineering",
+          "$165,000",
+          "Active",
+        ],
+        [
+          "102",
+          "Elena Rostova",
+          "Staff Designer",
+          "Design",
+          "$140,000",
+          "Active",
+        ],
+        [
+          "103",
+          "Marcus Vance",
+          "Product Manager",
+          "Product",
+          "$155,000",
+          "Active",
+        ],
+        [
+          "104",
+          "Sophia Chen",
+          "Data Scientist",
+          "AI & ML",
+          "$170,000",
+          "Active",
+        ],
+        [
+          "105",
+          "David Kim",
+          "DevOps Engineer",
+          "Infrastructure",
+          "$150,000",
+          "On Leave",
+        ],
+      ],
+    },
 
-        // Bottom Action Log & Status Panel
-        { id: "grpLog", type: "groupbox", title: "⚡ Live Table Control IPC & Event Log", left: 24, top: 535, width: 926, height: 130 },
-        { id: "lblLog", type: "label", caption: "🚀 Dynamic Table Control loaded with 5 initial enterprise rows and 6 columns. Click any row or use the controls on the left to test dynamic row/column additions.", left: 40, top: 565, width: 890, height: 80, font_size: 12, font_color: "#38bdf8" }
-    ]
+    // Bottom Action Log & Status Panel
+    {
+      id: "grpLog",
+      type: "groupbox",
+      title: "⚡ Live Table Control IPC & Event Log",
+      left: 24,
+      top: 535,
+      width: 926,
+      height: 130,
+    },
+    {
+      id: "lblLog",
+      type: "label",
+      caption:
+        "🚀 Dynamic Table Control loaded with 5 initial enterprise rows and 6 columns. Click any row or use the controls on the left to test dynamic row/column additions.",
+      left: 40,
+      top: 565,
+      width: 890,
+      height: 80,
+      font_size: 12,
+      font_color: "#38bdf8",
+    },
+  ],
 };
 
 const html = generatePreviewHtml(formSpec);
@@ -95,7 +380,11 @@ wv.title = "Bun RAD Studio - Demo 5: Dynamic Table Control Studio";
 wv.size = { width: 980, height: 720, hint: SizeHint.NONE };
 
 function execJS(code: string) {
-    try { wv.eval(code); } catch (e) { console.error("JS Error:", e); }
+  try {
+    wv.eval(code);
+  } catch (e) {
+    console.error("JS Error:", e);
+  }
 }
 
 let nextId = 106;
@@ -180,12 +469,15 @@ const setupTableJS = `
 `;
 
 // Inject setup JS into HTML
-const finalHtml = html.replace("</body>", "<script>" + setupTableJS + "</script></body>");
+const finalHtml = html.replace(
+  "</body>",
+  "<script>" + setupTableJS + "</script></body>",
+);
 
 // 1. Add Row Handler
 wv.bind("on_btnAddRow_click", () => {
-    console.log("⚡ [IPC] on_btnAddRow_click");
-    execJS(`
+  console.log("⚡ [IPC] on_btnAddRow_click");
+  execJS(`
         (function() {
             const table = document.querySelector("#tblMainGrid table tbody");
             if (!table) return;
@@ -227,8 +519,8 @@ wv.bind("on_btnAddRow_click", () => {
 
 // 2. Remove Selected Row Handler
 wv.bind("on_btnRemoveRow_click", () => {
-    console.log("⚡ [IPC] on_btnRemoveRow_click");
-    execJS(`
+  console.log("⚡ [IPC] on_btnRemoveRow_click");
+  execJS(`
         (function() {
             const tbody = document.querySelector("#tblMainGrid table tbody");
             if (!tbody) return;
@@ -259,8 +551,8 @@ wv.bind("on_btnRemoveRow_click", () => {
 
 // 3. Add Column Handler
 wv.bind("on_btnAddCol_click", () => {
-    console.log("⚡ [IPC] on_btnAddCol_click");
-    execJS(`
+  console.log("⚡ [IPC] on_btnAddCol_click");
+  execJS(`
         (function() {
             const colInput = document.getElementById("txtColName");
             const colName = (colInput.value || "").trim() || "Location";
@@ -293,8 +585,8 @@ wv.bind("on_btnAddCol_click", () => {
 
 // 4. Remove Column Handler
 wv.bind("on_btnRemoveCol_click", () => {
-    console.log("⚡ [IPC] on_btnRemoveCol_click");
-    execJS(`
+  console.log("⚡ [IPC] on_btnRemoveCol_click");
+  execJS(`
         (function() {
             const headers = document.querySelectorAll("#tblMainGrid table thead th");
             if (headers.length <= 1) {
@@ -320,8 +612,8 @@ wv.bind("on_btnRemoveCol_click", () => {
 
 // 5. Filter Search Bar Handler
 wv.bind("on_txtSearch_change", (val: any) => {
-    console.log("⚡ [IPC] on_txtSearch_change:", val);
-    execJS(`
+  console.log("⚡ [IPC] on_txtSearch_change:", val);
+  execJS(`
         (function() {
             const query = (document.getElementById("txtSearch").value || "").toLowerCase();
             const bodyRows = document.querySelectorAll("#tblMainGrid table tbody tr");
@@ -345,8 +637,8 @@ wv.bind("on_txtSearch_change", (val: any) => {
 
 // 6. Sort Table Handler
 wv.bind("on_btnSort_click", () => {
-    console.log("⚡ [IPC] on_btnSort_click");
-    execJS(`
+  console.log("⚡ [IPC] on_btnSort_click");
+  execJS(`
         (function() {
             const tbody = document.querySelector("#tblMainGrid table tbody");
             if (!tbody) return;
@@ -367,8 +659,8 @@ wv.bind("on_btnSort_click", () => {
 
 // 7. Reset Sample Data Handler
 wv.bind("on_btnReset_click", () => {
-    console.log("⚡ [IPC] on_btnReset_click");
-    execJS(`
+  console.log("⚡ [IPC] on_btnReset_click");
+  execJS(`
         (function() {
             const tableContainer = document.getElementById("tblMainGrid");
             if (!tableContainer) return;
@@ -404,8 +696,8 @@ wv.bind("on_btnReset_click", () => {
 
 // 8. Clear All Rows Handler
 wv.bind("on_btnClear_click", () => {
-    console.log("⚡ [IPC] on_btnClear_click");
-    execJS(`
+  console.log("⚡ [IPC] on_btnClear_click");
+  execJS(`
         (function() {
             const tbody = document.querySelector("#tblMainGrid table tbody");
             if (tbody) tbody.innerHTML = "";
@@ -419,5 +711,7 @@ wv.bind("on_btnClear_click", () => {
 // Set HTML AFTER all binds are registered
 wv.setHTML(finalHtml);
 
-console.log("🚀 Running Bun RAD Studio Demo 5: Dynamic Table & Data Grid Control Studio...");
+console.log(
+  "🚀 Running Bun RAD Studio Demo 5: Dynamic Table & Data Grid Control Studio...",
+);
 wv.run();

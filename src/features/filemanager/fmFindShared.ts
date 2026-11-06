@@ -2,7 +2,11 @@
  * Types and limits shared by the Find tool's server code and its worker. Imports nothing heavy, so the worker
  * (which loads this file) stays small.
  */
-import type { FdFileType, FdItem, FdSearchOptions } from "../../../applications/fd_engine";
+import type {
+  FdFileType,
+  FdItem,
+  FdSearchOptions,
+} from "../../../applications/fd_engine";
 import type { RenameRules } from "../../../applications/fd_ops";
 
 /** Default maximum number of matches returned by a Find search when no limit is specified. */
@@ -89,13 +93,31 @@ export interface SearchOutcome {
 /** Discriminated union of background tasks executable by the Find worker (`fmFindWorker.ts`). */
 export type WorkerJob =
   | { kind: "search"; options: FdSearchOptions }
-  | { kind: "grep"; paths: string[]; query: string; regex: boolean; matchCase: boolean; maxMatches: number }
+  | {
+      kind: "grep";
+      paths: string[];
+      query: string;
+      regex: boolean;
+      matchCase: boolean;
+      maxMatches: number;
+    }
   | { kind: "dupes"; paths: string[]; minBytes: number }
   | { kind: "largest"; paths: string[]; count: number }
   | { kind: "extstats"; paths: string[] }
   | { kind: "hash"; path: string }
-  | { kind: "renameplan"; paths: string[]; rules: RenameRules; platform: string }
-  | { kind: "tar"; paths: string[]; base: string; dest: string; maxBytes: number }
+  | {
+      kind: "renameplan";
+      paths: string[];
+      rules: RenameRules;
+      platform: string;
+    }
+  | {
+      kind: "tar";
+      paths: string[];
+      base: string;
+      dest: string;
+      maxBytes: number;
+    }
   /** Busy loop that only a timeout can end: lets tests prove that a stuck job is stopped. */
   | { kind: "spin"; ms: number };
 

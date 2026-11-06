@@ -1,6 +1,6 @@
 /**
  * ⚡ Interval Timer & High-Performance Calisthenics Suite
- * 
+ *
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
  * - High-intensity interval timer with customizable work/rest cycles
@@ -76,7 +76,9 @@ let cachedInlinedHtml: string | null = null;
  * Generates the complete HTML for Interval Timer with all exercise animations inlined
  * as Base64 data URIs and desktop shortcuts + external link interceptor injected.
  */
-export function generateIntervalTimerStudioHtml(options: { apiUrl?: string } = {}): string {
+export function generateIntervalTimerStudioHtml(
+  options: { apiUrl?: string } = {},
+): string {
   return injectHelp(buildIntervalTimerHtml(options), "interval_timer_studio");
 }
 
@@ -85,7 +87,9 @@ function buildIntervalTimerHtml(options: { apiUrl?: string } = {}): string {
     const assetsDir = getIntervalTimerAssetsDir();
     const indexPath = join(assetsDir, "index.html");
 
-    let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Interval Timer Suite</h1>";
+    let html = existsSync(indexPath)
+      ? readFileSync(indexPath, "utf8")
+      : "<h1>Interval Timer Suite</h1>";
 
     // 1. Inline all animation GIFs and JPG diagrams from assets/animations/
     const animDir = join(assetsDir, "assets/animations");
@@ -141,7 +145,9 @@ function buildIntervalTimerHtml(options: { apiUrl?: string } = {}): string {
 /**
  * Starts the Bun.serve server hosting Interval Timer Suite.
  */
-export function startIntervalTimerStudioServer(options: IntervalTimerServerOptions = {}) {
+export function startIntervalTimerStudioServer(
+  options: IntervalTimerServerOptions = {},
+) {
   const port = options.port ?? 0;
   const host = options.host ?? "127.0.0.1";
   const assetsDir = getIntervalTimerAssetsDir();
@@ -167,7 +173,10 @@ export function startIntervalTimerStudioServer(options: IntervalTimerServerOptio
       }
 
       // Playlist Sync API endpoint (?action=sync_codecaine_playlist or /api/sync_playlist)
-      if (url.searchParams.get("action") === "sync_codecaine_playlist" || pathname === "/api/sync_playlist") {
+      if (
+        url.searchParams.get("action") === "sync_codecaine_playlist" ||
+        pathname === "/api/sync_playlist"
+      ) {
         const cachePath = join(assetsDir, "cache/codecaine_playlist.json");
         let tracks: any[] = [];
         if (existsSync(cachePath)) {
@@ -177,15 +186,20 @@ export function startIntervalTimerStudioServer(options: IntervalTimerServerOptio
         }
         return Response.json(
           { success: true, count: tracks.length, tracks },
-          { headers: corsHeaders }
+          { headers: corsHeaders },
         );
       }
 
       // Root / Index
       if (pathname === "/" || pathname === "/index.html") {
-        const html = generateIntervalTimerStudioHtml({ apiUrl: `http://${host}:${server.port}` });
+        const html = generateIntervalTimerStudioHtml({
+          apiUrl: `http://${host}:${server.port}`,
+        });
         return new Response(html, {
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            ...corsHeaders,
+          },
         });
       }
 
@@ -209,18 +223,24 @@ export function startIntervalTimerStudioServer(options: IntervalTimerServerOptio
             version: "1.0.0",
             timestamp: Date.now(),
           },
-          { headers: corsHeaders }
+          { headers: corsHeaders },
         );
       }
 
       // Static assets (animations, images, cache, etc.)
       const sanitized = pathname.replace(/^\/+/, "");
       const directCandidate = join(assetsDir, sanitized);
-      if (directCandidate !== assetsDir && !directCandidate.startsWith(assetsDir + "/") && !directCandidate.startsWith(assetsDir + "\\")) {
+      if (
+        directCandidate !== assetsDir &&
+        !directCandidate.startsWith(assetsDir + "/") &&
+        !directCandidate.startsWith(assetsDir + "\\")
+      ) {
         return new Response("Forbidden", { status: 403 });
       }
       if (existsSync(directCandidate)) {
-        return new Response(Bun.file(directCandidate), { headers: corsHeaders });
+        return new Response(Bun.file(directCandidate), {
+          headers: corsHeaders,
+        });
       }
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
@@ -233,7 +253,9 @@ export function startIntervalTimerStudioServer(options: IntervalTimerServerOptio
 /**
  * Creates the complete native desktop instance of Interval Timer.
  */
-export function createIntervalTimerStudio(options: IntervalTimerStudioOptions = {}): IntervalTimerStudioInstance {
+export function createIntervalTimerStudio(
+  options: IntervalTimerStudioOptions = {},
+): IntervalTimerStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1380);
@@ -264,7 +286,8 @@ export function createIntervalTimerStudio(options: IntervalTimerStudioOptions = 
       const html = generateIntervalTimerStudioHtml({ apiUrl: app.url });
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -272,8 +295,6 @@ export function createIntervalTimerStudio(options: IntervalTimerStudioOptions = 
         });
         app.webview = webview;
         webview.title = title;
-
-
 
         try {
           if (fullscreen) {
@@ -286,11 +307,15 @@ export function createIntervalTimerStudio(options: IntervalTimerStudioOptions = 
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -300,16 +325,24 @@ export function createIntervalTimerStudio(options: IntervalTimerStudioOptions = 
         });
 
         webview.setHTML(html);
-        console.log(`⚡ Desktop window open (Fullscreen: ${fullscreen ? 'Enabled' : 'Disabled'}).`);
+        console.log(
+          `⚡ Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`,
+        );
 
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -325,10 +358,13 @@ if (process.argv.includes("--server")) {
   const port = parseInt(process.env.PORT || "0", 10);
   const srv = startIntervalTimerStudioServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`⚡ Interval Timer Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `⚡ Interval Timer Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
+  const fullscreen =
+    !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
   const app = createIntervalTimerStudio({ fullscreen });
   await app.run();
   process.exit(0);

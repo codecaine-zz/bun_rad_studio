@@ -49,7 +49,9 @@ export async function ensureDirectoryExists(dir: string): Promise<void> {
  * Reads and parses `manifest.json` from the graveyard directory, returning an empty
  * version-1 manifest if the file is missing or invalid.
  */
-export async function readManifest(graveyardDir: string): Promise<GraveyardManifest> {
+export async function readManifest(
+  graveyardDir: string,
+): Promise<GraveyardManifest> {
   const manifestFile = Bun.file(join(graveyardDir, "manifest.json"));
   if (!(await manifestFile.exists())) {
     return { version: 1, records: [] };
@@ -66,7 +68,7 @@ export async function readManifest(graveyardDir: string): Promise<GraveyardManif
  */
 export async function writeManifest(
   graveyardDir: string,
-  manifest: GraveyardManifest
+  manifest: GraveyardManifest,
 ): Promise<void> {
   const manifestPath = join(graveyardDir, "manifest.json");
   await Bun.write(manifestPath, JSON.stringify(manifest, null, 2));
@@ -75,7 +77,10 @@ export async function writeManifest(
 /**
  * Moves a file or directory from `source` to `destination`, creating destination parent directories if needed.
  */
-export async function movePath(source: string, destination: string): Promise<void> {
+export async function movePath(
+  source: string,
+  destination: string,
+): Promise<void> {
   await ensureDirectoryExists(dirname(destination));
   await rename(source, destination);
 }
@@ -91,12 +96,16 @@ export async function permanentDelete(targetPath: string): Promise<void> {
  * Inspects a filesystem path to determine whether it is a directory and its size in bytes.
  * Throws an error if the target path does not exist.
  */
-export async function inspectPath(targetPath: string): Promise<{ isDirectory: boolean; size: number }> {
+export async function inspectPath(
+  targetPath: string,
+): Promise<{ isDirectory: boolean; size: number }> {
   try {
     const s = await stat(targetPath);
     return { isDirectory: s.isDirectory(), size: s.size };
   } catch {
-    throw new Error(`[RipInspect] File or directory does not exist: ${targetPath}`);
+    throw new Error(
+      `[RipInspect] File or directory does not exist: ${targetPath}`,
+    );
   }
 }
 
@@ -105,7 +114,9 @@ export async function inspectPath(targetPath: string): Promise<{ isDirectory: bo
  */
 export function formatGraveyardRecord(record: GraveyardRecord): string {
   const date = new Date(record.deletedAt).toLocaleString();
-  const typeTag = record.isDirectory ? colors.blue("[DIR]") : colors.green("[FILE]");
+  const typeTag = record.isDirectory
+    ? colors.blue("[DIR]")
+    : colors.green("[FILE]");
   const idStr = colors.dim(`(${record.id})`);
   const sizeStr = colors.yellow(formatByteSize(record.size));
   return `${colors.dim(date)}  ${typeTag}  ${sizeStr.padEnd(10)}  ${record.originalPath}  ${idStr}`;
@@ -128,8 +139,14 @@ export function formatRecordDetail(record: GraveyardRecord): string {
 /**
  * Calculates the total byte size and item count across all records in a `GraveyardManifest`.
  */
-export function computeGraveyardSize(manifest: GraveyardManifest): { totalBytes: number; count: number } {
-  const totalBytes = manifest.records.reduce((acc, r) => acc + (r.size || 0), 0);
+export function computeGraveyardSize(manifest: GraveyardManifest): {
+  totalBytes: number;
+  count: number;
+} {
+  const totalBytes = manifest.records.reduce(
+    (acc, r) => acc + (r.size || 0),
+    0,
+  );
   return { totalBytes, count: manifest.records.length };
 }
 

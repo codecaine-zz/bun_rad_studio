@@ -10,11 +10,35 @@ export function field(label, control, tip) {
   return h("label", { class: "pw-field", title: tip }, label, control);
 }
 
-export function textInput({ value = "", placeholder = "", tip, label, type = "text", width = "", onenter, oninput } = {}) {
+export function textInput({
+  value = "",
+  placeholder = "",
+  tip,
+  label,
+  type = "text",
+  width = "",
+  onenter,
+  oninput,
+} = {}) {
   const input = h("input", {
-    type, class: `find-input${width ? ` find-w-${width}` : ""}`, value, placeholder, title: tip, "aria-label": label,
-    spellcheck: "false", autocomplete: "off", autocapitalize: "off",
-    onkeydown: onenter ? (e) => { if (e.isComposing || e.keyCode === 229) return; if (e.key === "Enter") { e.preventDefault(); onenter(e); } } : null,
+    type,
+    class: `find-input${width ? ` find-w-${width}` : ""}`,
+    value,
+    placeholder,
+    title: tip,
+    "aria-label": label,
+    spellcheck: "false",
+    autocomplete: "off",
+    autocapitalize: "off",
+    onkeydown: onenter
+      ? (e) => {
+          if (e.isComposing || e.keyCode === 229) return;
+          if (e.key === "Enter") {
+            e.preventDefault();
+            onenter(e);
+          }
+        }
+      : null,
     oninput,
   });
   return input;
@@ -22,36 +46,65 @@ export function textInput({ value = "", placeholder = "", tip, label, type = "te
 
 /** A drop-down. `options`: strings or { value, label }. */
 export function dropdown(options, { value, tip, label, onchange } = {}) {
-  const el = h("select", { class: "find-input", title: tip, "aria-label": label, onchange },
+  const el = h(
+    "select",
+    { class: "find-input", title: tip, "aria-label": label, onchange },
     options.map((o) => {
       const opt = typeof o === "string" ? { value: o, label: o } : o;
       return h("option", { value: opt.value }, opt.label);
-    }));
+    }),
+  );
   if (value !== undefined) el.value = value;
   return el;
 }
 
 export function checkbox(label, { checked = false, tip, onchange } = {}) {
   const input = h("input", { type: "checkbox", checked, onchange });
-  return { input, el: h("label", { class: "find-check", title: tip }, input, h("span", {}, label)) };
+  return {
+    input,
+    el: h(
+      "label",
+      { class: "find-check", title: tip },
+      input,
+      h("span", {}, label),
+    ),
+  };
 }
 
-export function button(label, onclick, { tip, primary = false, danger = false, disabled = false } = {}) {
-  return h("button", { type: "button", class: `pw-btn${primary ? " primary" : ""}${danger ? " danger" : ""}`, title: tip, disabled, onclick }, label);
+export function button(
+  label,
+  onclick,
+  { tip, primary = false, danger = false, disabled = false } = {},
+) {
+  return h(
+    "button",
+    {
+      type: "button",
+      class: `pw-btn${primary ? " primary" : ""}${danger ? " danger" : ""}`,
+      title: tip,
+      disabled,
+      onclick,
+    },
+    label,
+  );
 }
 
 /** A titled card (uses the shared pw-card look). */
 export function card(title, hint, ...children) {
-  return h("section", { class: "pw-card", "aria-label": title },
+  return h(
+    "section",
+    { class: "pw-card", "aria-label": title },
     h("h3", {}, title),
     hint ? h("p", { class: "pw-hint" }, hint) : null,
-    ...children);
+    ...children,
+  );
 }
 
 export const row = (...children) => h("div", { class: "pw-row" }, ...children);
 
 /** Text for people: what went wrong, in the server's own plain words when it sent them. */
-export const explain = (err) => (err instanceof ApiError ? err.message : "That didn't work. Try again.");
+export const explain = (err) =>
+  err instanceof ApiError ? err.message : "That didn't work. Try again.";
 
 /**
  * Runs an action with the page's "Working…" indicator, and reports a failure as a message instead of an error.
@@ -81,7 +134,13 @@ export function guarded(btn, fn) {
 
 /** A block of fixed-width text (command output, hex dumps). Always plain text, never markup. */
 export function outputBox(label) {
-  return h("pre", { class: "pw-out find-out", tabindex: "0", role: "region", "aria-label": label, hidden: true });
+  return h("pre", {
+    class: "pw-out find-out",
+    tabindex: "0",
+    role: "region",
+    "aria-label": label,
+    hidden: true,
+  });
 }
 
 export function showOutput(box, text) {

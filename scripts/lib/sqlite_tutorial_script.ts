@@ -1,34 +1,65 @@
 import type { Chapter } from "./fm_tutorial_types";
-import { S, openDatabasesTool, saveFoundConnection, setValue, skipWelcome } from "./sqlite_tutorial_helpers";
+import {
+  S,
+  openDatabasesTool,
+  saveFoundConnection,
+  setValue,
+  skipWelcome,
+} from "./sqlite_tutorial_helpers";
 
 /** Chapters 0 to 4: the File Manager's side of databases. Finding a file, the Databases tool, a sample database, opening the studio. */
 export const fmChapters: Chapter[] = [
   {
-    id: "00_intro", chapter: "WELCOME", title: "Welcome", kind: "card",
-    card: { kicker: "Databases in the Codecaine File Manager", title: "SQLite, from the File Manager", lines: ["Find it. Connect it. Explore it.", "Browse, edit, query, design, import, back up", "Free and open source"] },
-    steps: [{
-      cap: "SQLite Studio, inside the File Manager",
-      say: "Welcome. In this tutorial you work with S Q Lite databases without leaving the Codecaine File Manager. You find a database in your files, save it as a connection, open S Q Lite Studio inside the window, and use all of it. Everything happens on made up sample data. Let's begin.",
-    }],
+    id: "00_intro",
+    chapter: "WELCOME",
+    title: "Welcome",
+    kind: "card",
+    card: {
+      kicker: "Databases in the Codecaine File Manager",
+      title: "SQLite, from the File Manager",
+      lines: [
+        "Find it. Connect it. Explore it.",
+        "Browse, edit, query, design, import, back up",
+        "Free and open source",
+      ],
+    },
+    steps: [
+      {
+        cap: "SQLite Studio, inside the File Manager",
+        say: "Welcome. In this tutorial you work with S Q Lite databases without leaving the Codecaine File Manager. You find a database in your files, save it as a connection, open S Q Lite Studio inside the window, and use all of it. Everything happens on made up sample data. Let's begin.",
+      },
+    ],
   },
 
   {
-    id: "01_find", chapter: "FIND IT", title: "A database in the file list", blurb: "Open it from the right-click menu",
+    id: "01_find",
+    chapter: "FIND IT",
+    title: "A database in the file list",
+    blurb: "Open it from the right-click menu",
     steps: [
       {
         cap: "A real database file in the file list",
         say: "We start in the ordinary file list. This folder holds a database called shop dot s q lite, a C S V file of new customers, and a note. The Type column says S Q Lite file, because the File Manager reads the first bytes of the file, not just its name.",
-        act: async (d) => { await d.hover("#list .row >> new-customers.csv", 900); await d.click("#list .row >> shop.sqlite", { pause: 1500 }); },
+        act: async (d) => {
+          await d.hover("#list .row >> new-customers.csv", 900);
+          await d.click("#list .row >> shop.sqlite", { pause: 1500 });
+        },
       },
       {
         cap: "Right-click: Open in SQLite Studio",
         say: "Right click the database. Besides the usual file commands there are four database commands. Open in S Q Lite Studio shows the studio inside this tab. The next two open it in its own window, or in your browser. The last saves it as a connection.",
         act: async (d) => {
           await d.rclick("#list .row >> shop.sqlite", { pause: 900 });
-          await d.hover(".menu [role^=menuitem] >> Open in SQLite Studio", 1300);
+          await d.hover(
+            ".menu [role^=menuitem] >> Open in SQLite Studio",
+            1300,
+          );
           await d.hover(".menu [role^=menuitem] >> in its own window", 1400);
           await d.hover(".menu [role^=menuitem] >> in my browser", 1400);
-          await d.hover(".menu [role^=menuitem] >> Add as database connection", 1600);
+          await d.hover(
+            ".menu [role^=menuitem] >> Add as database connection",
+            1600,
+          );
         },
       },
       {
@@ -49,14 +80,28 @@ export const fmChapters: Chapter[] = [
   },
 
   {
-    id: "02_connections", chapter: "CONNECTIONS", title: "Saving and testing a connection", blurb: "The Databases tool, step by step",
-    before: async (d) => { await skipWelcome(d); await d.wait(400); await openDatabasesTool(d); },
+    id: "02_connections",
+    chapter: "CONNECTIONS",
+    title: "Saving and testing a connection",
+    blurb: "The Databases tool, step by step",
+    before: async (d) => {
+      await skipWelcome(d);
+      await d.wait(400);
+      await openDatabasesTool(d);
+    },
     steps: [
       {
         cap: "The Databases tool: add, paste, import",
         say: "This is the Databases tool. You can add a connection for S Q Lite, My S Q L, Postgres or Redis, create a sample database, paste a connection address, or read settings from the environment or a dot env file. A saved connection is used instead of environment variables.",
         act: async (d) => {
-          for (const t of ["button >> Add connection", "button >> New sample database", "button >> Paste address", "button >> Import from environment", "button >> Import .env file"]) await d.hover(t, 1100);
+          for (const t of [
+            "button >> Add connection",
+            "button >> New sample database",
+            "button >> Paste address",
+            "button >> Import from environment",
+            "button >> Import .env file",
+          ])
+            await d.hover(t, 1100);
           await d.hover("input >> @Filter connections", 900);
         },
       },
@@ -82,7 +127,9 @@ export const fmChapters: Chapter[] = [
       {
         cap: "Test connection",
         say: "Test connection is an explicit click, never automatic. It opens the file read only, and answers in plain words: it works, the S Q Lite version, and how many tables and views it found.",
-        act: async (d) => { await d.click("button >> Test connection", { pause: 3500 }); },
+        act: async (d) => {
+          await d.click("button >> Test connection", { pause: 3500 });
+        },
       },
       {
         cap: "Edit: environment, tags, read-only",
@@ -100,8 +147,16 @@ export const fmChapters: Chapter[] = [
   },
 
   {
-    id: "03_sample", chapter: "SAMPLE DATA", title: "A sample database in one click", blurb: "Eleven realistic, synthetic databases",
-    before: async (d) => { await skipWelcome(d); await d.wait(400); await openDatabasesTool(d); await saveFoundConnection(d); },
+    id: "03_sample",
+    chapter: "SAMPLE DATA",
+    title: "A sample database in one click",
+    blurb: "Eleven realistic, synthetic databases",
+    before: async (d) => {
+      await skipWelcome(d);
+      await d.wait(400);
+      await openDatabasesTool(d);
+      await saveFoundConnection(d);
+    },
     steps: [
       {
         cap: "New sample database…",
@@ -117,10 +172,14 @@ export const fmChapters: Chapter[] = [
         say: "Choose a size, a folder and a file name. An existing file is never overwritten. I keep small, and call it hospital demo. Create, and a second later the file exists and is saved as a connection, with the tag sample.",
         act: async (d) => {
           await d.click(".dialog label >> Small", { pause: 1000 });
-          await d.eval(`(() => { const i = [...document.querySelectorAll('.dialog input')].find((x) => x.value.startsWith('sample_')); i.focus(); i.select(); })()`);
+          await d.eval(
+            `(() => { const i = [...document.querySelectorAll('.dialog input')].find((x) => x.value.startsWith('sample_')); i.focus(); i.select(); })()`,
+          );
           await d.type("hospital_demo", 60);
           await d.wait(400);
-          await d.click(".dialog button >> Create sample database", { pause: 3500 });
+          await d.click(".dialog button >> Create sample database", {
+            pause: 3500,
+          });
           await d.hover(".db-row >> Hospital", 1500);
         },
       },
@@ -128,8 +187,17 @@ export const fmChapters: Chapter[] = [
   },
 
   {
-    id: "04_studio", chapter: "THE STUDIO", title: "SQLite Studio inside the File Manager", blurb: "Start it, control it, find your way around",
-    before: async (d) => { await skipWelcome(d); await d.wait(400); await openDatabasesTool(d); await saveFoundConnection(d); await d.click(".db-row >> shop.sqlite", { pause: 700 }); },
+    id: "04_studio",
+    chapter: "THE STUDIO",
+    title: "SQLite Studio inside the File Manager",
+    blurb: "Start it, control it, find your way around",
+    before: async (d) => {
+      await skipWelcome(d);
+      await d.wait(400);
+      await openDatabasesTool(d);
+      await saveFoundConnection(d);
+      await d.click(".db-row >> shop.sqlite", { pause: 700 });
+    },
     steps: [
       {
         cap: "Open in SQLite Studio",
@@ -145,7 +213,14 @@ export const fmChapters: Chapter[] = [
         cap: "Running, Stop, Restart, window, browser",
         say: "Above the studio is its status. Stop shuts it down, Restart starts it again, Open in a separate window gives it a desktop window, and Open in my browser shows it in your browser. The log hides every secret.",
         act: async (d) => {
-          for (const t of [".db-state", "button >> Stop", "button >> Restart", "button >> Open in a separate window", "button >> Open in my browser"]) await d.hover(t, 900);
+          for (const t of [
+            ".db-state",
+            "button >> Stop",
+            "button >> Restart",
+            "button >> Open in a separate window",
+            "button >> Open in my browser",
+          ])
+            await d.hover(t, 900);
           await d.click("summary >> Log", { pause: 2000 });
           await d.click("summary >> Log", { pause: 500 });
         },
@@ -156,7 +231,16 @@ export const fmChapters: Chapter[] = [
         act: async (d) => {
           await d.click("#focus-toggle", { pause: 1500 });
           await d.hover(S + "#ddStudioTheme", 1000);
-          for (const t of ["button >> Seed Sample DB", "button >> Vacuum DB", "button >> Integrity Check", "#btnDbBackupDump", "#btnShortcuts", "#crudHdrNew", "#crudHdrImport"]) await d.hover(S + t, 600);
+          for (const t of [
+            "button >> Seed Sample DB",
+            "button >> Vacuum DB",
+            "button >> Integrity Check",
+            "#btnDbBackupDump",
+            "#btnShortcuts",
+            "#crudHdrNew",
+            "#crudHdrImport",
+          ])
+            await d.hover(S + t, 600);
           await d.hover(S + "button >> Browse & Load", 900);
         },
       },
@@ -175,7 +259,17 @@ export const fmChapters: Chapter[] = [
         cap: "Eight tabs",
         say: "Across the top are the tabs we visit next: the data grid, the query designer, the macro designer, the schema designer, the query plan visualizer, the J S O N inspector, the audit log, and pragma.",
         act: async (d) => {
-          for (const t of ["Grid", "Designer", "Macros", "Schema", "Explain", "Json", "Audit", "Pragma"]) await d.hover(S + `#tabBtn${t}`, 650);
+          for (const t of [
+            "Grid",
+            "Designer",
+            "Macros",
+            "Schema",
+            "Explain",
+            "Json",
+            "Audit",
+            "Pragma",
+          ])
+            await d.hover(S + `#tabBtn${t}`, 650);
           await d.click(S + "#tabBtnGrid", { pause: 500 });
         },
       },

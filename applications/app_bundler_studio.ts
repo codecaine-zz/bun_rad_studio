@@ -1,8 +1,24 @@
 import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
 import { Sys } from "../src/simplecli/sys";
-import { writeFileSync, mkdirSync, existsSync, statSync, readdirSync, chmodSync, copyFileSync, rmSync, readFileSync } from "fs";
+import {
+  writeFileSync,
+  mkdirSync,
+  existsSync,
+  statSync,
+  readdirSync,
+  chmodSync,
+  copyFileSync,
+  rmSync,
+  readFileSync,
+} from "fs";
 import { join, resolve, basename } from "path";
-import { Data, Format, NtExecutable, NtExecutableResource, Resource } from "resedit";
+import {
+  Data,
+  Format,
+  NtExecutable,
+  NtExecutableResource,
+  Resource,
+} from "resedit";
 
 // -------------------------------------------------------------------------------------------------
 // Application Detection & Helper Utilities
@@ -133,14 +149,23 @@ export function getHumanLabel(filepath: string): string {
   return `${title} (${file})`;
 }
 
-export function getAvailableApplications(): { path: string; label: string; appName: string }[] {
+export function getAvailableApplications(): {
+  path: string;
+  label: string;
+  appName: string;
+}[] {
   const appsDir = resolve(process.cwd(), "applications");
   const list: { path: string; label: string; appName: string }[] = [];
 
   if (existsSync(appsDir)) {
     try {
       const files = readdirSync(appsDir)
-        .filter((f) => (f.endsWith(".ts") || f.endsWith(".js")) && !f.endsWith(".d.ts") && !f.includes("_server."))
+        .filter(
+          (f) =>
+            (f.endsWith(".ts") || f.endsWith(".js")) &&
+            !f.endsWith(".d.ts") &&
+            !f.includes("_server."),
+        )
         .sort();
 
       for (const file of files) {
@@ -204,7 +229,12 @@ end try`;
       return out || null;
     } else if (process.platform === "win32") {
       const psScript = `Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.OpenFileDialog; $f.Title = 'Select Application Entry Script'; $f.Filter = 'TypeScript / JavaScript (*.ts;*.js;*.tsx;*.jsx)|*.ts;*.js;*.tsx;*.jsx|All Files (*.*)|*.*'; if($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK){$f.FileName}`;
-      const proc = Bun.spawnSync(["powershell", "-NoProfile", "-Command", psScript]);
+      const proc = Bun.spawnSync([
+        "powershell",
+        "-NoProfile",
+        "-Command",
+        psScript,
+      ]);
       const out = proc.stdout.toString().trim();
       return out || null;
     }
@@ -214,7 +244,11 @@ end try`;
   return null;
 }
 
-export function getAvailableIcons(): { path: string; label: string; name: string }[] {
+export function getAvailableIcons(): {
+  path: string;
+  label: string;
+  name: string;
+}[] {
   const iconsDir = resolve(process.cwd(), "icons");
   const desktopDir = join(iconsDir, "desktop");
   const list: { path: string; label: string; name: string }[] = [];
@@ -222,7 +256,10 @@ export function getAvailableIcons(): { path: string; label: string; name: string
   if (existsSync(iconsDir)) {
     try {
       const files = readdirSync(iconsDir)
-        .filter((f) => f.endsWith(".icns") || f.endsWith(".png") || f.endsWith(".ico"))
+        .filter(
+          (f) =>
+            f.endsWith(".icns") || f.endsWith(".png") || f.endsWith(".ico"),
+        )
         .sort();
 
       for (const file of files) {
@@ -293,7 +330,12 @@ end try`;
       return out || null;
     } else if (process.platform === "win32") {
       const psScript = `Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.OpenFileDialog; $f.Title = 'Select Application Icon'; $f.Filter = 'Icon Files (*.icns;*.png;*.ico)|*.icns;*.png;*.ico|All Files (*.*)|*.*'; if($f.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK){$f.FileName}`;
-      const proc = Bun.spawnSync(["powershell", "-NoProfile", "-Command", psScript]);
+      const proc = Bun.spawnSync([
+        "powershell",
+        "-NoProfile",
+        "-Command",
+        psScript,
+      ]);
       const out = proc.stdout.toString().trim();
       return out || null;
     }
@@ -335,9 +377,12 @@ export function embedPeIcon(exePath: string, icoBuffer: Buffer): boolean {
   try {
     if (!existsSync(exePath)) return false;
     const binary = readFileSync(exePath);
-    if (binary.length < 64 || binary[0] !== 0x4d || binary[1] !== 0x5a) return false;
+    if (binary.length < 64 || binary[0] !== 0x4d || binary[1] !== 0x5a)
+      return false;
     const image = NtExecutable.from(binary);
-    const resource = image.getSectionByEntry(Format.ImageDirectoryEntry.Resource);
+    const resource = image.getSectionByEntry(
+      Format.ImageDirectoryEntry.Resource,
+    );
     let resources: NtExecutableResource;
     if (resource) {
       const sections = image.getAllSections();
@@ -350,17 +395,22 @@ export function embedPeIcon(exePath: string, icoBuffer: Buffer): boolean {
       resources = NtExecutableResource.from(image);
     }
     const icon = Data.IconFile.from(icoBuffer);
-    resources.entries = resources.entries.filter((entry) => entry.type !== 3 && entry.type !== 14);
+    resources.entries = resources.entries.filter(
+      (entry) => entry.type !== 3 && entry.type !== 14,
+    );
     Resource.IconGroupEntry.replaceIconsForResource(
       resources.entries,
       1,
       1033,
-      icon.icons.map((i) => i.data)
+      icon.icons.map((i) => i.data),
     );
-    image.newHeader.optionalHeaderDataDirectory.set(Format.ImageDirectoryEntry.Resource, {
-      virtualAddress: 0,
-      size: 0,
-    });
+    image.newHeader.optionalHeaderDataDirectory.set(
+      Format.ImageDirectoryEntry.Resource,
+      {
+        virtualAddress: 0,
+        size: 0,
+      },
+    );
     resources.outputResource(image);
     writeFileSync(exePath, Buffer.from(image.generate()));
     return true;
@@ -369,7 +419,10 @@ export function embedPeIcon(exePath: string, icoBuffer: Buffer): boolean {
   }
 }
 
-function resolvePngBytesFromIcon(absIcon: string, tmpDir: string): Buffer | null {
+function resolvePngBytesFromIcon(
+  absIcon: string,
+  tmpDir: string,
+): Buffer | null {
   const lower = absIcon.toLowerCase();
   if (lower.endsWith(".png")) {
     return readFileSync(absIcon);
@@ -378,15 +431,27 @@ function resolvePngBytesFromIcon(absIcon: string, tmpDir: string): Buffer | null
   if (existsSync(siblingPng)) {
     return readFileSync(siblingPng);
   }
-  const baseSlug = basename(absIcon).replace(/\.(icns|ico|png)$/i, "").replace(/_/g, "-").toLowerCase();
-  const desktopPng = resolve(process.cwd(), "icons", "desktop", `${baseSlug}.png`);
+  const baseSlug = basename(absIcon)
+    .replace(/\.(icns|ico|png)$/i, "")
+    .replace(/_/g, "-")
+    .toLowerCase();
+  const desktopPng = resolve(
+    process.cwd(),
+    "icons",
+    "desktop",
+    `${baseSlug}.png`,
+  );
   if (existsSync(desktopPng)) {
     return readFileSync(desktopPng);
   }
   if (lower.endsWith(".ico")) {
     try {
       const ico = readFileSync(absIcon);
-      if (ico.length >= 22 && ico.readUInt16LE(0) === 0 && ico.readUInt16LE(2) === 1) {
+      if (
+        ico.length >= 22 &&
+        ico.readUInt16LE(0) === 0 &&
+        ico.readUInt16LE(2) === 1
+      ) {
         const count = ico.readUInt16LE(4);
         for (let i = count - 1; i >= 0; i--) {
           const entryOff = 6 + i * 16;
@@ -395,7 +460,12 @@ function resolvePngBytesFromIcon(absIcon: string, tmpDir: string): Buffer | null
           const offset = ico.readUInt32LE(entryOff + 12);
           if (offset + size <= ico.length && size >= 8) {
             const slice = ico.subarray(offset, offset + size);
-            if (slice[0] === 0x89 && slice[1] === 0x50 && slice[2] === 0x4e && slice[3] === 0x47) {
+            if (
+              slice[0] === 0x89 &&
+              slice[1] === 0x50 &&
+              slice[2] === 0x4e &&
+              slice[3] === 0x47
+            ) {
               return Buffer.from(slice);
             }
           }
@@ -425,10 +495,13 @@ export function bundleWindowsIcon(
   iconPath: string,
   winAppDir: string,
   appName = "AppIcon",
-  exePath?: string
+  exePath?: string,
 ): { success: boolean; message: string; icoPath?: string } {
   if (!iconPath || !iconPath.trim()) {
-    return { success: true, message: "No icon specified (skipping Windows icon bundle)" };
+    return {
+      success: true,
+      message: "No icon specified (skipping Windows icon bundle)",
+    };
   }
 
   const absIcon = resolve(process.cwd(), iconPath);
@@ -447,8 +520,16 @@ export function bundleWindowsIcon(
       icoBuffer = readFileSync(absIcon);
       sourceDesc = "Copied .ico icon";
     } else {
-      const baseSlug = basename(absIcon).replace(/\.(icns|ico|png)$/i, "").replace(/_/g, "-").toLowerCase();
-      const desktopIco = resolve(process.cwd(), "icons", "desktop", `${baseSlug}.ico`);
+      const baseSlug = basename(absIcon)
+        .replace(/\.(icns|ico|png)$/i, "")
+        .replace(/_/g, "-")
+        .toLowerCase();
+      const desktopIco = resolve(
+        process.cwd(),
+        "icons",
+        "desktop",
+        `${baseSlug}.ico`,
+      );
       if (existsSync(desktopIco)) {
         icoBuffer = readFileSync(desktopIco);
         sourceDesc = `Packaged multi-resolution desktop .ico (${basename(desktopIco)})`;
@@ -465,7 +546,11 @@ export function bundleWindowsIcon(
       const ext = absIcon.split(".").pop() || "ico";
       const fallbackDest = join(winAppDir, `AppIcon.${ext}`);
       copyFileSync(absIcon, fallbackDest);
-      return { success: true, message: `Copied icon as AppIcon.${ext}`, icoPath: fallbackDest };
+      return {
+        success: true,
+        message: `Copied icon as AppIcon.${ext}`,
+        icoPath: fallbackDest,
+      };
     }
 
     writeFileSync(destAppIcon, icoBuffer);
@@ -480,17 +565,23 @@ export function bundleWindowsIcon(
       icoPath: destNamedIcon,
     };
   } catch (e: any) {
-    return { success: false, message: `Failed packaging Windows icon: ${e.message}` };
+    return {
+      success: false,
+      message: `Failed packaging Windows icon: ${e.message}`,
+    };
   }
 }
 
 export function bundleLinuxIcon(
   iconPath: string,
   appDir: string,
-  appName = "AppIcon"
+  appName = "AppIcon",
 ): { success: boolean; message: string; iconPath?: string } {
   if (!iconPath || !iconPath.trim()) {
-    return { success: true, message: "No icon specified (skipping Linux icon bundle)" };
+    return {
+      success: true,
+      message: "No icon specified (skipping Linux icon bundle)",
+    };
   }
 
   const absIcon = resolve(process.cwd(), iconPath);
@@ -498,7 +589,15 @@ export function bundleLinuxIcon(
     return { success: false, message: `Icon file not found: ${iconPath}` };
   }
 
-  const hicolorDir = join(appDir, "usr", "share", "icons", "hicolor", "256x256", "apps");
+  const hicolorDir = join(
+    appDir,
+    "usr",
+    "share",
+    "icons",
+    "hicolor",
+    "256x256",
+    "apps",
+  );
   mkdirSync(hicolorDir, { recursive: true });
   const rootIcon = join(appDir, `${appName}.png`);
   const dirIcon = join(appDir, ".DirIcon");
@@ -520,15 +619,28 @@ export function bundleLinuxIcon(
     const ext = absIcon.split(".").pop() || "png";
     const fallbackDest = join(appDir, `${appName}.${ext}`);
     copyFileSync(absIcon, fallbackDest);
-    return { success: true, message: `Copied icon as ${appName}.${ext}`, iconPath: fallbackDest };
+    return {
+      success: true,
+      message: `Copied icon as ${appName}.${ext}`,
+      iconPath: fallbackDest,
+    };
   } catch (e: any) {
-    return { success: false, message: `Failed packaging Linux icon: ${e.message}` };
+    return {
+      success: false,
+      message: `Failed packaging Linux icon: ${e.message}`,
+    };
   }
 }
 
-export function bundleIcon(iconPath: string, appDir: string): { success: boolean; message: string } {
+export function bundleIcon(
+  iconPath: string,
+  appDir: string,
+): { success: boolean; message: string } {
   if (!iconPath || !iconPath.trim()) {
-    return { success: true, message: "No icon specified (skipping icon bundle)" };
+    return {
+      success: true,
+      message: "No icon specified (skipping icon bundle)",
+    };
   }
 
   const absIcon = resolve(process.cwd(), iconPath);
@@ -544,9 +656,15 @@ export function bundleIcon(iconPath: string, appDir: string): { success: boolean
   if (absIcon.toLowerCase().endsWith(".icns")) {
     try {
       copyFileSync(absIcon, destIcns);
-      return { success: true, message: `Copied .icns icon directly to AppIcon.icns` };
+      return {
+        success: true,
+        message: `Copied .icns icon directly to AppIcon.icns`,
+      };
     } catch (e: any) {
-      return { success: false, message: `Failed copying .icns icon: ${e.message}` };
+      return {
+        success: false,
+        message: `Failed copying .icns icon: ${e.message}`,
+      };
     }
   }
 
@@ -554,26 +672,55 @@ export function bundleIcon(iconPath: string, appDir: string): { success: boolean
   if (process.platform === "darwin" && absIcon.toLowerCase().endsWith(".png")) {
     const tmpIconset = join(resDir, "AppIcon.iconset");
     try {
-      if (existsSync(tmpIconset)) rmSync(tmpIconset, { recursive: true, force: true });
+      if (existsSync(tmpIconset))
+        rmSync(tmpIconset, { recursive: true, force: true });
       mkdirSync(tmpIconset, { recursive: true });
 
       const sizes = [16, 32, 64, 128, 256, 512, 1024];
       for (const sz of sizes) {
-        Bun.spawnSync(["sips", "-z", sz.toString(), sz.toString(), absIcon, "--out", join(tmpIconset, `icon_${sz}x${sz}.png`)]);
+        Bun.spawnSync([
+          "sips",
+          "-z",
+          sz.toString(),
+          sz.toString(),
+          absIcon,
+          "--out",
+          join(tmpIconset, `icon_${sz}x${sz}.png`),
+        ]);
         if (sz <= 512) {
           const sz2x = sz * 2;
-          Bun.spawnSync(["sips", "-z", sz2x.toString(), sz2x.toString(), absIcon, "--out", join(tmpIconset, `icon_${sz}x${sz}@2x.png`)]);
+          Bun.spawnSync([
+            "sips",
+            "-z",
+            sz2x.toString(),
+            sz2x.toString(),
+            absIcon,
+            "--out",
+            join(tmpIconset, `icon_${sz}x${sz}@2x.png`),
+          ]);
         }
       }
 
-      const iconutilProc = Bun.spawnSync(["iconutil", "-c", "icns", tmpIconset, "-o", destIcns]);
-      if (existsSync(tmpIconset)) rmSync(tmpIconset, { recursive: true, force: true });
+      const iconutilProc = Bun.spawnSync([
+        "iconutil",
+        "-c",
+        "icns",
+        tmpIconset,
+        "-o",
+        destIcns,
+      ]);
+      if (existsSync(tmpIconset))
+        rmSync(tmpIconset, { recursive: true, force: true });
 
       if (iconutilProc.exitCode === 0 && existsSync(destIcns)) {
-        return { success: true, message: `Converted PNG to high-res multi-tier AppIcon.icns via iconutil` };
+        return {
+          success: true,
+          message: `Converted PNG to high-res multi-tier AppIcon.icns via iconutil`,
+        };
       }
     } catch (e: any) {
-      if (existsSync(tmpIconset)) rmSync(tmpIconset, { recursive: true, force: true });
+      if (existsSync(tmpIconset))
+        rmSync(tmpIconset, { recursive: true, force: true });
       // fallback to plain copy below
     }
   }
@@ -585,52 +732,83 @@ export function bundleIcon(iconPath: string, appDir: string): { success: boolean
     copyFileSync(absIcon, destFallback);
     return { success: true, message: `Copied icon as AppIcon.${ext}` };
   } catch (e: any) {
-    return { success: false, message: `Failed copying fallback icon: ${e.message}` };
+    return {
+      success: false,
+      message: `Failed copying fallback icon: ${e.message}`,
+    };
   }
 }
 
 export function ensureAssetsCopied(
   distDir: string,
   appDir?: string,
-  platform: "darwin" | "win32" | "linux" = "darwin"
+  platform: "darwin" | "win32" | "linux" = "darwin",
 ) {
   const rootIdeHtml = resolve(process.cwd(), "src", "ide.html");
   if (existsSync(rootIdeHtml)) {
     const distSrc = join(distDir, "src");
     mkdirSync(distSrc, { recursive: true });
-    try { copyFileSync(rootIdeHtml, join(distSrc, "ide.html")); } catch {}
+    try {
+      copyFileSync(rootIdeHtml, join(distSrc, "ide.html"));
+    } catch {}
 
     if (appDir) {
       if (platform === "darwin") {
         const resSrc = join(appDir, "Contents", "Resources", "src");
         mkdirSync(resSrc, { recursive: true });
-        try { copyFileSync(rootIdeHtml, join(resSrc, "ide.html")); } catch {}
+        try {
+          copyFileSync(rootIdeHtml, join(resSrc, "ide.html"));
+        } catch {}
         const macosSrc = join(appDir, "Contents", "MacOS", "src");
         mkdirSync(macosSrc, { recursive: true });
-        try { copyFileSync(rootIdeHtml, join(macosSrc, "ide.html")); } catch {}
+        try {
+          copyFileSync(rootIdeHtml, join(macosSrc, "ide.html"));
+        } catch {}
       } else if (platform === "win32") {
         const winSrc = join(appDir, "src");
         mkdirSync(winSrc, { recursive: true });
-        try { copyFileSync(rootIdeHtml, join(winSrc, "ide.html")); } catch {}
-        const winDll = resolve(process.cwd(), "node_modules", "webview-bun", "build", "libwebview.dll");
+        try {
+          copyFileSync(rootIdeHtml, join(winSrc, "ide.html"));
+        } catch {}
+        const winDll = resolve(
+          process.cwd(),
+          "node_modules",
+          "webview-bun",
+          "build",
+          "libwebview.dll",
+        );
         if (existsSync(winDll)) {
           const libDir = join(appDir, "lib");
           mkdirSync(libDir, { recursive: true });
-          try { copyFileSync(winDll, join(libDir, "libwebview.dll")); } catch {}
+          try {
+            copyFileSync(winDll, join(libDir, "libwebview.dll"));
+          } catch {}
         }
       } else if (platform === "linux") {
         const linuxSrc = join(appDir, "src");
         mkdirSync(linuxSrc, { recursive: true });
-        try { copyFileSync(rootIdeHtml, join(linuxSrc, "ide.html")); } catch {}
+        try {
+          copyFileSync(rootIdeHtml, join(linuxSrc, "ide.html"));
+        } catch {}
         const binSrc = join(appDir, "usr", "bin", "src");
         mkdirSync(binSrc, { recursive: true });
-        try { copyFileSync(rootIdeHtml, join(binSrc, "ide.html")); } catch {}
+        try {
+          copyFileSync(rootIdeHtml, join(binSrc, "ide.html"));
+        } catch {}
         const libDir = join(appDir, "usr", "lib");
         for (const soName of ["libwebview-x64.so", "libwebview-arm64.so"]) {
-          const soFile = resolve(process.cwd(), "node_modules", "webview-bun", "build", soName);
+          const soFile = resolve(
+            process.cwd(),
+            "node_modules",
+            "webview-bun",
+            "build",
+            soName,
+          );
           if (existsSync(soFile)) {
             mkdirSync(libDir, { recursive: true });
-            try { copyFileSync(soFile, join(libDir, soName)); } catch {}
+            try {
+              copyFileSync(soFile, join(libDir, soName));
+            } catch {}
           }
         }
       }
@@ -647,7 +825,12 @@ function escapeXmlAttr(s: string): string {
     .replace(/'/g, "&apos;");
 }
 
-export function generatePlist(name: string, id: string, ver: string, retina = true): string {
+export function generatePlist(
+  name: string,
+  id: string,
+  ver: string,
+  retina = true,
+): string {
   const safeName = escapeXmlAttr(name);
   const safeId = escapeXmlAttr(id);
   const safeVer = escapeXmlAttr(ver);
@@ -677,7 +860,12 @@ export function generatePlist(name: string, id: string, ver: string, retina = tr
 </plist>`;
 }
 
-export function generateWindowsManifest(name: string, id: string, ver: string, highDpi = true): string {
+export function generateWindowsManifest(
+  name: string,
+  id: string,
+  ver: string,
+  highDpi = true,
+): string {
   const parts = ver.split(".").map((n) => parseInt(n, 10) || 0);
   const fourPartVer = `${parts[0] ?? 1}.${parts[1] ?? 0}.${parts[2] ?? 0}.${parts[3] ?? 0}`;
   const safeName = escapeXmlAttr(name);
@@ -705,8 +893,15 @@ export function generateWindowsManifest(name: string, id: string, ver: string, h
 </assembly>`;
 }
 
-export function generateLinuxDesktopEntry(name: string, id: string, ver: string): string {
-  const cleanLine = (s: string) => String(s ?? "").replace(/[\r\n]/g, " ").trim();
+export function generateLinuxDesktopEntry(
+  name: string,
+  id: string,
+  ver: string,
+): string {
+  const cleanLine = (s: string) =>
+    String(s ?? "")
+      .replace(/[\r\n]/g, " ")
+      .trim();
   const sName = cleanLine(name);
   const sId = cleanLine(id);
   const sVer = cleanLine(ver);
@@ -727,14 +922,18 @@ StartupWMClass=${sName}
 
 function updatePreview(win: SimpleWindow) {
   const name = win.getValue("txt_app_name") || "app";
-  const entry = win.getValue("txt_exec_path") || "./applications/devtools_studio.ts";
+  const entry =
+    win.getValue("txt_exec_path") || "./applications/devtools_studio.ts";
   const targetChoice = win.getValue("dd_target") || "Native Host (Auto)";
   const minify = win.getValue("chk_minify");
   const sourcemap = win.getValue("chk_sourcemap");
   const sign = win.getValue("chk_codesign");
   const retina = win.getValue("chk_retina");
   const ver = win.getValue("txt_version") || "1.0.0";
-  const iconPath = win.getValue("txt_icon_path") || win.getValue("dd_preset_icon") || "None (Default)";
+  const iconPath =
+    win.getValue("txt_icon_path") ||
+    win.getValue("dd_preset_icon") ||
+    "None (Default)";
 
   const preview = `# Enterprise Compiler & Multi-OS Bundler Spec
 Application:   ${name} (v${ver})
@@ -748,7 +947,10 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
   win.setText("txt_plist_preview", preview);
 }
 
-export function loadApplicationIntoWindow(win: SimpleWindow, scriptPath: string) {
+export function loadApplicationIntoWindow(
+  win: SimpleWindow,
+  scriptPath: string,
+) {
   const normPath = normalizeScriptPath(scriptPath);
   const appName = deriveAppName(scriptPath);
 
@@ -757,7 +959,9 @@ export function loadApplicationIntoWindow(win: SimpleWindow, scriptPath: string)
   win.setValue("dd_preset_app", normPath);
 
   // Auto-match icon from ./icons/ if matching name exists
-  const fileBase = basename(scriptPath).replace(/\.(ts|js|tsx|jsx|mjs)$/i, "").toLowerCase();
+  const fileBase = basename(scriptPath)
+    .replace(/\.(ts|js|tsx|jsx|mjs)$/i, "")
+    .toLowerCase();
   const iconAliases: Record<string, string> = {
     sqlite_studio: "database_studio",
     sqlite_studio_server: "database_studio",
@@ -774,17 +978,18 @@ export function loadApplicationIntoWindow(win: SimpleWindow, scriptPath: string)
   const targetBase = iconAliases[fileBase] || fileBase;
 
   const availableIcons = getAvailableIcons();
-  const matchedIcon = availableIcons.find((ic) => {
-    const icBase = ic.name.toLowerCase();
-    const icNorm = icBase.replace(/-/g, "_");
-    return (
-      icBase === targetBase ||
-      icBase.replace(/_studio$/, "") === targetBase.replace(/_studio$/, "") ||
-      icBase === fileBase ||
-      icBase.replace(/_studio$/, "") === fileBase.replace(/_studio$/, "") ||
-      icNorm === fileBase
-    );
-  }) || availableIcons.find((ic) => ic.path.includes("app_default"));
+  const matchedIcon =
+    availableIcons.find((ic) => {
+      const icBase = ic.name.toLowerCase();
+      const icNorm = icBase.replace(/-/g, "_");
+      return (
+        icBase === targetBase ||
+        icBase.replace(/_studio$/, "") === targetBase.replace(/_studio$/, "") ||
+        icBase === fileBase ||
+        icBase.replace(/_studio$/, "") === fileBase.replace(/_studio$/, "") ||
+        icNorm === fileBase
+      );
+    }) || availableIcons.find((ic) => ic.path.includes("app_default"));
 
   if (matchedIcon) {
     win.setValue("txt_icon_path", matchedIcon.path);
@@ -796,25 +1001,38 @@ export function loadApplicationIntoWindow(win: SimpleWindow, scriptPath: string)
   win.appendConsole(
     "bundler_console",
     `[Loader] Loaded application: "${appName}"\n  Script: ${normPath}\n  Icon: ${matchedIcon?.path || "none"}\n  Status: Ready to compile or package.\n`,
-    2
+    2,
   );
-  win.setText("lbl_status", `Loaded: ${appName}  |  Script: ${normPath}  |  Status: Ready`);
+  win.setText(
+    "lbl_status",
+    `Loaded: ${appName}  |  Script: ${normPath}  |  Status: Ready`,
+  );
   win.setStatus(`Loaded: ${appName}`);
   win.toast(`Loaded: ${appName}`);
 }
 
-export function createAppBundlerStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
+export function createAppBundlerStudio(
+  options: { fullscreen?: boolean; theme?: string } = {},
+): SimpleWindow {
   const fullscreen = options.fullscreen ?? true;
-  const win = newSimpleWindow("App Bundler Studio Pro -- Enterprise Binary & Cross-Platform App Compiler", 1160, 920, {
-    appId: "app_bundler_studio",
-    theme: options.theme || getSavedTheme() || "midnight",
-    autoSaveState: true,
-    fullscreen,
-  });
+  const win = newSimpleWindow(
+    "App Bundler Studio Pro -- Enterprise Binary & Cross-Platform App Compiler",
+    1160,
+    920,
+    {
+      appId: "app_bundler_studio",
+      theme: options.theme || getSavedTheme() || "midnight",
+      autoSaveState: true,
+      fullscreen,
+    },
+  );
 
   const availableApps = getAvailableApplications();
-  const defaultApp = availableApps.find((a) => a.path.includes("devtools_studio")) || availableApps[0];
-  const defaultAppPath = defaultApp?.path || "./applications/devtools_studio.ts";
+  const defaultApp =
+    availableApps.find((a) => a.path.includes("devtools_studio")) ||
+    availableApps[0];
+  const defaultAppPath =
+    defaultApp?.path || "./applications/devtools_studio.ts";
   const defaultAppName = defaultApp?.appName || "DevToolsStudio";
 
   const appPaths = availableApps.map((a) => a.path);
@@ -831,10 +1049,14 @@ export function createAppBundlerStudio(options: { fullscreen?: boolean; theme?: 
   win.addButton("btn_center", "Center Window");
   win.addButton("btn_fullscreen", "⛶ Fullscreen");
   win.endRow();
-  win.addCaption("Enterprise Standalone Executable Compiler (bun build --compile) & macOS / Windows / Linux App Bundler");
+  win.addCaption(
+    "Enterprise Standalone Executable Compiler (bun build --compile) & macOS / Windows / Linux App Bundler",
+  );
 
   const availableIcons = getAvailableIcons();
-  const defaultIcon = availableIcons.find((ic) => ic.path.includes("devtools_studio")) || availableIcons[0];
+  const defaultIcon =
+    availableIcons.find((ic) => ic.path.includes("devtools_studio")) ||
+    availableIcons[0];
   const defaultIconPath = defaultIcon?.path || "./icons/app_default.icns";
   const iconPaths = availableIcons.map((ic) => ic.path);
   const iconLabels: Record<string, string> = {};
@@ -848,7 +1070,11 @@ export function createAppBundlerStudio(options: { fullscreen?: boolean; theme?: 
   // Browse & Preset Quick-Load Row
   win.beginRow();
   win.addLabel("lbl_preset_app", "Pre-Configured App:");
-  win.addDropdown("dd_preset_app", appPaths, defaultAppPath, { item_labels: appLabels }).width(420);
+  win
+    .addDropdown("dd_preset_app", appPaths, defaultAppPath, {
+      item_labels: appLabels,
+    })
+    .width(420);
   win.addButton("btn_load_app", "📥 Load App");
   win.addButton("btn_browse_app", "📂 Browse File...");
   win.addButton("btn_rescan", "🔄 Rescan");
@@ -858,19 +1084,21 @@ export function createAppBundlerStudio(options: { fullscreen?: boolean; theme?: 
   win.addLabel("lbl_app_name", "Application Name:");
   win.addInput("txt_app_name", defaultAppName).width(240);
   win.addLabel("lbl_target", "Target Binary:");
-  win.addDropdown(
-    "dd_target",
-    [
+  win
+    .addDropdown(
+      "dd_target",
+      [
+        "Native Host (Auto)",
+        "bun-darwin-arm64 (macOS Apple Silicon)",
+        "bun-darwin-x64 (macOS Intel)",
+        "bun-linux-x64 (Linux Server)",
+        "bun-linux-arm64 (Linux ARM64)",
+        "bun-windows-x64 (Windows x64)",
+        "bun-windows-arm64 (Windows ARM64)",
+      ],
       "Native Host (Auto)",
-      "bun-darwin-arm64 (macOS Apple Silicon)",
-      "bun-darwin-x64 (macOS Intel)",
-      "bun-linux-x64 (Linux Server)",
-      "bun-linux-arm64 (Linux ARM64)",
-      "bun-windows-x64 (Windows x64)",
-      "bun-windows-arm64 (Windows ARM64)",
-    ],
-    "Native Host (Auto)"
-  ).width(260);
+    )
+    .width(260);
   win.addButton("btn_compile_binary", "⚡ Compile Standalone Binary");
   win.endRow();
 
@@ -889,7 +1117,11 @@ export function createAppBundlerStudio(options: { fullscreen?: boolean; theme?: 
   // App Icon Row (Browse & Select .icns, .png, .ico)
   win.beginRow();
   win.addLabel("lbl_preset_icon", "Application Icon:");
-  win.addDropdown("dd_preset_icon", iconPaths, defaultIconPath, { item_labels: iconLabels }).width(320);
+  win
+    .addDropdown("dd_preset_icon", iconPaths, defaultIconPath, {
+      item_labels: iconLabels,
+    })
+    .width(320);
   win.addInput("txt_icon_path", defaultIconPath).width(280);
   win.addButton("btn_browse_icon", "📂 Browse Icon...");
   win.endRow();
@@ -904,17 +1136,19 @@ export function createAppBundlerStudio(options: { fullscreen?: boolean; theme?: 
 
   // Preview Box
   win.beginGroupBox("Generated Bundle Manifest / Compiler Configuration");
-  win.addTextarea(
-    "txt_plist_preview",
-    `# Enterprise Compiler & Multi-OS Bundler Spec
+  win
+    .addTextarea(
+      "txt_plist_preview",
+      `# Enterprise Compiler & Multi-OS Bundler Spec
 Application:   ${defaultAppName} (v1.0.0)
 Target Binary: Native Host (Auto)
 Entrypoint:    ${defaultAppPath}
 Icon:          ${defaultIconPath}
 Output Dir:    ./dist (${defaultAppName}.app | ${defaultAppName}-windows | ${defaultAppName}.AppDir)
 Flags:         --compile --minify [macOS Ad-hoc Codesign] [High-DPI / Retina]
-Status:        Ready to produce standalone binary or macOS / Windows / Linux application bundle.`
-  ).height(75);
+Status:        Ready to produce standalone binary or macOS / Windows / Linux application bundle.`,
+    )
+    .height(75);
   win.endGroupBox();
 
   // Telemetry Console
@@ -924,7 +1158,10 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
 
   // Status Bar
   win.beginRow();
-  win.addLabel("lbl_status", `Status: Ready  |  Loaded: ${defaultAppName}  |  Compiler: Bun Built-In Bytecode Engine`);
+  win.addLabel(
+    "lbl_status",
+    `Status: Ready  |  Loaded: ${defaultAppName}  |  Compiler: Bun Built-In Bytecode Engine`,
+  );
   win.endRow();
 
   // Handlers
@@ -977,7 +1214,11 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
       w.setValue("txt_icon_path", norm);
       w.setValue("dd_preset_icon", norm);
       updatePreview(w);
-      w.appendConsole("bundler_console", `[Icon] Selected application icon: ${norm}\n`, 2);
+      w.appendConsole(
+        "bundler_console",
+        `[Icon] Selected application icon: ${norm}\n`,
+        2,
+      );
       w.toast(`Icon selected: ${basename(norm)}`);
       w.setStatus(`Icon: ${basename(norm)}`);
     } else {
@@ -988,12 +1229,18 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
   win.onClick("btn_rescan", (w) => {
     const freshApps = getAvailableApplications();
     const optionsHtml = freshApps
-      .map((a) => `<option value="${a.path.replace(/"/g, "&quot;")}">${a.label.replace(/</g, "&lt;")}</option>`)
+      .map(
+        (a) =>
+          `<option value="${a.path.replace(/"/g, "&quot;")}">${a.label.replace(/</g, "&lt;")}</option>`,
+      )
       .join("");
 
     const freshIcons = getAvailableIcons();
     const iconOptionsHtml = freshIcons
-      .map((i) => `<option value="${i.path.replace(/"/g, "&quot;")}">${i.label.replace(/</g, "&lt;")}</option>`)
+      .map(
+        (i) =>
+          `<option value="${i.path.replace(/"/g, "&quot;")}">${i.label.replace(/</g, "&lt;")}</option>`,
+      )
       .join("");
 
     w.evalJS(`
@@ -1013,7 +1260,11 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
       })();
     `);
     w.toast(`Rescanned: ${freshApps.length} apps, ${freshIcons.length} icons`);
-    w.appendConsole("bundler_console", `[Scanner] Rescanned ./applications/ (${freshApps.length} apps) and ./icons/ (${freshIcons.length} icons).\n`, 1);
+    w.appendConsole(
+      "bundler_console",
+      `[Scanner] Rescanned ./applications/ (${freshApps.length} apps) and ./icons/ (${freshIcons.length} icons).\n`,
+      1,
+    );
   });
 
   win.onClick("btn_open_dist", (w) => {
@@ -1040,21 +1291,31 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
   win.onChange("txt_icon_path", (w) => updatePreview(w));
 
   const sanitizeBundleName = (raw: string, fallback: string) =>
-    String(raw || fallback).replace(/[/\\:*?"<>|$`';&%!\r\n]/g, "_").replace(/^\.+/, "_").trim() || fallback;
+    String(raw || fallback)
+      .replace(/[/\\:*?"<>|$`';&%!\r\n]/g, "_")
+      .replace(/^\.+/, "_")
+      .trim() || fallback;
   const sanitizeBundleVer = (raw: string) =>
-    String(raw || "1.0.0").replace(/[^0-9A-Za-z._+-]/g, "").trim() || "1.0.0";
+    String(raw || "1.0.0")
+      .replace(/[^0-9A-Za-z._+-]/g, "")
+      .trim() || "1.0.0";
 
   win.onClick("btn_compile_binary", () => {
     const rawName = win.getValue("txt_app_name") || "app";
     const name = sanitizeBundleName(rawName, "app");
-    const entry = win.getValue("txt_exec_path") || "./applications/devtools_studio.ts";
+    const entry =
+      win.getValue("txt_exec_path") || "./applications/devtools_studio.ts";
     const targetChoice = win.getValue("dd_target") || "";
     const minify = win.getValue("chk_minify");
     const sourcemap = win.getValue("chk_sourcemap");
 
     const absEntry = resolve(process.cwd(), entry);
     if (!existsSync(absEntry)) {
-      win.appendConsole("bundler_console", `[Compiler Error] Entry script does not exist: "${entry}" (${absEntry})\n`, 3);
+      win.appendConsole(
+        "bundler_console",
+        `[Compiler Error] Entry script does not exist: "${entry}" (${absEntry})\n`,
+        3,
+      );
       win.setStatus(`Error: Entry script not found: ${entry}`);
       win.toast(`Error: Entry script not found: ${entry}`);
       return;
@@ -1065,21 +1326,40 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
     ensureAssetsCopied(distDir);
 
     let targetFlag = "";
-    if (targetChoice.includes("darwin-arm64")) targetFlag = "--target=bun-darwin-arm64";
-    else if (targetChoice.includes("darwin-x64")) targetFlag = "--target=bun-darwin-x64";
-    else if (targetChoice.includes("linux-arm64")) targetFlag = "--target=bun-linux-arm64";
-    else if (targetChoice.includes("linux-x64")) targetFlag = "--target=bun-linux-x64";
-    else if (targetChoice.includes("windows-arm64")) targetFlag = "--target=bun-windows-arm64";
-    else if (targetChoice.includes("windows-x64")) targetFlag = "--target=bun-windows-x64";
+    if (targetChoice.includes("darwin-arm64"))
+      targetFlag = "--target=bun-darwin-arm64";
+    else if (targetChoice.includes("darwin-x64"))
+      targetFlag = "--target=bun-darwin-x64";
+    else if (targetChoice.includes("linux-arm64"))
+      targetFlag = "--target=bun-linux-arm64";
+    else if (targetChoice.includes("linux-x64"))
+      targetFlag = "--target=bun-linux-x64";
+    else if (targetChoice.includes("windows-arm64"))
+      targetFlag = "--target=bun-windows-arm64";
+    else if (targetChoice.includes("windows-x64"))
+      targetFlag = "--target=bun-windows-x64";
 
-    const isWin = targetFlag.includes("windows") || (!targetFlag && process.platform === "win32");
-    const outFileName = isWin && !name.toLowerCase().endsWith(".exe") ? `${name}.exe` : name;
+    const isWin =
+      targetFlag.includes("windows") ||
+      (!targetFlag && process.platform === "win32");
+    const outFileName =
+      isWin && !name.toLowerCase().endsWith(".exe") ? `${name}.exe` : name;
     const outBin = join(distDir, outFileName);
 
-    const extraFlags = [minify ? "--minify" : "", sourcemap ? "--sourcemap" : "", targetFlag].filter(Boolean).join(" ");
+    const extraFlags = [
+      minify ? "--minify" : "",
+      sourcemap ? "--sourcemap" : "",
+      targetFlag,
+    ]
+      .filter(Boolean)
+      .join(" ");
     const compileCmd = `bun build "${absEntry.replace(/["$`\\]/g, "\\$&")}" --compile --outfile="${outBin}" ${extraFlags}`;
 
-    win.appendConsole("bundler_console", `[Compiler] Executing: ${compileCmd}...\n`, 1);
+    win.appendConsole(
+      "bundler_console",
+      `[Compiler] Executing: ${compileCmd}...\n`,
+      1,
+    );
     win.setStatus(`Compiling standalone binary ${outFileName}...`);
 
     const t0 = performance.now();
@@ -1087,19 +1367,33 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
     const elapsed = (performance.now() - t0).toFixed(1);
 
     if (code === 0 && existsSync(outBin)) {
-      try { chmodSync(outBin, 0o755); } catch {}
+      try {
+        chmodSync(outBin, 0o755);
+      } catch {}
       if (isWin) {
-        const chosenIcon = win.getValue("txt_icon_path") || win.getValue("dd_preset_icon") || "";
+        const chosenIcon =
+          win.getValue("txt_icon_path") || win.getValue("dd_preset_icon") || "";
         if (chosenIcon) {
           const iconRes = bundleWindowsIcon(chosenIcon, distDir, name, outBin);
           if (iconRes.success) {
-            win.appendConsole("bundler_console", `[Icon] ${iconRes.message}\n`, 2);
+            win.appendConsole(
+              "bundler_console",
+              `[Icon] ${iconRes.message}\n`,
+              2,
+            );
           }
         }
       }
       const sz = (statSync(outBin).size / 1024 / 1024).toFixed(2);
-      win.appendConsole("bundler_console", `[Success] Single-executable compiled in ${elapsed}ms!\n  Artifact: ${outBin} (${sz} MB)\n`, 2);
-      win.setText("lbl_status", `Compiled: ${outFileName} (${sz} MB)  |  Latency: ${elapsed}ms  |  Status: OK`);
+      win.appendConsole(
+        "bundler_console",
+        `[Success] Single-executable compiled in ${elapsed}ms!\n  Artifact: ${outBin} (${sz} MB)\n`,
+        2,
+      );
+      win.setText(
+        "lbl_status",
+        `Compiled: ${outFileName} (${sz} MB)  |  Latency: ${elapsed}ms  |  Status: OK`,
+      );
       win.setStatus(`Compiled in ${elapsed}ms (${sz} MB)`);
       win.toast(`Compiled ${outFileName} (${sz} MB)`);
     } else {
@@ -1112,9 +1406,13 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
   win.onClick("btn_build_bundle", () => {
     const rawName = win.getValue("txt_app_name") || "MyApp";
     const name = sanitizeBundleName(rawName, "MyApp");
-    const cleanId = ("com.enterprise." + name.toLowerCase()).replace(/[^a-z0-9.-]/g, "_");
+    const cleanId = ("com.enterprise." + name.toLowerCase()).replace(
+      /[^a-z0-9.-]/g,
+      "_",
+    );
     const ver = sanitizeBundleVer(win.getValue("txt_version") || "1.0.0");
-    const entry = win.getValue("txt_exec_path") || "./applications/devtools_studio.ts";
+    const entry =
+      win.getValue("txt_exec_path") || "./applications/devtools_studio.ts";
     const targetChoice = win.getValue("dd_target") || "";
     const minify = win.getValue("chk_minify");
     const sourcemap = win.getValue("chk_sourcemap");
@@ -1122,13 +1420,21 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
 
     const absEntry = resolve(process.cwd(), entry);
     if (!existsSync(absEntry)) {
-      win.appendConsole("bundler_console", `[Bundler Error] Entry script does not exist: "${entry}" (${absEntry})\n`, 3);
+      win.appendConsole(
+        "bundler_console",
+        `[Bundler Error] Entry script does not exist: "${entry}" (${absEntry})\n`,
+        3,
+      );
       win.setStatus(`Error: Entry script not found: ${entry}`);
       win.toast(`Error: Entry script not found: ${entry}`);
       return;
     }
 
-    win.appendConsole("bundler_console", `[Bundler] Packaging macOS .app bundle for "${name}"...\n`, 1);
+    win.appendConsole(
+      "bundler_console",
+      `[Bundler] Packaging macOS .app bundle for "${name}"...\n`,
+      1,
+    );
     win.setStatus(`Building ${name}.app...`);
 
     const distDir = resolve(process.cwd(), "dist");
@@ -1143,13 +1449,22 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
       ensureAssetsCopied(distDir, appDir, "darwin");
 
       // Package chosen or preset icon into Contents/Resources/AppIcon.icns
-      const chosenIcon = win.getValue("txt_icon_path") || win.getValue("dd_preset_icon") || "";
+      const chosenIcon =
+        win.getValue("txt_icon_path") || win.getValue("dd_preset_icon") || "";
       if (chosenIcon) {
         const iconRes = bundleIcon(chosenIcon, appDir);
         if (iconRes.success) {
-          win.appendConsole("bundler_console", `[Icon] ${iconRes.message}\n`, 2);
+          win.appendConsole(
+            "bundler_console",
+            `[Icon] ${iconRes.message}\n`,
+            2,
+          );
         } else {
-          win.appendConsole("bundler_console", `[Icon Warning] ${iconRes.message}\n`, 1);
+          win.appendConsole(
+            "bundler_console",
+            `[Icon Warning] ${iconRes.message}\n`,
+            1,
+          );
         }
       }
 
@@ -1159,15 +1474,28 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
 
       // Compile standalone native Mach-O binary directly into Contents/MacOS/
       let targetFlag = "";
-      if (targetChoice.includes("darwin-arm64")) targetFlag = "--target=bun-darwin-arm64";
-      else if (targetChoice.includes("darwin-x64")) targetFlag = "--target=bun-darwin-x64";
-      else if (process.platform !== "darwin") targetFlag = "--target=bun-darwin-arm64";
+      if (targetChoice.includes("darwin-arm64"))
+        targetFlag = "--target=bun-darwin-arm64";
+      else if (targetChoice.includes("darwin-x64"))
+        targetFlag = "--target=bun-darwin-x64";
+      else if (process.platform !== "darwin")
+        targetFlag = "--target=bun-darwin-arm64";
 
       const macosBin = join(macosDir, name);
-      const extraFlags = [minify ? "--minify" : "", sourcemap ? "--sourcemap" : "", targetFlag].filter(Boolean).join(" ");
+      const extraFlags = [
+        minify ? "--minify" : "",
+        sourcemap ? "--sourcemap" : "",
+        targetFlag,
+      ]
+        .filter(Boolean)
+        .join(" ");
       const compileCmd = `bun build "${absEntry.replace(/["$`\\]/g, "\\$&")}" --compile --outfile="${macosBin}" ${extraFlags}`;
 
-      win.appendConsole("bundler_console", `[Compiler] Compiling native binary for .app bundle...\n  Command: ${compileCmd}\n`, 1);
+      win.appendConsole(
+        "bundler_console",
+        `[Compiler] Compiling native binary for .app bundle...\n  Command: ${compileCmd}\n`,
+        1,
+      );
       win.setStatus(`Compiling executable for ${name}.app...`);
 
       const t0 = performance.now();
@@ -1176,11 +1504,21 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
 
       let sz = "0.0";
       if (compCode === 0 && existsSync(macosBin)) {
-        try { chmodSync(macosBin, 0o755); } catch {}
+        try {
+          chmodSync(macosBin, 0o755);
+        } catch {}
         sz = (statSync(macosBin).size / 1024 / 1024).toFixed(2);
-        win.appendConsole("bundler_console", `[Compiler] Standalone Mach-O binary compiled in ${elapsed}ms!\n  Binary: ${macosBin} (${sz} MB)\n`, 2);
+        win.appendConsole(
+          "bundler_console",
+          `[Compiler] Standalone Mach-O binary compiled in ${elapsed}ms!\n  Binary: ${macosBin} (${sz} MB)\n`,
+          2,
+        );
       } else {
-        win.appendConsole("bundler_console", `[Compiler Note] ${compOut || "code " + compCode}. Generating robust fallback launcher script...\n`, 3);
+        win.appendConsole(
+          "bundler_console",
+          `[Compiler Note] ${compOut || "code " + compCode}. Generating robust fallback launcher script...\n`,
+          3,
+        );
         const launcherScript = `#!/bin/bash\nexport PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/.bun/bin:$PATH"\nBUN_BIN="${process.execPath}"\nif [ ! -x "$BUN_BIN" ]; then\n  BUN_BIN="$(which bun 2>/dev/null || echo "bun")"\nfi\nexec "$BUN_BIN" run "${absEntry}" "$@"\n`;
         writeFileSync(macosBin, launcherScript, { mode: 0o755 });
         sz = "0.01";
@@ -1188,18 +1526,36 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
 
       const sign = win.getValue("chk_codesign");
       if (sign && process.platform === "darwin") {
-        const signProc = Bun.spawnSync(["codesign", "--force", "--deep", "--sign", "-", appDir], { stdout: "pipe", stderr: "pipe" });
+        const signProc = Bun.spawnSync(
+          ["codesign", "--force", "--deep", "--sign", "-", appDir],
+          { stdout: "pipe", stderr: "pipe" },
+        );
         const signOut = signProc.stdout.toString() + signProc.stderr.toString();
         const signCode = signProc.exitCode;
         if (signCode === 0) {
-          win.appendConsole("bundler_console", `[Codesign] Ad-hoc signature successfully applied\n`, 2);
+          win.appendConsole(
+            "bundler_console",
+            `[Codesign] Ad-hoc signature successfully applied\n`,
+            2,
+          );
         } else {
-          win.appendConsole("bundler_console", `[Codesign Warning] ${signOut} (exit ${signCode})\n`, 1);
+          win.appendConsole(
+            "bundler_console",
+            `[Codesign Warning] ${signOut} (exit ${signCode})\n`,
+            1,
+          );
         }
       }
 
-      win.appendConsole("bundler_console", `[Success] ${name}.app bundle assembled successfully in ./dist/!\n  Location: ${appDir}\n`, 2);
-      win.setText("lbl_status", `Built: ${name}.app (${sz} MB)  |  Path: ./dist/${name}.app  |  Status: OK`);
+      win.appendConsole(
+        "bundler_console",
+        `[Success] ${name}.app bundle assembled successfully in ./dist/!\n  Location: ${appDir}\n`,
+        2,
+      );
+      win.setText(
+        "lbl_status",
+        `Built: ${name}.app (${sz} MB)  |  Path: ./dist/${name}.app  |  Status: OK`,
+      );
       win.setStatus(`Assembled ${name}.app (${sz} MB)`);
       win.toast(`Built ${name}.app (${sz} MB)`);
     } catch (e: any) {
@@ -1212,9 +1568,13 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
   win.onClick("btn_build_windows", () => {
     const rawName = win.getValue("txt_app_name") || "MyApp";
     const name = sanitizeBundleName(rawName, "MyApp");
-    const cleanId = ("com.enterprise." + name.toLowerCase()).replace(/[^a-z0-9.-]/g, "_");
+    const cleanId = ("com.enterprise." + name.toLowerCase()).replace(
+      /[^a-z0-9.-]/g,
+      "_",
+    );
     const ver = sanitizeBundleVer(win.getValue("txt_version") || "1.0.0");
-    const entry = win.getValue("txt_exec_path") || "./applications/devtools_studio.ts";
+    const entry =
+      win.getValue("txt_exec_path") || "./applications/devtools_studio.ts";
     const targetChoice = win.getValue("dd_target") || "";
     const minify = win.getValue("chk_minify");
     const sourcemap = win.getValue("chk_sourcemap");
@@ -1222,13 +1582,21 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
 
     const absEntry = resolve(process.cwd(), entry);
     if (!existsSync(absEntry)) {
-      win.appendConsole("bundler_console", `[Bundler Error] Entry script does not exist: "${entry}" (${absEntry})\n`, 3);
+      win.appendConsole(
+        "bundler_console",
+        `[Bundler Error] Entry script does not exist: "${entry}" (${absEntry})\n`,
+        3,
+      );
       win.setStatus(`Error: Entry script not found: ${entry}`);
       win.toast(`Error: Entry script not found: ${entry}`);
       return;
     }
 
-    win.appendConsole("bundler_console", `[Bundler] Packaging Windows desktop bundle for "${name}"...\n`, 1);
+    win.appendConsole(
+      "bundler_console",
+      `[Bundler] Packaging Windows desktop bundle for "${name}"...\n`,
+      1,
+    );
     win.setStatus(`Building ${name}-windows...`);
 
     const distDir = resolve(process.cwd(), "dist");
@@ -1257,7 +1625,11 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
         .join(" ");
       const compileCmd = `bun build "${absEntry.replace(/["$`\\]/g, "\\$&")}" --compile --outfile="${winExe}" ${extraFlags}`;
 
-      win.appendConsole("bundler_console", `[Compiler] Compiling Windows PE executable...\n  Command: ${compileCmd}\n`, 1);
+      win.appendConsole(
+        "bundler_console",
+        `[Compiler] Compiling Windows PE executable...\n  Command: ${compileCmd}\n`,
+        1,
+      );
       win.setStatus(`Compiling ${name}.exe...`);
 
       const t0 = performance.now();
@@ -1267,22 +1639,44 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
       let sz = "0.0";
       if (compCode === 0 && existsSync(winExe)) {
         sz = (statSync(winExe).size / 1024 / 1024).toFixed(2);
-        win.appendConsole("bundler_console", `[Compiler] Standalone Windows PE executable compiled in ${elapsed}ms!\n  Binary: ${winExe} (${sz} MB)\n`, 2);
+        win.appendConsole(
+          "bundler_console",
+          `[Compiler] Standalone Windows PE executable compiled in ${elapsed}ms!\n  Binary: ${winExe} (${sz} MB)\n`,
+          2,
+        );
       } else {
-        win.appendConsole("bundler_console", `[Compiler Note] ${compOut || "code " + compCode}. Generating fallback Windows launcher script...\n`, 3);
+        win.appendConsole(
+          "bundler_console",
+          `[Compiler Note] ${compOut || "code " + compCode}. Generating fallback Windows launcher script...\n`,
+          3,
+        );
         const fallbackCmd = `@echo off\r\nsetlocal\r\npushd "%~dp0" || exit /b 1\r\nset "BUN_BE_BUN=1"\r\nif exist "%~dp0lib\\libwebview.dll" set "WEBVIEW_PATH=%~dp0lib\\libwebview.dll"\r\nbun run "${absEntry}" %*\r\nset "EXIT_CODE=%errorlevel%"\r\npopd\r\nexit /b %EXIT_CODE%\r\n`;
         writeFileSync(join(winAppDir, `${name}.cmd`), fallbackCmd);
         sz = "0.01";
       }
 
       // Package chosen or preset icon into Windows bundle (.ico) and embed into .exe if compiled
-      const chosenIcon = win.getValue("txt_icon_path") || win.getValue("dd_preset_icon") || "";
+      const chosenIcon =
+        win.getValue("txt_icon_path") || win.getValue("dd_preset_icon") || "";
       if (chosenIcon) {
-        const iconRes = bundleWindowsIcon(chosenIcon, winAppDir, name, existsSync(winExe) ? winExe : undefined);
+        const iconRes = bundleWindowsIcon(
+          chosenIcon,
+          winAppDir,
+          name,
+          existsSync(winExe) ? winExe : undefined,
+        );
         if (iconRes.success) {
-          win.appendConsole("bundler_console", `[Icon] ${iconRes.message}\n`, 2);
+          win.appendConsole(
+            "bundler_console",
+            `[Icon] ${iconRes.message}\n`,
+            2,
+          );
         } else {
-          win.appendConsole("bundler_console", `[Icon Warning] ${iconRes.message}\n`, 1);
+          win.appendConsole(
+            "bundler_console",
+            `[Icon Warning] ${iconRes.message}\n`,
+            1,
+          );
         }
       }
 
@@ -1293,8 +1687,15 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
       const shortcutScript = `param([switch]$Uninstall, [switch]$Desktop)\r\n$ErrorActionPreference = 'Stop'\r\n$root = $PSScriptRoot\r\n$folders = @([Environment]::GetFolderPath('Programs'))\r\nif ($Desktop) { $folders += [Environment]::GetFolderPath('Desktop') }\r\n$shell = New-Object -ComObject WScript.Shell\r\nforeach ($folder in $folders) {\r\n  $lnkPath = Join-Path $folder '${name}.lnk'\r\n  if ($Uninstall) {\r\n    if (Test-Path -LiteralPath $lnkPath) { Remove-Item -LiteralPath $lnkPath }\r\n    continue\r\n  }\r\n  New-Item -ItemType Directory -Path $folder -Force | Out-Null\r\n  $link = $shell.CreateShortcut($lnkPath)\r\n  $exe = Join-Path $root '${name}.exe'\r\n  $link.TargetPath = if (Test-Path -LiteralPath $exe) { $exe } else { Join-Path $root 'launch.cmd' }\r\n  $link.WorkingDirectory = $root\r\n  $ico = Join-Path $root '${name}.ico'\r\n  if (Test-Path -LiteralPath $ico) { $link.IconLocation = "$ico,0" }\r\n  $link.Description = '${name} (v${ver})'\r\n  $link.Save()\r\n}\r\n`;
       writeFileSync(join(winAppDir, "install-shortcuts.ps1"), shortcutScript);
 
-      win.appendConsole("bundler_console", `[Success] ${name}-windows bundle assembled successfully in ./dist/!\n  Location: ${winAppDir}\n`, 2);
-      win.setText("lbl_status", `Built: ${name}-windows (${sz} MB)  |  Path: ./dist/${name}-windows  |  Status: OK`);
+      win.appendConsole(
+        "bundler_console",
+        `[Success] ${name}-windows bundle assembled successfully in ./dist/!\n  Location: ${winAppDir}\n`,
+        2,
+      );
+      win.setText(
+        "lbl_status",
+        `Built: ${name}-windows (${sz} MB)  |  Path: ./dist/${name}-windows  |  Status: OK`,
+      );
       win.setStatus(`Assembled ${name}-windows (${sz} MB)`);
       win.toast(`Built ${name}-windows (${sz} MB)`);
     } catch (e: any) {
@@ -1307,22 +1708,34 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
   win.onClick("btn_build_linux", () => {
     const rawName = win.getValue("txt_app_name") || "MyApp";
     const name = sanitizeBundleName(rawName, "MyApp");
-    const cleanId = ("com.enterprise." + name.toLowerCase()).replace(/[^a-z0-9.-]/g, "_");
+    const cleanId = ("com.enterprise." + name.toLowerCase()).replace(
+      /[^a-z0-9.-]/g,
+      "_",
+    );
     const ver = sanitizeBundleVer(win.getValue("txt_version") || "1.0.0");
-    const entry = win.getValue("txt_exec_path") || "./applications/devtools_studio.ts";
+    const entry =
+      win.getValue("txt_exec_path") || "./applications/devtools_studio.ts";
     const targetChoice = win.getValue("dd_target") || "";
     const minify = win.getValue("chk_minify");
     const sourcemap = win.getValue("chk_sourcemap");
 
     const absEntry = resolve(process.cwd(), entry);
     if (!existsSync(absEntry)) {
-      win.appendConsole("bundler_console", `[Bundler Error] Entry script does not exist: "${entry}" (${absEntry})\n`, 3);
+      win.appendConsole(
+        "bundler_console",
+        `[Bundler Error] Entry script does not exist: "${entry}" (${absEntry})\n`,
+        3,
+      );
       win.setStatus(`Error: Entry script not found: ${entry}`);
       win.toast(`Error: Entry script not found: ${entry}`);
       return;
     }
 
-    win.appendConsole("bundler_console", `[Bundler] Packaging Linux .AppDir bundle for "${name}"...\n`, 1);
+    win.appendConsole(
+      "bundler_console",
+      `[Bundler] Packaging Linux .AppDir bundle for "${name}"...\n`,
+      1,
+    );
     win.setStatus(`Building ${name}.AppDir...`);
 
     const distDir = resolve(process.cwd(), "dist");
@@ -1336,13 +1749,22 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
       ensureAssetsCopied(distDir, appDir, "linux");
 
       // Package chosen or preset icon into .AppDir
-      const chosenIcon = win.getValue("txt_icon_path") || win.getValue("dd_preset_icon") || "";
+      const chosenIcon =
+        win.getValue("txt_icon_path") || win.getValue("dd_preset_icon") || "";
       if (chosenIcon) {
         const iconRes = bundleLinuxIcon(chosenIcon, appDir, name);
         if (iconRes.success) {
-          win.appendConsole("bundler_console", `[Icon] ${iconRes.message}\n`, 2);
+          win.appendConsole(
+            "bundler_console",
+            `[Icon] ${iconRes.message}\n`,
+            2,
+          );
         } else {
-          win.appendConsole("bundler_console", `[Icon Warning] ${iconRes.message}\n`, 1);
+          win.appendConsole(
+            "bundler_console",
+            `[Icon Warning] ${iconRes.message}\n`,
+            1,
+          );
         }
       }
 
@@ -1356,10 +1778,20 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
         : "--target=bun-linux-x64";
 
       const linuxBin = join(binDir, name);
-      const extraFlags = [minify ? "--minify" : "", sourcemap ? "--sourcemap" : "", targetFlag].filter(Boolean).join(" ");
+      const extraFlags = [
+        minify ? "--minify" : "",
+        sourcemap ? "--sourcemap" : "",
+        targetFlag,
+      ]
+        .filter(Boolean)
+        .join(" ");
       const compileCmd = `bun build "${absEntry.replace(/["$`\\]/g, "\\$&")}" --compile --outfile="${linuxBin}" ${extraFlags}`;
 
-      win.appendConsole("bundler_console", `[Compiler] Compiling Linux ELF binary for .AppDir bundle...\n  Command: ${compileCmd}\n`, 1);
+      win.appendConsole(
+        "bundler_console",
+        `[Compiler] Compiling Linux ELF binary for .AppDir bundle...\n  Command: ${compileCmd}\n`,
+        1,
+      );
       win.setStatus(`Compiling executable for ${name}.AppDir...`);
 
       const t0 = performance.now();
@@ -1368,14 +1800,26 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
 
       let sz = "0.0";
       if (compCode === 0 && existsSync(linuxBin)) {
-        try { chmodSync(linuxBin, 0o755); } catch {}
+        try {
+          chmodSync(linuxBin, 0o755);
+        } catch {}
         sz = (statSync(linuxBin).size / 1024 / 1024).toFixed(2);
-        win.appendConsole("bundler_console", `[Compiler] Standalone Linux ELF binary compiled in ${elapsed}ms!\n  Binary: ${linuxBin} (${sz} MB)\n`, 2);
+        win.appendConsole(
+          "bundler_console",
+          `[Compiler] Standalone Linux ELF binary compiled in ${elapsed}ms!\n  Binary: ${linuxBin} (${sz} MB)\n`,
+          2,
+        );
       } else {
-        win.appendConsole("bundler_console", `[Compiler Note] ${compOut || "code " + compCode}. Generating fallback Linux launcher script...\n`, 3);
+        win.appendConsole(
+          "bundler_console",
+          `[Compiler Note] ${compOut || "code " + compCode}. Generating fallback Linux launcher script...\n`,
+          3,
+        );
         const launcherScript = `#!/usr/bin/env bash\nexport PATH="/home/linuxbrew/.linuxbrew/bin:/usr/local/bin:$HOME/.bun/bin:$PATH"\nBUN_BIN="${process.execPath}"\nif [ ! -x "$BUN_BIN" ]; then\n  BUN_BIN="$(command -v bun 2>/dev/null || echo "bun")"\nfi\nexec "$BUN_BIN" run "${absEntry}" "$@"\n`;
         writeFileSync(linuxBin, launcherScript, { mode: 0o755 });
-        try { chmodSync(linuxBin, 0o755); } catch {}
+        try {
+          chmodSync(linuxBin, 0o755);
+        } catch {}
         sz = "0.01";
       }
 
@@ -1383,15 +1827,26 @@ Status:        Ready to produce standalone binary or macOS / Windows / Linux app
       const appRunScript = `#!/bin/sh\nHERE="$(cd "$(dirname "$0")" && pwd -P)"\nexport BUN_BE_BUN=1\nARCH="$(uname -m 2>/dev/null || echo x86_64)"\nif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then\n  SO="$HERE/usr/lib/libwebview-arm64.so"\nelse\n  SO="$HERE/usr/lib/libwebview-x64.so"\nfi\nif [ -z "$WEBVIEW_PATH" ] && [ -f "$SO" ]; then\n  export WEBVIEW_PATH="$SO"\nfi\nexec "$HERE/usr/bin/${name}" "$@"\n`;
       const appRunPath = join(appDir, "AppRun");
       writeFileSync(appRunPath, appRunScript, { mode: 0o755 });
-      try { chmodSync(appRunPath, 0o755); } catch {}
+      try {
+        chmodSync(appRunPath, 0o755);
+      } catch {}
 
       const installSh = `#!/bin/sh\nset -e\nHERE="$(cd "$(dirname "$0")" && pwd -P)"\nBIN_DIR="\${HOME}/.local/bin"\nAPPS_DIR="\${HOME}/.local/share/applications"\nICON_DIR="\${HOME}/.local/share/icons/hicolor/256x256/apps"\nif [ "\${1:-}" = "--uninstall" ]; then\n  rm -f "$BIN_DIR/${name}" "$APPS_DIR/${name}.desktop" "$ICON_DIR/${name}.png"\n  echo "Uninstalled ${name}."\n  exit 0\nfi\nmkdir -p "$BIN_DIR" "$APPS_DIR" "$ICON_DIR"\nchmod +x "$HERE/AppRun" "$HERE/usr/bin/${name}"\nln -sf "$HERE/AppRun" "$BIN_DIR/${name}"\nif [ -f "$HERE/${name}.png" ]; then\n  cp "$HERE/${name}.png" "$ICON_DIR/${name}.png"\nfi\nsed "s|^Exec=.*|Exec=\\"$HERE/AppRun\\" %F|; s|^Icon=.*|Icon=$HERE/${name}.png|" "$HERE/${name}.desktop" > "$APPS_DIR/${name}.desktop"\necho "Installed ${name} to $APPS_DIR/${name}.desktop and $BIN_DIR/${name}."\n`;
       const installShPath = join(appDir, "install.sh");
       writeFileSync(installShPath, installSh, { mode: 0o755 });
-      try { chmodSync(installShPath, 0o755); } catch {}
+      try {
+        chmodSync(installShPath, 0o755);
+      } catch {}
 
-      win.appendConsole("bundler_console", `[Success] ${name}.AppDir bundle assembled successfully in ./dist/!\n  Location: ${appDir}\n`, 2);
-      win.setText("lbl_status", `Built: ${name}.AppDir (${sz} MB)  |  Path: ./dist/${name}.AppDir  |  Status: OK`);
+      win.appendConsole(
+        "bundler_console",
+        `[Success] ${name}.AppDir bundle assembled successfully in ./dist/!\n  Location: ${appDir}\n`,
+        2,
+      );
+      win.setText(
+        "lbl_status",
+        `Built: ${name}.AppDir (${sz} MB)  |  Path: ./dist/${name}.AppDir  |  Status: OK`,
+      );
       win.setStatus(`Assembled ${name}.AppDir (${sz} MB)`);
       win.toast(`Built ${name}.AppDir (${sz} MB)`);
     } catch (e: any) {

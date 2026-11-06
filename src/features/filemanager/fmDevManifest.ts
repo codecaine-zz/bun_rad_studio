@@ -26,7 +26,11 @@ function stripComment(line: string): string {
 
 function scalar(raw: string): string | number | boolean {
   const v = raw.trim();
-  if ((v.startsWith('"') && v.endsWith('"') && v.length >= 2) || (v.startsWith("'") && v.endsWith("'") && v.length >= 2)) return v.slice(1, -1);
+  if (
+    (v.startsWith('"') && v.endsWith('"') && v.length >= 2) ||
+    (v.startsWith("'") && v.endsWith("'") && v.length >= 2)
+  )
+    return v.slice(1, -1);
   if (v === "true") return true;
   if (v === "false") return false;
   return /^-?\d+(\.\d+)?$/.test(v) ? Number(v) : v;
@@ -62,7 +66,9 @@ function splitList(body: string): string[] {
 const UNSAFE_TOML_KEY = new Set(["__proto__", "constructor", "prototype"]);
 
 /** Sections by dotted name (`[tool.poetry.dependencies]` -> "tool.poetry.dependencies"), each a map of key -> value. Never throws. */
-export function parseTomlLite(text: string): Record<string, Record<string, TomlValue>> {
+export function parseTomlLite(
+  text: string,
+): Record<string, Record<string, TomlValue>> {
   const out: Record<string, Record<string, TomlValue>> = { "": {} };
   let section = "";
   const lines = text.split("\n");
@@ -73,20 +79,32 @@ export function parseTomlLite(text: string): Record<string, Record<string, TomlV
     if (head) {
       const nextSection = head[1]!.replace(/\s*\.\s*/g, ".").replace(/"/g, "");
       section = UNSAFE_TOML_KEY.has(nextSection) ? "" : nextSection;
-      if (!Object.prototype.hasOwnProperty.call(out, section)) out[section] = {};
+      if (!Object.prototype.hasOwnProperty.call(out, section))
+        out[section] = {};
       continue;
     }
     const eq = line.indexOf("=");
     if (eq <= 0) continue;
-    const key = line.slice(0, eq).trim().replace(/^["']|["']$/g, "");
+    const key = line
+      .slice(0, eq)
+      .trim()
+      .replace(/^["']|["']$/g, "");
     if (UNSAFE_TOML_KEY.has(key)) continue;
     let value = line.slice(eq + 1).trim();
     if (value.startsWith("[") && !value.endsWith("]")) {
       // an array that continues on the next lines
-      while (i + 1 < lines.length && !value.endsWith("]") && value.length < 20_000) value += ` ${stripComment(lines[++i]!).trim()}`;
+      while (
+        i + 1 < lines.length &&
+        !value.endsWith("]") &&
+        value.length < 20_000
+      )
+        value += ` ${stripComment(lines[++i]!).trim()}`;
     }
-    const table = Object.prototype.hasOwnProperty.call(out, section) ? out[section]! : (out[section] = {});
-    if (value.startsWith("[") && value.endsWith("]")) table[key] = splitList(value.slice(1, -1)).map((s) => String(scalar(s)));
+    const table = Object.prototype.hasOwnProperty.call(out, section)
+      ? out[section]!
+      : (out[section] = {});
+    if (value.startsWith("[") && value.endsWith("]"))
+      table[key] = splitList(value.slice(1, -1)).map((s) => String(scalar(s)));
     else if (value.startsWith("{")) table[key] = value;
     else table[key] = scalar(value);
   }
@@ -95,20 +113,59 @@ export function parseTomlLite(text: string): Record<string, Record<string, TomlV
 
 const LICENSES: Array<[string, (t: string) => boolean]> = [
   ["AGPL-3.0", (t) => t.includes("gnu affero general public license")],
-  ["LGPL-3.0", (t) => t.includes("gnu lesser general public license") && t.includes("version 3")],
-  ["LGPL-2.1", (t) => t.includes("gnu lesser general public license") || t.includes("gnu library general public license")],
-  ["GPL-3.0", (t) => t.includes("gnu general public license") && t.includes("version 3")],
-  ["GPL-2.0", (t) => t.includes("gnu general public license") && t.includes("version 2")],
-  ["Apache-2.0", (t) => t.includes("apache license") && t.includes("version 2.0")],
+  [
+    "LGPL-3.0",
+    (t) =>
+      t.includes("gnu lesser general public license") &&
+      t.includes("version 3"),
+  ],
+  [
+    "LGPL-2.1",
+    (t) =>
+      t.includes("gnu lesser general public license") ||
+      t.includes("gnu library general public license"),
+  ],
+  [
+    "GPL-3.0",
+    (t) => t.includes("gnu general public license") && t.includes("version 3"),
+  ],
+  [
+    "GPL-2.0",
+    (t) => t.includes("gnu general public license") && t.includes("version 2"),
+  ],
+  [
+    "Apache-2.0",
+    (t) => t.includes("apache license") && t.includes("version 2.0"),
+  ],
   ["MPL-2.0", (t) => t.includes("mozilla public license") && t.includes("2.0")],
   ["EPL-2.0", (t) => t.includes("eclipse public license")],
   ["BSL-1.0", (t) => t.includes("boost software license")],
   ["CC0-1.0", (t) => t.includes("cc0 1.0 universal")],
-  ["Unlicense", (t) => t.includes("free and unencumbered software released into the public domain")],
-  ["ISC", (t) => t.includes("permission to use, copy, modify, and/or distribute this software for any purpose with or without fee")],
+  [
+    "Unlicense",
+    (t) =>
+      t.includes(
+        "free and unencumbered software released into the public domain",
+      ),
+  ],
+  [
+    "ISC",
+    (t) =>
+      t.includes(
+        "permission to use, copy, modify, and/or distribute this software for any purpose with or without fee",
+      ),
+  ],
   ["MIT", (t) => t.includes("permission is hereby granted, free of charge")],
-  ["BSD-3-Clause", (t) => t.includes("redistribution and use in source and binary forms") && /neither the name|endorse or promote/.test(t)],
-  ["BSD-2-Clause", (t) => t.includes("redistribution and use in source and binary forms")],
+  [
+    "BSD-3-Clause",
+    (t) =>
+      t.includes("redistribution and use in source and binary forms") &&
+      /neither the name|endorse or promote/.test(t),
+  ],
+  [
+    "BSD-2-Clause",
+    (t) => t.includes("redistribution and use in source and binary forms"),
+  ],
   ["Zlib", (t) => t.includes("altered source versions must be plainly marked")],
   ["WTFPL", (t) => t.includes("do what the fuck you want to")],
 ];

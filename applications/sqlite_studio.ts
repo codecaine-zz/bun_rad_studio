@@ -1,9 +1,9 @@
 /**
  * ⚡ Bun RAD Studio - SQLite Studio Pro
- * 
+ *
  * Enterprise-Grade Embedded Database Workstation & Query IDE
  * Powered by 100% native `bun:sqlite` with sub-millisecond execution latency.
- * 
+ *
  * Architecture:
  * - Dedicated Background Worker & HTTP Telemetry Server (`sqlite_studio_server.ts`)
  * - Native WebKit / Webview Desktop GUI with zero FFI deadlock and instant UI updates
@@ -28,9 +28,20 @@ import { startSqliteStudioServer } from "./sqlite_studio_server.ts";
 import { watchParentProcess } from "../src/parentWatch";
 import { CRUD_STYLE, CRUD_SCRIPT } from "./sqlite_studio_crud.ts";
 import { SAMPLES_STYLE, SAMPLES_SCRIPT_SQLITE } from "../src/db/samples/ui.ts";
-import { MACRO_STYLE, MACRO_TAB_BTN, MACRO_HTML, MACRO_SCRIPT } from "./sqlite_studio_macros.ts";
-import { STUDIO_SHARED_STYLE, STUDIO_SHARED_SCRIPT } from "../src/shared/studioShared.ts";
-import { STUDIO_STAGING_STYLE, studioStagingScript } from "../src/shared/studioStaging.ts";
+import {
+  MACRO_STYLE,
+  MACRO_TAB_BTN,
+  MACRO_HTML,
+  MACRO_SCRIPT,
+} from "./sqlite_studio_macros.ts";
+import {
+  STUDIO_SHARED_STYLE,
+  STUDIO_SHARED_SCRIPT,
+} from "../src/shared/studioShared.ts";
+import {
+  STUDIO_STAGING_STYLE,
+  studioStagingScript,
+} from "../src/shared/studioStaging.ts";
 
 export interface SqliteStudioOptions {
   fullscreen?: boolean;
@@ -6423,11 +6434,14 @@ function getScreenDimensions(): { width: number; height: number } {
   let screenH = 1080;
   try {
     if (process.platform === "darwin") {
-      const cg = dlopen("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics", {
-        CGMainDisplayID: { args: [], returns: FFIType.u32 },
-        CGDisplayPixelsWide: { args: [FFIType.u32], returns: FFIType.u64 },
-        CGDisplayPixelsHigh: { args: [FFIType.u32], returns: FFIType.u64 },
-      });
+      const cg = dlopen(
+        "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+        {
+          CGMainDisplayID: { args: [], returns: FFIType.u32 },
+          CGDisplayPixelsWide: { args: [FFIType.u32], returns: FFIType.u64 },
+          CGDisplayPixelsHigh: { args: [FFIType.u32], returns: FFIType.u64 },
+        },
+      );
       const mainId = cg.symbols.CGMainDisplayID();
       screenW = Number(cg.symbols.CGDisplayPixelsWide(mainId));
       screenH = Number(cg.symbols.CGDisplayPixelsHigh(mainId));
@@ -6442,7 +6456,9 @@ function getScreenDimensions(): { width: number; height: number } {
   return { width: screenW, height: screenH };
 }
 
-export function createSqliteStudio(options: SystemStudioOptions = {}): SqliteStudioInstance {
+export function createSqliteStudio(
+  options: SystemStudioOptions = {},
+): SqliteStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1260);
@@ -6458,7 +6474,9 @@ export function createSqliteStudio(options: SystemStudioOptions = {}): SqliteStu
     activeDbPath,
     generateHtml: () => generateSqliteStudioHtml(),
     run: async () => {
-      console.log("⚡ Launching SQLite Studio Pro (Enterprise Database Workstation)...");
+      console.log(
+        "⚡ Launching SQLite Studio Pro (Enterprise Database Workstation)...",
+      );
 
       // 1. Launch Isolated Background Database Worker Engine
       // This runs on a dedicated OS thread with its own independent Bun event loop,
@@ -6476,7 +6494,11 @@ export function createSqliteStudio(options: SystemStudioOptions = {}): SqliteStu
         app.worker = worker;
 
         info = await new Promise((res, rej) => {
-          const timer = setTimeout(() => rej(new Error("Timeout initializing background database engine")), 1500);
+          const timer = setTimeout(
+            () =>
+              rej(new Error("Timeout initializing background database engine")),
+            1500,
+          );
           worker.onmessage = (e) => {
             if (!e.data?.type || e.data.type === "sqlite_studio") {
               clearTimeout(timer);
@@ -6491,7 +6513,11 @@ export function createSqliteStudio(options: SystemStudioOptions = {}): SqliteStu
       } catch {
         // Subprocess fallback: Spawns the server as an isolated OS process with an active Bun event loop
         const serverArgs = process.execPath.endsWith("bun")
-          ? [process.execPath, process.argv[1] || resolve(import.meta.dir, "sqlite_studio.ts"), "--server"]
+          ? [
+              process.execPath,
+              process.argv[1] || resolve(import.meta.dir, "sqlite_studio.ts"),
+              "--server",
+            ]
           : [process.execPath, "--server"];
 
         const proc = Bun.spawn(serverArgs, {
@@ -6507,7 +6533,9 @@ export function createSqliteStudio(options: SystemStudioOptions = {}): SqliteStu
         let detectedPort = 0;
 
         const timeout = setTimeout(() => {
-          try { reader.cancel(); } catch {}
+          try {
+            reader.cancel();
+          } catch {}
         }, 5000);
 
         while (true) {
@@ -6578,13 +6606,21 @@ export function createSqliteStudio(options: SystemStudioOptions = {}): SqliteStu
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { app.worker?.terminate(); } catch {}
-            try { serverProc?.kill(); } catch {}
+            try {
+              app.worker?.terminate();
+            } catch {}
+            try {
+              serverProc?.kill();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { app.worker?.terminate(); } catch {}
-            try { serverProc?.kill(); } catch {}
+            try {
+              app.worker?.terminate();
+            } catch {}
+            try {
+              serverProc?.kill();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -6594,18 +6630,30 @@ export function createSqliteStudio(options: SystemStudioOptions = {}): SqliteStu
         });
 
         webview.navigate(info.url);
-        console.log(`⚡ Native desktop workstation window open (Fullscreen: ${fullscreen ? 'Enabled' : 'Disabled'}). (Also accessible in any browser at: ${info.url})`);
+        console.log(
+          `⚡ Native desktop workstation window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}). (Also accessible in any browser at: ${info.url})`,
+        );
 
         // Start native desktop message loop on main thread
         webview.run();
-        try { app.worker?.terminate(); } catch {}
-        try { serverProc?.kill(); } catch {}
+        try {
+          app.worker?.terminate();
+        } catch {}
+        try {
+          serverProc?.kill();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running as web workstation at: ${info.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running as web workstation at: ${info.url}`,
+        );
       } finally {
-        try { app.worker?.terminate(); } catch {}
-        try { serverProc?.kill(); } catch {}
+        try {
+          app.worker?.terminate();
+        } catch {}
+        try {
+          serverProc?.kill();
+        } catch {}
         process.exit(0);
       }
     },
@@ -6629,7 +6677,12 @@ export { startSqliteStudioServer } from "./sqlite_studio_server.ts";
 if (process.argv.includes("--server")) {
   const initialDb = process.env.SQLITE_STUDIO_DB || ":memory:";
   const portIdx = process.argv.indexOf("--port");
-  const port = portIdx !== -1 && process.argv[portIdx + 1] ? parseInt(process.argv[portIdx + 1]!, 10) : (process.env.PORT ? parseInt(process.env.PORT, 10) : 3456);
+  const port =
+    portIdx !== -1 && process.argv[portIdx + 1]
+      ? parseInt(process.argv[portIdx + 1]!, 10)
+      : process.env.PORT
+        ? parseInt(process.env.PORT, 10)
+        : 3456;
   const srv = startSqliteStudioServer({
     port,
     host: "127.0.0.1",
@@ -6640,7 +6693,10 @@ if (process.argv.includes("--server")) {
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
   const initialDb = process.argv[2] || ":memory:";
-  const app = createSqliteStudio({ initialDbPath: initialDb, fullscreen: true });
+  const app = createSqliteStudio({
+    initialDbPath: initialDb,
+    fullscreen: true,
+  });
   await app.run();
   process.exit(0);
 }

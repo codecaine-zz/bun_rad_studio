@@ -18,7 +18,8 @@ export const CODECAINE_GAMES = [
     icon: "🧱",
     category: "Puzzle & Logic",
     note: "7-bag SRS block puzzle with T-Spin & Back-to-Back telemetry, 4 modes (Marathon, 40L Sprint, 2M Ultra, Zen), 3-piece queue & synthwave themes.",
-    controls: "Arrows: Move/Drop • Up/X/Z/A: Rotate • Space: Hard Drop • C: Hold",
+    controls:
+      "Arrows: Move/Drop • Up/X/Z/A: Rotate • Space: Hard Drop • C: Hold",
   },
   {
     id: "codecaine_bros",
@@ -26,7 +27,8 @@ export const CODECAINE_GAMES = [
     icon: "🍄",
     category: "Arcade & Action",
     note: "6-mode Cyber-Sewer Platformer & Roguelike Suite: Classic 1983, Endless Roguelike Perks, Boss Rush, 90s Parkour Blitz, 6-Biome Architect & 2P Battle.",
-    controls: "WASD/Arrows: Run/Jump • Shift: Air-Dash • F: Fireball • Down+Space: Ground-Pound • 1-6: Mode",
+    controls:
+      "WASD/Arrows: Run/Jump • Shift: Air-Dash • F: Fireball • Down+Space: Ground-Pound • 1-6: Mode",
   },
   {
     id: "dr_codecaine",
@@ -34,7 +36,8 @@ export const CODECAINE_GAMES = [
     icon: "💊",
     category: "Puzzle & Logic",
     note: "10-mode Dr. Codecaine Medical Suite: Classic, Miracle Cure Power Capsules, Vs. CPU Garbage Duel, Flash VIP Bugs, Bio-Surge, Boss Pathogen, Rx Puzzle & 2P Co-Op.",
-    controls: "Arrows/WASD: Move Capsule • Z/X/Up: Flip • Space: Hard Drop • E: Miracle Skill • 1-0: Mode",
+    controls:
+      "Arrows/WASD: Move Capsule • Z/X/Up: Flip • Space: Hard Drop • E: Miracle Skill • 1-0: Mode",
   },
   {
     id: "pacman",
@@ -42,7 +45,8 @@ export const CODECAINE_GAMES = [
     icon: "🟡",
     category: "Arcade & Action",
     note: "6-mode CyberChomp DX+ Suite: Classic 1980, Championship DX+ Ghost Trains, Procedural Mazes, 256 Glitch Survival, Play-as-Blinky & 2P Co-Op/Versus.",
-    controls: "Arrows/WASD: Steer • Shift: Phase Dash • E: DX Smart Bomb • 1-6: Mode • P: Pause",
+    controls:
+      "Arrows/WASD: Steer • Shift: Phase Dash • E: DX Smart Bomb • 1-6: Mode • P: Pause",
   },
   {
     id: "breakout",
@@ -58,7 +62,8 @@ export const CODECAINE_GAMES = [
     icon: "🃏",
     category: "Card & Casino",
     note: "Roguelike poker deckbuilder with Ante & Blind runs, 30+ holographic Jokers, Planet & Tarot upgrades, 3D card tilt physics & synth audio.",
-    controls: "Click cards to select • Play Hand / Discard • Shop between Blinds",
+    controls:
+      "Click cards to select • Play Hand / Discard • Shop between Blinds",
   },
   {
     id: "poker",
@@ -130,7 +135,8 @@ export const CODECAINE_GAMES = [
     icon: "💣",
     category: "Puzzle & Logic",
     note: "Championship Minesweeper with guaranteed safe first-click opening, chord clearing, 3BV efficiency telemetry & 4 visual themes.",
-    controls: "Left Click: Reveal • Right Click/F: Flag • Middle/Double Click: Chord",
+    controls:
+      "Left Click: Reveal • Right Click/F: Flag • Middle/Double Click: Chord",
   },
   {
     id: "skifree",
@@ -210,7 +216,8 @@ export const CODECAINE_GAMES = [
     icon: "⚡",
     category: "Arcade & Action",
     note: "1992 JezzBall remaster: capture 75%+ of the cyber-grid by firing horizontal/vertical laser containment beams while dodging bouncing plasma atoms.",
-    controls: "Left Click: Fire Beam • Right Click/Space/R: Toggle H/V • E: Slow-Mo • Q: Shielded Beam",
+    controls:
+      "Left Click: Fire Beam • Right Click/Space/R: Toggle H/V • E: Slow-Mo • Q: Shielded Beam",
   },
   {
     id: "chips_challenge",
@@ -218,7 +225,8 @@ export const CODECAINE_GAMES = [
     icon: "💾",
     category: "Puzzle & Logic",
     note: "Tile-based puzzle gauntlet with Quantum Microchips, elemental boots (Fire, Flippers, Ice Cleats, Suction), colored keys, sliding blocks & undo.",
-    controls: "Arrows/WASD: Move • Z: Undo Move • R: Restart Level • N: Procedural Level",
+    controls:
+      "Arrows/WASD: Move • Z: Undo Move • R: Restart Level • N: Procedural Level",
   },
   {
     id: "pipe_dream",
@@ -226,7 +234,8 @@ export const CODECAINE_GAMES = [
     icon: "🔧",
     category: "Puzzle & Logic",
     note: "8-mode Pipe Engineering Suite: Classic Pipe Mania, 100-Level Rotate-All Grid, Dual-Color Mixing, Reactor Meltdown, Hold Slot [H], Rotate [R] & 3D Flanged Conduits.",
-    controls: "Click/Space: Place/Rotate • R: Rotate Next • H: Hold Slot • C: Cryo-Freeze • X: Wrench • F: Surge",
+    controls:
+      "Click/Space: Place/Rotate • R: Rotate Next • H: Hold Slot • C: Cryo-Freeze • X: Wrench • F: Surge",
   },
   {
     id: "solitaire",
@@ -234,7 +243,8 @@ export const CODECAINE_GAMES = [
     icon: "🃏",
     category: "Card & Casino",
     note: "3-in-1 Championship Solitaire (Klondike, Spider & FreeCell) with auto-foundation, smart hints, unlimited undo & bouncing cards victory waterfall.",
-    controls: "Click/Drag Cards • Double-Click/A: Auto-Foundation • H: Hint • Z: Undo",
+    controls:
+      "Click/Drag Cards • Double-Click/A: Auto-Foundation • H: Hint • Z: Undo",
   },
   {
     id: "pinball",
@@ -242,7 +252,8 @@ export const CODECAINE_GAMES = [
     icon: "🛸",
     category: "Arcade & Action",
     note: "Space Cadet 60fps physics pinball table with pop bumpers, slingshots, drop targets, hyperspace loop, wormhole multiball & Space Fleet ranks.",
-    controls: "Z/Left: Left Flipper • //Right: Right Flipper • Hold Space: Plunger • X: Nudge",
+    controls:
+      "Z/Left: Left Flipper • //Right: Right Flipper • Hold Space: Plunger • X: Nudge",
   },
   {
     id: "asteroids",
@@ -250,7 +261,8 @@ export const CODECAINE_GAMES = [
     icon: "☄️",
     category: "Arcade & Action",
     note: "360° Newtonian vector shooter with splitting wireframe boulders, hunter-seeker UFO saucers, energy shields, hyperspace warp & weapon orbs.",
-    controls: "Left/Right: Rotate • Up/W: Thrust • Space: Fire • Shift/S: Shield • H/E: Hyperspace",
+    controls:
+      "Left/Right: Rotate • Up/W: Thrust • Space: Fire • Shift/S: Shield • H/E: Hyperspace",
   },
   {
     id: "space_invaders",
@@ -258,7 +270,8 @@ export const CODECAINE_GAMES = [
     icon: "👾",
     category: "Arcade & Action",
     note: "Galactic alien formation & dive-bomber shooter with pixel-eroding plasma bunkers, mystery red UFOs, twin-blaster upgrades & wave beam.",
-    controls: "Left/Right or A/D: Move • Space: Fire • E: Overcharge Wave Cannon",
+    controls:
+      "Left/Right or A/D: Move • Space: Fire • E: Overcharge Wave Cannon",
   },
   {
     id: "bomberman",
@@ -266,7 +279,8 @@ export const CODECAINE_GAMES = [
     icon: "🧨",
     category: "Arcade & Action",
     note: "8-mode Super CyberBomber DX Suite: 50-Stage Campaign, Battle Royale + Revenge Carts, Roguelike Perks, Boss Rush, Cyber-Louie Mounts, 6 Biomes & 2P Co-Op/Versus.",
-    controls: "WASD + Space: Bomb • Q: Remote • E: Glove Punch/Throw • C: Line Bomb • V: Louie Mount",
+    controls:
+      "WASD + Space: Bomb • Q: Remote • E: Glove Punch/Throw • C: Line Bomb • V: Louie Mount",
   },
   {
     id: "missile_command",
@@ -306,7 +320,8 @@ export const CODECAINE_GAMES = [
     icon: "🎱",
     category: "Arcade & Action",
     note: "10-mode Billiards & Snooker Suite (8-Ball, 9-Ball, 10-Ball, 14.1 Straight, One-Pocket, Cut-Throat, 6-Red Snooker, Bank Pool & 12 Trick Shots) with Masse & Jump Shots.",
-    controls: "Mouse: Aim & Power • E: Cue Elevation (Masse/Jump) • C: Call Pocket • K: Chalk • V: Replay",
+    controls:
+      "Mouse: Aim & Power • E: Cue Elevation (Masse/Jump) • C: Call Pocket • K: Chalk • V: Replay",
   },
   {
     id: "lunar_lander",
@@ -314,7 +329,8 @@ export const CODECAINE_GAMES = [
     icon: "🌕",
     category: "Arcade & Action",
     note: "Precision vector thruster & fuel physics simulator across Moon, Mars & Titan craters with 1x-5x multiplier pads and emergency retro-stabilizer.",
-    controls: "Up/W/Space: Main Thruster • Left/Right: Rotate • E: Retro-Stabilizer",
+    controls:
+      "Up/W/Space: Main Thruster • Left/Right: Rotate • E: Retro-Stabilizer",
   },
   {
     id: "cyber2048",
@@ -322,7 +338,8 @@ export const CODECAINE_GAMES = [
     icon: "🔢",
     category: "Puzzle & Logic",
     note: "Power-of-2 sliding neon tile synthesizer with 3x3/4x4/5x5 grids, harmonic merge synth, 5-step temporal undo, tile zap & AI expectimax hint.",
-    controls: "Arrows/WASD/Swipe: Slide Tiles • Z: Undo • X: Zap Tile • H: AI Hint",
+    controls:
+      "Arrows/WASD/Swipe: Slide Tiles • Z: Undo • X: Zap Tile • H: AI Hint",
   },
   {
     id: "sokoban",
@@ -330,7 +347,8 @@ export const CODECAINE_GAMES = [
     icon: "📦",
     category: "Puzzle & Logic",
     note: "100 verified solvable warehouse puzzle chambers + multi-difficulty winnable random generator, live AI Hint & Auto-Solve, and deadlock alerts.",
-    controls: "Arrows/WASD: Push Crates • G: Random • H: Hint • X: Solve • Z: Undo",
+    controls:
+      "Arrows/WASD: Push Crates • G: Random • H: Hint • X: Solve • Z: Undo",
   },
   {
     id: "reversi_checkers",
@@ -338,7 +356,8 @@ export const CODECAINE_GAMES = [
     icon: "⚫",
     category: "Puzzle & Logic",
     note: "Dual 8x8 strategy workstation combining Othello/Reversi and Championship Checkers with 3-tier alpha-beta Minimax AI, flip previews & 2P versus.",
-    controls: "Click highlighted valid cells/jumps • Z: Undo • H: AI Best Move Hint",
+    controls:
+      "Click highlighted valid cells/jumps • Z: Undo • H: AI Best Move Hint",
   },
   {
     id: "uno",
@@ -346,7 +365,8 @@ export const CODECAINE_GAMES = [
     icon: "🎴",
     category: "Card & Casino",
     note: "Realistic 4-player tabletop UNO with authentic physical vector cards, +2/+4 Stacking Cascades, 7-0 Hand Swap, UNO Catch & 500-Pt Tournament Cup.",
-    controls: "Click Playable Card or Draw Deck • U: Shout UNO! • C: Catch AI • S: Sort • H: Hint",
+    controls:
+      "Click Playable Card or Draw Deck • U: Shout UNO! • C: Catch AI • S: Sort • H: Hint",
   },
   {
     id: "bowling",
@@ -354,7 +374,8 @@ export const CODECAINE_GAMES = [
     icon: "🎳",
     category: "Arcade & Action",
     note: "AAA 3D-perspective 10-frame PBA bowling with lane oil hook physics, 10-pin domino scatter, split spare clinic & 1P Pro AI / 2P Pass & Play.",
-    controls: "Left/Right: Stance & Aim • S: Spin Curve • Space/Click: Bowl • R: Reset",
+    controls:
+      "Left/Right: Stance & Aim • S: Spin Curve • Space/Click: Bowl • R: Reset",
   },
   {
     id: "darts",
@@ -362,7 +383,8 @@ export const CODECAINE_GAMES = [
     icon: "🎯",
     category: "Word & Skill",
     note: "14-Game Pro Darts Arena (501, 301, 701, Cricket, Cut-Throat, Tactics, Clock, Shanghai, Killer, Bob's 27, Halve-It, Baseball, Golf & Count-Up) + 4-Tier Ballistics.",
-    controls: "Mouse/Arrows: Aim • Hold Click/Space: Charge 78% Power & Release • Shift: Steady Breath",
+    controls:
+      "Mouse/Arrows: Aim • Hold Click/Space: Charge 78% Power & Release • Shift: Steady Breath",
   },
   {
     id: "bejeweled",
@@ -370,7 +392,8 @@ export const CODECAINE_GAMES = [
     icon: "💎",
     category: "Puzzle & Logic",
     note: "12-mode Match-3 gem symphony with 3D ray-traced jewelry shaders, interactive Mini-Game Stage Canvas & active [SPACE] tactical gadgets.",
-    controls: "Click/Drag Adjacent Gems • Space: Mode Gadget • 1-9/0: Mode • H: AI Hint • R: Shuffle",
+    controls:
+      "Click/Drag Adjacent Gems • Space: Mode Gadget • 1-9/0: Mode • H: AI Hint • R: Shuffle",
   },
   {
     id: "balloon_fight",
@@ -378,7 +401,8 @@ export const CODECAINE_GAMES = [
     icon: "🎈",
     category: "Arcade & Action",
     note: "6-mode NES Balloon Fight & Balloon Trip remaster: Sky Arena, Endless Lightning Trip, Roguelike Perks, Boss Storm, 2P Co-Op & 2P Dogfight with Piranha waves.",
-    controls: "W/Up/Space: Flap • A/D or Left/Right: Steer • Shift: Air-Dash • S/Down: Pump/Dive • 1-6: Mode",
+    controls:
+      "W/Up/Space: Flap • A/D or Left/Right: Steer • Shift: Air-Dash • S/Down: Pump/Dive • 1-6: Mode",
   },
   {
     id: "marble_madness",
@@ -386,7 +410,8 @@ export const CODECAINE_GAMES = [
     icon: "🔮",
     category: "Arcade & Action",
     note: "8-mode 3D isometric Marble Madness & Marble Blast suite with slope gravity, Black Steel Knockers, Gem Hunt, Tilt Labyrinth, Ghost Replay & 2P Race.",
-    controls: "WASD/Arrows or Mouse Drag: Roll • Shift: Turbo Boost • Space: Gyro-Hop • 1-8: Mode",
+    controls:
+      "WASD/Arrows or Mouse Drag: Roll • Shift: Turbo Boost • Space: Gyro-Hop • 1-8: Mode",
   },
   {
     id: "mappy",
@@ -394,7 +419,8 @@ export const CODECAINE_GAMES = [
     icon: "🐭",
     category: "Arcade & Action",
     note: "8-mode Namco Mappy mansion remaster with color-changing trampolines, Microwave Shockwave Doors, Goro hiding multipliers, Roof Balloons & 2P Co-Op/Versus.",
-    controls: "Left/Right or A/D: Run & Exit Trampoline • Space/E: Open Door / Microwave Wave • 1-8: Mode",
+    controls:
+      "Left/Right or A/D: Run & Exit Trampoline • Space/E: Open Door / Microwave Wave • 1-8: Mode",
   },
   {
     id: "cyber_maker",
@@ -402,7 +428,8 @@ export const CODECAINE_GAMES = [
     icon: "🏗️",
     category: "Arcade & Action",
     note: "Super Mario Maker-style level architect & platformer with Linux Tux Slide, macOS Dock/Beachball, FreeBSD Beastie Trident & Windows BSOD Thwomp/Clippy.",
-    controls: "Tab/P: Toggle Edit/Play • Click/Drag: Paint Tiles & Wires • WASD/Arrows+Space: Playtest",
+    controls:
+      "Tab/P: Toggle Edit/Play • Click/Drag: Paint Tiles & Wires • WASD/Arrows+Space: Playtest",
   },
   {
     id: "lemmings",
@@ -410,7 +437,8 @@ export const CODECAINE_GAMES = [
     icon: "🧵",
     category: "Puzzle & Logic",
     note: "8-mode destructible terrain puzzle with 8 assignable daemon thread roles (Climber, Floater, Bomber, Blocker, Builder, Basher, Miner, Digger) & terrain brush.",
-    controls: "1-8: Select Skill • Click Lemming: Assign Role • -/+: Release Rate • F: Fast-Forward • P: Pause",
+    controls:
+      "1-8: Select Skill • Click Lemming: Assign Role • -/+: Release Rate • F: Fast-Forward • P: Pause",
   },
   {
     id: "lode_runner",
@@ -418,7 +446,8 @@ export const CODECAINE_GAMES = [
     icon: "⛏️",
     category: "Arcade & Action",
     note: "8-mode Lode Runner remaster: drill temporary holes in brick floors to trap pursuing AI guards, shimmy across zip-lines, collect gold & unlock the Escape Ladder.",
-    controls: "WASD/Arrows: Move & Climb • Q/Z: Drill Left • E/X: Drill Right • H: AI Hint • G: Random Level",
+    controls:
+      "WASD/Arrows: Move & Climb • Q/Z: Drill Left • E/X: Drill Right • H: AI Hint • G: Random Level",
   },
   {
     id: "chuchu_rocket",
@@ -426,7 +455,8 @@ export const CODECAINE_GAMES = [
     icon: "🚀",
     category: "Puzzle & Logic",
     note: "8-mode Dreamcast ChuChu Rocket! action puzzle: place directional arrows (▲▼◄►) to herd mice into your rocket while routing cats into rival AI rockets.",
-    controls: "WASD/1-4 + Click or Drag: Place Arrow Tile • H: AI Best Arrow • Space: Start/Pause",
+    controls:
+      "WASD/1-4 + Click or Drag: Place Arrow Tile • H: AI Best Arrow • Space: Start/Pause",
   },
   {
     id: "rampart",
@@ -434,7 +464,8 @@ export const CODECAINE_GAMES = [
     icon: "🏰",
     category: "Arcade & Action",
     note: "8-mode 3-phase Rampart strategy arcade: deploy cannons inside enclosed castles, bombard invading warships, and patch walls with Tetris polyominoes.",
-    controls: "Mouse Click: Place Cannon / Fire Salvo / Place Wall • R/Right-Click: Rotate Piece • H: Auto-Patch",
+    controls:
+      "Mouse Click: Place Cannon / Fire Salvo / Place Wall • R/Right-Click: Rotate Piece • H: Auto-Patch",
   },
   {
     id: "qix",
@@ -442,7 +473,8 @@ export const CODECAINE_GAMES = [
     icon: "⚡",
     category: "Arcade & Action",
     note: "8-mode Qix & Volfied territory slicer: draw laser trails to claim 75%+ of the grid while dodging the harmonic Plasma Qix, Sparx & collecting Power Cubes.",
-    controls: "WASD/Arrows: Move • Hold Space: Fast Draw • Hold Shift: Slow Draw (2x Pts)",
+    controls:
+      "WASD/Arrows: Move • Hold Space: Fast Draw • Hold Shift: Slow Draw (2x Pts)",
   },
   {
     id: "magical_drop",
@@ -450,7 +482,8 @@ export const CODECAINE_GAMES = [
     icon: "🃏",
     category: "Puzzle & Logic",
     note: "8-mode Neo-Geo Magical Drop III & Money Idol Exchanger action puzzle with 6 Tarot Arcana fighters, Ice/Rainbow orbs & 15x active cascade chains.",
-    controls: "A/D or Left/Right: Move Jester • S/Down/Space/Click: Grab Orbs • W/Up/Right-Click: Throw Orbs",
+    controls:
+      "A/D or Left/Right: Move Jester • S/Down/Space/Click: Grab Orbs • W/Up/Right-Click: Throw Orbs",
   },
   {
     id: "peggle",
@@ -458,7 +491,8 @@ export const CODECAINE_GAMES = [
     icon: "🌈",
     category: "Arcade & Action",
     note: "8-mode Peggle pachinko spectacle: clear all 25 Orange Pegs with 8 Zen Master power-ups (Super Guide, Multiball, Fireball, Flippers) & Extreme Fever fanfare.",
-    controls: "Mouse or Left/Right: Aim Cannon • Click/Space: Fire Ball & Flippers • 1-8: Mode",
+    controls:
+      "Mouse or Left/Right: Aim Cannon • Click/Space: Fire Ball & Flippers • 1-8: Mode",
   },
   {
     id: "memory_match",
@@ -466,7 +500,8 @@ export const CODECAINE_GAMES = [
     icon: "🧠",
     category: "Card, Casino & Board",
     note: "8-mode 3D Hologram Card-Flip & Memory Match Royale: Classic 4x4, Grand Vault 6x4, Master 6x6, Triad Match-3, 60s Blitz, Cyber-Minefield & VS Neural AI Duel.",
-    controls: "Click or Arrows/WASD + Space: Flip Card • Q: X-Ray Peek • W: Auto-Pair • E: Freeze • R: Hint • 1-8: Mode",
+    controls:
+      "Click or Arrows/WASD + Space: Flip Card • Q: X-Ray Peek • W: Auto-Pair • E: Freeze • R: Hint • 1-8: Mode",
   },
   {
     id: "vampire_survivors",
@@ -474,7 +509,8 @@ export const CODECAINE_GAMES = [
     icon: "🧛",
     category: "Arcade & Action",
     note: "8-mode Gothic Bullet-Heaven & Vampire Savior Dark Force Odyssey: 6 Night-Lords, 10 Weapon Evolutions, Multi-Beam Chest Jackpots & 1v1 Darkstalkers Duel.",
-    controls: "WASD/Arrows: Move • Space/E: Dark Force Overdrive • Shift: Dash • C: Open Chest • 1-8: Mode",
+    controls:
+      "WASD/Arrows: Move • Space/E: Dark Force Overdrive • Shift: Dash • C: Open Chest • 1-8: Mode",
   },
   {
     id: "game_show",
@@ -482,7 +518,8 @@ export const CODECAINE_GAMES = [
     icon: "🎩",
     category: "Word & Skill",
     note: "8-in-1 Primetime TV Game Show Mega-Studio hosted by Mr. Caine-Show: Wheel of Fortune, No Whammies Big Board, Survey Feud, Cyber-Jeopardy, Plinko & Deal Cases.",
-    controls: "Space: Spin Wheel / Stop Big Board / Buzz In • Click Tiles/Cases/Letters • 1-8: TV Show Mode",
+    controls:
+      "Space: Spin Wheel / Stop Big Board / Buzz In • Click Tiles/Cases/Letters • 1-8: TV Show Mode",
   },
   {
     id: "slots",
@@ -490,7 +527,8 @@ export const CODECAINE_GAMES = [
     icon: "🎰",
     category: "Cards & Casino",
     note: "8-machine Vegas High-Limit Casino Slots suite: Lightning Link Hold & Spin, 4 Progressive Jackpots (Grand/Major/Minor/Mini), Buffalo Stampede & Bonus Wheel.",
-    controls: "Space/Enter: Spin Reels & Slam-Stop • H: Trigger Hold & Spin • F: Free Spins • B: Max Bet • 1-8: Machine",
+    controls:
+      "Space/Enter: Spin Reels & Slam-Stop • H: Trigger Hold & Spin • F: Free Spins • B: Max Bet • 1-8: Machine",
   },
 ];
 
@@ -510,9 +548,14 @@ registerPowerTab({
     let recentIds = [];
 
     try {
-      const savedFavs = JSON.parse(localStorage.getItem("codecaine_games_favorites") || "[]");
-      if (Array.isArray(savedFavs)) savedFavs.forEach((id) => favSet.add(String(id)));
-      const savedRec = JSON.parse(localStorage.getItem("codecaine_games_recent") || "[]");
+      const savedFavs = JSON.parse(
+        localStorage.getItem("codecaine_games_favorites") || "[]",
+      );
+      if (Array.isArray(savedFavs))
+        savedFavs.forEach((id) => favSet.add(String(id)));
+      const savedRec = JSON.parse(
+        localStorage.getItem("codecaine_games_recent") || "[]",
+      );
       if (Array.isArray(savedRec)) recentIds = savedRec.map(String).slice(0, 6);
     } catch {
       /* storage unavailable */
@@ -520,14 +563,23 @@ registerPowerTab({
 
     function saveFavorites() {
       try {
-        localStorage.setItem("codecaine_games_favorites", JSON.stringify([...favSet]));
+        localStorage.setItem(
+          "codecaine_games_favorites",
+          JSON.stringify([...favSet]),
+        );
       } catch {}
     }
 
     function recordRecent(gameId) {
-      recentIds = [gameId, ...recentIds.filter((id) => id !== gameId)].slice(0, 6);
+      recentIds = [gameId, ...recentIds.filter((id) => id !== gameId)].slice(
+        0,
+        6,
+      );
       try {
-        localStorage.setItem("codecaine_games_recent", JSON.stringify(recentIds));
+        localStorage.setItem(
+          "codecaine_games_recent",
+          JSON.stringify(recentIds),
+        );
       } catch {}
     }
 
@@ -541,7 +593,9 @@ registerPowerTab({
           if (found) playGame(found);
         },
       },
-      ...CODECAINE_GAMES.map((g) => h("option", { value: g.id }, `${g.icon} ${g.title}`)),
+      ...CODECAINE_GAMES.map((g) =>
+        h("option", { value: g.id }, `${g.icon} ${g.title}`),
+      ),
     );
 
     const catalogBtn = h(
@@ -577,7 +631,8 @@ registerPowerTab({
         title: "Arcade Roulette: Pick and launch a random Codecaine game",
         onclick: () => {
           const pool = CODECAINE_GAMES.filter((g) => g.id !== activeGame.id);
-          const pick = pool[Math.floor(Math.random() * pool.length)] || CODECAINE_GAMES[0];
+          const pick =
+            pool[Math.floor(Math.random() * pool.length)] || CODECAINE_GAMES[0];
           playGame(pick);
         },
       },
@@ -623,7 +678,9 @@ registerPowerTab({
         type: "button",
         class: "pw-btn embed-expand",
         "aria-pressed": String(expanded),
-        title: expanded ? "Restore the File Manager bars and tabs (Esc)" : "Fill the whole window with Codecaine Games (press Esc to restore)",
+        title: expanded
+          ? "Restore the File Manager bars and tabs (Esc)"
+          : "Fill the whole window with Codecaine Games (press Esc to restore)",
         onclick: () => togglePowerExpanded(),
       },
       expanded ? "⛶ Restore" : "⛶ Expand",
@@ -648,7 +705,8 @@ registerPowerTab({
         id: "games-open-browser",
         class: "pw-btn embed-browser",
         title: `Open ${activeGame.title} in your web browser`,
-        onclick: () => void openToolInBrowser(activeGame.id, embeddedUrl(activeGame.id)),
+        onclick: () =>
+          void openToolInBrowser(activeGame.id, embeddedUrl(activeGame.id)),
       },
       "🌐 Open in browser",
     );
@@ -680,7 +738,10 @@ registerPowerTab({
 
     const categoryBar = h("div", { class: "pw-row games-categories" });
     const countLabel = h("span", { class: "pw-status", id: "games-count" });
-    const gridWrap = h("div", { class: "pw-split games-grid", id: "games-grid" });
+    const gridWrap = h("div", {
+      class: "pw-split games-grid",
+      id: "games-grid",
+    });
 
     const catalogPane = h(
       "div",
@@ -713,7 +774,8 @@ registerPowerTab({
       referrerpolicy: "no-referrer",
       loading: "eager",
       allow: "autoplay; fullscreen; clipboard-write",
-      sandbox: "allow-scripts allow-same-origin allow-downloads allow-modals allow-popups allow-popups-to-escape-sandbox",
+      sandbox:
+        "allow-scripts allow-same-origin allow-downloads allow-modals allow-popups allow-popups-to-escape-sandbox",
     });
 
     function stopGameFrame() {
@@ -745,7 +807,10 @@ registerPowerTab({
 
     function syncFrameShader() {
       try {
-        frame.contentWindow?.postMessage?.({ fmGameMasterFx: activeShader }, "*");
+        frame.contentWindow?.postMessage?.(
+          { fmGameMasterFx: activeShader },
+          "*",
+        );
       } catch {
         /* frame not ready */
       }
@@ -775,7 +840,11 @@ registerPowerTab({
       });
     }
 
-    const activeNote = h("p", { class: "pw-hint", id: "games-active-note" }, `${activeGame.icon} ${activeGame.title} — ${activeGame.controls}`);
+    const activeNote = h(
+      "p",
+      { class: "pw-hint", id: "games-active-note" },
+      `${activeGame.icon} ${activeGame.title} — ${activeGame.controls}`,
+    );
     const stagePane = h(
       "div",
       { id: "games-stage", class: "games-stage-wrap", hidden: true },
@@ -830,7 +899,15 @@ registerPowerTab({
     }
 
     function renderCategories() {
-      const cats = ["All", "⭐ Favorites", "🕒 Recent", "Arcade & Action", "Puzzle & Logic", "Card & Casino", "Word & Skill"];
+      const cats = [
+        "All",
+        "⭐ Favorites",
+        "🕒 Recent",
+        "Arcade & Action",
+        "Puzzle & Logic",
+        "Card & Casino",
+        "Word & Skill",
+      ];
       categoryBar.replaceChildren(
         ...cats.map((cat) =>
           h(
@@ -868,7 +945,13 @@ registerPowerTab({
           h(
             "div",
             { class: "game-card-badges" },
-            isRecent ? h("span", { class: "game-recent-pill", title: "Recently Played" }, "🕒 Recent") : null,
+            isRecent
+              ? h(
+                  "span",
+                  { class: "game-recent-pill", title: "Recently Played" },
+                  "🕒 Recent",
+                )
+              : null,
             h("span", { class: "code-badge code-badge-quiet" }, game.category),
             h(
               "button",
@@ -891,7 +974,11 @@ registerPowerTab({
           ),
         ),
         h("p", { class: "pw-hint" }, game.note),
-        h("p", { class: "pw-hint pw-mono game-card-controls" }, `🎮 ${game.controls}`),
+        h(
+          "p",
+          { class: "pw-hint pw-mono game-card-controls" },
+          `🎮 ${game.controls}`,
+        ),
         h(
           "div",
           { class: "pw-row game-card-actions" },
@@ -920,7 +1007,8 @@ registerPowerTab({
               type: "button",
               class: "pw-btn game-browser-btn",
               title: `Open ${game.title} in your web browser`,
-              onclick: () => void openToolInBrowser(game.id, embeddedUrl(game.id)),
+              onclick: () =>
+                void openToolInBrowser(game.id, embeddedUrl(game.id)),
             },
             "🌐 Browser",
           ),
@@ -931,15 +1019,27 @@ registerPowerTab({
     function renderCatalog() {
       const q = (searchInput.value || "").trim().toLowerCase();
       const filtered = CODECAINE_GAMES.filter((g) => {
-        if (selectedCategory === "⭐ Favorites" && !favSet.has(g.id)) return false;
-        if (selectedCategory === "🕒 Recent" && !recentIds.includes(g.id)) return false;
-        if (selectedCategory !== "All" && selectedCategory !== "⭐ Favorites" && selectedCategory !== "🕒 Recent" && g.category !== selectedCategory) return false;
+        if (selectedCategory === "⭐ Favorites" && !favSet.has(g.id))
+          return false;
+        if (selectedCategory === "🕒 Recent" && !recentIds.includes(g.id))
+          return false;
+        if (
+          selectedCategory !== "All" &&
+          selectedCategory !== "⭐ Favorites" &&
+          selectedCategory !== "🕒 Recent" &&
+          g.category !== selectedCategory
+        )
+          return false;
         if (!q) return true;
-        return `${g.title} ${g.id} ${g.category} ${g.note} ${g.controls}`.toLowerCase().includes(q);
+        return `${g.title} ${g.id} ${g.category} ${g.note} ${g.controls}`
+          .toLowerCase()
+          .includes(q);
       });
       countLabel.textContent = `${filtered.length} of ${CODECAINE_GAMES.length} games shown`;
       if (filtered.length === 0) {
-        gridWrap.replaceChildren(h("p", { class: "pw-hint" }, "No Codecaine games match that filter."));
+        gridWrap.replaceChildren(
+          h("p", { class: "pw-hint" }, "No Codecaine games match that filter."),
+        );
         return;
       }
       gridWrap.replaceChildren(...filtered.map(renderCard));

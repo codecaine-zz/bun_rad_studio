@@ -62,7 +62,8 @@ function heapPop<T>(heap: HeapItem<T>[]): HeapItem<T> | undefined {
   heap[0] = last;
   let i = 0;
   for (;;) {
-    const l = 2 * i + 1, r = l + 1;
+    const l = 2 * i + 1,
+      r = l + 1;
     let m = i;
     if (l < heap.length && heap[l]!.dist < heap[m]!.dist) m = l;
     if (r < heap.length && heap[r]!.dist < heap[m]!.dist) m = r;
@@ -137,7 +138,9 @@ export class Graph<T extends GraphNode> {
    */
   addEdge(from: T, to: T, weight = 1): this {
     if (!Number.isFinite(weight)) {
-      throw new Error(`[graphutils.addEdge] Edge ${String(from)}->${String(to)} has non-finite weight ${weight}`);
+      throw new Error(
+        `[graphutils.addEdge] Edge ${String(from)}->${String(to)} has non-finite weight ${weight}`,
+      );
     }
     this.addNode(from).addNode(to);
     this.adjacency.get(from)!.set(to, weight);
@@ -182,7 +185,8 @@ export class Graph<T extends GraphNode> {
   /** Nodes with an edge pointing *to* `node`. */
   predecessors(node: T): T[] {
     const out: T[] = [];
-    for (const [from, edges] of this.adjacency) if (edges.has(node)) out.push(from);
+    for (const [from, edges] of this.adjacency)
+      if (edges.has(node)) out.push(from);
     return out;
   }
 
@@ -222,7 +226,9 @@ export class Graph<T extends GraphNode> {
 
   /** Count of incoming edges (equals degree for undirected graphs). */
   inDegree(node: T): number {
-    return this.directed ? this.predecessors(node).length : this.outDegree(node);
+    return this.directed
+      ? this.predecessors(node).length
+      : this.outDegree(node);
   }
 
   private inDegreeMap(): Map<T, number> {
@@ -240,7 +246,10 @@ export class Graph<T extends GraphNode> {
    * @example newGraph<string>().addEdge("a","b").topologicalSort(); // ["a","b"]
    */
   topologicalSort(): T[] {
-    if (!this.directed) throw new Error("[graphutils.topologicalSort] Undirected graphs have no topological order");
+    if (!this.directed)
+      throw new Error(
+        "[graphutils.topologicalSort] Undirected graphs have no topological order",
+      );
     const deg = this.inDegreeMap();
     const queue: T[] = [];
     for (const [node, d] of deg) if (d === 0) queue.push(node);
@@ -252,8 +261,13 @@ export class Graph<T extends GraphNode> {
       }
     }
     if (queue.length !== this.adjacency.size) {
-      const stuck = this.getNodes().filter((n) => deg.get(n)! > 0).map(String).join(", ");
-      throw new Error(`[graphutils.topologicalSort] Cycle detected in directed graph; topological sort impossible (nodes on/after cycle: ${stuck})`);
+      const stuck = this.getNodes()
+        .filter((n) => deg.get(n)! > 0)
+        .map(String)
+        .join(", ");
+      throw new Error(
+        `[graphutils.topologicalSort] Cycle detected in directed graph; topological sort impossible (nodes on/after cycle: ${stuck})`,
+      );
     }
     return queue;
   }
@@ -268,7 +282,9 @@ export class Graph<T extends GraphNode> {
    * @example newGraph<number>().addEdge(1,2).addEdge(2,1).findCycle(); // [1,2,1]
    */
   findCycle(): T[] | null {
-    return this.directed ? this.findDirectedCycle() : this.findUndirectedCycle();
+    return this.directed
+      ? this.findDirectedCycle()
+      : this.findUndirectedCycle();
   }
 
   private findDirectedCycle(): T[] | null {
@@ -278,7 +294,8 @@ export class Graph<T extends GraphNode> {
       state.set(node, 1);
       stack.push(node);
       for (const next of this.adjacency.get(node)!.keys()) {
-        if (state.get(next) === 1) return [...stack.slice(stack.indexOf(next)), next];
+        if (state.get(next) === 1)
+          return [...stack.slice(stack.indexOf(next)), next];
         if (!state.has(next)) {
           const found = visit(next);
           if (found) return found;
@@ -307,7 +324,8 @@ export class Graph<T extends GraphNode> {
         const cur = stack.pop()!;
         for (const next of this.adjacency.get(cur)!.keys()) {
           if (next === parent.get(cur)) continue;
-          if (parent.has(next)) return this.closeUndirectedCycle(parent, cur, next);
+          if (parent.has(next))
+            return this.closeUndirectedCycle(parent, cur, next);
           parent.set(next, cur);
           stack.push(next);
         }
@@ -319,10 +337,12 @@ export class Graph<T extends GraphNode> {
   private closeUndirectedCycle(parent: Map<T, T | undefined>, a: T, b: T): T[] {
     const ancestors = (n: T): T[] => {
       const out: T[] = [n];
-      for (let p = parent.get(n); p !== undefined; p = parent.get(p)) out.push(p);
+      for (let p = parent.get(n); p !== undefined; p = parent.get(p))
+        out.push(p);
       return out;
     };
-    const pathA = ancestors(a), pathB = ancestors(b);
+    const pathA = ancestors(a),
+      pathB = ancestors(b);
     const setB = new Set(pathB);
     const meet = pathA.find((n) => setB.has(n))!;
     const down = pathA.slice(0, pathA.indexOf(meet)).reverse();
@@ -358,7 +378,8 @@ export class Graph<T extends GraphNode> {
       visited.add(cur);
       order.push(cur);
       const next = this.getNeighbors(cur);
-      for (let i = next.length - 1; i >= 0; i--) if (!visited.has(next[i]!)) stack.push(next[i]!);
+      for (let i = next.length - 1; i >= 0; i--)
+        if (!visited.has(next[i]!)) stack.push(next[i]!);
     }
     return order;
   }
@@ -389,7 +410,10 @@ export class Graph<T extends GraphNode> {
     for (let item = heapPop(heap); item; item = heapPop(heap)) {
       if (item.dist > dist.get(item.node)!) continue;
       for (const [to, w] of this.adjacency.get(item.node)!) {
-        if (w < 0) throw new Error(`[graphutils.dijkstra] Negative weight ${w} on edge ${String(item.node)}->${String(to)}`);
+        if (w < 0)
+          throw new Error(
+            `[graphutils.dijkstra] Negative weight ${w} on edge ${String(item.node)}->${String(to)}`,
+          );
         const nd = item.dist + w;
         if (nd < (dist.get(to) ?? Infinity)) {
           dist.set(to, nd);
@@ -445,19 +469,32 @@ export class Graph<T extends GraphNode> {
   /** Strongly connected components (Tarjan). Each SCC is one array. */
   stronglyConnectedComponents(): T[][] {
     let index = 0;
-    const idx = new Map<T, number>(), low = new Map<T, number>();
-    const onStack = new Set<T>(), stack: T[] = [], out: T[][] = [];
+    const idx = new Map<T, number>(),
+      low = new Map<T, number>();
+    const onStack = new Set<T>(),
+      stack: T[] = [],
+      out: T[][] = [];
     const visit = (v: T): void => {
-      idx.set(v, index); low.set(v, index); index++;
-      stack.push(v); onStack.add(v);
+      idx.set(v, index);
+      low.set(v, index);
+      index++;
+      stack.push(v);
+      onStack.add(v);
       for (const w of this.adjacency.get(v)!.keys()) {
-        if (!idx.has(w)) { visit(w); low.set(v, Math.min(low.get(v)!, low.get(w)!)); }
-        else if (onStack.has(w)) low.set(v, Math.min(low.get(v)!, idx.get(w)!));
+        if (!idx.has(w)) {
+          visit(w);
+          low.set(v, Math.min(low.get(v)!, low.get(w)!));
+        } else if (onStack.has(w))
+          low.set(v, Math.min(low.get(v)!, idx.get(w)!));
       }
       if (low.get(v) !== idx.get(v)) return;
       const comp: T[] = [];
       let w: T;
-      do { w = stack.pop()!; onStack.delete(w); comp.push(w); } while (w !== v);
+      do {
+        w = stack.pop()!;
+        onStack.delete(w);
+        comp.push(w);
+      } while (w !== v);
       out.push(comp.reverse());
     };
     for (const n of this.adjacency.keys()) if (!idx.has(n)) visit(n);
@@ -484,7 +521,11 @@ export class Graph<T extends GraphNode> {
 
   /** Plain JSON snapshot (safe for `JSON.stringify`). */
   toJSON(): GraphJSON<T> {
-    return { directed: this.directed, nodes: this.getNodes(), edges: this.getEdges() };
+    return {
+      directed: this.directed,
+      nodes: this.getNodes(),
+      edges: this.getEdges(),
+    };
   }
 }
 
@@ -492,7 +533,9 @@ export class Graph<T extends GraphNode> {
  * Factory for {@link Graph}.
  * @example const g = newGraph<string>({ directed: false });
  */
-export function newGraph<T extends GraphNode>(options: GraphOptions = {}): Graph<T> {
+export function newGraph<T extends GraphNode>(
+  options: GraphOptions = {},
+): Graph<T> {
   return new Graph<T>(options);
 }
 

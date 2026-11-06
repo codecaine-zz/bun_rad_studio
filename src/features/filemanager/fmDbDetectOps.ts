@@ -9,13 +9,38 @@ import { basename, dirname } from "path";
 import type { ConnectionProfile } from "../../db/profiles";
 import { absolutePath, type FmContext, type FmHandler } from "./fmCore";
 import { isObject } from "./fmDbCommon";
-import { detectConnections, publicConnection, type EnvConnection } from "./fmDbDetect";
+import {
+  detectConnections,
+  publicConnection,
+  type EnvConnection,
+} from "./fmDbDetect";
 import { expandValue, parseDotenv, readDotenvFile } from "./fmDbDotenv";
-import { tilde, provenanceText, type EnvVar, type EnvView } from "./fmDbEnvView";
-import { isLocalDefaultRedis, localRedisConnection, probeLocalRedis } from "./fmDbLocal";
+import {
+  tilde,
+  provenanceText,
+  type EnvVar,
+  type EnvView,
+} from "./fmDbEnvView";
+import {
+  isLocalDefaultRedis,
+  localRedisConnection,
+  probeLocalRedis,
+} from "./fmDbLocal";
 import { ENGINES, isAnyConnectionVariable, type DbEngine } from "./fmDbModel";
-import { checkSqlitePath, dbState, envView, guarded, profileFingerprint, sameSecret } from "./fmDbState";
-import type { DbProfile, ProfileMeta, PublicDbProfile, RedisProfile } from "./fmDbStore";
+import {
+  checkSqlitePath,
+  dbState,
+  envView,
+  guarded,
+  profileFingerprint,
+  sameSecret,
+} from "./fmDbState";
+import type {
+  DbProfile,
+  ProfileMeta,
+  PublicDbProfile,
+  RedisProfile,
+} from "./fmDbStore";
 import { FmError } from "./fmPaths";
 
 /** State of a detected environment connection relative to saved and dismissed profiles. */
@@ -39,7 +64,9 @@ function savedValues(p: DbProfile): Record<string, string> {
   if (p.engine === "sqlite") out.path = String(c.path ?? "");
   else {
     out.host = c.host ?? "";
-    out.port = String(c.port ?? ENGINES[p.engine as DbEngine].defaultPort ?? "");
+    out.port = String(
+      c.port ?? ENGINES[p.engine as DbEngine].defaultPort ?? "",
+    );
     out.user = c.user ?? "";
     if (p.engine === "redis") out.dbIndex = String(c.dbIndex ?? 0);
     else out.database = c.database ?? "";
@@ -57,7 +84,11 @@ function nowValues(c: EnvConnection): Record<string, string> {
   };
   take("path", f.path?.value);
   take("host", f.host?.value);
-  take("port", f.port?.value ?? (f.host || f.user ? ENGINES[c.engine].defaultPort : undefined));
+  take(
+    "port",
+    f.port?.value ??
+      (f.host || f.user ? ENGINES[c.engine].defaultPort : undefined),
+  );
   take("user", f.user?.value);
   take("database", f.database?.value);
   take("dbIndex", f.dbIndex?.value);
@@ -67,7 +98,10 @@ function nowValues(c: EnvConnection): Record<string, string> {
 }
 
 /** The detected connections, each marked new, changed since it was saved, already saved, or put aside by the person. */
-export async function annotate(ctx: FmContext, conns: EnvConnection[]): Promise<Card[]> {
+export async function annotate(
+  ctx: FmContext,
+  conns: EnvConnection[],
+): Promise<Card[]> {
   const st = dbState(ctx);
   const settings = st.store.getSettings();
   const profiles = st.store.listPlain();
@@ -76,18 +110,35 @@ export async function annotate(ctx: FmContext, conns: EnvConnection[]): Promise<
     const key = keyOf(c);
     const card: Card = { ...publicConnection(c), status: "new" };
     const sameSlot = profiles.find((p) => settings.meta[p.id]?.slot === c.slot);
-    const sameWhere = profiles.find((p) => p.engine === c.engine && profileFingerprint(p) === c.fingerprint);
+    const sameWhere = profiles.find(
+      (p) => p.engine === c.engine && profileFingerprint(p) === c.fingerprint,
+    );
     if (sameSlot) {
       const saved = savedValues(sameSlot);
       const now = nowValues(c);
-      const diff = Object.keys(now).filter((k) => saved[k] !== undefined && saved[k] !== now[k]).map((k) => ({ field: k, saved: saved[k]!, now: now[k]! }));
+      const diff = Object.keys(now)
+        .filter((k) => saved[k] !== undefined && saved[k] !== now[k])
+        .map((k) => ({ field: k, saved: saved[k]!, now: now[k]! }));
       let passwordChanged = false;
-      if (c.password) passwordChanged = !sameSecret(st, String(c.password.value), await st.store.password(sameSlot.id));
-      Object.assign(card, { profileId: sameSlot.id, profileName: sameSlot.name });
-      if (diff.length || passwordChanged) Object.assign(card, { status: "changed", diff, passwordChanged });
+      if (c.password)
+        passwordChanged = !sameSecret(
+          st,
+          String(c.password.value),
+          await st.store.password(sameSlot.id),
+        );
+      Object.assign(card, {
+        profileId: sameSlot.id,
+        profileName: sameSlot.name,
+      });
+      if (diff.length || passwordChanged)
+        Object.assign(card, { status: "changed", diff, passwordChanged });
       else card.status = "saved";
     } else if (sameWhere) {
-      Object.assign(card, { status: "saved", profileId: sameWhere.id, profileName: sameWhere.name });
+      Object.assign(card, {
+        status: "saved",
+        profileId: sameWhere.id,
+        profileName: sameWhere.name,
+      });
     } else if (settings.dismissed.includes(key)) card.status = "dismissed";
     else if (st.snoozed.has(key)) card.status = "snoozed";
     cards.push(card);
@@ -103,18 +154,44 @@ function uniqueName(existing: DbProfile[], wanted: string): string {
 }
 
 /** Saves one detected connection to the manager (the password to the keychain). Saving the same one twice changes nothing. */
-export async function saveDetected(ctx: FmContext, conn: EnvConnection, view: EnvView, source: "detected" | "envfile"): Promise<{ profile: PublicDbProfile; already: boolean; noLongerNeeded: Array<{ name: string; origin: string }> }> {
+export async function saveDetected(
+  ctx: FmContext,
+  conn: EnvConnection,
+  view: EnvView,
+  source: "detected" | "envfile",
+): Promise<{
+  profile: PublicDbProfile;
+  already: boolean;
+  noLongerNeeded: Array<{ name: string; origin: string }>;
+}> {
   const st = dbState(ctx);
-  const existing = st.store.listPlain().find((p) => p.engine === conn.engine && profileFingerprint(p) === conn.fingerprint);
-  const needed = (names: string[]) => names.flatMap((n) => (view.vars.has(n) ? [{ name: n, origin: provenanceText(view.vars.get(n)!.prov) }] : []));
+  const existing = st.store
+    .listPlain()
+    .find(
+      (p) =>
+        p.engine === conn.engine && profileFingerprint(p) === conn.fingerprint,
+    );
+  const needed = (names: string[]) =>
+    names.flatMap((n) =>
+      view.vars.has(n)
+        ? [{ name: n, origin: provenanceText(view.vars.get(n)!.prov) }]
+        : [],
+    );
   if (existing) {
     const list = await st.store.list();
-    return { profile: list.find((p) => p.id === existing.id)!, already: true, noLongerNeeded: source === "detected" ? needed(conn.variables) : [] };
+    return {
+      profile: list.find((p) => p.id === existing.id)!,
+      already: true,
+      noLongerNeeded: source === "detected" ? needed(conn.variables) : [],
+    };
   }
   const f = conn.fields;
   const input: Record<string, any> = {
     engine: conn.engine,
-    name: uniqueName(st.store.listPlain(), `${ENGINES[conn.engine].label}: ${conn.suggestedName}`),
+    name: uniqueName(
+      st.store.listPlain(),
+      `${ENGINES[conn.engine].label}: ${conn.suggestedName}`,
+    ),
     folder: "From environment",
     tags: [],
     favorite: false,
@@ -124,8 +201,16 @@ export async function saveDetected(ctx: FmContext, conn: EnvConnection, view: En
   if (conn.engine === "sqlite") {
     const path = String(f.path?.value ?? "");
     const memory = path === ":memory:";
-    input.sqliteMode = memory ? "memory" : conn.fileExists ? "readwrite" : "create";
-    input.path = await checkSqlitePath(ctx, memory ? ":memory:" : path, input.sqliteMode);
+    input.sqliteMode = memory
+      ? "memory"
+      : conn.fileExists
+        ? "readwrite"
+        : "create";
+    input.path = await checkSqlitePath(
+      ctx,
+      memory ? ":memory:" : path,
+      input.sqliteMode,
+    );
   } else {
     input.host = f.host ? String(f.host.value) : "localhost";
     if (f.port) input.port = Number(f.port.value);
@@ -134,29 +219,62 @@ export async function saveDetected(ctx: FmContext, conn: EnvConnection, view: En
       if (f.dbIndex) input.dbIndex = Number(f.dbIndex.value);
     } else {
       if (f.database) input.database = String(f.database.value);
-      if (f.schema && conn.engine === "postgres") input.schema = String(f.schema.value);
+      if (f.schema && conn.engine === "postgres")
+        input.schema = String(f.schema.value);
     }
     if (f.tls) input.tls = Boolean(f.tls.value);
   }
-  const password = conn.password && String(conn.password.value) !== "" ? String(conn.password.value) : undefined;
+  const password =
+    conn.password && String(conn.password.value) !== ""
+      ? String(conn.password.value)
+      : undefined;
   const saved = await guarded(() => st.store.save(input, password));
-  const allFiles = conn.files.length > 0 && conn.variables.every((n) => view.vars.get(n)?.prov.kind === "file");
-  const meta: ProfileMeta = { source: source === "envfile" ? "envfile" : allFiles ? "dotenv" : "environment", variables: source === "envfile" ? [] : conn.variables, slot: source === "envfile" ? undefined : conn.slot, fingerprint: conn.fingerprint, savedAt: new Date().toISOString() };
+  const allFiles =
+    conn.files.length > 0 &&
+    conn.variables.every((n) => view.vars.get(n)?.prov.kind === "file");
+  const meta: ProfileMeta = {
+    source:
+      source === "envfile" ? "envfile" : allFiles ? "dotenv" : "environment",
+    variables: source === "envfile" ? [] : conn.variables,
+    slot: source === "envfile" ? undefined : conn.slot,
+    fingerprint: conn.fingerprint,
+    savedAt: new Date().toISOString(),
+  };
   st.store.setMeta(saved.id, meta);
-  return { profile: { ...saved, meta }, already: false, noLongerNeeded: source === "detected" ? needed(conn.variables) : [] };
+  return {
+    profile: { ...saved, meta },
+    already: false,
+    noLongerNeeded: source === "detected" ? needed(conn.variables) : [],
+  };
 }
 
-const wanted = (b: Record<string, any>) => (typeof b.key === "string" && /^[a-z]+:[0-9a-f]{16}$/.test(b.key) ? (b.key as string) : null);
+const wanted = (b: Record<string, any>) =>
+  typeof b.key === "string" && /^[a-z]+:[0-9a-f]{16}$/.test(b.key)
+    ? (b.key as string)
+    : null;
 
 /** A view that contains only what one chosen file says (nothing from this program's own environment). */
-async function viewOfFile(ctx: FmContext, input: unknown): Promise<{ view: EnvView; name: string; shown: string; count: number }> {
+async function viewOfFile(
+  ctx: FmContext,
+  input: unknown,
+): Promise<{ view: EnvView; name: string; shown: string; count: number }> {
   const path = absolutePath(ctx, input);
   const name = basename(path);
-  if (!/^\.env(\.[A-Za-z0-9_.-]+)?$|\.env$/.test(name)) throw new FmError("BAD_REQUEST", "Choose a file named .env, .env.local, .env.production ... or ending in .env.");
+  if (!/^\.env(\.[A-Za-z0-9_.-]+)?$|\.env$/.test(name))
+    throw new FmError(
+      "BAD_REQUEST",
+      "Choose a file named .env, .env.local, .env.production ... or ending in .env.",
+    );
   const read = await readDotenvFile(path);
   if (!read) throw new FmError("NOT_FOUND", "That file doesn't exist.");
   if ("skipped" in read) {
-    const why = { link: "That is a link, and links are not followed.", "not-a-file": "That isn't a file.", "too-big": "That file is too big for a settings file (over 256 KB).", binary: "That doesn't look like a text file.", unreadable: "That file couldn't be read." }[read.skipped];
+    const why = {
+      link: "That is a link, and links are not followed.",
+      "not-a-file": "That isn't a file.",
+      "too-big": "That file is too big for a settings file (over 256 KB).",
+      binary: "That doesn't look like a text file.",
+      unreadable: "That file couldn't be read.",
+    }[read.skipped];
     throw new FmError("BAD_FILE", why);
   }
   const defined = new Map<string, string>();
@@ -166,9 +284,30 @@ async function viewOfFile(ctx: FmContext, input: unknown): Promise<{ view: EnvVi
   for (const e of entries) {
     const value = expandValue(e.raw, e.quote, (n) => defined.get(n));
     defined.set(e.name, value);
-    if (isAnyConnectionVariable(e.name)) vars.set(e.name, { name: e.name, value, prov: { kind: "file", variable: e.name, file: name, where: "chosen", shown: `${shown}/${name}`, loaded: true } });
+    if (isAnyConnectionVariable(e.name))
+      vars.set(e.name, {
+        name: e.name,
+        value,
+        prov: {
+          kind: "file",
+          variable: e.name,
+          file: name,
+          where: "chosen",
+          shown: `${shown}/${name}`,
+          loaded: true,
+        },
+      });
   }
-  return { view: { vars, files: [{ file: name, where: "start", shown, count: entries.length }], nodeEnv: "" }, name, shown, count: entries.length };
+  return {
+    view: {
+      vars,
+      files: [{ file: name, where: "start", shown, count: entries.length }],
+      nodeEnv: "",
+    },
+    name,
+    shown,
+    count: entries.length,
+  };
 }
 
 /** File Manager API handlers for detecting environment/`.env` database connections and saving, snoozing, or dismissing them. */
@@ -177,13 +316,25 @@ export const detectOperations: Record<string, FmHandler> = {
     const st = dbState(ctx);
     const settings = st.store.getSettings();
     const manual = b.manual === true;
-    if (!settings.detect.auto && !manual) return { enabled: false, autoSave: settings.detect.autoSave, cards: [], files: [], dismissed: 0, announce: false, autoSaved: [] };
+    if (!settings.detect.auto && !manual)
+      return {
+        enabled: false,
+        autoSave: settings.detect.autoSave,
+        cards: [],
+        files: [],
+        dismissed: 0,
+        announce: false,
+        autoSaved: [],
+      };
     const view = await envView(ctx);
     const conns = await detectConnections(view);
     const saved = st.store.listPlain();
     // A Redis server on its usual local address (a Homebrew install) is offered even with no variables set.
     let local: EnvConnection | null = null;
-    if (!conns.some((c) => c.engine === "redis") && !saved.some((p) => isLocalDefaultRedis(p as any))) {
+    if (
+      !conns.some((c) => c.engine === "redis") &&
+      !saved.some((p) => isLocalDefaultRedis(p as any))
+    ) {
       const state = await probeLocalRedis();
       if (state !== "none") {
         local = localRedisConnection(state);
@@ -191,12 +342,27 @@ export const detectOperations: Record<string, FmHandler> = {
       }
     }
     let cards = await annotate(ctx, conns);
-    const autoSaved: Array<{ engine: DbEngine; name: string; local?: boolean }> = [];
+    const autoSaved: Array<{
+      engine: DbEngine;
+      name: string;
+      local?: boolean;
+    }> = [];
     // The first local Redis is saved without a click when the person has no Redis connection yet and has not put it aside.
-    if (local && !manual && local.warnings.length === 0 && !saved.some((p) => p.engine === "redis") && cards.find((c) => c.key === keyOf(local!))?.status === "new") {
+    if (
+      local &&
+      !manual &&
+      local.warnings.length === 0 &&
+      !saved.some((p) => p.engine === "redis") &&
+      cards.find((c) => c.key === keyOf(local!))?.status === "new"
+    ) {
       try {
         const r = await saveDetected(ctx, local, view, "detected");
-        st.store.setMeta(r.profile.id, { source: "local", slot: local.slot, fingerprint: local.fingerprint, savedAt: new Date().toISOString() });
+        st.store.setMeta(r.profile.id, {
+          source: "local",
+          slot: local.slot,
+          fingerprint: local.fingerprint,
+          savedAt: new Date().toISOString(),
+        });
         // Remembered, so a connection the person deletes is not quietly added again.
         st.store.dismiss(keyOf(local));
         autoSaved.push({ engine: "redis", name: r.profile.name, local: true });
@@ -217,31 +383,60 @@ export const detectOperations: Record<string, FmHandler> = {
       }
       if (autoSaved.length) cards = await annotate(ctx, conns);
     }
-    const shown = manual ? cards : cards.filter((c) => c.status === "new" || c.status === "changed");
-    const announce = !st.announced && cards.some((c) => c.status === "new" || c.status === "changed") && b.quiet === true;
+    const shown = manual
+      ? cards
+      : cards.filter((c) => c.status === "new" || c.status === "changed");
+    const announce =
+      !st.announced &&
+      cards.some((c) => c.status === "new" || c.status === "changed") &&
+      b.quiet === true;
     if (b.quiet === true && announce) st.announced = true;
-    return { enabled: true, autoSave: settings.detect.autoSave, cards: shown, files: view.files, nodeEnv: view.nodeEnv, dismissed: cards.filter((c) => c.status === "dismissed").length, announce, autoSaved };
+    return {
+      enabled: true,
+      autoSave: settings.detect.autoSave,
+      cards: shown,
+      files: view.files,
+      nodeEnv: view.nodeEnv,
+      dismissed: cards.filter((c) => c.status === "dismissed").length,
+      announce,
+      autoSaved,
+    };
   },
 
   async "db/detect/save"(ctx, b) {
     const key = wanted(b);
-    if (!key) throw new FmError("BAD_REQUEST", "That isn't a detected connection.");
+    if (!key)
+      throw new FmError("BAD_REQUEST", "That isn't a detected connection.");
     const view = await envView(ctx);
     const found = await detectConnections(view);
-    if (!found.some((c) => c.engine === "redis") && key === keyOf(localRedisConnection("open"))) {
+    if (
+      !found.some((c) => c.engine === "redis") &&
+      key === keyOf(localRedisConnection("open"))
+    ) {
       const state = await probeLocalRedis();
       if (state !== "none") found.push(localRedisConnection(state));
     }
     const conn = found.find((c) => keyOf(c) === key);
-    if (!conn) throw new FmError("NOT_FOUND", "That connection isn't in your environment any more.");
+    if (!conn)
+      throw new FmError(
+        "NOT_FOUND",
+        "That connection isn't in your environment any more.",
+      );
     const result = await saveDetected(ctx, conn, view, "detected");
-    if (conn.slot === "redis:local-default" && !result.already) dbState(ctx).store.setMeta(result.profile.id, { source: "local", slot: conn.slot, fingerprint: conn.fingerprint, savedAt: new Date().toISOString() });
+    if (conn.slot === "redis:local-default" && !result.already)
+      dbState(ctx).store.setMeta(result.profile.id, {
+        source: "local",
+        slot: conn.slot,
+        fingerprint: conn.fingerprint,
+        savedAt: new Date().toISOString(),
+      });
     return result;
   },
 
   async "db/detect/dismiss"(ctx, b) {
     const key = wanted(b);
-    if (!key) throw new FmError("BAD_REQUEST", "That isn't a detected connection.");
+    if (!key)
+      throw new FmError("BAD_REQUEST", "That isn't a detected connection.");
     const st = dbState(ctx);
     if (b.forever === true) st.store.dismiss(key);
     else st.snoozed.add(key);
@@ -257,21 +452,38 @@ export const detectOperations: Record<string, FmHandler> = {
 
   async "db/detect/settings"(ctx, b) {
     const st = dbState(ctx);
-    return { detect: st.store.setDetect({ auto: b.auto, autoSave: b.autoSave }) };
+    return {
+      detect: st.store.setDetect({ auto: b.auto, autoSave: b.autoSave }),
+    };
   },
 
   async "db/detect/update"(ctx, b) {
     const st = dbState(ctx);
     const profile = typeof b.id === "string" ? st.store.get(b.id) : undefined;
     const meta = profile ? st.store.getSettings().meta[profile.id] : undefined;
-    if (!profile || !meta?.slot) throw new FmError("NOT_FOUND", "That connection wasn't made from the environment.");
+    if (!profile || !meta?.slot)
+      throw new FmError(
+        "NOT_FOUND",
+        "That connection wasn't made from the environment.",
+      );
     const view = await envView(ctx);
-    const conn = (await detectConnections(view)).find((c) => c.slot === meta.slot);
-    if (!conn) throw new FmError("NOT_FOUND", "Those environment variables are gone, so there is nothing to update from.");
+    const conn = (await detectConnections(view)).find(
+      (c) => c.slot === meta.slot,
+    );
+    if (!conn)
+      throw new FmError(
+        "NOT_FOUND",
+        "Those environment variables are gone, so there is nothing to update from.",
+      );
     const f = conn.fields;
     const input: Record<string, any> = { ...profile };
     if (conn.engine === "sqlite") {
-      if (f.path) input.path = await checkSqlitePath(ctx, String(f.path.value), input.sqliteMode ?? "readwrite");
+      if (f.path)
+        input.path = await checkSqlitePath(
+          ctx,
+          String(f.path.value),
+          input.sqliteMode ?? "readwrite",
+        );
     } else {
       if (f.host) input.host = String(f.host.value);
       if (f.port) input.port = Number(f.port.value);
@@ -279,12 +491,22 @@ export const detectOperations: Record<string, FmHandler> = {
       if (conn.engine === "redis") {
         if (f.dbIndex) input.dbIndex = Number(f.dbIndex.value);
       } else if (f.database) input.database = String(f.database.value);
-      if (f.schema && conn.engine === "postgres") input.schema = String(f.schema.value);
+      if (f.schema && conn.engine === "postgres")
+        input.schema = String(f.schema.value);
       if (f.tls) input.tls = Boolean(f.tls.value);
     }
-    const password = conn.password && String(conn.password.value) !== "" ? String(conn.password.value) : undefined;
-    const saved = await guarded(() => st.store.save(input, password, profile.id));
-    const next: ProfileMeta = { ...meta, fingerprint: conn.fingerprint, savedAt: new Date().toISOString() };
+    const password =
+      conn.password && String(conn.password.value) !== ""
+        ? String(conn.password.value)
+        : undefined;
+    const saved = await guarded(() =>
+      st.store.save(input, password, profile.id),
+    );
+    const next: ProfileMeta = {
+      ...meta,
+      fingerprint: conn.fingerprint,
+      savedAt: new Date().toISOString(),
+    };
     st.store.setMeta(profile.id, next);
     return { profile: { ...saved, meta: next } };
   },
@@ -298,10 +520,18 @@ export const detectOperations: Record<string, FmHandler> = {
 
   async "db/envfile/import"(ctx, b) {
     const key = wanted(b);
-    if (!key) throw new FmError("BAD_REQUEST", "That isn't a connection from the file.");
+    if (!key)
+      throw new FmError(
+        "BAD_REQUEST",
+        "That isn't a connection from the file.",
+      );
     const { view } = await viewOfFile(ctx, b.path);
     const conn = (await detectConnections(view)).find((c) => keyOf(c) === key);
-    if (!conn) throw new FmError("NOT_FOUND", "That connection isn't in the file any more.");
+    if (!conn)
+      throw new FmError(
+        "NOT_FOUND",
+        "That connection isn't in the file any more.",
+      );
     // Nothing is written until this call, and the file itself is never changed.
     return await saveDetected(ctx, conn, view, "envfile");
   },

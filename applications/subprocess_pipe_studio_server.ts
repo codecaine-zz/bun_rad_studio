@@ -1,6 +1,6 @@
 /**
  * ⚡ Bun RAD Studio - Subprocess Pipe Pro Server Engine & Enterprise Web Workstation
- * 
+ *
  * Standalone high-performance HTTP server & live web workstation for Subprocess Pipe Pro.
  * Provides real-time pipeline execution, stage-by-stage stepping, Sudo/privilege elevation
  * checks, named pipeline library persistence, visual topology flow, and interactive inspection.
@@ -3310,12 +3310,15 @@ export function startSubprocessPipeStudioServer(options: ServerOptions = {}) {
 
       // Health Check
       if (pathname === "/api/health") {
-        return Response.json({
-          status: "ok",
-          app: "subprocess_pipe_studio",
-          name: "Subprocess Pipe Pro",
-          timestamp: Date.now(),
-        }, { headers: corsHeaders });
+        return Response.json(
+          {
+            status: "ok",
+            app: "subprocess_pipe_studio",
+            name: "Subprocess Pipe Pro",
+            timestamp: Date.now(),
+          },
+          { headers: corsHeaders },
+        );
       }
 
       // Presets List
@@ -3335,7 +3338,10 @@ export function startSubprocessPipeStudioServer(options: ServerOptions = {}) {
         const id = pathname.replace("/api/pipelines/", "");
         const pipeline = library.getPipeline(id);
         if (!pipeline) {
-          return Response.json({ error: "Pipeline not found" }, { status: 404, headers: corsHeaders });
+          return Response.json(
+            { error: "Pipeline not found" },
+            { status: 404, headers: corsHeaders },
+          );
         }
         return Response.json(pipeline, { headers: corsHeaders });
       }
@@ -3347,7 +3353,10 @@ export function startSubprocessPipeStudioServer(options: ServerOptions = {}) {
           const saved = library.savePipeline(body);
           return Response.json(saved, { headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
@@ -3359,7 +3368,10 @@ export function startSubprocessPipeStudioServer(options: ServerOptions = {}) {
           library.savePipeline(body);
           return Response.json(body, { headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
@@ -3381,9 +3393,15 @@ export function startSubprocessPipeStudioServer(options: ServerOptions = {}) {
         try {
           const body: any = await req.json();
           const count = library.importJson(body.json);
-          return Response.json({ success: true, importedCount: count }, { headers: corsHeaders });
+          return Response.json(
+            { success: true, importedCount: count },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
@@ -3401,9 +3419,15 @@ export function startSubprocessPipeStudioServer(options: ServerOptions = {}) {
             sudoPassword: sudoPassword || undefined,
           });
 
-          return Response.json({ success: true, report }, { headers: corsHeaders });
+          return Response.json(
+            { success: true, report },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ error: err.message }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { error: err.message },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
@@ -3419,9 +3443,15 @@ export function startSubprocessPipeStudioServer(options: ServerOptions = {}) {
             sudoPassword: sudoPassword || undefined,
             elevationMode: stage.runWithSudo ? "askpass" : "disabled",
           });
-          return Response.json({ success: true, result }, { headers: corsHeaders });
+          return Response.json(
+            { success: true, result },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ error: err.message }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { error: err.message },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
@@ -3434,20 +3464,35 @@ export function startSubprocessPipeStudioServer(options: ServerOptions = {}) {
           const initialStdin = body.initialStdin || "";
 
           const script = generateShellScript(stages, { mode, initialStdin });
-          const oneLiner = generatePipelineShellCommand(stages, { mode, initialStdin });
-          return Response.json({ success: true, script, oneLiner }, { headers: corsHeaders });
+          const oneLiner = generatePipelineShellCommand(stages, {
+            mode,
+            initialStdin,
+          });
+          return Response.json(
+            { success: true, script, oneLiner },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ error: err.message }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
         }
       }
 
       // Sudo Status & Preflight
-      if (pathname === "/api/sudo/status" || pathname === "/api/sudo/preflight") {
+      if (
+        pathname === "/api/sudo/status" ||
+        pathname === "/api/sudo/preflight"
+      ) {
         try {
           const status = await checkSudoPreflight();
           return Response.json(status, { headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ error: err.message }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { error: err.message },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
@@ -3457,22 +3502,34 @@ export function startSubprocessPipeStudioServer(options: ServerOptions = {}) {
           const body: any = await req.json();
           const password = (body.password || "").trim();
           if (!password) {
-            return Response.json({ success: false, error: "Password cannot be empty" }, { status: 400, headers: corsHeaders });
+            return Response.json(
+              { success: false, error: "Password cannot be empty" },
+              { status: 400, headers: corsHeaders },
+            );
           }
 
-          const isValid = await withAskpass(password, async (_askpassPath, extraEnv) => {
-            const proc = Bun.spawn(["sudo", "-A", "-v"], {
-              env: { ...process.env, ...extraEnv },
-              stdout: "ignore",
-              stderr: "pipe",
-            });
-            const exitCode = await proc.exited;
-            return exitCode === 0;
-          });
+          const isValid = await withAskpass(
+            password,
+            async (_askpassPath, extraEnv) => {
+              const proc = Bun.spawn(["sudo", "-A", "-v"], {
+                env: { ...process.env, ...extraEnv },
+                stdout: "ignore",
+                stderr: "pipe",
+              });
+              const exitCode = await proc.exited;
+              return exitCode === 0;
+            },
+          );
 
-          return Response.json({ success: isValid, isCached: isValid }, { headers: corsHeaders });
+          return Response.json(
+            { success: isValid, isCached: isValid },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 500, headers: corsHeaders },
+          );
         }
       }
 
@@ -3488,5 +3545,7 @@ export function startSubprocessPipeStudioServer(options: ServerOptions = {}) {
 if (import.meta.main) {
   const port = parseInt(process.env.PORT || "9095", 10);
   const server = startSubprocessPipeStudioServer({ port });
-  console.log(`⚡ Subprocess Pipe Pro Server running at: http://${server.hostname}:${server.port}`);
+  console.log(
+    `⚡ Subprocess Pipe Pro Server running at: http://${server.hostname}:${server.port}`,
+  );
 }

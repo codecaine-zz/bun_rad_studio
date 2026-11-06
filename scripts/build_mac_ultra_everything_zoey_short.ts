@@ -21,15 +21,28 @@ import { join } from "path";
 import { Cdp, sleep } from "./lib/cdp_recorder";
 import { seedDemoWorkspace } from "./lib/demo_workspace";
 import { FFMPEG, FFPROBE, narrate, sh } from "./lib/video_pipeline";
-import { createWavHeader, parseWavPcm, splitTextForPhonon } from "../src/features/filemanager/fmPhonon";
+import {
+  createWavHeader,
+  parseWavPcm,
+  splitTextForPhonon,
+} from "../src/features/filemanager/fmPhonon";
 import { MASTER_CUSTOM_THEMES } from "../src/features/filemanager/fmMasterCustomThemes";
 
 const ROOT = process.cwd();
 const PROD = join(ROOT, "youtube_production");
 const WORK = join(PROD, "mac_ultra_everything_zoey_short");
-const OUTPUT_SHORT = join(PROD, "codecaine-file-manager-mac-ultra-everything-zoey-short.mp4");
-const OUTPUT_ALL_IN_ONE_SHORT = join(PROD, "codecaine-file-manager-all-in-one-short.mp4");
-const OUTPUT_WIDE = join(PROD, "codecaine_file_manager_mac_ultra_everything_zoey_1080p.mp4");
+const OUTPUT_SHORT = join(
+  PROD,
+  "codecaine-file-manager-mac-ultra-everything-zoey-short.mp4",
+);
+const OUTPUT_ALL_IN_ONE_SHORT = join(
+  PROD,
+  "codecaine-file-manager-all-in-one-short.mp4",
+);
+const OUTPUT_WIDE = join(
+  PROD,
+  "codecaine_file_manager_mac_ultra_everything_zoey_1080p.mp4",
+);
 const NOTES = join(PROD, "MAC_ULTRA_EVERYTHING_ZOEY_SHORT_NOTES.md");
 const REPO = "https://github.com/codecaine-zz/bun_rad_studio";
 
@@ -40,7 +53,10 @@ const VIEW_W = 1920;
 const VIEW_H = 972;
 
 const ROOT_DIR = "/tmp/fm_mac_ultra_everything_zoey";
-const HOME = process.platform === "darwin" ? "/private/tmp/fm_mac_ultra_everything_zoey/home" : "/tmp/fm_mac_ultra_everything_zoey/home";
+const HOME =
+  process.platform === "darwin"
+    ? "/private/tmp/fm_mac_ultra_everything_zoey/home"
+    : "/tmp/fm_mac_ultra_everything_zoey/home";
 const DATA = `${ROOT_DIR}/data`;
 const GRAVE = `${ROOT_DIR}/grave`;
 const ZDOT = `${ROOT_DIR}/zdot`;
@@ -58,17 +74,33 @@ type SceneSpec = {
 
 function run(args: string[]): string {
   const result = Bun.spawnSync(args, { stdout: "pipe", stderr: "pipe" });
-  if (result.exitCode !== 0) throw new Error(`${args[0]} failed:\n${result.stderr.toString().slice(-4000)}`);
+  if (result.exitCode !== 0)
+    throw new Error(
+      `${args[0]} failed:\n${result.stderr.toString().slice(-4000)}`,
+    );
   return result.stdout.toString();
 }
 
 function duration(file: string): number {
-  const value = Number(run([FFPROBE, "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file]).trim());
-  if (!Number.isFinite(value) || value <= 0) throw new Error(`Invalid duration: ${file}`);
+  const value = Number(
+    run([
+      FFPROBE,
+      "-v",
+      "error",
+      "-show_entries",
+      "format=duration",
+      "-of",
+      "csv=p=0",
+      file,
+    ]).trim(),
+  );
+  if (!Number.isFinite(value) || value <= 0)
+    throw new Error(`Invalid duration: ${file}`);
   return value;
 }
 
-const esc = (text: string) => text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+const esc = (text: string) =>
+  text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 
 function seedMacUltraWorkspace() {
   rmSync(ROOT_DIR, { recursive: true, force: true });
@@ -79,20 +111,89 @@ function seedMacUltraWorkspace() {
   mkdirSync(join(projectDir, "ai-models"), { recursive: true });
   mkdirSync(join(projectDir, "shaders"), { recursive: true });
   mkdirSync(join(projectDir, "security-vault"), { recursive: true });
-  writeFileSync(join(projectDir, "ai-models", "Phonon_Zoey_MLX.md"), "# Ollama Phonon TTS (--voice Zoey)\n\nRunning on Apple Mac Studio M4 Ultra (32c CPU · 80c GPU · 192GB Unified Memory).\n");
-  writeFileSync(join(projectDir, "M4_Ultra_Raytracer.swift"), "import Metal\n// Apple M4 Ultra 80-Core GPU · 120Hz Pro Display XDR 6K\n");
-  writeFileSync(join(projectDir, "old-draft-to-bury.txt"), "Draft file ready for Rip Graveyard safe bury and restore.\n");
+  writeFileSync(
+    join(projectDir, "ai-models", "Phonon_Zoey_MLX.md"),
+    "# Ollama Phonon TTS (--voice Zoey)\n\nRunning on Apple Mac Studio M4 Ultra (32c CPU · 80c GPU · 192GB Unified Memory).\n",
+  );
+  writeFileSync(
+    join(projectDir, "M4_Ultra_Raytracer.swift"),
+    "import Metal\n// Apple M4 Ultra 80-Core GPU · 120Hz Pro Display XDR 6K\n",
+  );
+  writeFileSync(
+    join(projectDir, "old-draft-to-bury.txt"),
+    "Draft file ready for Rip Graveyard safe bury and restore.\n",
+  );
 
   const mediaDir = join(HOME, "Media");
   mkdirSync(mediaDir, { recursive: true });
-  sh([FFMPEG, "-y", "-f", "lavfi", "-i", "gradients=s=1280x800:c0=0xff7e5f:c1=0xfeb47b:c2=0x6a3093:n=3:type=radial", "-frames:v", "1", join(mediaDir, "sunset.jpg")], { quiet: true });
-  sh([FFMPEG, "-y", "-f", "lavfi", "-i", "aevalsrc=0.15*sin(2*PI*220*t)+0.1*sin(2*PI*330*t):d=10", "-c:a", "libmp3lame", "-b:a", "160k", join(mediaDir, "morning-song.mp3")], { quiet: true });
-  sh([FFMPEG, "-y", "-f", "lavfi", "-i", "testsrc2=size=1280x720:rate=25", "-f", "lavfi", "-i", "aevalsrc=0.1*sin(2*PI*220*t):d=6", "-t", "6", "-c:v", "libx264", "-crf", "26", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", join(mediaDir, "city-clip.mp4")], { quiet: true });
+  sh(
+    [
+      FFMPEG,
+      "-y",
+      "-f",
+      "lavfi",
+      "-i",
+      "gradients=s=1280x800:c0=0xff7e5f:c1=0xfeb47b:c2=0x6a3093:n=3:type=radial",
+      "-frames:v",
+      "1",
+      join(mediaDir, "sunset.jpg"),
+    ],
+    { quiet: true },
+  );
+  sh(
+    [
+      FFMPEG,
+      "-y",
+      "-f",
+      "lavfi",
+      "-i",
+      "aevalsrc=0.15*sin(2*PI*220*t)+0.1*sin(2*PI*330*t):d=10",
+      "-c:a",
+      "libmp3lame",
+      "-b:a",
+      "160k",
+      join(mediaDir, "morning-song.mp3"),
+    ],
+    { quiet: true },
+  );
+  sh(
+    [
+      FFMPEG,
+      "-y",
+      "-f",
+      "lavfi",
+      "-i",
+      "testsrc2=size=1280x720:rate=25",
+      "-f",
+      "lavfi",
+      "-i",
+      "aevalsrc=0.1*sin(2*PI*220*t):d=6",
+      "-t",
+      "6",
+      "-c:v",
+      "libx264",
+      "-crf",
+      "26",
+      "-pix_fmt",
+      "yuv420p",
+      "-c:a",
+      "aac",
+      "-shortest",
+      join(mediaDir, "city-clip.mp4"),
+    ],
+    { quiet: true },
+  );
 
   mkdirSync(ZDOT, { recursive: true });
-  writeFileSync(join(ZDOT, ".zshrc"), `HISTFILE=${ZDOT}/.history\nPROMPT='%F{cyan}codecaine@Mac-Studio-M4-Ultra%f %F{magenta}%1~%f ❯ '\nRPROMPT=''\n`);
+  writeFileSync(
+    join(ZDOT, ".zshrc"),
+    `HISTFILE=${ZDOT}/.history\nPROMPT='%F{cyan}codecaine@Mac-Studio-M4-Ultra%f %F{magenta}%1~%f ❯ '\nRPROMPT=''\n`,
+  );
   mkdirSync(DATA, { recursive: true });
-  writeFileSync(join(DATA, "file_manager_themes.json"), JSON.stringify({ version: 1, themes: MASTER_CUSTOM_THEMES }, null, 2));
+  writeFileSync(
+    join(DATA, "file_manager_themes.json"),
+    JSON.stringify({ version: 1, themes: MASTER_CUSTOM_THEMES }, null, 2),
+  );
   writeFileSync(
     join(DATA, "file_manager.json"),
     JSON.stringify(
@@ -120,7 +221,12 @@ function seedMacUltraWorkspace() {
   );
 }
 
-async function showKeynoteHud(c: Cdp, title: string, subtitle: string, pill = "🎃 HALLOWEEN ULTRA · M4 ULTRA · ZOEY") {
+async function showKeynoteHud(
+  c: Cdp,
+  title: string,
+  subtitle: string,
+  pill = "🎃 HALLOWEEN ULTRA · M4 ULTRA · ZOEY",
+) {
   await c.eval(`(() => {
     let el = document.getElementById("apple-keynote-hud");
     if (!el) {
@@ -183,8 +289,10 @@ const sceneSpecs: SceneSpec[] = [
     id: "01_mac_ultra_sysinfo_tasks_views",
     badge: "01 / 12 · APPLE MAC STUDIO M4 ULTRA · 32C CPU · 80C GPU · 192GB",
     title: "M4 ULTRA WORKSTATION.\n33 TOOLS BUILT IN.",
-    label: "🍎 MAC STUDIO M4 ULTRA · SYSTEM TELEMETRY · TASK MANAGER · 4 WORKSPACE VIEWS",
-    extra: "Narrated Live by Zoey (`ollama run phonon --voice Zoey`) · 6K XDR @ 120Hz",
+    label:
+      "🍎 MAC STUDIO M4 ULTRA · SYSTEM TELEMETRY · TASK MANAGER · 4 WORKSPACE VIEWS",
+    extra:
+      "Narrated Live by Zoey (`ollama run phonon --voice Zoey`) · 6K XDR @ 120Hz",
     bullets: [
       "🍎 Flagship Apple M4 Ultra (32c CPU · 80c GPU · 192GB RAM)",
       "📊 System Info (40+ Hardware Probes, GPU/Display & Baseline Diff)",
@@ -203,7 +311,9 @@ const sceneSpecs: SceneSpec[] = [
       await openToolTab(c, "sysinfo", false);
       await sleep(1100);
       for (const sec of ["CPU & Thermal", "GPUs & Displays", "Memory (RAM)"]) {
-        await c.click(`#power-pane-sysinfo .sys-tab >> ${sec}`, { pause: 700 }).catch(() => {});
+        await c
+          .click(`#power-pane-sysinfo .sys-tab >> ${sec}`, { pause: 700 })
+          .catch(() => {});
       }
       await openToolTab(c, "tasks", false);
       await sleep(1200);
@@ -214,8 +324,10 @@ const sceneSpecs: SceneSpec[] = [
     id: "02_tabs_tree_quickfilter_selection",
     badge: "02 / 12 · TABS, TREE, QUICK-FILTER PREDICATES & SMART SELECTION",
     title: "TABS, FOLDER SIZES\n& POWER FILTERS.",
-    label: "FOLDER TABS · ON-DEMAND SIZES · QUICK-FILTER PREDICATES · SELECT BY PATTERN",
-    extra: "is:dir & ext: Filters · Smart Kind-Chips · Starter Templates · Command Palette · World Clocks",
+    label:
+      "FOLDER TABS · ON-DEMAND SIZES · QUICK-FILTER PREDICATES · SELECT BY PATTERN",
+    extra:
+      "is:dir & ext: Filters · Smart Kind-Chips · Starter Templates · Command Palette · World Clocks",
     bullets: [
       "🗂️ Multi-Tab Browsing (`⇧⌘T`), Sidebar Folder Tree & Color Tags",
       "📐 On-Demand Folder Sizes, `is:dir` / `ext:` Filters & Kind-Chips",
@@ -258,8 +370,10 @@ const sceneSpecs: SceneSpec[] = [
     id: "03_dualpane_atomic_graveyard",
     badge: "03 / 12 · DUAL-PANE, ATOMIC UNDO, RECYCLE BIN & RIP GRAVEYARD",
     title: "DUAL PANES, UNDO\n& RIP GRAVEYARD.",
-    label: "SIDE-BY-SIDE DUAL PANE · F5 COPY / F6 MOVE · NEW FOLDER WITH SELECTION · GRAVEYARD",
-    extra: "Collision Protection · Queued Big Jobs · Recycle Bin Restore · Rip Graveyard Tool",
+    label:
+      "SIDE-BY-SIDE DUAL PANE · F5 COPY / F6 MOVE · NEW FOLDER WITH SELECTION · GRAVEYARD",
+    extra:
+      "Collision Protection · Queued Big Jobs · Recycle Bin Restore · Rip Graveyard Tool",
     bullets: [
       "🪟 Side-by-Side Dual Pane (`F5` Copy, `F6` Move & Swap Panes)",
       "📁 New Folder with Selection + Atomic Undo (`⌘Z`) & Paste as File",
@@ -283,8 +397,12 @@ const sceneSpecs: SceneSpec[] = [
       })()`);
       await openToolTab(c, "grave", false);
       await sleep(1200);
-      await c.click("#power-body .pw-btn >> Select all", { pause: 600 }).catch(() => {});
-      await c.click("#power-body .pw-btn >> Restore", { pause: 800 }).catch(() => {});
+      await c
+        .click("#power-body .pw-btn >> Select all", { pause: 600 })
+        .catch(() => {});
+      await c
+        .click("#power-body .pw-btn >> Restore", { pause: 800 })
+        .catch(() => {});
       await c.click("#view-files", { pause: 500 }).catch(() => {});
     },
   },
@@ -292,8 +410,10 @@ const sceneSpecs: SceneSpec[] = [
     id: "04_quicklook_info_chmod_lock",
     badge: "04 / 12 · QUICK LOOK, DEEP FILE INFO, VISUAL CHMOD & AES-256 LOCK",
     title: "SPACEBAR PREVIEW\n& AES-256 LOCK.",
-    label: "QUICK LOOK · DOMINANT COLOR PALETTE · VISUAL CHMOD · .radenc ENCRYPTION",
-    extra: "Magic-Byte Disguised File Detection · SHA-256 Hashes · Argon2id + AES-256-GCM Vault",
+    label:
+      "QUICK LOOK · DOMINANT COLOR PALETTE · VISUAL CHMOD · .radenc ENCRYPTION",
+    extra:
+      "Magic-Byte Disguised File Detection · SHA-256 Hashes · Argon2id + AES-256-GCM Vault",
     bullets: [
       "👁️ Spacebar Quick Look (Photos, Video, Audio, PDF, Office, Archives)",
       "🔍 Deep File Info (Color Swatches, SHA-256 & Disguised-File Guard)",
@@ -327,10 +447,13 @@ const sceneSpecs: SceneSpec[] = [
   },
   {
     id: "05_files_and_dev_power_tools",
-    badge: "05 / 12 · FIND, COMPARE, REPLACE, CODE EDITOR, DEV, PROJECTS & BUNDLER",
+    badge:
+      "05 / 12 · FIND, COMPARE, REPLACE, CODE EDITOR, DEV, PROJECTS & BUNDLER",
     title: "CODE EDITOR, GIT,\nDIFF & BUNDLER.",
-    label: "FIND & BULK RENAME · 2-FOLDER COMPARE · MULTI-FILE REPLACE · CODE · DEV · BUNDLER",
-    extra: "Before/After Review Plan · 70+ Text Transforms · Tokei Code Stats · macOS .app Bundler",
+    label:
+      "FIND & BULK RENAME · 2-FOLDER COMPARE · MULTI-FILE REPLACE · CODE · DEV · BUNDLER",
+    extra:
+      "Before/After Review Plan · 70+ Text Transforms · Tokei Code Stats · macOS .app Bundler",
     bullets: [
       "🔎 Deep Find + Bulk Rename Review (`find`) & 2-Folder Sync (`compare`)",
       "📝 Multi-File Regex Replace (`sd`) & Code Editor (`code` · 70+ Transforms)",
@@ -348,7 +471,15 @@ const sceneSpecs: SceneSpec[] = [
         const { goTo } = await import('/ui/nav.js');
         await goTo(${JSON.stringify(`${HOME}/Projects/shop-app`)});
       })()`);
-      for (const t of ["find", "compare", "sd", "code", "dev", "projects", "bundler"]) {
+      for (const t of [
+        "find",
+        "compare",
+        "sd",
+        "code",
+        "dev",
+        "projects",
+        "bundler",
+      ]) {
         await openToolTab(c, t, false);
         await sleep(580);
       }
@@ -358,8 +489,10 @@ const sceneSpecs: SceneSpec[] = [
     id: "06_synced_terminal_and_cliutils",
     badge: "06 / 12 · TWO-WAY SYNCED TERMINAL & BUILT-IN RAD CLI UTILITIES",
     title: "TYPE cd IN SHELL.\nYOUR FILES FOLLOW.",
-    label: "TWO-WAY SYNCED TERMINAL · QUOTED PATH INSERTION · RAD CLI UTILITIES",
-    extra: "zsh · bash · PowerShell · CMD · Git Bash · WSL · 1-Click Quoted Path Insertion",
+    label:
+      "TWO-WAY SYNCED TERMINAL · QUOTED PATH INSERTION · RAD CLI UTILITIES",
+    extra:
+      "zsh · bash · PowerShell · CMD · Git Bash · WSL · 1-Click Quoted Path Insertion",
     bullets: [
       "⌨️ Type `cd` in Terminal and the File List Follows Automatically",
       "📎 Select Files & Insert Safely Quoted Paths in One Click",
@@ -388,8 +521,10 @@ const sceneSpecs: SceneSpec[] = [
     id: "07_automate_security_network_handy",
     badge: "07 / 12 · AUTOMATE, SECURITY, NETWORK & HANDY POWER TOOLBOX",
     title: "SERVE, WATCH, VAULT,\nNET & API STUDIO.",
-    label: "WATCH · ACTIONS · SERVE · CRYPTO · SECRETS · ENV · IP · NET · SUBS · DOWNLOADS · API · CALC · TIMER · QR",
-    extra: "14 Built-In Power Tools for Automation, Encryption, Network Diagnostics & Daily Workflows",
+    label:
+      "WATCH · ACTIONS · SERVE · CRYPTO · SECRETS · ENV · IP · NET · SUBS · DOWNLOADS · API · CALC · TIMER · QR",
+    extra:
+      "14 Built-In Power Tools for Automation, Encryption, Network Diagnostics & Daily Workflows",
     bullets: [
       "⚙️ Watch Automation (`watch`), Action Recipes (`actions`) & Live/PHP Server (`serve`)",
       "🗝️ Crypto (`crypto`), Secrets Vault (`secrets`) & Masked `.env` Studio (`env`)",
@@ -403,7 +538,22 @@ const sceneSpecs: SceneSpec[] = [
         "Live & PHP Server · Encrypted Secrets Vault · Port/DNS/TLS Inspector · REST API Studio · Scientific Calculator",
         "🧰 POWER TOOLBOX",
       );
-      for (const t of ["watch", "actions", "serve", "crypto", "secrets", "env", "ip", "net", "subs", "downloads", "api", "calc", "timer", "qr"]) {
+      for (const t of [
+        "watch",
+        "actions",
+        "serve",
+        "crypto",
+        "secrets",
+        "env",
+        "ip",
+        "net",
+        "subs",
+        "downloads",
+        "api",
+        "calc",
+        "timer",
+        "qr",
+      ]) {
         await openToolTab(c, t, false);
         await sleep(310);
       }
@@ -413,8 +563,10 @@ const sceneSpecs: SceneSpec[] = [
     id: "08_convert_image_and_media_studios",
     badge: "08 / 12 · CONVERT, IMAGE STUDIO, MEDIA STUDIO & BATCH PRESETS",
     title: "IMAGE STUDIO,\nMEDIA & PRESETS.",
-    label: "1-CLICK CONVERT · IMAGE STUDIO · MEDIA STUDIO · REUSABLE BULK PRESETS",
-    extra: "Non-Destructive Photo Sliders · Hold-to-Compare · Video Trim, Speed & Fades · Podcast Voice",
+    label:
+      "1-CLICK CONVERT · IMAGE STUDIO · MEDIA STUDIO · REUSABLE BULK PRESETS",
+    extra:
+      "Non-Destructive Photo Sliders · Hold-to-Compare · Video Trim, Speed & Fades · Podcast Voice",
     bullets: [
       "⚡ Convert & Process Dialog + 1-Click Helper Program Installer",
       "🎨 Image Studio (`imagestudio`): Live Sliders, Quick Looks & Crop Shapes",
@@ -445,8 +597,10 @@ const sceneSpecs: SceneSpec[] = [
     id: "09_ampdeck_paint_and_60_arcade_games",
     badge: "09 / 12 · AMPDECK PLAYER, PAINT STUDIO & 60 ARCADE GAMES",
     title: "AMPDECK, PAINT\n& 60 ARCADE GAMES!",
-    label: "10-BAND EQ · 108 VISUALIZERS · PAINT & COLORING BOOK · 60 BUILT-IN GAMES",
-    extra: "Synced Lyrics Rack Player · Pixel & Vector Paint · 60 Arcade, Puzzle, Card, Casino & TV Show Games",
+    label:
+      "10-BAND EQ · 108 VISUALIZERS · PAINT & COLORING BOOK · 60 BUILT-IN GAMES",
+    extra:
+      "Synced Lyrics Rack Player · Pixel & Vector Paint · 60 Arcade, Puzzle, Card, Casino & TV Show Games",
     bullets: [
       "🎧 Media Deck (`player`): 10-Band EQ, 108 Visualizers & Synced Lyrics",
       "🖌️ Paint Studio (`paint`): Brushes, Layers, Filters & Coloring Library",
@@ -472,8 +626,10 @@ const sceneSpecs: SceneSpec[] = [
     id: "10_phonon_tts_voice_cloning_epub_mp4",
     badge: "10 / 12 · OLLAMA PHONON TTS (ZOEY), 5S VOICE CLONING & EPUB-TO-MP4",
     title: "PHONON TTS (ZOEY)\n& VOICE CLONING.",
-    label: "38 NEURAL VOICES · 5S ZERO-SHOT VOICE CLONING · 242-CHUNK EPUB-TO-MP4 VIDEO",
-    extra: "Pitch-Sync Teleprompter · AI Mic Recorder + Whisper MLX · Batch Audiobook Queue",
+    label:
+      "38 NEURAL VOICES · 5S ZERO-SHOT VOICE CLONING · 242-CHUNK EPUB-TO-MP4 VIDEO",
+    extra:
+      "Pitch-Sync Teleprompter · AI Mic Recorder + Whisper MLX · Batch Audiobook Queue",
     bullets: [
       "🗣️ Phonon TTS (`phonon`): `--voice Zoey`, 38 Voices, Pitch (±6 st) & Sync",
       "🎙️ 5-Second Zero-Shot Voice Cloning (`F5-TTS-MLX`) + Whisper Auto-Transcribe",
@@ -502,10 +658,13 @@ const sceneSpecs: SceneSpec[] = [
   },
   {
     id: "11_ollama_ai_and_310_themes_194_shaders",
-    badge: "11 / 12 · LOCAL OLLAMA AI ASSISTANT, 310+ THEMES & 194 120HZ SHADERS",
+    badge:
+      "11 / 12 · LOCAL OLLAMA AI ASSISTANT, 310+ THEMES & 194 120HZ SHADERS",
     title: "LOCAL OLLAMA AI &\n310+ 6K XDR THEMES.",
-    label: "OFFLINE OLLAMA AI + READ ALOUD · 310+ THEMES · 194 LIVE SHADERS · GEMINI AI THEME LAB",
-    extra: "18 US Holiday Ultra Themes · Polar Night · 6-Layer FX Mixer · Split Comparator & OKLab Blender",
+    label:
+      "OFFLINE OLLAMA AI + READ ALOUD · 310+ THEMES · 194 LIVE SHADERS · GEMINI AI THEME LAB",
+    extra:
+      "18 US Holiday Ultra Themes · Polar Night · 6-Layer FX Mixer · Split Comparator & OKLab Blender",
     bullets: [
       "🤖 Local Ollama AI Assistant (`ollama`): Summarize, Q&A & Read Aloud with Zoey",
       "🎨 310+ Themes, 18 US Holidays, Polar Night & 20 Master Custom Themes",
@@ -522,8 +681,15 @@ const sceneSpecs: SceneSpec[] = [
       await openToolTab(c, "ollama", false);
       await sleep(1300);
       await c.click("#view-files", { pause: 500 }).catch(() => {});
-      await c.click("#status-views button >> Icons", { pause: 600 }).catch(() => {});
-      for (const key of ["custom_0000000d", "horror_nosferatu_blood_moon", "polar_night", "holiday_halloween_jack_o_lantern"]) {
+      await c
+        .click("#status-views button >> Icons", { pause: 600 })
+        .catch(() => {});
+      for (const key of [
+        "custom_0000000d",
+        "horror_nosferatu_blood_moon",
+        "polar_night",
+        "holiday_halloween_jack_o_lantern",
+      ]) {
         await c.eval(`(async () => {
           const { applyPalette, applyUiImmersionProfiles } = await import('/ui/themes.js');
           await applyPalette?.(${JSON.stringify(key)});
@@ -535,10 +701,13 @@ const sceneSpecs: SceneSpec[] = [
   },
   {
     id: "12_four_databases_macros_ide_finale",
-    badge: "12 / 12 · 4 DATABASES, CROSS-ENGINE CLONING, BUN JS MACROS & STUDIO IDE v2",
+    badge:
+      "12 / 12 · 4 DATABASES, CROSS-ENGINE CLONING, BUN JS MACROS & STUDIO IDE v2",
     title: "4 DATABASE ENGINES\n& STUDIO IDE v2.",
-    label: "SQLite · MySQL · PostgreSQL · Redis · CROSS-ENGINE CLONING · BUN JS MACROS · ER DIAGRAMS",
-    extra: "Keychain Security · 15-Format Staging Import · Schema Diff & 5-Language Codegen · Free & Open Source",
+    label:
+      "SQLite · MySQL · PostgreSQL · Redis · CROSS-ENGINE CLONING · BUN JS MACROS · ER DIAGRAMS",
+    extra:
+      "Keychain Security · 15-Format Staging Import · Schema Diff & 5-Language Codegen · Free & Open Source",
     bullets: [
       "🗄️ All 4 Databases (`databases`): SQLite, MySQL, PostgreSQL & Redis + Keychain",
       "🔄 Cross-Engine Database & Redis Hash Cloning + 15-Format Staging Import",
@@ -554,7 +723,9 @@ const sceneSpecs: SceneSpec[] = [
       );
       await openToolTab(c, "databases", false);
       await sleep(1200);
-      await c.eval(`[...document.querySelectorAll('#power-body button')].filter((b) => /^(Never for this one|Not now)$/.test(b.textContent.trim())).forEach((b) => b.click())`);
+      await c.eval(
+        `[...document.querySelectorAll('#power-body button')].filter((b) => /^(Never for this one|Not now)$/.test(b.textContent.trim())).forEach((b) => b.click())`,
+      );
       await sleep(1600);
     },
   },
@@ -604,7 +775,11 @@ ${
 }`;
 }
 
-function overlayWideStrip(scene: SceneSpec, index: number, total: number): string {
+function overlayWideStrip(
+  scene: SceneSpec,
+  index: number,
+  total: number,
+): string {
   return `<!doctype html><meta charset="utf-8"><style>
 *{box-sizing:border-box;margin:0}html,body{width:1920px;height:1080px;background:transparent;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif}
 .strip{position:absolute;left:0;right:0;bottom:0;height:108px;background:linear-gradient(180deg,#14091d,#09040e);border-top:3px solid #ff8c1a;display:flex;align-items:center;justify-content:space-between;padding:0 34px;gap:24px;color:#f8fafc}
@@ -648,7 +823,9 @@ function runOllamaPhononWav(text: string, voice: string, outWav: string): void {
       timeout: 60_000,
     });
     if (res.exitCode !== 0 || res.stdout.byteLength < 100) {
-      throw new Error(`ollama run phonon failed (${res.exitCode}): ${res.stderr.toString()}`);
+      throw new Error(
+        `ollama run phonon failed (${res.exitCode}): ${res.stderr.toString()}`,
+      );
     }
     const parsed = parseWavPcm(Buffer.from(res.stdout));
     sampleRate = parsed.sampleRate;
@@ -657,12 +834,19 @@ function runOllamaPhononWav(text: string, voice: string, outWav: string): void {
     pcmParts.push(parsed.pcmData);
     if (i + 1 < chunks.length) {
       const gapSamples = Math.round(sampleRate * 0.12);
-      pcmParts.push(Buffer.alloc(gapSamples * numChannels * (bitsPerSample >> 3)));
+      pcmParts.push(
+        Buffer.alloc(gapSamples * numChannels * (bitsPerSample >> 3)),
+      );
     }
   }
 
   const totalPcm = Buffer.concat(pcmParts);
-  const header = createWavHeader(totalPcm.length, sampleRate, numChannels, bitsPerSample);
+  const header = createWavHeader(
+    totalPcm.length,
+    sampleRate,
+    numChannels,
+    bitsPerSample,
+  );
   writeFileSync(outWav, Buffer.concat([header, totalPcm]));
 }
 
@@ -673,7 +857,9 @@ async function synthesizeSceneNarration(scene: SceneSpec): Promise<string> {
   const masteredWav = join(WORK, `phonon_${scene.id}_Zoey.wav`);
 
   if (!existsSync(masteredWav)) {
-    console.log(`🎙️  Synthesizing ${scene.id} with ollama run phonon --voice "Zoey"...`);
+    console.log(
+      `🎙️  Synthesizing ${scene.id} with ollama run phonon --voice "Zoey"...`,
+    );
     try {
       runOllamaPhononWav(scene.say, "Zoey", rawWav);
       run([
@@ -694,19 +880,44 @@ async function synthesizeSceneNarration(scene: SceneSpec): Promise<string> {
       ]);
     } catch (err) {
       console.warn(`⚠️ Phonon CLI fallback to Edge TTS for ${scene.id}:`, err);
-      const fallbackMp3 = await narrate(scene.id, scene.say, audioDir, { rate: "+6%", gap: 0.18 });
-      run([FFMPEG, "-hide_banner", "-loglevel", "error", "-y", "-i", fallbackMp3, "-ar", "48000", "-c:a", "pcm_s16le", masteredWav]);
+      const fallbackMp3 = await narrate(scene.id, scene.say, audioDir, {
+        rate: "+6%",
+        gap: 0.18,
+      });
+      run([
+        FFMPEG,
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-y",
+        "-i",
+        fallbackMp3,
+        "-ar",
+        "48000",
+        "-c:a",
+        "pcm_s16le",
+        masteredWav,
+      ]);
     }
   }
   return masteredWav;
 }
 
-function notesMarkdown(seconds: number, tempo: number, sceneMarks: Array<{ at: number; scene: SceneSpec }>): string {
+function notesMarkdown(
+  seconds: number,
+  tempo: number,
+  sceneMarks: Array<{ at: number; scene: SceneSpec }>,
+): string {
   const fmt = (sec: number) => {
     const s = Math.floor(sec);
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   };
-  const stamps = sceneMarks.map((m, i) => `${fmt(i === 0 ? 0 : m.at)} — ${m.scene.id.slice(0, 2)} · ${m.scene.label}`).join("\n");
+  const stamps = sceneMarks
+    .map(
+      (m, i) =>
+        `${fmt(i === 0 ? 0 : m.at)} — ${m.scene.id.slice(0, 2)} · ${m.scene.label}`,
+    )
+    .join("\n");
   return `# Codecaine File Manager — Complete Apple Mac Studio M4 Ultra 3-Minute YouTube Short (Narrated by Phonon \`Zoey\`)
 
 ## Generated Video Files
@@ -745,7 +956,8 @@ async function main() {
   seedMacUltraWorkspace();
 
   // 1. Synthesize all 12 scene narrations using `ollama run phonon --voice Zoey`
-  const narrated: Array<{ scene: SceneSpec; audio: string; seconds: number }> = [];
+  const narrated: Array<{ scene: SceneSpec; audio: string; seconds: number }> =
+    [];
   for (const scene of sceneSpecs) {
     const audio = await synthesizeSceneNarration(scene);
     narrated.push({ scene, audio, seconds: duration(audio) });
@@ -754,7 +966,9 @@ async function main() {
   const total = narrated.reduce((sum, item) => sum + item.seconds, 0);
   // Target ~173.5s (<180s YouTube Shorts limit, right at 2m 53s)
   const tempo = Math.max(1, total / 173.5);
-  console.log(`⏱️  Total Phonon Zoey narration: ${total.toFixed(2)}s; pace factor ${tempo.toFixed(3)}x -> ${(total / tempo).toFixed(1)}s`);
+  console.log(
+    `⏱️  Total Phonon Zoey narration: ${total.toFixed(2)}s; pace factor ${tempo.toFixed(3)}x -> ${(total / tempo).toFixed(1)}s`,
+  );
 
   // 2. Launch live File Manager server with FM_SHOWCASE_MAC_ULTRA="1"
   const fm = Bun.spawn(
@@ -793,7 +1007,12 @@ async function main() {
     await sleep(200);
   }
 
-  const recBrowser = await Cdp.launch(CDP_REC_PORT, join(WORK, "chrome-rec"), VIEW_W, VIEW_H);
+  const recBrowser = await Cdp.launch(
+    CDP_REC_PORT,
+    join(WORK, "chrome-rec"),
+    VIEW_W,
+    VIEW_H,
+  );
   const rawClips: Map<string, string> = new Map();
 
   try {
@@ -813,15 +1032,27 @@ async function main() {
     for (const item of narrated) {
       const { scene } = item;
       const clipPath = join(WORK, `${scene.id}_raw.mp4`);
-      console.log(`🎥 Recording live Mac Ultra scene ${scene.id} (${(item.seconds / tempo).toFixed(1)}s)...`);
+      console.log(
+        `🎥 Recording live Mac Ultra scene ${scene.id} (${(item.seconds / tempo).toFixed(1)}s)...`,
+      );
       await recBrowser.startRecording();
       await scene.record(recBrowser);
       if (scene.id === "01_mac_ultra_sysinfo_tasks_views") {
-        const shot = await recBrowser.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
-        writeFileSync(join(PROD, "mac_ultra_sysinfo_zoey_preview.png"), Buffer.from(shot.data, "base64"));
+        const shot = await recBrowser.send("Page.captureScreenshot", {
+          format: "png",
+          captureBeyondViewport: false,
+        });
+        writeFileSync(
+          join(PROD, "mac_ultra_sysinfo_zoey_preview.png"),
+          Buffer.from(shot.data, "base64"),
+        );
       }
       await sleep(300);
-      await recBrowser.stopRecording(clipPath, join(WORK, `frames_${scene.id}`), item.seconds / tempo);
+      await recBrowser.stopRecording(
+        clipPath,
+        join(WORK, `frames_${scene.id}`),
+        item.seconds / tempo,
+      );
       rawClips.set(scene.id, clipPath);
     }
   } finally {
@@ -832,8 +1063,18 @@ async function main() {
   }
 
   // 3. Composite both 1080x1920 Vertical YouTube Short AND 1920x1080 Widescreen Showcase Video
-  const ovlBrowser = await Cdp.launch(CDP_OVL_PORT, join(WORK, "chrome-ovl"), 1080, 1920);
-  const wideBrowser = await Cdp.launch(CDP_OVL_PORT + 1, join(WORK, "chrome-wide"), 1920, 1080);
+  const ovlBrowser = await Cdp.launch(
+    CDP_OVL_PORT,
+    join(WORK, "chrome-ovl"),
+    1080,
+    1920,
+  );
+  const wideBrowser = await Cdp.launch(
+    CDP_OVL_PORT + 1,
+    join(WORK, "chrome-wide"),
+    1920,
+    1080,
+  );
   const shortSegments: string[] = [];
   const wideSegments: string[] = [];
   const sceneMarks: Array<{ at: number; scene: SceneSpec }> = [];
@@ -847,14 +1088,21 @@ async function main() {
       const seconds = item.seconds / tempo;
       const ptsScale = (seconds / clipDur).toFixed(5);
 
-      console.log(`🎬 Compositing vertical Short + widescreen segment for ${scene.id} (${seconds.toFixed(1)}s)...`);
+      console.log(
+        `🎬 Compositing vertical Short + widescreen segment for ${scene.id} (${seconds.toFixed(1)}s)...`,
+      );
 
       const vHtml = join(WORK, `${scene.id}_v.html`);
       const vPng = join(WORK, `${scene.id}_v.png`);
       writeFileSync(vHtml, overlayVertical(scene, index));
       await ovlBrowser.goto(`file://${vHtml}`, null);
-      await ovlBrowser.send("Emulation.setDefaultBackgroundColorOverride", { color: { r: 0, g: 0, b: 0, a: 0 } });
-      const vShot = await ovlBrowser.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
+      await ovlBrowser.send("Emulation.setDefaultBackgroundColorOverride", {
+        color: { r: 0, g: 0, b: 0, a: 0 },
+      });
+      const vShot = await ovlBrowser.send("Page.captureScreenshot", {
+        format: "png",
+        captureBeyondViewport: false,
+      });
       writeFileSync(vPng, Buffer.from(vShot.data, "base64"));
 
       const shortSeg = join(WORK, `${scene.id}_short.mp4`);
@@ -903,8 +1151,13 @@ async function main() {
       const wPng = join(WORK, `${scene.id}_w.png`);
       writeFileSync(wHtml, overlayWideStrip(scene, index, narrated.length));
       await wideBrowser.goto(`file://${wHtml}`, null);
-      await wideBrowser.send("Emulation.setDefaultBackgroundColorOverride", { color: { r: 0, g: 0, b: 0, a: 0 } });
-      const wShot = await wideBrowser.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
+      await wideBrowser.send("Emulation.setDefaultBackgroundColorOverride", {
+        color: { r: 0, g: 0, b: 0, a: 0 },
+      });
+      const wShot = await wideBrowser.send("Page.captureScreenshot", {
+        format: "png",
+        captureBeyondViewport: false,
+      });
       writeFileSync(wPng, Buffer.from(wShot.data, "base64"));
 
       const wideSeg = join(WORK, `${scene.id}_wide.mp4`);
@@ -958,7 +1211,10 @@ async function main() {
   }
 
   const shortList = join(WORK, "concat_short.txt");
-  writeFileSync(shortList, shortSegments.map((f) => `file '${f}'`).join("\n") + "\n");
+  writeFileSync(
+    shortList,
+    shortSegments.map((f) => `file '${f}'`).join("\n") + "\n",
+  );
   run([
     FFMPEG,
     "-hide_banner",
@@ -998,7 +1254,10 @@ async function main() {
   copyFileSync(OUTPUT_SHORT, OUTPUT_ALL_IN_ONE_SHORT);
 
   const wideList = join(WORK, "concat_wide.txt");
-  writeFileSync(wideList, wideSegments.map((f) => `file '${f}'`).join("\n") + "\n");
+  writeFileSync(
+    wideList,
+    wideSegments.map((f) => `file '${f}'`).join("\n") + "\n",
+  );
   run([
     FFMPEG,
     "-hide_banner",
@@ -1037,14 +1296,21 @@ async function main() {
   ]);
 
   const finalSeconds = duration(OUTPUT_SHORT);
-  if (finalSeconds >= 180) throw new Error(`Short exceeds 180s limit: ${finalSeconds}s`);
+  if (finalSeconds >= 180)
+    throw new Error(`Short exceeds 180s limit: ${finalSeconds}s`);
   const notes = notesMarkdown(finalSeconds, tempo, sceneMarks);
   writeFileSync(NOTES, notes);
   writeFileSync(join(WORK, "upload-guide.txt"), notes);
 
-  console.log(`\n✅ Built Vertical 9:16 YouTube Short: ${OUTPUT_SHORT} (${finalSeconds.toFixed(2)}s, ${(Bun.file(OUTPUT_SHORT).size / 1048576).toFixed(1)} MB)`);
-  console.log(`✅ Updated All-in-One Short:          ${OUTPUT_ALL_IN_ONE_SHORT}`);
-  console.log(`✅ Built Widescreen 16:9 Showcase:    ${OUTPUT_WIDE} (${duration(OUTPUT_WIDE).toFixed(2)}s, ${(Bun.file(OUTPUT_WIDE).size / 1048576).toFixed(1)} MB)`);
+  console.log(
+    `\n✅ Built Vertical 9:16 YouTube Short: ${OUTPUT_SHORT} (${finalSeconds.toFixed(2)}s, ${(Bun.file(OUTPUT_SHORT).size / 1048576).toFixed(1)} MB)`,
+  );
+  console.log(
+    `✅ Updated All-in-One Short:          ${OUTPUT_ALL_IN_ONE_SHORT}`,
+  );
+  console.log(
+    `✅ Built Widescreen 16:9 Showcase:    ${OUTPUT_WIDE} (${duration(OUTPUT_WIDE).toFixed(2)}s, ${(Bun.file(OUTPUT_WIDE).size / 1048576).toFixed(1)} MB)`,
+  );
   console.log(`📝 Wrote YouTube Notes:               ${NOTES}`);
 }
 

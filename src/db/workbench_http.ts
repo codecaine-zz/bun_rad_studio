@@ -10,7 +10,11 @@ import { guardLocalRequest } from "../localGuard";
 import { generateWorkbenchHtml } from "./workbench_ui";
 
 const MAX_BODY_BYTES = 8 * 1024 * 1024;
-const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" };
+const JSON_HEADERS = {
+  "Content-Type": "application/json; charset=utf-8",
+  "Cache-Control": "no-store",
+  "X-Content-Type-Options": "nosniff",
+};
 
 const HTTP_STATUS: Partial<Record<DbError["code"], number>> = {
   INVALID_REQUEST: 400,
@@ -33,23 +37,36 @@ function fail(e: unknown): Response {
 }
 
 const bad = (m: string) => new DbError("INVALID_REQUEST", m);
-const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+const isObj = (v: unknown): v is Record<string, unknown> =>
+  typeof v === "object" && v !== null && !Array.isArray(v);
 
 function reqStr(o: Record<string, unknown>, k: string, max = 4096): string {
   const v = o[k];
-  if (typeof v !== "string" || v.length === 0 || v.length > max) throw bad(`"${k}" must be a non-empty string`);
+  if (typeof v !== "string" || v.length === 0 || v.length > max)
+    throw bad(`"${k}" must be a non-empty string`);
   return v;
 }
-function optStr(o: Record<string, unknown>, k: string, max = 4096): string | undefined {
+function optStr(
+  o: Record<string, unknown>,
+  k: string,
+  max = 4096,
+): string | undefined {
   const v = o[k];
   if (v === undefined || v === null) return undefined;
-  if (typeof v !== "string" || v.length > max) throw bad(`"${k}" must be a string`);
+  if (typeof v !== "string" || v.length > max)
+    throw bad(`"${k}" must be a string`);
   return v;
 }
-function optInt(o: Record<string, unknown>, k: string, min: number, max: number): number | undefined {
+function optInt(
+  o: Record<string, unknown>,
+  k: string,
+  min: number,
+  max: number,
+): number | undefined {
   const v = o[k];
   if (v === undefined || v === null) return undefined;
-  if (typeof v !== "number" || !Number.isInteger(v) || v < min || v > max) throw bad(`"${k}" must be an integer from ${min} to ${max}`);
+  if (typeof v !== "number" || !Number.isInteger(v) || v < min || v > max)
+    throw bad(`"${k}" must be an integer from ${min} to ${max}`);
   return v;
 }
 function reqRef(v: unknown): ObjectRef {
@@ -65,11 +82,15 @@ function reqRecord(v: unknown, what: string): Record<string, Param> {
 }
 function params(v: unknown): Param[] {
   if (v === undefined || v === null) return [];
-  if (!Array.isArray(v) || v.length > 1000) throw bad('"params" must be an array of up to 1000 values');
+  if (!Array.isArray(v) || v.length > 1000)
+    throw bad('"params" must be an array of up to 1000 values');
   return v as Param[];
 }
 function confirmOf(o: Record<string, unknown>) {
-  return { token: optStr(o, "confirmToken", 100), typed: optStr(o, "confirmTyped", 200) };
+  return {
+    token: optStr(o, "confirmToken", 100),
+    typed: optStr(o, "confirmTyped", 200),
+  };
 }
 
 /** Configuration options for `createWorkbenchHandler`. */
@@ -92,7 +113,10 @@ export interface WorkbenchHandler {
  * HTTP surface of the shared database workbench (`/workbench` page and `/api/v2/*`). Every request is
  * checked for loopback Host / same Origin, an API token, a JSON content type and a body-size limit.
  */
-export function createWorkbenchHandler(service: WorkbenchService, options: WorkbenchHandlerOptions = {}): WorkbenchHandler {
+export function createWorkbenchHandler(
+  service: WorkbenchService,
+  options: WorkbenchHandlerOptions = {},
+): WorkbenchHandler {
   const token = options.token ?? randomBytes(24).toString("hex");
   const tokenBuf = Buffer.from(token);
 
@@ -102,7 +126,12 @@ export function createWorkbenchHandler(service: WorkbenchService, options: Workb
   };
 
   async function body(req: Request): Promise<Record<string, unknown>> {
-    if (!(req.headers.get("content-type") ?? "").toLowerCase().startsWith("application/json")) throw bad("Content-Type must be application/json");
+    if (
+      !(req.headers.get("content-type") ?? "")
+        .toLowerCase()
+        .startsWith("application/json")
+    )
+      throw bad("Content-Type must be application/json");
     const len = Number(req.headers.get("content-length") ?? 0);
     if (len > MAX_BODY_BYTES) throw bad("Request body is too large");
     const text = await req.text();
@@ -119,43 +148,92 @@ export function createWorkbenchHandler(service: WorkbenchService, options: Workb
 
   async function route(path: string, req: Request): Promise<Response> {
     if (path === "/api/v2/profiles" && req.method === "GET") {
-      return json({ ok: true, profiles: await service.profiles.list(), recent: await service.profiles.recent(), secretStore: service.profiles.secretStoreKind });
+      return json({
+        ok: true,
+        profiles: await service.profiles.list(),
+        recent: await service.profiles.recent(),
+        secretStore: service.profiles.secretStoreKind,
+      });
     }
-    if (req.method !== "POST") return json({ ok: false, error: { code: "INVALID_REQUEST", message: "Method not allowed" } }, 405);
+    if (req.method !== "POST")
+      return json(
+        {
+          ok: false,
+          error: { code: "INVALID_REQUEST", message: "Method not allowed" },
+        },
+        405,
+      );
     const b = await body(req);
 
     switch (path) {
       case "/api/v2/profiles/save": {
-        const password = b.password === undefined ? undefined : typeof b.password === "string" ? b.password : (() => { throw bad('"password" must be a string'); })();
-        const saved = await service.profiles.save(b.profile, password, optStr(b, "id", 64));
+        const password =
+          b.password === undefined
+            ? undefined
+            : typeof b.password === "string"
+              ? b.password
+              : (() => {
+                  throw bad('"password" must be a string');
+                })();
+        const saved = await service.profiles.save(
+          b.profile,
+          password,
+          optStr(b, "id", 64),
+        );
         return json({ ok: true, profile: saved });
       }
       case "/api/v2/profiles/delete":
         await service.profiles.remove(reqStr(b, "id", 64));
         return json({ ok: true });
       case "/api/v2/profiles/duplicate":
-        return json({ ok: true, profile: await service.profiles.duplicate(reqStr(b, "id", 64)) });
+        return json({
+          ok: true,
+          profile: await service.profiles.duplicate(reqStr(b, "id", 64)),
+        });
       case "/api/v2/test": {
-        const r = await service.test({ profileId: optStr(b, "profileId", 64), profile: b.profile, password: optStr(b, "password", 1024) });
+        const r = await service.test({
+          profileId: optStr(b, "profileId", 64),
+          profile: b.profile,
+          password: optStr(b, "password", 1024),
+        });
         return json({ ...r });
       }
       case "/api/v2/connect": {
-        const c = await service.connect({ profileId: optStr(b, "profileId", 64), profile: b.profile, password: optStr(b, "password", 1024) });
+        const c = await service.connect({
+          profileId: optStr(b, "profileId", 64),
+          profile: b.profile,
+          password: optStr(b, "password", 1024),
+        });
         return json({ ok: true, connection: c });
       }
       case "/api/v2/disconnect":
-        await service.disconnect(reqStr(b, "connectionId", 64), { discardTransaction: b.discardTransaction === true });
+        await service.disconnect(reqStr(b, "connectionId", 64), {
+          discardTransaction: b.discardTransaction === true,
+        });
         return json({ ok: true });
       case "/api/v2/connections":
         return json({ ok: true, connections: service.list() });
       case "/api/v2/objects":
-        return json({ ok: true, objects: await service.objects(reqStr(b, "connectionId", 64)) });
+        return json({
+          ok: true,
+          objects: await service.objects(reqStr(b, "connectionId", 64)),
+        });
       case "/api/v2/describe":
-        return json({ ok: true, table: await service.describe(reqStr(b, "connectionId", 64), reqRef(b.table)) });
+        return json({
+          ok: true,
+          table: await service.describe(
+            reqStr(b, "connectionId", 64),
+            reqRef(b.table),
+          ),
+        });
       case "/api/v2/browse": {
-        const filters = Array.isArray(b.filters) ? (b.filters as BrowseFilter[]) : [];
+        const filters = Array.isArray(b.filters)
+          ? (b.filters as BrowseFilter[])
+          : [];
         if (filters.length > 50) throw bad("Too many filters");
-        const orderBy = Array.isArray(b.orderBy) ? (b.orderBy as { column: string; direction: "asc" | "desc" }[]) : [];
+        const orderBy = Array.isArray(b.orderBy)
+          ? (b.orderBy as { column: string; direction: "asc" | "desc" }[])
+          : [];
         if (orderBy.length > 10) throw bad("Too many sort columns");
         const result = await service.browse(reqStr(b, "connectionId", 64), {
           table: reqRef(b.table),
@@ -167,65 +245,175 @@ export function createWorkbenchHandler(service: WorkbenchService, options: Workb
         return json({ ok: true, ...result });
       }
       case "/api/v2/row/update": {
-        const r = await service.updateRow(reqStr(b, "connectionId", 64), { table: reqRef(b.table), key: reqRecord(b.key, "key"), expected: reqRecord(b.expected ?? {}, "expected"), changes: reqRecord(b.changes, "changes") }, confirmOf(b));
-        return json({ ok: true, ...("needsConfirmation" in r ? r : { result: r }) });
+        const r = await service.updateRow(
+          reqStr(b, "connectionId", 64),
+          {
+            table: reqRef(b.table),
+            key: reqRecord(b.key, "key"),
+            expected: reqRecord(b.expected ?? {}, "expected"),
+            changes: reqRecord(b.changes, "changes"),
+          },
+          confirmOf(b),
+        );
+        return json({
+          ok: true,
+          ...("needsConfirmation" in r ? r : { result: r }),
+        });
       }
       case "/api/v2/row/delete": {
-        const r = await service.deleteRow(reqStr(b, "connectionId", 64), { table: reqRef(b.table), key: reqRecord(b.key, "key"), expected: b.expected === undefined ? undefined : reqRecord(b.expected, "expected") }, confirmOf(b));
-        return json({ ok: true, ...("needsConfirmation" in r ? r : { result: r }) });
+        const r = await service.deleteRow(
+          reqStr(b, "connectionId", 64),
+          {
+            table: reqRef(b.table),
+            key: reqRecord(b.key, "key"),
+            expected:
+              b.expected === undefined
+                ? undefined
+                : reqRecord(b.expected, "expected"),
+          },
+          confirmOf(b),
+        );
+        return json({
+          ok: true,
+          ...("needsConfirmation" in r ? r : { result: r }),
+        });
       }
       case "/api/v2/row/insert": {
-        const r = await service.insertRow(reqStr(b, "connectionId", 64), { table: reqRef(b.table), values: reqRecord(b.values, "values") }, confirmOf(b));
-        return json({ ok: true, ...("needsConfirmation" in r ? r : { result: r }) });
+        const r = await service.insertRow(
+          reqStr(b, "connectionId", 64),
+          { table: reqRef(b.table), values: reqRecord(b.values, "values") },
+          confirmOf(b),
+        );
+        return json({
+          ok: true,
+          ...("needsConfirmation" in r ? r : { result: r }),
+        });
       }
       case "/api/v2/query": {
-        const r = await service.query(reqStr(b, "connectionId", 64), reqStr(b, "sql", 1_000_000), params(b.params), { maxRows: optInt(b, "maxRows", 1, 100_000), ...confirmOf(b) });
-        return json({ ok: true, ...("needsConfirmation" in r ? r : { result: r }) });
+        const r = await service.query(
+          reqStr(b, "connectionId", 64),
+          reqStr(b, "sql", 1_000_000),
+          params(b.params),
+          { maxRows: optInt(b, "maxRows", 1, 100_000), ...confirmOf(b) },
+        );
+        return json({
+          ok: true,
+          ...("needsConfirmation" in r ? r : { result: r }),
+        });
       }
       case "/api/v2/script": {
         const onError = b.onError === "continue" ? "continue" : "stop";
-        const r = await service.script(reqStr(b, "connectionId", 64), reqStr(b, "sql", 5_000_000), { onError, atomic: b.atomic === true, maxRows: optInt(b, "maxRows", 1, 100_000), ...confirmOf(b) });
-        return json({ ok: true, ...("needsConfirmation" in r ? r : { script: r }) });
+        const r = await service.script(
+          reqStr(b, "connectionId", 64),
+          reqStr(b, "sql", 5_000_000),
+          {
+            onError,
+            atomic: b.atomic === true,
+            maxRows: optInt(b, "maxRows", 1, 100_000),
+            ...confirmOf(b),
+          },
+        );
+        return json({
+          ok: true,
+          ...("needsConfirmation" in r ? r : { script: r }),
+        });
       }
       case "/api/v2/transaction": {
         const action = b.action;
-        if (action !== "begin" && action !== "commit" && action !== "rollback") throw bad('"action" must be begin, commit or rollback');
-        return json({ ok: true, ...(await service.transaction(reqStr(b, "connectionId", 64), action)) });
+        if (action !== "begin" && action !== "commit" && action !== "rollback")
+          throw bad('"action" must be begin, commit or rollback');
+        return json({
+          ok: true,
+          ...(await service.transaction(reqStr(b, "connectionId", 64), action)),
+        });
       }
       case "/api/v2/cancel":
-        return json({ ok: true, ...(await service.cancel(reqStr(b, "connectionId", 64))) });
+        return json({
+          ok: true,
+          ...(await service.cancel(reqStr(b, "connectionId", 64))),
+        });
       case "/api/v2/export/csv": {
         const id = reqStr(b, "connectionId", 64);
-        const source = b.sql !== undefined ? { sql: reqStr(b, "sql", 1_000_000), params: params(b.params) } : { table: reqRef(b.table), excludeColumns: Array.isArray(b.excludeColumns) ? (b.excludeColumns as unknown[]).filter((x): x is string => typeof x === "string") : [] };
+        const source =
+          b.sql !== undefined
+            ? { sql: reqStr(b, "sql", 1_000_000), params: params(b.params) }
+            : {
+                table: reqRef(b.table),
+                excludeColumns: Array.isArray(b.excludeColumns)
+                  ? (b.excludeColumns as unknown[]).filter(
+                      (x): x is string => typeof x === "string",
+                    )
+                  : [],
+              };
         const iter = service.exportCsv(id, source);
         const first = await iter.next(); // surface errors (unknown table, ...) as a normal JSON error before streaming
-        const name = ("table" in source && source.table ? source.table.name : "query").replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 80) || "export";
+        const name =
+          ("table" in source && source.table ? source.table.name : "query")
+            .replace(/[^A-Za-z0-9._-]/g, "_")
+            .slice(0, 80) || "export";
         const stream = new ReadableStream<Uint8Array>({
           async start(controller) {
             const enc = new TextEncoder();
-            if (!first.done) controller.enqueue(enc.encode("\ufeff" + first.value));
+            if (!first.done)
+              controller.enqueue(enc.encode("\ufeff" + first.value));
             try {
-              for await (const chunk of iter) controller.enqueue(enc.encode(chunk));
+              for await (const chunk of iter)
+                controller.enqueue(enc.encode(chunk));
               controller.close();
             } catch (e) {
               controller.error(e);
             }
           },
         });
-        return new Response(stream, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="${name}.csv"`, "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } });
+        return new Response(stream, {
+          headers: {
+            "Content-Type": "text/csv; charset=utf-8",
+            "Content-Disposition": `attachment; filename="${name}.csv"`,
+            "Cache-Control": "no-store",
+            "X-Content-Type-Options": "nosniff",
+          },
+        });
       }
       case "/api/v2/sqlite/backup":
-        return json({ ok: true, backup: await service.sqliteBackup(reqStr(b, "connectionId", 64), reqStr(b, "path", 2048)) });
+        return json({
+          ok: true,
+          backup: await service.sqliteBackup(
+            reqStr(b, "connectionId", 64),
+            reqStr(b, "path", 2048),
+          ),
+        });
       case "/api/v2/sqlite/restore/preview":
-        return json({ ok: true, preview: service.sqliteRestorePreview(reqStr(b, "backupPath", 2048), reqStr(b, "targetPath", 2048)) });
+        return json({
+          ok: true,
+          preview: service.sqliteRestorePreview(
+            reqStr(b, "backupPath", 2048),
+            reqStr(b, "targetPath", 2048),
+          ),
+        });
       case "/api/v2/sqlite/restore/execute":
-        return json({ ok: true, restored: service.sqliteRestoreExecute(reqStr(b, "backupPath", 2048), reqStr(b, "targetPath", 2048), reqStr(b, "token", 100)) });
+        return json({
+          ok: true,
+          restored: service.sqliteRestoreExecute(
+            reqStr(b, "backupPath", 2048),
+            reqStr(b, "targetPath", 2048),
+            reqStr(b, "token", 100),
+          ),
+        });
       case "/api/v2/format": {
         const sql = reqStr(b, "sql", 5_000_000);
         const engine = optStr(b, "engine", 32) ?? "sqlite";
-        const language = engine === "postgres" ? "postgresql" : engine === "mysql" ? "mysql" : "sqlite";
+        const language =
+          engine === "postgres"
+            ? "postgresql"
+            : engine === "mysql"
+              ? "mysql"
+              : "sqlite";
         try {
-          const formatted = formatSql(sql, { language, tabWidth: 2, keywordCase: "upper" });
+          const formatted = formatSql(sql, {
+            language,
+            tabWidth: 2,
+            keywordCase: "upper",
+          });
           return json({ ok: true, formatted });
         } catch {
           return json({ ok: true, formatted: sql.trim() });
@@ -255,7 +443,13 @@ export function createWorkbenchHandler(service: WorkbenchService, options: Workb
         return json({ ok: true, tables });
       }
       default:
-        return json({ ok: false, error: { code: "INVALID_REQUEST", message: "Unknown endpoint" } }, 404);
+        return json(
+          {
+            ok: false,
+            error: { code: "INVALID_REQUEST", message: "Unknown endpoint" },
+          },
+          404,
+        );
     }
   }
 
@@ -270,11 +464,30 @@ export function createWorkbenchHandler(service: WorkbenchService, options: Workb
       const blocked = guardLocalRequest(req);
       if (blocked) return blocked;
       if (isPage) {
-        return new Response(generateWorkbenchHtml({ token, title: options.title }), {
-          headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'" },
-        });
+        return new Response(
+          generateWorkbenchHtml({ token, title: options.title }),
+          {
+            headers: {
+              "Content-Type": "text/html; charset=utf-8",
+              "Cache-Control": "no-store",
+              "X-Content-Type-Options": "nosniff",
+              "Content-Security-Policy":
+                "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'",
+            },
+          },
+        );
       }
-      if (!tokenOk(req)) return json({ ok: false, error: { code: "AUTH_FAILED", message: "Missing or invalid workbench token. Reload the page." } }, 403);
+      if (!tokenOk(req))
+        return json(
+          {
+            ok: false,
+            error: {
+              code: "AUTH_FAILED",
+              message: "Missing or invalid workbench token. Reload the page.",
+            },
+          },
+          403,
+        );
       try {
         return await route(path, req);
       } catch (e) {

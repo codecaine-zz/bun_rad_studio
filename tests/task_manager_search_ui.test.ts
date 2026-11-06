@@ -1,17 +1,32 @@
 import { describe, it, expect } from "bun:test";
-import { createTaskTracker, fetchProcesses, matchesQuery, type ProcessItem } from "../applications/task_manager";
+import {
+  createTaskTracker,
+  fetchProcesses,
+  matchesQuery,
+  type ProcessItem,
+} from "../applications/task_manager";
 
 describe("Task Manager UI Alignment & Search Resilience Specification", () => {
   it("verifies Limit label and Limit dropdown are on the exact same line (same top coordinate)", () => {
     const win = createTaskTracker({ fullscreen: false });
-    
+
     // Check controls in win
-    const lblLimit = (win as any).controls.find((c: any) => c.id === "lbl_limit");
+    const lblLimit = (win as any).controls.find(
+      (c: any) => c.id === "lbl_limit",
+    );
     const ddLimit = (win as any).controls.find((c: any) => c.id === "dd_limit");
-    const lblFilter = (win as any).controls.find((c: any) => c.id === "lbl_filter");
-    const txtFilter = (win as any).controls.find((c: any) => c.id === "txt_filter");
-    const btnSearch = (win as any).controls.find((c: any) => c.id === "btn_apply_filter");
-    const btnClear = (win as any).controls.find((c: any) => c.id === "btn_clear_filter");
+    const lblFilter = (win as any).controls.find(
+      (c: any) => c.id === "lbl_filter",
+    );
+    const txtFilter = (win as any).controls.find(
+      (c: any) => c.id === "txt_filter",
+    );
+    const btnSearch = (win as any).controls.find(
+      (c: any) => c.id === "btn_apply_filter",
+    );
+    const btnClear = (win as any).controls.find(
+      (c: any) => c.id === "btn_clear_filter",
+    );
     const lblSort = (win as any).controls.find((c: any) => c.id === "lbl_sort");
     const ddSort = (win as any).controls.find((c: any) => c.id === "dd_sort");
 
@@ -50,7 +65,9 @@ describe("Task Manager UI Alignment & Search Resilience Specification", () => {
     // Search for terminal / ghosty
     const termMatches = procs.filter((p) => matchesQuery(p, "terminal"));
     // Search for nonexistent query
-    const nonMatches = procs.filter((p) => matchesQuery(p, "zzz999xyz_nonexistent"));
+    const nonMatches = procs.filter((p) =>
+      matchesQuery(p, "zzz999xyz_nonexistent"),
+    );
     expect(nonMatches.length).toBe(0);
 
     // Clear (empty query) returns 100% of processes

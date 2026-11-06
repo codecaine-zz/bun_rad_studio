@@ -21,7 +21,7 @@ import {
 export async function processFile(
   filePath: string,
   regex: RegExp,
-  replacement: string
+  replacement: string,
 ): Promise<FileTransformResult> {
   const original = await readContent(filePath);
   const newContent = replaceText(original, regex, replacement);
@@ -47,11 +47,14 @@ export async function runSdCoordinator(options: SdOptions): Promise<string[]> {
     options.stringMode,
     options.flags,
     options.ignoreCase,
-    options.wholeWord
+    options.wholeWord,
   );
 
   // Stdin mode
-  if (options.files.length === 0 || (options.files.length === 1 && options.files[0] === "-")) {
+  if (
+    options.files.length === 0 ||
+    (options.files.length === 1 && options.files[0] === "-")
+  ) {
     const input = await Bun.stdin.text();
     if (options.countOnly) {
       const count = countMatches(input, regex);
@@ -91,7 +94,9 @@ export async function runSdCoordinator(options: SdOptions): Promise<string[]> {
         await createBackup(result.filePath, options.backupExt);
       }
       await writeContent(result.filePath, result.newContent);
-      results.push(`Updated ${result.filePath} (${result.diffHunks.length} changes)`);
+      results.push(
+        `Updated ${result.filePath} (${result.diffHunks.length} changes)`,
+      );
     }
   }
 

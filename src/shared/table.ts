@@ -20,7 +20,7 @@ export function stripAnsi(text: string): string {
 /** Computes the maximum visible character width for each column across the header and all data `rows`. */
 export function calculateColumnWidths<T>(
   columns: ColumnDef<T>[],
-  rows: T[]
+  rows: T[],
 ): number[] {
   return columns.map((col) => {
     let max = stripAnsi(col.header).length;
@@ -37,7 +37,7 @@ export function calculateColumnWidths<T>(
 export function formatCell(
   text: string,
   width: number,
-  align: "left" | "right" = "left"
+  align: "left" | "right" = "left",
 ): string {
   const visibleLength = stripAnsi(text).length;
   const padding = " ".repeat(Math.max(0, width - visibleLength));
@@ -55,7 +55,7 @@ export function renderTable<T>(columns: ColumnDef<T>[], rows: T[]): string {
   const dataLines = rows.map((row) =>
     columns
       .map((col, i) => formatCell(col.getValue(row), widths[i]!, col.align))
-      .join("  ")
+      .join("  "),
   );
 
   return [headerLine, ...dataLines].join("\n");

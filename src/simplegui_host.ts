@@ -32,7 +32,11 @@ class HostedWebview {
   /** Tells SimpleWindow's native-window helpers to leave this alone. */
   readonly isHosted = true;
   private titleValue = "";
-  size: { width: number; height: number; hint: number } = { width: 0, height: 0, hint: 0 };
+  size: { width: number; height: number; hint: number } = {
+    width: 0,
+    height: 0,
+    hint: 0,
+  };
 
   constructor(private readonly session: HostedSession) {}
 
@@ -44,7 +48,8 @@ class HostedWebview {
     this.session.title = this.titleValue;
   }
   bind(name: string, fn: BoundFn): void {
-    if (this.session.binds.has(name)) throw new Error(`"${name}" is already bound`);
+    if (this.session.binds.has(name))
+      throw new Error(`"${name}" is already bound`);
     this.session.binds.set(name, fn);
     this.session.push({ t: "bind", name });
   }
@@ -118,14 +123,21 @@ export class HostedSession {
 
   /** Runs one call from the page and answers it (`{ t: "res", id, ok, v | e }`). Never throws. */
   async handleMessage(peer: HostedPeer, raw: string): Promise<void> {
-    if (this.closed || typeof raw !== "string" || raw.length > MAX_HOST_MESSAGE) return;
+    if (this.closed || typeof raw !== "string" || raw.length > MAX_HOST_MESSAGE)
+      return;
     let m: any;
     try {
       m = JSON.parse(raw);
     } catch {
       return;
     }
-    if (!m || m.t !== "call" || typeof m.name !== "string" || !Number.isSafeInteger(m.id)) return;
+    if (
+      !m ||
+      m.t !== "call" ||
+      typeof m.name !== "string" ||
+      !Number.isSafeInteger(m.id)
+    )
+      return;
     const reply = (body: object) => {
       try {
         peer.send(JSON.stringify({ t: "res", id: m.id, ...body }));
@@ -180,7 +192,8 @@ export function createHostedHub(maxOpen = 6): HostedHub {
   return {
     open(key, create) {
       close(key);
-      if (open.size >= maxOpen) throw new Error("Too many tools are open. Close one first.");
+      if (open.size >= maxOpen)
+        throw new Error("Too many tools are open. Close one first.");
       const session = new HostedSession(key);
       const win = create();
       try {
@@ -382,8 +395,18 @@ export function hostedPage(session: HostedSession, wsUrl: string): string {
   const script = `<script>${clientScript([...session.binds.keys()], wsUrl).replace(/<\/script/gi, "<\\/script")}</script>`;
   const html = session.html;
   const head = /<head[^>]*>/i.exec(html);
-  if (head) return html.slice(0, head.index + head[0].length) + script + html.slice(head.index + head[0].length);
+  if (head)
+    return (
+      html.slice(0, head.index + head[0].length) +
+      script +
+      html.slice(head.index + head[0].length)
+    );
   const doc = /<html[^>]*>/i.exec(html);
-  if (doc) return html.slice(0, doc.index + doc[0].length) + `<head>${script}</head>` + html.slice(doc.index + doc[0].length);
+  if (doc)
+    return (
+      html.slice(0, doc.index + doc[0].length) +
+      `<head>${script}</head>` +
+      html.slice(doc.index + doc[0].length)
+    );
   return `<!DOCTYPE html><html><head>${script}</head><body>${html}</body></html>`;
 }

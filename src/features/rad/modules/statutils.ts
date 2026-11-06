@@ -52,10 +52,18 @@ export function mean(nums: readonly number[]): number {
  * @throws When lengths differ.
  * @example `statutils.weightedMean([90, 80], [3, 1]); // 87.5`
  */
-export function weightedMean(values: readonly number[], weights: readonly number[]): number {
-  if (values.length !== weights.length) throw new Error(`[statutils.weightedMean] ${values.length} values vs ${weights.length} weights`);
+export function weightedMean(
+  values: readonly number[],
+  weights: readonly number[],
+): number {
+  if (values.length !== weights.length)
+    throw new Error(
+      `[statutils.weightedMean] ${values.length} values vs ${weights.length} weights`,
+    );
   const totalW = weights.reduce((a, b) => a + b, 0);
-  return totalW === 0 ? 0 : values.reduce((acc, v, i) => acc + v * weights[i]!, 0) / totalW;
+  return totalW === 0
+    ? 0
+    : values.reduce((acc, v, i) => acc + v * weights[i]!, 0) / totalW;
 }
 
 /** Geometric mean (growth rates). Requires positive values; returns 0 otherwise. @example `statutils.geometricMean([2, 8]); // 4` */
@@ -75,7 +83,9 @@ export function median(nums: readonly number[]): number {
   if (nums.length === 0) return 0;
   const sorted = [...nums].sort(ascending);
   const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0 ? (sorted[mid - 1]! + sorted[mid]!) / 2 : sorted[mid]!;
+  return sorted.length % 2 === 0
+    ? (sorted[mid - 1]! + sorted[mid]!) / 2
+    : sorted[mid]!;
 }
 
 /** All most-frequent values, ascending. @example `statutils.mode([1, 2, 2, 3, 3]); // [2, 3]` */
@@ -87,7 +97,10 @@ export function mode(nums: readonly number[]): number[] {
     freq.set(n, c);
     maxCount = Math.max(maxCount, c);
   }
-  return [...freq].filter(([, c]) => c === maxCount).map(([n]) => n).sort(ascending);
+  return [...freq]
+    .filter(([, c]) => c === maxCount)
+    .map(([n]) => n)
+    .sort(ascending);
 }
 
 /** `{ min, max }` in one pass (`{0, 0}` for empty). @example `statutils.minMax([3, -1, 9]); // { min: -1, max: 9 }` */
@@ -128,7 +141,10 @@ export function sem(nums: readonly number[]): number {
  * @example `statutils.percentile([1, 2, 3, 4, 5], 90); // 4.6`
  */
 export function percentile(nums: readonly number[], p: number): number {
-  if (p < 0 || p > 100) throw new Error(`[statutils.percentile] p must be within 0..100 (got ${p})`);
+  if (p < 0 || p > 100)
+    throw new Error(
+      `[statutils.percentile] p must be within 0..100 (got ${p})`,
+    );
   if (nums.length === 0) return 0;
   const sorted = [...nums].sort(ascending);
   const rank = (p / 100) * (sorted.length - 1);
@@ -142,7 +158,8 @@ export function quartiles(nums: readonly number[]): [number, number, number] {
   if (nums.length === 0) return [0, 0, 0];
   const sorted = [...nums].sort(ascending);
   const mid = Math.floor(sorted.length / 2);
-  const upper = sorted.length % 2 === 0 ? sorted.slice(mid) : sorted.slice(mid + 1);
+  const upper =
+    sorted.length % 2 === 0 ? sorted.slice(mid) : sorted.slice(mid + 1);
   return [median(sorted.slice(0, mid)), median(sorted), median(upper)];
 }
 
@@ -198,7 +215,10 @@ export function covariance(x: readonly number[], y: readonly number[]): number {
 }
 
 /** Pearson linear correlation, −1…1. @example `statutils.pearsonCorrelation([1, 2, 3], [2, 4, 6]); // 1` */
-export function pearsonCorrelation(x: readonly number[], y: readonly number[]): number {
+export function pearsonCorrelation(
+  x: readonly number[],
+  y: readonly number[],
+): number {
   const sX = stdDev(x);
   const sY = stdDev(y);
   if (sX === 0 || sY === 0) return 0;
@@ -212,9 +232,10 @@ export function pearsonCorrelation(x: readonly number[], y: readonly number[]): 
 export function rank(nums: readonly number[]): number[] {
   const order = nums.map((v, i) => ({ v, i })).sort((a, b) => a.v - b.v);
   const ranks = new Array<number>(nums.length);
-  for (let start = 0; start < order.length; ) {
+  for (let start = 0; start < order.length;) {
     let end = start;
-    while (end + 1 < order.length && order[end + 1]!.v === order[start]!.v) end++;
+    while (end + 1 < order.length && order[end + 1]!.v === order[start]!.v)
+      end++;
     const avg = (start + end) / 2 + 1;
     for (let k = start; k <= end; k++) ranks[order[k]!.i] = avg;
     start = end + 1;
@@ -223,14 +244,21 @@ export function rank(nums: readonly number[]): number[] {
 }
 
 /** Spearman rank correlation (monotonic, outlier-robust), −1…1. @example `statutils.spearmanCorrelation([1, 2, 3], [1, 4, 9]); // 1` */
-export function spearmanCorrelation(x: readonly number[], y: readonly number[]): number {
+export function spearmanCorrelation(
+  x: readonly number[],
+  y: readonly number[],
+): number {
   if (x.length !== y.length || x.length < 2) return 0;
   return pearsonCorrelation(rank(x), rank(y));
 }
 
 /** Ordinary least squares fit `y = slope·x + intercept`. @example `statutils.linearRegression([1, 2, 3], [3, 5, 7]); // { slope: 2, intercept: 1, r2: 1 }` */
-export function linearRegression(x: readonly number[], y: readonly number[]): LinearModel {
-  if (x.length !== y.length || x.length < 2) return { slope: 0, intercept: 0, r2: 0 };
+export function linearRegression(
+  x: readonly number[],
+  y: readonly number[],
+): LinearModel {
+  if (x.length !== y.length || x.length < 2)
+    return { slope: 0, intercept: 0, r2: 0 };
   const r = pearsonCorrelation(x, y);
   const sX = stdDev(x);
   const slope = sX === 0 ? 0 : r * (stdDev(y) / sX);
@@ -243,7 +271,11 @@ export function predictLinear(model: LinearModel, x: number): number {
 }
 
 /** Standard score of one value. @example `statutils.zScore(130, 100, 15); // 2` */
-export function zScore(val: number, meanVal: number, stdDevVal: number): number {
+export function zScore(
+  val: number,
+  meanVal: number,
+  stdDevVal: number,
+): number {
   if (stdDevVal === 0) return 0;
   return (val - meanVal) / stdDevVal;
 }
@@ -262,7 +294,10 @@ export function normalize(nums: readonly number[]): number[] {
 }
 
 /** Simple moving average over a sliding window (O(n)). @example `statutils.movingAverage([1, 2, 3, 4], 2); // [1.5, 2.5, 3.5]` */
-export function movingAverage(nums: readonly number[], windowSize: number): number[] {
+export function movingAverage(
+  nums: readonly number[],
+  windowSize: number,
+): number[] {
   if (windowSize <= 0 || nums.length < windowSize) return [];
   let sum = 0;
   for (let i = 0; i < windowSize; i++) sum += nums[i]!;
@@ -280,10 +315,18 @@ export function movingAverage(nums: readonly number[], windowSize: number): numb
  * @throws When `alpha` is out of range.
  * @example `statutils.exponentialMovingAverage([10, 20, 30], 0.5); // [10, 15, 22.5]`
  */
-export function exponentialMovingAverage(nums: readonly number[], alpha: number): number[] {
-  if (!(alpha > 0 && alpha <= 1)) throw new Error(`[statutils.exponentialMovingAverage] alpha must be in (0, 1] (got ${alpha})`);
+export function exponentialMovingAverage(
+  nums: readonly number[],
+  alpha: number,
+): number[] {
+  if (!(alpha > 0 && alpha <= 1))
+    throw new Error(
+      `[statutils.exponentialMovingAverage] alpha must be in (0, 1] (got ${alpha})`,
+    );
   const out: number[] = [];
-  nums.forEach((v, i) => out.push(i === 0 ? v : alpha * v + (1 - alpha) * out[i - 1]!));
+  nums.forEach((v, i) =>
+    out.push(i === 0 ? v : alpha * v + (1 - alpha) * out[i - 1]!),
+  );
   return out;
 }
 
@@ -296,8 +339,13 @@ export function histogram(nums: readonly number[], bins = 10): HistogramBin[] {
   if (nums.length === 0 || bins < 1) return [];
   const { min, max } = minMax(nums);
   const width = (max - min) / bins || 1;
-  const out: HistogramBin[] = Array.from({ length: bins }, (_, i) => ({ start: min + i * width, end: min + (i + 1) * width, count: 0 }));
-  for (const n of nums) out[Math.min(bins - 1, Math.floor((n - min) / width))]!.count++;
+  const out: HistogramBin[] = Array.from({ length: bins }, (_, i) => ({
+    start: min + i * width,
+    end: min + (i + 1) * width,
+    count: 0,
+  }));
+  for (const n of nums)
+    out[Math.min(bins - 1, Math.floor((n - min) / width))]!.count++;
   return out;
 }
 

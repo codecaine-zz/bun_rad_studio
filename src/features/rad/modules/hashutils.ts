@@ -9,7 +9,15 @@ import { hash } from "bun";
 /**
  * Non-cryptographic hash algorithm identifiers supported by `Bun.hash` and {@link hashHex}.
  */
-export type HashAlgorithm = "wyhash" | "cityHash64" | "cityHash32" | "crc32" | "adler32" | "murmur32v3" | "murmur64v2" | "rapidhash";
+export type HashAlgorithm =
+  | "wyhash"
+  | "cityHash64"
+  | "cityHash32"
+  | "crc32"
+  | "adler32"
+  | "murmur32v3"
+  | "murmur64v2"
+  | "rapidhash";
 
 // Doer: Normalize seed to bigint for 64-bit Bun hashes
 function toBigIntSeed(seed?: number | bigint): bigint | undefined {
@@ -20,7 +28,10 @@ function toBigIntSeed(seed?: number | bigint): bigint | undefined {
 /**
  * Computes a 64-bit `wyhash` digest as a `bigint` using native `Bun.hash.wyhash`.
  */
-export function wyhash(data: string | Uint8Array, seed?: number | bigint): bigint {
+export function wyhash(
+  data: string | Uint8Array,
+  seed?: number | bigint,
+): bigint {
   return hash.wyhash(data, toBigIntSeed(seed));
 }
 
@@ -44,7 +55,10 @@ export function adler32(data: string | Uint8Array): number {
 /**
  * Computes a 64-bit CityHash digest as a `bigint` using native `Bun.hash.cityHash64`.
  */
-export function cityHash64(data: string | Uint8Array, seed?: number | bigint): bigint {
+export function cityHash64(
+  data: string | Uint8Array,
+  seed?: number | bigint,
+): bigint {
   return hash.cityHash64(data, toBigIntSeed(seed));
 }
 
@@ -68,7 +82,10 @@ export function murmur32v3(data: string | Uint8Array, seed?: number): number {
 /**
  * Computes a 64-bit MurmurHash2 (`murmur64v2`) digest as a `bigint` using native `Bun.hash.murmur64v2`.
  */
-export function murmur64v2(data: string | Uint8Array, seed?: number | bigint): bigint {
+export function murmur64v2(
+  data: string | Uint8Array,
+  seed?: number | bigint,
+): bigint {
   return hash.murmur64v2(data, toBigIntSeed(seed));
 }
 
@@ -76,7 +93,10 @@ export function murmur64v2(data: string | Uint8Array, seed?: number | bigint): b
 /**
  * Computes a 64-bit `rapidhash` digest as a `bigint` using native `Bun.hash.rapidhash`.
  */
-export function rapidhash(data: string | Uint8Array, seed?: number | bigint): bigint {
+export function rapidhash(
+  data: string | Uint8Array,
+  seed?: number | bigint,
+): bigint {
   return hash.rapidhash(data, toBigIntSeed(seed));
 }
 
@@ -84,7 +104,10 @@ export function rapidhash(data: string | Uint8Array, seed?: number | bigint): bi
 /**
  * Computes a lowercase hexadecimal string digest of `data` using the selected {@link HashAlgorithm}.
  */
-export function hashHex(data: string | Uint8Array, algo: HashAlgorithm = "wyhash"): string {
+export function hashHex(
+  data: string | Uint8Array,
+  algo: HashAlgorithm = "wyhash",
+): string {
   switch (algo) {
     case "wyhash":
       return wyhash(data).toString(16);
@@ -119,8 +142,16 @@ export interface BloomFilter {
 /**
  * Creates a {@link BloomFilter} sized for `expectedItems` at the target `falsePositiveRate` (default `1%`).
  */
-export function createBloomFilter(expectedItems = 1000, falsePositiveRate = 0.01): BloomFilter {
-  const m = Math.max(64, Math.ceil(-(expectedItems * Math.log(falsePositiveRate)) / (Math.LN2 * Math.LN2)));
+export function createBloomFilter(
+  expectedItems = 1000,
+  falsePositiveRate = 0.01,
+): BloomFilter {
+  const m = Math.max(
+    64,
+    Math.ceil(
+      -(expectedItems * Math.log(falsePositiveRate)) / (Math.LN2 * Math.LN2),
+    ),
+  );
   const k = Math.max(1, Math.round((m / expectedItems) * Math.LN2));
   const buffer = new Uint8Array(Math.ceil(m / 8));
   let itemCount = 0;

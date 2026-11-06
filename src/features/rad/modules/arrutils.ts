@@ -73,7 +73,9 @@ export function range(start: number, end?: number, step = 1): number[] {
  * Remove falsy values (`false`, `null`, `0`, `""`, `undefined`, `NaN`).
  * @example `arrutils.compact([0, 1, "", "a", null]); // [1, "a"]`
  */
-export function compact<T>(arr: readonly (T | null | undefined | false | 0 | "")[]): T[] {
+export function compact<T>(
+  arr: readonly (T | null | undefined | false | 0 | "")[],
+): T[] {
   return arr.filter((item): item is T => Boolean(item));
 }
 
@@ -81,7 +83,10 @@ export function compact<T>(arr: readonly (T | null | undefined | false | 0 | "")
  * Map and drop `null`/`undefined` results in one pass (Kotlin's `mapNotNull`).
  * @example `arrutils.filterMap(["1", "x", "3"], (s) => (isNaN(+s) ? null : +s)); // [1, 3]`
  */
-export function filterMap<T, R>(arr: readonly T[], fn: (item: T, index: number) => R | null | undefined): R[] {
+export function filterMap<T, R>(
+  arr: readonly T[],
+  fn: (item: T, index: number) => R | null | undefined,
+): R[] {
   const out: R[] = [];
   arr.forEach((item, i) => {
     const r = fn(item, i);
@@ -114,9 +119,11 @@ export const uniqBy = unique;
  * @example `arrutils.chunk([1, 2, 3, 4, 5], 2); // [[1, 2], [3, 4], [5]]`
  */
 export function chunk<T>(arr: readonly T[], size: number): T[][] {
-  if (size <= 0) throw new Error("[arrutils] Chunk size must be greater than zero");
+  if (size <= 0)
+    throw new Error("[arrutils] Chunk size must be greater than zero");
   const result: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) result.push(arr.slice(i, i + size));
+  for (let i = 0; i < arr.length; i += size)
+    result.push(arr.slice(i, i + size));
   return result;
 }
 
@@ -126,9 +133,13 @@ export function chunk<T>(arr: readonly T[], size: number): T[][] {
  * @example `arrutils.windowed([1, 2, 3, 4], 2); // [[1, 2], [2, 3], [3, 4]]`
  */
 export function windowed<T>(arr: readonly T[], size: number, step = 1): T[][] {
-  if (size < 1 || step < 1) throw new Error(`[arrutils.windowed] size and step must be >= 1 (got ${size}, ${step})`);
+  if (size < 1 || step < 1)
+    throw new Error(
+      `[arrutils.windowed] size and step must be >= 1 (got ${size}, ${step})`,
+    );
   const out: T[][] = [];
-  for (let i = 0; i + size <= arr.length; i += step) out.push(arr.slice(i, i + size));
+  for (let i = 0; i + size <= arr.length; i += step)
+    out.push(arr.slice(i, i + size));
   return out;
 }
 
@@ -154,7 +165,10 @@ export function flattenDeep<T = unknown>(arr: readonly unknown[]): T[] {
  * Split into `[matches, nonMatches]`.
  * @example `arrutils.partition([1, 2, 3, 4], (n) => n % 2 === 0); // [[2, 4], [1, 3]]`
  */
-export function partition<T>(arr: readonly T[], predicate: (item: T) => boolean): [T[], T[]] {
+export function partition<T>(
+  arr: readonly T[],
+  predicate: (item: T) => boolean,
+): [T[], T[]] {
   const pass: T[] = [];
   const fail: T[] = [];
   for (const item of arr) (predicate(item) ? pass : fail).push(item);
@@ -162,7 +176,10 @@ export function partition<T>(arr: readonly T[], predicate: (item: T) => boolean)
 }
 
 /** Count items matching a predicate. @example `arrutils.count([1, 2, 3], (n) => n > 1); // 2` */
-export function count<T>(arr: readonly T[], predicate: (item: T) => boolean): number {
+export function count<T>(
+  arr: readonly T[],
+  predicate: (item: T) => boolean,
+): number {
   let n = 0;
   for (const item of arr) if (predicate(item)) n++;
   return n;
@@ -178,9 +195,16 @@ export function intersection<T>(a: readonly T[], b: readonly T[]): T[] {
  * Intersection by derived key (items taken from `a`).
  * @example `arrutils.intersectionBy([{ id: 1 }, { id: 2 }], [{ id: 2 }], (x) => x.id); // [{ id: 2 }]`
  */
-export function intersectionBy<T>(a: readonly T[], b: readonly T[], keyFn: (item: T) => unknown): T[] {
+export function intersectionBy<T>(
+  a: readonly T[],
+  b: readonly T[],
+  keyFn: (item: T) => unknown,
+): T[] {
   const keys = new Set(b.map(keyFn));
-  return unique(a.filter((item) => keys.has(keyFn(item))), keyFn);
+  return unique(
+    a.filter((item) => keys.has(keyFn(item))),
+    keyFn,
+  );
 }
 
 /** Unique items in `a` that are not in `b`. @example `arrutils.difference([1, 2, 3], [2]); // [1, 3]` */
@@ -193,9 +217,16 @@ export function difference<T>(a: readonly T[], b: readonly T[]): T[] {
  * Difference by derived key.
  * @example `arrutils.differenceBy([{ id: 1 }, { id: 2 }], [{ id: 2 }], (x) => x.id); // [{ id: 1 }]`
  */
-export function differenceBy<T>(a: readonly T[], b: readonly T[], keyFn: (item: T) => unknown): T[] {
+export function differenceBy<T>(
+  a: readonly T[],
+  b: readonly T[],
+  keyFn: (item: T) => unknown,
+): T[] {
   const keys = new Set(b.map(keyFn));
-  return unique(a.filter((item) => !keys.has(keyFn(item))), keyFn);
+  return unique(
+    a.filter((item) => !keys.has(keyFn(item))),
+    keyFn,
+  );
 }
 
 /** Unique items from all arrays, in first-seen order. @example `arrutils.union([1, 2], [2, 3]); // [1, 2, 3]` */
@@ -204,7 +235,11 @@ export function union<T>(...arrays: readonly (readonly T[])[]): T[] {
 }
 
 /** Union by derived key. @example `arrutils.unionBy([{ id: 1 }], [{ id: 1 }, { id: 2 }], (x) => x.id).length; // 2` */
-export function unionBy<T>(a: readonly T[], b: readonly T[], keyFn: (item: T) => unknown): T[] {
+export function unionBy<T>(
+  a: readonly T[],
+  b: readonly T[],
+  keyFn: (item: T) => unknown,
+): T[] {
   return unique([...a, ...b], keyFn);
 }
 
@@ -224,14 +259,20 @@ export function dropRight<T>(arr: readonly T[], count = 1): T[] {
 }
 
 /** Drop leading items while `predicate` holds. @example `arrutils.dropWhile([1, 2, 5, 1], (n) => n < 3); // [5, 1]` */
-export function dropWhile<T>(arr: readonly T[], predicate: (item: T) => boolean): T[] {
+export function dropWhile<T>(
+  arr: readonly T[],
+  predicate: (item: T) => boolean,
+): T[] {
   let idx = 0;
   while (idx < arr.length && predicate(arr[idx]!)) idx++;
   return arr.slice(idx);
 }
 
 /** Drop trailing items while `predicate` holds. @example `arrutils.dropRightWhile([1, 5, 2], (n) => n < 3); // [1, 5]` */
-export function dropRightWhile<T>(arr: readonly T[], predicate: (item: T) => boolean): T[] {
+export function dropRightWhile<T>(
+  arr: readonly T[],
+  predicate: (item: T) => boolean,
+): T[] {
   let idx = arr.length;
   while (idx > 0 && predicate(arr[idx - 1]!)) idx--;
   return arr.slice(0, idx);
@@ -248,13 +289,19 @@ export function takeRight<T>(arr: readonly T[], count = 1): T[] {
 }
 
 /** Leading items while `predicate` holds. @example `arrutils.takeWhile([1, 2, 5, 1], (n) => n < 3); // [1, 2]` */
-export function takeWhile<T>(arr: readonly T[], predicate: (item: T) => boolean): T[] {
+export function takeWhile<T>(
+  arr: readonly T[],
+  predicate: (item: T) => boolean,
+): T[] {
   const idx = arr.findIndex((item) => !predicate(item));
   return idx === -1 ? [...arr] : arr.slice(0, idx);
 }
 
 /** Trailing items while `predicate` holds. @example `arrutils.takeRightWhile([5, 1, 2], (n) => n < 3); // [1, 2]` */
-export function takeRightWhile<T>(arr: readonly T[], predicate: (item: T) => boolean): T[] {
+export function takeRightWhile<T>(
+  arr: readonly T[],
+  predicate: (item: T) => boolean,
+): T[] {
   let idx = arr.length;
   while (idx > 0 && predicate(arr[idx - 1]!)) idx--;
   return arr.slice(idx);
@@ -264,7 +311,10 @@ export function takeRightWhile<T>(arr: readonly T[], predicate: (item: T) => boo
  * Index by key (last item wins).
  * @example `arrutils.keyBy([{ id: "a" }], (x) => x.id); // { a: { id: "a" } }`
  */
-export function keyBy<T, K extends PropertyKey>(arr: readonly T[], keyFn: (item: T) => K): Record<K, T> {
+export function keyBy<T, K extends PropertyKey>(
+  arr: readonly T[],
+  keyFn: (item: T) => K,
+): Record<K, T> {
   const result = {} as Record<K, T>;
   for (const item of arr) result[keyFn(item)] = item;
   return result;
@@ -274,7 +324,10 @@ export function keyBy<T, K extends PropertyKey>(arr: readonly T[], keyFn: (item:
  * Count items per key.
  * @example `arrutils.countBy(["a", "bb", "cc"], (s) => s.length); // { 1: 1, 2: 2 }`
  */
-export function countBy<T, K extends PropertyKey>(arr: readonly T[], keyFn: (item: T) => K): Record<K, number> {
+export function countBy<T, K extends PropertyKey>(
+  arr: readonly T[],
+  keyFn: (item: T) => K,
+): Record<K, number> {
   const result = {} as Record<K, number>;
   for (const item of arr) {
     const key = keyFn(item);
@@ -287,14 +340,20 @@ export function countBy<T, K extends PropertyKey>(arr: readonly T[], keyFn: (ite
  * Group items into arrays per key (insertion order kept).
  * @example `arrutils.groupBy([1, 2, 3], (n) => (n % 2 ? "odd" : "even")); // { odd: [1, 3], even: [2] }`
  */
-export function groupBy<T, K extends PropertyKey>(arr: readonly T[], keyFn: (item: T) => K): Record<K, T[]> {
+export function groupBy<T, K extends PropertyKey>(
+  arr: readonly T[],
+  keyFn: (item: T) => K,
+): Record<K, T[]> {
   const result = {} as Record<K, T[]>;
   for (const item of arr) (result[keyFn(item)] ??= []).push(item);
   return result;
 }
 
 /** Item with the smallest selector value. @example `arrutils.minBy([{ a: 3 }, { a: 1 }], (x) => x.a); // { a: 1 }` */
-export function minBy<T>(arr: readonly T[], fn: (item: T) => number): T | undefined {
+export function minBy<T>(
+  arr: readonly T[],
+  fn: (item: T) => number,
+): T | undefined {
   let best: T | undefined;
   let bestVal = Infinity;
   for (const item of arr) {
@@ -305,7 +364,10 @@ export function minBy<T>(arr: readonly T[], fn: (item: T) => number): T | undefi
 }
 
 /** Item with the largest selector value. @example `arrutils.maxBy([{ a: 3 }, { a: 1 }], (x) => x.a); // { a: 3 }` */
-export function maxBy<T>(arr: readonly T[], fn: (item: T) => number): T | undefined {
+export function maxBy<T>(
+  arr: readonly T[],
+  fn: (item: T) => number,
+): T | undefined {
   let best: T | undefined;
   let bestVal = -Infinity;
   for (const item of arr) {
@@ -329,7 +391,11 @@ export function zip<T, U>(a: readonly T[], b: readonly U[]): [T, U][] {
 }
 
 /** Combine items by index with a function. @example `arrutils.zipWith([1, 2], [10, 20], (a, b) => a + b); // [11, 22]` */
-export function zipWith<T, U, R>(a: readonly T[], b: readonly U[], fn: (x: T, y: U, index: number) => R): R[] {
+export function zipWith<T, U, R>(
+  a: readonly T[],
+  b: readonly U[],
+  fn: (x: T, y: U, index: number) => R,
+): R[] {
   return zip(a, b).map(([x, y], i) => fn(x, y, i));
 }
 
@@ -339,7 +405,10 @@ export function unzip<T, U>(pairs: readonly [T, U][]): [T[], U[]] {
 }
 
 /** Build an object from parallel key/value arrays. @example `arrutils.zipObject(["a", "b"], [1, 2]); // { a: 1, b: 2 }` */
-export function zipObject<K extends PropertyKey, V>(keys: readonly K[], values: readonly V[]): Record<K, V> {
+export function zipObject<K extends PropertyKey, V>(
+  keys: readonly K[],
+  values: readonly V[],
+): Record<K, V> {
   const result = {} as Record<K, V>;
   const len = Math.min(keys.length, values.length);
   for (let i = 0; i < len; i++) result[keys[i]!] = values[i]!;
@@ -356,7 +425,10 @@ export function without<T>(arr: readonly T[], ...values: T[]): T[] {
  * Fisher–Yates shuffle. Pass a seeded `rng` for reproducible results.
  * @example `arrutils.shuffle([1, 2, 3]);`
  */
-export function shuffle<T>(arr: readonly T[], rng: () => number = Math.random): T[] {
+export function shuffle<T>(
+  arr: readonly T[],
+  rng: () => number = Math.random,
+): T[] {
   const copy = [...arr];
   for (let i = copy.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
@@ -366,7 +438,11 @@ export function shuffle<T>(arr: readonly T[], rng: () => number = Math.random): 
 }
 
 /** `count` distinct random items (without replacement). @example `arrutils.sample(["a", "b", "c"], 2);` */
-export function sample<T>(arr: readonly T[], count = 1, rng: () => number = Math.random): T[] {
+export function sample<T>(
+  arr: readonly T[],
+  count = 1,
+  rng: () => number = Math.random,
+): T[] {
   if (arr.length === 0 || count <= 0) return [];
   return shuffle(arr, rng).slice(0, Math.min(count, arr.length));
 }
@@ -378,7 +454,11 @@ export const sampleSize = sample;
  * Stable sort by one key.
  * @example `arrutils.sortBy(users, (u) => u.age, "desc");`
  */
-export function sortBy<T>(arr: readonly T[], keyFn: (item: T) => Sortable, direction: SortDirection = "asc"): T[] {
+export function sortBy<T>(
+  arr: readonly T[],
+  keyFn: (item: T) => Sortable,
+  direction: SortDirection = "asc",
+): T[] {
   const sign = direction === "asc" ? 1 : -1;
   return [...arr].sort((a, b) => sign * compareValues(keyFn(a), keyFn(b)));
 }
@@ -390,7 +470,11 @@ export function sortBy<T>(arr: readonly T[], keyFn: (item: T) => Sortable, direc
  * arrutils.orderBy(users, [(u) => u.team, (u) => u.score], ["asc", "desc"]);
  * ```
  */
-export function orderBy<T>(arr: readonly T[], keyFns: readonly ((item: T) => Sortable)[], directions: readonly SortDirection[] = []): T[] {
+export function orderBy<T>(
+  arr: readonly T[],
+  keyFns: readonly ((item: T) => Sortable)[],
+  directions: readonly SortDirection[] = [],
+): T[] {
   return [...arr].sort((a, b) => {
     for (let i = 0; i < keyFns.length; i++) {
       const cmp = compareValues(keyFns[i]!(a), keyFns[i]!(b));
@@ -401,8 +485,12 @@ export function orderBy<T>(arr: readonly T[], keyFns: readonly ((item: T) => Sor
 }
 
 /** `true` when already sorted ascending by `keyFn` (identity by default). @example `arrutils.isSorted([1, 2, 2, 5]); // true` */
-export function isSorted<T>(arr: readonly T[], keyFn: (item: T) => Sortable = (x) => x as unknown as Sortable): boolean {
-  for (let i = 1; i < arr.length; i++) if (compareValues(keyFn(arr[i - 1]!), keyFn(arr[i]!)) > 0) return false;
+export function isSorted<T>(
+  arr: readonly T[],
+  keyFn: (item: T) => Sortable = (x) => x as unknown as Sortable,
+): boolean {
+  for (let i = 1; i < arr.length; i++)
+    if (compareValues(keyFn(arr[i - 1]!), keyFn(arr[i]!)) > 0) return false;
   return true;
 }
 
@@ -410,16 +498,24 @@ export function isSorted<T>(arr: readonly T[], keyFn: (item: T) => Sortable = (x
  * Index of `target` in an ascending-sorted array via binary search (O(log n)), or `-1`.
  * @example `arrutils.binarySearch([1, 3, 5, 7], 5); // 2`
  */
-export function binarySearch<T extends Sortable>(sorted: readonly T[], target: T): number {
+export function binarySearch<T extends Sortable>(
+  sorted: readonly T[],
+  target: T,
+): number {
   const idx = sortedIndex(sorted, target);
-  return idx < sorted.length && compareValues(sorted[idx]!, target) === 0 ? idx : -1;
+  return idx < sorted.length && compareValues(sorted[idx]!, target) === 0
+    ? idx
+    : -1;
 }
 
 /**
  * Lowest index at which `value` could be inserted to keep `sorted` ascending.
  * @example `arrutils.sortedIndex([10, 20, 30], 25); // 2`
  */
-export function sortedIndex<T extends Sortable>(sorted: readonly T[], value: T): number {
+export function sortedIndex<T extends Sortable>(
+  sorted: readonly T[],
+  value: T,
+): number {
   let lo = 0;
   let hi = sorted.length;
   while (lo < hi) {
@@ -431,14 +527,20 @@ export function sortedIndex<T extends Sortable>(sorted: readonly T[], value: T):
 }
 
 /** Occurrence count of each primitive value. @example `arrutils.frequency(["a", "b", "a"]); // { a: 2, b: 1 }` */
-export function frequency<T extends PropertyKey>(arr: readonly T[]): Record<T, number> {
+export function frequency<T extends PropertyKey>(
+  arr: readonly T[],
+): Record<T, number> {
   const counts = {} as Record<T, number>;
   for (const item of arr) counts[item] = (counts[item] || 0) + 1;
   return counts;
 }
 
 /** Copy with `items` inserted at `index` (negative counts from end). @example `arrutils.insertAt([1, 4], 1, 2, 3); // [1, 2, 3, 4]` */
-export function insertAt<T>(arr: readonly T[], index: number, ...items: T[]): T[] {
+export function insertAt<T>(
+  arr: readonly T[],
+  index: number,
+  ...items: T[]
+): T[] {
   const copy = [...arr];
   copy.splice(index, 0, ...items);
   return copy;
@@ -447,7 +549,9 @@ export function insertAt<T>(arr: readonly T[], index: number, ...items: T[]): T[
 /** Copy without the item at `index` (negative counts from end). @example `arrutils.removeAt([1, 2, 3], -1); // [1, 2]` */
 export function removeAt<T>(arr: readonly T[], index: number): T[] {
   const k = index < 0 ? arr.length + index : index;
-  return k < 0 || k >= arr.length ? [...arr] : [...arr.slice(0, k), ...arr.slice(k + 1)];
+  return k < 0 || k >= arr.length
+    ? [...arr]
+    : [...arr.slice(0, k), ...arr.slice(k + 1)];
 }
 
 /** Copy with the item at `from` moved to `to` (drag-and-drop reordering). @example `arrutils.moveItem(["a", "b", "c"], 0, 2); // ["b", "c", "a"]` */
@@ -475,8 +579,13 @@ export function toggleItem<T>(arr: readonly T[], item: T): T[] {
  * Cartesian product of any number of arrays.
  * @example `arrutils.cartesianProduct([1, 2], ["a", "b"]); // [[1,"a"],[1,"b"],[2,"a"],[2,"b"]]`
  */
-export function cartesianProduct<T>(...arrays: readonly (readonly T[])[]): T[][] {
-  return arrays.reduce<T[][]>((acc, arr) => acc.flatMap((combo) => arr.map((x) => [...combo, x])), [[]]);
+export function cartesianProduct<T>(
+  ...arrays: readonly (readonly T[])[]
+): T[][] {
+  return arrays.reduce<T[][]>(
+    (acc, arr) => acc.flatMap((combo) => arr.map((x) => [...combo, x])),
+    [[]],
+  );
 }
 
 /**

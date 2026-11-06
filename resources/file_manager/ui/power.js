@@ -11,20 +11,92 @@ import { toast } from "./menus.js";
 import { emit, state } from "./state.js";
 
 /** The groups the tab strip is arranged in, in this order. A tab can name one with `group`. */
-const GROUPS = [["files", "Files and text"], ["data", "Databases"], ["media", "Pictures and media"], ["automate", "Automate"], ["security", "Security"], ["network", "Network"], ["handy", "Handy"], ["more", "More"]];
-const DEFAULT_GROUP = { find: "files", compare: "files", projects: "files", sd: "files", code: "files", dev: "files", databases: "data", paint: "media", phonon: "media", watch: "automate", actions: "automate", serve: "automate", ollama: "automate", bionic: "automate", crypto: "security", vault: "security", ip: "network", net: "network", calc: "handy", timer: "handy", qr: "handy" };
+const GROUPS = [
+  ["files", "Files and text"],
+  ["data", "Databases"],
+  ["media", "Pictures and media"],
+  ["automate", "Automate"],
+  ["security", "Security"],
+  ["network", "Network"],
+  ["handy", "Handy"],
+  ["more", "More"],
+];
+const DEFAULT_GROUP = {
+  find: "files",
+  compare: "files",
+  projects: "files",
+  sd: "files",
+  code: "files",
+  dev: "files",
+  databases: "data",
+  paint: "media",
+  phonon: "media",
+  watch: "automate",
+  actions: "automate",
+  serve: "automate",
+  ollama: "automate",
+  bionic: "automate",
+  crypto: "security",
+  vault: "security",
+  ip: "network",
+  net: "network",
+  calc: "handy",
+  timer: "handy",
+  qr: "handy",
+};
 const EMBEDDED_IDS = new Set([
-  "calc", "timer", "paint",
-  "balatro", "blackjack", "breakout", "codecaine_bros", "connect4",
-  "dr_codecaine", "flappy_bird", "frogger", "lolo", "math_munchers",
-  "maze_generator", "minesweeper", "pacman", "poker", "pong",
-  "rat_screw", "rodents_revenge", "skifree", "snake", "tetris",
-  "tictactoe", "typing", "word_search", "yahtzee",
-  "jezzball", "chips_challenge", "pipe_dream", "solitaire", "pinball",
-  "asteroids", "space_invaders", "bomberman", "missile_command", "qbert",
-  "centipede", "artillery", "pool", "lunar_lander", "cyber2048",
-  "sokoban", "reversi_checkers", "uno", "bowling", "darts", "bejeweled", "balloon_fight",
-  "marble_madness", "mappy", "cyber_maker",
+  "calc",
+  "timer",
+  "paint",
+  "balatro",
+  "blackjack",
+  "breakout",
+  "codecaine_bros",
+  "connect4",
+  "dr_codecaine",
+  "flappy_bird",
+  "frogger",
+  "lolo",
+  "math_munchers",
+  "maze_generator",
+  "minesweeper",
+  "pacman",
+  "poker",
+  "pong",
+  "rat_screw",
+  "rodents_revenge",
+  "skifree",
+  "snake",
+  "tetris",
+  "tictactoe",
+  "typing",
+  "word_search",
+  "yahtzee",
+  "jezzball",
+  "chips_challenge",
+  "pipe_dream",
+  "solitaire",
+  "pinball",
+  "asteroids",
+  "space_invaders",
+  "bomberman",
+  "missile_command",
+  "qbert",
+  "centipede",
+  "artillery",
+  "pool",
+  "lunar_lander",
+  "cyber2048",
+  "sokoban",
+  "reversi_checkers",
+  "uno",
+  "bowling",
+  "darts",
+  "bejeweled",
+  "balloon_fight",
+  "marble_madness",
+  "mappy",
+  "cyber_maker",
 ]);
 const HOSTED_IDS = new Set(["api", "bundler", "env"]);
 
@@ -35,21 +107,66 @@ let activeId = null;
 /** @type {{ open: (tabId?: string, opts?: any) => void, leave: () => void } | null} */
 let host = null;
 
-const groupOf = (t) => (GROUPS.some(([g]) => g === t.group) ? t.group : DEFAULT_GROUP[t.id] ?? "more");
+const groupOf = (t) =>
+  GROUPS.some(([g]) => g === t.group)
+    ? t.group
+    : (DEFAULT_GROUP[t.id] ?? "more");
 
 /** The tools in the order the tab strip shows them within a group; a tool not listed comes after these. */
-const TOOL_ORDER = ["find", "compare", "sd", "code", "dev", "projects", "bundler", "watch", "actions", "cliutils", "serve", "ollama", "bionic", "crypto", "vault", "env", "ip", "net", "subs", "downloads", "api", "calc", "timer", "qr", "imagestudio", "paint", "player", "mediastudio", "phonon", "databases", "tasks", "sysinfo", "games"];
+const TOOL_ORDER = [
+  "find",
+  "compare",
+  "sd",
+  "code",
+  "dev",
+  "projects",
+  "bundler",
+  "watch",
+  "actions",
+  "cliutils",
+  "serve",
+  "ollama",
+  "bionic",
+  "crypto",
+  "vault",
+  "env",
+  "ip",
+  "net",
+  "subs",
+  "downloads",
+  "api",
+  "calc",
+  "timer",
+  "qr",
+  "imagestudio",
+  "paint",
+  "player",
+  "mediastudio",
+  "phonon",
+  "databases",
+  "tasks",
+  "sysinfo",
+  "games",
+];
 
 /** The tabs in the order they are shown: grouped, then in a steady order within a group. */
 function orderedTabs() {
-  const rank = (t) => (TOOL_ORDER.includes(t.id) ? TOOL_ORDER.indexOf(t.id) : TOOL_ORDER.length);
-  return GROUPS.flatMap(([g]) => tabs.filter((t) => groupOf(t) === g).sort((a, b) => rank(a) - rank(b)));
+  const rank = (t) =>
+    TOOL_ORDER.includes(t.id) ? TOOL_ORDER.indexOf(t.id) : TOOL_ORDER.length;
+  return GROUPS.flatMap(([g]) =>
+    tabs.filter((t) => groupOf(t) === g).sort((a, b) => rank(a) - rank(b)),
+  );
 }
 
 function matchingTabs() {
-  const words = ($("#power-filter")?.value ?? "").trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const words = ($("#power-filter")?.value ?? "")
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean);
   return orderedTabs().filter((t) => {
-    const text = `${t.label} ${t.tip} ${GROUPS.find(([g]) => g === groupOf(t))?.[1] ?? ""}`.toLowerCase();
+    const text =
+      `${t.label} ${t.tip} ${GROUPS.find(([g]) => g === groupOf(t))?.[1] ?? ""}`.toLowerCase();
     return words.every((word) => text.includes(word));
   });
 }
@@ -64,23 +181,29 @@ function syncExpandButtons(on) {
   if (btn) {
     btn.setAttribute("aria-pressed", String(on));
     btn.textContent = on ? "⛶ Restore" : "⛶ Expand";
-    btn.title = on ? `Restore the File Manager bars and tabs (Esc)${hint}` : `Fill the whole window with this tool (press Esc to restore)${hint}`;
+    btn.title = on
+      ? `Restore the File Manager bars and tabs (Esc)${hint}`
+      : `Fill the whole window with this tool (press Esc to restore)${hint}`;
   }
   const restoreBtn = $("#power-restore");
-  if (restoreBtn) restoreBtn.title = `Restore the File Manager bars and tabs (Esc)${hint}`;
+  if (restoreBtn)
+    restoreBtn.title = `Restore the File Manager bars and tabs (Esc)${hint}`;
   const maxBar = $("#power-max-bar");
   if (maxBar) maxBar.hidden = !on;
   if (typeof document !== "undefined") {
     for (const b of document.querySelectorAll(".embed-expand")) {
       b.setAttribute("aria-pressed", String(on));
       b.textContent = on ? "⛶ Restore" : "⛶ Expand";
-      b.title = on ? `Restore the File Manager bars and tabs (Esc)${hint}` : `Fill the whole window with this app (press Esc to restore)${hint}`;
+      b.title = on
+        ? `Restore the File Manager bars and tabs (Esc)${hint}`
+        : `Fill the whole window with this app (press Esc to restore)${hint}`;
     }
   }
 }
 
 export function setPowerExpanded(expanded) {
-  const app = typeof document === "undefined" ? null : document.getElementById("app");
+  const app =
+    typeof document === "undefined" ? null : document.getElementById("app");
   if (!app) return;
   const on = Boolean(expanded) && powerIsOpen();
   if (on && app.classList.contains("term-max")) {
@@ -89,20 +212,26 @@ export function setPowerExpanded(expanded) {
   app.classList.toggle("power-max", on);
   syncExpandButtons(on);
   emit("power-max", on);
-  const frames = mounted.get(activeId)?.root?.querySelectorAll?.("iframe") ?? [];
+  const frames =
+    mounted.get(activeId)?.root?.querySelectorAll?.("iframe") ?? [];
   const frame = [...frames].find((f) => !f.closest("[hidden]"));
   if (frame) {
     try {
       frame.focus();
-      const childWin = frame.contentWindow?.frames?.length ? frame.contentWindow.frames[0] : frame.contentWindow;
+      const childWin = frame.contentWindow?.frames?.length
+        ? frame.contentWindow.frames[0]
+        : frame.contentWindow;
       childWin?.focus?.();
       frame.contentWindow?.dispatchEvent?.(new Event("resize"));
-    } catch { /* cross-origin frame */ }
+    } catch {
+      /* cross-origin frame */
+    }
   }
 }
 
 export function togglePowerExpanded() {
-  const app = typeof document === "undefined" ? null : document.getElementById("app");
+  const app =
+    typeof document === "undefined" ? null : document.getElementById("app");
   if (app?.classList.contains("db-studio-max")) {
     app.querySelector(".db-studio:not([hidden]) .db-expand")?.click();
     return;
@@ -111,8 +240,12 @@ export function togglePowerExpanded() {
     document.getElementById?.("terminal-expand")?.click?.();
     return;
   }
-  const activeEl = typeof document === "undefined" ? null : document.activeElement;
-  if (state.terminalOpen && (activeEl?.closest?.("#terminal-panel") || !powerIsOpen())) {
+  const activeEl =
+    typeof document === "undefined" ? null : document.activeElement;
+  if (
+    state.terminalOpen &&
+    (activeEl?.closest?.("#terminal-panel") || !powerIsOpen())
+  ) {
     document.getElementById?.("terminal-expand")?.click?.();
     return;
   }
@@ -140,14 +273,17 @@ export function isPowerCompact() {
 }
 
 export function setPowerCompact(compact) {
-  const app = typeof document === "undefined" ? null : document.getElementById("app");
+  const app =
+    typeof document === "undefined" ? null : document.getElementById("app");
   if (!app) return;
   const on = Boolean(compact);
   app.classList.toggle("power-compact", on);
   const btn = $("#power-compact");
   if (btn) {
     btn.setAttribute("aria-pressed", String(on));
-    btn.title = on ? "Show the tool filter bar and app notes again" : "Hide the tool filter bar and app notes for extra room";
+    btn.title = on
+      ? "Show the tool filter bar and app notes again"
+      : "Hide the tool filter bar and app notes for extra room";
   }
   emit("power-compact", on);
 }
@@ -164,7 +300,9 @@ export async function resolveToolBrowserUrl(id = activeId) {
   const altOrigin = `${location.protocol}//${other}${location.port ? `:${location.port}` : ""}`;
   if (EMBEDDED_IDS.has(target)) return `${altOrigin}/app/${target}/`;
   if (HOSTED_IDS.has(target)) {
-    const existing = $(`#power-pane-${target} iframe.embed-frame`)?.getAttribute("src");
+    const existing = $(
+      `#power-pane-${target} iframe.embed-frame`,
+    )?.getAttribute("src");
     if (existing) return existing;
     const r = await call("studios/open", { id: target });
     return `${altOrigin}/app/hosted/${target}/?s=${encodeURIComponent(r.secret)}`;
@@ -177,11 +315,16 @@ export async function openToolInWindow(id = activeId) {
   const target = id || activeId;
   if (!target) return;
   try {
-    const res = await call("studios/window", { id: target, path: state.path || "" });
+    const res = await call("studios/window", {
+      id: target,
+      path: state.path || "",
+    });
     toast(`Opened ${res.title || "tool"} in a separate window.`);
     return res;
   } catch (err) {
-    toast(err?.message || "Couldn't open a separate window.", { kind: "error" });
+    toast(err?.message || "Couldn't open a separate window.", {
+      kind: "error",
+    });
     return null;
   }
 }
@@ -213,10 +356,18 @@ export function registerPowerTab(tab) {
 
 /** A read-only list of the tools, as the tab strip shows them: { id, label, icon, tip, group, groupLabel }. */
 export function listPowerTabs() {
-  return orderedTabs().map((t) => ({ id: t.id, label: t.label, icon: t.icon, tip: t.tip, group: groupOf(t), groupLabel: GROUPS.find(([g]) => g === groupOf(t))?.[1] ?? "More" }));
+  return orderedTabs().map((t) => ({
+    id: t.id,
+    label: t.label,
+    icon: t.icon,
+    tip: t.tip,
+    group: groupOf(t),
+    groupLabel: GROUPS.find(([g]) => g === groupOf(t))?.[1] ?? "More",
+  }));
 }
 
-export const powerIsOpen = () => !!$("#power-panel") && !$("#power-panel").hidden;
+export const powerIsOpen = () =>
+  !!$("#power-panel") && !$("#power-panel").hidden;
 export const activePowerTab = () => activeId;
 
 /** Forgets which tools were opened and where the panel lives (tools stay registered). For tests that start the page more than once in one process. */
@@ -242,7 +393,9 @@ function updateScrollButtons() {
   const left = $("#power-scroll-left");
   const right = $("#power-scroll-right");
   if (left) left.hidden = !more || strip.scrollLeft <= 0;
-  if (right) right.hidden = !more || strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 1;
+  if (right)
+    right.hidden =
+      !more || strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 1;
 }
 
 /** Scrolls the tab strip, if it needs it, so the chosen tab is fully showing. */
@@ -253,7 +406,8 @@ function keepTabInView(id) {
   const left = tab.offsetLeft;
   const right = left + tab.offsetWidth;
   if (left < strip.scrollLeft) strip.scrollLeft = Math.max(0, left - 8);
-  else if (right > strip.scrollLeft + strip.clientWidth) strip.scrollLeft = right - strip.clientWidth + 8;
+  else if (right > strip.scrollLeft + strip.clientWidth)
+    strip.scrollLeft = right - strip.clientWidth + 8;
   updateScrollButtons();
 }
 
@@ -267,8 +421,15 @@ function renderTabs() {
   const clearFilter = $("#power-filter-clear");
   if (clearFilter) clearFilter.hidden = !filtering;
   const status = $("#power-filter-status");
-  if (status) status.textContent = filtering ? matches.length ? `${matches.length} tool${matches.length === 1 ? "" : "s"} found. Enter opens the first.` : "No tools match. Try another word or Clear." : "";
-  const focusId = matches.some((t) => t.id === activeId) ? activeId : matches[0]?.id;
+  if (status)
+    status.textContent = filtering
+      ? matches.length
+        ? `${matches.length} tool${matches.length === 1 ? "" : "s"} found. Enter opens the first.`
+        : "No tools match. Try another word or Clear."
+      : "";
+  const focusId = matches.some((t) => t.id === activeId)
+    ? activeId
+    : matches[0]?.id;
   const pane = mounted.get(activeId)?.root;
   if (pane) {
     if (matches.some((t) => t.id === activeId)) {
@@ -276,19 +437,36 @@ function renderTabs() {
       pane.removeAttribute("aria-label");
     } else {
       pane.removeAttribute("aria-labelledby");
-      pane.setAttribute("aria-label", tabs.find((t) => t.id === activeId).label);
+      pane.setAttribute(
+        "aria-label",
+        tabs.find((t) => t.id === activeId).label,
+      );
     }
   }
   let previous = null;
   for (const t of matches) {
     const group = groupOf(t);
-    if (previous !== null && previous !== group) strip.append(h("span", { class: "power-sep", "aria-hidden": "true" }));
+    if (previous !== null && previous !== group)
+      strip.append(h("span", { class: "power-sep", "aria-hidden": "true" }));
     previous = group;
-    strip.append(h("button", {
-      type: "button", role: "tab", id: `power-tab-${t.id}`, class: `power-tab${t.id === activeId ? " active" : ""}`,
-      "aria-selected": String(t.id === activeId), "aria-controls": `power-pane-${t.id}`, tabindex: t.id === focusId ? "0" : "-1", title: `${t.label}: ${t.tip}`,
-      onclick: () => selectTab(t.id),
-    }, h("span", { class: "pt-icon", "aria-hidden": "true" }, t.icon), h("span", { class: "pt-label" }, t.label)));
+    strip.append(
+      h(
+        "button",
+        {
+          type: "button",
+          role: "tab",
+          id: `power-tab-${t.id}`,
+          class: `power-tab${t.id === activeId ? " active" : ""}`,
+          "aria-selected": String(t.id === activeId),
+          "aria-controls": `power-pane-${t.id}`,
+          tabindex: t.id === focusId ? "0" : "-1",
+          title: `${t.label}: ${t.tip}`,
+          onclick: () => selectTab(t.id),
+        },
+        h("span", { class: "pt-icon", "aria-hidden": "true" }, t.icon),
+        h("span", { class: "pt-label" }, t.label),
+      ),
+    );
   }
   updateScrollButtons();
 }
@@ -307,14 +485,25 @@ function selectTab(id, opts) {
   for (const entry of mounted.values()) entry.root.hidden = entry.id !== id;
   let entry = mounted.get(id);
   if (!entry) {
-    const root = h("div", { class: "power-pane", id: `power-pane-${id}`, role: "tabpanel", "aria-labelledby": `power-tab-${id}` });
+    const root = h("div", {
+      class: "power-pane",
+      id: `power-pane-${id}`,
+      role: "tabpanel",
+      "aria-labelledby": `power-tab-${id}`,
+    });
     body.append(root);
     let hooks;
     try {
       hooks = tab.mount(root) ?? {};
     } catch (err) {
       console.error(`The ${tab.label} tool failed to start`, err);
-      root.replaceChildren(h("p", { class: "power-error", role: "alert" }, `The ${tab.label} tool couldn't start.`));
+      root.replaceChildren(
+        h(
+          "p",
+          { class: "power-error", role: "alert" },
+          `The ${tab.label} tool couldn't start.`,
+        ),
+      );
       hooks = {};
     }
     entry = { id, root, hooks };
@@ -339,7 +528,9 @@ export function revealPower(tabId, opts, { focus = true } = {}) {
   panel.hidden = false;
   document.getElementById("app").classList.add("power-open");
   state.powerOpen = true;
-  const wanted = tabs.some((t) => t.id === tabId) ? tabId : activeId ?? orderedTabs()[0]?.id;
+  const wanted = tabs.some((t) => t.id === tabId)
+    ? tabId
+    : (activeId ?? orderedTabs()[0]?.id);
   selectTab(wanted, opts);
   emit("power");
   if (focus) $(`#power-tab-${activeId}`)?.focus();
@@ -385,16 +576,36 @@ export function togglePower(tabId) {
 
 /** Wires the close and scroll buttons and arrow-key movement along the tab strip. */
 export function wirePower() {
-  const effectiveTargetId = () => mounted.get(activeId)?.hooks?.targetId?.() || activeId;
-  const activeDbBtn = (role) => activeId === "databases" ? document.querySelector(`.db-studio:not([hidden]) [data-role="${role}"]`) : null;
+  const effectiveTargetId = () =>
+    mounted.get(activeId)?.hooks?.targetId?.() || activeId;
+  const activeDbBtn = (role) =>
+    activeId === "databases"
+      ? document.querySelector(`.db-studio:not([hidden]) [data-role="${role}"]`)
+      : null;
   $("#power-close")?.addEventListener("click", closePower);
   $("#power-compact")?.addEventListener("click", togglePowerCompact);
   $("#power-expand")?.addEventListener("click", togglePowerExpanded);
   $("#power-restore")?.addEventListener("click", () => setPowerExpanded(false));
-  $("#power-window")?.addEventListener("click", () => { const b = activeDbBtn("db-window"); if (b) b.click(); else void openToolInWindow(effectiveTargetId()); });
-  $("#power-max-window")?.addEventListener("click", () => { const b = activeDbBtn("db-window"); if (b) b.click(); else void openToolInWindow(effectiveTargetId()); });
-  $("#power-browser")?.addEventListener("click", () => { const b = activeDbBtn("db-browser"); if (b) b.click(); else void openToolInBrowser(effectiveTargetId()); });
-  $("#power-max-browser")?.addEventListener("click", () => { const b = activeDbBtn("db-browser"); if (b) b.click(); else void openToolInBrowser(effectiveTargetId()); });
+  $("#power-window")?.addEventListener("click", () => {
+    const b = activeDbBtn("db-window");
+    if (b) b.click();
+    else void openToolInWindow(effectiveTargetId());
+  });
+  $("#power-max-window")?.addEventListener("click", () => {
+    const b = activeDbBtn("db-window");
+    if (b) b.click();
+    else void openToolInWindow(effectiveTargetId());
+  });
+  $("#power-browser")?.addEventListener("click", () => {
+    const b = activeDbBtn("db-browser");
+    if (b) b.click();
+    else void openToolInBrowser(effectiveTargetId());
+  });
+  $("#power-max-browser")?.addEventListener("click", () => {
+    const b = activeDbBtn("db-browser");
+    if (b) b.click();
+    else void openToolInBrowser(effectiveTargetId());
+  });
   $("#power-max-close")?.addEventListener("click", () => {
     const closeGameBtn = document.getElementById("games-close-game");
     const dbBackBtn = activeDbBtn("db-back");
@@ -434,17 +645,25 @@ export function wirePower() {
       $(`#power-tab-${first.id}`)?.focus();
     }
   });
-  const scrollBy = (dir) => strip?.scrollBy?.({ left: dir * Math.max(120, strip.clientWidth * 0.6), behavior: "smooth" });
+  const scrollBy = (dir) =>
+    strip?.scrollBy?.({
+      left: dir * Math.max(120, strip.clientWidth * 0.6),
+      behavior: "smooth",
+    });
   $("#power-scroll-left")?.addEventListener("click", () => scrollBy(-1));
   $("#power-scroll-right")?.addEventListener("click", () => scrollBy(1));
   strip?.addEventListener("scroll", updateScrollButtons, { passive: true });
-  if (strip && typeof ResizeObserver === "function") new ResizeObserver(updateScrollButtons).observe(strip);
+  if (strip && typeof ResizeObserver === "function")
+    new ResizeObserver(updateScrollButtons).observe(strip);
   strip?.addEventListener("keydown", (e) => {
     const all = matchingTabs();
-    const i = all.findIndex((t) => `power-tab-${t.id}` === e.target.closest("[role=tab]")?.id);
+    const i = all.findIndex(
+      (t) => `power-tab-${t.id}` === e.target.closest("[role=tab]")?.id,
+    );
     let next = null;
     if (e.key === "ArrowRight") next = all[(i + 1) % all.length];
-    else if (e.key === "ArrowLeft") next = all[(i + all.length - 1) % all.length];
+    else if (e.key === "ArrowLeft")
+      next = all[(i + all.length - 1) % all.length];
     else if (e.key === "Home") next = all[0];
     else if (e.key === "End") next = all.at(-1);
     if (next) {
@@ -454,42 +673,73 @@ export function wirePower() {
     }
   });
   let lastF11Down = 0;
-  document.addEventListener("keydown", (e) => {
-    if (document.querySelector(".modal-backdrop")) return;
-    const isF11 = e.key === "F11" || e.code === "F11" || e.key === "\uF70E" || e.keyCode === 122;
-    const isMacCtrlCmdF = e.ctrlKey && e.metaKey && !e.altKey && (e.key === "f" || e.key === "F" || e.code === "KeyF");
-    if (isF11 || isMacCtrlCmdF || matchesAction(e, "app.expandTool")) {
-      if (isF11) lastF11Down = Date.now();
-      e.preventDefault();
-      e.stopPropagation();
-      togglePowerExpanded();
-      return;
-    }
-    const inCodeOrTerm = typeof e.target?.closest === "function" && !!e.target.closest(".code-root, #terminal-panel");
-    if (!inCodeOrTerm && matchesAction(e, "nav.filterTools")) {
-      e.preventDefault();
-      e.stopPropagation();
-      focusPowerFilter();
-      return;
-    }
-    if (e.key === "Escape" && !e.defaultPrevented && isPowerExpanded()) {
-      e.preventDefault();
-      e.stopPropagation();
-      setPowerExpanded(false);
-    }
-  }, true);
-  document.addEventListener("keyup", (e) => {
-    if (document.querySelector(".modal-backdrop")) return;
-    const isF11 = e.key === "F11" || e.code === "F11" || e.key === "\uF70E" || e.keyCode === 122;
-    if (isF11 && Date.now() - lastF11Down > 300) {
-      e.preventDefault();
-      e.stopPropagation();
-      togglePowerExpanded();
-    }
-  }, true);
+  document.addEventListener(
+    "keydown",
+    (e) => {
+      if (document.querySelector(".modal-backdrop")) return;
+      const isF11 =
+        e.key === "F11" ||
+        e.code === "F11" ||
+        e.key === "\uF70E" ||
+        e.keyCode === 122;
+      const isMacCtrlCmdF =
+        e.ctrlKey &&
+        e.metaKey &&
+        !e.altKey &&
+        (e.key === "f" || e.key === "F" || e.code === "KeyF");
+      if (isF11 || isMacCtrlCmdF || matchesAction(e, "app.expandTool")) {
+        if (isF11) lastF11Down = Date.now();
+        e.preventDefault();
+        e.stopPropagation();
+        togglePowerExpanded();
+        return;
+      }
+      const inCodeOrTerm =
+        typeof e.target?.closest === "function" &&
+        !!e.target.closest(".code-root, #terminal-panel");
+      if (!inCodeOrTerm && matchesAction(e, "nav.filterTools")) {
+        e.preventDefault();
+        e.stopPropagation();
+        focusPowerFilter();
+        return;
+      }
+      if (e.key === "Escape" && !e.defaultPrevented && isPowerExpanded()) {
+        e.preventDefault();
+        e.stopPropagation();
+        setPowerExpanded(false);
+      }
+    },
+    true,
+  );
+  document.addEventListener(
+    "keyup",
+    (e) => {
+      if (document.querySelector(".modal-backdrop")) return;
+      const isF11 =
+        e.key === "F11" ||
+        e.code === "F11" ||
+        e.key === "\uF70E" ||
+        e.keyCode === 122;
+      if (isF11 && Date.now() - lastF11Down > 300) {
+        e.preventDefault();
+        e.stopPropagation();
+        togglePowerExpanded();
+      }
+    },
+    true,
+  );
   document.addEventListener("keydown", (e) => {
     // Esc leaves the Tools view. In the Split view the tools sit beside the files, so Esc is left to whatever has focus.
-    if (e.key === "Escape" && !e.defaultPrevented && state.workspace !== "split" && powerIsOpen() && activeId !== "databases" && !document.getElementById("app")?.classList.contains("db-studio-open") && !document.querySelector(".modal-backdrop") && !(e.target instanceof HTMLInputElement && e.target.type === "search")) {
+    if (
+      e.key === "Escape" &&
+      !e.defaultPrevented &&
+      state.workspace !== "split" &&
+      powerIsOpen() &&
+      activeId !== "databases" &&
+      !document.getElementById("app")?.classList.contains("db-studio-open") &&
+      !document.querySelector(".modal-backdrop") &&
+      !(e.target instanceof HTMLInputElement && e.target.type === "search")
+    ) {
       e.preventDefault();
       closePower();
     }
@@ -499,24 +749,32 @@ export function wirePower() {
       if (!e.data || typeof e.data !== "object") return;
       const ownOrigin = typeof location !== "undefined" ? location.origin : "";
       const altOrigin =
-        typeof location !== "undefined" && (location.hostname === "127.0.0.1" || location.hostname === "localhost")
+        typeof location !== "undefined" &&
+        (location.hostname === "127.0.0.1" || location.hostname === "localhost")
           ? `${location.protocol}//${location.hostname === "127.0.0.1" ? "localhost" : "127.0.0.1"}${location.port ? `:${location.port}` : ""}`
           : "";
       const isAllowedOrigin =
-        !e.origin || e.origin === ownOrigin || (Boolean(altOrigin) && e.origin === altOrigin);
+        !e.origin ||
+        e.origin === ownOrigin ||
+        (Boolean(altOrigin) && e.origin === altOrigin);
       const isLoopbackOrigin =
-        !e.origin || /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/i.test(String(e.origin));
+        !e.origin ||
+        /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/i.test(String(e.origin));
       const frames = [...document.querySelectorAll("#power-panel iframe")];
       const fromMountedFrame = frames.some((f) => {
         if (f.contentWindow === e.source) return true;
         try {
           if (e.source && e.source.parent === f.contentWindow) return true;
-        } catch { /* cross-origin frame */ }
+        } catch {
+          /* cross-origin frame */
+        }
         try {
           for (let i = 0; i < (f.contentWindow?.frames?.length ?? 0); i++) {
             if (f.contentWindow.frames[i] === e.source) return true;
           }
-        } catch { /* cross-origin frame */ }
+        } catch {
+          /* cross-origin frame */
+        }
         return false;
       });
       const fromPowerFrame =
@@ -533,17 +791,23 @@ export function wirePower() {
       if (e.data.fmToggleExpand) togglePowerExpanded();
       else if (e.data.fmEscapeExpand) {
         const app = document.getElementById("app");
-        if (app?.classList.contains("db-studio-max")) app.querySelector(".db-studio:not([hidden]) .db-expand")?.click();
+        if (app?.classList.contains("db-studio-max"))
+          app.querySelector(".db-studio:not([hidden]) .db-expand")?.click();
         else if (isPowerExpanded()) setPowerExpanded(false);
-        else if (app?.classList.contains("focus-mode")) document.getElementById("focus-toggle")?.click();
-      }
-      else if (e.data.fmFilterTools) focusPowerFilter();
-      else if (typeof e.data.fmCopyText === "string" && e.data.fmCopyText.length > 0 && e.data.fmCopyText.length <= 1_000_000) {
+        else if (app?.classList.contains("focus-mode"))
+          document.getElementById("focus-toggle")?.click();
+      } else if (e.data.fmFilterTools) focusPowerFilter();
+      else if (
+        typeof e.data.fmCopyText === "string" &&
+        e.data.fmCopyText.length > 0 &&
+        e.data.fmCopyText.length <= 1_000_000
+      ) {
         void copyToClipboard(e.data.fmCopyText, { quiet: true });
       }
     });
   }
   syncExpandButtons(isPowerExpanded());
-  if (filter) filter.title = `Filter apps by name, description, or category${hintOf("nav.filterTools")}`;
+  if (filter)
+    filter.title = `Filter apps by name, description, or category${hintOf("nav.filterTools")}`;
   renderTabs();
 }

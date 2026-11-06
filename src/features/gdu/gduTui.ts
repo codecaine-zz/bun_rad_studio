@@ -60,7 +60,7 @@ export type GduTuiAction =
 export function getVisibleItems(
   dir: DiskUsageItem,
   filterQuery: string,
-  sortBy: GduSortBy
+  sortBy: GduSortBy,
 ): DiskUsageItem[] {
   let items = dir.children ?? [];
   if (filterQuery) {
@@ -74,7 +74,10 @@ export function getVisibleItems(
 /**
  * Maps a raw terminal keypress sequence into a `GduTuiAction`, respecting delete-confirmation and filter-entry modes.
  */
-export function handleGduTuiKey(keyStr: string, state?: GduTuiState): GduTuiAction {
+export function handleGduTuiKey(
+  keyStr: string,
+  state?: GduTuiState,
+): GduTuiAction {
   if (state?.confirmingDelete) {
     if (keyStr === "y" || keyStr === "Y") return { type: "CONFIRM_DELETE" };
     return { type: "CANCEL_DELETE" };
@@ -83,7 +86,8 @@ export function handleGduTuiKey(keyStr: string, state?: GduTuiState): GduTuiActi
   if (state?.isFiltering) {
     if (keyStr === "\r" || keyStr === "\n") return { type: "FILTER_CONFIRM" };
     if (keyStr === "\u001b") return { type: "FILTER_CLEAR" };
-    if (keyStr === "\u007f" || keyStr === "\b") return { type: "FILTER_BACKSPACE" };
+    if (keyStr === "\u007f" || keyStr === "\b")
+      return { type: "FILTER_BACKSPACE" };
     if (keyStr.length === 1 && keyStr.charCodeAt(0) >= 32) {
       return { type: "FILTER_CHAR", char: keyStr };
     }
@@ -91,17 +95,30 @@ export function handleGduTuiKey(keyStr: string, state?: GduTuiState): GduTuiActi
   }
 
   if (keyStr === "q" || keyStr === "\u0003") return { type: "QUIT" };
-  if (keyStr === "\u001b[A" || keyStr === "k") return { type: "MOVE", delta: -1 };
-  if (keyStr === "\u001b[B" || keyStr === "j") return { type: "MOVE", delta: 1 };
+  if (keyStr === "\u001b[A" || keyStr === "k")
+    return { type: "MOVE", delta: -1 };
+  if (keyStr === "\u001b[B" || keyStr === "j")
+    return { type: "MOVE", delta: 1 };
   if (keyStr === "\u001b[5~") return { type: "MOVE", delta: -10 };
   if (keyStr === "\u001b[6~") return { type: "MOVE", delta: 10 };
-  if (keyStr === "\r" || keyStr === "\n" || keyStr === "\u001b[C" || keyStr === "l") {
+  if (
+    keyStr === "\r" ||
+    keyStr === "\n" ||
+    keyStr === "\u001b[C" ||
+    keyStr === "l"
+  ) {
     return { type: "ENTER" };
   }
-  if (keyStr === "\u001b[D" || keyStr === "h" || keyStr === "\u007f" || keyStr === "\b") {
+  if (
+    keyStr === "\u001b[D" ||
+    keyStr === "h" ||
+    keyStr === "\u007f" ||
+    keyStr === "\b"
+  ) {
     return { type: "BACK" };
   }
-  if (keyStr === "d" || keyStr === "\u001b[3~") return { type: "PROMPT_DELETE" };
+  if (keyStr === "d" || keyStr === "\u001b[3~")
+    return { type: "PROMPT_DELETE" };
   if (keyStr === "/" || keyStr === "f") return { type: "START_FILTER" };
   if (keyStr === "s") return { type: "CYCLE_SORT" };
   if (keyStr === "i") return { type: "TOGGLE_DETAILS" };
@@ -114,7 +131,10 @@ export function handleGduTuiKey(keyStr: string, state?: GduTuiState): GduTuiActi
 /**
  * Applies a `GduTuiAction` to the current `GduTuiState`, handling directory navigation, sorting, filtering, opening, and deletion.
  */
-export function applyGduTuiAction(state: GduTuiState, action: GduTuiAction): GduTuiState {
+export function applyGduTuiAction(
+  state: GduTuiState,
+  action: GduTuiAction,
+): GduTuiState {
   if (action.type === "QUIT") {
     if (state.showingDetails) {
       state.showingDetails = false;
@@ -124,7 +144,11 @@ export function applyGduTuiAction(state: GduTuiState, action: GduTuiAction): Gdu
     return state;
   }
 
-  const items = getVisibleItems(state.currentDir, state.filterQuery, state.sortBy);
+  const items = getVisibleItems(
+    state.currentDir,
+    state.filterQuery,
+    state.sortBy,
+  );
 
   if (action.type === "MOVE") {
     const next = state.selectedIndex + action.delta;
@@ -141,7 +165,8 @@ export function applyGduTuiAction(state: GduTuiState, action: GduTuiAction): Gdu
 
   if (action.type === "START_FILTER") {
     state.isFiltering = true;
-    state.statusMessage = "Type to filter directory contents... (Enter: save, Esc: clear)";
+    state.statusMessage =
+      "Type to filter directory contents... (Enter: save, Esc: clear)";
     return state;
   }
 
@@ -159,7 +184,9 @@ export function applyGduTuiAction(state: GduTuiState, action: GduTuiAction): Gdu
 
   if (action.type === "FILTER_CONFIRM") {
     state.isFiltering = false;
-    state.statusMessage = state.filterQuery ? `Filter active: "${state.filterQuery}"` : undefined;
+    state.statusMessage = state.filterQuery
+      ? `Filter active: "${state.filterQuery}"`
+      : undefined;
     return state;
   }
 
@@ -209,11 +236,23 @@ export function applyGduTuiAction(state: GduTuiState, action: GduTuiAction): Gdu
         state.statusMessage = `Deleted "${target.name}" (${formatBytes(target.size)} freed).`;
         // Optimistically remove from children & recalculate parent size
         if (state.currentDir.children) {
-          state.currentDir.children = state.currentDir.children.filter((c) => c.path !== target.path);
-          state.currentDir.size = Math.max(0, state.currentDir.size - target.size);
-          state.currentDir.itemCount = Math.max(1, state.currentDir.itemCount - target.itemCount);
+          state.currentDir.children = state.currentDir.children.filter(
+            (c) => c.path !== target.path,
+          );
+          state.currentDir.size = Math.max(
+            0,
+            state.currentDir.size - target.size,
+          );
+          state.currentDir.itemCount = Math.max(
+            1,
+            state.currentDir.itemCount - target.itemCount,
+          );
         }
-        const updatedItems = getVisibleItems(state.currentDir, state.filterQuery, state.sortBy);
+        const updatedItems = getVisibleItems(
+          state.currentDir,
+          state.filterQuery,
+          state.sortBy,
+        );
         if (state.selectedIndex >= updatedItems.length) {
           state.selectedIndex = Math.max(0, updatedItems.length - 1);
         }
@@ -272,8 +311,12 @@ export function applyGduTuiAction(state: GduTuiState, action: GduTuiAction): Gdu
 /**
  * Formats a detailed modal view for a selected file or directory, including byte size, item count, parent share, and mtime.
  */
-export function renderGduItemDetails(item: DiskUsageItem, parentSize: number): string {
-  const pct = parentSize > 0 ? ((item.size / parentSize) * 100).toFixed(1) : "100.0";
+export function renderGduItemDetails(
+  item: DiskUsageItem,
+  parentSize: number,
+): string {
+  const pct =
+    parentSize > 0 ? ((item.size / parentSize) * 100).toFixed(1) : "100.0";
   const mtimeStr = new Date(item.mtime).toLocaleString();
 
   const lines = [
@@ -298,9 +341,13 @@ export function renderGduItemDetails(item: DiskUsageItem, parentSize: number): s
  */
 export function renderGduTuiFrame(
   state: GduTuiState,
-  maxRows: number = 20
+  maxRows: number = 20,
 ): string {
-  const items = getVisibleItems(state.currentDir, state.filterQuery, state.sortBy);
+  const items = getVisibleItems(
+    state.currentDir,
+    state.filterQuery,
+    state.sortBy,
+  );
   const maxSize = items[0]?.size || 1;
 
   if (state.showingDetails) {
@@ -311,19 +358,33 @@ export function renderGduTuiFrame(
   }
 
   const header = [
-    colors.bold(colors.cyan(` --- gdu: ${state.currentDir.path || state.currentDir.name} --- `)),
-    colors.dim(` Total: ${formatBytes(state.currentDir.size)}  Items: ${state.currentDir.itemCount}  Sort: ${state.sortBy.toUpperCase()}${state.filterQuery ? `  Filter: "${state.filterQuery}"` : ""}`),
-    colors.dim(" [j/k: move] [Enter: drill/info] [h/←: up] [d: delete] [/: filter] [s: sort] [i: info] [o: open] [q: quit]"),
+    colors.bold(
+      colors.cyan(
+        ` --- gdu: ${state.currentDir.path || state.currentDir.name} --- `,
+      ),
+    ),
+    colors.dim(
+      ` Total: ${formatBytes(state.currentDir.size)}  Items: ${state.currentDir.itemCount}  Sort: ${state.sortBy.toUpperCase()}${state.filterQuery ? `  Filter: "${state.filterQuery}"` : ""}`,
+    ),
+    colors.dim(
+      " [j/k: move] [Enter: drill/info] [h/←: up] [d: delete] [/: filter] [s: sort] [i: info] [o: open] [q: quit]",
+    ),
     state.confirmingDelete
       ? colors.bold(colors.red(` >> ${state.statusMessage} `))
       : state.isFiltering
-        ? colors.bold(colors.yellow(` Filter: ${state.filterQuery}_ `)) + colors.dim("(Enter: save, Esc: clear)")
-        : state.statusMessage ? colors.yellow(` ${state.statusMessage}`) : "",
+        ? colors.bold(colors.yellow(` Filter: ${state.filterQuery}_ `)) +
+          colors.dim("(Enter: save, Esc: clear)")
+        : state.statusMessage
+          ? colors.yellow(` ${state.statusMessage}`)
+          : "",
     "-".repeat(70),
   ].filter(Boolean);
 
   const lines: string[] = [];
-  const visibleItems = items.slice(state.scrollOffset, state.scrollOffset + maxRows);
+  const visibleItems = items.slice(
+    state.scrollOffset,
+    state.scrollOffset + maxRows,
+  );
 
   if (visibleItems.length === 0) {
     lines.push(colors.dim("  (no matching items found in directory)"));
@@ -374,7 +435,9 @@ export async function runGduTui(rootItem: DiskUsageItem): Promise<void> {
 
   const render = () => {
     process.stdout.write("\x1b[2J\x1b[0;0H"); // Clear screen
-    const rows = process.stdout.rows ? Math.max(5, process.stdout.rows - 6) : 20;
+    const rows = process.stdout.rows
+      ? Math.max(5, process.stdout.rows - 6)
+      : 20;
     process.stdout.write(renderGduTuiFrame(state, rows) + "\n");
   };
 
@@ -387,7 +450,12 @@ export async function runGduTui(rootItem: DiskUsageItem): Promise<void> {
 
       if (action.type === "REFRESH") {
         try {
-          const rescanned = await scanItem(state.currentDir.path, state.currentDir.name, [], false);
+          const rescanned = await scanItem(
+            state.currentDir.path,
+            state.currentDir.name,
+            [],
+            false,
+          );
           state.currentDir = rescanned;
           state.statusMessage = "Directory rescanned.";
         } catch (err: any) {

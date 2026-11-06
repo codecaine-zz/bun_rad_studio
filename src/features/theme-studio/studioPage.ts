@@ -28,12 +28,15 @@ export interface ThemeStudioPageOptions {
  * the Theme Customizer Drawer (Quick Studio + Pro Inspector), Persistence (localStorage + JSON Export/Import),
  * and the Live Preview Playground.
  */
-export function generateThemeStudioPageHtml(options: ThemeStudioPageOptions = {}): string {
+export function generateThemeStudioPageHtml(
+  options: ThemeStudioPageOptions = {},
+): string {
   const title =
-    options.title ?? "Visual Theme Studio Pro — 3-Layer High-Abstraction Theme Engine";
+    options.title ??
+    "Visual Theme Studio Pro — 3-Layer High-Abstraction Theme Engine";
   const initialSystem = calculateThemeSystem(
     options.initialSurface ?? DEFAULT_SURFACE_CONFIG,
-    options.initialOverrides ?? {}
+    options.initialOverrides ?? {},
   );
 
   const rootVarsInline = Object.entries(initialSystem.variables)
@@ -1221,7 +1224,9 @@ function getStudioBodyTemplate(): string {
 /**
  * Starts a local loopback HTTP server serving the Visual Theme Studio UI and JSON compilation endpoints.
  */
-export function startThemeStudioServer(options: { port?: number; host?: string } = {}) {
+export function startThemeStudioServer(
+  options: { port?: number; host?: string } = {},
+) {
   const port = options.port ?? 0;
   const host = options.host ?? "127.0.0.1";
 
@@ -1254,12 +1259,15 @@ export function startThemeStudioServer(options: { port?: number; host?: string }
             surface?: Partial<ThemeSurfaceConfig>;
             overrides?: Record<string, string>;
           };
-          const compiled = calculateThemeSystem(body.surface ?? {}, body.overrides ?? {});
+          const compiled = calculateThemeSystem(
+            body.surface ?? {},
+            body.overrides ?? {},
+          );
           return Response.json(compiled);
         } catch (err: any) {
           return Response.json(
             { error: err?.message || "Invalid theme compilation payload" },
-            { status: 400 }
+            { status: 400 },
           );
         }
       }

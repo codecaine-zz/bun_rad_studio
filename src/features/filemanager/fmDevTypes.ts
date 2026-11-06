@@ -53,7 +53,15 @@ export interface StatsResult {
   root: string;
   languages: LangRow[];
   totals: StatsTotals;
-  skipped: { binary: number; tooBig: number; unknown: number; symlinks: number; ignored: number; hidden: number; vendored: number };
+  skipped: {
+    binary: number;
+    tooBig: number;
+    unknown: number;
+    symlinks: number;
+    ignored: number;
+    hidden: number;
+    vendored: number;
+  };
   /** Why the scan stopped early ("files", "folders", "time", "bytes"), or null. */
   stoppedBy: string | null;
   elapsedMs: number;
@@ -64,8 +72,16 @@ export interface StatsResult {
 }
 
 /** Sums `files`, `code`, `comments`, `blanks`, `lines`, and `bytes` across an array of language rows. */
-export const sumTotals = (rows: Array<Pick<LangRow, "files" | "code" | "comments" | "blanks">>): StatsTotals => {
-  const t: StatsTotals = { files: 0, code: 0, comments: 0, blanks: 0, lines: 0 };
+export const sumTotals = (
+  rows: Array<Pick<LangRow, "files" | "code" | "comments" | "blanks">>,
+): StatsTotals => {
+  const t: StatsTotals = {
+    files: 0,
+    code: 0,
+    comments: 0,
+    blanks: 0,
+    lines: 0,
+  };
   for (const r of rows) {
     t.files += r.files;
     t.code += r.code;

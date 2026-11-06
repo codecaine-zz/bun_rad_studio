@@ -13,7 +13,8 @@ export interface SemVer {
   build?: string;
 }
 
-const SEMVER_REGEX = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+([0-9A-Za-z.-]+))?$/;
+const SEMVER_REGEX =
+  /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+([0-9A-Za-z.-]+))?$/;
 
 // Doer: Parse semantic version string
 /**
@@ -23,7 +24,9 @@ const SEMVER_REGEX = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+([0-9A-Za
 export function parseSemver(version: string): SemVer {
   const match = version.trim().match(SEMVER_REGEX);
   if (!match) {
-    throw new Error(`[semverutils] Invalid semantic version format: "${version}"`);
+    throw new Error(
+      `[semverutils] Invalid semantic version format: "${version}"`,
+    );
   }
   return {
     major: parseInt(match[1]!, 10),
@@ -56,7 +59,10 @@ export function satisfiesRange(version: string, range: string): boolean {
 /**
  * Increments the `major`, `minor`, or `patch` component of a semantic version string and resets lower components.
  */
-export function bumpVersion(version: string, type: "major" | "minor" | "patch"): string {
+export function bumpVersion(
+  version: string,
+  type: "major" | "minor" | "patch",
+): string {
   const v = parseSemver(version);
   if (type === "major") {
     return `${v.major + 1}.0.0`;

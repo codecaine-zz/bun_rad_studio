@@ -1,18 +1,25 @@
 import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
 import * as os from "os";
 
-export function createBunSystemStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
+export function createBunSystemStudio(
+  options: { fullscreen?: boolean; theme?: string } = {},
+): SimpleWindow {
   const bunVer = Bun.version;
   const bunRev = Bun.revision || "release";
   const platformStr = `${process.platform} (${process.arch})`;
   const fullscreen = options.fullscreen ?? true;
 
-  const win = newSimpleWindow("Bun System & Package Workstation -- Native Runtime & Package Manager", 1120, 880, {
-    appId: "brew_studio",
-    theme: options.theme || getSavedTheme() || "midnight",
-    autoSaveState: true,
-    fullscreen,
-  });
+  const win = newSimpleWindow(
+    "Bun System & Package Workstation -- Native Runtime & Package Manager",
+    1120,
+    880,
+    {
+      appId: "brew_studio",
+      theme: options.theme || getSavedTheme() || "midnight",
+      autoSaveState: true,
+      fullscreen,
+    },
+  );
 
   // Top Title Bar
   win.beginRow();
@@ -22,10 +29,14 @@ export function createBunSystemStudio(options: { fullscreen?: boolean; theme?: s
   win.addButton("btn_center", "Center Window");
   win.addButton("btn_fullscreen", "⛶ Fullscreen");
   win.endRow();
-  win.addCaption(`Native Bun Built-in System Runtime  |  Bun v${bunVer} (${bunRev})  |  Arch: ${platformStr}  |  Zero External Dependencies`);
+  win.addCaption(
+    `Native Bun Built-in System Runtime  |  Bun v${bunVer} (${bunRev})  |  Arch: ${platformStr}  |  Zero External Dependencies`,
+  );
 
   // Search & Query Bar
-  win.beginGroupBox("Package Search & npm Registry Inspection (Native Fetch API)");
+  win.beginGroupBox(
+    "Package Search & npm Registry Inspection (Native Fetch API)",
+  );
   win.beginRow();
   win.addLabel("lbl_pkg", "Package / Module:");
   win.addInput("txt_pkg_name", "webview-bun");
@@ -58,12 +69,22 @@ export function createBunSystemStudio(options: { fullscreen?: boolean; theme?: s
 
   // Output View
   const isShot = Boolean(process.env.SCREENSHOT_MODE);
-  const platformLine = isShot ? "Darwin (arm64)" : `${os.type()} ${os.release()} (${os.arch()})`;
-  const cpuLine = isShot ? "12 Cores (Workstation Silicon)" : `${os.cpus().length} Cores (${os.cpus()[0]?.model || "Apple Silicon / x86_64"})`;
-  const totalMemLine = isShot ? "32.00 GB" : `${(os.totalmem() / 1024 / 1024 / 1024).toFixed(2)} GB`;
-  const freeMemLine = isShot ? "21.40 GB" : `${(os.freemem() / 1024 / 1024 / 1024).toFixed(2)} GB`;
+  const platformLine = isShot
+    ? "Darwin (arm64)"
+    : `${os.type()} ${os.release()} (${os.arch()})`;
+  const cpuLine = isShot
+    ? "12 Cores (Workstation Silicon)"
+    : `${os.cpus().length} Cores (${os.cpus()[0]?.model || "Apple Silicon / x86_64"})`;
+  const totalMemLine = isShot
+    ? "32.00 GB"
+    : `${(os.totalmem() / 1024 / 1024 / 1024).toFixed(2)} GB`;
+  const freeMemLine = isShot
+    ? "21.40 GB"
+    : `${(os.freemem() / 1024 / 1024 / 1024).toFixed(2)} GB`;
   win.beginGroupBox("System & Package Details Output");
-  win.addTextarea("txt_brew_out", `[Bun System & Package Workstation Initialized]
+  win.addTextarea(
+    "txt_brew_out",
+    `[Bun System & Package Workstation Initialized]
 Bun Version: ${bunVer} (${bunRev})
 Node Compatibility: ${process.version}
 Platform: ${platformLine}
@@ -71,7 +92,8 @@ CPUs: ${cpuLine}
 Total Memory: ${totalMemLine}
 Free Memory: ${freeMemLine}
 Zero Homebrew reliance: All operations powered by Bun built-in APIs.
-`);
+`,
+  );
   win.endGroupBox();
 
   // Activity Log
@@ -81,13 +103,20 @@ Zero Homebrew reliance: All operations powered by Bun built-in APIs.
 
   // Status Row
   win.beginRow();
-  win.addLabel("lbl_status", `Status: Ready  |  Engine: Bun v${bunVer} Native Runtime  |  Homebrew: Disconnected (Zero-Dependency)`);
+  win.addLabel(
+    "lbl_status",
+    `Status: Ready  |  Engine: Bun v${bunVer} Native Runtime  |  Homebrew: Disconnected (Zero-Dependency)`,
+  );
   win.endRow();
 
   // Helper for running Bun CLI commands
   const runBunCmd = async (cmd: string | string[], description: string) => {
     const cmdStr = Array.isArray(cmd) ? cmd.join(" ") : cmd;
-    win.appendConsole("brew_console", `[Bun System] ${description} ('${cmdStr}')...\n`, 1);
+    win.appendConsole(
+      "brew_console",
+      `[Bun System] ${description} ('${cmdStr}')...\n`,
+      1,
+    );
     win.setStatus(`Running: ${cmdStr}...`);
 
     const t0 = Date.now();
@@ -104,7 +133,11 @@ Zero Homebrew reliance: All operations powered by Bun built-in APIs.
     const elapsed = Date.now() - t0;
 
     win.setText("txt_brew_out", out || `(Command exited with code ${code})`);
-    win.appendConsole("brew_console", `[Bun System] Finished in ${elapsed}ms (exit ${code})\n`, code === 0 ? 2 : 3);
+    win.appendConsole(
+      "brew_console",
+      `[Bun System] Finished in ${elapsed}ms (exit ${code})\n`,
+      code === 0 ? 2 : 3,
+    );
     win.setStatus(`Completed in ${elapsed}ms`);
   };
 
@@ -141,14 +174,18 @@ Available RAM: ${(os.freemem() / 1024 / 1024 / 1024).toFixed(2)} GB
 --- CPU & System Load ---
 Hardware Cores: ${cpus.length}
 CPU Model: ${cpus[0]?.model || "Apple Silicon"}
-Load Average (1m, 5m, 15m): ${load.map(n => n.toFixed(2)).join(", ")}
+Load Average (1m, 5m, 15m): ${load.map((n) => n.toFixed(2)).join(", ")}
 
 --- Network Interfaces ---
 Active Interfaces: ${netNames || "None"}
 `;
 
     win.setText("txt_brew_out", telemetryReport);
-    win.appendConsole("brew_console", `[Telemetry] Retrieved full hardware & memory telemetry.\n`, 2);
+    win.appendConsole(
+      "brew_console",
+      `[Telemetry] Retrieved full hardware & memory telemetry.\n`,
+      2,
+    );
     win.setStatus("Telemetry Refreshed");
   });
 
@@ -161,41 +198,67 @@ Active Interfaces: ${netNames || "None"}
       },
       signal: AbortSignal.timeout(15000),
     });
-    if (!response.ok) throw new Error(`Registry responded with HTTP ${response.status}`);
+    if (!response.ok)
+      throw new Error(`Registry responded with HTTP ${response.status}`);
     return response.json();
   };
 
   win.onClick("btn_search", async () => {
     const query = win.getValue("txt_pkg_name") || "webview-bun";
-    win.appendConsole("brew_console", `[npm Search] Querying registry for '${query}'...\n`, 1);
+    win.appendConsole(
+      "brew_console",
+      `[npm Search] Querying registry for '${query}'...\n`,
+      1,
+    );
     win.setStatus(`Searching '${query}'...`);
     try {
-      const data = await fetchNpmRegistryJson(`-/v1/search?text=${encodeURIComponent(query)}&size=8`);
-      const results = (data.objects || []).map((o: any, idx: number) => {
-        const p = o.package;
-        return `${idx + 1}. ${p.name} (v${p.version})
+      const data = await fetchNpmRegistryJson(
+        `-/v1/search?text=${encodeURIComponent(query)}&size=8`,
+      );
+      const results = (data.objects || [])
+        .map((o: any, idx: number) => {
+          const p = o.package;
+          return `${idx + 1}. ${p.name} (v${p.version})
    ${p.description || "No description"}
    Keywords: ${(p.keywords || []).slice(0, 5).join(", ") || "None"}
    Publisher: ${p.publisher?.username || "Unknown"}
    Links: ${p.links?.npm || ""}`;
-      }).join("\n\n");
+        })
+        .join("\n\n");
 
-      win.setText("txt_brew_out", `=== npm Search Results for '${query}' ===\nTotal Matches: ${data.total}\n\n${results || "No matching packages found."}`);
-      win.appendConsole("brew_console", `[npm Search] Found ${data.total} packages.\n`, 2);
+      win.setText(
+        "txt_brew_out",
+        `=== npm Search Results for '${query}' ===\nTotal Matches: ${data.total}\n\n${results || "No matching packages found."}`,
+      );
+      win.appendConsole(
+        "brew_console",
+        `[npm Search] Found ${data.total} packages.\n`,
+        2,
+      );
       win.setStatus(`Found ${data.total} packages`);
     } catch (e: any) {
       win.setText("txt_brew_out", `[npm Search Error]: ${e.message}`);
-      win.appendConsole("brew_console", `[npm Search] Error: ${e.message}\n`, 3);
+      win.appendConsole(
+        "brew_console",
+        `[npm Search] Error: ${e.message}\n`,
+        3,
+      );
       win.setStatus("Search Error");
     }
   });
 
   win.onClick("btn_info", async () => {
     const pkg = (win.getValue("txt_pkg_name") || "webview-bun").trim();
-    win.appendConsole("brew_console", `[Package Info] Fetching metadata for '${pkg}'...\n`, 1);
+    win.appendConsole(
+      "brew_console",
+      `[Package Info] Fetching metadata for '${pkg}'...\n`,
+      1,
+    );
     win.setStatus(`Fetching info for '${pkg}'...`);
     try {
-      const data = await fetchNpmRegistryJson(`${encodeURIComponent(pkg)}/latest`);
+      const data = await fetchNpmRegistryJson(
+        `${encodeURIComponent(pkg)}/latest`,
+      );
       const latestVer = data["dist-tags"]?.latest || data.version || "latest";
       const verData = data.versions?.[latestVer] || data;
 
@@ -209,24 +272,42 @@ Repository: ${data.repository?.url || "None"}
 
 --- Latest Release Dependencies ---
 Dependencies (${Object.keys(verData.dependencies || {}).length}):
-${Object.entries(verData.dependencies || {}).map(([k, v]) => `  - ${k}: ${v}`).join("\n") || "  None"}
+${
+  Object.entries(verData.dependencies || {})
+    .map(([k, v]) => `  - ${k}: ${v}`)
+    .join("\n") || "  None"
+}
 
 Peer Dependencies (${Object.keys(verData.peerDependencies || {}).length}):
-${Object.entries(verData.peerDependencies || {}).map(([k, v]) => `  - ${k}: ${v}`).join("\n") || "  None"}
+${
+  Object.entries(verData.peerDependencies || {})
+    .map(([k, v]) => `  - ${k}: ${v}`)
+    .join("\n") || "  None"
+}
 `;
       win.setText("txt_brew_out", report);
-      win.appendConsole("brew_console", `[Package Info] Retrieved metadata for ${data.name}.\n`, 2);
+      win.appendConsole(
+        "brew_console",
+        `[Package Info] Retrieved metadata for ${data.name}.\n`,
+        2,
+      );
       win.setStatus("Package Info Ready");
     } catch (e: any) {
       win.setText("txt_brew_out", `[Package Info Error]: ${e.message}`);
-      win.appendConsole("brew_console", `[Package Info] Error: ${e.message}\n`, 3);
+      win.appendConsole(
+        "brew_console",
+        `[Package Info] Error: ${e.message}\n`,
+        3,
+      );
       win.setStatus("Info Error");
     }
   });
 
   // Package Management (bun add / bun remove)
   const validPkgName = (pkg: string) =>
-    /^(@[a-z0-9~][a-z0-9._~-]*\/)?[a-z0-9~][a-z0-9._~-]*(@[A-Za-z0-9._~^<>=*|-]+)?$/i.test(pkg);
+    /^(@[a-z0-9~][a-z0-9._~-]*\/)?[a-z0-9~][a-z0-9._~-]*(@[A-Za-z0-9._~^<>=*|-]+)?$/i.test(
+      pkg,
+    );
 
   win.onClick("btn_install", () => {
     const pkg = (win.getValue("txt_pkg_name") || "").trim();
@@ -249,11 +330,18 @@ ${Object.entries(verData.peerDependencies || {}).map(([k, v]) => `  - ${k}: ${v}
   });
 
   // Bun PM & Runtime Actions
-  win.onClick("btn_list_all", () => runBunCmd("bun pm ls", "Listing Installed Project Packages"));
-  win.onClick("btn_cache_info", () => runBunCmd("bun pm cache", "Inspecting Bun Package Cache Directory"));
-  win.onClick("btn_bin_path", () => runBunCmd("bun pm bin -g", "Locating Global Bun Binary Path"));
+  win.onClick("btn_list_all", () =>
+    runBunCmd("bun pm ls", "Listing Installed Project Packages"),
+  );
+  win.onClick("btn_cache_info", () =>
+    runBunCmd("bun pm cache", "Inspecting Bun Package Cache Directory"),
+  );
+  win.onClick("btn_bin_path", () =>
+    runBunCmd("bun pm bin -g", "Locating Global Bun Binary Path"),
+  );
   win.onClick("btn_cleanup", async () => {
-    if (!(await win.confirm("Purge the Bun package cache?", "Confirm Purge"))) return;
+    if (!(await win.confirm("Purge the Bun package cache?", "Confirm Purge")))
+      return;
     return runBunCmd("bun pm cache rm", "Purging Bun Package Cache");
   });
   win.onClick("btn_doctor", () => {
@@ -268,19 +356,33 @@ Process Memory: ${(process.memoryUsage().rss / 1024 / 1024).toFixed(2)} MB
 System Health: OK (100% Native Bun System APIs)
 `;
     win.setText("txt_brew_out", report);
-    win.appendConsole("brew_console", "[Diagnostics] Generated Bun Health & Doctor report.\n", 2);
+    win.appendConsole(
+      "brew_console",
+      "[Diagnostics] Generated Bun Health & Doctor report.\n",
+      2,
+    );
     win.setStatus("Diagnostics Completed");
   });
 
-  win.onClick("btn_test", () => runBunCmd("bun test", "Running Project Test Suite"));
+  win.onClick("btn_test", () =>
+    runBunCmd("bun test", "Running Project Test Suite"),
+  );
 
   win.onClick("btn_gc", () => {
     if (typeof (Bun as any).gc === "function") {
       (Bun as any).gc(true);
-      win.appendConsole("brew_console", "[Garbage Collector] Synchronous JSC GC cycle invoked.\n", 2);
+      win.appendConsole(
+        "brew_console",
+        "[Garbage Collector] Synchronous JSC GC cycle invoked.\n",
+        2,
+      );
       win.setStatus("Garbage Collection Complete");
     } else {
-      win.appendConsole("brew_console", "[Garbage Collector] GC triggered automatically by runtime.\n", 1);
+      win.appendConsole(
+        "brew_console",
+        "[Garbage Collector] GC triggered automatically by runtime.\n",
+        1,
+      );
       win.setStatus("GC Active");
     }
   });

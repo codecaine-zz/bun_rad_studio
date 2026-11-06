@@ -60,18 +60,38 @@ export interface DiffHunk {
   lines: string[];
 }
 
-function lcsBacktrack<T>(a: readonly T[], b: readonly T[], eq: (x: T, y: T) => boolean): DiffOp<T>[] {
-  const n = a.length, m = b.length;
-  const dp: Uint32Array[] = Array.from({ length: n + 1 }, () => new Uint32Array(m + 1));
+function lcsBacktrack<T>(
+  a: readonly T[],
+  b: readonly T[],
+  eq: (x: T, y: T) => boolean,
+): DiffOp<T>[] {
+  const n = a.length,
+    m = b.length;
+  const dp: Uint32Array[] = Array.from(
+    { length: n + 1 },
+    () => new Uint32Array(m + 1),
+  );
   for (let i = 0; i < n; i++) {
-    for (let j = 0; j < m; j++) dp[i + 1]![j + 1] = eq(a[i]!, b[j]!) ? dp[i]![j]! + 1 : Math.max(dp[i + 1]![j]!, dp[i]![j + 1]!);
+    for (let j = 0; j < m; j++)
+      dp[i + 1]![j + 1] = eq(a[i]!, b[j]!)
+        ? dp[i]![j]! + 1
+        : Math.max(dp[i + 1]![j]!, dp[i]![j + 1]!);
   }
   const ops: DiffOp<T>[] = [];
-  let i = n, j = m;
+  let i = n,
+    j = m;
   while (i > 0 || j > 0) {
-    if (i > 0 && j > 0 && eq(a[i - 1]!, b[j - 1]!)) { ops.push({ type: "equal", value: a[i - 1]! }); i--; j--; }
-    else if (j > 0 && (i === 0 || dp[i]![j - 1]! >= dp[i - 1]![j]!)) { ops.push({ type: "add", value: b[j - 1]! }); j--; }
-    else { ops.push({ type: "delete", value: a[i - 1]! }); i--; }
+    if (i > 0 && j > 0 && eq(a[i - 1]!, b[j - 1]!)) {
+      ops.push({ type: "equal", value: a[i - 1]! });
+      i--;
+      j--;
+    } else if (j > 0 && (i === 0 || dp[i]![j - 1]! >= dp[i - 1]![j]!)) {
+      ops.push({ type: "add", value: b[j - 1]! });
+      j--;
+    } else {
+      ops.push({ type: "delete", value: a[i - 1]! });
+      i--;
+    }
   }
   return ops.reverse();
 }
@@ -81,43 +101,76 @@ function lcsBacktrack<T>(a: readonly T[], b: readonly T[], eq: (x: T, y: T) => b
  * edits on large inputs stay fast. Deletions precede additions within a change.
  * @example diffutils.diffArrays([1, 2, 3], [1, 3, 4]); // equal 1, delete 2, equal 3, add 4
  */
-export function diffArrays<T>(a: readonly T[], b: readonly T[], eq: (x: T, y: T) => boolean = Object.is): DiffOp<T>[] {
+export function diffArrays<T>(
+  a: readonly T[],
+  b: readonly T[],
+  eq: (x: T, y: T) => boolean = Object.is,
+): DiffOp<T>[] {
   let start = 0;
-  while (start < a.length && start < b.length && eq(a[start]!, b[start]!)) start++;
-  let endA = a.length, endB = b.length;
-  while (endA > start && endB > start && eq(a[endA - 1]!, b[endB - 1]!)) { endA--; endB--; }
-  const head = a.slice(0, start).map((value) => ({ type: "equal" as const, value }));
-  const tail = a.slice(endA).map((value) => ({ type: "equal" as const, value }));
-  const middle = groupDeletesFirst(lcsBacktrack(a.slice(start, endA), b.slice(start, endB), eq));
+  while (start < a.length && start < b.length && eq(a[start]!, b[start]!))
+    start++;
+  let endA = a.length,
+    endB = b.length;
+  while (endA > start && endB > start && eq(a[endA - 1]!, b[endB - 1]!)) {
+    endA--;
+    endB--;
+  }
+  const head = a
+    .slice(0, start)
+    .map((value) => ({ type: "equal" as const, value }));
+  const tail = a
+    .slice(endA)
+    .map((value) => ({ type: "equal" as const, value }));
+  const middle = groupDeletesFirst(
+    lcsBacktrack(a.slice(start, endA), b.slice(start, endB), eq),
+  );
   return [...head, ...middle, ...tail];
 }
 
 function groupDeletesFirst<T>(ops: DiffOp<T>[]): DiffOp<T>[] {
   const out: DiffOp<T>[] = [];
-  for (let i = 0; i < ops.length; ) {
-    if (ops[i]!.type === "equal") { out.push(ops[i++]!); continue; }
+  for (let i = 0; i < ops.length;) {
+    if (ops[i]!.type === "equal") {
+      out.push(ops[i++]!);
+      continue;
+    }
     const run: DiffOp<T>[] = [];
     while (i < ops.length && ops[i]!.type !== "equal") run.push(ops[i++]!);
-    out.push(...run.filter((o) => o.type === "delete"), ...run.filter((o) => o.type === "add"));
+    out.push(
+      ...run.filter((o) => o.type === "delete"),
+      ...run.filter((o) => o.type === "add"),
+    );
   }
   return out;
 }
 
-function lineComparator(opts: DiffLineOptions): (x: string, y: string) => boolean {
+function lineComparator(
+  opts: DiffLineOptions,
+): (x: string, y: string) => boolean {
   const norm = (s: string) => {
     let v = opts.ignoreWhitespace ? s.trim().replace(/\s+/g, " ") : s;
     if (opts.ignoreCase) v = v.toLowerCase();
     return v;
   };
-  return opts.ignoreWhitespace || opts.ignoreCase ? (x, y) => norm(x) === norm(y) : (x, y) => x === y;
+  return opts.ignoreWhitespace || opts.ignoreCase
+    ? (x, y) => norm(x) === norm(y)
+    : (x, y) => x === y;
 }
 
 /**
  * Line diff (`\n` / `\r\n` aware).
  * @example diffutils.diffLines("a\nb", "a\nc"); // [{type:"equal",line:"a"},{type:"delete",line:"b"},{type:"add",line:"c"}]
  */
-export function diffLines(oldText: string, newText: string, options: DiffLineOptions = {}): DiffChange[] {
-  return diffArrays(oldText.split(/\r?\n/), newText.split(/\r?\n/), lineComparator(options)).map((o) => ({ type: o.type, line: o.value }));
+export function diffLines(
+  oldText: string,
+  newText: string,
+  options: DiffLineOptions = {},
+): DiffChange[] {
+  return diffArrays(
+    oldText.split(/\r?\n/),
+    newText.split(/\r?\n/),
+    lineComparator(options),
+  ).map((o) => ({ type: o.type, line: o.value }));
 }
 
 /** Word-level diff (whitespace tokens preserved so `join("")` rebuilds the text). @example diffutils.diffWords("the cat", "the dog"); */
@@ -136,7 +189,10 @@ export function diffChars(oldText: string, newText: string): DiffOp<string>[] {
 /** Count added / deleted / unchanged items. @example diffutils.diffStats(diffutils.diffLines("a", "b")); // { added: 1, deleted: 1, unchanged: 0 } */
 export function diffStats(changes: readonly { type: DiffType }[]): DiffStats {
   const s: DiffStats = { added: 0, deleted: 0, unchanged: 0 };
-  for (const c of changes) s[c.type === "add" ? "added" : c.type === "delete" ? "deleted" : "unchanged"]++;
+  for (const c of changes)
+    s[
+      c.type === "add" ? "added" : c.type === "delete" ? "deleted" : "unchanged"
+    ]++;
   return s;
 }
 
@@ -165,11 +221,24 @@ function markContext(changes: DiffChange[], context: number): boolean[] {
 function buildHunks(changes: DiffChange[], context: number): DiffHunk[] {
   const keep = markContext(changes, context);
   const hunks: DiffHunk[] = [];
-  let oldNo = 1, newNo = 1, cur: DiffHunk | null = null;
+  let oldNo = 1,
+    newNo = 1,
+    cur: DiffHunk | null = null;
   changes.forEach((c, idx) => {
     if (keep[idx]) {
-      if (!cur) { cur = { oldStart: oldNo, oldLines: 0, newStart: newNo, newLines: 0, lines: [] }; hunks.push(cur); }
-      cur.lines.push((c.type === "add" ? "+" : c.type === "delete" ? "-" : " ") + c.line);
+      if (!cur) {
+        cur = {
+          oldStart: oldNo,
+          oldLines: 0,
+          newStart: newNo,
+          newLines: 0,
+          lines: [],
+        };
+        hunks.push(cur);
+      }
+      cur.lines.push(
+        (c.type === "add" ? "+" : c.type === "delete" ? "-" : " ") + c.line,
+      );
       if (c.type !== "add") cur.oldLines++;
       if (c.type !== "delete") cur.newLines++;
     } else cur = null;
@@ -191,11 +260,21 @@ function hunkHeader(h: DiffHunk): string {
  * @example diffutils.unifiedDiff("alpha\nbeta", "alpha\ngamma", "f.txt");
  * // "--- a/f.txt\n+++ b/f.txt\n@@ -1,2 +1,2 @@\n alpha\n-beta\n+gamma"
  */
-export function unifiedDiff(oldText: string, newText: string, filename = "file.txt", options: UnifiedDiffOptions = {}): string {
-  const hunks = buildHunks(diffLines(oldText, newText, options), options.context ?? 3);
+export function unifiedDiff(
+  oldText: string,
+  newText: string,
+  filename = "file.txt",
+  options: UnifiedDiffOptions = {},
+): string {
+  const hunks = buildHunks(
+    diffLines(oldText, newText, options),
+    options.context ?? 3,
+  );
   if (hunks.length === 0) return "";
   const header = `--- a/${filename}\n+++ b/${options.newFilename ?? filename}`;
-  return [header, ...hunks.flatMap((h) => [hunkHeader(h), ...h.lines])].join("\n");
+  return [header, ...hunks.flatMap((h) => [hunkHeader(h), ...h.lines])].join(
+    "\n",
+  );
 }
 
 /**
@@ -209,10 +288,25 @@ export function parseUnifiedDiff(patch: string): DiffHunk[] {
   for (const line of patch.split(/\r?\n/)) {
     if (line.startsWith("@@")) {
       const m = line.match(/^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/);
-      if (!m) throw new Error(`[diffutils.parseUnifiedDiff] Malformed hunk header: ${line}`);
-      cur = { oldStart: +m[1]!, oldLines: m[2] === undefined ? 1 : +m[2], newStart: +m[3]!, newLines: m[4] === undefined ? 1 : +m[4], lines: [] };
+      if (!m)
+        throw new Error(
+          `[diffutils.parseUnifiedDiff] Malformed hunk header: ${line}`,
+        );
+      cur = {
+        oldStart: +m[1]!,
+        oldLines: m[2] === undefined ? 1 : +m[2],
+        newStart: +m[3]!,
+        newLines: m[4] === undefined ? 1 : +m[4],
+        lines: [],
+      };
       hunks.push(cur);
-    } else if (cur && /^[ +\-]/.test(line) && !line.startsWith("---") && !line.startsWith("+++")) cur.lines.push(line);
+    } else if (
+      cur &&
+      /^[ +\-]/.test(line) &&
+      !line.startsWith("---") &&
+      !line.startsWith("+++")
+    )
+      cur.lines.push(line);
     else if (cur && line === "") cur.lines.push(" ");
   }
   return hunks;
@@ -234,8 +328,14 @@ export function applyPatch(oldText: string, patch: string): string {
     pos = start;
     for (const l of h.lines) {
       const [op, text] = [l[0], l.slice(1)];
-      if (op === "+") { out.push(text); continue; }
-      if (src[pos] !== text) throw new Error(`[diffutils.applyPatch] Hunk ${hi + 1} mismatch at line ${pos + 1}: expected ${JSON.stringify(text)}, found ${JSON.stringify(src[pos])}`);
+      if (op === "+") {
+        out.push(text);
+        continue;
+      }
+      if (src[pos] !== text)
+        throw new Error(
+          `[diffutils.applyPatch] Hunk ${hi + 1} mismatch at line ${pos + 1}: expected ${JSON.stringify(text)}, found ${JSON.stringify(src[pos])}`,
+        );
       if (op === " ") out.push(text);
       pos++;
     }
@@ -248,7 +348,8 @@ export function renderColoredDiff(diffText: string): string {
   return diffText
     .split(/\r?\n/)
     .map((line) => {
-      if (line.startsWith("---") || line.startsWith("+++")) return colors.bold(line);
+      if (line.startsWith("---") || line.startsWith("+++"))
+        return colors.bold(line);
       if (line.startsWith("@@")) return colors.cyan(line);
       if (line.startsWith("+")) return colors.green(line);
       if (line.startsWith("-")) return colors.red(line);
@@ -260,7 +361,13 @@ export function renderColoredDiff(diffText: string): string {
 /** Inline word diff for terminals: deletions red+strikethrough, additions green+underline. @example console.log(diffutils.renderInlineDiff("the cat", "the dog")); */
 export function renderInlineDiff(oldText: string, newText: string): string {
   return diffWords(oldText, newText)
-    .map((o) => (o.type === "add" ? colors.green(colorText(o.value, "4")) : o.type === "delete" ? colors.red(colorText(o.value, "9")) : o.value))
+    .map((o) =>
+      o.type === "add"
+        ? colors.green(colorText(o.value, "4"))
+        : o.type === "delete"
+          ? colors.red(colorText(o.value, "9"))
+          : o.value,
+    )
     .join("");
 }
 

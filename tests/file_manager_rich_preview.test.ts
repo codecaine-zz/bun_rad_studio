@@ -48,7 +48,10 @@ describe("pure-TS image format decoders (fmImageConvert)", () => {
   test("decodes Radiance RGBE HDR (.hdr) into PNG bytes", () => {
     const hdrHeader = "#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n-Y 1 +X 2\n";
     const pixels = new Uint8Array([200, 100, 50, 128, 50, 150, 220, 129]);
-    const buf = Buffer.concat([Buffer.from(hdrHeader, "ascii"), Buffer.from(pixels)]);
+    const buf = Buffer.concat([
+      Buffer.from(hdrHeader, "ascii"),
+      Buffer.from(pixels),
+    ]);
     const png = decodeImageToPngBuffer(buf, "hdr");
     expect(png).not.toBeNull();
     expect(png![0]).toBe(0x89);
@@ -141,13 +144,26 @@ describe("universal rich file previews (fmPreview & previewFile)", () => {
           <w:p><w:pPr><w:numPr><w:ilvl w:val="0"/></w:numPr></w:pPr><w:r><w:t>Milestone 1</w:t></w:r></w:p>
         </w:body>
       </w:document>`;
-    writeFileSync(p, zipBuffer([{ name: "word/document.xml", data: new TextEncoder().encode(docXml) }]));
+    writeFileSync(
+      p,
+      zipBuffer([
+        { name: "word/document.xml", data: new TextEncoder().encode(docXml) },
+      ]),
+    );
     const prev = await previewFile(ctx, p);
     expect(prev.rich?.kind).toBe("document");
     if (prev.rich?.kind === "document") {
       expect(prev.rich.plainText).toContain("Project Proposal");
-      expect(prev.rich.blocks.some((b) => b.type === "h1" && b.text.includes("Project Proposal"))).toBe(true);
-      expect(prev.rich.blocks.some((b) => b.type === "li" && b.text.includes("Milestone 1"))).toBe(true);
+      expect(
+        prev.rich.blocks.some(
+          (b) => b.type === "h1" && b.text.includes("Project Proposal"),
+        ),
+      ).toBe(true);
+      expect(
+        prev.rich.blocks.some(
+          (b) => b.type === "li" && b.text.includes("Milestone 1"),
+        ),
+      ).toBe(true);
     }
   });
 
@@ -200,7 +216,10 @@ describe("universal rich file previews (fmPreview & previewFile)", () => {
       </p:notes>`;
     const bytes = zipBuffer([
       { name: "ppt/slides/slide1.xml", data: new TextEncoder().encode(slide1) },
-      { name: "ppt/notesSlides/notesSlide1.xml", data: new TextEncoder().encode(notes1) },
+      {
+        name: "ppt/notesSlides/notesSlide1.xml",
+        data: new TextEncoder().encode(notes1),
+      },
     ]);
     writeFileSync(p, bytes);
     const prev = await previewFile(ctx, p);
@@ -208,8 +227,13 @@ describe("universal rich file previews (fmPreview & previewFile)", () => {
     if (prev.rich?.kind === "presentation") {
       expect(prev.rich.slides.length).toBe(1);
       expect(prev.rich.slides[0]!.title).toBe("Quarterly Review");
-      expect(prev.rich.slides[0]!.bullets).toEqual(["Revenue grew 28%", "Launched 3 products"]);
-      expect(prev.rich.slides[0]!.notes).toContain("Emphasize customer retention.");
+      expect(prev.rich.slides[0]!.bullets).toEqual([
+        "Revenue grew 28%",
+        "Launched 3 products",
+      ]);
+      expect(prev.rich.slides[0]!.notes).toContain(
+        "Emphasize customer retention.",
+      );
     }
   });
 
@@ -240,8 +264,12 @@ endobj
   test("SQLite database (.sqlite) inspects tables, columns, row counts, and sample rows", async () => {
     const p = join(root, "app.sqlite");
     const db = new Database(p);
-    db.run("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL, role TEXT)");
-    db.run("INSERT INTO users (name, role) VALUES ('Ada', 'admin'), ('Grace', NULL)");
+    db.run(
+      "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL, role TEXT)",
+    );
+    db.run(
+      "INSERT INTO users (name, role) VALUES ('Ada', 'admin'), ('Grace', NULL)",
+    );
     db.close();
     const prev = await previewFile(ctx, p);
     expect(prev.rich?.kind).toBe("sqlite");
@@ -256,7 +284,10 @@ endobj
 
   test("Gzip file (.gz) decompresses inner text for immediate preview", async () => {
     const p = join(root, "server.log.gz");
-    writeFileSync(p, gzipSync(Buffer.from("2026-10-18 INFO Boot sequence complete\n")));
+    writeFileSync(
+      p,
+      gzipSync(Buffer.from("2026-10-18 INFO Boot sequence complete\n")),
+    );
     const prev = await previewFile(ctx, p);
     expect(prev.rich?.kind).toBe("archive");
     if (prev.rich?.kind === "archive") {
@@ -276,7 +307,10 @@ endobj
     }
 
     const jsonlPath = join(root, "events.jsonl");
-    writeFileSync(jsonlPath, '{"id":1,"event":"login"}\n{"id":2,"event":"purchase"}\n');
+    writeFileSync(
+      jsonlPath,
+      '{"id":1,"event":"login"}\n{"id":2,"event":"purchase"}\n',
+    );
     const jsonlPrev = await previewFile(ctx, jsonlPath);
     expect(jsonlPrev.rich?.kind).toBe("structured");
     if (jsonlPrev.rich?.kind === "structured") {
@@ -297,7 +331,10 @@ endobj
         nbformat_minor: 5,
         metadata: { kernelspec: { display_name: "Python 3" } },
         cells: [
-          { cell_type: "markdown", source: ["# Data Analysis\n", "Summary of findings."] },
+          {
+            cell_type: "markdown",
+            source: ["# Data Analysis\n", "Summary of findings."],
+          },
           {
             cell_type: "code",
             execution_count: 1,
@@ -322,7 +359,10 @@ endobj
     expect(srtPrev.rich?.kind).toBe("subtitles");
 
     const icsPath = join(root, "invite.ics");
-    writeFileSync(icsPath, "BEGIN:VCALENDAR\nBEGIN:VEVENT\nSUMMARY:Design Sync\nDTSTART:20261018T150000Z\nLOCATION:Room 42\nEND:VEVENT\nEND:VCALENDAR\n");
+    writeFileSync(
+      icsPath,
+      "BEGIN:VCALENDAR\nBEGIN:VEVENT\nSUMMARY:Design Sync\nDTSTART:20261018T150000Z\nLOCATION:Room 42\nEND:VEVENT\nEND:VCALENDAR\n",
+    );
     const icsPrev = await previewFile(ctx, icsPath);
     expect(icsPrev.rich?.kind).toBe("calendar");
     if (icsPrev.rich?.kind === "calendar") {
@@ -330,7 +370,10 @@ endobj
     }
 
     const vcfPath = join(root, "ada.vcf");
-    writeFileSync(vcfPath, "BEGIN:VCARD\nFN:Ada Lovelace\nEMAIL:ada@analytical.engine\nTEL:+44-1234\nEND:VCARD\n");
+    writeFileSync(
+      vcfPath,
+      "BEGIN:VCARD\nFN:Ada Lovelace\nEMAIL:ada@analytical.engine\nTEL:+44-1234\nEND:VCARD\n",
+    );
     const vcfPrev = await previewFile(ctx, vcfPath);
     expect(vcfPrev.rich?.kind).toBe("contact");
     if (vcfPrev.rich?.kind === "contact") {
@@ -347,12 +390,18 @@ endobj
     }
 
     const diffPath = join(root, "fix.patch");
-    writeFileSync(diffPath, "--- a/app.ts\n+++ b/app.ts\n@@ -1,2 +1,2 @@\n-const x = 1;\n+const x = 2;\n");
+    writeFileSync(
+      diffPath,
+      "--- a/app.ts\n+++ b/app.ts\n@@ -1,2 +1,2 @@\n-const x = 1;\n+const x = 2;\n",
+    );
     const diffPrev = await previewFile(ctx, diffPath);
     expect(diffPrev.rich?.kind).toBe("diff");
 
     const logPath = join(root, "system.log");
-    writeFileSync(logPath, "2026-10-18 INFO Listening on :8080\n2026-10-18 ERROR Connection refused\n");
+    writeFileSync(
+      logPath,
+      "2026-10-18 INFO Listening on :8080\n2026-10-18 ERROR Connection refused\n",
+    );
     const logPrev = await previewFile(ctx, logPath);
     expect(logPrev.rich?.kind).toBe("log");
     if (logPrev.rich?.kind === "log") {
@@ -363,7 +412,17 @@ endobj
 
   test("Binary file (.bin / .wasm) generates hex + ASCII dump and extracted strings", async () => {
     const wasmPath = join(root, "module.wasm");
-    const bytes = new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, ...new TextEncoder().encode("exported_func")]);
+    const bytes = new Uint8Array([
+      0x00,
+      0x61,
+      0x73,
+      0x6d,
+      0x01,
+      0x00,
+      0x00,
+      0x00,
+      ...new TextEncoder().encode("exported_func"),
+    ]);
     writeFileSync(wasmPath, bytes);
     const prev = await previewFile(ctx, wasmPath);
     expect(prev.type).toBe("binary");
@@ -391,11 +450,21 @@ describe("UI renderers for rich Quick Look and Details panel (quicklookFormat.js
     }));
     const dom = new JSDOM("<!doctype html><html><body></body></html>");
     const g = globalThis as any;
-    const keys = ["document", "window", "Node", "HTMLElement", "Element"] as const;
+    const keys = [
+      "document",
+      "window",
+      "Node",
+      "HTMLElement",
+      "Element",
+    ] as const;
     const saved = new Map<string, PropertyDescriptor | undefined>();
     for (const k of keys) {
       saved.set(k, Object.getOwnPropertyDescriptor(g, k));
-      Object.defineProperty(g, k, { value: (dom.window as any)[k], configurable: true, writable: true });
+      Object.defineProperty(g, k, {
+        value: (dom.window as any)[k],
+        configurable: true,
+        writable: true,
+      });
     }
     try {
       const {
@@ -406,30 +475,53 @@ describe("UI renderers for rich Quick Look and Details panel (quicklookFormat.js
         saveQuickLookReadingProgress,
         loadQuickLookReadingProgress,
       } = await import("../resources/file_manager/ui/quicklookFormat.js");
-      for (const name of ["budget.xlsx", "proposal.docx", "deck.pptx", "app.sqlite", "analysis.ipynb", "triangle.obj", "module.wasm"]) {
+      for (const name of [
+        "budget.xlsx",
+        "proposal.docx",
+        "deck.pptx",
+        "app.sqlite",
+        "analysis.ipynb",
+        "triangle.obj",
+        "module.wasm",
+      ]) {
         const path = join(root, name);
         const preview = await previewFile(ctx, path);
-        const entry = { name, path, size: preview.size, isDir: false, label: name, mtimeMs: Date.now() };
+        const entry = {
+          name,
+          path,
+          size: preview.size,
+          isDir: false,
+          label: name,
+          mtimeMs: Date.now(),
+        };
         const qlNode = renderRichQuickLook(entry, preview);
         expect(qlNode, name).toBeTruthy();
-        expect(qlNode!.textContent, name).not.toMatch(/\bnull\b|\bundefined\b|\[object/i);
+        expect(qlNode!.textContent, name).not.toMatch(
+          /\bnull\b|\bundefined\b|\[object/i,
+        );
         expect(qlNode!.querySelector(".ql-copy-all-btn"), name).toBeTruthy();
         expect(qlNode!.querySelector(".ql-copy-sel-btn"), name).toBeTruthy();
         expect(qlNode!.querySelector(".ql-find-btn"), name).toBeTruthy();
         expect(qlNode!.querySelector(".ql-ask-ai-btn"), name).toBeTruthy();
         expect(qlNode!.querySelector(".ql-speak-sel-btn"), name).toBeTruthy();
-        expect(extractQuickLookPreviewText(entry, preview, qlNode).length, name).toBeGreaterThan(0);
+        expect(
+          extractQuickLookPreviewText(entry, preview, qlNode).length,
+          name,
+        ).toBeGreaterThan(0);
 
         const infoNode = renderRichInfoSummary(entry, preview);
         expect(infoNode, name).toBeTruthy();
-        expect(infoNode!.textContent, name).not.toMatch(/\bnull\b|\bundefined\b|\[object/i);
+        expect(infoNode!.textContent, name).not.toMatch(
+          /\bnull\b|\bundefined\b|\[object/i,
+        );
       }
 
       // Verify Quick Look Find Bar and Reading Progress Memory
       const host = dom.window.document.createElement("div");
       const content = dom.window.document.createElement("div");
       content.className = "ql-rich";
-      content.innerHTML = "<p>Alpha beta gamma delta</p><p>Another alpha match here</p>";
+      content.innerHTML =
+        "<p>Alpha beta gamma delta</p><p>Another alpha match here</p>";
       host.appendChild(content);
       dom.window.document.body.appendChild(host);
       expect(toggleQuickLookFindBar(host, "alpha")).toBe(true);
@@ -437,7 +529,10 @@ describe("UI renderers for rich Quick Look and Details panel (quicklookFormat.js
       expect(findBar).toBeTruthy();
       expect(findBar!.hidden).toBe(false);
 
-      saveQuickLookReadingProgress("/tmp/book.epub", { chapterIdx: 2, scrollRatio: 0.45 });
+      saveQuickLookReadingProgress("/tmp/book.epub", {
+        chapterIdx: 2,
+        scrollRatio: 0.45,
+      });
       const progress = loadQuickLookReadingProgress("/tmp/book.epub");
       expect(progress?.chapterIdx).toBe(2);
       expect(progress?.scrollRatio).toBeCloseTo(0.45, 2);

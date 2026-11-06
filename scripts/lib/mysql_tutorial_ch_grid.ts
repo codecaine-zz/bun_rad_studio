@@ -4,8 +4,11 @@ import { S, choose, dialogButton, tagField } from "./mysql_tutorial_helpers";
 /** Chapters 5 and 6: the data grid with its GUI editing, and the S Q L editor with its backup and dump generator. */
 export const gridChapters: Chapter[] = [
   {
-    id: "06_grid", chapter: "DATA GRID", title: "The data grid: browse, filter, total and edit rows",
-    blurb: "Sorting, the filter bar, a totals row, new, edit, duplicate and delete rows, and a printable report",
+    id: "06_grid",
+    chapter: "DATA GRID",
+    title: "The data grid: browse, filter, total and edit rows",
+    blurb:
+      "Sorting, the filter bar, a totals row, new, edit, duplicate and delete rows, and a printable report",
     steps: [
       {
         cap: "Pick a table, sort by a column",
@@ -22,7 +25,9 @@ export const gridChapters: Chapter[] = [
         say: "The Filter Bar puts a box under every column. I type V I P under tier, and only matching rows stay, as I type. Clear it, and all the rows return.",
         act: async (d) => {
           await d.click(S + "#btnToggleFilterBar", { pause: 1000 });
-          await d.click(S + ".access-filter-input >> @filter tier", { pause: 500 });
+          await d.click(S + ".access-filter-input >> @filter tier", {
+            pause: 500,
+          });
           await d.type("VIP", 140);
           await d.wait(2500);
           await d.key("Meta+a", "⌘ A");
@@ -56,7 +61,9 @@ export const gridChapters: Chapter[] = [
         cap: "Edit a cell, duplicate a row, delete a row",
         say: "Double click a cell to edit it in place: I give Mary a company. Right click a row for edit, duplicate, copy or delete. Duplicating needs a new unique email, and Now for the creation time, which MySQL rejects in the copied format.",
         act: async (d) => {
-          await d.dblclick(S + "tbody tr:last-child td[data-col=company]", { pause: 700 });
+          await d.dblclick(S + "tbody tr:last-child td[data-col=company]", {
+            pause: 700,
+          });
           await d.type("Frankenstein Press", 60);
           await d.key("Enter", "Enter");
           await d.wait(1200);
@@ -99,8 +106,11 @@ export const gridChapters: Chapter[] = [
 /** Chapter 6: the S Q L editor, the preset queries, and the one-click backup and dump generator. */
 export const sqlChapters: Chapter[] = [
   {
-    id: "07_sql", chapter: "S Q L EDITOR", title: "The S Q L editor, presets, and one-click backup",
-    blurb: "Run queries, ready-made snippets, export results, and a complete S Q L dump",
+    id: "07_sql",
+    chapter: "S Q L EDITOR",
+    title: "The S Q L editor, presets, and one-click backup",
+    blurb:
+      "Run queries, ready-made snippets, export results, and a complete S Q L dump",
     steps: [
       {
         cap: "Run Query opens the S Q L editor",
@@ -123,10 +133,14 @@ export const sqlChapters: Chapter[] = [
         cap: "Write your own query",
         say: "Or write your own. I type a query that groups orders by status, press Command Enter, and the answer appears.",
         act: async (d) => {
-          if (!(await d.c.exists(S + "#sqlEditor"))) await d.click(S + "#btnToggleEditor", { pause: 900 });
+          if (!(await d.c.exists(S + "#sqlEditor")))
+            await d.click(S + "#btnToggleEditor", { pause: 900 });
           await d.click(S + "#sqlEditor", { pause: 500 });
           await d.key("Meta+a", "⌘ A");
-          await d.type("SELECT status, COUNT(*) AS orders, SUM(total_amount) AS revenue FROM orders GROUP BY status ORDER BY revenue DESC;", 22);
+          await d.type(
+            "SELECT status, COUNT(*) AS orders, SUM(total_amount) AS revenue FROM orders GROUP BY status ORDER BY revenue DESC;",
+            22,
+          );
           await d.key("Meta+Enter", "⌘ Enter");
           await d.wait(2500);
         },
@@ -135,7 +149,14 @@ export const sqlChapters: Chapter[] = [
         cap: "Export, explain, create a view",
         say: "Under the editor: Explain Plan, Export C S V, Export JSON, Export S Q L, and Create view, which turns a query into a view.",
         act: async (d) => {
-          for (const b of ["button >> Explain Plan", "button >> Export CSV", "button >> Export JSON", "button >> Export SQL", "button >> Create view"]) await d.hover(S + b, 900);
+          for (const b of [
+            "button >> Explain Plan",
+            "button >> Export CSV",
+            "button >> Export JSON",
+            "button >> Export SQL",
+            "button >> Create view",
+          ])
+            await d.hover(S + b, 900);
         },
       },
       {
@@ -143,7 +164,9 @@ export const sqlChapters: Chapter[] = [
         say: "DB Backup and Dump writes a full S Q L dump in one click. Choose complete, schema only, or data only, tick the tables, and generate. You get the create table statements and every insert.",
         act: async (d) => {
           await d.click(S + "#btnDbBackupDump", { pause: 2500 });
-          await d.scroll(S + "pre, .dump-preview, textarea", 300, 5).catch(() => {});
+          await d
+            .scroll(S + "pre, .dump-preview, textarea", 300, 5)
+            .catch(() => {});
           await d.wait(2000);
         },
       },

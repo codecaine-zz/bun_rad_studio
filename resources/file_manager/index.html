@@ -1,197 +1,672 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
-<meta name="fm-token" content="__FM_TOKEN__">
-<meta name="fm-nonce" content="__FM_NONCE__">
-<meta name="fm-platform" content="__FM_PLATFORM__">
-<meta name="fm-arch" content="__FM_ARCH__">
-<meta name="fm-phonon" content="__FM_PHONON__">
-<meta name="fm-start" content="__FM_START__">
-<title>Codecaine File Manager</title>
-<link rel="icon" href="data:,">
-<link rel="stylesheet" href="/vendor/xterm.css">
-<link rel="stylesheet" href="/ui/style.css">
-<link rel="stylesheet" href="/ui/power.css">
-<link rel="stylesheet" href="/ui/find.css">
-<link rel="stylesheet" href="/ui/watch.css">
-<link rel="stylesheet" href="/ui/downloads.css">
-<link rel="stylesheet" href="/ui/crypto.css">
-<link rel="stylesheet" href="/ui/secrets.css">
-<link rel="stylesheet" href="/ui/ip.css">
-<link rel="stylesheet" href="/ui/serve.css">
-<link rel="stylesheet" href="/ui/net.css">
-<link rel="stylesheet" href="/ui/subs.css">
-<link rel="stylesheet" href="/ui/sd.css">
-<link rel="stylesheet" href="/ui/code.css">
-<link rel="stylesheet" href="/ui/dev.css">
-<link rel="stylesheet" href="/ui/databases.css">
-<link rel="stylesheet" href="/ui/fileinfo.css">
-<link rel="stylesheet" href="/ui/views.css">
-<link rel="stylesheet" href="/ui/copysection.css">
-<link rel="stylesheet" href="/ui/perms.css">
-<link rel="stylesheet" href="/ui/grave.css">
-<link rel="stylesheet" href="/ui/plan.css">
-<link rel="stylesheet" href="/ui/studio.css">
-<link rel="stylesheet" href="/ui/player.css">
-<link rel="stylesheet" href="/ui/tasks.css">
-<link rel="stylesheet" href="/ui/sysinfo.css">
-<link rel="stylesheet" href="/ui/phonon.css">
-<link rel="stylesheet" href="/ui/ollama.css">
-<link rel="stylesheet" href="/ui/bionic.css">
-<link rel="stylesheet" href="/ui/themeEffects.css">
-</head>
-<body spellcheck="false" autocorrect="off" autocapitalize="off">
-  <a class="skip-link" href="#list">Skip to the files</a>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="fm-token" content="__FM_TOKEN__" />
+    <meta name="fm-nonce" content="__FM_NONCE__" />
+    <meta name="fm-platform" content="__FM_PLATFORM__" />
+    <meta name="fm-arch" content="__FM_ARCH__" />
+    <meta name="fm-phonon" content="__FM_PHONON__" />
+    <meta name="fm-start" content="__FM_START__" />
+    <title>Codecaine File Manager</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/vendor/xterm.css" />
+    <link rel="stylesheet" href="/ui/style.css" />
+    <link rel="stylesheet" href="/ui/power.css" />
+    <link rel="stylesheet" href="/ui/find.css" />
+    <link rel="stylesheet" href="/ui/watch.css" />
+    <link rel="stylesheet" href="/ui/downloads.css" />
+    <link rel="stylesheet" href="/ui/crypto.css" />
+    <link rel="stylesheet" href="/ui/secrets.css" />
+    <link rel="stylesheet" href="/ui/ip.css" />
+    <link rel="stylesheet" href="/ui/serve.css" />
+    <link rel="stylesheet" href="/ui/net.css" />
+    <link rel="stylesheet" href="/ui/subs.css" />
+    <link rel="stylesheet" href="/ui/sd.css" />
+    <link rel="stylesheet" href="/ui/code.css" />
+    <link rel="stylesheet" href="/ui/dev.css" />
+    <link rel="stylesheet" href="/ui/databases.css" />
+    <link rel="stylesheet" href="/ui/fileinfo.css" />
+    <link rel="stylesheet" href="/ui/views.css" />
+    <link rel="stylesheet" href="/ui/copysection.css" />
+    <link rel="stylesheet" href="/ui/perms.css" />
+    <link rel="stylesheet" href="/ui/grave.css" />
+    <link rel="stylesheet" href="/ui/plan.css" />
+    <link rel="stylesheet" href="/ui/studio.css" />
+    <link rel="stylesheet" href="/ui/player.css" />
+    <link rel="stylesheet" href="/ui/tasks.css" />
+    <link rel="stylesheet" href="/ui/sysinfo.css" />
+    <link rel="stylesheet" href="/ui/phonon.css" />
+    <link rel="stylesheet" href="/ui/ollama.css" />
+    <link rel="stylesheet" href="/ui/bionic.css" />
+    <link rel="stylesheet" href="/ui/themeEffects.css" />
+  </head>
+  <body spellcheck="false" autocorrect="off" autocapitalize="off">
+    <a class="skip-link" href="#list">Skip to the files</a>
 
-  <div id="app" data-workspace="files">
-    <div id="viewbar">
-      <button id="sidebar-toggle" type="button" class="vb-btn" aria-controls="sidebar" aria-expanded="true" title="Show or hide the list of places on the left (Alt+7)"><span aria-hidden="true">☰</span><span class="vb-label">Places</span></button>
-      <div id="view-switch" role="radiogroup" aria-label="Choose a view of the window. Use the arrow keys to move between them."></div>
-      <button id="viewbar-themes" type="button" class="vb-btn" aria-haspopup="menu" aria-label="Themes" title="Change the colors: standard light or dark, themes you used lately, or all of them"><span class="vb-icon" aria-hidden="true">🎨</span><span class="vb-label">Themes</span><span class="vb-caret" aria-hidden="true">▾</span></button>
-      <button id="viewbar-ollama" type="button" class="vb-btn" aria-label="Ollama AI Assistant" title="Open the Built-In Ollama AI Assistant & Full Capability Router"><span class="vb-icon" aria-hidden="true">🤖</span><span class="vb-label">Ollama AI</span></button>
-      <button id="viewbar-bionic" type="button" class="vb-btn" aria-label="LM Studio Bionic AI Studio" title="Open the Built-In LM Studio Bionic AI Studio: Apple Silicon MLX/oMLX/Splash LLMs, @Skill Agent Hub, Bionic Projects, Phonon 40M Multilingual 24kHz TTS, and ExecuTorch Whisper ASR"><span class="vb-icon" aria-hidden="true">🧬</span><span class="vb-label">Bionic AI</span></button>
-      <button id="viewbar-phonon" type="button" class="vb-btn" aria-label="Ollama Text-to-Speech (Phonon Voice Reader)" title="Open Ollama Text-to-Speech (Phonon Voice Reader): read text & documents out loud, convert to plain text, set default voice, and save as any audio file"><span class="vb-icon" aria-hidden="true">🗣️</span><span class="vb-label">Ollama TTS</span></button>
-      <button id="viewbar-palette" type="button" class="vb-btn" aria-haspopup="dialog" aria-label="Command Palette" title="Open the Command Palette & Quick Jump (Mod+Shift+P or Mod+P)"><span class="vb-icon" aria-hidden="true">⚡</span><span class="vb-label">Command</span></button>
-      <div id="view-extras">
-        <button id="split-orient" type="button" class="vb-btn" hidden></button>
-        <button id="focus-toggle" type="button" class="vb-btn" aria-pressed="false" title="Hide the toolbar and side panels so the list or tool has the whole window (Alt+6). Press Esc to bring them back."><span aria-hidden="true">⛶</span><span class="vb-label">Focus</span></button>
-        <time id="fm-clock" class="vb-clock" role="button" tabindex="0" aria-label="Current date and time. Click to switch between 12-hour and 24-hour time." title="Current date and time. Click to switch between 12-hour and 24-hour time."><span id="fm-clock-date" class="vb-clock-date"></span><span class="vb-clock-sep" aria-hidden="true">·</span><span id="fm-clock-time" class="vb-clock-time"></span></time>
+    <div id="app" data-workspace="files">
+      <div id="viewbar">
+        <button
+          id="sidebar-toggle"
+          type="button"
+          class="vb-btn"
+          aria-controls="sidebar"
+          aria-expanded="true"
+          title="Show or hide the list of places on the left (Alt+7)"
+        >
+          <span aria-hidden="true">☰</span><span class="vb-label">Places</span>
+        </button>
+        <div
+          id="view-switch"
+          role="radiogroup"
+          aria-label="Choose a view of the window. Use the arrow keys to move between them."
+        ></div>
+        <button
+          id="viewbar-themes"
+          type="button"
+          class="vb-btn"
+          aria-haspopup="menu"
+          aria-label="Themes"
+          title="Change the colors: standard light or dark, themes you used lately, or all of them"
+        >
+          <span class="vb-icon" aria-hidden="true">🎨</span
+          ><span class="vb-label">Themes</span
+          ><span class="vb-caret" aria-hidden="true">▾</span>
+        </button>
+        <button
+          id="viewbar-ollama"
+          type="button"
+          class="vb-btn"
+          aria-label="Ollama AI Assistant"
+          title="Open the Built-In Ollama AI Assistant & Full Capability Router"
+        >
+          <span class="vb-icon" aria-hidden="true">🤖</span
+          ><span class="vb-label">Ollama AI</span>
+        </button>
+        <button
+          id="viewbar-bionic"
+          type="button"
+          class="vb-btn"
+          aria-label="LM Studio Bionic AI Studio"
+          title="Open the Built-In LM Studio Bionic AI Studio: Apple Silicon MLX/oMLX/Splash LLMs, @Skill Agent Hub, Bionic Projects, Phonon 40M Multilingual 24kHz TTS, and ExecuTorch Whisper ASR"
+        >
+          <span class="vb-icon" aria-hidden="true">🧬</span
+          ><span class="vb-label">Bionic AI</span>
+        </button>
+        <button
+          id="viewbar-phonon"
+          type="button"
+          class="vb-btn"
+          aria-label="Ollama Text-to-Speech (Phonon Voice Reader)"
+          title="Open Ollama Text-to-Speech (Phonon Voice Reader): read text & documents out loud, convert to plain text, set default voice, and save as any audio file"
+        >
+          <span class="vb-icon" aria-hidden="true">🗣️</span
+          ><span class="vb-label">Ollama TTS</span>
+        </button>
+        <button
+          id="viewbar-palette"
+          type="button"
+          class="vb-btn"
+          aria-haspopup="dialog"
+          aria-label="Command Palette"
+          title="Open the Command Palette & Quick Jump (Mod+Shift+P or Mod+P)"
+        >
+          <span class="vb-icon" aria-hidden="true">⚡</span
+          ><span class="vb-label">Command</span>
+        </button>
+        <div id="view-extras">
+          <button
+            id="split-orient"
+            type="button"
+            class="vb-btn"
+            hidden
+          ></button>
+          <button
+            id="focus-toggle"
+            type="button"
+            class="vb-btn"
+            aria-pressed="false"
+            title="Hide the toolbar and side panels so the list or tool has the whole window (Alt+6). Press Esc to bring them back."
+          >
+            <span aria-hidden="true">⛶</span><span class="vb-label">Focus</span>
+          </button>
+          <time
+            id="fm-clock"
+            class="vb-clock"
+            role="button"
+            tabindex="0"
+            aria-label="Current date and time. Click to switch between 12-hour and 24-hour time."
+            title="Current date and time. Click to switch between 12-hour and 24-hour time."
+            ><span id="fm-clock-date" class="vb-clock-date"></span
+            ><span class="vb-clock-sep" aria-hidden="true">·</span
+            ><span id="fm-clock-time" class="vb-clock-time"></span
+          ></time>
+        </div>
       </div>
-    </div>
 
-    <div id="toolbar-row">
-      <header id="toolbar" role="toolbar" aria-label="Actions"></header>
-      <button id="tool-more" type="button" class="tool tool-more" aria-haspopup="menu" title="More buttons that don't fit in this narrow window" hidden><span class="ti" aria-hidden="true">⋯</span><span class="tl">More</span></button>
-    </div>
-
-    <div id="tabbar" role="tablist" aria-label="Folder tabs"></div>
-
-    <div id="addressbar">
-      <div class="address-main">
-        <nav id="crumbs" aria-label="Where you are. Click an empty part to type a location."></nav>
-        <input id="address-input" type="text" class="address-input" aria-label="Type a folder location and press Enter" spellcheck="false" autocomplete="off" hidden>
-        <button id="pin-folder" type="button" class="icon-btn pin-folder-btn" aria-pressed="false" title="Pin or unpin this folder in Favorites" aria-label="Pin folder to Favorites">☆</button>
-        <button id="copy-address" type="button" class="icon-btn" title="Copy current folder path" aria-label="Copy current folder path">📋</button>
-        <button id="edit-address" type="button" class="icon-btn" title="Type a location (Ctrl+L)" aria-label="Type a location">✎</button>
+      <div id="toolbar-row">
+        <header id="toolbar" role="toolbar" aria-label="Actions"></header>
+        <button
+          id="tool-more"
+          type="button"
+          class="tool tool-more"
+          aria-haspopup="menu"
+          title="More buttons that don't fit in this narrow window"
+          hidden
+        >
+          <span class="ti" aria-hidden="true">⋯</span
+          ><span class="tl">More</span>
+        </button>
       </div>
-      <div class="search" role="search">
-        <input id="search" type="search" class="search-input" placeholder="Search" autocomplete="off" spellcheck="false">
-        <button id="search-go" type="button" class="icon-btn" title="Search" aria-label="Search">🔍</button>
+
+      <div id="tabbar" role="tablist" aria-label="Folder tabs"></div>
+
+      <div id="addressbar">
+        <div class="address-main">
+          <nav
+            id="crumbs"
+            aria-label="Where you are. Click an empty part to type a location."
+          ></nav>
+          <input
+            id="address-input"
+            type="text"
+            class="address-input"
+            aria-label="Type a folder location and press Enter"
+            spellcheck="false"
+            autocomplete="off"
+            hidden
+          />
+          <button
+            id="pin-folder"
+            type="button"
+            class="icon-btn pin-folder-btn"
+            aria-pressed="false"
+            title="Pin or unpin this folder in Favorites"
+            aria-label="Pin folder to Favorites"
+          >
+            ☆
+          </button>
+          <button
+            id="copy-address"
+            type="button"
+            class="icon-btn"
+            title="Copy current folder path"
+            aria-label="Copy current folder path"
+          >
+            📋
+          </button>
+          <button
+            id="edit-address"
+            type="button"
+            class="icon-btn"
+            title="Type a location (Ctrl+L)"
+            aria-label="Type a location"
+          >
+            ✎
+          </button>
+        </div>
+        <div class="search" role="search">
+          <input
+            id="search"
+            type="search"
+            class="search-input"
+            placeholder="Search"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button
+            id="search-go"
+            type="button"
+            class="icon-btn"
+            title="Search"
+            aria-label="Search"
+          >
+            🔍
+          </button>
+        </div>
       </div>
-    </div>
 
-    <div id="stage">
-    <div id="body">
-      <nav id="sidebar" aria-label="Places"></nav>
+      <div id="stage">
+        <div id="body">
+          <nav id="sidebar" aria-label="Places"></nav>
 
-      <main id="main">
-        <div id="banner" class="banner" hidden></div>
-        <div id="quickbar" class="quickbar" role="region" aria-label="Quick filter and view controls">
-          <div class="qb-filter-wrap">
-            <span class="qb-filter-icon" aria-hidden="true">⚡</span>
-            <input id="quick-filter" type="search" class="qb-filter-input" placeholder="Filter this folder… (name, *.ts, ext:json, size:>1mb, date:today)" title="Instant folder filter: type a name, wildcard (*.ts), negation (-node_modules), ext:ts,js, size:>1mb, date:today, tag:red, or is:dir" aria-label="Filter items in this folder by name or type" spellcheck="false" autocomplete="off">
-            <button id="quick-filter-clear" type="button" class="qb-clear-btn" title="Clear folder filter (Esc)" aria-label="Clear folder filter" hidden>✕</button>
+          <main id="main">
+            <div id="banner" class="banner" hidden></div>
+            <div
+              id="quickbar"
+              class="quickbar"
+              role="region"
+              aria-label="Quick filter and view controls"
+            >
+              <div class="qb-filter-wrap">
+                <span class="qb-filter-icon" aria-hidden="true">⚡</span>
+                <input
+                  id="quick-filter"
+                  type="search"
+                  class="qb-filter-input"
+                  placeholder="Filter this folder… (name, *.ts, ext:json, size:>1mb, date:today)"
+                  title="Instant folder filter: type a name, wildcard (*.ts), negation (-node_modules), ext:ts,js, size:>1mb, date:today, tag:red, or is:dir"
+                  aria-label="Filter items in this folder by name or type"
+                  spellcheck="false"
+                  autocomplete="off"
+                />
+                <button
+                  id="quick-filter-clear"
+                  type="button"
+                  class="qb-clear-btn"
+                  title="Clear folder filter (Esc)"
+                  aria-label="Clear folder filter"
+                  hidden
+                >
+                  ✕
+                </button>
+              </div>
+              <div
+                id="kind-chips"
+                class="qb-chips"
+                role="toolbar"
+                aria-label="Filter by file category"
+              ></div>
+              <div
+                class="qb-controls"
+                role="group"
+                aria-label="Layout and grouping"
+              >
+                <button
+                  id="qb-sizes-btn"
+                  type="button"
+                  class="qb-pill"
+                  title="Calculate total byte sizes for folders in this view so they display in the Size column and sort by size"
+                >
+                  📐 Sizes
+                </button>
+                <button
+                  id="qb-select-btn"
+                  type="button"
+                  class="qb-pill"
+                  title="Select or deselect items by pattern, extension, size, or date"
+                >
+                  🎯 Select…
+                </button>
+                <button
+                  id="qb-group-btn"
+                  type="button"
+                  class="qb-pill"
+                  aria-haspopup="menu"
+                  title="Group items in this folder by Kind, Date, or Size"
+                >
+                  Group: None ▾
+                </button>
+                <button
+                  id="qb-density-btn"
+                  type="button"
+                  class="qb-pill"
+                  aria-haspopup="menu"
+                  title="Change row spacing density (Compact, Comfortable, Spacious)"
+                >
+                  Comfortable ▾
+                </button>
+                <button
+                  id="qb-template-btn"
+                  type="button"
+                  class="qb-pill qb-pill-accent"
+                  title="Create a new file from a starter template"
+                >
+                  + Template
+                </button>
+              </div>
+            </div>
+            <div id="list-head" class="list-head" hidden>
+              <span class="h-icon"></span>
+              <button type="button" class="h-name" data-sort="name">
+                Name
+              </button>
+              <span class="h-where" hidden>Folder</span>
+              <button type="button" class="h-date" data-sort="modified">
+                Date modified
+              </button>
+              <button type="button" class="h-type" data-sort="type">
+                Type
+              </button>
+              <button type="button" class="h-size" data-sort="size">
+                Size
+              </button>
+              <span class="h-ext" hidden>Extension</span>
+              <span class="h-perms" hidden>Permissions</span>
+            </div>
+            <div id="list-wrap">
+              <div
+                id="list"
+                role="listbox"
+                tabindex="0"
+                aria-multiselectable="true"
+                aria-label="Files and folders"
+              ></div>
+              <div id="empty" class="empty" hidden></div>
+            </div>
+            <div
+              id="selection-bar"
+              class="selection-bar"
+              role="toolbar"
+              aria-label="Selected items actions"
+              hidden
+            ></div>
+          </main>
+
+          <aside
+            id="info"
+            aria-label="Details"
+            data-copy="Details panel"
+            data-copy-inner="off"
+            hidden
+          ></aside>
+        </div>
+
+        <div id="splitter" role="separator" tabindex="0" hidden></div>
+
+        <section id="power-panel" aria-label="Power tools" hidden>
+          <div class="power-filter">
+            <label for="power-filter">Find a tool</label>
+            <input
+              id="power-filter"
+              type="search"
+              placeholder="Filter apps by name or what they do..."
+              aria-controls="power-tabs"
+              aria-describedby="power-filter-status"
+              spellcheck="false"
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="off"
+            />
+            <button
+              id="power-filter-clear"
+              type="button"
+              class="pw-btn"
+              title="Clear the tool filter and show all apps"
+              hidden
+            >
+              Clear
+            </button>
+            <span
+              id="power-filter-status"
+              class="pw-status"
+              role="status"
+              aria-live="polite"
+            ></span>
           </div>
-          <div id="kind-chips" class="qb-chips" role="toolbar" aria-label="Filter by file category"></div>
-          <div class="qb-controls" role="group" aria-label="Layout and grouping">
-            <button id="qb-sizes-btn" type="button" class="qb-pill" title="Calculate total byte sizes for folders in this view so they display in the Size column and sort by size">📐 Sizes</button>
-            <button id="qb-select-btn" type="button" class="qb-pill" title="Select or deselect items by pattern, extension, size, or date">🎯 Select…</button>
-            <button id="qb-group-btn" type="button" class="qb-pill" aria-haspopup="menu" title="Group items in this folder by Kind, Date, or Size">Group: None ▾</button>
-            <button id="qb-density-btn" type="button" class="qb-pill" aria-haspopup="menu" title="Change row spacing density (Compact, Comfortable, Spacious)">Comfortable ▾</button>
-            <button id="qb-template-btn" type="button" class="qb-pill qb-pill-accent" title="Create a new file from a starter template">+ Template</button>
+          <div class="power-head">
+            <button
+              id="power-close"
+              type="button"
+              class="power-close"
+              title="Go back to your files (Alt+1)"
+              aria-label="Back to files"
+            >
+              <span aria-hidden="true">←</span> Back to files
+            </button>
+            <span class="power-title">Tools</span>
+            <button
+              id="power-scroll-left"
+              type="button"
+              class="power-scroll"
+              tabindex="-1"
+              title="Show the tools on the left"
+              aria-label="Scroll the tool tabs left"
+              hidden
+            >
+              ‹
+            </button>
+            <div id="power-tabs" role="tablist" aria-label="Tools"></div>
+            <button
+              id="power-scroll-right"
+              type="button"
+              class="power-scroll"
+              tabindex="-1"
+              title="Show more tools on the right"
+              aria-label="Scroll the tool tabs right"
+              hidden
+            >
+              ›
+            </button>
+            <div
+              class="power-actions"
+              role="group"
+              aria-label="Tool screen and window options"
+            >
+              <button
+                id="power-compact"
+                type="button"
+                class="pw-btn power-act"
+                aria-pressed="false"
+                title="Hide the tool filter bar and app notes for extra room"
+              >
+                Compact
+              </button>
+              <button
+                id="power-expand"
+                type="button"
+                class="pw-btn power-act"
+                aria-pressed="false"
+                title="Fill the whole window with this tool (press Esc to restore)"
+              >
+                ⛶ Expand
+              </button>
+              <button
+                id="power-window"
+                type="button"
+                class="pw-btn power-act"
+                title="Open the current tool in its own desktop window"
+              >
+                Window
+              </button>
+              <button
+                id="power-browser"
+                type="button"
+                class="pw-btn power-act"
+                title="Open the current tool in your web browser"
+              >
+                Browser
+              </button>
+            </div>
           </div>
-        </div>
-        <div id="list-head" class="list-head" hidden>
-          <span class="h-icon"></span>
-          <button type="button" class="h-name" data-sort="name">Name</button>
-          <span class="h-where" hidden>Folder</span>
-          <button type="button" class="h-date" data-sort="modified">Date modified</button>
-          <button type="button" class="h-type" data-sort="type">Type</button>
-          <button type="button" class="h-size" data-sort="size">Size</button>
-          <span class="h-ext" hidden>Extension</span>
-          <span class="h-perms" hidden>Permissions</span>
-        </div>
-        <div id="list-wrap">
-          <div id="list" role="listbox" tabindex="0" aria-multiselectable="true" aria-label="Files and folders"></div>
-          <div id="empty" class="empty" hidden></div>
-        </div>
-        <div id="selection-bar" class="selection-bar" role="toolbar" aria-label="Selected items actions" hidden></div>
-      </main>
+          <div
+            id="power-max-bar"
+            class="power-max-bar"
+            role="group"
+            aria-label="Full-window tool controls"
+            hidden
+          >
+            <button
+              id="power-restore"
+              type="button"
+              class="pw-btn power-act"
+              aria-pressed="true"
+              title="Restore the File Manager bars and tabs (Esc)"
+            >
+              ⛶ Restore
+            </button>
+            <button
+              id="power-max-window"
+              type="button"
+              class="pw-btn power-act"
+              title="Open the current tool in its own desktop window"
+            >
+              Window
+            </button>
+            <button
+              id="power-max-browser"
+              type="button"
+              class="pw-btn power-act"
+              title="Open the current tool in your web browser"
+            >
+              Browser
+            </button>
+            <button
+              id="power-max-close"
+              type="button"
+              class="pw-btn danger power-act"
+              title="Close the current game or tool and stop audio"
+            >
+              ✕ Close
+            </button>
+          </div>
+          <div id="power-body"></div>
+        </section>
 
-      <aside id="info" aria-label="Details" data-copy="Details panel" data-copy-inner="off" hidden></aside>
+        <section id="dual-pane" aria-label="Second folder" hidden></section>
+
+        <section id="home" aria-label="Home" hidden></section>
+        <div
+          id="tasks"
+          class="tasks"
+          role="region"
+          aria-label="Background tasks"
+          hidden
+        ></div>
+      </div>
+
+      <section id="terminal-panel" aria-label="Terminal" hidden>
+        <div
+          id="terminal-resizer"
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="Terminal height. Press the up or down arrow key to change it."
+          tabindex="0"
+        ></div>
+        <div class="term-bar">
+          <span id="terminal-title" class="term-title">Terminal</span>
+          <span class="term-note"
+            >A real terminal: things deleted here skip the Recycle Bin and can't
+            be undone.</span
+          >
+          <span class="term-actions">
+            <button
+              id="terminal-copy"
+              type="button"
+              class="term-btn"
+              title="Copy selected terminal text (Ctrl+Shift+C or Command+C)"
+              disabled
+            >
+              Copy
+            </button>
+            <button
+              id="terminal-paste"
+              type="button"
+              class="term-btn"
+              title="Paste clipboard text into the terminal (Ctrl+V, Ctrl+Shift+V, Shift+Insert or Command+V)"
+            >
+              Paste
+            </button>
+            <button
+              id="terminal-select-all"
+              type="button"
+              class="term-btn"
+              title="Select all terminal output, including scrollback (Ctrl+Shift+A or Command+A)"
+            >
+              Select all
+            </button>
+            <label
+              class="term-follow"
+              title="Follow the terminal's physical folder, resolving symlinks and junctions. This can differ from pwd; compare pwd -P in a POSIX shell. Hover the terminal title for the reported path."
+              ><input id="terminal-follow" type="checkbox" /> Follow terminal
+              (real path)</label
+            >
+            <button
+              id="terminal-cliutils"
+              type="button"
+              class="term-btn"
+              title="Open the built-in RAD Studio CLI utilities folder in the terminal so you can run ./tool-name directly"
+            >
+              CLI utilities
+            </button>
+            <button
+              id="terminal-cd"
+              type="button"
+              class="term-btn"
+              title="Move the terminal to the folder you selected, or to the folder you are looking at if none is selected"
+            >
+              Go to this folder
+            </button>
+            <button
+              id="terminal-restart"
+              type="button"
+              class="term-btn"
+              title="End this shell and start a new one in the selected folder, or the folder you are looking at"
+            >
+              Restart
+            </button>
+            <button
+              id="terminal-expand"
+              type="button"
+              class="term-btn term-expand"
+              aria-pressed="false"
+              title="Fill the whole window with the terminal"
+            >
+              ⛶ Expand
+            </button>
+            <button
+              id="terminal-close"
+              type="button"
+              class="term-btn term-close"
+              title="Hide the terminal (Cmd+J / Ctrl+J). It keeps running."
+              aria-label="Hide the terminal"
+            >
+              ✕
+            </button>
+          </span>
+        </div>
+        <div
+          id="terminal-host"
+          class="term-host"
+          title="Drag to select terminal text. Hold Shift while dragging if a terminal program captures the mouse. Right-click for Copy, Paste and Select all."
+        ></div>
+      </section>
+
+      <footer id="status">
+        <span id="status-left" aria-live="off"></span>
+        <span id="status-right"
+          ><button
+            id="status-terminal"
+            type="button"
+            class="status-terminal"
+            aria-pressed="false"
+            title="Show the terminal"
+          >
+            <span aria-hidden="true">⌨️</span> Terminal
+            <kbd class="status-terminal-key"></kbd></button
+          ><button
+            id="status-terminal-expand"
+            type="button"
+            class="status-terminal"
+            aria-pressed="false"
+            title="Fill the whole window with the terminal"
+          >
+            ⛶ Expand</button
+          ><span
+            id="status-views"
+            role="group"
+            aria-label="How files are shown"
+          ></span
+          ><time
+            id="status-clock"
+            class="status-clock"
+            aria-label="Current date and time"
+          ></time
+          ><span class="busy-indicator">Working…</span></span
+        >
+      </footer>
     </div>
 
-    <div id="splitter" role="separator" tabindex="0" hidden></div>
+    <div id="live" class="sr-only" aria-live="polite"></div>
+    <div id="toasts"></div>
+    <div id="overlay"></div>
 
-    <section id="power-panel" aria-label="Power tools" hidden>
-      <div class="power-filter">
-        <label for="power-filter">Find a tool</label>
-        <input id="power-filter" type="search" placeholder="Filter apps by name or what they do..." aria-controls="power-tabs" aria-describedby="power-filter-status" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">
-        <button id="power-filter-clear" type="button" class="pw-btn" title="Clear the tool filter and show all apps" hidden>Clear</button>
-        <span id="power-filter-status" class="pw-status" role="status" aria-live="polite"></span>
-      </div>
-      <div class="power-head">
-        <button id="power-close" type="button" class="power-close" title="Go back to your files (Alt+1)" aria-label="Back to files"><span aria-hidden="true">←</span> Back to files</button>
-        <span class="power-title">Tools</span>
-        <button id="power-scroll-left" type="button" class="power-scroll" tabindex="-1" title="Show the tools on the left" aria-label="Scroll the tool tabs left" hidden>‹</button>
-        <div id="power-tabs" role="tablist" aria-label="Tools"></div>
-        <button id="power-scroll-right" type="button" class="power-scroll" tabindex="-1" title="Show more tools on the right" aria-label="Scroll the tool tabs right" hidden>›</button>
-        <div class="power-actions" role="group" aria-label="Tool screen and window options">
-          <button id="power-compact" type="button" class="pw-btn power-act" aria-pressed="false" title="Hide the tool filter bar and app notes for extra room">Compact</button>
-          <button id="power-expand" type="button" class="pw-btn power-act" aria-pressed="false" title="Fill the whole window with this tool (press Esc to restore)">⛶ Expand</button>
-          <button id="power-window" type="button" class="pw-btn power-act" title="Open the current tool in its own desktop window">Window</button>
-          <button id="power-browser" type="button" class="pw-btn power-act" title="Open the current tool in your web browser">Browser</button>
-        </div>
-      </div>
-      <div id="power-max-bar" class="power-max-bar" role="group" aria-label="Full-window tool controls" hidden>
-        <button id="power-restore" type="button" class="pw-btn power-act" aria-pressed="true" title="Restore the File Manager bars and tabs (Esc)">⛶ Restore</button>
-        <button id="power-max-window" type="button" class="pw-btn power-act" title="Open the current tool in its own desktop window">Window</button>
-        <button id="power-max-browser" type="button" class="pw-btn power-act" title="Open the current tool in your web browser">Browser</button>
-        <button id="power-max-close" type="button" class="pw-btn danger power-act" title="Close the current game or tool and stop audio">✕ Close</button>
-      </div>
-      <div id="power-body"></div>
-    </section>
-
-    <section id="dual-pane" aria-label="Second folder" hidden></section>
-
-    <section id="home" aria-label="Home" hidden></section>
-    <div id="tasks" class="tasks" role="region" aria-label="Background tasks" hidden></div>
-    </div>
-
-    <section id="terminal-panel" aria-label="Terminal" hidden>
-      <div id="terminal-resizer" role="separator" aria-orientation="horizontal" aria-label="Terminal height. Press the up or down arrow key to change it." tabindex="0"></div>
-      <div class="term-bar">
-        <span id="terminal-title" class="term-title">Terminal</span>
-        <span class="term-note">A real terminal: things deleted here skip the Recycle Bin and can't be undone.</span>
-        <span class="term-actions">
-          <button id="terminal-copy" type="button" class="term-btn" title="Copy selected terminal text (Ctrl+Shift+C or Command+C)" disabled>Copy</button>
-          <button id="terminal-paste" type="button" class="term-btn" title="Paste clipboard text into the terminal (Ctrl+V, Ctrl+Shift+V, Shift+Insert or Command+V)">Paste</button>
-          <button id="terminal-select-all" type="button" class="term-btn" title="Select all terminal output, including scrollback (Ctrl+Shift+A or Command+A)">Select all</button>
-          <label class="term-follow" title="Follow the terminal's physical folder, resolving symlinks and junctions. This can differ from pwd; compare pwd -P in a POSIX shell. Hover the terminal title for the reported path."><input id="terminal-follow" type="checkbox"> Follow terminal (real path)</label>
-          <button id="terminal-cliutils" type="button" class="term-btn" title="Open the built-in RAD Studio CLI utilities folder in the terminal so you can run ./tool-name directly">CLI utilities</button>
-          <button id="terminal-cd" type="button" class="term-btn" title="Move the terminal to the folder you selected, or to the folder you are looking at if none is selected">Go to this folder</button>
-          <button id="terminal-restart" type="button" class="term-btn" title="End this shell and start a new one in the selected folder, or the folder you are looking at">Restart</button>
-          <button id="terminal-expand" type="button" class="term-btn term-expand" aria-pressed="false" title="Fill the whole window with the terminal">⛶ Expand</button>
-          <button id="terminal-close" type="button" class="term-btn term-close" title="Hide the terminal (Cmd+J / Ctrl+J). It keeps running." aria-label="Hide the terminal">✕</button>
-        </span>
-      </div>
-      <div id="terminal-host" class="term-host" title="Drag to select terminal text. Hold Shift while dragging if a terminal program captures the mouse. Right-click for Copy, Paste and Select all."></div>
-    </section>
-
-    <footer id="status">
-      <span id="status-left" aria-live="off"></span>
-      <span id="status-right"><button id="status-terminal" type="button" class="status-terminal" aria-pressed="false" title="Show the terminal"><span aria-hidden="true">⌨️</span> Terminal <kbd class="status-terminal-key"></kbd></button><button id="status-terminal-expand" type="button" class="status-terminal" aria-pressed="false" title="Fill the whole window with the terminal">⛶ Expand</button><span id="status-views" role="group" aria-label="How files are shown"></span><time id="status-clock" class="status-clock" aria-label="Current date and time"></time><span class="busy-indicator">Working…</span></span>
-    </footer>
-  </div>
-
-  <div id="live" class="sr-only" aria-live="polite"></div>
-  <div id="toasts"></div>
-  <div id="overlay"></div>
-
-  <noscript>The File Manager needs JavaScript, which is turned off in this window.</noscript>
-  <script type="module" src="/ui/main.js"></script>
-</body>
+    <noscript
+      >The File Manager needs JavaScript, which is turned off in this
+      window.</noscript
+    >
+    <script type="module" src="/ui/main.js"></script>
+  </body>
 </html>

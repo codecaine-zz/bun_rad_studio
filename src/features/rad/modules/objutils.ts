@@ -20,7 +20,10 @@ export interface ObjectDiff {
 const UNSAFE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
 function assertSafeKey(key: string | number, fn: string): void {
-  if (UNSAFE_KEYS.has(String(key))) throw new Error(`[objutils.${fn}] Refusing unsafe key "${key}" (prototype pollution)`);
+  if (UNSAFE_KEYS.has(String(key)))
+    throw new Error(
+      `[objutils.${fn}] Refusing unsafe key "${key}" (prototype pollution)`,
+    );
 }
 
 /** `true` for `null` / `undefined`. @example `objutils.isNil(null); // true` */
@@ -73,7 +76,8 @@ export function toPath(path: ObjPath): (string | number)[] {
   for (const m of path.matchAll(re)) {
     if (m[2] !== undefined) out.push(m[2]);
     else if (m[3] !== undefined) out.push(Number(m[3]));
-    else if (m[4] !== undefined) out.push(/^\d+$/.test(m[4]) ? Number(m[4]) : m[4]);
+    else if (m[4] !== undefined)
+      out.push(/^\d+$/.test(m[4]) ? Number(m[4]) : m[4]);
   }
   return out;
 }
@@ -89,7 +93,11 @@ export function get(obj: unknown, path: ObjPath): any;
 /** Safe deep read typed as `T | undefined` when no default value is given. */
 export function get<T>(obj: unknown, path: ObjPath): T | undefined;
 /** Implementation of safe deep property reading along a dotted/bracketed path. */
-export function get<T = any>(obj: unknown, path: ObjPath, defaultValue?: T): T | undefined {
+export function get<T = any>(
+  obj: unknown,
+  path: ObjPath,
+  defaultValue?: T,
+): T | undefined {
   if (obj == null) return defaultValue;
   let current: any = obj;
   for (const key of toPath(path)) {
@@ -126,7 +134,8 @@ export function set<T extends object>(obj: T, path: ObjPath, value: any): T {
   for (let i = 0; i < keys.length - 1; i++) {
     const key = keys[i]!;
     assertSafeKey(key, "set");
-    if (current[key] == null || typeof current[key] !== "object") current[key] = typeof keys[i + 1] === "number" ? [] : {};
+    if (current[key] == null || typeof current[key] !== "object")
+      current[key] = typeof keys[i + 1] === "number" ? [] : {};
     current = current[key];
   }
   const lastKey = keys[keys.length - 1]!;
@@ -160,29 +169,43 @@ export function unset(obj: any, path: ObjPath): boolean {
 }
 
 /** New object with only `keys`. @example `objutils.pick({ a: 1, b: 2 }, ["a"]); // { a: 1 }` */
-export function pick<T extends object, K extends keyof T>(obj: T, keys: readonly K[]): Pick<T, K> {
+export function pick<T extends object, K extends keyof T>(
+  obj: T,
+  keys: readonly K[],
+): Pick<T, K> {
   const result = {} as Pick<T, K>;
   for (const key of keys) if (key in obj) result[key] = obj[key];
   return result;
 }
 
 /** New object without `keys`. @example `objutils.omit({ a: 1, b: 2 }, ["a"]); // { b: 2 }` */
-export function omit<T extends object, K extends keyof T>(obj: T, keys: readonly K[]): Omit<T, K> {
+export function omit<T extends object, K extends keyof T>(
+  obj: T,
+  keys: readonly K[],
+): Omit<T, K> {
   const keySet = new Set<keyof T>(keys);
   const result = {} as any;
-  for (const key of Object.keys(obj) as (keyof T)[]) if (!keySet.has(key)) result[key] = obj[key];
+  for (const key of Object.keys(obj) as (keyof T)[])
+    if (!keySet.has(key)) result[key] = obj[key];
   return result;
 }
 
 /** Keep entries where `predicate` is truthy. @example `objutils.pickBy({ a: 1, b: 0 }, Boolean); // { a: 1 }` */
-export function pickBy<T extends object>(obj: T, predicate: (value: T[keyof T], key: string) => boolean): Partial<T> {
+export function pickBy<T extends object>(
+  obj: T,
+  predicate: (value: T[keyof T], key: string) => boolean,
+): Partial<T> {
   const result = {} as Partial<T>;
-  for (const [key, value] of Object.entries(obj)) if (predicate(value, key)) result[key as keyof T] = value;
+  for (const [key, value] of Object.entries(obj))
+    if (predicate(value, key)) result[key as keyof T] = value;
   return result;
 }
 
 /** Drop entries where `predicate` is truthy. @example `objutils.omitBy({ a: 1, b: null }, objutils.isNil); // { a: 1 }` */
-export function omitBy<T extends object>(obj: T, predicate: (value: T[keyof T], key: string) => boolean): Partial<T> {
+export function omitBy<T extends object>(
+  obj: T,
+  predicate: (value: T[keyof T], key: string) => boolean,
+): Partial<T> {
   return pickBy(obj, (v, k) => !predicate(v, k));
 }
 
@@ -192,33 +215,50 @@ export function compactObject<T extends object>(obj: T): Partial<T> {
 }
 
 /** First key whose value satisfies `predicate`. @example `objutils.findKey({ a: 1, b: 5 }, (v) => v > 2); // "b"` */
-export function findKey<T extends object>(obj: T, predicate: (value: T[keyof T], key: string) => boolean): string | undefined {
+export function findKey<T extends object>(
+  obj: T,
+  predicate: (value: T[keyof T], key: string) => boolean,
+): string | undefined {
   return Object.entries(obj).find(([k, v]) => predicate(v, k))?.[0];
 }
 
 /** Transform keys. @example `objutils.mapKeys({ a: 1 }, (_v, k) => k.toUpperCase()); // { A: 1 }` */
-export function mapKeys<T extends object, K extends PropertyKey>(obj: T, fn: (value: T[keyof T], key: string) => K): Record<K, T[keyof T]> {
+export function mapKeys<T extends object, K extends PropertyKey>(
+  obj: T,
+  fn: (value: T[keyof T], key: string) => K,
+): Record<K, T[keyof T]> {
   const result = {} as Record<K, T[keyof T]>;
-  for (const [key, value] of Object.entries(obj)) result[fn(value, key)] = value;
+  for (const [key, value] of Object.entries(obj))
+    result[fn(value, key)] = value;
   return result;
 }
 
 /** Transform values. @example `objutils.mapValues({ a: 1 }, (v) => v * 10); // { a: 10 }` */
-export function mapValues<T extends object, V>(obj: T, fn: (value: T[keyof T], key: string) => V): Record<keyof T, V> {
+export function mapValues<T extends object, V>(
+  obj: T,
+  fn: (value: T[keyof T], key: string) => V,
+): Record<keyof T, V> {
   const result = {} as Record<keyof T, V>;
-  for (const [key, value] of Object.entries(obj)) result[key as keyof T] = fn(value, key);
+  for (const [key, value] of Object.entries(obj))
+    result[key as keyof T] = fn(value, key);
   return result;
 }
 
 /** Rename keys via a `{ old: "new" }` map (unlisted keys kept). @example `objutils.renameKeys({ id: 1 }, { id: "userId" }); // { userId: 1 }` */
-export function renameKeys<T extends object>(obj: T, mapping: Record<string, string>): Record<string, unknown> {
+export function renameKeys<T extends object>(
+  obj: T,
+  mapping: Record<string, string>,
+): Record<string, unknown> {
   return mapKeys(obj, (_v, k) => mapping[k] ?? k);
 }
 
 /** Swap keys and values. @example `objutils.invert({ a: "x" }); // { x: "a" }` */
-export function invert<K extends PropertyKey, V extends PropertyKey>(obj: Record<K, V>): Record<V, K> {
+export function invert<K extends PropertyKey, V extends PropertyKey>(
+  obj: Record<K, V>,
+): Record<V, K> {
   const result = {} as Record<V, K>;
-  for (const [key, value] of Object.entries(obj)) result[value as V] = key as unknown as K;
+  for (const [key, value] of Object.entries(obj))
+    result[value as V] = key as unknown as K;
   return result;
 }
 
@@ -228,7 +268,9 @@ export function typedKeys<T extends object>(obj: T): (keyof T)[] {
 }
 
 /** `Object.entries` with key/value types preserved. @example `for (const [k, v] of objutils.typedEntries(cfg)) …` */
-export function typedEntries<T extends object>(obj: T): [keyof T, T[keyof T]][] {
+export function typedEntries<T extends object>(
+  obj: T,
+): [keyof T, T[keyof T]][] {
   return Object.entries(obj) as [keyof T, T[keyof T]][];
 }
 
@@ -236,10 +278,14 @@ export function typedEntries<T extends object>(obj: T): [keyof T, T[keyof T]][] 
  * Fill keys that are `undefined` in `obj` from each source in order (shallow, non-mutating).
  * @example `objutils.defaults({ a: 1 }, { a: 9, b: 2 }); // { a: 1, b: 2 }`
  */
-export function defaults<T extends object>(obj: T, ...sources: Partial<T>[]): T {
+export function defaults<T extends object>(
+  obj: T,
+  ...sources: Partial<T>[]
+): T {
   const out: any = { ...obj };
   for (const src of sources) {
-    for (const [k, v] of Object.entries(src)) if (out[k] === undefined) out[k] = v;
+    for (const [k, v] of Object.entries(src))
+      if (out[k] === undefined) out[k] = v;
   }
   return out;
 }
@@ -254,13 +300,19 @@ export function deepClone<T>(val: T): T {
  * `__proto__`/`constructor`/`prototype` keys are skipped.
  * @example `objutils.deepMerge({ a: { x: 1 } }, { a: { y: 2 } }); // { a: { x: 1, y: 2 } }`
  */
-export function deepMerge<T extends object, U extends object>(target: T, ...sources: U[]): T & U {
+export function deepMerge<T extends object, U extends object>(
+  target: T,
+  ...sources: U[]
+): T & U {
   const output: Record<string, any> = { ...target };
   for (const src of sources) {
     if (!isPlainObject(src)) continue;
     for (const [key, value] of Object.entries(src)) {
       if (UNSAFE_KEYS.has(key)) continue;
-      output[key] = isPlainObject(value) && isPlainObject(output[key]) ? deepMerge(output[key], value) : value;
+      output[key] =
+        isPlainObject(value) && isPlainObject(output[key])
+          ? deepMerge(output[key], value)
+          : value;
     }
   }
   return output as T & U;
@@ -279,12 +331,18 @@ export function deepFreeze<T>(val: T): Readonly<T> {
  * Flatten nested plain objects to dotted keys. Arrays are kept as values unless `flattenArrays`.
  * @example `objutils.flattenObject({ a: { b: 1 }, c: [1] }); // { "a.b": 1, c: [1] }`
  */
-export function flattenObject(obj: Record<string, any>, prefix = "", flattenArrays = false): Record<string, any> {
+export function flattenObject(
+  obj: Record<string, any>,
+  prefix = "",
+  flattenArrays = false,
+): Record<string, any> {
   const result: Record<string, any> = {};
   for (const [key, value] of Object.entries(obj)) {
     const fullKey = prefix ? `${prefix}.${key}` : key;
-    const recurse = isPlainObject(value) || (flattenArrays && Array.isArray(value));
-    if (recurse && Object.keys(value).length > 0) Object.assign(result, flattenObject(value, fullKey, flattenArrays));
+    const recurse =
+      isPlainObject(value) || (flattenArrays && Array.isArray(value));
+    if (recurse && Object.keys(value).length > 0)
+      Object.assign(result, flattenObject(value, fullKey, flattenArrays));
     else result[fullKey] = value;
   }
   return result;
@@ -294,7 +352,9 @@ export function flattenObject(obj: Record<string, any>, prefix = "", flattenArra
  * Inverse of {@link flattenObject}: dotted keys → nested objects (numeric segments become arrays).
  * @example `objutils.unflattenObject({ "a.b": 1, "list.0": "x" }); // { a: { b: 1 }, list: ["x"] }`
  */
-export function unflattenObject(flat: Record<string, any>): Record<string, any> {
+export function unflattenObject(
+  flat: Record<string, any>,
+): Record<string, any> {
   const out: Record<string, any> = {};
   for (const [key, value] of Object.entries(flat)) set(out, key, value);
   return out;
@@ -308,7 +368,10 @@ export function unflattenObject(flat: Record<string, any>): Record<string, any> 
  * // { added: ["d"], removed: [], changed: ["b.c"] }
  * ```
  */
-export function objectDiff(before: Record<string, any>, after: Record<string, any>): ObjectDiff {
+export function objectDiff(
+  before: Record<string, any>,
+  after: Record<string, any>,
+): ObjectDiff {
   const a = flattenObject(before);
   const b = flattenObject(after);
   const diff: ObjectDiff = { added: [], removed: [], changed: [] };

@@ -8,13 +8,21 @@ import { createHash, randomBytes } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { FmError } from "./fmPaths";
 import { SecretsError } from "./fmSecretsCrypto";
-import { MAX_PLAINTEXT_BYTES, encodeVault, openWithDataKey, parseHeader, wipeKeys, type VaultKeys } from "./fmSecretsFormat";
+import {
+  MAX_PLAINTEXT_BYTES,
+  encodeVault,
+  openWithDataKey,
+  parseHeader,
+  wipeKeys,
+  type VaultKeys,
+} from "./fmSecretsFormat";
 import type { SecretsHooks } from "./fmSecretsHooks";
 import { LIMITS, type AuditEvent, type Db } from "./fmSecretsModel";
 import { writeAtomic } from "./fmSecretsStore";
 
 /** Computes the lowercase hex-encoded SHA-256 digest of `data`. */
-export const sha256Hex = (data: Uint8Array): string => createHash("sha256").update(data).digest("hex");
+export const sha256Hex = (data: Uint8Array): string =>
+  createHash("sha256").update(data).digest("hex");
 
 /** Staged password-export import awaiting user confirmation before being merged into the vault. */
 export interface PendingImport {
@@ -68,7 +76,8 @@ export class Session {
 
   /** Returns the unlocked vault `Db`, or throws a `LOCKED` `FmError` if the session has been destroyed. */
   database(): Db {
-    if (!this.db) throw new FmError("LOCKED", "The vault is locked. Unlock it first.");
+    if (!this.db)
+      throw new FmError("LOCKED", "The vault is locked. Unlock it first.");
     return this.db;
   }
 
@@ -103,7 +112,12 @@ export class Session {
   /** Seconds until auto-lock, or null when auto-lock is off. Asking does not count as activity. */
   idleSecondsLeft(): number | null {
     const ms = this.idleMs();
-    return ms > 0 ? Math.max(0, Math.ceil((this.lastActivity + ms - this.hooks.now()) / 1000)) : null;
+    return ms > 0
+      ? Math.max(
+          0,
+          Math.ceil((this.lastActivity + ms - this.hooks.now()) / 1000),
+        )
+      : null;
   }
 
   /** Re-arms the idle auto-lock timer after the vault's auto-lock settings have been updated. */
@@ -123,21 +137,36 @@ export class Session {
    */
   flush(opts: { backup?: boolean } = {}): void {
     if (!this.db || (!this.dirty && !opts.backup)) return;
-    if (this.conflict) throw new FmError("CONFLICT", "The vault file changed on disk since you unlocked it (another copy of this program or a sync tool?). Nothing was overwritten.");
+    if (this.conflict)
+      throw new FmError(
+        "CONFLICT",
+        "The vault file changed on disk since you unlocked it (another copy of this program or a sync tool?). Nothing was overwritten.",
+      );
     if (this.diskDigest() !== this.lastDigest) {
       this.conflict = true;
-      throw new FmError("CONFLICT", "The vault file changed on disk since you unlocked it (another copy of this program or a sync tool?). Nothing was overwritten.");
+      throw new FmError(
+        "CONFLICT",
+        "The vault file changed on disk since you unlocked it (another copy of this program or a sync tool?). Nothing was overwritten.",
+      );
     }
     this.db.modifiedAt = this.hooks.now();
     const plain = Buffer.from(JSON.stringify(this.db), "utf8");
     try {
-      if (plain.length > MAX_PLAINTEXT_BYTES) throw new SecretsError("TOO_LARGE", "The vault has grown too big to save (the limit is 64 MB of data). Delete or shrink something first.");
+      if (plain.length > MAX_PLAINTEXT_BYTES)
+        throw new SecretsError(
+          "TOO_LARGE",
+          "The vault has grown too big to save (the limit is 64 MB of data). Delete or shrink something first.",
+        );
       let nonce = randomBytes(12);
-      while (this.usedNonces.has(nonce.toString("hex"))) nonce = randomBytes(12);
+      while (this.usedNonces.has(nonce.toString("hex")))
+        nonce = randomBytes(12);
       this.usedNonces.add(nonce.toString("hex"));
       const file = encodeVault(this.keys, plain, randomBytes, nonce);
       const now = this.hooks.now();
-      const rotate = opts.backup === true || now - this.lastBackupAt >= (this.hooks.backupMinIntervalMs ?? 10 * 60_000);
+      const rotate =
+        opts.backup === true ||
+        now - this.lastBackupAt >=
+          (this.hooks.backupMinIntervalMs ?? 10 * 60_000);
       writeAtomic(this.path, file, {
         backup: rotate,
         hooks: this.hooks,
@@ -146,7 +175,11 @@ export class Session {
           const again = openWithDataKey(written, h, this.keys.dataKey);
           const same = again.length === plain.length;
           again.fill(0);
-          if (!same) throw new SecretsError("SAVE_FAILED", "The saved vault could not be verified. Nothing was changed.");
+          if (!same)
+            throw new SecretsError(
+              "SAVE_FAILED",
+              "The saved vault could not be verified. Nothing was changed.",
+            );
         },
       });
       if (rotate) this.lastBackupAt = now;
@@ -178,13 +211,19 @@ export class Session {
    */
   change<T>(fn: (db: Db) => T, opts: { backup?: boolean } = {}): T {
     const db = this.database();
-    const before = { items: db.items, settings: db.settings, audit: db.audit, dirty: this.dirty };
+    const before = {
+      items: db.items,
+      settings: db.settings,
+      audit: db.audit,
+      dirty: this.dirty,
+    };
     db.items = { ...db.items };
     db.audit = [...db.audit];
     db.settings = { ...db.settings };
     try {
       const out = fn(db);
-      if (db.audit.length > LIMITS.audit) db.audit = db.audit.slice(-LIMITS.audit);
+      if (db.audit.length > LIMITS.audit)
+        db.audit = db.audit.slice(-LIMITS.audit);
       this.dirty = true;
       this.flush(opts);
       this.armIdle();
@@ -201,7 +240,11 @@ export class Session {
   /** Appends a timestamped audit event (`ev` and optional count `n`) to the database's bounded audit log. */
   audit(ev: string, n?: number): void {
     const db = this.database();
-    const e: AuditEvent = { t: this.hooks.now(), ev, ...(n === undefined ? {} : { n }) };
+    const e: AuditEvent = {
+      t: this.hooks.now(),
+      ev,
+      ...(n === undefined ? {} : { n }),
+    };
     db.audit = [...db.audit, e].slice(-LIMITS.audit);
   }
 

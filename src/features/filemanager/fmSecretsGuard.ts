@@ -4,15 +4,27 @@
  */
 import { existsSync } from "node:fs";
 import { dirname } from "node:path";
-import { absolutePath, assertCreatable, type FmContext, type FmHandler } from "./fmCore";
+import {
+  absolutePath,
+  assertCreatable,
+  type FmContext,
+  type FmHandler,
+} from "./fmCore";
 import { FmError } from "./fmPaths";
 import { secretsService, type SecretsService } from "./fmSecretsService";
 
 /** Handler function for a Secrets API operation that receives the context's `SecretsService`, `FmContext`, and request body. */
-export type SecretsHandler = (svc: SecretsService, ctx: FmContext, body: Record<string, any>) => Promise<unknown> | unknown;
+export type SecretsHandler = (
+  svc: SecretsService,
+  ctx: FmContext,
+  body: Record<string, any>,
+) => Promise<unknown> | unknown;
 
 /** Wraps a `SecretsHandler` into an `FmHandler` that refreshes the session idle timer (when `touch` is true) and sanitizes unexpected errors. */
-export function secretsOp(fn: SecretsHandler, { touch = true }: { touch?: boolean } = {}): FmHandler {
+export function secretsOp(
+  fn: SecretsHandler,
+  { touch = true }: { touch?: boolean } = {},
+): FmHandler {
   return async (ctx, body) => {
     const svc = secretsService(ctx);
     try {
@@ -21,7 +33,10 @@ export function secretsOp(fn: SecretsHandler, { touch = true }: { touch?: boolea
       return out ?? {};
     } catch (err) {
       if (err instanceof FmError) throw err;
-      throw new FmError("SECRETS_ERROR", "Something went wrong with the vault. Nothing was changed.");
+      throw new FmError(
+        "SECRETS_ERROR",
+        "Something went wrong with the vault. Nothing was changed.",
+      );
     }
   };
 }
@@ -29,19 +44,25 @@ export function secretsOp(fn: SecretsHandler, { touch = true }: { touch?: boolea
 /** A text from a request, or undefined when it is absent; anything else that is not text is refused. */
 export function optionalText(value: unknown, what: string): string | undefined {
   if (value === undefined || value === null || value === "") return undefined;
-  if (typeof value !== "string") throw new FmError("BAD_REQUEST", `The ${what} must be text.`);
+  if (typeof value !== "string")
+    throw new FmError("BAD_REQUEST", `The ${what} must be text.`);
   return value;
 }
 
 /** The sign-in details a request may carry for proving the master password again. */
 export function credsOf(b: Record<string, any>) {
-  return { password: optionalText(b.password, "password"), keyFile: optionalText(b.keyFile, "key file location"), recoveryKey: optionalText(b.recoveryKey, "recovery key") };
+  return {
+    password: optionalText(b.password, "password"),
+    keyFile: optionalText(b.keyFile, "key file location"),
+    recoveryKey: optionalText(b.recoveryKey, "recovery key"),
+  };
 }
 
 /** A location for a new file: absolute, in a place that may be written, and not already taken. */
 export function newFilePath(ctx: FmContext, input: unknown): string {
   const path = absolutePath(ctx, input);
   assertCreatable(ctx, dirname(path));
-  if (existsSync(path)) throw new FmError("EXISTS", "That file already exists. Choose a new name.");
+  if (existsSync(path))
+    throw new FmError("EXISTS", "That file already exists. Choose a new name.");
   return path;
 }

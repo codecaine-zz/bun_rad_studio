@@ -64,6 +64,7 @@ export interface FileTransformResult {
 ## 3. Comprehensive Code Examples
 
 ### Example 1: In-Place File Replacement with Capture Groups
+
 ```typescript
 import { runSdCoordinator } from "./sdCoordinator.ts";
 
@@ -80,6 +81,7 @@ console.log(summaries); // ["Updated package.json (1 changes)"]
 ```
 
 ### Example 2: Dry-Run Diff Preview Without Writing to Disk
+
 ```typescript
 import { runSdCoordinator } from "./sdCoordinator.ts";
 
@@ -98,12 +100,17 @@ for (const diff of diffOutputs) {
 ```
 
 ### Example 3: Transform Single File & Inspect Line Diff Hunks
+
 ```typescript
 import { processFile } from "./sdCoordinator.ts";
 import { buildReplacerRegex } from "./sdDoers.ts";
 
 const regex = buildReplacerRegex("http://localhost:(\\d+)", false, "g");
-const result = await processFile("config.json", regex, "https://api.domain.com");
+const result = await processFile(
+  "config.json",
+  regex,
+  "https://api.domain.com",
+);
 
 if (result.hasChanged) {
   console.log(`File: ${result.filePath}`);
@@ -117,17 +124,23 @@ if (result.hasChanged) {
 ```
 
 ### Example 4: Literal String Replacement (Auto-Escape)
+
 ```typescript
 import { buildReplacerRegex, replaceText } from "./sdDoers.ts";
 
 // Safely escapes dots, brackets, and stars
 const rawPattern = "api.url[0]*test";
 const regex = buildReplacerRegex(rawPattern, true, "g");
-const replaced = replaceText("Connecting to api.url[0]*test now", regex, "new_endpoint");
+const replaced = replaceText(
+  "Connecting to api.url[0]*test now",
+  regex,
+  "new_endpoint",
+);
 console.log(replaced); // "Connecting to new_endpoint now"
 ```
 
 ### Example 5: In-Memory Text Diff Generation
+
 ```typescript
 import { computeDiffHunks, formatDiffPreview } from "./sdDoers.ts";
 
@@ -143,19 +156,27 @@ console.log(preview);
 ```
 
 ### Example 6: File Backup, Match Counting & Target Directory Expansion
+
 ```typescript
-import { createBackup, countMatches, expandTargets, buildReplacerRegex } from "./sdDoers.ts";
+import {
+  createBackup,
+  countMatches,
+  expandTargets,
+  buildReplacerRegex,
+} from "./sdDoers.ts";
 
 // Create backup file before modifying (e.g. file.txt.bak)
 // const backupPath = await createBackup("config.json", ".bak");
 
 // Count matches across file content without replacing
 const regex = buildReplacerRegex("export", false, "g");
-const matchCount = countMatches("export const a = 1; export const b = 2;", regex);
+const matchCount = countMatches(
+  "export const a = 1; export const b = 2;",
+  regex,
+);
 console.log(`Total exports found: ${matchCount}`); // 2
 
 // Recursively expand directory paths, skipping node_modules and .git
 const filePaths = await expandTargets(["src"]);
 console.log(`Discovered ${filePaths.length} file(s) for replacement`);
 ```
-

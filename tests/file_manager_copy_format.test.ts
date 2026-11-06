@@ -1,26 +1,44 @@
 import { describe, expect, test } from "bun:test";
 import { JSDOM } from "jsdom";
-import { MAX_CHARS, capText, extractSection, inlineText, rowsToJson, rowsToMarkdown, rowsToTsv } from "../resources/file_manager/ui/copyformat.js";
+import {
+  MAX_CHARS,
+  capText,
+  extractSection,
+  inlineText,
+  rowsToJson,
+  rowsToMarkdown,
+  rowsToTsv,
+} from "../resources/file_manager/ui/copyformat.js";
 
 // The pure "what text does this block copy as" rules, tried on small pieces of markup (no page, no server).
 const make = (html: string): any => {
   const dom = new JSDOM(`<body><div id="root">${html}</div></body>`);
   return dom.window.document.getElementById("root")!;
 };
-const text = (html: string, options?: any) => extractSection(make(html), options).text;
+const text = (html: string, options?: any) =>
+  extractSection(make(html), options).text;
 
 describe("copy format: plain text", () => {
   test("headings and paragraphs become lines, with a blank line before a heading", () => {
-    expect(text("<h3>Git summary</h3><p>Branch: main</p><p>Clean   tree</p><h4>Files</h4><p>none</p>")).toBe("Git summary\nBranch: main\nClean tree\n\nFiles\nnone");
+    expect(
+      text(
+        "<h3>Git summary</h3><p>Branch: main</p><p>Clean   tree</p><h4>Files</h4><p>none</p>",
+      ),
+    ).toBe("Git summary\nBranch: main\nClean tree\n\nFiles\nnone");
   });
 
   test("definition lists become Name: value lines", () => {
-    const html = "<dl><dt>Size</dt><dd>3 KB</dd><dt>Kind</dt><dd>Text <b>file</b></dd><dt>Empty</dt><dd></dd></dl>";
+    const html =
+      "<dl><dt>Size</dt><dd>3 KB</dd><dt>Kind</dt><dd>Text <b>file</b></dd><dt>Empty</dt><dd></dd></dl>";
     expect(text(html)).toBe("Size: 3 KB\nKind: Text file\nEmpty:");
   });
 
   test("lists keep bullets, numbers and nesting", () => {
-    expect(text("<ul><li>one<ul><li>inner</li></ul></li><li>two</li></ul><ol><li>first</li><li>second</li></ol>")).toBe("- one\n  - inner\n- two\n1. first\n2. second");
+    expect(
+      text(
+        "<ul><li>one<ul><li>inner</li></ul></li><li>two</li></ul><ol><li>first</li><li>second</li></ol>",
+      ),
+    ).toBe("- one\n  - inner\n- two\n1. first\n2. second");
   });
 
   test("hidden, aria-hidden, data-copy-ui, buttons and skip markers are left out", () => {
@@ -32,7 +50,9 @@ describe("copy format: plain text", () => {
     const code = "line one\n    indented   with  spaces\n\n\ttabbed\n";
     expect(text(`<pre>${code}</pre>`)).toBe(code);
     expect(text(`<pre>a\r\nb</pre>`)).toBe("a\nb");
-    expect(text("<h3>Log</h3><pre>x  y\n  z</pre><p>after</p>")).toBe("Log\nx  y\n  z\n\nafter");
+    expect(text("<h3>Log</h3><pre>x  y\n  z</pre><p>after</p>")).toBe(
+      "Log\nx  y\n  z\n\nafter",
+    );
   });
 
   test("line breaks and trailing spaces are tidied outside pre", () => {
@@ -41,19 +61,33 @@ describe("copy format: plain text", () => {
 
   test("the heading can be left out", () => {
     expect(text("<h3>Title</h3><p>Body</p>", { heading: false })).toBe("Body");
-    expect(text("<table><caption>Cap</caption><thead><tr><th>A</th></tr></thead><tbody><tr><td>1</td></tr></tbody></table>", { heading: false })).toBe("A\n1");
+    expect(
+      text(
+        "<table><caption>Cap</caption><thead><tr><th>A</th></tr></thead><tbody><tr><td>1</td></tr></tbody></table>",
+        { heading: false },
+      ),
+    ).toBe("A\n1");
   });
 
   test("read-only fields show their value; other fields stay out, until controls are asked for", () => {
     const html = `<p>Name <input readonly value="shown"></p><input value="typed"><input type="password" readonly value="hunter2"><label><input type="checkbox" checked> Use dark</label><label><input type="checkbox"> Use light</label>`;
     expect(text(html)).toBe("Name shown\nUse dark\nUse light");
-    expect(text(html, { controls: true })).toBe("Name shown\ntyped\n[x] Use dark\n[ ] Use light");
-    expect(text(`<textarea readonly>two\n  lines</textarea>`)).toBe("two\n  lines");
+    expect(text(html, { controls: true })).toBe(
+      "Name shown\ntyped\n[x] Use dark\n[ ] Use light",
+    );
+    expect(text(`<textarea readonly>two\n  lines</textarea>`)).toBe(
+      "two\n  lines",
+    );
   });
 
   test("never writes the words null or undefined", () => {
-    const out = extractSection(make("<p></p><table><tr><td></td><td></td></tr></table><dl><dt>A</dt></dl><ul><li></li></ul><pre> </pre>"));
-    for (const v of [out.text, out.markdown, out.tsv ?? "", out.json ?? ""]) expect(v).not.toMatch(/null|undefined/);
+    const out = extractSection(
+      make(
+        "<p></p><table><tr><td></td><td></td></tr></table><dl><dt>A</dt></dl><ul><li></li></ul><pre> </pre>",
+      ),
+    );
+    for (const v of [out.text, out.markdown, out.tsv ?? "", out.json ?? ""])
+      expect(v).not.toMatch(/null|undefined/);
   });
 });
 
@@ -65,33 +99,54 @@ describe("copy format: tables", () => {
 
   test("tab-separated text keeps empty cells, flattens tabs and quotes cells that hold a quote", () => {
     const out = extractSection(make(TABLE));
-    expect(out.tsv).toBe('Name\tNote\tSize\na,b\t"say ""hi"""\t1\ntab here\t\t2\nwide cell\t\t3');
+    expect(out.tsv).toBe(
+      'Name\tNote\tSize\na,b\t"say ""hi"""\t1\ntab here\t\t2\nwide cell\t\t3',
+    );
     expect(out.tabular).toBe(true);
   });
 
   test("the plain text of a table is its caption and tab-separated rows", () => {
-    expect(extractSection(make(TABLE)).text).toBe('Results\nName\tNote\tSize\na,b\tsay "hi"\t1\ntab here\t\t2\nwide cell\t\t3');
+    expect(extractSection(make(TABLE)).text).toBe(
+      'Results\nName\tNote\tSize\na,b\tsay "hi"\t1\ntab here\t\t2\nwide cell\t\t3',
+    );
   });
 
   test("Markdown uses a header row and escapes pipes", () => {
-    const html = "<table><thead><tr><th>A</th><th>B|C</th></tr></thead><tbody><tr><td>x|y</td><td>1</td></tr></tbody></table>";
-    expect(extractSection(make(html)).markdown).toBe("| A | B\\|C |\n| --- | --- |\n| x\\|y | 1 |");
+    const html =
+      "<table><thead><tr><th>A</th><th>B|C</th></tr></thead><tbody><tr><td>x|y</td><td>1</td></tr></tbody></table>";
+    expect(extractSection(make(html)).markdown).toBe(
+      "| A | B\\|C |\n| --- | --- |\n| x\\|y | 1 |",
+    );
   });
 
   test("JSON is an array of objects named by the header; duplicate and empty names are made unique", () => {
-    const html = "<table><thead><tr><th>Size</th><th>Size</th><th></th></tr></thead><tbody><tr><td>1</td><td>2</td><td>3</td></tr></tbody></table>";
-    expect(JSON.parse(extractSection(make(html)).json!)).toEqual([{ Size: "1", "Size (2)": "2", "Column 3": "3" }]);
+    const html =
+      "<table><thead><tr><th>Size</th><th>Size</th><th></th></tr></thead><tbody><tr><td>1</td><td>2</td><td>3</td></tr></tbody></table>";
+    expect(JSON.parse(extractSection(make(html)).json!)).toEqual([
+      { Size: "1", "Size (2)": "2", "Column 3": "3" },
+    ]);
   });
 
   test("a table without a header row is read as plain rows", () => {
-    const out = extractSection(make("<table><tr><td>a</td><td>b</td></tr><tr><td>c</td><td>d</td></tr></table>"));
+    const out = extractSection(
+      make(
+        "<table><tr><td>a</td><td>b</td></tr><tr><td>c</td><td>d</td></tr></table>",
+      ),
+    );
     expect(out.tsv).toBe("a\tb\nc\td");
-    expect(JSON.parse(out.json!)).toEqual([{ "Column 1": "a", "Column 2": "b" }, { "Column 1": "c", "Column 2": "d" }]);
+    expect(JSON.parse(out.json!)).toEqual([
+      { "Column 1": "a", "Column 2": "b" },
+      { "Column 1": "c", "Column 2": "d" },
+    ]);
     expect(out.markdown).toContain("| Column 1 | Column 2 |");
   });
 
   test("a header row of th cells is found even without thead", () => {
-    const out = extractSection(make("<table><tr><th>A</th><th>B</th></tr><tr><td>1</td><td>2</td></tr></table>"));
+    const out = extractSection(
+      make(
+        "<table><tr><th>A</th><th>B</th></tr><tr><td>1</td><td>2</td></tr></table>",
+      ),
+    );
     expect(out.tsv).toBe("A\tB\n1\t2");
   });
 
@@ -100,8 +155,13 @@ describe("copy format: tables", () => {
     const out = extractSection(make(html));
     expect(out.text).toBe('Name: photo.jpg\nCamera: Canon "R5"');
     expect(out.tsv).toBe('Name\tphoto.jpg\nCamera\t"Canon ""R5"""');
-    expect(JSON.parse(out.json!)).toEqual({ Name: "photo.jpg", Camera: 'Canon "R5"' });
-    expect(out.markdown).toBe('- **Name:** photo.jpg\n- **Camera:** Canon "R5"');
+    expect(JSON.parse(out.json!)).toEqual({
+      Name: "photo.jpg",
+      Camera: 'Canon "R5"',
+    });
+    expect(out.markdown).toBe(
+      '- **Name:** photo.jpg\n- **Camera:** Canon "R5"',
+    );
   });
 
   test("rowspan leaves the covered cell empty and cells made for the Copy button are left out", () => {
@@ -124,12 +184,18 @@ describe("copy format: tables", () => {
   });
 
   test("two tables in one section become a JSON object named by their captions or headings", () => {
-    const html = "<h3>Both</h3><h4>First</h4><table><thead><tr><th>A</th></tr></thead><tbody><tr><td>1</td></tr></tbody></table><table><caption>Second</caption><thead><tr><th>B</th></tr></thead><tbody><tr><td>2</td></tr></tbody></table>";
-    expect(JSON.parse(extractSection(make(html)).json!)).toEqual({ First: [{ A: "1" }], Second: [{ B: "2" }] });
+    const html =
+      "<h3>Both</h3><h4>First</h4><table><thead><tr><th>A</th></tr></thead><tbody><tr><td>1</td></tr></tbody></table><table><caption>Second</caption><thead><tr><th>B</th></tr></thead><tbody><tr><td>2</td></tr></tbody></table>";
+    expect(JSON.parse(extractSection(make(html)).json!)).toEqual({
+      First: [{ A: "1" }],
+      Second: [{ B: "2" }],
+    });
   });
 
   test("dl facts also give tab-separated and JSON forms", () => {
-    const out = extractSection(make("<dl><dt>A</dt><dd>1</dd><dt>A</dt><dd>2</dd></dl>"));
+    const out = extractSection(
+      make("<dl><dt>A</dt><dd>1</dd><dt>A</dt><dd>2</dd></dl>"),
+    );
     expect(out.tsv).toBe("A\t1\nA\t2");
     expect(JSON.parse(out.json!)).toEqual({ A: "1", "A (2)": "2" });
   });
@@ -137,7 +203,11 @@ describe("copy format: tables", () => {
 
 describe("copy format: markdown and limits", () => {
   test("Markdown has headings, bullet lists and fenced code that survives backticks", () => {
-    const md = extractSection(make("<h3>T</h3><p>para</p><ul><li>a</li><li>b</li></ul><pre>x ``` y</pre>")).markdown;
+    const md = extractSection(
+      make(
+        "<h3>T</h3><p>para</p><ul><li>a</li><li>b</li></ul><pre>x ``` y</pre>",
+      ),
+    ).markdown;
     expect(md).toBe("### T\n\npara\n\n- a\n- b\n\n````\nx ``` y\n````");
   });
 
@@ -150,22 +220,54 @@ describe("copy format: markdown and limits", () => {
   });
 
   test("long tables lose their last rows (never half a row) and say so", () => {
-    const rows = Array.from({ length: 5000 }, (_v, i) => `<tr><td>row ${i} ${"x".repeat(40)}</td><td>${i}</td></tr>`).join("");
-    const out = extractSection(make(`<table><thead><tr><th>A</th><th>B</th></tr></thead><tbody>${rows}</tbody></table>`));
+    const rows = Array.from(
+      { length: 5000 },
+      (_v, i) => `<tr><td>row ${i} ${"x".repeat(40)}</td><td>${i}</td></tr>`,
+    ).join("");
+    const out = extractSection(
+      make(
+        `<table><thead><tr><th>A</th><th>B</th></tr></thead><tbody>${rows}</tbody></table>`,
+      ),
+    );
     expect(out.tsv!.length).toBeLessThanOrEqual(MAX_CHARS);
-    expect(out.tsv!.split("\n").every((l: string) => l.split("\t").length === 2)).toBe(true);
+    expect(
+      out.tsv!.split("\n").every((l: string) => l.split("\t").length === 2),
+    ).toBe(true);
     expect(JSON.parse(out.json!).length).toBeGreaterThan(100);
     expect(out.shortened).toBe(true);
   });
 
   test("inlineText gives one tidy line", () => {
-    expect(inlineText(make("<span>a</span>  <b>b</b><i hidden>x</i><span aria-hidden='true'>y</span>"))).toBe("a b");
+    expect(
+      inlineText(
+        make(
+          "<span>a</span>  <b>b</b><i hidden>x</i><span aria-hidden='true'>y</span>",
+        ),
+      ),
+    ).toBe("a b");
   });
 
   test("row helpers quote, escape and name columns", () => {
-    expect(rowsToTsv([["a", 'b"c'], ["1", "2"]])).toBe('a\t"b""c"\n1\t2');
-    expect(rowsToMarkdown([["A", "B"], ["1", "2|3"]])).toBe("| A | B |\n| --- | --- |\n| 1 | 2\\|3 |");
-    expect(JSON.parse(rowsToJson([["A", "A"], ["1", "2"]]))).toEqual([{ A: "1", "A (2)": "2" }]);
+    expect(
+      rowsToTsv([
+        ["a", 'b"c'],
+        ["1", "2"],
+      ]),
+    ).toBe('a\t"b""c"\n1\t2');
+    expect(
+      rowsToMarkdown([
+        ["A", "B"],
+        ["1", "2|3"],
+      ]),
+    ).toBe("| A | B |\n| --- | --- |\n| 1 | 2\\|3 |");
+    expect(
+      JSON.parse(
+        rowsToJson([
+          ["A", "A"],
+          ["1", "2"],
+        ]),
+      ),
+    ).toEqual([{ A: "1", "A (2)": "2" }]);
     expect(rowsToMarkdown([])).toBe("");
   });
 });

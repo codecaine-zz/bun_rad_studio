@@ -27,8 +27,11 @@ import {
   getScreenDimensions,
 } from "../index.ts";
 
-const injectGameMasterFx = (html: string, _title?: string, _accent?: string): string =>
-  injectGameMasterFxBase(html);
+const injectGameMasterFx = (
+  html: string,
+  _title?: string,
+  _accent?: string,
+): string => injectGameMasterFxBase(html);
 
 export const APP_PORT = Number(process.env.CHIPS_CHALLENGE_PORT || 3273);
 export const DEFAULT_PORT = APP_PORT;
@@ -145,7 +148,11 @@ ${getWindowShortcutsScript()}
     html += desktopHooks;
   }
 
-  return injectGameMasterFx(html, "Codecaine CyberChip: Logic Tile Gauntlet", "emerald");
+  return injectGameMasterFx(
+    html,
+    "Codecaine CyberChip: Logic Tile Gauntlet",
+    "emerald",
+  );
 }
 
 const FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
@@ -155,7 +162,9 @@ const FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"
   <path d="M8 22h6M8 32h6M8 42h6M50 22h6M50 32h6M50 42h6M22 8v6M32 8v6M42 8v6M22 50v6M32 50v6M42 50v6" stroke="#facc15" stroke-width="3" stroke-linecap="round"/>
 </svg>`;
 
-export function startChipsChallengeServer(options: ChipsChallengeServerOptions = {}) {
+export function startChipsChallengeServer(
+  options: ChipsChallengeServerOptions = {},
+) {
   const port = options.port ?? APP_PORT;
   const host = options.host ?? "127.0.0.1";
   const assetsDir = getChipsChallengeAssetsDir();
@@ -182,7 +191,10 @@ export function startChipsChallengeServer(options: ChipsChallengeServerOptions =
 
       if (pathname === "/" || pathname === "/index.html") {
         return new Response(generateChipsChallengeStudioHtml(), {
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            ...corsHeaders,
+          },
         });
       }
 
@@ -221,7 +233,9 @@ export function startChipsChallengeServer(options: ChipsChallengeServerOptions =
         return new Response("Forbidden", { status: 403 });
       }
       if (existsSync(directCandidate)) {
-        return new Response(Bun.file(directCandidate), { headers: corsHeaders });
+        return new Response(Bun.file(directCandidate), {
+          headers: corsHeaders,
+        });
       }
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
@@ -263,7 +277,8 @@ export function createChipsChallengeStudio(
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -283,11 +298,15 @@ export function createChipsChallengeStudio(
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -298,7 +317,9 @@ export function createChipsChallengeStudio(
 
         webview.setHTML(html);
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
         console.warn(
@@ -306,7 +327,9 @@ export function createChipsChallengeStudio(
         );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -326,13 +349,18 @@ export const createChipsChallengeApp = createChipsChallengeStudio;
 export const startChipsChallengeStudioServer = startChipsChallengeServer;
 
 if (process.argv.includes("--server")) {
-  const port = Number(process.env.CHIPS_CHALLENGE_PORT || process.env.PORT || APP_PORT);
+  const port = Number(
+    process.env.CHIPS_CHALLENGE_PORT || process.env.PORT || APP_PORT,
+  );
   const srv = startChipsChallengeServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`🔑 ${APP_TITLE} Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `🔑 ${APP_TITLE} Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = process.argv.includes("--fullscreen") || process.argv.includes("-f");
+  const fullscreen =
+    process.argv.includes("--fullscreen") || process.argv.includes("-f");
   const app = createChipsChallengeStudio({ fullscreen });
   await app.run();
   process.exit(0);

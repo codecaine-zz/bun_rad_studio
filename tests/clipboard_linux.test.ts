@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
+import {
+  chmodSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 
@@ -18,27 +24,38 @@ function fakeClipboardTools() {
   const sink = join(dir, "received.txt");
   // wl-copy is absent or failing on a typical X11 machine, so the code falls through to xclip.
   writeFileSync(join(dir, "wl-copy"), "#!/bin/sh\nexit 1\n");
-  writeFileSync(join(dir, "xclip"), `#!/bin/sh\ncat > ${JSON.stringify(sink)}\n( sleep 8 ) &\nexit 0\n`);
+  writeFileSync(
+    join(dir, "xclip"),
+    `#!/bin/sh\ncat > ${JSON.stringify(sink)}\n( sleep 8 ) &\nexit 0\n`,
+  );
   chmodSync(join(dir, "wl-copy"), 0o755);
   chmodSync(join(dir, "xclip"), 0o755);
   return { dir, sink };
 }
 
 describe("writeClipboardSync on Linux", () => {
-  test.skipIf(process.platform === "win32")("does not wait for the clipboard-serving background process that xclip leaves behind", () => {
-    const { dir, sink } = fakeClipboardTools();
-    // A fresh process, started with the fakes already on PATH and pretending to be Linux.
-    const script = `
+  test.skipIf(process.platform === "win32")(
+    "does not wait for the clipboard-serving background process that xclip leaves behind",
+    () => {
+      const { dir, sink } = fakeClipboardTools();
+      // A fresh process, started with the fakes already on PATH and pretending to be Linux.
+      const script = `
       Object.defineProperty(process, "platform", { value: "linux" });
       const { writeClipboardSync } = await import(${JSON.stringify(join(import.meta.dir, "..", "src", "localGuard.ts"))});
       const started = Date.now();
       const ok = writeClipboardSync("hello clipboard");
       console.log(JSON.stringify({ ok, elapsed: Date.now() - started }));
     `;
-    const r = Bun.spawnSync([process.execPath, "-e", script], { env: { ...process.env, PATH: `${dir}:${realPath}` }, stdout: "pipe", stderr: "pipe" });
-    const result = JSON.parse(r.stdout.toString().trim().split("\n").pop()!);
-    expect(result.ok).toBe(true);
-    expect(readFileSync(sink, "utf8")).toBe("hello clipboard");
-    expect(result.elapsed).toBeLessThan(3000);
-  }, 30_000);
+      const r = Bun.spawnSync([process.execPath, "-e", script], {
+        env: { ...process.env, PATH: `${dir}:${realPath}` },
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      const result = JSON.parse(r.stdout.toString().trim().split("\n").pop()!);
+      expect(result.ok).toBe(true);
+      expect(readFileSync(sink, "utf8")).toBe("hello clipboard");
+      expect(result.elapsed).toBeLessThan(3000);
+    },
+    30_000,
+  );
 });

@@ -17,7 +17,9 @@ mkdirSync(DESKTOP_ICONS_DIR, { recursive: true });
 const apps = listMacApps();
 const appById = new Map(apps.map((a) => [a.id, a]));
 
-console.log(`🎨 Generating ${apps.length} high-detail 1024x1024 desktop icons (.png + .ico) in ./icons/desktop/...`);
+console.log(
+  `🎨 Generating ${apps.length} high-detail 1024x1024 desktop icons (.png + .ico) in ./icons/desktop/...`,
+);
 const desktopSpecs = apps.map(iconSpecFor);
 await renderPngs(desktopSpecs, DESKTOP_ICONS_DIR, 4);
 
@@ -26,7 +28,9 @@ for (const app of apps) {
   const icoPath = join(DESKTOP_ICONS_DIR, `${app.id}.ico`);
   await makeIco(pngPath, icoPath);
 }
-console.log(`  ✓ Rendered ${apps.length} PNGs (1024x1024) and ${apps.length} multi-res ICOs ([32, 64, 128, 256]) in ./icons/desktop/`);
+console.log(
+  `  ✓ Rendered ${apps.length} PNGs (1024x1024) and ${apps.length} multi-res ICOs ([32, 64, 128, 256]) in ./icons/desktop/`,
+);
 
 const presetMappings: Array<{ presetName: string; appId: string }> = [
   { presetName: "app_default", appId: "rad-studio" },
@@ -41,7 +45,9 @@ const presetMappings: Array<{ presetName: string; appId: string }> = [
   { presetName: "color_studio", appId: "color-studio" },
 ];
 
-console.log("🎨 Generating Enterprise Preset Icons (.png + .icns) in ./icons/...");
+console.log(
+  "🎨 Generating Enterprise Preset Icons (.png + .icns) in ./icons/...",
+);
 for (const { presetName, appId } of presetMappings) {
   const srcPng = join(DESKTOP_ICONS_DIR, `${appId}.png`);
   const dstPng = join(ICONS_DIR, `${presetName}.png`);
@@ -49,7 +55,9 @@ for (const { presetName, appId } of presetMappings) {
   copyFileSync(srcPng, dstPng);
   if (process.platform === "darwin" && appById.has(appId)) {
     await makeIcns(dstPng, dstIcns);
-    console.log(`  ✓ ${presetName}.icns (${(Bun.file(dstIcns).size / 1024).toFixed(1)} KB) + ${presetName}.png`);
+    console.log(
+      `  ✓ ${presetName}.icns (${(Bun.file(dstIcns).size / 1024).toFixed(1)} KB) + ${presetName}.png`,
+    );
   } else {
     console.log(`  ✓ ${presetName}.png`);
   }

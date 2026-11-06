@@ -22,7 +22,10 @@ type HTMLInputElement = any;
  * The part that runs in the page. Self-contained: it may only use what is defined inside it or passed in
  * (`normalizeLabel` and `matchTip` are copied in next to it).
  */
-export function runHelpEngine(tips: Record<string, string>, selector: string): void {
+export function runHelpEngine(
+  tips: Record<string, string>,
+  selector: string,
+): void {
   const doc = document;
   const win = window as any;
   if (win.__studioHelp) return;
@@ -52,14 +55,24 @@ export function runHelpEngine(tips: Record<string, string>, selector: string): v
   const infoOf = (el: Element): ElementInfo => {
     const tag = el.tagName.toLowerCase();
     const input = el as HTMLInputElement;
-    const isButtonInput = tag === "input" && /^(button|submit|reset)$/i.test(input.type);
+    const isButtonInput =
+      tag === "input" && /^(button|submit|reset)$/i.test(input.type);
     // A checkbox or radio button is named by the label around it, which also carries the id.
-    const label = tag === "input" && /^(checkbox|radio)$/i.test(input.type) ? el.closest("label") : null;
+    const label =
+      tag === "input" && /^(checkbox|radio)$/i.test(input.type)
+        ? el.closest("label")
+        : null;
     return {
       tag,
       id: el.id || (label && label.id) || "",
       classes: Array.from(el.classList),
-      text: isButtonInput ? input.value : label ? (label.textContent || "") : tag === "select" || tag === "textarea" || tag === "input" ? "" : (el.textContent || ""),
+      text: isButtonInput
+        ? input.value
+        : label
+          ? label.textContent || ""
+          : tag === "select" || tag === "textarea" || tag === "input"
+            ? ""
+            : el.textContent || "",
       placeholder: el.getAttribute("placeholder") || "",
       aria: el.getAttribute("aria-label") || "",
       name: el.getAttribute("name") || "",
@@ -79,7 +92,8 @@ export function runHelpEngine(tips: Record<string, string>, selector: string): v
     el.setAttribute("data-tip", tip);
     if (el.hasAttribute("title")) {
       // The native tooltip would show a second box. Keep an accessible name for controls that have no other.
-      if (!info.text.trim() && !info.aria && !info.placeholder) el.setAttribute("aria-label", info.title);
+      if (!info.text.trim() && !info.aria && !info.placeholder)
+        el.setAttribute("aria-label", info.title);
       el.removeAttribute("title");
     }
   };
@@ -114,35 +128,63 @@ export function runHelpEngine(tips: Record<string, string>, selector: string): v
     let left = r.left + r.width / 2 - b.width / 2;
     left = Math.max(pad, Math.min(left, innerWidth - b.width - pad));
     let top = r.bottom + 8;
-    if (top + b.height > innerHeight - pad) top = Math.max(pad, r.top - b.height - 8);
+    if (top + b.height > innerHeight - pad)
+      top = Math.max(pad, r.top - b.height - 8);
     bubble.style.left = left + "px";
     bubble.style.top = top + "px";
   };
 
-  const tipTarget = (node: EventTarget | null): Element | null => (node instanceof Element ? node.closest("[data-tip]") : null);
+  const tipTarget = (node: EventTarget | null): Element | null =>
+    node instanceof Element ? node.closest("[data-tip]") : null;
 
-  doc.addEventListener("pointerover", (e: any) => {
-    const el = tipTarget(e.target);
-    if (!el || el === current) return;
-    clearTimeout(timer);
-    timer = win.setTimeout(() => show(el), 450);
-  }, true);
-  doc.addEventListener("pointerout", (e: any) => {
-    const el = tipTarget(e.target);
-    if (el && !(e.relatedTarget instanceof Node && el.contains(e.relatedTarget))) hide();
-  }, true);
+  doc.addEventListener(
+    "pointerover",
+    (e: any) => {
+      const el = tipTarget(e.target);
+      if (!el || el === current) return;
+      clearTimeout(timer);
+      timer = win.setTimeout(() => show(el), 450);
+    },
+    true,
+  );
+  doc.addEventListener(
+    "pointerout",
+    (e: any) => {
+      const el = tipTarget(e.target);
+      if (
+        el &&
+        !(e.relatedTarget instanceof Node && el.contains(e.relatedTarget))
+      )
+        hide();
+    },
+    true,
+  );
   doc.addEventListener("pointerdown", hide, true);
   doc.addEventListener("scroll", hide, true);
-  doc.addEventListener("keydown", (e: any) => {
-    keyboard = true;
-    if (e.key === "Escape") hide();
-  }, true);
-  doc.addEventListener("focusin", (e: any) => {
-    const el = tipTarget(e.target);
-    if (el && keyboard) show(el);
-  }, true);
+  doc.addEventListener(
+    "keydown",
+    (e: any) => {
+      keyboard = true;
+      if (e.key === "Escape") hide();
+    },
+    true,
+  );
+  doc.addEventListener(
+    "focusin",
+    (e: any) => {
+      const el = tipTarget(e.target);
+      if (el && keyboard) show(el);
+    },
+    true,
+  );
   doc.addEventListener("focusout", hide, true);
-  doc.addEventListener("pointermove", () => { keyboard = false; }, true);
+  doc.addEventListener(
+    "pointermove",
+    () => {
+      keyboard = false;
+    },
+    true,
+  );
 
   // Controls added later (a page that rebuilds a table, a dialog that opens) get their tips too. Nodes are queued, so
   // none is lost when many arrive within the short pause before they are looked at.
@@ -157,24 +199,35 @@ export function runHelpEngine(tips: Record<string, string>, selector: string): v
     retext.clear();
     for (const n of added) if (n.isConnected) scan(n);
     // Text that arrives after a control is made (a label that changes) may match a different tip.
-    for (const p of changed) if (p.isConnected) { p.__tip = undefined; prepare(p); }
+    for (const p of changed)
+      if (p.isConnected) {
+        p.__tip = undefined;
+        prepare(p);
+      }
   };
   const observer = new MutationObserver((records: any) => {
     for (const r of records) {
-      r.addedNodes.forEach((n: any) => { if (n instanceof Element) queue.add(n); });
+      r.addedNodes.forEach((n: any) => {
+        if (n instanceof Element) queue.add(n);
+      });
       if (r.type === "characterData" && r.target.parentElement) {
         const p = r.target.parentElement.closest(selector);
         if (p) retext.add(p);
       }
     }
-    if (!pending && (queue.size || retext.size)) pending = win.setTimeout(flush, 80);
+    if (!pending && (queue.size || retext.size))
+      pending = win.setTimeout(flush, 80);
   });
 
   const start = () => {
     scan(doc);
-    observer.observe(doc.body || doc.documentElement, { childList: true, subtree: true, characterData: true });
+    observer.observe(doc.body || doc.documentElement, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
   };
-  if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", start, { once: true });
+  if (doc.readyState === "loading")
+    doc.addEventListener("DOMContentLoaded", start, { once: true });
   else start();
 }
-

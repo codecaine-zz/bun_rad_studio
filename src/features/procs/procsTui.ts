@@ -54,7 +54,7 @@ export type ProcsTuiAction =
 export function recalculateFiltered(
   all: ProcessInfo[],
   query: string,
-  sortBy: SortField
+  sortBy: SortField,
 ): ProcessInfo[] {
   const filtered = filterProcesses(all, query);
   return sortProcesses(filtered, sortBy);
@@ -64,11 +64,15 @@ export function recalculateFiltered(
 /**
  * Translates a raw terminal key sequence into a semantic `ProcsTuiAction`, respecting active filter-input mode.
  */
-export function handleProcsTuiKey(keyStr: string, isFiltering = false): ProcsTuiAction {
+export function handleProcsTuiKey(
+  keyStr: string,
+  isFiltering = false,
+): ProcsTuiAction {
   if (isFiltering) {
     if (keyStr === "\r" || keyStr === "\n") return { type: "FILTER_CONFIRM" };
     if (keyStr === "\u001b") return { type: "FILTER_CLEAR" };
-    if (keyStr === "\u007f" || keyStr === "\b") return { type: "FILTER_BACKSPACE" };
+    if (keyStr === "\u007f" || keyStr === "\b")
+      return { type: "FILTER_BACKSPACE" };
     if (keyStr.length === 1 && keyStr.charCodeAt(0) >= 32) {
       return { type: "FILTER_CHAR", char: keyStr };
     }
@@ -76,8 +80,10 @@ export function handleProcsTuiKey(keyStr: string, isFiltering = false): ProcsTui
   }
 
   if (keyStr === "q" || keyStr === "\u0003") return { type: "QUIT" };
-  if (keyStr === "\u001b[A" || keyStr === "k") return { type: "MOVE", delta: -1 };
-  if (keyStr === "\u001b[B" || keyStr === "j") return { type: "MOVE", delta: 1 };
+  if (keyStr === "\u001b[A" || keyStr === "k")
+    return { type: "MOVE", delta: -1 };
+  if (keyStr === "\u001b[B" || keyStr === "j")
+    return { type: "MOVE", delta: 1 };
   if (keyStr === "\u001b[5~") return { type: "MOVE", delta: -10 };
   if (keyStr === "\u001b[6~") return { type: "MOVE", delta: 10 };
   if (keyStr === "/" || keyStr === "f") return { type: "START_FILTER" };
@@ -89,7 +95,8 @@ export function handleProcsTuiKey(keyStr: string, isFiltering = false): ProcsTui
   if (keyStr === "p") return { type: "SET_SORT", sortBy: "pid" };
   if (keyStr === "u") return { type: "SET_SORT", sortBy: "user" };
   if (keyStr === " ") return { type: "TOGGLE_PAUSE" };
-  if (keyStr === "\r" || keyStr === "\n" || keyStr === "d") return { type: "TOGGLE_DETAILS" };
+  if (keyStr === "\r" || keyStr === "\n" || keyStr === "d")
+    return { type: "TOGGLE_DETAILS" };
   if (keyStr === "r") return { type: "REFRESH" };
   return { type: "NONE" };
 }
@@ -98,7 +105,10 @@ export function handleProcsTuiKey(keyStr: string, isFiltering = false): ProcsTui
 /**
  * Applies a `ProcsTuiAction` to the current `ProcsTuiState`, updating selection, filters, sorting, or sending signals.
  */
-export function applyProcsTuiAction(state: ProcsTuiState, action: ProcsTuiAction): ProcsTuiState {
+export function applyProcsTuiAction(
+  state: ProcsTuiState,
+  action: ProcsTuiAction,
+): ProcsTuiState {
   if (action.type === "QUIT") {
     if (state.showingDetails) {
       state.showingDetails = false;
@@ -110,34 +120,49 @@ export function applyProcsTuiAction(state: ProcsTuiState, action: ProcsTuiAction
 
   if (action.type === "START_FILTER") {
     state.isFiltering = true;
-    state.statusMessage = "Type to filter processes... (Enter: confirm, Esc: clear)";
+    state.statusMessage =
+      "Type to filter processes... (Enter: confirm, Esc: clear)";
     return state;
   }
 
   if (action.type === "FILTER_CHAR") {
     state.filterQuery += action.char;
-    state.filteredProcesses = recalculateFiltered(state.allProcesses, state.filterQuery, state.sortBy);
+    state.filteredProcesses = recalculateFiltered(
+      state.allProcesses,
+      state.filterQuery,
+      state.sortBy,
+    );
     state.selectedIndex = 0;
     return state;
   }
 
   if (action.type === "FILTER_BACKSPACE") {
     state.filterQuery = state.filterQuery.slice(0, -1);
-    state.filteredProcesses = recalculateFiltered(state.allProcesses, state.filterQuery, state.sortBy);
+    state.filteredProcesses = recalculateFiltered(
+      state.allProcesses,
+      state.filterQuery,
+      state.sortBy,
+    );
     state.selectedIndex = 0;
     return state;
   }
 
   if (action.type === "FILTER_CONFIRM") {
     state.isFiltering = false;
-    state.statusMessage = state.filterQuery ? `Filter set to "${state.filterQuery}".` : undefined;
+    state.statusMessage = state.filterQuery
+      ? `Filter set to "${state.filterQuery}".`
+      : undefined;
     return state;
   }
 
   if (action.type === "FILTER_CLEAR") {
     state.isFiltering = false;
     state.filterQuery = "";
-    state.filteredProcesses = recalculateFiltered(state.allProcesses, "", state.sortBy);
+    state.filteredProcesses = recalculateFiltered(
+      state.allProcesses,
+      "",
+      state.sortBy,
+    );
     state.selectedIndex = 0;
     state.statusMessage = "Filter cleared.";
     return state;
@@ -145,7 +170,11 @@ export function applyProcsTuiAction(state: ProcsTuiState, action: ProcsTuiAction
 
   if (action.type === "SET_SORT") {
     state.sortBy = action.sortBy;
-    state.filteredProcesses = recalculateFiltered(state.allProcesses, state.filterQuery, state.sortBy);
+    state.filteredProcesses = recalculateFiltered(
+      state.allProcesses,
+      state.filterQuery,
+      state.sortBy,
+    );
     state.selectedIndex = 0;
     state.statusMessage = `Sorted by ${action.sortBy.toUpperCase()} descending.`;
     return state;
@@ -153,7 +182,9 @@ export function applyProcsTuiAction(state: ProcsTuiState, action: ProcsTuiAction
 
   if (action.type === "TOGGLE_PAUSE") {
     state.isPaused = !state.isPaused;
-    state.statusMessage = state.isPaused ? "Paused live auto-refresh." : "Resumed live auto-refresh.";
+    state.statusMessage = state.isPaused
+      ? "Paused live auto-refresh."
+      : "Resumed live auto-refresh.";
     return state;
   }
 
@@ -182,8 +213,14 @@ export function applyProcsTuiAction(state: ProcsTuiState, action: ProcsTuiAction
       try {
         process.kill(target.pid, sig);
         state.statusMessage = `Sent ${sig} to PID ${target.pid} (${target.command.slice(0, 20)})`;
-        state.allProcesses = state.allProcesses.filter((p) => p.pid !== target.pid);
-        state.filteredProcesses = recalculateFiltered(state.allProcesses, state.filterQuery, state.sortBy);
+        state.allProcesses = state.allProcesses.filter(
+          (p) => p.pid !== target.pid,
+        );
+        state.filteredProcesses = recalculateFiltered(
+          state.allProcesses,
+          state.filterQuery,
+          state.sortBy,
+        );
         if (state.selectedIndex >= state.filteredProcesses.length) {
           state.selectedIndex = Math.max(0, state.filteredProcesses.length - 1);
         }
@@ -201,10 +238,14 @@ export function applyProcsTuiAction(state: ProcsTuiState, action: ProcsTuiAction
 /**
  * Renders a multi-line inspection card for a single selected process, including child PIDs and listening ports.
  */
-export function renderProcsDetails(proc: ProcessInfo, all: ProcessInfo[]): string {
+export function renderProcsDetails(
+  proc: ProcessInfo,
+  all: ProcessInfo[],
+): string {
   const children = all.filter((p) => p.ppid === proc.pid).map((p) => p.pid);
   const childStr = children.length > 0 ? children.join(", ") : "None";
-  const portsStr = proc.ports && proc.ports.length > 0 ? proc.ports.join(", ") : "None";
+  const portsStr =
+    proc.ports && proc.ports.length > 0 ? proc.ports.join(", ") : "None";
 
   const lines = [
     colors.bold(colors.cyan(` --- Process Details: PID ${proc.pid} --- `)),
@@ -233,7 +274,7 @@ export function renderProcsDetails(proc: ProcessInfo, all: ProcessInfo[]): strin
  */
 export function renderProcsTuiFrame(
   state: ProcsTuiState,
-  maxRows: number = 15
+  maxRows: number = 15,
 ): string {
   if (state.showingDetails) {
     const selected = state.filteredProcesses[state.selectedIndex];
@@ -242,20 +283,33 @@ export function renderProcsTuiFrame(
     }
   }
 
-  const pauseBadge = state.isPaused ? colors.yellow(" [PAUSED]") : colors.green(" [LIVE]");
+  const pauseBadge = state.isPaused
+    ? colors.yellow(" [PAUSED]")
+    : colors.green(" [LIVE]");
   const header = [
-    colors.bold(colors.cyan(" --- procs: Interactive Process Monitor --- ")) + pauseBadge,
-    colors.dim(" [j/k: move] [/: filter] [c/m/p/u: sort] [Space: pause] [Enter: details] [x: kill] [9: SIGKILL] [q: quit]"),
+    colors.bold(colors.cyan(" --- procs: Interactive Process Monitor --- ")) +
+      pauseBadge,
+    colors.dim(
+      " [j/k: move] [/: filter] [c/m/p/u: sort] [Space: pause] [Enter: details] [x: kill] [9: SIGKILL] [q: quit]",
+    ),
     state.isFiltering
-      ? colors.bold(colors.yellow(` Filter: ${state.filterQuery}_ `)) + colors.dim("(Enter: save, Esc: clear)")
-      : state.statusMessage ? colors.yellow(` ${state.statusMessage}`) : "",
-    colors.dim(` Showing: ${state.filteredProcesses.length}/${state.allProcesses.length} | Sort: ${state.sortBy.toUpperCase()} | Filter: "${state.filterQuery || "none"}"`),
+      ? colors.bold(colors.yellow(` Filter: ${state.filterQuery}_ `)) +
+        colors.dim("(Enter: save, Esc: clear)")
+      : state.statusMessage
+        ? colors.yellow(` ${state.statusMessage}`)
+        : "",
+    colors.dim(
+      ` Showing: ${state.filteredProcesses.length}/${state.allProcesses.length} | Sort: ${state.sortBy.toUpperCase()} | Filter: "${state.filterQuery || "none"}"`,
+    ),
     "-".repeat(70),
     `${colors.bold("   PID".padEnd(8))} ${colors.bold("USER".padEnd(10))} ${colors.bold("%CPU".padStart(6))} ${colors.bold("%MEM".padStart(6))}  ${colors.bold("COMMAND")}`,
     "-".repeat(70),
   ].filter(Boolean);
 
-  const visibleProcs = state.filteredProcesses.slice(state.scrollOffset, state.scrollOffset + maxRows);
+  const visibleProcs = state.filteredProcesses.slice(
+    state.scrollOffset,
+    state.scrollOffset + maxRows,
+  );
   const rows = visibleProcs.map((p, idx) => {
     const absoluteIdx = state.scrollOffset + idx;
     const isSelected = absoluteIdx === state.selectedIndex;
@@ -279,7 +333,7 @@ export function renderProcsTuiFrame(
  */
 export async function runProcsTui(
   sortBy: SortField = "cpu",
-  initialFilter?: string
+  initialFilter?: string,
 ): Promise<void> {
   if (!process.stdin.isTTY) return;
 
@@ -318,7 +372,9 @@ export async function runProcsTui(
 
   const render = () => {
     process.stdout.write("\x1b[2J\x1b[0;0H");
-    const rows = process.stdout.rows ? Math.max(5, process.stdout.rows - 8) : 15;
+    const rows = process.stdout.rows
+      ? Math.max(5, process.stdout.rows - 8)
+      : 15;
     process.stdout.write(renderProcsTuiFrame(state, rows) + "\n");
   };
 
@@ -333,7 +389,11 @@ export async function runProcsTui(
       }
       if (!state.isPaused && !state.isFiltering && !state.showingDetails) {
         state.allProcesses = await refreshList();
-        state.filteredProcesses = recalculateFiltered(state.allProcesses, state.filterQuery, state.sortBy);
+        state.filteredProcesses = recalculateFiltered(
+          state.allProcesses,
+          state.filterQuery,
+          state.sortBy,
+        );
         if (state.selectedIndex >= state.filteredProcesses.length) {
           state.selectedIndex = Math.max(0, state.filteredProcesses.length - 1);
         }
@@ -356,7 +416,11 @@ export async function runProcsTui(
 
       if (action.type === "REFRESH") {
         state.allProcesses = await refreshList();
-        state.filteredProcesses = recalculateFiltered(state.allProcesses, state.filterQuery, state.sortBy);
+        state.filteredProcesses = recalculateFiltered(
+          state.allProcesses,
+          state.filterQuery,
+          state.sortBy,
+        );
         state.statusMessage = "Refreshed process list.";
       } else {
         applyProcsTuiAction(state, action);
@@ -374,9 +438,16 @@ export async function runProcsTui(
         setTimeout(async () => {
           if (!state.shouldExit) {
             state.allProcesses = await refreshList();
-            state.filteredProcesses = recalculateFiltered(state.allProcesses, state.filterQuery, state.sortBy);
+            state.filteredProcesses = recalculateFiltered(
+              state.allProcesses,
+              state.filterQuery,
+              state.sortBy,
+            );
             if (state.selectedIndex >= state.filteredProcesses.length) {
-              state.selectedIndex = Math.max(0, state.filteredProcesses.length - 1);
+              state.selectedIndex = Math.max(
+                0,
+                state.filteredProcesses.length - 1,
+              );
             }
             render();
           }

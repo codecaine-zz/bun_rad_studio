@@ -26,42 +26,97 @@ describe("System Information pure helpers & cross-platform highlights", () => {
   test("buildPlatformHighlights adapts to Windows (win32), Linux (linux), and macOS (darwin)", () => {
     const win = buildPlatformHighlights(
       "win32",
-      { distro: "Microsoft Windows 11 Pro", release: "10.0.22631", codename: "", kernel: "10.0.22631", arch: "x64", uefi: true, hypervisor: "Hyper-V", shell: "powershell.exe" },
-      [{ mount: "C:", type: "NTFS", fs: "C:" }, { mount: "D:", type: "NTFS", fs: "D:" }],
+      {
+        distro: "Microsoft Windows 11 Pro",
+        release: "10.0.22631",
+        codename: "",
+        kernel: "10.0.22631",
+        arch: "x64",
+        uefi: true,
+        hypervisor: "Hyper-V",
+        shell: "powershell.exe",
+      },
+      [
+        { mount: "C:", type: "NTFS", fs: "C:" },
+        { mount: "D:", type: "NTFS", fs: "D:" },
+      ],
     );
     expect(win.family).toBe("windows");
-    expect(win.highlights.some(([k, v]) => k === "Drive Letters" && v.includes("C:"))).toBe(true);
-    expect(win.highlights.some(([k, v]) => k === "Boot Firmware" && v === "UEFI")).toBe(true);
+    expect(
+      win.highlights.some(
+        ([k, v]) => k === "Drive Letters" && v.includes("C:"),
+      ),
+    ).toBe(true);
+    expect(
+      win.highlights.some(([k, v]) => k === "Boot Firmware" && v === "UEFI"),
+    ).toBe(true);
 
     const lin = buildPlatformHighlights(
       "linux",
-      { distro: "Ubuntu", release: "24.04", codename: "noble", kernel: "6.8.0-generic", arch: "x64", uefi: true, hypervisor: "", shell: "/bin/bash" },
+      {
+        distro: "Ubuntu",
+        release: "24.04",
+        codename: "noble",
+        kernel: "6.8.0-generic",
+        arch: "x64",
+        uefi: true,
+        hypervisor: "",
+        shell: "/bin/bash",
+      },
       [{ mount: "/", type: "ext4", fs: "/dev/nvme0n1p2" }],
     );
     expect(lin.family).toBe("unix");
-    expect(lin.highlights.some(([k, v]) => k === "Root Filesystem" && v.includes("ext4"))).toBe(true);
+    expect(
+      lin.highlights.some(
+        ([k, v]) => k === "Root Filesystem" && v.includes("ext4"),
+      ),
+    ).toBe(true);
 
     const mac = buildPlatformHighlights(
       "darwin",
-      { distro: "macOS", release: "15.1", codename: "Sequoia", kernel: "24.1.0", arch: "arm64", uefi: true, hypervisor: "", shell: "/bin/zsh" },
+      {
+        distro: "macOS",
+        release: "15.1",
+        codename: "Sequoia",
+        kernel: "24.1.0",
+        arch: "arm64",
+        uefi: true,
+        hypervisor: "",
+        shell: "/bin/zsh",
+      },
       [{ mount: "/", type: "APFS", fs: "/dev/disk3s1s1" }],
     );
     expect(mac.family).toBe("unix");
-    expect(mac.highlights.some(([k, v]) => k === "Silicon / Arch" && v.includes("Apple Silicon"))).toBe(true);
+    expect(
+      mac.highlights.some(
+        ([k, v]) => k === "Silicon / Arch" && v.includes("Apple Silicon"),
+      ),
+    ).toBe(true);
   });
 
   test("diffSysinfoSnapshots and formatSysinfoReport handle JSON, CSV, Markdown, and HTML", () => {
     const before = { cpu: { load: 12.5, temp: 48 }, usb: ["Keyboard"] };
-    const after = { cpu: { load: 34.0, temp: 48 }, usb: ["Keyboard", "YubiKey"] };
+    const after = {
+      cpu: { load: 34.0, temp: 48 },
+      usb: ["Keyboard", "YubiKey"],
+    };
     const diff = diffSysinfoSnapshots(before, after);
     expect(diff.changed).toEqual([{ path: "cpu.load", from: 12.5, to: 34.0 }]);
     expect(diff.added).toEqual([{ path: "usb[1]", value: "YubiKey" }]);
     expect(diff.unchanged).toBe(2);
 
-    expect(formatSysinfoReport("CPU", after, "json", "darwin")).toContain('"load": 34');
-    expect(formatSysinfoReport("CPU", after, "csv", "darwin")).toContain("cpu.load,34");
-    expect(formatSysinfoReport("CPU", after, "md", "darwin")).toContain("# System report: `CPU`");
-    expect(formatSysinfoReport("CPU", after, "html", "darwin")).toContain("<!DOCTYPE html>");
+    expect(formatSysinfoReport("CPU", after, "json", "darwin")).toContain(
+      '"load": 34',
+    );
+    expect(formatSysinfoReport("CPU", after, "csv", "darwin")).toContain(
+      "cpu.load,34",
+    );
+    expect(formatSysinfoReport("CPU", after, "md", "darwin")).toContain(
+      "# System report: `CPU`",
+    );
+    expect(formatSysinfoReport("CPU", after, "html", "darwin")).toContain(
+      "<!DOCTYPE html>",
+    );
   });
 });
 
@@ -159,8 +214,26 @@ describe("File Manager System Information API operations", () => {
       },
     ],
     graphics: {
-      controllers: [{ vendor: "NVIDIA", model: "RTX 4090", vramMb: 24576, bus: "PCIe", driverVersion: "551.23" }],
-      displays: [{ model: "Studio Display", main: true, builtin: false, connection: "DP", resolutionX: 3840, resolutionY: 2160, refreshRate: 144 }],
+      controllers: [
+        {
+          vendor: "NVIDIA",
+          model: "RTX 4090",
+          vramMb: 24576,
+          bus: "PCIe",
+          driverVersion: "551.23",
+        },
+      ],
+      displays: [
+        {
+          model: "Studio Display",
+          main: true,
+          builtin: false,
+          connection: "DP",
+          resolutionX: 3840,
+          resolutionY: 2160,
+          refreshRate: 144,
+        },
+      ],
     },
     platformDetails: {
       family: "windows",
@@ -225,7 +298,12 @@ describe("File Manager System Information API operations", () => {
     const probeRes = await post("sysinfo/probe", { method: "system" });
     expect(probeRes.status).toBe(200);
     expect(probeRes.json.method).toBe("system");
-    expect(probeRes.json.flatRows.some(([k, v]: [string, string]) => k === "manufacturer" && v === "Codecaine Hardware Labs")).toBe(true);
+    expect(
+      probeRes.json.flatRows.some(
+        ([k, v]: [string, string]) =>
+          k === "manufacturer" && v === "Codecaine Hardware Labs",
+      ),
+    ).toBe(true);
 
     const badProbe = await post("sysinfo/probe", { method: "rm_rf" });
     expect(badProbe.status).toBe(400);
@@ -240,13 +318,24 @@ describe("File Manager System Information API operations", () => {
     expect(diffRes.json.diff.changed.length).toBe(1);
 
     for (const fmt of ["json", "csv", "md", "html"]) {
-      const expRes = await post("sysinfo/export", { format: fmt, section: "overview" });
+      const expRes = await post("sysinfo/export", {
+        format: fmt,
+        section: "overview",
+      });
       expect(expRes.status).toBe(200);
       expect(expRes.json.text.length).toBeGreaterThan(20);
     }
 
-    const save1 = await post("sysinfo/save", { folder: HOME, format: "md", name: "my-sys-report" });
-    const save2 = await post("sysinfo/save", { folder: HOME, format: "md", name: "my-sys-report" });
+    const save1 = await post("sysinfo/save", {
+      folder: HOME,
+      format: "md",
+      name: "my-sys-report",
+    });
+    const save2 = await post("sysinfo/save", {
+      folder: HOME,
+      format: "md",
+      name: "my-sys-report",
+    });
     expect(save1.status).toBe(200);
     expect(save2.status).toBe(200);
     expect(save1.json.name).toBe("my-sys-report.md");

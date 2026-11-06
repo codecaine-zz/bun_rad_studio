@@ -96,44 +96,152 @@ esac
   return { dir, root, home, script, commands, profile, run };
 }
 
-describe.skipIf(process.platform === "win32")("all Linux suite desktop apps", () => {
-  const apps = listSourceApps().filter((app) => app.kind === "gui");
-  const cliNames = listSourceApps()
-    .filter((app) => app.kind === "cli")
-    .map((app) => app.name);
-  const guiNames = apps.map((app) => app.name);
+describe.skipIf(process.platform === "win32")(
+  "all Linux suite desktop apps",
+  () => {
+    const apps = listSourceApps().filter((app) => app.kind === "gui");
+    const cliNames = listSourceApps()
+      .filter((app) => app.kind === "cli")
+      .map((app) => app.name);
+    const guiNames = apps.map((app) => app.name);
 
-  for (const target of TARGETS.filter((t) => t.os === "linux" && t.gui)) {
-    test(`${target.id}: every app uses the exact shared runtime covered by the profile`, () => {
-      expect(apps.length).toBeGreaterThan(60);
-      for (const app of apps) {
-        const launcher = unixLauncher(app, target);
-        expect(launcher).toContain(
-          `exec "$ROOT/runtime/bun" "$ROOT/apps/${app.name}.js" "$@"`,
+    for (const target of TARGETS.filter((t) => t.os === "linux" && t.gui)) {
+      test(`${target.id}: every app uses the exact shared runtime covered by the profile`, () => {
+        expect(apps.length).toBeGreaterThan(60);
+        for (const app of apps) {
+          const launcher = unixLauncher(app, target);
+          expect(launcher).toContain(
+            `exec "$ROOT/runtime/bun" "$ROOT/apps/${app.name}.js" "$@"`,
+          );
+          expect(launcher).toContain("export BUN_BE_BUN=1");
+        }
+        const f = fixture(
+          "suite folder",
+          installScript(guiNames, target),
+          "runtime/bun",
         );
-        expect(launcher).toContain("export BUN_BE_BUN=1");
+        expect(Bun.spawnSync(["sh", "-n", f.script]).exitCode).toBe(0);
+        const result = f.run(["--apparmor"]);
+        expect(result.exitCode, result.stderr.toString()).toBe(0);
+        const profile = readFileSync(f.profile, "utf8");
+        expect(profile).toContain(
+          `profile bun-rad-studio "${realpathSync(f.root)}/runtime/bun" flags=(unconfined)`,
+        );
+        expect(profile).toContain("  userns,");
+        expect(profile).not.toContain("*");
+        expect(profile).not.toContain("/usr/bin/bun");
+        expect(readFileSync(f.commands, "utf8")).toContain(
+          "-r /etc/apparmor.d/bun-rad-studio",
+        );
+        const instructions = readme(target, guiNames, cliNames);
+        expect(instructions).toContain("sh install.sh --apparmor");
+        expect(instructions).toContain("all desktop apps");
+        if (existsSync("/usr/sbin/apparmor_parser")) {
+          const checked = Bun.spawnSync([
+            "/usr/sbin/apparmor_parser",
+            "--skip-kernel-load",
+            "--skip-cache",
+            f.profile,
+          ]);
+          expect(checked.exitCode, checked.stderr.toString()).toBe(0);
+        }
+      });
+
+      test(`${target.id}: ordinary install/uninstall stays unprivileged`, () => {
+        const f = fixture(
+          "suite",
+          installScript(guiNames, target),
+          "runtime/bun",
+        );
+        expect(f.run([]).exitCode).toBe(0);
+        expect(
+          readFileSync(
+            join(
+              f.home,
+              ".local/share/applications/bun-rad-studio-calculator-studio.desktop",
+            ),
+            "utf8",
+          ),
+        ).toContain(`Exec="${realpathSync(f.root)}/bin/calculator-studio"\n`);
+        expect(f.run(["--uninstall"]).exitCode).toBe(0);
+        expect(existsSync(f.commands)).toBe(false);
+      });
+    }
+
+    test("CLI-only musl and macOS installers do not request AppArmor permissions", () => {
+      for (const target of TARGETS.filter(
+        (t) => t.os === "macos" || (t.os === "linux" && !t.gui),
+      )) {
+        const names = target.gui ? guiNames : [];
+        const script = installScript(names, target);
+        expect(script).not.toContain("sudo");
+        expect(script).not.toContain("userns,");
+        expect(
+          Bun.spawnSync(["sh", "-n"], { stdin: Buffer.from(script) }).exitCode,
+        ).toBe(0);
+        const f = fixture("suite", script, "runtime/bun");
+        expect(f.run(["--apparmor"]).exitCode).not.toBe(0);
+        expect(existsSync(f.commands)).toBe(false);
       }
-      const f = fixture(
-        "suite folder",
-        installScript(guiNames, target),
-        "runtime/bun",
-      );
+    });
+  },
+);
+
+describe.skipIf(process.platform === "win32")(
+  "File Manager Linux release installer",
+  () => {
+    test("valid POSIX shell; plain install and uninstall do not invoke sudo", () => {
+      const f = fixture();
       expect(Bun.spawnSync(["sh", "-n", f.script]).exitCode).toBe(0);
+      expect(f.run([]).exitCode).toBe(0);
+      const link = join(f.home, ".local/bin/codecaine-file-manager");
+      expect(readlinkSync(link)).toBe(
+        realpathSync(join(f.root, "codecaine-file-manager")),
+      );
+      expect(
+        readFileSync(
+          join(
+            f.home,
+            ".local/share/applications/codecaine-file-manager.desktop",
+          ),
+          "utf8",
+        ),
+      ).toContain("Terminal=false");
+      expect(
+        readFileSync(
+          join(
+            f.home,
+            ".local/share/applications/codecaine-file-manager.desktop",
+          ),
+          "utf8",
+        ),
+      ).toContain(`Exec="${realpathSync(f.root)}/codecaine-file-manager"\n`);
+      expect(f.run(["--uninstall"]).exitCode).toBe(0);
+      expect(existsSync(link)).toBe(false);
+      expect(existsSync(f.commands)).toBe(false);
+    });
+
+    test("opt-in validates then installs and loads an exact-path profile, preserving the sandbox", () => {
+      const f = fixture();
       const result = f.run(["--apparmor"]);
       expect(result.exitCode, result.stderr.toString()).toBe(0);
       const profile = readFileSync(f.profile, "utf8");
-      expect(profile).toContain(
-        `profile bun-rad-studio "${realpathSync(f.root)}/runtime/bun" flags=(unconfined)`,
+      expect(profile).toBe(`abi <abi/4.0>,
+include <tunables/global>
+
+profile codecaine-file-manager "${realpathSync(f.root)}/codecaine-file-manager" flags=(unconfined) {
+  userns,
+}
+`);
+      const commands = readFileSync(f.commands, "utf8");
+      expect(commands.indexOf("--skip-kernel-load --skip-cache")).toBeLessThan(
+        commands.indexOf("install -m 644"),
       );
-      expect(profile).toContain("  userns,");
-      expect(profile).not.toContain("*");
-      expect(profile).not.toContain("/usr/bin/bun");
-      expect(readFileSync(f.commands, "utf8")).toContain(
-        "-r /etc/apparmor.d/bun-rad-studio",
-      );
-      const instructions = readme(target, guiNames, cliNames);
-      expect(instructions).toContain("sh install.sh --apparmor");
-      expect(instructions).toContain("all desktop apps");
+      expect(commands).toContain("-r /etc/apparmor.d/codecaine-file-manager");
+      expect(linuxInstallScript()).not.toContain("DISABLE_SANDBOX");
+      expect(linuxInstallScript()).not.toContain("sysctl -w");
+      const validation = commands.split("\n")[0]!.split(" ").at(-1)!;
+      expect(existsSync(validation)).toBe(false);
       if (existsSync("/usr/sbin/apparmor_parser")) {
         const checked = Bun.spawnSync([
           "/usr/sbin/apparmor_parser",
@@ -145,283 +253,296 @@ describe.skipIf(process.platform === "win32")("all Linux suite desktop apps", ()
       }
     });
 
-    test(`${target.id}: ordinary install/uninstall stays unprivileged`, () => {
-      const f = fixture(
-        "suite",
-        installScript(guiNames, target),
-        "runtime/bun",
-      );
-      expect(f.run([]).exitCode).toBe(0);
-      expect(
-        readFileSync(join(f.home, ".local/share/applications/bun-rad-studio-calculator-studio.desktop"), "utf8"),
-      ).toContain(`Exec="${realpathSync(f.root)}/bin/calculator-studio"\n`);
-      expect(f.run(["--uninstall"]).exitCode).toBe(0);
+    test.each([
+      "glob*path",
+      "question?path",
+      "bracket[path",
+      "brace{path",
+      'quote"path',
+      "slash\\path",
+      "line\npath",
+    ])("rejects unsafe attachment path %j before sudo", (name) => {
+      const f = fixture(name);
+      const result = f.run(["--apparmor"]);
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stderr.toString()).toContain("move the download");
       expect(existsSync(f.commands)).toBe(false);
     });
-  }
 
-  test("CLI-only musl and macOS installers do not request AppArmor permissions", () => {
-    for (const target of TARGETS.filter(
-      (t) => t.os === "macos" || (t.os === "linux" && !t.gui),
-    )) {
-      const names = target.gui ? guiNames : [];
-      const script = installScript(names, target);
-      expect(script).not.toContain("sudo");
-      expect(script).not.toContain("userns,");
-      expect(
-        Bun.spawnSync(["sh", "-n"], { stdin: Buffer.from(script) }).exitCode,
-      ).toBe(0);
-      const f = fixture("suite", script, "runtime/bun");
-      expect(f.run(["--apparmor"]).exitCode).not.toBe(0);
-      expect(existsSync(f.commands)).toBe(false);
-    }
-  });
-});
-
-describe.skipIf(process.platform === "win32")("File Manager Linux release installer", () => {
-  test("valid POSIX shell; plain install and uninstall do not invoke sudo", () => {
-    const f = fixture();
-    expect(Bun.spawnSync(["sh", "-n", f.script]).exitCode).toBe(0);
-    expect(f.run([]).exitCode).toBe(0);
-    const link = join(f.home, ".local/bin/codecaine-file-manager");
-    expect(readlinkSync(link)).toBe(realpathSync(join(f.root, "codecaine-file-manager")));
-    expect(
-      readFileSync(
-        join(
-          f.home,
-          ".local/share/applications/codecaine-file-manager.desktop",
-        ),
-        "utf8",
-      ),
-    ).toContain("Terminal=false");
-    expect(
-      readFileSync(join(f.home, ".local/share/applications/codecaine-file-manager.desktop"), "utf8"),
-    ).toContain(`Exec="${realpathSync(f.root)}/codecaine-file-manager"\n`);
-    expect(f.run(["--uninstall"]).exitCode).toBe(0);
-    expect(existsSync(link)).toBe(false);
-    expect(existsSync(f.commands)).toBe(false);
-  });
-
-  test("opt-in validates then installs and loads an exact-path profile, preserving the sandbox", () => {
-    const f = fixture();
-    const result = f.run(["--apparmor"]);
-    expect(result.exitCode, result.stderr.toString()).toBe(0);
-    const profile = readFileSync(f.profile, "utf8");
-    expect(profile).toBe(`abi <abi/4.0>,
-include <tunables/global>
-
-profile codecaine-file-manager "${realpathSync(f.root)}/codecaine-file-manager" flags=(unconfined) {
-  userns,
-}
-`);
-    const commands = readFileSync(f.commands, "utf8");
-    expect(commands.indexOf("--skip-kernel-load --skip-cache")).toBeLessThan(
-      commands.indexOf("install -m 644"),
-    );
-    expect(commands).toContain("-r /etc/apparmor.d/codecaine-file-manager");
-    expect(linuxInstallScript()).not.toContain("DISABLE_SANDBOX");
-    expect(linuxInstallScript()).not.toContain("sysctl -w");
-    const validation = commands.split("\n")[0]!.split(" ").at(-1)!;
-    expect(existsSync(validation)).toBe(false);
-    if (existsSync("/usr/sbin/apparmor_parser")) {
-      const checked = Bun.spawnSync([
-        "/usr/sbin/apparmor_parser",
-        "--skip-kernel-load",
-        "--skip-cache",
-        f.profile,
-      ]);
-      expect(checked.exitCode, checked.stderr.toString()).toBe(0);
-    }
-  });
-
-  test.each([
-    "glob*path",
-    "question?path",
-    "bracket[path",
-    "brace{path",
-    'quote"path',
-    "slash\\path",
-    "line\npath",
-  ])("rejects unsafe attachment path %j before sudo", (name) => {
-    const f = fixture(name);
-    const result = f.run(["--apparmor"]);
-    expect(result.exitCode).not.toBe(0);
-    expect(result.stderr.toString()).toContain("move the download");
-    expect(existsSync(f.commands)).toBe(false);
-  });
-
-  test("validation failures stop before privileged installation and clean temporary files", () => {
-    const f = fixture();
-    expect(f.run(["--apparmor"], { VALIDATE_EXIT: "1" }).exitCode).not.toBe(0);
-    const commands = readFileSync(f.commands, "utf8");
-    expect(commands).not.toContain("install -m");
-    expect(existsSync(commands.trim().split(" ").at(-1)!)).toBe(false);
-    expect(existsSync(join(f.home, ".local/bin/codecaine-file-manager"))).toBe(
-      false,
-    );
-  });
-
-  test("profile load errors are not reported as successful installation", () => {
-    const f = fixture();
-    const result = f.run(["--apparmor"], { LOAD_EXIT: "1" });
-    expect(result.exitCode).not.toBe(0);
-    expect(result.stdout.toString()).not.toContain("AppArmor profile loaded");
-    expect(result.stdout.toString()).not.toContain("Installed.");
-  });
-
-  test("explicit uninstall unloads the profile before deleting it; plain uninstall preserves it", () => {
-    const target = TARGETS.find((t) => t.id === "linux-arm64")!;
-    for (const [script, profileName, executable] of [
-      [
-        linuxInstallScript(),
-        "codecaine-file-manager",
-        "codecaine-file-manager",
-      ],
-      [
-        installScript(["calculator-studio"], target),
-        "bun-rad-studio",
-        "runtime/bun",
-      ],
-    ] as const) {
-      const f = fixture("uninstall", script, executable);
-      writeFileSync(
-        f.script,
-        script.replaceAll(`/etc/apparmor.d/${profileName}`, f.profile),
+    test("validation failures stop before privileged installation and clean temporary files", () => {
+      const f = fixture();
+      expect(f.run(["--apparmor"], { VALIDATE_EXIT: "1" }).exitCode).not.toBe(
+        0,
       );
-      writeFileSync(f.profile, "existing profile");
-      expect(f.run(["--uninstall"]).exitCode).toBe(0);
-      expect(existsSync(f.profile)).toBe(true);
-      expect(existsSync(f.commands)).toBe(false);
-      expect(f.run(["--uninstall", "--apparmor"]).exitCode).toBe(0);
-      expect(existsSync(f.profile)).toBe(false);
       const commands = readFileSync(f.commands, "utf8");
-      expect(commands.indexOf(`-R ${f.profile}`)).toBeLessThan(
-        commands.indexOf(`rm -f ${f.profile}`),
-      );
-    }
-  });
-
-  test("missing executable and unknown flags fail explicitly", () => {
-    const f = fixture();
-    chmodSync(join(f.root, "codecaine-file-manager"), 0o644);
-    expect(f.run(["--apparmor"]).stderr.toString()).toContain(
-      "Missing executable",
-    );
-    expect(existsSync(f.commands)).toBe(false);
-    const result = f.run(["--unknown"]);
-    expect(result.exitCode).not.toBe(0);
-    expect(result.stderr.toString()).toContain("Usage:");
-  });
-
-  test("all Linux downloads document the opt-in, relocation, uninstall, and 1-step Ollama + AI models installer", () => {
-    for (const d of DOWNLOADS.filter((d) => d.os === "linux")) {
-      const readme = readmeFor(d);
-      expect(readme).toContain("sh install.sh --apparmor");
-      expect(readme).toContain("after moving");
-      expect(readme).toContain("--uninstall --apparmor");
-      expect(readme).toContain("sh install-ollama.sh");
-      expect(readme).toContain("sh install.sh --ollama");
-    }
-    expect(downloadPage([])).toContain("sh install.sh --apparmor");
-    expect(readmeFor(DOWNLOADS.find((d) => d.os === "windows")!)).not.toContain(
-      "--apparmor",
-    );
-
-    const ollamaScript = linuxOllamaInstallScript("codecaine-file-manager");
-    expect(Bun.spawnSync(["sh", "-n"], { stdin: Buffer.from(ollamaScript) }).exitCode).toBe(0);
-    expect(ollamaScript).toContain("BUN_BE_BUN=1");
-    expect(ollamaScript).toContain("qwen3.5:4b");
-    expect(ollamaScript).toContain("lfm3-omni:latest");
-    expect(ollamaScript).not.toMatch(/^\s*sudo\b/m);
-
-    const f = fixture();
-    const ollamaMarker = join(f.dir, "ollama-ran");
-    writeFileSync(join(f.root, "install-ollama.sh"), `#!/bin/sh\necho "ran" > "${ollamaMarker}"\n`, { mode: 0o755 });
-    expect(f.run(["--ollama"]).exitCode).toBe(0);
-    expect(existsSync(ollamaMarker)).toBe(true);
-  });
-
-  test("builds spec-compliant .deb GUI installers and Flathub, Snap, AUR, RPM & AppImage manifests", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "fm-linux-deb-"));
-    dirs.push(dir);
-    const stageDir = join(dir, "stage");
-    mkdirSync(join(stageDir, "app"), { recursive: true });
-    mkdirSync(join(stageDir, "lib"), { recursive: true });
-    mkdirSync(join(stageDir, "resources"), { recursive: true });
-    writeFileSync(join(stageDir, "codecaine-file-manager"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
-    writeFileSync(join(stageDir, "app", "file-manager-studio.js"), "console.log('ok');\n");
-    writeFileSync(join(stageDir, "lib", "libwebview-x64.so"), "so", { mode: 0o755 });
-    writeFileSync(join(stageDir, "resources", "sample.txt"), "resource");
-    writeFileSync(join(stageDir, "install-ollama.sh"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
-    writeFileSync(join(stageDir, "codecaine-file-manager.png"), "png-bytes");
-
-    const debOut = join(dir, debFileName("amd64", "1.5.3"));
-    await buildDebPackage(stageDir, debOut, { version: "1.5.3", arch: "amd64" });
-    expect(existsSync(debOut)).toBe(true);
-
-    const debBuf = readFileSync(debOut);
-    expect(debBuf.subarray(0, 8).toString("ascii")).toBe("!<arch>\n");
-
-    if (Bun.which("ar") && Bun.which("tar")) {
-      const unpackDir = join(dir, "unpacked");
-      mkdirSync(unpackDir, { recursive: true });
-      const arList = Bun.spawnSync(["ar", "-t", debOut]);
-      expect(arList.exitCode).toBe(0);
-      expect(arList.stdout.toString().trim().split(/\r?\n/)).toEqual([
-        "debian-binary",
-        "control.tar.gz",
-        "data.tar.gz",
-      ]);
-
-      expect(Bun.spawnSync(["ar", "-x", debOut], { cwd: unpackDir }).exitCode).toBe(0);
-      expect(readFileSync(join(unpackDir, "debian-binary"), "utf8")).toBe("2.0\n");
-
-      const ctrlDir = join(unpackDir, "ctrl");
-      const dataDir = join(unpackDir, "data");
-      mkdirSync(ctrlDir);
-      mkdirSync(dataDir);
-      expect(Bun.spawnSync(["tar", "-xzf", join(unpackDir, "control.tar.gz"), "-C", ctrlDir]).exitCode).toBe(0);
-      expect(Bun.spawnSync(["tar", "-xzf", join(unpackDir, "data.tar.gz"), "-C", dataDir]).exitCode).toBe(0);
-
-      const controlText = readFileSync(join(ctrlDir, "control"), "utf8");
-      expect(controlText).toContain("Package: codecaine-file-manager");
-      expect(controlText).toContain("Architecture: amd64");
-      expect(controlText).toContain("Depends: libc6, libgtk-4-1, libwebkitgtk-6.0-4");
-      expect(Bun.spawnSync(["sh", "-n", join(ctrlDir, "postinst")]).exitCode).toBe(0);
-      expect(Bun.spawnSync(["sh", "-n", join(ctrlDir, "prerm")]).exitCode).toBe(0);
-
-      expect(readlinkSync(join(dataDir, "usr/bin/codecaine-file-manager"))).toBe(
-        "/opt/codecaine-file-manager/codecaine-file-manager",
-      );
-      expect(existsSync(join(dataDir, `usr/share/applications/${APPSTREAM_ID}.desktop`))).toBe(true);
-      expect(existsSync(join(dataDir, `usr/share/metainfo/${APPSTREAM_ID}.metainfo.xml`))).toBe(true);
-      expect(existsSync(join(dataDir, `usr/share/icons/hicolor/512x512/apps/${APPSTREAM_ID}.png`))).toBe(true);
-    }
-
-    const storesDir = join(dir, "linux-stores");
-    const shaX64 = "a".repeat(64);
-    const shaArm64 = "b".repeat(64);
-    writeLinuxStoreManifests(storesDir, {
-      version: "1.5.3",
-      sha256X64: shaX64,
-      sha256Arm64: shaArm64,
+      expect(commands).not.toContain("install -m");
+      expect(existsSync(commands.trim().split(" ").at(-1)!)).toBe(false);
+      expect(
+        existsSync(join(f.home, ".local/bin/codecaine-file-manager")),
+      ).toBe(false);
     });
 
-    expect(readFileSync(join(storesDir, "flathub", `${APPSTREAM_ID}.yml`), "utf8")).toContain(shaX64);
-    expect(readFileSync(join(storesDir, "flathub", `${APPSTREAM_ID}.metainfo.xml`), "utf8")).toContain(
-      `<launchable type="desktop-id">${APPSTREAM_ID}.desktop</launchable>`,
-    );
-    expect(readFileSync(join(storesDir, "snap", "snapcraft.yaml"), "utf8")).toContain("extensions: [gnome]");
-    expect(readFileSync(join(storesDir, "aur", "PKGBUILD"), "utf8")).toContain(shaArm64);
-    expect(readFileSync(join(storesDir, "aur", ".SRCINFO"), "utf8")).toContain("pkgname = codecaine-file-manager-bin");
-    expect(readFileSync(join(storesDir, "rpm", "codecaine-file-manager.spec"), "utf8")).toContain("Requires:       webkitgtk6.0");
-    expect(Bun.spawnSync(["sh", "-n", join(storesDir, "appimage", "AppRun")]).exitCode).toBe(0);
-    expect(Bun.spawnSync(["sh", "-n", join(storesDir, "appimage", "build-appimage.sh")]).exitCode).toBe(0);
+    test("profile load errors are not reported as successful installation", () => {
+      const f = fixture();
+      const result = f.run(["--apparmor"], { LOAD_EXIT: "1" });
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stdout.toString()).not.toContain("AppArmor profile loaded");
+      expect(result.stdout.toString()).not.toContain("Installed.");
+    });
 
-    const pageWithDebs = downloadPage([], "", [
-      { arch: "amd64", label: "Ubuntu / Debian / Mint (.deb · x86-64)", hint: "GUI installer", file: debFileName("amd64", "1.5.3"), bytes: 70_000_000 },
-    ]);
-    expect(pageWithDebs).toContain(debFileName("amd64", "1.5.3"));
-    expect(appStreamMetaInfoXml("1.5.3")).toContain("<mediatype>inode/directory</mediatype>");
-  });
-});
+    test("explicit uninstall unloads the profile before deleting it; plain uninstall preserves it", () => {
+      const target = TARGETS.find((t) => t.id === "linux-arm64")!;
+      for (const [script, profileName, executable] of [
+        [
+          linuxInstallScript(),
+          "codecaine-file-manager",
+          "codecaine-file-manager",
+        ],
+        [
+          installScript(["calculator-studio"], target),
+          "bun-rad-studio",
+          "runtime/bun",
+        ],
+      ] as const) {
+        const f = fixture("uninstall", script, executable);
+        writeFileSync(
+          f.script,
+          script.replaceAll(`/etc/apparmor.d/${profileName}`, f.profile),
+        );
+        writeFileSync(f.profile, "existing profile");
+        expect(f.run(["--uninstall"]).exitCode).toBe(0);
+        expect(existsSync(f.profile)).toBe(true);
+        expect(existsSync(f.commands)).toBe(false);
+        expect(f.run(["--uninstall", "--apparmor"]).exitCode).toBe(0);
+        expect(existsSync(f.profile)).toBe(false);
+        const commands = readFileSync(f.commands, "utf8");
+        expect(commands.indexOf(`-R ${f.profile}`)).toBeLessThan(
+          commands.indexOf(`rm -f ${f.profile}`),
+        );
+      }
+    });
+
+    test("missing executable and unknown flags fail explicitly", () => {
+      const f = fixture();
+      chmodSync(join(f.root, "codecaine-file-manager"), 0o644);
+      expect(f.run(["--apparmor"]).stderr.toString()).toContain(
+        "Missing executable",
+      );
+      expect(existsSync(f.commands)).toBe(false);
+      const result = f.run(["--unknown"]);
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stderr.toString()).toContain("Usage:");
+    });
+
+    test("all Linux downloads document the opt-in, relocation, uninstall, and 1-step Ollama + AI models installer", () => {
+      for (const d of DOWNLOADS.filter((d) => d.os === "linux")) {
+        const readme = readmeFor(d);
+        expect(readme).toContain("sh install.sh --apparmor");
+        expect(readme).toContain("after moving");
+        expect(readme).toContain("--uninstall --apparmor");
+        expect(readme).toContain("sh install-ollama.sh");
+        expect(readme).toContain("sh install.sh --ollama");
+      }
+      expect(downloadPage([])).toContain("sh install.sh --apparmor");
+      expect(
+        readmeFor(DOWNLOADS.find((d) => d.os === "windows")!),
+      ).not.toContain("--apparmor");
+
+      const ollamaScript = linuxOllamaInstallScript("codecaine-file-manager");
+      expect(
+        Bun.spawnSync(["sh", "-n"], { stdin: Buffer.from(ollamaScript) })
+          .exitCode,
+      ).toBe(0);
+      expect(ollamaScript).toContain("BUN_BE_BUN=1");
+      expect(ollamaScript).toContain("qwen3.5:4b");
+      expect(ollamaScript).toContain("lfm3-omni:latest");
+      expect(ollamaScript).not.toMatch(/^\s*sudo\b/m);
+
+      const f = fixture();
+      const ollamaMarker = join(f.dir, "ollama-ran");
+      writeFileSync(
+        join(f.root, "install-ollama.sh"),
+        `#!/bin/sh\necho "ran" > "${ollamaMarker}"\n`,
+        { mode: 0o755 },
+      );
+      expect(f.run(["--ollama"]).exitCode).toBe(0);
+      expect(existsSync(ollamaMarker)).toBe(true);
+    });
+
+    test("builds spec-compliant .deb GUI installers and Flathub, Snap, AUR, RPM & AppImage manifests", async () => {
+      const dir = mkdtempSync(join(tmpdir(), "fm-linux-deb-"));
+      dirs.push(dir);
+      const stageDir = join(dir, "stage");
+      mkdirSync(join(stageDir, "app"), { recursive: true });
+      mkdirSync(join(stageDir, "lib"), { recursive: true });
+      mkdirSync(join(stageDir, "resources"), { recursive: true });
+      writeFileSync(
+        join(stageDir, "codecaine-file-manager"),
+        "#!/bin/sh\nexit 0\n",
+        { mode: 0o755 },
+      );
+      writeFileSync(
+        join(stageDir, "app", "file-manager-studio.js"),
+        "console.log('ok');\n",
+      );
+      writeFileSync(join(stageDir, "lib", "libwebview-x64.so"), "so", {
+        mode: 0o755,
+      });
+      writeFileSync(join(stageDir, "resources", "sample.txt"), "resource");
+      writeFileSync(
+        join(stageDir, "install-ollama.sh"),
+        "#!/bin/sh\nexit 0\n",
+        { mode: 0o755 },
+      );
+      writeFileSync(join(stageDir, "codecaine-file-manager.png"), "png-bytes");
+
+      const debOut = join(dir, debFileName("amd64", "1.5.3"));
+      await buildDebPackage(stageDir, debOut, {
+        version: "1.5.3",
+        arch: "amd64",
+      });
+      expect(existsSync(debOut)).toBe(true);
+
+      const debBuf = readFileSync(debOut);
+      expect(debBuf.subarray(0, 8).toString("ascii")).toBe("!<arch>\n");
+
+      if (Bun.which("ar") && Bun.which("tar")) {
+        const unpackDir = join(dir, "unpacked");
+        mkdirSync(unpackDir, { recursive: true });
+        const arList = Bun.spawnSync(["ar", "-t", debOut]);
+        expect(arList.exitCode).toBe(0);
+        expect(arList.stdout.toString().trim().split(/\r?\n/)).toEqual([
+          "debian-binary",
+          "control.tar.gz",
+          "data.tar.gz",
+        ]);
+
+        expect(
+          Bun.spawnSync(["ar", "-x", debOut], { cwd: unpackDir }).exitCode,
+        ).toBe(0);
+        expect(readFileSync(join(unpackDir, "debian-binary"), "utf8")).toBe(
+          "2.0\n",
+        );
+
+        const ctrlDir = join(unpackDir, "ctrl");
+        const dataDir = join(unpackDir, "data");
+        mkdirSync(ctrlDir);
+        mkdirSync(dataDir);
+        expect(
+          Bun.spawnSync([
+            "tar",
+            "-xzf",
+            join(unpackDir, "control.tar.gz"),
+            "-C",
+            ctrlDir,
+          ]).exitCode,
+        ).toBe(0);
+        expect(
+          Bun.spawnSync([
+            "tar",
+            "-xzf",
+            join(unpackDir, "data.tar.gz"),
+            "-C",
+            dataDir,
+          ]).exitCode,
+        ).toBe(0);
+
+        const controlText = readFileSync(join(ctrlDir, "control"), "utf8");
+        expect(controlText).toContain("Package: codecaine-file-manager");
+        expect(controlText).toContain("Architecture: amd64");
+        expect(controlText).toContain(
+          "Depends: libc6, libgtk-4-1, libwebkitgtk-6.0-4",
+        );
+        expect(
+          Bun.spawnSync(["sh", "-n", join(ctrlDir, "postinst")]).exitCode,
+        ).toBe(0);
+        expect(
+          Bun.spawnSync(["sh", "-n", join(ctrlDir, "prerm")]).exitCode,
+        ).toBe(0);
+
+        expect(
+          readlinkSync(join(dataDir, "usr/bin/codecaine-file-manager")),
+        ).toBe("/opt/codecaine-file-manager/codecaine-file-manager");
+        expect(
+          existsSync(
+            join(dataDir, `usr/share/applications/${APPSTREAM_ID}.desktop`),
+          ),
+        ).toBe(true);
+        expect(
+          existsSync(
+            join(dataDir, `usr/share/metainfo/${APPSTREAM_ID}.metainfo.xml`),
+          ),
+        ).toBe(true);
+        expect(
+          existsSync(
+            join(
+              dataDir,
+              `usr/share/icons/hicolor/512x512/apps/${APPSTREAM_ID}.png`,
+            ),
+          ),
+        ).toBe(true);
+      }
+
+      const storesDir = join(dir, "linux-stores");
+      const shaX64 = "a".repeat(64);
+      const shaArm64 = "b".repeat(64);
+      writeLinuxStoreManifests(storesDir, {
+        version: "1.5.3",
+        sha256X64: shaX64,
+        sha256Arm64: shaArm64,
+      });
+
+      expect(
+        readFileSync(join(storesDir, "flathub", `${APPSTREAM_ID}.yml`), "utf8"),
+      ).toContain(shaX64);
+      expect(
+        readFileSync(
+          join(storesDir, "flathub", `${APPSTREAM_ID}.metainfo.xml`),
+          "utf8",
+        ),
+      ).toContain(
+        `<launchable type="desktop-id">${APPSTREAM_ID}.desktop</launchable>`,
+      );
+      expect(
+        readFileSync(join(storesDir, "snap", "snapcraft.yaml"), "utf8"),
+      ).toContain("extensions: [gnome]");
+      expect(
+        readFileSync(join(storesDir, "aur", "PKGBUILD"), "utf8"),
+      ).toContain(shaArm64);
+      expect(
+        readFileSync(join(storesDir, "aur", ".SRCINFO"), "utf8"),
+      ).toContain("pkgname = codecaine-file-manager-bin");
+      expect(
+        readFileSync(
+          join(storesDir, "rpm", "codecaine-file-manager.spec"),
+          "utf8",
+        ),
+      ).toContain("Requires:       webkitgtk6.0");
+      expect(
+        Bun.spawnSync(["sh", "-n", join(storesDir, "appimage", "AppRun")])
+          .exitCode,
+      ).toBe(0);
+      expect(
+        Bun.spawnSync([
+          "sh",
+          "-n",
+          join(storesDir, "appimage", "build-appimage.sh"),
+        ]).exitCode,
+      ).toBe(0);
+
+      const pageWithDebs = downloadPage([], "", [
+        {
+          arch: "amd64",
+          label: "Ubuntu / Debian / Mint (.deb · x86-64)",
+          hint: "GUI installer",
+          file: debFileName("amd64", "1.5.3"),
+          bytes: 70_000_000,
+        },
+      ]);
+      expect(pageWithDebs).toContain(debFileName("amd64", "1.5.3"));
+      expect(appStreamMetaInfoXml("1.5.3")).toContain(
+        "<mediatype>inode/directory</mediatype>",
+      );
+    });
+  },
+);

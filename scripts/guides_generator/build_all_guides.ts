@@ -10,7 +10,10 @@ import { join } from "path";
 
 const outDir = join(process.cwd(), "docs", "userguides");
 
-console.log("🚀 Generating AAA Production User Guides for all 40 applications in:", outDir);
+console.log(
+  "🚀 Generating AAA Production User Guides for all 40 applications in:",
+  outDir,
+);
 
 generateCoreWorkstations(outDir);
 generateDeveloperUtilities(outDir);

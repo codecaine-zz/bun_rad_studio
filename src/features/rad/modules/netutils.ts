@@ -31,7 +31,9 @@ export async function getPublicIp(timeoutMs = 4000): Promise<string> {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch("https://api.ipify.org", { signal: controller.signal });
+    const res = await fetch("https://api.ipify.org", {
+      signal: controller.signal,
+    });
     clearTimeout(id);
     return (await res.text()).trim();
   } catch {
@@ -49,7 +51,10 @@ export async function isOnline(timeoutMs = 3000): Promise<boolean> {
   try {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeoutMs);
-    const res = await fetch("https://1.1.1.1", { method: "HEAD", signal: controller.signal });
+    const res = await fetch("https://1.1.1.1", {
+      method: "HEAD",
+      signal: controller.signal,
+    });
     clearTimeout(id);
     return res.status < 500;
   } catch {
@@ -67,7 +72,7 @@ export async function isOnline(timeoutMs = 3000): Promise<boolean> {
 export async function tcpPing(
   host: string,
   port: number,
-  timeoutMs = 2000
+  timeoutMs = 2000,
 ): Promise<{ reachable: boolean; durationMs: number }> {
   const start = performance.now();
   try {
@@ -88,7 +93,10 @@ export async function tcpPing(
     socket.end();
     return { reachable: true, durationMs };
   } catch {
-    return { reachable: false, durationMs: Math.round(performance.now() - start) };
+    return {
+      reachable: false,
+      durationMs: Math.round(performance.now() - start),
+    };
   }
 }
 

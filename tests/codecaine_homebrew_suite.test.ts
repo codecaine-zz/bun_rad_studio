@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeAll } from "bun:test";
 import { resolve, join } from "node:path";
 import { existsSync, statSync, readFileSync } from "node:fs";
-import { generateAllWrappers, buildWrapperDefinitions } from "../scripts/generate_brew_suite.ts";
+import {
+  generateAllWrappers,
+  buildWrapperDefinitions,
+} from "../scripts/generate_brew_suite.ts";
 
 describe("⚡ Codecaine Utility Suite — Homebrew Distribution & Binary Wrappers", () => {
   const root = resolve(process.cwd());
@@ -16,11 +19,19 @@ describe("⚡ Codecaine Utility Suite — Homebrew Distribution & Binary Wrapper
     generateAllWrappers();
   });
 
-  const runSubprocess = async (cmd: string[]): Promise<{ stdout: string; stderr: string; output: string; exitCode: number }> => {
+  const runSubprocess = async (
+    cmd: string[],
+  ): Promise<{
+    stdout: string;
+    stderr: string;
+    output: string;
+    exitCode: number;
+  }> => {
     // The files in bin/ are bash scripts: Windows can't start them directly, so Git Bash runs them (with forward slashes).
-    const argv = process.platform === "win32" && cmd[0]?.startsWith(binDir)
-      ? ["bash", cmd[0].replace(/\\/g, "/"), ...cmd.slice(1)]
-      : cmd;
+    const argv =
+      process.platform === "win32" && cmd[0]?.startsWith(binDir)
+        ? ["bash", cmd[0].replace(/\\/g, "/"), ...cmd.slice(1)]
+        : cmd;
     const proc = Bun.spawn(argv, {
       cwd: root,
       stdout: "pipe",
@@ -70,7 +81,11 @@ describe("⚡ Codecaine Utility Suite — Homebrew Distribution & Binary Wrapper
     const syntaxRes = await runSubprocess(["bash", "-n", installerScript]);
     expect(syntaxRes.exitCode).toBe(0);
 
-    const helpRes = await runSubprocess(process.platform === "win32" ? ["bash", installerScript, "--help"] : [installerScript, "--help"]);
+    const helpRes = await runSubprocess(
+      process.platform === "win32"
+        ? ["bash", installerScript, "--help"]
+        : [installerScript, "--help"],
+    );
     expect(helpRes.exitCode).toBe(0);
     expect(helpRes.output).toContain("Codecaine Utility Suite");
     expect(helpRes.output).toContain("--link");
@@ -82,7 +97,7 @@ describe("⚡ Codecaine Utility Suite — Homebrew Distribution & Binary Wrapper
     expect(defs.length).toBeGreaterThanOrEqual(150);
 
     // Verify key wrappers exist in definition list
-    const names = defs.map(d => d.binName);
+    const names = defs.map((d) => d.binName);
     expect(names).toContain("codecaine");
     expect(names).toContain("codecaine-suite");
     expect(names).toContain("codecaine-launcher");
@@ -127,7 +142,11 @@ describe("⚡ Codecaine Utility Suite — Homebrew Distribution & Binary Wrapper
   });
 
   it("6. Master codecaine CLI reports version and help", async () => {
-    const verRes = await runSubprocess([process.execPath, suiteCli, "--version"]);
+    const verRes = await runSubprocess([
+      process.execPath,
+      suiteCli,
+      "--version",
+    ]);
     expect(verRes.exitCode).toBe(0);
     expect(verRes.output).toContain("Codecaine Utility Suite v1.0.0");
 
@@ -138,7 +157,12 @@ describe("⚡ Codecaine Utility Suite — Homebrew Distribution & Binary Wrapper
   });
 
   it("7. Master codecaine CLI lists all tools with category and JSON options", async () => {
-    const jsonRes = await runSubprocess([process.execPath, suiteCli, "list", "--json"]);
+    const jsonRes = await runSubprocess([
+      process.execPath,
+      suiteCli,
+      "list",
+      "--json",
+    ]);
     expect(jsonRes.exitCode).toBe(0);
     const data = JSON.parse(jsonRes.stdout);
     expect(data.suite).toBe("Codecaine Utility Suite");
@@ -147,7 +171,12 @@ describe("⚡ Codecaine Utility Suite — Homebrew Distribution & Binary Wrapper
     expect(data.kpis.cliTools).toBeGreaterThanOrEqual(70);
     expect(data.tools.length).toBeGreaterThanOrEqual(160);
 
-    const listRes = await runSubprocess([process.execPath, suiteCli, "list", "--cli"]);
+    const listRes = await runSubprocess([
+      process.execPath,
+      suiteCli,
+      "list",
+      "--cli",
+    ]);
     expect(listRes.exitCode).toBe(0);
     expect(listRes.output).toContain("Database CLI");
   });
@@ -169,9 +198,14 @@ describe("⚡ Codecaine Utility Suite — Homebrew Distribution & Binary Wrapper
   });
 
   it("9. Master codecaine CLI searches tools by keyword", async () => {
-    const searchRes = await runSubprocess([process.execPath, suiteCli, "search", "sqlite"]);
+    const searchRes = await runSubprocess([
+      process.execPath,
+      suiteCli,
+      "search",
+      "sqlite",
+    ]);
     expect(searchRes.exitCode).toBe(0);
-    expect(searchRes.output).toContain("Search results for \"sqlite\"");
+    expect(searchRes.output).toContain('Search results for "sqlite"');
     expect(searchRes.output).toContain("SQLite Studio Pro");
   });
 
@@ -181,7 +215,12 @@ describe("⚡ Codecaine Utility Suite — Homebrew Distribution & Binary Wrapper
     expect(infoRes.output).toContain("Codecaine Utility Suite:");
     expect(infoRes.output).toContain("System Environment:");
 
-    const brewRes = await runSubprocess([process.execPath, suiteCli, "brew", "status"]);
+    const brewRes = await runSubprocess([
+      process.execPath,
+      suiteCli,
+      "brew",
+      "status",
+    ]);
     expect(brewRes.exitCode).toBe(0);
     expect(brewRes.output).toContain("Homebrew Integration Status:");
   });
@@ -195,7 +234,13 @@ describe("⚡ Codecaine Utility Suite — Homebrew Distribution & Binary Wrapper
 
   it("12. Standalone binary wrapper ./bin/codecaine-database runs in-memory query", async () => {
     const binExecutable = join(binDir, "codecaine-database");
-    const res = await runSubprocess([binExecutable, "--db", ":memory:", "--query", "SELECT 777 AS lucky"]);
+    const res = await runSubprocess([
+      binExecutable,
+      "--db",
+      ":memory:",
+      "--query",
+      "SELECT 777 AS lucky",
+    ]);
     expect(res.exitCode).toBe(0);
     expect(res.output).toContain("777");
   });

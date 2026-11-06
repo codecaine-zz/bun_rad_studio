@@ -971,7 +971,7 @@ function isSimpleHexColor(value: string): boolean {
  */
 export function mountThemeStudio(
   container: HTMLElement,
-  options: ThemeStudioMountOptions = {}
+  options: ThemeStudioMountOptions = {},
 ): ThemeStudioController {
   const doc = container.ownerDocument;
   const cssRoot = options.cssRoot ?? doc.documentElement;
@@ -979,12 +979,16 @@ export function mountThemeStudio(
 
   let currentName =
     options.initialThemeName ?? persisted?.name ?? "Obsidian Glass";
-  let activePresetId: string | null = persisted?.activePresetId ?? "obsidian-glass";
+  let activePresetId: string | null =
+    persisted?.activePresetId ?? "obsidian-glass";
   let activeTab: "quick" | "inspector" = "quick";
   let drawerOpen = true;
   let activePlaygroundTab: "components" | "data" | "code" = "components";
   let inspectorFilter = "";
-  const expandedCategories = new Set<InspectorCategory>(["Backgrounds", "Typography"]);
+  const expandedCategories = new Set<InspectorCategory>([
+    "Backgrounds",
+    "Typography",
+  ]);
 
   let surface: ThemeSurfaceConfig = {
     ...DEFAULT_SURFACE_CONFIG,
@@ -1469,7 +1473,8 @@ export function mountThemeStudio(
     const shadeGrid = q<HTMLDivElement>("#tsShadeScaleGrid");
     shadeGrid.innerHTML = SHADE_STEPS_10.map((step) => {
       const hex = system.neutralScale[step];
-      const fg = step <= 400 ? system.neutralScale[950] : system.neutralScale[50];
+      const fg =
+        step <= 400 ? system.neutralScale[950] : system.neutralScale[50];
       return `
         <div class="ts-shade-swatch" data-shade-step="${step}" style="background:${hex}; color:${fg};">
           <strong>${step}</strong>
@@ -1491,12 +1496,14 @@ export function mountThemeStudio(
           !filter ||
           d.name.toLowerCase().includes(filter) ||
           d.label.toLowerCase().includes(filter) ||
-          d.description.toLowerCase().includes(filter)
+          d.description.toLowerCase().includes(filter),
       );
       if (items.length === 0) return "";
 
       const isOpen = filter.length > 0 || expandedCategories.has(category);
-      const overrideCountInCat = items.filter((d) => d.name in overrides).length;
+      const overrideCountInCat = items.filter(
+        (d) => d.name in overrides,
+      ).length;
 
       const rowsHtml = items
         .map((desc) => {
@@ -1577,7 +1584,7 @@ export function mountThemeStudio(
       saved
         .map(
           (t) =>
-            `<option value="${t.id}">${t.name} (${t.surface.baseMode} • ${t.surface.surfaceVibe})</option>`
+            `<option value="${t.id}">${t.name} (${t.surface.baseMode} • ${t.surface.surfaceVibe})</option>`,
         )
         .join("");
   }
@@ -1589,37 +1596,57 @@ export function mountThemeStudio(
     q<HTMLElement>("#lblPrimaryColorVal").textContent = surface.primaryColor;
     q<HTMLElement>("#lblAccentColorVal").textContent = surface.accentColor;
     q<HTMLElement>("#lblSurfaceVibeVal").textContent = surface.surfaceVibe;
-    q<HTMLElement>("#lblCornerSharpnessVal").textContent = `${surface.cornerSharpness}px`;
+    q<HTMLElement>("#lblCornerSharpnessVal").textContent =
+      `${surface.cornerSharpness}px`;
     q<HTMLElement>("#lblDensityVal").textContent = surface.density;
 
     q<HTMLInputElement>("#ctrlPrimaryColorPicker").value = surface.primaryColor;
     q<HTMLInputElement>("#ctrlPrimaryColorHex").value = surface.primaryColor;
     q<HTMLInputElement>("#ctrlAccentColorPicker").value = surface.accentColor;
     q<HTMLInputElement>("#ctrlAccentColorHex").value = surface.accentColor;
-    q<HTMLInputElement>("#ctrlCornerSharpness").value = String(surface.cornerSharpness);
+    q<HTMLInputElement>("#ctrlCornerSharpness").value = String(
+      surface.cornerSharpness,
+    );
 
-    container.querySelectorAll<HTMLButtonElement>("[data-base-mode]").forEach((btn) => {
-      btn.dataset.active = btn.dataset.baseMode === surface.baseMode ? "true" : "false";
-    });
-    container.querySelectorAll<HTMLButtonElement>("[data-surface-vibe]").forEach((btn) => {
-      btn.dataset.active = btn.dataset.surfaceVibe === surface.surfaceVibe ? "true" : "false";
-    });
-    container.querySelectorAll<HTMLButtonElement>("[data-density]").forEach((btn) => {
-      btn.dataset.active = btn.dataset.density === surface.density ? "true" : "false";
-    });
+    container
+      .querySelectorAll<HTMLButtonElement>("[data-base-mode]")
+      .forEach((btn) => {
+        btn.dataset.active =
+          btn.dataset.baseMode === surface.baseMode ? "true" : "false";
+      });
+    container
+      .querySelectorAll<HTMLButtonElement>("[data-surface-vibe]")
+      .forEach((btn) => {
+        btn.dataset.active =
+          btn.dataset.surfaceVibe === surface.surfaceVibe ? "true" : "false";
+      });
+    container
+      .querySelectorAll<HTMLButtonElement>("[data-density]")
+      .forEach((btn) => {
+        btn.dataset.active =
+          btn.dataset.density === surface.density ? "true" : "false";
+      });
 
     // Header & Telemetry readouts
     const overrideCount = Object.keys(overrides).length;
-    q<HTMLElement>("#tsContrastBadge").textContent = `Contrast: ${system.text.panelBgContrastRatio}:1 (${system.text.panelBgContrastRatio >= 7 ? "AAA" : "AA"})`;
-    q<HTMLElement>("#tsOverrideCountBadge").textContent = `${overrideCount} Override${overrideCount === 1 ? "" : "s"}`;
-    q<HTMLElement>("#tsBtnContrastReadout").textContent = `Primary ${system.text.primaryButtonContrastRatio}:1 • Accent ${system.text.accentButtonContrastRatio}:1`;
-    q<HTMLElement>("#tsVibeReadout").textContent = `${surface.surfaceVibe} • ${surface.cornerSharpness}px • ${surface.density}`;
+    q<HTMLElement>("#tsContrastBadge").textContent =
+      `Contrast: ${system.text.panelBgContrastRatio}:1 (${system.text.panelBgContrastRatio >= 7 ? "AAA" : "AA"})`;
+    q<HTMLElement>("#tsOverrideCountBadge").textContent =
+      `${overrideCount} Override${overrideCount === 1 ? "" : "s"}`;
+    q<HTMLElement>("#tsBtnContrastReadout").textContent =
+      `Primary ${system.text.primaryButtonContrastRatio}:1 • Accent ${system.text.accentButtonContrastRatio}:1`;
+    q<HTMLElement>("#tsVibeReadout").textContent =
+      `${surface.surfaceVibe} • ${surface.cornerSharpness}px • ${surface.density}`;
     q<HTMLElement>("#tsBaseModeBadge").textContent = surface.baseMode;
-    q<HTMLElement>("#tsActiveThemeLabel").textContent = `Active: ${currentName}`;
+    q<HTMLElement>("#tsActiveThemeLabel").textContent =
+      `Active: ${currentName}`;
     q<HTMLElement>("#termModeVal").textContent = surface.baseMode;
     q<HTMLElement>("#termVibeVal").textContent = surface.surfaceVibe;
-    q<HTMLElement>("#termContrastVal").textContent = `${system.text.panelBgContrastRatio}:1`;
-    q<HTMLElement>("#termVarCount").textContent = String(Object.keys(system.variables).length);
+    q<HTMLElement>("#termContrastVal").textContent =
+      `${system.text.panelBgContrastRatio}:1`;
+    q<HTMLElement>("#termVarCount").textContent = String(
+      Object.keys(system.variables).length,
+    );
 
     // Code block preview
     const sampleVars: Array<`--${string}`> = [
@@ -1635,7 +1662,8 @@ export function mountThemeStudio(
       "--shadow-elevated",
     ];
     const codeLines = sampleVars.map(
-      (k) => `  <span class="ts-tok-fn">${k}</span>: <span class="ts-tok-str">${system.variables[k]}</span>;`
+      (k) =>
+        `  <span class="ts-tok-fn">${k}</span>: <span class="ts-tok-str">${system.variables[k]}</span>;`,
     );
     q<HTMLElement>("#previewCodeBlock").innerHTML =
       `<span class="ts-tok-cmt">/* Auto-generated by Smart Math Engine (${Object.keys(system.variables).length} total tokens) */</span>\n` +
@@ -1660,7 +1688,7 @@ export function mountThemeStudio(
         surface,
         overrides,
       },
-      options.storage
+      options.storage,
     );
     syncUiFromState(rerenderInspector);
     options.onChange?.(system);
@@ -1670,7 +1698,7 @@ export function mountThemeStudio(
   // Wire Quick Studio Controls
   container.addEventListener("click", (e) => {
     const target = (e.target as HTMLElement | null)?.closest<HTMLElement>(
-      "button, tr"
+      "button, tr",
     );
     if (!target) return;
 
@@ -1691,7 +1719,10 @@ export function mountThemeStudio(
     // Surface Vibe
     if (target.dataset.surfaceVibe) {
       activePresetId = null;
-      surface = { ...surface, surfaceVibe: target.dataset.surfaceVibe as SurfaceVibe };
+      surface = {
+        ...surface,
+        surfaceVibe: target.dataset.surfaceVibe as SurfaceVibe,
+      };
       recomputeAndApply();
       return;
     }
@@ -1699,7 +1730,10 @@ export function mountThemeStudio(
     // Density
     if (target.dataset.density) {
       activePresetId = null;
-      surface = { ...surface, density: target.dataset.density as InterfaceDensity };
+      surface = {
+        ...surface,
+        density: target.dataset.density as InterfaceDensity,
+      };
       recomputeAndApply();
       return;
     }
@@ -1712,17 +1746,22 @@ export function mountThemeStudio(
 
     // Playground Preview Tabs
     if (target.dataset.pgTab) {
-      activePlaygroundTab = target.dataset.pgTab as "components" | "data" | "code";
-      container.querySelectorAll<HTMLButtonElement>("[data-pg-tab]").forEach((btn) => {
-        btn.setAttribute(
-          "aria-selected",
-          btn.dataset.pgTab === activePlaygroundTab ? "true" : "false"
-        );
-      });
+      activePlaygroundTab = target.dataset.pgTab as
+        "components" | "data" | "code";
+      container
+        .querySelectorAll<HTMLButtonElement>("[data-pg-tab]")
+        .forEach((btn) => {
+          btn.setAttribute(
+            "aria-selected",
+            btn.dataset.pgTab === activePlaygroundTab ? "true" : "false",
+          );
+        });
       const showAll = activePlaygroundTab === "components";
       q<HTMLElement>("#pgSectionComponents").hidden = !showAll;
-      q<HTMLElement>("#pgSectionData").hidden = !showAll && activePlaygroundTab !== "data";
-      q<HTMLElement>("#pgSectionCode").hidden = !showAll && activePlaygroundTab !== "code";
+      q<HTMLElement>("#pgSectionData").hidden =
+        !showAll && activePlaygroundTab !== "data";
+      q<HTMLElement>("#pgSectionCode").hidden =
+        !showAll && activePlaygroundTab !== "code";
       return;
     }
 
@@ -1756,31 +1795,52 @@ export function mountThemeStudio(
   });
 
   // Color Pickers & Range Slider Input Events (Real-Time Zero-Lag)
-  q<HTMLInputElement>("#ctrlPrimaryColorPicker").addEventListener("input", (e) => {
-    const val = (e.target as HTMLInputElement).value;
-    activePresetId = null;
-    surface = { ...surface, primaryColor: normalizeHex(val, surface.primaryColor) };
-    recomputeAndApply();
-  });
+  q<HTMLInputElement>("#ctrlPrimaryColorPicker").addEventListener(
+    "input",
+    (e) => {
+      const val = (e.target as HTMLInputElement).value;
+      activePresetId = null;
+      surface = {
+        ...surface,
+        primaryColor: normalizeHex(val, surface.primaryColor),
+      };
+      recomputeAndApply();
+    },
+  );
 
-  q<HTMLInputElement>("#ctrlPrimaryColorHex").addEventListener("change", (e) => {
-    const val = (e.target as HTMLInputElement).value;
-    activePresetId = null;
-    surface = { ...surface, primaryColor: normalizeHex(val, surface.primaryColor) };
-    recomputeAndApply();
-  });
+  q<HTMLInputElement>("#ctrlPrimaryColorHex").addEventListener(
+    "change",
+    (e) => {
+      const val = (e.target as HTMLInputElement).value;
+      activePresetId = null;
+      surface = {
+        ...surface,
+        primaryColor: normalizeHex(val, surface.primaryColor),
+      };
+      recomputeAndApply();
+    },
+  );
 
-  q<HTMLInputElement>("#ctrlAccentColorPicker").addEventListener("input", (e) => {
-    const val = (e.target as HTMLInputElement).value;
-    activePresetId = null;
-    surface = { ...surface, accentColor: normalizeHex(val, surface.accentColor) };
-    recomputeAndApply();
-  });
+  q<HTMLInputElement>("#ctrlAccentColorPicker").addEventListener(
+    "input",
+    (e) => {
+      const val = (e.target as HTMLInputElement).value;
+      activePresetId = null;
+      surface = {
+        ...surface,
+        accentColor: normalizeHex(val, surface.accentColor),
+      };
+      recomputeAndApply();
+    },
+  );
 
   q<HTMLInputElement>("#ctrlAccentColorHex").addEventListener("change", (e) => {
     const val = (e.target as HTMLInputElement).value;
     activePresetId = null;
-    surface = { ...surface, accentColor: normalizeHex(val, surface.accentColor) };
+    surface = {
+      ...surface,
+      accentColor: normalizeHex(val, surface.accentColor),
+    };
     recomputeAndApply();
   });
 
@@ -1797,42 +1857,51 @@ export function mountThemeStudio(
     renderProInspector();
   });
 
-  q<HTMLDivElement>("#tsInspectorAccordionTree").addEventListener("input", (e) => {
-    const target = e.target as HTMLInputElement;
-    if (target.dataset.varColor) {
-      const varName = target.dataset.varColor;
-      const val = target.value;
-      overrides = { ...overrides, [varName]: val };
-      const textInput = container.querySelector<HTMLInputElement>(
-        `[data-var-input="${varName}"]`
-      );
-      if (textInput) textInput.value = val;
-      recomputeAndApply(false);
-    } else if (target.dataset.varInput) {
-      const varName = target.dataset.varInput;
-      const val = target.value.trim();
-      if (val) {
+  q<HTMLDivElement>("#tsInspectorAccordionTree").addEventListener(
+    "input",
+    (e) => {
+      const target = e.target as HTMLInputElement;
+      if (target.dataset.varColor) {
+        const varName = target.dataset.varColor;
+        const val = target.value;
         overrides = { ...overrides, [varName]: val };
+        const textInput = container.querySelector<HTMLInputElement>(
+          `[data-var-input="${varName}"]`,
+        );
+        if (textInput) textInput.value = val;
         recomputeAndApply(false);
+      } else if (target.dataset.varInput) {
+        const varName = target.dataset.varInput;
+        const val = target.value.trim();
+        if (val) {
+          overrides = { ...overrides, [varName]: val };
+          recomputeAndApply(false);
+        }
       }
-    }
-  });
+    },
+  );
 
-  q<HTMLDivElement>("#tsInspectorAccordionTree").addEventListener("change", (e) => {
-    const target = e.target as HTMLInputElement;
-    if (target.dataset.varInput || target.dataset.varColor) {
-      renderProInspector();
-    }
-  });
+  q<HTMLDivElement>("#tsInspectorAccordionTree").addEventListener(
+    "change",
+    (e) => {
+      const target = e.target as HTMLInputElement;
+      if (target.dataset.varInput || target.dataset.varColor) {
+        renderProInspector();
+      }
+    },
+  );
 
   // Toolbar & Modal Buttons
   q<HTMLButtonElement>("#btnToggleDrawer").addEventListener("click", () => {
     controller.toggleDrawer();
   });
 
-  q<HTMLButtonElement>("#btnResetAllOverrides").addEventListener("click", () => {
-    controller.clearAllOverrides();
-  });
+  q<HTMLButtonElement>("#btnResetAllOverrides").addEventListener(
+    "click",
+    () => {
+      controller.clearAllOverrides();
+    },
+  );
 
   // Live Preview Modal
   const liveModal = q<HTMLDivElement>("#tsLivePreviewModal");
@@ -1878,11 +1947,16 @@ export function mountThemeStudio(
   q<HTMLButtonElement>("#btnDownloadJsonFile").addEventListener("click", () => {
     const json = controller.exportJson();
     jsonTextarea.value = json;
-    if (typeof Blob !== "undefined" && typeof URL !== "undefined" && typeof URL.createObjectURL === "function") {
+    if (
+      typeof Blob !== "undefined" &&
+      typeof URL !== "undefined" &&
+      typeof URL.createObjectURL === "function"
+    ) {
       const blob = new Blob([json], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = doc.createElement("a");
-      const slug = currentName.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "custom-theme";
+      const slug =
+        currentName.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "custom-theme";
       a.href = url;
       a.download = `${slug}.theme.json`;
       doc.body.appendChild(a);
@@ -1892,24 +1966,29 @@ export function mountThemeStudio(
     }
   });
 
-  q<HTMLInputElement>("#fileImportThemeJson").addEventListener("change", async (e) => {
-    const file = (e.target as HTMLInputElement).files?.[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      jsonTextarea.value = text;
-      controller.importJson(text);
-      jsonErrorBanner.style.display = "none";
-      jsonModal.hidden = true;
-    } catch (err: any) {
-      jsonErrorBanner.textContent = err?.message || "Failed to import JSON file";
-      jsonErrorBanner.style.display = "inline-flex";
-    }
-  });
+  q<HTMLInputElement>("#fileImportThemeJson").addEventListener(
+    "change",
+    async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        jsonTextarea.value = text;
+        controller.importJson(text);
+        jsonErrorBanner.style.display = "none";
+        jsonModal.hidden = true;
+      } catch (err: any) {
+        jsonErrorBanner.textContent =
+          err?.message || "Failed to import JSON file";
+        jsonErrorBanner.style.display = "inline-flex";
+      }
+    },
+  );
 
   // Save / Load / Delete Custom Themes in localStorage
   q<HTMLButtonElement>("#btnSaveThemeLocal").addEventListener("click", () => {
-    const inputName = q<HTMLInputElement>("#ctrlSaveThemeName").value.trim() || "Custom Theme";
+    const inputName =
+      q<HTMLInputElement>("#ctrlSaveThemeName").value.trim() || "Custom Theme";
     controller.saveCurrentTheme(inputName);
   });
 
@@ -1985,11 +2064,11 @@ export function mountThemeStudio(
       const isQuick = tab === "quick";
       q<HTMLButtonElement>("#tabBtnQuickStudio").setAttribute(
         "aria-selected",
-        isQuick ? "true" : "false"
+        isQuick ? "true" : "false",
       );
       q<HTMLButtonElement>("#tabBtnProInspector").setAttribute(
         "aria-selected",
-        !isQuick ? "true" : "false"
+        !isQuick ? "true" : "false",
       );
       q<HTMLElement>("#tabPanelQuickStudio").hidden = !isQuick;
       q<HTMLElement>("#tabPanelProInspector").hidden = isQuick;
@@ -2000,7 +2079,9 @@ export function mountThemeStudio(
 
     toggleDrawer: (open) => {
       drawerOpen = open !== undefined ? open : !drawerOpen;
-      q<HTMLElement>("#tsAppShell").dataset.drawerOpen = drawerOpen ? "true" : "false";
+      q<HTMLElement>("#tsAppShell").dataset.drawerOpen = drawerOpen
+        ? "true"
+        : "false";
     },
 
     saveCurrentTheme: (customName) => {
@@ -2014,7 +2095,7 @@ export function mountThemeStudio(
           surface,
           overrides,
         },
-        options.storage
+        options.storage,
       );
       syncUiFromState(false);
       return saved;
@@ -2059,7 +2140,7 @@ export function mountThemeStudio(
           surface: imported.surface,
           overrides: imported.overrides,
         },
-        options.storage
+        options.storage,
       );
       return recomputeAndApply();
     },

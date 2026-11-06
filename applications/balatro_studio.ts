@@ -1,7 +1,7 @@
 import { injectGameMasterFx } from "../src/shared/gameMasterFx";
 /**
  * 🃏 Codecaine Joker Royale — Cyber Deckbuilder Studio
- * 
+ *
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
  * - Authentic, high-fidelity roguelike poker deckbuilder with Ante & Blind progression
@@ -79,7 +79,9 @@ export function generateBalatroStudioHtml(): string {
   const assetsDir = getBalatroAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Joker Royale</h1>";
+  let html = existsSync(indexPath)
+    ? readFileSync(indexPath, "utf8")
+    : "<h1>Joker Royale</h1>";
 
   const storagePolyfill = `
   <script>
@@ -150,7 +152,13 @@ ${getWindowShortcutsScript()}
  */
 export function startBalatroServer(options: BalatroServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "balatro_studio", name: "Codecaine Joker Royale Deluxe", version: "1.0.0", assetsDir: getBalatroAssetsDir(), generateHtml: generateBalatroStudioHtml },
+    {
+      app: "balatro_studio",
+      name: "Codecaine Joker Royale Deluxe",
+      version: "1.0.0",
+      assetsDir: getBalatroAssetsDir(),
+      generateHtml: generateBalatroStudioHtml,
+    },
     options,
   );
 }
@@ -158,7 +166,9 @@ export function startBalatroServer(options: BalatroServerOptions = {}) {
 /**
  * Creates the complete native desktop instance of Joker Royale.
  */
-export function createBalatroStudio(options: BalatroStudioOptions = {}): BalatroStudioInstance {
+export function createBalatroStudio(
+  options: BalatroStudioOptions = {},
+): BalatroStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1240);
@@ -190,7 +200,8 @@ export function createBalatroStudio(options: BalatroStudioOptions = {}): Balatro
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -210,11 +221,15 @@ export function createBalatroStudio(options: BalatroStudioOptions = {}): Balatro
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -225,16 +240,24 @@ export function createBalatroStudio(options: BalatroStudioOptions = {}): Balatro
 
         // Set HTML directly into Webview memory (bypasses macOS ATS network restrictions)
         webview.setHTML(html);
-        console.log(`⚡ Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`);
+        console.log(
+          `⚡ Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`,
+        );
 
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -248,7 +271,8 @@ if (import.meta.main) {
   const args = process.argv.slice(2);
   const fullscreen = !args.includes("--windowed") && !args.includes("-w");
   const portFlagIdx = args.indexOf("--port");
-  const port = portFlagIdx !== -1 ? parseInt(args[portFlagIdx + 1]!, 10) : undefined;
+  const port =
+    portFlagIdx !== -1 ? parseInt(args[portFlagIdx + 1]!, 10) : undefined;
 
   const app = createBalatroStudio({ fullscreen, port });
   app.run();

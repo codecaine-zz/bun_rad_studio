@@ -13,7 +13,8 @@ function quantifierAt(src, i) {
   if (c === "?") return { len: 1, unbounded: false };
   if (c === "{") {
     const m = /^\{(\d+)(,(\d*))?\}/.exec(src.slice(i, i + 24));
-    if (m) return { len: m[0].length, unbounded: m[2] !== undefined && m[3] === "" };
+    if (m)
+      return { len: m[0].length, unbounded: m[2] !== undefined && m[3] === "" };
   }
   return null;
 }
@@ -29,9 +30,10 @@ export function regexRisk(src) {
   const startAlt = (g) => g.keys.push(null);
   const note = (key) => {
     const g = top();
-    if (g && g.keys[g.keys.length - 1] === null) g.keys[g.keys.length - 1] = key;
+    if (g && g.keys[g.keys.length - 1] === null)
+      g.keys[g.keys.length - 1] = key;
   };
-  for (let i = 0; i < src.length; ) {
+  for (let i = 0; i < src.length;) {
     const c = src[i];
     if (c === "\\") {
       note(src.slice(i, i + 2));
@@ -49,7 +51,9 @@ export function regexRisk(src) {
       stack.push(g);
       i++;
       if (src[i] === "?") {
-        const m = /^\?(?:<[=!]|[:=!]|<[A-Za-z_]\w*>)/.exec(src.slice(i, i + 40));
+        const m = /^\?(?:<[=!]|[:=!]|<[A-Za-z_]\w*>)/.exec(
+          src.slice(i, i + 40),
+        );
         i += m ? m[0].length : 1;
       }
     } else if (c === ")") {
@@ -58,13 +62,19 @@ export function regexRisk(src) {
       if (!g) continue;
       const q = quantifierAt(src, i);
       if (q?.unbounded) {
-        if (g.hasUnbounded) return "That pattern repeats a part that already repeats (like (a+)+), which can make it run for a very long time. Try a simpler pattern.";
-        if (g.keys.length > 1 && (g.keys.some((k) => k === null || BROAD.test(k)) || new Set(g.keys).size < g.keys.length)) {
+        if (g.hasUnbounded)
+          return "That pattern repeats a part that already repeats (like (a+)+), which can make it run for a very long time. Try a simpler pattern.";
+        if (
+          g.keys.length > 1 &&
+          (g.keys.some((k) => k === null || BROAD.test(k)) ||
+            new Set(g.keys).size < g.keys.length)
+        ) {
           return "That pattern repeats a choice whose options can start the same way (like (a|a)*), which can make it run for a very long time. Try a simpler pattern.";
         }
       }
       const parent = top();
-      if (parent && (g.hasUnbounded || q?.unbounded)) parent.hasUnbounded = true;
+      if (parent && (g.hasUnbounded || q?.unbounded))
+        parent.hasUnbounded = true;
       note("(");
     } else if (c === "|") {
       const g = top();
@@ -91,7 +101,12 @@ export function regexRisk(src) {
  * Builds the regular expression for a search. Returns { re } (global, always a new object), { empty: true }
  * when there is nothing to look for, or { error } in plain words.
  */
-export function compileSearch({ query = "", regex = false, caseSensitive = false, wholeWord = false } = {}) {
+export function compileSearch({
+  query = "",
+  regex = false,
+  caseSensitive = false,
+  wholeWord = false,
+} = {}) {
   if (!query) return { empty: true };
   if (query.length > 1000) return { error: "That search is too long." };
   if (regex) {
@@ -101,9 +116,15 @@ export function compileSearch({ query = "", regex = false, caseSensitive = false
   let source = regex ? query : escapeRegExp(query);
   if (wholeWord) source = `(?<![\\w$])(?:${source})(?![\\w$])`;
   try {
-    return { re: new RegExp(source, `g${caseSensitive ? "" : "i"}${regex ? "m" : ""}`) };
+    return {
+      re: new RegExp(source, `g${caseSensitive ? "" : "i"}${regex ? "m" : ""}`),
+    };
   } catch (err) {
-    return { error: `That pattern isn't valid: ${String(err?.message ?? err).replace(/^Invalid regular expression:?\s*/i, "").slice(0, 120)}` };
+    return {
+      error: `That pattern isn't valid: ${String(err?.message ?? err)
+        .replace(/^Invalid regular expression:?\s*/i, "")
+        .slice(0, 120)}`,
+    };
   }
 }
 
@@ -113,9 +134,19 @@ const MAX_MATCHES = 20_000;
  * Every match in `text`: [{ index, length, text, groups, named }]. Stops at `limit` matches or `budgetMs`
  * and says so (`truncated`, `timedOut`). Empty matches are skipped unless `allowEmpty`.
  */
-export function findAll(text, search, { limit = MAX_MATCHES, budgetMs = 1500, allowEmpty = false } = {}) {
+export function findAll(
+  text,
+  search,
+  { limit = MAX_MATCHES, budgetMs = 1500, allowEmpty = false } = {},
+) {
   const compiled = compileSearch(search);
-  if (compiled.error || compiled.empty) return { matches: [], error: compiled.error ?? "", truncated: false, timedOut: false };
+  if (compiled.error || compiled.empty)
+    return {
+      matches: [],
+      error: compiled.error ?? "",
+      truncated: false,
+      timedOut: false,
+    };
   const { re } = compiled;
   const matches = [];
   const started = Date.now();
@@ -126,7 +157,13 @@ export function findAll(text, search, { limit = MAX_MATCHES, budgetMs = 1500, al
       re.lastIndex++;
       if (!allowEmpty) continue;
     }
-    matches.push({ index: m.index, length: m[0].length, text: m[0], groups: m.slice(1), named: m.groups ?? null });
+    matches.push({
+      index: m.index,
+      length: m[0].length,
+      text: m[0],
+      groups: m.slice(1),
+      named: m.groups ?? null,
+    });
     if (matches.length >= limit) {
       truncated = true;
       break;
@@ -181,16 +218,29 @@ export function expandReplacement(template, match, regex) {
       i++;
     } else if (c === "$" && i + 1 < template.length) {
       const n = template[i + 1];
-      if (n === "$") { out += "$"; i++; }
-      else if (n === "&") { out += match[0]; i++; }
-      else if (n === "<") {
+      if (n === "$") {
+        out += "$";
+        i++;
+      } else if (n === "&") {
+        out += match[0];
+        i++;
+      } else if (n === "<") {
         const end = template.indexOf(">", i + 2);
         const name = end > 0 ? template.slice(i + 2, end) : "";
-        if (end > 0 && match.groups && name in match.groups) { out += match.groups[name] ?? ""; i = end; } else out += c;
+        if (end > 0 && match.groups && name in match.groups) {
+          out += match.groups[name] ?? "";
+          i = end;
+        } else out += c;
       } else if (n >= "0" && n <= "9") {
         const two = /^\d\d/.exec(template.slice(i + 1, i + 3));
-        const k = two && Number(two[0]) <= groups.length && Number(two[0]) > 0 ? two[0] : n;
-        if (Number(k) >= 1 && Number(k) <= groups.length) { out += groups[Number(k) - 1] ?? ""; i += k.length; } else out += c;
+        const k =
+          two && Number(two[0]) <= groups.length && Number(two[0]) > 0
+            ? two[0]
+            : n;
+        if (Number(k) >= 1 && Number(k) <= groups.length) {
+          out += groups[Number(k) - 1] ?? "";
+          i += k.length;
+        } else out += c;
       } else out += c;
     } else out += c;
   }
@@ -204,7 +254,10 @@ export function replacementAt(text, index, search, replacement) {
   compiled.re.lastIndex = index;
   const m = compiled.re.exec(text);
   if (!m || m.index !== index) return null;
-  return { length: m[0].length, insert: expandReplacement(replacement, m, search.regex === true) };
+  return {
+    length: m[0].length,
+    insert: expandReplacement(replacement, m, search.regex === true),
+  };
 }
 
 /** Replaces every match. { text, count } or { error }. Stops after 100,000 replacements or 3 seconds. */
@@ -223,10 +276,22 @@ export function replaceAll(text, search, replacement) {
       if (re.lastIndex > text.length + 1) break;
       continue;
     }
-    parts.push(text.slice(last, m.index), expandReplacement(replacement, m, search.regex === true));
+    parts.push(
+      text.slice(last, m.index),
+      expandReplacement(replacement, m, search.regex === true),
+    );
     last = m.index + m[0].length;
     count++;
-    if (count >= 100_000 || ((count & 255) === 0 && Date.now() - started > 3000)) return { text, count: 0, error: "There are too many matches to replace in one go. Try a more specific search." };
+    if (
+      count >= 100_000 ||
+      ((count & 255) === 0 && Date.now() - started > 3000)
+    )
+      return {
+        text,
+        count: 0,
+        error:
+          "There are too many matches to replace in one go. Try a more specific search.",
+      };
   }
   if (!count) return { text, count: 0, error: "" };
   parts.push(text.slice(last));
@@ -235,17 +300,37 @@ export function replaceAll(text, search, replacement) {
 
 /** For the regex sandbox: runs `pattern` with `flags` over `text` and lists each match with its position and groups. */
 export function runRegexSandbox(pattern, flags, text) {
-  if (!pattern) return { matches: [], error: "", truncated: false, timedOut: false };
+  if (!pattern)
+    return { matches: [], error: "", truncated: false, timedOut: false };
   const given = String(flags).split("");
-  const clean = [...new Set(given)].filter((f) => "dgimsuvy".includes(f)).join("");
-  if (clean.length !== given.length) return { matches: [], error: "The flags can only use the letters d g i m s u v y, each once.", truncated: false, timedOut: false };
+  const clean = [...new Set(given)]
+    .filter((f) => "dgimsuvy".includes(f))
+    .join("");
+  if (clean.length !== given.length)
+    return {
+      matches: [],
+      error: "The flags can only use the letters d g i m s u v y, each once.",
+      truncated: false,
+      timedOut: false,
+    };
   const risk = regexRisk(pattern);
-  if (risk) return { matches: [], error: risk, truncated: false, timedOut: false };
+  if (risk)
+    return { matches: [], error: risk, truncated: false, timedOut: false };
   let re;
   try {
-    re = new RegExp(pattern, clean.includes("g") || clean.includes("y") ? clean : `${clean}g`);
+    re = new RegExp(
+      pattern,
+      clean.includes("g") || clean.includes("y") ? clean : `${clean}g`,
+    );
   } catch (err) {
-    return { matches: [], error: `That pattern isn't valid: ${String(err?.message ?? err).replace(/^Invalid regular expression:?\s*/i, "").slice(0, 120)}`, truncated: false, timedOut: false };
+    return {
+      matches: [],
+      error: `That pattern isn't valid: ${String(err?.message ?? err)
+        .replace(/^Invalid regular expression:?\s*/i, "")
+        .slice(0, 120)}`,
+      truncated: false,
+      timedOut: false,
+    };
   }
   const starts = buildLineStarts(text);
   const matches = [];
@@ -254,10 +339,23 @@ export function runRegexSandbox(pattern, flags, text) {
   let timedOut = false;
   for (let m = re.exec(text), n = 0; m !== null; m = re.exec(text), n++) {
     const line = lineAt(starts, m.index);
-    matches.push({ index: m.index, text: m[0], line: line + 1, col: m.index - starts[line] + 1, groups: m.slice(1), named: m.groups ?? null });
+    matches.push({
+      index: m.index,
+      text: m[0],
+      line: line + 1,
+      col: m.index - starts[line] + 1,
+      groups: m.slice(1),
+      named: m.groups ?? null,
+    });
     if (m[0] === "") re.lastIndex++;
-    if (matches.length >= 500) { truncated = true; break; }
-    if ((n & 63) === 63 && Date.now() - started > 1000) { timedOut = true; break; }
+    if (matches.length >= 500) {
+      truncated = true;
+      break;
+    }
+    if ((n & 63) === 63 && Date.now() - started > 1000) {
+      timedOut = true;
+      break;
+    }
     if (!re.global) break;
   }
   return { matches, error: "", truncated, timedOut };
@@ -279,7 +377,8 @@ export function fuzzyScore(query, text) {
     if (found < 0) return -1;
     const startsWord = found === 0 || "/\\-_. ".includes(t[found - 1]);
     streak = found === at && i > 0 ? streak + 1 : 0;
-    score += 1 + streak * 2 + (startsWord ? 4 : 0) - Math.min(3, (found - at) * 0.1);
+    score +=
+      1 + streak * 2 + (startsWord ? 4 : 0) - Math.min(3, (found - at) * 0.1);
     at = found + 1;
   }
   const base = Math.max(t.lastIndexOf("/"), t.lastIndexOf("\\")) + 1;

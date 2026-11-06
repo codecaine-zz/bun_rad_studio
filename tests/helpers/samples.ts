@@ -4,11 +4,23 @@ import { renderDrop } from "../../src/db/samples/render";
 import type { DatasetDef, Scale } from "../../src/db/samples/model";
 
 /** Seeds a dataset into a fresh in-memory SQLite database with foreign keys enforced. */
-export async function seedSqlite(ds: DatasetDef, scale: Scale, seed?: number, progress?: SeedProgress[]): Promise<{ db: Database; ms: number; rows: number }> {
+export async function seedSqlite(
+  ds: DatasetDef,
+  scale: Scale,
+  seed?: number,
+  progress?: SeedProgress[],
+): Promise<{ db: Database; ms: number; rows: number }> {
   const db = new Database(":memory:");
   db.run("PRAGMA foreign_keys = ON");
   const t0 = performance.now();
-  const sum = await seedDataset(ds, "sqlite", async (sql) => { db.run(sql); }, { scale, seed, onProgress: progress ? (p) => progress.push(p) : undefined });
+  const sum = await seedDataset(
+    ds,
+    "sqlite",
+    async (sql) => {
+      db.run(sql);
+    },
+    { scale, seed, onProgress: progress ? (p) => progress.push(p) : undefined },
+  );
   return { db, ms: performance.now() - t0, rows: sum.rows };
 }
 

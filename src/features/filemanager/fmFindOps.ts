@@ -12,9 +12,22 @@ import { absolutePath, pathApi, type FmHandler } from "./fmCore";
 import { FmError, protectedReason } from "./fmPaths";
 import { bulkOperations } from "./fmFindBulk";
 import { EXPORT_FORMATS } from "./fmFindExport";
-import { parseSearch, resolveTargets, statItem, storeResults } from "./fmFindQuery";
+import {
+  parseSearch,
+  resolveTargets,
+  statItem,
+  storeResults,
+} from "./fmFindQuery";
 import { cancelWorkerJobs, runWorkerJob } from "./fmFindRun";
-import { DEFAULT_MAX_RESULTS, EXEC_OUTPUT_CAP, EXEC_TIMEOUT_MS, MAX_PATHS, MAX_RESULTS_CAP, MAX_WATCHERS, type SearchOutcome } from "./fmFindShared";
+import {
+  DEFAULT_MAX_RESULTS,
+  EXEC_OUTPUT_CAP,
+  EXEC_TIMEOUT_MS,
+  MAX_PATHS,
+  MAX_RESULTS_CAP,
+  MAX_WATCHERS,
+  type SearchOutcome,
+} from "./fmFindShared";
 import { pollWatch, startWatch, stopWatch } from "./fmFindWatch";
 
 const clamp = (value: unknown, fallback: number, min: number, max: number) => {
@@ -38,11 +51,25 @@ export const findOperations: Record<string, FmHandler> = {
 
   async "find/meta"(ctx) {
     return {
-      presets: FD_PRESETS.map((p) => ({ label: p.label, pattern: p.pattern, exts: p.exts, size: p.size, modified: presetAge(p.age), type: p.type })),
+      presets: FD_PRESETS.map((p) => ({
+        label: p.label,
+        pattern: p.pattern,
+        exts: p.exts,
+        size: p.size,
+        modified: presetAge(p.age),
+        type: p.type,
+      })),
       presetNone: FD_PRESET_NONE,
       sortKeys: [...FD_SORT_KEYS],
       exportFormats: [...EXPORT_FORMATS],
-      limits: { defaultMaxResults: DEFAULT_MAX_RESULTS, maxResultsCap: MAX_RESULTS_CAP, maxPaths: MAX_PATHS, maxWatchers: MAX_WATCHERS, execSeconds: EXEC_TIMEOUT_MS / 1000, execOutputBytes: EXEC_OUTPUT_CAP },
+      limits: {
+        defaultMaxResults: DEFAULT_MAX_RESULTS,
+        maxResultsCap: MAX_RESULTS_CAP,
+        maxPaths: MAX_PATHS,
+        maxWatchers: MAX_WATCHERS,
+        execSeconds: EXEC_TIMEOUT_MS / 1000,
+        execOutputBytes: EXEC_OUTPUT_CAP,
+      },
       posix: ctx.platform !== "win32",
       platform: ctx.platform,
     };
@@ -50,7 +77,10 @@ export const findOperations: Record<string, FmHandler> = {
 
   async "find/search"(ctx, b) {
     const { root, options } = await parseSearch(ctx, b);
-    const found = await runWorkerJob<SearchOutcome>(ctx, { kind: "search", options });
+    const found = await runWorkerJob<SearchOutcome>(ctx, {
+      kind: "search",
+      options,
+    });
     return { resultId: storeResults(ctx, root, found.items), root, ...found };
   },
 
@@ -68,10 +98,24 @@ export const findOperations: Record<string, FmHandler> = {
     let broken = false;
     if (st.isSymbolicLink()) {
       linkTarget = await fsp.readlink(path).catch(() => null);
-      broken = !(await fsp.stat(path).then(() => true, () => false));
+      broken = !(await fsp.stat(path).then(
+        () => true,
+        () => false,
+      ));
     }
-    const entries = st.isDirectory() ? (await fsp.readdir(path).catch(() => [])).length : null;
-    const me = ctx.platform === "win32" ? null : (() => { try { return userInfo().uid; } catch { return null; } })();
+    const entries = st.isDirectory()
+      ? (await fsp.readdir(path).catch(() => [])).length
+      : null;
+    const me =
+      ctx.platform === "win32"
+        ? null
+        : (() => {
+            try {
+              return userInfo().uid;
+            } catch {
+              return null;
+            }
+          })();
     return {
       path,
       name: p.basename(path),
@@ -88,48 +132,110 @@ export const findOperations: Record<string, FmHandler> = {
       linkTarget,
       broken,
       entries,
-      protected: protectedReason(path, { platform: ctx.platform, home: ctx.home, extraProtected: [ctx.trashRoot] }, "modify"),
+      protected: protectedReason(
+        path,
+        {
+          platform: ctx.platform,
+          home: ctx.home,
+          extraProtected: [ctx.trashRoot],
+        },
+        "modify",
+      ),
     };
   },
 
   async "find/sha256"(ctx, b) {
     const path = absolutePath(ctx, b.path);
-    if (!(await fsp.stat(path)).isFile()) throw new FmError("NOT_A_FILE", "A fingerprint (SHA-256) can only be made for a file.");
-    return { path, ...(await runWorkerJob<{ sha256: string; size: number }>(ctx, { kind: "hash", path })) };
+    if (!(await fsp.stat(path)).isFile())
+      throw new FmError(
+        "NOT_A_FILE",
+        "A fingerprint (SHA-256) can only be made for a file.",
+      );
+    return {
+      path,
+      ...(await runWorkerJob<{ sha256: string; size: number }>(ctx, {
+        kind: "hash",
+        path,
+      })),
+    };
   },
 
   async "find/hex"(ctx, b) {
     const path = absolutePath(ctx, b.path);
     const st = await fsp.stat(path);
-    if (!st.isFile()) throw new FmError("NOT_A_FILE", "The hex view shows the contents of a file, not a folder.");
+    if (!st.isFile())
+      throw new FmError(
+        "NOT_A_FILE",
+        "The hex view shows the contents of a file, not a folder.",
+      );
     const length = clamp(b.length, 256, 16, 4096);
-    return { path, size: st.size, bytes: Math.min(length, st.size), hex: hexPreview(path, length) };
+    return {
+      path,
+      size: st.size,
+      bytes: Math.min(length, st.size),
+      hex: hexPreview(path, length),
+    };
   },
 
   async "find/grep"(ctx, b) {
     const query = typeof b.query === "string" ? b.query.slice(0, 500) : "";
-    if (!query) throw new FmError("BAD_PATTERN", "Type the text to look for inside the files.");
+    if (!query)
+      throw new FmError(
+        "BAD_PATTERN",
+        "Type the text to look for inside the files.",
+      );
     const targets = await resolveTargets(ctx, b);
-    const found = await runWorkerJob<{ matches: Array<{ path: string; line: number; text: string }>; filesScanned: number; filesWithHits: number; truncated: boolean }>(ctx, {
-      kind: "grep", paths: targets.paths, query, regex: b.regex === true, matchCase: b.matchCase === true, maxMatches: clamp(b.maxMatches, 500, 1, 2000),
+    const found = await runWorkerJob<{
+      matches: Array<{ path: string; line: number; text: string }>;
+      filesScanned: number;
+      filesWithHits: number;
+      truncated: boolean;
+    }>(ctx, {
+      kind: "grep",
+      paths: targets.paths,
+      query,
+      regex: b.regex === true,
+      matchCase: b.matchCase === true,
+      maxMatches: clamp(b.maxMatches, 500, 1, 2000),
     });
     const p = pathApi(ctx);
-    return { ...found, matches: found.matches.map((m) => ({ ...m, relativePath: (targets.root ? p.relative(targets.root, m.path) : p.basename(m.path)).replace(/\\/g, "/") })) };
+    return {
+      ...found,
+      matches: found.matches.map((m) => ({
+        ...m,
+        relativePath: (targets.root
+          ? p.relative(targets.root, m.path)
+          : p.basename(m.path)
+        ).replace(/\\/g, "/"),
+      })),
+    };
   },
 
   async "find/dupes"(ctx, b) {
     const targets = await resolveTargets(ctx, b);
-    return await runWorkerJob(ctx, { kind: "dupes", paths: targets.paths, minBytes: clamp(b.minBytes, 1, 1, Number.MAX_SAFE_INTEGER) });
+    return await runWorkerJob(ctx, {
+      kind: "dupes",
+      paths: targets.paths,
+      minBytes: clamp(b.minBytes, 1, 1, Number.MAX_SAFE_INTEGER),
+    });
   },
 
   async "find/largest"(ctx, b) {
     const targets = await resolveTargets(ctx, b);
-    return { files: await runWorkerJob(ctx, { kind: "largest", paths: targets.paths, count: clamp(b.count, 20, 1, 100) }) };
+    return {
+      files: await runWorkerJob(ctx, {
+        kind: "largest",
+        paths: targets.paths,
+        count: clamp(b.count, 20, 1, 100),
+      }),
+    };
   },
 
   async "find/extstats"(ctx, b) {
     const targets = await resolveTargets(ctx, b);
-    return { rows: await runWorkerJob(ctx, { kind: "extstats", paths: targets.paths }) };
+    return {
+      rows: await runWorkerJob(ctx, { kind: "extstats", paths: targets.paths }),
+    };
   },
 
   async "find/watch/start"(ctx, b) {

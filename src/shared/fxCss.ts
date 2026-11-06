@@ -29,20 +29,60 @@ const MAG = where(FX_SEL.magnet);
 const PILL = where(FX_SEL.pill);
 const MODAL = where(FX_SEL.modal);
 const ROW = where(FX_SEL.row);
-const BAR = where([".fx-toolbar", ".rad-toolbar", ".fx-nav", ".rad-tabs-bar", ".rad-menu-bar"]);
-const CLASSES = where([".fx-button", ".fx-input", ".fx-card", ".fx-panel", ".fx-table", ".fx-nav", ".fx-toolbar", ".fx-modal", ".fx-sheet", ".fx-pill-live", ".fx-pulse", ".fx-skeleton", ".fx-icon-click", ".fx-sheen"]);
-const HOOKS = where([...FX_SEL.button, ...FX_SEL.card, ...FX_SEL.panel, ...FX_SEL.magnet, ...FX_SEL.pill, ...FX_SEL.modal, ".fx-input", ".fx-pill-live", ".fx-pulse", ".fx-skeleton", ".fx-icon-click", ".fx-sheen"]);
+const BAR = where([
+  ".fx-toolbar",
+  ".rad-toolbar",
+  ".fx-nav",
+  ".rad-tabs-bar",
+  ".rad-menu-bar",
+]);
+const CLASSES = where([
+  ".fx-button",
+  ".fx-input",
+  ".fx-card",
+  ".fx-panel",
+  ".fx-table",
+  ".fx-nav",
+  ".fx-toolbar",
+  ".fx-modal",
+  ".fx-sheet",
+  ".fx-pill-live",
+  ".fx-pulse",
+  ".fx-skeleton",
+  ".fx-icon-click",
+  ".fx-sheen",
+]);
+const HOOKS = where([
+  ...FX_SEL.button,
+  ...FX_SEL.card,
+  ...FX_SEL.panel,
+  ...FX_SEL.magnet,
+  ...FX_SEL.pill,
+  ...FX_SEL.modal,
+  ".fx-input",
+  ".fx-pill-live",
+  ".fx-pulse",
+  ".fx-skeleton",
+  ".fx-icon-click",
+  ".fx-sheen",
+]);
 const MV = ":not(.designer-control)"; // hover transforms would fight dragging on the Designer canvas
 const NO_ABS = ':not([style*="position"]):not(.designer-control)';
 // A strip (tabs, toolbar) carries data-fx itself in the Designer chrome, so its rules match the strip as well as anything inside a data-fx root.
-const both = (hook: string, tail = "") => `${V} ${hook}${tail}, ${hook}${V}${tail}`;
-const bothOn = (hook: string, tail = "") => `${ON} ${hook}${tail}, ${hook}${ON}${tail}`;
-const PRG = where([".rad-progress > div:last-child > div", ".fx-progress-fill"]);
+const both = (hook: string, tail = "") =>
+  `${V} ${hook}${tail}, ${hook}${V}${tail}`;
+const bothOn = (hook: string, tail = "") =>
+  `${ON} ${hook}${tail}, ${hook}${ON}${tail}`;
+const PRG = where([
+  ".rad-progress > div:last-child > div",
+  ".fx-progress-fill",
+]);
 
-const RING_MASK = "-webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude;";
+const RING_MASK =
+  "-webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude;";
 
 function looks(): string {
-    return `
+  return `
 /* ---- looks: glass, rings, glow, radius (full and reduced) ---- */
 [data-fx] { --in-oklab: ; --in-oklch: ; }
 @supports (background: linear-gradient(in oklab, #000, #fff)) {
@@ -162,7 +202,7 @@ ${V}:not([data-fx-border="flat"]) ${SURF}:not(fieldset)${NF}::after {
 }
 ${V} :where(.fx-card, .fx-panel)${NF}::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none; box-shadow: var(--fx-shadow-4); opacity: 0; transition-property: opacity; transition-duration: var(--fx-dur-base); }
 ${V} :where(.fx-card, .fx-panel)${NF}:hover::before { opacity: 1; }
-${V} ${where([".rad-card", ".rad-kpi-card", ".sg-kpi-card", ".designer-control[data-ctype=\"card\"]"])}${NF}:hover { filter: drop-shadow(0 14px 18px rgba(0, 0, 0, 0.28)); }
+${V} ${where([".rad-card", ".rad-kpi-card", ".sg-kpi-card", '.designer-control[data-ctype="card"]'])}${NF}:hover { filter: drop-shadow(0 14px 18px rgba(0, 0, 0, 0.28)); }
 ${V} .fx-sheen { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; pointer-events: none; }
 ${V} .fx-sheen::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: var(--fx-sheen); transform: translateX(-100%); }
 
@@ -213,7 +253,7 @@ ${V} ${PRG}::after { content: ""; position: absolute; inset: 0; pointer-events: 
 }
 
 function motion(): string {
-    return `
+  return `
 /* ---- motion: full effects only, never for users who asked for less ---- */
 @media (prefers-reduced-motion: no-preference) {
   ${ON}[data-fx-ambient="on"] body::before, ${ON}[data-fx-ambient="on"].fx-root::before { will-change: transform; animation: fx-ambient-drift var(--fx-dur-ambient, 9000ms) var(--fx-ease-in-out) infinite alternate; }
@@ -277,7 +317,7 @@ function motion(): string {
 }
 
 function reduced(prefix: string): string {
-    return `
+  return `
   ${prefix} :where(${CLASSES.slice(7, -1)}, ${HOOKS.slice(7, -1)}, body)::before,
   ${prefix} :where(${CLASSES.slice(7, -1)}, ${HOOKS.slice(7, -1)}, body)::after,
   ${prefix} :where(${CLASSES.slice(7, -1)}, ${HOOKS.slice(7, -1)}) { animation: none !important; will-change: auto !important; }
@@ -288,7 +328,7 @@ function reduced(prefix: string): string {
 }
 
 function accessibility(): string {
-    return `
+  return `
 /* ---- accessibility and fallbacks ---- */
 @media (prefers-reduced-motion: reduce) {${reduced(ON)}
 }
@@ -364,12 +404,17 @@ let cached: string | undefined;
 
 /** The whole layer. It is the same for every theme: the look comes from the `--fx-*` variables of the active theme. */
 export function fxCss(): string {
-    if (cached) return cached;
-    cached = ["/* fx layer: futuristic themes, motion and interaction (src/shared/fxCss.ts) */", looks(), motion(), accessibility()]
-        .join("\n")
-        .replace(/\n{3,}/g, "\n\n")
-        .trim();
-    return cached;
+  if (cached) return cached;
+  cached = [
+    "/* fx layer: futuristic themes, motion and interaction (src/shared/fxCss.ts) */",
+    looks(),
+    motion(),
+    accessibility(),
+  ]
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return cached;
 }
 
 export { joinSel };

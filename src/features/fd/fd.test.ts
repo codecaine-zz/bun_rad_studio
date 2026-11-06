@@ -5,7 +5,14 @@
 import { describe, expect, it } from "bun:test";
 import { resolve } from "node:path";
 import { searchFiles } from "./fdCoordinator.ts";
-import { buildMatcher, matchesExtension, matchesType, isEntryExecutable, matchesSize, matchesExclude } from "./fdDoers.ts";
+import {
+  buildMatcher,
+  matchesExtension,
+  matchesType,
+  isEntryExecutable,
+  matchesSize,
+  matchesExclude,
+} from "./fdDoers.ts";
 import type { FdEntry } from "./fdTypes.ts";
 
 describe("fd doers", () => {
@@ -48,12 +55,20 @@ describe("fd doers", () => {
   });
 
   it("matchesExclude excludes matching patterns", () => {
-    expect(matchesExclude("node_modules/bun/index.d.ts", ["node_modules"])).toBe(true);
-    expect(matchesExclude("src/features/fd/fdCli.ts", ["node_modules"])).toBe(false);
+    expect(
+      matchesExclude("node_modules/bun/index.d.ts", ["node_modules"]),
+    ).toBe(true);
+    expect(matchesExclude("src/features/fd/fdCli.ts", ["node_modules"])).toBe(
+      false,
+    );
   });
 
   it("parses duration strings and checks changedWithin", () => {
-    const { parseDurationMs, matchesChangedWithin, matchesMinDepth } = require("./fdDoers.ts");
+    const {
+      parseDurationMs,
+      matchesChangedWithin,
+      matchesMinDepth,
+    } = require("./fdDoers.ts");
     expect(parseDurationMs("10m")).toBe(10 * 60 * 1000);
     expect(parseDurationMs("2h")).toBe(2 * 60 * 60 * 1000);
     expect(parseDurationMs("1d")).toBe(24 * 60 * 60 * 1000);

@@ -6,7 +6,10 @@ import { generatePostgresStudioHtml } from "../applications/postgres_studio.ts";
 import { Database } from "bun:sqlite";
 
 describe("📐 Visual Joins & Multi-Table Relationships Suite", () => {
-  const server = startSqliteStudioServer({ port: 0, initialDbPath: ":memory:" });
+  const server = startSqliteStudioServer({
+    port: 0,
+    initialDbPath: ":memory:",
+  });
   const baseUrl = `http://127.0.0.1:${server.port}`;
 
   afterAll(() => {
@@ -21,16 +24,16 @@ describe("📐 Visual Joins & Multi-Table Relationships Suite", () => {
     expect(html).toContain('id="qbeCanvasViewport"');
     expect(html).toContain('id="qbeCanvasSvg"');
     expect(html).toContain('class="access-join-radio-card"');
-    expect(html).toContain('jpVennSvg');
-    expect(html).toContain('jpSqlSnippet');
-    expect(html).toContain('updateJoinPropVennDiagram');
-    expect(html).toContain('updateJoinPropPreview');
-    expect(html).toContain('⚡ Auto-Detect Joins');
-    expect(html).toContain('+ Link / Join');
-    expect(html).toContain('autoArrangeDesignerTables()');
-    expect(html).toContain('swapJoinPropDirection()');
-    expect(html).toContain('selectJoinPropType');
-    expect(html).toContain('findAllDesignerJoins');
+    expect(html).toContain("jpVennSvg");
+    expect(html).toContain("jpSqlSnippet");
+    expect(html).toContain("updateJoinPropVennDiagram");
+    expect(html).toContain("updateJoinPropPreview");
+    expect(html).toContain("⚡ Auto-Detect Joins");
+    expect(html).toContain("+ Link / Join");
+    expect(html).toContain("autoArrangeDesignerTables()");
+    expect(html).toContain("swapJoinPropDirection()");
+    expect(html).toContain("selectJoinPropType");
+    expect(html).toContain("findAllDesignerJoins");
   });
 
   it("2. MySQL Studio shell renders Visual Join Canvas and Properties Modal", () => {
@@ -39,16 +42,16 @@ describe("📐 Visual Joins & Multi-Table Relationships Suite", () => {
     expect(html).toContain('id="qbeCanvasViewport"');
     expect(html).toContain('id="qbeCanvasSvg"');
     expect(html).toContain('class="access-join-radio-card"');
-    expect(html).toContain('jpVennSvg');
-    expect(html).toContain('jpSqlSnippet');
-    expect(html).toContain('updateJoinPropVennDiagram');
-    expect(html).toContain('updateJoinPropPreview');
-    expect(html).toContain('⚡ Auto-Detect Joins');
-    expect(html).toContain('+ Link / Join');
-    expect(html).toContain('autoArrangeDesignerTables()');
-    expect(html).toContain('swapJoinPropDirection()');
-    expect(html).toContain('selectJoinPropType');
-    expect(html).toContain('findAllDesignerJoins');
+    expect(html).toContain("jpVennSvg");
+    expect(html).toContain("jpSqlSnippet");
+    expect(html).toContain("updateJoinPropVennDiagram");
+    expect(html).toContain("updateJoinPropPreview");
+    expect(html).toContain("⚡ Auto-Detect Joins");
+    expect(html).toContain("+ Link / Join");
+    expect(html).toContain("autoArrangeDesignerTables()");
+    expect(html).toContain("swapJoinPropDirection()");
+    expect(html).toContain("selectJoinPropType");
+    expect(html).toContain("findAllDesignerJoins");
   });
 
   it("3. Postgres Studio shell renders Visual Join Canvas and Properties Modal", () => {
@@ -57,16 +60,16 @@ describe("📐 Visual Joins & Multi-Table Relationships Suite", () => {
     expect(html).toContain('id="qbeCanvasViewport"');
     expect(html).toContain('id="qbeCanvasSvg"');
     expect(html).toContain('class="access-join-radio-card"');
-    expect(html).toContain('jpVennSvg');
-    expect(html).toContain('jpSqlSnippet');
-    expect(html).toContain('updateJoinPropVennDiagram');
-    expect(html).toContain('updateJoinPropPreview');
-    expect(html).toContain('⚡ Auto-Detect Joins');
-    expect(html).toContain('+ Link / Join');
-    expect(html).toContain('autoArrangeDesignerTables()');
-    expect(html).toContain('swapJoinPropDirection()');
-    expect(html).toContain('selectJoinPropType');
-    expect(html).toContain('findAllDesignerJoins');
+    expect(html).toContain("jpVennSvg");
+    expect(html).toContain("jpSqlSnippet");
+    expect(html).toContain("updateJoinPropVennDiagram");
+    expect(html).toContain("updateJoinPropPreview");
+    expect(html).toContain("⚡ Auto-Detect Joins");
+    expect(html).toContain("+ Link / Join");
+    expect(html).toContain("autoArrangeDesignerTables()");
+    expect(html).toContain("swapJoinPropDirection()");
+    expect(html).toContain("selectJoinPropType");
+    expect(html).toContain("findAllDesignerJoins");
   });
 
   it("4. Client-side embedded scripts in SQLite, MySQL, and Postgres studios parse with zero syntax errors", () => {
@@ -75,7 +78,7 @@ describe("📐 Visual Joins & Multi-Table Relationships Suite", () => {
     const postgresHtml = generatePostgresStudioHtml();
 
     const scriptRegex = /<script(?:\s+[^>]*)?>([\s\S]*?)<\/script>/gi;
-    
+
     // SQLite Studio scripts validation
     let sqliteMatch;
     let sqliteScriptCount = 0;
@@ -121,11 +124,11 @@ describe("📐 Visual Joins & Multi-Table Relationships Suite", () => {
         sql: `SELECT c.name AS customer_name, o.id AS order_id, o.total_amount
               FROM customers c
               INNER JOIN orders o ON c.id = o.customer_id
-              ORDER BY o.id ASC;`
+              ORDER BY o.id ASC;`,
       }),
     });
     expect(innerRes.status).toBe(200);
-    const innerData = await innerRes.json() as any;
+    const innerData = (await innerRes.json()) as any;
     expect(innerData.success).toBe(true);
     expect(innerData.rows.length).toBeGreaterThan(0);
     expect(innerData.columns).toContain("customer_name");
@@ -139,11 +142,11 @@ describe("📐 Visual Joins & Multi-Table Relationships Suite", () => {
         sql: `SELECT c.name AS customer_name, o.id AS order_id
               FROM customers c
               LEFT JOIN orders o ON c.id = o.customer_id
-              ORDER BY c.id ASC;`
+              ORDER BY c.id ASC;`,
       }),
     });
     expect(leftRes.status).toBe(200);
-    const leftData = await leftRes.json() as any;
+    const leftData = (await leftRes.json()) as any;
     expect(leftData.success).toBe(true);
     expect(leftData.rows.length).toBeGreaterThanOrEqual(innerData.rows.length);
 
@@ -155,11 +158,11 @@ describe("📐 Visual Joins & Multi-Table Relationships Suite", () => {
         sql: `SELECT c.name AS customer_name, o.id AS order_id
               FROM customers c
               RIGHT JOIN orders o ON c.id = o.customer_id
-              ORDER BY o.id ASC;`
+              ORDER BY o.id ASC;`,
       }),
     });
     expect(rightRes.status).toBe(200);
-    const rightData = await rightRes.json() as any;
+    const rightData = (await rightRes.json()) as any;
     expect(rightData.success).toBe(true);
     expect(rightData.rows.length).toBe(innerData.rows.length);
 
@@ -170,11 +173,11 @@ describe("📐 Visual Joins & Multi-Table Relationships Suite", () => {
       body: JSON.stringify({
         sql: `SELECT c.name AS customer_name, o.id AS order_id
               FROM customers c
-              FULL OUTER JOIN orders o ON c.id = o.customer_id;`
+              FULL OUTER JOIN orders o ON c.id = o.customer_id;`,
       }),
     });
     expect(fullRes.status).toBe(200);
-    const fullData = await fullRes.json() as any;
+    const fullData = (await fullRes.json()) as any;
     expect(fullData.success).toBe(true);
     expect(fullData.rows.length).toBeGreaterThanOrEqual(leftData.rows.length);
 
@@ -186,11 +189,11 @@ describe("📐 Visual Joins & Multi-Table Relationships Suite", () => {
         sql: `SELECT c.name AS customer_name, p.name AS product_name
               FROM customers c
               CROSS JOIN products p
-              LIMIT 10;`
+              LIMIT 10;`,
       }),
     });
     expect(crossRes.status).toBe(200);
-    const crossData = await crossRes.json() as any;
+    const crossData = (await crossRes.json()) as any;
     expect(crossData.success).toBe(true);
     expect(crossData.rows.length).toBe(10);
   });
@@ -214,11 +217,11 @@ describe("📐 Visual Joins & Multi-Table Relationships Suite", () => {
               INNER JOIN orders o ON c.id = o.customer_id
               INNER JOIN order_items oi ON o.id = oi.order_id
               INNER JOIN products p ON oi.product_id = p.id
-              ORDER BY o.id ASC, oi.id ASC;`
+              ORDER BY o.id ASC, oi.id ASC;`,
       }),
     });
     expect(multiRes.status).toBe(200);
-    const multiData = await multiRes.json() as any;
+    const multiData = (await multiRes.json()) as any;
     expect(multiData.success).toBe(true);
     expect(multiData.rows.length).toBeGreaterThan(0);
     expect(multiData.columns).toEqual([
@@ -229,7 +232,7 @@ describe("📐 Visual Joins & Multi-Table Relationships Suite", () => {
       "product_name",
       "quantity",
       "unit_price",
-      "line_total"
+      "line_total",
     ]);
 
     // Mixed LEFT and INNER multi-table join
@@ -245,11 +248,11 @@ describe("📐 Visual Joins & Multi-Table Relationships Suite", () => {
               LEFT JOIN orders o ON c.id = o.customer_id
               LEFT JOIN order_items oi ON o.id = oi.order_id
               LEFT JOIN products p ON oi.product_id = p.id
-              ORDER BY c.id ASC;`
+              ORDER BY c.id ASC;`,
       }),
     });
     expect(mixedRes.status).toBe(200);
-    const mixedData = await mixedRes.json() as any;
+    const mixedData = (await mixedRes.json()) as any;
     expect(mixedData.success).toBe(true);
     expect(mixedData.rows.length).toBeGreaterThanOrEqual(multiData.rows.length);
   });
@@ -265,20 +268,28 @@ describe("📐 Visual Joins & Multi-Table Relationships Suite", () => {
         },
         {
           name: "books",
-          columns: [{ name: "id", pk: true }, { name: "author_id" }, { name: "title" }],
+          columns: [
+            { name: "id", pk: true },
+            { name: "author_id" },
+            { name: "title" },
+          ],
           foreignKeys: [{ table: "authors", from: "author_id", to: "id" }],
         },
         {
           name: "book_reviews",
-          columns: [{ name: "id", pk: true }, { name: "book_id" }, { name: "rating" }],
+          columns: [
+            { name: "id", pk: true },
+            { name: "book_id" },
+            { name: "rating" },
+          ],
           foreignKeys: [], // Test conventional naming: book_id -> books.id
-        }
-      ]
+        },
+      ],
     };
 
     // Simulate findAllDesignerJoins logic
     function getEntityMeta(name: string) {
-      return schema.tables.find(t => t.name === name);
+      return schema.tables.find((t) => t.name === name);
     }
     function getSingularCandidate(name: string) {
       if (name.endsWith("s")) return name.slice(0, -1);
@@ -288,22 +299,48 @@ describe("📐 Visual Joins & Multi-Table Relationships Suite", () => {
       const lMeta = getEntityMeta(left)!;
       const rMeta = getEntityMeta(right)!;
       const matches: any[] = [];
-      (lMeta.foreignKeys || []).forEach(fk => {
-        if (fk.table === right) matches.push({ left, right, leftField: fk.from, rightField: fk.to || "id", conf: 100 });
+      (lMeta.foreignKeys || []).forEach((fk) => {
+        if (fk.table === right)
+          matches.push({
+            left,
+            right,
+            leftField: fk.from,
+            rightField: fk.to || "id",
+            conf: 100,
+          });
       });
-      (rMeta.foreignKeys || []).forEach(fk => {
-        if (fk.table === left) matches.push({ left, right, leftField: fk.to || "id", rightField: fk.from, conf: 100 });
+      (rMeta.foreignKeys || []).forEach((fk) => {
+        if (fk.table === left)
+          matches.push({
+            left,
+            right,
+            leftField: fk.to || "id",
+            rightField: fk.from,
+            conf: 100,
+          });
       });
       const rightSingular = getSingularCandidate(right).toLowerCase();
-      (lMeta.columns || []).forEach(c => {
+      (lMeta.columns || []).forEach((c) => {
         if (c.name.toLowerCase() === rightSingular + "_id") {
-          matches.push({ left, right, leftField: c.name, rightField: "id", conf: 90 });
+          matches.push({
+            left,
+            right,
+            leftField: c.name,
+            rightField: "id",
+            conf: 90,
+          });
         }
       });
       const leftSingular = getSingularCandidate(left).toLowerCase();
-      (rMeta.columns || []).forEach(c => {
+      (rMeta.columns || []).forEach((c) => {
         if (c.name.toLowerCase() === leftSingular + "_id") {
-          matches.push({ left, right, leftField: "id", rightField: c.name, conf: 90 });
+          matches.push({
+            left,
+            right,
+            leftField: "id",
+            rightField: c.name,
+            conf: 90,
+          });
         }
       });
       return matches;
@@ -327,32 +364,36 @@ describe("📐 Visual Joins & Multi-Table Relationships Suite", () => {
     const mysqlHtml = generateMysqlStudioHtml();
     const postgresHtml = generatePostgresStudioHtml();
 
-    for (const [name, html] of [["SQLite Studio", sqliteHtml], ["MySQL Studio", mysqlHtml], ["Postgres Studio", postgresHtml]]) {
+    for (const [name, html] of [
+      ["SQLite Studio", sqliteHtml],
+      ["MySQL Studio", mysqlHtml],
+      ["Postgres Studio", postgresHtml],
+    ]) {
       // 7.1 Expansive Viewport and Stage transform architecture
       expect(html).toContain('id="qbeCanvasStage"');
       expect(html).toContain('class="qbe-canvas-stage"');
       expect(html).toContain('id="qbeCanvasViewport"');
-      expect(html).toContain('--qbe-canvas-height: 480px;');
+      expect(html).toContain("--qbe-canvas-height: 480px;");
 
       // 7.2 Zoom controls
       expect(html).toContain('id="canvasZoomSelect"');
-      expect(html).toContain('setDesignerCanvasZoom');
-      expect(html).toContain('zoomInDesignerCanvas()');
-      expect(html).toContain('zoomOutDesignerCanvas()');
-      expect(html).toContain('resetDesignerCanvasZoom()');
-      expect(html).toContain('fitDesignerCanvasZoom()');
-      expect(html).toContain('initCanvasPanAndZoom()');
+      expect(html).toContain("setDesignerCanvasZoom");
+      expect(html).toContain("zoomInDesignerCanvas()");
+      expect(html).toContain("zoomOutDesignerCanvas()");
+      expect(html).toContain("resetDesignerCanvasZoom()");
+      expect(html).toContain("fitDesignerCanvasZoom()");
+      expect(html).toContain("initCanvasPanAndZoom()");
 
       // 7.3 Room Expansion & Interactive Resizer Splitter
       expect(html).toContain('id="qbeResizerBar"');
       expect(html).toContain('class="qbe-resizer-handle"');
-      expect(html).toContain('initQbeSplitter()');
-      expect(html).toContain('setDesignerRoomMode(\'canvas-max\')');
-      expect(html).toContain('setDesignerRoomMode(\'split\')');
-      expect(html).toContain('setDesignerRoomMode(\'grid-max\')');
-      expect(html).toContain('⤢ Canvas');
-      expect(html).toContain('⤡ Split');
-      expect(html).toContain('⤢ Grid');
+      expect(html).toContain("initQbeSplitter()");
+      expect(html).toContain("setDesignerRoomMode('canvas-max')");
+      expect(html).toContain("setDesignerRoomMode('split')");
+      expect(html).toContain("setDesignerRoomMode('grid-max')");
+      expect(html).toContain("⤢ Canvas");
+      expect(html).toContain("⤡ Split");
+      expect(html).toContain("⤢ Grid");
     }
   });
 
@@ -361,33 +402,37 @@ describe("📐 Visual Joins & Multi-Table Relationships Suite", () => {
     const mysqlHtml = generateMysqlStudioHtml();
     const postgresHtml = generatePostgresStudioHtml();
 
-    for (const [name, html] of [["SQLite Studio", sqliteHtml], ["MySQL Studio", mysqlHtml], ["Postgres Studio", postgresHtml]]) {
+    for (const [name, html] of [
+      ["SQLite Studio", sqliteHtml],
+      ["MySQL Studio", mysqlHtml],
+      ["Postgres Studio", postgresHtml],
+    ]) {
       // 8.1 QBE Grid Density
-      expect(html).toContain('setQbeGridDensity(\'compact\')');
-      expect(html).toContain('setQbeGridDensity(\'normal\')');
-      expect(html).toContain('setQbeGridDensity(\'spacious\')');
-      expect(html).toContain('--qbe-grid-font-size');
-      expect(html).toContain('--qbe-grid-cell-padding');
+      expect(html).toContain("setQbeGridDensity('compact')");
+      expect(html).toContain("setQbeGridDensity('normal')");
+      expect(html).toContain("setQbeGridDensity('spacious')");
+      expect(html).toContain("--qbe-grid-font-size");
+      expect(html).toContain("--qbe-grid-cell-padding");
 
       // 8.2 SQL View Editor zoom & height controls
-      expect(html).toContain('adjustSqlFontSize(-1)');
-      expect(html).toContain('adjustSqlFontSize(1)');
-      expect(html).toContain('toggleSqlEditorHeight()');
+      expect(html).toContain("adjustSqlFontSize(-1)");
+      expect(html).toContain("adjustSqlFontSize(1)");
+      expect(html).toContain("toggleSqlEditorHeight()");
       expect(html).toContain('id="sqlFontBadge"');
 
       // 8.3 Datasheet View density & font controls
-      expect(html).toContain('setDatasheetDensity(\'compact\')');
-      expect(html).toContain('setDatasheetDensity(\'normal\')');
-      expect(html).toContain('setDatasheetDensity(\'spacious\')');
-      expect(html).toContain('adjustDatasheetFontSize(-1)');
-      expect(html).toContain('adjustDatasheetFontSize(1)');
+      expect(html).toContain("setDatasheetDensity('compact')");
+      expect(html).toContain("setDatasheetDensity('normal')");
+      expect(html).toContain("setDatasheetDensity('spacious')");
+      expect(html).toContain("adjustDatasheetFontSize(-1)");
+      expect(html).toContain("adjustDatasheetFontSize(1)");
       expect(html).toContain('id="dsFontBadge"');
-      expect(html).toContain('--ds-font-size');
-      expect(html).toContain('--ds-cell-padding');
+      expect(html).toContain("--ds-font-size");
+      expect(html).toContain("--ds-cell-padding");
 
       // 8.4 Sidebar Collapse Toggle for full workspace expansion
-      expect(html).toContain('toggleSidebarCollapse()');
-      expect(html).toContain('◀▶ Sidebar');
+      expect(html).toContain("toggleSidebarCollapse()");
+      expect(html).toContain("◀▶ Sidebar");
     }
   });
 
@@ -396,7 +441,11 @@ describe("📐 Visual Joins & Multi-Table Relationships Suite", () => {
     const mysqlHtml = generateMysqlStudioHtml();
     const postgresHtml = generatePostgresStudioHtml();
 
-    for (const [, html] of [["SQLite Studio", sqliteHtml], ["MySQL Studio", mysqlHtml], ["Postgres Studio", postgresHtml]] as const) {
+    for (const [, html] of [
+      ["SQLite Studio", sqliteHtml],
+      ["MySQL Studio", mysqlHtml],
+      ["Postgres Studio", postgresHtml],
+    ] as const) {
       const match = html.match(/\.qbe-show-checkbox\s*\{([^}]*)\}/);
       expect(match).not.toBeNull();
       const ruleBody = match![1]!;

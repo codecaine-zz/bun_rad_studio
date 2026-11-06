@@ -32,7 +32,9 @@ export async function buryItems(paths) {
     return toast(say(err), { kind: "error" });
   }
   const done = res.results.filter((r) => r.ok).map((r) => r.value);
-  const problems = [...new Set(res.results.filter((r) => !r.ok).map((r) => r.message))];
+  const problems = [
+    ...new Set(res.results.filter((r) => !r.ok).map((r) => r.message)),
+  ];
   if (res.job) emit("job-started", res.job);
   if (done.length) {
     const ids = done.map((d) => d.id);
@@ -44,12 +46,29 @@ export async function buryItems(paths) {
         if (bad) throw new Error(bad.message);
       },
     });
-    const queued = res.queued ? ` ${plural(res.queued, "more item")} ${res.queued === 1 ? "is" : "are"} being copied; watch the task list.` : "";
-    toast(`Buried ${plural(done.length, "item")}. Press ${modKey()}Z to undo.${queued}`, { kind: "success", action: { label: "Open Graveyard", run: openGraveyard } });
+    const queued = res.queued
+      ? ` ${plural(res.queued, "more item")} ${res.queued === 1 ? "is" : "are"} being copied; watch the task list.`
+      : "";
+    toast(
+      `Buried ${plural(done.length, "item")}. Press ${modKey()}Z to undo.${queued}`,
+      {
+        kind: "success",
+        action: { label: "Open Graveyard", run: openGraveyard },
+      },
+    );
   } else if (res.queued) {
-    toast(`${plural(res.queued, "item")} ${res.queued === 1 ? "is" : "are"} on another disk, so ${res.queued === 1 ? "it is" : "they are"} being copied to the graveyard. Watch the task list.`, { kind: "info", action: { label: "Open Graveyard", run: openGraveyard } });
+    toast(
+      `${plural(res.queued, "item")} ${res.queued === 1 ? "is" : "are"} on another disk, so ${res.queued === 1 ? "it is" : "they are"} being copied to the graveyard. Watch the task list.`,
+      { kind: "info", action: { label: "Open Graveyard", run: openGraveyard } },
+    );
   }
-  if (problems.length) toast(problems.length === 1 ? problems[0] : `${plural(problems.length, "item")} couldn't be buried: ${problems[0]}`, { kind: "error" });
+  if (problems.length)
+    toast(
+      problems.length === 1
+        ? problems[0]
+        : `${plural(problems.length, "item")} couldn't be buried: ${problems[0]}`,
+      { kind: "error" },
+    );
   emit("grave-changed");
   await refresh({ keepSelection: false });
 }

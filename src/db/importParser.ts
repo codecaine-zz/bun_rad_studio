@@ -11,9 +11,22 @@
  * - Markup tables: Markdown tables (.md, .markdown), HTML tables (.html, .htm)
  * - Config / key-value files: INI (.ini, .cfg, .conf), .env, Java .properties
  */
-import { Notes, isObj, type Obj, type Value } from "../features/filemanager/fmConvCommon";
+import {
+  Notes,
+  isObj,
+  type Obj,
+  type Value,
+} from "../features/filemanager/fmConvCommon";
 import { parseJson as parseLenientJson } from "../features/filemanager/fmConvData";
-import { analyzeSource, cleanHeaderNames, isSourceFormat, newReadContext, readRows, type SourceFormat, type SourceSettings } from "./staging/reader";
+import {
+  analyzeSource,
+  cleanHeaderNames,
+  isSourceFormat,
+  newReadContext,
+  readRows,
+  type SourceFormat,
+  type SourceSettings,
+} from "./staging/reader";
 import { fileSource, memorySource, type ByteSource } from "./staging/source";
 
 /** Input options for `parseUniversalTable`, supporting raw text, byte arrays, base64, or file paths. */
@@ -61,15 +74,20 @@ export function binarySource(bytes: Uint8Array, name = "upload"): ByteSource {
 function normalizeFormatOverride(fmt?: string): Partial<SourceSettings> {
   if (!fmt || fmt === "auto") return {};
   const lower = fmt.toLowerCase().trim();
-  if (lower === "tsv" || lower === "tab") return { format: "csv", delimiter: "\t" };
-  if (lower === "psv" || lower === "pipe") return { format: "csv", delimiter: "|" };
-  if (lower === "ssv" || lower === "semicolon") return { format: "csv", delimiter: ";" };
+  if (lower === "tsv" || lower === "tab")
+    return { format: "csv", delimiter: "\t" };
+  if (lower === "psv" || lower === "pipe")
+    return { format: "csv", delimiter: "|" };
+  if (lower === "ssv" || lower === "semicolon")
+    return { format: "csv", delimiter: ";" };
   if (lower === "jsonl" || lower === "ndjson") return { format: "ndjson" };
-  if (lower === "jsonc" || lower === "json5" || lower === "json") return { format: "json" };
+  if (lower === "jsonc" || lower === "json5" || lower === "json")
+    return { format: "json" };
   if (lower === "yml" || lower === "yaml") return { format: "yaml" };
   if (lower === "md" || lower === "markdown") return { format: "markdown" };
   if (lower === "htm" || lower === "html") return { format: "html" };
-  if (lower === "cfg" || lower === "conf" || lower === "ini") return { format: "ini" };
+  if (lower === "cfg" || lower === "conf" || lower === "ini")
+    return { format: "ini" };
   if (isSourceFormat(lower)) return { format: lower };
   return {};
 }
@@ -80,15 +98,24 @@ function coerceCellValue(val: string | null): any {
 }
 
 /** Parses any supported tabular, spreadsheet, document, or key-value input into a `UniversalParsedTable`. */
-export async function parseUniversalTable(opts: UniversalParseOptions): Promise<UniversalParsedTable> {
-  const filename = opts.fileName ?? opts.filename ?? (opts.filePath ? opts.filePath.split(/[\\/]/).pop() : undefined) ?? "import.txt";
+export async function parseUniversalTable(
+  opts: UniversalParseOptions,
+): Promise<UniversalParsedTable> {
+  const filename =
+    opts.fileName ??
+    opts.filename ??
+    (opts.filePath ? opts.filePath.split(/[\\/]/).pop() : undefined) ??
+    "import.txt";
   let src: ByteSource;
   if (opts.filePath) {
     src = fileSource(opts.filePath, filename);
   } else if (opts.bytes) {
     src = binarySource(opts.bytes, filename);
   } else if (opts.base64) {
-    src = binarySource(new Uint8Array(Buffer.from(opts.base64, "base64")), filename);
+    src = binarySource(
+      new Uint8Array(Buffer.from(opts.base64, "base64")),
+      filename,
+    );
   } else {
     src = memorySource(opts.content ?? "", filename);
   }
@@ -119,18 +146,24 @@ export async function parseUniversalTable(opts: UniversalParseOptions): Promise<
       }
       records.push(rec);
     }
-    const activeSheet = analysis.sheets ? (analysis.settings.sheet ?? analysis.sheets[0]) : undefined;
+    const activeSheet = analysis.sheets
+      ? (analysis.settings.sheet ?? analysis.sheets[0])
+      : undefined;
     return {
       format: analysis.settings.format,
       columns: colNames,
       rows,
       records,
-      ...(analysis.sheets ? { sheets: analysis.sheets, activeSheet, selectedSheet: activeSheet } : {}),
+      ...(analysis.sheets
+        ? { sheets: analysis.sheets, activeSheet, selectedSheet: activeSheet }
+        : {}),
       warnings: analysis.warnings,
     };
   } catch (err: any) {
     // Fallback for a single flat JSON object like {"id": 1, "name": "Alice"} when format is json/auto
-    const text = opts.content ?? (opts.base64 ? Buffer.from(opts.base64, "base64").toString("utf8") : "");
+    const text =
+      opts.content ??
+      (opts.base64 ? Buffer.from(opts.base64, "base64").toString("utf8") : "");
     if (text && text.trim().startsWith("{")) {
       try {
         const parsed: Value = parseLenientJson(text, true, new Notes());
@@ -139,7 +172,11 @@ export async function parseUniversalTable(opts: UniversalParseOptions): Promise<
           const columns = cleanHeaderNames(rawKeys);
           const row = rawKeys.map((k) => {
             const v = (parsed as Obj)[k];
-            return v === null || v === undefined ? null : typeof v === "object" ? JSON.stringify(v) : String(v);
+            return v === null || v === undefined
+              ? null
+              : typeof v === "object"
+                ? JSON.stringify(v)
+                : String(v);
           });
           const rec: Record<string, any> = {};
           columns.forEach((c, i) => {

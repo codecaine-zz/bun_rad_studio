@@ -8,7 +8,12 @@ import { MysqlAdapter } from "./adapters/mysql";
 import { PostgresAdapter } from "./adapters/postgres";
 
 export * from "./types";
-export { DbError, normalizeError, assertReadOnlyStatement, redact } from "./errors";
+export {
+  DbError,
+  normalizeError,
+  assertReadOnlyStatement,
+  redact,
+} from "./errors";
 export { quoteIdent, quoteRef } from "./quote";
 export { splitStatements, statementAt, leadingKeyword } from "./splitter";
 export { toWire, decodeParam, decodeParams, csvCell } from "./wire";
@@ -24,6 +29,8 @@ export function createAdapter(config: ConnectionConfig): DbAdapter {
     case "postgres":
       return new PostgresAdapter(config);
     default:
-      throw new Error(`Unsupported engine: ${String((config as { engine?: unknown }).engine)}`);
+      throw new Error(
+        `Unsupported engine: ${String((config as { engine?: unknown }).engine)}`,
+      );
   }
 }

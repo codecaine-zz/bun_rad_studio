@@ -9,10 +9,26 @@ import { constants, promises as fsp } from "fs";
 import * as nodePath from "path";
 import { tick } from "./fmCore";
 import { setProgress, type DevJob } from "./fmDevJobs";
-import { HARD_MAX_SECONDS, VENDORED_DIRS, resolveLimits, type WalkLimits } from "./fmDevWalk";
+import {
+  HARD_MAX_SECONDS,
+  VENDORED_DIRS,
+  resolveLimits,
+  type WalkLimits,
+} from "./fmDevWalk";
 
 /** Well-known build output and dependency directory names highlighted by the Disk Usage analyzer. */
-export const HEAVY_FOLDERS = ["node_modules", "target", ".venv", "dist", "build", ".next", "__pycache__", "Pods", ".gradle", "DerivedData"];
+export const HEAVY_FOLDERS = [
+  "node_modules",
+  "target",
+  ".venv",
+  "dist",
+  "build",
+  ".next",
+  "__pycache__",
+  "Pods",
+  ".gradle",
+  "DerivedData",
+];
 const TOP = 25;
 const EMPTY_LIST = 100;
 
@@ -54,14 +70,31 @@ interface Tree {
 }
 
 /** Calls `visitFile` for every regular file below `root` (stat'ed) and `visitDir` for every folder with its entry count. */
-async function walkAll(root: string, o: { skipDirs?: string[]; limits?: Partial<WalkLimits>; heavies?: Map<string, HeavyAcc> }, signal: { cancelled: boolean }, visitFile: (f: VisitFile, heavy: HeavyAcc | null) => void, visitDir: (path: string, entries: number) => void, onTick: (t: Tree) => void): Promise<Tree> {
+async function walkAll(
+  root: string,
+  o: {
+    skipDirs?: string[];
+    limits?: Partial<WalkLimits>;
+    heavies?: Map<string, HeavyAcc>;
+  },
+  signal: { cancelled: boolean },
+  visitFile: (f: VisitFile, heavy: HeavyAcc | null) => void,
+  visitDir: (path: string, entries: number) => void,
+  onTick: (t: Tree) => void,
+): Promise<Tree> {
   const limits = resolveLimits(o.limits);
   const started = Date.now();
   const tree: Tree = { files: 0, dirs: 0, symlinks: 0, stoppedBy: null };
-  const stack: Array<{ dir: string; rel: string; top: string; heavy: HeavyAcc | null }> = [{ dir: root, rel: "", top: "", heavy: null }];
+  const stack: Array<{
+    dir: string;
+    rel: string;
+    top: string;
+    heavy: HeavyAcc | null;
+  }> = [{ dir: root, rel: "", top: "", heavy: null }];
   let lastYield = Date.now();
   while (stack.length && !signal.cancelled) {
-    if (Date.now() - started > limits.maxSeconds * 1000) return { ...tree, stoppedBy: "time" };
+    if (Date.now() - started > limits.maxSeconds * 1000)
+      return { ...tree, stoppedBy: "time" };
     if (tree.dirs >= limits.maxDirs) return { ...tree, stoppedBy: "folders" };
     const frame = stack.pop()!;
     tree.dirs++;
@@ -79,26 +112,52 @@ async function walkAll(root: string, o: { skipDirs?: string[]; limits?: Partial<
       else if (e.isDirectory() && !o.skipDirs?.includes(e.name)) {
         const rel = frame.rel ? `${frame.rel}/${e.name}` : e.name;
         let heavy = frame.heavy;
-        if (!heavy && HEAVY_FOLDERS.includes(e.name)) heavy = { path: nodePath.join(frame.dir, e.name), name: e.name, bytes: 0, files: 0 };
-        stack.push({ dir: nodePath.join(frame.dir, e.name), rel, top: frame.top || e.name, heavy });
+        if (!heavy && HEAVY_FOLDERS.includes(e.name))
+          heavy = {
+            path: nodePath.join(frame.dir, e.name),
+            name: e.name,
+            bytes: 0,
+            files: 0,
+          };
+        stack.push({
+          dir: nodePath.join(frame.dir, e.name),
+          rel,
+          top: frame.top || e.name,
+          heavy,
+        });
         if (heavy && heavy !== frame.heavy) o.heavies?.set(heavy.path, heavy);
       }
     }
     for (let i = 0; i < files.length; i += 16) {
       if (signal.cancelled) break;
       const chunk = files.slice(i, i + 16);
-      const stats = await Promise.all(chunk.map((e) => fsp.lstat(nodePath.join(frame.dir, e.name)).catch(() => null)));
+      const stats = await Promise.all(
+        chunk.map((e) =>
+          fsp.lstat(nodePath.join(frame.dir, e.name)).catch(() => null),
+        ),
+      );
       for (let k = 0; k < chunk.length; k++) {
         const st = stats[k];
         if (!st || !st.isFile()) continue;
-        if (tree.files >= limits.maxFiles) return { ...tree, stoppedBy: "files" };
+        if (tree.files >= limits.maxFiles)
+          return { ...tree, stoppedBy: "files" };
         tree.files++;
         const e = chunk[k]!;
         if (frame.heavy) {
           frame.heavy.bytes += st.size;
           frame.heavy.files++;
         }
-        visitFile({ abs: nodePath.join(frame.dir, e.name), rel: frame.rel ? `${frame.rel}/${e.name}` : e.name, name: e.name, size: st.size, mtimeMs: st.mtimeMs, top: frame.top || e.name }, frame.heavy);
+        visitFile(
+          {
+            abs: nodePath.join(frame.dir, e.name),
+            rel: frame.rel ? `${frame.rel}/${e.name}` : e.name,
+            name: e.name,
+            size: st.size,
+            mtimeMs: st.mtimeMs,
+            top: frame.top || e.name,
+          },
+          frame.heavy,
+        );
       }
     }
     onTick(tree);
@@ -137,10 +196,16 @@ export interface DiskReport {
 }
 
 /** Scans `job.root` to compute disk usage breakdowns, largest files, heavy folders, and empty files/folders. */
-export async function runDisk(job: DevJob, limits?: Partial<WalkLimits>): Promise<DiskReport> {
+export async function runDisk(
+  job: DevJob,
+  limits?: Partial<WalkLimits>,
+): Promise<DiskReport> {
   const started = Date.now();
   const root = job.root;
-  const top = new Map<string, { isDir: boolean; bytes: number; files: number }>();
+  const top = new Map<
+    string,
+    { isDir: boolean; bytes: number; files: number }
+  >();
   const exts = new Map<string, { files: number; bytes: number }>();
   const largest = topList<Entry>(TOP, (a, b) => b.bytes - a.bytes);
   const newest = topList<Entry>(10, (a, b) => b.mtimeMs - a.mtimeMs);
@@ -155,7 +220,11 @@ export async function runDisk(job: DevJob, limits?: Partial<WalkLimits>): Promis
     job,
     (f) => {
       totalBytes += f.size;
-      const t = top.get(f.top) ?? { isDir: f.top !== f.rel, bytes: 0, files: 0 };
+      const t = top.get(f.top) ?? {
+        isDir: f.top !== f.rel,
+        bytes: 0,
+        files: 0,
+      };
       t.bytes += f.size;
       t.files++;
       top.set(f.top, t);
@@ -177,16 +246,48 @@ export async function runDisk(job: DevJob, limits?: Partial<WalkLimits>): Promis
     (dir, n) => {
       if (n === 0 && dir !== root) {
         emptyFolders.count++;
-        if (emptyFolders.paths.length < EMPTY_LIST) emptyFolders.paths.push(nodePath.relative(root, dir).replace(/\\/g, "/"));
+        if (emptyFolders.paths.length < EMPTY_LIST)
+          emptyFolders.paths.push(
+            nodePath.relative(root, dir).replace(/\\/g, "/"),
+          );
       }
     },
-    (t) => setProgress(job, { files: t.files, folders: t.dirs, bytes: totalBytes }),
+    (t) =>
+      setProgress(job, { files: t.files, folders: t.dirs, bytes: totalBytes }),
   );
-  const heavy = [...heavies.values()].filter((h) => h.files > 0 || h.bytes > 0).sort((a, b) => b.bytes - a.bytes).map((h) => ({ ...h, path: nodePath.relative(root, h.path).replace(/\\/g, "/") }));
+  const heavy = [...heavies.values()]
+    .filter((h) => h.files > 0 || h.bytes > 0)
+    .sort((a, b) => b.bytes - a.bytes)
+    .map((h) => ({
+      ...h,
+      path: nodePath.relative(root, h.path).replace(/\\/g, "/"),
+    }));
   // Top-level entries that are folders show even when they hold nothing countable; plain files at the top are listed too.
-  const topRows = [...top].map(([name, v]) => ({ name, ...v })).sort((a, b) => b.bytes - a.bytes).slice(0, 60);
-  const extRows = [...exts].map(([ext, v]) => ({ ext, ...v })).sort((a, b) => b.bytes - a.bytes).slice(0, 60);
-  return { root, files: tree.files, folders: tree.dirs, symlinks: tree.symlinks, totalBytes, stoppedBy: tree.stoppedBy, elapsedMs: Date.now() - started, top: topRows, exts: extRows, heavy, largest: largest.result(), emptyFiles, emptyFolders, newest: newest.result(), oldest: oldest.result() };
+  const topRows = [...top]
+    .map(([name, v]) => ({ name, ...v }))
+    .sort((a, b) => b.bytes - a.bytes)
+    .slice(0, 60);
+  const extRows = [...exts]
+    .map(([ext, v]) => ({ ext, ...v }))
+    .sort((a, b) => b.bytes - a.bytes)
+    .slice(0, 60);
+  return {
+    root,
+    files: tree.files,
+    folders: tree.dirs,
+    symlinks: tree.symlinks,
+    totalBytes,
+    stoppedBy: tree.stoppedBy,
+    elapsedMs: Date.now() - started,
+    top: topRows,
+    exts: extRows,
+    heavy,
+    largest: largest.result(),
+    emptyFiles,
+    emptyFolders,
+    newest: newest.result(),
+    oldest: oldest.result(),
+  };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -247,7 +348,10 @@ async function quickHash(abs: string, size: number): Promise<string | null> {
   }
 }
 
-async function fullHash(abs: string, signal: { cancelled: boolean }): Promise<string | null> {
+async function fullHash(
+  abs: string,
+  signal: { cancelled: boolean },
+): Promise<string | null> {
   let h;
   try {
     h = await openNoFollow(abs);
@@ -274,7 +378,10 @@ async function fullHash(abs: string, signal: { cancelled: boolean }): Promise<st
 }
 
 /** Finds duplicate files under `job.root` using a two-stage size + partial/full SHA-256 hashing pipeline. */
-export async function runDupes(job: DevJob, o: { minBytes: number; vendored: boolean; limits?: Partial<WalkLimits> }): Promise<DupeReport> {
+export async function runDupes(
+  job: DevJob,
+  o: { minBytes: number; vendored: boolean; limits?: Partial<WalkLimits> },
+): Promise<DupeReport> {
   const started = Date.now();
   const bySize = new Map<number, string[]>();
   const mtimeByRel = new Map<string, number>();
@@ -291,14 +398,17 @@ export async function runDupes(job: DevJob, o: { minBytes: number; vendored: boo
       else bySize.set(f.size, [f.rel]);
     },
     () => {},
-    (t) => setProgress(job, { phase: "listing", files: t.files, folders: t.dirs }),
+    (t) =>
+      setProgress(job, { phase: "listing", files: t.files, folders: t.dirs }),
   );
   let stoppedBy: string | null = tree.stoppedBy;
   const candidates = [...bySize].filter(([, list]) => list.length > 1);
   let hashedBytes = 0;
   const groups: DupeGroup[] = [];
   let done = 0;
-  outer: for (const [size, list] of candidates.sort((a, b) => b[0] * (b[1].length - 1) - a[0] * (a[1].length - 1))) {
+  outer: for (const [size, list] of candidates.sort(
+    (a, b) => b[0] * (b[1].length - 1) - a[0] * (a[1].length - 1),
+  )) {
     if (job.cancelled) break;
     if (Date.now() > deadline) {
       stoppedBy = "time";
@@ -334,16 +444,34 @@ export async function runDupes(job: DevJob, o: { minBytes: number; vendored: boo
           groups.push({
             size,
             files: sorted,
-            fileStats: sorted.map((p) => ({ path: p, mtimeMs: mtimeByRel.get(p) ?? 0 })),
+            fileStats: sorted.map((p) => ({
+              path: p,
+              mtimeMs: mtimeByRel.get(p) ?? 0,
+            })),
             wasted: size * (sorted.length - 1),
           });
         }
       }
     }
-    setProgress(job, { phase: "comparing", checked: ++done, of: candidates.length, hashedBytes });
+    setProgress(job, {
+      phase: "comparing",
+      checked: ++done,
+      of: candidates.length,
+      hashedBytes,
+    });
     await tick();
   }
-  groups.sort((a, b) => b.wasted - a.wasted || a.files[0]!.localeCompare(b.files[0]!));
-  return { root: job.root, filesScanned: tree.files, groups: groups.slice(0, 200), groupCount: groups.length, totalWasted: groups.reduce((n, g) => n + g.wasted, 0), hashedBytes, stoppedBy, elapsedMs: Date.now() - started };
+  groups.sort(
+    (a, b) => b.wasted - a.wasted || a.files[0]!.localeCompare(b.files[0]!),
+  );
+  return {
+    root: job.root,
+    filesScanned: tree.files,
+    groups: groups.slice(0, 200),
+    groupCount: groups.length,
+    totalWasted: groups.reduce((n, g) => n + g.wasted, 0),
+    hashedBytes,
+    stoppedBy,
+    elapsedMs: Date.now() - started,
+  };
 }
-

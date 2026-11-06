@@ -37,7 +37,10 @@ export function globMatch(pattern: string, path: string): boolean {
 /**
  * Filters `paths` down to entries matching `pattern` using a single compiled `Bun.Glob` instance.
  */
-export function globFilter(pattern: string, paths: readonly string[]): string[] {
+export function globFilter(
+  pattern: string,
+  paths: readonly string[],
+): string[] {
   const glob = new Glob(pattern);
   return paths.filter((p) => glob.match(p));
 }
@@ -46,7 +49,10 @@ export function globFilter(pattern: string, paths: readonly string[]): string[] 
 /**
  * Returns `true` if `path` matches at least one pattern in `patterns`.
  */
-export function globMatchAny(patterns: readonly string[], path: string): boolean {
+export function globMatchAny(
+  patterns: readonly string[],
+  path: string,
+): boolean {
   return patterns.some((pattern) => new Glob(pattern).match(path));
 }
 
@@ -54,7 +60,10 @@ export function globMatchAny(patterns: readonly string[], path: string): boolean
 /**
  * Returns `true` if `path` matches every pattern in `patterns`.
  */
-export function globMatchAll(patterns: readonly string[], path: string): boolean {
+export function globMatchAll(
+  patterns: readonly string[],
+  path: string,
+): boolean {
   return patterns.every((pattern) => new Glob(pattern).match(path));
 }
 
@@ -62,7 +71,10 @@ export function globMatchAll(patterns: readonly string[], path: string): boolean
 /**
  * Asynchronously scans the filesystem for paths matching `pattern` and returns them sorted lexicographically.
  */
-export async function globScan(pattern: string, options: GlobScanOptions = {}): Promise<string[]> {
+export async function globScan(
+  pattern: string,
+  options: GlobScanOptions = {},
+): Promise<string[]> {
   const glob = new Glob(pattern);
   const results: string[] = [];
   for await (const file of glob.scan({
@@ -81,7 +93,10 @@ export async function globScan(pattern: string, options: GlobScanOptions = {}): 
 /**
  * Synchronously scans the filesystem for paths matching `pattern` and returns them sorted lexicographically.
  */
-export function globScanSync(pattern: string, options: GlobScanOptions = {}): string[] {
+export function globScanSync(
+  pattern: string,
+  options: GlobScanOptions = {},
+): string[] {
   const glob = new Glob(pattern);
   const results: string[] = [];
   for (const file of glob.scanSync({
@@ -131,4 +146,3 @@ export const globutils = {
   findFiles,
   hasMatch,
 };
-

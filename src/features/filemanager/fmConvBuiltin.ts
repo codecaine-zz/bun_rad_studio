@@ -5,21 +5,81 @@
  */
 import { promises as fsp } from "fs";
 import * as nodePath from "path";
-import { ConvError, Notes, checkSize, toTable, type Value } from "./fmConvCommon";
-import { DATA_EXTENSIONS, DEFAULT_DATA_OPTIONS, FORMAT_EXTENSION, parseData, writeData, type DataFormat, type DataOptions } from "./fmConvFormats";
+import {
+  ConvError,
+  Notes,
+  checkSize,
+  toTable,
+  type Value,
+} from "./fmConvCommon";
+import {
+  DATA_EXTENSIONS,
+  DEFAULT_DATA_OPTIONS,
+  FORMAT_EXTENSION,
+  parseData,
+  writeData,
+  type DataFormat,
+  type DataOptions,
+} from "./fmConvFormats";
 import type { OptionValues } from "./fmConvOptions";
-import { readSpreadsheet, sheetValue, sheetsFromValue, writeXlsx, type Sheet } from "./fmConvSheet";
 import {
-  ENCODING_BY_ID, convertLineEndings, detectEncoding, decodeBase64, decodeBytes, decodeHex, encodeBase64, encodeHex, encodeText, htmlToText,
-  spacesToTabs, stripTrailingSpaces, stripUtf8Bom, tabsToSpaces, textToHtml, type LineEnding,
+  readSpreadsheet,
+  sheetValue,
+  sheetsFromValue,
+  writeXlsx,
+  type Sheet,
+} from "./fmConvSheet";
+import {
+  ENCODING_BY_ID,
+  convertLineEndings,
+  detectEncoding,
+  decodeBase64,
+  decodeBytes,
+  decodeHex,
+  encodeBase64,
+  encodeHex,
+  encodeText,
+  htmlToText,
+  spacesToTabs,
+  stripTrailingSpaces,
+  stripUtf8Bom,
+  tabsToSpaces,
+  textToHtml,
+  type LineEnding,
 } from "./fmConvText";
-import { changeDiacritics, countDiacritics, type DiacriticMode } from "./fmConvDiacritics";
 import {
-  DEFAULT_ARCHIVE_LIMITS, brotliFile, createTarGzFrom, createTarZstFrom, createZipFrom, extractTarGz, gunzipFile, gzipFile, tarGzToZip, unbrotliFile, unzstdFile, zipToTarGz, zstdFile, type ArchiveLimits,
+  changeDiacritics,
+  countDiacritics,
+  type DiacriticMode,
+} from "./fmConvDiacritics";
+import {
+  DEFAULT_ARCHIVE_LIMITS,
+  brotliFile,
+  createTarGzFrom,
+  createTarZstFrom,
+  createZipFrom,
+  extractTarGz,
+  gunzipFile,
+  gzipFile,
+  tarGzToZip,
+  unbrotliFile,
+  unzstdFile,
+  zipToTarGz,
+  zstdFile,
+  type ArchiveLimits,
 } from "./fmConvArchive";
 import { renderMarkdownPage } from "./fmConvMarkdown";
-import { TranspileError, transpileSource, type JsTarget, type JsxStyle } from "./fmJsTranspile";
-import { extractFullEpubRich, inspectPackageDirectoryRich, type RichDocumentPreview } from "./fmPreview";
+import {
+  TranspileError,
+  transpileSource,
+  type JsTarget,
+  type JsxStyle,
+} from "./fmJsTranspile";
+import {
+  extractFullEpubRich,
+  inspectPackageDirectoryRich,
+  type RichDocumentPreview,
+} from "./fmPreview";
 import { extractZip } from "./fmZip";
 import { createContext } from "./fmCore";
 import type { Platform } from "./fmPaths";
@@ -39,9 +99,12 @@ export interface BuiltinJob {
   limits?: ArchiveLimits;
 }
 
-const str = (o: OptionValues, id: string, d = ""): string => (o[id] === undefined ? d : String(o[id]));
-const bool = (o: OptionValues, id: string, d = false): boolean => (o[id] === undefined ? d : o[id] === true);
-const num = (o: OptionValues, id: string, d: number): number => (o[id] === undefined ? d : Number(o[id]));
+const str = (o: OptionValues, id: string, d = ""): string =>
+  o[id] === undefined ? d : String(o[id]);
+const bool = (o: OptionValues, id: string, d = false): boolean =>
+  o[id] === undefined ? d : o[id] === true;
+const num = (o: OptionValues, id: string, d: number): number =>
+  o[id] === undefined ? d : Number(o[id]);
 
 /** Extension of a file name in lower case, with ".tar.gz" as one. */
 export function extOfName(name: string): string {
@@ -54,31 +117,43 @@ export function extOfName(name: string): string {
 async function readInput(path: string): Promise<Buffer> {
   const st = await fsp.stat(path);
   if (!st.isFile()) throw new ConvError("That isn't a file.");
-  if (st.size === 0) throw new ConvError("The file is empty: there is nothing to convert.");
+  if (st.size === 0)
+    throw new ConvError("The file is empty: there is nothing to convert.");
   checkSize(st.size);
   const bytes = await fsp.readFile(path);
   checkSize(bytes.length);
   return bytes;
 }
 
-async function writeNew(path: string, data: string | Uint8Array): Promise<void> {
+async function writeNew(
+  path: string,
+  data: string | Uint8Array,
+): Promise<void> {
   await fsp.writeFile(path, data, { flag: "wx" });
 }
 
-function dataOptions(o: OptionValues, params: BuiltinJob["params"]): DataOptions {
+function dataOptions(
+  o: OptionValues,
+  params: BuiltinJob["params"],
+): DataOptions {
   const d = DEFAULT_DATA_OPTIONS;
   return {
     flatten: bool(o, "flatten", d.flatten),
     unflatten: bool(o, "unflatten", d.unflatten),
     header: bool(o, "header", d.header),
-    delimiter: (str(o, "delimiter", "auto") as DataOptions["delimiter"]) || "auto",
+    delimiter:
+      (str(o, "delimiter", "auto") as DataOptions["delimiter"]) || "auto",
     types: bool(o, "types", d.types),
     sortKeys: params.sortKeys === true || bool(o, "sortKeys", false),
-    indent: params.indent !== undefined ? Number(params.indent) : num(o, "indent", d.indent),
+    indent:
+      params.indent !== undefined
+        ? Number(params.indent)
+        : num(o, "indent", d.indent),
     tableName: str(o, "tableName", d.tableName) || d.tableName,
     rootName: str(o, "rootName", d.rootName) || d.rootName,
     itemName: d.itemName,
-    dialect: (str(o, "dialect", d.dialect) as DataOptions["dialect"]) || d.dialect,
+    dialect:
+      (str(o, "dialect", d.dialect) as DataOptions["dialect"]) || d.dialect,
     createTable: bool(o, "createTable", d.createTable),
     bom: bool(o, "bom", d.bom),
     title: "Table",
@@ -86,23 +161,43 @@ function dataOptions(o: OptionValues, params: BuiltinJob["params"]): DataOptions
 }
 
 /** The input as data: a data file is read as text, a spreadsheet through the spreadsheet reader. */
-async function readValue(input: string, o: DataOptions, notes: Notes, sheets: "first" | "all"): Promise<Value> {
+async function readValue(
+  input: string,
+  o: DataOptions,
+  notes: Notes,
+  sheets: "first" | "all",
+): Promise<Value> {
   const name = nodePath.basename(input);
   const format: DataFormat | undefined = DATA_EXTENSIONS[extOfName(name)];
-  if (!format) throw new ConvError("This kind of file isn't a data format the built-in converter knows.");
+  if (!format)
+    throw new ConvError(
+      "This kind of file isn't a data format the built-in converter knows.",
+    );
   if (format === "sheet") {
     const all = await sheetsOf(input);
     if (sheets === "all" && all.length > 1) {
       const out: Record<string, Value> = {};
-      for (const s of all) Object.defineProperty(out, s.name, { value: sheetValue(s, o.header), enumerable: true, writable: true, configurable: true });
+      for (const s of all)
+        Object.defineProperty(out, s.name, {
+          value: sheetValue(s, o.header),
+          enumerable: true,
+          writable: true,
+          configurable: true,
+        });
       return out;
     }
-    if (all.length > 1) notes.add(`The spreadsheet has ${all.length} sheets; only the first ("${all[0]!.name}") was used.`);
+    if (all.length > 1)
+      notes.add(
+        `The spreadsheet has ${all.length} sheets; only the first ("${all[0]!.name}") was used.`,
+      );
     return sheetValue(all[0]!, o.header);
   }
   const bytes = await readInput(input);
   const d = decodeBytes(bytes, "auto", false);
-  if (d.encoding === "windows-1252" && /not valid UTF-8/.test(d.how)) notes.add("The file wasn't UTF-8, so it was read as Windows-1252 (Western European).");
+  if (d.encoding === "windows-1252" && /not valid UTF-8/.test(d.how))
+    notes.add(
+      "The file wasn't UTF-8, so it was read as Windows-1252 (Western European).",
+    );
   return parseData(format, d.text, o, notes);
 }
 
@@ -116,18 +211,41 @@ function limitsOf(job: BuiltinJob): ArchiveLimits {
   return job.limits ?? DEFAULT_ARCHIVE_LIMITS;
 }
 
-function archiveNote(label: string, r: { files: number; folders?: number; skipped?: string[]; skippedLinks?: number }): string {
+function archiveNote(
+  label: string,
+  r: {
+    files: number;
+    folders?: number;
+    skipped?: string[];
+    skippedLinks?: number;
+  },
+): string {
   const parts = [`${r.files} file${r.files === 1 ? "" : "s"}`];
   const skipped = r.skipped?.length ?? 0;
-  if (skipped) parts.push(`${skipped} skipped for safety (${r.skipped!.slice(0, 2).join(" ")}${skipped > 2 ? " …" : ""})`);
-  if (r.skippedLinks) parts.push(`${r.skippedLinks} link${r.skippedLinks === 1 ? "" : "s"} skipped`);
+  if (skipped)
+    parts.push(
+      `${skipped} skipped for safety (${r.skipped!.slice(0, 2).join(" ")}${skipped > 2 ? " …" : ""})`,
+    );
+  if (r.skippedLinks)
+    parts.push(
+      `${r.skippedLinks} link${r.skippedLinks === 1 ? "" : "s"} skipped`,
+    );
   return `${label}: ${parts.join(", ")}.`;
 }
 
 /** Runs one built-in conversion and returns a note for the person (what was lost or guessed), or "". A failed run leaves no output file. */
 export async function runBuiltin(job: BuiltinJob): Promise<string> {
   // Whatever is at the output path before the run is not ours and is never touched.
-  if (await fsp.lstat(job.output).then(() => true, () => false) && !(await isEmptyFolder(job.output))) throw Object.assign(new Error("A file with that name already exists."), { code: "EEXIST" });
+  if (
+    (await fsp.lstat(job.output).then(
+      () => true,
+      () => false,
+    )) &&
+    !(await isEmptyFolder(job.output))
+  )
+    throw Object.assign(new Error("A file with that name already exists."), {
+      code: "EEXIST",
+    });
   try {
     return await convert(job);
   } catch (err) {
@@ -150,7 +268,16 @@ async function convert(job: BuiltinJob): Promise<string> {
     case "data": {
       const dopts = dataOptions(o, params);
       const to = String(params.to) as DataFormat;
-      const value = await readValue(input, dopts, notes, to === "json" || to === "yaml" || to === "toml" || to === "xml" ? (str(o, "sheet", "first") === "all" ? "all" : "first") : "first");
+      const value = await readValue(
+        input,
+        dopts,
+        notes,
+        to === "json" || to === "yaml" || to === "toml" || to === "xml"
+          ? str(o, "sheet", "first") === "all"
+            ? "all"
+            : "first"
+          : "first",
+      );
       await writeNew(job.output, writeData(to, value, dopts, notes));
       return notes.toString();
     }
@@ -161,23 +288,41 @@ async function convert(job: BuiltinJob): Promise<string> {
       const used = new Set<string>();
       let written = 0;
       for (const s of sheets) {
-        if (!s.rows.length) { notes.add("Empty sheets were skipped."); continue; }
-        const base = (s.name.replace(/[\\/:*?"<>|\u0000-\u001f]/g, "_").trim().replace(/[. ]+$/, "") || "Sheet").slice(0, 80);
+        if (!s.rows.length) {
+          notes.add("Empty sheets were skipped.");
+          continue;
+        }
+        const base = (
+          s.name
+            .replace(/[\\/:*?"<>|\u0000-\u001f]/g, "_")
+            .trim()
+            .replace(/[. ]+$/, "") || "Sheet"
+        ).slice(0, 80);
         let name = base;
-        for (let k = 2; used.has(name.toLowerCase()); k++) name = `${base} (${k})`;
+        for (let k = 2; used.has(name.toLowerCase()); k++)
+          name = `${base} (${k})`;
         used.add(name.toLowerCase());
         const text = writeData(to, sheetValue(s, dopts.header), dopts, notes);
-        await writeNew(nodePath.join(job.output, `${name}.${FORMAT_EXTENSION[to] ?? to}`), text);
+        await writeNew(
+          nodePath.join(job.output, `${name}.${FORMAT_EXTENSION[to] ?? to}`),
+          text,
+        );
         written++;
       }
-      if (!written) throw new ConvError("Every sheet in this spreadsheet is empty.");
+      if (!written)
+        throw new ConvError("Every sheet in this spreadsheet is empty.");
       return notes.toString();
     }
     case "to-xlsx": {
       const dopts = dataOptions(o, params);
       const value = await readValue(input, dopts, notes, "first");
       const base = nodePath.basename(input).replace(/\.[^.]*$/, "");
-      const sheets = sheetsFromValue(value, str(o, "sheetName", "") || base || "Sheet1", (v) => toTable(v, { flatten: dopts.flatten, notes }), true);
+      const sheets = sheetsFromValue(
+        value,
+        str(o, "sheetName", "") || base || "Sheet1",
+        (v) => toTable(v, { flatten: dopts.flatten, notes }),
+        true,
+      );
       await writeNew(job.output, writeXlsx(sheets, notes));
       return notes.toString();
     }
@@ -186,16 +331,31 @@ async function convert(job: BuiltinJob): Promise<string> {
       const replace = str(o, "bad", "stop") === "replace";
       const d = decodeBytes(bytes, str(o, "from", "auto"), replace);
       const to = str(o, "to", "utf-8");
-      if (!ENCODING_BY_ID.get(to)?.write) throw new ConvError("That encoding can't be written.");
+      if (!ENCODING_BY_ID.get(to)?.write)
+        throw new ConvError("That encoding can't be written.");
       const enc = encodeText(d.text, to, replace);
       await writeNew(job.output, enc.bytes);
-      const parts = [`Read as ${ENCODING_BY_ID.get(d.encoding)!.label.split(" (")[0]} (${d.how}).`];
-      if (d.bad) parts.push(`${d.bad} unreadable place${d.bad === 1 ? " was" : "s were"} replaced.`);
-      if (enc.unmappable) parts.push(`${enc.unmappable} character${enc.unmappable === 1 ? "" : "s"} that ${ENCODING_BY_ID.get(to)!.label.split(" (")[0]} can't hold became "?".`);
+      const parts = [
+        `Read as ${ENCODING_BY_ID.get(d.encoding)!.label.split(" (")[0]} (${d.how}).`,
+      ];
+      if (d.bad)
+        parts.push(
+          `${d.bad} unreadable place${d.bad === 1 ? " was" : "s were"} replaced.`,
+        );
+      if (enc.unmappable)
+        parts.push(
+          `${enc.unmappable} character${enc.unmappable === 1 ? "" : "s"} that ${ENCODING_BY_ID.get(to)!.label.split(" (")[0]} can't hold became "?".`,
+        );
       return parts.join(" ");
     }
     case "eol":
-      await writeNew(job.output, convertLineEndings(await readInput(input), String(params.to) as LineEnding));
+      await writeNew(
+        job.output,
+        convertLineEndings(
+          await readInput(input),
+          String(params.to) as LineEnding,
+        ),
+      );
       return "";
     case "diacritics": {
       const mode = str(o, "mode", "remove") as DiacriticMode;
@@ -203,27 +363,52 @@ async function convert(job: BuiltinJob): Promise<string> {
       const bytes = await readInput(input);
       const from = str(o, "from", "auto");
       // Without a mark or valid UTF-8 the encoding is a guess (Windows-1252 and Windows-1251 look alike), and a wrong guess would damage the text.
-      if (from === "auto" && ENCODING_BY_ID.get(detectEncoding(bytes).id)?.kind !== "unicode") throw new ConvError('This file is not UTF-8 or UTF-16, so its encoding can\'t be told safely (a wrong guess would damage the text). Choose the right one under "Read it as", for example Windows-1252 for Western European text.');
+      if (
+        from === "auto" &&
+        ENCODING_BY_ID.get(detectEncoding(bytes).id)?.kind !== "unicode"
+      )
+        throw new ConvError(
+          'This file is not UTF-8 or UTF-16, so its encoding can\'t be told safely (a wrong guess would damage the text). Choose the right one under "Read it as", for example Windows-1252 for Western European text.',
+        );
       const d = decodeBytes(bytes, from, false);
-      if (d.bad) throw new ConvError(`The file has ${d.bad} unreadable place${d.bad === 1 ? "" : "s"}, so its accents can't be changed safely. Use "Change the text encoding" first and choose the right one.`);
+      if (d.bad)
+        throw new ConvError(
+          `The file has ${d.bad} unreadable place${d.bad === 1 ? "" : "s"}, so its accents can't be changed safely. Use "Change the text encoding" first and choose the right one.`,
+        );
       const kind = ENCODING_BY_ID.get(d.encoding)!;
-      if (mode === "decompose" && kind.kind !== "unicode") throw new ConvError(`This file is ${kind.label.split(" (")[0]}, which can't store an accent apart from its letter. Use "Change the text encoding" to make it UTF-8 first.`);
+      if (mode === "decompose" && kind.kind !== "unicode")
+        throw new ConvError(
+          `This file is ${kind.label.split(" (")[0]}, which can't store an accent apart from its letter. Use "Change the text encoding" to make it UTF-8 first.`,
+        );
       const found = mode === "remove" ? countDiacritics(d.text, letters) : 0;
       const text = changeDiacritics(d.text, mode, letters);
       if (text === d.text) {
         await writeNew(job.output, bytes);
-        return mode === "remove" ? "There was nothing to change (no accents), so this is an exact copy." : "The accents were already stored that way, so this is an exact copy.";
+        return mode === "remove"
+          ? "There was nothing to change (no accents), so this is an exact copy."
+          : "The accents were already stored that way, so this is an exact copy.";
       }
       const enc = encodeText(text, d.encoding, false);
-      if (enc.unmappable) throw new ConvError(`${enc.unmappable} character${enc.unmappable === 1 ? "" : "s"} can't be saved in ${kind.label.split(" (")[0]} after the change. Nothing was written.`);
+      if (enc.unmappable)
+        throw new ConvError(
+          `${enc.unmappable} character${enc.unmappable === 1 ? "" : "s"} can't be saved in ${kind.label.split(" (")[0]} after the change. Nothing was written.`,
+        );
       await writeNew(job.output, enc.bytes);
-      return mode === "remove" ? `Removed the accents from ${found} place${found === 1 ? "" : "s"} (file kept as ${kind.label.split(" (")[0]}).` : `Stored the accents as ${mode === "compose" ? "single characters" : "a letter plus a separate mark"}.`;
+      return mode === "remove"
+        ? `Removed the accents from ${found} place${found === 1 ? "" : "s"} (file kept as ${kind.label.split(" (")[0]}).`
+        : `Stored the accents as ${mode === "compose" ? "single characters" : "a letter plus a separate mark"}.`;
     }
     case "tabs-to-spaces":
-      await writeNew(job.output, tabsToSpaces(await readInput(input), num(o, "width", 4)));
+      await writeNew(
+        job.output,
+        tabsToSpaces(await readInput(input), num(o, "width", 4)),
+      );
       return "";
     case "spaces-to-tabs":
-      await writeNew(job.output, spacesToTabs(await readInput(input), num(o, "width", 4)));
+      await writeNew(
+        job.output,
+        spacesToTabs(await readInput(input), num(o, "width", 4)),
+      );
       return "";
     case "trim-trailing":
       await writeNew(job.output, stripTrailingSpaces(await readInput(input)));
@@ -232,25 +417,41 @@ async function convert(job: BuiltinJob): Promise<string> {
       const bytes = await readInput(input);
       const out = stripUtf8Bom(bytes);
       await writeNew(job.output, out);
-      return out.length === bytes.length ? "The file had no byte-order mark, so this is an exact copy." : "";
+      return out.length === bytes.length
+        ? "The file had no byte-order mark, so this is an exact copy."
+        : "";
     }
     case "base64-encode":
-      await writeNew(job.output, encodeBase64(await readInput(input), num(o, "wrap", 76)));
+      await writeNew(
+        job.output,
+        encodeBase64(await readInput(input), num(o, "wrap", 76)),
+      );
       return "";
     case "hex-encode":
-      await writeNew(job.output, encodeHex(await readInput(input), str(o, "style", "spaced") === "spaced", bool(o, "upper", false)));
+      await writeNew(
+        job.output,
+        encodeHex(
+          await readInput(input),
+          str(o, "style", "spaced") === "spaced",
+          bool(o, "upper", false),
+        ),
+      );
       return "";
     case "base64-decode":
     case "hex-decode": {
       const bytes = await readInput(input);
       const text = new TextDecoder("utf-8").decode(bytes);
-      const out = kind === "base64-decode" ? decodeBase64(text) : decodeHex(text);
+      const out =
+        kind === "base64-decode" ? decodeBase64(text) : decodeHex(text);
       await writeNew(job.output, out);
       return "";
     }
     case "md-html": {
       const bytes = await readInput(input);
-      const page = renderMarkdownPage(decodeBytes(bytes, "auto", true).text, nodePath.basename(input).replace(/\.[^.]*$/, ""));
+      const page = renderMarkdownPage(
+        decodeBytes(bytes, "auto", true).text,
+        nodePath.basename(input).replace(/\.[^.]*$/, ""),
+      );
       await writeNew(job.output, page.html);
       return `Raw HTML in the Markdown is shown as text, and only web, mail and relative links are kept.${page.engine === "builtin" ? " The simpler built-in renderer was used." : ""}`;
     }
@@ -277,12 +478,22 @@ async function convert(job: BuiltinJob): Promise<string> {
     }
     case "text-html": {
       const bytes = await readInput(input);
-      await writeNew(job.output, textToHtml(decodeBytes(bytes, "auto", true).text, nodePath.basename(input), str(o, "layout", "pre") === "paragraphs" ? "paragraphs" : "pre"));
+      await writeNew(
+        job.output,
+        textToHtml(
+          decodeBytes(bytes, "auto", true).text,
+          nodePath.basename(input),
+          str(o, "layout", "pre") === "paragraphs" ? "paragraphs" : "pre",
+        ),
+      );
       return "";
     }
     case "html-text": {
       const bytes = await readInput(input);
-      await writeNew(job.output, htmlToText(decodeBytes(bytes, "auto", true).text));
+      await writeNew(
+        job.output,
+        htmlToText(decodeBytes(bytes, "auto", true).text),
+      );
       return "";
     }
     case "epub-doc": {
@@ -296,39 +507,109 @@ async function convert(job: BuiltinJob): Promise<string> {
             maxPartBytes: 8 * 1024 * 1024,
           })
         : await extractFullEpubRich(input, false);
-      if (!rich || rich.kind !== "document" || (!rich.blocks.length && !rich.plainText?.trim())) {
-        throw new ConvError("No readable chapters or text were found in this e-book.");
+      if (
+        !rich ||
+        rich.kind !== "document" ||
+        (!rich.blocks.length && !rich.plainText?.trim())
+      ) {
+        throw new ConvError(
+          "No readable chapters or text were found in this e-book.",
+        );
       }
       const to = String(params.to || "txt");
       const withToc = bool(o, "toc", false);
       const fallbackTitle = nodePath.basename(input).replace(/\.[^.]+$/, "");
-      const outText = formatEpubDocumentOutput(rich, fallbackTitle, to, withToc);
+      const outText = formatEpubDocumentOutput(
+        rich,
+        fallbackTitle,
+        to,
+        withToc,
+      );
       await writeNew(job.output, outText);
       return "";
     }
-    case "gzip": await gzipFile(input, job.output, num(o, "level", 6)); return "";
-    case "zstd": await zstdFile(input, job.output, num(o, "level", 3)); return "";
-    case "unzstd": await unzstdFile(input, job.output, limitsOf(job).maxBytes); return "";
-    case "gunzip": await gunzipFile(input, job.output, limitsOf(job).maxBytes); return "";
-    case "brotli": await brotliFile(input, job.output); return "";
-    case "unbrotli": await unbrotliFile(input, job.output, limitsOf(job).maxBytes); return "";
-    case "zip-create": return archiveNote("Zipped", await createZipFrom(job.inputs, job.output, limitsOf(job)));
-    case "targz-create": return archiveNote("Packed", await createTarGzFrom(job.inputs, job.output, limitsOf(job), num(o, "level", 6)));
-    case "tarzst-create": return archiveNote("Packed", await createTarZstFrom(job.inputs, job.output, limitsOf(job), num(o, "level", 3)));
-    case "zip-to-targz": return archiveNote("Converted", await zipToTarGz(input, job.output, job.platform, limitsOf(job)));
-    case "targz-to-zip": return archiveNote("Converted", await tarGzToZip(input, job.output, job.platform, limitsOf(job)));
+    case "gzip":
+      await gzipFile(input, job.output, num(o, "level", 6));
+      return "";
+    case "zstd":
+      await zstdFile(input, job.output, num(o, "level", 3));
+      return "";
+    case "unzstd":
+      await unzstdFile(input, job.output, limitsOf(job).maxBytes);
+      return "";
+    case "gunzip":
+      await gunzipFile(input, job.output, limitsOf(job).maxBytes);
+      return "";
+    case "brotli":
+      await brotliFile(input, job.output);
+      return "";
+    case "unbrotli":
+      await unbrotliFile(input, job.output, limitsOf(job).maxBytes);
+      return "";
+    case "zip-create":
+      return archiveNote(
+        "Zipped",
+        await createZipFrom(job.inputs, job.output, limitsOf(job)),
+      );
+    case "targz-create":
+      return archiveNote(
+        "Packed",
+        await createTarGzFrom(
+          job.inputs,
+          job.output,
+          limitsOf(job),
+          num(o, "level", 6),
+        ),
+      );
+    case "tarzst-create":
+      return archiveNote(
+        "Packed",
+        await createTarZstFrom(
+          job.inputs,
+          job.output,
+          limitsOf(job),
+          num(o, "level", 3),
+        ),
+      );
+    case "zip-to-targz":
+      return archiveNote(
+        "Converted",
+        await zipToTarGz(input, job.output, job.platform, limitsOf(job)),
+      );
+    case "targz-to-zip":
+      return archiveNote(
+        "Converted",
+        await tarGzToZip(input, job.output, job.platform, limitsOf(job)),
+      );
     case "targz-extract":
-    case "tarzst-extract": return archiveNote("Unpacked", await extractTarGz(input, job.output, job.platform, limitsOf(job)));
+    case "tarzst-extract":
+      return archiveNote(
+        "Unpacked",
+        await extractTarGz(input, job.output, job.platform, limitsOf(job)),
+      );
     case "zip-extract": {
       // fmZip makes a folder named after the zip inside the folder it is given; that folder is then moved up.
       const ctx = createContext({ platform: job.platform, home: job.home });
       const limits = limitsOf(job);
-      const made = await extractZip(ctx, input, job.output, { maxTotalBytes: limits.maxBytes, maxEntries: limits.maxEntries });
-      const holder = nodePath.join(job.output, `.fm-up-${process.pid}-${Date.now()}`);
+      const made = await extractZip(ctx, input, job.output, {
+        maxTotalBytes: limits.maxBytes,
+        maxEntries: limits.maxEntries,
+      });
+      const holder = nodePath.join(
+        job.output,
+        `.fm-up-${process.pid}-${Date.now()}`,
+      );
       await fsp.rename(made.folder, holder);
-      for (const name of await fsp.readdir(holder)) await fsp.rename(nodePath.join(holder, name), nodePath.join(job.output, name));
+      for (const name of await fsp.readdir(holder))
+        await fsp.rename(
+          nodePath.join(holder, name),
+          nodePath.join(job.output, name),
+        );
       await fsp.rmdir(holder);
-      return archiveNote("Unzipped", { files: made.files, skipped: made.skipped });
+      return archiveNote("Unzipped", {
+        files: made.files,
+        skipped: made.skipped,
+      });
     }
     default:
       throw new ConvError("That conversion isn't known.");
@@ -380,13 +661,17 @@ export function formatEpubDocumentOutput(
     if (author) lines.push(`*by ${author}*`);
     if (withToc && chapters.length > 1) {
       lines.push("## Table of Contents");
-      lines.push(chapters.map((ch, idx) => `${idx + 1}. ${ch.title}`).join("\n"));
+      lines.push(
+        chapters.map((ch, idx) => `${idx + 1}. ${ch.title}`).join("\n"),
+      );
     }
     for (const ch of chapters) {
       const firstBlock = ch.blocks[0];
       const hasMatchingHeading =
         firstBlock &&
-        (firstBlock.type === "h1" || firstBlock.type === "h2" || firstBlock.type === "h3") &&
+        (firstBlock.type === "h1" ||
+          firstBlock.type === "h2" ||
+          firstBlock.type === "h3") &&
         firstBlock.text.trim().toLowerCase() === ch.title.trim().toLowerCase();
       if (!hasMatchingHeading && ch.title) {
         lines.push(`## ${ch.title}`);
@@ -418,7 +703,10 @@ export function formatEpubDocumentOutput(
     const tocHtml =
       withToc && chapters.length > 1
         ? `<nav class="toc"><h2>Table of Contents</h2><ol>${chapters
-            .map((ch, idx) => `<li><a href="#ch-${idx + 1}">${escapeXmlText(ch.title)}</a></li>`)
+            .map(
+              (ch, idx) =>
+                `<li><a href="#ch-${idx + 1}">${escapeXmlText(ch.title)}</a></li>`,
+            )
             .join("")}</ol></nav>`
         : "";
     const sectionsHtml = chapters
@@ -426,14 +714,23 @@ export function formatEpubDocumentOutput(
         const firstBlock = ch.blocks[0];
         const hasMatchingHeading =
           firstBlock &&
-          (firstBlock.type === "h1" || firstBlock.type === "h2" || firstBlock.type === "h3") &&
-          firstBlock.text.trim().toLowerCase() === ch.title.trim().toLowerCase();
-        const headingHtml = !hasMatchingHeading && ch.title ? `<h2>${escapeXmlText(ch.title)}</h2>` : "";
+          (firstBlock.type === "h1" ||
+            firstBlock.type === "h2" ||
+            firstBlock.type === "h3") &&
+          firstBlock.text.trim().toLowerCase() ===
+            ch.title.trim().toLowerCase();
+        const headingHtml =
+          !hasMatchingHeading && ch.title
+            ? `<h2>${escapeXmlText(ch.title)}</h2>`
+            : "";
         const bodyHtml = ch.blocks
           .map((b) => {
             if (b.type === "table") {
               return `<table>${b.rows
-                .map((r) => `<tr>${r.map((c) => `<td>${escapeXmlText(c)}</td>`).join("")}</tr>`)
+                .map(
+                  (r) =>
+                    `<tr>${r.map((c) => `<td>${escapeXmlText(c)}</td>`).join("")}</tr>`,
+                )
                 .join("")}</table>`;
             }
             const t = escapeXmlText(b.text);
@@ -488,7 +785,9 @@ ${sectionsHtml}
     if (withToc && chapters.length > 1) {
       rtfLines.push("{\\f1\\b\\fs28 Table of Contents\\b0\\fs24\\par}");
       for (let i = 0; i < chapters.length; i++) {
-        rtfLines.push(`${escapeRtfText(`${i + 1}. ${chapters[i]!.title}`)}\\par`);
+        rtfLines.push(
+          `${escapeRtfText(`${i + 1}. ${chapters[i]!.title}`)}\\par`,
+        );
       }
       rtfLines.push("\\par");
     }
@@ -496,16 +795,23 @@ ${sectionsHtml}
       const firstBlock = ch.blocks[0];
       const hasMatchingHeading =
         firstBlock &&
-        (firstBlock.type === "h1" || firstBlock.type === "h2" || firstBlock.type === "h3") &&
+        (firstBlock.type === "h1" ||
+          firstBlock.type === "h2" ||
+          firstBlock.type === "h3") &&
         firstBlock.text.trim().toLowerCase() === ch.title.trim().toLowerCase();
       if (!hasMatchingHeading && ch.title) {
-        rtfLines.push(`{\\f1\\b\\fs28 ${escapeRtfText(ch.title)}\\b0\\fs24\\par}`);
+        rtfLines.push(
+          `{\\f1\\b\\fs28 ${escapeRtfText(ch.title)}\\b0\\fs24\\par}`,
+        );
       }
       for (const b of ch.blocks) {
         if (b.type === "table") {
-          for (const r of b.rows) rtfLines.push(`${escapeRtfText(r.join(" \\tab "))}\\par`);
+          for (const r of b.rows)
+            rtfLines.push(`${escapeRtfText(r.join(" \\tab "))}\\par`);
         } else if (b.type === "h1" || b.type === "h2" || b.type === "h3") {
-          rtfLines.push(`{\\f1\\b\\fs28 ${escapeRtfText(b.text)}\\b0\\fs24\\par}`);
+          rtfLines.push(
+            `{\\f1\\b\\fs28 ${escapeRtfText(b.text)}\\b0\\fs24\\par}`,
+          );
         } else {
           rtfLines.push(`${escapeRtfText(b.text)}\\par\\par`);
         }
@@ -523,7 +829,10 @@ ${sectionsHtml}
       .map((ch) => {
         const pXml = ch.blocks
           .map((b) => {
-            const text = b.type === "table" ? b.rows.map((r) => r.join(" | ")).join("\n") : b.text;
+            const text =
+              b.type === "table"
+                ? b.rows.map((r) => r.join(" | ")).join("\n")
+                : b.text;
             return `      <p>${escapeXmlText(text)}</p>`;
           })
           .join("\n");
@@ -553,17 +862,28 @@ ${sectionsXml}
   const out: string[] = [title];
   if (author) out.push(`by ${author}`);
   if (withToc && chapters.length > 1) {
-    out.push(["Table of Contents", ...chapters.map((ch, idx) => `  ${idx + 1}. ${ch.title}`)].join("\n"));
+    out.push(
+      [
+        "Table of Contents",
+        ...chapters.map((ch, idx) => `  ${idx + 1}. ${ch.title}`),
+      ].join("\n"),
+    );
   }
   for (const ch of chapters) {
     const firstBlock = ch.blocks[0];
     const hasMatchingHeading =
       firstBlock &&
-      (firstBlock.type === "h1" || firstBlock.type === "h2" || firstBlock.type === "h3") &&
+      (firstBlock.type === "h1" ||
+        firstBlock.type === "h2" ||
+        firstBlock.type === "h3") &&
       firstBlock.text.trim().toLowerCase() === ch.title.trim().toLowerCase();
     if (!hasMatchingHeading && ch.title) out.push(ch.title);
     for (const b of ch.blocks) {
-      out.push(b.type === "table" ? b.rows.map((r) => r.join("\t")).join("\n") : b.text);
+      out.push(
+        b.type === "table"
+          ? b.rows.map((r) => r.join("\t")).join("\n")
+          : b.text,
+      );
     }
   }
   return out.join("\n\n") + "\n";

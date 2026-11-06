@@ -12,8 +12,26 @@ import { RedisClient } from "bun";
 import { createAdapter } from "../../db";
 import { DbError, normalizeError, redact } from "../../db/errors";
 import { placeholder, quoteIdent, quoteRef } from "../../db/quote";
-import type { ColumnInfo, ConnectionConfig, DbAdapter, Engine, ForeignKeyInfo, IndexInfo, ObjectRef, Param, TableInfo, WireValue } from "../../db/types";
-import { absolutePath, assertCreatable, assertFolder, pathApi, type FmContext, type FmHandler } from "./fmCore";
+import type {
+  ColumnInfo,
+  ConnectionConfig,
+  DbAdapter,
+  Engine,
+  ForeignKeyInfo,
+  IndexInfo,
+  ObjectRef,
+  Param,
+  TableInfo,
+  WireValue,
+} from "../../db/types";
+import {
+  absolutePath,
+  assertCreatable,
+  assertFolder,
+  pathApi,
+  type FmContext,
+  type FmHandler,
+} from "./fmCore";
 import { effectiveFor, isObject, profileFor, testInputFor } from "./fmDbCommon";
 import type { CloneRedisClient } from "./fmDbHooks";
 import { ENGINES, type DbEngine } from "./fmDbModel";
@@ -24,7 +42,8 @@ import { makeSqliteFile } from "./fmNewSqlite";
 import { FmError, cleanName, validateName } from "./fmPaths";
 
 /** Strategy for handling existing target tables or Redis keys during a database clone operation. */
-export type CloneConflictMode = "replace" | "truncate" | "append" | "upsert" | "skip" | "fail";
+export type CloneConflictMode =
+  "replace" | "truncate" | "append" | "upsert" | "skip" | "fail";
 /** Selection of what to clone: schema + data (`all`), schema DDL only (`schema`), or rows only (`data`). */
 export type CloneContentMode = "all" | "schema" | "data";
 /** Strategy for cloning SQL views: recreate as a view when same engine (`view`) or materialize as a table (`table`). */
@@ -128,7 +147,8 @@ export interface CloneTablePlan {
   kind: "table" | "view" | "redis_group";
   estimatedRows: number;
   targetExists: boolean;
-  action: "create" | "replace" | "truncate" | "append" | "upsert" | "skip" | "fail";
+  action:
+    "create" | "replace" | "truncate" | "append" | "upsert" | "skip" | "fail";
   ddl: string[];
 }
 
@@ -195,7 +215,13 @@ interface ResolvedEndpoint {
   profile: DbProfile | null;
   profileId?: string;
   path?: string;
-  newSqlite?: { folder: string; name: string; fullPath: string; saveProfile: boolean; connectionName?: string };
+  newSqlite?: {
+    folder: string;
+    name: string;
+    fullPath: string;
+    saveProfile: boolean;
+    connectionName?: string;
+  };
   schema?: string;
   production: boolean;
   readOnly: boolean;
@@ -212,12 +238,17 @@ function sanitizeTargetIdentifier(raw: string, fallback: string): string {
   if (!trimmed) return fallback;
   const cleaned = trimmed.replace(/[\0\r\n]/g, "").slice(0, 120);
   if (VALID_TABLE_NAME.test(cleaned)) return cleaned;
-  const safe = cleaned.replace(/[^A-Za-z0-9_]/g, "_").replace(/^([0-9])/, "_$1");
+  const safe = cleaned
+    .replace(/[^A-Za-z0-9_]/g, "_")
+    .replace(/^([0-9])/, "_$1");
   return safe || fallback;
 }
 
 /** Maps a raw engine-specific SQL column type string into a `CloneCanonicalType` with length/precision/scale. */
-export function classifyCanonicalType(engine: DbEngine, rawType: string): {
+export function classifyCanonicalType(
+  engine: DbEngine,
+  rawType: string,
+): {
   canonicalType: CloneCanonicalType;
   length?: number;
   precision?: number;
@@ -225,33 +256,74 @@ export function classifyCanonicalType(engine: DbEngine, rawType: string): {
 } {
   const t = (rawType || "").trim().toLowerCase();
   const paren = /\(([^)]*)\)/.exec(t)?.[1];
-  const base = t.replace(/\([^)]*\)/g, "").replace(/\b(unsigned|zerofill|signed)\b/g, "").replace(/\s+/g, " ").trim();
+  const base = t
+    .replace(/\([^)]*\)/g, "")
+    .replace(/\b(unsigned|zerofill|signed)\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
   const nums = paren ? paren.split(",").map((x) => Number(x.trim())) : [];
 
-  if (base === "tinyint" && nums[0] === 1 && engine !== "postgres") return { canonicalType: "boolean" };
+  if (base === "tinyint" && nums[0] === 1 && engine !== "postgres")
+    return { canonicalType: "boolean" };
   if (/^(bool|boolean|bit)$/.test(base)) return { canonicalType: "boolean" };
   if (/^(uuid|uniqueidentifier)$/.test(base)) return { canonicalType: "uuid" };
   if (/^(json|jsonb)$/.test(base)) return { canonicalType: "json" };
   if (/^date$/.test(base)) return { canonicalType: "date" };
-  if (/^time( with(out)? time zone)?$|^timetz$/.test(base)) return { canonicalType: "time" };
-  if (/^(datetime|timestamp|timestamptz|timestamp with time zone|timestamp without time zone)\b/.test(base)) return { canonicalType: "timestamp" };
-  if (/^(bigint|int8|bigserial|serial8)$/.test(base)) return { canonicalType: "bigint" };
-  if (/^(tinyint|smallint|mediumint|int|integer|int2|int4|serial|serial2|serial4)$/.test(base) || (engine === "sqlite" && /int/.test(base))) {
+  if (/^time( with(out)? time zone)?$|^timetz$/.test(base))
+    return { canonicalType: "time" };
+  if (
+    /^(datetime|timestamp|timestamptz|timestamp with time zone|timestamp without time zone)\b/.test(
+      base,
+    )
+  )
+    return { canonicalType: "timestamp" };
+  if (/^(bigint|int8|bigserial|serial8)$/.test(base))
+    return { canonicalType: "bigint" };
+  if (
+    /^(tinyint|smallint|mediumint|int|integer|int2|int4|serial|serial2|serial4)$/.test(
+      base,
+    ) ||
+    (engine === "sqlite" && /int/.test(base))
+  ) {
     return { canonicalType: "integer" };
   }
   if (/^(decimal|numeric|dec|fixed|money)$/.test(base)) {
-    const precision = Number.isFinite(nums[0]) && nums[0]! > 0 ? Math.min(38, Math.trunc(nums[0]!)) : 18;
-    const scale = Number.isFinite(nums[1]) && nums[1]! >= 0 ? Math.min(precision, Math.trunc(nums[1]!)) : 4;
+    const precision =
+      Number.isFinite(nums[0]) && nums[0]! > 0
+        ? Math.min(38, Math.trunc(nums[0]!))
+        : 18;
+    const scale =
+      Number.isFinite(nums[1]) && nums[1]! >= 0
+        ? Math.min(precision, Math.trunc(nums[1]!))
+        : 4;
     return { canonicalType: "decimal", precision, scale };
   }
-  if (/^(float|double|double precision|real|float4|float8)$/.test(base) || (engine === "sqlite" && /real|floa|doub/.test(base))) {
+  if (
+    /^(float|double|double precision|real|float4|float8)$/.test(base) ||
+    (engine === "sqlite" && /real|floa|doub/.test(base))
+  ) {
     return { canonicalType: "float" };
   }
-  if (/^(blob|tinyblob|mediumblob|longblob|bytea|binary|varbinary)$/.test(base) || (engine === "sqlite" && /blob/.test(base))) {
-    return { canonicalType: "binary", ...(Number.isFinite(nums[0]) && nums[0]! > 0 ? { length: Math.trunc(nums[0]!) } : {}) };
+  if (
+    /^(blob|tinyblob|mediumblob|longblob|bytea|binary|varbinary)$/.test(base) ||
+    (engine === "sqlite" && /blob/.test(base))
+  ) {
+    return {
+      canonicalType: "binary",
+      ...(Number.isFinite(nums[0]) && nums[0]! > 0
+        ? { length: Math.trunc(nums[0]!) }
+        : {}),
+    };
   }
-  if (/^(char|varchar|character|character varying|nchar|nvarchar|bpchar)$/.test(base)) {
-    const length = Number.isFinite(nums[0]) && nums[0]! > 0 ? Math.min(65535, Math.trunc(nums[0]!)) : 255;
+  if (
+    /^(char|varchar|character|character varying|nchar|nvarchar|bpchar)$/.test(
+      base,
+    )
+  ) {
+    const length =
+      Number.isFinite(nums[0]) && nums[0]! > 0
+        ? Math.min(65535, Math.trunc(nums[0]!))
+        : 255;
     return { canonicalType: "varchar", length };
   }
   return { canonicalType: "text" };
@@ -264,66 +336,108 @@ export function columnTypeForTarget(
   indexedOrKeyed: boolean,
 ): string {
   const len = col.length && col.length > 0 ? col.length : 255;
-  const p = col.precision && col.precision > 0 ? Math.min(38, col.precision) : 18;
-  const s = col.scale !== undefined && col.scale >= 0 ? Math.min(p, col.scale) : 4;
+  const p =
+    col.precision && col.precision > 0 ? Math.min(38, col.precision) : 18;
+  const s =
+    col.scale !== undefined && col.scale >= 0 ? Math.min(p, col.scale) : 4;
 
   switch (col.canonicalType) {
     case "integer":
-      return targetEngine === "sqlite" ? "INTEGER" : targetEngine === "mysql" ? "INT" : "INTEGER";
+      return targetEngine === "sqlite"
+        ? "INTEGER"
+        : targetEngine === "mysql"
+          ? "INT"
+          : "INTEGER";
     case "bigint":
       return targetEngine === "sqlite" ? "INTEGER" : "BIGINT";
     case "float":
-      return targetEngine === "sqlite" ? "REAL" : targetEngine === "mysql" ? "DOUBLE" : "DOUBLE PRECISION";
+      return targetEngine === "sqlite"
+        ? "REAL"
+        : targetEngine === "mysql"
+          ? "DOUBLE"
+          : "DOUBLE PRECISION";
     case "decimal":
-      return targetEngine === "sqlite" ? `NUMERIC(${p},${s})` : targetEngine === "mysql" ? `DECIMAL(${p},${s})` : `NUMERIC(${p},${s})`;
+      return targetEngine === "sqlite"
+        ? `NUMERIC(${p},${s})`
+        : targetEngine === "mysql"
+          ? `DECIMAL(${p},${s})`
+          : `NUMERIC(${p},${s})`;
     case "boolean":
       return targetEngine === "mysql" ? "TINYINT(1)" : "BOOLEAN";
     case "uuid":
-      return targetEngine === "postgres" ? "UUID" : targetEngine === "mysql" ? "CHAR(36)" : "TEXT";
+      return targetEngine === "postgres"
+        ? "UUID"
+        : targetEngine === "mysql"
+          ? "CHAR(36)"
+          : "TEXT";
     case "json":
-      return targetEngine === "postgres" ? "JSONB" : targetEngine === "mysql" ? "JSON" : "TEXT";
+      return targetEngine === "postgres"
+        ? "JSONB"
+        : targetEngine === "mysql"
+          ? "JSON"
+          : "TEXT";
     case "date":
       return "DATE";
     case "time":
       return "TIME";
     case "timestamp":
-      return targetEngine === "mysql" ? "DATETIME" : targetEngine === "postgres" ? "TIMESTAMPTZ" : "TIMESTAMP";
+      return targetEngine === "mysql"
+        ? "DATETIME"
+        : targetEngine === "postgres"
+          ? "TIMESTAMPTZ"
+          : "TIMESTAMP";
     case "binary":
       if (targetEngine === "sqlite") return "BLOB";
       if (targetEngine === "postgres") return "BYTEA";
       return indexedOrKeyed ? `VARBINARY(${Math.min(255, len)})` : "LONGBLOB";
     case "varchar":
       if (targetEngine === "sqlite") return `VARCHAR(${len})`;
-      if (targetEngine === "postgres") return len <= 10485760 ? `VARCHAR(${len})` : "TEXT";
+      if (targetEngine === "postgres")
+        return len <= 10485760 ? `VARCHAR(${len})` : "TEXT";
       if (indexedOrKeyed && len > 255) return "VARCHAR(255)";
       return len <= 16383 ? `VARCHAR(${len})` : "LONGTEXT";
     case "text":
     default:
-      if (targetEngine === "mysql") return indexedOrKeyed ? "VARCHAR(255)" : "LONGTEXT";
+      if (targetEngine === "mysql")
+        return indexedOrKeyed ? "VARCHAR(255)" : "LONGTEXT";
       return "TEXT";
   }
 }
 
-function translateDefaultClause(col: CloneSourceColumn, targetEngine: Engine): string {
+function translateDefaultClause(
+  col: CloneSourceColumn,
+  targetEngine: Engine,
+): string {
   const raw = col.defaultValue?.trim();
   if (!raw || col.autoIncrement || col.generated) return "";
   if (/^null$/i.test(raw) || /^null::/i.test(raw)) return "";
   if (/^nextval\(/i.test(raw)) return "";
   // Strip PostgreSQL type cast suffix like `'member'::character varying`
   const stripped = raw.replace(/::[a-zA-Z0-9_ ]+(\[\])?$/, "").trim();
-  if (/^(current_timestamp(\(\d*\))?|now\(\)|datetime\('now'\))$/i.test(stripped)) {
-    if (col.canonicalType === "timestamp" || col.canonicalType === "text" || col.canonicalType === "varchar") {
+  if (
+    /^(current_timestamp(\(\d*\))?|now\(\)|datetime\('now'\))$/i.test(stripped)
+  ) {
+    if (
+      col.canonicalType === "timestamp" ||
+      col.canonicalType === "text" ||
+      col.canonicalType === "varchar"
+    ) {
       return " DEFAULT CURRENT_TIMESTAMP";
     }
     return "";
   }
   if (/^(true|false)$/i.test(stripped)) {
     const isTrue = /^true$/i.test(stripped);
-    if (targetEngine === "mysql" || targetEngine === "sqlite") return ` DEFAULT ${isTrue ? "1" : "0"}`;
+    if (targetEngine === "mysql" || targetEngine === "sqlite")
+      return ` DEFAULT ${isTrue ? "1" : "0"}`;
     return ` DEFAULT ${isTrue ? "TRUE" : "FALSE"}`;
   }
-  if (col.canonicalType === "boolean" && (stripped === "1" || stripped === "0")) {
-    if (targetEngine === "postgres") return ` DEFAULT ${stripped === "1" ? "TRUE" : "FALSE"}`;
+  if (
+    col.canonicalType === "boolean" &&
+    (stripped === "1" || stripped === "0")
+  ) {
+    if (targetEngine === "postgres")
+      return ` DEFAULT ${stripped === "1" ? "TRUE" : "FALSE"}`;
     return ` DEFAULT ${stripped}`;
   }
   if (/^[+-]?\d+(\.\d+)?$/.test(stripped)) {
@@ -331,12 +445,19 @@ function translateDefaultClause(col: CloneSourceColumn, targetEngine: Engine): s
   }
   const quoted = /^'((?:[^']|'')*)'$/.exec(stripped);
   if (quoted) {
-    if (targetEngine === "mysql" && (col.canonicalType === "text" || col.canonicalType === "json" || col.canonicalType === "binary")) {
+    if (
+      targetEngine === "mysql" &&
+      (col.canonicalType === "text" ||
+        col.canonicalType === "json" ||
+        col.canonicalType === "binary")
+    ) {
       // MySQL TEXT/BLOB/JSON columns cannot have a plain literal default in strict modes across all versions.
       return "";
     }
     if (col.canonicalType === "timestamp" && targetEngine === "mysql") {
-      const m = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})/.exec(quoted[1]!.trim());
+      const m = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})/.exec(
+        quoted[1]!.trim(),
+      );
       if (m) return ` DEFAULT '${m[1]} ${m[2]}'`;
       return "";
     }
@@ -358,7 +479,14 @@ function translateDefaultClause(col: CloneSourceColumn, targetEngine: Engine): s
 
 function safeRule(rule?: string): string {
   const u = (rule ?? "").trim().toUpperCase();
-  if (u === "CASCADE" || u === "SET NULL" || u === "RESTRICT" || u === "NO ACTION" || u === "SET DEFAULT") return u;
+  if (
+    u === "CASCADE" ||
+    u === "SET NULL" ||
+    u === "RESTRICT" ||
+    u === "NO ACTION" ||
+    u === "SET DEFAULT"
+  )
+    return u;
   return "NO ACTION";
 }
 
@@ -376,13 +504,20 @@ export function buildCreateTableDdl(
   },
 ): { tableDdl: string; indexDdls: string[]; fkCount: number } {
   const q = (id: string) => quoteIdent(targetEngine, id);
-  const fullTarget = targetEngine === "postgres" && targetSchema ? `${q(targetSchema)}.${q(targetName)}` : q(targetName);
+  const fullTarget =
+    targetEngine === "postgres" && targetSchema
+      ? `${q(targetSchema)}.${q(targetName)}`
+      : q(targetName);
 
-  const pkCols = obj.primaryKey.filter((pk) => obj.columns.some((c) => c.name === pk));
+  const pkCols = obj.primaryKey.filter((pk) =>
+    obj.columns.some((c) => c.name === pk),
+  );
   const singlePkName = pkCols.length === 1 ? pkCols[0]! : null;
   const indexedColSet = new Set<string>(pkCols);
-  for (const idx of obj.indexes) for (const c of idx.columns) indexedColSet.add(c);
-  for (const fk of obj.foreignKeys) for (const c of fk.columns) indexedColSet.add(c);
+  for (const idx of obj.indexes)
+    for (const c of idx.columns) indexedColSet.add(c);
+  for (const fk of obj.foreignKeys)
+    for (const c of fk.columns) indexedColSet.add(c);
 
   const defs: string[] = [];
   let inlineSinglePk = false;
@@ -397,16 +532,21 @@ export function buildCreateTableDdl(
         defs.push(`${q(col.name)} INTEGER PRIMARY KEY AUTOINCREMENT`);
       } else if (targetEngine === "mysql") {
         const intType = col.canonicalType === "integer" ? "INT" : "BIGINT";
-        defs.push(`${q(col.name)} ${intType} NOT NULL AUTO_INCREMENT PRIMARY KEY`);
+        defs.push(
+          `${q(col.name)} ${intType} NOT NULL AUTO_INCREMENT PRIMARY KEY`,
+        );
       } else {
         const intType = col.canonicalType === "integer" ? "INTEGER" : "BIGINT";
-        defs.push(`${q(col.name)} ${intType} GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY`);
+        defs.push(
+          `${q(col.name)} ${intType} GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY`,
+        );
       }
       continue;
     }
 
     const sqlType = columnTypeForTarget(col, targetEngine, isIndexed);
-    const notNull = !col.nullable || pkCols.includes(col.name) ? " NOT NULL" : "";
+    const notNull =
+      !col.nullable || pkCols.includes(col.name) ? " NOT NULL" : "";
     const dflt = translateDefaultClause(col, targetEngine);
     defs.push(`${q(col.name)} ${sqlType}${notNull}${dflt}`);
   }
@@ -418,10 +558,20 @@ export function buildCreateTableDdl(
   let fkCount = 0;
   if (opts.includeForeignKeys !== false && obj.foreignKeys.length > 0) {
     for (const fk of obj.foreignKeys) {
-      if (!fk.columns.length || !fk.refColumns.length || fk.columns.length !== fk.refColumns.length) continue;
-      const mappedRef = opts.tableNameMap.get(fk.refTable) ?? (opts.existingTargetTables.has(fk.refTable) ? fk.refTable : null);
+      if (
+        !fk.columns.length ||
+        !fk.refColumns.length ||
+        fk.columns.length !== fk.refColumns.length
+      )
+        continue;
+      const mappedRef =
+        opts.tableNameMap.get(fk.refTable) ??
+        (opts.existingTargetTables.has(fk.refTable) ? fk.refTable : null);
       if (!mappedRef) continue;
-      const refFull = targetEngine === "postgres" && targetSchema ? `${q(targetSchema)}.${q(mappedRef)}` : q(mappedRef);
+      const refFull =
+        targetEngine === "postgres" && targetSchema
+          ? `${q(targetSchema)}.${q(mappedRef)}`
+          : q(mappedRef);
       const del = safeRule(fk.onDelete);
       const upd = safeRule(fk.onUpdate);
       defs.push(
@@ -434,7 +584,8 @@ export function buildCreateTableDdl(
   }
 
   const ifne = opts.ifNotExists ? "IF NOT EXISTS " : "";
-  const suffix = targetEngine === "mysql" ? " ENGINE=InnoDB DEFAULT CHARSET=utf8mb4" : "";
+  const suffix =
+    targetEngine === "mysql" ? " ENGINE=InnoDB DEFAULT CHARSET=utf8mb4" : "";
   const tableDdl = `CREATE TABLE ${ifne}${fullTarget} (${defs.join(", ")})${suffix}`;
 
   const indexDdls: string[] = [];
@@ -443,12 +594,21 @@ export function buildCreateTableDdl(
   for (const idx of obj.indexes) {
     if (idx.primary) continue;
     const validCols = idx.columns.filter((c) => colNames.has(c));
-    if (validCols.length === 0 || validCols.length !== idx.columns.length) continue;
-    if (pkCols.length === validCols.length && pkCols.every((c, i) => c === validCols[i])) continue;
-    const rawIdxName = `idx_${targetName}_${validCols.join("_")}_${idxSeq++}`.replace(/[^A-Za-z0-9_]/g, "_").slice(0, 60);
+    if (validCols.length === 0 || validCols.length !== idx.columns.length)
+      continue;
+    if (
+      pkCols.length === validCols.length &&
+      pkCols.every((c, i) => c === validCols[i])
+    )
+      continue;
+    const rawIdxName = `idx_${targetName}_${validCols.join("_")}_${idxSeq++}`
+      .replace(/[^A-Za-z0-9_]/g, "_")
+      .slice(0, 60);
     const uniq = idx.unique ? "UNIQUE " : "";
     const idxIfne = targetEngine === "mysql" ? "" : "IF NOT EXISTS ";
-    indexDdls.push(`CREATE ${uniq}INDEX ${idxIfne}${q(rawIdxName)} ON ${fullTarget} (${validCols.map(q).join(", ")})`);
+    indexDdls.push(
+      `CREATE ${uniq}INDEX ${idxIfne}${q(rawIdxName)} ON ${fullTarget} (${validCols.map(q).join(", ")})`,
+    );
   }
 
   return { tableDdl, indexDdls, fkCount };
@@ -458,7 +618,9 @@ export function buildCreateTableDdl(
  * Orders tables topologically so referenced parent tables come before child tables.
  * Handles self-references and cycles deterministically.
  */
-export function topologicalSortTables(objects: CloneSourceObject[]): CloneSourceObject[] {
+export function topologicalSortTables(
+  objects: CloneSourceObject[],
+): CloneSourceObject[] {
   const byName = new Map(objects.map((o) => [o.name, o]));
   const visited = new Set<string>();
   const visiting = new Set<string>();
@@ -495,17 +657,33 @@ async function resolveEndpoint(
     throw new FmError("BAD_REQUEST", `Choose a ${role} database.`);
   }
   const st = dbState(ctx);
-  const kind = typeof raw.kind === "string" ? raw.kind : typeof raw.profileId === "string" ? "profile" : typeof raw.path === "string" ? "sqliteFile" : "";
+  const kind =
+    typeof raw.kind === "string"
+      ? raw.kind
+      : typeof raw.profileId === "string"
+        ? "profile"
+        : typeof raw.path === "string"
+          ? "sqliteFile"
+          : "";
 
   if (kind === "profile") {
     const profile = profileFor(st.store, raw.profileId);
-    const { resolved, password } = await effectiveFor(ctx, profile.engine, profile);
+    const { resolved, password } = await effectiveFor(
+      ctx,
+      profile.engine,
+      profile,
+    );
     const ti = testInputFor(profile, resolved);
     if (profile.engine === "sqlite") {
       if (ti.sqliteMode === "memory" || ti.path === ":memory:") {
-        throw new FmError("BAD_REQUEST", "An in-memory SQLite connection starts empty every time it is opened, so it cannot be cloned from or to here.");
+        throw new FmError(
+          "BAD_REQUEST",
+          "An in-memory SQLite connection starts empty every time it is opened, so it cannot be cloned from or to here.",
+        );
       }
-      const mode = readOnlyForSource ? "readonly" : ti.sqliteMode ?? "readwrite";
+      const mode = readOnlyForSource
+        ? "readonly"
+        : (ti.sqliteMode ?? "readwrite");
       ti.path = await checkSqlitePath(ctx, ti.path, mode);
     }
     return {
@@ -515,18 +693,29 @@ async function resolveEndpoint(
       profile,
       profileId: profile.id,
       path: ti.path,
-      schema: profile.engine === "postgres" ? (ti.schema || "public") : undefined,
+      schema: profile.engine === "postgres" ? ti.schema || "public" : undefined,
       production: profile.environment === "production",
-      readOnly: Boolean((profile as { readOnly?: boolean }).readOnly) || (profile.engine === "sqlite" && ti.sqliteMode === "readonly"),
+      readOnly:
+        Boolean((profile as { readOnly?: boolean }).readOnly) ||
+        (profile.engine === "sqlite" && ti.sqliteMode === "readonly"),
       testInput: ti,
       password: password ?? undefined,
     };
   }
 
   if (kind === "sqliteFile") {
-    const path = await checkSqlitePath(ctx, raw.path, readOnlyForSource ? "readonly" : "readwrite");
+    const path = await checkSqlitePath(
+      ctx,
+      raw.path,
+      readOnlyForSource ? "readonly" : "readwrite",
+    );
     const label = pathApi(ctx).basename(path);
-    const ti: TestInput = { engine: "sqlite", path, sqliteMode: readOnlyForSource ? "readonly" : "readwrite", production: false };
+    const ti: TestInput = {
+      engine: "sqlite",
+      path,
+      sqliteMode: readOnlyForSource ? "readonly" : "readwrite",
+      production: false,
+    };
     return {
       kind: "sqliteFile",
       engine: "sqlite",
@@ -544,25 +733,47 @@ async function resolveEndpoint(
     await assertFolder(folder, "The folder for the new database");
     assertCreatable(ctx, folder);
     const rawName = typeof raw.name === "string" ? raw.name.trim() : "";
-    if (!rawName) throw new FmError("BAD_NAME", "Give the new SQLite database file a name.");
+    if (!rawName)
+      throw new FmError(
+        "BAD_NAME",
+        "Give the new SQLite database file a name.",
+      );
     const reason = validateName(rawName, ctx.platform);
     if (reason) throw new FmError("BAD_NAME", reason);
     let fileName = cleanName(rawName);
-    if (!/\.(sqlite|sqlite3|db|db3|s3db)$/i.test(fileName)) fileName += ".sqlite";
+    if (!/\.(sqlite|sqlite3|db|db3|s3db)$/i.test(fileName))
+      fileName += ".sqlite";
     const fullPath = pathApi(ctx).join(folder, fileName);
     if (existsSync(fullPath)) {
-      throw new FmError("EXISTS", `"${fileName}" already exists in that folder. Choose a different file name or select it as an existing SQLite file.`);
+      throw new FmError(
+        "EXISTS",
+        `"${fileName}" already exists in that folder. Choose a different file name or select it as an existing SQLite file.`,
+      );
     }
     const saveProfile = raw.saveProfile !== false;
-    const connectionName = typeof raw.connectionName === "string" && raw.connectionName.trim() ? raw.connectionName.trim().slice(0, 80) : undefined;
-    const ti: TestInput = { engine: "sqlite", path: fullPath, sqliteMode: "create", production: false };
+    const connectionName =
+      typeof raw.connectionName === "string" && raw.connectionName.trim()
+        ? raw.connectionName.trim().slice(0, 80)
+        : undefined;
+    const ti: TestInput = {
+      engine: "sqlite",
+      path: fullPath,
+      sqliteMode: "create",
+      production: false,
+    };
     return {
       kind: "newSqlite",
       engine: "sqlite",
       label: fileName,
       profile: null,
       path: fullPath,
-      newSqlite: { folder, name: fileName, fullPath, saveProfile, connectionName },
+      newSqlite: {
+        folder,
+        name: fileName,
+        fullPath,
+        saveProfile,
+        connectionName,
+      },
       production: false,
       readOnly: false,
       testInput: ti,
@@ -572,12 +783,20 @@ async function resolveEndpoint(
   throw new FmError("BAD_REQUEST", `Choose a valid ${role} database.`);
 }
 
-function openSqlAdapter(ctx: FmContext, ep: ResolvedEndpoint, readOnly: boolean): DbAdapter {
+function openSqlAdapter(
+  ctx: FmContext,
+  ep: ResolvedEndpoint,
+  readOnly: boolean,
+): DbAdapter {
   const i = ep.testInput;
   const config: ConnectionConfig = {
     engine: ep.engine as Engine,
     path: i.path,
-    sqliteMode: readOnly ? "readonly" : i.sqliteMode === "create" ? "readwrite" : (i.sqliteMode ?? "readwrite"),
+    sqliteMode: readOnly
+      ? "readonly"
+      : i.sqliteMode === "create"
+        ? "readwrite"
+        : (i.sqliteMode ?? "readwrite"),
     host: i.host,
     port: i.port,
     user: i.user,
@@ -586,7 +805,10 @@ function openSqlAdapter(ctx: FmContext, ep: ResolvedEndpoint, readOnly: boolean)
     schema: i.schema,
     tls: i.tls,
     readOnly,
-    connectTimeoutMs: Math.min(i.connectTimeoutMs ?? TEST_TIMEOUT_MS, TEST_TIMEOUT_MS),
+    connectTimeoutMs: Math.min(
+      i.connectTimeoutMs ?? TEST_TIMEOUT_MS,
+      TEST_TIMEOUT_MS,
+    ),
     allowPublicKeyRetrieval: ep.engine === "mysql",
     maxConnections: 1,
   };
@@ -594,24 +816,35 @@ function openSqlAdapter(ctx: FmContext, ep: ResolvedEndpoint, readOnly: boolean)
   return hook ? hook(config) : createAdapter(config);
 }
 
-async function openRedis(ctx: FmContext, ep: ResolvedEndpoint): Promise<CloneRedisClient> {
+async function openRedis(
+  ctx: FmContext,
+  ep: ResolvedEndpoint,
+): Promise<CloneRedisClient> {
   const hook = dbState(ctx).hooks.openRedis;
   const i = ep.testInput;
   if (hook) return await hook(i);
   const tls = !!i.tls;
-  const auth = i.user || i.password ? `${i.user ? encodeURIComponent(i.user) : ""}${i.password ? `:${encodeURIComponent(i.password)}` : ""}@` : "";
+  const auth =
+    i.user || i.password
+      ? `${i.user ? encodeURIComponent(i.user) : ""}${i.password ? `:${encodeURIComponent(i.password)}` : ""}@`
+      : "";
   const url = `${tls ? "rediss" : "redis"}://${auth}${i.host?.includes(":") ? `[${i.host}]` : i.host}:${i.port}`;
-  const client = new RedisClient(
-    url,
-    {
-      connectionTimeout: Math.min(i.connectTimeoutMs ?? TEST_TIMEOUT_MS, TEST_TIMEOUT_MS),
-      autoReconnect: false,
-      maxRetries: 0,
-      ...(tls && typeof i.tls === "object"
-        ? { tls: { rejectUnauthorized: i.tls.verify !== false, ...(i.tls.ca ? { ca: i.tls.ca } : {}) } }
-        : {}),
-    } as never,
-  ) as RedisClient & { select(db: number): Promise<unknown> };
+  const client = new RedisClient(url, {
+    connectionTimeout: Math.min(
+      i.connectTimeoutMs ?? TEST_TIMEOUT_MS,
+      TEST_TIMEOUT_MS,
+    ),
+    autoReconnect: false,
+    maxRetries: 0,
+    ...(tls && typeof i.tls === "object"
+      ? {
+          tls: {
+            rejectUnauthorized: i.tls.verify !== false,
+            ...(i.tls.ca ? { ca: i.tls.ca } : {}),
+          },
+        }
+      : {}),
+  } as never) as RedisClient & { select(db: number): Promise<unknown> };
   await client.connect();
   await client.ping();
   if (i.dbIndex) await client.select(i.dbIndex);
@@ -625,23 +858,44 @@ async function openRedis(ctx: FmContext, ep: ResolvedEndpoint): Promise<CloneRed
   };
 }
 
-function wrapCloneError(err: unknown, secrets: (string | undefined)[] = []): FmError {
+function wrapCloneError(
+  err: unknown,
+  secrets: (string | undefined)[] = [],
+): FmError {
   if (err instanceof FmError) return err;
   if (err instanceof DbError) {
-    return new FmError(err.code === "INVALID_REQUEST" ? "BAD_REQUEST" : err.code, redact(err.message, secrets));
+    return new FmError(
+      err.code === "INVALID_REQUEST" ? "BAD_REQUEST" : err.code,
+      redact(err.message, secrets),
+    );
   }
-  const msg = redact(err instanceof Error ? err.message : String(err), secrets).replace(/\s+/g, " ").slice(0, 260);
-  return new FmError("CLONE_FAILED", msg || "The database operation could not be completed.");
+  const msg = redact(err instanceof Error ? err.message : String(err), secrets)
+    .replace(/\s+/g, " ")
+    .slice(0, 260);
+  return new FmError(
+    "CLONE_FAILED",
+    msg || "The database operation could not be completed.",
+  );
 }
 
-async function scanRedisKeys(client: CloneRedisClient, prefix = "", limit = MAX_REDIS_SCAN): Promise<string[]> {
+async function scanRedisKeys(
+  client: CloneRedisClient,
+  prefix = "",
+  limit = MAX_REDIS_SCAN,
+): Promise<string[]> {
   const keys: string[] = [];
   const seen = new Set<string>();
   let cursor = "0";
   const pattern = prefix ? `${prefix}*` : "*";
   let loops = 0;
   do {
-    const res: any = await client.send("SCAN", [cursor, "MATCH", pattern, "COUNT", "500"]);
+    const res: any = await client.send("SCAN", [
+      cursor,
+      "MATCH",
+      pattern,
+      "COUNT",
+      "500",
+    ]);
     cursor = String(res?.[0] ?? "0");
     const batch = Array.isArray(res?.[1]) ? res[1].map(String) : [];
     for (const k of batch) {
@@ -657,7 +911,10 @@ async function scanRedisKeys(client: CloneRedisClient, prefix = "", limit = MAX_
 }
 
 function groupOfRedisKey(key: string, basePrefix = ""): string {
-  const stripped = basePrefix && key.startsWith(basePrefix) ? key.slice(basePrefix.length) : key;
+  const stripped =
+    basePrefix && key.startsWith(basePrefix)
+      ? key.slice(basePrefix.length)
+      : key;
   const idx = stripped.indexOf(":");
   if (idx > 0) {
     const g = stripped.slice(0, idx).replace(/[^A-Za-z0-9_]/g, "_");
@@ -683,7 +940,10 @@ function parseHashPairs(raw: unknown): Record<string, string> {
   return out;
 }
 
-async function inspectRedisEndpoint(ctx: FmContext, ep: ResolvedEndpoint): Promise<CloneSourceObject[]> {
+async function inspectRedisEndpoint(
+  ctx: FmContext,
+  ep: ResolvedEndpoint,
+): Promise<CloneSourceObject[]> {
   const client = await openRedis(ctx, ep);
   try {
     const basePrefix = ep.testInput.keyPrefix ?? "";
@@ -699,24 +959,49 @@ async function inspectRedisEndpoint(ctx: FmContext, ep: ResolvedEndpoint): Promi
       list.push(k);
     }
     const objects: CloneSourceObject[] = [];
-    for (const [groupName, groupKeys] of [...byGroup.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+    for (const [groupName, groupKeys] of [...byGroup.entries()].sort((a, b) =>
+      a[0].localeCompare(b[0]),
+    )) {
       const sample = groupKeys.slice(0, 15);
       const types = new Set<string>();
       const hashFields = new Set<string>();
       for (const k of sample) {
-        const t = String((await client.send("TYPE", [k])) ?? "string").toLowerCase();
+        const t = String(
+          (await client.send("TYPE", [k])) ?? "string",
+        ).toLowerCase();
         if (t && t !== "none") types.add(t);
         if (t === "hash") {
           const h = parseHashPairs(await client.send("HGETALL", [k]));
           for (const f of Object.keys(h)) hashFields.add(f);
         }
       }
-      const redisKeyType = types.size === 1 ? [...types][0]! : types.size > 1 ? "mixed" : "string";
+      const redisKeyType =
+        types.size === 1 ? [...types][0]! : types.size > 1 ? "mixed" : "string";
       const columns: CloneSourceColumn[] =
         redisKeyType === "hash" && hashFields.size > 0
           ? [
-              { name: "redis_key", dataType: "VARCHAR(255)", canonicalType: "varchar", length: 255, nullable: false, defaultValue: null, primaryKeyPosition: 1, autoIncrement: false, generated: false },
-              { name: "key_id", dataType: "VARCHAR(255)", canonicalType: "varchar", length: 255, nullable: false, defaultValue: null, primaryKeyPosition: null, autoIncrement: false, generated: false },
+              {
+                name: "redis_key",
+                dataType: "VARCHAR(255)",
+                canonicalType: "varchar",
+                length: 255,
+                nullable: false,
+                defaultValue: null,
+                primaryKeyPosition: 1,
+                autoIncrement: false,
+                generated: false,
+              },
+              {
+                name: "key_id",
+                dataType: "VARCHAR(255)",
+                canonicalType: "varchar",
+                length: 255,
+                nullable: false,
+                defaultValue: null,
+                primaryKeyPosition: null,
+                autoIncrement: false,
+                generated: false,
+              },
               ...[...hashFields].slice(0, 60).map((f) => ({
                 name: sanitizeTargetIdentifier(f, "field"),
                 dataType: "TEXT",
@@ -727,14 +1012,70 @@ async function inspectRedisEndpoint(ctx: FmContext, ep: ResolvedEndpoint): Promi
                 autoIncrement: false,
                 generated: false,
               })),
-              { name: "ttl_ms", dataType: "BIGINT", canonicalType: "bigint", nullable: true, defaultValue: null, primaryKeyPosition: null, autoIncrement: false, generated: false },
+              {
+                name: "ttl_ms",
+                dataType: "BIGINT",
+                canonicalType: "bigint",
+                nullable: true,
+                defaultValue: null,
+                primaryKeyPosition: null,
+                autoIncrement: false,
+                generated: false,
+              },
             ]
           : [
-              { name: "redis_key", dataType: "VARCHAR(255)", canonicalType: "varchar", length: 255, nullable: false, defaultValue: null, primaryKeyPosition: 1, autoIncrement: false, generated: false },
-              { name: "redis_type", dataType: "VARCHAR(32)", canonicalType: "varchar", length: 32, nullable: false, defaultValue: null, primaryKeyPosition: null, autoIncrement: false, generated: false },
-              { name: "value_text", dataType: "TEXT", canonicalType: "text", nullable: true, defaultValue: null, primaryKeyPosition: null, autoIncrement: false, generated: false },
-              { name: "value_json", dataType: "JSON", canonicalType: "json", nullable: true, defaultValue: null, primaryKeyPosition: null, autoIncrement: false, generated: false },
-              { name: "ttl_ms", dataType: "BIGINT", canonicalType: "bigint", nullable: true, defaultValue: null, primaryKeyPosition: null, autoIncrement: false, generated: false },
+              {
+                name: "redis_key",
+                dataType: "VARCHAR(255)",
+                canonicalType: "varchar",
+                length: 255,
+                nullable: false,
+                defaultValue: null,
+                primaryKeyPosition: 1,
+                autoIncrement: false,
+                generated: false,
+              },
+              {
+                name: "redis_type",
+                dataType: "VARCHAR(32)",
+                canonicalType: "varchar",
+                length: 32,
+                nullable: false,
+                defaultValue: null,
+                primaryKeyPosition: null,
+                autoIncrement: false,
+                generated: false,
+              },
+              {
+                name: "value_text",
+                dataType: "TEXT",
+                canonicalType: "text",
+                nullable: true,
+                defaultValue: null,
+                primaryKeyPosition: null,
+                autoIncrement: false,
+                generated: false,
+              },
+              {
+                name: "value_json",
+                dataType: "JSON",
+                canonicalType: "json",
+                nullable: true,
+                defaultValue: null,
+                primaryKeyPosition: null,
+                autoIncrement: false,
+                generated: false,
+              },
+              {
+                name: "ttl_ms",
+                dataType: "BIGINT",
+                canonicalType: "bigint",
+                nullable: true,
+                defaultValue: null,
+                primaryKeyPosition: null,
+                autoIncrement: false,
+                generated: false,
+              },
             ];
       // Deduplicate column names if hash fields collided with reserved column names
       const usedNames = new Set<string>();
@@ -765,12 +1106,17 @@ async function inspectRedisEndpoint(ctx: FmContext, ep: ResolvedEndpoint): Promi
   }
 }
 
-async function inspectSqlEndpoint(ctx: FmContext, ep: ResolvedEndpoint): Promise<CloneSourceObject[]> {
+async function inspectSqlEndpoint(
+  ctx: FmContext,
+  ep: ResolvedEndpoint,
+): Promise<CloneSourceObject[]> {
   const adapter = openSqlAdapter(ctx, ep, true);
   try {
     await adapter.connect();
     const refs = await adapter.listObjects();
-    const filtered = refs.filter((r) => !ep.schema || !r.schema || r.schema === ep.schema);
+    const filtered = refs.filter(
+      (r) => !ep.schema || !r.schema || r.schema === ep.schema,
+    );
     const objects: CloneSourceObject[] = [];
     for (const ref of filtered) {
       let info: TableInfo;
@@ -781,7 +1127,10 @@ async function inspectSqlEndpoint(ctx: FmContext, ep: ResolvedEndpoint): Promise
       }
       let rowCount = 0;
       try {
-        const qRef = quoteRef(ep.engine as Engine, { schema: info.schema, name: info.name });
+        const qRef = quoteRef(ep.engine as Engine, {
+          schema: info.schema,
+          name: info.name,
+        });
         const cnt = await adapter.query(`SELECT COUNT(*) AS c FROM ${qRef}`);
         const firstVal = cnt.rows[0] ? Object.values(cnt.rows[0])[0] : 0;
         rowCount = Number(firstVal ?? 0) || 0;
@@ -792,16 +1141,27 @@ async function inspectSqlEndpoint(ctx: FmContext, ep: ResolvedEndpoint): Promise
       if (info.type === "view") {
         try {
           if (ep.engine === "sqlite") {
-            const r = await adapter.query("SELECT sql FROM sqlite_master WHERE type = 'view' AND name = ?", [info.name]);
+            const r = await adapter.query(
+              "SELECT sql FROM sqlite_master WHERE type = 'view' AND name = ?",
+              [info.name],
+            );
             viewSql = typeof r.rows[0]?.sql === "string" ? r.rows[0].sql : null;
           } else if (ep.engine === "mysql") {
-            const r = await adapter.query("SELECT view_definition AS v FROM information_schema.views WHERE table_schema = DATABASE() AND table_name = ?", [info.name]);
+            const r = await adapter.query(
+              "SELECT view_definition AS v FROM information_schema.views WHERE table_schema = DATABASE() AND table_name = ?",
+              [info.name],
+            );
             const def = r.rows[0]?.v ?? r.rows[0]?.V;
-            if (typeof def === "string" && def.trim()) viewSql = `CREATE VIEW ${quoteIdent("mysql", info.name)} AS ${def}`;
+            if (typeof def === "string" && def.trim())
+              viewSql = `CREATE VIEW ${quoteIdent("mysql", info.name)} AS ${def}`;
           } else if (ep.engine === "postgres") {
-            const r = await adapter.query("SELECT pg_get_viewdef((quote_ident($1) || '.' || quote_ident($2))::regclass, true) AS v", [info.schema || ep.schema || "public", info.name]);
+            const r = await adapter.query(
+              "SELECT pg_get_viewdef((quote_ident($1) || '.' || quote_ident($2))::regclass, true) AS v",
+              [info.schema || ep.schema || "public", info.name],
+            );
             const def = r.rows[0]?.v;
-            if (typeof def === "string" && def.trim()) viewSql = `CREATE VIEW ${quoteRef("postgres", { schema: info.schema || ep.schema || "public", name: info.name })} AS ${def}`;
+            if (typeof def === "string" && def.trim())
+              viewSql = `CREATE VIEW ${quoteRef("postgres", { schema: info.schema || ep.schema || "public", name: info.name })} AS ${def}`;
           }
         } catch {
           viewSql = null;
@@ -841,10 +1201,16 @@ async function inspectSqlEndpoint(ctx: FmContext, ep: ResolvedEndpoint): Promise
 }
 
 /** Connects to a source profile or SQLite file and inspects all tables, views, or Redis key groups. */
-export async function inspectCloneSource(ctx: FmContext, sourceInput: unknown): Promise<CloneInspectResult> {
+export async function inspectCloneSource(
+  ctx: FmContext,
+  sourceInput: unknown,
+): Promise<CloneInspectResult> {
   const ep = await resolveEndpoint(ctx, sourceInput, "source", true);
   try {
-    const objects = ep.engine === "redis" ? await inspectRedisEndpoint(ctx, ep) : await inspectSqlEndpoint(ctx, ep);
+    const objects =
+      ep.engine === "redis"
+        ? await inspectRedisEndpoint(ctx, ep)
+        : await inspectSqlEndpoint(ctx, ep);
     if (ep.profileId) dbState(ctx).store.markUsed(ep.profileId);
     return {
       source: {
@@ -866,13 +1232,18 @@ export async function inspectCloneSource(ctx: FmContext, sourceInput: unknown): 
   }
 }
 
-function normalizeOptions(raw: unknown): Required<Omit<CloneOptions, "tables" | "renameMap" | "rowLimit">> & {
+function normalizeOptions(raw: unknown): Required<
+  Omit<CloneOptions, "tables" | "renameMap" | "rowLimit">
+> & {
   tables: string[] | null;
   renameMap: Record<string, string>;
   rowLimit: number | null;
 } {
   const o = isObject(raw) ? raw : {};
-  const contentMode: CloneContentMode = o.contentMode === "schema" || o.contentMode === "data" ? o.contentMode : "all";
+  const contentMode: CloneContentMode =
+    o.contentMode === "schema" || o.contentMode === "data"
+      ? o.contentMode
+      : "all";
   const conflictMode: CloneConflictMode =
     o.conflictMode === "replace" ||
     o.conflictMode === "truncate" ||
@@ -883,16 +1254,27 @@ function normalizeOptions(raw: unknown): Required<Omit<CloneOptions, "tables" | 
       ? o.conflictMode
       : "replace";
   const viewMode: CloneViewMode = o.viewMode === "table" ? "table" : "view";
-  const redisFormat: CloneRedisFormat = o.redisFormat === "json" ? "json" : "hash";
-  const tablePrefix = typeof o.tablePrefix === "string" ? o.tablePrefix.trim().replace(/[^A-Za-z0-9_:-]/g, "_") : "";
+  const redisFormat: CloneRedisFormat =
+    o.redisFormat === "json" ? "json" : "hash";
+  const tablePrefix =
+    typeof o.tablePrefix === "string"
+      ? o.tablePrefix.trim().replace(/[^A-Za-z0-9_:-]/g, "_")
+      : "";
   const renameMap: Record<string, string> = {};
   if (isObject(o.renameMap)) {
     for (const [k, v] of Object.entries(o.renameMap)) {
       if (typeof v === "string" && v.trim()) renameMap[k] = v.trim();
     }
   }
-  const tables = Array.isArray(o.tables) ? o.tables.filter((t): t is string => typeof t === "string" && t.trim().length > 0) : null;
-  const rowLimit = Number.isFinite(Number(o.rowLimit)) && Number(o.rowLimit) > 0 ? Math.min(1_000_000, Math.trunc(Number(o.rowLimit))) : null;
+  const tables = Array.isArray(o.tables)
+    ? o.tables.filter(
+        (t): t is string => typeof t === "string" && t.trim().length > 0,
+      )
+    : null;
+  const rowLimit =
+    Number.isFinite(Number(o.rowLimit)) && Number(o.rowLimit) > 0
+      ? Math.min(1_000_000, Math.trunc(Number(o.rowLimit)))
+      : null;
   return {
     tables,
     tablePrefix,
@@ -908,7 +1290,11 @@ function normalizeOptions(raw: unknown): Required<Omit<CloneOptions, "tables" | 
   };
 }
 
-function resolveTargetName(sourceName: string, opts: ReturnType<typeof normalizeOptions>, targetEngine: DbEngine): string {
+function resolveTargetName(
+  sourceName: string,
+  opts: ReturnType<typeof normalizeOptions>,
+  targetEngine: DbEngine,
+): string {
   const explicit = opts.renameMap[sourceName];
   const raw = explicit ? explicit : `${opts.tablePrefix}${sourceName}`;
   if (targetEngine === "redis") {
@@ -917,16 +1303,24 @@ function resolveTargetName(sourceName: string, opts: ReturnType<typeof normalize
   return sanitizeTargetIdentifier(raw, sourceName);
 }
 
-function endpointsAreSameDatabase(src: ResolvedEndpoint, dst: ResolvedEndpoint): boolean {
+function endpointsAreSameDatabase(
+  src: ResolvedEndpoint,
+  dst: ResolvedEndpoint,
+): boolean {
   if (src.engine !== dst.engine) return false;
-  if (src.profileId && dst.profileId && src.profileId === dst.profileId) return true;
+  if (src.profileId && dst.profileId && src.profileId === dst.profileId)
+    return true;
   if (src.engine === "sqlite") {
     return Boolean(src.path && dst.path && src.path === dst.path);
   }
   const a = src.testInput;
   const b = dst.testInput;
   if (src.engine === "redis") {
-    return (a.host ?? "localhost") === (b.host ?? "localhost") && (a.port ?? 6379) === (b.port ?? 6379) && (a.dbIndex ?? 0) === (b.dbIndex ?? 0);
+    return (
+      (a.host ?? "localhost") === (b.host ?? "localhost") &&
+      (a.port ?? 6379) === (b.port ?? 6379) &&
+      (a.dbIndex ?? 0) === (b.dbIndex ?? 0)
+    );
   }
   return (
     (a.host ?? "localhost") === (b.host ?? "localhost") &&
@@ -936,14 +1330,22 @@ function endpointsAreSameDatabase(src: ResolvedEndpoint, dst: ResolvedEndpoint):
   );
 }
 
-async function listExistingTargetNames(ctx: FmContext, dst: ResolvedEndpoint): Promise<Set<string>> {
+async function listExistingTargetNames(
+  ctx: FmContext,
+  dst: ResolvedEndpoint,
+): Promise<Set<string>> {
   if (dst.kind === "newSqlite") return new Set();
   if (dst.engine === "redis") {
     const client = await openRedis(ctx, dst);
     try {
-      const keys = await scanRedisKeys(client, dst.testInput.keyPrefix ?? "", 1000);
+      const keys = await scanRedisKeys(
+        client,
+        dst.testInput.keyPrefix ?? "",
+        1000,
+      );
       const groups = new Set<string>();
-      for (const k of keys) groups.add(groupOfRedisKey(k, dst.testInput.keyPrefix ?? ""));
+      for (const k of keys)
+        groups.add(groupOfRedisKey(k, dst.testInput.keyPrefix ?? ""));
       return groups;
     } finally {
       client.close();
@@ -953,7 +1355,11 @@ async function listExistingTargetNames(ctx: FmContext, dst: ResolvedEndpoint): P
   try {
     await adapter.connect();
     const objs = await adapter.listObjects();
-    return new Set(objs.filter((o) => !dst.schema || !o.schema || o.schema === dst.schema).map((o) => o.name));
+    return new Set(
+      objs
+        .filter((o) => !dst.schema || !o.schema || o.schema === dst.schema)
+        .map((o) => o.name),
+    );
   } finally {
     await adapter.close().catch(() => {});
   }
@@ -968,9 +1374,16 @@ function buildPlanAndPreview(
 ): ClonePreviewResult {
   const warnings: string[] = [];
   const selectedSet = opts.tables ? new Set(opts.tables) : null;
-  let chosen = sourceObjects.filter((o) => (!selectedSet || selectedSet.has(o.name)) && (opts.includeViews || o.kind !== "view"));
+  let chosen = sourceObjects.filter(
+    (o) =>
+      (!selectedSet || selectedSet.has(o.name)) &&
+      (opts.includeViews || o.kind !== "view"),
+  );
   if (chosen.length === 0) {
-    throw new FmError("BAD_REQUEST", "Select at least one table, view or key group to clone.");
+    throw new FmError(
+      "BAD_REQUEST",
+      "Select at least one table, view or key group to clone.",
+    );
   }
 
   const tablesOnly = chosen.filter((o) => o.kind !== "view");
@@ -990,7 +1403,10 @@ function buildPlanAndPreview(
       );
     }
     if (seenTargets.has(tName.toLowerCase())) {
-      throw new FmError("BAD_REQUEST", `Two source objects map to the same target name "${tName}". Give each a distinct target name.`);
+      throw new FmError(
+        "BAD_REQUEST",
+        `Two source objects map to the same target name "${tName}". Give each a distinct target name.`,
+      );
     }
     seenTargets.add(tName.toLowerCase());
     tableNameMap.set(obj.name, tName);
@@ -998,13 +1414,17 @@ function buildPlanAndPreview(
 
   if (src.engine !== dst.engine) {
     if (src.engine === "redis") {
-      warnings.push(`Redis key groups will be structured into ${ENGINES[dst.engine].label} tables (hash fields become columns; other key types use redis_key, redis_type, value_text, value_json, ttl_ms).`);
+      warnings.push(
+        `Redis key groups will be structured into ${ENGINES[dst.engine].label} tables (hash fields become columns; other key types use redis_key, redis_type, value_text, value_json, ttl_ms).`,
+      );
     } else if (dst.engine === "redis") {
       warnings.push(
         `SQL tables will be cloned into Redis as ${opts.redisFormat === "json" ? "JSON strings" : "Redis Hashes"} named "<tableName>:<primaryKey>" with an index set "<tableName>:_ids".`,
       );
     } else {
-      warnings.push(`Column types, auto-increment keys and defaults will be translated from ${ENGINES[src.engine].label} to ${ENGINES[dst.engine].label}.`);
+      warnings.push(
+        `Column types, auto-increment keys and defaults will be translated from ${ENGINES[src.engine].label} to ${ENGINES[dst.engine].label}.`,
+      );
     }
   }
 
@@ -1012,43 +1432,75 @@ function buildPlanAndPreview(
   for (const obj of ordered) {
     const targetName = tableNameMap.get(obj.name)!;
     const exists = existingTargetNames.has(targetName);
-    const estimatedRows = opts.contentMode === "schema" ? 0 : opts.rowLimit ? Math.min(obj.rowCount, opts.rowLimit) : obj.rowCount;
+    const estimatedRows =
+      opts.contentMode === "schema"
+        ? 0
+        : opts.rowLimit
+          ? Math.min(obj.rowCount, opts.rowLimit)
+          : obj.rowCount;
     let action: CloneTablePlan["action"] = "create";
     if (exists) {
       action = opts.conflictMode;
     } else if (opts.contentMode === "data") {
-      warnings.push(`"${targetName}" does not exist on the target yet; its table structure will be created before copying rows.`);
+      warnings.push(
+        `"${targetName}" does not exist on the target yet; its table structure will be created before copying rows.`,
+      );
     }
 
     const ddl: string[] = [];
     if (dst.engine === "redis") {
       const prefix = dst.testInput.keyPrefix ?? "";
-      if (exists && opts.conflictMode === "replace") ddl.push(`DEL ${prefix}${targetName}:*`);
+      if (exists && opts.conflictMode === "replace")
+        ddl.push(`DEL ${prefix}${targetName}:*`);
       ddl.push(
         opts.redisFormat === "json"
           ? `SET ${prefix}${targetName}:<id> "{...json...}" (${estimatedRows} keys)`
           : `HSET ${prefix}${targetName}:<id> <col> <val> ... (${estimatedRows} hashes)`,
       );
     } else {
-      const qTarget = dst.engine === "postgres" && dst.schema ? `${quoteIdent("postgres", dst.schema)}.${quoteIdent("postgres", targetName)}` : quoteIdent(dst.engine as Engine, targetName);
+      const qTarget =
+        dst.engine === "postgres" && dst.schema
+          ? `${quoteIdent("postgres", dst.schema)}.${quoteIdent("postgres", targetName)}`
+          : quoteIdent(dst.engine as Engine, targetName);
       if (exists && opts.conflictMode === "replace") {
-        ddl.push(`DROP ${obj.kind === "view" && opts.viewMode === "view" && src.engine === dst.engine ? "VIEW" : "TABLE"} IF EXISTS ${qTarget}`);
+        ddl.push(
+          `DROP ${obj.kind === "view" && opts.viewMode === "view" && src.engine === dst.engine ? "VIEW" : "TABLE"} IF EXISTS ${qTarget}`,
+        );
       } else if (exists && opts.conflictMode === "truncate") {
         ddl.push(`DELETE FROM ${qTarget}`);
       }
       if (!exists || opts.conflictMode === "replace") {
-        if (obj.kind === "view" && opts.viewMode === "view" && src.engine === dst.engine && obj.viewSql && targetName === obj.name) {
+        if (
+          obj.kind === "view" &&
+          opts.viewMode === "view" &&
+          src.engine === dst.engine &&
+          obj.viewSql &&
+          targetName === obj.name
+        ) {
           ddl.push(obj.viewSql);
         } else {
-          if (obj.kind === "view" && (src.engine !== dst.engine || opts.viewMode === "table" || targetName !== obj.name)) {
-            warnings.push(`View "${obj.name}" will be materialized as table "${targetName}" on ${ENGINES[dst.engine].label}.`);
+          if (
+            obj.kind === "view" &&
+            (src.engine !== dst.engine ||
+              opts.viewMode === "table" ||
+              targetName !== obj.name)
+          ) {
+            warnings.push(
+              `View "${obj.name}" will be materialized as table "${targetName}" on ${ENGINES[dst.engine].label}.`,
+            );
           }
-          const built = buildCreateTableDdl(obj, targetName, dst.engine as Engine, dst.schema, {
-            ifNotExists: opts.conflictMode !== "replace",
-            includeForeignKeys: opts.includeForeignKeys,
-            tableNameMap,
-            existingTargetTables: existingTargetNames,
-          });
+          const built = buildCreateTableDdl(
+            obj,
+            targetName,
+            dst.engine as Engine,
+            dst.schema,
+            {
+              ifNotExists: opts.conflictMode !== "replace",
+              includeForeignKeys: opts.includeForeignKeys,
+              tableNameMap,
+              existingTargetTables: existingTargetNames,
+            },
+          );
           ddl.push(built.tableDdl);
           if (opts.includeIndexes) ddl.push(...built.indexDdls);
         }
@@ -1066,8 +1518,17 @@ function buildPlanAndPreview(
     });
   }
 
-  const destructive = plans.some((p) => p.targetExists && (p.action === "replace" || p.action === "truncate"));
-  const confirmReason = dst.production ? "production" : dst.readOnly ? "readonly" : destructive ? "destructive" : undefined;
+  const destructive = plans.some(
+    (p) =>
+      p.targetExists && (p.action === "replace" || p.action === "truncate"),
+  );
+  const confirmReason = dst.production
+    ? "production"
+    : dst.readOnly
+      ? "readonly"
+      : destructive
+        ? "destructive"
+        : undefined;
 
   return {
     source: {
@@ -1093,7 +1554,10 @@ function buildPlanAndPreview(
       readOnly: dst.readOnly,
     },
     plans,
-    totalEstimatedRows: plans.reduce((s, p) => s + (p.action === "skip" ? 0 : p.estimatedRows), 0),
+    totalEstimatedRows: plans.reduce(
+      (s, p) => s + (p.action === "skip" ? 0 : p.estimatedRows),
+      0,
+    ),
     warnings: [...new Set(warnings)],
     needsConfirm: Boolean(dst.production || dst.readOnly),
     ...(confirmReason ? { confirmReason } : {}),
@@ -1101,22 +1565,43 @@ function buildPlanAndPreview(
 }
 
 /** Inspects source and target endpoints and builds a dry-run `ClonePreviewResult` without modifying the target. */
-export async function previewClone(ctx: FmContext, body: Record<string, any>): Promise<ClonePreviewResult> {
+export async function previewClone(
+  ctx: FmContext,
+  body: Record<string, any>,
+): Promise<ClonePreviewResult> {
   const src = await resolveEndpoint(ctx, body.source, "source", true);
   const dst = await resolveEndpoint(ctx, body.target, "target", false);
   const opts = normalizeOptions(body.options);
   try {
-    const sourceObjects = src.engine === "redis" ? await inspectRedisEndpoint(ctx, src) : await inspectSqlEndpoint(ctx, src);
+    const sourceObjects =
+      src.engine === "redis"
+        ? await inspectRedisEndpoint(ctx, src)
+        : await inspectSqlEndpoint(ctx, src);
     const existingTargetNames = await listExistingTargetNames(ctx, dst);
-    return buildPlanAndPreview(src, dst, sourceObjects, existingTargetNames, opts);
+    return buildPlanAndPreview(
+      src,
+      dst,
+      sourceObjects,
+      existingTargetNames,
+      opts,
+    );
   } catch (err) {
     throw wrapCloneError(err, [src.password, dst.password]);
   }
 }
 
-function toTargetParam(val: WireValue, col: CloneSourceColumn, targetEngine: Engine): Param {
+function toTargetParam(
+  val: WireValue,
+  col: CloneSourceColumn,
+  targetEngine: Engine,
+): Param {
   if (val === null || val === undefined) return null;
-  if (typeof val === "object" && !Array.isArray(val) && "$binary" in val && typeof (val as { $binary: unknown }).$binary === "string") {
+  if (
+    typeof val === "object" &&
+    !Array.isArray(val) &&
+    "$binary" in val &&
+    typeof (val as { $binary: unknown }).$binary === "string"
+  ) {
     return { $binary: (val as { $binary: string }).$binary };
   }
   if (col.canonicalType === "boolean") {
@@ -1134,7 +1619,11 @@ function toTargetParam(val: WireValue, col: CloneSourceColumn, targetEngine: Eng
     const m = /^(\d{4}-\d{2}-\d{2})/.exec(val.trim());
     if (m) return m[1]!;
   }
-  if (col.canonicalType === "timestamp" && targetEngine === "mysql" && typeof val === "string") {
+  if (
+    col.canonicalType === "timestamp" &&
+    targetEngine === "mysql" &&
+    typeof val === "string"
+  ) {
     const m = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})/.exec(val.trim());
     if (m) return `${m[1]} ${m[2]}`;
   }
@@ -1167,7 +1656,10 @@ function buildInsertBatchSql(
   conflictMode: CloneConflictMode,
 ): string {
   const q = (id: string) => quoteIdent(targetEngine, id);
-  const fullTarget = targetEngine === "postgres" && targetSchema ? `${q(targetSchema)}.${q(targetName)}` : q(targetName);
+  const fullTarget =
+    targetEngine === "postgres" && targetSchema
+      ? `${q(targetSchema)}.${q(targetName)}`
+      : q(targetName);
   const colList = columns.map((c) => q(c.name)).join(", ");
 
   const groups: string[] = [];
@@ -1179,24 +1671,32 @@ function buildInsertBatchSql(
   const valuesClause = groups.join(", ");
 
   const validPk = primaryKey.filter((k) => columns.some((c) => c.name === k));
-  const nonPkCols = columns.map((c) => c.name).filter((n) => !validPk.includes(n));
+  const nonPkCols = columns
+    .map((c) => c.name)
+    .filter((n) => !validPk.includes(n));
 
   if (conflictMode === "append") {
-    if (targetEngine === "sqlite") return `INSERT OR IGNORE INTO ${fullTarget} (${colList}) VALUES ${valuesClause}`;
-    if (targetEngine === "mysql") return `INSERT IGNORE INTO ${fullTarget} (${colList}) VALUES ${valuesClause}`;
+    if (targetEngine === "sqlite")
+      return `INSERT OR IGNORE INTO ${fullTarget} (${colList}) VALUES ${valuesClause}`;
+    if (targetEngine === "mysql")
+      return `INSERT IGNORE INTO ${fullTarget} (${colList}) VALUES ${valuesClause}`;
     return `INSERT INTO ${fullTarget} (${colList}) VALUES ${valuesClause} ON CONFLICT DO NOTHING`;
   }
 
   if (conflictMode === "upsert" && validPk.length > 0) {
     if (targetEngine === "mysql") {
-      const updates = (nonPkCols.length ? nonPkCols : validPk).map((c) => `${q(c)} = VALUES(${q(c)})`).join(", ");
+      const updates = (nonPkCols.length ? nonPkCols : validPk)
+        .map((c) => `${q(c)} = VALUES(${q(c)})`)
+        .join(", ");
       return `INSERT INTO ${fullTarget} (${colList}) VALUES ${valuesClause} ON DUPLICATE KEY UPDATE ${updates}`;
     }
     const pkList = validPk.map(q).join(", ");
     if (nonPkCols.length === 0) {
       return `INSERT INTO ${fullTarget} (${colList}) VALUES ${valuesClause} ON CONFLICT (${pkList}) DO NOTHING`;
     }
-    const updates = nonPkCols.map((c) => `${q(c)} = EXCLUDED.${q(c)}`).join(", ");
+    const updates = nonPkCols
+      .map((c) => `${q(c)} = EXCLUDED.${q(c)}`)
+      .join(", ");
     return `INSERT INTO ${fullTarget} (${colList}) VALUES ${valuesClause} ON CONFLICT (${pkList}) DO UPDATE SET ${updates}`;
   }
 
@@ -1214,7 +1714,8 @@ async function syncPostgresSequences(
   const full = `${qSchema}.${qTable}`;
   for (const col of columns) {
     if (!col.autoIncrement && col.primaryKeyPosition !== 1) continue;
-    if (col.canonicalType !== "integer" && col.canonicalType !== "bigint") continue;
+    if (col.canonicalType !== "integer" && col.canonicalType !== "bigint")
+      continue;
     const qCol = quoteIdent("postgres", col.name);
     try {
       await adapter.query(
@@ -1235,26 +1736,42 @@ async function executeSqlToSqlClone(
   sourceObjects: CloneSourceObject[],
   opts: ReturnType<typeof normalizeOptions>,
 ): Promise<CloneTableResult[]> {
-  const sameSqliteFile = src.engine === "sqlite" && dst.engine === "sqlite" && src.path && dst.path && src.path === dst.path;
+  const sameSqliteFile =
+    src.engine === "sqlite" &&
+    dst.engine === "sqlite" &&
+    src.path &&
+    dst.path &&
+    src.path === dst.path;
   const dstAdapter = openSqlAdapter(ctx, dst, false);
-  const srcAdapter = sameSqliteFile ? dstAdapter : openSqlAdapter(ctx, src, true);
+  const srcAdapter = sameSqliteFile
+    ? dstAdapter
+    : openSqlAdapter(ctx, src, true);
 
   try {
     await dstAdapter.connect();
     if (!sameSqliteFile) await srcAdapter.connect();
 
     const bySource = new Map(sourceObjects.map((o) => [o.name, o]));
-    const tableNameMap = new Map(preview.plans.map((p) => [p.sourceName, p.targetName]));
-    const existingSet = new Set(preview.plans.filter((p) => p.targetExists).map((p) => p.targetName));
+    const tableNameMap = new Map(
+      preview.plans.map((p) => [p.sourceName, p.targetName]),
+    );
+    const existingSet = new Set(
+      preview.plans.filter((p) => p.targetExists).map((p) => p.targetName),
+    );
 
     for (const plan of preview.plans) {
       if (plan.targetExists && plan.action === "fail") {
-        throw new FmError("CONFLICT", `Target table "${plan.targetName}" already exists in "${dst.label}".`);
+        throw new FmError(
+          "CONFLICT",
+          `Target table "${plan.targetName}" already exists in "${dst.label}".`,
+        );
       }
     }
 
     // If replacing existing tables, drop them in reverse topological order so foreign keys do not block drops
-    const toDrop = [...preview.plans].reverse().filter((p) => p.targetExists && p.action === "replace");
+    const toDrop = [...preview.plans]
+      .reverse()
+      .filter((p) => p.targetExists && p.action === "replace");
     if (toDrop.length > 0 && dst.engine === "mysql") {
       await dstAdapter.query("SET FOREIGN_KEY_CHECKS = 0").catch(() => {});
     }
@@ -1273,7 +1790,9 @@ async function executeSqlToSqlClone(
           const cascade = dst.engine === "postgres" ? " CASCADE" : "";
           await dstAdapter.query(`DROP TABLE IF EXISTS ${qTarget}${cascade}`);
         } catch {
-          await dstAdapter.query(`DROP VIEW IF EXISTS ${qTarget}`).catch(() => {});
+          await dstAdapter
+            .query(`DROP VIEW IF EXISTS ${qTarget}`)
+            .catch(() => {});
         }
       }
     } finally {
@@ -1283,7 +1802,8 @@ async function executeSqlToSqlClone(
     }
 
     const results: CloneTableResult[] = [];
-    const maxBatchRows = (colCount: number) => Math.max(1, Math.min(100, Math.floor(450 / Math.max(1, colCount))));
+    const maxBatchRows = (colCount: number) =>
+      Math.max(1, Math.min(100, Math.floor(450 / Math.max(1, colCount))));
 
     for (const plan of preview.plans) {
       const obj = bySource.get(plan.sourceName)!;
@@ -1313,11 +1833,15 @@ async function executeSqlToSqlClone(
         src.engine === dst.engine &&
         obj.viewSql &&
         plan.targetName === obj.name &&
-        /^\s*CREATE\s+(?:OR\s+REPLACE\s+)?(?:TEMP(?:ORARY)?\s+)?VIEW\b/i.test(obj.viewSql) &&
+        /^\s*CREATE\s+(?:OR\s+REPLACE\s+)?(?:TEMP(?:ORARY)?\s+)?VIEW\b/i.test(
+          obj.viewSql,
+        ) &&
         !/;[\s\S]*\S/.test(obj.viewSql)
       ) {
         try {
-          await dstAdapter.query(`DROP VIEW IF EXISTS ${qTarget}`).catch(() => {});
+          await dstAdapter
+            .query(`DROP VIEW IF EXISTS ${qTarget}`)
+            .catch(() => {});
           await dstAdapter.query(obj.viewSql);
           results.push({
             sourceName: plan.sourceName,
@@ -1339,12 +1863,18 @@ async function executeSqlToSqlClone(
       let foreignKeysCreated = 0;
 
       if (!plan.targetExists || plan.action === "replace") {
-        const built = buildCreateTableDdl(obj, plan.targetName, dst.engine as Engine, dst.schema, {
-          ifNotExists: plan.action !== "replace",
-          includeForeignKeys: opts.includeForeignKeys,
-          tableNameMap,
-          existingTargetTables: existingSet,
-        });
+        const built = buildCreateTableDdl(
+          obj,
+          plan.targetName,
+          dst.engine as Engine,
+          dst.schema,
+          {
+            ifNotExists: plan.action !== "replace",
+            includeForeignKeys: opts.includeForeignKeys,
+            tableNameMap,
+            existingTargetTables: existingSet,
+          },
+        );
         await dstAdapter.query(built.tableDdl);
         foreignKeysCreated = built.fkCount;
         existingSet.add(plan.targetName);
@@ -1365,11 +1895,17 @@ async function executeSqlToSqlClone(
 
       let rowsCopied = 0;
       if (opts.contentMode !== "schema" && obj.columns.length > 0) {
-        const qSource = quoteRef(src.engine as Engine, { schema: obj.schema, name: obj.name });
+        const qSource = quoteRef(src.engine as Engine, {
+          schema: obj.schema,
+          name: obj.name,
+        });
         const selectCols = obj.columns
           .map((c) => {
             const q = quoteIdent(src.engine as Engine, c.name);
-            return src.engine === "mysql" && (c.canonicalType === "date" || c.canonicalType === "time" || c.canonicalType === "timestamp")
+            return src.engine === "mysql" &&
+              (c.canonicalType === "date" ||
+                c.canonicalType === "time" ||
+                c.canonicalType === "timestamp")
               ? `CAST(${q} AS CHAR) AS ${q}`
               : q;
           })
@@ -1380,7 +1916,9 @@ async function executeSqlToSqlClone(
 
         while (rowsCopied < limitTotal) {
           const fetchLimit = Math.min(BATCH_ROWS, limitTotal - rowsCopied);
-          const page = await srcAdapter.query(`SELECT ${selectCols} FROM ${qSource} LIMIT ${fetchLimit} OFFSET ${offset}`);
+          const page = await srcAdapter.query(
+            `SELECT ${selectCols} FROM ${qSource} LIMIT ${fetchLimit} OFFSET ${offset}`,
+          );
           if (page.rows.length === 0) break;
           offset += page.rows.length;
 
@@ -1389,7 +1927,13 @@ async function executeSqlToSqlClone(
             const params: Param[] = [];
             for (const row of chunk) {
               for (const col of obj.columns) {
-                params.push(toTargetParam(row[col.name] ?? null, col, dst.engine as Engine));
+                params.push(
+                  toTargetParam(
+                    row[col.name] ?? null,
+                    col,
+                    dst.engine as Engine,
+                  ),
+                );
               }
             }
             const insertSql = buildInsertBatchSql(
@@ -1399,7 +1943,9 @@ async function executeSqlToSqlClone(
               obj.columns,
               obj.primaryKey,
               chunk.length,
-              plan.action === "append" || plan.action === "upsert" ? plan.action : "replace",
+              plan.action === "append" || plan.action === "upsert"
+                ? plan.action
+                : "replace",
             );
             await dstAdapter.query(insertSql, params);
             rowsCopied += chunk.length;
@@ -1409,7 +1955,12 @@ async function executeSqlToSqlClone(
         }
 
         if (dst.engine === "postgres" && rowsCopied > 0) {
-          await syncPostgresSequences(dstAdapter, dst.schema || "public", plan.targetName, obj.columns);
+          await syncPostgresSequences(
+            dstAdapter,
+            dst.schema || "public",
+            plan.targetName,
+            obj.columns,
+          );
         }
       }
 
@@ -1431,7 +1982,10 @@ async function executeSqlToSqlClone(
   }
 }
 
-async function readRedisKeyRecord(client: CloneRedisClient, key: string): Promise<{
+async function readRedisKeyRecord(
+  client: CloneRedisClient,
+  key: string,
+): Promise<{
   key: string;
   type: string;
   ttlMs: number | null;
@@ -1441,19 +1995,36 @@ async function readRedisKeyRecord(client: CloneRedisClient, key: string): Promis
   setVal?: string[];
   zsetVal?: Array<{ member: string; score: string }>;
 }> {
-  const type = String((await client.send("TYPE", [key])) ?? "string").toLowerCase();
+  const type = String(
+    (await client.send("TYPE", [key])) ?? "string",
+  ).toLowerCase();
   const rawTtl = Number(await client.send("PTTL", [key]));
   const ttlMs = Number.isFinite(rawTtl) && rawTtl > 0 ? rawTtl : null;
   if (type === "hash") {
-    return { key, type, ttlMs, hashVal: parseHashPairs(await client.send("HGETALL", [key])) };
+    return {
+      key,
+      type,
+      ttlMs,
+      hashVal: parseHashPairs(await client.send("HGETALL", [key])),
+    };
   }
   if (type === "list") {
     const arr = await client.send("LRANGE", [key, "0", "-1"]);
-    return { key, type, ttlMs, listVal: Array.isArray(arr) ? arr.map(String) : [] };
+    return {
+      key,
+      type,
+      ttlMs,
+      listVal: Array.isArray(arr) ? arr.map(String) : [],
+    };
   }
   if (type === "set") {
     const arr = await client.send("SMEMBERS", [key]);
-    return { key, type, ttlMs, setVal: Array.isArray(arr) ? arr.map(String) : [] };
+    return {
+      key,
+      type,
+      ttlMs,
+      setVal: Array.isArray(arr) ? arr.map(String) : [],
+    };
   }
   if (type === "zset") {
     const arr = await client.send("ZRANGE", [key, "0", "-1", "WITHSCORES"]);
@@ -1461,16 +2032,27 @@ async function readRedisKeyRecord(client: CloneRedisClient, key: string): Promis
     if (Array.isArray(arr)) {
       for (let i = 0; i + 1 < arr.length; i += 2) {
         if (Array.isArray(arr[i])) {
-          zsetVal.push({ member: String(arr[i][0] ?? ""), score: String(arr[i][1] ?? "0") });
+          zsetVal.push({
+            member: String(arr[i][0] ?? ""),
+            score: String(arr[i][1] ?? "0"),
+          });
         } else {
-          zsetVal.push({ member: String(arr[i] ?? ""), score: String(arr[i + 1] ?? "0") });
+          zsetVal.push({
+            member: String(arr[i] ?? ""),
+            score: String(arr[i + 1] ?? "0"),
+          });
         }
       }
     }
     return { key, type, ttlMs, zsetVal };
   }
   const s = await client.send("GET", [key]);
-  return { key, type: "string", ttlMs, stringVal: s === null || s === undefined ? "" : String(s) };
+  return {
+    key,
+    type: "string",
+    ttlMs,
+    stringVal: s === null || s === undefined ? "" : String(s),
+  };
 }
 
 async function writeRedisKeyRecord(
@@ -1482,7 +2064,11 @@ async function writeRedisKeyRecord(
   const exists = Number(await client.send("EXISTS", [targetKey])) > 0;
   if (exists) {
     if (conflictMode === "skip") return false;
-    if (conflictMode === "fail") throw new FmError("CONFLICT", `Redis key "${targetKey}" already exists on the target.`);
+    if (conflictMode === "fail")
+      throw new FmError(
+        "CONFLICT",
+        `Redis key "${targetKey}" already exists on the target.`,
+      );
     if (conflictMode === "replace" || conflictMode === "truncate") {
       await client.send("DEL", [targetKey]);
     }
@@ -1495,9 +2081,11 @@ async function writeRedisKeyRecord(
       await client.send("HSET", args);
     }
   } else if (rec.type === "list" && rec.listVal) {
-    if (rec.listVal.length > 0) await client.send("RPUSH", [targetKey, ...rec.listVal]);
+    if (rec.listVal.length > 0)
+      await client.send("RPUSH", [targetKey, ...rec.listVal]);
   } else if (rec.type === "set" && rec.setVal) {
-    if (rec.setVal.length > 0) await client.send("SADD", [targetKey, ...rec.setVal]);
+    if (rec.setVal.length > 0)
+      await client.send("SADD", [targetKey, ...rec.setVal]);
   } else if (rec.type === "zset" && rec.zsetVal) {
     if (rec.zsetVal.length > 0) {
       const args: string[] = [targetKey];
@@ -1540,19 +2128,44 @@ async function executeRedisToRedisClone(
     const results: CloneTableResult[] = [];
     for (const plan of preview.plans) {
       if (plan.action === "skip" && plan.targetExists) {
-        results.push({ sourceName: plan.sourceName, targetName: plan.targetName, kind: "redis_group", status: "skipped", rowsCopied: 0, indexesCreated: 0, foreignKeysCreated: 0 });
+        results.push({
+          sourceName: plan.sourceName,
+          targetName: plan.targetName,
+          kind: "redis_group",
+          status: "skipped",
+          rowsCopied: 0,
+          indexesCreated: 0,
+          foreignKeysCreated: 0,
+        });
         continue;
       }
-      const keys = (byGroup.get(plan.sourceName) ?? []).slice(0, opts.rowLimit ?? Infinity);
+      const keys = (byGroup.get(plan.sourceName) ?? []).slice(
+        0,
+        opts.rowLimit ?? Infinity,
+      );
       let copied = 0;
       if (opts.contentMode !== "schema") {
         for (const k of keys) {
-          const stripped = srcPrefix && k.startsWith(srcPrefix) ? k.slice(srcPrefix.length) : k;
+          const stripped =
+            srcPrefix && k.startsWith(srcPrefix)
+              ? k.slice(srcPrefix.length)
+              : k;
           const idx = stripped.indexOf(":");
           const suffix = idx > 0 ? stripped.slice(idx + 1) : stripped;
-          const targetKey = idx > 0 || plan.targetName !== "redis_keys" ? `${dstPrefix}${plan.targetName}:${suffix}` : `${dstPrefix}${opts.tablePrefix}${stripped}`;
+          const targetKey =
+            idx > 0 || plan.targetName !== "redis_keys"
+              ? `${dstPrefix}${plan.targetName}:${suffix}`
+              : `${dstPrefix}${opts.tablePrefix}${stripped}`;
           const rec = await readRedisKeyRecord(srcClient, k);
-          if (await writeRedisKeyRecord(dstClient, targetKey, rec, opts.conflictMode)) copied++;
+          if (
+            await writeRedisKeyRecord(
+              dstClient,
+              targetKey,
+              rec,
+              opts.conflictMode,
+            )
+          )
+            copied++;
         }
       }
       results.push({
@@ -1598,17 +2211,32 @@ async function executeRedisToSqlClone(
     }
 
     const bySource = new Map(sourceObjects.map((o) => [o.name, o]));
-    const tableNameMap = new Map(preview.plans.map((p) => [p.sourceName, p.targetName]));
-    const existingSet = new Set(preview.plans.filter((p) => p.targetExists).map((p) => p.targetName));
+    const tableNameMap = new Map(
+      preview.plans.map((p) => [p.sourceName, p.targetName]),
+    );
+    const existingSet = new Set(
+      preview.plans.filter((p) => p.targetExists).map((p) => p.targetName),
+    );
     const results: CloneTableResult[] = [];
 
     for (const plan of preview.plans) {
       const obj = bySource.get(plan.sourceName)!;
       if (plan.targetExists && plan.action === "fail") {
-        throw new FmError("CONFLICT", `Target table "${plan.targetName}" already exists in "${dst.label}".`);
+        throw new FmError(
+          "CONFLICT",
+          `Target table "${plan.targetName}" already exists in "${dst.label}".`,
+        );
       }
       if (plan.action === "skip" && plan.targetExists) {
-        results.push({ sourceName: plan.sourceName, targetName: plan.targetName, kind: "redis_group", status: "skipped", rowsCopied: 0, indexesCreated: 0, foreignKeysCreated: 0 });
+        results.push({
+          sourceName: plan.sourceName,
+          targetName: plan.targetName,
+          kind: "redis_group",
+          status: "skipped",
+          rowsCopied: 0,
+          indexesCreated: 0,
+          foreignKeysCreated: 0,
+        });
         continue;
       }
 
@@ -1624,30 +2252,52 @@ async function executeRedisToSqlClone(
       }
 
       if (!plan.targetExists || plan.action === "replace") {
-        const built = buildCreateTableDdl(obj, plan.targetName, dst.engine as Engine, dst.schema, {
-          ifNotExists: plan.action !== "replace",
-          includeForeignKeys: false,
-          tableNameMap,
-          existingTargetTables: existingSet,
-        });
+        const built = buildCreateTableDdl(
+          obj,
+          plan.targetName,
+          dst.engine as Engine,
+          dst.schema,
+          {
+            ifNotExists: plan.action !== "replace",
+            includeForeignKeys: false,
+            tableNameMap,
+            existingTargetTables: existingSet,
+          },
+        );
         await dstAdapter.query(built.tableDdl);
       }
 
       let rowsCopied = 0;
       if (opts.contentMode !== "schema") {
-        const keys = (byGroup.get(plan.sourceName) ?? []).slice(0, opts.rowLimit ?? Infinity);
-        const isHashTable = obj.redisKeyType === "hash" && obj.columns.some((c) => c.name === "key_id");
-        const insertAction = plan.action === "append" || plan.action === "upsert" ? plan.action : "replace";
-        const batchSize = Math.max(1, Math.min(100, Math.floor(900 / Math.max(1, obj.columns.length))));
+        const keys = (byGroup.get(plan.sourceName) ?? []).slice(
+          0,
+          opts.rowLimit ?? Infinity,
+        );
+        const isHashTable =
+          obj.redisKeyType === "hash" &&
+          obj.columns.some((c) => c.name === "key_id");
+        const insertAction =
+          plan.action === "append" || plan.action === "upsert"
+            ? plan.action
+            : "replace";
+        const batchSize = Math.max(
+          1,
+          Math.min(100, Math.floor(900 / Math.max(1, obj.columns.length))),
+        );
 
         for (let kOff = 0; kOff < keys.length; kOff += batchSize) {
           const sliceKeys = keys.slice(kOff, kOff + batchSize);
-          const records = await Promise.all(sliceKeys.map((k) => readRedisKeyRecord(srcClient, k)));
+          const records = await Promise.all(
+            sliceKeys.map((k) => readRedisKeyRecord(srcClient, k)),
+          );
           const batchParams: Param[] = [];
           for (let i = 0; i < sliceKeys.length; i++) {
             const k = sliceKeys[i]!;
             const rec = records[i]!;
-            const stripped = srcPrefix && k.startsWith(srcPrefix) ? k.slice(srcPrefix.length) : k;
+            const stripped =
+              srcPrefix && k.startsWith(srcPrefix)
+                ? k.slice(srcPrefix.length)
+                : k;
             const idx = stripped.indexOf(":");
             const keyId = idx > 0 ? stripped.slice(idx + 1) : stripped;
 
@@ -1658,7 +2308,12 @@ async function executeRedisToSqlClone(
               rowValues.ttl_ms = rec.ttlMs;
               const h = rec.hashVal ?? {};
               for (const col of obj.columns) {
-                if (col.name === "redis_key" || col.name === "key_id" || col.name === "ttl_ms") continue;
+                if (
+                  col.name === "redis_key" ||
+                  col.name === "key_id" ||
+                  col.name === "ttl_ms"
+                )
+                  continue;
                 rowValues[col.name] = h[col.name] ?? null;
               }
             } else {
@@ -1690,7 +2345,13 @@ async function executeRedisToSqlClone(
             }
 
             for (const col of obj.columns) {
-              batchParams.push(toTargetParam(rowValues[col.name] ?? null, col, dst.engine as Engine));
+              batchParams.push(
+                toTargetParam(
+                  rowValues[col.name] ?? null,
+                  col,
+                  dst.engine as Engine,
+                ),
+              );
             }
           }
 
@@ -1745,26 +2406,50 @@ async function executeSqlToRedisClone(
     for (const plan of preview.plans) {
       const obj = bySource.get(plan.sourceName)!;
       if (plan.action === "skip" && plan.targetExists) {
-        results.push({ sourceName: plan.sourceName, targetName: plan.targetName, kind: obj.kind, status: "skipped", rowsCopied: 0, indexesCreated: 0, foreignKeysCreated: 0 });
+        results.push({
+          sourceName: plan.sourceName,
+          targetName: plan.targetName,
+          kind: obj.kind,
+          status: "skipped",
+          rowsCopied: 0,
+          indexesCreated: 0,
+          foreignKeysCreated: 0,
+        });
         continue;
       }
       if (plan.targetExists && plan.action === "fail") {
-        throw new FmError("CONFLICT", `Target Redis namespace "${plan.targetName}" already has keys.`);
+        throw new FmError(
+          "CONFLICT",
+          `Target Redis namespace "${plan.targetName}" already has keys.`,
+        );
       }
 
       const ns = `${dstPrefix}${plan.targetName}`;
-      if (plan.targetExists && (plan.action === "replace" || plan.action === "truncate")) {
-        const oldKeys = await scanRedisKeys(dstClient, `${ns}:`, MAX_REDIS_SCAN);
+      if (
+        plan.targetExists &&
+        (plan.action === "replace" || plan.action === "truncate")
+      ) {
+        const oldKeys = await scanRedisKeys(
+          dstClient,
+          `${ns}:`,
+          MAX_REDIS_SCAN,
+        );
         for (const k of oldKeys) await dstClient.send("DEL", [k]);
       }
 
       let rowsCopied = 0;
       if (opts.contentMode !== "schema" && obj.columns.length > 0) {
-        const qSource = quoteRef(src.engine as Engine, { schema: obj.schema, name: obj.name });
+        const qSource = quoteRef(src.engine as Engine, {
+          schema: obj.schema,
+          name: obj.name,
+        });
         const selectCols = obj.columns
           .map((c) => {
             const q = quoteIdent(src.engine as Engine, c.name);
-            return src.engine === "mysql" && (c.canonicalType === "date" || c.canonicalType === "time" || c.canonicalType === "timestamp")
+            return src.engine === "mysql" &&
+              (c.canonicalType === "date" ||
+                c.canonicalType === "time" ||
+                c.canonicalType === "timestamp")
               ? `CAST(${q} AS CHAR) AS ${q}`
               : q;
           })
@@ -1775,7 +2460,9 @@ async function executeSqlToRedisClone(
 
         while (rowsCopied < limitTotal) {
           const fetchLimit = Math.min(BATCH_ROWS, limitTotal - rowsCopied);
-          const page = await srcAdapter.query(`SELECT ${selectCols} FROM ${qSource} LIMIT ${fetchLimit} OFFSET ${offset}`);
+          const page = await srcAdapter.query(
+            `SELECT ${selectCols} FROM ${qSource} LIMIT ${fetchLimit} OFFSET ${offset}`,
+          );
           if (page.rows.length === 0) break;
           offset += page.rows.length;
 
@@ -1798,7 +2485,14 @@ async function executeSqlToRedisClone(
               const args: string[] = [redisKey];
               for (const col of obj.columns) {
                 const v = row[col.name];
-                args.push(col.name, v === null || v === undefined ? "" : typeof v === "object" ? JSON.stringify(v) : String(v));
+                args.push(
+                  col.name,
+                  v === null || v === undefined
+                    ? ""
+                    : typeof v === "object"
+                      ? JSON.stringify(v)
+                      : String(v),
+                );
               }
               await dstClient.send("HSET", args);
             }
@@ -1829,7 +2523,10 @@ async function executeSqlToRedisClone(
 }
 
 /** Executes a cross-engine schema and data clone between the specified source and target database endpoints. */
-export async function runClone(ctx: FmContext, body: Record<string, any>): Promise<CloneRunResult> {
+export async function runClone(
+  ctx: FmContext,
+  body: Record<string, any>,
+): Promise<CloneRunResult> {
   const started = performance.now();
   const src = await resolveEndpoint(ctx, body.source, "source", true);
   const dst = await resolveEndpoint(ctx, body.target, "target", false);
@@ -1850,16 +2547,30 @@ export async function runClone(ctx: FmContext, body: Record<string, any>): Promi
   let createdProfile: DbProfile | null = null;
 
   try {
-    const sourceObjects = src.engine === "redis" ? await inspectRedisEndpoint(ctx, src) : await inspectSqlEndpoint(ctx, src);
+    const sourceObjects =
+      src.engine === "redis"
+        ? await inspectRedisEndpoint(ctx, src)
+        : await inspectSqlEndpoint(ctx, src);
     const existingTargetNames = await listExistingTargetNames(ctx, dst);
-    const preview = buildPlanAndPreview(src, dst, sourceObjects, existingTargetNames, opts);
+    const preview = buildPlanAndPreview(
+      src,
+      dst,
+      sourceObjects,
+      existingTargetNames,
+      opts,
+    );
 
     if (dst.kind === "newSqlite" && dst.newSqlite) {
-      const made = await makeSqliteFile(ctx, dst.newSqlite.folder, dst.newSqlite.name, {
-        template: "empty",
-        saveProfile: dst.newSqlite.saveProfile,
-        connectionName: dst.newSqlite.connectionName,
-      });
+      const made = await makeSqliteFile(
+        ctx,
+        dst.newSqlite.folder,
+        dst.newSqlite.name,
+        {
+          template: "empty",
+          saveProfile: dst.newSqlite.saveProfile,
+          connectionName: dst.newSqlite.connectionName,
+        },
+      );
       createdPath = made.path;
       createdProfile = made.profile ?? null;
       dst.path = made.path;
@@ -1871,11 +2582,32 @@ export async function runClone(ctx: FmContext, body: Record<string, any>): Promi
     if (src.engine === "redis" && dst.engine === "redis") {
       results = await executeRedisToRedisClone(ctx, src, dst, preview, opts);
     } else if (src.engine === "redis") {
-      results = await executeRedisToSqlClone(ctx, src, dst, preview, sourceObjects, opts);
+      results = await executeRedisToSqlClone(
+        ctx,
+        src,
+        dst,
+        preview,
+        sourceObjects,
+        opts,
+      );
     } else if (dst.engine === "redis") {
-      results = await executeSqlToRedisClone(ctx, src, dst, preview, sourceObjects, opts);
+      results = await executeSqlToRedisClone(
+        ctx,
+        src,
+        dst,
+        preview,
+        sourceObjects,
+        opts,
+      );
     } else {
-      results = await executeSqlToSqlClone(ctx, src, dst, preview, sourceObjects, opts);
+      results = await executeSqlToSqlClone(
+        ctx,
+        src,
+        dst,
+        preview,
+        sourceObjects,
+        opts,
+      );
     }
 
     if (src.profileId) dbState(ctx).store.markUsed(src.profileId);
@@ -1888,14 +2620,26 @@ export async function runClone(ctx: FmContext, body: Record<string, any>): Promi
       } catch {}
     }
 
-    const isTargetTable = (r: CloneTableResult) => r.kind === "table" || (dst.engine !== "redis" && r.kind === "redis_group");
-    const tablesCreated = results.filter((r) => isTargetTable(r) && r.status !== "skipped").length;
-    const tablesCopied = results.filter((r) => isTargetTable(r) && r.status === "copied").length;
-    const viewsCopied = results.filter((r) => r.kind === "view" && r.status !== "skipped").length;
+    const isTargetTable = (r: CloneTableResult) =>
+      r.kind === "table" ||
+      (dst.engine !== "redis" && r.kind === "redis_group");
+    const tablesCreated = results.filter(
+      (r) => isTargetTable(r) && r.status !== "skipped",
+    ).length;
+    const tablesCopied = results.filter(
+      (r) => isTargetTable(r) && r.status === "copied",
+    ).length;
+    const viewsCopied = results.filter(
+      (r) => r.kind === "view" && r.status !== "skipped",
+    ).length;
     const indexesCreated = results.reduce((s, r) => s + r.indexesCreated, 0);
-    const foreignKeysCreated = results.reduce((s, r) => s + r.foreignKeysCreated, 0);
+    const foreignKeysCreated = results.reduce(
+      (s, r) => s + r.foreignKeysCreated,
+      0,
+    );
     const rowsCopied = results.reduce((s, r) => s + r.rowsCopied, 0);
-    const keysCopied = src.engine === "redis" || dst.engine === "redis" ? rowsCopied : 0;
+    const keysCopied =
+      src.engine === "redis" || dst.engine === "redis" ? rowsCopied : 0;
     const skippedCount = results.filter((r) => r.status === "skipped").length;
 
     return {
@@ -1923,7 +2667,9 @@ export async function runClone(ctx: FmContext, body: Record<string, any>): Promi
     if (createdPath) {
       await fsp.rm(createdPath, { force: true }).catch(() => {});
       if (createdProfile?.id) {
-        await dbState(ctx).store.remove(createdProfile.id).catch(() => {});
+        await dbState(ctx)
+          .store.remove(createdProfile.id)
+          .catch(() => {});
       }
     }
     throw wrapCloneError(err, [src.password, dst.password]);
@@ -1933,16 +2679,27 @@ export async function runClone(ctx: FmContext, body: Record<string, any>): Promi
 /** File Manager API handlers for `db/clone/inspect`, `db/clone/preview`, and `db/clone/run`. */
 export const cloneOperations: Record<string, FmHandler> = {
   async "db/clone/inspect"(ctx, b) {
-    return await inspectCloneSource(ctx, isObject(b) ? (b.source ?? b) : undefined);
+    return await inspectCloneSource(
+      ctx,
+      isObject(b) ? (b.source ?? b) : undefined,
+    );
   },
 
   async "db/clone/preview"(ctx, b) {
-    if (!isObject(b)) throw new FmError("BAD_REQUEST", "Choose a source and a target database.");
+    if (!isObject(b))
+      throw new FmError(
+        "BAD_REQUEST",
+        "Choose a source and a target database.",
+      );
     return await previewClone(ctx, b);
   },
 
   async "db/clone/run"(ctx, b) {
-    if (!isObject(b)) throw new FmError("BAD_REQUEST", "Choose a source and a target database.");
+    if (!isObject(b))
+      throw new FmError(
+        "BAD_REQUEST",
+        "Choose a source and a target database.",
+      );
     return await runClone(ctx, b);
   },
 };

@@ -3,7 +3,14 @@
 // Output: tokens [{ text, type }] ("" is plain text) and the state to carry into the next line
 // ("" = normal, "c" = inside a block comment, "s:<end>" = inside a string that continues).
 import { SPECS } from "./codeSpecs.js";
-import { attributeEnd, isLegacyAttribute, nestedComment, optionTypeEnd, vBody, vStringStart } from "./codeScanV.js";
+import {
+  attributeEnd,
+  isLegacyAttribute,
+  nestedComment,
+  optionTypeEnd,
+  vBody,
+  vStringStart,
+} from "./codeScanV.js";
 
 const prepared = new Map();
 const words = (s) => new Set(s ? s.split(" ").filter(Boolean) : []);
@@ -12,8 +19,26 @@ export function prepare(id) {
   let spec = prepared.get(id);
   if (!spec) {
     const raw = SPECS[id] ?? SPECS.plain;
-    const fold = (set) => (raw.ci ? new Set([...set].map((w) => w.toLowerCase())) : set);
-    spec = { ...raw, id, kwSet: fold(words(raw.kw)), typeSet: fold(words(raw.types)), constSet: fold(words(raw.consts)), pascal: !["sql", "shell", "yaml", "toml", "ini", "json", "dockerfile", "makefile", "plain"].includes(id) };
+    const fold = (set) =>
+      raw.ci ? new Set([...set].map((w) => w.toLowerCase())) : set;
+    spec = {
+      ...raw,
+      id,
+      kwSet: fold(words(raw.kw)),
+      typeSet: fold(words(raw.types)),
+      constSet: fold(words(raw.consts)),
+      pascal: ![
+        "sql",
+        "shell",
+        "yaml",
+        "toml",
+        "ini",
+        "json",
+        "dockerfile",
+        "makefile",
+        "plain",
+      ].includes(id),
+    };
     prepared.set(id, spec);
   }
   return spec;
@@ -27,7 +52,12 @@ export function push(out, text, type) {
   else out.push({ text, type });
 }
 
-const isIdentStart = (c) => (c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || c === "_" || c === "$" || c > "\u007f";
+const isIdentStart = (c) =>
+  (c >= "a" && c <= "z") ||
+  (c >= "A" && c <= "Z") ||
+  c === "_" ||
+  c === "$" ||
+  c > "\u007f";
 const isIdentPart = (c) => isIdentStart(c) || (c >= "0" && c <= "9");
 const isDigit = (c) => c >= "0" && c <= "9";
 const isSpace = (c) => c === " " || c === "\t";
@@ -42,8 +72,44 @@ function stringEnd(line, from, quote) {
   return -1;
 }
 
-const REGEX_AFTER = new Set(["", "(", ",", "=", ":", "[", "!", "&", "|", "?", "{", "}", ";", "+", "-", "*", "%", "<", ">", "~", "^"]);
-const REGEX_WORDS = new Set(["return", "typeof", "case", "in", "of", "delete", "void", "throw", "new", "else", "do", "yield", "await"]);
+const REGEX_AFTER = new Set([
+  "",
+  "(",
+  ",",
+  "=",
+  ":",
+  "[",
+  "!",
+  "&",
+  "|",
+  "?",
+  "{",
+  "}",
+  ";",
+  "+",
+  "-",
+  "*",
+  "%",
+  "<",
+  ">",
+  "~",
+  "^",
+]);
+const REGEX_WORDS = new Set([
+  "return",
+  "typeof",
+  "case",
+  "in",
+  "of",
+  "delete",
+  "void",
+  "throw",
+  "new",
+  "else",
+  "do",
+  "yield",
+  "await",
+]);
 
 function regexEnd(line, i) {
   let inClass = false;
@@ -70,22 +136,34 @@ export function scanCode(id, line, state = "", from = 0) {
   let lineStart = true;
   let prev = "";
   let prevWord = "";
-  const stringState = (end, quote) => (spec.multi.includes(quote) || spec.triple.includes(quote) ? `s:${end}` : "");
+  const stringState = (end, quote) =>
+    spec.multi.includes(quote) || spec.triple.includes(quote) ? `s:${end}` : "";
 
   if (/^c\d*$/.test(state) && spec.block) {
     if (spec.nestedBlock) {
       const r = nestedComment(line, i, Number(state.slice(1)) || 1, spec.block);
-      if (r.depth > 0) return { tokens: [{ text: line.slice(i), type: "comment" }], state: `c${r.depth}` };
+      if (r.depth > 0)
+        return {
+          tokens: [{ text: line.slice(i), type: "comment" }],
+          state: `c${r.depth}`,
+        };
       push(out, line.slice(i, r.end), "comment");
       i = r.end;
     } else {
       const end = line.indexOf(spec.block[1], i);
-      if (end < 0) return { tokens: [{ text: line.slice(i), type: "comment" }], state: "c" };
+      if (end < 0)
+        return {
+          tokens: [{ text: line.slice(i), type: "comment" }],
+          state: "c",
+        };
       push(out, line.slice(i, end + spec.block[1].length), "comment");
       i = end + spec.block[1].length;
     }
     state = "";
-  } else if (spec.interp && (state.startsWith("s:") || state.startsWith("S:"))) {
+  } else if (
+    spec.interp &&
+    (state.startsWith("s:") || state.startsWith("S:"))
+  ) {
     const r = vBody(out, push, line, i, state[2], state[0] === "S");
     if (!r.closed) return { tokens: out, state };
     i = r.i;
@@ -93,7 +171,8 @@ export function scanCode(id, line, state = "", from = 0) {
   } else if (state.startsWith("s:")) {
     const end = state.slice(2);
     const stop = stringEnd(line, i, end);
-    if (stop < 0) return { tokens: [{ text: line.slice(i), type: "string" }], state };
+    if (stop < 0)
+      return { tokens: [{ text: line.slice(i), type: "string" }], state };
     push(out, line.slice(i, stop), "string");
     i = stop;
     state = "";
@@ -139,7 +218,8 @@ export function scanCode(id, line, state = "", from = 0) {
       if (vs) {
         push(out, line.slice(i, vs.quoteAt + 1), "string");
         const r = vBody(out, push, line, vs.quoteAt + 1, vs.quote, vs.raw);
-        if (!r.closed) return { tokens: out, state: `${vs.raw ? "S" : "s"}:${vs.quote}` };
+        if (!r.closed)
+          return { tokens: out, state: `${vs.raw ? "S" : "s"}:${vs.quote}` };
         i = r.i;
         prev = vs.quote;
         continue;
@@ -161,7 +241,13 @@ export function scanCode(id, line, state = "", from = 0) {
         i = j;
         continue;
       }
-      if ((c === "?" || c === "!") && (prev === "a" ? !spec.kwSet.has(prevWord) : prev === ")" || prev === "]") && (i === 0 || isSpace(line[i - 1]) || line[i - 1] === ")")) {
+      if (
+        (c === "?" || c === "!") &&
+        (prev === "a"
+          ? !spec.kwSet.has(prevWord)
+          : prev === ")" || prev === "]") &&
+        (i === 0 || isSpace(line[i - 1]) || line[i - 1] === ")")
+      ) {
         const end = optionTypeEnd(line, i);
         if (end > 0) {
           push(out, line.slice(i, end), "type");
@@ -175,7 +261,15 @@ export function scanCode(id, line, state = "", from = 0) {
 
     // Strings (python-style prefixes like f"..." or r'...' belong to the string)
     let quoteAt = i;
-    if (spec.id === "python" && "rRbBfFuU".includes(c) && i + 1 < n && (spec.str.includes(line[i + 1]) || ("rRbBfFuU".includes(line[i + 1]) && spec.str.includes(line[i + 2] ?? "")))) quoteAt = i + (spec.str.includes(line[i + 1]) ? 1 : 2);
+    if (
+      spec.id === "python" &&
+      "rRbBfFuU".includes(c) &&
+      i + 1 < n &&
+      (spec.str.includes(line[i + 1]) ||
+        ("rRbBfFuU".includes(line[i + 1]) &&
+          spec.str.includes(line[i + 2] ?? "")))
+    )
+      quoteAt = i + (spec.str.includes(line[i + 1]) ? 1 : 2);
     const q = spec.str.includes(line[quoteAt]) ? line[quoteAt] : "";
     if (q) {
       const triple = spec.triple.find((t) => line.startsWith(t, quoteAt));
@@ -203,7 +297,12 @@ export function scanCode(id, line, state = "", from = 0) {
         const d = line[j];
         if (isIdentPart(d) && d !== "$") j++;
         else if (d === "." && isDigit(line[j + 1] ?? "")) j++;
-        else if ((d === "+" || d === "-") && /[eE]/.test(line[j - 1]) && !/^0[xX]/.test(line.slice(i, j))) j++;
+        else if (
+          (d === "+" || d === "-") &&
+          /[eE]/.test(line[j - 1]) &&
+          !/^0[xX]/.test(line.slice(i, j))
+        )
+          j++;
         else break;
       }
       push(out, line.slice(i, j), "number");
@@ -212,7 +311,16 @@ export function scanCode(id, line, state = "", from = 0) {
       continue;
     }
 
-    if (spec.sigil && c === spec.sigil && i + 1 < n && (isIdentStart(line[i + 1]) || line[i + 1] === "{" || line[i + 1] === "(" || (spec.sigil === "$" && /[\d?$@!#*]/.test(line[i + 1])) || line[i + 1] === c)) {
+    if (
+      spec.sigil &&
+      c === spec.sigil &&
+      i + 1 < n &&
+      (isIdentStart(line[i + 1]) ||
+        line[i + 1] === "{" ||
+        line[i + 1] === "(" ||
+        (spec.sigil === "$" && /[\d?$@!#*]/.test(line[i + 1])) ||
+        line[i + 1] === c)
+    ) {
       let j = i + 1;
       if (line[j] === "{" || line[j] === "(") {
         const closer = line[j] === "{" ? "}" : ")";
@@ -220,7 +328,8 @@ export function scanCode(id, line, state = "", from = 0) {
         j = end < 0 ? n : end + 1;
       } else {
         if (line[j] === c) j++;
-        if (isIdentStart(line[j] ?? "")) while (j < n && isIdentPart(line[j])) j++;
+        if (isIdentStart(line[j] ?? ""))
+          while (j < n && isIdentPart(line[j])) j++;
         else j++;
       }
       push(out, line.slice(i, j), "variable");
@@ -253,8 +362,9 @@ export function scanCode(id, line, state = "", from = 0) {
       if (spec.kwSet.has(key)) type = "keyword";
       else if (spec.constSet.has(key)) type = "constant";
       else if (spec.typeSet.has(key)) type = "type";
-      else if (line[j] === "(" ) type = "function";
-      else if (spec.pascal && c >= "A" && c <= "Z" && /[a-z]/.test(word)) type = "type";
+      else if (line[j] === "(") type = "function";
+      else if (spec.pascal && c >= "A" && c <= "Z" && /[a-z]/.test(word))
+        type = "type";
       push(out, word, type);
       prev = "a";
       prevWord = word;
@@ -262,7 +372,12 @@ export function scanCode(id, line, state = "", from = 0) {
       continue;
     }
 
-    if (spec.regexLit && c === "/" && (REGEX_AFTER.has(prev) || REGEX_WORDS.has(prevWord)) && !isSpace(line[i + 1] ?? " ")) {
+    if (
+      spec.regexLit &&
+      c === "/" &&
+      (REGEX_AFTER.has(prev) || REGEX_WORDS.has(prevWord)) &&
+      !isSpace(line[i + 1] ?? " ")
+    ) {
       const end = regexEnd(line, i);
       if (end > 0) {
         push(out, line.slice(i, end), "regexp");

@@ -26,20 +26,59 @@ export function createFiles(env) {
   let selectedPath = "";
 
   const status = createStatus();
-  const select = h("select", { id: "dev-files-lang", title: "Show the files of one language, or all of them." }, h("option", { value: "" }, "All languages"));
-  const filter = h("input", { type: "search", id: "dev-files-filter", spellcheck: "false", autocomplete: "off", "aria-label": "Filter files", placeholder: "Filter by file name", title: "Type part of a file's path to show only the matching files." });
+  const select = h(
+    "select",
+    {
+      id: "dev-files-lang",
+      title: "Show the files of one language, or all of them.",
+    },
+    h("option", { value: "" }, "All languages"),
+  );
+  const filter = h("input", {
+    type: "search",
+    id: "dev-files-filter",
+    spellcheck: "false",
+    autocomplete: "off",
+    "aria-label": "Filter files",
+    placeholder: "Filter by file name",
+    title: "Type part of a file's path to show only the matching files.",
+  });
   const more = btn("Show more", "Show the next files.", () => load(true));
   more.hidden = true;
-  const table = createTable({ caption: "Files, largest first. Press a file to select it in the file list; double-press to open it in the Code editor.", columns: COLUMNS, onSort: (key, dir) => { sort = { key, dir }; load(false); } });
+  const table = createTable({
+    caption:
+      "Files, largest first. Press a file to select it in the file list; double-press to open it in the Code editor.",
+    columns: COLUMNS,
+    onSort: (key, dir) => {
+      sort = { key, dir };
+      load(false);
+    },
+  });
   const title = h("h3", {}, "Files");
-  const el = h("div", { class: "pw-card dev-files", hidden: true },
+  const el = h(
+    "div",
+    { class: "pw-card dev-files", hidden: true },
     title,
-    h("div", { class: "pw-row" }, h("label", { class: "pw-field" }, "Language", select), h("label", { class: "pw-field" }, "Filter", filter)),
-    status.el, table.el, more);
+    h(
+      "div",
+      { class: "pw-row" },
+      h("label", { class: "pw-field" }, "Language", select),
+      h("label", { class: "pw-field" }, "Filter", filter),
+    ),
+    status.el,
+    table.el,
+    more,
+  );
 
-  select.addEventListener("change", () => { language = select.value; load(false); });
+  select.addEventListener("change", () => {
+    language = select.value;
+    load(false);
+  });
   let timer = 0;
-  filter.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(() => load(false), 200); });
+  filter.addEventListener("input", () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => load(false), 200);
+  });
 
   const folder = () => env.getCurrent()?.result.root ?? "";
 
@@ -48,28 +87,55 @@ export function createFiles(env) {
     if (!cur) return;
     const mine = ++seq;
     try {
-      const res = await call("dev/stats/files", { id: cur.id, language, sort: sort.key, dir: sort.dir, filter: filter.value, offset: append ? shown.length : 0, limit: PAGE });
+      const res = await call("dev/stats/files", {
+        id: cur.id,
+        language,
+        sort: sort.key,
+        dir: sort.dir,
+        filter: filter.value,
+        offset: append ? shown.length : 0,
+        limit: PAGE,
+      });
       if (mine !== seq) return;
       shown = append ? [...shown, ...res.rows] : res.rows;
       total = res.total;
       render();
     } catch (err) {
-      if (mine === seq) status.set(errorText(err, "The file list couldn't be loaded."), true);
+      if (mine === seq)
+        status.set(errorText(err, "The file list couldn't be loaded."), true);
     }
   }
 
   function render() {
     table.setSort(sort.key, sort.dir);
     const root = folder();
-    table.render(shown.map((f) => ({
-      key: f.path,
-      selected: f.path === selectedPath,
-      onclick: () => { selectedPath = f.path; revealPath(joinRoot(root, f.path)); render(); },
-      ondblclick: () => openInCodeAt(joinRoot(root, f.path)),
-      cells: [f.path, f.language, num(f.code), num(f.comments), num(f.blanks), num(f.code + f.comments + f.blanks), f.size ? formatSize(f.size) : "—"],
-    })));
+    table.render(
+      shown.map((f) => ({
+        key: f.path,
+        selected: f.path === selectedPath,
+        onclick: () => {
+          selectedPath = f.path;
+          revealPath(joinRoot(root, f.path));
+          render();
+        },
+        ondblclick: () => openInCodeAt(joinRoot(root, f.path)),
+        cells: [
+          f.path,
+          f.language,
+          num(f.code),
+          num(f.comments),
+          num(f.blanks),
+          num(f.code + f.comments + f.blanks),
+          f.size ? formatSize(f.size) : "—",
+        ],
+      })),
+    );
     title.textContent = language ? `${language} files` : "All files";
-    status.set(total === 0 ? "No files match." : `Showing ${shown.length.toLocaleString()} of ${plural(total, "file")}.`);
+    status.set(
+      total === 0
+        ? "No files match."
+        : `Showing ${shown.length.toLocaleString()} of ${plural(total, "file")}.`,
+    );
     more.hidden = shown.length >= total;
   }
 
@@ -77,8 +143,13 @@ export function createFiles(env) {
     el,
     setResult(result) {
       el.hidden = false;
-      const names = result.languages.filter((l) => l.files > 0).map((l) => l.name);
-      select.replaceChildren(h("option", { value: "" }, "All languages"), ...names.map((n) => h("option", { value: n }, n)));
+      const names = result.languages
+        .filter((l) => l.files > 0)
+        .map((l) => l.name);
+      select.replaceChildren(
+        h("option", { value: "" }, "All languages"),
+        ...names.map((n) => h("option", { value: n }, n)),
+      );
       if (!names.includes(language)) language = "";
       select.value = language;
       sort = { key: "code", dir: "desc" };
@@ -87,12 +158,18 @@ export function createFiles(env) {
     },
     setLanguage(name) {
       language = name;
-      if (![...select.options].some((o) => o.value === name)) select.append(h("option", { value: name }, name));
+      if (![...select.options].some((o) => o.value === name))
+        select.append(h("option", { value: name }, name));
       select.value = name;
       load(false);
       el.scrollIntoView?.({ block: "nearest" });
     },
     /** What the table shows now, for an export of the same list. */
-    currentQuery: () => ({ language, sort: sort.key, dir: sort.dir, filter: filter.value }),
+    currentQuery: () => ({
+      language,
+      sort: sort.key,
+      dir: sort.dir,
+      filter: filter.value,
+    }),
   };
 }

@@ -19,8 +19,15 @@ interface MenuItem {
 }
 
 function fixture(platform = "linux") {
-  class Button extends EventTarget { disabled = false; }
-  const buttons = new Map(["copy", "paste", "select-all"].map((name) => [`#terminal-${name}`, new Button()]));
+  class Button extends EventTarget {
+    disabled = false;
+  }
+  const buttons = new Map(
+    ["copy", "paste", "select-all"].map((name) => [
+      `#terminal-${name}`,
+      new Button(),
+    ]),
+  );
   const host = new EventTarget();
   const copied: string[] = [];
   const notices: string[] = [];
@@ -32,30 +39,65 @@ function fixture(platform = "linux") {
   const term = {
     selection: "",
     focused: false,
-    getSelection() { return this.selection; },
-    hasSelection() { return !!this.selection; },
-    onSelectionChange(fn: () => void) { selectionChanged = fn; },
-    attachCustomKeyEventHandler(fn: typeof handler) { handler = fn; },
-    selectAll() { this.selection = "all output\nincluding scrollback"; selectionChanged(); },
-    clearSelection() { this.selection = ""; selectionChanged(); },
-    focus() { this.focused = true; },
-    paste(text: string) { pasted.push(text); },
+    getSelection() {
+      return this.selection;
+    },
+    hasSelection() {
+      return !!this.selection;
+    },
+    onSelectionChange(fn: () => void) {
+      selectionChanged = fn;
+    },
+    attachCustomKeyEventHandler(fn: typeof handler) {
+      handler = fn;
+    },
+    selectAll() {
+      this.selection = "all output\nincluding scrollback";
+      selectionChanged();
+    },
+    clearSelection() {
+      this.selection = "";
+      selectionChanged();
+    },
+    focus() {
+      this.focused = true;
+    },
+    paste(text: string) {
+      pasted.push(text);
+    },
   };
-  const source = readFileSync(new URL("../resources/file_manager/ui/terminalClipboard.js", import.meta.url), "utf8")
-    .replace(/^import .*;\r?$/gm, "").replace(/^export /gm, "");
-  const wire = new Function("deps", `
+  const source = readFileSync(
+    new URL(
+      "../resources/file_manager/ui/terminalClipboard.js",
+      import.meta.url,
+    ),
+    "utf8",
+  )
+    .replace(/^import .*;\r?$/gm, "")
+    .replace(/^export /gm, "");
+  const wire = new Function(
+    "deps",
+    `
     const { $, copyToClipboard, showMenu, toast, state, navigator } = deps;
     ${source}
     return wireTerminalClipboard;
-  `)({
+  `,
+  )({
     $: (selector: string) => buttons.get(selector),
-    copyToClipboard: async (text: string) => { copied.push(text); return true; },
-    showMenu: (items: MenuItem[]) => { menu = items; },
+    copyToClipboard: async (text: string) => {
+      copied.push(text);
+      return true;
+    },
+    showMenu: (items: MenuItem[]) => {
+      menu = items;
+    },
     toast: (message: string) => notices.push(message),
-    state: { platform }, navigator: { clipboard },
+    state: { platform },
+    navigator: { clipboard },
   }) as (terminal: typeof term, host: EventTarget) => void;
   wire(term, host);
-  const click = (name: string) => buttons.get(`#terminal-${name}`)!.dispatchEvent(new Event("click"));
+  const click = (name: string) =>
+    buttons.get(`#terminal-${name}`)!.dispatchEvent(new Event("click"));
   const context = () => {
     const event = new Event("contextmenu", { cancelable: true });
     host.dispatchEvent(event);
@@ -66,10 +108,31 @@ function fixture(platform = "linux") {
   const key = (key: string, modifiers: Partial<KeyEvent> = {}) => {
     let prevented = false;
     let stopped = false;
-    const result = handler({ type: "keydown", key, ...modifiers, preventDefault() { prevented = true; }, stopPropagation() { stopped = true; } });
+    const result = handler({
+      type: "keydown",
+      key,
+      ...modifiers,
+      preventDefault() {
+        prevented = true;
+      },
+      stopPropagation() {
+        stopped = true;
+      },
+    });
     return { result, prevented, stopped };
   };
-  return { term, buttons, copied, notices, pasted, clipboard, click, context, item, key };
+  return {
+    term,
+    buttons,
+    copied,
+    notices,
+    pasted,
+    clipboard,
+    click,
+    context,
+    item,
+    key,
+  };
 }
 
 describe("terminal selection and clipboard controls", () => {
@@ -87,7 +150,12 @@ describe("terminal selection and clipboard controls", () => {
 
   test("right-click copies the terminal selection and can clear it without changing output", async () => {
     const f = fixture();
-    expect(f.context().filter((entry) => entry.label).map((entry) => entry.label)).toEqual(["Copy", "Paste", "Select all", "Clear selection"]);
+    expect(
+      f
+        .context()
+        .filter((entry) => entry.label)
+        .map((entry) => entry.label),
+    ).toEqual(["Copy", "Paste", "Select all", "Clear selection"]);
     expect(f.item("Copy").disabled).toBe(true);
     f.click("select-all");
     f.context();
@@ -110,7 +178,9 @@ describe("terminal selection and clipboard controls", () => {
 
   test("clipboard read failures are explained and nothing is pasted", async () => {
     const f = fixture();
-    f.clipboard.readText = async () => { throw new Error("Clipboard permission denied"); };
+    f.clipboard.readText = async () => {
+      throw new Error("Clipboard permission denied");
+    };
     f.context();
     await f.item("Paste").action!();
     expect(f.pasted).toEqual([]);
@@ -122,20 +192,51 @@ describe("terminal selection and clipboard controls", () => {
     for (const platform of ["linux", "win32", "darwin"]) {
       const f = fixture(platform);
       for (const key of ["a", "c"]) {
-        expect(f.key(key, { ctrlKey: true })).toEqual({ result: true, prevented: false, stopped: false });
+        expect(f.key(key, { ctrlKey: true })).toEqual({
+          result: true,
+          prevented: false,
+          stopped: false,
+        });
       }
-      expect(f.key("v", { ctrlKey: true })).toEqual({ result: false, prevented: true, stopped: true });
-      expect(f.key("v", { ctrlKey: true, shiftKey: true })).toEqual({ result: false, prevented: true, stopped: true });
-      expect(f.key("v", { metaKey: true })).toEqual({ result: false, prevented: true, stopped: true });
-      expect(f.key("Insert", { shiftKey: true })).toEqual({ result: false, prevented: true, stopped: true });
+      expect(f.key("v", { ctrlKey: true })).toEqual({
+        result: false,
+        prevented: true,
+        stopped: true,
+      });
+      expect(f.key("v", { ctrlKey: true, shiftKey: true })).toEqual({
+        result: false,
+        prevented: true,
+        stopped: true,
+      });
+      expect(f.key("v", { metaKey: true })).toEqual({
+        result: false,
+        prevented: true,
+        stopped: true,
+      });
+      expect(f.key("Insert", { shiftKey: true })).toEqual({
+        result: false,
+        prevented: true,
+        stopped: true,
+      });
       await Promise.resolve();
-      expect(f.pasted).toEqual(["clipboard\ntext", "clipboard\ntext", "clipboard\ntext", "clipboard\ntext"]);
-      expect(f.key("a", { ctrlKey: true, shiftKey: true })).toEqual({ result: false, prevented: true, stopped: true });
+      expect(f.pasted).toEqual([
+        "clipboard\ntext",
+        "clipboard\ntext",
+        "clipboard\ntext",
+        "clipboard\ntext",
+      ]);
+      expect(f.key("a", { ctrlKey: true, shiftKey: true })).toEqual({
+        result: false,
+        prevented: true,
+        stopped: true,
+      });
       expect(f.key("c", { ctrlKey: true, shiftKey: true }).result).toBe(false);
       await Promise.resolve();
       expect(f.copied).toEqual(["all output\nincluding scrollback"]);
       expect(f.key("c", { metaKey: true }).result).toBe(platform !== "darwin");
-      expect(f.key("c", { ctrlKey: true, shiftKey: true, altKey: true }).result).toBe(true);
+      expect(
+        f.key("c", { ctrlKey: true, shiftKey: true, altKey: true }).result,
+      ).toBe(true);
     }
   });
 

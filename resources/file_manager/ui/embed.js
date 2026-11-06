@@ -4,7 +4,12 @@
 import { call } from "./api.js";
 import { h } from "./dom.js";
 import { toast } from "./menus.js";
-import { isPowerExpanded, openToolInBrowser, openToolInWindow, togglePowerExpanded } from "./power.js";
+import {
+  isPowerExpanded,
+  openToolInBrowser,
+  openToolInWindow,
+  togglePowerExpanded,
+} from "./power.js";
 import { on } from "./state.js";
 import { currentThemePayload } from "./themes.js";
 
@@ -18,8 +23,14 @@ const frames = new Set();
 const listeningWindows = new WeakSet();
 let themeSubscribed = false;
 
-function ensureMessageBridge(targetWin = typeof window !== "undefined" ? window : null) {
-  if (targetWin && typeof targetWin.addEventListener === "function" && !listeningWindows.has(targetWin)) {
+function ensureMessageBridge(
+  targetWin = typeof window !== "undefined" ? window : null,
+) {
+  if (
+    targetWin &&
+    typeof targetWin.addEventListener === "function" &&
+    !listeningWindows.has(targetWin)
+  ) {
     listeningWindows.add(targetWin);
     targetWin.addEventListener("message", onFrameMessage);
   }
@@ -41,10 +52,16 @@ export function syncFrameTheme(frame, payload = currentThemePayload()) {
     win.postMessage({ fmTheme: payload }, "*");
     if (win.frames && win.frames.length) {
       for (let i = 0; i < win.frames.length; i++) {
-        try { win.frames[i]?.postMessage?.({ fmTheme: payload }, "*"); } catch { /* cross-origin child not ready */ }
+        try {
+          win.frames[i]?.postMessage?.({ fmTheme: payload }, "*");
+        } catch {
+          /* cross-origin child not ready */
+        }
       }
     }
-  } catch { /* frame not ready */ }
+  } catch {
+    /* frame not ready */
+  }
 }
 
 /** A link clicked inside an embedded app arrives here as a message from that app's frame; it opens in the system browser. */
@@ -52,7 +69,9 @@ function onFrameMessage(e) {
   if (e.data && typeof e.data === "object" && e.data.fmRequestTheme) {
     try {
       e.source?.postMessage?.({ fmTheme: currentThemePayload() }, "*");
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     return;
   }
   const url = e.data && typeof e.data === "object" ? e.data.fmOpenLink : null;
@@ -62,7 +81,9 @@ function onFrameMessage(e) {
   }
   const from = [...frames].find((f) => f.contentWindow === e.source);
   if (!from || e.origin !== new URL(from.src).origin) return;
-  call("link/open", { url: url.trim() }).catch((err) => toast(err?.message || "Couldn't open that link.", { kind: "error" }));
+  call("link/open", { url: url.trim() }).catch((err) =>
+    toast(err?.message || "Couldn't open that link.", { kind: "error" }),
+  );
 }
 
 /**
@@ -74,41 +95,72 @@ export function mountEmbedded(root, { id, title, note }) {
   root.classList.add("embed-pane");
   const url = embeddedUrl(id);
   const frame = h("iframe", {
-    class: "embed-frame", title, src: url, referrerpolicy: "no-referrer", loading: "eager",
+    class: "embed-frame",
+    title,
+    src: url,
+    referrerpolicy: "no-referrer",
+    loading: "eager",
     allow: "autoplay; fullscreen; clipboard-write",
-    sandbox: "allow-scripts allow-same-origin allow-downloads allow-modals allow-popups allow-popups-to-escape-sandbox",
+    sandbox:
+      "allow-scripts allow-same-origin allow-downloads allow-modals allow-popups allow-popups-to-escape-sandbox",
   });
   frame.addEventListener("load", () => syncFrameTheme(frame));
   frames.add(frame);
-  ensureMessageBridge(root?.ownerDocument?.defaultView || (typeof window !== "undefined" ? window : null));
+  ensureMessageBridge(
+    root?.ownerDocument?.defaultView ||
+      (typeof window !== "undefined" ? window : null),
+  );
   const expanded = isPowerExpanded();
-  const expandBtn = h("button", {
-    type: "button",
-    class: "pw-btn embed-expand",
-    "aria-pressed": String(expanded),
-    title: expanded ? "Restore the File Manager bars and tabs (Esc)" : "Fill the whole window with this app (press Esc to restore)",
-    onclick: () => togglePowerExpanded(),
-  }, expanded ? "⛶ Restore" : "⛶ Expand");
-  const windowBtn = h("button", {
-    type: "button",
-    class: "pw-btn embed-window",
-    title: `Open ${title} in its own desktop window`,
-    onclick: () => void openToolInWindow(id),
-  }, "Open in a separate window");
-  const browserBtn = h("button", {
-    type: "button",
-    class: "pw-btn embed-browser",
-    title: `Open ${title} in your web browser`,
-    onclick: () => void openToolInBrowser(id, url),
-  }, "Open in my browser");
-  const bar = h("div", { class: "pw-row embed-bar" }, h("p", { class: "pw-hint embed-note" }, note), expandBtn, windowBtn, browserBtn);
+  const expandBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "pw-btn embed-expand",
+      "aria-pressed": String(expanded),
+      title: expanded
+        ? "Restore the File Manager bars and tabs (Esc)"
+        : "Fill the whole window with this app (press Esc to restore)",
+      onclick: () => togglePowerExpanded(),
+    },
+    expanded ? "⛶ Restore" : "⛶ Expand",
+  );
+  const windowBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "pw-btn embed-window",
+      title: `Open ${title} in its own desktop window`,
+      onclick: () => void openToolInWindow(id),
+    },
+    "Open in a separate window",
+  );
+  const browserBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "pw-btn embed-browser",
+      title: `Open ${title} in your web browser`,
+      onclick: () => void openToolInBrowser(id, url),
+    },
+    "Open in my browser",
+  );
+  const bar = h(
+    "div",
+    { class: "pw-row embed-bar" },
+    h("p", { class: "pw-hint embed-note" }, note),
+    expandBtn,
+    windowBtn,
+    browserBtn,
+  );
   root.append(bar, frame);
   return {
     show: () => frame.focus(),
     hide: () => {
       try {
         frame.contentWindow?.postMessage?.({ fmStopGame: true }, "*");
-      } catch { /* frame not ready */ }
+      } catch {
+        /* frame not ready */
+      }
     },
     frame,
   };

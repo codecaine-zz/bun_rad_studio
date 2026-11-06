@@ -19,7 +19,9 @@ describe("⚡ System Information Studio Suite (All 60 systeminformation APIs)", 
     // Verify all 10 domain areas exist
     expect(SI_CATEGORIES.length).toBe(10);
     for (const cat of SI_CATEGORIES) {
-      const methods = Object.values(SI_METHODS).filter((m) => m.category === cat);
+      const methods = Object.values(SI_METHODS).filter(
+        (m) => m.category === cat,
+      );
       expect(methods.length).toBeGreaterThan(0);
     }
   });
@@ -133,16 +135,17 @@ describe("⚡ System Information Studio Suite (All 60 systeminformation APIs)", 
   });
 
   it("7. Category 7: Network & Wi-Fi methods execute successfully", async () => {
-    const [iface, gw, ifaces, stats, conns, wifiNet, wifiIf, wifiConn] = await Promise.all([
-      executeSiMethod("networkInterfaceDefault"),
-      executeSiMethod("networkGatewayDefault"),
-      executeSiMethod("networkInterfaces"),
-      executeSiMethod("networkStats"),
-      executeSiMethod("networkConnections"),
-      executeSiMethod("wifiNetworks"),
-      executeSiMethod("wifiInterfaces"),
-      executeSiMethod("wifiConnections"),
-    ]);
+    const [iface, gw, ifaces, stats, conns, wifiNet, wifiIf, wifiConn] =
+      await Promise.all([
+        executeSiMethod("networkInterfaceDefault"),
+        executeSiMethod("networkGatewayDefault"),
+        executeSiMethod("networkInterfaces"),
+        executeSiMethod("networkStats"),
+        executeSiMethod("networkConnections"),
+        executeSiMethod("wifiNetworks"),
+        executeSiMethod("wifiInterfaces"),
+        executeSiMethod("wifiConnections"),
+      ]);
 
     expect(iface.success).toBe(true);
     expect(gw.success).toBe(true);
@@ -155,16 +158,17 @@ describe("⚡ System Information Studio Suite (All 60 systeminformation APIs)", 
   }, 60000);
 
   it("8. Category 8 & 9: Processes, Services & Peripherals execute successfully", async () => {
-    const [procs, procLoad, serv, users, audio, bt, printer, usb] = await Promise.all([
-      executeSiMethod("processes"),
-      executeSiMethod("processLoad", "bun"),
-      executeSiMethod("services", "*"),
-      executeSiMethod("users"),
-      executeSiMethod("audio"),
-      executeSiMethod("bluetoothDevices"),
-      executeSiMethod("printer"),
-      executeSiMethod("usb"),
-    ]);
+    const [procs, procLoad, serv, users, audio, bt, printer, usb] =
+      await Promise.all([
+        executeSiMethod("processes"),
+        executeSiMethod("processLoad", "bun"),
+        executeSiMethod("services", "*"),
+        executeSiMethod("users"),
+        executeSiMethod("audio"),
+        executeSiMethod("bluetoothDevices"),
+        executeSiMethod("printer"),
+        executeSiMethod("usb"),
+      ]);
 
     expect(procs.success).toBe(true);
     expect(procs.data.all).toBeGreaterThan(0);
@@ -180,7 +184,18 @@ describe("⚡ System Information Studio Suite (All 60 systeminformation APIs)", 
   }, 60000);
 
   it("9. Category 10: Virtualization, Docker & Batch methods execute successfully", async () => {
-    const [dInfo, dImg, dCont, dVol, dAll, vbox, staticData, dynamicData, pStart, pRel] = await Promise.all([
+    const [
+      dInfo,
+      dImg,
+      dCont,
+      dVol,
+      dAll,
+      vbox,
+      staticData,
+      dynamicData,
+      pStart,
+      pRel,
+    ] = await Promise.all([
       executeSiMethod("dockerInfo"),
       executeSiMethod("dockerImages"),
       executeSiMethod("dockerContainers"),
@@ -215,8 +230,12 @@ describe("⚡ System Information Studio Suite (All 60 systeminformation APIs)", 
     expect(formatDataSummary("test", "hello")).toBe("[test] Value: hello");
     expect(formatDataSummary("test", 42)).toBe("[test] Value: 42");
     expect(formatDataSummary("test", [])).toContain("0 entries");
-    expect(formatDataSummary("test", [{ id: 1, name: "Node" }])).toContain("[#1]");
-    expect(formatDataSummary("test", { key: "value", num: 123 })).toContain("key: value");
+    expect(formatDataSummary("test", [{ id: 1, name: "Node" }])).toContain(
+      "[#1]",
+    );
+    expect(formatDataSummary("test", { key: "value", num: 123 })).toContain(
+      "key: value",
+    );
   });
 
   it("11. Desktop SimpleWindow factory creates window and preserves backward compatibility exports", () => {

@@ -49,62 +49,124 @@ function registry(ctx: FmContext): Map<string, DevJob> {
 }
 
 /** Merges `patch` into `job.progress` and increments `job.seq` for incremental UI polling. */
-export function setProgress(job: DevJob, patch: Record<string, number | string | null>): void {
+export function setProgress(
+  job: DevJob,
+  patch: Record<string, number | string | null>,
+): void {
   Object.assign(job.progress, patch);
   job.seq++;
 }
 
 /** Registers and starts a new asynchronous Developer Tools scan job, enforcing the concurrent job limit. */
-export function startDevJob(ctx: FmContext, kind: DevJobKind, root: string, run: (job: DevJob) => Promise<unknown>): DevJob {
+export function startDevJob(
+  ctx: FmContext,
+  kind: DevJobKind,
+  root: string,
+  run: (job: DevJob) => Promise<unknown>,
+): DevJob {
   const reg = registry(ctx);
-  if ([...reg.values()].filter((j) => j.state === "running").length >= MAX_RUNNING) throw new FmError("BUSY", "Several scans are already running. Wait for one to finish or cancel it.");
-  const job: DevJob = { id: randomBytes(6).toString("hex"), kind, root, state: "running", seq: 1, startedAt: Date.now(), finishedAt: null, progress: {}, result: null, data: null, error: null, cancelled: false };
+  if (
+    [...reg.values()].filter((j) => j.state === "running").length >= MAX_RUNNING
+  )
+    throw new FmError(
+      "BUSY",
+      "Several scans are already running. Wait for one to finish or cancel it.",
+    );
+  const job: DevJob = {
+    id: randomBytes(6).toString("hex"),
+    kind,
+    root,
+    state: "running",
+    seq: 1,
+    startedAt: Date.now(),
+    finishedAt: null,
+    progress: {},
+    result: null,
+    data: null,
+    error: null,
+    cancelled: false,
+  };
   reg.set(job.id, job);
   for (const [id, old] of reg) {
     if (reg.size <= MAX_KEPT) break;
     if (old.state !== "running" && id !== job.id) reg.delete(id);
   }
-  run(job).then(
-    (result) => {
-      job.result = result;
-      job.state = job.cancelled ? "cancelled" : "done";
-    },
-    (err) => {
-      if (job.cancelled || (err instanceof FmError && err.code === "CANCELLED")) {
-        job.state = "cancelled";
-        job.error = null;
-        return;
-      }
-      job.state = "failed";
-      job.error = err instanceof FmError ? { code: err.code, message: err.message } : { code: "FAILED", message: String((err as Error)?.message ?? err).slice(0, 300) };
-    },
-  ).finally(() => {
-    job.finishedAt = Date.now();
-    job.seq++;
-  });
+  run(job)
+    .then(
+      (result) => {
+        job.result = result;
+        job.state = job.cancelled ? "cancelled" : "done";
+      },
+      (err) => {
+        if (
+          job.cancelled ||
+          (err instanceof FmError && err.code === "CANCELLED")
+        ) {
+          job.state = "cancelled";
+          job.error = null;
+          return;
+        }
+        job.state = "failed";
+        job.error =
+          err instanceof FmError
+            ? { code: err.code, message: err.message }
+            : {
+                code: "FAILED",
+                message: String((err as Error)?.message ?? err).slice(0, 300),
+              };
+      },
+    )
+    .finally(() => {
+      job.finishedAt = Date.now();
+      job.seq++;
+    });
   return job;
 }
 
 /** A job of the given kind(s) by id, or an error that says what to do. */
-export function findDevJob(ctx: FmContext, id: unknown, kinds?: DevJobKind[]): DevJob {
+export function findDevJob(
+  ctx: FmContext,
+  id: unknown,
+  kinds?: DevJobKind[],
+): DevJob {
   const job = typeof id === "string" ? registry(ctx).get(id) : undefined;
-  if (!job || (kinds && !kinds.includes(job.kind))) throw new FmError("NO_JOB", "That scan isn't available any more. Run it again.");
+  if (!job || (kinds && !kinds.includes(job.kind)))
+    throw new FmError(
+      "NO_JOB",
+      "That scan isn't available any more. Run it again.",
+    );
   return job;
 }
 
 /** Returns the current state, progress, and result (if modified since `body.since`) for a Developer Tools job. */
-export function pollDevJob(ctx: FmContext, body: Record<string, any>): Record<string, unknown> {
+export function pollDevJob(
+  ctx: FmContext,
+  body: Record<string, any>,
+): Record<string, unknown> {
   const job = findDevJob(ctx, body.id);
   const since = typeof body.since === "number" ? body.since : 0;
-  const view: Record<string, unknown> = { id: job.id, kind: job.kind, root: job.root, state: job.state, seq: job.seq, elapsedMs: (job.finishedAt ?? Date.now()) - job.startedAt, progress: job.progress };
-  if (since === job.seq && job.state === "running") return { ...view, unchanged: true };
-  if (job.state === "done" || job.state === "cancelled") view.result = job.result;
+  const view: Record<string, unknown> = {
+    id: job.id,
+    kind: job.kind,
+    root: job.root,
+    state: job.state,
+    seq: job.seq,
+    elapsedMs: (job.finishedAt ?? Date.now()) - job.startedAt,
+    progress: job.progress,
+  };
+  if (since === job.seq && job.state === "running")
+    return { ...view, unchanged: true };
+  if (job.state === "done" || job.state === "cancelled")
+    view.result = job.result;
   if (job.state === "failed") view.error = job.error;
   return view;
 }
 
 /** Marks a running Developer Tools job as cancelled so its walker terminates on the next iteration. */
-export function cancelDevJob(ctx: FmContext, body: Record<string, any>): Record<string, unknown> {
+export function cancelDevJob(
+  ctx: FmContext,
+  body: Record<string, any>,
+): Record<string, unknown> {
   const job = findDevJob(ctx, body.id);
   if (job.state === "running") {
     job.cancelled = true;

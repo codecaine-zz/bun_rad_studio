@@ -1,20 +1,37 @@
 import { describe, expect, test } from "bun:test";
 import { createContext } from "../src/features/filemanager/fmCore";
-import { describeTextWidth, encodeText, unescapeHtml } from "../src/features/filemanager/fmCrypto";
+import {
+  describeTextWidth,
+  encodeText,
+  unescapeHtml,
+} from "../src/features/filemanager/fmCrypto";
 import { cryptoOperations } from "../src/features/filemanager/fmCryptoOps";
 import { convertColor } from "../src/features/filemanager/fmColor";
 import { FmError } from "../src/features/filemanager/fmPaths";
 import { API_OPERATIONS } from "../src/features/filemanager/fmServer";
 
 const ctx = createContext({ home: "/", dataDir: "/" });
-const op = (name: string, body: Record<string, any> = {}) => cryptoOperations[`crypto/${name}`]!(ctx, body) as Promise<any>;
-const value = (r: ReturnType<typeof convertColor>, id: string) => r.rows.find((x) => x.id === id)?.value;
+const op = (name: string, body: Record<string, any> = {}) =>
+  cryptoOperations[`crypto/${name}`]!(ctx, body) as Promise<any>;
+const value = (r: ReturnType<typeof convertColor>, id: string) =>
+  r.rows.find((x) => x.id === id)?.value;
 
 describe("color converter (Bun.color)", () => {
-  test("the operation is registered", () => expect(API_OPERATIONS).toContain("crypto/color"));
+  test("the operation is registered", () =>
+    expect(API_OPERATIONS).toContain("crypto/color"));
 
   test("a name, short hex, long hex, rgb() and hsl() all land on the same red", () => {
-    for (const text of ["red", "#f00", "#FF0000", "rgb(255, 0, 0)", "rgb(255 0 0)", "hsl(0, 100%, 50%)", "hwb(0 0% 0%)", "  RED  ", "0xff0000"]) {
+    for (const text of [
+      "red",
+      "#f00",
+      "#FF0000",
+      "rgb(255, 0, 0)",
+      "rgb(255 0 0)",
+      "hsl(0, 100%, 50%)",
+      "hwb(0 0% 0%)",
+      "  RED  ",
+      "0xff0000",
+    ]) {
       const r = convertColor(text);
       expect(value(r, "hex"), text).toBe("#ff0000");
       expect(value(r, "HEX"), text).toBe("#FF0000");
@@ -50,7 +67,9 @@ describe("color converter (Bun.color)", () => {
     expect(value(r, "rgba")).toMatch(/^rgba\(10, 20, 30, 0\.50/);
     expect(value(r, "[rgba]")).toBe("[10,20,30,128]");
     expect(r.notes.join(" ")).toMatch(/partly transparent/);
-    expect(convertColor("transparent").notes.join(" ")).toMatch(/partly transparent/);
+    expect(convertColor("transparent").notes.join(" ")).toMatch(
+      /partly transparent/,
+    );
     expect(convertColor("red").notes).toEqual([]);
   });
 
@@ -65,12 +84,37 @@ describe("color converter (Bun.color)", () => {
   });
 
   test("many named colors and hex shorthand round-trip through the hex form", () => {
-    const names: Record<string, string> = { black: "#000000", white: "#ffffff", lime: "#00ff00", navy: "#000080", tomato: "#ff6347", gold: "#ffd700", teal: "#008080", "#abc": "#aabbcc", "#ABCDEF": "#abcdef", "hsl(120 100% 50%)": "#00ff00", "rgb(0 128 255)": "#0080ff" };
-    for (const [input, hex] of Object.entries(names)) expect(value(convertColor(input), "hex"), input).toBe(hex);
+    const names: Record<string, string> = {
+      black: "#000000",
+      white: "#ffffff",
+      lime: "#00ff00",
+      navy: "#000080",
+      tomato: "#ff6347",
+      gold: "#ffd700",
+      teal: "#008080",
+      "#abc": "#aabbcc",
+      "#ABCDEF": "#abcdef",
+      "hsl(120 100% 50%)": "#00ff00",
+      "rgb(0 128 255)": "#0080ff",
+    };
+    for (const [input, hex] of Object.entries(names))
+      expect(value(convertColor(input), "hex"), input).toBe(hex);
   });
 
   test("things that are not colors are explained in plain words", () => {
-    for (const bad of ["not a color", "#12345", "#gggggg", "rgb(1,2)", "currentColor", "12345", "javascript:alert(1)", "red; background:url(x)", "red blue", "#ff0000;", "rgb(1 2 3) x"]) {
+    for (const bad of [
+      "not a color",
+      "#12345",
+      "#gggggg",
+      "rgb(1,2)",
+      "currentColor",
+      "12345",
+      "javascript:alert(1)",
+      "red; background:url(x)",
+      "red blue",
+      "#ff0000;",
+      "rgb(1 2 3) x",
+    ]) {
       let err: any;
       try {
         convertColor(bad);
@@ -105,51 +149,97 @@ describe("color converter (Bun.color)", () => {
 
 describe("text tools: HTML escape, unescape, color codes and width", () => {
   test("escape uses Bun.escapeHTML for the five special characters", () => {
-    expect(encodeText("html-escape", `<a href="x">Tom & 'Jerry'</a>`).output).toBe("&lt;a href=&quot;x&quot;&gt;Tom &amp; &#x27;Jerry&#x27;&lt;/a&gt;");
-    expect(encodeText("html-escape", "plain text ü 日本").output).toBe("plain text ü 日本");
+    expect(
+      encodeText("html-escape", `<a href="x">Tom & 'Jerry'</a>`).output,
+    ).toBe("&lt;a href=&quot;x&quot;&gt;Tom &amp; &#x27;Jerry&#x27;&lt;/a&gt;");
+    expect(encodeText("html-escape", "plain text ü 日本").output).toBe(
+      "plain text ü 日本",
+    );
   });
 
   test("unescape reverses it, in one pass only", () => {
     const original = `<a href="x">Tom & 'Jerry'</a> <script>alert(1)</script>`;
-    expect(encodeText("html-unescape", encodeText("html-escape", original).output).output).toBe(original);
+    expect(
+      encodeText("html-unescape", encodeText("html-escape", original).output)
+        .output,
+    ).toBe(original);
     expect(unescapeHtml("&amp;lt;")).toBe("&lt;");
-    expect(unescapeHtml("&lt;b&gt; &quot;q&quot; &apos;a&apos; &#39;b&#39; &#x27;c&#X27;")).toBe(`<b> "q" 'a' 'b' 'c'`);
+    expect(
+      unescapeHtml(
+        "&lt;b&gt; &quot;q&quot; &apos;a&apos; &#39;b&#39; &#x27;c&#X27;",
+      ),
+    ).toBe(`<b> "q" 'a' 'b' 'c'`);
   });
 
   test("numeric references: real characters decode, invalid ones and unknown names stay as typed", () => {
     expect(unescapeHtml("&#65;&#x42;&#128512;&#x1F600;")).toBe("AB😀😀");
-    for (const keep of ["&#0;", "&#xD800;", "&#1114112;", "&#xFFFFFFF;", "&nbsp;", "&copy;", "&amp", "&#;", "&#x;", "& amp;", "&#12345678;"]) expect(unescapeHtml(keep), keep).toBe(keep);
+    for (const keep of [
+      "&#0;",
+      "&#xD800;",
+      "&#1114112;",
+      "&#xFFFFFFF;",
+      "&nbsp;",
+      "&copy;",
+      "&amp",
+      "&#;",
+      "&#x;",
+      "& amp;",
+      "&#12345678;",
+    ])
+      expect(unescapeHtml(keep), keep).toBe(keep);
   });
 
   test("the decoder never produces markup that something else would run: it only returns text", () => {
-    expect(unescapeHtml("&lt;img src=x onerror=alert(1)&gt;")).toBe("<img src=x onerror=alert(1)>");
-    expect(typeof encodeText("html-unescape", "&lt;b&gt;").output).toBe("string");
+    expect(unescapeHtml("&lt;img src=x onerror=alert(1)&gt;")).toBe(
+      "<img src=x onerror=alert(1)>",
+    );
+    expect(typeof encodeText("html-unescape", "&lt;b&gt;").output).toBe(
+      "string",
+    );
   });
 
   test("color codes (ANSI) are removed from terminal text", () => {
-    const log = "\u001b[31mERROR\u001b[0m something \u001b[1;32mok\u001b[0m\n\u001b]8;;https://example.com\u0007link\u001b]8;;\u0007";
-    expect(encodeText("strip-ansi", log).output).toBe("ERROR something ok\nlink");
-    expect(encodeText("strip-ansi", "nothing to remove").output).toBe("nothing to remove");
+    const log =
+      "\u001b[31mERROR\u001b[0m something \u001b[1;32mok\u001b[0m\n\u001b]8;;https://example.com\u0007link\u001b]8;;\u0007";
+    expect(encodeText("strip-ansi", log).output).toBe(
+      "ERROR something ok\nlink",
+    );
+    expect(encodeText("strip-ansi", "nothing to remove").output).toBe(
+      "nothing to remove",
+    );
   });
 
   test("text width counts characters, bytes and terminal columns", () => {
-    expect(describeTextWidth("abc")).toBe("Characters: 3\nBytes (UTF-8): 3\nColumns in a terminal: 3\nEvery character takes one column.");
+    expect(describeTextWidth("abc")).toBe(
+      "Characters: 3\nBytes (UTF-8): 3\nColumns in a terminal: 3\nEvery character takes one column.",
+    );
     const wide = describeTextWidth("日本語😀");
     expect(wide).toContain("Characters: 4");
     expect(wide).toContain("Columns in a terminal: 8");
     expect(wide).toContain("take two columns");
     expect(describeTextWidth("e\u0301")).toContain("Columns in a terminal: 1");
     expect(describeTextWidth("e\u0301")).toContain("Characters: 2");
-    expect(describeTextWidth("\u001b[31mred\u001b[0m")).toContain("Columns in a terminal: 3");
+    expect(describeTextWidth("\u001b[31mred\u001b[0m")).toContain(
+      "Columns in a terminal: 3",
+    );
   });
 
   test("the encode operation offers the new modes and still refuses empty text and unknown modes", async () => {
-    for (const mode of ["html-escape", "html-unescape", "strip-ansi", "text-width"]) {
+    for (const mode of [
+      "html-escape",
+      "html-unescape",
+      "strip-ansi",
+      "text-width",
+    ]) {
       const r = await op("encode", { mode, text: "a <b> &amp; \u001b[31mx" });
       expect(typeof r.output).toBe("string");
       expect(r.bytes).toBeGreaterThan(0);
     }
-    await expect(op("encode", { mode: "html-escape", text: "" })).rejects.toBeInstanceOf(FmError);
-    await expect(op("encode", { mode: "nope", text: "x" })).rejects.toBeInstanceOf(FmError);
+    await expect(
+      op("encode", { mode: "html-escape", text: "" }),
+    ).rejects.toBeInstanceOf(FmError);
+    await expect(
+      op("encode", { mode: "nope", text: "x" }),
+    ).rejects.toBeInstanceOf(FmError);
   });
 });

@@ -5,12 +5,23 @@
 import { describeFsError } from "./fmPaths";
 import { runBuiltin, type BuiltinJob } from "./fmConvBuiltin";
 
-declare const self: { onmessage: ((e: MessageEvent) => void) | null; postMessage(message: unknown): void };
+declare const self: {
+  onmessage: ((e: MessageEvent) => void) | null;
+  postMessage(message: unknown): void;
+};
 
 function plainMessage(err: any): string {
-  if (err?.name === "ConvError" || err?.name === "FmError") return String(err.message);
-  if (typeof err?.code === "string" && /^E[A-Z]+$/.test(err.code)) return describeFsError(err).message;
-  if (err instanceof RangeError && /memory|string length|Invalid (?:string|array) length|too large/i.test(String(err.message))) return "This file is too big for the built-in converter to hold in memory.";
+  if (err?.name === "ConvError" || err?.name === "FmError")
+    return String(err.message);
+  if (typeof err?.code === "string" && /^E[A-Z]+$/.test(err.code))
+    return describeFsError(err).message;
+  if (
+    err instanceof RangeError &&
+    /memory|string length|Invalid (?:string|array) length|too large/i.test(
+      String(err.message),
+    )
+  )
+    return "This file is too big for the built-in converter to hold in memory.";
   return `Something went wrong while converting: ${String(err?.message ?? err).slice(0, 200)}`;
 }
 

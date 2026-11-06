@@ -2,14 +2,22 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "fs";
 import { join } from "path";
 
-const css = readFileSync(join(import.meta.dir, "..", "resources", "file_manager", "ui", "style.css"), "utf8");
+const css = readFileSync(
+  join(import.meta.dir, "..", "resources", "file_manager", "ui", "style.css"),
+  "utf8",
+);
 
 /** The `--name: value` pairs of one rule, found by its selector text. */
 function variables(selectorStart: string): Record<string, string> {
   const start = css.indexOf(selectorStart);
   expect(start, selectorStart).toBeGreaterThanOrEqual(0);
   const body = css.slice(css.indexOf("{", start) + 1, css.indexOf("}", start));
-  return Object.fromEntries([...body.matchAll(/--([\w-]+):\s*([^;]+);/g)].map((m) => [m[1]!, m[2]!.trim()]));
+  return Object.fromEntries(
+    [...body.matchAll(/--([\w-]+):\s*([^;]+);/g)].map((m) => [
+      m[1]!,
+      m[2]!.trim(),
+    ]),
+  );
 }
 
 function luminance(hex: string): number {
@@ -27,14 +35,33 @@ const ratio = (a: string, b: string) => {
 
 // Pairs that actually appear in the page: [foreground, background, minimum ratio].
 const PAIRS: Array<[string, string, number]> = [
-  ["text", "bg", 4.5], ["text", "panel", 4.5], ["muted", "bg", 4.5], ["muted", "panel", 4.5], ["text", "hover", 4.5], ["muted", "hover", 4.5],
-  ["selected-text", "selected", 4.5], ["accent-text", "accent", 4.5], ["accent", "bg", 4.5], ["accent", "panel", 4.5],
-  ["danger", "bg", 4.5], ["danger", "hover", 4.5], ["danger-text", "danger-bg", 4.5], ["danger", "danger-bg", 3],
-  ["toast-text", "toast-bg", 4.5], ["toast-action", "toast-bg", 4.5], ["warn-text", "warn-bg", 4.5], ["toast-good", "toast-bg", 3], ["toast-bad", "toast-bg", 3], ["good", "panel", 3],
+  ["text", "bg", 4.5],
+  ["text", "panel", 4.5],
+  ["muted", "bg", 4.5],
+  ["muted", "panel", 4.5],
+  ["text", "hover", 4.5],
+  ["muted", "hover", 4.5],
+  ["selected-text", "selected", 4.5],
+  ["accent-text", "accent", 4.5],
+  ["accent", "bg", 4.5],
+  ["accent", "panel", 4.5],
+  ["danger", "bg", 4.5],
+  ["danger", "hover", 4.5],
+  ["danger-text", "danger-bg", 4.5],
+  ["danger", "danger-bg", 3],
+  ["toast-text", "toast-bg", 4.5],
+  ["toast-action", "toast-bg", 4.5],
+  ["warn-text", "warn-bg", 4.5],
+  ["toast-good", "toast-bg", 3],
+  ["toast-bad", "toast-bg", 3],
+  ["good", "panel", 3],
   ["muted", "selected", 3],
 ];
 
-for (const [name, selector] of [["light", ":root {"], ["dark", ':root[data-theme="dark"]']] as const) {
+for (const [name, selector] of [
+  ["light", ":root {"],
+  ["dark", ':root[data-theme="dark"]'],
+] as const) {
   describe(`${name} theme colors`, () => {
     const vars = variables(selector);
     test("every text and background pair is readable", () => {
@@ -58,7 +85,9 @@ describe("the automatic dark theme matches the dark theme", () => {
     expect(Object.keys(auto).sort()).toEqual(Object.keys(dark).sort());
   });
   test("light and dark define the same variables", () => {
-    expect(Object.keys(variables(":root {")).sort()).toEqual(Object.keys(variables(':root[data-theme="dark"]')).sort());
+    expect(Object.keys(variables(":root {")).sort()).toEqual(
+      Object.keys(variables(':root[data-theme="dark"]')).sort(),
+    );
   });
 });
 
@@ -69,12 +98,16 @@ describe("accessibility basics in the stylesheet", () => {
   });
 
   test("an outline is only removed where something else shows the focus", () => {
-    const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({ selector: m[1]!.trim(), body: m[2]! }));
+    const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({
+      selector: m[1]!.trim(),
+      body: m[2]!,
+    }));
     const removed = rules.filter((r) => /outline:\s*none/.test(r.body));
     expect(removed.length).toBeGreaterThan(0);
     for (const r of removed) {
       const showsAnother = /background:/.test(r.body); // a menu item that is highlighted instead
-      const insideInput = r.selector === ".address-input" || r.selector === ".search-input"; // their container draws the ring
+      const insideInput =
+        r.selector === ".address-input" || r.selector === ".search-input"; // their container draws the ring
       expect(showsAnother || insideInput, r.selector).toBe(true);
     }
     expect(css).toContain(".address-main:focus-within");
@@ -86,12 +119,22 @@ describe("accessibility basics in the stylesheet", () => {
 
   test("zen mode keeps the editor on screen: the Code pane stays absolutely positioned and no rule makes it 'relative'", () => {
     const ui = join(import.meta.dir, "..", "resources", "file_manager", "ui");
-    expect(readFileSync(join(ui, "power.css"), "utf8")).toMatch(/\.power-pane \{[^}]*position: absolute; inset: 0/);
+    expect(readFileSync(join(ui, "power.css"), "utf8")).toMatch(
+      /\.power-pane \{[^}]*position: absolute; inset: 0/,
+    );
     const code = readFileSync(join(ui, "code.css"), "utf8");
     // Setting position on the pane itself would shrink it to nothing (it is laid out by inset: 0), so only its children may.
     for (const m of code.matchAll(/(^|\n)([^{}\n]+)\{([^}]*)\}/g)) {
       const selectors = m[2]!.split(",").map((x) => x.trim());
-      if (selectors.some((x) => x === ".code-zen" || x === ".code-root" || x === ".power-pane.code-root")) expect(m[3], m[2]).not.toMatch(/\bposition:/);
+      if (
+        selectors.some(
+          (x) =>
+            x === ".code-zen" ||
+            x === ".code-root" ||
+            x === ".power-pane.code-root",
+        )
+      )
+        expect(m[3], m[2]).not.toMatch(/\bposition:/);
     }
   });
 
@@ -128,16 +171,25 @@ describe("accessibility basics in the stylesheet", () => {
     expect(playerCss).toContain('.wa-floating-pip[data-skin="theme"]');
 
     // 4. Embedded Apps, Hosted Studios, and Database Studios receive and apply fmTheme
-    const fmServerTs = readFileSync(join(rootDir, "src", "features", "filemanager", "fmServer.ts"), "utf8");
+    const fmServerTs = readFileSync(
+      join(rootDir, "src", "features", "filemanager", "fmServer.ts"),
+      "utf8",
+    );
     expect(fmServerTs).toContain("_applyFmTheme(e.data.fmTheme)");
     expect(fmServerTs).toContain("fm-embedded-theme");
 
-    const simpleguiHostTs = readFileSync(join(rootDir, "src", "simplegui_host.ts"), "utf8");
+    const simpleguiHostTs = readFileSync(
+      join(rootDir, "src", "simplegui_host.ts"),
+      "utf8",
+    );
     expect(simpleguiHostTs).toContain("applyFmTheme(e.data.fmTheme)");
     expect(simpleguiHostTs).toContain("fm-hosted-studio-theme");
 
     const dbStudioJs = readFileSync(join(ui, "dbStudio.js"), "utf8");
-    const studioPolishTs = readFileSync(join(rootDir, "src", "shared", "studioPolish.ts"), "utf8");
+    const studioPolishTs = readFileSync(
+      join(rootDir, "src", "shared", "studioPolish.ts"),
+      "utf8",
+    );
     expect(dbStudioJs).toContain('on("theme-changed"');
     expect(studioPolishTs).toContain("applyFmTheme(e.data.fmTheme)");
     expect(studioPolishTs).toContain("fm-db-studio-theme");
@@ -160,7 +212,9 @@ describe("accessibility basics in the stylesheet", () => {
 
     // 2. Reduced-motion damping on .ollama-spinner
     const ollamaCss = readFileSync(join(ui, "ollama.css"), "utf8");
-    expect(ollamaCss).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.ollama-spinner/);
+    expect(ollamaCss).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.ollama-spinner/,
+    );
 
     // 3. IME-safe Enter composition guards (e.isComposing || e.keyCode === 229) & prompt history recall
     for (const file of [
@@ -221,7 +275,10 @@ describe("accessibility basics in the stylesheet", () => {
     expect(quickbarJs).toContain('addAct("bionic"');
 
     // 6. Shared Database Studio polish (studioPolish.ts)
-    const studioPolishTs = readFileSync(join(rootDir, "src", "shared", "studioPolish.ts"), "utf8");
+    const studioPolishTs = readFileSync(
+      join(rootDir, "src", "shared", "studioPolish.ts"),
+      "utf8",
+    );
     expect(studioPolishTs).toContain("accent-color: var(--cyan)");
     expect(studioPolishTs).toContain(":user-invalid");
     expect(studioPolishTs).toContain("text-wrap: balance");

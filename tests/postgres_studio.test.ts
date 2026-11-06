@@ -1,6 +1,9 @@
 import { describe, it, expect, afterAll } from "bun:test";
 import { startPostgresStudioServer } from "../applications/postgres_studio_server.ts";
-import { generatePostgresStudioHtml, createPostgresStudio } from "../applications/postgres_studio.ts";
+import {
+  generatePostgresStudioHtml,
+  createPostgresStudio,
+} from "../applications/postgres_studio.ts";
 import { provisionTestDb } from "./helpers/testdb.ts";
 
 // Runs against a throwaway database (TEST_PG_URL); skipped when it is not configured.
@@ -8,7 +11,9 @@ const testDb = await provisionTestDb("postgres");
 const suite = testDb ? describe : describe.skip;
 
 suite("🐘 Postgres Studio Pro - Workstation & Server Diagnostics Suite", () => {
-  const server = testDb ? startPostgresStudioServer({ port: 0, config: testDb.config }) : (null as any);
+  const server = testDb
+    ? startPostgresStudioServer({ port: 0, config: testDb.config })
+    : (null as any);
   const baseUrl = `http://127.0.0.1:${server?.port}`;
 
   afterAll(async () => {
@@ -233,7 +238,11 @@ suite("🐘 Postgres Studio Pro - Workstation & Server Diagnostics Suite", () =>
     expect(schema.tables.some((t: any) => t.name === "customers")).toBe(true);
     expect(schema.tables.some((t: any) => t.name === "products")).toBe(true);
     expect(schema.tables.some((t: any) => t.name === "orders")).toBe(true);
-    expect(schema.views.some((v: any) => v.name === "v_customer_order_summary")).toBe(true);
-    expect(schema.matviews.some((m: any) => m.name === "mv_daily_sales_analytics")).toBe(true);
+    expect(
+      schema.views.some((v: any) => v.name === "v_customer_order_summary"),
+    ).toBe(true);
+    expect(
+      schema.matviews.some((m: any) => m.name === "mv_daily_sales_analytics"),
+    ).toBe(true);
   });
 });

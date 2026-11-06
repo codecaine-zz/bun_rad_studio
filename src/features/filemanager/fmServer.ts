@@ -15,9 +15,20 @@ import { randomBytes, timingSafeEqual } from "crypto";
 import { existsSync, promises as fsp, readFileSync, realpathSync } from "fs";
 import * as nodePath from "path";
 import { gunzip } from "zlib";
-import { guardLocalRequest, readClipboardTextSync, writeClipboardSync } from "../../localGuard";
+import {
+  guardLocalRequest,
+  readClipboardTextSync,
+  writeClipboardSync,
+} from "../../localGuard";
 import { injectGameMasterFx } from "../../shared/gameMasterFx";
-import { absolutePath, createContext, pathApi, type FmContext, type FmContextOptions, type FmHandler } from "./fmCore";
+import {
+  absolutePath,
+  createContext,
+  pathApi,
+  type FmContext,
+  type FmContextOptions,
+  type FmHandler,
+} from "./fmCore";
 import { codeOperations } from "./fmCodeOps";
 import { checkOperations } from "./fmCheckOps";
 import { cryptoOperations } from "./fmCryptoOps";
@@ -44,12 +55,25 @@ import { workspaceOperations } from "./fmWorkspaces";
 import { actionOperations } from "./fmActions";
 import { databaseOperations } from "./fmDbOps";
 import { studioFrameResponse } from "./fmDbFrame";
-import { hostedPageResponse, hostedSessionFor, hostedStudioOperations } from "./fmHostedStudios";
+import {
+  hostedPageResponse,
+  hostedSessionFor,
+  hostedStudioOperations,
+} from "./fmHostedStudios";
 import { downloadOperations } from "./fmDownloadOps";
-import { cliUtilsDir, cliUtilsOperations, ensureCliUtilsFolder, findCliSourceRoot } from "./fmCliUtils";
+import {
+  cliUtilsDir,
+  cliUtilsOperations,
+  ensureCliUtilsFolder,
+  findCliSourceRoot,
+} from "./fmCliUtils";
 import { taskManagerOperations } from "./fmTaskManagerOps";
 import { sysinfoOperations } from "./fmSysinfoOps";
-import { PHONON_OPS, getCachedAudioFile, isPhononSupportedPlatform } from "./fmPhonon";
+import {
+  PHONON_OPS,
+  getCachedAudioFile,
+  isPhononSupportedPlatform,
+} from "./fmPhonon";
 import {
   OLLAMA_OPS,
   getCachedOllamaAudioFile,
@@ -65,23 +89,85 @@ import {
 import type { HostedPeer, HostedSession } from "../../simplegui_host";
 import { dbState } from "./fmDbState";
 import { watchOperations } from "./fmWatchOps";
-import { calculateFolderSizes, entryFor, listFolder, listPlaces, previewFile, propertiesOf, searchFolder } from "./fmList";
+import {
+  calculateFolderSizes,
+  entryFor,
+  listFolder,
+  listPlaces,
+  previewFile,
+  propertiesOf,
+  searchFolder,
+} from "./fmList";
 import { clipboardOperations } from "./fmClipboardOps";
 import { qrOperations } from "./fmQr";
 import { startRenames, startTransfer } from "./fmFileOps";
-import { MEDIA_MIME, fileResponse, imagePreviewFor, thumbnailFor } from "./fmQuickLook";
+import {
+  MEDIA_MIME,
+  fileResponse,
+  imagePreviewFor,
+  thumbnailFor,
+} from "./fmQuickLook";
 import { clearHistory, loadHistory } from "./fmOpHistory";
-import { bulkRename, copyItems, findConflicts, makeFile, makeFolder, moveItems, relocate, renameItem } from "./fmOps";
+import {
+  bulkRename,
+  copyItems,
+  findConflicts,
+  makeFile,
+  makeFolder,
+  moveItems,
+  relocate,
+  renameItem,
+} from "./fmOps";
 import { makeSqliteFile } from "./fmNewSqlite";
-import { overview, previewConvert, startConvert, startInstall, openToolWebsite } from "./fmBatch";
+import {
+  overview,
+  previewConvert,
+  startConvert,
+  startInstall,
+  openToolWebsite,
+} from "./fmBatch";
 import { openItem, revealItem } from "./fmOpen";
 import { openViaAssociation, openWithOperations } from "./fmOpenWith";
-import { FmError, classify, describeFsError, parseTypedPath, extensionOf, isSameOrInside } from "./fmPaths";
-import { addRecent, clearRecents, loadSettings, pruneRecents, removeRecent, updateSettings } from "./fmSettings";
+import {
+  FmError,
+  classify,
+  describeFsError,
+  parseTypedPath,
+  extensionOf,
+  isSameOrInside,
+} from "./fmPaths";
+import {
+  addRecent,
+  clearRecents,
+  loadSettings,
+  pruneRecents,
+  removeRecent,
+  updateSettings,
+} from "./fmSettings";
 import { windowOperations } from "./fmWindow";
-import { MAX_INPUT_BYTES, clampSize, createTerminalHub, shellFolder, terminalSupported, type TerminalSession } from "./fmTerminal";
-import { deleteFromTrash, deletePermanently, listTrash, moveToTrash, restoreFromTrash } from "./fmTrash";
-import { archiveExtensionOf, createZip, extractArchive, extractItems, extractZip, isExtractableName } from "./fmZip";
+import {
+  MAX_INPUT_BYTES,
+  clampSize,
+  createTerminalHub,
+  shellFolder,
+  terminalSupported,
+  type TerminalSession,
+} from "./fmTerminal";
+import {
+  deleteFromTrash,
+  deletePermanently,
+  listTrash,
+  moveToTrash,
+  restoreFromTrash,
+} from "./fmTrash";
+import {
+  archiveExtensionOf,
+  createZip,
+  extractArchive,
+  extractItems,
+  extractZip,
+  isExtractableName,
+} from "./fmZip";
 
 /** Application identifier for the File Manager studio. */
 export const APP_ID = "file_manager_studio";
@@ -109,10 +195,20 @@ export interface FileManagerServerOptions {
 export function getFileManagerAssetsDir(): string {
   const candidates = [
     nodePath.join(import.meta.dir, "..", "resources", "file_manager"),
-    nodePath.join(import.meta.dir, "..", "..", "..", "resources", "file_manager"),
+    nodePath.join(
+      import.meta.dir,
+      "..",
+      "..",
+      "..",
+      "resources",
+      "file_manager",
+    ),
     nodePath.join(process.cwd(), "resources", "file_manager"),
   ];
-  return candidates.find((d) => existsSync(nodePath.join(d, "index.html"))) ?? candidates[0]!;
+  return (
+    candidates.find((d) => existsSync(nodePath.join(d, "index.html"))) ??
+    candidates[0]!
+  );
 }
 
 const CSP = [
@@ -133,10 +229,15 @@ const CSP = [
  * loopback guard), and the terminal library may add style elements that carry this response's one-time `nonce`.
  */
 function pageCsp(host: string, nonce: string): string {
-  const withNonce = CSP.replace("style-src 'self'", `style-src 'self' 'nonce-${nonce}'`);
+  const withNonce = CSP.replace(
+    "style-src 'self'",
+    `style-src 'self' 'nonce-${nonce}'`,
+  );
   const alt = alternateOrigin(host);
   const framed = alt ? `${withNonce}; frame-src ${alt}` : withNonce;
-  return /^[\w.:[\]-]+$/.test(host) ? framed.replace("connect-src 'self'", `connect-src 'self' ws://${host}`) : framed;
+  return /^[\w.:[\]-]+$/.test(host)
+    ? framed.replace("connect-src 'self'", `connect-src 'self' ws://${host}`)
+    : framed;
 }
 
 /** The other spelling of this loopback address. A page there is a different origin, so it can't read this page (or its token). */
@@ -180,7 +281,12 @@ const gameEmbed = (dir: string): EmbeddedApp => ({
 export const EMBEDDED_APPS: Record<string, EmbeddedApp> = {
   calc: {
     dir: "universal_calculator",
-    script: ["https://cdn.jsdelivr.net"], style: ["https://cdn.jsdelivr.net", "https://fonts.googleapis.com"], font: ["https://cdn.jsdelivr.net", "https://fonts.gstatic.com"], img: [], frame: [], connect: [],
+    script: ["https://cdn.jsdelivr.net"],
+    style: ["https://cdn.jsdelivr.net", "https://fonts.googleapis.com"],
+    font: ["https://cdn.jsdelivr.net", "https://fonts.gstatic.com"],
+    img: [],
+    frame: [],
+    connect: [],
     hideCss: ".hub-button{display:none!important}.brand{pointer-events:none}",
     evalFormulas: true,
   },
@@ -293,7 +399,8 @@ function embeddedCsp(app: EmbeddedApp, host: string): string {
  * asks the server to open it in the system browser. Only the address is sent (never anything secret), and the page checks
  * it again before opening it.
  */
-const LINK_BRIDGE = `<script>(function(){` +
+const LINK_BRIDGE =
+  `<script>(function(){` +
   `try{var _ls=window.localStorage;_ls.getItem("__fm__")}catch(e){var _m={};var _p={getItem:function(k){return Object.prototype.hasOwnProperty.call(_m,k)?_m[k]:null},setItem:function(k,v){_m[k]=String(v)},removeItem:function(k){delete _m[k]},clear:function(){_m={}},key:function(i){return Object.keys(_m)[i]||null},get length(){return Object.keys(_m).length}};try{Object.defineProperty(window,"localStorage",{value:_p,configurable:true,writable:true})}catch(_){}try{Object.defineProperty(Window.prototype,"localStorage",{get:function(){return _p},configurable:true})}catch(_){}}` +
   `var _acs=[];var _trackAc=function(ac){if(ac&&_acs.indexOf(ac)===-1)_acs.push(ac);return ac};` +
   `try{if(typeof AudioNode!=="undefined"&&AudioNode.prototype&&AudioNode.prototype.connect){var _origConn=AudioNode.prototype.connect;AudioNode.prototype.connect=function(){try{_trackAc(this.context)}catch(_){}return _origConn.apply(this,arguments)}}}catch(_){}` +
@@ -318,7 +425,22 @@ const LINK_BRIDGE = `<script>(function(){` +
   `if(window.parent&&window.parent!==window){try{var _reqFs=function(){try{parent.postMessage({fmToggleExpand:true},"*")}catch(_){}return Promise.resolve()};var _exitFs=function(){try{parent.postMessage({fmEscapeExpand:true},"*")}catch(_){}return Promise.resolve()};if(typeof Element!=="undefined"&&Element.prototype){Element.prototype.requestFullscreen=_reqFs;Element.prototype.webkitRequestFullscreen=_reqFs}if(typeof Document!=="undefined"&&Document.prototype){Document.prototype.exitFullscreen=_exitFs;Document.prototype.webkitExitFullscreen=_exitFs}}catch(_){}}` +
   `window.open=function(u){var x=u&&abs(u);if(x)send(x);return null}})();</script>`;
 
-const EMBED_TYPES: Record<string, string> = { html: "text/html; charset=utf-8", js: "text/javascript; charset=utf-8", css: "text/css; charset=utf-8", svg: "image/svg+xml", json: "application/json; charset=utf-8", png: "image/png", gif: "image/gif", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp", woff2: "font/woff2", mp3: "audio/mpeg", wav: "audio/wav", ogg: "audio/ogg" };
+const EMBED_TYPES: Record<string, string> = {
+  html: "text/html; charset=utf-8",
+  js: "text/javascript; charset=utf-8",
+  css: "text/css; charset=utf-8",
+  svg: "image/svg+xml",
+  json: "application/json; charset=utf-8",
+  png: "image/png",
+  gif: "image/gif",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+  woff2: "font/woff2",
+  mp3: "audio/mpeg",
+  wav: "audio/wav",
+  ogg: "audio/ogg",
+};
 
 /** A WebSocket that carries one hosted tool's page <-> program messages (see fmHostedStudios.ts). */
 interface HostedSocketData {
@@ -371,7 +493,9 @@ const FONT_MIME: Record<string, string> = {
   eot: "application/vnd.ms-fontobject",
 };
 
-const secureHeaders = (extra: Record<string, string> = {}): Record<string, string> => ({
+const secureHeaders = (
+  extra: Record<string, string> = {},
+): Record<string, string> => ({
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "no-referrer",
   "Cache-Control": "no-store",
@@ -394,10 +518,19 @@ const operations: Record<string, Handler> = {
     const trash = await listTrash(ctx);
     const cliDir = ensureCliUtilsFolder(ctx);
     const cliSource = findCliSourceRoot()?.cliDir ?? "";
-    return { ...places, cliUtilsDir: cliDir, cliAppsDir: cliSource, trash: { count: trash.count }, settings: await loadSettings(ctx) };
+    return {
+      ...places,
+      cliUtilsDir: cliDir,
+      cliAppsDir: cliSource,
+      trash: { count: trash.count },
+      settings: await loadSettings(ctx),
+    };
   },
   async list(ctx, b) {
-    if (typeof b.path === "string" && pathApi(ctx).resolve(b.path) === pathApi(ctx).resolve(cliUtilsDir(ctx))) {
+    if (
+      typeof b.path === "string" &&
+      pathApi(ctx).resolve(b.path) === pathApi(ctx).resolve(cliUtilsDir(ctx))
+    ) {
       ensureCliUtilsFolder(ctx);
     }
     return await listFolder(ctx, b.path, { showHidden: b.showHidden === true });
@@ -450,19 +583,31 @@ const operations: Record<string, Handler> = {
     return { results: await restoreFromTrash(ctx, b.ids) };
   },
   async "trash/delete"(ctx, b) {
-    if (b.confirm !== true) throw new FmError("NEEDS_CONFIRM", "Deleting from the Recycle Bin is permanent and needs to be confirmed.");
+    if (b.confirm !== true)
+      throw new FmError(
+        "NEEDS_CONFIRM",
+        "Deleting from the Recycle Bin is permanent and needs to be confirmed.",
+      );
     return await deleteFromTrash(ctx, Array.isArray(b.ids) ? b.ids : undefined);
   },
   async delete(ctx, b) {
-    if (b.confirm !== true) throw new FmError("NEEDS_CONFIRM", "Deleting for good needs to be confirmed.");
+    if (b.confirm !== true)
+      throw new FmError(
+        "NEEDS_CONFIRM",
+        "Deleting for good needs to be confirmed.",
+      );
     return { results: await deletePermanently(ctx, b.paths) };
   },
   async search(ctx, b) {
-    return await searchFolder(ctx, b.path, b.query, { showHidden: b.showHidden === true, kind: typeof b.kind === "string" ? b.kind : undefined });
+    return await searchFolder(ctx, b.path, b.query, {
+      showHidden: b.showHidden === true,
+      kind: typeof b.kind === "string" ? b.kind : undefined,
+    });
   },
   async "recent/add"(ctx, b) {
     const entry = await entryFor(ctx, b.path);
-    if (entry.isDir) throw new FmError("BAD_REQUEST", "Only files are listed under Recent.");
+    if (entry.isDir)
+      throw new FmError("BAD_REQUEST", "Only files are listed under Recent.");
     return { settings: await addRecent(ctx, entry.path) };
   },
   async "recent/remove"(ctx, b) {
@@ -483,7 +628,11 @@ const operations: Record<string, Handler> = {
   async open(ctx, b) {
     // A program the person chose for this kind of file comes first.
     const confirmMismatch = b.confirmMismatch === true;
-    const result = (b.ignoreAssociation === true ? null : await openViaAssociation(ctx, b.path, confirmMismatch)) ?? (await openItem(ctx, b.path, b.confirmProgram === true, confirmMismatch));
+    const result =
+      (b.ignoreAssociation === true
+        ? null
+        : await openViaAssociation(ctx, b.path, confirmMismatch)) ??
+      (await openItem(ctx, b.path, b.confirmProgram === true, confirmMismatch));
     await addRecent(ctx, result.opened).catch(() => {});
     return result;
   },
@@ -494,13 +643,21 @@ const operations: Record<string, Handler> = {
     return await createZip(ctx, b.paths, b.name);
   },
   async unzip(ctx, b) {
-    if (typeof b.path === "string" && isExtractableName(b.path) && archiveExtensionOf(b.path) !== "zip") {
+    if (
+      typeof b.path === "string" &&
+      isExtractableName(b.path) &&
+      archiveExtensionOf(b.path) !== "zip"
+    ) {
       return await extractArchive(ctx, b.path, b.dest);
     }
     return await extractZip(ctx, b.path, b.dest);
   },
   async extract(ctx, b) {
-    const paths = Array.isArray(b.paths) ? b.paths : typeof b.path === "string" ? [b.path] : [];
+    const paths = Array.isArray(b.paths)
+      ? b.paths
+      : typeof b.path === "string"
+        ? [b.path]
+        : [];
     return await extractItems(ctx, paths, b.dest);
   },
   async bulkrename(ctx, b) {
@@ -513,20 +670,36 @@ const operations: Record<string, Handler> = {
     return await openToolWebsite(ctx, b.tool, b.manager === true);
   },
   async "tools/run"(ctx, b) {
-    return { job: await startConvert(ctx, { action: b.action, paths: b.paths, options: b.options, outputDir: b.outputDir, pattern: b.pattern }) };
+    return {
+      job: await startConvert(ctx, {
+        action: b.action,
+        paths: b.paths,
+        options: b.options,
+        outputDir: b.outputDir,
+        pattern: b.pattern,
+      }),
+    };
   },
   async "tools/preview"(ctx, b) {
-    return await previewConvert(ctx, { action: b.action, paths: b.paths, options: b.options, outputDir: b.outputDir, pattern: b.pattern });
+    return await previewConvert(ctx, {
+      action: b.action,
+      paths: b.paths,
+      options: b.options,
+      outputDir: b.outputDir,
+      pattern: b.pattern,
+    });
   },
   async "tools/setup/options"(ctx) {
     return await setupOptions(ctx);
   },
   async "tools/setup"(ctx, b) {
-    if (b.confirm !== true) throw new FmError("NEEDS_CONFIRM", "Installing needs your confirmation.");
+    if (b.confirm !== true)
+      throw new FmError("NEEDS_CONFIRM", "Installing needs your confirmation.");
     return await planSetup(ctx, { tools: b.tools, manager: b.manager });
   },
   async "tools/install"(ctx, b) {
-    if (b.confirm !== true) throw new FmError("NEEDS_CONFIRM", "Installing needs your confirmation.");
+    if (b.confirm !== true)
+      throw new FmError("NEEDS_CONFIRM", "Installing needs your confirmation.");
     return { job: startInstall(ctx, b.tools) };
   },
   async "jobs/list"(ctx) {
@@ -537,16 +710,27 @@ const operations: Record<string, Handler> = {
   },
   async "fileops/start"(ctx, b) {
     if (b.mode === "rename") return { job: await startRenames(ctx, b.items) };
-    if (b.mode !== "copy" && b.mode !== "move") throw new FmError("BAD_REQUEST", "Choose copy, move or rename.");
-    return { job: await startTransfer(ctx, b.mode, b.sources, b.dest, b.policy) };
+    if (b.mode !== "copy" && b.mode !== "move")
+      throw new FmError("BAD_REQUEST", "Choose copy, move or rename.");
+    return {
+      job: await startTransfer(ctx, b.mode, b.sources, b.dest, b.policy),
+    };
   },
   async "jobs/retry"(ctx, b) {
     const job = ctx.jobs.retry(String(b.id ?? ""));
-    if (!job) throw new FmError("NOTHING_TO_RETRY", "There is nothing left to retry in that operation.");
+    if (!job)
+      throw new FmError(
+        "NOTHING_TO_RETRY",
+        "There is nothing left to retry in that operation.",
+      );
     return { job };
   },
   async "fileops/history"(ctx) {
-    return { entries: (await loadHistory(ctx, new Set(ctx.jobs.list().map((j) => j.id)))).reverse() };
+    return {
+      entries: (
+        await loadHistory(ctx, new Set(ctx.jobs.list().map((j) => j.id)))
+      ).reverse(),
+    };
   },
   async "fileops/history/clear"(ctx) {
     return { removed: await clearHistory(ctx) };
@@ -555,29 +739,84 @@ const operations: Record<string, Handler> = {
     return { removed: ctx.jobs.clearFinished() };
   },
   async settings(ctx, b) {
-    return { settings: b.set && typeof b.set === "object" ? await updateSettings(ctx, b.set) : await loadSettings(ctx) };
+    return {
+      settings:
+        b.set && typeof b.set === "object"
+          ? await updateSettings(ctx, b.set)
+          : await loadSettings(ctx),
+    };
   },
   async typedpath(ctx, b) {
     const cwd = typeof b.cwd === "string" && b.cwd ? b.cwd : ctx.home;
-    const path = parseTypedPath(typeof b.text === "string" ? b.text : "", cwd, ctx.home, ctx.platform);
-    if (!path) throw new FmError("BAD_PATH", typeof b.text === "string" && /^\s*["']?file:/i.test(b.text) ? "That file:// address doesn't point to a place on this computer. It should look like file:///Users/you/Documents." : "Type a folder location, like ~/Documents.");
+    const path = parseTypedPath(
+      typeof b.text === "string" ? b.text : "",
+      cwd,
+      ctx.home,
+      ctx.platform,
+    );
+    if (!path)
+      throw new FmError(
+        "BAD_PATH",
+        typeof b.text === "string" && /^\s*["']?file:/i.test(b.text)
+          ? "That file:// address doesn't point to a place on this computer. It should look like file:///Users/you/Documents."
+          : "Type a folder location, like ~/Documents.",
+      );
     const st = await fsp.stat(path).catch(() => null);
     return { path, exists: !!st, isDir: !!st?.isDirectory() };
   },
   async copytext(ctx, b) {
-    if (typeof b.text !== "string" || b.text.length > 100_000) throw new FmError("BAD_REQUEST", "Nothing to copy.");
-    return { copied: ctx.clipboard.writeText ? ctx.clipboard.writeText(b.text) : writeClipboardSync(b.text) };
+    if (typeof b.text !== "string" || b.text.length > 100_000)
+      throw new FmError("BAD_REQUEST", "Nothing to copy.");
+    return {
+      copied: ctx.clipboard.writeText
+        ? ctx.clipboard.writeText(b.text)
+        : writeClipboardSync(b.text),
+    };
   },
   async pastetext(ctx) {
-    const text = ctx.clipboard.readText ? ctx.clipboard.readText() : readClipboardTextSync();
+    const text = ctx.clipboard.readText
+      ? ctx.clipboard.readText()
+      : readClipboardTextSync();
     return { ok: text !== null, text: text ?? "" };
   },
 };
 
 // The power tools (Find, Watch, Crypto, IP info, Network) bring their own operations.
-Object.assign(operations, aboutOperations, themeOperations, checkOperations, openWithOperations, findOperations, watchOperations, cryptoOperations, ipOperations, netOperations, sdOperations, codeOperations, vaultOperations, devOperations, infoOperations, serveOperations, dataCompareOperations, editorOperations, permsOperations);
+Object.assign(
+  operations,
+  aboutOperations,
+  themeOperations,
+  checkOperations,
+  openWithOperations,
+  findOperations,
+  watchOperations,
+  cryptoOperations,
+  ipOperations,
+  netOperations,
+  sdOperations,
+  codeOperations,
+  vaultOperations,
+  devOperations,
+  infoOperations,
+  serveOperations,
+  dataCompareOperations,
+  editorOperations,
+  permsOperations,
+);
 
-Object.assign(operations, secretsOperations, databaseOperations, graveyardOperations, subdomainOperations, clipboardOperations, qrOperations, planOperations, compareOperations, workspaceOperations, actionOperations);
+Object.assign(
+  operations,
+  secretsOperations,
+  databaseOperations,
+  graveyardOperations,
+  subdomainOperations,
+  clipboardOperations,
+  qrOperations,
+  planOperations,
+  compareOperations,
+  workspaceOperations,
+  actionOperations,
+);
 
 // The window's size and position preference (window/get, window/set, window/reset).
 Object.assign(operations, windowOperations);
@@ -586,19 +825,38 @@ Object.assign(operations, hostedStudioOperations);
 // Fast, resumable downloads split over several connections.
 Object.assign(operations, downloadOperations);
 // Built-in RAD Studio command-line utilities folder and catalog.
-Object.assign(operations, cliUtilsOperations, taskManagerOperations, sysinfoOperations, PHONON_OPS, OLLAMA_OPS, BIONIC_OPS);
+Object.assign(
+  operations,
+  cliUtilsOperations,
+  taskManagerOperations,
+  sysinfoOperations,
+  PHONON_OPS,
+  OLLAMA_OPS,
+  BIONIC_OPS,
+);
 
 /** List of all registered File Manager JSON API operation names. */
 export const API_OPERATIONS = Object.keys(operations);
 
 function json(status: number, data: unknown): Response {
-  return new Response(JSON.stringify(data), { status, headers: secureHeaders({ "Content-Type": MIME.json! }) });
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: secureHeaders({ "Content-Type": MIME.json! }),
+  });
 }
 
 function failure(err: unknown): Response {
   if (err instanceof FmError) {
-    const needsConfirm = err.code === "NEEDS_CONFIRM" || err.code === "TYPE_MISMATCH";
-    return json(needsConfirm ? 409 : 400, { ok: false, error: { code: err.code, message: err.message, ...(err.details !== undefined ? { details: err.details } : {}) } });
+    const needsConfirm =
+      err.code === "NEEDS_CONFIRM" || err.code === "TYPE_MISMATCH";
+    return json(needsConfirm ? 409 : 400, {
+      ok: false,
+      error: {
+        code: err.code,
+        message: err.message,
+        ...(err.details !== undefined ? { details: err.details } : {}),
+      },
+    });
   }
   const info = describeFsError(err);
   const unexpected = info.code === "UNKNOWN" || !/^E[A-Z]+$/.test(info.code);
@@ -613,13 +871,23 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
 
   const terminals = createTerminalHub(undefined, assets);
   const primaryHostname = (options.host ?? "127.0.0.1").toLowerCase();
-  const startEncoded = options.startPath ? encodeURIComponent(nodePath.resolve(options.startPath)) : "";
+  const startEncoded = options.startPath
+    ? encodeURIComponent(nodePath.resolve(options.startPath))
+    : "";
   let cachedIndexMtime = -1;
   let cachedIndexTemplate = "";
 
-  async function serveEmbedded(id: string, rel: string, host: string, query: URLSearchParams): Promise<Response> {
-    const notFound = () => new Response("Not Found", { status: 404, headers: secureHeaders() });
-    const app = Object.prototype.hasOwnProperty.call(EMBEDDED_APPS, id) ? EMBEDDED_APPS[id]! : undefined;
+  async function serveEmbedded(
+    id: string,
+    rel: string,
+    host: string,
+    query: URLSearchParams,
+  ): Promise<Response> {
+    const notFound = () =>
+      new Response("Not Found", { status: 404, headers: secureHeaders() });
+    const app = Object.prototype.hasOwnProperty.call(EMBEDDED_APPS, id)
+      ? EMBEDDED_APPS[id]!
+      : undefined;
     if (!app) return notFound();
     const dir = nodePath.join(assets, "..", app.dir);
     let name: string;
@@ -629,22 +897,38 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
       return notFound();
     }
     if (name === "" || name.endsWith("/")) name += "index.html";
-    if (!/^[\w.\-]+(\/[\w.\-]+)*$/.test(name) || name.split("/").some((part) => part === "." || part === "..")) return notFound();
+    if (
+      !/^[\w.\-]+(\/[\w.\-]+)*$/.test(name) ||
+      name.split("/").some((part) => part === "." || part === "..")
+    )
+      return notFound();
     const ext = /\.([a-z0-9]+)$/i.exec(name)?.[1]?.toLowerCase() ?? "";
     const type = EMBED_TYPES[ext];
     const file = nodePath.join(dir, name);
     if (!type || !file.startsWith(dir + nodePath.sep)) return notFound();
     const st = await fsp.stat(file).catch(() => null);
     if (!st?.isFile()) return notFound();
-    const [realDir, realFile] = await Promise.all([fsp.realpath(dir).catch(() => ""), fsp.realpath(file).catch(() => "")]);
-    if (!realDir || !realFile || !realFile.startsWith(realDir + nodePath.sep)) return notFound();
-    const headers = secureHeaders({ "Content-Type": type, "Content-Security-Policy": embeddedCsp(app, host) });
+    const [realDir, realFile] = await Promise.all([
+      fsp.realpath(dir).catch(() => ""),
+      fsp.realpath(file).catch(() => ""),
+    ]);
+    if (!realDir || !realFile || !realFile.startsWith(realDir + nodePath.sep))
+      return notFound();
+    const headers = secureHeaders({
+      "Content-Type": type,
+      "Content-Security-Policy": embeddedCsp(app, host),
+    });
     if (name === "index.html") {
       // The timer asks its page address for its music playlist (a list of tracks kept in a file next to it).
       if (id === "timer" && query.get("action") === "sync_codecaine_playlist") {
         let tracks: unknown[] = [];
         try {
-          const parsed = JSON.parse(await fsp.readFile(nodePath.join(dir, "cache", "codecaine_playlist.json"), "utf8"));
+          const parsed = JSON.parse(
+            await fsp.readFile(
+              nodePath.join(dir, "cache", "codecaine_playlist.json"),
+              "utf8",
+            ),
+          );
           if (Array.isArray(parsed)) tracks = parsed;
         } catch {
           // no playlist file: an empty list
@@ -661,7 +945,10 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
       }
       const at = html.lastIndexOf("</head>");
       const styleTweak = `<style>${app.hideCss}</style>`;
-      let finalHtml = at >= 0 ? html.slice(0, at) + styleTweak + html.slice(at) : html + styleTweak;
+      let finalHtml =
+        at >= 0
+          ? html.slice(0, at) + styleTweak + html.slice(at)
+          : html + styleTweak;
       finalHtml = injectGameMasterFx(finalHtml);
       return new Response(finalHtml, { headers });
     }
@@ -681,7 +968,11 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
           return;
         }
         const { cwd, cols, rows } = ws.data;
-        const send = (message: object) => { try { ws.send(JSON.stringify(message)); } catch {} };
+        const send = (message: object) => {
+          try {
+            ws.send(JSON.stringify(message));
+          } catch {}
+        };
         try {
           const session = terminals.open(ctx, {
             cwd,
@@ -690,18 +981,28 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
             onData: (data) => send({ type: "output", data }),
             onExit: (code) => {
               send({ type: "exit", code });
-              try { ws.close(1000, "The shell ended."); } catch {}
+              try {
+                ws.close(1000, "The shell ended.");
+              } catch {}
             },
           });
           if (!session) {
-            send({ type: "error", message: "Too many terminals are open. Close one first." });
+            send({
+              type: "error",
+              message: "Too many terminals are open. Close one first.",
+            });
             return void ws.close(1008, "Too many terminals.");
           }
           ws.data.session = session;
           // Tell the page whenever the shell changes folder, so the file list can follow it.
           // The shell reports real paths, so compare with the real path of where it started (a symlinked folder would otherwise look like a move).
           let last = ws.data.cwd;
-          try { last = ctx.platform === "win32" ? realpathSync.native(ws.data.cwd) : realpathSync(ws.data.cwd); } catch {}
+          try {
+            last =
+              ctx.platform === "win32"
+                ? realpathSync.native(ws.data.cwd)
+                : realpathSync(ws.data.cwd);
+          } catch {}
           let busy = false;
           let alive = true;
           let lastShell = session.shell;
@@ -710,13 +1011,23 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
             if (busy || !alive) return;
             busy = true;
             try {
-              const now = session.cwd ?? await shellFolder(ctx.platform, session.pid);
+              const now =
+                session.cwd ?? (await shellFolder(ctx.platform, session.pid));
               const wsl = JSON.stringify(session.wsl ?? null);
-              if (alive && now && (now !== last || session.shell !== lastShell || wsl !== lastWsl)) {
+              if (
+                alive &&
+                now &&
+                (now !== last || session.shell !== lastShell || wsl !== lastWsl)
+              ) {
                 last = now;
                 lastShell = session.shell;
                 lastWsl = wsl;
-                send({ type: "cwd", path: now, shell: lastShell, ...(session.wsl ? { wsl: session.wsl } : {}) });
+                send({
+                  type: "cwd",
+                  path: now,
+                  shell: lastShell,
+                  ...(session.wsl ? { wsl: session.wsl } : {}),
+                });
               }
             } finally {
               busy = false;
@@ -724,18 +1035,29 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
           };
           const timer = setInterval(() => void check(), 2500);
           timer.unref?.();
-          ws.data.watch = { check: () => void check(), stop: () => { alive = false; clearInterval(timer); } };
+          ws.data.watch = {
+            check: () => void check(),
+            stop: () => {
+              alive = false;
+              clearInterval(timer);
+            },
+          };
         } catch (err) {
-          send({ type: "error", message: `The terminal couldn't start: ${describeFsError(err).message}` });
+          send({
+            type: "error",
+            message: `The terminal couldn't start: ${describeFsError(err).message}`,
+          });
           ws.close(1011, "Could not start.");
         }
       },
       message(ws, message) {
         if ("kind" in ws.data) {
-          if (typeof message === "string" && ws.data.peer) void ws.data.session.handleMessage(ws.data.peer, message);
+          if (typeof message === "string" && ws.data.peer)
+            void ws.data.session.handleMessage(ws.data.peer, message);
           return;
         }
-        if (typeof message !== "string" || message.length > MAX_INPUT_BYTES) return;
+        if (typeof message !== "string" || message.length > MAX_INPUT_BYTES)
+          return;
         let m: any;
         try {
           m = JSON.parse(message);
@@ -747,9 +1069,14 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
         if (m.type === "input" && typeof m.data === "string") {
           term.session?.write(m.data);
           // A command was run: look soon, and again once it has had time to change folder.
-          if (/[\r\n]/.test(m.data)) for (const ms of [120, 450, 1200]) setTimeout(() => term.watch?.check(), ms).unref?.();
-        }
-        else if (m.type === "resize") term.session?.resize(clampSize(m.cols, 80, 2, 500), clampSize(m.rows, 24, 1, 200));
+          if (/[\r\n]/.test(m.data))
+            for (const ms of [120, 450, 1200])
+              setTimeout(() => term.watch?.check(), ms).unref?.();
+        } else if (m.type === "resize")
+          term.session?.resize(
+            clampSize(m.cols, 80, 2, 500),
+            clampSize(m.rows, 24, 1, 200),
+          );
       },
       close(ws) {
         if ("kind" in ws.data) {
@@ -774,33 +1101,88 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
         // Embedded apps are served to an iframe on the other loopback spelling, which is a separate origin.
         const embedded = /^\/app\/([a-z0-9_]+)\/(.*)$/.exec(path);
         if (embedded) {
-          if (req.method !== "GET") return new Response("Method Not Allowed", { status: 405, headers: secureHeaders() });
-          if (url.hostname.toLowerCase() === primaryHostname) return new Response("Not Found", { status: 404, headers: secureHeaders() });
+          if (req.method !== "GET")
+            return new Response("Method Not Allowed", {
+              status: 405,
+              headers: secureHeaders(),
+            });
+          if (url.hostname.toLowerCase() === primaryHostname)
+            return new Response("Not Found", {
+              status: 404,
+              headers: secureHeaders(),
+            });
           if (embedded[1] === "hosted" || embedded[1] === "hostedws") {
             // A tool's frame and its socket: only on the other loopback spelling, and only with that tool's secret.
             const id = embedded[2]!.replace(/\/$/, "");
             const secret = url.searchParams.get("s");
-            if (embedded[1] === "hosted") return hostedPageResponse(ctx, id, secret, url.host, alternateOrigin(url.host), secureHeaders);
-            if (req.headers.get("origin") !== `http://${url.host}`) return new Response("Forbidden", { status: 403, headers: secureHeaders() });
+            if (embedded[1] === "hosted")
+              return hostedPageResponse(
+                ctx,
+                id,
+                secret,
+                url.host,
+                alternateOrigin(url.host),
+                secureHeaders,
+              );
+            if (req.headers.get("origin") !== `http://${url.host}`)
+              return new Response("Forbidden", {
+                status: 403,
+                headers: secureHeaders(),
+              });
             const session = hostedSessionFor(ctx, id, secret);
-            if (!session) return new Response("Not Found", { status: 404, headers: secureHeaders() });
-            if (srv.upgrade(req, { data: { kind: "hosted", session } satisfies HostedSocketData })) return undefined;
-            return new Response("This address only accepts a WebSocket.", { status: 426, headers: secureHeaders() });
+            if (!session)
+              return new Response("Not Found", {
+                status: 404,
+                headers: secureHeaders(),
+              });
+            if (
+              srv.upgrade(req, {
+                data: { kind: "hosted", session } satisfies HostedSocketData,
+              })
+            )
+              return undefined;
+            return new Response("This address only accepts a WebSocket.", {
+              status: 426,
+              headers: secureHeaders(),
+            });
           }
           if (embedded[1] === "dbstudio") {
             // Only on the other loopback spelling, like the other embedded apps: the File Manager's own origin never serves a studio frame.
-            return studioFrameResponse(dbState(ctx).studios, embedded[2]!.replace(/\/$/, ""), alternateOrigin(url.host), secureHeaders);
+            return studioFrameResponse(
+              dbState(ctx).studios,
+              embedded[2]!.replace(/\/$/, ""),
+              alternateOrigin(url.host),
+              secureHeaders,
+            );
           }
-          return await serveEmbedded(embedded[1]!, embedded[2]!, url.host, url.searchParams);
+          return await serveEmbedded(
+            embedded[1]!,
+            embedded[2]!,
+            url.host,
+            url.searchParams,
+          );
         }
         // Anything else is only for this window's own address, so a page on the calculator's origin can't reach the token.
-        if (url.hostname.toLowerCase() !== primaryHostname) return new Response("Not Found", { status: 404, headers: secureHeaders() });
-        if ((req.method === "GET" || req.method === "HEAD") && (path === "/" || path === "/index.html")) {
+        if (url.hostname.toLowerCase() !== primaryHostname)
+          return new Response("Not Found", {
+            status: 404,
+            headers: secureHeaders(),
+          });
+        if (
+          (req.method === "GET" || req.method === "HEAD") &&
+          (path === "/" || path === "/index.html")
+        ) {
           const file = nodePath.join(assets, "index.html");
           const st = await fsp.stat(file).catch(() => null);
-          if (!st?.isFile()) return new Response("The File Manager page is missing.", { status: 500 });
+          if (!st?.isFile())
+            return new Response("The File Manager page is missing.", {
+              status: 500,
+            });
           if (req.method === "HEAD") {
-            return new Response(null, { status: 200, headers: secureHeaders({ "Content-Type": MIME.html! }) });
+            return new Response(null, {
+              status: 200,
+              headers: secureHeaders({ "Content-Type": MIME.html! }),
+            });
           }
           if (st.mtimeMs !== cachedIndexMtime || !cachedIndexTemplate) {
             const rawHtml = await fsp.readFile(file, "utf8");
@@ -808,176 +1190,534 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
               .replaceAll("__FM_TOKEN__", token)
               .replaceAll("__FM_PLATFORM__", ctx.platform)
               .replaceAll("__FM_ARCH__", process.arch)
-              .replaceAll("__FM_PHONON__", isPhononSupportedPlatform(ctx.platform, process.arch) ? "1" : "0")
+              .replaceAll(
+                "__FM_PHONON__",
+                isPhononSupportedPlatform(ctx.platform, process.arch)
+                  ? "1"
+                  : "0",
+              )
               .replaceAll("__FM_START__", startEncoded);
             cachedIndexMtime = st.mtimeMs;
           }
           const nonce = randomBytes(16).toString("base64");
           const html = cachedIndexTemplate.replaceAll("__FM_NONCE__", nonce);
-          return new Response(html, { headers: secureHeaders({ "Content-Type": MIME.html!, "Content-Security-Policy": pageCsp(url.host, nonce), "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache", "Expires": "0" }) });
+          return new Response(html, {
+            headers: secureHeaders({
+              "Content-Type": MIME.html!,
+              "Content-Security-Policy": pageCsp(url.host, nonce),
+              "Cache-Control": "no-store, no-cache, must-revalidate",
+              Pragma: "no-cache",
+              Expires: "0",
+            }),
+          });
         }
 
         // The terminal: a WebSocket that needs the session token and must come from this page's own address.
         if (req.method === "GET" && path === "/api/terminal") {
-          if (!tokenMatches(url.searchParams.get("token"), token)) return json(401, { ok: false, error: { code: "NO_TOKEN", message: "Not allowed. Reload the File Manager window." } });
-          if (!terminalSupported(ctx.platform)) return json(501, { ok: false, error: { code: "NO_TERMINAL", message: "The terminal isn't available on this system yet." } });
-          if (req.headers.get("origin") !== `http://${url.host}`) return json(403, { ok: false, error: { code: "BAD_ORIGIN", message: "Not allowed." } });
+          if (!tokenMatches(url.searchParams.get("token"), token))
+            return json(401, {
+              ok: false,
+              error: {
+                code: "NO_TOKEN",
+                message: "Not allowed. Reload the File Manager window.",
+              },
+            });
+          if (!terminalSupported(ctx.platform))
+            return json(501, {
+              ok: false,
+              error: {
+                code: "NO_TERMINAL",
+                message: "The terminal isn't available on this system yet.",
+              },
+            });
+          if (req.headers.get("origin") !== `http://${url.host}`)
+            return json(403, {
+              ok: false,
+              error: { code: "BAD_ORIGIN", message: "Not allowed." },
+            });
           const cwd = absolutePath(ctx, url.searchParams.get("path"));
-          if (!(await fsp.stat(cwd)).isDirectory()) return json(400, { ok: false, error: { code: "NOT_A_FOLDER", message: "That isn't a folder." } });
-          const data: TerminalSocketData = { cwd, cols: clampSize(url.searchParams.get("cols"), 80, 2, 500), rows: clampSize(url.searchParams.get("rows"), 24, 1, 200) };
+          if (!(await fsp.stat(cwd)).isDirectory())
+            return json(400, {
+              ok: false,
+              error: { code: "NOT_A_FOLDER", message: "That isn't a folder." },
+            });
+          const data: TerminalSocketData = {
+            cwd,
+            cols: clampSize(url.searchParams.get("cols"), 80, 2, 500),
+            rows: clampSize(url.searchParams.get("rows"), 24, 1, 200),
+          };
           if (srv.upgrade(req, { data })) return undefined;
-          return new Response("This address only accepts a WebSocket.", { status: 426, headers: secureHeaders() });
+          return new Response("This address only accepts a WebSocket.", {
+            status: 426,
+            headers: secureHeaders(),
+          });
         }
 
-        const vendor = /^\/vendor\/(xterm\.mjs|addon-fit\.mjs|xterm\.css|LICENSE-xterm\.txt)$/.exec(path);
+        const vendor =
+          /^\/vendor\/(xterm\.mjs|addon-fit\.mjs|xterm\.css|LICENSE-xterm\.txt)$/.exec(
+            path,
+          );
         if (req.method === "GET" && vendor) {
           const file = nodePath.join(assets, "vendor", vendor[1]!);
           const bf = Bun.file(file);
-          if (!(await bf.exists())) return new Response("Not Found", { status: 404 });
-          const type = vendor[1]!.endsWith(".css") ? MIME.css! : vendor[1]!.endsWith(".txt") ? "text/plain; charset=utf-8" : MIME.js!;
-          return new Response(bf, { headers: secureHeaders({ "Content-Type": type, "Content-Security-Policy": CSP, "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache", "Expires": "0" }) });
+          if (!(await bf.exists()))
+            return new Response("Not Found", { status: 404 });
+          const type = vendor[1]!.endsWith(".css")
+            ? MIME.css!
+            : vendor[1]!.endsWith(".txt")
+              ? "text/plain; charset=utf-8"
+              : MIME.js!;
+          return new Response(bf, {
+            headers: secureHeaders({
+              "Content-Type": type,
+              "Content-Security-Policy": CSP,
+              "Cache-Control": "no-store, no-cache, must-revalidate",
+              Pragma: "no-cache",
+              Expires: "0",
+            }),
+          });
         }
 
         const ui = /^\/ui\/([\w.-]+\.(js|css|svg|png))$/.exec(path);
         if (req.method === "GET" && ui) {
           const file = nodePath.join(assets, "ui", ui[1]!);
           const bf = Bun.file(file);
-          if (!(await bf.exists())) return new Response("Not Found", { status: 404 });
-          return new Response(bf, { headers: secureHeaders({ "Content-Type": MIME[ui[2]!]!, "Content-Security-Policy": CSP, "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache", "Expires": "0" }) });
+          if (!(await bf.exists()))
+            return new Response("Not Found", { status: 404 });
+          return new Response(bf, {
+            headers: secureHeaders({
+              "Content-Type": MIME[ui[2]!]!,
+              "Content-Security-Policy": CSP,
+              "Cache-Control": "no-store, no-cache, must-revalidate",
+              Pragma: "no-cache",
+              Expires: "0",
+            }),
+          });
         }
 
         if (req.method === "GET" && path === "/api/health") {
-          return json(200, { status: "ok", app: APP_ID, name: APP_NAME, version: APP_VERSION, platform: ctx.platform, timestamp: Date.now() });
+          return json(200, {
+            status: "ok",
+            app: APP_ID,
+            name: APP_NAME,
+            version: APP_VERSION,
+            platform: ctx.platform,
+            timestamp: Date.now(),
+          });
         }
 
         if (req.method === "GET" && path === "/api/phonon/audio") {
-          if (!tokenMatches(url.searchParams.get("token"), token)) return json(401, { ok: false, error: { code: "NO_TOKEN", message: "Not allowed." } });
+          if (!tokenMatches(url.searchParams.get("token"), token))
+            return json(401, {
+              ok: false,
+              error: { code: "NO_TOKEN", message: "Not allowed." },
+            });
           const audioId = url.searchParams.get("id") ?? "";
           const wavFile = getCachedAudioFile(ctx, audioId);
-          if (!wavFile) return json(404, { ok: false, error: { code: "NOT_FOUND", message: "Audio chunk expired or not found." } });
+          if (!wavFile)
+            return json(404, {
+              ok: false,
+              error: {
+                code: "NOT_FOUND",
+                message: "Audio chunk expired or not found.",
+              },
+            });
           const st = await fsp.stat(wavFile).catch(() => null);
-          if (!st?.isFile()) return json(404, { ok: false, error: { code: "NOT_FOUND", message: "Audio chunk not found." } });
-          return fileResponse(req, wavFile, st.size, secureHeaders({ "Content-Type": "audio/wav", "Cache-Control": "private, max-age=600" }));
+          if (!st?.isFile())
+            return json(404, {
+              ok: false,
+              error: { code: "NOT_FOUND", message: "Audio chunk not found." },
+            });
+          return fileResponse(
+            req,
+            wavFile,
+            st.size,
+            secureHeaders({
+              "Content-Type": "audio/wav",
+              "Cache-Control": "private, max-age=600",
+            }),
+          );
         }
 
         if (req.method === "GET" && path === "/api/ollama/audio") {
-          if (!tokenMatches(url.searchParams.get("token"), token)) return json(401, { ok: false, error: { code: "NO_TOKEN", message: "Not allowed." } });
+          if (!tokenMatches(url.searchParams.get("token"), token))
+            return json(401, {
+              ok: false,
+              error: { code: "NO_TOKEN", message: "Not allowed." },
+            });
           const audioId = url.searchParams.get("id") ?? "";
           const cached = getCachedOllamaAudioFile(audioId);
-          if (!cached) return json(404, { ok: false, error: { code: "NOT_FOUND", message: "Speech audio expired or not found." } });
+          if (!cached)
+            return json(404, {
+              ok: false,
+              error: {
+                code: "NOT_FOUND",
+                message: "Speech audio expired or not found.",
+              },
+            });
           const st = await fsp.stat(cached.absPath).catch(() => null);
-          if (!st?.isFile()) return json(404, { ok: false, error: { code: "NOT_FOUND", message: "Speech audio file not found." } });
-          return fileResponse(req, cached.absPath, st.size, secureHeaders({ "Content-Type": cached.mime, "Cache-Control": "private, max-age=600" }));
+          if (!st?.isFile())
+            return json(404, {
+              ok: false,
+              error: {
+                code: "NOT_FOUND",
+                message: "Speech audio file not found.",
+              },
+            });
+          return fileResponse(
+            req,
+            cached.absPath,
+            st.size,
+            secureHeaders({
+              "Content-Type": cached.mime,
+              "Cache-Control": "private, max-age=600",
+            }),
+          );
         }
 
         if (req.method === "POST" && path === "/api/ollama/stream") {
-          if (!tokenMatches(req.headers.get("x-fm-token"), token)) return json(401, { ok: false, error: { code: "NO_TOKEN", message: "Not allowed. Reload the File Manager window." } });
+          if (!tokenMatches(req.headers.get("x-fm-token"), token))
+            return json(401, {
+              ok: false,
+              error: {
+                code: "NO_TOKEN",
+                message: "Not allowed. Reload the File Manager window.",
+              },
+            });
           return await handleOllamaStreamRequest(ctx, req);
         }
 
         if (req.method === "GET" && path === "/api/bionic/audio") {
-          if (!tokenMatches(url.searchParams.get("token"), token)) return json(401, { ok: false, error: { code: "NO_TOKEN", message: "Not allowed." } });
+          if (!tokenMatches(url.searchParams.get("token"), token))
+            return json(401, {
+              ok: false,
+              error: { code: "NO_TOKEN", message: "Not allowed." },
+            });
           const audioId = url.searchParams.get("id") ?? "";
-          const cached = getCachedBionicAudioFile(audioId) ?? getCachedOllamaAudioFile(audioId);
-          if (!cached) return json(404, { ok: false, error: { code: "NOT_FOUND", message: "Bionic speech audio expired or not found." } });
+          const cached =
+            getCachedBionicAudioFile(audioId) ??
+            getCachedOllamaAudioFile(audioId);
+          if (!cached)
+            return json(404, {
+              ok: false,
+              error: {
+                code: "NOT_FOUND",
+                message: "Bionic speech audio expired or not found.",
+              },
+            });
           const st = await fsp.stat(cached.absPath).catch(() => null);
-          if (!st?.isFile()) return json(404, { ok: false, error: { code: "NOT_FOUND", message: "Bionic speech audio file not found." } });
-          return fileResponse(req, cached.absPath, st.size, secureHeaders({ "Content-Type": cached.mime, "Cache-Control": "private, max-age=600" }));
+          if (!st?.isFile())
+            return json(404, {
+              ok: false,
+              error: {
+                code: "NOT_FOUND",
+                message: "Bionic speech audio file not found.",
+              },
+            });
+          return fileResponse(
+            req,
+            cached.absPath,
+            st.size,
+            secureHeaders({
+              "Content-Type": cached.mime,
+              "Cache-Control": "private, max-age=600",
+            }),
+          );
         }
 
         if (req.method === "POST" && path === "/api/bionic/stream") {
-          if (!tokenMatches(req.headers.get("x-fm-token"), token)) return json(401, { ok: false, error: { code: "NO_TOKEN", message: "Not allowed. Reload the File Manager window." } });
+          if (!tokenMatches(req.headers.get("x-fm-token"), token))
+            return json(401, {
+              ok: false,
+              error: {
+                code: "NO_TOKEN",
+                message: "Not allowed. Reload the File Manager window.",
+              },
+            });
           return await handleBionicStreamRequest(ctx, req);
         }
 
         if (req.method === "GET" && path === "/api/raw") {
-          if (!tokenMatches(url.searchParams.get("token"), token)) return json(401, { ok: false, error: { code: "NO_TOKEN", message: "Not allowed." } });
+          if (!tokenMatches(url.searchParams.get("token"), token))
+            return json(401, {
+              ok: false,
+              error: { code: "NO_TOKEN", message: "Not allowed." },
+            });
           const file = absolutePath(ctx, url.searchParams.get("path"));
           const name = pathApi(ctx).basename(file);
           const ext = extensionOf(name);
-          const preview = { "Content-Security-Policy": "sandbox; default-src 'none'", "Cache-Control": "private, max-age=30" };
+          const preview = {
+            "Content-Security-Policy": "sandbox; default-src 'none'",
+            "Cache-Control": "private, max-age=30",
+          };
           const thumb = url.searchParams.get("thumb") === "1";
           const forceConvert = url.searchParams.get("convert") === "1";
-          const fontMime = url.searchParams.get("font") === "1" ? FONT_MIME[ext] : undefined;
+          const fontMime =
+            url.searchParams.get("font") === "1" ? FONT_MIME[ext] : undefined;
           const media = MEDIA_MIME[ext];
           const isImage = classify(name, false).preview === "image";
-          const picture = !forceConvert && RAW_MIME[ext] && isImage ? RAW_MIME[ext] : undefined;
+          const picture =
+            !forceConvert && RAW_MIME[ext] && isImage
+              ? RAW_MIME[ext]
+              : undefined;
           const convertImg = isImage && (!picture || forceConvert);
           // Subtitle files next to a video (the player turns .srt into WebVTT itself).
-          const subtitle = ext === "vtt" || ext === "srt" ? "text/plain; charset=utf-8" : undefined;
-          const lyrics = url.searchParams.get("lyrics") === "1" && (ext === "lrc" || ext === "txt");
+          const subtitle =
+            ext === "vtt" || ext === "srt"
+              ? "text/plain; charset=utf-8"
+              : undefined;
+          const lyrics =
+            url.searchParams.get("lyrics") === "1" &&
+            (ext === "lrc" || ext === "txt");
           // Only what a preview can show is served, and that is decided by the name before the disk is touched.
-          if (!thumb && !media && !picture && !convertImg && !subtitle && !lyrics && !fontMime) return json(415, { ok: false, error: { code: "CANT_PREVIEW", message: "That kind of file can't be previewed this way." } });
+          if (
+            !thumb &&
+            !media &&
+            !picture &&
+            !convertImg &&
+            !subtitle &&
+            !lyrics &&
+            !fontMime
+          )
+            return json(415, {
+              ok: false,
+              error: {
+                code: "CANT_PREVIEW",
+                message: "That kind of file can't be previewed this way.",
+              },
+            });
           const st = await fsp.stat(file);
-          if (!st.isFile()) return json(400, { ok: false, error: { code: "NOT_A_FILE", message: "That isn't a file." } });
+          if (!st.isFile())
+            return json(400, {
+              ok: false,
+              error: { code: "NOT_A_FILE", message: "That isn't a file." },
+            });
           const real = await fsp.realpath(file).catch(() => file);
-          const realTrash = await fsp.realpath(ctx.trashRoot).catch(() => ctx.trashRoot);
+          const realTrash = await fsp
+            .realpath(ctx.trashRoot)
+            .catch(() => ctx.trashRoot);
           if (isSameOrInside(real, realTrash, ctx.platform)) {
-            return json(403, { ok: false, error: { code: "PROTECTED", message: "Items in the Recycle Bin cannot be read directly." } });
+            return json(403, {
+              ok: false,
+              error: {
+                code: "PROTECTED",
+                message: "Items in the Recycle Bin cannot be read directly.",
+              },
+            });
           }
           if (fontMime) {
-            if (st.size > 32 * 1024 * 1024) return json(413, { ok: false, error: { code: "TOO_BIG", message: "That font file is too big to preview." } });
-            return new Response(Bun.file(real), { headers: secureHeaders({ "Content-Type": fontMime, ...preview }) });
+            if (st.size > 32 * 1024 * 1024)
+              return json(413, {
+                ok: false,
+                error: {
+                  code: "TOO_BIG",
+                  message: "That font file is too big to preview.",
+                },
+              });
+            return new Response(Bun.file(real), {
+              headers: secureHeaders({ "Content-Type": fontMime, ...preview }),
+            });
           }
           if (lyrics) {
-            if (st.size > 256 * 1024) return json(413, { ok: false, error: { code: "TOO_BIG", message: "That lyrics file exceeds the 256 KB display limit." } });
-            return new Response(Bun.file(real), { headers: secureHeaders({ "Content-Type": "text/plain; charset=utf-8", ...preview }) });
+            if (st.size > 256 * 1024)
+              return json(413, {
+                ok: false,
+                error: {
+                  code: "TOO_BIG",
+                  message: "That lyrics file exceeds the 256 KB display limit.",
+                },
+              });
+            return new Response(Bun.file(real), {
+              headers: secureHeaders({
+                "Content-Type": "text/plain; charset=utf-8",
+                ...preview,
+              }),
+            });
           }
           // A picture of a document that only the system's Quick Look can draw (macOS).
           if (thumb) {
-            const png = (await thumbnailFor(ctx, file)) ?? (isImage ? await imagePreviewFor(ctx, file) : null);
-            if (!png) return json(404, { ok: false, error: { code: "NO_THUMBNAIL", message: "This computer can't draw a preview of that file." } });
-            return new Response(Bun.file(png), { headers: secureHeaders({ "Content-Type": "image/png", ...preview }) });
+            const png =
+              (await thumbnailFor(ctx, file)) ??
+              (isImage ? await imagePreviewFor(ctx, file) : null);
+            if (!png)
+              return json(404, {
+                ok: false,
+                error: {
+                  code: "NO_THUMBNAIL",
+                  message: "This computer can't draw a preview of that file.",
+                },
+              });
+            return new Response(Bun.file(png), {
+              headers: secureHeaders({
+                "Content-Type": "image/png",
+                ...preview,
+              }),
+            });
           }
           // Sound and video: streamed in pieces, so playing starts at once and seeking works.
-          if (media) return fileResponse(req, real, st.size, secureHeaders({ "Content-Type": media, ...preview, "Cache-Control": "private, max-age=3600" }));
+          if (media)
+            return fileResponse(
+              req,
+              real,
+              st.size,
+              secureHeaders({
+                "Content-Type": media,
+                ...preview,
+                "Cache-Control": "private, max-age=3600",
+              }),
+            );
           if (subtitle) {
-            if (st.size > 2 * 1024 * 1024) return json(413, { ok: false, error: { code: "TOO_BIG", message: "That subtitle file is too big." } });
-            return new Response(Bun.file(real), { headers: secureHeaders({ "Content-Type": subtitle, ...preview }) });
+            if (st.size > 2 * 1024 * 1024)
+              return json(413, {
+                ok: false,
+                error: {
+                  code: "TOO_BIG",
+                  message: "That subtitle file is too big.",
+                },
+              });
+            return new Response(Bun.file(real), {
+              headers: secureHeaders({ "Content-Type": subtitle, ...preview }),
+            });
           }
-          if (st.size > MAX_RAW_BYTES) return json(413, { ok: false, error: { code: "TOO_BIG", message: "That picture is too big to preview." } });
+          if (st.size > MAX_RAW_BYTES)
+            return json(413, {
+              ok: false,
+              error: {
+                code: "TOO_BIG",
+                message: "That picture is too big to preview.",
+              },
+            });
           if (convertImg) {
             const png = await imagePreviewFor(ctx, file);
-            if (!png) return json(404, { ok: false, error: { code: "NO_THUMBNAIL", message: "This computer can't draw a preview of that picture." } });
-            return new Response(Bun.file(png), { headers: secureHeaders({ "Content-Type": "image/png", ...preview }) });
+            if (!png)
+              return json(404, {
+                ok: false,
+                error: {
+                  code: "NO_THUMBNAIL",
+                  message:
+                    "This computer can't draw a preview of that picture.",
+                },
+              });
+            return new Response(Bun.file(png), {
+              headers: secureHeaders({
+                "Content-Type": "image/png",
+                ...preview,
+              }),
+            });
           }
           if (ext === "svgz") {
             try {
               const rawBytes = await fsp.readFile(real);
               const svgBytes = await new Promise<Buffer>((resolve, reject) => {
-                gunzip(rawBytes, { maxOutputLength: 16 * 1024 * 1024 }, (err, out) => (err ? reject(err) : resolve(out)));
+                gunzip(
+                  rawBytes,
+                  { maxOutputLength: 16 * 1024 * 1024 },
+                  (err, out) => (err ? reject(err) : resolve(out)),
+                );
               });
-              return new Response(new Uint8Array(svgBytes), { headers: secureHeaders({ "Content-Type": "image/svg+xml", ...preview }) });
+              return new Response(new Uint8Array(svgBytes), {
+                headers: secureHeaders({
+                  "Content-Type": "image/svg+xml",
+                  ...preview,
+                }),
+              });
             } catch {
-              return json(415, { ok: false, error: { code: "BAD_ARCHIVE", message: "That compressed SVG image couldn't be unpacked." } });
+              return json(415, {
+                ok: false,
+                error: {
+                  code: "BAD_ARCHIVE",
+                  message: "That compressed SVG image couldn't be unpacked.",
+                },
+              });
             }
           }
-          return new Response(Bun.file(real), { headers: secureHeaders({ "Content-Type": picture!, ...preview }) });
+          return new Response(Bun.file(real), {
+            headers: secureHeaders({ "Content-Type": picture!, ...preview }),
+          });
         }
 
         if (req.method === "POST" && path.startsWith("/api/")) {
-          if (!tokenMatches(req.headers.get("x-fm-token"), token)) return json(401, { ok: false, error: { code: "NO_TOKEN", message: "Not allowed. Reload the File Manager window." } });
+          if (!tokenMatches(req.headers.get("x-fm-token"), token))
+            return json(401, {
+              ok: false,
+              error: {
+                code: "NO_TOKEN",
+                message: "Not allowed. Reload the File Manager window.",
+              },
+            });
           const op = path.slice("/api/".length);
-          const handler = Object.prototype.hasOwnProperty.call(operations, op) ? operations[op] : undefined;
-          if (!handler) return json(404, { ok: false, error: { code: "UNKNOWN_OPERATION", message: "Unknown operation." } });
-          if (!(req.headers.get("content-type") ?? "").toLowerCase().startsWith("application/json")) return json(415, { ok: false, error: { code: "NOT_JSON", message: "Requests must be JSON." } });
-          const maxBodyBytes = op === "phonon/clone-voice" || op.startsWith("ollama/") || op.startsWith("bionic/") ? 8 * 1024 * 1024 : MAX_BODY_BYTES;
+          const handler = Object.prototype.hasOwnProperty.call(operations, op)
+            ? operations[op]
+            : undefined;
+          if (!handler)
+            return json(404, {
+              ok: false,
+              error: {
+                code: "UNKNOWN_OPERATION",
+                message: "Unknown operation.",
+              },
+            });
+          if (
+            !(req.headers.get("content-type") ?? "")
+              .toLowerCase()
+              .startsWith("application/json")
+          )
+            return json(415, {
+              ok: false,
+              error: { code: "NOT_JSON", message: "Requests must be JSON." },
+            });
+          const maxBodyBytes =
+            op === "phonon/clone-voice" ||
+            op.startsWith("ollama/") ||
+            op.startsWith("bionic/")
+              ? 8 * 1024 * 1024
+              : MAX_BODY_BYTES;
           const declared = Number(req.headers.get("content-length") ?? 0);
-          if (declared > maxBodyBytes) return json(413, { ok: false, error: { code: "TOO_LARGE", message: "That request is too large." } });
+          if (declared > maxBodyBytes)
+            return json(413, {
+              ok: false,
+              error: {
+                code: "TOO_LARGE",
+                message: "That request is too large.",
+              },
+            });
           const text = await req.text();
-          if (text.length > maxBodyBytes) return json(413, { ok: false, error: { code: "TOO_LARGE", message: "That request is too large." } });
+          if (text.length > maxBodyBytes)
+            return json(413, {
+              ok: false,
+              error: {
+                code: "TOO_LARGE",
+                message: "That request is too large.",
+              },
+            });
           let body: Record<string, any>;
           try {
             body = text ? JSON.parse(text) : {};
           } catch {
-            return json(400, { ok: false, error: { code: "BAD_JSON", message: "That request wasn't valid JSON." } });
+            return json(400, {
+              ok: false,
+              error: {
+                code: "BAD_JSON",
+                message: "That request wasn't valid JSON.",
+              },
+            });
           }
-          if (!body || typeof body !== "object" || Array.isArray(body)) return json(400, { ok: false, error: { code: "BAD_JSON", message: "That request must be a JSON object." } });
+          if (!body || typeof body !== "object" || Array.isArray(body))
+            return json(400, {
+              ok: false,
+              error: {
+                code: "BAD_JSON",
+                message: "That request must be a JSON object.",
+              },
+            });
           const data = await handler(ctx, body);
           return json(200, { ok: true, ...(data as object) });
         }
 
-        return new Response("Not Found", { status: 404, headers: secureHeaders() });
+        return new Response("Not Found", {
+          status: 404,
+          headers: secureHeaders(),
+        });
       } catch (err) {
         return failure(err);
       }
@@ -992,7 +1732,9 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
     void shutdownOllamaForFileManager(ctx, { timeoutMs: 1800 });
     void shutdownBionicForFileManager(ctx);
     for (const dispose of ctx.disposers.splice(0)) {
-      try { dispose(); } catch {}
+      try {
+        dispose();
+      } catch {}
     }
     return stopServer(closeActiveConnections);
   };

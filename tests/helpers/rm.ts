@@ -6,7 +6,12 @@ import { rmSync } from "fs";
  */
 export function rmDir(path: string): void {
   try {
-    rmSync(path, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+    rmSync(path, {
+      recursive: true,
+      force: true,
+      maxRetries: 10,
+      retryDelay: 100,
+    });
   } catch (err) {
     if (process.platform !== "win32") throw err;
   }

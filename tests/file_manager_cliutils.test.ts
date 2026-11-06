@@ -1,9 +1,26 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from "fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { isFileManagerCliInvocation, runFileManagerCli } from "../src/features/filemanager/fmCli";
-import { cliUtilsDir, ensureCliUtilsFolder, listCliUtils, parseCliArgsString, runCliUtil, terminalEnv } from "../src/features/filemanager/fmCliUtils";
+import {
+  isFileManagerCliInvocation,
+  runFileManagerCli,
+} from "../src/features/filemanager/fmCli";
+import {
+  cliUtilsDir,
+  ensureCliUtilsFolder,
+  listCliUtils,
+  parseCliArgsString,
+  runCliUtil,
+  terminalEnv,
+} from "../src/features/filemanager/fmCliUtils";
 import { createContext } from "../src/features/filemanager/fmCore";
 import { listFolder } from "../src/features/filemanager/fmList";
 import { startFileManagerServer } from "../src/features/filemanager/fmServer";
@@ -58,8 +75,12 @@ describe("built-in RAD Studio CLI utilities folder and wrappers", () => {
     const calc = catalog.tools.find((t) => t.id === "calc");
     expect(calc).toBeDefined();
     expect(calc!.stem).toBe("calc_cli");
-    expect(calc!.command).toBe(process.platform === "win32" ? ".\\calc" : "./calc");
-    expect(calc!.stemCommand).toBe(process.platform === "win32" ? ".\\calc_cli" : "./calc_cli");
+    expect(calc!.command).toBe(
+      process.platform === "win32" ? ".\\calc" : "./calc",
+    );
+    expect(calc!.stemCommand).toBe(
+      process.platform === "win32" ? ".\\calc_cli" : "./calc_cli",
+    );
     expect(existsSync(calc!.wrapperPath)).toBe(true);
     expect(existsSync(calc!.stemWrapperPath)).toBe(true);
 
@@ -82,39 +103,70 @@ describe("built-in RAD Studio CLI utilities folder and wrappers", () => {
     }
   });
 
-  (posix ? test : test.skip)("running ./<name> and ./<stem> inside cli_utils executes the RAD Studio CLI utility", () => {
-    const ctx = createContext({ home, dataDir });
-    const dir = ensureCliUtilsFolder(ctx);
+  (posix ? test : test.skip)(
+    "running ./<name> and ./<stem> inside cli_utils executes the RAD Studio CLI utility",
+    () => {
+      const ctx = createContext({ home, dataDir });
+      const dir = ensureCliUtilsFolder(ctx);
 
-    const runShort = Bun.spawnSync(["./calc", "--help"], { cwd: dir, env: terminalEnv(ctx), stdout: "pipe", stderr: "pipe" });
-    expect(runShort.exitCode).toBe(0);
-    expect(runShort.stdout.toString()).toContain("Programmer Calculator");
+      const runShort = Bun.spawnSync(["./calc", "--help"], {
+        cwd: dir,
+        env: terminalEnv(ctx),
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      expect(runShort.exitCode).toBe(0);
+      expect(runShort.stdout.toString()).toContain("Programmer Calculator");
 
-    const runStem = Bun.spawnSync(["./calc_cli", "0xFF"], { cwd: dir, env: terminalEnv(ctx), stdout: "pipe", stderr: "pipe" });
-    expect(runStem.exitCode).toBe(0);
-    expect(runStem.stdout.toString()).toContain("0xFF");
+      const runStem = Bun.spawnSync(["./calc_cli", "0xFF"], {
+        cwd: dir,
+        env: terminalEnv(ctx),
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      expect(runStem.exitCode).toBe(0);
+      expect(runStem.stdout.toString()).toContain("0xFF");
 
-    const runStandalone = Bun.spawnSync(["./api_stress_bench", "--help"], { cwd: dir, env: terminalEnv(ctx), stdout: "pipe", stderr: "pipe" });
-    expect(runStandalone.exitCode).toBe(0);
-    expect(runStandalone.stdout.toString()).toContain("Stress");
-  });
+      const runStandalone = Bun.spawnSync(["./api_stress_bench", "--help"], {
+        cwd: dir,
+        env: terminalEnv(ctx),
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      expect(runStandalone.exitCode).toBe(0);
+      expect(runStandalone.stdout.toString()).toContain("Stress");
+    },
+  );
 
-  (posix ? test : test.skip)("terminalEnv adds cli_utils to PATH without shadowing system commands", () => {
-    const ctx = createContext({ home, dataDir });
-    const env = terminalEnv(ctx);
-    expect(env.RAD_CLI_UTILS_DIR).toBe(cliUtilsDir(ctx));
-    expect(env.PATH!.split(":")).toContain(cliUtilsDir(ctx));
+  (posix ? test : test.skip)(
+    "terminalEnv adds cli_utils to PATH without shadowing system commands",
+    () => {
+      const ctx = createContext({ home, dataDir });
+      const env = terminalEnv(ctx);
+      expect(env.RAD_CLI_UTILS_DIR).toBe(cliUtilsDir(ctx));
+      expect(env.PATH!.split(":")).toContain(cliUtilsDir(ctx));
 
-    // System `tr` still works as standard POSIX `tr` when called without `./`
-    const sysTr = Bun.spawnSync(["sh", "-c", "printf 'a b' | tr ' ' x"], { cwd: work, env, stdout: "pipe", stderr: "pipe" });
-    expect(sysTr.exitCode).toBe(0);
-    expect(sysTr.stdout.toString()).toBe("axb");
+      // System `tr` still works as standard POSIX `tr` when called without `./`
+      const sysTr = Bun.spawnSync(["sh", "-c", "printf 'a b' | tr ' ' x"], {
+        cwd: work,
+        env,
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      expect(sysTr.exitCode).toBe(0);
+      expect(sysTr.stdout.toString()).toBe("axb");
 
-    // RAD Studio CLI utilities are runnable by name from any folder via PATH
-    const pathCalc = Bun.spawnSync(["sh", "-c", "calc_cli --help"], { cwd: work, env, stdout: "pipe", stderr: "pipe" });
-    expect(pathCalc.exitCode).toBe(0);
-    expect(pathCalc.stdout.toString()).toContain("Programmer Calculator");
-  });
+      // RAD Studio CLI utilities are runnable by name from any folder via PATH
+      const pathCalc = Bun.spawnSync(["sh", "-c", "calc_cli --help"], {
+        cwd: work,
+        env,
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      expect(pathCalc.exitCode).toBe(0);
+      expect(pathCalc.stdout.toString()).toContain("Programmer Calculator");
+    },
+  );
 
   test("places, cliutils/list and cliutils/ensure API endpoints return the CLI utilities folder and catalog", async () => {
     const places = await api("places");
@@ -126,50 +178,86 @@ describe("built-in RAD Studio CLI utilities folder and wrappers", () => {
     expect(list.status).toBe(200);
     expect(list.json.folder).toBe(join(dataDir, "cli_utils"));
     expect(list.json.count).toBeGreaterThanOrEqual(70);
-    expect(list.json.tools.some((t: any) => t.id === "rad" && t.stem === "rad_cli")).toBe(true);
+    expect(
+      list.json.tools.some((t: any) => t.id === "rad" && t.stem === "rad_cli"),
+    ).toBe(true);
 
     const ensured = await api("cliutils/ensure", { force: true });
     expect(ensured.status).toBe(200);
     expect(ensured.json.count).toBe(list.json.count);
   });
 
-  (posix ? test : test.skip)("built-in Terminal WebSocket runs ./<filename> directly inside cli_utils", async () => {
-    const cliDir = join(dataDir, "cli_utils");
-    const q = new URLSearchParams({ token: TOKEN, path: cliDir, cols: "100", rows: "24" }).toString();
-    const ws = new (WebSocket as any)(`ws://127.0.0.1:${server.port}/api/terminal?${q}`, { headers: { Origin: base } }) as WebSocket;
-    let output = "";
-    ws.onmessage = (e) => {
-      const m = JSON.parse(String(e.data));
-      if (m.type === "output") output += m.data;
-    };
-    await new Promise<void>((resolve, reject) => {
-      ws.onopen = () => resolve();
-      ws.onerror = () => reject(new Error("WebSocket failed"));
-    });
-    try {
-      ws.send(JSON.stringify({ type: "input", data: "./calc --help\r" }));
-      const end = Date.now() + 8000;
-      while (!/Programmer Calculator/.test(output) && Date.now() < end) {
-        await Bun.sleep(25);
+  (posix ? test : test.skip)(
+    "built-in Terminal WebSocket runs ./<filename> directly inside cli_utils",
+    async () => {
+      const cliDir = join(dataDir, "cli_utils");
+      const q = new URLSearchParams({
+        token: TOKEN,
+        path: cliDir,
+        cols: "100",
+        rows: "24",
+      }).toString();
+      const ws = new (WebSocket as any)(
+        `ws://127.0.0.1:${server.port}/api/terminal?${q}`,
+        { headers: { Origin: base } },
+      ) as WebSocket;
+      let output = "";
+      ws.onmessage = (e) => {
+        const m = JSON.parse(String(e.data));
+        if (m.type === "output") output += m.data;
+      };
+      await new Promise<void>((resolve, reject) => {
+        ws.onopen = () => resolve();
+        ws.onerror = () => reject(new Error("WebSocket failed"));
+      });
+      try {
+        ws.send(JSON.stringify({ type: "input", data: "./calc --help\r" }));
+        const end = Date.now() + 8000;
+        while (!/Programmer Calculator/.test(output) && Date.now() < end) {
+          await Bun.sleep(25);
+        }
+        expect(output).toContain("Programmer Calculator");
+      } finally {
+        ws.close();
       }
-      expect(output).toContain("Programmer Calculator");
-    } finally {
-      ws.close();
-    }
-  });
+    },
+  );
 });
 
 describe("File Manager UI integration for CLI utilities", () => {
   const GLOBALS = [
-    "document", "window", "Node", "Element", "Event", "HTMLElement", "HTMLInputElement", "HTMLTextAreaElement", "HTMLSelectElement", "navigator", "location", "fetch",
-    "requestAnimationFrame", "cancelAnimationFrame", "ResizeObserver", "MutationObserver", "getComputedStyle", "InputEvent", "KeyboardEvent", "MouseEvent", "CSS", "WebSocket",
+    "document",
+    "window",
+    "Node",
+    "Element",
+    "Event",
+    "HTMLElement",
+    "HTMLInputElement",
+    "HTMLTextAreaElement",
+    "HTMLSelectElement",
+    "navigator",
+    "location",
+    "fetch",
+    "requestAnimationFrame",
+    "cancelAnimationFrame",
+    "ResizeObserver",
+    "MutationObserver",
+    "getComputedStyle",
+    "InputEvent",
+    "KeyboardEvent",
+    "MouseEvent",
+    "CSS",
+    "WebSocket",
   ] as const;
 
   test("Sidebar Places, CLI Utilities Power tab, terminal bar button, and opening a CLI utility auto-types ./<filename>", async () => {
     const { JSDOM } = await import("jsdom");
     const { readFileSync } = await import("fs");
     const saved = new Map<string, PropertyDescriptor | undefined>();
-    const html = readFileSync(join(import.meta.dir, "..", "resources", "file_manager", "index.html"), "utf8")
+    const html = readFileSync(
+      join(import.meta.dir, "..", "resources", "file_manager", "index.html"),
+      "utf8",
+    )
       .replace(/__FM_TOKEN__/g, TOKEN)
       .replace(/__FM_PLATFORM__/g, process.platform)
       .replace(/__FM_START__/g, "")
@@ -177,25 +265,65 @@ describe("File Manager UI integration for CLI utilities", () => {
     const dom = new JSDOM(html, { url: `${base}/`, pretendToBeVisual: true });
     const win = dom.window as any;
     const g = globalThis as any;
-    for (const k of GLOBALS) saved.set(k, Object.getOwnPropertyDescriptor(g, k));
-    for (const k of GLOBALS.filter((x) => x !== "fetch" && x !== "ResizeObserver" && x !== "WebSocket" && x !== "CSS")) {
+    for (const k of GLOBALS)
+      saved.set(k, Object.getOwnPropertyDescriptor(g, k));
+    for (const k of GLOBALS.filter(
+      (x) =>
+        x !== "fetch" &&
+        x !== "ResizeObserver" &&
+        x !== "WebSocket" &&
+        x !== "CSS",
+    )) {
       const value = win[k];
-      Object.defineProperty(g, k, { value: typeof value === "function" && !/^[A-Z]/.test(k) ? value.bind(win) : value, configurable: true, writable: true });
+      Object.defineProperty(g, k, {
+        value:
+          typeof value === "function" && !/^[A-Z]/.test(k)
+            ? value.bind(win)
+            : value,
+        configurable: true,
+        writable: true,
+      });
     }
-    Object.defineProperty(g, "ResizeObserver", { value: class { observe() {} disconnect() {} unobserve() {} }, configurable: true, writable: true });
-    Object.defineProperty(g, "WebSocket", { value: class {}, configurable: true, writable: true });
-    Object.defineProperty(g, "CSS", { value: { escape: (s: string) => s.replace(/["\\]/g, "\\$&") }, configurable: true, writable: true });
+    Object.defineProperty(g, "ResizeObserver", {
+      value: class {
+        observe() {}
+        disconnect() {}
+        unobserve() {}
+      },
+      configurable: true,
+      writable: true,
+    });
+    Object.defineProperty(g, "WebSocket", {
+      value: class {},
+      configurable: true,
+      writable: true,
+    });
+    Object.defineProperty(g, "CSS", {
+      value: { escape: (s: string) => s.replace(/["\\]/g, "\\$&") },
+      configurable: true,
+      writable: true,
+    });
     const realFetch = saved.get("fetch")!.value as typeof fetch;
     Object.defineProperty(g, "fetch", {
-      value: (u: any, o: any) => realFetch(typeof u === "string" && u.startsWith("/") ? base + u : u, o),
+      value: (u: any, o: any) =>
+        realFetch(typeof u === "string" && u.startsWith("/") ? base + u : u, o),
       configurable: true,
       writable: true,
     });
     win.Element.prototype.scrollIntoView = () => {};
-    Object.defineProperty(win.HTMLElement.prototype, "offsetParent", { get() { return win.document.body; }, configurable: true });
+    Object.defineProperty(win.HTMLElement.prototype, "offsetParent", {
+      get() {
+        return win.document.body;
+      },
+      configurable: true,
+    });
     const doc = win.document as Document;
 
-    const terminalRuns: Array<{ folder: string; command: string; submit: boolean }> = [];
+    const terminalRuns: Array<{
+      folder: string;
+      command: string;
+      submit: boolean;
+    }> = [];
     let unsubRun: (() => void) | null = null;
     try {
       const { mock } = await import("bun:test");
@@ -228,11 +356,14 @@ describe("File Manager UI integration for CLI utilities", () => {
         terminalOpen: false,
       });
       stateMod.state.selection.clear();
-      unsubRun = stateMod.on("terminal-run-in", (payload: any) => terminalRuns.push(payload));
+      unsubRun = stateMod.on("terminal-run-in", (payload: any) =>
+        terminalRuns.push(payload),
+      );
 
       await import("../resources/file_manager/ui/cliUtils.js");
       const navMod = await import("../resources/file_manager/ui/nav.js");
-      const sidebarMod = await import("../resources/file_manager/ui/sidebar.js");
+      const sidebarMod =
+        await import("../resources/file_manager/ui/sidebar.js");
       const powerMod = await import("../resources/file_manager/ui/power.js");
       await navMod.loadPlaces();
       sidebarMod.renderSidebar();
@@ -240,19 +371,26 @@ describe("File Manager UI integration for CLI utilities", () => {
 
       // 1. Sidebar has "CLI Utilities" under Places
       const sideButtons = [...doc.querySelectorAll("#sidebar .side-item")];
-      const cliSideBtn = sideButtons.find((b) => b.textContent?.includes("CLI Utilities")) as HTMLButtonElement | undefined;
+      const cliSideBtn = sideButtons.find((b) =>
+        b.textContent?.includes("CLI Utilities"),
+      ) as HTMLButtonElement | undefined;
       expect(cliSideBtn).toBeDefined();
 
       // 2. Clicking "CLI Utilities" in the Sidebar navigates to cli_utils and lists executable wrappers
       cliSideBtn!.click();
       const cliDir = join(dataDir, "cli_utils");
-      for (let i = 0; i < 100 && stateMod.state.location.path !== cliDir; i++) await Bun.sleep(30);
+      for (let i = 0; i < 100 && stateMod.state.location.path !== cliDir; i++)
+        await Bun.sleep(30);
       expect(stateMod.state.location.path).toBe(cliDir);
-      expect(stateMod.state.entries.some((e: any) => e.name === "calc")).toBe(true);
+      expect(stateMod.state.entries.some((e: any) => e.name === "calc")).toBe(
+        true,
+      );
 
       // 3. Opening an entry inside cli_utils auto-types ./<filename> in the built-in Terminal
       const opsMod = await import("../resources/file_manager/ui/ops.js");
-      const calcEntry = stateMod.state.entries.find((e: any) => e.name === "calc");
+      const calcEntry = stateMod.state.entries.find(
+        (e: any) => e.name === "calc",
+      );
       expect(calcEntry).toBeDefined();
       await opsMod.openEntry(calcEntry);
       expect(terminalRuns.at(-1)).toEqual({
@@ -262,20 +400,32 @@ describe("File Manager UI integration for CLI utilities", () => {
       });
 
       // 4. Right-clicking a CLI utility offers Put ./calc in Terminal and Run ./calc in Terminal
-      const ctxMenuMod = await import("../resources/file_manager/ui/contextmenu.js");
+      const ctxMenuMod =
+        await import("../resources/file_manager/ui/contextmenu.js");
       ctxMenuMod.showEntryMenu([calcEntry], { x: 10, y: 10 });
-      const menuLabels = [...doc.querySelectorAll(".menu [role^=menuitem]")].map((el) => el.textContent ?? "");
+      const menuLabels = [
+        ...doc.querySelectorAll(".menu [role^=menuitem]"),
+      ].map((el) => el.textContent ?? "");
       const prefix = process.platform === "win32" ? ".\\" : "./";
-      expect(menuLabels.some((l) => l.includes(`Put ${prefix}calc in Terminal`))).toBe(true);
-      expect(menuLabels.some((l) => l.includes(`Run ${prefix}calc in Terminal`))).toBe(true);
+      expect(
+        menuLabels.some((l) => l.includes(`Put ${prefix}calc in Terminal`)),
+      ).toBe(true);
+      expect(
+        menuLabels.some((l) => l.includes(`Run ${prefix}calc in Terminal`)),
+      ).toBe(true);
       (await import("../resources/file_manager/ui/menus.js")).closeMenu();
 
       // 5. Opening the CLI Utilities Power tab loads the catalog and runs ./<name>
       powerMod.openPower("cliutils");
-      for (let i = 0; i < 100 && !doc.querySelector(".cliutil-card"); i++) await Bun.sleep(30);
-      const calcCard = doc.querySelector('.cliutil-card[data-tool-id="calc"]') as HTMLElement | null;
+      for (let i = 0; i < 100 && !doc.querySelector(".cliutil-card"); i++)
+        await Bun.sleep(30);
+      const calcCard = doc.querySelector(
+        '.cliutil-card[data-tool-id="calc"]',
+      ) as HTMLElement | null;
       expect(calcCard).not.toBeNull();
-      const runBtn = [...calcCard!.querySelectorAll("button")].find((b) => b.textContent?.includes("▶ Run")) as HTMLButtonElement | undefined;
+      const runBtn = [...calcCard!.querySelectorAll("button")].find((b) =>
+        b.textContent?.includes("▶ Run"),
+      ) as HTMLButtonElement | undefined;
       expect(runBtn).toBeDefined();
       runBtn!.click();
       expect(terminalRuns.at(-1)).toEqual({
@@ -285,11 +435,20 @@ describe("File Manager UI integration for CLI utilities", () => {
       });
 
       // 6. Quick Run button executes the CLI utility inline and renders the CLI Quick Runner Console
-      const quickBtn = [...calcCard!.querySelectorAll("button")].find((b) => b.textContent?.includes("⚡ Quick Run")) as HTMLButtonElement | undefined;
+      const quickBtn = [...calcCard!.querySelectorAll("button")].find((b) =>
+        b.textContent?.includes("⚡ Quick Run"),
+      ) as HTMLButtonElement | undefined;
       expect(quickBtn).toBeDefined();
       quickBtn!.click();
-      for (let i = 0; i < 100 && !doc.querySelector(".cliutil-console-out"); i++) await Bun.sleep(30);
-      const consoleOut = doc.querySelector(".cliutil-console-out") as HTMLElement | null;
+      for (
+        let i = 0;
+        i < 100 && !doc.querySelector(".cliutil-console-out");
+        i++
+      )
+        await Bun.sleep(30);
+      const consoleOut = doc.querySelector(
+        ".cliutil-console-out",
+      ) as HTMLElement | null;
       expect(consoleOut).not.toBeNull();
       expect(consoleOut!.textContent).toContain("4");
     } finally {
@@ -305,8 +464,16 @@ describe("File Manager UI integration for CLI utilities", () => {
   });
 
   test("enriches catalog metadata, parses CLI argument strings, and executes cliutils/run", async () => {
-    expect(parseCliArgsString('--expr "2 + 2 * 10" --verbose')).toEqual(["--expr", "2 + 2 * 10", "--verbose"]);
-    expect(parseCliArgsString("-p 'hello world' file.txt")).toEqual(["-p", "hello world", "file.txt"]);
+    expect(parseCliArgsString('--expr "2 + 2 * 10" --verbose')).toEqual([
+      "--expr",
+      "2 + 2 * 10",
+      "--verbose",
+    ]);
+    expect(parseCliArgsString("-p 'hello world' file.txt")).toEqual([
+      "-p",
+      "hello world",
+      "file.txt",
+    ]);
 
     const ctx = createContext({ home, dataDir });
     const catalog = listCliUtils(ctx);
@@ -350,7 +517,14 @@ describe("File Manager UI integration for CLI utilities", () => {
 
     const pandocRes = await runCliUtil(ctx, {
       tool: "pandoc",
-      args: ["--from", "markdown", "--to", "html", "--text", "# Title\\n\\nHello **RAD**"],
+      args: [
+        "--from",
+        "markdown",
+        "--to",
+        "html",
+        "--text",
+        "# Title\\n\\nHello **RAD**",
+      ],
       cwd: work,
     });
     expect(pandocRes.ok).toBe(true);
@@ -369,7 +543,13 @@ describe("File Manager UI integration for CLI utilities", () => {
 
     const sqliteRes = await runCliUtil(ctx, {
       tool: "sqlite",
-      args: ["--db", ":memory:", "--query", "SELECT 21 * 2 AS answer;", "--json"],
+      args: [
+        "--db",
+        ":memory:",
+        "--query",
+        "SELECT 21 * 2 AS answer;",
+        "--json",
+      ],
       cwd: work,
     });
     expect(sqliteRes.ok).toBe(true);
@@ -405,7 +585,9 @@ describe("File Manager UI integration for CLI utilities", () => {
     const lsRes = await runCli(["ls", work, "--json"]);
     expect(lsRes.code).toBe(0);
     const lsJson = JSON.parse(lsRes.stdout);
-    expect(lsJson.entries.some((e: any) => e.name === "cli-target.txt")).toBe(true);
+    expect(lsJson.entries.some((e: any) => e.name === "cli-target.txt")).toBe(
+      true,
+    );
 
     const infoRes = await runCli(["info", cliTarget, "--json"]);
     expect(infoRes.code).toBe(0);
@@ -416,7 +598,9 @@ describe("File Manager UI integration for CLI utilities", () => {
     const findRes = await runCli(["find", "cli-target", work, "--json"]);
     expect(findRes.code).toBe(0);
     const findJson = JSON.parse(findRes.stdout);
-    expect(findJson.entries.some((e: any) => e.name === "cli-target.txt")).toBe(true);
+    expect(findJson.entries.some((e: any) => e.name === "cli-target.txt")).toBe(
+      true,
+    );
 
     const hashRes = await runCli(["hash", cliTarget, "--json"]);
     expect(hashRes.code).toBe(0);
@@ -431,7 +615,9 @@ describe("File Manager UI integration for CLI utilities", () => {
 
     const trashListRes = await runCli(["trash-list", "--json"]);
     expect(trashListRes.code).toBe(0);
-    expect(JSON.parse(trashListRes.stdout).items.some((i: any) => i.id === trashId)).toBe(true);
+    expect(
+      JSON.parse(trashListRes.stdout).items.some((i: any) => i.id === trashId),
+    ).toBe(true);
 
     const restoreRes = await runCli(["restore", trashId, "--json"]);
     expect(restoreRes.code).toBe(0);
@@ -441,7 +627,13 @@ describe("File Manager UI integration for CLI utilities", () => {
     expect(toolsRes.code).toBe(0);
     expect(Array.isArray(JSON.parse(toolsRes.stdout).tools)).toBe(true);
 
-    const cliUtilsRun = await runCli(["cli-utils", "run", "calc", "--expr", "9 * 9"]);
+    const cliUtilsRun = await runCli([
+      "cli-utils",
+      "run",
+      "calc",
+      "--expr",
+      "9 * 9",
+    ]);
     expect(cliUtilsRun.code).toBe(0);
     expect(cliUtilsRun.stdout).toContain("81");
   });
@@ -479,7 +671,11 @@ describe("File Manager UI integration for CLI utilities", () => {
       "SReclaimable:    1024000 kB",
       "Active:         10240000 kB",
     ].join("\n");
-    const linuxMem = Sys.parseLinuxMeminfo(sampleMeminfo, 32768000 * 1024, 1024000 * 1024);
+    const linuxMem = Sys.parseLinuxMeminfo(
+      sampleMeminfo,
+      32768000 * 1024,
+      1024000 * 1024,
+    );
     expect(linuxMem).not.toBeNull();
     expect(linuxMem!.percent).toBe(37.5);
     expect(linuxMem!.free).toBe(20480000 * 1024);
@@ -488,7 +684,11 @@ describe("File Manager UI integration for CLI utilities", () => {
       "FreePhysicalMemory=20971520",
       "TotalVisibleMemorySize=33554432",
     ].join("\r\n");
-    const winMem = Sys.parseWindowsMeminfo(sampleWinMem, 33554432 * 1024, 20971520 * 1024);
+    const winMem = Sys.parseWindowsMeminfo(
+      sampleWinMem,
+      33554432 * 1024,
+      20971520 * 1024,
+    );
     expect(winMem).not.toBeNull();
     expect(winMem!.percent).toBe(37.5);
     expect(winMem!.used).toBe(12582912 * 1024);
@@ -505,4 +705,3 @@ describe("File Manager UI integration for CLI utilities", () => {
     expect(sentinelRes.stdout).toContain("Memory Breakdown");
   });
 });
-

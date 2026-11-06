@@ -2,7 +2,9 @@ import { writeFileSync } from "fs";
 import { join } from "path";
 
 export function generateRedisGuide(outDir: string) {
-  writeFileSync(join(outDir, "40_redis_studio.md"), `# ⚡ Redis Studio Pro -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "40_redis_studio.md"),
+    `# ⚡ Redis Studio Pro -- Complete Production User Guide
 
 \`\`\`
 Engine: Bun native Redis client  •  Dependencies: 0  •  Requires: a reachable Redis server (default redis://127.0.0.1:6379)
@@ -57,5 +59,6 @@ Launch: [Desktop GUI: bun run applications/redis_studio.ts [redis-url]]
 ## 🔒 Safety Notes
 - The server only accepts requests from the local machine.
 - Bulk delete, flush and dangerous CLI commands always require an explicit in-app confirmation.
-`);
+`,
+  );
 }

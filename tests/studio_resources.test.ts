@@ -25,14 +25,26 @@ describe("findStudioResources", () => {
     const root = tree();
     addPage(root, "frogger_studio");
     const elsewhere = tree();
-    expect(findStudioResources("frogger_studio", join(root, "applications"), elsewhere)).toBe(join(root, "resources", "frogger_studio"));
+    expect(
+      findStudioResources(
+        "frogger_studio",
+        join(root, "applications"),
+        elsewhere,
+      ),
+    ).toBe(join(root, "resources", "frogger_studio"));
   });
 
   test("still finds resources in the working directory when none sit next to the studio (previous behavior)", () => {
     const studioRoot = tree();
     const cwd = tree();
     addPage(cwd, "snake_studio");
-    expect(findStudioResources("snake_studio", join(studioRoot, "applications"), cwd)).toBe(join(cwd, "resources", "snake_studio"));
+    expect(
+      findStudioResources(
+        "snake_studio",
+        join(studioRoot, "applications"),
+        cwd,
+      ),
+    ).toBe(join(cwd, "resources", "snake_studio"));
   });
 
   test("prefers the studio's own copy when both exist", () => {
@@ -40,17 +52,25 @@ describe("findStudioResources", () => {
     const cwd = tree();
     addPage(root, "tetris_studio");
     addPage(cwd, "tetris_studio");
-    expect(findStudioResources("tetris_studio", join(root, "applications"), cwd)).toBe(join(root, "resources", "tetris_studio"));
+    expect(
+      findStudioResources("tetris_studio", join(root, "applications"), cwd),
+    ).toBe(join(root, "resources", "tetris_studio"));
   });
 
   test("when nothing exists it returns the studio-relative path so the error message names it", () => {
     const root = tree();
-    expect(findStudioResources("nope", join(root, "applications"), tree())).toBe(join(root, "resources", "nope"));
+    expect(
+      findStudioResources("nope", join(root, "applications"), tree()),
+    ).toBe(join(root, "resources", "nope"));
   });
 
   test("the real games find their pages from the repository whatever the working directory", () => {
     for (const name of ["frogger_studio", "snake_studio", "tetris_studio"]) {
-      const dir = findStudioResources(name, join(import.meta.dir, "..", "applications"), tmpdir());
+      const dir = findStudioResources(
+        name,
+        join(import.meta.dir, "..", "applications"),
+        tmpdir(),
+      );
       expect(dir).toBe(join(import.meta.dir, "..", "resources", name));
       expect(Bun.file(join(dir, "index.html")).size).toBeGreaterThan(0);
     }

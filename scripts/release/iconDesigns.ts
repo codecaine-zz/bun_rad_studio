@@ -12,18 +12,39 @@ export const DESIGNS: Record<string, Design> = {
   // Developer tools
   "api-studio": { symbol: "arrow.left.arrow.right", badge: "bolt.fill" },
   "app-bundler-studio": { symbol: "shippingbox.fill", badge: "hammer.fill" },
-  "code-studio": { symbol: "chevron.left.forwardslash.chevron.right", badge: "terminal.fill" },
-  "dataconvert-studio": { symbol: "arrow.triangle.2.circlepath", badge: "doc.text.fill" },
-  "devtools-studio": { symbol: "wrench.and.screwdriver.fill", badge: "terminal.fill" },
+  "code-studio": {
+    symbol: "chevron.left.forwardslash.chevron.right",
+    badge: "terminal.fill",
+  },
+  "dataconvert-studio": {
+    symbol: "arrow.triangle.2.circlepath",
+    badge: "doc.text.fill",
+  },
+  "devtools-studio": {
+    symbol: "wrench.and.screwdriver.fill",
+    badge: "terminal.fill",
+  },
   "env-studio": { symbol: "key.fill", badge: "lock.fill" },
-  "git-studio": { symbol: "arrow.triangle.branch", badge: "checkmark.seal.fill" },
+  "git-studio": {
+    symbol: "arrow.triangle.branch",
+    badge: "checkmark.seal.fill",
+  },
   "jq-studio": { symbol: "curlybraces", badge: "magnifyingglass" },
   "omnitool-studio": { symbol: "gearshape.2.fill", badge: "bolt.fill" },
   "rad-studio": { symbol: "hammer.fill", badge: "wand.and.stars" },
   "regex-studio": { text: ".*", badge: "magnifyingglass" },
-  "sd-studio": { symbol: "text.magnifyingglass", badge: "arrow.triangle.2.circlepath" },
-  "subprocess-pipe-studio": { symbol: "point.3.connected.trianglepath.dotted", badge: "terminal.fill" },
-  "tokei-studio": { symbol: "chart.bar.xaxis", badge: "chevron.left.forwardslash.chevron.right" },
+  "sd-studio": {
+    symbol: "text.magnifyingglass",
+    badge: "arrow.triangle.2.circlepath",
+  },
+  "subprocess-pipe-studio": {
+    symbol: "point.3.connected.trianglepath.dotted",
+    badge: "terminal.fill",
+  },
+  "tokei-studio": {
+    symbol: "chart.bar.xaxis",
+    badge: "chevron.left.forwardslash.chevron.right",
+  },
   "watchexec-studio": { symbol: "eye.fill", badge: "bolt.fill" },
   // File and directory tools
   "fd-studio": { symbol: "sparkle.magnifyingglass", badge: "folder.fill" },
@@ -34,17 +55,29 @@ export const DESIGNS: Record<string, Design> = {
   "mysql-studio": { symbol: "server.rack", badge: "bolt.fill" },
   "postgres-studio": { symbol: "cylinder.split.1x2.fill", badge: "network" },
   "redis-studio": { symbol: "bolt.horizontal.fill", badge: "memorychip.fill" },
-  "sqlite-studio": { symbol: "internaldrive.fill", badge: "cylinder.split.1x2.fill" },
+  "sqlite-studio": {
+    symbol: "internaldrive.fill",
+    badge: "cylinder.split.1x2.fill",
+  },
   // Network and security
   "doggo-studio": { symbol: "pawprint.fill", badge: "globe" },
   "ipinfo-studio": { symbol: "mappin.and.ellipse", badge: "globe" },
   "network-studio": { symbol: "network", badge: "waveform.path.ecg" },
   "crypto-studio": { symbol: "lock.shield.fill", badge: "key.fill" },
-  "subfinder-studio": { symbol: "scope", badge: "antenna.radiowaves.left.and.right" },
+  "subfinder-studio": {
+    symbol: "scope",
+    badge: "antenna.radiowaves.left.and.right",
+  },
   // System and hardware
   "brew-studio": { symbol: "mug.fill", badge: "shippingbox.fill" },
-  "process-studio": { symbol: "gauge.with.dots.needle.67percent", badge: "waveform.path.ecg" },
-  "procs-studio": { symbol: "list.bullet.rectangle.portrait.fill", badge: "cpu.fill" },
+  "process-studio": {
+    symbol: "gauge.with.dots.needle.67percent",
+    badge: "waveform.path.ecg",
+  },
+  "procs-studio": {
+    symbol: "list.bullet.rectangle.portrait.fill",
+    badge: "cpu.fill",
+  },
   "system-studio": { symbol: "cpu.fill", badge: "memorychip.fill" },
   "task-manager": { symbol: "speedometer", badge: "chart.line.uptrend.xyaxis" },
   // Productivity
@@ -52,10 +85,16 @@ export const DESIGNS: Record<string, Design> = {
   "interval-timer-studio": { symbol: "stopwatch.fill", badge: "flame.fill" },
   "markdown-studio": { symbol: "doc.richtext.fill", badge: "sparkles" },
   "media-player-studio": { symbol: "slider.vertical.3", badge: "waveform" },
-  "world-time-zones-studio": { symbol: "globe.europe.africa.fill", badge: "clock.fill" },
+  "world-time-zones-studio": {
+    symbol: "globe.europe.africa.fill",
+    badge: "clock.fill",
+  },
   // Design
   "color-studio": { symbol: "swatchpalette.fill", badge: "sparkles" },
-  "paint-studio": { symbol: "paintbrush.pointed.fill", badge: "swatchpalette.fill" },
+  "paint-studio": {
+    symbol: "paintbrush.pointed.fill",
+    badge: "swatchpalette.fill",
+  },
   // RAD
   "launcher-studio": { symbol: "square.grid.2x2.fill", badge: "bolt.fill" },
   "rad-designer": { symbol: "rectangle.3.group.fill", badge: "wand.and.stars" },
@@ -63,13 +102,19 @@ export const DESIGNS: Record<string, Design> = {
   "balatro-studio": { symbol: "suit.spade.fill", badge: "crown.fill" },
   "blackjack-studio": { symbol: "suit.club.fill", badge: "star.fill" },
   "breakout-studio": { custom: "breakout", badge: "bolt.fill" },
-  "codecaine-bros-studio": { symbol: "gamecontroller.fill", badge: "star.fill" },
+  "codecaine-bros-studio": {
+    symbol: "gamecontroller.fill",
+    badge: "star.fill",
+  },
   "connect4-studio": { custom: "connect4", badge: "crown.fill" },
   "dr-codecaine-studio": { symbol: "cross.case.fill", badge: "sparkles" },
   "flappy-bird-studio": { symbol: "bird.fill", badge: "star.fill" },
   "frogger-studio": { custom: "frog", badge: "bolt.fill" },
   "lolo-studio": { symbol: "heart.fill", badge: "crown.fill" },
-  "math-munchers-studio": { symbol: "plusminus.circle.fill", badge: "star.fill" },
+  "math-munchers-studio": {
+    symbol: "plusminus.circle.fill",
+    badge: "star.fill",
+  },
   "maze-generator-studio": { custom: "maze", badge: "sparkles" },
   "minesweeper-studio": { custom: "minesweeper", badge: "flame.fill" },
   "pacman-studio": { custom: "pacman", badge: "star.fill" },
@@ -108,21 +153,34 @@ export const DESIGNS: Record<string, Design> = {
   "missile-command-studio": { symbol: "shield.fill", badge: "flame.fill" },
   "peggle-studio": { symbol: "circle.hexagongrid.fill", badge: "star.fill" },
   "pinball-studio": { symbol: "bolt.circle.fill", badge: "star.fill" },
-  "pipe-dream-studio": { symbol: "wrench.and.screwdriver.fill", badge: "drop.fill" },
+  "pipe-dream-studio": {
+    symbol: "wrench.and.screwdriver.fill",
+    badge: "drop.fill",
+  },
   "pool-studio": { text: "8", badge: "crown.fill" },
   "qbert-studio": { symbol: "cube.fill", badge: "star.fill" },
   "qix-studio": { symbol: "scribble.variable", badge: "bolt.fill" },
   "rampart-studio": { symbol: "building.columns.fill", badge: "shield.fill" },
-  "reversi-checkers-studio": { symbol: "circle.lefthalf.filled", badge: "crown.fill" },
+  "reversi-checkers-studio": {
+    symbol: "circle.lefthalf.filled",
+    badge: "crown.fill",
+  },
   "slots-studio": { text: "777", badge: "crown.fill" },
   "sokoban-studio": { symbol: "shippingbox.fill", badge: "star.fill" },
   "solitaire-studio": { symbol: "suit.heart.fill", badge: "crown.fill" },
-  "space-invaders-studio": { symbol: "antenna.radiowaves.left.and.right", badge: "bolt.fill" },
+  "space-invaders-studio": {
+    symbol: "antenna.radiowaves.left.and.right",
+    badge: "bolt.fill",
+  },
   "uno-studio": { text: "UNO", badge: "flame.fill" },
   "vampire-survivors-studio": { symbol: "moon.fill", badge: "flame.fill" },
 };
 
 /** Every SF Symbol name used, so a test can check they all exist on this Mac. */
 export const SYMBOL_NAMES = [
-  ...new Set(Object.values(DESIGNS).flatMap((d) => [d.symbol, d.badge].filter((s): s is string => Boolean(s)))),
+  ...new Set(
+    Object.values(DESIGNS).flatMap((d) =>
+      [d.symbol, d.badge].filter((s): s is string => Boolean(s)),
+    ),
+  ),
 ].sort();

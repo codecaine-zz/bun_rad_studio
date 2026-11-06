@@ -6,65 +6,167 @@ import { JSDOM } from "jsdom";
 
 const E = (() => {
   const m = { exports: {} };
-  new Function("module", "exports", fs.readFileSync(new URL("../resources/maze_generator/engine.js", import.meta.url), "utf8"))(m, m.exports);
+  new Function(
+    "module",
+    "exports",
+    fs.readFileSync(
+      new URL("../resources/maze_generator/engine.js", import.meta.url),
+      "utf8",
+    ),
+  )(m, m.exports);
   return m.exports;
 })();
 
 const BASE = fs.readFileSync(process.env.MAZE_BASE_HTML, "utf8");
 const stateFile = process.env.MAZE_STATE_FILE;
-const readState = () => { try { return JSON.parse(fs.readFileSync(stateFile, "utf8")); } catch { return {}; } };
-const resetState = (obj) => { try { fs.rmSync(stateFile); } catch {} if (obj !== undefined) fs.writeFileSync(stateFile, JSON.stringify(obj)); };
+const readState = () => {
+  try {
+    return JSON.parse(fs.readFileSync(stateFile, "utf8"));
+  } catch {
+    return {};
+  }
+};
+const resetState = (obj) => {
+  try {
+    fs.rmSync(stateFile);
+  } catch {}
+  if (obj !== undefined) fs.writeFileSync(stateFile, JSON.stringify(obj));
+};
 
 function expect(v) {
   const mk = (neg) => {
-    const chk = (ok, msg) => assert.ok(neg ? !ok : ok, (neg ? "NOT " : "") + msg);
+    const chk = (ok, msg) =>
+      assert.ok(neg ? !ok : ok, (neg ? "NOT " : "") + msg);
     return {
-      toBe: (x) => (neg ? assert.notStrictEqual(v, x) : assert.strictEqual(v, x)),
-      toBeNull: () => (neg ? assert.notStrictEqual(v, null) : assert.strictEqual(v, null)),
-      toEqual: (x) => (neg ? assert.notDeepStrictEqual(v, x) : assert.deepStrictEqual(v, x)),
-      toContain: (x) => chk(v.includes(x), `${JSON.stringify(v)} contains ${x}`),
+      toBe: (x) =>
+        neg ? assert.notStrictEqual(v, x) : assert.strictEqual(v, x),
+      toBeNull: () =>
+        neg ? assert.notStrictEqual(v, null) : assert.strictEqual(v, null),
+      toEqual: (x) =>
+        neg ? assert.notDeepStrictEqual(v, x) : assert.deepStrictEqual(v, x),
+      toContain: (x) =>
+        chk(v.includes(x), `${JSON.stringify(v)} contains ${x}`),
       toBeGreaterThan: (x) => chk(v > x, `${v} > ${x}`),
-      toMatchObject: (x) => { for (const k of Object.keys(x)) assert.deepStrictEqual(v[k], x[k]); },
+      toMatchObject: (x) => {
+        for (const k of Object.keys(x)) assert.deepStrictEqual(v[k], x[k]);
+      },
     };
   };
-  const r = mk(false); r.not = mk(true); return r;
+  const r = mk(false);
+  r.not = mk(true);
+  return r;
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function boot() {
-  const html = BASE.replace("window.__MAZE_STATE__ = {};", "window.__MAZE_STATE__ = " + JSON.stringify(readState()).replace(/</g, "\\u003c") + ";");
+  const html = BASE.replace(
+    "window.__MAZE_STATE__ = {};",
+    "window.__MAZE_STATE__ = " +
+      JSON.stringify(readState()).replace(/</g, "\\u003c") +
+      ";",
+  );
   const dom = new JSDOM(html, {
-    url: "http://127.0.0.1:1/", runScripts: "dangerously", pretendToBeVisual: true,
+    url: "http://127.0.0.1:1/",
+    runScripts: "dangerously",
+    pretendToBeVisual: true,
     beforeParse(win) {
       const noop = () => {};
       const ctx = { canvas: {} };
-      for (const m of ["scale", "setTransform", "clearRect", "save", "restore", "translate", "rotate", "fillRect", "strokeRect", "beginPath", "closePath", "arc", "fill", "stroke", "moveTo", "lineTo", "fillText", "strokeText", "drawImage", "clip", "rect", "quadraticCurveTo", "bezierCurveTo", "roundRect", "setLineDash", "transform", "ellipse"]) ctx[m] = noop;
+      for (const m of [
+        "scale",
+        "setTransform",
+        "clearRect",
+        "save",
+        "restore",
+        "translate",
+        "rotate",
+        "fillRect",
+        "strokeRect",
+        "beginPath",
+        "closePath",
+        "arc",
+        "fill",
+        "stroke",
+        "moveTo",
+        "lineTo",
+        "fillText",
+        "strokeText",
+        "drawImage",
+        "clip",
+        "rect",
+        "quadraticCurveTo",
+        "bezierCurveTo",
+        "roundRect",
+        "setLineDash",
+        "transform",
+        "ellipse",
+      ])
+        ctx[m] = noop;
       ctx.measureText = () => ({ width: 10 });
-      ctx.createLinearGradient = ctx.createRadialGradient = () => ({ addColorStop: noop });
+      ctx.createLinearGradient = ctx.createRadialGradient = () => ({
+        addColorStop: noop,
+      });
       ctx.getImageData = () => ({ data: [] });
 
       win.HTMLCanvasElement.prototype.getContext = () => ctx;
       win.HTMLCanvasElement.prototype.toDataURL = () => "data:,";
       win.Element.prototype.getBoundingClientRect = function () {
-        const big = this.id === "mazeCanvas" || this.id === "canvasContainer" || this.id === "canvasWrapper";
-        return { left: 0, top: 0, right: big ? 600 : 0, bottom: big ? 600 : 0, width: big ? 600 : 0, height: big ? 600 : 0, x: 0, y: 0, toJSON() {} };
+        const big =
+          this.id === "mazeCanvas" ||
+          this.id === "canvasContainer" ||
+          this.id === "canvasWrapper";
+        return {
+          left: 0,
+          top: 0,
+          right: big ? 600 : 0,
+          bottom: big ? 600 : 0,
+          width: big ? 600 : 0,
+          height: big ? 600 : 0,
+          x: 0,
+          y: 0,
+          toJSON() {},
+        };
       };
-      win.mazeSaveState = (json) => { fs.writeFileSync(stateFile, json); };
+      win.mazeSaveState = (json) => {
+        fs.writeFileSync(stateFile, json);
+      };
     },
   });
   return dom.window;
 }
 
 const $ = (w, id) => w.document.getElementById(id);
-const key = (w, k, code) => w.document.dispatchEvent(new w.KeyboardEvent("keydown", { key: k, code: code || k, bubbles: true, cancelable: true }));
-const click = (w, id) => $(w, id).dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
+const key = (w, k, code) =>
+  w.document.dispatchEvent(
+    new w.KeyboardEvent("keydown", {
+      key: k,
+      code: code || k,
+      bubbles: true,
+      cancelable: true,
+    }),
+  );
+const click = (w, id) =>
+  $(w, id).dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
 
 describe("page (jsdom): boot and preferences", () => {
   test("saved preferences are loaded into selects, theme, and game state", () => {
     resetState({
-      settings: { diff: "hard", algo: "kruskal", solver: "dijkstra", theme: "amber", sound: false, trail: false },
-      stats: { played: 3, won: 2, totalSteps: 120, shardsCollected: 5, best: { "classic|hard": { timeMs: 42000, steps: 85 } } }
+      settings: {
+        diff: "hard",
+        algo: "kruskal",
+        solver: "dijkstra",
+        theme: "amber",
+        sound: false,
+        trail: false,
+      },
+      stats: {
+        played: 3,
+        won: 2,
+        totalSteps: 120,
+        shardsCollected: 5,
+        best: { "classic|hard": { timeMs: 42000, steps: 85 } },
+      },
     });
     const w = boot();
     try {
@@ -78,7 +180,9 @@ describe("page (jsdom): boot and preferences", () => {
       expect(w.eval("currentSolver")).toBe("dijkstra");
       expect(w.eval("cols")).toBe(29);
       expect($(w, "bestTimeVal").textContent).toBe("00:42");
-    } finally { w.close(); }
+    } finally {
+      w.close();
+    }
   });
 
   test("changing selects updates game state and persists to disk", () => {
@@ -103,8 +207,15 @@ describe("page (jsdom): boot and preferences", () => {
       expect(w.eval("currentTheme")).toBe("green");
 
       const saved = readState();
-      expect(saved.settings).toMatchObject({ diff: "easy", algo: "wilson", solver: "bfs", theme: "green" });
-    } finally { w.close(); }
+      expect(saved.settings).toMatchObject({
+        diff: "easy",
+        algo: "wilson",
+        solver: "bfs",
+        theme: "green",
+      });
+    } finally {
+      w.close();
+    }
   });
 });
 
@@ -127,7 +238,9 @@ describe("page (jsdom): gameplay and actions", () => {
       expect(w.eval("isDaily")).toBe(true);
       expect(w.eval("currentSeed")).toContain("DAILY-");
       expect($(w, "mazeToast").textContent).toContain("Daily Challenge");
-    } finally { w.close(); }
+    } finally {
+      w.close();
+    }
   });
 
   test("pause (P or Space) stops timer and shows pause overlay; resuming restores timer", async () => {
@@ -149,7 +262,9 @@ describe("page (jsdom): gameplay and actions", () => {
       expect(w.eval("isPaused")).toBe(false);
       expect($(w, "pauseOverlay").style.display).toBe("none");
       expect($(w, "pauseText").textContent).toBe("Pause");
-    } finally { w.close(); }
+    } finally {
+      w.close();
+    }
   });
 
   test("give up (G) requires 2 clicks, displays surrender status, and reveals optimal solution", () => {
@@ -171,7 +286,9 @@ describe("page (jsdom): gameplay and actions", () => {
       const saved = readState();
       expect(saved.stats.played).toBe(1);
       expect(saved.stats.surrendered).toBe(1);
-    } finally { w.close(); }
+    } finally {
+      w.close();
+    }
   });
 
   test("hints decrement and display toast when empty", () => {
@@ -186,13 +303,24 @@ describe("page (jsdom): gameplay and actions", () => {
       expect($(w, "hintsVal").textContent).toBe("0");
 
       click(w, "hintBtn");
-      expect($(w, "mazeToast").textContent).toContain("No hint charges remaining");
-    } finally { w.close(); }
+      expect($(w, "mazeToast").textContent).toContain(
+        "No hint charges remaining",
+      );
+    } finally {
+      w.close();
+    }
   });
 
   test("stats dialog (T) shows records and supports 2-click reset", () => {
     resetState({
-      stats: { played: 10, won: 8, surrendered: 2, totalSteps: 540, shardsCollected: 14, best: { "classic|medium": { timeMs: 38000, steps: 60 } } }
+      stats: {
+        played: 10,
+        won: 8,
+        surrendered: 2,
+        totalSteps: 540,
+        shardsCollected: 14,
+        best: { "classic|medium": { timeMs: 38000, steps: 60 } },
+      },
     });
     const w = boot();
     try {
@@ -209,11 +337,15 @@ describe("page (jsdom): gameplay and actions", () => {
 
       // 2nd click resets
       click(w, "resetStatsBtn");
-      expect($(w, "statsBody").textContent).toContain("No recorded completed missions");
+      expect($(w, "statsBody").textContent).toContain(
+        "No recorded completed missions",
+      );
       expect(readState().stats.played).toBe(0);
 
       click(w, "statsClose");
       expect($(w, "statsModal").style.display).toBe("none");
-    } finally { w.close(); }
+    } finally {
+      w.close();
+    }
   });
 });

@@ -41,18 +41,51 @@ function compile(lang: LangDef): Compiled {
   const hit = cache.get(lang);
   if (hit) return hit;
   const tokens: Tok[] = [];
-  const base = { nested: false, doc: false, multiline: false, verbatim: false, lineStart: false };
-  for (const open of lang.line ?? []) tokens.push({ ...base, kind: "line", open, close: "" });
-  for (const open of lang.docLine ?? []) tokens.push({ ...base, kind: "line", open, close: "", doc: true });
-  for (const [open, close] of lang.block ?? []) tokens.push({ ...base, kind: "block", open, close, nested: !!lang.nested });
-  for (const [open, close] of lang.docBlock ?? []) tokens.push({ ...base, kind: "block", open, close, nested: !!lang.nested, doc: true });
-  for (const [open, close] of lang.lineStart ?? []) tokens.push({ ...base, kind: "block", open, close, lineStart: true });
-  for (const q of lang.quotes ?? []) tokens.push({ ...base, kind: "quote", open: q.open, close: q.close, multiline: !!q.multiline, verbatim: !!q.verbatim, doc: !!q.doc });
+  const base = {
+    nested: false,
+    doc: false,
+    multiline: false,
+    verbatim: false,
+    lineStart: false,
+  };
+  for (const open of lang.line ?? [])
+    tokens.push({ ...base, kind: "line", open, close: "" });
+  for (const open of lang.docLine ?? [])
+    tokens.push({ ...base, kind: "line", open, close: "", doc: true });
+  for (const [open, close] of lang.block ?? [])
+    tokens.push({ ...base, kind: "block", open, close, nested: !!lang.nested });
+  for (const [open, close] of lang.docBlock ?? [])
+    tokens.push({
+      ...base,
+      kind: "block",
+      open,
+      close,
+      nested: !!lang.nested,
+      doc: true,
+    });
+  for (const [open, close] of lang.lineStart ?? [])
+    tokens.push({ ...base, kind: "block", open, close, lineStart: true });
+  for (const q of lang.quotes ?? [])
+    tokens.push({
+      ...base,
+      kind: "quote",
+      open: q.open,
+      close: q.close,
+      multiline: !!q.multiline,
+      verbatim: !!q.verbatim,
+      doc: !!q.doc,
+    });
   // The longest opener wins (`"""` before `"`, `///` before `//`).
   tokens.sort((a, b) => b.open.length - a.open.length);
   const starts = new Set(tokens.map((t) => t.open[0]!));
   if (lang.charLit) starts.add("'");
-  const out = { tokens, starts, charLit: !!lang.charLit, hashBoundary: !!lang.hashBoundary, literate: !!lang.literate };
+  const out = {
+    tokens,
+    starts,
+    charLit: !!lang.charLit,
+    hashBoundary: !!lang.hashBoundary,
+    literate: !!lang.literate,
+  };
   cache.set(lang, out);
   return out;
 }
@@ -73,7 +106,11 @@ function matchToken(c: Compiled, raw: string, i: number): Tok | null {
     if (t.doc && t.kind !== "quote") {
       // `////`, `/***` and `/**/` are ordinary comments, not documentation.
       const next = raw[i + t.open.length];
-      if (next === t.open[t.open.length - 1] || (t.kind === "block" && next === "/")) continue;
+      if (
+        next === t.open[t.open.length - 1] ||
+        (t.kind === "block" && next === "/")
+      )
+        continue;
     }
     return t;
   }
@@ -84,7 +121,11 @@ function matchToken(c: Compiled, raw: string, i: number): Tok | null {
  * Counts the lines of `text`. `docAsComment` (default on): documentation comments and docstrings count as comments;
  * off, they count as code.
  */
-export function countPlain(text: string, lang: LangDef, docAsComment = true): Counts {
+export function countPlain(
+  text: string,
+  lang: LangDef,
+  docAsComment = true,
+): Counts {
   const c = compile(lang);
   const lines = text.split("\n");
   let total = lines.length;
@@ -185,7 +226,12 @@ export function countPlain(text: string, lang: LangDef, docAsComment = true): Co
         continue;
       }
       if (tok.kind === "line") {
-        if (c.hashBoundary && tok.open === "#" && i > 0 && !/[\s;&|(]/.test(raw[i - 1]!)) {
+        if (
+          c.hashBoundary &&
+          tok.open === "#" &&
+          i > 0 &&
+          !/[\s;&|(]/.test(raw[i - 1]!)
+        ) {
           hasCode = true;
           i++;
           continue;
@@ -215,10 +261,61 @@ export function countPlain(text: string, lang: LangDef, docAsComment = true): Co
 
 const lowerNames = new Map<string, LangDef>();
 function langByTag(tag: string): LangDef | null {
-  if (!lowerNames.size) for (const name of ["JSON", "JavaScript", "TypeScript", "Python", "Rust", "BASH", "Shell", "HTML", "CSS", "YAML", "Go", "C", "C++", "Java", "Kotlin", "Swift", "Ruby", "PHP", "Lua", "Perl", "SQL", "TOML", "XML", "Zig", "Dart", "Haskell", "Julia", "Elixir", "Erlang", "Scala", "Makefile", "Dockerfile", "TSX", "JSX", "Sass", "LESS", "V", "Nim", "Zsh", "Fish", "PowerShell", "Batch", "R", "INI", "GraphQL", "Markdown", "OCaml", "Clojure", "Lisp"]) {
-    const def = languageByName(name);
-    if (def) lowerNames.set(name.toLowerCase(), def);
-  }
+  if (!lowerNames.size)
+    for (const name of [
+      "JSON",
+      "JavaScript",
+      "TypeScript",
+      "Python",
+      "Rust",
+      "BASH",
+      "Shell",
+      "HTML",
+      "CSS",
+      "YAML",
+      "Go",
+      "C",
+      "C++",
+      "Java",
+      "Kotlin",
+      "Swift",
+      "Ruby",
+      "PHP",
+      "Lua",
+      "Perl",
+      "SQL",
+      "TOML",
+      "XML",
+      "Zig",
+      "Dart",
+      "Haskell",
+      "Julia",
+      "Elixir",
+      "Erlang",
+      "Scala",
+      "Makefile",
+      "Dockerfile",
+      "TSX",
+      "JSX",
+      "Sass",
+      "LESS",
+      "V",
+      "Nim",
+      "Zsh",
+      "Fish",
+      "PowerShell",
+      "Batch",
+      "R",
+      "INI",
+      "GraphQL",
+      "Markdown",
+      "OCaml",
+      "Clojure",
+      "Lisp",
+    ]) {
+      const def = languageByName(name);
+      if (def) lowerNames.set(name.toLowerCase(), def);
+    }
   return lowerNames.get(tag.toLowerCase()) ?? null;
 }
 
@@ -228,7 +325,12 @@ const add = (into: Counts, c: Counts) => {
   into.blanks += c.blanks;
 };
 
-function addChild(children: Record<string, Counts>, lang: LangDef, lines: string[], docAsComment: boolean): void {
+function addChild(
+  children: Record<string, Counts>,
+  lang: LangDef,
+  lines: string[],
+  docAsComment: boolean,
+): void {
   if (!lines.length) return;
   const c = countPlain(`${lines.join("\n")}\n`, lang, docAsComment);
   add((children[lang.name] ??= { code: 0, comments: 0, blanks: 0 }), c);
@@ -237,15 +339,41 @@ function addChild(children: Record<string, Counts>, lang: LangDef, lines: string
 /** The language of the code inside a `<script ...>` or `<style ...>` tag, or null when it isn't code (a template, say). */
 function embeddedLanguage(tag: string, attrs: string): LangDef | null {
   const lang = /\blang\s*=\s*["']?([\w-]+)/i.exec(attrs)?.[1]?.toLowerCase();
-  const type = /\btype\s*=\s*["']?([\w/+.-]+)/i.exec(attrs)?.[1]?.toLowerCase() ?? "";
-  if (tag === "style") return languageByName(lang === "scss" || lang === "sass" ? "Sass" : lang === "less" ? "LESS" : lang === "stylus" ? "Stylus" : "CSS") ?? null;
+  const type =
+    /\btype\s*=\s*["']?([\w/+.-]+)/i.exec(attrs)?.[1]?.toLowerCase() ?? "";
+  if (tag === "style")
+    return (
+      languageByName(
+        lang === "scss" || lang === "sass"
+          ? "Sass"
+          : lang === "less"
+            ? "LESS"
+            : lang === "stylus"
+              ? "Stylus"
+              : "CSS",
+      ) ?? null
+    );
   if (/json|importmap/.test(type)) return languageByName("JSON") ?? null;
-  if (type && !/javascript|ecmascript|module|typescript/.test(type)) return null;
-  return languageByName(lang === "ts" || lang === "typescript" || type.includes("typescript") ? "TypeScript" : lang === "tsx" ? "TSX" : lang === "jsx" ? "JSX" : "JavaScript") ?? null;
+  if (type && !/javascript|ecmascript|module|typescript/.test(type))
+    return null;
+  return (
+    languageByName(
+      lang === "ts" || lang === "typescript" || type.includes("typescript")
+        ? "TypeScript"
+        : lang === "tsx"
+          ? "TSX"
+          : lang === "jsx"
+            ? "JSX"
+            : "JavaScript",
+    ) ?? null
+  );
 }
 
 /** Splits off the embedded code: returns the lines that stay with the host language and the lines of each embedded block. */
-function splitEmbedded(lines: string[], mode: "html" | "markdown"): { own: string[]; blocks: Array<{ lang: LangDef; lines: string[] }> } {
+function splitEmbedded(
+  lines: string[],
+  mode: "html" | "markdown",
+): { own: string[]; blocks: Array<{ lang: LangDef; lines: string[] }> } {
   const own: string[] = [];
   const blocks: Array<{ lang: LangDef; lines: string[] }> = [];
   let current: { lang: LangDef; lines: string[]; close: RegExp } | null = null;
@@ -265,14 +393,31 @@ function splitEmbedded(lines: string[], mode: "html" | "markdown"): { own: strin
       own.push(line);
       if (fence && child) {
         const marker = fence[1]!;
-        current = { lang: child, lines: [], close: new RegExp(`^\\s{0,3}${marker[0] === "`" ? "`" : "~"}{${marker.length},}\\s*$`) };
+        current = {
+          lang: child,
+          lines: [],
+          close: new RegExp(
+            `^\\s{0,3}${marker[0] === "`" ? "`" : "~"}{${marker.length},}\\s*$`,
+          ),
+        };
       }
       continue;
     }
     const open = !inComment ? /<(script|style)\b([^>]*)>/i.exec(line) : null;
-    if (open && !line.slice(0, open.index).includes("<!--") && !new RegExp(`</${open[1]}`, "i").test(line.slice(open.index + open[0].length))) {
+    if (
+      open &&
+      !line.slice(0, open.index).includes("<!--") &&
+      !new RegExp(`</${open[1]}`, "i").test(
+        line.slice(open.index + open[0].length),
+      )
+    ) {
       const lang = embeddedLanguage(open[1]!.toLowerCase(), open[2]!);
-      if (lang) current = { lang, lines: [], close: new RegExp(`</${open[1]}\\s*>`, "i") };
+      if (lang)
+        current = {
+          lang,
+          lines: [],
+          close: new RegExp(`</${open[1]}\\s*>`, "i"),
+        };
     }
     own.push(line);
     const lastOpen = line.lastIndexOf("<!--");
@@ -290,12 +435,20 @@ function splitEmbedded(lines: string[], mode: "html" | "markdown"): { own: strin
  * (`children`), the way tokei does; their own numbers cover only the host language. `docAsComment` (default on):
  * documentation comments and docstrings count as comments; off, they count as code.
  */
-export function countText(text: string, lang: LangDef, docAsComment = true): Counts {
+export function countText(
+  text: string,
+  lang: LangDef,
+  docAsComment = true,
+): Counts {
   if (!lang.embeds) return countPlain(text, lang, docAsComment);
   const lines = text.split("\n");
   if (lines.length > 0 && lines[lines.length - 1] === "") lines.pop();
   const { own, blocks } = splitEmbedded(lines, lang.embeds);
-  const result = countPlain(own.length ? `${own.join("\n")}\n` : "", lang, docAsComment);
+  const result = countPlain(
+    own.length ? `${own.join("\n")}\n` : "",
+    lang,
+    docAsComment,
+  );
   if (blocks.length) {
     const children: Record<string, Counts> = {};
     for (const b of blocks) addChild(children, b.lang, b.lines, docAsComment);

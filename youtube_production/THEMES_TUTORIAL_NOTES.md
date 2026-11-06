@@ -1,15 +1,18 @@
 # Codecaine File Manager v1.5.0 — Complete Themes & AAA 10-Engine Shader Studio Masterclass (8:30)
 
 ## Video Files (Recorded Live at Highest Quality: 2x Retina Display-P3 HDR · CRF 14 · Lanczos · 256k AAC)
+
 - **Long-Form Masterclass MP4 (`1920×1080` 16:9)**: `youtube_production/codecaine-file-manager-themes-tutorial.mp4` (510.2s / 8:30, 1920×1080 16:9, 30 fps, 2x Retina Display-P3 HDR, CRF 14, 256 kbps AAC)
 - **Companion 3-Minute YouTube Short (`1080×1920` 9:16)**: `youtube_production/codecaine-file-manager-themes-short.mp4` & `youtube_production/codecaine-file-manager-apple-mac-themes-short.mp4` (173.0s / 2:53, 1080×1920 vertical, 30 fps, 2x Retina Display-P3 HDR, CRF 14, 256 kbps AAC)
 
 ## YouTube Long-Form Titles (Pick One, < 100 chars)
+
 1. **Codecaine File Manager v1.5.0: 310 Themes, 10 AAA Engines, 3D Spinning Folders & 194 Shaders (6K XDR)**
 2. **If Apple & 2Advanced Built a 120Hz File Manager: 310 Themes, 18 Animated Holidays & 34 Screen Filters**
 3. **Ultimate 120Hz Theme & Shader Studio Masterclass: Mac Studio M4 Ultra, Windows 11 & Linux (v1.5.0)**
 
 ## YouTube Long-Form Description (Copy & Paste)
+
 ```text
 Welcome to the complete v1.5.0 Masterclass for the Codecaine File Manager AAA 10-Engine Theme & Atmospheric Shader Studio—recorded live at 2x Retina Display-P3 HDR (CRF 14) on an Apple Mac Studio M4 Ultra (80-Core GPU · 192GB Unified Memory · Pro Display XDR 6K at 120Hz ProMotion)!
 
@@ -53,6 +56,7 @@ CHAPTERS
 ```
 
 ## YouTube Long-Form Tags (< 500 chars, Copy & Paste into YouTube Studio Tags Box)
+
 ```text
 codecaine file manager,mac studio m4 ultra,pro display xdr 6k,macos tahoe liquid glass,file manager themes,120hz promotion ui,2advanced flash ui,3d spinning folders,cinema 4d mograph ui,crt screen filter,custom icon pack,holiday themes,webgl canvas shaders,developer file manager,open source file manager,macos file manager,linux file manager,windows 11 file manager,bun typescript,ui ux design,compiz fusion burn,oklab color blender,webaudio ui sounds
 ```

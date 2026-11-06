@@ -9,7 +9,7 @@
 export async function parallelMap<T, R>(
   items: T[],
   concurrency: number,
-  fn: (item: T, index: number) => Promise<R>
+  fn: (item: T, index: number) => Promise<R>,
 ): Promise<R[]> {
   if (items.length === 0) return [];
   const limit = Math.max(1, concurrency);
@@ -23,7 +23,9 @@ export async function parallelMap<T, R>(
     }
   }
 
-  const workers = Array.from({ length: Math.min(limit, items.length) }, () => worker());
+  const workers = Array.from({ length: Math.min(limit, items.length) }, () =>
+    worker(),
+  );
   await Promise.all(workers);
   return results;
 }
@@ -35,9 +37,11 @@ export async function parallelMap<T, R>(
 export async function parallelFilter<T>(
   items: T[],
   concurrency: number,
-  predicate: (item: T) => Promise<boolean>
+  predicate: (item: T) => Promise<boolean>,
 ): Promise<T[]> {
-  const flags = await parallelMap(items, concurrency, (item) => predicate(item));
+  const flags = await parallelMap(items, concurrency, (item) =>
+    predicate(item),
+  );
   return items.filter((_, idx) => flags[idx]);
 }
 
@@ -48,7 +52,7 @@ export async function parallelFilter<T>(
 export async function parallelEach<T>(
   items: T[],
   concurrency: number,
-  fn: (item: T, index: number) => Promise<void>
+  fn: (item: T, index: number) => Promise<void>,
 ): Promise<void> {
   await parallelMap(items, concurrency, fn);
 }
@@ -100,10 +104,13 @@ export function createWaitGroup(): WaitGroup {
 export function timeoutPromise<T>(
   promise: Promise<T>,
   ms: number,
-  errorMsg = `Operation timed out after ${ms}ms`
+  errorMsg = `Operation timed out after ${ms}ms`,
 ): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`[asyncutils] ${errorMsg}`)), ms);
+    const timer = setTimeout(
+      () => reject(new Error(`[asyncutils] ${errorMsg}`)),
+      ms,
+    );
     promise
       .then((val) => {
         clearTimeout(timer);
@@ -130,7 +137,8 @@ export class WorkerPool {
    * @param concurrency - Maximum number of tasks allowed to run in parallel (must be > 0).
    */
   constructor(concurrency: number) {
-    if (concurrency <= 0) throw new Error("[asyncutils] Concurrency must be > 0");
+    if (concurrency <= 0)
+      throw new Error("[asyncutils] Concurrency must be > 0");
     this.concurrency = concurrency;
   }
 

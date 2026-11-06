@@ -3,7 +3,9 @@ import { join } from "path";
 
 export function generateDeveloperUtilities(outDir: string) {
   // 07_api_studio.md
-  writeFileSync(join(outDir, "07_api_studio.md"), `# 🌐 API Studio Pro -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "07_api_studio.md"),
+    `# 🌐 API Studio Pro -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: curl  •  Dependencies: 0  •  Local endpoints work offline
@@ -113,10 +115,13 @@ bun run cli:api
 - Use \`{{$uuid}}\` in a header such as \`X-Request-Id\` to get a unique value on every send.
 - Switch off **Follow redirects** to see the \`302\` and its \`Location\` header.
 - Lower the **Timeout** when testing flaky services so a hung request fails fast.
-`);
+`,
+  );
 
   // 08_data_converter_studio.md
-  writeFileSync(join(outDir, "08_data_converter_studio.md"), `# 🔄 Data Converter Studio -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "08_data_converter_studio.md"),
+    `# 🔄 Data Converter Studio -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Pure TypeScript Data Transformers  •  Dependencies: 0  •  Offline: 100%
@@ -213,10 +218,13 @@ bun run cli:convert users.json --to markdown
 
 ## 💡 Pro Tips & Enterprise Best Practices
 - **Never Upload Sensitive Data to Web Converters**: Commercial web converters frequently log user data. Data Converter Studio runs 100% offline in local memory—ideal for converting proprietary databases, PII, financial spreadsheets, and credentials safely.
-`);
+`,
+  );
 
   // 09_crypto_studio.md
-  writeFileSync(join(outDir, "09_crypto_studio.md"), `# 🔐 Crypto Studio Pro -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "09_crypto_studio.md"),
+    `# 🔐 Crypto Studio Pro -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Native node:crypto & Web Crypto API  •  Dependencies: 0  •  Offline: 100%
@@ -297,10 +305,13 @@ bun run cli:crypto uuid
 - **Privacy**: values typed into the app (including secrets and generated passwords) may be kept in the saved form state. Use **Clear All** after sensitive work.
 - **MD5 and SHA-1 are not collision-resistant**: use them only for legacy checksums.
 - **CBC provides no authentication**: do not rely on it to detect tampering.
-`);
+`,
+  );
 
   // 10_regex_studio.md
-  writeFileSync(join(outDir, "10_regex_studio.md"), `# 🎯 Regex Studio Pro -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "10_regex_studio.md"),
+    `# 🎯 Regex Studio Pro -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: ECMAScript RegExp (Bun/JavaScriptCore)  •  Dependencies: 0  •  Offline: 100%
@@ -407,7 +418,8 @@ bun run cli:regex -p "\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b" -t
 - Turn off **Live results** when working with big files, then use **Test Pattern** when you are ready.
 - Prefer lazy quantifiers (\`.*?\`) when matching between delimiters.
 - A match with length 0 (for example \`x*\`) is normal: it means the pattern can match nothing at that position.
-`);
+`,
+  );
 
   console.log("✔ Developer Utilities (07 to 10) generated with AAA quality.");
 }

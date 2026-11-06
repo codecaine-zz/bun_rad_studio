@@ -3,7 +3,9 @@ import { join } from "path";
 
 export function generateRetroArcadeGames(outDir: string) {
   // 30_codecaine_adventures_of_caine_remaster.md
-  writeFileSync(join(outDir, "30_codecaine_adventures_of_caine_remaster.md"), `# 🏰 Codecaine Adventures of Caine Remaster -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "30_codecaine_adventures_of_caine_remaster.md"),
+    `# 🏰 Codecaine Adventures of Caine Remaster -- Complete Production User Guide
 
 \`\`\`
 Version: 4.8.0  •  Engine: Native HTML5 Canvas & Web Audio Chiptune Synthesizer  •  Dependencies: 0  •  Offline: 100%
@@ -84,10 +86,13 @@ bun run applications/lolo_studio.ts --server
 | **O** | Procedural | **Random Synthesis Lab**: Generates mathematically verified random chambers. |
 | **F1** or **?** | System | Open in-game tactical field manual. |
 | **F11** or **F** | Global | Toggle borderless fullscreen display. |
-`);
+`,
+  );
 
   // 31_codecaine_cybermouse_trap_deluxe.md
-  writeFileSync(join(outDir, "31_codecaine_cybermouse_trap_deluxe.md"), `# 🐭 Codecaine CyberMouse Trap Deluxe -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "31_codecaine_cybermouse_trap_deluxe.md"),
+    `# 🐭 Codecaine CyberMouse Trap Deluxe -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Native HTML5 Canvas & Retro Sound Synthesis  •  Dependencies: 0  •  Offline: 100%
@@ -128,10 +133,13 @@ By pushing movable green blocks, you must outmaneuver the feline predators, trap
 | **Restart Level** | \`R\` | — |
 | **Toggle Sound** | \`M\` | — |
 | **Fullscreen** | \`F\` | \`F11\` |
-`);
+`,
+  );
 
   // 32_codecaine_neon_word_search_labyrinth.md
-  writeFileSync(join(outDir, "32_codecaine_neon_word_search_labyrinth.md"), `# 🔠 Codecaine Neon Word Search Labyrinth -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "32_codecaine_neon_word_search_labyrinth.md"),
+    `# 🔠 Codecaine Neon Word Search Labyrinth -- Complete Production User Guide
 
 \`\`\`
 Version: 2.5.0  •  Engine: Pure seeded puzzle engine + Web Audio & Canvas effects  •  Dependencies: 0  •  Works offline (fonts load online, with a system fallback)
@@ -166,10 +174,13 @@ Launchers: [Desktop GUI: bun run app:word_search]  •  [Headless Server: bun ru
 - **Mute (M)**, **Help (?)**, **Esc** closes dialogs. **Settings** holds category, size, difficulty, palette (Cyber, Sunset, Emerald, Arctic), sound and ambient drone; **Export** saves the board as a PNG.
 - **Persistence**: Preferences and records are stored in \`.word_search_state.json\` in the folder you launch from.
 - **Headless**: \`bun run applications/word_search_studio.ts --server\` serves the game in a browser.
-`);
+`,
+  );
 
   // 33_world_time_zones_studio.md
-  writeFileSync(join(outDir, "33_world_time_zones_studio.md"), `# 🌐 World Time Zones Studio Pro -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "33_world_time_zones_studio.md"),
+    `# 🌐 World Time Zones Studio Pro -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Native Intl & IANA Time Zone Database  •  Dependencies: 0  •  Offline: 100%
@@ -195,10 +206,13 @@ Launchers: [Desktop GUI: bun run app:world_time_zones]  •  [Headless Server: b
 - **Live Synchronized Clocks**: Displays major financial hubs: New York (EDT), London (BST), Tokyo (JST), Sydney (AEST), San Francisco (PDT), Singapore (SGT), and UTC.
 - **Solar Day/Night Indicators**: Shows whether a target location is in daylight, twilight, or night.
 - **Interactive Scrubber Slider**: Drag a time slider to preview what 3:00 PM in your timezone will be across all global colleagues simultaneously.
-`);
+`,
+  );
 
   // 34_codecaine_cyberchomp_arcade.md
-  writeFileSync(join(outDir, "34_codecaine_cyberchomp_arcade.md"), `# 🕹️ Codecaine CyberChomp Arcade -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "34_codecaine_cyberchomp_arcade.md"),
+    `# 🕹️ Codecaine CyberChomp Arcade -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Native HTML5 Canvas & Authentic Ghost AI Personalities  •  Dependencies: 0  •  Offline: 100%
@@ -236,10 +250,13 @@ Launchers: [Desktop GUI: bun run app:pacman]  •  [Headless Server: bun run app
 - **Pause**: \`P\` or \`Escape\`
 - **Restart**: \`R\`
 - **Fullscreen**: \`F\` or \`F11\`
-`);
+`,
+  );
 
   // 35_codecaine_bros_arcade.md
-  writeFileSync(join(outDir, "35_codecaine_bros_arcade.md"), `# 🍄 Codecaine Bros. Arcade -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "35_codecaine_bros_arcade.md"),
+    `# 🍄 Codecaine Bros. Arcade -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: 1983 Bumping Arcade Physics & 4-Channel Polyphonic Synth  •  Dependencies: 0  •  Offline: 100%
@@ -294,10 +311,13 @@ bun run applications/codecaine_bros_studio.ts --server
 | **Pause** | \`P\` | \`P\` |
 | **Restart** | \`R\` | \`R\` |
 | **Fullscreen** | \`F\` / \`F11\` | \`F\` / \`F11\` |
-`);
+`,
+  );
 
   // 36_codecaine_cyberpunk_quadlink_4.md
-  writeFileSync(join(outDir, "36_codecaine_cyberpunk_quadlink_4.md"), `# 🔴 Codecaine Cyberpunk QuadLink 4 -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "36_codecaine_cyberpunk_quadlink_4.md"),
+    `# 🔴 Codecaine Cyberpunk QuadLink 4 -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Minimax Heuristics AI Engine & Kinetic Falling Physics  •  Dependencies: 0  •  Offline: 100%
@@ -347,10 +367,13 @@ bun run applications/connect4_studio.ts --server
 - **Reset Board**: \`R\`
 - **Toggle AI Mode**: \`M\`
 - **Fullscreen**: \`F\` / \`F11\`
-`);
+`,
+  );
 
   // 37_codecaine_cyberpunk_maze_runner.md
-  writeFileSync(join(outDir, "37_codecaine_cyberpunk_maze_runner.md"), `# 🌀 Codecaine Cyberpunk Maze Runner -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "37_codecaine_cyberpunk_maze_runner.md"),
+    `# 🌀 Codecaine Cyberpunk Maze Runner -- Complete Production User Guide
 
 \`\`\`
 Version: 2.5.0  •  Engine: 5 Graph Theory Generators & A*/Dijkstra/BFS Solvers  •  Dependencies: 0  •  Works offline (fonts load online, with system fallback)
@@ -428,10 +451,13 @@ bun run applications/maze_generator_studio.ts --server
 - **Help (?)**: Opens system protocols and rules
 - **Close / Unpause (Esc)**: Closes open modals or resumes game
 - **Fullscreen (F / F11)**: Toggles distraction-free fullscreen mode
-`);
+`,
+  );
 
   // 38_codecaine_neon_cyber_paddle.md
-  writeFileSync(join(outDir, "38_codecaine_neon_cyber_paddle.md"), `# 🏓 Codecaine Neon Cyber Paddle -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "38_codecaine_neon_cyber_paddle.md"),
+    `# 🏓 Codecaine Neon Cyber Paddle -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Kinetic Vector Ball Physics & Synthetic Audio  •  Dependencies: 0  •  Offline: 100%
@@ -481,10 +507,13 @@ bun run applications/pong_studio.ts --server
 | **Pause Game** | \`P\` or \`Escape\` | — |
 | **Toggle AI / 2-Player** | \`M\` | — |
 | **Fullscreen** | \`F\` / \`F11\` | — |
-`);
+`,
+  );
 
   // 39_codecaine_neon_tic_tac_toe_arcade.md
-  writeFileSync(join(outDir, "39_codecaine_neon_tic_tac_toe_arcade.md"), `# ⭕ Codecaine Neon Tic-Tac-Toe Arcade -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "39_codecaine_neon_tic_tac_toe_arcade.md"),
+    `# ⭕ Codecaine Neon Tic-Tac-Toe Arcade -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Unbeatable Minimax Game Theory Engine  •  Dependencies: 0  •  Offline: 100%
@@ -531,7 +560,10 @@ bun run applications/tictactoe_studio.ts --server
 - **Restart Round**: \`R\`
 - **Toggle Mode**: \`M\`
 - **Fullscreen**: \`F\` / \`F11\`
-`);
+`,
+  );
 
-  console.log("✔ Retro Arcade & Classic Games (30 to 39) generated with AAA quality.");
+  console.log(
+    "✔ Retro Arcade & Classic Games (30 to 39) generated with AAA quality.",
+  );
 }

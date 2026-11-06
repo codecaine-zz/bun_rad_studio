@@ -1,6 +1,6 @@
 /**
  * ⚡ Orbit Universal Computing Suite & Graphic Studio
- * 
+ *
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Includes:
  * - 17-dimension Unit & Currency Converter with visual scale bars
@@ -102,17 +102,23 @@ export function getCalculatorAssetsDir(): string {
  * When inline is true, inlines CSS and JS into a 100% self-contained document
  * with native window shortcuts and IPC bindings injected.
  */
-export function generateCalculatorStudioHtml(options: CalculatorStudioHtmlOptions = {}): string {
+export function generateCalculatorStudioHtml(
+  options: CalculatorStudioHtmlOptions = {},
+): string {
   return injectHelp(buildCalculatorHtml(options), "calculator_studio");
 }
 
-function buildCalculatorHtml(options: CalculatorStudioHtmlOptions = {}): string {
+function buildCalculatorHtml(
+  options: CalculatorStudioHtmlOptions = {},
+): string {
   const assetsDir = getCalculatorAssetsDir();
   const indexPath = join(assetsDir, "index.html");
   const stylesPath = join(assetsDir, "styles.css");
   const appPath = join(assetsDir, "app.js");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Universal Calculator</h1>";
+  let html = existsSync(indexPath)
+    ? readFileSync(indexPath, "utf8")
+    : "<h1>Universal Calculator</h1>";
 
   const storagePolyfill = `
   <script>
@@ -208,7 +214,10 @@ function buildCalculatorHtml(options: CalculatorStudioHtmlOptions = {}): string 
   `;
 
   if (html.includes("<head>")) {
-    html = html.replace("<head>", `<head>\n${storagePolyfill}\n${headSecurityShield}`);
+    html = html.replace(
+      "<head>",
+      `<head>\n${storagePolyfill}\n${headSecurityShield}`,
+    );
   } else {
     html = storagePolyfill + headSecurityShield + html;
   }
@@ -221,12 +230,18 @@ function buildCalculatorHtml(options: CalculatorStudioHtmlOptions = {}): string 
   if (options.inline !== false) {
     if (existsSync(stylesPath)) {
       const css = readFileSync(stylesPath, "utf8");
-      html = html.replace(/<link rel="stylesheet" href="styles\.css[^"]*">/, () => `<style>\n${css}\n</style>`);
+      html = html.replace(
+        /<link rel="stylesheet" href="styles\.css[^"]*">/,
+        () => `<style>\n${css}\n</style>`,
+      );
     }
 
     if (existsSync(appPath)) {
       const js = readFileSync(appPath, "utf8");
-      html = html.replace(/<script src="app\.js[^"]*"><\/script>/, () => `<script>\n${js}\n</script>`);
+      html = html.replace(
+        /<script src="app\.js[^"]*"><\/script>/,
+        () => `<script>\n${js}\n</script>`,
+      );
     }
 
     // Embed IntuitionLab via srcdoc for 100% offline, zero-CORS, zero-ATS desktop webview execution
@@ -241,14 +256,14 @@ function buildCalculatorHtml(options: CalculatorStudioHtmlOptions = {}): string 
         const cssContent = readFileSync(intuitionCss, "utf8");
         intuitionHtml = intuitionHtml.replace(
           /<link rel="stylesheet" href="styles\.css[^"]*">/,
-          () => `<style>\n${cssContent}\n</style>`
+          () => `<style>\n${cssContent}\n</style>`,
         );
       }
       if (existsSync(intuitionBundle)) {
         const jsContent = readFileSync(intuitionBundle, "utf8");
         intuitionHtml = intuitionHtml.replace(
           /<script src="js\/bundle\.js[^"]*"><\/script>/,
-          () => `<script>\n${jsContent}\n</script>`
+          () => `<script>\n${jsContent}\n</script>`,
         );
       }
 
@@ -290,12 +305,18 @@ function buildCalculatorHtml(options: CalculatorStudioHtmlOptions = {}): string 
       `;
 
       if (intuitionHtml.includes("<head>")) {
-        intuitionHtml = intuitionHtml.replace("<head>", `<head>\n${storagePolyfill}\n${iframeShield}`);
+        intuitionHtml = intuitionHtml.replace(
+          "<head>",
+          `<head>\n${storagePolyfill}\n${iframeShield}`,
+        );
       } else {
         intuitionHtml = storagePolyfill + iframeShield + intuitionHtml;
       }
       if (intuitionHtml.includes("<body")) {
-        intuitionHtml = intuitionHtml.replace("<body", '<body oncontextmenu="return false;"');
+        intuitionHtml = intuitionHtml.replace(
+          "<body",
+          '<body oncontextmenu="return false;"',
+        );
       }
 
       const escapedSrcdoc = intuitionHtml
@@ -304,15 +325,22 @@ function buildCalculatorHtml(options: CalculatorStudioHtmlOptions = {}): string 
 
       html = html.replace(
         /<iframe id="intuitionLabFrame"[^>]*><\/iframe>/,
-        () => `<iframe id="intuitionLabFrame" name="intuitionLabFrame" class="intuitionlab-frame" title="IntuitionLab Visual STEM Simulations" allow="autoplay" srcdoc="${escapedSrcdoc}"></iframe>`
+        () =>
+          `<iframe id="intuitionLabFrame" name="intuitionLabFrame" class="intuitionlab-frame" title="IntuitionLab Visual STEM Simulations" allow="autoplay" srcdoc="${escapedSrcdoc}"></iframe>`,
       );
     }
   }
 
   if (options.port) {
-    html = html.replaceAll('href="intuitionlab/index.html', `href="http://127.0.0.1:${options.port}/intuitionlab/index.html`);
+    html = html.replaceAll(
+      'href="intuitionlab/index.html',
+      `href="http://127.0.0.1:${options.port}/intuitionlab/index.html`,
+    );
     if (options.inline === false) {
-      html = html.replaceAll('src="intuitionlab/index.html"', `src="http://127.0.0.1:${options.port}/intuitionlab/index.html"`);
+      html = html.replaceAll(
+        'src="intuitionlab/index.html"',
+        `src="http://127.0.0.1:${options.port}/intuitionlab/index.html"`,
+      );
     }
   }
 
@@ -380,7 +408,10 @@ ${getWindowShortcutsScript()}
   // Always inject at the LAST </body> so it is in the main document, not inside an iframe's srcdoc
   const lastBodyIndex = html.lastIndexOf("</body>");
   if (lastBodyIndex !== -1) {
-    html = html.slice(0, lastBodyIndex) + `${desktopHooks}\n` + html.slice(lastBodyIndex);
+    html =
+      html.slice(0, lastBodyIndex) +
+      `${desktopHooks}\n` +
+      html.slice(lastBodyIndex);
   } else {
     html += desktopHooks;
   }
@@ -391,7 +422,9 @@ ${getWindowShortcutsScript()}
 /**
  * Starts the high-performance Bun.serve server hosting the Universal Calculator.
  */
-export function startCalculatorStudioServer(options: CalculatorServerOptions = {}): Server<unknown> {
+export function startCalculatorStudioServer(
+  options: CalculatorServerOptions = {},
+): Server<unknown> {
   const port = options.port ?? 0;
   const host = options.host ?? "127.0.0.1";
   const assetsDir = getCalculatorAssetsDir();
@@ -423,7 +456,10 @@ export function startCalculatorStudioServer(options: CalculatorServerOptions = {
           // Serve with desktop shortcuts injected
           const html = generateCalculatorStudioHtml({ inline: false });
           return new Response(html, {
-            headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+            headers: {
+              "Content-Type": "text/html; charset=utf-8",
+              ...corsHeaders,
+            },
           });
         }
       }
@@ -433,7 +469,10 @@ export function startCalculatorStudioServer(options: CalculatorServerOptions = {
         const filePath = join(assetsDir, "styles.css");
         if (existsSync(filePath)) {
           return new Response(Bun.file(filePath), {
-            headers: { "Content-Type": "text/css; charset=utf-8", ...corsHeaders },
+            headers: {
+              "Content-Type": "text/css; charset=utf-8",
+              ...corsHeaders,
+            },
           });
         }
       }
@@ -443,7 +482,10 @@ export function startCalculatorStudioServer(options: CalculatorServerOptions = {
         const filePath = join(assetsDir, "app.js");
         if (existsSync(filePath)) {
           return new Response(Bun.file(filePath), {
-            headers: { "Content-Type": "application/javascript; charset=utf-8", ...corsHeaders },
+            headers: {
+              "Content-Type": "application/javascript; charset=utf-8",
+              ...corsHeaders,
+            },
           });
         }
       }
@@ -468,12 +510,15 @@ export function startCalculatorStudioServer(options: CalculatorServerOptions = {
             version: "2.7.0",
             timestamp: Date.now(),
           },
-          { headers: corsHeaders }
+          { headers: corsHeaders },
         );
       }
 
       // Shutdown / Close Application API
-      if ((pathname === "/api/shutdown" || pathname === "/api/close") && req.method === "POST") {
+      if (
+        (pathname === "/api/shutdown" || pathname === "/api/close") &&
+        req.method === "POST"
+      ) {
         setTimeout(() => process.exit(0), 100);
         return Response.json(
           {
@@ -481,14 +526,18 @@ export function startCalculatorStudioServer(options: CalculatorServerOptions = {
             message: "Universal Calculator shutting down...",
             timestamp: Date.now(),
           },
-          { headers: corsHeaders }
+          { headers: corsHeaders },
         );
       }
 
       // Fallback: check static file in assets directory
       const sanitized = pathname.replace(/^\/+/, "");
       const directCandidate = join(assetsDir, sanitized);
-      if (directCandidate !== assetsDir && !directCandidate.startsWith(assetsDir + "/") && !directCandidate.startsWith(assetsDir + "\\")) {
+      if (
+        directCandidate !== assetsDir &&
+        !directCandidate.startsWith(assetsDir + "/") &&
+        !directCandidate.startsWith(assetsDir + "\\")
+      ) {
         return new Response("Forbidden", { status: 403 });
       }
       if (existsSync(directCandidate)) {
@@ -497,24 +546,33 @@ export function startCalculatorStudioServer(options: CalculatorServerOptions = {
             const nestedIndex = join(directCandidate, "index.html");
             if (existsSync(nestedIndex)) {
               return new Response(Bun.file(nestedIndex), {
-                headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+                headers: {
+                  "Content-Type": "text/html; charset=utf-8",
+                  ...corsHeaders,
+                },
               });
             }
           } else {
             let mime = "application/octet-stream";
-            if (directCandidate.endsWith(".js")) mime = "application/javascript; charset=utf-8";
-            else if (directCandidate.endsWith(".css")) mime = "text/css; charset=utf-8";
-            else if (directCandidate.endsWith(".html")) mime = "text/html; charset=utf-8";
+            if (directCandidate.endsWith(".js"))
+              mime = "application/javascript; charset=utf-8";
+            else if (directCandidate.endsWith(".css"))
+              mime = "text/css; charset=utf-8";
+            else if (directCandidate.endsWith(".html"))
+              mime = "text/html; charset=utf-8";
             else if (directCandidate.endsWith(".svg")) mime = "image/svg+xml";
             else if (directCandidate.endsWith(".png")) mime = "image/png";
-            else if (directCandidate.endsWith(".json")) mime = "application/json";
+            else if (directCandidate.endsWith(".json"))
+              mime = "application/json";
 
             return new Response(Bun.file(directCandidate), {
               headers: { "Content-Type": mime, ...corsHeaders },
             });
           }
         } catch {
-          return new Response(Bun.file(directCandidate), { headers: corsHeaders });
+          return new Response(Bun.file(directCandidate), {
+            headers: corsHeaders,
+          });
         }
       }
 
@@ -528,7 +586,9 @@ export function startCalculatorStudioServer(options: CalculatorServerOptions = {
 /**
  * Creates the complete native desktop instance of Orbit Universal Computing Suite.
  */
-export function createCalculatorStudio(options: CalculatorStudioOptions = {}): CalculatorStudioInstance {
+export function createCalculatorStudio(
+  options: CalculatorStudioOptions = {},
+): CalculatorStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1380);
@@ -558,12 +618,16 @@ export function createCalculatorStudio(options: CalculatorStudioOptions = {}): C
         console.warn("Local server note:", message);
       }
 
-      const html = generateCalculatorStudioHtml({ inline: options.inline ?? true, port: srv?.port });
+      const html = generateCalculatorStudioHtml({
+        inline: options.inline ?? true,
+        port: srv?.port,
+      });
 
       // Native Webview Window (debug: false prevents developer tools / inspect element)
       try {
         const debug = options.debug ?? false;
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(debug, {
           width,
           height,
@@ -583,11 +647,15 @@ export function createCalculatorStudio(options: CalculatorStudioOptions = {}): C
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -598,18 +666,26 @@ export function createCalculatorStudio(options: CalculatorStudioOptions = {}): C
 
         // Set HTML directly into Webview DOM (instant, 100% offline, zero ATS blocking)
         webview.setHTML(html);
-        console.log(`⚡ Desktop window open (Fullscreen: ${fullscreen ? 'Enabled' : 'Disabled'}).`);
+        console.log(
+          `⚡ Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`,
+        );
 
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
-        console.warn(`Desktop Webview unavailable (${message}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${message}). Application running in browser at: ${app.url}`,
+        );
         // Keep server running in headless environments
         await new Promise<void>(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -632,10 +708,13 @@ if (process.argv.includes("--server")) {
   const port = parseInt(process.env.PORT || "0", 10);
   const srv = startCalculatorStudioServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`⚡ Universal Calculator Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `⚡ Universal Calculator Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
+  const fullscreen =
+    !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
   const app = createCalculatorStudio({ fullscreen });
   await app.run();
   process.exit(0);

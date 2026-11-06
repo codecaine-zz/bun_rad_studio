@@ -2,9 +2,15 @@
  * Zero-dependency persistent JSON configuration & key-value store for SimpleCLI
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import { homedir, platform } from 'node:os';
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  mkdirSync,
+  unlinkSync,
+} from "node:fs";
+import { dirname, resolve } from "node:path";
+import { homedir, platform } from "node:os";
 
 /**
  * Persistent JSON configuration and dot-path key-value store backed by the user's OS config directory.
@@ -15,20 +21,24 @@ export class ConfigStore {
   private data: Record<string, any> = {};
 
   /** Creates and loads a `ConfigStore` for `appName` or at an explicit `customPath`. */
-  constructor(appName: string = 'simplcli', customPath?: string) {
-    this.appName = appName.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
-    this.configPath = customPath ? resolve(customPath) : this.resolveDefaultConfigPath(this.appName);
+  constructor(appName: string = "simplcli", customPath?: string) {
+    this.appName = appName.replace(/[^a-zA-Z0-9_-]/g, "_").toLowerCase();
+    this.configPath = customPath
+      ? resolve(customPath)
+      : this.resolveDefaultConfigPath(this.appName);
     this.load();
   }
 
   private resolveDefaultConfigPath(name: string): string {
-    const isWindows = platform() === 'win32';
+    const isWindows = platform() === "win32";
     if (isWindows) {
-      const appData = process.env.APPDATA || resolve(homedir(), 'AppData', 'Roaming');
-      return resolve(appData, name, 'config.json');
+      const appData =
+        process.env.APPDATA || resolve(homedir(), "AppData", "Roaming");
+      return resolve(appData, name, "config.json");
     }
-    const xdgConfig = process.env.XDG_CONFIG_HOME || resolve(homedir(), '.config');
-    return resolve(xdgConfig, name, 'config.json');
+    const xdgConfig =
+      process.env.XDG_CONFIG_HOME || resolve(homedir(), ".config");
+    return resolve(xdgConfig, name, "config.json");
   }
 
   /** Returns the resolved filesystem path of the JSON configuration file. */
@@ -43,7 +53,7 @@ export class ConfigStore {
       return this.data;
     }
     try {
-      const raw = readFileSync(this.configPath, 'utf8');
+      const raw = readFileSync(this.configPath, "utf8");
       this.data = JSON.parse(raw);
     } catch {
       this.data = {};
@@ -57,7 +67,10 @@ export class ConfigStore {
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true, mode: 0o700 });
     }
-    writeFileSync(this.configPath, JSON.stringify(this.data, null, 2), { encoding: 'utf8', mode: 0o600 });
+    writeFileSync(this.configPath, JSON.stringify(this.data, null, 2), {
+      encoding: "utf8",
+      mode: 0o600,
+    });
   }
 
   /** Retrieves a configuration value by key or dot-separated path. */
@@ -66,39 +79,50 @@ export class ConfigStore {
   public get<T>(key: string, defaultVal: T): T;
   /** Retrieves a configuration value by key or dot-separated path, returning `defaultVal` when undefined. */
   public get<T = any>(key: string, defaultVal?: T): any {
-    if (key.includes('.')) {
-      const parts = key.split('.');
+    if (key.includes(".")) {
+      const parts = key.split(".");
       let curr: any = this.data;
       for (const p of parts) {
-        if (p === '__proto__' || p === 'constructor' || p === 'prototype') return defaultVal as T;
+        if (p === "__proto__" || p === "constructor" || p === "prototype")
+          return defaultVal as T;
         if (curr === undefined || curr === null) return defaultVal as T;
         curr = curr[p];
       }
       return curr !== undefined ? curr : (defaultVal as T);
     }
-    if (key === '__proto__' || key === 'constructor' || key === 'prototype') return defaultVal as T;
+    if (key === "__proto__" || key === "constructor" || key === "prototype")
+      return defaultVal as T;
     return this.data[key] !== undefined ? this.data[key] : (defaultVal as T);
   }
 
   /** Sets a configuration value by key or dot-separated path and immediately saves to disk. */
   public set(key: string, value: any): this {
-    if (key.includes('.')) {
-      const parts = key.split('.');
-      if (parts.some((p) => p === '__proto__' || p === 'constructor' || p === 'prototype')) {
+    if (key.includes(".")) {
+      const parts = key.split(".");
+      if (
+        parts.some(
+          (p) => p === "__proto__" || p === "constructor" || p === "prototype",
+        )
+      ) {
         return this;
       }
       let curr: any = this.data;
       for (let i = 0; i < parts.length - 1; i++) {
-        const p = parts[i] || '';
-        if (curr[p] === undefined || typeof curr[p] !== 'object' || curr[p] === null) {
+        const p = parts[i] || "";
+        if (
+          curr[p] === undefined ||
+          typeof curr[p] !== "object" ||
+          curr[p] === null
+        ) {
           curr[p] = {};
         }
         curr = curr[p];
       }
-      const lastKey = parts[parts.length - 1] || '';
+      const lastKey = parts[parts.length - 1] || "";
       curr[lastKey] = value;
     } else {
-      if (key === '__proto__' || key === 'constructor' || key === 'prototype') return this;
+      if (key === "__proto__" || key === "constructor" || key === "prototype")
+        return this;
       this.data[key] = value;
     }
     this.save();
@@ -112,21 +136,26 @@ export class ConfigStore {
 
   /** Deletes a key or dot-separated path from the configuration store and persists the change. */
   public delete(key: string): boolean {
-    if (key.includes('.')) {
-      const parts = key.split('.');
-      if (parts.some((p) => p === '__proto__' || p === 'constructor' || p === 'prototype')) {
+    if (key.includes(".")) {
+      const parts = key.split(".");
+      if (
+        parts.some(
+          (p) => p === "__proto__" || p === "constructor" || p === "prototype",
+        )
+      ) {
         return false;
       }
       let curr: any = this.data;
       for (let i = 0; i < parts.length - 1; i++) {
-        const p = parts[i] || '';
+        const p = parts[i] || "";
         if (curr[p] === undefined || curr[p] === null) return false;
         curr = curr[p];
       }
-      const lastKey = parts[parts.length - 1] || '';
+      const lastKey = parts[parts.length - 1] || "";
       delete curr[lastKey];
     } else {
-      if (key === '__proto__' || key === 'constructor' || key === 'prototype') return false;
+      if (key === "__proto__" || key === "constructor" || key === "prototype")
+        return false;
       delete this.data[key];
     }
     this.save();

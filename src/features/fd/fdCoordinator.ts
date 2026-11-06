@@ -30,7 +30,7 @@ export async function searchFiles(options: FdOptions): Promise<FdEntry[]> {
     1,
     options.rootPath,
     options.maxDepth,
-    options.hidden
+    options.hidden,
   );
 
   return allEntries.filter((entry) => {

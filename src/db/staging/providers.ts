@@ -20,7 +20,9 @@ export function sqliteProvider(get: () => SqliteLike): () => Promise<StageDb> {
     const m = get();
     const key = m.isMemory ? m.db : m.activePath;
     if (last && last.key === key) return last.value;
-    const value = new SqliteStageDb(m.isMemory ? { path: ":memory:", shared: m.db } : { path: m.activePath });
+    const value = new SqliteStageDb(
+      m.isMemory ? { path: ":memory:", shared: m.db } : { path: m.activePath },
+    );
     last = { key, value };
     return value;
   };
@@ -38,11 +40,22 @@ export interface ServerLike {
 }
 
 /** Returns a cached `StageDb` factory that manages dedicated adapter connections for MySQL or PostgreSQL. */
-export function serverProvider(engine: "mysql" | "postgres", get: () => ServerLike): () => Promise<StageDb> {
+export function serverProvider(
+  engine: "mysql" | "postgres",
+  get: () => ServerLike,
+): () => Promise<StageDb> {
   let last: { key: string; adapter: DbAdapter; value: StageDb } | null = null;
   return async () => {
     const c = get();
-    const key = JSON.stringify([c.host, c.port, c.user, c.password, c.database, c.schema ?? "", !!c.tls]);
+    const key = JSON.stringify([
+      c.host,
+      c.port,
+      c.user,
+      c.password,
+      c.database,
+      c.schema ?? "",
+      !!c.tls,
+    ]);
     if (last && last.key === key) return last.value;
     if (last) await last.adapter.close().catch(() => {});
     const adapter = createAdapter({
@@ -52,7 +65,9 @@ export function serverProvider(engine: "mysql" | "postgres", get: () => ServerLi
       user: c.user,
       password: c.password,
       database: c.database,
-      ...(engine === "postgres" ? { schema: c.schema || "public" } : { allowPublicKeyRetrieval: true }),
+      ...(engine === "postgres"
+        ? { schema: c.schema || "public" }
+        : { allowPublicKeyRetrieval: true }),
       tls: !!c.tls,
       maxConnections: 4,
     });

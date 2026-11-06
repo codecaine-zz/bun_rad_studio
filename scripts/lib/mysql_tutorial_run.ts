@@ -14,27 +14,45 @@ export async function openChapter(c: Cdp, ch: Chapter) {
   await E.freshFm(c, plan.path);
   if (plan.saved || plan.studio) await E.saveEnvConnection(c);
   if (plan.studio) await E.openStudioQuiet(c);
-  if (plan.files) { await c.eval(`document.querySelector('#view-files')?.click()`); await sleep(800); }
+  if (plan.files) {
+    await c.eval(`document.querySelector('#view-files')?.click()`);
+    await sleep(800);
+  }
 }
 
 /** A Do (the helpers a step's action uses) for dry runs; it behaves like the one the engine gives a recording. */
 let snap: (() => Promise<void>) | null = null;
 function dryDo(c: Cdp): Do {
-  const need = async (ok: boolean, what: string) => { if (!ok) throw new Error(`could not find ${what}`); };
+  const need = async (ok: boolean, what: string) => {
+    if (!ok) throw new Error(`could not find ${what}`);
+  };
   const self: Do = {
-    c, world: { home: E.HOME, data: E.DATA, big: "", put: () => {} },
+    c,
+    world: { home: E.HOME, data: E.DATA, big: "", put: () => {} },
     click: async (s, o) => need(await c.click(s, o), s),
     dblclick: async (s, o) => need(await c.dblclick(s, o), s),
     rclick: async (s, o) => need(await c.rclick(s, o), s),
-    hover: async (s, ms) => { await need(await c.exists(s), s); await c.hover(s, ms); },
+    hover: async (s, ms) => {
+      await need(await c.exists(s), s);
+      await c.hover(s, ms);
+    },
     type: (t, per) => c.type(t, per),
     key: (k, l) => c.key(k, l),
     scroll: (s, dy, steps) => c.scroll(s, dy, steps),
-    wait: async (ms) => { await sleep(ms / 2); if (ms >= 2000 && snap) await snap(); await sleep(ms / 2); },
+    wait: async (ms) => {
+      await sleep(ms / 2);
+      if (ms >= 2000 && snap) await snap();
+      await sleep(ms / 2);
+    },
     waitFor: async (s, ms) => need(await c.waitFor(s, ms ?? 8000), s),
-    menu: (t, o) => self.click(`.menu [role^=menuitem] >> ${t}`, { pause: o?.pause ?? 700 }),
-    row: async (name, how = "click", o) => (how === "hover" ? self.hover(`#list .row >> ${name}`, 600) : self[how](`#list .row >> ${name}`, { pause: o?.pause })),
-    dialog: (t, o) => self.click(`.dialog button >> ${t}`, { pause: o?.pause ?? 800 }),
+    menu: (t, o) =>
+      self.click(`.menu [role^=menuitem] >> ${t}`, { pause: o?.pause ?? 700 }),
+    row: async (name, how = "click", o) =>
+      how === "hover"
+        ? self.hover(`#list .row >> ${name}`, 600)
+        : self[how](`#list .row >> ${name}`, { pause: o?.pause }),
+    dialog: (t, o) =>
+      self.click(`.dialog button >> ${t}`, { pause: o?.pause ?? 800 }),
     eval: (e) => c.eval(e),
   };
   return self;
@@ -65,9 +83,14 @@ export async function dryRun(ids: string[]) {
           await c.screenshot(join(out, `${id}_${i}_FAILED.png`));
           break;
         }
-        console.log(`  ✓ ${i} ${((performance.now() - t0) / 1000).toFixed(1)}s  ${ch.steps[i]!.cap}`);
+        console.log(
+          `  ✓ ${i} ${((performance.now() - t0) / 1000).toFixed(1)}s  ${ch.steps[i]!.cap}`,
+        );
         await c.screenshot(join(out, `${id}_${i}.png`));
       }
     }
-  } finally { c.close(); E.stopFm(); }
+  } finally {
+    c.close();
+    E.stopFm();
+  }
 }

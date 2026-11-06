@@ -15,15 +15,68 @@ export interface MockUser {
   avatar: string;
 }
 
-const FIRST_NAMES = ["Alice", "Bob", "Charlie", "Diana", "Evan", "Fiona", "George", "Hannah", "Ian", "Julia"];
-const LAST_NAMES = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Miller", "Davis", "Wilson", "Taylor", "Clark"];
+const FIRST_NAMES = [
+  "Alice",
+  "Bob",
+  "Charlie",
+  "Diana",
+  "Evan",
+  "Fiona",
+  "George",
+  "Hannah",
+  "Ian",
+  "Julia",
+];
+const LAST_NAMES = [
+  "Smith",
+  "Johnson",
+  "Williams",
+  "Brown",
+  "Jones",
+  "Miller",
+  "Davis",
+  "Wilson",
+  "Taylor",
+  "Clark",
+];
 const ROLES: MockUser["role"][] = ["admin", "editor", "viewer", "developer"];
 
 const LOREM_WORDS = [
-  "lorem", "ipsum", "dolor", "sit", "amet", "consectetur", "adipiscing", "elit",
-  "sed", "do", "eiusmod", "tempor", "incididunt", "ut", "labore", "et", "dolore",
-  "magna", "aliqua", "ut", "enim", "ad", "minim", "veniam", "quis", "nostrud",
-  "exercitation", "ullamco", "laboris", "nisi", "ut", "aliquip", "ex", "ea", "commodo"
+  "lorem",
+  "ipsum",
+  "dolor",
+  "sit",
+  "amet",
+  "consectetur",
+  "adipiscing",
+  "elit",
+  "sed",
+  "do",
+  "eiusmod",
+  "tempor",
+  "incididunt",
+  "ut",
+  "labore",
+  "et",
+  "dolore",
+  "magna",
+  "aliqua",
+  "ut",
+  "enim",
+  "ad",
+  "minim",
+  "veniam",
+  "quis",
+  "nostrud",
+  "exercitation",
+  "ullamco",
+  "laboris",
+  "nisi",
+  "ut",
+  "aliquip",
+  "ex",
+  "ea",
+  "commodo",
 ];
 
 function pick<T>(arr: T[]): T {
@@ -59,7 +112,9 @@ export function mockUsers(count: number): MockUser[] {
  * Generates a synthetic `@example.com` email address, optionally derived from `name`.
  */
 export function mockEmail(name?: string): string {
-  const prefix = name ? name.toLowerCase().replace(/\s+/g, ".") : pick(FIRST_NAMES).toLowerCase();
+  const prefix = name
+    ? name.toLowerCase().replace(/\s+/g, ".")
+    : pick(FIRST_NAMES).toLowerCase();
   const num = Math.floor(Math.random() * 900) + 100;
   return `${prefix}${num}@example.com`;
 }
@@ -80,7 +135,10 @@ export function mockPhone(): string {
  * Generates a random dotted-quad IPv4 address string.
  */
 export function mockIpv4(): string {
-  return Array.from({ length: 4 }, () => Math.floor(Math.random() * 254) + 1).join(".");
+  return Array.from(
+    { length: 4 },
+    () => Math.floor(Math.random() * 254) + 1,
+  ).join(".");
 }
 
 // Doer: Generate synthetic web URL
@@ -105,15 +163,23 @@ export function loremWords(count: number): string {
 /**
  * Generates `paragraphs` paragraphs of capitalized, period-terminated Lorem Ipsum sentences.
  */
-export function loremText(paragraphs = 1, minSentences = 3, maxSentences = 6): string {
+export function loremText(
+  paragraphs = 1,
+  minSentences = 3,
+  maxSentences = 6,
+): string {
   const paras: string[] = [];
   for (let p = 0; p < paragraphs; p++) {
-    const numSentences = Math.floor(Math.random() * (maxSentences - minSentences + 1)) + minSentences;
+    const numSentences =
+      Math.floor(Math.random() * (maxSentences - minSentences + 1)) +
+      minSentences;
     const sentences: string[] = [];
     for (let s = 0; s < numSentences; s++) {
       const wordCount = Math.floor(Math.random() * 8) + 6;
       const sentence = loremWords(wordCount);
-      sentences.push(sentence.charAt(0).toUpperCase() + sentence.slice(1) + ".");
+      sentences.push(
+        sentence.charAt(0).toUpperCase() + sentence.slice(1) + ".",
+      );
     }
     paras.push(sentences.join(" "));
   }

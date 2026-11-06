@@ -7,7 +7,8 @@ const DEFAULT_RGB = { r: 2, g: 132, b: 199 };
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   const clean = hex.replace("#", "").trim();
-  if (!/^([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(clean)) return null;
+  if (!/^([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(clean))
+    return null;
   if (clean.length === 3) {
     const r = clean[0] || "0";
     const g = clean[1] || "0";
@@ -29,11 +30,18 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
 }
 
 function rgbToHex(r: number, g: number, b: number): string {
-  const toHex = (n: number) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, "0");
+  const toHex = (n: number) =>
+    Math.max(0, Math.min(255, Math.round(n)))
+      .toString(16)
+      .padStart(2, "0");
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
-function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
+function rgbToHsl(
+  r: number,
+  g: number,
+  b: number,
+): { h: number; s: number; l: number } {
   r /= 255;
   g /= 255;
   b /= 255;
@@ -89,14 +97,21 @@ function getContrastRatio(fgHex: string, bgHex: string): number {
   return parseFloat(((bright + 0.05) / (dark + 0.05)).toFixed(2));
 }
 
-export function createColorStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
+export function createColorStudio(
+  options: { fullscreen?: boolean; theme?: string } = {},
+): SimpleWindow {
   const fullscreen = options.fullscreen ?? true;
-  const win = newSimpleWindow("Color Palette & Design Token Studio Pro", 1140, 880, {
-    appId: "color_studio",
-    theme: options.theme || getSavedTheme() || "midnight",
-    autoSaveState: true,
-    fullscreen,
-  });
+  const win = newSimpleWindow(
+    "Color Palette & Design Token Studio Pro",
+    1140,
+    880,
+    {
+      appId: "color_studio",
+      theme: options.theme || getSavedTheme() || "midnight",
+      autoSaveState: true,
+      fullscreen,
+    },
+  );
 
   // Top Bar
   win.beginRow();
@@ -106,7 +121,9 @@ export function createColorStudio(options: { fullscreen?: boolean; theme?: strin
   win.addButton("btn_center", "Center Window");
   win.addButton("btn_fullscreen", "⛶ Fullscreen");
   win.endRow();
-  win.addCaption("Enterprise Design System Tokens, WCAG 2.1 Contrast Auditing & Palette Generator");
+  win.addCaption(
+    "Enterprise Design System Tokens, WCAG 2.1 Contrast Auditing & Palette Generator",
+  );
 
   // Primary Color Controls
   win.beginGroupBox("Active Color Configuration");
@@ -157,7 +174,7 @@ export function createColorStudio(options: { fullscreen?: boolean; theme?: strin
   --contrast-ratio: 7.82;
   --wcag-status: AA-Pass / AAA-Pass;
 }
-`
+`,
   );
   win.endGroupBox();
 
@@ -168,7 +185,10 @@ export function createColorStudio(options: { fullscreen?: boolean; theme?: strin
 
   // Status Bar
   win.beginRow();
-  win.addLabel("lbl_status", "Engine: Native Color Math  |  WCAG 2.1 Compliant  |  Zero Homebrew");
+  win.addLabel(
+    "lbl_status",
+    "Engine: Native Color Math  |  WCAG 2.1 Compliant  |  Zero Homebrew",
+  );
   win.endRow();
 
   // Handlers
@@ -201,11 +221,11 @@ export function createColorStudio(options: { fullscreen?: boolean; theme?: strin
     win.setText("lbl_contrast", `Contrast Ratio: ${contrast} : 1`);
     win.setText(
       "lbl_wcag_aa",
-      `WCAG AA: ${aaPass ? "🟢 PASS (Normal & Large)" : contrast >= 3.0 ? "🟡 PASS (Large Only)" : "🔴 FAIL"}`
+      `WCAG AA: ${aaPass ? "🟢 PASS (Normal & Large)" : contrast >= 3.0 ? "🟡 PASS (Large Only)" : "🔴 FAIL"}`,
     );
     win.setText(
       "lbl_wcag_aaa",
-      `WCAG AAA: ${aaaPass ? "🟢 PASS (Normal & Large)" : contrast >= 4.5 ? "🟡 PASS (Large Only)" : "🔴 FAIL"}`
+      `WCAG AAA: ${aaaPass ? "🟢 PASS (Normal & Large)" : contrast >= 4.5 ? "🟡 PASS (Large Only)" : "🔴 FAIL"}`,
     );
     win.setText("lbl_rgb", `RGB: rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`);
     win.setText("lbl_hsl", `HSL: hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`);
@@ -213,9 +233,12 @@ export function createColorStudio(options: { fullscreen?: boolean; theme?: strin
     win.appendConsole(
       "color_console",
       `[Color Analysis] Primary: ${fg} | BG: ${bg} | Contrast: ${contrast}:1 | AA: ${aaPass} | AAA: ${aaaPass}\n`,
-      2
+      2,
     );
-    win.setText("lbl_status", `Active: ${fg}  |  Contrast: ${contrast}:1  |  AA: ${aaPass ? "Pass" : "Fail"}`);
+    win.setText(
+      "lbl_status",
+      `Active: ${fg}  |  Contrast: ${contrast}:1  |  AA: ${aaPass ? "Pass" : "Fail"}`,
+    );
     win.setStatus(`Contrast: ${contrast}:1`);
   };
 
@@ -246,7 +269,11 @@ export function createColorStudio(options: { fullscreen?: boolean; theme?: strin
     }
 
     win.setText("txt_tokens_output", lines.join("\n"));
-    win.appendConsole("color_console", `[Palette Generator] Generated 11 tonal steps for ${fg}\n`, 2);
+    win.appendConsole(
+      "color_console",
+      `[Palette Generator] Generated 11 tonal steps for ${fg}\n`,
+      2,
+    );
   });
 
   win.onClick("btn_palette_comp", () => {
@@ -272,7 +299,11 @@ export function createColorStudio(options: { fullscreen?: boolean; theme?: strin
     ].join("\n");
 
     win.setText("txt_tokens_output", report);
-    win.appendConsole("color_console", `[Harmonies] Calculated complementary & triadic color points\n`, 2);
+    win.appendConsole(
+      "color_console",
+      `[Harmonies] Calculated complementary & triadic color points\n`,
+      2,
+    );
   });
 
   win.onClick("btn_export_css", () => {
@@ -295,9 +326,15 @@ export function createColorStudio(options: { fullscreen?: boolean; theme?: strin
     try {
       // The repo's design_tokens.css also carries the effects tokens and classes after its first :root block; keep them.
       const before = existsSync(outPath) ? readFileSync(outPath, "utf8") : "";
-      const rest = before.includes("/* fx:start") ? before.slice(before.indexOf("\n}\n") + 3) : "";
+      const rest = before.includes("/* fx:start")
+        ? before.slice(before.indexOf("\n}\n") + 3)
+        : "";
       writeFileSync(outPath, rest ? cssTokens + rest : cssTokens, "utf8");
-      win.appendConsole("color_console", `[Export CSS] Tokens written to ${outPath}\n`, 2);
+      win.appendConsole(
+        "color_console",
+        `[Export CSS] Tokens written to ${outPath}\n`,
+        2,
+      );
       win.toast(`Saved ${basename(outPath)}`);
     } catch (e: any) {
       win.appendConsole("color_console", `[Export Error] ${e.message}\n`, 3);
@@ -323,7 +360,11 @@ module.exports = {
 };
 `;
     win.setText("txt_tokens_output", tailwind);
-    win.appendConsole("color_console", "[Export Tailwind] Tailwind configuration snippet generated\n", 2);
+    win.appendConsole(
+      "color_console",
+      "[Export Tailwind] Tailwind configuration snippet generated\n",
+      2,
+    );
     win.toast("Generated Tailwind tokens");
   });
 
@@ -347,7 +388,11 @@ module.exports = {
 } as const;
 `;
     win.setText("txt_tokens_output", tsCode);
-    win.appendConsole("color_console", "[Export TS] TypeScript constants generated\n", 2);
+    win.appendConsole(
+      "color_console",
+      "[Export TS] TypeScript constants generated\n",
+      2,
+    );
     win.toast("Generated TypeScript tokens");
   });
 
@@ -358,6 +403,8 @@ module.exports = {
 
 if (import.meta.main) {
   const win = createColorStudio({ fullscreen: true });
-  console.log("⚡ Launching Color Palette & Design Token Studio (Fullscreen)...");
+  console.log(
+    "⚡ Launching Color Palette & Design Token Studio (Fullscreen)...",
+  );
   win.run();
 }

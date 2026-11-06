@@ -2,7 +2,19 @@
 // alphanumeric and byte modes, versions 1 to 40, error-correction levels L M Q H, automatic choice of the best mask.
 // Pure functions; the picture is drawn elsewhere (qrrender.js).
 import {
-  ECC_LEVELS, MAX_VERSION, MIN_VERSION, alignmentPositions, blockLayout, dataCodewords, dataOrder, formatBits, functionMask, maskFlips, rsEncode, sizeOf, versionBits,
+  ECC_LEVELS,
+  MAX_VERSION,
+  MIN_VERSION,
+  alignmentPositions,
+  blockLayout,
+  dataCodewords,
+  dataOrder,
+  formatBits,
+  functionMask,
+  maskFlips,
+  rsEncode,
+  sizeOf,
+  versionBits,
 } from "./qrtables.js";
 
 export class QrError extends Error {}
@@ -11,7 +23,9 @@ const ALNUM = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
 const MODE_BITS = { numeric: 1, alnum: 2, byte: 4, eci: 7 };
 const countBits = (mode, version) => {
   const band = version <= 9 ? 0 : version <= 26 ? 1 : 2;
-  return { numeric: [10, 12, 14], alnum: [9, 11, 13], byte: [8, 16, 16] }[mode][band];
+  return { numeric: [10, 12, 14], alnum: [9, 11, 13], byte: [8, 16, 16] }[mode][
+    band
+  ];
 };
 
 export const isNumeric = (s) => /^[0-9]*$/.test(s);
@@ -48,7 +62,8 @@ function segmentData(mode, text, bytes) {
   }
   if (mode === "alnum") {
     for (let i = 0; i < text.length; i += 2) {
-      if (i + 1 < text.length) b.push(ALNUM.indexOf(text[i]) * 45 + ALNUM.indexOf(text[i + 1]), 11);
+      if (i + 1 < text.length)
+        b.push(ALNUM.indexOf(text[i]) * 45 + ALNUM.indexOf(text[i + 1]), 11);
       else b.push(ALNUM.indexOf(text[i]), 6);
     }
     return { bits: b, count: text.length };
@@ -72,7 +87,8 @@ const getBit = (value, i) => (value >>> i) & 1;
  */
 export function encodeQr(text, options = {}) {
   let ecc = options.ecc ?? "M";
-  if (!ECC_LEVELS.includes(ecc)) throw new QrError("The error-correction level must be L, M, Q or H.");
+  if (!ECC_LEVELS.includes(ecc))
+    throw new QrError("The error-correction level must be L, M, Q or H.");
   const minVersion = Math.max(MIN_VERSION, options.minVersion ?? MIN_VERSION);
   const maxVersion = Math.min(MAX_VERSION, options.maxVersion ?? MAX_VERSION);
   const isBytes = text instanceof Uint8Array;
@@ -83,18 +99,27 @@ export function encodeQr(text, options = {}) {
 
   let version = 0;
   for (let v = minVersion; v <= maxVersion; v++) {
-    if (dataLength(mode, seg, v, eci) <= dataCodewords(v, ecc) * 8 && seg.count < 2 ** countBits(mode, v)) {
+    if (
+      dataLength(mode, seg, v, eci) <= dataCodewords(v, ecc) * 8 &&
+      seg.count < 2 ** countBits(mode, v)
+    ) {
       version = v;
       break;
     }
   }
   if (!version) {
     const best = maxCapacity(mode, ecc);
-    throw new QrError(`That is too much for one QR code at level ${ecc} (the most is about ${best.toLocaleString()} ${mode === "byte" ? "bytes" : "characters"}${bytes.length !== (isBytes ? bytes.length : text.length) ? "; accented and other non-English letters take 2 to 4 bytes each" : ""}). Use a lower error-correction level, or shorten the text.`);
+    throw new QrError(
+      `That is too much for one QR code at level ${ecc} (the most is about ${best.toLocaleString()} ${mode === "byte" ? "bytes" : "characters"}${bytes.length !== (isBytes ? bytes.length : text.length) ? "; accented and other non-English letters take 2 to 4 bytes each" : ""}). Use a lower error-correction level, or shorten the text.`,
+    );
   }
   if (options.boostEcc) {
     for (const level of ["M", "Q", "H"]) {
-      if (ECC_LEVELS.indexOf(level) > ECC_LEVELS.indexOf(ecc) && dataLength(mode, seg, version, eci) <= dataCodewords(version, level) * 8) ecc = level;
+      if (
+        ECC_LEVELS.indexOf(level) > ECC_LEVELS.indexOf(ecc) &&
+        dataLength(mode, seg, version, eci) <= dataCodewords(version, level) * 8
+      )
+        ecc = level;
     }
   }
 
@@ -109,7 +134,8 @@ export function encodeQr(text, options = {}) {
   const capacityBits = dataCodewords(version, ecc) * 8;
   out.push(0, Math.min(4, capacityBits - out.length));
   out.push(0, (8 - (out.length % 8)) % 8);
-  for (let pad = 0xec; out.length < capacityBits; pad ^= 0xec ^ 0x11) out.push(pad, 8);
+  for (let pad = 0xec; out.length < capacityBits; pad ^= 0xec ^ 0x11)
+    out.push(pad, 8);
   const data = new Uint8Array(out.length / 8);
   out.bits.forEach((bit, i) => (data[i >> 3] |= bit << (7 - (i & 7))));
 
@@ -135,12 +161,21 @@ export function encodeQr(text, options = {}) {
       }
     }
   }
-  return { version, ecc, mask, size, modules, mode, capacityBytes: dataCodewords(version, ecc) };
+  return {
+    version,
+    ecc,
+    mask,
+    size,
+    modules,
+    mode,
+    capacityBytes: dataCodewords(version, ecc),
+  };
 }
 
 /** The most characters (or bytes) that fit at a level, in the largest version. */
 export function maxCapacity(mode, ecc) {
-  const bits = dataCodewords(MAX_VERSION, ecc) * 8 - 4 - countBits(mode, MAX_VERSION);
+  const bits =
+    dataCodewords(MAX_VERSION, ecc) * 8 - 4 - countBits(mode, MAX_VERSION);
   if (mode === "numeric") return Math.floor((bits / 10) * 3);
   if (mode === "alnum") return Math.floor((bits / 11) * 2);
   return Math.floor(bits / 8);
@@ -161,7 +196,8 @@ function interleave(data, version, level) {
   }
   const out = [];
   const longest = shortLen - ecc + 1;
-  for (let i = 0; i < longest; i++) for (const b of dataBlocks) if (i < b.length) out.push(b[i]);
+  for (let i = 0; i < longest; i++)
+    for (const b of dataBlocks) if (i < b.length) out.push(b[i]);
   for (let i = 0; i < ecc; i++) for (const b of eccBlocks) out.push(b[i]);
   return out;
 }
@@ -171,7 +207,8 @@ function placeData(modules, codewords, version) {
   const order = dataOrder(version);
   for (let i = 0; i < order.length; i++) {
     const [x, y] = order[i];
-    const bit = i < codewords.length * 8 ? getBit(codewords[i >> 3], 7 - (i & 7)) : 0;
+    const bit =
+      i < codewords.length * 8 ? getBit(codewords[i >> 3], 7 - (i & 7)) : 0;
     modules[y * size + x] = bit;
   }
 }
@@ -180,7 +217,9 @@ function placeData(modules, codewords, version) {
 function withMask(base, fixed, version, level, mask) {
   const size = sizeOf(version);
   const m = new Uint8Array(base);
-  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (!fixed[y * size + x] && maskFlips(mask, x, y)) m[y * size + x] ^= 1;
+  for (let y = 0; y < size; y++)
+    for (let x = 0; x < size; x++)
+      if (!fixed[y * size + x] && maskFlips(mask, x, y)) m[y * size + x] ^= 1;
   const set = (x, y, v) => {
     if (x >= 0 && y >= 0 && x < size && y < size) m[y * size + x] = v ? 1 : 0;
   };
@@ -189,17 +228,29 @@ function withMask(base, fixed, version, level, mask) {
     set(6, i, i % 2 === 0);
     set(i, 6, i % 2 === 0);
   }
-  for (const [cx, cy] of [[3, 3], [size - 4, 3], [3, size - 4]]) {
-    for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) {
-      const dist = Math.max(Math.abs(dx), Math.abs(dy));
-      set(cx + dx, cy + dy, dist !== 2 && dist !== 4);
-    }
+  for (const [cx, cy] of [
+    [3, 3],
+    [size - 4, 3],
+    [3, size - 4],
+  ]) {
+    for (let dy = -4; dy <= 4; dy++)
+      for (let dx = -4; dx <= 4; dx++) {
+        const dist = Math.max(Math.abs(dx), Math.abs(dy));
+        set(cx + dx, cy + dy, dist !== 2 && dist !== 4);
+      }
   }
   const a = alignmentPositions(version);
   for (let i = 0; i < a.length; i++) {
     for (let j = 0; j < a.length; j++) {
-      if ((i === 0 && j === 0) || (i === 0 && j === a.length - 1) || (i === a.length - 1 && j === 0)) continue;
-      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) set(a[i] + dx, a[j] + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1);
+      if (
+        (i === 0 && j === 0) ||
+        (i === 0 && j === a.length - 1) ||
+        (i === a.length - 1 && j === 0)
+      )
+        continue;
+      for (let dy = -2; dy <= 2; dy++)
+        for (let dx = -2; dx <= 2; dx++)
+          set(a[i] + dx, a[j] + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1);
     }
   }
   // The two copies of the format information, and the always-dark module.
@@ -262,7 +313,14 @@ export function penalty(m, size) {
     for (let x = 0; x < size; x++) {
       const v = at(x, y);
       dark += v;
-      if (x + 1 < size && y + 1 < size && v === at(x + 1, y) && v === at(x, y + 1) && v === at(x + 1, y + 1)) score += 3;
+      if (
+        x + 1 < size &&
+        y + 1 < size &&
+        v === at(x + 1, y) &&
+        v === at(x, y + 1) &&
+        v === at(x + 1, y + 1)
+      )
+        score += 3;
     }
   }
   const total = size * size;

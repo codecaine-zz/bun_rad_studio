@@ -23,7 +23,12 @@ const VIEW_H = 972;
 let cdp: Cdp;
 let host: HostedApp | null = null;
 
-const seedWorld = (): World => ({ home: WORK, data: WORK, big: "", put: () => {} });
+const seedWorld = (): World => ({
+  home: WORK,
+  data: WORK,
+  big: "",
+  put: () => {},
+});
 
 async function open(ch: Chapter) {
   const prev = host;
@@ -43,7 +48,9 @@ async function open(ch: Chapter) {
 
 const notes = (marks: Array<{ at: number; title: string }>, total: number) => {
   const REPO = "https://github.com/codecaine-zz/bun_rad_studio";
-  const text = marks.map((m, i) => `${fmtTime(i === 0 ? 0 : m.at)} ${m.title}`).join("\n");
+  const text = marks
+    .map((m, i) => `${fmtTime(i === 0 ? 0 : m.at)} ${m.title}`)
+    .join("\n");
   return `# SimpleGUI visual designer: build a desktop app without code (${fmtTime(total)})
 
 ## YouTube title
@@ -75,8 +82,13 @@ const suite: Suite = {
   chapters: designerChapters,
   seedWorld,
   open: (ch) => open(ch),
-  start: async () => { cdp = await Cdp.launch(CDP_PORT, "/tmp/designer_chrome", 1920, VIEW_H); },
-  stop: () => { host?.stop(); cdp?.close(); },
+  start: async () => {
+    cdp = await Cdp.launch(CDP_PORT, "/tmp/designer_chrome", 1920, VIEW_H);
+  },
+  stop: () => {
+    host?.stop();
+    cdp?.close();
+  },
   cdp: () => cdp,
   notes,
   viewHeight: VIEW_H,

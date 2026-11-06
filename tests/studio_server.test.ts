@@ -15,7 +15,10 @@ describe("shared static studio server", () => {
     root = mkdtempSync(join(tmpdir(), "studio-server-"));
     assets = join(root, "assets");
     mkdirSync(join(assets, "sub"), { recursive: true });
-    writeFileSync(join(assets, "favicon.svg"), "<svg xmlns='http://www.w3.org/2000/svg'/>");
+    writeFileSync(
+      join(assets, "favicon.svg"),
+      "<svg xmlns='http://www.w3.org/2000/svg'/>",
+    );
     writeFileSync(join(assets, "game.js"), "console.log('game');");
     writeFileSync(join(assets, "sub", "data.txt"), "nested");
     writeFileSync(join(root, "secret.txt"), "outside the assets folder");
@@ -24,7 +27,8 @@ describe("shared static studio server", () => {
       name: "Sample Studio",
       version: "9.9.9",
       assetsDir: assets,
-      generateHtml: () => `<!DOCTYPE html><title>Sample</title><p>render ${++renders}</p>`,
+      generateHtml: () =>
+        `<!DOCTYPE html><title>Sample</title><p>render ${++renders}</p>`,
     });
     base = `http://127.0.0.1:${server.port}`;
   });
@@ -46,7 +50,12 @@ describe("shared static studio server", () => {
 
   test("health reports the configured identity", async () => {
     const body = (await (await fetch(`${base}/api/health`)).json()) as any;
-    expect(body).toMatchObject({ status: "ok", app: "sample_studio", name: "Sample Studio", version: "9.9.9" });
+    expect(body).toMatchObject({
+      status: "ok",
+      app: "sample_studio",
+      name: "Sample Studio",
+      version: "9.9.9",
+    });
     expect(typeof body.timestamp).toBe("number");
   });
 
@@ -71,7 +80,9 @@ describe("shared static studio server", () => {
           port: server.port!,
           socket: {
             open(socket) {
-              socket.write(`GET ${path} HTTP/1.1\r\nHost: 127.0.0.1:${server.port}\r\nConnection: close\r\n\r\n`);
+              socket.write(
+                `GET ${path} HTTP/1.1\r\nHost: 127.0.0.1:${server.port}\r\nConnection: close\r\n\r\n`,
+              );
             },
             data(_socket, chunk) {
               out += chunk.toString();
@@ -85,7 +96,12 @@ describe("shared static studio server", () => {
           },
         });
       });
-    for (const path of ["/../secret.txt", "/%2e%2e/secret.txt", "/sub/../../secret.txt", "/..%2fsecret.txt"]) {
+    for (const path of [
+      "/../secret.txt",
+      "/%2e%2e/secret.txt",
+      "/sub/../../secret.txt",
+      "/..%2fsecret.txt",
+    ]) {
       const response = await raw(path);
       expect(response.startsWith("HTTP/1.1"), path).toBe(true);
       expect(response, path).not.toContain("outside the assets folder");
@@ -93,9 +109,23 @@ describe("shared static studio server", () => {
   });
 
   test("refuses foreign origins and hosts with 403, and allows its own origin", async () => {
-    expect((await fetch(`${base}/api/health`, { headers: { Origin: "https://evil.example" } })).status).toBe(403);
-    expect((await fetch(`${base}/api/health`, { headers: { Host: "attacker.example" } })).status).toBe(403);
-    expect((await fetch(`${base}/api/health`, { headers: { Origin: base } })).status).toBe(200);
+    expect(
+      (
+        await fetch(`${base}/api/health`, {
+          headers: { Origin: "https://evil.example" },
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await fetch(`${base}/api/health`, {
+          headers: { Host: "attacker.example" },
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (await fetch(`${base}/api/health`, { headers: { Origin: base } })).status,
+    ).toBe(200);
   });
 
   test("answers OPTIONS without a body", async () => {

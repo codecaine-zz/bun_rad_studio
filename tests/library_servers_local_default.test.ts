@@ -27,7 +27,9 @@ describe("Library servers listen on loopback by default", () => {
     const srv = serverutils.serveStatic({ dir: siteDir() });
     stoppers.push(() => srv.stop());
     expect(LOOPBACK).toContain(srv.raw.hostname as string);
-    expect(await (await fetch(`http://127.0.0.1:${srv.port}/`)).text()).toBe("<p>hello</p>");
+    expect(await (await fetch(`http://127.0.0.1:${srv.port}/`)).text()).toBe(
+      "<p>hello</p>",
+    );
   });
 
   test("rad serverutils.createWsHub", () => {
@@ -46,23 +48,36 @@ describe("Library servers listen on loopback by default", () => {
     const srv = Sys.serveStatic(siteDir(), 0);
     stoppers.push(() => srv.stop(true));
     expect(LOOPBACK).toContain(srv.hostname);
-    expect(await (await fetch(`http://127.0.0.1:${srv.port}/`)).text()).toBe("<p>hello</p>");
+    expect(await (await fetch(`http://127.0.0.1:${srv.port}/`)).text()).toBe(
+      "<p>hello</p>",
+    );
   });
 });
 
 describe("An explicit hostname is still honoured", () => {
   test("serveStatic, createWsHub and Sys.serveStatic accept hostname", () => {
-    const a = serverutils.serveStatic({ dir: siteDir(), hostname: "127.0.0.1" });
+    const a = serverutils.serveStatic({
+      dir: siteDir(),
+      hostname: "127.0.0.1",
+    });
     const b = serverutils.createWsHub({ hostname: "127.0.0.1" });
     const c = Sys.serveStatic(siteDir(), 0, "127.0.0.1");
-    stoppers.push(() => a.stop(), () => b.stop(), () => c.stop(true));
+    stoppers.push(
+      () => a.stop(),
+      () => b.stop(),
+      () => c.stop(true),
+    );
     expect(a.raw.hostname).toBe("127.0.0.1");
     expect(b.raw.hostname).toBe("127.0.0.1");
     expect(c.hostname).toBe("127.0.0.1");
   });
 
   test("Sys.serve keeps working when the caller passes a hostname", () => {
-    const srv = Sys.serve({ port: 0, hostname: "127.0.0.1", fetch: () => new Response("ok") });
+    const srv = Sys.serve({
+      port: 0,
+      hostname: "127.0.0.1",
+      fetch: () => new Response("ok"),
+    });
     stoppers.push(() => srv.stop(true));
     expect(srv.hostname).toBe("127.0.0.1");
   });

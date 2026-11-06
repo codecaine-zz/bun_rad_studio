@@ -7,7 +7,10 @@
 import { plugin } from "bun";
 
 const patch = (src: string, from: string, to: string) => {
-  if (!src.includes(from)) throw new Error(`tutorial preload: the code changed, update the patch for: ${from.slice(0, 60)}`);
+  if (!src.includes(from))
+    throw new Error(
+      `tutorial preload: the code changed, update the patch for: ${from.slice(0, 60)}`,
+    );
   return src.replace(from, to);
 };
 
@@ -24,11 +27,23 @@ class TutorialKeychain implements SecretStore {
   async delete(id: string) { this.map.delete(id); }
 }
 `;
-      const marker = "export async function detectSecretStore(service = SERVICE): Promise<SecretStore> {";
-      return { contents: patch(await Bun.file(args.path).text(), marker, `${stand}\n${marker}\n  return new TutorialKeychain();`), loader: "ts" };
+      const marker =
+        "export async function detectSecretStore(service = SERVICE): Promise<SecretStore> {";
+      return {
+        contents: patch(
+          await Bun.file(args.path).text(),
+          marker,
+          `${stand}\n${marker}\n  return new TutorialKeychain();`,
+        ),
+        loader: "ts",
+      };
     });
     build.onLoad({ filter: /fmDbHooks\.ts$/ }, async (args) => ({
-      contents: patch(await Bun.file(args.path).text(), "appRoots: () => [installRoot(realLayout())],", "appRoots: () => [],"),
+      contents: patch(
+        await Bun.file(args.path).text(),
+        "appRoots: () => [installRoot(realLayout())],",
+        "appRoots: () => [],",
+      ),
       loader: "ts",
     }));
   },

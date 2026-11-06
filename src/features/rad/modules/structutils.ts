@@ -193,13 +193,17 @@ export class SimpleDeque<T> {
 
   /** Returns the back item without removing it, or `undefined` if empty. */
   peekBack(): T | undefined {
-    return this.count ? this.buf[(this.head + this.count - 1) % this.buf.length] : undefined;
+    return this.count
+      ? this.buf[(this.head + this.count - 1) % this.buf.length]
+      : undefined;
   }
 
   /** Item at logical index (0 = front, negative from back). */
   at(index: number): T | undefined {
     const k = index < 0 ? this.count + index : index;
-    return k >= 0 && k < this.count ? this.buf[(this.head + k) % this.buf.length] : undefined;
+    return k >= 0 && k < this.count
+      ? this.buf[(this.head + k) % this.buf.length]
+      : undefined;
   }
 
   /** Returns the number of elements in the deque. */
@@ -221,7 +225,10 @@ export class SimpleDeque<T> {
 
   /** Copies the deque contents into an array ordered from front to back. */
   toArray(): T[] {
-    return Array.from({ length: this.count }, (_, i) => this.buf[(this.head + i) % this.buf.length] as T);
+    return Array.from(
+      { length: this.count },
+      (_, i) => this.buf[(this.head + i) % this.buf.length] as T,
+    );
   }
 
   /** Iterates elements from front to back. */
@@ -258,7 +265,10 @@ export class SimpleRingBuffer<T> {
    * @param capacity - Maximum number of elements held before overwriting oldest items (must be > 0).
    */
   constructor(capacity: number) {
-    if (!(capacity > 0)) throw new Error(`[structutils] RingBuffer capacity must be > 0 (got ${capacity})`);
+    if (!(capacity > 0))
+      throw new Error(
+        `[structutils] RingBuffer capacity must be > 0 (got ${capacity})`,
+      );
     this.capacity = Math.floor(capacity);
     this.buffer = new Array(this.capacity);
   }
@@ -290,13 +300,17 @@ export class SimpleRingBuffer<T> {
 
   /** Newest item. */
   peekLast(): T | undefined {
-    return this.count ? this.buffer[(this.tail - 1 + this.capacity) % this.capacity] : undefined;
+    return this.count
+      ? this.buffer[(this.tail - 1 + this.capacity) % this.capacity]
+      : undefined;
   }
 
   /** Item by logical index (0 = oldest, negative from newest). */
   at(index: number): T | undefined {
     const k = index < 0 ? this.count + index : index;
-    return k >= 0 && k < this.count ? this.buffer[(this.head + k) % this.capacity] : undefined;
+    return k >= 0 && k < this.count
+      ? this.buffer[(this.head + k) % this.capacity]
+      : undefined;
   }
 
   /** Returns `true` when the buffer has reached `capacity`. */
@@ -322,7 +336,10 @@ export class SimpleRingBuffer<T> {
 
   /** Oldest → newest. */
   toArray(): T[] {
-    return Array.from({ length: this.count }, (_, i) => this.buffer[(this.head + i) % this.capacity] as T);
+    return Array.from(
+      { length: this.count },
+      (_, i) => this.buffer[(this.head + i) % this.capacity] as T,
+    );
   }
 
   /** Iterates elements from oldest to newest. */
@@ -350,12 +367,17 @@ export class SimpleMinHeap<T> {
    * Creates a binary min-heap ordered by `compareFn`.
    * @param compareFn - Comparator returning negative when `a < b` (defaults to `<` / `>` ordering).
    */
-  constructor(compareFn: (a: T, b: T) => number = (a, b) => (a < b ? -1 : a > b ? 1 : 0)) {
+  constructor(
+    compareFn: (a: T, b: T) => number = (a, b) => (a < b ? -1 : a > b ? 1 : 0),
+  ) {
     this.compare = compareFn;
   }
 
   /** Build in O(n) from existing items (heapify). */
-  static from<T>(items: Iterable<T>, compareFn?: (a: T, b: T) => number): SimpleMinHeap<T> {
+  static from<T>(
+    items: Iterable<T>,
+    compareFn?: (a: T, b: T) => number,
+  ): SimpleMinHeap<T> {
     const h = new SimpleMinHeap<T>(compareFn);
     h.heap = [...items];
     for (let i = (h.heap.length >> 1) - 1; i >= 0; i--) h.sinkDown(i);
@@ -416,7 +438,10 @@ export class SimpleMinHeap<T> {
     while (idx > 0) {
       const parent = (idx - 1) >> 1;
       if (this.compare(this.heap[idx]!, this.heap[parent]!) >= 0) break;
-      [this.heap[idx], this.heap[parent]] = [this.heap[parent]!, this.heap[idx]!];
+      [this.heap[idx], this.heap[parent]] = [
+        this.heap[parent]!,
+        this.heap[idx]!,
+      ];
       idx = parent;
     }
   }
@@ -427,10 +452,21 @@ export class SimpleMinHeap<T> {
       let smallest = idx;
       const left = 2 * idx + 1;
       const right = left + 1;
-      if (left < len && this.compare(this.heap[left]!, this.heap[smallest]!) < 0) smallest = left;
-      if (right < len && this.compare(this.heap[right]!, this.heap[smallest]!) < 0) smallest = right;
+      if (
+        left < len &&
+        this.compare(this.heap[left]!, this.heap[smallest]!) < 0
+      )
+        smallest = left;
+      if (
+        right < len &&
+        this.compare(this.heap[right]!, this.heap[smallest]!) < 0
+      )
+        smallest = right;
       if (smallest === idx) return;
-      [this.heap[idx], this.heap[smallest]] = [this.heap[smallest]!, this.heap[idx]!];
+      [this.heap[idx], this.heap[smallest]] = [
+        this.heap[smallest]!,
+        this.heap[idx]!,
+      ];
       idx = smallest;
     }
   }
@@ -448,7 +484,7 @@ export class SimpleMinHeap<T> {
 export class SimplePriorityQueue<T> {
   private seq = 0;
   private heap = new SimpleMinHeap<{ item: T; priority: number; seq: number }>(
-    (a, b) => a.priority - b.priority || a.seq - b.seq
+    (a, b) => a.priority - b.priority || a.seq - b.seq,
   );
 
   /** Enqueues `item` with numeric `priority` (lower value = higher urgency, default `0`). */
@@ -512,7 +548,8 @@ export class SimpleTrie {
   add(word: string): boolean {
     let node = this.root;
     for (const ch of word) {
-      if (!node.children.has(ch)) node.children.set(ch, { children: new Map(), terminal: false });
+      if (!node.children.has(ch))
+        node.children.set(ch, { children: new Map(), terminal: false });
       node = node.children.get(ch)!;
     }
     if (node.terminal) return false;

@@ -25,7 +25,7 @@ export function buildReplacerRegex(
   stringMode: boolean,
   flags: string = "",
   ignoreCase?: boolean,
-  wholeWord?: boolean
+  wholeWord?: boolean,
 ): RegExp {
   let pattern = stringMode ? escapeRegExp(find) : find;
   if (wholeWord) {
@@ -42,7 +42,10 @@ export function buildReplacerRegex(
 /**
  * Asynchronously copies `filePath` to a backup file with the given extension before in-place modification.
  */
-export async function createBackup(filePath: string, backupExt: string): Promise<string> {
+export async function createBackup(
+  filePath: string,
+  backupExt: string,
+): Promise<string> {
   const ext = backupExt.startsWith(".") ? backupExt : `.${backupExt}`;
   const backupPath = `${filePath}${ext}`;
   const content = await Bun.file(filePath).text();
@@ -63,7 +66,7 @@ export function countMatches(content: string, regex: RegExp): number {
  */
 export async function expandTargets(
   targets: string[],
-  ignores: string[] = ["node_modules", ".git", ".graveyard", "dist", "build"]
+  ignores: string[] = ["node_modules", ".git", ".graveyard", "dist", "build"],
 ): Promise<string[]> {
   const filePaths: string[] = [];
   for (const target of targets) {
@@ -96,7 +99,7 @@ export async function expandTargets(
 export function replaceText(
   content: string,
   regex: RegExp,
-  replacement: string
+  replacement: string,
 ): string {
   // Support $1, $2, etc., capture groups in regex replacements
   return content.replaceAll(regex, replacement);
@@ -107,7 +110,7 @@ export function replaceText(
  */
 export function computeDiffHunks(
   original: string,
-  modified: string
+  modified: string,
 ): DiffHunk[] {
   const origLines = original.split("\n");
   const modLines = modified.split("\n");
@@ -129,10 +132,16 @@ export function computeDiffHunks(
  */
 export function formatDiffPreview(
   filePathOrResult: string | { filePath: string; diffHunks: DiffHunk[] },
-  hunks?: DiffHunk[]
+  hunks?: DiffHunk[],
 ): string {
-  const filePath = typeof filePathOrResult === "string" ? filePathOrResult : filePathOrResult.filePath;
-  const list = typeof filePathOrResult === "string" ? (hunks || []) : (filePathOrResult.diffHunks || []);
+  const filePath =
+    typeof filePathOrResult === "string"
+      ? filePathOrResult
+      : filePathOrResult.filePath;
+  const list =
+    typeof filePathOrResult === "string"
+      ? hunks || []
+      : filePathOrResult.diffHunks || [];
   if (list.length === 0) return "";
   const header = colors.bold(colors.cyan(`--- ${filePath} ---`));
   const diffLines = list.map((h) => {
@@ -161,7 +170,7 @@ export async function readContent(filePath: string): Promise<string> {
  */
 export async function writeContent(
   filePath: string,
-  content: string
+  content: string,
 ): Promise<number> {
   return await Bun.write(filePath, content);
 }
@@ -197,7 +206,7 @@ export function createBackupSync(filePath: string, backupExt: string): string {
  */
 export function expandTargetsSync(
   targets: string[],
-  ignores: string[] = ["node_modules", ".git", ".graveyard", "dist", "build"]
+  ignores: string[] = ["node_modules", ".git", ".graveyard", "dist", "build"],
 ): string[] {
   const filePaths: string[] = [];
   for (const target of targets) {
@@ -228,7 +237,7 @@ export function expandTargetsSync(
 export function processFileSync(
   filePath: string,
   regex: RegExp,
-  replacement: string
+  replacement: string,
 ): FileTransformResult {
   const original = readContentSync(filePath);
   const newContent = replaceText(original, regex, replacement);

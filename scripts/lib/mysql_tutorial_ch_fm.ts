@@ -7,8 +7,19 @@ const closeAnyDialog = `[...document.querySelectorAll('.dialog button, .modal bu
 /** Chapters 0 to 4: the title, a server to talk to, finding and saving the connection, testing it, and opening the studio. */
 export const fmChapters: Chapter[] = [
   {
-    id: "00_intro", chapter: "INTRO", title: "MySQL in the Codecaine File Manager", kind: "card",
-    card: { kicker: "Databases in the Codecaine File Manager", title: "MySQL Studio Pro", lines: ["Save a connection, test it, and open the studio", "Grid, S Q L, designers, diagnostics and macros", "Everything on a throwaway MySQL server"] },
+    id: "00_intro",
+    chapter: "INTRO",
+    title: "MySQL in the Codecaine File Manager",
+    kind: "card",
+    card: {
+      kicker: "Databases in the Codecaine File Manager",
+      title: "MySQL Studio Pro",
+      lines: [
+        "Save a connection, test it, and open the studio",
+        "Grid, S Q L, designers, diagnostics and macros",
+        "Everything on a throwaway MySQL server",
+      ],
+    },
     steps: [
       {
         cap: "MySQL Studio Pro, opened from the File Manager",
@@ -18,8 +29,20 @@ export const fmChapters: Chapter[] = [
   },
 
   {
-    id: "01_server", chapter: "A SERVER", title: "A MySQL server to talk to", kind: "card",
-    card: { kicker: "Before you start", title: "You need a MySQL server", lines: ["brew install mysql", "brew services start mysql", "mysql -u root   then   CREATE DATABASE shop;", "This video: a throwaway server on port 3399"] },
+    id: "01_server",
+    chapter: "A SERVER",
+    title: "A MySQL server to talk to",
+    kind: "card",
+    card: {
+      kicker: "Before you start",
+      title: "You need a MySQL server",
+      lines: [
+        "brew install mysql",
+        "brew services start mysql",
+        "mysql -u root   then   CREATE DATABASE shop;",
+        "This video: a throwaway server on port 3399",
+      ],
+    },
     steps: [
       {
         cap: "Install MySQL, and use a throwaway server",
@@ -29,14 +52,19 @@ export const fmChapters: Chapter[] = [
   },
 
   {
-    id: "02_find", chapter: "FIND IT", title: "Find the connection and save it", blurb: "A dot env file, the Databases tool, and Found in your environment",
+    id: "02_find",
+    chapter: "FIND IT",
+    title: "Find the connection and save it",
+    blurb: "A dot env file, the Databases tool, and Found in your environment",
     steps: [
       {
         cap: "Settings often live in a .env file",
         say: "We start in the file list, in a project folder. Database settings often live in a dot env file, which is hidden, so I choose Show hidden files in the View menu.",
         act: async (d) => {
           await d.click("#tool-view", { pause: 900 });
-          await d.click(".menu [role^=menuitem] >> Show hidden files", { pause: 1500 });
+          await d.click(".menu [role^=menuitem] >> Show hidden files", {
+            pause: 1500,
+          });
         },
       },
       {
@@ -44,7 +72,10 @@ export const fmChapters: Chapter[] = [
         say: "Right click the dot env file: Import database settings. It only reads the file to show you what is inside, and never changes it.",
         act: async (d) => {
           await d.rclick("#list .row >> .env", { pause: 900 });
-          await d.hover(".menu [role^=menuitem] >> Import database settings", 800);
+          await d.hover(
+            ".menu [role^=menuitem] >> Import database settings",
+            800,
+          );
           await d.wait(1200);
         },
       },
@@ -52,7 +83,9 @@ export const fmChapters: Chapter[] = [
         cap: "A preview first: nothing is written yet",
         say: "A preview lists the connection it found, and the variable each value came from. No password here. Nothing is saved until I press Save to the manager, so I close it.",
         act: async (d) => {
-          await d.click(".menu [role^=menuitem] >> Import database settings", { pause: 2200 });
+          await d.click(".menu [role^=menuitem] >> Import database settings", {
+            pause: 2200,
+          });
           await d.hover(".dialog", 2500);
           await d.dialog("Close", { pause: 800 });
         },
@@ -72,7 +105,12 @@ export const fmChapters: Chapter[] = [
         cap: "Found in your environment",
         say: "And a card: Found in your environment. This program was started with the M S Q L variables, and each value shows which variable and which dot env file it came from. Detection only reads. It never connects.",
         act: async (d) => {
-          await d.hover("#power-pane-databases .db-detect, #power-pane-databases h2", 600).catch(() => {});
+          await d
+            .hover(
+              "#power-pane-databases .db-detect, #power-pane-databases h2",
+              600,
+            )
+            .catch(() => {});
           await d.wait(2500);
           await d.scroll("#power-pane-databases", 200, 4);
           await d.wait(1500);
@@ -82,7 +120,9 @@ export const fmChapters: Chapter[] = [
         cap: "Save to the manager",
         say: "Save to the manager creates the connection. A password would go to the keychain, never into a file. The page then lists the variables that are no longer needed, and edits nothing for you.",
         act: async (d) => {
-          await d.eval(`document.querySelector('#power-pane-databases').scrollTop = 0`);
+          await d.eval(
+            `document.querySelector('#power-pane-databases').scrollTop = 0`,
+          );
           await d.click(P + "Save to the manager", { pause: 2200 });
           await d.hover(".dialog, .modal", 3500);
         },
@@ -100,18 +140,26 @@ export const fmChapters: Chapter[] = [
   },
 
   {
-    id: "03_connection", chapter: "CONNECTION", title: "Test it, see where every value comes from",
+    id: "03_connection",
+    chapter: "CONNECTION",
+    title: "Test it, see where every value comes from",
     blurb: "Test connection, Effective settings, and the Edit form",
     steps: [
       {
         cap: "The connection's details",
         say: "The details: MySQL, server 127 dot 0 dot 0 dot 1, port thirty three ninety nine, database shop, user root. Password says none saved, because this server has none. A real password reads Saved in your computer's keychain.",
-        act: async (d) => { await d.hover("#power-pane-databases .db-row", 600); await d.wait(1500); await d.hover(P + "Open in MySQL Studio", 800); },
+        act: async (d) => {
+          await d.hover("#power-pane-databases .db-row", 600);
+          await d.wait(1500);
+          await d.hover(P + "Open in MySQL Studio", 800);
+        },
       },
       {
         cap: "Test connection",
         say: "Test connection is an explicit click: ten seconds at most, read only, in plain words. It works, and shows the server version and the time taken. A failure would say why, like the server refused the password.",
-        act: async (d) => { await d.click(P + "Test connection", { pause: 3500 }); },
+        act: async (d) => {
+          await d.click(P + "Test connection", { pause: 3500 });
+        },
       },
       {
         cap: "Effective settings: which value wins",
@@ -127,9 +175,13 @@ export const fmChapters: Chapter[] = [
         cap: "Edit: the connection form",
         say: "Edit opens the connection form: name, folder, environment, host, port, user, a write only password box, database, T L S and time outs. Mark it Production or Read only, and the File Manager asks before any studio opens.",
         act: async (d) => {
-          await d.eval(`document.querySelector('#power-pane-databases').scrollTop = 0`);
+          await d.eval(
+            `document.querySelector('#power-pane-databases').scrollTop = 0`,
+          );
           await d.click(P + "Edit", { pause: 1800 });
-          await d.hover(".dialog input[type=password], .dialog input >> @", 600).catch(() => {});
+          await d
+            .hover(".dialog input[type=password], .dialog input >> @", 600)
+            .catch(() => {});
           await d.wait(2500);
         },
       },
@@ -158,7 +210,9 @@ export const fmChapters: Chapter[] = [
   },
 
   {
-    id: "04_open", chapter: "OPEN THE STUDIO", title: "Open MySQL Studio inside the window",
+    id: "04_open",
+    chapter: "OPEN THE STUDIO",
+    title: "Open MySQL Studio inside the window",
     blurb: "A real studio in a frame, Focus mode, and a tour of every pane",
     steps: [
       {
@@ -173,7 +227,10 @@ export const fmChapters: Chapter[] = [
       {
         cap: "The studio's own startup macro",
         say: "The studio greets us. That message comes from a startup macro called AutoExec, which also opened the customers table. We will build a macro of our own later. I press O K.",
-        act: async (d) => { await d.waitFor(STUDIO + "button >> OK", 15000); await d.click(STUDIO + "button >> OK", { pause: 900 }); },
+        act: async (d) => {
+          await d.waitFor(STUDIO + "button >> OK", 15000);
+          await d.click(STUDIO + "button >> OK", { pause: 900 });
+        },
       },
       {
         cap: "Focus mode: more room for the studio",
@@ -189,16 +246,40 @@ export const fmChapters: Chapter[] = [
         cap: "The header and the sidebar",
         say: "The studio header has connection settings, databases, backup and dump, Run Query, sample data and maintenance. The sidebar lists tables and views with their row counts, and a search box.",
         act: async (d) => {
-          for (const b of ["button >> Databases...", "button >> DB Backup / Dump", "button >> Run Query", "button >> Seed Sample DB"]) await d.hover(STUDIO + b, 650);
+          for (const b of [
+            "button >> Databases...",
+            "button >> DB Backup / Dump",
+            "button >> Run Query",
+            "button >> Seed Sample DB",
+          ])
+            await d.hover(STUDIO + b, 650);
           await d.hover(STUDIO + "#searchObjects", 700);
-          await d.hover(STUDIO + ".sidebar-item >> customers, .tree-item >> customers", 700).catch(() => {});
+          await d
+            .hover(
+              STUDIO + ".sidebar-item >> customers, .tree-item >> customers",
+              700,
+            )
+            .catch(() => {});
         },
       },
       {
         cap: "Twelve panes, one cockpit",
         say: "Twelve panes: the data grid, query designer, macro designer, schema designer, custom types, partitions, activity and locks, replication, query plans, raw JSON, telemetry, and maintenance. We visit them one by one.",
         act: async (d) => {
-          for (const t of ["Designer", "Macros", "Schema", "Types", "Partitions", "Activity", "Replication", "Explain", "Json", "Audit", "Pragma", "Grid"]) {
+          for (const t of [
+            "Designer",
+            "Macros",
+            "Schema",
+            "Types",
+            "Partitions",
+            "Activity",
+            "Replication",
+            "Explain",
+            "Json",
+            "Audit",
+            "Pragma",
+            "Grid",
+          ]) {
             await d.click(STUDIO + `#tabBtn${t}`, { pause: 600, ms: 320 });
           }
         },

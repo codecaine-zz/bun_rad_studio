@@ -1,7 +1,7 @@
 import { injectGameMasterFx } from "../src/shared/gameMasterFx";
 /**
  * ⛷️ Codecaine CyberSki Deluxe — Winter Legends Arcade Studio
- * 
+ *
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
  * - Authentic procedural downhill slalom, freestyle, tree slalom and freeride slopes
@@ -79,7 +79,9 @@ export function generateSkiFreeStudioHtml(): string {
   const assetsDir = getSkiFreeAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Codecaine CyberSki Deluxe</h1>";
+  let html = existsSync(indexPath)
+    ? readFileSync(indexPath, "utf8")
+    : "<h1>Codecaine CyberSki Deluxe</h1>";
 
   const storagePolyfill = `
   <script>
@@ -150,7 +152,13 @@ ${getWindowShortcutsScript()}
  */
 export function startSkiFreeServer(options: SkiFreeServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "skifree_studio", name: "Codecaine CyberSki Deluxe — Winter Legends Arcade", version: "1.0.0", assetsDir: getSkiFreeAssetsDir(), generateHtml: generateSkiFreeStudioHtml },
+    {
+      app: "skifree_studio",
+      name: "Codecaine CyberSki Deluxe — Winter Legends Arcade",
+      version: "1.0.0",
+      assetsDir: getSkiFreeAssetsDir(),
+      generateHtml: generateSkiFreeStudioHtml,
+    },
     options,
   );
 }
@@ -158,7 +166,9 @@ export function startSkiFreeServer(options: SkiFreeServerOptions = {}) {
 /**
  * Creates the complete native desktop instance of CyberSki Deluxe.
  */
-export function createSkiFreeStudio(options: SkiFreeStudioOptions = {}): SkiFreeStudioInstance {
+export function createSkiFreeStudio(
+  options: SkiFreeStudioOptions = {},
+): SkiFreeStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1200);
@@ -190,7 +200,8 @@ export function createSkiFreeStudio(options: SkiFreeStudioOptions = {}): SkiFree
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -210,11 +221,15 @@ export function createSkiFreeStudio(options: SkiFreeStudioOptions = {}): SkiFree
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -224,16 +239,24 @@ export function createSkiFreeStudio(options: SkiFreeStudioOptions = {}): SkiFree
         });
 
         webview.setHTML(html);
-        console.log(`⚡ Desktop window open (Fullscreen: ${fullscreen ? 'Enabled' : 'Disabled'}).`);
+        console.log(
+          `⚡ Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`,
+        );
 
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -253,7 +276,8 @@ if (process.argv.includes("--server")) {
   console.log(`⚡ SkiFree Server listening on http://127.0.0.1:${srv.port}`);
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
+  const fullscreen =
+    !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
   const app = createSkiFreeStudio({ fullscreen });
   await app.run();
   process.exit(0);

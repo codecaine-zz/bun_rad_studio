@@ -41,7 +41,11 @@ describe("♠️ Texas Hold'em & 5-Card Draw Poker Royale — Deluxe Casino Stud
   });
 
   it("3. Studio factory generates correct defaults and instance contracts", () => {
-    const app = createPokerStudio({ fullscreen: false, width: 1240, height: 860 });
+    const app = createPokerStudio({
+      fullscreen: false,
+      width: 1240,
+      height: 860,
+    });
     expect(app.title).toContain("Poker Royale");
     expect(app.width).toBe(1240);
     expect(app.height).toBe(860);
@@ -69,10 +73,12 @@ describe("♠️ Texas Hold'em & 5-Card Draw Poker Royale — Deluxe Casino Stud
       // Health check endpoint
       const resHealth = await fetch(`${base}/api/health`);
       expect(resHealth.status).toBe(200);
-      const healthData = await resHealth.json() as any;
+      const healthData = (await resHealth.json()) as any;
       expect(healthData.status).toBe("ok");
       expect(healthData.app).toBe("poker_studio");
-      expect(healthData.name).toContain("Texas Hold'em & 5-Card Draw Poker Royale");
+      expect(healthData.name).toContain(
+        "Texas Hold'em & 5-Card Draw Poker Royale",
+      );
     } finally {
       server.stop(true);
     }
@@ -80,9 +86,13 @@ describe("♠️ Texas Hold'em & 5-Card Draw Poker Royale — Deluxe Casino Stud
 
   it("5. Launcher Studio automatically registers and surfaces Poker Royale", () => {
     const apps = scanWorkspaceApps();
-    const found = apps.find((a) => a.name === "poker_studio" || a.id === "rad_poker_studio");
+    const found = apps.find(
+      (a) => a.name === "poker_studio" || a.id === "rad_poker_studio",
+    );
     expect(found).toBeDefined();
-    expect(found?.displayName).toContain("Texas Hold'em & 5-Card Draw Poker Royale");
+    expect(found?.displayName).toContain(
+      "Texas Hold'em & 5-Card Draw Poker Royale",
+    );
     expect(found?.icon).toBe("♠️");
     expect(found?.category).toBe("Games & Entertainment");
     expect(found?.description).toContain("Texas Hold'em and 5-Card Draw");

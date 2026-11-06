@@ -25,7 +25,9 @@ bun run cli:watchexec [options] [--] <command...>
 ```
 
 ### Injected Environment Variables
+
 When a file change triggers command execution, `watchexec` automatically exposes the event context:
+
 - `WATCHEXEC_WRITTEN_PATH`: Absolute/relative path of the file that triggered the change.
 - `WATCHEXEC_TRIGGERED_PATH`: Mirror of the written path.
 - `WATCHEXEC_COMMON_PATH`: The root directory being watched.
@@ -63,6 +65,7 @@ export interface ProcessState {
 ## 3. Comprehensive Code Examples
 
 ### Example 1: Watch Directory and Trigger Tests with Auto-Restart
+
 ```typescript
 import { runWatchexecCoordinator } from "./watchexecCoordinator.ts";
 
@@ -82,6 +85,7 @@ const watcher = await runWatchexecCoordinator({
 ```
 
 ### Example 2: Start Watcher with Custom Callback (No Subprocess)
+
 ```typescript
 import { startWatcher } from "./watchexecCoordinator.ts";
 import type { ProcessState, WatchexecOptions } from "./watchexecTypes.ts";
@@ -110,6 +114,7 @@ process.on("SIGINT", () => {
 ```
 
 ### Example 3: Filter Logic & Process Management Doers
+
 ```typescript
 import {
   matchesExtension,
@@ -131,6 +136,7 @@ console.log("Terminated child process.");
 ```
 
 ### Example 4: Filter Matching, Environment Variables & Shell Execution Helpers
+
 ```typescript
 import {
   matchesFilter,
@@ -149,4 +155,3 @@ console.log(`Triggered path: ${env.WATCHEXEC_WRITTEN_PATH}`); // "src/index.ts"
 const shellArgs = formatShellCommand(["echo", "Hello World"], "bash");
 console.log(shellArgs); // ["bash", "-c", "echo Hello World"]
 ```
-

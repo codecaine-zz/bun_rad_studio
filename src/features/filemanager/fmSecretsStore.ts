@@ -3,7 +3,21 @@
  * verified, then renamed over the old file), with rotating encrypted backups, and with the small non-secret
  * counter file that slows down guessing. Only encrypted bytes (or counters) ever reach the disk.
  */
-import { chmodSync, closeSync, copyFileSync, existsSync, fsyncSync, mkdirSync, openSync, readdirSync, readFileSync, renameSync, statSync, unlinkSync, writeSync } from "node:fs";
+import {
+  chmodSync,
+  closeSync,
+  copyFileSync,
+  existsSync,
+  fsyncSync,
+  mkdirSync,
+  openSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  unlinkSync,
+  writeSync,
+} from "node:fs";
 import { randomBytes } from "node:crypto";
 import { basename, dirname, join } from "node:path";
 import { MAX_FILE_BYTES } from "./fmSecretsFormat";
@@ -40,7 +54,11 @@ export const vaultExists = (path: string): boolean => existsSync(path);
 /** Reads the encrypted vault file from `path`, rejecting files larger than `MAX_FILE_BYTES`. */
 export function readVaultFile(path: string): Buffer {
   const size = statSync(path).size;
-  if (size > MAX_FILE_BYTES) throw new SecretsError("NOT_VAULT", "That file is far too big to be a vault.");
+  if (size > MAX_FILE_BYTES)
+    throw new SecretsError(
+      "NOT_VAULT",
+      "That file is far too big to be a vault.",
+    );
   return readFileSync(path);
 }
 
@@ -62,7 +80,9 @@ function syncDirectory(dir: string): void {
 export function cleanStaleTemps(path: string): void {
   try {
     const prefix = `${basename(path)}.`;
-    for (const name of readdirSync(dirname(path))) if (name.startsWith(prefix) && name.endsWith(".tmp")) unlinkSync(join(dirname(path), name));
+    for (const name of readdirSync(dirname(path)))
+      if (name.startsWith(prefix) && name.endsWith(".tmp"))
+        unlinkSync(join(dirname(path), name));
   } catch {
     // nothing to clean
   }
@@ -72,7 +92,8 @@ function writeNewFile(path: string, data: Buffer): void {
   const fd = openSync(path, "wx", 0o600);
   try {
     let done = 0;
-    while (done < data.length) done += writeSync(fd, data, done, data.length - done);
+    while (done < data.length)
+      done += writeSync(fd, data, done, data.length - done);
     fsyncSync(fd);
   } finally {
     closeSync(fd);
@@ -92,14 +113,26 @@ export interface AtomicOptions {
  * Replaces `path` with `data` so that at every moment the old file or the complete new file is there, never a mix.
  * Nothing is replaced unless the new bytes were fully written, synced, read back and verified.
  */
-export function writeAtomic(path: string, data: Buffer, options: AtomicOptions = {}): void {
-  if (data.length === 0) throw new SecretsError("EMPTY_SAVE", "Refusing to save an empty vault. Nothing was changed.");
+export function writeAtomic(
+  path: string,
+  data: Buffer,
+  options: AtomicOptions = {},
+): void {
+  if (data.length === 0)
+    throw new SecretsError(
+      "EMPTY_SAVE",
+      "Refusing to save an empty vault. Nothing was changed.",
+    );
   ensureDir(dirname(path));
   const tmp = `${path}.${randomBytes(6).toString("hex")}.tmp`;
   try {
     writeNewFile(tmp, data);
     const back = readFileSync(tmp);
-    if (back.length !== data.length || !back.equals(data)) throw new SecretsError("SAVE_FAILED", "The vault could not be written completely. Nothing was changed.");
+    if (back.length !== data.length || !back.equals(data))
+      throw new SecretsError(
+        "SAVE_FAILED",
+        "The vault could not be written completely. Nothing was changed.",
+      );
     options.verify?.(back);
     options.hooks?.faultBeforeRename?.();
     if (options.backup && existsSync(path)) rotateBackups(path);
@@ -118,7 +151,9 @@ export function writeAtomic(path: string, data: Buffer, options: AtomicOptions =
 
 /** .2 -> .3, .1 -> .2, current -> .1. The current vault is copied, never moved, so it is in place at every moment. */
 function rotateBackups(path: string): void {
-  for (let n = BACKUPS - 1; n >= 1; n--) if (existsSync(backupPath(path, n))) renameSync(backupPath(path, n), backupPath(path, n + 1));
+  for (let n = BACKUPS - 1; n >= 1; n--)
+    if (existsSync(backupPath(path, n)))
+      renameSync(backupPath(path, n), backupPath(path, n + 1));
   const tmp = `${backupPath(path, 1)}.${randomBytes(6).toString("hex")}.tmp`;
   copyFileSync(path, tmp);
   if (process.platform !== "win32") chmodSync(tmp, 0o600);
@@ -140,7 +175,9 @@ export function deleteBackups(path: string): number {
 }
 
 /** Lists existing rotating backup files for `path` with their slot number, byte size, and modification time. */
-export const listBackups = (path: string): Array<{ n: number; bytes: number; modifiedMs: number }> =>
+export const listBackups = (
+  path: string,
+): Array<{ n: number; bytes: number; modifiedMs: number }> =>
   Array.from({ length: BACKUPS }, (_, i) => i + 1).flatMap((n) => {
     try {
       const s = statSync(backupPath(path, n));
@@ -166,14 +203,21 @@ const FREE_ATTEMPTS = 2;
 const MAX_DELAY_MS = 15 * 60 * 1000;
 
 /** Computes the exponential backoff delay in milliseconds after `fails` consecutive wrong password attempts. */
-export const delayAfter = (fails: number): number => (fails <= FREE_ATTEMPTS ? 0 : Math.min(MAX_DELAY_MS, 1000 * 2 ** (fails - FREE_ATTEMPTS - 1)));
+export const delayAfter = (fails: number): number =>
+  fails <= FREE_ATTEMPTS
+    ? 0
+    : Math.min(MAX_DELAY_MS, 1000 * 2 ** (fails - FREE_ATTEMPTS - 1));
 
 /** Reads the current failed-attempt throttle state for `path` (returning zeroes if none exists or on read error). */
 export function readThrottle(path: string): Throttle {
   try {
     const t = JSON.parse(readFileSync(throttlePath(path), "utf8"));
     const fails = Number(t.fails);
-    return { fails: Number.isInteger(fails) && fails >= 0 ? Math.min(fails, 1000) : 0, lastFailAt: Number(t.lastFailAt) || 0, until: Number(t.until) || 0 };
+    return {
+      fails: Number.isInteger(fails) && fails >= 0 ? Math.min(fails, 1000) : 0,
+      lastFailAt: Number(t.lastFailAt) || 0,
+      until: Number(t.until) || 0,
+    };
   } catch {
     return { fails: 0, lastFailAt: 0, until: 0 };
   }

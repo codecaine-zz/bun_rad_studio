@@ -28,12 +28,16 @@ import {
   getScreenDimensions,
 } from "../index.ts";
 
-const injectGameMasterFx = (html: string, _title?: string, _accent?: string): string =>
-  rawInjectGameMasterFx(html);
+const injectGameMasterFx = (
+  html: string,
+  _title?: string,
+  _accent?: string,
+): string => rawInjectGameMasterFx(html);
 
 export const DEFAULT_PORT = 3270;
 export const APP_PORT = Number(process.env.RAMPART_PORT || 3270);
-export const APP_TITLE = "Codecaine CyberRampart: Fortress Build & Cannon Siege";
+export const APP_TITLE =
+  "Codecaine CyberRampart: Fortress Build & Cannon Siege";
 
 const FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <rect width="64" height="64" rx="14" fill="#0b101d"/>
@@ -138,7 +142,11 @@ ${getWindowShortcutsScript()}
     html += desktopHooks;
   }
 
-  return injectGameMasterFx(html, "Codecaine CyberRampart: Fortress Build & Cannon Siege", "amber");
+  return injectGameMasterFx(
+    html,
+    "Codecaine CyberRampart: Fortress Build & Cannon Siege",
+    "amber",
+  );
 }
 
 export function startRampartServer(options: RampartServerOptions = {}) {
@@ -169,7 +177,10 @@ export function startRampartServer(options: RampartServerOptions = {}) {
       if (pathname === "/" || pathname === "/index.html") {
         const html = generateRampartStudioHtml();
         return new Response(html, {
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            ...corsHeaders,
+          },
         });
       }
 
@@ -209,7 +220,9 @@ export function startRampartServer(options: RampartServerOptions = {}) {
         return new Response("Forbidden", { status: 403 });
       }
       if (existsSync(directCandidate)) {
-        return new Response(Bun.file(directCandidate), { headers: corsHeaders });
+        return new Response(Bun.file(directCandidate), {
+          headers: corsHeaders,
+        });
       }
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
@@ -217,7 +230,9 @@ export function startRampartServer(options: RampartServerOptions = {}) {
   });
 }
 
-export function createRampartStudio(options: RampartStudioOptions = {}): RampartStudioInstance {
+export function createRampartStudio(
+  options: RampartStudioOptions = {},
+): RampartStudioInstance {
   const fullscreen = options.fullscreen ?? false;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1340);
@@ -249,7 +264,8 @@ export function createRampartStudio(options: RampartStudioOptions = {}): Rampart
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -269,11 +285,15 @@ export function createRampartStudio(options: RampartStudioOptions = {}): Rampart
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -284,13 +304,19 @@ export function createRampartStudio(options: RampartStudioOptions = {}): Rampart
 
         webview.setHTML(html);
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -310,13 +336,19 @@ export const createRampartApp = createRampartStudio;
 export const startRampartStudioServer = startRampartServer;
 
 if (process.argv.includes("--server")) {
-  const port = parseInt(process.env.RAMPART_PORT || process.env.PORT || String(APP_PORT), 10);
+  const port = parseInt(
+    process.env.RAMPART_PORT || process.env.PORT || String(APP_PORT),
+    10,
+  );
   const srv = startRampartServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`🏰 ${APP_TITLE} Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `🏰 ${APP_TITLE} Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = process.argv.includes("--fullscreen") || process.argv.includes("-f");
+  const fullscreen =
+    process.argv.includes("--fullscreen") || process.argv.includes("-f");
   const app = createRampartStudio({ fullscreen });
   await app.run();
   process.exit(0);

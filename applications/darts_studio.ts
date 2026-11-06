@@ -134,7 +134,9 @@ export function startDartsServer(options: DartsServerOptions = {}) {
   );
 }
 
-export function createDartsStudio(options: DartsStudioOptions = {}): DartsStudioInstance {
+export function createDartsStudio(
+  options: DartsStudioOptions = {},
+): DartsStudioInstance {
   const fullscreen = options.fullscreen ?? false;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1280);
@@ -148,7 +150,9 @@ export function createDartsStudio(options: DartsStudioOptions = {}): DartsStudio
     fullscreen,
     generateHtml: () => generateDartsStudioHtml(),
     run: async () => {
-      console.log("🎯 Launching Codecaine Pro Darts Royale: 501 & Cricket Arena...");
+      console.log(
+        "🎯 Launching Codecaine Pro Darts Royale: 501 & Cricket Arena...",
+      );
       const html = generateDartsStudioHtml();
 
       let srv: any = null;
@@ -166,7 +170,8 @@ export function createDartsStudio(options: DartsStudioOptions = {}): DartsStudio
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -186,11 +191,15 @@ export function createDartsStudio(options: DartsStudioOptions = {}): DartsStudio
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -201,13 +210,19 @@ export function createDartsStudio(options: DartsStudioOptions = {}): DartsStudio
 
         webview.setHTML(html);
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -230,10 +245,13 @@ if (process.argv.includes("--server")) {
   const port = parseInt(process.env.DARTS_PORT || process.env.PORT || "0", 10);
   const srv = startDartsServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`🎯 Codecaine Pro Darts Royale Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `🎯 Codecaine Pro Darts Royale Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = process.argv.includes("--fullscreen") || process.argv.includes("-f");
+  const fullscreen =
+    process.argv.includes("--fullscreen") || process.argv.includes("-f");
   const app = createDartsStudio({ fullscreen });
   await app.run();
   process.exit(0);

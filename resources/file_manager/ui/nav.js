@@ -4,7 +4,16 @@ import { debounce } from "./dom.js";
 import { toast } from "./menus.js";
 import { activePane, hooks, isFolderView, left, right } from "./pane.js";
 import { emit, inTrash, state } from "./state.js";
-import { archiveExtensionOf, extensionOf, formatSize, isDocumentPackageEntry, parentOf, parseByteSizeToken, plural, sortEntries } from "./util.js";
+import {
+  archiveExtensionOf,
+  extensionOf,
+  formatSize,
+  isDocumentPackageEntry,
+  parentOf,
+  parseByteSizeToken,
+  plural,
+  sortEntries,
+} from "./util.js";
 
 function setBusy(on) {
   state.busy = Math.max(0, state.busy + (on ? 1 : -1));
@@ -23,7 +32,8 @@ export async function busy(fn) {
 }
 
 const saveLastPath = debounce((path) => {
-  if (typeof document !== "undefined") saveSettings({ lastPath: path }).catch(() => {});
+  if (typeof document !== "undefined")
+    saveSettings({ lastPath: path }).catch(() => {});
 }, 600);
 let settingsSave = Promise.resolve();
 let settingsRevision = 0;
@@ -75,18 +85,56 @@ export async function refreshTrashCount() {
 export function entryMatchesKindFilter(entry, kind) {
   if (!kind || kind === "all") return true;
   const isDocPkg = isDocumentPackageEntry(entry);
-  if (kind === "folder" || kind === "folders") return !!entry.isDir && !isDocPkg;
+  if (kind === "folder" || kind === "folders")
+    return !!entry.isDir && !isDocPkg;
   if (entry.isDir && !isDocPkg) return false;
   const k = String(entry.kind || entry.category || "").toLowerCase();
   const n = String(entry.name || "").toLowerCase();
   const dot = n.lastIndexOf(".");
-  const ext = dot > 0 ? n.slice(dot + 1) : String(entry.ext || "").replace(/^\./, "").toLowerCase();
-  if (kind === "image" || kind === "images") return k === "image" || /^(png|jpe?g|gif|webp|svg|bmp|ico|avif|tiff?|heic)$/.test(ext);
-  if (kind === "media") return k === "audio" || k === "video" || /^(mp3|wav|ogg|flac|m4a|aac|opus|mp4|mkv|webm|mov|avi|m3u8?)$/.test(ext);
-  if (kind === "document" || kind === "docs") return isDocPkg || k === "pdf" || k === "document" || k === "spreadsheet" || k === "presentation" || /^(pdf|md|txt|rtf|rtfd|doc|docx|odt|pages|numbers|key|epub|ibooks|textbundle|scriv|ulysses|oo3|mindnode|graffle|playground|playgroundbook|tex)$/.test(ext);
-  if (kind === "code") return k === "code" || /^(ts|tsx|js|jsx|mjs|cjs|py|rs|go|c|cpp|h|hpp|java|kt|swift|rb|php|sh|zsh|bash|html?|css|scss|less|vue|svelte|astro|sql|lua|zig|toml|ya?ml)$/.test(ext) || /^(dockerfile|makefile|justfile|\.gitignore|\.env.*)$/.test(n);
-  if (kind === "archive" || kind === "archives") return k === "archive" || /^(zip|tar|gz|tgz|bz2|xz|7z|rar|zst|radenc)$/.test(ext);
-  if (kind === "data") return /^(json|jsonl|csv|tsv|parquet|sqlite|sqlite3|db|ddb|duckdb|xml|ini|conf|env|lock)$/.test(ext);
+  const ext =
+    dot > 0
+      ? n.slice(dot + 1)
+      : String(entry.ext || "")
+          .replace(/^\./, "")
+          .toLowerCase();
+  if (kind === "image" || kind === "images")
+    return (
+      k === "image" ||
+      /^(png|jpe?g|gif|webp|svg|bmp|ico|avif|tiff?|heic)$/.test(ext)
+    );
+  if (kind === "media")
+    return (
+      k === "audio" ||
+      k === "video" ||
+      /^(mp3|wav|ogg|flac|m4a|aac|opus|mp4|mkv|webm|mov|avi|m3u8?)$/.test(ext)
+    );
+  if (kind === "document" || kind === "docs")
+    return (
+      isDocPkg ||
+      k === "pdf" ||
+      k === "document" ||
+      k === "spreadsheet" ||
+      k === "presentation" ||
+      /^(pdf|md|txt|rtf|rtfd|doc|docx|odt|pages|numbers|key|epub|ibooks|textbundle|scriv|ulysses|oo3|mindnode|graffle|playground|playgroundbook|tex)$/.test(
+        ext,
+      )
+    );
+  if (kind === "code")
+    return (
+      k === "code" ||
+      /^(ts|tsx|js|jsx|mjs|cjs|py|rs|go|c|cpp|h|hpp|java|kt|swift|rb|php|sh|zsh|bash|html?|css|scss|less|vue|svelte|astro|sql|lua|zig|toml|ya?ml)$/.test(
+        ext,
+      ) ||
+      /^(dockerfile|makefile|justfile|\.gitignore|\.env.*)$/.test(n)
+    );
+  if (kind === "archive" || kind === "archives")
+    return (
+      k === "archive" || /^(zip|tar|gz|tgz|bz2|xz|7z|rar|zst|radenc)$/.test(ext)
+    );
+  if (kind === "data")
+    return /^(json|jsonl|csv|tsv|parquet|sqlite|sqlite3|db|ddb|duckdb|xml|ini|conf|env|lock)$/.test(
+      ext,
+    );
   return true;
 }
 
@@ -96,7 +144,9 @@ export function entryMatchesKindFilter(entry, kind) {
 function tokenizeQuickFilter(query) {
   const out = [];
   const re = /(-?"[^"]+"|!?"[^"]+"|\S+)/g;
-  for (const m of String(query || "").trim().matchAll(re)) {
+  for (const m of String(query || "")
+    .trim()
+    .matchAll(re)) {
     const raw = m[1].replace(/"/g, "");
     if (raw) out.push(raw);
   }
@@ -115,13 +165,16 @@ function matchSingleQuickToken(entry, rawTok, tags, now, notes) {
   const tok = rawTok.toLowerCase();
   const name = String(entry.name || "").toLowerCase();
   const label = String(entry.label || "").toLowerCase();
-  const entryNote = String((notes && entry.path ? notes[entry.path] : "") || "");
+  const entryNote = String(
+    (notes && entry.path ? notes[entry.path] : "") || "",
+  );
   const entryNoteLower = entryNote.toLowerCase();
 
   // Type & state predicates: is:dir, is:file, is:hidden, is:link, is:empty, is:archive, is:noted
   if (tok.startsWith("is:")) {
     const val = tok.slice(3);
-    if (val === "dir" || val === "folder" || val === "folders") return !!entry.isDir;
+    if (val === "dir" || val === "folder" || val === "folders")
+      return !!entry.isDir;
     if (val === "file" || val === "files") return !entry.isDir;
     if (val === "hidden") return !!entry.hidden || name.startsWith(".");
     if (val === "link" || val === "symlink") return !!entry.isSymlink;
@@ -129,9 +182,21 @@ function matchSingleQuickToken(entry, rawTok, tags, now, notes) {
     if (val === "noted" || val === "note") return Boolean(entryNote);
     if (val === "empty") {
       if (!entry.isDir) return entry.size === 0;
-      return Boolean(entry.folderSizeCalculated && entry.size === 0 && (entry.folderFiles ?? 0) === 0);
+      return Boolean(
+        entry.folderSizeCalculated &&
+        entry.size === 0 &&
+        (entry.folderFiles ?? 0) === 0,
+      );
     }
-    if (val === "archive" || val === "code" || val === "image" || val === "media" || val === "data" || val === "document" || val === "docs") {
+    if (
+      val === "archive" ||
+      val === "code" ||
+      val === "image" ||
+      val === "media" ||
+      val === "data" ||
+      val === "document" ||
+      val === "docs"
+    ) {
       return entryMatchesKindFilter(entry, val);
     }
   }
@@ -140,16 +205,39 @@ function matchSingleQuickToken(entry, rawTok, tags, now, notes) {
   if (tok.startsWith("kind:") || tok.startsWith("type:")) {
     const val = tok.slice(5);
     if (!val) return true;
-    if (["folder", "folders", "image", "images", "media", "document", "docs", "code", "archive", "archives", "data"].includes(val)) {
+    if (
+      [
+        "folder",
+        "folders",
+        "image",
+        "images",
+        "media",
+        "document",
+        "docs",
+        "code",
+        "archive",
+        "archives",
+        "data",
+      ].includes(val)
+    ) {
       return entryMatchesKindFilter(entry, val);
     }
-    return label.includes(val) || String(entry.kind || "").toLowerCase().includes(val);
+    return (
+      label.includes(val) ||
+      String(entry.kind || "")
+        .toLowerCase()
+        .includes(val)
+    );
   }
 
   // Extension predicate: ext:ts or ext:ts,js,json
   if (tok.startsWith("ext:")) {
     if (entry.isDir) return false;
-    const allowed = tok.slice(4).split(",").map((x) => x.replace(/^\./, "").trim()).filter(Boolean);
+    const allowed = tok
+      .slice(4)
+      .split(",")
+      .map((x) => x.replace(/^\./, "").trim())
+      .filter(Boolean);
     if (allowed.length === 0) return true;
     const ext = extensionOf(entry.name || "");
     const archExt = archiveExtensionOf(entry.name || "");
@@ -174,16 +262,24 @@ function matchSingleQuickToken(entry, rawTok, tags, now, notes) {
   }
 
   // Size predicate: size:>1mb, size:<=10kb, size:empty, or bare >10mb / <500kb
-  const sizeMatch = /^(?:size:)?(>=|<=|>|<|=)?(\d+(?:\.\d+)?\s*(?:b|bytes?|k|kb|m|mb|g|gb|t|tb)|empty|0)$/.exec(tok);
+  const sizeMatch =
+    /^(?:size:)?(>=|<=|>|<|=)?(\d+(?:\.\d+)?\s*(?:b|bytes?|k|kb|m|mb|g|gb|t|tb)|empty|0)$/.exec(
+      tok,
+    );
   if (sizeMatch && (tok.startsWith("size:") || sizeMatch[1])) {
     if (entry.isDir && !entry.folderSizeCalculated) return false;
     const op = sizeMatch[1] || "=";
     const target = parseByteSizeToken(sizeMatch[2]);
-    if (target !== null) return compareNumericOp(Number(entry.size || 0), op, target);
+    if (target !== null)
+      return compareNumericOp(Number(entry.size || 0), op, target);
   }
 
   // Date / age predicate: date:today, modified:yesterday, date:week, age:<2d, modified:7d
-  if (tok.startsWith("date:") || tok.startsWith("modified:") || tok.startsWith("age:")) {
+  if (
+    tok.startsWith("date:") ||
+    tok.startsWith("modified:") ||
+    tok.startsWith("age:")
+  ) {
     const val = tok.slice(tok.indexOf(":") + 1).trim();
     const mtime = Number(entry.mtimeMs || 0);
     if (!mtime) return false;
@@ -191,27 +287,40 @@ function matchSingleQuickToken(entry, rawTok, tags, now, notes) {
     startOfToday.setHours(0, 0, 0, 0);
     const todayMs = startOfToday.getTime();
     if (val === "today") return mtime >= todayMs;
-    if (val === "yesterday") return mtime >= todayMs - 86_400_000 && mtime < todayMs;
+    if (val === "yesterday")
+      return mtime >= todayMs - 86_400_000 && mtime < todayMs;
     if (val === "week" || val === "7d") return now - mtime <= 7 * 86_400_000;
     if (val === "month" || val === "30d") return now - mtime <= 30 * 86_400_000;
-    if (val === "year" || val === "365d") return now - mtime <= 365 * 86_400_000;
-    const ageMatch = /^(>=|<=|>|<|=)?(\d+(?:\.\d+)?)(m|min|h|hr|d|day|w|wk|y|yr)s?$/.exec(val);
+    if (val === "year" || val === "365d")
+      return now - mtime <= 365 * 86_400_000;
+    const ageMatch =
+      /^(>=|<=|>|<|=)?(\d+(?:\.\d+)?)(m|min|h|hr|d|day|w|wk|y|yr)s?$/.exec(val);
     if (ageMatch) {
       const op = ageMatch[1] || "<=";
       const n = Number(ageMatch[2]);
       const u = ageMatch[3];
-      const ms = u.startsWith("m") ? n * 60_000
-        : u.startsWith("h") ? n * 3_600_000
-        : u.startsWith("w") ? n * 7 * 86_400_000
-        : u.startsWith("y") ? n * 365 * 86_400_000
-        : n * 86_400_000;
+      const ms = u.startsWith("m")
+        ? n * 60_000
+        : u.startsWith("h")
+          ? n * 3_600_000
+          : u.startsWith("w")
+            ? n * 7 * 86_400_000
+            : u.startsWith("y")
+              ? n * 365 * 86_400_000
+              : n * 86_400_000;
       return compareNumericOp(now - mtime, op, ms);
     }
   }
 
   // Glob / wildcard token: *.ts, report?.pdf, *test*
   if (tok.includes("*") || tok.includes("?")) {
-    const pattern = "^" + tok.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\?/g, ".") + "$";
+    const pattern =
+      "^" +
+      tok
+        .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+        .replace(/\*/g, ".*")
+        .replace(/\?/g, ".") +
+      "$";
     try {
       return new RegExp(pattern, "i").test(entry.name || "");
     } catch {
@@ -220,7 +329,11 @@ function matchSingleQuickToken(entry, rawTok, tags, now, notes) {
   }
 
   // Plain substring match on filename, kind label, or sticky note text
-  return name.includes(tok) || label.includes(tok) || (entryNoteLower.length > 0 && entryNoteLower.includes(tok));
+  return (
+    name.includes(tok) ||
+    label.includes(tok) ||
+    (entryNoteLower.length > 0 && entryNoteLower.includes(tok))
+  );
 }
 
 /**
@@ -228,13 +341,20 @@ function matchSingleQuickToken(entry, rawTok, tags, now, notes) {
  * Supports plain substrings, multi-word AND tokens, negation (`-node_modules`, `!*.log`),
  * wildcards (`*.ts`), `ext:ts,js`, `size:>1mb`, `date:today`, `is:dir`, `is:file`, `is:noted`, `tag:red`, `note:todo`, and `kind:code`.
  */
-export function entryMatchesQuickFilter(entry, query, tags = state.settings?.tags, now = Date.now(), notes = state.settings?.notes) {
+export function entryMatchesQuickFilter(
+  entry,
+  query,
+  tags = state.settings?.tags,
+  now = Date.now(),
+  notes = state.settings?.notes,
+) {
   if (!query || !String(query).trim()) return true;
   const tokens = tokenizeQuickFilter(query);
   if (tokens.length === 0) return true;
   for (const raw of tokens) {
     if ((raw.startsWith("-") || raw.startsWith("!")) && raw.length > 1) {
-      if (matchSingleQuickToken(entry, raw.slice(1), tags, now, notes)) return false;
+      if (matchSingleQuickToken(entry, raw.slice(1), tags, now, notes))
+        return false;
     } else if (!matchSingleQuickToken(entry, raw, tags, now, notes)) {
       return false;
     }
@@ -264,11 +384,15 @@ export function applyCachedFolderSizes(entries) {
  * Calculates total sizes on demand for folders in `pane` (or a specific list of folder paths)
  * and updates the file list and sorting immediately.
  */
-export async function calculateFolderSizes(pane = activePane(), specificPaths = null) {
+export async function calculateFolderSizes(
+  pane = activePane(),
+  specificPaths = null,
+) {
   const source = pane.search ? pane.search.entries : pane.entries;
-  const folders = Array.isArray(specificPaths) && specificPaths.length
-    ? source.filter((e) => e.isDir && specificPaths.includes(e.path))
-    : source.filter((e) => e.isDir);
+  const folders =
+    Array.isArray(specificPaths) && specificPaths.length
+      ? source.filter((e) => e.isDir && specificPaths.includes(e.path))
+      : source.filter((e) => e.isDir);
   if (folders.length === 0) {
     toast("No folders in this view to measure.", { kind: "info" });
     return { count: 0, totalBytes: 0 };
@@ -311,7 +435,10 @@ export async function calculateFolderSizes(pane = activePane(), specificPaths = 
       visibleCache.delete(right);
       emit("view");
       emit("selection");
-      toast(`Calculated sizes for ${plural(count, "folder")} (${formatSize(totalBytes)} total)`, { kind: "ok" });
+      toast(
+        `Calculated sizes for ${plural(count, "folder")} (${formatSize(totalBytes)} total)`,
+        { kind: "ok" },
+      );
       return { count, totalBytes, sizes };
     } catch (err) {
       reportLoadError(err);
@@ -326,13 +453,29 @@ const visibleCache = new WeakMap();
 export function visibleEntries(pane = left) {
   const { sortBy, sortDir, foldersFirst } = state.settings;
   const isTrash = pane.location.kind === "trash";
-  const sourceList = isTrash ? pane.trashItems : (pane.search ? pane.search.entries : pane.entries);
-  const tagFilter = !isTrash && state.tagFilter && state.settings?.tags ? state.tagFilter : "";
-  const kindFilter = !isTrash && pane.side !== "right" ? (state.kindFilter || "all") : "all";
-  const quickFilter = !isTrash && pane.side !== "right" ? (state.quickFilter || "").trim().toLowerCase() : "";
-  const needMetaDigest = Boolean(tagFilter || quickFilter) && sourceList?.length;
-  const tagVal = needMetaDigest && state.settings?.tags ? sourceList.map((e) => state.settings.tags[e.path] || "").join("|") : "";
-  const noteVal = quickFilter && needMetaDigest && state.settings?.notes ? sourceList.map((e) => state.settings.notes[e.path] || "").join("|") : "";
+  const sourceList = isTrash
+    ? pane.trashItems
+    : pane.search
+      ? pane.search.entries
+      : pane.entries;
+  const tagFilter =
+    !isTrash && state.tagFilter && state.settings?.tags ? state.tagFilter : "";
+  const kindFilter =
+    !isTrash && pane.side !== "right" ? state.kindFilter || "all" : "all";
+  const quickFilter =
+    !isTrash && pane.side !== "right"
+      ? (state.quickFilter || "").trim().toLowerCase()
+      : "";
+  const needMetaDigest =
+    Boolean(tagFilter || quickFilter) && sourceList?.length;
+  const tagVal =
+    needMetaDigest && state.settings?.tags
+      ? sourceList.map((e) => state.settings.tags[e.path] || "").join("|")
+      : "";
+  const noteVal =
+    quickFilter && needMetaDigest && state.settings?.notes
+      ? sourceList.map((e) => state.settings.notes[e.path] || "").join("|")
+      : "";
 
   const prev = visibleCache.get(pane);
   if (
@@ -354,7 +497,11 @@ export function visibleEntries(pane = left) {
 
   let result;
   if (isTrash) {
-    result = sortEntries(pane.trashItems, { by: sortBy === "type" ? "name" : sortBy, dir: sortDir, foldersFirst });
+    result = sortEntries(pane.trashItems, {
+      by: sortBy === "type" ? "name" : sortBy,
+      dir: sortDir,
+      foldersFirst,
+    });
   } else {
     let raw = sourceList;
     if (tagFilter) {
@@ -366,7 +513,15 @@ export function visibleEntries(pane = left) {
       }
       if (quickFilter) {
         const now = Date.now();
-        raw = raw.filter((e) => entryMatchesQuickFilter(e, quickFilter, state.settings?.tags, now, state.settings?.notes));
+        raw = raw.filter((e) =>
+          entryMatchesQuickFilter(
+            e,
+            quickFilter,
+            state.settings?.tags,
+            now,
+            state.settings?.notes,
+          ),
+        );
       }
     }
     result = sortEntries(raw, { by: sortBy, dir: sortDir, foldersFirst });
@@ -421,11 +576,15 @@ export async function goTo(path, { push = true, select = null } = {}) {
   const mine = ++navigation;
   return busy(async () => {
     try {
-      const res = await call("list", { path, showHidden: state.settings.showHidden });
+      const res = await call("list", {
+        path,
+        showHidden: state.settings.showHidden,
+      });
       if (mine !== navigation) return false; // a newer navigation took over
       const here = state.location;
       const moved = !(here.kind === "folder" && here.path === res.path);
-      if (push && moved && (here.kind === "trash" || here.path)) pushHistory(here);
+      if (push && moved && (here.kind === "trash" || here.path))
+        pushHistory(here);
       if (moved) {
         state.quickFilter = "";
         state.kindFilter = "all";
@@ -451,7 +610,9 @@ export async function goTo(path, { push = true, select = null } = {}) {
 }
 
 export function reportLoadError(err) {
-  toast(err instanceof ApiError ? err.message : "That couldn't be opened.", { kind: "error" });
+  toast(err instanceof ApiError ? err.message : "That couldn't be opened.", {
+    kind: "error",
+  });
 }
 
 /** Opens the Recycle Bin. */
@@ -461,13 +622,23 @@ export async function showTrash({ push = true } = {}) {
     try {
       const res = await call("trash/list");
       if (mine !== navigation) return false;
-      if (push && !(state.location.kind === "trash")) pushHistory(state.location);
+      if (push && !(state.location.kind === "trash"))
+        pushHistory(state.location);
       state.quickFilter = "";
       state.kindFilter = "all";
       state.location = { kind: "trash" };
       state.trashItems = res.items.map((r) => ({
-        path: r.id, id: r.id, name: r.name, isDir: r.isDir, size: r.size ?? 0, mtimeMs: Date.parse(r.deletedAt) || 0,
-        originalPath: r.originalPath, where: parentOf(r.originalPath, state.sep) ?? r.originalPath, label: r.isDir ? "Folder" : "File", icon: "", hidden: false,
+        path: r.id,
+        id: r.id,
+        name: r.name,
+        isDir: r.isDir,
+        size: r.size ?? 0,
+        mtimeMs: Date.parse(r.deletedAt) || 0,
+        originalPath: r.originalPath,
+        where: parentOf(r.originalPath, state.sep) ?? r.originalPath,
+        label: r.isDir ? "Folder" : "File",
+        icon: "",
+        hidden: false,
       }));
       state.entries = [];
       state.total = res.count;
@@ -491,7 +662,10 @@ export async function showTrash({ push = true } = {}) {
  * Reloads what is shown, keeping the selection where the items still exist. It reloads the active pane; in the Dual
  * view the other pane is reloaded too, because what was done in one folder often shows in the other.
  */
-export async function refresh({ keepSelection = true, pane = activePane() } = {}) {
+export async function refresh({
+  keepSelection = true,
+  pane = activePane(),
+} = {}) {
   if (pane.side === "right") {
     await hooks.loadRight?.(right.location.path, { keep: keepSelection });
     if (isFolderView(left)) await refreshLeft(true);
@@ -504,7 +678,9 @@ async function refreshLeft(keepSelection) {
   const keep = keepSelection ? [...state.selection] : [];
   if (inTrash()) {
     await showTrash({ push: false });
-    resetSelection(keep.filter((k) => state.trashItems.some((i) => i.path === k)));
+    resetSelection(
+      keep.filter((k) => state.trashItems.some((i) => i.path === k)),
+    );
     emit("selection");
     return;
   }
@@ -522,7 +698,11 @@ async function refreshLeft(keepSelection) {
 
 /** Opens a folder in a pane: the left list goes through the normal navigation (with Back and Forward), the right one loads it. */
 export function goToIn(pane, path, options = {}) {
-  return pane.side === "right" ? (hooks.loadRight ? hooks.loadRight(path, options) : false) : goTo(path, options);
+  return pane.side === "right"
+    ? hooks.loadRight
+      ? hooks.loadRight(path, options)
+      : false
+    : goTo(path, options);
 }
 
 /** Up one level in the given pane. */
@@ -532,7 +712,10 @@ export async function goUpIn(pane) {
   if (parent) await goToIn(right, parent, { select: right.location.path });
 }
 
-export const canGoUpIn = (pane) => (pane.side === "left" ? canGoUp() || inTrash() : !!parentOf(pane.location.path ?? "", state.sep));
+export const canGoUpIn = (pane) =>
+  pane.side === "left"
+    ? canGoUp() || inTrash()
+    : !!parentOf(pane.location.path ?? "", state.sep);
 
 export async function goBack() {
   const target = state.history.pop();
@@ -549,7 +732,10 @@ export async function goForward() {
 }
 
 async function openLocation(loc) {
-  const ok = loc.kind === "trash" ? await showTrash({ push: false }) : await goTo(loc.path, { push: false });
+  const ok =
+    loc.kind === "trash"
+      ? await showTrash({ push: false })
+      : await goTo(loc.path, { push: false });
   if (!ok) emit("view");
 }
 
@@ -561,7 +747,8 @@ export async function goUp() {
   if (parent) await goTo(parent, { select: here });
 }
 
-export const canGoUp = () => !inTrash() && !!parentOf(state.location.path ?? "", state.sep);
+export const canGoUp = () =>
+  !inTrash() && !!parentOf(state.location.path ?? "", state.sep);
 
 // ---------------------------------------------------------------------------------------------------------------
 // Search
@@ -575,10 +762,20 @@ export async function runSearch(query, { keepSelection = false } = {}) {
   return busy(async () => {
     try {
       const root = state.search?.root ?? state.location.path;
-      const res = await call("search", { path: root, query: text, showHidden: state.settings.showHidden });
+      const res = await call("search", {
+        path: root,
+        query: text,
+        showHidden: state.settings.showHidden,
+      });
       if (mine !== navigation) return false;
       const keep = keepSelection ? [...state.selection] : [];
-      state.search = { query: text, root, entries: res.entries, truncated: res.truncated, skipped: res.skipped };
+      state.search = {
+        query: text,
+        root,
+        entries: res.entries,
+        truncated: res.truncated,
+        skipped: res.skipped,
+      };
       state.shown = 0;
       if (keepSelection) {
         const present = new Set(res.entries.map(keyOf));

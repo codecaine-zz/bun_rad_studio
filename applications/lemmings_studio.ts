@@ -147,7 +147,11 @@ ${getWindowShortcutsScript()}
     title?: string,
     accent?: string,
   ) => string;
-  return applyFx(html, "Codecaine CyberLemmings: Kernel Thread Rescue", "emerald");
+  return applyFx(
+    html,
+    "Codecaine CyberLemmings: Kernel Thread Rescue",
+    "emerald",
+  );
 }
 
 export function startLemmingsServer(options: LemmingsServerOptions = {}) {
@@ -177,7 +181,10 @@ export function startLemmingsServer(options: LemmingsServerOptions = {}) {
 
       if (pathname === "/" || pathname === "/index.html") {
         return new Response(generateLemmingsStudioHtml(), {
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            ...corsHeaders,
+          },
         });
       }
 
@@ -216,7 +223,9 @@ export function startLemmingsServer(options: LemmingsServerOptions = {}) {
         return new Response("Forbidden", { status: 403 });
       }
       if (existsSync(directCandidate)) {
-        return new Response(Bun.file(directCandidate), { headers: corsHeaders });
+        return new Response(Bun.file(directCandidate), {
+          headers: corsHeaders,
+        });
       }
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
@@ -224,7 +233,9 @@ export function startLemmingsServer(options: LemmingsServerOptions = {}) {
   });
 }
 
-export function createLemmingsStudio(options: LemmingsStudioOptions = {}): LemmingsStudioInstance {
+export function createLemmingsStudio(
+  options: LemmingsStudioOptions = {},
+): LemmingsStudioInstance {
   const fullscreen = options.fullscreen ?? false;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1280);
@@ -256,7 +267,8 @@ export function createLemmingsStudio(options: LemmingsStudioOptions = {}): Lemmi
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -276,11 +288,15 @@ export function createLemmingsStudio(options: LemmingsStudioOptions = {}): Lemmi
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -291,13 +307,19 @@ export function createLemmingsStudio(options: LemmingsStudioOptions = {}): Lemmi
 
         webview.setHTML(html);
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -317,13 +339,19 @@ export const createLemmingsApp = createLemmingsStudio;
 export const startLemmingsStudioServer = startLemmingsServer;
 
 if (process.argv.includes("--server")) {
-  const port = parseInt(process.env.LEMMINGS_PORT || process.env.PORT || String(APP_PORT), 10);
+  const port = parseInt(
+    process.env.LEMMINGS_PORT || process.env.PORT || String(APP_PORT),
+    10,
+  );
   const srv = startLemmingsServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`🧵 ${APP_TITLE} Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `🧵 ${APP_TITLE} Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = process.argv.includes("--fullscreen") || process.argv.includes("-f");
+  const fullscreen =
+    process.argv.includes("--fullscreen") || process.argv.includes("-f");
   const app = createLemmingsStudio({ fullscreen });
   await app.run();
   process.exit(0);

@@ -24,11 +24,27 @@
  */
 import { promises as fsp, type Dirent } from "fs";
 import * as nodePath from "path";
-import { absolutePath, assertCreatable, assertFolder, assertModifiable, assertNotIntoItself, lstatOrNull, pathApi, type FmContext } from "./fmCore";
+import {
+  absolutePath,
+  assertCreatable,
+  assertFolder,
+  assertModifiable,
+  assertNotIntoItself,
+  lstatOrNull,
+  pathApi,
+  type FmContext,
+} from "./fmCore";
 import { renameItem, resolveTarget, type Policy } from "./fmOps";
 import { FmError, describeFsError } from "./fmPaths";
 import { restoreFromTrash } from "./fmTrash";
-import { StepSkip, type ItemSize, type JobSpec, type JobStepSpec, type JobView, type StepProgress } from "./fmJobs";
+import {
+  StepSkip,
+  type ItemSize,
+  type JobSpec,
+  type JobStepSpec,
+  type JobView,
+  type StepProgress,
+} from "./fmJobs";
 
 /** Maximum number of source items allowed in a single queued copy, move, or rename operation. */
 export const MAX_ITEMS_PER_OPERATION = 5000;
@@ -41,7 +57,11 @@ export type TransferMode = "copy" | "move";
 const word = (n: number, one: string) => `${n} ${n === 1 ? one : `${one}s`}`;
 
 /** Counts the files and bytes under `source` (links count as one small file), or null when that can't be known. */
-export async function measureTree(source: string, signal: AbortSignal, limit = MEASURE_LIMIT): Promise<ItemSize | null> {
+export async function measureTree(
+  source: string,
+  signal: AbortSignal,
+  limit = MEASURE_LIMIT,
+): Promise<ItemSize | null> {
   let files = 0;
   let bytes = 0;
   let seen = 0;
@@ -80,7 +100,11 @@ export async function measureTree(source: string, signal: AbortSignal, limit = M
       }
       for (let i = 0; i < regularFiles.length; i += 64) {
         signal.throwIfAborted();
-        const batch = await Promise.all(regularFiles.slice(i, i + 64).map((f) => fsp.lstat(f).catch(() => null)));
+        const batch = await Promise.all(
+          regularFiles
+            .slice(i, i + 64)
+            .map((f) => fsp.lstat(f).catch(() => null)),
+        );
         for (const st of batch) if (st && st.isFile()) bytes += st.size;
       }
     }
@@ -96,7 +120,13 @@ interface CopyState {
   created: boolean;
 }
 
-async function copyFileWithProgress(source: string, destination: string, signal: AbortSignal, progress: StepProgress, state: CopyState | null): Promise<void> {
+async function copyFileWithProgress(
+  source: string,
+  destination: string,
+  signal: AbortSignal,
+  progress: StepProgress,
+  state: CopyState | null,
+): Promise<void> {
   const before = await fsp.lstat(source);
   const reader = await fsp.open(source, "r");
   try {
@@ -118,40 +148,82 @@ async function copyFileWithProgress(source: string, destination: string, signal:
     await reader.close();
   }
   const after = await fsp.lstat(source);
-  if (after.size !== before.size || after.mtimeMs !== before.mtimeMs) throw new FmError("CHANGED", "This file changed while it was being copied, so the copy was thrown away. Try again when nothing is writing to it.");
+  if (after.size !== before.size || after.mtimeMs !== before.mtimeMs)
+    throw new FmError(
+      "CHANGED",
+      "This file changed while it was being copied, so the copy was thrown away. Try again when nothing is writing to it.",
+    );
   await fsp.utimes(destination, before.atime, before.mtime).catch(() => {});
   progress.files(1);
 }
 
 /** Copies a file, folder or link to a path that does not exist yet, reporting progress and honouring `signal`. */
-export async function copyWithProgress(source: string, destination: string, signal: AbortSignal, progress: StepProgress, state: CopyState = { created: false }, top = true): Promise<void> {
+export async function copyWithProgress(
+  source: string,
+  destination: string,
+  signal: AbortSignal,
+  progress: StepProgress,
+  state: CopyState = { created: false },
+  top = true,
+): Promise<void> {
   signal.throwIfAborted();
   const st = await fsp.lstat(source);
   if (st.isDirectory()) {
     await fsp.mkdir(destination, { mode: st.mode & 0o7777 });
     if (top) state.created = true;
-    for (const name of await fsp.readdir(source)) await copyWithProgress(nodePath.join(source, name), nodePath.join(destination, name), signal, progress, state, false);
+    for (const name of await fsp.readdir(source))
+      await copyWithProgress(
+        nodePath.join(source, name),
+        nodePath.join(destination, name),
+        signal,
+        progress,
+        state,
+        false,
+      );
     await fsp.utimes(destination, st.atime, st.mtime).catch(() => {});
   } else if (st.isSymbolicLink()) {
     await fsp.symlink(await fsp.readlink(source), destination);
     if (top) state.created = true;
     progress.files(1);
   } else if (st.isFile()) {
-    await copyFileWithProgress(source, destination, signal, progress, top ? state : null);
+    await copyFileWithProgress(
+      source,
+      destination,
+      signal,
+      progress,
+      top ? state : null,
+    );
   } else {
-    throw new FmError("NOT_REGULAR", `"${nodePath.basename(source)}" is a special file (a pipe, socket or device), so it was not copied.`);
+    throw new FmError(
+      "NOT_REGULAR",
+      `"${nodePath.basename(source)}" is a special file (a pipe, socket or device), so it was not copied.`,
+    );
   }
 }
 
 /** Restores a previously displaced item from the Recycle Bin when a `replace` transfer fails or is cancelled. */
-export async function undoReplace(ctx: FmContext, replacedTrashId: string | undefined): Promise<string> {
+export async function undoReplace(
+  ctx: FmContext,
+  replacedTrashId: string | undefined,
+): Promise<string> {
   if (!replacedTrashId) return "";
-  const [back] = await restoreFromTrash(ctx, [replacedTrashId]).catch(() => [undefined]);
-  return back && back.ok ? " The item that was in the way has been put back." : " The item that was in the way is in the Recycle Bin: open it there to restore it.";
+  const [back] = await restoreFromTrash(ctx, [replacedTrashId]).catch(() => [
+    undefined,
+  ]);
+  return back && back.ok
+    ? " The item that was in the way has been put back."
+    : " The item that was in the way is in the Recycle Bin: open it there to restore it.";
 }
 
 /** One copy or move. `name` gives the item a different name in `destDir` (the plans use it for exact destinations). */
-export function transferStep(ctx: FmContext, mode: TransferMode, source: string, destDir: string, policy: Policy, name?: string): JobStepSpec {
+export function transferStep(
+  ctx: FmContext,
+  mode: TransferMode,
+  source: string,
+  destDir: string,
+  policy: Policy,
+  name?: string,
+): JobStepSpec {
   const p = pathApi(ctx);
   let size: ItemSize | null = null;
   return {
@@ -170,19 +242,41 @@ export function transferStep(ctx: FmContext, mode: TransferMode, source: string,
           assertCreatable(ctx, destDir);
           await assertFolder(destDir, "The destination");
           const st = await lstatOrNull(source);
-          if (!st) throw new FmError("NOT_FOUND", `"${p.basename(source)}" no longer exists. It may have been moved or deleted by another program.`);
+          if (!st)
+            throw new FmError(
+              "NOT_FOUND",
+              `"${p.basename(source)}" no longer exists. It may have been moved or deleted by another program.`,
+            );
           if (st.isDirectory()) assertNotIntoItself(ctx, source, destDir);
           signal.throwIfAborted();
-          const resolved = await resolveTarget(ctx, source, destDir, policy, mode === "copy", name);
+          const resolved = await resolveTarget(
+            ctx,
+            source,
+            destDir,
+            policy,
+            mode === "copy",
+            name,
+          );
           if (!resolved.target) {
-            throw new StepSkip(mode === "move" && p.dirname(source) === destDir ? "Already in that folder." : "Left alone: something with that name is already there.");
+            throw new StepSkip(
+              mode === "move" && p.dirname(source) === destDir
+                ? "Already in that folder."
+                : "Left alone: something with that name is already there.",
+            );
           }
           target = resolved.target;
           replacedTrashId = resolved.replaced?.trashId;
-          progress.item({ destination: target, replacedTrashId, bytes: size?.bytes ?? null, files: size?.files ?? null });
+          progress.item({
+            destination: target,
+            replacedTrashId,
+            bytes: size?.bytes ?? null,
+            files: size?.files ?? null,
+          });
           if (signal.aborted) {
             const back = await undoReplace(ctx, replacedTrashId);
-            progress.note(`Stopped before anything was ${verb === "copy" ? "copied" : "moved"}.${back}`);
+            progress.note(
+              `Stopped before anything was ${verb === "copy" ? "copied" : "moved"}.${back}`,
+            );
             signal.throwIfAborted();
           }
           let renamed = false;
@@ -205,14 +299,19 @@ export function transferStep(ctx: FmContext, mode: TransferMode, source: string,
             try {
               await fsp.rm(source, { recursive: true, force: false });
             } catch {
-              throw new FmError("PARTIAL_MOVE", `"${p.basename(source)}" was copied to the new place, but the original could not be removed. Both copies exist: remove the original yourself (retrying would make a third copy).`);
+              throw new FmError(
+                "PARTIAL_MOVE",
+                `"${p.basename(source)}" was copied to the new place, but the original could not be removed. Both copies exist: remove the original yourself (retrying would make a third copy).`,
+              );
             }
           }
         } catch (err) {
           const partial = err instanceof FmError && err.code === "PARTIAL_MOVE";
           let note = "";
           if (!partial && target && state.created) {
-            await fsp.rm(target, { recursive: true, force: true }).catch(() => {});
+            await fsp
+              .rm(target, { recursive: true, force: true })
+              .catch(() => {});
             note = " The partly made copy was removed.";
           }
           if (!(err instanceof StepSkip) && !partial) {
@@ -220,7 +319,9 @@ export function transferStep(ctx: FmContext, mode: TransferMode, source: string,
             if (back) note += back;
           }
           if (signal.aborted) {
-            progress.note(`Stopped part-way through "${p.basename(source)}".${note || " Nothing of it was kept."}`);
+            progress.note(
+              `Stopped part-way through "${p.basename(source)}".${note || " Nothing of it was kept."}`,
+            );
             throw err;
           }
           if (err instanceof StepSkip) throw err;
@@ -237,9 +338,20 @@ function checkedPolicy(value: unknown): Policy {
 }
 
 /** Queues a copy or move of `sources` into `dest`. Problems with the request itself throw; problems with an item are reported per item. */
-export async function startTransfer(ctx: FmContext, mode: TransferMode, sourcesInput: unknown, destInput: unknown, policyInput?: unknown): Promise<JobView> {
-  if (!Array.isArray(sourcesInput) || sourcesInput.length === 0) throw new FmError("BAD_REQUEST", "Nothing was selected.");
-  if (sourcesInput.length > MAX_ITEMS_PER_OPERATION) throw new FmError("TOO_MANY", `That is more than ${MAX_ITEMS_PER_OPERATION} items at once. Do it in smaller groups.`);
+export async function startTransfer(
+  ctx: FmContext,
+  mode: TransferMode,
+  sourcesInput: unknown,
+  destInput: unknown,
+  policyInput?: unknown,
+): Promise<JobView> {
+  if (!Array.isArray(sourcesInput) || sourcesInput.length === 0)
+    throw new FmError("BAD_REQUEST", "Nothing was selected.");
+  if (sourcesInput.length > MAX_ITEMS_PER_OPERATION)
+    throw new FmError(
+      "TOO_MANY",
+      `That is more than ${MAX_ITEMS_PER_OPERATION} items at once. Do it in smaller groups.`,
+    );
   const destDir = absolutePath(ctx, destInput);
   await assertFolder(destDir, "The destination");
   assertCreatable(ctx, destDir);
@@ -256,13 +368,22 @@ export async function startTransfer(ctx: FmContext, mode: TransferMode, sourcesI
 }
 
 /** Queues renames: each `{ path, name }` gives one item a new name in its own folder. Never replaces an existing item. */
-export async function startRenames(ctx: FmContext, itemsInput: unknown): Promise<JobView> {
-  if (!Array.isArray(itemsInput) || itemsInput.length === 0) throw new FmError("BAD_REQUEST", "Nothing was selected.");
-  if (itemsInput.length > MAX_ITEMS_PER_OPERATION) throw new FmError("TOO_MANY", `That is more than ${MAX_ITEMS_PER_OPERATION} items at once. Do it in smaller groups.`);
+export async function startRenames(
+  ctx: FmContext,
+  itemsInput: unknown,
+): Promise<JobView> {
+  if (!Array.isArray(itemsInput) || itemsInput.length === 0)
+    throw new FmError("BAD_REQUEST", "Nothing was selected.");
+  if (itemsInput.length > MAX_ITEMS_PER_OPERATION)
+    throw new FmError(
+      "TOO_MANY",
+      `That is more than ${MAX_ITEMS_PER_OPERATION} items at once. Do it in smaller groups.`,
+    );
   const p = pathApi(ctx);
   const items = itemsInput.map((i: { path?: unknown; name?: unknown }) => {
     const path = absolutePath(ctx, i?.path);
-    if (typeof i?.name !== "string") throw new FmError("BAD_NAME", "Every item needs a new name.");
+    if (typeof i?.name !== "string")
+      throw new FmError("BAD_NAME", "Every item needs a new name.");
     return { path, name: i.name };
   });
   const steps: JobStepSpec[] = items.map(({ path, name }) => ({
@@ -275,11 +396,18 @@ export async function startRenames(ctx: FmContext, itemsInput: unknown): Promise
           progress.item({ destination: r.to });
           progress.files(1);
         } catch (err) {
-          throw new Error(`${p.basename(path)}: ${describeFsError(err, "rename that").message}`);
+          throw new Error(
+            `${p.basename(path)}: ${describeFsError(err, "rename that").message}`,
+          );
         }
       },
     }),
     keepFinishedOnCancel: true,
   }));
-  return ctx.jobs.start({ kind: "rename", title: `Rename ${word(items.length, "item")}`, retryable: true, steps });
+  return ctx.jobs.start({
+    kind: "rename",
+    title: `Rename ${word(items.length, "item")}`,
+    retryable: true,
+    steps,
+  });
 }

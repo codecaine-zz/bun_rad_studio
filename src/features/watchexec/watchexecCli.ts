@@ -49,12 +49,24 @@ export function parseWatchexecArguments(args: string[]): WatchexecOptions {
     ? values.exts.split(",").map((s) => s.trim().replace(/^\./, ""))
     : undefined;
 
-  const defaultIgnores = ["node_modules", ".git", ".graveyard", "dist", "build"];
-  const userIgnores = values.ignore ? values.ignore.split(",").map((s) => s.trim()) : [];
+  const defaultIgnores = [
+    "node_modules",
+    ".git",
+    ".graveyard",
+    "dist",
+    "build",
+  ];
+  const userIgnores = values.ignore
+    ? values.ignore.split(",").map((s) => s.trim())
+    : [];
   const ignorePatterns = [...defaultIgnores, ...userIgnores];
-  const filterPatterns = values.filter ? values.filter.split(",").map((s) => s.trim()) : undefined;
+  const filterPatterns = values.filter
+    ? values.filter.split(",").map((s) => s.trim())
+    : undefined;
 
-  const watchPaths = values.watch ? values.watch.split(",").map((s) => s.trim()) : ["."];
+  const watchPaths = values.watch
+    ? values.watch.split(",").map((s) => s.trim())
+    : ["."];
   const debounceMs = parseInt(values.debounce ?? "100", 10);
   const restart = values["no-restart"] ? false : (values.restart ?? true);
   const runOnStart = !values.postpone;

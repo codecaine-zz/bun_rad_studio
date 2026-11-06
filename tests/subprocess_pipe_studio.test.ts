@@ -21,7 +21,10 @@ import { join } from "path";
 import { tmpdir } from "os";
 
 describe("Subprocess Pipe Pro - Shell Process Master & Multi-Stage Pipelining", () => {
-  const testStoragePath = join(tmpdir(), `test_saved_pipelines_${Date.now()}.json`);
+  const testStoragePath = join(
+    tmpdir(),
+    `test_saved_pipelines_${Date.now()}.json`,
+  );
 
   afterEach(() => {
     try {
@@ -51,7 +54,8 @@ describe("Subprocess Pipe Pro - Shell Process Master & Multi-Stage Pipelining", 
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         mode: "piped",
-        initialStdin: "user=root status=failed\nuser=admin status=ok\nuser=guest status=failed",
+        initialStdin:
+          "user=root status=failed\nuser=admin status=ok\nuser=guest status=failed",
         stages: [
           {
             id: "s1",
@@ -146,7 +150,10 @@ describe("Subprocess Pipe Pro - Shell Process Master & Multi-Stage Pipelining", 
 
     it("clones and deletes named pipelines cleanly", () => {
       const library = new PipelineLibrary(testStoragePath);
-      const cloned = library.clonePipeline("Process Filter & Telemetry", "Process Filter (Duplicate)");
+      const cloned = library.clonePipeline(
+        "Process Filter & Telemetry",
+        "Process Filter (Duplicate)",
+      );
       expect(cloned).not.toBeNull();
       expect(cloned?.name).toBe("Process Filter (Duplicate)");
       expect(library.hasPipeline("Process Filter (Duplicate)")).toBe(true);
@@ -342,7 +349,9 @@ describe("Subprocess Pipe Pro - Shell Process Master & Multi-Stage Pipelining", 
     it("accurately detects commands that require sudo elevation", () => {
       expect(isSudoRequired("sudo apt-get update")).toBe(true);
       expect(isSudoRequired("sudo dmesg")).toBe(true);
-      expect(isSudoRequired("cat /var/log/syslog | sudo tee /tmp/log")).toBe(true);
+      expect(isSudoRequired("cat /var/log/syslog | sudo tee /tmp/log")).toBe(
+        true,
+      );
       expect(isSudoRequired("echo 1 && sudo sysctl -p")).toBe(true);
       expect(isSudoRequired("ls -la")).toBe(false);
       expect(isSudoRequired("ps aux | grep bun")).toBe(false);
@@ -409,19 +418,25 @@ describe("Subprocess Pipe Pro - Shell Process Master & Multi-Stage Pipelining", 
 
     it("creates, exercises, and safely unlinks temporary askpass helper scripts", async () => {
       let scriptExistedDuringRun = false;
-      const res = await withAskpass("test_secret_123", async (askpassPath, env) => {
-        const { existsSync } = await import("fs");
-        scriptExistedDuringRun = existsSync(askpassPath);
-        expect(env.BUN_RAD_SUDO_PASS).toBe("test_secret_123");
-        expect(env.SUDO_ASKPASS).toBe(askpassPath);
+      const res = await withAskpass(
+        "test_secret_123",
+        async (askpassPath, env) => {
+          const { existsSync } = await import("fs");
+          scriptExistedDuringRun = existsSync(askpassPath);
+          expect(env.BUN_RAD_SUDO_PASS).toBe("test_secret_123");
+          expect(env.SUDO_ASKPASS).toBe(askpassPath);
 
-        const proc = Bun.spawn(process.platform === "win32" ? ["sh", askpassPath] : [askpassPath], { env: { ...process.env, ...env }, stdout: "pipe" });
-        const out = await new Response(proc.stdout).text();
-        await proc.exited;
-        expect(out.trim()).toBe("test_secret_123");
+          const proc = Bun.spawn(
+            process.platform === "win32" ? ["sh", askpassPath] : [askpassPath],
+            { env: { ...process.env, ...env }, stdout: "pipe" },
+          );
+          const out = await new Response(proc.stdout).text();
+          await proc.exited;
+          expect(out.trim()).toBe("test_secret_123");
 
-        return "askpass_success";
-      });
+          return "askpass_success";
+        },
+      );
 
       expect(res).toBe("askpass_success");
       expect(scriptExistedDuringRun).toBe(true);
@@ -519,26 +534,40 @@ describe("Subprocess Pipe Pro - Shell Process Master & Multi-Stage Pipelining", 
 
       // Verify controls exist
       expect(controls.find((c) => c.id === "txt_pipeline_name")).toBeDefined();
-      expect(controls.find((c) => c.id === "btn_save_named_pipeline")).toBeDefined();
+      expect(
+        controls.find((c) => c.id === "btn_save_named_pipeline"),
+      ).toBeDefined();
       expect(controls.find((c) => c.id === "btn_save_as_new")).toBeDefined();
       expect(controls.find((c) => c.id === "dd_saved_pipelines")).toBeDefined();
-      expect(controls.find((c) => c.id === "btn_load_named_pipeline")).toBeDefined();
-      expect(controls.find((c) => c.id === "btn_delete_named_pipeline")).toBeDefined();
+      expect(
+        controls.find((c) => c.id === "btn_load_named_pipeline"),
+      ).toBeDefined();
+      expect(
+        controls.find((c) => c.id === "btn_delete_named_pipeline"),
+      ).toBeDefined();
       expect(controls.find((c) => c.id === "tbl_stages")).toBeDefined();
       expect(controls.find((c) => c.id === "btn_run_all")).toBeDefined();
       expect(controls.find((c) => c.id === "btn_step_next")).toBeDefined();
       expect(controls.find((c) => c.id === "btn_test_selected")).toBeDefined();
       expect(controls.find((c) => c.id === "btn_check_sudo")).toBeDefined();
       expect(controls.find((c) => c.id === "btn_auth_sudo")).toBeDefined();
-      expect(controls.find((c) => c.id === "txt_inspector_content")).toBeDefined();
+      expect(
+        controls.find((c) => c.id === "txt_inspector_content"),
+      ).toBeDefined();
     });
 
-    function triggerEvent(win: any, controlId: string, eventName = "click", val?: any) {
+    function triggerEvent(
+      win: any,
+      controlId: string,
+      eventName = "click",
+      val?: any,
+    ) {
       const map = win.eventHandlersMap as Map<string, any>;
       const cb =
         map.get(`${controlId}:${eventName.toLowerCase()}`) ||
         map.get(`${controlId}:on${eventName.toLowerCase()}`);
-      if (!cb) throw new Error(`Handler not found for ${controlId}:${eventName}`);
+      if (!cb)
+        throw new Error(`Handler not found for ${controlId}:${eventName}`);
       return cb(win, val);
     }
 
@@ -576,7 +605,9 @@ describe("Subprocess Pipe Pro - Shell Process Master & Multi-Stage Pipelining", 
       win.setValue("dd_saved_pipelines", "JSON Stream Filter & Sort");
       triggerEvent(win, "btn_load_named_pipeline", "click");
 
-      expect(win.getValue("txt_pipeline_name")).toBe("JSON Stream Filter & Sort");
+      expect(win.getValue("txt_pipeline_name")).toBe(
+        "JSON Stream Filter & Sort",
+      );
       expect(win.getValue("txt_pipeline_stdin")).toContain("services");
     });
 
@@ -587,13 +618,17 @@ describe("Subprocess Pipe Pro - Shell Process Master & Multi-Stage Pipelining", 
       win.setValue("txt_pipeline_name", "Disposable Pipeline");
       triggerEvent(win, "btn_save_named_pipeline", "click");
 
-      expect(win.getListItems("dd_saved_pipelines")).toContain("Disposable Pipeline");
+      expect(win.getListItems("dd_saved_pipelines")).toContain(
+        "Disposable Pipeline",
+      );
 
       // Select it and click delete
       win.setValue("dd_saved_pipelines", "Disposable Pipeline");
       triggerEvent(win, "btn_delete_named_pipeline", "click");
 
-      expect(win.getListItems("dd_saved_pipelines")).not.toContain("Disposable Pipeline");
+      expect(win.getListItems("dd_saved_pipelines")).not.toContain(
+        "Disposable Pipeline",
+      );
     });
 
     it("simulates stage manipulation controls (Add, Move, Duplicate, Remove, Apply)", () => {
@@ -638,7 +673,12 @@ describe("Subprocess Pipe Pro - Shell Process Master & Multi-Stage Pipelining", 
       triggerEvent(win, "btn_clear_sudo_password", "click");
       expect(win.getValue("txt_sudo_password")).toBe("");
 
-      triggerEvent(win, "dd_sudo_elevation_mode", "change", "Askpass Helper (Session Memory Password)");
+      triggerEvent(
+        win,
+        "dd_sudo_elevation_mode",
+        "change",
+        "Askpass Helper (Session Memory Password)",
+      );
     });
 
     it("simulates Stdin samples and Export buttons", () => {

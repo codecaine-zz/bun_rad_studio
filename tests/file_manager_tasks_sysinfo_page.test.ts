@@ -5,7 +5,16 @@ import { join } from "path";
 import { JSDOM } from "jsdom";
 import { startFileManagerServer } from "../src/features/filemanager/fmServer";
 
-const GLOBALS = ["document", "window", "Node", "HTMLElement", "HTMLInputElement", "navigator", "location", "fetch"] as const;
+const GLOBALS = [
+  "document",
+  "window",
+  "Node",
+  "HTMLElement",
+  "HTMLInputElement",
+  "navigator",
+  "location",
+  "fetch",
+] as const;
 const saved = new Map<string, PropertyDescriptor | undefined>();
 const copied: string[] = [];
 const executedCommands: string[][] = [];
@@ -43,17 +52,54 @@ beforeAll(async () => {
           if (cmd[0] === "netstat") {
             return {
               exitCode: 0,
-              stdout: "  TCP    0.0.0.0:3000           0.0.0.0:0              LISTENING       4120\r\n",
+              stdout:
+                "  TCP    0.0.0.0:3000           0.0.0.0:0              LISTENING       4120\r\n",
               stderr: "",
             };
           }
-          if (cmd[0] === "powershell.exe" && cmd.join(" ").includes("ConvertTo-Json")) {
+          if (
+            cmd[0] === "powershell.exe" &&
+            cmd.join(" ").includes("ConvertTo-Json")
+          ) {
             return {
               exitCode: 0,
               stdout: JSON.stringify([
-                { ProcessId: 4, ParentProcessId: 0, Name: "System", CommandLine: "System", WorkingSetSize: 4096000, CPU: 0.2, UserName: "SYSTEM", Responding: true },
-                { ProcessId: 4120, ParentProcessId: 1000, Name: "node.exe", ExecutablePath: "C:\\Program Files\\nodejs\\node.exe", CommandLine: '"C:\\Program Files\\nodejs\\node.exe" server.js', WorkingSetSize: 104857600, CPU: 15.6, UserName: "PC\\alice", Responding: true, MainWindowTitle: "Vite Dev", ElapsedSeconds: 1200 },
-                { ProcessId: 4125, ParentProcessId: 4120, Name: "esbuild.exe", ExecutablePath: "C:\\app\\esbuild.exe", CommandLine: "esbuild.exe --service", WorkingSetSize: 20485760, CPU: 3.2, UserName: "PC\\alice", Responding: true, ElapsedSeconds: 1180 },
+                {
+                  ProcessId: 4,
+                  ParentProcessId: 0,
+                  Name: "System",
+                  CommandLine: "System",
+                  WorkingSetSize: 4096000,
+                  CPU: 0.2,
+                  UserName: "SYSTEM",
+                  Responding: true,
+                },
+                {
+                  ProcessId: 4120,
+                  ParentProcessId: 1000,
+                  Name: "node.exe",
+                  ExecutablePath: "C:\\Program Files\\nodejs\\node.exe",
+                  CommandLine:
+                    '"C:\\Program Files\\nodejs\\node.exe" server.js',
+                  WorkingSetSize: 104857600,
+                  CPU: 15.6,
+                  UserName: "PC\\alice",
+                  Responding: true,
+                  MainWindowTitle: "Vite Dev",
+                  ElapsedSeconds: 1200,
+                },
+                {
+                  ProcessId: 4125,
+                  ParentProcessId: 4120,
+                  Name: "esbuild.exe",
+                  ExecutablePath: "C:\\app\\esbuild.exe",
+                  CommandLine: "esbuild.exe --service",
+                  WorkingSetSize: 20485760,
+                  CPU: 3.2,
+                  UserName: "PC\\alice",
+                  Responding: true,
+                  ElapsedSeconds: 1180,
+                },
               ]),
               stderr: "",
             };
@@ -126,14 +172,51 @@ beforeAll(async () => {
             manufacturer: "OEM",
           },
           disks: [
-            { fs: "C:", type: "NTFS", mount: "C:", sizeBytes: 500 * 1024 * 1024 * 1024, usedBytes: 200 * 1024 * 1024 * 1024, availableBytes: 300 * 1024 * 1024 * 1024, usePercent: 40.0, rw: true },
+            {
+              fs: "C:",
+              type: "NTFS",
+              mount: "C:",
+              sizeBytes: 500 * 1024 * 1024 * 1024,
+              usedBytes: 200 * 1024 * 1024 * 1024,
+              availableBytes: 300 * 1024 * 1024 * 1024,
+              usePercent: 40.0,
+              rw: true,
+            },
           ],
           network: [
-            { iface: "Ethernet0", ip4: "10.0.0.25", ip6: "", mac: "AA:BB:CC:DD:EE:FF", internal: false, default: true, type: "wired", speedMbps: 1000, operstate: "up" },
+            {
+              iface: "Ethernet0",
+              ip4: "10.0.0.25",
+              ip6: "",
+              mac: "AA:BB:CC:DD:EE:FF",
+              internal: false,
+              default: true,
+              type: "wired",
+              speedMbps: 1000,
+              operstate: "up",
+            },
           ],
           graphics: {
-            controllers: [{ vendor: "NVIDIA", model: "RTX 4090", vramMb: 24576, bus: "PCIe", driverVersion: "551.0" }],
-            displays: [{ model: "4K Monitor", main: true, builtin: false, connection: "DP", resolutionX: 3840, resolutionY: 2160, refreshRate: 144 }],
+            controllers: [
+              {
+                vendor: "NVIDIA",
+                model: "RTX 4090",
+                vramMb: 24576,
+                bus: "PCIe",
+                driverVersion: "551.0",
+              },
+            ],
+            displays: [
+              {
+                model: "4K Monitor",
+                main: true,
+                builtin: false,
+                connection: "DP",
+                resolutionX: 3840,
+                resolutionY: 2160,
+                refreshRate: 144,
+              },
+            ],
           },
           platformDetails: {
             family: "windows",
@@ -151,25 +234,38 @@ beforeAll(async () => {
   });
 
   const base = `http://127.0.0.1:${server.port}`;
-  const html = readFileSync(join(import.meta.dir, "..", "resources", "file_manager", "index.html"), "utf8")
+  const html = readFileSync(
+    join(import.meta.dir, "..", "resources", "file_manager", "index.html"),
+    "utf8",
+  )
     .replace(/__FM_TOKEN__/g, "ui-token")
     .replace(/__FM_PLATFORM__/g, "win32")
     .replace(/__FM_NONCE__/g, "n")
     .replace(/__FM_START__/g, "");
   const dom = new JSDOM(html, { url: `${base}/` });
   const g = globalThis as any;
-  for (const key of GLOBALS) saved.set(key, Object.getOwnPropertyDescriptor(g, key));
+  for (const key of GLOBALS)
+    saved.set(key, Object.getOwnPropertyDescriptor(g, key));
   for (const key of GLOBALS.filter((k) => k !== "fetch")) {
-    Object.defineProperty(g, key, { value: (dom.window as any)[key], configurable: true, writable: true });
+    Object.defineProperty(g, key, {
+      value: (dom.window as any)[key],
+      configurable: true,
+      writable: true,
+    });
   }
   const realFetch = saved.get("fetch")!.value as typeof fetch;
   Object.defineProperty(g, "fetch", {
     value: async (u: any, o: any) => {
       if (typeof u === "string" && u.endsWith("/api/copytext")) {
         copied.push(JSON.parse(o.body).text);
-        return new Response(JSON.stringify({ ok: true, copied: true }), { headers: { "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ ok: true, copied: true }), {
+          headers: { "Content-Type": "application/json" },
+        });
       }
-      return realFetch(typeof u === "string" && u.startsWith("/") ? base + u : u, o);
+      return realFetch(
+        typeof u === "string" && u.startsWith("/") ? base + u : u,
+        o,
+      );
     },
     configurable: true,
     writable: true,
@@ -214,12 +310,20 @@ describe("Tasks and System Info power tools in JSDOM", () => {
     expect(pane.textContent).toContain(":3000");
 
     // Every control has a title/aria-label and zero inline style attributes
-    const controls = [...pane.querySelectorAll("button, input, select, textarea")];
+    const controls = [
+      ...pane.querySelectorAll("button, input, select, textarea"),
+    ];
     expect(controls.length).toBeGreaterThan(8);
     for (const c of controls) {
-      expect(c.getAttribute("title") || c.getAttribute("aria-label"), c.outerHTML.slice(0, 120)).toBeTruthy();
+      expect(
+        c.getAttribute("title") || c.getAttribute("aria-label"),
+        c.outerHTML.slice(0, 120),
+      ).toBeTruthy();
       if (c.tagName !== "BUTTON") {
-        expect((c as any).labels?.length || c.getAttribute("aria-label"), c.outerHTML.slice(0, 120)).toBeTruthy();
+        expect(
+          (c as any).labels?.length || c.getAttribute("aria-label"),
+          c.outerHTML.slice(0, 120),
+        ).toBeTruthy();
       }
     }
     expect(pane.querySelectorAll("[style]").length).toBe(0);
@@ -229,8 +333,12 @@ describe("Tasks and System Info power tools in JSDOM", () => {
     expect(row).toBeTruthy();
     row.click();
     await sleep(50);
-    expect(pane.querySelector(".tasks-inspector").textContent).toContain("End Task");
-    expect(pane.querySelector(".tasks-inspector").textContent).toContain("Kill Process Tree (/T /F)");
+    expect(pane.querySelector(".tasks-inspector").textContent).toContain(
+      "End Task",
+    );
+    expect(pane.querySelector(".tasks-inspector").textContent).toContain(
+      "Kill Process Tree (/T /F)",
+    );
 
     // Filter by :3000
     const search = pane.querySelector(".tasks-search");
@@ -251,20 +359,32 @@ describe("Tasks and System Info power tools in JSDOM", () => {
     expect(pane.textContent).toContain("Ryzen 9 7950X");
     expect(pane.textContent).toContain("Per-Core CPU Activity");
 
-    const controls = [...pane.querySelectorAll("button, input, select, textarea")];
+    const controls = [
+      ...pane.querySelectorAll("button, input, select, textarea"),
+    ];
     expect(controls.length).toBeGreaterThan(10);
     for (const c of controls) {
-      expect(c.getAttribute("title") || c.getAttribute("aria-label"), c.outerHTML.slice(0, 120)).toBeTruthy();
+      expect(
+        c.getAttribute("title") || c.getAttribute("aria-label"),
+        c.outerHTML.slice(0, 120),
+      ).toBeTruthy();
       if (c.tagName !== "BUTTON") {
-        expect((c as any).labels?.length || c.getAttribute("aria-label"), c.outerHTML.slice(0, 120)).toBeTruthy();
+        expect(
+          (c as any).labels?.length || c.getAttribute("aria-label"),
+          c.outerHTML.slice(0, 120),
+        ).toBeTruthy();
       }
     }
     expect(pane.querySelectorAll("[style]").length).toBe(0);
 
     // Pin baseline and compare
     const btns = [...pane.querySelectorAll("button")];
-    const pinBtn = btns.find((b: any) => b.textContent.trim() === "Pin Baseline");
-    const cmpBtn = btns.find((b: any) => b.textContent.trim() === "Compare to Baseline");
+    const pinBtn = btns.find(
+      (b: any) => b.textContent.trim() === "Pin Baseline",
+    );
+    const cmpBtn = btns.find(
+      (b: any) => b.textContent.trim() === "Compare to Baseline",
+    );
     expect(pinBtn).toBeTruthy();
     pinBtn.click();
     await sleep(40);
@@ -276,10 +396,14 @@ describe("Tasks and System Info power tools in JSDOM", () => {
     // Run deep probe
     const probeSelect = pane.querySelector(".sys-probe-row select");
     probeSelect.value = "bios";
-    const runProbeBtn = btns.find((b: any) => b.textContent.trim() === "Run Probe");
+    const runProbeBtn = btns.find(
+      (b: any) => b.textContent.trim() === "Run Probe",
+    );
     runProbeBtn.click();
     await sleep(80);
-    expect(pane.querySelector(".sys-probe-card").textContent).toContain("Codecaine BIOS");
+    expect(pane.querySelector(".sys-probe-card").textContent).toContain(
+      "Codecaine BIOS",
+    );
     expect(pane.querySelectorAll("[style]").length).toBe(0);
   });
 });

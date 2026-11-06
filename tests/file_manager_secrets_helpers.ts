@@ -2,11 +2,21 @@
 import { mkdirSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createContext, type FmContext, type FmContextOptions } from "../src/features/filemanager/fmCore";
+import {
+  createContext,
+  type FmContext,
+  type FmContextOptions,
+} from "../src/features/filemanager/fmCore";
 import { startFileManagerServer } from "../src/features/filemanager/fmServer";
-import type { CredentialStore, SecretsHooks } from "../src/features/filemanager/fmSecretsHooks";
+import type {
+  CredentialStore,
+  SecretsHooks,
+} from "../src/features/filemanager/fmSecretsHooks";
 import { secretsOperations } from "../src/features/filemanager/fmSecretsOps";
-import { secretsService, type SecretsService } from "../src/features/filemanager/fmSecretsService";
+import {
+  secretsService,
+  type SecretsService,
+} from "../src/features/filemanager/fmSecretsService";
 
 export const TINY = {
   standard: { memoryKiB: 64, passes: 1, parallelism: 1 },
@@ -35,7 +45,9 @@ export function makeClock(start = 1_700_000_000_000) {
     advance(ms: number) {
       const end = now + ms;
       for (;;) {
-        const next = [...timers.entries()].filter(([, t]) => t.at <= end).sort((a, b) => a[1].at - b[1].at)[0];
+        const next = [...timers.entries()]
+          .filter(([, t]) => t.at <= end)
+          .sort((a, b) => a[1].at - b[1].at)[0];
         if (!next) break;
         timers.delete(next[0]);
         now = Math.max(now, next[1].at);
@@ -79,19 +91,28 @@ export interface Env {
   clip: { text: string; writes: string[] };
   store: FakeStore;
   fetches: Array<{ url: string; headers: Record<string, string> }>;
-  fetchReply: { current: (url: string) => { ok: boolean; status: number; text: string } };
+  fetchReply: {
+    current: (url: string) => { ok: boolean; status: number; text: string };
+  };
   call: (op: string, body?: Record<string, any>) => Promise<any>;
   launched: string[][];
   /** Present when made with { http: true }: a real File Manager server and a function that POSTs to it with the token. */
   server?: ReturnType<typeof startFileManagerServer>;
   base: string;
-  http: (op: string, body?: Record<string, any>, headers?: Record<string, string>) => Promise<{ status: number; json: any; text: string }>;
+  http: (
+    op: string,
+    body?: Record<string, any>,
+    headers?: Record<string, string>,
+  ) => Promise<{ status: number; json: any; text: string }>;
   stop: () => void;
 }
 
 export const TOKEN = "secrets-test-token";
 
-export function makeEnv(extra: Partial<SecretsHooks> = {}, { http = false }: { http?: boolean } = {}): Env {
+export function makeEnv(
+  extra: Partial<SecretsHooks> = {},
+  { http = false }: { http?: boolean } = {},
+): Env {
   const root = mkdtempSync(join(tmpdir(), "fm-secrets-"));
   const home = join(root, "home");
   const dataDir = join(root, "data");
@@ -100,7 +121,9 @@ export function makeEnv(extra: Partial<SecretsHooks> = {}, { http = false }: { h
   const clip = { text: "", writes: [] as string[] };
   const store = new FakeStore();
   const fetches: Env["fetches"] = [];
-  const fetchReply: Env["fetchReply"] = { current: () => ({ ok: true, status: 200, text: "" }) };
+  const fetchReply: Env["fetchReply"] = {
+    current: () => ({ ok: true, status: 200, text: "" }),
+  };
   const launched: string[][] = [];
   const options: FmContextOptions = {
     home,
@@ -131,12 +154,22 @@ export function makeEnv(extra: Partial<SecretsHooks> = {}, { http = false }: { h
       ...extra,
     },
   };
-  const server = http ? startFileManagerServer({ port: 0, token: TOKEN, context: options }) : undefined;
+  const server = http
+    ? startFileManagerServer({ port: 0, token: TOKEN, context: options })
+    : undefined;
   const ctx = server ? server.context : createContext(options);
   const svc = secretsService(ctx);
   const base = server ? `http://127.0.0.1:${server.port}` : "";
-  const post = async (op: string, body: Record<string, any> = {}, headers: Record<string, string> = { "x-fm-token": TOKEN }) => {
-    const r = await fetch(`${base}/api/${op}`, { method: "POST", headers: { "Content-Type": "application/json", ...headers }, body: JSON.stringify(body) });
+  const post = async (
+    op: string,
+    body: Record<string, any> = {},
+    headers: Record<string, string> = { "x-fm-token": TOKEN },
+  ) => {
+    const r = await fetch(`${base}/api/${op}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...headers },
+      body: JSON.stringify(body),
+    });
     const text = await r.text();
     let json: any = null;
     try {
@@ -151,12 +184,42 @@ export function makeEnv(extra: Partial<SecretsHooks> = {}, { http = false }: { h
     if (!handler) throw new Error(`no such op ${op}`);
     return (await handler(ctx, body)) as any;
   };
-  return { root, home, dataDir, ctx, svc, clock, clip, store, fetches, fetchReply, call, launched, server, base, http: post, stop: () => server?.stop(true) };
+  return {
+    root,
+    home,
+    dataDir,
+    ctx,
+    svc,
+    clock,
+    clip,
+    store,
+    fetches,
+    fetchReply,
+    call,
+    launched,
+    server,
+    base,
+    http: post,
+    stop: () => server?.stop(true),
+  };
 }
 
 /** Creates and leaves unlocked a vault with the standard test password. */
 export async function createVault(env: Env, body: Record<string, any> = {}) {
-  return env.call("secrets/create", { password: PASSWORD, recovery: true, ...body });
+  return env.call("secrets/create", {
+    password: PASSWORD,
+    recovery: true,
+    ...body,
+  });
 }
 
-export const loginItem = (over: Record<string, any> = {}) => ({ type: "login", title: "Example", fields: { username: "alice", password: "S3cret-pw-1!", url: "https://example.com/login" }, ...over });
+export const loginItem = (over: Record<string, any> = {}) => ({
+  type: "login",
+  title: "Example",
+  fields: {
+    username: "alice",
+    password: "S3cret-pw-1!",
+    url: "https://example.com/login",
+  },
+  ...over,
+});

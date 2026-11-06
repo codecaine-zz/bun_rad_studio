@@ -5,7 +5,8 @@ import { h } from "./dom.js";
 import { toast } from "./menus.js";
 import { MAX_CHARS } from "./copyformat.js";
 
-export const SECRET_NOTE = "Other programs can read the clipboard, so paste it soon.";
+export const SECRET_NOTE =
+  "Other programs can read the clipboard, so paste it soon.";
 
 /**
  * Copies `text`. `what` names it in the message ("Copied “Git summary”."), `secret` adds the clipboard warning,
@@ -13,7 +14,10 @@ export const SECRET_NOTE = "Other programs can read the clipboard, so paste it s
  * @param {string} text
  * @param {{ what?: string, secret?: boolean, shortened?: boolean, quiet?: boolean }} [options]
  */
-export async function copyToClipboard(text, { what = "", secret = false, shortened = false, quiet = false } = {}) {
+export async function copyToClipboard(
+  text,
+  { what = "", secret = false, shortened = false, quiet = false } = {},
+) {
   const say = (message, kind) => {
     if (!quiet || kind === "error") toast(message, { kind });
   };
@@ -39,10 +43,16 @@ export async function copyToClipboard(text, { what = "", secret = false, shorten
     }
   }
   if (!done) {
-    say("Couldn't copy to the clipboard. Select the text and copy it yourself (Ctrl+C or ⌘C).", "error");
+    say(
+      "Couldn't copy to the clipboard. Select the text and copy it yourself (Ctrl+C or ⌘C).",
+      "error",
+    );
     return false;
   }
-  say(`Copied${what ? ` “${what}”` : ""}${shortened ? " (shortened to fit)" : ""}.${secret ? ` ${SECRET_NOTE}` : ""}`, "success");
+  say(
+    `Copied${what ? ` “${what}”` : ""}${shortened ? " (shortened to fit)" : ""}.${secret ? ` ${SECRET_NOTE}` : ""}`,
+    "success",
+  );
   return true;
 }
 
@@ -63,7 +73,11 @@ export async function readFromClipboard() {
   } catch {
     serverOk = false;
   }
-  if (typeof navigator !== "undefined" && navigator.clipboard && typeof navigator.clipboard.readText === "function") {
+  if (
+    typeof navigator !== "undefined" &&
+    navigator.clipboard &&
+    typeof navigator.clipboard.readText === "function"
+  ) {
     try {
       return await navigator.clipboard.readText();
     } catch (err) {
@@ -82,11 +96,13 @@ export function flashCopied(button, copiedText = "Copied ✓") {
   button.dataset.copyWords = before;
   button.textContent = copiedText;
   clearTimeout(Number(button.dataset.copyTimer));
-  button.dataset.copyTimer = String(setTimeout(() => {
-    if (typeof document === "undefined") return;
-    button.textContent = before;
-    delete button.dataset.copyWords;
-  }, 1600));
+  button.dataset.copyTimer = String(
+    setTimeout(() => {
+      if (typeof document === "undefined") return;
+      button.textContent = before;
+      delete button.dataset.copyWords;
+    }, 1600),
+  );
 }
 
 /**
@@ -94,14 +110,25 @@ export function flashCopied(button, copiedText = "Copied ✓") {
  * button is pressed, so it always copies what is shown now. `label` names the value for screen readers and tooltips.
  * @param {{ label: string, getText: () => string, secret?: boolean, words?: string, className?: string, onCopied?: (() => void) | null }} options
  */
-export function copyItemButton({ label, getText, secret = false, words = "Copy", className = "", onCopied = null }) {
-  const button = h("button", {
-    type: "button",
-    class: `copy-item${className ? ` ${className}` : ""}`,
-    "data-copy-ui": "",
-    "aria-label": `Copy ${label}`,
-    title: `Copy ${label} to the clipboard. Only this one is copied.`,
-  }, words);
+export function copyItemButton({
+  label,
+  getText,
+  secret = false,
+  words = "Copy",
+  className = "",
+  onCopied = null,
+}) {
+  const button = h(
+    "button",
+    {
+      type: "button",
+      class: `copy-item${className ? ` ${className}` : ""}`,
+      "data-copy-ui": "",
+      "aria-label": `Copy ${label}`,
+      title: `Copy ${label} to the clipboard. Only this one is copied.`,
+    },
+    words,
+  );
   button.addEventListener("click", async () => {
     if (await copyToClipboard(getText(), { what: label, secret })) {
       flashCopied(button);

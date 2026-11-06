@@ -3,7 +3,13 @@
 import { FitAddon } from "/vendor/addon-fit.mjs";
 import { Terminal } from "/vendor/xterm.mjs";
 import { terminalUrl } from "./api.js";
-import { quoteArg, quotePathsForTerminal, shellFor, windowsToGitBash, windowsToWsl } from "./codeRun.js";
+import {
+  quoteArg,
+  quotePathsForTerminal,
+  shellFor,
+  windowsToGitBash,
+  windowsToWsl,
+} from "./codeRun.js";
 import { $ } from "./dom.js";
 import { hintOf, labelOf, matchesAction } from "./keymap.js";
 import { toast } from "./menus.js";
@@ -40,7 +46,8 @@ function clampHeight(val) {
 }
 
 function persistTerminalState(patch) {
-  if (state.settings && typeof state.settings === "object") Object.assign(state.settings, patch);
+  if (state.settings && typeof state.settings === "object")
+    Object.assign(state.settings, patch);
   if (typeof saveSettings === "function") saveSettings(patch);
 }
 
@@ -51,17 +58,21 @@ function targetFolder() {
   return currentFolder();
 }
 
-export const terminalAvailable = () => ["darwin", "linux", "win32"].includes(state.platform);
+export const terminalAvailable = () =>
+  ["darwin", "linux", "win32"].includes(state.platform);
 
 /** The folder to start in: the one on screen, or the home folder when looking at the Recycle Bin. */
 function currentFolder() {
-  return state.location.kind === "folder" && state.location.path ? state.location.path : state.home;
+  return state.location.kind === "folder" && state.location.path
+    ? state.location.path
+    : state.home;
 }
 
 const fontSize = () => Math.round(14 * (state.settings.textSize / 100));
 
 function send(message) {
-  if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message));
+  if (socket?.readyState === WebSocket.OPEN)
+    socket.send(JSON.stringify(message));
 }
 
 function setTitle(reported = false) {
@@ -69,7 +80,9 @@ function setTitle(reported = false) {
   title.textContent = startedIn ? `Terminal · ${startedIn}` : "Terminal";
   title.title = reported
     ? `Physical folder reported by the terminal: ${startedIn}. Follow terminal uses this path, which can differ from pwd when symlinks or junctions are involved.`
-    : startedIn ? `Requested terminal folder: ${startedIn}. Waiting for the shell to report its physical folder.` : "Terminal";
+    : startedIn
+      ? `Requested terminal folder: ${startedIn}. Waiting for the shell to report its physical folder.`
+      : "Terminal";
 }
 
 function queueFit() {
@@ -86,7 +99,10 @@ function queueFit() {
 }
 
 function applyHeight() {
-  const max = Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, Math.floor((window?.innerHeight || 1000) * 0.7)));
+  const max = Math.max(
+    MIN_HEIGHT,
+    Math.min(MAX_HEIGHT, Math.floor((window?.innerHeight || 1000) * 0.7)),
+  );
   height = Math.min(max, Math.max(MIN_HEIGHT, height));
   $("#terminal-panel").style.setProperty("--term-height", `${height}px`);
   $("#terminal-resizer").setAttribute("aria-valuenow", String(height));
@@ -118,14 +134,20 @@ function connect(folder) {
   activeShell = shellFor(state.platform);
   wslInfo = {};
   startedIn = folder;
-  if (folder && state.terminalOpen) persistTerminalState({ terminalPath: folder });
+  if (folder && state.terminalOpen)
+    persistTerminalState({ terminalPath: folder });
   setTitle();
   term.reset();
   const dims = fit.proposeDimensions();
-  const ws = new WebSocket(terminalUrl(folder, dims?.cols ?? 80, dims?.rows ?? 24));
+  const ws = new WebSocket(
+    terminalUrl(folder, dims?.cols ?? 80, dims?.rows ?? 24),
+  );
   socket = ws;
-  const markOpen = () => { opened = true; };
-  if (typeof ws.addEventListener === "function") ws.addEventListener("open", markOpen, { once: true });
+  const markOpen = () => {
+    opened = true;
+  };
+  if (typeof ws.addEventListener === "function")
+    ws.addEventListener("open", markOpen, { once: true });
   else ws.onopen = markOpen;
   ws.onmessage = (e) => {
     if (socket !== ws) return;
@@ -137,15 +159,22 @@ function connect(folder) {
     }
     if (m.type === "output" && typeof m.data === "string") term.write(m.data);
     else if (m.type === "cwd" && typeof m.path === "string") {
-      activeShell = ["powershell", "cmd", "wsl", "gitbash"].includes(m.shell) ? m.shell : shellFor(state.platform);
-      wslInfo = m.shell === "wsl" && m.wsl && typeof m.wsl === "object" ? m.wsl : {};
+      activeShell = ["powershell", "cmd", "wsl", "gitbash"].includes(m.shell)
+        ? m.shell
+        : shellFor(state.platform);
+      wslInfo =
+        m.shell === "wsl" && m.wsl && typeof m.wsl === "object" ? m.wsl : {};
       followShell(m.path);
     } else if (m.type === "exit") {
       ended = true;
-      term.write("\r\n\x1b[2m[The shell ended. Press Enter to start a new one.]\x1b[0m\r\n");
+      term.write(
+        "\r\n\x1b[2m[The shell ended. Press Enter to start a new one.]\x1b[0m\r\n",
+      );
     } else if (m.type === "error") {
       ended = true;
-      term.write(`\r\n\x1b[31m${String(m.message ?? "The terminal couldn't start.")}\x1b[0m\r\n\x1b[2m[Press Enter to try again.]\x1b[0m\r\n`);
+      term.write(
+        `\r\n\x1b[31m${String(m.message ?? "The terminal couldn't start.")}\x1b[0m\r\n\x1b[2m[Press Enter to try again.]\x1b[0m\r\n`,
+      );
     }
   };
   ws.onclose = () => {
@@ -157,7 +186,9 @@ function connect(folder) {
     }
     if (!ended) {
       ended = true;
-      term.write("\r\n\x1b[2m[The connection to the terminal was lost. Press Enter to start a new one.]\x1b[0m\r\n");
+      term.write(
+        "\r\n\x1b[2m[The connection to the terminal was lost. Press Enter to start a new one.]\x1b[0m\r\n",
+      );
     }
   };
 }
@@ -187,7 +218,9 @@ export function folderCommand(folder, shell, wsl = {}) {
     const linux = windowsToWsl(folder, wsl);
     const quoted = quoteArg(linux ?? folder, "posix");
     if (quoted.error) return null;
-    return linux ? `\x15cd -- ${quoted.text}\r` : `\x15cd -- "$(wslpath -u ${quoted.text})"\r`;
+    return linux
+      ? `\x15cd -- ${quoted.text}\r`
+      : `\x15cd -- "$(wslpath -u ${quoted.text})"\r`;
   }
   if (shell === "gitbash") {
     const quoted = quoteArg(windowsToGitBash(folder), "posix");
@@ -196,7 +229,8 @@ export function folderCommand(folder, shell, wsl = {}) {
   const quoted = quoteArg(folder, shell);
   if (quoted.error) return null;
   if (shell === "cmd") return `\x1bcd /d ${quoted.text}\r`;
-  if (shell === "powershell") return `\x1bSet-Location -LiteralPath ${quoted.text}\r`;
+  if (shell === "powershell")
+    return `\x1bSet-Location -LiteralPath ${quoted.text}\r`;
   return `\x15cd -- ${quoted.text}\r`;
 }
 
@@ -219,7 +253,8 @@ let clipboard = null;
 function ensureTerminal() {
   if (term) return;
   term = new Terminal({
-    fontFamily: 'ui-monospace, Menlo, Consolas, "DejaVu Sans Mono", "Liberation Mono", monospace',
+    fontFamily:
+      'ui-monospace, Menlo, Consolas, "DejaVu Sans Mono", "Liberation Mono", monospace',
     fontSize: fontSize(),
     cursorBlink: true,
     scrollback: 5000,
@@ -243,7 +278,8 @@ export function typeInTerminal(text) {
   if (!terminalAvailable()) return false;
   showTerminal();
   const send = () => sendInput(text);
-  if (socket && socket.readyState === WebSocket.CONNECTING) socket.addEventListener("open", send, { once: true });
+  if (socket && socket.readyState === WebSocket.CONNECTING)
+    socket.addEventListener("open", send, { once: true });
   else send();
   return true;
 }
@@ -258,7 +294,10 @@ export function isTerminalOpen() {
 }
 
 export function isTerminalExpanded() {
-  return typeof document !== "undefined" && !!document.getElementById?.("app")?.classList?.contains?.("term-max");
+  return (
+    typeof document !== "undefined" &&
+    !!document.getElementById?.("app")?.classList?.contains?.("term-max")
+  );
 }
 
 function syncTerminalExpandButton(on = isTerminalExpanded()) {
@@ -266,13 +305,19 @@ function syncTerminalExpandButton(on = isTerminalExpanded()) {
   const title = on
     ? `Restore the File Manager bars and tabs${hint}`
     : `Fill the whole window with the terminal${hint}`;
-  const btn = typeof document === "undefined" ? null : document.getElementById?.("terminal-expand");
+  const btn =
+    typeof document === "undefined"
+      ? null
+      : document.getElementById?.("terminal-expand");
   if (btn) {
     btn.setAttribute("aria-pressed", String(on));
     btn.textContent = on ? "⛶ Restore" : "⛶ Expand";
     btn.title = title;
   }
-  const statusExpand = typeof document === "undefined" ? null : document.getElementById?.("status-terminal-expand");
+  const statusExpand =
+    typeof document === "undefined"
+      ? null
+      : document.getElementById?.("status-terminal-expand");
   if (statusExpand) {
     statusExpand.setAttribute("aria-pressed", String(on));
     statusExpand.textContent = on ? "⛶ Restore" : "⛶ Expand";
@@ -281,7 +326,8 @@ function syncTerminalExpandButton(on = isTerminalExpanded()) {
 }
 
 export function setTerminalExpanded(expanded) {
-  const app = typeof document === "undefined" ? null : document.getElementById?.("app");
+  const app =
+    typeof document === "undefined" ? null : document.getElementById?.("app");
   if (!app) return;
   const on = Boolean(expanded) && state.terminalOpen;
   if (on && app.classList.contains("power-max")) {
@@ -313,8 +359,14 @@ export function toggleTerminalExpanded() {
 }
 
 export function showTerminal(folder, { focus = true, save = true } = {}) {
-  if (!terminalAvailable()) return toast("The terminal isn't supported on this system.", { kind: "error" });
-  if (typeof state.settings?.terminalHeight === "number" && Number.isFinite(state.settings.terminalHeight)) {
+  if (!terminalAvailable())
+    return toast("The terminal isn't supported on this system.", {
+      kind: "error",
+    });
+  if (
+    typeof state.settings?.terminalHeight === "number" &&
+    Number.isFinite(state.settings.terminalHeight)
+  ) {
     height = clampHeight(state.settings.terminalHeight);
   }
   state.terminalOpen = true;
@@ -358,8 +410,16 @@ export function toggleTerminal() {
 export function restoreTerminal() {
   height = clampHeight(state.settings?.terminalHeight);
   if (!state.settings?.terminalOpen || !terminalAvailable()) return;
-  const requested = typeof document !== "undefined" ? (document.querySelector?.('meta[name="fm-start"]')?.getAttribute("content") ?? "") : "";
-  const folder = !requested && state.settings.terminalPath ? state.settings.terminalPath : currentFolder();
+  const requested =
+    typeof document !== "undefined"
+      ? (document
+          .querySelector?.('meta[name="fm-start"]')
+          ?.getAttribute("content") ?? "")
+      : "";
+  const folder =
+    !requested && state.settings.terminalPath
+      ? state.settings.terminalPath
+      : currentFolder();
   showTerminal(folder, { focus: false, save: false });
 }
 
@@ -383,7 +443,8 @@ function wireResizer() {
   const stop = (e) => {
     const wasDragging = bar.classList.contains("dragging");
     bar.classList.remove("dragging");
-    if (bar.hasPointerCapture(e.pointerId)) bar.releasePointerCapture(e.pointerId);
+    if (bar.hasPointerCapture(e.pointerId))
+      bar.releasePointerCapture(e.pointerId);
     if (wasDragging) persistTerminalState({ terminalHeight: height });
   };
   bar.addEventListener("pointerup", stop);
@@ -400,7 +461,10 @@ function wireResizer() {
 
 /** Opens the terminal in a folder (the selected one, or the one on screen): starts a shell there, or moves the running one. */
 function openHere(path) {
-  if (!terminalAvailable()) return toast("The terminal isn't supported on this system.", { kind: "error" });
+  if (!terminalAvailable())
+    return toast("The terminal isn't supported on this system.", {
+      kind: "error",
+    });
   const folder = path || targetFolder();
   if (!state.terminalOpen) {
     showTerminal(folder);
@@ -423,13 +487,17 @@ export function runInTerminalFolder(folder, command, submit = false) {
     if (hadSocket && startedIn !== target) goToFolder(target);
     sendInput(text);
   };
-  if (socket && socket.readyState === WebSocket.CONNECTING) socket.addEventListener("open", writeCommand, { once: true });
+  if (socket && socket.readyState === WebSocket.CONNECTING)
+    socket.addEventListener("open", writeCommand, { once: true });
   else writeCommand();
   return true;
 }
 
 export async function insertPaths(paths) {
-  if (!terminalAvailable()) return toast("The terminal isn't supported on this system.", { kind: "error" });
+  if (!terminalAvailable())
+    return toast("The terminal isn't supported on this system.", {
+      kind: "error",
+    });
   const checked = quotePathsForTerminal(paths, terminalShell(), wslInfo);
   if (checked.error) return toast(checked.error, { kind: "error" });
   showTerminal();
@@ -445,19 +513,35 @@ export async function insertPaths(paths) {
           ws.removeEventListener("close", failed);
           ws.removeEventListener("error", failed);
         };
-        const failed = () => { cleanup(); reject(new Error("The terminal connection was lost.")); };
-        const ready = () => { cleanup(); resolve(); };
-        const timer = setTimeout(() => { cleanup(); reject(new Error("The terminal did not become ready. Try inserting the paths again.")); }, 5000);
+        const failed = () => {
+          cleanup();
+          reject(new Error("The terminal connection was lost."));
+        };
+        const ready = () => {
+          cleanup();
+          resolve();
+        };
+        const timer = setTimeout(() => {
+          cleanup();
+          reject(
+            new Error(
+              "The terminal did not become ready. Try inserting the paths again.",
+            ),
+          );
+        }, 5000);
         ws.addEventListener("open", ready);
         ws.addEventListener("close", failed);
         ws.addEventListener("error", failed);
       });
     }
-    if (socket !== ws || ws.readyState !== WebSocket.OPEN || ended) throw new Error("The terminal connection was lost.");
+    if (socket !== ws || ws.readyState !== WebSocket.OPEN || ended)
+      throw new Error("The terminal connection was lost.");
     const quoted = quotePathsForTerminal(paths, terminalShell(), wslInfo);
     if (quoted.error) throw new Error(quoted.error);
     sendInput(quoted.text);
-    toast("Paths inserted. Add a command or press Enter when you're ready.", { kind: "info" });
+    toast("Paths inserted. Add a command or press Enter when you're ready.", {
+      kind: "info",
+    });
   } catch (err) {
     toast(err?.message || "The paths couldn't be inserted.", { kind: "error" });
   }
@@ -471,9 +555,11 @@ function wireStatusButton() {
     const open = state.terminalOpen;
     button.setAttribute("aria-pressed", String(open));
     button.title = `${open ? "Hide" : "Show"} the terminal${hintOf("terminal.toggle")}`;
-    button.querySelector(".status-terminal-key").textContent = labelOf("terminal.toggle");
+    button.querySelector(".status-terminal-key").textContent =
+      labelOf("terminal.toggle");
     const closeBtn = $("#terminal-close");
-    if (closeBtn) closeBtn.title = `Hide the terminal${hintOf("terminal.toggle")}. It keeps running.`;
+    if (closeBtn)
+      closeBtn.title = `Hide the terminal${hintOf("terminal.toggle")}. It keeps running.`;
   };
   button.addEventListener("click", toggleTerminal);
   on("terminal", paint);
@@ -492,7 +578,9 @@ export function wireTerminal() {
   });
   on("toggle-terminal", toggleTerminal);
   on("terminal-here", openHere);
-  on("terminal-run-in", ({ folder, command, submit }) => runInTerminalFolder(folder, command, submit));
+  on("terminal-run-in", ({ folder, command, submit }) =>
+    runInTerminalFolder(folder, command, submit),
+  );
   on("terminal-insert-paths", (paths) => void insertPaths(paths));
   wireStatusButton();
   on("settings", (change) => {
@@ -515,23 +603,42 @@ export function wireTerminal() {
   follow.checked = state.settings.terminalFollow !== false;
   follow.addEventListener("change", () => {
     saveSettings({ terminalFollow: follow.checked });
-    toast(follow.checked ? "The file list will follow the terminal's physical folder (symlinks resolved)." : "The file list stays where it is when you change folder in the terminal.", { kind: "info" });
+    toast(
+      follow.checked
+        ? "The file list will follow the terminal's physical folder (symlinks resolved)."
+        : "The file list stays where it is when you change folder in the terminal.",
+      { kind: "info" },
+    );
   });
-  on("settings", () => { follow.checked = state.settings.terminalFollow !== false; });
+  on("settings", () => {
+    follow.checked = state.settings.terminalFollow !== false;
+  });
   $("#terminal-cliutils")?.addEventListener("click", () => {
-    if (!state.cliUtilsDir) return toast("The built-in CLI utilities folder isn't ready yet.", { kind: "info" });
+    if (!state.cliUtilsDir)
+      return toast("The built-in CLI utilities folder isn't ready yet.", {
+        kind: "info",
+      });
     goTo(state.cliUtilsDir);
     openHere(state.cliUtilsDir);
-    toast("CLI Utilities ready in Terminal. Type ./<tool-name> (or press Tab) to run any utility.", { kind: "info" });
+    toast(
+      "CLI Utilities ready in Terminal. Type ./<tool-name> (or press Tab) to run any utility.",
+      { kind: "info" },
+    );
   });
   $("#terminal-cd").addEventListener("click", () => goToFolder());
   $("#terminal-restart").addEventListener("click", () => restart());
-  $("#terminal-expand")?.addEventListener("click", () => toggleTerminalExpanded());
-  $("#status-terminal-expand")?.addEventListener("click", () => toggleTerminalExpanded());
-  $("#terminal-panel")?.querySelector?.(".term-bar")?.addEventListener("dblclick", (e) => {
-    if (e.target?.closest?.("button, input, label, a")) return;
-    toggleTerminalExpanded();
-  });
+  $("#terminal-expand")?.addEventListener("click", () =>
+    toggleTerminalExpanded(),
+  );
+  $("#status-terminal-expand")?.addEventListener("click", () =>
+    toggleTerminalExpanded(),
+  );
+  $("#terminal-panel")
+    ?.querySelector?.(".term-bar")
+    ?.addEventListener("dblclick", (e) => {
+      if (e.target?.closest?.("button, input, label, a")) return;
+      toggleTerminalExpanded();
+    });
   $("#terminal-close").addEventListener("click", () => hideTerminal());
   on("power-max", (on) => {
     if (on && isTerminalExpanded()) setTerminalExpanded(false);
@@ -542,32 +649,46 @@ export function wireTerminal() {
   wireResizer();
   window.addEventListener("resize", () => state.terminalOpen && applyHeight());
   // The terminal keys (Cmd+J / Ctrl+J, Ctrl+`, Cmd/Ctrl+Alt+T, and Cmd/Ctrl+Alt+V unless changed in Settings) work everywhere, also while typing in the terminal.
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !e.defaultPrevented && isTerminalExpanded() && !e.target?.closest?.(".term-host") && !document.querySelector(".modal-backdrop")) {
+  document.addEventListener(
+    "keydown",
+    (e) => {
+      if (
+        e.key === "Escape" &&
+        !e.defaultPrevented &&
+        isTerminalExpanded() &&
+        !e.target?.closest?.(".term-host") &&
+        !document.querySelector(".modal-backdrop")
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        setTerminalExpanded(false);
+        return;
+      }
+      const toggle = matchesAction(e, "terminal.toggle");
+      const here = !toggle && matchesAction(e, "terminal.here");
+      const paste = !toggle && !here && matchesAction(e, "terminal.paste");
+      if (!toggle && !here && !paste) return;
+      if (document.querySelector(".modal-backdrop")) return;
       e.preventDefault();
       e.stopPropagation();
-      setTerminalExpanded(false);
-      return;
-    }
-    const toggle = matchesAction(e, "terminal.toggle");
-    const here = !toggle && matchesAction(e, "terminal.here");
-    const paste = !toggle && !here && matchesAction(e, "terminal.paste");
-    if (!toggle && !here && !paste) return;
-    if (document.querySelector(".modal-backdrop")) return;
-    e.preventDefault();
-    e.stopPropagation();
-    if (toggle) toggleTerminal();
-    else if (here) openHere();
-    else {
-      if (!terminalAvailable()) return toast("The terminal isn't supported on this system.", { kind: "error" });
-      if (!state.terminalOpen) showTerminal();
-      const run = () => {
-        if (clipboard && typeof clipboard.paste === "function") void clipboard.paste();
-        else $("#terminal-paste")?.click();
-      };
-      if (socket && socket.readyState === WebSocket.CONNECTING) socket.addEventListener("open", run, { once: true });
-      else run();
-    }
-  }, true);
+      if (toggle) toggleTerminal();
+      else if (here) openHere();
+      else {
+        if (!terminalAvailable())
+          return toast("The terminal isn't supported on this system.", {
+            kind: "error",
+          });
+        if (!state.terminalOpen) showTerminal();
+        const run = () => {
+          if (clipboard && typeof clipboard.paste === "function")
+            void clipboard.paste();
+          else $("#terminal-paste")?.click();
+        };
+        if (socket && socket.readyState === WebSocket.CONNECTING)
+          socket.addEventListener("open", run, { once: true });
+        else run();
+      }
+    },
+    true,
+  );
 }
-

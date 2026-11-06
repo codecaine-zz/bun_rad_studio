@@ -16,19 +16,51 @@ export async function prettifyDoc(app, mode, fallback) {
   app.toast(`${word}…`, { kind: "info", timeout: 1200 });
   let r;
   try {
-    r = await prettifyCode({ mode, text: before, path: doc.path || doc.name || "", lang: doc.lang, useTabs, tabWidth: useTabs ? 4 : unit.length || 2 });
+    r = await prettifyCode({
+      mode,
+      text: before,
+      path: doc.path || doc.name || "",
+      lang: doc.lang,
+      useTabs,
+      tabWidth: useTabs ? 4 : unit.length || 2,
+    });
   } catch (err) {
     if (fallback) return fallback();
-    return void app.toast(err?.message || `${word} didn't work.`, { kind: "error" });
+    return void app.toast(err?.message || `${word} didn't work.`, {
+      kind: "error",
+    });
   }
   if (!r.formatted) {
     const e = r.problem || { message: `${word} didn't work.` };
-    app.toast(`${e.message}${e.line ? ` (line ${e.line}, column ${e.col ?? 1})` : ""}`, { kind: "error", timeout: 9000 });
+    app.toast(
+      `${e.message}${e.line ? ` (line ${e.line}, column ${e.col ?? 1})` : ""}`,
+      { kind: "error", timeout: 9000 },
+    );
     if (e.line) editor.goTo(e.line, Math.max(1, e.col ?? 1));
     return;
   }
-  if (editor.getText() !== before) return void app.toast("The text changed while it was being worked on, so nothing was replaced. Try again.", { kind: "info" });
-  if (r.text === before) return void app.toast(mode === "minify" ? "It is already as small as it gets." : "Nothing needed changing.");
-  editor.apply({ from: 0, to: before.length, insert: r.text, selStart: Math.min(start, r.text.length), selEnd: Math.min(end, r.text.length) });
-  app.toast(r.basic ? r.message : `${mode === "minify" ? "Minified" : "Formatted"} with ${r.engine}.`, { kind: r.basic ? "info" : "success", timeout: r.basic ? 8000 : 2500 });
+  if (editor.getText() !== before)
+    return void app.toast(
+      "The text changed while it was being worked on, so nothing was replaced. Try again.",
+      { kind: "info" },
+    );
+  if (r.text === before)
+    return void app.toast(
+      mode === "minify"
+        ? "It is already as small as it gets."
+        : "Nothing needed changing.",
+    );
+  editor.apply({
+    from: 0,
+    to: before.length,
+    insert: r.text,
+    selStart: Math.min(start, r.text.length),
+    selEnd: Math.min(end, r.text.length),
+  });
+  app.toast(
+    r.basic
+      ? r.message
+      : `${mode === "minify" ? "Minified" : "Formatted"} with ${r.engine}.`,
+    { kind: r.basic ? "info" : "success", timeout: r.basic ? 8000 : 2500 },
+  );
 }

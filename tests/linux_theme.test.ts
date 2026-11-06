@@ -6,7 +6,9 @@ function rethemeScript(from: string, to: string): string {
   const win: any = createThemeShowcase(from);
   let captured = "";
   win.isWindowRunning = true;
-  win.evalJS = (js: string) => { captured = js; };
+  win.evalJS = (js: string) => {
+    captured = js;
+  };
   win.setTheme(to, false);
   return captured;
 }
@@ -31,7 +33,9 @@ describe("Linux theme support (WebKitGTK paints some controls from the desktop t
   });
 
   test("switching dark to light and back maps in both directions", () => {
-    expect(rethemeScript("ubuntu_light", "ubuntu_dark")).toContain('["#ffffff","#1e293b"]');
+    expect(rethemeScript("ubuntu_light", "ubuntu_dark")).toContain(
+      '["#ffffff","#1e293b"]',
+    );
   });
 
   test("every theme's page agrees with the theme about light or dark (Windows 95's teal background with silver cards is light)", () => {
@@ -41,13 +45,19 @@ describe("Linux theme support (WebKitGTK paints some controls from the desktop t
       if (seen.has(theme.name)) continue;
       seen.add(theme.name);
       const html = createThemeShowcase(key).generateHtml();
-      expect(html, `${key}`).toContain(`html.rad-linux { color-scheme: ${theme.is_dark ? "dark" : "light"}; }`);
+      expect(html, `${key}`).toContain(
+        `html.rad-linux { color-scheme: ${theme.is_dark ? "dark" : "light"}; }`,
+      );
     }
     expect(seen.size).toBeGreaterThan(60);
   });
 
   test("text boxes have a placeholder color from the theme, so it is readable on every theme and system", () => {
-    expect(createThemeShowcase("win95").generateHtml()).toContain("input::placeholder, textarea::placeholder { color: var(--theme-muted)");
-    expect(rethemeScript("ubuntu_dark", "win95")).toContain("input::placeholder, textarea::placeholder { color: var(--theme-muted) !important");
+    expect(createThemeShowcase("win95").generateHtml()).toContain(
+      "input::placeholder, textarea::placeholder { color: var(--theme-muted)",
+    );
+    expect(rethemeScript("ubuntu_dark", "win95")).toContain(
+      "input::placeholder, textarea::placeholder { color: var(--theme-muted) !important",
+    );
   });
 });

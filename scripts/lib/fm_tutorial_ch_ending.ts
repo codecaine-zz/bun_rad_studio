@@ -2,21 +2,35 @@ import type { Chapter } from "./fm_tutorial_types";
 import type { Do } from "../tutorial_file_manager";
 
 /** Shows a key combination on screen (the desktop-only keys can't be pressed in a browser recording). */
-const showKeys = (d: Do, keys: string[]) => d.eval(`window.__cc.keys(${JSON.stringify(keys)})`);
+const showKeys = (d: Do, keys: string[]) =>
+  d.eval(`window.__cc.keys(${JSON.stringify(keys)})`);
 
 /** Closes any open dialog (saving a theme goes back to the gallery). */
 async function closeDialogs(d: Do) {
-  for (let i = 0; i < 4 && await d.eval<boolean>(`!!document.querySelector('.modal-backdrop')`); i++) {
+  for (
+    let i = 0;
+    i < 4 &&
+    (await d.eval<boolean>(`!!document.querySelector('.modal-backdrop')`));
+    i++
+  ) {
     await d.key("Escape", "Esc");
     await d.wait(500);
   }
 }
 
 /** Moves a slider of the theme editor slowly, so the change can be seen. */
-async function slide(d: Do, label: string, from: number, to: number, step: number) {
+async function slide(
+  d: Do,
+  label: string,
+  from: number,
+  to: number,
+  step: number,
+) {
   const sel = `.dialog input[aria-label='${label}']`;
   await d.hover(sel, 700);
-  await d.eval(`(async () => { const r = document.querySelector(${JSON.stringify(sel)}); const n = Math.round(Math.abs(${to} - ${from}) / ${step}); for (let i = 0; i <= n; i++) { r.value = String(${from} + Math.sign(${to} - ${from}) * ${step} * i); r.dispatchEvent(new Event('input', { bubbles: true })); await new Promise((z) => setTimeout(z, 60)); } })()`);
+  await d.eval(
+    `(async () => { const r = document.querySelector(${JSON.stringify(sel)}); const n = Math.round(Math.abs(${to} - ${from}) / ${step}); for (let i = 0; i <= n; i++) { r.value = String(${from} + Math.sign(${to} - ${from}) * ${step} * i); r.dispatchEvent(new Event('input', { bubbles: true })); await new Promise((z) => setTimeout(z, 60)); } })()`,
+  );
   await d.wait(1200);
 }
 
@@ -24,7 +38,9 @@ async function slide(d: Do, label: string, from: number, to: number, step: numbe
 async function pick(d: Do, label: string, value: string) {
   const sel = `.dialog select[aria-label='${label}']`;
   await d.hover(sel, 700);
-  await d.eval(`(() => { const s = document.querySelector(${JSON.stringify(sel)}); s.value = ${JSON.stringify(value)}; s.dispatchEvent(new Event('input', { bubbles: true })); s.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+  await d.eval(
+    `(() => { const s = document.querySelector(${JSON.stringify(sel)}); s.value = ${JSON.stringify(value)}; s.dispatchEvent(new Event('input', { bubbles: true })); s.dispatchEvent(new Event('change', { bubbles: true })); })()`,
+  );
   await d.wait(900);
 }
 
@@ -72,7 +88,12 @@ async function showThemeUnobstructed(
       + '<div style="font-size:11px;opacity:0.86;margin-top:1px;color:#cbd5e1;">' + ${JSON.stringify(bannerSub)} + '</div>';
   })()`);
   if (opts.hoverRow) {
-    await d.hover(`#list .row[data-name=${JSON.stringify(opts.hoverRow)}]`, Math.min(700, waitMs)).catch(() => {});
+    await d
+      .hover(
+        `#list .row[data-name=${JSON.stringify(opts.hoverRow)}]`,
+        Math.min(700, waitMs),
+      )
+      .catch(() => {});
     await d.wait(Math.max(250, waitMs - 700));
   } else {
     await d.wait(waitMs);
@@ -80,7 +101,9 @@ async function showThemeUnobstructed(
 }
 
 async function clearUnobstructedBanner(d: Do) {
-  await d.eval(`document.getElementById('fm-unobstructed-theme-hud')?.remove()`);
+  await d.eval(
+    `document.getElementById('fm-unobstructed-theme-hud')?.remove()`,
+  );
 }
 
 const SF = ".db-studio-frame ||| iframe";
@@ -91,8 +114,10 @@ export const ending: Chapter[] = [
   {
     id: "22_themes",
     chapter: "THEMES & BULK IMPORT",
-    title: "Theme Studio: Halloween 3D Folder FX Only Mode, Bulk Custom Theme Import, Gemini AI & WCAG Editor",
-    blurb: "Halloween Ultra with 3D Folder Icon FX Only, unobstructed Icons View tour, Single & Bulk Folder Import (custom_themes/), Google Gemini AI Theme Customizer, Split-Screen Compare & WCAG Theme Editor",
+    title:
+      "Theme Studio: Halloween 3D Folder FX Only Mode, Bulk Custom Theme Import, Gemini AI & WCAG Editor",
+    blurb:
+      "Halloween Ultra with 3D Folder Icon FX Only, unobstructed Icons View tour, Single & Bulk Folder Import (custom_themes/), Google Gemini AI Theme Customizer, Split-Screen Compare & WCAG Theme Editor",
     path: "<HOME>/Projects/shop-app",
     setup: (w) => {
       w.put("Projects/shop-app/ai-models/README.md", "# AI Models\n");
@@ -114,10 +139,18 @@ export const ending: Chapter[] = [
             "holiday_halloween_jack_o_lantern",
             "🎃 Halloween Carved Jack-O'-Lantern Ultra",
             "3D Turntable Folders & 🎃 Crests Active · Floating Screen FX Off (Folder FX Only)",
-            { anim: "folder_3d_spin_turntable", hoverRow: "custom_themes", waitMs: 2200 },
+            {
+              anim: "folder_3d_spin_turntable",
+              hoverRow: "custom_themes",
+              waitMs: 2200,
+            },
           );
-          await d.hover('#list .row[data-name="shaders"]', 1400).catch(() => {});
-          await d.hover('#list .row[data-name="ai-models"]', 1400).catch(() => {});
+          await d
+            .hover('#list .row[data-name="shaders"]', 1400)
+            .catch(() => {});
+          await d
+            .hover('#list .row[data-name="ai-models"]', 1400)
+            .catch(() => {});
         },
       },
       {
@@ -125,15 +158,42 @@ export const ending: Chapter[] = [
         say: "With the dialog closed, watch how switching themes transforms the color palette and three-D folder crests across all eighteen U S Holiday themes and our flagship workstation palettes—including Polar Night, Mac Studio M4 Ultra, Fourth of July Fireworks, Thanksgiving Harvest, Christmas Nutcracker Hearth, and back to Halloween Jack-O'-Lantern—all while keeping non-folder screen effects suppressed.",
         act: async (d) => {
           const tour: Array<[string, string, string]> = [
-            ["polar_night", "🌌 Polar Night Ultra", "Arctic Slate Palette · 3D Folders Only"],
-            ["mac_studio_m4_ultra", "🍎 Mac Studio M4 Ultra Titanium", "Space-Black Titanium Palette · 3D Folders Only"],
-            ["holiday_fourth_of_july_fireworks", "🎆 Fourth of July Ultra", "3D 🎆 Liberty Folder Crests · Folder FX Only"],
-            ["holiday_thanksgiving_harvest_hearth", "🦃 Thanksgiving Harvest Ultra", "3D 🦃 Harvest Folder Crests · Folder FX Only"],
-            ["holiday_christmas_nutcracker_hearth", "🎄 Christmas Nutcracker Hearth", "3D 🎄 Evergreen Folder Crests · Folder FX Only"],
-            ["holiday_halloween_jack_o_lantern", "🎃 Halloween Carved Jack-O'-Lantern", "3D 🎃 Pumpkin Folder Crests · Folder FX Only"],
+            [
+              "polar_night",
+              "🌌 Polar Night Ultra",
+              "Arctic Slate Palette · 3D Folders Only",
+            ],
+            [
+              "mac_studio_m4_ultra",
+              "🍎 Mac Studio M4 Ultra Titanium",
+              "Space-Black Titanium Palette · 3D Folders Only",
+            ],
+            [
+              "holiday_fourth_of_july_fireworks",
+              "🎆 Fourth of July Ultra",
+              "3D 🎆 Liberty Folder Crests · Folder FX Only",
+            ],
+            [
+              "holiday_thanksgiving_harvest_hearth",
+              "🦃 Thanksgiving Harvest Ultra",
+              "3D 🦃 Harvest Folder Crests · Folder FX Only",
+            ],
+            [
+              "holiday_christmas_nutcracker_hearth",
+              "🎄 Christmas Nutcracker Hearth",
+              "3D 🎄 Evergreen Folder Crests · Folder FX Only",
+            ],
+            [
+              "holiday_halloween_jack_o_lantern",
+              "🎃 Halloween Carved Jack-O'-Lantern",
+              "3D 🎃 Pumpkin Folder Crests · Folder FX Only",
+            ],
           ];
           for (const [key, title, sub] of tour) {
-            await showThemeUnobstructed(d, key, title, sub, { anim: "folder_3d_spin_turntable", waitMs: 1700 });
+            await showThemeUnobstructed(d, key, title, sub, {
+              anim: "folder_3d_spin_turntable",
+              waitMs: 1700,
+            });
           }
           await clearUnobstructedBanner(d);
         },
@@ -147,13 +207,35 @@ export const ending: Chapter[] = [
           await d.menu("All themes", { pause: 1200 });
           await d.waitFor(".theme-card", 6000);
           await d.click('[data-share-hub="true"]', { pause: 1200 });
-          await d.waitFor('[data-share-import-current-folder-btn="true"]', 6000);
-          await d.hover('[data-share-import-current-folder-btn="true"]', 1000).catch(() => {});
-          await d.click('[data-share-import-current-folder-btn="true"]', { pause: 1300 }).catch(() => {});
-          await d.click('[data-share-import-apply="true"]', { pause: 1300 }).catch(() => {});
-          if (await d.eval<boolean>(`!!document.querySelector('[data-conflict-summary="true"]')`)) {
-            await d.click('[data-conflict-bulk="replace"]', { pause: 900 }).catch(() => {});
-            await d.click('.modal-backdrop:last-child .dialog [data-dialog-btn="confirm"]', { pause: 1200 }).catch(() => {});
+          await d.waitFor(
+            '[data-share-import-current-folder-btn="true"]',
+            6000,
+          );
+          await d
+            .hover('[data-share-import-current-folder-btn="true"]', 1000)
+            .catch(() => {});
+          await d
+            .click('[data-share-import-current-folder-btn="true"]', {
+              pause: 1300,
+            })
+            .catch(() => {});
+          await d
+            .click('[data-share-import-apply="true"]', { pause: 1300 })
+            .catch(() => {});
+          if (
+            await d.eval<boolean>(
+              `!!document.querySelector('[data-conflict-summary="true"]')`,
+            )
+          ) {
+            await d
+              .click('[data-conflict-bulk="replace"]', { pause: 900 })
+              .catch(() => {});
+            await d
+              .click(
+                '.modal-backdrop:last-child .dialog [data-dialog-btn="confirm"]',
+                { pause: 1200 },
+              )
+              .catch(() => {});
           }
           await closeDialogs(d);
           await d.click("#tool-up", { pause: 1000 }).catch(() => {});
@@ -168,7 +250,11 @@ export const ending: Chapter[] = [
           await d.click('[data-compare-themes="true"]', { pause: 1300 });
           await d.waitFor(".theme-compare-slider", 6000);
           await pick(d, "Left theme (Theme A)", "polar_night");
-          await pick(d, "Right theme (Theme B)", "holiday_halloween_jack_o_lantern");
+          await pick(
+            d,
+            "Right theme (Theme B)",
+            "holiday_halloween_jack_o_lantern",
+          );
           await slide(d, "Split comparison wipe position", 50, 25, 5);
           await slide(d, "Split comparison wipe position", 25, 75, 5);
           await closeDialogs(d);
@@ -180,7 +266,9 @@ export const ending: Chapter[] = [
             { anim: "folder_3d_spin_turntable", waitMs: 1100 },
           );
           await clearUnobstructedBanner(d);
-          await d.click("#status-views button >> Details", { pause: 800 }).catch(() => {});
+          await d
+            .click("#status-views button >> Details", { pause: 800 })
+            .catch(() => {});
           await d.key("F1", "F1");
           await d.waitFor(".dialog", 6000);
           await d.hover(".dialog", 1400);
@@ -193,8 +281,10 @@ export const ending: Chapter[] = [
   {
     id: "23_databases",
     chapter: "DATABASES HUB & CLONING",
-    title: "The Databases Hub: All 4 Engines, Sample Databases, Bulk Cross-Engine Cloning & Bun JS Macros",
-    blurb: "SQLite, MySQL / MariaDB, PostgreSQL & Redis connections, 1-click synthetic sample databases, bulk Cross-Engine Database & Table Cloning, and Bun JavaScript DAO Macros",
+    title:
+      "The Databases Hub: All 4 Engines, Sample Databases, Bulk Cross-Engine Cloning & Bun JS Macros",
+    blurb:
+      "SQLite, MySQL / MariaDB, PostgreSQL & Redis connections, 1-click synthetic sample databases, bulk Cross-Engine Database & Table Cloning, and Bun JavaScript DAO Macros",
     path: "<HOME>/Projects/shop-app/data",
     setup: (w) => {
       w.put(
@@ -209,9 +299,18 @@ export const ending: Chapter[] = [
         act: async (d) => {
           await d.row("shop.sqlite", "click", { pause: 900 });
           await d.row("shop.sqlite", "rclick", { pause: 900 });
-          await d.hover(".menu [role^=menuitem] >> Open in SQLite Studio", 1100);
-          await d.hover(".menu [role^=menuitem] >> Add as database connection", 1200);
-          await d.click(".menu [role^=menuitem] >> Add as database connection", { pause: 1300 });
+          await d.hover(
+            ".menu [role^=menuitem] >> Open in SQLite Studio",
+            1100,
+          );
+          await d.hover(
+            ".menu [role^=menuitem] >> Add as database connection",
+            1200,
+          );
+          await d.click(
+            ".menu [role^=menuitem] >> Add as database connection",
+            { pause: 1300 },
+          );
           await d.waitFor(".dialog", 6000);
           await d.hover(".dialog", 1200);
           await d.click(".dialog button >> Save", { pause: 1400 });
@@ -223,7 +322,9 @@ export const ending: Chapter[] = [
         act: async (d) => {
           await d.click("#view-tools", { pause: 600 });
           await d.click("#power-tab-databases", { pause: 1200 });
-          await d.eval(`[...document.querySelectorAll('#power-body button')].filter((b) => /^(Never for this one|Not now)$/.test(b.textContent.trim())).forEach((b) => b.click())`);
+          await d.eval(
+            `[...document.querySelectorAll('#power-body button')].filter((b) => /^(Never for this one|Not now)$/.test(b.textContent.trim())).forEach((b) => b.click())`,
+          );
           await d.wait(500);
           for (const btn of [
             "button >> Add connection",
@@ -244,12 +345,18 @@ export const ending: Chapter[] = [
         act: async (d) => {
           await d.click("button >> New sample database", { pause: 1200 });
           await d.waitFor(".dialog", 6000);
-          await d.scroll(".dialog label >> Hospital EHR", 140, 4).catch(() => {});
+          await d
+            .scroll(".dialog label >> Hospital EHR", 140, 4)
+            .catch(() => {});
           await d.click(".dialog label >> Hospital EHR", { pause: 1100 });
           await d.click(".dialog label >> Small", { pause: 900 });
-          await d.eval(`(() => { const i = [...document.querySelectorAll('.dialog input')].find((x) => x.value.startsWith('sample_')); if (i) { i.focus(); i.select(); i.value = 'hospital_demo'; i.dispatchEvent(new Event('input', { bubbles: true })); } })()`);
+          await d.eval(
+            `(() => { const i = [...document.querySelectorAll('.dialog input')].find((x) => x.value.startsWith('sample_')); if (i) { i.focus(); i.select(); i.value = 'hospital_demo'; i.dispatchEvent(new Event('input', { bubbles: true })); } })()`,
+          );
           await d.wait(500);
-          await d.click(".dialog button >> Create sample database", { pause: 2400 });
+          await d.click(".dialog button >> Create sample database", {
+            pause: 2400,
+          });
         },
       },
       {
@@ -260,7 +367,9 @@ export const ending: Chapter[] = [
           await d.click("button >> Clone database", { pause: 1400 });
           await d.waitFor(".dialog", 6000);
           await d.hover(".dialog", 1800);
-          await d.click(".dialog .btn.primary", { pause: 2200 }).catch(() => {});
+          await d
+            .click(".dialog .btn.primary", { pause: 2200 })
+            .catch(() => {});
           await closeDialogs(d);
         },
       },
@@ -280,8 +389,10 @@ export const ending: Chapter[] = [
   {
     id: "24_sqlite",
     chapter: "SQLITE STUDIO MASTERCLASS",
-    title: "SQLite Studio Inside the File Manager: Data Grid, Bulk Edit, Schema, SQL, Macros & Staging Import",
-    blurb: "Live embedded SQLite Studio walkthrough: sorting, filtering, totals row, printable reports, form & inline CRUD, visual table designer, ER schema, SQL & visual query designer, explain plan, backup dump & bulk CSV staging import",
+    title:
+      "SQLite Studio Inside the File Manager: Data Grid, Bulk Edit, Schema, SQL, Macros & Staging Import",
+    blurb:
+      "Live embedded SQLite Studio walkthrough: sorting, filtering, totals row, printable reports, form & inline CRUD, visual table designer, ER schema, SQL & visual query designer, explain plan, backup dump & bulk CSV staging import",
     path: "<HOME>/Projects/shop-app/data",
     before: async (d) => {
       await d.eval(`(async () => {
@@ -301,7 +412,9 @@ export const ending: Chapter[] = [
       })()`);
       await d.click("#view-tools", { pause: 600 });
       await d.click("#power-tab-databases", { pause: 1200 });
-      await d.eval(`[...document.querySelectorAll('#power-body button')].filter((b) => /^(Never for this one|Not now)$/.test(b.textContent.trim())).forEach((b) => b.click())`);
+      await d.eval(
+        `[...document.querySelectorAll('#power-body button')].filter((b) => /^(Never for this one|Not now)$/.test(b.textContent.trim())).forEach((b) => b.click())`,
+      );
       await d.wait(500);
     },
     steps: [
@@ -316,7 +429,16 @@ export const ending: Chapter[] = [
           await d.click(S + "#msgBoxBtnOk", { pause: 900 });
           await d.click("#focus-toggle", { pause: 1200 });
           await d.click(S + ".tree-item-title >> customers", { pause: 1000 });
-          for (const t of ["Grid", "Designer", "Macros", "Schema", "Explain", "Json", "Audit", "Pragma"]) {
+          for (const t of [
+            "Grid",
+            "Designer",
+            "Macros",
+            "Schema",
+            "Explain",
+            "Json",
+            "Audit",
+            "Pragma",
+          ]) {
             await d.hover(S + `#tabBtn${t}`, 550);
           }
           await d.click(S + "#tabBtnGrid", { pause: 600 });
@@ -331,7 +453,10 @@ export const ending: Chapter[] = [
           await d.click(S + "#gridSearchInput", { pause: 400 });
           await d.type("US", 110);
           await d.wait(1300);
-          await d.c.evalFrame(SF, `(() => { const e = document.querySelector('#gridSearchInput'); if (e) { e.value = ''; e.dispatchEvent(new Event('input', { bubbles: true })); } })()`);
+          await d.c.evalFrame(
+            SF,
+            `(() => { const e = document.querySelector('#gridSearchInput'); if (e) { e.value = ''; e.dispatchEvent(new Event('input', { bubbles: true })); } })()`,
+          );
           await d.wait(800);
           await d.click(S + "#btnToggleTotals", { pause: 1400 });
           await d.click(S + "#btnAccessReport", { pause: 1800 });
@@ -357,7 +482,9 @@ export const ending: Chapter[] = [
         act: async (d) => {
           await d.click(S + "button >> 🛠️ Design Table", { pause: 1500 });
           await d.hover(S + "[class*=modal]", 1400).catch(() => {});
-          await d.click(S + "[class*=modal] button >> Cancel", { pause: 800 }).catch(() => d.key("Escape", "Esc"));
+          await d
+            .click(S + "[class*=modal] button >> Cancel", { pause: 800 })
+            .catch(() => d.key("Escape", "Esc"));
           await d.click(S + "#tabBtnSchema", { pause: 1800 });
           await d.click(S + "#tabBtnDesigner", { pause: 1800 });
           await d.click(S + "#tabBtnExplain", { pause: 1500 });
@@ -388,7 +515,8 @@ export const ending: Chapter[] = [
     title: "That is the tour",
     kind: "card",
     card: {
-      kicker: "Free and open source · Recorded on Apple Mac Studio M4 Ultra · Pro Display XDR 6K 120Hz",
+      kicker:
+        "Free and open source · Recorded on Apple Mac Studio M4 Ultra · Pro Display XDR 6K 120Hz",
       title: "Thank you for watching",
       lines: [
         "Download: github.com/codecaine-zz/bun_rad_studio",

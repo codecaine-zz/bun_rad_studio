@@ -57,6 +57,7 @@ export interface SubfinderOptions {
 ## 3. Comprehensive Code Examples
 
 ### Example 1: Passive Subdomain Discovery
+
 ```typescript
 import { enumerateDomain } from "./subfinderCoordinator.ts";
 
@@ -70,6 +71,7 @@ for (const res of results) {
 ```
 
 ### Example 2: Active Verification (Live DNS Resolution)
+
 ```typescript
 import { enumerateDomain } from "./subfinderCoordinator.ts";
 
@@ -82,6 +84,7 @@ for (const res of liveResults) {
 ```
 
 ### Example 3: Full Coordinator Execution with File Export
+
 ```typescript
 import { runSubfinderCoordinator } from "./subfinderCoordinator.ts";
 
@@ -98,8 +101,14 @@ console.log(`Wrote ${lines.length} subdomains to subdomains.txt`);
 ```
 
 ### Example 4: Querying Individual Passive Sources Directly
+
 ```typescript
-import { queryCrtSh, queryHackerTarget, queryAlienVault, queryAnubis } from "./subfinderDoers.ts";
+import {
+  queryCrtSh,
+  queryHackerTarget,
+  queryAlienVault,
+  queryAnubis,
+} from "./subfinderDoers.ts";
 
 const ctLogs = await queryCrtSh("example.com");
 console.log(`crt.sh hosts: ${ctLogs.length}`);
@@ -115,18 +124,29 @@ console.log(`Anubis hosts: ${anubisHosts.length}`);
 ```
 
 ### Example 5: DNS Resolution & Deduplication Doers
+
 ```typescript
-import { cleanDomain, cleanSubdomain, deduplicateSubdomains, resolveHostDns } from "./subfinderDoers.ts";
+import {
+  cleanDomain,
+  cleanSubdomain,
+  deduplicateSubdomains,
+  resolveHostDns,
+} from "./subfinderDoers.ts";
 
 const domain = cleanDomain("https://sub.example.com/path"); // "sub.example.com"
 const sub = cleanSubdomain("*.api.example.com", "example.com"); // "api.example.com"
-const unique = deduplicateSubdomains(["b.example.com", "a.example.com", "b.example.com"]); // ["a.example.com", "b.example.com"]
+const unique = deduplicateSubdomains([
+  "b.example.com",
+  "a.example.com",
+  "b.example.com",
+]); // ["a.example.com", "b.example.com"]
 
 const ips = await resolveHostDns("localhost");
 console.log(ips); // ["127.0.0.1", "::1"]
 ```
 
 ### Example 6: HTTP Status Probing, Port Scanning & Wildcard DNS Filtering
+
 ```typescript
 import {
   probeHttp,
@@ -159,14 +179,26 @@ if (wildcardIps) {
 `subfinderEngine.ts` is a second, stricter entry point that sits beside the functions above (the CLI, the desktop app and the examples above are unchanged). It is built for being driven from another program, and it never touches the network or the clock except through `EngineDeps`, so tests run offline:
 
 ```typescript
-import { DEFAULT_OPTIONS, defaultDeps, runDiscovery } from "./subfinderEngine.ts";
+import {
+  DEFAULT_OPTIONS,
+  defaultDeps,
+  runDiscovery,
+} from "./subfinderEngine.ts";
 
 const abort = new AbortController(); // abort.abort() cancels every source, lookup and connection
 const summary = await runDiscovery(
   "example.com",
-  { ...DEFAULT_OPTIONS, sources: ["crtsh", "anubis"], resolve: true, probeHttp: true },
-  defaultDeps(),                      // replace fetch / resolve / http / tcp / now / sleep for tests
-  { onSource: (s) => console.log(s.id, s.state, s.count), onRow: (row) => console.log(row.host) },
+  {
+    ...DEFAULT_OPTIONS,
+    sources: ["crtsh", "anubis"],
+    resolve: true,
+    probeHttp: true,
+  },
+  defaultDeps(), // replace fetch / resolve / http / tcp / now / sleep for tests
+  {
+    onSource: (s) => console.log(s.id, s.state, s.count),
+    onRow: (row) => console.log(row.host),
+  },
   abort.signal,
 );
 ```
@@ -183,4 +215,3 @@ What it adds:
 ## 5. Safety summary
 
 Passive sources only read public records. DNS lookups, HTTP probing and port probing contact the target's own computers: use them only on domains you own or are allowed to test.
-

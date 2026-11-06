@@ -63,7 +63,8 @@ const uiState = {
   newSkillDisplayName: "",
   newSkillDesc: "",
   newSkillScope: "project-local",
-  newSkillInstructions: "1. Inspect the selected files in the workspace.\n2. Summarize findings and propose safe improvements.",
+  newSkillInstructions:
+    "1. Inspect the selected files in the workspace.\n2. Summarize findings and propose safe improvements.",
   // Speech & ASR state
   speechText: "",
   speechMode: "speaker", // "speaker" | "file"
@@ -125,7 +126,9 @@ function resolveEffectiveBionicModelId(modelName) {
   const clean = String(modelName ?? uiState.selectedModel ?? "").trim();
   if (clean) return clean;
   const models = uiState.statusData?.models || [];
-  const loadedChat = models.find((m) => m.loaded && (m.type === "llm" || m.type === "vlm"));
+  const loadedChat = models.find(
+    (m) => m.loaded && (m.type === "llm" || m.type === "vlm"),
+  );
   if (loadedChat?.id) return loadedChat.id;
   const anyChat = models.find((m) => m.type === "llm" || m.type === "vlm");
   if (anyChat?.id) return anyChat.id;
@@ -136,13 +139,22 @@ function resolveEffectiveBionicModelId(modelName) {
 
 function getBionicModelThinkingCapabilities(modelName) {
   const clean = resolveEffectiveBionicModelId(modelName);
-  const models = [...(uiState.statusData?.models || []), ...(uiState.statusData?.cloudModels || [])];
-  const found = models.find((m) => (m.id || m.modelKey || "").toLowerCase() === clean.toLowerCase());
+  const models = [
+    ...(uiState.statusData?.models || []),
+    ...(uiState.statusData?.cloudModels || []),
+  ];
+  const found = models.find(
+    (m) => (m.id || m.modelKey || "").toLowerCase() === clean.toLowerCase(),
+  );
   if (found?.thinkingCapabilities) {
     return found.thinkingCapabilities;
   }
   const lower = clean.toLowerCase();
-  if (lower.includes("phonon") || lower.includes("embed") || lower.includes("bge-")) {
+  if (
+    lower.includes("phonon") ||
+    lower.includes("embed") ||
+    lower.includes("bge-")
+  ) {
     return {
       supportsThinking: false,
       thinkingMode: "none",
@@ -154,7 +166,11 @@ function getBionicModelThinkingCapabilities(modelName) {
       description: "Direct output model without chain-of-thought reasoning.",
     };
   }
-  if (lower.includes("gpt-oss") || lower.includes("gpt_oss") || /^o[134](?:[-:_]|$)/.test(lower)) {
+  if (
+    lower.includes("gpt-oss") ||
+    lower.includes("gpt_oss") ||
+    /^o[134](?:[-:_]|$)/.test(lower)
+  ) {
     return {
       supportsThinking: true,
       thinkingMode: "levels",
@@ -167,7 +183,11 @@ function getBionicModelThinkingCapabilities(modelName) {
         "Multi-level reasoning model (gpt-oss): select Low, Medium, or High reasoning effort (passes reasoning_effort + Harmony Reasoning: <level>).",
     };
   }
-  if (lower.includes("deepseek-r1") || lower.includes("qwq") || lower.includes("phi4-reasoning")) {
+  if (
+    lower.includes("deepseek-r1") ||
+    lower.includes("qwq") ||
+    lower.includes("phi4-reasoning")
+  ) {
     return {
       supportsThinking: true,
       thinkingMode: "always_on",
@@ -222,20 +242,29 @@ function getBionicModelThinkingCapabilities(modelName) {
     defaultLevel: "off",
     supportsThinkingBudget: false,
     badgeLabel: "Standard Direct Output (No Thinking)",
-    description: "Standard direct output model without chain-of-thought reasoning latency.",
+    description:
+      "Standard direct output model without chain-of-thought reasoning latency.",
   };
 }
 
 function getBionicModelFeatureProfile(modelName) {
   const clean = resolveEffectiveBionicModelId(modelName);
-  const models = [...(uiState.statusData?.models || []), ...(uiState.statusData?.cloudModels || [])];
-  const found = models.find((m) => (m.id || m.modelKey || "").toLowerCase() === clean.toLowerCase());
+  const models = [
+    ...(uiState.statusData?.models || []),
+    ...(uiState.statusData?.cloudModels || []),
+  ];
+  const found = models.find(
+    (m) => (m.id || m.modelKey || "").toLowerCase() === clean.toLowerCase(),
+  );
   if (found?.featureProfile) {
     return found.featureProfile;
   }
   const lower = clean.toLowerCase();
   const thinkingCaps = getBionicModelThinkingCapabilities(clean);
-  const isEmbedding = found?.type === "embedding" || lower.includes("embed") || lower.includes("bge-");
+  const isEmbedding =
+    found?.type === "embedding" ||
+    lower.includes("embed") ||
+    lower.includes("bge-");
   const isTts = found?.type === "tts" || lower.includes("phonon");
   const isChat = !isEmbedding && !isTts;
   const isCloud =
@@ -289,7 +318,8 @@ function getBionicModelFeatureProfile(modelName) {
       id: "cloud",
       icon: "☁️",
       label: "Zero-RAM Bionic Cloud",
-      description: "Runs on LM Studio Bionic Cloud with 0 GB local RAM impact and up to 262K context.",
+      description:
+        "Runs on LM Studio Bionic Cloud with 0 GB local RAM impact and up to 262K context.",
     });
   }
 
@@ -298,23 +328,30 @@ function getBionicModelFeatureProfile(modelName) {
       id: "tts",
       icon: "🔊",
       label: "Phonon 40M Multilingual TTS",
-      description: "24kHz native Metal text-to-speech synthesis across 5 languages.",
+      description:
+        "24kHz native Metal text-to-speech synthesis across 5 languages.",
     });
-    useCases.push("Read files aloud at 24kHz with Zoey, Anton, Marlowe & Maeve");
+    useCases.push(
+      "Read files aloud at 24kHz with Zoey, Anton, Marlowe & Maeve",
+    );
   } else if (isEmbedding) {
     indicators.push({
       id: "embedding",
       icon: "🔍",
       label: "768-Dim Semantic Embeddings",
-      description: "Generates dense vector embeddings for folder search by meaning.",
+      description:
+        "Generates dense vector embeddings for folder search by meaning.",
     });
-    useCases.push("Search workspace files by concept & meaning (/v1/embeddings)");
+    useCases.push(
+      "Search workspace files by concept & meaning (/v1/embeddings)",
+    );
   } else if (thinkingCaps.thinkingMode === "levels") {
     indicators.push({
       id: "thinking_levels",
       icon: "🧠",
       label: "Reasoning Levels (Low / Med / High)",
-      description: "Choose Low, Medium, or High reasoning effort (gpt-oss Harmony format).",
+      description:
+        "Choose Low, Medium, or High reasoning effort (gpt-oss Harmony format).",
     });
     useCases.push("Choose Low, Medium, or High reasoning effort per prompt");
   } else if (thinkingCaps.thinkingMode === "toggle") {
@@ -322,9 +359,12 @@ function getBionicModelFeatureProfile(modelName) {
       id: "thinking_toggle",
       icon: "🔀",
       label: "Thinking Toggle (On / Off)",
-      description: "Turn Deep Thinking On for step-by-step reasoning or Off for instant replies.",
+      description:
+        "Turn Deep Thinking On for step-by-step reasoning or Off for instant replies.",
     });
-    useCases.push("Toggle Thinking On for deep reflection or Off for fast answers");
+    useCases.push(
+      "Toggle Thinking On for deep reflection or Off for fast answers",
+    );
   } else if (thinkingCaps.thinkingMode === "always_on") {
     indicators.push({
       id: "thinking_always_on",
@@ -358,9 +398,12 @@ function getBionicModelFeatureProfile(modelName) {
       id: "code",
       icon: "💻",
       label: "Chat, Code & Document Synthesis",
-      description: "Summarizes files, writes/refactors code, and synthesizes multi-file reports.",
+      description:
+        "Summarizes files, writes/refactors code, and synthesizes multi-file reports.",
     });
-    useCases.push("Summarize files, refactor code, and synthesize multi-file reports");
+    useCases.push(
+      "Summarize files, refactor code, and synthesize multi-file reports",
+    );
   }
 
   if (isTools) {
@@ -368,7 +411,8 @@ function getBionicModelFeatureProfile(modelName) {
       id: "tools",
       icon: "🛠",
       label: "Tool Use & @Skill Injection",
-      description: "Supports Bionic @skill triggers and safe file tool actions.",
+      description:
+        "Supports Bionic @skill triggers and safe file tool actions.",
     });
     useCases.push("Run @skill agents and safe file organization tools");
   }
@@ -378,7 +422,8 @@ function getBionicModelFeatureProfile(modelName) {
       id: "structured_json",
       icon: "📐",
       label: "Grammar-Constrained JSON",
-      description: "Outputs schema-validated JSON for batch renames, code reviews, and tables.",
+      description:
+        "Outputs schema-validated JSON for batch renames, code reviews, and tables.",
     });
   }
 
@@ -412,7 +457,11 @@ function syncBionicSelectedModelState() {
   const profile = getBionicModelFeatureProfile(uiState.selectedModel);
   const feat = profile.features || {};
   if (caps.thinkingMode === "levels") {
-    if (uiState.thinkingLevel !== "low" && uiState.thinkingLevel !== "medium" && uiState.thinkingLevel !== "high") {
+    if (
+      uiState.thinkingLevel !== "low" &&
+      uiState.thinkingLevel !== "medium" &&
+      uiState.thinkingLevel !== "high"
+    ) {
       uiState.thinkingLevel = caps.defaultLevel || "medium";
     }
     uiState.thinkEnabled = true;
@@ -474,7 +523,8 @@ function buildBionicSamplingPayload() {
     repeatPenalty: Number(uiState.repeatPenalty),
     maxTokens: Number(uiState.maxTokens) || 16384,
     draftModel: String(uiState.draftModel || "").trim() || undefined,
-    ttlSeconds: Number(uiState.ttlSeconds) > 0 ? Number(uiState.ttlSeconds) : undefined,
+    ttlSeconds:
+      Number(uiState.ttlSeconds) > 0 ? Number(uiState.ttlSeconds) : undefined,
     systemPrompt: String(uiState.customSystemPrompt || "").trim() || undefined,
   };
   if (uiState.seed !== "" && Number.isFinite(Number(uiState.seed))) {
@@ -521,7 +571,9 @@ async function copyBionicText(text, label = "Bionic output", btnEl = null) {
       btnEl.classList.remove("is-copied");
     }, 1600);
   }
-  toast(`Copied ${label} to clipboard (${clean.length.toLocaleString()} chars)`);
+  toast(
+    `Copied ${label} to clipboard (${clean.length.toLocaleString()} chars)`,
+  );
   return ok;
 }
 
@@ -616,13 +668,18 @@ function createAudioPlayerEl(audioUrl) {
 function createBadgeEl(badge) {
   const bLower = String(badge || "").toLowerCase();
   const extra =
-    bLower.includes("mlx") || bLower.includes("loaded") || bLower.includes("bionic cloud") || bLower.includes("zero local ram")
+    bLower.includes("mlx") ||
+    bLower.includes("loaded") ||
+    bLower.includes("bionic cloud") ||
+    bLower.includes("zero local ram")
       ? " badge-mlx"
       : bLower.includes("speech") || bLower.includes("tts")
         ? " badge-speech"
         : bLower.includes("vision")
           ? " badge-vision"
-          : bLower.includes("reasoning") || bLower.includes("tools") || bLower.includes("thinking")
+          : bLower.includes("reasoning") ||
+              bLower.includes("tools") ||
+              bLower.includes("thinking")
             ? " badge-decision"
             : "";
   return h("span", { class: `ollama-cap-badge${extra}` }, badge);
@@ -652,13 +709,16 @@ function extractYamlFrontmatter(rawText) {
 
 function mdNodePlainText(node) {
   if (!node) return "";
-  if (node.tag === "#text" || node.tag === "code") return String(node.text ?? "");
+  if (node.tag === "#text" || node.tag === "code")
+    return String(node.text ?? "");
   if (node.tag === "img") return String(node.alt ?? "");
   return (node.children || []).map(mdNodePlainText).join("");
 }
 
 function resolveTokenizerLang(langRaw, codeText = "") {
-  const raw = String(langRaw || "").trim().toLowerCase();
+  const raw = String(langRaw || "")
+    .trim()
+    .toLowerCase();
   const aliasMap = {
     js: "javascript",
     jsx: "javascript",
@@ -721,11 +781,19 @@ function resolveTokenizerLang(langRaw, codeText = "") {
   }
   const trimmed = String(codeText || "").trim();
   if (/^[\[{]/.test(trimmed) && /[}\]]$/.test(trimmed)) return "json";
-  if (/^(?:bionic_tool|\w+\s*\(|const\s+|let\s+|import\s+|export\s+|await\s+|function\s+|return\s+)/m.test(trimmed)) {
+  if (
+    /^(?:bionic_tool|\w+\s*\(|const\s+|let\s+|import\s+|export\s+|await\s+|function\s+|return\s+)/m.test(
+      trimmed,
+    )
+  ) {
     return "typescript";
   }
   if (/^(?:def\s+|from\s+\S+\s+import\s+)/m.test(trimmed)) return "python";
-  if (/^(?:\$\s+|lms\s+|bun\s+|npm\s+|pip\s+|uv\s+|curl\s+|git\s+|fastapi\s+|python3?\s+)/m.test(trimmed)) {
+  if (
+    /^(?:\$\s+|lms\s+|bun\s+|npm\s+|pip\s+|uv\s+|curl\s+|git\s+|fastapi\s+|python3?\s+)/m.test(
+      trimmed,
+    )
+  ) {
     return "shell";
   }
   if (/[="'{}[\]()]/.test(trimmed)) return "javascript";
@@ -738,7 +806,10 @@ function buildSyntaxHighlightedCodePre(codeText, langRaw) {
     .replace(/^\n+/, "")
     .replace(/\n+$/, "");
   const lang = resolveTokenizerLang(langRaw, cleanCode);
-  const lines = tokenizeText(lang, cleanCode.length > 200_000 ? cleanCode.slice(0, 200_000) : cleanCode);
+  const lines = tokenizeText(
+    lang,
+    cleanCode.length > 200_000 ? cleanCode.slice(0, 200_000) : cleanCode,
+  );
   const bodyEl = h("div", {
     class: `bionic-md-code-body${uiState.codeWrap !== false ? " is-wrapped" : ""}`,
     tabindex: "0",
@@ -754,13 +825,19 @@ function buildSyntaxHighlightedCodePre(codeText, langRaw) {
     } else {
       for (const t of tokens) {
         textCell.append(
-          t.type ? h("span", { class: `code-t-${t.type}` }, t.text) : document.createTextNode(t.text),
+          t.type
+            ? h("span", { class: `code-t-${t.type}` }, t.text)
+            : document.createTextNode(t.text),
         );
       }
     }
     bodyEl.append(
       h("div", { class: "bionic-md-code-row" }, [
-        h("span", { class: "bionic-md-code-ln", "aria-hidden": "true" }, String(i + 1)),
+        h(
+          "span",
+          { class: "bionic-md-code-ln", "aria-hidden": "true" },
+          String(i + 1),
+        ),
         textCell,
       ]),
     );
@@ -824,7 +901,9 @@ export function buildBionicMarkdownDom(rawSource, clearScope = "assistant") {
                   title: "Toggle line wrapping inside this code block",
                   onclick: (e) => {
                     const wrapped = codeEl.classList.toggle("is-wrapped");
-                    e.currentTarget.textContent = wrapped ? "↩ Wrap: ON" : "↔ Wrap: OFF";
+                    e.currentTarget.textContent = wrapped
+                      ? "↩ Wrap: ON"
+                      : "↔ Wrap: OFF";
                   },
                 },
                 uiState.codeWrap !== false ? "↩ Wrap: ON" : "↔ Wrap: OFF",
@@ -835,7 +914,12 @@ export function buildBionicMarkdownDom(rawSource, clearScope = "assistant") {
                   type: "button",
                   class: "ollama-btn is-mini is-primary",
                   title: `Copy ${displayLang} code block`,
-                  onclick: (e) => void copyBionicText(codeBody, `${displayLang} snippet`, e.currentTarget),
+                  onclick: (e) =>
+                    void copyBionicText(
+                      codeBody,
+                      `${displayLang} snippet`,
+                      e.currentTarget,
+                    ),
                 },
                 "📋 Copy Code",
               ),
@@ -862,13 +946,13 @@ export function buildBionicMarkdownDom(rawSource, clearScope = "assistant") {
       }
       case "blockquote": {
         const rawQuoteText = mdNodePlainText(node).trim();
-        const alertMatch = /^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*/i.exec(rawQuoteText);
+        const alertMatch =
+          /^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*/i.exec(rawQuoteText);
         const alertKind = alertMatch ? alertMatch[1].toLowerCase() : "";
         if (alertKind && node.children?.[0]?.children?.[0]?.tag === "#text") {
-          node.children[0].children[0].text = String(node.children[0].children[0].text || "").replace(
-            /^\[!(?:NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*/i,
-            "",
-          );
+          node.children[0].children[0].text = String(
+            node.children[0].children[0].text || "",
+          ).replace(/^\[!(?:NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*/i, "");
         }
         return h(
           "blockquote",
@@ -876,7 +960,13 @@ export function buildBionicMarkdownDom(rawSource, clearScope = "assistant") {
             class: `bionic-md-blockquote${alertKind ? ` is-alert-${alertKind}` : ""}`,
           },
           [
-            alertKind ? h("span", { class: "bionic-md-alert-badge" }, `⚡ ${alertKind.toUpperCase()}`) : null,
+            alertKind
+              ? h(
+                  "span",
+                  { class: "bionic-md-alert-badge" },
+                  `⚡ ${alertKind.toUpperCase()}`,
+                )
+              : null,
             ...(node.children || []).map((c) => renderAstNode(c)),
           ],
         );
@@ -904,7 +994,11 @@ export function buildBionicMarkdownDom(rawSource, clearScope = "assistant") {
               },
               node.checked ? "☑" : "☐",
             ),
-            h("span", {}, (node.children || []).map((c) => renderAstNode(c))),
+            h(
+              "span",
+              {},
+              (node.children || []).map((c) => renderAstNode(c)),
+            ),
           ]);
         }
         return h(
@@ -917,7 +1011,9 @@ export function buildBionicMarkdownDom(rawSource, clearScope = "assistant") {
         const theadNode = (node.children || []).find((c) => c.tag === "thead");
         const tbodyNode = (node.children || []).find((c) => c.tag === "tbody");
         const headerTexts =
-          theadNode?.children?.[0]?.children?.map((th) => mdNodePlainText(th).trim()) || [];
+          theadNode?.children?.[0]?.children?.map((th) =>
+            mdNodePlainText(th).trim(),
+          ) || [];
         const thEls = (theadNode?.children?.[0]?.children || []).map((th) =>
           h(
             "th",
@@ -961,16 +1057,17 @@ export function buildBionicMarkdownDom(rawSource, clearScope = "assistant") {
       default: {
         if (/^h[1-6]$/.test(node.tag)) {
           const level = Number(node.tag.slice(1)) || 1;
-          const headingText = mdNodePlainText(node).trim() || `Section ${headings.length + 1}`;
+          const headingText =
+            mdNodePlainText(node).trim() || `Section ${headings.length + 1}`;
           const domId = `bionic-md-h-${clearScope}-${headings.length}`;
-          const el = h(
-            node.tag,
-            { id: domId },
-            [
-              h("span", { class: "bionic-md-heading-anchor" }, `#`.repeat(Math.min(level, 3))),
-              ...(node.children || []).map((c) => renderAstNode(c)),
-            ],
-          );
+          const el = h(node.tag, { id: domId }, [
+            h(
+              "span",
+              { class: "bionic-md-heading-anchor" },
+              `#`.repeat(Math.min(level, 3)),
+            ),
+            ...(node.children || []).map((c) => renderAstNode(c)),
+          ]);
           headings.push({ level, text: headingText, domId, el });
           return el;
         }
@@ -988,7 +1085,11 @@ export function buildBionicMarkdownDom(rawSource, clearScope = "assistant") {
     frontmatter.length > 0
       ? h("div", { class: "bionic-md-frontmatter" }, [
           h("div", { class: "bionic-md-fm-title" }, [
-            h("span", { class: "ollama-pill is-mlx" }, "📄 YAML Frontmatter Metadata"),
+            h(
+              "span",
+              { class: "ollama-pill is-mlx" },
+              "📄 YAML Frontmatter Metadata",
+            ),
           ]),
           h(
             "div",
@@ -1011,7 +1112,9 @@ function scrollBionicConsoleOutput(btnEl, direction = "top") {
     btnEl?.closest?.(".ollama-output-console") ||
     rootContainer?.querySelector?.(".ollama-output-console");
   if (!consoleEl) return;
-  for (const box of consoleEl.querySelectorAll(".bionic-md-viewer, .ollama-output-box, .ollama-thinking-box")) {
+  for (const box of consoleEl.querySelectorAll(
+    ".bionic-md-viewer, .ollama-output-box, .ollama-thinking-box",
+  )) {
     box.scrollTo({
       top: direction === "bottom" ? box.scrollHeight : 0,
       behavior: "smooth",
@@ -1057,7 +1160,10 @@ function renderBionicOutputConsole({
         ? content
         : reasoning;
 
-  const mdBuilt = hasContent && uiState.markdownView ? buildBionicMarkdownDom(content, clearScope) : null;
+  const mdBuilt =
+    hasContent && uiState.markdownView
+      ? buildBionicMarkdownDom(content, clearScope)
+      : null;
   const headingList = mdBuilt?.headings || [];
   const consoleClasses = [
     "ollama-output-console",
@@ -1077,7 +1183,9 @@ function renderBionicOutputConsole({
     [
       h("div", { class: "ollama-output-header" }, [
         h("div", { class: "ollama-output-title-group" }, [
-          uiState.loading ? h("span", { class: "ollama-spinner" }) : h("span", { class: "ollama-status-pulse" }),
+          uiState.loading
+            ? h("span", { class: "ollama-spinner" })
+            : h("span", { class: "ollama-status-pulse" }),
           h("strong", { class: "ollama-output-title" }, title),
           badge ? h("span", { class: "ollama-pill is-mlx" }, badge) : null,
           hasContent || hasReasoning
@@ -1086,7 +1194,11 @@ function renderBionicOutputConsole({
                 { class: "ollama-pill is-ram" },
                 `${stats.words.toLocaleString()} words • ${stats.chars.toLocaleString()} chars • ${stats.lines} lines`,
               )
-            : h("span", { class: "ollama-pill" }, uiState.loading ? "Generating..." : "Ready"),
+            : h(
+                "span",
+                { class: "ollama-pill" },
+                uiState.loading ? "Generating..." : "Ready",
+              ),
         ]),
         h("div", { class: "ollama-output-toolbar" }, [
           uiState.loading
@@ -1109,7 +1221,8 @@ function renderBionicOutputConsole({
               class: `ollama-btn is-mini${uiState.outputExpanded ? " is-primary" : ""}`,
               "data-bionic-action": "toggle-expand-output",
               "aria-pressed": String(Boolean(uiState.outputExpanded)),
-              title: "Expand Output Console and collapse prompt banners above so the LLM response fills the panel",
+              title:
+                "Expand Output Console and collapse prompt banners above so the LLM response fills the panel",
               onclick: (e) => {
                 uiState.outputExpanded = !uiState.outputExpanded;
                 if (!uiState.outputExpanded) uiState.outputFullscreen = false;
@@ -1117,7 +1230,10 @@ function renderBionicOutputConsole({
                 const consoleEl =
                   e.currentTarget?.closest?.(".ollama-output-console") ||
                   rootContainer?.querySelector?.(".ollama-output-console");
-                consoleEl?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+                consoleEl?.scrollIntoView?.({
+                  behavior: "smooth",
+                  block: "start",
+                });
               },
             },
             uiState.outputExpanded ? "⤡ Compact View" : "⤢ Expand Output",
@@ -1144,7 +1260,8 @@ function renderBionicOutputConsole({
               type: "button",
               class: `ollama-btn is-mini${uiState.markdownView ? " is-primary" : ""}`,
               "aria-pressed": uiState.markdownView ? "true" : "false",
-              title: "Toggle between formatted Markdown reader view and raw source text",
+              title:
+                "Toggle between formatted Markdown reader view and raw source text",
               onclick: () => {
                 uiState.markdownView = !uiState.markdownView;
                 renderBionicPanel();
@@ -1176,7 +1293,10 @@ function renderBionicOutputConsole({
                   class: "ollama-btn is-mini",
                   title: "Decrease Markdown reader font size",
                   onclick: () => {
-                    uiState.mdFontScale = Math.max(11.5, uiState.mdFontScale - 1);
+                    uiState.mdFontScale = Math.max(
+                      11.5,
+                      uiState.mdFontScale - 1,
+                    );
                     renderBionicPanel();
                   },
                 },
@@ -1205,7 +1325,8 @@ function renderBionicOutputConsole({
                   type: "button",
                   class: "ollama-btn is-mini",
                   title: "Scroll to top of output",
-                  onclick: (e) => scrollBionicConsoleOutput(e.currentTarget, "top"),
+                  onclick: (e) =>
+                    scrollBionicConsoleOutput(e.currentTarget, "top"),
                 },
                 "⬆ Top",
               )
@@ -1217,7 +1338,8 @@ function renderBionicOutputConsole({
                   type: "button",
                   class: "ollama-btn is-mini",
                   title: "Scroll to bottom of output",
-                  onclick: (e) => scrollBionicConsoleOutput(e.currentTarget, "bottom"),
+                  onclick: (e) =>
+                    scrollBionicConsoleOutput(e.currentTarget, "bottom"),
                 },
                 "⬇ Bottom",
               )
@@ -1228,7 +1350,12 @@ function renderBionicOutputConsole({
               type: "button",
               class: "ollama-btn is-copy-btn",
               disabled: !hasContent && !hasReasoning ? "disabled" : null,
-              onclick: (e) => void copyBionicText(hasContent ? content : reasoning, title, e.currentTarget),
+              onclick: (e) =>
+                void copyBionicText(
+                  hasContent ? content : reasoning,
+                  title,
+                  e.currentTarget,
+                ),
             },
             "📋 Copy Output",
           ),
@@ -1238,7 +1365,12 @@ function renderBionicOutputConsole({
                 {
                   type: "button",
                   class: "ollama-btn is-mini",
-                  onclick: (e) => void copyBionicText(reasoning, "Bionic Reasoning Trace", e.currentTarget),
+                  onclick: (e) =>
+                    void copyBionicText(
+                      reasoning,
+                      "Bionic Reasoning Trace",
+                      e.currentTarget,
+                    ),
                 },
                 "🧠 Copy Reasoning",
               )
@@ -1260,7 +1392,8 @@ function renderBionicOutputConsole({
                 {
                   type: "button",
                   class: "ollama-btn is-mini",
-                  onclick: () => void saveBionicOutputToFolder(combinedText, saveName),
+                  onclick: () =>
+                    void saveBionicOutputToFolder(combinedText, saveName),
                 },
                 "💾 Save to Folder",
               )
@@ -1270,7 +1403,8 @@ function renderBionicOutputConsole({
             {
               type: "button",
               class: "ollama-btn is-danger is-clear-btn",
-              disabled: !hasContent && !hasReasoning && !audioUrl ? "disabled" : null,
+              disabled:
+                !hasContent && !hasReasoning && !audioUrl ? "disabled" : null,
               onclick: () => clearBionicOutput(clearScope),
             },
             "🧹 Clear",
@@ -1280,10 +1414,18 @@ function renderBionicOutputConsole({
       uiState.lastStats && clearScope === "assistant"
         ? h("div", { class: "bionic-telemetry-strip" }, [
             uiState.lastStats.tokensPerSecond > 0
-              ? h("span", { class: "ollama-pill is-mlx" }, `⚡ ${uiState.lastStats.tokensPerSecond} tok/s`)
+              ? h(
+                  "span",
+                  { class: "ollama-pill is-mlx" },
+                  `⚡ ${uiState.lastStats.tokensPerSecond} tok/s`,
+                )
               : null,
             uiState.lastStats.timeToFirstToken > 0
-              ? h("span", { class: "ollama-pill is-ram" }, `TTFT: ${uiState.lastStats.timeToFirstToken}s`)
+              ? h(
+                  "span",
+                  { class: "ollama-pill is-ram" },
+                  `TTFT: ${uiState.lastStats.timeToFirstToken}s`,
+                )
               : null,
             uiState.lastStats.promptTokens > 0
               ? h(
@@ -1302,33 +1444,46 @@ function renderBionicOutputConsole({
           ])
         : null,
       hasReasoning
-        ? h("details", { class: "ollama-thinking-details", open: !hasContent ? "open" : null }, [
-            h("summary", { class: "ollama-thinking-summary" }, [
-              h("span", {}, `🧠 Bionic Step-by-Step Reasoning Trace (${reasoning.length.toLocaleString()} chars — click to expand)`),
-            ]),
-            uiState.markdownView
-              ? h(
-                  "div",
-                  {
-                    class: "bionic-md-viewer",
-                    style: "max-block-size: min(210px, 26vh); padding: 10px 14px;",
-                    tabindex: "0",
-                    role: "region",
-                    "aria-label": "Bionic step-by-step reasoning trace",
-                  },
-                  buildBionicMarkdownDom(reasoning, `${clearScope}-reasoning`).renderedBlocks,
-                )
-              : h(
-                  "div",
-                  {
-                    class: "ollama-thinking-box",
-                    tabindex: "0",
-                    role: "region",
-                    "aria-label": "Bionic step-by-step reasoning trace",
-                  },
-                  reasoning,
+        ? h(
+            "details",
+            {
+              class: "ollama-thinking-details",
+              open: !hasContent ? "open" : null,
+            },
+            [
+              h("summary", { class: "ollama-thinking-summary" }, [
+                h(
+                  "span",
+                  {},
+                  `🧠 Bionic Step-by-Step Reasoning Trace (${reasoning.length.toLocaleString()} chars — click to expand)`,
                 ),
-          ])
+              ]),
+              uiState.markdownView
+                ? h(
+                    "div",
+                    {
+                      class: "bionic-md-viewer",
+                      style:
+                        "max-block-size: min(210px, 26vh); padding: 10px 14px;",
+                      tabindex: "0",
+                      role: "region",
+                      "aria-label": "Bionic step-by-step reasoning trace",
+                    },
+                    buildBionicMarkdownDom(reasoning, `${clearScope}-reasoning`)
+                      .renderedBlocks,
+                  )
+                : h(
+                    "div",
+                    {
+                      class: "ollama-thinking-box",
+                      tabindex: "0",
+                      role: "region",
+                      "aria-label": "Bionic step-by-step reasoning trace",
+                    },
+                    reasoning,
+                  ),
+            ],
+          )
         : null,
       headingList.length >= 2 && uiState.markdownView && uiState.showOutline
         ? h(
@@ -1347,7 +1502,10 @@ function renderBionicOutputConsole({
                     type: "button",
                     class: "bionic-md-outline-chip",
                     onclick: () => {
-                      hd.el?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+                      hd.el?.scrollIntoView?.({
+                        behavior: "smooth",
+                        block: "start",
+                      });
                     },
                   },
                   `${"#".repeat(Math.min(hd.level, 3))} ${hd.text}`,
@@ -1383,7 +1541,11 @@ function renderBionicOutputConsole({
           : null,
       audioUrl
         ? h("div", { class: "ollama-audio-bar" }, [
-            h("span", { class: "ollama-pill is-mlx" }, "🔊 Bionic Phonon 40M Multilingual 24kHz Audio Ready"),
+            h(
+              "span",
+              { class: "ollama-pill is-mlx" },
+              "🔊 Bionic Phonon 40M Multilingual 24kHz Audio Ready",
+            ),
             createAudioPlayerEl(audioUrl),
           ])
         : null,
@@ -1397,10 +1559,20 @@ export async function refreshBionicStatus(silent = false) {
   try {
     const res = await call("bionic/status", { dirPath: currentFolderRel() });
     uiState.statusData = res;
-    uiState.pendingActions = Array.isArray(res.pendingActions) ? res.pendingActions : [];
-    if (!uiState.selectedModel && Array.isArray(res.models) && res.models.length > 0) {
-      const loadedChat = res.models.find((m) => m.loaded && (m.type === "llm" || m.type === "vlm"));
-      const anyChat = res.models.find((m) => m.type === "llm" || m.type === "vlm");
+    uiState.pendingActions = Array.isArray(res.pendingActions)
+      ? res.pendingActions
+      : [];
+    if (
+      !uiState.selectedModel &&
+      Array.isArray(res.models) &&
+      res.models.length > 0
+    ) {
+      const loadedChat = res.models.find(
+        (m) => m.loaded && (m.type === "llm" || m.type === "vlm"),
+      );
+      const anyChat = res.models.find(
+        (m) => m.type === "llm" || m.type === "vlm",
+      );
       if (loadedChat) uiState.selectedModel = loadedChat.id;
       else if (anyChat) uiState.selectedModel = anyChat.id;
     }
@@ -1412,7 +1584,10 @@ export async function refreshBionicStatus(silent = false) {
       uiState.selectedLanguage = res.tts.selection.language;
     }
   } catch (err) {
-    if (!silent) toast(err.message || "Could not load LM Studio Bionic status", { kind: "error" });
+    if (!silent)
+      toast(err.message || "Could not load LM Studio Bionic status", {
+        kind: "error",
+      });
   } finally {
     uiState.loading = false;
     renderBionicPanel();
@@ -1424,9 +1599,15 @@ async function runBionicSmartRouter(customPrompt) {
   let livePrompt =
     customPrompt !== undefined
       ? String(customPrompt).trim()
-      : String(promptTextareaEl ? promptTextareaEl.value : uiState.promptText || "").trim();
+      : String(
+          promptTextareaEl ? promptTextareaEl.value : uiState.promptText || "",
+        ).trim();
 
-  if (uiState.selectedSkill && livePrompt && !livePrompt.includes(`@${uiState.selectedSkill}`)) {
+  if (
+    uiState.selectedSkill &&
+    livePrompt &&
+    !livePrompt.includes(`@${uiState.selectedSkill}`)
+  ) {
     livePrompt = `@${uiState.selectedSkill} ${livePrompt}`;
   }
   if (customPrompt === undefined) {
@@ -1436,12 +1617,18 @@ async function runBionicSmartRouter(customPrompt) {
     uiState.lastSubmittedPrompt = livePrompt;
   }
   if (!livePrompt && paths.length === 0) {
-    toast("Type a plain-English request, trigger a @skill, or select a file to analyze.");
+    toast(
+      "Type a plain-English request, trigger a @skill, or select a file to analyze.",
+    );
     return;
   }
 
-  const hasImageSel = paths.some((p) => /\.(png|jpe?g|webp|gif|bmp|heic|tiff?|avif)$/i.test(String(p || "")));
-  const hasMediaSel = paths.some((p) => /\.(wav|mp3|m4a|flac|ogg|mp4|mov|webm)$/i.test(String(p || "")));
+  const hasImageSel = paths.some((p) =>
+    /\.(png|jpe?g|webp|gif|bmp|heic|tiff?|avif)$/i.test(String(p || "")),
+  );
+  const hasMediaSel = paths.some((p) =>
+    /\.(wav|mp3|m4a|flac|ogg|mp4|mov|webm)$/i.test(String(p || "")),
+  );
   if (!livePrompt && paths.length > 0 && !uiState.speakReply && !hasMediaSel) {
     livePrompt = hasImageSel
       ? "Describe and analyze the selected image in detail."
@@ -1460,7 +1647,8 @@ async function runBionicSmartRouter(customPrompt) {
   uiState.loading = true;
   uiState.refusalBanner = null;
   uiState.lastAudioUrl = "";
-  uiState.routeBanner = "Routing request through LM Studio Bionic Capability Router...";
+  uiState.routeBanner =
+    "Routing request through LM Studio Bionic Capability Router...";
   renderBionicPanel();
 
   try {
@@ -1511,12 +1699,15 @@ async function runBionicSmartRouter(customPrompt) {
         },
         { signal: abortController.signal },
       );
-      uiState.routeBanner = routed.routeExplanation || `Routed to ${routed.routedCapability}`;
+      uiState.routeBanner =
+        routed.routeExplanation || `Routed to ${routed.routedCapability}`;
       const r = routed.result || {};
       if (routed.routedCapability === "speech") {
         uiState.reasoningOutput = "";
         uiState.answerOutput = `Bionic Phonon 40M Multilingual TTS (${r.voice}, ${r.language}, ${r.sampleRate} Hz, ~${r.durationSecondsEstimate}s):\n\n${r.cleanedText}`;
-        uiState.lastAudioUrl = r.audioUrl ? `${r.audioUrl}&token=${encodeURIComponent(getToken())}` : "";
+        uiState.lastAudioUrl = r.audioUrl
+          ? `${r.audioUrl}&token=${encodeURIComponent(getToken())}`
+          : "";
         if (r.savedRelativePath) refresh();
       } else if (routed.routedCapability === "transcribe") {
         uiState.reasoningOutput = "";
@@ -1526,7 +1717,10 @@ async function runBionicSmartRouter(customPrompt) {
       } else if (routed.routedCapability === "semantic_search") {
         uiState.meaningMatches = r.matches || [];
         uiState.answerOutput = (r.matches || [])
-          .map((m, i) => `${i + 1}. ${m.path} (${(m.similarity * 100).toFixed(1)}% match)\n   ${m.preview}`)
+          .map(
+            (m, i) =>
+              `${i + 1}. ${m.path} (${(m.similarity * 100).toFixed(1)}% match)\n   ${m.preview}`,
+          )
           .join("\n\n");
       } else {
         if (r.model) {
@@ -1547,12 +1741,19 @@ async function runBionicSmartRouter(customPrompt) {
       }
     }
   } catch (err) {
-    if (err?.name === "AbortError" || err?.code === "ABORTED" || abortController.signal.aborted) {
+    if (
+      err?.name === "AbortError" ||
+      err?.code === "ABORTED" ||
+      abortController.signal.aborted
+    ) {
       uiState.routeBanner = "⏹ Bionic generation stopped by user.";
       if (!uiState.answerOutput) {
         uiState.answerOutput = "[Generation stopped by user]";
       }
-    } else if (err.code === "HARDWARE_RAM_REFUSAL" || err.code === "HARDWARE_MLX_EXCLUSIVITY") {
+    } else if (
+      err.code === "HARDWARE_RAM_REFUSAL" ||
+      err.code === "HARDWARE_MLX_EXCLUSIVITY"
+    ) {
       uiState.refusalBanner = { code: err.code, message: err.message };
     } else {
       toast(err.message || "Bionic request failed", { kind: "error" });
@@ -1569,8 +1770,12 @@ async function runBionicSmartRouter(customPrompt) {
 
 async function runBionicStreamChat() {
   const paths = selectedFilePaths();
-  const hasImageSel = paths.some((p) => /\.(png|jpe?g|webp|gif|bmp|heic|tiff?|avif)$/i.test(String(p || "")));
-  let prompt = String(promptTextareaEl ? promptTextareaEl.value : uiState.promptText || "").trim();
+  const hasImageSel = paths.some((p) =>
+    /\.(png|jpe?g|webp|gif|bmp|heic|tiff?|avif)$/i.test(String(p || "")),
+  );
+  let prompt = String(
+    promptTextareaEl ? promptTextareaEl.value : uiState.promptText || "",
+  ).trim();
   uiState.promptText = prompt;
   if (prompt) {
     uiState.lastSubmittedPrompt = prompt;
@@ -1602,7 +1807,8 @@ async function runBionicStreamChat() {
   uiState.loading = true;
   uiState.reasoningOutput = "";
   uiState.answerOutput = "";
-  uiState.routeBanner = "Streaming live tokens from Bionic /v1/chat/completions...";
+  uiState.routeBanner =
+    "Streaming live tokens from Bionic /v1/chat/completions...";
   renderBionicPanel();
 
   try {
@@ -1633,7 +1839,8 @@ async function runBionicStreamChat() {
       return;
     }
 
-    const usedModel = res.headers.get("X-Bionic-Model") || uiState.selectedModel || "bionic";
+    const usedModel =
+      res.headers.get("X-Bionic-Model") || uiState.selectedModel || "bionic";
     const usedPort = res.headers.get("X-Bionic-Port") || "1235";
     uiState.routeBanner = `Live SSE Streaming from Bionic Server (127.0.0.1:${usedPort}, Model: ${usedModel})`;
     renderBionicPanel();
@@ -1677,8 +1884,13 @@ async function runBionicStreamChat() {
       renderBionicPanel();
     }
   } catch (err) {
-    if (err?.name === "AbortError" || err?.code === "ABORTED" || abortController.signal.aborted) {
-      uiState.routeBanner = "⏹ Bionic live stream stopped by user (partial output preserved).";
+    if (
+      err?.name === "AbortError" ||
+      err?.code === "ABORTED" ||
+      abortController.signal.aborted
+    ) {
+      uiState.routeBanner =
+        "⏹ Bionic live stream stopped by user (partial output preserved).";
       if (!uiState.answerOutput && !uiState.reasoningOutput) {
         uiState.answerOutput = "[Live stream stopped by user]";
       }
@@ -1694,10 +1906,19 @@ async function runBionicStreamChat() {
   }
 }
 
-async function runBionicSynthesisFlow(pathsOverride = null, mode = "compare", saveToFile = false) {
-  const paths = Array.isArray(pathsOverride) && pathsOverride.length > 0 ? pathsOverride : selectedFilePaths();
+async function runBionicSynthesisFlow(
+  pathsOverride = null,
+  mode = "compare",
+  saveToFile = false,
+) {
+  const paths =
+    Array.isArray(pathsOverride) && pathsOverride.length > 0
+      ? pathsOverride
+      : selectedFilePaths();
   if (!paths.length) {
-    toast("Select 1 or more files or document packages in the file list first to synthesize.");
+    toast(
+      "Select 1 or more files or document packages in the file list first to synthesize.",
+    );
     return;
   }
   if (uiState.abortController) {
@@ -1735,10 +1956,16 @@ async function runBionicSynthesisFlow(pathsOverride = null, mode = "compare", sa
       toast(`Saved synthesis report: ${res.savedRelativePath}`);
       await refresh().catch(() => {});
     } else {
-      toast(`Synthesized ${res.fileCount} ${res.fileCount === 1 ? "document" : "documents"} in Bionic Markdown Reader`);
+      toast(
+        `Synthesized ${res.fileCount} ${res.fileCount === 1 ? "document" : "documents"} in Bionic Markdown Reader`,
+      );
     }
   } catch (err) {
-    if (err?.name === "AbortError" || err?.code === "ABORTED" || abortController.signal.aborted) {
+    if (
+      err?.name === "AbortError" ||
+      err?.code === "ABORTED" ||
+      abortController.signal.aborted
+    ) {
       uiState.routeBanner = "⏹ Synthesis stopped by user.";
     } else {
       uiState.answerOutput = `Synthesis failed: ${err.message || err}`;
@@ -1824,9 +2051,19 @@ function renderHeroBanner() {
     h("div", { class: "ollama-hero-left" }, [
       h("div", { class: "ollama-hero-title-row" }, [
         uiState.loading
-          ? h("span", { class: "ollama-spinner", title: "Bionic Operation in Progress" })
-          : h("span", { class: "ollama-status-pulse", title: "LM Studio Bionic Active" }),
-        h("span", { class: "ollama-hero-title" }, "🧬 LM Studio Bionic AI Studio, Agent Skills & Metal Engine Hub"),
+          ? h("span", {
+              class: "ollama-spinner",
+              title: "Bionic Operation in Progress",
+            })
+          : h("span", {
+              class: "ollama-status-pulse",
+              title: "LM Studio Bionic Active",
+            }),
+        h(
+          "span",
+          { class: "ollama-hero-title" },
+          "🧬 LM Studio Bionic AI Studio, Agent Skills & Metal Engine Hub",
+        ),
         ...pills,
       ]),
       h(
@@ -1836,49 +2073,95 @@ function renderHeroBanner() {
       ),
     ]),
     h("div", { class: "ollama-row" }, [
-      h("label", { class: "ollama-row", title: "Configure how Bionic models & server behave when closing File Manager" }, [
-        h("span", { class: "ollama-close-label" }, "On Close:"),
-        h(
-          "select",
-          {
-            class: "ollama-select",
-            "aria-label": "Bionic exit lifecycle policy",
-            onchange: async (e) => {
-              try {
-                const updated = await call("bionic/lifecycle", { exitPolicy: e.target.value });
-                if (uiState.statusData) uiState.statusData.lifecycle = updated;
-                toast(`Updated Bionic exit policy: ${updated.summaryLabel}`);
-                renderBionicPanel();
-              } catch (err) {
-                toast(err.message, { kind: "error" });
-              }
+      h(
+        "label",
+        {
+          class: "ollama-row",
+          title:
+            "Configure how Bionic models & server behave when closing File Manager",
+        },
+        [
+          h("span", { class: "ollama-close-label" }, "On Close:"),
+          h(
+            "select",
+            {
+              class: "ollama-select",
+              "aria-label": "Bionic exit lifecycle policy",
+              onchange: async (e) => {
+                try {
+                  const updated = await call("bionic/lifecycle", {
+                    exitPolicy: e.target.value,
+                  });
+                  if (uiState.statusData)
+                    uiState.statusData.lifecycle = updated;
+                  toast(`Updated Bionic exit policy: ${updated.summaryLabel}`);
+                  renderBionicPanel();
+                } catch (err) {
+                  toast(err.message, { kind: "error" });
+                }
+              },
             },
-          },
-          [
-            h("option", { value: "smart", selected: activePolicy === "smart" ? "selected" : null }, "Smart (Preserve Pre-Existing Bionic)"),
-            h("option", { value: "unload_all", selected: activePolicy === "unload_all" ? "selected" : null }, "Unload Models on Close"),
-            h("option", { value: "stop_server", selected: activePolicy === "stop_server" ? "selected" : null }, "Unload Models & Stop Server"),
-            h("option", { value: "keep_open", selected: activePolicy === "keep_open" ? "selected" : null }, "Keep Everything Open"),
-          ],
-        ),
-      ]),
+            [
+              h(
+                "option",
+                {
+                  value: "smart",
+                  selected: activePolicy === "smart" ? "selected" : null,
+                },
+                "Smart (Preserve Pre-Existing Bionic)",
+              ),
+              h(
+                "option",
+                {
+                  value: "unload_all",
+                  selected: activePolicy === "unload_all" ? "selected" : null,
+                },
+                "Unload Models on Close",
+              ),
+              h(
+                "option",
+                {
+                  value: "stop_server",
+                  selected: activePolicy === "stop_server" ? "selected" : null,
+                },
+                "Unload Models & Stop Server",
+              ),
+              h(
+                "option",
+                {
+                  value: "keep_open",
+                  selected: activePolicy === "keep_open" ? "selected" : null,
+                },
+                "Keep Everything Open",
+              ),
+            ],
+          ),
+        ],
+      ),
       h(
         "button",
         {
           type: "button",
           class: "ollama-btn is-primary",
-          title: "Start or verify local LM Studio Bionic HTTP server (`lms server start`)",
+          title:
+            "Start or verify local LM Studio Bionic HTTP server (`lms server start`)",
           onclick: async () => {
             try {
               const res = await call("bionic/server", { action: "start" });
-              toast(res.running ? `Bionic HTTP Server running on 127.0.0.1:${res.port}` : "Started Bionic server");
+              toast(
+                res.running
+                  ? `Bionic HTTP Server running on 127.0.0.1:${res.port}`
+                  : "Started Bionic server",
+              );
               void refreshBionicStatus(true);
             } catch (err) {
               toast(err.message, { kind: "error" });
             }
           },
         },
-        srv?.running ? `✔ Server Active (:${srv.port})` : "⚡ Start Bionic Server (lms server start)",
+        srv?.running
+          ? `✔ Server Active (:${srv.port})`
+          : "⚡ Start Bionic Server (lms server start)",
       ),
       h(
         "button",
@@ -1889,7 +2172,11 @@ function renderHeroBanner() {
           onclick: async () => {
             try {
               const res = await call("bionic/server", { action: "launch_app" });
-              toast(res.launched ? `Launched ${res.app}` : res.message || "Opened Bionic");
+              toast(
+                res.launched
+                  ? `Launched ${res.app}`
+                  : res.message || "Opened Bionic",
+              );
             } catch (err) {
               toast(err.message, { kind: "error" });
             }
@@ -1922,7 +2209,9 @@ function renderHeroBanner() {
           class: "ollama-btn",
           onclick: () => void refreshBionicStatus(false),
         },
-        uiState.loading ? [h("span", { class: "ollama-spinner" }), " Refreshing..."] : "Refresh",
+        uiState.loading
+          ? [h("span", { class: "ollama-spinner" }), " Refreshing..."]
+          : "Refresh",
       ),
     ]),
   ]);
@@ -1938,7 +2227,10 @@ function renderModeTabs() {
       : `5. Models (${modelCount}), Metal Engines & Hardware Guard`;
   const tabs = [
     { id: "assistant", label: "1. Bionic AI & @Skills Router" },
-    { id: "skills", label: `2. Agent Skills (${skillCount}) & Bionic Projects` },
+    {
+      id: "skills",
+      label: `2. Agent Skills (${skillCount}) & Bionic Projects`,
+    },
     { id: "speech_asr", label: "3. Phonon 40M TTS & Whisper ASR" },
     { id: "meaning", label: "4. Embeddings & Meaning Search (/v1/embeddings)" },
     { id: "models", label: modelsLabel },
@@ -1966,17 +2258,25 @@ function renderModeTabs() {
             renderBionicPanel();
           },
           onkeydown: (e) => {
-            if (e.key === "ArrowRight" || e.key === "ArrowLeft" || e.key === "Home" || e.key === "End") {
+            if (
+              e.key === "ArrowRight" ||
+              e.key === "ArrowLeft" ||
+              e.key === "Home" ||
+              e.key === "End"
+            ) {
               e.preventDefault();
               const nextIdx =
                 e.key === "Home"
                   ? 0
                   : e.key === "End"
                     ? tabs.length - 1
-                    : (idx + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+                    : (idx + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) %
+                      tabs.length;
               uiState.subTab = tabs[nextIdx].id;
               renderBionicPanel();
-              const btns = rootContainer?.querySelectorAll(".ollama-mode-nav [role='tab']");
+              const btns = rootContainer?.querySelectorAll(
+                ".ollama-mode-nav [role='tab']",
+              );
               btns?.[nextIdx]?.focus?.();
             }
           },
@@ -1995,8 +2295,18 @@ function renderSelectedFilesStrip() {
       h("strong", {}, `Active Folder: ${folder}`),
       h("span", {}, " | Selected Files:"),
       ...(sel.length > 0
-        ? sel.slice(0, 6).map((p) => h("span", { class: "ollama-file-chip" }, p.split("/").pop() || p))
-        : [h("span", {}, "None (select any file, image, or audio clip in the file list to inspect or process)")]),
+        ? sel
+            .slice(0, 6)
+            .map((p) =>
+              h("span", { class: "ollama-file-chip" }, p.split("/").pop() || p),
+            )
+        : [
+            h(
+              "span",
+              {},
+              "None (select any file, image, or audio clip in the file list to inspect or process)",
+            ),
+          ]),
     ]),
   ]);
 }
@@ -2014,25 +2324,32 @@ function renderBionicSelectedModelCapabilitiesCard(profile) {
       "data-thinking-mode": f.thinkingMode || "none",
     },
     [
-      h("div", { class: "ollama-row", style: "flex-wrap:wrap;gap:6px;align-items:center;" }, [
-        h(
-          "strong",
-          { style: "font-size:12px;" },
-          `Selected Model Capabilities (${profile.modelName || "Auto"}):`,
-        ),
-        ...(profile.indicators || []).map((ind) =>
+      h(
+        "div",
+        {
+          class: "ollama-row",
+          style: "flex-wrap:wrap;gap:6px;align-items:center;",
+        },
+        [
           h(
-            "span",
-            {
-              class: "ollama-pill is-mlx",
-              "data-bionic-model-indicator": ind.id,
-              title: ind.description,
-              style: "font-size:11px;padding:2px 8px;",
-            },
-            `${ind.icon} ${ind.label}`,
+            "strong",
+            { style: "font-size:12px;" },
+            `Selected Model Capabilities (${profile.modelName || "Auto"}):`,
           ),
-        ),
-      ]),
+          ...(profile.indicators || []).map((ind) =>
+            h(
+              "span",
+              {
+                class: "ollama-pill is-mlx",
+                "data-bionic-model-indicator": ind.id,
+                title: ind.description,
+                style: "font-size:11px;padding:2px 8px;",
+              },
+              `${ind.icon} ${ind.label}`,
+            ),
+          ),
+        ],
+      ),
       h(
         "div",
         { class: "ollama-model-use-cases" },
@@ -2089,20 +2406,41 @@ function renderBionicThinkingControlBar() {
   const pillDefs =
     caps.thinkingMode === "levels"
       ? [
-          { id: "low", label: "Low Effort", hint: "reasoning_effort: \"low\" + Harmony Reasoning: low (gpt-oss)" },
-          { id: "medium", label: "Medium Effort", hint: "reasoning_effort: \"medium\" + Harmony Reasoning: medium (gpt-oss)" },
-          { id: "high", label: "High Effort", hint: "reasoning_effort: \"high\" + Harmony Reasoning: high (gpt-oss)" },
+          {
+            id: "low",
+            label: "Low Effort",
+            hint: 'reasoning_effort: "low" + Harmony Reasoning: low (gpt-oss)',
+          },
+          {
+            id: "medium",
+            label: "Medium Effort",
+            hint: 'reasoning_effort: "medium" + Harmony Reasoning: medium (gpt-oss)',
+          },
+          {
+            id: "high",
+            label: "High Effort",
+            hint: 'reasoning_effort: "high" + Harmony Reasoning: high (gpt-oss)',
+          },
         ]
       : caps.thinkingMode === "toggle"
         ? [
-            { id: "off", label: "Off (Fast)", hint: "enable_thinking: false — Skip chain-of-thought for instant reply" },
-            { id: "on", label: "On (Think)", hint: "enable_thinking: true — Enable chain-of-thought reasoning" },
+            {
+              id: "off",
+              label: "Off (Fast)",
+              hint: "enable_thinking: false — Skip chain-of-thought for instant reply",
+            },
+            {
+              id: "on",
+              label: "On (Think)",
+              hint: "enable_thinking: true — Enable chain-of-thought reasoning",
+            },
           ]
         : [];
 
   const showBudgetControl =
     caps.supportsThinkingBudget &&
-    (caps.thinkingMode === "always_on" || (caps.thinkingMode === "toggle" && activeLevel !== "off"));
+    (caps.thinkingMode === "always_on" ||
+      (caps.thinkingMode === "toggle" && activeLevel !== "off"));
 
   return h(
     "div",
@@ -2148,37 +2486,44 @@ function renderBionicThinkingControlBar() {
           )
         : null,
       showBudgetControl
-        ? h("label", { class: "ollama-row", style: "font-size:12px;gap:4px;" }, [
-            h("span", {}, "Thinking Budget:"),
-            h(
-              "select",
-              {
-                class: "ollama-select",
-                "data-bionic-select": "thinking-budget",
-                style: "padding:2px 6px;font-size:12px;",
-                onchange: (e) => {
-                  uiState.thinkingBudget = Number(e.target.value) || 0;
-                },
-              },
-              [
-                { val: 0, label: "Auto (Unlimited)" },
-                { val: 1024, label: "1,024 tokens" },
-                { val: 4096, label: "4,096 tokens" },
-                { val: 8192, label: "8,192 tokens" },
-                { val: 16384, label: "16,384 tokens" },
-                { val: 32768, label: "32,768 tokens" },
-              ].map((opt) =>
-                h(
-                  "option",
-                  {
-                    value: String(opt.val),
-                    selected: Number(uiState.thinkingBudget) === opt.val ? "selected" : null,
+        ? h(
+            "label",
+            { class: "ollama-row", style: "font-size:12px;gap:4px;" },
+            [
+              h("span", {}, "Thinking Budget:"),
+              h(
+                "select",
+                {
+                  class: "ollama-select",
+                  "data-bionic-select": "thinking-budget",
+                  style: "padding:2px 6px;font-size:12px;",
+                  onchange: (e) => {
+                    uiState.thinkingBudget = Number(e.target.value) || 0;
                   },
-                  opt.label,
+                },
+                [
+                  { val: 0, label: "Auto (Unlimited)" },
+                  { val: 1024, label: "1,024 tokens" },
+                  { val: 4096, label: "4,096 tokens" },
+                  { val: 8192, label: "8,192 tokens" },
+                  { val: 16384, label: "16,384 tokens" },
+                  { val: 32768, label: "32,768 tokens" },
+                ].map((opt) =>
+                  h(
+                    "option",
+                    {
+                      value: String(opt.val),
+                      selected:
+                        Number(uiState.thinkingBudget) === opt.val
+                          ? "selected"
+                          : null,
+                    },
+                    opt.label,
+                  ),
                 ),
               ),
-            ),
-          ])
+            ],
+          )
         : null,
       samplingBtn,
     ],
@@ -2187,204 +2532,228 @@ function renderBionicThinkingControlBar() {
 
 function renderBionicAdvancedSamplingPanel() {
   if (!uiState.showAdvancedSampling) return null;
-  const models = (uiState.statusData?.models || []).filter((m) => m.type === "llm" || m.type === "vlm");
+  const models = (uiState.statusData?.models || []).filter(
+    (m) => m.type === "llm" || m.type === "vlm",
+  );
   return h(
     "div",
     {
       class: "bionic-advanced-sampling-panel",
       role: "region",
-      "aria-label": "LM Studio Bionic Sampling and Speculative Decoding Parameters",
+      "aria-label":
+        "LM Studio Bionic Sampling and Speculative Decoding Parameters",
     },
     [
-      h("div", { class: "ollama-row", style: "justify-content:space-between;" }, [
-        h("strong", { style: "font-size:12px;" }, "⚙️ LM Studio Bionic Sampling, Context & Speculative Decoding Parameters"),
-        h(
-          "button",
-          {
-            type: "button",
-            class: "ollama-btn",
-            style: "padding:2px 8px;font-size:11px;",
-            onclick: () => {
-              uiState.contextLength = 32768;
-              uiState.temperature = 0.4;
-              uiState.topP = 0.95;
-              uiState.topK = 40;
-              uiState.minP = 0.05;
-              uiState.repeatPenalty = 1.1;
-              uiState.maxTokens = 16384;
-              uiState.seed = "";
-              uiState.stopSequences = "";
-              uiState.draftModel = "";
-              uiState.ttlSeconds = 0;
-              uiState.customSystemPrompt = "";
-              renderBionicPanel();
-            },
-          },
-          "Reset Defaults",
-        ),
-      ]),
-      h("div", { class: "ollama-row", style: "flex-wrap:wrap;gap:10px;font-size:12px;" }, [
-        h("label", { class: "ollama-row", style: "gap:4px;" }, [
-          h("span", {}, "Context Length:"),
+      h(
+        "div",
+        { class: "ollama-row", style: "justify-content:space-between;" },
+        [
           h(
-            "select",
-            {
-              class: "ollama-select",
-              onchange: (e) => {
-                uiState.contextLength = Number(e.target.value) || 32768;
-              },
-            },
-            [4096, 8192, 16384, 32768, 65536, 131072].map((ctxVal) =>
-              h(
-                "option",
-                {
-                  value: String(ctxVal),
-                  selected: Number(uiState.contextLength) === ctxVal ? "selected" : null,
-                },
-                `${ctxVal.toLocaleString()} tokens`,
-              ),
-            ),
+            "strong",
+            { style: "font-size:12px;" },
+            "⚙️ LM Studio Bionic Sampling, Context & Speculative Decoding Parameters",
           ),
-        ]),
-        h("label", { class: "ollama-row", style: "gap:4px;" }, [
-          h("span", {}, "Temperature:"),
-          h("input", {
-            type: "number",
-            class: "ollama-input",
-            style: "width:68px;",
-            step: "0.05",
-            min: "0",
-            max: "2",
-            value: String(uiState.temperature),
-            oninput: (e) => {
-              uiState.temperature = Number(e.target.value);
-            },
-          }),
-        ]),
-        h("label", { class: "ollama-row", style: "gap:4px;" }, [
-          h("span", {}, "Top-P:"),
-          h("input", {
-            type: "number",
-            class: "ollama-input",
-            style: "width:68px;",
-            step: "0.05",
-            min: "0",
-            max: "1",
-            value: String(uiState.topP),
-            oninput: (e) => {
-              uiState.topP = Number(e.target.value);
-            },
-          }),
-        ]),
-        h("label", { class: "ollama-row", style: "gap:4px;" }, [
-          h("span", {}, "Top-K:"),
-          h("input", {
-            type: "number",
-            class: "ollama-input",
-            style: "width:68px;",
-            step: "1",
-            min: "1",
-            max: "200",
-            value: String(uiState.topK),
-            oninput: (e) => {
-              uiState.topK = Number(e.target.value);
-            },
-          }),
-        ]),
-        h("label", { class: "ollama-row", style: "gap:4px;" }, [
-          h("span", {}, "Min-P:"),
-          h("input", {
-            type: "number",
-            class: "ollama-input",
-            style: "width:68px;",
-            step: "0.01",
-            min: "0",
-            max: "1",
-            value: String(uiState.minP),
-            oninput: (e) => {
-              uiState.minP = Number(e.target.value);
-            },
-          }),
-        ]),
-        h("label", { class: "ollama-row", style: "gap:4px;" }, [
-          h("span", {}, "Repeat Penalty:"),
-          h("input", {
-            type: "number",
-            class: "ollama-input",
-            style: "width:68px;",
-            step: "0.05",
-            min: "0.5",
-            max: "2.0",
-            value: String(uiState.repeatPenalty),
-            oninput: (e) => {
-              uiState.repeatPenalty = Number(e.target.value);
-            },
-          }),
-        ]),
-        h("label", { class: "ollama-row", style: "gap:4px;" }, [
-          h("span", {}, "Max Tokens:"),
-          h("input", {
-            type: "number",
-            class: "ollama-input",
-            style: "width:82px;",
-            step: "256",
-            min: "64",
-            max: "131072",
-            value: String(uiState.maxTokens),
-            oninput: (e) => {
-              uiState.maxTokens = Number(e.target.value);
-            },
-          }),
-        ]),
-        h("label", { class: "ollama-row", style: "gap:4px;" }, [
-          h("span", {}, "Seed:"),
-          h("input", {
-            type: "text",
-            class: "ollama-input",
-            style: "width:76px;",
-            placeholder: "Random",
-            value: String(uiState.seed),
-            oninput: (e) => {
-              uiState.seed = e.target.value;
-            },
-          }),
-        ]),
-        h("label", { class: "ollama-row", style: "gap:4px;" }, [
-          h("span", {}, "Draft Model (Speculative Decoding):"),
           h(
-            "select",
+            "button",
             {
-              class: "ollama-select",
-              onchange: (e) => {
-                uiState.draftModel = e.target.value;
+              type: "button",
+              class: "ollama-btn",
+              style: "padding:2px 8px;font-size:11px;",
+              onclick: () => {
+                uiState.contextLength = 32768;
+                uiState.temperature = 0.4;
+                uiState.topP = 0.95;
+                uiState.topK = 40;
+                uiState.minP = 0.05;
+                uiState.repeatPenalty = 1.1;
+                uiState.maxTokens = 16384;
+                uiState.seed = "";
+                uiState.stopSequences = "";
+                uiState.draftModel = "";
+                uiState.ttlSeconds = 0;
+                uiState.customSystemPrompt = "";
+                renderBionicPanel();
               },
             },
-            [
-              h("option", { value: "" }, "None (Standard Decoding)"),
-              ...models.map((m) =>
+            "Reset Defaults",
+          ),
+        ],
+      ),
+      h(
+        "div",
+        {
+          class: "ollama-row",
+          style: "flex-wrap:wrap;gap:10px;font-size:12px;",
+        },
+        [
+          h("label", { class: "ollama-row", style: "gap:4px;" }, [
+            h("span", {}, "Context Length:"),
+            h(
+              "select",
+              {
+                class: "ollama-select",
+                onchange: (e) => {
+                  uiState.contextLength = Number(e.target.value) || 32768;
+                },
+              },
+              [4096, 8192, 16384, 32768, 65536, 131072].map((ctxVal) =>
                 h(
                   "option",
-                  { value: m.id, selected: uiState.draftModel === m.id ? "selected" : null },
-                  `${m.displayName} (${m.paramsString})`,
+                  {
+                    value: String(ctxVal),
+                    selected:
+                      Number(uiState.contextLength) === ctxVal
+                        ? "selected"
+                        : null,
+                  },
+                  `${ctxVal.toLocaleString()} tokens`,
                 ),
               ),
-            ],
-          ),
-        ]),
-        h("label", { class: "ollama-row", style: "gap:4px;" }, [
-          h("span", {}, "Stop Sequences:"),
-          h("input", {
-            type: "text",
-            class: "ollama-input",
-            style: "width:130px;",
-            placeholder: "e.g. <|eot_id|>, STOP",
-            value: String(uiState.stopSequences),
-            oninput: (e) => {
-              uiState.stopSequences = e.target.value;
-            },
-          }),
-        ]),
-      ]),
+            ),
+          ]),
+          h("label", { class: "ollama-row", style: "gap:4px;" }, [
+            h("span", {}, "Temperature:"),
+            h("input", {
+              type: "number",
+              class: "ollama-input",
+              style: "width:68px;",
+              step: "0.05",
+              min: "0",
+              max: "2",
+              value: String(uiState.temperature),
+              oninput: (e) => {
+                uiState.temperature = Number(e.target.value);
+              },
+            }),
+          ]),
+          h("label", { class: "ollama-row", style: "gap:4px;" }, [
+            h("span", {}, "Top-P:"),
+            h("input", {
+              type: "number",
+              class: "ollama-input",
+              style: "width:68px;",
+              step: "0.05",
+              min: "0",
+              max: "1",
+              value: String(uiState.topP),
+              oninput: (e) => {
+                uiState.topP = Number(e.target.value);
+              },
+            }),
+          ]),
+          h("label", { class: "ollama-row", style: "gap:4px;" }, [
+            h("span", {}, "Top-K:"),
+            h("input", {
+              type: "number",
+              class: "ollama-input",
+              style: "width:68px;",
+              step: "1",
+              min: "1",
+              max: "200",
+              value: String(uiState.topK),
+              oninput: (e) => {
+                uiState.topK = Number(e.target.value);
+              },
+            }),
+          ]),
+          h("label", { class: "ollama-row", style: "gap:4px;" }, [
+            h("span", {}, "Min-P:"),
+            h("input", {
+              type: "number",
+              class: "ollama-input",
+              style: "width:68px;",
+              step: "0.01",
+              min: "0",
+              max: "1",
+              value: String(uiState.minP),
+              oninput: (e) => {
+                uiState.minP = Number(e.target.value);
+              },
+            }),
+          ]),
+          h("label", { class: "ollama-row", style: "gap:4px;" }, [
+            h("span", {}, "Repeat Penalty:"),
+            h("input", {
+              type: "number",
+              class: "ollama-input",
+              style: "width:68px;",
+              step: "0.05",
+              min: "0.5",
+              max: "2.0",
+              value: String(uiState.repeatPenalty),
+              oninput: (e) => {
+                uiState.repeatPenalty = Number(e.target.value);
+              },
+            }),
+          ]),
+          h("label", { class: "ollama-row", style: "gap:4px;" }, [
+            h("span", {}, "Max Tokens:"),
+            h("input", {
+              type: "number",
+              class: "ollama-input",
+              style: "width:82px;",
+              step: "256",
+              min: "64",
+              max: "131072",
+              value: String(uiState.maxTokens),
+              oninput: (e) => {
+                uiState.maxTokens = Number(e.target.value);
+              },
+            }),
+          ]),
+          h("label", { class: "ollama-row", style: "gap:4px;" }, [
+            h("span", {}, "Seed:"),
+            h("input", {
+              type: "text",
+              class: "ollama-input",
+              style: "width:76px;",
+              placeholder: "Random",
+              value: String(uiState.seed),
+              oninput: (e) => {
+                uiState.seed = e.target.value;
+              },
+            }),
+          ]),
+          h("label", { class: "ollama-row", style: "gap:4px;" }, [
+            h("span", {}, "Draft Model (Speculative Decoding):"),
+            h(
+              "select",
+              {
+                class: "ollama-select",
+                onchange: (e) => {
+                  uiState.draftModel = e.target.value;
+                },
+              },
+              [
+                h("option", { value: "" }, "None (Standard Decoding)"),
+                ...models.map((m) =>
+                  h(
+                    "option",
+                    {
+                      value: m.id,
+                      selected: uiState.draftModel === m.id ? "selected" : null,
+                    },
+                    `${m.displayName} (${m.paramsString})`,
+                  ),
+                ),
+              ],
+            ),
+          ]),
+          h("label", { class: "ollama-row", style: "gap:4px;" }, [
+            h("span", {}, "Stop Sequences:"),
+            h("input", {
+              type: "text",
+              class: "ollama-input",
+              style: "width:130px;",
+              placeholder: "e.g. <|eot_id|>, STOP",
+              value: String(uiState.stopSequences),
+              oninput: (e) => {
+                uiState.stopSequences = e.target.value;
+              },
+            }),
+          ]),
+        ],
+      ),
       h("input", {
         type: "text",
         class: "ollama-input",
@@ -2399,7 +2768,9 @@ function renderBionicAdvancedSamplingPanel() {
 }
 
 function renderAssistantTab() {
-  const models = (uiState.statusData?.models || []).filter((m) => m.type === "llm" || m.type === "vlm");
+  const models = (uiState.statusData?.models || []).filter(
+    (m) => m.type === "llm" || m.type === "vlm",
+  );
   const cloudModels = uiState.statusData?.cloudModels || [];
   const modelIds = new Set(models.map((m) => m.id));
   const cloudIds = new Set(cloudModels.map((m) => m.id));
@@ -2410,28 +2781,58 @@ function renderAssistantTab() {
 
   const quickPrompts = [
     feat.chat
-      ? { label: "Summarize Selected File", text: "Summarize the selected file and highlight key architecture points." }
+      ? {
+          label: "Summarize Selected File",
+          text: "Summarize the selected file and highlight key architecture points.",
+        }
       : null,
     feat.vision
-      ? { label: "👁 Inspect Selected Image / Screenshot", text: "Inspect the selected image or screenshot and describe its contents, text, and layout." }
+      ? {
+          label: "👁 Inspect Selected Image / Screenshot",
+          text: "Inspect the selected image or screenshot and describe its contents, text, and layout.",
+        }
       : null,
     feat.thinkingLevels
-      ? { label: "🧠 Multi-Level Architecture Audit (gpt-oss)", text: "Perform a deep architectural and security audit of the selected code." }
+      ? {
+          label: "🧠 Multi-Level Architecture Audit (gpt-oss)",
+          text: "Perform a deep architectural and security audit of the selected code.",
+        }
       : null,
     feat.thinking
-      ? { label: "🧠 Step-by-Step Code Debug", text: "Debug this code step-by-step and explain how to fix any edge cases." }
+      ? {
+          label: "🧠 Step-by-Step Code Debug",
+          text: "Debug this code step-by-step and explain how to fix any edge cases.",
+        }
       : null,
-    { label: "🔊 Read Aloud (Phonon 40M)", text: "Read this out loud with Bionic Phonon 40M Multilingual TTS." },
-    { label: "🎙️ Transcribe Audio (ASR)", text: "Transcribe this audio file to Markdown and summarize key points." },
+    {
+      label: "🔊 Read Aloud (Phonon 40M)",
+      text: "Read this out loud with Bionic Phonon 40M Multilingual TTS.",
+    },
+    {
+      label: "🎙️ Transcribe Audio (ASR)",
+      text: "Transcribe this audio file to Markdown and summarize key points.",
+    },
     feat.tools
-      ? { label: "📄 @documents Skill", text: "@documents-presentations-spreadsheets-and-graphics Review this document and suggest improvements." }
+      ? {
+          label: "📄 @documents Skill",
+          text: "@documents-presentations-spreadsheets-and-graphics Review this document and suggest improvements.",
+        }
       : null,
     feat.tools
-      ? { label: "🕒 @file-history Skill", text: "@file-history Explain how Bionic tracks file history and changes." }
+      ? {
+          label: "🕒 @file-history Skill",
+          text: "@file-history Explain how Bionic tracks file history and changes.",
+        }
       : null,
-    { label: "🔍 Find File by Meaning", text: "Find the file where authentication or login verification is implemented." },
+    {
+      label: "🔍 Find File by Meaning",
+      text: "Find the file where authentication or login verification is implemented.",
+    },
     feat.structuredJson
-      ? { label: "📋 Batch Rename JSON Plan", text: "Create a batch-rename JSON plan for the selected files." }
+      ? {
+          label: "📋 Batch Rename JSON Plan",
+          text: "Create a batch-rename JSON plan for the selected files.",
+        }
       : null,
   ].filter(Boolean);
 
@@ -2454,13 +2855,20 @@ function renderAssistantTab() {
           void runBionicSmartRouter();
           return;
         }
-        if (e.key === "ArrowUp" && !String(e.target?.value || "").trim() && uiState.lastSubmittedPrompt) {
+        if (
+          e.key === "ArrowUp" &&
+          !String(e.target?.value || "").trim() &&
+          uiState.lastSubmittedPrompt
+        ) {
           e.preventDefault();
           uiState.promptText = uiState.lastSubmittedPrompt;
           if (e.target) e.target.value = uiState.lastSubmittedPrompt;
           return;
         }
-        if (e.key === "Escape" && (uiState.outputFullscreen || uiState.outputExpanded)) {
+        if (
+          e.key === "Escape" &&
+          (uiState.outputFullscreen || uiState.outputExpanded)
+        ) {
           e.preventDefault();
           uiState.outputFullscreen = false;
           uiState.outputExpanded = false;
@@ -2473,11 +2881,32 @@ function renderAssistantTab() {
 
   return h("div", { class: "ollama-card" }, [
     h("div", { class: "ollama-card-title" }, [
-      h("span", {}, "Conversational Bionic AI Assistant, @Skill Injector & Metal Capability Router"),
-      h("span", { class: "ollama-pill is-mlx" }, "Apple Silicon MLX / oMLX / Splash + Phonon 40M"),
-      h("span", { class: "ollama-pill", "data-bionic-kbd-hint": "true", title: "Press Enter (or Cmd/Ctrl+Enter) to submit, Shift+Enter for a newline, Up Arrow in an empty prompt to recall your last prompt, or Esc to exit fullscreen" }, "⌨️ Enter to send • Shift+Enter newline • ↑ recall"),
+      h(
+        "span",
+        {},
+        "Conversational Bionic AI Assistant, @Skill Injector & Metal Capability Router",
+      ),
+      h(
+        "span",
+        { class: "ollama-pill is-mlx" },
+        "Apple Silicon MLX / oMLX / Splash + Phonon 40M",
+      ),
+      h(
+        "span",
+        {
+          class: "ollama-pill",
+          "data-bionic-kbd-hint": "true",
+          title:
+            "Press Enter (or Cmd/Ctrl+Enter) to submit, Shift+Enter for a newline, Up Arrow in an empty prompt to recall your last prompt, or Esc to exit fullscreen",
+        },
+        "⌨️ Enter to send • Shift+Enter newline • ↑ recall",
+      ),
       cloudModels.length > 0
-        ? h("span", { class: "ollama-pill is-cloud" }, `☁️ ${cloudModels.length} Bionic Cloud Models`)
+        ? h(
+            "span",
+            { class: "ollama-pill is-cloud" },
+            `☁️ ${cloudModels.length} Bionic Cloud Models`,
+          )
         : null,
       h(
         "button",
@@ -2486,17 +2915,22 @@ function renderAssistantTab() {
           class: `ollama-btn is-mini${uiState.compactControls ? " is-primary" : ""}`,
           "data-bionic-action": "toggle-compact-controls",
           "aria-pressed": String(Boolean(uiState.compactControls)),
-          title: "Collapse or restore prompt banners and model cards so the Bionic Output Console gets maximum vertical space",
+          title:
+            "Collapse or restore prompt banners and model cards so the Bionic Output Console gets maximum vertical space",
           onclick: () => {
             uiState.compactControls = !uiState.compactControls;
             renderBionicPanel();
           },
         },
-        uiState.compactControls ? "🔽 Show Prompt Controls" : "🔼 Compact Controls",
+        uiState.compactControls
+          ? "🔽 Show Prompt Controls"
+          : "🔼 Compact Controls",
       ),
     ]),
     renderBionicSelectedModelCapabilitiesCard(selectedProfile),
-    !uiState.compactControls && !uiState.outputExpanded && cloudModels.length > 0
+    !uiState.compactControls &&
+    !uiState.outputExpanded &&
+    cloudModels.length > 0
       ? h(
           "div",
           {
@@ -2506,9 +2940,15 @@ function renderAssistantTab() {
             "aria-label": "Quick-select Bionic Cloud Models (0 GB Local RAM)",
           },
           [
-            h("span", { class: "ollama-pill is-cloud" }, "☁️ Bionic Cloud Models (0 GB RAM):"),
+            h(
+              "span",
+              { class: "ollama-pill is-cloud" },
+              "☁️ Bionic Cloud Models (0 GB RAM):",
+            ),
             ...cloudModels.map((cm) => {
-              const active = (uiState.selectedModel || "").toLowerCase() === cm.id.toLowerCase();
+              const active =
+                (uiState.selectedModel || "").toLowerCase() ===
+                cm.id.toLowerCase();
               return h(
                 "button",
                 {
@@ -2520,7 +2960,9 @@ function renderAssistantTab() {
                   onclick: () => {
                     uiState.selectedModel = cm.id;
                     syncBionicSelectedModelState();
-                    toast(`Selected Bionic Cloud Model: ${cm.displayName} (${cm.id})`);
+                    toast(
+                      `Selected Bionic Cloud Model: ${cm.displayName} (${cm.id})`,
+                    );
                     renderBionicPanel();
                   },
                 },
@@ -2562,32 +3004,64 @@ function renderAssistantTab() {
           },
         },
         [
-          h("option", { value: "", selected: !uiState.selectedModel ? "selected" : null }, "Auto-Select Best Loaded MLX / Cloud Model"),
-          !modelIds.has("openai/gpt-oss-20b") && !cloudIds.has("openai/gpt-oss-20b")
+          h(
+            "option",
+            { value: "", selected: !uiState.selectedModel ? "selected" : null },
+            "Auto-Select Best Loaded MLX / Cloud Model",
+          ),
+          !modelIds.has("openai/gpt-oss-20b") &&
+          !cloudIds.has("openai/gpt-oss-20b")
             ? h(
                 "option",
-                { value: "openai/gpt-oss-20b", selected: uiState.selectedModel === "openai/gpt-oss-20b" ? "selected" : null },
+                {
+                  value: "openai/gpt-oss-20b",
+                  selected:
+                    uiState.selectedModel === "openai/gpt-oss-20b"
+                      ? "selected"
+                      : null,
+                },
                 "OpenAI gpt-oss 20B (openai/gpt-oss-20b) — Multi-Level Reasoning: Low / Medium / High [MXFP4]",
               )
             : null,
           !modelIds.has("qwen/qwen3.5-9b") && !cloudIds.has("qwen/qwen3.5-9b")
             ? h(
                 "option",
-                { value: "qwen/qwen3.5-9b", selected: uiState.selectedModel === "qwen/qwen3.5-9b" ? "selected" : null },
+                {
+                  value: "qwen/qwen3.5-9b",
+                  selected:
+                    uiState.selectedModel === "qwen/qwen3.5-9b"
+                      ? "selected"
+                      : null,
+                },
                 "Qwen 3.5 9B MLX (qwen/qwen3.5-9b) — Hybrid Thinking Toggle: On / Off + Vision",
               )
             : null,
-          !modelIds.has("deepseek/deepseek-r1-0528-qwen3-8b") && !cloudIds.has("deepseek/deepseek-r1-0528-qwen3-8b")
+          !modelIds.has("deepseek/deepseek-r1-0528-qwen3-8b") &&
+          !cloudIds.has("deepseek/deepseek-r1-0528-qwen3-8b")
             ? h(
                 "option",
-                { value: "deepseek/deepseek-r1-0528-qwen3-8b", selected: uiState.selectedModel === "deepseek/deepseek-r1-0528-qwen3-8b" ? "selected" : null },
+                {
+                  value: "deepseek/deepseek-r1-0528-qwen3-8b",
+                  selected:
+                    uiState.selectedModel ===
+                    "deepseek/deepseek-r1-0528-qwen3-8b"
+                      ? "selected"
+                      : null,
+                },
                 "DeepSeek-R1 8B (deepseek/deepseek-r1-0528-qwen3-8b) — Always-On Chain-of-Thought Reasoning",
               )
             : null,
-          !modelIds.has("qwen/qwen2.5-coder-7b-instruct") && !cloudIds.has("qwen/qwen2.5-coder-7b-instruct")
+          !modelIds.has("qwen/qwen2.5-coder-7b-instruct") &&
+          !cloudIds.has("qwen/qwen2.5-coder-7b-instruct")
             ? h(
                 "option",
-                { value: "qwen/qwen2.5-coder-7b-instruct", selected: uiState.selectedModel === "qwen/qwen2.5-coder-7b-instruct" ? "selected" : null },
+                {
+                  value: "qwen/qwen2.5-coder-7b-instruct",
+                  selected:
+                    uiState.selectedModel === "qwen/qwen2.5-coder-7b-instruct"
+                      ? "selected"
+                      : null,
+                },
                 "Qwen 2.5 Coder 7B (qwen/qwen2.5-coder-7b-instruct) — Fast Direct Output (No Thinking Overhead)",
               )
             : null,
@@ -2596,14 +3070,20 @@ function renderAssistantTab() {
             .map((m) =>
               h(
                 "option",
-                { value: m.id, selected: uiState.selectedModel === m.id ? "selected" : null },
+                {
+                  value: m.id,
+                  selected: uiState.selectedModel === m.id ? "selected" : null,
+                },
                 `${m.loaded ? "✓ LOADED: " : ""}${m.displayName} (${m.id}) — ${m.paramsString}, ~${m.estimatedRamGb} GB [${m.quantization}]`,
               ),
             ),
           ...cloudModels.map((cm) =>
             h(
               "option",
-              { value: cm.id, selected: uiState.selectedModel === cm.id ? "selected" : null },
+              {
+                value: cm.id,
+                selected: uiState.selectedModel === cm.id ? "selected" : null,
+              },
               `☁️ BIONIC CLOUD: ${cm.displayName} (${cm.id}) — 0 GB Local RAM, ${Math.round((cm.maxContextLength || 256000) / 1000)}K Ctx${cm.vision ? " + Vision VLM" : ""}`,
             ),
           ),
@@ -2620,11 +3100,19 @@ function renderAssistantTab() {
               },
             },
             [
-              h("option", { value: "" }, "No @Skill Override (Auto-Detect @mentions)"),
+              h(
+                "option",
+                { value: "" },
+                "No @Skill Override (Auto-Detect @mentions)",
+              ),
               ...skills.map((s) =>
                 h(
                   "option",
-                  { value: s.name, selected: uiState.selectedSkill === s.name ? "selected" : null },
+                  {
+                    value: s.name,
+                    selected:
+                      uiState.selectedSkill === s.name ? "selected" : null,
+                  },
                   `@${s.name} — ${s.displayName} (${s.scope})`,
                 ),
               ),
@@ -2642,12 +3130,69 @@ function renderAssistantTab() {
               },
             },
             [
-              h("option", { value: "", selected: !uiState.schemaPreset ? "selected" : null }, "Freeform Markdown / Code Output"),
-              h("option", { value: "batch_rename_plan", selected: uiState.schemaPreset === "batch_rename_plan" ? "selected" : null }, "JSON Schema: Batch Rename Plan"),
-              h("option", { value: "folder_organization_plan", selected: uiState.schemaPreset === "folder_organization_plan" ? "selected" : null }, "JSON Schema: Folder Organization Plan"),
-              h("option", { value: "table_extraction", selected: uiState.schemaPreset === "table_extraction" ? "selected" : null }, "JSON Schema: Structured Table Extraction"),
-              h("option", { value: "code_review_report", selected: uiState.schemaPreset === "code_review_report" ? "selected" : null }, "JSON Schema: Code Review Report"),
-              h("option", { value: "security_audit_report", selected: uiState.schemaPreset === "security_audit_report" ? "selected" : null }, "JSON Schema: Security Audit Report"),
+              h(
+                "option",
+                {
+                  value: "",
+                  selected: !uiState.schemaPreset ? "selected" : null,
+                },
+                "Freeform Markdown / Code Output",
+              ),
+              h(
+                "option",
+                {
+                  value: "batch_rename_plan",
+                  selected:
+                    uiState.schemaPreset === "batch_rename_plan"
+                      ? "selected"
+                      : null,
+                },
+                "JSON Schema: Batch Rename Plan",
+              ),
+              h(
+                "option",
+                {
+                  value: "folder_organization_plan",
+                  selected:
+                    uiState.schemaPreset === "folder_organization_plan"
+                      ? "selected"
+                      : null,
+                },
+                "JSON Schema: Folder Organization Plan",
+              ),
+              h(
+                "option",
+                {
+                  value: "table_extraction",
+                  selected:
+                    uiState.schemaPreset === "table_extraction"
+                      ? "selected"
+                      : null,
+                },
+                "JSON Schema: Structured Table Extraction",
+              ),
+              h(
+                "option",
+                {
+                  value: "code_review_report",
+                  selected:
+                    uiState.schemaPreset === "code_review_report"
+                      ? "selected"
+                      : null,
+                },
+                "JSON Schema: Code Review Report",
+              ),
+              h(
+                "option",
+                {
+                  value: "security_audit_report",
+                  selected:
+                    uiState.schemaPreset === "security_audit_report"
+                      ? "selected"
+                      : null,
+                },
+                "JSON Schema: Security Audit Report",
+              ),
             ],
           )
         : null,
@@ -2670,10 +3215,21 @@ function renderAssistantTab() {
             uiState.selectedVoice = e.target.value;
           },
         },
-        (voices.length ? voices : [{ name: "Zoey" }, { name: "Anton" }, { name: "Marlowe" }, { name: "Maeve" }]).map((v) =>
+        (voices.length
+          ? voices
+          : [
+              { name: "Zoey" },
+              { name: "Anton" },
+              { name: "Marlowe" },
+              { name: "Maeve" },
+            ]
+        ).map((v) =>
           h(
             "option",
-            { value: v.name, selected: uiState.selectedVoice === v.name ? "selected" : null },
+            {
+              value: v.name,
+              selected: uiState.selectedVoice === v.name ? "selected" : null,
+            },
             `Voice: ${v.name}${v.locale ? ` (${v.locale})` : ""}`,
           ),
         ),
@@ -2689,7 +3245,9 @@ function renderAssistantTab() {
           disabled: uiState.loading ? "disabled" : null,
           onclick: () => void runBionicSmartRouter(),
         },
-        uiState.loading ? [h("span", { class: "ollama-spinner" }), " Running Bionic..."] : "🧬 Ask Bionic (Smart Auto-Router)",
+        uiState.loading
+          ? [h("span", { class: "ollama-spinner" }), " Running Bionic..."]
+          : "🧬 Ask Bionic (Smart Auto-Router)",
       ),
       h(
         "button",
@@ -2709,7 +3267,8 @@ function renderAssistantTab() {
               type: "button",
               class: "ollama-btn is-danger",
               "data-bionic-action": "stop-generation",
-              title: "Stop LLM generation immediately (preserves tokens generated so far)",
+              title:
+                "Stop LLM generation immediately (preserves tokens generated so far)",
               onclick: () => stopBionicGeneration(),
             },
             "⏹ Stop Generation",
@@ -2720,7 +3279,8 @@ function renderAssistantTab() {
         {
           type: "button",
           class: "ollama-btn",
-          title: "Synthesize and compare all selected files or document packages into a structured Markdown report",
+          title:
+            "Synthesize and compare all selected files or document packages into a structured Markdown report",
           disabled: uiState.loading ? "disabled" : null,
           onclick: () => void runBionicSynthesisFlow(null, "compare", false),
         },
@@ -2733,7 +3293,8 @@ function renderAssistantTab() {
           class: `ollama-btn${uiState.outputExpanded ? " is-primary" : ""}`,
           "data-bionic-action": "toggle-expand-output",
           "aria-pressed": String(Boolean(uiState.outputExpanded)),
-          title: "Expand Output Console and collapse prompt banners above so the LLM response fills the viewport",
+          title:
+            "Expand Output Console and collapse prompt banners above so the LLM response fills the viewport",
           onclick: () => {
             uiState.outputExpanded = !uiState.outputExpanded;
             if (!uiState.outputExpanded) uiState.outputFullscreen = false;
@@ -2763,7 +3324,8 @@ function renderAssistantTab() {
         {
           type: "button",
           class: "ollama-btn",
-          title: "Load the selected file in the file list directly into the Bionic Markdown Reader",
+          title:
+            "Load the selected file in the file list directly into the Bionic Markdown Reader",
           onclick: async () => {
             const sel = selectedFilePaths();
             if (!sel.length) {
@@ -2774,7 +3336,9 @@ function renderAssistantTab() {
               const prev = await call("preview", { path: sel[0] });
               const rawText = prev.text || prev.rich?.plainText || "";
               if (!rawText) {
-                toast("Selected file does not contain readable text.", { kind: "error" });
+                toast("Selected file does not contain readable text.", {
+                  kind: "error",
+                });
                 return;
               }
               uiState.markdownView = true;
@@ -2782,7 +3346,9 @@ function renderAssistantTab() {
               uiState.answerOutput = rawText;
               uiState.reasoningOutput = "";
               renderBionicPanel();
-              toast(`Opened ${sel[0].split("/").pop()} in Bionic Markdown Reader`);
+              toast(
+                `Opened ${sel[0].split("/").pop()} in Bionic Markdown Reader`,
+              );
             } catch (err) {
               toast(err.message || "Could not read file", { kind: "error" });
             }
@@ -2802,7 +3368,9 @@ function renderAssistantTab() {
           )
         : null,
     ]),
-    uiState.routeBanner ? h("div", { class: "ollama-pill is-ram" }, uiState.routeBanner) : null,
+    uiState.routeBanner
+      ? h("div", { class: "ollama-pill is-ram" }, uiState.routeBanner)
+      : null,
     renderBionicOutputConsole({
       title: "LM Studio Bionic Response & Reasoning Console",
       badge: uiState.selectedModel || "Apple Metal MLX",
@@ -2818,7 +3386,12 @@ function renderAssistantTab() {
 
 function renderSkillsAndProjectsTab() {
   const skills = uiState.statusData?.skills || [];
-  const counts = uiState.statusData?.skillCounts || { builtin: 0, global: 0, project: 0, harness: 0 };
+  const counts = uiState.statusData?.skillCounts || {
+    builtin: 0,
+    global: 0,
+    project: 0,
+    harness: 0,
+  };
   const projects = uiState.statusData?.projects || [];
 
   return h("div", { class: "ollama-card" }, [
@@ -2828,7 +3401,11 @@ function renderSkillsAndProjectsTab() {
         {},
         `Bionic Agent Skills Hub (${skills.length} total — ${counts.builtin} Built-in, ${counts.global} Global, ${counts.project} Project, ${counts.harness} Harness)`,
       ),
-      h("span", { class: "ollama-pill is-mlx" }, "Trigger with @skill-name in Bionic Chat"),
+      h(
+        "span",
+        { class: "ollama-pill is-mlx" },
+        "Trigger with @skill-name in Bionic Chat",
+      ),
     ]),
     uiState.inspectedSkill
       ? renderBionicOutputConsole({
@@ -2858,7 +3435,8 @@ function renderSkillsAndProjectsTab() {
                 class: "ollama-btn is-primary is-mini",
                 onclick: () => {
                   uiState.selectedSkill = s.name;
-                  uiState.promptText = `${s.triggerToken} ${uiState.promptText || ""}`.trim();
+                  uiState.promptText =
+                    `${s.triggerToken} ${uiState.promptText || ""}`.trim();
                   uiState.subTab = "assistant";
                   toast(`Injected ${s.triggerToken} into Bionic prompt`);
                   renderBionicPanel();
@@ -2891,7 +3469,12 @@ function renderSkillsAndProjectsTab() {
               {
                 type: "button",
                 class: "ollama-btn is-mini",
-                onclick: (e) => void copyBionicText(s.skillMdPath, `${s.name} SKILL.md path`, e.currentTarget),
+                onclick: (e) =>
+                  void copyBionicText(
+                    s.skillMdPath,
+                    `${s.name} SKILL.md path`,
+                    e.currentTarget,
+                  ),
               },
               "📋 Copy Path",
             ),
@@ -2901,7 +3484,11 @@ function renderSkillsAndProjectsTab() {
     ),
     h("div", { class: "ollama-card-title" }, [
       h("span", {}, "Create New Bionic Agent Skill (SKILL.md Generator)"),
-      h("span", { class: "ollama-pill is-ram" }, "Saves to <folder>/.agents/skills/<name>/SKILL.md or ~/.lmstudio/skills"),
+      h(
+        "span",
+        { class: "ollama-pill is-ram" },
+        "Saves to <folder>/.agents/skills/<name>/SKILL.md or ~/.lmstudio/skills",
+      ),
     ]),
     h("div", { class: "ollama-row" }, [
       h("input", {
@@ -2941,8 +3528,16 @@ function renderSkillsAndProjectsTab() {
           },
         },
         [
-          h("option", { value: "project-local" }, "Project Skill (<activeFolder>/.agents/skills)"),
-          h("option", { value: "lmstudio-global" }, "Global Bionic Skill (~/.lmstudio/skills)"),
+          h(
+            "option",
+            { value: "project-local" },
+            "Project Skill (<activeFolder>/.agents/skills)",
+          ),
+          h(
+            "option",
+            { value: "lmstudio-global" },
+            "Global Bionic Skill (~/.lmstudio/skills)",
+          ),
         ],
       ),
     ]),
@@ -2974,7 +3569,9 @@ function renderSkillsAndProjectsTab() {
                 scope: uiState.newSkillScope,
                 dirPath: currentFolderRel(),
               });
-              toast(`Created Bionic skill @${res.skill.name} at ${res.skillMdPath}`);
+              toast(
+                `Created Bionic skill @${res.skill.name} at ${res.skillMdPath}`,
+              );
               refresh();
               void refreshBionicStatus(true);
             } catch (err) {
@@ -2986,7 +3583,11 @@ function renderSkillsAndProjectsTab() {
       ),
     ]),
     h("div", { class: "ollama-card-title" }, [
-      h("span", {}, `Bionic Workspace Projects (${projects.length}) — ~/.lmstudio/apps/bionic/projects`),
+      h(
+        "span",
+        {},
+        `Bionic Workspace Projects (${projects.length}) — ~/.lmstudio/apps/bionic/projects`,
+      ),
     ]),
     h(
       "div",
@@ -2995,7 +3596,11 @@ function renderSkillsAndProjectsTab() {
         h("div", { class: "ollama-model-card" }, [
           h("div", { class: "ollama-row" }, [
             h("strong", {}, p.name),
-            h("span", { class: "ollama-pill is-mlx" }, `${p.fileCount} item(s)`),
+            h(
+              "span",
+              { class: "ollama-pill is-mlx" },
+              `${p.fileCount} item(s)`,
+            ),
           ]),
           h("div", {}, `Workspace: ${p.workspaceDir}`),
           h("div", { class: "ollama-row" }, [
@@ -3019,7 +3624,12 @@ function renderSkillsAndProjectsTab() {
               {
                 type: "button",
                 class: "ollama-btn is-mini",
-                onclick: (e) => void copyBionicText(p.workspaceDir, "Workspace path", e.currentTarget),
+                onclick: (e) =>
+                  void copyBionicText(
+                    p.workspaceDir,
+                    "Workspace path",
+                    e.currentTarget,
+                  ),
               },
               "📋 Copy Path",
             ),
@@ -3041,7 +3651,8 @@ function renderSpeechAndAsrTab() {
     "textarea",
     {
       class: "ollama-textarea",
-      "aria-label": "Text to synthesize with Bionic Phonon 40M Multilingual TTS",
+      "aria-label":
+        "Text to synthesize with Bionic Phonon 40M Multilingual TTS",
       placeholder:
         sel.length > 0
           ? `Leave blank to read selected file (${sel[0]}) aloud, or type text in English, French, German, Spanish, or Portuguese...`
@@ -3053,7 +3664,9 @@ function renderSpeechAndAsrTab() {
         if (e.isComposing || e.keyCode === 229) return;
         if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && !uiState.loading) {
           e.preventDefault();
-          e.currentTarget.parentElement?.querySelector("button.ollama-btn.is-primary")?.click();
+          e.currentTarget.parentElement
+            ?.querySelector("button.ollama-btn.is-primary")
+            ?.click();
         }
       },
     },
@@ -3062,11 +3675,17 @@ function renderSpeechAndAsrTab() {
 
   return h("div", { class: "ollama-card" }, [
     h("div", { class: "ollama-card-title" }, [
-      h("span", {}, "Bionic Phonon 40M Multilingual Native Metal TTS (xn-ptts-mac-arm64-apple-metal)"),
+      h(
+        "span",
+        {},
+        "Bionic Phonon 40M Multilingual Native Metal TTS (xn-ptts-mac-arm64-apple-metal)",
+      ),
       h(
         "span",
         { class: `ollama-pill ${tts?.engineInstalled ? "is-mlx" : "is-warn"}` },
-        tts?.engineInstalled ? "✔ Native tts_engine.node + 24kHz Safetensors Voices Ready" : "Fallback TTS Active",
+        tts?.engineInstalled
+          ? "✔ Native tts_engine.node + 24kHz Safetensors Voices Ready"
+          : "Fallback TTS Active",
       ),
     ]),
     speechTextareaEl,
@@ -3083,7 +3702,10 @@ function renderSpeechAndAsrTab() {
         voices.map((v) =>
           h(
             "option",
-            { value: v.name, selected: uiState.selectedVoice === v.name ? "selected" : null },
+            {
+              value: v.name,
+              selected: uiState.selectedVoice === v.name ? "selected" : null,
+            },
             `${v.name} (${v.gender}, ${v.locale}) — ${v.description}`,
           ),
         ),
@@ -3098,7 +3720,14 @@ function renderSpeechAndAsrTab() {
           },
         },
         langs.map((l) =>
-          h("option", { value: l, selected: uiState.selectedLanguage === l ? "selected" : null }, `Language: ${l.toUpperCase()}`),
+          h(
+            "option",
+            {
+              value: l,
+              selected: uiState.selectedLanguage === l ? "selected" : null,
+            },
+            `Language: ${l.toUpperCase()}`,
+          ),
         ),
       ),
       h(
@@ -3111,8 +3740,22 @@ function renderSpeechAndAsrTab() {
           },
         },
         [
-          h("option", { value: "speaker", selected: uiState.speechMode === "speaker" ? "selected" : null }, "Play Out Loud (24kHz Player)"),
-          h("option", { value: "file", selected: uiState.speechMode === "file" ? "selected" : null }, "Save 24kHz WAV to Active Folder"),
+          h(
+            "option",
+            {
+              value: "speaker",
+              selected: uiState.speechMode === "speaker" ? "selected" : null,
+            },
+            "Play Out Loud (24kHz Player)",
+          ),
+          h(
+            "option",
+            {
+              value: "file",
+              selected: uiState.speechMode === "file" ? "selected" : null,
+            },
+            "Save 24kHz WAV to Active Folder",
+          ),
         ],
       ),
       h(
@@ -3122,7 +3765,11 @@ function renderSpeechAndAsrTab() {
           class: "ollama-btn is-primary",
           disabled: uiState.loading ? "disabled" : null,
           onclick: async () => {
-            const input = String(speechTextareaEl ? speechTextareaEl.value : uiState.speechText || "").trim();
+            const input = String(
+              speechTextareaEl
+                ? speechTextareaEl.value
+                : uiState.speechText || "",
+            ).trim();
             uiState.speechText = input;
             uiState.loading = true;
             renderBionicPanel();
@@ -3143,7 +3790,9 @@ function renderSpeechAndAsrTab() {
                 toast(`Saved 24kHz WAV to ${res.savedRelativePath}`);
                 refresh();
               } else {
-                toast(`Synthesized ${res.durationSecondsEstimate}s 24kHz audio with ${res.voice}`);
+                toast(
+                  `Synthesized ${res.durationSecondsEstimate}s 24kHz audio with ${res.voice}`,
+                );
               }
             } catch (err) {
               toast(err.message, { kind: "error" });
@@ -3153,14 +3802,17 @@ function renderSpeechAndAsrTab() {
             }
           },
         },
-        uiState.loading ? [h("span", { class: "ollama-spinner" }), " Synthesizing..."] : "🔊 Synthesize with Bionic Phonon 40M",
+        uiState.loading
+          ? [h("span", { class: "ollama-spinner" }), " Synthesizing..."]
+          : "🔊 Synthesize with Bionic Phonon 40M",
       ),
       h(
         "button",
         {
           type: "button",
           class: "ollama-btn",
-          title: "Save current voice & language as default in ~/.lmstudio/.internal/tts-model-selection.json",
+          title:
+            "Save current voice & language as default in ~/.lmstudio/.internal/tts-model-selection.json",
           onclick: async () => {
             try {
               const updated = await call("bionic/ttsConfig", {
@@ -3168,7 +3820,9 @@ function renderSpeechAndAsrTab() {
                 language: uiState.selectedLanguage,
               });
               if (uiState.statusData) uiState.statusData.tts = updated;
-              toast(`Saved ${uiState.selectedVoice} (${uiState.selectedLanguage}) to Bionic tts-model-selection.json`);
+              toast(
+                `Saved ${uiState.selectedVoice} (${uiState.selectedLanguage}) to Bionic tts-model-selection.json`,
+              );
               renderBionicPanel();
             } catch (err) {
               toast(err.message, { kind: "error" });
@@ -3189,11 +3843,17 @@ function renderSpeechAndAsrTab() {
         })
       : null,
     h("div", { class: "ollama-card-title" }, [
-      h("span", {}, "Bionic ExecuTorch Whisper Metal ASR Audio/Video Transcription"),
+      h(
+        "span",
+        {},
+        "Bionic ExecuTorch Whisper Metal ASR Audio/Video Transcription",
+      ),
       h(
         "span",
         { class: `ollama-pill ${asr?.installed ? "is-mlx" : "is-warn"}` },
-        asr?.installed ? "✔ whisper_engine_executorch_metal.node Installed" : "ASR Engine Ready",
+        asr?.installed
+          ? "✔ whisper_engine_executorch_metal.node Installed"
+          : "ASR Engine Ready",
       ),
     ]),
     h("div", { class: "ollama-row" }, [
@@ -3207,7 +3867,11 @@ function renderSpeechAndAsrTab() {
           },
         },
         [
-          h("option", { value: "markdown" }, "Format: Markdown (.md) + AI Summary"),
+          h(
+            "option",
+            { value: "markdown" },
+            "Format: Markdown (.md) + AI Summary",
+          ),
           h("option", { value: "txt" }, "Format: Plain Text (.txt)"),
           h("option", { value: "srt" }, "Format: SubRip Subtitles (.srt)"),
           h("option", { value: "json" }, "Format: Structured JSON (.json)"),
@@ -3231,7 +3895,9 @@ function renderSpeechAndAsrTab() {
           disabled: uiState.loading ? "disabled" : null,
           onclick: async () => {
             if (sel.length === 0) {
-              toast("Select an audio, video, or subtitle file in the File Manager list first.");
+              toast(
+                "Select an audio, video, or subtitle file in the File Manager list first.",
+              );
               return;
             }
             uiState.loading = true;
@@ -3246,7 +3912,9 @@ function renderSpeechAndAsrTab() {
               });
               uiState.asrResult = res;
               if (res.savedRelativePath) {
-                toast(`Saved Bionic ASR transcript to ${res.savedRelativePath}`);
+                toast(
+                  `Saved Bionic ASR transcript to ${res.savedRelativePath}`,
+                );
                 refresh();
               } else {
                 toast("Completed Bionic ASR transcription");
@@ -3277,14 +3945,23 @@ function renderSpeechAndAsrTab() {
 function renderMeaningTab() {
   return h("div", { class: "ollama-card" }, [
     h("div", { class: "ollama-card-title" }, [
-      h("span", {}, "Bionic Local Embeddings & Semantic Folder Search (POST /v1/embeddings)"),
-      h("span", { class: "ollama-pill is-mlx" }, "text-embedding-nomic-embed-text-v1.5 (768-dim Nomic BERT)"),
+      h(
+        "span",
+        {},
+        "Bionic Local Embeddings & Semantic Folder Search (POST /v1/embeddings)",
+      ),
+      h(
+        "span",
+        { class: "ollama-pill is-mlx" },
+        "text-embedding-nomic-embed-text-v1.5 (768-dim Nomic BERT)",
+      ),
     ]),
     h("div", { class: "ollama-row" }, [
       h("input", {
         class: "ollama-input",
         "aria-label": "Semantic meaning search query",
-        placeholder: "Describe what you're looking for by meaning (e.g., 'database login verification logic' or 'audio waveform synthesis')...",
+        placeholder:
+          "Describe what you're looking for by meaning (e.g., 'database login verification logic' or 'audio waveform synthesis')...",
         value: uiState.meaningQuery,
         oninput: (e) => {
           uiState.meaningQuery = e.target.value;
@@ -3293,7 +3970,9 @@ function renderMeaningTab() {
           if (e.isComposing || e.keyCode === 229) return;
           if (e.key === "Enter" && !uiState.loading) {
             e.preventDefault();
-            e.currentTarget.parentElement?.querySelector("button.ollama-btn.is-primary")?.click();
+            e.currentTarget.parentElement
+              ?.querySelector("button.ollama-btn.is-primary")
+              ?.click();
           }
         },
       }),
@@ -3344,7 +4023,11 @@ function renderMeaningTab() {
             h("div", { class: "ollama-model-card" }, [
               h("div", { class: "ollama-row" }, [
                 h("strong", {}, m.name),
-                h("span", { class: "ollama-pill is-mlx" }, `${(m.similarity * 100).toFixed(1)}% cosine similarity`),
+                h(
+                  "span",
+                  { class: "ollama-pill is-mlx" },
+                  `${(m.similarity * 100).toFixed(1)}% cosine similarity`,
+                ),
               ]),
               h("div", {}, m.path),
               h("div", {}, m.preview),
@@ -3355,7 +4038,9 @@ function renderMeaningTab() {
                     type: "button",
                     class: "ollama-btn",
                     onclick: async () => {
-                      const ok = await goTo(m.folderPath, { select: m.absPath });
+                      const ok = await goTo(m.folderPath, {
+                        select: m.absPath,
+                      });
                       if (ok) {
                         if (state.workspace !== "split") closePower();
                         toast(`Selected ${m.name}`);
@@ -3369,7 +4054,12 @@ function renderMeaningTab() {
                   {
                     type: "button",
                     class: "ollama-btn is-mini",
-                    onclick: (e) => void copyBionicText(m.preview, `${m.name} snippet`, e.currentTarget),
+                    onclick: (e) =>
+                      void copyBionicText(
+                        m.preview,
+                        `${m.name} snippet`,
+                        e.currentTarget,
+                      ),
                   },
                   "📋 Copy Snippet",
                 ),
@@ -3390,7 +4080,11 @@ function renderModelsAndEnginesTab() {
 
   return h("div", { class: "ollama-card" }, [
     h("div", { class: "ollama-card-title" }, [
-      h("span", {}, "LM Studio Bionic Local Models (`lms ls` / `lms ps` / `/api/v0/models`) & Hardware Guard"),
+      h(
+        "span",
+        {},
+        "LM Studio Bionic Local Models (`lms ls` / `lms ps` / `/api/v0/models`) & Hardware Guard",
+      ),
       hw
         ? h(
             "span",
@@ -3403,7 +4097,8 @@ function renderModelsAndEnginesTab() {
       h("input", {
         class: "ollama-input",
         "aria-label": "Download model from LM Studio Hub",
-        placeholder: "Download MLX model from LM Studio Hub (e.g. qwen/qwen3.5-9b, mlx-community/Llama-3.2-3B-Instruct-4bit)...",
+        placeholder:
+          "Download MLX model from LM Studio Hub (e.g. qwen/qwen3.5-9b, mlx-community/Llama-3.2-3B-Instruct-4bit)...",
         value: uiState.hubModelQuery,
         oninput: (e) => {
           uiState.hubModelQuery = e.target.value;
@@ -3412,7 +4107,9 @@ function renderModelsAndEnginesTab() {
           if (e.isComposing || e.keyCode === 229) return;
           if (e.key === "Enter" && !uiState.loading) {
             e.preventDefault();
-            e.currentTarget.parentElement?.querySelector("button.ollama-btn.is-primary")?.click();
+            e.currentTarget.parentElement
+              ?.querySelector("button.ollama-btn.is-primary")
+              ?.click();
           }
         },
       }),
@@ -3426,9 +4123,14 @@ function renderModelsAndEnginesTab() {
             uiState.loading = true;
             renderBionicPanel();
             try {
-              const res = await call("bionic/get", { model: uiState.hubModelQuery.trim() });
+              const res = await call("bionic/get", {
+                model: uiState.hubModelQuery.trim(),
+              });
               if (!res.ok) {
-                uiState.refusalBanner = { code: res.verdict?.code || "HARDWARE_RAM_REFUSAL", message: res.status };
+                uiState.refusalBanner = {
+                  code: res.verdict?.code || "HARDWARE_RAM_REFUSAL",
+                  message: res.status,
+                };
               } else {
                 toast(res.status);
                 void refreshBionicStatus(true);
@@ -3444,112 +4146,138 @@ function renderModelsAndEnginesTab() {
         "⬇ Hardware-Checked Download (`lms get --mlx`)",
       ),
     ]),
-    h("div", { class: "ollama-row", style: "flex-wrap:wrap;gap:10px;font-size:12px;margin:4px 0;" }, [
-      h("strong", {}, "Load Settings (lms load):"),
-      h("label", { class: "ollama-row", style: "gap:4px;" }, [
-        h("span", {}, "Context:"),
-        h(
-          "select",
-          {
-            class: "ollama-select",
-            onchange: (e) => {
-              uiState.loadContextLength = Number(e.target.value) || 32768;
-            },
-          },
-          [4096, 8192, 16384, 32768, 65536, 131072].map((ctxVal) =>
-            h(
-              "option",
-              {
-                value: String(ctxVal),
-                selected: Number(uiState.loadContextLength) === ctxVal ? "selected" : null,
+    h(
+      "div",
+      {
+        class: "ollama-row",
+        style: "flex-wrap:wrap;gap:10px;font-size:12px;margin:4px 0;",
+      },
+      [
+        h("strong", {}, "Load Settings (lms load):"),
+        h("label", { class: "ollama-row", style: "gap:4px;" }, [
+          h("span", {}, "Context:"),
+          h(
+            "select",
+            {
+              class: "ollama-select",
+              onchange: (e) => {
+                uiState.loadContextLength = Number(e.target.value) || 32768;
               },
-              `${ctxVal.toLocaleString()} tokens`,
-            ),
-          ),
-        ),
-      ]),
-      h("label", { class: "ollama-row", style: "gap:4px;" }, [
-        h("span", {}, "GPU Offload:"),
-        h(
-          "select",
-          {
-            class: "ollama-select",
-            onchange: (e) => {
-              uiState.loadGpuOffload = e.target.value;
             },
-          },
-          [
-            { val: "max", label: "Max (100% Apple Metal)" },
-            { val: "0.75", label: "75% GPU Layers" },
-            { val: "0.5", label: "50% GPU Layers" },
-            { val: "off", label: "CPU Only" },
-          ].map((g) =>
-            h(
-              "option",
-              { value: g.val, selected: String(uiState.loadGpuOffload) === g.val ? "selected" : null },
-              g.label,
+            [4096, 8192, 16384, 32768, 65536, 131072].map((ctxVal) =>
+              h(
+                "option",
+                {
+                  value: String(ctxVal),
+                  selected:
+                    Number(uiState.loadContextLength) === ctxVal
+                      ? "selected"
+                      : null,
+                },
+                `${ctxVal.toLocaleString()} tokens`,
+              ),
             ),
           ),
-        ),
-      ]),
-      h("label", { class: "ollama-row", style: "gap:4px;" }, [
-        h("span", {}, "KV Cache Quant:"),
-        h(
-          "select",
-          {
-            class: "ollama-select",
-            onchange: (e) => {
-              uiState.loadKvCacheQuant = e.target.value;
+        ]),
+        h("label", { class: "ollama-row", style: "gap:4px;" }, [
+          h("span", {}, "GPU Offload:"),
+          h(
+            "select",
+            {
+              class: "ollama-select",
+              onchange: (e) => {
+                uiState.loadGpuOffload = e.target.value;
+              },
             },
-          },
-          [
-            { val: "f16", label: "FP16 (Full Precision)" },
-            { val: "q8_0", label: "Q8_0 (8-bit Compressed KV)" },
-            { val: "q4_0", label: "Q4_0 (4-bit Ultra-Compact KV)" },
-          ].map((kv) =>
-            h(
-              "option",
-              { value: kv.val, selected: uiState.loadKvCacheQuant === kv.val ? "selected" : null },
-              kv.label,
+            [
+              { val: "max", label: "Max (100% Apple Metal)" },
+              { val: "0.75", label: "75% GPU Layers" },
+              { val: "0.5", label: "50% GPU Layers" },
+              { val: "off", label: "CPU Only" },
+            ].map((g) =>
+              h(
+                "option",
+                {
+                  value: g.val,
+                  selected:
+                    String(uiState.loadGpuOffload) === g.val
+                      ? "selected"
+                      : null,
+                },
+                g.label,
+              ),
             ),
           ),
-        ),
-      ]),
-      h("label", { class: "ollama-row", style: "gap:4px;" }, [
-        h("input", {
-          type: "checkbox",
-          checked: uiState.loadFlashAttention ? "checked" : null,
-          onchange: (e) => {
-            uiState.loadFlashAttention = e.target.checked;
-          },
-        }),
-        h("span", {}, "Flash Attention"),
-      ]),
-      h("label", { class: "ollama-row", style: "gap:4px;" }, [
-        h("span", {}, "Idle Auto-Evict (TTL):"),
-        h(
-          "select",
-          {
-            class: "ollama-select",
-            onchange: (e) => {
-              uiState.loadTtlSeconds = Number(e.target.value) || 0;
+        ]),
+        h("label", { class: "ollama-row", style: "gap:4px;" }, [
+          h("span", {}, "KV Cache Quant:"),
+          h(
+            "select",
+            {
+              class: "ollama-select",
+              onchange: (e) => {
+                uiState.loadKvCacheQuant = e.target.value;
+              },
             },
-          },
-          [
-            { val: 0, label: "Keep Loaded" },
-            { val: 300, label: "5 min (300s)" },
-            { val: 900, label: "15 min (900s)" },
-            { val: 1800, label: "30 min (1800s)" },
-          ].map((t) =>
-            h(
-              "option",
-              { value: String(t.val), selected: Number(uiState.loadTtlSeconds) === t.val ? "selected" : null },
-              t.label,
+            [
+              { val: "f16", label: "FP16 (Full Precision)" },
+              { val: "q8_0", label: "Q8_0 (8-bit Compressed KV)" },
+              { val: "q4_0", label: "Q4_0 (4-bit Ultra-Compact KV)" },
+            ].map((kv) =>
+              h(
+                "option",
+                {
+                  value: kv.val,
+                  selected:
+                    uiState.loadKvCacheQuant === kv.val ? "selected" : null,
+                },
+                kv.label,
+              ),
             ),
           ),
-        ),
-      ]),
-    ]),
+        ]),
+        h("label", { class: "ollama-row", style: "gap:4px;" }, [
+          h("input", {
+            type: "checkbox",
+            checked: uiState.loadFlashAttention ? "checked" : null,
+            onchange: (e) => {
+              uiState.loadFlashAttention = e.target.checked;
+            },
+          }),
+          h("span", {}, "Flash Attention"),
+        ]),
+        h("label", { class: "ollama-row", style: "gap:4px;" }, [
+          h("span", {}, "Idle Auto-Evict (TTL):"),
+          h(
+            "select",
+            {
+              class: "ollama-select",
+              onchange: (e) => {
+                uiState.loadTtlSeconds = Number(e.target.value) || 0;
+              },
+            },
+            [
+              { val: 0, label: "Keep Loaded" },
+              { val: 300, label: "5 min (300s)" },
+              { val: 900, label: "15 min (900s)" },
+              { val: 1800, label: "30 min (1800s)" },
+            ].map((t) =>
+              h(
+                "option",
+                {
+                  value: String(t.val),
+                  selected:
+                    Number(uiState.loadTtlSeconds) === t.val
+                      ? "selected"
+                      : null,
+                },
+                t.label,
+              ),
+            ),
+          ),
+        ]),
+      ],
+    ),
     h(
       "div",
       { class: "ollama-model-grid" },
@@ -3564,10 +4292,17 @@ function renderModelsAndEnginesTab() {
               `${m.paramsString} • ${m.sizeGb} GB (~${m.estimatedRamGb} GB RAM)`,
             ),
           ]),
-          h("div", { class: "ollama-badge-row" }, (m.badges || []).map(createBadgeEl)),
           h(
             "div",
-            { class: "ollama-row", style: "flex-wrap:wrap;gap:4px;margin:2px 0;" },
+            { class: "ollama-badge-row" },
+            (m.badges || []).map(createBadgeEl),
+          ),
+          h(
+            "div",
+            {
+              class: "ollama-row",
+              style: "flex-wrap:wrap;gap:4px;margin:2px 0;",
+            },
             (profile.indicators || []).map((ind) =>
               h(
                 "span",
@@ -3625,7 +4360,10 @@ function renderModelsAndEnginesTab() {
                           gpuOffload: uiState.loadGpuOffload,
                           flashAttention: uiState.loadFlashAttention,
                           kvCacheQuant: uiState.loadKvCacheQuant,
-                          ttlSeconds: uiState.loadTtlSeconds > 0 ? uiState.loadTtlSeconds : undefined,
+                          ttlSeconds:
+                            uiState.loadTtlSeconds > 0
+                              ? uiState.loadTtlSeconds
+                              : undefined,
                         });
                         toast(`Loaded ${m.displayName} into Metal RAM`);
                         void refreshBionicStatus(true);
@@ -3664,7 +4402,12 @@ function renderModelsAndEnginesTab() {
               {
                 type: "button",
                 class: "ollama-btn is-mini",
-                onclick: (e) => void copyBionicText(`lms load ${m.id}`, `lms load ${m.id}`, e.currentTarget),
+                onclick: (e) =>
+                  void copyBionicText(
+                    `lms load ${m.id}`,
+                    `lms load ${m.id}`,
+                    e.currentTarget,
+                  ),
               },
               "📋 Copy CLI",
             ),
@@ -3674,8 +4417,16 @@ function renderModelsAndEnginesTab() {
     ),
     cloudModels.length > 0
       ? h("div", { class: "ollama-card-title" }, [
-          h("span", {}, `☁️ Bionic Cloud Models (${cloudModels.length}) — Zero Local RAM Footprint`),
-          h("span", { class: "ollama-pill is-cloud" }, "Up to 262K Context • Thinking Toggle • Vision VLM • Tool Use"),
+          h(
+            "span",
+            {},
+            `☁️ Bionic Cloud Models (${cloudModels.length}) — Zero Local RAM Footprint`,
+          ),
+          h(
+            "span",
+            { class: "ollama-pill is-cloud" },
+            "Up to 262K Context • Thinking Toggle • Vision VLM • Tool Use",
+          ),
         ])
       : null,
     cloudModels.length > 0
@@ -3683,81 +4434,114 @@ function renderModelsAndEnginesTab() {
           "div",
           { class: "ollama-model-grid" },
           cloudModels.map((cm) => {
-            const profile = cm.featureProfile || getBionicModelFeatureProfile(cm.id);
+            const profile =
+              cm.featureProfile || getBionicModelFeatureProfile(cm.id);
             const indicators = profile.indicators || [];
             const useCases = profile.useCases || [];
-            const isSelected = (uiState.selectedModel || "").toLowerCase() === cm.id.toLowerCase();
-            return h("div", { class: "ollama-model-card", "data-bionic-cloud-card": cm.id }, [
-              h("div", { class: "ollama-row" }, [
-                h("strong", {}, `☁️ ${cm.displayName}`),
-                h("span", { class: "ollama-pill is-cloud" }, `Max Ctx: ${(cm.maxContextLength || 256000).toLocaleString()}`),
-                isSelected ? h("span", { class: "ollama-pill is-mlx" }, "✓ Active in Studio") : null,
-              ]),
-              h("div", { class: "ollama-badge-row" }, (cm.badges || []).map(createBadgeEl)),
-              indicators.length > 0
-                ? h(
-                    "div",
-                    { class: "ollama-row", style: "flex-wrap:wrap;gap:4px;margin:2px 0;" },
-                    indicators.map((ind) =>
-                      h(
+            const isSelected =
+              (uiState.selectedModel || "").toLowerCase() ===
+              cm.id.toLowerCase();
+            return h(
+              "div",
+              { class: "ollama-model-card", "data-bionic-cloud-card": cm.id },
+              [
+                h("div", { class: "ollama-row" }, [
+                  h("strong", {}, `☁️ ${cm.displayName}`),
+                  h(
+                    "span",
+                    { class: "ollama-pill is-cloud" },
+                    `Max Ctx: ${(cm.maxContextLength || 256000).toLocaleString()}`,
+                  ),
+                  isSelected
+                    ? h(
                         "span",
-                        {
-                          class: "ollama-pill is-mlx",
-                          "data-bionic-model-indicator": ind.id,
-                          title: ind.description || ind.label,
-                          style: "font-size:10.5px;padding:1px 6px;",
-                        },
-                        `${ind.icon} ${ind.label}`,
+                        { class: "ollama-pill is-mlx" },
+                        "✓ Active in Studio",
+                      )
+                    : null,
+                ]),
+                h(
+                  "div",
+                  { class: "ollama-badge-row" },
+                  (cm.badges || []).map(createBadgeEl),
+                ),
+                indicators.length > 0
+                  ? h(
+                      "div",
+                      {
+                        class: "ollama-row",
+                        style: "flex-wrap:wrap;gap:4px;margin:2px 0;",
+                      },
+                      indicators.map((ind) =>
+                        h(
+                          "span",
+                          {
+                            class: "ollama-pill is-mlx",
+                            "data-bionic-model-indicator": ind.id,
+                            title: ind.description || ind.label,
+                            style: "font-size:10.5px;padding:1px 6px;",
+                          },
+                          `${ind.icon} ${ind.label}`,
+                        ),
                       ),
-                    ),
-                  )
-                : null,
-              useCases.length > 0
-                ? h(
-                    "div",
-                    { class: "ollama-model-use-cases" },
-                    `What you can use it for: ${useCases.slice(0, 3).join(" • ")}`,
-                  )
-                : null,
-              h(
-                "div",
-                {},
-                `ID: ${cm.id} | RAM: 0 GB Local (Bionic Cloud) | Format: ${(cm.format || "cloud").toUpperCase()}`,
-              ),
-              h("div", { class: "ollama-row" }, [
+                    )
+                  : null,
+                useCases.length > 0
+                  ? h(
+                      "div",
+                      { class: "ollama-model-use-cases" },
+                      `What you can use it for: ${useCases.slice(0, 3).join(" • ")}`,
+                    )
+                  : null,
                 h(
-                  "button",
-                  {
-                    type: "button",
-                    class: `ollama-btn is-mini${isSelected ? " is-primary" : ""}`,
-                    "data-bionic-action": "select-cloud-model",
-                    "data-bionic-model-id": cm.id,
-                    onclick: () => {
-                      uiState.selectedModel = cm.id;
-                      syncBionicSelectedModelState();
-                      uiState.subTab = "assistant";
-                      toast(`Selected Bionic Cloud Model in Studio: ${cm.displayName} (${cm.id})`);
-                      renderBionicPanel();
+                  "div",
+                  {},
+                  `ID: ${cm.id} | RAM: 0 GB Local (Bionic Cloud) | Format: ${(cm.format || "cloud").toUpperCase()}`,
+                ),
+                h("div", { class: "ollama-row" }, [
+                  h(
+                    "button",
+                    {
+                      type: "button",
+                      class: `ollama-btn is-mini${isSelected ? " is-primary" : ""}`,
+                      "data-bionic-action": "select-cloud-model",
+                      "data-bionic-model-id": cm.id,
+                      onclick: () => {
+                        uiState.selectedModel = cm.id;
+                        syncBionicSelectedModelState();
+                        uiState.subTab = "assistant";
+                        toast(
+                          `Selected Bionic Cloud Model in Studio: ${cm.displayName} (${cm.id})`,
+                        );
+                        renderBionicPanel();
+                      },
                     },
-                  },
-                  isSelected ? "✓ Selected in Studio" : "✓ Select Model in Studio",
-                ),
-                h(
-                  "button",
-                  {
-                    type: "button",
-                    class: "ollama-btn is-mini",
-                    onclick: (e) => void copyBionicText(cm.id, cm.id, e.currentTarget),
-                  },
-                  "📋 Copy Model ID",
-                ),
-              ]),
-            ]);
+                    isSelected
+                      ? "✓ Selected in Studio"
+                      : "✓ Select Model in Studio",
+                  ),
+                  h(
+                    "button",
+                    {
+                      type: "button",
+                      class: "ollama-btn is-mini",
+                      onclick: (e) =>
+                        void copyBionicText(cm.id, cm.id, e.currentTarget),
+                    },
+                    "📋 Copy Model ID",
+                  ),
+                ]),
+              ],
+            );
           }),
         )
       : null,
     h("div", { class: "ollama-card-title" }, [
-      h("span", {}, `Installed LM Studio Bionic Metal Engine Backends (${backends.length})`),
+      h(
+        "span",
+        {},
+        `Installed LM Studio Bionic Metal Engine Backends (${backends.length})`,
+      ),
     ]),
     h(
       "div",
@@ -3766,7 +4550,11 @@ function renderModelsAndEnginesTab() {
         h("div", { class: "bionic-engine-card" }, [
           h("div", { class: "ollama-row" }, [
             h("strong", {}, b.name),
-            h("span", { class: "ollama-pill is-mlx" }, `v${b.version || "1.0"}`),
+            h(
+              "span",
+              { class: "ollama-pill is-mlx" },
+              `v${b.version || "1.0"}`,
+            ),
             h("span", { class: "ollama-pill" }, b.format),
           ]),
           h("div", {}, b.description),
@@ -3781,9 +4569,14 @@ export function renderBionicPanel() {
   const prevScroll = rootContainer.scrollTop || 0;
   const savedBoxScrolls = new Map();
   if (rootContainer.querySelectorAll) {
-    for (const consoleEl of rootContainer.querySelectorAll("[data-bionic-output-console]")) {
-      const scope = consoleEl.getAttribute("data-bionic-output-console") || "default";
-      const outBox = consoleEl.querySelector(".bionic-md-viewer, .ollama-output-box");
+    for (const consoleEl of rootContainer.querySelectorAll(
+      "[data-bionic-output-console]",
+    )) {
+      const scope =
+        consoleEl.getAttribute("data-bionic-output-console") || "default";
+      const outBox = consoleEl.querySelector(
+        ".bionic-md-viewer, .ollama-output-box",
+      );
       const thinkBox = consoleEl.querySelector(".ollama-thinking-box");
       savedBoxScrolls.set(scope, {
         outTop: outBox ? outBox.scrollTop || 0 : 0,
@@ -3840,11 +4633,16 @@ export function renderBionicPanel() {
   rootContainer.appendChild(suite);
   if (prevScroll > 0) rootContainer.scrollTop = prevScroll;
   if (savedBoxScrolls.size > 0 && rootContainer.querySelectorAll) {
-    for (const consoleEl of rootContainer.querySelectorAll("[data-bionic-output-console]")) {
-      const scope = consoleEl.getAttribute("data-bionic-output-console") || "default";
+    for (const consoleEl of rootContainer.querySelectorAll(
+      "[data-bionic-output-console]",
+    )) {
+      const scope =
+        consoleEl.getAttribute("data-bionic-output-console") || "default";
       const saved = savedBoxScrolls.get(scope);
       if (!saved) continue;
-      const outBox = consoleEl.querySelector(".bionic-md-viewer, .ollama-output-box");
+      const outBox = consoleEl.querySelector(
+        ".bionic-md-viewer, .ollama-output-box",
+      );
       const thinkBox = consoleEl.querySelector(".ollama-thinking-box");
       if (outBox) {
         if (saved.outTop > 0) outBox.scrollTop = saved.outTop;
@@ -3892,7 +4690,11 @@ export function mountBionicTool(container) {
       uiState.contextPaths = opts.paths;
     }
     if (opts.synthesize) {
-      void runBionicSynthesisFlow(opts.paths || uiState.contextPaths, opts.mode || "compare", Boolean(opts.saveToFile));
+      void runBionicSynthesisFlow(
+        opts.paths || uiState.contextPaths,
+        opts.mode || "compare",
+        Boolean(opts.saveToFile),
+      );
     } else if (opts.prompt) {
       uiState.promptText = opts.prompt;
       void runBionicSmartRouter(opts.prompt);
@@ -3902,14 +4704,22 @@ export function mountBionicTool(container) {
     renderBionicPanel();
   };
   const onEscapeFullscreen = (e) => {
-    if (e.key === "Escape" && rootContainer && !rootContainer.hidden && uiState.outputFullscreen) {
+    if (
+      e.key === "Escape" &&
+      rootContainer &&
+      !rootContainer.hidden &&
+      uiState.outputFullscreen
+    ) {
       e.preventDefault();
       e.stopPropagation();
       uiState.outputFullscreen = false;
       renderBionicPanel();
     }
   };
-  if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
+  if (
+    typeof document !== "undefined" &&
+    typeof document.addEventListener === "function"
+  ) {
     document.addEventListener("keydown", onEscapeFullscreen);
   }
   return {
@@ -3921,7 +4731,10 @@ export function mountBionicTool(container) {
     },
     dispose() {
       offSelection?.();
-      if (typeof document !== "undefined" && typeof document.removeEventListener === "function") {
+      if (
+        typeof document !== "undefined" &&
+        typeof document.removeEventListener === "function"
+      ) {
         document.removeEventListener("keydown", onEscapeFullscreen);
       }
     },

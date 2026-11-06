@@ -38,7 +38,8 @@ export function cleanSubdomain(raw: string, rootDomain: string): string | null {
     .replace(/[^a-z0-9.-]/g, "");
 
   if (!cleaned || cleaned === rootDomain) return cleaned || null;
-  if (!cleaned.endsWith(`.${rootDomain}`) && cleaned !== rootDomain) return null;
+  if (!cleaned.endsWith(`.${rootDomain}`) && cleaned !== rootDomain)
+    return null;
   return cleaned;
 }
 
@@ -54,16 +55,20 @@ export function deduplicateSubdomains(list: string[]): string[] {
  */
 export async function queryHackerTarget(
   domain: string,
-  timeoutMs: number = 4000
+  timeoutMs: number = 4000,
 ): Promise<string[]> {
   try {
-    const res = await fetch(`https://api.hackertarget.com/hostsearch/?q=${encodeURIComponent(domain)}`, {
-      signal: AbortSignal.timeout(Math.min(timeoutMs, 4000)),
-      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
-    });
+    const res = await fetch(
+      `https://api.hackertarget.com/hostsearch/?q=${encodeURIComponent(domain)}`,
+      {
+        signal: AbortSignal.timeout(Math.min(timeoutMs, 4000)),
+        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
+      },
+    );
     if (!res.ok) return [];
     const text = await res.text();
-    if (text.includes("error") || text.includes("No DNS records found")) return [];
+    if (text.includes("error") || text.includes("No DNS records found"))
+      return [];
     return text
       .split("\n")
       .map((line) => line.split(",")[0]?.trim())
@@ -78,13 +83,16 @@ export async function queryHackerTarget(
  */
 export async function queryCrtSh(
   domain: string,
-  timeoutMs: number = 4000
+  timeoutMs: number = 4000,
 ): Promise<string[]> {
   try {
-    const res = await fetch(`https://crt.sh/?q=%.${encodeURIComponent(domain)}&output=json`, {
-      signal: AbortSignal.timeout(Math.min(timeoutMs, 4000)),
-      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
-    });
+    const res = await fetch(
+      `https://crt.sh/?q=%.${encodeURIComponent(domain)}&output=json`,
+      {
+        signal: AbortSignal.timeout(Math.min(timeoutMs, 4000)),
+        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
+      },
+    );
     if (!res.ok) return [];
     const data = (await res.json()) as Array<{ name_value?: string }>;
     if (!Array.isArray(data)) return [];
@@ -105,7 +113,7 @@ export async function queryCrtSh(
  */
 export async function queryAlienVault(
   domain: string,
-  timeoutMs: number = 3000
+  timeoutMs: number = 3000,
 ): Promise<string[]> {
   try {
     const url = `https://otx.alienvault.com/api/v1/indicators/domain/${encodeURIComponent(domain)}/passive_dns`;
@@ -114,7 +122,9 @@ export async function queryAlienVault(
       headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
     });
     if (!res.ok) return [];
-    const data = (await res.json()) as { passive_dns?: Array<{ hostname?: string }> };
+    const data = (await res.json()) as {
+      passive_dns?: Array<{ hostname?: string }>;
+    };
     return (data.passive_dns ?? [])
       .map((d) => d.hostname)
       .filter((h): h is string => Boolean(h));
@@ -128,13 +138,16 @@ export async function queryAlienVault(
  */
 export async function queryAnubis(
   domain: string,
-  timeoutMs: number = 3000
+  timeoutMs: number = 3000,
 ): Promise<string[]> {
   try {
-    const res = await fetch(`https://jldc.me/anubis/subdomains/${encodeURIComponent(domain)}`, {
-      signal: AbortSignal.timeout(Math.min(timeoutMs, 3000)),
-      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
-    });
+    const res = await fetch(
+      `https://jldc.me/anubis/subdomains/${encodeURIComponent(domain)}`,
+      {
+        signal: AbortSignal.timeout(Math.min(timeoutMs, 3000)),
+        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
+      },
+    );
     if (!res.ok) return [];
     return (await res.json()) as string[];
   } catch {
@@ -147,7 +160,7 @@ export async function queryAnubis(
  */
 export async function queryCertSpotter(
   domain: string,
-  timeoutMs: number = 3500
+  timeoutMs: number = 3500,
 ): Promise<string[]> {
   try {
     const res = await fetch(
@@ -155,7 +168,7 @@ export async function queryCertSpotter(
       {
         headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" },
         signal: AbortSignal.timeout(Math.min(timeoutMs, 3500)),
-      }
+      },
     );
     if (!res.ok) return [];
     const data: any = await res.json();
@@ -178,9 +191,34 @@ export async function queryCertSpotter(
  * Built-in dictionary of common subdomain prefixes probed during active DNS enumeration.
  */
 export const COMMON_SUBDOMAINS = [
-  "www", "mail", "api", "dev", "app", "admin", "blog", "portal", "cloud",
-  "staging", "auth", "login", "cdn", "vpn", "m", "docs", "support", "test",
-  "status", "shop", "beta", "secure", "git", "drive", "news", "maps", "ns1", "ns2"
+  "www",
+  "mail",
+  "api",
+  "dev",
+  "app",
+  "admin",
+  "blog",
+  "portal",
+  "cloud",
+  "staging",
+  "auth",
+  "login",
+  "cdn",
+  "vpn",
+  "m",
+  "docs",
+  "support",
+  "test",
+  "status",
+  "shop",
+  "beta",
+  "secure",
+  "git",
+  "drive",
+  "news",
+  "maps",
+  "ns1",
+  "ns2",
 ];
 
 /**
@@ -194,12 +232,14 @@ export async function queryCommonDns(domain: string): Promise<string[]> {
       try {
         const res = await Promise.race([
           lookup(host),
-          new Promise<never>((_, rej) => setTimeout(() => rej(new Error("DNS timeout")), 1500)),
+          new Promise<never>((_, rej) =>
+            setTimeout(() => rej(new Error("DNS timeout")), 1500),
+          ),
         ]);
         if (res && res.address) return host;
       } catch {}
       return null;
-    })
+    }),
   );
   return results.filter((h): h is string => Boolean(h));
 }
@@ -211,14 +251,18 @@ export async function resolveHostDns(host: string): Promise<string[]> {
   try {
     const res = await Promise.race([
       asyncResolver.resolve4(host),
-      new Promise<string[]>((_, rej) => setTimeout(() => rej(new Error("DNS timeout")), 1200)),
+      new Promise<string[]>((_, rej) =>
+        setTimeout(() => rej(new Error("DNS timeout")), 1200),
+      ),
     ]);
     return res;
   } catch {
     try {
       const fallback = await Promise.race([
         lookup(host, { all: true }),
-        new Promise<never>((_, rej) => setTimeout(() => rej(new Error("DNS timeout")), 1000)),
+        new Promise<never>((_, rej) =>
+          setTimeout(() => rej(new Error("DNS timeout")), 1000),
+        ),
       ]);
       return fallback.map((a: any) => a.address);
     } catch {
@@ -232,7 +276,7 @@ export async function resolveHostDns(host: string): Promise<string[]> {
  */
 export async function probeHttp(
   host: string,
-  timeoutMs: number = 1800
+  timeoutMs: number = 1800,
 ): Promise<{ status?: number; title?: string }> {
   for (const proto of ["https", "http"]) {
     try {
@@ -270,7 +314,11 @@ export function isWildcardMatch(ips: string[], wildcardIps: string[]): boolean {
 /**
  * Attempts a TCP socket connection to `host:port` within `timeoutMs`, returning `true` if the port is open.
  */
-export async function probePort(host: string, port: number, timeoutMs: number = 800): Promise<boolean> {
+export async function probePort(
+  host: string,
+  port: number,
+  timeoutMs: number = 800,
+): Promise<boolean> {
   try {
     const connectPromise = Bun.connect({
       hostname: host,
@@ -283,13 +331,15 @@ export async function probePort(host: string, port: number, timeoutMs: number = 
         error() {},
         close() {},
       },
-    }).then((s) => {
-      s.end();
-      return true;
-    }).catch(() => false);
+    })
+      .then((s) => {
+        s.end();
+        return true;
+      })
+      .catch(() => false);
 
     const timeoutPromise = new Promise<boolean>((resolve) =>
-      setTimeout(() => resolve(false), timeoutMs)
+      setTimeout(() => resolve(false), timeoutMs),
     );
 
     return await Promise.race([connectPromise, timeoutPromise]);
@@ -304,14 +354,14 @@ export async function probePort(host: string, port: number, timeoutMs: number = 
 export async function probePorts(
   host: string,
   ports: number[],
-  timeoutMs: number = 800
+  timeoutMs: number = 800,
 ): Promise<number[]> {
   const openPorts: number[] = [];
   await Promise.all(
     ports.map(async (port) => {
       const isOpen = await probePort(host, port, timeoutMs);
       if (isOpen) openPorts.push(port);
-    })
+    }),
   );
   return openPorts.sort((a, b) => a - b);
 }
@@ -319,11 +369,20 @@ export async function probePorts(
 /**
  * Synchronously resolves `COMMON_SUBDOMAINS` against `domain` via a single `dig` invocation.
  */
-export function queryCommonDnsSync(domain: string): { host: string; ip?: string[] }[] {
+export function queryCommonDnsSync(
+  domain: string,
+): { host: string; ip?: string[] }[] {
   const root = cleanDomain(domain);
   const candidateHosts = COMMON_SUBDOMAINS.map((s) => `${s}.${root}`);
   try {
-    const res = Bun.spawnSync(["dig", "+noall", "+answer", "+time=1", "+tries=1", ...candidateHosts]);
+    const res = Bun.spawnSync([
+      "dig",
+      "+noall",
+      "+answer",
+      "+time=1",
+      "+tries=1",
+      ...candidateHosts,
+    ]);
     const lines = res.stdout ? res.stdout.toString().split("\n") : [];
     const map = new Map<string, string[]>();
     for (const line of lines) {
@@ -381,7 +440,12 @@ export function queryHackerTargetSync(domain: string): string[] {
     const res = Bun.spawnSync(["curl", "-s", "--max-time", "2", url]);
     if (res.exitCode !== 0) return [];
     const text = res.stdout ? res.stdout.toString() : "";
-    if (text.includes("error") || text.includes("No DNS records found") || text.includes("API count exceeded")) return [];
+    if (
+      text.includes("error") ||
+      text.includes("No DNS records found") ||
+      text.includes("API count exceeded")
+    )
+      return [];
     const subs: string[] = [];
     for (const line of text.split("\n")) {
       const host = line.split(",")[0]?.trim();
@@ -403,7 +467,14 @@ export function resolveHostDnsSync(hosts: string[]): Map<string, string[]> {
   const map = new Map<string, string[]>();
   if (hosts.length === 0) return map;
   try {
-    const res = Bun.spawnSync(["dig", "+noall", "+answer", "+time=1", "+tries=1", ...hosts.filter(isSafeHostname).slice(0, 100)]);
+    const res = Bun.spawnSync([
+      "dig",
+      "+noall",
+      "+answer",
+      "+time=1",
+      "+tries=1",
+      ...hosts.filter(isSafeHostname).slice(0, 100),
+    ]);
     const lines = res.stdout ? res.stdout.toString().split("\n") : [];
     for (const line of lines) {
       const parts = line.trim().split(/\s+/);
@@ -425,13 +496,22 @@ export function resolveHostDnsSync(hosts: string[]): Map<string, string[]> {
 /**
  * Synchronously queries CertSpotter and HackerTarget concurrently via backgrounded `curl` jobs.
  */
-export function queryOsintSourcesSync(domain: string): { certSubs: string[]; hackerSubs: string[] } {
+export function queryOsintSourcesSync(domain: string): {
+  certSubs: string[];
+  hackerSubs: string[];
+} {
   const root = cleanDomain(domain);
   const certUrl = `https://api.certspotter.com/v1/issuances?domain=${encodeURIComponent(root)}&include_subdomains=true&expand=dns_names`;
   const hackerUrl = `https://api.hackertarget.com/hostsearch/?q=${encodeURIComponent(root)}`;
-  
-  const tmpCert = path.join(os.tmpdir(), `subfinder_cs_${process.pid}_${Math.random().toString(36).slice(2, 6)}.json`);
-  const tmpHacker = path.join(os.tmpdir(), `subfinder_ht_${process.pid}_${Math.random().toString(36).slice(2, 6)}.txt`);
+
+  const tmpCert = path.join(
+    os.tmpdir(),
+    `subfinder_cs_${process.pid}_${Math.random().toString(36).slice(2, 6)}.json`,
+  );
+  const tmpHacker = path.join(
+    os.tmpdir(),
+    `subfinder_ht_${process.pid}_${Math.random().toString(36).slice(2, 6)}.txt`,
+  );
 
   try {
     const script = `curl -s --connect-timeout 1 --max-time 2.5 "${certUrl}" > "${tmpCert}" 2>/dev/null & curl -s --connect-timeout 1 --max-time 2.5 "${hackerUrl}" > "${tmpHacker}" 2>/dev/null & wait`;
@@ -453,14 +533,20 @@ export function queryOsintSourcesSync(domain: string): { certSubs: string[]; hac
           }
         }
       } catch {}
-      try { fs.unlinkSync(tmpCert); } catch {}
+      try {
+        fs.unlinkSync(tmpCert);
+      } catch {}
     }
 
     let hackerSubs: string[] = [];
     if (fs.existsSync(tmpHacker)) {
       try {
         const text = fs.readFileSync(tmpHacker, "utf-8");
-        if (!text.includes("error") && !text.includes("No DNS records found") && !text.includes("API count exceeded")) {
+        if (
+          !text.includes("error") &&
+          !text.includes("No DNS records found") &&
+          !text.includes("API count exceeded")
+        ) {
           for (const line of text.split("\n")) {
             const host = line.split(",")[0]?.trim();
             if (host) {
@@ -470,7 +556,9 @@ export function queryOsintSourcesSync(domain: string): { certSubs: string[]; hac
           }
         }
       } catch {}
-      try { fs.unlinkSync(tmpHacker); } catch {}
+      try {
+        fs.unlinkSync(tmpHacker);
+      } catch {}
     }
 
     return {
@@ -490,9 +578,13 @@ export function probeHostsHttpSync(hosts: string[]): Map<string, number> {
   if (hosts.length === 0) return map;
   const targets = hosts.filter(isSafeHostname).slice(0, 10);
   const tmpDir = os.tmpdir();
-  const script = targets
-    .map((h, i) => `curl -s -I --connect-timeout 0.4 --max-time 0.8 "http://${h}" > "${tmpDir}/pb_${process.pid}_${i}.txt" 2>/dev/null &`)
-    .join("\n") + "\nwait\n";
+  const script =
+    targets
+      .map(
+        (h, i) =>
+          `curl -s -I --connect-timeout 0.4 --max-time 0.8 "http://${h}" > "${tmpDir}/pb_${process.pid}_${i}.txt" 2>/dev/null &`,
+      )
+      .join("\n") + "\nwait\n";
   try {
     Bun.spawnSync(["/bin/sh", "-c", script]);
     targets.forEach((h, i) => {
@@ -503,10 +595,11 @@ export function probeHostsHttpSync(hosts: string[]): Map<string, number> {
           const m = text.match(/HTTP\/[0-9.]+\s+([0-9]{3})/i);
           if (m) map.set(h, parseInt(m[1]!, 10));
         } catch {}
-        try { fs.unlinkSync(f); } catch {}
+        try {
+          fs.unlinkSync(f);
+        } catch {}
       }
     });
   } catch {}
   return map;
 }
-

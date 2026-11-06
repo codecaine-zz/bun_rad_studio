@@ -7,10 +7,22 @@ import { createHash } from "crypto";
 import * as fs from "fs";
 import * as nodePath from "path";
 import { executeFdSearch } from "../../../applications/fd_engine";
-import { findDuplicates, largestFiles, planBatchRename, searchContents, sizeByExtension } from "../../../applications/fd_ops";
+import {
+  findDuplicates,
+  largestFiles,
+  planBatchRename,
+  searchContents,
+  sizeByExtension,
+} from "../../../applications/fd_ops";
 import { packTarGz, type TarEntry } from "../rad/modules/tarutils";
 import { validateName, type Platform } from "./fmPaths";
-import { DUPE_MAX_FILE_BYTES, toFindItem, type SearchOutcome, type TarOutcome, type WorkerJob } from "./fmFindShared";
+import {
+  DUPE_MAX_FILE_BYTES,
+  toFindItem,
+  type SearchOutcome,
+  type TarOutcome,
+  type WorkerJob,
+} from "./fmFindShared";
 
 class JobError extends Error {
   code: string;
@@ -58,10 +70,17 @@ function grep(job: Extract<WorkerJob, { kind: "grep" }>) {
     try {
       new RegExp(job.query);
     } catch (err: any) {
-      throw new JobError("BAD_PATTERN", `That isn't a valid pattern (${String(err?.message ?? err).replace(/^Invalid regular expression: /, "")}). Turn off "Regex" to search for it as plain text.`);
+      throw new JobError(
+        "BAD_PATTERN",
+        `That isn't a valid pattern (${String(err?.message ?? err).replace(/^Invalid regular expression: /, "")}). Turn off "Regex" to search for it as plain text.`,
+      );
     }
   }
-  return searchContents(realFiles(job.paths), job.query, { regex: job.regex, caseSensitive: job.matchCase, maxMatches: job.maxMatches });
+  return searchContents(realFiles(job.paths), job.query, {
+    regex: job.regex,
+    caseSensitive: job.matchCase,
+    maxMatches: job.maxMatches,
+  });
 }
 
 function dupes(job: Extract<WorkerJob, { kind: "dupes" }>) {
@@ -78,10 +97,17 @@ function dupes(job: Extract<WorkerJob, { kind: "dupes" }>) {
     }
   }
   const r = findDuplicates(paths, job.minBytes);
-  return { totalGroups: r.groups.length, groups: r.groups.slice(0, 500), wastedBytes: r.wastedBytes, skippedTooBig };
+  return {
+    totalGroups: r.groups.length,
+    groups: r.groups.slice(0, 500),
+    wastedBytes: r.wastedBytes,
+    skippedTooBig,
+  };
 }
 
-function hash(job: Extract<WorkerJob, { kind: "hash" }>): Promise<{ sha256: string; size: number }> {
+function hash(
+  job: Extract<WorkerJob, { kind: "hash" }>,
+): Promise<{ sha256: string; size: number }> {
   return new Promise((resolve, reject) => {
     const hasher = createHash("sha256");
     let size = 0;
@@ -100,7 +126,10 @@ function renamePlan(job: Extract<WorkerJob, { kind: "renameplan" }>) {
   try {
     rows = planBatchRename(job.paths, job.rules);
   } catch (err: any) {
-    throw new JobError("BAD_PATTERN", `${String(err?.message ?? err).replace(/^Invalid pattern: (Invalid regular expression: )?/, "That isn't a valid pattern: ")}. Turn off "Regex" to use the text as it is.`);
+    throw new JobError(
+      "BAD_PATTERN",
+      `${String(err?.message ?? err).replace(/^Invalid pattern: (Invalid regular expression: )?/, "That isn't a valid pattern: ")}. Turn off "Regex" to use the text as it is.`,
+    );
   }
   const platform = job.platform as Platform;
   const insensitive = platform !== "linux";
@@ -112,17 +141,31 @@ function renamePlan(job: Extract<WorkerJob, { kind: "renameplan" }>) {
   for (const row of rows) {
     if (row.from === row.to) continue;
     // A change of letter case only ("a.txt" to "A.txt") is the same file on a case-insensitive disk, not a clash.
-    if (row.error === "A file with that name already exists." && insensitive && key(row.from) === key(row.to)) row.error = undefined;
-    if (!row.error && row.newName !== row.newName.trim()) row.error = "A name can't start or end with a space.";
+    if (
+      row.error === "A file with that name already exists." &&
+      insensitive &&
+      key(row.from) === key(row.to)
+    )
+      row.error = undefined;
+    if (!row.error && row.newName !== row.newName.trim())
+      row.error = "A name can't start or end with a space.";
     if (!row.error) {
       const reason = validateName(row.newName, platform);
       if (reason) row.error = reason;
     }
     const k = key(row.to);
-    if (!row.error && seen.has(k)) row.error = "Duplicate target name in this batch.";
+    if (!row.error && seen.has(k))
+      row.error = "Duplicate target name in this batch.";
     seen.add(k);
   }
-  return rows.map((r) => ({ from: r.from, to: r.to, oldName: r.oldName, newName: r.newName, changed: r.from !== r.to, ...(r.error ? { error: r.error } : {}) }));
+  return rows.map((r) => ({
+    from: r.from,
+    to: r.to,
+    oldName: r.oldName,
+    newName: r.newName,
+    changed: r.from !== r.to,
+    ...(r.error ? { error: r.error } : {}),
+  }));
 }
 
 function tar(job: Extract<WorkerJob, { kind: "tar" }>): TarOutcome {
@@ -148,7 +191,13 @@ function tar(job: Extract<WorkerJob, { kind: "tar" }>): TarOutcome {
     if (st.isSymbolicLink()) {
       skipped++;
     } else if (st.isDirectory()) {
-      entries.push({ name: `${name}/`, data: "", type: "directory", mode: st.mode & 0o777, mtime: st.mtime });
+      entries.push({
+        name: `${name}/`,
+        data: "",
+        type: "directory",
+        mode: st.mode & 0o777,
+        mtime: st.mtime,
+      });
       folders++;
       let children: string[];
       try {
@@ -160,7 +209,11 @@ function tar(job: Extract<WorkerJob, { kind: "tar" }>): TarOutcome {
       for (const child of children) walk(nodePath.join(abs, child));
     } else if (st.isFile()) {
       bytes += st.size;
-      if (bytes > job.maxBytes) throw new JobError("TOO_BIG", `These items add up to more than ${Math.round(job.maxBytes / 1024 / 1024)} MB, which is too much for one .tar.gz here. Use a zip file instead, or archive fewer items.`);
+      if (bytes > job.maxBytes)
+        throw new JobError(
+          "TOO_BIG",
+          `These items add up to more than ${Math.round(job.maxBytes / 1024 / 1024)} MB, which is too much for one .tar.gz here. Use a zip file instead, or archive fewer items.`,
+        );
       let data: Buffer;
       try {
         data = fs.readFileSync(abs);
@@ -169,29 +222,51 @@ function tar(job: Extract<WorkerJob, { kind: "tar" }>): TarOutcome {
         bytes -= st.size;
         return;
       }
-      entries.push({ name, data, mode: st.mode & 0o777, mtime: st.mtime, type: "file" });
+      entries.push({
+        name,
+        data,
+        mode: st.mode & 0o777,
+        mtime: st.mtime,
+        type: "file",
+      });
       files++;
     } else {
       skipped++;
     }
-    if (entries.length > 100_000) throw new JobError("TOO_MANY", "That's too many items for one archive (the limit is 100,000).");
+    if (entries.length > 100_000)
+      throw new JobError(
+        "TOO_MANY",
+        "That's too many items for one archive (the limit is 100,000).",
+      );
   };
   for (const p of job.paths) walk(p);
-  if (files + folders === 0) throw new JobError("NOTHING_TO_DO", "There's nothing to archive: the items are links or can't be read.");
+  if (files + folders === 0)
+    throw new JobError(
+      "NOTHING_TO_DO",
+      "There's nothing to archive: the items are links or can't be read.",
+    );
   fs.writeFileSync(job.dest, packTarGz(entries), { flag: "wx" });
   return { dest: job.dest, files, folders, bytes, skipped };
 }
 
 async function run(job: WorkerJob): Promise<unknown> {
   switch (job.kind) {
-    case "search": return search(job);
-    case "grep": return grep(job);
-    case "dupes": return dupes(job);
-    case "largest": return largestFiles(realFiles(job.paths), job.count);
-    case "extstats": return sizeByExtension(realFiles(job.paths));
-    case "hash": return await hash(job);
-    case "renameplan": return renamePlan(job);
-    case "tar": return tar(job);
+    case "search":
+      return search(job);
+    case "grep":
+      return grep(job);
+    case "dupes":
+      return dupes(job);
+    case "largest":
+      return largestFiles(realFiles(job.paths), job.count);
+    case "extstats":
+      return sizeByExtension(realFiles(job.paths));
+    case "hash":
+      return await hash(job);
+    case "renameplan":
+      return renamePlan(job);
+    case "tar":
+      return tar(job);
     case "spin": {
       const end = Date.now() + job.ms;
       while (Date.now() < end) {
@@ -207,6 +282,10 @@ g.onmessage = async (e: MessageEvent) => {
   try {
     g.postMessage({ ok: true, result: await run(e.data as WorkerJob) });
   } catch (err: any) {
-    g.postMessage({ ok: false, code: typeof err?.code === "string" ? err.code : "UNKNOWN", message: String(err?.message ?? err) });
+    g.postMessage({
+      ok: false,
+      code: typeof err?.code === "string" ? err.code : "UNKNOWN",
+      message: String(err?.message ?? err),
+    });
   }
 };

@@ -22,7 +22,14 @@ import { promises as fsp } from "fs";
 import * as nodePath from "path";
 
 /** Lifecycle state of a managed download item (`queued`, `probing`, `downloading`, `paused`, `verifying`, `done`, or `error`). */
-export type DlState = "queued" | "probing" | "downloading" | "paused" | "verifying" | "done" | "error";
+export type DlState =
+  | "queued"
+  | "probing"
+  | "downloading"
+  | "paused"
+  | "verifying"
+  | "done"
+  | "error";
 
 /** Global download manager settings (connections per file, max concurrent files, speed limit, default folder, and retries). */
 export interface DlSettings {
@@ -90,7 +97,9 @@ export interface DlItem {
 }
 
 /** What the page sees: the same, without the header values (they can hold secrets). */
-export type DlView = Omit<DlItem, "headers" | "finalUrl"> & { headerNames: string[] };
+export type DlView = Omit<DlItem, "headers" | "finalUrl"> & {
+  headerNames: string[];
+};
 
 /** Maximum parallel HTTP range connections allowed per download. */
 export const MAX_CONNECTIONS = 32;
@@ -101,22 +110,36 @@ const MAX_CHUNK = 16 * 1024 * 1024;
 const STATE_VERSION = 1;
 
 /** Returns the default `DlSettings` initialized with the given default Downloads folder. */
-export const DEFAULT_SETTINGS = (folder: string): DlSettings => ({ connections: 8, maxConcurrent: 3, speedLimit: 0, folder, retries: 6 });
+export const DEFAULT_SETTINGS = (folder: string): DlSettings => ({
+  connections: 8,
+  maxConcurrent: 3,
+  speedLimit: 0,
+  folder,
+  retries: 6,
+});
 
 /* ------------------------------------------------------------------------------------------------ small helpers */
 
 class DlError extends Error {
-  constructor(message: string, readonly fatal = true, readonly retryAfterMs = 0) {
+  constructor(
+    message: string,
+    readonly fatal = true,
+    readonly retryAfterMs = 0,
+  ) {
     super(message);
     this.name = "DlError";
   }
 }
 
-const isAbort = (err: unknown) => (err as any)?.name === "AbortError" || (err as any)?.code === "ABORT_ERR";
+const isAbort = (err: unknown) =>
+  (err as any)?.name === "AbortError" || (err as any)?.code === "ABORT_ERR";
 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (signal?.aborted) return reject(Object.assign(new Error("aborted"), { name: "AbortError" }));
+    if (signal?.aborted)
+      return reject(
+        Object.assign(new Error("aborted"), { name: "AbortError" }),
+      );
     const t = setTimeout(() => {
       signal?.removeEventListener("abort", onAbort);
       resolve();
@@ -148,7 +171,9 @@ const RESERVED = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i;
 
 /** A name that is safe to create on every system: no folders, no control or reserved characters. */
 export function safeFileName(raw: string, fallback = "download"): string {
-  let n = String(raw ?? "").replace(/[\u0000-\u001f\u007f<>:"/\\|?*]/g, "_").replace(/^[. ]+|[. ]+$/g, "");
+  let n = String(raw ?? "")
+    .replace(/[\u0000-\u001f\u007f<>:"/\\|?*]/g, "_")
+    .replace(/^[. ]+|[. ]+$/g, "");
   if (!n) n = fallback;
   if (RESERVED.test(n)) n = `_${n}`;
   if (n.length > 180) {
@@ -169,14 +194,18 @@ export function nameFromDisposition(header: string | null): string | null {
       /* fall through to the plain form */
     }
   }
-  const plain = /filename\s*=\s*"((?:[^"\\]|\\.)*)"/i.exec(header) ?? /filename\s*=\s*([^;]+)/i.exec(header);
+  const plain =
+    /filename\s*=\s*"((?:[^"\\]|\\.)*)"/i.exec(header) ??
+    /filename\s*=\s*([^;]+)/i.exec(header);
   return plain ? plain[1]!.trim().replace(/\\(.)/g, "$1") : null;
 }
 
 /** Extracts a sanitized filename from a URL path, falling back to `"download"` when none is present. */
 export function nameFromUrl(url: string): string {
   try {
-    const last = decodeURIComponent(new URL(url).pathname.split("/").filter(Boolean).pop() ?? "");
+    const last = decodeURIComponent(
+      new URL(url).pathname.split("/").filter(Boolean).pop() ?? "",
+    );
     return last || "download";
   } catch {
     return "download";
@@ -192,24 +221,57 @@ function pathOccupied(p: string): boolean {
 }
 
 /** A path in `folder` that nothing uses yet (also not as a `.part` file): `name.ext`, `name (1).ext`, `name (2).ext` ... */
-export function uniquePath(folder: string, name: string, taken: (path: string) => boolean = () => false): string {
+export function uniquePath(
+  folder: string,
+  name: string,
+  taken: (path: string) => boolean = () => false,
+): string {
   const ext = nodePath.extname(name);
   const stem = ext ? name.slice(0, -ext.length) : name;
   for (let i = 0; i < 10000; i++) {
-    const candidate = nodePath.join(folder, i === 0 ? name : `${stem} (${i})${ext}`);
-    if (!pathOccupied(candidate) && !pathOccupied(`${candidate}.part`) && !pathOccupied(`${candidate}.dlstate`) && !taken(candidate)) return candidate;
+    const candidate = nodePath.join(
+      folder,
+      i === 0 ? name : `${stem} (${i})${ext}`,
+    );
+    if (
+      !pathOccupied(candidate) &&
+      !pathOccupied(`${candidate}.part`) &&
+      !pathOccupied(`${candidate}.dlstate`) &&
+      !taken(candidate)
+    )
+      return candidate;
   }
   throw new DlError("Couldn't find a free file name.");
 }
 
 /** Parses an optional `algo:hex` or bare hex digest string into a normalized `{ algo, value }` pair. */
-export function parseChecksum(input: string | undefined): { algo: string; value: string } | undefined {
+export function parseChecksum(
+  input: string | undefined,
+): { algo: string; value: string } | undefined {
   if (!input?.trim()) return undefined;
   const text = input.trim().toLowerCase();
   const m = /^(sha256|sha512|sha1|md5)\s*[:=]\s*([0-9a-f]+)$/.exec(text);
-  const [algo, value] = m ? [m[1]!, m[2]!] : [({ 32: "md5", 40: "sha1", 64: "sha256", 128: "sha512" } as Record<number, string>)[text.length], text];
-  const lengths: Record<string, number> = { md5: 32, sha1: 40, sha256: 64, sha512: 128 };
-  if (!algo || !/^[0-9a-f]+$/.test(value) || value.length !== lengths[algo]) throw new DlError("That checksum isn't valid. Use sha256:<64 hex digits> (or md5, sha1, sha512).");
+  const [algo, value] = m
+    ? [m[1]!, m[2]!]
+    : [
+        (
+          { 32: "md5", 40: "sha1", 64: "sha256", 128: "sha512" } as Record<
+            number,
+            string
+          >
+        )[text.length],
+        text,
+      ];
+  const lengths: Record<string, number> = {
+    md5: 32,
+    sha1: 40,
+    sha256: 64,
+    sha512: 128,
+  };
+  if (!algo || !/^[0-9a-f]+$/.test(value) || value.length !== lengths[algo])
+    throw new DlError(
+      "That checksum isn't valid. Use sha256:<64 hex digits> (or md5, sha1, sha512).",
+    );
   return { algo, value };
 }
 
@@ -217,9 +279,20 @@ export function parseChecksum(input: string | undefined): { algo: string; value:
 export function cleanHeaders(input: unknown): Record<string, string> {
   const out: Record<string, string> = {};
   if (!input || typeof input !== "object") return out;
-  const blocked = /^(host|content-length|connection|transfer-encoding|range|if-range|upgrade|te|trailer|keep-alive|proxy-.*)$/i;
-  for (const [k, v] of Object.entries(input as Record<string, unknown>).slice(0, 30)) {
-    if (typeof v !== "string" || !/^[A-Za-z0-9-]{1,60}$/.test(k) || blocked.test(k) || /[\r\n\0]/.test(v) || v.length > 4000) continue;
+  const blocked =
+    /^(host|content-length|connection|transfer-encoding|range|if-range|upgrade|te|trailer|keep-alive|proxy-.*)$/i;
+  for (const [k, v] of Object.entries(input as Record<string, unknown>).slice(
+    0,
+    30,
+  )) {
+    if (
+      typeof v !== "string" ||
+      !/^[A-Za-z0-9-]{1,60}$/.test(k) ||
+      blocked.test(k) ||
+      /[\r\n\0]/.test(v) ||
+      v.length > 4000
+    )
+      continue;
     out[k] = v;
   }
   return out;
@@ -243,7 +316,8 @@ export function parseWebUrl(input: string): URL {
   } catch {
     throw new DlError(`"${input.trim().slice(0, 80)}" isn't a web address.`);
   }
-  if (u.protocol !== "http:" && u.protocol !== "https:") throw new DlError("Only http:// and https:// addresses can be downloaded.");
+  if (u.protocol !== "http:" && u.protocol !== "https:")
+    throw new DlError("Only http:// and https:// addresses can be downloaded.");
   if (input.length > 8000) throw new DlError("That address is too long.");
   return u;
 }
@@ -264,24 +338,56 @@ export interface ProbeResult {
 const SENSITIVE_HEADERS = /^(authorization|cookie|proxy-authorization)$/i;
 
 /** The request headers for `url`. Logins and cookies were meant for the address that was asked for, so they are not sent to a different site (a CDN or storage host a redirect leads to). */
-function requestHeaders(item: { headers?: Record<string, string>; url?: string }, extra: Record<string, string> = {}, url?: string): Record<string, string> {
+function requestHeaders(
+  item: { headers?: Record<string, string>; url?: string },
+  extra: Record<string, string> = {},
+  url?: string,
+): Record<string, string> {
   let headers = item.headers ?? {};
   if (url && item.url) {
     try {
-      if (new URL(url).origin !== new URL(item.url).origin) headers = Object.fromEntries(Object.entries(headers).filter(([k]) => !SENSITIVE_HEADERS.test(k)));
+      if (new URL(url).origin !== new URL(item.url).origin)
+        headers = Object.fromEntries(
+          Object.entries(headers).filter(([k]) => !SENSITIVE_HEADERS.test(k)),
+        );
     } catch {
       /* keep the headers when an address can't be read: the request would fail anyway */
     }
   }
-  return { "User-Agent": "Mozilla/5.0 (compatible; CodecaineFileManager/1.0)", "Accept": "*/*", "Accept-Encoding": "identity", ...headers, ...extra };
+  return {
+    "User-Agent": "Mozilla/5.0 (compatible; CodecaineFileManager/1.0)",
+    Accept: "*/*",
+    "Accept-Encoding": "identity",
+    ...headers,
+    ...extra,
+  };
 }
 
 function httpProblem(status: number, retryAfter: string | null): DlError {
-  const wait = retryAfter && /^\d+$/.test(retryAfter) ? Math.min(60, Number(retryAfter)) * 1000 : 0;
-  if (status === 429 || status === 503 || status === 502 || status === 504 || status === 408) return new DlError(`The server is busy (HTTP ${status}).`, false, wait);
-  if (status === 401 || status === 403) return new DlError(`The server refused the download (HTTP ${status}). It may need a login, a cookie, or the link has expired.`);
-  if (status === 404 || status === 410) return new DlError(`The file isn't there any more (HTTP ${status}).`);
-  if (status >= 500) return new DlError(`The server had a problem (HTTP ${status}).`, false, wait);
+  const wait =
+    retryAfter && /^\d+$/.test(retryAfter)
+      ? Math.min(60, Number(retryAfter)) * 1000
+      : 0;
+  if (
+    status === 429 ||
+    status === 503 ||
+    status === 502 ||
+    status === 504 ||
+    status === 408
+  )
+    return new DlError(`The server is busy (HTTP ${status}).`, false, wait);
+  if (status === 401 || status === 403)
+    return new DlError(
+      `The server refused the download (HTTP ${status}). It may need a login, a cookie, or the link has expired.`,
+    );
+  if (status === 404 || status === 410)
+    return new DlError(`The file isn't there any more (HTTP ${status}).`);
+  if (status >= 500)
+    return new DlError(
+      `The server had a problem (HTTP ${status}).`,
+      false,
+      wait,
+    );
   return new DlError(`The server answered HTTP ${status}.`);
 }
 
@@ -298,10 +404,17 @@ async function fetchWithRedirects(
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     let res: Response;
     try {
-      res = await fetchFn(current, { headers: requestHeaders(originItem, extraHeaders, current), redirect: "manual", signal });
+      res = await fetchFn(current, {
+        headers: requestHeaders(originItem, extraHeaders, current),
+        redirect: "manual",
+        signal,
+      });
     } catch (err: any) {
       if (isAbort(err)) throw err;
-      throw new DlError(`Couldn't reach the server: ${String(err?.message ?? err).split("\n")[0]}`, false);
+      throw new DlError(
+        `Couldn't reach the server: ${String(err?.message ?? err).split("\n")[0]}`,
+        false,
+      );
     }
     if (res.status >= 300 && res.status < 400 && res.headers.get("location")) {
       res.body?.cancel().catch(() => {});
@@ -311,7 +424,10 @@ async function fetchWithRedirects(
       } catch {
         throw new DlError("The server sent a redirect that can't be followed.");
       }
-      if (next.protocol !== "http:" && next.protocol !== "https:") throw new DlError("The server redirected to an address that isn't a web address.");
+      if (next.protocol !== "http:" && next.protocol !== "https:")
+        throw new DlError(
+          "The server redirected to an address that isn't a web address.",
+        );
       current = next.toString();
       continue;
     }
@@ -321,26 +437,63 @@ async function fetchWithRedirects(
 }
 
 /** Asks the server about a file with one tiny ranged request. Follows redirects itself, so logins never go to another site. */
-export async function probeUrl(url: string, headers: Record<string, string> | undefined, fetchFn: typeof fetch, signal?: AbortSignal): Promise<ProbeResult> {
+export async function probeUrl(
+  url: string,
+  headers: Record<string, string> | undefined,
+  fetchFn: typeof fetch,
+  signal?: AbortSignal,
+): Promise<ProbeResult> {
   const { url: clean, auth } = splitCredentials(parseWebUrl(url).toString());
   const safe = cleanHeaders(headers);
-  const hasAuth = Object.keys(safe).some((k) => k.toLowerCase() === "authorization");
-  const original = { url: clean, headers: { ...safe, ...(auth && !hasAuth ? { Authorization: auth } : {}) } };
-  const { res, finalUrl } = await fetchWithRedirects(clean, original, { Range: "bytes=0-0" }, fetchFn, signal);
+  const hasAuth = Object.keys(safe).some(
+    (k) => k.toLowerCase() === "authorization",
+  );
+  const original = {
+    url: clean,
+    headers: { ...safe, ...(auth && !hasAuth ? { Authorization: auth } : {}) },
+  };
+  const { res, finalUrl } = await fetchWithRedirects(
+    clean,
+    original,
+    { Range: "bytes=0-0" },
+    fetchFn,
+    signal,
+  );
   const cd = res.headers.get("content-disposition");
   const name = safeFileName(nameFromDisposition(cd) ?? nameFromUrl(finalUrl));
-  const common = { finalUrl, etag: res.headers.get("etag") ?? undefined, lastModified: res.headers.get("last-modified") ?? undefined, name, mime: res.headers.get("content-type")?.split(";")[0]?.trim() || undefined };
+  const common = {
+    finalUrl,
+    etag: res.headers.get("etag") ?? undefined,
+    lastModified: res.headers.get("last-modified") ?? undefined,
+    name,
+    mime: res.headers.get("content-type")?.split(";")[0]?.trim() || undefined,
+  };
   try {
     if (res.status === 206) {
-      const m = /bytes\s+(\d+)-(\d+)\/(\d+|\*)/i.exec(res.headers.get("content-range") ?? "");
-      return { ...common, size: m && m[3] !== "*" ? Number(m[3]) : null, ranges: !!m };
+      const m = /bytes\s+(\d+)-(\d+)\/(\d+|\*)/i.exec(
+        res.headers.get("content-range") ?? "",
+      );
+      return {
+        ...common,
+        size: m && m[3] !== "*" ? Number(m[3]) : null,
+        ranges: !!m,
+      };
     }
     if (res.status === 200) {
       const len = Number(res.headers.get("content-length"));
-      return { ...common, size: Number.isFinite(len) && res.headers.has("content-length") ? len : null, ranges: false };
+      return {
+        ...common,
+        size:
+          Number.isFinite(len) && res.headers.has("content-length")
+            ? len
+            : null,
+        ranges: false,
+      };
     }
     if (res.status === 416) {
-      const m = /bytes\s+\*\/(\d+)/i.exec(res.headers.get("content-range") ?? "");
+      const m = /bytes\s+\*\/(\d+)/i.exec(
+        res.headers.get("content-range") ?? "",
+      );
       return { ...common, size: m ? Number(m[1]) : 0, ranges: false };
     }
     throw httpProblem(res.status, res.headers.get("retry-after"));
@@ -352,7 +505,8 @@ export async function probeUrl(url: string, headers: Record<string, string> | un
 
 /** `If-Range` makes the server send the whole file instead of a part when the file is not the one that was probed. */
 function ifRange(probe: ProbeResult): Record<string, string> {
-  if (probe.etag && !probe.etag.startsWith("W/")) return { "If-Range": probe.etag };
+  if (probe.etag && !probe.etag.startsWith("W/"))
+    return { "If-Range": probe.etag };
   if (probe.lastModified) return { "If-Range": probe.lastModified };
   return {};
 }
@@ -373,7 +527,11 @@ interface SavedState {
 }
 
 /** Compresses per-chunk byte offsets into compact `[start, end]` completed ranges and partial chunk offsets for persistence. */
-export function encodeProgress(done: number[], chunkSize: number, size: number): Pick<SavedState, "complete" | "partial"> {
+export function encodeProgress(
+  done: number[],
+  chunkSize: number,
+  size: number,
+): Pick<SavedState, "complete" | "partial"> {
   const complete: Array<[number, number]> = [];
   const partial: Array<[number, number]> = [];
   for (let i = 0; i < done.length; i++) {
@@ -388,22 +546,43 @@ export function encodeProgress(done: number[], chunkSize: number, size: number):
 }
 
 /** Restores the per-chunk downloaded byte array from persisted `complete` ranges and `partial` chunk entries. */
-export function decodeProgress(state: Pick<SavedState, "complete" | "partial">, chunkSize: number, size: number): number[] {
+export function decodeProgress(
+  state: Pick<SavedState, "complete" | "partial">,
+  chunkSize: number,
+  size: number,
+): number[] {
   const count = Math.ceil(size / chunkSize);
   const done = new Array<number>(count).fill(0);
-  for (const [a, b] of state.complete) for (let i = Math.max(0, a); i <= Math.min(count - 1, b); i++) done[i] = Math.min(chunkSize, size - i * chunkSize);
-  for (const [i, n] of state.partial) if (i >= 0 && i < count) done[i] = Math.max(0, Math.min(n, Math.min(chunkSize, size - i * chunkSize) - 1));
+  for (const [a, b] of state.complete)
+    for (let i = Math.max(0, a); i <= Math.min(count - 1, b); i++)
+      done[i] = Math.min(chunkSize, size - i * chunkSize);
+  for (const [i, n] of state.partial)
+    if (i >= 0 && i < count)
+      done[i] = Math.max(
+        0,
+        Math.min(n, Math.min(chunkSize, size - i * chunkSize) - 1),
+      );
   return done;
 }
 
 /** How big the pieces are: small enough to share out evenly, big enough that requests stay few. */
 export function chunkSizeFor(size: number, connections: number): number {
-  return Math.max(MIN_CHUNK, Math.min(MAX_CHUNK, Math.ceil(size / (connections * 6) / 65536) * 65536));
+  return Math.max(
+    MIN_CHUNK,
+    Math.min(MAX_CHUNK, Math.ceil(size / (connections * 6) / 65536) * 65536),
+  );
 }
 
 function writeAllAt(fd: number, buf: Uint8Array, position: number): void {
   let offset = 0;
-  while (offset < buf.length) offset += fs.writeSync(fd, buf, offset, buf.length - offset, position + offset);
+  while (offset < buf.length)
+    offset += fs.writeSync(
+      fd,
+      buf,
+      offset,
+      buf.length - offset,
+      position + offset,
+    );
 }
 
 /* ------------------------------------------------------------------------------------------------ the manager */
@@ -450,18 +629,53 @@ export class DownloadManager {
   private load() {
     try {
       const data = JSON.parse(fs.readFileSync(this.options.file, "utf8"));
-      if (data?.settings) this.settings = this.cleanSettings({ ...this.settings, ...data.settings });
+      if (data?.settings)
+        this.settings = this.cleanSettings({
+          ...this.settings,
+          ...data.settings,
+        });
       for (const raw of Array.isArray(data?.items) ? data.items : []) {
-        if (!raw || typeof raw.id !== "string" || typeof raw.url !== "string" || typeof raw.path !== "string" || typeof raw.folder !== "string") continue;
-        if (nodePath.dirname(nodePath.resolve(raw.path)) !== nodePath.resolve(raw.folder)) continue;
-        const item: DlItem = { ...raw, name: safeFileName(typeof raw.name === "string" ? raw.name : nodePath.basename(raw.path)), speed: 0, eta: null, active: 0 };
+        if (
+          !raw ||
+          typeof raw.id !== "string" ||
+          typeof raw.url !== "string" ||
+          typeof raw.path !== "string" ||
+          typeof raw.folder !== "string"
+        )
+          continue;
+        if (
+          nodePath.dirname(nodePath.resolve(raw.path)) !==
+          nodePath.resolve(raw.folder)
+        )
+          continue;
+        const item: DlItem = {
+          ...raw,
+          name: safeFileName(
+            typeof raw.name === "string"
+              ? raw.name
+              : nodePath.basename(raw.path),
+          ),
+          speed: 0,
+          eta: null,
+          active: 0,
+        };
         // Whatever was running when the program stopped is paused now; its progress is on disk.
-        if (item.state === "downloading" || item.state === "probing" || item.state === "verifying" || item.state === "queued") {
+        if (
+          item.state === "downloading" ||
+          item.state === "probing" ||
+          item.state === "verifying" ||
+          item.state === "queued"
+        ) {
           item.state = "paused";
-          item.message = "Stopped when the File Manager closed. Resume to continue.";
+          item.message =
+            "Stopped when the File Manager closed. Resume to continue.";
         }
         this.items.set(item.id, item);
-        if (item.state !== "done" && (item.received > 0 || fs.existsSync(`${item.path}.part`))) this.claimed.set(item.path, item.id);
+        if (
+          item.state !== "done" &&
+          (item.received > 0 || fs.existsSync(`${item.path}.part`))
+        )
+          this.claimed.set(item.path, item.id);
       }
     } catch {
       /* no saved list yet */
@@ -476,7 +690,15 @@ export class DownloadManager {
       try {
         fs.mkdirSync(nodePath.dirname(this.options.file), { recursive: true });
         const tmp = `${this.options.file}.${process.pid}.tmp`;
-        fs.writeFileSync(tmp, JSON.stringify({ v: 1, settings: this.settings, items: [...this.items.values()] }), { mode: 0o600 });
+        fs.writeFileSync(
+          tmp,
+          JSON.stringify({
+            v: 1,
+            settings: this.settings,
+            items: [...this.items.values()],
+          }),
+          { mode: 0o600 },
+        );
         fs.renameSync(tmp, this.options.file);
       } catch {
         /* a list that can't be saved only costs the queue after a restart */
@@ -494,7 +716,10 @@ export class DownloadManager {
 
   /** Returns public view models (`DlView[]`) for all tracked downloads with sensitive header values redacted. */
   list(): DlView[] {
-    return [...this.items.values()].map(({ headers, finalUrl, ...rest }) => ({ ...rest, headerNames: Object.keys(headers ?? {}) }));
+    return [...this.items.values()].map(({ headers, finalUrl, ...rest }) => ({
+      ...rest,
+      headerNames: Object.keys(headers ?? {}),
+    }));
   }
 
   /** Looks up a download item by ID. */
@@ -508,12 +733,18 @@ export class DownloadManager {
   }
 
   private cleanSettings(s: DlSettings): DlSettings {
-    const int = (v: unknown, lo: number, hi: number, d: number) => (Number.isFinite(Number(v)) ? Math.max(lo, Math.min(hi, Math.round(Number(v)))) : d);
+    const int = (v: unknown, lo: number, hi: number, d: number) =>
+      Number.isFinite(Number(v))
+        ? Math.max(lo, Math.min(hi, Math.round(Number(v))))
+        : d;
     return {
       connections: int(s.connections, 1, MAX_CONNECTIONS, 8),
       maxConcurrent: int(s.maxConcurrent, 1, MAX_CONCURRENT, 3),
       speedLimit: int(s.speedLimit, 0, 1e12, 0),
-      folder: typeof s.folder === "string" && s.folder ? s.folder : this.options.defaultFolder,
+      folder:
+        typeof s.folder === "string" && s.folder
+          ? s.folder
+          : this.options.defaultFolder,
       retries: int(s.retries, 0, 20, 6),
     };
   }
@@ -534,12 +765,18 @@ export class DownloadManager {
     // Everything is checked before anything is added, so one bad address doesn't leave the others half-added.
     const added: DlItem[] = [];
     for (const req of requests) {
-      const { url: clean, auth } = splitCredentials(parseWebUrl(req.url).toString());
+      const { url: clean, auth } = splitCredentials(
+        parseWebUrl(req.url).toString(),
+      );
       const folder = req.folder?.trim() || this.settings.folder;
       const name = safeFileName(req.name || nameFromUrl(clean));
       const headers = cleanHeaders(req.headers);
       // A login typed into the address (https://user:password@host/…) travels as a header, and is not kept in the address.
-      if (auth && !Object.keys(headers).some((k) => k.toLowerCase() === "authorization")) headers.Authorization = auth;
+      if (
+        auth &&
+        !Object.keys(headers).some((k) => k.toLowerCase() === "authorization")
+      )
+        headers.Authorization = auth;
       added.push({
         id: randomBytes(6).toString("hex"),
         url: clean,
@@ -551,14 +788,21 @@ export class DownloadManager {
         received: 0,
         speed: 0,
         eta: null,
-        connections: Math.max(1, Math.min(MAX_CONNECTIONS, Math.round(req.connections ?? this.settings.connections))),
+        connections: Math.max(
+          1,
+          Math.min(
+            MAX_CONNECTIONS,
+            Math.round(req.connections ?? this.settings.connections),
+          ),
+        ),
         active: 0,
         resumable: null,
         addedAt: Date.now(),
         checksum: parseChecksum(req.checksum),
         verified: null,
         headers,
-        message: req.start === false ? "Added. Press Resume to start." : undefined,
+        message:
+          req.start === false ? "Added. Press Resume to start." : undefined,
       });
     }
     for (const item of added) this.items.set(item.id, item);
@@ -603,7 +847,8 @@ export class DownloadManager {
       for (let i = 0; i < 100 && this.jobs.has(id); i++) await sleep(20);
     }
     this.items.delete(id);
-    const remove = async (p: string) => fsp.rm(p, { force: true }).catch(() => {});
+    const remove = async (p: string) =>
+      fsp.rm(p, { force: true }).catch(() => {});
     // Only the files this download itself made: another one waiting for the same name must not lose its partial file.
     const owns = this.claimed.get(item.path) === item.id;
     if (item.state !== "done") {
@@ -619,7 +864,8 @@ export class DownloadManager {
 
   /** Removes all completed (`done`) downloads from the list and persists the state. */
   clearFinished() {
-    for (const [id, item] of this.items) if (item.state === "done") this.items.delete(id);
+    for (const [id, item] of this.items)
+      if (item.state === "done") this.items.delete(id);
     this.persist();
   }
 
@@ -630,7 +876,8 @@ export class DownloadManager {
 
   /** Resumes all paused or failed downloads in the queue. */
   resumeAll() {
-    for (const [id, item] of this.items) if (item.state === "paused" || item.state === "error") this.resume(id);
+    for (const [id, item] of this.items)
+      if (item.state === "paused" || item.state === "error") this.resume(id);
   }
 
   /** Stops everything quickly and saves the list (the File Manager is closing). */
@@ -670,16 +917,28 @@ export class DownloadManager {
       item.active = 0;
       if (isAbort(err) || job.stop) {
         item.state = "paused";
-        item.message = job.stop === "shutdown" ? "Stopped when the File Manager closed. Resume to continue." : "Paused.";
-        if (item.resumable === false && item.received > 0) item.message = "Paused. This server can't continue a download, so it will start again from the beginning.";
+        item.message =
+          job.stop === "shutdown"
+            ? "Stopped when the File Manager closed. Resume to continue."
+            : "Paused.";
+        if (item.resumable === false && item.received > 0)
+          item.message =
+            "Paused. This server can't continue a download, so it will start again from the beginning.";
       } else {
         item.state = "error";
-        item.message = err instanceof DlError ? err.message : `The download failed: ${String(err?.message ?? err).split("\n")[0]}`;
+        item.message =
+          err instanceof DlError
+            ? err.message
+            : `The download failed: ${String(err?.message ?? err).split("\n")[0]}`;
       }
     } finally {
       if (job.sampler) clearInterval(job.sampler);
       if (job.fd !== undefined) {
-        try { fs.closeSync(job.fd); } catch { /* already closed */ }
+        try {
+          fs.closeSync(job.fd);
+        } catch {
+          /* already closed */
+        }
       }
       item.speed = 0;
       item.eta = null;
@@ -696,13 +955,21 @@ export class DownloadManager {
     const signal = job.ac.signal;
     await fsp.mkdir(item.folder, { recursive: true }).catch(() => {});
     try {
-      if (!(await fsp.stat(item.folder)).isDirectory()) throw new Error("not a folder");
+      if (!(await fsp.stat(item.folder)).isDirectory())
+        throw new Error("not a folder");
     } catch {
       throw new DlError(`The folder ${item.folder} isn't available.`);
     }
 
     // The file is complete but its checksum check was cut short (a pause, or the program closing): check it again, nothing to download.
-    if (item.checksum && item.verified === null && item.size !== null && item.received === item.size && fs.existsSync(item.path) && !fs.existsSync(`${item.path}.part`)) {
+    if (
+      item.checksum &&
+      item.verified === null &&
+      item.size !== null &&
+      item.received === item.size &&
+      fs.existsSync(item.path) &&
+      !fs.existsSync(`${item.path}.part`)
+    ) {
       await this.verify(item, job);
       return;
     }
@@ -732,14 +999,30 @@ export class DownloadManager {
       Array.isArray(s.complete) &&
       Array.isArray(s.partial) &&
       (!s.etag || !probe.etag || s.etag === probe.etag) &&
-      (!s.lastModified || !probe.lastModified || s.lastModified === probe.lastModified);
+      (!s.lastModified ||
+        !probe.lastModified ||
+        s.lastModified === probe.lastModified);
     const hasPart = fs.existsSync(`${item.path}.part`);
     if (!(item.received > 0 && hasPart)) {
       const defaultUrlName = safeFileName(nameFromUrl(item.url));
-      if (item.name === defaultUrlName || item.name === nameFromUrl(item.url) || !item.name) item.name = probe.name;
+      if (
+        item.name === defaultUrlName ||
+        item.name === nameFromUrl(item.url) ||
+        !item.name
+      )
+        item.name = probe.name;
       // Choosing and claiming the name happen in the same step (no await between), so two downloads can't both pick it.
-      if (this.claimed.get(item.path) === item.id) this.claimed.delete(item.path);
-      item.path = uniquePath(item.folder, safeFileName(item.name === defaultUrlName || item.name === nameFromUrl(item.url) ? probe.name : item.name), (c) => this.claimed.has(c));
+      if (this.claimed.get(item.path) === item.id)
+        this.claimed.delete(item.path);
+      item.path = uniquePath(
+        item.folder,
+        safeFileName(
+          item.name === defaultUrlName || item.name === nameFromUrl(item.url)
+            ? probe.name
+            : item.name,
+        ),
+        (c) => this.claimed.has(c),
+      );
       this.claimed.set(item.path, item.id);
       item.name = nodePath.basename(item.path);
       saved = null;
@@ -749,14 +1032,26 @@ export class DownloadManager {
     item.lastModified = probe.lastModified;
 
     const free = await this.freeSpace(item.folder);
-    if (probe.size && free !== null && free < probe.size - (saved ? item.received : 0) + 50 * 1024 * 1024) throw new DlError(`There isn't enough free space in ${item.folder} (${fmtBytes(probe.size)} needed).`);
+    if (
+      probe.size &&
+      free !== null &&
+      free < probe.size - (saved ? item.received : 0) + 50 * 1024 * 1024
+    )
+      throw new DlError(
+        `There isn't enough free space in ${item.folder} (${fmtBytes(probe.size)} needed).`,
+      );
 
     item.state = "downloading";
     this.startSampler(item, job);
     this.persist();
 
     if (probe.ranges && probe.size !== null && probe.size > 0) {
-      await this.segmented(item, job, probe, saved && sameFile(saved) ? saved : null);
+      await this.segmented(
+        item,
+        job,
+        probe,
+        saved && sameFile(saved) ? saved : null,
+      );
     } else {
       await this.single(item, job, probe);
     }
@@ -765,12 +1060,21 @@ export class DownloadManager {
     await this.finish(item, job);
   }
 
-  private async probeWithRetries(item: DlItem, signal: AbortSignal): Promise<ProbeResult> {
+  private async probeWithRetries(
+    item: DlItem,
+    signal: AbortSignal,
+  ): Promise<ProbeResult> {
     for (let attempt = 0; ; attempt++) {
       try {
         return await probeUrl(item.url, item.headers, this.fetchFn, signal);
       } catch (err: any) {
-        if (isAbort(err) || !(err instanceof DlError) || err.fatal || attempt >= Math.min(3, this.settings.retries)) throw err;
+        if (
+          isAbort(err) ||
+          !(err instanceof DlError) ||
+          err.fatal ||
+          attempt >= Math.min(3, this.settings.retries)
+        )
+          throw err;
         item.message = `${err.message} Trying again…`;
         await sleep(err.retryAfterMs || 800 * 2 ** attempt, signal);
       }
@@ -790,27 +1094,44 @@ export class DownloadManager {
     let last = item.received;
     let speed = 0;
     job.sampler = setInterval(() => {
-      const instant = ((item.received - last) / 0.5);
+      const instant = (item.received - last) / 0.5;
       last = item.received;
       speed = speed === 0 ? instant : speed * 0.6 + instant * 0.4;
       item.speed = Math.max(0, Math.round(speed));
-      item.eta = item.size && item.speed > 0 ? Math.max(0, Math.round((item.size - item.received) / item.speed)) : null;
+      item.eta =
+        item.size && item.speed > 0
+          ? Math.max(0, Math.round((item.size - item.received) / item.speed))
+          : null;
     }, 500);
     job.sampler.unref?.();
   }
 
   /** Several connections, each taking the next free chunk. */
-  private async segmented(item: DlItem, job: Job, probe: ProbeResult, saved: SavedState | null) {
+  private async segmented(
+    item: DlItem,
+    job: Job,
+    probe: ProbeResult,
+    saved: SavedState | null,
+  ) {
     const size = probe.size!;
     const signal = job.ac.signal;
     const partPath = `${item.path}.part`;
-    const connections = Math.max(1, Math.min(item.connections, Math.ceil(size / MIN_CHUNK)));
+    const connections = Math.max(
+      1,
+      Math.min(item.connections, Math.ceil(size / MIN_CHUNK)),
+    );
     const chunkSize = saved?.chunkSize ?? chunkSizeFor(size, connections);
-    const done = saved ? decodeProgress(saved, chunkSize, size) : new Array<number>(Math.ceil(size / chunkSize)).fill(0);
+    const done = saved
+      ? decodeProgress(saved, chunkSize, size)
+      : new Array<number>(Math.ceil(size / chunkSize)).fill(0);
     item.received = done.reduce((a, b) => a + b, 0);
 
-    if (fs.lstatSync(partPath, { throwIfNoEntry: false })?.isSymbolicLink()) throw new DlError("Refusing to write through a symbolic link.");
-    const fd = fs.openSync(partPath, fs.existsSync(partPath) && saved ? "r+" : "w+");
+    if (fs.lstatSync(partPath, { throwIfNoEntry: false })?.isSymbolicLink())
+      throw new DlError("Refusing to write through a symbolic link.");
+    const fd = fs.openSync(
+      partPath,
+      fs.existsSync(partPath) && saved ? "r+" : "w+",
+    );
     job.fd = fd;
     if (fs.fstatSync(fd).size !== size) fs.ftruncateSync(fd, size);
 
@@ -829,8 +1150,20 @@ export class DownloadManager {
       const now = Date.now();
       if (!force && now - savedAt.t < 1000) return;
       savedAt.t = now;
-      const state: SavedState = { v: STATE_VERSION, url: probe.finalUrl, size, etag: probe.etag, lastModified: probe.lastModified, chunkSize, ...encodeProgress(done, chunkSize, size) };
-      try { fs.writeFileSync(`${item.path}.dlstate`, JSON.stringify(state)); } catch { /* progress just isn't saved this time */ }
+      const state: SavedState = {
+        v: STATE_VERSION,
+        url: probe.finalUrl,
+        size,
+        etag: probe.etag,
+        lastModified: probe.lastModified,
+        chunkSize,
+        ...encodeProgress(done, chunkSize, size),
+      };
+      try {
+        fs.writeFileSync(`${item.path}.dlstate`, JSON.stringify(state));
+      } catch {
+        /* progress just isn't saved this time */
+      }
     };
 
     let failure: unknown = null;
@@ -848,15 +1181,30 @@ export class DownloadManager {
         if (from > end) return;
         const before = done[idx]!;
         try {
-          const { res } = await fetchWithRedirects(probe.finalUrl, item, { Range: `bytes=${from}-${end}`, ...ifRange(probe) }, this.fetchFn, signal);
+          const { res } = await fetchWithRedirects(
+            probe.finalUrl,
+            item,
+            { Range: `bytes=${from}-${end}`, ...ifRange(probe) },
+            this.fetchFn,
+            signal,
+          );
           if (res.status !== 206) {
             res.body?.cancel().catch(() => {});
-            if (res.status === 200 || res.status === 416) throw new DlError("The file changed on the server, or it stopped accepting ranges. Remove it and add it again.");
+            if (res.status === 200 || res.status === 416)
+              throw new DlError(
+                "The file changed on the server, or it stopped accepting ranges. Remove it and add it again.",
+              );
             throw httpProblem(res.status, res.headers.get("retry-after"));
           }
-          const cr = /bytes\s+(\d+)-(\d+)\/(\d+|\*)/i.exec(res.headers.get("content-range") ?? "");
-          if (!cr || Number(cr[1]) !== from) throw new DlError("The server sent the wrong part of the file.");
-          if (cr[3] !== "*" && Number(cr[3]) !== size) throw new DlError("The file changed on the server while it was downloading. Remove it and add it again.");
+          const cr = /bytes\s+(\d+)-(\d+)\/(\d+|\*)/i.exec(
+            res.headers.get("content-range") ?? "",
+          );
+          if (!cr || Number(cr[1]) !== from)
+            throw new DlError("The server sent the wrong part of the file.");
+          if (cr[3] !== "*" && Number(cr[3]) !== size)
+            throw new DlError(
+              "The file changed on the server while it was downloading. Remove it and add it again.",
+            );
           const reader = res.body!.getReader();
           let pos = from;
           try {
@@ -867,7 +1215,10 @@ export class DownloadManager {
               const room = end + 1 - pos;
               if (buf.length > room) buf = buf.subarray(0, room);
               await this.limiter.take(buf.length, signal);
-              if (signal.aborted) throw Object.assign(new Error("aborted"), { name: "AbortError" });
+              if (signal.aborted)
+                throw Object.assign(new Error("aborted"), {
+                  name: "AbortError",
+                });
               writeAllAt(fd, buf, pos);
               pos += buf.length;
               done[idx] = pos - start;
@@ -877,7 +1228,8 @@ export class DownloadManager {
           } finally {
             reader.cancel().catch(() => {});
           }
-          if (pos <= end) throw new DlError("The connection closed early.", false);
+          if (pos <= end)
+            throw new DlError("The connection closed early.", false);
           saveState();
           return;
         } catch (err: any) {
@@ -885,8 +1237,17 @@ export class DownloadManager {
           if (err instanceof DlError && err.fatal) throw err;
           if (done[idx]! > before) attempt = 0;
           attempt++;
-          if (attempt > this.settings.retries) throw err instanceof DlError ? err : new DlError(`The connection kept failing: ${String(err?.message ?? err).split("\n")[0]}`);
-          const wait = err instanceof DlError && err.retryAfterMs ? err.retryAfterMs : Math.min(8000, 400 * 2 ** (attempt - 1)) * (0.7 + Math.random() * 0.6);
+          if (attempt > this.settings.retries)
+            throw err instanceof DlError
+              ? err
+              : new DlError(
+                  `The connection kept failing: ${String(err?.message ?? err).split("\n")[0]}`,
+                );
+          const wait =
+            err instanceof DlError && err.retryAfterMs
+              ? err.retryAfterMs
+              : Math.min(8000, 400 * 2 ** (attempt - 1)) *
+                (0.7 + Math.random() * 0.6);
           await sleep(wait, signal);
         }
       }
@@ -922,7 +1283,11 @@ export class DownloadManager {
     await Promise.all(workers);
     saveState(true);
     if (failure) throw failure;
-    if (!job.stop && done.some((d, i) => d < Math.min(chunkSize, size - i * chunkSize))) throw new DlError("Some parts of the file are missing.", false);
+    if (
+      !job.stop &&
+      done.some((d, i) => d < Math.min(chunkSize, size - i * chunkSize))
+    )
+      throw new DlError("Some parts of the file are missing.", false);
   }
 
   /** One connection, for servers that can't send parts. Resumes with `Range: bytes=N-` when the server allows it. */
@@ -931,9 +1296,13 @@ export class DownloadManager {
     const partPath = `${item.path}.part`;
     const canResume = probe.ranges || (probe.size === null && false);
     let attempt = 0;
-    let from = canResume && item.received > 0 && fs.existsSync(partPath) ? Math.min(item.received, fs.statSync(partPath).size) : 0;
+    let from =
+      canResume && item.received > 0 && fs.existsSync(partPath)
+        ? Math.min(item.received, fs.statSync(partPath).size)
+        : 0;
     item.received = from;
-    if (fs.lstatSync(partPath, { throwIfNoEntry: false })?.isSymbolicLink()) throw new DlError("Refusing to write through a symbolic link.");
+    if (fs.lstatSync(partPath, { throwIfNoEntry: false })?.isSymbolicLink())
+      throw new DlError("Refusing to write through a symbolic link.");
     const fd = fs.openSync(partPath, from > 0 ? "r+" : "w+");
     job.fd = fd;
     if (from === 0) fs.ftruncateSync(fd, 0);
@@ -941,7 +1310,13 @@ export class DownloadManager {
     for (;;) {
       const before = item.received;
       try {
-        const { res } = await fetchWithRedirects(probe.finalUrl, item, from > 0 ? { Range: `bytes=${from}-`, ...ifRange(probe) } : {}, this.fetchFn, signal);
+        const { res } = await fetchWithRedirects(
+          probe.finalUrl,
+          item,
+          from > 0 ? { Range: `bytes=${from}-`, ...ifRange(probe) } : {},
+          this.fetchFn,
+          signal,
+        );
         if (from > 0 && res.status === 200) {
           // The server ignored the range: start from the top.
           from = 0;
@@ -953,7 +1328,8 @@ export class DownloadManager {
         }
         if (item.size === null) {
           const len = Number(res.headers.get("content-length"));
-          if (res.headers.has("content-length") && Number.isFinite(len)) item.size = from + len;
+          if (res.headers.has("content-length") && Number.isFinite(len))
+            item.size = from + len;
         }
         item.active = 1;
         const reader = res.body!.getReader();
@@ -962,7 +1338,8 @@ export class DownloadManager {
             const { done: finished, value } = await reader.read();
             if (finished) break;
             await this.limiter.take(value.length, signal);
-            if (signal.aborted) throw Object.assign(new Error("aborted"), { name: "AbortError" });
+            if (signal.aborted)
+              throw Object.assign(new Error("aborted"), { name: "AbortError" });
             writeAllAt(fd, value, from);
             from += value.length;
             item.received = from;
@@ -970,7 +1347,8 @@ export class DownloadManager {
         } finally {
           reader.cancel().catch(() => {});
         }
-        if (item.size !== null && from < item.size) throw new DlError("The connection closed early.", false);
+        if (item.size !== null && from < item.size)
+          throw new DlError("The connection closed early.", false);
         if (item.size === null) item.size = from;
         return;
       } catch (err: any) {
@@ -978,13 +1356,23 @@ export class DownloadManager {
         if (err instanceof DlError && err.fatal) throw err;
         if (item.received > before) attempt = 0;
         attempt++;
-        if (attempt > this.settings.retries) throw err instanceof DlError ? err : new DlError(`The connection kept failing: ${String(err?.message ?? err).split("\n")[0]}`);
+        if (attempt > this.settings.retries)
+          throw err instanceof DlError
+            ? err
+            : new DlError(
+                `The connection kept failing: ${String(err?.message ?? err).split("\n")[0]}`,
+              );
         if (!probe.ranges) {
           from = 0;
           item.received = 0;
           fs.ftruncateSync(fd, 0);
         }
-        await sleep(err instanceof DlError && err.retryAfterMs ? err.retryAfterMs : Math.min(8000, 400 * 2 ** (attempt - 1)), signal);
+        await sleep(
+          err instanceof DlError && err.retryAfterMs
+            ? err.retryAfterMs
+            : Math.min(8000, 400 * 2 ** (attempt - 1)),
+          signal,
+        );
       }
     }
   }
@@ -992,17 +1380,28 @@ export class DownloadManager {
   /** All bytes are on disk: move the file into place and check its checksum. */
   private async finish(item: DlItem, job: Job) {
     if (job.fd !== undefined) {
-      try { fs.fsyncSync(job.fd); } catch { /* not every system can */ }
+      try {
+        fs.fsyncSync(job.fd);
+      } catch {
+        /* not every system can */
+      }
       fs.closeSync(job.fd);
       job.fd = undefined;
     }
     const part = `${item.path}.part`;
     const actual = fs.statSync(part).size;
-    if (item.size !== null && actual !== item.size) throw new DlError(`The file is ${fmtBytes(actual)} but should be ${fmtBytes(item.size)}.`, false);
+    if (item.size !== null && actual !== item.size)
+      throw new DlError(
+        `The file is ${fmtBytes(actual)} but should be ${fmtBytes(item.size)}.`,
+        false,
+      );
     item.size = actual;
     item.received = actual;
     let finalPath = item.path;
-    if (pathOccupied(finalPath)) finalPath = uniquePath(item.folder, nodePath.basename(item.path), (c) => this.claimed.has(c));
+    if (pathOccupied(finalPath))
+      finalPath = uniquePath(item.folder, nodePath.basename(item.path), (c) =>
+        this.claimed.has(c),
+      );
     fs.renameSync(part, finalPath);
     fs.rmSync(`${item.path}.dlstate`, { force: true });
     if (this.claimed.get(item.path) === item.id) this.claimed.delete(item.path);
@@ -1022,7 +1421,8 @@ export class DownloadManager {
         for await (const chunk of stream) {
           hash.update(chunk);
           // A pause or the program closing stops the check; it is not a verdict, so the file is checked again on Resume.
-          if (job.ac.signal.aborted) throw Object.assign(new Error("aborted"), { name: "AbortError" });
+          if (job.ac.signal.aborted)
+            throw Object.assign(new Error("aborted"), { name: "AbortError" });
         }
       } finally {
         stream.destroy();

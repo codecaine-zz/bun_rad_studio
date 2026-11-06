@@ -1,14 +1,25 @@
 // What every release script shares: the platforms we build for, which files are applications, and small helpers.
 import { createHash } from "crypto";
-import { existsSync, readFileSync, readdirSync, renameSync, writeFileSync } from "fs";
+import {
+  existsSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  writeFileSync,
+} from "fs";
 import { availableParallelism } from "os";
 import { join, resolve } from "path";
 
 export const ROOT = resolve(import.meta.dir, "..", "..");
-export const VERSION: string = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).version;
+export const VERSION: string = JSON.parse(
+  readFileSync(join(ROOT, "package.json"), "utf8"),
+).version;
 
 /** Files that an app reads from the folder its code is in, so they travel next to the bundled apps. */
-export const SIDECAR_FILES = ["applications/postgres_designer.js", "src/ide.html"];
+export const SIDECAR_FILES = [
+  "applications/postgres_designer.js",
+  "src/ide.html",
+];
 
 export type OsName = "macos" | "linux" | "windows";
 
@@ -35,16 +46,107 @@ const WEBVIEW_DIR = join(ROOT, "node_modules", "webview-bun", "build");
 export const webviewLibSource = (name: string) => join(WEBVIEW_DIR, name);
 
 export const TARGETS: Target[] = [
-  { id: "macos-arm64", bunTarget: "bun-darwin-arm64", os: "macos", arch: "arm64", variant: "", gui: true, webviewLib: "libwebview.dylib", note: "Apple silicon Macs (M1 and newer)" },
-  { id: "macos-x64", bunTarget: "bun-darwin-x64", os: "macos", arch: "x64", variant: "", gui: true, webviewLib: "libwebview.dylib", note: "Intel Macs" },
-  { id: "linux-x64", bunTarget: "bun-linux-x64", os: "linux", arch: "x64", variant: "", gui: true, webviewLib: "libwebview-x64.so", note: "64-bit Intel/AMD Linux with glibc (Ubuntu, Debian, Fedora ...). Desktop apps need GTK 4 and WebKitGTK 6.0" },
-  { id: "linux-x64-baseline", bunTarget: "bun-linux-x64-baseline", os: "linux", arch: "x64", variant: "baseline", gui: true, webviewLib: "libwebview-x64.so", note: "Like linux-x64, for CPUs older than 2013 (no AVX2)" },
-  { id: "linux-arm64", bunTarget: "bun-linux-arm64", os: "linux", arch: "arm64", variant: "", gui: true, webviewLib: "libwebview-arm64.so", note: "64-bit ARM Linux with glibc (Raspberry Pi OS 64-bit, Ampere, Graviton ...). Desktop apps need GTK 4 and WebKitGTK 6.0" },
-  { id: "linux-x64-musl", bunTarget: "bun-linux-x64-musl", os: "linux", arch: "x64", variant: "musl", gui: false, webviewLib: null, note: "Alpine and other musl Linux. Command-line tools only (the window library needs glibc)" },
-  { id: "linux-arm64-musl", bunTarget: "bun-linux-arm64-musl", os: "linux", arch: "arm64", variant: "musl", gui: false, webviewLib: null, note: "Alpine on ARM. Command-line tools only" },
-  { id: "windows-x64", bunTarget: "bun-windows-x64", os: "windows", arch: "x64", variant: "", gui: true, webviewLib: "libwebview.dll", note: "64-bit Windows 10 and 11 (needs the WebView2 runtime, already part of Windows 11). Also runs on Windows on ARM through emulation" },
-  { id: "windows-x64-baseline", bunTarget: "bun-windows-x64-baseline", os: "windows", arch: "x64", variant: "baseline", gui: true, webviewLib: "libwebview.dll", note: "Like windows-x64, for CPUs older than 2013 (no AVX2)" },
-  { id: "windows-arm64", bunTarget: "bun-windows-arm64", os: "windows", arch: "arm64", variant: "", gui: true, webviewLib: "libwebview.dll", guiRuntime: "windows-x64-baseline", note: "Windows 11 on ARM: native command-line tools; desktop apps use baseline x64 emulation and the x64 WebView2/Visual C++ runtimes" },
+  {
+    id: "macos-arm64",
+    bunTarget: "bun-darwin-arm64",
+    os: "macos",
+    arch: "arm64",
+    variant: "",
+    gui: true,
+    webviewLib: "libwebview.dylib",
+    note: "Apple silicon Macs (M1 and newer)",
+  },
+  {
+    id: "macos-x64",
+    bunTarget: "bun-darwin-x64",
+    os: "macos",
+    arch: "x64",
+    variant: "",
+    gui: true,
+    webviewLib: "libwebview.dylib",
+    note: "Intel Macs",
+  },
+  {
+    id: "linux-x64",
+    bunTarget: "bun-linux-x64",
+    os: "linux",
+    arch: "x64",
+    variant: "",
+    gui: true,
+    webviewLib: "libwebview-x64.so",
+    note: "64-bit Intel/AMD Linux with glibc (Ubuntu, Debian, Fedora ...). Desktop apps need GTK 4 and WebKitGTK 6.0",
+  },
+  {
+    id: "linux-x64-baseline",
+    bunTarget: "bun-linux-x64-baseline",
+    os: "linux",
+    arch: "x64",
+    variant: "baseline",
+    gui: true,
+    webviewLib: "libwebview-x64.so",
+    note: "Like linux-x64, for CPUs older than 2013 (no AVX2)",
+  },
+  {
+    id: "linux-arm64",
+    bunTarget: "bun-linux-arm64",
+    os: "linux",
+    arch: "arm64",
+    variant: "",
+    gui: true,
+    webviewLib: "libwebview-arm64.so",
+    note: "64-bit ARM Linux with glibc (Raspberry Pi OS 64-bit, Ampere, Graviton ...). Desktop apps need GTK 4 and WebKitGTK 6.0",
+  },
+  {
+    id: "linux-x64-musl",
+    bunTarget: "bun-linux-x64-musl",
+    os: "linux",
+    arch: "x64",
+    variant: "musl",
+    gui: false,
+    webviewLib: null,
+    note: "Alpine and other musl Linux. Command-line tools only (the window library needs glibc)",
+  },
+  {
+    id: "linux-arm64-musl",
+    bunTarget: "bun-linux-arm64-musl",
+    os: "linux",
+    arch: "arm64",
+    variant: "musl",
+    gui: false,
+    webviewLib: null,
+    note: "Alpine on ARM. Command-line tools only",
+  },
+  {
+    id: "windows-x64",
+    bunTarget: "bun-windows-x64",
+    os: "windows",
+    arch: "x64",
+    variant: "",
+    gui: true,
+    webviewLib: "libwebview.dll",
+    note: "64-bit Windows 10 and 11 (needs the WebView2 runtime, already part of Windows 11). Also runs on Windows on ARM through emulation",
+  },
+  {
+    id: "windows-x64-baseline",
+    bunTarget: "bun-windows-x64-baseline",
+    os: "windows",
+    arch: "x64",
+    variant: "baseline",
+    gui: true,
+    webviewLib: "libwebview.dll",
+    note: "Like windows-x64, for CPUs older than 2013 (no AVX2)",
+  },
+  {
+    id: "windows-arm64",
+    bunTarget: "bun-windows-arm64",
+    os: "windows",
+    arch: "arm64",
+    variant: "",
+    gui: true,
+    webviewLib: "libwebview.dll",
+    guiRuntime: "windows-x64-baseline",
+    note: "Windows 11 on ARM: native command-line tools; desktop apps use baseline x64 emulation and the x64 WebView2/Visual C++ runtimes",
+  },
 ];
 
 export function findTargets(ids: string[] | null): Target[] {
@@ -52,7 +154,10 @@ export function findTargets(ids: string[] | null): Target[] {
   const chosen: Target[] = [];
   for (const id of ids) {
     const t = TARGETS.find((x) => x.id === id);
-    if (!t) throw new Error(`Unknown target "${id}". Choose from: ${TARGETS.map((x) => x.id).join(", ")}`);
+    if (!t)
+      throw new Error(
+        `Unknown target "${id}". Choose from: ${TARGETS.map((x) => x.id).join(", ")}`,
+      );
     chosen.push(t);
   }
   return chosen;
@@ -60,7 +165,12 @@ export function findTargets(ids: string[] | null): Target[] {
 
 /** The target that matches this computer, for building the Mac apps and for testing. */
 export function hostTargetId(): string {
-  const os = process.platform === "darwin" ? "macos" : process.platform === "win32" ? "windows" : "linux";
+  const os =
+    process.platform === "darwin"
+      ? "macos"
+      : process.platform === "win32"
+        ? "windows"
+        : "linux";
   return `${os}-${process.arch === "arm64" ? "arm64" : "x64"}`;
 }
 
@@ -77,14 +187,28 @@ const dashed = (stem: string) => stem.replace(/_/g, "-");
 /** Every desktop app (applications/*.ts that start a window when run) and every command-line tool. */
 export function listSourceApps(): SourceApp[] {
   const apps: SourceApp[] = [];
-  for (const f of readdirSync(join(ROOT, "applications")).filter((x) => x.endsWith(".ts")).sort()) {
+  for (const f of readdirSync(join(ROOT, "applications"))
+    .filter((x) => x.endsWith(".ts"))
+    .sort()) {
     const text = readFileSync(join(ROOT, "applications", f), "utf8");
-    if (/import\.meta\.main/.test(text)) apps.push({ name: dashed(f.replace(/\.ts$/, "")), entry: `applications/${f}`, kind: "gui" });
+    if (/import\.meta\.main/.test(text))
+      apps.push({
+        name: dashed(f.replace(/\.ts$/, "")),
+        entry: `applications/${f}`,
+        kind: "gui",
+      });
   }
   // The visual form designer is the project's own index.ts.
-  if (existsSync(join(ROOT, "index.ts"))) apps.push({ name: "rad-designer", entry: "index.ts", kind: "gui" });
-  for (const f of readdirSync(join(ROOT, "cli_apps")).filter((x) => x.endsWith(".ts")).sort()) {
-    apps.push({ name: dashed(f.replace(/\.ts$/, "")), entry: `cli_apps/${f}`, kind: "cli" });
+  if (existsSync(join(ROOT, "index.ts")))
+    apps.push({ name: "rad-designer", entry: "index.ts", kind: "gui" });
+  for (const f of readdirSync(join(ROOT, "cli_apps"))
+    .filter((x) => x.endsWith(".ts"))
+    .sort()) {
+    apps.push({
+      name: dashed(f.replace(/\.ts$/, "")),
+      entry: `cli_apps/${f}`,
+      kind: "cli",
+    });
   }
   return apps;
 }
@@ -103,27 +227,67 @@ export async function sha256File(path: string): Promise<string> {
 /** A word for a shell script: wrapped in single quotes with any inside ones escaped. */
 export const shQuote = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`;
 
-export const xmlEscape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+export const xmlEscape = (s: string) =>
+  s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 
 export function log(emoji: string, message: string) {
   console.log(`${emoji}  ${message}`);
 }
 
 /** Runs a program and returns its output; throws with the program's own words when it fails. */
-export async function run(cmd: string[], options: { cwd?: string; env?: Record<string, string> } = {}): Promise<string> {
+export async function run(
+  cmd: string[],
+  options: { cwd?: string; env?: Record<string, string> } = {},
+): Promise<string> {
   const bun = cmd[0] === "bun";
   const command = bun ? [process.execPath, ...cmd.slice(1)] : cmd;
-  const proc = Bun.spawn(command, { cwd: options.cwd, env: { ...process.env, ...options.env, ...(bun ? { BUN_BE_BUN: "1" } : {}) }, stdout: "pipe", stderr: "pipe" });
-  const [out, err, code] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text(), proc.exited]);
-  if (code !== 0) throw new Error(`${cmd.slice(0, 3).join(" ")} failed (${code}): ${(err || out).trim().split("\n").slice(-6).join("\n")}`);
+  const proc = Bun.spawn(command, {
+    cwd: options.cwd,
+    env: {
+      ...process.env,
+      ...options.env,
+      ...(bun ? { BUN_BE_BUN: "1" } : {}),
+    },
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  const [out, err, code] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ]);
+  if (code !== 0)
+    throw new Error(
+      `${cmd.slice(0, 3).join(" ")} failed (${code}): ${(err || out).trim().split("\n").slice(-6).join("\n")}`,
+    );
   return out;
 }
 
-export async function zipEntries(parent: string, entries: string[], out: string): Promise<void> {
+export async function zipEntries(
+  parent: string,
+  entries: string[],
+  out: string,
+): Promise<void> {
   if (process.platform === "win32") {
-    await run(["powershell.exe", "-NoProfile", "-Command",
-      "$ErrorActionPreference = 'Stop'; $entries = @(foreach ($entry in (ConvertFrom-Json $env:ZIP_ENTRIES)) { Join-Path $env:ZIP_PARENT ([string]$entry) }); Compress-Archive -LiteralPath $entries -DestinationPath $env:ZIP_OUT -Force"],
-    { env: { ZIP_ENTRIES: JSON.stringify(entries), ZIP_PARENT: parent, ZIP_OUT: out } });
+    await run(
+      [
+        "powershell.exe",
+        "-NoProfile",
+        "-Command",
+        "$ErrorActionPreference = 'Stop'; $entries = @(foreach ($entry in (ConvertFrom-Json $env:ZIP_ENTRIES)) { Join-Path $env:ZIP_PARENT ([string]$entry) }); Compress-Archive -LiteralPath $entries -DestinationPath $env:ZIP_OUT -Force",
+      ],
+      {
+        env: {
+          ZIP_ENTRIES: JSON.stringify(entries),
+          ZIP_PARENT: parent,
+          ZIP_OUT: out,
+        },
+      },
+    );
   } else {
     await run(["zip", "-qry", "-X", out, ...entries], { cwd: parent });
   }
@@ -137,7 +301,10 @@ export function defaultJobs(): number {
 /** The value of --jobs: a whole number of at least 1. */
 export function parseJobs(value: string | undefined): number {
   const n = Number(value);
-  if (!Number.isInteger(n) || n < 1 || n > 64) throw new Error(`--jobs must be a whole number from 1 to 64, not "${value ?? ""}"`);
+  if (!Number.isInteger(n) || n < 1 || n > 64)
+    throw new Error(
+      `--jobs must be a whole number from 1 to 64, not "${value ?? ""}"`,
+    );
   return n;
 }
 
@@ -145,7 +312,11 @@ export function parseJobs(value: string | undefined): number {
  * Runs `fn` on every item with at most `jobs` running at the same time. The results come back in the order of `items`,
  * whatever order the work finished in. `fn` should handle its own failures (an error that escapes stops the whole run).
  */
-export async function mapPool<T, R>(items: readonly T[], jobs: number, fn: (item: T, index: number) => Promise<R>): Promise<R[]> {
+export async function mapPool<T, R>(
+  items: readonly T[],
+  jobs: number,
+  fn: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
   const results = new Array<R>(items.length);
   let next = 0;
   const worker = async () => {
@@ -155,7 +326,12 @@ export async function mapPool<T, R>(items: readonly T[], jobs: number, fn: (item
       results[i] = await fn(items[i]!, i);
     }
   };
-  await Promise.all(Array.from({ length: Math.max(1, Math.min(Math.floor(jobs), items.length)) }, worker));
+  await Promise.all(
+    Array.from(
+      { length: Math.max(1, Math.min(Math.floor(jobs), items.length)) },
+      worker,
+    ),
+  );
   return results;
 }
 

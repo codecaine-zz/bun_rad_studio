@@ -1,10 +1,35 @@
 // The open documents of the Code tab: what is open, what changed, saving, and the remembered session
 // (open tabs, cursor positions, settings, recent files, bookmarks). No page code: the editor and tabs are drawn elsewhere.
 import { detectIndent, detectLanguage } from "./codeLogic.js";
-import { loadSession, readFile, saveSession, statFiles, writeText } from "./codeIO.js";
+import {
+  loadSession,
+  readFile,
+  saveSession,
+  statFiles,
+  writeText,
+} from "./codeIO.js";
 
 export const MAX_DOCS = 40;
-export const DEFAULT_SETTINGS = { theme: "auto", fontSize: 14, wrap: false, lineNumbers: true, minimap: false, whitespace: false, indentGuides: true, ruler: false, wordHighlight: true, autosave: false, autosaveDelay: 1500, autosaveOnBlur: true, tabSize: 2, showHidden: false, explorer: true, completion: true, autoOpen: true, recentsEnabled: true };
+export const DEFAULT_SETTINGS = {
+  theme: "auto",
+  fontSize: 14,
+  wrap: false,
+  lineNumbers: true,
+  minimap: false,
+  whitespace: false,
+  indentGuides: true,
+  ruler: false,
+  wordHighlight: true,
+  autosave: false,
+  autosaveDelay: 1500,
+  autosaveOnBlur: true,
+  tabSize: 2,
+  showHidden: false,
+  explorer: true,
+  completion: true,
+  autoOpen: true,
+  recentsEnabled: true,
+};
 
 let nextId = 1;
 let untitled = 0;
@@ -13,7 +38,8 @@ function recordSnapshot(doc, label = "Saved") {
   if (!doc || doc.kind === "diff") return null;
   doc.history ??= [];
   const last = doc.history[doc.history.length - 1];
-  if (last && last.text === doc.text && label !== "Manual snapshot") return last;
+  if (last && last.text === doc.text && label !== "Manual snapshot")
+    return last;
   const now = new Date();
   const timeLabel = now.toTimeString().slice(0, 8);
   const snap = {
@@ -30,30 +56,73 @@ function recordSnapshot(doc, label = "Saved") {
 
 function fromFile(file) {
   const doc = {
-    id: nextId++, kind: "file", path: file.path, name: file.name, text: file.text, savedText: file.text, encoding: file.encoding, savedEncoding: file.encoding, savedEol: file.eol, guessed: file.guessed, eol: file.eol, mixedEol: file.mixedEol,
-    mtimeMs: file.mtimeMs, size: file.size, truncated: file.truncated, symlink: file.symlink, writable: file.writable, readOnly: file.truncated,
-    lang: detectLanguage(file.name, file.text.slice(0, 200)), indent: indentFor(detectLanguage(file.name, file.text.slice(0, 200)), file.text), line: 1, col: 1, scrollTop: 0, bookmarks: [], history: [], editor: null, external: "", langPinned: false,
+    id: nextId++,
+    kind: "file",
+    path: file.path,
+    name: file.name,
+    text: file.text,
+    savedText: file.text,
+    encoding: file.encoding,
+    savedEncoding: file.encoding,
+    savedEol: file.eol,
+    guessed: file.guessed,
+    eol: file.eol,
+    mixedEol: file.mixedEol,
+    mtimeMs: file.mtimeMs,
+    size: file.size,
+    truncated: file.truncated,
+    symlink: file.symlink,
+    writable: file.writable,
+    readOnly: file.truncated,
+    lang: detectLanguage(file.name, file.text.slice(0, 200)),
+    indent: indentFor(
+      detectLanguage(file.name, file.text.slice(0, 200)),
+      file.text,
+    ),
+    line: 1,
+    col: 1,
+    scrollTop: 0,
+    bookmarks: [],
+    history: [],
+    editor: null,
+    external: "",
+    langPinned: false,
   };
   if (file.path) recordSnapshot(doc, "Initial open");
   return doc;
 }
 
-export const isDirty = (doc) => doc.kind !== "diff" && (doc.text !== doc.savedText || doc.eol !== doc.savedEol || doc.encoding !== doc.savedEncoding);
+export const isDirty = (doc) =>
+  doc.kind !== "diff" &&
+  (doc.text !== doc.savedText ||
+    doc.eol !== doc.savedEol ||
+    doc.encoding !== doc.savedEncoding);
 
 /** V's own formatter indents with tabs, so a V file with no indentation yet starts out using tabs. */
 export function indentFor(lang, text) {
   const found = detectIndent(text);
-  return lang === "v" && found.size === null ? { useTabs: true, size: null } : found;
+  return lang === "v" && found.size === null
+    ? { useTabs: true, size: null }
+    : found;
 }
 
 /** The folder part of a path (works for both kinds of separators). */
-export const folderOf = (path) => path.slice(0, Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\")));
+export const folderOf = (path) =>
+  path.slice(0, Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\")));
 
 export function createDocs() {
   const docs = [];
   const listeners = new Set();
   let activeId = 0;
-  let session = { version: 1, root: "", tabs: [], active: "", settings: { ...DEFAULT_SETTINGS }, recents: [], bookmarks: {} };
+  let session = {
+    version: 1,
+    root: "",
+    tabs: [],
+    active: "",
+    settings: { ...DEFAULT_SETTINGS },
+    recents: [],
+    bookmarks: {},
+  };
   let persistTimer = 0;
   const reading = new Map();
 
@@ -62,16 +131,25 @@ export function createDocs() {
 
   function remember(path) {
     if (session.settings.recentsEnabled === false) return;
-    session.recents = [{ path, at: new Date().toISOString() }, ...session.recents.filter((r) => r.path !== path)].slice(0, 30);
+    session.recents = [
+      { path, at: new Date().toISOString() },
+      ...session.recents.filter((r) => r.path !== path),
+    ].slice(0, 30);
   }
 
   const api = {
     list: () => docs,
     get: byId,
     byPath: (path) => docs.find((d) => d.path === path),
-    get active() { return byId(activeId) ?? null; },
-    get session() { return session; },
-    get settings() { return session.settings; },
+    get active() {
+      return byId(activeId) ?? null;
+    },
+    get session() {
+      return session;
+    },
+    get settings() {
+      return session.settings;
+    },
     subscribe(fn) {
       listeners.add(fn);
       return () => listeners.delete(fn);
@@ -101,7 +179,11 @@ export function createDocs() {
         emit("goto");
         return open;
       }
-      if (docs.length >= MAX_DOCS) throw Object.assign(new Error(`${MAX_DOCS} files are already open. Close some first.`), { friendly: true });
+      if (docs.length >= MAX_DOCS)
+        throw Object.assign(
+          new Error(`${MAX_DOCS} files are already open. Close some first.`),
+          { friendly: true },
+        );
       if (reading.has(path)) {
         await reading.get(path).catch(() => {});
         return api.openPath(path, { line, col });
@@ -128,7 +210,25 @@ export function createDocs() {
     },
 
     newUntitled(text = "") {
-      const doc = { ...fromFile({ path: "", name: `Untitled-${++untitled}`, text, encoding: "utf-8", guessed: false, eol: "lf", mixedEol: false, mtimeMs: 0, size: 0, truncated: false, symlink: false, writable: true }), kind: "untitled", savedText: "", history: [] };
+      const doc = {
+        ...fromFile({
+          path: "",
+          name: `Untitled-${++untitled}`,
+          text,
+          encoding: "utf-8",
+          guessed: false,
+          eol: "lf",
+          mixedEol: false,
+          mtimeMs: 0,
+          size: 0,
+          truncated: false,
+          symlink: false,
+          writable: true,
+        }),
+        kind: "untitled",
+        savedText: "",
+        history: [],
+      };
       if (text) recordSnapshot(doc, "Initial draft");
       docs.push(doc);
       activeId = doc.id;
@@ -147,7 +247,25 @@ export function createDocs() {
         emit("reload");
         return existing;
       }
-      const doc = { ...fromFile({ path: "", name: title, text, encoding: "utf-8", guessed: false, eol: "lf", mixedEol: false, mtimeMs: 0, size: 0, truncated: false, symlink: false, writable: false }), kind: "diff", lang, readOnly: true };
+      const doc = {
+        ...fromFile({
+          path: "",
+          name: title,
+          text,
+          encoding: "utf-8",
+          guessed: false,
+          eol: "lf",
+          mixedEol: false,
+          mtimeMs: 0,
+          size: 0,
+          truncated: false,
+          symlink: false,
+          writable: false,
+        }),
+        kind: "diff",
+        lang,
+        readOnly: true,
+      };
       docs.push(doc);
       activeId = doc.id;
       emit("tabs");
@@ -169,9 +287,29 @@ export function createDocs() {
     /** Saves a file opened from disk. `force` writes even if the file changed on disk. Throws ApiError (code CHANGED_ON_DISK, GONE, IS_LINK ...). */
     async save(doc, { force = false, auto = false } = {}) {
       const { text, eol, encoding } = doc;
-      const r = await writeText("code/save", { path: doc.path, text, encoding, eol, expected: { mtimeMs: doc.mtimeMs, size: doc.size }, force });
+      const r = await writeText("code/save", {
+        path: doc.path,
+        text,
+        encoding,
+        eol,
+        expected: { mtimeMs: doc.mtimeMs, size: doc.size },
+        force,
+      });
       // An autosave is marked in the same step as the save itself, so the status line never shows "Saved" in between.
-      Object.assign(doc, { savedText: text, savedEol: eol, savedEncoding: encoding, mtimeMs: r.mtimeMs, size: r.size, external: "", mixedEol: false, guessed: false }, auto ? { autoSavedText: text } : {});
+      Object.assign(
+        doc,
+        {
+          savedText: text,
+          savedEol: eol,
+          savedEncoding: encoding,
+          mtimeMs: r.mtimeMs,
+          size: r.size,
+          external: "",
+          mixedEol: false,
+          guessed: false,
+        },
+        auto ? { autoSavedText: text } : {},
+      );
       recordSnapshot(doc, auto ? "Autosaved" : "Saved");
       emit("saved");
       return r;
@@ -180,13 +318,33 @@ export function createDocs() {
     /** Saves to a typed path and turns the document into that file. Throws ApiError (code EXISTS when it would replace something). */
     async saveAs(doc, path, { overwrite = false } = {}) {
       const { text, eol, encoding } = doc;
-      const r = await writeText("code/saveas", { path, text, encoding, eol, overwrite });
+      const r = await writeText("code/saveas", {
+        path,
+        text,
+        encoding,
+        eol,
+        overwrite,
+      });
       const was = doc.path;
       doc.path = r.path;
-      doc.name = r.path.slice(Math.max(r.path.lastIndexOf("/"), r.path.lastIndexOf("\\")) + 1);
+      doc.name = r.path.slice(
+        Math.max(r.path.lastIndexOf("/"), r.path.lastIndexOf("\\")) + 1,
+      );
       doc.kind = "file";
-      Object.assign(doc, { savedText: text, savedEol: eol, savedEncoding: encoding, mtimeMs: r.mtimeMs, size: r.size, external: "", truncated: false, readOnly: false, mixedEol: false, guessed: false });
-      if (!doc.langPinned) doc.lang = detectLanguage(doc.name, text.slice(0, 200));
+      Object.assign(doc, {
+        savedText: text,
+        savedEol: eol,
+        savedEncoding: encoding,
+        mtimeMs: r.mtimeMs,
+        size: r.size,
+        external: "",
+        truncated: false,
+        readOnly: false,
+        mixedEol: false,
+        guessed: false,
+      });
+      if (!doc.langPinned)
+        doc.lang = detectLanguage(doc.name, text.slice(0, 200));
       doc.indent = indentFor(doc.lang, text);
       recordSnapshot(doc, "Saved as");
       remember(r.path);
@@ -199,7 +357,21 @@ export function createDocs() {
     /** Reads the file again (optionally as another encoding), dropping unsaved changes. */
     async reload(doc, encoding) {
       const file = await readFile(doc.path, encoding);
-      Object.assign(doc, { text: file.text, savedText: file.text, encoding: file.encoding, savedEncoding: file.encoding, savedEol: file.eol, guessed: file.guessed, eol: file.eol, mixedEol: file.mixedEol, mtimeMs: file.mtimeMs, size: file.size, truncated: file.truncated, readOnly: file.truncated, external: "" });
+      Object.assign(doc, {
+        text: file.text,
+        savedText: file.text,
+        encoding: file.encoding,
+        savedEncoding: file.encoding,
+        savedEol: file.eol,
+        guessed: file.guessed,
+        eol: file.eol,
+        mixedEol: file.mixedEol,
+        mtimeMs: file.mtimeMs,
+        size: file.size,
+        truncated: file.truncated,
+        readOnly: file.truncated,
+        external: "",
+      });
       recordSnapshot(doc, "Reloaded from disk");
       emit("reload");
       emit("saved");
@@ -209,11 +381,17 @@ export function createDocs() {
     pathMoved(from, to) {
       const changed = [];
       for (const d of docs) {
-        if (d.path === from || (d.path.startsWith(from) && /[\\/]/.test(d.path[from.length] ?? ""))) {
+        if (
+          d.path === from ||
+          (d.path.startsWith(from) && /[\\/]/.test(d.path[from.length] ?? ""))
+        ) {
           const old = d.path;
           d.path = to + d.path.slice(from.length);
-          d.name = d.path.slice(Math.max(d.path.lastIndexOf("/"), d.path.lastIndexOf("\\")) + 1);
-          if (!d.langPinned) d.lang = detectLanguage(d.name, d.text.slice(0, 200));
+          d.name = d.path.slice(
+            Math.max(d.path.lastIndexOf("/"), d.path.lastIndexOf("\\")) + 1,
+          );
+          if (!d.langPinned)
+            d.lang = detectLanguage(d.name, d.text.slice(0, 200));
           if (session.bookmarks[old]) {
             session.bookmarks[d.path] = session.bookmarks[old];
             delete session.bookmarks[old];
@@ -318,7 +496,10 @@ export function createDocs() {
     },
 
     setRecentsEnabled(enabled) {
-      session.settings = { ...session.settings, recentsEnabled: Boolean(enabled) };
+      session.settings = {
+        ...session.settings,
+        recentsEnabled: Boolean(enabled),
+      };
       api.persist();
       emit("settings");
       emit("recents");
@@ -342,9 +523,23 @@ export function createDocs() {
 
     persistNow() {
       clearTimeout(persistTimer);
-      const tabs = docs.filter((d) => d.kind === "file" && d.path).map((d) => ({ path: d.path, line: d.line, col: d.col, scrollTop: Math.round(d.scrollTop) }));
+      const tabs = docs
+        .filter((d) => d.kind === "file" && d.path)
+        .map((d) => ({
+          path: d.path,
+          line: d.line,
+          col: d.col,
+          scrollTop: Math.round(d.scrollTop),
+        }));
       const active = api.active?.path ?? "";
-      return saveSession({ root: session.root, tabs, active, settings: session.settings, recents: session.recents, bookmarks: session.bookmarks }).catch(() => {});
+      return saveSession({
+        root: session.root,
+        tabs,
+        active,
+        settings: session.settings,
+        recents: session.recents,
+        bookmarks: session.bookmarks,
+      }).catch(() => {});
     },
   };
   return api;

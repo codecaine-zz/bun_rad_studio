@@ -9,7 +9,11 @@
 import { statSync, watch as fsWatch, type FSWatcher } from "fs";
 import * as nodePath from "path";
 import type { Subprocess } from "bun";
-import { buildWatchexecEnv, killRunningProcess, shouldTrigger } from "../watchexec/watchexecDoers";
+import {
+  buildWatchexecEnv,
+  killRunningProcess,
+  shouldTrigger,
+} from "../watchexec/watchexecDoers";
 import type { FmContext } from "./fmCore";
 import { FmError, describeFsError } from "./fmPaths";
 import { LogBuffer, MAX_LOG_CHARS, createTextCleaner } from "./fmWatchLog";
@@ -59,12 +63,23 @@ export interface WatchConfig {
 // ---------------------------------------------------------------------------------------------------------------
 
 /** The program and arguments that run `command` through a shell. */
-export function shellArgv(platform: FmContext["platform"], shell: ShellChoice | null, command: string): string[] {
+export function shellArgv(
+  platform: FmContext["platform"],
+  shell: ShellChoice | null,
+  command: string,
+): string[] {
   if (platform === "win32") {
-    if (shell === "powershell") return ["powershell.exe", "-NoProfile", "-Command", command];
+    if (shell === "powershell")
+      return ["powershell.exe", "-NoProfile", "-Command", command];
     return ["cmd.exe", "/d", "/s", "/c", command];
   }
-  return [shell && shell !== "cmd" && shell !== "powershell" ? `/bin/${shell}` : "/bin/sh", "-c", command];
+  return [
+    shell && shell !== "cmd" && shell !== "powershell"
+      ? `/bin/${shell}`
+      : "/bin/sh",
+    "-c",
+    command,
+  ];
 }
 
 interface Run {
@@ -75,7 +90,8 @@ interface Run {
 }
 
 const seconds = (ms: number) => `${(ms / 1000).toFixed(2)}s`;
-const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 /** Watches a folder for file changes and runs a configured shell command with debouncing, logging, and history tracking. */
 export class Watcher {
@@ -96,7 +112,12 @@ export class Watcher {
   private pending: { abs: string; rel: string } | null = null;
 
   /** Creates a new `Watcher` with the given identifier, platform, configuration, and log capacity. */
-  constructor(readonly id: string, private readonly platform: FmContext["platform"], readonly config: WatchConfig, logCap = MAX_LOG_CHARS) {
+  constructor(
+    readonly id: string,
+    private readonly platform: FmContext["platform"],
+    readonly config: WatchConfig,
+    logCap = MAX_LOG_CHARS,
+  ) {
     this.log = new LogBuffer(logCap);
   }
 
@@ -108,11 +129,20 @@ export class Watcher {
   /** Starts watching the target directory and triggers an initial command run unless postponed. */
   start(): void {
     try {
-      this.fsw = fsWatch(this.config.watchPath, { recursive: true }, (_event, name) => this.onEvent(name));
+      this.fsw = fsWatch(
+        this.config.watchPath,
+        { recursive: true },
+        (_event, name) => this.onEvent(name),
+      );
     } catch (err) {
-      throw new FmError("WATCH_FAILED", `The folder couldn't be watched: ${describeFsError(err, "watch that folder").message}`);
+      throw new FmError(
+        "WATCH_FAILED",
+        `The folder couldn't be watched: ${describeFsError(err, "watch that folder").message}`,
+      );
     }
-    this.fsw.on("error", (err) => this.fail(`Watching stopped: ${describeFsError(err).message}`));
+    this.fsw.on("error", (err) =>
+      this.fail(`Watching stopped: ${describeFsError(err).message}`),
+    );
     // Removing the watched folder usually raises no event at all, so look for it now and then.
     this.guard = setInterval(() => this.checkFolder(), 1500);
     this.guard.unref?.();
@@ -125,7 +155,14 @@ export class Watcher {
     const rel = typeof name === "string" ? name : name ? name.toString() : "";
     let wanted = false;
     try {
-      wanted = !!rel && shouldTrigger(rel, this.config.exts, this.config.ignore, this.config.filters);
+      wanted =
+        !!rel &&
+        shouldTrigger(
+          rel,
+          this.config.exts,
+          this.config.ignore,
+          this.config.filters,
+        );
     } catch {
       wanted = false;
     }
@@ -147,18 +184,28 @@ export class Watcher {
   }
 
   /** Runs the command now (`change` null means "run now" from the page). Returns what happened. */
-  async run(change: { abs: string; rel: string } | null): Promise<"started" | "busy" | "failed"> {
-    if (this.state !== "ACTIVE") throw new FmError("NOT_WATCHING", "This watcher has stopped. Start a new one to run the command.");
+  async run(
+    change: { abs: string; rel: string } | null,
+  ): Promise<"started" | "busy" | "failed"> {
+    if (this.state !== "ACTIVE")
+      throw new FmError(
+        "NOT_WATCHING",
+        "This watcher has stopped. Start a new one to run the command.",
+      );
     const { config } = this;
     if (change) this.lastEvent = change.rel;
     if (this.current && !config.restart) {
-      this.log.append(`\n[watchexec] Change ignored${change ? ` (${change.rel})` : ""}: the previous run is still going and "Restart on change" is off.\n`);
+      this.log.append(
+        `\n[watchexec] Change ignored${change ? ` (${change.rel})` : ""}: the previous run is still going and "Restart on change" is off.\n`,
+      );
       return "busy";
     }
     try {
       if (!statSync(config.cwd).isDirectory()) throw new Error("not a folder");
     } catch {
-      this.log.append(`\n[watchexec] The folder to run in doesn't exist: ${config.cwd}\n`);
+      this.log.append(
+        `\n[watchexec] The folder to run in doesn't exist: ${config.cwd}\n`,
+      );
       this.status = `The folder to run in doesn't exist: ${config.cwd}`;
       return "failed";
     }
@@ -171,27 +218,46 @@ export class Watcher {
 
     this.triggerCount++;
     const startedAt = Date.now();
-    const row: HistoryRow = { time: new Date(startedAt).toLocaleTimeString(), n: this.triggerCount, file: change?.rel ?? "Manual", status: "RUNNING", kind: "running", code: null, duration: "…" };
+    const row: HistoryRow = {
+      time: new Date(startedAt).toLocaleTimeString(),
+      n: this.triggerCount,
+      file: change?.rel ?? "Manual",
+      status: "RUNNING",
+      kind: "running",
+      code: null,
+      duration: "…",
+    };
     this.history.unshift(row);
     if (this.history.length > MAX_HISTORY) this.history.length = MAX_HISTORY;
-    this.log.append(`\n[${row.time}] [watchexec] Running: ${config.command}\n[watchexec] In folder: ${config.cwd}\n`);
+    this.log.append(
+      `\n[${row.time}] [watchexec] Running: ${config.command}\n[watchexec] In folder: ${config.cwd}\n`,
+    );
     if (change) this.log.append(`[watchexec] Triggered by: ${change.abs}\n`);
 
     let proc: Subprocess;
     try {
       const argv = shellArgv(this.platform, config.shell, config.command);
-      const isCmd = this.platform === "win32" && argv[0]?.toLowerCase() === "cmd.exe";
-      proc = Bun.spawn(isCmd ? ["cmd.exe", "/d", "/s", "/c", `"${config.command}"`] : argv, {
-        cwd: config.cwd,
-        env: { ...process.env, ...buildWatchexecEnv(change?.abs, config.watchPath) },
-        stdin: "ignore",
-        stdout: "pipe",
-        stderr: "pipe",
-        ...(isCmd ? { windowsVerbatimArguments: true } : {}),
-      });
+      const isCmd =
+        this.platform === "win32" && argv[0]?.toLowerCase() === "cmd.exe";
+      proc = Bun.spawn(
+        isCmd ? ["cmd.exe", "/d", "/s", "/c", `"${config.command}"`] : argv,
+        {
+          cwd: config.cwd,
+          env: {
+            ...process.env,
+            ...buildWatchexecEnv(change?.abs, config.watchPath),
+          },
+          stdin: "ignore",
+          stdout: "pipe",
+          stderr: "pipe",
+          ...(isCmd ? { windowsVerbatimArguments: true } : {}),
+        },
+      );
     } catch (err) {
       this.setRow(row, "failed", -1, startedAt);
-      this.log.append(`\n[watchexec] The command couldn't be started: ${describeFsError(err).message}\n`);
+      this.log.append(
+        `\n[watchexec] The command couldn't be started: ${describeFsError(err).message}\n`,
+      );
       this.status = "The command couldn't be started.";
       return "failed";
     }
@@ -204,7 +270,9 @@ export class Watcher {
   }
 
   private async finish(run: Run): Promise<void> {
-    const pump = async (stream: ReadableStream<Uint8Array> | null | undefined) => {
+    const pump = async (
+      stream: ReadableStream<Uint8Array> | null | undefined,
+    ) => {
       if (!stream) return;
       const clean = createTextCleaner();
       const reader = stream.getReader();
@@ -219,29 +287,54 @@ export class Watcher {
         // the pipe was closed under us: the run is over
       }
     };
-    const pumps = Promise.all([pump(run.proc.stdout as ReadableStream<Uint8Array>), pump(run.proc.stderr as ReadableStream<Uint8Array>)]);
+    const pumps = Promise.all([
+      pump(run.proc.stdout as ReadableStream<Uint8Array>),
+      pump(run.proc.stderr as ReadableStream<Uint8Array>),
+    ]);
     const exit = await run.proc.exited;
     // A program left running in the background could keep the pipes open for ever, so only wait a moment for the rest.
     await Promise.race([pumps, sleep(300)]);
     if (run.cancelled) return;
     const code = typeof exit === "number" ? exit : -1;
-    this.setRow(run.row, code === 0 ? "success" : "failed", code, run.startedAt);
-    this.log.append(`\n[watchexec] The command finished with status ${code} (${seconds(Date.now() - run.startedAt)}).\n`);
+    this.setRow(
+      run.row,
+      code === 0 ? "success" : "failed",
+      code,
+      run.startedAt,
+    );
+    this.log.append(
+      `\n[watchexec] The command finished with status ${code} (${seconds(Date.now() - run.startedAt)}).\n`,
+    );
     if (this.current === run) {
       this.current = null;
       this.pid = null;
     }
-    this.status = code === 0 ? `Finished OK in ${seconds(Date.now() - run.startedAt)}.` : `Failed with status ${code} after ${seconds(Date.now() - run.startedAt)}.`;
+    this.status =
+      code === 0
+        ? `Finished OK in ${seconds(Date.now() - run.startedAt)}.`
+        : `Failed with status ${code} after ${seconds(Date.now() - run.startedAt)}.`;
   }
 
   private output(run: Run, text: string): void {
     if (text && !run.cancelled) this.log.append(text);
   }
 
-  private setRow(row: HistoryRow, kind: RunKind, code: number | null, startedAt: number): void {
+  private setRow(
+    row: HistoryRow,
+    kind: RunKind,
+    code: number | null,
+    startedAt: number,
+  ): void {
     row.kind = kind;
     row.code = code;
-    row.status = kind === "success" ? "SUCCESS" : kind === "failed" ? `FAILED(${code})` : kind === "cancelled" ? "CANCELLED" : "RUNNING";
+    row.status =
+      kind === "success"
+        ? "SUCCESS"
+        : kind === "failed"
+          ? `FAILED(${code})`
+          : kind === "cancelled"
+            ? "CANCELLED"
+            : "RUNNING";
     row.duration = seconds(Date.now() - startedAt);
   }
 
@@ -272,7 +365,9 @@ export class Watcher {
     this.timer = null;
     this.guard = null;
     this.pending = null;
-    try { this.fsw?.close(); } catch {}
+    try {
+      this.fsw?.close();
+    } catch {}
     this.fsw = null;
   }
 
@@ -300,9 +395,12 @@ export class Watcher {
   checkFolder(): void {
     if (this.state !== "ACTIVE") return;
     try {
-      if (!statSync(this.config.watchPath).isDirectory()) throw new Error("not a folder");
+      if (!statSync(this.config.watchPath).isDirectory())
+        throw new Error("not a folder");
     } catch {
-      this.fail(`The folder being watched is gone (removed, moved or unreachable): ${this.config.watchPath}`);
+      this.fail(
+        `The folder being watched is gone (removed, moved or unreachable): ${this.config.watchPath}`,
+      );
     }
   }
 }
@@ -330,9 +428,20 @@ export function getWatchHub(ctx: FmContext): WatchHub {
   const hub: WatchHub = {
     watchers,
     create(config, logCap) {
-      const active = [...watchers.values()].filter((w) => w.state === "ACTIVE").length;
-      if (active >= MAX_ACTIVE_WATCHERS) throw new FmError("TOO_MANY", `Up to ${MAX_ACTIVE_WATCHERS} watchers can run at once. Stop one first.`);
-      const watcher = new Watcher(`w${++counter}`, ctx.platform, config, logCap);
+      const active = [...watchers.values()].filter(
+        (w) => w.state === "ACTIVE",
+      ).length;
+      if (active >= MAX_ACTIVE_WATCHERS)
+        throw new FmError(
+          "TOO_MANY",
+          `Up to ${MAX_ACTIVE_WATCHERS} watchers can run at once. Stop one first.`,
+        );
+      const watcher = new Watcher(
+        `w${++counter}`,
+        ctx.platform,
+        config,
+        logCap,
+      );
       watcher.start();
       watchers.set(watcher.id, watcher);
       // Finished watchers stay visible so their log can still be read, but not for ever.
@@ -350,7 +459,9 @@ export function getWatchHub(ctx: FmContext): WatchHub {
     },
     closeAll() {
       for (const w of watchers.values()) {
-        try { w.stop(); } catch {}
+        try {
+          w.stop();
+        } catch {}
       }
       watchers.clear();
       if (hubs.get(ctx) === hub) hubs.delete(ctx);

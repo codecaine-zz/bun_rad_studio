@@ -22,9 +22,19 @@ import type {
 import { DbError, normalizeError } from "./errors";
 import { createAdapter } from "./index";
 import type { SqliteAdapter } from "./adapters/sqlite";
-import { classifyStatement, needsConfirmation, type Classification } from "./classify";
+import {
+  classifyStatement,
+  needsConfirmation,
+  type Classification,
+} from "./classify";
 import { splitStatements } from "./splitter";
-import { ProfileStore, profileToConfig, sanitizeProfileInput, type ConnectionProfile, type Environment } from "./profiles";
+import {
+  ProfileStore,
+  profileToConfig,
+  sanitizeProfileInput,
+  type ConnectionProfile,
+  type Environment,
+} from "./profiles";
 
 /** Summary of an active workbench database connection returned to the UI. */
 export interface ConnectionSummary {
@@ -103,7 +113,8 @@ export interface ScriptResult {
 }
 
 const CONFIRM_TTL_MS = 2 * 60_000;
-const digestOf = (...parts: string[]) => createHash("sha256").update(parts.join("\u0000")).digest("hex");
+const digestOf = (...parts: string[]) =>
+  createHash("sha256").update(parts.join("\u0000")).digest("hex");
 const MAX_SCRIPT_RESULT_ROWS = 1000;
 
 /**
@@ -117,23 +128,34 @@ export class WorkbenchService {
   /** Creates a `WorkbenchService` backed by `profiles` and the `makeAdapter` factory. */
   constructor(
     readonly profiles: ProfileStore,
-    private readonly makeAdapter: (config: ConnectionConfig) => DbAdapter = createAdapter,
+    private readonly makeAdapter: (
+      config: ConnectionConfig,
+    ) => DbAdapter = createAdapter,
   ) {}
 
   // ---- connections ------------------------------------------------------------------------------------------
 
   /** Opens a new live connection from a saved `profileId` or ad-hoc `profile` and returns its `ConnectionSummary`. */
-  async connect(input: { profileId?: string; profile?: unknown; password?: string }): Promise<ConnectionSummary> {
+  async connect(input: {
+    profileId?: string;
+    profile?: unknown;
+    password?: string;
+  }): Promise<ConnectionSummary> {
     let profile: ConnectionProfile;
     let config: ConnectionConfig;
     if (input.profileId) {
       const p = this.profiles.get(input.profileId);
-      if (!p) throw new DbError("INVALID_REQUEST", "Unknown connection profile");
+      if (!p)
+        throw new DbError("INVALID_REQUEST", "Unknown connection profile");
       profile = p;
       config = await this.profiles.resolveConfig(p.id, input.password);
     } else {
       const clean = sanitizeProfileInput(input.profile);
-      profile = { ...clean, id: `tmp-${randomUUID()}`, createdAt: new Date().toISOString() };
+      profile = {
+        ...clean,
+        id: `tmp-${randomUUID()}`,
+        createdAt: new Date().toISOString(),
+      };
       config = profileToConfig(profile, input.password);
     }
     const adapter = this.makeAdapter(config);
@@ -143,7 +165,14 @@ export class WorkbenchService {
       const capabilities = await adapter.capabilities();
       const info = await adapter.ping();
       const id = randomUUID();
-      this.live.set(id, { id, profile, adapter, session, capabilities, database: info.currentDatabase });
+      this.live.set(id, {
+        id,
+        profile,
+        adapter,
+        session,
+        capabilities,
+        database: info.currentDatabase,
+      });
       if (input.profileId) this.profiles.markUsed(input.profileId);
       return this.summary(this.live.get(id)!);
     } catch (e) {
@@ -163,7 +192,8 @@ export class WorkbenchService {
       database: c.database,
       version: c.capabilities.version,
       capabilities: c.capabilities,
-      temporary: c.profile.engine === "sqlite" && c.profile.sqliteMode === "memory",
+      temporary:
+        c.profile.engine === "sqlite" && c.profile.sqliteMode === "memory",
       inTransaction: c.session.inTransaction,
     };
   }
@@ -175,29 +205,43 @@ export class WorkbenchService {
 
   private get(id: unknown): Live {
     const c = typeof id === "string" ? this.live.get(id) : undefined;
-    if (!c) throw new DbError("INVALID_REQUEST", "Unknown or closed connection");
+    if (!c)
+      throw new DbError("INVALID_REQUEST", "Unknown or closed connection");
     return c;
   }
 
   /** Close a connection. An open transaction means unsaved work: the caller must opt in to discarding it. */
-  async disconnect(id: string, opts: { discardTransaction?: boolean } = {}): Promise<void> {
+  async disconnect(
+    id: string,
+    opts: { discardTransaction?: boolean } = {},
+  ): Promise<void> {
     const c = this.get(id);
     if (c.session.inTransaction && !opts.discardTransaction) {
-      throw new DbError("INVALID_REQUEST", "This connection has an open transaction with uncommitted changes.", "Commit or roll back first, or disconnect with discardTransaction to roll it back.");
+      throw new DbError(
+        "INVALID_REQUEST",
+        "This connection has an open transaction with uncommitted changes.",
+        "Commit or roll back first, or disconnect with discardTransaction to roll it back.",
+      );
     }
     await c.session.close().catch(() => {});
     await c.adapter.close();
     this.live.delete(id);
-    for (const [t, p] of this.pending) if (p.connectionId === id) this.pending.delete(t);
+    for (const [t, p] of this.pending)
+      if (p.connectionId === id) this.pending.delete(t);
   }
 
   /** Closes all active connections, rolling back any open transactions. */
   async closeAll(): Promise<void> {
-    for (const id of [...this.live.keys()]) await this.disconnect(id, { discardTransaction: true }).catch(() => {});
+    for (const id of [...this.live.keys()])
+      await this.disconnect(id, { discardTransaction: true }).catch(() => {});
   }
 
   /** Tests connectivity for a saved profile or ad-hoc config by connecting, pinging, and immediately disconnecting. */
-  async test(input: { profileId?: string; profile?: unknown; password?: string }): Promise<{ ok: true; version: string; latencyMs: number }> {
+  async test(input: {
+    profileId?: string;
+    profile?: unknown;
+    password?: string;
+  }): Promise<{ ok: true; version: string; latencyMs: number }> {
     const summary = await this.connect(input);
     try {
       const info = await this.get(summary.connectionId).adapter.ping();
@@ -223,14 +267,26 @@ export class WorkbenchService {
   }
 
   private assertWritable(c: Live) {
-    if (c.profile.readOnly) throw new DbError("READ_ONLY", `"${c.profile.name}" is a read-only connection.`, "Use a read-write profile to change data.");
+    if (c.profile.readOnly)
+      throw new DbError(
+        "READ_ONLY",
+        `"${c.profile.name}" is a read-only connection.`,
+        "Use a read-write profile to change data.",
+      );
   }
 
   /** Row edits are single, key-guarded statements; production connections still require a confirmation. */
   async updateRow(id: string, req: RowUpdate, confirm: ConfirmInput = {}) {
     const c = this.get(id);
     this.assertWritable(c);
-    const gate = this.gate(c, "Update one row", [`UPDATE ${req.table.name} (1 row, key ${JSON.stringify(req.key)})`], { kind: "write", reasons: ["Changes data"] }, confirm, digestOf("row-update", JSON.stringify(req)));
+    const gate = this.gate(
+      c,
+      "Update one row",
+      [`UPDATE ${req.table.name} (1 row, key ${JSON.stringify(req.key)})`],
+      { kind: "write", reasons: ["Changes data"] },
+      confirm,
+      digestOf("row-update", JSON.stringify(req)),
+    );
     if (gate) return gate;
     return this.viaSession(c, () => c.adapter.updateRow(req));
   }
@@ -238,7 +294,14 @@ export class WorkbenchService {
   async deleteRow(id: string, req: RowDelete, confirm: ConfirmInput = {}) {
     const c = this.get(id);
     this.assertWritable(c);
-    const gate = this.gate(c, "Delete one row", [`DELETE FROM ${req.table.name} (1 row, key ${JSON.stringify(req.key)})`], { kind: "destructive", reasons: ["Permanently deletes a row"] }, confirm, digestOf("row-delete", JSON.stringify(req)));
+    const gate = this.gate(
+      c,
+      "Delete one row",
+      [`DELETE FROM ${req.table.name} (1 row, key ${JSON.stringify(req.key)})`],
+      { kind: "destructive", reasons: ["Permanently deletes a row"] },
+      confirm,
+      digestOf("row-delete", JSON.stringify(req)),
+    );
     if (gate) return gate;
     return this.viaSession(c, () => c.adapter.deleteRow(req));
   }
@@ -246,7 +309,14 @@ export class WorkbenchService {
   async insertRow(id: string, req: RowInsert, confirm: ConfirmInput = {}) {
     const c = this.get(id);
     this.assertWritable(c);
-    const gate = this.gate(c, "Insert one row", [`INSERT INTO ${req.table.name}`], { kind: "write", reasons: ["Changes data"] }, confirm, digestOf("row-insert", JSON.stringify(req)));
+    const gate = this.gate(
+      c,
+      "Insert one row",
+      [`INSERT INTO ${req.table.name}`],
+      { kind: "write", reasons: ["Changes data"] },
+      confirm,
+      digestOf("row-insert", JSON.stringify(req)),
+    );
     if (gate) return gate;
     return this.viaSession(c, () => c.adapter.insertRow(req));
   }
@@ -257,7 +327,11 @@ export class WorkbenchService {
    */
   private async viaSession<T>(c: Live, fn: () => Promise<T>): Promise<T> {
     if (c.session.inTransaction && c.profile.engine !== "sqlite") {
-      throw new DbError("INVALID_REQUEST", "A SQL transaction is open on this connection; row edits cannot join it.", "Commit or roll back the transaction first.");
+      throw new DbError(
+        "INVALID_REQUEST",
+        "A SQL transaction is open on this connection; row edits cannot join it.",
+        "Commit or roll back the transaction first.",
+      );
     }
     return fn();
   }
@@ -270,38 +344,100 @@ export class WorkbenchService {
   // ---- SQL execution ----------------------------------------------------------------------------------------
 
   /** Run a single statement. Returns a confirmation request instead when the statement needs one. */
-  async query(id: string, sql: string, params: Param[] = [], opts: { maxRows?: number } & ConfirmInput = {}): Promise<QueryResult | ConfirmationRequired> {
+  async query(
+    id: string,
+    sql: string,
+    params: Param[] = [],
+    opts: { maxRows?: number } & ConfirmInput = {},
+  ): Promise<QueryResult | ConfirmationRequired> {
     const c = this.get(id);
     const stmts = splitStatements(sql, { engine: c.profile.engine });
-    if (stmts.length !== 1) throw new DbError("INVALID_REQUEST", stmts.length ? "Run one statement at a time, or use Run script." : "Enter a statement to run.");
+    if (stmts.length !== 1)
+      throw new DbError(
+        "INVALID_REQUEST",
+        stmts.length
+          ? "Run one statement at a time, or use Run script."
+          : "Enter a statement to run.",
+      );
     const cls = classifyStatement(c.profile.engine, stmts[0]!.sql);
     if (c.profile.readOnly && cls.kind !== "read") {
-      throw new DbError("READ_ONLY", `"${c.profile.name}" is a read-only connection: ${cls.reasons[0] ?? "this statement is not a read"}.`, "Use a read-write profile to change data.");
+      throw new DbError(
+        "READ_ONLY",
+        `"${c.profile.name}" is a read-only connection: ${cls.reasons[0] ?? "this statement is not a read"}.`,
+        "Use a read-write profile to change data.",
+      );
     }
-    const gate = this.gate(c, "Run SQL statement", [stmts[0]!.sql], cls, opts, digestOf("query", sql, JSON.stringify(params)));
+    const gate = this.gate(
+      c,
+      "Run SQL statement",
+      [stmts[0]!.sql],
+      cls,
+      opts,
+      digestOf("query", sql, JSON.stringify(params)),
+    );
     if (gate) return gate;
     return c.session.query(sql, params, { maxRows: opts.maxRows ?? 1000 });
   }
 
   /** Run several statements in order. `onError`: stop (default) or continue. `atomic` wraps them in a transaction. */
-  async script(id: string, sql: string, opts: { onError?: "stop" | "continue"; atomic?: boolean; maxRows?: number } & ConfirmInput = {}): Promise<ScriptResult | ConfirmationRequired> {
+  async script(
+    id: string,
+    sql: string,
+    opts: {
+      onError?: "stop" | "continue";
+      atomic?: boolean;
+      maxRows?: number;
+    } & ConfirmInput = {},
+  ): Promise<ScriptResult | ConfirmationRequired> {
     const c = this.get(id);
     const stmts = splitStatements(sql, { engine: c.profile.engine });
-    if (stmts.length === 0) throw new DbError("INVALID_REQUEST", "Enter a script to run.");
-    const classes = stmts.map((s) => classifyStatement(c.profile.engine, s.sql));
+    if (stmts.length === 0)
+      throw new DbError("INVALID_REQUEST", "Enter a script to run.");
+    const classes = stmts.map((s) =>
+      classifyStatement(c.profile.engine, s.sql),
+    );
     if (c.profile.readOnly) {
       const bad = classes.findIndex((k) => k.kind !== "read");
-      if (bad >= 0) throw new DbError("READ_ONLY", `"${c.profile.name}" is read-only; statement ${bad + 1} is not a read.`);
+      if (bad >= 0)
+        throw new DbError(
+          "READ_ONLY",
+          `"${c.profile.name}" is read-only; statement ${bad + 1} is not a read.`,
+        );
     }
     const merged: Classification = {
-      kind: classes.some((k) => k.kind === "destructive") ? "destructive" : classes.some((k) => k.kind === "admin") ? "admin" : classes.some((k) => k.kind === "other") ? "other" : classes.some((k) => k.kind === "ddl") ? "ddl" : classes.some((k) => k.kind === "write") ? "write" : "read",
+      kind: classes.some((k) => k.kind === "destructive")
+        ? "destructive"
+        : classes.some((k) => k.kind === "admin")
+          ? "admin"
+          : classes.some((k) => k.kind === "other")
+            ? "other"
+            : classes.some((k) => k.kind === "ddl")
+              ? "ddl"
+              : classes.some((k) => k.kind === "write")
+                ? "write"
+                : "read",
       reasons: [...new Set(classes.flatMap((k) => k.reasons))],
     };
     const atomic = Boolean(opts.atomic);
-    if (atomic && c.profile.engine === "mysql" && classes.some((k) => k.kind === "ddl" || k.kind === "destructive")) {
-      throw new DbError("INVALID_REQUEST", "MySQL commits implicitly around DDL statements, so this script cannot be run atomically.", "Remove the DDL statements or run without \"atomic\".");
+    if (
+      atomic &&
+      c.profile.engine === "mysql" &&
+      classes.some((k) => k.kind === "ddl" || k.kind === "destructive")
+    ) {
+      throw new DbError(
+        "INVALID_REQUEST",
+        "MySQL commits implicitly around DDL statements, so this script cannot be run atomically.",
+        'Remove the DDL statements or run without "atomic".',
+      );
     }
-    const gate = this.gate(c, `Run script (${stmts.length} statements)`, stmts.map((s) => s.sql), merged, opts, digestOf("script", sql, String(atomic), opts.onError ?? "stop"));
+    const gate = this.gate(
+      c,
+      `Run script (${stmts.length} statements)`,
+      stmts.map((s) => s.sql),
+      merged,
+      opts,
+      digestOf("script", sql, String(atomic), opts.onError ?? "stop"),
+    );
     if (gate) return gate;
 
     const onError = opts.onError ?? "stop";
@@ -313,11 +449,20 @@ export class WorkbenchService {
     for (let i = 0; i < stmts.length; i++) {
       const s = stmts[i]!;
       try {
-        const result = await c.session.query(s.sql, [], { maxRows: opts.maxRows ?? MAX_SCRIPT_RESULT_ROWS });
+        const result = await c.session.query(s.sql, [], {
+          maxRows: opts.maxRows ?? MAX_SCRIPT_RESULT_ROWS,
+        });
         out.push({ index: i, line: s.line, sql: s.sql, ok: true, result });
       } catch (e) {
-        const err = e instanceof DbError ? e : normalizeError(c.profile.engine, e);
-        out.push({ index: i, line: s.line, sql: s.sql, ok: false, error: { code: err.code, message: err.message, hint: err.hint } });
+        const err =
+          e instanceof DbError ? e : normalizeError(c.profile.engine, e);
+        out.push({
+          index: i,
+          line: s.line,
+          sql: s.sql,
+          ok: false,
+          error: { code: err.code, message: err.message, hint: err.hint },
+        });
         if (onError === "stop" || atomic) {
           stoppedAt = i;
           break;
@@ -347,9 +492,17 @@ export class WorkbenchService {
   }
 
   /** Requests server-side cancellation of the currently running statement on connection `id`. */
-  async cancel(id: string): Promise<{ canceled: boolean; explanation?: string }> {
+  async cancel(
+    id: string,
+  ): Promise<{ canceled: boolean; explanation?: string }> {
     const c = this.get(id);
-    if (!c.capabilities.cancelQuery) return { canceled: false, explanation: c.capabilities.notes.cancelQuery ?? "This engine cannot cancel a running statement." };
+    if (!c.capabilities.cancelQuery)
+      return {
+        canceled: false,
+        explanation:
+          c.capabilities.notes.cancelQuery ??
+          "This engine cannot cancel a running statement.",
+      };
     return { canceled: await c.session.cancel() };
   }
 
@@ -359,17 +512,37 @@ export class WorkbenchService {
    * Returns a ConfirmationRequired when the operation needs one and `confirm` does not carry a valid, matching,
    * unexpired token (plus the typed text on production). A token works once.
    */
-  private gate(c: Live, operation: string, statements: string[], cls: Classification, confirm: ConfirmInput, digest: string): ConfirmationRequired | null {
+  private gate(
+    c: Live,
+    operation: string,
+    statements: string[],
+    cls: Classification,
+    confirm: ConfirmInput,
+    digest: string,
+  ): ConfirmationRequired | null {
     const production = c.profile.environment === "production";
     if (!needsConfirmation(cls, production)) return null;
     if (confirm.token) {
       const p = this.pending.get(confirm.token);
       this.pending.delete(confirm.token);
-      if (!p || p.expires < Date.now() || p.connectionId !== c.id || p.digest !== digest) {
-        throw new DbError("INVALID_REQUEST", "The confirmation is no longer valid for this operation.", "Review the operation and confirm again.");
+      if (
+        !p ||
+        p.expires < Date.now() ||
+        p.connectionId !== c.id ||
+        p.digest !== digest
+      ) {
+        throw new DbError(
+          "INVALID_REQUEST",
+          "The confirmation is no longer valid for this operation.",
+          "Review the operation and confirm again.",
+        );
       }
       if (p.requireTyped !== null && confirm.typed !== p.requireTyped) {
-        throw new DbError("INVALID_REQUEST", "The confirmation text did not match.", `Type exactly: ${p.requireTyped}`);
+        throw new DbError(
+          "INVALID_REQUEST",
+          "The confirmation text did not match.",
+          `Type exactly: ${p.requireTyped}`,
+        );
       }
       return null;
     }
@@ -381,10 +554,18 @@ export class WorkbenchService {
       engine: c.profile.engine,
       database: c.database,
       operation,
-      statements: statements.map((s) => (s.length > 2000 ? s.slice(0, 2000) + " …" : s)).slice(0, 50),
+      statements: statements
+        .map((s) => (s.length > 2000 ? s.slice(0, 2000) + " …" : s))
+        .slice(0, 50),
       reasons: cls.reasons,
     };
-    this.pending.set(token, { connectionId: c.id, digest, summary, requireTyped, expires: Date.now() + CONFIRM_TTL_MS });
+    this.pending.set(token, {
+      connectionId: c.id,
+      digest,
+      summary,
+      requireTyped,
+      expires: Date.now() + CONFIRM_TTL_MS,
+    });
     return { needsConfirmation: true, token, requireTyped, summary };
   }
 
@@ -396,31 +577,68 @@ export class WorkbenchService {
    */
   async sqliteBackup(id: string, destPath: string) {
     const c = this.get(id);
-    if (c.profile.engine !== "sqlite") throw new DbError("INVALID_REQUEST", "Backup by this method is only available for SQLite.");
-    if (c.session.inTransaction) throw new DbError("INVALID_REQUEST", "Finish the open transaction before creating a backup.");
+    if (c.profile.engine !== "sqlite")
+      throw new DbError(
+        "INVALID_REQUEST",
+        "Backup by this method is only available for SQLite.",
+      );
+    if (c.session.inTransaction)
+      throw new DbError(
+        "INVALID_REQUEST",
+        "Finish the open transaction before creating a backup.",
+      );
     const dest = this.checkNewFile(destPath);
-    const source = await c.adapter.query("SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table'");
+    const source = await c.adapter.query(
+      "SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table'",
+    );
     (c.adapter as SqliteAdapter).backupTo(dest);
     const verified = verifySqlite(dest);
-    return { path: dest, bytes: statSync(dest).size, ...verified, sourceTables: Number(source.rows[0]?.n ?? 0) };
+    return {
+      path: dest,
+      bytes: statSync(dest).size,
+      ...verified,
+      sourceTables: Number(source.rows[0]?.n ?? 0),
+    };
   }
 
   /** Describe what restoring `backupPath` into a NEW file `targetPath` would do. Returns a token to confirm it. */
   sqliteRestorePreview(backupPath: string, targetPath: string) {
     const backup = resolve(backupPath);
-    if (!existsSync(backup) || !statSync(backup).isFile()) throw new DbError("INVALID_REQUEST", `Backup file not found: ${backup}`);
+    if (!existsSync(backup) || !statSync(backup).isFile())
+      throw new DbError("INVALID_REQUEST", `Backup file not found: ${backup}`);
     const target = this.checkNewFile(targetPath);
     const check = verifySqlite(backup);
-    if (!check.integrityOk) throw new DbError("INVALID_REQUEST", `The backup failed its integrity check: ${check.integrityMessages.join("; ")}`);
+    if (!check.integrityOk)
+      throw new DbError(
+        "INVALID_REQUEST",
+        `The backup failed its integrity check: ${check.integrityMessages.join("; ")}`,
+      );
     const token = randomUUID();
     this.pending.set(token, {
       connectionId: "sqlite-restore",
       digest: digestOf("sqlite-restore", backup, target),
-      summary: { connection: "(restore)", environment: "development", engine: "sqlite", database: target, operation: "Restore SQLite backup into a new file", statements: [`${backup} -> ${target}`], reasons: [`${check.tables.length} tables, ${check.tables.reduce((n, t) => n + t.rows, 0)} rows will be written to a new file`] },
+      summary: {
+        connection: "(restore)",
+        environment: "development",
+        engine: "sqlite",
+        database: target,
+        operation: "Restore SQLite backup into a new file",
+        statements: [`${backup} -> ${target}`],
+        reasons: [
+          `${check.tables.length} tables, ${check.tables.reduce((n, t) => n + t.rows, 0)} rows will be written to a new file`,
+        ],
+      },
       requireTyped: null,
       expires: Date.now() + CONFIRM_TTL_MS,
     });
-    return { token, backup, target, bytes: statSync(backup).size, ...check, willOverwrite: false };
+    return {
+      token,
+      backup,
+      target,
+      bytes: statSync(backup).size,
+      ...check,
+      willOverwrite: false,
+    };
   }
 
   /** Executes a confirmed SQLite restore from `backupPath` into a new file `targetPath` using `VACUUM INTO`. */
@@ -429,8 +647,16 @@ export class WorkbenchService {
     const target = this.checkNewFile(targetPath);
     const p = this.pending.get(token);
     this.pending.delete(token);
-    if (!p || p.expires < Date.now() || p.digest !== digestOf("sqlite-restore", backup, target)) {
-      throw new DbError("INVALID_REQUEST", "The restore confirmation is invalid or expired.", "Preview the restore again.");
+    if (
+      !p ||
+      p.expires < Date.now() ||
+      p.digest !== digestOf("sqlite-restore", backup, target)
+    ) {
+      throw new DbError(
+        "INVALID_REQUEST",
+        "The restore confirmation is invalid or expired.",
+        "Preview the restore again.",
+      );
     }
     const src = new Database(backup, { readonly: true });
     try {
@@ -442,9 +668,15 @@ export class WorkbenchService {
   }
 
   private checkNewFile(path: string): string {
-    if (typeof path !== "string" || path.trim() === "" || path.includes("\0")) throw new DbError("INVALID_REQUEST", "A file path is required.");
+    if (typeof path !== "string" || path.trim() === "" || path.includes("\0"))
+      throw new DbError("INVALID_REQUEST", "A file path is required.");
     const full = resolve(path);
-    if (existsSync(full)) throw new DbError("INVALID_REQUEST", `${full} already exists. Existing files are never overwritten.`, "Choose a new file name.");
+    if (existsSync(full))
+      throw new DbError(
+        "INVALID_REQUEST",
+        `${full} already exists. Existing files are never overwritten.`,
+        "Choose a new file name.",
+      );
     return full;
   }
 }
@@ -460,10 +692,31 @@ export interface SqliteVerification {
 export function verifySqlite(path: string): SqliteVerification {
   const db = new Database(path, { readonly: true, safeIntegers: true });
   try {
-    const messages = (db.query("PRAGMA integrity_check").all() as { integrity_check: string }[]).map((r) => r.integrity_check);
-    const names = (db.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite\\_%' ESCAPE '\\' ORDER BY name").all() as { name: string }[]).map((r) => r.name);
-    const tables = names.map((name) => ({ name, rows: Number((db.query(`SELECT COUNT(*) AS n FROM "${name.replace(/"/g, '""')}"`).get() as { n: bigint }).n) }));
-    return { integrityOk: messages.length === 1 && messages[0] === "ok", integrityMessages: messages, tables };
+    const messages = (
+      db.query("PRAGMA integrity_check").all() as { integrity_check: string }[]
+    ).map((r) => r.integrity_check);
+    const names = (
+      db
+        .query(
+          "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite\\_%' ESCAPE '\\' ORDER BY name",
+        )
+        .all() as { name: string }[]
+    ).map((r) => r.name);
+    const tables = names.map((name) => ({
+      name,
+      rows: Number(
+        (
+          db
+            .query(`SELECT COUNT(*) AS n FROM "${name.replace(/"/g, '""')}"`)
+            .get() as { n: bigint }
+        ).n,
+      ),
+    }));
+    return {
+      integrityOk: messages.length === 1 && messages[0] === "ok",
+      integrityMessages: messages,
+      tables,
+    };
   } finally {
     db.close();
   }

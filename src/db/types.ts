@@ -67,7 +67,14 @@ export interface Capabilities {
 }
 
 /** JSON-safe value as sent to the browser. Big integers/decimals are strings, binary is tagged. */
-export type WireValue = null | boolean | number | string | { $binary: string } | WireValue[] | { [k: string]: WireValue };
+export type WireValue =
+  | null
+  | boolean
+  | number
+  | string
+  | { $binary: string }
+  | WireValue[]
+  | { [k: string]: WireValue };
 
 /** Value accepted from the browser as a bound parameter. Tagged objects keep exact types. */
 export type Param =
@@ -162,7 +169,17 @@ export interface ServerInfo {
 /** Single column filter predicate applied when browsing table rows. */
 export interface BrowseFilter {
   column: string;
-  op: "eq" | "ne" | "lt" | "lte" | "gt" | "gte" | "contains" | "startsWith" | "isNull" | "notNull";
+  op:
+    | "eq"
+    | "ne"
+    | "lt"
+    | "lte"
+    | "gt"
+    | "gte"
+    | "contains"
+    | "startsWith"
+    | "isNull"
+    | "notNull";
   value?: Param;
 }
 
@@ -176,7 +193,9 @@ export interface BrowseRequest {
 }
 
 /** Indicates whether rows of a browsed object can be edited in place and which key columns identify a row. */
-export type EditableInfo = { ok: true; keyColumns: string[]; keyKind: "primary" | "rowid" } | { ok: false; reason: string };
+export type EditableInfo =
+  | { ok: true; keyColumns: string[]; keyKind: "primary" | "rowid" }
+  | { ok: false; reason: string };
 
 /** Paginated result of browsing a table or view, including column metadata, total count, and editability status. */
 export interface BrowseResult {
@@ -220,7 +239,11 @@ export interface RowInsert {
 /** Dedicated stateful database session supporting interactive transactions and statement cancellation. */
 export interface DbSession {
   readonly inTransaction: boolean;
-  query(sql: string, params?: Param[], options?: QueryOptions): Promise<QueryResult>;
+  query(
+    sql: string,
+    params?: Param[],
+    options?: QueryOptions,
+  ): Promise<QueryResult>;
   begin(): Promise<void>;
   commit(): Promise<void>;
   rollback(): Promise<void>;
@@ -237,7 +260,11 @@ export interface DbAdapter {
   close(): Promise<void>;
   ping(): Promise<ServerInfo>;
   capabilities(): Promise<Capabilities>;
-  query(sql: string, params?: Param[], options?: QueryOptions): Promise<QueryResult>;
+  query(
+    sql: string,
+    params?: Param[],
+    options?: QueryOptions,
+  ): Promise<QueryResult>;
   openSession(): Promise<DbSession>;
   listObjects(): Promise<ObjectRef[]>;
   describeTable(ref: ObjectRef): Promise<TableInfo>;
@@ -246,5 +273,9 @@ export interface DbAdapter {
   updateRow(req: RowUpdate): Promise<QueryResult>;
   deleteRow(req: RowDelete): Promise<QueryResult>;
   /** Stream query/table rows as CSV text chunks with bounded memory. */
-  exportCsv(source: { table: ObjectRef; excludeColumns?: string[] } | { sql: string; params?: Param[] }): AsyncGenerator<string>;
+  exportCsv(
+    source:
+      | { table: ObjectRef; excludeColumns?: string[] }
+      | { sql: string; params?: Param[] },
+  ): AsyncGenerator<string>;
 }

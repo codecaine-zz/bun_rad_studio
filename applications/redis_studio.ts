@@ -1,9 +1,9 @@
 /**
  * ⚡ Bun RAD Studio - Redis Studio Pro
- * 
+ *
  * Enterprise-Grade Redis Desktop Workstation & Telemetry Studio
  * Powered 100% by Bun's native C-speed Redis client (`bun:redis` / `RedisClient`).
- * 
+ *
  * Architecture:
  * - Dedicated Background Telemetry & Redis Engine Server (`redis_studio_server.ts`)
  * - Native WebKit Desktop GUI with default fullscreen & disabled right-click reload/inspect
@@ -2932,7 +2932,9 @@ ${getWindowShortcutsScript()}
 // Redis Studio Desktop Instance Factory
 // -------------------------------------------------------------------------------------------------
 
-export function createRedisStudio(options: RedisStudioOptions = {}): RedisStudioInstance {
+export function createRedisStudio(
+  options: RedisStudioOptions = {},
+): RedisStudioInstance {
   const title = "Redis Studio Pro - Enterprise In-Memory Database Workstation";
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
@@ -2950,7 +2952,9 @@ export function createRedisStudio(options: RedisStudioOptions = {}): RedisStudio
     activeUrl: initialUrl,
     generateHtml: generateRedisStudioHtml,
     run: async () => {
-      console.log("⚡ Launching Redis Studio Pro (Enterprise In-Memory Workstation)...");
+      console.log(
+        "⚡ Launching Redis Studio Pro (Enterprise In-Memory Workstation)...",
+      );
 
       // 1. Launch Isolated Background Telemetry Worker Engine
       // This runs on a dedicated OS thread with its own independent Bun event loop,
@@ -2969,7 +2973,11 @@ export function createRedisStudio(options: RedisStudioOptions = {}): RedisStudio
         app.worker = worker;
 
         info = await new Promise((res, rej) => {
-          const timer = setTimeout(() => rej(new Error("Timeout initializing background Redis engine")), 1500);
+          const timer = setTimeout(
+            () =>
+              rej(new Error("Timeout initializing background Redis engine")),
+            1500,
+          );
           worker.onmessage = (e) => {
             if (!e.data?.type || e.data.type === "redis_studio") {
               clearTimeout(timer);
@@ -2984,7 +2992,11 @@ export function createRedisStudio(options: RedisStudioOptions = {}): RedisStudio
       } catch {
         // Subprocess fallback: Spawns the server as an isolated OS process with an active Bun event loop
         const serverArgs = process.execPath.endsWith("bun")
-          ? [process.execPath, process.argv[1] || resolve(import.meta.dir, "redis_studio.ts"), "--server"]
+          ? [
+              process.execPath,
+              process.argv[1] || resolve(import.meta.dir, "redis_studio.ts"),
+              "--server",
+            ]
           : [process.execPath, "--server"];
 
         const proc = Bun.spawn(serverArgs, {
@@ -3004,7 +3016,9 @@ export function createRedisStudio(options: RedisStudioOptions = {}): RedisStudio
         let detectedPort = 0;
 
         const timeout = setTimeout(() => {
-          try { reader.cancel(); } catch {}
+          try {
+            reader.cancel();
+          } catch {}
         }, 5000);
 
         while (true) {
@@ -3046,7 +3060,9 @@ export function createRedisStudio(options: RedisStudioOptions = {}): RedisStudio
 
       app.port = info.port;
       app.url = info.url;
-      console.log(`⚡ Redis Studio Pro background engine active at: ${info.url}`);
+      console.log(
+        `⚡ Redis Studio Pro background engine active at: ${info.url}`,
+      );
 
       // Warm check: Ensure TCP listener and HTTP server are accepting requests before Webview navigates
       try {
@@ -3076,13 +3092,21 @@ export function createRedisStudio(options: RedisStudioOptions = {}): RedisStudio
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { app.worker?.terminate(); } catch {}
-            try { serverProc?.kill(); } catch {}
+            try {
+              app.worker?.terminate();
+            } catch {}
+            try {
+              serverProc?.kill();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { app.worker?.terminate(); } catch {}
-            try { serverProc?.kill(); } catch {}
+            try {
+              app.worker?.terminate();
+            } catch {}
+            try {
+              serverProc?.kill();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -3092,17 +3116,29 @@ export function createRedisStudio(options: RedisStudioOptions = {}): RedisStudio
         });
 
         webview.navigate(info.url);
-        console.log(`⚡ Native desktop Redis workstation open (Fullscreen: ${fullscreen ? 'Enabled' : 'Disabled'}). Accessible at: ${info.url}`);
+        console.log(
+          `⚡ Native desktop Redis workstation open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}). Accessible at: ${info.url}`,
+        );
 
         webview.run();
-        try { app.worker?.terminate(); } catch {}
-        try { serverProc?.kill(); } catch {}
+        try {
+          app.worker?.terminate();
+        } catch {}
+        try {
+          serverProc?.kill();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Running in web mode at: ${info.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Running in web mode at: ${info.url}`,
+        );
       } finally {
-        try { app.worker?.terminate(); } catch {}
-        try { serverProc?.kill(); } catch {}
+        try {
+          app.worker?.terminate();
+        } catch {}
+        try {
+          serverProc?.kill();
+        } catch {}
         process.exit(0);
       }
     },

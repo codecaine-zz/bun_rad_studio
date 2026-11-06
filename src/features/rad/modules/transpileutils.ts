@@ -35,7 +35,10 @@ export interface CodeAnalysis {
 /**
  * Transpiles TypeScript/TSX/JSX source code into JavaScript in memory using `Bun.Transpiler`.
  */
-export function transpileTs(source: string, options: TranspileOptions = {}): string {
+export function transpileTs(
+  source: string,
+  options: TranspileOptions = {},
+): string {
   const transpiler = new Transpiler({
     loader: options.loader ?? "ts",
     minifyWhitespace: options.minify ?? false,
@@ -47,7 +50,10 @@ export function transpileTs(source: string, options: TranspileOptions = {}): str
 /**
  * Scans `source` for static and dynamic `import` statements without executing the code.
  */
-export function scanImports(source: string, loader: TranspileLoader = "ts"): { path: string; kind: string }[] {
+export function scanImports(
+  source: string,
+  loader: TranspileLoader = "ts",
+): { path: string; kind: string }[] {
   const transpiler = new Transpiler({ loader });
   return transpiler.scanImports(source);
 }
@@ -56,7 +62,10 @@ export function scanImports(source: string, loader: TranspileLoader = "ts"): { p
 /**
  * Scans `source` in a single AST pass to extract both `exports` and `imports`.
  */
-export function analyzeCode(source: string, loader: TranspileLoader = "ts"): CodeAnalysis {
+export function analyzeCode(
+  source: string,
+  loader: TranspileLoader = "ts",
+): CodeAnalysis {
   const transpiler = new Transpiler({ loader });
   const result = transpiler.scan(source);
   return {

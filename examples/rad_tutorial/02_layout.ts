@@ -10,7 +10,9 @@ export function createLayout(): SimpleWindow {
   win.beginRow();
   win.addLabel("Search:").width(70);
   win.addSearchInput("Type keywords...").id("txtSearch").width(280);
-  win.addButton("🔍 Go", (w) => w.setStatusBarText(`Searching for "${w.getText("txtSearch")}"`));
+  win.addButton("🔍 Go", (w) =>
+    w.setStatusBarText(`Searching for "${w.getText("txtSearch")}"`),
+  );
   win.endRow();
 
   win.beginGrid(3, 16);

@@ -1,13 +1,20 @@
 import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
 import { Sys } from "../src/simplecli/sys";
 
-export function createGitStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
-  const win = newSimpleWindow("Git Repository & Diff Workbench -- Enterprise Version Control GUI", 1160, 980, {
-    appId: "git_studio",
-    theme: options.theme || getSavedTheme() || "midnight",
-    autoSaveState: true,
-    fullscreen: options.fullscreen ?? true,
-  });
+export function createGitStudio(
+  options: { fullscreen?: boolean; theme?: string } = {},
+): SimpleWindow {
+  const win = newSimpleWindow(
+    "Git Repository & Diff Workbench -- Enterprise Version Control GUI",
+    1160,
+    980,
+    {
+      appId: "git_studio",
+      theme: options.theme || getSavedTheme() || "midnight",
+      autoSaveState: true,
+      fullscreen: options.fullscreen ?? true,
+    },
+  );
 
   // Header Title
   win.beginRow();
@@ -18,7 +25,9 @@ export function createGitStudio(options: { fullscreen?: boolean; theme?: string 
   win.addButton("btn_refresh", "🔄 Refresh Repo");
   win.addButton("btn_center", "Center Window");
   win.endRow();
-  win.addCaption("Enterprise Git Repository Management, Visual Diff Inspector & Working Tree Controller");
+  win.addCaption(
+    "Enterprise Git Repository Management, Visual Diff Inspector & Working Tree Controller",
+  );
 
   // Repo Overview Card
   win.beginCard("Active Repository Telemetry");
@@ -57,13 +66,16 @@ export function createGitStudio(options: { fullscreen?: boolean; theme?: string 
     [
       ["HEAD", "Developer", "Just now", "Enterprise application suite upgrade"],
       ["origin", "System", "1 hour ago", "Bun native system API modernization"],
-    ]
+    ],
   );
   win.endGroupBox();
 
   // Diff & Output Stream
   win.beginGroupBox("Repository Diff & File Inspection Stream");
-  win.addTextarea("txt_git_diff", `[Git Workbench Initialized]\nChecking repository status...\n`);
+  win.addTextarea(
+    "txt_git_diff",
+    `[Git Workbench Initialized]\nChecking repository status...\n`,
+  );
   win.endGroupBox();
 
   // Console Telemetry
@@ -73,7 +85,10 @@ export function createGitStudio(options: { fullscreen?: boolean; theme?: string 
 
   // Status Bar
   win.beginRow();
-  win.addLabel("lbl_status", "Repository: Active  |  Remote: Connected  |  Zero Homebrew");
+  win.addLabel(
+    "lbl_status",
+    "Repository: Active  |  Remote: Connected  |  Zero Homebrew",
+  );
   win.endRow();
 
   // Helpers
@@ -93,16 +108,25 @@ export function createGitStudio(options: { fullscreen?: boolean; theme?: string 
     // 3. Status summary
     const [statusOut] = Sys.exec("git status --short 2>/dev/null");
     const modifiedFiles = statusOut.trim() ? statusOut.trim().split("\n") : [];
-    win.setText("lbl_status_count", `Working Tree: ${modifiedFiles.length} file(s) changed`);
+    win.setText(
+      "lbl_status_count",
+      `Working Tree: ${modifiedFiles.length} file(s) changed`,
+    );
 
     // 4. Populate commit table
-    const [logOut] = Sys.exec('git log -n 25 --pretty=format:"%h\t%an\t%ar\t%s" 2>/dev/null');
+    const [logOut] = Sys.exec(
+      'git log -n 25 --pretty=format:"%h\t%an\t%ar\t%s" 2>/dev/null',
+    );
     if (logOut.trim()) {
       const commitRows = logOut
         .trim()
         .split("\n")
         .map((line) => line.split("\t"));
-      win.setTableData("tbl_commits", ["Hash", "Author", "Date", "Summary"], commitRows);
+      win.setTableData(
+        "tbl_commits",
+        ["Hash", "Author", "Date", "Summary"],
+        commitRows,
+      );
     }
 
     // 5. Update diff textarea
@@ -110,15 +134,25 @@ export function createGitStudio(options: { fullscreen?: boolean; theme?: string 
       const [diffOut] = Sys.exec("git diff --stat 2>/dev/null");
       win.setText(
         "txt_git_diff",
-        `[Changed Files (${modifiedFiles.length})]\n${statusOut.trim()}\n\n[Diff Summary]\n${diffOut.trim()}`
+        `[Changed Files (${modifiedFiles.length})]\n${statusOut.trim()}\n\n[Diff Summary]\n${diffOut.trim()}`,
       );
     } else {
-      win.setText("txt_git_diff", "Working tree clean. No uncommitted modifications.");
+      win.setText(
+        "txt_git_diff",
+        "Working tree clean. No uncommitted modifications.",
+      );
     }
 
     const elapsed = (performance.now() - t0).toFixed(1);
-    win.appendConsole("git_console", `[Git Refresh] Repository telemetry updated in ${elapsed}ms\n`, 2);
-    win.setText("lbl_status", `Branch: ${branch}  |  Changed: ${modifiedFiles.length}  |  Latency: ${elapsed}ms`);
+    win.appendConsole(
+      "git_console",
+      `[Git Refresh] Repository telemetry updated in ${elapsed}ms\n`,
+      2,
+    );
+    win.setText(
+      "lbl_status",
+      `Branch: ${branch}  |  Changed: ${modifiedFiles.length}  |  Latency: ${elapsed}ms`,
+    );
     win.setStatus(`Git OK (${elapsed}ms)`);
   };
 
@@ -132,15 +166,25 @@ export function createGitStudio(options: { fullscreen?: boolean; theme?: string 
 
   win.onClick("btn_stage_all", () => {
     const [out, code] = Sys.exec("git add -A");
-    win.appendConsole("git_console", `[git add -A] (exit ${code}) ${out}\n`, code === 0 ? 2 : 3);
+    win.appendConsole(
+      "git_console",
+      `[git add -A] (exit ${code}) ${out}\n`,
+      code === 0 ? 2 : 3,
+    );
     win.toast(code === 0 ? "All files staged" : "git add failed (see console)");
     refreshRepo();
   });
 
   win.onClick("btn_unstage", () => {
     const [out, code] = Sys.exec("git restore --staged .");
-    win.appendConsole("git_console", `[git restore --staged] (exit ${code}) ${out}\n`, code === 0 ? 2 : 3);
-    win.toast(code === 0 ? "All files unstaged" : "Unstage failed (see console)");
+    win.appendConsole(
+      "git_console",
+      `[git restore --staged] (exit ${code}) ${out}\n`,
+      code === 0 ? 2 : 3,
+    );
+    win.toast(
+      code === 0 ? "All files unstaged" : "Unstage failed (see console)",
+    );
     refreshRepo();
   });
 
@@ -151,61 +195,113 @@ export function createGitStudio(options: { fullscreen?: boolean; theme?: string 
       return;
     }
     // argv spawn: no shell, so the message can never be interpreted as a command
-    const nothingStaged = Bun.spawnSync(["git", "diff", "--cached", "--quiet"]).exitCode === 0;
+    const nothingStaged =
+      Bun.spawnSync(["git", "diff", "--cached", "--quiet"]).exitCode === 0;
     const args = ["git", "commit", ...(nothingStaged ? ["-a"] : []), "-m", msg];
     const proc = Bun.spawnSync(args, { stdout: "pipe", stderr: "pipe" });
     const out = proc.stdout.toString() + proc.stderr.toString();
     const code = proc.exitCode;
-    win.appendConsole("git_console", `[git commit] (exit ${code})\n${out}\n`, code === 0 ? 2 : 3);
-    win.toast(code === 0 ? "Committed successfully" : "Commit failed (nothing to commit? check console)");
+    win.appendConsole(
+      "git_console",
+      `[git commit] (exit ${code})\n${out}\n`,
+      code === 0 ? 2 : 3,
+    );
+    win.toast(
+      code === 0
+        ? "Committed successfully"
+        : "Commit failed (nothing to commit? check console)",
+    );
     refreshRepo();
   });
 
   win.on("tbl_commits", "click", (_w, hash) => {
     const h = String(hash ?? "").trim();
     if (!/^[0-9a-f]{4,40}$/i.test(h)) return;
-    const proc = Bun.spawnSync(["git", "show", "--stat", "--format=fuller", h], { stdout: "pipe", stderr: "pipe" });
-    win.setText("txt_git_diff", proc.stdout.toString() || proc.stderr.toString());
+    const proc = Bun.spawnSync(
+      ["git", "show", "--stat", "--format=fuller", h],
+      { stdout: "pipe", stderr: "pipe" },
+    );
+    win.setText(
+      "txt_git_diff",
+      proc.stdout.toString() || proc.stderr.toString(),
+    );
     win.appendConsole("git_console", `[git show] Loaded commit ${h}\n`, 1);
   });
 
   win.onClick("btn_view_diff", () => {
     const [diffOut] = Sys.exec("git diff");
-    win.setText("txt_git_diff", diffOut || "(No uncommitted differences found)");
-    win.appendConsole("git_console", "[git diff] Loaded working tree diff\n", 1);
+    win.setText(
+      "txt_git_diff",
+      diffOut || "(No uncommitted differences found)",
+    );
+    win.appendConsole(
+      "git_console",
+      "[git diff] Loaded working tree diff\n",
+      1,
+    );
   });
 
   win.onClick("btn_view_staged", () => {
     const [diffOut] = Sys.exec("git diff --staged");
     win.setText("txt_git_diff", diffOut || "(No staged differences found)");
-    win.appendConsole("git_console", "[git diff --staged] Loaded staged changes diff\n", 1);
+    win.appendConsole(
+      "git_console",
+      "[git diff --staged] Loaded staged changes diff\n",
+      1,
+    );
   });
 
   win.onClick("btn_stash", () => {
     const [out, code] = Sys.exec("git stash");
-    win.appendConsole("git_console", `[git stash] ${out}\n`, code === 0 ? 2 : 3);
-    win.toast(code === 0 ? "Stashed working changes" : "Stash failed (see console)");
+    win.appendConsole(
+      "git_console",
+      `[git stash] ${out}\n`,
+      code === 0 ? 2 : 3,
+    );
+    win.toast(
+      code === 0 ? "Stashed working changes" : "Stash failed (see console)",
+    );
     refreshRepo();
   });
 
   win.onClick("btn_stash_pop", () => {
     const [out, code] = Sys.exec("git stash pop");
-    win.appendConsole("git_console", `[git stash pop] ${out}\n`, code === 0 ? 2 : 3);
+    win.appendConsole(
+      "git_console",
+      `[git stash pop] ${out}\n`,
+      code === 0 ? 2 : 3,
+    );
     win.toast(code === 0 ? "Popped stash" : "Stash pop failed (see console)");
     refreshRepo();
   });
 
   win.onClick("btn_git_pull", () => {
-    win.appendConsole("git_console", "[git pull] Fetching updates from remote...\n", 1);
+    win.appendConsole(
+      "git_console",
+      "[git pull] Fetching updates from remote...\n",
+      1,
+    );
     const [out, code] = Sys.exec("git pull --rebase 2>&1");
-    win.appendConsole("git_console", `[git pull] (exit ${code})\n${out}\n`, code === 0 ? 2 : 3);
+    win.appendConsole(
+      "git_console",
+      `[git pull] (exit ${code})\n${out}\n`,
+      code === 0 ? 2 : 3,
+    );
     refreshRepo();
   });
 
   win.onClick("btn_git_push", () => {
-    win.appendConsole("git_console", "[git push] Pushing commits to remote...\n", 1);
+    win.appendConsole(
+      "git_console",
+      "[git push] Pushing commits to remote...\n",
+      1,
+    );
     const [out, code] = Sys.exec("git push 2>&1");
-    win.appendConsole("git_console", `[git push] (exit ${code})\n${out}\n`, code === 0 ? 2 : 3);
+    win.appendConsole(
+      "git_console",
+      `[git push] (exit ${code})\n${out}\n`,
+      code === 0 ? 2 : 3,
+    );
     refreshRepo();
   });
 

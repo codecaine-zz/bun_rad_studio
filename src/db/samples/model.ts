@@ -23,14 +23,36 @@ export const SCALES: Scale[] = ["small", "medium", "large"];
 export const DIALECTS: Dialect[] = ["sqlite", "mysql", "postgres"];
 
 /** Allowed cell value types produced by sample row generators. */
-export type Cell = string | number | boolean | null | string[] | unknown[] | { [k: string]: unknown };
+export type Cell =
+  | string
+  | number
+  | boolean
+  | null
+  | string[]
+  | unknown[]
+  | { [k: string]: unknown };
 /** Generated row object mapping column names to cell values. */
 export type Row = Record<string, Cell | undefined>;
 
 /** Dialect-neutral base column type identifier used in compact column specifications. */
 export type BaseType =
-  | "id" | "int" | "bigint" | "smallint" | "str" | "char" | "text" | "dec" | "real"
-  | "bool" | "date" | "ts" | "time" | "json" | "tags" | "uuid" | "enum";
+  | "id"
+  | "int"
+  | "bigint"
+  | "smallint"
+  | "str"
+  | "char"
+  | "text"
+  | "dec"
+  | "real"
+  | "bool"
+  | "date"
+  | "ts"
+  | "time"
+  | "json"
+  | "tags"
+  | "uuid"
+  | "enum";
 
 /** Parsed dialect-neutral column definition for a sample table. */
 export interface ColumnDef {
@@ -46,7 +68,9 @@ export interface ColumnDef {
   pk: boolean;
   cascade: boolean;
   touch: boolean;
-  default?: { kind: "now" } | { kind: "literal"; value: string | number | boolean | null };
+  default?:
+    | { kind: "now" }
+    | { kind: "literal"; value: string | number | boolean | null };
   ref?: { table: string; column: string };
   generated?: string;
   comment?: string;
@@ -162,7 +186,8 @@ export interface DatasetDef {
   order: string[];
 }
 
-const SPEC_TYPE = /^(id|int|bigint|smallint|text|real|bool|date|ts|time|json|tags|uuid)$/;
+const SPEC_TYPE =
+  /^(id|int|bigint|smallint|text|real|bool|date|ts|time|json|tags|uuid)$/;
 
 /** Parses a compact column specification string into a structured `ColumnDef`. */
 export function parseColumn(spec: string): ColumnDef {
@@ -184,7 +209,14 @@ export function parseColumn(spec: string): ColumnDef {
   const typeTok = tokens[1];
   if (!name || !typeTok) throw new Error(`Bad column spec "${spec}"`);
   const col: ColumnDef = {
-    name, type: "int", notNull: true, unique: false, indexed: false, pk: false, cascade: false, touch: false,
+    name,
+    type: "int",
+    notNull: true,
+    unique: false,
+    indexed: false,
+    pk: false,
+    cascade: false,
+    touch: false,
   };
   let m: RegExpMatchArray | null;
   if ((m = typeTok.match(/^(str|varchar|char)\((\d+)\)$/))) {
@@ -220,13 +252,18 @@ export function parseColumn(spec: string): ColumnDef {
       const v = flag.slice(4);
       if (v === "now") col.default = { kind: "now" };
       else if (v === "null") col.default = { kind: "literal", value: null };
-      else if (v === "true" || v === "false") col.default = { kind: "literal", value: v === "true" };
-      else if (/^-?\d+(\.\d+)?$/.test(v)) col.default = { kind: "literal", value: Number(v) };
+      else if (v === "true" || v === "false")
+        col.default = { kind: "literal", value: v === "true" };
+      else if (/^-?\d+(\.\d+)?$/.test(v))
+        col.default = { kind: "literal", value: Number(v) };
       else col.default = { kind: "literal", value: v.replace(/^'|'$/g, "") };
     } else throw new Error(`Unknown flag "${flag}" in column spec "${spec}"`);
   }
   if (col.touch) {
-    if (col.name !== "updated_at" || col.type !== "ts") throw new Error(`"upd" is only valid on a ts column named updated_at: ${spec}`);
+    if (col.name !== "updated_at" || col.type !== "ts")
+      throw new Error(
+        `"upd" is only valid on a ts column named updated_at: ${spec}`,
+      );
     col.default ??= { kind: "now" };
   }
   if (generated) {
@@ -240,11 +277,20 @@ export function parseColumn(spec: string): ColumnDef {
 function parseIndex(spec: string): IndexDef {
   const m = spec.match(/^(unique\s+)?([a-z0-9_,\s]+?)(?:\s+where\s+(.+))?$/i);
   if (!m) throw new Error(`Bad index spec "${spec}"`);
-  return { cols: m[2]!.split(",").map((s) => s.trim()), unique: Boolean(m[1]), where: m[3] };
+  return {
+    cols: m[2]!.split(",").map((s) => s.trim()),
+    unique: Boolean(m[1]),
+    where: m[3],
+  };
 }
 
 /** Defines a sample table with parsed column specifications, constraints, indexes, and row generator. */
-export function table(name: string, comment: string, cols: string[], opts: TableOpts = {}): TableDef {
+export function table(
+  name: string,
+  comment: string,
+  cols: string[],
+  opts: TableOpts = {},
+): TableDef {
   const columns = cols.map(parseColumn);
   const idCols = columns.filter((c) => c.pk).map((c) => c.name);
   return {
@@ -264,12 +310,22 @@ export function table(name: string, comment: string, cols: string[], opts: Table
 }
 
 /** Defines a SQL view or materialized view for a sample dataset. */
-export function view(name: string, comment: string, sql: SqlFn, materialized = false): ViewDef {
+export function view(
+  name: string,
+  comment: string,
+  sql: SqlFn,
+  materialized = false,
+): ViewDef {
   return { name, comment, sql, materialized };
 }
 
 /** Defines an example analytical SELECT query for a sample dataset. */
-export function query(id: string, title: string, description: string, sql: SqlFn): QueryDef {
+export function query(
+  id: string,
+  title: string,
+  description: string,
+  sql: SqlFn,
+): QueryDef {
   return { id, title, description, sql };
 }
 
@@ -294,17 +350,24 @@ export interface DatasetInput {
 export function dataset(input: DatasetInput): DatasetDef {
   const byName = new Map<string, TableDef>();
   for (const t of input.tables) {
-    if (byName.has(t.name)) throw new Error(`${input.id}: duplicate table ${t.name}`);
+    if (byName.has(t.name))
+      throw new Error(`${input.id}: duplicate table ${t.name}`);
     byName.set(t.name, t);
   }
   for (const t of input.tables) {
     for (const c of t.columns) {
       if (!c.ref) continue;
       const parent = byName.get(c.ref.table);
-      if (!parent) throw new Error(`${input.id}: ${t.name}.${c.name} references unknown table ${c.ref.table}`);
+      if (!parent)
+        throw new Error(
+          `${input.id}: ${t.name}.${c.name} references unknown table ${c.ref.table}`,
+        );
       const pkName = c.ref.column || parent.pk[0]!;
       const pc = parent.columns.find((x) => x.name === pkName);
-      if (!pc) throw new Error(`${input.id}: ${t.name}.${c.name} references unknown column ${c.ref.table}.${pkName}`);
+      if (!pc)
+        throw new Error(
+          `${input.id}: ${t.name}.${c.name} references unknown column ${c.ref.table}.${pkName}`,
+        );
       c.ref.column = pkName;
       if (pc.type === "id") c.type = "int";
       else {
@@ -316,28 +379,52 @@ export function dataset(input: DatasetInput): DatasetDef {
       }
     }
     for (const c of t.columns) {
-      if (c.generated && (c.default || c.pk)) throw new Error(`${input.id}: ${t.name}.${c.name} generated column cannot have a default`);
-      if ((c.type === "text" || c.type === "json" || c.type === "tags") && (c.unique || c.indexed)) {
-        throw new Error(`${input.id}: ${t.name}.${c.name} cannot be indexed (${c.type})`);
+      if (c.generated && (c.default || c.pk))
+        throw new Error(
+          `${input.id}: ${t.name}.${c.name} generated column cannot have a default`,
+        );
+      if (
+        (c.type === "text" || c.type === "json" || c.type === "tags") &&
+        (c.unique || c.indexed)
+      ) {
+        throw new Error(
+          `${input.id}: ${t.name}.${c.name} cannot be indexed (${c.type})`,
+        );
       }
     }
     const names = new Set(t.columns.map((c) => c.name));
-    for (const p of t.pk) if (!names.has(p)) throw new Error(`${input.id}: ${t.name} primary key column ${p} missing`);
-    for (const u of t.uniques) for (const c of u) if (!names.has(c)) throw new Error(`${input.id}: ${t.name} unique column ${c} missing`);
-    for (const ix of t.indexes) for (const c of ix.cols) if (!names.has(c)) throw new Error(`${input.id}: ${t.name} index column ${c} missing`);
-    if (!t.gen && !t.all && !t.rows) throw new Error(`${input.id}: ${t.name} has no row generator`);
+    for (const p of t.pk)
+      if (!names.has(p))
+        throw new Error(
+          `${input.id}: ${t.name} primary key column ${p} missing`,
+        );
+    for (const u of t.uniques)
+      for (const c of u)
+        if (!names.has(c))
+          throw new Error(`${input.id}: ${t.name} unique column ${c} missing`);
+    for (const ix of t.indexes)
+      for (const c of ix.cols)
+        if (!names.has(c))
+          throw new Error(`${input.id}: ${t.name} index column ${c} missing`);
+    if (!t.gen && !t.all && !t.rows)
+      throw new Error(`${input.id}: ${t.name} has no row generator`);
   }
   const order: string[] = [];
   const state = new Map<string, number>();
   const visit = (name: string, trail: string[]) => {
     const s = state.get(name);
     if (s === 2) return;
-    if (s === 1) throw new Error(`${input.id}: foreign key cycle ${[...trail, name].join(" -> ")}`);
+    if (s === 1)
+      throw new Error(
+        `${input.id}: foreign key cycle ${[...trail, name].join(" -> ")}`,
+      );
     state.set(name, 1);
     const t = byName.get(name)!;
-    for (const c of t.columns) if (c.ref && c.ref.table !== name) visit(c.ref.table, [...trail, name]);
+    for (const c of t.columns)
+      if (c.ref && c.ref.table !== name) visit(c.ref.table, [...trail, name]);
     for (const u of t.uses) {
-      if (!byName.has(u)) throw new Error(`${input.id}: ${name} uses unknown table ${u}`);
+      if (!byName.has(u))
+        throw new Error(`${input.id}: ${name} uses unknown table ${u}`);
       if (u !== name) visit(u, [...trail, name]);
     }
     state.set(name, 2);
@@ -363,7 +450,11 @@ export function dataset(input: DatasetInput): DatasetDef {
 }
 
 /** Evaluates a table's `Count` specification for a given `Scale` tier and parent count lookup function. */
-export function resolveCount(t: TableDef, scale: Scale, n: (table: string) => number): number {
+export function resolveCount(
+  t: TableDef,
+  scale: Scale,
+  n: (table: string) => number,
+): number {
   const c = t.count;
   if (typeof c === "number") return c;
   if (Array.isArray(c)) return c[SCALES.indexOf(scale)]!;
@@ -371,14 +462,21 @@ export function resolveCount(t: TableDef, scale: Scale, n: (table: string) => nu
 }
 
 /** Exact row counts per table for a scale (dependency order, no data generated). */
-export function tableCounts(ds: DatasetDef, scale: Scale): Record<string, number> {
+export function tableCounts(
+  ds: DatasetDef,
+  scale: Scale,
+): Record<string, number> {
   const out: Record<string, number> = {};
   const byName = new Map(ds.tables.map((t) => [t.name, t]));
-  for (const name of ds.order) out[name] = resolveCount(byName.get(name)!, scale, (x) => {
-    const v = out[x];
-    if (v === undefined) throw new Error(`${ds.id}: count of ${name} needs ${x} which is not ready`);
-    return v;
-  });
+  for (const name of ds.order)
+    out[name] = resolveCount(byName.get(name)!, scale, (x) => {
+      const v = out[x];
+      if (v === undefined)
+        throw new Error(
+          `${ds.id}: count of ${name} needs ${x} which is not ready`,
+        );
+      return v;
+    });
   return out;
 }
 

@@ -23,9 +23,22 @@ export const MAX_ENTRIES = 200;
 export const MAX_ITEMS = 200;
 const FILE_KINDS = ["copy", "move", "rename", "delete", "mixed"] as const;
 type FileOpKind = (typeof FILE_KINDS)[number];
-const STATES = ["waiting", "running", "done", "failed", "cancelled", "interrupted"] as const;
+const STATES = [
+  "waiting",
+  "running",
+  "done",
+  "failed",
+  "cancelled",
+  "interrupted",
+] as const;
 type HistoryState = (typeof STATES)[number];
-const ITEM_STATES: readonly StepState[] = ["waiting", "running", "done", "failed", "skipped"];
+const ITEM_STATES: readonly StepState[] = [
+  "waiting",
+  "running",
+  "done",
+  "failed",
+  "skipped",
+];
 
 /** Per-item record within a persisted file operation history entry. */
 export interface HistoryItem {
@@ -58,21 +71,39 @@ export interface HistoryEntry {
 }
 
 /** Type guard checking whether a job `kind` string is one of the tracked file operation kinds (`copy`, `move`, `rename`, `delete`, `mixed`). */
-export const isFileOp = (kind: string): kind is FileOpKind => (FILE_KINDS as readonly string[]).includes(kind);
+export const isFileOp = (kind: string): kind is FileOpKind =>
+  (FILE_KINDS as readonly string[]).includes(kind);
 
-const text = (v: unknown, max: number): string => (typeof v === "string" ? v.replace(/\0/g, "").slice(0, max) : "");
-const count = (v: unknown): number => (typeof v === "number" && isFinite(v) && v >= 0 ? Math.floor(v) : 0);
-const oneOf = <T extends string>(v: unknown, allowed: readonly T[], fallback: T): T => (allowed.includes(v as T) ? (v as T) : fallback);
+const text = (v: unknown, max: number): string =>
+  typeof v === "string" ? v.replace(/\0/g, "").slice(0, max) : "";
+const count = (v: unknown): number =>
+  typeof v === "number" && isFinite(v) && v >= 0 ? Math.floor(v) : 0;
+const oneOf = <T extends string>(
+  v: unknown,
+  allowed: readonly T[],
+  fallback: T,
+): T => (allowed.includes(v as T) ? (v as T) : fallback);
 
 function sanitizeEntry(raw: unknown): HistoryEntry | null {
-  const r = (raw && typeof raw === "object" ? raw : null) as Record<string, any> | null;
-  if (!r || typeof r.id !== "string" || !/^[a-f0-9]{4,32}$/.test(r.id) || !isFileOp(String(r.kind))) return null;
+  const r = (raw && typeof raw === "object" ? raw : null) as Record<
+    string,
+    any
+  > | null;
+  if (
+    !r ||
+    typeof r.id !== "string" ||
+    !/^[a-f0-9]{4,32}$/.test(r.id) ||
+    !isFileOp(String(r.kind))
+  )
+    return null;
   const items: HistoryItem[] = [];
   for (const i of Array.isArray(r.items) ? r.items : []) {
-    if (!i || typeof i.source !== "string" || items.length >= MAX_ITEMS) continue;
+    if (!i || typeof i.source !== "string" || items.length >= MAX_ITEMS)
+      continue;
     items.push({
       source: text(i.source, 4096),
-      destination: typeof i.destination === "string" ? text(i.destination, 4096) : null,
+      destination:
+        typeof i.destination === "string" ? text(i.destination, 4096) : null,
       state: oneOf(i.state, ITEM_STATES, "waiting"),
       message: text(i.message, 600),
     });
@@ -83,13 +114,19 @@ function sanitizeEntry(raw: unknown): HistoryEntry | null {
     title: text(r.title, 200),
     state: oneOf(r.state, STATES, "interrupted"),
     startedAt: count(r.startedAt),
-    finishedAt: r.finishedAt === null || r.finishedAt === undefined ? null : count(r.finishedAt),
+    finishedAt:
+      r.finishedAt === null || r.finishedAt === undefined
+        ? null
+        : count(r.finishedAt),
     done: count(r.done),
     failed: count(r.failed),
     skipped: count(r.skipped),
     total: count(r.total),
     bytesDone: count(r.bytesDone),
-    bytesTotal: r.bytesTotal === null || r.bytesTotal === undefined ? null : count(r.bytesTotal),
+    bytesTotal:
+      r.bytesTotal === null || r.bytesTotal === undefined
+        ? null
+        : count(r.bytesTotal),
     items,
     itemsOmitted: count(r.itemsOmitted),
     retryOf: typeof r.retryOf === "string" ? r.retryOf.slice(0, 32) : null,
@@ -97,16 +134,25 @@ function sanitizeEntry(raw: unknown): HistoryEntry | null {
 }
 
 /** Returns the absolute path to the `file_operations.json` history file inside `ctx.dataDir`. */
-export const historyFile = (ctx: Pick<FmContext, "dataDir">) => nodePath.join(ctx.dataDir, "file_operations.json");
+export const historyFile = (ctx: Pick<FmContext, "dataDir">) =>
+  nodePath.join(ctx.dataDir, "file_operations.json");
 
-async function readEntries(ctx: Pick<FmContext, "dataDir">): Promise<HistoryEntry[]> {
+async function readEntries(
+  ctx: Pick<FmContext, "dataDir">,
+): Promise<HistoryEntry[]> {
   let raw: unknown;
   try {
     raw = JSON.parse(await fsp.readFile(historyFile(ctx), "utf8"));
   } catch {
     return [];
   }
-  const list = raw && typeof raw === "object" && (raw as any).version === HISTORY_VERSION && Array.isArray((raw as any).entries) ? ((raw as any).entries as unknown[]) : [];
+  const list =
+    raw &&
+    typeof raw === "object" &&
+    (raw as any).version === HISTORY_VERSION &&
+    Array.isArray((raw as any).entries)
+      ? ((raw as any).entries as unknown[])
+      : [];
   const entries: HistoryEntry[] = [];
   for (const e of list) {
     const entry = sanitizeEntry(e);
@@ -116,14 +162,22 @@ async function readEntries(ctx: Pick<FmContext, "dataDir">): Promise<HistoryEntr
 }
 
 /** Reads the history. Entries still marked running or waiting that are not in `live` belong to an earlier run of the app and are shown as interrupted. */
-export async function loadHistory(ctx: Pick<FmContext, "dataDir">, live: ReadonlySet<string> = new Set()): Promise<HistoryEntry[]> {
+export async function loadHistory(
+  ctx: Pick<FmContext, "dataDir">,
+  live: ReadonlySet<string> = new Set(),
+): Promise<HistoryEntry[]> {
   const entries = await readEntries(ctx);
   for (const entry of entries) {
-    if ((entry.state === "running" || entry.state === "waiting") && !live.has(entry.id)) {
+    if (
+      (entry.state === "running" || entry.state === "waiting") &&
+      !live.has(entry.id)
+    ) {
       entry.state = "interrupted";
       for (const item of entry.items) {
         if (item.state === "running" || item.state === "waiting") {
-          item.message = item.message || "The app closed before this was finished. Check whether it was changed.";
+          item.message =
+            item.message ||
+            "The app closed before this was finished. Check whether it was changed.";
         }
       }
     }
@@ -143,7 +197,14 @@ export function entryFromJob(view: JobView): HistoryEntry {
     id: view.id,
     kind: view.kind as FileOpKind,
     title: text(view.title, 200),
-    state: view.state === "waiting" || view.state === "running" || view.state === "done" || view.state === "failed" || view.state === "cancelled" ? view.state : "failed",
+    state:
+      view.state === "waiting" ||
+      view.state === "running" ||
+      view.state === "done" ||
+      view.state === "failed" ||
+      view.state === "cancelled"
+        ? view.state
+        : "failed",
     startedAt: view.startedAt,
     finishedAt: view.finishedAt,
     done: view.done,
@@ -161,24 +222,40 @@ export function entryFromJob(view: JobView): HistoryEntry {
 const queues = new Map<string, Promise<unknown>>();
 
 /** Adds or replaces one entry. Writes for the same file are done one at a time, each through a temporary file. */
-export async function recordEntry(ctx: Pick<FmContext, "dataDir">, entry: HistoryEntry): Promise<void> {
+export async function recordEntry(
+  ctx: Pick<FmContext, "dataDir">,
+  entry: HistoryEntry,
+): Promise<void> {
   const file = historyFile(ctx);
   const run = async () => {
     const all = (await readEntries(ctx)).filter((e) => e.id !== entry.id);
     all.push(entry);
     await fsp.mkdir(ctx.dataDir, { recursive: true });
     const tmp = `${file}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`;
-    await fsp.writeFile(tmp, JSON.stringify({ version: HISTORY_VERSION, entries: all.slice(-MAX_ENTRIES) }, null, 2), { mode: 0o600 });
+    await fsp.writeFile(
+      tmp,
+      JSON.stringify(
+        { version: HISTORY_VERSION, entries: all.slice(-MAX_ENTRIES) },
+        null,
+        2,
+      ),
+      { mode: 0o600 },
+    );
     await fsp.rename(tmp, file);
   };
   const previous = queues.get(file) ?? Promise.resolve();
   const next = previous.then(run, run);
-  queues.set(file, next.catch(() => {}));
+  queues.set(
+    file,
+    next.catch(() => {}),
+  );
   return next;
 }
 
 /** Forgets every recorded operation. This only clears the list; no file is touched. */
-export async function clearHistory(ctx: Pick<FmContext, "dataDir">): Promise<number> {
+export async function clearHistory(
+  ctx: Pick<FmContext, "dataDir">,
+): Promise<number> {
   const removed = (await readEntries(ctx)).length;
   const file = historyFile(ctx);
   const run = async () => {
@@ -186,7 +263,10 @@ export async function clearHistory(ctx: Pick<FmContext, "dataDir">): Promise<num
   };
   const previous = queues.get(file) ?? Promise.resolve();
   const next = previous.then(run, run);
-  queues.set(file, next.catch(() => {}));
+  queues.set(
+    file,
+    next.catch(() => {}),
+  );
   await next;
   return removed;
 }
@@ -194,7 +274,9 @@ export async function clearHistory(ctx: Pick<FmContext, "dataDir">): Promise<num
 /** The hooks that make the job hub write file operations to the history. */
 export function historyHooks(ctx: Pick<FmContext, "dataDir">): JobHooks {
   return {
-    onStart: (view) => (isFileOp(view.kind) ? recordEntry(ctx, entryFromJob(view)) : undefined),
-    onFinish: (view) => (isFileOp(view.kind) ? recordEntry(ctx, entryFromJob(view)) : undefined),
+    onStart: (view) =>
+      isFileOp(view.kind) ? recordEntry(ctx, entryFromJob(view)) : undefined,
+    onFinish: (view) =>
+      isFileOp(view.kind) ? recordEntry(ctx, entryFromJob(view)) : undefined,
   };
 }

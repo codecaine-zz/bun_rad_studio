@@ -2,11 +2,18 @@ import { spawn } from "child_process";
 import { writeFileSync, copyFileSync, existsSync, mkdirSync } from "fs";
 import { join } from "path";
 import { startMysqlStudioServer } from "../applications/mysql_studio_server.ts";
-import { startMysql, seedShop, stopMysql, MYSQL_PORT } from "./lib/mysql_tutorial_env.ts";
+import {
+  startMysql,
+  seedShop,
+  stopMysql,
+  MYSQL_PORT,
+} from "./lib/mysql_tutorial_env.ts";
 
-const CHROME_BIN = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const CHROME_BIN =
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const PORT = 9225;
-const BRAIN_DIR = "/Users/codecaine/.gemini/antigravity-ide/brain/4205c847-f2cc-4335-96b0-60138148d8af";
+const BRAIN_DIR =
+  "/Users/codecaine/.gemini/antigravity-ide/brain/4205c847-f2cc-4335-96b0-60138148d8af";
 const SCREENSHOTS_DIR = join(process.cwd(), "screenshots", "apps");
 mkdirSync(SCREENSHOTS_DIR, { recursive: true });
 
@@ -33,7 +40,9 @@ async function main() {
   const serverUrl = `http://127.0.0.1:${server.port}/`;
   console.log("MySQL Studio running at:", serverUrl);
 
-  console.log("Launching Headless Chrome with Remote Debugging on port " + PORT);
+  console.log(
+    "Launching Headless Chrome with Remote Debugging on port " + PORT,
+  );
   const chromeProc = spawn(CHROME_BIN, [
     "--headless=new",
     "--disable-gpu",
@@ -67,8 +76,13 @@ async function main() {
   console.log("Connected to Chrome:", wsUrl);
 
   // Create new target
-  const newPageRes = await fetch(`http://127.0.0.1:${PORT}/json/new?${encodeURIComponent(serverUrl)}`, { method: "PUT" });
-  const pageData = (await newPageRes.json()) as { webSocketDebuggerUrl: string };
+  const newPageRes = await fetch(
+    `http://127.0.0.1:${PORT}/json/new?${encodeURIComponent(serverUrl)}`,
+    { method: "PUT" },
+  );
+  const pageData = (await newPageRes.json()) as {
+    webSocketDebuggerUrl: string;
+  };
   const pageWsUrl = pageData.webSocketDebuggerUrl;
 
   const ws = new WebSocket(pageWsUrl);
@@ -224,7 +238,9 @@ async function main() {
   chromeProc.kill();
   server.stop(true);
   await stopMysql();
-  console.log("🎉 All MySQL Studio visual verification screenshots captured successfully!");
+  console.log(
+    "🎉 All MySQL Studio visual verification screenshots captured successfully!",
+  );
   process.exit(0);
 }
 

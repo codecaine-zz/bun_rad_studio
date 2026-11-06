@@ -13,7 +13,8 @@ const HINT_MS = 10_000;
 /** What was found out about folders (do they hold PHP?), so the right-click menu can say so without waiting. */
 const hints = new Map();
 
-const errorText = (err, fallback) => (err instanceof ApiError ? err.message : fallback);
+const errorText = (err, fallback) =>
+  err instanceof ApiError ? err.message : fallback;
 const pageUrl = (name) => `/${encodeURIComponent(name)}`;
 
 /** Finds out, in the background, what is in a folder. Called when the pointer rests on a folder or one is selected. */
@@ -21,10 +22,31 @@ export function primeHint(path) {
   if (typeof document === "undefined" || !path) return;
   const known = hints.get(path);
   if (known && Date.now() - known.at < HINT_MS) return;
-  hints.set(path, { at: Date.now(), php: known?.php ?? false, blocked: known?.blocked ?? false, done: known?.done ?? false });
+  hints.set(path, {
+    at: Date.now(),
+    php: known?.php ?? false,
+    blocked: known?.blocked ?? false,
+    done: known?.done ?? false,
+  });
   call("serve/detect", { path }).then(
-    (r) => hints.set(path, { at: Date.now(), php: !!(r.hasPhp || r.framework), blocked: false, done: true }),
-    (err) => hints.set(path, { at: Date.now(), php: false, blocked: err instanceof ApiError && ["PROTECTED", "NOT_FOUND", "NOT_A_FOLDER", "BAD_PATH"].includes(err.code), done: true }),
+    (r) =>
+      hints.set(path, {
+        at: Date.now(),
+        php: !!(r.hasPhp || r.framework),
+        blocked: false,
+        done: true,
+      }),
+    (err) =>
+      hints.set(path, {
+        at: Date.now(),
+        php: false,
+        blocked:
+          err instanceof ApiError &&
+          ["PROTECTED", "NOT_FOUND", "NOT_A_FOLDER", "BAD_PATH"].includes(
+            err.code,
+          ),
+        done: true,
+      }),
   );
 }
 
@@ -36,22 +58,42 @@ export async function startServer(body, { onError } = {}) {
   const report = onError ?? ((message) => toast(message, { kind: "error" }));
   if (body.lan) {
     const ok = await confirmBox({
-      title: "Let other devices on your network see this?", confirmLabel: "Start for my network", danger: true,
-      message: "Anyone on the same Wi-Fi or network can open this server and read every file in the folder while it runs. Only do this on a network you trust. It is meant for trying your work on a phone or another computer.",
-      details: [`Folder: ${body.root}`, body.kind === "php" ? "PHP's built-in server is for development only and isn't safe on a network." : "The files are shown read-only."],
+      title: "Let other devices on your network see this?",
+      confirmLabel: "Start for my network",
+      danger: true,
+      message:
+        "Anyone on the same Wi-Fi or network can open this server and read every file in the folder while it runs. Only do this on a network you trust. It is meant for trying your work on a phone or another computer.",
+      details: [
+        `Folder: ${body.root}`,
+        body.kind === "php"
+          ? "PHP's built-in server is for development only and isn't safe on a network."
+          : "The files are shown read-only.",
+      ],
     });
     if (!ok) return null;
   }
   try {
     const r = await call("serve/start", body);
     await refreshServers();
-    toast(`${r.server.kind === "php" ? "PHP" : "Live"} server started at ${r.server.url}`, { kind: "success", action: { label: "Open", run: () => openServer(r.server.id) } });
+    toast(
+      `${r.server.kind === "php" ? "PHP" : "Live"} server started at ${r.server.url}`,
+      {
+        kind: "success",
+        action: { label: "Open", run: () => openServer(r.server.id) },
+      },
+    );
     if (r.openError) toast(r.openError, { kind: "error" });
     return r.server;
   } catch (err) {
-    if (err instanceof ApiError && err.code === "ALREADY_RUNNING" && err.details?.server) {
+    if (
+      err instanceof ApiError &&
+      err.code === "ALREADY_RUNNING" &&
+      err.details?.server
+    ) {
       await refreshServers();
-      toast(err.message, { action: { label: "Open", run: () => openServer(err.details.server.id) } });
+      toast(err.message, {
+        action: { label: "Open", run: () => openServer(err.details.server.id) },
+      });
       return err.details.server;
     }
     report(errorText(err, "The server couldn't be started."));
@@ -64,7 +106,10 @@ export async function stopServer(id) {
     await call("serve/stop", { id });
     toast("Server stopped.", { kind: "success" });
   } catch (err) {
-    if (!(err instanceof ApiError && err.code === "NOT_FOUND")) toast(errorText(err, "The server couldn't be stopped."), { kind: "error" });
+    if (!(err instanceof ApiError && err.code === "NOT_FOUND"))
+      toast(errorText(err, "The server couldn't be stopped."), {
+        kind: "error",
+      });
   }
   await refreshServers();
 }
@@ -92,7 +137,9 @@ export async function startHere(path, kind) {
     try {
       docroot = (await call("serve/detect", { path })).suggestedDocroot ?? "";
     } catch (err) {
-      toast(errorText(err, "That folder couldn't be checked."), { kind: "error" });
+      toast(errorText(err, "That folder couldn't be checked."), {
+        kind: "error",
+      });
       return null;
     }
   }
@@ -105,7 +152,12 @@ export async function openWithLiveServer(entry) {
   if (!folder) return null;
   let server = serverFor(folder, "static");
   if (!server) {
-    server = await startServer({ root: folder, kind: "static", ...quickOptions(), openBrowser: false });
+    server = await startServer({
+      root: folder,
+      kind: "static",
+      ...quickOptions(),
+      openBrowser: false,
+    });
     if (!server) return null;
   }
   await openServer(server.id, pageUrl(baseName(entry.path, state.sep)));
@@ -122,10 +174,28 @@ export function folderServeItems(path) {
   const php = serverFor(path, "php");
   return [
     live
-      ? { label: "Stop live server", icon: "⏹️", action: () => stopServer(live.id) }
-      : { label: "Start live server here", icon: "🌐", action: () => startHere(path, "static") },
+      ? {
+          label: "Stop live server",
+          icon: "⏹️",
+          action: () => stopServer(live.id),
+        }
+      : {
+          label: "Start live server here",
+          icon: "🌐",
+          action: () => startHere(path, "static"),
+        },
     php || hint?.php
-      ? (php ? { label: "Stop PHP server", icon: "⏹️", action: () => stopServer(php.id) } : { label: "Start PHP server here", icon: "🐘", action: () => startHere(path, "php") })
+      ? php
+        ? {
+            label: "Stop PHP server",
+            icon: "⏹️",
+            action: () => stopServer(php.id),
+          }
+        : {
+            label: "Start PHP server here",
+            icon: "🐘",
+            action: () => startHere(path, "php"),
+          }
       : null,
   ].filter(Boolean);
 }
@@ -134,7 +204,14 @@ export function serveMenuItems(entries) {
   if (entries.length !== 1) return [];
   const e = entries[0];
   if (e.isDir) return folderServeItems(e.path);
-  if (/\.html?$/i.test(e.name)) return [{ label: "Open with live server", icon: "🌐", action: () => openWithLiveServer(e) }];
+  if (/\.html?$/i.test(e.name))
+    return [
+      {
+        label: "Open with live server",
+        icon: "🌐",
+        action: () => openWithLiveServer(e),
+      },
+    ];
   return [];
 }
 

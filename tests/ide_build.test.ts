@@ -1,8 +1,20 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { OUTPUT, PARTS_DIR, buildIdeHtml, listParts, main } from "../scripts/build_ide.ts";
+import {
+  OUTPUT,
+  PARTS_DIR,
+  buildIdeHtml,
+  listParts,
+  main,
+} from "../scripts/build_ide.ts";
 import { getIdeHtml } from "../index.ts";
 
 const lf = (s: string) => s.replace(/\r\n/g, "\n");
@@ -27,31 +39,40 @@ describe("The designer page is built from src/ide/", () => {
     expect(numbers).toEqual([...numbers].sort((a, b) => a - b));
     expect(parts[0]).toMatch(/^00_head/);
     expect(parts.at(-1)).toMatch(/^\d+_end\.html$/);
-    expect(parts.indexOf("100_selection.js")).toBeGreaterThan(parts.indexOf("20_keyboard_and_dialogs.js"));
+    expect(parts.indexOf("100_selection.js")).toBeGreaterThan(
+      parts.indexOf("20_keyboard_and_dialogs.js"),
+    );
     const html = lf(buildIdeHtml());
     expect(html.trimEnd().endsWith("</html>")).toBe(true);
-    expect(html.indexOf("</script>\n</body>")).toBeGreaterThan(html.indexOf("function triggerRunForm"));
+    expect(html.indexOf("</script>\n</body>")).toBeGreaterThan(
+      html.indexOf("function triggerRunForm"),
+    );
   });
 
   test("the script parts join into one script that parses", () => {
     const html = lf(buildIdeHtml());
     const start = html.indexOf("\t<script>\n") + "\t<script>\n".length;
     const script = html.slice(start, html.lastIndexOf("\t</script>"));
-    expect(() => new Bun.Transpiler({ loader: "js" }).transformSync(script)).not.toThrow();
+    expect(() =>
+      new Bun.Transpiler({ loader: "js" }).transformSync(script),
+    ).not.toThrow();
   });
 
   test("every part is non-empty and a script part never contains a closing script tag", () => {
     for (const name of listParts()) {
       const text = readFileSync(join(PARTS_DIR, name), "utf8");
       expect(text.length, name).toBeGreaterThan(0);
-      if (name.endsWith(".js")) expect(text.toLowerCase(), name).not.toContain("</script>");
+      if (name.endsWith(".js"))
+        expect(text.toLowerCase(), name).not.toContain("</script>");
     }
   });
 });
 
 describe("scripts/build_ide.ts", () => {
   const dirs: string[] = [];
-  afterAll(() => dirs.forEach((d) => rmSync(d, { recursive: true, force: true })));
+  afterAll(() =>
+    dirs.forEach((d) => rmSync(d, { recursive: true, force: true })),
+  );
   const temp = () => {
     const d = mkdtempSync(join(tmpdir(), "ide-parts-"));
     dirs.push(d);
@@ -60,8 +81,21 @@ describe("scripts/build_ide.ts", () => {
 
   test("listParts sorts by number, not alphabetically", () => {
     const d = temp();
-    for (const n of ["100_c.js", "20_b.js", "05_a.html", "999_end.html", "99_x.js"]) writeFileSync(join(d, n), "x");
-    expect(listParts(d)).toEqual(["05_a.html", "20_b.js", "99_x.js", "100_c.js", "999_end.html"]);
+    for (const n of [
+      "100_c.js",
+      "20_b.js",
+      "05_a.html",
+      "999_end.html",
+      "99_x.js",
+    ])
+      writeFileSync(join(d, n), "x");
+    expect(listParts(d)).toEqual([
+      "05_a.html",
+      "20_b.js",
+      "99_x.js",
+      "100_c.js",
+      "999_end.html",
+    ]);
   });
 
   test("a stray or badly named file, or a repeated number, is an error", () => {

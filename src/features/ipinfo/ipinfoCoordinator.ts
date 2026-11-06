@@ -25,7 +25,7 @@ import {
  */
 export async function queryIp(
   target?: string,
-  token?: string
+  token?: string,
 ): Promise<IpInfoResult> {
   const { ip, domain } = await resolveTargetToIp(target);
   const data = await fetchIpDetails(ip, token);
@@ -43,17 +43,23 @@ export async function queryIp(
  * Executes the requested IPInfo workflow (local interfaces, CIDR math, bulk lookup, or single IP query)
  * and formats the output according to the provided CLI options.
  */
-export async function runIpInfoCoordinator(options: IpInfoOptions): Promise<string> {
+export async function runIpInfoCoordinator(
+  options: IpInfoOptions,
+): Promise<string> {
   const token = options.token ?? process.env.IPINFO_TOKEN;
 
   if (options.local) {
     const ifaces = getLocalInterfaces();
-    return options.json ? JSON.stringify(ifaces, null, 2) : formatLocalInterfaces(ifaces);
+    return options.json
+      ? JSON.stringify(ifaces, null, 2)
+      : formatLocalInterfaces(ifaces);
   }
 
   if (options.targetIp && isCidr(options.targetIp)) {
     const subnet = calculateSubnet(options.targetIp);
-    return options.json ? JSON.stringify(subnet, null, 2) : formatSubnetInfo(subnet);
+    return options.json
+      ? JSON.stringify(subnet, null, 2)
+      : formatSubnetInfo(subnet);
   }
 
   if (options.bulkFile) {

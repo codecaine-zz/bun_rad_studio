@@ -1,7 +1,18 @@
-import { afterAll, afterEach, beforeEach, describe, expect, test } from "bun:test";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "bun:test";
 import { createServer, type Server } from "net";
 import { dbComputer, type DbComputer } from "./helpers/db_fm";
-import { isLocalDefaultRedis, localRedisConnection, probeLocalRedis } from "../src/features/filemanager/fmDbLocal";
+import {
+  isLocalDefaultRedis,
+  localRedisConnection,
+  probeLocalRedis,
+} from "../src/features/filemanager/fmDbLocal";
 
 const computers: DbComputer[] = [];
 const computer = (o: Parameters<typeof dbComputer>[0] = {}) => {
@@ -14,7 +25,9 @@ afterAll(() => computers.forEach((c) => c.remove()));
 function fakeRedis(reply: string): Promise<{ port: number; server: Server }> {
   return new Promise((resolve) => {
     const server = createServer((s) => s.on("data", () => s.end(reply)));
-    server.listen(0, "127.0.0.1", () => resolve({ port: (server.address() as any).port, server }));
+    server.listen(0, "127.0.0.1", () =>
+      resolve({ port: (server.address() as any).port, server }),
+    );
   });
 }
 
@@ -22,8 +35,14 @@ function fakeRedis(reply: string): Promise<{ port: number; server: Server }> {
 const OFF = "BUN_RAD_FM_LOCAL_REDIS";
 let before: string | undefined;
 // Other test files switch the check off for themselves; these tests need it on and put it back afterwards.
-const enable = () => { before = process.env[OFF]; delete process.env[OFF]; };
-const restore = () => { if (before === undefined) delete process.env[OFF]; else process.env[OFF] = before; };
+const enable = () => {
+  before = process.env[OFF];
+  delete process.env[OFF];
+};
+const restore = () => {
+  if (before === undefined) delete process.env[OFF];
+  else process.env[OFF] = before;
+};
 enable();
 const live = (await probeLocalRedis()) === "open";
 restore();
@@ -60,37 +79,66 @@ describe("the Redis server on this computer's usual address", () => {
     expect(c.password).toBeUndefined();
     expect(c.warnings).toEqual([]);
     expect(localRedisConnection("password").warnings.length).toBe(1);
-    expect(isLocalDefaultRedis({ engine: "redis", host: "localhost", port: 6379 })).toBe(true);
-    expect(isLocalDefaultRedis({ engine: "redis", host: "127.0.0.1" })).toBe(true);
-    expect(isLocalDefaultRedis({ engine: "redis", host: "cache.example", port: 6379 })).toBe(false);
-    expect(isLocalDefaultRedis({ engine: "redis", host: "localhost", port: 6380 })).toBe(false);
-    expect(isLocalDefaultRedis({ engine: "mysql", host: "localhost", port: 6379 })).toBe(false);
+    expect(
+      isLocalDefaultRedis({ engine: "redis", host: "localhost", port: 6379 }),
+    ).toBe(true);
+    expect(isLocalDefaultRedis({ engine: "redis", host: "127.0.0.1" })).toBe(
+      true,
+    );
+    expect(
+      isLocalDefaultRedis({
+        engine: "redis",
+        host: "cache.example",
+        port: 6379,
+      }),
+    ).toBe(false);
+    expect(
+      isLocalDefaultRedis({ engine: "redis", host: "localhost", port: 6380 }),
+    ).toBe(false);
+    expect(
+      isLocalDefaultRedis({ engine: "mysql", host: "localhost", port: 6379 }),
+    ).toBe(false);
   });
 
-  (live ? test : test.skip)("a running local Redis is saved once, without a click, and is not added again after it is deleted", async () => {
-    const c = computer();
-    const first = await c.ok("db/detect", { quiet: true });
-    expect(first.autoSaved).toEqual([expect.objectContaining({ engine: "redis", local: true })]);
-    const overview = await c.ok("db/overview");
-    const redis = overview.profiles.filter((p: any) => p.engine === "redis");
-    expect(redis).toHaveLength(1);
-    expect(redis[0]).toMatchObject({ host: "127.0.0.1", port: 6379, hasPassword: false, meta: { source: "local" } });
+  (live ? test : test.skip)(
+    "a running local Redis is saved once, without a click, and is not added again after it is deleted",
+    async () => {
+      const c = computer();
+      const first = await c.ok("db/detect", { quiet: true });
+      expect(first.autoSaved).toEqual([
+        expect.objectContaining({ engine: "redis", local: true }),
+      ]);
+      const overview = await c.ok("db/overview");
+      const redis = overview.profiles.filter((p: any) => p.engine === "redis");
+      expect(redis).toHaveLength(1);
+      expect(redis[0]).toMatchObject({
+        host: "127.0.0.1",
+        port: 6379,
+        hasPassword: false,
+        meta: { source: "local" },
+      });
 
-    const again = await c.ok("db/detect", { quiet: true });
-    expect(again.autoSaved).toEqual([]);
+      const again = await c.ok("db/detect", { quiet: true });
+      expect(again.autoSaved).toEqual([]);
 
-    await c.ok("db/profile/delete", { id: redis[0].id, confirm: true });
-    const afterDelete = await c.ok("db/detect", { quiet: true });
-    expect(afterDelete.autoSaved).toEqual([]);
-    const manual = await c.ok("db/detect", { manual: true });
-    expect(manual.cards.find((x: any) => x.engine === "redis")?.status).toBe("dismissed");
-  });
+      await c.ok("db/profile/delete", { id: redis[0].id, confirm: true });
+      const afterDelete = await c.ok("db/detect", { quiet: true });
+      expect(afterDelete.autoSaved).toEqual([]);
+      const manual = await c.ok("db/detect", { manual: true });
+      expect(manual.cards.find((x: any) => x.engine === "redis")?.status).toBe(
+        "dismissed",
+      );
+    },
+  );
 
-  (live ? test : test.skip)("a Redis set up in the environment is used instead of probing", async () => {
-    const c = computer({ env: { REDIS_HOST: "cache.example" } });
-    const res = await c.ok("db/detect", { manual: true });
-    const redis = res.cards.filter((x: any) => x.engine === "redis");
-    expect(redis).toHaveLength(1);
-    expect(redis[0].fields.host.value).toBe("cache.example");
-  });
+  (live ? test : test.skip)(
+    "a Redis set up in the environment is used instead of probing",
+    async () => {
+      const c = computer({ env: { REDIS_HOST: "cache.example" } });
+      const res = await c.ok("db/detect", { manual: true });
+      const redis = res.cards.filter((x: any) => x.engine === "redis");
+      expect(redis).toHaveLength(1);
+      expect(redis[0].fields.host.value).toBe("cache.example");
+    },
+  );
 });

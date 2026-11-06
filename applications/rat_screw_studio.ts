@@ -1,7 +1,7 @@
 import { injectGameMasterFx } from "../src/shared/gameMasterFx";
 /**
  * 🎴 Egyptian Rat Screw Royale — Deluxe Reflex Card Studio
- * 
+ *
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
  * - Authentic, high-speed reflex card slapper based on official Egyptian Rat Screw / Ratslap rules
@@ -80,7 +80,9 @@ export function generateRatScrewStudioHtml(): string {
   const assetsDir = getRatScrewAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Egyptian Rat Screw Royale</h1>";
+  let html = existsSync(indexPath)
+    ? readFileSync(indexPath, "utf8")
+    : "<h1>Egyptian Rat Screw Royale</h1>";
 
   const storagePolyfill = `
   <script>
@@ -152,7 +154,13 @@ ${getWindowShortcutsScript()}
  */
 export function startRatScrewServer(options: RatScrewServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "rat_screw_studio", name: "Codecaine Egyptian Rat Screw Royale", version: "1.0.0", assetsDir: getRatScrewAssetsDir(), generateHtml: generateRatScrewStudioHtml },
+    {
+      app: "rat_screw_studio",
+      name: "Codecaine Egyptian Rat Screw Royale",
+      version: "1.0.0",
+      assetsDir: getRatScrewAssetsDir(),
+      generateHtml: generateRatScrewStudioHtml,
+    },
     options,
   );
 }
@@ -160,12 +168,15 @@ export function startRatScrewServer(options: RatScrewServerOptions = {}) {
 /**
  * Creates the complete native desktop instance of Egyptian Rat Screw Royale.
  */
-export function createRatScrewStudio(options: RatScrewStudioOptions = {}): RatScrewStudioInstance {
+export function createRatScrewStudio(
+  options: RatScrewStudioOptions = {},
+): RatScrewStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1240);
   const height = options.height ?? (fullscreen ? screen.height : 860);
-  const title = "Codecaine Egyptian Rat Screw Royale — Deluxe Reflex Card Studio";
+  const title =
+    "Codecaine Egyptian Rat Screw Royale — Deluxe Reflex Card Studio";
 
   const app: RatScrewStudioInstance = {
     title,
@@ -192,7 +203,8 @@ export function createRatScrewStudio(options: RatScrewStudioOptions = {}): RatSc
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -212,11 +224,15 @@ export function createRatScrewStudio(options: RatScrewStudioOptions = {}): RatSc
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -227,16 +243,24 @@ export function createRatScrewStudio(options: RatScrewStudioOptions = {}): RatSc
 
         // Set HTML directly into Webview memory (bypasses macOS ATS network restrictions)
         webview.setHTML(html);
-        console.log(`⚡ Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`);
+        console.log(
+          `⚡ Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`,
+        );
 
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -255,7 +279,9 @@ if (import.meta.main) {
 
   if (serverOnly) {
     const srv = startRatScrewServer({ port, host: "127.0.0.1" });
-    console.log(`⚡ Egyptian Rat Screw server running at: http://127.0.0.1:${srv.port}/`);
+    console.log(
+      `⚡ Egyptian Rat Screw server running at: http://127.0.0.1:${srv.port}/`,
+    );
     await new Promise(() => {});
   } else {
     const app = createRatScrewStudio({ fullscreen, port });

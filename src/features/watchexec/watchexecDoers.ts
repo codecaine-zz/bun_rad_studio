@@ -13,7 +13,7 @@ import type { Subprocess } from "bun";
  */
 export function matchesExtension(
   filename: string,
-  extensions?: string[]
+  extensions?: string[],
 ): boolean {
   if (!extensions || extensions.length === 0) return true;
   const ext = extname(filename).replace(/^\./, "").toLowerCase();
@@ -25,7 +25,7 @@ export function matchesExtension(
  */
 export function shouldIgnore(
   filename: string,
-  ignorePatterns: string[]
+  ignorePatterns: string[],
 ): boolean {
   const normalized = filename.replace(/\\/g, "/");
   return ignorePatterns.some((pattern) => {
@@ -39,7 +39,9 @@ export function shouldIgnore(
  */
 export function matchesFilter(filename: string, filters?: string[]): boolean {
   if (!filters || filters.length === 0) return true;
-  return filters.some((f) => filename.includes(f) || new RegExp(f).test(filename));
+  return filters.some(
+    (f) => filename.includes(f) || new RegExp(f).test(filename),
+  );
 }
 
 /**
@@ -50,7 +52,7 @@ export function shouldTrigger(
   filename: string,
   extensions?: string[],
   ignorePatterns: string[] = [],
-  filters?: string[]
+  filters?: string[],
 ): boolean {
   if (!filename) return false;
   if (shouldIgnore(filename, ignorePatterns)) return false;
@@ -69,13 +71,18 @@ export function clearTerminal(): void {
  * Recursively terminates a process and all of its descendant child processes across
  * Windows (`taskkill /T /F`) and Unix (`pgrep -P` and process-group kill).
  */
-export function killProcessTree(pid: number, signal: NodeJS.Signals = "SIGTERM"): void {
+export function killProcessTree(
+  pid: number,
+  signal: NodeJS.Signals = "SIGTERM",
+): void {
   if (!pid || pid <= 0) return;
   const platform = os.platform();
 
   if (platform === "win32") {
     try {
-      spawnSync("taskkill", ["/pid", String(pid), "/T", "/F"], { stdio: "ignore" });
+      spawnSync("taskkill", ["/pid", String(pid), "/T", "/F"], {
+        stdio: "ignore",
+      });
     } catch {}
     return;
   }
@@ -132,7 +139,7 @@ export function killRunningProcess(proc: Subprocess | null): void {
  */
 export function buildWatchexecEnv(
   triggeredPath?: string,
-  watchPath?: string
+  watchPath?: string,
 ): Record<string, string> {
   const env: Record<string, string> = {};
   if (triggeredPath) {
@@ -149,7 +156,10 @@ export function buildWatchexecEnv(
  * Wraps `command` arguments in a shell invocation (`[shell, "-c", ...]`) when `shell` is specified,
  * or returns `command` unchanged for direct execution.
  */
-export function formatShellCommand(command: string[], shell?: string): string[] {
+export function formatShellCommand(
+  command: string[],
+  shell?: string,
+): string[] {
   if (!shell) return command;
   return [shell, "-c", command.join(" ")];
 }
@@ -159,7 +169,7 @@ export function formatShellCommand(command: string[], shell?: string): string[] 
  */
 export function spawnCommand(
   command: string[],
-  options?: { env?: Record<string, string>; shell?: string }
+  options?: { env?: Record<string, string>; shell?: string },
 ): Subprocess {
   if (command.length === 0) {
     throw new Error("[WatchexecSpawn] No command provided to execute.");
@@ -172,4 +182,3 @@ export function spawnCommand(
     env: { ...process.env, ...(options?.env ?? {}) },
   });
 }
-

@@ -222,9 +222,18 @@ export const STUDIO_POLISH_STYLE = `
 `;
 
 function studioPolishClient() {
-  if (window.StudioPolish || typeof document === "undefined" || typeof document.querySelector !== "function") return;
+  if (
+    window.StudioPolish ||
+    typeof document === "undefined" ||
+    typeof document.querySelector !== "function"
+  )
+    return;
   try {
-    const ua = ((navigator.userAgent || "") + " " + (navigator.platform || "")).replace(/like\s+android[^;)]*/gi, "");
+    const ua = (
+      (navigator.userAgent || "") +
+      " " +
+      (navigator.platform || "")
+    ).replace(/like\s+android[^;)]*/gi, "");
     if (/linux|x11|wayland|ubuntu/i.test(ua) && !/android/i.test(ua)) {
       document.documentElement.setAttribute("data-platform", "linux");
       document.documentElement.classList.add("rad-linux");
@@ -238,12 +247,16 @@ function studioPolishClient() {
   } catch (_) {}
 
   const NUM = /^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/;
-  const NUM_TYPE = /(int|serial|real|float|double|numeric|decimal|number|money|fixed)/i;
+  const NUM_TYPE =
+    /(int|serial|real|float|double|numeric|decimal|number|money|fixed)/i;
   const BOOL_TYPE = /^(bool|boolean)$|^tinyint\(1\)$|^bit\(1\)$/i;
   const DATE_TYPE = /(date|time|year)/i;
 
   function metaFor(id) {
-    const inst = window.StudioCols && window.StudioCols.instances && window.StudioCols.instances[id];
+    const inst =
+      window.StudioCols &&
+      window.StudioCols.instances &&
+      window.StudioCols.instances[id];
     return inst && inst.meta ? inst.meta : {};
   }
 
@@ -256,7 +269,11 @@ function studioPolishClient() {
       if (cells.length === 1 && !cells[0].dataset.col && !cells[0].dataset.sc) {
         const t = cells[0];
         t.dataset.sc = "1";
-        if (!t.classList.contains("crud-empty") && !/^\(0 columns\)$/.test(t.textContent.trim())) t.classList.add("sc-empty-cell");
+        if (
+          !t.classList.contains("crud-empty") &&
+          !/^\(0 columns\)$/.test(t.textContent.trim())
+        )
+          t.classList.add("sc-empty-cell");
         continue;
       }
       for (let c = 0; c < cells.length; c++) {
@@ -267,17 +284,35 @@ function studioPolishClient() {
         if (!col) continue;
         const text = td.textContent;
         const type = meta[col] && meta[col].type ? String(meta[col].type) : "";
-        const isNull = text === "NULL" && (td.classList.contains("cell-null") || /text-dim/.test(td.getAttribute("style") || ""));
+        const isNull =
+          text === "NULL" &&
+          (td.classList.contains("cell-null") ||
+            /text-dim/.test(td.getAttribute("style") || ""));
         if (isNull) {
           td.classList.add("sc-null");
-          if (!td.children.length) { td.textContent = ""; const b = document.createElement("span"); b.className = "sc-null-badge"; b.textContent = "NULL"; td.appendChild(b); }
+          if (!td.children.length) {
+            td.textContent = "";
+            const b = document.createElement("span");
+            b.className = "sc-null-badge";
+            b.textContent = "NULL";
+            td.appendChild(b);
+          }
           continue;
         }
         if (type && BOOL_TYPE.test(type.trim())) {
           td.classList.add("sc-bool");
           const v = text.trim().toLowerCase();
-          td.dataset.bool = v === "true" || v === "1" || v === "t" ? "true" : v === "false" || v === "0" || v === "f" ? "false" : "";
-        } else if (type ? NUM_TYPE.test(type) && NUM.test(text.trim()) : NUM.test(text.trim()) && !/^[-+]?0\d/.test(text.trim())) {
+          td.dataset.bool =
+            v === "true" || v === "1" || v === "t"
+              ? "true"
+              : v === "false" || v === "0" || v === "f"
+                ? "false"
+                : "";
+        } else if (
+          type
+            ? NUM_TYPE.test(type) && NUM.test(text.trim())
+            : NUM.test(text.trim()) && !/^[-+]?0\d/.test(text.trim())
+        ) {
           td.classList.add("sc-num");
         } else if (type && DATE_TYPE.test(type)) {
           td.classList.add("sc-date");
@@ -285,9 +320,19 @@ function studioPolishClient() {
         if (!td.title && text.length > 24) td.title = text;
       }
     }
-    if (rows.length) for (let c = 0; c < rows[0].cells.length; c++) { const td = rows[0].cells[c]; if (td.classList.contains("sc-num") && td.dataset.col) numericCols.add(td.dataset.col); }
+    if (rows.length)
+      for (let c = 0; c < rows[0].cells.length; c++) {
+        const td = rows[0].cells[c];
+        if (td.classList.contains("sc-num") && td.dataset.col)
+          numericCols.add(td.dataset.col);
+      }
     const table = body.closest("table");
-    if (table) table.querySelectorAll("thead th[data-col]").forEach((th) => th.classList.toggle("sc-num", numericCols.has(th.dataset.col)));
+    if (table)
+      table
+        .querySelectorAll("thead th[data-col]")
+        .forEach((th) =>
+          th.classList.toggle("sc-num", numericCols.has(th.dataset.col)),
+        );
   }
 
   function watchBody(bodyId, instId) {
@@ -300,12 +345,16 @@ function studioPolishClient() {
       queued = true;
       requestAnimationFrame(() => {
         queued = false;
-        try { enhanceBody(body, instId); } catch (e) {}
+        try {
+          enhanceBody(body, instId);
+        } catch (e) {}
         obs.takeRecords();
       });
     });
     obs.observe(body, { childList: true, subtree: true });
-    try { enhanceBody(body, instId); } catch (e) {}
+    try {
+      enhanceBody(body, instId);
+    } catch (e) {}
   }
 
   // The tab strip is made of divs: give it tab semantics and keyboard access.
@@ -318,21 +367,44 @@ function studioPolishClient() {
       strip.querySelectorAll(".tab-btn").forEach((t) => {
         if (!t.hasAttribute("role")) t.setAttribute("role", "tab");
         if (!t.hasAttribute("tabindex")) t.setAttribute("tabindex", "0");
-        t.setAttribute("aria-selected", t.classList.contains("active") ? "true" : "false");
+        t.setAttribute(
+          "aria-selected",
+          t.classList.contains("active") ? "true" : "false",
+        );
       });
     };
     sync();
-    new MutationObserver(sync).observe(strip, { subtree: true, childList: true, attributes: true, attributeFilter: ["class"] });
+    new MutationObserver(sync).observe(strip, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["class"],
+    });
     strip.addEventListener("keydown", (e) => {
       const tab = e.target.closest && e.target.closest(".tab-btn");
       if (!tab) return;
       const tabs = Array.from(strip.querySelectorAll(".tab-btn"));
       const i = tabs.indexOf(tab);
-      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tab.click(); }
-      else if (e.key === "ArrowRight") { e.preventDefault(); const n = tabs[(i + 1) % tabs.length]; n.focus(); n.scrollIntoView({ block: "nearest", inline: "nearest" }); }
-      else if (e.key === "ArrowLeft") { e.preventDefault(); const n = tabs[(i - 1 + tabs.length) % tabs.length]; n.focus(); n.scrollIntoView({ block: "nearest", inline: "nearest" }); }
-      else if (e.key === "Home") { e.preventDefault(); tabs[0].focus(); }
-      else if (e.key === "End") { e.preventDefault(); tabs[tabs.length - 1].focus(); }
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        tab.click();
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        const n = tabs[(i + 1) % tabs.length];
+        n.focus();
+        n.scrollIntoView({ block: "nearest", inline: "nearest" });
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        const n = tabs[(i - 1 + tabs.length) % tabs.length];
+        n.focus();
+        n.scrollIntoView({ block: "nearest", inline: "nearest" });
+      } else if (e.key === "Home") {
+        e.preventDefault();
+        tabs[0].focus();
+      } else if (e.key === "End") {
+        e.preventDefault();
+        tabs[tabs.length - 1].focus();
+      }
     });
   }
 
@@ -341,9 +413,18 @@ function studioPolishClient() {
     if (typeof f !== "function" || f.__scWrapped) return;
     const w = async function () {
       const c = document.getElementById("gridTableContainer");
-      if (c) { c.classList.add("sc-loading"); c.setAttribute("aria-busy", "true"); }
-      try { return await f.apply(this, arguments); }
-      finally { if (c) { c.classList.remove("sc-loading"); c.removeAttribute("aria-busy"); } }
+      if (c) {
+        c.classList.add("sc-loading");
+        c.setAttribute("aria-busy", "true");
+      }
+      try {
+        return await f.apply(this, arguments);
+      } finally {
+        if (c) {
+          c.classList.remove("sc-loading");
+          c.removeAttribute("aria-busy");
+        }
+      }
     };
     w.__scWrapped = true;
     window[name] = w;
@@ -353,24 +434,50 @@ function studioPolishClient() {
   function setupEditorCollapse() {
     const btn = document.getElementById("btnToggleEditor");
     const banner = document.querySelector(".editor-banner");
-    if (!btn || !banner || btn.__scEditor || typeof window.toggleEditorCollapse !== "function") return;
+    if (
+      !btn ||
+      !banner ||
+      btn.__scEditor ||
+      typeof window.toggleEditorCollapse !== "function"
+    )
+      return;
     btn.__scEditor = true;
     const KEY = "bunrad.editor.collapsed";
     let pref = null;
-    try { pref = window.localStorage.getItem(KEY); } catch (e) {}
+    try {
+      pref = window.localStorage.getItem(KEY);
+    } catch (e) {}
     const want = pref === null ? window.innerHeight < 700 : pref === "1";
-    if (want !== banner.classList.contains("collapsed")) window.toggleEditorCollapse();
-    btn.addEventListener("click", () => { try { window.localStorage.setItem(KEY, banner.classList.contains("collapsed") ? "1" : "0"); } catch (e) {} });
+    if (want !== banner.classList.contains("collapsed"))
+      window.toggleEditorCollapse();
+    btn.addEventListener("click", () => {
+      try {
+        window.localStorage.setItem(
+          KEY,
+          banner.classList.contains("collapsed") ? "1" : "0",
+        );
+      } catch (e) {}
+    });
   }
 
   function init() {
     // The window shortcut script blocks right-click everywhere unless a region opts in: grid and sidebar keep their menus
-    document.querySelectorAll("#gridTableContainer, .grid-scroll, aside, #sidebar, #mainSidebar").forEach((el) => el.setAttribute("data-allow-contextmenu", ""));
+    document
+      .querySelectorAll(
+        "#gridTableContainer, .grid-scroll, aside, #sidebar, #mainSidebar",
+      )
+      .forEach((el) => el.setAttribute("data-allow-contextmenu", ""));
     watchBody("gridBody", "grid");
     watchBody("sqlResultsBody", "sql");
     setupTabs();
     setupEditorCollapse();
-    ["toastBox", "toast"].forEach((id) => { const t = document.getElementById(id); if (t) { t.setAttribute("role", "status"); t.setAttribute("aria-live", "polite"); } });
+    ["toastBox", "toast"].forEach((id) => {
+      const t = document.getElementById(id);
+      if (t) {
+        t.setAttribute("role", "status");
+        t.setAttribute("aria-live", "polite");
+      }
+    });
     try {
       if (window.top && window.top !== window) {
         window.top.postMessage({ fmRequestTheme: true }, "*");
@@ -387,7 +494,8 @@ function studioPolishClient() {
     const sunken = v["surface-sunken"] || bg;
     const text = v.text || (t.scheme === "light" ? "#0f172a" : "#e2e8f0");
     const muted = v.muted || (t.scheme === "light" ? "#334155" : "#94a3b8");
-    const border = v.border || (t.scheme === "light" ? "#cbd5e1" : "rgba(255,255,255,0.12)");
+    const border =
+      v.border || (t.scheme === "light" ? "#cbd5e1" : "rgba(255,255,255,0.12)");
     const accent = v.accent || "#38bdf8";
     const hover = v.hover || panel;
     const r = document.documentElement;
@@ -434,8 +542,14 @@ function studioPolishClient() {
       applyFmTheme(e.data.fmTheme);
     }
   });
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
-  window.addEventListener("load", () => { wrapLoader("fetchTableData"); wrapLoader("loadTableData"); init(); });
+  if (document.readyState === "loading")
+    document.addEventListener("DOMContentLoaded", init);
+  else init();
+  window.addEventListener("load", () => {
+    wrapLoader("fetchTableData");
+    wrapLoader("loadTableData");
+    init();
+  });
   window.StudioPolish = { enhanceBody, init, applyFmTheme };
 }
 

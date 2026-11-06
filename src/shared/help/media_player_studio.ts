@@ -5,72 +5,120 @@ import type { HelpTips, SkipRule } from "../helpMatch";
 
 /** Help tips for `media_player_studio` (Media Player Studio Pro). */
 export const mediaPlayerStudioTips: HelpTips = {
-  "#btn-rack-eq": "Show or hide the 10-band graphic equalizer rack with preamp, live spline curve and DSP boosts.",
-  "#btn-rack-pl": "Show or hide the playlist editor with Jump-to-File search and M3U8 playlist management.",
-  "#btn-rack-lyr": "Show or hide the synced karaoke LRC and embedded lyrics panel.",
-  "#btn-rack-shade": "Toggle Window Shade mode to collapse the player into a compact single-line toolbar.",
-  "#select-skin": "Choose a visual skin: Classic 90s Rack, Modern Bento Glass, Cyberpunk Neon, Retro Hi-Fi Tube, or Match App Theme.",
-  "#btn-led-clock": "Click to toggle the digital LED clock between elapsed track time and remaining track time.",
-  "#btn-viz-mode": "Cycle the real-time audio visualizer between Classic Spectrum with peak-hold caps, Stereo Oscilloscope, Cyber-Tunnel Radial, and Stereo VU meters.",
-  "#btn-video-snap": "Capture a high-resolution PNG snapshot of the active video frame or 108-mode visualizer stage (I).",
-  "#btn-video-pip": "Toggle Floating Picture-in-Picture Mini-Monitor & Native OS Pop-out (P).",
-  "#btn-video-fs": "Toggle full-screen view for the visualizer stage or video display.",
+  "#btn-rack-eq":
+    "Show or hide the 10-band graphic equalizer rack with preamp, live spline curve and DSP boosts.",
+  "#btn-rack-pl":
+    "Show or hide the playlist editor with Jump-to-File search and M3U8 playlist management.",
+  "#btn-rack-lyr":
+    "Show or hide the synced karaoke LRC and embedded lyrics panel.",
+  "#btn-rack-shade":
+    "Toggle Window Shade mode to collapse the player into a compact single-line toolbar.",
+  "#select-skin":
+    "Choose a visual skin: Classic 90s Rack, Modern Bento Glass, Cyberpunk Neon, Retro Hi-Fi Tube, or Match App Theme.",
+  "#btn-led-clock":
+    "Click to toggle the digital LED clock between elapsed track time and remaining track time.",
+  "#btn-viz-mode":
+    "Cycle the real-time audio visualizer between Classic Spectrum with peak-hold caps, Stereo Oscilloscope, Cyber-Tunnel Radial, and Stereo VU meters.",
+  "#btn-video-snap":
+    "Capture a high-resolution PNG snapshot of the active video frame or 108-mode visualizer stage (I).",
+  "#btn-video-pip":
+    "Toggle Floating Picture-in-Picture Mini-Monitor & Native OS Pop-out (P).",
+  "#btn-video-fs":
+    "Toggle full-screen view for the visualizer stage or video display.",
   "#slider-seek": "Scrub through the current audio or video track timeline.",
-  "#btn-cue-0": "Hot-Cue Pad 1 (key 1): Click to stamp or jump to timestamp, Shift+Click to clear.",
-  "#btn-cue-1": "Hot-Cue Pad 2 (key 2): Click to stamp or jump to timestamp, Shift+Click to clear.",
-  "#btn-cue-2": "Hot-Cue Pad 3 (key 3): Click to stamp or jump to timestamp, Shift+Click to clear.",
-  "#btn-cue-3": "Hot-Cue Pad 4 (key 4): Click to stamp or jump to timestamp, Shift+Click to clear.",
+  "#btn-cue-0":
+    "Hot-Cue Pad 1 (key 1): Click to stamp or jump to timestamp, Shift+Click to clear.",
+  "#btn-cue-1":
+    "Hot-Cue Pad 2 (key 2): Click to stamp or jump to timestamp, Shift+Click to clear.",
+  "#btn-cue-2":
+    "Hot-Cue Pad 3 (key 3): Click to stamp or jump to timestamp, Shift+Click to clear.",
+  "#btn-cue-3":
+    "Hot-Cue Pad 4 (key 4): Click to stamp or jump to timestamp, Shift+Click to clear.",
   "#btn-cue-clear": "Clear all 4 Hot-Cue memory pads.",
   "#btn-pip-size": "Cycle Floating PiP monitor size (Small / Medium / Large).",
   "#btn-pip-os": "Pop out into Native OS Picture-in-Picture window.",
   "#btn-pip-close": "Close Picture-in-Picture monitor.",
-  "#slider-pip-seek": "Scrub playback position from the Picture-in-Picture monitor.",
+  "#slider-pip-seek":
+    "Scrub playback position from the Picture-in-Picture monitor.",
   "#btn-pip-prev": "Previous track in PiP monitor.",
   "#btn-pip-play": "Play or pause in PiP monitor.",
   "#btn-pip-next": "Next track in PiP monitor.",
   "#btn-pip-mute": "Mute or unmute audio in PiP monitor.",
   "#btn-pip-viz": "Cycle visualizer preset in PiP monitor.",
   "#btn-pip-snap": "Capture PNG snapshot from PiP monitor.",
-  "#btn-mute": "Mute or unmute the audio output while keeping your volume level saved.",
+  "#btn-mute":
+    "Mute or unmute the audio output while keeping your volume level saved.",
   "#slider-volume": "Adjust the master playback volume from 0 to 100 percent.",
-  "#slider-balance": "Pan the stereo image between the left and right speakers, or double-click to re-center.",
+  "#slider-balance":
+    "Pan the stereo image between the left and right speakers, or double-click to re-center.",
   "#select-speed": "Change the playback speed from 0.5x up to 2x.",
-  "#btn-vinyl-pitch": "Toggle Vinyl Turntable pitch mode so speed changes shift musical pitch naturally like an analog record.",
-  "#btn-prev": "Jump to the previous track in the playlist, or restart the current track if past 3 seconds.",
+  "#btn-vinyl-pitch":
+    "Toggle Vinyl Turntable pitch mode so speed changes shift musical pitch naturally like an analog record.",
+  "#btn-prev":
+    "Jump to the previous track in the playlist, or restart the current track if past 3 seconds.",
   "#btn-play": "Play or pause the active audio or video track (Space).",
   "#btn-stop": "Stop playback and rewind the current track to 0:00.",
   "#btn-next": "Advance to the next track in the play queue (N).",
-  "#btn-ab-loop": "Mark loop start A, mark loop end B, or clear the A-B repeat section.",
-  "#btn-shuffle": "Toggle randomized shuffle order across the playlist without repeating tracks.",
+  "#btn-ab-loop":
+    "Mark loop start A, mark loop end B, or clear the A-B repeat section.",
+  "#btn-shuffle":
+    "Toggle randomized shuffle order across the playlist without repeating tracks.",
   "#btn-repeat": "Cycle repeat mode between Repeat All, Repeat One, and Off.",
-  "#chk-eq-on": "Enable or bypass the 10-band Web Audio graphic equalizer and preamp stage.",
-  "#select-eq-preset": "Load one of 18 classic equalizer presets such as Rock, Techno, Full Bass & Treble, or Headphones.",
-  "#btn-eq-flat": "Reset the preamp and all ten equalizer frequency bands back to 0 dB flat response.",
-  "#slider-preamp": "Boost or cut the master preamp gain between -12 dB and +12 dB before the 10-band equalizer.",
-  "#slider-eq-0": "Adjust the 60 Hz sub-bass equalizer band between -12 dB and +12 dB.",
-  "#slider-eq-1": "Adjust the 170 Hz bass punch equalizer band between -12 dB and +12 dB.",
-  "#slider-eq-2": "Adjust the 310 Hz lower-midrange warmth equalizer band between -12 dB and +12 dB.",
-  "#slider-eq-3": "Adjust the 600 Hz midrange body equalizer band between -12 dB and +12 dB.",
-  "#slider-eq-4": "Adjust the 1 kHz center midrange equalizer band between -12 dB and +12 dB.",
-  "#slider-eq-5": "Adjust the 3 kHz upper-midrange vocal attack equalizer band between -12 dB and +12 dB.",
-  "#slider-eq-6": "Adjust the 6 kHz presence and clarity equalizer band between -12 dB and +12 dB.",
-  "#slider-eq-7": "Adjust the 12 kHz treble brilliance equalizer band between -12 dB and +12 dB.",
-  "#slider-eq-8": "Adjust the 14 kHz high-treble air equalizer band between -12 dB and +12 dB.",
-  "#slider-eq-9": "Adjust the 16 kHz ultra-high sparkle equalizer band between -12 dB and +12 dB.",
-  "#btn-dsp-bass": "Toggle the 80 Hz low-shelf Sub-Bass harmonic warmth boost (+5 dB).",
-  "#btn-dsp-treble": "Toggle the 10 kHz high-shelf Air Exciter treble sparkle boost (+4 dB).",
-  "#btn-dsp-vocal": "Toggle the 2.2 kHz peaking Vocal Presence boost (+3.5 dB).",
-  "#btn-dsp-spatial": "Toggle the 3D Spatial Wide Stage psychoacoustic stereo presence processor.",
-  "#btn-dsp-warmth": "Toggle the Analog Tube & Tape Harmonic Saturation Warmth processor.",
-  "#btn-dsp-comp": "Toggle the Studio Mastering Dynamics Compressor & Brickwall Limiter.",
-  "#btn-load-library": "Load all audio and video tracks from the project music lyrics library into the playlist.",
-  "#input-folder-path": "Type or paste a folder path on your computer to scan for audio, video, LRC lyrics and M3U playlists.",
-  "#btn-scan-folder": "Scan the entered folder path and load its playable media tracks into the playlist.",
-  "#btn-import-m3u": "Import an M3U or M3U8 playlist file from disk into the play queue.",
-  "#btn-export-m3u": "Export the current play queue as a standard UTF-8 .m3u8 playlist file.",
+  "#chk-eq-on":
+    "Enable or bypass the 10-band Web Audio graphic equalizer and preamp stage.",
+  "#select-eq-preset":
+    "Load one of 18 classic equalizer presets such as Rock, Techno, Full Bass & Treble, or Headphones.",
+  "#btn-eq-flat":
+    "Reset the preamp and all ten equalizer frequency bands back to 0 dB flat response.",
+  "#slider-preamp":
+    "Boost or cut the master preamp gain between -12 dB and +12 dB before the 10-band equalizer.",
+  "#slider-eq-0":
+    "Adjust the 60 Hz sub-bass equalizer band between -12 dB and +12 dB.",
+  "#slider-eq-1":
+    "Adjust the 170 Hz bass punch equalizer band between -12 dB and +12 dB.",
+  "#slider-eq-2":
+    "Adjust the 310 Hz lower-midrange warmth equalizer band between -12 dB and +12 dB.",
+  "#slider-eq-3":
+    "Adjust the 600 Hz midrange body equalizer band between -12 dB and +12 dB.",
+  "#slider-eq-4":
+    "Adjust the 1 kHz center midrange equalizer band between -12 dB and +12 dB.",
+  "#slider-eq-5":
+    "Adjust the 3 kHz upper-midrange vocal attack equalizer band between -12 dB and +12 dB.",
+  "#slider-eq-6":
+    "Adjust the 6 kHz presence and clarity equalizer band between -12 dB and +12 dB.",
+  "#slider-eq-7":
+    "Adjust the 12 kHz treble brilliance equalizer band between -12 dB and +12 dB.",
+  "#slider-eq-8":
+    "Adjust the 14 kHz high-treble air equalizer band between -12 dB and +12 dB.",
+  "#slider-eq-9":
+    "Adjust the 16 kHz ultra-high sparkle equalizer band between -12 dB and +12 dB.",
+  "#btn-dsp-bass":
+    "Toggle the 80 Hz low-shelf Sub-Bass harmonic warmth boost (+5 dB).",
+  "#btn-dsp-treble":
+    "Toggle the 10 kHz high-shelf Air Exciter treble sparkle boost (+4 dB).",
+  "#btn-dsp-vocal":
+    "Toggle the 2.2 kHz peaking Vocal Presence boost (+3.5 dB).",
+  "#btn-dsp-spatial":
+    "Toggle the 3D Spatial Wide Stage psychoacoustic stereo presence processor.",
+  "#btn-dsp-warmth":
+    "Toggle the Analog Tube & Tape Harmonic Saturation Warmth processor.",
+  "#btn-dsp-comp":
+    "Toggle the Studio Mastering Dynamics Compressor & Brickwall Limiter.",
+  "#btn-load-library":
+    "Load all audio and video tracks from the project music lyrics library into the playlist.",
+  "#input-folder-path":
+    "Type or paste a folder path on your computer to scan for audio, video, LRC lyrics and M3U playlists.",
+  "#btn-scan-folder":
+    "Scan the entered folder path and load its playable media tracks into the playlist.",
+  "#btn-import-m3u":
+    "Import an M3U or M3U8 playlist file from disk into the play queue.",
+  "#btn-export-m3u":
+    "Export the current play queue as a standard UTF-8 .m3u8 playlist file.",
   "#btn-clear-pl": "Clear all tracks from the current playlist editor.",
-  "#input-pl-filter": "Jump to file: filter the playlist tracks in real time by song title, artist, or file extension.",
-  "#select-lyrics-src": "Switch between synced .lrc karaoke lyrics, embedded ID3 or Vorbis lyrics, and subtitle transcripts.",
+  "#input-pl-filter":
+    "Jump to file: filter the playlist tracks in real time by song title, artist, or file extension.",
+  "#select-lyrics-src":
+    "Switch between synced .lrc karaoke lyrics, embedded ID3 or Vorbis lyrics, and subtitle transcripts.",
 };
 
 /** Controls in Media Player Studio Pro that are intentionally excluded from help tooltip coverage checks. */

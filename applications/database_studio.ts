@@ -8,11 +8,19 @@ import { writeFileSync } from "fs";
 import { resolve, basename } from "path";
 
 export function createSqliteStudio(
-  initialDbPathOrOptions: string | { fullscreen?: boolean; theme?: string } = ":memory:",
-  maybeOptions: { fullscreen?: boolean; theme?: string } = {}
+  initialDbPathOrOptions:
+    string | { fullscreen?: boolean; theme?: string } = ":memory:",
+  maybeOptions: { fullscreen?: boolean; theme?: string } = {},
 ): SimpleWindow {
-  let activeDbPath = typeof initialDbPathOrOptions === "string" ? initialDbPathOrOptions : ":memory:";
-  const options = typeof initialDbPathOrOptions === "object" && initialDbPathOrOptions !== null ? initialDbPathOrOptions : maybeOptions;
+  let activeDbPath =
+    typeof initialDbPathOrOptions === "string"
+      ? initialDbPathOrOptions
+      : ":memory:";
+  const options =
+    typeof initialDbPathOrOptions === "object" &&
+    initialDbPathOrOptions !== null
+      ? initialDbPathOrOptions
+      : maybeOptions;
   let db = new Database(activeDbPath);
 
   // Initialize corporate starter schema
@@ -40,7 +48,9 @@ export function createSqliteStudio(
       );
     `);
 
-    const count = (database.query("SELECT count(*) as c FROM developers;").get() as any)?.c || 0;
+    const count =
+      (database.query("SELECT count(*) as c FROM developers;").get() as any)
+        ?.c || 0;
     if (count === 0) {
       database.run(`
         INSERT INTO developers (name, language, department, stars, salary, active) VALUES
@@ -63,7 +73,14 @@ export function createSqliteStudio(
   // Seeds the demo schema only into throwaway (:memory:) or brand-new empty databases,
   // never into a user's existing database file.
   const maybeInitStarterSchema = (database: Database, path: string) => {
-    const tableCount = (database.query("SELECT count(*) AS c FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';").get() as any)?.c || 0;
+    const tableCount =
+      (
+        database
+          .query(
+            "SELECT count(*) AS c FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';",
+          )
+          .get() as any
+      )?.c || 0;
     if (path === ":memory:" || tableCount === 0) initStarterSchema(database);
   };
   const qi = (name: string) => `"${String(name).replace(/"/g, '""')}"`;
@@ -71,13 +88,18 @@ export function createSqliteStudio(
   maybeInitStarterSchema(db, activeDbPath);
 
   const fullscreen = options.fullscreen ?? true;
-  const win = newSimpleWindow("Database Studio Pro (SQLite Studio Pro) -- Enterprise SQLite Workbench & Query IDE", 1160, 940, {
-    appId: "sqlite_studio",
-    helpId: "database_studio",
-    theme: options.theme || getSavedTheme() || "midnight",
-    autoSaveState: true,
-    fullscreen,
-  });
+  const win = newSimpleWindow(
+    "Database Studio Pro (SQLite Studio Pro) -- Enterprise SQLite Workbench & Query IDE",
+    1160,
+    940,
+    {
+      appId: "sqlite_studio",
+      helpId: "database_studio",
+      theme: options.theme || getSavedTheme() || "midnight",
+      autoSaveState: true,
+      fullscreen,
+    },
+  );
 
   // Top Title Bar
   win.beginRow();
@@ -87,7 +109,9 @@ export function createSqliteStudio(
   win.addButton("btn_center", "Center Window");
   win.addButton("btn_fullscreen", "⛶ Fullscreen");
   win.endRow();
-  win.addCaption("Enterprise SQLite Workbench Powered by Native bun:sqlite -- Sub-Millisecond Embedded SQL Engine");
+  win.addCaption(
+    "Enterprise SQLite Workbench Powered by Native bun:sqlite -- Sub-Millisecond Embedded SQL Engine",
+  );
 
   // Connection & Database Source
   win.beginGroupBox("Database Source & Connection Profile");
@@ -104,26 +128,31 @@ export function createSqliteStudio(
   win.beginGroupBox("SQL Query Editor & Execution Presets");
   win.beginRow();
   win.addLabel("lbl_presets", "SQL Snippets:");
-  win.addDropdown(
-    "dd_sql_presets",
-    [
+  win
+    .addDropdown(
+      "dd_sql_presets",
+      [
+        "1. Select All Developers (SELECT * FROM developers ORDER BY stars DESC)",
+        "2. High Compensation (SELECT name, department, salary FROM developers WHERE salary >= 300000)",
+        "3. Department Salary Aggregates (SELECT department, count(*) as count, avg(salary) as avg_sal FROM developers GROUP BY department)",
+        "4. Database Schema Master (SELECT name, type, sql FROM sqlite_master WHERE type IN ('table','view'))",
+        "5. Table Columns DDL (PRAGMA table_info(developers))",
+        "6. Table Indexes (PRAGMA index_list(developers))",
+        "7. Audit Trail (SELECT * FROM audit_logs ORDER BY timestamp DESC)",
+        "8. Explain Query Plan (EXPLAIN QUERY PLAN SELECT * FROM developers WHERE stars > 80000)",
+      ],
       "1. Select All Developers (SELECT * FROM developers ORDER BY stars DESC)",
-      "2. High Compensation (SELECT name, department, salary FROM developers WHERE salary >= 300000)",
-      "3. Department Salary Aggregates (SELECT department, count(*) as count, avg(salary) as avg_sal FROM developers GROUP BY department)",
-      "4. Database Schema Master (SELECT name, type, sql FROM sqlite_master WHERE type IN ('table','view'))",
-      "5. Table Columns DDL (PRAGMA table_info(developers))",
-      "6. Table Indexes (PRAGMA index_list(developers))",
-      "7. Audit Trail (SELECT * FROM audit_logs ORDER BY timestamp DESC)",
-      "8. Explain Query Plan (EXPLAIN QUERY PLAN SELECT * FROM developers WHERE stars > 80000)",
-    ],
-    "1. Select All Developers (SELECT * FROM developers ORDER BY stars DESC)"
-  ).width(360);
+    )
+    .width(360);
   win.addButton("btn_run_sql", "⚡ Execute SQL");
   win.addButton("btn_explain", "🔍 Query Plan");
   win.addButton("btn_clear_query", "Clear Editor");
   win.endRow();
 
-  win.addTextarea("txt_sql_query", "SELECT id, name, language, department, stars, salary, active, created_at\nFROM developers\nORDER BY stars DESC;");
+  win.addTextarea(
+    "txt_sql_query",
+    "SELECT id, name, language, department, stars, salary, active, created_at\nFROM developers\nORDER BY stars DESC;",
+  );
 
   // Export Toolbar
   win.beginRow();
@@ -138,17 +167,98 @@ export function createSqliteStudio(
   win.beginGroupBox("Tabular Query Results");
   win.addTable(
     "tbl_results",
-    ["id", "name", "language", "department", "stars", "salary", "active", "created_at"],
     [
-      ["1", "Linus Torvalds", "C / Git", "Core Systems", "99999", "350000", "1", "2026-09-09 12:00:00"],
-      ["6", "Ada Lovelace", "Analytical Engine", "Pioneering", "100000", "400000", "0", "2026-09-09 12:00:00"],
-      ["4", "Dennis Ritchie", "C / Unix", "Operating Systems", "99999", "300000", "0", "2026-09-09 12:00:00"],
-      ["7", "Grace Hopper", "COBOL / Compilers", "Systems Architecture", "98000", "330000", "0", "2026-09-09 12:00:00"],
-      ["8", "Ken Thompson", "Go / Unix / B", "Core Systems", "97000", "320000", "1", "2026-09-09 12:00:00"],
-      ["2", "Brendan Eich", "JavaScript", "Web Architecture", "88500", "320000", "1", "2026-09-09 12:00:00"],
-      ["3", "Jarred Sumner", "Zig / TypeScript", "Runtime Infrastructure", "76400", "310000", "1", "2026-09-09 12:00:00"],
-      ["5", "Guido van Rossum", "Python", "Language Design", "62000", "280000", "1", "2026-09-09 12:00:00"],
-    ]
+      "id",
+      "name",
+      "language",
+      "department",
+      "stars",
+      "salary",
+      "active",
+      "created_at",
+    ],
+    [
+      [
+        "1",
+        "Linus Torvalds",
+        "C / Git",
+        "Core Systems",
+        "99999",
+        "350000",
+        "1",
+        "2026-09-09 12:00:00",
+      ],
+      [
+        "6",
+        "Ada Lovelace",
+        "Analytical Engine",
+        "Pioneering",
+        "100000",
+        "400000",
+        "0",
+        "2026-09-09 12:00:00",
+      ],
+      [
+        "4",
+        "Dennis Ritchie",
+        "C / Unix",
+        "Operating Systems",
+        "99999",
+        "300000",
+        "0",
+        "2026-09-09 12:00:00",
+      ],
+      [
+        "7",
+        "Grace Hopper",
+        "COBOL / Compilers",
+        "Systems Architecture",
+        "98000",
+        "330000",
+        "0",
+        "2026-09-09 12:00:00",
+      ],
+      [
+        "8",
+        "Ken Thompson",
+        "Go / Unix / B",
+        "Core Systems",
+        "97000",
+        "320000",
+        "1",
+        "2026-09-09 12:00:00",
+      ],
+      [
+        "2",
+        "Brendan Eich",
+        "JavaScript",
+        "Web Architecture",
+        "88500",
+        "320000",
+        "1",
+        "2026-09-09 12:00:00",
+      ],
+      [
+        "3",
+        "Jarred Sumner",
+        "Zig / TypeScript",
+        "Runtime Infrastructure",
+        "76400",
+        "310000",
+        "1",
+        "2026-09-09 12:00:00",
+      ],
+      [
+        "5",
+        "Guido van Rossum",
+        "Python",
+        "Language Design",
+        "62000",
+        "280000",
+        "1",
+        "2026-09-09 12:00:00",
+      ],
+    ],
   );
   win.endGroupBox();
 
@@ -159,14 +269,19 @@ export function createSqliteStudio(
 
   // Status Bar
   win.beginRow();
-  win.addLabel("lbl_status", `Connection: ${activeDbPath}  |  Ready  |  Rows: 8  |  Latency: 0.08ms`);
+  win.addLabel(
+    "lbl_status",
+    `Connection: ${activeDbPath}  |  Ready  |  Rows: 8  |  Latency: 0.08ms`,
+  );
   win.endRow();
 
   let lastQueryRows: Record<string, any>[] = [];
 
   // Populate initial results from live database
   try {
-    const initQuery = db.query("SELECT id, name, language, department, stars, salary, active, created_at FROM developers ORDER BY stars DESC;");
+    const initQuery = db.query(
+      "SELECT id, name, language, department, stars, salary, active, created_at FROM developers ORDER BY stars DESC;",
+    );
     const initRows = initQuery.all() as Record<string, any>[];
     if (initRows.length > 0) {
       lastQueryRows = initRows;
@@ -191,11 +306,19 @@ export function createSqliteStudio(
     const sql = (queryText || win.getValue("txt_sql_query") || "").trim();
     if (!sql) return;
 
-    win.appendConsole("sql_console", `[SQL Execute] ${sql.replace(/\n/g, " ")}\n`, 1);
+    win.appendConsole(
+      "sql_console",
+      `[SQL Execute] ${sql.replace(/\n/g, " ")}\n`,
+      1,
+    );
     const t0 = performance.now();
 
     try {
-      if (/^\s*(?:(?:--[^\n]*\n|\/\*[\s\S]*?\*\/)\s*)*(SELECT|PRAGMA|EXPLAIN|WITH|VALUES)\b/i.test(sql)) {
+      if (
+        /^\s*(?:(?:--[^\n]*\n|\/\*[\s\S]*?\*\/)\s*)*(SELECT|PRAGMA|EXPLAIN|WITH|VALUES)\b/i.test(
+          sql,
+        )
+      ) {
         const query = db.query(sql);
         const rows = query.all() as Record<string, any>[];
         lastQueryRows = rows;
@@ -206,31 +329,58 @@ export function createSqliteStudio(
         } else {
           const firstRow = rows[0] || {};
           const headers = Object.keys(firstRow);
-          const data = rows.slice(0, 100).map((r) => headers.map((h) => String(r[h] ?? "")));
+          const data = rows
+            .slice(0, 100)
+            .map((r) => headers.map((h) => String(r[h] ?? "")));
           win.setTableData("tbl_results", headers, data);
           if (rows.length > 100) {
-            win.appendConsole("sql_console", `[Note] Grid shows the first 100 of ${rows.length} rows; exports contain all ${rows.length}.\n`, 1);
+            win.appendConsole(
+              "sql_console",
+              `[Note] Grid shows the first 100 of ${rows.length} rows; exports contain all ${rows.length}.\n`,
+              1,
+            );
           }
         }
 
-        win.appendConsole("sql_console", `[Success] ${rows.length} row(s) returned in ${elapsed}ms\n`, 2);
-        win.setText("lbl_status", `Connection: ${basename(activeDbPath)}  |  OK (${rows.length} rows)  |  Latency: ${elapsed}ms`);
+        win.appendConsole(
+          "sql_console",
+          `[Success] ${rows.length} row(s) returned in ${elapsed}ms\n`,
+          2,
+        );
+        win.setText(
+          "lbl_status",
+          `Connection: ${basename(activeDbPath)}  |  OK (${rows.length} rows)  |  Latency: ${elapsed}ms`,
+        );
         win.setStatus(`Query OK (${rows.length} rows, ${elapsed}ms)`);
       } else {
         db.run(sql);
         const elapsed = (performance.now() - t0).toFixed(2);
-        win.appendConsole("sql_console", `[Success] Statement executed in ${elapsed}ms\n`, 2);
-        win.setText("lbl_status", `Connection: ${basename(activeDbPath)}  |  Statement OK  |  Latency: ${elapsed}ms`);
+        win.appendConsole(
+          "sql_console",
+          `[Success] Statement executed in ${elapsed}ms\n`,
+          2,
+        );
+        win.setText(
+          "lbl_status",
+          `Connection: ${basename(activeDbPath)}  |  Statement OK  |  Latency: ${elapsed}ms`,
+        );
         win.setStatus(`Statement executed (${elapsed}ms)`);
-        
+
         // Log mutation (best effort: the table may not exist in a foreign database)
         try {
-          db.run("INSERT INTO audit_logs (action, entity, details) VALUES ('SQL_MUTATION', 'USER', ?);", [sql.slice(0, 100)]);
+          db.run(
+            "INSERT INTO audit_logs (action, entity, details) VALUES ('SQL_MUTATION', 'USER', ?);",
+            [sql.slice(0, 100)],
+          );
         } catch {}
       }
     } catch (e: any) {
       const elapsed = (performance.now() - t0).toFixed(2);
-      win.appendConsole("sql_console", `[SQL Error] ${e.message} (${elapsed}ms)\n`, 3);
+      win.appendConsole(
+        "sql_console",
+        `[SQL Error] ${e.message} (${elapsed}ms)\n`,
+        3,
+      );
       win.setStatus(`Error: ${e.message}`);
     }
   };
@@ -246,23 +396,44 @@ export function createSqliteStudio(
   win.onClick("btn_connect", () => {
     const rawPath = win.getValue("txt_db_path") || ":memory:";
     try {
-      const targetPath = rawPath === ":memory:" ? ":memory:" : resolve(process.cwd(), rawPath);
+      const targetPath =
+        rawPath === ":memory:" ? ":memory:" : resolve(process.cwd(), rawPath);
       const prev = db;
       db = new Database(targetPath);
-      try { prev.close(); } catch {}
+      try {
+        prev.close();
+      } catch {}
       activeDbPath = rawPath;
-      maybeInitStarterSchema(db, rawPath === ":memory:" ? ":memory:" : targetPath);
-      win.appendConsole("sql_console", `[Connection] Switched to database: ${targetPath}\n`, 2);
-      win.setText("lbl_status", `Connection: ${basename(activeDbPath)}  |  Connected`);
+      maybeInitStarterSchema(
+        db,
+        rawPath === ":memory:" ? ":memory:" : targetPath,
+      );
+      win.appendConsole(
+        "sql_console",
+        `[Connection] Switched to database: ${targetPath}\n`,
+        2,
+      );
+      win.setText(
+        "lbl_status",
+        `Connection: ${basename(activeDbPath)}  |  Connected`,
+      );
       win.toast(`Connected to ${basename(activeDbPath)}`);
-      const hasDevelopers = !!db.query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='developers'").get();
+      const hasDevelopers = !!db
+        .query(
+          "SELECT 1 FROM sqlite_master WHERE type='table' AND name='developers'",
+        )
+        .get();
       const openSql = hasDevelopers
         ? "SELECT * FROM developers;"
         : "SELECT name, type, sql FROM sqlite_master WHERE type IN ('table','view') ORDER BY type, name;";
       win.setText("txt_sql_query", openSql);
       executeSql(openSql);
     } catch (err: any) {
-      win.appendConsole("sql_console", `[Connection Failed] ${err.message}\n`, 3);
+      win.appendConsole(
+        "sql_console",
+        `[Connection Failed] ${err.message}\n`,
+        3,
+      );
       win.toast(`Failed to connect: ${err.message}`);
     }
   });
@@ -271,19 +442,62 @@ export function createSqliteStudio(
     win.setText("txt_db_path", ":memory:");
     const prevMem = db;
     db = new Database(":memory:");
-    try { prevMem.close(); } catch {}
+    try {
+      prevMem.close();
+    } catch {}
     activeDbPath = ":memory:";
     initStarterSchema(db);
-    win.appendConsole("sql_console", `[Connection] Initialized isolated in-memory database (:memory:)\n`, 2);
+    win.appendConsole(
+      "sql_console",
+      `[Connection] Initialized isolated in-memory database (:memory:)\n`,
+      2,
+    );
     win.toast("Active in-memory database");
     executeSql("SELECT * FROM developers;");
   });
 
   win.onClick("btn_seed", () => {
-    const departments = ["Core Systems", "Cloud & Infra", "Developer Experience", "Security", "AI & ML", "Frontend Platform"];
-    const languages = ["TypeScript", "Zig", "Rust", "Go", "C++", "Python", "Swift"];
-    const firstNames = ["James", "Sarah", "David", "Elena", "Michael", "Sophia", "Alex", "Chloe", "Marcus", "Emily"];
-    const lastNames = ["Chen", "Patel", "Novak", "Kim", "Larsson", "O'Connor", "Mueller", "Dubois", "Santos", "Tan"];
+    const departments = [
+      "Core Systems",
+      "Cloud & Infra",
+      "Developer Experience",
+      "Security",
+      "AI & ML",
+      "Frontend Platform",
+    ];
+    const languages = [
+      "TypeScript",
+      "Zig",
+      "Rust",
+      "Go",
+      "C++",
+      "Python",
+      "Swift",
+    ];
+    const firstNames = [
+      "James",
+      "Sarah",
+      "David",
+      "Elena",
+      "Michael",
+      "Sophia",
+      "Alex",
+      "Chloe",
+      "Marcus",
+      "Emily",
+    ];
+    const lastNames = [
+      "Chen",
+      "Patel",
+      "Novak",
+      "Kim",
+      "Larsson",
+      "O'Connor",
+      "Mueller",
+      "Dubois",
+      "Santos",
+      "Tan",
+    ];
 
     try {
       db.run("BEGIN TRANSACTION;");
@@ -297,11 +511,15 @@ export function createSqliteStudio(
         const salary = Math.floor(Math.random() * 150000) + 120000;
         db.run(
           "INSERT INTO developers (name, language, department, stars, salary, active) VALUES (?, ?, ?, ?, ?, 1);",
-          [name, lang, dept, stars, salary]
+          [name, lang, dept, stars, salary],
         );
       }
       db.run("COMMIT;");
-      win.appendConsole("sql_console", "[Seed Data] Successfully inserted 50 realistic enterprise developer profiles.\n", 2);
+      win.appendConsole(
+        "sql_console",
+        "[Seed Data] Successfully inserted 50 realistic enterprise developer profiles.\n",
+        2,
+      );
       win.toast("Seeded 50 developer records!");
       executeSql("SELECT * FROM developers ORDER BY id DESC LIMIT 50;");
     } catch (err: any) {
@@ -328,7 +546,11 @@ export function createSqliteStudio(
     const exportPath = resolve(process.cwd(), "query_export.csv");
     try {
       writeFileSync(exportPath, csvContent, "utf8");
-      win.appendConsole("sql_console", `[Export CSV] Saved ${lastQueryRows.length} rows to ${exportPath}\n`, 2);
+      win.appendConsole(
+        "sql_console",
+        `[Export CSV] Saved ${lastQueryRows.length} rows to ${exportPath}\n`,
+        2,
+      );
       win.toast(`Exported CSV: ${basename(exportPath)}`);
     } catch (e: any) {
       win.appendConsole("sql_console", `[Export Error] ${e.message}\n`, 3);
@@ -343,7 +565,11 @@ export function createSqliteStudio(
     const exportPath = resolve(process.cwd(), "query_export.json");
     try {
       writeFileSync(exportPath, JSON.stringify(lastQueryRows, null, 2), "utf8");
-      win.appendConsole("sql_console", `[Export JSON] Saved ${lastQueryRows.length} rows to ${exportPath}\n`, 2);
+      win.appendConsole(
+        "sql_console",
+        `[Export JSON] Saved ${lastQueryRows.length} rows to ${exportPath}\n`,
+        2,
+      );
       win.toast(`Exported JSON: ${basename(exportPath)}`);
     } catch (e: any) {
       win.appendConsole("sql_console", `[Export Error] ${e.message}\n`, 3);
@@ -368,7 +594,11 @@ export function createSqliteStudio(
     const exportPath = resolve(process.cwd(), "query_export.sql");
     try {
       writeFileSync(exportPath, lines.join("\n"), "utf8");
-      win.appendConsole("sql_console", `[Export SQL] Saved ${lines.length} INSERT statements to ${exportPath}\n`, 2);
+      win.appendConsole(
+        "sql_console",
+        `[Export SQL] Saved ${lines.length} INSERT statements to ${exportPath}\n`,
+        2,
+      );
       win.toast(`Exported SQL: ${basename(exportPath)}`);
     } catch (e: any) {
       win.appendConsole("sql_console", `[Export Error] ${e.message}\n`, 3);
@@ -376,11 +606,16 @@ export function createSqliteStudio(
   });
 
   win.onClick("btn_table_stats", () => {
-    const tables = (db.query("SELECT name FROM sqlite_master WHERE type='table';").all() as any[]) || [];
+    const tables =
+      (db
+        .query("SELECT name FROM sqlite_master WHERE type='table';")
+        .all() as any[]) || [];
     const stats: string[] = ["[Database Table Statistics]"];
     for (const t of tables) {
       try {
-        const count = (db.query(`SELECT count(*) as c FROM ${qi(t.name)};`).get() as any)?.c || 0;
+        const count =
+          (db.query(`SELECT count(*) as c FROM ${qi(t.name)};`).get() as any)
+            ?.c || 0;
         stats.push(`  • Table '${t.name}': ${count} rows`);
       } catch {}
     }
@@ -390,21 +625,27 @@ export function createSqliteStudio(
   win.onChange("dd_sql_presets", (_w, selected: string) => {
     let queryToRun = "";
     if (selected.includes("Select All")) {
-      queryToRun = "SELECT id, name, language, department, stars, salary, active, created_at\nFROM developers\nORDER BY stars DESC;";
+      queryToRun =
+        "SELECT id, name, language, department, stars, salary, active, created_at\nFROM developers\nORDER BY stars DESC;";
     } else if (selected.includes("High Compensation")) {
-      queryToRun = "SELECT name, department, salary, language\nFROM developers\nWHERE salary >= 300000\nORDER BY salary DESC;";
+      queryToRun =
+        "SELECT name, department, salary, language\nFROM developers\nWHERE salary >= 300000\nORDER BY salary DESC;";
     } else if (selected.includes("Department Salary")) {
-      queryToRun = "SELECT department, count(*) as dev_count, avg(salary) as average_salary, sum(stars) as total_stars\nFROM developers\nGROUP BY department\nORDER BY average_salary DESC;";
+      queryToRun =
+        "SELECT department, count(*) as dev_count, avg(salary) as average_salary, sum(stars) as total_stars\nFROM developers\nGROUP BY department\nORDER BY average_salary DESC;";
     } else if (selected.includes("Database Schema Master")) {
-      queryToRun = "SELECT name, type, sql\nFROM sqlite_master\nWHERE type IN ('table', 'view')\nORDER BY type, name;";
+      queryToRun =
+        "SELECT name, type, sql\nFROM sqlite_master\nWHERE type IN ('table', 'view')\nORDER BY type, name;";
     } else if (selected.includes("Table Columns DDL")) {
       queryToRun = "PRAGMA table_info(developers);";
     } else if (selected.includes("Table Indexes")) {
       queryToRun = "PRAGMA index_list(developers);";
     } else if (selected.includes("Audit Trail")) {
-      queryToRun = "SELECT id, action, entity, timestamp, details\nFROM audit_logs\nORDER BY timestamp DESC;";
+      queryToRun =
+        "SELECT id, action, entity, timestamp, details\nFROM audit_logs\nORDER BY timestamp DESC;";
     } else if (selected.includes("Explain Query Plan")) {
-      queryToRun = "EXPLAIN QUERY PLAN\nSELECT * FROM developers\nWHERE stars > 80000\nORDER BY salary DESC;";
+      queryToRun =
+        "EXPLAIN QUERY PLAN\nSELECT * FROM developers\nWHERE stars > 80000\nORDER BY salary DESC;";
     }
     if (queryToRun) {
       win.setText("txt_sql_query", queryToRun);
@@ -448,10 +689,14 @@ export function createSqliteStudio(
 export const createDatabaseStudio = createSqliteStudio;
 
 // Export flagship SQLite Studio Pro workstation factory as well
-export { createSqliteStudioPro, startSqliteStudioServer } from "./sqlite_studio";
+export {
+  createSqliteStudioPro,
+  startSqliteStudioServer,
+} from "./sqlite_studio";
 
 if (import.meta.main) {
-  const { createSqliteStudio: createStudio } = await import("./sqlite_studio.ts");
+  const { createSqliteStudio: createStudio } =
+    await import("./sqlite_studio.ts");
   const initialDb = process.argv[2] || ":memory:";
   const app = createStudio({ initialDbPath: initialDb, fullscreen: true });
   await app.run();

@@ -2,23 +2,25 @@
 
 ## 📦 Final Video Deliverables
 
-| Deliverable | File Path | Resolution & FPS | Duration | Audio & Theme |
-| :--- | :--- | :--- | :--- | :--- |
-| **Complete 39-Chapter Masterclass Tutorial (`16:9` Widescreen)** | `/Users/codecaine/bun_rad_studio/youtube_production/file_manager_tutorial.mp4` | `1920×1080` @ `30fps` | **`1:07:49`** (`4,069s` · `337 MB`) | 100% **Phonon `Zoey`** (`ollama run phonon --voice Zoey`) · **Halloween Ultra (`holiday_halloween_jack_o_lantern`) + `folderFxOnly: true`** |
-| **Masterclass Copy (Named Export)** | `/Users/codecaine/bun_rad_studio/youtube_production/codecaine_file_manager_complete_masterclass_zoey.mp4` | `1920×1080` @ `30fps` | **`1:07:49`** (`4,069s` · `337 MB`) | 100% **Phonon `Zoey`** · **Halloween Ultra + `folderFxOnly: true`** |
-| **3-Minute YouTube Short (`9:16` Vertical)** | `/Users/codecaine/bun_rad_studio/youtube_production/codecaine-file-manager-mac-ultra-everything-zoey-short.mp4` | `1080×1920` @ `30fps` | **`2:53.53`** (`173.53s`) | 100% **Phonon `Zoey`** · **Halloween Ultra + `folderFxOnly: true`** |
-| **3-Minute Widescreen Showcase (`16:9`)** | `/Users/codecaine/bun_rad_studio/youtube_production/codecaine_file_manager_mac_ultra_everything_zoey_1080p.mp4` | `1920×1080` @ `30fps` | **`2:53.53`** (`173.53s`) | 100% **Phonon `Zoey`** · **Halloween Ultra + `folderFxOnly: true`** |
+| Deliverable                                                      | File Path                                                                                                       | Resolution & FPS      | Duration                            | Audio & Theme                                                                                                                               |
+| :--------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------- | :-------------------- | :---------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Complete 39-Chapter Masterclass Tutorial (`16:9` Widescreen)** | `/Users/codecaine/bun_rad_studio/youtube_production/file_manager_tutorial.mp4`                                  | `1920×1080` @ `30fps` | **`1:07:49`** (`4,069s` · `337 MB`) | 100% **Phonon `Zoey`** (`ollama run phonon --voice Zoey`) · **Halloween Ultra (`holiday_halloween_jack_o_lantern`) + `folderFxOnly: true`** |
+| **Masterclass Copy (Named Export)**                              | `/Users/codecaine/bun_rad_studio/youtube_production/codecaine_file_manager_complete_masterclass_zoey.mp4`       | `1920×1080` @ `30fps` | **`1:07:49`** (`4,069s` · `337 MB`) | 100% **Phonon `Zoey`** · **Halloween Ultra + `folderFxOnly: true`**                                                                         |
+| **3-Minute YouTube Short (`9:16` Vertical)**                     | `/Users/codecaine/bun_rad_studio/youtube_production/codecaine-file-manager-mac-ultra-everything-zoey-short.mp4` | `1080×1920` @ `30fps` | **`2:53.53`** (`173.53s`)           | 100% **Phonon `Zoey`** · **Halloween Ultra + `folderFxOnly: true`**                                                                         |
+| **3-Minute Widescreen Showcase (`16:9`)**                        | `/Users/codecaine/bun_rad_studio/youtube_production/codecaine_file_manager_mac_ultra_everything_zoey_1080p.mp4` | `1920×1080` @ `30fps` | **`2:53.53`** (`173.53s`)           | 100% **Phonon `Zoey`** · **Halloween Ultra + `folderFxOnly: true`**                                                                         |
 
 ---
 
 ## 📋 Ready-to-Paste YouTube Title & Description (Strictly Under 5,000 Chars · Zero `<` or `>` Symbols)
 
 ### Title (92 / 100 characters)
+
 ```text
 Codecaine File Manager Masterclass: Every Tool & Bulk Workflow Explained (Mac Studio M4 Ultra)
 ```
 
 ### Description (4,148 / 5,000 characters — Verified for YouTube Studio)
+
 ```text
 Complete 100% live-recorded step-by-step masterclass for the Codecaine File Manager — filmed in the "show every click" MacAcademy style on an Apple Mac Studio M4 Ultra (32c CPU, 80c GPU, 192GB Unified Memory, 6K XDR 120Hz) and narrated by Phonon Zoey (ollama run phonon --voice Zoey) in the Halloween Ultra theme with 3D Folder FX Only mode (folderFxOnly: true).
 

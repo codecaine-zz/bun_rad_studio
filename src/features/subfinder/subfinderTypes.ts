@@ -34,4 +34,3 @@ export interface SubfinderOptions {
   ports?: number[];
   detectWildcard?: boolean;
 }
-

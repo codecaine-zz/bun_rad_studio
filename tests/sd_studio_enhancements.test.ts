@@ -17,25 +17,51 @@ import {
 import { createSdStudio } from "../applications/sd_studio";
 import type { SimpleWindow } from "../src/simplegui";
 
-async function trigger(win: SimpleWindow, id: string, event = "click", val?: any) {
-  const h = win.eventHandlersMap.get(`${id}:on${event}`) || win.eventHandlersMap.get(`${id}:${event}`) || win.eventHandlersMap.get(id);
+async function trigger(
+  win: SimpleWindow,
+  id: string,
+  event = "click",
+  val?: any,
+) {
+  const h =
+    win.eventHandlersMap.get(`${id}:on${event}`) ||
+    win.eventHandlersMap.get(`${id}:${event}`) ||
+    win.eventHandlersMap.get(id);
   if (!h) throw new Error(`no handler for ${id}`);
   return await h(win, val);
 }
 
 describe("sd_helpers", () => {
   test("presets compile and behave as described", () => {
-    for (const p of SD_PRESETS) expect(() => new RegExp(p.find, p.flags)).not.toThrow();
+    for (const p of SD_PRESETS)
+      expect(() => new RegExp(p.find, p.flags)).not.toThrow();
     const trim = findSdPreset("Trim trailing whitespace")!;
-    expect("a  \nb\t\n".replace(new RegExp(trim.find, trim.flags), trim.replace)).toBe("a\nb\n");
+    expect(
+      "a  \nb\t\n".replace(new RegExp(trim.find, trim.flags), trim.replace),
+    ).toBe("a\nb\n");
     const crlf = findSdPreset("Windows (CRLF) → Unix (LF)")!;
-    expect("a\r\nb\r\n".replace(new RegExp(crlf.find, crlf.flags), unescapeReplacement(crlf.replace))).toBe("a\nb\n");
+    expect(
+      "a\r\nb\r\n".replace(
+        new RegExp(crlf.find, crlf.flags),
+        unescapeReplacement(crlf.replace),
+      ),
+    ).toBe("a\nb\n");
     const logs = findSdPreset("Remove console.log lines")!;
-    expect("x\n  console.log('hi');\ny\n".replace(new RegExp(logs.find, logs.flags), logs.replace)).toBe("x\ny\n");
+    expect(
+      "x\n  console.log('hi');\ny\n".replace(
+        new RegExp(logs.find, logs.flags),
+        logs.replace,
+      ),
+    ).toBe("x\ny\n");
   });
 
   test("parseExtList normalizes", () => {
-    expect(parseExtList(" .TS, tsx;md  json")).toEqual(["ts", "tsx", "md", "json"]);
+    expect(parseExtList(" .TS, tsx;md  json")).toEqual([
+      "ts",
+      "tsx",
+      "md",
+      "json",
+    ]);
     expect(parseExtList("")).toEqual([]);
   });
 
@@ -46,21 +72,40 @@ describe("sd_helpers", () => {
     expect(globToRegExp("test/**").test("a/test/x/y.ts")).toBe(true);
     expect(passesFileFilter("src/a.ts", { exts: ["ts"] })).toBe(true);
     expect(passesFileFilter("src/a.md", { exts: ["ts"] })).toBe(false);
-    expect(passesFileFilter("src/a.min.js", { exclude: ["*.min.js"] })).toBe(false);
+    expect(passesFileFilter("src/a.min.js", { exclude: ["*.min.js"] })).toBe(
+      false,
+    );
     expect(passesFileFilter("Makefile", { exts: ["ts"] })).toBe(false);
   });
 
   test("binary detection", () => {
-    expect(isLikelyBinary(new TextEncoder().encode("hello world\nline 2\n"))).toBe(false);
+    expect(
+      isLikelyBinary(new TextEncoder().encode("hello world\nline 2\n")),
+    ).toBe(false);
     expect(isLikelyBinary(new Uint8Array([0x50, 0x4b, 0, 3, 4]))).toBe(true);
     expect(isLikelyBinary(new Uint8Array(0))).toBe(false);
   });
 
   test("unescape + undo merge + report", () => {
     expect(unescapeReplacement("a\\nb\\tc\\\\d $1")).toBe("a\nb\tc\\d $1");
-    const m = mergeUndo([{ filePath: "a", original: "1" }], [{ filePath: "a", original: "2" }, { filePath: "b", original: "3" }]);
-    expect(m).toEqual([{ filePath: "a", original: "1" }, { filePath: "b", original: "3" }]);
-    const rep = formatReport({ find: "x", replace: "y", mode: "preview", skipped: 2, rows: [{ filePath: "f.ts", matches: 3, hunks: 2, status: "Diff Ready" }] });
+    const m = mergeUndo(
+      [{ filePath: "a", original: "1" }],
+      [
+        { filePath: "a", original: "2" },
+        { filePath: "b", original: "3" },
+      ],
+    );
+    expect(m).toEqual([
+      { filePath: "a", original: "1" },
+      { filePath: "b", original: "3" },
+    ]);
+    const rep = formatReport({
+      find: "x",
+      replace: "y",
+      mode: "preview",
+      skipped: 2,
+      rows: [{ filePath: "f.ts", matches: 3, hunks: 2, status: "Diff Ready" }],
+    });
     expect(rep).toContain("Total matches: 3");
     expect(rep).toContain("| f.ts | 3 | 2 | Diff Ready |");
     expect(rep).toContain("Skipped");
@@ -75,13 +120,27 @@ describe("Sd Studio enhancements (temp workspace)", () => {
     fs.writeFileSync(path.join(dir, "a.ts"), "const foo = 1;\nfoo();\n");
     fs.writeFileSync(path.join(dir, "b.md"), "foo in docs\n");
     fs.writeFileSync(path.join(dir, "skip.min.js"), "foo();\n");
-    fs.writeFileSync(path.join(dir, "bin.dat"), Buffer.from([0x66, 0x6f, 0x6f, 0, 1, 2, 3, 0, 0]));
+    fs.writeFileSync(
+      path.join(dir, "bin.dat"),
+      Buffer.from([0x66, 0x6f, 0x6f, 0, 1, 2, 3, 0, 0]),
+    );
   });
   afterAll(() => fs.rmSync(dir, { recursive: true, force: true }));
 
   test("renders new controls", () => {
     const html = createSdStudio({ fullscreen: false }).generateHtml();
-    for (const id of ["btn_browse_folder", "dd_preset", "btn_swap", "txt_exts", "txt_exclude", "btn_undo_replace", "btn_save_patch", "btn_save_report", "btn_copy_diff", "chk_escapes"]) {
+    for (const id of [
+      "btn_browse_folder",
+      "dd_preset",
+      "btn_swap",
+      "txt_exts",
+      "txt_exclude",
+      "btn_undo_replace",
+      "btn_save_patch",
+      "btn_save_report",
+      "btn_copy_diff",
+      "chk_escapes",
+    ]) {
       expect(html).toContain(`id="${id}"`);
     }
   });

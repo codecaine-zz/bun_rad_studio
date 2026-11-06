@@ -10,10 +10,20 @@ const TIMEOUT_MS = 8000;
 const MAX_OUTPUT = 2 * 1024 * 1024;
 
 /** Result of running a read-only `git` subprocess with timeout and output caps. */
-export interface GitRun { ok: boolean; missing: boolean; stdout: string; stderr: string; truncated: boolean }
+export interface GitRun {
+  ok: boolean;
+  missing: boolean;
+  stdout: string;
+  stderr: string;
+  truncated: boolean;
+}
 
 /** Executes a `git` command in `cwd` using an argument array (no shell) and captures bounded output. */
-export function runGit(cwd: string, args: string[], timeoutMs = TIMEOUT_MS): Promise<GitRun> {
+export function runGit(
+  cwd: string,
+  args: string[],
+  timeoutMs = TIMEOUT_MS,
+): Promise<GitRun> {
   return new Promise((resolve) => {
     let stdout = "";
     let stderr = "";
@@ -27,31 +37,92 @@ export function runGit(cwd: string, args: string[], timeoutMs = TIMEOUT_MS): Pro
     };
     let child;
     try {
-      child = spawn("git", ["-c", "core.fsmonitor=false", "-c", "core.quotepath=false", ...args], {
-        cwd, stdio: ["ignore", "pipe", "pipe"], windowsHide: true,
-        env: { ...process.env, GIT_TERMINAL_PROMPT: "0", GIT_OPTIONAL_LOCKS: "0", GIT_PAGER: "cat", LC_ALL: "C" },
-      });
+      child = spawn(
+        "git",
+        ["-c", "core.fsmonitor=false", "-c", "core.quotepath=false", ...args],
+        {
+          cwd,
+          stdio: ["ignore", "pipe", "pipe"],
+          windowsHide: true,
+          env: {
+            ...process.env,
+            GIT_TERMINAL_PROMPT: "0",
+            GIT_OPTIONAL_LOCKS: "0",
+            GIT_PAGER: "cat",
+            LC_ALL: "C",
+          },
+        },
+      );
     } catch {
-      return resolve({ ok: false, missing: true, stdout: "", stderr: "", truncated: false });
+      return resolve({
+        ok: false,
+        missing: true,
+        stdout: "",
+        stderr: "",
+        truncated: false,
+      });
     }
     const timer = setTimeout(() => {
       child.kill();
-      done({ ok: false, missing: false, stdout, stderr: "Git took too long to answer.", truncated });
+      done({
+        ok: false,
+        missing: false,
+        stdout,
+        stderr: "Git took too long to answer.",
+        truncated,
+      });
     }, timeoutMs);
     child.stdout.on("data", (d: Buffer) => {
       if (stdout.length < MAX_OUTPUT) stdout += d.toString("utf8");
-      else if (!truncated) { truncated = true; child.kill(); }
+      else if (!truncated) {
+        truncated = true;
+        child.kill();
+      }
     });
-    child.stderr.on("data", (d: Buffer) => { if (stderr.length < 8192) stderr += d.toString("utf8"); });
-    child.once("error", (err: NodeJS.ErrnoException) => done({ ok: false, missing: err.code === "ENOENT", stdout, stderr: err.message, truncated }));
-    child.once("close", (code) => done({ ok: code === 0 || truncated, missing: false, stdout: stdout.slice(0, MAX_OUTPUT), stderr, truncated }));
+    child.stderr.on("data", (d: Buffer) => {
+      if (stderr.length < 8192) stderr += d.toString("utf8");
+    });
+    child.once("error", (err: NodeJS.ErrnoException) =>
+      done({
+        ok: false,
+        missing: err.code === "ENOENT",
+        stdout,
+        stderr: err.message,
+        truncated,
+      }),
+    );
+    child.once("close", (code) =>
+      done({
+        ok: code === 0 || truncated,
+        missing: false,
+        stdout: stdout.slice(0, MAX_OUTPUT),
+        stderr,
+        truncated,
+      }),
+    );
   });
 }
 
-const STATUS_NAMES: Record<string, string> = { M: "modified", A: "added", D: "deleted", R: "renamed", C: "copied", U: "conflict", "?": "new (untracked)", "!": "ignored", T: "type changed" };
+const STATUS_NAMES: Record<string, string> = {
+  M: "modified",
+  A: "added",
+  D: "deleted",
+  R: "renamed",
+  C: "copied",
+  U: "conflict",
+  "?": "new (untracked)",
+  "!": "ignored",
+  T: "type changed",
+};
 
 /** Parsed working-tree or index status entry for a single file in a Git repository. */
-export interface GitFile { path: string; from?: string; x: string; y: string; label: string }
+export interface GitFile {
+  path: string;
+  from?: string;
+  x: string;
+  y: string;
+  label: string;
+}
 
 function unquoteGitPath(raw: string): string {
   if (!raw.startsWith('"') || !raw.endsWith('"')) return raw;
@@ -66,7 +137,15 @@ function unquoteGitPath(raw: string): string {
       else if (next === "r") bytes.push(0x0d);
       else if (next === '"') bytes.push(0x22);
       else if (next === "\\") bytes.push(0x5c);
-      else if (next >= "0" && next <= "7" && i + 2 < inner.length && inner[i + 1]! >= "0" && inner[i + 1]! <= "7" && inner[i + 2]! >= "0" && inner[i + 2]! <= "7") {
+      else if (
+        next >= "0" &&
+        next <= "7" &&
+        i + 2 < inner.length &&
+        inner[i + 1]! >= "0" &&
+        inner[i + 1]! <= "7" &&
+        inner[i + 2]! >= "0" &&
+        inner[i + 2]! <= "7"
+      ) {
         bytes.push(parseInt(next + inner[i + 1]! + inner[i + 2]!, 8));
         i += 2;
       } else {
@@ -80,7 +159,12 @@ function unquoteGitPath(raw: string): string {
 }
 
 /** Parses `git status --porcelain -b` output into branch name, ahead/behind counts, and changed file entries. */
-export function parseStatus(output: string): { branch: string; ahead: number; behind: number; files: GitFile[] } {
+export function parseStatus(output: string): {
+  branch: string;
+  ahead: number;
+  behind: number;
+  files: GitFile[];
+} {
   let branch = "";
   let ahead = 0;
   let behind = 0;
@@ -89,7 +173,11 @@ export function parseStatus(output: string): { branch: string; ahead: number; be
     if (!line) continue;
     if (line.startsWith("## ")) {
       const rest = line.slice(3);
-      branch = rest.replace(/^No commits yet on /, "").replace(/^Initial commit on /, "").split("...")[0]!.replace(/ \[.*$/, "");
+      branch = rest
+        .replace(/^No commits yet on /, "")
+        .replace(/^Initial commit on /, "")
+        .split("...")[0]!
+        .replace(/ \[.*$/, "");
       ahead = Number(/ahead (\d+)/.exec(rest)?.[1] ?? 0);
       behind = Number(/behind (\d+)/.exec(rest)?.[1] ?? 0);
       continue;
@@ -106,43 +194,132 @@ export function parseStatus(output: string): { branch: string; ahead: number; be
     } else {
       path = unquoteGitPath(path);
     }
-    const key = x === "?" ? "?" : x === "U" || y === "U" || (x === "A" && y === "A") || (x === "D" && y === "D") ? "U" : y !== " " ? y : x;
+    const key =
+      x === "?"
+        ? "?"
+        : x === "U" ||
+            y === "U" ||
+            (x === "A" && y === "A") ||
+            (x === "D" && y === "D")
+          ? "U"
+          : y !== " "
+            ? y
+            : x;
     files.push({ path, from, x, y, label: STATUS_NAMES[key] ?? "changed" });
   }
   return { branch, ahead, behind, files: files.slice(0, 2000) };
 }
 
 function relativeFile(value: unknown): string {
-  if (typeof value !== "string" || !value || value.includes("\0") || value.length > 4096) throw new FmError("BAD_REQUEST", "No file was given.");
+  if (
+    typeof value !== "string" ||
+    !value ||
+    value.includes("\0") ||
+    value.length > 4096
+  )
+    throw new FmError("BAD_REQUEST", "No file was given.");
   const clean = value.replace(/\\/g, "/");
-  if (clean.startsWith("/") || /^[A-Za-z]:/.test(clean) || clean.split("/").includes("..")) throw new FmError("BAD_PATH", "That file isn't inside the repository.");
+  if (
+    clean.startsWith("/") ||
+    /^[A-Za-z]:/.test(clean) ||
+    clean.split("/").includes("..")
+  )
+    throw new FmError("BAD_PATH", "That file isn't inside the repository.");
   return clean;
 }
 
 /** `code/git`: action "status" (default), "diff" (changes against the last commit) or "show" (the last committed text). */
-export async function gitInfo(ctx: FmContext, body: Record<string, any>): Promise<Record<string, unknown>> {
+export async function gitInfo(
+  ctx: FmContext,
+  body: Record<string, any>,
+): Promise<Record<string, unknown>> {
   const root = absolutePath(ctx, body.root);
   await assertFolder(root, "That folder");
   const action = body.action === undefined ? "status" : body.action;
-  if (action !== "status" && action !== "diff" && action !== "show") throw new FmError("BAD_REQUEST", "That Git action isn't supported.");
+  if (action !== "status" && action !== "diff" && action !== "show")
+    throw new FmError("BAD_REQUEST", "That Git action isn't supported.");
   const top = await runGit(root, ["rev-parse", "--show-toplevel"]);
-  if (top.missing) return { available: false, isRepo: false, message: "Git isn't installed (or isn't on your PATH), so there is nothing to show here." };
-  if (!top.ok || !top.stdout.trim()) return { available: true, isRepo: false, message: "This folder isn't inside a Git repository." };
+  if (top.missing)
+    return {
+      available: false,
+      isRepo: false,
+      message:
+        "Git isn't installed (or isn't on your PATH), so there is nothing to show here.",
+    };
+  if (!top.ok || !top.stdout.trim())
+    return {
+      available: true,
+      isRepo: false,
+      message: "This folder isn't inside a Git repository.",
+    };
   const toplevel = pathApi(ctx).resolve(top.stdout.trim());
   if (action === "status") {
-    const r = await runGit(toplevel, ["status", "--porcelain=v1", "-b", "--untracked-files=normal"]);
-    if (!r.ok) return { available: true, isRepo: true, root: toplevel, message: r.stderr.trim() || "Git couldn't report the status." };
-    return { available: true, isRepo: true, root: toplevel, ...parseStatus(r.stdout), truncated: r.truncated };
+    const r = await runGit(toplevel, [
+      "status",
+      "--porcelain=v1",
+      "-b",
+      "--untracked-files=normal",
+    ]);
+    if (!r.ok)
+      return {
+        available: true,
+        isRepo: true,
+        root: toplevel,
+        message: r.stderr.trim() || "Git couldn't report the status.",
+      };
+    return {
+      available: true,
+      isRepo: true,
+      root: toplevel,
+      ...parseStatus(r.stdout),
+      truncated: r.truncated,
+    };
   }
   const file = relativeFile(body.file);
   if (action === "diff") {
-    const r = await runGit(toplevel, ["diff", "--no-color", "--no-ext-diff", "--no-textconv", "HEAD", "--", file]);
+    const r = await runGit(toplevel, [
+      "diff",
+      "--no-color",
+      "--no-ext-diff",
+      "--no-textconv",
+      "HEAD",
+      "--",
+      file,
+    ]);
     if (!r.ok) {
-      const plain = await runGit(toplevel, ["diff", "--no-color", "--no-ext-diff", "--no-textconv", "--", file]);
-      return { available: true, isRepo: true, root: toplevel, diff: plain.stdout, truncated: plain.truncated, message: plain.ok ? "" : r.stderr.trim() };
+      const plain = await runGit(toplevel, [
+        "diff",
+        "--no-color",
+        "--no-ext-diff",
+        "--no-textconv",
+        "--",
+        file,
+      ]);
+      return {
+        available: true,
+        isRepo: true,
+        root: toplevel,
+        diff: plain.stdout,
+        truncated: plain.truncated,
+        message: plain.ok ? "" : r.stderr.trim(),
+      };
     }
-    return { available: true, isRepo: true, root: toplevel, diff: r.stdout, truncated: r.truncated, message: "" };
+    return {
+      available: true,
+      isRepo: true,
+      root: toplevel,
+      diff: r.stdout,
+      truncated: r.truncated,
+      message: "",
+    };
   }
   const r = await runGit(toplevel, ["show", `HEAD:${file}`]);
-  return { available: true, isRepo: true, root: toplevel, text: r.ok ? r.stdout : "", truncated: r.truncated, message: r.ok ? "" : "That file isn't in the last commit." };
+  return {
+    available: true,
+    isRepo: true,
+    root: toplevel,
+    text: r.ok ? r.stdout : "",
+    truncated: r.truncated,
+    message: r.ok ? "" : "That file isn't in the last commit.",
+  };
 }

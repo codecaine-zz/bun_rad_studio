@@ -2,46 +2,62 @@
 /**
  * Markdown Studio Pro CLI -- Document Statistics & Standalone HTML Generator
  */
-import { SimpleCLI } from '../src/index.ts';
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { SimpleCLI } from "../src/index.ts";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { resolve } from "node:path";
 
-const app = SimpleCLI.newApp('markdown-cli', '1.0.0')
-  .setDescription('Markdown Document Statistics, Reading Time & Standalone HTML Report Generator');
+const app = SimpleCLI.newApp("markdown-cli", "1.0.0").setDescription(
+  "Markdown Document Statistics, Reading Time & Standalone HTML Report Generator",
+);
 
-app.addFlagString('file', 'f', '', 'Path to Markdown file (.md)');
-app.addFlagString('export-html', 'e', '', 'Export path for standalone styled HTML report');
-app.addFlagBool('stats', 's', false, 'Calculate word count, characters and reading time');
-app.addFlagBool('stdout', 'p', false, 'Output converted HTML directly to stdout');
+app.addFlagString("file", "f", "", "Path to Markdown file (.md)");
+app.addFlagString(
+  "export-html",
+  "e",
+  "",
+  "Export path for standalone styled HTML report",
+);
+app.addFlagBool(
+  "stats",
+  "s",
+  false,
+  "Calculate word count, characters and reading time",
+);
+app.addFlagBool(
+  "stdout",
+  "p",
+  false,
+  "Output converted HTML directly to stdout",
+);
 
 if (!app.parseCli()) process.exit(0);
 
-const inPath = app.getFlagString('file') || app.getPositionalArgs()[0];
+const inPath = app.getFlagString("file") || app.getPositionalArgs()[0];
 if (!inPath || !existsSync(resolve(process.cwd(), inPath))) {
-  app.error(`Markdown file not found: ${inPath || '(none specified)'}`);
+  app.error(`Markdown file not found: ${inPath || "(none specified)"}`);
   process.exit(1);
 }
 
 const fullPath = resolve(process.cwd(), inPath);
-const content = readFileSync(fullPath, 'utf8');
+const content = readFileSync(fullPath, "utf8");
 
 function computeStats(md: string) {
   const words = (md.match(/\b\w+\b/g) || []).length;
   const chars = md.length;
-  const lines = md.split('\n').length;
+  const lines = md.split("\n").length;
   const readMinutes = Math.max(1, Math.round(words / 200));
   return { words, chars, lines, readMinutes };
 }
 
 function convertMarkdownToHtml(md: string): string {
   let html = md
-    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-    .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>')
-    .replace(/\*(.*)\*/gim, '<em>$1</em>')
-    .replace(/`([^`]+)`/gim, '<code>$1</code>')
-    .replace(/\n\n/gim, '</p><p>');
+    .replace(/^# (.*$)/gim, "<h1>$1</h1>")
+    .replace(/^## (.*$)/gim, "<h2>$1</h2>")
+    .replace(/^### (.*$)/gim, "<h3>$1</h3>")
+    .replace(/\*\*(.*)\*\*/gim, "<strong>$1</strong>")
+    .replace(/\*(.*)\*/gim, "<em>$1</em>")
+    .replace(/`([^`]+)`/gim, "<code>$1</code>")
+    .replace(/\n\n/gim, "</p><p>");
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -64,26 +80,26 @@ function convertMarkdownToHtml(md: string): string {
 
 async function main() {
   const stats = computeStats(content);
-  const exportPath = app.getFlagString('export-html');
-  const printStdout = app.getFlagBool('stdout');
+  const exportPath = app.getFlagString("export-html");
+  const printStdout = app.getFlagBool("stdout");
 
   if (printStdout) {
     console.log(convertMarkdownToHtml(content));
     return;
   }
 
-  app.banner('Markdown Studio Pro CLI', `Document: ${inPath}`);
+  app.banner("Markdown Studio Pro CLI", `Document: ${inPath}`);
   app.printKv({
-    'File Path': fullPath,
-    'Lines': `${stats.lines} lines`,
-    'Words': `${stats.words} words`,
-    'Characters': `${stats.chars} characters`,
-    'Reading Time': `~${stats.readMinutes} min read (at 200 wpm)`,
+    "File Path": fullPath,
+    Lines: `${stats.lines} lines`,
+    Words: `${stats.words} words`,
+    Characters: `${stats.chars} characters`,
+    "Reading Time": `~${stats.readMinutes} min read (at 200 wpm)`,
   });
 
   if (exportPath) {
     const fullExport = resolve(process.cwd(), exportPath);
-    writeFileSync(fullExport, convertMarkdownToHtml(content), 'utf8');
+    writeFileSync(fullExport, convertMarkdownToHtml(content), "utf8");
     app.success(`Exported standalone HTML report to: ${fullExport}`);
   }
 }

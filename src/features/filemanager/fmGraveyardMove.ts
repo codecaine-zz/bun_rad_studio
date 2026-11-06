@@ -26,13 +26,17 @@ const NOFOLLOW = (constants as Record<string, number>).O_NOFOLLOW ?? 0;
 
 /** Throws a `CANCELLED` `FmError` if the environment's `AbortSignal` has been triggered. */
 export function checkAbort(env: { signal?: AbortSignal }): void {
-  if (env.signal?.aborted) throw new FmError("CANCELLED", "Stopped. Nothing was lost.");
+  if (env.signal?.aborted)
+    throw new FmError("CANCELLED", "Stopped. Nothing was lost.");
 }
 
 const mode = (st: { mode: number }) => st.mode & 0o7777;
 
 /** The size and the number of entries inside, counted the way the Rip engine counts them. */
-export async function measureTree(target: string, signal?: AbortSignal): Promise<{ sizeBytes: number; fileCount: number }> {
+export async function measureTree(
+  target: string,
+  signal?: AbortSignal,
+): Promise<{ sizeBytes: number; fileCount: number }> {
   const top = await fsp.lstat(target);
   if (!top.isDirectory()) return { sizeBytes: top.size, fileCount: 1 };
   let sizeBytes = 0;
@@ -55,14 +59,27 @@ export async function measureTree(target: string, signal?: AbortSignal): Promise
       else files.push(full);
     }
     for (let i = 0; i < files.length; i += 64) {
-      const sizes = await Promise.all(files.slice(i, i + 64).map((f) => fsp.lstat(f).then((s) => s.size, () => 0)));
+      const sizes = await Promise.all(
+        files.slice(i, i + 64).map((f) =>
+          fsp.lstat(f).then(
+            (s) => s.size,
+            () => 0,
+          ),
+        ),
+      );
       for (const s of sizes) sizeBytes += s;
     }
   }
   return { sizeBytes, fileCount: Math.max(1, count) };
 }
 
-async function copyFileData(source: string, destination: string, st: { mode: number; atime: Date; mtime: Date; size: number }, env: MoveEnv, counter: { files: number; bytes: number }): Promise<void> {
+async function copyFileData(
+  source: string,
+  destination: string,
+  st: { mode: number; atime: Date; mtime: Date; size: number },
+  env: MoveEnv,
+  counter: { files: number; bytes: number },
+): Promise<void> {
   if (st.size <= BIG_FILE) {
     await fsp.copyFile(source, destination, constants.COPYFILE_EXCL);
     counter.bytes += st.size;
@@ -91,7 +108,12 @@ async function copyFileData(source: string, destination: string, st: { mode: num
   await fsp.utimes(destination, st.atime, st.mtime).catch(() => {});
 }
 
-async function copyInto(source: string, destination: string, env: MoveEnv, counter: { files: number; bytes: number }): Promise<void> {
+async function copyInto(
+  source: string,
+  destination: string,
+  env: MoveEnv,
+  counter: { files: number; bytes: number },
+): Promise<void> {
   checkAbort(env);
   const st = await fsp.lstat(source);
   if (st.isSymbolicLink()) {
@@ -100,11 +122,20 @@ async function copyInto(source: string, destination: string, env: MoveEnv, count
     await copyFileData(source, destination, st, env, counter);
   } else if (st.isDirectory()) {
     await fsp.mkdir(destination, { mode: 0o700 });
-    for (const name of (await fsp.readdir(source)).sort()) await copyInto(nodePath.join(source, name), nodePath.join(destination, name), env, counter);
+    for (const name of (await fsp.readdir(source)).sort())
+      await copyInto(
+        nodePath.join(source, name),
+        nodePath.join(destination, name),
+        env,
+        counter,
+      );
     await fsp.chmod(destination, mode(st));
     await fsp.utimes(destination, st.atime, st.mtime).catch(() => {});
   } else {
-    throw new FmError("SPECIAL_FILE", `"${nodePath.basename(source)}" is a special kind of file (a device, pipe or socket) that can't be copied between disks.`);
+    throw new FmError(
+      "SPECIAL_FILE",
+      `"${nodePath.basename(source)}" is a special kind of file (a device, pipe or socket) that can't be copied between disks.`,
+    );
   }
   counter.files++;
   env.progress?.({ ...counter });
@@ -112,23 +143,45 @@ async function copyInto(source: string, destination: string, env: MoveEnv, count
 }
 
 /** What differs between a tree and its copy, or null when they match. */
-export async function verifyTree(source: string, copy: string, env: { signal?: AbortSignal } = {}): Promise<string | null> {
+export async function verifyTree(
+  source: string,
+  copy: string,
+  env: { signal?: AbortSignal } = {},
+): Promise<string | null> {
   checkAbort(env);
   const [a, b] = await Promise.all([fsp.lstat(source), fsp.lstat(copy)]);
   const name = nodePath.basename(source);
-  if (a.isSymbolicLink() !== b.isSymbolicLink() || a.isDirectory() !== b.isDirectory() || a.isFile() !== b.isFile()) return `${name} is a different kind of item in the copy`;
-  if (a.isSymbolicLink()) return (await fsp.readlink(source)) === (await fsp.readlink(copy)) ? null : `the link ${name} points somewhere else in the copy`;
+  if (
+    a.isSymbolicLink() !== b.isSymbolicLink() ||
+    a.isDirectory() !== b.isDirectory() ||
+    a.isFile() !== b.isFile()
+  )
+    return `${name} is a different kind of item in the copy`;
+  if (a.isSymbolicLink())
+    return (await fsp.readlink(source)) === (await fsp.readlink(copy))
+      ? null
+      : `the link ${name} points somewhere else in the copy`;
   if (a.isFile()) {
     if (a.size !== b.size) return `${name} has a different size in the copy`;
-    return mode(a) === mode(b) ? null : `${name} has different permissions in the copy`;
+    return mode(a) === mode(b)
+      ? null
+      : `${name} has different permissions in the copy`;
   }
   if (!a.isDirectory()) return null;
-  const [names, copied] = await Promise.all([fsp.readdir(source), fsp.readdir(copy)]);
+  const [names, copied] = await Promise.all([
+    fsp.readdir(source),
+    fsp.readdir(copy),
+  ]);
   names.sort();
   copied.sort();
-  if (names.length !== copied.length || names.some((n, i) => n !== copied[i])) return `${name} has different contents in the copy`;
+  if (names.length !== copied.length || names.some((n, i) => n !== copied[i]))
+    return `${name} has different contents in the copy`;
   for (const n of names) {
-    const problem = await verifyTree(nodePath.join(source, n), nodePath.join(copy, n), env);
+    const problem = await verifyTree(
+      nodePath.join(source, n),
+      nodePath.join(copy, n),
+      env,
+    );
     if (problem) return problem;
   }
   return null;
@@ -144,7 +197,8 @@ async function makeWritable(target: string): Promise<void> {
   }
   if (!st.isDirectory()) return;
   await fsp.chmod(target, mode(st) | 0o700).catch(() => {});
-  for (const name of await fsp.readdir(target).catch(() => [] as string[])) await makeWritable(nodePath.join(target, name));
+  for (const name of await fsp.readdir(target).catch(() => [] as string[]))
+    await makeWritable(nodePath.join(target, name));
 }
 
 /** Removes a file, link or whole tree (links are removed, not followed), including read-only folders. */
@@ -200,10 +254,16 @@ export interface Placed {
  * Moves `source` to `destination` (which must not exist). `staging` is where a cross-disk copy is made first; it
  * must be on the same disk as `destination`.
  */
-export async function placeTree(source: string, destination: string, staging: string, env: MoveEnv): Promise<Placed> {
+export async function placeTree(
+  source: string,
+  destination: string,
+  staging: string,
+  env: MoveEnv,
+): Promise<Placed> {
   checkAbort(env);
   if (await env.hooks.sameDevice(source, nodePath.dirname(destination))) {
-    if (await isThere(destination)) throw Object.assign(new Error("exists"), { code: "EEXIST" });
+    if (await isThere(destination))
+      throw Object.assign(new Error("exists"), { code: "EEXIST" });
     try {
       await renameSmart(source, destination);
       return { via: "rename" };
@@ -218,9 +278,14 @@ export async function placeTree(source: string, destination: string, staging: st
     const counter = { files: 0, bytes: 0 };
     await copyInto(source, staging, env, counter);
     const problem = await verifyTree(source, staging, env);
-    if (problem) throw new FmError("COPY_UNVERIFIED", `The copy couldn't be checked (${problem}), so the original was left where it is.`);
+    if (problem)
+      throw new FmError(
+        "COPY_UNVERIFIED",
+        `The copy couldn't be checked (${problem}), so the original was left where it is.`,
+      );
     checkAbort(env);
-    if (await isThere(destination)) throw Object.assign(new Error("exists"), { code: "EEXIST" });
+    if (await isThere(destination))
+      throw Object.assign(new Error("exists"), { code: "EEXIST" });
     await renameSmart(staging, destination);
   } catch (err) {
     await removeTree(staging).catch(() => {});
@@ -229,7 +294,11 @@ export async function placeTree(source: string, destination: string, staging: st
   try {
     await removeTree(source);
   } catch {
-    return { via: "copy", warning: "It was copied to its new place, but the original couldn't be fully removed. Both copies still exist, so nothing is lost." };
+    return {
+      via: "copy",
+      warning:
+        "It was copied to its new place, but the original couldn't be fully removed. Both copies still exist, so nothing is lost.",
+    };
   }
   return { via: "copy" };
 }

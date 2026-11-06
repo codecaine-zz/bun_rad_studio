@@ -11,13 +11,24 @@ import { showMenu, toast } from "./menus.js";
 import { copyToClipboard, flashCopied } from "./copyclip.js";
 import { extractSection } from "./copyformat.js";
 
-const CANDIDATES = '[data-copy], section, .pw-card, .dialog, table, pre, dl, ul.detail-list, .dialog-error, .toast.error';
+const CANDIDATES =
+  "[data-copy], section, .pw-card, .dialog, table, pre, dl, ul.detail-list, .dialog-error, .toast.error";
 /** Places that never get a button: the file list, the terminal, the code editor, menus, forms' own rows, status/clock bars, and theme/effect pickers. */
-const EXCLUDED = '[data-copy="off"], #list, #list-head, #dual-list, #dual-list-head, #sidebar, #toolbar, #viewbar, #addressbar, #status, #home-datetime, #fm-atmosphere-layer, .theme-list, .fm-atmo-sections, #terminal-panel, .xterm, .code-ed, .menu, #toasts .toast:not(.error), [contenteditable="true"]';
+const EXCLUDED =
+  '[data-copy="off"], #list, #list-head, #dual-list, #dual-list-head, #sidebar, #toolbar, #viewbar, #addressbar, #status, #home-datetime, #fm-atmosphere-layer, .theme-list, .fm-atmo-sections, #terminal-panel, .xterm, .code-ed, .menu, #toasts .toast:not(.error), [contenteditable="true"]';
 /** The big containers of the page: they hold tools, they are not blocks of information themselves. */
-const SHELL = new Set(["power-panel", "dual-pane", "home", "stage", "app", "main", "body"]);
-const HOST_SELECTOR = '[data-copy], section, .pw-card, .dialog';
-const EDITABLE = 'input:not([readonly]):not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="button"]), textarea:not([readonly]), select';
+const SHELL = new Set([
+  "power-panel",
+  "dual-pane",
+  "home",
+  "stage",
+  "app",
+  "main",
+  "body",
+]);
+const HOST_SELECTOR = "[data-copy], section, .pw-card, .dialog";
+const EDITABLE =
+  'input:not([readonly]):not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="button"]), textarea:not([readonly]), select';
 const BLOCK_TAGS = new Set(["TABLE", "PRE", "DL", "UL", "OL", "P", "OUTPUT"]);
 const BIG_SUBTREE = 2000;
 const TYPING_PAUSE_MS = 250;
@@ -38,14 +49,26 @@ const shortcutLabel = () => (platform === "darwin" ? "⌥⇧C" : "Alt+Shift+C");
 const hasDocument = () => typeof document !== "undefined";
 const tag = (el) => el.tagName.toUpperCase();
 const isHeading = (el) => /^H[1-6]$/.test(tag(el));
-const isTextEntry = (el) => !!el && (tag(el) === "TEXTAREA" || (tag(el) === "INPUT" && !/^(checkbox|radio|button|submit|range|color|file)$/.test(el.type)) || el.isContentEditable === true);
-const squash = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
+const isTextEntry = (el) =>
+  !!el &&
+  (tag(el) === "TEXTAREA" ||
+    (tag(el) === "INPUT" &&
+      !/^(checkbox|radio|button|submit|range|color|file)$/.test(el.type)) ||
+    el.isContentEditable === true);
+const squash = (s) =>
+  String(s ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
 
 function headingText(head) {
   if (!head) return "";
   let out = "";
   for (const n of head.childNodes) {
-    if (n.nodeType === 1 && (n.hasAttribute("data-copy-ui") || n.tagName.toUpperCase() === "BUTTON")) continue;
+    if (
+      n.nodeType === 1 &&
+      (n.hasAttribute("data-copy-ui") || n.tagName.toUpperCase() === "BUTTON")
+    )
+      continue;
     out += n.textContent ?? "";
   }
   return squash(out) || squash(head.textContent);
@@ -55,7 +78,10 @@ function directHeading(el) {
   for (const c of el.children) {
     if (isHeading(c)) return c;
     // a heading kept in a header or in a "...head" row beside a count or a button still counts
-    if (tag(c) === "HEADER" || (tag(c) === "DIV" && /(^|[-\s])head/.test(c.className?.toString() ?? ""))) {
+    if (
+      tag(c) === "HEADER" ||
+      (tag(c) === "DIV" && /(^|[-\s])head/.test(c.className?.toString() ?? ""))
+    ) {
       const inner = [...c.children].find(isHeading);
       if (inner) return inner;
     }
@@ -84,21 +110,47 @@ function titleOf(el) {
   if (explicit && explicit !== "on") return explicit;
   const head = directHeading(el);
   if (head) return headingText(head);
-  const caption = tag(el) === "TABLE" ? [...el.children].find((c) => tag(c) === "CAPTION") : null;
+  const caption =
+    tag(el) === "TABLE"
+      ? [...el.children].find((c) => tag(c) === "CAPTION")
+      : null;
   if (caption) return squash(caption.textContent);
-  const labeled = el.getAttribute("aria-labelledby")?.split(/\s+/).map((id) => document.getElementById(id)?.textContent).join(" ");
-  return squash(labeled || el.getAttribute("aria-label")).replace(/\.\s.*$/, "").replace(/\.$/, "");
+  const labeled = el
+    .getAttribute("aria-labelledby")
+    ?.split(/\s+/)
+    .map((id) => document.getElementById(id)?.textContent)
+    .join(" ");
+  return squash(labeled || el.getAttribute("aria-label"))
+    .replace(/\.\s.*$/, "")
+    .replace(/\.$/, "");
 }
 
-const KIND_WORD = { section: "section", table: "table", pre: "text", dl: "list of facts", list: "list", error: "error message", text: "text", toast: "error message" };
+const KIND_WORD = {
+  section: "section",
+  table: "table",
+  pre: "text",
+  dl: "list of facts",
+  list: "list",
+  error: "error message",
+  text: "text",
+  toast: "error message",
+};
 
 /** A form is not a block of information, unless it also shows results (a table, a list, a text block). */
-const worthCopying = (el) => el.querySelector(EDITABLE) === null || el.querySelector("table, pre, dl, ul, ol") !== null;
+const worthCopying = (el) =>
+  el.querySelector(EDITABLE) === null ||
+  el.querySelector("table, pre, dl, ul, ol") !== null;
 
 /** True when the block is the only table, text block or fact list of the section around it: the section's own button covers it. */
 function soleBlockOfSection(el) {
   for (let p = el.parentElement; p; p = p.parentElement) {
-    if (p.matches(HOST_SELECTOR) && p.getAttribute("data-copy") !== "off" && p.getAttribute("data-copy-self") !== "off" && (p.hasAttribute("data-copy") || directHeading(p))) return p.querySelectorAll("table, pre, dl").length === 1;
+    if (
+      p.matches(HOST_SELECTOR) &&
+      p.getAttribute("data-copy") !== "off" &&
+      p.getAttribute("data-copy-self") !== "off" &&
+      (p.hasAttribute("data-copy") || directHeading(p))
+    )
+      return p.querySelectorAll("table, pre, dl").length === 1;
   }
   return false;
 }
@@ -107,18 +159,44 @@ function classify(el) {
   if (el.hasAttribute("data-copy-ui") || el.closest(EXCLUDED)) return null;
   const t = tag(el);
   const explicit = el.getAttribute("data-copy");
-  if (explicit === "off" || el.getAttribute("data-copy-self") === "off") return null;
+  if (explicit === "off" || el.getAttribute("data-copy-self") === "off")
+    return null;
   if (el.parentElement?.closest('[data-copy-inner="off"]')) return null;
   let kind = null;
   if (el.classList.contains("toast")) kind = "toast";
   else if (el.classList.contains("dialog-error")) kind = "error";
-  else if (explicit !== null) kind = t === "TABLE" ? "table" : t === "PRE" ? "pre" : t === "DL" ? "dl" : t === "UL" || t === "OL" ? "list" : BLOCK_TAGS.has(t) ? "text" : "section";
-  else if (t === "SECTION" || el.classList.contains("pw-card") || el.classList.contains("dialog")) kind = !SHELL.has(el.id) && directHeading(el) && worthCopying(el) ? "section" : null;
+  else if (explicit !== null)
+    kind =
+      t === "TABLE"
+        ? "table"
+        : t === "PRE"
+          ? "pre"
+          : t === "DL"
+            ? "dl"
+            : t === "UL" || t === "OL"
+              ? "list"
+              : BLOCK_TAGS.has(t)
+                ? "text"
+                : "section";
+  else if (
+    t === "SECTION" ||
+    el.classList.contains("pw-card") ||
+    el.classList.contains("dialog")
+  )
+    kind =
+      !SHELL.has(el.id) && directHeading(el) && worthCopying(el)
+        ? "section"
+        : null;
   else if (t === "TABLE") kind = "table";
-  else if (t === "PRE" || t === "DL") kind = soleBlockOfSection(el) ? null : t === "PRE" ? "pre" : "dl";
-  else if (t === "UL" && el.classList.contains("detail-list")) kind = el.children.length >= 3 ? "list" : null;
+  else if (t === "PRE" || t === "DL")
+    kind = soleBlockOfSection(el) ? null : t === "PRE" ? "pre" : "dl";
+  else if (t === "UL" && el.classList.contains("detail-list"))
+    kind = el.children.length >= 3 ? "list" : null;
   if (!kind) return null;
-  const title = kind === "toast" || kind === "error" ? "" : titleOf(el) || nearestHeadingText(el) || "";
+  const title =
+    kind === "toast" || kind === "error"
+      ? ""
+      : titleOf(el) || nearestHeadingText(el) || "";
   const heading = directHeading(el) ? headingText(directHeading(el)) : "";
   const mode =
     kind === "toast"
@@ -137,14 +215,18 @@ function isUnavailable(entry) {
   if (el.hidden || el.closest("[hidden]")) return true;
   if (info.kind === "section" || info.kind === "toast") return false;
   if (sources.has(el)) return false;
-  if (info.kind === "table") return el.querySelector("td, th[scope='row']") === null;
+  if (info.kind === "table")
+    return el.querySelector("td, th[scope='row']") === null;
   return squash(el.textContent) === "";
 }
 
 function dataFor(entry, options = {}) {
   const el = entry.el;
   const source = sources.get(el);
-  const dom = extractSection(el, { heading: options.heading !== false, controls: el.closest("[data-copy-controls]") !== null });
+  const dom = extractSection(el, {
+    heading: options.heading !== false,
+    controls: el.closest("[data-copy-controls]") !== null,
+  });
   if (!source) return dom;
   let given = null;
   try {
@@ -154,7 +236,14 @@ function dataFor(entry, options = {}) {
   }
   if (!given) return dom;
   const text = given.text ?? dom.text;
-  return { text, markdown: given.markdown ?? null, tsv: given.tsv ?? null, json: given.json ?? null, tabular: !!given.tsv, shortened: !!given.shortened };
+  return {
+    text,
+    markdown: given.markdown ?? null,
+    tsv: given.tsv ?? null,
+    json: given.json ?? null,
+    tabular: !!given.tsv,
+    shortened: !!given.shortened,
+  };
 }
 
 const FORMAT_LABEL = {
@@ -167,43 +256,131 @@ const FORMAT_LABEL = {
 async function copyEntry(entry, format = "text", options = {}) {
   const data = dataFor(entry, options);
   const text = data[format] ?? data.text;
-  const secret = options.secret === true || entry.el.closest("[data-copy-secret]") !== null;
-  const ok = await copyToClipboard(text, { what: entry.info.title || KIND_WORD[entry.info.kind] || "text", secret, shortened: data.shortened });
+  const secret =
+    options.secret === true || entry.el.closest("[data-copy-secret]") !== null;
+  const ok = await copyToClipboard(text, {
+    what: entry.info.title || KIND_WORD[entry.info.kind] || "text",
+    secret,
+    shortened: data.shortened,
+  });
   if (ok && entry.main) flashCopied(entry.main);
   return ok;
 }
 
 function openMenu(entry) {
   const full = dataFor(entry);
-  const items = [{ label: FORMAT_LABEL.text, icon: "📋", action: () => copyEntry(entry, "text") }];
-  if (full.tsv) items.push({ label: FORMAT_LABEL.tsv, icon: "▦", action: () => copyEntry(entry, "tsv") });
-  if (full.markdown) items.push({ label: FORMAT_LABEL.markdown, icon: "Ⓜ", action: () => copyEntry(entry, "markdown") });
-  if (full.json) items.push({ label: FORMAT_LABEL.json, icon: "{ }", action: () => copyEntry(entry, "json") });
-  if (!sources.has(entry.el) && dataFor(entry, { heading: false }).text !== full.text) items.push({ separator: true }, { label: "Copy text without the heading", icon: "", action: () => copyEntry(entry, "text", { heading: false }) });
-  showMenu(items, { anchor: entry.more, label: `Ways to copy ${entry.info.title || "this block"}` });
+  const items = [
+    {
+      label: FORMAT_LABEL.text,
+      icon: "📋",
+      action: () => copyEntry(entry, "text"),
+    },
+  ];
+  if (full.tsv)
+    items.push({
+      label: FORMAT_LABEL.tsv,
+      icon: "▦",
+      action: () => copyEntry(entry, "tsv"),
+    });
+  if (full.markdown)
+    items.push({
+      label: FORMAT_LABEL.markdown,
+      icon: "Ⓜ",
+      action: () => copyEntry(entry, "markdown"),
+    });
+  if (full.json)
+    items.push({
+      label: FORMAT_LABEL.json,
+      icon: "{ }",
+      action: () => copyEntry(entry, "json"),
+    });
+  if (
+    !sources.has(entry.el) &&
+    dataFor(entry, { heading: false }).text !== full.text
+  )
+    items.push(
+      { separator: true },
+      {
+        label: "Copy text without the heading",
+        icon: "",
+        action: () => copyEntry(entry, "text", { heading: false }),
+      },
+    );
+  showMenu(items, {
+    anchor: entry.more,
+    label: `Ways to copy ${entry.info.title || "this block"}`,
+  });
 }
 
 function makeBar(entry) {
   const { info } = entry;
   const word = KIND_WORD[info.kind] ?? "text";
   const named = info.title ? `the ${word} ${info.title}` : `this ${word}`;
-  const words = info.kind === "table" ? "Copy table" : info.kind === "error" ? "Copy error" : info.kind === "list" ? "Copy list" : "Copy";
+  const words =
+    info.kind === "table"
+      ? "Copy table"
+      : info.kind === "error"
+        ? "Copy error"
+        : info.kind === "list"
+          ? "Copy list"
+          : "Copy";
   const tip = `Copy ${named} as plain text, ready to paste. Press the small arrow for more ways to copy (table, Markdown, JSON). Shortcut: ${shortcutLabel()}.`;
-  const main = h("button", { type: "button", class: "copy-main", "aria-label": `Copy ${named}`, title: tip }, words);
-  const more = h("button", { type: "button", class: "copy-more", "aria-haspopup": "menu", "aria-label": `More ways to copy ${named}`, title: `Choose how to copy ${named}: text, table, Markdown or JSON` }, "▾");
+  const main = h(
+    "button",
+    {
+      type: "button",
+      class: "copy-main",
+      "aria-label": `Copy ${named}`,
+      title: tip,
+    },
+    words,
+  );
+  const more = h(
+    "button",
+    {
+      type: "button",
+      class: "copy-more",
+      "aria-haspopup": "menu",
+      "aria-label": `More ways to copy ${named}`,
+      title: `Choose how to copy ${named}: text, table, Markdown or JSON`,
+    },
+    "▾",
+  );
   main.addEventListener("click", () => copyEntry(entry, "text"));
   more.addEventListener("click", () => openMenu(entry));
   entry.main = main;
   entry.more = more;
-  const bar = h("span", { class: `copy-bar copy-bar-${info.mode}`, "data-copy-ui": "", role: "group", "aria-label": `Copy ${named}` }, main, more);
+  const bar = h(
+    "span",
+    {
+      class: `copy-bar copy-bar-${info.mode}`,
+      "data-copy-ui": "",
+      role: "group",
+      "aria-label": `Copy ${named}`,
+    },
+    main,
+    more,
+  );
   return bar;
 }
 
 function makeToastButton(entry) {
-  const button = h("button", { type: "button", class: "toast-action copy-toast", "data-copy-ui": "", "aria-label": "Copy the error message", title: "Copy this error message so you can paste it into a note or a message to someone who can help" }, "Copy error");
+  const button = h(
+    "button",
+    {
+      type: "button",
+      class: "toast-action copy-toast",
+      "data-copy-ui": "",
+      "aria-label": "Copy the error message",
+      title:
+        "Copy this error message so you can paste it into a note or a message to someone who can help",
+    },
+    "Copy error",
+  );
   button.addEventListener("click", async () => {
     const text = squash(entry.el.querySelector(".toast-text")?.textContent);
-    if (await copyToClipboard(text, { what: "the error message" })) flashCopied(button);
+    if (await copyToClipboard(text, { what: "the error message" }))
+      flashCopied(button);
   });
   entry.main = button;
   return button;
@@ -212,7 +389,13 @@ function makeToastButton(entry) {
 /** The element a block-style button goes before: the table's scroll wrapper, when there is one. */
 function anchorFor(el) {
   let anchor = el;
-  while (anchor.parentElement && anchor.parentElement.children.length === 1 && /table-wrap|wrap/.test(anchor.parentElement.className?.toString() ?? "") && !anchor.parentElement.hasAttribute("data-copy")) anchor = anchor.parentElement;
+  while (
+    anchor.parentElement &&
+    anchor.parentElement.children.length === 1 &&
+    /table-wrap|wrap/.test(anchor.parentElement.className?.toString() ?? "") &&
+    !anchor.parentElement.hasAttribute("data-copy")
+  )
+    anchor = anchor.parentElement;
   return anchor;
 }
 
@@ -264,7 +447,12 @@ function detach(entry) {
 const LEAF_BLOCKS = new Set(["TABLE", "TBODY", "PRE", "UL", "OL", "DL"]);
 
 function scan(root) {
-  if (!root.isConnected || root.hasAttribute?.("data-copy-ui") || root.closest?.(EXCLUDED)) return;
+  if (
+    !root.isConnected ||
+    root.hasAttribute?.("data-copy-ui") ||
+    root.closest?.(EXCLUDED)
+  )
+    return;
   if (root.matches?.(CANDIDATES)) attach(root);
   if (root.getElementsByTagName("*").length > BIG_SUBTREE) {
     // a huge subtree is looked at piece by piece; a huge table, list or text block only gets the one button at its top
@@ -289,7 +477,8 @@ function flush() {
   queued = false;
   if (!started || !hasDocument()) return;
   if (Date.now() - lastTyping < TYPING_PAUSE_MS) return schedule();
-  for (const entry of [...targets.values()]) if (!entry.el.isConnected) detach(entry);
+  for (const entry of [...targets.values()])
+    if (!entry.el.isConnected) detach(entry);
   const roots = [...pending];
   pending.clear();
   for (const root of roots) scan(root);
@@ -298,7 +487,9 @@ function flush() {
   for (const node of nodes) refresh(node);
   const flipped = [...toggled];
   toggled.clear();
-  if (flipped.length) for (const entry of targets.values()) if (flipped.some((n) => n.contains(entry.el))) refresh(entry.el);
+  if (flipped.length)
+    for (const entry of targets.values())
+      if (flipped.some((n) => n.contains(entry.el))) refresh(entry.el);
 }
 
 function schedule() {
@@ -317,7 +508,8 @@ function onMutations(records) {
     const target = r.target;
     if (target.nodeType !== 1 || target.hasAttribute("data-copy-ui")) continue;
     if (isTextEntry(target)) continue;
-    if (typeof target.closest === "function" && target.closest(EXCLUDED)) continue;
+    if (typeof target.closest === "function" && target.closest(EXCLUDED))
+      continue;
     dirty = true;
     touched.add(target);
     if (r.type === "attributes") toggled.add(target);
@@ -329,7 +521,8 @@ function onMutations(records) {
       pending.add(n);
       if (isHeading(n)) pending.add(target); // a heading that arrives after its section makes it a section
     }
-    for (const n of r.removedNodes) if (!(n.nodeType === 1 && n.hasAttribute("data-copy-ui"))) foreign = true;
+    for (const n of r.removedNodes)
+      if (!(n.nodeType === 1 && n.hasAttribute("data-copy-ui"))) foreign = true;
     // a module that rebuilds the insides of a block also removed our button: put it back
     if (foreign && targets.has(target)) pending.add(target);
   }
@@ -337,7 +530,11 @@ function onMutations(records) {
 }
 
 function entryFrom(node) {
-  for (let p = node instanceof Element ? node : node?.parentElement; p; p = p.parentElement) {
+  for (
+    let p = node instanceof Element ? node : node?.parentElement;
+    p;
+    p = p.parentElement
+  ) {
     const entry = targets.get(p);
     if (entry && entry.info.mode !== "toast" && !entry.bar.hidden) return entry;
   }
@@ -345,13 +542,27 @@ function entryFrom(node) {
 }
 
 function onKeyDown(e) {
-  if (!(e.altKey && e.shiftKey && !e.ctrlKey && !e.metaKey && (e.code === "KeyC" || e.key === "C" || e.key === "Ç"))) return;
+  if (!(
+    e.altKey &&
+    e.shiftKey &&
+    !e.ctrlKey &&
+    !e.metaKey &&
+    (e.code === "KeyC" || e.key === "C" || e.key === "Ç")
+  ))
+    return;
   const active = document.activeElement;
-  const entry = entryFrom(active && active !== document.body ? active : lastPointer) ?? entryFrom(lastPointer);
+  const entry =
+    entryFrom(active && active !== document.body ? active : lastPointer) ??
+    entryFrom(lastPointer);
   e.preventDefault();
   e.stopPropagation();
   if (!entry) {
-    toast("Click inside the section you want to copy, then press " + shortcutLabel() + " again.", { kind: "info" });
+    toast(
+      "Click inside the section you want to copy, then press " +
+        shortcutLabel() +
+        " again.",
+      { kind: "info" },
+    );
     return;
   }
   void copyEntry(entry, "text");
@@ -372,7 +583,12 @@ export function startCopySections() {
   started = true;
   watchedDocument = document;
   observer = new MutationObserver(onMutations);
-  observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden"] });
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["hidden"],
+  });
   document.addEventListener("keydown", onKeyDown, true);
   document.addEventListener("input", onTyping, true);
   document.addEventListener("pointerdown", onPointer, true);
@@ -423,15 +639,28 @@ export const copySectionCount = () => targets.size;
  */
 export function registerCopySource(el, getData, title) {
   sources.set(el, getData);
-  if (title && !el.hasAttribute("data-copy")) el.setAttribute("data-copy", title);
+  if (title && !el.hasAttribute("data-copy"))
+    el.setAttribute("data-copy", title);
   else if (!el.hasAttribute("data-copy")) el.setAttribute("data-copy", "");
   if (started && el.isConnected) attach(el);
   return () => sources.delete(el);
 }
 
 /** Copies the block `el` right now (as if its Copy button was pressed). Used by "Copy all" buttons. */
-export function copySectionNow(el, { title = "", secret = false, format = "text" } = {}) {
+export function copySectionNow(
+  el,
+  { title = "", secret = false, format = "text" } = {},
+) {
   const known = targets.get(el);
-  const entry = { el, info: { ...(known?.info ?? { kind: "section", heading: "", mode: "host" }), title: title || known?.info.title || "" }, main: known?.main ?? null, more: null, bar: null };
+  const entry = {
+    el,
+    info: {
+      ...(known?.info ?? { kind: "section", heading: "", mode: "host" }),
+      title: title || known?.info.title || "",
+    },
+    main: known?.main ?? null,
+    more: null,
+    bar: null,
+  };
   return copyEntry(entry, format, { secret });
 }

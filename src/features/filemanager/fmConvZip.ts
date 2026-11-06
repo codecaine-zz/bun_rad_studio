@@ -12,7 +12,13 @@ const U32 = 0xffffffff;
 function dos(date: Date): { time: number; date: number } {
   const y = date.getFullYear();
   if (y < 1980) return { time: 0, date: (1 << 5) | 1 };
-  return { time: (date.getHours() << 11) | (date.getMinutes() << 5) | Math.floor(date.getSeconds() / 2), date: ((y - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate() };
+  return {
+    time:
+      (date.getHours() << 11) |
+      (date.getMinutes() << 5) |
+      Math.floor(date.getSeconds() / 2),
+    date: ((y - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate(),
+  };
 }
 
 /** Streaming standard ZIP archive writer that writes entries sequentially to a newly created file handle. */
@@ -20,7 +26,10 @@ export class ZipFileWriter {
   private offset = 0;
   private readonly central: Buffer[] = [];
   private count = 0;
-  private constructor(private readonly handle: fsp.FileHandle, private readonly path: string) {}
+  private constructor(
+    private readonly handle: fsp.FileHandle,
+    private readonly path: string,
+  ) {}
 
   /** Opens a new file exclusively (`wx`) at `path` and returns a `ZipFileWriter` instance. */
   static async create(path: string): Promise<ZipFileWriter> {
@@ -30,22 +39,41 @@ export class ZipFileWriter {
   private async write(buf: Buffer): Promise<void> {
     let done = 0;
     while (done < buf.length) {
-      const { bytesWritten } = await this.handle.write(buf, done, buf.length - done);
+      const { bytesWritten } = await this.handle.write(
+        buf,
+        done,
+        buf.length - done,
+      );
       done += bytesWritten;
     }
     this.offset += buf.length;
   }
 
   /** Adds a file (or, with a name ending in "/", a folder) to the zip. */
-  async add(name: string, data: Uint8Array, mtime = new Date(), mode = 0o644): Promise<void> {
-    if (this.count >= 65_535) throw new ConvError("That's too many items for one zip file (the limit is 65,535).");
+  async add(
+    name: string,
+    data: Uint8Array,
+    mtime = new Date(),
+    mode = 0o644,
+  ): Promise<void> {
+    if (this.count >= 65_535)
+      throw new ConvError(
+        "That's too many items for one zip file (the limit is 65,535).",
+      );
     const nameBuf = Buffer.from(name, "utf8");
-    if (nameBuf.length > 0xffff) throw new ConvError("A file name inside is too long for a zip file.");
+    if (nameBuf.length > 0xffff)
+      throw new ConvError("A file name inside is too long for a zip file.");
     const isDir = name.endsWith("/");
     const raw = Buffer.from(data.buffer, data.byteOffset, data.byteLength);
-    if (raw.length > U32) throw new ConvError(`"${name}" is over 4 GB, which this zip writer doesn't support.`);
+    if (raw.length > U32)
+      throw new ConvError(
+        `"${name}" is over 4 GB, which this zip writer doesn't support.`,
+      );
     const crc = isDir ? 0 : zlib.crc32(raw) >>> 0;
-    const packed = isDir || raw.length === 0 ? Buffer.alloc(0) : zlib.deflateRawSync(raw, { level: 6 });
+    const packed =
+      isDir || raw.length === 0
+        ? Buffer.alloc(0)
+        : zlib.deflateRawSync(raw, { level: 6 });
     const method = packed.length > 0 && packed.length < raw.length ? 8 : 0;
     const body = method === 8 ? packed : isDir ? Buffer.alloc(0) : raw;
     const { time, date } = dos(mtime);
@@ -76,7 +104,9 @@ export class ZipFileWriter {
     cd.writeUInt32LE(body.length, 20);
     cd.writeUInt32LE(isDir ? 0 : raw.length, 24);
     cd.writeUInt16LE(nameBuf.length, 28);
-    const unix = ((mode & 0o170000) || (isDir ? 0o040000 : 0o100000)) | (mode & 0o777 || (isDir ? 0o755 : 0o644));
+    const unix =
+      (mode & 0o170000 || (isDir ? 0o040000 : 0o100000)) |
+      (mode & 0o777 || (isDir ? 0o755 : 0o644));
     cd.writeUInt32LE(((unix << 16) | (isDir ? 0x10 : 0)) >>> 0, 38);
     cd.writeUInt32LE(localOffset, 42);
     this.central.push(cd, nameBuf);
@@ -84,10 +114,19 @@ export class ZipFileWriter {
   }
 
   /** Adds a file whose bytes arrive in pieces (so it is never held whole in memory). */
-  async addStream(name: string, chunks: AsyncIterable<Buffer>, mtime = new Date(), mode = 0o644): Promise<void> {
-    if (this.count >= 65_535) throw new ConvError("That's too many items for one zip file (the limit is 65,535).");
+  async addStream(
+    name: string,
+    chunks: AsyncIterable<Buffer>,
+    mtime = new Date(),
+    mode = 0o644,
+  ): Promise<void> {
+    if (this.count >= 65_535)
+      throw new ConvError(
+        "That's too many items for one zip file (the limit is 65,535).",
+      );
     const nameBuf = Buffer.from(name, "utf8");
-    if (nameBuf.length > 0xffff) throw new ConvError("A file name inside is too long for a zip file.");
+    if (nameBuf.length > 0xffff)
+      throw new ConvError("A file name inside is too long for a zip file.");
     const { time, date } = dos(mtime);
     const header = Buffer.alloc(30);
     header.writeUInt32LE(0x04034b50, 0);
@@ -115,8 +154,17 @@ export class ZipFileWriter {
       for await (const c of chunks) {
         crc = zlib.crc32(c, crc);
         usize += c.length;
-        if (usize > U32) throw new ConvError(`"${name}" is over 4 GB, which this zip writer doesn't support.`);
-        if (!deflater.write(c)) await Promise.race([new Promise<void>((resolve) => deflater.once("drain", () => resolve())), consumer]);
+        if (usize > U32)
+          throw new ConvError(
+            `"${name}" is over 4 GB, which this zip writer doesn't support.`,
+          );
+        if (!deflater.write(c))
+          await Promise.race([
+            new Promise<void>((resolve) =>
+              deflater.once("drain", () => resolve()),
+            ),
+            consumer,
+          ]);
       }
       deflater.end();
       await consumer;
@@ -124,7 +172,10 @@ export class ZipFileWriter {
       deflater.destroy();
       throw err;
     }
-    if (csize > U32) throw new ConvError(`"${name}" is over 4 GB, which this zip writer doesn't support.`);
+    if (csize > U32)
+      throw new ConvError(
+        `"${name}" is over 4 GB, which this zip writer doesn't support.`,
+      );
     const descriptor = Buffer.alloc(16);
     descriptor.writeUInt32LE(0x08074b50, 0);
     descriptor.writeUInt32LE(crc >>> 0, 4);
@@ -154,7 +205,10 @@ export class ZipFileWriter {
     const start = this.offset;
     const size = this.central.reduce((n, b) => n + b.length, 0);
     for (const b of this.central) await this.write(b);
-    if (this.offset + 22 > U32) throw new ConvError("The zip file would be over 4 GB, which this zip writer doesn't support.");
+    if (this.offset + 22 > U32)
+      throw new ConvError(
+        "The zip file would be over 4 GB, which this zip writer doesn't support.",
+      );
     const end = Buffer.alloc(22);
     end.writeUInt32LE(0x06054b50, 0);
     end.writeUInt16LE(this.count, 8);
@@ -173,7 +227,9 @@ export class ZipFileWriter {
 }
 
 /** A whole small zip in memory (for spreadsheets). */
-export function zipBuffer(entries: Array<{ name: string; data: Uint8Array }>): Buffer {
+export function zipBuffer(
+  entries: Array<{ name: string; data: Uint8Array }>,
+): Buffer {
   const parts: Buffer[] = [];
   const central: Buffer[] = [];
   let offset = 0;

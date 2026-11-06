@@ -1,18 +1,31 @@
 #!/usr/bin/env bun
 /**
  * ⚡ Codecaine Utility Suite - Homebrew Binary Wrappers Generator
- * 
+ *
  * Generates standalone POSIX-compliant wrapper executables in `bin/` for:
  * 1. Master `codecaine` and `codecaine-suite` unified entrypoints
  * 2. All 77+ CLI utility tools from `cli_apps/*.ts`
  * 3. All 65+ Desktop Studio applications from `applications/*.ts`
- * 
+ *
  * Works seamlessly on macOS (Homebrew /opt/homebrew/bin) and Linux (Homebrew /home/linuxbrew/.linuxbrew/bin).
  */
 
-import { readdirSync, readFileSync, existsSync, mkdirSync, writeFileSync, chmodSync, rmSync, unlinkSync, symlinkSync } from "fs";
+import {
+  readdirSync,
+  readFileSync,
+  existsSync,
+  mkdirSync,
+  writeFileSync,
+  chmodSync,
+  rmSync,
+  unlinkSync,
+  symlinkSync,
+} from "fs";
 import { resolve, join, basename } from "path";
-import { scanAllApplications, type DetectedApp } from "../applications/launcher_studio.ts";
+import {
+  scanAllApplications,
+  type DetectedApp,
+} from "../applications/launcher_studio.ts";
 
 const ROOT = resolve(import.meta.dir, "..");
 const BIN_DIR = join(ROOT, "bin");
@@ -86,7 +99,8 @@ export function buildWrapperDefinitions(): WrapperDefinition[] {
     targetScript: "cli_apps/codecaine_suite_cli.ts",
     type: "suite",
     displayName: "Codecaine Utility Suite Master CLI",
-    description: "Master CLI, tool runner, and package manager companion for macOS and Linux",
+    description:
+      "Master CLI, tool runner, and package manager companion for macOS and Linux",
     category: "Suite Hub",
   });
 
@@ -104,7 +118,8 @@ export function buildWrapperDefinitions(): WrapperDefinition[] {
     targetScript: "applications/launcher_studio.ts",
     type: "gui",
     displayName: "Launcher Studio Pro (GUI)",
-    description: "Unified desktop workstation launcher for all applications & tools",
+    description:
+      "Unified desktop workstation launcher for all applications & tools",
     category: "Suite Hub",
   });
 
@@ -113,17 +128,20 @@ export function buildWrapperDefinitions(): WrapperDefinition[] {
     targetScript: "cli_apps/launcher_cli.ts",
     type: "cli",
     displayName: "Launcher Studio Pro (CLI)",
-    description: "Terminal companion for unified application detection and launching",
+    description:
+      "Terminal companion for unified application detection and launching",
     category: "Suite Hub",
   });
 
   // 2. Discover all tools using scanAllApplications
   // The launcher orders apps by the user's favorites and launch counts. Sort by path so the generated list, and the
   // generated bin/manifest.json, are the same on every machine.
-  const apps = [...scanAllApplications().apps].sort((a, b) => a.displayPath.localeCompare(b.displayPath));
+  const apps = [...scanAllApplications().apps].sort((a, b) =>
+    a.displayPath.localeCompare(b.displayPath),
+  );
 
   // CLI tools
-  for (const app of apps.filter(a => a.source === "cli_tool")) {
+  for (const app of apps.filter((a) => a.source === "cli_tool")) {
     const filename = basename(app.displayPath).replace(/\.ts$/, "");
     const cleanName = filename.replace(/_cli$/, "").replace(/_/g, "-");
 
@@ -151,7 +169,7 @@ export function buildWrapperDefinitions(): WrapperDefinition[] {
   }
 
   // GUI Studio applications
-  for (const app of apps.filter(a => a.source === "rad_studio")) {
+  for (const app of apps.filter((a) => a.source === "rad_studio")) {
     const filename = basename(app.displayPath).replace(/\.ts$/, "");
     const cleanName = filename.replace(/_/g, "-");
     const stripped = cleanName.replace(/-studio$/, "");
@@ -224,7 +242,10 @@ export function buildWrapperDefinitions(): WrapperDefinition[] {
   return wrappers;
 }
 
-export function generateAllWrappers(clean = false): { count: number; wrappers: WrapperDefinition[] } {
+export function generateAllWrappers(clean = false): {
+  count: number;
+  wrappers: WrapperDefinition[];
+} {
   if (clean && existsSync(BIN_DIR)) {
     rmSync(BIN_DIR, { recursive: true, force: true });
   }
@@ -246,7 +267,7 @@ export function generateAllWrappers(clean = false): { count: number; wrappers: W
     version: "1.0.0",
     generatedAt: new Date().toISOString(),
     totalWrappers: wrappers.length,
-    commands: wrappers.map(w => ({
+    commands: wrappers.map((w) => ({
       name: w.binName,
       type: w.type,
       displayName: w.displayName,
@@ -270,7 +291,8 @@ export function generateAllWrappers(clean = false): { count: number; wrappers: W
       unchanged = false;
     }
   }
-  if (!unchanged) writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
+  if (!unchanged)
+    writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
 
   return { count: wrappers.length, wrappers };
 }
@@ -287,12 +309,17 @@ export function getHomebrewBinDir(): string {
   } catch {}
 
   if (process.platform === "darwin") {
-    return existsSync("/opt/homebrew/bin") ? "/opt/homebrew/bin" : "/usr/local/bin";
+    return existsSync("/opt/homebrew/bin")
+      ? "/opt/homebrew/bin"
+      : "/usr/local/bin";
   }
   return "/home/linuxbrew/.linuxbrew/bin";
 }
 
-export function linkToHomebrew(brewBinDir?: string): { linked: string[]; failed: string[] } {
+export function linkToHomebrew(brewBinDir?: string): {
+  linked: string[];
+  failed: string[];
+} {
   const targetDir = brewBinDir || getHomebrewBinDir();
   const linked: string[] = [];
   const failed: string[] = [];
@@ -320,7 +347,9 @@ export function linkToHomebrew(brewBinDir?: string): { linked: string[]; failed:
   return { linked, failed };
 }
 
-export function unlinkFromHomebrew(brewBinDir?: string): { unlinked: string[] } {
+export function unlinkFromHomebrew(brewBinDir?: string): {
+  unlinked: string[];
+} {
   const targetDir = brewBinDir || getHomebrewBinDir();
   const unlinked: string[] = [];
   const wrappers = buildWrapperDefinitions();
@@ -365,11 +394,17 @@ if (import.meta.main) {
 
   if (isLink) {
     const brewBin = getHomebrewBinDir();
-    console.log(`\n🔗 Linking ${count} wrappers into Homebrew bin (${brewBin})...`);
+    console.log(
+      `\n🔗 Linking ${count} wrappers into Homebrew bin (${brewBin})...`,
+    );
     const { linked, failed } = linkToHomebrew(brewBin);
-    console.log(`✅ Successfully linked ${linked.length} commands into ${brewBin}!`);
+    console.log(
+      `✅ Successfully linked ${linked.length} commands into ${brewBin}!`,
+    );
     if (failed.length > 0) {
-      console.warn(`⚠️  Failed to link ${failed.length} commands (check permissions).`);
+      console.warn(
+        `⚠️  Failed to link ${failed.length} commands (check permissions).`,
+      );
     }
   }
 

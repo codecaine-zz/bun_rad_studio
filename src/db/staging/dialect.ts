@@ -14,7 +14,11 @@ export const BOOLEAN_WORDS = [...TRUE_WORDS, ...FALSE_WORDS];
 const sqlList = (words: string[]) => words.map((w) => `'${w}'`).join(", ");
 
 /** Turns the staged text `ref` (an expression such as `s."age"`) into a value of the target column's type. */
-export function valueExpr(engine: Engine, col: TargetColumn, ref: string): string {
+export function valueExpr(
+  engine: Engine,
+  col: TargetColumn,
+  ref: string,
+): string {
   switch (engine) {
     case "sqlite":
       switch (col.cls) {
@@ -56,19 +60,31 @@ export function valueExpr(engine: Engine, col: TargetColumn, ref: string): strin
       }
     case "postgres":
       if (col.cls === "text") return ref;
-      if (!safeTypeName(col.dataType)) throw new StagingError(`Column “${col.name}” has a type (${col.dataType}) that cannot be loaded safely.`, "BAD_TYPE");
+      if (!safeTypeName(col.dataType))
+        throw new StagingError(
+          `Column “${col.name}” has a type (${col.dataType}) that cannot be loaded safely.`,
+          "BAD_TYPE",
+        );
       return `CAST(${ref} AS ${col.dataType})`;
   }
 }
 
 /** `a` and `b` have the same value, treating NULL = NULL as the same. */
 export function sameExpr(engine: Engine, a: string, b: string): string {
-  return engine === "sqlite" ? `${a} IS ${b}` : engine === "mysql" ? `${a} <=> ${b}` : `${a} IS NOT DISTINCT FROM ${b}`;
+  return engine === "sqlite"
+    ? `${a} IS ${b}`
+    : engine === "mysql"
+      ? `${a} <=> ${b}`
+      : `${a} IS NOT DISTINCT FROM ${b}`;
 }
 
 /** Returns a NULL-safe SQL inequality expression (`a` is distinct from `b`) for the target engine. */
 export function differentExpr(engine: Engine, a: string, b: string): string {
-  return engine === "sqlite" ? `${a} IS NOT ${b}` : engine === "mysql" ? `NOT (${a} <=> ${b})` : `${a} IS DISTINCT FROM ${b}`;
+  return engine === "sqlite"
+    ? `${a} IS NOT ${b}`
+    : engine === "mysql"
+      ? `NOT (${a} <=> ${b})`
+      : `${a} IS DISTINCT FROM ${b}`;
 }
 
 // ---- names -----------------------------------------------------------------------------------------------------------
@@ -92,7 +108,11 @@ export function slug(text: string, max = 28): string {
 }
 
 /** `stg_<target>_<yyyymmdd_hhmm>`, made unique among `existing` (case-insensitively). */
-export function stagingName(target: string, existing: Iterable<string>, now = new Date()): string {
+export function stagingName(
+  target: string,
+  existing: Iterable<string>,
+  now = new Date(),
+): string {
   const taken = new Set([...existing].map((n) => n.toLowerCase()));
   const base = `stg_${slug(target)}_${stamp(now)}`;
   let name = base;
@@ -115,7 +135,7 @@ export function safeColumnNames(names: string[]): string[] {
   const seen = new Set<string>();
   return names.map((n, i) => {
     let s = slug(n, 60).replace(/^(\d)/, "c_$1");
-    if (!s || s === "data" && !/data/i.test(n)) s = `column_${i + 1}`;
+    if (!s || (s === "data" && !/data/i.test(n))) s = `column_${i + 1}`;
     if (s.startsWith("_stg_")) s = "c" + s;
     let name = s;
     for (let k = 2; seen.has(name); k++) name = `${s}_${k}`;
@@ -127,10 +147,19 @@ export function safeColumnNames(names: string[]): string[] {
 // ---- DDL ---------------------------------------------------------------------------------------------------------
 
 /** Builds the `CREATE TABLE` DDL statement for a staging table with TEXT data columns and `_stg_*` metadata columns. */
-export function stagingDdl(db: Pick<StageDb, "engine" | "schema">, name: string, dataColumns: string[]): string {
+export function stagingDdl(
+  db: Pick<StageDb, "engine" | "schema">,
+  name: string,
+  dataColumns: string[],
+): string {
   const e = db.engine;
   const text = e === "mysql" ? "LONGTEXT NULL" : "TEXT";
-  const id = e === "sqlite" ? "INTEGER PRIMARY KEY AUTOINCREMENT" : e === "mysql" ? "BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY" : "BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY";
+  const id =
+    e === "sqlite"
+      ? "INTEGER PRIMARY KEY AUTOINCREMENT"
+      : e === "mysql"
+        ? "BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY"
+        : "BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY";
   const meta =
     e === "mysql"
       ? [
@@ -153,7 +182,11 @@ export function stagingDdl(db: Pick<StageDb, "engine" | "schema">, name: string,
           `${q(e, "_stg_match")} TEXT`,
           `${q(e, "_stg_raw")} TEXT`,
         ];
-  const cols = [`${q(e, "_stg_row_id")} ${id}`, ...dataColumns.map((c) => `${q(e, c)} ${text}`), ...meta];
+  const cols = [
+    `${q(e, "_stg_row_id")} ${id}`,
+    ...dataColumns.map((c) => `${q(e, c)} ${text}`),
+    ...meta,
+  ];
   return `CREATE TABLE ${refOf(db, name)} (${cols.join(", ")})${e === "mysql" ? " ENGINE=InnoDB DEFAULT CHARSET=utf8mb4" : ""}`;
 }
 
@@ -164,9 +197,15 @@ export function ledgerDdl(db: Pick<StageDb, "engine" | "schema">): string[] {
   const str = (len: number) => (e === "mysql" ? `VARCHAR(${len})` : "TEXT");
   const big = e === "sqlite" ? "INTEGER" : "BIGINT";
   const long = e === "mysql" ? "LONGTEXT" : "TEXT";
-  const id = e === "sqlite" ? "INTEGER PRIMARY KEY AUTOINCREMENT" : e === "mysql" ? "BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY" : "BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY";
+  const id =
+    e === "sqlite"
+      ? "INTEGER PRIMARY KEY AUTOINCREMENT"
+      : e === "mysql"
+        ? "BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY"
+        : "BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY";
   const tail = e === "mysql" ? " ENGINE=InnoDB DEFAULT CHARSET=utf8mb4" : "";
-  const ine = e === "mysql" ? "CREATE TABLE IF NOT EXISTS" : "CREATE TABLE IF NOT EXISTS";
+  const ine =
+    e === "mysql" ? "CREATE TABLE IF NOT EXISTS" : "CREATE TABLE IF NOT EXISTS";
   const batches = `${ine} ${refOf(db, LEDGER)} (${[
     `${t("batch_id")} ${str(64)} NOT NULL PRIMARY KEY`,
     `${t("created_at")} ${str(32)} NOT NULL`,
@@ -202,10 +241,17 @@ export function ledgerDdl(db: Pick<StageDb, "engine" | "schema">): string[] {
   ].join(", ")})${tail}`;
   const out = [batches, changes];
   if (e !== "mysql") {
-    out.push(`CREATE INDEX IF NOT EXISTS ${t("_import_batch_changes_batch_idx")} ON ${refOf(db, CHANGES)} (${t("batch_id")}, ${t("change_id")})`);
-    out.push(`CREATE INDEX IF NOT EXISTS ${t("_import_batch_changes_ref_idx")} ON ${refOf(db, CHANGES)} (${t("batch_id")}, ${t("ref_row_id")})`);
+    out.push(
+      `CREATE INDEX IF NOT EXISTS ${t("_import_batch_changes_batch_idx")} ON ${refOf(db, CHANGES)} (${t("batch_id")}, ${t("change_id")})`,
+    );
+    out.push(
+      `CREATE INDEX IF NOT EXISTS ${t("_import_batch_changes_ref_idx")} ON ${refOf(db, CHANGES)} (${t("batch_id")}, ${t("ref_row_id")})`,
+    );
   } else {
-    out[1] = out[1]!.replace(`${t("after_hash")} ${str(64)}`, `${t("after_hash")} ${str(64)}, INDEX ${t("batch_idx")} (${t("batch_id")}, ${t("change_id")}), INDEX ${t("ref_idx")} (${t("batch_id")}, ${t("ref_row_id")})`);
+    out[1] = out[1]!.replace(
+      `${t("after_hash")} ${str(64)}`,
+      `${t("after_hash")} ${str(64)}, INDEX ${t("batch_idx")} (${t("batch_id")}, ${t("change_id")}), INDEX ${t("ref_idx")} (${t("batch_id")}, ${t("ref_row_id")})`,
+    );
   }
   return out;
 }
@@ -214,7 +260,8 @@ export function ledgerDdl(db: Pick<StageDb, "engine" | "schema">): string[] {
 export const STAGING_NAME = /^stg_[a-z0-9_]+_\d{8}_\d{4}(_\d+)?$/;
 
 /** Is this table one of the import's own (staging or ledger) tables? They must never be chosen as a target. A user's own table that merely starts with stg_ is not. */
-export const isOwnTable = (name: string): boolean => name === LEDGER || name === CHANGES || STAGING_NAME.test(name);
+export const isOwnTable = (name: string): boolean =>
+  name === LEDGER || name === CHANGES || STAGING_NAME.test(name);
 
 /** Collects bound values and hands out the right placeholder (`?` or a typed `$n`). */
 export class Params {
@@ -229,10 +276,15 @@ export class Params {
 }
 
 /** `valueExpr` for a bound text value; the value is bound once per place it appears, so positional `?` parameters stay in step. */
-export function bindValue(p: Params, col: TargetColumn, value: string | null | undefined): string {
+export function bindValue(
+  p: Params,
+  col: TargetColumn,
+  value: string | null | undefined,
+): string {
   const mark = "\u0000";
   const parts = valueExpr(p.engine, col, mark).split(mark);
   let out = parts[0]!;
-  for (let i = 1; i < parts.length; i++) out += p.add(value ?? null, "text") + parts[i];
+  for (let i = 1; i < parts.length; i++)
+    out += p.add(value ?? null, "text") + parts[i];
   return out;
 }

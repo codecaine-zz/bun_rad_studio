@@ -38,8 +38,11 @@ export interface FuzzyResult<T> {
   score: number;
 }
 
-const ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-const graphemeSegmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+const ALPHANUMERIC =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+const graphemeSegmenter = new Intl.Segmenter(undefined, {
+  granularity: "grapheme",
+});
 
 function stripDiacritics(str: string): string {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -69,11 +72,17 @@ export function words(str: string): string[] {
  */
 export function slugify(str: string, options: SlugifyOptions = {}): string {
   const sep = options.separator ?? "-";
-  const base = stripDiacritics(options.lowercase === false ? str : str.toLowerCase());
+  const base = stripDiacritics(
+    options.lowercase === false ? str : str.toLowerCase(),
+  );
   let slug = base.replace(/[^a-zA-Z0-9]+/g, sep);
-  const edge = new RegExp(`^(?:${escapeForRegex(sep)})+|(?:${escapeForRegex(sep)})+$`, "g");
+  const edge = new RegExp(
+    `^(?:${escapeForRegex(sep)})+|(?:${escapeForRegex(sep)})+$`,
+    "g",
+  );
   slug = slug.replace(edge, "");
-  if (options.maxLength !== undefined) slug = slug.slice(0, options.maxLength).replace(edge, "");
+  if (options.maxLength !== undefined)
+    slug = slug.slice(0, options.maxLength).replace(edge, "");
   return slug;
 }
 
@@ -83,27 +92,37 @@ function escapeForRegex(s: string): string {
 
 /** `snake_case`. @example strutils.toSnakeCase("camelCaseText"); // "camel_case_text" */
 export function toSnakeCase(str: string): string {
-  return words(str).map((w) => w.toLowerCase()).join("_");
+  return words(str)
+    .map((w) => w.toLowerCase())
+    .join("_");
 }
 
 /** `kebab-case`. @example strutils.toKebabCase("camelCaseText"); // "camel-case-text" */
 export function toKebabCase(str: string): string {
-  return words(str).map((w) => w.toLowerCase()).join("-");
+  return words(str)
+    .map((w) => w.toLowerCase())
+    .join("-");
 }
 
 /** `CONSTANT_CASE`. @example strutils.toConstantCase("maxRetryCount"); // "MAX_RETRY_COUNT" */
 export function toConstantCase(str: string): string {
-  return words(str).map((w) => w.toUpperCase()).join("_");
+  return words(str)
+    .map((w) => w.toUpperCase())
+    .join("_");
 }
 
 /** `dot.case`. @example strutils.toDotCase("App Server Port"); // "app.server.port" */
 export function toDotCase(str: string): string {
-  return words(str).map((w) => w.toLowerCase()).join(".");
+  return words(str)
+    .map((w) => w.toLowerCase())
+    .join(".");
 }
 
 /** `camelCase`. @example strutils.toCamelCase("snake_case_text"); // "snakeCaseText" */
 export function toCamelCase(str: string): string {
-  return words(str).map((w, i) => (i === 0 ? w.toLowerCase() : capitalizeWord(w))).join("");
+  return words(str)
+    .map((w, i) => (i === 0 ? w.toLowerCase() : capitalizeWord(w)))
+    .join("");
 }
 
 /** `PascalCase`. @example strutils.toPascalCase("snake_case_text"); // "SnakeCaseText" */
@@ -136,10 +155,20 @@ export function uncapitalize(str: string): string {
  * Generic masker keeping `visibleStart` leading and `visibleEnd` trailing characters.
  * @example strutils.maskString("sk_live_abcdef123456", 8, 4); // "sk_live_********3456"
  */
-export function maskString(str: string, visibleStart = 0, visibleEnd = 4, maskChar = "*"): string {
-  if (str.length <= visibleStart + visibleEnd) return maskChar.repeat(str.length);
+export function maskString(
+  str: string,
+  visibleStart = 0,
+  visibleEnd = 4,
+  maskChar = "*",
+): string {
+  if (str.length <= visibleStart + visibleEnd)
+    return maskChar.repeat(str.length);
   const hidden = str.length - visibleStart - visibleEnd;
-  return str.slice(0, visibleStart) + maskChar.repeat(hidden) + str.slice(str.length - visibleEnd);
+  return (
+    str.slice(0, visibleStart) +
+    maskChar.repeat(hidden) +
+    str.slice(str.length - visibleEnd)
+  );
 }
 
 /** Mask an email's local part. @example strutils.maskEmail("developer@example.com"); // "d*******r@example.com" */
@@ -191,7 +220,11 @@ export function similarity(a: string, b: string): number {
  * "Did you mean…?" — closest candidate within `maxDistance` (case-insensitive), or `null`.
  * @example strutils.closestMatch("stauts", ["status", "start", "stop"]); // "status"
  */
-export function closestMatch(input: string, candidates: readonly string[], maxDistance = Math.max(2, Math.floor(input.length / 3))): string | null {
+export function closestMatch(
+  input: string,
+  candidates: readonly string[],
+  maxDistance = Math.max(2, Math.floor(input.length / 3)),
+): string | null {
   let best: string | null = null;
   let bestDist = Infinity;
   for (const c of candidates) {
@@ -206,14 +239,18 @@ export function closestMatch(input: string, candidates: readonly string[], maxDi
  * @example strutils.fuzzyScore("gco", "git checkout") !== null; // true
  */
 export function fuzzyScore(query: string, text: string): number | null {
-  const q = query.toLowerCase(), t = text.toLowerCase();
-  let score = 0, ti = 0, streak = 0;
+  const q = query.toLowerCase(),
+    t = text.toLowerCase();
+  let score = 0,
+    ti = 0,
+    streak = 0;
   for (const ch of q) {
     const found = t.indexOf(ch, ti);
     if (found === -1) return null;
     streak = found === ti ? streak + 1 : 1;
     const wordStart = found === 0 || /[\s\-_./]/.test(t[found - 1]!);
-    score += 1 + streak * 2 + (wordStart ? 5 : 0) - Math.min(found - ti, 5) * 0.5;
+    score +=
+      1 + streak * 2 + (wordStart ? 5 : 0) - Math.min(found - ti, 5) * 0.5;
     ti = found + 1;
   }
   return score - (t.length - q.length) * 0.01;
@@ -223,7 +260,11 @@ export function fuzzyScore(query: string, text: string): number | null {
  * Rank items by {@link fuzzyScore}, best first; non-matches dropped.
  * @example strutils.fuzzySearch("dep", [{ n: "deploy" }, { n: "test" }], (x) => x.n); // [{ item: { n: "deploy" }, score: … }]
  */
-export function fuzzySearch<T>(query: string, items: readonly T[], getText: (item: T) => string = String): FuzzyResult<T>[] {
+export function fuzzySearch<T>(
+  query: string,
+  items: readonly T[],
+  getText: (item: T) => string = String,
+): FuzzyResult<T>[] {
   const hits: FuzzyResult<T>[] = [];
   for (const item of items) {
     const score = fuzzyScore(query, getText(item));
@@ -239,19 +280,32 @@ export function truncate(text: string, maxLen: number, suffix = "..."): string {
 }
 
 /** Truncate on a word boundary. @example strutils.truncateWords("The quick brown fox", 15); // "The quick..." */
-export function truncateWords(text: string, maxLen: number, suffix = "..."): string {
+export function truncateWords(
+  text: string,
+  maxLen: number,
+  suffix = "...",
+): string {
   if (text.length <= maxLen) return text;
   const cut = text.slice(0, Math.max(0, maxLen - suffix.length + 1));
   const lastSpace = cut.lastIndexOf(" ");
-  return (lastSpace > 0 ? cut.slice(0, lastSpace) : cut.slice(0, -1)).trimEnd() + suffix;
+  return (
+    (lastSpace > 0 ? cut.slice(0, lastSpace) : cut.slice(0, -1)).trimEnd() +
+    suffix
+  );
 }
 
 /** Keep both ends, elide the middle (paths, hashes). @example strutils.truncateMiddle("/very/long/path/to/file.ts", 16); // "/very/lo…file.ts" */
-export function truncateMiddle(text: string, maxLen: number, separator = "…"): string {
+export function truncateMiddle(
+  text: string,
+  maxLen: number,
+  separator = "…",
+): string {
   if (text.length <= maxLen) return text;
   const keep = Math.max(0, maxLen - separator.length);
   const front = Math.ceil(keep / 2);
-  return text.slice(0, front) + separator + text.slice(text.length - (keep - front));
+  return (
+    text.slice(0, front) + separator + text.slice(text.length - (keep - front))
+  );
 }
 
 /** Center within `width` using `padChar`. @example strutils.padCenter("hi", 6, "*"); // "**hi**" */
@@ -262,18 +316,28 @@ export function padCenter(text: string, width: number, padChar = " "): string {
   return padChar.repeat(leftPad) + text + padChar.repeat(totalPad - leftPad);
 }
 
-function wrapParagraph(text: string, width: number, breakLong: boolean): string[] {
+function wrapParagraph(
+  text: string,
+  width: number,
+  breakLong: boolean,
+): string[] {
   const lines: string[] = [];
   let line = "";
   for (let word of text.split(/\s+/).filter(Boolean)) {
     while (breakLong && word.length > width) {
-      if (line) { lines.push(line); line = ""; }
+      if (line) {
+        lines.push(line);
+        line = "";
+      }
       lines.push(word.slice(0, width));
       word = word.slice(width);
     }
     if (!line) line = word;
     else if (line.length + word.length + 1 <= width) line += ` ${word}`;
-    else { lines.push(line); line = word; }
+    else {
+      lines.push(line);
+      line = word;
+    }
   }
   if (line) lines.push(line);
   return lines;
@@ -284,7 +348,11 @@ function wrapParagraph(text: string, width: number, breakLong: boolean): string[
  * @example strutils.wordWrap("The quick brown fox", 10); // "The quick\nbrown fox"
  * @example strutils.wordWrap("a\n\nb", 80, { preserveNewlines: true, indent: "> " }); // "> a\n> \n> b"
  */
-export function wordWrap(text: string, width: number, options: WordWrapOptions = {}): string {
+export function wordWrap(
+  text: string,
+  width: number,
+  options: WordWrapOptions = {},
+): string {
   const indent = options.indent ?? "";
   const avail = Math.max(1, width - indent.length);
   const blocks = options.preserveNewlines ? text.split(/\r?\n/) : [text];
@@ -300,8 +368,13 @@ export function wordWrap(text: string, width: number, options: WordWrapOptions =
  * @example strutils.dedent("\n    a\n      b\n"); // "a\n  b"
  */
 export function dedent(text: string): string {
-  const lines = text.replace(/^\r?\n/, "").replace(/\r?\n\s*$/, "").split(/\r?\n/);
-  const indents = lines.filter((l) => l.trim()).map((l) => l.match(/^[ \t]*/)![0].length);
+  const lines = text
+    .replace(/^\r?\n/, "")
+    .replace(/\r?\n\s*$/, "")
+    .split(/\r?\n/);
+  const indents = lines
+    .filter((l) => l.trim())
+    .map((l) => l.match(/^[ \t]*/)![0].length);
   const min = indents.length ? Math.min(...indents) : 0;
   return lines.map((l) => l.slice(min)).join("\n");
 }
@@ -309,7 +382,10 @@ export function dedent(text: string): string {
 /** Prefix every non-empty line. @example strutils.indent("a\nb", 2); // "  a\n  b" */
 export function indent(text: string, by: number | string = 2): string {
   const pad = typeof by === "number" ? " ".repeat(by) : by;
-  return text.split("\n").map((l) => (l ? pad + l : l)).join("\n");
+  return text
+    .split("\n")
+    .map((l) => (l ? pad + l : l))
+    .join("\n");
 }
 
 /** Collapse runs of whitespace into single spaces and trim. @example strutils.normalizeWhitespace("  a \n\t b "); // "a b" */
@@ -331,7 +407,12 @@ export function splitLines(text: string): string[] {
 export function countOccurrences(text: string, sub: string): number {
   if (!sub) return 0;
   let count = 0;
-  for (let i = text.indexOf(sub); i !== -1; i = text.indexOf(sub, i + sub.length)) count++;
+  for (
+    let i = text.indexOf(sub);
+    i !== -1;
+    i = text.indexOf(sub, i + sub.length)
+  )
+    count++;
   return count;
 }
 
@@ -380,7 +461,12 @@ function stripAnsi(text: string): string {
  * @example strutils.pluralize(1, "file"); // "1 file"
  * @example strutils.pluralize(3, "child", "children"); // "3 children"
  */
-export function pluralize(count: number, singular: string, plural = `${singular}s`, includeCount = true): string {
+export function pluralize(
+  count: number,
+  singular: string,
+  plural = `${singular}s`,
+  includeCount = true,
+): string {
   const word = Math.abs(count) === 1 ? singular : plural;
   return includeCount ? `${count} ${word}` : word;
 }
@@ -388,13 +474,19 @@ export function pluralize(count: number, singular: string, plural = `${singular}
 /** English ordinal. @example strutils.ordinal(22); // "22nd" */
 export function ordinal(n: number): string {
   const mod100 = Math.abs(n) % 100;
-  const suffix = mod100 >= 11 && mod100 <= 13 ? "th" : (["th", "st", "nd", "rd"][Math.abs(n) % 10] ?? "th");
+  const suffix =
+    mod100 >= 11 && mod100 <= 13
+      ? "th"
+      : (["th", "st", "nd", "rd"][Math.abs(n) % 10] ?? "th");
   return `${n}${suffix}`;
 }
 
 /** Initials of up to `max` words. @example strutils.initials("Ada King Lovelace"); // "AK" */
 export function initials(name: string, max = 2): string {
-  return words(name).slice(0, max).map((w) => w.charAt(0).toUpperCase()).join("");
+  return words(name)
+    .slice(0, max)
+    .map((w) => w.charAt(0).toUpperCase())
+    .join("");
 }
 
 /**
@@ -404,13 +496,18 @@ export function initials(name: string, max = 2): string {
  */
 export function randomString(length: number, alphabet = ALPHANUMERIC): string {
   if (alphabet.length === 0 || alphabet.length > 256) {
-    throw new Error(`[strutils.randomString] Alphabet length must be 1..256 (got ${alphabet.length})`);
+    throw new Error(
+      `[strutils.randomString] Alphabet length must be 1..256 (got ${alphabet.length})`,
+    );
   }
   const limit = 256 - (256 % alphabet.length);
   let out = "";
   while (out.length < length) {
-    for (const byte of crypto.getRandomValues(new Uint8Array(Math.max(16, length)))) {
-      if (byte < limit && out.length < length) out += alphabet[byte % alphabet.length];
+    for (const byte of crypto.getRandomValues(
+      new Uint8Array(Math.max(16, length)),
+    )) {
+      if (byte < limit && out.length < length)
+        out += alphabet[byte % alphabet.length];
     }
   }
   return out;

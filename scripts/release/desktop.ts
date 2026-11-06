@@ -1,6 +1,12 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
-import { Data, Format, NtExecutable, NtExecutableResource, Resource } from "resedit";
+import {
+  Data,
+  Format,
+  NtExecutable,
+  NtExecutableResource,
+  Resource,
+} from "resedit";
 import { ROOT } from "./common";
 import manifest from "../../icons/desktop/manifest.json";
 
@@ -16,14 +22,29 @@ const ALIASES: Record<string, string> = {
   "studio-codegen": "rad-studio",
 };
 
-export function desktopInfo(id: string): { title: string; png: string; ico: string } {
+export function desktopInfo(id: string): {
+  title: string;
+  png: string;
+  ico: string;
+} {
   const key = ALIASES[id] ?? id;
   const entry = (manifest as Record<string, { title: string }>)[key];
-  if (!entry) throw new Error(`No Mac artwork for ${id}. Export its icon to icons/desktop and update manifest.json before releasing.`);
+  if (!entry)
+    throw new Error(
+      `No Mac artwork for ${id}. Export its icon to icons/desktop and update manifest.json before releasing.`,
+    );
   const png = join(DESKTOP_ICONS, `${key}.png`);
   const ico = join(DESKTOP_ICONS, `${key}.ico`);
-  if (!existsSync(png) || !existsSync(ico)) throw new Error(`Missing desktop artwork for ${id}`);
-  return { title: id === "studio-codegen" ? "Studio Code Generator" : entry.title + (id.endsWith("-server") ? " Server" : ""), png, ico };
+  if (!existsSync(png) || !existsSync(ico))
+    throw new Error(`Missing desktop artwork for ${id}`);
+  return {
+    title:
+      id === "studio-codegen"
+        ? "Studio Code Generator"
+        : entry.title + (id.endsWith("-server") ? " Server" : ""),
+    png,
+    ico,
+  };
 }
 
 /** Bun puts a data-only .bun section after .rsrc, which resedit's resource reader otherwise rejects. */
@@ -45,9 +66,19 @@ export function embedWindowsIcon(exe: string, ico: string): void {
   const image = NtExecutable.from(binary);
   const resources = windowsResources(binary);
   const icon = Data.IconFile.from(readFileSync(ico));
-  resources.entries = resources.entries.filter(entry => entry.type !== 3 && entry.type !== 14);
-  Resource.IconGroupEntry.replaceIconsForResource(resources.entries, 1, 1033, icon.icons.map(i => i.data));
-  image.newHeader.optionalHeaderDataDirectory.set(Format.ImageDirectoryEntry.Resource, { virtualAddress: 0, size: 0 });
+  resources.entries = resources.entries.filter(
+    (entry) => entry.type !== 3 && entry.type !== 14,
+  );
+  Resource.IconGroupEntry.replaceIconsForResource(
+    resources.entries,
+    1,
+    1033,
+    icon.icons.map((i) => i.data),
+  );
+  image.newHeader.optionalHeaderDataDirectory.set(
+    Format.ImageDirectoryEntry.Resource,
+    { virtualAddress: 0, size: 0 },
+  );
   resources.outputResource(image);
   writeFileSync(exe, Buffer.from(image.generate()));
 }
@@ -62,7 +93,10 @@ export function stageDesktopIcons(dir: string, names: string[]): void {
   }
 }
 
-export function windowsDesktopLauncher(name: string, runtime = "bun.exe"): string {
+export function windowsDesktopLauncher(
+  name: string,
+  runtime = "bun.exe",
+): string {
   return `$ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $logFile = Join-Path $env:USERPROFILE '.bun_rad_studio\\logs\\${name}.log'
@@ -88,7 +122,7 @@ try {
 }
 
 export function windowsInstallScript(names: string[]): string {
-  const apps = names.map(id => ({ id, title: desktopInfo(id).title }));
+  const apps = names.map((id) => ({ id, title: desktopInfo(id).title }));
   return `param([switch]$Uninstall, [switch]$Desktop)
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
@@ -177,9 +211,13 @@ try {
 `.replace(/\r?\n/g, "\r\n");
 
 export function windowsInstallCommand(shortcuts: boolean): string {
-  return `@echo off\r\nsetlocal\r\n` +
+  return (
+    `@echo off\r\nsetlocal\r\n` +
     (shortcuts ? `if /I "%~1"=="-Uninstall" goto shortcuts\r\n` : "") +
     `powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0setup.ps1" -InstallDependencies\r\nif errorlevel 1 goto failed\r\n` +
-    (shortcuts ? `:shortcuts\r\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0install.ps1" %*\r\nif errorlevel 1 goto failed\r\n` : "") +
-    `echo Setup complete. You can now open the desktop apps.\r\npause\r\nexit /b 0\r\n:failed\r\necho Setup failed. See the error above.\r\npause\r\nexit /b 1\r\n`;
+    (shortcuts
+      ? `:shortcuts\r\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0install.ps1" %*\r\nif errorlevel 1 goto failed\r\n`
+      : "") +
+    `echo Setup complete. You can now open the desktop apps.\r\npause\r\nexit /b 0\r\n:failed\r\necho Setup failed. See the error above.\r\npause\r\nexit /b 1\r\n`
+  );
 }

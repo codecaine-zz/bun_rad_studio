@@ -10,7 +10,14 @@ export interface WorkbenchHtmlOptions {
   title?: string;
 }
 
-const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+const esc = (s: string) =>
+  s.replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        c
+      ]!,
+  );
 
 /** Generates the self-contained HTML document for the Database Workbench with an embedded CSRF/API token. */
 export function generateWorkbenchHtml(opts: WorkbenchHtmlOptions): string {

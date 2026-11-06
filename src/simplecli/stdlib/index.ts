@@ -10,36 +10,36 @@ import {
   type SimpleHttpResponse,
   type SimpleURL,
   type UploadFileInput,
-} from '../core/types.ts';
+} from "../core/types.ts";
 import {
   BackendClient,
   buildQueryString,
   parseQueryString,
   type ParsedCurlClientRequest,
-} from '../core/client.ts';
-import * as crypto from 'node:crypto';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
+} from "../core/client.ts";
+import * as crypto from "node:crypto";
+import * as fs from "node:fs";
+import * as path from "node:path";
 
 function normalizeStdlibRequestOptions(
   headersOrOptions?: Record<string, string> | RequestOptions,
-  extraBody?: any
+  extraBody?: any,
 ): RequestOptions {
   if (!headersOrOptions) {
     return extraBody !== undefined ? { body: extraBody } : {};
   }
   const optionKeys = new Set([
-    'headers',
-    'query',
-    'body',
-    'timeoutMs',
-    'retries',
-    'retryDelayMs',
-    'throwOnError',
-    'cacheTtlMs',
-    'fallback',
-    'signal',
-    'vars',
+    "headers",
+    "query",
+    "body",
+    "timeoutMs",
+    "retries",
+    "retryDelayMs",
+    "throwOnError",
+    "cacheTtlMs",
+    "fallback",
+    "signal",
+    "vars",
   ]);
   const keys = Object.keys(headersOrOptions);
   const isRequestOpts = keys.some((k) => optionKeys.has(k));
@@ -64,82 +64,108 @@ export class Stdlib {
 
   /** Computes the lowercase hex SHA-256 digest of `data`. */
   public static sha256(data: string | Uint8Array): string {
-    return crypto.createHash('sha256').update(data).digest('hex');
+    return crypto.createHash("sha256").update(data).digest("hex");
   }
 
   /** Computes the lowercase hex SHA-512 digest of `data`. */
   public static sha512(data: string | Uint8Array): string {
-    return crypto.createHash('sha512').update(data).digest('hex');
+    return crypto.createHash("sha512").update(data).digest("hex");
   }
 
   /** Computes the lowercase hex SHA-1 digest of `data`. */
   public static sha1(data: string | Uint8Array): string {
-    return crypto.createHash('sha1').update(data).digest('hex');
+    return crypto.createHash("sha1").update(data).digest("hex");
   }
 
   /** Computes the lowercase hex MD5 digest of `data`. */
   public static md5(data: string | Uint8Array): string {
-    return crypto.createHash('md5').update(data).digest('hex');
+    return crypto.createHash("md5").update(data).digest("hex");
   }
 
   /** Computes the lowercase hex HMAC-SHA256 signature of `data` using `key`. */
   public static hmacSha256(key: string, data: string): string {
-    return crypto.createHmac('sha256', key).update(data).digest('hex');
+    return crypto.createHmac("sha256", key).update(data).digest("hex");
   }
 
   private static deriveKey(keyOrPassphrase: string): Buffer {
     if (/^[0-9a-fA-F]{64}$/.test(keyOrPassphrase)) {
-      return Buffer.from(keyOrPassphrase, 'hex');
+      return Buffer.from(keyOrPassphrase, "hex");
     }
-    return crypto.createHash('sha256').update(keyOrPassphrase, 'utf8').digest();
+    return crypto.createHash("sha256").update(keyOrPassphrase, "utf8").digest();
   }
 
   /** Encrypts `text` with AES-256-CBC using `keyOrPassphrase` and returns `<ivHex>:<base64Ciphertext>`. */
-  public static aesEncrypt(text: string, keyOrPassphrase: string, ivHex?: string): string {
+  public static aesEncrypt(
+    text: string,
+    keyOrPassphrase: string,
+    ivHex?: string,
+  ): string {
     const key = Stdlib.deriveKey(keyOrPassphrase);
-    const iv = ivHex && /^[0-9a-fA-F]{32}$/.test(ivHex) ? Buffer.from(ivHex, 'hex') : crypto.randomBytes(16);
-    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
-    let encrypted = cipher.update(text, 'utf8', 'base64');
-    encrypted += cipher.final('base64');
-    return `${iv.toString('hex')}:${encrypted}`;
+    const iv =
+      ivHex && /^[0-9a-fA-F]{32}$/.test(ivHex)
+        ? Buffer.from(ivHex, "hex")
+        : crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
+    let encrypted = cipher.update(text, "utf8", "base64");
+    encrypted += cipher.final("base64");
+    return `${iv.toString("hex")}:${encrypted}`;
   }
 
   /** Decrypts an `<ivHex>:<base64Ciphertext>` payload produced by `aesEncrypt`. */
-  public static aesDecrypt(cipherPayload: string, keyOrPassphrase: string): string {
-    const parts = cipherPayload.split(':');
-    if (parts.length !== 2) throw new Error('Invalid cipher payload format (expected ivHex:base64Data)');
-    const iv = Buffer.from(parts[0] || '', 'hex');
-    const encryptedData = parts[1] || '';
+  public static aesDecrypt(
+    cipherPayload: string,
+    keyOrPassphrase: string,
+  ): string {
+    const parts = cipherPayload.split(":");
+    if (parts.length !== 2)
+      throw new Error(
+        "Invalid cipher payload format (expected ivHex:base64Data)",
+      );
+    const iv = Buffer.from(parts[0] || "", "hex");
+    const encryptedData = parts[1] || "";
     const key = Stdlib.deriveKey(keyOrPassphrase);
-    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-    let decrypted = decipher.update(encryptedData, 'base64', 'utf8') as string;
-    decrypted += decipher.final('utf8');
+    const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
+    let decrypted = decipher.update(encryptedData, "base64", "utf8") as string;
+    decrypted += decipher.final("utf8");
     return decrypted;
   }
 
   /** Hashes a plaintext `password` using `Bun.password` bcrypt (or PBKDF2-SHA256 fallback). */
   public static async bcryptHash(password: string): Promise<string> {
-    if (typeof (Bun as any)?.password?.hash === 'function') {
-      return (Bun as any).password.hash(password, { algorithm: 'bcrypt', cost: 10 });
+    if (typeof (Bun as any)?.password?.hash === "function") {
+      return (Bun as any).password.hash(password, {
+        algorithm: "bcrypt",
+        cost: 10,
+      });
     }
     // WebCrypto / fallback HMAC-based token for test environments without Bun password
-    const salt = crypto.randomBytes(16).toString('hex');
-    const hash = crypto.pbkdf2Sync(password, salt, 1000, 32, 'sha256').toString('hex');
+    const salt = crypto.randomBytes(16).toString("hex");
+    const hash = crypto
+      .pbkdf2Sync(password, salt, 1000, 32, "sha256")
+      .toString("hex");
     return `$pbkdf2$${salt}$${hash}`;
   }
 
   /** Verifies a plaintext `password` against a hash string produced by `bcryptHash`. */
-  public static async bcryptVerify(password: string, hash: string): Promise<boolean> {
-    if (typeof (Bun as any)?.password?.verify === 'function' && hash.startsWith('$2')) {
+  public static async bcryptVerify(
+    password: string,
+    hash: string,
+  ): Promise<boolean> {
+    if (
+      typeof (Bun as any)?.password?.verify === "function" &&
+      hash.startsWith("$2")
+    ) {
       return (Bun as any).password.verify(password, hash);
     }
-    if (hash.startsWith('$pbkdf2$')) {
-      const parts = hash.split('$');
-      const salt = parts[2] || '';
-      const expected = parts[3] || '';
-      const actual = crypto.pbkdf2Sync(password, salt, 1000, 32, 'sha256').toString('hex');
-      const aBuf = Buffer.from(actual, 'utf8');
-      const bBuf = Buffer.from(expected, 'utf8');
+    if (hash.startsWith("$pbkdf2$")) {
+      const parts = hash.split("$");
+      const salt = parts[2] || "";
+      const expected = parts[3] || "";
+      const actual = crypto
+        .pbkdf2Sync(password, salt, 1000, 32, "sha256")
+        .toString("hex");
+      const aBuf = Buffer.from(actual, "utf8");
+      const bBuf = Buffer.from(expected, "utf8");
       return aBuf.length === bBuf.length && crypto.timingSafeEqual(aBuf, bBuf);
     }
     return false;
@@ -153,9 +179,9 @@ export class Stdlib {
   /** Generates a time-ordered UUIDv7 string based on the current millisecond epoch timestamp. */
   public static uuidV7(): string {
     const timestamp = Date.now();
-    const timeHex = timestamp.toString(16).padStart(12, '0');
-    const randomHex = crypto.randomBytes(10).toString('hex');
-    return `${timeHex.slice(0, 8)}-${timeHex.slice(8, 12)}-7${randomHex.slice(0, 3)}-${(parseInt(randomHex.slice(3, 4), 16) & 0x3 | 0x8).toString(16)}${randomHex.slice(4, 7)}-${randomHex.slice(7, 19)}`;
+    const timeHex = timestamp.toString(16).padStart(12, "0");
+    const randomHex = crypto.randomBytes(10).toString("hex");
+    return `${timeHex.slice(0, 8)}-${timeHex.slice(8, 12)}-7${randomHex.slice(0, 3)}-${((parseInt(randomHex.slice(3, 4), 16) & 0x3) | 0x8).toString(16)}${randomHex.slice(4, 7)}-${randomHex.slice(7, 19)}`;
   }
 
   /** Generates a cryptographically strong random `Buffer` of `length` bytes. */
@@ -165,44 +191,45 @@ export class Stdlib {
 
   /** Generates a cryptographically random lowercase hex string derived from `byteCount` random bytes. */
   public static randomHex(byteCount: number = 16): string {
-    return crypto.randomBytes(byteCount).toString('hex');
+    return crypto.randomBytes(byteCount).toString("hex");
   }
 
   /** Generates a URL-safe random alphanumeric token of `length` characters. */
   public static randomToken(length: number = 32): string {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
-    let token = '';
+    const chars =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    let token = "";
     const bytes = crypto.randomBytes(length);
     for (let i = 0; i < length; i++) {
-      token += chars[(bytes[i] || 0) % chars.length] || '';
+      token += chars[(bytes[i] || 0) % chars.length] || "";
     }
     return token;
   }
 
   /** Encodes a UTF-8 string into Base64. */
   public static base64Encode(text: string): string {
-    return Buffer.from(text, 'utf8').toString('base64');
+    return Buffer.from(text, "utf8").toString("base64");
   }
 
   /** Decodes a Base64 string back into UTF-8 text. */
   public static base64Decode(encoded: string): string {
-    return Buffer.from(encoded, 'base64').toString('utf8');
+    return Buffer.from(encoded, "base64").toString("utf8");
   }
 
   /** Encodes a UTF-8 string into lowercase hexadecimal. */
   public static hexEncode(text: string): string {
-    return Buffer.from(text, 'utf8').toString('hex');
+    return Buffer.from(text, "utf8").toString("hex");
   }
 
   /** Decodes a hexadecimal string back into UTF-8 text. */
   public static hexDecode(hexStr: string): string {
-    return Buffer.from(hexStr, 'hex').toString('utf8');
+    return Buffer.from(hexStr, "hex").toString("utf8");
   }
 
   /** Applies the ROT13 substitution cipher to ASCII letters in `text`. */
   public static rot13(text: string): string {
     return text.replace(/[a-zA-Z]/g, (c) => {
-      const base = c <= 'Z' ? 65 : 97;
+      const base = c <= "Z" ? 65 : 97;
       return String.fromCharCode(((c.charCodeAt(0) - base + 13) % 26) + base);
     });
   }
@@ -224,30 +251,45 @@ export class Stdlib {
   private static _defaultClient: BackendClient = new BackendClient();
 
   /** Creates a new `BackendClient` instance with the given base URL or options. */
-  public static createClient(baseUrlOrOptions?: string | BackendClientOptions): BackendClient {
+  public static createClient(
+    baseUrlOrOptions?: string | BackendClientOptions,
+  ): BackendClient {
     return new BackendClient(baseUrlOrOptions);
   }
 
   /** Alias for `createClient` that returns a new `BackendClient` instance. */
-  public static createApiClient(baseUrlOrOptions?: string | BackendClientOptions): BackendClient {
+  public static createApiClient(
+    baseUrlOrOptions?: string | BackendClientOptions,
+  ): BackendClient {
     return new BackendClient(baseUrlOrOptions);
   }
 
   /** Performs a simple `GET` request to `url` and returns the response body as a string. */
-  public static async httpGet(url: string, headers: Record<string, string> = {}): Promise<string> {
+  public static async httpGet(
+    url: string,
+    headers: Record<string, string> = {},
+  ): Promise<string> {
     const res = await fetch(url, { headers });
     return res.text();
   }
 
   /** Performs a `POST` request to `url` with a string or JSON object `body` and returns the response text. */
-  public static async httpPost(url: string, body: string | object, headers: Record<string, string> = {}): Promise<string> {
-    const isJson = typeof body === 'object';
+  public static async httpPost(
+    url: string,
+    body: string | object,
+    headers: Record<string, string> = {},
+  ): Promise<string> {
+    const isJson = typeof body === "object";
     const payload = isJson ? JSON.stringify(body) : body;
     const reqHeaders: Record<string, string> = {
-      ...(isJson ? { 'Content-Type': 'application/json' } : {}),
+      ...(isJson ? { "Content-Type": "application/json" } : {}),
       ...headers,
     };
-    const res = await fetch(url, { method: 'POST', body: payload, headers: reqHeaders });
+    const res = await fetch(url, {
+      method: "POST",
+      body: payload,
+      headers: reqHeaders,
+    });
     return res.text();
   }
 
@@ -256,7 +298,7 @@ export class Stdlib {
     method: string,
     url: string,
     body?: string | object,
-    headersOrOptions: Record<string, string> | RequestOptions = {}
+    headersOrOptions: Record<string, string> | RequestOptions = {},
   ): Promise<BackendResponse<T>> {
     const opts = normalizeStdlibRequestOptions(headersOrOptions, body);
     return Stdlib._defaultClient.request<T>(method, url, opts);
@@ -265,52 +307,73 @@ export class Stdlib {
   /** Sends a `GET` request to `url` and returns the unwrapped JSON response payload. */
   public static async httpGetJson<T = any>(
     url: string,
-    headersOrOptions?: Record<string, string> | RequestOptions
+    headersOrOptions?: Record<string, string> | RequestOptions,
   ): Promise<T> {
-    return Stdlib._defaultClient.getJson<T>(url, normalizeStdlibRequestOptions(headersOrOptions));
+    return Stdlib._defaultClient.getJson<T>(
+      url,
+      normalizeStdlibRequestOptions(headersOrOptions),
+    );
   }
 
   /** Sends a `POST` request with `body` to `url` and returns the unwrapped JSON response payload. */
   public static async httpPostJson<T = any>(
     url: string,
     body?: any,
-    headersOrOptions?: Record<string, string> | RequestOptions
+    headersOrOptions?: Record<string, string> | RequestOptions,
   ): Promise<T> {
-    return Stdlib._defaultClient.postJson<T>(url, body, normalizeStdlibRequestOptions(headersOrOptions));
+    return Stdlib._defaultClient.postJson<T>(
+      url,
+      body,
+      normalizeStdlibRequestOptions(headersOrOptions),
+    );
   }
 
   /** Sends a `PUT` request with `body` to `url` and returns the unwrapped JSON response payload. */
   public static async httpPutJson<T = any>(
     url: string,
     body?: any,
-    headersOrOptions?: Record<string, string> | RequestOptions
+    headersOrOptions?: Record<string, string> | RequestOptions,
   ): Promise<T> {
-    return Stdlib._defaultClient.putJson<T>(url, body, normalizeStdlibRequestOptions(headersOrOptions));
+    return Stdlib._defaultClient.putJson<T>(
+      url,
+      body,
+      normalizeStdlibRequestOptions(headersOrOptions),
+    );
   }
 
   /** Sends a `PATCH` request with `body` to `url` and returns the unwrapped JSON response payload. */
   public static async httpPatchJson<T = any>(
     url: string,
     body?: any,
-    headersOrOptions?: Record<string, string> | RequestOptions
+    headersOrOptions?: Record<string, string> | RequestOptions,
   ): Promise<T> {
-    return Stdlib._defaultClient.patchJson<T>(url, body, normalizeStdlibRequestOptions(headersOrOptions));
+    return Stdlib._defaultClient.patchJson<T>(
+      url,
+      body,
+      normalizeStdlibRequestOptions(headersOrOptions),
+    );
   }
 
   /** Sends a `DELETE` request to `url` and returns the unwrapped JSON response payload. */
   public static async httpDeleteJson<T = any>(
     url: string,
-    headersOrOptions?: Record<string, string> | RequestOptions
+    headersOrOptions?: Record<string, string> | RequestOptions,
   ): Promise<T> {
-    return Stdlib._defaultClient.deleteJson<T>(url, normalizeStdlibRequestOptions(headersOrOptions));
+    return Stdlib._defaultClient.deleteJson<T>(
+      url,
+      normalizeStdlibRequestOptions(headersOrOptions),
+    );
   }
 
   /** Sends a `HEAD` request to `url` and returns the response headers dictionary. */
   public static async httpHead(
     url: string,
-    headersOrOptions?: Record<string, string> | RequestOptions
+    headersOrOptions?: Record<string, string> | RequestOptions,
   ): Promise<Record<string, string>> {
-    const res = await Stdlib._defaultClient.head(url, normalizeStdlibRequestOptions(headersOrOptions));
+    const res = await Stdlib._defaultClient.head(
+      url,
+      normalizeStdlibRequestOptions(headersOrOptions),
+    );
     return res.headers;
   }
 
@@ -318,9 +381,13 @@ export class Stdlib {
   public static async httpPostForm<T = any>(
     url: string,
     fields: Record<string, string | number | boolean>,
-    headersOrOptions?: Record<string, string> | RequestOptions
+    headersOrOptions?: Record<string, string> | RequestOptions,
   ): Promise<BackendResponse<T>> {
-    return Stdlib._defaultClient.postForm<T>(url, fields, normalizeStdlibRequestOptions(headersOrOptions));
+    return Stdlib._defaultClient.postForm<T>(
+      url,
+      fields,
+      normalizeStdlibRequestOptions(headersOrOptions),
+    );
   }
 
   /** Submits a `multipart/form-data` file upload `POST` request to `url`. */
@@ -328,16 +395,21 @@ export class Stdlib {
     url: string,
     files: Record<string, UploadFileInput>,
     fields: Record<string, string | number | boolean> = {},
-    headersOrOptions?: Record<string, string> | RequestOptions
+    headersOrOptions?: Record<string, string> | RequestOptions,
   ): Promise<BackendResponse<T>> {
-    return Stdlib._defaultClient.upload<T>(url, files, fields, normalizeStdlibRequestOptions(headersOrOptions));
+    return Stdlib._defaultClient.upload<T>(
+      url,
+      files,
+      fields,
+      normalizeStdlibRequestOptions(headersOrOptions),
+    );
   }
 
   /** Executes an HTTP request with automatic retries (default 3 retries, 200ms backoff). */
   public static async httpRetry<T = any>(
     method: string,
     url: string,
-    options: RequestOptions = {}
+    options: RequestOptions = {},
   ): Promise<BackendResponse<T>> {
     return Stdlib._defaultClient.request<T>(method, url, {
       retries: options.retries ?? 3,
@@ -351,14 +423,14 @@ export class Stdlib {
     url: string,
     query: string,
     variables?: Record<string, any>,
-    headersOrOptions?: Record<string, string> | RequestOptions
+    headersOrOptions?: Record<string, string> | RequestOptions,
   ): Promise<GraphQLResult<T>> {
     return Stdlib._defaultClient.graphql<T>(
       query,
       variables,
       undefined,
       url,
-      normalizeStdlibRequestOptions(headersOrOptions)
+      normalizeStdlibRequestOptions(headersOrOptions),
     );
   }
 
@@ -376,16 +448,20 @@ export class Stdlib {
   public static buildUrl(
     baseUrl: string,
     pathOrQuery?: string | Record<string, any>,
-    query?: Record<string, any>
+    query?: Record<string, any>,
   ): string {
-    if (typeof pathOrQuery === 'object' && pathOrQuery !== null) {
-      return new BackendClient(baseUrl).resolveUrl('', pathOrQuery);
+    if (typeof pathOrQuery === "object" && pathOrQuery !== null) {
+      return new BackendClient(baseUrl).resolveUrl("", pathOrQuery);
     }
-    return new BackendClient(baseUrl).resolveUrl(pathOrQuery || '', query);
+    return new BackendClient(baseUrl).resolveUrl(pathOrQuery || "", query);
   }
 
   /** Converts an HTTP method, URL, and `RequestOptions` into a shell-escaped `curl` command string. */
-  public static toCurl(method: string, url: string, options: RequestOptions = {}): string {
+  public static toCurl(
+    method: string,
+    url: string,
+    options: RequestOptions = {},
+  ): string {
     return Stdlib._defaultClient.toCurl(method, url, options);
   }
 
@@ -395,7 +471,11 @@ export class Stdlib {
   }
 
   /** Downloads a file from `url` to `destPath` on disk with optional byte-progress reporting. */
-  public static async downloadFile(url: string, destPath: string, onProgress?: (downloaded: number, total: number) => void): Promise<string> {
+  public static async downloadFile(
+    url: string,
+    destPath: string,
+    onProgress?: (downloaded: number, total: number) => void,
+  ): Promise<string> {
     return Stdlib._defaultClient.download(url, destPath, onProgress);
   }
 
@@ -404,12 +484,12 @@ export class Stdlib {
     const u = new URL(urlStr);
     return {
       raw: urlStr,
-      scheme: u.protocol.replace(':', ''),
+      scheme: u.protocol.replace(":", ""),
       host: u.hostname,
-      port: u.port ? parseInt(u.port, 10) : (u.protocol === 'https:' ? 443 : 80),
+      port: u.port ? parseInt(u.port, 10) : u.protocol === "https:" ? 443 : 80,
       path: u.pathname,
-      query: u.search.replace(/^\?/, ''),
-      fragment: u.hash.replace(/^#/, ''),
+      query: u.search.replace(/^\?/, ""),
+      fragment: u.hash.replace(/^#/, ""),
     };
   }
 
@@ -433,7 +513,9 @@ export class Stdlib {
     if (values.length === 0) return 0;
     const sorted = [...values].sort((a, b) => a - b);
     const mid = Math.floor(sorted.length / 2);
-    return sorted.length % 2 !== 0 ? (sorted[mid] ?? 0) : ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2;
+    return sorted.length % 2 !== 0
+      ? (sorted[mid] ?? 0)
+      : ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2;
   }
 
   /** Returns the most frequently occurring number (mode) in `values`, or `0` if empty. */
@@ -541,7 +623,7 @@ export class Stdlib {
         const del = row[j]! + 1;
         const ins = row[j - 1]! + 1;
         const sub = prevDiag + cost;
-        row[j] = del < ins ? (del < sub ? del : sub) : (ins < sub ? ins : sub);
+        row[j] = del < ins ? (del < sub ? del : sub) : ins < sub ? ins : sub;
         prevDiag = temp;
       }
     }
@@ -583,7 +665,11 @@ export class Stdlib {
       k++;
     }
 
-    const jaro = (matches / len1 + matches / len2 + (matches - transpositions / 2) / matches) / 3.0;
+    const jaro =
+      (matches / len1 +
+        matches / len2 +
+        (matches - transpositions / 2) / matches) /
+      3.0;
     let prefix = 0;
     for (let i = 0; i < Math.min(4, Math.min(len1, len2)); i++) {
       if (s1[i] === s2[i]) prefix++;
@@ -609,12 +695,16 @@ export class Stdlib {
     return text
       .toLowerCase()
       .trim()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/[\s-]+/g, '-');
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/[\s-]+/g, "-");
   }
 
   /** Truncates `text` to `maxLength` characters, appending `suffix` (default `'...'`) if shortened. */
-  public static truncate(text: string, maxLength: number, suffix: string = '...'): string {
+  public static truncate(
+    text: string,
+    maxLength: number,
+    suffix: string = "...",
+  ): string {
     if (text.length <= maxLength) return text;
     return text.slice(0, Math.max(0, maxLength - suffix.length)) + suffix;
   }
@@ -623,32 +713,35 @@ export class Stdlib {
   public static wordWrap(text: string, width: number = 80): string {
     const words = text.split(/\s+/);
     const lines: string[] = [];
-    let currentLine = '';
+    let currentLine = "";
 
     for (const word of words) {
       if (currentLine.length + word.length + 1 <= width) {
-        currentLine += (currentLine.length > 0 ? ' ' : '') + word;
+        currentLine += (currentLine.length > 0 ? " " : "") + word;
       } else {
         if (currentLine) lines.push(currentLine);
         currentLine = word;
       }
     }
     if (currentLine) lines.push(currentLine);
-    return lines.join('\n');
+    return lines.join("\n");
   }
 
   /** Capitalizes the first letter of each word in `text` and lowercases the rest. */
   public static titleCase(text: string): string {
-    return text.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase());
+    return text.replace(
+      /\w\S*/g,
+      (txt) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase(),
+    );
   }
 
   /** Converts `text` into `snake_case`. */
   public static snakeCase(text: string): string {
     return text
-      .replace(/([A-Z])/g, '_$1')
+      .replace(/([A-Z])/g, "_$1")
       .toLowerCase()
-      .replace(/^_/, '')
-      .replace(/[\s-]+/g, '_');
+      .replace(/^_/, "")
+      .replace(/[\s-]+/g, "_");
   }
 
   /** Converts `text` into `camelCase`. */
@@ -664,7 +757,11 @@ export class Stdlib {
   }
 
   /** Centers `text` within a field of `width` characters padded with `char` (default space). */
-  public static padCenter(text: string, width: number, char: string = ' '): string {
+  public static padCenter(
+    text: string,
+    width: number,
+    char: string = " ",
+  ): string {
     if (text.length >= width) return text;
     const leftPad = Math.floor((width - text.length) / 2);
     const rightPad = width - text.length - leftPad;
@@ -678,7 +775,7 @@ export class Stdlib {
   /** Formats a byte count into a human-readable unit string (`B`, `KB`, `MB`, `GB`, `TB`, `PB`). */
   public static humanSize(bytes: number): string {
     if (bytes < 1024) return `${bytes} B`;
-    const units = ['KB', 'MB', 'GB', 'TB', 'PB'];
+    const units = ["KB", "MB", "GB", "TB", "PB"];
     let u = -1;
     let b = bytes;
     do {
@@ -716,23 +813,29 @@ export class Stdlib {
 
   /** Formats a `Date` or epoch millisecond timestamp as a relative `"X ago"` string. */
   public static timeAgo(dateOrTimestamp: Date | number): string {
-    const timestamp = typeof dateOrTimestamp === 'number' ? dateOrTimestamp : dateOrTimestamp.getTime();
+    const timestamp =
+      typeof dateOrTimestamp === "number"
+        ? dateOrTimestamp
+        : dateOrTimestamp.getTime();
     const diffMs = Date.now() - timestamp;
     const diffSec = Math.floor(diffMs / 1000);
 
-    if (diffSec < 5) return 'just now';
+    if (diffSec < 5) return "just now";
     if (diffSec < 60) return `${diffSec} seconds ago`;
     const min = Math.floor(diffSec / 60);
-    if (min < 60) return `${min} minute${min > 1 ? 's' : ''} ago`;
+    if (min < 60) return `${min} minute${min > 1 ? "s" : ""} ago`;
     const hr = Math.floor(min / 60);
-    if (hr < 24) return `${hr} hour${hr > 1 ? 's' : ''} ago`;
+    if (hr < 24) return `${hr} hour${hr > 1 ? "s" : ""} ago`;
     const days = Math.floor(hr / 24);
-    return `${days} day${days > 1 ? 's' : ''} ago`;
+    return `${days} day${days > 1 ? "s" : ""} ago`;
   }
 
   /** Formats `num` with thousands separators and fixed `decimals` places. */
   public static formatNumber(num: number, decimals: number = 2): string {
-    return num.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    return num.toLocaleString("en-US", {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
   }
 
   // ===========================================================================
@@ -740,14 +843,17 @@ export class Stdlib {
   // ===========================================================================
 
   /** Parses CSV text into a 2D array of string cells, respecting quoted fields and escaped quotes. */
-  public static csvParse(csvText: string, delimiter: string = ','): string[][] {
+  public static csvParse(csvText: string, delimiter: string = ","): string[][] {
     const rows: string[][] = [];
-    const lines = csvText.replace(/\r\n/g, '\n').split('\n').filter(l => l.trim().length > 0);
+    const lines = csvText
+      .replace(/\r\n/g, "\n")
+      .split("\n")
+      .filter((l) => l.trim().length > 0);
 
     for (const line of lines) {
       const row: string[] = [];
       let inQuotes = false;
-      let cur = '';
+      let cur = "";
 
       for (let i = 0; i < line.length; i++) {
         const c = line[i];
@@ -760,7 +866,7 @@ export class Stdlib {
           }
         } else if (c === delimiter && !inQuotes) {
           row.push(cur.trim());
-          cur = '';
+          cur = "";
         } else {
           cur += c;
         }
@@ -775,27 +881,33 @@ export class Stdlib {
   public static tomlParse(tomlText: string): Record<string, any> {
     const result: Record<string, any> = {};
     let currentSection = result;
-    const lines = tomlText.split('\n');
+    const lines = tomlText.split("\n");
 
     for (const rawLine of lines) {
       const line = rawLine.trim();
-      if (!line || line.startsWith('#')) continue;
+      if (!line || line.startsWith("#")) continue;
 
-      if (line.startsWith('[') && line.endsWith(']')) {
+      if (line.startsWith("[") && line.endsWith("]")) {
         const sectionName = line.slice(1, -1).trim();
-        if (sectionName === '__proto__' || sectionName === 'constructor' || sectionName === 'prototype') continue;
+        if (
+          sectionName === "__proto__" ||
+          sectionName === "constructor" ||
+          sectionName === "prototype"
+        )
+          continue;
         result[sectionName] = {};
         currentSection = result[sectionName];
-      } else if (line.includes('=')) {
-        const [k = '', ...rest] = line.split('=');
+      } else if (line.includes("=")) {
+        const [k = "", ...rest] = line.split("=");
         const key = k.trim();
-        if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
-        let val: any = rest.join('=').trim();
+        if (key === "__proto__" || key === "constructor" || key === "prototype")
+          continue;
+        let val: any = rest.join("=").trim();
         if (val.startsWith('"') && val.endsWith('"')) {
           val = val.slice(1, -1);
-        } else if (val === 'true') {
+        } else if (val === "true") {
           val = true;
-        } else if (val === 'false') {
+        } else if (val === "false") {
           val = false;
         } else if (!isNaN(Number(val))) {
           val = Number(val);
@@ -819,7 +931,7 @@ export class Stdlib {
   public static isUrl(val: string): boolean {
     try {
       const u = new URL(val);
-      return u.protocol === 'http:' || u.protocol === 'https:';
+      return u.protocol === "http:" || u.protocol === "https:";
     } catch {
       return false;
     }
@@ -827,7 +939,9 @@ export class Stdlib {
 
   /** Returns `true` if `val` is a valid dotted-quad IPv4 address. */
   public static isIPv4(val: string): boolean {
-    return /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(val);
+    return /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(
+      val,
+    );
   }
 
   /** Returns `true` if `val` is a full 8-group colon-separated IPv6 address. */
@@ -868,7 +982,9 @@ export class Stdlib {
 
   /** Returns `true` if `val` is a valid canonical UUID string (versions 1 through 7). */
   public static isUUID(val: string): boolean {
-    return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-7][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(val);
+    return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-7][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(
+      val,
+    );
   }
 }
 
@@ -880,19 +996,33 @@ export class Stdlib {
 export class Stack<T> {
   private items: T[] = [];
   /** Pushes `item` onto the top of the stack. */
-  public push(item: T): void { this.items.push(item); }
+  public push(item: T): void {
+    this.items.push(item);
+  }
   /** Removes and returns the top item from the stack, or `undefined` if empty. */
-  public pop(): T | undefined { return this.items.pop(); }
+  public pop(): T | undefined {
+    return this.items.pop();
+  }
   /** Returns the top item on the stack without removing it, or `undefined` if empty. */
-  public peek(): T | undefined { return this.items[this.items.length - 1]; }
+  public peek(): T | undefined {
+    return this.items[this.items.length - 1];
+  }
   /** Returns `true` if the stack contains no elements. */
-  public isEmpty(): boolean { return this.items.length === 0; }
+  public isEmpty(): boolean {
+    return this.items.length === 0;
+  }
   /** Returns the number of elements currently in the stack. */
-  public size(): number { return this.items.length; }
+  public size(): number {
+    return this.items.length;
+  }
   /** Returns a shallow array copy of the stack's elements from bottom to top. */
-  public toArray(): T[] { return [...this.items]; }
+  public toArray(): T[] {
+    return [...this.items];
+  }
   /** Removes all elements from the stack. */
-  public clear(): void { this.items = []; }
+  public clear(): void {
+    this.items = [];
+  }
 }
 
 /** Generic amortized O(1) FIFO (first-in, first-out) queue data structure. */
@@ -900,7 +1030,9 @@ export class Queue<T> {
   private items: T[] = [];
   private head = 0;
   /** Appends `item` to the back of the queue. */
-  public enqueue(item: T): void { this.items.push(item); }
+  public enqueue(item: T): void {
+    this.items.push(item);
+  }
   /** Removes and returns the front item of the queue, or `undefined` if empty. */
   public dequeue(): T | undefined {
     if (this.head >= this.items.length) return undefined;
@@ -914,47 +1046,72 @@ export class Queue<T> {
     return item;
   }
   /** Returns the front item of the queue without removing it, or `undefined` if empty. */
-  public peek(): T | undefined { return this.items[this.head]; }
+  public peek(): T | undefined {
+    return this.items[this.head];
+  }
   /** Returns `true` if the queue contains no elements. */
-  public isEmpty(): boolean { return this.head >= this.items.length; }
+  public isEmpty(): boolean {
+    return this.head >= this.items.length;
+  }
   /** Returns the number of elements currently in the queue. */
-  public size(): number { return this.items.length - this.head; }
+  public size(): number {
+    return this.items.length - this.head;
+  }
   /** Returns an array of the active elements in FIFO order. */
-  public toArray(): T[] { return this.items.slice(this.head); }
+  public toArray(): T[] {
+    return this.items.slice(this.head);
+  }
   /** Removes all elements from the queue. */
-  public clear(): void { this.items = []; this.head = 0; }
+  public clear(): void {
+    this.items = [];
+    this.head = 0;
+  }
 }
 
 /** Generic set wrapper supporting algebraic `union`, `intersect`, and `difference` operations. */
 export class SetCollection<T> {
   private set: Set<T> = new Set();
   /** Adds `item` to the set. */
-  public add(item: T): void { this.set.add(item); }
+  public add(item: T): void {
+    this.set.add(item);
+  }
   /** Removes `item` from the set and returns `true` if it was present. */
-  public remove(item: T): boolean { return this.set.delete(item); }
+  public remove(item: T): boolean {
+    return this.set.delete(item);
+  }
   /** Returns `true` if `item` is in the set. */
-  public has(item: T): boolean { return this.set.has(item); }
+  public has(item: T): boolean {
+    return this.set.has(item);
+  }
   /** Returns the number of unique items in the set. */
-  public size(): number { return this.set.size; }
+  public size(): number {
+    return this.set.size;
+  }
   /** Converts the set into an array of its elements. */
-  public toArray(): T[] { return Array.from(this.set); }
+  public toArray(): T[] {
+    return Array.from(this.set);
+  }
   /** Returns a new `SetCollection<T>` containing elements present in either this set or `other`. */
   public union(other: SetCollection<T>): SetCollection<T> {
     const res = new SetCollection<T>();
-    this.toArray().forEach(i => res.add(i));
-    other.toArray().forEach(i => res.add(i));
+    this.toArray().forEach((i) => res.add(i));
+    other.toArray().forEach((i) => res.add(i));
     return res;
   }
   /** Returns a new `SetCollection<T>` containing only elements present in both this set and `other`. */
   public intersect(other: SetCollection<T>): SetCollection<T> {
     const res = new SetCollection<T>();
-    this.toArray().forEach(i => { if (other.has(i)) res.add(i); });
+    this.toArray().forEach((i) => {
+      if (other.has(i)) res.add(i);
+    });
     return res;
   }
   /** Returns a new `SetCollection<T>` containing elements in this set that are not in `other`. */
   public difference(other: SetCollection<T>): SetCollection<T> {
     const res = new SetCollection<T>();
-    this.toArray().forEach(i => { if (!other.has(i)) res.add(i); });
+    this.toArray().forEach((i) => {
+      if (!other.has(i)) res.add(i);
+    });
     return res;
   }
 }
@@ -995,11 +1152,17 @@ export class RingBuffer<T> {
   }
 
   /** Returns `true` when the number of stored elements equals `capacity`. */
-  public isFull(): boolean { return this.count === this.capacity; }
+  public isFull(): boolean {
+    return this.count === this.capacity;
+  }
   /** Returns `true` when the buffer contains no elements. */
-  public isEmpty(): boolean { return this.count === 0; }
+  public isEmpty(): boolean {
+    return this.count === 0;
+  }
   /** Returns the number of elements currently stored in the buffer. */
-  public size(): number { return this.count; }
+  public size(): number {
+    return this.count;
+  }
   /** Returns the buffered elements ordered from oldest to newest. */
   public toArray(): T[] {
     const res: T[] = [];
@@ -1017,7 +1180,8 @@ export class MinHeap<T> {
 
   /** Creates a `MinHeap` ordered by `compareFn` (defaults to natural `<` / `>` comparison). */
   constructor(compareFn?: (a: T, b: T) => number) {
-    this.compare = compareFn || ((a: any, b: any) => (a < b ? -1 : a > b ? 1 : 0));
+    this.compare =
+      compareFn || ((a: any, b: any) => (a < b ? -1 : a > b ? 1 : 0));
   }
 
   /** Inserts `item` into the heap and restores the heap invariant. */
@@ -1039,18 +1203,27 @@ export class MinHeap<T> {
   }
 
   /** Returns the smallest item in the heap without removing it, or `undefined` if empty. */
-  public peek(): T | undefined { return this.heap[0]; }
+  public peek(): T | undefined {
+    return this.heap[0];
+  }
   /** Returns the number of elements in the heap. */
-  public size(): number { return this.heap.length; }
+  public size(): number {
+    return this.heap.length;
+  }
   /** Returns `true` if the heap contains no elements. */
-  public isEmpty(): boolean { return this.heap.length === 0; }
+  public isEmpty(): boolean {
+    return this.heap.length === 0;
+  }
 
   private siftUp(index: number): void {
     let child = index;
     while (child > 0) {
       const parent = Math.floor((child - 1) / 2);
       if (this.compare(this.heap[child]!, this.heap[parent]!) < 0) {
-        [this.heap[child], this.heap[parent]] = [this.heap[parent]!, this.heap[child]!];
+        [this.heap[child], this.heap[parent]] = [
+          this.heap[parent]!,
+          this.heap[child]!,
+        ];
         child = parent;
       } else {
         break;
@@ -1065,11 +1238,17 @@ export class MinHeap<T> {
       let left = parent * 2 + 1;
       let right = parent * 2 + 2;
       let smallest = left;
-      if (right < length && this.compare(this.heap[right]!, this.heap[left]!) < 0) {
+      if (
+        right < length &&
+        this.compare(this.heap[right]!, this.heap[left]!) < 0
+      ) {
         smallest = right;
       }
       if (this.compare(this.heap[smallest]!, this.heap[parent]!) < 0) {
-        [this.heap[parent], this.heap[smallest]] = [this.heap[smallest]!, this.heap[parent]!];
+        [this.heap[parent], this.heap[smallest]] = [
+          this.heap[smallest]!,
+          this.heap[parent]!,
+        ];
         parent = smallest;
       } else {
         break;
@@ -1103,9 +1282,13 @@ export class PriorityQueue<T> {
   }
 
   /** Returns the number of elements in the priority queue. */
-  public size(): number { return this.minHeap.size(); }
+  public size(): number {
+    return this.minHeap.size();
+  }
   /** Returns `true` if the priority queue is empty. */
-  public isEmpty(): boolean { return this.minHeap.isEmpty(); }
+  public isEmpty(): boolean {
+    return this.minHeap.isEmpty();
+  }
 }
 
 /** Fixed-capacity Least Recently Used (LRU) cache backed by a JavaScript `Map`. */
@@ -1139,11 +1322,17 @@ export class LRUCache<K, V> {
   }
 
   /** Returns `true` if `key` is currently cached (without updating its recency). */
-  public has(key: K): boolean { return this.cache.has(key); }
+  public has(key: K): boolean {
+    return this.cache.has(key);
+  }
   /** Returns the current number of entries in the cache. */
-  public size(): number { return this.cache.size; }
+  public size(): number {
+    return this.cache.size;
+  }
   /** Evicts all entries from the cache. */
-  public clear(): void { this.cache.clear(); }
+  public clear(): void {
+    this.cache.clear();
+  }
 }
 
 /** Lowercase convenience alias for the `Stdlib` utility class. */

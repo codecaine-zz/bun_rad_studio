@@ -25,10 +25,19 @@ import { join, resolve } from "path";
 import { Cdp, sleep } from "./lib/cdp_recorder";
 import { seedDemoWorkspace } from "./lib/demo_workspace";
 import { hostApp, hostDesigner, type HostedApp } from "./lib/host_app";
-import { loadStage, outputs, serveStage, type StageServer } from "./lib/rad_stage";
+import {
+  loadStage,
+  outputs,
+  serveStage,
+  type StageServer,
+} from "./lib/rad_stage";
 import { EDGE_VOICE, FFMPEG, fmtTime, sh } from "./lib/video_pipeline";
 import { runTutorial, type Suite } from "./lib/step_video";
-import { GOD_HOME, godModeChapters, godStages } from "./lib/god_mode_tutorial_script";
+import {
+  GOD_HOME,
+  godModeChapters,
+  godStages,
+} from "./lib/god_mode_tutorial_script";
 import type { Chapter, World } from "./lib/fm_tutorial_types";
 import { startThemeStudioServer } from "../src/features/theme-studio";
 
@@ -46,10 +55,16 @@ const FM_PORT = 51688;
 const CDP_PORT = 9388;
 const VIEW_H = 972;
 
-const clean = (s: string) => s.replace(/\u001b\[[0-9;]*m/g, "").replace(/\s+$/, "");
+const clean = (s: string) =>
+  s.replace(/\u001b\[[0-9;]*m/g, "").replace(/\s+$/, "");
 
 function capture(cmd: string[], cwd: string): string {
-  const r = Bun.spawnSync(cmd, { cwd, stdout: "pipe", stderr: "pipe", env: { ...process.env, NO_COLOR: "1" } });
+  const r = Bun.spawnSync(cmd, {
+    cwd,
+    stdout: "pipe",
+    stderr: "pipe",
+    env: { ...process.env, NO_COLOR: "1" },
+  });
   return clean(r.stdout.toString() + r.stderr.toString());
 }
 
@@ -64,12 +79,26 @@ function seedWorld(): World {
   };
 
   // Seed fresh God-Mode sample files inside Projects/shop-app
-  put("Projects/shop-app/godmode-cluster.json", JSON.stringify({
-    version: "1.5.0",
-    rigs: ["Mac Studio M4 Ultra 6K XDR", "Windows 11 Dual RTX 5090", "Linux Threadripper PRO 96-Core"],
-    refreshRateHz: 120,
-  }, null, 2));
-  put("Projects/shop-app/README-GODMODE.md", "# Flagship Workstation Suite v1.5.0\n\n- 120Hz ProMotion / OLED / Wayland\n- 310 Themes & 194 Shaders\n");
+  put(
+    "Projects/shop-app/godmode-cluster.json",
+    JSON.stringify(
+      {
+        version: "1.5.0",
+        rigs: [
+          "Mac Studio M4 Ultra 6K XDR",
+          "Windows 11 Dual RTX 5090",
+          "Linux Threadripper PRO 96-Core",
+        ],
+        refreshRateHz: 120,
+      },
+      null,
+      2,
+    ),
+  );
+  put(
+    "Projects/shop-app/README-GODMODE.md",
+    "# Flagship Workstation Suite v1.5.0\n\n- 120Hz ProMotion / OLED / Wayland\n- 310 Themes & 194 Shaders\n",
+  );
 
   mkdirSync(ZDOT, { recursive: true });
   writeFileSync(
@@ -87,17 +116,30 @@ class GodModeEnv {
   stageServer: StageServer | null = null;
 
   async start() {
-    this.c = await Cdp.launch(CDP_PORT, "/tmp/godmode_chrome_profile", 1920, VIEW_H);
+    this.c = await Cdp.launch(
+      CDP_PORT,
+      "/tmp/godmode_chrome_profile",
+      1920,
+      VIEW_H,
+    );
   }
 
   stopServers() {
-    try { this.fmProc?.kill(9); } catch {}
+    try {
+      this.fmProc?.kill(9);
+    } catch {}
     this.fmProc = null;
-    try { this.themeServer?.stop(true); } catch {}
+    try {
+      this.themeServer?.stop(true);
+    } catch {}
     this.themeServer = null;
-    try { this.host?.stop(); } catch {}
+    try {
+      this.host?.stop();
+    } catch {}
     this.host = null;
-    try { this.stageServer?.stop(); } catch {}
+    try {
+      this.stageServer?.stop();
+    } catch {}
     this.stageServer = null;
   }
 
@@ -153,7 +195,9 @@ class GodModeEnv {
       );
       await sleep(700);
       if (spec.view) {
-        await this.c.eval(`document.querySelector(${JSON.stringify(spec.view)})?.click()`);
+        await this.c.eval(
+          `document.querySelector(${JSON.stringify(spec.view)})?.click()`,
+        );
         await sleep(600);
       }
       return;
@@ -189,7 +233,12 @@ class GodModeEnv {
       await sleep(600);
       await loadStage(
         { c: this.c },
-        { file: resolve(EXAMPLES, spec.file ?? ""), title: spec.title ?? ch.title, app, layout: "split" },
+        {
+          file: resolve(EXAMPLES, spec.file ?? ""),
+          title: spec.title ?? ch.title,
+          app,
+          layout: "split",
+        },
       );
       if (!app) await this.c.eval("window.__stage.idle()");
       await sleep(1400);
@@ -204,9 +253,14 @@ class GodModeEnv {
   }
 }
 
-function notesText(marks: Array<{ at: number; title: string }>, total: number): string {
+function notesText(
+  marks: Array<{ at: number; title: string }>,
+  total: number,
+): string {
   const REPO = "https://github.com/codecaine-zz/bun_rad_studio";
-  const chaptersText = marks.map((m, i) => `${fmtTime(i === 0 ? 0 : m.at)} ${m.title}`).join("\n");
+  const chaptersText = marks
+    .map((m, i) => `${fmtTime(i === 0 ? 0 : m.at)} ${m.title}`)
+    .join("\n");
   return `# Bun RAD Studio v1.5.0: The Complete God-Mode Master Tutorial (${fmtTime(total)})
 
 ## 🏆 Best YouTube Titles (High-CTR + Search SEO Optimized)

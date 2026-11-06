@@ -2,7 +2,13 @@
 // words, offers Undo where it is possible, and refreshes the view.
 import { ApiError, call } from "./api.js";
 import { copyItemButton, readFromClipboard } from "./copyclip.js";
-import { chooseConflict, confirmBox, openDialog, problemsBox, promptBox } from "./dialogs.js";
+import {
+  chooseConflict,
+  confirmBox,
+  openDialog,
+  problemsBox,
+  promptBox,
+} from "./dialogs.js";
 import { announce, h } from "./dom.js";
 import { toast } from "./menus.js";
 import { openInCode } from "./code.js";
@@ -10,7 +16,15 @@ import { hasNoExtension, isKnownTextName } from "./codeLang.js";
 import { openInEditor } from "./fileurl.js";
 import { reviewPlan } from "./planDialog.js";
 import { finishOpen } from "./openwith.js";
-import { busy, goTo, goToIn, refresh, refreshTrashCount, saveSettings, showTrash } from "./nav.js";
+import {
+  busy,
+  goTo,
+  goToIn,
+  refresh,
+  refreshTrashCount,
+  saveSettings,
+  showTrash,
+} from "./nav.js";
 import { bulkRenameDialog } from "./extras.js";
 import { buryItems } from "./graveBury.js";
 import { activePane, currentPath, inTrash, isFolderView } from "./pane.js";
@@ -18,9 +32,24 @@ import { openPower } from "./power.js";
 import { selectKeys, selectedEntries } from "./selection.js";
 import { AUDIO_EXTS, VIDEO_EXTS } from "./mediacore.js";
 import { emit, on, state } from "./state.js";
-import { looksLikeThemeImportPayload, pasteImportThemesFromText } from "./themes.js";
-import { announceVerdict, askOpenAnyway, skipMismatchGuard } from "./typecheck.js";
-import { baseName, detectSnippetInfo, extractableEntries, isDocumentPackageEntry, joinPath, parentOf, plural } from "./util.js";
+import {
+  looksLikeThemeImportPayload,
+  pasteImportThemesFromText,
+} from "./themes.js";
+import {
+  announceVerdict,
+  askOpenAnyway,
+  skipMismatchGuard,
+} from "./typecheck.js";
+import {
+  baseName,
+  detectSnippetInfo,
+  extractableEntries,
+  isDocumentPackageEntry,
+  joinPath,
+  parentOf,
+  plural,
+} from "./util.js";
 import { isLocked, unlockEntries } from "./vault.js";
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -30,7 +59,8 @@ import { isLocked, unlockEntries } from "./vault.js";
 function tally(results) {
   const done = [];
   const failed = [];
-  for (const r of results) (r.ok ? done : failed).push(r.ok ? r.value : r.message);
+  for (const r of results)
+    (r.ok ? done : failed).push(r.ok ? r.value : r.message);
   return { done, failed };
 }
 
@@ -38,11 +68,18 @@ async function reportFailures(failed, doing) {
   const unique = [...new Set(failed)];
   if (!unique.length) return;
   if (failed.length === 1) toast(unique[0], { kind: "error" });
-  else await problemsBox(`${plural(failed.length, "item")} couldn't be ${doing}`, "Here is why:", unique);
+  else
+    await problemsBox(
+      `${plural(failed.length, "item")} couldn't be ${doing}`,
+      "Here is why:",
+      unique,
+    );
 }
 
 function fail(err) {
-  toast(err instanceof ApiError ? err.message : "That didn't work.", { kind: "error" });
+  toast(err instanceof ApiError ? err.message : "That didn't work.", {
+    kind: "error",
+  });
 }
 
 const names = (paths) => paths.map((p) => baseName(p, state.sep));
@@ -50,7 +87,12 @@ const canChangeHere = () => isFolderView();
 
 function needFolder(what) {
   if (!canChangeHere()) {
-    toast(inTrash() ? `Open a folder first: ${what} isn't possible inside the Recycle Bin.` : `Close the search results first: ${what} needs a folder.`, { kind: "info" });
+    toast(
+      inTrash()
+        ? `Open a folder first: ${what} isn't possible inside the Recycle Bin.`
+        : `Close the search results first: ${what} needs a folder.`,
+      { kind: "info" },
+    );
     return false;
   }
   return true;
@@ -74,7 +116,10 @@ export async function undo() {
     await busy(() => entry.run());
     toast(`Undone: ${entry.label}`, { kind: "success" });
   } catch (err) {
-    toast(`Couldn't undo: ${err instanceof Error ? err.message : "something went wrong"}`, { kind: "error" });
+    toast(
+      `Couldn't undo: ${err instanceof Error ? err.message : "something went wrong"}`,
+      { kind: "error" },
+    );
   }
   await refresh();
   await refreshTrashCount();
@@ -105,18 +150,36 @@ async function trashPaths(paths) {
  * would run still ask first, as before.
  */
 export function textOpensInEditor(entry) {
-  return !entry.isDir && !entry.program && state.settings.textOpensIn !== "system" && isKnownTextName(entry.name);
+  return (
+    !entry.isDir &&
+    !entry.program &&
+    state.settings.textOpensIn !== "system" &&
+    isKnownTextName(entry.name)
+  );
 }
 
 // Pictures the File Manager's viewer can show itself (the same list the server previews as pictures).
-const VIEWABLE_PICTURES = new Set(["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg", "ico", "avif"]);
+const VIEWABLE_PICTURES = new Set([
+  "png",
+  "jpg",
+  "jpeg",
+  "gif",
+  "webp",
+  "bmp",
+  "svg",
+  "ico",
+  "avif",
+]);
 
 /** Pictures, sound and video open in the File Manager's own viewer and player, unless Settings says "the program my computer uses". */
 export function mediaOpensInManager(entry) {
-  if (entry.isDir || entry.program || state.settings.mediaOpensIn === "system") return false;
+  if (entry.isDir || entry.program || state.settings.mediaOpensIn === "system")
+    return false;
   const dot = entry.name.lastIndexOf(".");
   const ext = dot > 0 ? entry.name.slice(dot + 1).toLowerCase() : "";
-  return VIEWABLE_PICTURES.has(ext) || AUDIO_EXTS.has(ext) || VIDEO_EXTS.has(ext);
+  return (
+    VIEWABLE_PICTURES.has(ext) || AUDIO_EXTS.has(ext) || VIDEO_EXTS.has(ext)
+  );
 }
 
 const LOOK_INSIDE_MAX = 2 * 1024 * 1024;
@@ -126,8 +189,20 @@ const LOOK_INSIDE_MAX = 2 * 1024 * 1024;
  * anything: the server looks inside it, and it opens in the editor only when it really is text.
  */
 async function isPlainTextInside(entry) {
-  if (entry.isDir || entry.program || state.settings.textOpensIn === "system" || !hasNoExtension(entry.name)) return false;
-  if (entry.kind && entry.kind !== "file" && entry.kind !== "other" && entry.kind !== "text") return false;
+  if (
+    entry.isDir ||
+    entry.program ||
+    state.settings.textOpensIn === "system" ||
+    !hasNoExtension(entry.name)
+  )
+    return false;
+  if (
+    entry.kind &&
+    entry.kind !== "file" &&
+    entry.kind !== "other" &&
+    entry.kind !== "text"
+  )
+    return false;
   if (!(entry.size > 0) || entry.size > LOOK_INSIDE_MAX) return false;
   try {
     const { preview } = await call("preview", { path: entry.path });
@@ -151,7 +226,10 @@ export function isThemeFileEntry(entry) {
 
 /** `viewer: false` (Quick Look's own Open) always hands pictures, sound and video to the computer's program. */
 export async function openEntry(entry, { viewer = true } = {}) {
-  if (inTrash()) return toast("Items in the Recycle Bin can't be opened. Restore one first (right-click, then Restore).");
+  if (inTrash())
+    return toast(
+      "Items in the Recycle Bin can't be opened. Restore one first (right-click, then Restore).",
+    );
   if (entry.isDir && isDocumentPackageEntry(entry)) {
     if (viewer) {
       rememberRecent(entry.path);
@@ -163,7 +241,9 @@ export async function openEntry(entry, { viewer = true } = {}) {
   if (isLocked(entry)) return unlockEntries([entry]);
   if (isThemeFileEntry(entry)) {
     try {
-      const { text } = await call("themes/custom/read-file", { path: entry.path });
+      const { text } = await call("themes/custom/read-file", {
+        path: entry.path,
+      });
       if (text && looksLikeThemeImportPayload(text)) {
         await pasteImportThemesFromText(text, { applyFirst: true });
         return;
@@ -173,10 +253,22 @@ export async function openEntry(entry, { viewer = true } = {}) {
     }
   }
   const entryParent = parentOf(entry.path, state.sep);
-  if (!entry.isDir && state.cliUtilsDir && entryParent === state.cliUtilsDir && /^[A-Za-z0-9._-]+$/.test(entry.name)) {
+  if (
+    !entry.isDir &&
+    state.cliUtilsDir &&
+    entryParent === state.cliUtilsDir &&
+    /^[A-Za-z0-9._-]+$/.test(entry.name)
+  ) {
     const cmd = `${state.platform === "win32" ? ".\\" : "./"}${entry.name} `;
-    emit("terminal-run-in", { folder: state.cliUtilsDir, command: cmd, submit: false });
-    toast(`Ready in Terminal: ${cmd.trim()} (add arguments or press Enter to run)`, { kind: "info" });
+    emit("terminal-run-in", {
+      folder: state.cliUtilsDir,
+      command: cmd,
+      submit: false,
+    });
+    toast(
+      `Ready in Terminal: ${cmd.trim()} (add arguments or press Enter to run)`,
+      { kind: "info" },
+    );
     return;
   }
   if (textOpensInEditor(entry) || (await isPlainTextInside(entry))) {
@@ -194,14 +286,22 @@ export async function openEntry(entry, { viewer = true } = {}) {
 
 /** Runs an application or program (a macOS .app folder, .exe, AppImage, script ...) instead of browsing into it; asks first. */
 export async function openApplication(entry) {
-  if (inTrash()) return toast("Items in the Recycle Bin can't be opened. Restore one first (right-click, then Restore).");
+  if (inTrash())
+    return toast(
+      "Items in the Recycle Bin can't be opened. Restore one first (right-click, then Restore).",
+    );
   await openFile(entry.path, false);
 }
 
 /** Files opened in the built-in editor are listed under Recent too (the ones opened by another program already are). */
 function rememberRecent(path) {
   if (state.settings.recentsEnabled === false) return;
-  call("recent/add", { path }).then((r) => { if (r?.settings?.recents) state.settings.recents = r.settings.recents; emit("settings", {}); }).catch(() => {});
+  call("recent/add", { path })
+    .then((r) => {
+      if (r?.settings?.recents) state.settings.recents = r.settings.recents;
+      emit("settings", {});
+    })
+    .catch(() => {});
 }
 
 on("recent-open", (path) => openPath(path));
@@ -219,7 +319,14 @@ export async function openPath(path) {
   } catch (err) {
     return fail(err);
   }
-  if (entry.isDir || isLocked(entry) || isThemeFileEntry(entry) || textOpensInEditor(entry) || (await isPlainTextInside(entry))) return openEntry(entry);
+  if (
+    entry.isDir ||
+    isLocked(entry) ||
+    isThemeFileEntry(entry) ||
+    textOpensInEditor(entry) ||
+    (await isPlainTextInside(entry))
+  )
+    return openEntry(entry);
   const parent = parentOf(entry.path, state.sep);
   if (!parent) return openEntry(entry);
   await goTo(parent, { select: entry.path });
@@ -230,9 +337,18 @@ export async function openPath(path) {
 
 async function openFile(path, confirmed, mismatchOk = false) {
   try {
-    const res = await call("open", { path, confirmProgram: confirmed, confirmMismatch: mismatchOk || skipMismatchGuard() });
+    const res = await call("open", {
+      path,
+      confirmProgram: confirmed,
+      confirmMismatch: mismatchOk || skipMismatchGuard(),
+    });
     finishOpen(res, path);
-    call("settings").then((r) => { if (r?.settings?.recents) state.settings.recents = r.settings.recents; emit("settings", {}); }).catch(() => {});
+    call("settings")
+      .then((r) => {
+        if (r?.settings?.recents) state.settings.recents = r.settings.recents;
+        emit("settings", {});
+      })
+      .catch(() => {});
   } catch (err) {
     if (err instanceof ApiError && err.code === "TYPE_MISMATCH") {
       if (await askOpenAnyway(path, err)) await openFile(path, confirmed, true);
@@ -271,7 +387,14 @@ export async function copyPathOf(entries) {
   const text = entries.map((e) => e.path).join("\n");
   try {
     const r = await call("copytext", { text });
-    toast(r.copied ? (entries.length === 1 ? "Path copied." : "Paths copied.") : "Couldn't copy to the clipboard.", { kind: r.copied ? "success" : "error" });
+    toast(
+      r.copied
+        ? entries.length === 1
+          ? "Path copied."
+          : "Paths copied."
+        : "Couldn't copy to the clipboard.",
+      { kind: r.copied ? "success" : "error" },
+    );
   } catch (err) {
     fail(err);
   }
@@ -280,12 +403,16 @@ export async function copyPathOf(entries) {
 /** Copies only the base filenames (without directory paths) of `entries` to the clipboard. */
 export async function copyNamesOf(entries = selectedEntries()) {
   if (!Array.isArray(entries) || entries.length === 0) return;
-  const text = entries.map((e) => e.name || baseName(e.path, state.sep)).join("\n");
+  const text = entries
+    .map((e) => e.name || baseName(e.path, state.sep))
+    .join("\n");
   try {
     const r = await call("copytext", { text });
     toast(
       r.copied
-        ? (entries.length === 1 ? `Copied filename "${text}".` : `Copied ${plural(entries.length, "filename")}.`)
+        ? entries.length === 1
+          ? `Copied filename "${text}".`
+          : `Copied ${plural(entries.length, "filename")}.`
         : "Couldn't copy to the clipboard.",
       { kind: r.copied ? "success" : "error" },
     );
@@ -308,14 +435,25 @@ async function createItem(op, label) {
     const r = await busy(() => call(op, { parent: currentPath(pane) }));
     lastCreated = { path: r.path };
     const tracker = lastCreated;
-    pushUndo(`new ${label}`, async () => ensureOk((await trashPaths([tracker.path])).failed.map((m) => ({ ok: false, message: m })), "undo"));
+    pushUndo(`new ${label}`, async () =>
+      ensureOk(
+        (await trashPaths([tracker.path])).failed.map((m) => ({
+          ok: false,
+          message: m,
+        })),
+        "undo",
+      ),
+    );
     await refresh({ keepSelection: false, pane });
     selectKeys([r.path], pane);
     emit("rename-request", { key: r.path, pane });
     if (op === "newsqlite") {
       toast(`Created "${baseName(r.path, state.sep)}".`, {
         kind: "info",
-        action: { label: "Open in SQLite Studio", run: () => openPower("databases", { sqlitePath: tracker.path }) },
+        action: {
+          label: "Open in SQLite Studio",
+          run: () => openPower("databases", { sqlitePath: tracker.path }),
+        },
       });
     }
   } catch (err) {
@@ -351,13 +489,26 @@ export async function newDatedFolder(dateStr = localDateStamp()) {
   const pane = activePane();
   const name = uniqueInPane(pane, dateStr);
   try {
-    const r = await busy(() => call("mkdir", { parent: currentPath(pane), name }));
+    const r = await busy(() =>
+      call("mkdir", { parent: currentPath(pane), name }),
+    );
     lastCreated = { path: r.path };
     const tracker = lastCreated;
-    pushUndo(`new folder "${r.name}"`, async () => ensureOk((await trashPaths([tracker.path])).failed.map((m) => ({ ok: false, message: m })), "undo"));
+    pushUndo(`new folder "${r.name}"`, async () =>
+      ensureOk(
+        (await trashPaths([tracker.path])).failed.map((m) => ({
+          ok: false,
+          message: m,
+        })),
+        "undo",
+      ),
+    );
     await refresh({ keepSelection: false, pane });
     selectKeys([r.path], pane);
-    toast(`Created folder "${r.name}".`, { kind: "success", action: { label: "Open", run: () => goToIn(pane, r.path) } });
+    toast(`Created folder "${r.name}".`, {
+      kind: "success",
+      action: { label: "Open", run: () => goToIn(pane, r.path) },
+    });
     return r;
   } catch (err) {
     fail(err);
@@ -371,13 +522,26 @@ export async function newDatedNote(dateStr = localDateStamp()) {
   const pane = activePane();
   const name = uniqueInPane(pane, dateStr, ".md");
   try {
-    const r = await busy(() => call("newfile", { parent: currentPath(pane), name }));
+    const r = await busy(() =>
+      call("newfile", { parent: currentPath(pane), name }),
+    );
     lastCreated = { path: r.path };
     const tracker = lastCreated;
-    pushUndo(`new note "${r.name}"`, async () => ensureOk((await trashPaths([tracker.path])).failed.map((m) => ({ ok: false, message: m })), "undo"));
+    pushUndo(`new note "${r.name}"`, async () =>
+      ensureOk(
+        (await trashPaths([tracker.path])).failed.map((m) => ({
+          ok: false,
+          message: m,
+        })),
+        "undo",
+      ),
+    );
     await refresh({ keepSelection: false, pane });
     selectKeys([r.path], pane);
-    toast(`Created note "${r.name}".`, { kind: "success", action: { label: "Edit in Code", run: () => openInCode(r.path) } });
+    toast(`Created note "${r.name}".`, {
+      kind: "success",
+      action: { label: "Edit in Code", run: () => openInCode(r.path) },
+    });
     return r;
   } catch (err) {
     fail(err);
@@ -395,46 +559,85 @@ export async function newSqliteIn(folderPath) {
  * Groups the selected items (or provided paths/entries) into a newly created folder in the active pane,
  * with full atomic Undo support and immediate inline rename when no explicit `customName` is given.
  */
-export async function newFolderWithSelection(entriesOrPaths = null, customName = null) {
+export async function newFolderWithSelection(
+  entriesOrPaths = null,
+  customName = null,
+) {
   if (!needFolder("grouping items into a new folder")) return null;
   const pane = activePane();
-  const rawList = Array.isArray(entriesOrPaths) && entriesOrPaths.length ? entriesOrPaths : selectedEntries(pane);
-  const paths = rawList.map((x) => (typeof x === "string" ? x : x?.path)).filter(Boolean);
+  const rawList =
+    Array.isArray(entriesOrPaths) && entriesOrPaths.length
+      ? entriesOrPaths
+      : selectedEntries(pane);
+  const paths = rawList
+    .map((x) => (typeof x === "string" ? x : x?.path))
+    .filter(Boolean);
   if (paths.length === 0) {
-    toast("Select one or more items first to group them into a new folder.", { kind: "info" });
+    toast("Select one or more items first to group them into a new folder.", {
+      kind: "info",
+    });
     return null;
   }
-  const stem = customName && String(customName).trim() ? String(customName).trim() : "New folder";
+  const stem =
+    customName && String(customName).trim()
+      ? String(customName).trim()
+      : "New folder";
   const folderName = uniqueInPane(pane, stem);
   try {
     return await busy(async () => {
-      const created = await call("mkdir", { parent: currentPath(pane), name: folderName });
-      const moveRes = await call("move", { sources: paths, dest: created.path, policy: "rename" });
+      const created = await call("mkdir", {
+        parent: currentPath(pane),
+        name: folderName,
+      });
+      const moveRes = await call("move", {
+        sources: paths,
+        dest: created.path,
+        policy: "rename",
+      });
       const movedItems = (moveRes.results || [])
         .filter((r) => r.ok && r.value?.destination)
-        .map((r) => ({ movedName: baseName(r.value.destination, state.sep), originalPath: r.value.source }));
+        .map((r) => ({
+          movedName: baseName(r.value.destination, state.sep),
+          originalPath: r.value.source,
+        }));
       lastCreated = { path: created.path };
       const tracker = lastCreated;
-      pushUndo(`new folder with ${plural(movedItems.length, "item")}`, async () => {
-        const pairs = movedItems.map((it) => ({
-          from: joinPath(tracker.path, it.movedName, state.sep),
-          to: it.originalPath,
-        }));
-        if (pairs.length) {
-          ensureOk((await call("relocate", { pairs })).results, "undo move");
-        }
-        ensureOk((await trashPaths([tracker.path])).failed.map((m) => ({ ok: false, message: m })), "undo folder");
-      });
+      pushUndo(
+        `new folder with ${plural(movedItems.length, "item")}`,
+        async () => {
+          const pairs = movedItems.map((it) => ({
+            from: joinPath(tracker.path, it.movedName, state.sep),
+            to: it.originalPath,
+          }));
+          if (pairs.length) {
+            ensureOk((await call("relocate", { pairs })).results, "undo move");
+          }
+          ensureOk(
+            (await trashPaths([tracker.path])).failed.map((m) => ({
+              ok: false,
+              message: m,
+            })),
+            "undo folder",
+          );
+        },
+      );
       await refresh({ keepSelection: false, pane });
       selectKeys([created.path], pane);
       if (!customName) {
         emit("rename-request", { key: created.path, pane });
       }
-      toast(`Grouped ${plural(movedItems.length, "item")} into "${created.name}".`, {
-        kind: "success",
-        action: { label: "Undo", run: undo },
-      });
-      return { path: created.path, name: created.name, count: movedItems.length };
+      toast(
+        `Grouped ${plural(movedItems.length, "item")} into "${created.name}".`,
+        {
+          kind: "success",
+          action: { label: "Undo", run: undo },
+        },
+      );
+      return {
+        path: created.path,
+        name: created.name,
+        count: movedItems.length,
+      };
     });
   } catch (err) {
     fail(err);
@@ -458,18 +661,35 @@ export async function pasteTextAsFile(rawText = null, customName = null) {
     }
   }
   if (!text || !String(text).trim()) {
-    toast("The clipboard doesn't contain any text to save as a file.", { kind: "info" });
+    toast("The clipboard doesn't contain any text to save as a file.", {
+      kind: "info",
+    });
     return null;
   }
   const info = detectSnippetInfo(text);
-  const name = customName && String(customName).trim()
-    ? String(customName).trim()
-    : uniqueInPane(pane, info.baseName, `.${info.ext}`);
+  const name =
+    customName && String(customName).trim()
+      ? String(customName).trim()
+      : uniqueInPane(pane, info.baseName, `.${info.ext}`);
   try {
-    const r = await busy(() => call("newfile", { parent: currentPath(pane), name, content: String(text) }));
+    const r = await busy(() =>
+      call("newfile", {
+        parent: currentPath(pane),
+        name,
+        content: String(text),
+      }),
+    );
     lastCreated = { path: r.path };
     const tracker = lastCreated;
-    pushUndo(`pasted ${info.label} "${r.name}"`, async () => ensureOk((await trashPaths([tracker.path])).failed.map((m) => ({ ok: false, message: m })), "undo"));
+    pushUndo(`pasted ${info.label} "${r.name}"`, async () =>
+      ensureOk(
+        (await trashPaths([tracker.path])).failed.map((m) => ({
+          ok: false,
+          message: m,
+        })),
+        "undo",
+      ),
+    );
     await refresh({ keepSelection: false, pane });
     selectKeys([r.path], pane);
     if (!customName) {
@@ -493,17 +713,23 @@ export async function pasteClipboardImageAsFile(customName = null) {
   if (!needFolder("saving a clipboard picture as a file")) return null;
   const pane = activePane();
   let base64Png = "";
-  if (typeof navigator !== "undefined" && typeof navigator.clipboard?.read === "function") {
+  if (
+    typeof navigator !== "undefined" &&
+    typeof navigator.clipboard?.read === "function"
+  ) {
     try {
       const items = await navigator.clipboard.read();
       for (const item of items) {
-        const imgType = item.types.find((t) => t === "image/png" || t.startsWith("image/"));
+        const imgType = item.types.find(
+          (t) => t === "image/png" || t.startsWith("image/"),
+        );
         if (imgType) {
           const blob = await item.getType(imgType);
           const buf = await blob.arrayBuffer();
           const bytes = new Uint8Array(buf);
           let binary = "";
-          for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+          for (let i = 0; i < bytes.length; i++)
+            binary += String.fromCharCode(bytes[i]);
           base64Png = btoa(binary);
           break;
         }
@@ -521,7 +747,13 @@ export async function pasteClipboardImageAsFile(customName = null) {
     lastCreated = { path: r.path };
     const tracker = lastCreated;
     pushUndo(`pasted picture "${r.name}"`, async () =>
-      ensureOk((await trashPaths([tracker.path])).failed.map((m) => ({ ok: false, message: m })), "undo"),
+      ensureOk(
+        (await trashPaths([tracker.path])).failed.map((m) => ({
+          ok: false,
+          message: m,
+        })),
+        "undo",
+      ),
     );
     await refresh({ keepSelection: false, pane });
     selectKeys([r.path], pane);
@@ -542,13 +774,19 @@ export async function pasteClipboardImageAsFile(customName = null) {
  * `Archives & Installers`, `Code & Data`) with full 1-click Undo support.
  */
 export async function tidyFolderHere(folderPath = null) {
-  if (! folderPath && !needFolder("tidying and organizing this folder")) return null;
+  if (!folderPath && !needFolder("tidying and organizing this folder"))
+    return null;
   const pane = activePane();
   const targetDir = folderPath || currentPath(pane);
   try {
-    const preview = await call("folder/tidy", { path: targetDir, preview: true });
+    const preview = await call("folder/tidy", {
+      path: targetDir,
+      preview: true,
+    });
     if (!preview.movedCount) {
-      toast("This folder is already tidy — no loose files to organize.", { kind: "info" });
+      toast("This folder is already tidy — no loose files to organize.", {
+        kind: "info",
+      });
       return preview;
     }
     const summary = Object.entries(preview.byCategory || {})
@@ -562,18 +800,33 @@ export async function tidyFolderHere(folderPath = null) {
     });
     if (!ok) return null;
 
-    const res = await busy(() => call("folder/tidy", { path: targetDir, preview: false }));
-    if (res.movedCount > 0 && Array.isArray(res.moves) && res.moves.length > 0) {
+    const res = await busy(() =>
+      call("folder/tidy", { path: targetDir, preview: false }),
+    );
+    if (
+      res.movedCount > 0 &&
+      Array.isArray(res.moves) &&
+      res.moves.length > 0
+    ) {
       const reversePairs = res.moves.map((m) => ({ from: m.to, to: m.from }));
-      pushUndo(`tidy "${folderLabel}" (${plural(res.movedCount, "item")})`, async () => {
-        ensureOk((await call("relocate", { pairs: reversePairs })).results, "undo tidy");
-      });
+      pushUndo(
+        `tidy "${folderLabel}" (${plural(res.movedCount, "item")})`,
+        async () => {
+          ensureOk(
+            (await call("relocate", { pairs: reversePairs })).results,
+            "undo tidy",
+          );
+        },
+      );
     }
     await refresh({ keepSelection: false, pane });
-    toast(`Organized ${plural(res.movedCount, "item")} into category folders (${summary}).`, {
-      kind: "success",
-      action: { label: "Undo", run: undo },
-    });
+    toast(
+      `Organized ${plural(res.movedCount, "item")} into category folders (${summary}).`,
+      {
+        kind: "success",
+        action: { label: "Undo", run: undo },
+      },
+    );
     return res;
   } catch (err) {
     fail(err);
@@ -586,7 +839,9 @@ export async function commitRename(path, newName, pane = activePane()) {
   const r = await call("rename", { path, name: newName });
   if (r.from === r.to) return r;
   if (state.clipboard?.paths?.includes(r.from)) {
-    state.clipboard.paths = state.clipboard.paths.map((p) => (p === r.from ? r.to : p));
+    state.clipboard.paths = state.clipboard.paths.map((p) =>
+      p === r.from ? r.to : p,
+    );
     emit("clipboard");
   }
   if (lastCreated && lastCreated.path === r.from) {
@@ -594,7 +849,13 @@ export async function commitRename(path, newName, pane = activePane()) {
     const top = state.undoStack.at(-1);
     if (top) top.label = `new item "${baseName(r.to, state.sep)}"`;
   } else {
-    pushUndo(`rename "${baseName(r.from, state.sep)}"`, async () => ensureOk((await call("relocate", { pairs: [{ from: r.to, to: r.from }] })).results, "rename"));
+    pushUndo(`rename "${baseName(r.from, state.sep)}"`, async () =>
+      ensureOk(
+        (await call("relocate", { pairs: [{ from: r.to, to: r.from }] }))
+          .results,
+        "rename",
+      ),
+    );
   }
   await refresh({ keepSelection: false, pane });
   selectKeys([r.to], pane);
@@ -607,12 +868,19 @@ export async function renameSelection() {
   const pane = activePane();
   const items = selectedEntries(pane);
   if (!items.length || inTrash(pane)) return;
-  if (items.length === 1) return emit("rename-request", { key: items[0].path, pane });
+  if (items.length === 1)
+    return emit("rename-request", { key: items[0].path, pane });
   const folders = new Set(items.map((e) => parentOf(e.path, state.sep)));
-  if (folders.size !== 1) return toast("To rename several items at once, they need to be in the same folder.");
+  if (folders.size !== 1)
+    return toast(
+      "To rename several items at once, they need to be in the same folder.",
+    );
   const folder = [...folders][0];
   // The plan dialog runs the renames in the task queue and reports (with Undo) when they are done.
-  await bulkRenameDialog(folder, items.map((e) => e.name));
+  await bulkRenameDialog(
+    folder,
+    items.map((e) => e.name),
+  );
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -624,7 +892,10 @@ export function copySelection() {
   if (!items.length || inTrash()) return;
   state.clipboard = { mode: "copy", paths: items.map((e) => e.path) };
   emit("clipboard");
-  toast(`${plural(items.length, "item")} ready to paste. Open a folder and press Paste.`, { timeout: 3500 });
+  toast(
+    `${plural(items.length, "item")} ready to paste. Open a folder and press Paste.`,
+    { timeout: 3500 },
+  );
 }
 
 export function cutSelection() {
@@ -632,7 +903,10 @@ export function cutSelection() {
   if (!items.length || inTrash()) return;
   state.clipboard = { mode: "cut", paths: items.map((e) => e.path) };
   emit("clipboard");
-  toast(`${plural(items.length, "item")} ready to move. Open a folder and press Paste.`, { timeout: 3500 });
+  toast(
+    `${plural(items.length, "item")} ready to move. Open a folder and press Paste.`,
+    { timeout: 3500 },
+  );
 }
 
 export async function paste() {
@@ -649,12 +923,20 @@ export async function paste() {
     }
     if (clipText.trim() && canChangeHere()) {
       const info = detectSnippetInfo(clipText);
-      return toast(`No copied files in clipboard, but clipboard has ${info.label}.`, {
-        kind: "info",
-        action: { label: `Save as .${info.ext} file`, run: () => void pasteTextAsFile(clipText) },
-      });
+      return toast(
+        `No copied files in clipboard, but clipboard has ${info.label}.`,
+        {
+          kind: "info",
+          action: {
+            label: `Save as .${info.ext} file`,
+            run: () => void pasteTextAsFile(clipText),
+          },
+        },
+      );
     }
-    return toast("There's nothing to paste yet. Select items and choose Copy or Cut first (or copy a CCFM-THEME-v1 theme code to import it).");
+    return toast(
+      "There's nothing to paste yet. Select items and choose Copy or Cut first (or copy a CCFM-THEME-v1 theme code to import it).",
+    );
   }
   if (!needFolder("pasting")) return;
   await pasteInto(currentPath());
@@ -664,7 +946,11 @@ export async function paste() {
 export async function pasteInto(dest) {
   if (!state.clipboard) return;
   const { mode, paths } = state.clipboard;
-  const moved = await transferInto(dest, paths, mode === "cut" ? "move" : "copy");
+  const moved = await transferInto(
+    dest,
+    paths,
+    mode === "cut" ? "move" : "copy",
+  );
   if (moved && mode === "cut") {
     state.clipboard = null;
     emit("clipboard");
@@ -674,7 +960,11 @@ export async function pasteInto(dest) {
 export async function duplicateSelection() {
   const items = selectedEntries();
   if (!items.length || !needFolder("duplicating")) return;
-  await transferInto(currentPath(), items.map((e) => e.path), "copy");
+  await transferInto(
+    currentPath(),
+    items.map((e) => e.path),
+    "copy",
+  );
 }
 
 /** Jobs this page started, so that when one ends the page knows where to look and what Undo should do. */
@@ -694,10 +984,17 @@ export async function transferInto(dest, sources, mode, pane = activePane()) {
       policy = await chooseConflict({ conflicts, verb });
       if (!policy) return false;
     }
-    const { job } = await call("fileops/start", { mode, sources, dest, policy });
+    const { job } = await call("fileops/start", {
+      mode,
+      sources,
+      dest,
+      policy,
+    });
     pendingTransfers.set(job.id, { mode, dest, pane });
     emit("job-started", job);
-    announce(`${verb} started: ${plural(sources.length, "item")}. Progress is in the task list.`);
+    announce(
+      `${verb} started: ${plural(sources.length, "item")}. Progress is in the task list.`,
+    );
     return true;
   } catch (err) {
     fail(err);
@@ -712,31 +1009,66 @@ async function onFileOpDone(job) {
   const mine = pendingTransfers.get(job.id);
   pendingTransfers.delete(job.id);
   const mode = job.kind;
-  const worked = job.steps.filter((s) => s.state === "done" && s.item?.destination).map((s) => ({ source: s.item.source, destination: s.item.destination, replaced: s.item.replacedTrashId ? { trashId: s.item.replacedTrashId } : null }));
+  const worked = job.steps
+    .filter((s) => s.state === "done" && s.item?.destination)
+    .map((s) => ({
+      source: s.item.source,
+      destination: s.item.destination,
+      replaced: s.item.replacedTrashId
+        ? { trashId: s.item.replacedTrashId }
+        : null,
+    }));
   if (worked.length) {
-    pushUndo(`${mode} of ${plural(worked.length, "item")}`, () => undoTransfer(mode, worked));
-    const skipped = job.steps.filter((s) => s.state === "skipped" && s.skipReason === "policy").length;
-    const problems = job.failed + job.steps.filter((s) => s.skipReason === "cancelled").length;
+    pushUndo(`${mode} of ${plural(worked.length, "item")}`, () =>
+      undoTransfer(mode, worked),
+    );
+    const skipped = job.steps.filter(
+      (s) => s.state === "skipped" && s.skipReason === "policy",
+    ).length;
+    const problems =
+      job.failed + job.steps.filter((s) => s.skipReason === "cancelled").length;
     const text = `${mode === "copy" ? "Copied" : "Moved"} ${plural(worked.length, "item")}${skipped ? ` (${skipped} skipped)` : ""}${problems ? `. ${plural(problems, "item")} did not finish: see the task list` : ""}.`;
-    toast(text, { kind: problems ? "info" : "success", action: { label: "Undo", run: undo } });
+    toast(text, {
+      kind: problems ? "info" : "success",
+      action: { label: "Undo", run: undo },
+    });
   } else if (!job.failed && job.state !== "cancelled") {
-    toast(mode === "move" ? "Those items are already in this folder." : "Nothing was copied.");
+    toast(
+      mode === "move"
+        ? "Those items are already in this folder."
+        : "Nothing was copied.",
+    );
   }
   const pane = mine?.pane ?? activePane();
   await refresh({ keepSelection: false, pane });
-  if (mine && worked.length && currentPath(pane) === mine.dest) selectKeys(worked.map((w) => w.destination), pane);
+  if (mine && worked.length && currentPath(pane) === mine.dest)
+    selectKeys(
+      worked.map((w) => w.destination),
+      pane,
+    );
 }
 
-on("fileop-done", (job) => { onFileOpDone(job).catch((err) => fail(err)); });
+on("fileop-done", (job) => {
+  onFileOpDone(job).catch((err) => fail(err));
+});
 
 async function undoTransfer(mode, worked) {
   if (mode === "copy") {
     const { failed } = await trashPaths(worked.map((w) => w.destination));
     if (failed.length) throw new Error(failed[0]);
   } else {
-    ensureOk((await call("relocate", { pairs: worked.map((w) => ({ from: w.destination, to: w.source })) })).results, "move");
+    ensureOk(
+      (
+        await call("relocate", {
+          pairs: worked.map((w) => ({ from: w.destination, to: w.source })),
+        })
+      ).results,
+      "move",
+    );
   }
-  const replaced = worked.filter((w) => w.replaced).map((w) => w.replaced.trashId);
+  const replaced = worked
+    .filter((w) => w.replaced)
+    .map((w) => w.replaced.trashId);
   if (replaced.length) await call("trash/restore", { ids: replaced });
 }
 
@@ -772,7 +1104,10 @@ export async function moveSelectionToBin() {
 
 /** Always buries in the Rip graveyard (shared with Rip Studio and the rip tools). Undo brings it back. */
 export async function burySelection() {
-  if (inTrash()) return toast("Open a folder first: the Recycle Bin can't be buried.", { kind: "info" });
+  if (inTrash())
+    return toast("Open a folder first: the Recycle Bin can't be buried.", {
+      kind: "info",
+    });
   const items = selectedEntries();
   if (!items.length) return;
   await buryItems(items.map((e) => e.path));
@@ -785,12 +1120,19 @@ async function trashItems(paths) {
       if (state.clipboard?.paths?.length) {
         const gone = new Set(paths);
         const remaining = state.clipboard.paths.filter((p) => !gone.has(p));
-        state.clipboard = remaining.length ? { ...state.clipboard, paths: remaining } : null;
+        state.clipboard = remaining.length
+          ? { ...state.clipboard, paths: remaining }
+          : null;
         emit("clipboard");
       }
       const ids = done.map((d) => d.id);
-      pushUndo(`delete of ${plural(done.length, "item")}`, async () => ensureOk((await call("trash/restore", { ids })).results, "restore"));
-      toast(`Moved ${plural(done.length, "item")} to the Recycle Bin.`, { kind: "success", action: { label: "Undo", run: undo } });
+      pushUndo(`delete of ${plural(done.length, "item")}`, async () =>
+        ensureOk((await call("trash/restore", { ids })).results, "restore"),
+      );
+      toast(`Moved ${plural(done.length, "item")} to the Recycle Bin.`, {
+        kind: "success",
+        action: { label: "Undo", run: undo },
+      });
     }
     await refresh({ keepSelection: false });
     await refreshTrashCount();
@@ -805,14 +1147,19 @@ export async function deleteForever() {
   if (inTrash()) return deleteFromTrashForever();
   const items = selectedEntries();
   if (!items.length) return;
-  await reviewPlan({ type: "delete", paths: items.map((e) => e.path), permanent: true }, { applyLabel: "Delete for good" });
+  await reviewPlan(
+    { type: "delete", paths: items.map((e) => e.path), permanent: true },
+    { applyLabel: "Delete for good" },
+  );
 }
 
 export async function restoreFromBin() {
   const items = selectedEntries();
   if (!items.length || !inTrash()) return;
   try {
-    const res = await busy(() => call("trash/restore", { ids: items.map((e) => e.path) }));
+    const res = await busy(() =>
+      call("trash/restore", { ids: items.map((e) => e.path) }),
+    );
     const { done, failed } = tally(res.results);
     if (done.length) {
       const restored = done.map((d) => d.restoredTo);
@@ -821,7 +1168,14 @@ export async function restoreFromBin() {
         if (f.length) throw new Error(f[0]);
       });
       const first = restored[0];
-      toast(`Restored ${plural(done.length, "item")}.`, { kind: "success", action: { label: "Show", run: () => goTo(parentOf(first, state.sep) ?? first, { select: first }) } });
+      toast(`Restored ${plural(done.length, "item")}.`, {
+        kind: "success",
+        action: {
+          label: "Show",
+          run: () =>
+            goTo(parentOf(first, state.sep) ?? first, { select: first }),
+        },
+      });
     }
     await refresh({ keepSelection: false });
     await refreshTrashCount();
@@ -842,8 +1196,12 @@ async function deleteFromTrashForever() {
   });
   if (!ok) return;
   try {
-    const r = await busy(() => call("trash/delete", { ids: items.map((e) => e.path), confirm: true }));
-    toast(`Deleted ${plural(r.deleted, "item")} permanently.`, { kind: "success" });
+    const r = await busy(() =>
+      call("trash/delete", { ids: items.map((e) => e.path), confirm: true }),
+    );
+    toast(`Deleted ${plural(r.deleted, "item")} permanently.`, {
+      kind: "success",
+    });
     await refresh({ keepSelection: false });
     await refreshTrashCount();
   } catch (err) {
@@ -862,10 +1220,14 @@ export async function emptyBin() {
   if (!ok) return;
   try {
     const r = await busy(() => call("trash/delete", { confirm: true }));
-    toast(`Emptied the Recycle Bin (${plural(r.deleted, "item")}).`, { kind: "success" });
+    toast(`Emptied the Recycle Bin (${plural(r.deleted, "item")}).`, {
+      kind: "success",
+    });
     if (inTrash()) await showTrash({ push: false });
     await refreshTrashCount();
-    state.undoStack = state.undoStack.filter((u) => !/^delete of|^restore of/.test(u.label));
+    state.undoStack = state.undoStack.filter(
+      (u) => !/^delete of|^restore of/.test(u.label),
+    );
     emit("undo");
   } catch (err) {
     fail(err);
@@ -881,13 +1243,20 @@ export async function zipSelection() {
   const items = selectedEntries(pane);
   if (!items.length || !needFolder("making a zip file")) return;
   try {
-    const r = await busy(() => call("zip", { paths: items.map((e) => e.path) }));
+    const r = await busy(() =>
+      call("zip", { paths: items.map((e) => e.path) }),
+    );
     pushUndo(`zip "${baseName(r.zipPath, state.sep)}"`, async () => {
       const { failed } = await trashPaths([r.zipPath]);
       if (failed.length) throw new Error(failed[0]);
     });
-    const extra = r.skippedLinks ? ` ${plural(r.skippedLinks, "shortcut")} (links) were left out.` : "";
-    toast(`Created "${baseName(r.zipPath, state.sep)}" with ${plural(r.files, "file")}.${extra}`, { kind: "success", action: { label: "Undo", run: undo } });
+    const extra = r.skippedLinks
+      ? ` ${plural(r.skippedLinks, "shortcut")} (links) were left out.`
+      : "";
+    toast(
+      `Created "${baseName(r.zipPath, state.sep)}" with ${plural(r.files, "file")}.${extra}`,
+      { kind: "success", action: { label: "Undo", run: undo } },
+    );
     await refresh({ keepSelection: false, pane });
     selectKeys([r.zipPath], pane);
   } catch (err) {
@@ -902,7 +1271,9 @@ export async function unzipEntry(entry) {
 export async function extractSelection(entriesInput) {
   if (!needFolder("extracting")) return;
   const pane = activePane();
-  const raw = Array.isArray(entriesInput) ? entriesInput : selectedEntries(pane);
+  const raw = Array.isArray(entriesInput)
+    ? entriesInput
+    : selectedEntries(pane);
   const items = extractableEntries(raw);
   if (!items.length) {
     toast(
@@ -914,11 +1285,18 @@ export async function extractSelection(entriesInput) {
     return;
   }
   try {
-    const r = await busy(() => call("extract", { paths: items.map((e) => e.path) }));
+    const r = await busy(() =>
+      call("extract", { paths: items.map((e) => e.path) }),
+    );
     const results = Array.isArray(r.results) ? r.results : [];
-    const createdPaths = results.map((it) => it.output || it.folder).filter(Boolean);
+    const createdPaths = results
+      .map((it) => it.output || it.folder)
+      .filter(Boolean);
     if (createdPaths.length) {
-      const undoLabel = items.length === 1 ? `extract "${items[0].name}"` : `extract ${plural(createdPaths.length, "archive")}`;
+      const undoLabel =
+        items.length === 1
+          ? `extract "${items[0].name}"`
+          : `extract ${plural(createdPaths.length, "archive")}`;
       pushUndo(undoLabel, async () => {
         const { failed } = await trashPaths(createdPaths);
         if (failed.length) throw new Error(failed[0]);
@@ -926,12 +1304,16 @@ export async function extractSelection(entriesInput) {
       if (results.length === 1) {
         const first = results[0];
         const targetName = baseName(first.output || first.folder, state.sep);
-        const msg = first.isFolder === false
-          ? `Uncompressed "${targetName}".`
-          : `Extracted ${plural(first.files, "file")} into "${targetName}".`;
+        const msg =
+          first.isFolder === false
+            ? `Uncompressed "${targetName}".`
+            : `Extracted ${plural(first.files, "file")} into "${targetName}".`;
         toast(msg, { kind: "success", action: { label: "Undo", run: undo } });
       } else {
-        const totalFiles = results.reduce((sum, it) => sum + (Number(it.files) || 0), 0);
+        const totalFiles = results.reduce(
+          (sum, it) => sum + (Number(it.files) || 0),
+          0,
+        );
         toast(
           `Extracted ${plural(results.length, "archive")} (${plural(totalFiles, "file")}).`,
           { kind: "success", action: { label: "Undo", run: undo } },
@@ -942,9 +1324,15 @@ export async function extractSelection(entriesInput) {
     }
     const allSkipped = results.flatMap((it) => it.skipped || []);
     if (allSkipped.length) {
-      await problemsBox("Some items were skipped", "These items were not extracted, to keep your computer safe:", allSkipped.slice(0, 20));
+      await problemsBox(
+        "Some items were skipped",
+        "These items were not extracted, to keep your computer safe:",
+        allSkipped.slice(0, 20),
+      );
     }
-    const errMsgs = Array.isArray(r.errors) ? r.errors.map((e) => `${baseName(e.path, state.sep)}: ${e.message}`) : [];
+    const errMsgs = Array.isArray(r.errors)
+      ? r.errors.map((e) => `${baseName(e.path, state.sep)}: ${e.message}`)
+      : [];
     if (errMsgs.length) {
       await reportFailures(errMsgs, "extracted");
     }
@@ -960,10 +1348,17 @@ export async function extractSelection(entriesInput) {
 export const isFavorite = (path) => state.settings.favorites.includes(path);
 
 export async function toggleFavorite(path) {
-  const favorites = isFavorite(path) ? state.settings.favorites.filter((f) => f !== path) : [...state.settings.favorites, path];
+  const favorites = isFavorite(path)
+    ? state.settings.favorites.filter((f) => f !== path)
+    : [...state.settings.favorites, path];
   try {
     await saveSettings({ favorites });
-    toast(isFavorite(path) ? `Added "${baseName(path, state.sep)}" to Favorites.` : `Removed "${baseName(path, state.sep)}" from Favorites.`, { timeout: 3000 });
+    toast(
+      isFavorite(path)
+        ? `Added "${baseName(path, state.sep)}" to Favorites.`
+        : `Removed "${baseName(path, state.sep)}" from Favorites.`,
+      { timeout: 3000 },
+    );
   } catch (err) {
     fail(err);
   }
@@ -975,15 +1370,24 @@ export async function toggleFavorite(path) {
 
 export function isChecksumManifestName(name) {
   const lower = String(name || "").toLowerCase();
-  return /\.(sha256|sha1|md5|sfv|sums)$/i.test(lower) || /^(sha256sums|sha1sums|md5sums|checksums(\.txt)?)$/i.test(lower);
+  return (
+    /\.(sha256|sha1|md5|sfv|sums)$/i.test(lower) ||
+    /^(sha256sums|sha1sums|md5sums|checksums(\.txt)?)$/i.test(lower)
+  );
 }
 
 /** Generates a SHA-256 (or MD5/SHA-1) checksum manifest file for the selected items (or active selection), with Undo. */
-export async function generateChecksumManifest(entries = null, algorithm = "sha256") {
+export async function generateChecksumManifest(
+  entries = null,
+  algorithm = "sha256",
+) {
   const pane = activePane();
-  const list = Array.isArray(entries) && entries.length ? entries : selectedEntries(pane);
+  const list =
+    Array.isArray(entries) && entries.length ? entries : selectedEntries(pane);
   if (!list.length) {
-    toast("Select one or more files to generate a checksum manifest.", { kind: "info" });
+    toast("Select one or more files to generate a checksum manifest.", {
+      kind: "info",
+    });
     return null;
   }
   try {
@@ -1002,10 +1406,13 @@ export async function generateChecksumManifest(entries = null, algorithm = "sha2
       await refresh({ keepSelection: false, pane });
       selectKeys([res.savedPath], pane);
     }
-    toast(`Saved ${res.algorithm.toUpperCase()} manifest "${res.savedName}" (${plural(res.items.length, "file")}).`, {
-      kind: "success",
-      action: { label: "Undo", run: undo },
-    });
+    toast(
+      `Saved ${res.algorithm.toUpperCase()} manifest "${res.savedName}" (${plural(res.items.length, "file")}).`,
+      {
+        kind: "success",
+        action: { label: "Undo", run: undo },
+      },
+    );
     return res;
   } catch (err) {
     fail(err);
@@ -1018,9 +1425,13 @@ export async function verifyChecksumFile(entryOrPath = null) {
   const pane = activePane();
   const target = entryOrPath || selectedEntries(pane)[0];
   const path = typeof target === "string" ? target : target?.path;
-  const name = (typeof target === "object" && target?.name) || baseName(path || "", state.sep);
+  const name =
+    (typeof target === "object" && target?.name) ||
+    baseName(path || "", state.sep);
   if (!path) {
-    toast("Select a file or .sha256 / SHA256SUMS manifest to verify.", { kind: "info" });
+    toast("Select a file or .sha256 / SHA256SUMS manifest to verify.", {
+      kind: "info",
+    });
     return null;
   }
 
@@ -1045,7 +1456,10 @@ export async function verifyChecksumFile(entryOrPath = null) {
           confirmLabel: "Verify",
           hint: "Tip: If a .sha256 sidecar file is in the same folder, Verification runs automatically without asking.",
           submit: async (hashText) => {
-            return await call("checksum/verify", { path, expectedHash: hashText });
+            return await call("checksum/verify", {
+              path,
+              expectedHash: hashText,
+            });
           },
         });
         if (!res) return null;
@@ -1057,21 +1471,44 @@ export async function verifyChecksumFile(entryOrPath = null) {
   }
 
   const allOk = res.failed === 0 && res.missing === 0 && res.passed > 0;
-  const statusEl = h("p", {
-    class: `cmp-verdict ${allOk ? "cmp-same" : "cmp-diff"}`,
-    role: "status",
-  }, allOk
-    ? `✔ Verified ${plural(res.passed, "file")} (${res.algorithm.toUpperCase()}) — all checksums match!`
-    : `✖ Verification found issues: ${res.passed} passed, ${res.failed} mismatched, ${res.missing} missing.`);
+  const statusEl = h(
+    "p",
+    {
+      class: `cmp-verdict ${allOk ? "cmp-same" : "cmp-diff"}`,
+      role: "status",
+    },
+    allOk
+      ? `✔ Verified ${plural(res.passed, "file")} (${res.algorithm.toUpperCase()}) — all checksums match!`
+      : `✖ Verification found issues: ${res.passed} passed, ${res.failed} mismatched, ${res.missing} missing.`,
+  );
 
-  const tbody = h("tbody", {},
+  const tbody = h(
+    "tbody",
+    {},
     ...res.results.map((r) =>
-      h("tr", {},
+      h(
+        "tr",
+        {},
         h("td", { style: "padding: 6px 8px; font-weight: 600;" }, r.name),
-        h("td", { style: "padding: 6px 8px;" },
-          r.status === "ok" ? "✅ Match" : r.status === "mismatch" ? "❌ Mismatch" : "⚠️ Missing file"),
-        h("td", { style: "padding: 6px 8px; font-family: var(--mono, monospace); font-size: 11px; word-break: break-all;" },
-          r.status === "ok" ? r.actual : `Expected: ${r.expected}\nActual:   ${r.actual || "(missing)"}`),
+        h(
+          "td",
+          { style: "padding: 6px 8px;" },
+          r.status === "ok"
+            ? "✅ Match"
+            : r.status === "mismatch"
+              ? "❌ Mismatch"
+              : "⚠️ Missing file",
+        ),
+        h(
+          "td",
+          {
+            style:
+              "padding: 6px 8px; font-family: var(--mono, monospace); font-size: 11px; word-break: break-all;",
+          },
+          r.status === "ok"
+            ? r.actual
+            : `Expected: ${r.expected}\nActual:   ${r.actual || "(missing)"}`,
+        ),
       ),
     ),
   );
@@ -1081,10 +1518,24 @@ export async function verifyChecksumFile(entryOrPath = null) {
     wide: true,
     body: [
       statusEl,
-      h("div", { style: "max-height: 45vh; overflow: auto; border: 1px solid var(--border, #334155); border-radius: 6px;" },
-        h("table", { style: "width: 100%; border-collapse: collapse; font-size: 12px;" },
-          h("thead", {},
-            h("tr", { style: "text-align: left; border-bottom: 1px solid rgba(148,163,184,0.25);" },
+      h(
+        "div",
+        {
+          style:
+            "max-height: 45vh; overflow: auto; border: 1px solid var(--border, #334155); border-radius: 6px;",
+        },
+        h(
+          "table",
+          { style: "width: 100%; border-collapse: collapse; font-size: 12px;" },
+          h(
+            "thead",
+            {},
+            h(
+              "tr",
+              {
+                style:
+                  "text-align: left; border-bottom: 1px solid rgba(148,163,184,0.25);",
+              },
               h("th", { style: "padding: 6px 8px;" }, "File"),
               h("th", { style: "padding: 6px 8px;" }, "Result"),
               h("th", { style: "padding: 6px 8px;" }, "Digest"),
@@ -1104,7 +1555,10 @@ export async function showFolderInventoryDialog(folderPath = null) {
   const pane = activePane();
   const targetDir = folderPath || currentPath(pane);
   if (!targetDir) {
-    toast("Open or select a folder first to export its directory tree or inventory.", { kind: "info" });
+    toast(
+      "Open or select a folder first to export its directory tree or inventory.",
+      { kind: "info" },
+    );
     return null;
   }
   let format = "tree";
@@ -1112,12 +1566,21 @@ export async function showFolderInventoryDialog(folderPath = null) {
   let includeHidden = false;
   let latestRes = null;
 
-  const previewArea = h("pre", {
-    class: "preview-text",
-    dataset: { inventoryPreview: "" },
-    style: "max-height: 46vh; min-height: 180px; overflow: auto; margin: 8px 0; padding: 10px; border: 1px solid var(--border, #334155); border-radius: 6px; font-family: var(--mono, monospace); font-size: 12px; white-space: pre;",
-  }, "Loading folder inventory…");
-  const statsSpan = h("span", { class: "hint", dataset: { inventoryStats: "" } }, "");
+  const previewArea = h(
+    "pre",
+    {
+      class: "preview-text",
+      dataset: { inventoryPreview: "" },
+      style:
+        "max-height: 46vh; min-height: 180px; overflow: auto; margin: 8px 0; padding: 10px; border: 1px solid var(--border, #334155); border-radius: 6px; font-family: var(--mono, monospace); font-size: 12px; white-space: pre;",
+    },
+    "Loading folder inventory…",
+  );
+  const statsSpan = h(
+    "span",
+    { class: "hint", dataset: { inventoryStats: "" } },
+    "",
+  );
 
   async function refreshPreview() {
     try {
@@ -1132,35 +1595,48 @@ export async function showFolderInventoryDialog(folderPath = null) {
       previewArea.textContent = res.content;
       statsSpan.textContent = `${plural(res.totalFolders, "folder")}, ${plural(res.totalFiles, "file")}${res.truncated ? " (truncated at 500 items)" : ""}`;
     } catch (err) {
-      previewArea.textContent = err instanceof ApiError ? err.message : "Failed to load folder inventory.";
+      previewArea.textContent =
+        err instanceof ApiError
+          ? err.message
+          : "Failed to load folder inventory.";
     }
   }
 
-  const fmtSelect = h("select", {
-    class: "select",
-    dataset: { inventoryFormat: "" },
-    "aria-label": "Inventory format",
-    onchange: () => {
-      format = fmtSelect.value;
-      refreshPreview();
+  const fmtSelect = h(
+    "select",
+    {
+      class: "select",
+      dataset: { inventoryFormat: "" },
+      "aria-label": "Inventory format",
+      onchange: () => {
+        format = fmtSelect.value;
+        refreshPreview();
+      },
     },
-  },
     h("option", { value: "tree" }, "🌳 ASCII Directory Tree (.txt)"),
     h("option", { value: "markdown" }, "📝 Markdown Inventory Table (.md)"),
     h("option", { value: "csv" }, "📊 Spreadsheet CSV (.csv)"),
     h("option", { value: "json" }, "🧩 Structured JSON (.json)"),
   );
 
-  const depthSelect = h("select", {
-    class: "select",
-    dataset: { inventoryDepth: "" },
-    "aria-label": "Maximum folder depth",
-    onchange: () => {
-      maxDepth = Number(depthSelect.value) || 3;
-      refreshPreview();
+  const depthSelect = h(
+    "select",
+    {
+      class: "select",
+      dataset: { inventoryDepth: "" },
+      "aria-label": "Maximum folder depth",
+      onchange: () => {
+        maxDepth = Number(depthSelect.value) || 3;
+        refreshPreview();
+      },
     },
-  },
-    ...[1, 2, 3, 4, 5, 6].map((d) => h("option", { value: String(d), selected: d === 3 }, `Depth: ${d} level${d === 1 ? "" : "s"}`)),
+    ...[1, 2, 3, 4, 5, 6].map((d) =>
+      h(
+        "option",
+        { value: String(d), selected: d === 3 },
+        `Depth: ${d} level${d === 1 ? "" : "s"}`,
+      ),
+    ),
   );
 
   const hiddenChk = h("input", {
@@ -1172,38 +1648,42 @@ export async function showFolderInventoryDialog(folderPath = null) {
     },
   });
 
-  const saveBtn = h("button", {
-    type: "button",
-    class: "btn primary",
-    dataset: { inventorySaveBtn: "" },
-    onclick: async () => {
-      try {
-        const res = await busy(() =>
-          call("folder/inventory", {
-            path: targetDir,
-            format,
-            maxDepth,
-            includeHidden,
-            saveFile: true,
-          }),
-        );
-        if (res.savedPath) {
-          pushUndo(`export inventory "${res.savedName}"`, async () => {
-            const { failed } = await trashPaths([res.savedPath]);
-            if (failed.length) throw new Error(failed[0]);
+  const saveBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "btn primary",
+      dataset: { inventorySaveBtn: "" },
+      onclick: async () => {
+        try {
+          const res = await busy(() =>
+            call("folder/inventory", {
+              path: targetDir,
+              format,
+              maxDepth,
+              includeHidden,
+              saveFile: true,
+            }),
+          );
+          if (res.savedPath) {
+            pushUndo(`export inventory "${res.savedName}"`, async () => {
+              const { failed } = await trashPaths([res.savedPath]);
+              if (failed.length) throw new Error(failed[0]);
+            });
+            await refresh({ keepSelection: false, pane });
+            selectKeys([res.savedPath], pane);
+          }
+          toast(`Saved folder inventory as "${res.savedName}".`, {
+            kind: "success",
+            action: { label: "Undo", run: undo },
           });
-          await refresh({ keepSelection: false, pane });
-          selectKeys([res.savedPath], pane);
+        } catch (err) {
+          fail(err);
         }
-        toast(`Saved folder inventory as "${res.savedName}".`, {
-          kind: "success",
-          action: { label: "Undo", run: undo },
-        });
-      } catch (err) {
-        fail(err);
-      }
+      },
     },
-  }, "💾 Save to File");
+    "💾 Save to File",
+  );
 
   await refreshPreview();
 
@@ -1211,19 +1691,47 @@ export async function showFolderInventoryDialog(folderPath = null) {
     title: `Export Folder Inventory & Tree — ${baseName(targetDir, state.sep) || targetDir}`,
     wide: true,
     body: [
-      h("div", { style: "display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 6px;" },
+      h(
+        "div",
+        {
+          style:
+            "display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 6px;",
+        },
         fmtSelect,
         depthSelect,
-        h("label", { style: "display: inline-flex; align-items: center; gap: 5px; font-size: 12px; cursor: pointer;" }, hiddenChk, "Include dotfiles"),
+        h(
+          "label",
+          {
+            style:
+              "display: inline-flex; align-items: center; gap: 5px; font-size: 12px; cursor: pointer;",
+          },
+          hiddenChk,
+          "Include dotfiles",
+        ),
         statsSpan,
       ),
       previewArea,
-      h("div", { style: "display: flex; gap: 8px; align-items: center; justify-content: space-between;" },
-        h("div", { style: "display: flex; gap: 8px; align-items: center;" },
-          copyItemButton({ label: "the folder inventory", getText: () => latestRes?.content || "", words: "📋 Copy to Clipboard" }),
+      h(
+        "div",
+        {
+          style:
+            "display: flex; gap: 8px; align-items: center; justify-content: space-between;",
+        },
+        h(
+          "div",
+          { style: "display: flex; gap: 8px; align-items: center;" },
+          copyItemButton({
+            label: "the folder inventory",
+            getText: () => latestRes?.content || "",
+            words: "📋 Copy to Clipboard",
+          }),
           saveBtn,
         ),
-        h("span", { class: "hint" }, "Great for READMEs, documentation, audits & LLM context"),
+        h(
+          "span",
+          { class: "hint" },
+          "Great for READMEs, documentation, audits & LLM context",
+        ),
       ),
     ],
     buttons: [{ label: "Close", primary: true, value: true }],

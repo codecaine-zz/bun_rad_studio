@@ -30,8 +30,16 @@ import {
 import { createIpInfoStudio } from "../applications/ipinfo_studio";
 import type { SimpleWindow } from "../src/simplegui";
 
-async function trigger(win: SimpleWindow, id: string, event = "click", val?: any) {
-  const h = win.eventHandlersMap.get(`${id}:on${event}`) || win.eventHandlersMap.get(`${id}:${event}`) || win.eventHandlersMap.get(id);
+async function trigger(
+  win: SimpleWindow,
+  id: string,
+  event = "click",
+  val?: any,
+) {
+  const h =
+    win.eventHandlersMap.get(`${id}:on${event}`) ||
+    win.eventHandlersMap.get(`${id}:${event}`) ||
+    win.eventHandlersMap.get(id);
   if (!h) throw new Error(`no handler for ${id}`);
   return await h(win, val);
 }
@@ -100,7 +108,12 @@ describe("CIDR math", () => {
   });
   test("splitCidr", () => {
     const r = splitCidr("192.168.1.0/24", 26);
-    expect(r.blocks).toEqual(["192.168.1.0/26", "192.168.1.64/26", "192.168.1.128/26", "192.168.1.192/26"]);
+    expect(r.blocks).toEqual([
+      "192.168.1.0/26",
+      "192.168.1.64/26",
+      "192.168.1.128/26",
+      "192.168.1.192/26",
+    ]);
     expect(r.total).toBe(4);
     expect(r.truncated).toBe(false);
     const big = splitCidr("10.0.0.0/8", 24, 10);
@@ -123,18 +136,30 @@ describe("target parsing", () => {
       8.8.8.8  # dup
       example.org:8080
     `);
-    expect(targets).toEqual(["8.8.8.8", "1.1.1.1", "github.com", "10.0.0.0/24", "example.org"]);
+    expect(targets).toEqual([
+      "8.8.8.8",
+      "1.1.1.1",
+      "github.com",
+      "10.0.0.0/24",
+      "example.org",
+    ]);
     expect(skipped).toBe(0);
   });
   test("caps the list", () => {
-    const text = Array.from({ length: MAX_BULK_TARGETS + 7 }, (_, i) => `10.0.${Math.floor(i / 200)}.${i % 200}`).join("\n");
+    const text = Array.from(
+      { length: MAX_BULK_TARGETS + 7 },
+      (_, i) => `10.0.${Math.floor(i / 200)}.${i % 200}`,
+    ).join("\n");
     const r = parseTargets(text);
     expect(r.targets.length).toBe(MAX_BULK_TARGETS);
     expect(r.skipped).toBe(7);
   });
   test("empty input", () => {
     expect(parseTargets("")).toEqual({ targets: [], skipped: 0 });
-    expect(parseTargets("# only comment\n\n")).toEqual({ targets: [], skipped: 0 });
+    expect(parseTargets("# only comment\n\n")).toEqual({
+      targets: [],
+      skipped: 0,
+    });
   });
 });
 
@@ -142,13 +167,26 @@ describe("bulk lookup", () => {
   const deps: BulkDeps = {
     resolve: (t) => {
       if (t === "bad.invalid") throw new Error("Could not resolve");
-      return t === "example.org" ? { ip: "93.184.216.34", domain: t } : { ip: t };
+      return t === "example.org"
+        ? { ip: "93.184.216.34", domain: t }
+        : { ip: t };
     },
-    fetch: (ip) => ({ ip: ip!, city: "Testville", region: "TS", country: "US", org: "AS1 Test" }),
+    fetch: (ip) => ({
+      ip: ip!,
+      city: "Testville",
+      region: "TS",
+      country: "US",
+      org: "AS1 Test",
+    }),
   };
   test("collects ok and error rows and reports progress", () => {
     const progress: number[] = [];
-    const rows = bulkLookup(["8.8.8.8", "example.org", "bad.invalid", "10.0.0.0/24"], undefined, deps, (d) => progress.push(d));
+    const rows = bulkLookup(
+      ["8.8.8.8", "example.org", "bad.invalid", "10.0.0.0/24"],
+      undefined,
+      deps,
+      (d) => progress.push(d),
+    );
     expect(rows.map((r) => r.status)).toEqual(["ok", "ok", "error", "error"]);
     expect(rows[1]!.ip).toBe("93.184.216.34");
     expect(rows[2]!.error).toContain("Could not resolve");
@@ -161,7 +199,9 @@ describe("bulk lookup", () => {
     expect(t[0]![6]).toBe("OK");
     expect(t[1]![6]).toContain("Error:");
     const csv = bulkToCsv(rows);
-    expect(csv.split("\n")[0]).toBe("target,ip,city,region,country,org,status,error");
+    expect(csv.split("\n")[0]).toBe(
+      "target,ip,city,region,country,org,status,error",
+    );
     expect(csv).toContain('"8.8.8.8","8.8.8.8","Testville"');
     expect(tableToTsv(["a", "b"], [["x\ty", "z\nw"]])).toBe("a\tb\nx y\tz w");
     expect(tableToCsv(["a"], [['he said "hi"']])).toBe('"a"\n"he said ""hi"""');
@@ -179,7 +219,8 @@ describe("history & urls", () => {
     h = pushHistory(h, { target: "b", summary: "2", time: "t" });
     h = pushHistory(h, { target: "A", summary: "3", time: "t" });
     expect(h.map((x) => x.target)).toEqual(["A", "b"]);
-    for (let i = 0; i < 30; i++) h = pushHistory(h, { target: `x${i}`, summary: "", time: "" });
+    for (let i = 0; i < 30; i++)
+      h = pushHistory(h, { target: `x${i}`, summary: "", time: "" });
     expect(h.length).toBe(20);
     expect(h[0]!.target).toBe("x29");
   });
@@ -195,7 +236,24 @@ describe("IpInfo Studio GUI toolkit", () => {
 
   test("renders new controls", () => {
     const html = make().generateHtml();
-    for (const id of ["txt_bulk", "btn_bulk_load", "btn_bulk_run", "btn_copy_ip", "btn_copy_table", "btn_save_results", "btn_open_ipinfo", "btn_open_bgp", "txt_check_ip", "btn_in_cidr", "txt_split_prefix", "btn_split_cidr", "btn_ip_formats", "btn_mask_convert", "tbl_history", "btn_clear_history"]) {
+    for (const id of [
+      "txt_bulk",
+      "btn_bulk_load",
+      "btn_bulk_run",
+      "btn_copy_ip",
+      "btn_copy_table",
+      "btn_save_results",
+      "btn_open_ipinfo",
+      "btn_open_bgp",
+      "txt_check_ip",
+      "btn_in_cidr",
+      "txt_split_prefix",
+      "btn_split_cidr",
+      "btn_ip_formats",
+      "btn_mask_convert",
+      "tbl_history",
+      "btn_clear_history",
+    ]) {
       expect(html).toContain(id);
     }
   });
@@ -209,7 +267,9 @@ describe("IpInfo Studio GUI toolkit", () => {
     expect(r[0]![0]).toBe("127.0.0.1");
     expect(r[2]![6]).toContain("Error");
     expect(String(win.getValue("lbl_metric_ip"))).toContain("Bulk: 3");
-    expect(String(win.getValue("lbl_metric_location"))).toContain("Resolved: 2");
+    expect(String(win.getValue("lbl_metric_location"))).toContain(
+      "Resolved: 2",
+    );
     expect(String(win.getValue("lbl_status_bar"))).toContain("2/3 resolved");
   });
 
@@ -226,26 +286,41 @@ describe("IpInfo Studio GUI toolkit", () => {
     win.setValue("txt_target", "192.168.1.0/24");
     win.setValue("txt_check_ip", "192.168.1.77");
     await trigger(win, "btn_in_cidr");
-    expect(rows(win).some((r) => r[0] === "Contained" && r[1] === "YES")).toBe(true);
+    expect(rows(win).some((r) => r[0] === "Contained" && r[1] === "YES")).toBe(
+      true,
+    );
     win.setValue("txt_check_ip", "10.0.0.1");
     await trigger(win, "btn_in_cidr");
-    expect(rows(win).some((r) => r[0] === "Contained" && r[1] === "NO")).toBe(true);
+    expect(rows(win).some((r) => r[0] === "Contained" && r[1] === "NO")).toBe(
+      true,
+    );
 
     win.setValue("txt_split_prefix", "26");
     await trigger(win, "btn_split_cidr");
-    expect(rows(win).map((r) => r[1])).toEqual(["192.168.1.0/26", "192.168.1.64/26", "192.168.1.128/26", "192.168.1.192/26"]);
+    expect(rows(win).map((r) => r[1])).toEqual([
+      "192.168.1.0/26",
+      "192.168.1.64/26",
+      "192.168.1.128/26",
+      "192.168.1.192/26",
+    ]);
     expect(String(win.getValue("lbl_status_bar"))).toContain("splits into 4");
 
     win.setValue("txt_target", "192.168.1.1");
     await trigger(win, "btn_ip_formats");
-    expect(rows(win).some((r) => r[0] === "Integer" && r[1] === "3232235777")).toBe(true);
+    expect(
+      rows(win).some((r) => r[0] === "Integer" && r[1] === "3232235777"),
+    ).toBe(true);
 
     win.setValue("txt_target", "/20");
     await trigger(win, "btn_mask_convert");
-    expect(rows(win).some((r) => r[0] === "Netmask" && r[1] === "255.255.240.0")).toBe(true);
+    expect(
+      rows(win).some((r) => r[0] === "Netmask" && r[1] === "255.255.240.0"),
+    ).toBe(true);
     win.setValue("txt_target", "255.255.255.0");
     await trigger(win, "btn_mask_convert");
-    expect(rows(win).some((r) => r[0] === "Prefix Length" && r[1] === "/24")).toBe(true);
+    expect(
+      rows(win).some((r) => r[0] === "Prefix Length" && r[1] === "/24"),
+    ).toBe(true);
   });
 
   test("bad inputs report errors without breaking the table", async () => {

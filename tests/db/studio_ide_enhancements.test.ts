@@ -24,12 +24,18 @@ import { generateWorkbenchHtml } from "../../src/db/workbench_ui";
 
 describe("Studio Server Enhancements (SQL Formatting, Column Filters, Multi-Sort, Schema Diff)", () => {
   it("formats SQL across sqlite, mysql, and postgres dialects", () => {
-    const formatted = formatSqlDialect("select a,b from users where id=1 order by a desc", "sqlite");
+    const formatted = formatSqlDialect(
+      "select a,b from users where id=1 order by a desc",
+      "sqlite",
+    );
     expect(formatted).toContain("SELECT");
     expect(formatted).toContain("FROM");
     expect(formatted).toContain("WHERE");
 
-    const pgFormatted = formatSqlDialect("select id, payload from events where created_at > now()", "postgres");
+    const pgFormatted = formatSqlDialect(
+      "select id, payload from events where created_at > now()",
+      "postgres",
+    );
     expect(pgFormatted).toContain("SELECT");
     expect(pgFormatted).toContain("FROM");
   });
@@ -39,7 +45,7 @@ describe("Studio Server Enhancements (SQL Formatting, Column Filters, Multi-Sort
     const sqliteClause = buildColumnFilterWhere(
       { name: "Alice", balance: ">=100", notes: "NULL", malicious: "1=1" },
       validCols,
-      "sqlite"
+      "sqlite",
     );
     expect(sqliteClause.clauses.length).toBe(3);
     expect(sqliteClause.params).toEqual(["%Alice%", 100]);
@@ -49,7 +55,7 @@ describe("Studio Server Enhancements (SQL Formatting, Column Filters, Multi-Sort
       { name: "=Bob", balance: "<50" },
       validCols,
       "postgres",
-      3
+      3,
     );
     expect(pgClause.clauses).toEqual([
       'CAST("name" AS TEXT) = $3',
@@ -67,10 +73,16 @@ describe("Studio Server Enhancements (SQL Formatting, Column Filters, Multi-Sort
         tier: "IN ('VIP', 'Gold')",
       },
       accessCols,
-      "sqlite"
+      "sqlite",
     );
     expect(accessClause.clauses.length).toBe(4);
-    expect(accessClause.params).toEqual([500, "2026-01-15", "A%", "VIP", "Gold"]);
+    expect(accessClause.params).toEqual([
+      500,
+      "2026-01-15",
+      "A%",
+      "VIP",
+      "Gold",
+    ]);
 
     const betweenClause = buildColumnFilterWhere(
       {
@@ -79,24 +91,33 @@ describe("Studio Server Enhancements (SQL Formatting, Column Filters, Multi-Sort
       },
       accessCols,
       "postgres",
-      1
+      1,
     );
     expect(betweenClause.clauses).toEqual([
       'CAST("balance" AS DOUBLE PRECISION) BETWEEN $1 AND $2',
       'SUBSTR(CAST("created_at" AS TEXT), 1, 10) BETWEEN $3 AND $4',
     ]);
-    expect(betweenClause.params).toEqual([100, 500, "2026-01-01", "2026-12-31"]);
+    expect(betweenClause.params).toEqual([
+      100,
+      500,
+      "2026-01-01",
+      "2026-12-31",
+    ]);
 
     // Incomplete operator while typing (e.g. "<=" or "<") should be ignored so it doesn't return 0 rows
     const incompleteClause = buildColumnFilterWhere(
       { balance: "<=", name: "LIKE" },
       accessCols,
-      "sqlite"
+      "sqlite",
     );
     expect(incompleteClause.clauses).toEqual([]);
 
     // Global search box with column-targeted Access expression (`balance <= 500`)
-    const searchExpr = buildSearchFilterWhere("balance <= 500", accessCols, "sqlite");
+    const searchExpr = buildSearchFilterWhere(
+      "balance <= 500",
+      accessCols,
+      "sqlite",
+    );
     expect(searchExpr.clause).toBe('CAST("balance" AS REAL) <= ?');
     expect(searchExpr.params).toEqual([500]);
   });
@@ -140,7 +161,13 @@ describe("Studio Server Enhancements (SQL Formatting, Column Filters, Multi-Sort
         columns: [
           { name: "id", type: "INTEGER", pk: true, notnull: true },
           { name: "email", type: "TEXT", pk: false, notnull: true },
-          { name: "role", type: "TEXT", pk: false, notnull: false, dflt_value: "'member'" },
+          {
+            name: "role",
+            type: "TEXT",
+            pk: false,
+            notnull: false,
+            dflt_value: "'member'",
+          },
         ],
       },
       {
@@ -158,18 +185,31 @@ describe("Studio Server Enhancements (SQL Formatting, Column Filters, Multi-Sort
     expect(diff.summary.modifiedTables).toEqual(["users"]);
     expect(diff.ddl).toContain('DROP TABLE "legacy_logs";');
     expect(diff.ddl).toContain('CREATE TABLE "orders"');
-    expect(diff.ddl).toContain('ALTER TABLE "users" ADD COLUMN "role" TEXT DEFAULT \'member\';');
+    expect(diff.ddl).toContain(
+      'ALTER TABLE "users" ADD COLUMN "role" TEXT DEFAULT \'member\';',
+    );
   });
 });
 
 describe("Studio HTTP Endpoints (/api/sql/format, /api/schema/diff, /api/table/data columnFilters & sortColumns)", () => {
-  const sqlite = startSqliteStudioServer({ port: 0, initialDbPath: ":memory:" });
-  const mysql = startMysqlStudioServer({ port: 0, config: { host: "127.0.0.1", port: 1, user: "u", database: "d" } });
-  const pg = startPostgresStudioServer({ port: 0, config: { host: "127.0.0.1", port: 1, user: "u", database: "d" } });
+  const sqlite = startSqliteStudioServer({
+    port: 0,
+    initialDbPath: ":memory:",
+  });
+  const mysql = startMysqlStudioServer({
+    port: 0,
+    config: { host: "127.0.0.1", port: 1, user: "u", database: "d" },
+  });
+  const pg = startPostgresStudioServer({
+    port: 0,
+    config: { host: "127.0.0.1", port: 1, user: "u", database: "d" },
+  });
 
   afterAll(() => {
     for (const s of [sqlite, mysql, pg]) {
-      try { s.stop(true); } catch {}
+      try {
+        s.stop(true);
+      } catch {}
     }
   });
 
@@ -179,7 +219,7 @@ describe("Studio HTTP Endpoints (/api/sql/format, /api/schema/diff, /api/table/d
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    return await res.json() as any;
+    return (await res.json()) as any;
   };
 
   it("supports server-side columnFilters and multi-column sortColumns on /api/table/data", async () => {
@@ -217,7 +257,11 @@ describe("Studio HTTP Endpoints (/api/sql/format, /api/schema/diff, /api/table/d
       columnFilters: { score: "<= 25", tier: "g*" },
     });
     expect(lteRes.success).toBe(true);
-    expect(lteRes.rows.map((r: any) => r.score).sort((a: number, b: number) => a - b)).toEqual([10, 20]);
+    expect(
+      lteRes.rows
+        .map((r: any) => r.score)
+        .sort((a: number, b: number) => a - b),
+    ).toEqual([10, 20]);
 
     // Test AutoExec macro ApplyFilter with balance > 500 vs balance < 500
     const gtMacro = await post(Number(sqlite.port), "/api/macros/run", {
@@ -225,8 +269,18 @@ describe("Studio HTTP Endpoints (/api/sql/format, /api/schema/diff, /api/table/d
         id: "test_gt",
         name: "TestGT",
         actions: [
-          { id: "s1", action: "OpenTable", parameters: { table: "customers" }, enabled: true },
-          { id: "s2", action: "ApplyFilter", parameters: { condition: "balance > 500" }, enabled: true },
+          {
+            id: "s1",
+            action: "OpenTable",
+            parameters: { table: "customers" },
+            enabled: true,
+          },
+          {
+            id: "s2",
+            action: "ApplyFilter",
+            parameters: { condition: "balance > 500" },
+            enabled: true,
+          },
         ],
       },
     });
@@ -238,8 +292,18 @@ describe("Studio HTTP Endpoints (/api/sql/format, /api/schema/diff, /api/table/d
         id: "test_lt",
         name: "TestLT",
         actions: [
-          { id: "s1", action: "OpenTable", parameters: { table: "customers" }, enabled: true },
-          { id: "s2", action: "ApplyFilter", parameters: { condition: "balance < 500" }, enabled: true },
+          {
+            id: "s1",
+            action: "OpenTable",
+            parameters: { table: "customers" },
+            enabled: true,
+          },
+          {
+            id: "s2",
+            action: "ApplyFilter",
+            parameters: { condition: "balance < 500" },
+            enabled: true,
+          },
         ],
       },
     });
@@ -274,10 +338,10 @@ describe("Studio HTTP Endpoints (/api/sql/format, /api/schema/diff, /api/table/d
 describe("Codegen New Targets (bun-sql and typescript) & Studio HTML Injection", () => {
   it("generates native Bun.sql code preserving Postgres/MySQL syntax and TypeScript row interfaces", () => {
     const pgCode = generateSqlCode(
-      'SELECT id, email FROM users WHERE email ILIKE [Enter Email Pattern]',
+      "SELECT id, email FROM users WHERE email ILIKE [Enter Email Pattern]",
       "bun-sql",
       { sourceDialect: "postgres" },
-      "find_users"
+      "find_users",
     );
     expect(pgCode.code).toContain('import { SQL } from "bun";');
     expect(pgCode.code).toContain("ILIKE $1");
@@ -287,7 +351,7 @@ describe("Codegen New Targets (bun-sql and typescript) & Studio HTML Injection",
       "CREATE TABLE products (id INTEGER PRIMARY KEY, title TEXT NOT NULL, price REAL); SELECT id, title, price FROM products WHERE price >= [Enter Min Price];",
       "typescript",
       { sourceDialect: "sqlite" },
-      "product_Catalog"
+      "product_Catalog",
     );
     expect(tsCode.code).toContain("export interface ProductsRow");
     expect(tsCode.code).toContain('"id": number;');
@@ -297,7 +361,11 @@ describe("Codegen New Targets (bun-sql and typescript) & Studio HTML Injection",
   });
 
   it("embeds StudioIdeEnhancements and new codegen targets across all 3 studio HTML pages with valid script syntax", () => {
-    for (const html of [generateSqliteStudioHtml(), generateMysqlStudioHtml(), generatePostgresStudioHtml()]) {
+    for (const html of [
+      generateSqliteStudioHtml(),
+      generateMysqlStudioHtml(),
+      generatePostgresStudioHtml(),
+    ]) {
       expect(html).toContain("StudioIdeEnhancements");
       expect(html).toContain("studioWorksheetBar");
       expect(html).toContain("studioRowInspector");
@@ -305,7 +373,8 @@ describe("Codegen New Targets (bun-sql and typescript) & Studio HTML Injection",
       expect(html).toContain("setCodeGenTarget('bun-sql')");
       expect(html).toContain("setCodeGenTarget('typescript')");
 
-      const scripts = html.match(/<script[\s\S]*?>([\s\S]*?)<\/script>/gi) || [];
+      const scripts =
+        html.match(/<script[\s\S]*?>([\s\S]*?)<\/script>/gi) || [];
       for (const tag of scripts) {
         const code = tag.replace(/<\/?script[\s\S]*?>/gi, "");
         if (code.trim()) {
@@ -319,37 +388,55 @@ describe("Codegen New Targets (bun-sql and typescript) & Studio HTML Injection",
     const dir = mkdtempSync(join(tmpdir(), "wb-ide-test-"));
     const dbPath = join(dir, "test.db");
     const db = new Database(dbPath);
-    db.run("CREATE TABLE authors (id INTEGER PRIMARY KEY, name TEXT); CREATE TABLE books (id INTEGER PRIMARY KEY, author_id INTEGER REFERENCES authors(id));");
+    db.run(
+      "CREATE TABLE authors (id INTEGER PRIMARY KEY, name TEXT); CREATE TABLE books (id INTEGER PRIMARY KEY, author_id INTEGER REFERENCES authors(id));",
+    );
     db.close();
 
-    const service = new WorkbenchService(new ProfileStore(join(dir, "profiles"), new MemorySecretStore()));
+    const service = new WorkbenchService(
+      new ProfileStore(join(dir, "profiles"), new MemorySecretStore()),
+    );
     const handler = createWorkbenchHandler(service);
     try {
       const call = async (path: string, body: unknown) => {
         const r = await handler.handle(
           new Request("http://127.0.0.1" + path, {
             method: "POST",
-            headers: { "Content-Type": "application/json", "X-Workbench-Token": handler.token },
+            headers: {
+              "Content-Type": "application/json",
+              "X-Workbench-Token": handler.token,
+            },
             body: JSON.stringify(body),
-          })
+          }),
         );
         return (await r!.json()) as any;
       };
 
       const prof = await call("/api/v2/profiles/save", {
-        profile: { name: "mem", engine: "sqlite", path: dbPath, sqliteMode: "readwrite" },
+        profile: {
+          name: "mem",
+          engine: "sqlite",
+          path: dbPath,
+          sqliteMode: "readwrite",
+        },
       });
       const profileId = prof.profile.id;
       const conn = await call("/api/v2/connect", { profileId });
       const connectionId = conn.connection.connectionId;
 
-      const fmt = await call("/api/v2/format", { engine: "sqlite", sql: "select * from books where author_id=1" });
+      const fmt = await call("/api/v2/format", {
+        engine: "sqlite",
+        sql: "select * from books where author_id=1",
+      });
       expect(fmt.ok).toBe(true);
       expect(fmt.formatted).toContain("SELECT");
 
       const descAll = await call("/api/v2/describe-all", { connectionId });
       expect(descAll.ok).toBe(true);
-      expect(descAll.tables.map((t: any) => t.name).sort()).toEqual(["authors", "books"]);
+      expect(descAll.tables.map((t: any) => t.name).sort()).toEqual([
+        "authors",
+        "books",
+      ]);
 
       const wbHtml = generateWorkbenchHtml({ token: "t" });
       expect(wbHtml).toContain("btnFormatSql");

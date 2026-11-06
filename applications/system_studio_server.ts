@@ -1,6 +1,6 @@
 /**
  * ⚡ Bun RAD Studio - System Information Studio Pro Server
- * 
+ *
  * High-performance background HTTP telemetry engine for System Information Studio Pro.
  * Can be run as a standalone web workstation server or as an isolated background Worker
  * supporting the native desktop Webview window without main-thread event loop blocking.
@@ -61,15 +61,24 @@ export function startSystemStudioServer(options: ServerOptions = {}) {
 
       // Route: Fullscreen Toggle Notification
       if (url.pathname === "/api/fullscreen") {
-        return Response.json({ success: true, message: "Fullscreen toggled" }, { headers: corsHeaders });
+        return Response.json(
+          { success: true, message: "Fullscreen toggled" },
+          { headers: corsHeaders },
+        );
       }
 
       // Route: Graceful Telemetry Server & Window Close / Shutdown
-      if ((url.pathname === "/api/shutdown" || url.pathname === "/api/close") && req.method === "POST") {
+      if (
+        (url.pathname === "/api/shutdown" || url.pathname === "/api/close") &&
+        req.method === "POST"
+      ) {
         if (!process.env.STUDIO_PARENT_PID) {
           setTimeout(() => process.exit(0), 50);
         }
-        return Response.json({ success: true, message: "System Information Studio closing..." }, { headers: corsHeaders });
+        return Response.json(
+          { success: true, message: "System Information Studio closing..." },
+          { headers: corsHeaders },
+        );
       }
 
       // Route: Real-Time Telemetry KPIs
@@ -78,7 +87,10 @@ export function startSystemStudioServer(options: ServerOptions = {}) {
           const kpis = await fetchTelemetryKpis();
           return Response.json(kpis, { headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { headers: corsHeaders, status: 500 });
+          return Response.json(
+            { success: false, error: err.message },
+            { headers: corsHeaders, status: 500 },
+          );
         }
       }
 
@@ -95,17 +107,24 @@ export function startSystemStudioServer(options: ServerOptions = {}) {
         try {
           const body: any = await req.json();
           const reportsDir = resolve(process.cwd(), "reports");
-          if (!existsSync(reportsDir)) mkdirSync(reportsDir, { recursive: true });
+          if (!existsSync(reportsDir))
+            mkdirSync(reportsDir, { recursive: true });
 
           const { ext } = exportFormatInfo(String(body.format || "json"));
-          const safeMethod = String(body.method || "telemetry").replace(/[^A-Za-z0-9_-]/g, "_");
+          const safeMethod = String(body.method || "telemetry").replace(
+            /[^A-Za-z0-9_-]/g,
+            "_",
+          );
           const filename = `system_report_${safeMethod}_${Date.now()}.${ext}`;
           const fullPath = join(reportsDir, filename);
 
           if (typeof body.content === "string") {
             // Pre-rendered export (csv / markdown / html / json) produced by the studio page
             writeFileSync(fullPath, body.content, "utf-8");
-            return Response.json({ success: true, filename, path: fullPath }, { headers: corsHeaders });
+            return Response.json(
+              { success: true, filename, path: fullPath },
+              { headers: corsHeaders },
+            );
           }
 
           const report = {
@@ -118,9 +137,15 @@ export function startSystemStudioServer(options: ServerOptions = {}) {
           };
 
           writeFileSync(fullPath, JSON.stringify(report, null, 2), "utf-8");
-          return Response.json({ success: true, filename, path: fullPath }, { headers: corsHeaders });
+          return Response.json(
+            { success: true, filename, path: fullPath },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { headers: corsHeaders, status: 500 });
+          return Response.json(
+            { success: false, error: err.message },
+            { headers: corsHeaders, status: 500 },
+          );
         }
       }
 
@@ -132,7 +157,10 @@ export function startSystemStudioServer(options: ServerOptions = {}) {
           writeClipboardSync(text);
           return Response.json({ success: true }, { headers: corsHeaders });
         } catch (err: any) {
-          return Response.json({ success: false, error: err.message }, { headers: corsHeaders, status: 500 });
+          return Response.json(
+            { success: false, error: err.message },
+            { headers: corsHeaders, status: 500 },
+          );
         }
       }
 
@@ -147,7 +175,10 @@ export function startSystemStudioServer(options: ServerOptions = {}) {
 // Worker Sub-Process Auto-Bootstrap Mode
 // -------------------------------------------------------------------------------------------------
 
-if (!Bun.isMainThread && (!process.env.STUDIO_WORKER || process.env.STUDIO_WORKER === "system_studio")) {
+if (
+  !Bun.isMainThread &&
+  (!process.env.STUDIO_WORKER || process.env.STUDIO_WORKER === "system_studio")
+) {
   const server = startSystemStudioServer({ port: 0 });
   (globalThis as any).postMessage({
     ready: true,
@@ -157,7 +188,6 @@ if (!Bun.isMainThread && (!process.env.STUDIO_WORKER || process.env.STUDIO_WORKE
   });
 }
 
-
 // -------------------------------------------------------------------------------------------------
 // Standalone Web CLI Server Mode
 // -------------------------------------------------------------------------------------------------
@@ -166,7 +196,10 @@ if (import.meta.main) {
   const specifiedPort = Number(process.env.PORT);
   let server: any;
   if (specifiedPort) {
-    server = startSystemStudioServer({ port: specifiedPort, host: "127.0.0.1" });
+    server = startSystemStudioServer({
+      port: specifiedPort,
+      host: "127.0.0.1",
+    });
   } else {
     try {
       server = startSystemStudioServer({ port: 4567, host: "127.0.0.1" });
@@ -175,10 +208,18 @@ if (import.meta.main) {
     }
   }
   console.log(`READY:${server.port}`);
-  console.log(`\n⚡ -----------------------------------------------------------------`);
-  console.log(`⚡ System Information Studio Pro - Hardware Telemetry Web Server`);
+  console.log(
+    `\n⚡ -----------------------------------------------------------------`,
+  );
+  console.log(
+    `⚡ System Information Studio Pro - Hardware Telemetry Web Server`,
+  );
   console.log(`⚡ Local URL:    http://127.0.0.1:${server.port}`);
   console.log(`⚡ Network URL:  http://localhost:${server.port}`);
-  console.log(`⚡ All 60 systeminformation APIs available in browser workstation.`);
-  console.log(`⚡ -----------------------------------------------------------------\n`);
+  console.log(
+    `⚡ All 60 systeminformation APIs available in browser workstation.`,
+  );
+  console.log(
+    `⚡ -----------------------------------------------------------------\n`,
+  );
 }

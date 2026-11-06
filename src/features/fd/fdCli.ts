@@ -52,8 +52,12 @@ export function parseFdArguments(args: string[]): FdOptions {
     }
   }
 
-  const maxDepth = values["max-depth"] ? parseInt(values["max-depth"], 10) : undefined;
-  const minDepth = values["min-depth"] ? parseInt(values["min-depth"], 10) : undefined;
+  const maxDepth = values["max-depth"]
+    ? parseInt(values["max-depth"], 10)
+    : undefined;
+  const minDepth = values["min-depth"]
+    ? parseInt(values["min-depth"], 10)
+    : undefined;
   let caseSensitive: boolean | undefined = undefined;
   if (values["case-sensitive"]) caseSensitive = true;
   if (values["ignore-case"]) caseSensitive = false;

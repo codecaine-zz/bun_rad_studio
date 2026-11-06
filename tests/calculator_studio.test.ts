@@ -97,7 +97,9 @@ describe("⚡ Orbit Universal Computing Suite & Graphic Studio Test Suite", () =
       // JavaScript
       const resJs = await fetch(`${baseUrl}/app.js`);
       expect(resJs.status).toBe(200);
-      expect(resJs.headers.get("Content-Type")).toContain("application/javascript");
+      expect(resJs.headers.get("Content-Type")).toContain(
+        "application/javascript",
+      );
 
       // Favicon
       const resFavicon = await fetch(`${baseUrl}/favicon.svg`);
@@ -107,7 +109,11 @@ describe("⚡ Orbit Universal Computing Suite & Graphic Studio Test Suite", () =
       // Health API
       const resHealth = await fetch(`${baseUrl}/api/health`);
       expect(resHealth.status).toBe(200);
-      const healthData = (await resHealth.json()) as { status: string; app: string; version: string };
+      const healthData = (await resHealth.json()) as {
+        status: string;
+        app: string;
+        version: string;
+      };
       expect(healthData.status).toBe("ok");
       expect(healthData.app).toBe("calculator_studio");
       expect(healthData.version).toBe("2.7.0");
@@ -119,7 +125,7 @@ describe("⚡ Orbit Universal Computing Suite & Graphic Studio Test Suite", () =
   it("5. Launcher Studio automatically discovers and registers Calculator Studio", () => {
     const apps = scanWorkspaceApps();
     const calcApp = apps.find(
-      (a) => a.name === "calculator_studio" || a.id === "rad_calculator_studio"
+      (a) => a.name === "calculator_studio" || a.id === "rad_calculator_studio",
     );
     expect(calcApp).toBeDefined();
     expect(calcApp?.displayName).toContain("Calculator");

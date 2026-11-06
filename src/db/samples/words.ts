@@ -29,18 +29,66 @@ export const LAST_NAMES = (
 
 /** US city, state code, and 3-digit ZIP prefix tuples for synthetic address generation. */
 export const CITIES: [string, string, string][] = [
-  ["Albany", "NY", "122"], ["Atlanta", "GA", "303"], ["Austin", "TX", "787"], ["Baltimore", "MD", "212"], ["Boise", "ID", "837"],
-  ["Boston", "MA", "021"], ["Buffalo", "NY", "142"], ["Charlotte", "NC", "282"], ["Chicago", "IL", "606"], ["Cincinnati", "OH", "452"],
-  ["Cleveland", "OH", "441"], ["Columbus", "OH", "432"], ["Dallas", "TX", "752"], ["Denver", "CO", "802"], ["Des Moines", "IA", "503"],
-  ["Detroit", "MI", "482"], ["El Paso", "TX", "799"], ["Fresno", "CA", "937"], ["Honolulu", "HI", "968"], ["Houston", "TX", "770"],
-  ["Indianapolis", "IN", "462"], ["Jacksonville", "FL", "322"], ["Kansas City", "MO", "641"], ["Las Vegas", "NV", "891"], ["Los Angeles", "CA", "900"],
-  ["Louisville", "KY", "402"], ["Madison", "WI", "537"], ["Memphis", "TN", "381"], ["Miami", "FL", "331"], ["Milwaukee", "WI", "532"],
-  ["Minneapolis", "MN", "554"], ["Nashville", "TN", "372"], ["New Orleans", "LA", "701"], ["New York", "NY", "100"], ["Newark", "NJ", "071"],
-  ["Oakland", "CA", "946"], ["Oklahoma City", "OK", "731"], ["Omaha", "NE", "681"], ["Orlando", "FL", "328"], ["Philadelphia", "PA", "191"],
-  ["Phoenix", "AZ", "850"], ["Pittsburgh", "PA", "152"], ["Portland", "OR", "972"], ["Providence", "RI", "029"], ["Raleigh", "NC", "276"],
-  ["Richmond", "VA", "232"], ["Sacramento", "CA", "958"], ["Salt Lake City", "UT", "841"], ["San Antonio", "TX", "782"], ["San Diego", "CA", "921"],
-  ["San Francisco", "CA", "941"], ["San Jose", "CA", "951"], ["Seattle", "WA", "981"], ["St. Louis", "MO", "631"], ["Tampa", "FL", "336"],
-  ["Tucson", "AZ", "857"], ["Tulsa", "OK", "741"], ["Washington", "DC", "200"], ["Wichita", "KS", "672"], ["Anchorage", "AK", "995"],
+  ["Albany", "NY", "122"],
+  ["Atlanta", "GA", "303"],
+  ["Austin", "TX", "787"],
+  ["Baltimore", "MD", "212"],
+  ["Boise", "ID", "837"],
+  ["Boston", "MA", "021"],
+  ["Buffalo", "NY", "142"],
+  ["Charlotte", "NC", "282"],
+  ["Chicago", "IL", "606"],
+  ["Cincinnati", "OH", "452"],
+  ["Cleveland", "OH", "441"],
+  ["Columbus", "OH", "432"],
+  ["Dallas", "TX", "752"],
+  ["Denver", "CO", "802"],
+  ["Des Moines", "IA", "503"],
+  ["Detroit", "MI", "482"],
+  ["El Paso", "TX", "799"],
+  ["Fresno", "CA", "937"],
+  ["Honolulu", "HI", "968"],
+  ["Houston", "TX", "770"],
+  ["Indianapolis", "IN", "462"],
+  ["Jacksonville", "FL", "322"],
+  ["Kansas City", "MO", "641"],
+  ["Las Vegas", "NV", "891"],
+  ["Los Angeles", "CA", "900"],
+  ["Louisville", "KY", "402"],
+  ["Madison", "WI", "537"],
+  ["Memphis", "TN", "381"],
+  ["Miami", "FL", "331"],
+  ["Milwaukee", "WI", "532"],
+  ["Minneapolis", "MN", "554"],
+  ["Nashville", "TN", "372"],
+  ["New Orleans", "LA", "701"],
+  ["New York", "NY", "100"],
+  ["Newark", "NJ", "071"],
+  ["Oakland", "CA", "946"],
+  ["Oklahoma City", "OK", "731"],
+  ["Omaha", "NE", "681"],
+  ["Orlando", "FL", "328"],
+  ["Philadelphia", "PA", "191"],
+  ["Phoenix", "AZ", "850"],
+  ["Pittsburgh", "PA", "152"],
+  ["Portland", "OR", "972"],
+  ["Providence", "RI", "029"],
+  ["Raleigh", "NC", "276"],
+  ["Richmond", "VA", "232"],
+  ["Sacramento", "CA", "958"],
+  ["Salt Lake City", "UT", "841"],
+  ["San Antonio", "TX", "782"],
+  ["San Diego", "CA", "921"],
+  ["San Francisco", "CA", "941"],
+  ["San Jose", "CA", "951"],
+  ["Seattle", "WA", "981"],
+  ["St. Louis", "MO", "631"],
+  ["Tampa", "FL", "336"],
+  ["Tucson", "AZ", "857"],
+  ["Tulsa", "OK", "741"],
+  ["Washington", "DC", "200"],
+  ["Wichita", "KS", "672"],
+  ["Anchorage", "AK", "995"],
 ];
 
 /** Street root names for synthetic postal address generation. */
@@ -50,7 +98,18 @@ export const STREETS = (
   "Union Spring Prospect Orchard Garden Bridge Forest Valley Hillcrest Canal Harbor Station Market Commerce Liberty Heritage Summit"
 ).split(" ");
 /** Street type suffixes (St, Ave, Blvd, etc.) for synthetic postal address generation. */
-export const STREET_SUFFIX = ["St", "Ave", "Blvd", "Dr", "Ln", "Rd", "Way", "Ct", "Pl", "Ter"];
+export const STREET_SUFFIX = [
+  "St",
+  "Ave",
+  "Blvd",
+  "Dr",
+  "Ln",
+  "Rd",
+  "Way",
+  "Ct",
+  "Pl",
+  "Ter",
+];
 
 /** First-word prefixes for synthetic company and organization names. */
 export const COMPANY_A = (
@@ -64,7 +123,13 @@ export const COMPANY_B = (
 ).split(" ");
 
 /** Reserved RFC 2606 example domains used for synthetic email addresses. */
-export const EMAIL_DOMAINS = ["example.org", "example.com", "example.net", "mail.example", "sample.invalid"];
+export const EMAIL_DOMAINS = [
+  "example.org",
+  "example.com",
+  "example.net",
+  "mail.example",
+  "sample.invalid",
+];
 
 /** Neutral vocabulary words used to compose synthetic sentences and descriptions. */
 export const LOREM = (
@@ -73,10 +138,45 @@ export const LOREM = (
 ).split(" ");
 
 /** Standard color names used in synthetic product and inventory attributes. */
-export const COLORS = ["Black", "White", "Gray", "Navy", "Red", "Green", "Blue", "Olive", "Sand", "Burgundy", "Teal", "Orange", "Pink", "Brown", "Cream"];
+export const COLORS = [
+  "Black",
+  "White",
+  "Gray",
+  "Navy",
+  "Red",
+  "Green",
+  "Blue",
+  "Olive",
+  "Sand",
+  "Burgundy",
+  "Teal",
+  "Orange",
+  "Pink",
+  "Brown",
+  "Cream",
+];
 /** ISO-3166 alpha-2 country code and country name pairs for synthetic geographic data. */
 export const COUNTRIES: [string, string][] = [
-  ["US", "United States"], ["CA", "Canada"], ["MX", "Mexico"], ["GB", "United Kingdom"], ["DE", "Germany"], ["FR", "France"], ["ES", "Spain"],
-  ["IT", "Italy"], ["NL", "Netherlands"], ["SE", "Sweden"], ["PL", "Poland"], ["BR", "Brazil"], ["AR", "Argentina"], ["IN", "India"], ["JP", "Japan"],
-  ["KR", "South Korea"], ["SG", "Singapore"], ["AU", "Australia"], ["NZ", "New Zealand"], ["ZA", "South Africa"], ["NG", "Nigeria"], ["AE", "United Arab Emirates"],
+  ["US", "United States"],
+  ["CA", "Canada"],
+  ["MX", "Mexico"],
+  ["GB", "United Kingdom"],
+  ["DE", "Germany"],
+  ["FR", "France"],
+  ["ES", "Spain"],
+  ["IT", "Italy"],
+  ["NL", "Netherlands"],
+  ["SE", "Sweden"],
+  ["PL", "Poland"],
+  ["BR", "Brazil"],
+  ["AR", "Argentina"],
+  ["IN", "India"],
+  ["JP", "Japan"],
+  ["KR", "South Korea"],
+  ["SG", "Singapore"],
+  ["AU", "Australia"],
+  ["NZ", "New Zealand"],
+  ["ZA", "South Africa"],
+  ["NG", "Nigeria"],
+  ["AE", "United Arab Emirates"],
 ];

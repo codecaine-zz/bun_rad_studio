@@ -10,28 +10,60 @@ export const MAX_VERSION = 40;
 
 // Error-correction codewords per block, and number of blocks, by level and version (index 0 unused).
 const ECC_PER_BLOCK = {
-  L: [-1, 7, 10, 15, 20, 26, 18, 20, 24, 30, 18, 20, 24, 26, 30, 22, 24, 28, 30, 28, 28, 28, 28, 30, 30, 26, 28, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30],
-  M: [-1, 10, 16, 26, 18, 24, 16, 18, 22, 22, 26, 30, 22, 22, 24, 24, 28, 28, 26, 26, 26, 26, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28],
-  Q: [-1, 13, 22, 18, 26, 18, 24, 18, 22, 20, 24, 28, 26, 24, 20, 30, 24, 28, 28, 26, 30, 28, 30, 30, 30, 30, 28, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30],
-  H: [-1, 17, 28, 22, 16, 22, 28, 26, 26, 24, 28, 24, 28, 22, 24, 24, 30, 28, 28, 26, 28, 30, 24, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30],
+  L: [
+    -1, 7, 10, 15, 20, 26, 18, 20, 24, 30, 18, 20, 24, 26, 30, 22, 24, 28, 30,
+    28, 28, 28, 28, 30, 30, 26, 28, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30,
+    30, 30, 30,
+  ],
+  M: [
+    -1, 10, 16, 26, 18, 24, 16, 18, 22, 22, 26, 30, 22, 22, 24, 24, 28, 28, 26,
+    26, 26, 26, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
+    28, 28, 28,
+  ],
+  Q: [
+    -1, 13, 22, 18, 26, 18, 24, 18, 22, 20, 24, 28, 26, 24, 20, 30, 24, 28, 28,
+    26, 30, 28, 30, 30, 30, 30, 28, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30,
+    30, 30, 30,
+  ],
+  H: [
+    -1, 17, 28, 22, 16, 22, 28, 26, 26, 24, 28, 24, 28, 22, 24, 24, 30, 28, 28,
+    26, 28, 30, 24, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30,
+    30, 30, 30,
+  ],
 };
 const BLOCKS = {
-  L: [-1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 4, 4, 4, 4, 4, 6, 6, 6, 6, 7, 8, 8, 9, 9, 10, 12, 12, 12, 13, 14, 15, 16, 17, 18, 19, 19, 20, 21, 22, 24, 25],
-  M: [-1, 1, 1, 1, 2, 2, 4, 4, 4, 5, 5, 5, 8, 9, 9, 10, 10, 11, 13, 14, 16, 17, 17, 18, 20, 21, 23, 25, 26, 28, 29, 31, 33, 35, 37, 38, 40, 43, 45, 47, 49],
-  Q: [-1, 1, 1, 2, 2, 4, 4, 6, 6, 8, 8, 8, 10, 12, 16, 12, 17, 16, 18, 21, 20, 23, 23, 25, 27, 29, 34, 34, 35, 38, 40, 43, 45, 48, 51, 53, 56, 59, 62, 65, 68],
-  H: [-1, 1, 1, 2, 4, 4, 4, 5, 6, 8, 8, 11, 11, 16, 16, 18, 16, 19, 21, 25, 25, 25, 34, 30, 32, 35, 37, 40, 42, 45, 48, 51, 54, 57, 60, 63, 66, 70, 74, 77, 81],
+  L: [
+    -1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 4, 4, 4, 4, 4, 6, 6, 6, 6, 7, 8, 8, 9, 9, 10,
+    12, 12, 12, 13, 14, 15, 16, 17, 18, 19, 19, 20, 21, 22, 24, 25,
+  ],
+  M: [
+    -1, 1, 1, 1, 2, 2, 4, 4, 4, 5, 5, 5, 8, 9, 9, 10, 10, 11, 13, 14, 16, 17,
+    17, 18, 20, 21, 23, 25, 26, 28, 29, 31, 33, 35, 37, 38, 40, 43, 45, 47, 49,
+  ],
+  Q: [
+    -1, 1, 1, 2, 2, 4, 4, 6, 6, 8, 8, 8, 10, 12, 16, 12, 17, 16, 18, 21, 20, 23,
+    23, 25, 27, 29, 34, 34, 35, 38, 40, 43, 45, 48, 51, 53, 56, 59, 62, 65, 68,
+  ],
+  H: [
+    -1, 1, 1, 2, 4, 4, 4, 5, 6, 8, 8, 11, 11, 16, 16, 18, 16, 19, 21, 25, 25,
+    25, 34, 30, 32, 35, 37, 40, 42, 45, 48, 51, 54, 57, 60, 63, 66, 70, 74, 77,
+    81,
+  ],
 };
 
 export const sizeOf = (version) => 17 + 4 * version;
-export const versionOfSize = (size) => ((size - 17) % 4 === 0 && size >= 21 && size <= 177 ? (size - 17) / 4 : 0);
+export const versionOfSize = (size) =>
+  (size - 17) % 4 === 0 && size >= 21 && size <= 177 ? (size - 17) / 4 : 0;
 
 /** Positions (row and column) of the alignment patterns' centers. */
 export function alignmentPositions(version) {
   if (version === 1) return [];
   const count = Math.floor(version / 7) + 2;
-  const step = version === 32 ? 26 : Math.ceil((version * 4 + 4) / (count * 2 - 2)) * 2;
+  const step =
+    version === 32 ? 26 : Math.ceil((version * 4 + 4) / (count * 2 - 2)) * 2;
   const out = [6];
-  for (let pos = sizeOf(version) - 7; out.length < count; pos -= step) out.splice(1, 0, pos);
+  for (let pos = sizeOf(version) - 7; out.length < count; pos -= step)
+    out.splice(1, 0, pos);
   return out;
 }
 
@@ -48,7 +80,9 @@ export function rawDataModules(version) {
 
 export const eccPerBlock = (version, level) => ECC_PER_BLOCK[level][version];
 export const blockCount = (version, level) => BLOCKS[level][version];
-export const dataCodewords = (version, level) => Math.floor(rawDataModules(version) / 8) - ECC_PER_BLOCK[level][version] * BLOCKS[level][version];
+export const dataCodewords = (version, level) =>
+  Math.floor(rawDataModules(version) / 8) -
+  ECC_PER_BLOCK[level][version] * BLOCKS[level][version];
 
 /** The layout of blocks: how many short and long ones and how long each is, counting data and error-correction codewords. */
 export function blockLayout(version, level) {
@@ -78,7 +112,8 @@ const LOG = new Uint8Array(256);
 })();
 
 export const gfMul = (a, b) => (a === 0 || b === 0 ? 0 : EXP[LOG[a] + LOG[b]]);
-export const gfDiv = (a, b) => (a === 0 ? 0 : EXP[(LOG[a] + 255 - LOG[b]) % 255]);
+export const gfDiv = (a, b) =>
+  a === 0 ? 0 : EXP[(LOG[a] + 255 - LOG[b]) % 255];
 export const gfPow = (e) => EXP[((e % 255) + 255) % 255];
 export const gfInv = (a) => EXP[255 - LOG[a]];
 
@@ -145,7 +180,8 @@ export function rsCorrect(block, degree) {
     const t = locator.slice();
     const coef = gfDiv(d, b);
     while (locator.length < previous.length + m) locator.push(0);
-    for (let j = 0; j < previous.length; j++) locator[j + m] ^= gfMul(coef, previous[j]);
+    for (let j = 0; j < previous.length; j++)
+      locator[j + m] ^= gfMul(coef, previous[j]);
     if (2 * l <= i) {
       l = i + 1 - l;
       previous = t;
@@ -160,7 +196,8 @@ export function rsCorrect(block, degree) {
   const positions = [];
   for (let i = 0; i < n; i++) {
     let sum = 0;
-    for (let j = 0; j <= errors; j++) sum ^= gfMul(locator[j], gfPow((255 - (n - 1 - i)) * j));
+    for (let j = 0; j <= errors; j++)
+      sum ^= gfMul(locator[j], gfPow((255 - (n - 1 - i)) * j));
     if (sum === 0) positions.push(i);
   }
   if (positions.length !== errors) return -1;
@@ -173,9 +210,11 @@ export function rsCorrect(block, degree) {
   }
   for (const pos of positions) {
     let num = 0;
-    for (let j = 0; j < errors; j++) num ^= gfMul(omega[j], gfPow((255 - (n - 1 - pos)) * j));
+    for (let j = 0; j < errors; j++)
+      num ^= gfMul(omega[j], gfPow((255 - (n - 1 - pos)) * j));
     let den = 0;
-    for (let j = 1; j <= errors; j += 2) den ^= gfMul(locator[j], gfPow((255 - (n - 1 - pos)) * (j - 1)));
+    for (let j = 1; j <= errors; j += 2)
+      den ^= gfMul(locator[j], gfPow((255 - (n - 1 - pos)) * (j - 1)));
     if (den === 0) return -1;
     block[pos] ^= gfMul(gfDiv(num, den), gfPow(n - 1 - pos));
   }
@@ -196,7 +235,8 @@ export function rsCorrect(block, degree) {
 const bchRemainder = (value, poly, polyBits, dataBits) => {
   const degree = polyBits - 1;
   let v = value << degree;
-  for (let i = dataBits + degree - 1; i >= degree; i--) if ((v >>> i) & 1) v ^= poly << (i - degree);
+  for (let i = dataBits + degree - 1; i >= degree; i--)
+    if ((v >>> i) & 1) v ^= poly << (i - degree);
   return v;
 };
 
@@ -257,7 +297,9 @@ export function functionMask(version) {
   const size = sizeOf(version);
   const m = new Uint8Array(size * size);
   const fill = (x0, y0, w, h) => {
-    for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) if (x >= 0 && y >= 0 && x < size && y < size) m[y * size + x] = 1;
+    for (let y = y0; y < y0 + h; y++)
+      for (let x = x0; x < x0 + w; x++)
+        if (x >= 0 && y >= 0 && x < size && y < size) m[y * size + x] = 1;
   };
   fill(0, 0, 9, 9);
   fill(size - 8, 0, 8, 9);
@@ -267,7 +309,12 @@ export function functionMask(version) {
   const a = alignmentPositions(version);
   for (let i = 0; i < a.length; i++) {
     for (let j = 0; j < a.length; j++) {
-      if ((i === 0 && j === 0) || (i === 0 && j === a.length - 1) || (i === a.length - 1 && j === 0)) continue;
+      if (
+        (i === 0 && j === 0) ||
+        (i === 0 && j === a.length - 1) ||
+        (i === a.length - 1 && j === 0)
+      )
+        continue;
       fill(a[i] - 2, a[j] - 2, 5, 5);
     }
   }
@@ -281,14 +328,22 @@ export function functionMask(version) {
 /** Whether mask pattern `mask` flips the module at column x, row y. */
 export function maskFlips(mask, x, y) {
   switch (mask) {
-    case 0: return (x + y) % 2 === 0;
-    case 1: return y % 2 === 0;
-    case 2: return x % 3 === 0;
-    case 3: return (x + y) % 3 === 0;
-    case 4: return (Math.floor(x / 3) + Math.floor(y / 2)) % 2 === 0;
-    case 5: return ((x * y) % 2) + ((x * y) % 3) === 0;
-    case 6: return (((x * y) % 2) + ((x * y) % 3)) % 2 === 0;
-    default: return (((x + y) % 2) + ((x * y) % 3)) % 2 === 0;
+    case 0:
+      return (x + y) % 2 === 0;
+    case 1:
+      return y % 2 === 0;
+    case 2:
+      return x % 3 === 0;
+    case 3:
+      return (x + y) % 3 === 0;
+    case 4:
+      return (Math.floor(x / 3) + Math.floor(y / 2)) % 2 === 0;
+    case 5:
+      return ((x * y) % 2) + ((x * y) % 3) === 0;
+    case 6:
+      return (((x * y) % 2) + ((x * y) % 3)) % 2 === 0;
+    default:
+      return (((x + y) % 2) + ((x * y) % 3)) % 2 === 0;
   }
 }
 

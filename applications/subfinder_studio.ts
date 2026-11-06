@@ -1,9 +1,14 @@
 import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
-import { enumerateDomain, enumerateDomainSync } from "../src/features/subfinder/subfinderCoordinator.ts";
+import {
+  enumerateDomain,
+  enumerateDomainSync,
+} from "../src/features/subfinder/subfinderCoordinator.ts";
 import { cleanDomain } from "../src/features/subfinder/subfinderDoers.ts";
 import type { SubdomainResult } from "../src/features/subfinder/subfinderTypes.ts";
 
-export function createSubfinderStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
+export function createSubfinderStudio(
+  options: { fullscreen?: boolean; theme?: string } = {},
+): SimpleWindow {
   const win = newSimpleWindow(
     "Subfinder Studio Pro -- Fast Passive Subdomain Discovery Engine",
     1260,
@@ -13,7 +18,7 @@ export function createSubfinderStudio(options: { fullscreen?: boolean; theme?: s
       theme: options.theme || getSavedTheme() || "midnight",
       autoSaveState: true,
       fullscreen: options.fullscreen ?? true,
-    }
+    },
   );
 
   let currentResults: SubdomainResult[] = [];
@@ -28,7 +33,9 @@ export function createSubfinderStudio(options: { fullscreen?: boolean; theme?: s
   win.addButton("btn_save_state", "💾 Save Config");
   win.addButton("btn_center", "Center");
   win.endRow();
-  win.addCaption("Fast Passive Subdomain Discovery -- Multi-Source OSINT Reconnaissance with Live HTTP/DNS Probing");
+  win.addCaption(
+    "Fast Passive Subdomain Discovery -- Multi-Source OSINT Reconnaissance with Live HTTP/DNS Probing",
+  );
 
   // -----------------------------------------------------------------------------------------------
   // 2. Recon Telemetry
@@ -37,11 +44,17 @@ export function createSubfinderStudio(options: { fullscreen?: boolean; theme?: s
   const isShot = process.env.SCREENSHOT_MODE === "1";
   win.beginGroupBox("Reconnaissance Telemetry");
   win.beginRow();
-  win.addLabel("lbl_metric_domain", isShot ? "Domain: example.com" : "Domain: -");
+  win.addLabel(
+    "lbl_metric_domain",
+    isShot ? "Domain: example.com" : "Domain: -",
+  );
   win.addLabel("lbl_metric_found", isShot ? "Discovered: 4" : "Discovered: 0");
   win.addLabel("lbl_metric_live", isShot ? "Live DNS: 4" : "Live DNS: 0");
   win.addLabel("lbl_metric_http", isShot ? "HTTP OK: 3" : "HTTP OK: 0");
-  win.addLabel("lbl_metric_status", isShot ? "Engine: Complete" : "Engine: Ready");
+  win.addLabel(
+    "lbl_metric_status",
+    isShot ? "Engine: Complete" : "Engine: Ready",
+  );
   win.endRow();
   win.endGroupBox();
 
@@ -51,7 +64,9 @@ export function createSubfinderStudio(options: { fullscreen?: boolean; theme?: s
   win.beginGroupBox("Target Domain & Probe Settings");
   win.beginRow();
   win.addLabel("lbl_domain", "Target Domain:");
-  win.addInput("txt_domain", "example.com", "e.g. example.com, stripe.com...", { width: 340 });
+  win.addInput("txt_domain", "example.com", "e.g. example.com, stripe.com...", {
+    width: 340,
+  });
   win.addLabel("lbl_timeout", "Timeout (s):");
   win.addInput("txt_timeout", "10", "10", { width: 60 });
   win.addLabel("lbl_ports", "Ports:");
@@ -73,13 +88,50 @@ export function createSubfinderStudio(options: { fullscreen?: boolean; theme?: s
   // 4. Subdomain Results Table
   // -----------------------------------------------------------------------------------------------
   win.beginGroupBox("Discovered Subdomains & Live Host Telemetry");
-  const tableHeaders = ["Subdomain", "IP Address", "HTTP Status", "Page Title", "Open Ports", "OSINT Sources"];
-  const demoSubs = isShot ? [
-    ["api.example.com", "93.184.216.34", "200 OK", "Example API Gateway", "80, 443", "crt.sh, AlienVault"],
-    ["auth.example.com", "93.184.216.35", "200 OK", "SSO Login Portal", "443", "crt.sh, Hackertarget"],
-    ["cdn.example.com", "93.184.216.36", "200 OK", "Static Asset Delivery", "80, 443", "crt.sh, Anubis"],
-    ["dev.example.com", "93.184.216.37", "403 Forbidden", "Access Denied", "8080", "crt.sh"],
-  ] : [];
+  const tableHeaders = [
+    "Subdomain",
+    "IP Address",
+    "HTTP Status",
+    "Page Title",
+    "Open Ports",
+    "OSINT Sources",
+  ];
+  const demoSubs = isShot
+    ? [
+        [
+          "api.example.com",
+          "93.184.216.34",
+          "200 OK",
+          "Example API Gateway",
+          "80, 443",
+          "crt.sh, AlienVault",
+        ],
+        [
+          "auth.example.com",
+          "93.184.216.35",
+          "200 OK",
+          "SSO Login Portal",
+          "443",
+          "crt.sh, Hackertarget",
+        ],
+        [
+          "cdn.example.com",
+          "93.184.216.36",
+          "200 OK",
+          "Static Asset Delivery",
+          "80, 443",
+          "crt.sh, Anubis",
+        ],
+        [
+          "dev.example.com",
+          "93.184.216.37",
+          "403 Forbidden",
+          "Access Denied",
+          "8080",
+          "crt.sh",
+        ],
+      ]
+    : [];
   win.addTable("tbl_subs", tableHeaders, demoSubs, { height: 320 });
   win.endGroupBox();
 
@@ -94,16 +146,23 @@ export function createSubfinderStudio(options: { fullscreen?: boolean; theme?: s
   // 6. Status Bar
   // -----------------------------------------------------------------------------------------------
   win.beginRow();
-  win.addLabel("lbl_status_bar", "Ready. Enter target domain and click Start Discovery.");
+  win.addLabel(
+    "lbl_status_bar",
+    "Ready. Enter target domain and click Start Discovery.",
+  );
   win.endRow();
 
   // -----------------------------------------------------------------------------------------------
   // Recon Logic
   // -----------------------------------------------------------------------------------------------
   const startDiscovery = (overrideDomain?: string) => {
-    const rawDomain = (overrideDomain !== undefined && overrideDomain !== null && overrideDomain !== ""
-      ? overrideDomain
-      : win.getValue("txt_domain") ?? "").trim();
+    const rawDomain = (
+      overrideDomain !== undefined &&
+      overrideDomain !== null &&
+      overrideDomain !== ""
+        ? overrideDomain
+        : (win.getValue("txt_domain") ?? "")
+    ).trim();
     if (!rawDomain) {
       win.setValue("lbl_status_bar", "⚠️ Please enter a target domain name.");
       return;
@@ -115,18 +174,34 @@ export function createSubfinderStudio(options: { fullscreen?: boolean; theme?: s
     const wildcard = win.getBool("chk_wildcard");
 
     const timeStr = new Date().toLocaleTimeString();
-    win.setValue("lbl_status_bar", `⚡ [FETCHING DATA] Querying OSINT APIs & DNS records for "${domain}"...`);
+    win.setValue(
+      "lbl_status_bar",
+      `⚡ [FETCHING DATA] Querying OSINT APIs & DNS records for "${domain}"...`,
+    );
     win.setValue("lbl_metric_domain", `Domain: ${domain}`);
     win.setValue("lbl_metric_found", "Scanning...");
     win.setValue("lbl_metric_status", "Engine: 📡 Active Scanning");
     win.clearConsole("console_subs");
-    win.appendConsole("console_subs", `[${timeStr}] 🚀 [SUBFINDER] Enumerating targets for: ${domain}\n`);
-    win.appendConsole("console_subs", `[${timeStr}] 📡 [SUBFINDER] Passive Sources: CertSpotter, HackerTarget, DNS-dict\n`);
+    win.appendConsole(
+      "console_subs",
+      `[${timeStr}] 🚀 [SUBFINDER] Enumerating targets for: ${domain}\n`,
+    );
+    win.appendConsole(
+      "console_subs",
+      `[${timeStr}] 📡 [SUBFINDER] Passive Sources: CertSpotter, HackerTarget, DNS-dict\n`,
+    );
 
     try {
-      const results = enumerateDomainSync(domain, active, probe, undefined, wildcard, (msg) => {
-        win.setValue("lbl_status_bar", msg);
-      });
+      const results = enumerateDomainSync(
+        domain,
+        active,
+        probe,
+        undefined,
+        wildcard,
+        (msg) => {
+          win.setValue("lbl_status_bar", msg);
+        },
+      );
 
       currentResults = results;
       let liveCount = 0;
@@ -134,8 +209,12 @@ export function createSubfinderStudio(options: { fullscreen?: boolean; theme?: s
 
       const rows: string[][] = results.map((r) => {
         if (r.ip && r.ip.length > 0) liveCount++;
-        if (r.httpStatus && r.httpStatus >= 200 && r.httpStatus < 400) http200Count++;
-        win.appendConsole("console_subs", `${r.host.padEnd(35)} | IP: ${(r.ip || ["-"]).join(", ").padEnd(20)} | HTTP: ${r.httpStatus || "-"}\n`);
+        if (r.httpStatus && r.httpStatus >= 200 && r.httpStatus < 400)
+          http200Count++;
+        win.appendConsole(
+          "console_subs",
+          `${r.host.padEnd(35)} | IP: ${(r.ip || ["-"]).join(", ").padEnd(20)} | HTTP: ${r.httpStatus || "-"}\n`,
+        );
         return [
           r.host,
           r.ip && r.ip.length > 0 ? r.ip.join(", ") : "-",
@@ -152,7 +231,10 @@ export function createSubfinderStudio(options: { fullscreen?: boolean; theme?: s
       win.setValue("lbl_metric_live", `Live DNS: ${liveCount}`);
       win.setValue("lbl_metric_http", `HTTP OK: ${http200Count}`);
       win.setValue("lbl_metric_status", "Engine: Ready");
-      win.setValue("lbl_status_bar", `✓ Completed enumeration for "${domain}". Found ${results.length} subdomain(s).`);
+      win.setValue(
+        "lbl_status_bar",
+        `✓ Completed enumeration for "${domain}". Found ${results.length} subdomain(s).`,
+      );
     } catch (err: any) {
       win.setValue("lbl_metric_status", "Engine: Error");
       win.setValue("lbl_status_bar", `❌ Enumeration failed: ${err.message}`);
@@ -160,8 +242,12 @@ export function createSubfinderStudio(options: { fullscreen?: boolean; theme?: s
     }
   };
 
-  win.on("btn_start", "click", (_w, val) => startDiscovery(val || win.getValue("txt_domain")));
-  win.on("txt_domain", "enter", (_w, val) => startDiscovery(val || win.getValue("txt_domain")));
+  win.on("btn_start", "click", (_w, val) =>
+    startDiscovery(val || win.getValue("txt_domain")),
+  );
+  win.on("txt_domain", "enter", (_w, val) =>
+    startDiscovery(val || win.getValue("txt_domain")),
+  );
 
   win.on("btn_copy_list", "click", () => {
     if (currentResults.length === 0) {
@@ -171,7 +257,10 @@ export function createSubfinderStudio(options: { fullscreen?: boolean; theme?: s
     const hosts = currentResults.map((r) => r.host).join("\n");
     win.clearConsole("console_subs");
     win.appendConsole("console_subs", hosts);
-    win.setValue("lbl_status_bar", `✓ Copied ${currentResults.length} hostnames to console.`);
+    win.setValue(
+      "lbl_status_bar",
+      `✓ Copied ${currentResults.length} hostnames to console.`,
+    );
   });
 
   win.on("btn_export_json", "click", () => {

@@ -5,8 +5,24 @@ import { guardLocalRequest } from "../src/localGuard";
 import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
 import { Sys } from "../src/simplecli/sys";
 import {
-  type ProcessItem, type SignalName, SIGNALS, parsePsOutput, parseLsofListen, formatMb, formatUptime, stateLabel, groupProcesses, childrenOf,
-  descendantsOf, assessSignal, findRogueDevServers, validPort, executablePath, processesToCsv, processesToJson, processesToTsv,
+  type ProcessItem,
+  type SignalName,
+  SIGNALS,
+  parsePsOutput,
+  parseLsofListen,
+  formatMb,
+  formatUptime,
+  stateLabel,
+  groupProcesses,
+  childrenOf,
+  descendantsOf,
+  assessSignal,
+  findRogueDevServers,
+  validPort,
+  executablePath,
+  processesToCsv,
+  processesToJson,
+  processesToTsv,
   parseRefreshSeconds,
 } from "../src/process_tools";
 
@@ -56,15 +72,50 @@ function normalizeTypo(s: string): string {
 }
 
 const KNOWN_ALIASES: Record<string, string[]> = {
-  ghostty: ["terminal", "term", "console", "tty", "ghosty", "ghost", "temrinal", "teminal", "termnial"],
-  ghosty: ["ghostty", "terminal", "term", "console", "tty", "ghost", "temrinal", "teminal", "termnial"],
+  ghostty: [
+    "terminal",
+    "term",
+    "console",
+    "tty",
+    "ghosty",
+    "ghost",
+    "temrinal",
+    "teminal",
+    "termnial",
+  ],
+  ghosty: [
+    "ghostty",
+    "terminal",
+    "term",
+    "console",
+    "tty",
+    "ghost",
+    "temrinal",
+    "teminal",
+    "termnial",
+  ],
   iterm: ["terminal", "term", "console", "temrinal", "iterm2"],
   iterm2: ["terminal", "term", "console", "temrinal", "iterm"],
   alacritty: ["terminal", "term", "console", "temrinal"],
   kitty: ["terminal", "term", "console", "temrinal"],
   warp: ["terminal", "term", "console", "temrinal"],
   wezterm: ["terminal", "term", "console", "temrinal"],
-  terminal: ["ghostty", "ghosty", "iterm", "iterm2", "alacritty", "kitty", "terminal", "warp", "wezterm", "console", "tty", "pty", "temrinal", "teminal"],
+  terminal: [
+    "ghostty",
+    "ghosty",
+    "iterm",
+    "iterm2",
+    "alacritty",
+    "kitty",
+    "terminal",
+    "warp",
+    "wezterm",
+    "console",
+    "tty",
+    "pty",
+    "temrinal",
+    "teminal",
+  ],
   chrome: ["browser", "google", "web"],
   safari: ["browser", "web", "apple"],
   firefox: ["browser", "mozilla", "web"],
@@ -87,7 +138,13 @@ export function matchesQuery(proc: ProcessItem, query: string): boolean {
   const ports = proc.ports.join(" ");
 
   // 1. Direct substring match
-  if (pid === cleanQuery || name.includes(cleanQuery) || cmd.includes(cleanQuery) || user.includes(cleanQuery) || ports.includes(cleanQuery)) {
+  if (
+    pid === cleanQuery ||
+    name.includes(cleanQuery) ||
+    cmd.includes(cleanQuery) ||
+    user.includes(cleanQuery) ||
+    ports.includes(cleanQuery)
+  ) {
     return true;
   }
 
@@ -104,14 +161,24 @@ export function matchesQuery(proc: ProcessItem, query: string): boolean {
   if (words.length > 1) {
     const allWordsMatch = words.every((word) => {
       const normWord = normalizeTypo(word);
-      if (pid.includes(word) || name.includes(word) || cmd.includes(word) || user.includes(word) || ports.includes(word)) {
+      if (
+        pid.includes(word) ||
+        name.includes(word) ||
+        cmd.includes(word) ||
+        user.includes(word) ||
+        ports.includes(word)
+      ) {
         return true;
       }
       if (normName.includes(normWord) || normCmd.includes(normWord)) {
         return true;
       }
       const aliases = KNOWN_ALIASES[name] || [];
-      if (aliases.some((a) => a.includes(word) || normalizeTypo(a).includes(normWord))) {
+      if (
+        aliases.some(
+          (a) => a.includes(word) || normalizeTypo(a).includes(normWord),
+        )
+      ) {
         return true;
       }
       return false;
@@ -122,7 +189,11 @@ export function matchesQuery(proc: ProcessItem, query: string): boolean {
   // 4. Semantic alias matching (e.g. searching "terminal" matches Ghostty / iTerm / Alacritty)
   for (const [key, aliasList] of Object.entries(KNOWN_ALIASES)) {
     if (name.includes(key) || normName.includes(normalizeTypo(key))) {
-      if (aliasList.some((a) => cleanQuery.includes(a) || normQuery.includes(normalizeTypo(a)))) {
+      if (
+        aliasList.some(
+          (a) => cleanQuery.includes(a) || normQuery.includes(normalizeTypo(a)),
+        )
+      ) {
         return true;
       }
     }
@@ -146,16 +217,146 @@ export function currentUserName(): string {
 export function fetchProcesses(): ProcessItem[] {
   if (process.env.SCREENSHOT_MODE === "1") {
     return [
-      { pid: "1", ppid: "0", cpu: 0.1, mem: 0.2, rssMb: "12.4 MB", rssKb: 12697, state: "Ss", user: "root", name: "launchd", command: "/sbin/launchd", ports: [], isUserApp: false, isDevServer: false },
-      { pid: "210", ppid: "1", cpu: 3.2, mem: 2.8, rssMb: "245.8 MB", rssKb: 251699, state: "Ss", user: "_windowserver", name: "WindowServer", command: "/System/Library/CoreServices/WindowServer", ports: [], isUserApp: false, isDevServer: false },
-      { pid: "1042", ppid: "1", cpu: 1.5, mem: 1.4, rssMb: "85.2 MB", rssKb: 87244, state: "S", user: "developer", name: "bun", command: "bun run dev", ports: [":3000"], isUserApp: true, isDevServer: true },
-      { pid: "1088", ppid: "1042", cpu: 0.8, mem: 1.1, rssMb: "64.0 MB", rssKb: 65536, state: "S", user: "developer", name: "vite", command: "vite --host 0.0.0.0 --port 5173", ports: [":5173"], isUserApp: true, isDevServer: true },
-      { pid: "2045", ppid: "1", cpu: 0.1, mem: 0.5, rssMb: "32.0 MB", rssKb: 32768, state: "S", user: "system", name: "redis-server", command: "redis-server *:6379", ports: [":6379"], isUserApp: false, isDevServer: true },
-      { pid: "3012", ppid: "1", cpu: 0.2, mem: 0.8, rssMb: "48.5 MB", rssKb: 49664, state: "S", user: "system", name: "caddy", command: "caddy run --config Caddyfile", ports: [":80", ":443"], isUserApp: false, isDevServer: true },
-      { pid: "4099", ppid: "1", cpu: 0.4, mem: 1.2, rssMb: "96.0 MB", rssKb: 98304, state: "S", user: "system", name: "postgres", command: "postgres -D /data/postgres", ports: [":5432"], isUserApp: false, isDevServer: true },
-      { pid: "5120", ppid: "1", cpu: 0.6, mem: 1.0, rssMb: "110.0 MB", rssKb: 112640, state: "S", user: "developer", name: "Ghostty", command: "/Applications/Ghostty.app/Contents/MacOS/Ghostty", ports: [], isUserApp: true, isDevServer: false },
-      { pid: "6780", ppid: "1", cpu: 2.4, mem: 4.5, rssMb: "520.0 MB", rssKb: 532480, state: "S", user: "developer", name: "Google Chrome", command: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", ports: [], isUserApp: true, isDevServer: false },
-    ].map((p, i) => ({ ...p, uptimeSec: 86400 * (9 - i) + 3600 * i, uptime: formatUptime(86400 * (9 - i) + 3600 * i) }));
+      {
+        pid: "1",
+        ppid: "0",
+        cpu: 0.1,
+        mem: 0.2,
+        rssMb: "12.4 MB",
+        rssKb: 12697,
+        state: "Ss",
+        user: "root",
+        name: "launchd",
+        command: "/sbin/launchd",
+        ports: [],
+        isUserApp: false,
+        isDevServer: false,
+      },
+      {
+        pid: "210",
+        ppid: "1",
+        cpu: 3.2,
+        mem: 2.8,
+        rssMb: "245.8 MB",
+        rssKb: 251699,
+        state: "Ss",
+        user: "_windowserver",
+        name: "WindowServer",
+        command: "/System/Library/CoreServices/WindowServer",
+        ports: [],
+        isUserApp: false,
+        isDevServer: false,
+      },
+      {
+        pid: "1042",
+        ppid: "1",
+        cpu: 1.5,
+        mem: 1.4,
+        rssMb: "85.2 MB",
+        rssKb: 87244,
+        state: "S",
+        user: "developer",
+        name: "bun",
+        command: "bun run dev",
+        ports: [":3000"],
+        isUserApp: true,
+        isDevServer: true,
+      },
+      {
+        pid: "1088",
+        ppid: "1042",
+        cpu: 0.8,
+        mem: 1.1,
+        rssMb: "64.0 MB",
+        rssKb: 65536,
+        state: "S",
+        user: "developer",
+        name: "vite",
+        command: "vite --host 0.0.0.0 --port 5173",
+        ports: [":5173"],
+        isUserApp: true,
+        isDevServer: true,
+      },
+      {
+        pid: "2045",
+        ppid: "1",
+        cpu: 0.1,
+        mem: 0.5,
+        rssMb: "32.0 MB",
+        rssKb: 32768,
+        state: "S",
+        user: "system",
+        name: "redis-server",
+        command: "redis-server *:6379",
+        ports: [":6379"],
+        isUserApp: false,
+        isDevServer: true,
+      },
+      {
+        pid: "3012",
+        ppid: "1",
+        cpu: 0.2,
+        mem: 0.8,
+        rssMb: "48.5 MB",
+        rssKb: 49664,
+        state: "S",
+        user: "system",
+        name: "caddy",
+        command: "caddy run --config Caddyfile",
+        ports: [":80", ":443"],
+        isUserApp: false,
+        isDevServer: true,
+      },
+      {
+        pid: "4099",
+        ppid: "1",
+        cpu: 0.4,
+        mem: 1.2,
+        rssMb: "96.0 MB",
+        rssKb: 98304,
+        state: "S",
+        user: "system",
+        name: "postgres",
+        command: "postgres -D /data/postgres",
+        ports: [":5432"],
+        isUserApp: false,
+        isDevServer: true,
+      },
+      {
+        pid: "5120",
+        ppid: "1",
+        cpu: 0.6,
+        mem: 1.0,
+        rssMb: "110.0 MB",
+        rssKb: 112640,
+        state: "S",
+        user: "developer",
+        name: "Ghostty",
+        command: "/Applications/Ghostty.app/Contents/MacOS/Ghostty",
+        ports: [],
+        isUserApp: true,
+        isDevServer: false,
+      },
+      {
+        pid: "6780",
+        ppid: "1",
+        cpu: 2.4,
+        mem: 4.5,
+        rssMb: "520.0 MB",
+        rssKb: 532480,
+        state: "S",
+        user: "developer",
+        name: "Google Chrome",
+        command: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        ports: [],
+        isUserApp: true,
+        isDevServer: false,
+      },
+    ].map((p, i) => ({
+      ...p,
+      uptimeSec: 86400 * (9 - i) + 3600 * i,
+      uptime: formatUptime(86400 * (9 - i) + 3600 * i),
+    }));
   }
   const now = Date.now();
   // Throttle ps execution to at most once per 250ms under rapid typing or clearing
@@ -163,7 +364,9 @@ export function fetchProcesses(): ProcessItem[] {
     return cachedProcesses;
   }
 
-  const [out, code] = Sys.exec("ps -axo pid,ppid,pcpu,pmem,rss,state,user,etime,command");
+  const [out, code] = Sys.exec(
+    "ps -axo pid,ppid,pcpu,pmem,rss,state,user,etime,command",
+  );
   if (code !== 0 || !out || out.trim().length < 50) {
     if (cachedProcesses.length > 0) {
       return cachedProcesses;
@@ -229,8 +432,10 @@ export function computeTelemetry(procs: ProcessItem[]): TelemetrySummary {
     if (p.ports.length > 0) portCount++;
   }
 
-  const topCpu = procs.length > 0 ? [...procs].sort((a, b) => b.cpu - a.cpu)[0] : undefined;
-  const topMem = procs.length > 0 ? [...procs].sort((a, b) => b.mem - a.mem)[0] : undefined;
+  const topCpu =
+    procs.length > 0 ? [...procs].sort((a, b) => b.cpu - a.cpu)[0] : undefined;
+  const topMem =
+    procs.length > 0 ? [...procs].sort((a, b) => b.mem - a.mem)[0] : undefined;
 
   return {
     total: procs.length,
@@ -247,27 +452,63 @@ export function computeTelemetry(procs: ProcessItem[]): TelemetrySummary {
 /** PIDs actually LISTENing on a TCP port (not clients connected to it, such as a browser). */
 export function findListenerPids(port: number): string[] {
   try {
-    const r = Bun.spawnSync(["lsof", "-ti", `tcp:${port}`, "-sTCP:LISTEN"], { stdout: "pipe", stderr: "pipe" });
+    const r = Bun.spawnSync(["lsof", "-ti", `tcp:${port}`, "-sTCP:LISTEN"], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
     if (r.exitCode !== 0) return [];
-    return r.stdout.toString().split("\n").map((x) => x.trim()).filter((x) => /^\d+$/.test(x));
+    return r.stdout
+      .toString()
+      .split("\n")
+      .map((x) => x.trim())
+      .filter((x) => /^\d+$/.test(x));
   } catch {
     return [];
   }
 }
 
 /** Send a signal number to a numeric pid without going through a shell. */
-export function sendRawSignal(pid: string, sigNum: number): { ok: boolean; code: number; err: string } {
+export function sendRawSignal(
+  pid: string,
+  sigNum: number,
+): { ok: boolean; code: number; err: string } {
   if (!/^\d+$/.test(pid)) return { ok: false, code: -1, err: "invalid pid" };
   try {
-    const r = Bun.spawnSync(["kill", `-${sigNum}`, pid], { stdout: "pipe", stderr: "pipe" });
-    return { ok: r.exitCode === 0, code: r.exitCode ?? -1, err: r.stderr.toString().trim() };
+    const r = Bun.spawnSync(["kill", `-${sigNum}`, pid], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    return {
+      ok: r.exitCode === 0,
+      code: r.exitCode ?? -1,
+      err: r.stderr.toString().trim(),
+    };
   } catch (e: any) {
     return { ok: false, code: -1, err: String(e?.message || e) };
   }
 }
 
-const TABLE_HEADERS = ["PID", "Name", "Port", "CPU %", "MEM %", "RSS", "User", "State", "Uptime", "Command"];
-const GROUP_HEADERS = ["Name", "Processes", "Port", "CPU %", "MEM %", "RSS", "User"];
+const TABLE_HEADERS = [
+  "PID",
+  "Name",
+  "Port",
+  "CPU %",
+  "MEM %",
+  "RSS",
+  "User",
+  "State",
+  "Uptime",
+  "Command",
+];
+const GROUP_HEADERS = [
+  "Name",
+  "Processes",
+  "Port",
+  "CPU %",
+  "MEM %",
+  "RSS",
+  "User",
+];
 
 const procRow = (p: ProcessItem): string[] => [
   p.pid,
@@ -286,7 +527,10 @@ function systemLine(tel: TelemetrySummary): string {
   if (process.env.SCREENSHOT_MODE) {
     return `Load avg: 1.42 / 1.18 / 1.05  |  Cores: 12  |  Process CPU sum: ${tel.totalCpu}%  |  RSS sum: ${(tel.totalRssMb / 1024).toFixed(1)} of 32 GB  |  Mac up 3d 4h`;
   }
-  const load = os.loadavg().map((n) => n.toFixed(2)).join(" / ");
+  const load = os
+    .loadavg()
+    .map((n) => n.toFixed(2))
+    .join(" / ");
   const totalGb = os.totalmem() / 1024 ** 3;
   const rssGb = tel.totalRssMb / 1024;
   const days = Math.floor(os.uptime() / 86400);
@@ -294,13 +538,20 @@ function systemLine(tel: TelemetrySummary): string {
   return `Load avg: ${load}  |  Cores: ${os.cpus().length}  |  Process CPU sum: ${tel.totalCpu}%  |  RSS sum: ${rssGb.toFixed(1)} of ${totalGb.toFixed(0)} GB  |  Mac up ${days}d ${hrs}h`;
 }
 
-export function createTaskTracker(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
-  const win = newSimpleWindow("Task Manager Pro -- macOS Real-Time Process & Resource Monitor", 1200, 1320, {
-    appId: "task_manager",
-    theme: options.theme || getSavedTheme() || "midnight",
-    autoSaveState: true,
-    fullscreen: options.fullscreen ?? true,
-  });
+export function createTaskTracker(
+  options: { fullscreen?: boolean; theme?: string } = {},
+): SimpleWindow {
+  const win = newSimpleWindow(
+    "Task Manager Pro -- macOS Real-Time Process & Resource Monitor",
+    1200,
+    1320,
+    {
+      appId: "task_manager",
+      theme: options.theme || getSavedTheme() || "midnight",
+      autoSaveState: true,
+      fullscreen: options.fullscreen ?? true,
+    },
+  );
 
   let currentCategory = "all";
   let activeProcesses = fetchProcesses();
@@ -309,7 +560,11 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
   let tick = 0;
 
   const telemetry = computeTelemetry(activeProcesses);
-  const ctx = () => ({ selfPid: String(process.pid), parentPid: String(process.ppid), currentUser: currentUserName() });
+  const ctx = () => ({
+    selfPid: String(process.pid),
+    parentPid: String(process.ppid),
+    currentUser: currentUserName(),
+  });
 
   // -----------------------------------------------------------------------------------------------
   // 1. Navigation & App Header
@@ -318,24 +573,42 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
   win.addHeading("Task Manager Pro");
   win.addThemeSelector("dd_theme", "Theme:");
   win.addButton("btn_refresh", "🔄 Refresh");
-  win.addDropdown("dd_autorefresh", ["🚀 Auto: 1s", "⚡ Auto: 2s", "⏱️ Auto: 5s", "⏸️ Auto: Off"], "⚡ Auto: 2s");
+  win.addDropdown(
+    "dd_autorefresh",
+    ["🚀 Auto: 1s", "⚡ Auto: 2s", "⏱️ Auto: 5s", "⏸️ Auto: Off"],
+    "⚡ Auto: 2s",
+  );
   win.addButton("btn_export", "💾 Export List…");
   win.addButton("btn_copy_table", "📋 Copy Table");
   win.addButton("btn_fullscreen", "⛶ Fullscreen");
   win.addButton("btn_save_state", "💾 Save View");
   win.addButton("btn_center", "Center Window");
   win.endRow();
-  win.addCaption("macOS Real-Time Process Forensics, Instant Search & Hardware Resource Monitor");
+  win.addCaption(
+    "macOS Real-Time Process Forensics, Instant Search & Hardware Resource Monitor",
+  );
 
   // -----------------------------------------------------------------------------------------------
   // 2. System Telemetry Overview Cards
   // -----------------------------------------------------------------------------------------------
   win.beginCard("System Telemetry Overview");
   win.beginRow();
-  win.addLabel("lbl_total_procs", `Total Processes: ${telemetry.total} (${telemetry.userCount} User, ${telemetry.systemCount} Sys)`);
-  win.addLabel("lbl_top_cpu", `Top CPU: ${telemetry.topCpuProc?.name || "N/A"} (${telemetry.topCpuProc?.cpu || 0}%)`);
-  win.addLabel("lbl_ports_active", `Active Port Listeners: ${telemetry.portListenersCount} services`);
-  win.addLabel("lbl_platform", `Platform: macOS (Darwin ${process.arch}) | Bun v${Bun.version}`);
+  win.addLabel(
+    "lbl_total_procs",
+    `Total Processes: ${telemetry.total} (${telemetry.userCount} User, ${telemetry.systemCount} Sys)`,
+  );
+  win.addLabel(
+    "lbl_top_cpu",
+    `Top CPU: ${telemetry.topCpuProc?.name || "N/A"} (${telemetry.topCpuProc?.cpu || 0}%)`,
+  );
+  win.addLabel(
+    "lbl_ports_active",
+    `Active Port Listeners: ${telemetry.portListenersCount} services`,
+  );
+  win.addLabel(
+    "lbl_platform",
+    `Platform: macOS (Darwin ${process.arch}) | Bun v${Bun.version}`,
+  );
   win.endRow();
   win.beginRow();
   win.addLabel("lbl_sysload", systemLine(telemetry));
@@ -351,7 +624,10 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
   win.addButton("btn_cat_cpu", `🔥 High CPU (>1%)`);
   win.addButton("btn_cat_mem", `💾 High RAM (>100MB)`);
   win.addButton("btn_cat_dev", `⚡ Dev Servers`);
-  win.addButton("btn_cat_ports", `🔌 Port Listeners (${telemetry.portListenersCount})`);
+  win.addButton(
+    "btn_cat_ports",
+    `🔌 Port Listeners (${telemetry.portListenersCount})`,
+  );
   win.endRow();
 
   // -----------------------------------------------------------------------------------------------
@@ -360,13 +636,32 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
   win.beginGroupBox("Search, Filter & Rapid Port Controller");
   win.beginRow();
   win.addLabel("lbl_filter", "Search Filter:");
-  win.addInput("txt_filter", "", "Filter name, PID, port, user, cmd...", { width: 220 });
+  win.addInput("txt_filter", "", "Filter name, PID, port, user, cmd...", {
+    width: 220,
+  });
   win.addButton("btn_apply_filter", "🔍 Search", { width: 85 });
   win.addButton("btn_clear_filter", "✕ Clear", { width: 75 });
   win.addLabel("lbl_sort", "Sort:");
-  win.addDropdown("dd_sort", ["CPU % (High to Low)", "Memory % (High to Low)", "RAM (MB)", "PID", "Process Name", "Port"], "CPU % (High to Low)", { width: 170 });
+  win.addDropdown(
+    "dd_sort",
+    [
+      "CPU % (High to Low)",
+      "Memory % (High to Low)",
+      "RAM (MB)",
+      "PID",
+      "Process Name",
+      "Port",
+    ],
+    "CPU % (High to Low)",
+    { width: 170 },
+  );
   win.addLabel("lbl_limit", "Limit:");
-  win.addDropdown("dd_limit", ["Show All", "Top 200", "Top 100", "Top 50"], "Show All", { width: 110 });
+  win.addDropdown(
+    "dd_limit",
+    ["Show All", "Top 200", "Top 100", "Top 50"],
+    "Show All",
+    { width: 110 },
+  );
   win.endRow();
 
   win.beginRow();
@@ -381,7 +676,8 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
   // -----------------------------------------------------------------------------------------------
   // 5. Selected Process Inspector & Signal Controller
   // -----------------------------------------------------------------------------------------------
-  const initialSelected = activeProcesses.find((p) => p.pid === selectedPid) || activeProcesses[0];
+  const initialSelected =
+    activeProcesses.find((p) => p.pid === selectedPid) || activeProcesses[0];
   const initialDetails = initialSelected
     ? `Selected: [${initialSelected.pid}] ${initialSelected.name} | User: ${initialSelected.user} | CPU: ${initialSelected.cpu}% | RAM: ${initialSelected.rssMb}${initialSelected.ports.length ? " | Ports: " + initialSelected.ports.join(", ") : ""}`
     : "No process selected";
@@ -413,15 +709,22 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
   win.endRow();
 
   win.beginRow();
-  win.addLabel("lbl_proc_cmd", `Command: ${initialCmd.length > 120 ? initialCmd.slice(0, 120) + "..." : initialCmd}`);
+  win.addLabel(
+    "lbl_proc_cmd",
+    `Command: ${initialCmd.length > 120 ? initialCmd.slice(0, 120) + "..." : initialCmd}`,
+  );
   win.endRow();
   win.endGroupBox();
 
   // -----------------------------------------------------------------------------------------------
   // 6. Live Process Table
   // -----------------------------------------------------------------------------------------------
-  win.beginGroupBox("Live Running Process Table (Click any row to select & inspect)");
-  win.addTable("tbl_procs", TABLE_HEADERS, activeProcesses.map(procRow)).size(1140, 380);
+  win.beginGroupBox(
+    "Live Running Process Table (Click any row to select & inspect)",
+  );
+  win
+    .addTable("tbl_procs", TABLE_HEADERS, activeProcesses.map(procRow))
+    .size(1140, 380);
   win.endGroupBox();
 
   // -----------------------------------------------------------------------------------------------
@@ -431,7 +734,10 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
   win.addConsole("task_console", 110);
   win.beginRow();
   win.addButton("btn_clear_console", "🗑️ Clear Log");
-  win.addLabel("lbl_status", `Status: Monitoring ${activeProcesses.length} active processes`);
+  win.addLabel(
+    "lbl_status",
+    `Status: Monitoring ${activeProcesses.length} active processes`,
+  );
   win.endRow();
   win.endGroupBox();
 
@@ -454,7 +760,9 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
   function resolveSelection(val: string): string {
     const v = val.trim();
     if (/^\d+$/.test(v)) return v;
-    const hit = activeProcesses.filter((p) => p.name === v).sort((a, b) => b.cpu - a.cpu)[0];
+    const hit = activeProcesses
+      .filter((p) => p.name === v)
+      .sort((a, b) => b.cpu - a.cpu)[0];
     return hit ? hit.pid : v;
   }
 
@@ -466,14 +774,22 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
 
     const proc = activeProcesses.find((p) => p.pid === selectedPid);
     if (proc) {
-      const portInfo = proc.ports.length ? ` | Ports: ${proc.ports.join(", ")}` : "";
+      const portInfo = proc.ports.length
+        ? ` | Ports: ${proc.ports.join(", ")}`
+        : "";
       const devBadge = proc.isDevServer ? " [⚡ Dev Server]" : "";
       const details = `Selected: [${proc.pid}] ${proc.name}${devBadge} | User: ${proc.user} | CPU: ${proc.cpu}% | RAM: ${proc.rssMb} | ${stateLabel(proc.state)}${proc.uptime ? " | Up: " + proc.uptime : ""}${portInfo}`;
       win.setText("lbl_proc_details", details);
-      const cmdPreview = proc.command.length > 120 ? proc.command.slice(0, 120) + "..." : proc.command;
+      const cmdPreview =
+        proc.command.length > 120
+          ? proc.command.slice(0, 120) + "..."
+          : proc.command;
       win.setText("lbl_proc_cmd", `Command: ${cmdPreview}`);
     } else {
-      win.setText("lbl_proc_details", `Selected PID: ${selectedPid} (Process may have exited)`);
+      win.setText(
+        "lbl_proc_details",
+        `Selected PID: ${selectedPid} (Process may have exited)`,
+      );
     }
   }
 
@@ -524,7 +840,8 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
       if (limitVal.includes("200")) return list.slice(0, 200);
     } else {
       // When searching, show all matches up to 200 without truncating to top 50
-      if (limitVal.includes("50") && list.length > 50) return list.slice(0, 100);
+      if (limitVal.includes("50") && list.length > 50)
+        return list.slice(0, 100);
     }
     return list;
   };
@@ -533,11 +850,25 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
     if (win.getBool("chk_group")) {
       const sortVal = win.getValue("dd_sort") || "";
       const groups = groupProcesses(filtered);
-      if (sortVal.includes("Name")) groups.sort((a, b) => a.name.localeCompare(b.name));
-      else if (sortVal.includes("RAM")) groups.sort((a, b) => b.rssKb - a.rssKb);
+      if (sortVal.includes("Name"))
+        groups.sort((a, b) => a.name.localeCompare(b.name));
+      else if (sortVal.includes("RAM"))
+        groups.sort((a, b) => b.rssKb - a.rssKb);
       else if (sortVal.includes("Memory")) groups.sort((a, b) => b.mem - a.mem);
       else groups.sort((a, b) => b.cpu - a.cpu);
-      win.setTableData("tbl_procs", GROUP_HEADERS, groups.map((g) => [g.name, String(g.count), g.ports.length ? g.ports.join(", ") : "—", g.cpu.toFixed(1) + "%", g.mem.toFixed(1) + "%", formatMb(g.rssKb), g.user]));
+      win.setTableData(
+        "tbl_procs",
+        GROUP_HEADERS,
+        groups.map((g) => [
+          g.name,
+          String(g.count),
+          g.ports.length ? g.ports.join(", ") : "—",
+          g.cpu.toFixed(1) + "%",
+          g.mem.toFixed(1) + "%",
+          formatMb(g.rssKb),
+          g.user,
+        ]),
+      );
     } else {
       win.setTableData("tbl_procs", TABLE_HEADERS, filtered.map(procRow));
     }
@@ -548,11 +879,22 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
     const tel = computeTelemetry(activeProcesses);
 
     // Update telemetry labels
-    win.setText("lbl_total_procs", `Total Processes: ${tel.total} (${tel.userCount} User, ${tel.systemCount} Sys)`);
-    win.setText("lbl_top_cpu", `Top CPU: ${tel.topCpuProc?.name || "N/A"} (${tel.topCpuProc?.cpu || 0}%)`);
-    win.setText("lbl_ports_active", `Active Port Listeners: ${tel.portListenersCount} services`);
+    win.setText(
+      "lbl_total_procs",
+      `Total Processes: ${tel.total} (${tel.userCount} User, ${tel.systemCount} Sys)`,
+    );
+    win.setText(
+      "lbl_top_cpu",
+      `Top CPU: ${tel.topCpuProc?.name || "N/A"} (${tel.topCpuProc?.cpu || 0}%)`,
+    );
+    win.setText(
+      "lbl_ports_active",
+      `Active Port Listeners: ${tel.portListenersCount} services`,
+    );
     win.setText("lbl_sysload", systemLine(tel));
-    win.setStatus(`Monitoring ${tel.total} active processes | Category: ${currentCategory.toUpperCase()}`);
+    win.setStatus(
+      `Monitoring ${tel.total} active processes | Category: ${currentCategory.toUpperCase()}`,
+    );
 
     const filtered = getFilteredProcesses(activeProcesses);
     displayed = filtered;
@@ -564,7 +906,10 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
     }
 
     if (!isSilentTimer) {
-      logConsole(`[Telemetry] Refreshed: ${filtered.length} matching processes displayed (Total: ${activeProcesses.length})`, 1);
+      logConsole(
+        `[Telemetry] Refreshed: ${filtered.length} matching processes displayed (Total: ${activeProcesses.length})`,
+        1,
+      );
     }
   };
 
@@ -574,7 +919,11 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
   };
 
   /** Send one signal after safety checks and (when risky) a confirmation. */
-  const sendSignalToPid = async (pid: string, signal: SignalName, sigNum: number = SIGNALS[signal]): Promise<boolean> => {
+  const sendSignalToPid = async (
+    pid: string,
+    signal: SignalName,
+    sigNum: number = SIGNALS[signal],
+  ): Promise<boolean> => {
     pid = String(pid || "").trim();
     const proc = activeProcesses.find((p) => p.pid === pid);
     const a = assessSignal(proc, pid, signal, ctx());
@@ -590,10 +939,16 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
     const procName = proc ? ` (${proc.name})` : "";
     const r = sendRawSignal(pid, sigNum);
     if (r.ok) {
-      logConsole(`[Signal] Successfully sent ${signal} (-${sigNum}) to PID ${pid}${procName}`, 2);
+      logConsole(
+        `[Signal] Successfully sent ${signal} (-${sigNum}) to PID ${pid}${procName}`,
+        2,
+      );
       win.toast(`Signal ${signal} sent to PID ${pid}`);
     } else {
-      logConsole(`[Signal Failed] Could not send ${signal} to PID ${pid}${procName}: exit code ${r.code} ${r.err}`, 3);
+      logConsole(
+        `[Signal Failed] Could not send ${signal} to PID ${pid}${procName}: exit code ${r.code} ${r.err}`,
+        3,
+      );
       win.toast(`Failed to send ${signal} to PID ${pid} (exit ${r.code})`);
     }
     scheduleRefresh(350);
@@ -601,7 +956,11 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
   };
 
   /** SIGTERM several processes after a single confirmation. Returns how many accepted the signal. */
-  const terminateMany = async (pids: string[], title: string, signal: SignalName = "SIGTERM"): Promise<number> => {
+  const terminateMany = async (
+    pids: string[],
+    title: string,
+    signal: SignalName = "SIGTERM",
+  ): Promise<number> => {
     const targets: ProcessItem[] = [];
     for (const pid of pids) {
       const proc = activeProcesses.find((p) => p.pid === pid);
@@ -613,8 +972,18 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
       logConsole(`[${title}] No eligible processes.`, 3);
       return 0;
     }
-    const preview = targets.slice(0, 8).map((p) => `${p.name} (${p.pid})`).join(", ") + (targets.length > 8 ? `, and ${targets.length - 8} more` : "");
-    if (!(await win.confirm(`${title}: terminate ${targets.length} process(es)?\n\n${preview}`, "Confirm"))) {
+    const preview =
+      targets
+        .slice(0, 8)
+        .map((p) => `${p.name} (${p.pid})`)
+        .join(", ") +
+      (targets.length > 8 ? `, and ${targets.length - 8} more` : "");
+    if (
+      !(await win.confirm(
+        `${title}: terminate ${targets.length} process(es)?\n\n${preview}`,
+        "Confirm",
+      ))
+    ) {
       logConsole(`[${title}] Cancelled.`, 1);
       return 0;
     }
@@ -625,7 +994,10 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
         ok++;
         logConsole(`[${title}] Sent ${signal} to ${p.name} (PID ${p.pid})`, 2);
       } else {
-        logConsole(`[${title}] Failed for ${p.name} (PID ${p.pid}): ${r.err || "exit " + r.code}`, 3);
+        logConsole(
+          `[${title}] Failed for ${p.name} (PID ${p.pid}): ${r.err || "exit " + r.code}`,
+          3,
+        );
       }
     }
     win.toast(`Terminated ${ok} of ${targets.length} process(es)`);
@@ -633,7 +1005,8 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
     return ok;
   };
 
-  const targetPid = () => String(win.getValue("txt_target_pid") || selectedPid || "").trim();
+  const targetPid = () =>
+    String(win.getValue("txt_target_pid") || selectedPid || "").trim();
 
   // -----------------------------------------------------------------------------------------------
   // Event Bindings
@@ -651,7 +1024,9 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
   // Auto-refresh: a 1s heartbeat honouring the chosen interval (1s / 2s / 5s / off)
   win.addTimer(1000, () => {
     tick++;
-    const sec = parseRefreshSeconds(win.getValue("dd_autorefresh") || "Auto: 2s");
+    const sec = parseRefreshSeconds(
+      win.getValue("dd_autorefresh") || "Auto: 2s",
+    );
     if (sec <= 0 || tick % sec !== 0) return;
     refreshList(true);
   });
@@ -666,10 +1041,18 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
 
   win.onClick("btn_cat_all", () => setCategory("all", "All Processes"));
   win.onClick("btn_cat_user", () => setCategory("user", "User Applications"));
-  win.onClick("btn_cat_cpu", () => setCategory("cpu", "High CPU Processes (>1%)"));
-  win.onClick("btn_cat_mem", () => setCategory("mem", "High RAM Processes (>100MB)"));
-  win.onClick("btn_cat_dev", () => setCategory("dev", "Development & Runtime Servers"));
-  win.onClick("btn_cat_ports", () => setCategory("ports", "Active Port Listeners"));
+  win.onClick("btn_cat_cpu", () =>
+    setCategory("cpu", "High CPU Processes (>1%)"),
+  );
+  win.onClick("btn_cat_mem", () =>
+    setCategory("mem", "High RAM Processes (>100MB)"),
+  );
+  win.onClick("btn_cat_dev", () =>
+    setCategory("dev", "Development & Runtime Servers"),
+  );
+  win.onClick("btn_cat_ports", () =>
+    setCategory("ports", "Active Port Listeners"),
+  );
 
   // Real-time search filter input & buttons
   let filterDebounceTimer: any = null;
@@ -742,24 +1125,43 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
   });
 
   // Process Signals
-  win.onClick("btn_kill_force", () => sendSignalToPid(targetPid(), "SIGKILL", 9));
-  win.onClick("btn_kill_term", () => sendSignalToPid(targetPid(), "SIGTERM", 15));
-  win.onClick("btn_kill_stop", () => sendSignalToPid(targetPid(), "SIGSTOP", SIGNALS.SIGSTOP));
-  win.onClick("btn_kill_cont", () => sendSignalToPid(targetPid(), "SIGCONT", SIGNALS.SIGCONT));
+  win.onClick("btn_kill_force", () =>
+    sendSignalToPid(targetPid(), "SIGKILL", 9),
+  );
+  win.onClick("btn_kill_term", () =>
+    sendSignalToPid(targetPid(), "SIGTERM", 15),
+  );
+  win.onClick("btn_kill_stop", () =>
+    sendSignalToPid(targetPid(), "SIGSTOP", SIGNALS.SIGSTOP),
+  );
+  win.onClick("btn_kill_cont", () =>
+    sendSignalToPid(targetPid(), "SIGCONT", SIGNALS.SIGCONT),
+  );
   win.onClick("btn_kill_hup", () => sendSignalToPid(targetPid(), "SIGHUP", 1));
 
   win.onClick("btn_kill_tree", async () => {
     const pid = targetPid();
     const proc = activeProcesses.find((p) => p.pid === pid);
-    if (!proc) { win.toast("Select a running process first."); return; }
-    await terminateMany([...descendantsOf(activeProcesses, pid), pid], `Process tree of ${proc.name}`);
+    if (!proc) {
+      win.toast("Select a running process first.");
+      return;
+    }
+    await terminateMany(
+      [...descendantsOf(activeProcesses, pid), pid],
+      `Process tree of ${proc.name}`,
+    );
   });
 
   win.onClick("btn_kill_group", async () => {
     const pid = targetPid();
     const proc = activeProcesses.find((p) => p.pid === pid);
-    if (!proc) { win.toast("Select a running process first."); return; }
-    const same = activeProcesses.filter((p) => p.name === proc.name && p.user === proc.user).map((p) => p.pid);
+    if (!proc) {
+      win.toast("Select a running process first.");
+      return;
+    }
+    const same = activeProcesses
+      .filter((p) => p.name === proc.name && p.user === proc.user)
+      .map((p) => p.pid);
     await terminateMany(same, `All "${proc.name}" processes`);
   });
 
@@ -767,14 +1169,29 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
     const pid = targetPid();
     const proc = activeProcesses.find((p) => p.pid === pid);
     const a = assessSignal(proc, pid, "SIGHUP", ctx());
-    if (!a.allowed) { win.toast(`⚠️ ${a.reason}`); return; }
-    if (!proc || proc.user !== ctx().currentUser) { win.toast("You can only lower the priority of your own processes."); return; }
-    const r = Bun.spawnSync(["renice", "10", "-p", pid], { stdout: "pipe", stderr: "pipe" });
+    if (!a.allowed) {
+      win.toast(`⚠️ ${a.reason}`);
+      return;
+    }
+    if (!proc || proc.user !== ctx().currentUser) {
+      win.toast("You can only lower the priority of your own processes.");
+      return;
+    }
+    const r = Bun.spawnSync(["renice", "10", "-p", pid], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
     if (r.exitCode === 0) {
-      logConsole(`[Priority] Lowered priority of ${proc.name} (PID ${pid}) to nice +10`, 2);
+      logConsole(
+        `[Priority] Lowered priority of ${proc.name} (PID ${pid}) to nice +10`,
+        2,
+      );
       win.toast("Priority lowered");
     } else {
-      logConsole(`[Priority] renice failed for PID ${pid}: ${r.stderr.toString().trim()}`, 3);
+      logConsole(
+        `[Priority] renice failed for PID ${pid}: ${r.stderr.toString().trim()}`,
+        3,
+      );
       win.toast("Could not change priority");
     }
   });
@@ -782,7 +1199,10 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
   win.onClick("btn_inspect", () => {
     const pid = targetPid();
     const proc = activeProcesses.find((p) => p.pid === pid);
-    if (!proc) { win.toast("Select a running process first."); return; }
+    if (!proc) {
+      win.toast("Select a running process first.");
+      return;
+    }
     const parent = activeProcesses.find((p) => p.pid === proc.ppid);
     const kids = childrenOf(activeProcesses, pid);
     const lines = [
@@ -790,15 +1210,36 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
       `  State:    ${stateLabel(proc.state)} (${proc.state})`,
       `  User:     ${proc.user}${proc.isUserApp ? "" : "  (not yours)"}`,
       `  Parent:   ${proc.ppid}${parent ? " " + parent.name : ""}`,
-      `  Children: ${kids.length}${kids.length ? " — " + kids.slice(0, 6).map((k) => `${k.name} (${k.pid})`).join(", ") + (kids.length > 6 ? ", …" : "") : ""}`,
+      `  Children: ${kids.length}${
+        kids.length
+          ? " — " +
+            kids
+              .slice(0, 6)
+              .map((k) => `${k.name} (${k.pid})`)
+              .join(", ") +
+            (kids.length > 6 ? ", …" : "")
+          : ""
+      }`,
       `  Uptime:   ${proc.uptime || "unknown"}`,
       `  CPU/MEM:  ${proc.cpu.toFixed(1)}% / ${proc.mem.toFixed(1)}%  RSS ${proc.rssMb}`,
       `  Ports:    ${proc.ports.length ? proc.ports.join(", ") : "none listening"}`,
     ];
     try {
-      const cwd = Bun.spawnSync(["lsof", "-a", "-p", pid, "-d", "cwd", "-Fn"], { stdout: "pipe", stderr: "pipe" }).stdout.toString().split("\n").find((l) => l.startsWith("n"));
-      lines.push(`  Cwd:      ${cwd ? cwd.slice(1) : "unavailable (permission?)"}`);
-      const open = Bun.spawnSync(["lsof", "-p", pid], { stdout: "pipe", stderr: "pipe" }).stdout.toString().split("\n").filter(Boolean).length - 1;
+      const cwd = Bun.spawnSync(["lsof", "-a", "-p", pid, "-d", "cwd", "-Fn"], {
+        stdout: "pipe",
+        stderr: "pipe",
+      })
+        .stdout.toString()
+        .split("\n")
+        .find((l) => l.startsWith("n"));
+      lines.push(
+        `  Cwd:      ${cwd ? cwd.slice(1) : "unavailable (permission?)"}`,
+      );
+      const open =
+        Bun.spawnSync(["lsof", "-p", pid], { stdout: "pipe", stderr: "pipe" })
+          .stdout.toString()
+          .split("\n")
+          .filter(Boolean).length - 1;
       lines.push(`  Open files/sockets: ${open > 0 ? open : "unavailable"}`);
     } catch {
       lines.push("  (lsof unavailable)");
@@ -811,8 +1252,14 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
     const pid = targetPid();
     const proc = activeProcesses.find((p) => p.pid === pid);
     const path = proc ? executablePath(proc.command) : null;
-    if (!path) { win.toast("No file path is known for this process."); return; }
-    if (process.platform !== "darwin") { win.toast("Reveal in Finder is only available on macOS."); return; }
+    if (!path) {
+      win.toast("No file path is known for this process.");
+      return;
+    }
+    if (process.platform !== "darwin") {
+      win.toast("Reveal in Finder is only available on macOS.");
+      return;
+    }
     Bun.spawn(["open", "-R", path]);
     logConsole(`[Finder] Revealing ${path}`, 1);
   });
@@ -838,43 +1285,74 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
   });
 
   win.onClick("btn_copy_table", () => {
-    if (displayed.length === 0) { win.toast("Nothing to copy."); return; }
+    if (displayed.length === 0) {
+      win.toast("Nothing to copy.");
+      return;
+    }
     win.copyToClipboard(processesToTsv(displayed));
     win.toast(`Copied ${displayed.length} process row(s) (tab-separated)`);
   });
 
   win.onClick("btn_export", () => {
-    if (displayed.length === 0) { win.toast("Nothing to export."); return; }
-    win.saveFile({ title: "Export process list (.csv or .json)", defaultName: "processes.csv" }, (p) => {
-      if (!p) return;
-      try {
-        const json = extname(p).toLowerCase() === ".json";
-        writeFileSync(p, json ? processesToJson(displayed) : processesToCsv(displayed), "utf8");
-        logConsole(`[Export] Saved ${displayed.length} processes to ${p}`, 2);
-        win.toast(`Exported ${basename(p)}`);
-      } catch (e: any) {
-        logConsole(`[Export Error] ${e.message}`, 3);
-      }
-    });
+    if (displayed.length === 0) {
+      win.toast("Nothing to export.");
+      return;
+    }
+    win.saveFile(
+      {
+        title: "Export process list (.csv or .json)",
+        defaultName: "processes.csv",
+      },
+      (p) => {
+        if (!p) return;
+        try {
+          const json = extname(p).toLowerCase() === ".json";
+          writeFileSync(
+            p,
+            json ? processesToJson(displayed) : processesToCsv(displayed),
+            "utf8",
+          );
+          logConsole(`[Export] Saved ${displayed.length} processes to ${p}`, 2);
+          win.toast(`Exported ${basename(p)}`);
+        } catch (e: any) {
+          logConsole(`[Export Error] ${e.message}`, 3);
+        }
+      },
+    );
   });
 
   // Kill Port Process (only processes LISTENing on the port, never clients connected to it)
   win.onClick("btn_kill_port", async () => {
     const port = validPort(win.getValue("txt_port") || "3000");
     if (!port) {
-      win.toast("Please specify a valid port number (1-65535, e.g. 3000, 8080)");
+      win.toast(
+        "Please specify a valid port number (1-65535, e.g. 3000, 8080)",
+      );
       return;
     }
 
     const pids = findListenerPids(port);
     if (pids.length === 0) {
       win.toast(`No process listening on port :${port}`);
-      logConsole(`[Port Finder] No active process listening on port :${port}`, 3);
+      logConsole(
+        `[Port Finder] No active process listening on port :${port}`,
+        3,
+      );
       return;
     }
 
-    const names = pids.map((p) => `${activeProcesses.find((x) => x.pid === p)?.name || "unknown"} (${p})`).join(", ");
-    if (!(await win.confirm(`Force-kill ${pids.length} process(es) listening on :${port}?\n\n${names}`, "Kill port process"))) {
+    const names = pids
+      .map(
+        (p) =>
+          `${activeProcesses.find((x) => x.pid === p)?.name || "unknown"} (${p})`,
+      )
+      .join(", ");
+    if (
+      !(await win.confirm(
+        `Force-kill ${pids.length} process(es) listening on :${port}?\n\n${names}`,
+        "Kill port process",
+      ))
+    ) {
       logConsole(`[Kill Port :${port}] Cancelled.`, 1);
       return;
     }
@@ -885,9 +1363,15 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
       const r = sendRawSignal(p, 9);
       if (r.ok) {
         killedCount++;
-        logConsole(`[Kill Port :${port}] Terminated PID ${p} listening on port :${port}`, 2);
+        logConsole(
+          `[Kill Port :${port}] Terminated PID ${p} listening on port :${port}`,
+          2,
+        );
       } else {
-        logConsole(`[Kill Port :${port}] Could not kill PID ${p}: ${r.err || "exit " + r.code}`, 3);
+        logConsole(
+          `[Kill Port :${port}] Could not kill PID ${p}: ${r.err || "exit " + r.code}`,
+          3,
+        );
       }
     }
 
@@ -905,7 +1389,10 @@ export function createTaskTracker(options: { fullscreen?: boolean; theme?: strin
       return;
     }
 
-    const n = await terminateMany(rogue.map((r) => r.pid), "Dev Server Cleaner");
+    const n = await terminateMany(
+      rogue.map((r) => r.pid),
+      "Dev Server Cleaner",
+    );
     if (n > 0) logConsole(`[Dev Cleaner] Terminated ${n} dev server(s)`, 2);
   });
 
@@ -1098,32 +1585,48 @@ export function startTaskManagerServer(options: ServerOptions = {}) {
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
       };
-      if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+      if (req.method === "OPTIONS")
+        return new Response(null, { headers: corsHeaders });
 
       if (url.pathname === "/" || url.pathname === "/index.html") {
         return new Response(win.generateHtml(), {
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            ...corsHeaders,
+          },
         });
       }
 
       if (url.pathname === "/api/processes") {
         const procs = fetchProcesses();
         const tel = computeTelemetry(procs);
-        return Response.json({ processes: procs, telemetry: tel }, { headers: corsHeaders });
+        return Response.json(
+          { processes: procs, telemetry: tel },
+          { headers: corsHeaders },
+        );
       }
 
       if (url.pathname === "/api/kill-port" && req.method === "POST") {
         const body: any = await req.json();
         const port = validPort(String(body.port || ""));
         if (port) {
-          const pids = findListenerPids(port).filter((p) => p !== "1" && p !== String(process.pid));
+          const pids = findListenerPids(port).filter(
+            (p) => p !== "1" && p !== String(process.pid),
+          );
           let killed = 0;
           for (const p of pids) {
             if (sendRawSignal(p, 9).ok) killed++;
           }
-          if (pids.length) return Response.json({ success: true, killed }, { headers: corsHeaders });
+          if (pids.length)
+            return Response.json(
+              { success: true, killed },
+              { headers: corsHeaders },
+            );
         }
-        return Response.json({ success: false, killed: 0 }, { headers: corsHeaders });
+        return Response.json(
+          { success: false, killed: 0 },
+          { headers: corsHeaders },
+        );
       }
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
@@ -1138,7 +1641,10 @@ if (import.meta.main) {
     const specifiedPort = Number(process.env.PORT);
     let server: any;
     if (specifiedPort) {
-      server = startTaskManagerServer({ port: specifiedPort, host: "127.0.0.1" });
+      server = startTaskManagerServer({
+        port: specifiedPort,
+        host: "127.0.0.1",
+      });
     } else {
       try {
         server = startTaskManagerServer({ port: 4848, host: "127.0.0.1" });
@@ -1147,7 +1653,9 @@ if (import.meta.main) {
       }
     }
     console.log(`READY:${server.port}`);
-    console.log(`\n⚡ Task Manager Pro Web Workstation Server running at http://127.0.0.1:${server.port}\n`);
+    console.log(
+      `\n⚡ Task Manager Pro Web Workstation Server running at http://127.0.0.1:${server.port}\n`,
+    );
   } else {
     const win = createProcessStudio({ fullscreen: true });
     console.log("⚡ Launching Task Manager & Process Monitor Studio Pro...");

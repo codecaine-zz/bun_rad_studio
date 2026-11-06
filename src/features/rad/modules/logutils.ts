@@ -44,7 +44,13 @@ export class Logger {
     this.logFile = options.logFile;
   }
 
-  private write(level: LogLevel, levelName: string, colorFn: (s: string) => string, msg: string, meta?: any): void {
+  private write(
+    level: LogLevel,
+    levelName: string,
+    colorFn: (s: string) => string,
+    msg: string,
+    meta?: any,
+  ): void {
     if (level < this.level) return;
 
     const timestamp = new Date().toISOString();

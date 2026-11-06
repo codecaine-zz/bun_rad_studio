@@ -15,12 +15,16 @@ describe("Large scale on SQLite: a few hundred thousand rows, under 30 seconds, 
       expect(total).toBeGreaterThan(100_000);
       expect(total).toBeLessThan(900_000);
       expect(ms).toBeLessThan(30_000);
-      for (const [t, n] of Object.entries(datasetCounts(ds).large)) expect(scalar(db, `SELECT COUNT(*) FROM "${t}"`), t).toBe(n);
+      for (const [t, n] of Object.entries(datasetCounts(ds).large))
+        expect(scalar(db, `SELECT COUNT(*) FROM "${t}"`), t).toBe(n);
       expect(db.query("PRAGMA foreign_key_check").all()).toEqual([]);
       const h = sqlHelpers("sqlite");
-      for (const q of ds.queries) expect(db.query(q.sql(h)).all().length, q.id).toBeGreaterThan(0);
+      for (const q of ds.queries)
+        expect(db.query(q.sql(h)).all().length, q.id).toBeGreaterThan(0);
       void progress;
-      console.log(`[large] ${ds.id}: ${total.toLocaleString()} rows in ${(ms / 1000).toFixed(1)} s`);
+      console.log(
+        `[large] ${ds.id}: ${total.toLocaleString()} rows in ${(ms / 1000).toFixed(1)} s`,
+      );
       db.close();
     });
   }

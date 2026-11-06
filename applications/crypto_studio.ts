@@ -27,7 +27,14 @@ function estimateEntropy(str: string): { bits: number; strength: string } {
 
   if (pool === 0 || str.length === 0) return { bits: 0, strength: "None" };
   const bits = Math.round(str.length * (Math.log(pool) / Math.log(2)));
-  const strength = bits < 40 ? "🔴 Very Weak" : bits < 60 ? "🟡 Moderate" : bits < 80 ? "🟢 Strong" : "✨ Enterprise (Very Strong)";
+  const strength =
+    bits < 40
+      ? "🔴 Very Weak"
+      : bits < 60
+        ? "🟡 Moderate"
+        : bits < 80
+          ? "🟢 Strong"
+          : "✨ Enterprise (Very Strong)";
   return { bits, strength };
 }
 
@@ -35,8 +42,12 @@ function decodeJwt(token: string): { header: any; payload: any } | null {
   const parts = token.trim().split(".");
   if (parts.length < 2) return null;
   try {
-    const headerJson = Buffer.from(parts[0] || "", "base64url").toString("utf8");
-    const payloadJson = Buffer.from(parts[1] || "", "base64url").toString("utf8");
+    const headerJson = Buffer.from(parts[0] || "", "base64url").toString(
+      "utf8",
+    );
+    const payloadJson = Buffer.from(parts[1] || "", "base64url").toString(
+      "utf8",
+    );
     return {
       header: JSON.parse(headerJson),
       payload: JSON.parse(payloadJson),
@@ -46,14 +57,21 @@ function decodeJwt(token: string): { header: any; payload: any } | null {
   }
 }
 
-export function createCryptoStudio(options: { fullscreen?: boolean; theme?: string } = {}): SimpleWindow {
+export function createCryptoStudio(
+  options: { fullscreen?: boolean; theme?: string } = {},
+): SimpleWindow {
   const fullscreen = options.fullscreen ?? true;
-  const win = newSimpleWindow("Crypto Studio Pro -- Cryptography, Security & Token Workbench", 1160, 920, {
-    appId: "crypto_studio",
-    theme: options.theme || getSavedTheme() || "midnight",
-    autoSaveState: true,
-    fullscreen,
-  });
+  const win = newSimpleWindow(
+    "Crypto Studio Pro -- Cryptography, Security & Token Workbench",
+    1160,
+    920,
+    {
+      appId: "crypto_studio",
+      theme: options.theme || getSavedTheme() || "midnight",
+      autoSaveState: true,
+      fullscreen,
+    },
+  );
 
   // Title Row
   win.beginRow();
@@ -63,25 +81,44 @@ export function createCryptoStudio(options: { fullscreen?: boolean; theme?: stri
   win.addButton("btn_center", "Center Window");
   win.addButton("btn_fullscreen", "⛶ Fullscreen");
   win.endRow();
-  win.addCaption("Enterprise Cryptography Workbench: Hashes, HMAC, AES-256 Ciphers, JWT Decoders & Entropy Auditing");
+  win.addCaption(
+    "Enterprise Cryptography Workbench: Hashes, HMAC, AES-256 Ciphers, JWT Decoders & Entropy Auditing",
+  );
 
   // Hash & HMAC Generator
   win.beginGroupBox("Cryptographic Hashing & HMAC Engine");
   win.beginRow();
   win.addLabel("lbl_hash_input", "Input Payload:");
-  win.addInput("txt_hash_input", "The quick brown fox jumps over the lazy dog").width(420);
+  win
+    .addInput("txt_hash_input", "The quick brown fox jumps over the lazy dog")
+    .width(420);
   win.addLabel("lbl_hmac_key", "HMAC Key:");
   win.addInput("txt_hmac_key", "secret-signing-key").width(220);
   win.addButton("btn_calc_hashes", "⚡ Calculate Hashes & HMAC");
   win.endRow();
 
-  win.addTable("tbl_hashes", ["Algorithm / Primitive", "Computed Digest (Hex)"], [
-    ["SHA-256", "d7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592"],
-    ["HMAC-SHA256", "796fc78f141bf526f4f22ae803b9ecbe0d64ccbe0e65fd903006437d8a9e0839"],
-    ["SHA-512", "07e547d9586f6a73f73fbac0435ed76951218fb7d0c8d788a30f761b4028608b..."],
-    ["MD5", "9e107d9d372bb6826bd81d3542a419d6"],
-    ["SHA-1", "2fd4e1c67a2d28fced849ee1bb76e7391b93eb12"],
-  ]).height(105);
+  win
+    .addTable(
+      "tbl_hashes",
+      ["Algorithm / Primitive", "Computed Digest (Hex)"],
+      [
+        [
+          "SHA-256",
+          "d7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592",
+        ],
+        [
+          "HMAC-SHA256",
+          "796fc78f141bf526f4f22ae803b9ecbe0d64ccbe0e65fd903006437d8a9e0839",
+        ],
+        [
+          "SHA-512",
+          "07e547d9586f6a73f73fbac0435ed76951218fb7d0c8d788a30f761b4028608b...",
+        ],
+        ["MD5", "9e107d9d372bb6826bd81d3542a419d6"],
+        ["SHA-1", "2fd4e1c67a2d28fced849ee1bb76e7391b93eb12"],
+      ],
+    )
+    .height(105);
   win.endGroupBox();
 
   // AES-256 Encryption & Decryption
@@ -115,17 +152,31 @@ export function createCryptoStudio(options: { fullscreen?: boolean; theme?: stri
   win.endGroupBox();
 
   // Productivity Toolkit
-  win.beginGroupBox("Productivity Toolkit: File Hashing, Checksum Verify, Password Generator & Encoders");
+  win.beginGroupBox(
+    "Productivity Toolkit: File Hashing, Checksum Verify, Password Generator & Encoders",
+  );
   win.beginRow();
   win.addLabel("lbl_file_path", "File to hash:");
-  win.addInput("txt_file_path", "", "Choose a file to compute SHA-256/512/384, SHA-1 and MD5...").width(360);
+  win
+    .addInput(
+      "txt_file_path",
+      "",
+      "Choose a file to compute SHA-256/512/384, SHA-1 and MD5...",
+    )
+    .width(360);
   win.addButton("btn_browse_file", "📄 Browse...");
   win.addButton("btn_hash_file", "🧮 Hash File");
   win.endRow();
 
   win.beginRow();
   win.addLabel("lbl_expected", "Expected checksum:");
-  win.addInput("txt_expected", "", "Paste a published SHA-256 / SHA-1 / MD5 ... to compare").width(420);
+  win
+    .addInput(
+      "txt_expected",
+      "",
+      "Paste a published SHA-256 / SHA-1 / MD5 ... to compare",
+    )
+    .width(420);
   win.addButton("btn_verify_checksum", "✔ Verify Checksum");
   win.addButton("btn_copy_digests", "📋 Copy Digests");
   win.addButton("btn_save_digests", "💾 Save Digests As...");
@@ -168,7 +219,10 @@ export function createCryptoStudio(options: { fullscreen?: boolean; theme?: stri
 
   // Status Bar
   win.beginRow();
-  win.addLabel("lbl_status", "Status: Ready  |  Hardware WebCrypto Acceleration: Active  |  Zero Homebrew");
+  win.addLabel(
+    "lbl_status",
+    "Status: Ready  |  Hardware WebCrypto Acceleration: Active  |  Zero Homebrew",
+  );
   win.endRow();
 
   let lastRows: HashRow[] = [];
@@ -207,9 +261,17 @@ export function createCryptoStudio(options: { fullscreen?: boolean; theme?: stri
       ["SHA-1", sha1],
     ];
     lastSource = "Text input";
-    win.setTableData("tbl_hashes", ["Algorithm / Primitive", "Computed Digest (Hex)"], lastRows);
+    win.setTableData(
+      "tbl_hashes",
+      ["Algorithm / Primitive", "Computed Digest (Hex)"],
+      lastRows,
+    );
 
-    win.appendConsole("crypto_console", `[Hashes] Computed SHA-256/512, MD5, SHA-1 and HMAC in ${elapsed}ms\n`, 2);
+    win.appendConsole(
+      "crypto_console",
+      `[Hashes] Computed SHA-256/512, MD5, SHA-1 and HMAC in ${elapsed}ms\n`,
+      2,
+    );
     win.setStatus(`Hashes calculated (${elapsed}ms)`);
     win.toast("Calculated cryptographic hashes");
   });
@@ -225,7 +287,11 @@ export function createCryptoStudio(options: { fullscreen?: boolean; theme?: stri
     try {
       const encrypted = stdlib.aesEncrypt(text, pass);
       win.setText("txt_cipher_text", encrypted);
-      win.appendConsole("crypto_console", `[AES-256] Encrypted payload (${text.length} chars) -> ${encrypted.length} Base64 chars\n`, 2);
+      win.appendConsole(
+        "crypto_console",
+        `[AES-256] Encrypted payload (${text.length} chars) -> ${encrypted.length} Base64 chars\n`,
+        2,
+      );
       win.setStatus("AES-256 Encryption Successful");
       win.toast("Payload encrypted");
     } catch (e: any) {
@@ -245,11 +311,19 @@ export function createCryptoStudio(options: { fullscreen?: boolean; theme?: stri
     try {
       const decrypted = stdlib.aesDecrypt(cipher, pass);
       win.setText("txt_hash_input", decrypted);
-      win.appendConsole("crypto_console", `[AES-256] Decrypted ciphertext -> "${decrypted}"\n`, 2);
+      win.appendConsole(
+        "crypto_console",
+        `[AES-256] Decrypted ciphertext -> "${decrypted}"\n`,
+        2,
+      );
       win.setStatus("Decryption Successful");
       win.toast("Decrypted successfully");
     } catch (e: any) {
-      win.appendConsole("crypto_console", `[AES-256 Decrypt Error] ${e.message}\n`, 3);
+      win.appendConsole(
+        "crypto_console",
+        `[AES-256 Decrypt Error] ${e.message}\n`,
+        3,
+      );
       win.setStatus(`Decryption Error: ${e.message}`);
     }
   });
@@ -257,8 +331,15 @@ export function createCryptoStudio(options: { fullscreen?: boolean; theme?: stri
   win.onClick("btn_entropy", () => {
     const pass = win.getValue("txt_passphrase") || "";
     const res = estimateEntropy(pass);
-    win.setText("lbl_entropy_out", `Entropy: ~${res.bits} bits (${res.strength})`);
-    win.appendConsole("crypto_console", `[Entropy Audit] Passphrase evaluated: ~${res.bits} bits (${res.strength})\n`, 2);
+    win.setText(
+      "lbl_entropy_out",
+      `Entropy: ~${res.bits} bits (${res.strength})`,
+    );
+    win.appendConsole(
+      "crypto_console",
+      `[Entropy Audit] Passphrase evaluated: ~${res.bits} bits (${res.strength})\n`,
+      2,
+    );
     win.toast(`Entropy: ~${res.bits} bits`);
   });
 
@@ -272,7 +353,9 @@ export function createCryptoStudio(options: { fullscreen?: boolean; theme?: stri
   win.onClick("btn_gen_hex32", () => {
     const bytes = new Uint8Array(32);
     crypto.getRandomValues(bytes);
-    const hex = Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+    const hex = Array.from(bytes)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
     win.setText("lbl_token_out", `Hex Key: ${hex}`);
     win.appendConsole("crypto_console", `[32-Byte Key] Generated: ${hex}\n`, 1);
     win.toast("32-byte key generated");
@@ -288,11 +371,16 @@ export function createCryptoStudio(options: { fullscreen?: boolean; theme?: stri
   });
 
   win.onClick("btn_decode_jwt", () => {
-    const text = win.getValue("txt_cipher_text") || win.getValue("txt_hash_input") || "";
+    const text =
+      win.getValue("txt_cipher_text") || win.getValue("txt_hash_input") || "";
     const decoded = decodeJwt(text);
     if (!decoded) {
       win.toast("Input is not a valid 3-part JWT token");
-      win.appendConsole("crypto_console", "[JWT Error] Input does not match JWT format (header.payload.signature)\n", 3);
+      win.appendConsole(
+        "crypto_console",
+        "[JWT Error] Input does not match JWT format (header.payload.signature)\n",
+        3,
+      );
       return;
     }
     const report = [
@@ -301,11 +389,20 @@ export function createCryptoStudio(options: { fullscreen?: boolean; theme?: stri
       JSON.stringify(decoded.header, null, 2),
       "// Payload / Claims:",
       JSON.stringify(decoded.payload, null, 2),
-      ...(describeJwtTimes(decoded.payload).length ? ["// Time claims:", ...describeJwtTimes(decoded.payload).map((l) => "// " + l)] : []),
+      ...(describeJwtTimes(decoded.payload).length
+        ? [
+            "// Time claims:",
+            ...describeJwtTimes(decoded.payload).map((l) => "// " + l),
+          ]
+        : []),
     ].join("\n");
 
     win.setText("txt_cipher_text", report);
-    win.appendConsole("crypto_console", `[JWT Decoded] Algorithm: ${decoded.header.alg}, Subject: ${decoded.payload.sub || "N/A"}\n`, 2);
+    win.appendConsole(
+      "crypto_console",
+      `[JWT Decoded] Algorithm: ${decoded.header.alg}, Subject: ${decoded.payload.sub || "N/A"}\n`,
+      2,
+    );
     win.toast("JWT claims decoded");
   });
 
@@ -317,16 +414,28 @@ export function createCryptoStudio(options: { fullscreen?: boolean; theme?: stri
         decoded = decodeURIComponent(input);
       } catch {
         win.toast("Malformed percent-encoding; cannot decode");
-        win.appendConsole("crypto_console", "[URL Decode Error] Malformed % sequence\n", 3);
+        win.appendConsole(
+          "crypto_console",
+          "[URL Decode Error] Malformed % sequence\n",
+          3,
+        );
         return;
       }
       win.setText("txt_hash_input", decoded);
-      win.appendConsole("crypto_console", `[URL Decode] Decoded -> ${decoded}\n`, 1);
+      win.appendConsole(
+        "crypto_console",
+        `[URL Decode] Decoded -> ${decoded}\n`,
+        1,
+      );
       win.toast("URL Decoded");
     } else {
       const encoded = encodeURIComponent(input);
       win.setText("txt_hash_input", encoded);
-      win.appendConsole("crypto_console", `[URL Encode] Encoded -> ${encoded}\n`, 1);
+      win.appendConsole(
+        "crypto_console",
+        `[URL Encode] Encoded -> ${encoded}\n`,
+        1,
+      );
       win.toast("URL Encoded");
     }
   });
@@ -344,8 +453,14 @@ export function createCryptoStudio(options: { fullscreen?: boolean; theme?: stri
 
   win.onClick("btn_hash_file", async () => {
     const file = String(win.getValue("txt_file_path") || "").trim();
-    if (!file) { win.toast("Choose a file first", 2500, "warning"); return; }
-    if (!fs.existsSync(file)) { win.toast(`File not found: ${file}`, 3500, "error"); return; }
+    if (!file) {
+      win.toast("Choose a file first", 2500, "warning");
+      return;
+    }
+    if (!fs.existsSync(file)) {
+      win.toast(`File not found: ${file}`, 3500, "error");
+      return;
+    }
     try {
       win.setStatus("Hashing file...");
       const t0 = performance.now();
@@ -354,55 +469,89 @@ export function createCryptoStudio(options: { fullscreen?: boolean; theme?: stri
       lastSource = `${file} (${size} bytes)`;
       win.setTableData("tbl_hashes", HASH_HEADERS, rows);
       const ms = (performance.now() - t0).toFixed(1);
-      win.appendConsole("crypto_console", `[File Hash] ${path.basename(file)} (${size} bytes) hashed in ${ms}ms; SHA-256 ${rows[0]![1]}\n`, 2);
+      win.appendConsole(
+        "crypto_console",
+        `[File Hash] ${path.basename(file)} (${size} bytes) hashed in ${ms}ms; SHA-256 ${rows[0]![1]}\n`,
+        2,
+      );
       win.setStatus(`File hashed (${ms}ms)`);
       win.toast("File hashed", 2000, "success");
     } catch (e: any) {
-      win.appendConsole("crypto_console", `[File Hash Error] ${e.message}\n`, 3);
+      win.appendConsole(
+        "crypto_console",
+        `[File Hash Error] ${e.message}\n`,
+        3,
+      );
       win.toast(`Could not hash file: ${e.message}`, 4000, "error");
     }
   });
 
   win.onClick("btn_verify_checksum", () => {
-    if (lastRows.length === 0) { win.toast("Calculate hashes or hash a file first", 3000, "warning"); return; }
+    if (lastRows.length === 0) {
+      win.toast("Calculate hashes or hash a file first", 3000, "warning");
+      return;
+    }
     const expected = String(win.getValue("txt_expected") || "");
-    if (!expected.trim()) { win.toast("Paste the expected checksum first", 2500, "warning"); return; }
+    if (!expected.trim()) {
+      win.toast("Paste the expected checksum first", 2500, "warning");
+      return;
+    }
     const res = matchChecksum(expected, lastRows);
     if (res.match) {
-      win.appendConsole("crypto_console", `[Checksum] MATCH (${res.match}) for ${lastSource}\n`, 2);
+      win.appendConsole(
+        "crypto_console",
+        `[Checksum] MATCH (${res.match}) for ${lastSource}\n`,
+        2,
+      );
       win.setStatus(`Checksum verified: ${res.match} matches`);
       win.toast(`\u2714 Checksum matches (${res.match})`, 3500, "success");
     } else {
-      win.appendConsole("crypto_console", `[Checksum] MISMATCH for ${lastSource}\n`, 3);
+      win.appendConsole(
+        "crypto_console",
+        `[Checksum] MISMATCH for ${lastSource}\n`,
+        3,
+      );
       win.setStatus("Checksum does NOT match any computed digest");
       win.toast("\u2716 Checksum does not match", 4000, "error");
     }
   });
 
-  const digestText = () => (lastRows.length ? formatDigestReport(lastRows, lastSource) : "");
+  const digestText = () =>
+    lastRows.length ? formatDigestReport(lastRows, lastSource) : "";
   win.onClick("btn_copy_digests", () => {
     const t = digestText();
-    if (!t) { win.toast("Nothing to copy yet", 2500, "warning"); return; }
+    if (!t) {
+      win.toast("Nothing to copy yet", 2500, "warning");
+      return;
+    }
     win.copyToClipboard(t);
     win.toast("Digests copied", 2000, "success");
   });
   win.onClick("btn_save_digests", () => {
     const t = digestText();
-    if (!t) { win.toast("Nothing to save yet", 2500, "warning"); return; }
-    win.saveFile({ title: "Save digests", defaultName: "digests.txt", filter: "txt" }, (p) => {
-      if (!p) return;
-      try {
-        fs.writeFileSync(p, t, "utf-8");
-        win.toast(`Saved ${path.basename(p)}`, 3000, "success");
-      } catch (e: any) {
-        win.toast(`Save failed: ${e.message}`, 4000, "error");
-      }
-    });
+    if (!t) {
+      win.toast("Nothing to save yet", 2500, "warning");
+      return;
+    }
+    win.saveFile(
+      { title: "Save digests", defaultName: "digests.txt", filter: "txt" },
+      (p) => {
+        if (!p) return;
+        try {
+          fs.writeFileSync(p, t, "utf-8");
+          win.toast(`Saved ${path.basename(p)}`, 3000, "success");
+        } catch (e: any) {
+          win.toast(`Save failed: ${e.message}`, 4000, "error");
+        }
+      },
+    );
   });
 
   win.onClick("btn_gen_password", () => {
     try {
-      const len = clampPasswordLength(parseInt(String(win.getValue("txt_pw_len") || "20"), 10));
+      const len = clampPasswordLength(
+        parseInt(String(win.getValue("txt_pw_len") || "20"), 10),
+      );
       const pw = generatePassword({
         length: len,
         lower: win.getBool("chk_pw_lower"),
@@ -414,8 +563,15 @@ export function createCryptoStudio(options: { fullscreen?: boolean; theme?: stri
       win.setValue("txt_pw_out", pw);
       win.setValue("txt_pw_len", String(len));
       const e = estimateEntropy(pw);
-      win.setText("lbl_entropy_out", `Entropy: ~${e.bits} bits (${e.strength})`);
-      win.appendConsole("crypto_console", `[Password] Generated ${len}-char password (~${e.bits} bits)\n`, 1);
+      win.setText(
+        "lbl_entropy_out",
+        `Entropy: ~${e.bits} bits (${e.strength})`,
+      );
+      win.appendConsole(
+        "crypto_console",
+        `[Password] Generated ${len}-char password (~${e.bits} bits)\n`,
+        1,
+      );
       win.toast("Password generated", 2000, "success");
     } catch (e: any) {
       win.toast(e.message, 3000, "warning");
@@ -423,7 +579,10 @@ export function createCryptoStudio(options: { fullscreen?: boolean; theme?: stri
   });
   win.onClick("btn_copy_password", () => {
     const pw = String(win.getValue("txt_pw_out") || "");
-    if (!pw) { win.toast("Generate a password first", 2500, "warning"); return; }
+    if (!pw) {
+      win.toast("Generate a password first", 2500, "warning");
+      return;
+    }
     win.copyToClipboard(pw);
     win.toast("Password copied", 2000, "success");
   });
@@ -433,7 +592,11 @@ export function createCryptoStudio(options: { fullscreen?: boolean; theme?: stri
     try {
       const out = fn(input);
       win.setText("txt_hash_input", out);
-      win.appendConsole("crypto_console", `[${label}] ${input.length} -> ${out.length} chars\n`, 1);
+      win.appendConsole(
+        "crypto_console",
+        `[${label}] ${input.length} -> ${out.length} chars\n`,
+        1,
+      );
       win.toast(`${label} done`, 1800, "success");
     } catch (e: any) {
       win.appendConsole("crypto_console", `[${label} Error] ${e.message}\n`, 3);
@@ -446,24 +609,51 @@ export function createCryptoStudio(options: { fullscreen?: boolean; theme?: stri
   win.onClick("btn_hex_decode", () => transform("Hex Decode", fromHex));
 
   win.onClick("btn_verify_jwt", () => {
-    const token = String(win.getValue("txt_hash_input") || "").trim() || String(win.getValue("txt_cipher_text") || "").trim();
+    const token =
+      String(win.getValue("txt_hash_input") || "").trim() ||
+      String(win.getValue("txt_cipher_text") || "").trim();
     const secret = String(win.getValue("txt_jwt_secret") || "");
-    if (!token) { win.toast("Paste a JWT into the Input Payload first", 3000, "warning"); return; }
-    if (!secret) { win.toast("Enter the JWT secret", 2500, "warning"); return; }
+    if (!token) {
+      win.toast("Paste a JWT into the Input Payload first", 3000, "warning");
+      return;
+    }
+    if (!secret) {
+      win.toast("Enter the JWT secret", 2500, "warning");
+      return;
+    }
     const r = verifyJwtHmac(token, secret);
-    win.appendConsole("crypto_console", `[JWT Verify] ${r.ok ? "VALID" : "INVALID"} (${r.alg})${r.reason ? " - " + r.reason : ""}\n`, r.ok ? 2 : 3);
-    win.toast(r.ok ? `\u2714 Signature valid (${r.alg})` : `\u2716 ${r.reason}`, 4000, r.ok ? "success" : "error");
+    win.appendConsole(
+      "crypto_console",
+      `[JWT Verify] ${r.ok ? "VALID" : "INVALID"} (${r.alg})${r.reason ? " - " + r.reason : ""}\n`,
+      r.ok ? 2 : 3,
+    );
+    win.toast(
+      r.ok ? `\u2714 Signature valid (${r.alg})` : `\u2716 ${r.reason}`,
+      4000,
+      r.ok ? "success" : "error",
+    );
   });
 
   win.onClick("btn_copy_output", () => {
     const t = String(win.getValue("txt_cipher_text") || "");
-    if (!t) { win.toast("Output box is empty", 2500, "warning"); return; }
+    if (!t) {
+      win.toast("Output box is empty", 2500, "warning");
+      return;
+    }
     win.copyToClipboard(t);
     win.toast("Output copied", 2000, "success");
   });
 
   win.onClick("btn_clear_all", () => {
-    for (const id of ["txt_hash_input", "txt_cipher_text", "txt_expected", "txt_file_path", "txt_pw_out", "txt_jwt_secret"]) win.setText(id, "");
+    for (const id of [
+      "txt_hash_input",
+      "txt_cipher_text",
+      "txt_expected",
+      "txt_file_path",
+      "txt_pw_out",
+      "txt_jwt_secret",
+    ])
+      win.setText(id, "");
     win.setTableData("tbl_hashes", HASH_HEADERS, []);
     win.clearConsole("crypto_console");
     lastRows = [];

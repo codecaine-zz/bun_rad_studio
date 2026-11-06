@@ -20,14 +20,22 @@ export interface TestDb {
   /** Unique throwaway database name (always matches /^bunrad_test_[a-f0-9]{12}$/). */
   name: string;
   /** Connection config accepted by the studio servers (host/port/user/password/database). */
-  config: { host: string; port: number; user: string; password?: string; database: string; schema?: string };
+  config: {
+    host: string;
+    port: number;
+    user: string;
+    password?: string;
+    database: string;
+    schema?: string;
+  };
   drop(): Promise<void>;
 }
 
 const NAME_RE = /^bunrad_test_[a-f0-9]{12}$/;
 
 function envUrl(engine: TestEngine): string | undefined {
-  const v = engine === "mysql" ? process.env.TEST_MYSQL_URL : process.env.TEST_PG_URL;
+  const v =
+    engine === "mysql" ? process.env.TEST_MYSQL_URL : process.env.TEST_PG_URL;
   return v && v.trim() ? v.trim() : undefined;
 }
 
@@ -35,15 +43,24 @@ export function testDbAvailable(engine: TestEngine): boolean {
   return envUrl(engine) !== undefined;
 }
 
-export async function provisionTestDb(engine: TestEngine): Promise<TestDb | null> {
+export async function provisionTestDb(
+  engine: TestEngine,
+): Promise<TestDb | null> {
   const raw = envUrl(engine);
   if (!raw) return null;
-  const u = new URL(raw.replace(/^mysql:\/\//i, "http://").replace(/^postgres(ql)?:\/\//i, "http://"));
+  const u = new URL(
+    raw
+      .replace(/^mysql:\/\//i, "http://")
+      .replace(/^postgres(ql)?:\/\//i, "http://"),
+  );
   const host = u.hostname || "localhost";
   const port = Number(u.port) || (engine === "mysql" ? 3306 : 5432);
   const user = decodeURIComponent(u.username || "root");
   const password = u.password ? decodeURIComponent(u.password) : undefined;
-  const adminDb = engine === "mysql" ? undefined : decodeURIComponent(u.pathname.slice(1)) || "postgres";
+  const adminDb =
+    engine === "mysql"
+      ? undefined
+      : decodeURIComponent(u.pathname.slice(1)) || "postgres";
 
   const admin = new SQL({
     adapter: engine === "mysql" ? "mysql" : "postgres",
@@ -57,14 +74,22 @@ export async function provisionTestDb(engine: TestEngine): Promise<TestDb | null
   } as any);
 
   const name = `bunrad_test_${randomBytes(6).toString("hex")}`;
-  if (!NAME_RE.test(name)) throw new Error("unsafe generated test database name");
+  if (!NAME_RE.test(name))
+    throw new Error("unsafe generated test database name");
   const quoted = engine === "mysql" ? `\`${name}\`` : `"${name}"`;
   await admin.unsafe(`CREATE DATABASE ${quoted}`);
 
   return {
     engine,
     name,
-    config: { host, port, user, password, database: name, ...(engine === "postgres" ? { schema: "public" } : {}) },
+    config: {
+      host,
+      port,
+      user,
+      password,
+      database: name,
+      ...(engine === "postgres" ? { schema: "public" } : {}),
+    },
     async drop() {
       try {
         if (engine === "postgres") {

@@ -1,7 +1,7 @@
 import { injectGameMasterFx } from "../src/shared/gameMasterFx";
 /**
  * 🐦 Codecaine CyberWing Deluxe — Cyber Legends Arcade Studio
- * 
+ *
  * Complete cross-platform desktop application powered by Bun RAD Studio & Webview.
  * Features:
  * - Authentic kinetic cyber-wing flight physics with variable gravity, thrust impulse & smooth tilt
@@ -80,7 +80,9 @@ export function generateFlappyBirdStudioHtml(): string {
   const assetsDir = getFlappyBirdAssetsDir();
   const indexPath = join(assetsDir, "index.html");
 
-  let html = existsSync(indexPath) ? readFileSync(indexPath, "utf8") : "<h1>Codecaine CyberWing Deluxe</h1>";
+  let html = existsSync(indexPath)
+    ? readFileSync(indexPath, "utf8")
+    : "<h1>Codecaine CyberWing Deluxe</h1>";
 
   const storagePolyfill = `
   <script>
@@ -151,7 +153,13 @@ ${getWindowShortcutsScript()}
  */
 export function startFlappyBirdServer(options: FlappyBirdServerOptions = {}) {
   return startStaticStudioServer(
-    { app: "flappy_bird_studio", name: "Codecaine CyberWing Deluxe — Cyber Legends Arcade", version: "1.0.0", assetsDir: getFlappyBirdAssetsDir(), generateHtml: generateFlappyBirdStudioHtml },
+    {
+      app: "flappy_bird_studio",
+      name: "Codecaine CyberWing Deluxe — Cyber Legends Arcade",
+      version: "1.0.0",
+      assetsDir: getFlappyBirdAssetsDir(),
+      generateHtml: generateFlappyBirdStudioHtml,
+    },
     options,
   );
 }
@@ -159,7 +167,9 @@ export function startFlappyBirdServer(options: FlappyBirdServerOptions = {}) {
 /**
  * Creates the complete native desktop instance of CyberWing Deluxe.
  */
-export function createFlappyBirdStudio(options: FlappyBirdStudioOptions = {}): FlappyBirdStudioInstance {
+export function createFlappyBirdStudio(
+  options: FlappyBirdStudioOptions = {},
+): FlappyBirdStudioInstance {
   const fullscreen = options.fullscreen ?? true;
   const screen = getScreenDimensions();
   const width = options.width ?? (fullscreen ? screen.width : 1100);
@@ -191,7 +201,8 @@ export function createFlappyBirdStudio(options: FlappyBirdStudioOptions = {}): F
       }
 
       try {
-        const { SizeHint, Webview } = (await import("webview-bun")) as typeof import("webview-bun");
+        const { SizeHint, Webview } =
+          (await import("webview-bun")) as typeof import("webview-bun");
         const webview = new Webview(true, {
           width,
           height,
@@ -211,11 +222,15 @@ export function createFlappyBirdStudio(options: FlappyBirdStudioOptions = {}): F
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onClose: () => {
-            try { srv?.stop(); } catch {}
+            try {
+              srv?.stop();
+            } catch {}
             process.exit(0);
           },
           onFullscreen: () => {
@@ -225,16 +240,24 @@ export function createFlappyBirdStudio(options: FlappyBirdStudioOptions = {}): F
         });
 
         webview.setHTML(html);
-        console.log(`⚡ Desktop window open (Fullscreen: ${fullscreen ? 'Enabled' : 'Disabled'}).`);
+        console.log(
+          `⚡ Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`,
+        );
 
         webview.run();
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       } catch (err: any) {
-        console.warn(`Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`);
+        console.warn(
+          `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
+        );
         await new Promise(() => {});
       } finally {
-        try { srv?.stop(); } catch {}
+        try {
+          srv?.stop();
+        } catch {}
         process.exit(0);
       }
     },
@@ -251,10 +274,13 @@ if (process.argv.includes("--server")) {
   const port = parseInt(process.env.PORT || "0", 10);
   const srv = startFlappyBirdServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
-  console.log(`⚡ Flappy Bird Server listening on http://127.0.0.1:${srv.port}`);
+  console.log(
+    `⚡ Flappy Bird Server listening on http://127.0.0.1:${srv.port}`,
+  );
   setInterval(() => {}, 60000);
 } else if (import.meta.main) {
-  const fullscreen = !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
+  const fullscreen =
+    !process.argv.includes("--no-fullscreen") && !process.argv.includes("-w");
   const app = createFlappyBirdStudio({ fullscreen });
   await app.run();
   process.exit(0);

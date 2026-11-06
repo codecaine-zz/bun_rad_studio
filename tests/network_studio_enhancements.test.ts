@@ -27,8 +27,16 @@ import {
 } from "../applications/network_studio";
 import type { SimpleWindow } from "../src/simplegui";
 
-async function trigger(win: SimpleWindow, id: string, event = "click", val?: any) {
-  const h = win.eventHandlersMap.get(`${id}:on${event}`) || win.eventHandlersMap.get(`${id}:${event}`) || win.eventHandlersMap.get(id);
+async function trigger(
+  win: SimpleWindow,
+  id: string,
+  event = "click",
+  val?: any,
+) {
+  const h =
+    win.eventHandlersMap.get(`${id}:on${event}`) ||
+    win.eventHandlersMap.get(`${id}:${event}`) ||
+    win.eventHandlersMap.get(id);
   if (!h) throw new Error(`no handler for ${id}`);
   return await h(win, val);
 }
@@ -38,9 +46,17 @@ let openPort = 0;
 let closedPort = 0;
 
 beforeAll(() => {
-  server = Bun.listen({ hostname: "127.0.0.1", port: 0, socket: { data() {}, open() {} } });
+  server = Bun.listen({
+    hostname: "127.0.0.1",
+    port: 0,
+    socket: { data() {}, open() {} },
+  });
   openPort = server.port;
-  const tmp = Bun.listen({ hostname: "127.0.0.1", port: 0, socket: { data() {}, open() {} } });
+  const tmp = Bun.listen({
+    hostname: "127.0.0.1",
+    port: 0,
+    socket: { data() {}, open() {} },
+  });
   closedPort = tmp.port;
   tmp.stop(true);
 });
@@ -48,7 +64,9 @@ afterAll(() => server.stop(true));
 
 describe("port spec parsing", () => {
   test("lists, ranges, dedupe and sort", () => {
-    expect(parsePortSpec("443, 22 80,22,8000-8002").ports).toEqual([22, 80, 443, 8000, 8001, 8002]);
+    expect(parsePortSpec("443, 22 80,22,8000-8002").ports).toEqual([
+      22, 80, 443, 8000, 8001, 8002,
+    ]);
     expect(parsePortSpec("1-3;5").ports).toEqual([1, 2, 3, 5]);
   });
   test("errors", () => {
@@ -69,7 +87,9 @@ describe("port spec parsing", () => {
 
 describe("small helpers", () => {
   test("escapeHtml neutralises markup", () => {
-    expect(escapeHtml(`<img src=x onerror="a()">&'`)).toBe("&lt;img src=x onerror=&quot;a()&quot;&gt;&amp;&#39;");
+    expect(escapeHtml(`<img src=x onerror="a()">&'`)).toBe(
+      "&lt;img src=x onerror=&quot;a()&quot;&gt;&amp;&#39;",
+    );
     expect(escapeHtml(null)).toBe("");
   });
   test("httpStatusText and serviceName", () => {
@@ -91,7 +111,15 @@ describe("small helpers", () => {
     expect(csv).toContain('"h","80","HTTP","OPEN","1.5"');
   });
   test("latency statistics", () => {
-    expect(summarizeLatencies([10, 20, null, 30])).toEqual({ sent: 4, received: 3, lossPct: 25, min: 10, avg: 20, max: 30, jitter: 10 });
+    expect(summarizeLatencies([10, 20, null, 30])).toEqual({
+      sent: 4,
+      received: 3,
+      lossPct: 25,
+      min: 10,
+      avg: 20,
+      max: 30,
+      jitter: 10,
+    });
     expect(summarizeLatencies([null, null]).lossPct).toBe(100);
     expect(summarizeLatencies([null, null]).avg).toBeNull();
     expect(summarizeLatencies([5]).jitter).toBe(0);
@@ -101,12 +129,34 @@ describe("small helpers", () => {
     const now = Date.parse("2026-01-01T00:00:00Z");
     expect(daysUntil("Jan 11 00:00:00 2026 GMT", now)).toBe(10);
     expect(daysUntil("garbage", now)).toBeNull();
-    const base = { subject: { CN: "example.com" }, issuer: { O: "Test CA" }, authorized: true, validFrom: "x" };
-    const row = (c: any, k: string) => describeCert(c, now).find((r) => r[0] === k)![1]!;
-    expect(row({ ...base, validTo: "Jan 31 00:00:00 2026 GMT" }, "Expiry Status")).toContain("Valid for 30");
-    expect(row({ ...base, validTo: "Jan 05 00:00:00 2026 GMT" }, "Expiry Status")).toContain("soon");
-    expect(row({ ...base, validTo: "Dec 20 00:00:00 2025 GMT" }, "Expiry Status")).toContain("EXPIRED");
-    expect(row({ ...base, authorized: false, authError: "self signed", validTo: "Jan 31 2026" }, "Trusted by System")).toContain("self signed");
+    const base = {
+      subject: { CN: "example.com" },
+      issuer: { O: "Test CA" },
+      authorized: true,
+      validFrom: "x",
+    };
+    const row = (c: any, k: string) =>
+      describeCert(c, now).find((r) => r[0] === k)![1]!;
+    expect(
+      row({ ...base, validTo: "Jan 31 00:00:00 2026 GMT" }, "Expiry Status"),
+    ).toContain("Valid for 30");
+    expect(
+      row({ ...base, validTo: "Jan 05 00:00:00 2026 GMT" }, "Expiry Status"),
+    ).toContain("soon");
+    expect(
+      row({ ...base, validTo: "Dec 20 00:00:00 2025 GMT" }, "Expiry Status"),
+    ).toContain("EXPIRED");
+    expect(
+      row(
+        {
+          ...base,
+          authorized: false,
+          authError: "self signed",
+          validTo: "Jan 31 2026",
+        },
+        "Trusted by System",
+      ),
+    ).toContain("self signed");
     expect(describeCert({ error: "boom" })).toEqual([["Error", "boom"]]);
   });
 });
@@ -114,24 +164,83 @@ describe("small helpers", () => {
 describe("HTML output is escaped (remote data cannot inject markup)", () => {
   const evil = `<script>alert(1)</script>`;
   test("DNS TXT / host / source", () => {
-    const html = renderDnsHtml({ host: evil, type: "TXT", records: [[evil]], elapsedMs: 1, source: evil, isNoData: false });
+    const html = renderDnsHtml({
+      host: evil,
+      type: "TXT",
+      records: [[evil]],
+      elapsedMs: 1,
+      source: evil,
+      isNoData: false,
+    });
     expect(html).not.toContain("<script>");
     expect(html).toContain("&lt;script&gt;");
   });
   test("DNS A / MX / SOA / NS", () => {
-    for (const [type, records] of [["A", [evil]], ["NS", [evil]], ["MX", [{ exchange: evil, priority: 1 }]], ["SOA", { nsname: evil, hostmaster: evil }], ["CAA", [{ issue: evil }]]] as const) {
-      const html = renderDnsHtml({ host: "h", type: type as any, records, elapsedMs: 1, source: "s", isNoData: false });
+    for (const [type, records] of [
+      ["A", [evil]],
+      ["NS", [evil]],
+      ["MX", [{ exchange: evil, priority: 1 }]],
+      ["SOA", { nsname: evil, hostmaster: evil }],
+      ["CAA", [{ issue: evil }]],
+    ] as const) {
+      const html = renderDnsHtml({
+        host: "h",
+        type: type as any,
+        records,
+        elapsedMs: 1,
+        source: "s",
+        isNoData: false,
+      });
       expect(html).not.toContain("<script>");
     }
   });
   test("dossier", () => {
-    const html = renderDnsDossierHtml(evil, [
-      { host: "h", type: "A", records: [evil], elapsedMs: 1, source: "s", isNoData: false },
-      { host: "h", type: "MX", records: [{ exchange: evil, priority: 1 }], elapsedMs: 1, source: "s", isNoData: false },
-      { host: "h", type: "NS", records: [evil], elapsedMs: 1, source: "s", isNoData: false },
-      { host: "h", type: "TXT", records: [[evil]], elapsedMs: 1, source: "s", isNoData: false },
-      { host: "h", type: "SOA", records: { nsname: evil, hostmaster: evil }, elapsedMs: 1, source: "s", isNoData: false },
-    ], 5);
+    const html = renderDnsDossierHtml(
+      evil,
+      [
+        {
+          host: "h",
+          type: "A",
+          records: [evil],
+          elapsedMs: 1,
+          source: "s",
+          isNoData: false,
+        },
+        {
+          host: "h",
+          type: "MX",
+          records: [{ exchange: evil, priority: 1 }],
+          elapsedMs: 1,
+          source: "s",
+          isNoData: false,
+        },
+        {
+          host: "h",
+          type: "NS",
+          records: [evil],
+          elapsedMs: 1,
+          source: "s",
+          isNoData: false,
+        },
+        {
+          host: "h",
+          type: "TXT",
+          records: [[evil]],
+          elapsedMs: 1,
+          source: "s",
+          isNoData: false,
+        },
+        {
+          host: "h",
+          type: "SOA",
+          records: { nsname: evil, hostmaster: evil },
+          elapsedMs: 1,
+          source: "s",
+          isNoData: false,
+        },
+      ],
+      5,
+    );
     expect(html).not.toContain("<script>");
   });
   test("http headers, url, status text and port scan host", () => {
@@ -175,7 +284,18 @@ describe("Network Studio GUI toolkit", () => {
 
   test("renders the new controls", () => {
     const html = make().generateHtml();
-    for (const id of ["txt_ports", "txt_timeout", "chk_open_only", "btn_scan_custom", "btn_tls_cert", "btn_tcp_ping", "btn_copy_report", "btn_export_diag", "btn_dns_caa", "btn_dns_ptr"]) {
+    for (const id of [
+      "txt_ports",
+      "txt_timeout",
+      "chk_open_only",
+      "btn_scan_custom",
+      "btn_tls_cert",
+      "btn_tcp_ping",
+      "btn_copy_report",
+      "btn_export_diag",
+      "btn_dns_caa",
+      "btn_dns_ptr",
+    ]) {
       expect(html).toContain(id);
     }
   });
@@ -200,7 +320,9 @@ describe("Network Studio GUI toolkit", () => {
     await trigger(win, "btn_scan_custom");
     expect(raw(win)).toContain("OPEN");
     expect(raw(win)).not.toContain("CLOSED");
-    expect(String(win.getValue("txt_net_results"))).toContain("1 closed/timeout hidden");
+    expect(String(win.getValue("txt_net_results"))).toContain(
+      "1 closed/timeout hidden",
+    );
   });
 
   test("invalid port list or host does not scan", async () => {
@@ -258,17 +380,22 @@ describe("Network Studio GUI toolkit", () => {
     await trigger(win, "btn_copy_report");
 
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "netrep-"));
-    (win as any).saveFile = (_o: any, cb: (p: string | null) => void) => cb(path.join(dir, "r.csv"));
+    (win as any).saveFile = (_o: any, cb: (p: string | null) => void) =>
+      cb(path.join(dir, "r.csv"));
     await trigger(win, "btn_export_diag");
     const csv = fs.readFileSync(path.join(dir, "r.csv"), "utf-8");
     expect(csv.split("\n")[0]).toBe("host,port,service,status,latency_ms");
     expect(csv).toContain(`"127.0.0.1","${openPort}"`);
 
-    (win as any).saveFile = (_o: any, cb: (p: string | null) => void) => cb(path.join(dir, "r.txt"));
+    (win as any).saveFile = (_o: any, cb: (p: string | null) => void) =>
+      cb(path.join(dir, "r.txt"));
     await trigger(win, "btn_export_diag");
-    expect(fs.readFileSync(path.join(dir, "r.txt"), "utf-8")).toContain("PORT LIST SCAN");
+    expect(fs.readFileSync(path.join(dir, "r.txt"), "utf-8")).toContain(
+      "PORT LIST SCAN",
+    );
 
-    (win as any).saveFile = (_o: any, cb: (p: string | null) => void) => cb(null);
+    (win as any).saveFile = (_o: any, cb: (p: string | null) => void) =>
+      cb(null);
     await trigger(win, "btn_export_diag"); // cancelled dialog is a no-op
     fs.rmSync(dir, { recursive: true, force: true });
   });
@@ -290,14 +417,40 @@ describe("TLS certificate inspection against a real TLS server", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nettls-"));
     const key = path.join(dir, "k.pem");
     const cert = path.join(dir, "c.pem");
-    const gen = Bun.spawnSync(["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", key, "-out", cert, "-days", "30", "-subj", "/CN=localhost"]);
-    if (gen.exitCode !== 0) { fs.rmSync(dir, { recursive: true, force: true }); return; } // openssl unavailable: skip
+    const gen = Bun.spawnSync([
+      "openssl",
+      "req",
+      "-x509",
+      "-newkey",
+      "rsa:2048",
+      "-nodes",
+      "-keyout",
+      key,
+      "-out",
+      cert,
+      "-days",
+      "30",
+      "-subj",
+      "/CN=localhost",
+    ]);
+    if (gen.exitCode !== 0) {
+      fs.rmSync(dir, { recursive: true, force: true });
+      return;
+    } // openssl unavailable: skip
     // The server must live in another process: inspection runs synchronously and would block an in-process server.
     const srvFile = path.join(dir, "srv.ts");
-    fs.writeFileSync(srvFile, `const s = Bun.serve({ port: 0, hostname: "127.0.0.1", tls: { cert: Bun.file(${JSON.stringify(cert)}), key: Bun.file(${JSON.stringify(key)}) }, fetch: () => new Response("ok") }); console.log(s.port);`);
+    fs.writeFileSync(
+      srvFile,
+      `const s = Bun.serve({ port: 0, hostname: "127.0.0.1", tls: { cert: Bun.file(${JSON.stringify(cert)}), key: Bun.file(${JSON.stringify(key)}) }, fetch: () => new Response("ok") }); console.log(s.port);`,
+    );
     const proc = Bun.spawn([process.execPath, srvFile], { stdout: "pipe" });
     try {
-      const port = parseInt(new TextDecoder().decode((await proc.stdout.getReader().read()).value).trim(), 10);
+      const port = parseInt(
+        new TextDecoder()
+          .decode((await proc.stdout.getReader().read()).value)
+          .trim(),
+        10,
+      );
       const info = getTlsCertSync("127.0.0.1", port, 4000);
       expect(info.error).toBeUndefined();
       const rows = Object.fromEntries(describeCert(info));
@@ -310,7 +463,9 @@ describe("TLS certificate inspection against a real TLS server", () => {
       win.setValue("txt_host", "127.0.0.1");
       win.setValue("txt_port", String(port));
       await trigger(win, "btn_tls_cert");
-      expect(String(win.getValue("txt_net_results_raw"))).toContain("Subject (CN)");
+      expect(String(win.getValue("txt_net_results_raw"))).toContain(
+        "Subject (CN)",
+      );
       expect(String(win.getValue("net_console"))).toContain("Valid for");
     } finally {
       proc.kill();

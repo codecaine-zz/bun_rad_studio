@@ -7,13 +7,18 @@ import { colors } from "../../../shared/colors.ts";
 /**
  * ANSI terminal color and text style helper functions re-exported from shared color utilities.
  */
-export const { bold, dim, red, green, yellow, blue, magenta, cyan, gray } = colors;
+export const { bold, dim, red, green, yellow, blue, magenta, cyan, gray } =
+  colors;
 
 // Doer: Render horizontal terminal progress bar
 /**
  * Renders an ASCII/Unicode horizontal progress bar with percentage completion (e.g., `[████░░░░]  50%`).
  */
-export function formatProgressBar(current: number, total: number, width = 30): string {
+export function formatProgressBar(
+  current: number,
+  total: number,
+  width = 30,
+): string {
   if (total <= 0) return `[${" ".repeat(width)}] 0%`;
   const pct = Math.min(1, Math.max(0, current / total));
   const filledLen = Math.round(width * pct);
@@ -38,7 +43,10 @@ export function renderSparkline(values: number[]): string {
     .map((v) => {
       if (range === 0) return ticks[3];
       const normalized = (v - min) / range;
-      const idx = Math.min(ticks.length - 1, Math.floor(normalized * ticks.length));
+      const idx = Math.min(
+        ticks.length - 1,
+        Math.floor(normalized * ticks.length),
+      );
       return ticks[idx];
     })
     .join("");
@@ -75,7 +83,12 @@ export function renderBarChart(items: BarChartItem[], maxWidth = 30): string {
 /**
  * Renders a linear dial gauge indicator showing where `value` sits within `[min, max]`.
  */
-export function renderGauge(value: number, min: number, max: number, width = 20): string {
+export function renderGauge(
+  value: number,
+  min: number,
+  max: number,
+  width = 20,
+): string {
   const clamped = Math.min(max, Math.max(min, value));
   const range = max - min || 1;
   const ratio = (clamped - min) / range;
@@ -184,4 +197,3 @@ export const cliutils = {
   renderTree,
   tree: renderTree,
 };
-

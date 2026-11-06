@@ -33,27 +33,51 @@ export interface TemplateOptions {
 /** Compiled template function returned by {@link compileTemplate}. */
 export type CompiledTemplate = (vars: Record<string, any>) => string;
 
-type VarNode = { t: "var"; path: string; pipes: string[]; raw: boolean; src: string };
-type BlockNode = { t: "if" | "unless" | "each"; path: string; body: Node[]; alt: Node[] };
+type VarNode = {
+  t: "var";
+  path: string;
+  pipes: string[];
+  raw: boolean;
+  src: string;
+};
+type BlockNode = {
+  t: "if" | "unless" | "each";
+  path: string;
+  body: Node[];
+  alt: Node[];
+};
 type Node = { t: "text"; v: string } | VarNode | BlockNode;
 type Scope = { data: unknown; meta: Record<string, unknown> }[];
 
 const TAG_RE = /\{\{\{\s*([\s\S]+?)\s*\}\}\}|\{\{\s*([\s\S]+?)\s*\}\}/g;
-const PATH_RE = /^(?:[#/]?(?:if|unless|each)\b.*|else|[\w@$][\w.@$-]*(?:\s*\|.*)?)$/;
+const PATH_RE =
+  /^(?:[#/]?(?:if|unless|each)\b.*|else|[\w@$][\w.@$-]*(?:\s*\|.*)?)$/;
 
 /** Built-in filters: `upper lower trim capitalize title json escape length`. */
 export const builtinFilters: Record<string, TemplateFilter> = {
   upper: (v) => String(v ?? "").toUpperCase(),
   lower: (v) => String(v ?? "").toLowerCase(),
   trim: (v) => String(v ?? "").trim(),
-  capitalize: (v) => { const s = String(v ?? ""); return s.charAt(0).toUpperCase() + s.slice(1); },
-  title: (v) => String(v ?? "").replace(/[\p{L}\d]+/gu, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()),
+  capitalize: (v) => {
+    const s = String(v ?? "");
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  },
+  title: (v) =>
+    String(v ?? "").replace(
+      /[\p{L}\d]+/gu,
+      (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(),
+    ),
   json: (v) => JSON.stringify(v),
   escape: (v) => Bun.escapeHTML(String(v ?? "")),
-  length: (v) => (v == null ? 0 : (v as { length?: number }).length ?? Object.keys(v as object).length),
+  length: (v) =>
+    v == null
+      ? 0
+      : ((v as { length?: number }).length ?? Object.keys(v as object).length),
 };
 
-function tokenize(template: string): (string | { expr: string; raw: boolean; src: string })[] {
+function tokenize(
+  template: string,
+): (string | { expr: string; raw: boolean; src: string })[] {
   const out: (string | { expr: string; raw: boolean; src: string })[] = [];
   let last = 0;
   for (const m of template.matchAll(TAG_RE)) {
@@ -67,19 +91,35 @@ function tokenize(template: string): (string | { expr: string; raw: boolean; src
   return out;
 }
 
-function parseNodes(tokens: ReturnType<typeof tokenize>, pos: { i: number }, closer?: string): { nodes: Node[]; alt: Node[] } {
-  const nodes: Node[] = [], alt: Node[] = [];
+function parseNodes(
+  tokens: ReturnType<typeof tokenize>,
+  pos: { i: number },
+  closer?: string,
+): { nodes: Node[]; alt: Node[] } {
+  const nodes: Node[] = [],
+    alt: Node[] = [];
   let target = nodes;
   while (pos.i < tokens.length) {
     const tok = tokens[pos.i++]!;
-    if (typeof tok === "string") { target.push({ t: "text", v: tok }); continue; }
+    if (typeof tok === "string") {
+      target.push({ t: "text", v: tok });
+      continue;
+    }
     const block = tok.expr.match(/^#(if|unless|each)\s+(.+)$/);
     if (block) {
       const inner = parseNodes(tokens, pos, block[1]);
-      target.push({ t: block[1] as BlockNode["t"], path: block[2]!.trim(), body: inner.nodes, alt: inner.alt });
+      target.push({
+        t: block[1] as BlockNode["t"],
+        path: block[2]!.trim(),
+        body: inner.nodes,
+        alt: inner.alt,
+      });
     } else if (tok.expr === "else" && closer) target = alt;
     else if (tok.expr.startsWith("/")) {
-      if (tok.expr.slice(1) !== closer) throw new Error(`[templateutils] Unexpected {{${tok.expr}}} (open block: ${closer ?? "none"})`);
+      if (tok.expr.slice(1) !== closer)
+        throw new Error(
+          `[templateutils] Unexpected {{${tok.expr}}} (open block: ${closer ?? "none"})`,
+        );
       return { nodes, alt };
     } else {
       const [path, ...pipes] = tok.expr.split("|").map((s) => s.trim());
@@ -109,35 +149,80 @@ function truthy(v: unknown): boolean {
   return Array.isArray(v) ? v.length > 0 : Boolean(v);
 }
 
-function applyPipes(value: unknown, pipes: string[], filters: Record<string, TemplateFilter>): unknown {
+function applyPipes(
+  value: unknown,
+  pipes: string[],
+  filters: Record<string, TemplateFilter>,
+): unknown {
   let v = value;
   for (const p of pipes) {
     if (filters[p]) v = filters[p]!(v);
-    else if (v === undefined || v === null) v = p.replace(/^(["'])(.*)\1$/, "$2");
+    else if (v === undefined || v === null)
+      v = p.replace(/^(["'])(.*)\1$/, "$2");
   }
   return v;
 }
 
-function renderVar(node: VarNode, scope: Scope, opts: TemplateOptions, filters: Record<string, TemplateFilter>): string {
+function renderVar(
+  node: VarNode,
+  scope: Scope,
+  opts: TemplateOptions,
+  filters: Record<string, TemplateFilter>,
+): string {
   const v = applyPipes(lookup(scope, node.path), node.pipes, filters);
   if (v === undefined || v === null) {
-    if (opts.missing === "throw") throw new Error(`[templateutils.renderTemplate] Missing variable "${node.path}"`);
+    if (opts.missing === "throw")
+      throw new Error(
+        `[templateutils.renderTemplate] Missing variable "${node.path}"`,
+      );
     return opts.missing === "keep" ? node.src : "";
   }
   const s = typeof v === "object" ? JSON.stringify(v) : String(v);
   return opts.escape && !node.raw ? Bun.escapeHTML(s) : s;
 }
 
-function renderEach(node: BlockNode, scope: Scope, opts: TemplateOptions, filters: Record<string, TemplateFilter>): string {
+function renderEach(
+  node: BlockNode,
+  scope: Scope,
+  opts: TemplateOptions,
+  filters: Record<string, TemplateFilter>,
+): string {
   const list = lookup(scope, node.path);
-  const entries: [string | number, unknown][] = Array.isArray(list) ? list.map((v, i) => [i, v]) : list && typeof list === "object" ? Object.entries(list) : [];
+  const entries: [string | number, unknown][] = Array.isArray(list)
+    ? list.map((v, i) => [i, v])
+    : list && typeof list === "object"
+      ? Object.entries(list)
+      : [];
   if (entries.length === 0) return renderNodes(node.alt, scope, opts, filters);
   return entries
-    .map(([key, data], i) => renderNodes(node.body, [...scope, { data, meta: { index: i, key, first: i === 0, last: i === entries.length - 1 } }], opts, filters))
+    .map(([key, data], i) =>
+      renderNodes(
+        node.body,
+        [
+          ...scope,
+          {
+            data,
+            meta: {
+              index: i,
+              key,
+              first: i === 0,
+              last: i === entries.length - 1,
+            },
+          },
+        ],
+        opts,
+        filters,
+      ),
+    )
     .join("");
 }
 
-function renderNodes(nodes: Node[], scope: Scope, opts: TemplateOptions, filters: Record<string, TemplateFilter>): string {
+function renderNodes(
+  nodes: Node[],
+  scope: Scope,
+  opts: TemplateOptions,
+  filters: Record<string, TemplateFilter>,
+): string {
   let out = "";
   for (const n of nodes) {
     if (n.t === "text") out += n.v;
@@ -145,7 +230,12 @@ function renderNodes(nodes: Node[], scope: Scope, opts: TemplateOptions, filters
     else if (n.t === "each") out += renderEach(n, scope, opts, filters);
     else {
       const cond = truthy(lookup(scope, n.path));
-      out += renderNodes((n.t === "if" ? cond : !cond) ? n.body : n.alt, scope, opts, filters);
+      out += renderNodes(
+        (n.t === "if" ? cond : !cond) ? n.body : n.alt,
+        scope,
+        opts,
+        filters,
+      );
     }
   }
   return out;
@@ -158,10 +248,14 @@ function renderNodes(nodes: Node[], scope: Scope, opts: TemplateOptions, filters
  * const greet = templateutils.compileTemplate("Hello {{name}}!");
  * greet({ name: "Ada" }); // "Hello Ada!"
  */
-export function compileTemplate(template: string, options: TemplateOptions = {}): CompiledTemplate {
+export function compileTemplate(
+  template: string,
+  options: TemplateOptions = {},
+): CompiledTemplate {
   const { nodes } = parseNodes(tokenize(template), { i: 0 });
   const filters = { ...builtinFilters, ...options.filters };
-  return (vars) => renderNodes(nodes, [{ data: vars, meta: {} }], options, filters);
+  return (vars) =>
+    renderNodes(nodes, [{ data: vars, meta: {} }], options, filters);
 }
 
 /**
@@ -170,7 +264,11 @@ export function compileTemplate(template: string, options: TemplateOptions = {})
  * @example templateutils.renderTemplate("{{#each xs}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}", { xs: [1, 2] }); // "1, 2"
  * @example templateutils.renderTemplate("<b>{{bio}}</b>", { bio: "<script>" }, { escape: true }); // "<b>&lt;script&gt;</b>"
  */
-export function renderTemplate(template: string, vars: Record<string, any>, options: TemplateOptions = {}): string {
+export function renderTemplate(
+  template: string,
+  vars: Record<string, any>,
+  options: TemplateOptions = {},
+): string {
   return compileTemplate(template, options)(vars);
 }
 
@@ -181,9 +279,18 @@ export function renderTemplate(template: string, vars: Record<string, any>, opti
 export function templateVariables(template: string): string[] {
   const seen = new Set<string>();
   for (const tok of tokenize(template)) {
-    if (typeof tok === "string" || tok.expr === "else" || tok.expr.startsWith("/")) continue;
-    const path = tok.expr.replace(/^#(?:if|unless|each)\s+/, "").split("|")[0]!.trim();
-    if (path !== "this" && !path.startsWith("this.") && !path.startsWith("@")) seen.add(path);
+    if (
+      typeof tok === "string" ||
+      tok.expr === "else" ||
+      tok.expr.startsWith("/")
+    )
+      continue;
+    const path = tok.expr
+      .replace(/^#(?:if|unless|each)\s+/, "")
+      .split("|")[0]!
+      .trim();
+    if (path !== "this" && !path.startsWith("this.") && !path.startsWith("@"))
+      seen.add(path);
   }
   return [...seen];
 }
@@ -194,7 +301,10 @@ function renderInlineMd(line: string): string {
     .replace(/\*\*([^*]+)\*\*/g, (_, t) => colors.bold(t))
     .replace(/~~([^~]+)~~/g, (_, t) => colorText(t, "9"))
     .replace(/(^|[^*])\*([^*]+)\*/g, (_, pre, t) => pre + colors.dim(t))
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, url) => `${colorText(text, "4")} ${colors.gray(`(${url})`)}`);
+    .replace(
+      /\[([^\]]+)\]\(([^)]+)\)/g,
+      (_, text, url) => `${colorText(text, "4")} ${colors.gray(`(${url})`)}`,
+    );
 }
 
 function renderBlockMd(line: string): string | null {
@@ -205,14 +315,21 @@ function renderBlockMd(line: string): string | null {
     if (lvl === 2) return colors.bold(colors.cyan(`\n-- ${text} --`));
     return colors.bold(colors.yellow(`${"   ".repeat(lvl - 2)}${text}`));
   }
-  if (/^\s*([-*_])(\s*\1){2,}\s*$/.test(line)) return colors.gray("─".repeat(40));
-  if (/^\s*>\s?/.test(line)) return colors.gray("│ ") + colors.dim(renderInlineMd(line.replace(/^\s*>\s?/, "")));
+  if (/^\s*([-*_])(\s*\1){2,}\s*$/.test(line))
+    return colors.gray("─".repeat(40));
+  if (/^\s*>\s?/.test(line))
+    return (
+      colors.gray("│ ") +
+      colors.dim(renderInlineMd(line.replace(/^\s*>\s?/, "")))
+    );
   const task = line.match(/^(\s*)[-*]\s+\[([ xX])\]\s+(.*)$/);
-  if (task) return `${task[1]} ${task[2] === " " ? "☐" : colors.green("☑")} ${renderInlineMd(task[3]!)}`;
+  if (task)
+    return `${task[1]} ${task[2] === " " ? "☐" : colors.green("☑")} ${renderInlineMd(task[3]!)}`;
   const bullet = line.match(/^(\s*)[-*+]\s+(.*)$/);
   if (bullet) return `${bullet[1]} • ${renderInlineMd(bullet[2]!)}`;
   const num = line.match(/^(\s*)(\d+)[.)]\s+(.*)$/);
-  if (num) return `${num[1]} ${colors.cyan(`${num[2]}.`)} ${renderInlineMd(num[3]!)}`;
+  if (num)
+    return `${num[1]} ${colors.cyan(`${num[2]}.`)} ${renderInlineMd(num[3]!)}`;
   return null;
 }
 

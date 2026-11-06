@@ -4,8 +4,11 @@ import { S, choose, dialogButton } from "./mysql_tutorial_helpers";
 /** Chapter 7: the visual query designer, the schema designer, the ENUM and SET manager, and the partition explorer. */
 export const designChapters: Chapter[] = [
   {
-    id: "08_design", chapter: "DESIGNERS", title: "Design queries and schemas visually",
-    blurb: "The visual query designer, schema designer and DDL, ENUM and SET types, and partition trees",
+    id: "08_design",
+    chapter: "DESIGNERS",
+    title: "Design queries and schemas visually",
+    blurb:
+      "The visual query designer, schema designer and DDL, ENUM and SET types, and partition trees",
     steps: [
       {
         cap: "Visual Query Designer: tables as cards",
@@ -50,8 +53,16 @@ export const designChapters: Chapter[] = [
         say: "The schema designer shows a table's structure: columns, types, key, not null, default, and the exact create table statement. Buttons add a column, an index, rename, import, export, empty or delete the table.",
         act: async (d) => {
           await d.click(S + "#tabBtnSchema", { pause: 1500 });
-          for (const b of ["button >> Add column", "button >> New index", "button >> Rename", "button >> Import data"]) await d.hover(S + b, 800);
-          await d.scroll(S + "#tabContentSchema, .tab-content.active, body", 400, 6).catch(() => {});
+          for (const b of [
+            "button >> Add column",
+            "button >> New index",
+            "button >> Rename",
+            "button >> Import data",
+          ])
+            await d.hover(S + b, 800);
+          await d
+            .scroll(S + "#tabContentSchema, .tab-content.active, body", 400, 6)
+            .catch(() => {});
           await d.wait(2500);
         },
       },
@@ -63,7 +74,10 @@ export const designChapters: Chapter[] = [
           await d.hover(S + "button >> Add Value", 900);
           await d.click(S + "button >> Add ENUM Column", { pause: 2000 });
           await d.wait(2500);
-          await d.c.evalFrame("iframe ||| iframe", `document.querySelector('.modal-overlay.active .modal-close, .modal-overlay[style*=flex] .modal-close')?.click()`);
+          await d.c.evalFrame(
+            "iframe ||| iframe",
+            `document.querySelector('.modal-overlay.active .modal-close, .modal-overlay[style*=flex] .modal-close')?.click()`,
+          );
           await d.wait(500);
         },
       },

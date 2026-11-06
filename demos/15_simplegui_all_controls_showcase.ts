@@ -1,6 +1,6 @@
 /**
  * ⚡ Bun RAD Studio Demo 15: SimpleGUI All Controls Showcase
- * 
+ *
  * Demonstrates:
  * - 30+ SimpleGUI controls in a single clean, beautifully aligned application
  * - Multi-column grid containers, cards, tables, tree views, code views, timers, badges, pickers
@@ -9,19 +9,28 @@
 
 import { simplegui } from "../index.ts";
 
-const win = simplegui.createWindow("SimpleGUI - All Controls Showcase", 920, 820, {
-    theme: "midnight"
-});
+const win = simplegui.createWindow(
+  "SimpleGUI - All Controls Showcase",
+  920,
+  820,
+  {
+    theme: "midnight",
+  },
+);
 
 // Title Header
-win.addLabel("⚡ SimpleGUI Complete Controls Suite")
-    .font(20, "#38bdf8", "700")
-    .width(880)
-    .height(32);
+win
+  .addLabel("⚡ SimpleGUI Complete Controls Suite")
+  .font(20, "#38bdf8", "700")
+  .width(880)
+  .height(32);
 
-win.addLabel("Comprehensive showcase of controls, layout containers, timers, and themes built with simplegui")
-    .font(12, "#94a3b8")
-    .width(880);
+win
+  .addLabel(
+    "Comprehensive showcase of controls, layout containers, timers, and themes built with simplegui",
+  )
+  .font(12, "#94a3b8")
+  .width(880);
 
 win.addDivider();
 
@@ -72,7 +81,10 @@ win.endRow();
 
 win.beginRow();
 win.addLabel("Segmented:").width(90);
-win.addSegmentedControl(["Day", "Week", "Month", "Year"], 1).id("segRange").width(260);
+win
+  .addSegmentedControl(["Day", "Week", "Month", "Year"], 1)
+  .id("segRange")
+  .width(260);
 win.endRow();
 
 win.beginRow();
@@ -96,14 +108,22 @@ win.beginRow();
 win.addBadge("SYSTEM ACTIVE", "success").width(120);
 win.addBadge("IPC CONNECTED", "info").width(120);
 win.addBadge("HIGH LOAD", "warning").width(110);
-const lblClock = win.addLabel("Clock: Initializing...").id("lblClock").font(13, "#38bdf8", "700").width(320);
+const lblClock = win
+  .addLabel("Clock: Initializing...")
+  .id("lblClock")
+  .font(13, "#38bdf8", "700")
+  .width(320);
 win.endRow();
 
 // Non-visual timer updating clock every 1 second
-win.addTimer(1000, (w) => {
+win.addTimer(
+  1000,
+  (w) => {
     const timeStr = new Date().toLocaleTimeString();
     w.setText("lblClock", `⏰ System Time: ${timeStr}`);
-}, { id: "clockTimer" });
+  },
+  { id: "clockTimer" },
+);
 
 win.endCard();
 
@@ -111,44 +131,67 @@ win.endCard();
 win.beginGrid(2, 16);
 
 win.beginCard("Data Table");
-win.addTable(
+win
+  .addTable(
     ["ID", "Name", "Role", "Status"],
     [
-        [1, "Alex Mercer", "Developer", "Active"],
-        [2, "Sarah Connor", "Architect", "Active"],
-        [3, "John Doe", "Designer", "Offline"]
-    ]
-).id("tblUsers").height(120);
+      [1, "Alex Mercer", "Developer", "Active"],
+      [2, "Sarah Connor", "Architect", "Active"],
+      [3, "John Doe", "Designer", "Offline"],
+    ],
+  )
+  .id("tblUsers")
+  .height(120);
 win.endCard();
 
 win.beginCard("Project Workspace Tree");
-win.addTreeView([
+win
+  .addTreeView([
     "Project Root",
     " 📂 src",
     "   📄 index.ts",
     "   📄 simplegui.ts",
     " 📂 tests",
-    "   📄 simplegui.test.ts"
-]).id("treeProject").height(120);
+    "   📄 simplegui.test.ts",
+  ])
+  .id("treeProject")
+  .height(120);
 win.endCard();
 
 win.endGrid();
 
 // Action Buttons Row
 win.beginRow();
-win.addButton("⚡ Action Dialog", (w) => {
+win
+  .addButton("⚡ Action Dialog", (w) => {
     w.showAlert("SimpleGUI makes native desktop apps easy!", "Information");
-}).bg("#0284c7").color("#ffffff").bold().width(160).height(38);
+  })
+  .bg("#0284c7")
+  .color("#ffffff")
+  .bold()
+  .width(160)
+  .height(38);
 
-win.addButton("📋 Copy Form JSON", (w) => {
+win
+  .addButton("📋 Copy Form JSON", (w) => {
     const json = JSON.stringify(w.getFormValues(), null, 2);
     w.copyToClipboard(json);
     w.showAlert("Form values copied to system clipboard!", "Clipboard Export");
-}).bg("#334155").color("#f8fafc").width(180).height(38);
+  })
+  .bg("#334155")
+  .color("#f8fafc")
+  .width(180)
+  .height(38);
 
-win.addButton("❌ Exit Application", (w) => {
+win
+  .addButton("❌ Exit Application", (w) => {
     w.exit();
-}).bg("#ef4444").color("#ffffff").bold().width(150).height(38);
+  })
+  .bg("#ef4444")
+  .color("#ffffff")
+  .bold()
+  .width(150)
+  .height(38);
 
 win.endRow();
 

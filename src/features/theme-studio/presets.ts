@@ -12,7 +12,8 @@ export const THEME_STUDIO_PRESETS: readonly ThemePreset[] = [
   {
     id: "obsidian-glass",
     name: "Obsidian Glass",
-    tagline: "Translucent dark frosted panels with electric sapphire and violet accents",
+    tagline:
+      "Translucent dark frosted panels with electric sapphire and violet accents",
     badge: "Dark • Glass",
     surface: {
       baseMode: "dark",
@@ -26,7 +27,8 @@ export const THEME_STUDIO_PRESETS: readonly ThemePreset[] = [
   {
     id: "cyber-midnight",
     name: "Cyberpunk Neon",
-    tagline: "OLED midnight cosmos with glowing cyan/magenta neon borders and compact HUD density",
+    tagline:
+      "OLED midnight cosmos with glowing cyan/magenta neon borders and compact HUD density",
     badge: "Midnight • Neon",
     surface: {
       baseMode: "midnight",
@@ -40,7 +42,8 @@ export const THEME_STUDIO_PRESETS: readonly ThemePreset[] = [
   {
     id: "arctic-daylight",
     name: "Arctic Daylight",
-    tagline: "Crisp daylight frosted glass with cobalt brand identity and airy spacing",
+    tagline:
+      "Crisp daylight frosted glass with cobalt brand identity and airy spacing",
     badge: "Light • Glass",
     surface: {
       baseMode: "light",
@@ -54,7 +57,8 @@ export const THEME_STUDIO_PRESETS: readonly ThemePreset[] = [
   {
     id: "monolith-matte",
     name: "Monolith Matte",
-    tagline: "Low-glare tactile dark slate with emerald primary and warm amber action tokens",
+    tagline:
+      "Low-glare tactile dark slate with emerald primary and warm amber action tokens",
     badge: "Dark • Matte",
     surface: {
       baseMode: "dark",
@@ -68,7 +72,8 @@ export const THEME_STUDIO_PRESETS: readonly ThemePreset[] = [
   {
     id: "swiss-editorial",
     name: "Swiss Editorial",
-    tagline: "Razor-sharp 0px brutalist geometry on warm alabaster paper with vermilion accents",
+    tagline:
+      "Razor-sharp 0px brutalist geometry on warm alabaster paper with vermilion accents",
     badge: "Light • Flat • 0px",
     surface: {
       baseMode: "light",
@@ -82,7 +87,8 @@ export const THEME_STUDIO_PRESETS: readonly ThemePreset[] = [
   {
     id: "aaa-sentinel",
     name: "AAA Sentinel",
-    tagline: "WCAG AAA high-contrast pitch black with hyper-legible sky & gold indicators",
+    tagline:
+      "WCAG AAA high-contrast pitch black with hyper-legible sky & gold indicators",
     badge: "High-Contrast • AAA",
     surface: {
       baseMode: "high-contrast",
@@ -96,7 +102,8 @@ export const THEME_STUDIO_PRESETS: readonly ThemePreset[] = [
   {
     id: "velvet-capsule",
     name: "Velvet Capsule",
-    tagline: "24px pill-shaped controls with lush rose & indigo tones in spacious layout",
+    tagline:
+      "24px pill-shaped controls with lush rose & indigo tones in spacious layout",
     badge: "Midnight • Pill 24px",
     surface: {
       baseMode: "midnight",
@@ -110,7 +117,8 @@ export const THEME_STUDIO_PRESETS: readonly ThemePreset[] = [
   {
     id: "nordic-studio",
     name: "Nordic Studio",
-    tagline: "Calm polar matte daylight with fjord teal brand accents and balanced rhythm",
+    tagline:
+      "Calm polar matte daylight with fjord teal brand accents and balanced rhythm",
     badge: "Light • Matte",
     surface: {
       baseMode: "light",
@@ -124,7 +132,8 @@ export const THEME_STUDIO_PRESETS: readonly ThemePreset[] = [
   {
     id: "omega-singularity",
     name: "Omega Singularity",
-    tagline: "Post-singularity cosmological midnight with 24K celestial gold and violet event-horizon glass",
+    tagline:
+      "Post-singularity cosmological midnight with 24K celestial gold and violet event-horizon glass",
     badge: "God-Mode • Midnight",
     surface: {
       baseMode: "midnight",
@@ -138,7 +147,8 @@ export const THEME_STUDIO_PRESETS: readonly ThemePreset[] = [
   {
     id: "photonic-3099",
     name: "3099 Photonic Crystal",
-    tagline: "Year 3099 negative-index photonic metamaterial glass with laser cyan and rose caustics",
+    tagline:
+      "Year 3099 negative-index photonic metamaterial glass with laser cyan and rose caustics",
     badge: "God-Mode • Glass",
     surface: {
       baseMode: "midnight",
@@ -152,7 +162,8 @@ export const THEME_STUDIO_PRESETS: readonly ThemePreset[] = [
   {
     id: "matrioshka-dyson",
     name: "Matrioshka Dyson Brain",
-    tagline: "Kardashev Type-II stellar megastructure OLED with incandescent solar amber and plasma teal borders",
+    tagline:
+      "Kardashev Type-II stellar megastructure OLED with incandescent solar amber and plasma teal borders",
     badge: "God-Mode • Neon",
     surface: {
       baseMode: "midnight",
@@ -166,7 +177,8 @@ export const THEME_STUDIO_PRESETS: readonly ThemePreset[] = [
   {
     id: "akashic-noosphere",
     name: "Akashic Noosphere",
-    tagline: "Planetary neural consciousness architecture with bioluminescent emerald and indigo synaptic glass",
+    tagline:
+      "Planetary neural consciousness architecture with bioluminescent emerald and indigo synaptic glass",
     badge: "God-Mode • Neural",
     surface: {
       baseMode: "dark",
@@ -180,7 +192,8 @@ export const THEME_STUDIO_PRESETS: readonly ThemePreset[] = [
   {
     id: "hyperborean-sanctum",
     name: "Hyperborean Sanctum",
-    tagline: "High-altitude crystalline daylight sanctum with celestial gold and cobalt sapphire glass",
+    tagline:
+      "High-altitude crystalline daylight sanctum with celestial gold and cobalt sapphire glass",
     badge: "God-Mode • Light",
     surface: {
       baseMode: "light",
@@ -194,7 +207,8 @@ export const THEME_STUDIO_PRESETS: readonly ThemePreset[] = [
   {
     id: "solarpunk-3000",
     name: "Year 3000 Solarpunk",
-    tagline: "Utopian sky-archology daylight bio-glass with living chlorophyll emerald and sunlit amber tokens",
+    tagline:
+      "Utopian sky-archology daylight bio-glass with living chlorophyll emerald and sunlit amber tokens",
     badge: "God-Mode • Bio-Light",
     surface: {
       baseMode: "light",

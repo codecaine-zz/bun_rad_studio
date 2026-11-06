@@ -10,7 +10,13 @@ import { defaultEditorHooks } from "./fmEditorHooks";
 import { createJobHub, type JobHub } from "./fmJobs";
 import { historyHooks } from "./fmOpHistory";
 import { defaultClipboard, type ClipboardHooks } from "./fmClipboard";
-import { FmError, isSameOrInside, platformName, protectedReason, type Platform } from "./fmPaths";
+import {
+  FmError,
+  isSameOrInside,
+  platformName,
+  protectedReason,
+  type Platform,
+} from "./fmPaths";
 import type { DatabasesHooks } from "./fmDbHooks";
 import type { SecretsHooks } from "./fmSecretsHooks";
 import type { GraveyardHooks } from "./fmGraveyardHooks";
@@ -25,7 +31,15 @@ export interface EditorHooks {
   /** The environment variables the editor choice looks at ($VISUAL and $EDITOR). */
   env: Record<string, string | undefined>;
   /** Starts the editor in the background (`Bun.openInEditor`); it can't tell afterwards whether it worked. */
-  open(path: string, options: { editor?: string; line?: number; column?: number; command?: string }): void;
+  open(
+    path: string,
+    options: {
+      editor?: string;
+      line?: number;
+      column?: number;
+      command?: string;
+    },
+  ): void;
 }
 
 /** Execution context for File Manager operations holding platform paths, Recycle Bin root, job hub, and injectable OS hooks. */
@@ -40,7 +54,11 @@ export interface FmContext {
   /** The Recycle Bin folder. Nothing in it may be changed except through the Recycle Bin functions. */
   trashRoot: string;
   /** Starts a program for "Open". Replaceable so tests never launch real applications. */
-  launch: (command: string, args: string[], options?: { windowsVerbatimArguments?: boolean }) => Promise<void>;
+  launch: (
+    command: string,
+    args: string[],
+    options?: { windowsVerbatimArguments?: boolean },
+  ) => Promise<void>;
   /** When set, helper programs (ffmpeg and so on) are only looked for in these folders. For tests. */
   toolDirs?: string[];
   /** Starting a code editor for "Open in editor". */
@@ -75,7 +93,8 @@ export interface FmContext {
       arch: string,
       onProgress: (step: string, pct: number) => void,
     ) => Promise<{ installedPath: string }>;
-    playAudioCommand?: string[] | ((wavPath: string, platform: string) => Promise<void>);
+    playAudioCommand?:
+      string[] | ((wavPath: string, platform: string) => Promise<void>);
   };
   /** Putting text and pictures on the system clipboard. Replaceable so tests never touch the real one. */
   clipboard: ClipboardHooks;
@@ -86,7 +105,10 @@ export interface FmContext {
 }
 
 /** One API operation: takes the JSON body and returns the JSON answer (or throws an FmError). */
-export type FmHandler = (ctx: FmContext, body: Record<string, any>) => Promise<unknown>;
+export type FmHandler = (
+  ctx: FmContext,
+  body: Record<string, any>,
+) => Promise<unknown>;
 
 /** Configuration and dependency-injection overrides for constructing an `FmContext`. */
 export interface FmContextOptions {
@@ -109,18 +131,24 @@ export interface FmContextOptions {
 }
 
 const isWinHostPath = (s?: string) =>
-  process.platform === "win32" && typeof s === "string" && (/^[A-Za-z]:[\\/]/.test(s) || s.startsWith("\\"));
+  process.platform === "win32" &&
+  typeof s === "string" &&
+  (/^[A-Za-z]:[\\/]/.test(s) || s.startsWith("\\"));
 
 /** Creates a new `FmContext` with resolved home/data/trash directories and default or custom subsystem hooks. */
 export function createContext(options: FmContextOptions = {}): FmContext {
   const platform = options.platform ?? platformName();
   const rawHome = options.home ?? homedir();
   const p =
-    platform === "win32" || isWinHostPath(rawHome) || isWinHostPath(options.dataDir)
+    platform === "win32" ||
+    isWinHostPath(rawHome) ||
+    isWinHostPath(options.dataDir)
       ? nodePath.win32
       : nodePath.posix;
   const home = p.resolve(rawHome);
-  const sandboxRoot = options.sandboxRoot ? p.resolve(options.sandboxRoot) : undefined;
+  const sandboxRoot = options.sandboxRoot
+    ? p.resolve(options.sandboxRoot)
+    : undefined;
   const dataDir = p.resolve(options.dataDir ?? p.join(home, ".bun_rad_studio"));
   return {
     platform,
@@ -130,12 +158,17 @@ export function createContext(options: FmContextOptions = {}): FmContext {
     trashRoot: p.join(dataDir, "file_manager_trash"),
     launch: options.launch ?? defaultLaunch,
     toolDirs: options.toolDirs,
-    editor: { ...defaultEditorHooks({ platform, home, toolDirs: options.toolDirs }), ...options.editor },
+    editor: {
+      ...defaultEditorHooks({ platform, home, toolDirs: options.toolDirs }),
+      ...options.editor,
+    },
     clipboard: { ...defaultClipboard(), ...options.clipboard },
     jobs: createJobHub(2, historyHooks({ dataDir })),
     secrets: options.secrets,
     databases: options.databases,
-    graveyardDir: options.graveyardDir ? p.resolve(options.graveyardDir) : undefined,
+    graveyardDir: options.graveyardDir
+      ? p.resolve(options.graveyardDir)
+      : undefined,
     graveyardHooks: options.graveyardHooks,
     subdomains: options.subdomains,
     tasks: options.tasks,
@@ -145,10 +178,19 @@ export function createContext(options: FmContextOptions = {}): FmContext {
   };
 }
 
-async function defaultLaunch(command: string, args: string[], options: { windowsVerbatimArguments?: boolean } = {}): Promise<void> {
+async function defaultLaunch(
+  command: string,
+  args: string[],
+  options: { windowsVerbatimArguments?: boolean } = {},
+): Promise<void> {
   const { spawn } = await import("child_process");
   await new Promise<void>((resolve, reject) => {
-    const child = spawn(command, args, { detached: true, stdio: "ignore", windowsHide: true, windowsVerbatimArguments: options.windowsVerbatimArguments });
+    const child = spawn(command, args, {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+      windowsVerbatimArguments: options.windowsVerbatimArguments,
+    });
     child.once("error", reject);
     child.once("spawn", () => {
       child.unref();
@@ -159,16 +201,26 @@ async function defaultLaunch(command: string, args: string[], options: { windows
 
 /** A path from a client: must be a non-empty string without null characters and absolute for this platform. */
 export function absolutePath(ctx: FmContext, input: unknown): string {
-  if (typeof input !== "string" || !input.trim()) throw new FmError("BAD_PATH", "No location was given.");
-  if (input.includes("\0")) throw new FmError("BAD_PATH", "That location isn't valid.");
-  const p = ctx.platform === "win32" || isWinHostPath(input) ? nodePath.win32 : nodePath.posix;
-  if (!p.isAbsolute(input)) throw new FmError("BAD_PATH", "That location isn't a full path.");
+  if (typeof input !== "string" || !input.trim())
+    throw new FmError("BAD_PATH", "No location was given.");
+  if (input.includes("\0"))
+    throw new FmError("BAD_PATH", "That location isn't valid.");
+  const p =
+    ctx.platform === "win32" || isWinHostPath(input)
+      ? nodePath.win32
+      : nodePath.posix;
+  if (!p.isAbsolute(input))
+    throw new FmError("BAD_PATH", "That location isn't a full path.");
   return p.resolve(input);
 }
 
 /** Returns `nodePath.win32` or `nodePath.posix` matching the context's target platform. */
-export function pathApi(ctx: Pick<FmContext, "platform"> & { home?: string; dataDir?: string }) {
-  return ctx.platform === "win32" || isWinHostPath(ctx.home) || isWinHostPath(ctx.dataDir)
+export function pathApi(
+  ctx: Pick<FmContext, "platform"> & { home?: string; dataDir?: string },
+) {
+  return ctx.platform === "win32" ||
+    isWinHostPath(ctx.home) ||
+    isWinHostPath(ctx.dataDir)
     ? nodePath.win32
     : nodePath.posix;
 }
@@ -194,7 +246,11 @@ function deepestRealPath(target: string): string | null {
 
 /** Throws an `FmError("PROTECTED")` if `target` (or its resolved real path) is a protected system, home, or Recycle Bin path. */
 export function assertModifiable(ctx: FmContext, target: string): void {
-  const reason = protectedReason(target, { platform: ctx.platform, home: ctx.home, extraProtected: [ctx.trashRoot] }, "modify");
+  const reason = protectedReason(
+    target,
+    { platform: ctx.platform, home: ctx.home, extraProtected: [ctx.trashRoot] },
+    "modify",
+  );
   if (reason) throw new FmError("PROTECTED", reason);
   if (ctx.platform === process.platform) {
     const p = pathApi(ctx);
@@ -203,7 +259,11 @@ export function assertModifiable(ctx: FmContext, target: string): void {
       const realTarget = p.join(parentReal, p.basename(target));
       const realHome = deepestRealPath(ctx.home) ?? ctx.home;
       const realTrash = deepestRealPath(ctx.trashRoot) ?? ctx.trashRoot;
-      const realReason = protectedReason(realTarget, { platform: ctx.platform, home: realHome, extraProtected: [realTrash] }, "modify");
+      const realReason = protectedReason(
+        realTarget,
+        { platform: ctx.platform, home: realHome, extraProtected: [realTrash] },
+        "modify",
+      );
       if (realReason) throw new FmError("PROTECTED", realReason);
     }
   }
@@ -211,14 +271,22 @@ export function assertModifiable(ctx: FmContext, target: string): void {
 
 /** Throws an `FmError("PROTECTED")` if new items may not be created inside `parent`. */
 export function assertCreatable(ctx: FmContext, parent: string): void {
-  const reason = protectedReason(parent, { platform: ctx.platform, home: ctx.home, extraProtected: [ctx.trashRoot] }, "create");
+  const reason = protectedReason(
+    parent,
+    { platform: ctx.platform, home: ctx.home, extraProtected: [ctx.trashRoot] },
+    "create",
+  );
   if (reason) throw new FmError("PROTECTED", reason);
   if (ctx.platform === process.platform) {
     const realParent = deepestRealPath(parent);
     if (realParent) {
       const realHome = deepestRealPath(ctx.home) ?? ctx.home;
       const realTrash = deepestRealPath(ctx.trashRoot) ?? ctx.trashRoot;
-      const realReason = protectedReason(realParent, { platform: ctx.platform, home: realHome, extraProtected: [realTrash] }, "create");
+      const realReason = protectedReason(
+        realParent,
+        { platform: ctx.platform, home: realHome, extraProtected: [realTrash] },
+        "create",
+      );
       if (realReason) throw new FmError("PROTECTED", realReason);
     }
   }
@@ -240,22 +308,36 @@ export async function exists(target: string): Promise<boolean> {
 }
 
 /** Verifies that `target` exists and is a directory, throwing a descriptive `FmError` otherwise. */
-export async function assertFolder(target: string, what = "That location"): Promise<void> {
+export async function assertFolder(
+  target: string,
+  what = "That location",
+): Promise<void> {
   let st: fs.Stats;
   try {
     st = await fsp.stat(target);
   } catch (err: any) {
-    if (err?.code === "ENOENT") throw new FmError("NOT_FOUND", `${what} doesn't exist.`);
+    if (err?.code === "ENOENT")
+      throw new FmError("NOT_FOUND", `${what} doesn't exist.`);
     throw err;
   }
-  if (!st.isDirectory()) throw new FmError("NOT_A_FOLDER", `${what} isn't a folder.`);
+  if (!st.isDirectory())
+    throw new FmError("NOT_A_FOLDER", `${what} isn't a folder.`);
 }
 
 /** Copies a file, folder or link. Links are copied as links (never followed), and nothing existing is overwritten. */
-export async function copyTree(source: string, destination: string): Promise<void> {
+export async function copyTree(
+  source: string,
+  destination: string,
+): Promise<void> {
   const st = await fsp.lstat(source);
   if (st.isDirectory()) {
-    await fsp.cp(source, destination, { recursive: true, verbatimSymlinks: true, preserveTimestamps: true, errorOnExist: true, force: false });
+    await fsp.cp(source, destination, {
+      recursive: true,
+      verbatimSymlinks: true,
+      preserveTimestamps: true,
+      errorOnExist: true,
+      force: false,
+    });
   } else if (st.isSymbolicLink()) {
     await fsp.symlink(await fsp.readlink(source), destination);
   } else {
@@ -265,7 +347,10 @@ export async function copyTree(source: string, destination: string): Promise<voi
 }
 
 /** Renames, or copies then removes when the two places are on different disks. Never overwrites on the copy path. */
-export async function moveTree(source: string, destination: string): Promise<void> {
+export async function moveTree(
+  source: string,
+  destination: string,
+): Promise<void> {
   try {
     await fsp.rename(source, destination);
     return;
@@ -277,7 +362,10 @@ export async function moveTree(source: string, destination: string): Promise<voi
     await fsp.rm(source, { recursive: true, force: false });
   } catch (err) {
     // The copy exists but the original could not be removed: keep both rather than lose data.
-    throw new FmError("PARTIAL_MOVE", "The item was copied to the new place, but the original could not be removed. Both copies still exist.");
+    throw new FmError(
+      "PARTIAL_MOVE",
+      "The item was copied to the new place, but the original could not be removed. Both copies still exist.",
+    );
   }
 }
 
@@ -292,20 +380,40 @@ export async function sameEntry(a: string, b: string): Promise<boolean> {
 }
 
 /** Throws an `FmError("INTO_ITSELF")` if moving or copying `source` into `destDir` would place a folder inside itself. */
-export function assertNotIntoItself(ctx: FmContext, source: string, destDir: string): void {
-  if (isSameOrInside(destDir, source, ctx.platform)) throw new FmError("INTO_ITSELF", "A folder can't be placed inside itself.");
+export function assertNotIntoItself(
+  ctx: FmContext,
+  source: string,
+  destDir: string,
+): void {
+  if (isSameOrInside(destDir, source, ctx.platform))
+    throw new FmError("INTO_ITSELF", "A folder can't be placed inside itself.");
   if (ctx.platform === process.platform) {
     const realSource = deepestRealPath(source);
     const realDest = deepestRealPath(destDir);
-    if (realSource && realDest && isSameOrInside(realDest, realSource, ctx.platform)) {
-      throw new FmError("INTO_ITSELF", "A folder can't be placed inside itself.");
+    if (
+      realSource &&
+      realDest &&
+      isSameOrInside(realDest, realSource, ctx.platform)
+    ) {
+      throw new FmError(
+        "INTO_ITSELF",
+        "A folder can't be placed inside itself.",
+      );
     }
   }
 }
 
 /** Runs `fn` for each item, collecting a result or a plain-language error per item, so one failure doesn't stop the rest. */
-export async function eachItem<T, R>(items: T[], fn: (item: T) => Promise<R>, describe: (err: unknown) => { code: string; message: string }): Promise<Array<{ ok: true; value: R } | { ok: false; code: string; message: string }>> {
-  const out: Array<{ ok: true; value: R } | { ok: false; code: string; message: string }> = [];
+export async function eachItem<T, R>(
+  items: T[],
+  fn: (item: T) => Promise<R>,
+  describe: (err: unknown) => { code: string; message: string },
+): Promise<
+  Array<{ ok: true; value: R } | { ok: false; code: string; message: string }>
+> {
+  const out: Array<
+    { ok: true; value: R } | { ok: false; code: string; message: string }
+  > = [];
   for (const item of items) {
     try {
       out.push({ ok: true, value: await fn(item) });
@@ -317,4 +425,5 @@ export async function eachItem<T, R>(items: T[], fn: (item: T) => Promise<R>, de
 }
 
 /** Yields to the event loop, so long scans don't freeze the server. */
-export const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+export const tick = () =>
+  new Promise<void>((resolve) => setTimeout(resolve, 0));

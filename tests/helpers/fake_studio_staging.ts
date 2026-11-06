@@ -10,13 +10,23 @@ const server = Bun.serve({
   hostname: "127.0.0.1",
   async fetch(req) {
     const url = new URL(req.url);
-    if (url.pathname === "/__env") return Response.json({ env: process.env, args: process.argv.slice(2), pid: process.pid });
+    if (url.pathname === "/__env")
+      return Response.json({
+        env: process.env,
+        args: process.argv.slice(2),
+        pid: process.pid,
+      });
     if (url.pathname === "/__grants") return Response.json(grants);
     if (url.pathname === "/api/staging/grant" && req.method === "POST") {
-      grants.push({ secret: req.headers.get("x-staging-grant"), body: await req.json().catch(() => null) });
+      grants.push({
+        secret: req.headers.get("x-staging-grant"),
+        body: await req.json().catch(() => null),
+      });
       return Response.json({ ok: true });
     }
-    return new Response("<!doctype html><title>fake studio</title>", { headers: { "Content-Type": "text/html; charset=utf-8" } });
+    return new Response("<!doctype html><title>fake studio</title>", {
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
   },
 });
 console.log(`READY:${server.port}`);

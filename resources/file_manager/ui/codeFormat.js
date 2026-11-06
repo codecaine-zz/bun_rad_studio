@@ -10,8 +10,10 @@ const ESCAPES = new Set(['"', "\\", "/", "b", "f", "n", "r", "t"]);
 /** Splits JSON text into tokens [{ kind, raw, at }], or explains the first mistake. */
 function jsonTokens(text) {
   const tokens = [];
-  const bad = (at, message) => ({ error: { message, at, ...lineCol(text, at) } });
-  for (let i = 0; i < text.length; ) {
+  const bad = (at, message) => ({
+    error: { message, at, ...lineCol(text, at) },
+  });
+  for (let i = 0; i < text.length;) {
     const c = text[i];
     if (c === " " || c === "\t" || c === "\n" || c === "\r") i++;
     else if ("{}[],:".includes(c)) {
@@ -21,25 +23,42 @@ function jsonTokens(text) {
       let j = i + 1;
       for (; j < text.length && text[j] !== '"'; j++) {
         const d = text[j];
-        if (d === "\n" || d === "\r" || d < " ") return bad(j, "A string can't contain a line break or other control characters.");
+        if (d === "\n" || d === "\r" || d < " ")
+          return bad(
+            j,
+            "A string can't contain a line break or other control characters.",
+          );
         if (d === "\\") {
           const e = text[j + 1];
           if (e === "u") {
-            if (!/^[0-9a-fA-F]{4}$/.test(text.slice(j + 2, j + 6))) return bad(j, "\\u must be followed by four hex digits.");
+            if (!/^[0-9a-fA-F]{4}$/.test(text.slice(j + 2, j + 6)))
+              return bad(j, "\\u must be followed by four hex digits.");
             j += 5;
           } else if (ESCAPES.has(e)) j++;
-          else return bad(j, "That backslash isn't followed by a valid escape.");
+          else
+            return bad(j, "That backslash isn't followed by a valid escape.");
         }
       }
-      if (j >= text.length) return bad(i, "This string never ends (a closing quote is missing).");
+      if (j >= text.length)
+        return bad(i, "This string never ends (a closing quote is missing).");
       tokens.push({ kind: "string", raw: text.slice(i, j + 1), at: i });
       i = j + 1;
     } else {
       let j = i;
-      while (j < text.length && !" \t\r\n{}[],:\"".includes(text[j])) j++;
+      while (j < text.length && !' \t\r\n{}[],:"'.includes(text[j])) j++;
       const raw = text.slice(i, j);
-      if (!(NUMBER.test(raw) || raw === "true" || raw === "false" || raw === "null")) {
-        const hint = raw.startsWith("//") || raw.startsWith("/*") ? " JSON doesn't allow comments." : raw.startsWith("'") ? " JSON needs double quotes (\") around text." : "";
+      if (!(
+        NUMBER.test(raw) ||
+        raw === "true" ||
+        raw === "false" ||
+        raw === "null"
+      )) {
+        const hint =
+          raw.startsWith("//") || raw.startsWith("/*")
+            ? " JSON doesn't allow comments."
+            : raw.startsWith("'")
+              ? ' JSON needs double quotes (") around text.'
+              : "";
         return bad(i, `"${raw.slice(0, 20)}" isn't valid JSON here.${hint}`);
       }
       tokens.push({ kind: "value", raw, at: i });
@@ -51,30 +70,80 @@ function jsonTokens(text) {
 
 /** Checks the order of the tokens (values, keys, commas) with a small state machine. */
 function checkJson(text, tokens) {
-  const bad = (t, message) => ({ error: { message, at: t?.at ?? text.length, ...lineCol(text, t?.at ?? text.length) } });
+  const bad = (t, message) => ({
+    error: {
+      message,
+      at: t?.at ?? text.length,
+      ...lineCol(text, t?.at ?? text.length),
+    },
+  });
   const stack = [];
   let expect = "value"; // value | valueOrEnd | keyOrEnd | key | colon | commaOrEnd | done
-  const describe = (t) => (t ? `"${t.raw.slice(0, 20)}"` : "the end of the text");
+  const describe = (t) =>
+    t ? `"${t.raw.slice(0, 20)}"` : "the end of the text";
   for (const t of tokens) {
-    const isValue = t.kind === "string" || t.kind === "value" || t.kind === "{" || t.kind === "[";
-    if (expect === "done") return bad(t, "There is extra text after the end of the JSON.");
+    const isValue =
+      t.kind === "string" ||
+      t.kind === "value" ||
+      t.kind === "{" ||
+      t.kind === "[";
+    if (expect === "done")
+      return bad(t, "There is extra text after the end of the JSON.");
     if (expect === "value" || expect === "valueOrEnd") {
-      if (expect === "valueOrEnd" && t.kind === "]") { stack.pop(); expect = stack.length ? "commaOrEnd" : "done"; continue; }
-      if (!isValue) return bad(t, `A value was expected here, not ${describe(t)}.`);
-      if (t.kind === "{") { stack.push("{"); expect = "keyOrEnd"; } else if (t.kind === "[") { stack.push("["); expect = "valueOrEnd"; } else expect = stack.length ? "commaOrEnd" : "done";
+      if (expect === "valueOrEnd" && t.kind === "]") {
+        stack.pop();
+        expect = stack.length ? "commaOrEnd" : "done";
+        continue;
+      }
+      if (!isValue)
+        return bad(t, `A value was expected here, not ${describe(t)}.`);
+      if (t.kind === "{") {
+        stack.push("{");
+        expect = "keyOrEnd";
+      } else if (t.kind === "[") {
+        stack.push("[");
+        expect = "valueOrEnd";
+      } else expect = stack.length ? "commaOrEnd" : "done";
     } else if (expect === "keyOrEnd" || expect === "key") {
-      if (t.kind === "}" && expect === "keyOrEnd") { stack.pop(); expect = stack.length ? "commaOrEnd" : "done"; } else if (t.kind === "string") expect = "colon";
-      else return bad(t, `A key in "double quotes" was expected here, not ${describe(t)}.`);
+      if (t.kind === "}" && expect === "keyOrEnd") {
+        stack.pop();
+        expect = stack.length ? "commaOrEnd" : "done";
+      } else if (t.kind === "string") expect = "colon";
+      else
+        return bad(
+          t,
+          `A key in "double quotes" was expected here, not ${describe(t)}.`,
+        );
     } else if (expect === "colon") {
-      if (t.kind !== ":") return bad(t, `A colon (:) was expected after the key, not ${describe(t)}.`);
+      if (t.kind !== ":")
+        return bad(
+          t,
+          `A colon (:) was expected after the key, not ${describe(t)}.`,
+        );
       expect = "value";
     } else if (expect === "commaOrEnd") {
       const open = stack[stack.length - 1];
       if (t.kind === ",") expect = open === "{" ? "key" : "value";
-      else if ((t.kind === "}" && open === "{") || (t.kind === "]" && open === "[")) { stack.pop(); expect = stack.length ? "commaOrEnd" : "done"; } else return bad(t, `A comma or a closing bracket was expected here, not ${describe(t)}.`);
+      else if (
+        (t.kind === "}" && open === "{") ||
+        (t.kind === "]" && open === "[")
+      ) {
+        stack.pop();
+        expect = stack.length ? "commaOrEnd" : "done";
+      } else
+        return bad(
+          t,
+          `A comma or a closing bracket was expected here, not ${describe(t)}.`,
+        );
     }
   }
-  if (expect !== "done") return bad(null, tokens.length ? "The JSON ends too soon (something isn't closed)." : "There is no JSON here.");
+  if (expect !== "done")
+    return bad(
+      null,
+      tokens.length
+        ? "The JSON ends too soon (something isn't closed)."
+        : "There is no JSON here.",
+    );
   return null;
 }
 
@@ -92,8 +161,12 @@ export function formatJson(text, unit = "  ") {
     const next = tokens[k + 1];
     if (t.kind === "{" || t.kind === "[") {
       out.push(t.raw);
-      if (next && (next.kind === "}" || next.kind === "]")) { out.push(next.raw); k++; } else out.push("\n", unit.repeat(++depth));
-    } else if (t.kind === "}" || t.kind === "]") out.push("\n", unit.repeat(--depth), t.raw);
+      if (next && (next.kind === "}" || next.kind === "]")) {
+        out.push(next.raw);
+        k++;
+      } else out.push("\n", unit.repeat(++depth));
+    } else if (t.kind === "}" || t.kind === "]")
+      out.push("\n", unit.repeat(--depth), t.raw);
     else if (t.kind === ",") out.push(",\n", unit.repeat(depth));
     else if (t.kind === ":") out.push(": ");
     else out.push(t.raw);
@@ -106,7 +179,10 @@ export function minifyJson(text) {
   if (lexed.error) return lexed;
   const bad = checkJson(text, lexed.tokens);
   if (bad) return bad;
-  return { text: lexed.tokens.map((t) => t.raw).join("") + (/\n$/.test(text) ? "\n" : "") };
+  return {
+    text:
+      lexed.tokens.map((t) => t.raw).join("") + (/\n$/.test(text) ? "\n" : ""),
+  };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -116,12 +192,16 @@ export function minifyJson(text) {
 /** Walks CSS text and calls `on(kind, text)` for "string", "comment" and "code" pieces, so tools never touch strings or comments. */
 function cssPieces(text, on) {
   let code = "";
-  const flush = () => { if (code) on("code", code); code = ""; };
-  for (let i = 0; i < text.length; ) {
+  const flush = () => {
+    if (code) on("code", code);
+    code = "";
+  };
+  for (let i = 0; i < text.length;) {
     const c = text[i];
     if (c === '"' || c === "'") {
       let j = i + 1;
-      while (j < text.length && text[j] !== c && text[j] !== "\n") j += text[j] === "\\" ? 2 : 1;
+      while (j < text.length && text[j] !== c && text[j] !== "\n")
+        j += text[j] === "\\" ? 2 : 1;
       flush();
       on("string", text.slice(i, Math.min(text.length, j + 1)));
       i = Math.min(text.length, j + 1);
@@ -139,7 +219,13 @@ function cssPieces(text, on) {
 }
 
 export function minifyCss(text) {
-  if (/[\ue000\ue001]/.test(text)) return { error: { message: "This file has unusual private-use characters, so it can't be minified safely." } };
+  if (/[\ue000\ue001]/.test(text))
+    return {
+      error: {
+        message:
+          "This file has unusual private-use characters, so it can't be minified safely.",
+      },
+    };
   // strings and /*! */ comments are set aside while the rest is squeezed, then put back
   const kept = [];
   let code = "";
@@ -148,8 +234,15 @@ export function minifyCss(text) {
     else if (kind === "comment" && !piece.startsWith("/*!")) code += " ";
     else code += `\ue000${kept.push(piece) - 1}\ue001`;
   });
-  const squeezed = code.replace(/\s+/g, " ").replace(/\s*([{};,>])\s*/g, "$1").replace(/:\s+/g, ":").replace(/;}/g, "}").trim();
-  return { text: squeezed.replace(/\ue000(\d+)\ue001/g, (_, n) => kept[Number(n)]) };
+  const squeezed = code
+    .replace(/\s+/g, " ")
+    .replace(/\s*([{};,>])\s*/g, "$1")
+    .replace(/:\s+/g, ":")
+    .replace(/;}/g, "}")
+    .trim();
+  return {
+    text: squeezed.replace(/\ue000(\d+)\ue001/g, (_, n) => kept[Number(n)]),
+  };
 }
 
 export function formatCss(text, unit = "  ") {
@@ -157,26 +250,59 @@ export function formatCss(text, unit = "  ") {
   let depth = 0;
   let paren = 0;
   let lineHasText = false;
-  const nl = () => { out = out.replace(/[ \t]+$/, ""); if (!out.endsWith("\n")) out += "\n"; lineHasText = false; };
-  const put = (s) => { if (!lineHasText) { out += unit.repeat(depth); lineHasText = true; } out += s; };
+  const nl = () => {
+    out = out.replace(/[ \t]+$/, "");
+    if (!out.endsWith("\n")) out += "\n";
+    lineHasText = false;
+  };
+  const put = (s) => {
+    if (!lineHasText) {
+      out += unit.repeat(depth);
+      lineHasText = true;
+    }
+    out += s;
+  };
   cssPieces(text, (kind, piece) => {
     if (kind === "string") return put(piece);
-    if (kind === "comment") { if (lineHasText) nl(); put(piece); return nl(); }
+    if (kind === "comment") {
+      if (lineHasText) nl();
+      put(piece);
+      return nl();
+    }
     const s = piece.replace(/\s+/g, " ");
     for (let i = 0; i < s.length; i++) {
       const c = s[i];
-      if (c === "(") { paren++; put(c); } else if (c === ")") { paren = Math.max(0, paren - 1); put(c); }
-      else if (paren > 0) put(c === " " && !lineHasText ? "" : c);
-      else if (c === "{") { put(out.endsWith(" ") || !lineHasText ? "{" : " {"); depth++; nl(); }
-      else if (c === "}") { if (lineHasText) nl(); depth = Math.max(0, depth - 1); put("}"); nl(); if (depth === 0) out += "\n"; }
-      else if (c === ";") { put(";"); nl(); }
-      else if (c === ",") { put(", "); }
-      else if (c === " ") { if (lineHasText && !out.endsWith(" ")) out += " "; }
-      else if (c === ":" && depth > 0) {
+      if (c === "(") {
+        paren++;
+        put(c);
+      } else if (c === ")") {
+        paren = Math.max(0, paren - 1);
+        put(c);
+      } else if (paren > 0) put(c === " " && !lineHasText ? "" : c);
+      else if (c === "{") {
+        put(out.endsWith(" ") || !lineHasText ? "{" : " {");
+        depth++;
+        nl();
+      } else if (c === "}") {
+        if (lineHasText) nl();
+        depth = Math.max(0, depth - 1);
+        put("}");
+        nl();
+        if (depth === 0) out += "\n";
+      } else if (c === ";") {
+        put(";");
+        nl();
+      } else if (c === ",") {
+        put(", ");
+      } else if (c === " ") {
+        if (lineHasText && !out.endsWith(" ")) out += " ";
+      } else if (c === ":" && depth > 0) {
         const rest = s.slice(i + 1);
         const stop = rest.search(/[;{}]/);
         const isSelector = stop >= 0 && rest[stop] === "{";
-        put(isSelector || rest.startsWith(":") || s[i - 1] === ":" ? ":" : ": ");
+        put(
+          isSelector || rest.startsWith(":") || s[i - 1] === ":" ? ":" : ": ",
+        );
         if (!isSelector && !rest.startsWith(":") && rest.startsWith(" ")) i++;
       } else put(c);
     }
@@ -203,7 +329,10 @@ export function reindentCode(text, lang, unit = "  ") {
     }
     const trimmed = line.trim();
     if (!trimmed) return "";
-    const { delta, leadingClosers } = countBrackets(tokenizeLine(lang, trimmed, "").tokens, false);
+    const { delta, leadingClosers } = countBrackets(
+      tokenizeLine(lang, trimmed, "").tokens,
+      false,
+    );
     const level = Math.max(0, depth - leadingClosers);
     depth = Math.max(0, depth + delta);
     return unit.repeat(level) + trimmed;
@@ -221,23 +350,48 @@ function countBrackets(tokens, skipLeading) {
       continue;
     }
     for (const ch of t.text) {
-      if (ch === "{" || ch === "(" || ch === "[") { delta++; leading = false; }
-      else if (ch === "}" || ch === ")" || ch === "]") { delta--; if (leading) leadingClosers++; }
-      else if (ch !== " " && ch !== "\t") leading = false;
+      if (ch === "{" || ch === "(" || ch === "[") {
+        delta++;
+        leading = false;
+      } else if (ch === "}" || ch === ")" || ch === "]") {
+        delta--;
+        if (leading) leadingClosers++;
+      } else if (ch !== " " && ch !== "\t") leading = false;
     }
   }
   return { delta, leadingClosers };
 }
 
-const C_FAMILY = new Set(["javascript", "typescript", "java", "c", "cpp", "csharp", "go", "rust", "php", "kotlin", "swift"]);
+const C_FAMILY = new Set([
+  "javascript",
+  "typescript",
+  "java",
+  "c",
+  "cpp",
+  "csharp",
+  "go",
+  "rust",
+  "php",
+  "kotlin",
+  "swift",
+]);
 
 /** Formats text for a language. { text } on success, { error } for a mistake in the text, { message } when it can't be done. */
 export function formatCode(lang, text, unit = "  ") {
   if (lang === "json") return formatJson(text, unit);
   if (lang === "css") return formatCss(text, unit);
-  if (lang === "html" || lang === "xml") return formatHtml(text, unit, (css) => formatCss(css, unit), (code) => reindentCode(code, "javascript", unit));
+  if (lang === "html" || lang === "xml")
+    return formatHtml(
+      text,
+      unit,
+      (css) => formatCss(css, unit),
+      (code) => reindentCode(code, "javascript", unit),
+    );
   if (C_FAMILY.has(lang)) return reindentCode(text, lang, unit);
-  return { message: "Formatting isn't available for this kind of file. It works for JSON, CSS, HTML, XML and C-style languages such as JavaScript." };
+  return {
+    message:
+      "Formatting isn't available for this kind of file. It works for JSON, CSS, HTML, XML and C-style languages such as JavaScript.",
+  };
 }
 
 export function minifyCode(lang, text) {

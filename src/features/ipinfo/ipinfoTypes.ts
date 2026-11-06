@@ -60,5 +60,3 @@ export interface IpInfoOptions {
   bulkFile?: string;
   local?: boolean;
 }
-
-

@@ -58,7 +58,30 @@ export async function ensureLedger(db: StageDb): Promise<void> {
   ensured.add(db);
 }
 
-const COLS = ["batch_id", "created_at", "source_name", "target_table", "new_table", "staging_table", "mode", "status", "rows_total", "rows_valid", "rows_invalid", "rows_duplicate", "rows_inserted", "rows_updated", "rows_skipped", "promoted_at", "undone_at", "dropped_at", "undoable", "undo_note", "config_json", "note"];
+const COLS = [
+  "batch_id",
+  "created_at",
+  "source_name",
+  "target_table",
+  "new_table",
+  "staging_table",
+  "mode",
+  "status",
+  "rows_total",
+  "rows_valid",
+  "rows_invalid",
+  "rows_duplicate",
+  "rows_inserted",
+  "rows_updated",
+  "rows_skipped",
+  "promoted_at",
+  "undone_at",
+  "dropped_at",
+  "undoable",
+  "undo_note",
+  "config_json",
+  "note",
+];
 
 const n = (v: unknown) => Number(v ?? 0);
 const s = (v: unknown) => (v === null || v === undefined ? null : String(v));
@@ -97,12 +120,46 @@ function toRecord(r: Record<string, any>): BatchRecord {
 }
 
 /** Inserts a new batch record into the `_import_batches` ledger table. */
-export async function insertBatch(db: StageDb, c: StageConn, rec: BatchRecord): Promise<void> {
+export async function insertBatch(
+  db: StageDb,
+  c: StageConn,
+  rec: BatchRecord,
+): Promise<void> {
   const p = new Params(db.engine);
-  const vals = [rec.batchId, rec.createdAt, rec.sourceName, rec.targetTable, rec.newTable ? 1 : 0, rec.stagingTable, rec.mode, rec.status, rec.rowsTotal, rec.rowsValid, rec.rowsInvalid, rec.rowsDuplicate, rec.rowsInserted, rec.rowsUpdated, rec.rowsSkipped, rec.promotedAt, rec.undoneAt, rec.droppedAt, rec.undoable ? 1 : 0, rec.undoNote, rec.config === null || rec.config === undefined ? null : JSON.stringify(rec.config), rec.note];
-  const marks = vals.map((v, i) => p.add(v, typeof v === "number" ? "bigint" : "text"));
+  const vals = [
+    rec.batchId,
+    rec.createdAt,
+    rec.sourceName,
+    rec.targetTable,
+    rec.newTable ? 1 : 0,
+    rec.stagingTable,
+    rec.mode,
+    rec.status,
+    rec.rowsTotal,
+    rec.rowsValid,
+    rec.rowsInvalid,
+    rec.rowsDuplicate,
+    rec.rowsInserted,
+    rec.rowsUpdated,
+    rec.rowsSkipped,
+    rec.promotedAt,
+    rec.undoneAt,
+    rec.droppedAt,
+    rec.undoable ? 1 : 0,
+    rec.undoNote,
+    rec.config === null || rec.config === undefined
+      ? null
+      : JSON.stringify(rec.config),
+    rec.note,
+  ];
+  const marks = vals.map((v, i) =>
+    p.add(v, typeof v === "number" ? "bigint" : "text"),
+  );
   void marks;
-  await c.query(`INSERT INTO ${refOf(db, LEDGER)} (${COLS.map((x) => q(db.engine, x)).join(", ")}) VALUES (${marks.join(", ")})`, p.values);
+  await c.query(
+    `INSERT INTO ${refOf(db, LEDGER)} (${COLS.map((x) => q(db.engine, x)).join(", ")}) VALUES (${marks.join(", ")})`,
+    p.values,
+  );
 }
 
 const FIELD: Record<string, string> = {
@@ -126,36 +183,73 @@ const FIELD: Record<string, string> = {
 };
 
 /** Updates selected fields of an existing batch record in `_import_batches`. */
-export async function updateBatch(db: StageDb, c: StageConn, batchId: string, patch: Partial<Omit<BatchRecord, "batchId">>): Promise<void> {
+export async function updateBatch(
+  db: StageDb,
+  c: StageConn,
+  batchId: string,
+  patch: Partial<Omit<BatchRecord, "batchId">>,
+): Promise<void> {
   const p = new Params(db.engine);
   const sets: string[] = [];
   for (const [k, v] of Object.entries(patch)) {
     const col = FIELD[k];
     if (!col) continue;
-    const val = k === "config" ? (v === null ? null : JSON.stringify(v)) : k === "undoable" ? (v ? 1 : 0) : v;
-    sets.push(`${q(db.engine, col)} = ${p.add(val, typeof val === "number" ? "bigint" : "text")}`);
+    const val =
+      k === "config"
+        ? v === null
+          ? null
+          : JSON.stringify(v)
+        : k === "undoable"
+          ? v
+            ? 1
+            : 0
+          : v;
+    sets.push(
+      `${q(db.engine, col)} = ${p.add(val, typeof val === "number" ? "bigint" : "text")}`,
+    );
   }
   if (!sets.length) return;
   const idp = p.add(batchId, "text");
-  await c.query(`UPDATE ${refOf(db, LEDGER)} SET ${sets.join(", ")} WHERE ${q(db.engine, "batch_id")} = ${idp}`, p.values);
+  await c.query(
+    `UPDATE ${refOf(db, LEDGER)} SET ${sets.join(", ")} WHERE ${q(db.engine, "batch_id")} = ${idp}`,
+    p.values,
+  );
 }
 
 /** Fetches a single batch record by ID from `_import_batches`, or returns `null` if not found. */
-export async function getBatch(db: StageDb, batchId: string): Promise<BatchRecord | null> {
+export async function getBatch(
+  db: StageDb,
+  batchId: string,
+): Promise<BatchRecord | null> {
   await ensureLedger(db);
   const p = new Params(db.engine);
-  const r = await runOnce(db, `SELECT * FROM ${refOf(db, LEDGER)} WHERE ${q(db.engine, "batch_id")} = ${p.add(batchId, "text")}`, p.values);
+  const r = await runOnce(
+    db,
+    `SELECT * FROM ${refOf(db, LEDGER)} WHERE ${q(db.engine, "batch_id")} = ${p.add(batchId, "text")}`,
+    p.values,
+  );
   return r.rows[0] ? toRecord(r.rows[0]) : null;
 }
 
 /** Lists all import batch records in `_import_batches` ordered newest first. */
 export async function listBatches(db: StageDb): Promise<BatchRecord[]> {
   await ensureLedger(db);
-  const r = await runOnce(db, `SELECT * FROM ${refOf(db, LEDGER)} ORDER BY ${q(db.engine, "created_at")} DESC, ${q(db.engine, "batch_id")} DESC`);
+  const r = await runOnce(
+    db,
+    `SELECT * FROM ${refOf(db, LEDGER)} ORDER BY ${q(db.engine, "created_at")} DESC, ${q(db.engine, "batch_id")} DESC`,
+  );
   return r.rows.map(toRecord);
 }
 
 /** Column names of the `_import_batch_changes` undo-tracking table. */
-export const CHANGE_COLS = { id: "change_id", batch: "batch_id", action: "action", ref: "ref_row_id", pk: "pk_json", before: "before_json", after: "after_hash" } as const;
+export const CHANGE_COLS = {
+  id: "change_id",
+  batch: "batch_id",
+  action: "action",
+  ref: "ref_row_id",
+  pk: "pk_json",
+  before: "before_json",
+  after: "after_hash",
+} as const;
 
 export { CHANGES };

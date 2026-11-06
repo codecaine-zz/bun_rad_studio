@@ -16,20 +16,29 @@
  *   name:field    its name attribute
  *   .class        one of its classes
  *
-* The matching code (`helpMatch.ts`) and the in-page code (`helpEngine.ts`) are ordinary functions. They are copied as source into the page, and the tests
+ * The matching code (`helpMatch.ts`) and the in-page code (`helpEngine.ts`) are ordinary functions. They are copied as source into the page, and the tests
  * run the very same functions on each app's generated HTML, so what the tests check is what the user gets.
  */
 import { HELP_TIPS } from "./help";
 
 import { runHelpEngine } from "./helpEngine";
-import { INTERACTIVE_SELECTOR, matchTip, normalizeLabel, type ElementInfo, type HelpTips } from "./helpMatch";
+import {
+  INTERACTIVE_SELECTOR,
+  matchTip,
+  normalizeLabel,
+  type ElementInfo,
+  type HelpTips,
+} from "./helpMatch";
 
 export { INTERACTIVE_SELECTOR, matchTip, normalizeLabel };
 export type { ElementInfo, HelpTips };
 
 /** The script text for one app's page. */
 export function helpScript(tips: HelpTips): string {
-  const json = JSON.stringify(tips).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
+  const json = JSON.stringify(tips)
+    .replace(/</g, "\\u003c")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
   return `<script>(function(){\n${normalizeLabel.toString()}\n${matchTip.toString()}\n${runHelpEngine.toString()}\nrunHelpEngine(${json}, ${JSON.stringify(INTERACTIVE_SELECTOR)});\n})();</script>`;
 }
 

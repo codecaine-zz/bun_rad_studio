@@ -4,9 +4,19 @@
 //   const host = await hostApp(() => createPongStudio({ fullscreen: false }));
 //   host.url          // open this in Chrome
 //   host.stop();
-import { createHostedHub, hostedPage, HostedSession } from "../../src/simplegui_host";
+import {
+  createHostedHub,
+  hostedPage,
+  HostedSession,
+} from "../../src/simplegui_host";
 import type { SimpleWindow } from "../../src/simplegui";
-import { exportProjectHelper, getIdeHtml, saveDraftHelper, loadDraftHelper, clearDraftHelper } from "../../index";
+import {
+  exportProjectHelper,
+  getIdeHtml,
+  saveDraftHelper,
+  loadDraftHelper,
+  clearDraftHelper,
+} from "../../index";
 import { generatePreviewHtml } from "../../index";
 import { injectHelp } from "../../src/shared/helpTips";
 
@@ -23,8 +33,14 @@ function serve(session: HostedSession, onStop: () => void): HostedApp {
     hostname: "127.0.0.1",
     fetch(req, srv) {
       const url = new URL(req.url);
-      if (url.pathname === "/ws") return srv.upgrade(req, { data: {} }) ? undefined : new Response("websocket only", { status: 426 });
-      if (url.pathname === "/") return new Response(hostedPage(session, `ws://${url.host}/ws`), { headers: { "Content-Type": "text/html; charset=utf-8" } });
+      if (url.pathname === "/ws")
+        return srv.upgrade(req, { data: {} })
+          ? undefined
+          : new Response("websocket only", { status: 426 });
+      if (url.pathname === "/")
+        return new Response(hostedPage(session, `ws://${url.host}/ws`), {
+          headers: { "Content-Type": "text/html; charset=utf-8" },
+        });
       return new Response("Not Found", { status: 404 });
     },
     websocket: {
@@ -33,17 +49,28 @@ function serve(session: HostedSession, onStop: () => void): HostedApp {
         session.attach(ws.data.peer);
       },
       message(ws, m) {
-        if (typeof m === "string" && ws.data.peer) void session.handleMessage(ws.data.peer, m);
+        if (typeof m === "string" && ws.data.peer)
+          void session.handleMessage(ws.data.peer, m);
       },
       close(ws) {
         if (ws.data.peer) session.detach(ws.data.peer);
       },
     },
   });
-  return { url: `http://127.0.0.1:${server.port}/`, session, stop: () => { onStop(); server.stop(true); } };
+  return {
+    url: `http://127.0.0.1:${server.port}/`,
+    session,
+    stop: () => {
+      onStop();
+      server.stop(true);
+    },
+  };
 }
 
-export async function hostApp(create: () => SimpleWindow | Promise<SimpleWindow>, key = "app"): Promise<HostedApp> {
+export async function hostApp(
+  create: () => SimpleWindow | Promise<SimpleWindow>,
+  key = "app",
+): Promise<HostedApp> {
   const hub = createHostedHub();
   const win = await create();
   const session = hub.open(key, () => win);
@@ -57,7 +84,8 @@ export async function hostApp(create: () => SimpleWindow | Promise<SimpleWindow>
 export function hostDesigner(workDir: string): HostedApp {
   const session = new HostedSession("designer");
   session.html = injectHelp(getIdeHtml(), "designer");
-  const b = (name: string, fn: (...a: any[]) => unknown) => session.webview.bind(name, fn);
+  const b = (name: string, fn: (...a: any[]) => unknown) =>
+    session.webview.bind(name, fn);
   b("runPreview", (specJson: string) => {
     const html = generatePreviewHtml(JSON.parse(specJson));
     session.webview.eval(`(() => {
@@ -71,7 +99,9 @@ export function hostDesigner(workDir: string): HostedApp {
     })()`);
     return { success: true };
   });
-  b("exportProject", (specJson: string) => exportProjectHelper(specJson, workDir));
+  b("exportProject", (specJson: string) =>
+    exportProjectHelper(specJson, workDir),
+  );
   b("saveDraft", (specJson: string) => saveDraftHelper(specJson, workDir));
   b("loadDraft", () => loadDraftHelper(workDir));
   b("clearDraft", () => clearDraftHelper(workDir));

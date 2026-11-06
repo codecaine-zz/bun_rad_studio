@@ -14,7 +14,8 @@ describe("run.ps1 launcher dispatch", () => {
     const offenders: string[] = [];
     lines.forEach((line, i) => {
       const code = line.replace(/#.*$/, "");
-      if (depth === 0 && /^\s*\$target\s*=/i.test(code)) offenders.push(`${i + 1}: ${line.trim()}`);
+      if (depth === 0 && /^\s*\$target\s*=/i.test(code))
+        offenders.push(`${i + 1}: ${line.trim()}`);
       for (const ch of code) {
         if (ch === "{") depth++;
         else if (ch === "}") depth--;
@@ -24,8 +25,12 @@ describe("run.ps1 launcher dispatch", () => {
   });
 
   test("-Gui and -Cli select the launcher apps through their own variables", () => {
-    expect(script).toMatch(/if \(\$Gui\) \{\s*\$guiItem = \$allCatalog \| Where-Object \{ \$_\.Id -eq 'launcher_studio' \}\s*Launch-Item \$guiItem/);
-    expect(script).toMatch(/if \(\$Cli\) \{\s*\$cliItem = \$allCatalog \| Where-Object \{ \$_\.Id -eq 'launcher_cli' \}\s*Launch-Item \$cliItem/);
+    expect(script).toMatch(
+      /if \(\$Gui\) \{\s*\$guiItem = \$allCatalog \| Where-Object \{ \$_\.Id -eq 'launcher_studio' \}\s*Launch-Item \$guiItem/,
+    );
+    expect(script).toMatch(
+      /if \(\$Cli\) \{\s*\$cliItem = \$allCatalog \| Where-Object \{ \$_\.Id -eq 'launcher_cli' \}\s*Launch-Item \$cliItem/,
+    );
   });
 
   test("Launch-Item refuses an item without a path", () => {

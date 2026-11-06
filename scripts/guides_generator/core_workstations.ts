@@ -3,7 +3,9 @@ import { join } from "path";
 
 export function generateCoreWorkstations(outDir: string) {
   // 01_sqlite_studio.md
-  writeFileSync(join(outDir, "01_sqlite_studio.md"), `# 🗄️ SQLite Studio Pro -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "01_sqlite_studio.md"),
+    `# 🗄️ SQLite Studio Pro -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Native bun:sqlite (WAL Mode)  •  Dependencies: 0  •  Offline: 100%
@@ -222,10 +224,13 @@ SQLite Studio Pro works like a desktop database: you can create tables, add/edit
 - **Runtime Subsystem**: Pure \`bun:sqlite\` binary bindings directly linked into Bun's engine.
 - **UI Architecture**: High-speed macOS WKWebView with hardware-accelerated CSS and virtual table DOM.
 - **Zero Third-Party Binaries**: Zero requirement for \`sqlite3\` CLI, Homebrew, or external drivers. 100% offline self-contained.
-`);
+`,
+  );
 
   // 02_system_package_studio.md
-  writeFileSync(join(outDir, "02_system_package_studio.md"), `# 💻 System Information Studio Pro -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "02_system_package_studio.md"),
+    `# 💻 System Information Studio Pro -- Complete Production User Guide
 
 \`\`\`
 Version: 2.5.0  •  Engine: systeminformation (60 APIs) via a local Bun telemetry server  •  Offline: 100%
@@ -339,10 +344,13 @@ await createSystemStudio({ fullscreen: false }).run();
 | **A method shows an error or empty values.** | Some APIs need OS permissions or are not available on every platform (for example temperatures on some machines). The Telemetry Log shows the exact error. |
 | **Where are exported files saved?** | In the \`reports/\` folder of the directory the studio was launched from. |
 | **Compare is grayed out.** | Take a **📸 Snapshot** first; the button enables once a snapshot exists. |
-`);
+`,
+  );
 
   // 03_task_watcher_studio.md
-  writeFileSync(join(outDir, "03_task_watcher_studio.md"), `# ⏱️ Task Watcher Studio -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "03_task_watcher_studio.md"),
+    `# ⏱️ Task Watcher Studio -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Native fs.watch & Bun.spawn  •  Dependencies: 0  •  Offline: 100%
@@ -445,10 +453,13 @@ bun run cli:watcher -d ./ -x "ts,js,json" -e "bun run build"
 ## 💡 Pro Tips & Enterprise Best Practices
 - **Tune Debounce for IDEs**: Modern IDEs like VS Code often perform multi-stage saves (temp file write, rename, formatting). Setting debounce to \`250ms–350ms\` prevents duplicate execution runs.
 - **Ignore Heavy Folders**: Always include \`node_modules\` and \`.git\` in your ignore list to save CPU cycles and prevent spurious file event storms.
-`);
+`,
+  );
 
   // 04_json_query_studio.md
-  writeFileSync(join(outDir, "04_json_query_studio.md"), `# 🔍 JSON Query Studio Pro -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "04_json_query_studio.md"),
+    `# 🔍 JSON Query Studio Pro -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: Pure TypeScript/Bun AST Query Engine  •  Dependencies: 0  •  Offline: 100%
@@ -574,10 +585,13 @@ bun run cli:json data.json ".users[] | {name: .name, email: .email}"
 ## 💡 Pro Tips & Enterprise Best Practices
 - **Validating Broken JSON**: If an API returns malformed JSON, paste it into the left editor and hit **Format**. The diagnostic banner points to the exact line and character where a trailing comma or missing quote occurred.
 - **Large Dataset Slicing**: When inspecting large 50MB log dumps, use array slice notation \`.[0:10]\` to examine sample records without locking up your browser.
-`);
+`,
+  );
 
   // 05_devtools_studio.md
-  writeFileSync(join(outDir, "05_devtools_studio.md"), `# 🛠️ DevTools Studio Pro -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "05_devtools_studio.md"),
+    `# 🛠️ DevTools Studio Pro -- Complete Production User Guide
 
 \`\`\`
 Version: 2.4.0  •  Engine: 6-in-1 Native Bun Subsystems  •  Dependencies: 0  •  Offline: 100%
@@ -678,10 +692,13 @@ Choose the engine from the dropdown at the top, set a **Target Path** and **Patt
 - Run a Ripgrep search with the same options before every Sd replace, so you know the scope.
 - Without the **Case Sensitive** box ticked, Sd also replaces differently-cased matches (for example \`Foo\` when you search \`foo\`).
 - Values typed into the app are kept in the saved form state, so avoid putting secrets in the pattern or replacement.
-`);
+`,
+  );
 
   // 06_process_monitor_studio.md
-  writeFileSync(join(outDir, "06_process_monitor_studio.md"), `# 📊 Process Monitor Studio -- Complete Production User Guide
+  writeFileSync(
+    join(outDir, "06_process_monitor_studio.md"),
+    `# 📊 Process Monitor Studio -- Complete Production User Guide
 
 \`\`\`
 Engine: ps / lsof / Bun  •  Dependencies: 0  •  Network: none (everything runs locally)
@@ -777,7 +794,8 @@ PID, Name, Port, CPU %, MEM %, RSS, User, State, **Uptime**, Command.
 - Try **Terminate (SIGTERM)** first so databases and servers can flush and close cleanly; use Force Kill only if that fails.
 - **Lower Priority** is a safe way to calm a runaway build without killing it.
 - Typed values (filter, port, PID) are stored in the saved form state; do not paste secrets into them.
-`);
+`,
+  );
 
   console.log("✔ Core Workstations (01 to 06) generated with AAA quality.");
 }

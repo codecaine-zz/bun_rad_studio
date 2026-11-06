@@ -18,10 +18,23 @@ import { currentThemePayload } from "./themes.js";
  *  - allow-downloads: its exports.
  * Not allowed: top navigation (it can't move this window elsewhere), popups, pointer lock.
  */
-export const STUDIO_SANDBOX = "allow-scripts allow-same-origin allow-forms allow-modals allow-downloads";
+export const STUDIO_SANDBOX =
+  "allow-scripts allow-same-origin allow-forms allow-modals allow-downloads";
 
-const STATE_WORDS = { starting: "Starting…", running: "Running", stopping: "Stopping…", stopped: "Stopped", crashed: "Stopped unexpectedly" };
-const STATE_ICON = { starting: "⏳", running: "🟢", stopping: "⏳", stopped: "⚪", crashed: "🔴" };
+const STATE_WORDS = {
+  starting: "Starting…",
+  running: "Running",
+  stopping: "Stopping…",
+  stopped: "Stopped",
+  crashed: "Stopped unexpectedly",
+};
+const STATE_ICON = {
+  starting: "⏳",
+  running: "🟢",
+  stopping: "⏳",
+  stopped: "⚪",
+  crashed: "🔴",
+};
 
 let area = null;
 let timer = 0;
@@ -46,16 +59,21 @@ export function setStudioExpanded(next) {
   expanded = Boolean(next);
   const root = area?.closest?.(".db-root");
   if (root) root.dataset.maximized = expanded ? "true" : "false";
-  if (typeof document !== "undefined") document.getElementById("app")?.classList.toggle("db-studio-max", expanded);
+  if (typeof document !== "undefined")
+    document.getElementById("app")?.classList.toggle("db-studio-max", expanded);
   for (const p of panes.values()) syncExpandButton(p.parts.expand);
   if (expanded && activeId) {
     const frame = panes.get(activeId)?.frame;
     if (frame) {
       try {
         frame.focus();
-        const inner = frame.contentWindow?.frames?.length ? frame.contentWindow.frames[0] : frame.contentWindow;
+        const inner = frame.contentWindow?.frames?.length
+          ? frame.contentWindow.frames[0]
+          : frame.contentWindow;
         inner?.focus?.();
-      } catch { /* cross-origin frame */ }
+      } catch {
+        /* cross-origin frame */
+      }
     }
   }
 }
@@ -67,19 +85,35 @@ export function toggleStudioExpanded() {
 function ensureEscapeListener() {
   if (typeof document === "undefined" || wiredDoc === document) return;
   wiredDoc = document;
-  document.addEventListener("keydown", (e) => {
-    if (!expanded || !activeId || e.key !== "Escape" || e.defaultPrevented || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
-    if (document.querySelector(".modal-backdrop, .menu")) return;
-    e.preventDefault();
-    e.stopPropagation();
-    setStudioExpanded(false);
-  }, true);
+  document.addEventListener(
+    "keydown",
+    (e) => {
+      if (
+        !expanded ||
+        !activeId ||
+        e.key !== "Escape" ||
+        e.defaultPrevented ||
+        e.shiftKey ||
+        e.ctrlKey ||
+        e.metaKey ||
+        e.altKey
+      )
+        return;
+      if (document.querySelector(".modal-backdrop, .menu")) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setStudioExpanded(false);
+    },
+    true,
+  );
   if (typeof window !== "undefined") {
     window.addEventListener("message", (e) => {
       if (e.data && typeof e.data === "object" && e.data.fmRequestTheme) {
         try {
           e.source?.postMessage?.({ fmTheme: currentThemePayload() }, "*");
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
     });
   }
@@ -112,10 +146,24 @@ export const activeStudioId = () => activeId;
 export async function openStudio(target, { confirmed = false } = {}) {
   let r;
   try {
-    r = await call("db/studio/start", { ...target, ...(confirmed ? { confirmWrites: true } : {}) });
+    r = await call("db/studio/start", {
+      ...target,
+      ...(confirmed ? { confirmWrites: true } : {}),
+    });
   } catch (err) {
     if (err instanceof ApiError && err.code === "NEEDS_CONFIRM") {
-      if (!(await confirmBox({ title: err.details?.reason === "production" ? "This is a production connection" : "This connection is marked read-only", message: err.message, confirmLabel: "Open anyway", danger: true }))) return null;
+      if (
+        !(await confirmBox({
+          title:
+            err.details?.reason === "production"
+              ? "This is a production connection"
+              : "This connection is marked read-only",
+          message: err.message,
+          confirmLabel: "Open anyway",
+          danger: true,
+        }))
+      )
+        return null;
       return openStudio(target, { confirmed: true });
     }
     toast(errorText(err, "The studio couldn't be started."), { kind: "error" });
@@ -129,24 +177,144 @@ export async function openStudio(target, { confirmed = false } = {}) {
 
 function buildPane(info, target) {
   const state = h("span", { class: "db-state", role: "status" });
-  const expand = h("button", { type: "button", class: "pw-btn db-expand", "aria-pressed": "false", title: "" });
+  const expand = h("button", {
+    type: "button",
+    class: "pw-btn db-expand",
+    "aria-pressed": "false",
+    title: "",
+  });
   syncExpandButton(expand);
-  const stop = h("button", { type: "button", class: "pw-btn", title: "Stop this studio (its process ends)" }, "Stop");
-  const restart = h("button", { type: "button", class: "pw-btn", title: "Stop it and start it again with the current connection settings" }, "Restart");
-  const windowBtn = h("button", { type: "button", class: "pw-btn", "data-role": "db-window", title: "Open this studio as its own desktop window, with the same connection" }, "Open in a separate window");
-  const browserBtn = h("button", { type: "button", class: "pw-btn", "data-role": "db-browser", title: "Open this studio in your web browser" }, "Open in my browser");
-  const close = h("button", { type: "button", class: "pw-btn", title: "Remove this finished studio from the list" }, "Close");
-  const back = h("button", { type: "button", class: "pw-btn", "data-role": "db-back", title: "Back to the list of connections (the studio keeps running)" }, "← Connections");
-  const banner = h("p", { class: "db-banner-writes", role: "note", hidden: true });
-  const message = h("p", { class: "db-studio-message", role: "alert", hidden: true });
-  const logBox = h("pre", { class: "pw-out db-log", tabindex: "0", "aria-label": "Studio log" });
-  const log = h("details", { class: "db-logs" }, h("summary", {}, "Log (secrets are hidden)"), logBox);
-  const frameBox = h("div", { class: "db-frame-box" });
-  const root = h("section", { class: "db-studio", "aria-label": info.title, "data-copy-self": "off", dataset: { id: info.id, state: info.state }, hidden: true },
-    h("div", { class: "db-studio-head" }, back, h("h3", { class: "db-studio-title" }, info.title), state, h("span", { class: "db-studio-actions" }, expand, stop, restart, windowBtn, browserBtn, close)),
-    banner, message, log, frameBox,
+  const stop = h(
+    "button",
+    {
+      type: "button",
+      class: "pw-btn",
+      title: "Stop this studio (its process ends)",
+    },
+    "Stop",
   );
-  const pane = { root, info, target, frame: null, frameBox, parts: { state, expand, stop, restart, windowBtn, browserBtn, close, banner, message, logBox, log } };
+  const restart = h(
+    "button",
+    {
+      type: "button",
+      class: "pw-btn",
+      title: "Stop it and start it again with the current connection settings",
+    },
+    "Restart",
+  );
+  const windowBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "pw-btn",
+      "data-role": "db-window",
+      title:
+        "Open this studio as its own desktop window, with the same connection",
+    },
+    "Open in a separate window",
+  );
+  const browserBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "pw-btn",
+      "data-role": "db-browser",
+      title: "Open this studio in your web browser",
+    },
+    "Open in my browser",
+  );
+  const close = h(
+    "button",
+    {
+      type: "button",
+      class: "pw-btn",
+      title: "Remove this finished studio from the list",
+    },
+    "Close",
+  );
+  const back = h(
+    "button",
+    {
+      type: "button",
+      class: "pw-btn",
+      "data-role": "db-back",
+      title: "Back to the list of connections (the studio keeps running)",
+    },
+    "← Connections",
+  );
+  const banner = h("p", {
+    class: "db-banner-writes",
+    role: "note",
+    hidden: true,
+  });
+  const message = h("p", {
+    class: "db-studio-message",
+    role: "alert",
+    hidden: true,
+  });
+  const logBox = h("pre", {
+    class: "pw-out db-log",
+    tabindex: "0",
+    "aria-label": "Studio log",
+  });
+  const log = h(
+    "details",
+    { class: "db-logs" },
+    h("summary", {}, "Log (secrets are hidden)"),
+    logBox,
+  );
+  const frameBox = h("div", { class: "db-frame-box" });
+  const root = h(
+    "section",
+    {
+      class: "db-studio",
+      "aria-label": info.title,
+      "data-copy-self": "off",
+      dataset: { id: info.id, state: info.state },
+      hidden: true,
+    },
+    h(
+      "div",
+      { class: "db-studio-head" },
+      back,
+      h("h3", { class: "db-studio-title" }, info.title),
+      state,
+      h(
+        "span",
+        { class: "db-studio-actions" },
+        expand,
+        stop,
+        restart,
+        windowBtn,
+        browserBtn,
+        close,
+      ),
+    ),
+    banner,
+    message,
+    log,
+    frameBox,
+  );
+  const pane = {
+    root,
+    info,
+    target,
+    frame: null,
+    frameBox,
+    parts: {
+      state,
+      expand,
+      stop,
+      restart,
+      windowBtn,
+      browserBtn,
+      close,
+      banner,
+      message,
+      logBox,
+      log,
+    },
+  };
 
   expand.addEventListener("click", () => toggleStudioExpanded());
   back.addEventListener("click", () => emit("db-view", { view: "list" }));
@@ -157,7 +325,9 @@ function buildPane(info, target) {
       pane.info = r.studio;
       await loadOverview();
     } catch (err) {
-      toast(errorText(err, "The studio couldn't be stopped."), { kind: "error" });
+      toast(errorText(err, "The studio couldn't be stopped."), {
+        kind: "error",
+      });
     }
     paint(pane);
   });
@@ -167,25 +337,37 @@ function buildPane(info, target) {
       const r = await call("db/studio/restart", { id: pane.info.id });
       await loadOverview();
       dispose(pane.info.id);
-      showStudio(db.studios.find((s) => s.id === r.studio.id) ?? r.studio, pane.target);
+      showStudio(
+        db.studios.find((s) => s.id === r.studio.id) ?? r.studio,
+        pane.target,
+      );
     } catch (err) {
-      toast(errorText(err, "The studio couldn't be restarted."), { kind: "error" });
+      toast(errorText(err, "The studio couldn't be restarted."), {
+        kind: "error",
+      });
       restart.disabled = false;
     }
   });
   windowBtn.addEventListener("click", async () => {
     try {
-      await call("db/studio/window", { ...pane.target, confirmWrites: pane.info.writesConfirmed });
+      await call("db/studio/window", {
+        ...pane.target,
+        confirmWrites: pane.info.writesConfirmed,
+      });
       toast("The studio is opening in its own window.", { kind: "info" });
     } catch (err) {
-      toast(errorText(err, "The window couldn't be opened."), { kind: "error" });
+      toast(errorText(err, "The window couldn't be opened."), {
+        kind: "error",
+      });
     }
   });
   browserBtn.addEventListener("click", async () => {
     try {
       await call("db/studio/browser", { id: pane.info.id });
     } catch (err) {
-      toast(errorText(err, "Your web browser couldn't be opened."), { kind: "error" });
+      toast(errorText(err, "Your web browser couldn't be opened."), {
+        kind: "error",
+      });
     }
   });
   close.addEventListener("click", () => {
@@ -199,7 +381,9 @@ function buildPane(info, target) {
 async function loadLog(pane) {
   try {
     const r = await call("db/studio/logs", { id: pane.info.id });
-    pane.parts.logBox.textContent = r.lines.length ? r.lines.join("\n") : "(nothing printed yet)";
+    pane.parts.logBox.textContent = r.lines.length
+      ? r.lines.join("\n")
+      : "(nothing printed yet)";
   } catch {
     pane.parts.logBox.textContent = "(the log isn't available any more)";
   }
@@ -212,18 +396,38 @@ function paint(pane) {
   pane.root.dataset.state = info.state;
   syncExpandButton(parts.expand);
   parts.state.textContent = `${STATE_ICON[info.state] ?? ""} ${STATE_WORDS[info.state] ?? info.state}`;
-  parts.stop.disabled = !(info.state === "running" || info.state === "starting");
-  parts.restart.disabled = info.state === "stopping" || info.state === "starting";
-  parts.windowBtn.disabled = info.state === "starting" || info.state === "stopping";
+  parts.stop.disabled = !(
+    info.state === "running" || info.state === "starting"
+  );
+  parts.restart.disabled =
+    info.state === "stopping" || info.state === "starting";
+  parts.windowBtn.disabled =
+    info.state === "starting" || info.state === "stopping";
   parts.browserBtn.disabled = !live;
-  parts.close.hidden = info.state === "running" || info.state === "starting" || info.state === "stopping";
+  parts.close.hidden =
+    info.state === "running" ||
+    info.state === "starting" ||
+    info.state === "stopping";
   parts.banner.hidden = !info.writesConfirmed;
-  if (info.writesConfirmed) parts.banner.textContent = "⚠ This connection is marked production or read-only, but the studio has full access: anything you run here can change or delete data.";
-  const note = info.state === "crashed" || (info.state === "stopped" && info.message) ? info.message : "";
+  if (info.writesConfirmed)
+    parts.banner.textContent =
+      "⚠ This connection is marked production or read-only, but the studio has full access: anything you run here can change or delete data.";
+  const note =
+    info.state === "crashed" || (info.state === "stopped" && info.message)
+      ? info.message
+      : "";
   parts.message.hidden = !note;
   parts.message.textContent = note ?? "";
   if (live && !pane.frame) {
-    const frame = h("iframe", { class: "db-studio-frame", title: info.title, src: embeddedUrl(`dbstudio/${info.id}`), referrerpolicy: "no-referrer", loading: "eager", allow: "clipboard-write", sandbox: STUDIO_SANDBOX });
+    const frame = h("iframe", {
+      class: "db-studio-frame",
+      title: info.title,
+      src: embeddedUrl(`dbstudio/${info.id}`),
+      referrerpolicy: "no-referrer",
+      loading: "eager",
+      allow: "clipboard-write",
+      sandbox: STUDIO_SANDBOX,
+    });
     frame.addEventListener("load", () => {
       syncFrameTheme(frame);
       setTimeout(() => syncFrameTheme(frame), 180);
@@ -234,7 +438,13 @@ function paint(pane) {
   } else if (!live && pane.frame) {
     pane.frame.remove();
     pane.frame = null;
-    pane.frameBox.append(h("p", { class: "pw-hint" }, info.state === "stopping" ? "Stopping…" : "The studio isn't running."));
+    pane.frameBox.append(
+      h(
+        "p",
+        { class: "pw-hint" },
+        info.state === "stopping" ? "Stopping…" : "The studio isn't running.",
+      ),
+    );
   }
   if (!live && (info.state === "crashed" || info.state === "stopped")) {
     parts.log.open = parts.log.open || info.state === "crashed";
@@ -263,7 +473,10 @@ async function poll() {
     db.studios = r.studios;
     for (const pane of panes.values()) {
       const fresh = r.studios.find((s) => s.id === pane.info.id);
-      if (fresh && (fresh.state !== pane.info.state || fresh.message !== pane.info.message)) {
+      if (
+        fresh &&
+        (fresh.state !== pane.info.state || fresh.message !== pane.info.message)
+      ) {
         pane.info = fresh;
         paint(pane);
         emit("db-studios");
@@ -279,7 +492,13 @@ export function showStudio(info, target = null) {
   if (!area) return;
   let pane = panes.get(info.id);
   if (!pane) {
-    pane = buildPane(info, target ?? { engine: info.engine, ...(info.profileId ? { profileId: info.profileId } : {}) });
+    pane = buildPane(
+      info,
+      target ?? {
+        engine: info.engine,
+        ...(info.profileId ? { profileId: info.profileId } : {}),
+      },
+    );
     panes.set(info.id, pane);
     area.append(pane.root);
   }
@@ -287,7 +506,8 @@ export function showStudio(info, target = null) {
   paint(pane);
   for (const p of panes.values()) p.root.hidden = p !== pane;
   activeId = info.id;
-  if (!timer && typeof document !== "undefined") timer = setInterval(poll, 2500);
+  if (!timer && typeof document !== "undefined")
+    timer = setInterval(poll, 2500);
   emit("db-view", { view: "studio", id: info.id });
 }
 
@@ -304,4 +524,8 @@ export function hideStudios() {
 }
 
 /** Studios that are still open, for the strip above the list. */
-export const openStudios = () => db.studios.filter((s) => s.state === "running" || s.state === "starting" || s.state === "crashed");
+export const openStudios = () =>
+  db.studios.filter(
+    (s) =>
+      s.state === "running" || s.state === "starting" || s.state === "crashed",
+  );
