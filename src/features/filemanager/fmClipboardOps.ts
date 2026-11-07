@@ -606,11 +606,15 @@ async function computeFileDigest(
   const h = createHash(algorithm);
   const handle = await fsp.open(filePath, "r");
   try {
-    const chunk = Buffer.allocUnsafe(Math.min(1024 * 1024, Math.max(4096, st.size)));
+    const chunk = Buffer.allocUnsafe(
+      Math.min(1024 * 1024, Math.max(4096, st.size)),
+    );
     while (true) {
       const { bytesRead } = await handle.read(chunk, 0, chunk.length, null);
       if (bytesRead <= 0) break;
-      h.update(bytesRead === chunk.length ? chunk : chunk.subarray(0, bytesRead));
+      h.update(
+        bytesRead === chunk.length ? chunk : chunk.subarray(0, bytesRead),
+      );
     }
   } finally {
     await handle.close();
@@ -880,8 +884,14 @@ export async function verifyChecksums(
 
   for (const item of entriesToVerify.slice(0, 200)) {
     const safeRel = item.fileName.replace(/\\/g, "/").replace(/^\/+/, "");
-    const candidate = absolutePath(ctx, p.join(manifestDir, ...safeRel.split("/")));
-    if (!isSameOrInside(candidate, manifestDir, ctx.platform) || !existsSync(candidate)) {
+    const candidate = absolutePath(
+      ctx,
+      p.join(manifestDir, ...safeRel.split("/")),
+    );
+    if (
+      !isSameOrInside(candidate, manifestDir, ctx.platform) ||
+      !existsSync(candidate)
+    ) {
       missing++;
       results.push({
         name: item.fileName,

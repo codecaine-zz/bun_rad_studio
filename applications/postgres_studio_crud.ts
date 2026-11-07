@@ -1817,9 +1817,7 @@ export function crudClientMain() {
         !currentGridData.rows.length
       )
         return null;
-      return (
-        currentGridData.rows[selectedRowIndex] || currentGridData.rows[0]
-      );
+      return currentGridData.rows[selectedRowIndex] || currentGridData.rows[0];
     };
 
     const gridEl = $("mainDataGrid");

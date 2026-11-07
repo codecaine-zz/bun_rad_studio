@@ -336,8 +336,7 @@ export async function thumbnailFor(
 ): Promise<string | null> {
   const file = absolutePath(ctx, pathInput);
   const base = pathApi(ctx).basename(file);
-  if (!thumbnailsAvailable(ctx) || !wantsThumbnail(base))
-    return null;
+  if (!thumbnailsAvailable(ctx) || !wantsThumbnail(base)) return null;
   const st = await fsp.stat(file);
   if (!st.isFile() && !(st.isDirectory() && isDocumentPackageName(base)))
     return null;

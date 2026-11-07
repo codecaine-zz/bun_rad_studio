@@ -639,7 +639,10 @@ function loadTerminal(platform: string) {
     toggleTerminalExpanded: () => void;
     wireTerminal: () => void;
   };
-  const dispatchKey = (type: "keydown" | "keyup", init: Record<string, any>) => {
+  const dispatchKey = (
+    type: "keydown" | "keyup",
+    init: Record<string, any>,
+  ) => {
     const ev = {
       type,
       defaultPrevented: false,

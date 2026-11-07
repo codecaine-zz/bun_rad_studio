@@ -186,8 +186,7 @@ function desktopShortcutsClient() {
           !(event.metaKey && event.ctrlKey) &&
           !event.altKey &&
           !event.shiftKey &&
-          (event.code === "KeyQ" ||
-            (event.key || "").toLowerCase() === "q")) ||
+          (event.code === "KeyQ" || (event.key || "").toLowerCase() === "q")) ||
         (event.altKey &&
           !event.metaKey &&
           !event.ctrlKey &&
@@ -234,7 +233,8 @@ function desktopShortcutsClient() {
       // Use physical codes: Option changes the character produced by punctuation keys on macOS.
       // Support AltGr (reported as key="AltGraph" or ctrlKey+altKey on Windows/Linux international layouts).
       const isAltGr =
-        event.key === "AltGraph" || (rightOption && event.ctrlKey && event.altKey);
+        event.key === "AltGraph" ||
+        (rightOption && event.ctrlKey && event.altKey);
       if (
         !rightOption ||
         (!event.altKey && !isAltGr) ||
@@ -350,7 +350,10 @@ function desktopShortcutsClient() {
           )));
     const safeSel = (el: any): [number, number] => {
       try {
-        const s = typeof el.selectionStart === "number" ? el.selectionStart : String(el.value || "").length;
+        const s =
+          typeof el.selectionStart === "number"
+            ? el.selectionStart
+            : String(el.value || "").length;
         const e = typeof el.selectionEnd === "number" ? el.selectionEnd : s;
         return [s, e];
       } catch {

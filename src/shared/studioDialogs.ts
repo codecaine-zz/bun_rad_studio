@@ -351,11 +351,7 @@ function studioDialogsClient() {
         }
         return;
       }
-      if (
-        e.key === "Enter" &&
-        top.primary &&
-        !top.primary.disabled
-      ) {
+      if (e.key === "Enter" && top.primary && !top.primary.disabled) {
         const t = e.target;
         const mod = e.ctrlKey || e.metaKey;
         if (

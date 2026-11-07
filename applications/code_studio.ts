@@ -814,7 +814,10 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
             stderr: "pipe",
           });
 
-          const execTimeoutMs = Number(body.timeoutMs) > 0 ? Math.min(Number(body.timeoutMs), 120000) : 30000;
+          const execTimeoutMs =
+            Number(body.timeoutMs) > 0
+              ? Math.min(Number(body.timeoutMs), 120000)
+              : 30000;
           let timedOut = false;
           const timer = setTimeout(() => {
             timedOut = true;

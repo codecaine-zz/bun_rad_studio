@@ -16,7 +16,9 @@ await rad.fileutils.saveJson(tmpTutorialJson, {
   tool: "rad",
   version: "1.0.0",
 });
-console.log((await rad.fileutils.loadJson<{ tool: string }>(tmpTutorialJson)).tool);
+console.log(
+  (await rad.fileutils.loadJson<{ tool: string }>(tmpTutorialJson)).tool,
+);
 const db = rad.sqliteutils.openDb(":memory:");
 rad.sqliteutils.createKvTable(db, "config");
 rad.sqliteutils.setKv(db, "config", "env", "production");

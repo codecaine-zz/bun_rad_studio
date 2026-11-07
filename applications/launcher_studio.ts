@@ -2190,7 +2190,13 @@ export function killApplication(
     } catch (err: any) {
       try {
         if (process.platform === "win32") {
-          Bun.spawnSync(["taskkill.exe", "/F", "/T", "/PID", String(targetPid)]);
+          Bun.spawnSync([
+            "taskkill.exe",
+            "/F",
+            "/T",
+            "/PID",
+            String(targetPid),
+          ]);
         } else {
           process.kill(targetPid, "SIGKILL");
         }
@@ -3793,8 +3799,7 @@ export function createLauncherStudio(
             a.id.toLowerCase() === `cli_${lower}` ||
             a.name.toLowerCase() === lower ||
             a.id.toLowerCase() === lower,
-        ) ||
-        currentApps.find((a) => a.id.toLowerCase().includes(lower));
+        ) || currentApps.find((a) => a.id.toLowerCase().includes(lower));
       if (!app) {
         const fresh = getScan(false);
         app =

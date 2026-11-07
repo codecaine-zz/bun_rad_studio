@@ -302,7 +302,8 @@ export function parseDfOutput(raw: string): MountedDisk[] {
     const filesystem = parts[0]!;
     const size = (parseInt(parts[1]!, 10) || 0) * 1024;
     const used = (parseInt(parts[2]!, 10) || 0) * 1024;
-    const available = (parseInt(parts[3]!, 0) || parseInt(parts[3]!, 10) || 0) * 1024;
+    const available =
+      (parseInt(parts[3]!, 0) || parseInt(parts[3]!, 10) || 0) * 1024;
     const percentUsed = parts[4]!;
     const mountPoint = parts[parts.length - 1]!;
 

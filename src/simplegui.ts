@@ -247,10 +247,7 @@ export class SimpleControlRef {
     }
     if (oldId && oldId !== idStr) {
       if (
-        Object.prototype.hasOwnProperty.call(
-          this.window.formValuesStore,
-          oldId,
-        )
+        Object.prototype.hasOwnProperty.call(this.window.formValuesStore, oldId)
       ) {
         this.window.formValuesStore[idStr] = this.window.formValuesStore[oldId];
         delete this.window.formValuesStore[oldId];
@@ -339,9 +336,7 @@ export class SimpleControlRef {
 
   /** Binds this Table control to detail/form controls so clicking a row populates the mapped controls. */
   bindDetail(
-    columnToControlMap:
-      | (string | null | undefined)[]
-      | Record<string, string>,
+    columnToControlMap: (string | null | undefined)[] | Record<string, string>,
     onRowSelect?: (
       win: SimpleWindow,
       row: any[],
@@ -349,18 +344,12 @@ export class SimpleControlRef {
       rowIndex: number,
     ) => void,
   ): this {
-    this.window.bindMasterDetail(
-      this.spec.id,
-      columnToControlMap,
-      onRowSelect,
-    );
+    this.window.bindMasterDetail(this.spec.id, columnToControlMap, onRowSelect);
     return this;
   }
   /** Snake_case alias of `bindDetail`: binds this Table control to detail/form controls. */
   bind_detail(
-    columnToControlMap:
-      | (string | null | undefined)[]
-      | Record<string, string>,
+    columnToControlMap: (string | null | undefined)[] | Record<string, string>,
     onRowSelect?: (
       win: SimpleWindow,
       row: any[],
@@ -1492,7 +1481,10 @@ export class SimpleWindow {
   /** Removes a control specification (and any nested children) from the O(1) lookup index. */
   public _unindexControl(spec: any): void {
     if (!spec || typeof spec !== "object") return;
-    if (typeof spec.id === "string" && this.controlIndex.get(spec.id) === spec) {
+    if (
+      typeof spec.id === "string" &&
+      this.controlIndex.get(spec.id) === spec
+    ) {
       this.controlIndex.delete(spec.id);
     }
     if (
@@ -8293,8 +8285,7 @@ export class SimpleWindow {
       this.eventHandlersMap.get(`${controlId}:${norm}`) ||
       this.eventHandlersMap.get(`${controlId}:${raw}`);
     if (handler) {
-      const effectiveVal =
-        val !== undefined ? val : this.getValue(controlId);
+      const effectiveVal = val !== undefined ? val : this.getValue(controlId);
       await handler(this, effectiveVal, ...extra);
     }
     return this;
@@ -8565,7 +8556,8 @@ export class SimpleWindow {
             errMsg = rule.message || `${fieldName} format is invalid`;
           } else if (rule.validate) {
             const res = rule.validate(val, this);
-            if (res === false) errMsg = rule.message || `${fieldName} is invalid`;
+            if (res === false)
+              errMsg = rule.message || `${fieldName} is invalid`;
             else if (typeof res === "string" && res.length > 0) errMsg = res;
           }
         }
@@ -10340,8 +10332,9 @@ export class SimpleWindow {
     }
     if (list === this.controls) {
       const nv =
-        this.nonVisualControls.find((c) => c && (c.id === id || c.name === id)) ||
-        null;
+        this.nonVisualControls.find(
+          (c) => c && (c.id === id || c.name === id),
+        ) || null;
       if (nv) this._indexControl(nv);
       return nv;
     }
@@ -14529,8 +14522,7 @@ export class SimpleWindow {
         : (optionsOrOnFilter ?? {});
 
     const runFilter = (rawQuery: any) => {
-      const rows =
-        typeof sourceRows === "function" ? sourceRows() : sourceRows;
+      const rows = typeof sourceRows === "function" ? sourceRows() : sourceRows;
       const total = Array.isArray(rows) ? rows.length : 0;
       const query = String(rawQuery ?? "")
         .trim()
@@ -14628,9 +14620,7 @@ export class SimpleWindow {
    */
   public bindMasterDetail(
     tableId: string,
-    columnToControlMap:
-      | (string | null | undefined)[]
-      | Record<string, string>,
+    columnToControlMap: (string | null | undefined)[] | Record<string, string>,
     onRowSelect?: (
       win: SimpleWindow,
       row: any[],
@@ -14690,10 +14680,7 @@ export class SimpleWindow {
             w.setValue(destId, matchedRow[col]);
           }
         }
-      } else if (
-        columnToControlMap &&
-        typeof columnToControlMap === "object"
-      ) {
+      } else if (columnToControlMap && typeof columnToControlMap === "object") {
         for (const [colKey, destId] of Object.entries(columnToControlMap)) {
           if (!destId) continue;
           let colIdx = /^\d+$/.test(colKey)
@@ -14720,9 +14707,7 @@ export class SimpleWindow {
   /** Snake_case alias of `bindMasterDetail`: binds a Table control to detail/form controls so clicking a row populates mapped controls. */
   public bind_master_detail(
     tableId: string,
-    columnToControlMap:
-      | (string | null | undefined)[]
-      | Record<string, string>,
+    columnToControlMap: (string | null | undefined)[] | Record<string, string>,
     onRowSelect?: (
       win: SimpleWindow,
       row: any[],
@@ -16009,7 +15994,8 @@ export class SimpleWindow {
     const ctrl = this.findControl(name);
     if (ctrl) {
       const r = ctrl.rows || (Array.isArray(ctrl.value) ? ctrl.value : null);
-      if (Array.isArray(r)) return r.map((row) => (Array.isArray(row) ? [...row] : row));
+      if (Array.isArray(r))
+        return r.map((row) => (Array.isArray(row) ? [...row] : row));
     }
     return [];
   }
@@ -16631,7 +16617,9 @@ export const resolve_theme_for_hardware = resolveThemeForHardware;
 // OS Path Utilities
 /** Returns the current user's home directory path (`os.homedir()`, `$HOME`, `$USERPROFILE`, or `"/Users"`). */
 export function homeDir(): string {
-  return os.homedir() || process.env.HOME || process.env.USERPROFILE || "/Users";
+  return (
+    os.homedir() || process.env.HOME || process.env.USERPROFILE || "/Users"
+  );
 }
 /** Returns the system temporary directory path (`os.tmpdir()`, `$TMPDIR`, `$TEMP`, or `"/tmp"`). */
 export function tempDir(): string {

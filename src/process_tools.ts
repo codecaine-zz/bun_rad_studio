@@ -51,8 +51,9 @@ export function extractProcessName(command: string): string {
   if (app) return app[1]!;
   const trimmed = command.trim();
   const quoted = /^"([^"]+)"/.exec(trimmed);
-  const winExe =
-    /^(?:[A-Za-z]:[\\/][^\r\n]*?\.(?:exe|cmd|bat))(?=\s|$)/i.exec(trimmed);
+  const winExe = /^(?:[A-Za-z]:[\\/][^\r\n]*?\.(?:exe|cmd|bat))(?=\s|$)/i.exec(
+    trimmed,
+  );
   const firstToken =
     quoted?.[1] || winExe?.[0] || trimmed.split(/\s+/)[0] || "";
   const baseName = firstToken.split(/[\\/]/).pop() || firstToken;

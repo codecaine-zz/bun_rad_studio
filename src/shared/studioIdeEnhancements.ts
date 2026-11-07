@@ -1170,7 +1170,8 @@ function studioIdeEnhancementsClient() {
       }
       if (e.key === "F5") {
         e.preventDefault();
-        if (typeof window.runEditorQuery === "function") window.runEditorQuery();
+        if (typeof window.runEditorQuery === "function")
+          window.runEditorQuery();
         return;
       }
       if (e.shiftKey && e.altKey && (e.key === "F" || e.key === "f")) {
@@ -2098,10 +2099,12 @@ function studioIdeEnhancementsClient() {
         );
       });
     });
-    document.getElementById("btnInspCopyJson")?.addEventListener("click", () => {
-      navigator.clipboard?.writeText(JSON.stringify(row, null, 2));
-      notify("📋 Copied row JSON to clipboard");
-    });
+    document
+      .getElementById("btnInspCopyJson")
+      ?.addEventListener("click", () => {
+        navigator.clipboard?.writeText(JSON.stringify(row, null, 2));
+        notify("📋 Copied row JSON to clipboard");
+      });
     document
       .getElementById("btnInspCopyInsert")
       ?.addEventListener("click", () => {

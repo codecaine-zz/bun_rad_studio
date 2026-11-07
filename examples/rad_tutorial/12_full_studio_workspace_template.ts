@@ -234,7 +234,10 @@ export function createFullStudioWorkspace(dbPath = ":memory:"): SimpleWindow {
     .addDropdown(["Database", "Frontend", "Backend", "DevOps"], "Frontend")
     .id("cmbNewCat")
     .width(140);
-  win.addDropdown(["High", "Medium", "Low"], "Medium").id("cmbNewPrio").width(120);
+  win
+    .addDropdown(["High", "Medium", "Low"], "Medium")
+    .id("cmbNewPrio")
+    .width(120);
   win
     .addButton("➕ Add Task", (w) => {
       const title = w.getText("txtNewTitle").trim();
@@ -298,7 +301,9 @@ export function createFullStudioWorkspace(dbPath = ":memory:"): SimpleWindow {
   // ============================================================================
   win.beginCard("📈 Cluster KPIs & Activity Rings").id("cardKpis");
   win.beginRow();
-  win.addScoreCard("SLA Uptime", 99.98, "30-day rolling window", "A+").width(190);
+  win
+    .addScoreCard("SLA Uptime", 99.98, "30-day rolling window", "A+")
+    .width(190);
   win
     .addDonutChart("donutStorage", "SQLite Pages", 62, "WAL Checkpoint OK")
     .width(185);
@@ -384,16 +389,12 @@ export function createFullStudioWorkspace(dbPath = ":memory:"): SimpleWindow {
 
   win
     .addButton("📂 Load Workspace JSON", (w) => {
-      w.open_webview_file_dialog(
-        "Load Workspace Settings",
-        ".json",
-        (src) => {
-          if (src) {
-            w.loadValuesFromFile(String(src));
-            w.toast(`Loaded ${src}`, 2000, "info");
-          }
-        },
-      );
+      w.open_webview_file_dialog("Load Workspace Settings", ".json", (src) => {
+        if (src) {
+          w.loadValuesFromFile(String(src));
+          w.toast(`Loaded ${src}`, 2000, "info");
+        }
+      });
     })
     .width(200);
   win.endRow();
@@ -413,8 +414,7 @@ export function createFullStudioWorkspace(dbPath = ":memory:"): SimpleWindow {
 
   win.onClick("mainToolbar", (w, action) => {
     if (action.includes("Refresh")) refreshTable(w);
-    else if (action.includes("Pulse"))
-      activateTab(w, "📊 Telemetry & Charts");
+    else if (action.includes("Pulse")) activateTab(w, "📊 Telemetry & Charts");
     else if (action.includes("Quick Task")) {
       w.prompt("Task title:", "Review PR #42", "Quick Task", (title) => {
         if (title) {

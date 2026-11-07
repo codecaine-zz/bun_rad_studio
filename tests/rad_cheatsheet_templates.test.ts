@@ -189,9 +189,9 @@ describe("RAD Cheatsheets, Full Studio Workspace Template & Cross-Platform QA", 
     expect(calls).toBe(0);
 
     // 3. process_tools handles Windows executable paths and CRLF ps output
-    expect(extractProcessName("C:\\Users\\dev\\.bun\\bin\\bun.exe run dev")).toBe(
-      "bun",
-    );
+    expect(
+      extractProcessName("C:\\Users\\dev\\.bun\\bin\\bun.exe run dev"),
+    ).toBe("bun");
     const crlfPs =
       "  PID  PPID %CPU %MEM    RSS STAT USER     ELAPSED COMMAND\r\n" +
       " 1234     1  2.5  1.0  51200 S    dev        05:12 C:\\Program Files\\nodejs\\node.exe server.js\r\n";
@@ -227,15 +227,9 @@ describe("RAD Cheatsheets, Full Studio Workspace Template & Cross-Platform QA", 
     win.addDropdown(["Admin", "Architect", "Viewer"], "Viewer").id("cmbRole");
 
     // Chain .filterTable directly on search input and .bindDetail directly on table
-    const searchRef = win
-      .addSearchInput("Filter users...")
-      .id("txtUserSearch");
+    const searchRef = win.addSearchInput("Filter users...").id("txtUserSearch");
     const tblRef = win
-      .addTable(
-        "tblUsers",
-        ["ID", "Full Name", "Email", "Role"],
-        initialRows,
-      )
+      .addTable("tblUsers", ["ID", "Full Name", "Email", "Role"], initialRows)
       .bindDetail(["txtId", "txtName", "txtEmail", "cmbRole"]);
 
     searchRef.filterTable("tblUsers", () => initialRows);

@@ -497,7 +497,11 @@ function studioPolishClient() {
             (el.classList.contains("sidebar-search-input") ||
               el.classList.contains("access-filter-input"))) ||
           /search|filter/i.test(
-            (el.placeholder || "") + " " + (el.id || "") + " " + (el.className || ""),
+            (el.placeholder || "") +
+              " " +
+              (el.id || "") +
+              " " +
+              (el.className || ""),
           );
         if (isFilterInput && el.value) {
           e.preventDefault();
@@ -505,7 +509,9 @@ function studioPolishClient() {
           el.value = "";
           el.dispatchEvent(new Event("input", { bubbles: true }));
           el.dispatchEvent(new Event("change", { bubbles: true }));
-          el.dispatchEvent(new KeyboardEvent("keyup", { key: "Escape", bubbles: true }));
+          el.dispatchEvent(
+            new KeyboardEvent("keyup", { key: "Escape", bubbles: true }),
+          );
         }
       },
       true,
@@ -524,7 +530,10 @@ function studioPolishClient() {
       e.preventDefault();
       e.stopPropagation();
       let val = "";
-      if (td.classList.contains("sc-null") || td.classList.contains("cell-null")) {
+      if (
+        td.classList.contains("sc-null") ||
+        td.classList.contains("cell-null")
+      ) {
         val = "NULL";
       } else {
         const clone = td.cloneNode(true);
