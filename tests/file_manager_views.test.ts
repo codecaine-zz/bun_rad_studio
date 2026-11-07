@@ -4675,19 +4675,29 @@ describe("core file browsing & pane ergonomics (tabs, marquee, folder tree, colu
     const { state } = await import("../resources/file_manager/ui/state.js");
     const { renderSidebar } =
       await import("../resources/file_manager/ui/sidebar.js");
-    const { toggleFolderTreeSection } =
+    const { loadTreeChildren, toggleFolderTreeSection } =
       await import("../resources/file_manager/ui/folderTree.js");
 
     if (!state.settings.treeExpanded) await toggleFolderTreeSection();
+    await loadTreeChildren(home);
     renderSidebar();
-    await sleep(60);
 
-    const treeRows = [...doc.querySelectorAll("#sidebar .tree-row")];
-    expect(treeRows.length).toBeGreaterThan(0);
-    const destRow = treeRows.find((n: any) => n.dataset.treePath === dest);
+    let destRow: any;
+    const treeDeadline = Date.now() + 5000;
+    while (Date.now() < treeDeadline) {
+      const treeRows = [...doc.querySelectorAll("#sidebar .tree-row")];
+      destRow = treeRows.find((n: any) => n.dataset.treePath === dest);
+      if (destRow) break;
+      renderSidebar();
+      await sleep(50);
+    }
     expect(destRow).toBeDefined();
     destRow.querySelector(".tree-item").click();
-    await sleep(60);
+
+    const navDeadline = Date.now() + 5000;
+    while (Date.now() < navDeadline && state.location.path !== dest) {
+      await sleep(30);
+    }
     expect(state.location.path).toBe(dest);
     await (await import("../resources/file_manager/ui/nav.js")).goTo(home);
   });

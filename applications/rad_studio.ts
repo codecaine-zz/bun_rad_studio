@@ -12,7 +12,8 @@ export function getRecipeForModule(moduleName: string): string {
   switch (mod.name) {
     case "fileutils":
       return `import { join } from "node:path";
-import { fileutils, sysutils } from "./src/features/rad/index.ts";
+import { fileutils } from "./src/features/rad/index.ts";
+import { sysutils } from "./src/features/rad/index.ts";
 
 // 1. Atomic JSON save & load (cross-platform temp dir)
 const cfgPath = join(sysutils.getTempDir(), "config.json");
