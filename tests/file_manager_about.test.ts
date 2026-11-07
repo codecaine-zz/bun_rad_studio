@@ -150,6 +150,13 @@ describe("the Support window in the page", () => {
   let doc: any;
   let about: any;
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  const until = async (check: () => boolean, ms = 5000) => {
+    const deadline = Date.now() + ms;
+    while (Date.now() < deadline) {
+      if (check()) return;
+      await sleep(25);
+    }
+  };
   const button = (text: string): any =>
     [...doc.querySelectorAll(".modal-backdrop button")].find(
       (b: any) => b.textContent.trim() === text,
@@ -210,11 +217,15 @@ describe("the Support window in the page", () => {
     );
     const before = launched.length;
     button("Open PayPal ↗").click();
-    await sleep(300);
+    await until(() => launched.length === before + 1);
     expect(launched.length).toBe(before + 1);
     expect(launched.at(-1)!.args).toContain("https://paypal.me/codecaine81");
     button("Copy link").click();
-    await sleep(300);
+    await until(() =>
+      /donation link was copied|Couldn't copy/.test(
+        doc.querySelector("#toasts")?.textContent ?? "",
+      ),
+    );
     expect(doc.querySelector("#toasts").textContent).toMatch(
       /donation link was copied|Couldn't copy/,
     );
@@ -232,7 +243,11 @@ describe("the Support window in the page", () => {
       /\bnull\b|\bundefined\b/,
     );
     button("Copy").click();
-    await sleep(300);
+    await until(() =>
+      /copied|Couldn't copy/.test(
+        doc.querySelector("#toasts")?.textContent ?? "",
+      ),
+    );
     expect(doc.querySelector("#toasts").textContent).toMatch(
       /copied|Couldn't copy/,
     );
@@ -246,7 +261,9 @@ describe("the Support window in the page", () => {
   test("the About window has a Donate button that opens it", async () => {
     await about.showAbout();
     button("Donate with a QR code…").click();
-    await sleep(300);
+    await until(() =>
+      Boolean(doc.querySelector(".modal-backdrop img.donate-qr")),
+    );
     expect(doc.querySelector(".modal-backdrop img.donate-qr")).toBeTruthy();
     for (const b of doc.querySelectorAll(".modal-backdrop")) b.remove();
   });
