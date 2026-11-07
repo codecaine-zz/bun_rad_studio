@@ -229,6 +229,18 @@
 				const propOpacityEl = document.getElementById("propOpacity");
 				if (propOpacityEl) propOpacityEl.value = c.opacity !== undefined && c.opacity !== null ? c.opacity : 100;
 
+				const anchors = c.anchors || { top: true, left: true, right: false, bottom: false };
+				["Top", "Left", "Right", "Bottom"].forEach((dir) => {
+					const btn = document.getElementById("anchor" + dir + "Btn");
+					if (btn) btn.classList.toggle("btn-primary", !!anchors[dir.toLowerCase()]);
+				});
+				const propDockEl = document.getElementById("propDock");
+				if (propDockEl) propDockEl.value = c.dock || "none";
+				const propDSEl = document.getElementById("propDataSource");
+				if (propDSEl) { propDSEl.value = c.data_source || ""; propDSEl.placeholder = "Dataset1"; }
+				const propDFEl = document.getElementById("propDataField");
+				if (propDFEl) { propDFEl.value = c.data_field || ""; propDFEl.placeholder = "customer_name"; }
+
 				c.event_handlers = c.event_handlers || {};
 				const evtClickEl = document.getElementById("evtOnClick");
 				if (evtClickEl) evtClickEl.value = c.event_handlers["onClick"] || "";
@@ -324,15 +336,35 @@
 				if (propAlignEl) propAlignEl.value = allSame("text_align") ? (selectedCtrls[0].text_align || "left") : "left";
 				const propOpacityEl = document.getElementById("propOpacity");
 				if (propOpacityEl) propOpacityEl.value = allSame("opacity") ? (selectedCtrls[0].opacity !== undefined ? selectedCtrls[0].opacity : 100) : 100;
+				const propDockEl = document.getElementById("propDock");
+				if (propDockEl) propDockEl.value = allSame("dock") ? (selectedCtrls[0].dock || "none") : "none";
+				const propDSEl = document.getElementById("propDataSource");
+				if (propDSEl) {
+					propDSEl.value = allSame("data_source") ? (selectedCtrls[0].data_source || "") : "";
+					propDSEl.placeholder = allSame("data_source") ? "Dataset1" : "(Multiple)";
+				}
+				const propDFEl = document.getElementById("propDataField");
+				if (propDFEl) {
+					propDFEl.value = allSame("data_field") ? (selectedCtrls[0].data_field || "") : "";
+					propDFEl.placeholder = allSame("data_field") ? "customer_name" : "(Multiple)";
+				}
 			}
 		}
+
+		let lastHistoryProp = null;
+		let lastHistoryTime = 0;
 
 		function updateSelectedControl(changedProp) {
 			if (selectedIndices.length === 0) return;
 			if (changedProp && typeof changedProp !== "string") {
 				changedProp = undefined;
 			}
-			saveHistoryState();
+			const now = Date.now();
+			if (!changedProp || changedProp !== lastHistoryProp || now - lastHistoryTime > 600) {
+				saveHistoryState();
+				lastHistoryProp = changedProp || null;
+			}
+			lastHistoryTime = now;
 
 			const propIdEl = document.getElementById("propId");
 			const propTextEl = document.getElementById("propText");
@@ -362,7 +394,7 @@
 					if (propIdEl && propIdEl.value && propIdEl.value.trim() !== "") ctrl.id = propIdEl.value.trim();
 				}
 				if (!changedProp || changedProp === 'text') {
-					if (propTextEl && propTextEl.value !== "") ctrl.text = propTextEl.value;
+					if (propTextEl && (changedProp === 'text' || propTextEl.value !== "")) ctrl.text = propTextEl.value;
 				}
 				if (!changedProp || changedProp === 'placeholder') {
 					if (propPlaceholderEl) ctrl.placeholder = propPlaceholderEl.value;
@@ -477,11 +509,19 @@
 					if (el && el.value !== "") ctrl.opacity = Math.min(100, Math.max(0, parseNum(el.value, 100, 0)));
 					else if (el && el.value === "") delete ctrl.opacity;
 				}
+				if (changedProp === 'data_source') {
+					const el = document.getElementById("propDataSource");
+					if (el) ctrl.data_source = el.value;
+				}
+				if (changedProp === 'data_field') {
+					const el = document.getElementById("propDataField");
+					if (el) ctrl.data_field = el.value;
+				}
 			});
 
 			renderCanvas();
 			renderCode();
-			renderTree();
+			if (!changedProp || changedProp === 'id') renderTree();
 			syncSpecToV();
 		}
 
@@ -518,16 +558,16 @@
 			selectedIndices.forEach(idx => {
 				const c = formSpec.controls[idx];
 				c.event_handlers = c.event_handlers || {};
-				c.event_handlers["onClick"] = "on_" + c.id + "_click";
-				c.event_handlers["onChange"] = "on_" + c.id + "_change";
-				c.event_handlers["onHover"] = "on_" + c.id + "_hover";
-				c.event_handlers["onHoverExit"] = "on_" + c.id + "_hover_exit";
-				c.event_handlers["onFocus"] = "on_" + c.id + "_focus";
-				c.event_handlers["onBlur"] = "on_" + c.id + "_blur";
-				c.event_handlers["onKeyDown"] = "on_" + c.id + "_keydown";
-				c.event_handlers["onKeyUp"] = "on_" + c.id + "_keyup";
-				c.event_handlers["onMouseDown"] = "on_" + c.id + "_mousedown";
-				c.event_handlers["onMouseUp"] = "on_" + c.id + "_mouseup";
+				if (!c.event_handlers["onClick"]) c.event_handlers["onClick"] = "on_" + c.id + "_click";
+				if (!c.event_handlers["onChange"]) c.event_handlers["onChange"] = "on_" + c.id + "_change";
+				if (!c.event_handlers["onHover"]) c.event_handlers["onHover"] = "on_" + c.id + "_hover";
+				if (!c.event_handlers["onHoverExit"]) c.event_handlers["onHoverExit"] = "on_" + c.id + "_hover_exit";
+				if (!c.event_handlers["onFocus"]) c.event_handlers["onFocus"] = "on_" + c.id + "_focus";
+				if (!c.event_handlers["onBlur"]) c.event_handlers["onBlur"] = "on_" + c.id + "_blur";
+				if (!c.event_handlers["onKeyDown"]) c.event_handlers["onKeyDown"] = "on_" + c.id + "_keydown";
+				if (!c.event_handlers["onKeyUp"]) c.event_handlers["onKeyUp"] = "on_" + c.id + "_keyup";
+				if (!c.event_handlers["onMouseDown"]) c.event_handlers["onMouseDown"] = "on_" + c.id + "_mousedown";
+				if (!c.event_handlers["onMouseUp"]) c.event_handlers["onMouseUp"] = "on_" + c.id + "_mouseup";
 			});
 			populateInspector();
 			renderCode();

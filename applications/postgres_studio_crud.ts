@@ -1809,6 +1809,39 @@ export function crudClientMain() {
     const tabGrid = $("tabGrid");
     if (!tabGrid || tabGrid.querySelector(".crud-bar")) return;
 
+    let selectedRowIndex = 0;
+    const getSelectedRow = () => {
+      if (
+        !currentGridData ||
+        !currentGridData.rows ||
+        !currentGridData.rows.length
+      )
+        return null;
+      return (
+        currentGridData.rows[selectedRowIndex] || currentGridData.rows[0]
+      );
+    };
+
+    const gridEl = $("mainDataGrid");
+    if (gridEl && !gridEl.dataset.rowSelectBound) {
+      gridEl.dataset.rowSelectBound = "true";
+      gridEl.addEventListener("click", (e) => {
+        const tr = e.target.closest("tbody tr");
+        if (!tr) return;
+        const idx =
+          tr.dataset.row !== undefined
+            ? Number(tr.dataset.row)
+            : Array.from(tr.parentElement.children).indexOf(tr);
+        if (Number.isInteger(idx) && idx >= 0) {
+          selectedRowIndex = idx;
+          gridEl
+            .querySelectorAll("tbody tr.crud-selected-row")
+            .forEach((r) => r.classList.remove("crud-selected-row"));
+          tr.classList.add("crud-selected-row");
+        }
+      });
+    }
+
     const bar = h(
       "div",
       { class: "crud-bar" },
@@ -1816,28 +1849,21 @@ export function crudClientMain() {
       btn(
         "✎ Edit",
         () => {
-          if (
-            !currentGridData ||
-            !currentGridData.rows ||
-            !currentGridData.rows.length
-          ) {
+          const target = getSelectedRow();
+          if (!target) {
             showToast("No row selected to edit");
             return;
           }
-          openRowDialog("edit", currentGridData.rows[0]);
+          openRowDialog("edit", target);
         },
         "btn-sm",
       ),
       btn(
         "⎘ Duplicate",
         () => {
-          if (
-            !currentGridData ||
-            !currentGridData.rows ||
-            !currentGridData.rows.length
-          )
-            return;
-          const row = Object.assign({}, currentGridData.rows[0]);
+          const target = getSelectedRow();
+          if (!target) return;
+          const row = Object.assign({}, target);
           // clear PK if exists
           const meta = tableMeta(activeTable);
           if (meta && meta.columns) {
@@ -1851,13 +1877,8 @@ export function crudClientMain() {
       btn(
         "🗑 Delete",
         async () => {
-          if (
-            !currentGridData ||
-            !currentGridData.rows ||
-            !currentGridData.rows.length
-          )
-            return;
-          const row = currentGridData.rows[0];
+          const row = getSelectedRow();
+          if (!row) return;
           const meta = tableMeta(activeTable);
           const pkCol =
             meta && meta.columns
@@ -1938,11 +1959,22 @@ export function crudClientMain() {
 
       const colName = td.dataset.col;
       if (!colName || !currentGridData || !currentGridData.columns) return;
-      const oldVal = td.innerText;
+      const rowIdx = Number(tr.dataset.row);
+      const targetRow = currentGridData.rows[rowIdx];
+      const rawCell =
+        targetRow && targetRow[colName] !== undefined
+          ? targetRow[colName]
+          : null;
+      const oldVal =
+        rawCell === null || rawCell === undefined
+          ? td.innerText.replace(/\s*↗\s*$/, "")
+          : typeof rawCell === "object"
+            ? JSON.stringify(rawCell)
+            : String(rawCell);
 
       const input = h("input", {
         class: "crud-inline",
-        value: oldVal === "NULL" ? "" : oldVal,
+        value: rawCell === null || oldVal === "NULL" ? "" : oldVal,
       });
       td.classList.add("crud-editing");
       td.innerHTML = "";
@@ -1957,16 +1989,17 @@ export function crudClientMain() {
         td.classList.remove("crud-editing");
         td.innerText = newVal;
 
+        if (newVal === (rawCell === null || oldVal === "NULL" ? "" : oldVal)) {
+          if (rawCell === null || oldVal === "NULL") td.innerText = "NULL";
+          return;
+        }
+
         const meta = tableMeta(activeTable);
         const pkCol =
           meta && meta.columns
             ? meta.columns.find((c) => c.pk) || meta.columns[0]
             : null;
-        if (!pkCol) return;
-
-        const rowIdx = Number(tr.dataset.row);
-        const targetRow = currentGridData.rows[rowIdx];
-        if (!targetRow) return;
+        if (!pkCol || !targetRow) return;
 
         const pkVal = targetRow[pkCol.name];
         const updatePayload = {};

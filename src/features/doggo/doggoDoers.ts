@@ -387,7 +387,7 @@ export function performDnsLookupSync(
     }
     try {
       const res = Bun.spawnSync(args);
-      const lines = res.stdout.toString().split("\n");
+      const lines = res.stdout.toString().split(/\r?\n/);
       for (const line of lines) {
         const parts = line.trim().split(/\s+/);
         if (parts.length >= 5) {

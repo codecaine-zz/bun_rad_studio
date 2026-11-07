@@ -827,7 +827,7 @@ export class SimpleCLI {
     const bot = `└${"─".repeat(termWidth)}┘`;
 
     this.println(`\n${this.cyan(top)}`);
-    const lines = content.split("\n");
+    const lines = content.split(/\r?\n/);
     for (const line of lines) {
       this.println(`${this.cyan("│")} ${line}`);
     }
@@ -864,27 +864,50 @@ export class SimpleCLI {
   public table(headers: string[], rows: (string | number | boolean)[][]): void {
     if (headers.length === 0 && rows.length === 0) return;
 
-    const colCount = Math.max(headers.length, ...rows.map((r) => r.length));
-    const colWidths = new Array(colCount).fill(0);
+    let colCount = headers.length;
+    for (let r = 0; r < rows.length; r++) {
+      const len = rows[r]?.length ?? 0;
+      if (len > colCount) colCount = len;
+    }
+
+    const colWidths = new Array<number>(colCount).fill(0);
+    const headerWidths = new Array<number>(colCount).fill(0);
+    for (let c = 0; c < colCount; c++) {
+      const w = headers[c] ? Ansi.stringWidth(headers[c]!) : 0;
+      headerWidths[c] = w;
+      colWidths[c] = w;
+    }
+
+    const strRows: string[][] = new Array(rows.length);
+    const cellWidths: number[][] = new Array(rows.length);
+    for (let r = 0; r < rows.length; r++) {
+      const row = rows[r]!;
+      const sRow = new Array<string>(colCount);
+      const wRow = new Array<number>(colCount);
+      for (let c = 0; c < colCount; c++) {
+        const text = row[c] !== undefined ? String(row[c]) : "";
+        const w = Ansi.stringWidth(text);
+        sRow[c] = text;
+        wRow[c] = w;
+        if (w > colWidths[c]!) colWidths[c] = w;
+      }
+      strRows[r] = sRow;
+      cellWidths[r] = wRow;
+    }
 
     for (let c = 0; c < colCount; c++) {
-      colWidths[c] =
-        Math.max(
-          headers[c] ? Ansi.stringWidth(headers[c]!) : 0,
-          ...rows.map((r) =>
-            r[c] !== undefined ? Ansi.stringWidth(String(r[c])) : 0,
-          ),
-        ) + 2;
+      colWidths[c] = (colWidths[c] ?? 0) + 2;
     }
 
     const buildRow = (
-      cells: (string | number | boolean)[],
+      cells: string[],
+      widths: number[],
       isHeader: boolean = false,
     ) => {
       let out = "│";
       for (let c = 0; c < colCount; c++) {
-        const text = cells[c] !== undefined ? String(cells[c]) : "";
-        const padLen = colWidths[c] - Ansi.stringWidth(text);
+        const text = cells[c] ?? "";
+        const padLen = (colWidths[c] ?? 2) - (widths[c] ?? 0);
         const cellContent = isHeader ? this.bold(text) : text;
         out += ` ${cellContent}${" ".repeat(Math.max(0, padLen - 1))}│`;
       }
@@ -897,11 +920,11 @@ export class SimpleCLI {
 
     this.println(this.cyan(topBorder));
     if (headers.length > 0) {
-      this.println(buildRow(headers, true));
+      this.println(buildRow(headers, headerWidths, true));
       this.println(this.cyan(midBorder));
     }
-    for (const row of rows) {
-      this.println(buildRow(row, false));
+    for (let r = 0; r < strRows.length; r++) {
+      this.println(buildRow(strRows[r]!, cellWidths[r]!, false));
     }
     this.println(this.cyan(botBorder));
   }
@@ -969,8 +992,13 @@ export class SimpleCLI {
   public sparkline(values: number[]): string {
     if (values.length === 0) return "";
     const glyphs = [" ", "▂", "▃", "▄", "▅", "▆", "▇", "█"];
-    const min = Math.min(...values);
-    const max = Math.max(...values);
+    let min = values[0]!;
+    let max = values[0]!;
+    for (let i = 1; i < values.length; i++) {
+      const v = values[i]!;
+      if (v < min) min = v;
+      if (v > max) max = v;
+    }
     const range = max - min;
 
     return values
@@ -1076,8 +1104,8 @@ export class SimpleCLI {
    * Computes a line-by-line colored unified diff string between `oldText` and `newText`.
    */
   public diffText(oldText: string, newText: string): string {
-    const oldLines = oldText.split("\n");
-    const newLines = newText.split("\n");
+    const oldLines = oldText.split(/\r?\n/);
+    const newLines = newText.split(/\r?\n/);
     const out: string[] = [];
 
     const maxLen = Math.max(oldLines.length, newLines.length);
@@ -1264,7 +1292,7 @@ export class SimpleCLI {
    * Renders basic Markdown headings, bullet lists, and blockquotes to the terminal with ANSI styling.
    */
   public renderMarkdown(markdownText: string): void {
-    const lines = markdownText.split("\n");
+    const lines = markdownText.split(/\r?\n/);
     for (const line of lines) {
       if (line.startsWith("# ")) {
         this.println(
@@ -1682,7 +1710,7 @@ complete -F _${this.appName.toLowerCase()}_completions ${this.appName.toLowerCas
     const title = `✖ ${error.name || "Error"}: ${error.message}`;
     let stackClean = "";
     if (error.stack) {
-      const lines = error.stack.split("\n").slice(1);
+      const lines = error.stack.split(/\r?\n/).slice(1);
       const filtered = lines.map((line) => {
         if (line.includes("node:") || line.includes("bun:")) {
           return Ansi.dim(line);

@@ -70,7 +70,7 @@ export async function execLines(
     );
   }
   return res.stdout
-    .split("\n")
+    .split(/\r?\n/)
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
 }

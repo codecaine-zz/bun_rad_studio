@@ -509,10 +509,18 @@ export function insertMany(
   const first = records[0];
   if (!first) return 0;
   const keys = Object.keys(first);
+  const kLen = keys.length;
   const sql = `INSERT INTO ${quoteIdent(table)} (${keys.map(quoteIdent).join(", ")}) VALUES (${keys.map(() => "?").join(", ")});`;
   const stmt = db.query(sql);
+  const rowVals = new Array(kLen);
   return transaction(db, () => {
-    for (const r of records) stmt.run(...keys.map((k) => r[k] ?? null));
+    for (let i = 0; i < records.length; i++) {
+      const r = records[i]!;
+      for (let j = 0; j < kLen; j++) {
+        rowVals[j] = r[keys[j]!] ?? null;
+      }
+      stmt.run(...rowVals);
+    }
     return records.length;
   });
 }

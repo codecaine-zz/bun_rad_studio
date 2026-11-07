@@ -166,6 +166,7 @@ export async function closeTab(tabId = state.activeTabId) {
   const idx = state.tabs.findIndex((t) => t.id === tabId);
   if (idx < 0) return;
   const closingActive = state.tabs[idx].id === state.activeTabId;
+  if (closingActive) saveCurrentTabSnapshot();
   const closedTab = state.tabs[idx];
   const closedLabel = tabLabel(closedTab.location);
   if (!Array.isArray(state.closedTabs)) state.closedTabs = [];
@@ -174,6 +175,9 @@ export async function closeTab(tabId = state.activeTabId) {
     history: [...(closedTab.history ?? [])],
     future: [...(closedTab.future ?? [])],
     selection: [...(closedTab.selection ?? [])],
+    quickFilter: closedTab.quickFilter || "",
+    kindFilter: closedTab.kindFilter || "all",
+    tagFilter: closedTab.tagFilter || "",
     scrollTop: closedTab.scrollTop ?? 0,
   });
   if (state.closedTabs.length > 20) state.closedTabs.shift();
@@ -204,6 +208,9 @@ export async function closeOtherTabs(keepTabId = state.activeTabId) {
         history: [...(t.history ?? [])],
         future: [...(t.future ?? [])],
         selection: [...(t.selection ?? [])],
+        quickFilter: t.quickFilter || "",
+        kindFilter: t.kindFilter || "all",
+        tagFilter: t.tagFilter || "",
         scrollTop: t.scrollTop ?? 0,
       });
     }
@@ -244,6 +251,9 @@ export async function reopenClosedTab() {
     history: [...(popped.history ?? [])],
     future: [...(popped.future ?? [])],
     selection: [...(popped.selection ?? [])],
+    quickFilter: popped.quickFilter || "",
+    kindFilter: popped.kindFilter || "all",
+    tagFilter: popped.tagFilter || "",
     scrollTop: popped.scrollTop ?? 0,
   };
   state.tabs.push(restored);

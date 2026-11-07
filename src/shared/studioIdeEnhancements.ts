@@ -1163,9 +1163,14 @@ function studioIdeEnhancementsClient() {
           return;
         }
       }
-      if (e.ctrlKey && e.code === "Space") {
+      if ((e.ctrlKey || e.altKey) && e.code === "Space") {
         e.preventDefault();
         showSuggestions(ed);
+        return;
+      }
+      if (e.key === "F5") {
+        e.preventDefault();
+        if (typeof window.runEditorQuery === "function") window.runEditorQuery();
         return;
       }
       if (e.shiftKey && e.altKey && (e.key === "F" || e.key === "f")) {
@@ -2028,7 +2033,13 @@ function studioIdeEnhancementsClient() {
       });
 
     body.innerHTML =
+      `<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;">` +
       `<div style="font-size:10px;color:var(--text-muted,#94a3b8);font-weight:700;">Row #${rIdx + 1} in ${esc(getActiveTable() || "Query Result")}</div>` +
+      `<div style="display:flex;gap:4px;">` +
+      `<button type="button" class="btn btn-sm" id="btnInspCopyJson" title="Copy row as formatted JSON">📋 JSON</button>` +
+      `<button type="button" class="btn btn-sm" id="btnInspCopyInsert" title="Copy row as SQL INSERT statement">📋 SQL INSERT</button>` +
+      `</div>` +
+      `</div>` +
       cols
         .map((c) => {
           const v = row[c];
@@ -2087,6 +2098,25 @@ function studioIdeEnhancementsClient() {
         );
       });
     });
+    document.getElementById("btnInspCopyJson")?.addEventListener("click", () => {
+      navigator.clipboard?.writeText(JSON.stringify(row, null, 2));
+      notify("📋 Copied row JSON to clipboard");
+    });
+    document
+      .getElementById("btnInspCopyInsert")
+      ?.addEventListener("click", () => {
+        const tblName = getActiveTable() || "table_name";
+        const vals = cols.map((cn) => {
+          const v = row[cn];
+          if (v === null || v === undefined) return "NULL";
+          if (typeof v === "number" || typeof v === "boolean") return String(v);
+          const s = typeof v === "object" ? JSON.stringify(v) : String(v);
+          return `'${s.replace(/'/g, "''")}'`;
+        });
+        const sql = `INSERT INTO "${tblName}" (${cols.map((c) => `"${c}"`).join(", ")}) VALUES (${vals.join(", ")});`;
+        navigator.clipboard?.writeText(sql);
+        notify("📋 Copied SQL INSERT to clipboard");
+      });
   }
 
   // =========================================================================

@@ -773,7 +773,11 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
 
       if (pathname === "/api/exec" && req.method === "POST") {
         try {
-          const body = (await req.json()) as { command?: string; cwd?: string };
+          const body = (await req.json()) as {
+            command?: string;
+            cwd?: string;
+            timeoutMs?: number;
+          };
           if (!body?.command) {
             return Response.json(
               { success: false, error: "Missing command parameter" },
@@ -810,20 +814,32 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
             stderr: "pipe",
           });
 
+          const execTimeoutMs = Number(body.timeoutMs) > 0 ? Math.min(Number(body.timeoutMs), 120000) : 30000;
+          let timedOut = false;
+          const timer = setTimeout(() => {
+            timedOut = true;
+            try {
+              proc.kill();
+            } catch {}
+          }, execTimeoutMs);
+
           const [stdout, stderr, exitCode] = await Promise.all([
             new Response(proc.stdout).text(),
             new Response(proc.stderr).text(),
             proc.exited,
           ]);
+          clearTimeout(timer);
           const durationMs = Math.round(performance.now() - startTime);
 
           return Response.json(
             {
-              success: true,
+              success: !timedOut,
               command: body.command,
-              exitCode,
+              exitCode: timedOut ? 124 : exitCode,
               stdout,
-              stderr,
+              stderr: timedOut
+                ? `${stderr}${stderr ? "\n" : ""}[Command timed out after ${execTimeoutMs}ms]`
+                : stderr,
               durationMs,
             },
             { headers: corsHeaders },

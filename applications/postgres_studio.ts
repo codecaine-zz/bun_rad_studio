@@ -6491,7 +6491,7 @@ export function createPostgresStudio(
         });
       } catch {
         // Subprocess fallback
-        const serverArgs = process.execPath.endsWith("bun")
+        const serverArgs = /bun(\.exe)?$/i.test(process.execPath)
           ? [
               process.execPath,
               process.argv[1] || resolve(import.meta.dir, "postgres_studio.ts"),

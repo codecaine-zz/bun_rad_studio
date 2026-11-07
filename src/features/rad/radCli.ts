@@ -2,6 +2,7 @@
  * CLI showcase runner demonstrating all 44 modules of the Bun RAD (Rapid Application Development)
  * utility suite with interactive terminal output and execution timing.
  */
+import { join } from "node:path";
 import { rad } from "./index.ts";
 import { colors } from "../../shared/colors.ts";
 
@@ -33,7 +34,7 @@ export async function runRadShowcase(): Promise<void> {
   console.log(
     `\n${colors.bold(colors.yellow("1. [fileutils] File & Data Persistence:"))}`,
   );
-  const tmpJson = "/tmp/bun_rad_demo.json";
+  const tmpJson = join(rad.sysutils.getTempDir(), "bun_rad_demo.json");
   await rad.fileutils.saveJson(tmpJson, {
     project: "bun_sys_utils",
     ready: true,
@@ -218,7 +219,7 @@ export async function runRadShowcase(): Promise<void> {
   const state = new rad.stateutils.AppStateStore(
     "demo_app",
     { count: 0 },
-    { customPath: "/tmp/bun_rad_state.json" },
+    { customPath: join(rad.sysutils.getTempDir(), "bun_rad_state.json") },
   );
   await state.update((d) => {
     d.count += 1;

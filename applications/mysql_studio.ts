@@ -7413,7 +7413,7 @@ ${STUDIO_STAGING_STYLE}
         e.preventDefault();
         if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
           const file = e.dataTransfer.files[0];
-          if (file.name.match(/\.(mysql|db|mysql3|db3)$/i)) {
+          if (file.name.match(/\.(sql|csv|tsv|json|jsonl|mysql|db|mysql3|db3)$/i)) {
             handleDatabaseUpload(file);
           }
         }
@@ -7629,7 +7629,7 @@ export function createMysqlStudio(
         });
       } catch {
         // Subprocess fallback: Spawns the server as an isolated OS process with an active Bun event loop
-        const serverArgs = process.execPath.endsWith("bun")
+        const serverArgs = /bun(\.exe)?$/i.test(process.execPath)
           ? [
               process.execPath,
               process.argv[1] || resolve(import.meta.dir, "mysql_studio.ts"),

@@ -9,7 +9,7 @@ import { mayHavePhotoDetails, photoStrip } from "./fileinfoPhoto.js";
 import { $, clear, h, iconForEntry } from "./dom.js";
 import { saveSettings, visibleEntries } from "./nav.js";
 import { octalOf, symbolicOf } from "./permsModel.js";
-import { copyPathOf } from "./ops.js";
+import { copyNamesOf, copyPathOf } from "./ops.js";
 import { openPower } from "./power.js";
 import { inTrash } from "./pane.js";
 import { selectedEntries } from "./selection.js";
@@ -67,6 +67,17 @@ function quickActionsStrip(items) {
           onclick: () => void copyPathOf([e]),
         },
         "📋 Copy Path",
+      ),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "btn info-qa-btn",
+          dataset: { infoAction: "copy-name" },
+          title: "Copy only the filename to the clipboard",
+          onclick: () => void copyNamesOf([e]),
+        },
+        "🏷️ Copy Name",
       ),
       !e.isDir
         ? h(
@@ -269,7 +280,17 @@ async function previewFor(entry) {
 export async function renderInfo() {
   const panel = $("#info");
   panel.hidden = !state.settings.showInfoPanel;
-  if (panel.hidden) return;
+  const appEl = $("#app");
+  const ws = appEl?.dataset?.workspace;
+  if (
+    panel.hidden ||
+    ws === "split" ||
+    ws === "dual" ||
+    ws === "tools" ||
+    ws === "home" ||
+    appEl?.classList?.contains("focus-mode")
+  )
+    return;
   const mine = ++sequence;
   const items = selectedEntries();
   const box = clear(panel);

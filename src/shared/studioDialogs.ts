@@ -80,7 +80,9 @@ function studioDialogsClient() {
 
   function focusables(root) {
     return Array.from(
-      root.querySelectorAll("button, input, select, textarea, [tabindex='0']"),
+      root.querySelectorAll(
+        "button, input, select, textarea, a[href], summary, [contenteditable='true'], [tabindex]:not([tabindex='-1'])",
+      ),
     ).filter(
       (n) =>
         !n.disabled &&
@@ -321,6 +323,7 @@ function studioDialogsClient() {
     (e) => {
       const top = stack[stack.length - 1];
       if (!top) return;
+      if (e.isComposing || e.keyCode === 229) return;
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
@@ -350,14 +353,28 @@ function studioDialogsClient() {
       }
       if (
         e.key === "Enter" &&
-        !e.shiftKey &&
-        !e.ctrlKey &&
-        !e.metaKey &&
         top.primary &&
         !top.primary.disabled
       ) {
         const t = e.target;
+        const mod = e.ctrlKey || e.metaKey;
         if (
+          t &&
+          t.tagName === "TEXTAREA" &&
+          mod &&
+          !e.shiftKey &&
+          !e.altKey &&
+          top.node.contains(t)
+        ) {
+          e.preventDefault();
+          e.stopPropagation();
+          top.primary.click();
+          return;
+        }
+        if (
+          !e.shiftKey &&
+          !e.ctrlKey &&
+          !e.metaKey &&
           t &&
           t.tagName === "INPUT" &&
           t.type !== "checkbox" &&

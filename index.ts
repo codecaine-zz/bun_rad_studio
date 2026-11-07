@@ -395,6 +395,8 @@ export function getScreenDimensions(): { width: number; height: number } {
       });
       screenW = user32.symbols.GetSystemMetrics(0);
       screenH = user32.symbols.GetSystemMetrics(1);
+    } else if (process.platform === "linux") {
+      return getLinuxDisplaySizeFallback();
     }
   } catch {}
   return { width: screenW, height: screenH };
@@ -564,14 +566,31 @@ export function attachWindowShortcuts(
       const cg = dlopen(
         "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
         {
+          CGSIsSymbolicHotKeyEnabled: {
+            args: [FFIType.i32],
+            returns: FFIType.bool,
+          },
           CGSSetSymbolicHotKeyEnabled: {
             args: [FFIType.i32, FFIType.bool],
             returns: FFIType.i32,
           },
         },
       );
+      const was36 = Boolean(cg.symbols.CGSIsSymbolicHotKeyEnabled(36));
+      const was37 = Boolean(cg.symbols.CGSIsSymbolicHotKeyEnabled(37));
       cg.symbols.CGSSetSymbolicHotKeyEnabled(36, false);
       cg.symbols.CGSSetSymbolicHotKeyEnabled(37, false);
+      let restored = false;
+      const restoreHotKeys = () => {
+        if (restored) return;
+        restored = true;
+        try {
+          if (was36) cg.symbols.CGSSetSymbolicHotKeyEnabled(36, true);
+          if (was37) cg.symbols.CGSSetSymbolicHotKeyEnabled(37, true);
+        } catch {}
+      };
+      process.once("exit", restoreHotKeys);
+      process.once("beforeExit", restoreHotKeys);
     } catch (e) {}
   }
 
@@ -971,8 +990,11 @@ ${DESKTOP_SHORTCUTS_SCRIPT}
             isFnPressed = false;
         }
     });
+    window.addEventListener("blur", function() { isFnPressed = false; });
+    document.addEventListener("visibilitychange", function() { if (document.hidden) isFnPressed = false; });
 
     window.addEventListener("keydown", function(e) {
+        if (e.isComposing || e.keyCode === 229) return;
         if (e.key === "Fn" || e.key === "Globe" || e.code === "Fn" || e.code === "Function") {
             isFnPressed = true;
         }
@@ -1004,6 +1026,11 @@ ${DESKTOP_SHORTCUTS_SCRIPT}
         ) {
             e.preventDefault();
             e.stopPropagation();
+            if ((e.key === "F5" || e.code === "F5") && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                if (typeof window.triggerRunForm === "function") {
+                    try { window.triggerRunForm(); } catch(err) {}
+                }
+            }
             return false;
         }
 
@@ -1030,18 +1057,32 @@ ${DESKTOP_SHORTCUTS_SCRIPT}
         const isInput = !!(e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT" || e.target.isContentEditable || (typeof e.target.closest === "function" && e.target.closest("[data-typing-input], [data-typing-app]")))) || !!(document.body && document.body.hasAttribute && document.body.hasAttribute("data-typing-app"));
         const isFn = isFnPressed || (typeof e.getModifierState === "function" && (e.getModifierState("Fn") || e.getModifierState("FnLock") || e.getModifierState("Symbol")));
         const isBareF = !e.metaKey && !e.ctrlKey && !e.altKey && isF;
-        const isCmdOrCtrlF = (e.metaKey || e.ctrlKey) && isF;
+        const isPlainCmdOrCtrlF = (e.metaKey || e.ctrlKey) && !(e.metaKey && e.ctrlKey) && !e.shiftKey && !e.altKey && isF;
+        const isExplicitFullscreenModF = ((e.metaKey && e.ctrlKey) || ((e.metaKey || e.ctrlKey) && e.shiftKey)) && isF;
+
+        // 3b. Cmd+F / Ctrl+F: Focus visible search/filter input first if present
+        if (isPlainCmdOrCtrlF) {
+            const searchEl = document.querySelector('#paletteSearchInput, #gridSearchInput, #txt_search, #search-input, #quick-filter, input[type="search"], input[placeholder*="Search" i], input[placeholder*="Filter" i]');
+            if (searchEl && searchEl.offsetParent !== null) {
+                e.preventDefault();
+                e.stopPropagation();
+                searchEl.focus();
+                if (typeof searchEl.select === "function") searchEl.select();
+                return;
+            }
+        }
 
         // 4. Fullscreen toggle shortcuts:
-        // - Cmd+F / Ctrl+F (all windows / editors)
         // - Cmd+Ctrl+F / Ctrl+Cmd+F (macOS native shortcut ⌃⌘F)
         // - Cmd+Shift+F / Ctrl+Shift+F
+        // - Cmd+F / Ctrl+F (when no search input exists and not typing inside an input)
         // - Fn+F / Globe+F (macOS fullscreen)
         // - F11 (standard function key)
         // - F / f (when not inside an input field)
         // - Alt+Enter (Windows/Linux standard)
         if (
-            isCmdOrCtrlF ||
+            isExplicitFullscreenModF ||
+            (!isInput && isPlainCmdOrCtrlF) ||
             (!isInput && isBareF) ||
             (!isInput && isFn && isF) ||
             e.key === "F11" || code === "F11" || e.key === "\\uF70E" || e.keyCode === 122 ||
@@ -1098,8 +1139,8 @@ ${DESKTOP_SHORTCUTS_SCRIPT}
             return;
         }
 
-        // 8. Zoom shortcuts: Cmd/Ctrl + (+/- / 0)
-        if (e.metaKey || e.ctrlKey) {
+        // 8. Zoom shortcuts: Cmd/Ctrl + (+/- / 0) (skip if IDE formCanvas exists so IDE handles canvas zoom)
+        if ((e.metaKey || e.ctrlKey) && !document.getElementById("formCanvas")) {
             if (e.key === "=" || e.key === "+" || e.code === "Equal" || e.code === "NumpadAdd") {
                 e.preventDefault();
                 applyZoom(0.1, false);
@@ -4119,7 +4160,10 @@ export function generatePreviewHtml(spec: any): string {
         : String(rawTabItems)
             .split(",")
             .map((tb: string) => tb.trim());
-      const activeTab = c.value || tabItems[0] || "";
+      const activeTab =
+        typeof c.value === "number"
+          ? (tabItems[c.value] ?? tabItems[0] ?? "")
+          : c.value || tabItems[0] || "";
       const customHandler =
         c.event_handlers?.onChange || c.event_handlers?.onchange || "";
       const customClose =
@@ -4152,7 +4196,7 @@ export function generatePreviewHtml(spec: any): string {
 
       controls += `<div${id}${titleAttr} class="rad-tabs-bar" data-value="${activeTab}" style="${base(c)}display:flex;align-items:center;background:${cbg !== "transparent" ? cbg : isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)"};border-bottom:2px solid ${border};padding:0 4px;gap:2px;overflow-x:auto;">${tabItems
         .map((tb: string, idx: number) => {
-          const isSel = tb === activeTab || (idx === 0 && !c.value);
+          const isSel = tb === activeTab || (idx === 0 && !activeTab);
           const closeBtn = isClosable
             ? `<span class="tab-close-btn" onclick="event.stopPropagation();if(window['${c.id}_closeTab'])window['${c.id}_closeTab']('${tb.replace(/'/g, "\\'")}');else{this.parentNode.remove();}" style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;margin-left:6px;font-size:11px;opacity:0.6;cursor:pointer;line-height:1;" onmouseover="this.style.opacity='1';this.style.background='rgba(239,68,68,0.2)';this.style.color='#ef4444';" onmouseout="this.style.opacity='0.6';this.style.background='transparent';this.style.color='inherit';">×</span>`
             : "";

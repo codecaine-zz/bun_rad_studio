@@ -6512,7 +6512,7 @@ export function createSqliteStudio(
         });
       } catch {
         // Subprocess fallback: Spawns the server as an isolated OS process with an active Bun event loop
-        const serverArgs = process.execPath.endsWith("bun")
+        const serverArgs = /bun(\.exe)?$/i.test(process.execPath)
           ? [
               process.execPath,
               process.argv[1] || resolve(import.meta.dir, "sqlite_studio.ts"),

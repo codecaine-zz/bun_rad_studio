@@ -504,6 +504,7 @@
 
 		function generateBunTSCode() {
 			const title = formSpec.title || "Bun RAD Form";
+			const safeTitleLit = JSON.stringify(title);
 			const w = formSpec.width || 840;
 			const h = formSpec.height || 560;
 
@@ -513,7 +514,7 @@ import { join } from "path";
 
 // Initialize Webview Window
 const wv = new Webview();
-wv.title = "${title}";
+wv.title = ${safeTitleLit};
 wv.size = { width: ${w}, height: ${h}, hint: SizeHint.NONE };
 
 // Load HTML UI Spec
@@ -627,7 +628,7 @@ wv.bind("backendAlert", (msg: string) => {
 				code += '\n// Note: Add component event handlers in the Events tab to auto-generate TS methods here.\n\n';
 			}
 
-			code += 'console.log("🚀 Starting Bun RAD Studio App: ' + title + '...");\nwv.run();\n';
+			code += 'console.log("🚀 Starting Bun RAD Studio App:", ' + safeTitleLit + ');\nwv.run();\n';
 			return code;
 		}
 

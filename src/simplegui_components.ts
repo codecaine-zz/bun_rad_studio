@@ -62,7 +62,7 @@ export const UI_DEFAULT_SIZES: Record<UIComponentType, [number, number]> = {
   bottomNav: [420, 56],
   fab: [56, 56],
   speedDial: [56, 56],
-  backToTop: [48, 8],
+  backToTop: [48, 44],
   drawer: [140, 38],
   backdrop: [120, 8],
   popover: [140, 38],
@@ -207,7 +207,8 @@ const UI_CSS = String.raw`
 .sgu-chip.sgu-selected{box-shadow:0 0 0 2px var(--accent,#38bdf8)}
 .sgu-chip .sgu-av{width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.28);display:inline-flex;align-items:center;justify-content:center;font-size:10px;margin-left:-6px;overflow:hidden}
 .sgu-chip .sgu-av img{width:100%;height:100%;object-fit:cover}
-.sgu-chip .sgu-del{background:rgba(255,255,255,.25);border:0;color:inherit;border-radius:50%;width:16px;height:16px;font-size:11px;line-height:1;cursor:pointer;padding:0;margin-right:-4px}
+.sgu-chip .sgu-del{background:rgba(255,255,255,.25);border:0;color:inherit;border-radius:50%;width:18px;height:18px;font-size:11px;line-height:1;cursor:pointer;padding:0;margin-right:-4px}
+.sgu-btn:focus-visible,.sgu-fab:focus-visible,.sgu-bnav button:focus-visible,.sgu-appbar button:focus-visible,.sgu-nav button:focus-visible,.sgu-chip:focus-visible,.sgu-x:focus-visible,.sgu-box:focus-visible,.sgu-cmp:focus-visible{outline:2px solid var(--accent,#38bdf8);outline-offset:2px}
 .sgu-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .sgu-casc{display:flex}.sgu-casc .sgu-col{min-width:150px;max-height:240px;overflow:auto;padding:4px;border-right:1px solid rgba(148,163,184,.2)}.sgu-casc .sgu-col:last-child{border-right:0}
 .sgu-arrow{opacity:.5;margin-left:auto;font-size:11px}
@@ -349,7 +350,7 @@ R.appBar = function (el, c) {
     var btns = [];
     (c.items || []).forEach(function (x) { var o = norm(x); var raw = o.raw || {}; var b = E("button", "", (raw.icon ? ic(raw.icon) + " " : "") + o.label); on(b, "click", function () { btns.forEach(function (k) { k.classList.remove("sgu-on"); }); if (c.selectable !== false) b.classList.add("sgu-on"); emit(el, "click", o.value); }); if (c.active !== undefined && String(c.active) === String(o.value)) b.classList.add("sgu-on"); btns.push(b); d.appendChild(b); });
     d.appendChild(E("span", "sgu-grow"));
-    if (c.search) { var si = E("input"); si.placeholder = c.searchPlaceholder || "Search..."; on(si, "keydown", function (e) { if (e.key === "Enter") emit(el, "enter", si.value); }); on(si, "input", function () { emit(el, "change", si.value); }); d.appendChild(si); }
+    if (c.search) { var si = E("input"); si.placeholder = c.searchPlaceholder || "Search..."; on(si, "keydown", function (e) { if (e.isComposing || e.keyCode === 229) return; if (e.key === "Enter") emit(el, "enter", si.value); }); on(si, "input", function () { emit(el, "change", si.value); }); d.appendChild(si); }
     (c.actions || []).forEach(function (x) { var o = norm(x); var raw = o.raw || {}; var b = E("button", "", ic(raw.icon || o.label)); b.title = o.label; if (raw.badge) b.appendChild(E("span", "sgu-badge", raw.badge)); on(b, "click", function () { emit(el, "click", o.value); }); d.appendChild(b); });
     d.style.height = "100%"; el.appendChild(d);
 };
@@ -383,8 +384,8 @@ R.backToTop = function (el, c) {
     el.appendChild(b);
 };
 R.scrollProgress = function (el, c) {
-    var bar = E("div", "sgu-sp"); if (c.color) bar.style.background = col(c.color); if (c.height) bar.style.height = c.height + "px"; if (c.position === "bottom") { bar.style.top = "auto"; bar.style.bottom = "0"; }
-    window.addEventListener("scroll", function (e) { var t = e.target === document ? (document.scrollingElement || document.documentElement) : e.target; var max = t.scrollHeight - t.clientHeight; if (max > 0) { bar.style.width = Math.min(100, t.scrollTop / max * 100) + "%"; emit(el, "change", Math.round(t.scrollTop / max * 100)); } }, true);
+    var bar = E("div", "sgu-sp"), raf = 0, lastPct = -1; if (c.color) bar.style.background = col(c.color); if (c.height) bar.style.height = c.height + "px"; if (c.position === "bottom") { bar.style.top = "auto"; bar.style.bottom = "0"; }
+    window.addEventListener("scroll", function (e) { if (!el.isConnected || raf) return; var t = e.target === document ? (document.scrollingElement || document.documentElement) : e.target; raf = requestAnimationFrame(function () { raf = 0; if (!t) return; var max = t.scrollHeight - t.clientHeight; if (max > 0) { var pct = Math.min(100, t.scrollTop / max * 100), r = Math.round(pct); bar.style.width = pct + "%"; if (r !== lastPct) { lastPct = r; emit(el, "change", r); } } }); }, { capture: true, passive: true });
     el.appendChild(bar);
 };
 
@@ -480,6 +481,7 @@ R.autocomplete = function (el, c) {
     on(input, "focus", function () { if (c.disabled) return; renderChips(); if (!multi) input.select(); refresh(); });
     on(input, "input", function () { q = input.value; hi = 0; refresh(); });
     on(input, "keydown", function (e) {
+        if (e.isComposing || e.keyCode === 229) return;
         if (e.key === "ArrowDown") { e.preventDefault(); hi = Math.min(filtered.length - 1, hi + 1); refresh(); } else if (e.key === "ArrowUp") { e.preventDefault(); hi = Math.max(0, hi - 1); refresh(); }
         else if (e.key === "Enter") { e.preventDefault(); if (filtered[hi]) pick(filtered[hi]); else if (c.freeSolo && q) { var o = { label: q, value: q }; opts.push(o); pick(o); } }
         else if (e.key === "Backspace" && !input.value && multi && sel.length) { sel.pop(); changed(); } else if (e.key === "Escape" || e.key === "Tab") closeP();
@@ -503,6 +505,7 @@ R.cascader = function (el, c) {
         cols(0); for (var k = 1; k <= cur.length; k++) cols(k); pop = popup(box, n, { onClose: function () { pop = null; } });
     }
     on(box, "click", function () { pop ? pop.close() : open(); });
+    box.tabIndex = 0; box.setAttribute("role", "combobox"); on(box, "keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pop ? pop.close() : open(); } else if (e.key === "Escape" && pop) { e.preventDefault(); pop.close(); } });
     if (c.value) pathSel = [].concat(c.value); show(); el.appendChild(fb.f);
     return { setValue: function (v) { pathSel = [].concat(v || []); show(); } };
 };
@@ -520,7 +523,9 @@ R.treeSelect = function (el, c) {
         function redraw() { var st = n.scrollTop; n.textContent = ""; draw(c.options || [], 0, n); n.scrollTop = st; }
         redraw(); pop = popup(box, n, { matchWidth: true, onClose: function () { pop = null; } });
     }
-    on(box, "click", function () { pop ? pop.close() : open(); }); show(); el.appendChild(fb.f);
+    on(box, "click", function () { pop ? pop.close() : open(); });
+    box.tabIndex = 0; box.setAttribute("role", "combobox"); on(box, "keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pop ? pop.close() : open(); } else if (e.key === "Escape" && pop) { e.preventDefault(); pop.close(); } });
+    show(); el.appendChild(fb.f);
     return { setValue: function (v) { sel = v === undefined ? [] : [].concat(v); show(); } };
 };
 R.mentions = function (el, c) {
@@ -536,7 +541,7 @@ R.mentions = function (el, c) {
     function pick(o) { var pos = ta.selectionStart; var ins = trig + o.label + " "; ta.value = ta.value.slice(0, start) + ins + ta.value.slice(pos); var np = start + ins.length; ta.setSelectionRange(np, np); closeP(); ta.focus(); emit(el, "change", ta.value); }
     on(ta, "input", function () { hi = 0; update(); emit(el, "change", ta.value); });
     on(ta, "click", update);
-    on(ta, "keydown", function (e) { if (!pop) return; if (e.key === "ArrowDown") { e.preventDefault(); hi = (hi + 1) % flt.length; update(); } else if (e.key === "ArrowUp") { e.preventDefault(); hi = (hi - 1 + flt.length) % flt.length; update(); } else if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); pick(flt[hi]); } else if (e.key === "Escape") closeP(); });
+    on(ta, "keydown", function (e) { if (e.isComposing || e.keyCode === 229 || !pop) return; if (e.key === "ArrowDown") { e.preventDefault(); hi = (hi + 1) % flt.length; update(); } else if (e.key === "ArrowUp") { e.preventDefault(); hi = (hi - 1 + flt.length) % flt.length; update(); } else if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); pick(flt[hi]); } else if (e.key === "Escape") closeP(); });
     on(ta, "blur", function () { setTimeout(closeP, 120); }); el.appendChild(ta);
     return { setValue: function (v) { ta.value = v || ""; }, getValue: function () { return ta.value; } };
 };
@@ -556,11 +561,11 @@ R.richText = function (el, c) {
     var wrap = E("div", "sgu-rt"), tb = E("div", "sgu-tb"), ed = E("div", "sgu-ed"); ed.contentEditable = c.readOnly ? "false" : "true"; ed.setAttribute("data-ph", c.placeholder || "Write something..."); ed.innerHTML = c.value || "";
     var tools = c.toolbar || ["bold", "italic", "underline", "strike", "|", "h2", "quote", "ul", "ol", "|", "link", "clear", "|", "undo", "redo"];
     var defs = { bold: ["B", "bold"], italic: ["I", "italic"], underline: ["U", "underline"], strike: ["S", "strikeThrough"], ul: ["\u2022", "insertUnorderedList"], ol: ["1.", "insertOrderedList"], h1: ["H1", "formatBlock", "H1"], h2: ["H2", "formatBlock", "H2"], h3: ["H3", "formatBlock", "H3"], quote: ["\u275D", "formatBlock", "BLOCKQUOTE"], clear: ["\u2715", "removeFormat"], undo: ["\u21B6", "undo"], redo: ["\u21B7", "redo"], left: ["\u2B05", "justifyLeft"], center: ["\u2194", "justifyCenter"], right: ["\u27A1", "justifyRight"], code: ["</>", "formatBlock", "PRE"], link: ["\u{1F517}", "link"], hr: ["\u2015", "insertHorizontalRule"] };
-    tools.forEach(function (t) { if (t === "|") { tb.appendChild(E("i")); return; } var d = defs[t]; if (!d) return; var b = E("button", "", d[0]); b.type = "button"; b.title = t; if (t === "bold") b.style.fontWeight = "800"; if (t === "italic") b.style.fontStyle = "italic"; if (t === "underline") b.style.textDecoration = "underline"; on(b, "mousedown", function (e) { e.preventDefault(); }); on(b, "click", function () { ed.focus(); if (d[1] === "link") { var u = window.prompt("Link URL", "https://"); if (u) document.execCommand("createLink", false, u); } else document.execCommand(d[1], false, d[2] || null); emit(el, "change", ed.innerHTML); }); tb.appendChild(b); });
+    tools.forEach(function (t) { if (t === "|") { tb.appendChild(E("i")); return; } var d = defs[t]; if (!d) return; var b = E("button", "", d[0]); b.type = "button"; b.title = t; if (t === "bold") b.style.fontWeight = "800"; if (t === "italic") b.style.fontStyle = "italic"; if (t === "underline") b.style.textDecoration = "underline"; on(b, "mousedown", function (e) { e.preventDefault(); }); on(b, "click", function () { ed.focus(); if (d[1] === "link") { var selRange = null; try { var s = window.getSelection(); if (s && s.rangeCount > 0) selRange = s.getRangeAt(0).cloneRange(); } catch (e) {} if (window.SimpleDialogClient && typeof window.SimpleDialogClient.fire === "function") { window.SimpleDialogClient.fire({ title: "Insert Link", input: "url", inputValue: "https://", showCancelButton: true }).then(function (res) { if (res && res.isConfirmed && res.value) { ed.focus(); try { if (selRange) { var s2 = window.getSelection(); s2.removeAllRanges(); s2.addRange(selRange); } } catch (e) {} document.execCommand("createLink", false, res.value); emit(el, "change", ed.innerHTML); } }); return; } var u = window.prompt("Link URL", "https://"); if (u) document.execCommand("createLink", false, u); } else document.execCommand(d[1], false, d[2] || null); emit(el, "change", ed.innerHTML); }); tb.appendChild(b); });
     if (!c.readOnly) wrap.appendChild(tb); wrap.appendChild(ed); on(ed, "input", function () { emit(el, "change", ed.innerHTML); }); el.appendChild(wrap);
     return { setValue: function (v) { ed.innerHTML = v || ""; }, getValue: function () { return ed.innerHTML; } };
 };
-function copyText(t) { if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(t).catch(function () { fallbackCopy(t); }); fallbackCopy(t); return Promise.resolve(); }
+function copyText(t) { var str = String(t === undefined || t === null ? "" : t); if (typeof window.__radClipboardWrite === "function") { try { return Promise.resolve(window.__radClipboardWrite(str)).catch(function () { fallbackCopy(str); }); } catch (e) {} } if (window.parent && window.parent !== window) { try { window.parent.postMessage({ fmCopyText: str }, "*"); } catch (e) {} } if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(str).catch(function () { fallbackCopy(str); }); fallbackCopy(str); return Promise.resolve(); }
 function fallbackCopy(t) { var ta = E("textarea"); ta.value = t; ta.style.cssText = "position:fixed;opacity:0"; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); } catch (e) {} ta.remove(); }
 R.copyButton = function (el, c) {
     var label = c.label || "Copy", b = btn((c.icon === false ? "" : ic("copy") + " ") + label, c.variant || "", function () { var t = c.text; if (c.target) { var tn = document.querySelector(c.target); if (tn) t = tn.value !== undefined ? tn.value : tn.textContent; } copyText(t === undefined ? "" : String(t)).then(function () { b.textContent = ic("check") + " " + (c.copiedLabel || "Copied!"); setTimeout(function () { b.textContent = (c.icon === false ? "" : ic("copy") + " ") + label; }, c.resetMs || 1500); emit(el, "click", t); }); });
@@ -612,10 +617,13 @@ R.masonry = function (el, c) {
 };
 R.imageCompare = function (el, c) {
     var d = E("div", "sgu-cmp"), a = E("img"), b = E("img"), hd = E("div", "sgu-hd"), pos = c.position === undefined ? 50 : c.position; a.src = c.after || ""; b.src = c.before || ""; d.appendChild(a); d.appendChild(b); d.appendChild(hd);
+    d.tabIndex = 0; d.setAttribute("role", "slider"); d.setAttribute("aria-valuemin", "0"); d.setAttribute("aria-valuemax", "100");
     if (c.labels !== false) { var l1 = E("span", "sgu-tag", c.beforeLabel || "Before"), l2 = E("span", "sgu-tag", c.afterLabel || "After"); l1.style.left = "8px"; l2.style.right = "8px"; d.appendChild(l1); d.appendChild(l2); }
-    function set(p) { pos = Math.max(0, Math.min(100, p)); b.style.clipPath = "inset(0 " + (100 - pos) + "% 0 0)"; hd.style.left = "calc(" + pos + "% - 1.5px)"; }
+    function set(p) { pos = Math.max(0, Math.min(100, p)); b.style.clipPath = "inset(0 " + (100 - pos) + "% 0 0)"; hd.style.left = "calc(" + pos + "% - 1.5px)"; d.setAttribute("aria-valuenow", String(Math.round(pos))); }
     function mv(e) { var r = d.getBoundingClientRect(); set((e.clientX - r.left) / r.width * 100); }
-    var down = false; on(d, "pointerdown", function (e) { down = true; d.setPointerCapture(e.pointerId); mv(e); }); on(d, "pointermove", function (e) { if (down) mv(e); }); on(d, "pointerup", function () { down = false; emit(el, "change", Math.round(pos)); }); set(pos); d.style.height = "100%"; el.appendChild(d);
+    var down = false; on(d, "pointerdown", function (e) { down = true; d.setPointerCapture(e.pointerId); mv(e); }); on(d, "pointermove", function (e) { if (down) mv(e); }); on(d, "pointerup", function () { down = false; emit(el, "change", Math.round(pos)); });
+    on(d, "keydown", function (e) { if (e.key === "ArrowLeft" || e.key === "ArrowRight") { e.preventDefault(); set(pos + (e.key === "ArrowRight" ? 5 : -5)); emit(el, "change", Math.round(pos)); } });
+    set(pos); d.style.height = "100%"; el.appendChild(d);
     return { setValue: set };
 };
 R.marquee = function (el, c) {

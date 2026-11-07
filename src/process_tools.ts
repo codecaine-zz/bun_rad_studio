@@ -47,11 +47,18 @@ export const CRITICAL_NAMES = [
 /** Human-readable name: the app name for .app bundles, otherwise the executable's base name. */
 export function extractProcessName(command: string): string {
   if (!command) return "unknown";
-  const app = /([^/]+)\.app\/Contents\/MacOS\//i.exec(command);
+  const app = /([^/\\]+)\.app\/Contents\/MacOS\//i.exec(command);
   if (app) return app[1]!;
-  const firstToken = command.trim().split(/\s+/)[0] || "";
-  const baseName = firstToken.split("/").pop() || firstToken;
-  return baseName.replace(/:$/, "") || "unknown";
+  const trimmed = command.trim();
+  const quoted = /^"([^"]+)"/.exec(trimmed);
+  const winExe =
+    /^(?:[A-Za-z]:[\\/][^\r\n]*?\.(?:exe|cmd|bat))(?=\s|$)/i.exec(trimmed);
+  const firstToken =
+    quoted?.[1] || winExe?.[0] || trimmed.split(/\s+/)[0] || "";
+  const baseName = firstToken.split(/[\\/]/).pop() || firstToken;
+  return (
+    baseName.replace(/\.(exe|cmd|bat)$/i, "").replace(/:$/, "") || "unknown"
+  );
 }
 
 /** Returns `true` if the command or executable name matches a known development runtime, server, or database. */
@@ -95,7 +102,7 @@ export function parsePsOutput(
   portMap: Map<string, string[]>,
   currentUser: string,
 ): ProcessItem[] {
-  const lines = out.trim().split("\n");
+  const lines = out.trim().split(/\r?\n/);
   const items: ProcessItem[] = [];
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i]?.trim();
@@ -132,7 +139,7 @@ export function parsePsOutput(
 /** Parse `lsof -iTCP -sTCP:LISTEN -n -P` output into pid -> [":port"]. */
 export function parseLsofListen(out: string): Map<string, string[]> {
   const map = new Map<string, string[]>();
-  const lines = out.trim().split("\n");
+  const lines = out.trim().split(/\r?\n/);
   for (let i = 1; i < lines.length; i++) {
     const parts = lines[i]?.trim().split(/\s+/) || [];
     if (parts.length < 9) continue;

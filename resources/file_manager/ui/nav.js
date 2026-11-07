@@ -470,11 +470,15 @@ export function visibleEntries(pane = left) {
     Boolean(tagFilter || quickFilter) && sourceList?.length;
   const tagVal =
     needMetaDigest && state.settings?.tags
-      ? sourceList.map((e) => state.settings.tags[e.path] || "").join("|")
+      ? Object.entries(state.settings.tags)
+          .map(([k, v]) => `${k}:${v}`)
+          .join("|")
       : "";
   const noteVal =
     quickFilter && needMetaDigest && state.settings?.notes
-      ? sourceList.map((e) => state.settings.notes[e.path] || "").join("|")
+      ? Object.entries(state.settings.notes)
+          .map(([k, v]) => `${k}:${v}`)
+          .join("|")
       : "";
 
   const prev = visibleCache.get(pane);

@@ -383,6 +383,7 @@ button:disabled {
 
 #sidebar {
   overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--panel);
   border-right: 1px solid color-mix(in oklab, var(--border) 72%, transparent);
   padding: 0.4rem 0.4rem 1rem;
@@ -548,6 +549,7 @@ button:disabled {
   min-height: 0;
   overflow: auto;
   scrollbar-gutter: stable;
+  overscroll-behavior: contain;
 }
 #list,
 #dual-list {

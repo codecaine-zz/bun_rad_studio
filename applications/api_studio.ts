@@ -605,6 +605,7 @@ export function createApiStudio(
   };
 
   win.onClick("btn_send", sendRequest);
+  win.onEnter("txt_url", sendRequest);
 
   win.on("tbl_history", "click", (_w: any, pid: any) => {
     const id = parseInt(String(pid ?? "").replace(/^#/, ""), 10);
@@ -859,24 +860,24 @@ export function createApiStudio(
   win.onChange("dd_presets", (_w, choice: string) => {
     if (choice.includes("JSONPlaceholder (GET")) {
       win.setText("txt_url", "https://jsonplaceholder.typicode.com/todos/1");
-      win.setText("dd_method", "GET");
+      win.setValue("dd_method", "GET");
     } else if (choice.includes("JSONPlaceholder Create")) {
       win.setText("txt_url", "https://jsonplaceholder.typicode.com/posts");
-      win.setText("dd_method", "POST");
+      win.setValue("dd_method", "POST");
       win.setText(
         "txt_req_body",
         '{\n  "title": "Enterprise Bun App",\n  "body": "High-performance native GUI",\n  "userId": 1\n}',
       );
     } else if (choice.includes("GitHub API Status")) {
       win.setText("txt_url", "https://api.github.com/zen");
-      win.setText("dd_method", "GET");
+      win.setValue("dd_method", "GET");
       win.setText("txt_headers", "User-Agent: Bun-RAD-Studio");
     } else if (choice.includes("HTTPBin Headers")) {
       win.setText("txt_url", "https://httpbin.org/headers");
-      win.setText("dd_method", "GET");
+      win.setValue("dd_method", "GET");
     } else if (choice.includes("HTTPBin Delay")) {
       win.setText("txt_url", "https://httpbin.org/delay/1");
-      win.setText("dd_method", "GET");
+      win.setValue("dd_method", "GET");
     }
     void sendRequest();
   });

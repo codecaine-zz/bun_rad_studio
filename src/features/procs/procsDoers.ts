@@ -36,7 +36,7 @@ export function parsePsLine(line: string): ProcessInfo | null {
  */
 export function parsePsOutput(raw: string): ProcessInfo[] {
   return raw
-    .split("\n")
+    .split(/\r?\n/)
     .map(parsePsLine)
     .filter((p): p is ProcessInfo => p !== null);
 }
@@ -104,7 +104,7 @@ export function filterProcessesByUser(
  */
 export function parseLsofOutput(raw: string): Map<number, string[]> {
   const map = new Map<number, string[]>();
-  const lines = raw.split("\n").slice(1);
+  const lines = raw.split(/\r?\n/).slice(1);
   for (const line of lines) {
     const parts = line.trim().split(/\s+/);
     if (parts.length < 9) continue;

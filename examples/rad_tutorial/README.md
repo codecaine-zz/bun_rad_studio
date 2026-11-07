@@ -14,9 +14,12 @@ bun run examples/rad_tutorial/01_quickstart.ts
 | `04_state.ts`         | The state store, `bindState`, `onStateChange`, changing the theme at run time | [State and binding](../../docs/SIMPLEGUI_API.md)          |
 | `05_dialogs_menus.ts` | Menu bar, toolbar, timer, info / warn / ask dialogs, `withBusyState`          | [Dialogs, timers, menus](../../docs/SIMPLEGUI_API.md)     |
 | `06_themes.ts`        | Choosing any of the built-in themes while the program runs                    | [Themes](../../docs/THEMES.md)                            |
-| `07_contacts.ts`      | A finished app: table, search, form, confirm dialog and a SQLite file         | [rad modules](../../src/features/rad/README.md)           |
-| `10_rad_modules.ts`   | Text, file, SQLite, maths, time, hashing and cache helpers as plain functions | [rad modules](../../src/features/rad/README.md)           |
-| `11_system_tools.ts`  | fd, sd, tokei, gdu and watchexec called from code                             | [System utilities](../../docs/SYSTEM_UTILITIES_API.md)    |
+| `07_contacts.ts`                      | A finished app: table, search, form, confirm dialog and a SQLite file                      | [rad modules](../../src/features/rad/README.md)           |
+| `08_parity_and_extended.ts`           | VLang parity controls, Studio extended widgets and enterprise components                   | [SimpleGUI API](../../docs/SIMPLEGUI_API.md)              |
+| `09_sweetalert_and_menus.ts`          | Context menus, popup menus, split buttons, SweetAlert2 `fire()`, modals and file pickers   | [SimpleGUI API](../../docs/SIMPLEGUI_API.md)              |
+| `10_rad_modules.ts`                   | Text, file, SQLite, maths, time, hashing and cache helpers as plain functions              | [rad modules](../../src/features/rad/README.md)           |
+| `11_system_tools.ts`                  | fd, sd, tokei, gdu and watchexec called from code                                          | [System utilities](../../docs/SYSTEM_UTILITIES_API.md)    |
+| `12_full_studio_workspace_template.ts`| Full studio workspace: tabs, live search filtering, SQLite CRUD, charts, timers & dialogs  | [Master Cheat Sheet](../../CHEATSHEET.md)                 |
 
 The windows are created by `createQuickstart()`, `createLayout()` and so on, and only open when the file is run directly. That is how the video tooling (`bun scripts/tutorial_rad.ts`) shows them inside a web page next to their code.
 

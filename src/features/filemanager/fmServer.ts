@@ -134,6 +134,7 @@ import {
   describeFsError,
   parseTypedPath,
   extensionOf,
+  isDocumentPackageName,
   isSameOrInside,
 } from "./fmPaths";
 import {
@@ -1487,7 +1488,11 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
               },
             });
           const st = await fsp.stat(file);
-          if (!st.isFile())
+          const allowPkgThumb =
+            thumb &&
+            st.isDirectory() &&
+            isDocumentPackageName(pathApi(ctx).basename(file));
+          if (!st.isFile() && !allowPkgThumb)
             return json(400, {
               ok: false,
               error: { code: "NOT_A_FILE", message: "That isn't a file." },

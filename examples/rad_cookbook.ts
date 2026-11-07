@@ -5,6 +5,7 @@
  * Run with: bun run examples/rad_cookbook.ts
  */
 
+import { join } from "node:path";
 import { colors } from "../src/shared/colors.ts";
 import { searchFiles } from "../src/features/fd/fdCoordinator.ts";
 import { buildReplacerRegex, replaceText } from "../src/features/sd/sdDoers.ts";
@@ -142,7 +143,7 @@ console.log(
 );
 
 // 1. fileutils
-const tmpPath = "/tmp/bun_cookbook.json";
+const tmpPath = join(rad.sysutils.getTempDir(), "bun_cookbook.json");
 await rad.fileutils.saveJson(tmpPath, {
   tool: "bun_sys_utils",
   version: "1.0.0",
@@ -244,7 +245,7 @@ console.log(
 const stateStore = new rad.stateutils.AppStateStore(
   "cookbook_demo",
   { visits: 1 },
-  { customPath: "/tmp/state_demo.json" },
+  { customPath: join(rad.sysutils.getTempDir(), "state_demo.json") },
 );
 console.log(
   colors.green("15. [stateutils] Managed store:"),

@@ -178,7 +178,7 @@
 			const rect = canvas.getBoundingClientRect();
 			let x = Math.round((e.clientX - rect.left) / canvasScale);
 			let y = Math.round((e.clientY - rect.top) / canvasScale);
-			if (snapToGrid) { x = Math.round(x / 8) * 8; y = Math.round(y / 8) * 8; }
+			if (snapToGrid) { x = snapVal(x); y = snapVal(y); }
 			const targetType = placementType;
 			// Clear placement mode BEFORE placeControlAt unless Shift is held
 			if (!e.shiftKey) {
@@ -198,8 +198,8 @@
 			const id = type + "_" + count;
 
 			if (snapToGrid) {
-				x = Math.round(x / 8) * 8;
-				y = Math.round(y / 8) * 8;
+				x = snapVal(x);
+				y = snapVal(y);
 			}
 
 			let defaultW = 150;
@@ -320,8 +320,8 @@
 			let y = Math.round((e.clientY - rect.top) / canvasScale);
 
 			if (snapToGrid) {
-				x = Math.round(x / 8) * 8;
-				y = Math.round(y / 8) * 8;
+				x = snapVal(x);
+				y = snapVal(y);
 			}
 
 			const type = draggedType || placementType || e.dataTransfer.getData("text/plain") || "button";

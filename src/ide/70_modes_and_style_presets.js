@@ -54,6 +54,10 @@
 				: "Design mode active. Drag & resize controls on canvas.";
 		}
 
+		function snapVal(v) {
+			return (snapToGrid && gridSize > 0) ? Math.round(v / gridSize) * gridSize : Math.round(v);
+		}
+
 		function showSnapGridMenu() {
 			const options = [8, 4, 16, 32, 0];
 			const curIdx = options.indexOf(gridSize);
@@ -61,6 +65,8 @@
 			snapToGrid = gridSize > 0;
 			const snapBtn = document.getElementById("snapBtn");
 			if (snapBtn) snapBtn.textContent = "📐 Snap: " + (gridSize > 0 ? gridSize + "px" : "OFF");
+			const statusGrid = document.getElementById("statusGrid");
+			if (statusGrid) statusGrid.textContent = "Grid: " + (gridSize > 0 ? gridSize + "px" : "OFF");
 			document.getElementById("statusMsg").textContent = "Grid Snap set to: " + (gridSize > 0 ? gridSize + "px" : "Disabled");
 		}
 

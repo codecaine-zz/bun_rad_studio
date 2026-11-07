@@ -1641,8 +1641,7 @@ export function getAvailableLinuxTerminal(): {
 } | null {
   const check = (bin: string): boolean => {
     try {
-      const p = Bun.spawnSync(["which", bin]);
-      return p.exitCode === 0;
+      return Boolean(Bun.which(bin));
     } catch {
       return false;
     }
@@ -2181,12 +2180,20 @@ export function killApplication(
       };
     }
     try {
-      process.kill(targetPid, "SIGTERM");
+      if (process.platform === "win32") {
+        Bun.spawnSync(["taskkill.exe", "/F", "/T", "/PID", String(targetPid)]);
+      } else {
+        process.kill(targetPid, "SIGTERM");
+      }
       unregisterChildProcess(appId, targetPid);
       return { success: true, message: `Terminated process PID ${targetPid}.` };
     } catch (err: any) {
       try {
-        process.kill(targetPid, "SIGKILL");
+        if (process.platform === "win32") {
+          Bun.spawnSync(["taskkill.exe", "/F", "/T", "/PID", String(targetPid)]);
+        } else {
+          process.kill(targetPid, "SIGKILL");
+        }
         unregisterChildProcess(appId, targetPid);
         return {
           success: true,
@@ -2214,11 +2221,25 @@ export function killApplication(
       )
         continue;
       try {
-        process.kill(childPid, "SIGTERM");
+        if (process.platform === "win32") {
+          Bun.spawnSync(["taskkill.exe", "/F", "/T", "/PID", String(childPid)]);
+        } else {
+          process.kill(childPid, "SIGTERM");
+        }
         killedPids.push(childPid);
       } catch {
         try {
-          process.kill(childPid, "SIGKILL");
+          if (process.platform === "win32") {
+            Bun.spawnSync([
+              "taskkill.exe",
+              "/F",
+              "/T",
+              "/PID",
+              String(childPid),
+            ]);
+          } else {
+            process.kill(childPid, "SIGKILL");
+          }
           killedPids.push(childPid);
         } catch (killError: any) {
           errors.push(`PID ${childPid}: ${killError.message}`);
@@ -2309,7 +2330,8 @@ export function revealInFinder(filePath: string): {
       Bun.spawn(["explorer.exe", `/select,${winPath}`]);
       return { success: true, message: "Revealed in Explorer" };
     } else {
-      Bun.spawn(["xdg-open", filePath]);
+      const dir = existsSync(filePath) ? resolve(filePath, "..") : filePath;
+      Bun.spawn(["xdg-open", dir]);
       return { success: true, message: "Opened directory" };
     }
   } catch (err: any) {
@@ -3440,9 +3462,15 @@ export function createLauncherStudio(
   win.onClick("btn_quick_toggle_fav", handleToggleFavorite);
 
   // Real-time filter reactivity on input / dropdown change
-  win.onEnter("txt_search", (w, val: any) =>
-    scheduleFilters(w, { query: typeof val === "string" ? val : undefined }, 0),
-  );
+  win.onEnter("txt_search", async (w, val: any) => {
+    const q = typeof val === "string" ? val : undefined;
+    applyFilters(w, { query: q }, true);
+    if (currentApps.length > 0) {
+      const top = currentApps[0]!;
+      updateSelectedView(w, top);
+      await executeToolLaunch(top, w, undefined, top.source === "cli_tool");
+    }
+  });
   win.onChange("txt_search", (w, val: any) =>
     scheduleFilters(w, { query: typeof val === "string" ? val : undefined }),
   );
@@ -3757,9 +3785,8 @@ export function createLauncherStudio(
     inTerminal?: boolean,
   ) => {
     win.onClick(btnId, (w) => {
-      const fresh = scanAllApplications();
       const lower = appId.toLowerCase();
-      const app =
+      let app =
         currentApps.find(
           (a) =>
             a.id.toLowerCase() === `rad_${lower}` ||
@@ -3767,15 +3794,18 @@ export function createLauncherStudio(
             a.name.toLowerCase() === lower ||
             a.id.toLowerCase() === lower,
         ) ||
-        fresh.apps.find(
-          (a) =>
-            a.id.toLowerCase() === `rad_${lower}` ||
-            a.id.toLowerCase() === `cli_${lower}` ||
-            a.name.toLowerCase() === lower ||
-            a.id.toLowerCase() === lower,
-        ) ||
-        currentApps.find((a) => a.id.toLowerCase().includes(lower)) ||
-        fresh.apps.find((a) => a.id.toLowerCase().includes(lower));
+        currentApps.find((a) => a.id.toLowerCase().includes(lower));
+      if (!app) {
+        const fresh = getScan(false);
+        app =
+          fresh.apps.find(
+            (a) =>
+              a.id.toLowerCase() === `rad_${lower}` ||
+              a.id.toLowerCase() === `cli_${lower}` ||
+              a.name.toLowerCase() === lower ||
+              a.id.toLowerCase() === lower,
+          ) || fresh.apps.find((a) => a.id.toLowerCase().includes(lower));
+      }
 
       if (app) {
         updateSelectedView(w, app);
@@ -3809,7 +3839,7 @@ export function createLauncherStudio(
 
   // GUI Studio Versions of CLI Tools
   bindQuick("btn_quick_system", "system_studio");
-  bindQuick("btn_quick_db", "sqlite_studio");
+  bindQuick("btn_quick_db", "database_studio");
   bindQuick("btn_quick_database", "sqlite_studio");
   bindQuick("btn_quick_fd", "fd_studio");
   bindQuick("btn_quick_git", "git_studio");

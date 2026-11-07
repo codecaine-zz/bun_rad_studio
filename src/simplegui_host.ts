@@ -376,7 +376,7 @@ function clientScript(names: string[], wsUrl: string): string {
   }, true);
   window.addEventListener("keydown", function (e) {
     if (!window.parent || window.parent === window) return;
-    if (e.key === "Escape" && !e.defaultPrevented && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+    if (e.key === "Escape" && (!e.defaultPrevented || e.__radEscBeepPrevented) && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
       if (document.querySelector && document.querySelector(".sgd-container, .modal-backdrop.active, .modal-overlay.open, .modal-overlay.active, dialog[open]")) return;
       e.preventDefault();
       try { parent.postMessage({ fmEscapeExpand: true }, "*"); } catch (_) {}

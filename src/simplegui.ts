@@ -242,10 +242,17 @@ export class SimpleControlRef {
   /** Assigns a new unique identifier to this control, migrating any stored values, list items, event handlers, and layout section references from the previous ID. */
   id(idStr: string): this {
     const oldId = this.spec.id;
+    if (typeof (this.window as any)._unindexControl === "function") {
+      (this.window as any)._unindexControl(this.spec);
+    }
     if (oldId && oldId !== idStr) {
-      const val = this.window.getValue(oldId);
-      if (val !== undefined) {
-        this.window.setValue(idStr, val);
+      if (
+        Object.prototype.hasOwnProperty.call(
+          this.window.formValuesStore,
+          oldId,
+        )
+      ) {
+        this.window.formValuesStore[idStr] = this.window.formValuesStore[oldId];
         delete this.window.formValuesStore[oldId];
       }
       if (
@@ -276,7 +283,105 @@ export class SimpleControlRef {
     }
     this.spec.id = idStr;
     this.spec.name = idStr;
+    if (typeof (this.window as any)._indexControl === "function") {
+      (this.window as any)._indexControl(this.spec);
+    }
     return this;
+  }
+
+  /** Binds a Tabs control to a map of tab names (or indices) to arrays of control/card IDs for automatic view switching. */
+  bindViews(
+    viewGroupsMap: Record<string, string[]>,
+    onTabChange?: (
+      win: SimpleWindow,
+      activeTab: string,
+      activeIndex: number,
+    ) => void,
+  ): this {
+    this.window.bindTabViews(this.spec.id, viewGroupsMap, onTabChange);
+    return this;
+  }
+
+  /** Binds this input or search control to live-filter a Table control (`tableId`) on every keystroke. */
+  filterTable(
+    tableId: string,
+    sourceRows: any[][] | (() => any[][]),
+    optionsOrOnFilter?:
+      | {
+          columns?: number[];
+          predicate?: (row: any[], query: string) => boolean;
+          countControlId?: string;
+          countFormat?: (matched: number, total: number) => string;
+          onFilter?: (
+            win: SimpleWindow,
+            filteredRows: any[][],
+            query: string,
+          ) => void;
+        }
+      | ((win: SimpleWindow, filteredRows: any[][], query: string) => void),
+  ): this {
+    this.window.bindTableFilter(
+      this.spec.id,
+      tableId,
+      sourceRows,
+      optionsOrOnFilter,
+    );
+    return this;
+  }
+  /** Snake_case alias of `filterTable`: binds this input or search control to live-filter a Table control. */
+  filter_table(
+    tableId: string,
+    sourceRows: any[][] | (() => any[][]),
+    optionsOrOnFilter?: any,
+  ): this {
+    return this.filterTable(tableId, sourceRows, optionsOrOnFilter);
+  }
+
+  /** Binds this Table control to detail/form controls so clicking a row populates the mapped controls. */
+  bindDetail(
+    columnToControlMap:
+      | (string | null | undefined)[]
+      | Record<string, string>,
+    onRowSelect?: (
+      win: SimpleWindow,
+      row: any[],
+      rowId: string,
+      rowIndex: number,
+    ) => void,
+  ): this {
+    this.window.bindMasterDetail(
+      this.spec.id,
+      columnToControlMap,
+      onRowSelect,
+    );
+    return this;
+  }
+  /** Snake_case alias of `bindDetail`: binds this Table control to detail/form controls. */
+  bind_detail(
+    columnToControlMap:
+      | (string | null | undefined)[]
+      | Record<string, string>,
+    onRowSelect?: (
+      win: SimpleWindow,
+      row: any[],
+      rowId: string,
+      rowIndex: number,
+    ) => void,
+  ): this {
+    return this.bindDetail(columnToControlMap, onRowSelect);
+  }
+
+  /** Programmatically fires this control's `onClick` handler(s). */
+  triggerClick(val?: any): Promise<SimpleWindow> {
+    return this.window.triggerClick(this.spec.id, val);
+  }
+  /** Programmatically updates this control's value (if provided) and fires its `onChange` handler(s). */
+  triggerChange(val?: any): Promise<SimpleWindow> {
+    return this.window.triggerChange(this.spec.id, val);
+  }
+  /** Programmatically fires this control's `onEnter` handler(s). */
+  triggerEnter(val?: any): Promise<SimpleWindow> {
+    return this.window.triggerEnter(this.spec.id, val);
   }
 
   /** Positions this control at explicit `(x, y)` coordinates within the window. */
@@ -952,7 +1057,7 @@ export interface SimpleguiLayoutSection {
 // Path, Directory & Atomic File Utilities
 // =============================================================================
 
-/** Expands leading `~` home shortcuts and `$VAR` / `${VAR}` environment variables in a path string and resolves it to an absolute filesystem path. */
+/** Expands leading `~` home shortcuts and `$VAR` / `${VAR}` / `%VAR%` environment variables in a path string and resolves it to an absolute filesystem path. */
 export function resolveUserPath(filePath: string): string {
   if (!filePath) return "";
   let p = filePath;
@@ -967,6 +1072,10 @@ export function resolveUserPath(filePath: string): string {
     /\$([A-Za-z_][A-Za-z0-9_]*)/g,
     (_, name) => process.env[name] || "",
   );
+  p = p.replace(
+    /%([A-Za-z_][A-Za-z0-9_]*)%/g,
+    (_, name) => process.env[name] || "",
+  );
   return path.resolve(p);
 }
 /** Snake_case alias of `resolveUserPath`: expands `~` and environment variables in a path string to an absolute path. */
@@ -974,7 +1083,8 @@ export const resolve_user_path = resolveUserPath;
 
 /** Returns the platform-specific user configuration directory (`~/.config/<appName>` on macOS/Linux or `%APPDATA%\<appName>` on Windows). */
 export function getAppConfigDir(appName: string): string {
-  const home = os.homedir() || process.env.HOME || "/Users";
+  const home =
+    os.homedir() || process.env.HOME || process.env.USERPROFILE || "/Users";
   if (process.platform === "win32") {
     const appData =
       process.env.APPDATA || path.join(home, "AppData", "Roaming");
@@ -988,7 +1098,8 @@ export const get_app_config_dir = getAppConfigDir;
 
 /** Returns the platform-specific application data directory (`~/Library/Application Support/<appName>`, `%LOCALAPPDATA%\<appName>`, or `~/.local/share/<appName>`). */
 export function getAppDataDir(appName: string): string {
-  const home = os.homedir() || process.env.HOME || "/Users";
+  const home =
+    os.homedir() || process.env.HOME || process.env.USERPROFILE || "/Users";
   if (process.platform === "darwin") {
     return path.join(home, "Library", "Application Support", appName);
   }
@@ -1006,7 +1117,8 @@ export const get_app_data_dir = getAppDataDir;
 
 /** Returns the platform-specific cache directory (`~/Library/Caches/<appName>`, `%LOCALAPPDATA%\<appName>\Cache`, or `~/.cache/<appName>`). */
 export function getAppCacheDir(appName: string): string {
-  const home = os.homedir() || process.env.HOME || "/Users";
+  const home =
+    os.homedir() || process.env.HOME || process.env.USERPROFILE || "/Users";
   if (process.platform === "darwin") {
     return path.join(home, "Library", "Caches", appName);
   }
@@ -1023,7 +1135,8 @@ export const get_app_cache_dir = getAppCacheDir;
 
 /** Returns the platform-specific persistent application state directory (`~/Library/Application Support/<appName>`, `%LOCALAPPDATA%\<appName>`, or `~/.local/state/<appName>`). */
 export function getAppStateDir(appName: string): string {
-  const home = os.homedir() || process.env.HOME || "/Users";
+  const home =
+    os.homedir() || process.env.HOME || process.env.USERPROFILE || "/Users";
   if (process.platform === "darwin") {
     return path.join(home, "Library", "Application Support", appName);
   }
@@ -1041,7 +1154,8 @@ export const get_app_state_dir = getAppStateDir;
 
 /** Returns the platform-specific application log directory (`~/Library/Logs/<appName>`, `%LOCALAPPDATA%\<appName>\Logs`, or `<stateDir>/log`). */
 export function getAppLogDir(appName: string): string {
-  const home = os.homedir() || process.env.HOME || "/Users";
+  const home =
+    os.homedir() || process.env.HOME || process.env.USERPROFILE || "/Users";
   if (process.platform === "darwin") {
     return path.join(home, "Library", "Logs", appName);
   }
@@ -1145,7 +1259,7 @@ export const load_state_from_file = loadStateFromFile;
 export function saveTheme(themeName: string): boolean {
   try {
     const themeDir = path.join(
-      os.homedir() || process.env.HOME || "/Users",
+      os.homedir() || process.env.HOME || process.env.USERPROFILE || "/Users",
       ".config",
       "simplegui",
     );
@@ -1163,7 +1277,7 @@ export const save_theme = saveTheme;
 export function getSavedTheme(): string {
   try {
     const themeFile = path.join(
-      os.homedir() || process.env.HOME || "/Users",
+      os.homedir() || process.env.HOME || process.env.USERPROFILE || "/Users",
       ".config",
       "simplegui",
       "theme.txt",
@@ -1356,7 +1470,43 @@ export class SimpleWindow {
 
   private controls: any[] = [];
   private nonVisualControls: any[] = [];
+  private controlIndex: Map<string, any> = new Map();
   private controlIdCounter: Record<string, number> = {};
+
+  /** Indexes a control specification (and any nested children) by both `id` and `name` for O(1) lookup. */
+  public _indexControl(spec: any): void {
+    if (!spec || typeof spec !== "object") return;
+    if (typeof spec.id === "string" && spec.id.length > 0) {
+      this.controlIndex.set(spec.id, spec);
+    }
+    if (typeof spec.name === "string" && spec.name.length > 0) {
+      this.controlIndex.set(spec.name, spec);
+    }
+    if (Array.isArray(spec.children)) {
+      for (let i = 0; i < spec.children.length; i++) {
+        this._indexControl(spec.children[i]);
+      }
+    }
+  }
+
+  /** Removes a control specification (and any nested children) from the O(1) lookup index. */
+  public _unindexControl(spec: any): void {
+    if (!spec || typeof spec !== "object") return;
+    if (typeof spec.id === "string" && this.controlIndex.get(spec.id) === spec) {
+      this.controlIndex.delete(spec.id);
+    }
+    if (
+      typeof spec.name === "string" &&
+      this.controlIndex.get(spec.name) === spec
+    ) {
+      this.controlIndex.delete(spec.name);
+    }
+    if (Array.isArray(spec.children)) {
+      for (let i = 0; i < spec.children.length; i++) {
+        this._unindexControl(spec.children[i]);
+      }
+    }
+  }
   private webview: Webview | null = null;
   private isWindowRunning = false;
   /** Set by hostInBrowser(): makes show() build a web-page-backed "webview" instead of a native window. */
@@ -2212,8 +2362,8 @@ export class SimpleWindow {
     return this.endGrid();
   }
 
-  /** Begins an elevated card container section with an optional header title and subtitle. */
-  public beginCard(title?: string, subtitle?: string): this {
+  /** Begins an elevated card container section with an optional header title, subtitle, and custom ID. */
+  public beginCard(title?: string, subtitle?: string, id?: string): this {
     if (
       this._currentRowSection &&
       this._currentRowSection.controls.length > 0
@@ -2229,8 +2379,9 @@ export class SimpleWindow {
     const theme = getTheme(this.theme);
     const cardBg = theme.card_background || "rgba(255,255,255,0.03)";
     const cardBorder = theme.card_border || "rgba(255,255,255,0.08)";
+    const cardId = id || this.generateUniqueId("groupbox");
     const cardSpec: any = {
-      id: this.generateUniqueId("groupbox"),
+      id: cardId,
       control_type: "groupbox",
       type: "groupbox",
       title: title || "Group Panel",
@@ -2249,8 +2400,10 @@ export class SimpleWindow {
       items: [],
     };
 
+    this.lastControlId = cardSpec.id;
     this.allocateControlPosition(cardSpec, this.width - this.padding * 2, 100);
     this.controls.push(cardSpec);
+    this._indexControl(cardSpec);
 
     const cardLeft = cardSpec.left !== undefined ? cardSpec.left : this.padding;
     const cardTop = cardSpec.top !== undefined ? cardSpec.top : this.currentY;
@@ -2270,9 +2423,45 @@ export class SimpleWindow {
     }
     return this;
   }
-  /** Snake_case alias of `beginCard`: begins an elevated card container section with an optional header title and subtitle. */
-  public begin_card(title?: string, subtitle?: string): this {
-    return this.beginCard(title, subtitle);
+  /** Snake_case alias of `beginCard`: begins an elevated card container section with an optional header title, subtitle, and custom ID. */
+  public begin_card(title?: string, subtitle?: string, id?: string): this {
+    return this.beginCard(title, subtitle, id);
+  }
+
+  /**
+   * Assigns a custom identifier to the currently active card/layout container (when chained on `beginCard(...)` / `beginRow()`)
+   * or to the most recently added control on this window.
+   */
+  public id(customId: string): this {
+    const topFrame = this.layoutStack[this.layoutStack.length - 1];
+    if (
+      topFrame &&
+      topFrame.type === "card" &&
+      topFrame.cardSpec &&
+      this._currentCardSection &&
+      (!this._currentCardSection.rows ||
+        this._currentCardSection.rows.length === 0) &&
+      (!this._currentCardSection.items ||
+        this._currentCardSection.items.length === 0 ||
+        (this._currentCardSection.items.length === 1 &&
+          this.controls[this.controls.length - 1]?.is_card_subtitle))
+    ) {
+      const oldId = topFrame.cardSpec.id;
+      this._unindexControl(topFrame.cardSpec);
+      topFrame.cardSpec.id = customId;
+      topFrame.cardSpec.name = customId;
+      this._currentCardSection.id = customId;
+      this._renameControlInLayoutSections(oldId, customId);
+      this._indexControl(topFrame.cardSpec);
+      this.lastControlId = customId;
+      return this;
+    }
+    const lastCtrl = this.controls[this.controls.length - 1];
+    if (lastCtrl) {
+      new SimpleControlRef(lastCtrl, this).id(customId);
+      this.lastControlId = customId;
+    }
+    return this;
   }
 
   /** Closes the current card container section, finalizing its bounding height and advancing the vertical layout cursor. */
@@ -2649,6 +2838,7 @@ export class SimpleWindow {
     this.lastControlId = id;
     this.allocateControlPosition(spec, width, height);
     this.controls.push(spec);
+    this._indexControl(spec);
 
     // Store initial value in formValuesStore if provided
     if (opts.value !== undefined) {
@@ -6897,9 +7087,12 @@ export class SimpleWindow {
     ) {
       finalOpts = { ...selectedIdxOrOpts, ...finalOpts };
     }
+    const activeTabLabel = tabNames[selectedIdx] ?? tabNames[0] ?? "";
     return this.addVisualControl("tabs", this.width - this.padding * 2, 40, {
       items: tabNames,
-      value: selectedIdx,
+      tabLabels: [...tabNames],
+      selectedIndex: selectedIdx,
+      value: activeTabLabel,
       ...finalOpts,
     });
   }
@@ -7067,6 +7260,7 @@ export class SimpleWindow {
       ...opts,
     };
     this.nonVisualControls.push(spec);
+    this._indexControl(spec);
 
     this.bindControlEvent(id, "onTimer", onTick);
     return new SimpleControlRef(spec, this);
@@ -8051,8 +8245,16 @@ export class SimpleWindow {
   ): void {
     const raw = eventType.toLowerCase();
     const norm = raw.startsWith("on") ? raw : `on${raw}`;
-    this.eventHandlersMap.set(`${controlId}:${norm}`, callback);
-    this.eventHandlersMap.set(`${controlId}:${raw}`, callback);
+    const existing = this.eventHandlersMap.get(`${controlId}:${norm}`);
+    const combined: EventCallback =
+      existing && existing !== callback
+        ? async (win, val, ...extra) => {
+            await existing(win, val, ...extra);
+            await callback(win, val, ...extra);
+          }
+        : callback;
+    this.eventHandlersMap.set(`${controlId}:${norm}`, combined);
+    this.eventHandlersMap.set(`${controlId}:${raw}`, combined);
 
     if (this.webview) {
       const bindName = `on_${controlId}_${eventType.replace(/^on/i, "").toLowerCase()}`;
@@ -8062,7 +8264,9 @@ export class SimpleWindow {
             this.formValuesStore[controlId] = val;
           }
           try {
-            await callback(this, val);
+            const fn =
+              this.eventHandlersMap.get(`${controlId}:${norm}`) || combined;
+            await fn(this, val);
           } catch (err) {
             console.error(`Error in IPC event ${bindName}:`, err);
           }
@@ -8071,6 +8275,44 @@ export class SimpleWindow {
         // Ignore if already bound
       }
     }
+  }
+
+  /** Programmatically dispatches a registered control event (`onClick`, `onChange`, `onEnter`, etc.) for testing or automation. */
+  public async triggerEvent(
+    controlId: string,
+    eventType: string,
+    val?: any,
+    ...extra: any[]
+  ): Promise<this> {
+    const raw = eventType.toLowerCase();
+    const norm = raw.startsWith("on") ? raw : `on${raw}`;
+    if (val !== undefined && (norm === "onchange" || norm === "oninput")) {
+      this.setValue(controlId, val);
+    }
+    const handler =
+      this.eventHandlersMap.get(`${controlId}:${norm}`) ||
+      this.eventHandlersMap.get(`${controlId}:${raw}`);
+    if (handler) {
+      const effectiveVal =
+        val !== undefined ? val : this.getValue(controlId);
+      await handler(this, effectiveVal, ...extra);
+    }
+    return this;
+  }
+
+  /** Programmatically updates `controlId` (when `val` is provided) and fires its `onChange` handler(s). */
+  public async triggerChange(controlId: string, val?: any): Promise<this> {
+    return this.triggerEvent(controlId, "onChange", val);
+  }
+
+  /** Programmatically fires the `onClick` handler(s) registered on `controlId`. */
+  public async triggerClick(controlId: string, val?: any): Promise<this> {
+    return this.triggerEvent(controlId, "onClick", val);
+  }
+
+  /** Programmatically fires the `onEnter` handler(s) registered on `controlId`. */
+  public async triggerEnter(controlId: string, val?: any): Promise<this> {
+    return this.triggerEvent(controlId, "onEnter", val);
   }
 
   /** Evaluates arbitrary JavaScript code asynchronously inside the active webview or browser host. */
@@ -8094,7 +8336,7 @@ export class SimpleWindow {
     if (this.formValuesStore[id] !== undefined) {
       return this.formValuesStore[id];
     }
-    const ctrl = this.controls.find((c) => c && (c.id === id || c.name === id));
+    const ctrl = this.findControl(id);
     if (ctrl) {
       return ctrl.text ?? ctrl.caption ?? ctrl.value ?? "";
     }
@@ -8149,8 +8391,8 @@ export class SimpleWindow {
                             rawEl.innerHTML = String(${escaped});
                         } else if (rawEl.value !== undefined) {
                             rawEl.value = ${escaped};
-                        } else if (rawEl.querySelector("table")) {
-                            // Guard against overwriting table containers with textContent
+                        } else if (rawEl.querySelector("table, svg")) {
+                            // Guard against overwriting table or SVG chart containers with textContent
                             return;
                         } else {
                             rawEl.textContent = String(${escaped});
@@ -8165,7 +8407,7 @@ export class SimpleWindow {
   /** Sets the raw inner HTML content of a control in both the form store and live DOM. */
   public setHtml(id: string, htmlContent: string): this {
     this.formValuesStore[id] = htmlContent;
-    const ctrl = this.controls.find((c) => c && (c.id === id || c.name === id));
+    const ctrl = this.findControl(id);
     if (ctrl) {
       ctrl.text = htmlContent;
       ctrl.caption = htmlContent;
@@ -8198,9 +8440,21 @@ export class SimpleWindow {
     return this.setValue(id, text);
   }
 
-  /** Returns a shallow copy of all control ID-to-value entries in the form store. */
-  public getFormValues(): Record<string, any> {
+  /** Returns a shallow copy of all control ID-to-value entries in the form store, or only the subset of `ids` when specified. */
+  public getFormValues(ids?: string[]): Record<string, any> {
+    if (Array.isArray(ids)) {
+      const out: Record<string, any> = {};
+      for (let i = 0; i < ids.length; i++) {
+        const id = ids[i];
+        if (id) out[id] = this.getValue(id);
+      }
+      return out;
+    }
     return { ...this.formValuesStore };
+  }
+  /** Snake_case alias of `getFormValues`: returns a shallow copy of form control values (or the subset in `ids`). */
+  public get_form_values(ids?: string[]): Record<string, any> {
+    return this.getFormValues(ids);
   }
 
   /** Batch-updates multiple form controls from a `{ [controlId]: value }` dictionary. */
@@ -8210,6 +8464,10 @@ export class SimpleWindow {
     }
     return this;
   }
+  /** Snake_case alias of `setFormValues`: batch-updates multiple form controls from a `{ [controlId]: value }` dictionary. */
+  public set_form_values(values: Record<string, any>): this {
+    return this.setFormValues(values);
+  }
 
   /** Resets all stored form control values in the window to empty strings. */
   public clearForm(): this {
@@ -8218,10 +8476,140 @@ export class SimpleWindow {
     }
     return this;
   }
-
-  /** Alias of `clearForm`: resets all stored form control values in the window to empty strings. */
-  public resetForm(): this {
+  /** Snake_case alias of `clearForm`: resets all stored form control values in the window to empty strings. */
+  public clear_form(): this {
     return this.clearForm();
+  }
+
+  /** Resets form control values to `defaultsOrIds` when provided, or clears all stored form control values to empty strings. */
+  public resetForm(defaultsOrIds?: Record<string, any> | string[]): this {
+    if (Array.isArray(defaultsOrIds)) {
+      return this.clearInputs(defaultsOrIds);
+    }
+    if (defaultsOrIds && typeof defaultsOrIds === "object") {
+      return this.setFormValues(defaultsOrIds);
+    }
+    return this.clearForm();
+  }
+  /** Snake_case alias of `resetForm`: resets form control values to `defaultsOrIds` or clears all stored form values. */
+  public reset_form(defaultsOrIds?: Record<string, any> | string[]): this {
+    return this.resetForm(defaultsOrIds);
+  }
+
+  /**
+   * Validates form controls against declarative rules or custom validator functions.
+   * Automatically highlights and focuses the first invalid control when `opts.highlight !== false`.
+   */
+  public validateForm(
+    rules: Record<
+      string,
+      | {
+          required?: boolean;
+          minLength?: number;
+          maxLength?: number;
+          min?: number;
+          max?: number;
+          pattern?: RegExp;
+          validate?: (val: any, win: SimpleWindow) => boolean | string;
+          message?: string;
+          label?: string;
+        }
+      | ((val: any, win: SimpleWindow) => boolean | string)
+    >,
+    opts: {
+      highlight?: boolean;
+      focusFirst?: boolean;
+      toastOnError?: boolean;
+    } = {},
+  ): {
+    valid: boolean;
+    errors: Record<string, string>;
+    firstErrorId: string | null;
+    firstInvalidId: string | null;
+    firstErrorMessage: string | null;
+  } {
+    const errors: Record<string, string> = {};
+    let firstErrorId: string | null = null;
+    let firstErrorMessage: string | null = null;
+
+    for (const [id, rule] of Object.entries(rules)) {
+      const val = this.getValue(id);
+      const strVal = String(val ?? "").trim();
+      let errMsg: string | null = null;
+
+      if (typeof rule === "function") {
+        const res = rule(val, this);
+        if (res === false) errMsg = `${id} is invalid`;
+        else if (typeof res === "string" && res.length > 0) errMsg = res;
+      } else if (rule && typeof rule === "object") {
+        const fieldName = rule.label || id;
+        if (rule.required && !strVal) {
+          errMsg = rule.message || `${fieldName} is required`;
+        } else if (strVal) {
+          if (rule.minLength !== undefined && strVal.length < rule.minLength) {
+            errMsg =
+              rule.message ||
+              `${fieldName} must be at least ${rule.minLength} characters`;
+          } else if (
+            rule.maxLength !== undefined &&
+            strVal.length > rule.maxLength
+          ) {
+            errMsg =
+              rule.message ||
+              `${fieldName} must be at most ${rule.maxLength} characters`;
+          } else if (rule.min !== undefined && Number(val) < rule.min) {
+            errMsg = rule.message || `${fieldName} must be >= ${rule.min}`;
+          } else if (rule.max !== undefined && Number(val) > rule.max) {
+            errMsg = rule.message || `${fieldName} must be <= ${rule.max}`;
+          } else if (rule.pattern && !rule.pattern.test(strVal)) {
+            errMsg = rule.message || `${fieldName} format is invalid`;
+          } else if (rule.validate) {
+            const res = rule.validate(val, this);
+            if (res === false) errMsg = rule.message || `${fieldName} is invalid`;
+            else if (typeof res === "string" && res.length > 0) errMsg = res;
+          }
+        }
+      }
+
+      const ctrl = this.findControl(id);
+      if (errMsg) {
+        errors[id] = errMsg;
+        if (ctrl) ctrl.error = errMsg;
+        if (!firstErrorId) {
+          firstErrorId = id;
+          firstErrorMessage = errMsg;
+        }
+      } else if (ctrl) {
+        delete ctrl.error;
+      }
+    }
+
+    if (firstErrorId) {
+      if (opts.highlight !== false) this.highlightControl(firstErrorId, 1200);
+      if (opts.focusFirst !== false) this.setFocus(firstErrorId);
+      if (opts.toastOnError && firstErrorMessage) {
+        this.toast(firstErrorMessage, 2200, "error");
+      }
+    }
+
+    return {
+      valid: firstErrorId === null,
+      errors,
+      firstErrorId,
+      firstInvalidId: firstErrorId,
+      firstErrorMessage,
+    };
+  }
+  /** Snake_case alias of `validateForm`: validates form controls against declarative rules or validator functions. */
+  public validate_form(
+    rules: Record<string, any>,
+    opts: {
+      highlight?: boolean;
+      focusFirst?: boolean;
+      toastOnError?: boolean;
+    } = {},
+  ) {
+    return this.validateForm(rules, opts);
   }
 
   /** Clears the value of a single input control identified by `id` to an empty string. */
@@ -8824,11 +9212,6 @@ export class SimpleWindow {
                     }
                 };
 
-
-                setInterval(function() {
-                    if (window.handleHeartbeatIPC) window.handleHeartbeatIPC();
-                }, 50);
-
                 window.addEventListener("beforeunload", function() {
                     if (window.handleWindowCloseIPC) window.handleWindowCloseIPC();
                 });
@@ -8950,6 +9333,8 @@ export class SimpleWindow {
                 }
 
                 let isFnPressed = false;
+                window.addEventListener("blur", function() { isFnPressed = false; });
+                document.addEventListener("visibilitychange", function() { if (document.hidden) isFnPressed = false; });
                 document.addEventListener("keyup", function(e) {
                     if (e.key === "Fn" || e.key === "Globe" || e.code === "Fn" || e.code === "Function") {
                         isFnPressed = false;
@@ -8999,16 +9384,29 @@ export class SimpleWindow {
                     const isFn = isFnPressed || (typeof e.getModifierState === "function" && (e.getModifierState("Fn") || e.getModifierState("FnLock") || e.getModifierState("Symbol")));
                     const isInput = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT" || e.target.isContentEditable);
                     const isBareF = !e.metaKey && !e.ctrlKey && !e.altKey && isF;
-                    const isCmdOrCtrlF = (e.metaKey || e.ctrlKey) && isF;
+                    const isPlainFindChord = (e.metaKey || e.ctrlKey) && !(e.metaKey && e.ctrlKey) && !e.shiftKey && !e.altKey && isF;
+                    if (isPlainFindChord) {
+                        const searchBox = document.querySelector && document.querySelector('#txt_search, input[type="search"], input[placeholder*="Search" i], input[placeholder*="Filter" i]');
+                        if (searchBox && typeof searchBox.focus === "function" && searchBox.offsetParent !== null) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            searchBox.focus();
+                            if (typeof searchBox.select === "function") searchBox.select();
+                            return;
+                        }
+                        if (isInput) return;
+                    }
+                    const isFullscreenModifierF = ((e.metaKey && e.ctrlKey) || ((e.metaKey || e.ctrlKey) && e.shiftKey) || (!isInput && (e.metaKey || e.ctrlKey))) && isF;
 
                     if (
-                        isCmdOrCtrlF ||
+                        isFullscreenModifierF ||
                         (!isInput && isBareF) ||
-                        (isFn && isF) ||
+                        (!isInput && isFn && isF) ||
                         e.key === "F11" || e.code === "F11" || e.key === "\\uF70E" || e.keyCode === 122 ||
-                        (e.altKey && (e.key === "Enter" || e.code === "Enter"))
+                        (!isInput && e.altKey && (e.key === "Enter" || e.code === "Enter"))
                     ) {
                         e.preventDefault();
+                        e.stopPropagation();
                         doToggleFullscreen();
                         return;
                     }
@@ -9135,9 +9533,21 @@ export class SimpleWindow {
                 }, { capture: true });
 
                 document.addEventListener("keydown", function(e) {
+                    if (e.isComposing || e.keyCode === 229) return;
+                    if (e.key === "Escape" && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+                        const target = e.target || document.activeElement;
+                        if (target && target.tagName === "INPUT" && target.value && (target.type === "search" || /search|filter/i.test((target.id || "") + " " + (target.placeholder || "")))) {
+                            e.preventDefault();
+                            target.value = "";
+                            target.dispatchEvent(new Event("input", { bubbles: true }));
+                            const changeName = target.id ? "on_" + target.id + "_change" : "";
+                            if (changeName && typeof window[changeName] === "function") window[changeName]("");
+                            return;
+                        }
+                    }
                     if (e.key === "Enter" || e.code === "Enter") {
                         const target = e.target || document.activeElement;
-                        if (target && target.id && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) {
+                        if (target && target.id && (target.tagName === "INPUT" || (target.tagName === "TEXTAREA" && (e.ctrlKey || e.metaKey)))) {
                             const val = target.type === "checkbox" ? target.checked : target.value;
                             const changeName = "on_" + target.id + "_change";
                             if (typeof window[changeName] === "function") {
@@ -9405,7 +9815,10 @@ export class SimpleWindow {
                     function hideOldCardFieldsets(s) {
                         if (s.type === "card" && s.id) {
                             const oldFs = document.getElementById(s.id);
-                            if (oldFs) oldFs.style.display = "none";
+                            if (oldFs) {
+                                if (oldFs.style.display === "none") s.hidden = true;
+                                oldFs.style.display = "none";
+                            }
                         } else if (s.type === "grid" && s.cards) {
                             for (const c of s.cards) hideOldCardFieldsets(c);
                         }
@@ -9418,6 +9831,7 @@ export class SimpleWindow {
                         const card = document.createElement("div");
                         card.className = "rad-card";
                         if (cardSec.id) card.id = "rad_card_" + cardSec.id;
+                        if (cardSec.hidden) card.style.display = "none";
                         if (cardSec.title) {
                             const h = document.createElement("div");
                             h.className = "rad-card-header";
@@ -9904,14 +10318,34 @@ export class SimpleWindow {
   // --- Developer Helpers & Inspection Methods ---
   /** Recursively searches `list` (defaulting to the window's controls) and returns the control specification matching `id`, or `null`. */
   public findControl(id: string, list: any[] = this.controls): any | null {
-    for (const item of list) {
-      if (item.id === id) return item;
-      if (item.children) {
-        const found = this.findControl(id, item.children);
-        if (found) return found;
+    if (!id) return null;
+    if (list === this.controls) {
+      const cached = this.controlIndex.get(id);
+      if (cached && (cached.id === id || cached.name === id)) {
+        return cached;
       }
     }
-    return this.nonVisualControls.find((c) => c.id === id) || null;
+    for (const item of list) {
+      if (item && (item.id === id || item.name === id)) {
+        if (list === this.controls) this._indexControl(item);
+        return item;
+      }
+      if (item && item.children) {
+        const found = this.findControl(id, item.children);
+        if (found) {
+          if (list === this.controls) this._indexControl(found);
+          return found;
+        }
+      }
+    }
+    if (list === this.controls) {
+      const nv =
+        this.nonVisualControls.find((c) => c && (c.id === id || c.name === id)) ||
+        null;
+      if (nv) this._indexControl(nv);
+      return nv;
+    }
+    return null;
   }
 
   /** Alias of `findControl`: recursively searches `list` (defaulting to the window's controls) and returns the control specification matching `id`, or `null`. */
@@ -10663,7 +11097,43 @@ export class SimpleWindow {
 
   /** Updates the numeric series values of the chart control identified by `id`. */
   public setChartData(id: string, values: number[]): this {
-    return this.setValue(id, values.join(", "));
+    const nums = Array.isArray(values) ? values.map((v) => Number(v) || 0) : [];
+    const ctrl = this.findControl(id);
+    if (ctrl) {
+      ctrl.points = nums;
+      ctrl.value = nums.join(", ");
+    }
+    this.setValue(id, nums.join(", "));
+    if (this.isWindowRunning && nums.length > 0) {
+      const min = Math.min(...nums);
+      const max = Math.max(...nums);
+      const range = max - min || 1;
+      const stepX = nums.length > 1 ? 100 / (nums.length - 1) : 100;
+      const pts = nums.map((v, i) => {
+        const x = +(i * stepX).toFixed(2);
+        const y = +(22 - ((v - min) / range) * 18).toFixed(2);
+        return `${i === 0 ? "M" : "L"}${x} ${y}`;
+      });
+      const linePath = pts.join(" ");
+      const areaPath = `${linePath} L100 24 L0 24 Z`;
+      const lastVal = String(nums[nums.length - 1]);
+      this.evalJS(`
+                (function() {
+                    const el = document.getElementById(${JSON.stringify(id)});
+                    if (!el) return;
+                    const paths = el.querySelectorAll("svg path");
+                    if (paths.length >= 2) {
+                        paths[0].setAttribute("d", ${JSON.stringify(linePath)});
+                        paths[1].setAttribute("d", ${JSON.stringify(areaPath)});
+                    } else if (paths.length === 1) {
+                        paths[0].setAttribute("d", ${JSON.stringify(linePath)});
+                    }
+                    const divs = el.querySelectorAll("div");
+                    if (divs.length >= 2) divs[1].textContent = ${JSON.stringify(lastVal)};
+                })();
+            `);
+    }
+    return this;
   }
 
   /** Adds a circular ring progress indicator (`0..100`) with the given `id`. */
@@ -10673,7 +11143,29 @@ export class SimpleWindow {
 
   /** Updates the percentage value (`0..100`) of the circular progress control identified by `id`. */
   public setCircularProgress(id: string, value: number): this {
-    return this.setValue(id, value);
+    const pct = Math.max(0, Math.min(100, Number(value) || 0));
+    const ctrl = this.findControl(id);
+    if (ctrl) ctrl.value = pct;
+    this.setValue(id, pct);
+    if (this.isWindowRunning) {
+      const r = 36;
+      const circ = 2 * Math.PI * r;
+      const dash = (circ * pct) / 100;
+      const dashArray = `${dash.toFixed(1)} ${(circ - dash).toFixed(1)}`;
+      this.evalJS(`
+                (function() {
+                    const el = document.getElementById(${JSON.stringify(id)});
+                    if (!el) return;
+                    const circles = el.querySelectorAll("svg circle");
+                    if (circles.length >= 2) {
+                        circles[1].setAttribute("stroke-dasharray", ${JSON.stringify(dashArray)});
+                    }
+                    const txt = el.querySelector("svg text");
+                    if (txt) txt.textContent = ${JSON.stringify(`${Math.round(pct)}%`)};
+                })();
+            `);
+    }
+    return this;
   }
 
   /** Adds a two-column key-value property inspector grid populated from a record or `"key:val"` string. */
@@ -10800,15 +11292,13 @@ export class SimpleWindow {
     headersOrRows: string[] | any[],
     maybeRows?: any[],
   ): this {
+    const ctrl = this.findControl(id);
     let headers: string[];
     let rows: any[];
     if (maybeRows !== undefined && Array.isArray(headersOrRows)) {
       headers = headersOrRows as string[];
       rows = maybeRows;
     } else if (Array.isArray(headersOrRows)) {
-      const ctrl = this.controls.find(
-        (c) => c && (c.id === id || c.name === id),
-      );
       headers =
         ctrl && Array.isArray(ctrl.headers) && ctrl.headers.length > 0
           ? ctrl.headers
@@ -10822,7 +11312,6 @@ export class SimpleWindow {
     }
     const headerCsv = headers.join(", ");
     this.formValuesStore[id] = rows;
-    const ctrl = this.controls.find((c) => c && (c.id === id || c.name === id));
     if (ctrl) {
       ctrl.text = headerCsv;
       ctrl.value = rows;
@@ -10889,9 +11378,10 @@ export class SimpleWindow {
                             'onmouseover="if(!this.classList.contains(\\'selected-tr\\'))this.style.background=\\'' + hoverBg + '\\'" ' +
                             'onmouseout="if(!this.classList.contains(\\'selected-tr\\'))this.style.background=\\'\\'">' +
                             cells.map((c, i) => {
-                                const alignStyle = (i >= 3 && i <= 5) ? 'text-align:right;' : 'text-align:left;';
-                                const monoStyle = (i === 0 || (i >= 3 && i <= 5)) ? 'font-family:monospace;' : '';
                                 const strVal = c === null || c === undefined ? '' : String(c);
+                                const isNum = /^-?\d+(\.\d+)?(%|\s*(KB|MB|GB|B|ms|s))?$/i.test(strVal.trim());
+                                const alignStyle = isNum ? 'text-align:right;' : 'text-align:left;';
+                                const monoStyle = (i === 0 || isNum) ? 'font-family:monospace;font-variant-numeric:tabular-nums;' : '';
                                 const isUrl = strVal.startsWith('http://') || strVal.startsWith('https://');
                                 const cellHtml = isUrl
                                     ? ('<a href="' + esc(strVal) + '" target="_blank" rel="noopener noreferrer" style="color:' + accent + ';text-decoration:underline;cursor:pointer;" onclick="event.stopPropagation();if(typeof window.openUrl===\\'function\\'){window.openUrl(\\'' + esc(strVal) + '\\');}else if(typeof window.openExternal===\\'function\\'){window.openExternal(\\'' + esc(strVal) + '\\');}return false;">' + esc(strVal) + '</a>')
@@ -10993,7 +11483,23 @@ export class SimpleWindow {
 
   /** Updates the numeric value of the gauge control identified by `id`. */
   public setGaugeValue(id: string, val: number): this {
-    return this.setValue(id, val);
+    const ctrl = this.findControl(id);
+    if (ctrl) ctrl.value = val;
+    this.setValue(id, val);
+    if (this.isWindowRunning) {
+      const pct = Math.max(0, Math.min(100, Number(val) || 0));
+      this.evalJS(`
+                (function() {
+                    const el = document.getElementById(${JSON.stringify(id)});
+                    if (!el) return;
+                    const spans = el.querySelectorAll("span");
+                    if (spans.length >= 3) spans[2].textContent = ${JSON.stringify(String(val))};
+                    const bar = el.querySelector("div:last-child > div");
+                    if (bar) bar.style.width = ${JSON.stringify(`${pct}%`)};
+                })();
+            `);
+    }
+    return this;
   }
 
   /** Adds a page navigation bar control displaying `currentPage` of `totalPages`. */
@@ -11062,7 +11568,34 @@ export class SimpleWindow {
 
   /** Updates the numeric series values of the sparkline control identified by `id`. */
   public setSparklineData(id: string, values: number[]): this {
-    return this.setValue(id, values.join(","));
+    const nums = Array.isArray(values) ? values.map((v) => Number(v) || 0) : [];
+    const ctrl = this.findControl(id);
+    if (ctrl) ctrl.value = nums.join(",");
+    this.setValue(id, nums.join(","));
+    if (this.isWindowRunning && nums.length > 0) {
+      const min = Math.min(...nums);
+      const max = Math.max(...nums);
+      const range = max - min || 1;
+      const stepX = nums.length > 1 ? 50 / (nums.length - 1) : 50;
+      const polyPts = nums
+        .map(
+          (v, i) =>
+            `${+(i * stepX).toFixed(1)},${+(14 - ((v - min) / range) * 12).toFixed(1)}`,
+        )
+        .join(" ");
+      const lastVal = String(nums[nums.length - 1]);
+      this.evalJS(`
+                (function() {
+                    const el = document.getElementById(${JSON.stringify(id)});
+                    if (!el) return;
+                    const poly = el.querySelector("svg polyline");
+                    if (poly) poly.setAttribute("points", ${JSON.stringify(polyPts)});
+                    const mono = el.querySelector(".rad-mono");
+                    if (mono) mono.textContent = ${JSON.stringify(lastVal)};
+                })();
+            `);
+    }
+    return this;
   }
 
   /** Adds a centered multi-digit PIN / OTP verification input field. */
@@ -12143,7 +12676,7 @@ export class SimpleWindow {
   // 2. Control Enabled / Visible & Batch Operations
   /** Enables or disables the control identified by `id` in both the form specification and live DOM. */
   public setControlEnabled(id: string, enabled: boolean): this {
-    const ctrl = this.controls.find((c) => c.id === id);
+    const ctrl = this.findControl(id);
     if (ctrl) ctrl.enabled = enabled;
     if (this.isWindowRunning) {
       this.evalJS(`
@@ -12182,12 +12715,25 @@ export class SimpleWindow {
 
   /** Shows or hides the control identified by `id` in both the form specification and live DOM. */
   public setControlVisible(id: string, visible: boolean): this {
-    const ctrl = this.controls.find((c) => c.id === id);
+    const ctrl = this.findControl(id);
     if (ctrl) ctrl.visible = visible;
+    for (const sec of this._layoutSections) {
+      if (sec.type === "card" && sec.id === id) (sec as any).hidden = !visible;
+      if (sec.type === "grid" && sec.cards) {
+        for (const c of sec.cards) {
+          if (c.id === id) (c as any).hidden = !visible;
+        }
+      }
+    }
     if (this.isWindowRunning) {
       this.evalJS(`
                 (function() {
-                    const el = document.getElementById("${id}");
+                    const cardEl = document.getElementById("rad_card_" + ${JSON.stringify(id)});
+                    if (cardEl) {
+                        cardEl.style.display = "${visible ? "" : "none"}";
+                        return;
+                    }
+                    const el = document.getElementById(${JSON.stringify(id)});
                     if (el) el.style.display = "${visible ? "block" : "none"}";
                 })();
             `);
@@ -12202,7 +12748,7 @@ export class SimpleWindow {
 
   /** Returns `true` if the control identified by `id` is currently enabled. */
   public getControlEnabled(id: string): boolean {
-    const ctrl = this.controls.find((c) => c.id === id);
+    const ctrl = this.findControl(id);
     return ctrl ? ctrl.enabled !== false : true;
   }
 
@@ -12213,7 +12759,7 @@ export class SimpleWindow {
 
   /** Returns `true` if the control identified by `id` is currently visible. */
   public getControlVisible(id: string): boolean {
-    const ctrl = this.controls.find((c) => c.id === id);
+    const ctrl = this.findControl(id);
     return ctrl ? ctrl.visible !== false : true;
   }
 
@@ -12224,7 +12770,30 @@ export class SimpleWindow {
 
   /** Makes all controls in `names` visible. */
   public showControls(names: string[]): this {
-    names.forEach((name) => this.setControlVisible(name, true));
+    if (!names || names.length === 0) return this;
+    const wasRunning = this.isWindowRunning;
+    this.isWindowRunning = false;
+    try {
+      for (let i = 0; i < names.length; i++) {
+        this.setControlVisible(names[i]!, true);
+      }
+    } finally {
+      this.isWindowRunning = wasRunning;
+    }
+    if (wasRunning) {
+      this.evalJS(`
+                (function() {
+                    const ids = ${JSON.stringify(names)};
+                    for (let i = 0; i < ids.length; i++) {
+                        const id = ids[i];
+                        const cardEl = document.getElementById("rad_card_" + id);
+                        if (cardEl) { cardEl.style.display = ""; continue; }
+                        const el = document.getElementById(id);
+                        if (el) el.style.display = "block";
+                    }
+                })();
+            `);
+    }
     return this;
   }
   /** Snake_case alias of `showControls`: makes all controls in `names` visible. */
@@ -12238,7 +12807,30 @@ export class SimpleWindow {
 
   /** Hides all controls in `names`. */
   public hideControls(names: string[]): this {
-    names.forEach((name) => this.setControlVisible(name, false));
+    if (!names || names.length === 0) return this;
+    const wasRunning = this.isWindowRunning;
+    this.isWindowRunning = false;
+    try {
+      for (let i = 0; i < names.length; i++) {
+        this.setControlVisible(names[i]!, false);
+      }
+    } finally {
+      this.isWindowRunning = wasRunning;
+    }
+    if (wasRunning) {
+      this.evalJS(`
+                (function() {
+                    const ids = ${JSON.stringify(names)};
+                    for (let i = 0; i < ids.length; i++) {
+                        const id = ids[i];
+                        const cardEl = document.getElementById("rad_card_" + id);
+                        if (cardEl) { cardEl.style.display = "none"; continue; }
+                        const el = document.getElementById(id);
+                        if (el) el.style.display = "none";
+                    }
+                })();
+            `);
+    }
     return this;
   }
   /** Snake_case alias of `hideControls`: hides all controls in `names`. */
@@ -12252,7 +12844,36 @@ export class SimpleWindow {
 
   /** Enables user interaction on all controls in `names`. */
   public enableControls(names: string[]): this {
-    names.forEach((name) => this.setControlEnabled(name, true));
+    if (!names || names.length === 0) return this;
+    const wasRunning = this.isWindowRunning;
+    this.isWindowRunning = false;
+    try {
+      for (let i = 0; i < names.length; i++) {
+        this.setControlEnabled(names[i]!, true);
+      }
+    } finally {
+      this.isWindowRunning = wasRunning;
+    }
+    if (wasRunning) {
+      this.evalJS(`
+                (function() {
+                    const ids = ${JSON.stringify(names)};
+                    for (let i = 0; i < ids.length; i++) {
+                        const el = document.getElementById(ids[i]);
+                        if (!el) continue;
+                        el.disabled = false;
+                        el.removeAttribute("disabled");
+                        el.style.opacity = "1";
+                        el.style.pointerEvents = "auto";
+                        el.style.userSelect = "auto";
+                        el.querySelectorAll("input, select, textarea, button").forEach(function(child) {
+                            child.disabled = false;
+                            child.removeAttribute("disabled");
+                        });
+                    }
+                })();
+            `);
+    }
     return this;
   }
   /** Snake_case alias of `enableControls`: enables user interaction on all controls in `names`. */
@@ -12266,7 +12887,36 @@ export class SimpleWindow {
 
   /** Disables user interaction on all controls in `names`. */
   public disableControls(names: string[]): this {
-    names.forEach((name) => this.setControlEnabled(name, false));
+    if (!names || names.length === 0) return this;
+    const wasRunning = this.isWindowRunning;
+    this.isWindowRunning = false;
+    try {
+      for (let i = 0; i < names.length; i++) {
+        this.setControlEnabled(names[i]!, false);
+      }
+    } finally {
+      this.isWindowRunning = wasRunning;
+    }
+    if (wasRunning) {
+      this.evalJS(`
+                (function() {
+                    const ids = ${JSON.stringify(names)};
+                    for (let i = 0; i < ids.length; i++) {
+                        const el = document.getElementById(ids[i]);
+                        if (!el) continue;
+                        el.disabled = true;
+                        el.setAttribute("disabled", "disabled");
+                        el.style.opacity = "0.5";
+                        el.style.pointerEvents = "none";
+                        el.style.userSelect = "none";
+                        el.querySelectorAll("input, select, textarea, button").forEach(function(child) {
+                            child.disabled = true;
+                            child.setAttribute("disabled", "disabled");
+                        });
+                    }
+                })();
+            `);
+    }
     return this;
   }
   /** Snake_case alias of `disableControls`: disables user interaction on all controls in `names`. */
@@ -12612,7 +13262,7 @@ export class SimpleWindow {
   /** Assigns validation error messages to multiple controls from a `{ [controlId]: errorMessage }` map. */
   public setManyErrors(values: Record<string, string>): this {
     for (const [id, err] of Object.entries(values)) {
-      const ctrl = this.controls.find((c) => c.id === id);
+      const ctrl = this.findControl(id);
       if (ctrl) ctrl.error = err;
     }
     return this;
@@ -12625,7 +13275,7 @@ export class SimpleWindow {
   /** Updates placeholder hint strings on multiple controls from a `{ [controlId]: placeholder }` map. */
   public setManyPlaceholders(values: Record<string, string>): this {
     for (const [id, ph] of Object.entries(values)) {
-      const ctrl = this.controls.find((c) => c.id === id);
+      const ctrl = this.findControl(id);
       if (ctrl) ctrl.placeholder = ph;
     }
     return this;
@@ -12638,7 +13288,7 @@ export class SimpleWindow {
   /** Updates hover tooltip strings on multiple controls from a `{ [controlId]: tooltip }` map. */
   public setManyTooltips(values: Record<string, string>): this {
     for (const [id, hint] of Object.entries(values)) {
-      const ctrl = this.controls.find((c) => c.id === id);
+      const ctrl = this.findControl(id);
       if (ctrl) ctrl.tooltip = hint;
     }
     return this;
@@ -12706,7 +13356,7 @@ export class SimpleWindow {
   /** Resets all controls listed in `names` to their type-appropriate default values (`false` for checkboxes/switches, `min` for sliders, `""` for text inputs). */
   public resetMany(names: string[]): this {
     for (const name of names) {
-      const ctrl = this.controls.find((c) => c.id === name);
+      const ctrl = this.findControl(name);
       if (ctrl) {
         if (ctrl.type === "checkbox" || ctrl.type === "switch") {
           this.setBool(name, ctrl.checked || false);
@@ -13761,12 +14411,6 @@ export class SimpleWindow {
       }
     }
 
-    this.onStateChange(stateKey, (w, val) => {
-      if (String(w.getValue(controlName) ?? "") !== val) {
-        w.setValue(controlName, val);
-      }
-    });
-
     this.onChange(controlName, (w, val) => {
       const strVal = String(val ?? "");
       if (w.getState(stateKey) !== strVal) {
@@ -13775,6 +14419,318 @@ export class SimpleWindow {
     });
 
     return this;
+  }
+
+  /**
+   * Binds a Tabs control (`tabsId`) to a map of tab names (or indices) -> arrays of control/card IDs.
+   * Automatically hides inactive tab groups initially and switches visible controls when the active tab changes.
+   */
+  public bindTabViews(
+    tabsId: string,
+    viewGroupsMap: Record<string, string[]>,
+    onTabChange?: (
+      win: SimpleWindow,
+      activeTab: string,
+      activeIndex: number,
+    ) => void,
+  ): this {
+    const applyTabView = (
+      activeTabOrIdx: string | number,
+      triggerCallback: boolean,
+    ) => {
+      const ctrl = this.findControl(tabsId);
+      const labels: string[] = Array.isArray(ctrl?.tabLabels)
+        ? ctrl.tabLabels
+        : Array.isArray(ctrl?.items)
+          ? ctrl.items.map(String)
+          : String(ctrl?.items ?? "")
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean);
+
+      const activeTab =
+        typeof activeTabOrIdx === "number"
+          ? (labels[activeTabOrIdx] ?? String(activeTabOrIdx))
+          : String(activeTabOrIdx ?? labels[0] ?? "");
+      const activeIndex = Math.max(0, labels.indexOf(activeTab));
+
+      const toShowSet = new Set<string>(
+        viewGroupsMap[activeTab] ?? viewGroupsMap[String(activeIndex)] ?? [],
+      );
+      const toHide: string[] = [];
+      for (const [key, groupIds] of Object.entries(viewGroupsMap)) {
+        if (key === activeTab || key === String(activeIndex)) continue;
+        for (let i = 0; i < groupIds.length; i++) {
+          const gid = groupIds[i];
+          if (gid && !toShowSet.has(gid)) {
+            toHide.push(gid);
+          }
+        }
+      }
+
+      if (toHide.length > 0) this.hideControls(toHide);
+      if (toShowSet.size > 0) this.showControls(Array.from(toShowSet));
+
+      if (triggerCallback && onTabChange) {
+        onTabChange(this, activeTab, activeIndex);
+      }
+    };
+
+    const initialVal = this.getValue(tabsId);
+    applyTabView(
+      initialVal !== undefined && initialVal !== "" ? initialVal : 0,
+      false,
+    );
+
+    this.onChange(tabsId, (_win, val) => {
+      applyTabView(val, true);
+    });
+
+    return this;
+  }
+  /** Snake_case alias of `bindTabViews`: binds a Tabs control to a map of tab names -> control/card IDs. */
+  public bind_tab_views(
+    tabsId: string,
+    viewGroupsMap: Record<string, string[]>,
+    onTabChange?: (
+      win: SimpleWindow,
+      activeTab: string,
+      activeIndex: number,
+    ) => void,
+  ): this {
+    return this.bindTabViews(tabsId, viewGroupsMap, onTabChange);
+  }
+
+  /**
+   * Binds an Input or SearchInput control (`inputId`) to live-filter a Table control (`tableId`) in 1 line of code.
+   * Supports static 2D arrays or a dynamic `() => any[][]` getter for mutable datasets.
+   */
+  public bindTableFilter(
+    inputId: string,
+    tableId: string,
+    sourceRows: any[][] | (() => any[][]),
+    optionsOrOnFilter?:
+      | {
+          columns?: number[];
+          predicate?: (row: any[], query: string) => boolean;
+          countControlId?: string;
+          countFormat?: (matched: number, total: number) => string;
+          onFilter?: (
+            win: SimpleWindow,
+            filteredRows: any[][],
+            query: string,
+          ) => void;
+        }
+      | ((win: SimpleWindow, filteredRows: any[][], query: string) => void),
+  ): this {
+    const opts =
+      typeof optionsOrOnFilter === "function"
+        ? { onFilter: optionsOrOnFilter }
+        : (optionsOrOnFilter ?? {});
+
+    const runFilter = (rawQuery: any) => {
+      const rows =
+        typeof sourceRows === "function" ? sourceRows() : sourceRows;
+      const total = Array.isArray(rows) ? rows.length : 0;
+      const query = String(rawQuery ?? "")
+        .trim()
+        .toLowerCase();
+
+      let filtered: any[][];
+      if (!query) {
+        filtered = Array.isArray(rows) ? rows : [];
+      } else if (opts.predicate) {
+        filtered = rows.filter((row) => opts.predicate!(row, query));
+      } else if (Array.isArray(opts.columns) && opts.columns.length > 0) {
+        const cols = opts.columns;
+        filtered = rows.filter((row) => {
+          for (let i = 0; i < cols.length; i++) {
+            const cell = row[cols[i]!];
+            if (
+              cell !== null &&
+              cell !== undefined &&
+              String(cell).toLowerCase().includes(query)
+            ) {
+              return true;
+            }
+          }
+          return false;
+        });
+      } else {
+        filtered = rows.filter((row) => {
+          for (let i = 0; i < row.length; i++) {
+            const cell = row[i];
+            if (
+              cell !== null &&
+              cell !== undefined &&
+              String(cell).toLowerCase().includes(query)
+            ) {
+              return true;
+            }
+          }
+          return false;
+        });
+      }
+
+      this.setTableRows(tableId, filtered);
+
+      if (opts.countControlId) {
+        const text = opts.countFormat
+          ? opts.countFormat(filtered.length, total)
+          : `${filtered.length} / ${total} rows`;
+        this.setValue(opts.countControlId, text);
+      }
+
+      if (opts.onFilter) {
+        opts.onFilter(this, filtered, query);
+      }
+    };
+
+    const initialQuery = this.getText(inputId);
+    runFilter(initialQuery);
+
+    this.onChange(inputId, (_win, val) => {
+      runFilter(val);
+    });
+
+    return this;
+  }
+  /** Snake_case alias of `bindTableFilter`: binds an Input or SearchInput control to live-filter a Table control. */
+  public bind_table_filter(
+    inputId: string,
+    tableId: string,
+    sourceRows: any[][] | (() => any[][]),
+    optionsOrOnFilter?:
+      | {
+          columns?: number[];
+          predicate?: (row: any[], query: string) => boolean;
+          countControlId?: string;
+          countFormat?: (matched: number, total: number) => string;
+          onFilter?: (
+            win: SimpleWindow,
+            filteredRows: any[][],
+            query: string,
+          ) => void;
+        }
+      | ((win: SimpleWindow, filteredRows: any[][], query: string) => void),
+  ): this {
+    return this.bindTableFilter(
+      inputId,
+      tableId,
+      sourceRows,
+      optionsOrOnFilter,
+    );
+  }
+
+  /**
+   * Binds a Table control (`tableId`) to detail/form controls so clicking a row automatically populates
+   * the mapped controls with that row's cell values.
+   */
+  public bindMasterDetail(
+    tableId: string,
+    columnToControlMap:
+      | (string | null | undefined)[]
+      | Record<string, string>,
+    onRowSelect?: (
+      win: SimpleWindow,
+      row: any[],
+      rowId: string,
+      rowIndex: number,
+    ) => void,
+  ): this {
+    this.onClick(tableId, (w, rawRowId) => {
+      const ctrl = w.findControl(tableId);
+      const rows: any[][] =
+        ctrl?.rows ||
+        (Array.isArray(ctrl?.value) ? ctrl.value : null) ||
+        (Array.isArray(w.formValuesStore[tableId])
+          ? w.formValuesStore[tableId]
+          : []);
+      const headers: string[] = Array.isArray(ctrl?.headers)
+        ? ctrl.headers
+        : [];
+      const targetId = String(rawRowId ?? "").trim();
+
+      let matchedIdx = -1;
+      let matchedRow: any[] | undefined;
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        const cells = Array.isArray(r)
+          ? r
+          : r && (r as any).cells
+            ? (r as any).cells
+            : Object.values(r || {});
+        const rId = String(
+          (r as any)?.rowId !== undefined
+            ? (r as any).rowId
+            : (r as any)?.pid !== undefined
+              ? (r as any).pid
+              : (cells[0] ?? ""),
+        ).trim();
+        if (rId === targetId) {
+          matchedIdx = i;
+          matchedRow = cells;
+          break;
+        }
+      }
+      if (!matchedRow && /^\d+$/.test(targetId)) {
+        const idx = Number(targetId);
+        if (idx >= 0 && idx < rows.length) {
+          matchedIdx = idx;
+          const r = rows[idx];
+          matchedRow = Array.isArray(r) ? r : Object.values(r || {});
+        }
+      }
+      if (!matchedRow) return;
+
+      if (Array.isArray(columnToControlMap)) {
+        for (let col = 0; col < columnToControlMap.length; col++) {
+          const destId = columnToControlMap[col];
+          if (destId && col < matchedRow.length) {
+            w.setValue(destId, matchedRow[col]);
+          }
+        }
+      } else if (
+        columnToControlMap &&
+        typeof columnToControlMap === "object"
+      ) {
+        for (const [colKey, destId] of Object.entries(columnToControlMap)) {
+          if (!destId) continue;
+          let colIdx = /^\d+$/.test(colKey)
+            ? Number(colKey)
+            : headers.indexOf(colKey);
+          if (colIdx === -1) {
+            const lower = colKey.toLowerCase();
+            colIdx = headers.findIndex(
+              (h) => String(h).toLowerCase() === lower,
+            );
+          }
+          if (colIdx >= 0 && colIdx < matchedRow.length) {
+            w.setValue(destId, matchedRow[colIdx]);
+          }
+        }
+      }
+
+      if (onRowSelect) {
+        onRowSelect(w, matchedRow, targetId, matchedIdx);
+      }
+    });
+    return this;
+  }
+  /** Snake_case alias of `bindMasterDetail`: binds a Table control to detail/form controls so clicking a row populates mapped controls. */
+  public bind_master_detail(
+    tableId: string,
+    columnToControlMap:
+      | (string | null | undefined)[]
+      | Record<string, string>,
+    onRowSelect?: (
+      win: SimpleWindow,
+      row: any[],
+      rowId: string,
+      rowIndex: number,
+    ) => void,
+  ): this {
+    return this.bindMasterDetail(tableId, columnToControlMap, onRowSelect);
   }
   /** Snake_case alias of `bindState`: binds the control named `controlName` to reactive state key `stateKey` for automatic two-way synchronization. */
   public bind_state(controlName: string, stateKey: string): this {
@@ -14021,19 +14977,12 @@ export class SimpleWindow {
 
   private getLastControl(): any {
     if (!this.lastControlId) return null;
-    return (
-      this.controls.find(
-        (c) =>
-          c && (c.id === this.lastControlId || c.name === this.lastControlId),
-      ) || null
-    );
+    return this.findControl(this.lastControlId);
   }
 
   /** Returns the mutable `ControlSpec` object for the control matching `id`, or `null` if not found. */
   public getControlSpec(id: string): ControlSpec | null {
-    return (
-      this.controls.find((c) => c && (c.id === id || c.name === id)) || null
-    );
+    return this.findControl(id);
   }
 
   // --- Window-Level Fluent Modifiers (operate on last created control) ---
@@ -14184,9 +15133,7 @@ export class SimpleWindow {
 
   /** Sets the horizontal alignment (`"left"`, `"center"`, `"right"`) of the control named `name`. */
   public setControlAlignment(name: string, alignment: string): this {
-    const ctrl = this.controls.find(
-      (c) => c && (c.id === name || c.name === name),
-    );
+    const ctrl = this.findControl(name);
     if (ctrl) ctrl.alignment = alignment;
     return this;
   }
@@ -14196,9 +15143,7 @@ export class SimpleWindow {
   }
   /** Returns the horizontal alignment of the control named `name` (defaulting to `"left"`). */
   public getControlAlignment(name: string): string {
-    const ctrl = this.controls.find(
-      (c) => c && (c.id === name || c.name === name),
-    );
+    const ctrl = this.findControl(name);
     return ctrl ? ctrl.alignment || "left" : "left";
   }
   /** Snake_case alias of `getControlAlignment`: returns the horizontal alignment of the control named `name` (defaulting to `"left"`). */
@@ -14208,9 +15153,7 @@ export class SimpleWindow {
 
   /** Configures whether the control named `name` stretches horizontally to fill available row space. */
   public setControlExpandFill(name: string, expand: boolean): this {
-    const ctrl = this.controls.find(
-      (c) => c && (c.id === name || c.name === name),
-    );
+    const ctrl = this.findControl(name);
     if (ctrl) {
       ctrl.expandFill = expand;
       ctrl.expand_fill = expand;
@@ -14223,9 +15166,7 @@ export class SimpleWindow {
   }
   /** Returns `true` if the control named `name` is configured to expand and fill available row space. */
   public getControlExpandFill(name: string): boolean {
-    const ctrl = this.controls.find(
-      (c) => c && (c.id === name || c.name === name),
-    );
+    const ctrl = this.findControl(name);
     return !!(ctrl && (ctrl.expandFill || ctrl.expand_fill));
   }
   /** Snake_case alias of `getControlExpandFill`: returns `true` if the control named `name` is configured to expand and fill available row space. */
@@ -14235,9 +15176,7 @@ export class SimpleWindow {
 
   /** Marks the button control named `name` as the form's default primary button. */
   public setDefaultButton(name: string): this {
-    const ctrl = this.controls.find(
-      (c) => c && (c.id === name || c.name === name),
-    );
+    const ctrl = this.findControl(name);
     if (ctrl) ctrl.is_default = true;
     return this;
   }
@@ -14993,13 +15932,11 @@ export class SimpleWindow {
   // --- Table Operations ---
   /** Replaces the 2D `rows` data array of the table control named `name` and re-renders its live DOM `<tbody>`. */
   public setTableRows(name: string, rows: any[][]): this {
-    const ctrl = this.controls.find(
-      (c) =>
-        c &&
-        (c.id === name ||
-          c.name === name ||
-          (!name && (c.type === "table" || c.type === "data_table"))),
-    );
+    const ctrl = name
+      ? this.findControl(name)
+      : this.controls.find(
+          (c) => c && (c.type === "table" || c.type === "data_table"),
+        );
     if (ctrl) {
       ctrl.rows = rows;
       ctrl.value = rows;
@@ -15014,9 +15951,7 @@ export class SimpleWindow {
 
   /** Appends a single `row` array to the table control named `name` and updates its live DOM. */
   public addTableRow(name: string, row: any[]): this {
-    const ctrl = this.controls.find(
-      (c) => c && (c.id === name || c.name === name),
-    );
+    const ctrl = this.findControl(name);
     if (ctrl) {
       const existing =
         ctrl.rows || (Array.isArray(ctrl.value) ? ctrl.value : []);
@@ -15034,9 +15969,7 @@ export class SimpleWindow {
 
   /** Removes the row at zero-based `rowIndex` from the table control named `name` and updates its live DOM. */
   public removeTableRow(name: string, rowIndex: number): this {
-    const ctrl = this.controls.find(
-      (c) => c && (c.id === name || c.name === name),
-    );
+    const ctrl = this.findControl(name);
     if (ctrl) {
       const existing =
         ctrl.rows || (Array.isArray(ctrl.value) ? ctrl.value : []);
@@ -15059,9 +15992,7 @@ export class SimpleWindow {
 
   /** Returns the current number of rows in the table control named `name`. */
   public tableRowCount(name: string): number {
-    const ctrl = this.controls.find(
-      (c) => c && (c.id === name || c.name === name),
-    );
+    const ctrl = this.findControl(name);
     if (ctrl) {
       const r = ctrl.rows || (Array.isArray(ctrl.value) ? ctrl.value : null);
       if (Array.isArray(r)) return r.length;
@@ -15071,6 +16002,117 @@ export class SimpleWindow {
   /** Snake_case alias of `tableRowCount`: returns the current number of rows in the table control named `name`. */
   public table_row_count(name: string): number {
     return this.tableRowCount(name);
+  }
+
+  /** Returns the current 2D `rows` array of the table control named `name`. */
+  public getTableRows(name: string): any[][] {
+    const ctrl = this.findControl(name);
+    if (ctrl) {
+      const r = ctrl.rows || (Array.isArray(ctrl.value) ? ctrl.value : null);
+      if (Array.isArray(r)) return r.map((row) => (Array.isArray(row) ? [...row] : row));
+    }
+    return [];
+  }
+  /** Snake_case alias of `getTableRows`: returns the current 2D `rows` array of the table control named `name`. */
+  public get_table_rows(name: string): any[][] {
+    return this.getTableRows(name);
+  }
+
+  /** Returns the column `headers` array of the table control named `name`. */
+  public getTableHeaders(name: string): string[] {
+    const ctrl = this.findControl(name);
+    if (ctrl) {
+      if (Array.isArray(ctrl.headers) && ctrl.headers.length > 0) {
+        return [...ctrl.headers];
+      }
+      if (typeof ctrl.text === "string" && ctrl.text.trim()) {
+        return ctrl.text.split(",").map((s: string) => s.trim());
+      }
+    }
+    return [];
+  }
+  /** Snake_case alias of `getTableHeaders`: returns the column `headers` array of the table control named `name`. */
+  public get_table_headers(name: string): string[] {
+    return this.getTableHeaders(name);
+  }
+
+  /** Returns an array of `{ [header]: cellValue }` objects for all rows in table `name`. */
+  public getTableObjects(name: string): Record<string, any>[] {
+    const headers = this.getTableHeaders(name);
+    const rows = this.getTableRows(name);
+    return rows.map((row) => {
+      const cells = Array.isArray(row)
+        ? row
+        : row && (row as any).cells
+          ? (row as any).cells
+          : Object.values(row || {});
+      const obj: Record<string, any> = {};
+      for (let i = 0; i < Math.max(headers.length, cells.length); i++) {
+        const key = headers[i] || `col_${i}`;
+        obj[key] = cells[i] ?? "";
+      }
+      return obj;
+    });
+  }
+  /** Snake_case alias of `getTableObjects`: returns an array of `{ [header]: cellValue }` objects for all rows in table `name`. */
+  public get_table_objects(name: string): Record<string, any>[] {
+    return this.getTableObjects(name);
+  }
+
+  /** Exports the headers and rows of table `name` as RFC-4180 CSV text, optionally writing it to `filePath`. */
+  public exportTableCsv(name: string, filePath?: string): string {
+    const headers = this.getTableHeaders(name);
+    const rows = this.getTableRows(name);
+    const escCell = (val: any): string => {
+      const s = val === null || val === undefined ? "" : String(val);
+      return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines: string[] = [];
+    if (headers.length > 0) {
+      lines.push(headers.map(escCell).join(","));
+    }
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      const cells = Array.isArray(r)
+        ? r
+        : r && (r as any).cells
+          ? (r as any).cells
+          : Object.values(r || {});
+      lines.push(cells.map(escCell).join(","));
+    }
+    const csv = lines.join("\n");
+    if (filePath) {
+      fs.writeFileSync(filePath, csv, "utf-8");
+    }
+    return csv;
+  }
+  /** Snake_case alias of `exportTableCsv`: exports table `name` as CSV text and optionally writes to `filePath`. */
+  public export_table_csv(name: string, filePath?: string): string {
+    return this.exportTableCsv(name, filePath);
+  }
+
+  /** Exports the rows of table `name` as a formatted JSON string of `{ [header]: value }` objects, optionally writing it to `filePath`. */
+  public exportTableJson(name: string, filePath?: string): string {
+    const objs = this.getTableObjects(name);
+    const json = JSON.stringify(objs, null, 2);
+    if (filePath) {
+      fs.writeFileSync(filePath, json, "utf-8");
+    }
+    return json;
+  }
+  /** Snake_case alias of `exportTableJson`: exports table `name` as a formatted JSON string and optionally writes to `filePath`. */
+  public export_table_json(name: string, filePath?: string): string {
+    return this.exportTableJson(name, filePath);
+  }
+
+  /** Returns a chainable `SimpleControlRef` wrapper for an existing control ID (or `undefined` if not found). */
+  public getRef(name: string): SimpleControlRef | undefined {
+    const ctrl = this.findControl(name);
+    return ctrl ? new SimpleControlRef(ctrl, this) : undefined;
+  }
+  /** Snake_case alias of `getRef`: returns a chainable `SimpleControlRef` wrapper for an existing control ID. */
+  public get_ref(name: string): SimpleControlRef | undefined {
+    return this.getRef(name);
   }
 
   /** Highlights and selects the row at zero-based `rowIndex` in the table control named `name`. */
@@ -15587,25 +16629,25 @@ export function resolveThemeForHardware(
 export const resolve_theme_for_hardware = resolveThemeForHardware;
 
 // OS Path Utilities
-/** Returns the current user's home directory path (`$HOME` or `"/Users"`). */
+/** Returns the current user's home directory path (`os.homedir()`, `$HOME`, `$USERPROFILE`, or `"/Users"`). */
 export function homeDir(): string {
-  return process.env.HOME || "/Users";
+  return os.homedir() || process.env.HOME || process.env.USERPROFILE || "/Users";
 }
-/** Returns the system temporary directory path (`$TMPDIR` or `"/tmp"`). */
+/** Returns the system temporary directory path (`os.tmpdir()`, `$TMPDIR`, `$TEMP`, or `"/tmp"`). */
 export function tempDir(): string {
-  return process.env.TMPDIR || "/tmp";
+  return os.tmpdir() || process.env.TMPDIR || process.env.TEMP || "/tmp";
 }
 /** Returns the path to the current user's `Desktop` directory. */
 export function desktopDir(): string {
-  return `${homeDir()}/Desktop`;
+  return path.join(homeDir(), "Desktop");
 }
 /** Returns the path to the current user's `Documents` directory. */
 export function documentsDir(): string {
-  return `${homeDir()}/Documents`;
+  return path.join(homeDir(), "Documents");
 }
 /** Returns the path to the current user's `Downloads` directory. */
 export function downloadsDir(): string {
-  return `${homeDir()}/Downloads`;
+  return path.join(homeDir(), "Downloads");
 }
 
 // Global Factory & Alias Exports matching vlang_simplegui API style

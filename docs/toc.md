@@ -13,6 +13,13 @@ Generated from [nav.json](nav.json): a page that is not listed there is reported
 - [Task index (I want to...)](reference/task-index.md)
 - [AI and enhancements tutorial](AI_AND_ENHANCEMENTS_COMPLETE_TUTORIAL.md)
 
+## RAD development cheatsheets
+
+- [RAD development cheatsheets](cheatsheets/index.md)
+- [SimpleGUI desktop RAD cheat sheet](cheatsheets/simplegui-cheatsheet.md)
+- [SimpleCLI console and backend RAD cheat sheet](cheatsheets/simplecli-cheatsheet.md)
+- [45 RAD utility modules and 10 system tools cheat sheet](cheatsheets/rad-modules-cheatsheet.md)
+
 ## Databases (MySQL, PostgreSQL, SQLite)
 
 - [Databases overview](databases/index.md)

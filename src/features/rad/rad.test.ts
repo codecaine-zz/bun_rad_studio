@@ -2,12 +2,13 @@
  * Comprehensive end-to-end unit test suite covering all 44 modules of the Bun RAD utility library.
  */
 import { describe, expect, it } from "bun:test";
+import { join } from "node:path";
 import { rad } from "./index.ts";
 
 describe("Bun RAD Development Utilities (44 Modules)", () => {
   // 1. fileutils
   it("fileutils > handles JSON, CSV, text, and file size helpers", async () => {
-    const testJson = "/tmp/test_fileutils.json";
+    const testJson = join(rad.sysutils.getTempDir(), "test_fileutils.json");
     await rad.fileutils.saveJson(testJson, { foo: "bar", num: 42 });
     const loaded = await rad.fileutils.loadJson<{ foo: string; num: number }>(
       testJson,
@@ -20,7 +21,7 @@ describe("Bun RAD Development Utilities (44 Modules)", () => {
       ["1", "Alice", 'Hello, "world"'],
       ["2", "Bob", "Simple"],
     ];
-    const testCsv = "/tmp/test_fileutils.csv";
+    const testCsv = join(rad.sysutils.getTempDir(), "test_fileutils.csv");
     await rad.fileutils.writeCsv(testCsv, csvData);
     const readCsv = await rad.fileutils.readCsv(testCsv);
     expect(readCsv.length).toBe(3);
@@ -339,7 +340,7 @@ describe("Bun RAD Development Utilities (44 Modules)", () => {
     const store = new rad.stateutils.AppStateStore(
       "test_app",
       { count: 0 },
-      { customPath: "/tmp/test_state.json" },
+      { customPath: join(rad.sysutils.getTempDir(), "test_state.json") },
     );
     await store.update((draft) => {
       draft.count = 5;
@@ -484,7 +485,10 @@ tags = ["sql", "bun"]
     expect(serialized).toContain('host = "localhost"');
     expect(serialized).toContain("port = 5432");
 
-    const tmpTomlPath = `/tmp/bun_test_config_${Date.now()}.toml`;
+    const tmpTomlPath = join(
+      rad.sysutils.getTempDir(),
+      `bun_test_config_${Date.now()}.toml`,
+    );
     await rad.tomlutils.saveToml(tmpTomlPath, toml);
     const loaded = await rad.tomlutils.loadToml(tmpTomlPath);
     expect(loaded.database.port).toBe(5432);
@@ -658,7 +662,7 @@ tags = ["sql", "bun"]
     expect(echoRes.stdout.trim()).toBe("rad test shell");
 
     const lines = await rad.shellutils.execLines(
-      "printf 'one\\ntwo\\nthree\\n'",
+      "echo one && echo two && echo three",
     );
     expect(lines).toEqual(["one", "two", "three"]);
 

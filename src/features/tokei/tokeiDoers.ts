@@ -136,7 +136,7 @@ export function detectLanguage(filename: string): LanguageSpec | null {
  * Counts total, blank, comment, and code lines in `content` using the given language `CommentRule`.
  */
 export function analyzeLines(content: string, rule: CommentRule): LineStats {
-  const lines = content.split("\n");
+  const lines = content.split(/\r?\n/);
   let blank = 0;
   let comment = 0;
   let code = 0;

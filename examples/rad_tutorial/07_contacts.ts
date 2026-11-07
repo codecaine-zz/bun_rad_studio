@@ -1,6 +1,11 @@
 // RAD tutorial 7: a small finished app (form, table, search, confirm dialog, SQLite).
 // Run it with:  bun run examples/rad_tutorial/07_contacts.ts
-import { newSimpleWindow, type SimpleWindow } from "../../src/simplegui";
+import { join } from "node:path";
+import {
+  homeDir,
+  newSimpleWindow,
+  type SimpleWindow,
+} from "../../src/simplegui";
 import { rad } from "../../src/features/rad/index.ts";
 
 export function createContacts(dbPath = ":memory:"): SimpleWindow {
@@ -85,5 +90,4 @@ export function createContacts(dbPath = ":memory:"): SimpleWindow {
   return win;
 }
 
-if (import.meta.main)
-  createContacts(`${process.env.HOME ?? "."}/contacts.db`).run();
+if (import.meta.main) createContacts(join(homeDir(), "contacts.db")).run();

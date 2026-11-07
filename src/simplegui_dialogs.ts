@@ -1070,7 +1070,7 @@ function runNative(mode: FileDialogMode, o: FileDialogOptions): NativeResult {
         "-NoProfile",
         "-STA",
         "-Command",
-        `Add-Type -AssemblyName System.Windows.Forms; ${body}`,
+        `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Add-Type -AssemblyName System.Windows.Forms; ${body}`,
       ]);
       if (proc.exitCode !== 0) return { status: "unavailable" };
       const paths = split(proc.stdout.toString(), /\r?\n/);

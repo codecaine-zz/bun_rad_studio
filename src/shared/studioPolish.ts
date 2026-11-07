@@ -320,12 +320,18 @@ function studioPolishClient() {
         if (!td.title && text.length > 24) td.title = text;
       }
     }
-    if (rows.length)
+    if (rows.length) {
+      const scanLimit = Math.min(rows.length, 10);
       for (let c = 0; c < rows[0].cells.length; c++) {
-        const td = rows[0].cells[c];
-        if (td.classList.contains("sc-num") && td.dataset.col)
-          numericCols.add(td.dataset.col);
+        for (let r = 0; r < scanLimit; r++) {
+          const td = rows[r].cells[c];
+          if (!td || td.classList.contains("sc-null")) continue;
+          if (td.classList.contains("sc-num") && td.dataset.col)
+            numericCols.add(td.dataset.col);
+          break;
+        }
       }
+    }
     const table = body.closest("table");
     if (table)
       table
@@ -381,6 +387,7 @@ function studioPolishClient() {
       attributeFilter: ["class"],
     });
     strip.addEventListener("keydown", (e) => {
+      if (e.isComposing || e.keyCode === 229) return;
       const tab = e.target.closest && e.target.closest(".tab-btn");
       if (!tab) return;
       const tabs = Array.from(strip.querySelectorAll(".tab-btn"));
@@ -460,6 +467,101 @@ function studioPolishClient() {
     });
   }
 
+  function setupQuickUxEnhancements() {
+    if (document.documentElement.__scQuickUx) return;
+    document.documentElement.__scQuickUx = true;
+
+    // 1-step Escape-to-clear on any search or filter input across studios
+    document.addEventListener(
+      "keydown",
+      (e) => {
+        if (e.isComposing || e.keyCode === 229) return;
+        if (
+          e.key !== "Escape" ||
+          e.ctrlKey ||
+          e.metaKey ||
+          e.altKey ||
+          e.shiftKey
+        )
+          return;
+        const el = e.target;
+        if (!el || el.tagName !== "INPUT") return;
+        const isFilterInput =
+          el.type === "search" ||
+          el.id === "gridSearchInput" ||
+          el.id === "tableSearch" ||
+          el.id === "keyFilter" ||
+          el.id === "docFilter" ||
+          el.id === "filterInput" ||
+          (el.classList &&
+            (el.classList.contains("sidebar-search-input") ||
+              el.classList.contains("access-filter-input"))) ||
+          /search|filter/i.test(
+            (el.placeholder || "") + " " + (el.id || "") + " " + (el.className || ""),
+          );
+        if (isFilterInput && el.value) {
+          e.preventDefault();
+          e.stopPropagation();
+          el.value = "";
+          el.dispatchEvent(new Event("input", { bubbles: true }));
+          el.dispatchEvent(new Event("change", { bubbles: true }));
+          el.dispatchEvent(new KeyboardEvent("keyup", { key: "Escape", bubbles: true }));
+        }
+      },
+      true,
+    );
+
+    // 1-click Alt+Click on any data-grid cell to copy its raw value immediately
+    document.addEventListener("click", (e) => {
+      if (!e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      const td =
+        e.target &&
+        e.target.closest &&
+        e.target.closest("table.data-grid td[data-col]");
+      if (!td) return;
+      if (e.target.closest && e.target.closest("button, input, a, select"))
+        return;
+      e.preventDefault();
+      e.stopPropagation();
+      let val = "";
+      if (td.classList.contains("sc-null") || td.classList.contains("cell-null")) {
+        val = "NULL";
+      } else {
+        const clone = td.cloneNode(true);
+        if (clone.querySelectorAll) {
+          clone
+            .querySelectorAll(".studio-fk-jump, button")
+            .forEach((b) => b.remove());
+        }
+        val = String(clone.textContent || "");
+      }
+      const copyPromise =
+        typeof window.__radClipboardWrite === "function"
+          ? Promise.resolve(window.__radClipboardWrite(val))
+          : navigator.clipboard && navigator.clipboard.writeText
+            ? navigator.clipboard.writeText(val)
+            : Promise.reject();
+      copyPromise.catch(() => {
+        try {
+          const ta = document.createElement("textarea");
+          ta.value = val;
+          ta.style.cssText = "position:fixed;opacity:0";
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          ta.remove();
+        } catch (_) {}
+      });
+      td.style.outline = "2px solid var(--emerald, #10b981)";
+      setTimeout(() => {
+        td.style.outline = "";
+      }, 650);
+      if (typeof window.showToast === "function") {
+        window.showToast("Copied cell value");
+      }
+    });
+  }
+
   function init() {
     // The window shortcut script blocks right-click everywhere unless a region opts in: grid and sidebar keep their menus
     document
@@ -471,6 +573,7 @@ function studioPolishClient() {
     watchBody("sqlResultsBody", "sql");
     setupTabs();
     setupEditorCollapse();
+    setupQuickUxEnhancements();
     ["toastBox", "toast"].forEach((id) => {
       const t = document.getElementById(id);
       if (t) {

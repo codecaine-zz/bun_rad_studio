@@ -70,7 +70,7 @@ export async function queryHackerTarget(
     if (text.includes("error") || text.includes("No DNS records found"))
       return [];
     return text
-      .split("\n")
+      .split(/\r?\n/)
       .map((line) => line.split(",")[0]?.trim())
       .filter((h): h is string => Boolean(h));
   } catch {
@@ -99,7 +99,7 @@ export async function queryCrtSh(
     const results: string[] = [];
     for (const item of data.slice(0, 100)) {
       if (!item.name_value) continue;
-      const subdomains = item.name_value.split("\n");
+      const subdomains = item.name_value.split(/\r?\n/);
       results.push(...subdomains);
     }
     return results;
@@ -383,7 +383,7 @@ export function queryCommonDnsSync(
       "+tries=1",
       ...candidateHosts,
     ]);
-    const lines = res.stdout ? res.stdout.toString().split("\n") : [];
+    const lines = res.stdout ? res.stdout.toString().split(/\r?\n/) : [];
     const map = new Map<string, string[]>();
     for (const line of lines) {
       const parts = line.trim().split(/\s+/);
@@ -447,7 +447,7 @@ export function queryHackerTargetSync(domain: string): string[] {
     )
       return [];
     const subs: string[] = [];
-    for (const line of text.split("\n")) {
+    for (const line of text.split(/\r?\n/)) {
       const host = line.split(",")[0]?.trim();
       if (host) {
         const clean = cleanSubdomain(host, root);
@@ -475,7 +475,7 @@ export function resolveHostDnsSync(hosts: string[]): Map<string, string[]> {
       "+tries=1",
       ...hosts.filter(isSafeHostname).slice(0, 100),
     ]);
-    const lines = res.stdout ? res.stdout.toString().split("\n") : [];
+    const lines = res.stdout ? res.stdout.toString().split(/\r?\n/) : [];
     for (const line of lines) {
       const parts = line.trim().split(/\s+/);
       if (parts.length >= 5) {
@@ -500,6 +500,12 @@ export function queryOsintSourcesSync(domain: string): {
   certSubs: string[];
   hackerSubs: string[];
 } {
+  if (process.platform === "win32") {
+    return {
+      certSubs: queryCertSpotterSync(domain),
+      hackerSubs: queryHackerTargetSync(domain),
+    };
+  }
   const root = cleanDomain(domain);
   const certUrl = `https://api.certspotter.com/v1/issuances?domain=${encodeURIComponent(root)}&include_subdomains=true&expand=dns_names`;
   const hackerUrl = `https://api.hackertarget.com/hostsearch/?q=${encodeURIComponent(root)}`;
@@ -547,7 +553,7 @@ export function queryOsintSourcesSync(domain: string): {
           !text.includes("No DNS records found") &&
           !text.includes("API count exceeded")
         ) {
-          for (const line of text.split("\n")) {
+          for (const line of text.split(/\r?\n/)) {
             const host = line.split(",")[0]?.trim();
             if (host) {
               const clean = cleanSubdomain(host, root);
@@ -577,18 +583,38 @@ export function probeHostsHttpSync(hosts: string[]): Map<string, number> {
   const map = new Map<string, number>();
   if (hosts.length === 0) return map;
   const targets = hosts.filter(isSafeHostname).slice(0, 10);
+  if (process.platform === "win32") {
+    for (const h of targets) {
+      try {
+        const res = Bun.spawnSync([
+          "curl",
+          "-s",
+          "-I",
+          "--connect-timeout",
+          "0.4",
+          "--max-time",
+          "0.8",
+          `http://${h}`,
+        ]);
+        const text = res.stdout ? res.stdout.toString() : "";
+        const m = text.match(/HTTP\/[0-9.]+\s+([0-9]{3})/i);
+        if (m) map.set(h, parseInt(m[1]!, 10));
+      } catch {}
+    }
+    return map;
+  }
   const tmpDir = os.tmpdir();
   const script =
     targets
       .map(
         (h, i) =>
-          `curl -s -I --connect-timeout 0.4 --max-time 0.8 "http://${h}" > "${tmpDir}/pb_${process.pid}_${i}.txt" 2>/dev/null &`,
+          `curl -s -I --connect-timeout 0.4 --max-time 0.8 "http://${h}" > "${path.join(tmpDir, `pb_${process.pid}_${i}.txt`)}" 2>/dev/null &`,
       )
       .join("\n") + "\nwait\n";
   try {
     Bun.spawnSync(["/bin/sh", "-c", script]);
     targets.forEach((h, i) => {
-      const f = `${tmpDir}/pb_${process.pid}_${i}.txt`;
+      const f = path.join(tmpDir, `pb_${process.pid}_${i}.txt`);
       if (fs.existsSync(f)) {
         try {
           const text = fs.readFileSync(f, "utf-8");

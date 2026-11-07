@@ -673,6 +673,9 @@ registerPowerTab({
         if (opts?.left) left.value = opts.left;
         if (opts?.right) right.value = opts.right;
         if (!left.value) left.value = currentPath() || "";
+        if (opts?.autoStart && left.value && right.value) {
+          void start();
+        }
       },
       hide() {
         if (job) stopCompare();

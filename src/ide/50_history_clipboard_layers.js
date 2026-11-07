@@ -58,10 +58,10 @@
 			clipboardBuffer.forEach(item => {
 				const count = formSpec.controls.length + 1;
 				const newId = item.control_type + "_" + count;
+				item.x += 16;
+				item.y += 16;
 				const copy = JSON.parse(JSON.stringify(item));
 				copy.id = newId;
-				copy.x += 16;
-				copy.y += 16;
 				copy.event_handlers = { "onClick": "on_" + newId + "_click" };
 				formSpec.controls.push(copy);
 				newIndices.push(formSpec.controls.length - 1);
@@ -171,9 +171,13 @@
 			}
 			const menu = document.getElementById("contextMenu");
 			if (menu) {
-				menu.style.left = e.clientX + "px";
-				menu.style.top = e.clientY + "px";
 				menu.style.display = "block";
+				const menuW = menu.offsetWidth || 200;
+				const menuH = menu.offsetHeight || 320;
+				const clampedX = Math.max(8, Math.min(e.clientX, window.innerWidth - menuW - 8));
+				const clampedY = Math.max(8, Math.min(e.clientY, window.innerHeight - menuH - 8));
+				menu.style.left = clampedX + "px";
+				menu.style.top = clampedY + "px";
 			}
 		}
 

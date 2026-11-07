@@ -5,6 +5,7 @@
 interface ShortcutKeyEvent {
   code: string;
   key: string;
+  keyCode?: number;
   altKey: boolean;
   metaKey: boolean;
   ctrlKey: boolean;
@@ -12,6 +13,7 @@ interface ShortcutKeyEvent {
   repeat: boolean;
   isComposing: boolean;
   defaultPrevented?: boolean;
+  __radEscBeepPrevented?: boolean;
   preventDefault(): void;
   stopImmediatePropagation(): void;
 }
@@ -171,16 +173,27 @@ function desktopShortcutsClient() {
     "keydown",
     (event) => {
       if (event.code === "AltRight") rightOption = true;
-      if (!event.altKey && event.code !== "AltRight") rightOption = false;
-      if (event.isComposing) return;
-
       if (
-        event.metaKey &&
-        !event.ctrlKey &&
         !event.altKey &&
-        !event.shiftKey &&
-        (event.code === "KeyQ" || event.key.toLowerCase() === "q")
-      ) {
+        event.key !== "AltGraph" &&
+        event.code !== "AltRight"
+      )
+        rightOption = false;
+      if (event.isComposing || event.keyCode === 229) return;
+
+      const isQuitChord =
+        ((event.metaKey || event.ctrlKey) &&
+          !(event.metaKey && event.ctrlKey) &&
+          !event.altKey &&
+          !event.shiftKey &&
+          (event.code === "KeyQ" ||
+            (event.key || "").toLowerCase() === "q")) ||
+        (event.altKey &&
+          !event.metaKey &&
+          !event.ctrlKey &&
+          !event.shiftKey &&
+          (event.code === "F4" || event.key === "F4"));
+      if (isQuitChord) {
         const quit = host.quitApp || host.closeApp || host.closeWindow;
         if (typeof quit === "function") {
           consume(event);
@@ -219,11 +232,14 @@ function desktopShortcutsClient() {
       }
 
       // Use physical codes: Option changes the character produced by punctuation keys on macOS.
+      // Support AltGr (reported as key="AltGraph" or ctrlKey+altKey on Windows/Linux international layouts).
+      const isAltGr =
+        event.key === "AltGraph" || (rightOption && event.ctrlKey && event.altKey);
       if (
         !rightOption ||
-        !event.altKey ||
+        (!event.altKey && !isAltGr) ||
         event.metaKey ||
-        event.ctrlKey ||
+        (event.ctrlKey && !isAltGr) ||
         event.shiftKey
       )
         return;
@@ -268,6 +284,7 @@ function desktopShortcutsClient() {
       const el = doc.activeElement as any;
       if (
         el &&
+        el.type !== "password" &&
         typeof el.selectionStart === "number" &&
         typeof el.value === "string" &&
         el.selectionStart !== el.selectionEnd
@@ -331,20 +348,31 @@ function desktopShortcutsClient() {
           !/^(checkbox|radio|button|submit|reset|range|color|file|image)$/i.test(
             el.type || "",
           )));
+    const safeSel = (el: any): [number, number] => {
+      try {
+        const s = typeof el.selectionStart === "number" ? el.selectionStart : String(el.value || "").length;
+        const e = typeof el.selectionEnd === "number" ? el.selectionEnd : s;
+        return [s, e];
+      } catch {
+        const len = String(el?.value || "").length;
+        return [len, len];
+      }
+    };
     const snap = (el: any) => {
       let h = histories.get(el);
       if (!h) {
         h = { stack: [], i: -1 };
         histories.set(el, h);
       }
+      const [s, e] = safeSel(el);
       const top = h.stack[h.i];
       if (top && top.v === el.value) {
-        top.s = el.selectionStart;
-        top.e = el.selectionEnd;
+        top.s = s;
+        top.e = e;
         return;
       }
       h.stack = h.stack.slice(0, h.i + 1);
-      h.stack.push({ v: el.value, s: el.selectionStart, e: el.selectionEnd });
+      h.stack.push({ v: el.value, s, e });
       if (h.stack.length > 200) h.stack.shift();
       h.i = h.stack.length - 1;
     };
@@ -372,7 +400,9 @@ function desktopShortcutsClient() {
       restoring = true;
       try {
         el.value = st.v;
-        el.setSelectionRange(st.s, st.e);
+        try {
+          el.setSelectionRange(st.s, st.e);
+        } catch {}
         el.dispatchEvent(new Event("input", { bubbles: true }));
       } finally {
         restoring = false;
@@ -380,7 +410,8 @@ function desktopShortcutsClient() {
     };
 
     window.addEventListener("keydown", (event) => {
-      if (event.defaultPrevented || event.isComposing) return;
+      if (event.defaultPrevented || event.isComposing || event.keyCode === 229)
+        return;
       // Cmd on Mac, Ctrl elsewhere; AltGr (reported as Ctrl+Alt on Windows) must keep typing characters.
       const mod = isMac
         ? event.metaKey && !event.ctrlKey
@@ -406,13 +437,21 @@ function desktopShortcutsClient() {
         consume(event);
         run(() => writeClip(text));
       } else if (code === "KeyX" && !event.shiftKey) {
-        if (!editable) return;
+        if (!editable || el.readOnly || el.disabled || el.type === "password")
+          return;
         const text = readSelection();
         if (!text) return;
         consume(event);
         run(async () => {
           await writeClip(text);
-          doc.execCommand("delete");
+          if (
+            !doc.execCommand("delete") &&
+            typeof el.setRangeText === "function"
+          ) {
+            const [s, e] = safeSel(el);
+            el.setRangeText("", s, e, "end");
+            el.dispatchEvent(new Event("input", { bubbles: true }));
+          }
         });
       } else if (code === "KeyV" && !event.shiftKey) {
         if (!editable || el.readOnly || el.disabled) return;
@@ -424,17 +463,18 @@ function desktopShortcutsClient() {
             !doc.execCommand("insertText", false, text) &&
             typeof el.setRangeText === "function"
           ) {
-            el.setRangeText(text, el.selectionStart, el.selectionEnd, "end");
+            const [s, e] = safeSel(el);
+            el.setRangeText(text, s, e, "end");
             el.dispatchEvent(new Event("input", { bubbles: true }));
           }
         });
       } else if (code === "KeyZ") {
-        if (!editable) return;
+        if (!editable || el.readOnly || el.disabled) return;
         consume(event);
         if (isTextField(el)) stepHistory(el, event.shiftKey ? 1 : -1);
         else doc.execCommand(event.shiftKey ? "redo" : "undo");
       } else if (code === "KeyY" && !event.shiftKey) {
-        if (!editable) return;
+        if (!editable || el.readOnly || el.disabled) return;
         consume(event);
         if (isTextField(el)) stepHistory(el, 1);
         else doc.execCommand("redo");
@@ -444,8 +484,10 @@ function desktopShortcutsClient() {
 
   // Let dialogs, editors and games handle Esc first, but never let its default action leave fullscreen.
   window.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" || event.code === "Escape")
+    if (event.key === "Escape" || event.code === "Escape") {
+      if (!event.defaultPrevented) event.__radEscBeepPrevented = true;
       event.preventDefault();
+    }
   });
 }
 

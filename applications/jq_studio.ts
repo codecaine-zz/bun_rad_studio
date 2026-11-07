@@ -458,6 +458,10 @@ export function evaluateBunJsonQuery(jsonVal: any, query: string): any {
 }
 
 function findExternalJq(): string | null {
+  try {
+    const found = Bun.which("jq");
+    if (found) return found;
+  } catch {}
   const candidates = [
     "/opt/homebrew/bin/jq",
     "/usr/local/bin/jq",
@@ -466,8 +470,6 @@ function findExternalJq(): string | null {
   for (const c of candidates) {
     if (existsSync(c)) return c;
   }
-  const [out, code] = Sys.exec("which jq");
-  if (code === 0 && out.trim()) return out.trim();
   return null;
 }
 
@@ -710,6 +712,7 @@ export function createJqStudio(
   };
 
   win.onClick("btn_execute", executeQuery);
+  win.onEnter("txt_filter", executeQuery);
 
   // ---------------------------------------------------------------- Document tools
   const say = (msg: string, kind: 1 | 2 | 3 = 2) =>

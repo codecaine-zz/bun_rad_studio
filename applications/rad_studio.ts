@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { newSimpleWindow, SimpleWindow, getSavedTheme } from "../src/simplegui";
 import { rad } from "../src/features/rad/index.ts";
 import { RAD_MODULES_CATALOG } from "../cli_apps/rad_cli.ts";
@@ -10,14 +11,16 @@ export function getRecipeForModule(moduleName: string): string {
 
   switch (mod.name) {
     case "fileutils":
-      return `import { fileutils } from "./src/features/rad/index.ts";
+      return `import { join } from "node:path";
+import { fileutils, sysutils } from "./src/features/rad/index.ts";
 
-// 1. Atomic JSON save & load
-await fileutils.saveJson("/tmp/config.json", { theme: "midnight", autosave: true });
-const cfg = await fileutils.loadJson<{ theme: string }>("/tmp/config.json");
+// 1. Atomic JSON save & load (cross-platform temp dir)
+const cfgPath = join(sysutils.getTempDir(), "config.json");
+await fileutils.saveJson(cfgPath, { theme: "midnight", autosave: true });
+const cfg = await fileutils.loadJson<{ theme: string }>(cfgPath);
 
 // 2. Human file size formatting
-const sizeStr = await fileutils.fileSizeHuman("/tmp/config.json"); // "42 B"
+const sizeStr = await fileutils.fileSizeHuman(cfgPath); // "42 B"
 
 // 3. Recursive directory file scan
 const files = await fileutils.readDirFilesRecursive("./src");`;
@@ -302,7 +305,10 @@ export function createRadStudio(
     try {
       switch (mod) {
         case "fileutils": {
-          const testPath = "/tmp/bun_rad_gui_test.json";
+          const testPath = join(
+            rad.sysutils.getTempDir(),
+            "bun_rad_gui_test.json",
+          );
           await rad.fileutils.saveJson(testPath, {
             test: "RAD Studio",
             timestamp: Date.now(),

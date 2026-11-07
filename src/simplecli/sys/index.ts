@@ -903,10 +903,13 @@ export class Sys {
     }
     const p = os.platform();
     const timeoutSec = String(Math.max(1, Math.round(timeoutMs / 1000)));
+    const timeoutMsStr = String(Math.max(100, Math.round(timeoutMs)));
     const args =
       p === "win32"
-        ? ["-n", "1", "-w", timeoutSec, cleanHost]
-        : ["-c", "1", "-W", timeoutSec, cleanHost];
+        ? ["-n", "1", "-w", timeoutMsStr, cleanHost]
+        : p === "darwin"
+          ? ["-c", "1", "-W", timeoutMsStr, cleanHost]
+          : ["-c", "1", "-W", timeoutSec, cleanHost];
     const res = spawnSync("ping", args, { stdio: "ignore" });
     return res.status === 0;
   }
@@ -1080,6 +1083,21 @@ export class Sys {
           detached: true,
           stdio: "ignore",
         });
+        proc.unref();
+      } catch {}
+    } else if (p === "win32") {
+      try {
+        const safeText = cleanText.replace(/'/g, "''");
+        const proc = spawn(
+          "powershell.exe",
+          [
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            `Add-Type -AssemblyName System.Speech; (New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('${safeText}')`,
+          ],
+          { detached: true, stdio: "ignore" },
+        );
         proc.unref();
       } catch {}
     }
@@ -1372,8 +1390,13 @@ export class Sys {
     if (typeof (Bun as any)?.which === "function") {
       return (Bun as any).which(clean);
     }
-    const res = spawnSync("which", ["--", clean], { encoding: "utf8" });
-    return res.status === 0 && res.stdout ? res.stdout.trim() : null;
+    const isWin = os.platform() === "win32";
+    const res = spawnSync(isWin ? "where" : "which", [clean], {
+      encoding: "utf8",
+    });
+    return res.status === 0 && res.stdout
+      ? res.stdout.trim().split(/\r?\n/)[0] || null
+      : null;
   }
 
   /** Returns `true` if `binName` is installed and resolvable on `PATH`. */

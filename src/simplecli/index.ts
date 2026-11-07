@@ -26,6 +26,30 @@ export function createApp(name: string, version: string = "1.0.0"): SimpleCLI {
   return new SimpleCLI(name, version);
 }
 
+/**
+ * Factory alias matching `newSimpleWindow` that creates a new `SimpleCLI` application instance.
+ * Supports `(name, version?)` or `(name, description, version)`.
+ */
+export function newSimpleCLI(
+  name: string,
+  versionOrDescription: string = "1.0.0",
+  version?: string,
+): SimpleCLI {
+  if (version !== undefined) {
+    return new SimpleCLI(name, version).setDescription(versionOrDescription);
+  }
+  return new SimpleCLI(name, versionOrDescription);
+}
+
+/** Alias for `newSimpleCLI` that creates a new `SimpleCLI` application instance. */
+export function createCLI(
+  name: string,
+  versionOrDescription: string = "1.0.0",
+  version?: string,
+): SimpleCLI {
+  return newSimpleCLI(name, versionOrDescription, version);
+}
+
 /** Initializes a `SimpleCLI` application using metadata inferred from `package.json` or the script filename. */
 export function initApp(): SimpleCLI {
   return SimpleCLI.initApp();

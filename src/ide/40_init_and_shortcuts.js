@@ -27,10 +27,46 @@
 				});
 			}
 			drawRulers();
+			window.addEventListener("resize", drawRulers);
 			renderCanvas();
 			renderCode();
 			renderTree();
 			offerDraftRestore();
+
+			// 1-step UX: Double-click any palette item to auto-place it on the canvas immediately
+			const paletteSidebar = document.querySelector(".palette-sidebar");
+			if (paletteSidebar) {
+				paletteSidebar.addEventListener("dblclick", (e) => {
+					const item = e.target.closest ? e.target.closest(".palette-item") : null;
+					if (!item) return;
+					const onclick = item.getAttribute("onclick") || "";
+					const m = onclick.match(/spawnControl\(['"]([^'"]+)['"]\)/);
+					if (m && m[1]) {
+						e.preventDefault();
+						e.stopPropagation();
+						placeControlWithKeyboard(m[1]);
+					}
+				});
+			}
+
+			// 1-keystroke Escape-to-clear on IDE filter inputs
+			[
+				{ id: "paletteSearchInput", fn: () => filterPalette("") },
+				{ id: "propFilterBox", fn: () => filterControlProps("") },
+				{ id: "treeFilterBox", fn: () => renderTree() }
+			].forEach(({ id, fn }) => {
+				const el = document.getElementById(id);
+				if (el) {
+					el.addEventListener("keydown", (e) => {
+						if (e.key === "Escape" && el.value) {
+							e.preventDefault();
+							e.stopPropagation();
+							el.value = "";
+							fn();
+						}
+					});
+				}
+			});
 
 			const inspector = document.querySelector(".inspector-sidebar");
 			if (inspector) {
@@ -51,6 +87,7 @@
 			}, { capture: true });
 
 			window.addEventListener("keydown", (e) => {
+				if (e.isComposing || e.keyCode === 229) return;
 				if (
 					e.key === "F5" ||
 					e.code === "F5" ||
@@ -58,6 +95,9 @@
 				) {
 					e.preventDefault();
 					e.stopPropagation();
+					if ((e.key === "F5" || e.code === "F5") && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+						if (typeof triggerRunForm === "function") triggerRunForm();
+					}
 					return false;
 				}
 			}, { capture: true });
@@ -127,14 +167,17 @@
 					isFnPressed = false;
 				}
 			});
+			window.addEventListener("blur", () => { isFnPressed = false; });
+			document.addEventListener("visibilitychange", () => { if (document.hidden) isFnPressed = false; });
 
 			window.addEventListener("keydown", (e) => {
+				if (e.isComposing || e.keyCode === 229) return;
 				if (e.key === "Fn" || e.key === "Globe" || e.code === "Fn" || e.code === "Function") {
 					isFnPressed = true;
 				}
 
 				// 1. Double-tap Alt ("alt+alt") within 450ms to close/quit window
-				if ((e.key === "Alt" || e.code === "AltLeft" || e.code === "AltRight") && !e.repeat) {
+				if (e.code !== "AltRight" && (e.key === "Alt" || e.code === "AltLeft") && !e.repeat) {
 					const now = Date.now();
 					if (now - lastAltTime > 50 && now - lastAltTime < 450) {
 						lastAltTime = 0;
@@ -152,7 +195,7 @@
 				// 2. Cmd+Q / Cmd+W (macOS) / Ctrl+Q / Ctrl+W / Alt+F4 / Alt+W / Alt+Q (Windows/Linux) to close/quit app
 				if (
 					((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === "q" || e.key.toLowerCase() === "w" || e.code === "KeyQ" || e.code === "KeyW")) ||
-					(e.altKey && (e.key === "F4" || e.code === "F4" || e.key.toLowerCase() === "w" || e.key.toLowerCase() === "q"))
+					(e.altKey && !e.getModifierState?.("AltGraph") && e.code !== "AltRight" && (e.key === "F4" || e.code === "F4" || e.key.toLowerCase() === "w" || e.key.toLowerCase() === "q"))
 				) {
 					e.preventDefault();
 					if (window.quitApp) {
@@ -170,11 +213,26 @@
 				const isInput = !!(e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT" || e.target.isContentEditable));
 				const isFKey = e.key === "f" || e.key === "F" || e.code === "KeyF" || (typeof e.key === "string" && e.key.toLowerCase() === "f");
 				const isFn = isFnPressed || (typeof e.getModifierState === "function" && (e.getModifierState("Fn") || e.getModifierState("FnLock") || e.getModifierState("Symbol")));
+				const isPlainCmdOrCtrlF = (e.metaKey || e.ctrlKey) && !(e.metaKey && e.ctrlKey) && !e.shiftKey && !e.altKey && isFKey;
 
-				// 3. Fullscreen shortcuts: Fn+F / Globe+F, F/f (when not in input), F11, Cmd+Ctrl+F, Cmd+F, Alt+Enter
+				// 2b. Cmd+F / Ctrl+F: Focus component palette search input (or property filter if already in palette search)
+				if (isPlainCmdOrCtrlF) {
+					const paletteSearch = document.getElementById("paletteSearchInput");
+					const propFilter = document.getElementById("propFilterBox");
+					const targetSearch = (document.activeElement === paletteSearch && propFilter && propFilter.offsetParent !== null) ? propFilter : paletteSearch;
+					if (targetSearch) {
+						e.preventDefault();
+						e.stopPropagation();
+						targetSearch.focus();
+						if (typeof targetSearch.select === "function") targetSearch.select();
+						return;
+					}
+				}
+
+				// 3. Fullscreen shortcuts: Fn+F / Globe+F, F/f (when not in input and no modifiers), F11, Cmd+Ctrl+F, Cmd+Shift+F, Alt+Enter
 				if (
-					(!isInput && isFKey && !e.altKey) ||
-					(isFn && isFKey) ||
+					(!isInput && isFKey && !e.altKey && !e.metaKey && !e.ctrlKey) ||
+					(!isInput && isFn && isFKey) ||
 					e.key === "F11" || e.code === "F11" ||
 					((e.metaKey || e.ctrlKey) && e.shiftKey && isFKey) ||
 					((e.metaKey && e.ctrlKey) && isFKey) ||
@@ -188,7 +246,6 @@
 
 				// 4. Minimize window: Cmd+M, Ctrl+M, Alt+M
 				if ((e.metaKey || e.ctrlKey || e.altKey) && (e.key.toLowerCase() === "m" || e.code === "KeyM")) {
-					const isInput = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA");
 					if (!isInput) {
 						e.preventDefault();
 						if (window.minimizeWindow) window.minimizeWindow();
@@ -201,7 +258,6 @@
 					((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key.toLowerCase() === "t" || e.code === "KeyT")) ||
 					(e.altKey && !e.ctrlKey && !e.metaKey && (e.key.toLowerCase() === "t" || e.code === "KeyT"))
 				) {
-					const isInput = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA");
 					if (!isInput) {
 						e.preventDefault();
 						toggleAlwaysOnTop();
@@ -211,7 +267,6 @@
 
 				// 6. Center window: Cmd+Shift+C, Ctrl+Shift+C
 				if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key.toLowerCase() === "c" || e.code === "KeyC")) {
-					const isInput = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA");
 					if (!isInput) {
 						e.preventDefault();
 						if (window.centerWindow) window.centerWindow();
@@ -232,17 +287,34 @@
 						return;
 					} else if (e.key === "0" || e.code === "Digit0" || e.code === "Numpad0") {
 						e.preventDefault();
-						canvasZoom = 1.0;
-						applyCanvasTransform();
+						resetZoom();
 						return;
 					}
 				}
 
 				if (getOpenDialog()) return;
+				const fxBackdrop = document.getElementById("ideModalBackdrop");
+				if (fxBackdrop && fxBackdrop.classList.contains("open")) return;
 				if (e.key === "Escape") {
 					if (placementType) { cancelPlacementMode(); return; }
 				}
-				if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT") return;
+				if (isInput) return;
+
+				// 7b. F2: Quick-edit selected control caption/text in Inspector
+				if (e.key === "F2" && selectedIndices.length === 1) {
+					e.preventDefault();
+					switchTab("tabProps");
+					const propText = document.getElementById("propText");
+					if (propText) {
+						propText.focus();
+						propText.select();
+					}
+					return;
+				}
+
+				// Guard canvas-mutating shortcuts if a sidebar button has focus
+				const inSidebarButton = e.target && e.target.tagName === "BUTTON" && e.target.closest && e.target.closest(".palette-sidebar, .inspector-sidebar");
+				if (inSidebarButton && (e.key === "Backspace" || e.key === "Delete")) return;
 
 				if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "c") {
 					e.preventDefault();

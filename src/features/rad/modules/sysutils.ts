@@ -83,13 +83,17 @@ export async function execSafe(
 
 // Coordinator: Copy text to system clipboard (cross-platform)
 /**
- * Copies `text` to the system clipboard (`pbcopy` on macOS, `xclip` on Linux), returning `true` on success.
+ * Copies `text` to the system clipboard (`pbcopy` on macOS, `clip` on Windows, `wl-copy`/`xclip` on Linux), returning `true` on success.
  */
 export async function copyToClipboard(text: string): Promise<boolean> {
   const cmd =
     process.platform === "darwin"
       ? ["pbcopy"]
-      : ["xclip", "-selection", "clipboard"];
+      : process.platform === "win32"
+        ? ["clip"]
+        : Bun.which("wl-copy")
+          ? ["wl-copy"]
+          : ["xclip", "-selection", "clipboard"];
   try {
     // No output pipes: xclip leaves a background process serving the clipboard that would keep them open.
     const proc = Bun.spawn(cmd, {
@@ -108,13 +112,23 @@ export async function copyToClipboard(text: string): Promise<boolean> {
 
 // Coordinator: Read text from system clipboard (cross-platform)
 /**
- * Reads plain text from the system clipboard (`pbpaste` on macOS, `xclip -o` on Linux), returning `""` on failure.
+ * Reads plain text from the system clipboard (`pbpaste` on macOS, `Get-Clipboard` on Windows, `wl-paste`/`xclip -o` on Linux), returning `""` on failure.
  */
 export async function readFromClipboard(): Promise<string> {
   const cmd =
     process.platform === "darwin"
       ? ["pbpaste"]
-      : ["xclip", "-selection", "clipboard", "-o"];
+      : process.platform === "win32"
+        ? [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "Get-Clipboard -Raw",
+          ]
+        : Bun.which("wl-paste")
+          ? ["wl-paste", "--no-newline"]
+          : ["xclip", "-selection", "clipboard", "-o"];
   try {
     const res = await execSafe(cmd[0]!, cmd.slice(1));
     return res.exitCode === 0 ? res.stdout : "";

@@ -13,6 +13,15 @@
       ]
     },
     {
+      "title": "RAD development cheatsheets",
+      "pages": [
+        { "title": "RAD development cheatsheets", "path": "cheatsheets/index.md" },
+        { "title": "SimpleGUI desktop RAD cheat sheet", "path": "cheatsheets/simplegui-cheatsheet.md" },
+        { "title": "SimpleCLI console and backend RAD cheat sheet", "path": "cheatsheets/simplecli-cheatsheet.md" },
+        { "title": "45 RAD utility modules and 10 system tools cheat sheet", "path": "cheatsheets/rad-modules-cheatsheet.md" }
+      ]
+    },
+    {
       "title": "Databases (MySQL, PostgreSQL, SQLite)",
       "pages": [
         { "title": "Databases overview", "path": "databases/index.md" },

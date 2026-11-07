@@ -35,7 +35,9 @@
 			margin: 0;
 			padding: 0;
 			width: 100%;
-			height: 100%;
+			height: 100vh;
+			display: flex;
+			flex-direction: column;
 			background-color: var(--bg-main);
 			color: var(--text-primary);
 			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -51,6 +53,7 @@
 		#diagnosticsSummary {
 			scrollbar-width: thin;
 			scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+			overscroll-behavior: contain;
 		}
 		@supports not (scrollbar-color: auto) {
 			::-webkit-scrollbar {
@@ -328,7 +331,9 @@
 		.studio-container {
 			display: grid;
 			grid-template-columns: var(--palette-width, 224px) 1fr var(--inspector-width, 300px);
-			height: calc(100vh - 66px);
+			flex: 1;
+			min-height: 0;
+			height: auto;
 			width: 100vw;
 			overflow: hidden;
 			position: relative;

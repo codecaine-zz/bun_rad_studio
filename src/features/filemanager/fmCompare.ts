@@ -770,12 +770,13 @@ export async function planCopy(ctx: FmContext, body: Record<string, any>) {
   const to = toRight ? data.right : data.left;
   const items: ExplicitItem[] = [];
   const byRel = new Map(data.entries.map((e) => [e.rel, e] as const));
+  const p = pathApi(ctx);
   for (const relPath of wanted) {
     const e = byRel.get(relPath);
     const sourceSide = e ? (toRight ? e.left : e.right) : null;
     const destSide = e ? (toRight ? e.right : e.left) : null;
-    const source = nodePath.join(from, ...relPath.split("/"));
-    const destination = nodePath.join(to, ...relPath.split("/"));
+    const source = p.join(from, ...relPath.split("/"));
+    const destination = p.join(to, ...relPath.split("/"));
     const skip = (reason: string) =>
       items.push({ action: "copy", source, destination, skipReason: reason });
     if (!e) {

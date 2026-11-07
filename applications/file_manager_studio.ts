@@ -311,7 +311,7 @@ export function createFileManagerStudio(
 
       try {
         await fetch(`http://127.0.0.1:${port}/`).catch(() => {});
-        if (app.server)
+        if (!port)
           throw new Error("the server could not be started in the background");
         const { SizeHint, Webview } = await import("webview-bun");
         // The window is sized, placed and shown from the remembered preference (default: it fills the screen).

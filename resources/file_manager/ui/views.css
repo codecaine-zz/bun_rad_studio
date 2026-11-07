@@ -1246,6 +1246,8 @@ body:not(.ready) #stage {
   flex: 1;
   min-height: 0;
   overflow: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
 }
 .dual-listwrap.drop-target {
   outline: 3px dashed var(--accent);

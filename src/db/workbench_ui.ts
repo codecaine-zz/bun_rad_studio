@@ -435,6 +435,26 @@ function renderInspector(){
     return;
   }
   var row = state.page.rows[state.selected];
+  box.appendChild(el("div", { class: "row", style: "gap:6px;margin:4px 0 6px" }, [
+    el("button", { text: "📋 Copy JSON", style: "font-size:11px;padding:2px 8px", onclick: function(){
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(JSON.stringify(row, null, 2));
+      toast("Row JSON copied to clipboard.");
+    } }),
+    el("button", { text: "📋 Copy SQL INSERT", style: "font-size:11px;padding:2px 8px", onclick: function(){
+      var tName = state.table ? state.table.name : "table_name";
+      var cols = state.page.columns.map(function(c){ return c.name; });
+      var vals = cols.map(function(cn){
+        var v = row[cn];
+        if (v === null || v === undefined) return "NULL";
+        if (typeof v === "number" || typeof v === "boolean") return String(v);
+        var s = typeof v === "object" ? JSON.stringify(v) : String(v);
+        return "'" + s.replace(/'/g, "''") + "'";
+      });
+      var sql = "INSERT INTO " + tName + " (" + cols.join(", ") + ") VALUES (" + vals.join(", ") + ");";
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(sql);
+      toast("SQL INSERT copied to clipboard.");
+    } })
+  ]));
   state.page.columns.forEach(function(c){
     var v = row[c.name];
     var fk = fkForColumn(c.name);
@@ -483,6 +503,8 @@ function renderGrid(){
     head.appendChild(th);
   });
   g.appendChild(el("thead", {}, [head]));
+  var fkByCol = {};
+  p.columns.forEach(function(c){ fkByCol[c.name] = fkForColumn(c.name); });
   var tb = el("tbody");
   p.rows.forEach(function(row, i){
     var id = p.editable.ok ? rowId(row) : null;
@@ -492,7 +514,7 @@ function renderGrid(){
     p.columns.forEach(function(c){
       var v = upd && Object.prototype.hasOwnProperty.call(upd.display, c.name) ? upd.display[c.name] : row[c.name];
       var d = display(v);
-      var fk = fkForColumn(c.name);
+      var fk = fkByCol[c.name];
       var tdAttrs = { class: d.cls + (upd && Object.prototype.hasOwnProperty.call(upd.display, c.name) ? " dirty" : ""), text: d.text, "data-col": c.name };
       if (fk && v !== null && v !== undefined) {
         tdAttrs["data-fk-table"] = fk.refTable;
@@ -845,6 +867,13 @@ $("btnNewConn").addEventListener("click", function(){ profileForm(null); });
 $("objFilter").addEventListener("input", renderObjects);
 $("btnFilter").addEventListener("click", function(){ var op = $("fOp").value, col = $("fCol").value, v = $("fVal").value; if (!col) return; if (op !== "isNull" && op !== "notNull" && v === "") { state.filter = null; } else { var c = colByName(col); var val = (op === "contains" || op === "startsWith") ? v : (c ? (function(){ try { return parseInput(c, v, false); } catch (e) { toast(e.message, true); return undefined; } })() : v); if (val === undefined) return; state.filter = { column: col, op: op, value: val }; } state.offset = 0; loadPage(); });
 $("btnClearFilter").addEventListener("click", function(){ state.filter = null; $("fVal").value = ""; state.offset = 0; loadPage(); });
+$("fVal").addEventListener("keydown", function(ev){
+  if (ev.key === "Enter") { ev.preventDefault(); $("btnFilter").click(); }
+  else if (ev.key === "Escape") { ev.preventDefault(); $("btnClearFilter").click(); }
+});
+$("fOp").addEventListener("change", function(){
+  if ($("fOp").value === "isNull" || $("fOp").value === "notNull") $("btnFilter").click();
+});
 $("pageSize").addEventListener("change", function(){ state.offset = 0; loadPage(); });
 $("btnPrev").addEventListener("click", function(){ state.offset = Math.max(0, state.offset - Number($("pageSize").value)); loadPage(); });
 $("btnNext").addEventListener("click", function(){ state.offset += Number($("pageSize").value); loadPage(); });
@@ -864,9 +893,10 @@ $("btnFormatSql").addEventListener("click", formatSqlEditor);
 $("btnSqlHistory").addEventListener("click", function(){ var box = $("sqlHistoryBox"); box.hidden = !box.hidden; renderSqlHistory(); });
 $("sqlText").addEventListener("input", function(){ saveCurrentWs(); });
 $("sqlText").addEventListener("keydown", function(ev){
-  if ((ev.ctrlKey || ev.metaKey) && ev.key === "Enter") { ev.preventDefault(); runSql(); }
+  if ((ev.ctrlKey || ev.metaKey) && ev.shiftKey && ev.key === "Enter") { ev.preventDefault(); runScript(); }
+  else if (((ev.ctrlKey || ev.metaKey) && ev.key === "Enter") || ev.key === "F5") { ev.preventDefault(); runSql(); }
   else if (ev.shiftKey && ev.altKey && (ev.key === "F" || ev.key === "f")) { ev.preventDefault(); formatSqlEditor(); }
-  else if (ev.ctrlKey && ev.key === " ") { ev.preventDefault(); showAutocomplete(); }
+  else if ((ev.ctrlKey || ev.altKey) && (ev.key === " " || ev.code === "Space")) { ev.preventDefault(); showAutocomplete(); }
   else if (ev.key === "Escape") { $("sqlSuggest").hidden = true; }
 });
 $("btnCancel").addEventListener("click", function(){ if (!state.conn) return; api("/api/v2/cancel", { connectionId: state.conn.connectionId }).then(function(j){ toast(j.canceled ? "Cancel requested." : (j.explanation || "Nothing to cancel.")); }).catch(fail); });

@@ -608,8 +608,14 @@ const rowOf = (target) =>
 export function wirePane(pane) {
   const container = list(pane);
   const wrap = part(pane, "wrap");
-  const entryOf = (row) =>
-    visibleEntries(pane).find((e) => e.path === row.dataset.key);
+  const entryOf = (row) => {
+    const entries = visibleEntries(pane);
+    const idx = Number(row.dataset.index);
+    if (Number.isInteger(idx) && entries[idx]?.path === row.dataset.key) {
+      return entries[idx];
+    }
+    return entries.find((e) => e.path === row.dataset.key);
+  };
   const mine = () => setActivePane(pane.side);
   let primarySelection = false;
   let handledByClick = false;
@@ -723,6 +729,7 @@ export function wirePane(pane) {
       return;
     if (drag.paths.includes(row.dataset.key)) return;
     e.preventDefault();
+    e.stopPropagation();
     e.dataTransfer.dropEffect = (
       state.platform === "darwin" ? e.altKey : e.ctrlKey
     )
@@ -744,6 +751,7 @@ export function wirePane(pane) {
     if (!row || !row.classList.contains("is-folder") || !drag.paths.length)
       return;
     e.preventDefault();
+    e.stopPropagation();
     const paths = drag.paths.filter((p) => p !== row.dataset.key);
     const copy = state.platform === "darwin" ? e.altKey : e.ctrlKey;
     endDrag();

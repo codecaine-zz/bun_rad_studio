@@ -51,26 +51,30 @@ describe("watchexec doers", () => {
   });
 
   it("spawns and terminates child command", async () => {
-    const proc = spawnCommand(["sleep", "5"]);
+    const proc = spawnCommand([
+      process.execPath,
+      "-e",
+      "setTimeout(() => {}, 5000)",
+    ]);
     expect(proc).not.toBeNull();
     killRunningProcess(proc);
     const exitCode = await proc.exited;
     expect(exitCode).not.toBe(0);
   });
 
-  it.skipIf(process.platform === "win32")(
-    "terminates entire process trees via killProcessTree",
-    async () => {
-      const proc = Bun.spawn(["/bin/sh", "-c", "sleep 10"], {
+  it("terminates entire process trees via killProcessTree", async () => {
+    const proc = Bun.spawn(
+      [process.execPath, "-e", "setTimeout(() => {}, 10000)"],
+      {
         stdout: "ignore",
         stderr: "ignore",
-      });
-      expect(proc.pid).toBeGreaterThan(0);
-      killProcessTree(proc.pid);
-      const exitCode = await proc.exited;
-      expect(exitCode).not.toBe(0);
-    },
-  );
+      },
+    );
+    expect(proc.pid).toBeGreaterThan(0);
+    killProcessTree(proc.pid);
+    const exitCode = await proc.exited;
+    expect(exitCode).not.toBe(0);
+  });
 
   it("Watchexec Studio Pro window attaches onClose lifecycle listener", () => {
     const win = createWatchexecStudio({ fullscreen: false });

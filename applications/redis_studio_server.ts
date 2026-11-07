@@ -296,53 +296,63 @@ export class RedisManager {
       const uniqueKeys = Array.from(new Set(allKeys));
       allKeys.length = 0;
       allKeys.push(...uniqueKeys);
-      const sortedKeys = [...allKeys].sort().slice(0, limit);
 
-      const summaries: KeySummary[] = [];
       const namespaceMap: Record<string, number> = {};
+      for (const k of allKeys) {
+        const separatorIdx = k.indexOf(":");
+        const prefix = separatorIdx > 0 ? k.slice(0, separatorIdx) : "root";
+        namespaceMap[prefix] = (namespaceMap[prefix] || 0) + 1;
+      }
 
-      for (const k of sortedKeys) {
-        try {
-          const type = (await this.client.type(k)) || "none";
-          const ttl = await this.client.ttl(k);
+      const sortedKeys = [...allKeys].sort().slice(0, limit);
+      const summaries: KeySummary[] = [];
 
-          let length = 0;
-          let detectedType: string = type;
-          if (type === "string") {
-            length = await this.client.strlen(k);
-            if (length >= 4) {
-              try {
-                const sample = await this.client.getrange(k, 0, 3);
-                if (sample === "HYLL") {
-                  detectedType = "hyperloglog";
-                  length = await this.client.pfcount(k);
+      const BATCH_SIZE = 50;
+      for (let i = 0; i < sortedKeys.length; i += BATCH_SIZE) {
+        const chunk = sortedKeys.slice(i, i + BATCH_SIZE);
+        const chunkSummaries = await Promise.all(
+          chunk.map(async (k): Promise<KeySummary> => {
+            try {
+              const [rawType, ttl] = await Promise.all([
+                this.client.type(k),
+                this.client.ttl(k),
+              ]);
+              const type = rawType || "none";
+              let length = 0;
+              let detectedType: string = type;
+              if (type === "string") {
+                length = await this.client.strlen(k);
+                if (length >= 4) {
+                  try {
+                    const sample = await this.client.getrange(k, 0, 3);
+                    if (sample === "HYLL") {
+                      detectedType = "hyperloglog";
+                      length = await this.client.pfcount(k);
+                    }
+                  } catch {}
                 }
-              } catch {}
-            }
-            if (
-              detectedType === "string" &&
-              (k.startsWith("bitmap:") || k.includes(":bitmap"))
-            ) {
-              try {
-                detectedType = "bitmap";
-                length = await this.client.bitcount(k);
-              } catch {}
-            }
-          } else if (type === "hash") length = await this.client.hlen(k);
-          else if (type === "list") length = await this.client.llen(k);
-          else if (type === "set") length = await this.client.scard(k);
-          else if (type === "zset") length = await this.client.zcard(k);
-          else if (type === "stream") length = await this.client.xlen(k);
+                if (
+                  detectedType === "string" &&
+                  (k.startsWith("bitmap:") || k.includes(":bitmap"))
+                ) {
+                  try {
+                    detectedType = "bitmap";
+                    length = await this.client.bitcount(k);
+                  } catch {}
+                }
+              } else if (type === "hash") length = await this.client.hlen(k);
+              else if (type === "list") length = await this.client.llen(k);
+              else if (type === "set") length = await this.client.scard(k);
+              else if (type === "zset") length = await this.client.zcard(k);
+              else if (type === "stream") length = await this.client.xlen(k);
 
-          summaries.push({ key: k, type: detectedType, ttl, length });
-
-          // Calculate namespace prefixes (e.g. "auth:user:123" -> "auth")
-          const separatorIdx = k.indexOf(":");
-          const prefix = separatorIdx > 0 ? k.slice(0, separatorIdx) : "root";
-          namespaceMap[prefix] = (namespaceMap[prefix] || 0) + 1;
-        } catch {
-          summaries.push({ key: k, type: "unknown", ttl: -1 });
-        }
+              return { key: k, type: detectedType, ttl, length };
+            } catch {
+              return { key: k, type: "unknown", ttl: -1 };
+            }
+          }),
+        );
+        summaries.push(...chunkSummaries);
       }
 
       const namespaces = Object.entries(namespaceMap)

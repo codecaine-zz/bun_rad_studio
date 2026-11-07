@@ -684,6 +684,7 @@
 			let initialSelectedAtMarqueeStart = [];
 
 			viewport.addEventListener("mousedown", (e) => {
+				if (isSpacePressed || isCanvasPanning) return;
 				if (e.target.classList.contains("designer-control") || e.target.closest(".designer-control") || e.target.closest(".inspector-sidebar") || e.target.closest(".palette-sidebar") || e.target.closest(".app-header") || e.target.closest(".canvas-toolbar")) return;
 				if (e.button !== 0) return;
 				isSelecting = true;
@@ -790,6 +791,7 @@
 			formSpec.controls.forEach((ctrl, idx) => {
 				const div = document.createElement("div");
 				div.className = "designer-control" + (selectedIndices.includes(idx) ? " selected" : "");
+				div.tabIndex = 0;
 				div.setAttribute("draggable", "false");
 				div.dataset.ctrlIndex = String(idx);
 				syncControlDom(ctrl, div, null);
@@ -907,11 +909,16 @@
 						const statusMsg = document.getElementById("statusMsg");
 						const clickEvt = ctrl.event_handlers ? ctrl.event_handlers["onClick"] : null;
 						if (clickEvt) {
-							try {
-								eval(clickEvt);
-								if (statusMsg) statusMsg.textContent = "⚡ Live Click Executed on " + ctrl.id + " -> Evaluated onClick code successfully!";
-							} catch(err) {
-								if (statusMsg) statusMsg.textContent = "⚡ Live Click on " + ctrl.id + " -> Handler: " + clickEvt;
+							const cleanEvt = String(clickEvt).trim();
+							if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(cleanEvt) && typeof window[cleanEvt] !== "function") {
+								if (statusMsg) statusMsg.textContent = "⚡ Simulated Event: " + cleanEvt + "() on " + ctrl.id;
+							} else {
+								try {
+									eval(clickEvt);
+									if (statusMsg) statusMsg.textContent = "⚡ Live Click Executed on " + ctrl.id + " -> Evaluated onClick code successfully!";
+								} catch(err) {
+									if (statusMsg) statusMsg.textContent = "⚡ Live Click on " + ctrl.id + " -> Handler: " + clickEvt;
+								}
 							}
 						} else {
 							if (statusMsg) statusMsg.textContent = "⚡ Live Click Executed on " + ctrl.id + " (checked: " + (ctrl.checked !== undefined ? ctrl.checked : 'N/A') + ")";
@@ -1021,8 +1028,8 @@
 							let newY = pos.y + dy;
 
 							if (snapToGrid) {
-								newX = Math.round(newX / 8) * 8;
-								newY = Math.round(newY / 8) * 8;
+								newX = snapVal(newX);
+								newY = snapVal(newY);
 							}
 
 							let targetCtrl = formSpec.controls[pos.idx];
@@ -1196,6 +1203,7 @@
 			const lineV = document.getElementById("snapLineV");
 			const gapBadge = document.getElementById("gapBadge");
 			if (!lineH || !lineV) return;
+			if (gapBadge) gapBadge.style.display = "none";
 			let showH = false, showV = false;
 
 			formSpec.controls.forEach((other) => {

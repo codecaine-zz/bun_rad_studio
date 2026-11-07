@@ -211,6 +211,10 @@ export function silenceMacKeyBeep(): void {
     const cg = dlopen(
       "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
       {
+        CGSIsSymbolicHotKeyEnabled: {
+          args: [FFIType.i32],
+          returns: FFIType.bool,
+        },
         CGSSetSymbolicHotKeyEnabled: {
           args: [FFIType.i32, FFIType.bool],
           returns: FFIType.i32,
@@ -218,8 +222,22 @@ export function silenceMacKeyBeep(): void {
       },
     ).symbols;
     // Symbolic hotkeys 36 (F11) & 37 (Shift+F11) are Mission Control "Show Desktop", which swallows F11 before the app receives it.
+    // Save the user's previous hotkey state and restore it when the process exits so system-wide shortcuts are never left disabled.
+    const was36 = Boolean(cg.CGSIsSymbolicHotKeyEnabled(36));
+    const was37 = Boolean(cg.CGSIsSymbolicHotKeyEnabled(37));
     cg.CGSSetSymbolicHotKeyEnabled(36, false);
     cg.CGSSetSymbolicHotKeyEnabled(37, false);
+    let restored = false;
+    const restoreHotKeys = () => {
+      if (restored) return;
+      restored = true;
+      try {
+        if (was36) cg.CGSSetSymbolicHotKeyEnabled(36, true);
+        if (was37) cg.CGSSetSymbolicHotKeyEnabled(37, true);
+      } catch {}
+    };
+    process.once("exit", restoreHotKeys);
+    process.once("beforeExit", restoreHotKeys);
   });
 }
 
@@ -469,10 +487,10 @@ function macNative(wv: Webview): WindowNative {
 
 // -------------------------------------------------------------------------------------------------------------- Windows
 
-function windowsNative(wv: Webview): WindowNative {
-  const hwnd = (): Pointer => wv.unsafeWindowHandle as Pointer;
-  const user32 = () =>
-    dlopen("user32.dll", {
+let _user32Symbols: any = null;
+function getUser32() {
+  if (!_user32Symbols) {
+    _user32Symbols = dlopen("user32.dll", {
       ShowWindow: { args: [P, FFIType.i32], returns: FFIType.bool },
       BringWindowToTop: { args: [P], returns: FFIType.bool },
       SetForegroundWindow: { args: [P], returns: FFIType.bool },
@@ -509,6 +527,42 @@ function windowsNative(wv: Webview): WindowNative {
       MonitorFromWindow: { args: [P, FFIType.u32], returns: P },
       GetMonitorInfoW: { args: [P, P], returns: FFIType.bool },
     }).symbols;
+  }
+  return _user32Symbols as {
+    ShowWindow: (h: Pointer, n: number) => boolean;
+    BringWindowToTop: (h: Pointer) => boolean;
+    SetForegroundWindow: (h: Pointer) => boolean;
+    GetForegroundWindow: () => Pointer;
+    GetWindowThreadProcessId: (h: Pointer, p: Pointer | null) => number;
+    AttachThreadInput: (a: number, b: number, f: boolean) => boolean;
+    IsZoomed: (h: Pointer) => boolean;
+    SetWindowPos: (
+      h: Pointer,
+      after: Pointer | null,
+      x: number,
+      y: number,
+      cx: number,
+      cy: number,
+      flags: number,
+    ) => boolean;
+    GetWindowRect: (h: Pointer, r: Pointer) => boolean;
+    GetSystemMetrics: (n: number) => number;
+    SystemParametersInfoW: (
+      a: number,
+      b: number,
+      p: Pointer,
+      f: number,
+    ) => boolean;
+    GetWindowLongPtrW: (h: Pointer, n: number) => bigint;
+    SetWindowLongPtrW: (h: Pointer, n: number, v: bigint) => bigint;
+    MonitorFromWindow: (h: Pointer, f: number) => Pointer;
+    GetMonitorInfoW: (m: Pointer, p: Pointer) => boolean;
+  };
+}
+
+function windowsNative(wv: Webview): WindowNative {
+  const hwnd = (): Pointer => wv.unsafeWindowHandle as Pointer;
+  const user32 = getUser32;
   const GWL_STYLE = -16;
   const WS_BORDERED = 0xc40000n; // WS_CAPTION | WS_THICKFRAME
   const SWP_FRAME = 0x0004 | 0x0010 | 0x0020; // NOZORDER | NOACTIVATE | FRAMECHANGED
@@ -804,7 +858,7 @@ function windowsNative(wv: Webview): WindowNative {
 /** Parses `xrandr --query`: "eDP-1 connected primary 1920x1080+0+0 ..." per active monitor, the primary first. */
 export function parseXrandr(text: string): FmScreen[] {
   const found: Array<{ r: Rect; primary: boolean }> = [];
-  for (const line of text.split("\n")) {
+  for (const line of text.split(/\r?\n/)) {
     const m = /^\S+ connected (primary )?(\d+)x(\d+)\+(-?\d+)\+(-?\d+)/.exec(
       line,
     );
@@ -839,8 +893,16 @@ function linuxNative(wv: Webview, title: () => string): WindowNative {
   const wmctrl = (...args: string[]): boolean => {
     if (!x11()) return false;
     try {
+      const t = title();
+      if (t) {
+        const res = spawnSync("wmctrl", ["-r", t, "-b", ...args], {
+          timeout: 1500,
+          stdio: "ignore",
+        });
+        if (res.status === 0) return true;
+      }
       return (
-        spawnSync("wmctrl", ["-r", title(), "-b", ...args], {
+        spawnSync("wmctrl", ["-r", ":ACTIVE:", "-b", ...args], {
           timeout: 1500,
           stdio: "ignore",
         }).status === 0

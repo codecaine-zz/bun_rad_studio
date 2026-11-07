@@ -15,9 +15,9 @@ import { promises as fsp, rmSync } from "fs";
 import { createHash, randomBytes } from "crypto";
 import { tmpdir } from "os";
 import * as nodePath from "path";
-import { absolutePath, type FmContext } from "./fmCore";
+import { absolutePath, pathApi, type FmContext } from "./fmCore";
 import { decodeImageToPngBuffer } from "./fmImageConvert";
-import { classify, extensionOf } from "./fmPaths";
+import { classify, extensionOf, isDocumentPackageName } from "./fmPaths";
 import { resolveTool } from "./fmToolDetect";
 
 /** Map of lowercase audio file extensions to their HTTP MIME types for browser `<audio>` streaming. */
@@ -335,10 +335,12 @@ export async function thumbnailFor(
   pathInput: unknown,
 ): Promise<string | null> {
   const file = absolutePath(ctx, pathInput);
-  if (!thumbnailsAvailable(ctx) || !wantsThumbnail(nodePath.basename(file)))
+  const base = pathApi(ctx).basename(file);
+  if (!thumbnailsAvailable(ctx) || !wantsThumbnail(base))
     return null;
   const st = await fsp.stat(file);
-  if (!st.isFile()) return null;
+  if (!st.isFile() && !(st.isDirectory() && isDocumentPackageName(base)))
+    return null;
   const dir = await cacheDir(ctx);
   const key = createHash("sha1")
     .update(`${file}|${st.mtimeMs}|${st.size}`)

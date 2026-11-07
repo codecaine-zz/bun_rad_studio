@@ -1,5 +1,6 @@
 // RAD tutorial 10: the rad utility modules.
 // Run it with:  bun run examples/rad_tutorial/10_rad_modules.ts
+import { join } from "node:path";
 import { rad } from "../../src/features/rad/index.ts";
 
 // Text and data
@@ -10,14 +11,12 @@ console.log(rad.arrutils.at(["alpha", "beta", "gamma"], -1));
 console.log(rad.validutils.isEmail("team@bun.sh"));
 
 // Files and a database
-await rad.fileutils.saveJson("/tmp/rad_tutorial.json", {
+const tmpTutorialJson = join(rad.sysutils.getTempDir(), "rad_tutorial.json");
+await rad.fileutils.saveJson(tmpTutorialJson, {
   tool: "rad",
   version: "1.0.0",
 });
-console.log(
-  (await rad.fileutils.loadJson<{ tool: string }>("/tmp/rad_tutorial.json"))
-    .tool,
-);
+console.log((await rad.fileutils.loadJson<{ tool: string }>(tmpTutorialJson)).tool);
 const db = rad.sqliteutils.openDb(":memory:");
 rad.sqliteutils.createKvTable(db, "config");
 rad.sqliteutils.setKv(db, "config", "env", "production");

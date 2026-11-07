@@ -129,6 +129,31 @@ export async function entryFor(ctx: FmContext, input: unknown): Promise<Entry> {
   const p = pathApi(ctx);
   const name = p.basename(full);
   const dir = p.dirname(full);
+  if (dir === full) {
+    try {
+      const st = await fsp.stat(full);
+      if (st.isDirectory()) {
+        const kind = classify(full, true, false);
+        return {
+          name: name || full,
+          path: full,
+          isDir: true,
+          isSymlink: false,
+          broken: false,
+          size: 0,
+          mtimeMs: st.mtimeMs,
+          kind: kind.kind,
+          icon: kind.icon,
+          label: kind.label,
+          hidden: false,
+          program: false,
+          preview: null,
+          readOnly: false,
+          mode: ctx.platform === "win32" ? null : st.mode & 0o7777,
+        };
+      }
+    } catch {}
+  }
   const entry = name && dir !== full ? await toEntry(ctx, dir, name, p) : null;
   if (!entry)
     throw new FmError(
@@ -665,7 +690,7 @@ export async function previewFile(
 ): Promise<Preview> {
   const path = absolutePath(ctx, input);
   const st = await fsp.stat(path);
-  const base = nodePath.basename(path);
+  const base = pathApi(ctx).basename(path);
   if (st.isDirectory()) {
     const hasPkgThumb = wantsThumbnail(base) && thumbnailsAvailable(ctx);
     const pkgRich = await inspectPackageDirectoryRich(path, hasPkgThumb).catch(

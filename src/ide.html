@@ -35,7 +35,9 @@
 			margin: 0;
 			padding: 0;
 			width: 100%;
-			height: 100%;
+			height: 100vh;
+			display: flex;
+			flex-direction: column;
 			background-color: var(--bg-main);
 			color: var(--text-primary);
 			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -51,6 +53,7 @@
 		#diagnosticsSummary {
 			scrollbar-width: thin;
 			scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+			overscroll-behavior: contain;
 		}
 		@supports not (scrollbar-color: auto) {
 			::-webkit-scrollbar {
@@ -328,7 +331,9 @@
 		.studio-container {
 			display: grid;
 			grid-template-columns: var(--palette-width, 224px) 1fr var(--inspector-width, 300px);
-			height: calc(100vh - 66px);
+			flex: 1;
+			min-height: 0;
+			height: auto;
 			width: 100vw;
 			overflow: hidden;
 			position: relative;
@@ -2559,7 +2564,7 @@
 		<span id="statusRight" style="display:flex;gap:12px;align-items:center;font-size:10px;color:var(--text-muted);">
 			<span id="statusCoords">X: — Y: —</span>
 			<span id="statusCount">0 controls</span>
-			<span>Grid: 8px</span>
+			<span id="statusGrid">Grid: 8px</span>
 		</span>
 	</footer>
 
@@ -3046,10 +3051,46 @@
 				});
 			}
 			drawRulers();
+			window.addEventListener("resize", drawRulers);
 			renderCanvas();
 			renderCode();
 			renderTree();
 			offerDraftRestore();
+
+			// 1-step UX: Double-click any palette item to auto-place it on the canvas immediately
+			const paletteSidebar = document.querySelector(".palette-sidebar");
+			if (paletteSidebar) {
+				paletteSidebar.addEventListener("dblclick", (e) => {
+					const item = e.target.closest ? e.target.closest(".palette-item") : null;
+					if (!item) return;
+					const onclick = item.getAttribute("onclick") || "";
+					const m = onclick.match(/spawnControl\(['"]([^'"]+)['"]\)/);
+					if (m && m[1]) {
+						e.preventDefault();
+						e.stopPropagation();
+						placeControlWithKeyboard(m[1]);
+					}
+				});
+			}
+
+			// 1-keystroke Escape-to-clear on IDE filter inputs
+			[
+				{ id: "paletteSearchInput", fn: () => filterPalette("") },
+				{ id: "propFilterBox", fn: () => filterControlProps("") },
+				{ id: "treeFilterBox", fn: () => renderTree() }
+			].forEach(({ id, fn }) => {
+				const el = document.getElementById(id);
+				if (el) {
+					el.addEventListener("keydown", (e) => {
+						if (e.key === "Escape" && el.value) {
+							e.preventDefault();
+							e.stopPropagation();
+							el.value = "";
+							fn();
+						}
+					});
+				}
+			});
 
 			const inspector = document.querySelector(".inspector-sidebar");
 			if (inspector) {
@@ -3070,6 +3111,7 @@
 			}, { capture: true });
 
 			window.addEventListener("keydown", (e) => {
+				if (e.isComposing || e.keyCode === 229) return;
 				if (
 					e.key === "F5" ||
 					e.code === "F5" ||
@@ -3077,6 +3119,9 @@
 				) {
 					e.preventDefault();
 					e.stopPropagation();
+					if ((e.key === "F5" || e.code === "F5") && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
+						if (typeof triggerRunForm === "function") triggerRunForm();
+					}
 					return false;
 				}
 			}, { capture: true });
@@ -3146,14 +3191,17 @@
 					isFnPressed = false;
 				}
 			});
+			window.addEventListener("blur", () => { isFnPressed = false; });
+			document.addEventListener("visibilitychange", () => { if (document.hidden) isFnPressed = false; });
 
 			window.addEventListener("keydown", (e) => {
+				if (e.isComposing || e.keyCode === 229) return;
 				if (e.key === "Fn" || e.key === "Globe" || e.code === "Fn" || e.code === "Function") {
 					isFnPressed = true;
 				}
 
 				// 1. Double-tap Alt ("alt+alt") within 450ms to close/quit window
-				if ((e.key === "Alt" || e.code === "AltLeft" || e.code === "AltRight") && !e.repeat) {
+				if (e.code !== "AltRight" && (e.key === "Alt" || e.code === "AltLeft") && !e.repeat) {
 					const now = Date.now();
 					if (now - lastAltTime > 50 && now - lastAltTime < 450) {
 						lastAltTime = 0;
@@ -3171,7 +3219,7 @@
 				// 2. Cmd+Q / Cmd+W (macOS) / Ctrl+Q / Ctrl+W / Alt+F4 / Alt+W / Alt+Q (Windows/Linux) to close/quit app
 				if (
 					((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === "q" || e.key.toLowerCase() === "w" || e.code === "KeyQ" || e.code === "KeyW")) ||
-					(e.altKey && (e.key === "F4" || e.code === "F4" || e.key.toLowerCase() === "w" || e.key.toLowerCase() === "q"))
+					(e.altKey && !e.getModifierState?.("AltGraph") && e.code !== "AltRight" && (e.key === "F4" || e.code === "F4" || e.key.toLowerCase() === "w" || e.key.toLowerCase() === "q"))
 				) {
 					e.preventDefault();
 					if (window.quitApp) {
@@ -3189,11 +3237,26 @@
 				const isInput = !!(e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT" || e.target.isContentEditable));
 				const isFKey = e.key === "f" || e.key === "F" || e.code === "KeyF" || (typeof e.key === "string" && e.key.toLowerCase() === "f");
 				const isFn = isFnPressed || (typeof e.getModifierState === "function" && (e.getModifierState("Fn") || e.getModifierState("FnLock") || e.getModifierState("Symbol")));
+				const isPlainCmdOrCtrlF = (e.metaKey || e.ctrlKey) && !(e.metaKey && e.ctrlKey) && !e.shiftKey && !e.altKey && isFKey;
 
-				// 3. Fullscreen shortcuts: Fn+F / Globe+F, F/f (when not in input), F11, Cmd+Ctrl+F, Cmd+F, Alt+Enter
+				// 2b. Cmd+F / Ctrl+F: Focus component palette search input (or property filter if already in palette search)
+				if (isPlainCmdOrCtrlF) {
+					const paletteSearch = document.getElementById("paletteSearchInput");
+					const propFilter = document.getElementById("propFilterBox");
+					const targetSearch = (document.activeElement === paletteSearch && propFilter && propFilter.offsetParent !== null) ? propFilter : paletteSearch;
+					if (targetSearch) {
+						e.preventDefault();
+						e.stopPropagation();
+						targetSearch.focus();
+						if (typeof targetSearch.select === "function") targetSearch.select();
+						return;
+					}
+				}
+
+				// 3. Fullscreen shortcuts: Fn+F / Globe+F, F/f (when not in input and no modifiers), F11, Cmd+Ctrl+F, Cmd+Shift+F, Alt+Enter
 				if (
-					(!isInput && isFKey && !e.altKey) ||
-					(isFn && isFKey) ||
+					(!isInput && isFKey && !e.altKey && !e.metaKey && !e.ctrlKey) ||
+					(!isInput && isFn && isFKey) ||
 					e.key === "F11" || e.code === "F11" ||
 					((e.metaKey || e.ctrlKey) && e.shiftKey && isFKey) ||
 					((e.metaKey && e.ctrlKey) && isFKey) ||
@@ -3207,7 +3270,6 @@
 
 				// 4. Minimize window: Cmd+M, Ctrl+M, Alt+M
 				if ((e.metaKey || e.ctrlKey || e.altKey) && (e.key.toLowerCase() === "m" || e.code === "KeyM")) {
-					const isInput = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA");
 					if (!isInput) {
 						e.preventDefault();
 						if (window.minimizeWindow) window.minimizeWindow();
@@ -3220,7 +3282,6 @@
 					((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key.toLowerCase() === "t" || e.code === "KeyT")) ||
 					(e.altKey && !e.ctrlKey && !e.metaKey && (e.key.toLowerCase() === "t" || e.code === "KeyT"))
 				) {
-					const isInput = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA");
 					if (!isInput) {
 						e.preventDefault();
 						toggleAlwaysOnTop();
@@ -3230,7 +3291,6 @@
 
 				// 6. Center window: Cmd+Shift+C, Ctrl+Shift+C
 				if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key.toLowerCase() === "c" || e.code === "KeyC")) {
-					const isInput = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA");
 					if (!isInput) {
 						e.preventDefault();
 						if (window.centerWindow) window.centerWindow();
@@ -3251,17 +3311,34 @@
 						return;
 					} else if (e.key === "0" || e.code === "Digit0" || e.code === "Numpad0") {
 						e.preventDefault();
-						canvasZoom = 1.0;
-						applyCanvasTransform();
+						resetZoom();
 						return;
 					}
 				}
 
 				if (getOpenDialog()) return;
+				const fxBackdrop = document.getElementById("ideModalBackdrop");
+				if (fxBackdrop && fxBackdrop.classList.contains("open")) return;
 				if (e.key === "Escape") {
 					if (placementType) { cancelPlacementMode(); return; }
 				}
-				if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT") return;
+				if (isInput) return;
+
+				// 7b. F2: Quick-edit selected control caption/text in Inspector
+				if (e.key === "F2" && selectedIndices.length === 1) {
+					e.preventDefault();
+					switchTab("tabProps");
+					const propText = document.getElementById("propText");
+					if (propText) {
+						propText.focus();
+						propText.select();
+					}
+					return;
+				}
+
+				// Guard canvas-mutating shortcuts if a sidebar button has focus
+				const inSidebarButton = e.target && e.target.tagName === "BUTTON" && e.target.closest && e.target.closest(".palette-sidebar, .inspector-sidebar");
+				if (inSidebarButton && (e.key === "Backspace" || e.key === "Delete")) return;
 
 				if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "c") {
 					e.preventDefault();
@@ -3380,10 +3457,10 @@
 			clipboardBuffer.forEach(item => {
 				const count = formSpec.controls.length + 1;
 				const newId = item.control_type + "_" + count;
+				item.x += 16;
+				item.y += 16;
 				const copy = JSON.parse(JSON.stringify(item));
 				copy.id = newId;
-				copy.x += 16;
-				copy.y += 16;
 				copy.event_handlers = { "onClick": "on_" + newId + "_click" };
 				formSpec.controls.push(copy);
 				newIndices.push(formSpec.controls.length - 1);
@@ -3493,9 +3570,13 @@
 			}
 			const menu = document.getElementById("contextMenu");
 			if (menu) {
-				menu.style.left = e.clientX + "px";
-				menu.style.top = e.clientY + "px";
 				menu.style.display = "block";
+				const menuW = menu.offsetWidth || 200;
+				const menuH = menu.offsetHeight || 320;
+				const clampedX = Math.max(8, Math.min(e.clientX, window.innerWidth - menuW - 8));
+				const clampedY = Math.max(8, Math.min(e.clientY, window.innerHeight - menuH - 8));
+				menu.style.left = clampedX + "px";
+				menu.style.top = clampedY + "px";
 			}
 		}
 
@@ -3505,8 +3586,11 @@
 		}
 
 		// Zoom & Pan Workspace Engine
+		let isSpacePressed = false;
+		let isCanvasPanning = false;
 		function setupCanvasZoomAndPan() {
 			const viewport = document.getElementById("canvasViewport");
+			if (!viewport) return;
 
 			viewport.addEventListener("wheel", (e) => {
 				if (e.ctrlKey || e.metaKey) {
@@ -3518,17 +3602,52 @@
 
 			// Spacebar or Middle Click Panning
 			window.addEventListener("keydown", (e) => {
-				if (e.code === "Space" && e.target === document.body) {
-					e.preventDefault();
+				const isInput = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT" || e.target.isContentEditable);
+				if (e.code === "Space" && !isInput && !getOpenDialog()) {
+					isSpacePressed = true;
 					viewport.classList.add("panning");
 				}
 			});
 
 			window.addEventListener("keyup", (e) => {
 				if (e.code === "Space") {
-					viewport.classList.remove("panning");
+					isSpacePressed = false;
+					if (!isCanvasPanning) viewport.classList.remove("panning");
 				}
 			});
+
+			window.addEventListener("blur", () => {
+				isSpacePressed = false;
+				isCanvasPanning = false;
+				viewport.classList.remove("panning");
+			});
+
+			viewport.addEventListener("mousedown", (e) => {
+				if (e.button === 1 || (e.button === 0 && isSpacePressed)) {
+					e.preventDefault();
+					e.stopPropagation();
+					isCanvasPanning = true;
+					viewport.classList.add("panning");
+					const startX = e.clientX;
+					const startY = e.clientY;
+					const startScrollL = viewport.scrollLeft;
+					const startScrollT = viewport.scrollTop;
+
+					const onPanMove = (me) => {
+						if (!isCanvasPanning) return;
+						viewport.scrollLeft = startScrollL - (me.clientX - startX);
+						viewport.scrollTop = startScrollT - (me.clientY - startY);
+					};
+					const onPanUp = () => {
+						isCanvasPanning = false;
+						if (!isSpacePressed) viewport.classList.remove("panning");
+						window.removeEventListener("mousemove", onPanMove);
+						window.removeEventListener("mouseup", onPanUp);
+					};
+					window.addEventListener("mousemove", onPanMove);
+					window.addEventListener("mouseup", onPanUp);
+				}
+			}, { capture: true });
 		}
 
 		function toggleSidebarPane(which) {
@@ -3752,21 +3871,8 @@
 		}
 
 		function bindLivePropertyEditors() {
-			const propIds = ["propId", "propText", "propTooltip", "propX", "propY", "propWidth", "propHeight", "propFontSize", "propFontColor", "propBgColor", "propHoverBgColor", "propHoverFgColor", "propCursor"];
-			propIds.forEach((id) => {
-				const el = document.getElementById(id);
-				if (!el) return;
-				["input", "keyup", "change"].forEach((evt) => {
-					el.addEventListener(evt, updateSelectedControl);
-				});
-			});
-
-			const formTitleEl = document.getElementById("propFormTitle");
-			if (formTitleEl) {
-				["input", "keyup", "change"].forEach((evt) => {
-					formTitleEl.addEventListener(evt, updateFormSpec);
-				});
-			}
+			// Property inputs in 05_body_markup.html already bind oninput/onchange="updateSelectedControl('<prop>')"
+			// directly so only the edited property is updated on multi-selection.
 		}
 
 		let gridSize = 8;
@@ -3824,6 +3930,10 @@
 				: "Design mode active. Drag & resize controls on canvas.";
 		}
 
+		function snapVal(v) {
+			return (snapToGrid && gridSize > 0) ? Math.round(v / gridSize) * gridSize : Math.round(v);
+		}
+
 		function showSnapGridMenu() {
 			const options = [8, 4, 16, 32, 0];
 			const curIdx = options.indexOf(gridSize);
@@ -3831,6 +3941,8 @@
 			snapToGrid = gridSize > 0;
 			const snapBtn = document.getElementById("snapBtn");
 			if (snapBtn) snapBtn.textContent = "📐 Snap: " + (gridSize > 0 ? gridSize + "px" : "OFF");
+			const statusGrid = document.getElementById("statusGrid");
+			if (statusGrid) statusGrid.textContent = "Grid: " + (gridSize > 0 ? gridSize + "px" : "OFF");
 			document.getElementById("statusMsg").textContent = "Grid Snap set to: " + (gridSize > 0 ? gridSize + "px" : "Disabled");
 		}
 
@@ -4168,7 +4280,7 @@
 			const rect = canvas.getBoundingClientRect();
 			let x = Math.round((e.clientX - rect.left) / canvasScale);
 			let y = Math.round((e.clientY - rect.top) / canvasScale);
-			if (snapToGrid) { x = Math.round(x / 8) * 8; y = Math.round(y / 8) * 8; }
+			if (snapToGrid) { x = snapVal(x); y = snapVal(y); }
 			const targetType = placementType;
 			// Clear placement mode BEFORE placeControlAt unless Shift is held
 			if (!e.shiftKey) {
@@ -4188,8 +4300,8 @@
 			const id = type + "_" + count;
 
 			if (snapToGrid) {
-				x = Math.round(x / 8) * 8;
-				y = Math.round(y / 8) * 8;
+				x = snapVal(x);
+				y = snapVal(y);
 			}
 
 			let defaultW = 150;
@@ -4310,8 +4422,8 @@
 			let y = Math.round((e.clientY - rect.top) / canvasScale);
 
 			if (snapToGrid) {
-				x = Math.round(x / 8) * 8;
-				y = Math.round(y / 8) * 8;
+				x = snapVal(x);
+				y = snapVal(y);
 			}
 
 			const type = draggedType || placementType || e.dataTransfer.getData("text/plain") || "button";
@@ -4876,14 +4988,6 @@
 			renderTree();
 			populateInspector();
 			document.getElementById("statusMsg").textContent = "Loaded " + name + " template layout.";
-		}
-
-		function setBgColor(hex) {
-			const bgEl = document.getElementById("propBgColor");
-			if (bgEl) {
-				bgEl.value = hex;
-				updateSelectedControl();
-			}
 		}
 
 		function capitalize(str) {
@@ -5718,6 +5822,7 @@
 			let initialSelectedAtMarqueeStart = [];
 
 			viewport.addEventListener("mousedown", (e) => {
+				if (isSpacePressed || isCanvasPanning) return;
 				if (e.target.classList.contains("designer-control") || e.target.closest(".designer-control") || e.target.closest(".inspector-sidebar") || e.target.closest(".palette-sidebar") || e.target.closest(".app-header") || e.target.closest(".canvas-toolbar")) return;
 				if (e.button !== 0) return;
 				isSelecting = true;
@@ -5824,6 +5929,7 @@
 			formSpec.controls.forEach((ctrl, idx) => {
 				const div = document.createElement("div");
 				div.className = "designer-control" + (selectedIndices.includes(idx) ? " selected" : "");
+				div.tabIndex = 0;
 				div.setAttribute("draggable", "false");
 				div.dataset.ctrlIndex = String(idx);
 				syncControlDom(ctrl, div, null);
@@ -5941,11 +6047,16 @@
 						const statusMsg = document.getElementById("statusMsg");
 						const clickEvt = ctrl.event_handlers ? ctrl.event_handlers["onClick"] : null;
 						if (clickEvt) {
-							try {
-								eval(clickEvt);
-								if (statusMsg) statusMsg.textContent = "⚡ Live Click Executed on " + ctrl.id + " -> Evaluated onClick code successfully!";
-							} catch(err) {
-								if (statusMsg) statusMsg.textContent = "⚡ Live Click on " + ctrl.id + " -> Handler: " + clickEvt;
+							const cleanEvt = String(clickEvt).trim();
+							if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(cleanEvt) && typeof window[cleanEvt] !== "function") {
+								if (statusMsg) statusMsg.textContent = "⚡ Simulated Event: " + cleanEvt + "() on " + ctrl.id;
+							} else {
+								try {
+									eval(clickEvt);
+									if (statusMsg) statusMsg.textContent = "⚡ Live Click Executed on " + ctrl.id + " -> Evaluated onClick code successfully!";
+								} catch(err) {
+									if (statusMsg) statusMsg.textContent = "⚡ Live Click on " + ctrl.id + " -> Handler: " + clickEvt;
+								}
 							}
 						} else {
 							if (statusMsg) statusMsg.textContent = "⚡ Live Click Executed on " + ctrl.id + " (checked: " + (ctrl.checked !== undefined ? ctrl.checked : 'N/A') + ")";
@@ -6055,8 +6166,8 @@
 							let newY = pos.y + dy;
 
 							if (snapToGrid) {
-								newX = Math.round(newX / 8) * 8;
-								newY = Math.round(newY / 8) * 8;
+								newX = snapVal(newX);
+								newY = snapVal(newY);
 							}
 
 							let targetCtrl = formSpec.controls[pos.idx];
@@ -6230,6 +6341,7 @@
 			const lineV = document.getElementById("snapLineV");
 			const gapBadge = document.getElementById("gapBadge");
 			if (!lineH || !lineV) return;
+			if (gapBadge) gapBadge.style.display = "none";
 			let showH = false, showV = false;
 
 			formSpec.controls.forEach((other) => {
@@ -6491,6 +6603,18 @@
 				const propOpacityEl = document.getElementById("propOpacity");
 				if (propOpacityEl) propOpacityEl.value = c.opacity !== undefined && c.opacity !== null ? c.opacity : 100;
 
+				const anchors = c.anchors || { top: true, left: true, right: false, bottom: false };
+				["Top", "Left", "Right", "Bottom"].forEach((dir) => {
+					const btn = document.getElementById("anchor" + dir + "Btn");
+					if (btn) btn.classList.toggle("btn-primary", !!anchors[dir.toLowerCase()]);
+				});
+				const propDockEl = document.getElementById("propDock");
+				if (propDockEl) propDockEl.value = c.dock || "none";
+				const propDSEl = document.getElementById("propDataSource");
+				if (propDSEl) { propDSEl.value = c.data_source || ""; propDSEl.placeholder = "Dataset1"; }
+				const propDFEl = document.getElementById("propDataField");
+				if (propDFEl) { propDFEl.value = c.data_field || ""; propDFEl.placeholder = "customer_name"; }
+
 				c.event_handlers = c.event_handlers || {};
 				const evtClickEl = document.getElementById("evtOnClick");
 				if (evtClickEl) evtClickEl.value = c.event_handlers["onClick"] || "";
@@ -6586,15 +6710,35 @@
 				if (propAlignEl) propAlignEl.value = allSame("text_align") ? (selectedCtrls[0].text_align || "left") : "left";
 				const propOpacityEl = document.getElementById("propOpacity");
 				if (propOpacityEl) propOpacityEl.value = allSame("opacity") ? (selectedCtrls[0].opacity !== undefined ? selectedCtrls[0].opacity : 100) : 100;
+				const propDockEl = document.getElementById("propDock");
+				if (propDockEl) propDockEl.value = allSame("dock") ? (selectedCtrls[0].dock || "none") : "none";
+				const propDSEl = document.getElementById("propDataSource");
+				if (propDSEl) {
+					propDSEl.value = allSame("data_source") ? (selectedCtrls[0].data_source || "") : "";
+					propDSEl.placeholder = allSame("data_source") ? "Dataset1" : "(Multiple)";
+				}
+				const propDFEl = document.getElementById("propDataField");
+				if (propDFEl) {
+					propDFEl.value = allSame("data_field") ? (selectedCtrls[0].data_field || "") : "";
+					propDFEl.placeholder = allSame("data_field") ? "customer_name" : "(Multiple)";
+				}
 			}
 		}
+
+		let lastHistoryProp = null;
+		let lastHistoryTime = 0;
 
 		function updateSelectedControl(changedProp) {
 			if (selectedIndices.length === 0) return;
 			if (changedProp && typeof changedProp !== "string") {
 				changedProp = undefined;
 			}
-			saveHistoryState();
+			const now = Date.now();
+			if (!changedProp || changedProp !== lastHistoryProp || now - lastHistoryTime > 600) {
+				saveHistoryState();
+				lastHistoryProp = changedProp || null;
+			}
+			lastHistoryTime = now;
 
 			const propIdEl = document.getElementById("propId");
 			const propTextEl = document.getElementById("propText");
@@ -6624,7 +6768,7 @@
 					if (propIdEl && propIdEl.value && propIdEl.value.trim() !== "") ctrl.id = propIdEl.value.trim();
 				}
 				if (!changedProp || changedProp === 'text') {
-					if (propTextEl && propTextEl.value !== "") ctrl.text = propTextEl.value;
+					if (propTextEl && (changedProp === 'text' || propTextEl.value !== "")) ctrl.text = propTextEl.value;
 				}
 				if (!changedProp || changedProp === 'placeholder') {
 					if (propPlaceholderEl) ctrl.placeholder = propPlaceholderEl.value;
@@ -6739,11 +6883,19 @@
 					if (el && el.value !== "") ctrl.opacity = Math.min(100, Math.max(0, parseNum(el.value, 100, 0)));
 					else if (el && el.value === "") delete ctrl.opacity;
 				}
+				if (changedProp === 'data_source') {
+					const el = document.getElementById("propDataSource");
+					if (el) ctrl.data_source = el.value;
+				}
+				if (changedProp === 'data_field') {
+					const el = document.getElementById("propDataField");
+					if (el) ctrl.data_field = el.value;
+				}
 			});
 
 			renderCanvas();
 			renderCode();
-			renderTree();
+			if (!changedProp || changedProp === 'id') renderTree();
 			syncSpecToV();
 		}
 
@@ -6780,16 +6932,16 @@
 			selectedIndices.forEach(idx => {
 				const c = formSpec.controls[idx];
 				c.event_handlers = c.event_handlers || {};
-				c.event_handlers["onClick"] = "on_" + c.id + "_click";
-				c.event_handlers["onChange"] = "on_" + c.id + "_change";
-				c.event_handlers["onHover"] = "on_" + c.id + "_hover";
-				c.event_handlers["onHoverExit"] = "on_" + c.id + "_hover_exit";
-				c.event_handlers["onFocus"] = "on_" + c.id + "_focus";
-				c.event_handlers["onBlur"] = "on_" + c.id + "_blur";
-				c.event_handlers["onKeyDown"] = "on_" + c.id + "_keydown";
-				c.event_handlers["onKeyUp"] = "on_" + c.id + "_keyup";
-				c.event_handlers["onMouseDown"] = "on_" + c.id + "_mousedown";
-				c.event_handlers["onMouseUp"] = "on_" + c.id + "_mouseup";
+				if (!c.event_handlers["onClick"]) c.event_handlers["onClick"] = "on_" + c.id + "_click";
+				if (!c.event_handlers["onChange"]) c.event_handlers["onChange"] = "on_" + c.id + "_change";
+				if (!c.event_handlers["onHover"]) c.event_handlers["onHover"] = "on_" + c.id + "_hover";
+				if (!c.event_handlers["onHoverExit"]) c.event_handlers["onHoverExit"] = "on_" + c.id + "_hover_exit";
+				if (!c.event_handlers["onFocus"]) c.event_handlers["onFocus"] = "on_" + c.id + "_focus";
+				if (!c.event_handlers["onBlur"]) c.event_handlers["onBlur"] = "on_" + c.id + "_blur";
+				if (!c.event_handlers["onKeyDown"]) c.event_handlers["onKeyDown"] = "on_" + c.id + "_keydown";
+				if (!c.event_handlers["onKeyUp"]) c.event_handlers["onKeyUp"] = "on_" + c.id + "_keyup";
+				if (!c.event_handlers["onMouseDown"]) c.event_handlers["onMouseDown"] = "on_" + c.id + "_mousedown";
+				if (!c.event_handlers["onMouseUp"]) c.event_handlers["onMouseUp"] = "on_" + c.id + "_mouseup";
 			});
 			populateInspector();
 			renderCode();
@@ -7365,6 +7517,7 @@
 
 		function generateBunTSCode() {
 			const title = formSpec.title || "Bun RAD Form";
+			const safeTitleLit = JSON.stringify(title);
 			const w = formSpec.width || 840;
 			const h = formSpec.height || 560;
 
@@ -7374,7 +7527,7 @@ import { join } from "path";
 
 // Initialize Webview Window
 const wv = new Webview();
-wv.title = "${title}";
+wv.title = ${safeTitleLit};
 wv.size = { width: ${w}, height: ${h}, hint: SizeHint.NONE };
 
 // Load HTML UI Spec
@@ -7488,7 +7641,7 @@ wv.bind("backendAlert", (msg: string) => {
 				code += '\n// Note: Add component event handlers in the Events tab to auto-generate TS methods here.\n\n';
 			}
 
-			code += 'console.log("🚀 Starting Bun RAD Studio App: ' + title + '...");\nwv.run();\n';
+			code += 'console.log("🚀 Starting Bun RAD Studio App:", ' + safeTitleLit + ');\nwv.run();\n';
 			return code;
 		}
 

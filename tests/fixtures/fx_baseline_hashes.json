@@ -1,34 +1,34 @@
 {
   "window:midnight": {
-    "sha256": "36ec782638f6bcae3cdaae49ce49f1d710e26409d2d3786411ec4257ade8d670",
-    "length": 487642
+    "sha256": "6a9c1c326d7957316d245959ab06e0ec6d6e3b774ecd89bfa0a1d022c997f0ed",
+    "length": 494738
   },
   "window:dracula": {
-    "sha256": "e67959e56d4108fb49fed0035172e5f72c149d683915c2bb9e32fd3ffd2f2bfb",
-    "length": 487611
+    "sha256": "4bec1f712f72db82c5147809a6ff8db464915ad5e4ddd1100ca9d49825cd439e",
+    "length": 494707
   },
   "window:win95": {
-    "sha256": "f526a4cf3715e7797fe11c3ce0a28e0bbc6d007732748e41c803db3fbadf7b68",
-    "length": 486849
+    "sha256": "9d7749f235dccba80c1a492ad6ecfe5c08a7596fe486a60ac538ec618193ece1",
+    "length": 493945
   },
   "window:apple_light": {
-    "sha256": "f2b64a096b86aeee4ff89c0230ae7168c04a208cdc88ba7de601eaebaa56ffe2",
-    "length": 486881
+    "sha256": "4b2c74e9744cf2d7370afc1f9839a1f242eeb939be84cc3f8bfdf9983233c996",
+    "length": 493977
   },
   "window:tokyo_night": {
-    "sha256": "2e5e7465fe701983469d6caa65a21a35e5054542f8be01bf96670de962487f78",
-    "length": 487634
+    "sha256": "eec995aab9f09ddf102a1299074dee79d2e96ec9189f9d39ee4250c20e77dac2",
+    "length": 494730
   },
   "window:oled_black": {
-    "sha256": "36a216d9785ee968fd1be9a95ae275b96393f1174af86c2120da217d1877ccbf",
-    "length": 487637
+    "sha256": "45a7ccfb785edf926cfb9294e6755878dd4f1e078334cab288e485f21b429d13",
+    "length": 494733
   },
   "designer:dark": {
-    "sha256": "41b197f96a18f847e8e586d69e38518b18ce7203a46b394e2b1610e06b22cd91",
-    "length": 93101
+    "sha256": "526cbb287045cce75675903a27ec4264124926d4a127289de86170f710c46564",
+    "length": 94239
   },
   "designer:light": {
-    "sha256": "0d4e7346918765f3e46bc9a8285d809a30f270bd83870114dd360f271771e057",
-    "length": 92800
+    "sha256": "c2c86371ec519b0ac28cf9c32ca05f28a2b74d113b3b3ea075b5f1ff1fd1c562",
+    "length": 93938
   }
 }

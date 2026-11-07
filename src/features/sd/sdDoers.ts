@@ -112,8 +112,8 @@ export function computeDiffHunks(
   original: string,
   modified: string,
 ): DiffHunk[] {
-  const origLines = original.split("\n");
-  const modLines = modified.split("\n");
+  const origLines = original.split(/\r?\n/);
+  const modLines = modified.split(/\r?\n/);
   const hunks: DiffHunk[] = [];
 
   const max = Math.max(origLines.length, modLines.length);

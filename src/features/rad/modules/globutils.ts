@@ -29,8 +29,8 @@ export function createGlob(pattern: string): Glob {
  * Tests whether `path` matches the glob `pattern` (supporting extglob and brace ranges).
  */
 export function globMatch(pattern: string, path: string): boolean {
-  const glob = new Glob(pattern);
-  return glob.match(path);
+  const glob = new Glob(pattern.replace(/\\/g, "/"));
+  return glob.match(path.replace(/\\/g, "/"));
 }
 
 // Doer: Filter an array of paths using a single compiled Bun.Glob instance (supports extglob & brace ranges)
@@ -41,8 +41,8 @@ export function globFilter(
   pattern: string,
   paths: readonly string[],
 ): string[] {
-  const glob = new Glob(pattern);
-  return paths.filter((p) => glob.match(p));
+  const glob = new Glob(pattern.replace(/\\/g, "/"));
+  return paths.filter((p) => glob.match(p.replace(/\\/g, "/")));
 }
 
 // Doer: Check if a path matches any of the provided glob patterns
@@ -53,7 +53,10 @@ export function globMatchAny(
   patterns: readonly string[],
   path: string,
 ): boolean {
-  return patterns.some((pattern) => new Glob(pattern).match(path));
+  const norm = path.replace(/\\/g, "/");
+  return patterns.some((pattern) =>
+    new Glob(pattern.replace(/\\/g, "/")).match(norm),
+  );
 }
 
 // Doer: Check if a path matches all of the provided glob patterns
@@ -64,7 +67,10 @@ export function globMatchAll(
   patterns: readonly string[],
   path: string,
 ): boolean {
-  return patterns.every((pattern) => new Glob(pattern).match(path));
+  const norm = path.replace(/\\/g, "/");
+  return patterns.every((pattern) =>
+    new Glob(pattern.replace(/\\/g, "/")).match(norm),
+  );
 }
 
 // Coordinator: Scan directory asynchronously for all matching paths
@@ -75,7 +81,7 @@ export async function globScan(
   pattern: string,
   options: GlobScanOptions = {},
 ): Promise<string[]> {
-  const glob = new Glob(pattern);
+  const glob = new Glob(pattern.replace(/\\/g, "/"));
   const results: string[] = [];
   for await (const file of glob.scan({
     cwd: options.cwd ?? ".",
@@ -84,7 +90,7 @@ export async function globScan(
     followSymlinks: options.followSymlinks ?? false,
     absolute: options.absolute ?? false,
   })) {
-    results.push(file);
+    results.push(options.absolute ? file : file.replace(/\\/g, "/"));
   }
   return results.sort();
 }
@@ -97,7 +103,7 @@ export function globScanSync(
   pattern: string,
   options: GlobScanOptions = {},
 ): string[] {
-  const glob = new Glob(pattern);
+  const glob = new Glob(pattern.replace(/\\/g, "/"));
   const results: string[] = [];
   for (const file of glob.scanSync({
     cwd: options.cwd ?? ".",
@@ -106,7 +112,7 @@ export function globScanSync(
     followSymlinks: options.followSymlinks ?? false,
     absolute: options.absolute ?? false,
   })) {
-    results.push(file);
+    results.push(options.absolute ? file : file.replace(/\\/g, "/"));
   }
   return results.sort();
 }

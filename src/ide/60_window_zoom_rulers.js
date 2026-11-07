@@ -1,7 +1,10 @@
 
 		// Zoom & Pan Workspace Engine
+		let isSpacePressed = false;
+		let isCanvasPanning = false;
 		function setupCanvasZoomAndPan() {
 			const viewport = document.getElementById("canvasViewport");
+			if (!viewport) return;
 
 			viewport.addEventListener("wheel", (e) => {
 				if (e.ctrlKey || e.metaKey) {
@@ -13,17 +16,52 @@
 
 			// Spacebar or Middle Click Panning
 			window.addEventListener("keydown", (e) => {
-				if (e.code === "Space" && e.target === document.body) {
-					e.preventDefault();
+				const isInput = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT" || e.target.isContentEditable);
+				if (e.code === "Space" && !isInput && !getOpenDialog()) {
+					isSpacePressed = true;
 					viewport.classList.add("panning");
 				}
 			});
 
 			window.addEventListener("keyup", (e) => {
 				if (e.code === "Space") {
-					viewport.classList.remove("panning");
+					isSpacePressed = false;
+					if (!isCanvasPanning) viewport.classList.remove("panning");
 				}
 			});
+
+			window.addEventListener("blur", () => {
+				isSpacePressed = false;
+				isCanvasPanning = false;
+				viewport.classList.remove("panning");
+			});
+
+			viewport.addEventListener("mousedown", (e) => {
+				if (e.button === 1 || (e.button === 0 && isSpacePressed)) {
+					e.preventDefault();
+					e.stopPropagation();
+					isCanvasPanning = true;
+					viewport.classList.add("panning");
+					const startX = e.clientX;
+					const startY = e.clientY;
+					const startScrollL = viewport.scrollLeft;
+					const startScrollT = viewport.scrollTop;
+
+					const onPanMove = (me) => {
+						if (!isCanvasPanning) return;
+						viewport.scrollLeft = startScrollL - (me.clientX - startX);
+						viewport.scrollTop = startScrollT - (me.clientY - startY);
+					};
+					const onPanUp = () => {
+						isCanvasPanning = false;
+						if (!isSpacePressed) viewport.classList.remove("panning");
+						window.removeEventListener("mousemove", onPanMove);
+						window.removeEventListener("mouseup", onPanUp);
+					};
+					window.addEventListener("mousemove", onPanMove);
+					window.addEventListener("mouseup", onPanUp);
+				}
+			}, { capture: true });
 		}
 
 		function toggleSidebarPane(which) {
@@ -247,19 +285,6 @@
 		}
 
 		function bindLivePropertyEditors() {
-			const propIds = ["propId", "propText", "propTooltip", "propX", "propY", "propWidth", "propHeight", "propFontSize", "propFontColor", "propBgColor", "propHoverBgColor", "propHoverFgColor", "propCursor"];
-			propIds.forEach((id) => {
-				const el = document.getElementById(id);
-				if (!el) return;
-				["input", "keyup", "change"].forEach((evt) => {
-					el.addEventListener(evt, updateSelectedControl);
-				});
-			});
-
-			const formTitleEl = document.getElementById("propFormTitle");
-			if (formTitleEl) {
-				["input", "keyup", "change"].forEach((evt) => {
-					formTitleEl.addEventListener(evt, updateFormSpec);
-				});
-			}
+			// Property inputs in 05_body_markup.html already bind oninput/onchange="updateSelectedControl('<prop>')"
+			// directly so only the edited property is updated on multi-selection.
 		}

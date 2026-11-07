@@ -215,7 +215,7 @@ function studioShortcutsClient() {
         if (dialogOpen()) return;
         e.preventDefault();
         e.stopImmediatePropagation();
-        if (e.repeat || e.isComposing) return;
+        if (e.repeat || e.isComposing || e.keyCode === 229) return;
         if (
           document.activeElement &&
           typeof document.activeElement.dispatchEvent === "function"
@@ -234,7 +234,34 @@ function studioShortcutsClient() {
         else if (typeof runCurrentMacro === "function") runCurrentMacro(false);
         return;
       }
-      if ((mod && e.key === "/") || (e.key === "F1" && !mod)) {
+      if (e.key === "F5" && !mod && !e.altKey && !e.shiftKey) {
+        if (dialogOpen()) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        if (e.repeat || e.isComposing || e.keyCode === 229) return;
+        const runFn =
+          window.executeSql ||
+          window.runSql ||
+          window.runQuery ||
+          (typeof executeSql === "function" ? executeSql : null);
+        if (typeof runFn === "function") {
+          runFn();
+        } else {
+          const runBtn =
+            document.getElementById &&
+            (document.getElementById("btnRunSql") ||
+              document.getElementById("btnExecuteSql") ||
+              document.getElementById("btnRunQuery"));
+          if (runBtn && typeof runBtn.click === "function") runBtn.click();
+        }
+        return;
+      }
+      if (
+        (mod &&
+          !e.altKey &&
+          (e.key === "/" || e.key === "?" || e.code === "Slash")) ||
+        (e.key === "F1" && !mod && !e.altKey && !e.shiftKey)
+      ) {
         if (dialogOpen()) return;
         e.preventDefault();
         e.stopImmediatePropagation();
@@ -247,7 +274,7 @@ function studioShortcutsClient() {
   window.addEventListener("keydown", (e) => {
     if (
       e.key !== "Escape" ||
-      e.defaultPrevented ||
+      (e.defaultPrevented && !e.__radEscBeepPrevented) ||
       e.metaKey ||
       e.ctrlKey ||
       e.altKey ||

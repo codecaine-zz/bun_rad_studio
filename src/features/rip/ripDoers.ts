@@ -2,7 +2,7 @@
  * Low-level filesystem, manifest I/O, and formatting helpers for the `rip`
  * safe file deletion and graveyard system.
  */
-import { mkdir, rename, rm, stat } from "node:fs/promises";
+import { cp, mkdir, rename, rm, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import type { GraveyardManifest, GraveyardRecord } from "./ripTypes.ts";
@@ -82,7 +82,16 @@ export async function movePath(
   destination: string,
 ): Promise<void> {
   await ensureDirectoryExists(dirname(destination));
-  await rename(source, destination);
+  try {
+    await rename(source, destination);
+  } catch (err: any) {
+    if (err?.code === "EXDEV") {
+      await cp(source, destination, { recursive: true });
+      await rm(source, { recursive: true, force: true });
+    } else {
+      throw err;
+    }
+  }
 }
 
 /**

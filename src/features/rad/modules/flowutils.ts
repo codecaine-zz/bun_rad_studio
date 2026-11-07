@@ -208,15 +208,22 @@ export async function retry<T>(
 export function debounce<T extends (...args: any[]) => void>(
   fn: T,
   waitMs: number,
-): T {
+): T & { cancel: () => void } {
   let timer: any = null;
-  return ((...args: any[]) => {
+  const debounced = ((...args: any[]) => {
     if (timer) clearTimeout(timer);
     timer = setTimeout(() => {
-      fn(...args);
       timer = null;
+      fn(...args);
     }, waitMs);
-  }) as T;
+  }) as T & { cancel: () => void };
+  debounced.cancel = () => {
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+  };
+  return debounced;
 }
 
 // Doer: Throttle function invocation
@@ -228,15 +235,34 @@ export function debounce<T extends (...args: any[]) => void>(
 export function throttle<T extends (...args: any[]) => void>(
   fn: T,
   intervalMs: number,
-): T {
+): T & { cancel: () => void } {
   let lastTime = 0;
-  return ((...args: any[]) => {
+  let timer: any = null;
+  const throttled = ((...args: any[]) => {
     const now = Date.now();
-    if (now - lastTime >= intervalMs) {
+    const remaining = intervalMs - (now - lastTime);
+    if (remaining <= 0 || remaining > intervalMs) {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
       lastTime = now;
       fn(...args);
+    } else if (!timer) {
+      timer = setTimeout(() => {
+        lastTime = Date.now();
+        timer = null;
+        fn(...args);
+      }, remaining);
     }
-  }) as T;
+  }) as T & { cancel: () => void };
+  throttled.cancel = () => {
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+  };
+  return throttled;
 }
 
 /**

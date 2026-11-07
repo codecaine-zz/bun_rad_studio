@@ -762,6 +762,17 @@ export function clearQuickFilters({ focusList = false } = {}) {
 export function focusQuickFilter() {
   const input = $("#quick-filter");
   if (!input || input.closest("[hidden]")) return;
+  if (document.activeElement === input) {
+    const searchInput = $("#search");
+    if (searchInput && !searchInput.disabled) {
+      if (input.value && !searchInput.value) {
+        searchInput.value = input.value;
+      }
+      searchInput.focus();
+      searchInput.select?.();
+      return;
+    }
+  }
   input.focus();
   input.select?.();
 }
@@ -1120,15 +1131,11 @@ export function renderSelectionBar() {
       "Compare Folders",
       "Compare these two folders side by side in the Compare tool",
       () => {
-        openPower("compare");
-        setTimeout(() => {
-          const l = document.getElementById("compare-left");
-          const r = document.getElementById("compare-right");
-          if (l && r) {
-            l.value = items[0].path;
-            r.value = items[1].path;
-          }
-        }, 60);
+        openPower("compare", {
+          left: items[0].path,
+          right: items[1].path,
+          autoStart: true,
+        });
       },
       { primary: true },
     );

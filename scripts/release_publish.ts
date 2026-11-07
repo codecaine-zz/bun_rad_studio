@@ -310,6 +310,187 @@ async function main() {
     console.log("\n" + body);
     return;
   }
+
+  const hasGh = Boolean(Bun.which("gh"));
+  async function resolveGitHubToken(): Promise<string> {
+    const envTok = (
+      process.env.GH_TOKEN ||
+      process.env.GITHUB_TOKEN ||
+      ""
+    ).trim();
+    if (envTok) return envTok;
+    const proc = Bun.spawn(["git", "credential", "fill"], {
+      cwd: ROOT,
+      stdin: new Blob(["protocol=https\nhost=github.com\n\n"]),
+      stdout: "pipe",
+      stderr: "ignore",
+    });
+    const out = await new Response(proc.stdout).text();
+    const tok = out
+      .split(/\r?\n/)
+      .find((l) => l.startsWith("password="))
+      ?.slice("password=".length)
+      .trim();
+    if (!tok)
+      throw new Error(
+        "Neither `gh` CLI nor a GitHub token (`GH_TOKEN`, `GITHUB_TOKEN`, or `git credential fill`) was found.",
+      );
+    return tok;
+  }
+
+  if (!hasGh) {
+    const token = await resolveGitHubToken();
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+    };
+    const tagRes = await fetch(
+      `https://api.github.com/repos/${repo}/releases/tags/${tag}`,
+      { headers },
+    );
+    const existsApi = tagRes.status === 200;
+    if (existsApi && !update) {
+      throw new Error(
+        `The release ${tag} already exists on GitHub. Pass --update, or raise the version in package.json.`,
+      );
+    }
+    let releaseObj: {
+      id: number;
+      upload_url: string;
+      assets?: Array<{ id: number; name: string; digest?: string }>;
+    };
+    if (existsApi && update) {
+      releaseObj = (await tagRes.json()) as typeof releaseObj;
+      const editRes = await fetch(
+        `https://api.github.com/repos/${repo}/releases/${releaseObj.id}`,
+        {
+          method: "PATCH",
+          headers: { ...headers, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: `Bun RAD Studio ${tag}`,
+            body,
+          }),
+        },
+      );
+      if (!editRes.ok)
+        throw new Error(
+          `GitHub API release edit failed (${editRes.status}): ${await editRes.text()}`,
+        );
+    } else {
+      log(
+        "🚀",
+        `Creating release ${tag}${draft ? " (draft)" : ""} via GitHub REST API…`,
+      );
+      const createRes = await fetch(
+        `https://api.github.com/repos/${repo}/releases`,
+        {
+          method: "POST",
+          headers: { ...headers, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tag_name: tag,
+            target_commitish: "main",
+            name: `Bun RAD Studio ${tag}`,
+            body,
+            draft,
+          }),
+        },
+      );
+      if (!createRes.ok)
+        throw new Error(
+          `GitHub API release create failed (${createRes.status}): ${await createRes.text()}`,
+        );
+      releaseObj = (await createRes.json()) as typeof releaseObj;
+    }
+
+    const remoteAssets = new Map<string, { id: number; digest?: string }>();
+    for (const a of releaseObj.assets ?? []) {
+      if (a.name)
+        remoteAssets.set(a.name, {
+          id: a.id,
+          digest: a.digest?.replace(/^sha256:/, ""),
+        });
+    }
+    const toUpload = files.filter(
+      (f) => remoteAssets.get(f.name)?.digest !== hashByName.get(f.name),
+    );
+    log(
+      "🔄",
+      `Uploading to ${tag} (${toUpload.length} changed/new archive(s) + SHA256SUMS.txt, ${files.length - toUpload.length} unchanged skipped)…`,
+    );
+    const uploadQueue = [
+      ...toUpload.map((f) => ({ path: f.path, name: f.name, bytes: f.bytes })),
+      {
+        path: sumsPath,
+        name: "SHA256SUMS.txt",
+        bytes: statSync(sumsPath).size,
+      },
+    ];
+    for (let i = 0; i < uploadQueue.length; i++) {
+      const item = uploadQueue[i]!;
+      log(
+        "⬆️",
+        `[${i + 1}/${uploadQueue.length}] Uploading ${item.name} (${mb(item.bytes)})…`,
+      );
+      let ok = false;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const existing = remoteAssets.get(item.name);
+          if (existing) {
+            await fetch(
+              `https://api.github.com/repos/${repo}/releases/assets/${existing.id}`,
+              { method: "DELETE", headers },
+            );
+            remoteAssets.delete(item.name);
+          }
+          const upRes = await fetch(
+            `https://uploads.github.com/repos/${repo}/releases/${releaseObj.id}/assets?name=${encodeURIComponent(item.name)}`,
+            {
+              method: "POST",
+              headers: {
+                ...headers,
+                "Content-Type": "application/octet-stream",
+                "Content-Length": String(item.bytes),
+              },
+              body: Bun.file(item.path),
+            },
+          );
+          if (upRes.ok) {
+            const uploaded = (await upRes.json()) as {
+              id: number;
+              digest?: string;
+            };
+            remoteAssets.set(item.name, {
+              id: uploaded.id,
+              digest: uploaded.digest?.replace(/^sha256:/, ""),
+            });
+            ok = true;
+            break;
+          }
+          const errText = await upRes.text();
+          if (attempt < 3) {
+            log(
+              "⚠️",
+              `Upload of ${item.name} failed (attempt ${attempt}/3, HTTP ${upRes.status}: ${errText.slice(0, 120)}); retrying in ${attempt * 2}s…`,
+            );
+            await new Promise((r) => setTimeout(r, attempt * 2000));
+          }
+        } catch (err: any) {
+          if (attempt < 3) {
+            log(
+              "⚠️",
+              `Upload of ${item.name} error (attempt ${attempt}/3: ${err?.message ?? err}); retrying in ${attempt * 2}s…`,
+            );
+            await new Promise((r) => setTimeout(r, attempt * 2000));
+          }
+        }
+      }
+      if (!ok) throw new Error(`GitHub asset upload failed for ${item.name}.`);
+    }
+    log("🎉", `Updated: https://github.com/${repo}/releases/tag/${tag}`);
+    return;
+  }
+
   const exists = await run(["gh", "release", "view", tag, "--repo", repo], {
     cwd: ROOT,
   }).then(

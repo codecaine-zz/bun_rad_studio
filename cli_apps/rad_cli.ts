@@ -5,6 +5,7 @@
  * Ported & extended from https://github.com/codecaine-zz/bun_sys_utils
  */
 
+import { join } from "node:path";
 import { rad } from "../src/features/rad/index.ts";
 import { runRadShowcase } from "../src/features/rad/radCli.ts";
 import { colors } from "../src/shared/colors.ts";
@@ -411,8 +412,9 @@ export function printRecipe(moduleName: string): void {
 
   switch (mod.name) {
     case "fileutils":
-      console.log(`await fileutils.saveJson("/tmp/data.json", { status: "ok" });
-const data = await fileutils.loadJson<{ status: string }>("/tmp/data.json");
+      console.log(`const tmpJson = join(rad.sysutils.getTempDir(), "data.json");
+await fileutils.saveJson(tmpJson, { status: "ok" });
+const data = await fileutils.loadJson<{ status: string }>(tmpJson);
 console.log(data.status);`);
       break;
     case "sqliteutils":
@@ -487,7 +489,7 @@ export async function runSingleModuleDemo(moduleName: string): Promise<void> {
   try {
     switch (mod.name) {
       case "fileutils": {
-        const tmp = "/tmp/bun_rad_cli_test.json";
+        const tmp = join(rad.sysutils.getTempDir(), "bun_rad_cli_test.json");
         await rad.fileutils.saveJson(tmp, {
           test: true,
           timestamp: Date.now(),

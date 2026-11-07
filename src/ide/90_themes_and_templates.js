@@ -320,14 +320,6 @@
 			document.getElementById("statusMsg").textContent = "Loaded " + name + " template layout.";
 		}
 
-		function setBgColor(hex) {
-			const bgEl = document.getElementById("propBgColor");
-			if (bgEl) {
-				bgEl.value = hex;
-				updateSelectedControl();
-			}
-		}
-
 		function capitalize(str) {
 			return str.charAt(0).toUpperCase() + str.slice(1);
 		}

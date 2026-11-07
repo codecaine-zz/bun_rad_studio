@@ -12,6 +12,7 @@ import {
   absolutePath,
   assertCreatable,
   assertModifiable,
+  pathApi,
   type FmContext,
   type FmHandler,
 } from "./fmCore";
@@ -22,6 +23,7 @@ import {
   extensionOf,
   formatSize,
   isDocumentPackageName,
+  isSameOrInside,
   splitName,
 } from "./fmPaths";
 import { imagePreviewFor } from "./fmQuickLook";
@@ -241,11 +243,15 @@ export async function pasteClipboardImageToFile(
     });
     wrote = r.status === 0 && existsSync(targetPath);
   } else if (ctx.platform === "win32") {
-    const ps = `$img = Get-Clipboard -Format Image; if ($null -eq $img) { exit 2 }; $img.Save(${JSON.stringify(targetPath)}, [System.Drawing.Imaging.ImageFormat]::Png)`;
+    const ps = `Add-Type -AssemblyName System.Drawing; $img = Get-Clipboard -Format Image; if ($null -eq $img) { exit 2 }; $img.Save($env:FM_CLIP_OUT, [System.Drawing.Imaging.ImageFormat]::Png)`;
     const r = spawnSync(
       "powershell",
-      ["-NoProfile", "-NonInteractive", "-Command", ps],
-      { stdio: "ignore", timeout: 6000 },
+      ["-NoProfile", "-NonInteractive", "-Sta", "-Command", ps],
+      {
+        stdio: "ignore",
+        timeout: 6000,
+        env: { ...process.env, FM_CLIP_OUT: targetPath },
+      },
     );
     wrote = r.status === 0 && existsSync(targetPath);
   } else {
@@ -598,8 +604,17 @@ async function computeFileDigest(
       `"${nodePath.basename(filePath)}" is not a regular file.`,
     );
   const h = createHash(algorithm);
-  const buf = await fsp.readFile(filePath);
-  h.update(buf);
+  const handle = await fsp.open(filePath, "r");
+  try {
+    const chunk = Buffer.allocUnsafe(Math.min(1024 * 1024, Math.max(4096, st.size)));
+    while (true) {
+      const { bytesRead } = await handle.read(chunk, 0, chunk.length, null);
+      if (bytesRead <= 0) break;
+      h.update(bytesRead === chunk.length ? chunk : chunk.subarray(0, bytesRead));
+    }
+  } finally {
+    await handle.close();
+  }
   return { hash: h.digest("hex"), size: st.size };
 }
 
@@ -860,12 +875,13 @@ export async function verifyChecksums(
   let passed = 0;
   let failed = 0;
   let missing = 0;
-  const manifestDir = nodePath.dirname(manifestPath);
+  const p = pathApi(ctx);
+  const manifestDir = p.dirname(manifestPath);
 
   for (const item of entriesToVerify.slice(0, 200)) {
-    const safeRel = item.fileName.replace(/^[/\\]+/, "");
-    const candidate = absolutePath(ctx, nodePath.join(manifestDir, safeRel));
-    if (!existsSync(candidate)) {
+    const safeRel = item.fileName.replace(/\\/g, "/").replace(/^\/+/, "");
+    const candidate = absolutePath(ctx, p.join(manifestDir, ...safeRel.split("/")));
+    if (!isSameOrInside(candidate, manifestDir, ctx.platform) || !existsSync(candidate)) {
       missing++;
       results.push({
         name: item.fileName,

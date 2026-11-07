@@ -1094,24 +1094,24 @@ export class SetCollection<T> {
   /** Returns a new `SetCollection<T>` containing elements present in either this set or `other`. */
   public union(other: SetCollection<T>): SetCollection<T> {
     const res = new SetCollection<T>();
-    this.toArray().forEach((i) => res.add(i));
-    other.toArray().forEach((i) => res.add(i));
+    for (const i of this.set) res.add(i);
+    for (const i of other.set) res.add(i);
     return res;
   }
   /** Returns a new `SetCollection<T>` containing only elements present in both this set and `other`. */
   public intersect(other: SetCollection<T>): SetCollection<T> {
     const res = new SetCollection<T>();
-    this.toArray().forEach((i) => {
+    for (const i of this.set) {
       if (other.has(i)) res.add(i);
-    });
+    }
     return res;
   }
   /** Returns a new `SetCollection<T>` containing elements in this set that are not in `other`. */
   public difference(other: SetCollection<T>): SetCollection<T> {
     const res = new SetCollection<T>();
-    this.toArray().forEach((i) => {
+    for (const i of this.set) {
       if (!other.has(i)) res.add(i);
-    });
+    }
     return res;
   }
 }

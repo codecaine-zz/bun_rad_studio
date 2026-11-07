@@ -114,11 +114,22 @@ export function deleteDiskItem(targetPath: string): void {
 
 // Doer: launch default operating system handler for file or directory
 /**
- * Opens `targetPath` in the operating system's default application (`open` on macOS, `xdg-open` on Linux).
+ * Opens `targetPath` in the operating system's default application (`open` on macOS, `xdg-open` on Linux, `cmd /c start` on Windows).
  */
 export function openItemInDefaultApp(targetPath: string): void {
-  const cmd = process.platform === "darwin" ? "open" : "xdg-open";
-  Bun.spawn([cmd, targetPath]);
+  try {
+    if (process.platform === "win32") {
+      Bun.spawn(["cmd", "/c", "start", "", targetPath], {
+        stdout: "ignore",
+        stderr: "ignore",
+      });
+    } else {
+      const cmd = process.platform === "darwin" ? "open" : "xdg-open";
+      Bun.spawn([cmd, targetPath], { stdout: "ignore", stderr: "ignore" });
+    }
+  } catch {
+    // Ignore if opener is unavailable in headless environments
+  }
 }
 
 /**
@@ -282,7 +293,7 @@ export function scanItemSync(
  * Parses `df -k` command output into an array of `MountedDisk` objects for `/dev/*` block devices.
  */
 export function parseDfOutput(raw: string): MountedDisk[] {
-  const lines = raw.trim().split("\n");
+  const lines = raw.trim().split(/\r?\n/);
   const disks: MountedDisk[] = [];
 
   for (let i = 1; i < lines.length; i++) {
@@ -291,7 +302,7 @@ export function parseDfOutput(raw: string): MountedDisk[] {
     const filesystem = parts[0]!;
     const size = (parseInt(parts[1]!, 10) || 0) * 1024;
     const used = (parseInt(parts[2]!, 10) || 0) * 1024;
-    const available = (parseInt(parts[3]!, 10) || 0) * 1024;
+    const available = (parseInt(parts[3]!, 0) || parseInt(parts[3]!, 10) || 0) * 1024;
     const percentUsed = parts[4]!;
     const mountPoint = parts[parts.length - 1]!;
 
@@ -326,9 +337,13 @@ export function fetchMountedDisksSync(): MountedDisk[] {
  * Asynchronously executes `df -k` and returns the parsed list of mounted `/dev/*` disks.
  */
 export async function fetchMountedDisks(): Promise<MountedDisk[]> {
-  const proc = Bun.spawn(["df", "-k"], { stdout: "pipe", stderr: "pipe" });
-  const raw = await new Response(proc.stdout).text();
-  return parseDfOutput(raw);
+  try {
+    const proc = Bun.spawn(["df", "-k"], { stdout: "pipe", stderr: "pipe" });
+    const raw = await new Response(proc.stdout).text();
+    return parseDfOutput(raw);
+  } catch {
+    return [];
+  }
 }
 
 /**
