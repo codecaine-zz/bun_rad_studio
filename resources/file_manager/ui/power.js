@@ -242,11 +242,17 @@ export function togglePowerExpanded() {
   }
   const activeEl =
     typeof document === "undefined" ? null : document.activeElement;
+  const termExpandBtn =
+    typeof document === "undefined"
+      ? null
+      : document.getElementById?.("terminal-expand");
   if (
-    state.terminalOpen &&
-    (activeEl?.closest?.("#terminal-panel") || !powerIsOpen())
+    termExpandBtn &&
+    !isPowerExpanded() &&
+    (!powerIsOpen() ||
+      (state.terminalOpen && !activeEl?.closest?.("#power-panel")))
   ) {
-    document.getElementById?.("terminal-expand")?.click?.();
+    termExpandBtn.click();
     return;
   }
   if (isPowerExpanded()) {
@@ -672,28 +678,37 @@ export function wirePower() {
       $(`#power-tab-${next.id}`)?.focus();
     }
   });
-  let lastF11Down = 0;
+  let f11HandledOnDown = false;
+  if (typeof window !== "undefined") {
+    window.addEventListener?.("blur", () => {
+      f11HandledOnDown = false;
+    });
+  }
   document.addEventListener(
     "keydown",
     (e) => {
-      if (document.querySelector(".modal-backdrop")) return;
+      if (e.defaultPrevented || document.querySelector(".modal-backdrop"))
+        return;
       const isF11 =
         e.key === "F11" ||
         e.code === "F11" ||
         e.key === "\uF70E" ||
-        e.keyCode === 122;
+        e.key === "SunF36" ||
+        e.keyCode === 122 ||
+        e.which === 122;
       const isMacCtrlCmdF =
         e.ctrlKey &&
         e.metaKey &&
         !e.altKey &&
         (e.key === "f" || e.key === "F" || e.code === "KeyF");
       if (isF11 || isMacCtrlCmdF || matchesAction(e, "app.expandTool")) {
-        if (isF11) lastF11Down = Date.now();
+        if (isF11) f11HandledOnDown = true;
         e.preventDefault();
         e.stopPropagation();
-        togglePowerExpanded();
+        if (!e.repeat) togglePowerExpanded();
         return;
       }
+      f11HandledOnDown = false;
       const inCodeOrTerm =
         typeof e.target?.closest === "function" &&
         !!e.target.closest(".code-root, #terminal-panel");
@@ -714,17 +729,25 @@ export function wirePower() {
   document.addEventListener(
     "keyup",
     (e) => {
-      if (document.querySelector(".modal-backdrop")) return;
+      if (e.defaultPrevented || document.querySelector(".modal-backdrop"))
+        return;
       const isF11 =
         e.key === "F11" ||
         e.code === "F11" ||
         e.key === "\uF70E" ||
-        e.keyCode === 122;
-      if (isF11 && Date.now() - lastF11Down > 300) {
+        e.key === "SunF36" ||
+        e.keyCode === 122 ||
+        e.which === 122;
+      if (!isF11) return;
+      if (f11HandledOnDown) {
+        f11HandledOnDown = false;
         e.preventDefault();
         e.stopPropagation();
-        togglePowerExpanded();
+        return;
       }
+      e.preventDefault();
+      e.stopPropagation();
+      togglePowerExpanded();
     },
     true,
   );

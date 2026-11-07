@@ -324,7 +324,8 @@ function clientScript(names: string[], wsUrl: string): string {
     Object.keys(pending).forEach(function (id) { pending[id].reject(new Error("The tool stopped.")); delete pending[id]; });
     banner("This tool has stopped. Switch to another tool and back to start it again.");
   };
-  var _lastF11 = 0;
+  var _f11Down = false;
+  window.addEventListener("blur", function () { _f11Down = false; });
   window.addEventListener("keydown", function (e) {
     if (!window.parent || window.parent === window) return;
     var mod = e.ctrlKey || e.metaKey;
@@ -340,14 +341,17 @@ function clientScript(names: string[], wsUrl: string): string {
       }
       return;
     }
-    var isF11 = e.key === "F11" || e.code === "F11" || e.key === "\\uF70E" || e.keyCode === 122;
+    var isF11 = e.key === "F11" || e.code === "F11" || e.key === "\\uF70E" || e.key === "SunF36" || e.keyCode === 122 || e.which === 122;
     if (isF11 || (mod && e.shiftKey && !e.altKey && (k === "u" || e.code === "KeyU")) || (e.ctrlKey && e.metaKey && !e.altKey && (k === "f" || e.code === "KeyF")) || (e.altKey && !mod && !e.shiftKey && (e.code === "Digit8" || e.key === "8"))) {
-      if (isF11) _lastF11 = Date.now();
+      if (isF11) _f11Down = true;
       e.preventDefault();
       e.stopPropagation();
-      try { parent.postMessage({ fmToggleExpand: true }, "*"); } catch (_) {}
+      if (!e.repeat) {
+        try { parent.postMessage({ fmToggleExpand: true }, "*"); } catch (_) {}
+      }
       return;
     }
+    _f11Down = false;
     if (mod && !e.altKey && !e.shiftKey && (k === "k" || e.code === "KeyK")) {
       e.preventDefault();
       e.stopPropagation();
@@ -380,12 +384,17 @@ function clientScript(names: string[], wsUrl: string): string {
   }, false);
   window.addEventListener("keyup", function (e) {
     if (!window.parent || window.parent === window) return;
-    var isF11 = e.key === "F11" || e.code === "F11" || e.key === "\\uF70E" || e.keyCode === 122;
-    if (isF11 && Date.now() - _lastF11 > 300) {
+    var isF11 = e.key === "F11" || e.code === "F11" || e.key === "\\uF70E" || e.key === "SunF36" || e.keyCode === 122 || e.which === 122;
+    if (!isF11) return;
+    if (_f11Down) {
+      _f11Down = false;
       e.preventDefault();
       e.stopPropagation();
-      try { parent.postMessage({ fmToggleExpand: true }, "*"); } catch (_) {}
+      return;
     }
+    e.preventDefault();
+    e.stopPropagation();
+    try { parent.postMessage({ fmToggleExpand: true }, "*"); } catch (_) {}
   }, true);
 })();`;
 }

@@ -443,6 +443,31 @@ describe("selected paths for a terminal", () => {
     expect(t.isTerminalExpanded()).toBe(false);
     expect(t.appClasses.has("term-max")).toBe(false);
     expect(t.element.hidden).toBe(true);
+
+    // Pressing F11 on Linux opens and expands the terminal, ignores key repeat and delayed keyup, and toggles back on next F11.
+    t.wireTerminal();
+    t.dispatchKey("keydown", { key: "F11", code: "F11", keyCode: 122 });
+    expect(t.element.hidden).toBe(false);
+    expect(t.isTerminalExpanded()).toBe(true);
+    // Holding F11 (auto-repeat) and releasing F11 after >300ms must not collapse the terminal.
+    t.dispatchKey("keydown", {
+      key: "F11",
+      code: "F11",
+      keyCode: 122,
+      repeat: true,
+    });
+    expect(t.isTerminalExpanded()).toBe(true);
+    t.dispatchKey("keyup", { key: "F11", code: "F11", keyCode: 122 });
+    expect(t.isTerminalExpanded()).toBe(true);
+    // Pressing F11 again restores the terminal to its docked height while keeping it open.
+    t.dispatchKey("keydown", { key: "F11", code: "F11", keyCode: 122 });
+    expect(t.isTerminalExpanded()).toBe(false);
+    expect(t.element.hidden).toBe(false);
+    t.dispatchKey("keyup", { key: "F11", code: "F11", keyCode: 122 });
+    expect(t.isTerminalExpanded()).toBe(false);
+    // If the window manager swallows F11 keydown and only delivers keyup, keyup still expands the terminal.
+    t.dispatchKey("keyup", { key: "F11", code: "F11", keyCode: 122 });
+    expect(t.isTerminalExpanded()).toBe(true);
   });
 });
 
@@ -502,6 +527,7 @@ function loadTerminal(platform: string) {
   };
   const element = {
     hidden: true,
+    checked: true,
     title: "",
     textContent: "",
     style: {
@@ -510,8 +536,11 @@ function loadTerminal(platform: string) {
       },
     },
     setAttribute() {},
+    addEventListener() {},
+    querySelector: () => ({ textContent: "", addEventListener() {} }),
     contains: () => false,
   };
+  const docListeners = new Map<string, Array<(e: any) => void>>();
   const appClasses = new Set<string>();
   const appEl = {
     classList: {
@@ -548,9 +577,9 @@ function loadTerminal(platform: string) {
     "deps",
     `
     const { $, Terminal, FitAddon, ResizeObserver, WebSocket, window, document, requestAnimationFrame,
-      quoteArg, quotePathsForTerminal, shellFor, windowsToGitBash, windowsToWsl, state, terminalUrl, emit, toast, goTo, saveSettings, wireTerminalClipboard, terminalTheme = () => ({}) } = deps;
+      quoteArg, quotePathsForTerminal, shellFor, windowsToGitBash, windowsToWsl, state, terminalUrl, on, emit, toast, goTo, saveSettings, wireTerminalClipboard, terminalTheme = () => ({}), hintOf = () => "", labelOf = () => "", matchesAction = () => false } = deps;
     ${source}
-    return { insertPaths, folderCommand, typeInTerminal, showTerminal, hideTerminal, restoreTerminal, isTerminalExpanded, setTerminalExpanded, toggleTerminalExpanded };
+    return { insertPaths, folderCommand, typeInTerminal, showTerminal, hideTerminal, restoreTerminal, isTerminalExpanded, setTerminalExpanded, toggleTerminalExpanded, wireTerminal };
   `,
   )({
     $: () => element,
@@ -560,12 +589,17 @@ function loadTerminal(platform: string) {
       observe() {}
     },
     WebSocket: FakeSocket,
-    window: { innerHeight: 1000 },
+    window: { innerHeight: 1000, addEventListener() {} },
     document: {
       activeElement: null,
       querySelector: () => null,
       getElementById: (id: string) =>
         id === "app" ? appEl : id === "terminal-expand" ? expandBtn : null,
+      addEventListener(type: string, fn: (e: any) => void) {
+        const list = docListeners.get(type) ?? [];
+        list.push(fn);
+        docListeners.set(type, list);
+      },
     },
     requestAnimationFrame: () => 0,
     quoteArg,
@@ -583,6 +617,7 @@ function loadTerminal(platform: string) {
       terminalOpen: false,
     },
     terminalUrl: (folder: string) => `ws://test?path=${folder}`,
+    on: () => () => {},
     emit() {},
     toast: (message: string) => notices.push(message),
     wireTerminalClipboard() {},
@@ -602,9 +637,25 @@ function loadTerminal(platform: string) {
     isTerminalExpanded: () => boolean;
     setTerminalExpanded: (expanded: boolean) => void;
     toggleTerminalExpanded: () => void;
+    wireTerminal: () => void;
+  };
+  const dispatchKey = (type: "keydown" | "keyup", init: Record<string, any>) => {
+    const ev = {
+      type,
+      defaultPrevented: false,
+      repeat: false,
+      ...init,
+      preventDefault() {
+        this.defaultPrevented = true;
+      },
+      stopPropagation() {},
+    };
+    for (const fn of docListeners.get(type) ?? []) fn(ev);
+    return ev;
   };
   return {
     ...api,
+    dispatchKey,
     sockets,
     urls,
     notices,

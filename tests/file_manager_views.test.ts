@@ -382,11 +382,35 @@ beforeAll(async () => {
     terminalWsl: () => ({}),
     terminalAvailable: () => true,
     typeInTerminal: () => true,
-    showTerminal() {},
-    hideTerminal() {},
+    showTerminal() {
+      const panel = doc?.getElementById("terminal-panel");
+      if (panel) panel.hidden = false;
+    },
+    hideTerminal() {
+      const panel = doc?.getElementById("terminal-panel");
+      if (panel) panel.hidden = true;
+      doc?.getElementById("app")?.classList.remove("term-max");
+    },
     toggleTerminal() {},
-    isTerminalOpen: () => false,
-    wireTerminal() {},
+    isTerminalOpen: () => !doc?.getElementById("terminal-panel")?.hidden,
+    wireTerminal() {
+      doc?.getElementById("terminal-expand")?.addEventListener("click", () => {
+        const a = doc?.getElementById("app");
+        const panel = doc?.getElementById("terminal-panel");
+        if (!a || !panel) return;
+        if (a.classList.contains("term-max")) {
+          a.classList.remove("term-max");
+        } else {
+          panel.hidden = false;
+          a.classList.add("term-max");
+        }
+      });
+      doc?.getElementById("terminal-close")?.addEventListener("click", () => {
+        const panel = doc?.getElementById("terminal-panel");
+        if (panel) panel.hidden = true;
+        doc?.getElementById("app")?.classList.remove("term-max");
+      });
+    },
   }));
   server = startFileManagerServer({
     port: 0,
@@ -4425,6 +4449,47 @@ describe("tool screen room toggles and universal window/browser actions", () => 
     );
     await sleep(60);
     expect(ws()).toBe("files");
+
+    // Pressing F11 in Files view opens and expands the terminal (and releasing F11 after >300ms does not collapse it)
+    expect(app().classList.contains("term-max")).toBe(false);
+    key(doc.body, "F11", { code: "F11" });
+    expect(app().classList.contains("term-max")).toBe(true);
+    expect($("#terminal-panel").hidden).toBe(false);
+    doc.body.dispatchEvent(
+      new win.KeyboardEvent("keyup", {
+        key: "F11",
+        code: "F11",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    expect(app().classList.contains("term-max")).toBe(true);
+    // Pressing F11 again restores the terminal from full-window mode
+    key(doc.body, "F11", { code: "F11" });
+    doc.body.dispatchEvent(
+      new win.KeyboardEvent("keyup", {
+        key: "F11",
+        code: "F11",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    expect(app().classList.contains("term-max")).toBe(false);
+    expect($("#terminal-panel").hidden).toBe(false);
+    // If the window manager swallows F11 keydown and only delivers keyup, keyup toggles terminal expansion
+    doc.body.dispatchEvent(
+      new win.KeyboardEvent("keyup", {
+        key: "F11",
+        code: "F11",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    expect(app().classList.contains("term-max")).toBe(true);
+    $("#terminal-close").click();
+    expect(app().classList.contains("term-max")).toBe(false);
+    expect($("#terminal-panel").hidden).toBe(true);
+
     key(doc.body, "k", { ...modOpt, code: "KeyK" });
     expect(ws()).toBe("tools");
     expect(doc.activeElement.id).toBe("power-filter");

@@ -51,6 +51,16 @@ export function wireTerminalClipboard(term, host) {
 
   term.attachCustomKeyEventHandler((e) => {
     if (e.type !== "keydown") return true;
+    if (
+      e.key === "F11" ||
+      e.code === "F11" ||
+      e.key === "\uF70E" ||
+      e.key === "SunF36" ||
+      e.keyCode === 122 ||
+      e.which === 122
+    ) {
+      return false;
+    }
     const key = (e.key || "").toLowerCase();
     if (
       e.shiftKey &&

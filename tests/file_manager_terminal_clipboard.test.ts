@@ -237,6 +237,7 @@ describe("terminal selection and clipboard controls", () => {
       expect(
         f.key("c", { ctrlKey: true, shiftKey: true, altKey: true }).result,
       ).toBe(true);
+      expect(f.key("F11").result).toBe(false);
     }
   });
 

@@ -648,27 +648,81 @@ export function wireTerminal() {
   syncTerminalExpandButton();
   wireResizer();
   window.addEventListener("resize", () => state.terminalOpen && applyHeight());
-  // The terminal keys (Cmd+J / Ctrl+J, Ctrl+`, Cmd/Ctrl+Alt+T, and Cmd/Ctrl+Alt+V unless changed in Settings) work everywhere, also while typing in the terminal.
+  // The terminal keys (F11, Cmd+J / Ctrl+J, Ctrl+`, Cmd/Ctrl+Alt+T, and Cmd/Ctrl+Alt+V unless changed in Settings) work everywhere, also while typing in the terminal.
+  let f11HandledOnDown = false;
+  const isF11Event = (e) =>
+    e.key === "F11" ||
+    e.code === "F11" ||
+    e.key === "\uF70E" ||
+    e.key === "SunF36" ||
+    e.keyCode === 122 ||
+    e.which === 122;
+  const shouldHandleTerminalExpand = () => {
+    if (isTerminalExpanded()) return true;
+    const app =
+      typeof document === "undefined" ? null : document.getElementById?.("app");
+    if (
+      app?.classList?.contains?.("power-max") ||
+      app?.classList?.contains?.("db-studio-max")
+    )
+      return false;
+    const powerPanel =
+      typeof document === "undefined"
+        ? null
+        : document.getElementById?.("power-panel");
+    const powerOpen = !!powerPanel && !powerPanel.hidden;
+    const activeEl =
+      typeof document === "undefined" ? null : document.activeElement;
+    return (
+      !powerOpen || (state.terminalOpen && !activeEl?.closest?.("#power-panel"))
+    );
+  };
+  if (typeof window?.addEventListener === "function") {
+    window.addEventListener("blur", () => {
+      f11HandledOnDown = false;
+    });
+  }
   document.addEventListener(
     "keydown",
     (e) => {
+      if (e.defaultPrevented || document.querySelector(".modal-backdrop"))
+        return;
       if (
         e.key === "Escape" &&
-        !e.defaultPrevented &&
         isTerminalExpanded() &&
-        !e.target?.closest?.(".term-host") &&
-        !document.querySelector(".modal-backdrop")
+        !e.target?.closest?.(".term-host")
       ) {
         e.preventDefault();
         e.stopPropagation();
         setTerminalExpanded(false);
         return;
       }
-      const toggle = matchesAction(e, "terminal.toggle");
-      const here = !toggle && matchesAction(e, "terminal.here");
-      const paste = !toggle && !here && matchesAction(e, "terminal.paste");
+      const isF11 = isF11Event(e);
+      const expand =
+        isF11 ||
+        (typeof matchesAction === "function" &&
+          matchesAction(e, "app.expandTool"));
+      if (expand && shouldHandleTerminalExpand()) {
+        if (isF11) f11HandledOnDown = true;
+        e.preventDefault();
+        e.stopPropagation();
+        if (!e.repeat) toggleTerminalExpanded();
+        return;
+      }
+      if (!isF11) f11HandledOnDown = false;
+      const toggle =
+        typeof matchesAction === "function" &&
+        matchesAction(e, "terminal.toggle");
+      const here =
+        !toggle &&
+        typeof matchesAction === "function" &&
+        matchesAction(e, "terminal.here");
+      const paste =
+        !toggle &&
+        !here &&
+        typeof matchesAction === "function" &&
+        matchesAction(e, "terminal.paste");
       if (!toggle && !here && !paste) return;
-      if (document.querySelector(".modal-backdrop")) return;
       e.preventDefault();
       e.stopPropagation();
       if (toggle) toggleTerminal();
@@ -687,6 +741,26 @@ export function wireTerminal() {
         if (socket && socket.readyState === WebSocket.CONNECTING)
           socket.addEventListener("open", run, { once: true });
         else run();
+      }
+    },
+    true,
+  );
+  document.addEventListener(
+    "keyup",
+    (e) => {
+      if (e.defaultPrevented || document.querySelector(".modal-backdrop"))
+        return;
+      if (!isF11Event(e)) return;
+      if (f11HandledOnDown) {
+        f11HandledOnDown = false;
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      if (shouldHandleTerminalExpand()) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleTerminalExpanded();
       }
     },
     true,

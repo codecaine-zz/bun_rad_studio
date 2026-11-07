@@ -148,7 +148,9 @@ export function matchShortcut(e, spec, platform) {
   return (
     pressed === s.key ||
     (/^F\d{1,2}$/.test(s.key) &&
-      (e.code === s.key || (s.key === "F11" && e.keyCode === 122)))
+      (e.code === s.key ||
+        (s.key === "F11" &&
+          (e.keyCode === 122 || e.which === 122 || e.key === "SunF36"))))
   );
 }
 

@@ -257,7 +257,7 @@ On a Mac, use ⌘ where this table says Ctrl. Press F1 in the app for the same l
 | Window views: Files, Home, Tools, Split, Dual | Alt+1, Alt+2, Alt+3, Alt+4, Alt+5 (⌥ on a Mac) |
 | Focus (hide toolbar and side panels), leave with Esc | Alt+6 |
 | Fold the sidebar away | Alt+7 |
-| Expand or restore the tool (ultra focus), leave with Esc | F11, Ctrl+F11, Ctrl+Shift+U, or Alt+8 |
+| Expand or restore the tool or terminal (ultra focus), leave with Esc | F11, Ctrl+F11, Ctrl+Shift+U, or Alt+8 |
 | Filter tools and apps | Ctrl+K |
 | Open Find in the Tools view | Ctrl+Shift+F |
 | Dual view: switch side, copy, move | Tab, F5 or Ctrl+Alt+C, F6 or Ctrl+Alt+M |
@@ -267,7 +267,7 @@ On a Mac, use ⌘ where this table says Ctrl. Press F1 in the app for the same l
 | Activity (operation history), Settings, Themes gallery | Ctrl+Shift+Y, Ctrl+,, Ctrl+Shift+T |
 | Keyboard shortcuts customization dialog | Ctrl+Shift+/ |
 | Copy the section you are in | Alt+Shift+C (⌥⇧C on a Mac) |
-| Show or hide the terminal | Ctrl+\` (Control on a Mac too), or the **⌨️ Terminal** button in the status bar |
+| Show or hide the terminal | Cmd+J (on a Mac) or Ctrl+J (Windows/Linux), Ctrl+\`, or the **⌨️ Terminal** button in the status bar |
 | Open the terminal in the selected folder (or the one you are looking at) | Ctrl+Alt+T (⌘⌥T on a Mac), or right-click → **Open terminal here** |
 | Paste into the terminal | Ctrl+Alt+V |
 | Context menu | Shift+F10, Ctrl+Shift+M, or the Menu key |
