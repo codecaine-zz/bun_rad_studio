@@ -277,12 +277,66 @@ async function main() {
   for (const f of files) {
     const h = await sha256File(f.path);
     hashByName.set(f.name, h);
-    sums.push(`${h}  ${f.name}`);
   }
+
+  const allMeta: Array<{ name: string; bytes: number }> = files.map((f) => ({
+    name: f.name,
+    bytes: f.bytes,
+  }));
+  if (update) {
+    try {
+      const res = await fetch(
+        `https://api.github.com/repos/${repo}/releases/tags/${tag}`,
+        {
+          headers: {
+            Accept: "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+          },
+        },
+      );
+      if (res.ok) {
+        const rel = (await res.json()) as {
+          assets?: Array<{ name: string; size: number; digest?: string }>;
+        };
+        const vEsc = VERSION.replace(/\./g, "\\.");
+        const validRemoteRe = new RegExp(
+          `^(?:Codecaine-File-Manager-v${vEsc}-.*\\.zip|codecaine-file-manager_${vEsc}_(?:amd64|arm64)\\.deb|bun-rad-studio-v${vEsc}-.*\\.(?:tar\\.gz|zip))$`,
+        );
+        for (const a of rel.assets ?? []) {
+          if (
+            a.name &&
+            validRemoteRe.test(a.name) &&
+            !hashByName.has(a.name) &&
+            a.digest
+          ) {
+            hashByName.set(a.name, a.digest.replace(/^sha256:/, ""));
+            allMeta.push({ name: a.name, bytes: a.size });
+          }
+        }
+      }
+    } catch {}
+  }
+  const sortBucket = (n: string) =>
+    n.startsWith("Codecaine-File-Manager-")
+      ? 0
+      : n.startsWith("codecaine-file-manager_")
+        ? 1
+        : /-free-music-/.test(n)
+          ? 3
+          : 2;
+  allMeta.sort(
+    (a, b) =>
+      sortBucket(a.name) - sortBucket(b.name) || a.name.localeCompare(b.name),
+  );
+  for (const m of allMeta) {
+    const h = hashByName.get(m.name);
+    if (h) sums.push(`${h}  ${m.name}`);
+  }
+
   const sumsPath = join(RELEASE, "SHA256SUMS.txt");
   writeFileSync(sumsPath, sums.join("\n") + "\n");
   const body = notes(
-    files,
+    allMeta,
     repo,
     changelogHighlights(
       existsSync(join(ROOT, "CHANGELOG.md"))

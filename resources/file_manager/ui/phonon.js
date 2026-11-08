@@ -524,11 +524,11 @@ function mountPhononStudio(root, payload) {
       elapsedSinceChange >= 0 && elapsedSinceChange < 380
         ? Math.round((1 - elapsedSinceChange / 380) * 110)
         : 0;
+    const baseLatencyMs = currentTeleprompterData.pcmAligned
+      ? Math.min(18, probedOutputLatencyMs)
+      : probedOutputLatencyMs;
     return (
-      probedOutputLatencyMs +
-      rateStretchLatency +
-      pitchShiftLatency +
-      settleLatency
+      baseLatencyMs + rateStretchLatency + pitchShiftLatency + settleLatency
     );
   }
 
@@ -1293,7 +1293,7 @@ function mountPhononStudio(root, payload) {
     for (let cIdx = 0; cIdx < cues.length; cIdx++) {
       const cue = cues[cIdx];
       const lineEl = h("div", {
-        class: `phonon-teleprompter-line${cIdx === 0 && !isPlaying ? " is-active-cue" : ""}`,
+        class: `phonon-teleprompter-line${cIdx === 0 ? " is-active-cue" : ""}`,
         dataset: { cueIdx: String(cIdx) },
       });
       const cueWords = cue.words || words.filter((w) => w.cueIndex === cIdx);
@@ -1344,7 +1344,36 @@ function mountPhononStudio(root, payload) {
       );
     }
 
+    teleprompterStage.scrollTop = 0;
     teleprompterWordBadge.textContent = `Segment ${idx + 1}/${chunks.length} · ${words.length} words${currentTeleprompterData.pcmAligned ? " · Waveform Synced" : ""}`;
+  }
+
+  function scrollTeleprompterCueIntoView(cueIdx, smooth = true) {
+    if (!teleprompterStage) return;
+    if (cueIdx <= 0) {
+      if (smooth) {
+        teleprompterStage.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        teleprompterStage.scrollTop = 0;
+      }
+      return;
+    }
+    const row = cueRowNodes[cueIdx];
+    if (!row) return;
+    const stageRect = teleprompterStage.getBoundingClientRect();
+    const rowRect = row.getBoundingClientRect();
+    if (stageRect.height <= 0) return;
+    const targetScrollTop = Math.max(
+      0,
+      teleprompterStage.scrollTop +
+        (rowRect.top - stageRect.top) -
+        (stageRect.height - rowRect.height) / 2,
+    );
+    if (smooth) {
+      teleprompterStage.scrollTo({ top: targetScrollTop, behavior: "smooth" });
+    } else {
+      teleprompterStage.scrollTop = targetScrollTop;
+    }
   }
 
   let lastRawAudioTimeSec = -1;
@@ -1459,10 +1488,7 @@ function mountPhononStudio(root, payload) {
         row.classList.toggle("is-past-cue", c < cueIdx);
       }
       if (teleprompterAutoScroll && cueRowNodes[cueIdx]) {
-        cueRowNodes[cueIdx].scrollIntoView({
-          block: "nearest",
-          behavior: "smooth",
-        });
+        scrollTeleprompterCueIntoView(cueIdx, cueIdx > 0 && !immediateJump);
       }
     }
 
@@ -1699,8 +1725,22 @@ function mountPhononStudio(root, payload) {
         voice: selectedVoice,
         pitch,
       });
+      renderTeleprompterForChunk(
+        activeChunkIndex >= 0 ? activeChunkIndex : 0,
+        res.words,
+        res.cues,
+        res.durationSec,
+        res.pcmAligned !== false,
+        res.pitch ?? pitch,
+      );
+      isPlaying = true;
+      isPaused = false;
+      lastRawAudioTimeSec = -1;
+      lastRawAudioPerfMs = performance.now();
+      updateTransportButtons();
       audioEl.src = audioUrlWithToken(res.url);
       applyAudioPlaybackSettings();
+      startTeleprompterLoop();
       await audioEl.play();
       const statusMsg = matchedCustom
         ? `🔊 Speaking with your cloned AI voice "${spokenName}" (${matchedCustom.profile?.medianF0Hz} Hz ${matchedCustom.profile?.voiceRegister} · ${res.durationSec}s)`
@@ -2106,7 +2146,21 @@ function mountPhononStudio(root, payload) {
     const activeRow = chunkListContainer.querySelector(
       `.phonon-chunk-item[data-index="${startIndex}"]`,
     );
-    activeRow?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    if (activeRow) {
+      const cRect = chunkListContainer.getBoundingClientRect();
+      const rRect = activeRow.getBoundingClientRect();
+      if (cRect.height > 0) {
+        chunkListContainer.scrollTo({
+          top: Math.max(
+            0,
+            chunkListContainer.scrollTop +
+              (rRect.top - cRect.top) -
+              (cRect.height - rRect.height) / 2,
+          ),
+          behavior: "smooth",
+        });
+      }
+    }
 
     const voiceToUse = selectedVoice;
     const pitchToUse = pitch;
@@ -2146,6 +2200,8 @@ function mountPhononStudio(root, payload) {
         res.pcmAligned !== false,
         res.pitch ?? pitchToUse,
       );
+      lastRawAudioTimeSec = -1;
+      lastRawAudioPerfMs = performance.now();
       audioEl.src = audioUrlWithToken(res.url);
       applyAudioPlaybackSettings();
       if (seekSec > 0) {
@@ -2173,7 +2229,7 @@ function mountPhononStudio(root, payload) {
     stopTeleprompterLoop();
     const session = playbackSessionId;
     const nextIdx = activeChunkIndex + 1;
-    if (nextIdx < chunks.length) {
+    if (activeChunkIndex >= 0 && nextIdx < chunks.length) {
       const currentChunk = chunks[activeChunkIndex];
       const nextChunk = chunks[nextIdx];
       const delay =

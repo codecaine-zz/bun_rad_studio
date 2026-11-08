@@ -794,6 +794,8 @@ async function main() {
         `Unknown target ${bad.join(", ")}. Choose from: ${DOWNLOADS.map((d) => d.id).join(", ")}`,
       );
     chosen = DOWNLOADS.filter((d) => ids.includes(d.id));
+  } else if (process.platform !== "darwin") {
+    chosen = DOWNLOADS.filter((d) => d.os !== "macos");
   }
   if (chosen.some((d) => d.os === "macos") && process.platform !== "darwin")
     throw new Error(

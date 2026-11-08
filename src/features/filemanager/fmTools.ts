@@ -484,6 +484,7 @@ export function searchDirs(
       ...optBins("/opt/homebrew"),
       ...optBins("/usr/local"),
       "/opt/local/bin",
+      `${ctx.home}/.local/bin`,
     );
   } else if (ctx.platform === "linux") {
     const lb = "/home/linuxbrew/.linuxbrew";
@@ -504,6 +505,7 @@ export function searchDirs(
     vars.PF = programFiles;
     vars.PF86 = env["ProgramFiles(x86)"] ?? "C:\\Program Files (x86)";
     dirs.push(
+      nodePath.win32.join(ctx.home, ".local", "bin"),
       nodePath.win32.join(local, "Microsoft", "WindowsApps"),
       nodePath.win32.join(local, "Microsoft", "WinGet", "Links"),
       nodePath.win32.join(ctx.home, "scoop", "shims"),

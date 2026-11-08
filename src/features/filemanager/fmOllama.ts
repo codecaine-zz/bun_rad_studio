@@ -153,20 +153,11 @@ export function readTextFileSyncPure(filePath: string): string {
   try {
     if (Bun.file(filePath).size <= 0) return "";
     if (process.platform === "win32") {
-      const res = Bun.spawnSync(
-        [
-          "powershell",
-          "-NoProfile",
-          "-NonInteractive",
-          "-Command",
-          "if (Test-Path -LiteralPath $env:FM_TARGET_FILE) { Get-Content -LiteralPath $env:FM_TARGET_FILE -Raw -Encoding UTF8 }",
-        ],
-        {
-          stdout: "pipe",
-          stderr: "ignore",
-          env: { ...process.env, FM_TARGET_FILE: filePath },
-        },
-      );
+      const winPath = normalizeSlashes(filePath, "win32");
+      const res = Bun.spawnSync(["cmd.exe", "/d", "/c", "type", winPath], {
+        stdout: "pipe",
+        stderr: "ignore",
+      });
       return res.exitCode === 0 ? res.stdout.toString("utf8") : "";
     }
     const res = Bun.spawnSync(["cat", "--", filePath], {
@@ -187,21 +178,16 @@ export function ensureDirectoryPure(
   _platform = process.platform,
 ): void {
   if (!dirPath || dirPath.includes("\0")) return;
+  try {
+    new Bun.Glob("*").scanSync({ cwd: dirPath, onlyFiles: false }).next();
+    return;
+  } catch {}
   if (process.platform === "win32") {
-    Bun.spawnSync(
-      [
-        "powershell",
-        "-NoProfile",
-        "-NonInteractive",
-        "-Command",
-        "if ($env:FM_TARGET_DIR) { New-Item -ItemType Directory -Force -LiteralPath $env:FM_TARGET_DIR | Out-Null }",
-      ],
-      {
-        stdout: "ignore",
-        stderr: "ignore",
-        env: { ...process.env, FM_TARGET_DIR: dirPath },
-      },
-    );
+    const winPath = normalizeSlashes(dirPath, "win32");
+    Bun.spawnSync(["cmd.exe", "/d", "/c", "mkdir", winPath], {
+      stdout: "ignore",
+      stderr: "ignore",
+    });
   } else {
     Bun.spawnSync(["mkdir", "-p", "--", dirPath], {
       stdout: "ignore",
@@ -211,7 +197,7 @@ export function ensureDirectoryPure(
 }
 
 /**
- * Synchronously lists immediate entries in a directory using pure Bun process spawning.
+ * Synchronously lists immediate entries in a directory using pure Bun APIs.
  */
 export function listDirectoryEntriesPure(
   dirPath: string,
@@ -219,53 +205,19 @@ export function listDirectoryEntriesPure(
 ): Array<{ name: string; path: string; isDir: boolean }> {
   if (!dirPath || dirPath.includes("\0")) return [];
   try {
-    if (process.platform === "win32") {
-      const res = Bun.spawnSync(
-        [
-          "powershell",
-          "-NoProfile",
-          "-NonInteractive",
-          "-Command",
-          "Get-ChildItem -LiteralPath $env:FM_TARGET_DIR -Force | Select-Object Name,PSIsContainer | ConvertTo-Json -Compress",
-        ],
-        {
-          stdout: "pipe",
-          stderr: "ignore",
-          env: { ...process.env, FM_TARGET_DIR: dirPath },
-        },
-      );
-      if (res.exitCode !== 0) return [];
-      const text = res.stdout.toString().trim();
-      if (!text) return [];
-      const parsed = JSON.parse(text);
-      const arr = Array.isArray(parsed) ? parsed : [parsed];
-      return arr
-        .filter((x) => x && typeof x.Name === "string")
-        .map((x) => ({
-          name: x.Name,
-          path: joinPath([dirPath, x.Name], platform),
-          isDir: Boolean(x.PSIsContainer),
-        }));
-    }
-    const res = Bun.spawnSync(["ls", "-1Ap", "--", dirPath], {
-      stdout: "pipe",
-      stderr: "ignore",
-    });
-    if (res.exitCode !== 0) return [];
-    const lines = res.stdout
-      .toString("utf8")
-      .split(/\r?\n/)
-      .map((l) => l.trim())
-      .filter(Boolean);
-    return lines.map((entry) => {
-      const isDir = entry.endsWith("/");
-      const cleanName = isDir ? entry.slice(0, -1) : entry;
-      return {
-        name: cleanName,
-        path: joinPath([dirPath, cleanName], platform),
-        isDir,
-      };
-    });
+    const glob = new Bun.Glob("*");
+    const allNames = [
+      ...glob.scanSync({ cwd: dirPath, dot: true, onlyFiles: false }),
+    ];
+    if (allNames.length === 0) return [];
+    const fileNames = new Set(
+      glob.scanSync({ cwd: dirPath, dot: true, onlyFiles: true }),
+    );
+    return allNames.map((name) => ({
+      name,
+      path: joinPath([dirPath, name], platform),
+      isDir: !fileNames.has(name),
+    }));
   } catch {
     return [];
   }

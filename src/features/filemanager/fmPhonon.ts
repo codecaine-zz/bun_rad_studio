@@ -980,7 +980,7 @@ export function estimateSpokenWordWeight(rawWord: string): {
 
   const lowerClean = stripped.toLowerCase();
   if (FAST_FUNCTION_WORDS.has(lowerClean)) {
-    const baseW = 0.88 + Math.min(0.25, pauseAffinity * 0.08);
+    const baseW = 0.64 + Math.min(0.25, pauseAffinity * 0.08);
     return {
       weight: baseW,
       pauseAffinity,
@@ -1001,6 +1001,36 @@ export function estimateSpokenWordWeight(rawWord: string): {
 }
 
 /**
+ * Exact fractional PCM boundary anchor for a short spoken clause (`[wordStartIdx..wordEndIdx]`)
+ * emitted by clause-segmented neural TTS (`xn-ptts` or `edge-tts --write-subtitles`).
+ */
+export interface ClauseFractionAnchor {
+  wordStartIdx: number;
+  wordEndIdx: number;
+  startFrac: number;
+  endFrac: number;
+}
+
+const clauseAnchorsByNormalizedText = new Map<string, ClauseFractionAnchor[]>();
+
+function normalizeTextForClauseAnchorKey(text: string): string {
+  return stripNonSpeechChars(text).replace(/\s+/g, " ").trim();
+}
+
+export function registerClauseFractionAnchors(
+  text: string,
+  anchors: ClauseFractionAnchor[],
+): void {
+  const key = normalizeTextForClauseAnchorKey(text);
+  if (!key || !anchors.length) return;
+  if (clauseAnchorsByNormalizedText.size >= 512) {
+    const oldest = clauseAnchorsByNormalizedText.keys().next().value;
+    if (oldest) clauseAnchorsByNormalizedText.delete(oldest);
+  }
+  clauseAnchorsByNormalizedText.set(key, anchors);
+}
+
+/**
  * Computes natural phoneme/syllable-weighted, punctuation-aware, and (when `pcmOptions.pcmData` is provided)
  * pitch-invariant acoustic-waveform-aligned word timings within `[startOffsetMs, startOffsetMs + durationMs]`.
  *
@@ -1017,7 +1047,12 @@ export function computeWordTimingsForText(
   durationMs: number,
   startOffsetMs = 0,
   chunkIndex = 0,
-  pcmOptions?: { pcmData?: Buffer; sampleRate?: number; speed?: number },
+  pcmOptions?: {
+    pcmData?: Buffer;
+    sampleRate?: number;
+    speed?: number;
+    _skipClauseAnchors?: boolean;
+  },
 ): PhononWordTiming[] {
   const safeDuration = Math.max(20, Math.round(durationMs));
   const cleanedInput = stripNonSpeechChars(text);
@@ -1088,6 +1123,123 @@ export function computeWordTimingsForText(
   const totalSamples = pcmData ? Math.floor(pcmData.length / 2) : 0;
   const numFrames =
     totalSamples > 0 ? Math.ceil(totalSamples / samplesPerFrame) : 0;
+
+  // When ground-truth per-clause PCM anchors exist for this text chunk (from clause-segmented Bionic xn-ptts or edge-tts VTT),
+  // align each short clause directly against its exact ground-truth PCM sample slice and millisecond window (zero cumulative drift).
+  if (
+    !pcmOptions?._skipClauseAnchors &&
+    pcmData &&
+    totalSamples >= rawTokens.length * 40
+  ) {
+    const clauseAnchors = clauseAnchorsByNormalizedText.get(
+      normalizeTextForClauseAnchorKey(text),
+    );
+    if (
+      clauseAnchors &&
+      clauseAnchors.length >= 2 &&
+      clauseAnchors[0]!.wordStartIdx === 0 &&
+      clauseAnchors[clauseAnchors.length - 1]!.wordEndIdx ===
+        rawTokens.length - 1
+    ) {
+      const clauseAlignedWords: PhononWordTiming[] = [];
+      for (const anchor of clauseAnchors) {
+        const subTokens = rawTokens.slice(
+          anchor.wordStartIdx,
+          anchor.wordEndIdx + 1,
+        );
+        if (!subTokens.length) continue;
+        const subText = subTokens.map((t) => t.word).join(" ");
+        const cStartMs =
+          startOffsetMs + Math.round(anchor.startFrac * safeDuration);
+        const cEndMs = Math.max(
+          cStartMs + 20,
+          startOffsetMs + Math.round(anchor.endFrac * safeDuration),
+        );
+        const cDurMs = Math.max(20, cEndMs - cStartMs);
+        if (subTokens.length === 1) {
+          const origTok = subTokens[0]!;
+          const prevEnd =
+            clauseAlignedWords.length > 0
+              ? clauseAlignedWords[clauseAlignedWords.length - 1]!.endMs
+              : startOffsetMs;
+          const clampedStart = Math.max(
+            prevEnd,
+            Math.min(startOffsetMs + safeDuration - 1, cStartMs),
+          );
+          const clampedEnd = Math.max(
+            clampedStart + 1,
+            Math.min(startOffsetMs + safeDuration, cEndMs),
+          );
+          clauseAlignedWords.push({
+            word: origTok.word,
+            wordIndex: anchor.wordStartIdx,
+            chunkIndex,
+            cueIndex: 0,
+            charStart: origTok.charStart,
+            charEnd: origTok.charEnd,
+            startMs: clampedStart,
+            endMs: clampedEnd,
+            durationMs: Math.max(1, clampedEnd - clampedStart),
+          });
+          continue;
+        }
+        const sStart = Math.max(
+          0,
+          Math.min(
+            totalSamples - 1,
+            Math.floor(anchor.startFrac * totalSamples),
+          ),
+        );
+        const sEnd = Math.max(
+          sStart + 1,
+          Math.min(totalSamples, Math.ceil(anchor.endFrac * totalSamples)),
+        );
+        const subPcm = pcmData.subarray(sStart * 2, sEnd * 2);
+        const subWords = computeWordTimingsForText(
+          subText,
+          cDurMs,
+          cStartMs,
+          chunkIndex,
+          {
+            pcmData: subPcm,
+            sampleRate,
+            speed: safeSpeed,
+            _skipClauseAnchors: true,
+          },
+        );
+        for (let k = 0; k < subWords.length && k < subTokens.length; k++) {
+          const w = subWords[k]!;
+          const origTok = subTokens[k]!;
+          const prevEnd =
+            clauseAlignedWords.length > 0
+              ? clauseAlignedWords[clauseAlignedWords.length - 1]!.endMs
+              : startOffsetMs;
+          const clampedStart = Math.max(
+            prevEnd,
+            Math.min(startOffsetMs + safeDuration - 1, w.startMs),
+          );
+          const clampedEnd = Math.max(
+            clampedStart + 1,
+            Math.min(startOffsetMs + safeDuration, w.endMs),
+          );
+          clauseAlignedWords.push({
+            word: origTok.word,
+            wordIndex: anchor.wordStartIdx + k,
+            chunkIndex,
+            cueIndex: 0,
+            charStart: origTok.charStart,
+            charEnd: origTok.charEnd,
+            startMs: clampedStart,
+            endMs: clampedEnd,
+            durationMs: Math.max(1, clampedEnd - clampedStart),
+          });
+        }
+      }
+      if (clauseAlignedWords.length === rawTokens.length) {
+        return clauseAlignedWords;
+      }
+    }
+  }
 
   // Use high-resolution PCM waveform alignment whenever we have real speech frames (>= 4 frames per word)
   if (pcmData && numFrames >= Math.max(16, rawTokens.length * 4)) {
@@ -1335,7 +1487,7 @@ export function computeWordTimingsForText(
         for (const seg of segs) {
           const segTokens = rawTokens.slice(seg.wStart, seg.wEnd + 1);
           const segTokenWeights = segTokens.map((t, idx) => {
-            const baseW = Math.max(1.22, t.weight);
+            const baseW = Math.max(0.58, t.weight);
             return idx < segTokens.length - 1 && t.pauseAffinity > 0
               ? baseW + t.pauseAffinity * 0.35
               : baseW;
@@ -1348,12 +1500,12 @@ export function computeWordTimingsForText(
           );
 
           const segSpanF = Math.max(segTokens.length, seg.fEnd - seg.fStart);
-          // Minimum frame span per word (~100ms at 1x speed when phrase duration permits) so short words are never skipped
+          // Minimum frame span per word (~70ms at 1x speed when phrase duration permits) so short words are never skipped
           const minWordFrames = Math.max(
             1,
             Math.min(
-              Math.floor(segSpanF / Math.max(1, segTokens.length * 1.32)),
-              Math.max(4, Math.round(10 * safeSpeed)),
+              Math.floor(segSpanF / Math.max(1, segTokens.length * 1.45)),
+              Math.max(4, Math.round(7 * safeSpeed)),
             ),
           );
 
@@ -1386,17 +1538,17 @@ export function computeWordTimingsForText(
             const maxLeftShift = Math.max(
               0,
               Math.min(
-                5,
+                7,
                 leftSpan - minWordFrames,
-                Math.floor(leftSpan * 0.25),
+                Math.floor(leftSpan * 0.32),
               ),
             );
             const maxRightShift = Math.max(
               0,
               Math.min(
-                5,
+                7,
                 rightSpan - minWordFrames,
-                Math.floor(rightSpan * 0.25),
+                Math.floor(rightSpan * 0.32),
               ),
             );
             const minSearch = Math.max(
@@ -3611,7 +3763,10 @@ export function sanitizeCustomVoiceId(rawName: string): string {
  * Decodes any RIFF/WAVE buffer (8/16/24/32-bit PCM or 32-bit IEEE float, mono or multi-channel, any sample rate)
  * into 24,000 Hz 16-bit signed little-endian mono PCM samples (`pcm24k`).
  */
-export function decodeAndResampleWavTo24kMono(wav: Buffer): {
+export function decodeAndResampleWavTo24kMono(
+  wav: Buffer,
+  maxDurationSec = 20,
+): {
   pcm24k: Buffer;
   durationSec: number;
   originalSampleRate: number;
@@ -3702,8 +3857,11 @@ export function decodeAndResampleWavTo24kMono(wav: Buffer): {
   }
 
   const targetRate = 24000;
-  // Cap analysed/stored voice sample at 20 seconds so processing is instantaneous
-  const maxTargetSamples = targetRate * 20;
+  // Cap analysed/stored voice sample at maxDurationSec (default 20s for mic voice-cloning samples; 600s for TTS chunks)
+  const maxTargetSamples = Math.max(
+    targetRate,
+    Math.round(targetRate * maxDurationSec),
+  );
   const rawTargetSamples =
     sampleRate === targetRate
       ? numFrames
@@ -6084,17 +6242,17 @@ export async function getPhononStatus(
   const activeTtsEngine = supported
     ? "apple-mlx-phonon"
     : ctx.platform === "win32"
-      ? "windows-sapi-and-audio-llm"
+      ? "windows-bionic-phonon-and-sapi"
       : ctx.platform === "linux"
-        ? "linux-audio-llm-and-tts"
+        ? "linux-bionic-phonon-and-tts"
         : "cross-platform-audio-llm";
   const ttsEngineLabel = supported
     ? "Apple Silicon MLX (macOS ARM64)"
     : ctx.platform === "win32"
-      ? "Windows Cross-Platform TTS (LM Studio / Ollama Audio LLM + Windows SAPI Neural)"
+      ? "Windows Cross-Platform TTS (Bionic Phonon 40M Native + Edge Neural + Windows SAPI)"
       : ctx.platform === "linux"
-        ? "Linux Cross-Platform TTS (LM Studio / Ollama Audio LLM + Piper/eSpeak/Formant)"
-        : "Cross-Platform TTS (Audio LLM + Native Speech)";
+        ? "Linux Cross-Platform TTS (Bionic Phonon 40M Native + Edge Neural + Piper/eSpeak)"
+        : "Cross-Platform TTS (Bionic Phonon 40M + Audio LLM + Native Speech)";
 
   return {
     supported,
@@ -6220,12 +6378,96 @@ export function resolveCrossPlatformVoiceSpec(voiceId: string): {
       espeakVoice: "en-us+m3",
       macSayVoice: "Alex",
     },
+    david: {
+      f0Hz: 115,
+      edgeVoice: "en-US-BrianNeural",
+      espeakVoice: "en-us+m1",
+      macSayVoice: "Alex",
+    },
+    john: {
+      f0Hz: 118,
+      edgeVoice: "en-US-AndrewNeural",
+      espeakVoice: "en-us+m2",
+      macSayVoice: "Alex",
+    },
+    james: {
+      f0Hz: 114,
+      edgeVoice: "en-GB-ThomasNeural",
+      espeakVoice: "en-gb+m2",
+      macSayVoice: "Daniel",
+    },
+    charlie: {
+      f0Hz: 128,
+      edgeVoice: "en-AU-WilliamNeural",
+      espeakVoice: "en-gb+m1",
+      macSayVoice: "Oliver",
+    },
+    jack: {
+      f0Hz: 124,
+      edgeVoice: "en-US-SteffanNeural",
+      espeakVoice: "en-us+m2",
+      macSayVoice: "Alex",
+    },
+    leo: {
+      f0Hz: 125,
+      edgeVoice: "en-US-GuyNeural",
+      espeakVoice: "en-us+m1",
+      macSayVoice: "Alex",
+    },
+    max: {
+      f0Hz: 121,
+      edgeVoice: "en-US-EricNeural",
+      espeakVoice: "en-us+m3",
+      macSayVoice: "Alex",
+    },
+    oliver: {
+      f0Hz: 119,
+      edgeVoice: "en-GB-RyanNeural",
+      espeakVoice: "en-gb+m3",
+      macSayVoice: "Daniel",
+    },
+    sam: {
+      f0Hz: 127,
+      edgeVoice: "en-US-AndrewNeural",
+      espeakVoice: "en-us+m1",
+      macSayVoice: "Alex",
+    },
+    silas: {
+      f0Hz: 108,
+      edgeVoice: "en-US-ChristopherNeural",
+      espeakVoice: "en-us+m4",
+      macSayVoice: "Daniel",
+    },
+    thomas: {
+      f0Hz: 116,
+      edgeVoice: "en-GB-ThomasNeural",
+      espeakVoice: "en-gb+m2",
+      macSayVoice: "Daniel",
+    },
+    william: {
+      f0Hz: 113,
+      edgeVoice: "en-GB-RyanNeural",
+      espeakVoice: "en-gb+m3",
+      macSayVoice: "Daniel",
+    },
+    grimjaw: {
+      f0Hz: 98,
+      edgeVoice: "en-US-RogerNeural",
+      espeakVoice: "en-us+m4",
+      macSayVoice: "Fred",
+    },
+    snagg: {
+      f0Hz: 142,
+      edgeVoice: "en-GB-ThomasNeural",
+      espeakVoice: "en-gb+m5",
+      macSayVoice: "Fred",
+    },
   };
   if (maleProfiles[lower]) {
     return { gender: "male", ...maleProfiles[lower]! };
   }
   if (
-    /\b(male|baritone|bass|captain|king|lord|wizard|knight|sir|mr|uncle|father|narrator|russell|alfie|anton|easton|marcus|hugo|declan|silas|leo|max|sam|jack|oliver|william|thomas|james|henry)\b/i.test(
+    /\b(male|baritone|bass|captain|king|lord|wizard|knight|sir|mr|uncle|father|narrator|russell|alfie|anton|easton|marcus|hugo|declan|silas|leo|max|sam|jack|oliver|william|thomas|james|henry|david|john|charlie|grimjaw|snagg)\b/i.test(
       lower,
     )
   ) {
@@ -6237,22 +6479,173 @@ export function resolveCrossPlatformVoiceSpec(voiceId: string): {
       macSayVoice: "Daniel",
     };
   }
-  const femaleF0 =
-    lower === "bella"
-      ? 182
-      : lower === "evelyn"
-        ? 176
-        : lower === "freya"
-          ? 208
-          : 194;
-  const edgeFemale =
-    lower === "bella" || lower === "evelyn"
-      ? "en-GB-SoniaNeural"
-      : "en-US-AriaNeural";
+  const femaleProfiles: Record<
+    string,
+    {
+      f0Hz: number;
+      edgeVoice: string;
+      espeakVoice: string;
+      macSayVoice: string;
+    }
+  > = {
+    zoey: {
+      f0Hz: 194,
+      edgeVoice: "en-US-AriaNeural",
+      espeakVoice: "en-us+f3",
+      macSayVoice: "Samantha",
+    },
+    bella: {
+      f0Hz: 182,
+      edgeVoice: "en-GB-SoniaNeural",
+      espeakVoice: "en-gb+f3",
+      macSayVoice: "Serena",
+    },
+    evelyn: {
+      f0Hz: 176,
+      edgeVoice: "en-GB-SoniaNeural",
+      espeakVoice: "en-gb+f2",
+      macSayVoice: "Serena",
+    },
+    freya: {
+      f0Hz: 208,
+      edgeVoice: "en-GB-MaisieNeural",
+      espeakVoice: "en-gb+f4",
+      macSayVoice: "Samantha",
+    },
+    eva: {
+      f0Hz: 188,
+      edgeVoice: "en-US-JennyNeural",
+      espeakVoice: "en-us+f2",
+      macSayVoice: "Samantha",
+    },
+    kelly: {
+      f0Hz: 196,
+      edgeVoice: "en-US-MichelleNeural",
+      espeakVoice: "en-us+f3",
+      macSayVoice: "Samantha",
+    },
+    emma: {
+      f0Hz: 190,
+      edgeVoice: "en-US-EmmaNeural",
+      espeakVoice: "en-us+f3",
+      macSayVoice: "Samantha",
+    },
+    mia: {
+      f0Hz: 202,
+      edgeVoice: "en-GB-LibbyNeural",
+      espeakVoice: "en-gb+f3",
+      macSayVoice: "Samantha",
+    },
+    alice: {
+      f0Hz: 185,
+      edgeVoice: "en-GB-SoniaNeural",
+      espeakVoice: "en-gb+f2",
+      macSayVoice: "Serena",
+    },
+    amelia: {
+      f0Hz: 192,
+      edgeVoice: "en-GB-LibbyNeural",
+      espeakVoice: "en-gb+f3",
+      macSayVoice: "Serena",
+    },
+    ava: {
+      f0Hz: 195,
+      edgeVoice: "en-US-AvaNeural",
+      espeakVoice: "en-us+f3",
+      macSayVoice: "Samantha",
+    },
+    camila: {
+      f0Hz: 189,
+      edgeVoice: "en-US-AnaNeural",
+      espeakVoice: "en-us+f4",
+      macSayVoice: "Samantha",
+    },
+    clara: {
+      f0Hz: 186,
+      edgeVoice: "en-CA-ClaraNeural",
+      espeakVoice: "en-us+f2",
+      macSayVoice: "Samantha",
+    },
+    elena: {
+      f0Hz: 184,
+      edgeVoice: "en-US-JennyNeural",
+      espeakVoice: "en-us+f2",
+      macSayVoice: "Samantha",
+    },
+    isla: {
+      f0Hz: 198,
+      edgeVoice: "en-GB-LibbyNeural",
+      espeakVoice: "en-gb+f4",
+      macSayVoice: "Serena",
+    },
+    jade: {
+      f0Hz: 191,
+      edgeVoice: "en-US-AriaNeural",
+      espeakVoice: "en-us+f3",
+      macSayVoice: "Samantha",
+    },
+    lauren: {
+      f0Hz: 183,
+      edgeVoice: "en-US-MichelleNeural",
+      espeakVoice: "en-us+f2",
+      macSayVoice: "Samantha",
+    },
+    maya: {
+      f0Hz: 197,
+      edgeVoice: "en-US-SaraNeural",
+      espeakVoice: "en-us+f3",
+      macSayVoice: "Samantha",
+    },
+    naomi: {
+      f0Hz: 180,
+      edgeVoice: "en-US-JennyNeural",
+      espeakVoice: "en-us+f2",
+      macSayVoice: "Samantha",
+    },
+    nia: {
+      f0Hz: 193,
+      edgeVoice: "en-GB-SoniaNeural",
+      espeakVoice: "en-gb+f3",
+      macSayVoice: "Serena",
+    },
+    sydney: {
+      f0Hz: 199,
+      edgeVoice: "en-AU-NatashaNeural",
+      espeakVoice: "en-gb+f3",
+      macSayVoice: "Karen",
+    },
+    tess: {
+      f0Hz: 187,
+      edgeVoice: "en-US-AriaNeural",
+      espeakVoice: "en-us+f2",
+      macSayVoice: "Samantha",
+    },
+    victoria: {
+      f0Hz: 178,
+      edgeVoice: "en-GB-SoniaNeural",
+      espeakVoice: "en-gb+f2",
+      macSayVoice: "Victoria",
+    },
+    vespera: {
+      f0Hz: 172,
+      edgeVoice: "en-GB-SoniaNeural",
+      espeakVoice: "en-gb+f1",
+      macSayVoice: "Victoria",
+    },
+    fizzle: {
+      f0Hz: 224,
+      edgeVoice: "en-US-AnaNeural",
+      espeakVoice: "en-us+f5",
+      macSayVoice: "Samantha",
+    },
+  };
+  if (femaleProfiles[lower]) {
+    return { gender: "female", ...femaleProfiles[lower]! };
+  }
   return {
     gender: "female",
-    f0Hz: femaleF0,
-    edgeVoice: edgeFemale,
+    f0Hz: 194,
+    edgeVoice: "en-US-AriaNeural",
     espeakVoice: "en-us+f3",
     macSayVoice: "Samantha",
   };
@@ -6387,12 +6780,306 @@ export function synthesizePureBunWordCadenceWav(
   return Buffer.concat([createWavHeader(pcm.length, sampleRate, 1, 16), pcm]);
 }
 
+let warmBionicEngineCache: {
+  enginePath: string;
+  bundlePath: string;
+  engine: any;
+  sampleRate: number;
+} | null = null;
+let warmBionicEngineQueue: Promise<unknown> = Promise.resolve();
+
+async function withWarmBionicTtsEngine<T>(
+  enginePath: string,
+  bundlePath: string,
+  fn: (engine: any, sampleRate: number) => Promise<T>,
+): Promise<T> {
+  const run = async (): Promise<T> => {
+    if (
+      !warmBionicEngineCache ||
+      warmBionicEngineCache.enginePath !== enginePath ||
+      warmBionicEngineCache.bundlePath !== bundlePath
+    ) {
+      if (warmBionicEngineCache?.engine) {
+        try {
+          warmBionicEngineCache.engine.dispose();
+        } catch {}
+      }
+      const ttsAddon = require(enginePath);
+      const addonInfo =
+        typeof ttsAddon.inspectAddon === "function"
+          ? ttsAddon.inspectAddon()
+          : null;
+      const supportedDevices: string[] = Array.isArray(addonInfo?.devices)
+        ? addonInfo.devices
+        : [];
+      const device = supportedDevices.includes("metal") ? "metal" : "cpu";
+      const engine = new ttsAddon.TtsEngine();
+      const loadInfo = await engine.load(bundlePath, device, 4);
+      const sampleRate = Number(loadInfo?.sampleRate || 24000);
+      warmBionicEngineCache = {
+        enginePath,
+        bundlePath,
+        engine,
+        sampleRate,
+      };
+    }
+    return fn(warmBionicEngineCache.engine, warmBionicEngineCache.sampleRate);
+  };
+  const next = warmBionicEngineQueue.then(run, run);
+  warmBionicEngineQueue = next.then(
+    () => undefined,
+    () => undefined,
+  );
+  return next;
+}
+
+function splitPayloadIntoClauseSegments(payload: string): Array<{
+  wordStartIdx: number;
+  wordEndIdx: number;
+  textForTts: string;
+  isSentenceEnd: boolean;
+  pauseKind: "sentence" | "comma" | "phrase";
+}> {
+  const cleanedInput = stripNonSpeechChars(payload);
+  const tokens: Array<{
+    word: string;
+    weight: number;
+    hasNewlineAfter: boolean;
+    hasDashPauseAfter: boolean;
+  }> = [];
+  const regex = /\S+/g;
+  let match: RegExpExecArray | null;
+  let lastTokenEnd = 0;
+  while ((match = regex.exec(cleanedInput)) !== null) {
+    const gapBefore = cleanedInput.slice(lastTokenEnd, match.index);
+    if (tokens.length > 0 && gapBefore.includes("\n")) {
+      tokens[tokens.length - 1]!.hasNewlineAfter = true;
+    }
+    lastTokenEnd = match.index + match[0].length;
+    const rawMatch = match[0];
+    const word = rawMatch
+      .replace(
+        /^[=*_#~+^|<>`\\─━═│┃┄┅┈┉┌┐└┘├┤┬┴┼╔╗╚╝╠╣╦╩╬▀▄█▌▐░▒▓]+|[=*_#~+^|<>`\\─━═│┃┄┅┈┉┌┐└┘├┤┬┴┼╔╗╚╝╠╣╦╩╬▀▄█▌▐░▒▓]+$/g,
+        "",
+      )
+      .replace(/^-{2,}|-{2,}$/g, "");
+    if (!word || !/[\p{L}\p{N}&%$€£¥@§]/u.test(word)) {
+      if (
+        tokens.length > 0 &&
+        /^(?:--|[-—–….!?,;:]{2,}|[—–….!?,;:])$/.test(rawMatch)
+      ) {
+        tokens[tokens.length - 1]!.hasDashPauseAfter = true;
+      }
+      continue;
+    }
+    const { weight } = estimateSpokenWordWeight(word);
+    tokens.push({
+      word,
+      weight,
+      hasNewlineAfter: false,
+      hasDashPauseAfter: false,
+    });
+  }
+
+  if (tokens.length === 0) return [];
+
+  const clauses: Array<{
+    wordStartIdx: number;
+    wordEndIdx: number;
+    textForTts: string;
+    isSentenceEnd: boolean;
+    pauseKind: "sentence" | "comma" | "phrase";
+  }> = [];
+
+  let clauseStart = 0;
+  let curWords: string[] = [];
+  let curWeight = 0;
+
+  for (let i = 0; i < tokens.length; i++) {
+    const tok = tokens[i]!;
+    curWords.push(tok.word);
+    curWeight += tok.weight;
+    const curLen = curWords.length;
+    const rem = tokens.length - 1 - i;
+    if (rem === 0) {
+      clauses.push({
+        wordStartIdx: clauseStart,
+        wordEndIdx: i,
+        textForTts: curWords.join(" "),
+        isSentenceEnd: true,
+        pauseKind: "sentence",
+      });
+      break;
+    }
+
+    const isNewline = tok.hasNewlineAfter;
+    const isSentPunct =
+      /[.!?…;:—–]["'”’)\]]*$/.test(tok.word) || tok.hasDashPauseAfter;
+    const isComma = /,["'”’)\]]*$/.test(tok.word);
+    const nextWord = tokens[i + 1]!.word.replace(/^["'“‘(\[]+/, "");
+    const isConjunctionSplit =
+      curLen >= 5 &&
+      rem >= 3 &&
+      /^(?:and|or|but|as|while|when|where|which|that|because|although|though|into|alongside|with|from|for|to|in|on|by)$/i.test(
+        nextWord,
+      );
+
+    if (
+      isNewline ||
+      (isSentPunct && curLen >= 2 && rem >= 2) ||
+      (isComma && curLen >= 3 && rem >= 2) ||
+      isConjunctionSplit
+    ) {
+      let textForTts = curWords.join(" ");
+      if (isNewline && !/[.!?,;:—–]["'”’)\]]*$/.test(textForTts)) {
+        textForTts += ".";
+      }
+      const pauseKind: "sentence" | "comma" | "phrase" =
+        isNewline || isSentPunct ? "sentence" : isComma ? "comma" : "phrase";
+      clauses.push({
+        wordStartIdx: clauseStart,
+        wordEndIdx: i,
+        textForTts,
+        isSentenceEnd: pauseKind === "sentence",
+        pauseKind,
+      });
+      clauseStart = i + 1;
+      curWords = [];
+      curWeight = 0;
+    }
+  }
+
+  return clauses;
+}
+
+function parseVttTimestampMs(ts: string): number {
+  const m = /(\d{1,2}):(\d{2}):(\d{2})[,.](\d{1,3})/.exec(ts.trim());
+  if (!m) return 0;
+  return (
+    Number(m[1]) * 3_600_000 +
+    Number(m[2]) * 60_000 +
+    Number(m[3]) * 1000 +
+    Number(m[4]!.padEnd(3, "0"))
+  );
+}
+
+function extractEdgeTtsVttClauseAnchors(
+  vttRaw: string,
+  totalWordsCount: number,
+  wavDurationMs: number,
+): ClauseFractionAnchor[] {
+  if (!vttRaw || totalWordsCount <= 1 || wavDurationMs <= 50) return [];
+  const blocks = vttRaw.trim().split(/\r?\n\r?\n+/);
+  const parsedCues: Array<{
+    startMs: number;
+    endMs: number;
+    wordCount: number;
+  }> = [];
+  for (const b of blocks) {
+    const lines = b
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean);
+    const arrowLineIdx = lines.findIndex((l) => l.includes("-->"));
+    if (arrowLineIdx < 0) continue;
+    const [startStr, endStr] = lines[arrowLineIdx]!.split("-->");
+    if (!startStr || !endStr) continue;
+    const startMs = parseVttTimestampMs(startStr);
+    const endMs = parseVttTimestampMs(endStr);
+    const cueText = stripNonSpeechChars(
+      lines.slice(arrowLineIdx + 1).join(" "),
+    ).trim();
+    const words = cueText
+      .split(/\s+/)
+      .filter((w) => /[\p{L}\p{N}&%$€£¥@§]/u.test(w));
+    if (words.length > 0 && endMs > startMs) {
+      parsedCues.push({ startMs, endMs, wordCount: words.length });
+    }
+  }
+  if (parsedCues.length < 2) return [];
+  const sumWords = parsedCues.reduce((s, c) => s + c.wordCount, 0);
+  if (sumWords !== totalWordsCount) return [];
+
+  const totalMs = Math.max(
+    wavDurationMs,
+    parsedCues[parsedCues.length - 1]!.endMs,
+  );
+  const anchors: ClauseFractionAnchor[] = [];
+  let wCursor = 0;
+  for (let i = 0; i < parsedCues.length; i++) {
+    const c = parsedCues[i]!;
+    const startFrac =
+      i === 0 ? 0 : Math.max(0, Math.min(0.99, c.startMs / totalMs));
+    const endFrac =
+      i === parsedCues.length - 1
+        ? 1
+        : Math.max(startFrac + 0.01, Math.min(1, c.endMs / totalMs));
+    anchors.push({
+      wordStartIdx: wCursor,
+      wordEndIdx: wCursor + c.wordCount - 1,
+      startFrac,
+      endFrac,
+    });
+    wCursor += c.wordCount;
+  }
+  return anchors;
+}
+
+function resolveEdgeTtsPythonExe(edgeTtsExe: string): string | null {
+  try {
+    const raw = readFileSync(edgeTtsExe);
+    if (process.platform === "win32") {
+      const m = raw
+        .toString("latin1")
+        .match(/[A-Za-z]:\\[^\x00"']+?python\.exe/i);
+      if (m?.[0] && existsSync(m[0])) return m[0];
+    } else {
+      const head = raw.subarray(0, 256).toString("utf8");
+      const m = /^#!\s*(?:\/usr\/bin\/env\s+)?([^\s\r\n]+)/.exec(head);
+      if (m?.[1] && /python/i.test(m[1]) && existsSync(m[1])) return m[1];
+    }
+  } catch {}
+  return null;
+}
+
+function extractEdgeTtsWordBoundaryAnchors(
+  wordsRawJson: string,
+  totalWordsCount: number,
+  wavDurationMs: number,
+): ClauseFractionAnchor[] {
+  if (!wordsRawJson || totalWordsCount <= 1 || wavDurationMs <= 50) return [];
+  try {
+    const arr = JSON.parse(wordsRawJson);
+    if (!Array.isArray(arr) || arr.length !== totalWordsCount) return [];
+    const lastEnd = Number(arr[arr.length - 1]?.endMs) || 0;
+    const totalMs = Math.max(wavDurationMs, lastEnd);
+    const anchors: ClauseFractionAnchor[] = [];
+    for (let i = 0; i < arr.length; i++) {
+      const sMs = Math.max(0, Number(arr[i]?.startMs) || 0);
+      const eMs = Math.max(sMs + 25, Number(arr[i]?.endMs) || sMs + 80);
+      const prevEndFrac = i > 0 ? anchors[i - 1]!.endFrac : 0;
+      const startFrac = Math.max(prevEndFrac, Math.min(0.995, sMs / totalMs));
+      const endFrac = Math.max(startFrac + 0.004, Math.min(1, eMs / totalMs));
+      anchors.push({
+        wordStartIdx: i,
+        wordEndIdx: i,
+        startFrac,
+        endFrac,
+      });
+    }
+    return anchors;
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Cross-platform TTS synthesis cascade for Linux (`x64`/`arm64`), Windows (`x64`/`arm64`), and Intel macOS (`darwin/x64`)
  * when Apple Silicon MLX (`ollama run phonon`) is unavailable:
  *   1. Local OpenAI-compatible Audio Speech API (`/v1/audio/speech` via LM Studio Audio Server or Ollama `lfm3-omni:latest` / `kokoro:latest` / `orpheus:latest`)
- *   2. Cross-platform neural CLI (`edge-tts` + `ffmpeg` 24 kHz mono PCM conversion)
- *   3. Native OS speech engine (Windows `.NET System.Speech` direct 24 kHz 16-bit mono WAV, Linux `espeak-ng`/`pico2wave`, Intel macOS `/usr/bin/say`)
+ *   1b. Native Bionic `xn-ptts` (`phonon-40m-multilingual`) 24 kHz Neural TTS Engine (Windows ARM64/x64, Linux ARM64/x64, macOS) with Clause-Locked Word Alignment
+ *   2. Cross-platform neural CLI (`edge-tts` + `ffmpeg` 24 kHz mono PCM conversion + `--write-subtitles` cue alignment)
+ *   3. Native OS speech engine (Windows `.NET System.Speech` direct 24 kHz 16-bit mono WAV, Linux `piper`/`pico2wave`/`espeak-ng`/`flite`, Intel macOS `/usr/bin/say`)
  *   4. Pure-Bun 24 kHz Word-Cadence Formant Speech Synthesizer (`synthesizePureBunWordCadenceWav`)
  */
 export async function synthesizeCrossPlatformTtsChunkWav(
@@ -6419,7 +7106,7 @@ export async function synthesizeCrossPlatformTtsChunkWav(
       if (riffIdx < 0 || rawWav.length - riffIdx < 44) return null;
       const sliced = riffIdx === 0 ? rawWav : rawWav.subarray(riffIdx);
       if (sliced.subarray(8, 12).toString("ascii") !== "WAVE") return null;
-      const decoded = decodeAndResampleWavTo24kMono(sliced);
+      const decoded = decodeAndResampleWavTo24kMono(sliced, 600);
       if (decoded.pcm24k.length < 48) return null;
       return Buffer.concat([
         createWavHeader(decoded.pcm24k.length, 24000, 1, 16),
@@ -6486,9 +7173,11 @@ export async function synthesizeCrossPlatformTtsChunkWav(
       ctx.platform,
       [
         "edge-tts",
+        "piper",
         "pico2wave",
         "espeak-ng",
         "espeak",
+        "flite",
         "powershell",
         "pwsh",
         "say",
@@ -6504,6 +7193,450 @@ export async function synthesizeCrossPlatformTtsChunkWav(
         nodePath.resolve(ctx.home) === nodePath.resolve(homedir())));
 
   if (isRealHostContext) {
+    // 1b. Native Bionic `xn-ptts` (`phonon-40m-multilingual`) 24 kHz Neural TTS Engine when installed on host
+    if (
+      ctx.platform === process.platform &&
+      !hasExplicitTtsToolInDirs &&
+      !process.env.BIONIC_FORCE_FALLBACK_TTS
+    ) {
+      try {
+        const lmHome =
+          process.env.LMSTUDIO_HOME ||
+          nodePath.join(ctx.home || homedir(), ".lmstudio");
+        const backendsDir = nodePath.join(lmHome, "extensions", "backends");
+        const modelsDir = nodePath.join(lmHome, "extensions", "models");
+        if (existsSync(backendsDir) && existsSync(modelsDir)) {
+          const backendEntries = await fsp.readdir(backendsDir, {
+            withFileTypes: true,
+          });
+          const modelEntries = await fsp.readdir(modelsDir, {
+            withFileTypes: true,
+          });
+          const osPrefix =
+            process.platform === "win32"
+              ? "xn-ptts-win-"
+              : process.platform === "linux"
+                ? "xn-ptts-linux-"
+                : "xn-ptts-mac-";
+          const archHint = process.arch === "arm64" ? "arm64" : "x86_64";
+          const xnDirs = backendEntries.filter(
+            (e) => e.isDirectory() && e.name.startsWith("xn-ptts-"),
+          );
+          const xnBackend =
+            xnDirs.find(
+              (e) => e.name.startsWith(osPrefix) && e.name.includes(archHint),
+            ) ||
+            xnDirs.find((e) => e.name.startsWith(osPrefix)) ||
+            xnDirs[0];
+          const modelOsPrefix =
+            process.platform === "win32"
+              ? "phonon-40m-multilingual-win-"
+              : process.platform === "linux"
+                ? "phonon-40m-multilingual-linux-"
+                : "phonon-40m-multilingual-mac-";
+          const modelDirs = modelEntries.filter(
+            (e) =>
+              e.isDirectory() && e.name.startsWith("phonon-40m-multilingual"),
+          );
+          const phononModel =
+            modelDirs.find((e) => e.name.startsWith(modelOsPrefix)) ||
+            modelDirs[0];
+          if (xnBackend && phononModel) {
+            const enginePath = nodePath.join(
+              backendsDir,
+              xnBackend.name,
+              "tts_engine.node",
+            );
+            const bundleDir = nodePath.join(modelsDir, phononModel.name);
+            const bundlePath = nodePath.join(bundleDir, "tts-bundle.json");
+            if (existsSync(enginePath) && existsSync(bundlePath)) {
+              const bundleObj = JSON.parse(
+                await fsp.readFile(bundlePath, "utf8"),
+              );
+              const voiceItems: Array<{ id: string; name: string }> =
+                Array.isArray(bundleObj?.voices)
+                  ? bundleObj.voices.map((v: any) => ({
+                      id: String(v?.id || ""),
+                      name: String(v?.name || v?.id || ""),
+                    }))
+                  : bundleObj && typeof bundleObj.voices === "object"
+                    ? Object.keys(bundleObj.voices).map((k) => ({
+                        id: k,
+                        name: k,
+                      }))
+                    : [];
+              let resolvedVoiceKey = "";
+              const lowerReq = (voice || "Zoey").trim().toLowerCase();
+              for (const item of voiceItems) {
+                if (
+                  item.id.toLowerCase() === lowerReq ||
+                  item.name.toLowerCase() === lowerReq
+                ) {
+                  resolvedVoiceKey = item.id;
+                  break;
+                }
+              }
+              if (!resolvedVoiceKey) {
+                const maleFallback = voiceItems.find(
+                  (v) =>
+                    v.name.toLowerCase() === "russell" ||
+                    v.name.toLowerCase() === "anton",
+                );
+                const femaleFallback = voiceItems.find(
+                  (v) => v.name.toLowerCase() === "zoey",
+                );
+                resolvedVoiceKey =
+                  spec.gender === "male" && maleFallback
+                    ? maleFallback.id
+                    : femaleFallback
+                      ? femaleFallback.id
+                      : voiceItems[0]?.id || "NbpkqMVS3CJeq2j8";
+              }
+
+              const clauses = splitPayloadIntoClauseSegments(payload);
+              const segSpecs =
+                clauses.length > 0
+                  ? clauses
+                  : [
+                      {
+                        wordStartIdx: 0,
+                        wordEndIdx: 0,
+                        textForTts: payload,
+                        isSentenceEnd: true,
+                        pauseKind: "sentence" as const,
+                      },
+                    ];
+
+              const runSegSpecsOnEngine = async (
+                engine: any,
+                sampleRate: number,
+              ) => {
+                const frameSamples = Math.max(1, Math.round(sampleRate * 0.01));
+                const clauseSlices: Float32Array[] = [];
+                const clauseSampleRanges: Array<{
+                  wordStartIdx: number;
+                  wordEndIdx: number;
+                  sampleStart: number;
+                  sampleEnd: number;
+                }> = [];
+                let totalSamples = 0;
+
+                for (let c = 0; c < segSpecs.length; c++) {
+                  if (signal?.aborted) {
+                    throw new FmError(
+                      "CANCELLED",
+                      "Speech synthesis was cancelled.",
+                    );
+                  }
+                  const seg = segSpecs[c]!;
+                  const chunksF32: Float32Array[] = [];
+                  let segSamples = 0;
+                  await engine.startSegment({
+                    text: seg.textForTts,
+                    voice: resolvedVoiceKey,
+                    language: "en",
+                    seed: 42,
+                  });
+                  while (true) {
+                    if (signal?.aborted) {
+                      throw new FmError(
+                        "CANCELLED",
+                        "Speech synthesis was cancelled.",
+                      );
+                    }
+                    const audioChunk: Float32Array | null =
+                      await engine.readNextAudio();
+                    if (!audioChunk || audioChunk.length === 0) break;
+                    chunksF32.push(audioChunk);
+                    segSamples += audioChunk.length;
+                  }
+                  await engine.waitForCompletion();
+                  if (segSamples <= 0) continue;
+
+                  const fullSeg = new Float32Array(segSamples);
+                  let off = 0;
+                  for (const ch of chunksF32) {
+                    fullSeg.set(ch, off);
+                    off += ch.length;
+                  }
+
+                  let finalSeg = fullSeg;
+                  if (segSpecs.length >= 2) {
+                    const numFrames = Math.floor(segSamples / frameSamples);
+                    if (numFrames >= 8) {
+                      let maxRms = 0;
+                      const rms = new Float32Array(numFrames);
+                      for (let f = 0; f < numFrames; f++) {
+                        let sum = 0;
+                        const base = f * frameSamples;
+                        for (let i = 0; i < frameSamples; i++) {
+                          const v = fullSeg[base + i]!;
+                          sum += v * v;
+                        }
+                        const r = Math.sqrt(sum / frameSamples);
+                        rms[f] = r;
+                        if (r > maxRms) maxRms = r;
+                      }
+                      const thresh = Math.max(0.003, maxRms * 0.045);
+                      let firstF = 0;
+                      while (firstF < numFrames && rms[firstF]! < thresh) {
+                        firstF++;
+                      }
+                      let lastF = numFrames - 1;
+                      while (lastF > firstF && rms[lastF]! < thresh) {
+                        lastF--;
+                      }
+                      const keepLeadF =
+                        c === 0 ? 7 : seg.pauseKind === "phrase" ? 2 : 3;
+                      const keepTrailF =
+                        c === segSpecs.length - 1
+                          ? 14
+                          : seg.pauseKind === "sentence"
+                            ? 20
+                            : seg.pauseKind === "comma"
+                              ? 11
+                              : 3;
+                      const sStart = Math.max(
+                        0,
+                        (firstF - keepLeadF) * frameSamples,
+                      );
+                      const sEnd = Math.min(
+                        segSamples,
+                        (lastF + 1 + keepTrailF) * frameSamples,
+                      );
+                      if (sEnd > sStart + frameSamples * 2) {
+                        finalSeg = fullSeg.slice(sStart, sEnd);
+                        const taper = Math.min(
+                          120,
+                          Math.floor(finalSeg.length / 8),
+                        );
+                        for (let t = 0; t < taper; t++) {
+                          const w = 0.5 * (1 - Math.cos((Math.PI * t) / taper));
+                          if (sStart > 0) finalSeg[t] = finalSeg[t]! * w;
+                          if (sEnd < segSamples) {
+                            finalSeg[finalSeg.length - 1 - t] =
+                              finalSeg[finalSeg.length - 1 - t]! * w;
+                          }
+                        }
+                      }
+                    }
+                  }
+
+                  const sampleStart = totalSamples;
+                  totalSamples += finalSeg.length;
+                  clauseSlices.push(finalSeg);
+                  clauseSampleRanges.push({
+                    wordStartIdx: seg.wordStartIdx,
+                    wordEndIdx: seg.wordEndIdx,
+                    sampleStart,
+                    sampleEnd: totalSamples,
+                  });
+                }
+
+                return {
+                  sampleRate,
+                  totalSamples,
+                  clauseSlices,
+                  clauseSampleRanges,
+                };
+              };
+
+              let synthResult: {
+                sampleRate: number;
+                totalSamples: number;
+                clauseSlices: Float32Array[];
+                clauseSampleRanges: Array<{
+                  wordStartIdx: number;
+                  wordEndIdx: number;
+                  sampleStart: number;
+                  sampleEnd: number;
+                }>;
+              } | null = null;
+
+              try {
+                synthResult = await withWarmBionicTtsEngine(
+                  enginePath,
+                  bundlePath,
+                  runSegSpecsOnEngine,
+                );
+              } catch (inProcErr) {
+                if (
+                  inProcErr instanceof FmError &&
+                  inProcErr.code === "CANCELLED"
+                ) {
+                  throw inProcErr;
+                }
+                // If running inside an emulated x64 process on Windows ARM64 where in-process require() of
+                // win-arm64 tts_engine.node fails with Win32 Error 193, delegate to the host's native ARM64 bun.exe.
+                const nativeBunExe =
+                  process.env.FM_NATIVE_BUN_EXEC ||
+                  nodePath.join(
+                    homedir(),
+                    ".bun",
+                    "bin",
+                    process.platform === "win32" ? "bun.exe" : "bun",
+                  );
+                if (
+                  existsSync(nativeBunExe) &&
+                  nodePath.resolve(nativeBunExe).toLowerCase() !==
+                    nodePath.resolve(process.execPath).toLowerCase()
+                ) {
+                  const workerScript = `
+                    const addon = require(process.env.FM_PTTS_ENGINE);
+                    const info = typeof addon.inspectAddon === 'function' ? addon.inspectAddon() : null;
+                    const dev = Array.isArray(info?.devices) && info.devices.includes('metal') ? 'metal' : 'cpu';
+                    const eng = new addon.TtsEngine();
+                    const loadInfo = await eng.load(process.env.FM_PTTS_BUNDLE, dev, 4);
+                    const sampleRate = Number(loadInfo?.sampleRate || 24000);
+                    const frameSamples = Math.max(1, Math.round(sampleRate * 0.01));
+                    const segSpecs = JSON.parse(process.env.FM_PTTS_SEGS);
+                    const voice = process.env.FM_PTTS_VOICE;
+                    const slices = [];
+                    const ranges = [];
+                    let totalSamples = 0;
+                    for (let c = 0; c < segSpecs.length; c++) {
+                      const seg = segSpecs[c];
+                      const chunks = [];
+                      let segSamples = 0;
+                      await eng.startSegment({ text: seg.textForTts, voice, language: 'en', seed: 42 });
+                      while (true) {
+                        const ch = await eng.readNextAudio();
+                        if (!ch || !ch.length) break;
+                        chunks.push(ch);
+                        segSamples += ch.length;
+                      }
+                      await eng.waitForCompletion();
+                      if (segSamples <= 0) continue;
+                      const fullSeg = new Float32Array(segSamples);
+                      let off = 0;
+                      for (const ch of chunks) { fullSeg.set(ch, off); off += ch.length; }
+                      let finalSeg = fullSeg;
+                      if (segSpecs.length >= 2) {
+                        const numFrames = Math.floor(segSamples / frameSamples);
+                        if (numFrames >= 8) {
+                          let maxRms = 0;
+                          const rms = new Float32Array(numFrames);
+                          for (let f = 0; f < numFrames; f++) {
+                            let s = 0;
+                            const base = f * frameSamples;
+                            for (let i = 0; i < frameSamples; i++) { const v = fullSeg[base + i]; s += v * v; }
+                            const r = Math.sqrt(s / frameSamples);
+                            rms[f] = r;
+                            if (r > maxRms) maxRms = r;
+                          }
+                          const thresh = Math.max(0.003, maxRms * 0.045);
+                          let firstF = 0;
+                          while (firstF < numFrames && rms[firstF] < thresh) firstF++;
+                          let lastF = numFrames - 1;
+                          while (lastF > firstF && rms[lastF] < thresh) lastF--;
+                          const keepLeadF = c === 0 ? 7 : seg.pauseKind === 'phrase' ? 2 : 3;
+                          const keepTrailF = c === segSpecs.length - 1 ? 14 : seg.pauseKind === 'sentence' ? 20 : seg.pauseKind === 'comma' ? 11 : 3;
+                          const sStart = Math.max(0, (firstF - keepLeadF) * frameSamples);
+                          const sEnd = Math.min(segSamples, (lastF + 1 + keepTrailF) * frameSamples);
+                          if (sEnd > sStart + frameSamples * 2) {
+                            finalSeg = fullSeg.slice(sStart, sEnd);
+                            const taper = Math.min(120, Math.floor(finalSeg.length / 8));
+                            for (let t = 0; t < taper; t++) {
+                              const w = 0.5 * (1 - Math.cos((Math.PI * t) / taper));
+                              if (sStart > 0) finalSeg[t] *= w;
+                              if (sEnd < segSamples) finalSeg[finalSeg.length - 1 - t] *= w;
+                            }
+                          }
+                        }
+                      }
+                      const sampleStart = totalSamples;
+                      totalSamples += finalSeg.length;
+                      slices.push(finalSeg);
+                      ranges.push({ wordStartIdx: seg.wordStartIdx, wordEndIdx: seg.wordEndIdx, sampleStart, sampleEnd: totalSamples });
+                    }
+                    try { eng.dispose(); } catch {}
+                    const outF32 = new Float32Array(totalSamples);
+                    let wOff = 0;
+                    for (const s of slices) { outF32.set(s, wOff); wOff += s.length; }
+                    process.stderr.write('PTTS_META:' + JSON.stringify({ sampleRate, totalSamples, clauseSampleRanges: ranges }) + '\\n');
+                    process.stdout.write(Buffer.from(outF32.buffer, outF32.byteOffset, outF32.byteLength));
+                  `;
+                  const wp = Bun.spawn([nativeBunExe, "-e", workerScript], {
+                    stdout: "pipe",
+                    stderr: "pipe",
+                    stdin: "ignore",
+                    windowsHide: true,
+                    env: {
+                      ...process.env,
+                      FM_PTTS_ENGINE: enginePath,
+                      FM_PTTS_BUNDLE: bundlePath,
+                      FM_PTTS_SEGS: JSON.stringify(segSpecs),
+                      FM_PTTS_VOICE: resolvedVoiceKey,
+                    },
+                  });
+                  const [stdoutBuf, stderrTxt, exitCode] = await Promise.all([
+                    new Response(wp.stdout).arrayBuffer(),
+                    new Response(wp.stderr).text(),
+                    wp.exited,
+                  ]);
+                  const metaMatch = /PTTS_META:(\{[^\r\n]+\})/.exec(stderrTxt);
+                  if (
+                    exitCode === 0 &&
+                    metaMatch?.[1] &&
+                    stdoutBuf.byteLength >= 192
+                  ) {
+                    const meta = JSON.parse(metaMatch[1]);
+                    const f32 = new Float32Array(
+                      stdoutBuf,
+                      0,
+                      Math.floor(stdoutBuf.byteLength / 4),
+                    );
+                    synthResult = {
+                      sampleRate: Number(meta.sampleRate || 24000),
+                      totalSamples: f32.length,
+                      clauseSlices: [f32],
+                      clauseSampleRanges: Array.isArray(meta.clauseSampleRanges)
+                        ? meta.clauseSampleRanges
+                        : [],
+                    };
+                  }
+                }
+              }
+
+              if (synthResult && synthResult.totalSamples > 48) {
+                if (synthResult.clauseSampleRanges.length >= 2) {
+                  const anchors: ClauseFractionAnchor[] =
+                    synthResult.clauseSampleRanges.map((r) => ({
+                      wordStartIdx: r.wordStartIdx,
+                      wordEndIdx: r.wordEndIdx,
+                      startFrac: r.sampleStart / synthResult.totalSamples,
+                      endFrac: r.sampleEnd / synthResult.totalSamples,
+                    }));
+                  registerClauseFractionAnchors(payload, anchors);
+                }
+                const pcm = Buffer.alloc(synthResult.totalSamples * 2);
+                let sampleIdx = 0;
+                for (const arr of synthResult.clauseSlices) {
+                  for (let i = 0; i < arr.length; i++) {
+                    const s = Math.max(-1, Math.min(1, arr[i]!));
+                    pcm.writeInt16LE(Math.round(s * 32767), sampleIdx * 2);
+                    sampleIdx++;
+                  }
+                }
+                const rawWav = Buffer.concat([
+                  createWavHeader(pcm.length, synthResult.sampleRate, 1, 16),
+                  pcm,
+                ]);
+                const wav24k =
+                  synthResult.sampleRate === 24000
+                    ? rawWav
+                    : normalizeWavTo24k(rawWav);
+                if (wav24k) return wav24k;
+              }
+            }
+          }
+        }
+      } catch (err) {
+        if (err instanceof FmError && err.code === "CANCELLED") throw err;
+        // Fall through to CLI/OS synthesizers
+      }
+    }
+
     const activeSearchDirs =
       ctx.platform === process.platform && !hasExplicitTtsToolInDirs
         ? searchDirs(ctx)
@@ -6525,20 +7658,74 @@ export async function synthesizeCrossPlatformTtsChunkWav(
       );
       if (edgeTtsExe && ffmpegExe) {
         const tmpMp3 = nodePath.join(tmpDir, "edge.mp3");
+        const tmpVtt = nodePath.join(tmpDir, "edge.vtt");
+        const tmpWordsJson = nodePath.join(tmpDir, "edge.words.json");
         const tmpWav = nodePath.join(tmpDir, "edge.wav");
-        const p1 = Bun.spawn(
-          [
-            edgeTtsExe,
-            "--voice",
-            spec.edgeVoice,
-            "--text",
-            payload,
-            "--write-media",
-            tmpMp3,
-          ],
-          { stdout: "ignore", stderr: "ignore", stdin: "ignore", env },
-        );
-        if ((await p1.exited) === 0 && existsSync(tmpMp3)) {
+        const edgePyExe = resolveEdgeTtsPythonExe(edgeTtsExe);
+        if (edgePyExe) {
+          const pyScript = [
+            "import asyncio, json, os, edge_tts",
+            "async def main():",
+            "  c = edge_tts.Communicate(os.environ['FM_EDGE_TEXT'], os.environ['FM_EDGE_VOICE'], boundary='WordBoundary')",
+            "  words = []",
+            "  with open(os.environ['FM_EDGE_MP3'], 'wb') as f:",
+            "    async for ch in c.stream():",
+            "      if ch['type'] == 'audio': f.write(ch['data'])",
+            "      elif ch['type'] == 'WordBoundary':",
+            "        s = round(ch['offset'] / 10000)",
+            "        e = round((ch['offset'] + ch['duration']) / 10000)",
+            "        words.append({'startMs': s, 'endMs': e, 'text': ch.get('text', '')})",
+            "  with open(os.environ['FM_EDGE_WORDS'], 'w', encoding='utf-8') as wf:",
+            "    json.dump(words, wf)",
+            "asyncio.run(main())",
+          ].join("\n");
+          const pyProc = Bun.spawn([edgePyExe, "-c", pyScript], {
+            stdout: "ignore",
+            stderr: "ignore",
+            stdin: "ignore",
+            windowsHide: true,
+            env: {
+              ...env,
+              FM_EDGE_TEXT: payload,
+              FM_EDGE_VOICE: spec.edgeVoice,
+              FM_EDGE_MP3: tmpMp3,
+              FM_EDGE_WORDS: tmpWordsJson,
+            },
+          });
+          await pyProc.exited;
+        }
+        if (!existsSync(tmpMp3)) {
+          let p1 = Bun.spawn(
+            [
+              edgeTtsExe,
+              "--voice",
+              spec.edgeVoice,
+              "--text",
+              payload,
+              "--write-media",
+              tmpMp3,
+              "--write-subtitles",
+              tmpVtt,
+            ],
+            { stdout: "ignore", stderr: "ignore", stdin: "ignore", env },
+          );
+          if ((await p1.exited) !== 0 || !existsSync(tmpMp3)) {
+            p1 = Bun.spawn(
+              [
+                edgeTtsExe,
+                "--voice",
+                spec.edgeVoice,
+                "--text",
+                payload,
+                "--write-media",
+                tmpMp3,
+              ],
+              { stdout: "ignore", stderr: "ignore", stdin: "ignore", env },
+            );
+            await p1.exited;
+          }
+        }
+        if (existsSync(tmpMp3)) {
           const p2 = Bun.spawn(
             [
               ffmpegExe,
@@ -6559,7 +7746,43 @@ export async function synthesizeCrossPlatformTtsChunkWav(
           );
           if ((await p2.exited) === 0 && existsSync(tmpWav)) {
             const wav = normalizeWavTo24k(await fsp.readFile(tmpWav));
-            if (wav) return wav;
+            if (wav) {
+              const wavDurMs = Math.round(
+                ((wav.length - 44) / (24000 * 2)) * 1000,
+              );
+              const totalWords = payload
+                .split(/\s+/)
+                .filter((w) => /[\p{L}\p{N}&%$€£¥@§]/u.test(w)).length;
+              let registeredWordBounds = false;
+              if (existsSync(tmpWordsJson)) {
+                try {
+                  const wordsRaw = await fsp.readFile(tmpWordsJson, "utf8");
+                  const wordAnchors = extractEdgeTtsWordBoundaryAnchors(
+                    wordsRaw,
+                    totalWords,
+                    wavDurMs,
+                  );
+                  if (wordAnchors.length >= 2) {
+                    registerClauseFractionAnchors(payload, wordAnchors);
+                    registeredWordBounds = true;
+                  }
+                } catch {}
+              }
+              if (!registeredWordBounds && existsSync(tmpVtt)) {
+                try {
+                  const vttRaw = await fsp.readFile(tmpVtt, "utf8");
+                  const edgeAnchors = extractEdgeTtsVttClauseAnchors(
+                    vttRaw,
+                    totalWords,
+                    wavDurMs,
+                  );
+                  if (edgeAnchors.length >= 2) {
+                    registerClauseFractionAnchors(payload, edgeAnchors);
+                  }
+                } catch {}
+              }
+              return wav;
+            }
           }
         }
       }
@@ -6602,9 +7825,36 @@ export async function synthesizeCrossPlatformTtsChunkWav(
         }
       }
 
-      // 3b. Linux Native `pico2wave` / `espeak-ng` / `espeak` WAV Synthesizer
+      // 3b. Linux Native `piper` / `pico2wave` / `espeak-ng` / `espeak` / `flite` WAV Synthesizer
       if (ctx.platform === "linux") {
         const tmpWav = nodePath.join(tmpDir, "linux-tts.wav");
+        const piperExe = findExecutable("linux", ["piper"], activeSearchDirs);
+        if (piperExe) {
+          const piperModel =
+            process.env.PIPER_MODEL_PATH ||
+            nodePath.join(
+              ctx.home || homedir(),
+              ".local",
+              "share",
+              "piper",
+              spec.gender === "male"
+                ? "en_US-ryan-medium.onnx"
+                : "en_US-amy-medium.onnx",
+            );
+          const piperArgs = existsSync(piperModel)
+            ? ["--model", piperModel, "--output_file", tmpWav]
+            : ["--output_file", tmpWav];
+          const proc = Bun.spawn([piperExe, ...piperArgs], {
+            stdin: new TextEncoder().encode(payload),
+            stdout: "ignore",
+            stderr: "ignore",
+            env,
+          });
+          if ((await proc.exited) === 0 && existsSync(tmpWav)) {
+            const wav = normalizeWavTo24k(await fsp.readFile(tmpWav));
+            if (wav) return wav;
+          }
+        }
         const picoExe = findExecutable(
           "linux",
           ["pico2wave"],
@@ -6642,6 +7892,19 @@ export async function synthesizeCrossPlatformTtsChunkWav(
             ],
             { stdout: "ignore", stderr: "ignore", stdin: "ignore", env },
           );
+          if ((await proc.exited) === 0 && existsSync(tmpWav)) {
+            const wav = normalizeWavTo24k(await fsp.readFile(tmpWav));
+            if (wav) return wav;
+          }
+        }
+        const fliteExe = findExecutable("linux", ["flite"], activeSearchDirs);
+        if (fliteExe) {
+          const proc = Bun.spawn([fliteExe, "-t", payload, "-o", tmpWav], {
+            stdout: "ignore",
+            stderr: "ignore",
+            stdin: "ignore",
+            env,
+          });
           if ((await proc.exited) === 0 && existsSync(tmpWav)) {
             const wav = normalizeWavTo24k(await fsp.readFile(tmpWav));
             if (wav) return wav;
@@ -6726,7 +7989,7 @@ export async function synthesizePhononChunkWav(
   const cache = getAudioCache(ctx);
   const cacheKey = createHash("sha256")
     .update(
-      `v3\x00${cleanVoice}\x00${customVoice?.cloningEngine || ""}\x00${customVoice?.safetensorSha256 || ""}\x000\x00${payload}`,
+      `v4\x00${cleanVoice}\x00${customVoice?.cloningEngine || ""}\x00${customVoice?.safetensorSha256 || ""}\x000\x00${payload}`,
     )
     .digest("hex")
     .slice(0, 24);
@@ -7042,7 +8305,7 @@ export async function speakChunk(
   const cache = getAudioCache(ctx);
   const key = createHash("sha256")
     .update(
-      `v3\0${voice}\0${customVoice?.cloningEngine || ""}\0${customVoice?.safetensorSha256 || ""}\0${effectivePitch}\0${chunkText}`,
+      `v4\0${voice}\0${customVoice?.cloningEngine || ""}\0${customVoice?.safetensorSha256 || ""}\0${effectivePitch}\0${chunkText}`,
     )
     .digest("hex")
     .slice(0, 24);

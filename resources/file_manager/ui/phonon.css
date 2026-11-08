@@ -322,16 +322,19 @@
 }
 
 .phonon-teleprompter-stage {
+  position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   text-align: center;
   gap: 0.45rem;
   padding: 0.85rem 1rem;
   min-height: 220px;
-  max-height: 220px;
+  max-height: 260px;
   overflow-y: auto;
+  scroll-padding-top: 0.75rem;
+  scroll-padding-bottom: 0.75rem;
   transition:
     background-color 0.2s ease,
     color 0.2s ease;
@@ -404,6 +407,8 @@
   text-align: center;
   width: 100%;
   gap: 0.38rem;
+  margin-top: auto;
+  margin-bottom: auto;
 }
 
 .phonon-teleprompter-line {

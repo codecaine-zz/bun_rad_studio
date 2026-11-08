@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { mkdirSync, rmSync } from "node:fs";
 import { startFileManagerServer } from "../src/features/filemanager/fmServer";
 import {
   MIN_WEB_SEARCH_NUM_CTX,
@@ -45,7 +46,8 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
 
   beforeAll(async () => {
     tempRoot = `/tmp/fm_ollama_test_${Date.now()}`;
-    Bun.spawnSync(["mkdir", "-p", `${tempRoot}/home/docs`, `${tempRoot}/data`]);
+    mkdirSync(`${tempRoot}/home/docs`, { recursive: true });
+    mkdirSync(`${tempRoot}/data`, { recursive: true });
     await Bun.write(
       `${tempRoot}/home/docs/auth_login.ts`,
       `export async function verifyDatabaseLogin(user: string, pass: string) {\n  // Database login authentication check\n  return user === "admin" && pass.length > 8;\n}\n`,
@@ -545,7 +547,7 @@ describe("Codecaine File Manager — Built-In Ollama AI Assistant & Full Capabil
       mockOllamaServer?.stop(true);
     } catch {}
     try {
-      Bun.spawnSync(["rm", "-rf", tempRoot]);
+      rmSync(tempRoot, { recursive: true, force: true });
     } catch {}
   });
 

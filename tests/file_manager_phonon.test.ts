@@ -1759,4 +1759,144 @@ describe("with real Ollama & Phonon model", () => {
       }
     },
   );
+
+  test("cross-platform Text/Voice Reader Studio synthesizes real 24 kHz speech and exports Read-Along MP4 on non-MLX platforms (Windows/Linux/macOS)", async () => {
+    const {
+      resolveCrossPlatformVoiceSpec,
+      synthesizeCrossPlatformTtsChunkWav,
+      speakChunk,
+      synthesizeAndExportAudioFile,
+    } = await import("../src/features/filemanager/fmPhonon");
+    const { getBionicTtsConfigAndVoices, runBionicSpeech } =
+      await import("../src/features/filemanager/fmBionic");
+
+    // 1. Verify all 38 built-in Phonon voices have valid cross-platform voice specs
+    for (const v of DEFAULT_PHONON_VOICES) {
+      const spec = resolveCrossPlatformVoiceSpec(v.id);
+      expect(["male", "female"]).toContain(spec.gender);
+      expect(spec.f0Hz).toBeGreaterThanOrEqual(85);
+      expect(spec.f0Hz).toBeLessThanOrEqual(250);
+      expect(spec.edgeVoice.length).toBeGreaterThan(5);
+      expect(spec.espeakVoice.length).toBeGreaterThan(3);
+      expect(spec.macSayVoice.length).toBeGreaterThan(2);
+    }
+
+    // 2. Synthesize 24 kHz speech chunk on current host platform
+    const xplatDir = mkdtempSync(join(tmpdir(), "fm-xplat-host-"));
+    try {
+      const hostCtx = createContext({
+        home: realCtx.home,
+        dataDir: join(xplatDir, "data"),
+      });
+
+      const wavRussell = await synthesizeCrossPlatformTtsChunkWav(
+        hostCtx,
+        "Hello from Windows ARM64 Text and Voice Reader Studio.",
+        "Russell",
+      );
+      const parsedRussell = parseWavPcm(wavRussell);
+      expect(parsedRussell.sampleRate).toBe(24000);
+      expect(parsedRussell.bitsPerSample).toBe(16);
+      expect(parsedRussell.numChannels).toBe(1);
+      expect(parsedRussell.pcmData.length).toBeGreaterThan(10_000);
+
+      const spkZoey = await speakChunk(hostCtx, {
+        text: "Follow along word by word on Windows and Linux without MLX.",
+        voice: "Zoey",
+      });
+      expect(spkZoey.sampleRate).toBe(24000);
+      expect(spkZoey.words.length).toBe(11);
+      expect(spkZoey.cues.length).toBeGreaterThanOrEqual(1);
+
+      // 3. If Bionic native TTS (`xn-ptts`) is installed on this host, verify native Bionic speech synthesis across voices and Linux/Windows backends
+      const bionicTts = getBionicTtsConfigAndVoices(hostCtx);
+      if (bionicTts.engineInstalled) {
+        expect(bionicTts.voices.length).toBeGreaterThanOrEqual(37);
+        const bionicRes = await runBionicSpeech(hostCtx, {
+          input:
+            "Native Bionic Phonon 40M Multilingual speech on Windows ARM64.",
+          voice: "Russell",
+        });
+        expect(bionicRes.ok).toBe(true);
+        expect(bionicRes.sampleRate).toBe(24000);
+        expect(bionicRes.voice).toBe("Russell");
+        expect(bionicRes.engine).toContain("xn-ptts-");
+
+        // Verify Linux ARM64 & Linux x64 Bionic TTS backend resolution
+        const linuxArmCfg = getBionicTtsConfigAndVoices({
+          ...hostCtx,
+          platform: "linux",
+          arch: "arm64",
+        });
+        expect(linuxArmCfg.voices.length).toBeGreaterThanOrEqual(37);
+        if (linuxArmCfg.engineInstalled) {
+          expect(linuxArmCfg.enginePath).toContain("xn-ptts-linux-arm64");
+        }
+        const linuxX64Cfg = getBionicTtsConfigAndVoices({
+          ...hostCtx,
+          platform: "linux",
+          arch: "x64",
+        });
+        if (linuxX64Cfg.engineInstalled) {
+          expect(linuxX64Cfg.enginePath).toContain("xn-ptts-linux-x86_64");
+        }
+
+        // Verify clause-locked Read-Out-Loud word highlight synchronization on multi-clause acronym-heavy text
+        const multiClauseSample =
+          "Welcome to the Codecaine Phonon Voice Studio! Powered by Ollama and Gradium Phonon TTS on Apple Silicon MLX, you can follow along word by word as your document is read out loud, convert any file format into clean plain text, and export synchronized Read-Along Videos in MP4, WebM, MOV, or MKV alongside WAV, MP3, M4A, and FLAC audio.";
+        const spkSync = await speakChunk(hostCtx, {
+          text: multiClauseSample,
+          voice: "Zoey",
+        });
+        expect(spkSync.words.length).toBe(58);
+        // Verify >20s chunks are never truncated at 20.0s during 24 kHz WAV normalization
+        expect(spkSync.durationSec).toBeGreaterThan(22);
+        // Verify fast function words ("to", "the") do not delay "Codecaine"
+        expect(spkSync.words[1]?.word).toBe("to");
+        expect(spkSync.words[1]!.durationMs).toBeLessThanOrEqual(150);
+        expect(spkSync.words[3]?.word).toBe("Codecaine");
+        expect(spkSync.words[3]!.startMs).toBeLessThanOrEqual(700);
+        const loudWord = spkSync.words.find((w) => w.word === "loud,");
+        const textWord = spkSync.words.find((w) => w.word === "text,");
+        const mp4Word = spkSync.words.find((w) => w.word === "MP4,");
+        expect(loudWord).toBeDefined();
+        expect(textWord).toBeDefined();
+        expect(mp4Word).toBeDefined();
+        // Because the final clause spells out 8 uppercase acronyms (~11s), unanchored global alignment
+        // would push "loud," and "text," 1.5-2.0s too early; clause-locked alignment keeps them in exact lockstep.
+        expect(textWord!.startMs).toBeGreaterThan(loudWord!.endMs + 100);
+        expect(mp4Word!.startMs).toBeGreaterThan(textWord!.endMs + 1500);
+      }
+
+      // 4. If ffmpeg is installed on the host, verify Read-Along MP4 Video export on non-MLX platform
+      const ffmpegExe = resolveTool(hostCtx, "ffmpeg");
+      if (ffmpegExe) {
+        const outMp4 = join(xplatDir, "xplat-read-along.mp4");
+        const chunks = splitTextForPhonon(
+          "Cross-platform Read-Along Video works natively on Windows, Linux, and macOS.",
+          { maxChars: 200 },
+        );
+        const videoOut = await synthesizeAndExportAudioFile(hostCtx, {
+          ollamaExe: "",
+          ffmpegExe,
+          chunks,
+          voice: "Russell",
+          format: "mp4",
+          speed: 1,
+          pauseMs: 150,
+          outputPath: outMp4,
+          aspectRatio: "16:9",
+          videoTheme: "midnight",
+          saveSubtitles: true,
+          title: "Cross-Platform Read-Along",
+        });
+        expect(existsSync(videoOut.outputPath)).toBe(true);
+        expect(videoOut.sizeBytes).toBeGreaterThan(1000);
+        expect(videoOut.srtPath && existsSync(videoOut.srtPath)).toBe(true);
+        expect(videoOut.vttPath && existsSync(videoOut.vttPath)).toBe(true);
+      }
+    } finally {
+      rmSync(xplatDir, { recursive: true, force: true });
+    }
+  });
 });

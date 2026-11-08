@@ -241,10 +241,27 @@ export function resolveLmsCliPath(ctx?: FmContext): string | null {
   } catch {}
   const fromPath = Bun.which("lms");
   if (fromPath) return fromPath;
-  const defaultMac = "/Users/codecaine/.lmstudio/bin/lms";
-  try {
-    if (Bun.file(defaultMac).size > 0) return defaultMac;
-  } catch {}
+  const home =
+    ctx?.home ||
+    process.env.HOME ||
+    process.env.USERPROFILE ||
+    "/Users/codecaine";
+  const fallbackCandidates =
+    platform === "win32"
+      ? [
+          joinPath([home, ".local", "bin", "lms.exe"], "win32"),
+          "C:\\Users\\codecaine\\.lmstudio\\bin\\lms.exe",
+        ]
+      : [
+          joinPath([home, ".local", "bin", "lms"], platform),
+          "/usr/local/bin/lms",
+          "/Users/codecaine/.lmstudio/bin/lms",
+        ];
+  for (const fb of fallbackCandidates) {
+    try {
+      if (Bun.file(fb).size > 0) return fb;
+    } catch {}
+  }
   return null;
 }
 
@@ -279,7 +296,7 @@ export function detectBionicApps(ctx?: FmContext): {
     } catch {}
   }
 
-  const bionicAppPath =
+  let bionicAppPath =
     platform === "darwin"
       ? "/Applications/Bionic.app"
       : platform === "win32"
@@ -294,7 +311,7 @@ export function detectBionicApps(ctx?: FmContext): {
           )
         : "/usr/bin/bionic";
 
-  const lmStudioAppPath =
+  let lmStudioAppPath =
     platform === "darwin"
       ? "/Applications/LM Studio.app"
       : platform === "win32"
@@ -308,6 +325,33 @@ export function detectBionicApps(ctx?: FmContext): {
             "win32",
           )
         : "/usr/bin/lm-studio";
+
+  if (platform === "linux") {
+    for (const cand of [
+      "/usr/bin/bionic",
+      "/opt/Bionic/bionic",
+      "/usr/local/bin/bionic",
+    ]) {
+      try {
+        if (Bun.file(cand).size > 0) {
+          bionicAppPath = cand;
+          break;
+        }
+      } catch {}
+    }
+    for (const cand of [
+      "/usr/bin/lm-studio",
+      "/opt/LM Studio/lm-studio",
+      "/usr/local/bin/lm-studio",
+    ]) {
+      try {
+        if (Bun.file(cand).size > 0) {
+          lmStudioAppPath = cand;
+          break;
+        }
+      } catch {}
+    }
+  }
 
   const bionicBinCheck =
     platform === "darwin"
@@ -619,9 +663,10 @@ export function listInstalledBionicBackends(ctx?: FmContext): {
         name = m.name || name;
         version = m.version || version;
         format = m.modelFormat || m.format || format;
-        platformArch = m.platform
-          ? `${m.platform}-${m.arch || "arm64"}`
-          : platformArch;
+        const archStr = String(
+          m.arch || m.cpu?.architecture || "arm64",
+        ).toLowerCase();
+        platformArch = m.platform ? `${m.platform}-${archStr}` : platformArch;
       } catch {}
     }
     const rawDisplay = readTextFileSyncPure(displayPath);
@@ -646,12 +691,14 @@ export function listInstalledBionicBackends(ctx?: FmContext): {
       description = "Apple Silicon M3+ Splash Ultra-Low-Latency Metal Engine";
     } else if (entry.name.startsWith("llama.cpp")) {
       format = "gguf";
-      description =
-        "Apple Metal llama.cpp Engine for GGUF LLMs & Nomic BERT Embeddings";
+      description = platformArch.startsWith("mac")
+        ? "Apple Metal llama.cpp Engine for GGUF LLMs & Nomic BERT Embeddings"
+        : `Cross-Platform llama.cpp Engine for GGUF LLMs & Nomic BERT Embeddings (${platformArch})`;
     } else if (entry.name.startsWith("xn-ptts")) {
       format = "tts-bundle";
-      description =
-        "Native Apple Metal Phonon 40M Multilingual Text-to-Speech Engine (24kHz)";
+      description = platformArch.startsWith("mac")
+        ? "Native Apple Metal Phonon 40M Multilingual Text-to-Speech Engine (24kHz)"
+        : `Native Bionic Phonon 40M Multilingual Text-to-Speech Engine (24kHz, ${platformArch})`;
     } else if (entry.name.startsWith("executorch-asr")) {
       format = "pte / whisper";
       description =
@@ -982,22 +1029,16 @@ export async function listBionicModelsAndHardwareStatus(
 
   // Ensure phonon-40m-multilingual is listed if installed in extensions/models
   if (!modelsMap.has("phonon-40m-multilingual")) {
-    const phononBundle = joinPath(
-      [
-        lmHome,
-        "extensions",
-        "models",
-        "phonon-40m-multilingual-mac-arm64-apple-metal-0.1.1",
-        "tts-bundle.json",
-      ],
-      ctx.platform,
-    );
-    if (await fileExistsPure(phononBundle)) {
+    const ttsCfg = getBionicTtsConfigAndVoices(ctx);
+    if (await fileExistsPure(ttsCfg.bundlePath)) {
       modelsMap.set(
         "phonon-40m-multilingual",
         buildModelInfo({
           modelKey: "phonon-40m-multilingual",
-          displayName: "Phonon 40M Multilingual (Native Metal TTS)",
+          displayName:
+            ctx.platform === "darwin"
+              ? "Phonon 40M Multilingual (Native Metal TTS)"
+              : "Phonon 40M Multilingual (Native Bionic TTS)",
           publisher: "LM Studio Bionic",
           format: "gguf",
           sizeBytes: 74_553_568,
@@ -1481,25 +1522,55 @@ export function getBionicTtsConfigAndVoices(ctx?: FmContext): {
 } {
   const lmHome = getLmStudioHomeDir(ctx);
   const platform = ctx?.platform || process.platform;
+  const arch = ctx?.arch || process.arch;
   const backendsDir = joinPath([lmHome, "extensions", "backends"], platform);
   const modelsDir = joinPath([lmHome, "extensions", "models"], platform);
+  const osPrefix =
+    platform === "win32"
+      ? "xn-ptts-win-"
+      : platform === "linux"
+        ? "xn-ptts-linux-"
+        : "xn-ptts-mac-";
+  const archHint = arch === "arm64" ? "arm64" : "x86_64";
+  const defaultBackendFolder =
+    platform === "win32"
+      ? arch === "arm64"
+        ? "xn-ptts-win-arm64-0.1.5"
+        : "xn-ptts-win-x86_64-avx2-0.1.5"
+      : platform === "linux"
+        ? arch === "arm64"
+          ? "xn-ptts-linux-arm64-0.1.5"
+          : "xn-ptts-linux-x86_64-avx2-0.1.5"
+        : "xn-ptts-mac-arm64-apple-metal-advsimd-0.1.5";
+  const modelOsPrefix =
+    platform === "win32"
+      ? "phonon-40m-multilingual-win-"
+      : platform === "linux"
+        ? "phonon-40m-multilingual-linux-"
+        : "phonon-40m-multilingual-mac-";
+  const defaultModelFolder =
+    platform === "win32"
+      ? "phonon-40m-multilingual-win-arm64-0.1.1"
+      : platform === "linux"
+        ? "phonon-40m-multilingual-linux-arm64-0.1.1"
+        : "phonon-40m-multilingual-mac-arm64-apple-metal-0.1.1";
+
   let enginePath = joinPath(
-    [
-      backendsDir,
-      "xn-ptts-mac-arm64-apple-metal-advsimd-0.1.5",
-      "tts_engine.node",
-    ],
+    [backendsDir, defaultBackendFolder, "tts_engine.node"],
     platform,
   );
-  let bundleDir = joinPath(
-    [modelsDir, "phonon-40m-multilingual-mac-arm64-apple-metal-0.1.1"],
-    platform,
-  );
+  let bundleDir = joinPath([modelsDir, defaultModelFolder], platform);
   try {
     if (!(Bun.file(enginePath).size > 0)) {
-      const foundBackend = listDirectoryEntriesPure(backendsDir, platform).find(
+      const entries = listDirectoryEntriesPure(backendsDir, platform).filter(
         (e) => e.isDir && e.name.startsWith("xn-ptts-"),
       );
+      const foundBackend =
+        entries.find(
+          (e) => e.name.startsWith(osPrefix) && e.name.includes(archHint),
+        ) ||
+        entries.find((e) => e.name.startsWith(osPrefix)) ||
+        entries[0];
       if (foundBackend) {
         enginePath = joinPath([foundBackend.path, "tts_engine.node"], platform);
       }
@@ -1507,9 +1578,11 @@ export function getBionicTtsConfigAndVoices(ctx?: FmContext): {
     if (
       !(Bun.file(joinPath([bundleDir, "tts-bundle.json"], platform)).size > 0)
     ) {
-      const foundModel = listDirectoryEntriesPure(modelsDir, platform).find(
+      const mEntries = listDirectoryEntriesPure(modelsDir, platform).filter(
         (e) => e.isDir && e.name.startsWith("phonon-40m-multilingual"),
       );
+      const foundModel =
+        mEntries.find((e) => e.name.startsWith(modelOsPrefix)) || mEntries[0];
       if (foundModel) {
         bundleDir = foundModel.path;
       }
@@ -1527,6 +1600,97 @@ export function getBionicTtsConfigAndVoices(ctx?: FmContext): {
       Bun.file(enginePath).size > 0 && Bun.file(bundlePath).size > 0;
   } catch {}
 
+  const availableVoices: BionicVoiceSpec[] = [...BIONIC_DEFAULT_VOICES];
+  try {
+    const rawBundle = readTextFileSyncPure(bundlePath);
+    if (rawBundle) {
+      const parsedBundle = JSON.parse(rawBundle);
+      const voicesJsonlPath = joinPath(
+        [bundleDir, "voice-library", "voices.jsonl"],
+        platform,
+      );
+      const rawJsonl = readTextFileSyncPure(voicesJsonlPath);
+      const jsonlMeta = new Map<
+        string,
+        { name: string; language: string; description: string }
+      >();
+      if (rawJsonl) {
+        for (const line of rawJsonl.split(/\r?\n/)) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          try {
+            const obj = JSON.parse(trimmed);
+            if (obj.uid && obj.name) {
+              jsonlMeta.set(String(obj.uid), {
+                name: String(obj.name),
+                language: String(obj.language || "en"),
+                description: String(
+                  obj.description || `${obj.name} (${obj.language || "en"})`,
+                ),
+              });
+            }
+          } catch {}
+        }
+      }
+      const existingIds = new Set(availableVoices.map((v) => v.id));
+      if (Array.isArray(parsedBundle?.voices)) {
+        for (const item of parsedBundle.voices) {
+          if (!item || typeof item !== "object") continue;
+          const cleanId = String(item.id || "").trim();
+          const displayName = String(item.name || cleanId).trim();
+          if (!cleanId || existingIds.has(cleanId)) continue;
+          if (
+            availableVoices.some(
+              (v) => v.name.toLowerCase() === displayName.toLowerCase(),
+            )
+          ) {
+            continue;
+          }
+          const meta = jsonlMeta.get(cleanId);
+          existingIds.add(cleanId);
+          availableVoices.push({
+            id: cleanId,
+            name: displayName,
+            language: meta?.language || "en",
+            country: "us",
+            description:
+              meta?.description ||
+              `${displayName} (Phonon 40M Multilingual Voice)`,
+          });
+        }
+      } else if (parsedBundle && typeof parsedBundle.voices === "object") {
+        for (const [vKey, relFile] of Object.entries(
+          parsedBundle.voices as Record<string, string>,
+        )) {
+          const cleanId = String(relFile || vKey)
+            .replace(/^.*[/\\]/, "")
+            .replace(/\.safetensors$/i, "");
+          if (existingIds.has(cleanId) || existingIds.has(vKey)) continue;
+          const meta = jsonlMeta.get(cleanId) || jsonlMeta.get(vKey);
+          const displayName = meta ? meta.name : vKey;
+          if (
+            availableVoices.some(
+              (v) => v.name.toLowerCase() === displayName.toLowerCase(),
+            )
+          ) {
+            continue;
+          }
+          existingIds.add(cleanId);
+          existingIds.add(vKey);
+          availableVoices.push({
+            id: cleanId,
+            name: displayName,
+            language: meta?.language || "en",
+            country: "us",
+            description:
+              meta?.description ||
+              `${displayName} (Phonon 40M Multilingual Voice)`,
+          });
+        }
+      }
+    }
+  } catch {}
+
   let selection = {
     enabled: true,
     voice: "NbpkqMVS3CJeq2j8",
@@ -1542,7 +1706,7 @@ export function getBionicTtsConfigAndVoices(ctx?: FmContext): {
     try {
       const parsed = JSON.parse(rawSelection);
       const voiceId = String(parsed.voice || selection.voice);
-      const matched = BIONIC_DEFAULT_VOICES.find(
+      const matched = availableVoices.find(
         (v) =>
           v.id === voiceId || v.name.toLowerCase() === voiceId.toLowerCase(),
       );
@@ -1564,7 +1728,7 @@ export function getBionicTtsConfigAndVoices(ctx?: FmContext): {
     bundlePath,
     ttsSelectionPath,
     selection,
-    voices: BIONIC_DEFAULT_VOICES,
+    voices: availableVoices,
     supportedLanguages: ["en", "fr", "de", "es", "pt"],
   };
 }
@@ -1584,7 +1748,7 @@ export async function updateBionicTtsConfig(
   const requestedVoice = String(
     payload.voice || current.selection.voice,
   ).trim();
-  const matchedVoice = BIONIC_DEFAULT_VOICES.find(
+  const matchedVoice = current.voices.find(
     (v) =>
       v.id === requestedVoice ||
       v.name.toLowerCase() === requestedVoice.toLowerCase(),
@@ -1604,14 +1768,25 @@ export async function updateBionicTtsConfig(
     ),
   );
 
+  const bundleFolderName = basenamePath(
+    dirnamePath(current.bundlePath, ctx.platform),
+  );
+  const versionMatch = bundleFolderName.match(/^(.*)-(\d+\.\d+\.\d+)$/);
+  const defaultModelName =
+    ctx.platform === "win32"
+      ? `phonon-40m-multilingual-win-${ctx.arch === "x64" ? "x86_64" : "arm64"}`
+      : ctx.platform === "linux"
+        ? `phonon-40m-multilingual-linux-${ctx.arch === "x64" ? "x86_64" : "arm64"}`
+        : "phonon-40m-multilingual-mac-arm64-apple-metal";
+
   const updatedJson = {
     enabled:
       payload.enabled !== undefined
         ? Boolean(payload.enabled)
         : current.selection.enabled,
     model: {
-      name: "phonon-40m-multilingual-mac-arm64-apple-metal",
-      version: "0.1.1",
+      name: versionMatch ? versionMatch[1]! : defaultModelName,
+      version: versionMatch ? versionMatch[2]! : "0.1.1",
     },
     voice: nextVoiceId,
     language: nextLang,
@@ -1743,11 +1918,17 @@ export async function runBionicSpeech(
     payload.voice || ttsCfg.selection.voiceName || "Zoey",
   ).trim();
   const matchedVoice =
+    ttsCfg.voices.find(
+      (v) =>
+        v.id === requestedVoice ||
+        v.name.toLowerCase() === requestedVoice.toLowerCase(),
+    ) ||
     BIONIC_DEFAULT_VOICES.find(
       (v) =>
         v.id === requestedVoice ||
         v.name.toLowerCase() === requestedVoice.toLowerCase(),
-    ) || BIONIC_DEFAULT_VOICES[0]!;
+    ) ||
+    BIONIC_DEFAULT_VOICES[0]!;
   const language = String(
     payload.language ||
       matchedVoice.language ||
@@ -1757,46 +1938,139 @@ export async function runBionicSpeech(
 
   if (ttsCfg.engineInstalled && !process.env.BIONIC_FORCE_FALLBACK_TTS) {
     try {
-      const ttsAddon = require(ttsCfg.enginePath);
-      const engine = new ttsAddon.TtsEngine();
-      const loadInfo = await engine.load(
-        ttsCfg.bundlePath,
-        "metal",
-        ttsCfg.selection.cpuThreads || 4,
-      );
-      const sampleRate = Number(loadInfo?.sampleRate || 24000);
-      const allSampleArrays: Float32Array[] = [];
-      let totalSamples = 0;
-
-      try {
-        for (const chunkText of chunks) {
-          await engine.startSegment({
-            text: chunkText,
-            voice: matchedVoice.id,
-            language,
-            seed: 42,
-          });
-          while (true) {
-            const audioChunk: Float32Array | null =
-              await engine.readNextAudio();
-            if (!audioChunk || audioChunk.length === 0) break;
-            allSampleArrays.push(audioChunk);
-            totalSamples += audioChunk.length;
-          }
-          await engine.waitForCompletion();
+      let runnableEnginePath = ttsCfg.enginePath;
+      const hostOsPrefix =
+        process.platform === "win32"
+          ? "xn-ptts-win-"
+          : process.platform === "linux"
+            ? "xn-ptts-linux-"
+            : "xn-ptts-mac-";
+      if (!runnableEnginePath.includes(hostOsPrefix)) {
+        const hostTtsCfg = getBionicTtsConfigAndVoices({
+          ...ctx,
+          platform: process.platform as any,
+          arch: process.arch,
+        });
+        if (hostTtsCfg.engineInstalled) {
+          runnableEnginePath = hostTtsCfg.enginePath;
         }
-      } finally {
-        try {
-          engine.dispose();
-        } catch {}
       }
+      let sampleRate = 24000;
+      let merged: Float32Array;
+      try {
+        const ttsAddon = require(runnableEnginePath);
+        const addonInfo =
+          typeof ttsAddon.inspectAddon === "function"
+            ? ttsAddon.inspectAddon()
+            : null;
+        const supportedDevices: string[] = Array.isArray(addonInfo?.devices)
+          ? addonInfo.devices
+          : [];
+        const device = supportedDevices.includes("metal") ? "metal" : "cpu";
+        const engine = new ttsAddon.TtsEngine();
+        const loadInfo = await engine.load(
+          ttsCfg.bundlePath,
+          device,
+          ttsCfg.selection.cpuThreads || 4,
+        );
+        sampleRate = Number(loadInfo?.sampleRate || 24000);
+        const allSampleArrays: Float32Array[] = [];
+        let totalSamples = 0;
 
-      const merged = new Float32Array(totalSamples);
-      let writeOffset = 0;
-      for (const arr of allSampleArrays) {
-        merged.set(arr, writeOffset);
-        writeOffset += arr.length;
+        try {
+          for (const chunkText of chunks) {
+            await engine.startSegment({
+              text: chunkText,
+              voice: matchedVoice.id,
+              language,
+              seed: 42,
+            });
+            while (true) {
+              const audioChunk: Float32Array | null =
+                await engine.readNextAudio();
+              if (!audioChunk || audioChunk.length === 0) break;
+              allSampleArrays.push(audioChunk);
+              totalSamples += audioChunk.length;
+            }
+            await engine.waitForCompletion();
+          }
+        } finally {
+          try {
+            engine.dispose();
+          } catch {}
+        }
+
+        merged = new Float32Array(totalSamples);
+        let writeOffset = 0;
+        for (const arr of allSampleArrays) {
+          merged.set(arr, writeOffset);
+          writeOffset += arr.length;
+        }
+      } catch (inProcErr) {
+        const nativeBunExe =
+          process.env.FM_NATIVE_BUN_EXEC ||
+          joinPath(
+            [
+              ctx.home || process.env.USERPROFILE || process.env.HOME || "",
+              ".bun",
+              "bin",
+              process.platform === "win32" ? "bun.exe" : "bun",
+            ],
+            process.platform,
+          );
+        const workerScript = `
+          const addon = require(process.env.FM_PTTS_ENGINE);
+          const info = typeof addon.inspectAddon === 'function' ? addon.inspectAddon() : null;
+          const dev = Array.isArray(info?.devices) && info.devices.includes('metal') ? 'metal' : 'cpu';
+          const eng = new addon.TtsEngine();
+          const loadInfo = await eng.load(process.env.FM_PTTS_BUNDLE, dev, Number(process.env.FM_PTTS_THREADS) || 4);
+          const sr = Number(loadInfo?.sampleRate || 24000);
+          const chunks = JSON.parse(process.env.FM_PTTS_CHUNKS);
+          const arrs = [];
+          let total = 0;
+          for (const text of chunks) {
+            await eng.startSegment({ text, voice: process.env.FM_PTTS_VOICE, language: process.env.FM_PTTS_LANG, seed: 42 });
+            while (true) {
+              const ch = await eng.readNextAudio();
+              if (!ch || !ch.length) break;
+              arrs.push(ch);
+              total += ch.length;
+            }
+            await eng.waitForCompletion();
+          }
+          try { eng.dispose(); } catch {}
+          const out = new Float32Array(total);
+          let off = 0;
+          for (const a of arrs) { out.set(a, off); off += a.length; }
+          process.stderr.write('SR:' + sr + '\\n');
+          process.stdout.write(Buffer.from(out.buffer, out.byteOffset, out.byteLength));
+        `;
+        const wp = Bun.spawn([nativeBunExe, "-e", workerScript], {
+          stdout: "pipe",
+          stderr: "pipe",
+          stdin: "ignore",
+          windowsHide: true,
+          env: {
+            ...process.env,
+            FM_PTTS_ENGINE: runnableEnginePath,
+            FM_PTTS_BUNDLE: ttsCfg.bundlePath,
+            FM_PTTS_THREADS: String(ttsCfg.selection.cpuThreads || 4),
+            FM_PTTS_CHUNKS: JSON.stringify(chunks),
+            FM_PTTS_VOICE: matchedVoice.id,
+            FM_PTTS_LANG: language,
+          },
+        });
+        const [outBuf, errTxt, code] = await Promise.all([
+          new Response(wp.stdout).arrayBuffer(),
+          new Response(wp.stderr).text(),
+          wp.exited,
+        ]);
+        if (code !== 0 || outBuf.byteLength < 192) throw inProcErr;
+        const srMatch = /SR:(\d+)/.exec(errTxt);
+        if (srMatch?.[1]) sampleRate = Number(srMatch[1]);
+        merged = new Float32Array(outBuf, 0, Math.floor(outBuf.byteLength / 4));
       }
+      const totalSamples = merged.length;
 
       const wavBytes = encodeFloat32SamplesToWav(merged, sampleRate);
       const audioId = `bionic_tts_${Date.now()}_${sha256Hex(cleanedText).slice(0, 10)}`;
@@ -1832,9 +2106,12 @@ export async function runBionicSpeech(
         0.5,
         Math.round((totalSamples / sampleRate) * 10) / 10,
       );
+      const engineFolderName =
+        basenamePath(dirnamePath(ttsCfg.enginePath, ctx.platform)) ||
+        "xn-ptts-mac-arm64-apple-metal-advsimd-0.1.5";
       return {
         ok: true,
-        engine: "xn-ptts-mac-arm64-apple-metal-advsimd-0.1.5",
+        engine: engineFolderName,
         model: "phonon-40m-multilingual",
         voice: matchedVoice.name,
         voiceId: matchedVoice.id,
@@ -1853,7 +2130,7 @@ export async function runBionicSpeech(
     }
   }
 
-  // Standalone Bionic fallback (zero dependency on Ollama): uses macOS /usr/bin/say (24kHz LEI16 WAV) or pure Bun 24kHz WAV synthesis
+  // Standalone Bionic fallback (zero dependency on Ollama): uses macOS /usr/bin/say (24kHz LEI16 WAV), Linux espeak-ng/pico2wave, or pure Bun 24kHz WAV synthesis
   const sampleRate = 24000;
   const audioId = `bionic_tts_${Date.now()}_${sha256Hex(cleanedText).slice(0, 10)}`;
   const tempWavPath = joinPath(
@@ -1884,6 +2161,31 @@ export async function runBionicSpeech(
       if (sayProc.exitCode === 0 && (await fileExistsPure(tempWavPath))) {
         wavBytes = new Uint8Array(await Bun.file(tempWavPath).arrayBuffer());
         engineLabel = "macos-native-say-24khz";
+      }
+    } catch {}
+  } else if (
+    process.platform === "linux" &&
+    (ctx.ollama?.platform ?? ctx.platform) === "linux" &&
+    !process.env.BIONIC_HOST
+  ) {
+    const espeakBin =
+      Bun.which("espeak-ng") || Bun.which("espeak") || "/usr/bin/espeak-ng";
+    try {
+      const esProc = Bun.spawnSync(
+        [
+          espeakBin,
+          "-w",
+          tempWavPath,
+          "-s",
+          "165",
+          "--",
+          cleanedText.slice(0, 8000),
+        ],
+        { stdout: "ignore", stderr: "ignore" },
+      );
+      if (esProc.exitCode === 0 && (await fileExistsPure(tempWavPath))) {
+        wavBytes = new Uint8Array(await Bun.file(tempWavPath).arrayBuffer());
+        engineLabel = "linux-native-espeak-wav";
       }
     } catch {}
   }

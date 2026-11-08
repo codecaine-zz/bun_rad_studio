@@ -86,7 +86,7 @@ function serverCommand(options: FileManagerServerOptions): string[] {
   const script =
     process.argv[1] || resolve(import.meta.dir, "file_manager_studio.ts");
   const args = [
-    process.execPath,
+    process.env.FM_NATIVE_BUN_EXEC || process.execPath,
     script,
     "--server",
     "--parent-pid",
@@ -163,7 +163,11 @@ export function createFileManagerStudio(
               stdin: "inherit",
               stdout: "inherit",
               stderr: "inherit",
-              env: { ...process.env, FM_REEXEC_X64: "1" },
+              env: {
+                ...process.env,
+                FM_REEXEC_X64: "1",
+                FM_NATIVE_BUN_EXEC: process.execPath,
+              },
             });
             const forwardStop = () => {
               try {
