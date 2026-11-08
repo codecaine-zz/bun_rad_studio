@@ -189,6 +189,7 @@ export const menuIsOpen = () =>
 export function toast(message, { kind = "info", action = null, timeout } = {}) {
   if (typeof document === "undefined") return; // a request that finished after the page was torn down
   const host = $("#toasts");
+  if (!host) return;
   while (host.children.length >= 3) host.firstElementChild?.remove();
   const el = h(
     "div",

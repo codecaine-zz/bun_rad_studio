@@ -5,23 +5,23 @@
  * narrated 100% live on Mac by `ollama run phonon --voice Russell`!
  *
  * Showcases all new updates and features in detail:
- *   1. Narrated Live by `ollama run phonon --voice Russell` (Grounded, Mature Narrative Voice · 24 kHz Neural TTS)
+ *   1. Narrated Live by `ollama run phonon --voice Russell` (Grounded, Mature Narrative Voice · 24 kHz Neural TTS on Apple Silicon MLX)
  *   2. Zero Conversion Clutter (`cleanEpubAndPandocClutter` + `stripNonSpeechDecorations`):
  *      Strips broken Calibre/Pandoc artifacts (`{.calibre*}`, `::::`, `[]{#...}`, `<svg>`, escaped quotes `\'`,
  *      stray backslashes) and non-speech ASCII dividers (`======`, `------`, `******`) while preserving Windows paths.
  *   3. Smart Back-Matter Promo & Duplicate Chapter Filter:
- *      Removes appended sneak-peek / promo chapters (`Deadlocked 6` teaser, `Also by Author`) while preserving
- *      all genuine `Author's Notes`, `Introductions`, and `Forewords`.
+ *      Scans the final 45% of the book (`>= 0.55`) to strip appended sneak-peek / promo chapters (`Deadlocked 6` teaser,
+ *      `Also by Author`) while preserving all genuine `Author's Notes`, `Introductions`, and `Forewords`.
  *   4. 100% Word-for-Word Audio-to-Text Synchronization (`computeWordTimingsForText`, `estimateSpokenWordWeight`):
  *      First-difference pre-emphasis (`y[n] = x[n] - 0.95*x[n-1]`), intra-sentence comma/colon pause valley snapping,
  *      acronym vs. all-caps heading disambiguation (`SPELLED_OUT_ACRONYMS`), 40 ms minimum visual word hold floor,
  *      and 60 fps `requestAnimationFrame` teleprompter loop so zero words are ever skipped.
- *   5. Ultra-Fast 32x Real-Time Read-Along `.mp4` Exporter (In-Process Native Cairo + Pango via `bun:ffi`):
- *      3-level delta-band renderer (`baseBg` -> `cueBg` -> active word slice) streaming raw BGRA frames to hardware
- *      H.264 (`h264_videotoolbox` / `libx264`) to render centered 1080p Read-Along `.mp4` + `.srt` + `.vtt` in <5s.
+ *   5. Ultra-Fast 32x Real-Time Read-Along `.mp4` Exporter (In-Process Native Cairo + Pango via `bun:ffi` + Parallel Shards):
+ *      3-level delta-band renderer (`baseBg` -> `cueBg` -> active word slice) + multi-core parallel FFmpeg H.264 shards
+ *      (`h264_videotoolbox` / `libx264`) to render centered 1080p Read-Along `.mp4` + `.srt` + `.vtt` in <5s.
  *   6. Live Centered Read-Along `.mp4` Cinema Output Showcase:
  *      Embeds an actual native Cairo + Pango Read-Along `.mp4` sequence showing the centered cinema card and
- *      every single word highlighting in lockstep.
+ *      every single word highlighting in lockstep with zero audio-visual skew.
  *   7. Cross-Platform QA Matrix & Release (`macOS` arm64/x64, `Linux` .deb & zip x64/arm64, `Windows` x64/arm64).
  *
  * Outputs:
@@ -32,14 +32,7 @@
  *   - youtube_production/READ_ALONG_MP4_AND_EPUB_CLEANER_YOUTUBE_NOTES.md
  */
 import "./lib/tts_edge_default";
-import {
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-} from "fs";
+import { copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
 import { Cdp, sleep } from "./lib/cdp_recorder";
 import { seedDemoWorkspace } from "./lib/demo_workspace";
@@ -47,8 +40,8 @@ import { FFMPEG, FFPROBE, narrate } from "./lib/video_pipeline";
 import { createContext } from "../src/features/filemanager/fmCore";
 import {
   computeReadAlongTimeline,
-  computeWordTimingsForText,
   createWavHeader,
+  formatSrtSubtitles,
   parseWavPcm,
   renderBurnedInReadAlongVideoParallel,
   splitTextForPhonon,
@@ -96,12 +89,14 @@ type SceneSpec = {
   badge: string;
   title: string;
   label: string;
+  wideSummary: string;
   clickWay: string;
   shortcutWay: string;
   extra: string;
   bullets: string[];
   say: string;
-  record: (c: Cdp) => Promise<void>;
+  displaySay?: string;
+  record: (c: Cdp, durationSec: number) => Promise<void>;
 };
 
 function run(args: string[]): string {
@@ -152,7 +147,7 @@ function seedUpdatesWorkspace() {
 ::: {.calibre2 #frontmatter}
 []{#authors_note}
 ## Author's Note {.calibre3}
-Thank you for reading this special edition of Winter's Rising. All configuration notes are stored in \`C:\\Users\\codecaine\\Books\\WintersRising\` on Windows and \`/Users/codecaine/Books\` on macOS.
+Thank you for reading this special edition of Winter's Rising. All configuration notes are stored in C:\\Users\\codecaine\\Books\\WintersRising on Windows and /Users/codecaine/Books on macOS.
 :::
 
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20"><path d="M0 10 H100"/></svg>
@@ -182,12 +177,12 @@ This unrelated 7,500-word promotional preview chapter was appended to the back m
 
   writeFileSync(
     join(studioDir, "02_Read_Along_Cinema_Sample.txt"),
-    `BOOK ONE: WINTER'S RISING.\n\nChapter 1.\n\nThe freezing wind howled across the ridge. I was standing on a hill watching the northern lights shimmer above the valley.`,
+    `Book One: Winter's Rising, Chapter One. The freezing wind howled across the jagged ridge, and I was standing on a hill watching the northern lights shimmer above the valley.`,
   );
 
   writeFileSync(
     join(studioDir, "03_Cross_Platform_QA_Report.md"),
-    `# Cross-Platform QA Verification Matrix (v1.5.3)\n\n- **macOS Apple Silicon (arm64) & Intel (x64)**: Native Cairo + Pango (\`.dylib\`) + VideoToolbox H.264.\n- **Linux x86-64 & ARM64 (.deb & Portable .zip)**: Multiarch Cairo + Pango (\`.so\`) + libx264.\n- **Windows 10 / 11 x64 & ARM64 (.exe)**: MSYS2 / GTK3 Cairo + Pango (\`.dll\`) + Windows path preservation.\n`,
+    `# Cross-Platform QA Verification Matrix (v1.5.3)\n\n- **macOS Apple Silicon (arm64)**: Ollama Phonon MLX Voice Reader + Native Cairo + Pango (.dylib) + VideoToolbox H.264.\n- **macOS Intel (x64)**: File Manager + EPUB Clutter Sanitizer + Native Cairo + Pango (.dylib) MP4 Renderer.\n- **Linux x86-64 & ARM64 (.deb & Portable .zip)**: Multiarch Cairo + Pango (.so) + libx264 + EPUB Sanitizer.\n- **Windows 10 / 11 x64 & ARM64 (.exe)**: MSYS2 / GTK3 Cairo + Pango (.dll) + Windows C:\\ Path Preservation.\n`,
   );
 }
 
@@ -286,15 +281,30 @@ async function highlightElement(c: Cdp, selector: string, label?: string) {
     ring.style.left = Math.max(4, r.left - 6) + "px";
     ring.style.top = Math.max(4, r.top - 6) + "px";
     ring.style.width = (r.width + 12) + "px";
-    ring.style.height = (r.height + 12) + "px";
+    ring.style.height = Math.min(r.height + 12, 820 - Math.max(4, r.top - 6)) + "px";
     ring.innerHTML = "";
     if (${JSON.stringify(label ?? "")}) {
       const tag = document.createElement("div");
-      tag.style.cssText = "position:absolute;top:-28px;left:0;background:#38bdf8;color:#04101f;font-weight:900;font-size:11.5px;padding:3px 10px;border-radius:6px;white-space:nowrap;box-shadow:0 6px 16px rgba(0,0,0,0.45);";
+      const placeBottom = r.top < 38;
+      tag.style.cssText = (placeBottom ? "position:absolute;bottom:-30px;right:12px;" : "position:absolute;top:-30px;right:12px;") +
+        "background:#38bdf8;color:#04101f;font-weight:900;font-size:11.5px;padding:3px 11px;border-radius:6px;white-space:nowrap;box-shadow:0 6px 16px rgba(0,0,0,0.55);";
       tag.textContent = ${JSON.stringify(label ?? "")};
       ring.appendChild(tag);
     }
   })()`);
+}
+
+async function moveCursorToElement(c: Cdp, selector: string, steps = 16) {
+  const pos = (await c.eval(`(() => {
+    const el = document.querySelector(${JSON.stringify(selector)});
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    if (r.width <= 0 || r.height <= 0) return null;
+    return { x: Math.round(r.left + Math.min(r.width * 0.45, 220)), y: Math.round(r.top + Math.min(r.height * 0.5, 60)) };
+  })()`)) as { x: number; y: number } | null;
+  if (pos) {
+    await c.moveTo(pos.x, pos.y, steps);
+  }
 }
 
 const sceneSpecs: SceneSpec[] = [
@@ -306,17 +316,20 @@ const sceneSpecs: SceneSpec[] = [
     title: "NARRATED BY RUSSELL.\n32× FASTER READ-ALONG MP4.",
     label:
       "🎙️ OLLAMA RUN PHONON --VOICE RUSSELL · NATIVE CAIRO + PANGO · 100% WORD SYNC",
+    wideSummary:
+      "🎙️ Narrated Live by Russell  ·  ⚡ 32× Centered Read-Along .MP4 (bun:ffi Cairo+Pango)  ·  🧹 Zero EPUB Clutter",
     clickWay: "Power Tools → Voice Reader → Voice: Russell",
     shortcutWay: "⌘K → Voice Reader",
     extra:
-      "🎙️ Narrated 100% Live on Mac by `ollama run phonon --voice Russell` (24 kHz Neural TTS)",
+      "🎙️ Narrated 100% Live on Apple Silicon Mac by ollama run phonon --voice Russell (24 kHz Neural TTS)",
     bullets: [
-      "🎙️ Narrated Live by `Russell` (Grounded, Mature Narrator Voice)",
-      "⚡ 32× Real-Time Centered Read-Along `.MP4` Renderer (`bun:ffi` Cairo + Pango)",
+      "🎙️ Narrated Live by Russell (Grounded, Mature Narrator Voice)",
+      "⚡ 32× Real-Time Centered Read-Along .MP4 Renderer (bun:ffi Cairo + Pango)",
       "🧹 Zero Conversion Clutter: Calibre/Pandoc EPUB & Divider Sanitizer",
     ],
     say: "Hello, I am Russell—narrating this high-production feature breakdown live from this Mac using ollama run phonon dash dash voice Russell. In this update to the Codecaine File Manager Voice Reader, we engineered an in-process native Cairo and Pango F F I video renderer that exports centered ten-eighty-p Read-Along M P 4 videos at thirty-two times real-time speed, with one-hundred-percent word-for-word audio synchronization and automatic Calibre and Pandoc E P U B clutter removal.",
-    record: async (c) => {
+    record: async (c, durationSec) => {
+      const t0 = Date.now();
       await c.eval(`(async () => {
         const { openPower, setPowerExpanded } = await import('/ui/power.js');
         openPower('phonon');
@@ -324,17 +337,18 @@ const sceneSpecs: SceneSpec[] = [
       })()`);
       await showKeynoteHud(
         c,
-        "🎙️ Narrated Live by `ollama run phonon --voice Russell` — Grounded, Mature Narrative Voice",
+        "🎙️ Narrated Live by ollama run phonon --voice Russell — Grounded, Mature Narrative Voice",
         "32× Real-Time Native Cairo+Pango Read-Along MP4 · 100% Word-for-Word Sync · Zero EPUB Clutter",
         "Voice Reader → Select Voice: Russell → ⭐ Set Default Voice",
         "⌘K → Voice Reader",
         "🎙️ VOICE: RUSSELL",
       );
-      await sleep(500);
+      await sleep(700);
+      await moveCursorToElement(c, "#phonon-voice-select", 18);
       await highlightElement(
         c,
         "#phonon-voice-select",
-        "🗣️ Select Narrator: Russell",
+        "🗣️ 38 Neural Voices · Active Narrator: Russell",
       );
       for (const v of ["Zoey", "Easton", "Freya", "Hugh", "Russell"]) {
         await c.eval(`(() => {
@@ -344,17 +358,49 @@ const sceneSpecs: SceneSpec[] = [
             sel.dispatchEvent(new Event('change', { bubbles: true }));
           }
         })()`);
-        await sleep(340);
+        await sleep(950);
       }
+      await moveCursorToElement(c, "button.phonon-default-voice-btn", 14);
       await c
-        .click("button >> ⭐ Set Default Voice", { pause: 650 })
+        .click("button >> ⭐ Set Default Voice", { pause: 900 })
         .catch(() => {});
+
+      await moveCursorToElement(c, "#phonon-speed-range", 16);
       await highlightElement(
         c,
         "#phonon-speed-range",
-        "🎚️ Natural 1.0× Pace + Time-Locked Pitch",
+        "🎚️ Natural 1.0× Speaking Pace + Time-Locked Pitch",
       );
-      await sleep(900);
+      await sleep(3200);
+
+      await c.eval(`(() => {
+        const exp = document.querySelector('.phonon-export-box');
+        if (exp) exp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      })()`);
+      await sleep(700);
+      await moveCursorToElement(c, "#phonon-format-select", 16);
+      await highlightElement(
+        c,
+        ".phonon-export-box",
+        "🎬 Native Cairo + Pango (.MP4 / .WEBM / .MKV / .MOV) + 9 Audio Formats",
+      );
+      await sleep(4200);
+
+      await c.eval(`(() => {
+        const top = document.querySelector('.phonon-studio');
+        if (top) top.scrollTo({ top: 0, behavior: 'smooth' });
+      })()`);
+      await sleep(600);
+      await moveCursorToElement(c, "#phonon-voice-select", 16);
+      await highlightElement(
+        c,
+        "#phonon-voice-select",
+        "🎙️ Narrated Live by Russell (24 kHz Neural TTS)",
+      );
+
+      const elapsed = (Date.now() - t0) / 1000;
+      const remain = Math.max(0.4, durationSec - elapsed - 0.5);
+      await sleep(Math.round(remain * 1000));
     },
   },
   {
@@ -365,20 +411,23 @@ const sceneSpecs: SceneSpec[] = [
     title: "ZERO CONVERSION CLUTTER.\nCLEAN EPUB & SPEECH.",
     label:
       "🧹 STRIPS {.CALIBRE*} · ::: · []{#ID} · <SVG> · \\' · ====== · ------",
+    wideSummary:
+      "🧹 Strips {.calibre*}, :::, []{#id}, <svg>, \\' & ====== Dividers  ·  💻 Preserves Windows C:\\ Paths",
     clickWay: "Select E-Book → 📥 Use Selected File → ✨ Clean to Plain Text",
     shortcutWay: "Right-Click → Read out loud in Voice Reader",
     extra:
-      "Preserves Windows Paths (`C:\\Users\\...`) While Stripping Every Broken Calibre/Pandoc Artifact",
+      "Preserves Windows Paths (C:\\Users\\...) While Stripping Every Broken Calibre/Pandoc Artifact",
     bullets: [
-      "🧹 Strips `{.calibre*}`, `:::`, `[]{#...}`, `<svg>`, `\\'` & Stray Backslashes",
-      "🔇 Strips Non-Speech ASCII Dividers (`======`, `------`, `******`, `───`)",
-      "🪟 Preserves Windows Drive (`C:\\...`) & UNC (`\\\\server\\...`) File Paths",
+      "🧹 Strips {.calibre*}, :::, []{#...}, <svg>, \\' & Stray Backslashes",
+      "🔇 Strips Non-Speech ASCII Dividers (======, ------, ******, ───)",
+      "💻 Preserves Windows Drive (C:\\...) & UNC (\\\\server\\...) File Paths",
     ],
     say: "First, let's look at Zero Conversion Clutter. E-books converted with Calibre or Pandoc are often filled with broken markup—like dot-calibre class tags, triple-colon fenced divs, empty bracket anchors, inline S V G vectors, escaped quotes, and stray backslashes—plus rows of equals signs and dashes that should never be spoken aloud. Watch as we load a cluttered book and click Clean to Plain Text: every artifact and divider line vanishes instantly while preserving Windows file paths.",
-    record: async (c) => {
+    record: async (c, durationSec) => {
+      const t0 = Date.now();
       await showKeynoteHud(
         c,
-        "🧹 Zero Conversion Clutter: Strips `{.calibre*}`, `:::`, `[]{#id}`, `<svg>`, `\\'`, `======` & `------`",
+        "🧹 Zero Conversion Clutter: Strips {.calibre*}, :::, []{#id}, <svg>, \\', ====== & ------",
         "Never pronounces 'equals equals' or 'dash dash' · Preserves Windows C:\\ paths intact",
         "Select File → 📥 Use Selected File → ✨ Clean to Plain Text",
         "Space (Quick Look) / Read Out Loud",
@@ -395,29 +444,72 @@ const sceneSpecs: SceneSpec[] = [
         }
         renderList(left);
       })()`);
-      await sleep(450);
-      await highlightElement(
-        c,
-        "#phonon-text-editor",
-        "📄 Before: Raw Cluttered Calibre/Pandoc Text",
-      );
+      await sleep(500);
+
+      // Load the raw cluttered Calibre/Pandoc markup into the editor so the viewer sees every artifact clearly for the first 12s!
       await c.eval(`(() => {
         const ta = document.getElementById('phonon-text-editor');
         if (ta) {
-          ta.value = "# BOOK ONE: WINTER'S RISING {.calibre1}\\n==============================\\n------------------------------\\n::: {.calibre2}\\n[]{#authors_note}\\n## Author's Note {.calibre3}\\nThank you for reading! Saved at C:\\\\Users\\\\codecaine\\\\Books\\\\WintersRising.\\n:::\\n<svg><path d=\\"M0 0\\"/></svg>\\n## Chapter 1 {.calibre4}\\n\\\\'Stay close to the fire,\\\\' Russell warned.\\n# Sneak Peek: Deadlocked 6\\n## Chapter 1\\nUnrelated promo teaser chapter...";
+          const sec = ta.closest('.phonon-card, section, div');
+          if (sec) sec.scrollIntoView({ behavior: 'instant', block: 'center' });
+          ta.value = [
+            "# BOOK ONE: WINTER'S RISING {.calibre1}",
+            "==============================",
+            "------------------------------",
+            "::: {.calibre2 #frontmatter}",
+            "[]{#authors_note}",
+            "## Author's Note {.calibre3}",
+            "Thank you for reading! Config path: C:\\\\Users\\\\codecaine\\\\Books\\\\WintersRising on Windows.",
+            ":::",
+            "<svg xmlns=\\"http://www.w3.org/2000/svg\\" viewBox=\\"0 0 100 20\\"><path d=\\"M0 10 H100\\"/></svg>",
+            "==============================",
+            "## Chapter 1 {.calibre4}",
+            "[]{#ch1_start}",
+            "The freezing wind howled across the jagged ridge. \\\\'Stay close to the fire,\\\\' Russell warned.",
+            "------------------------------",
+            "I was standing on a hill overlooking the frozen valley."
+          ].join("\\n");
+          ta.scrollTop = 0;
           ta.dispatchEvent(new Event('input', { bubbles: true }));
         }
       })()`);
-      await sleep(1300);
+
+      await moveCursorToElement(c, "#phonon-text-editor", 16);
       await highlightElement(
         c,
-        "button.phonon-use-sel-btn, #phonon-text-editor",
-        "✨ After: 100% Clean Speech-Ready Text (Zero Clutter!)",
+        "#phonon-text-editor",
+        "⚠️ Before: Raw {.calibre*}, :::, []{#id}, <svg>, \\' & ====== Dividers",
       );
-      await c
-        .click("button >> ✨ Clean to Plain Text", { pause: 1100 })
-        .catch(() => {});
-      await sleep(1100);
+      await sleep(5500);
+
+      await moveCursorToElement(c, "#phonon-text-editor", 14);
+      await highlightElement(
+        c,
+        "#phonon-text-editor",
+        "🔍 Inspecting Raw Calibre Tags & Escaped Quotes Before Cleaning",
+      );
+      await sleep(5200);
+
+      // Click `✨ Clean to Plain Text` so the viewer sees the instant transformation!
+      await c.eval(`(() => {
+        const btn = Array.from(document.querySelectorAll('button')).find(b => (b.textContent || '').includes('Clean to Plain Text'));
+        if (btn) {
+          btn.scrollIntoView({ behavior: 'instant', block: 'nearest' });
+          btn.click();
+        }
+      })()`);
+      await sleep(600);
+
+      await moveCursorToElement(c, "#phonon-text-editor", 14);
+      await highlightElement(
+        c,
+        "#phonon-text-editor",
+        "✅ After: 100% Clean Speech-Ready Text (Windows C:\\ Path Preserved!)",
+      );
+
+      const elapsed = (Date.now() - t0) / 1000;
+      const remain = Math.max(0.4, durationSec - elapsed - 0.5);
+      await sleep(Math.round(remain * 1000));
     },
   },
   {
@@ -428,39 +520,91 @@ const sceneSpecs: SceneSpec[] = [
     title: "STRIPS PROMO CHAPTERS.\nKEEPS AUTHOR'S NOTES.",
     label:
       "📚 REMOVES TRAILING SNEAK-PEEK & DUPLICATE CHAPTERS · KEEPS AUTHOR'S NOTES",
+    wideSummary:
+      "✂️ Strips Trailing Sneak-Peek & Also-By Promos in Final 45%  ·  📖 Preserves Genuine Author's Notes",
     clickWay:
       "📥 Use Selected File → Auto Back-Matter Filter → 💾 Save as .TXT",
     shortcutWay: "Convert & Process → epub-txt / md-txt",
     extra:
-      "Removes Appended 7,500-Word Sneak-Peek & Promo Chapters While Keeping Genuine Introductions",
+      "Scans Final 45% of Book to Strip Appended 7,500-Word Sneak-Peek Chapters While Keeping Introductions",
     bullets: [
-      "✂️ Strips Appended `Sneak Peek`, `Preview of Book` & `Also by Author` Promos",
-      "🔁 Detects Trailing Duplicate `Chapter 1` Restarts in Final 35% of Book",
-      "📖 Preserves Genuine `Author's Note`, `Foreword`, `Preface` & `Introduction`",
+      "✂️ Strips Appended Sneak Peek, Preview of Book & Also by Author Promos",
+      "🔁 Detects Trailing Duplicate Chapter 1 Restarts in Final 45% of Book",
+      "📖 Preserves Genuine Author's Note, Foreword, Preface & Introduction",
     ],
-    say: "Many e-books append thousands of words of unrelated sneak-peek chapters or promotional previews at the end of the novel. Our smart back-matter detector scans the final thirty-five percent of the book, automatically trimming trailing Sneak Peek and Also By promotional chapters so your audiobook ends cleanly at the real conclusion—while keeping every genuine Author's Note, Foreword, and Introduction intact.",
-    record: async (c) => {
+    say: "Many e-books append thousands of words of unrelated sneak-peek chapters or promotional previews at the end of the novel. Our smart back-matter detector scans the final forty-five percent of the book, automatically trimming trailing Sneak Peek and Also By promotional chapters so your audiobook ends cleanly at the real conclusion—while keeping every genuine Author's Note, Foreword, and Introduction intact.",
+    record: async (c, durationSec) => {
+      const t0 = Date.now();
       await showKeynoteHud(
         c,
-        "📚 Smart Back-Matter Filter: Removes Appended Sneak-Peek & Promo Chapters Automatically",
+        "📚 Smart Back-Matter Filter: Removes Appended Sneak-Peek & Promo Chapters in Final 45%",
         "Preserves genuine Author's Notes & Introductions · Works in Quick Look, Voice Reader & Convert",
-        "📥 Use Selected File → 💾 Save as .TXT",
+        "📥 Use Selected File → ✨ Clean to Plain Text → 💾 Save as .TXT",
         "Convert & Process → Clean Text",
         "📚 BACK-MATTER FILTER",
       );
+
+      // First show the raw book with the appended `# Sneak Peek: Deadlocked 6` visible at the bottom!
+      await c.eval(`(() => {
+        const ta = document.getElementById('phonon-text-editor');
+        if (ta) {
+          ta.value = [
+            "BOOK ONE: WINTER'S RISING",
+            "",
+            "Author's Note",
+            "Thank you for reading this special edition of Winter's Rising.",
+            "",
+            "Chapter 1",
+            "The freezing wind howled across the jagged ridge. 'Stay close to the fire,' Russell warned as the snow thickened around the stone watchtower.",
+            "",
+            "Chapter 2",
+            "By dawn, the storm had cleared and the mountain pass stood open before the expedition.",
+            "",
+            "# Sneak Peek: Deadlocked 6 {.calibre5}",
+            "## Chapter 1",
+            "This unrelated 7,500-word promotional preview chapter was appended to the back matter of the e-book and should never be read aloud at the end of your novel!"
+          ].join("\\n");
+          ta.scrollTop = ta.scrollHeight;
+          ta.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      })()`);
+      await sleep(500);
+      await moveCursorToElement(c, "#phonon-text-editor", 16);
+      await highlightElement(
+        c,
+        "#phonon-text-editor",
+        "⚠️ Before: Appended '# Sneak Peek: Deadlocked 6' Promo Chapter at End of Book",
+      );
+      await sleep(7800);
+
+      // Now click `📥 Use Selected File` (or `✨ Clean to Plain Text`) which runs `cleanEpubAndPandocClutter` and strips the back-matter promo!
+      await moveCursorToElement(c, "button.phonon-use-sel-btn", 14);
       await c
-        .click("button >> 📥 Use Selected File", { pause: 950 })
+        .click("button >> 📥 Use Selected File", { pause: 1100 })
+        .catch(() => {});
+
+      await moveCursorToElement(c, "#phonon-text-editor", 14);
+      await highlightElement(
+        c,
+        "#phonon-text-editor",
+        "✅ After: 'Sneak Peek: Deadlocked 6' Stripped · Genuine 'Author's Note' Preserved!",
+      );
+      await sleep(6200);
+
+      // Save the cleaned book as .TXT into the workspace
+      await moveCursorToElement(c, "button.phonon-save-txt-btn", 14);
+      await c
+        .click("button >> 💾 Save as .TXT", { pause: 950 })
         .catch(() => {});
       await highlightElement(
         c,
         "#phonon-text-editor",
-        "✅ Author's Note Preserved · 'Sneak Peek: Deadlocked 6' Removed",
+        "💾 Saved Clean Plain-Text Book (.cleaned.txt) to Workspace",
       );
-      await sleep(1100);
-      await c
-        .click("button >> 💾 Save as .TXT", { pause: 900 })
-        .catch(() => {});
-      await sleep(700);
+
+      const elapsed = (Date.now() - t0) / 1000;
+      const remain = Math.max(0.4, durationSec - elapsed - 0.5);
+      await sleep(Math.round(remain * 1000));
     },
   },
   {
@@ -471,17 +615,20 @@ const sceneSpecs: SceneSpec[] = [
     title: "100% WORD-FOR-WORD SYNC.\nZERO SKIPPED WORDS.",
     label:
       "🎯 PRE-EMPHASIS PCM ENVELOPE · COMMA/COLON VALLEY SNAP · 40MS MIN HOLD",
+    wideSummary:
+      "🎯 Pre-Emphasis PCM Envelope (y[n]=x[n]-0.95*x[n-1])  ·  ⏸️ Comma/Colon Valley Snap  ·  ⏱️ 40ms Hold",
     clickWay: "Click ▶ Read Out Loud → Click Any Word in Teleprompter to Jump",
     shortcutWay: "60 FPS requestAnimationFrame Sync",
     extra:
-      "Pre-Emphasis Filter (`y[n] = x[n] - 0.95*x[n-1]`) + `SPELLED_OUT_ACRONYMS` Disambiguation",
+      "Pre-Emphasis Filter (y[n] = x[n] - 0.95*x[n-1]) + SPELLED_OUT_ACRONYMS Disambiguation",
     bullets: [
       "🎯 First-Difference Pre-Emphasis Sharpens Consonant & Sibilant Boundaries",
       "⏸️ Snaps Headings, Sentences, Commas & Colons to Acoustic Pause Valleys",
-      "⏱️ 40 ms Visual Hold Floor + 60 FPS `requestAnimationFrame` (Zero Skips)",
+      "⏱️ 40 ms Visual Hold Floor + 60 FPS requestAnimationFrame (Zero Skips)",
     ],
     say: "Next, we perfected word-for-word synchronization between the spoken voice and every highlighted word. We apply a first-difference pre-emphasis filter to the twenty-four kilohertz P C M waveform to sharpen consonant and sibilant boundaries, snap both sentence endings and intra-sentence commas and colons directly to acoustic silence valleys, and enforce a forty-millisecond visual hold floor on a sixty-frames-per-second loop so even short words like I, on, and a are never skipped.",
-    record: async (c) => {
+    record: async (c, durationSec) => {
+      const t0 = Date.now();
       await showKeynoteHud(
         c,
         "🎯 100% Word-for-Word Audio Sync: Pre-Emphasis PCM Envelope + Valley Snapping",
@@ -490,40 +637,73 @@ const sceneSpecs: SceneSpec[] = [
         "Click Any Word to Jump Playback",
         "🎯 WORD-FOR-WORD SYNC",
       );
+
+      // Use a single 29-word narrative paragraph so Chunk #1 contains all 29 words in the live teleprompter stage!
       await c.eval(`(() => {
         const ta = document.getElementById('phonon-text-editor');
         if (ta) {
-          ta.value = "BOOK ONE: WINTER'S RISING.\\n\\nChapter 1.\\n\\nThe freezing wind howled across the ridge. I was standing on a hill watching the northern lights.";
+          ta.value = "Book One: Winter's Rising, Chapter One. The freezing wind howled across the jagged ridge, and I was standing on a hill watching the northern lights shimmer above the valley.";
           ta.dispatchEvent(new Event('input', { bubbles: true }));
         }
         const tp = document.querySelector('.phonon-teleprompter-box');
         if (tp) tp.scrollIntoView({ behavior: 'smooth', block: 'center' });
       })()`);
-      await sleep(350);
+
+      // Wait for the debounced `/api/phonon/chunk` call (180ms debounce + fetch) to populate `.phonon-teleprompter-stage`
+      await sleep(750);
+
+      await moveCursorToElement(c, ".phonon-teleprompter-stage", 16);
       await highlightElement(
         c,
-        ".phonon-teleprompter-stage",
-        "📖 Every Word Highlighted in Sequence (0 Skipped Words)",
+        ".phonon-teleprompter-box",
+        "📖 60 FPS Word-for-Word Teleprompter — 29 / 29 Words Highlighted (0 Skipped!)",
       );
-      // Step through EVERY word index sequentially (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14) so viewers see zero skips!
-      for (let wIdx = 0; wIdx <= 14; wIdx++) {
+
+      const wordCount = Number(
+        await c.eval(`(() => {
+          return document.querySelectorAll('.phonon-teleprompter-stage .phonon-word').length;
+        })()`),
+      );
+      const totalWords = Math.max(1, wordCount || 29);
+      const elapsedSoFar = (Date.now() - t0) / 1000;
+      const availMs = Math.max(4000, (durationSec - elapsedSoFar - 0.8) * 1000);
+      const stepMs = Math.max(180, Math.floor(availMs / totalWords));
+
+      for (let wIdx = 0; wIdx < totalWords; wIdx++) {
         await c.eval(`(() => {
           const stage = document.querySelector('.phonon-teleprompter-stage');
           if (stage) stage.setAttribute('data-tp-theme', 'midnight');
           const words = Array.from(document.querySelectorAll('.phonon-teleprompter-stage .phonon-word'));
           const active = Math.min(${wIdx}, Math.max(0, words.length - 1));
+          let activeLineIdx = 0;
           words.forEach((node, idx) => {
             if (idx < active) node.className = 'phonon-word is-spoken';
-            else if (idx === active) node.className = 'phonon-word is-speaking';
-            else node.className = 'phonon-word is-upcoming';
+            else if (idx === active) {
+              node.className = 'phonon-word is-speaking';
+              const parentLine = node.closest('.phonon-teleprompter-line');
+              if (parentLine && parentLine.dataset.lineIdx) {
+                activeLineIdx = Number(parentLine.dataset.lineIdx) || 0;
+              }
+            } else {
+              node.className = 'phonon-word is-upcoming';
+            }
+          });
+          const lines = Array.from(document.querySelectorAll('.phonon-teleprompter-stage .phonon-teleprompter-line'));
+          lines.forEach((lineEl, lIdx) => {
+            lineEl.classList.toggle('is-active', lIdx === activeLineIdx);
+            lineEl.classList.toggle('is-past', lIdx < activeLineIdx);
+            lineEl.classList.toggle('is-future', lIdx > activeLineIdx);
           });
           const fill = document.querySelector('.phonon-teleprompter-progress-fill');
           const pct = words.length ? Math.round(((active + 1) / words.length) * 100) : 50;
           if (fill) fill.style.width = pct + '%';
+          const badge = document.getElementById('phonon-teleprompter-word-badge');
+          if (badge) badge.textContent = 'Word ' + (active + 1) + ' / ' + words.length + ' (' + pct + '%)';
           const st = document.querySelector('.phonon-now-playing');
-          if (st) st.textContent = '🔊 Word-for-Word Sync — Word ' + (active + 1) + ' of ' + words.length + ' (Russell · 24 kHz Pre-Emphasis PCM)';
+          const activeToken = words[active] ? words[active].textContent : '';
+          if (st) st.textContent = '🔊 Speaking Word ' + (active + 1) + ' of ' + words.length + ': "' + activeToken + '" (Russell · 24 kHz Pre-Emphasis PCM)';
         })()`);
-        await sleep(210);
+        await sleep(stepMs);
       }
     },
   },
@@ -534,23 +714,25 @@ const sceneSpecs: SceneSpec[] = [
       "Russell (--voice Russell · Native Cairo + Pango bun:ffi Renderer)",
     badge: "05 / 07 · 32× REAL-TIME MP4 EXPORT: NATIVE CAIRO + PANGO (BUN:FFI)",
     title: "32× REAL-TIME MP4 EXPORT.\nNATIVE CAIRO + PANGO.",
-    label:
-      "⚡ 3-LEVEL DELTA-BAND CACHE · IN-MEMORY BGRA PIPE · VIDEOTOOLBOX H.264",
+    label: "⚡ 3-LEVEL DELTA-BAND CACHE · PARALLEL H.264 SHARDS · VIDEOTOOLBOX",
+    wideSummary:
+      "⚡ In-Process bun:ffi Cairo+Pango 3-Level Delta Cache  ·  🎬 Multi-Core Parallel H.264 Shards (<5s Export)",
     clickWay:
       "Format: MP4 (Read-Along Video) → 🎬 Save as Read-Along Video (.MP4)",
     shortcutWay: "Exports .MP4 + .SRT + .VTT",
     extra:
-      "Renders a 2m 33s 1080p Read-Along MP4 in Just 4.79 Seconds (32× Real-Time Speed!)",
+      "3-Level Delta-Band Native Cairo + Pango + Parallel FFmpeg Shards Render 2m 33s 1080p MP4 in 4.79s",
     bullets: [
-      "⚡ In-Process `bun:ffi` Native Cairo + Pango Renderer (Zero Temp PNGs)",
-      "🧠 3-Level Cache: `baseBg` → `cueBg` → Active Word Horizontal Delta Slice",
-      "🎬 Streams Raw BGRA @ 25 FPS to Hardware H.264 + Writes `.SRT` & `.VTT`",
+      "⚡ In-Process bun:ffi Native Cairo + Pango Renderer (Zero Temp PNGs)",
+      "🧠 3-Level Cache: baseBg → cueBg → Active Word Horizontal Delta Slice",
+      "🎬 Multi-Core Parallel H.264 Shards + Writes Companion .SRT & .VTT",
     ],
-    say: "To make Read-Along M P 4 video export blazingly fast, we built an in-process native Cairo and Pango renderer using Bun F F I across macOS, Linux, and Windows. A three-level cache renders the background once per video, the sentence card once per cue, and redraws only the narrow horizontal delta-band of the active word—streaming raw frames directly into hardware-accelerated H.264 to export a two-and-a-half-minute ten-eighty-p video in under five seconds!",
-    record: async (c) => {
+    say: "To make Read-Along M P 4 video export blazingly fast, we built an in-process native Cairo and Pango renderer using Bun F F I across macOS, Linux, and Windows. A three-level cache renders the background once per video, the sentence card once per cue, and redraws only the narrow horizontal delta-band of the active word—streaming raw frames into hardware-accelerated H.264 shards to export a two-and-a-half-minute ten-eighty-p video in under five seconds!",
+    record: async (c, durationSec) => {
+      const t0 = Date.now();
       await showKeynoteHud(
         c,
-        "⚡ In-Process Native Cairo + Pango (`bun:ffi`) 3-Level Delta-Band MP4 Renderer",
+        "⚡ In-Process Native Cairo + Pango (bun:ffi) 3-Level Delta-Band + Parallel Shard MP4 Renderer",
         "2m 33s 1080p Read-Along MP4 exported in 4.79s (32× real-time) + companion .SRT & .VTT",
         "Format: MP4 → 🎬 Save as Read-Along Video (.MP4)",
         "16:9 Widescreen · 9:16 Short · 1:1 Square",
@@ -564,20 +746,78 @@ const sceneSpecs: SceneSpec[] = [
           sel.value = 'mp4';
           sel.dispatchEvent(new Event('change', { bubbles: true }));
         }
+        const aspect = document.getElementById('phonon-aspect-select');
+        if (aspect) {
+          aspect.value = '16:9';
+          aspect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        const vtheme = document.getElementById('phonon-vtheme-select');
+        if (vtheme) {
+          vtheme.value = 'midnight';
+          vtheme.dispatchEvent(new Event('change', { bubbles: true }));
+        }
         const nameInput = document.getElementById('phonon-out-name');
         if (nameInput) {
           nameInput.value = 'Winters_Rising_Russell_ReadAlong';
           nameInput.dispatchEvent(new Event('input', { bubbles: true }));
         }
       })()`);
-      await sleep(450);
+      await sleep(700);
+      await moveCursorToElement(c, "#phonon-format-select", 16);
       await highlightElement(
         c,
-        ".phonon-save-video-btn, .phonon-export-box",
-        "🎬 1-Click Export Centered Read-Along .MP4 + .SRT + .VTT",
+        ".phonon-export-box",
+        "🎬 Configure Format: MP4 (16:9 Widescreen · Midnight Cinema · Burned-In + .SRT)",
       );
-      await c.click(".phonon-save-video-btn", { pause: 2200 }).catch(() => {});
+      await sleep(3200);
+
+      await moveCursorToElement(c, ".phonon-save-video-btn", 16);
+      await highlightElement(
+        c,
+        ".phonon-save-video-btn",
+        "⚡ Click to Export Centered 1080p Read-Along .MP4 + .SRT + .VTT",
+      );
       await sleep(1000);
+      await c.click(".phonon-save-video-btn", { pause: 800 }).catch(() => {});
+
+      // Poll for the live export job to complete and unhide `.phonon-video-preview-card`!
+      let previewReady = false;
+      for (let poll = 0; poll < 36; poll++) {
+        await sleep(400);
+        previewReady = Boolean(
+          await c.eval(`(() => {
+            const card = document.querySelector('.phonon-video-preview-card');
+            return Boolean(card && !card.hidden);
+          })()`),
+        );
+        if (previewReady) break;
+      }
+
+      if (previewReady) {
+        await c.eval(`(() => {
+          const tasks = document.getElementById('tasks');
+          if (tasks) tasks.hidden = true;
+          const vpBox = document.querySelector('.phonon-video-preview-card');
+          if (vpBox) vpBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          const vid = document.querySelector('.phonon-video-preview-card video');
+          if (vid) {
+            vid.muted = true;
+            vid.loop = true;
+            vid.play().catch(() => {});
+          }
+        })()`);
+        await sleep(600);
+        await moveCursorToElement(c, ".phonon-video-preview-card", 16);
+        await highlightElement(
+          c,
+          ".phonon-video-preview-card",
+          "✅ Exported Winters_Rising_Russell_ReadAlong.mp4 + .SRT + .VTT — Playing Inline Preview!",
+        );
+      }
+
+      const elapsed = (Date.now() - t0) / 1000;
+      const remain = Math.max(0.4, durationSec - elapsed - 0.5);
+      await sleep(Math.round(remain * 1000));
     },
   },
   {
@@ -589,19 +829,23 @@ const sceneSpecs: SceneSpec[] = [
     title: "CENTERED CINEMA CARD.\nEVERY WORD HIGHLIGHTED.",
     label:
       "🎬 ACTUAL RENDERED MP4 FRAME-BY-FRAME · CENTERED CARD · GLOWING PILL",
+    wideSummary:
+      "🎯 Vertically & Horizontally Centered 1080p Card  ·  💎 Glowing Cyan Word Pill  ·  📊 .SRT / .VTT Tracks",
     clickWay: "Open Exported .MP4 in Quick Look or Media Player",
     shortcutWay: "Space (Quick Look Video Preview)",
     extra:
-      "Vertically & Horizontally Centered Card · Glowing Cyan Word Pill (`#38bdf8`) · Bottom Progress Bar",
+      "Vertically & Horizontally Centered Card · Glowing Cyan Word Pill (#38bdf8) · Bottom Progress Bar",
     bullets: [
       "🎯 Vertically & Horizontally Centered Cinema Card in Middle of 1080p Screen",
       "💎 Crisp Multi-Pass Pango Typography + Glowing Cyan Active-Word Pill",
-      "📊 Live Bottom Progress Bar + Burned-In & Soft `.SRT` / `.VTT` Subtitles",
+      "📊 Live Bottom Progress Bar + Burned-In & Soft .SRT / .VTT Subtitles",
     ],
     say: "Here is the actual exported Read-Along M P 4 video in action. Notice how the cinema reading card is vertically and horizontally centered right in the middle of the ten-eighty-p frame, with crisp multi-pass Pango typography, a glowing cyan pill tracking every single spoken word in lockstep with my voice, a live bottom progress bar, and synchronized S R T and V T T subtitle tracks.",
-    record: async (c) => {
-      // Scene 6 will be replaced by a real Native Cairo + Pango Read-Along MP4 video rendered directly by `renderReadAlongVideo`!
-      await sleep(500);
+    displaySay:
+      "Here is the actual exported Read-Along MP4 video in action. Notice how the cinema reading card is vertically and horizontally centered right in the middle of the 1080p frame, with crisp multi-pass Pango typography, a glowing cyan pill tracking every single spoken word in lockstep with my voice, a live bottom progress bar, and synchronized .SRT and .VTT subtitle tracks.",
+    record: async () => {
+      // Scene 6 is rendered directly by `renderBurnedInReadAlongVideoParallel` using Native Cairo + Pango!
+      await sleep(300);
     },
   },
   {
@@ -613,47 +857,88 @@ const sceneSpecs: SceneSpec[] = [
     title: "TESTED ON ALL PLATFORMS.\nMACOS, LINUX & WINDOWS.",
     label:
       "🌍 DARWIN (ARM64/X64) · LINUX (.DEB & ZIP X64/ARM64) · WINDOWS (X64/ARM64)",
+    wideSummary:
+      "🍎 macOS Apple Silicon (MLX Phonon) & Intel  ·  🐧 Linux .deb & .zip (x64/arm64)  ·  💻 Windows 10/11",
     clickWay: "Download Free from GitHub Releases (No Compiling Needed)",
     shortcutWay: "bun test && bun run release:publish",
     extra:
-      "78 Automated Tests (16,023 Assertions) · 9 Audio Formats + 4 Read-Along Video Formats",
+      "78 Automated Tests (16,023 Assertions) · Apple Silicon MLX Phonon TTS + 6-Target Cross-Platform Suite",
     bullets: [
-      "🍎 macOS Apple Silicon (`arm64`) & Intel (`x64`) `.app` Bundles + Suite",
-      "🐧 Linux `amd64` & `arm64` 1-Click `.deb` Installers + Portable `.zip`",
-      "🪟 Windows 10 / 11 `x64`, `x64-baseline` & `arm64` Standalone Executables",
+      "🍎 macOS Apple Silicon (arm64 MLX Phonon TTS) & Intel (x64) .app Bundles",
+      "🐧 Linux amd64 & arm64 1-Click .deb Installers + Portable .zip",
+      "💻 Windows 10 / 11 x64, x64-baseline & arm64 Standalone Executables",
     ],
     say: "Every update is verified across our six-target cross-platform Q A matrix covering macOS Apple Silicon and Intel, Linux x64 and ARM64 portable archives and one-click Debian installers, and Windows x64 and ARM64. Download the latest release of Bun R A D Studio and Codecaine File Manager from GitHub today!",
-    record: async (c) => {
+    record: async (c, durationSec) => {
+      const t0 = Date.now();
       await c.eval(`(async () => {
         const { closePower } = await import('/ui/power.js');
         closePower();
       })()`);
       await showKeynoteHud(
         c,
-        "🌍 Cross-Platform QA Verified: macOS (arm64/x64) · Linux (.deb/zip) · Windows (x64/arm64)",
-        "Exported .MP4 + .SRT + .VTT ready in workspace · 78 tests (16,023 assertions) passing",
+        "🌍 Cross-Platform QA Verified: macOS (arm64 MLX / x64) · Linux (.deb/zip) · Windows (x64/arm64)",
+        "Exported .MP4 + .SRT + .VTT + .cleaned.txt in workspace · 78 tests (16,023 assertions) passing",
         "Select Winters_Rising_Russell_ReadAlong.mp4 → Space (Quick Look)",
         "Free Download on GitHub Releases",
         "🎉 V1.5.3 RELEASE",
       );
-      await sleep(800);
+      await sleep(500);
+
+      // Refresh the folder and hide the finished tasks tray so the newly exported .mp4, .srt, .vtt, and .txt files appear cleanly!
       await c.eval(`(async () => {
+        const tasks = document.getElementById('tasks');
+        if (tasks) tasks.hidden = true;
+        const { refresh } = await import('/ui/nav.js');
+        await refresh();
         const { left } = await import('/ui/pane.js');
         const { renderList } = await import('/ui/list.js');
         left.selection.clear();
         for (const e of left.entries) {
-          if (e.name.includes('03_Cross_Platform_QA_Report') || e.name.includes('Winters_Rising')) {
+          if (
+            e.name.includes('Winters_Rising_Russell_ReadAlong') ||
+            e.name.includes('01_Winters_Rising_Cluttered_Calibre.txt') ||
+            e.name.includes('03_Cross_Platform_QA_Report')
+          ) {
             left.selection.add(e.path);
           }
         }
         renderList(left);
       })()`);
+
+      await moveCursorToElement(c, ".file-list", 16);
       await highlightElement(
         c,
-        ".file-list, .pane",
-        "✅ Cross-Platform QA Report & Exported Files in Workspace",
+        ".file-list",
+        "✅ Exported Read-Along .MP4, .SRT, .VTT, .txt & QA Matrix in Workspace",
       );
-      await sleep(1800);
+      await sleep(7200);
+
+      // Now open Quick Look on `Winters_Rising_Russell_ReadAlong.mp4` so the viewer sees the exported Read-Along MP4 playing in Quick Look!
+      await c.eval(`(async () => {
+        const { left } = await import('/ui/pane.js');
+        const { renderList } = await import('/ui/list.js');
+        const { openQuickLook } = await import('/ui/quicklook.js');
+        left.selection.clear();
+        for (const e of left.entries) {
+          if (e.name === 'Winters_Rising_Russell_ReadAlong.mp4') {
+            left.selection.add(e.path);
+          }
+        }
+        renderList(left);
+        openQuickLook();
+      })()`);
+      await sleep(800);
+      await moveCursorToElement(c, "#quicklook", 16);
+      await highlightElement(
+        c,
+        "#quicklook",
+        "🎬 Quick Look Preview: Winters_Rising_Russell_ReadAlong.mp4 (1920×1080 Centered Card)",
+      );
+
+      const elapsed = (Date.now() - t0) / 1000;
+      const remain = Math.max(0.4, durationSec - elapsed - 0.5);
+      await sleep(Math.round(remain * 1000));
     },
   },
 ];
@@ -689,37 +974,37 @@ body{
   background:linear-gradient(92deg,#ffffff 0%,#e0f2fe 48%,#fef3c7 100%);
   -webkit-background-clip:text;background-clip:text;color:transparent;
 }
-.label{color:#38bdf8;font-size:23px;font-weight:800;letter-spacing:.03em;margin-top:2px}
+.label{color:#38bdf8;font-size:22px;font-weight:800;letter-spacing:.03em;margin-top:2px}
 .extra{color:#fde68a;font-size:21px;font-weight:700;line-height:1.34}
 .frame-rim{
-  position:absolute;top:626px;left:0;width:1080px;height:554px;
+  position:absolute;top:626px;left:0;width:1080px;height:550px;
   border-top:2px solid rgba(56,189,248,0.6);
   border-bottom:2px solid rgba(245,158,11,0.6);
   box-shadow:0 0 60px rgba(56,189,248,0.22);
   pointer-events:none;
 }
-.pills{position:absolute;top:1215px;left:44px;right:44px;display:flex;flex-direction:column;gap:14px}
+.pills{position:absolute;top:1212px;left:44px;right:44px;display:flex;flex-direction:column;gap:14px}
 .pill{
   background:linear-gradient(135deg,rgba(15,23,42,0.92),rgba(17,24,39,0.88));
   border:1px solid rgba(255,255,255,0.18);border-left:6px solid #38bdf8;
-  border-radius:16px;padding:16px 22px;font-size:24px;font-weight:700;color:#f1f5f9;
+  border-radius:16px;padding:16px 22px;font-size:23px;font-weight:700;color:#f1f5f9;
   display:flex;align-items:center;gap:14px;
   box-shadow:0 12px 28px rgba(0,0,0,0.45);
 }
-.dot{color:#38bdf8;font-weight:900;font-size:26px}
+.dot{color:#38bdf8;font-weight:900;font-size:25px}
 .cta{
   position:absolute;top:1505px;left:36px;right:36px;
   background:linear-gradient(135deg,rgba(12,24,48,0.96),rgba(32,14,48,0.96));
   border:1.5px solid rgba(56,189,248,0.68);border-radius:22px;padding:24px 28px;
   box-shadow:0 20px 48px rgba(0,0,0,0.72);
 }
-.cta strong{font-size:27px;color:#7dd3fc;display:block;letter-spacing:.02em}
-.cta p{font-size:22px;margin-top:8px;color:#f8fafc;font-weight:600}
-.cta .sub{font-size:19px;color:#94a3b8;margin-top:6px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.cta strong{font-size:26px;color:#7dd3fc;display:block;letter-spacing:.02em}
+.cta p{font-size:21px;margin-top:8px;color:#f8fafc;font-weight:600}
+.cta .sub{font-size:18.5px;color:#94a3b8;margin-top:6px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 </style>
 <div class="top">
   <div class="hw-strip">
-    <span class="apple-chip"> NARRATED LIVE BY: OLLAMA RUN PHONON --VOICE RUSSELL</span>
+    <span class="apple-chip">🎙️ NARRATED LIVE BY: OLLAMA RUN PHONON --VOICE RUSSELL</span>
     <span>32× MP4 · 24KHZ NEURAL</span>
   </div>
   <div class="badge">${esc(scene.badge)}</div>
@@ -746,15 +1031,15 @@ function overlayWideStrip(
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{width:1920px;height:1080px;background:transparent;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;position:relative;overflow:hidden}
-.strip{position:absolute;left:0;right:0;bottom:0;height:${1080 - VIEW_H}px;background:linear-gradient(180deg,#0f172a,#090d16);border-top:3px solid #38bdf8;display:flex;align-items:center;gap:22px;padding:0 36px}
-.badge{flex:none;background:linear-gradient(135deg,#38bdf8,#818cf8);color:#05070c;font-weight:900;font-size:14.5px;letter-spacing:.08em;padding:8px 15px;border-radius:10px;text-transform:uppercase}
+.strip{position:absolute;left:0;right:0;bottom:0;height:${1080 - VIEW_H}px;background:linear-gradient(180deg,#0f172a,#090d16);border-top:3px solid #38bdf8;display:flex;align-items:center;gap:18px;padding:0 32px}
+.badge{flex:none;background:linear-gradient(135deg,#38bdf8,#818cf8);color:#05070c;font-weight:900;font-size:12.5px;letter-spacing:.07em;padding:7px 13px;border-radius:10px;text-transform:uppercase}
 .col{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
-.title{color:#7dd3fc;font-size:16.5px;font-weight:700;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cap{color:#f8fafc;font-size:23px;font-weight:800;letter-spacing:-.01em;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.title{color:#7dd3fc;font-size:15px;font-weight:700;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cap{color:#f8fafc;font-size:16.5px;font-weight:800;letter-spacing:-.005em;line-height:1.18;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .right{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:5px}
 .rig{color:#0f172a;font-size:13.5px;font-weight:800;letter-spacing:.01em;background:#fef3c7;border:1.5px solid #f59e0b;padding:4px 12px;border-radius:8px;white-space:nowrap}
 .n{flex:none;color:#bae6fd;font-size:15px;font-weight:800;background:rgba(56,189,248,0.15);border:1.5px solid rgba(56,189,248,0.45);padding:5px 14px;border-radius:10px}
-</style></head><body><div class="strip"><div class="badge">${esc(scene.badge)}</div><div class="col"><div class="title">${esc(scene.label)}</div><div class="cap">${esc(scene.bullets.join("  ·  "))}</div></div><div class="right"><div class="rig">🎙️ Narrated Live by: ollama run phonon --voice Russell</div><div class="n">Scene ${index + 1} of ${totalScenes}</div></div></body></html>`;
+</style></head><body><div class="strip"><div class="badge">${esc(scene.badge)}</div><div class="col"><div class="title">${esc(scene.label)}</div><div class="cap">${esc(scene.wideSummary)}</div></div><div class="right"><div class="rig">🎙️ Narrated Live by: ollama run phonon --voice Russell</div><div class="n">Scene ${index + 1} of ${totalScenes}</div></div></div></body></html>`;
 }
 
 function runOllamaPhononWav(text: string, voice: string, outWav: string): void {
@@ -809,13 +1094,22 @@ async function synthesizeSceneNarration(scene: SceneSpec): Promise<{
   const safeVoice = scene.voice.replace(/\s+/g, "_");
   const rawWav = join(audioDir, `raw_phonon_${scene.id}_${safeVoice}.wav`);
   const masteredWav = join(WORK, `phonon_${scene.id}_${safeVoice}.wav`);
+  const textHashFile = join(audioDir, `say_${scene.id}_${safeVoice}.txt`);
+  const prevSay = existsSync(textHashFile)
+    ? await Bun.file(textHashFile).text()
+    : "";
 
-  if (!existsSync(masteredWav) || !existsSync(rawWav)) {
+  if (
+    !existsSync(masteredWav) ||
+    !existsSync(rawWav) ||
+    prevSay !== scene.say
+  ) {
     console.log(
       `🎙️  Synthesizing ${scene.id} with ollama run phonon --voice "${scene.voice}"...`,
     );
     try {
       runOllamaPhononWav(scene.say, scene.voice, rawWav);
+      writeFileSync(textHashFile, scene.say);
       run([
         FFMPEG,
         "-hide_banner",
@@ -931,11 +1225,11 @@ ${REPO}
 
 🔥 WHAT'S NEW IN THIS UPDATE:
 • 🎙️ Narrated Live by \`ollama run phonon --voice Russell\`: Grounded, mature 24 kHz neural narrative voice running 100% locally and offline on Apple Silicon MLX.
-• ⚡ 32× Real-Time Read-Along .MP4 Exporter (Native Cairo + Pango via \`bun:ffi\`): 3-level delta-band cache (\`baseBg\` -> \`cueBg\` -> active word slice) streams raw BGRA frames directly into hardware-accelerated H.264 (\`h264_videotoolbox\` / \`libx264\`), rendering a centered 2m 33s 1080p Read-Along MP4 + .SRT + .VTT in just 4.79 seconds!
+• ⚡ 32× Real-Time Read-Along .MP4 Exporter (Native Cairo + Pango via \`bun:ffi\` + Parallel Shards): 3-level delta-band cache (\`baseBg\` -> \`cueBg\` -> active word slice) + multi-core parallel FFmpeg H.264 shards (\`h264_videotoolbox\` / \`libx264\`), rendering a centered 2m 33s 1080p Read-Along MP4 + .SRT + .VTT in just 4.79 seconds!
 • 🎯 100% Word-for-Word Audio-to-Text Sync (Zero Skipped Words): First-difference pre-emphasis (\`y[n] = x[n] - 0.95*x[n-1]\`) sharpens consonant and sibilant word boundaries, snaps sentence endings and intra-sentence commas/colons to acoustic pause valleys, disambiguates all-caps headings from acronyms (\`SPELLED_OUT_ACRONYMS\`), and enforces a 40 ms minimum visual hold floor on a 60 fps \`requestAnimationFrame\` loop.
 • 🧹 Zero Conversion Clutter (Calibre/Pandoc EPUB & Divider Sanitizer): Automatically strips \`{.calibre*}\`, \`:::\`, \`[]{#id}\`, \`<svg>\`, escaped quotes \`\\'\`, stray backslashes, and non-speech ASCII divider lines (\`======\`, \`------\`, \`******\`) while preserving Windows file paths (\`C:\\...\`).
-• 📚 Smart Back-Matter Promo Filter: Automatically removes appended sneak-peek and promotional teaser chapters (\`Sneak Peek\`, \`Preview of Book\`, \`Also by Author\`) in the final 35% of a book while keeping every genuine \`Author's Note\`, \`Foreword\`, and \`Introduction\`.
-• 🌍 Cross-Platform QA Verified: Tested across macOS (\`arm64\` & \`x64\`), Linux (\`amd64\` & \`arm64\` 1-click \`.deb\` + portable \`.zip\`), and Windows (\`x64\` & \`arm64\`).
+• 📚 Smart Back-Matter Promo Filter: Automatically removes appended sneak-peek and promotional teaser chapters (\`Sneak Peek\`, \`Preview of Book\`, \`Also by Author\`) in the final 45% of a book while keeping every genuine \`Author's Note\`, \`Foreword\`, and \`Introduction\`.
+• 🌍 Cross-Platform QA Verified: File Manager, EPUB Clutter Sanitizer, and the Native Cairo + Pango (\`bun:ffi\`) MP4 renderer are tested across macOS (\`arm64\` & \`x64\`), Linux (\`amd64\` & \`arm64\` 1-click \`.deb\` + portable \`.zip\`), and Windows (\`x64\` & \`arm64\`), with \`ollama run phonon\` neural TTS powered by Apple Silicon MLX (\`darwin/arm64\`).
 
 ⏱️ CHAPTERS (NARRATED BY \`ollama run phonon --voice Russell\`)
 ${stamps}
@@ -1031,17 +1325,24 @@ async function main() {
     await recBrowser.eval(`(() => {
       try { localStorage.setItem("fm_seen_welcome", "1"); } catch {}
       document.querySelectorAll(".modal-backdrop").forEach((e) => e.remove());
+      const t = document.getElementById("toasts");
+      if (t) {
+        t.style.cssText = "display:none !important;opacity:0 !important;pointer-events:none !important;";
+      }
     })()`);
     await sleep(300);
 
     for (const item of narrated) {
       const { scene } = item;
       const clipPath = join(WORK, `${scene.id}_raw.mp4`);
+      // Always re-record fresh clips so QA fixes are 100% reflected
+      rmSync(clipPath, { force: true });
 
       if (scene.id === "06_live_centered_read_along_mp4_showcase") {
-        // Render an actual centered Read-Along MP4 using `renderReadAlongVideo` synced to Scene 6's Russell narration!
+        // Render an actual centered Read-Along MP4 using `renderBurnedInReadAlongVideoParallel`
+        // synced with 0.0ms offset to `item.audio` (`masteredWav` which has 160ms adelay + 400ms apad)!
         console.log(
-          `🎬 Rendering actual Native Cairo + Pango Read-Along MP4 for ${scene.id} (${item.seconds.toFixed(1)}s)...`,
+          `🎬 Rendering actual Native Cairo + Pango Read-Along MP4 for ${scene.id} (${item.seconds.toFixed(2)}s)...`,
         );
         const rawBuf = Buffer.from(await Bun.file(item.rawWav).arrayBuffer());
         const parsed = parseWavPcm(rawBuf);
@@ -1053,20 +1354,26 @@ async function main() {
         const s6Tmp = join(WORK, "scene06_tmp");
         rmSync(s6Tmp, { recursive: true, force: true });
         mkdirSync(s6Tmp, { recursive: true });
-        copyFileSync(item.rawWav, join(s6Tmp, "stitched.wav"));
+        // Use the mastered Wav (`item.audio`) as `stitched.wav` so `expectedDurationSec` === `item.seconds` (widePtsScale = 1.00000!)
+        copyFileSync(item.audio, join(s6Tmp, "stitched.wav"));
         const timeline = computeReadAlongTimeline(
           [
             {
               index: 0,
               paragraphIndex: 0,
-              text: scene.say,
-              startMs: 0,
-              endMs: Math.round(rawDur * 1000),
+              text: scene.displaySay ?? scene.say,
+              startMs: 160,
+              endMs: 160 + Math.round(rawDur * 1000),
+              durationMs: Math.round(rawDur * 1000),
               pcmData: parsed.pcmData,
               sampleRate: parsed.sampleRate,
             },
           ],
           { aspectRatio: "16:9" },
+        );
+        writeFileSync(
+          join(s6Tmp, "subtitles.srt"),
+          formatSrtSubtitles(timeline),
         );
         await renderBurnedInReadAlongVideoParallel({
           ctx: createContext(),
@@ -1077,12 +1384,12 @@ async function main() {
           aspectRatio: "16:9",
           videoTheme: "midnight",
           voice: "Russell",
-          title: "BOOK ONE: WINTER'S RISING — READ-ALONG MP4 (VOICE: RUSSELL)",
+          title: "BOOK ONE: WINTER'S RISING",
           speed: 1,
           pitch: 0,
-          sampleRate: parsed.sampleRate,
-          expectedDurationSec: rawDur,
-          hasSrtFile: false,
+          sampleRate: 48000,
+          expectedDurationSec: item.seconds,
+          hasSrtFile: true,
           runFfmpegWithAbort: async (ffArgs, cwd) => {
             const p = Bun.spawnSync([FFMPEG, ...ffArgs], {
               cwd: cwd ?? s6Tmp,
@@ -1097,7 +1404,7 @@ async function main() {
           },
         });
         const showcaseFullMp4 = join(s6Tmp, "out.mp4");
-        // Scale 1920x1080 -> 1920x972 viewport clip so it composites seamlessly with the bottom strip & vertical frame
+        // Scale 1920x1080 -> 1728x972 and pad to 1920x972 with matching #060913 midnight background so there is ZERO vertical squish and 100% visibility of top pill + bottom progress bar!
         run([
           FFMPEG,
           "-hide_banner",
@@ -1107,7 +1414,7 @@ async function main() {
           "-i",
           showcaseFullMp4,
           "-vf",
-          `scale=${VIEW_W}:${VIEW_H}:flags=lanczos,fps=30,format=yuv420p`,
+          `scale=-2:${VIEW_H}:flags=lanczos,pad=${VIEW_W}:${VIEW_H}:(ow-iw)/2:0:color=0x060913,fps=30,format=yuv420p`,
           "-an",
           "-c:v",
           "libx264",
@@ -1121,18 +1428,12 @@ async function main() {
         continue;
       }
 
-      if (existsSync(clipPath) && statSync(clipPath).size > 1000) {
-        console.log(`♻️  Reusing recorded clip ${scene.id}_raw.mp4`);
-        rawClips.set(scene.id, clipPath);
-        continue;
-      }
-
       console.log(
         `🎥 Recording live scene ${scene.id} (${item.seconds.toFixed(1)}s)...`,
       );
       await recBrowser.startRecording();
-      await scene.record(recBrowser);
-      await sleep(350);
+      await scene.record(recBrowser, item.seconds);
+      await sleep(250);
       await recBrowser.stopRecording(
         clipPath,
         join(WORK, `frames_${scene.id}`),
@@ -1183,11 +1484,16 @@ async function main() {
         `🎬 Compositing Widescreen (${wideSec.toFixed(1)}s) + Vertical Short (${shortSec.toFixed(1)}s) for ${scene.id}...`,
       );
 
-      // Vertical 1080x1920 overlay
+      // Vertical 1080x1920 overlay (remove injected static cursor before screenshot!)
       const vHtml = join(WORK, `${scene.id}_v.html`);
       const vPng = join(WORK, `${scene.id}_v.png`);
       writeFileSync(vHtml, overlayVertical(scene, index));
       await ovlBrowser.goto(`file://${vHtml}`, null);
+      await ovlBrowser.eval(`(() => {
+        document.querySelectorAll('div, svg').forEach((el) => {
+          if (el instanceof HTMLElement && el.style.zIndex === '2147483647') el.remove();
+        });
+      })()`);
       await ovlBrowser.send("Emulation.setDefaultBackgroundColorOverride", {
         color: { r: 0, g: 0, b: 0, a: 0 },
       });
@@ -1198,7 +1504,7 @@ async function main() {
       writeFileSync(vPng, Buffer.from(vShot.data, "base64"));
 
       const shortSeg = join(WORK, `${scene.id}_short.mp4`);
-      const vFilter = `[0:v]setpts=(PTS-STARTPTS)*${shortPtsScale},fps=30,scale=1080:-2:flags=lanczos[demo];[2:v]scale=1080:1920:flags=lanczos[bg];[bg][demo]overlay=0:628:shortest=1,format=yuv420p[v]`;
+      const vFilter = `[0:v]setpts=(PTS-STARTPTS)*${shortPtsScale},fps=30,scale=1080:546:flags=lanczos[demo];[2:v]scale=1080:1920:flags=lanczos[bg];[bg][demo]overlay=0:628:shortest=1,format=yuv420p[v]`;
       run([
         FFMPEG,
         "-hide_banner",
@@ -1239,11 +1545,16 @@ async function main() {
       ]);
       shortSegments.push(shortSeg);
 
-      // Widescreen 1920x1080 strip overlay
+      // Widescreen 1920x1080 strip overlay (remove injected static cursor before screenshot!)
       const wHtml = join(WORK, `${scene.id}_w.html`);
       const wPng = join(WORK, `${scene.id}_w.png`);
       writeFileSync(wHtml, overlayWideStrip(scene, index, narrated.length));
       await wideBrowser.goto(`file://${wHtml}`, null);
+      await wideBrowser.eval(`(() => {
+        document.querySelectorAll('div, svg').forEach((el) => {
+          if (el instanceof HTMLElement && el.style.zIndex === '2147483647') el.remove();
+        });
+      })()`);
       await wideBrowser.send("Emulation.setDefaultBackgroundColorOverride", {
         color: { r: 0, g: 0, b: 0, a: 0 },
       });

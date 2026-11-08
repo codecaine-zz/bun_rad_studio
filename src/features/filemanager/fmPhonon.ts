@@ -10558,6 +10558,11 @@ export const PHONON_OPS: Record<string, FmHandler> = {
           extracted.rawText.length > maxInlineText
             ? extracted.rawText.slice(0, maxInlineText)
             : extracted.rawText,
+        chunkCount: chunks.length,
+        estimatedSeconds: Math.max(
+          1,
+          Math.round((extracted.wordCount / 155) * 60),
+        ),
         textTruncated,
         chunks,
       };
