@@ -1193,7 +1193,10 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
               .replaceAll("__FM_ARCH__", process.arch)
               .replaceAll(
                 "__FM_PHONON__",
-                isPhononSupportedPlatform(ctx.platform, process.arch)
+                ctx.platform === "darwin" ||
+                  ctx.platform === "linux" ||
+                  ctx.platform === "win32" ||
+                  isPhononSupportedPlatform(ctx.platform, process.arch)
                   ? "1"
                   : "0",
               )

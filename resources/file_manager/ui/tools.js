@@ -1,7 +1,7 @@
 // "Convert & process": turn the selected files into something else. The window asks "What do you want to turn these
 // into?", shows only what applies, collects the options, previews the new files, and shows progress in the tasks tray.
 // It also helps install the helper programs some conversions use.
-import { call, ApiError, isPhononSupported } from "./api.js";
+import { arch, call, ApiError, isPhononSupported, platform } from "./api.js";
 import { $, announce, debounce, h } from "./dom.js";
 import { openDialog } from "./dialogs.js";
 import { toast } from "./menus.js";
@@ -159,7 +159,7 @@ function toolBlock(tool, close, startInstall) {
       h(
         "p",
         { class: "hint" },
-        `Downloads and installs Ollama + Qwen 3.5 (qwen3.5:4b) & LFM3-Omni (lfm3-omni:latest)${isPhononSupported() ? " + Gradium Phonon TTS" : ""} automatically into your user folder (no administrator password required), or use the terminal command below:`,
+        `Downloads and installs Ollama + Qwen 3.5 (qwen3.5:4b) & LFM3-Omni (lfm3-omni:latest)${platform === "darwin" && arch !== "x64" ? " + Gradium Phonon TTS" : ""} automatically into your user folder (no administrator password required), or use the terminal command below:`,
       ),
       commandBlock(plan.display),
       h(

@@ -1358,8 +1358,15 @@ exit 0
     });
 
     test("cross-platform QA matrix: darwin (arm64/x64), linux (x64/arm64), and win32 (x64/arm64) status, CRLF/Windows paths, and audio/video export", async () => {
-      const { synthesizePhononChunkWav, synthesizeAndExportAudioFile } =
-        await import("../src/features/filemanager/fmPhonon");
+      const {
+        synthesizePhononChunkWav,
+        synthesizeAndExportAudioFile,
+        resolveCrossPlatformVoiceSpec,
+        synthesizePureBunWordCadenceWav,
+        buildReadAlongSlideBmpFallback,
+        VIDEO_ASPECT_INFO,
+        speakChunk,
+      } = await import("../src/features/filemanager/fmPhonon");
 
       // 1. Platform & architecture matrix for getPhononStatus
       const matrix: Array<{
@@ -1388,12 +1395,185 @@ exit 0
         };
         const st = await getPhononStatus(pCtx);
         expect(st.supported).toBe(item.expectedSupported);
+        expect(st.crossPlatformTtsReady).toBe(true);
+        expect(st.activeTtsEngine).toBeTruthy();
+        expect(st.ttsEngineLabel).toBeTruthy();
         expect(st.ollamaInstalled).toBe(true);
         expect(st.ffmpegInstalled).toBe(true);
         expect(st.modelInstalled).toBe(true);
         expect(st.ready).toBe(item.expectedSupported);
         expect(st.install.canAutoInstallOllama).toBe(item.expectedSupported);
       }
+
+      // 1b. Cross-Platform Voice Spec & Non-MLX Fallback Synthesis on Linux & Windows (without Ollama or when MLX is unsupported)
+      const russellSpec = resolveCrossPlatformVoiceSpec("Russell");
+      expect(russellSpec.gender).toBe("male");
+      expect(russellSpec.f0Hz).toBe(116);
+      expect(russellSpec.edgeVoice).toBe("en-AU-WilliamNeural");
+
+      const zoeySpec = resolveCrossPlatformVoiceSpec("Zoey");
+      expect(zoeySpec.gender).toBe("female");
+      expect(zoeySpec.f0Hz).toBe(194);
+
+      const cadenceWav = synthesizePureBunWordCadenceWav(
+        "The world was dead, and winter was rising.",
+        "Russell",
+      );
+      const parsedCadence = parseWavPcm(cadenceWav);
+      expect(parsedCadence.sampleRate).toBe(24000);
+      expect(parsedCadence.pcmData.length).toBeGreaterThan(24000);
+      const cadenceTimings = computeWordTimingsForText(
+        "The world was dead, and winter was rising.",
+        Math.round((parsedCadence.pcmData.length / 48000) * 1000),
+        0,
+        0,
+        { pcmData: parsedCadence.pcmData, sampleRate: 24000, speed: 1 },
+      );
+      expect(cadenceTimings.length).toBe(8);
+      expect(cadenceTimings[0]!.word).toBe("The");
+      expect(cadenceTimings[7]!.word).toBe("rising.");
+
+      // Verify Linux & Windows synthesize speech & Read-Along MP4 even when Ollama is absent (non-MLX fallback)
+      for (const nonMlxPlat of ["linux", "win32"] as const) {
+        const fbDir = join(root, `fallback-${nonMlxPlat}`);
+        const fbBin = join(fbDir, "bin-ffmpeg-only");
+        mkdirSync(fbBin, { recursive: true });
+        writeFileSync(
+          join(fbBin, nonMlxPlat === "win32" ? "ffmpeg.exe" : "ffmpeg"),
+          readFileSync(join(binDir, "ffmpeg")),
+        );
+        chmodSync(
+          join(fbBin, nonMlxPlat === "win32" ? "ffmpeg.exe" : "ffmpeg"),
+          0o755,
+        );
+        const fbCtx = {
+          ...createContext({
+            home: homeDir,
+            dataDir: join(fbDir, "data"),
+            toolDirs: [fbBin],
+          }),
+          platform: nonMlxPlat,
+        };
+        const spk = await speakChunk(fbCtx, {
+          text: `Native cross-platform speech on ${nonMlxPlat} without MLX.`,
+          voice: "Russell",
+        });
+        expect(spk.sampleRate).toBe(24000);
+        expect(spk.words.length).toBe(7);
+        expect(spk.cues.length).toBeGreaterThanOrEqual(1);
+
+        const fbMp4 = join(fbDir, `fallback-${nonMlxPlat}.mp4`);
+        const fbExport = await synthesizeAndExportAudioFile(fbCtx, {
+          ollamaExe: "",
+          ffmpegExe: resolveTool(fbCtx, "ffmpeg"),
+          chunks: splitTextForPhonon(
+            `Cross-platform Read-Along MP4 on ${nonMlxPlat} with Russell voice.`,
+            { maxChars: 520, mergeShortParagraphs: true },
+          ),
+          voice: "Russell",
+          format: "mp4",
+          speed: 1,
+          pauseMs: 140,
+          outputPath: fbMp4,
+          aspectRatio: "16:9",
+          videoTheme: "midnight",
+          saveSubtitles: true,
+          title: `Fallback (${nonMlxPlat})`,
+        });
+        expect(existsSync(fbExport.outputPath)).toBe(true);
+        expect(fbExport.srtPath && existsSync(fbExport.srtPath)).toBe(true);
+        expect(fbExport.vttPath && existsSync(fbExport.vttPath)).toBe(true);
+      }
+
+      // 1c. Verify Linux espeak-ng and Windows PowerShell System.Speech CLI synthesis via toolDirs + lfm3-omni detection
+      const linuxCliDir = join(root, "linux-espeak-cli");
+      mkdirSync(linuxCliDir, { recursive: true });
+      const fakeEspeak = `#!/usr/bin/env bun
+import { writeFileSync } from "fs";
+const args = process.argv.slice(2);
+const wIdx = args.indexOf("-w");
+const outPath = wIdx >= 0 ? args[wIdx + 1] : "";
+if (outPath) {
+  const pcm = Buffer.alloc(24000 * 2);
+  for (let i = 0; i < 24000; i++) pcm.writeInt16LE(Math.round(Math.sin(i * 0.08) * 14000), i * 2);
+  const header = Buffer.alloc(44);
+  header.write("RIFF", 0); header.writeUInt32LE(36 + pcm.length, 4); header.write("WAVE", 8);
+  header.write("fmt ", 12); header.writeUInt32LE(16, 16); header.writeUInt16LE(1, 20); header.writeUInt16LE(1, 22);
+  header.writeUInt32LE(24000, 24); header.writeUInt32LE(48000, 28); header.writeUInt16LE(2, 32); header.writeUInt16LE(16, 34);
+  header.write("data", 36); header.writeUInt32LE(pcm.length, 40);
+  writeFileSync(outPath, Buffer.concat([header, pcm]));
+}
+process.exit(0);
+`;
+      writeFileSync(join(linuxCliDir, "espeak-ng"), fakeEspeak);
+      chmodSync(join(linuxCliDir, "espeak-ng"), 0o755);
+      const fakeLfmOllama = `#!/bin/sh
+if [ "$1" = "--version" ]; then echo "ollama version is 0.40.12"; exit 0; fi
+if [ "$1" = "show" ]; then exit 1; fi
+if [ "$1" = "list" ]; then echo "lfm3-omni:latest"; exit 0; fi
+exit 1
+`;
+      writeFileSync(join(linuxCliDir, "ollama"), fakeLfmOllama);
+      chmodSync(join(linuxCliDir, "ollama"), 0o755);
+
+      const linuxCliCtx = {
+        ...createContext({
+          home: homeDir,
+          dataDir: join(linuxCliDir, "data"),
+          toolDirs: [linuxCliDir],
+        }),
+        platform: "linux" as const,
+        arch: "x64",
+      };
+      const linuxLfmStatus = await getPhononStatus(linuxCliCtx);
+      expect(linuxLfmStatus.modelInstalled).toBe(true);
+      expect(linuxLfmStatus.crossPlatformTtsReady).toBe(true);
+      const linuxEspeakSpk = await speakChunk(linuxCliCtx, {
+        text: "Linux espeak-ng synthesis verified.",
+        voice: "Russell",
+      });
+      expect(linuxEspeakSpk.sampleRate).toBe(24000);
+      expect(linuxEspeakSpk.words.length).toBe(4);
+
+      // 1d. Verify 5x7 ASCII bitmap font BMP fallback renderer for clean Windows/Linux systems without Cairo/Pango
+      const sampleTl = computeReadAlongTimeline([
+        {
+          index: 0,
+          paragraphIndex: 0,
+          text: "Hello Linux and Windows Read-Along Video!",
+          startMs: 0,
+          endMs: 2400,
+          durationMs: 2400,
+          pcmData: parsedCadence.pcmData,
+          sampleRate: 24000,
+          speed: 1,
+        },
+      ]);
+      const bmpBuf = buildReadAlongSlideBmpFallback({
+        timeline: sampleTl,
+        slide: {
+          slideIndex: 0,
+          startMs: 0,
+          endMs: 400,
+          cueIndex: 0,
+          activeWordInCue: 1,
+          spokenWordsInCue: 1,
+        },
+        aspect: VIDEO_ASPECT_INFO["16:9"],
+        videoTheme: "midnight",
+      });
+      expect(bmpBuf.subarray(0, 2).toString("ascii")).toBe("BM");
+      expect(bmpBuf.readInt32LE(18)).toBe(1920);
+      expect(Math.abs(bmpBuf.readInt32LE(22))).toBe(1080);
+
+      // 1e. Verify UI api.js enables Voice Reader across darwin, linux, and win32
+      const apiJsText = readFileSync(
+        "resources/file_manager/ui/api.js",
+        "utf8",
+      );
+      expect(apiJsText).toContain(
+        'p === "darwin" || p === "linux" || p === "win32"',
+      );
 
       // 2. Synthesis and Read-Along MP4 Video + SRT/VTT export across darwin, linux, and win32 contexts
       for (const plat of ["darwin", "linux", "win32"] as const) {

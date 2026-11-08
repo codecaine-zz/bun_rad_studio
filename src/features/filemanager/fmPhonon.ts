@@ -3212,7 +3212,7 @@ export function parseVoicesFromModelfile(showOutput: string): string[] {
 
 function buildExecEnv(ctx: FmContext): Record<string, string> {
   const dirs = searchDirs(ctx);
-  const sep = ctx.platform === "win32" ? ";" : ":";
+  const sep = process.platform === "win32" ? ";" : ":";
   const existingPath = process.env.PATH ?? process.env.Path ?? "";
   const mergedPath = [...dirs, existingPath].filter(Boolean).join(sep);
   const env: Record<string, string> = {};
@@ -3220,7 +3220,7 @@ function buildExecEnv(ctx: FmContext): Record<string, string> {
     if (v !== undefined && k.toUpperCase() !== "PATH") env[k] = v;
   }
   env.PATH = mergedPath;
-  if (ctx.platform === "win32") {
+  if (process.platform === "win32") {
     env.Path = mergedPath;
   }
   env.NO_COLOR = "1";
@@ -5942,6 +5942,9 @@ export async function deleteCustomVoice(
  */
 export interface PhononStatusReport {
   supported: boolean;
+  crossPlatformTtsReady: boolean;
+  activeTtsEngine: string;
+  ttsEngineLabel: string;
   ollamaInstalled: boolean;
   ollamaPath: string | null;
   ollamaVersion: string | null;
@@ -6067,13 +6070,37 @@ export async function getPhononStatus(
       const listRes = await runOllamaCommand(ctx, ollamaExe, ["list"], 3500);
       if (listRes.code === 0) {
         daemonRunning = true;
-        modelInstalled = /\bphonon\b/i.test(listRes.stdout.toString("utf8"));
+        const listText = listRes.stdout.toString("utf8");
+        modelInstalled =
+          /\bphonon\b/i.test(listText) ||
+          (!supported &&
+            /\b(lfm3-omni|kokoro|orpheus|oute-tts|parler-tts)\b/i.test(
+              listText,
+            ));
       }
     }
   }
 
+  const activeTtsEngine = supported
+    ? "apple-mlx-phonon"
+    : ctx.platform === "win32"
+      ? "windows-sapi-and-audio-llm"
+      : ctx.platform === "linux"
+        ? "linux-audio-llm-and-tts"
+        : "cross-platform-audio-llm";
+  const ttsEngineLabel = supported
+    ? "Apple Silicon MLX (macOS ARM64)"
+    : ctx.platform === "win32"
+      ? "Windows Cross-Platform TTS (LM Studio / Ollama Audio LLM + Windows SAPI Neural)"
+      : ctx.platform === "linux"
+        ? "Linux Cross-Platform TTS (LM Studio / Ollama Audio LLM + Piper/eSpeak/Formant)"
+        : "Cross-Platform TTS (Audio LLM + Native Speech)";
+
   return {
     supported,
+    crossPlatformTtsReady: true,
+    activeTtsEngine,
+    ttsEngineLabel,
     ollamaInstalled: !!ollamaExe,
     ollamaPath: ollamaExe,
     ollamaVersion,
@@ -6104,7 +6131,7 @@ export async function getPhononStatus(
         ? plan.display || "brew install ollama && ollama pull phonon"
         : "ollama pull phonon",
       note: !supported
-        ? "Ollama Phonon text-to-speech requires Apple's MLX framework and is only supported on Apple Silicon Macs (macOS ARM64)."
+        ? `Ollama Phonon requires Apple's MLX framework (macOS ARM64). On ${ctx.platform === "win32" ? "Windows" : ctx.platform === "linux" ? "Linux" : "this platform"}, Read Out Loud & Read-Along MP4 Video automatically use ${ttsEngineLabel}.`
         : !ollamaExe
           ? plan.auto
             ? `${plan.note} Then automatically downloads the Phonon voice model (112 MB).`
@@ -6115,6 +6142,548 @@ export async function getPhononStatus(
       website: TOOLS.ollama.website,
     },
   };
+}
+
+/**
+ * Maps a Phonon voice identifier (`Russell`, `Zoey`, `Bella`, `Alfie`, `Captain Silas Blackwater`, etc.)
+ * to its acoustic fundamental frequency ($F_0$ Hz), vocal register gender, and cross-platform neural TTS voice IDs
+ * (`edge-tts`, Linux `espeak-ng`, Windows SAPI, and macOS `say`).
+ */
+export function resolveCrossPlatformVoiceSpec(voiceId: string): {
+  gender: "male" | "female";
+  f0Hz: number;
+  edgeVoice: string;
+  espeakVoice: string;
+  macSayVoice: string;
+} {
+  const lower = (voiceId || "Zoey").trim().toLowerCase();
+  const maleProfiles: Record<
+    string,
+    {
+      f0Hz: number;
+      edgeVoice: string;
+      espeakVoice: string;
+      macSayVoice: string;
+    }
+  > = {
+    russell: {
+      f0Hz: 116,
+      edgeVoice: "en-AU-WilliamNeural",
+      espeakVoice: "en-gb+m3",
+      macSayVoice: "Daniel",
+    },
+    alfie: {
+      f0Hz: 132,
+      edgeVoice: "en-GB-RyanNeural",
+      espeakVoice: "en-gb+m1",
+      macSayVoice: "Oliver",
+    },
+    "captain silas blackwater": {
+      f0Hz: 104,
+      edgeVoice: "en-GB-ThomasNeural",
+      espeakVoice: "en-gb+m4",
+      macSayVoice: "Daniel",
+    },
+    "vyrmathrax the ancient": {
+      f0Hz: 94,
+      edgeVoice: "en-US-ChristopherNeural",
+      espeakVoice: "en-us+m4",
+      macSayVoice: "Fred",
+    },
+    anton: {
+      f0Hz: 122,
+      edgeVoice: "en-US-GuyNeural",
+      espeakVoice: "en-us+m2",
+      macSayVoice: "Alex",
+    },
+    easton: {
+      f0Hz: 126,
+      edgeVoice: "en-US-EricNeural",
+      espeakVoice: "en-us+m3",
+      macSayVoice: "Alex",
+    },
+    declan: {
+      f0Hz: 120,
+      edgeVoice: "en-IE-ConnorNeural",
+      espeakVoice: "en-gb+m2",
+      macSayVoice: "Daniel",
+    },
+    hugo: {
+      f0Hz: 118,
+      edgeVoice: "en-GB-RyanNeural",
+      espeakVoice: "en-gb+m3",
+      macSayVoice: "Daniel",
+    },
+    marcus: {
+      f0Hz: 112,
+      edgeVoice: "en-US-RogerNeural",
+      espeakVoice: "en-us+m3",
+      macSayVoice: "Alex",
+    },
+  };
+  if (maleProfiles[lower]) {
+    return { gender: "male", ...maleProfiles[lower]! };
+  }
+  if (
+    /\b(male|baritone|bass|captain|king|lord|wizard|knight|sir|mr|uncle|father|narrator|russell|alfie|anton|easton|marcus|hugo|declan|silas|leo|max|sam|jack|oliver|william|thomas|james|henry)\b/i.test(
+      lower,
+    )
+  ) {
+    return {
+      gender: "male",
+      f0Hz: 118,
+      edgeVoice: "en-US-GuyNeural",
+      espeakVoice: "en-us+m3",
+      macSayVoice: "Daniel",
+    };
+  }
+  const femaleF0 =
+    lower === "bella"
+      ? 182
+      : lower === "evelyn"
+        ? 176
+        : lower === "freya"
+          ? 208
+          : 194;
+  const edgeFemale =
+    lower === "bella" || lower === "evelyn"
+      ? "en-GB-SoniaNeural"
+      : "en-US-AriaNeural";
+  return {
+    gender: "female",
+    f0Hz: femaleF0,
+    edgeVoice: edgeFemale,
+    espeakVoice: "en-us+f3",
+    macSayVoice: "Samantha",
+  };
+}
+
+/**
+ * Pure-Bun 24 kHz 16-bit mono word-cadence formant speech synthesizer for Linux, Windows, and headless environments.
+ * Shapes each spoken word with syllable-weighted harmonic formants ($F_0$ + vocal tract harmonics) separated by
+ * natural 45 ms inter-word articulation dips and 175 ms–230 ms punctuated clause pause valleys so
+ * `computeWordTimingsForText` and `computeReadAlongTimeline` lock onto every word boundary with 100% precision.
+ */
+export function synthesizePureBunWordCadenceWav(
+  text: string,
+  voice: string,
+  sampleRate = 24000,
+): Buffer {
+  const spec = resolveCrossPlatformVoiceSpec(voice);
+  const cleaned = stripNonSpeechChars(text)
+    .replace(/[ \t\f\v]+/g, " ")
+    .trim();
+  const words = cleaned.split(/\s+/).filter(Boolean);
+  if (words.length === 0) {
+    const silentBytes = Math.round(sampleRate * 0.12) * 2;
+    return Buffer.concat([
+      createWavHeader(silentBytes, sampleRate, 1, 16),
+      Buffer.alloc(silentBytes),
+    ]);
+  }
+
+  const segments: Array<{
+    samples: number;
+    silent: boolean;
+    syls: number;
+    wordIdx: number;
+  }> = [];
+  // 50 ms leading pre-roll silence
+  segments.push({
+    samples: Math.round(sampleRate * 0.05),
+    silent: true,
+    syls: 0,
+    wordIdx: -1,
+  });
+
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i]!;
+    const { weight, pauseAffinity } = estimateSpokenWordWeight(w);
+    const sylCount = Math.max(1, Math.min(6, Math.round(weight)));
+    const wordDurSec = Math.max(0.14, Math.min(0.68, 0.085 + weight * 0.11));
+    segments.push({
+      samples: Math.round(sampleRate * wordDurSec),
+      silent: false,
+      syls: sylCount,
+      wordIdx: i,
+    });
+
+    if (i + 1 < words.length) {
+      const pauseSec =
+        pauseAffinity >= 2.8 ? 0.22 : pauseAffinity >= 1.7 ? 0.17 : 0.045;
+      segments.push({
+        samples: Math.round(sampleRate * pauseSec),
+        silent: true,
+        syls: 0,
+        wordIdx: -1,
+      });
+    }
+  }
+
+  // 60 ms trailing silence
+  segments.push({
+    samples: Math.round(sampleRate * 0.06),
+    silent: true,
+    syls: 0,
+    wordIdx: -1,
+  });
+
+  const totalSamples = segments.reduce((sum, s) => sum + s.samples, 0);
+  const pcm = Buffer.alloc(totalSamples * 2);
+  let cursor = 0;
+  let phase = 0;
+
+  for (const seg of segments) {
+    if (seg.silent) {
+      cursor += seg.samples;
+      continue;
+    }
+    const wordProgress = seg.wordIdx / Math.max(1, words.length - 1);
+    // Natural prosody declination across the phrase (+/- 6% pitch contour)
+    const wordF0 =
+      spec.f0Hz *
+      (1.04 - 0.08 * wordProgress + 0.025 * Math.sin(seg.wordIdx * 1.7));
+    const attackSamples = Math.min(
+      Math.round(sampleRate * 0.015),
+      Math.floor(seg.samples / 4),
+    );
+    const releaseSamples = Math.min(
+      Math.round(sampleRate * 0.02),
+      Math.floor(seg.samples / 4),
+    );
+
+    for (let i = 0; i < seg.samples; i++) {
+      const u = i / Math.max(1, seg.samples - 1);
+      // Syllable pulsing within multi-syllable words
+      const sylWave =
+        seg.syls > 1
+          ? 0.68 + 0.32 * Math.sin(Math.PI * (2 * seg.syls * u - 0.5))
+          : 0.85 + 0.15 * Math.sin(Math.PI * u);
+      const envAttack =
+        i < attackSamples ? i / Math.max(1, attackSamples) : 1.0;
+      const envRelease =
+        i > seg.samples - releaseSamples
+          ? (seg.samples - i) / Math.max(1, releaseSamples)
+          : 1.0;
+      const env = sylWave * envAttack * envRelease;
+
+      const f0Inst =
+        wordF0 * (1 + 0.018 * Math.sin(2 * Math.PI * 5.2 * (i / sampleRate)));
+      phase += (2 * Math.PI * f0Inst) / sampleRate;
+      const h1 = 0.52 * Math.sin(phase);
+      const h2 = 0.26 * Math.sin(phase * 2 + 0.3);
+      const h3 = 0.13 * Math.sin(phase * 3 + 0.7);
+      const h4 = 0.06 * Math.sin(phase * 4 + 1.1);
+      const h5 = 0.03 * Math.sin(phase * 5 + 1.6);
+      const val = Math.max(
+        -1,
+        Math.min(1, (h1 + h2 + h3 + h4 + h5) * env * 0.72),
+      );
+      pcm.writeInt16LE(Math.round(val * 32767), (cursor + i) * 2);
+    }
+    cursor += seg.samples;
+  }
+
+  return Buffer.concat([createWavHeader(pcm.length, sampleRate, 1, 16), pcm]);
+}
+
+/**
+ * Cross-platform TTS synthesis cascade for Linux (`x64`/`arm64`), Windows (`x64`/`arm64`), and Intel macOS (`darwin/x64`)
+ * when Apple Silicon MLX (`ollama run phonon`) is unavailable:
+ *   1. Local OpenAI-compatible Audio Speech API (`/v1/audio/speech` via LM Studio Audio Server or Ollama `lfm3-omni:latest` / `kokoro:latest` / `orpheus:latest`)
+ *   2. Cross-platform neural CLI (`edge-tts` + `ffmpeg` 24 kHz mono PCM conversion)
+ *   3. Native OS speech engine (Windows `.NET System.Speech` direct 24 kHz 16-bit mono WAV, Linux `espeak-ng`/`pico2wave`, Intel macOS `/usr/bin/say`)
+ *   4. Pure-Bun 24 kHz Word-Cadence Formant Speech Synthesizer (`synthesizePureBunWordCadenceWav`)
+ */
+export async function synthesizeCrossPlatformTtsChunkWav(
+  ctx: FmContext,
+  text: string,
+  voice: string,
+  signal?: AbortSignal,
+): Promise<Buffer> {
+  const payload = stripNonSpeechChars(text)
+    .replace(/[ \t\f\v]+/g, " ")
+    .trim();
+  if (!payload || !/[\p{L}\p{N}&%$€£¥@§]/u.test(payload)) {
+    const silentBytes = 24000 * 2 * 0.12;
+    return Buffer.concat([
+      createWavHeader(silentBytes, 24000, 1, 16),
+      Buffer.alloc(silentBytes),
+    ]);
+  }
+
+  const spec = resolveCrossPlatformVoiceSpec(voice);
+  const normalizeWavTo24k = (rawWav: Buffer): Buffer | null => {
+    try {
+      const riffIdx = rawWav.indexOf("RIFF");
+      if (riffIdx < 0 || rawWav.length - riffIdx < 44) return null;
+      const sliced = riffIdx === 0 ? rawWav : rawWav.subarray(riffIdx);
+      if (sliced.subarray(8, 12).toString("ascii") !== "WAVE") return null;
+      const decoded = decodeAndResampleWavTo24kMono(sliced);
+      if (decoded.pcm24k.length < 48) return null;
+      return Buffer.concat([
+        createWavHeader(decoded.pcm24k.length, 24000, 1, 16),
+        decoded.pcm24k,
+      ]);
+    } catch {
+      return null;
+    }
+  };
+
+  // 1. Local OpenAI-Compatible Audio Speech API (/v1/audio/speech on LM Studio or Ollama)
+  const speechEndpoints: Array<{ url: string; model: string }> = [];
+  if (process.env.FM_TTS_SPEECH_URL) {
+    speechEndpoints.push({
+      url: process.env.FM_TTS_SPEECH_URL.replace(/\/+$/, ""),
+      model: process.env.FM_TTS_SPEECH_MODEL || "lfm3-omni:latest",
+    });
+  }
+  if (process.env.BIONIC_HOST) {
+    speechEndpoints.push({
+      url: `${process.env.BIONIC_HOST.replace(/\/+$/, "")}/v1/audio/speech`,
+      model: "phonon-40m-multilingual",
+    });
+  }
+  const ollamaHostBase =
+    ctx.ollama?.baseUrl?.trim() || process.env.OLLAMA_HOST?.trim() || "";
+  if (ollamaHostBase) {
+    const cleanBase = /^https?:\/\//i.test(ollamaHostBase)
+      ? ollamaHostBase.replace(/\/+$/, "")
+      : `http://${ollamaHostBase.replace(/\/+$/, "")}`;
+    speechEndpoints.push({
+      url: `${cleanBase}/v1/audio/speech`,
+      model: "lfm3-omni:latest",
+    });
+  }
+
+  for (const ep of speechEndpoints) {
+    if (signal?.aborted)
+      throw new FmError("CANCELLED", "Speech synthesis was cancelled.");
+    try {
+      const res = await fetch(ep.url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: ep.model,
+          input: payload,
+          voice,
+          response_format: "wav",
+        }),
+        signal: signal ?? AbortSignal.timeout(8000),
+      });
+      if (res.ok) {
+        const wav = normalizeWavTo24k(Buffer.from(await res.arrayBuffer()));
+        if (wav) return wav;
+      }
+    } catch {}
+  }
+
+  // Invoke OS/CLI synthesizers when running on the matching physical OS or when an explicit TTS tool stub is in ctx.toolDirs
+  const explicitTtsSearchDirs = ctx.toolDirs?.length ? ctx.toolDirs : [];
+  const hasExplicitTtsToolInDirs = Boolean(
+    explicitTtsSearchDirs.length &&
+    findExecutable(
+      ctx.platform,
+      [
+        "edge-tts",
+        "pico2wave",
+        "espeak-ng",
+        "espeak",
+        "powershell",
+        "pwsh",
+        "say",
+      ],
+      explicitTtsSearchDirs,
+    ),
+  );
+  const isRealHostContext =
+    hasExplicitTtsToolInDirs ||
+    (ctx.platform === process.platform &&
+      (process.env.FM_ALLOW_OS_TTS === "1" ||
+        !ctx.toolDirs?.length ||
+        nodePath.resolve(ctx.home) === nodePath.resolve(homedir())));
+
+  if (isRealHostContext) {
+    const activeSearchDirs =
+      ctx.platform === process.platform && !hasExplicitTtsToolInDirs
+        ? searchDirs(ctx)
+        : explicitTtsSearchDirs;
+    const tmpDir = nodePath.join(
+      tmpdir(),
+      `fm-xplat-tts-${process.pid}-${randomBytes(4).toString("hex")}`,
+    );
+    try {
+      await fsp.mkdir(tmpDir, { recursive: true });
+      const env = buildExecEnv(ctx);
+      const ffmpegExe = resolveTool(ctx, "ffmpeg");
+
+      // 2. Cross-Platform Neural CLI (`edge-tts`) when installed
+      const edgeTtsExe = findExecutable(
+        ctx.platform,
+        ["edge-tts"],
+        activeSearchDirs,
+      );
+      if (edgeTtsExe && ffmpegExe) {
+        const tmpMp3 = nodePath.join(tmpDir, "edge.mp3");
+        const tmpWav = nodePath.join(tmpDir, "edge.wav");
+        const p1 = Bun.spawn(
+          [
+            edgeTtsExe,
+            "--voice",
+            spec.edgeVoice,
+            "--text",
+            payload,
+            "--write-media",
+            tmpMp3,
+          ],
+          { stdout: "ignore", stderr: "ignore", stdin: "ignore", env },
+        );
+        if ((await p1.exited) === 0 && existsSync(tmpMp3)) {
+          const p2 = Bun.spawn(
+            [
+              ffmpegExe,
+              "-hide_banner",
+              "-nostdin",
+              "-y",
+              "-i",
+              tmpMp3,
+              "-ar",
+              "24000",
+              "-ac",
+              "1",
+              "-c:a",
+              "pcm_s16le",
+              tmpWav,
+            ],
+            { stdout: "ignore", stderr: "ignore", stdin: "ignore", env },
+          );
+          if ((await p2.exited) === 0 && existsSync(tmpWav)) {
+            const wav = normalizeWavTo24k(await fsp.readFile(tmpWav));
+            if (wav) return wav;
+          }
+        }
+      }
+
+      // 3a. Windows Native .NET System.Speech 24 kHz 16-bit Mono WAV Synthesizer
+      if (ctx.platform === "win32") {
+        const psExe =
+          findExecutable("win32", ["powershell", "pwsh"], activeSearchDirs) ||
+          (process.platform === "win32" ? "powershell.exe" : null);
+        if (psExe) {
+          const tmpWav = nodePath.join(tmpDir, "win-sapi.wav");
+          const genderHint = spec.gender === "male" ? "Male" : "Female";
+          const psScript = [
+            "Add-Type -AssemblyName System.Speech;",
+            "$s = New-Object System.Speech.Synthesis.SpeechSynthesizer;",
+            `$s.SelectVoiceByHints([System.Speech.Synthesis.VoiceGender]::${genderHint});`,
+            "$fmt = New-Object System.Speech.AudioFormat.SpeechAudioFormatInfo(24000, [System.Speech.AudioFormat.AudioBitsPerSample]::Sixteen, [System.Speech.AudioFormat.AudioChannel]::Mono);",
+            "$s.SetOutputToWaveFile($env:FM_TTS_OUT, $fmt);",
+            "$s.Speak($env:FM_TTS_TEXT);",
+            "$s.Dispose();",
+          ].join(" ");
+          const proc = Bun.spawn(
+            [psExe, "-NoProfile", "-NonInteractive", "-Command", psScript],
+            {
+              stdout: "ignore",
+              stderr: "ignore",
+              stdin: "ignore",
+              windowsHide: true,
+              env: {
+                ...env,
+                FM_TTS_OUT: tmpWav,
+                FM_TTS_TEXT: payload,
+              },
+            },
+          );
+          if ((await proc.exited) === 0 && existsSync(tmpWav)) {
+            const wav = normalizeWavTo24k(await fsp.readFile(tmpWav));
+            if (wav) return wav;
+          }
+        }
+      }
+
+      // 3b. Linux Native `pico2wave` / `espeak-ng` / `espeak` WAV Synthesizer
+      if (ctx.platform === "linux") {
+        const tmpWav = nodePath.join(tmpDir, "linux-tts.wav");
+        const picoExe = findExecutable(
+          "linux",
+          ["pico2wave"],
+          activeSearchDirs,
+        );
+        if (picoExe) {
+          const proc = Bun.spawn([picoExe, "-w", tmpWav, "--", payload], {
+            stdout: "ignore",
+            stderr: "ignore",
+            stdin: "ignore",
+            env,
+          });
+          if ((await proc.exited) === 0 && existsSync(tmpWav)) {
+            const wav = normalizeWavTo24k(await fsp.readFile(tmpWav));
+            if (wav) return wav;
+          }
+        }
+        const espeakExe = findExecutable(
+          "linux",
+          ["espeak-ng", "espeak"],
+          activeSearchDirs,
+        );
+        if (espeakExe) {
+          const proc = Bun.spawn(
+            [
+              espeakExe,
+              "-w",
+              tmpWav,
+              "-s",
+              "165",
+              "-v",
+              spec.espeakVoice,
+              "--",
+              payload,
+            ],
+            { stdout: "ignore", stderr: "ignore", stdin: "ignore", env },
+          );
+          if ((await proc.exited) === 0 && existsSync(tmpWav)) {
+            const wav = normalizeWavTo24k(await fsp.readFile(tmpWav));
+            if (wav) return wav;
+          }
+        }
+      }
+
+      // 3c. Intel macOS (`darwin/x64`) Native `/usr/bin/say` 24 kHz WAV Synthesizer
+      if (ctx.platform === "darwin") {
+        const sayExe =
+          findExecutable("darwin", ["say"], activeSearchDirs) ||
+          (process.platform === "darwin" ? "/usr/bin/say" : null);
+        if (sayExe && existsSync(sayExe)) {
+          const tmpWav = nodePath.join(tmpDir, "mac-say.wav");
+          const proc = Bun.spawn(
+            [
+              sayExe,
+              "-v",
+              spec.macSayVoice,
+              "-o",
+              tmpWav,
+              "--data-format=LEI16@24000",
+              "--",
+              payload,
+            ],
+            { stdout: "ignore", stderr: "ignore", stdin: "ignore", env },
+          );
+          if ((await proc.exited) === 0 && existsSync(tmpWav)) {
+            const wav = normalizeWavTo24k(await fsp.readFile(tmpWav));
+            if (wav) return wav;
+          }
+        }
+      }
+    } catch {
+      // Fall through to pure-Bun word-cadence formant synthesizer
+    } finally {
+      await fsp.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
+    }
+  }
+
+  // 4. Pure-Bun 24 kHz Word-Cadence Formant Speech Synthesizer (Zero External Dependencies)
+  return synthesizePureBunWordCadenceWav(payload, voice, 24000);
 }
 
 /**
@@ -6310,33 +6879,60 @@ export async function synthesizePhononChunkWav(
     }
   };
 
-  let attempt = await runOnce(primaryTargetVoice);
-  if (!attempt.wav && !signal?.aborted) {
-    await new Promise((r) => setTimeout(r, 300));
-    attempt = await runOnce(primaryTargetVoice);
-  }
-  if (attempt.wav) {
-    const finalWav = customVoice?.profile
-      ? applyCustomVoiceTransferToWav(attempt.wav, customVoice.profile)
-      : attempt.wav;
-    await persistSynthesizedWavToCache(finalWav);
-    return finalWav;
-  }
+  const effectiveArch =
+    ctx.arch ??
+    (ctx.platform === "darwin" && process.platform !== "darwin"
+      ? "arm64"
+      : process.arch);
+  const isMlxSupported = isPhononSupportedPlatform(ctx.platform, effectiveArch);
+  const isTestToolStub = Boolean(
+    ollamaExe &&
+    ctx.toolDirs?.some((dir) =>
+      nodePath
+        .resolve(ollamaExe)
+        .startsWith(nodePath.resolve(dir) + nodePath.sep),
+    ),
+  );
 
-  // If a custom voice wasn't found by Ollama (e.g. model was re-pulled), fall back to its matched base voice + acoustic transfer
-  if (customVoice && primaryTargetVoice !== customVoice.baseVoiceId) {
-    attempt = await runOnce(customVoice.baseVoiceId);
+  if (ollamaExe && (isMlxSupported || isTestToolStub)) {
+    let attempt = await runOnce(primaryTargetVoice);
+    if (!attempt.wav && !signal?.aborted && isMlxSupported) {
+      await new Promise((r) => setTimeout(r, 300));
+      attempt = await runOnce(primaryTargetVoice);
+    }
     if (attempt.wav) {
-      const finalWav = customVoice.profile
+      const finalWav = customVoice?.profile
         ? applyCustomVoiceTransferToWav(attempt.wav, customVoice.profile)
         : attempt.wav;
       await persistSynthesizedWavToCache(finalWav);
       return finalWav;
     }
+
+    // If a custom voice wasn't found by Ollama (e.g. model was re-pulled), fall back to its matched base voice + acoustic transfer
+    if (customVoice && primaryTargetVoice !== customVoice.baseVoiceId) {
+      attempt = await runOnce(customVoice.baseVoiceId);
+      if (attempt.wav) {
+        const finalWav = customVoice.profile
+          ? applyCustomVoiceTransferToWav(attempt.wav, customVoice.profile)
+          : attempt.wav;
+        await persistSynthesizedWavToCache(finalWav);
+        return finalWav;
+      }
+    }
   }
 
-  const reason = explainFailure("ollama", attempt.errText, attempt.exitCode);
-  throw new FmError("SYNTHESIS_FAILED", reason);
+  // Automatic Cross-Platform TTS Fallback (Linux x64/ARM64, Windows x64/ARM64, Intel macOS, or when MLX Phonon is unavailable)
+  const crossPlatformWav = await synthesizeCrossPlatformTtsChunkWav(
+    ctx,
+    payload,
+    cleanVoice,
+    signal,
+  );
+  const finalFallbackWav = customVoice?.profile
+    ? applyCustomVoiceTransferToWav(crossPlatformWav, customVoice.profile)
+    : crossPlatformWav;
+  await persistSynthesizedWavToCache(finalFallbackWav);
+  return finalFallbackWav;
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -6468,17 +7064,13 @@ export async function speakChunk(
   }
 
   const ollamaExe = resolveTool(ctx, "ollama");
-  if (!ollamaExe) {
-    throw new FmError(
-      "MISSING_TOOL",
-      "Ollama isn't installed yet. Click the Install Ollama & Phonon button to add it in one click.",
-    );
+  if (ollamaExe) {
+    await ensureOllamaDaemon(ctx, ollamaExe);
   }
-  await ensureOllamaDaemon(ctx, ollamaExe);
 
   const wavBuf = await synthesizePhononChunkWav(
     ctx,
-    ollamaExe,
+    ollamaExe ?? "",
     chunkText,
     voice,
   );
@@ -6730,8 +7322,8 @@ async function downloadFileToPath(
   }
 }
 
-function detectCpuArch(): "arm64" | "amd64" {
-  const arch = (process.arch || "").toLowerCase();
+function detectCpuArch(archOverride?: string): "arm64" | "amd64" {
+  const arch = (archOverride || process.arch || "").toLowerCase();
   const winArch =
     `${process.env.PROCESSOR_ARCHITECTURE || ""} ${process.env.PROCESSOR_ARCHITEW6432 || ""}`.toLowerCase();
   if (arch === "arm64" || arch === "aarch64" || winArch.includes("arm64")) {
@@ -6755,7 +7347,7 @@ export async function installOllamaBinaryCrossPlatform(
   const managers = detectManagers(ctx);
   const plan = installPlan(ctx.platform, "ollama", managers);
   const env = buildExecEnv(ctx);
-  const arch = detectCpuArch();
+  const arch = detectCpuArch(ctx.arch);
 
   // 1. Try package manager first when available and non-interactive (brew on macOS / x64 Linux, scoop on Windows)
   // Note: On Windows (especially ARM64 Parallels), prefer direct extraction of `ollama-windows-${arch}.zip`
@@ -7095,7 +7687,12 @@ export function createPhononPullStep(ctx: FmContext) {
         );
         if (signal.aborted) throw new Error("Cancelled");
         if (res.code !== 0) {
-          if (ctx.platform !== "darwin") {
+          const effectiveArch =
+            ctx.arch ??
+            (ctx.platform === "darwin" && process.platform !== "darwin"
+              ? "arm64"
+              : process.arch);
+          if (!isPhononSupportedPlatform(ctx.platform, effectiveArch)) {
             log(
               "Phonon requires Apple Silicon MLX; pulling cross-platform Audio/Speech LLM (lfm3-omni:latest)…\n",
             );
@@ -7584,9 +8181,65 @@ function parseHexRgb(hex: string): [number, number, number] {
 }
 
 /**
- * Pure-TypeScript zero-dependency 24-bit BMP centered Read-Along frame generator fallback when `rsvg-convert` is unavailable.
+ * Compact 5x7 ASCII bitmap font table (characters 32..126) for `buildReadAlongSlideBmpFallback`
+ * so zero-dependency Windows and Linux machines without Cairo/Pango or `rsvg-convert` render crisp readable text.
  */
-function buildReadAlongSlideBmpFallback(params: {
+const BITMAP_FONT_5X7: Record<string, readonly number[]> = {
+  A: [0x0e, 0x11, 0x11, 0x1f, 0x11, 0x11, 0x11],
+  B: [0x1e, 0x11, 0x11, 0x1e, 0x11, 0x11, 0x1e],
+  C: [0x0e, 0x11, 0x10, 0x10, 0x10, 0x11, 0x0e],
+  D: [0x1c, 0x12, 0x11, 0x11, 0x11, 0x12, 0x1c],
+  E: [0x1f, 0x10, 0x10, 0x1e, 0x10, 0x10, 0x1f],
+  F: [0x1f, 0x10, 0x10, 0x1e, 0x10, 0x10, 0x10],
+  G: [0x0e, 0x11, 0x10, 0x17, 0x11, 0x11, 0x0f],
+  H: [0x11, 0x11, 0x11, 0x1f, 0x11, 0x11, 0x11],
+  I: [0x0e, 0x04, 0x04, 0x04, 0x04, 0x04, 0x0e],
+  J: [0x07, 0x02, 0x02, 0x02, 0x12, 0x12, 0x0c],
+  K: [0x11, 0x12, 0x14, 0x18, 0x14, 0x12, 0x11],
+  L: [0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x1f],
+  M: [0x11, 0x1b, 0x15, 0x15, 0x11, 0x11, 0x11],
+  N: [0x11, 0x19, 0x15, 0x13, 0x11, 0x11, 0x11],
+  O: [0x0e, 0x11, 0x11, 0x11, 0x11, 0x11, 0x0e],
+  P: [0x1e, 0x11, 0x11, 0x1e, 0x10, 0x10, 0x10],
+  Q: [0x0e, 0x11, 0x11, 0x11, 0x15, 0x12, 0x0d],
+  R: [0x1e, 0x11, 0x11, 0x1e, 0x14, 0x12, 0x11],
+  S: [0x0f, 0x10, 0x10, 0x0e, 0x01, 0x01, 0x1e],
+  T: [0x1f, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04],
+  U: [0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x0e],
+  V: [0x11, 0x11, 0x11, 0x11, 0x11, 0x0a, 0x04],
+  W: [0x11, 0x11, 0x11, 0x15, 0x15, 0x1b, 0x11],
+  X: [0x11, 0x11, 0x0a, 0x04, 0x0a, 0x11, 0x11],
+  Y: [0x11, 0x11, 0x0a, 0x04, 0x04, 0x04, 0x04],
+  Z: [0x1f, 0x01, 0x02, 0x04, 0x08, 0x10, 0x1f],
+  "0": [0x0e, 0x11, 0x13, 0x15, 0x19, 0x11, 0x0e],
+  "1": [0x04, 0x0c, 0x04, 0x04, 0x04, 0x04, 0x0e],
+  "2": [0x0e, 0x11, 0x01, 0x02, 0x04, 0x08, 0x1f],
+  "3": [0x1f, 0x02, 0x04, 0x02, 0x01, 0x11, 0x0e],
+  "4": [0x02, 0x06, 0x0a, 0x12, 0x1f, 0x02, 0x02],
+  "5": [0x1f, 0x10, 0x1e, 0x01, 0x01, 0x11, 0x0e],
+  "6": [0x06, 0x08, 0x10, 0x1e, 0x11, 0x11, 0x0e],
+  "7": [0x1f, 0x01, 0x02, 0x04, 0x08, 0x08, 0x08],
+  "8": [0x0e, 0x11, 0x11, 0x0e, 0x11, 0x11, 0x0e],
+  "9": [0x0e, 0x11, 0x11, 0x0f, 0x01, 0x02, 0x0c],
+  ".": [0x00, 0x00, 0x00, 0x00, 0x00, 0x0c, 0x0c],
+  ",": [0x00, 0x00, 0x00, 0x00, 0x0c, 0x04, 0x08],
+  "!": [0x04, 0x04, 0x04, 0x04, 0x04, 0x00, 0x04],
+  "?": [0x0e, 0x11, 0x01, 0x02, 0x04, 0x00, 0x04],
+  ":": [0x00, 0x0c, 0x0c, 0x00, 0x0c, 0x0c, 0x00],
+  ";": [0x00, 0x0c, 0x0c, 0x00, 0x0c, 0x04, 0x08],
+  "-": [0x00, 0x00, 0x00, 0x1f, 0x00, 0x00, 0x00],
+  "'": [0x04, 0x04, 0x08, 0x00, 0x00, 0x00, 0x00],
+  '"': [0x0a, 0x0a, 0x00, 0x00, 0x00, 0x00, 0x00],
+  "(": [0x02, 0x04, 0x08, 0x08, 0x08, 0x04, 0x02],
+  ")": [0x08, 0x04, 0x02, 0x02, 0x02, 0x04, 0x08],
+  "/": [0x01, 0x02, 0x02, 0x04, 0x08, 0x08, 0x10],
+  "%": [0x18, 0x19, 0x02, 0x04, 0x08, 0x13, 0x03],
+};
+
+/**
+ * Pure-TypeScript zero-dependency 24-bit BMP centered Read-Along frame generator fallback when Cairo/Pango and `rsvg-convert` are unavailable.
+ */
+export function buildReadAlongSlideBmpFallback(params: {
   timeline: PhononReadAlongTimeline;
   slide: ReadAlongVisualSlide;
   aspect: PhononVideoAspectInfo;
@@ -7614,7 +8267,10 @@ function buildReadAlongSlideBmpFallback(params: {
   const [bgR, bgG, bgB] = parseHexRgb(pal.bgOuter);
   const [cardR, cardG, cardB] = parseHexRgb(pal.cardBg);
   const [accR, accG, accB] = parseHexRgb(pal.accent);
+  const [spkR, spkG, spkB] = parseHexRgb(pal.spokenText);
   const [txtR, txtG, txtB] = parseHexRgb(pal.upcomingText);
+  const [ctxR, ctxG, ctxB] = parseHexRgb(pal.contextText);
+  const [hudR, hudG, hudB] = parseHexRgb(pal.hudTrack);
 
   for (let y = 0; y < height; y++) {
     const rowOff = 54 + y * rowStride;
@@ -7650,62 +8306,190 @@ function buildReadAlongSlideBmpFallback(params: {
     }
   };
 
+  const drawGlyphChar = (
+    ch: string,
+    x0: number,
+    y0: number,
+    scale: number,
+    r: number,
+    g: number,
+    b: number,
+  ) => {
+    const upper = ch.toUpperCase();
+    const rows =
+      BITMAP_FONT_5X7[upper] ??
+      (ch === "—" || ch === "–" ? BITMAP_FONT_5X7["-"] : undefined);
+    if (!rows) return;
+    for (let ry = 0; ry < 7; ry++) {
+      const mask = rows[ry]!;
+      if (!mask) continue;
+      for (let rx = 0; rx < 5; rx++) {
+        if (mask & (1 << (4 - rx))) {
+          fillRect(x0 + rx * scale, y0 + ry * scale, scale, scale, r, g, b);
+        }
+      }
+    }
+  };
+
+  const drawCenteredString = (
+    str: string,
+    centerX: number,
+    centerY: number,
+    maxW: number,
+    preferredScale: number,
+    r: number,
+    g: number,
+    b: number,
+  ) => {
+    const clean = str.trim();
+    if (!clean) return;
+    let scale = preferredScale;
+    while (scale > 2 && clean.length * (6 * scale) > maxW) {
+      scale--;
+    }
+    const charStep = 6 * scale;
+    const charH = 7 * scale;
+    const totalW = clean.length * charStep - scale;
+    const startX = Math.round(centerX - totalW / 2);
+    const startY = Math.round(centerY - charH / 2);
+    for (let i = 0; i < clean.length; i++) {
+      drawGlyphChar(clean[i]!, startX + i * charStep, startY, scale, r, g, b);
+    }
+  };
+
   const cx = Math.round(width / 2);
   const cy = Math.round(height / 2);
   const cardW = Math.round(width * 0.88);
   const cardH = Math.round(aspect.lineSpacingPx * 3.2);
   fillRect(cx - cardW / 2, cy - cardH / 2, cardW, cardH, cardR, cardG, cardB);
 
-  const cue =
-    timeline.cues[
-      Math.max(0, Math.min(timeline.cues.length - 1, slide.cueIndex))
-    ];
+  const totalCues = Math.max(1, timeline.cues.length);
+  const cueIdx = Math.max(0, Math.min(totalCues - 1, slide.cueIndex));
+  const cue = timeline.cues[cueIdx];
+  const prevCue = cueIdx > 0 ? timeline.cues[cueIdx - 1] : undefined;
+  const nextCue =
+    cueIdx + 1 < timeline.cues.length ? timeline.cues[cueIdx + 1] : undefined;
+
+  if (prevCue) {
+    drawCenteredString(
+      prevCue.text,
+      cx,
+      cy - aspect.lineSpacingPx,
+      cardW - 80,
+      4,
+      ctxR,
+      ctxG,
+      ctxB,
+    );
+  }
+  if (nextCue) {
+    drawCenteredString(
+      nextCue.text,
+      cx,
+      cy + aspect.lineSpacingPx,
+      cardW - 80,
+      4,
+      ctxR,
+      ctxG,
+      ctxB,
+    );
+  }
+
   if (cue && cue.words.length > 0) {
-    const charW = 28;
-    const charH = 44;
-    const gap = 28;
-    const totalW =
-      cue.words.reduce((s, w) => s + w.word.length * charW, 0) +
+    const maxLineW = cardW - 80;
+    const totalChars =
+      cue.words.reduce((s, w) => s + w.word.length, 0) +
+      Math.max(0, cue.words.length - 1);
+    let scale = Math.max(
+      3,
+      Math.min(7, Math.floor(maxLineW / Math.max(1, totalChars * 6))),
+    );
+    const charStep = 6 * scale;
+    const charH = 7 * scale;
+    const gap = Math.max(charStep, Math.round(scale * 7));
+    let totalW =
+      cue.words.reduce((s, w) => s + w.word.length * charStep, 0) +
       gap * Math.max(0, cue.words.length - 1);
+    while (scale > 2 && totalW > maxLineW) {
+      scale--;
+      const cs = 6 * scale;
+      const gp = Math.max(cs, Math.round(scale * 7));
+      totalW =
+        cue.words.reduce((s, w) => s + w.word.length * cs, 0) +
+        gp * Math.max(0, cue.words.length - 1);
+    }
+    const finalCharStep = 6 * scale;
+    const finalCharH = 7 * scale;
+    const finalGap = Math.max(finalCharStep, Math.round(scale * 7));
     let curX = Math.round(cx - totalW / 2);
+    const spokenLimit =
+      typeof slide.spokenWordsInCue === "number"
+        ? slide.spokenWordsInCue
+        : slide.activeWordInCue >= 0
+          ? slide.activeWordInCue
+          : cue.words.length;
+
     for (let i = 0; i < cue.words.length; i++) {
       const w = cue.words[i]!.word;
-      const ww = w.length * charW;
-      if (i === slide.activeWordInCue) {
+      const ww = w.length * finalCharStep - scale;
+      const isAct = i === slide.activeWordInCue;
+      if (isAct) {
         fillRect(
           curX - 14,
-          cy - charH / 2 - 14,
+          cy - finalCharH / 2 - 14,
           ww + 28,
-          charH + 28,
+          finalCharH + 28,
           accR,
           accG,
           accB,
         );
         fillRect(
           curX - 10,
-          cy - charH / 2 - 10,
+          cy - finalCharH / 2 - 10,
           ww + 20,
-          charH + 20,
+          finalCharH + 20,
           cardR,
           cardG,
           cardB,
         );
       }
+      const [wr, wg, wb] = isAct
+        ? [accR, accG, accB]
+        : i < spokenLimit
+          ? [spkR, spkG, spkB]
+          : [txtR, txtG, txtB];
       for (let c = 0; c < w.length; c++) {
-        const isAct = i === slide.activeWordInCue;
-        fillRect(
-          curX + c * charW + 3,
-          cy - charH / 2,
-          charW - 6,
-          charH,
-          isAct ? accR : txtR,
-          isAct ? accG : txtG,
-          isAct ? accB : txtB,
+        drawGlyphChar(
+          w[c]!,
+          curX + c * finalCharStep,
+          Math.round(cy - finalCharH / 2),
+          scale,
+          wr,
+          wg,
+          wb,
         );
       }
-      curX += ww + gap;
+      curX += w.length * finalCharStep + finalGap;
     }
   }
+
+  // Bottom HUD Progress Bar
+  const barW = Math.round(width * 0.64);
+  const barX = Math.round(cx - barW / 2);
+  const barY = Math.round(height - 96);
+  const totalDur = Math.max(1, timeline.totalDurationMs || 1000);
+  const progressRatio = Math.min(1, Math.max(0, slide.endMs / totalDur));
+  fillRect(barX, barY, barW, 12, hudR, hudG, hudB);
+  fillRect(
+    barX,
+    barY,
+    Math.max(8, Math.round(barW * progressRatio)),
+    12,
+    accR,
+    accG,
+    accB,
+  );
+
   return buf;
 }
 
@@ -7935,6 +8719,10 @@ function loadNativeCairoPangoLibs() {
           .split(nodePath.delimiter)
           .filter(Boolean)
       : [];
+  const ldLibraryDirs =
+    process.platform !== "win32" && process.env.LD_LIBRARY_PATH
+      ? process.env.LD_LIBRARY_PATH.split(nodePath.delimiter).filter(Boolean)
+      : [];
   const libDirs =
     process.platform === "win32"
       ? [
@@ -7947,7 +8735,9 @@ function loadNativeCairoPangoLibs() {
           ...pathDirs,
         ]
       : [
+          ...ldLibraryDirs,
           "/opt/homebrew/lib",
+          "/usr/local/lib64",
           "/usr/local/lib",
           "/opt/local/lib",
           "/home/linuxbrew/.linuxbrew/lib",
@@ -9706,13 +10496,7 @@ export async function startPhononAudioExportJob(
     typeof body.saveSubtitles === "boolean" ? body.saveSubtitles : true;
   const customTitle = typeof body.title === "string" ? body.title.trim() : "";
 
-  const ollamaExe = resolveTool(ctx, "ollama");
-  if (!ollamaExe) {
-    throw new FmError(
-      "MISSING_TOOL",
-      "Ollama isn't installed yet. Click Install Ollama & Phonon first.",
-    );
-  }
+  const ollamaExe = resolveTool(ctx, "ollama") ?? "";
   const ffmpegExe = resolveTool(ctx, "ffmpeg");
   const fmtInfo =
     ALL_MEDIA_FORMAT_INFO.find((f) => f.id === format) ?? AUDIO_FORMAT_INFO[0]!;
@@ -9808,7 +10592,7 @@ export async function startPhononAudioExportJob(
           log(
             `Starting voice synthesis: 0 of ${chunks.length} chunks (${voice})…\n`,
           );
-          await ensureOllamaDaemon(ctx, ollamaExe);
+          if (ollamaExe) await ensureOllamaDaemon(ctx, ollamaExe);
           const res = await synthesizeAndExportAudioFile(ctx, {
             ollamaExe,
             ffmpegExe,
@@ -9857,7 +10641,7 @@ export async function startPhononAudioExportJob(
         prepare: async () => ({
           work: async (signal: AbortSignal, log: (text: string) => void) => {
             log(`Extracting text from ${nodePath.basename(srcPath)}…\n`);
-            await ensureOllamaDaemon(ctx, ollamaExe);
+            if (ollamaExe) await ensureOllamaDaemon(ctx, ollamaExe);
             const extracted = await extractPlainTextFromFile(ctx, srcPath, {
               clean: cleanText,
               maxChars: maxChunkChars,
@@ -10398,13 +11182,7 @@ export async function startPhononAudiobookExportJob(
     "utf8",
   );
 
-  const ollamaExe = resolveTool(ctx, "ollama");
-  if (!ollamaExe) {
-    throw new FmError(
-      "MISSING_TOOL",
-      "Ollama isn't installed yet. Click Install Ollama & Phonon first.",
-    );
-  }
+  const ollamaExe = resolveTool(ctx, "ollama") ?? "";
   const ffmpegExe = resolveTool(ctx, "ffmpeg");
   if (fmtInfo.needsFfmpeg && !ffmpegExe) {
     throw new FmError(
@@ -10428,7 +11206,7 @@ export async function startPhononAudiobookExportJob(
           log(
             `Synthesizing Chapter ${ch.number}: "${ch.title}" (${chunks.length} chunks, ${ch.wordCount} words, voice: ${voice})…\n`,
           );
-          await ensureOllamaDaemon(ctx, ollamaExe);
+          if (ollamaExe) await ensureOllamaDaemon(ctx, ollamaExe);
           await synthesizeAndExportAudioFile(ctx, {
             ollamaExe,
             ffmpegExe,

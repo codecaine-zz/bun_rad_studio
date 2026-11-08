@@ -16,15 +16,15 @@ export const platform =
   (typeof process !== "undefined" ? process.platform : "linux");
 export const arch =
   meta("fm-arch") || (typeof process !== "undefined" ? process.arch : "");
-/** Ollama Phonon TTS uses Apple's MLX framework and is only enabled on macOS ARM64 (Apple Silicon). */
+/** Voice Reader & Read-Along Video studio is supported on macOS (Apple Silicon MLX + macOS say), Linux, and Windows (Audio LLMs + OS/Neural TTS). */
 export const isPhononSupported = () => {
   const p =
     meta("fm-platform") ||
     (typeof process !== "undefined" ? process.platform : "linux");
-  const a =
-    meta("fm-arch") || (typeof process !== "undefined" ? process.arch : "");
   const ph = meta("fm-phonon");
-  return p === "darwin" && (ph === "1" || a === "arm64" || (!a && !ph));
+  if (ph === "0") return false;
+  if (ph === "1") return true;
+  return p === "darwin" || p === "linux" || p === "win32";
 };
 export const phononSupported = isPhononSupported();
 

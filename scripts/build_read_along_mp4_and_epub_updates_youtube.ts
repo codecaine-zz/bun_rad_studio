@@ -1180,7 +1180,7 @@ function notesMarkdown(
   const stamps = sceneMarks
     .map(
       (m, i) =>
-        `${fmt(i === 0 ? 0 : m.at)} ${m.scene.label} (Voice: ${m.scene.voice})`,
+        `${fmt(i === 0 ? 0 : m.at)} ${m.scene.label.replaceAll("<", "").replaceAll(">", "")} (Voice: ${m.scene.voice})`,
     )
     .join("\n");
   return `# Codecaine File Manager v1.5.3 — 32× Real-Time Read-Along MP4 Exporter, 100% Word-for-Word Sync & Zero-Clutter EPUB Cleaner (Narrated by \`ollama run phonon --voice Russell\`)
@@ -1225,9 +1225,9 @@ ${REPO}
 
 🔥 WHAT'S NEW IN THIS UPDATE:
 • 🎙️ Narrated Live by \`ollama run phonon --voice Russell\`: Grounded, mature 24 kHz neural narrative voice running 100% locally and offline on Apple Silicon MLX.
-• ⚡ 32× Real-Time Read-Along .MP4 Exporter (Native Cairo + Pango via \`bun:ffi\` + Parallel Shards): 3-level delta-band cache (\`baseBg\` -> \`cueBg\` -> active word slice) + multi-core parallel FFmpeg H.264 shards (\`h264_videotoolbox\` / \`libx264\`), rendering a centered 2m 33s 1080p Read-Along MP4 + .SRT + .VTT in just 4.79 seconds!
+• ⚡ 32× Real-Time Read-Along .MP4 Exporter (Native Cairo + Pango via \`bun:ffi\` + Parallel Shards): 3-level delta-band cache (\`baseBg\` → \`cueBg\` → active word slice) + multi-core parallel FFmpeg H.264 shards (\`h264_videotoolbox\` / \`libx264\`), rendering a centered 2m 33s 1080p Read-Along MP4 + .SRT + .VTT in just 4.79 seconds!
 • 🎯 100% Word-for-Word Audio-to-Text Sync (Zero Skipped Words): First-difference pre-emphasis (\`y[n] = x[n] - 0.95*x[n-1]\`) sharpens consonant and sibilant word boundaries, snaps sentence endings and intra-sentence commas/colons to acoustic pause valleys, disambiguates all-caps headings from acronyms (\`SPELLED_OUT_ACRONYMS\`), and enforces a 40 ms minimum visual hold floor on a 60 fps \`requestAnimationFrame\` loop.
-• 🧹 Zero Conversion Clutter (Calibre/Pandoc EPUB & Divider Sanitizer): Automatically strips \`{.calibre*}\`, \`:::\`, \`[]{#id}\`, \`<svg>\`, escaped quotes \`\\'\`, stray backslashes, and non-speech ASCII divider lines (\`======\`, \`------\`, \`******\`) while preserving Windows file paths (\`C:\\...\`).
+• 🧹 Zero Conversion Clutter (Calibre/Pandoc EPUB & Divider Sanitizer): Automatically strips \`{.calibre*}\`, \`:::\`, \`[]{#id}\`, inline SVG tags, escaped quotes \`\\'\`, stray backslashes, and non-speech ASCII divider lines (\`======\`, \`------\`, \`******\`) while preserving Windows file paths (\`C:\\...\`).
 • 📚 Smart Back-Matter Promo Filter: Automatically removes appended sneak-peek and promotional teaser chapters (\`Sneak Peek\`, \`Preview of Book\`, \`Also by Author\`) in the final 45% of a book while keeping every genuine \`Author's Note\`, \`Foreword\`, and \`Introduction\`.
 • 🌍 Cross-Platform QA Verified: File Manager, EPUB Clutter Sanitizer, and the Native Cairo + Pango (\`bun:ffi\`) MP4 renderer are tested across macOS (\`arm64\` & \`x64\`), Linux (\`amd64\` & \`arm64\` 1-click \`.deb\` + portable \`.zip\`), and Windows (\`x64\` & \`arm64\`), with \`ollama run phonon\` neural TTS powered by Apple Silicon MLX (\`darwin/arm64\`).
 

@@ -1062,7 +1062,8 @@ function mountPhononStudio(root, payload) {
       return;
     }
 
-    const ready = status.ready;
+    const isMlxHost = status.supported !== false;
+    const ready = status.ready || Boolean(status.crossPlatformTtsReady);
     const ollamaOk = status.ollamaInstalled;
     const modelOk = status.modelInstalled;
     const ffOk = status.ffmpegInstalled;
@@ -1072,24 +1073,34 @@ function mountPhononStudio(root, payload) {
       { class: "phonon-status-pills" },
       h(
         "span",
-        { class: `phonon-pill ${status.supported !== false ? "ok" : "warn"}` },
-        status.supported !== false
+        {
+          class: `phonon-pill ${isMlxHost || status.crossPlatformTtsReady ? "ok" : "warn"}`,
+        },
+        isMlxHost
           ? "🍎 Apple Silicon MLX (macOS ARM64)"
-          : "⚠ Requires Apple Silicon Mac (MLX)",
+          : `🌐 ${status.ttsEngineLabel || "Cross-Platform TTS (Audio LLM + OS Speech)"}`,
       ),
       h(
         "span",
-        { class: `phonon-pill ${ollamaOk ? "ok" : "warn"}` },
+        {
+          class: `phonon-pill ${ollamaOk ? "ok" : isMlxHost ? "warn" : "muted"}`,
+        },
         ollamaOk
           ? `✔ Ollama (${status.ollamaVersion || "installed"})`
-          : "✖ Ollama not installed",
+          : isMlxHost
+            ? "✖ Ollama not installed"
+            : "ℹ Ollama optional (Cross-Platform TTS active)",
       ),
       h(
         "span",
-        { class: `phonon-pill ${modelOk ? "ok" : "warn"}` },
+        {
+          class: `phonon-pill ${modelOk || !isMlxHost ? "ok" : "warn"}`,
+        },
         modelOk
           ? "✔ Phonon TTS Model (38 voices)"
-          : "✖ Phonon model not pulled",
+          : !isMlxHost
+            ? "✔ 38 Voices Mapped (Cross-Platform TTS)"
+            : "✖ Phonon model not pulled",
       ),
       h(
         "span",
@@ -1101,15 +1112,19 @@ function mountPhononStudio(root, payload) {
       h(
         "code",
         { class: "phonon-cli-badge" },
-        `ollama run phonon --voice ${selectedVoice.includes(" ") ? `"${selectedVoice}"` : selectedVoice}`,
+        isMlxHost
+          ? `ollama run phonon --voice ${selectedVoice.includes(" ") ? `"${selectedVoice}"` : selectedVoice}`
+          : `${status.activeTtsEngine || "cross-platform-tts"} --voice ${selectedVoice.includes(" ") ? `"${selectedVoice}"` : selectedVoice}`,
       ),
     );
 
     const actions = h("div", { class: "phonon-banner-actions" });
 
-    if (!ready) {
+    if (!status.ready && (!isMlxHost ? !ollamaOk : true)) {
       const btnLabel = !ollamaOk
-        ? "⚡ Auto-Install Ollama & Phonon (1-Click)"
+        ? isMlxHost
+          ? "⚡ Auto-Install Ollama & Phonon (1-Click)"
+          : "⚡ Auto-Install Ollama & LFM3-Omni Audio LLM (1-Click)"
         : "⚡ Download Phonon Voice Model (1-Click)";
       actions.append(
         h(
@@ -1130,10 +1145,10 @@ function mountPhononStudio(root, payload) {
             type: "button",
             class: "btn phonon-sm-btn",
             title:
-              "Run `ollama pull phonon` to make sure you have the latest Phonon voice model",
+              "Run `ollama pull phonon` (or `lfm3-omni:latest` on Linux/Windows) to update the voice model",
             onclick: () => triggerOneClickInstall(),
           },
-          "↻ Update Phonon Model",
+          isMlxHost ? "↻ Update Phonon Model" : "↻ Update Audio LLM",
         ),
       );
     }
