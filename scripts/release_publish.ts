@@ -365,7 +365,13 @@ async function main() {
     return;
   }
 
-  const hasGh = Boolean(Bun.which("gh"));
+  const hasGh =
+    Boolean(Bun.which("gh")) &&
+    Bun.spawnSync(["gh", "auth", "status"], {
+      cwd: ROOT,
+      stdout: "ignore",
+      stderr: "ignore",
+    }).exitCode === 0;
   async function resolveGitHubToken(): Promise<string> {
     const envTok = (
       process.env.GH_TOKEN ||
