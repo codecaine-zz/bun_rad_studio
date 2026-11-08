@@ -1948,7 +1948,7 @@ export async function runBionicSpeech(
   }
 
   const cleanedText = cleanTextForPhononSpeech(rawText);
-  const chunks = splitSpeechTextIntoChunks(cleanedText, 420);
+  const chunks = splitSpeechTextIntoChunks(cleanedText, 220);
   const ttsCfg = getBionicTtsConfigAndVoices(ctx);
   const requestedVoice = String(
     payload.voice || ttsCfg.selection.voiceName || "Zoey",
@@ -1994,7 +1994,11 @@ export async function runBionicSpeech(
       const engineVoiceId = matchedVoice.bundled
         ? matchedVoice.id
         : matchedVoice.gender === "male"
-          ? "3ZKKapPOvuWFcw9f"
+          ? language.startsWith("de")
+            ? "3ZKKapPOvuWFcw9f"
+            : matchedVoice.locale === "en-gb"
+              ? "dME3IWyZBvmh1n1q"
+              : "LMDIYE0Oa377Qh6Z"
           : "NbpkqMVS3CJeq2j8";
       let sampleRate = 24000;
       let merged: Float32Array;

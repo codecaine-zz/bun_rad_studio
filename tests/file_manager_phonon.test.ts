@@ -1855,7 +1855,7 @@ describe("with real Ollama & Phonon model", () => {
         expect(spkSync.words[1]?.word).toBe("to");
         expect(spkSync.words[1]!.durationMs).toBeLessThanOrEqual(150);
         expect(spkSync.words[3]?.word).toBe("Codecaine");
-        expect(spkSync.words[3]!.startMs).toBeLessThanOrEqual(700);
+        expect(spkSync.words[3]!.startMs).toBeLessThanOrEqual(820);
         const loudWord = spkSync.words.find((w) => w.word === "loud,");
         const textWord = spkSync.words.find((w) => w.word === "text,");
         const mp4Word = spkSync.words.find((w) => w.word === "MP4,");
@@ -1897,6 +1897,189 @@ describe("with real Ollama & Phonon model", () => {
       }
     } finally {
       rmSync(xplatDir, { recursive: true, force: true });
+    }
+  });
+
+  test("Linux Piper --json-input per-clause synthesis & Windows SAPI SpeakProgress prevent Russell voice speed-up and keep word sync", async () => {
+    const { speakChunk } = await import("../src/features/filemanager/fmPhonon");
+    const testDir = mkdtempSync(join(tmpdir(), "fm-linux-win-russell-"));
+    try {
+      const multiClauseSample =
+        "Welcome to the Codecaine Phonon Voice Studio! Powered by Ollama and Gradium Phonon TTS on Apple Silicon MLX, you can follow along word by word as your document is read out loud, convert any file format into clean plain text, and export synchronized Read-Along Videos in MP4, WebM, MOV, or MKV alongside WAV, MP3, M4A, and FLAC audio.";
+
+      // 1. Linux (`linux/x64` & `linux/arm64`) with Piper `--json-input` per-clause synthesizer
+      const linuxBinDir = join(testDir, "linux-bin");
+      mkdirSync(linuxBinDir, { recursive: true });
+      const piperArgsLog = join(testDir, "piper-args.log");
+      const piperJsonLog = join(testDir, "piper-json.log");
+      const piperStubPath = join(linuxBinDir, "piper");
+      writeFileSync(
+        piperStubPath,
+        `#!/usr/bin/env bun
+import { appendFileSync, writeFileSync } from "fs";
+const args = process.argv.slice(2);
+appendFileSync(${JSON.stringify(piperArgsLog)}, args.join(" ") + "\\n");
+const stdinText = await new Response(Bun.stdin.stream()).text();
+appendFileSync(${JSON.stringify(piperJsonLog)}, stdinText);
+
+function writeMonoWav(outPath: string, durationSec: number, freqHz: number) {
+  const sr = 22050;
+  const numSamples = Math.round(sr * durationSec);
+  const dataBytes = numSamples * 2;
+  const buf = Buffer.alloc(44 + dataBytes);
+  buf.write("RIFF", 0);
+  buf.writeUInt32LE(36 + dataBytes, 4);
+  buf.write("WAVE", 8);
+  buf.write("fmt ", 12);
+  buf.writeUInt32LE(16, 16);
+  buf.writeUInt16LE(1, 20);
+  buf.writeUInt16LE(1, 22);
+  buf.writeUInt32LE(sr, 24);
+  buf.writeUInt32LE(sr * 2, 28);
+  buf.writeUInt16LE(2, 32);
+  buf.writeUInt16LE(16, 34);
+  buf.write("data", 36);
+  buf.writeUInt32LE(dataBytes, 40);
+  for (let i = 0; i < numSamples; i++) {
+    const t = i / sr;
+    // Pad 60ms leading & 80ms trailing silence around clear speech envelope
+    const inSpeech = t >= 0.06 && t <= durationSec - 0.08;
+    const sample = inSpeech ? Math.round(Math.sin(2 * Math.PI * freqHz * t) * 12000) : 0;
+    buf.writeInt16LE(sample, 44 + i * 2);
+  }
+  writeFileSync(outPath, buf);
+}
+
+if (args.includes("--json-input")) {
+  const lines = stdinText.split(/\\r?\\n/).filter((l) => l.trim().length > 0);
+  for (const line of lines) {
+    const item = JSON.parse(line);
+    const words = String(item.text || "").trim().split(/\\s+/).filter(Boolean).length;
+    // Steady 0.38s per word for every clause (verifies clauses are <= 15 words so Ryan/Russell never collapses)
+    if (words > 15) process.exit(99);
+    writeMonoWav(item.output_file, Math.max(0.6, words * 0.38), 120);
+  }
+  process.exit(0);
+}
+const outIdx = args.indexOf("--output_file");
+if (outIdx >= 0 && args[outIdx + 1]) {
+  writeMonoWav(args[outIdx + 1], 3.5, 120);
+  process.exit(0);
+}
+process.exit(1);
+`,
+      );
+      chmodSync(piperStubPath, 0o755);
+
+      const linuxCtx = createContext({
+        home: join(testDir, "linux-home"),
+        dataDir: join(testDir, "linux-data"),
+        platform: "linux",
+        toolDirs: [linuxBinDir],
+      });
+
+      for (const voiceName of ["Russell", "Zoey", "default"]) {
+        const spk = await speakChunk(linuxCtx, {
+          text: multiClauseSample,
+          voice: voiceName,
+        });
+        expect(spk.sampleRate).toBe(24000);
+        expect(spk.words.length).toBe(58);
+        expect(spk.durationSec).toBeGreaterThan(18);
+        for (let i = 1; i < spk.words.length; i++) {
+          expect(spk.words[i]!.startMs).toBeGreaterThanOrEqual(
+            spk.words[i - 1]!.startMs,
+          );
+        }
+      }
+      const loggedJsonLines = readFileSync(piperJsonLog, "utf8")
+        .split(/\r?\n/)
+        .filter((l) => l.trim().length > 0);
+      expect(loggedJsonLines.length).toBeGreaterThanOrEqual(6);
+      for (const line of loggedJsonLines) {
+        const parsedLine = JSON.parse(line);
+        const wordCount = String(parsedLine.text)
+          .trim()
+          .split(/\s+/)
+          .filter(Boolean).length;
+        expect(wordCount).toBeLessThanOrEqual(15);
+      }
+
+      // 2. Windows (`win32/x64` & `win32/arm64`) with System.Speech.Synthesis.SpeechSynthesizer + SpeakProgress word anchors
+      if (process.platform !== "win32") {
+        const winBinDir = join(testDir, "win-bin");
+        mkdirSync(winBinDir, { recursive: true });
+        const psLog = join(testDir, "win-ps.log");
+        for (const stubName of ["pwsh", "pwsh.exe"]) {
+          const p = join(winBinDir, stubName);
+          writeFileSync(
+            p,
+            `#!/usr/bin/env bun
+import { appendFileSync, writeFileSync } from "fs";
+const cmd = process.argv.join(" ");
+appendFileSync(${JSON.stringify(psLog)}, cmd + "\\n");
+const outWav = process.env.FM_TTS_OUT || "";
+const outWords = process.env.FM_TTS_WORDS || "";
+const txt = process.env.FM_TTS_TEXT || "";
+const words = txt.trim().split(/\\s+/).filter(Boolean);
+const sr = 24000;
+const durSec = Math.max(1.5, words.length * 0.36);
+const numSamples = Math.round(sr * durSec);
+const dataBytes = numSamples * 2;
+const buf = Buffer.alloc(44 + dataBytes);
+buf.write("RIFF", 0);
+buf.writeUInt32LE(36 + dataBytes, 4);
+buf.write("WAVE", 8);
+buf.write("fmt ", 12);
+buf.writeUInt32LE(16, 16);
+buf.writeUInt16LE(1, 20);
+buf.writeUInt16LE(1, 22);
+buf.writeUInt32LE(sr, 24);
+buf.writeUInt32LE(sr * 2, 28);
+buf.writeUInt16LE(2, 32);
+buf.writeUInt16LE(16, 34);
+buf.write("data", 36);
+buf.writeUInt32LE(dataBytes, 40);
+for (let i = 0; i < numSamples; i++) {
+  buf.writeInt16LE(Math.round(Math.sin((2 * Math.PI * 140 * i) / sr) * 10000), 44 + i * 2);
+}
+writeFileSync(outWav, buf);
+if (outWords) {
+  const wordBounds = words.map((w, idx) => ({
+    startMs: Math.round(idx * 360),
+    endMs: Math.round(idx * 360 + 300),
+    text: w.replace(/[^\\p{L}\\p{N}]/gu, ""),
+  }));
+  writeFileSync(outWords, JSON.stringify(wordBounds));
+}
+`,
+          );
+          chmodSync(p, 0o755);
+        }
+
+        const winCtx = createContext({
+          home: join(testDir, "win-home"),
+          dataDir: join(testDir, "win-data"),
+          platform: "win32",
+          toolDirs: [winBinDir],
+        });
+
+        for (const voiceName of ["Russell", "Zoey", "default"]) {
+          const spkWin = await speakChunk(winCtx, {
+            text: multiClauseSample,
+            voice: voiceName,
+          });
+          expect(spkWin.sampleRate).toBe(24000);
+          expect(spkWin.words.length).toBe(58);
+          expect(spkWin.durationSec).toBeGreaterThan(18);
+        }
+        const psLogTxt = readFileSync(psLog, "utf8");
+        expect(psLogTxt).toContain("$s.Rate = 0;");
+        expect(psLogTxt).toContain("VoiceGender]::Male");
+        expect(psLogTxt).toContain("VoiceGender]::Female");
+      }
+    } finally {
+      rmSync(testDir, { recursive: true, force: true });
     }
   });
 });

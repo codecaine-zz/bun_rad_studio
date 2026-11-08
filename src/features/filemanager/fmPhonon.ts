@@ -6923,12 +6923,14 @@ function splitPayloadIntoClauseSegments(payload: string): Array<{
       /^(?:and|or|but|as|while|when|where|which|that|because|although|though|into|alongside|with|from|for|to|in|on|by)$/i.test(
         nextWord,
       );
+    const isMaxClauseLen = curLen >= 14 && rem >= 3;
 
     if (
       isNewline ||
       (isSentPunct && curLen >= 2 && rem >= 2) ||
       (isComma && curLen >= 3 && rem >= 2) ||
-      isConjunctionSplit
+      isConjunctionSplit ||
+      isMaxClauseLen
     ) {
       let textForTts = curWords.join(" ");
       if (isNewline && !/[.!?,;:—–]["'”’)\]]*$/.test(textForTts)) {
@@ -7243,6 +7245,243 @@ export async function ensureLinuxPiperNeuralTts(
 }
 
 /**
+ * Synthesizes a text payload with the C++ `piper` neural TTS binary on a per-clause basis (`--json-input`),
+ * preventing VITS stochastic duration predictor speed-up/collapse on long multi-clause sentences (especially
+ * with `en_US-ryan-medium.onnx` / `Russell`), preserving multi-line text across `\n` boundaries, and registering
+ * exact per-clause sample fraction anchors (`registerClauseFractionAnchors`) for word-by-word teleprompter sync.
+ * Falls back to single-line `--output_file` synthesis if `piperExe` is a minimal CLI stub that does not implement `--json-input`.
+ */
+export async function synthesizeLinuxPiperClausesWav(
+  piperExe: string,
+  piperModelArgs: string[],
+  payload: string,
+  tmpDir: string,
+  env: Record<string, string>,
+): Promise<Buffer | null> {
+  const rawClauses = splitPayloadIntoClauseSegments(payload);
+  // Coalesce mid-phrase conjunction splits unless a punctuation-free run exceeds 15 words (~95 chars),
+  // so Piper speaks complete natural clauses between real punctuation while never hitting VITS >20-word duration collapse.
+  const mergedClauses: typeof rawClauses = [];
+  for (const cl of rawClauses) {
+    const prev = mergedClauses[mergedClauses.length - 1];
+    if (
+      prev &&
+      prev.pauseKind === "phrase" &&
+      cl.wordEndIdx - prev.wordStartIdx + 1 <= 15
+    ) {
+      prev.wordEndIdx = cl.wordEndIdx;
+      prev.textForTts = `${prev.textForTts} ${cl.textForTts}`;
+      prev.isSentenceEnd = cl.isSentenceEnd;
+      prev.pauseKind = cl.pauseKind;
+    } else {
+      mergedClauses.push({ ...cl });
+    }
+  }
+  const segSpecs =
+    mergedClauses.length > 0
+      ? mergedClauses
+      : [
+          {
+            wordStartIdx: 0,
+            wordEndIdx: 0,
+            textForTts: payload.replace(/\s+/g, " ").trim(),
+            isSentenceEnd: true,
+            pauseKind: "sentence" as const,
+          },
+        ];
+
+  const segPaths: string[] = [];
+  const jsonLines: string[] = [];
+  for (let c = 0; c < segSpecs.length; c++) {
+    const segWavPath = nodePath.join(tmpDir, `piper-clause-${c}.wav`);
+    segPaths.push(segWavPath);
+    const clauseText = segSpecs[c]!.textForTts.replace(/\s+/g, " ").trim();
+    jsonLines.push(
+      JSON.stringify({
+        text: clauseText,
+        output_file: segWavPath,
+      }),
+    );
+  }
+
+  try {
+    const jsonProc = Bun.spawn(
+      [
+        piperExe,
+        ...piperModelArgs,
+        "--sentence_silence",
+        "0.08",
+        "--json-input",
+      ],
+      {
+        stdin: new TextEncoder().encode(jsonLines.join("\n") + "\n"),
+        stdout: "ignore",
+        stderr: "ignore",
+        env,
+      },
+    );
+    const code = await jsonProc.exited;
+    if (
+      code === 0 &&
+      segPaths.length > 0 &&
+      segPaths.every((p) => existsSync(p))
+    ) {
+      const sampleRate = 24000;
+      const frameSamples = 240; // 10 ms at 24 kHz
+      const clausePcmSlices: Buffer[] = [];
+      const clauseSampleRanges: Array<{
+        wordStartIdx: number;
+        wordEndIdx: number;
+        sampleStart: number;
+        sampleEnd: number;
+      }> = [];
+      let totalSamples = 0;
+
+      for (let c = 0; c < segSpecs.length; c++) {
+        const seg = segSpecs[c]!;
+        const rawSeg = await fsp.readFile(segPaths[c]!);
+        const riffIdx = rawSeg.indexOf("RIFF");
+        if (riffIdx < 0 || rawSeg.length - riffIdx < 44) continue;
+        const sliced = riffIdx === 0 ? rawSeg : rawSeg.subarray(riffIdx);
+        if (sliced.subarray(8, 12).toString("ascii") !== "WAVE") continue;
+        const decoded = decodeAndResampleWavTo24kMono(sliced, 600);
+        if (decoded.pcm24k.length < 48) continue;
+
+        let finalPcm = decoded.pcm24k;
+        const segSamples = Math.floor(finalPcm.length / 2);
+        if (segSpecs.length >= 2) {
+          const numFrames = Math.floor(segSamples / frameSamples);
+          if (numFrames >= 8) {
+            let maxRms = 0;
+            const rms = new Float32Array(numFrames);
+            for (let f = 0; f < numFrames; f++) {
+              let sum = 0;
+              const baseSample = f * frameSamples;
+              for (let i = 0; i < frameSamples; i++) {
+                const v = finalPcm.readInt16LE((baseSample + i) * 2) / 32768;
+                sum += v * v;
+              }
+              const r = Math.sqrt(sum / frameSamples);
+              rms[f] = r;
+              if (r > maxRms) maxRms = r;
+            }
+            const thresh = Math.max(0.003, maxRms * 0.045);
+            let firstF = 0;
+            while (firstF < numFrames && rms[firstF]! < thresh) firstF++;
+            let lastF = numFrames - 1;
+            while (lastF > firstF && rms[lastF]! < thresh) lastF--;
+            const keepLeadF = c === 0 ? 7 : seg.pauseKind === "phrase" ? 2 : 3;
+            const keepTrailF =
+              c === segSpecs.length - 1
+                ? 14
+                : seg.pauseKind === "sentence"
+                  ? 18
+                  : seg.pauseKind === "comma"
+                    ? 10
+                    : 4;
+            const sStart = Math.max(0, (firstF - keepLeadF) * frameSamples);
+            const sEnd = Math.min(
+              segSamples,
+              (lastF + 1 + keepTrailF) * frameSamples,
+            );
+            if (sEnd > sStart + frameSamples * 2) {
+              finalPcm = Buffer.from(finalPcm.subarray(sStart * 2, sEnd * 2));
+              const finalSamples = Math.floor(finalPcm.length / 2);
+              const taper = Math.min(120, Math.floor(finalSamples / 8));
+              for (let t = 0; t < taper; t++) {
+                const w = 0.5 * (1 - Math.cos((Math.PI * t) / taper));
+                if (sStart > 0) {
+                  const s0 = finalPcm.readInt16LE(t * 2);
+                  finalPcm.writeInt16LE(Math.round(s0 * w), t * 2);
+                }
+                if (sEnd < segSamples) {
+                  const idx = (finalSamples - 1 - t) * 2;
+                  const s1 = finalPcm.readInt16LE(idx);
+                  finalPcm.writeInt16LE(Math.round(s1 * w), idx);
+                }
+              }
+            }
+          }
+        }
+
+        const clauseSamples = Math.floor(finalPcm.length / 2);
+        if (clauseSamples <= 0) continue;
+        const sampleStart = totalSamples;
+        totalSamples += clauseSamples;
+        clausePcmSlices.push(finalPcm);
+        clauseSampleRanges.push({
+          wordStartIdx: seg.wordStartIdx,
+          wordEndIdx: seg.wordEndIdx,
+          sampleStart,
+          sampleEnd: totalSamples,
+        });
+      }
+
+      if (totalSamples > 48) {
+        if (clauseSampleRanges.length >= 2) {
+          const anchors: ClauseFractionAnchor[] = clauseSampleRanges.map(
+            (r) => ({
+              wordStartIdx: r.wordStartIdx,
+              wordEndIdx: r.wordEndIdx,
+              startFrac: r.sampleStart / totalSamples,
+              endFrac: r.sampleEnd / totalSamples,
+            }),
+          );
+          registerClauseFractionAnchors(payload, anchors);
+        }
+        const mergedPcm = Buffer.concat(clausePcmSlices);
+        return Buffer.concat([
+          createWavHeader(mergedPcm.length, sampleRate, 1, 16),
+          mergedPcm,
+        ]);
+      }
+    }
+  } catch {
+    // Fall back to single-file mode below
+  }
+
+  // Fallback for CLI stubs or older Piper binaries that only support `--output_file`:
+  // Convert clauses into short period-delimited sentences on a single line so Piper never stops at `\n` or collapses on long sentences.
+  try {
+    const fallbackWavPath = nodePath.join(tmpDir, "linux-tts.wav");
+    const singleLineSafePayload = segSpecs
+      .map((s) => {
+        const t = s.textForTts.replace(/\s+/g, " ").trim();
+        return /[.!?]["'”’)\]]*$/.test(t)
+          ? t
+          : `${t.replace(/[,;:—–-]+$/, "")}.`;
+      })
+      .join(" ");
+    const proc = Bun.spawn(
+      [piperExe, ...piperModelArgs, "--output_file", fallbackWavPath],
+      {
+        stdin: new TextEncoder().encode(singleLineSafePayload),
+        stdout: "ignore",
+        stderr: "ignore",
+        env,
+      },
+    );
+    if ((await proc.exited) === 0 && existsSync(fallbackWavPath)) {
+      const rawWav = await fsp.readFile(fallbackWavPath);
+      const riffIdx = rawWav.indexOf("RIFF");
+      if (riffIdx >= 0 && rawWav.length - riffIdx >= 44) {
+        const sliced = riffIdx === 0 ? rawWav : rawWav.subarray(riffIdx);
+        if (sliced.subarray(8, 12).toString("ascii") === "WAVE") {
+          const decoded = decodeAndResampleWavTo24kMono(sliced, 600);
+          if (decoded.pcm24k.length >= 48) {
+            return Buffer.concat([
+              createWavHeader(decoded.pcm24k.length, 24000, 1, 16),
+              decoded.pcm24k,
+            ]);
+          }
+        }
+      }
+    }
+  } catch {}
+  return null;
+}
+
+/**
  * Offline Ubuntu/Linux direct `libespeak-ng.so.1` / `libespeak.so.1` speech synthesizer via Python `ctypes`.
  * Standard Ubuntu Desktop (`ubuntu-desktop` -> `speech-dispatcher-espeak-ng` -> `libespeak-ng1`) pre-installs
  * `/lib/x86_64-linux-gnu/libespeak-ng.so.1` (or `/lib/aarch64-linux-gnu/libespeak-ng.so.1`) and `python3` out of the box,
@@ -7540,11 +7779,13 @@ export async function synthesizeCrossPlatformTtsChunkWav(
                 }
               }
               if (!resolvedVoiceKey) {
-                const maleFallback = voiceItems.find(
-                  (v) =>
-                    v.name.toLowerCase() === "russell" ||
-                    v.name.toLowerCase() === "anton",
-                );
+                const maleFallback =
+                  voiceItems.find(
+                    (v) =>
+                      v.name.toLowerCase() === "russell" ||
+                      v.name.toLowerCase() === "easton" ||
+                      v.name.toLowerCase() === "toby",
+                  ) || voiceItems.find((v) => v.name.toLowerCase() === "anton");
                 const femaleFallback = voiceItems.find(
                   (v) => v.name.toLowerCase() === "zoey",
                 );
@@ -8057,15 +8298,20 @@ export async function synthesizeCrossPlatformTtsChunkWav(
           (process.platform === "win32" ? "powershell.exe" : null);
         if (psExe) {
           const tmpWav = nodePath.join(tmpDir, "win-sapi.wav");
+          const tmpWordsJson = nodePath.join(tmpDir, "win-sapi.words.json");
           const genderHint = spec.gender === "male" ? "Male" : "Female";
           const psScript = [
             "Add-Type -AssemblyName System.Speech;",
             "$s = New-Object System.Speech.Synthesis.SpeechSynthesizer;",
+            "$s.Rate = 0;",
             `$s.SelectVoiceByHints([System.Speech.Synthesis.VoiceGender]::${genderHint});`,
+            "$words = New-Object System.Collections.Generic.List[object];",
+            "$s.add_SpeakProgress({ param($src, $e) $ms = [int][Math]::Round($e.AudioPosition.TotalMilliseconds); $words.Add(@{ startMs = $ms; endMs = $ms + 120; text = [string]$e.Text }) });",
             "$fmt = New-Object System.Speech.AudioFormat.SpeechAudioFormatInfo(24000, [System.Speech.AudioFormat.AudioBitsPerSample]::Sixteen, [System.Speech.AudioFormat.AudioChannel]::Mono);",
             "$s.SetOutputToWaveFile($env:FM_TTS_OUT, $fmt);",
             "$s.Speak($env:FM_TTS_TEXT);",
             "$s.Dispose();",
+            "if ($env:FM_TTS_WORDS -and $words.Count -gt 0) { ConvertTo-Json -InputObject $words -Compress | Set-Content -Path $env:FM_TTS_WORDS -Encoding UTF8 }",
           ].join(" ");
           const proc = Bun.spawn(
             [psExe, "-NoProfile", "-NonInteractive", "-Command", psScript],
@@ -8077,13 +8323,35 @@ export async function synthesizeCrossPlatformTtsChunkWav(
               env: {
                 ...env,
                 FM_TTS_OUT: tmpWav,
+                FM_TTS_WORDS: tmpWordsJson,
                 FM_TTS_TEXT: payload,
               },
             },
           );
           if ((await proc.exited) === 0 && existsSync(tmpWav)) {
             const wav = normalizeWavTo24k(await fsp.readFile(tmpWav));
-            if (wav) return wav;
+            if (wav) {
+              if (existsSync(tmpWordsJson)) {
+                try {
+                  const wavDurMs = Math.round(
+                    ((wav.length - 44) / (24000 * 2)) * 1000,
+                  );
+                  const totalWords = payload
+                    .split(/\s+/)
+                    .filter((w) => /[\p{L}\p{N}&%$€£¥@§]/u.test(w)).length;
+                  const wordsRaw = await fsp.readFile(tmpWordsJson, "utf8");
+                  const wordAnchors = extractEdgeTtsWordBoundaryAnchors(
+                    wordsRaw,
+                    totalWords,
+                    wavDurMs,
+                  );
+                  if (wordAnchors.length >= 2) {
+                    registerClauseFractionAnchors(payload, wordAnchors);
+                  }
+                } catch {}
+              }
+              return wav;
+            }
           }
         }
       }
@@ -8104,19 +8372,17 @@ export async function synthesizeCrossPlatformTtsChunkWav(
                 ? "en_US-ryan-medium.onnx"
                 : "en_US-amy-medium.onnx",
             );
-          const piperArgs = existsSync(piperModel)
-            ? ["--model", piperModel, "--output_file", tmpWav]
-            : ["--output_file", tmpWav];
-          const proc = Bun.spawn([piperExe, ...piperArgs], {
-            stdin: new TextEncoder().encode(payload),
-            stdout: "ignore",
-            stderr: "ignore",
+          const piperModelArgs = existsSync(piperModel)
+            ? ["--model", piperModel]
+            : [];
+          const wav = await synthesizeLinuxPiperClausesWav(
+            piperExe,
+            piperModelArgs,
+            payload,
+            tmpDir,
             env,
-          });
-          if ((await proc.exited) === 0 && existsSync(tmpWav)) {
-            const wav = normalizeWavTo24k(await fsp.readFile(tmpWav));
-            if (wav) return wav;
-          }
+          );
+          if (wav) return wav;
         }
 
         // Auto-provisioned local C++ Piper Neural TTS (`~/.bun_rad_studio/piper/`) on real Linux hosts
@@ -8139,29 +8405,21 @@ export async function synthesizeCrossPlatformTtsChunkWav(
               ...env,
               LD_LIBRARY_PATH: `${piperInfo.piperLibDir}${env.LD_LIBRARY_PATH ? ":" + env.LD_LIBRARY_PATH : ""}`,
             };
-            const proc = Bun.spawn(
+            const wav = await synthesizeLinuxPiperClausesWav(
+              piperInfo.piperExe,
               [
-                piperInfo.piperExe,
                 "--model",
                 piperInfo.onnxPath,
                 "--config",
                 piperInfo.jsonPath,
                 "--espeak_data",
                 piperInfo.espeakDataDir,
-                "--output_file",
-                tmpWav,
               ],
-              {
-                stdin: new TextEncoder().encode(payload),
-                stdout: "ignore",
-                stderr: "ignore",
-                env: piperEnv,
-              },
+              payload,
+              tmpDir,
+              piperEnv,
             );
-            if ((await proc.exited) === 0 && existsSync(tmpWav)) {
-              const wav = normalizeWavTo24k(await fsp.readFile(tmpWav));
-              if (wav) return wav;
-            }
+            if (wav) return wav;
           }
         }
 
