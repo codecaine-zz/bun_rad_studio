@@ -1992,17 +1992,19 @@ process.exit(1);
           );
         }
       }
-      const loggedJsonLines = readFileSync(piperJsonLog, "utf8")
-        .split(/\r?\n/)
-        .filter((l) => l.trim().length > 0);
-      expect(loggedJsonLines.length).toBeGreaterThanOrEqual(6);
-      for (const line of loggedJsonLines) {
-        const parsedLine = JSON.parse(line);
-        const wordCount = String(parsedLine.text)
-          .trim()
-          .split(/\s+/)
-          .filter(Boolean).length;
-        expect(wordCount).toBeLessThanOrEqual(15);
+      if (process.platform !== "win32") {
+        const loggedJsonLines = readFileSync(piperJsonLog, "utf8")
+          .split(/\r?\n/)
+          .filter((l) => l.trim().length > 0);
+        expect(loggedJsonLines.length).toBeGreaterThanOrEqual(6);
+        for (const line of loggedJsonLines) {
+          const parsedLine = JSON.parse(line);
+          const wordCount = String(parsedLine.text)
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean).length;
+          expect(wordCount).toBeLessThanOrEqual(15);
+        }
       }
 
       // 2. Windows (`win32/x64` & `win32/arm64`) with System.Speech.Synthesis.SpeechSynthesizer + SpeakProgress word anchors
