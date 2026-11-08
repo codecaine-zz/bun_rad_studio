@@ -45,6 +45,8 @@ export interface EditorHooks {
 /** Execution context for File Manager operations holding platform paths, Recycle Bin root, job hub, and injectable OS hooks. */
 export interface FmContext {
   platform: Platform;
+  /** Optional CPU architecture override (`arm64`, `x64`, etc.) for cross-platform testing. */
+  arch?: string;
   /** The user's home folder (places, "~", protection). */
   home: string;
   /** Where the app keeps its own files: settings and the Recycle Bin. */
@@ -113,6 +115,7 @@ export type FmHandler = (
 /** Configuration and dependency-injection overrides for constructing an `FmContext`. */
 export interface FmContextOptions {
   platform?: Platform;
+  arch?: string;
   home?: string;
   sandboxRoot?: string;
   dataDir?: string;
@@ -152,6 +155,7 @@ export function createContext(options: FmContextOptions = {}): FmContext {
   const dataDir = p.resolve(options.dataDir ?? p.join(home, ".bun_rad_studio"));
   return {
     platform,
+    ...(options.arch ? { arch: options.arch } : {}),
     home,
     sandboxRoot,
     dataDir,

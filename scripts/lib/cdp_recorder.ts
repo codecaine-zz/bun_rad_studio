@@ -2,11 +2,18 @@
 // launches headless Chrome, performs real mouse/keyboard input with a visible cursor,
 // and records the page with Page.startScreencast into a constant-frame-rate MP4.
 import { join } from "path";
-import { mkdirSync, rmSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs";
 
 export const CHROME =
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-const FFMPEG = "/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg";
+const FFMPEG =
+  [
+    "/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg",
+    "/opt/homebrew/bin/ffmpeg",
+    "/usr/local/bin/ffmpeg",
+  ].find((p) => existsSync(p)) ??
+  Bun.which("ffmpeg") ??
+  "ffmpeg";
 
 export const sleep = (ms: number) =>
   new Promise<void>((r) => setTimeout(r, ms));

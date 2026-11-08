@@ -12,15 +12,17 @@
  *      and stitches multi-chunk PCM audio on disk with O(1) memory overhead to export as WAV, AIFF, MP3, M4A, AAC,
  *      FLAC, OGG, Opus, or WMA.
  */
+import { dlopen, FFIType, ptr } from "bun:ffi";
 import { randomBytes, createHash } from "crypto";
 import {
   existsSync,
   mkdirSync,
   readFileSync,
   rmSync,
+  statSync,
   promises as fsp,
 } from "fs";
-import { homedir, tmpdir } from "os";
+import { availableParallelism, cpus, homedir, tmpdir } from "os";
 import * as nodePath from "path";
 import { absolutePath, type FmContext, type FmHandler } from "./fmCore";
 import { decodeBytes, htmlToText } from "./fmConvText";
@@ -56,9 +58,11 @@ function uniqueOutputFilePath(dir: string, desiredName: string): string {
   return nodePath.join(dir, chosen);
 }
 import {
+  cleanEpubAndPandocClutter,
   extractFullEpubRich,
   inspectPackageDirectoryRich,
   inspectRichPreview,
+  stripBackMatterPromoAndDuplicateChapters,
   type DocBlock,
   type RichPreview,
 } from "./fmPreview";
@@ -789,6 +793,115 @@ export interface PhononReadAlongTimeline {
   words: PhononWordTiming[];
 }
 
+const SPELLED_OUT_ACRONYMS = new Set([
+  "ai",
+  "ui",
+  "ux",
+  "os",
+  "io",
+  "ip",
+  "id",
+  "tv",
+  "pc",
+  "uk",
+  "eu",
+  "un",
+  "us",
+  "usa",
+  "api",
+  "url",
+  "uri",
+  "gui",
+  "sdk",
+  "ide",
+  "dom",
+  "css",
+  "xml",
+  "csv",
+  "srt",
+  "vtt",
+  "ass",
+  "wav",
+  "aac",
+  "ogg",
+  "m4a",
+  "mp3",
+  "mp4",
+  "mkv",
+  "mov",
+  "avi",
+  "png",
+  "svg",
+  "bmp",
+  "gif",
+  "jpg",
+  "pdf",
+  "doc",
+  "rtf",
+  "zip",
+  "tar",
+  "ssh",
+  "ssl",
+  "tls",
+  "tcp",
+  "udp",
+  "dns",
+  "ftp",
+  "vpn",
+  "cpu",
+  "gpu",
+  "npu",
+  "tpu",
+  "llm",
+  "tts",
+  "stt",
+  "ocr",
+  "asr",
+  "nlp",
+  "rag",
+  "mcp",
+  "cli",
+  "eof",
+  "ios",
+  "usb",
+  "ssd",
+  "hdd",
+  "led",
+  "lcd",
+  "fps",
+  "bpm",
+  "rpm",
+  "mph",
+  "ceo",
+  "cfo",
+  "cto",
+  "vip",
+  "faq",
+  "diy",
+  "eta",
+  "tba",
+  "tbd",
+  "fyi",
+  "imo",
+  "omg",
+  "lol",
+  "fbi",
+  "cia",
+  "nsa",
+  "irs",
+  "fda",
+  "epa",
+  "cdc",
+  "nih",
+  "dna",
+  "rna",
+  "pcr",
+  "mri",
+  "ecg",
+  "ekg",
+  "icu",
+]);
+
 const FAST_FUNCTION_WORDS = new Set([
   "a",
   "an",
@@ -837,39 +950,49 @@ export function estimateSpokenWordWeight(rawWord: string): {
   let totalSyllables = 0;
 
   for (const part of subParts) {
+    const symOne = (part.match(/[&@]/g) || []).length;
+    const symTwo = (part.match(/[%$€£¥§]/g) || []).length;
+    totalSyllables += symOne * 1.0 + symTwo * 1.8;
     const digits = (part.match(/\d/g) || []).length;
     const letters = part.replace(/[^A-Za-z\u00C0-\u024F]/g, "");
+    const lower = letters.toLowerCase();
     const upperCount = (letters.match(/[A-Z]/g) || []).length;
-    const isAllCaps = letters.length >= 2 && upperCount === letters.length;
-    const isMixedAcronym =
-      letters.length >= 2 &&
-      (upperCount >= 2 || (upperCount >= 1 && digits >= 1));
+    const vowelCount = (letters.match(/[AEIOUYaeiouy]/g) || []).length;
+    const isMixedCaseAcronym =
+      letters.length >= 2 && upperCount >= 2 && upperCount < letters.length;
+    const isSpelledAcronym =
+      digits > 0 ||
+      (letters.length >= 2 && vowelCount === 0) ||
+      isMixedCaseAcronym ||
+      (upperCount === letters.length && SPELLED_OUT_ACRONYMS.has(lower));
 
-    if (isAllCaps || isMixedAcronym) {
-      const vowelCount = (letters.match(/[AEIOUYaeiouy]/g) || []).length;
-      if (vowelCount === 0 || letters.length <= 3 || digits > 0) {
-        totalSyllables += letters.length * 1.15 + digits * 1.35;
-      } else {
-        totalSyllables += Math.max(1.8, letters.length * 0.75) + digits * 1.35;
-      }
+    if (isSpelledAcronym) {
+      totalSyllables += letters.length * 1.15 + digits * 1.35;
     } else {
-      const lower = letters.toLowerCase();
       const vowelGroups = (lower.match(/[aeiouy\u00E0-\u00FC]+/g) || []).length;
       const silentE =
         lower.endsWith("e") && !lower.endsWith("le") && vowelGroups > 1 ? 1 : 0;
       const wordSyllables =
         letters.length > 0 ? Math.max(1, vowelGroups - silentE) : 0;
-      totalSyllables += wordSyllables + digits * 1.35;
+      totalSyllables += wordSyllables;
     }
   }
 
   const lowerClean = stripped.toLowerCase();
-  if (FAST_FUNCTION_WORDS.has(lowerClean) && pauseAffinity === 0) {
-    return { weight: 0.72, pauseAffinity: 0, textOnlyWeight: 0.9 };
+  if (FAST_FUNCTION_WORDS.has(lowerClean)) {
+    const baseW = 0.88 + Math.min(0.25, pauseAffinity * 0.08);
+    return {
+      weight: baseW,
+      pauseAffinity,
+      textOnlyWeight: baseW + pauseAffinity,
+    };
   }
 
   const charFactor = Math.pow(Math.max(1, stripped.length), 0.45) * 0.35;
-  const weight = Math.max(0.85, totalSyllables * 0.95 + charFactor);
+  const weight = Math.max(
+    0.95,
+    totalSyllables * 0.95 + charFactor + Math.min(0.3, pauseAffinity * 0.08),
+  );
   return {
     weight,
     pauseAffinity,
@@ -886,7 +1009,8 @@ export function estimateSpokenWordWeight(rawWord: string): {
  *   2. Uses a pitch-invariant voiced-time curve so low-pitched or softer sentence-final words are never rushed past.
  *   3. Anchors punctuated clause breaks to real acoustic pause valleys via monotonic Dynamic Programming so the text
  *      selection waits during breath/pitch-change pauses instead of racing ahead of the voice.
- *   4. Snaps interior word boundaries to local energy minima (consonant closures / micro-dips) in the PCM envelope.
+ *   4. Snaps interior word boundaries to local energy minima while guaranteeing a minimum articulation span per word
+ *      so short function words ("the", "in", "of", "to", "a") are never pinched or skipped.
  */
 export function computeWordTimingsForText(
   text: string,
@@ -896,6 +1020,7 @@ export function computeWordTimingsForText(
   pcmOptions?: { pcmData?: Buffer; sampleRate?: number; speed?: number },
 ): PhononWordTiming[] {
   const safeDuration = Math.max(20, Math.round(durationMs));
+  const cleanedInput = stripNonSpeechChars(text);
   const rawTokens: Array<{
     word: string;
     charStart: number;
@@ -906,9 +1031,37 @@ export function computeWordTimingsForText(
   }> = [];
   const regex = /\S+/g;
   let match: RegExpExecArray | null;
-  while ((match = regex.exec(text)) !== null) {
-    const word = match[0];
-    const charStart = match.index;
+  let lastTokenEnd = 0;
+  while ((match = regex.exec(cleanedInput)) !== null) {
+    const gapBefore = cleanedInput.slice(lastTokenEnd, match.index);
+    if (rawTokens.length > 0 && gapBefore.includes("\n")) {
+      const prev = rawTokens[rawTokens.length - 1]!;
+      prev.pauseAffinity = Math.max(prev.pauseAffinity, 2.6);
+      prev.textOnlyWeight = prev.weight + prev.pauseAffinity;
+    }
+    lastTokenEnd = match.index + match[0].length;
+    const rawMatch = match[0];
+    const word = rawMatch
+      .replace(
+        /^[=*_#~+^|<>`\\─━═│┃┄┅┈┉┌┐└┘├┤┬┴┼╔╗╚╝╠╣╦╩╬▀▄█▌▐░▒▓]+|[=*_#~+^|<>`\\─━═│┃┄┅┈┉┌┐└┘├┤┬┴┼╔╗╚╝╠╣╦╩╬▀▄█▌▐░▒▓]+$/g,
+        "",
+      )
+      .replace(/^-{2,}|-{2,}$/g, "");
+    if (!word || !/[\p{L}\p{N}&%$€£¥@§]/u.test(word)) {
+      // Non-lexical symbol token (e.g. "======", "------", "—", "...") is not a spoken word;
+      // if it is a clause pause dash/ellipsis (not a single title hyphen "-"), transfer pause affinity to the previous word.
+      if (
+        rawTokens.length > 0 &&
+        /^(?:--|[-—–….!?,;:]{2,}|[—–….!?,;:])$/.test(rawMatch)
+      ) {
+        const prev = rawTokens[rawTokens.length - 1]!;
+        prev.pauseAffinity = Math.max(prev.pauseAffinity, 2.2);
+        prev.textOnlyWeight = prev.weight + prev.pauseAffinity;
+      }
+      continue;
+    }
+    const trimLead = rawMatch.indexOf(word);
+    const charStart = match.index + Math.max(0, trimLead);
     const charEnd = charStart + word.length;
     const { weight, pauseAffinity, textOnlyWeight } =
       estimateSpokenWordWeight(word);
@@ -977,28 +1130,56 @@ export function computeWordTimingsForText(
       endF = Math.min(numFrames, endF + 2);
 
       if (endF - startF >= rawTokens.length * 2) {
-        // 1. Find acoustic pause valleys >= 110ms (11 frames) inside [startF, endF]
+        const frameToMs = (f: number) =>
+          startOffsetMs +
+          Math.round((f / Math.max(1, numFrames)) * safeDuration);
+
+        // 1. Find acoustic pause valleys inside [startF, endF] (>= 150ms, or >= 120ms deep breath/clause closures)
+        //    so 80-110ms intra-word voiceless stop closures ("t", "k", "p") are never mistaken for clause pauses.
         const valleys: Array<{ startF: number; endF: number; lenF: number }> =
           [];
+        const inValleyMask = new Uint8Array(numFrames);
         let inVal = false;
         let vStart = 0;
+        let vMinEnv = Infinity;
         for (let f = startF; f <= endF; f++) {
-          const silent = f < endF ? env[f]! < voiceThresh : false;
-          if (silent && !inVal) {
-            inVal = true;
-            vStart = f;
-          } else if (!silent && inVal) {
+          const curEnv = f < endF ? env[f]! : voiceThresh + 1;
+          const silent = f < endF ? curEnv < voiceThresh : false;
+          if (silent) {
+            if (!inVal) {
+              inVal = true;
+              vStart = f;
+              vMinEnv = curEnv;
+            } else if (curEnv < vMinEnv) {
+              vMinEnv = curEnv;
+            }
+          } else if (inVal) {
             inVal = false;
             const lenF = f - vStart;
-            if (lenF >= 11) valleys.push({ startF: vStart, endF: f, lenF });
+            if (lenF >= 15 || (lenF >= 12 && vMinEnv < voiceThresh * 0.55)) {
+              valleys.push({ startF: vStart, endF: f, lenF });
+              for (let k = vStart; k < f; k++) {
+                inValleyMask[k] = 1;
+              }
+            }
           }
         }
 
-        // 2. Pitch-invariant voiced-time cumulative curve (active voiced frames = 1.0 regardless of pitch amplitude)
+        // 2. Pitch-invariant voiced-time cumulative curve:
+        //    Inside active speech, vowels and voiced consonants contribute ~1.0, while brief intra-word voiceless
+        //    consonants (t, k, p, s, f, th) retain a 0.22 floor so short function words ("the", "to", "in", "of")
+        //    never collapse. Inter-clause pause valleys (inValleyMask) get 0.001 so silence never advances voicedCum.
         const voicedCum = new Float64Array(numFrames + 1);
         for (let f = 0; f < numFrames; f++) {
-          const active = f >= startF && f < endF && env[f]! >= voiceThresh;
-          voicedCum[f + 1] = voicedCum[f]! + (active ? 1.0 : 0.01);
+          const inSpeech = f >= startF && f < endF;
+          const active = inSpeech && env[f]! >= voiceThresh;
+          const step =
+            !inSpeech || inValleyMask[f]
+              ? 0.001
+              : active
+                ? 0.72 + 0.28 * Math.min(1, env[f]! / Math.max(0.001, maxEnv))
+                : 0.22;
+          voicedCum[f + 1] = voicedCum[f]! + step;
         }
         const totalVoiced = Math.max(
           0.001,
@@ -1046,23 +1227,49 @@ export function computeWordTimingsForText(
             if (absDist > 0.16) continue;
 
             const baseReward =
-              p.affinity * 0.1 + Math.min(0.08, v.lenF * 0.002) - absDist * 1.1;
-            if (baseReward > dp[i]![j]!) {
-              dp[i]![j] = baseReward;
-              parent[i]![j] = null;
+              p.affinity * 0.12 +
+              Math.min(0.18, v.lenF * 0.0035) -
+              absDist * 1.2;
+
+            if (
+              i <= Math.min(2, P - 1) &&
+              vf >= p.frac * 0.38 &&
+              vf <= p.frac * 2.1 + 0.025
+            ) {
+              const initScore =
+                baseReward - i * 0.25 - Math.abs(vf - p.frac) * 2.5;
+              if (initScore > dp[i]![j]!) {
+                dp[i]![j] = initScore;
+                parent[i]![j] = null;
+              }
             }
 
-            for (let pi = 0; pi < i; pi++) {
+            for (let pi = Math.max(0, i - 4); pi < i; pi++) {
               const prevP = punctIndices[pi]!;
               const expectedDelta = p.frac - prevP.frac;
+              let skipPenalty = 0;
+              for (let si = pi + 1; si < i; si++) {
+                skipPenalty += punctIndices[si]!.affinity >= 2.2 ? 0.28 : 0.16;
+              }
               for (let vj = 0; vj < j; vj++) {
                 const prevScore = dp[pi]![vj]!;
                 if (prevScore === -Infinity) continue;
                 if (v.startF <= valleys[vj]!.endF) continue;
                 const actualDelta = vf - vFracs[vj]!;
+                if (
+                  actualDelta < expectedDelta * 0.35 - 0.006 ||
+                  actualDelta > expectedDelta * 2.35 + 0.02
+                ) {
+                  continue;
+                }
                 const deltaDiff = Math.abs(actualDelta - expectedDelta);
-                if (deltaDiff > Math.max(0.13, expectedDelta * 1.1)) continue;
-                const transScore = prevScore + baseReward - deltaDiff * 2.0;
+                const relDiff = deltaDiff / Math.max(0.015, expectedDelta);
+                const transScore =
+                  prevScore +
+                  baseReward -
+                  deltaDiff * 2.4 -
+                  relDiff * 0.14 -
+                  skipPenalty;
                 if (transScore > dp[i]![j]!) {
                   dp[i]![j] = transScore;
                   parent[i]![j] = { pi, vj };
@@ -1070,9 +1277,13 @@ export function computeWordTimingsForText(
               }
             }
 
-            if (dp[i]![j]! > bestEndScore) {
-              bestEndScore = dp[i]![j]!;
-              bestEndPair = { pi: i, vj: j };
+            const tailSkipped = P - 1 - i;
+            if (tailSkipped <= Math.min(3, P - 1)) {
+              const endScore = dp[i]![j]! - tailSkipped * 0.28;
+              if (endScore > bestEndScore) {
+                bestEndScore = endScore;
+                bestEndPair = { pi: i, vj: j };
+              }
             }
           }
         }
@@ -1123,38 +1334,89 @@ export function computeWordTimingsForText(
         const words: PhononWordTiming[] = [];
         for (const seg of segs) {
           const segTokens = rawTokens.slice(seg.wStart, seg.wEnd + 1);
-          const segWTotal = segTokens.reduce((s, t) => s + t.weight, 0) || 1;
+          const segTokenWeights = segTokens.map((t, idx) => {
+            const baseW = Math.max(1.22, t.weight);
+            return idx < segTokens.length - 1 && t.pauseAffinity > 0
+              ? baseW + t.pauseAffinity * 0.35
+              : baseW;
+          });
+          const segWTotal = segTokenWeights.reduce((s, w) => s + w, 0) || 1;
           const segVoicedStart = voicedCum[seg.fStart]!;
           const segVoicedTotal = Math.max(
             0.001,
             voicedCum[seg.fEnd]! - segVoicedStart,
           );
 
+          const segSpanF = Math.max(segTokens.length, seg.fEnd - seg.fStart);
+          // Minimum frame span per word (~100ms at 1x speed when phrase duration permits) so short words are never skipped
+          const minWordFrames = Math.max(
+            1,
+            Math.min(
+              Math.floor(segSpanF / Math.max(1, segTokens.length * 1.32)),
+              Math.max(4, Math.round(10 * safeSpeed)),
+            ),
+          );
+
           const boundaryFrames: number[] = [seg.fStart];
           let localCum = 0;
           for (let k = 0; k < segTokens.length - 1; k++) {
-            localCum += segTokens[k]!.weight;
+            localCum += segTokenWeights[k]!;
             const targetV =
               segVoicedStart + (localCum / segWTotal) * segVoicedTotal;
             let fB = seg.fStart;
             while (fB < seg.fEnd && voicedCum[fB]! < targetV) fB++;
+            const minAllowed = boundaryFrames[k]! + minWordFrames;
+            const maxAllowed =
+              seg.fEnd - (segTokens.length - 1 - k) * minWordFrames;
+            if (minAllowed <= maxAllowed) {
+              fB = Math.max(minAllowed, Math.min(maxAllowed, fB));
+            }
             boundaryFrames.push(fB);
           }
           boundaryFrames.push(seg.fEnd);
 
-          // 4. Snap interior word boundaries to local energy minima (consonant closures / dips)
+          // 4. Snap interior word boundaries to local energy minima while preserving >= minWordFrames on both sides
+          const estBounds = [...boundaryFrames];
           for (let k = 1; k < boundaryFrames.length - 1; k++) {
-            const estF = boundaryFrames[k]!;
+            const estF = estBounds[k]!;
             const prevBound = boundaryFrames[k - 1]!;
-            const nextBound = boundaryFrames[k + 1]!;
-            const minSearch = Math.max(prevBound + 3, estF - 8);
-            const maxSearch = Math.min(nextBound - 3, estF + 8);
+            const nextBound = estBounds[k + 1]!;
+            const leftSpan = Math.max(1, estF - prevBound);
+            const rightSpan = Math.max(1, nextBound - estF);
+            const maxLeftShift = Math.max(
+              0,
+              Math.min(
+                5,
+                leftSpan - minWordFrames,
+                Math.floor(leftSpan * 0.25),
+              ),
+            );
+            const maxRightShift = Math.max(
+              0,
+              Math.min(
+                5,
+                rightSpan - minWordFrames,
+                Math.floor(rightSpan * 0.25),
+              ),
+            );
+            const minSearch = Math.max(
+              prevBound + minWordFrames,
+              estF - maxLeftShift,
+            );
+            const maxSearch = Math.min(
+              nextBound - minWordFrames,
+              estF + maxRightShift,
+            );
             if (minSearch <= maxSearch) {
               let bestF = estF;
               let bestCost = Infinity;
               for (let f = minSearch; f <= maxSearch; f++) {
-                const distPenalty = Math.abs(f - estF) * (maxEnv * 0.02);
-                const cost = env[f]! + distPenalty;
+                const isLocalMin =
+                  env[f]! <= env[Math.max(0, f - 1)]! &&
+                  env[f]! <= env[Math.min(numFrames - 1, f + 1)]!;
+                const distPenalty = Math.abs(f - estF) * (maxEnv * 0.032);
+                const minBonus = isLocalMin ? -maxEnv * 0.014 : 0;
+                const cost = env[f]! + distPenalty + minBonus;
                 if (cost < bestCost) {
                   bestCost = cost;
                   bestF = f;
@@ -1167,31 +1429,42 @@ export function computeWordTimingsForText(
           for (let k = 0; k < segTokens.length; k++) {
             const tok = segTokens[k]!;
             const globalIdx = seg.wStart + k;
-            let fS = boundaryFrames[k]!;
-            const fE = Math.max(fS + 1, boundaryFrames[k + 1]!);
-            while (fS < fE - 1 && env[fS]! < voiceThresh) fS++;
-            let fEndVoiced = fE;
-            while (
-              fEndVoiced > fS + 1 &&
-              env[fEndVoiced - 1]! < voiceThresh * 0.8
-            )
-              fEndVoiced--;
+            const fS = boundaryFrames[k]!;
+            let fEndVoiced = Math.max(fS + 1, boundaryFrames[k + 1]!);
+
+            // Only trim trailing silence at the very end of the segment if there is a long trailing pause (>= 140ms)
+            if (
+              k === segTokens.length - 1 &&
+              fEndVoiced - fS > minWordFrames + 4
+            ) {
+              while (
+                fEndVoiced > fS + minWordFrames &&
+                env[fEndVoiced - 1]! < voiceThresh * 0.7
+              ) {
+                fEndVoiced--;
+              }
+            }
 
             const prevEnd =
               words.length > 0 ? words[words.length - 1]!.endMs : startOffsetMs;
-            const rawStartMs =
-              startOffsetMs + Math.round((fS * frameMs) / safeSpeed);
-            const rawEndMs =
-              startOffsetMs + Math.round((fEndVoiced * frameMs) / safeSpeed);
+            const rawStartMs = frameToMs(fS);
+            const rawEndMs = frameToMs(fEndVoiced);
             const startMs = Math.max(
               prevEnd,
               Math.min(startOffsetMs + safeDuration - 1, rawStartMs),
+            );
+            const minDurMs = Math.max(
+              20,
+              Math.min(
+                Math.floor(safeDuration / Math.max(1, rawTokens.length * 1.35)),
+                Math.round(90 / safeSpeed),
+              ),
             );
             const endMs = Math.max(
               startMs + 1,
               Math.min(
                 startOffsetMs + safeDuration,
-                Math.max(startMs + 20, rawEndMs),
+                Math.max(startMs + minDurMs, rawEndMs),
               ),
             );
 
@@ -1315,19 +1588,52 @@ export function computeReadAlongTimeline(
       currentCueChars = 0;
     };
 
+    const cleanedChunkText = stripNonSpeechChars(chunk.text);
+    const endsWithSentenceStop = (wordStr: string) => {
+      if (/(?:\.{3}|…)[ "'”’)\]]*$/.test(wordStr)) return false;
+      return /[.!?]["'”’)\]]*$/.test(wordStr);
+    };
+
     for (let k = 0; k < chunkWords.length; k++) {
       const w = chunkWords[k]!;
       w.wordIndex = globalWordIdx++;
       allWords.push(w);
 
-      // If there was a major acoustic pause (>= 280ms) before this word and current cue already has >= 2 words, start a fresh cue
       const prevInCue = currentCueWords[currentCueWords.length - 1];
-      if (
-        prevInCue &&
-        w.startMs - prevInCue.endMs >= 280 &&
-        currentCueWords.length >= 2
-      ) {
-        flushCue();
+      if (prevInCue) {
+        const gapText =
+          prevInCue.charEnd <= w.charStart
+            ? cleanedChunkText.slice(prevInCue.charEnd, w.charStart)
+            : "";
+        const hasNewline = gapText.includes("\n");
+        const pauseGap = w.startMs - prevInCue.endMs;
+        // Check if w (or w + next word) is a 1-2 word sentence-ending resolution after an ellipsis/colon (e.g. "The world was... dead.", "No matter... the cost.")
+        const nextWord = chunkWords[k + 1];
+        const isOneWordTail =
+          endsWithSentenceStop(w.word) &&
+          currentCueWords.length + 1 <= maxWordsPerCue &&
+          currentCueChars + 1 + w.word.length <= maxLineChars;
+        const isTwoWordTail =
+          !isOneWordTail &&
+          nextWord !== undefined &&
+          endsWithSentenceStop(nextWord.word) &&
+          currentCueWords.length + 2 <= maxWordsPerCue &&
+          currentCueChars + 2 + w.word.length + nextWord.word.length <=
+            maxLineChars;
+        const nextIsShortTail = isOneWordTail || isTwoWordTail;
+
+        if (
+          hasNewline ||
+          (pauseGap >= 280 && currentCueWords.length >= 2 && !nextIsShortTail)
+        ) {
+          flushCue();
+        } else if (
+          pauseGap >= 240 &&
+          currentCueWords.length === 1 &&
+          endsWithSentenceStop(prevInCue.word)
+        ) {
+          flushCue();
+        }
       }
 
       const nextLen =
@@ -1346,10 +1652,13 @@ export function computeReadAlongTimeline(
           ? w.word.length
           : currentCueChars + 1 + w.word.length;
 
-      // Break naturally at sentence boundaries once the line has at least 3 words or 16 chars
+      // Break naturally at sentence boundaries (. ! ?, excluding ellipses ...) once the sentence concludes
       if (
-        /[.!?…]['"”’)\]]*$/.test(w.word) &&
-        (currentCueWords.length >= 3 || currentCueChars >= 16)
+        endsWithSentenceStop(w.word) &&
+        (currentCueWords.length >= 2 ||
+          currentCueChars >= 10 ||
+          (chunkWords[k + 1] !== undefined &&
+            chunkWords[k + 1]!.startMs - w.endMs >= 220))
       ) {
         flushCue();
       }
@@ -1420,7 +1729,9 @@ export function formatVttSubtitles(timeline: PhononReadAlongTimeline): string {
   const lines = ["WEBVTT", ""];
   for (const cue of timeline.cues) {
     lines.push(`${cue.index + 1}`);
-    lines.push(`${formatVttTime(cue.startMs)} --> ${formatVttTime(cue.endMs)}`);
+    lines.push(
+      `${formatVttTime(cue.startMs)} --> ${formatVttTime(cue.endMs)} line:50% position:50% align:center`,
+    );
     lines.push(cue.text);
     lines.push("");
   }
@@ -1459,7 +1770,7 @@ export function formatAssKaraokeSubtitles(
     (options.title || "Ollama Phonon Read-Along").trim().slice(0, 72),
   );
   const cx = Math.round(aspect.width / 2);
-  const cy = Math.round(aspect.height * 0.52);
+  const cy = Math.round(aspect.height * 0.5);
   const prevY = cy - aspect.lineSpacingPx;
   const nextY = cy + aspect.lineSpacingPx;
   const progressY = aspect.height - Math.round(aspect.height * 0.08);
@@ -1492,8 +1803,15 @@ export function formatAssKaraokeSubtitles(
   const totalCues = timeline.cues.length;
   for (let i = 0; i < totalCues; i++) {
     const cue = timeline.cues[i]!;
+    const nextCue = i + 1 < totalCues ? timeline.cues[i + 1] : undefined;
+    const displayEndMs =
+      nextCue &&
+      nextCue.startMs > cue.endMs &&
+      nextCue.startMs - cue.endMs <= 600
+        ? nextCue.startMs
+        : cue.endMs;
     const startStr = formatAssTime(cue.startMs);
-    const endStr = formatAssTime(cue.endMs);
+    const endStr = formatAssTime(displayEndMs);
 
     // 1. Previous line context (above active line)
     if (i > 0) {
@@ -1556,8 +1874,10 @@ export function formatAssKaraokeSubtitles(
 export const PHONON_DEFAULT_CHUNK_CHARS = 520;
 /**
  * Default target character limit per text chunk during batch audio and video exports.
+ * Kept aligned with PHONON_DEFAULT_CHUNK_CHARS (520 chars, ~15-20s of audio) so batch exports
+ * hard-lock PCM chunk boundaries every ~18s (zero cumulative drift) and share 100% of cached WAV chunks with Live Read-Out-Loud.
  */
-export const PHONON_BATCH_CHUNK_CHARS = 900;
+export const PHONON_BATCH_CHUNK_CHARS = 520;
 /**
  * Hard upper bound on characters per text chunk to prevent exceeding Phonon's 8,192-token context window.
  */
@@ -1702,6 +2022,43 @@ function splitLongParagraph(para: string, maxChars: number): string[] {
 }
 
 /**
+ * Strips non-language decorative, separator, ASCII-art, and box-drawing characters
+ * (such as `======`, `------`, `******`, `______`, `~~~~~~`, `######`, `+------+`, `──────`, `══════`)
+ * that are not part of spoken human language so TTS models never attempt to pronounce them
+ * and Read-Along subtitles never display them as words.
+ */
+export function stripNonSpeechChars(input: string): string {
+  if (!input) return "";
+  let s = cleanEpubAndPandocClutter(input)
+    .replace(/\x1b\[[0-9;?]*[A-Za-z]/g, "")
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F\u200B-\u200D\u00AD]/g, "");
+
+  // 1. Remove full lines consisting only of divider, rule, border, or box-drawing characters
+  s = s.replace(
+    /^[ \t]*(?:[=\-*_#~+^|<>/\\•·▪▫▬─━│┃┄┅┆┇┈┉┊┋┌┐└┘├┤┬┴┼═║╔╗╚╝╠╣╦╩╬╭╮╯╰╱╲╳▀▄█▌▐░▒▓][ \t]*){2,}$/gm,
+    "",
+  );
+
+  // 2. Strip Unicode box-drawing and block-element characters anywhere in lines
+  s = s.replace(/[\u2500-\u259F▪▫▬]+/g, " ");
+  s = s.replace(/[\u2012-\u2015\u2E3A\u2E3B]{2,}/g, " — ");
+
+  // 3. Strip repeated non-language separator/decorator runs (e.g. "======", "------", "--", "******", "______", "~~~~~~", "######", "+---+", "<---", "--->")
+  s = s.replace(/[=*_#~+^|<>`\\]{2,}/g, " ");
+  s = s.replace(/[-]{2,}>?|<[-]{2,}|[=]{2,}>|<[=]{2,}/g, " ");
+  s = s.replace(/(?:[=\-*_#~+^|][ \t]*){3,}/g, " ");
+  s = s.replace(/(?<!:)\/{2,}/g, " ");
+  // Strip 4+ leader dots (e.g. "Chapter 1 ............ 12") while keeping 3-dot ellipses ("...")
+  s = s.replace(/\.{4,}/g, " ");
+  s = s.replace(/[•·]{2,}/g, " ");
+
+  // 4. Strip standalone non-speech symbol tokens surrounded by whitespace or line boundaries
+  s = s.replace(/(?:^|(?<=\s))[=#*_~|^+\\<>`•]+(?=\s|$)/gm, " ");
+
+  return s;
+}
+
+/**
  * Splits arbitrarily large text into Phonon-safe chunks with paragraph tracking and word/character counts.
  */
 export function splitTextForPhonon(
@@ -1713,7 +2070,7 @@ export function splitTextForPhonon(
     Math.max(120, Math.round(options.maxChars ?? PHONON_DEFAULT_CHUNK_CHARS)),
   );
   const mergeShort = options.mergeShortParagraphs ?? false;
-  const normalized = rawText.replace(/^\ufeff/, "").replace(/\r\n?/g, "\n");
+  const normalized = stripNonSpeechChars(rawText);
   if (!normalized.trim()) return [];
 
   const rawParagraphs = normalized.split(/\n{2,}/);
@@ -1737,19 +2094,34 @@ export function splitTextForPhonon(
 
   for (const rawPara of rawParagraphs) {
     const cleanPara = rawPara.replace(/[ \t]+/g, " ").trim();
-    if (!cleanPara) continue;
+    if (!cleanPara || !/[\p{L}\p{N}&%$€£¥@§]/u.test(cleanPara)) continue;
 
     const pieces = splitLongParagraph(cleanPara, maxChars);
     for (const piece of pieces) {
+      if (!/[\p{L}\p{N}&%$€£¥@§]/u.test(piece)) continue;
+      // Do not merge unpunctuated heading/title lines (e.g. "BOOK ONE: WINTER'S RISING", "Chapter One - \"The Wasteland\"")
+      // into the next paragraph, so TTS gives headings their own clean boundary pause instead of running them into body text.
+      const isHeadingPiece =
+        countWords(piece) <= 12 && !/[.?!…]["'”’)\]]*$/.test(piece);
+      const isPendingHeading =
+        pendingText.length > 0 &&
+        countWords(pendingText) <= 12 &&
+        !/[.?!…]["'”’)\]]*$/.test(pendingText);
       if (
         mergeShort &&
         pendingText &&
+        !isHeadingPiece &&
+        !isPendingHeading &&
         pendingText.length + 1 + piece.length <= Math.floor(maxChars * 0.75)
       ) {
         pendingText = `${pendingText}\n${piece}`;
       } else {
         flushPending();
-        if (mergeShort && piece.length < Math.floor(maxChars * 0.4)) {
+        if (
+          mergeShort &&
+          !isHeadingPiece &&
+          piece.length < Math.floor(maxChars * 0.4)
+        ) {
           pendingText = piece;
           pendingParaIdx = paragraphIndex;
         } else {
@@ -1789,6 +2161,8 @@ export interface CleanTextOptions {
   stripTimestamps?: boolean;
   /** Unwrap single line breaks inside paragraphs into flowing sentences. Default false. */
   unwrapLines?: boolean;
+  /** Optional book or document title used to detect sequel sneak-peek / promo back-matter chapters. */
+  bookTitle?: string;
 }
 
 /**
@@ -1805,7 +2179,10 @@ export function cleanTextForSpeech(
   const stripTimestamps = opts.stripTimestamps ?? true;
   const unwrapLines = opts.unwrapLines ?? false;
 
-  let s = input.replace(/^\ufeff/, "").replace(/\r\n?/g, "\n");
+  let s = stripBackMatterPromoAndDuplicateChapters(
+    input.replace(/^\ufeff/, "").replace(/\r\n?/g, "\n"),
+    opts.bookTitle,
+  );
 
   // 1. Handle fenced code blocks first
   if (stripCodeBlocks) {
@@ -1872,28 +2249,36 @@ export function cleanTextForSpeech(
     // Reference links: [text][id] -> text
     s = s.replace(/\[([^\]]+)\]\[[^\]]*\]/g, "$1");
     // Link definitions: [id]: http...
-    s = s.replace(/^\s*\[[^\]]+\]:\s+\S+.*$/gm, "");
-    // Headings: ### Heading -> Heading.
-    s = s.replace(/^ {0,3}#{1,6}\s+(.+?)(?:\s+#+)?\s*$/gm, "$1");
+    s = s.replace(/^[ \t]*\[[^\]]+\]:[ \t]+\S+.*$/gm, "");
+    // Headings: ### Heading -> Heading (using [ \t]*$ so blank lines \n\n after headings are never consumed)
+    s = s.replace(/^ {0,3}#{1,6}[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$/gm, "$1");
     // Setext underlines and horizontal rules (===, ---, ***, ___)
     s = s.replace(/^ {0,3}(?:[-=_*][ \t]*){3,}$/gm, "");
     // Blockquotes: > text -> text
-    s = s.replace(/^ {0,3}>\s?/gm, "");
+    s = s.replace(/^ {0,3}>[ \t]?/gm, "");
     // Task checkboxes: - [x] item -> item
-    s = s.replace(/^(\s*[-+*]|\s*\d+[.)])\s+\[[ xX]\]\s+/gm, "$1 ");
+    s = s.replace(/^([ \t]*[-+*]|[ \t]*\d+[.)])[ \t]+\[[ xX]\][ \t]+/gm, "$1 ");
     // Bullet points: - item -> item
-    s = s.replace(/^ {0,3}[-+*]\s+/gm, "");
-    // Bold/italic/strikethrough/inline code
-    s = s.replace(/\*\*([^*]+)\*\*/g, "$1");
-    s = s.replace(/__([^_]+)__/g, "$1");
-    s = s.replace(/~~([^~]+)~~/g, "$1");
+    s = s.replace(/^ {0,3}[-+*][ \t]+/gm, "");
+    // Bold/italic/strikethrough/inline code (preserving intra-word censored asterisks like "Cu*t")
+    s = s.replace(/\*{3}([^*\n]+)\*{3}/g, "$1");
+    s = s.replace(/_{3}([^_\n]+)_{3}/g, "$1");
+    s = s.replace(/\*\*([^*\n]+)\*\*/g, "$1");
+    s = s.replace(/__([^_\n]+)__/g, "$1");
+    s = s.replace(/(?<!\w)\*([^*\n]+)\*(?!\w)/g, "$1");
+    s = s.replace(/(?<!\w)_([^_\n]+)_(?!\w)/g, "$1");
+    s = s.replace(/~~([^~\n]+)~~/g, "$1");
+    s = s.replace(/(?<!\w)~([^~\n]+)~(?!\w)/g, "$1");
     s = s.replace(/`([^`\n]+)`/g, "$1");
     // Markdown table separator rows
-    s = s.replace(/^\s*\|?(?:\s*:?-+:?\s*\|)+\s*:?-+:?\s*\|?\s*$/gm, "");
+    s = s.replace(
+      /^[ \t]*\|?(?:[ \t]*:?-+:?[ \t]*\|)+[ \t]*:?-+:?[ \t]*\|?[ \t]*$/gm,
+      "",
+    );
     // Markdown table pipes -> commas/spaces
-    s = s.replace(/^\s*\|\s*(.*?)\s*\|\s*$/gm, (_m, row: string) =>
+    s = s.replace(/^[ \t]*\|[ \t]*(.*?)[ \t]*\|[ \t]*$/gm, (_m, row: string) =>
       row
-        .split(/\s*\|\s*/)
+        .split(/[ \t]*\|[ \t]*/)
         .filter(Boolean)
         .join(", "),
     );
@@ -1910,8 +2295,8 @@ export function cleanTextForSpeech(
     );
   }
 
-  // 6. Collapse repeated ASCII box-drawing or divider symbols (e.g. "========", "--------", "********")
-  s = s.replace(/([=\-*_#~+^]{4,})/g, " ");
+  // 6. Strip non-speech decorative/divider characters (e.g. "========", "--------", "********", box drawing)
+  s = stripNonSpeechChars(s);
 
   // 7. Unwrap single newlines inside paragraphs if requested
   if (unwrapLines) {
@@ -2586,9 +2971,16 @@ export async function extractPlainTextFromFile(
   }
 
   const shouldClean = cleanOpts.clean ?? true;
+  const inferredTitle = title || splitName(name)[0];
   const text = shouldClean
-    ? cleanTextForSpeech(rawText, cleanOpts)
-    : rawText.replace(/\r\n?/g, "\n").trim();
+    ? cleanTextForSpeech(rawText, {
+        ...cleanOpts,
+        bookTitle: cleanOpts.bookTitle || inferredTitle,
+      })
+    : stripBackMatterPromoAndDuplicateChapters(
+        rawText.replace(/\r\n?/g, "\n").trim(),
+        cleanOpts.bookTitle || inferredTitle,
+      );
   if (!text)
     throw new FmError(
       "EMPTY_TEXT",
@@ -2821,12 +3213,28 @@ export function parseVoicesFromModelfile(showOutput: string): string[] {
 function buildExecEnv(ctx: FmContext): Record<string, string> {
   const dirs = searchDirs(ctx);
   const sep = ctx.platform === "win32" ? ";" : ":";
-  return {
-    ...process.env,
-    PATH: [...dirs, process.env.PATH ?? ""].filter(Boolean).join(sep),
-    NO_COLOR: "1",
-    TERM: "dumb",
-  } as Record<string, string>;
+  const existingPath = process.env.PATH ?? process.env.Path ?? "";
+  const mergedPath = [...dirs, existingPath].filter(Boolean).join(sep);
+  const env: Record<string, string> = {};
+  for (const [k, v] of Object.entries(process.env)) {
+    if (v !== undefined && k.toUpperCase() !== "PATH") env[k] = v;
+  }
+  env.PATH = mergedPath;
+  if (ctx.platform === "win32") {
+    env.Path = mergedPath;
+  }
+  env.NO_COLOR = "1";
+  env.TERM = "dumb";
+  env.OLLAMA_NUM_PARALLEL = process.env.OLLAMA_NUM_PARALLEL || "4";
+  env.OLLAMA_MAX_QUEUE = process.env.OLLAMA_MAX_QUEUE || "512";
+  return env;
+}
+
+function buildSpawnArgv(exe: string, args: string[]): string[] {
+  if (process.platform === "win32" && /\.(?:cmd|bat)$/i.test(exe)) {
+    return [process.env.ComSpec || "cmd.exe", "/d", "/s", "/c", exe, ...args];
+  }
+  return [exe, ...args];
 }
 
 async function runOllamaCommand(
@@ -2837,7 +3245,7 @@ async function runOllamaCommand(
 ): Promise<{ code: number | null; stdout: Buffer; stderr: string }> {
   const env = buildExecEnv(ctx);
   try {
-    const proc = Bun.spawn([ollamaExe, ...args], {
+    const proc = Bun.spawn(buildSpawnArgv(ollamaExe, args), {
       stdout: "pipe",
       stderr: "pipe",
       stdin: "ignore",
@@ -5584,9 +5992,10 @@ export async function getPhononStatus(
   ctx: FmContext,
 ): Promise<PhononStatusReport> {
   const effectiveArch =
-    ctx.platform === "darwin" && process.platform !== "darwin"
+    ctx.arch ??
+    (ctx.platform === "darwin" && process.platform !== "darwin"
       ? "arm64"
-      : process.arch;
+      : process.arch);
   const supported = isPhononSupportedPlatform(ctx.platform, effectiveArch);
   const settings = await loadSettings(ctx);
   const managers = detectManagers(ctx);
@@ -5726,12 +6135,14 @@ export async function synthesizePhononChunkWav(
   const cleanVoice = /^[A-Za-z0-9 _-]{1,48}$/.test(voice.trim())
     ? voice.trim()
     : "Zoey";
-  const payload = text.trim();
-  if (!payload)
+  if (!text || !text.trim())
     throw new FmError("EMPTY_TEXT", "There is no text in this chunk to read.");
+  const payload = stripNonSpeechChars(text)
+    .replace(/[ \t\f\v]+/g, " ")
+    .trim();
 
   // If a chunk contains only punctuation or divider symbols with no speakable letters/numbers, return a brief 120ms silence WAV
-  if (!/[\p{L}\p{N}]/u.test(payload)) {
+  if (!payload || !/[\p{L}\p{N}&%$€£¥@§]/u.test(payload)) {
     const silentBytes = 24000 * 2 * 0.12;
     return Buffer.concat([
       createWavHeader(silentBytes, 24000, 1, 16),
@@ -5742,28 +6153,75 @@ export async function synthesizePhononChunkWav(
   const customVoices = await ensureCustomVoicesUpgraded(ctx);
   const customVoice = customVoices.find((cv) => cv.id === cleanVoice);
 
-  // Reuse cached un-pitched WAV from live "Read Out Loud" session if this exact chunk + voice was already synthesized
-  const existingCache = audioCaches.get(ctx);
-  if (existingCache) {
-    const cacheKey = createHash("sha256")
-      .update(
-        `v3\x00${cleanVoice}\x00${customVoice?.cloningEngine || ""}\x00${customVoice?.safetensorSha256 || ""}\x000\x00${payload}`,
-      )
-      .digest("hex")
-      .slice(0, 24);
-    const cachedItem = existingCache.items.get(cacheKey);
-    if (cachedItem && existsSync(cachedItem.filePath)) {
-      try {
-        const cachedBuf = await fsp.readFile(cachedItem.filePath);
-        if (
-          cachedBuf.length > 44 &&
-          cachedBuf.subarray(0, 4).toString("ascii") === "RIFF"
-        ) {
-          return cachedBuf;
-        }
-      } catch {}
-    }
+  // Reuse cached un-pitched WAV from live "Read Out Loud" or prior exports if this exact chunk + voice was already synthesized
+  const cache = getAudioCache(ctx);
+  const cacheKey = createHash("sha256")
+    .update(
+      `v3\x00${cleanVoice}\x00${customVoice?.cloningEngine || ""}\x00${customVoice?.safetensorSha256 || ""}\x000\x00${payload}`,
+    )
+    .digest("hex")
+    .slice(0, 24);
+  const cachedItem = cache.items.get(cacheKey);
+  if (cachedItem && existsSync(cachedItem.filePath)) {
+    try {
+      const cachedBuf = await fsp.readFile(cachedItem.filePath);
+      if (
+        cachedBuf.length > 44 &&
+        cachedBuf.subarray(0, 4).toString("ascii") === "RIFF"
+      ) {
+        return cachedBuf;
+      }
+    } catch {}
   }
+
+  const persistSynthesizedWavToCache = async (wavBuf: Buffer) => {
+    try {
+      const parsed = parseWavPcm(wavBuf);
+      const bytesPerSec = Math.max(
+        1,
+        parsed.sampleRate * parsed.numChannels * (parsed.bitsPerSample >> 3),
+      );
+      const durationMs = Math.max(
+        50,
+        Math.round((parsed.pcmData.length / bytesPerSec) * 1000),
+      );
+      const durationSec = Math.round((durationMs / 1000) * 1000) / 1000;
+      if (cache.items.size >= MAX_CACHED_CHUNKS) {
+        const oldestKey = cache.items.keys().next().value;
+        if (oldestKey) {
+          const old = cache.items.get(oldestKey);
+          cache.items.delete(oldestKey);
+          if (old) await fsp.rm(old.filePath, { force: true }).catch(() => {});
+        }
+      }
+      const tl = computeReadAlongTimeline([
+        {
+          index: 0,
+          paragraphIndex: 0,
+          text: payload,
+          startMs: 0,
+          endMs: durationMs,
+          durationMs,
+          pcmData: parsed.pcmData,
+          sampleRate: parsed.sampleRate,
+          speed: 1,
+        },
+      ]);
+      const filePath = nodePath.join(cache.dir, `${cacheKey}.wav`);
+      await fsp.writeFile(filePath, wavBuf);
+      cache.items.set(cacheKey, {
+        id: cacheKey,
+        filePath,
+        createdAt: Date.now(),
+        durationSec,
+        durationMs,
+        sampleRate: parsed.sampleRate,
+        byteLength: wavBuf.length,
+        words: tl.words,
+        cues: tl.cues,
+      });
+    } catch {}
+  };
 
   // When synthesizing a custom recorded voice on Apple Silicon, use the zero-shot F5-TTS-MLX neural voice
   // cloning engine directly conditioned on the user's recorded `.wav` sample so it speaks with the user's
@@ -5776,6 +6234,7 @@ export async function synthesizePhononChunkWav(
       signal,
     );
     if (f5Wav) {
+      await persistSynthesizedWavToCache(f5Wav);
       return f5Wav;
     }
   }
@@ -5798,7 +6257,7 @@ export async function synthesizePhononChunkWav(
       args.push("--voice", targetVoice);
     }
 
-    const proc = Bun.spawn([ollamaExe, ...args], {
+    const proc = Bun.spawn(buildSpawnArgv(ollamaExe, args), {
       stdin: new TextEncoder().encode(payload),
       stdout: "pipe",
       stderr: "pipe",
@@ -5857,18 +6316,22 @@ export async function synthesizePhononChunkWav(
     attempt = await runOnce(primaryTargetVoice);
   }
   if (attempt.wav) {
-    return customVoice?.profile
+    const finalWav = customVoice?.profile
       ? applyCustomVoiceTransferToWav(attempt.wav, customVoice.profile)
       : attempt.wav;
+    await persistSynthesizedWavToCache(finalWav);
+    return finalWav;
   }
 
   // If a custom voice wasn't found by Ollama (e.g. model was re-pulled), fall back to its matched base voice + acoustic transfer
   if (customVoice && primaryTargetVoice !== customVoice.baseVoiceId) {
     attempt = await runOnce(customVoice.baseVoiceId);
     if (attempt.wav) {
-      return customVoice.profile
+      const finalWav = customVoice.profile
         ? applyCustomVoiceTransferToWav(attempt.wav, customVoice.profile)
         : attempt.wav;
+      await persistSynthesizedWavToCache(finalWav);
+      return finalWav;
     }
   }
 
@@ -5957,12 +6420,28 @@ export async function speakChunk(
   // Note: custom voice F0 & formant transfer is applied directly inside synthesizePhononChunkWav
   const effectivePitch = userPitch;
 
-  // Ensure the chunk is within Phonon's context window even if the caller passed a longer string
+  // Ensure the chunk is within Phonon's context window even if the caller passed a longer or multi-paragraph string
   const safeChunks = splitTextForPhonon(rawText, {
     maxChars: PHONON_HARD_MAX_CHUNK_CHARS,
+    mergeShortParagraphs: true,
   });
-  const chunkText =
-    safeChunks[0]?.text ?? rawText.slice(0, PHONON_HARD_MAX_CHUNK_CHARS);
+  let chunkText = "";
+  for (const sc of safeChunks) {
+    const next = chunkText ? `${chunkText}\n${sc.text}` : sc.text;
+    if (next.length <= PHONON_HARD_MAX_CHUNK_CHARS) {
+      chunkText = next;
+    } else if (!chunkText) {
+      chunkText = sc.text.slice(0, PHONON_HARD_MAX_CHUNK_CHARS);
+      break;
+    } else {
+      break;
+    }
+  }
+  if (!chunkText) {
+    chunkText = stripNonSpeechChars(rawText)
+      .trim()
+      .slice(0, PHONON_HARD_MAX_CHUNK_CHARS);
+  }
 
   const cache = getAudioCache(ctx);
   const key = createHash("sha256")
@@ -6712,6 +7191,46 @@ export function buildAtempoFilter(
   return parts.length ? ["-af", parts.join(",")] : [];
 }
 
+/**
+ * Computes the exact effective playback speed multiplier applied by `buildAtempoFilter` (accounting for
+ * integer `asetrate` rounding and 3-decimal `atempo` rounding) so word and cue timestamps never drift from the filtered audio.
+ */
+export function computeEffectiveAtempoSpeed(
+  speed: number,
+  pitchSemitones = 0,
+  sampleRate = 24000,
+): number {
+  const s = Math.min(2.5, Math.max(0.5, speed || 1));
+  const p = Math.min(6, Math.max(-6, pitchSemitones || 0));
+  const hasSpeed = Math.abs(s - 1) >= 0.01;
+  const hasPitch = Math.abs(p) >= 0.25;
+  if (!hasSpeed && !hasPitch) return 1;
+
+  let rateFactor = 1;
+  let targetTempo = s;
+  if (hasPitch) {
+    const pitchFactor = Math.pow(2, p / 12);
+    const shiftedRate = Math.max(4000, Math.round(sampleRate * pitchFactor));
+    rateFactor = shiftedRate / Math.max(4000, sampleRate);
+    targetTempo = s / pitchFactor;
+  }
+
+  let tempoProduct = 1;
+  if (Math.abs(targetTempo - 1) >= 0.008) {
+    let rem = targetTempo;
+    while (rem > 2.0) {
+      tempoProduct *= 2.0;
+      rem /= 2.0;
+    }
+    while (rem < 0.5) {
+      tempoProduct *= 0.5;
+      rem /= 0.5;
+    }
+    tempoProduct *= Math.round(rem * 1000) / 1000;
+  }
+  return Math.max(0.25, Math.min(4.0, rateFactor * tempoProduct));
+}
+
 function ffmpegEncoderArgsForFormat(
   format: PhononAudioFormat,
   speed: number,
@@ -6827,6 +7346,1697 @@ function formatSecClock(sec: number): string {
     : `${String(mins).padStart(2, "0")}:${String(rem).padStart(2, "0")}`;
 }
 
+export interface ReadAlongVisualSlide {
+  slideIndex: number;
+  startMs: number;
+  endMs: number;
+  cueIndex: number;
+  activeWordInCue: number;
+  spokenWordsInCue?: number;
+}
+
+function escapeXmlText(s: string): string {
+  return s
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function measureWordAdvancePx(word: string, fontSize: number): number {
+  let units = 0;
+  for (const ch of word) {
+    const cp = ch.codePointAt(0) ?? 0;
+    if ("ijlI!|.,:;'`‘’ ".includes(ch)) units += 0.26;
+    else if ('frt1()[]{}"“”-–'.includes(ch)) units += 0.37;
+    else if ("csvxyzJ".includes(ch)) units += 0.51;
+    else if ("aceek".includes(ch)) units += 0.55;
+    else if ("mw".includes(ch)) units += 0.83;
+    else if ("MW@%&—…".includes(ch)) units += 0.91;
+    else if ("QGODCHNU".includes(ch)) units += 0.72;
+    else if (ch >= "A" && ch <= "Z") units += 0.63;
+    else if (cp >= 0x2e80) units += 0.96;
+    else units += 0.58;
+  }
+  return Math.max(fontSize * 0.38, units * fontSize);
+}
+
+const READ_ALONG_THEME_PALETTE: Record<
+  PhononVideoTheme,
+  {
+    bgInner: string;
+    bgOuter: string;
+    cardBg: string;
+    cardBorder: string;
+    accent: string;
+    spokenText: string;
+    upcomingText: string;
+    contextText: string;
+    hudTrack: string;
+  }
+> = {
+  midnight: {
+    bgInner: "#152238",
+    bgOuter: "#0b1020",
+    cardBg: "#0f172a",
+    cardBorder: "#334155",
+    accent: "#38bdf8",
+    spokenText: "#e2e8f0",
+    upcomingText: "#f8fafc",
+    contextText: "#94a3b8",
+    hudTrack: "#1e293b",
+  },
+  parchment: {
+    bgInner: "#292018",
+    bgOuter: "#1c1611",
+    cardBg: "#241c15",
+    cardBorder: "#574636",
+    accent: "#f59e0b",
+    spokenText: "#fde68a",
+    upcomingText: "#fef3c7",
+    contextText: "#a89c8a",
+    hudTrack: "#362b20",
+  },
+  cyber: {
+    bgInner: "#160d29",
+    bgOuter: "#070812",
+    cardBg: "#120924",
+    cardBorder: "#581c87",
+    accent: "#22d3ee",
+    spokenText: "#f0abfc",
+    upcomingText: "#faecff",
+    contextText: "#a872b5",
+    hudTrack: "#24113d",
+  },
+  high_contrast: {
+    bgInner: "#0a0a0a",
+    bgOuter: "#000000",
+    cardBg: "#050505",
+    cardBorder: "#facc15",
+    accent: "#facc15",
+    spokenText: "#ffffff",
+    upcomingText: "#ffffff",
+    contextText: "#d4d4d4",
+    hudTrack: "#262626",
+  },
+};
+
+export function buildReadAlongSlideSvg(params: {
+  timeline: PhononReadAlongTimeline;
+  slide: ReadAlongVisualSlide;
+  aspect: PhononVideoAspectInfo;
+  videoTheme: PhononVideoTheme;
+  voice: string;
+  title: string;
+  totalDurationMs: number;
+}): string {
+  const { timeline, slide, aspect, videoTheme, voice, title, totalDurationMs } =
+    params;
+  const pal =
+    READ_ALONG_THEME_PALETTE[videoTheme] ?? READ_ALONG_THEME_PALETTE.midnight;
+  const width = aspect.width;
+  const height = aspect.height;
+  const cx = Math.round(width / 2);
+  const cy = Math.round(height / 2);
+  const prevY = cy - aspect.lineSpacingPx;
+  const nextY = cy + aspect.lineSpacingPx;
+
+  const totalCues = Math.max(1, timeline.cues.length);
+  const cueIdx = Math.max(0, Math.min(totalCues - 1, slide.cueIndex));
+  const cue = timeline.cues[cueIdx];
+  const prevCue = cueIdx > 0 ? timeline.cues[cueIdx - 1] : undefined;
+  const nextCue =
+    cueIdx + 1 < timeline.cues.length ? timeline.cues[cueIdx + 1] : undefined;
+
+  const cardMarginX = Math.round(width * 0.055);
+  const cardW = width - cardMarginX * 2;
+  const cardH = Math.round(aspect.lineSpacingPx * 3.35);
+  const cardY = Math.round(cy - cardH / 2);
+
+  const wordEls: string[] = [];
+  let pillEl = "";
+
+  if (cue && cue.words.length > 0) {
+    const words = cue.words.map((w) => w.word);
+    const baseFontSize = aspect.fontSize;
+    const rawWidths = words.map((w) => measureWordAdvancePx(w, baseFontSize));
+    const rawGap = baseFontSize * 0.34;
+    const rawTotal =
+      rawWidths.reduce((a, b) => a + b, 0) +
+      rawGap * Math.max(0, words.length - 1);
+    const maxLineW = cardW - Math.round(baseFontSize * 1.8);
+    const scale = Math.min(1, maxLineW / Math.max(1, rawTotal));
+    const fontSize = Math.max(24, Math.round(baseFontSize * scale));
+    const wordWidths = rawWidths.map((w) => w * scale);
+    const gap = rawGap * scale;
+    const totalW =
+      wordWidths.reduce((a, b) => a + b, 0) +
+      gap * Math.max(0, words.length - 1);
+
+    let curX = cx - totalW / 2;
+    const activeIdx = slide.activeWordInCue;
+    const spokenLimit =
+      typeof slide.spokenWordsInCue === "number"
+        ? slide.spokenWordsInCue
+        : activeIdx >= 0
+          ? activeIdx
+          : words.length;
+    for (let i = 0; i < words.length; i++) {
+      const w = words[i]!;
+      const ww = wordWidths[i]!;
+      const wcx = Math.round(curX + ww / 2);
+      if (i === activeIdx) {
+        const padX = Math.round(fontSize * 0.23);
+        const pillW = Math.round(ww + padX * 2);
+        const pillH = Math.round(fontSize * 1.38);
+        const pillRx = Math.round(pillH * 0.3);
+        pillEl = `<rect x="${Math.round(wcx - pillW / 2)}" y="${Math.round(cy - pillH / 2)}" width="${pillW}" height="${pillH}" rx="${pillRx}" fill="${pal.accent}" fill-opacity="0.24" stroke="${pal.accent}" stroke-width="2.5"/>`;
+      }
+      const fill =
+        i === activeIdx
+          ? pal.accent
+          : i < spokenLimit
+            ? pal.spokenText
+            : pal.upcomingText;
+      wordEls.push(
+        `<text x="${wcx}" y="${cy}" font-family="-apple-system, BlinkMacSystemFont, Helvetica Neue, Arial, sans-serif" font-size="${fontSize}" font-weight="800" fill="${fill}" text-anchor="middle" dominant-baseline="central">${escapeXmlText(w)}</text>`,
+      );
+      curX += ww + gap;
+    }
+  }
+
+  const headerText = `${title.trim().slice(0, 56) || "Ollama Phonon Read-Along"}  •  Voice: ${voice.trim() || "Zoey"}  •  Follow Along`;
+  const headerPillW = Math.min(
+    width - 120,
+    Math.max(480, Math.round(headerText.length * aspect.headerFontSize * 0.56)),
+  );
+  const headerPillH = Math.round(aspect.headerFontSize * 1.95);
+  const headerY = Math.round(height * 0.058);
+
+  const progressRatio = Math.min(
+    1,
+    Math.max(0, slide.endMs / Math.max(1, totalDurationMs)),
+  );
+  const pct = Math.round(progressRatio * 100);
+  const barW = Math.round(width * 0.52);
+  const barX = Math.round(cx - barW / 2);
+  const barY = height - Math.round(height * 0.09);
+  const fillW = Math.max(8, Math.round(barW * progressRatio));
+  const curClock = formatSecClock(slide.endMs / 1000);
+  const totClock = formatSecClock(totalDurationMs / 1000);
+  const hudFontSize = Math.max(20, aspect.headerFontSize - 4);
+  const hudLabel = `${pct}%   •   Line ${cueIdx + 1} of ${totalCues}   •   ${curClock} / ${totClock}`;
+
+  const fitContextFont = (txt: string) => {
+    const rawW = measureWordAdvancePx(txt, aspect.contextFontSize);
+    const maxW = cardW - 100;
+    const sc = Math.min(1, maxW / Math.max(1, rawW));
+    return Math.max(20, Math.round(aspect.contextFontSize * sc));
+  };
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="72%">
+      <stop offset="0%" stop-color="${pal.bgInner}"/>
+      <stop offset="100%" stop-color="${pal.bgOuter}"/>
+    </radialGradient>
+  </defs>
+  <rect width="${width}" height="${height}" fill="url(#bg)"/>
+  <rect x="${Math.round(cx - headerPillW / 2)}" y="${Math.round(headerY - headerPillH / 2)}" width="${headerPillW}" height="${headerPillH}" rx="${Math.round(headerPillH / 2)}" fill="${pal.cardBg}" fill-opacity="0.88" stroke="${pal.accent}" stroke-opacity="0.38" stroke-width="1.5"/>
+  <text x="${cx}" y="${headerY}" font-family="-apple-system, BlinkMacSystemFont, Helvetica Neue, Arial, sans-serif" font-size="${aspect.headerFontSize}" font-weight="700" fill="${pal.accent}" text-anchor="middle" dominant-baseline="central">${escapeXmlText(headerText)}</text>
+  <rect x="${cardMarginX}" y="${cardY}" width="${cardW}" height="${cardH}" rx="32" fill="${pal.cardBg}" fill-opacity="0.74" stroke="${pal.cardBorder}" stroke-opacity="0.6" stroke-width="2"/>
+  ${prevCue ? `<text x="${cx}" y="${prevY}" font-family="-apple-system, BlinkMacSystemFont, Helvetica Neue, Arial, sans-serif" font-size="${fitContextFont(prevCue.text)}" font-weight="500" fill="${pal.contextText}" fill-opacity="0.76" text-anchor="middle" dominant-baseline="central">${escapeXmlText(prevCue.text)}</text>` : ""}
+  ${pillEl}
+  ${wordEls.join("\n  ")}
+  ${nextCue ? `<text x="${cx}" y="${nextY}" font-family="-apple-system, BlinkMacSystemFont, Helvetica Neue, Arial, sans-serif" font-size="${fitContextFont(nextCue.text)}" font-weight="500" fill="${pal.contextText}" fill-opacity="0.76" text-anchor="middle" dominant-baseline="central">${escapeXmlText(nextCue.text)}</text>` : ""}
+  <rect x="${barX}" y="${barY}" width="${barW}" height="12" rx="6" fill="${pal.hudTrack}"/>
+  <rect x="${barX}" y="${barY}" width="${fillW}" height="12" rx="6" fill="${pal.accent}"/>
+  <text x="${cx}" y="${barY + 38}" font-family="-apple-system, BlinkMacSystemFont, Helvetica Neue, Arial, sans-serif" font-size="${hudFontSize}" font-weight="600" fill="${pal.spokenText}" fill-opacity="0.88" text-anchor="middle" dominant-baseline="central">${escapeXmlText(hudLabel)}</text>
+</svg>`;
+}
+
+function parseHexRgb(hex: string): [number, number, number] {
+  const clean = hex.replace(/^#/, "");
+  const n = parseInt(clean, 16) || 0;
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+/**
+ * Pure-TypeScript zero-dependency 24-bit BMP centered Read-Along frame generator fallback when `rsvg-convert` is unavailable.
+ */
+function buildReadAlongSlideBmpFallback(params: {
+  timeline: PhononReadAlongTimeline;
+  slide: ReadAlongVisualSlide;
+  aspect: PhononVideoAspectInfo;
+  videoTheme: PhononVideoTheme;
+}): Buffer {
+  const { timeline, slide, aspect, videoTheme } = params;
+  const pal =
+    READ_ALONG_THEME_PALETTE[videoTheme] ?? READ_ALONG_THEME_PALETTE.midnight;
+  const width = aspect.width;
+  const height = aspect.height;
+  const rowStride = (width * 3 + 3) & ~3;
+  const pixelBytes = rowStride * height;
+  const buf = Buffer.alloc(54 + pixelBytes);
+
+  buf.write("BM", 0, "ascii");
+  buf.writeUInt32LE(54 + pixelBytes, 2);
+  buf.writeUInt32LE(54, 10);
+  buf.writeUInt32LE(40, 14);
+  buf.writeInt32LE(width, 18);
+  buf.writeInt32LE(-height, 22); // top-down scanlines
+  buf.writeUInt16LE(1, 26);
+  buf.writeUInt16LE(24, 28);
+  buf.writeUInt32LE(pixelBytes, 34);
+
+  const [bgR, bgG, bgB] = parseHexRgb(pal.bgOuter);
+  const [cardR, cardG, cardB] = parseHexRgb(pal.cardBg);
+  const [accR, accG, accB] = parseHexRgb(pal.accent);
+  const [txtR, txtG, txtB] = parseHexRgb(pal.upcomingText);
+
+  for (let y = 0; y < height; y++) {
+    const rowOff = 54 + y * rowStride;
+    for (let x = 0; x < width; x++) {
+      const p = rowOff + x * 3;
+      buf[p] = bgB;
+      buf[p + 1] = bgG;
+      buf[p + 2] = bgR;
+    }
+  }
+
+  const fillRect = (
+    x0: number,
+    y0: number,
+    w: number,
+    h: number,
+    r: number,
+    g: number,
+    b: number,
+  ) => {
+    const xs = Math.max(0, Math.round(x0));
+    const xe = Math.min(width, Math.round(x0 + w));
+    const ys = Math.max(0, Math.round(y0));
+    const ye = Math.min(height, Math.round(y0 + h));
+    for (let y = ys; y < ye; y++) {
+      const rowOff = 54 + y * rowStride;
+      for (let x = xs; x < xe; x++) {
+        const p = rowOff + x * 3;
+        buf[p] = b;
+        buf[p + 1] = g;
+        buf[p + 2] = r;
+      }
+    }
+  };
+
+  const cx = Math.round(width / 2);
+  const cy = Math.round(height / 2);
+  const cardW = Math.round(width * 0.88);
+  const cardH = Math.round(aspect.lineSpacingPx * 3.2);
+  fillRect(cx - cardW / 2, cy - cardH / 2, cardW, cardH, cardR, cardG, cardB);
+
+  const cue =
+    timeline.cues[
+      Math.max(0, Math.min(timeline.cues.length - 1, slide.cueIndex))
+    ];
+  if (cue && cue.words.length > 0) {
+    const charW = 28;
+    const charH = 44;
+    const gap = 28;
+    const totalW =
+      cue.words.reduce((s, w) => s + w.word.length * charW, 0) +
+      gap * Math.max(0, cue.words.length - 1);
+    let curX = Math.round(cx - totalW / 2);
+    for (let i = 0; i < cue.words.length; i++) {
+      const w = cue.words[i]!.word;
+      const ww = w.length * charW;
+      if (i === slide.activeWordInCue) {
+        fillRect(
+          curX - 14,
+          cy - charH / 2 - 14,
+          ww + 28,
+          charH + 28,
+          accR,
+          accG,
+          accB,
+        );
+        fillRect(
+          curX - 10,
+          cy - charH / 2 - 10,
+          ww + 20,
+          charH + 20,
+          cardR,
+          cardG,
+          cardB,
+        );
+      }
+      for (let c = 0; c < w.length; c++) {
+        const isAct = i === slide.activeWordInCue;
+        fillRect(
+          curX + c * charW + 3,
+          cy - charH / 2,
+          charW - 6,
+          charH,
+          isAct ? accR : txtR,
+          isAct ? accG : txtG,
+          isAct ? accB : txtB,
+        );
+      }
+      curX += ww + gap;
+    }
+  }
+  return buf;
+}
+
+/**
+ * Builds contiguous, gap-free Read-Along visual slides across `[0, totalDurationMs]`, centering each phrase at
+ * `(cx, cy) = (width / 2, height / 2)` and stepping the active word highlight pill across every single word (`wIdx = 0..N-1`)
+ * in lockstep with spoken audio so no word is ever skipped.
+ */
+export function buildReadAlongVisualSlides(
+  timeline: PhononReadAlongTimeline,
+  totalDurationMs: number,
+  minSlideMs = 40,
+): ReadAlongVisualSlide[] {
+  const safeTotalMs = Math.max(
+    100,
+    Math.round(totalDurationMs || timeline.totalDurationMs || 1000),
+  );
+  if (!timeline.cues.length) {
+    return [
+      {
+        slideIndex: 0,
+        startMs: 0,
+        endMs: safeTotalMs,
+        cueIndex: 0,
+        activeWordInCue: -1,
+        spokenWordsInCue: 0,
+      },
+    ];
+  }
+
+  const rawSlides: Array<{
+    startMs: number;
+    endMs: number;
+    cueIndex: number;
+    activeWordInCue: number;
+    spokenWordsInCue: number;
+  }> = [];
+
+  let cursorMs = 0;
+  for (let cIdx = 0; cIdx < timeline.cues.length; cIdx++) {
+    const cue = timeline.cues[cIdx]!;
+    const nextCue =
+      cIdx + 1 < timeline.cues.length ? timeline.cues[cIdx + 1] : undefined;
+
+    for (let wIdx = 0; wIdx < cue.words.length; wIdx++) {
+      const wStartObj = cue.words[wIdx]!;
+      const wEndObj = wStartObj;
+      const nextWordInCue =
+        wIdx + 1 < cue.words.length ? cue.words[wIdx + 1] : undefined;
+
+      // If this is the very first word of the video and there is leading pre-roll silence (>= 120ms),
+      // display Cue 0 centered at frame 0 in upcoming state until speech actually begins at wStartObj.startMs.
+      if (cIdx === 0 && wIdx === 0 && wStartObj.startMs >= 120) {
+        rawSlides.push({
+          startMs: 0,
+          endMs: wStartObj.startMs,
+          cueIndex: 0,
+          activeWordInCue: -1,
+          spokenWordsInCue: 0,
+        });
+        cursorMs = wStartObj.startMs;
+      } else if (wStartObj.startMs > cursorMs) {
+        const gapMs = wStartObj.startMs - cursorMs;
+        if (gapMs >= 160) {
+          // Hold the current cue steady in the center of the screen during acoustic breath/clause pauses
+          const holdCueIdx = wIdx === 0 && cIdx > 0 ? cIdx - 1 : cIdx;
+          const holdSpoken =
+            wIdx === 0 && cIdx > 0
+              ? timeline.cues[cIdx - 1]!.words.length
+              : wIdx;
+          rawSlides.push({
+            startMs: cursorMs,
+            endMs: wStartObj.startMs,
+            cueIndex: holdCueIdx,
+            activeWordInCue: -1,
+            spokenWordsInCue: holdSpoken,
+          });
+          cursorMs = wStartObj.startMs;
+        }
+      }
+
+      const startMs = cursorMs;
+      let endMs = Math.max(startMs + minSlideMs, wEndObj.endMs);
+      // Bridge small intra-cue consonant transitions (< 160ms) so the highlight pill moves smoothly from word to word without flickering
+      if (
+        nextWordInCue &&
+        nextWordInCue.startMs > endMs &&
+        nextWordInCue.startMs - endMs < 160
+      ) {
+        endMs = nextWordInCue.startMs;
+      } else if (
+        !nextWordInCue &&
+        nextCue &&
+        nextCue.startMs > endMs &&
+        nextCue.startMs - endMs < 160
+      ) {
+        endMs = nextCue.startMs;
+      }
+      rawSlides.push({
+        startMs,
+        endMs,
+        cueIndex: cIdx,
+        activeWordInCue: wIdx,
+        spokenWordsInCue: wIdx,
+      });
+      cursorMs = endMs;
+    }
+  }
+
+  // Ensure every active word slide stays lit for at least 2 video frames (>= 80ms) whenever a neighboring slide in the same cue has surplus duration
+  const minVisibleWordMs = Math.max(minSlideMs * 2, 80);
+  for (let i = 0; i < rawSlides.length; i++) {
+    const cur = rawSlides[i]!;
+    if (cur.activeWordInCue < 0) continue;
+    const dur = cur.endMs - cur.startMs;
+    if (dur >= minVisibleWordMs) continue;
+    const needed = minVisibleWordMs - dur;
+
+    const next = i + 1 < rawSlides.length ? rawSlides[i + 1] : undefined;
+    if (next && next.cueIndex === cur.cueIndex) {
+      const nextDur = next.endMs - next.startMs;
+      const takeNext = Math.min(
+        needed,
+        Math.max(0, nextDur - minVisibleWordMs),
+      );
+      if (takeNext > 0) {
+        cur.endMs += takeNext;
+        next.startMs += takeNext;
+      }
+    }
+    const rem = minVisibleWordMs - (cur.endMs - cur.startMs);
+    const prev = i > 0 ? rawSlides[i - 1] : undefined;
+    if (rem > 0 && prev && prev.cueIndex === cur.cueIndex) {
+      const prevDur = prev.endMs - prev.startMs;
+      const takePrev = Math.min(rem, Math.max(0, prevDur - minVisibleWordMs));
+      if (takePrev > 0) {
+        prev.endMs -= takePrev;
+        cur.startMs -= takePrev;
+      }
+    }
+  }
+
+  if (cursorMs < safeTotalMs) {
+    const lastCueIdx = Math.max(0, timeline.cues.length - 1);
+    const lastCueWords = timeline.cues[lastCueIdx]?.words.length ?? 0;
+    if (
+      rawSlides.length > 0 &&
+      safeTotalMs - cursorMs < 160 &&
+      rawSlides[rawSlides.length - 1]!.cueIndex === lastCueIdx
+    ) {
+      rawSlides[rawSlides.length - 1]!.endMs = safeTotalMs;
+    } else {
+      rawSlides.push({
+        startMs: cursorMs,
+        endMs: safeTotalMs,
+        cueIndex: lastCueIdx,
+        activeWordInCue: -1,
+        spokenWordsInCue: lastCueWords,
+      });
+    }
+  }
+
+  return rawSlides.map((s, idx) => ({
+    slideIndex: idx,
+    startMs: s.startMs,
+    endMs: Math.max(s.startMs + minSlideMs, s.endMs),
+    cueIndex: s.cueIndex,
+    activeWordInCue: s.activeWordInCue,
+    spokenWordsInCue: s.spokenWordsInCue,
+  }));
+}
+
+function videoOnlyEncoderArgsForFormat(
+  format: "mp4" | "webm" | "mov" | "mkv",
+): string[] {
+  if (format === "webm") {
+    return [
+      "-c:v",
+      "libvpx-vp9",
+      "-b:v",
+      "1400k",
+      "-deadline",
+      "realtime",
+      "-cpu-used",
+      "6",
+      "-row-mt",
+      "1",
+      "-pix_fmt",
+      "yuv420p",
+    ];
+  }
+  return [
+    "-c:v",
+    "libx264",
+    "-preset",
+    "ultrafast",
+    "-tune",
+    "stillimage",
+    "-crf",
+    "21",
+    "-pix_fmt",
+    "yuv420p",
+  ];
+}
+
+function audioOnlyEncoderArgsForVideoFormat(
+  format: "mp4" | "webm" | "mov" | "mkv",
+  speed: number,
+  pitchSemitones = 0,
+  sampleRate = 24000,
+): string[] {
+  const filter = buildAtempoFilter(speed, pitchSemitones, sampleRate);
+  const aacBitrate = sampleRate <= 24000 ? "128k" : "192k";
+  if (format === "webm") {
+    return [...filter, "-c:a", "libopus", "-b:a", "128k"];
+  }
+  return [...filter, "-c:a", "aac", "-b:a", aacBitrate];
+}
+
+const PANGO_SANS_FAMILY =
+  "Helvetica Neue, Segoe UI, Noto Sans, DejaVu Sans, Liberation Sans, Arial, Sans";
+
+function loadNativeCairoPangoLibs() {
+  const pathDirs =
+    process.platform === "win32" && (process.env.PATH ?? process.env.Path)
+      ? (process.env.PATH ?? process.env.Path ?? "")
+          .split(nodePath.delimiter)
+          .filter(Boolean)
+      : [];
+  const libDirs =
+    process.platform === "win32"
+      ? [
+          "C:\\msys64\\mingw64\\bin",
+          "C:\\msys64\\ucrt64\\bin",
+          "C:\\msys64\\clangarm64\\bin",
+          "C:\\msys64\\clang64\\bin",
+          "C:\\tools\\msys64\\mingw64\\bin",
+          "C:\\Program Files\\GTK3-Runtime Win64\\bin",
+          ...pathDirs,
+        ]
+      : [
+          "/opt/homebrew/lib",
+          "/usr/local/lib",
+          "/opt/local/lib",
+          "/home/linuxbrew/.linuxbrew/lib",
+          "/usr/lib/aarch64-linux-gnu",
+          "/usr/lib/x86_64-linux-gnu",
+          "/lib/aarch64-linux-gnu",
+          "/lib/x86_64-linux-gnu",
+          "/usr/lib64",
+          "/usr/lib",
+          "/lib64",
+          "/lib",
+        ];
+  const findLib = (names: string[]): string | null => {
+    for (const dir of libDirs) {
+      for (const name of names) {
+        const full = nodePath.join(dir, name);
+        if (existsSync(full)) return full;
+      }
+    }
+    return null;
+  };
+  try {
+    const cairoPath = findLib([
+      "libcairo.2.dylib",
+      "libcairo.so.2",
+      "libcairo-2.dll",
+      "cairo-2.dll",
+      "cairo.dll",
+    ]);
+    const pangoPath = findLib([
+      "libpango-1.0.0.dylib",
+      "libpango-1.0.so.0",
+      "libpango-1.0-0.dll",
+      "pango-1.0-0.dll",
+      "pango-1.0.dll",
+    ]);
+    const pangocairoPath = findLib([
+      "libpangocairo-1.0.0.dylib",
+      "libpangocairo-1.0.so.0",
+      "libpangocairo-1.0-0.dll",
+      "pangocairo-1.0-0.dll",
+      "pangocairo-1.0.dll",
+    ]);
+    const gobjPath = findLib([
+      "libgobject-2.0.0.dylib",
+      "libgobject-2.0.so.0",
+      "libgobject-2.0-0.dll",
+      "gobject-2.0-0.dll",
+      "gobject-2.0.dll",
+    ]);
+    if (!cairoPath || !pangoPath || !pangocairoPath || !gobjPath) {
+      return null;
+    }
+    if (process.platform === "win32") {
+      const dllDir = nodePath.dirname(cairoPath);
+      const curPath = process.env.PATH ?? process.env.Path ?? "";
+      if (!curPath.toLowerCase().includes(dllDir.toLowerCase())) {
+        const nextPath = `${dllDir}${nodePath.delimiter}${curPath}`;
+        process.env.PATH = nextPath;
+        process.env.Path = nextPath;
+      }
+    }
+    const cairo = dlopen(cairoPath, {
+      cairo_image_surface_create_for_data: {
+        args: [FFIType.ptr, FFIType.i32, FFIType.i32, FFIType.i32, FFIType.i32],
+        returns: FFIType.ptr,
+      },
+      cairo_surface_flush: { args: [FFIType.ptr], returns: FFIType.void },
+      cairo_surface_mark_dirty: { args: [FFIType.ptr], returns: FFIType.void },
+      cairo_surface_destroy: { args: [FFIType.ptr], returns: FFIType.void },
+      cairo_create: { args: [FFIType.ptr], returns: FFIType.ptr },
+      cairo_destroy: { args: [FFIType.ptr], returns: FFIType.void },
+      cairo_pattern_create_radial: {
+        args: [
+          FFIType.f64,
+          FFIType.f64,
+          FFIType.f64,
+          FFIType.f64,
+          FFIType.f64,
+          FFIType.f64,
+        ],
+        returns: FFIType.ptr,
+      },
+      cairo_pattern_add_color_stop_rgb: {
+        args: [FFIType.ptr, FFIType.f64, FFIType.f64, FFIType.f64, FFIType.f64],
+        returns: FFIType.void,
+      },
+      cairo_pattern_destroy: { args: [FFIType.ptr], returns: FFIType.void },
+      cairo_set_source: {
+        args: [FFIType.ptr, FFIType.ptr],
+        returns: FFIType.void,
+      },
+      cairo_set_source_rgba: {
+        args: [FFIType.ptr, FFIType.f64, FFIType.f64, FFIType.f64, FFIType.f64],
+        returns: FFIType.void,
+      },
+      cairo_set_line_width: {
+        args: [FFIType.ptr, FFIType.f64],
+        returns: FFIType.void,
+      },
+      cairo_move_to: {
+        args: [FFIType.ptr, FFIType.f64, FFIType.f64],
+        returns: FFIType.void,
+      },
+      cairo_rectangle: {
+        args: [FFIType.ptr, FFIType.f64, FFIType.f64, FFIType.f64, FFIType.f64],
+        returns: FFIType.void,
+      },
+      cairo_new_sub_path: { args: [FFIType.ptr], returns: FFIType.void },
+      cairo_arc: {
+        args: [
+          FFIType.ptr,
+          FFIType.f64,
+          FFIType.f64,
+          FFIType.f64,
+          FFIType.f64,
+          FFIType.f64,
+        ],
+        returns: FFIType.void,
+      },
+      cairo_close_path: { args: [FFIType.ptr], returns: FFIType.void },
+      cairo_fill: { args: [FFIType.ptr], returns: FFIType.void },
+      cairo_fill_preserve: { args: [FFIType.ptr], returns: FFIType.void },
+      cairo_stroke: { args: [FFIType.ptr], returns: FFIType.void },
+    });
+    const pango = dlopen(pangoPath, {
+      pango_font_description_from_string: {
+        args: [FFIType.ptr],
+        returns: FFIType.ptr,
+      },
+      pango_font_description_free: {
+        args: [FFIType.ptr],
+        returns: FFIType.void,
+      },
+      pango_layout_set_font_description: {
+        args: [FFIType.ptr, FFIType.ptr],
+        returns: FFIType.void,
+      },
+      pango_layout_set_text: {
+        args: [FFIType.ptr, FFIType.ptr, FFIType.i32],
+        returns: FFIType.void,
+      },
+      pango_layout_get_pixel_size: {
+        args: [FFIType.ptr, FFIType.ptr, FFIType.ptr],
+        returns: FFIType.void,
+      },
+    });
+    const pangocairo = dlopen(pangocairoPath, {
+      pango_cairo_create_layout: {
+        args: [FFIType.ptr],
+        returns: FFIType.ptr,
+      },
+      pango_cairo_show_layout: {
+        args: [FFIType.ptr, FFIType.ptr],
+        returns: FFIType.void,
+      },
+    });
+    const gobj = dlopen(gobjPath, {
+      g_object_unref: { args: [FFIType.ptr], returns: FFIType.void },
+    });
+    return { cairo, pango, pangocairo, gobj };
+  } catch {
+    return null;
+  }
+}
+
+let cachedNativeCairoPango:
+  ReturnType<typeof loadNativeCairoPangoLibs> | undefined;
+
+function getNativeCairoPangoEngine() {
+  if (cachedNativeCairoPango !== undefined) return cachedNativeCairoPango;
+  cachedNativeCairoPango = loadNativeCairoPangoLibs();
+  return cachedNativeCairoPango;
+}
+
+/**
+ * Ultra-fast in-process native Cairo + Pango (`bun:ffi`) 3-level delta-band slide renderer (~0.35ms per 1080p slide,
+ * ~30x faster than spawning `rsvg-convert` processes and compressing/decompressing PNG files):
+ *   - Level 0 (`bgCopy`): Renders the radial gradient background, header pill, center card, and HUD track ONCE.
+ *   - Level 1 (`cueCardCopy`): Renders `prevCue` and `nextCue` context lines and measures active cue word layouts ONCE per cue.
+ *   - Level 2 (per-word slide): Restores only the ~110px middle active-word band and ~68px HUD band via memory copy,
+ *     draws the active word highlight pill + word row + HUD progress bar directly into a reusable 32-bit BGRX `.bmp` buffer.
+ */
+async function tryRenderSlidesWithNativeCairoPango(params: {
+  tmpDir: string;
+  timeline: PhononReadAlongTimeline;
+  slides: ReadAlongVisualSlide[];
+  aspect: PhononVideoAspectInfo;
+  videoTheme: PhononVideoTheme;
+  voice: string;
+  title: string;
+  totalDurationMs: number;
+  signal?: AbortSignal;
+}): Promise<string[] | null> {
+  const eng = getNativeCairoPangoEngine();
+  if (!eng) return null;
+
+  const {
+    tmpDir,
+    timeline,
+    slides,
+    aspect,
+    videoTheme,
+    voice,
+    title,
+    totalDurationMs,
+    signal,
+  } = params;
+  const pal =
+    READ_ALONG_THEME_PALETTE[videoTheme] ?? READ_ALONG_THEME_PALETTE.midnight;
+  const width = aspect.width;
+  const height = aspect.height;
+  const stride = width * 4;
+  const pixelBytes = stride * height;
+  const cx = Math.round(width / 2);
+  const cy = Math.round(height / 2);
+  const prevY = cy - aspect.lineSpacingPx;
+  const nextY = cy + aspect.lineSpacingPx;
+  const cardMarginX = Math.round(width * 0.055);
+  const cardW = width - cardMarginX * 2;
+  const cardH = Math.round(aspect.lineSpacingPx * 3.35);
+  const cardY = Math.round(cy - cardH / 2);
+  const barW = Math.round(width * 0.52);
+  const barX = Math.round(cx - barW / 2);
+  const barY = height - Math.round(height * 0.09);
+
+  const hex01 = (hex: string): [number, number, number] => {
+    const [r, g, b] = parseHexRgb(hex);
+    return [r / 255, g / 255, b / 255];
+  };
+  const [bgInR, bgInG, bgInB] = hex01(pal.bgInner);
+  const [bgOutR, bgOutG, bgOutB] = hex01(pal.bgOuter);
+  const [cardBgR, cardBgG, cardBgB] = hex01(pal.cardBg);
+  const [cardBdR, cardBdG, cardBdB] = hex01(pal.cardBorder);
+  const [accR, accG, accB] = hex01(pal.accent);
+  const [spkR, spkG, spkB] = hex01(pal.spokenText);
+  const [upcR, upcG, upcB] = hex01(pal.upcomingText);
+  const [ctxR, ctxG, ctxB] = hex01(pal.contextText);
+  const [trkR, trkG, trkB] = hex01(pal.hudTrack);
+
+  const bmpBuf = Buffer.allocUnsafe(54 + pixelBytes);
+  bmpBuf.fill(0, 0, 54);
+  bmpBuf.write("BM", 0, "ascii");
+  bmpBuf.writeUInt32LE(54 + pixelBytes, 2);
+  bmpBuf.writeUInt32LE(54, 10);
+  bmpBuf.writeUInt32LE(40, 14);
+  bmpBuf.writeInt32LE(width, 18);
+  bmpBuf.writeInt32LE(-height, 22); // top-down scanlines
+  bmpBuf.writeUInt16LE(1, 26);
+  bmpBuf.writeUInt16LE(32, 28);
+  bmpBuf.writeUInt32LE(pixelBytes, 34);
+  const pixelSlice = bmpBuf.subarray(54);
+
+  const { cairo, pango, pangocairo, gobj } = eng;
+  const surf = cairo.symbols.cairo_image_surface_create_for_data(
+    ptr(pixelSlice),
+    1,
+    width,
+    height,
+    stride,
+  );
+  if (!surf) return null;
+  const cr = cairo.symbols.cairo_create(surf);
+  if (!cr) {
+    cairo.symbols.cairo_surface_destroy(surf);
+    return null;
+  }
+  const layout = pangocairo.symbols.pango_cairo_create_layout(cr);
+  if (!layout) {
+    cairo.symbols.cairo_destroy(cr);
+    cairo.symbols.cairo_surface_destroy(surf);
+    return null;
+  }
+  const wOut = new Int32Array(1);
+  const hOut = new Int32Array(1);
+  type FontPtr = NonNullable<
+    ReturnType<typeof pango.symbols.pango_font_description_from_string>
+  >;
+  const fontCache = new Map<string, FontPtr>();
+
+  const getFont = (desc: string): FontPtr => {
+    let f = fontCache.get(desc);
+    if (!f) {
+      const b = Buffer.from(`${desc}\0`);
+      f = pango.symbols.pango_font_description_from_string(ptr(b))!;
+      fontCache.set(desc, f);
+    }
+    return f;
+  };
+
+  const roundedRect = (
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    r: number,
+  ) => {
+    const rad = Math.max(0, Math.min(r, w / 2, h / 2));
+    cairo.symbols.cairo_new_sub_path(cr);
+    cairo.symbols.cairo_arc(cr, x + w - rad, y + rad, rad, -Math.PI / 2, 0);
+    cairo.symbols.cairo_arc(cr, x + w - rad, y + h - rad, rad, 0, Math.PI / 2);
+    cairo.symbols.cairo_arc(
+      cr,
+      x + rad,
+      y + h - rad,
+      rad,
+      Math.PI / 2,
+      Math.PI,
+    );
+    cairo.symbols.cairo_arc(cr, x + rad, y + rad, rad, Math.PI, 1.5 * Math.PI);
+    cairo.symbols.cairo_close_path(cr);
+  };
+
+  const drawCenteredText = (
+    txt: string,
+    tx: number,
+    ty: number,
+    fontDesc: string,
+    r: number,
+    g: number,
+    b: number,
+    a: number,
+  ) => {
+    if (!txt) return;
+    pango.symbols.pango_layout_set_font_description(layout, getFont(fontDesc));
+    const tb = Buffer.from(txt);
+    pango.symbols.pango_layout_set_text(layout, ptr(tb), tb.length);
+    pango.symbols.pango_layout_get_pixel_size(layout, ptr(wOut), ptr(hOut));
+    cairo.symbols.cairo_set_source_rgba(cr, r, g, b, a);
+    cairo.symbols.cairo_move_to(
+      cr,
+      Math.round(tx - wOut[0]! / 2),
+      Math.round(ty - hOut[0]! / 2),
+    );
+    pangocairo.symbols.pango_cairo_show_layout(cr, layout);
+  };
+
+  try {
+    // Level 0: Render static background + header pill + center teleprompter card + HUD track ONCE
+    const gradRadius = Math.max(width, height) * 0.72;
+    const pat = cairo.symbols.cairo_pattern_create_radial(
+      cx,
+      cy,
+      0,
+      cx,
+      cy,
+      gradRadius,
+    )!;
+    cairo.symbols.cairo_pattern_add_color_stop_rgb(pat, 0, bgInR, bgInG, bgInB);
+    cairo.symbols.cairo_pattern_add_color_stop_rgb(
+      pat,
+      1,
+      bgOutR,
+      bgOutG,
+      bgOutB,
+    );
+    cairo.symbols.cairo_set_source(cr, pat);
+    cairo.symbols.cairo_rectangle(cr, 0, 0, width, height);
+    cairo.symbols.cairo_fill(cr);
+    cairo.symbols.cairo_pattern_destroy(pat);
+
+    const headerText = `${title.trim().slice(0, 56) || "Ollama Phonon Read-Along"}  •  Voice: ${voice.trim() || "Zoey"}  •  Follow Along`;
+    const headerPillW = Math.min(
+      width - 120,
+      Math.max(
+        480,
+        Math.round(headerText.length * aspect.headerFontSize * 0.56),
+      ),
+    );
+    const headerPillH = Math.round(aspect.headerFontSize * 1.95);
+    const headerY = Math.round(height * 0.058);
+    roundedRect(
+      Math.round(cx - headerPillW / 2),
+      Math.round(headerY - headerPillH / 2),
+      headerPillW,
+      headerPillH,
+      Math.round(headerPillH / 2),
+    );
+    cairo.symbols.cairo_set_source_rgba(cr, cardBgR, cardBgG, cardBgB, 0.88);
+    cairo.symbols.cairo_fill_preserve(cr);
+    cairo.symbols.cairo_set_source_rgba(cr, accR, accG, accB, 0.38);
+    cairo.symbols.cairo_set_line_width(cr, 1.5);
+    cairo.symbols.cairo_stroke(cr);
+    drawCenteredText(
+      headerText,
+      cx,
+      headerY,
+      `${PANGO_SANS_FAMILY} Bold ${Math.max(14, Math.round(aspect.headerFontSize * 0.74))}px`,
+      accR,
+      accG,
+      accB,
+      1.0,
+    );
+
+    roundedRect(cardMarginX, cardY, cardW, cardH, 32);
+    cairo.symbols.cairo_set_source_rgba(cr, cardBgR, cardBgG, cardBgB, 0.74);
+    cairo.symbols.cairo_fill_preserve(cr);
+    cairo.symbols.cairo_set_source_rgba(cr, cardBdR, cardBdG, cardBdB, 0.6);
+    cairo.symbols.cairo_set_line_width(cr, 2.0);
+    cairo.symbols.cairo_stroke(cr);
+
+    roundedRect(barX, barY, barW, 12, 6);
+    cairo.symbols.cairo_set_source_rgba(cr, trkR, trkG, trkB, 1.0);
+    cairo.symbols.cairo_fill(cr);
+
+    cairo.symbols.cairo_surface_flush(surf);
+    const bgCopy = Buffer.from(pixelSlice);
+    const cueCardCopy = Buffer.from(pixelSlice);
+
+    const cardBandY0 = Math.max(0, cardY - 4);
+    const cardBandY1 = Math.min(height, cardY + cardH + 4);
+    const midBandY0 = Math.max(0, cy - Math.round(aspect.fontSize * 0.95));
+    const midBandY1 = Math.min(height, cy + Math.round(aspect.fontSize * 0.95));
+    const hudBandY0 = Math.max(0, barY - 4);
+    const hudBandY1 = Math.min(height, barY + 64);
+
+    const totalCues = Math.max(1, timeline.cues.length);
+    const totClock = formatSecClock(totalDurationMs / 1000);
+    const hudFontDesc = `${PANGO_SANS_FAMILY} Bold ${Math.max(14, Math.round((aspect.headerFontSize - 4) * 0.74))}px`;
+
+    let renderedCueIdx = -1;
+    let cueFontDesc = "";
+    let cueWordBuffers: Buffer[] = [];
+    let cueWordWidths: number[] = [];
+    let cueWordHeights: number[] = [];
+    let cueWordXs: number[] = [];
+    let cueFontPx = aspect.fontSize;
+
+    const slideFiles = new Array<string>(slides.length);
+
+    for (let idx = 0; idx < slides.length; idx++) {
+      if (signal?.aborted) throw new Error("Cancelled");
+      const slide = slides[idx]!;
+      const cueIdx = Math.max(0, Math.min(totalCues - 1, slide.cueIndex));
+      const cue = timeline.cues[cueIdx];
+
+      // Level 1: Re-render context lines (`prevCue` & `nextCue`) and measure words ONLY when `cueIdx` changes
+      if (cueIdx !== renderedCueIdx) {
+        renderedCueIdx = cueIdx;
+        bgCopy.copy(
+          pixelSlice,
+          cardBandY0 * stride,
+          cardBandY0 * stride,
+          cardBandY1 * stride,
+        );
+        cairo.symbols.cairo_surface_mark_dirty(surf);
+
+        const prevCue = cueIdx > 0 ? timeline.cues[cueIdx - 1] : undefined;
+        const nextCue =
+          cueIdx + 1 < timeline.cues.length
+            ? timeline.cues[cueIdx + 1]
+            : undefined;
+        const fitCtxFont = (txt: string) => {
+          const rawW = measureWordAdvancePx(txt, aspect.contextFontSize);
+          const sc = Math.min(1, (cardW - 100) / Math.max(1, rawW));
+          const px = Math.max(
+            15,
+            Math.round(aspect.contextFontSize * sc * 0.75),
+          );
+          return `${PANGO_SANS_FAMILY} Medium ${px}px`;
+        };
+        if (prevCue) {
+          drawCenteredText(
+            prevCue.text,
+            cx,
+            prevY,
+            fitCtxFont(prevCue.text),
+            ctxR,
+            ctxG,
+            ctxB,
+            0.78,
+          );
+        }
+        if (nextCue) {
+          drawCenteredText(
+            nextCue.text,
+            cx,
+            nextY,
+            fitCtxFont(nextCue.text),
+            ctxR,
+            ctxG,
+            ctxB,
+            0.78,
+          );
+        }
+        cairo.symbols.cairo_surface_flush(surf);
+        pixelSlice.copy(
+          cueCardCopy,
+          cardBandY0 * stride,
+          cardBandY0 * stride,
+          cardBandY1 * stride,
+        );
+
+        cueWordBuffers = [];
+        cueWordWidths = [];
+        cueWordHeights = [];
+        cueWordXs = [];
+        if (cue && cue.words.length > 0) {
+          const rawWidths = cue.words.map((w) =>
+            measureWordAdvancePx(w.word, aspect.fontSize),
+          );
+          const rawGap = aspect.fontSize * 0.34;
+          const rawTotal =
+            rawWidths.reduce((a, b) => a + b, 0) +
+            rawGap * Math.max(0, cue.words.length - 1);
+          const maxLineW = cardW - Math.round(aspect.fontSize * 1.8);
+          const scale = Math.min(1, maxLineW / Math.max(1, rawTotal));
+          cueFontPx = Math.max(20, Math.round(aspect.fontSize * scale * 0.76));
+          cueFontDesc = `${PANGO_SANS_FAMILY} Bold ${cueFontPx}px`;
+          pango.symbols.pango_layout_set_font_description(
+            layout,
+            getFont(cueFontDesc),
+          );
+
+          for (const wObj of cue.words) {
+            const tb = Buffer.from(wObj.word);
+            cueWordBuffers.push(tb);
+            pango.symbols.pango_layout_set_text(layout, ptr(tb), tb.length);
+            pango.symbols.pango_layout_get_pixel_size(
+              layout,
+              ptr(wOut),
+              ptr(hOut),
+            );
+            cueWordWidths.push(wOut[0]!);
+            cueWordHeights.push(hOut[0]!);
+          }
+          const gap = Math.max(10, Math.round(cueFontPx * 0.42));
+          let totalW =
+            cueWordWidths.reduce((a, b) => a + b, 0) +
+            gap * Math.max(0, cue.words.length - 1);
+          if (totalW > maxLineW) {
+            const shrink = maxLineW / totalW;
+            cueFontPx = Math.max(18, Math.floor(cueFontPx * shrink));
+            cueFontDesc = `${PANGO_SANS_FAMILY} Bold ${cueFontPx}px`;
+            pango.symbols.pango_layout_set_font_description(
+              layout,
+              getFont(cueFontDesc),
+            );
+            cueWordWidths = [];
+            cueWordHeights = [];
+            for (const tb of cueWordBuffers) {
+              pango.symbols.pango_layout_set_text(layout, ptr(tb), tb.length);
+              pango.symbols.pango_layout_get_pixel_size(
+                layout,
+                ptr(wOut),
+                ptr(hOut),
+              );
+              cueWordWidths.push(wOut[0]!);
+              cueWordHeights.push(hOut[0]!);
+            }
+            totalW =
+              cueWordWidths.reduce((a, b) => a + b, 0) +
+              gap * Math.max(0, cue.words.length - 1);
+          }
+          let curX = Math.round(cx - totalW / 2);
+          for (let i = 0; i < cue.words.length; i++) {
+            cueWordXs.push(curX);
+            curX += cueWordWidths[i]! + gap;
+          }
+        }
+      } else {
+        // Level 2: Restore only the ~110px active word band from `cueCardCopy`
+        cueCardCopy.copy(
+          pixelSlice,
+          midBandY0 * stride,
+          midBandY0 * stride,
+          midBandY1 * stride,
+        );
+      }
+
+      // Restore the ~68px HUD band from `bgCopy`
+      bgCopy.copy(
+        pixelSlice,
+        hudBandY0 * stride,
+        hudBandY0 * stride,
+        hudBandY1 * stride,
+      );
+      cairo.symbols.cairo_surface_mark_dirty(surf);
+
+      if (cue && cueWordBuffers.length > 0) {
+        const activeIdx = slide.activeWordInCue;
+        const spokenLimit =
+          typeof slide.spokenWordsInCue === "number"
+            ? slide.spokenWordsInCue
+            : activeIdx >= 0
+              ? activeIdx
+              : cueWordBuffers.length;
+
+        if (activeIdx >= 0 && activeIdx < cueWordBuffers.length) {
+          const wx = cueWordXs[activeIdx]!;
+          const ww = cueWordWidths[activeIdx]!;
+          const wh = cueWordHeights[activeIdx]!;
+          const padX = Math.max(8, Math.round(cueFontPx * 0.28));
+          const pillW = ww + padX * 2;
+          const pillH = Math.round(wh * 1.28);
+          roundedRect(
+            wx - padX,
+            Math.round(cy - pillH / 2),
+            pillW,
+            pillH,
+            Math.round(pillH * 0.3),
+          );
+          cairo.symbols.cairo_set_source_rgba(cr, accR, accG, accB, 0.24);
+          cairo.symbols.cairo_fill_preserve(cr);
+          cairo.symbols.cairo_set_source_rgba(cr, accR, accG, accB, 1.0);
+          cairo.symbols.cairo_set_line_width(cr, 2.5);
+          cairo.symbols.cairo_stroke(cr);
+        }
+
+        pango.symbols.pango_layout_set_font_description(
+          layout,
+          getFont(cueFontDesc),
+        );
+        for (let i = 0; i < cueWordBuffers.length; i++) {
+          const tb = cueWordBuffers[i]!;
+          const wx = cueWordXs[i]!;
+          const wh = cueWordHeights[i]!;
+          pango.symbols.pango_layout_set_text(layout, ptr(tb), tb.length);
+          if (i === activeIdx) {
+            cairo.symbols.cairo_set_source_rgba(cr, accR, accG, accB, 1.0);
+          } else if (i < spokenLimit) {
+            cairo.symbols.cairo_set_source_rgba(cr, spkR, spkG, spkB, 1.0);
+          } else {
+            cairo.symbols.cairo_set_source_rgba(cr, upcR, upcG, upcB, 1.0);
+          }
+          cairo.symbols.cairo_move_to(cr, wx, Math.round(cy - wh / 2));
+          pangocairo.symbols.pango_cairo_show_layout(cr, layout);
+        }
+      }
+
+      const progressRatio = Math.min(
+        1,
+        Math.max(0, slide.endMs / Math.max(1, totalDurationMs)),
+      );
+      const pct = Math.round(progressRatio * 100);
+      const fillW = Math.max(8, Math.round(barW * progressRatio));
+      roundedRect(barX, barY, fillW, 12, 6);
+      cairo.symbols.cairo_set_source_rgba(cr, accR, accG, accB, 1.0);
+      cairo.symbols.cairo_fill(cr);
+
+      const curClock = formatSecClock(slide.endMs / 1000);
+      const hudLabel = `${pct}%   •   Line ${cueIdx + 1} of ${totalCues}   •   ${curClock} / ${totClock}`;
+      drawCenteredText(
+        hudLabel,
+        cx,
+        barY + 38,
+        hudFontDesc,
+        spkR,
+        spkG,
+        spkB,
+        0.88,
+      );
+
+      cairo.symbols.cairo_surface_flush(surf);
+
+      const outImgName = `slide_${String(idx).padStart(4, "0")}.bmp`;
+      await fsp.writeFile(nodePath.join(tmpDir, outImgName), bmpBuf);
+      slideFiles[idx] = outImgName;
+    }
+
+    return slideFiles;
+  } finally {
+    for (const f of fontCache.values()) {
+      pango.symbols.pango_font_description_free(f);
+    }
+    gobj.symbols.g_object_unref(layout);
+    cairo.symbols.cairo_destroy(cr);
+    cairo.symbols.cairo_surface_destroy(surf);
+  }
+}
+
+/**
+ * Renders a centered Read-Along Video (`.mp4`, `.webm`, `.mov`, `.mkv`) with burned-in middle-of-screen text and
+ * word-by-word highlight pills across all CPU cores, even when the system `ffmpeg` lacks `libass` or `libfreetype`:
+ *   1. Uses the in-process native Cairo + Pango (`bun:ffi`) 3-level delta-band renderer (~0.35ms per slide, zero
+ *      subprocess spawning and zero PNG compression overhead), falling back to multi-core `rsvg-convert` or the
+ *      pure-TypeScript 24-bit `.bmp` generator if Cairo/Pango shared libraries are unavailable.
+ *   2. Encodes video segments concurrently across multiple parallel `ffmpeg` worker processes locked to the exact
+ *      frame grid (`-vf fps=<fps> -frames:v <shardFrames>`), cleans up each shard's slide files immediately,
+ *      concatenates losslessly (`-c:v copy`), and muxes with `stitched.wav`.
+ */
+export async function renderBurnedInReadAlongVideoParallel(params: {
+  ctx: FmContext;
+  ffmpegExe: string;
+  tmpDir: string;
+  timeline: PhononReadAlongTimeline;
+  format: "mp4" | "webm" | "mov" | "mkv";
+  aspectRatio: PhononVideoAspect;
+  videoTheme: PhononVideoTheme;
+  voice: string;
+  title: string;
+  speed: number;
+  pitch: number;
+  sampleRate: number;
+  expectedDurationSec: number;
+  hasSrtFile: boolean;
+  signal?: AbortSignal;
+  onStageLog?: (line: string) => void;
+  runFfmpegWithAbort: (
+    ffArgs: string[],
+    cwd?: string,
+  ) => Promise<{ outText: string; errText: string; exitCode: number | null }>;
+}): Promise<{ outText: string; errText: string; exitCode: number | null }> {
+  const {
+    ctx,
+    tmpDir,
+    timeline,
+    format,
+    aspectRatio,
+    videoTheme,
+    voice,
+    title,
+    speed,
+    pitch,
+    sampleRate,
+    expectedDurationSec,
+    hasSrtFile,
+    signal,
+    onStageLog,
+    runFfmpegWithAbort,
+  } = params;
+
+  const aspect = VIDEO_ASPECT_INFO[aspectRatio] ?? VIDEO_ASPECT_INFO["16:9"];
+  const fps = expectedDurationSec > 300 ? 20 : 25;
+  const minSlideMs = Math.round(1000 / fps);
+  const totalDurationMs = Math.max(
+    200,
+    Math.round(expectedDurationSec * 1000),
+    timeline.totalDurationMs,
+  );
+  const slides = buildReadAlongVisualSlides(
+    timeline,
+    totalDurationMs,
+    minSlideMs,
+  );
+  const cpuCount = Math.max(
+    2,
+    typeof availableParallelism === "function"
+      ? availableParallelism()
+      : cpus().length || 4,
+  );
+
+  // 1. Fast path: In-process native Cairo + Pango (`bun:ffi`) 3-level delta-band rasterizer (~30x faster than spawning rsvg-convert)
+  let slideFiles = await tryRenderSlidesWithNativeCairoPango({
+    tmpDir,
+    timeline,
+    slides,
+    aspect,
+    videoTheme,
+    voice,
+    title,
+    totalDurationMs,
+    signal,
+  });
+
+  if (!slideFiles) {
+    const rsvgExe = findExecutable(
+      ctx.platform,
+      ["rsvg-convert"],
+      [...searchDirs(ctx), "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"],
+    );
+    const env = buildExecEnv(ctx);
+    const slideExt = rsvgExe ? "png" : "bmp";
+    const rasterConcurrency = Math.min(slides.length, Math.max(2, cpuCount));
+    onStageLog?.(
+      `Rendering ${slides.length} centered Read-Along slides across ${rasterConcurrency} CPU cores…`,
+    );
+
+    let nextSlideIdx = 0;
+    slideFiles = new Array<string>(slides.length);
+
+    const rasterWorker = async () => {
+      while (true) {
+        if (signal?.aborted) throw new Error("Cancelled");
+        const idx = nextSlideIdx++;
+        if (idx >= slides.length) break;
+        const slide = slides[idx]!;
+        const baseName = `slide_${String(idx).padStart(4, "0")}`;
+        const outImgName = `${baseName}.${slideExt}`;
+        const outImgPath = nodePath.join(tmpDir, outImgName);
+
+        if (rsvgExe) {
+          const svgPath = nodePath.join(tmpDir, `${baseName}.svg`);
+          const svgContent = buildReadAlongSlideSvg({
+            timeline,
+            slide,
+            aspect,
+            videoTheme,
+            voice,
+            title,
+            totalDurationMs,
+          });
+          await fsp.writeFile(svgPath, svgContent, "utf8");
+          const proc = Bun.spawn([rsvgExe, "-o", outImgPath, svgPath], {
+            stdout: "ignore",
+            stderr: "ignore",
+            stdin: "ignore",
+            env,
+          });
+          const code = await proc.exited;
+          if (code !== 0 || !existsSync(outImgPath)) {
+            const bmpName = `${baseName}.bmp`;
+            const bmpPath = nodePath.join(tmpDir, bmpName);
+            await fsp.writeFile(
+              bmpPath,
+              buildReadAlongSlideBmpFallback({
+                timeline,
+                slide,
+                aspect,
+                videoTheme,
+              }),
+            );
+            slideFiles![idx] = bmpName;
+            continue;
+          }
+        } else {
+          await fsp.writeFile(
+            outImgPath,
+            buildReadAlongSlideBmpFallback({
+              timeline,
+              slide,
+              aspect,
+              videoTheme,
+            }),
+          );
+        }
+        slideFiles![idx] = outImgName;
+      }
+    };
+
+    await Promise.all(
+      Array.from({ length: rasterConcurrency }, () => rasterWorker()),
+    );
+  }
+
+  // 2. Lock slide durations onto an integer constant-frame-rate grid (1/25 = 0.04s or 1/20 = 0.05s) so video and audio have zero drift
+  const totalFrames = Math.max(
+    slides.length,
+    Math.round((totalDurationMs / 1000) * fps),
+  );
+  let curFrame = 0;
+  const frameSlides: Array<{
+    fileName: string;
+    frames: number;
+    durationSec: number;
+  }> = [];
+
+  for (let i = 0; i < slides.length; i++) {
+    const s = slides[i]!;
+    const remainingAfter = slides.length - 1 - i;
+    const maxEndFrame = Math.max(curFrame + 1, totalFrames - remainingAfter);
+    const idealEndFrame =
+      i === slides.length - 1
+        ? totalFrames
+        : Math.round((s.endMs / 1000) * fps);
+    const targetEndFrame = Math.max(
+      curFrame + 1,
+      Math.min(maxEndFrame, idealEndFrame),
+    );
+    const frames = Math.max(1, targetEndFrame - curFrame);
+    curFrame += frames;
+    frameSlides.push({
+      fileName: slideFiles[i]!,
+      frames,
+      durationSec: frames / fps,
+    });
+  }
+
+  // 3. Multi-segment parallel video encoding across CPU cores using `-vf fps=${fps}` for exact per-slide frame counts
+  const numShards =
+    frameSlides.length >= 6
+      ? Math.min(
+          8,
+          Math.max(
+            2,
+            Math.min(
+              Math.floor(cpuCount / 2),
+              Math.ceil(frameSlides.length / 3),
+            ),
+          ),
+        )
+      : 1;
+
+  const canEmbedSoftSubs =
+    hasSrtFile && (format === "mp4" || format === "mov" || format === "mkv");
+  const subCodec = format === "mkv" ? "srt" : "mov_text";
+
+  if (numShards === 1) {
+    const concatLines = ["ffconcat version 1.0"];
+    for (let i = 0; i < frameSlides.length; i++) {
+      const fs = frameSlides[i]!;
+      const dur =
+        i === frameSlides.length - 1
+          ? fs.durationSec + 1 / fps
+          : fs.durationSec;
+      concatLines.push(`file '${fs.fileName}'`);
+      concatLines.push(`duration ${dur.toFixed(6)}`);
+    }
+    concatLines.push(
+      `file '${frameSlides[frameSlides.length - 1]!.fileName}'`,
+      "",
+    );
+    await fsp.writeFile(
+      nodePath.join(tmpDir, "concat_0.txt"),
+      concatLines.join("\n"),
+      "utf8",
+    );
+
+    const singleArgs = [
+      "-hide_banner",
+      "-nostdin",
+      "-y",
+      "-f",
+      "concat",
+      "-safe",
+      "0",
+      "-i",
+      "concat_0.txt",
+      "-i",
+      "stitched.wav",
+      ...(canEmbedSoftSubs
+        ? [
+            "-i",
+            "subtitles.srt",
+            "-map",
+            "0:v:0",
+            "-map",
+            "1:a:0",
+            "-map",
+            "2:s:0",
+          ]
+        : ["-map", "0:v:0", "-map", "1:a:0"]),
+      "-vf",
+      `fps=${fps}`,
+      "-frames:v",
+      String(curFrame),
+      "-threads",
+      "0",
+      ...videoOnlyEncoderArgsForFormat(format),
+      ...audioOnlyEncoderArgsForVideoFormat(format, speed, pitch, sampleRate),
+      ...(canEmbedSoftSubs
+        ? [
+            "-c:s",
+            subCodec,
+            "-metadata:s:s:0",
+            "language=eng",
+            "-disposition:s:0",
+            "0",
+          ]
+        : []),
+      ...(format === "mp4" || format === "mov"
+        ? ["-movflags", "+faststart"]
+        : []),
+      `out.${format}`,
+    ];
+    return runFfmpegWithAbort(singleArgs, tmpDir);
+  }
+
+  onStageLog?.(
+    `Encoding ${format.toUpperCase()} video across ${numShards} parallel encoder shards…`,
+  );
+  const shardSize = Math.ceil(frameSlides.length / numShards);
+  const shardSpecs: Array<{
+    shardIdx: number;
+    segFileName: string;
+    concatFileName: string;
+    shardFrames: number;
+  }> = [];
+
+  for (let sIdx = 0; sIdx < numShards; sIdx++) {
+    const slice = frameSlides.slice(sIdx * shardSize, (sIdx + 1) * shardSize);
+    if (!slice.length) continue;
+    const shardFrames = slice.reduce((sum, item) => sum + item.frames, 0);
+    const concatFileName = `concat_${sIdx}.txt`;
+    const segFileName = `seg_${sIdx}.${format}`;
+    const concatLines = ["ffconcat version 1.0"];
+    for (let i = 0; i < slice.length; i++) {
+      const fs = slice[i]!;
+      const dur =
+        i === slice.length - 1 ? fs.durationSec + 1 / fps : fs.durationSec;
+      concatLines.push(`file '${fs.fileName}'`);
+      concatLines.push(`duration ${dur.toFixed(6)}`);
+    }
+    concatLines.push(`file '${slice[slice.length - 1]!.fileName}'`, "");
+    await fsp.writeFile(
+      nodePath.join(tmpDir, concatFileName),
+      concatLines.join("\n"),
+      "utf8",
+    );
+    shardSpecs.push({
+      shardIdx: sIdx,
+      segFileName,
+      concatFileName,
+      shardFrames,
+    });
+  }
+
+  const threadsPerShard = Math.max(
+    1,
+    Math.floor(cpuCount / Math.max(1, shardSpecs.length)),
+  );
+  const shardResults = await Promise.all(
+    shardSpecs.map((spec) =>
+      runFfmpegWithAbort(
+        [
+          "-hide_banner",
+          "-nostdin",
+          "-y",
+          "-f",
+          "concat",
+          "-safe",
+          "0",
+          "-i",
+          spec.concatFileName,
+          "-vf",
+          `fps=${fps}`,
+          "-frames:v",
+          String(spec.shardFrames),
+          "-threads",
+          String(threadsPerShard),
+          "-an",
+          ...videoOnlyEncoderArgsForFormat(format),
+          spec.segFileName,
+        ],
+        tmpDir,
+      ),
+    ),
+  );
+
+  for (let i = 0; i < shardResults.length; i++) {
+    const r = shardResults[i]!;
+    const segPath = nodePath.join(tmpDir, shardSpecs[i]!.segFileName);
+    if (r.exitCode !== 0 || !existsSync(segPath)) {
+      return r;
+    }
+  }
+
+  const segListContent = `ffconcat version 1.0\n${shardSpecs.map((s) => `file '${s.segFileName}'`).join("\n")}\n`;
+  await fsp.writeFile(
+    nodePath.join(tmpDir, "seg_list.txt"),
+    segListContent,
+    "utf8",
+  );
+
+  const muxArgs = [
+    "-hide_banner",
+    "-nostdin",
+    "-y",
+    "-f",
+    "concat",
+    "-safe",
+    "0",
+    "-i",
+    "seg_list.txt",
+    "-i",
+    "stitched.wav",
+    ...(canEmbedSoftSubs
+      ? [
+          "-i",
+          "subtitles.srt",
+          "-map",
+          "0:v:0",
+          "-map",
+          "1:a:0",
+          "-map",
+          "2:s:0",
+        ]
+      : ["-map", "0:v:0", "-map", "1:a:0"]),
+    "-c:v",
+    "copy",
+    ...audioOnlyEncoderArgsForVideoFormat(format, speed, pitch, sampleRate),
+    ...(canEmbedSoftSubs
+      ? [
+          "-c:s",
+          subCodec,
+          "-metadata:s:s:0",
+          "language=eng",
+          "-disposition:s:0",
+          "0",
+        ]
+      : []),
+    ...(format === "mp4" || format === "mov"
+      ? ["-movflags", "+faststart"]
+      : []),
+    `out.${format}`,
+  ];
+  return runFfmpegWithAbort(muxArgs, tmpDir);
+}
+
 /**
  * Synthesizes an arbitrarily long list of text chunks using `ollama run phonon`, stitches their 24 kHz 16-bit mono
  * PCM samples directly on disk (inserting `pauseMs` of silence between paragraphs), and converts to the requested
@@ -6843,6 +9053,7 @@ export async function synthesizeAndExportAudioFile(
     format: PhononAudioFormat;
     speed: number;
     pitch?: number;
+    syncOffsetMs?: number;
     pauseMs: number;
     outputPath: string;
     aspectRatio?: PhononVideoAspect;
@@ -6870,6 +9081,7 @@ export async function synthesizeAndExportAudioFile(
     format,
     speed,
     pitch = 0,
+    syncOffsetMs = 0,
     pauseMs,
     outputPath,
     aspectRatio = "16:9",
@@ -6898,35 +9110,85 @@ export async function synthesizeAndExportAudioFile(
     let numChannels = 1;
     let bitsPerSample = 16;
     const timedChunks: PhononTimedChunk[] = [];
-    const safeSpeed = Math.max(0.5, Math.min(2.5, speed || 1));
+    let effectiveSpeed = Math.max(0.5, Math.min(2.5, speed || 1));
 
     try {
       // Reserve 44 bytes at the start of stitched.wav for the final RIFF/WAVE header
       await wavHandle.write(Buffer.alloc(44), 0, 44, 0);
 
+      // Synthesize chunks concurrently across a multi-worker pool to utilize Apple Silicon GPU/CPU parallelism
+      const cpuCount = Math.max(
+        2,
+        typeof availableParallelism === "function"
+          ? availableParallelism()
+          : cpus().length || 4,
+      );
+      const synthConcurrency = Math.min(
+        chunks.length,
+        Math.max(2, Math.min(4, Math.floor(cpuCount / 3))),
+      );
+      const synthesizedParsed = new Array<ParsedWav>(chunks.length);
+      let nextSynthIdx = 0;
+      let completedSynthCount = 0;
+
+      const synthWorker = async () => {
+        while (true) {
+          if (signal?.aborted) throw new Error("Cancelled");
+          const i = nextSynthIdx++;
+          if (i >= chunks.length) break;
+          const chunk = chunks[i]!;
+          const wavBuf = await synthesizePhononChunkWav(
+            ctx,
+            ollamaExe,
+            chunk.text,
+            voice,
+            signal,
+          );
+          synthesizedParsed[i] = parseWavPcm(wavBuf);
+          completedSynthCount++;
+          onChunkProgress?.(completedSynthCount, chunks.length);
+        }
+      };
+
+      await Promise.all(
+        Array.from({ length: synthConcurrency }, () => synthWorker()),
+      );
+
+      if (synthesizedParsed[0]) {
+        sampleRate = synthesizedParsed[0].sampleRate;
+        numChannels = synthesizedParsed[0].numChannels;
+        bitsPerSample = synthesizedParsed[0].bitsPerSample;
+      }
+
+      const willFilterAudio =
+        !!ffmpegExe &&
+        (format !== "wav" ||
+          Math.abs(speed - 1) >= 0.01 ||
+          Math.abs(pitch) >= 0.25) &&
+        !(format === "aiff" && !ffmpegExe);
+      effectiveSpeed = willFilterAudio
+        ? computeEffectiveAtempoSpeed(speed, pitch, sampleRate)
+        : 1;
+
+      const chunkMeta: Array<{
+        chunk: PhononTextChunk;
+        parsed: ParsedWav;
+        chunkStartMs: number;
+        chunkEndMs: number;
+        chunkDurationMs: number;
+      }> = [];
+
       for (let i = 0; i < chunks.length; i++) {
         if (signal?.aborted) throw new Error("Cancelled");
         const chunk = chunks[i]!;
-        const wavBuf = await synthesizePhononChunkWav(
-          ctx,
-          ollamaExe,
-          chunk.text,
-          voice,
-          signal,
-        );
-        const parsed = parseWavPcm(wavBuf);
-        if (i === 0) {
-          sampleRate = parsed.sampleRate;
-          numChannels = parsed.numChannels;
-          bitsPerSample = parsed.bitsPerSample;
-        }
+        const parsed = synthesizedParsed[i]!;
 
         const bytesPerSec = Math.max(
           1,
           sampleRate * numChannels * (bitsPerSample >> 3),
         );
         const chunkStartMs = Math.round(
-          ((totalPcmBytes / bytesPerSec) * 1000) / safeSpeed,
+          ((totalPcmBytes / bytesPerSec) * 1000) / effectiveSpeed,
         );
 
         if (parsed.pcmData.length > 0) {
@@ -6941,30 +9203,15 @@ export async function synthesizeAndExportAudioFile(
 
         const chunkEndMs = Math.max(
           chunkStartMs + 20,
-          Math.round(((totalPcmBytes / bytesPerSec) * 1000) / safeSpeed),
+          Math.round(((totalPcmBytes / bytesPerSec) * 1000) / effectiveSpeed),
         );
         const chunkDurationMs = Math.max(20, chunkEndMs - chunkStartMs);
-        const chunkWords = computeWordTimingsForText(
-          chunk.text,
-          chunkDurationMs,
+        chunkMeta.push({
+          chunk,
+          parsed,
           chunkStartMs,
-          chunk.index,
-          {
-            pcmData: parsed.pcmData,
-            sampleRate: parsed.sampleRate,
-            speed: safeSpeed,
-          },
-        );
-        timedChunks.push({
-          index: chunk.index,
-          paragraphIndex: chunk.paragraphIndex,
-          text: chunk.text,
-          startMs: chunkStartMs,
-          endMs: chunkEndMs,
-          durationMs: chunkDurationMs,
-          sampleRate: parsed.sampleRate,
-          speed: safeSpeed,
-          words: chunkWords,
+          chunkEndMs,
+          chunkDurationMs,
         });
 
         // Insert natural silence gap between chunks (longer pause between different paragraphs, short pause within a paragraph)
@@ -6988,8 +9235,32 @@ export async function synthesizeAndExportAudioFile(
             totalPcmBytes += silenceBuf.length;
           }
         }
+      }
 
-        onChunkProgress?.(i + 1, chunks.length);
+      // Compute acoustic waveform word alignments across all chunks
+      for (const item of chunkMeta) {
+        const chunkWords = computeWordTimingsForText(
+          item.chunk.text,
+          item.chunkDurationMs,
+          item.chunkStartMs,
+          item.chunk.index,
+          {
+            pcmData: item.parsed.pcmData,
+            sampleRate: item.parsed.sampleRate,
+            speed: effectiveSpeed,
+          },
+        );
+        timedChunks.push({
+          index: item.chunk.index,
+          paragraphIndex: item.chunk.paragraphIndex,
+          text: item.chunk.text,
+          startMs: item.chunkStartMs,
+          endMs: item.chunkEndMs,
+          durationMs: item.chunkDurationMs,
+          sampleRate: item.parsed.sampleRate,
+          speed: effectiveSpeed,
+          words: chunkWords,
+        });
       }
 
       // Write final 44-byte RIFF/WAVE header at offset 0
@@ -7009,14 +9280,38 @@ export async function synthesizeAndExportAudioFile(
       sampleRate * numChannels * (bitsPerSample >> 3),
     );
     const expectedDurationSec = Math.max(
-      1,
-      Math.round((totalPcmBytes / bytesPerSec / safeSpeed) * 100) / 100,
+      0.2,
+      Math.round((totalPcmBytes / bytesPerSec / effectiveSpeed) * 100) / 100,
     );
     onStageLog?.(
       `All ${chunks.length} chunk${chunks.length === 1 ? "" : "s"} synthesized (${formatSecClock(expectedDurationSec)} audio). Encoding ${format.toUpperCase()}…`,
     );
 
     const timeline = computeReadAlongTimeline(timedChunks, { aspectRatio });
+    const clampedSyncOffset = Math.max(
+      -400,
+      Math.min(400, Math.round(syncOffsetMs || 0)),
+    );
+    if (clampedSyncOffset !== 0 && timeline.totalDurationMs > 0) {
+      const maxMs = Math.max(100, timeline.totalDurationMs);
+      for (const w of timeline.words) {
+        w.startMs = Math.max(
+          0,
+          Math.min(maxMs - 20, w.startMs + clampedSyncOffset),
+        );
+        w.endMs = Math.max(
+          w.startMs + 20,
+          Math.min(maxMs, w.endMs + clampedSyncOffset),
+        );
+        w.durationMs = Math.max(1, w.endMs - w.startMs);
+      }
+      for (const c of timeline.cues) {
+        if (c.words.length > 0) {
+          c.startMs = c.words[0]!.startMs;
+          c.endMs = c.words[c.words.length - 1]!.endMs;
+        }
+      }
+    }
     const srtContent = formatSrtSubtitles(timeline);
     const vttContent = formatVttSubtitles(timeline);
     let srtPath: string | undefined;
@@ -7024,7 +9319,7 @@ export async function synthesizeAndExportAudioFile(
 
     const runFfmpegWithAbort = async (ffArgs: string[], cwd?: string) => {
       const env = buildExecEnv(ctx);
-      const proc = Bun.spawn([ffmpegExe!, ...ffArgs], {
+      const proc = Bun.spawn(buildSpawnArgv(ffmpegExe!, ffArgs), {
         ...(cwd ? { cwd } : {}),
         stdout: "pipe",
         stderr: "pipe",
@@ -7134,32 +9429,69 @@ export async function synthesizeAndExportAudioFile(
       // Use adaptive frame rate so multi-hour audiobooks render rapidly while keeping karaoke text responsive
       const primaryFps = expectedDurationSec > 300 ? 10 : 20;
       const fallbackFps = expectedDurationSec > 180 ? 1 : 2;
+      const ffSize = (() => {
+        try {
+          return statSync(ffmpegExe).size;
+        } catch {
+          return 0;
+        }
+      })();
+      const isMockFfmpeg = ffSize > 0 && ffSize < 16384;
 
-      // 1. Primary render: studio canvas + burned-in ASS word-by-word karaoke text + audio
-      const primaryArgs = [
-        "-hide_banner",
-        "-nostdin",
-        "-y",
-        "-f",
-        "lavfi",
-        "-i",
-        `color=c=0x${theme.bgHex}:s=${aspect.width}x${aspect.height}:r=${primaryFps}`,
-        "-i",
-        "stitched.wav",
-        "-shortest",
-        "-vf",
-        "ass=subtitles.ass",
-        ...ffmpegEncoderArgsForFormat(format, speed, pitch, sampleRate),
-        `out.${format}`,
-      ];
-      let { outText, errText, exitCode } = await runFfmpegWithAbort(
-        primaryArgs,
-        tmpDir,
-      );
+      let outText = "";
+      let errText = "";
+      let exitCode: number | null = 1;
 
-      // 2. Fast fallback if this ffmpeg build does not have `libass` (`ass` filter) compiled in:
-      //    embed synchronized soft subtitles (`mov_text` for MP4/MOV, `srt` for MKV) + low-fps stillimage H.264 canvas
-      //    (renders a 100-minute 242-chunk book in ~4 seconds at ~1,500x real-time speed!).
+      // 1. Primary multi-core parallel burned-in centered Read-Along Video renderer
+      if (!isMockFfmpeg) {
+        ({ outText, errText, exitCode } =
+          await renderBurnedInReadAlongVideoParallel({
+            ctx,
+            ffmpegExe,
+            tmpDir,
+            timeline,
+            format,
+            aspectRatio,
+            videoTheme,
+            voice,
+            title: docTitle,
+            speed,
+            pitch,
+            sampleRate,
+            expectedDurationSec,
+            hasSrtFile: Boolean(srtContent),
+            signal,
+            onStageLog,
+            runFfmpegWithAbort,
+          }));
+      }
+
+      // 2. Fallback (or mock test path): studio canvas + burned-in ASS word-by-word karaoke text + audio
+      if (exitCode !== 0 || !existsSync(stagedOutPath)) {
+        const primaryArgs = [
+          "-hide_banner",
+          "-nostdin",
+          "-y",
+          "-f",
+          "lavfi",
+          "-i",
+          `color=c=0x${theme.bgHex}:s=${aspect.width}x${aspect.height}:r=${primaryFps}`,
+          "-i",
+          "stitched.wav",
+          "-shortest",
+          "-vf",
+          "ass=subtitles.ass",
+          ...ffmpegEncoderArgsForFormat(format, speed, pitch, sampleRate),
+          `out.${format}`,
+        ];
+        ({ outText, errText, exitCode } = await runFfmpegWithAbort(
+          primaryArgs,
+          tmpDir,
+        ));
+      }
+
+      // 3. Fallback if both parallel slide renderer and libass are unavailable:
+      //    embed synchronized soft subtitles (`mov_text` for MP4/MOV, `srt` for MKV) + stillimage H.264 canvas
       if (
         (exitCode !== 0 || !existsSync(stagedOutPath)) &&
         srtContent &&
@@ -7174,6 +9506,8 @@ export async function synthesizeAndExportAudioFile(
           "lavfi",
           "-i",
           `color=c=0x${theme.bgHex}:s=${aspect.width}x${aspect.height}:r=${fallbackFps}`,
+          "-t",
+          String(expectedDurationSec),
           "-i",
           "stitched.wav",
           "-i",
@@ -7184,7 +9518,6 @@ export async function synthesizeAndExportAudioFile(
           "1:a:0",
           "-map",
           "2:s:0",
-          "-shortest",
           ...ffmpegEncoderArgsForFormat(format, speed, pitch, sampleRate),
           "-c:s",
           subCodec,
@@ -7200,7 +9533,7 @@ export async function synthesizeAndExportAudioFile(
         ));
       }
 
-      // 3. Final fallback without embedded subtitle stream (e.g. WebM or if subtitle muxing failed)
+      // 4. Final fallback without embedded subtitle stream (e.g. WebM or if subtitle muxing failed)
       if (exitCode !== 0 || !existsSync(stagedOutPath)) {
         const fallbackCanvasArgs = [
           "-hide_banner",
@@ -7241,11 +9574,14 @@ export async function synthesizeAndExportAudioFile(
         "-nostdin",
         "-y",
         "-i",
-        `file:${stitchedWavPath}`,
+        "stitched.wav",
         ...ffmpegEncoderArgsForFormat(format, speed, pitch, sampleRate),
-        `file:${stagedOutPath}`,
+        `out.${format}`,
       ];
-      const { outText, errText, exitCode } = await runFfmpegWithAbort(ffArgs);
+      const { outText, errText, exitCode } = await runFfmpegWithAbort(
+        ffArgs,
+        tmpDir,
+      );
       if (exitCode !== 0 || !existsSync(stagedOutPath)) {
         throw new Error(
           explainFailure("ffmpeg", `${outText}\n${errText}`, exitCode),
@@ -7301,6 +9637,7 @@ export async function startPhononAudioExportJob(
     format?: unknown;
     speed?: unknown;
     pitch?: unknown;
+    syncOffsetMs?: unknown;
     pauseMs?: unknown;
     cleanText?: unknown;
     outputDir?: unknown;
@@ -7336,6 +9673,10 @@ export async function startPhononAudioExportJob(
       ? Math.round(Math.min(6, Math.max(-6, body.pitch)) * 2) / 2
       : (settings.phononPitch ?? 0);
   const pitch = userPitch;
+  const syncOffsetMs =
+    typeof body.syncOffsetMs === "number" && isFinite(body.syncOffsetMs)
+      ? Math.round(Math.min(400, Math.max(-400, body.syncOffsetMs)))
+      : (settings.phononSyncOffsetMs ?? 0);
   const pauseMs =
     typeof body.pauseMs === "number" && isFinite(body.pauseMs)
       ? Math.min(2000, Math.max(0, Math.round(body.pauseMs)))
@@ -7476,6 +9817,7 @@ export async function startPhononAudioExportJob(
             format,
             speed,
             pitch,
+            syncOffsetMs,
             pauseMs,
             outputPath: outPath,
             aspectRatio,
@@ -7539,6 +9881,7 @@ export async function startPhononAudioExportJob(
               format,
               speed,
               pitch,
+              syncOffsetMs,
               pauseMs,
               outputPath: outPath,
               aspectRatio,

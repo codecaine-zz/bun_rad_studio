@@ -899,10 +899,735 @@ function parseOdtBlocks(xml: string): {
   return { blocks, plainText: plainLines.join("\n\n") };
 }
 
+/**
+ * Strips broken Calibre and Pandoc conversion clutter from EPUB/Markdown/text content:
+ *   - `{.calibre*}`, `{#id .class key="val"}` attribute blocks
+ *   - `::: {.calibre*}` / `:::` Pandoc fenced divs
+ *   - `[]{#...}` empty anchor spans and `[text]{.calibre*}` bracketed spans
+ *   - `<svg>...</svg>` inline vector blocks and decorative cover/ornament image tags
+ *   - Pandoc backslash-escaped quotes (`\'`, `\"`), punctuation (`\-`, `\.`), and stray backslashes
+ */
+export function cleanEpubAndPandocClutter(input: string): string {
+  if (!input) return "";
+  let s = input.replace(/^\ufeff/, "").replace(/\r\n?/g, "\n");
+
+  // 1. Strip <svg>...</svg> blocks, self-closing <svg .../> tags, and Pandoc raw `{=html}` blocks/spans
+  s = s.replace(/<svg\b[\s\S]*?<\/svg\s*>/gi, "");
+  s = s.replace(/<svg\b[^>]*\/>/gi, "");
+  s = s.replace(/^ {0,3}(`{3,}|~{3,})\{=html\}[\s\S]*?^ {0,3}\1[ \t]*$/gm, "");
+  s = s.replace(/`[^`\n]*`\{=html\}/gi, "");
+
+  // 2. Strip Pandoc fenced div lines (e.g. "::: {.calibre1}", "::: calibre2", "::::::")
+  s = s.replace(
+    /^[ \t]*:{3,}(?:[ \t]*\{[^}\n]*\}|[ \t]*[A-Za-z0-9_.!:-]+)?[ \t]*$/gm,
+    "",
+  );
+  s = s.replace(/:{3,}[ \t]*\{[^}\n]*\}/g, "");
+
+  // 3. Strip empty Pandoc anchor spans/links: []{#id .calibre1}, [](#anchor)
+  s = s.replace(/\[\][ \t]*\{[^}\n]*\}/g, "");
+  s = s.replace(/\[\]\(#[^)\n]*\)/g, "");
+
+  // 4. Unwrap Pandoc bracketed spans with attributes: [text]{.calibre1 #part0000_split_004.html} -> text (up to 5 nested levels)
+  const attrBlockPat =
+    /\{(?:=html|[.#][A-Za-z0-9_.!:-]+|[A-Za-z0-9_:-]+\s*=\s*(?:"[^"\n]*"|'[^'\n]*'|[^\s}\n]+)|\bcalibre[A-Za-z0-9_-]*)(?:\s+(?:[.#][A-Za-z0-9_.!:-]+|[A-Za-z0-9_:-]+\s*=\s*(?:"[^"\n]*"|'[^'\n]*'|[^\s}\n]+)|\bcalibre[A-Za-z0-9_-]*))*\}/g;
+  const spanRe = new RegExp(
+    `\\[((?:[^\\[\\]]|\\[[^\\]\\n]*\\]\\([^)\\n]*\\)){1,4000})\\]${attrBlockPat.source}`,
+    "g",
+  );
+  for (let pass = 0; pass < 5; pass++) {
+    const next = s.replace(spanRe, "$1");
+    if (next === s) break;
+    s = next;
+  }
+
+  // Unwrap internal EPUB/Pandoc TOC anchor links: [Chapter 1](#part0000_split_003.html__Toc...) -> Chapter 1
+  s = s.replace(/\[([^\]\n]+)\]\(#[^)\n]*\)(?:\{[^}\n]*\})?/g, "$1");
+
+  // 5. Strip Markdown decorative/cover image tags from Calibre/Pandoc conversions
+  s = s.replace(
+    /!\[[^\]]*\]\([^)\n]*(?:calibre|cover|ornament|divider|spacer|fleuron|titlepage)[^)\n]*\)(?:\{[^}\n]*\})?/gi,
+    "",
+  );
+  s = s.replace(/!\[\]\([^)\n]+\)(?:\{[^}\n]*\})?/g, "");
+
+  // 6. Strip remaining Pandoc/Calibre/Kramdown attribute blocks: {.calibre1}, {#part0000_split_004.html_calibre_pb_10 .calibre15}
+  s = s.replace(new RegExp(`[ \\t]*${attrBlockPat.source}`, "g"), "");
+
+  // Strip stray standalone HTML closing/opening structural tags (`</p>`, `<p>`, `</div>`, `</span>`, `<br/>`) and nbsp-only lines
+  s = s.replace(/^[ \t]*<\/?(?:p|div|span|br)\s*\/?>[ \t]*$/gim, "");
+  s = s.replace(/^[ \t\u00A0]+$/gm, "");
+
+  // 7. Unescape Pandoc backslash-escaped quotes, apostrophes, and punctuation (\', \", \-, \., \@, etc.) and stray backslashes
+  //    while preserving Windows drive/UNC file paths (e.g. C:\Users\alice\notes.txt or \\server\share\file.md).
+  const winPathTokens: string[] = [];
+  s = s.replace(
+    /(?:\b[A-Za-z]:\\(?:[^\s\\/:*?"<>|]+\\)*[^\s\\/:*?"<>|]+|\\\\[^\s\\/:*?"<>|]+\\[^\s\\/:*?"<>|]+(?:\\[^\s\\/:*?"<>|]+)*)/g,
+    (m) => {
+      const idx = winPathTokens.length;
+      winPathTokens.push(m);
+      return `\uE000WINPATH_${idx}\uE001`;
+    },
+  );
+  s = s
+    .replace(/\\'/g, "'")
+    .replace(/\\"/g, '"')
+    .replace(/\\([\\’‘“”—–…!?,;:.()[\]{}/+*_#~&$@^%=<>|`-])/g, "$1")
+    // Pandoc trailing hard line-break backslashes at end of line
+    .replace(/\\+[ \t]*$/gm, "")
+    // Stray backslashes before letters, digits, quotes, or whitespace
+    .replace(/\\+(?=[A-Za-z0-9'"“”‘’\s]|$)/g, "");
+  if (winPathTokens.length > 0) {
+    s = s.replace(
+      /\uE000WINPATH_(\d+)\uE001/g,
+      (_m, d) => winPathTokens[Number(d)] ?? "",
+    );
+  }
+
+  return s;
+}
+
+const GENUINE_COMMENTARY_TITLE_RE =
+  /^(?:author['’‘]?s?\s+notes?|a\s+(?:note|word|plea|message|letter)\s+from(?:\s+the\s+author)?|notes?\s+from\s+the\s+author|from\s+the\s+author|final\s+thoughts\b|introduction|intro|foreword|preface|prologue|epilogue|epilog|afterword|postscript|coda|acknowledg(?:e)?ments?|dedication|historical\s+note|reader['’‘]?s?\s+notes?)\b/i;
+
+const EXPLICIT_PROMO_TITLE_RE =
+  /\b(?:sneak\s+pe[ea]k|sneak\s+preview|(?:special|bonus|exclusive)\s+(?:sneak\s+)?(?:preview|chapter|excerpt|scene|sample)|preview\s+of\b|excerpt\s+from\b|sample\s+chapter|teaser\s+chapter|also\s+(?:by|available)\b|other\s+(?:books|titles|works|novels|stories)\s+(?:by|from)\b|more\s+(?:books|titles|works|stories)?\s*(?:from|by)\b|from\s+the\s+same\s+author\b|books\s+by\b|about\s+the\s+publisher|newsletter\s+sign[\s-]?up)\b/i;
+
+const EXPLICIT_PROMO_BODY_RE =
+  /\b(?:sneak\s+pe[ea]k\s+(?:at|of|from)|keep\s+reading\s+for\s+a\s+(?:sneak\s+pe[ea]k|preview|sample|special\s+preview|first\s+look)|turn\s+the\s+page\s+for\s+a\s+(?:sneak\s+pe[ea]k|preview|sample|excerpt)|read\s+on\s+for\s+an?\s+(?:sneak\s+pe[ea]k|preview|excerpt|sample)|here(?:'s|’s|\s+is)\s+(?:the\s+introduction\s+and\s+)?(?:a|an|the)?\s*(?:sneak\s+pe[ea]k|preview|excerpt|sample(?:\s+chapter)?|first\s+chapter|opening\s+chapter|bonus\s+chapter)\s+(?:of|at|from)\b|excerpt\s+from\b|sample\s+chapter\s+from\b|end\s+of\s+sample\b)/i;
+
+const SPELLED_CHAPTER_ONES: Record<string, number> = {
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+  eleven: 11,
+  twelve: 12,
+  thirteen: 13,
+  fourteen: 14,
+  fifteen: 15,
+  sixteen: 16,
+  seventeen: 17,
+  eighteen: 18,
+  nineteen: 19,
+};
+
+const SPELLED_CHAPTER_TENS: Record<string, number> = {
+  twenty: 20,
+  thirty: 30,
+  forty: 40,
+  fifty: 50,
+  sixty: 60,
+  seventy: 70,
+  eighty: 80,
+  ninety: 90,
+  hundred: 100,
+};
+
+function parseSpelledWordNumber(raw: string): number | null {
+  const tok = raw
+    .toLowerCase()
+    .replace(/[\u2012-\u2015\u2212]+/g, "-")
+    .trim();
+  if (/^\d+$/.test(tok)) return Number(tok);
+  if (SPELLED_CHAPTER_ONES[tok] !== undefined)
+    return SPELLED_CHAPTER_ONES[tok]!;
+  if (SPELLED_CHAPTER_TENS[tok] !== undefined)
+    return SPELLED_CHAPTER_TENS[tok]!;
+  const parts = tok.split(/[-\s]+/).filter(Boolean);
+  if (
+    parts.length === 2 &&
+    SPELLED_CHAPTER_TENS[parts[0]!] !== undefined &&
+    SPELLED_CHAPTER_ONES[parts[1]!] !== undefined
+  ) {
+    return SPELLED_CHAPTER_TENS[parts[0]!]! + SPELLED_CHAPTER_ONES[parts[1]!]!;
+  }
+  return null;
+}
+
+function parseChapterNumberFromTitle(title: string): number | null {
+  const clean = cleanEpubAndPandocClutter(title)
+    .replace(/^#+\s*/, "")
+    .replace(/[*_`~]/g, "")
+    .trim();
+  const m = /^(?:chapter|ch\.?)\s+(\d+|[a-z]+(?:[-\s][a-z]+)?)\b/i.exec(clean);
+  if (m) {
+    return parseSpelledWordNumber(m[1]!);
+  }
+  const numLead = /^(\d{1,3})(?:\s*[:.\-\u2012-\u2015\u2212]\s*|\s*$)/.exec(
+    clean,
+  );
+  if (numLead) return Number(numLead[1]);
+  return null;
+}
+
+function parseSeriesStemAndNumber(
+  bookTitle?: string,
+): { stem: string; num: number } | null {
+  if (!bookTitle) return null;
+  const cleaned = bookTitle
+    .replace(/\.[a-z0-9]{2,6}$/i, "")
+    .replace(/_/g, " ")
+    .trim();
+  // Do not treat multi-book ranges or omnibus/box-set titles (e.g. "Broken Pieces 1 - 3", "Books 1-4", "Box Set") as a single book number
+  if (
+    /\b(?:box\s*set|omnibus|collection|anthology|complete\s+series)\b/i.test(
+      cleaned,
+    ) ||
+    /\b\d{1,2}\s*(?:[-–—]|to|through)\s*\d{1,2}\b/i.test(cleaned)
+  ) {
+    return null;
+  }
+  const norm = cleaned.replace(/[-–—]+/g, " ").trim();
+  const m =
+    /^([A-Za-z][A-Za-z0-9\s'’]{2,40}?)\s*(?:[:.]\s*)?(?:book\s+|part\s+|vol(?:ume)?\.?\s+|#)?(\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten)\b/i.exec(
+      norm,
+    );
+  if (!m) return null;
+  const num = parseSpelledWordNumber(m[2]!);
+  if (num === null) return null;
+  return {
+    stem: m[1]!.trim().toLowerCase().replace(/\s+/g, " "),
+    num,
+  };
+}
+
+function isSequelTitleMismatch(
+  candidateTitle: string,
+  seriesInfo: { stem: string; num: number } | null,
+): boolean {
+  if (!seriesInfo) return false;
+  const raw = cleanEpubAndPandocClutter(candidateTitle)
+    .replace(/^#+\s*/, "")
+    .replace(/[*_`~]/g, "")
+    .trim();
+  // Only treat short heading/title-like strings as sequel title headers (never multi-sentence prose inside Author's Notes)
+  if (!raw || raw.length > 90 || /[.!?]\s+[A-Z]/.test(raw)) return false;
+
+  const c = raw
+    .toLowerCase()
+    .replace(/[_:\-\u2012-\u2015]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const idx = c.indexOf(seriesInfo.stem);
+  if (idx < 0) return false;
+  const after = c.slice(idx + seriesInfo.stem.length).trim();
+  const numMatch =
+    /^(?:book\s+|part\s+|vol(?:ume)?\s+|#)?(\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten)\b/i.exec(
+      after,
+    );
+  if (numMatch) {
+    const parsed = parseSpelledWordNumber(numMatch[1]!);
+    if (parsed !== null && parsed !== seriesInfo.num) return true;
+  }
+  const beforeMatch =
+    /\b(?:book|part|vol(?:ume)?)\s+(\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten)\s+of\s+(?:the\s+)?/.exec(
+      c.slice(0, idx + 4),
+    );
+  if (beforeMatch) {
+    const parsed = parseSpelledWordNumber(beforeMatch[1]!);
+    if (parsed !== null && parsed !== seriesInfo.num) return true;
+  }
+  return false;
+}
+
+/**
+ * Filters out duplicate chapters and back-matter promo/sneak-peek chapters (such as a sequel sneak-peek chapter
+ * like `Deadlocked 6` appended to `Deadlocked 5`, or an unrelated novel sample like `Suffer Hard` appended to the end
+ * of `Djinn`), while preserving all genuine Author's Notes, Introductions, Forewords, Prologues, and Epilogues.
+ */
+export function filterEpubBackMatterAndDuplicates(
+  chapters: Array<{ title: string; blocks: DocBlock[] }>,
+  bookTitle?: string,
+): Array<{ title: string; blocks: DocBlock[] }> {
+  if (chapters.length <= 1) return chapters;
+  const seriesInfo = parseSeriesStemAndNumber(bookTitle);
+
+  const isOmnibusOrBoxSetTitle =
+    !!bookTitle &&
+    /\b(?:box\s*set|omnibus|collection|anthology|trilogy|duology|quartet|complete\s+series|(?:books?|vols?|volumes?|parts?)\s+\d+\s*[-–—to]+\s*\d+)\b/i.test(
+      bookTitle,
+    );
+
+  // Check if the book uses explicit Multi-Book / Multi-Part divisions ("Book Two", "Part 2", "Part Two", "Vol 2")
+  const hasMultiPartDivisions =
+    isOmnibusOrBoxSetTitle ||
+    chapters.some((ch) => {
+      const ct = cleanEpubAndPandocClutter(ch.title)
+        .replace(/^#+\s*/, "")
+        .replace(/[*_`~]/g, "")
+        .trim();
+      if (
+        /^(?:part|book|volume|vol\.?|act)\s+(?:two|three|four|five|six|seven|eight|nine|ten|[2-9]\b|\d+\.\d+|ii|iii|iv|v|vi|vii|viii|ix|x)\b/i.test(
+          ct,
+        ) ||
+        /\b(?:vol(?:ume)?\.?|book|part)\s+(?:[2-9]\b|\d+\.\d+|two|three|four|ii|iii|iv)\b/i.test(
+          ct,
+        )
+      ) {
+        return true;
+      }
+      const firstBlk = ch.blocks[0];
+      if (firstBlk && "text" in firstBlk && firstBlk.text.length <= 80) {
+        const bt = cleanEpubAndPandocClutter(firstBlk.text).trim();
+        if (
+          /^(?:part|book|volume|vol\.?)\s+(?:two|three|four|five|[2-9]\b|\d+\.\d+|ii|iii|iv)\b/i.test(
+            bt,
+          )
+        ) {
+          return true;
+        }
+      }
+      return false;
+    });
+
+  // Count how many sequentially numbered main chapters exist in the book
+  const numberedIndices: Array<{ idx: number; chNum: number }> = [];
+  for (let i = 0; i < chapters.length; i++) {
+    const chNum = parseChapterNumberFromTitle(chapters[i]!.title);
+    if (chNum !== null) {
+      numberedIndices.push({ idx: i, chNum });
+    }
+  }
+  const hasNumberedChapters = numberedIndices.length >= 2;
+  // Find where the main sequential chapter run ends (before any back-matter 1-chapter promo sample reset to Chapter 1)
+  let lastSequentialChapterIdx = -1;
+  let maxSeenChapterNum = 0;
+  for (let nIdx = 0; nIdx < numberedIndices.length; nIdx++) {
+    const item = numberedIndices[nIdx]!;
+    if (item.chNum === 1 && maxSeenChapterNum >= 2 && !hasMultiPartDivisions) {
+      // Only treat a restarted Chapter 1 as a back-matter promo sample if it is NOT followed by a multi-chapter story (Chapter 2 & Chapter 3)
+      const hasSubsequentStoryRun =
+        numberedIndices.slice(nIdx + 1).some((later) => later.chNum === 2) &&
+        numberedIndices.slice(nIdx + 1).some((later) => later.chNum === 3);
+      if (!hasSubsequentStoryRun) {
+        break;
+      }
+    }
+    maxSeenChapterNum = Math.max(maxSeenChapterNum, item.chNum);
+    lastSequentialChapterIdx = item.idx;
+  }
+
+  const seenFingerprints = new Set<string>();
+  const seenParaHashes = new Set<string>();
+  const result: Array<{ title: string; blocks: DocBlock[] }> = [];
+  let passedMainStoryConclusion = false;
+  let droppingTrailingPromoSample = false;
+
+  for (let i = 0; i < chapters.length; i++) {
+    const ch = chapters[i]!;
+    const rawTitle = cleanEpubAndPandocClutter(ch.title).trim();
+    const isGenuineCommentary = GENUINE_COMMENTARY_TITLE_RE.test(rawTitle);
+    const isInBackMatter =
+      i >= Math.max(1, Math.floor(chapters.length * 0.55)) ||
+      (hasNumberedChapters &&
+        lastSequentialChapterIdx >= 0 &&
+        i > lastSequentialChapterIdx);
+
+    // Clean each block's text of Calibre/Pandoc clutter
+    const cleanedBlocks: DocBlock[] = [];
+    for (const b of ch.blocks) {
+      if (b.type === "table") {
+        cleanedBlocks.push({
+          type: "table",
+          rows: b.rows.map((r) =>
+            r.map((cell) => cleanEpubAndPandocClutter(cell).trim()),
+          ),
+        });
+      } else {
+        const cleanedText = cleanEpubAndPandocClutter(b.text).trim();
+        if (!cleanedText) continue;
+        cleanedBlocks.push({ ...b, text: cleanedText });
+      }
+    }
+
+    // Handle heading-only divider sections (e.g. `# PART ONE` or `# DEADLOCKED 6 Sneak Peak` in Markdown)
+    if (!cleanedBlocks.length) {
+      if (
+        isInBackMatter &&
+        !isGenuineCommentary &&
+        (droppingTrailingPromoSample ||
+          EXPLICIT_PROMO_TITLE_RE.test(rawTitle) ||
+          isSequelTitleMismatch(rawTitle, seriesInfo) ||
+          passedMainStoryConclusion)
+      ) {
+        droppingTrailingPromoSample = true;
+        continue;
+      }
+      if (ch.blocks.length === 0 && rawTitle && !droppingTrailingPromoSample) {
+        result.push({ title: rawTitle, blocks: [] });
+      }
+      continue;
+    }
+
+    // If this is a genuine Author's Note / Introduction / Epilogue / Afterword, ALWAYS preserve it
+    // (while trimming any promo sneak-peek appended to the bottom of that section).
+    if (isGenuineCommentary) {
+      let cutAt = cleanedBlocks.length;
+      for (let bIdx = 1; bIdx < cleanedBlocks.length; bIdx++) {
+        const blk = cleanedBlocks[bIdx]!;
+        if ("text" in blk) {
+          const isShortHeadingLike =
+            blk.text.length <= 90 && !/[.!?]\s+[A-Z]/.test(blk.text);
+          if (
+            (isShortHeadingLike &&
+              (EXPLICIT_PROMO_TITLE_RE.test(blk.text) ||
+                isSequelTitleMismatch(blk.text, seriesInfo))) ||
+            EXPLICIT_PROMO_BODY_RE.test(blk.text)
+          ) {
+            cutAt = bIdx;
+            droppingTrailingPromoSample = true;
+            break;
+          }
+        }
+      }
+      const keptBlocks = cleanedBlocks.slice(0, cutAt);
+      if (keptBlocks.length > 0) {
+        result.push({ title: rawTitle, blocks: keptBlocks });
+      }
+      if (
+        /^(?:epilog(?:ue)?|afterword|postscript|coda|final\s+thoughts\b|author['’‘]?s?\s+notes?|a\s+(?:note|word|plea|message|letter)\s+from|notes?\s+from\s+the\s+author|from\s+the\s+author|acknowledg)/i.test(
+          rawTitle,
+        ) &&
+        isInBackMatter
+      ) {
+        passedMainStoryConclusion = true;
+      }
+      continue;
+    }
+
+    // Check for duplicate chapter content
+    const proseParas = cleanedBlocks
+      .filter((b): b is Exclude<DocBlock, { type: "table" }> => "text" in b)
+      .map((b) =>
+        b.text
+          .toLowerCase()
+          .replace(/[^a-z0-9\s]/g, "")
+          .replace(/\s+/g, " ")
+          .trim(),
+      )
+      .filter((t) => t.length >= 50);
+    const fullNorm = proseParas.join("\n");
+    if (fullNorm.length >= 250) {
+      const prefixKey = `${fullNorm.slice(0, 220)}|${Math.round(fullNorm.length / 400)}`;
+      let matchingLongParas = 0;
+      for (const p of proseParas) {
+        if (seenParaHashes.has(p.slice(0, 120))) matchingLongParas++;
+      }
+      const overlapRatio =
+        proseParas.length > 0 ? matchingLongParas / proseParas.length : 0;
+      if (
+        seenFingerprints.has(prefixKey) ||
+        (proseParas.length >= 3 && overlapRatio >= 0.6)
+      ) {
+        // Duplicate chapter filler — skip!
+        continue;
+      }
+      seenFingerprints.add(prefixKey);
+      for (const p of proseParas) {
+        seenParaHashes.add(p.slice(0, 120));
+      }
+    }
+
+    // Check if we are in the back matter and this chapter is a promo / sneak-peek / sequel / unrelated book sample
+    if (isInBackMatter) {
+      const firstFewText = cleanedBlocks
+        .slice(0, 4)
+        .map((b) => ("text" in b ? b.text : ""))
+        .join(" ");
+      const firstBlockText =
+        cleanedBlocks[0] && "text" in cleanedBlocks[0]
+          ? cleanedBlocks[0].text
+          : "";
+      const chNum = parseChapterNumberFromTitle(rawTitle);
+      const isRestartedChapterOne =
+        chNum === 1 &&
+        maxSeenChapterNum >= 2 &&
+        !hasMultiPartDivisions &&
+        lastSequentialChapterIdx >= 0 &&
+        i > lastSequentialChapterIdx;
+
+      if (
+        droppingTrailingPromoSample ||
+        EXPLICIT_PROMO_TITLE_RE.test(rawTitle) ||
+        EXPLICIT_PROMO_BODY_RE.test(firstFewText) ||
+        isSequelTitleMismatch(rawTitle, seriesInfo) ||
+        isSequelTitleMismatch(firstBlockText, seriesInfo) ||
+        isRestartedChapterOne ||
+        passedMainStoryConclusion
+      ) {
+        droppingTrailingPromoSample = true;
+        continue;
+      }
+    }
+
+    // Also check if a final story chapter (or back-matter chapter) contains an embedded promo blurb after "THE END" (e.g. Djinn.md / WHORE.md)
+    if (
+      isInBackMatter ||
+      i === lastSequentialChapterIdx ||
+      i >= Math.floor(chapters.length * 0.33)
+    ) {
+      let trimChapterAt = cleanedBlocks.length;
+      for (let bIdx = 0; bIdx < cleanedBlocks.length; bIdx++) {
+        const blk = cleanedBlocks[bIdx]!;
+        if (!("text" in blk)) continue;
+        const txt = blk.text.trim();
+        const isShortHeadingLike =
+          txt.length <= 90 && !/[.!?]\s+[A-Z]/.test(txt);
+        if (
+          bIdx > 0 &&
+          ((isShortHeadingLike &&
+            (EXPLICIT_PROMO_TITLE_RE.test(txt) ||
+              isSequelTitleMismatch(txt, seriesInfo))) ||
+            EXPLICIT_PROMO_BODY_RE.test(txt))
+        ) {
+          trimChapterAt = bIdx;
+          passedMainStoryConclusion = true;
+          droppingTrailingPromoSample = true;
+          break;
+        }
+        if (
+          bIdx >= Math.floor(cleanedBlocks.length * 0.4) &&
+          /^(?:[*_~#\s-]*(?:the\s+end|t\s+h\s+e\s+e\s+n\s+d|end\s+of\s+book\b)[*_~#.\s!-]*)$/i.test(
+            txt,
+          )
+        ) {
+          passedMainStoryConclusion = true;
+          // If subsequent blocks in the same chapter are not genuine Author's Note commentary, trim right after THE END
+          const nextBlk = cleanedBlocks[bIdx + 1];
+          if (
+            nextBlk &&
+            "text" in nextBlk &&
+            !GENUINE_COMMENTARY_TITLE_RE.test(nextBlk.text.trim())
+          ) {
+            trimChapterAt = bIdx + 1;
+            droppingTrailingPromoSample = true;
+            break;
+          }
+        }
+      }
+      if (trimChapterAt < cleanedBlocks.length) {
+        const trimmedBlocks = cleanedBlocks.slice(0, trimChapterAt);
+        if (trimmedBlocks.length > 0) {
+          result.push({ title: rawTitle, blocks: trimmedBlocks });
+        }
+        continue;
+      }
+    }
+
+    // Check if the end of this chapter explicitly marks "THE END" of the novel
+    const lastBlock = cleanedBlocks[cleanedBlocks.length - 1];
+    if (
+      lastBlock &&
+      "text" in lastBlock &&
+      /(?:^|\s)(?:the\s+end|t\s+h\s+e\s+e\s+n\s+d|end\s+of\s+book\b)/i.test(
+        lastBlock.text.slice(-80),
+      ) &&
+      i >= Math.floor(chapters.length * 0.5)
+    ) {
+      passedMainStoryConclusion = true;
+    }
+
+    result.push({ title: rawTitle, blocks: cleanedBlocks });
+  }
+
+  return result.length > 0 ? result : chapters;
+}
+
+/**
+ * Cleans a Markdown or plain-text document of Calibre/Pandoc conversion clutter AND removes duplicate or
+ * unrelated promo/sneak-peek chapters appended at the end of e-book conversions, while preserving all
+ * genuine Author's Notes, Introductions, Forewords, Prologues, and Epilogues.
+ */
+export function stripBackMatterPromoAndDuplicateChapters(
+  rawText: string,
+  bookTitle?: string,
+): string {
+  const cleaned = cleanEpubAndPandocClutter(rawText);
+  // Match Markdown headings (#..###) or plain-text chapter/commentary/promo headings
+  const headingMatches = cleaned.match(
+    /^(?:#{1,3}[ \t]+\S+|[*_~]{0,2}(?:chapter|part|book|volume|vol\.?|prologue|epilogue|author['’‘]?s?\s+notes?|a\s+(?:note|word|plea|message)\s+from|introduction|foreword|preface|afterword|sneak\s+pe[ea]k|sneak\s+preview|bonus\s+(?:chapter|preview)|sample\s+chapter|from\s+the\s+same\s+author|other\s+(?:titles|books)\s+(?:from|by))\b.*)/gim,
+  );
+  if (!headingMatches || headingMatches.length < 3) {
+    // Even in short single-chapter novellas (< 3 headings), trim any trailing "FROM THE SAME AUTHOR" / promo catalog at the end
+    const paras = cleaned.split(/\n{2,}/);
+    if (paras.length >= 4) {
+      const startScan = Math.floor(paras.length * 0.55);
+      for (let i = startScan; i < paras.length; i++) {
+        const p = paras[i]!.replace(/^#+\s*/, "")
+          .replace(/[*_`~]/g, "")
+          .trim();
+        const isShortHeading = p.length <= 90 && !/[.!?]\s+[A-Z]/.test(p);
+        if (
+          (isShortHeading && EXPLICIT_PROMO_TITLE_RE.test(p)) ||
+          EXPLICIT_PROMO_BODY_RE.test(p)
+        ) {
+          return `${paras.slice(0, i).join("\n\n").trim()}\n`;
+        }
+      }
+    }
+    return cleaned;
+  }
+
+  const lines = cleaned.split("\n");
+  const sections: Array<{
+    headingLine: string;
+    title: string;
+    bodyLines: string[];
+  }> = [];
+  const preambleLines: string[] = [];
+  let current: {
+    headingLine: string;
+    title: string;
+    bodyLines: string[];
+  } | null = null;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const isSceneBreak = /^(?:[-*_#~][ \t]*){3,}$|^#$|^\*$/.test(trimmed);
+    const mdH = !isSceneBreak ? /^(#{1,3})[ \t]+(.+)$/.exec(trimmed) : null;
+    const unbold = trimmed.replace(/^[*_~]+|[*_~]+$/g, "").trim();
+    const plainH =
+      !isSceneBreak &&
+      !mdH &&
+      unbold.length > 0 &&
+      unbold.length <= 90 &&
+      /^(?:(?:chapter|part|book|volume|vol\.?)\s+(?:\d+(?:\.\d+)?|[a-z]+(?:[-\s][a-z]+)?)|prologue|epilogue|author['’‘]?s?\s+notes?|a\s+(?:note|word|plea|message)\s+from(?:\s+the\s+author)?|notes?\s+from\s+the\s+author|from\s+the\s+author|final\s+thoughts\b|introduction|foreword|preface|afterword|sneak\s+pe[ea]k|sneak\s+preview|(?:special|bonus)\s+(?:sneak\s+)?(?:preview|chapter|excerpt)|sample\s+chapter|from\s+the\s+same\s+author|other\s+(?:titles|books|works)\s+(?:from|by)|also\s+by)\b/i.test(
+        unbold,
+      )
+        ? unbold
+        : null;
+
+    // A top-level `# Title` on the very first non-empty line is the book title preamble, not a chapter break
+    if (
+      mdH &&
+      mdH[1] === "#" &&
+      sections.length === 0 &&
+      !current &&
+      preambleLines.every((l) => !l.trim())
+    ) {
+      preambleLines.push(line);
+      continue;
+    }
+
+    if (mdH || plainH) {
+      if (current) sections.push(current);
+      const rawTitle = (mdH ? mdH[2]! : plainH!).replace(/[*_`~]/g, "").trim();
+      current = {
+        headingLine: line,
+        title: rawTitle,
+        bodyLines: [],
+      };
+    } else if (current) {
+      current.bodyLines.push(line);
+    } else {
+      preambleLines.push(line);
+    }
+  }
+  if (current) sections.push(current);
+  if (sections.length < 3) return cleaned;
+
+  const inferredTitle =
+    bookTitle ||
+    preambleLines
+      .find((l) => /^#\s+/.test(l.trim()))
+      ?.replace(/^#\s+/, "")
+      .trim();
+
+  const asChapters = sections.map((sec, secIdx) => {
+    const paras = sec.bodyLines
+      .join("\n")
+      .split(/\n{2,}/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    const blocks: DocBlock[] = paras.map((p) => ({
+      type: "p" as const,
+      text: p,
+    }));
+    return {
+      title: sec.title,
+      blocks,
+      _secIdx: secIdx,
+    };
+  });
+
+  // Tag each chapter's blocks array with its original section index so reconstruction never collides on duplicate titles
+  const blockArrToSecIdx = new WeakMap<DocBlock[], number>();
+  for (let i = 0; i < asChapters.length; i++) {
+    blockArrToSecIdx.set(asChapters[i]!.blocks, i);
+  }
+
+  const filtered = filterEpubBackMatterAndDuplicates(asChapters, inferredTitle);
+  if (filtered.length === asChapters.length) {
+    const anyTrimmed = filtered.some(
+      (f, idx) => f.blocks.length !== asChapters[idx]!.blocks.length,
+    );
+    if (!anyTrimmed) return cleaned;
+  }
+
+  // Match each kept chapter in `filtered` back to its original section index in monotonic order
+  const keptBySecIdx = new Map<number, { blocks: DocBlock[] }>();
+  let searchFrom = 0;
+  for (const f of filtered) {
+    for (let idx = searchFrom; idx < sections.length; idx++) {
+      if (sections[idx]!.title === f.title) {
+        const origFirstBlk = asChapters[idx]!.blocks[0];
+        const origFirst =
+          origFirstBlk && "text" in origFirstBlk
+            ? origFirstBlk.text.slice(0, 80)
+            : "";
+        const keptFirst =
+          f.blocks[0] && "text" in f.blocks[0]
+            ? f.blocks[0].text.slice(0, 80)
+            : "";
+        if (origFirst === keptFirst) {
+          keptBySecIdx.set(idx, f);
+          searchFrom = idx + 1;
+          break;
+        }
+      }
+    }
+  }
+
+  const outParts: string[] = [];
+  const preambleText = preambleLines.join("\n").trim();
+  if (preambleText) outParts.push(preambleText);
+
+  for (let idx = 0; idx < sections.length; idx++) {
+    const sec = sections[idx]!;
+    const origCh = asChapters[idx]!;
+    const kept = keptBySecIdx.get(idx);
+    if (!kept) continue;
+
+    if (kept.blocks.length < origCh.blocks.length) {
+      const trimmedBody = kept.blocks
+        .map((b) => ("text" in b ? b.text : ""))
+        .join("\n\n");
+      outParts.push(`${sec.headingLine}\n\n${trimmedBody}`);
+    } else {
+      outParts.push(`${sec.headingLine}\n${sec.bodyLines.join("\n")}`.trim());
+    }
+  }
+
+  return `${outParts
+    .join("\n\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()}\n`;
+}
+
 function parseHtmlToBlocks(xhtml: string, maxBlocks = 250): DocBlock[] {
   const blocks: DocBlock[] = [];
   const body = /<body\b[^>]*>([\s\S]*?)<\/body>/i.exec(xhtml)?.[1] ?? xhtml;
-  const clean = body.replace(/<(script|style)\b[\s\S]*?<\/\1>/gi, "");
+  const clean = body.replace(
+    /<(script|style|svg|head|noscript)\b[\s\S]*?<\/\1\s*>/gi,
+    "",
+  );
   const re = /<(h[1-6]|p|li|blockquote|pre)\b[^>]*>([\s\S]*?)<\/\1>/gi;
   let m: RegExpExecArray | null;
   while ((m = re.exec(clean)) !== null && blocks.length < maxBlocks) {
@@ -955,7 +1680,10 @@ async function inspectEpubFromReader(
   const maxPartBytes = limits.maxPartBytes ?? 512 * 1024;
 
   const containerXml = await readPart("META-INF/container.xml", 64 * 1024);
-  let rootPath = xmlAttr(containerXml, "rootfile", "full-path");
+  let rootPath = xmlAttr(containerXml, "rootfile", "full-path").replace(
+    /\\/g,
+    "/",
+  );
   if (!rootPath) {
     const allNames = await listRelPaths();
     rootPath =
@@ -971,7 +1699,7 @@ async function inspectEpubFromReader(
   for (const item of opf.matchAll(/<item\b([^>]+)\/?>/g)) {
     const id = /\bid="([^"]+)"/.exec(item[1]!)?.[1];
     const href = /\bhref="([^"]+)"/.exec(item[1]!)?.[1];
-    if (id && href) manifest.set(id, decodeEntities(href));
+    if (id && href) manifest.set(id, decodeEntities(href).replace(/\\/g, "/"));
   }
   const spineIds = [...opf.matchAll(/<itemref\b[^>]*\bidref="([^"]+)"/g)].map(
     (m) => m[1]!,
@@ -1004,7 +1732,12 @@ async function inspectEpubFromReader(
   const chapters: Array<{ title: string; blocks: DocBlock[] }> = [];
   const allBlocks: DocBlock[] = [];
   for (const entryPath of chapterPaths.slice(0, maxChapters)) {
-    const xhtml = await readPart(entryPath, maxPartBytes);
+    let xhtml = await readPart(entryPath, maxPartBytes);
+    if (!xhtml && entryPath.includes("%")) {
+      try {
+        xhtml = await readPart(decodeURIComponent(entryPath), maxPartBytes);
+      } catch {}
+    }
     if (!xhtml) continue;
     const cBlocks = parseHtmlToBlocks(xhtml, maxBlocksPerChapter);
     if (!cBlocks.length) continue;
@@ -1039,7 +1772,14 @@ async function inspectEpubFromReader(
       usableHtmlTitle ||
       `Section ${chapters.length + 1}`;
     chapters.push({ title: chTitle, blocks: cBlocks });
-    allBlocks.push(...cBlocks);
+  }
+
+  const cleanedChapters = filterEpubBackMatterAndDuplicates(
+    chapters,
+    bookTitle,
+  );
+  for (const ch of cleanedChapters) {
+    allBlocks.push(...ch.blocks);
   }
 
   const meta: Array<[string, string]> = [...baseMeta];
@@ -1051,8 +1791,8 @@ async function inspectEpubFromReader(
   if (publisher && !hasMetaKey("Publisher"))
     meta.push(["Publisher", publisher]);
   if (pubDate && !hasMetaKey("Date")) meta.push(["Date", pubDate.slice(0, 10)]);
-  if (chapterPaths.length > 0 && !hasMetaKey("Chapters"))
-    meta.push(["Chapters", String(chapterPaths.length)]);
+  if (cleanedChapters.length > 0 && !hasMetaKey("Chapters"))
+    meta.push(["Chapters", String(cleanedChapters.length)]);
 
   const plainText = allBlocks
     .map((b) =>
@@ -1066,7 +1806,7 @@ async function inspectEpubFromReader(
     ...(author ? { author } : {}),
     meta,
     blocks: allBlocks.slice(0, maxTotalBlocks),
-    chapters,
+    chapters: cleanedChapters,
     plainText,
     hasThumb,
   };
@@ -1090,7 +1830,11 @@ function parseMarkdownToBlocksAndChapters(
   };
   let detectedTitle: string | undefined;
 
-  const lines = mdText.replace(/\r\n/g, "\n").split("\n");
+  const sanitizedMd = stripBackMatterPromoAndDuplicateChapters(
+    mdText,
+    defaultTitle,
+  );
+  const lines = sanitizedMd.replace(/\r\n/g, "\n").split("\n");
   let inCode = false;
   let codeLines: string[] = [];
   let paraLines: string[] = [];
@@ -1125,7 +1869,7 @@ function parseMarkdownToBlocksAndChapters(
       continue;
     }
     const line = rawLine.trim();
-    if (!line) {
+    if (!line || /^(?:[-*_#~][ \t]*){3,}$|^#$|^\*$/.test(line)) {
       flushPara();
       continue;
     }
@@ -1230,8 +1974,8 @@ export async function inspectPackageDirectoryRich(
     limit = 512 * 1024,
   ): Promise<string> => {
     const normalizedRel = relPath
-      .replace(/^\/+/, "")
-      .split("/")
+      .replace(/^[\\/]+/, "")
+      .split(/[\\/]/)
       .join(nodePath.sep);
     const full = nodePath.resolve(resolvedRoot, normalizedRel);
     if (!full.startsWith(resolvedRoot + nodePath.sep) && full !== resolvedRoot)
@@ -1258,8 +2002,8 @@ export async function inspectPackageDirectoryRich(
     limit = 4 * 1024 * 1024,
   ): Promise<Buffer | null> => {
     const normalizedRel = relPath
-      .replace(/^\/+/, "")
-      .split("/")
+      .replace(/^[\\/]+/, "")
+      .split(/[\\/]/)
       .join(nodePath.sep);
     const full = nodePath.resolve(resolvedRoot, normalizedRel);
     if (!full.startsWith(resolvedRoot + nodePath.sep) && full !== resolvedRoot)

@@ -9,8 +9,22 @@ import {
   splitTextForPhonon,
 } from "../../src/features/filemanager/fmPhonon";
 
-export const FFMPEG = "/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg";
-export const FFPROBE = "/opt/homebrew/opt/ffmpeg-full/bin/ffprobe";
+export const FFMPEG =
+  [
+    "/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg",
+    "/opt/homebrew/bin/ffmpeg",
+    "/usr/local/bin/ffmpeg",
+  ].find((p) => existsSync(p)) ??
+  Bun.which("ffmpeg") ??
+  "ffmpeg";
+export const FFPROBE =
+  [
+    "/opt/homebrew/opt/ffmpeg-full/bin/ffprobe",
+    "/opt/homebrew/bin/ffprobe",
+    "/usr/local/bin/ffprobe",
+  ].find((p) => existsSync(p)) ??
+  Bun.which("ffprobe") ??
+  "ffprobe";
 export const CHROME =
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const UVX = "/Users/codecaine/.local/bin/uvx";

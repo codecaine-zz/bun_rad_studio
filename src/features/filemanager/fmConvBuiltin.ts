@@ -76,8 +76,11 @@ import {
   type JsxStyle,
 } from "./fmJsTranspile";
 import {
+  cleanEpubAndPandocClutter,
   extractFullEpubRich,
+  filterEpubBackMatterAndDuplicates,
   inspectPackageDirectoryRich,
+  stripBackMatterPromoAndDuplicateChapters,
   type RichDocumentPreview,
 } from "./fmPreview";
 import { extractZip } from "./fmZip";
@@ -448,10 +451,12 @@ async function convert(job: BuiltinJob): Promise<string> {
     }
     case "md-html": {
       const bytes = await readInput(input);
-      const page = renderMarkdownPage(
+      const baseTitle = nodePath.basename(input).replace(/\.[^.]*$/, "");
+      const cleanedMd = stripBackMatterPromoAndDuplicateChapters(
         decodeBytes(bytes, "auto", true).text,
-        nodePath.basename(input).replace(/\.[^.]*$/, ""),
+        baseTitle,
       );
+      const page = renderMarkdownPage(cleanedMd, baseTitle);
       await writeNew(job.output, page.html);
       return `Raw HTML in the Markdown is shown as text, and only web, mail and relative links are kept.${page.engine === "builtin" ? " The simpler built-in renderer was used." : ""}`;
     }
@@ -649,31 +654,37 @@ export function formatEpubDocumentOutput(
   to: string,
   withToc: boolean,
 ): string {
-  const title = rich.title?.trim() || fallbackTitle || "Document";
-  const author = rich.author?.trim() || "";
-  const chapters =
+  const title =
+    cleanEpubAndPandocClutter(
+      rich.title?.trim() || fallbackTitle || "Document",
+    ).trim() || "Document";
+  const author = cleanEpubAndPandocClutter(rich.author?.trim() || "").trim();
+  const rawChapters =
     rich.chapters && rich.chapters.length > 0
       ? rich.chapters
       : [{ title, blocks: rich.blocks }];
+  const chapters = filterEpubBackMatterAndDuplicates(rawChapters, title);
 
   if (to === "md") {
     const lines: string[] = [`# ${title}`];
     if (author) lines.push(`*by ${author}*`);
-    if (withToc && chapters.length > 1) {
+    const tocChapters = chapters.filter(
+      (ch) => ch.title && !/^Section \d+$/i.test(ch.title),
+    );
+    if (withToc && tocChapters.length > 1) {
       lines.push("## Table of Contents");
       lines.push(
-        chapters.map((ch, idx) => `${idx + 1}. ${ch.title}`).join("\n"),
+        tocChapters.map((ch, idx) => `${idx + 1}. ${ch.title}`).join("\n"),
       );
     }
     for (const ch of chapters) {
       const firstBlock = ch.blocks[0];
+      const isAutoSection = /^Section \d+$/i.test(ch.title);
       const hasMatchingHeading =
         firstBlock &&
-        (firstBlock.type === "h1" ||
-          firstBlock.type === "h2" ||
-          firstBlock.type === "h3") &&
+        "text" in firstBlock &&
         firstBlock.text.trim().toLowerCase() === ch.title.trim().toLowerCase();
-      if (!hasMatchingHeading && ch.title) {
+      if (!hasMatchingHeading && ch.title && !isAutoSection) {
         lines.push(`## ${ch.title}`);
       }
       for (const b of ch.blocks) {
@@ -861,23 +872,25 @@ ${sectionsXml}
   // Default: plain text ("txt")
   const out: string[] = [title];
   if (author) out.push(`by ${author}`);
-  if (withToc && chapters.length > 1) {
+  const tocChapters = chapters.filter(
+    (ch) => ch.title && !/^Section \d+$/i.test(ch.title),
+  );
+  if (withToc && tocChapters.length > 1) {
     out.push(
       [
         "Table of Contents",
-        ...chapters.map((ch, idx) => `  ${idx + 1}. ${ch.title}`),
+        ...tocChapters.map((ch, idx) => `  ${idx + 1}. ${ch.title}`),
       ].join("\n"),
     );
   }
   for (const ch of chapters) {
     const firstBlock = ch.blocks[0];
+    const isAutoSection = /^Section \d+$/i.test(ch.title);
     const hasMatchingHeading =
       firstBlock &&
-      (firstBlock.type === "h1" ||
-        firstBlock.type === "h2" ||
-        firstBlock.type === "h3") &&
+      "text" in firstBlock &&
       firstBlock.text.trim().toLowerCase() === ch.title.trim().toLowerCase();
-    if (!hasMatchingHeading && ch.title) out.push(ch.title);
+    if (!hasMatchingHeading && ch.title && !isAutoSection) out.push(ch.title);
     for (const b of ch.blocks) {
       out.push(
         b.type === "table"

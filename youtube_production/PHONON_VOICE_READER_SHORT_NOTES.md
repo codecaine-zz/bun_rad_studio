@@ -1,36 +1,32 @@
-# Codecaine File Manager — Complete Phonon TTS & Ollama AI Tutorial (`ollama run phonon --voice Zoey` · Apple Silicon Mac MLX) (2:48)
+# Codecaine File Manager v1.5.3 — 32× Real-Time Read-Along MP4 Exporter, 100% Word-for-Word Sync & Zero-Clutter EPUB Cleaner (Narrated by `ollama run phonon --voice Russell`)
 
-## Video Files (100% Live-Recorded & Narrated Live by `ollama run phonon --voice Zoey`)
+## Video Files (100% Live-Recorded & Narrated by `ollama run phonon --voice Russell`)
 
-- **Widescreen 16:9 Complete Tutorial MP4 (1920×1080)**: `youtube_production/phonon_ollama_complete_tutorial_1080p.mp4` & `youtube_production/file_manager_phonon_voice_reader_demo.mp4` (168.1s, 30 fps, CRF 14, 256k AAC)
-- **YouTube Short 9:16 Vertical MP4 (1080×1920)**: `youtube_production/phonon_ollama_complete_tutorial_short.mp4` & `youtube_production/codecaine-file-manager-phonon-voice-reader-short.mp4` (168.1s, 30 fps, CRF 14, 256k AAC)
+- **Widescreen 1080p YouTube Feature Video (16:9, 1920×1080)**: `youtube_production/codecaine_file_manager_read_along_mp4_and_epub_cleaner_1080p.mp4` (176.7s, 30 fps, CRF 12, 320k AAC)
+- **Vertical YouTube Short (9:16, 1080×1920)**: `youtube_production/codecaine-file-manager-read-along-mp4-short.mp4` (168.0s, 30 fps, CRF 14, 256k AAC)
+- **Updated Phonon Demo MP4 (16:9, 1920×1080)**: `youtube_production/file_manager_phonon_voice_reader_demo.mp4`
+- **Updated Phonon Short MP4 (9:16, 1080×1920)**: `youtube_production/codecaine-file-manager-phonon-voice-reader-short.mp4`
 
 ---
 
 ## High-CTR YouTube Titles (Under 100 Characters — Copy & Paste)
 
-### Option 1 — Best Overall Complete Tutorial Hook (98 chars)
+### Option 1 — Speed + Word-for-Word Sync + Russell Voice Hook (96 chars)
 
 ```text
-Complete Ollama Phonon TTS & AI Assistant Tutorial on Mac (Voice Zoey, Voice Cloning & Read-Along)
+32× Faster Read-Along MP4 Video Exporter + 100% Word Sync & EPUB Cleaner (Phonon Voice Russell)
 ```
 
-### Option 2 — YouTube Short / Viral Hook (97 chars)
+### Option 2 — Engineering / Native Cairo + Pango FFI Hook (98 chars)
 
 ```text
-Read Any File or Massive Book with Local AI Voice Zoey! (Ollama Phonon · 112MB Low RAM) #Shorts
+How We Built a 32× Real-Time Read-Along MP4 Renderer in Bun FFI (Cairo + Pango + Ollama Phonon)
 ```
 
-### Option 3 — Developer / Apple Silicon MLX Hook (99 chars)
+### Option 3 — E-Book to Read-Along Video & Audiobook Hook (95 chars)
 
 ```text
-We Built Ollama Phonon TTS, Voice Cloning & Read-Along Video Into a File Manager (Apple MLX · Zoey)
-```
-
-### Option 4 — Audiobook & EPUB-to-MP4 Hook (96 chars)
-
-```text
-Convert Full EPUB Books & 25+ Formats to Audio or Read-Along MP4 in Seconds! (Ollama Phonon Mac)
+Turn Messy EPUBs into Centered 1080p Read-Along MP4 Videos in 4 Seconds! (Local AI TTS) #Shorts
 ```
 
 ---
@@ -38,49 +34,37 @@ Convert Full EPUB Books & 25+ Formats to Audio or Read-Along MP4 in Seconds! (Ol
 ## YouTube Description (Copy & Paste)
 
 ```text
-Turn any PDF, full-length EPUB e-book, Word doc, Markdown note, webpage, subtitle track, spreadsheet, or source code file into natural 24 kHz neural speech, synchronized Read-Along MP4 videos, or interactive AI conversations on your Apple Silicon Mac — 100% locally and offline with ZERO cloud subscriptions! 🎙️🦙🍎📚
+We upgraded the built-in Phonon Voice Reader Studio in Codecaine File Manager (Bun RAD Studio v1.5.3) with an ultra-fast In-Process Native Cairo + Pango (`bun:ffi`) Read-Along .MP4 Video Renderer, 100% word-for-word PCM audio synchronization, and a Zero-Clutter Calibre/Pandoc EPUB & Speech Sanitizer — narrated start-to-finish by `ollama run phonon --voice Russell`! 🎙️🎬📚
 
-This complete 8-chapter tutorial is narrated 100% live from an Apple Silicon Mac by `ollama run phonon --voice Zoey` (using a compact 112 MB local MLX model).
-
-🍎 PLATFORM REQUIREMENT (APPLE SILICON MAC · MLX):
-Because Ollama's `phonon` neural TTS model and `F5-TTS-MLX` zero-shot voice cloning are accelerated by Apple's MLX framework, these neural voice features run exclusively on Apple Silicon Macs (M1, M2, M3, and M4 — macOS ARM64).
-
-⬇️ FREE & OPEN SOURCE DOWNLOAD:
+⬇️ FREE & OPEN SOURCE DOWNLOAD (macOS, Linux .deb/zip & Windows):
 https://github.com/codecaine-zz/bun_rad_studio/releases/latest
 ⭐ GitHub Source Code (MIT License):
 https://github.com/codecaine-zz/bun_rad_studio
 
-🔥 EVERY FEATURE COVERED IN THIS COMPLETE TUTORIAL:
-• 🪶 1-Click Auto-Install & Ultra-Low Resource Footprint: Compact 112 MB local Apple MLX model (`ollama run phonon --voice Zoey`) with 1-click setup for Ollama, Phonon, and FFmpeg right inside the File Manager.
-• 🗣️ 38 Expressive Neural Voices + Pitch & Sync Controls: Switch between Conversational, Audiobook Narrator, and Character voices, lock in `Zoey` as your persistent default voice, adjust speaking speed (0.5×–2.0×), shift voice pitch (±6 semitones) without changing duration, and fine-tune word sync (±300 ms).
-• 🧬 AI Voice Recorder & Zero-Shot Neural Voice Cloning (`F5-TTS-MLX`): Record a 10-second reference clip with the built-in WebAudio oscilloscope and peak dB meter (or upload any .WAV file) to clone your real voice locally at 24 kHz. All personal voice files are automatically `.gitignore`-protected so they never leave your Mac.
-• 📄 Convert 25+ File Formats to Speech or Clean .TXT: Extract speech-ready text from PDF, DOCX, EPUB, HTML, Markdown, SRT/VTT subtitles, CSV, XLSX, JSON, YAML, Jupyter Notebooks, and code with 6 smart cleanup filters.
-• 📚 Massive 242-Chunk EPUB Book Engine (O(N) Splitter & O(1) Memory): Automatically splits full-length novels and technical manuals along natural paragraph, sentence, and clause boundaries within Phonon's 8,192-token context limit, with a paginated segment queue and constant-memory disk PCM stitching.
-• 📖 Waveform-Synced Karaoke Teleprompter: 10 ms WAV speech-envelope word alignment ensures highlights never drift across pauses. Includes 4 cinema reading themes (Midnight, Sepia, Matrix, High-Contrast), 4 font sizes, click-any-word to jump playback, and 2-chunk background lookahead prefetching.
-• 🎬 Export to 9 Audio Formats & 4 Read-Along Video Formats in Seconds: Save as WAV, MP3, M4A, AAC, FLAC, OGG, OPUS, AIFF, or WMA — or render synchronized Read-Along Videos (MP4, WebM, MOV, MKV in 16:9, 9:16, or 1:1) with embedded subtitles and companion .SRT/.VTT files in ~2 seconds using sparse-keyframe encoding!
-• 🦙 Built-In Ollama AI Assistant & Full Capability Router: Pair local LLMs with Phonon `Zoey` (`Speak Reply`)! Automatically routes requests across Streaming Chat, Step-by-Step Deep Thinking (`think: true`), Multimodal Vision, `SystemOne` sub-second decisions (`/v1/systemone`), and Semantic Meaning Search (`/api/embed`), protected by a 70% RAM Hardware Guard and 1-click `keep_alive: 0` memory release.
+🔥 WHAT'S NEW IN THIS UPDATE:
+• 🎙️ Narrated Live by `ollama run phonon --voice Russell`: Grounded, mature 24 kHz neural narrative voice running 100% locally and offline on Apple Silicon MLX.
+• ⚡ 32× Real-Time Read-Along .MP4 Exporter (Native Cairo + Pango via `bun:ffi`): 3-level delta-band cache (`baseBg` -> `cueBg` -> active word slice) streams raw BGRA frames directly into hardware-accelerated H.264 (`h264_videotoolbox` / `libx264`), rendering a centered 2m 33s 1080p Read-Along MP4 + .SRT + .VTT in just 4.79 seconds!
+• 🎯 100% Word-for-Word Audio-to-Text Sync (Zero Skipped Words): First-difference pre-emphasis (`y[n] = x[n] - 0.95*x[n-1]`) sharpens consonant and sibilant word boundaries, snaps sentence endings and intra-sentence commas/colons to acoustic pause valleys, disambiguates all-caps headings from acronyms (`SPELLED_OUT_ACRONYMS`), and enforces a 40 ms minimum visual hold floor on a 60 fps `requestAnimationFrame` loop.
+• 🧹 Zero Conversion Clutter (Calibre/Pandoc EPUB & Divider Sanitizer): Automatically strips `{.calibre*}`, `:::`, `[]{#id}`, `<svg>`, escaped quotes `\'`, stray backslashes, and non-speech ASCII divider lines (`======`, `------`, `******`) while preserving Windows file paths (`C:\...`).
+• 📚 Smart Back-Matter Promo Filter: Automatically removes appended sneak-peek and promotional teaser chapters (`Sneak Peek`, `Preview of Book`, `Also by Author`) in the final 35% of a book while keeping every genuine `Author's Note`, `Foreword`, and `Introduction`.
+• 🌍 Cross-Platform QA Verified: Tested across macOS (`arm64` & `x64`), Linux (`amd64` & `arm64` 1-click `.deb` + portable `.zip`), and Windows (`x64` & `arm64`).
 
-⏱️ CHAPTERS (NARRATED LIVE BY `ollama run phonon --voice Zoey`)
-0:00 01. 1-Click Auto-Install Ollama + Phonon & 112 MB MLX Architecture (`--voice Zoey`)
-0:20 02. All 38 Neural Voices, Persistent Default (`Zoey`), Speed, Pitch (±6 st) & Sync (±300 ms)
-0:40 03. AI Voice Recorder & Zero-Shot Neural Voice Cloning (`F5-TTS-MLX` + `.gitignore` Privacy)
-1:00 04. Convert 25+ File Formats (PDF, DOCX, EPUB, HTML, MD, SRT, CSV) & 6 Cleanup Filters
-1:22 05. Extreme Large-Text & 242-Chunk EPUB Book Engine (8,192-Token Safe Splitter & O(1) RAM)
-1:42 06. Waveform-Synced Karaoke Teleprompter, 4 Cinema Themes & 2-Chunk Prefetching
-2:02 07. Export to 9 Audio Formats & 4 Read-Along Video Formats (MP4/WebM/MOV/MKV in ~2s)
-2:25 08. Built-In Ollama AI Assistant, Capability Router, 70% RAM Guard & `Speak Reply` (`Zoey`)
+⏱️ CHAPTERS (NARRATED BY `ollama run phonon --voice Russell`)
+0:00 🎙️ OLLAMA RUN PHONON --VOICE RUSSELL · NATIVE CAIRO + PANGO · 100% WORD SYNC (Voice: Russell)
+0:27 🧹 STRIPS {.CALIBRE*} · ::: · []{#ID} · <SVG> · \' · ====== · ------ (Voice: Russell)
+0:56 📚 REMOVES TRAILING SNEAK-PEEK & DUPLICATE CHAPTERS · KEEPS AUTHOR'S NOTES (Voice: Russell)
+1:17 🎯 PRE-EMPHASIS PCM ENVELOPE · COMMA/COLON VALLEY SNAP · 40MS MIN HOLD (Voice: Russell)
+1:44 ⚡ 3-LEVEL DELTA-BAND CACHE · IN-MEMORY BGRA PIPE · VIDEOTOOLBOX H.264 (Voice: Russell)
+2:12 🎬 ACTUAL RENDERED MP4 FRAME-BY-FRAME · CENTERED CARD · GLOWING PILL (Voice: Russell)
+2:34 🌍 DARWIN (ARM64/X64) · LINUX (.DEB & ZIP X64/ARM64) · WINDOWS (X64/ARM64) (Voice: Russell)
 
-🖥️ RECORDING WORKSTATION
-🍎 Apple Mac Studio (M4 Ultra / Apple Silicon MLX)
-🔊 Local Neural TTS Engine: `ollama run phonon --voice Zoey` (112 MB MLX · 24,000 Hz 16-bit PCM)
-
-#Ollama #PhononTTS #AppleSilicon #MLX #TextToSpeech #VoiceCloning #LocalAI #OpenSource #Audiobook #FileManager #BunJS #TypeScript #OfflineAI #Shorts
+#Ollama #PhononTTS #BunJS #TypeScript #TextToSpeech #Audiobook #EPUB #Calibre #LocalAI #AppleSilicon #MLX #OpenSource #VideoEngineering #Shorts
 ```
 
 ---
 
-## YouTube Studio Tags (Comma-Separated, 495 Characters — Under YouTube's 500-Char Limit, Copy & Paste)
+## YouTube Studio Tags (Under 500 Characters — Copy & Paste)
 
 ```text
-ollama,ollama run phonon,phonon tts,phonon voice zoey,f5 tts mlx,local voice cloning mac,apple silicon mlx,local text to speech mac,epub to mp4 read along,read along video generator,convert epub to audiobook,pdf to speech mac,offline ai voice reader,ollama ai assistant,ollama tutorial,codecaine file manager,bun rad studio,gradium phonon,karaoke teleprompter tts,text to wav mp3 flac mp4,free elevenlabs alternative,open source tts mac,apple mlx ai,local llm mac
+ollama,ollama run phonon,phonon voice russell,read along mp4 video,epub to audiobook converter,calibre clutter cleaner,pandoc markdown cleaner,word for word audio sync,karaoke subtitle generator,bun ffi cairo pango,local text to speech mac,apple silicon mlx tts,codecaine file manager,bun rad studio,open source file manager,free elevenlabs alternative,neural audiobook creator,srt vtt generator
 ```

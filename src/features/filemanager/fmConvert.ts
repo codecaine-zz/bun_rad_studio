@@ -49,7 +49,10 @@ import {
 } from "./fmCore";
 import type { JobStepSpec, JobView, PreparedStep } from "./fmJobs";
 import { FmError, isDocumentPackageName, validateName } from "./fmPaths";
-import { extractFullEpubRich } from "./fmPreview";
+import {
+  extractFullEpubRich,
+  stripBackMatterPromoAndDuplicateChapters,
+} from "./fmPreview";
 import {
   explainFailure,
   pdfEngineFor,
@@ -797,6 +800,20 @@ function stepFor(
           )
         : resolvedOriginals;
       const publish = async () => {
+        if (!folder && (outExt === "md" || outExt === "txt")) {
+          try {
+            const rawOut = await fsp.readFile(tmpOut, "utf8");
+            const cleanedOut = stripBackMatterPromoAndDuplicateChapters(
+              rawOut,
+              title,
+            );
+            if (cleanedOut !== rawOut) {
+              await fsp.writeFile(tmpOut, cleanedOut, "utf8");
+            }
+          } catch {
+            // keep original output if unreadable
+          }
+        }
         if (folder) {
           if (engine.limitOutput)
             await sanitizeExtracted(tmpOut, EXTRACT_LIMITS);

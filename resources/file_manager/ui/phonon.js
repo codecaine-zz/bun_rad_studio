@@ -262,18 +262,47 @@ function estimateSpokenWordWeightClient(rawWord) {
   return weight;
 }
 
+function stripNonSpeechCharsClient(input) {
+  if (!input) return "";
+  return String(input)
+    .replace(/<svg\b[\s\S]*?<\/svg>/gi, " ")
+    .replace(/^\s*:{3,}(?:\s*\{[^}\n]*\})?\s*$/gm, " ")
+    .replace(/\[\]\{#[^}\n]+\}/g, "")
+    .replace(/\[([^\][\n]+)\]\{\.[A-Za-z0-9_-]+[^}\n]*\}/g, "$1")
+    .replace(/\{(?:\.[A-Za-z0-9_-]+|#[A-Za-z0-9_.:-]+)[^}\n]*\}/g, "")
+    .replace(/^\s*[-=*_#~+^|<>\\/\u2500-\u259F\s]{3,}\s*$/gm, "\n")
+    .replace(/[\u2500-\u259F]+/g, " ")
+    .replace(/[=*_#~+^|<>\\]{2,}/g, " ")
+    .replace(/-{3,}/g, " — ")
+    .replace(/\.{4,}/g, " ");
+}
+
 /**
  * Computes client-side word and caption-cue timings for any text chunk so the Follow-Along Teleprompter
  * can render interactive word tokens immediately and synchronize at 60fps during audio playback.
  */
 function buildClientWordCues(text, durationSec = 0) {
-  const clean = String(text || "").trim();
+  const clean = stripNonSpeechCharsClient(text).trim();
   if (!clean) return { words: [], cues: [], durationMs: 0 };
   const rawTokens = [];
   const rx = /\S+/g;
   let m;
   while ((m = rx.exec(clean)) !== null) {
-    const word = m[0];
+    const rawMatch = m[0];
+    const word = rawMatch
+      .replace(
+        /^[=*_#~+^|<>`\\─━═│┃┄┅┈┉┌┐└┘├┤┬┴┼╔╗╚╝╠╣╦╩╬▀▄█▌▐░▒▓]+|[=*_#~+^|<>`\\─━═│┃┄┅┈┉┌┐└┘├┤┬┴┼╔╗╚╝╠╣╦╩╬▀▄█▌▐░▒▓]+$/g,
+        "",
+      )
+      .replace(/^-{2,}|-{2,}$/g, "");
+    if (!word || !/[\p{L}\p{N}&%$€£¥@§]/u.test(word)) {
+      if (rawTokens.length > 0 && /^[-—–….!?,;:]+$/.test(rawMatch)) {
+        const prev = rawTokens[rawTokens.length - 1];
+        prev.pauseAfterWeight = Math.max(prev.pauseAfterWeight, 2.0);
+        prev.weight = prev.speakWeight + prev.pauseAfterWeight;
+      }
+      continue;
+    }
     const speakWeight = estimateSpokenWordWeightClient(word);
     let pauseAfterWeight = 0;
     if (/[.!?…]['"”’)\]]*$/.test(word)) pauseAfterWeight = 3.2;
@@ -484,8 +513,12 @@ function mountPhononStudio(root, payload) {
 
   function getEffectiveAudioLatencyMs() {
     const rateStretchLatency = Math.round(Math.abs(speed - 1) * 95);
+    const bakedPitch = Number(currentTeleprompterData.synthesizedPitch) || 0;
+    const residualPitch = pitch - bakedPitch;
     const pitchShiftLatency =
-      Math.abs(pitch) >= 0.25 ? Math.round(50 + Math.abs(pitch) * 8) : 0;
+      Math.abs(residualPitch) >= 0.25
+        ? Math.round(50 + Math.abs(residualPitch) * 8)
+        : 0;
     const elapsedSinceChange = performance.now() - rateOrPitchChangedAt;
     const settleLatency =
       elapsedSinceChange >= 0 && elapsedSinceChange < 380
@@ -1299,22 +1332,45 @@ function mountPhononStudio(root, payload) {
     teleprompterWordBadge.textContent = `Segment ${idx + 1}/${chunks.length} · ${words.length} words${currentTeleprompterData.pcmAligned ? " · Waveform Synced" : ""}`;
   }
 
+  let lastRawAudioTimeSec = -1;
+  let lastRawAudioPerfMs = 0;
+
   function seekToWordInTeleprompter(chunkIdx, wordObj) {
-    const targetSec = Math.max(0, (Number(wordObj?.startMs) || 0) / 1000);
+    const targetWordStartMs = Math.max(0, Number(wordObj?.startMs) || 0);
+    const effectiveRate = Math.max(
+      0.25,
+      Math.min(4.0, Number(audioEl.playbackRate) || speed || 1),
+    );
+    const latencyMs = Math.round(getEffectiveAudioLatencyMs() * effectiveRate);
+    const compensatedMs = Math.max(
+      0,
+      targetWordStartMs + latencyMs - syncOffsetMs,
+    );
+    const targetSec = compensatedMs / 1000;
     if (isPlaying && activeChunkIndex === chunkIdx && audioEl.src) {
       audioEl.currentTime = Math.min(audioEl.duration || targetSec, targetSec);
+      lastRawAudioTimeSec = audioEl.currentTime;
+      lastRawAudioPerfMs = performance.now();
       if (isPaused) {
         isPaused = false;
         updateTransportButtons();
         void audioEl.play().catch(() => {});
       }
-      syncTeleprompterHighlight();
+      highlightWordAtTimeMs(
+        targetWordStartMs,
+        currentTeleprompterData.durationMs || (audioEl.duration || 1) * 1000,
+        true,
+      );
     } else {
       void playFromChunk(chunkIdx, targetSec);
     }
   }
 
-  function highlightWordAtTimeMs(currentMs, totalDurationMs) {
+  function highlightWordAtTimeMs(
+    currentMs,
+    totalDurationMs,
+    immediateJump = false,
+  ) {
     const { words, chunkIndex } = currentTeleprompterData;
     if (!words.length) return;
 
@@ -1337,6 +1393,27 @@ function mountPhononStudio(root, payload) {
           foundIdx = i;
         }
       }
+    }
+
+    // Prevent skipping over short words during sequential playback if an audio clock tick jumped across two adjacent words
+    if (
+      !immediateJump &&
+      activeWordIndex >= 0 &&
+      foundIdx > activeWordIndex + 1 &&
+      foundIdx - activeWordIndex <= 3
+    ) {
+      const nextWord = words[activeWordIndex + 1];
+      if (nextWord && currentMs - nextWord.endMs < 180) {
+        foundIdx = activeWordIndex + 1;
+      }
+    } else if (
+      !immediateJump &&
+      activeWordIndex === -1 &&
+      foundIdx === 1 &&
+      words[0] &&
+      currentMs - words[0].endMs < 180
+    ) {
+      foundIdx = 0;
     }
 
     if (foundIdx === activeWordIndex) return;
@@ -1391,8 +1468,32 @@ function mountPhononStudio(root, payload) {
       currentTeleprompterData.durationMs > 0
         ? currentTeleprompterData.durationMs / (durSec * 1000)
         : 1;
-    const rawMediaMs = Math.max(0, audioEl.currentTime * 1000 * scale);
-    const latencyMs = getEffectiveAudioLatencyMs();
+    const effectiveRate = Math.max(
+      0.25,
+      Math.min(4.0, Number(audioEl.playbackRate) || speed || 1),
+    );
+    const nowPerf = performance.now();
+    const curAudioSec = Math.max(0, Number(audioEl.currentTime) || 0);
+    if (
+      lastRawAudioTimeSec < 0 ||
+      Math.abs(curAudioSec - lastRawAudioTimeSec) > 0.0005
+    ) {
+      lastRawAudioTimeSec = curAudioSec;
+      lastRawAudioPerfMs = nowPerf;
+    }
+    // Smoothly interpolate between coarse HTMLAudioElement hardware buffer ticks (~50-85ms) so short words are never skipped
+    const interpElapsedMs =
+      !audioEl.paused && curAudioSec > 0
+        ? Math.min(
+            85 * effectiveRate,
+            Math.max(0, nowPerf - lastRawAudioPerfMs) * effectiveRate,
+          )
+        : 0;
+    const rawMediaMs = Math.max(
+      0,
+      (curAudioSec * 1000 + interpElapsedMs) * scale,
+    );
+    const latencyMs = Math.round(getEffectiveAudioLatencyMs() * effectiveRate);
     const currentMs = Math.max(0, rawMediaMs - latencyMs + syncOffsetMs);
     highlightWordAtTimeMs(
       currentMs,
@@ -1583,7 +1684,6 @@ function mountPhononStudio(root, payload) {
         voice: selectedVoice,
         pitch,
       });
-      currentTeleprompterData.synthesizedPitch = Number(res.pitch) || 0;
       audioEl.src = audioUrlWithToken(res.url);
       applyAudioPlaybackSettings();
       await audioEl.play();
@@ -2097,7 +2197,9 @@ function mountPhononStudio(root, payload) {
 
     clear(videoPlayerEl);
     videoPlayerEl.src = rawFileUrl(videoPath);
-    // Attach companion .vtt subtitle track if saved alongside the video
+    // Attach companion .vtt subtitle track if saved alongside the video.
+    // Keep it disabled by default because the Read-Along video already has
+    // centered word-by-word karaoke text burned into the middle of the screen.
     const dotIdx = videoPath.lastIndexOf(".");
     const vttPath =
       dotIdx > 0 ? `${videoPath.slice(0, dotIdx)}.vtt` : `${videoPath}.vtt`;
@@ -2106,23 +2208,26 @@ function mountPhononStudio(root, payload) {
       srclang: "en",
       label: "Follow Along Captions",
       src: rawFileUrl(vttPath),
-      default: true,
     });
     videoPlayerEl.append(trackEl);
 
-    const activateSubtitleTrack = () => {
+    const disableDuplicateSubtitleOverlay = () => {
       try {
         if (videoPlayerEl.textTracks && videoPlayerEl.textTracks.length > 0) {
           for (let i = 0; i < videoPlayerEl.textTracks.length; i++) {
-            videoPlayerEl.textTracks[i].mode = i === 0 ? "showing" : "disabled";
+            videoPlayerEl.textTracks[i].mode = "disabled";
           }
         }
       } catch {}
     };
-    videoPlayerEl.addEventListener("loadedmetadata", activateSubtitleTrack, {
-      once: true,
-    });
-    setTimeout(activateSubtitleTrack, 120);
+    videoPlayerEl.addEventListener(
+      "loadedmetadata",
+      disableDuplicateSubtitleOverlay,
+      {
+        once: true,
+      },
+    );
+    setTimeout(disableDuplicateSubtitleOverlay, 120);
 
     videoPlayerPathLabel.textContent = baseName(videoPath, state.sep);
     videoPlayerBox.hidden = false;
@@ -2153,11 +2258,12 @@ function mountPhononStudio(root, payload) {
         speed,
         pitch,
         pauseMs,
-        cleanText: false,
+        cleanText,
         outputDir: outDirInput.value.trim() || currentPath() || state.home,
         outputName:
           outNameInput.value.trim() || (isVid ? "read-along-video" : "speech"),
-        maxChunkChars: Math.max(maxChunkChars, 750),
+        maxChunkChars,
+        syncOffsetMs,
         aspectRatio: selectedAspectRatio,
         videoTheme: selectedVideoTheme,
         saveSubtitles: saveCompanionSubtitles,
@@ -2236,7 +2342,8 @@ function mountPhononStudio(root, payload) {
         pauseMs,
         cleanText,
         outputDir: outDirInput.value.trim() || currentPath() || "",
-        maxChunkChars: Math.max(maxChunkChars, 800),
+        maxChunkChars,
+        syncOffsetMs,
         aspectRatio: selectedAspectRatio,
         videoTheme: selectedVideoTheme,
         saveSubtitles: saveCompanionSubtitles,
