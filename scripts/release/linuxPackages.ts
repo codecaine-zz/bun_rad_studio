@@ -140,7 +140,7 @@ export function debControlFile(opts: {
     `Architecture: ${opts.arch}`,
     `Installed-Size: ${Math.max(1, Math.ceil(opts.installedSizeKb))}`,
     `Depends: libc6, libgtk-4-1, libwebkitgtk-6.0-4`,
-    `Recommends: apparmor`,
+    `Recommends: apparmor, espeak-ng, libttspico-utils, ffmpeg`,
     `Maintainer: Codecaine <https://github.com/${repo}>`,
     `Homepage: https://github.com/${repo}`,
     `Description: Dual-pane file manager, code editor, and database studios for developers`,

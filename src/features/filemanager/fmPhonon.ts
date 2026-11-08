@@ -7073,6 +7073,269 @@ function extractEdgeTtsWordBoundaryAnchors(
   }
 }
 
+let linuxPiperBinaryPromise: Promise<boolean> | null = null;
+const linuxPiperVoicePromises = new Map<string, Promise<boolean>>();
+
+const PIPER_LINUX_VOICES: Record<
+  "male" | "female",
+  { stem: string; onnxUrl: string; jsonUrl: string }
+> = {
+  male: {
+    stem: "en_US-ryan-medium",
+    onnxUrl:
+      "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/ryan/medium/en_US-ryan-medium.onnx",
+    jsonUrl:
+      "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/ryan/medium/en_US-ryan-medium.onnx.json",
+  },
+  female: {
+    stem: "en_US-lessac-medium",
+    onnxUrl:
+      "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/lessac/medium/en_US-lessac-medium.onnx",
+    jsonUrl:
+      "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json",
+  },
+};
+
+/**
+ * Automatically provisions the standalone Linux C++ Piper Neural TTS binary (`piper_linux_x86_64.tar.gz` or
+ * `piper_linux_aarch64.tar.gz`, which also bundles `espeak-ng`, `libespeak-ng.so.1`, and `espeak-ng-data`)
+ * and the requested neural ONNX voice model (`en_US-ryan-medium` for male voices like Russell,
+ * `en_US-lessac-medium` for female voices like Zoey) into `~/.bun_rad_studio/piper/` with zero sudo required.
+ */
+export async function ensureLinuxPiperNeuralTts(
+  ctx: FmContext,
+  gender: "male" | "female",
+  signal?: AbortSignal,
+  log?: (msg: string) => void,
+): Promise<{
+  piperExe: string;
+  piperLibDir: string;
+  espeakDataDir: string;
+  bundledEspeakExe: string;
+  onnxPath: string;
+  jsonPath: string;
+} | null> {
+  const piperRoot = nodePath.join(
+    ctx.home || homedir(),
+    ".bun_rad_studio",
+    "piper",
+  );
+  const piperLibDir = nodePath.join(piperRoot, "piper");
+  const piperExe = nodePath.join(piperLibDir, "piper");
+  const espeakDataDir = nodePath.join(piperLibDir, "espeak-ng-data");
+  const bundledEspeakExe = nodePath.join(piperLibDir, "espeak-ng");
+  const voicesDir = nodePath.join(piperRoot, "voices");
+  const vSpec = PIPER_LINUX_VOICES[gender] || PIPER_LINUX_VOICES.female;
+  const onnxPath = nodePath.join(voicesDir, `${vSpec.stem}.onnx`);
+  const jsonPath = nodePath.join(voicesDir, `${vSpec.stem}.onnx.json`);
+
+  try {
+    await fsp.mkdir(voicesDir, { recursive: true });
+  } catch {
+    return null;
+  }
+
+  if (!existsSync(piperExe) || !existsSync(espeakDataDir)) {
+    if (!linuxPiperBinaryPromise) {
+      linuxPiperBinaryPromise = (async () => {
+        try {
+          const arch =
+            (ctx.arch || process.arch) === "arm64" ? "aarch64" : "x86_64";
+          const tarUrl = `https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_linux_${arch}.tar.gz`;
+          const tarPath = nodePath.join(
+            piperRoot,
+            `piper_linux_${arch}.${process.pid}.tar.gz`,
+          );
+          log?.(`Downloading Linux Piper Neural TTS engine (${arch})…\n`);
+          const res = await fetch(tarUrl, {
+            redirect: "follow",
+            signal: signal ?? AbortSignal.timeout(90_000),
+          });
+          if (!res.ok) return false;
+          await Bun.write(tarPath, Buffer.from(await res.arrayBuffer()));
+          const extractProc = Bun.spawn(
+            ["tar", "-xzf", tarPath, "-C", piperRoot],
+            {
+              stdout: "ignore",
+              stderr: "ignore",
+              stdin: "ignore",
+            },
+          );
+          const code = await extractProc.exited;
+          await fsp.rm(tarPath, { force: true }).catch(() => {});
+          if (code !== 0 || !existsSync(piperExe)) return false;
+          await fsp.chmod(piperExe, 0o755).catch(() => {});
+          if (existsSync(bundledEspeakExe)) {
+            await fsp.chmod(bundledEspeakExe, 0o755).catch(() => {});
+          }
+          return true;
+        } catch {
+          return false;
+        } finally {
+          linuxPiperBinaryPromise = null;
+        }
+      })();
+    }
+    const okBin = await linuxPiperBinaryPromise;
+    if (!okBin && !existsSync(piperExe)) return null;
+  }
+
+  const hasValidOnnx = (() => {
+    try {
+      return (
+        existsSync(onnxPath) &&
+        existsSync(jsonPath) &&
+        statSync(onnxPath).size > 1_000_000
+      );
+    } catch {
+      return false;
+    }
+  })();
+
+  if (!hasValidOnnx) {
+    let voiceProm = linuxPiperVoicePromises.get(vSpec.stem);
+    if (!voiceProm) {
+      voiceProm = (async () => {
+        try {
+          log?.(`Downloading Piper neural voice model (${vSpec.stem})…\n`);
+          const jsonPart = `${jsonPath}.${process.pid}.part`;
+          const onnxPart = `${onnxPath}.${process.pid}.part`;
+          const [jRes, oRes] = await Promise.all([
+            fetch(vSpec.jsonUrl, {
+              redirect: "follow",
+              signal: signal ?? AbortSignal.timeout(30_000),
+            }),
+            fetch(vSpec.onnxUrl, {
+              redirect: "follow",
+              signal: signal ?? AbortSignal.timeout(120_000),
+            }),
+          ]);
+          if (!jRes.ok || !oRes.ok) return false;
+          const [jBuf, oBuf] = await Promise.all([
+            jRes.arrayBuffer(),
+            oRes.arrayBuffer(),
+          ]);
+          if (oBuf.byteLength < 1_000_000) return false;
+          await Bun.write(jsonPart, Buffer.from(jBuf));
+          await Bun.write(onnxPart, Buffer.from(oBuf));
+          await fsp.rename(jsonPart, jsonPath);
+          await fsp.rename(onnxPart, onnxPath);
+          return true;
+        } catch {
+          return false;
+        } finally {
+          linuxPiperVoicePromises.delete(vSpec.stem);
+        }
+      })();
+      linuxPiperVoicePromises.set(vSpec.stem, voiceProm);
+    }
+    await voiceProm;
+  }
+
+  return {
+    piperExe,
+    piperLibDir,
+    espeakDataDir,
+    bundledEspeakExe,
+    onnxPath,
+    jsonPath,
+  };
+}
+
+/**
+ * Offline Ubuntu/Linux direct `libespeak-ng.so.1` / `libespeak.so.1` speech synthesizer via Python `ctypes`.
+ * Standard Ubuntu Desktop (`ubuntu-desktop` -> `speech-dispatcher-espeak-ng` -> `libespeak-ng1`) pre-installs
+ * `/lib/x86_64-linux-gnu/libespeak-ng.so.1` (or `/lib/aarch64-linux-gnu/libespeak-ng.so.1`) and `python3` out of the box,
+ * even when the optional `/usr/bin/espeak-ng` CLI package is not installed.
+ */
+export async function synthesizeLinuxLibEspeakNgWav(
+  payload: string,
+  espeakVoice: string,
+  outWavPath: string,
+  env: Record<string, string>,
+  extraLibDir?: string,
+  extraDataDir?: string,
+): Promise<boolean> {
+  const pyScript = [
+    "import ctypes, os, sys, wave",
+    "cand = []",
+    "extra_lib = os.environ.get('FM_ESPEAK_LIB_DIR', '')",
+    "if extra_lib:",
+    "  cand.extend([os.path.join(extra_lib, 'libespeak-ng.so.1'), os.path.join(extra_lib, 'libespeak-ng.so.1.52.0.1')])",
+    "cand.extend([",
+    "  'libespeak-ng.so.1', 'libespeak-ng.so',",
+    "  '/lib/x86_64-linux-gnu/libespeak-ng.so.1', '/usr/lib/x86_64-linux-gnu/libespeak-ng.so.1',",
+    "  '/lib/aarch64-linux-gnu/libespeak-ng.so.1', '/usr/lib/aarch64-linux-gnu/libespeak-ng.so.1',",
+    "  '/usr/lib64/libespeak-ng.so.1', '/usr/lib/libespeak-ng.so.1',",
+    "  'libespeak.so.1', '/lib/x86_64-linux-gnu/libespeak.so.1', '/lib/aarch64-linux-gnu/libespeak.so.1'",
+    "])",
+    "lib = None",
+    "for p in cand:",
+    "  try:",
+    "    lib = ctypes.CDLL(p)",
+    "    break",
+    "  except Exception:",
+    "    pass",
+    "if lib is None: sys.exit(2)",
+    "lib.espeak_Initialize.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_char_p, ctypes.c_int]",
+    "lib.espeak_Initialize.restype = ctypes.c_int",
+    "data_dir = os.environ.get('FM_ESPEAK_DATA_DIR', '').encode('utf-8') if os.environ.get('FM_ESPEAK_DATA_DIR') else None",
+    "rate = lib.espeak_Initialize(2, 0, data_dir, 0)",
+    "if rate <= 0 and data_dir is not None:",
+    "  rate = lib.espeak_Initialize(2, 0, None, 0)",
+    "if rate <= 0: sys.exit(3)",
+    "pcm = bytearray()",
+    "CB = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.POINTER(ctypes.c_short), ctypes.c_int, ctypes.c_void_p)",
+    "def on_cb(wav_ptr, numsamples, ev):",
+    "  if wav_ptr and numsamples > 0:",
+    "    pcm.extend(ctypes.string_at(wav_ptr, numsamples * 2))",
+    "  return 0",
+    "cb = CB(on_cb)",
+    "lib.espeak_SetSynthCallback(cb)",
+    "v = os.environ.get('FM_ESPEAK_VOICE', 'en').encode('utf-8')",
+    "if lib.espeak_SetVoiceByName(v) != 0:",
+    "  lib.espeak_SetVoiceByName(b'en')",
+    "lib.espeak_SetParameter(1, 165, 0)",
+    "txt = os.environ.get('FM_TTS_TEXT', '').encode('utf-8') + b'\\x00'",
+    "lib.espeak_Synth.argtypes = [ctypes.c_char_p, ctypes.c_size_t, ctypes.c_uint, ctypes.c_int, ctypes.c_uint, ctypes.c_uint, ctypes.c_void_p, ctypes.c_void_p]",
+    "lib.espeak_Synth(txt, len(txt), 0, 1, 0, 1, None, None)",
+    "lib.espeak_Synchronize()",
+    "if len(pcm) < 64: sys.exit(4)",
+    "with wave.open(os.environ['FM_TTS_OUT'], 'wb') as wf:",
+    "  wf.setnchannels(1)",
+    "  wf.setsampwidth(2)",
+    "  wf.setframerate(rate)",
+    "  wf.writeframes(bytes(pcm))",
+  ].join("\n");
+
+  for (const pyBin of ["python3", "/usr/bin/python3", "python"]) {
+    try {
+      const proc = Bun.spawn([pyBin, "-c", pyScript], {
+        stdout: "ignore",
+        stderr: "ignore",
+        stdin: "ignore",
+        env: {
+          ...env,
+          FM_TTS_TEXT: payload,
+          FM_TTS_OUT: outWavPath,
+          FM_ESPEAK_VOICE: espeakVoice,
+          ...(extraLibDir
+            ? {
+                FM_ESPEAK_LIB_DIR: extraLibDir,
+                LD_LIBRARY_PATH: `${extraLibDir}${env.LD_LIBRARY_PATH ? ":" + env.LD_LIBRARY_PATH : ""}`,
+              }
+            : {}),
+          ...(extraDataDir ? { FM_ESPEAK_DATA_DIR: extraDataDir } : {}),
+        },
+      });
+      if ((await proc.exited) === 0 && existsSync(outWavPath)) {
+        return true;
+      }
+    } catch {}
+  }
+  return false;
+}
+
 /**
  * Cross-platform TTS synthesis cascade for Linux (`x64`/`arm64`), Windows (`x64`/`arm64`), and Intel macOS (`darwin/x64`)
  * when Apple Silicon MLX (`ollama run phonon`) is unavailable:
@@ -7825,7 +8088,7 @@ export async function synthesizeCrossPlatformTtsChunkWav(
         }
       }
 
-      // 3b. Linux Native `piper` / `pico2wave` / `espeak-ng` / `espeak` / `flite` WAV Synthesizer
+      // 3b. Linux Native `piper` (System or Auto-Provisioned Neural ONNX) / `pico2wave` / `espeak-ng` / `libespeak-ng.so.1` WAV Synthesizer
       if (ctx.platform === "linux") {
         const tmpWav = nodePath.join(tmpDir, "linux-tts.wav");
         const piperExe = findExecutable("linux", ["piper"], activeSearchDirs);
@@ -7855,6 +8118,53 @@ export async function synthesizeCrossPlatformTtsChunkWav(
             if (wav) return wav;
           }
         }
+
+        // Auto-provisioned local C++ Piper Neural TTS (`~/.bun_rad_studio/piper/`) on real Linux hosts
+        let piperInfo: Awaited<
+          ReturnType<typeof ensureLinuxPiperNeuralTts>
+        > | null = null;
+        if (process.platform === "linux" && !hasExplicitTtsToolInDirs) {
+          piperInfo = await Promise.race([
+            ensureLinuxPiperNeuralTts(ctx, spec.gender, signal),
+            new Promise<null>((resolve) =>
+              setTimeout(() => resolve(null), 25_000),
+            ),
+          ]);
+          if (
+            piperInfo &&
+            existsSync(piperInfo.piperExe) &&
+            existsSync(piperInfo.onnxPath)
+          ) {
+            const piperEnv = {
+              ...env,
+              LD_LIBRARY_PATH: `${piperInfo.piperLibDir}${env.LD_LIBRARY_PATH ? ":" + env.LD_LIBRARY_PATH : ""}`,
+            };
+            const proc = Bun.spawn(
+              [
+                piperInfo.piperExe,
+                "--model",
+                piperInfo.onnxPath,
+                "--config",
+                piperInfo.jsonPath,
+                "--espeak_data",
+                piperInfo.espeakDataDir,
+                "--output_file",
+                tmpWav,
+              ],
+              {
+                stdin: new TextEncoder().encode(payload),
+                stdout: "ignore",
+                stderr: "ignore",
+                env: piperEnv,
+              },
+            );
+            if ((await proc.exited) === 0 && existsSync(tmpWav)) {
+              const wav = normalizeWavTo24k(await fsp.readFile(tmpWav));
+              if (wav) return wav;
+            }
+          }
+        }
+
         const picoExe = findExecutable(
           "linux",
           ["pico2wave"],
@@ -7897,6 +8207,38 @@ export async function synthesizeCrossPlatformTtsChunkWav(
             if (wav) return wav;
           }
         }
+        if (
+          piperInfo?.bundledEspeakExe &&
+          existsSync(piperInfo.bundledEspeakExe)
+        ) {
+          const proc = Bun.spawn(
+            [
+              piperInfo.bundledEspeakExe,
+              `--path=${piperInfo.piperLibDir}`,
+              "-w",
+              tmpWav,
+              "-s",
+              "165",
+              "-v",
+              spec.espeakVoice,
+              "--",
+              payload,
+            ],
+            {
+              stdout: "ignore",
+              stderr: "ignore",
+              stdin: "ignore",
+              env: {
+                ...env,
+                LD_LIBRARY_PATH: `${piperInfo.piperLibDir}${env.LD_LIBRARY_PATH ? ":" + env.LD_LIBRARY_PATH : ""}`,
+              },
+            },
+          );
+          if ((await proc.exited) === 0 && existsSync(tmpWav)) {
+            const wav = normalizeWavTo24k(await fsp.readFile(tmpWav));
+            if (wav) return wav;
+          }
+        }
         const fliteExe = findExecutable("linux", ["flite"], activeSearchDirs);
         if (fliteExe) {
           const proc = Bun.spawn([fliteExe, "-t", payload, "-o", tmpWav], {
@@ -7909,6 +8251,22 @@ export async function synthesizeCrossPlatformTtsChunkWav(
             const wav = normalizeWavTo24k(await fsp.readFile(tmpWav));
             if (wav) return wav;
           }
+        }
+        // Offline Ubuntu Desktop pre-installed `libespeak-ng.so.1` shared library via Python `ctypes`
+        if (
+          process.platform === "linux" &&
+          !hasExplicitTtsToolInDirs &&
+          (await synthesizeLinuxLibEspeakNgWav(
+            payload,
+            spec.espeakVoice,
+            tmpWav,
+            env,
+            piperInfo?.piperLibDir,
+            piperInfo?.espeakDataDir,
+          ))
+        ) {
+          const wav = normalizeWavTo24k(await fsp.readFile(tmpWav));
+          if (wav) return wav;
         }
       }
 
@@ -8956,6 +9314,14 @@ export function createPhononPullStep(ctx: FmContext) {
               ? "arm64"
               : process.arch);
           if (!isPhononSupportedPlatform(ctx.platform, effectiveArch)) {
+            if (ctx.platform === "linux" && process.platform === "linux") {
+              await ensureLinuxPiperNeuralTts(ctx, "female", signal, log).catch(
+                () => null,
+              );
+              await ensureLinuxPiperNeuralTts(ctx, "male", signal, log).catch(
+                () => null,
+              );
+            }
             log(
               "Phonon requires Apple Silicon MLX; pulling cross-platform Audio/Speech LLM (lfm3-omni:latest)…\n",
             );

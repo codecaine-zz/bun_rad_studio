@@ -1568,9 +1568,7 @@ export function getBionicTtsConfigAndVoices(ctx?: FmContext): {
       const foundBackend =
         entries.find(
           (e) => e.name.startsWith(osPrefix) && e.name.includes(archHint),
-        ) ||
-        entries.find((e) => e.name.startsWith(osPrefix)) ||
-        entries[0];
+        ) || entries.find((e) => e.name.startsWith(osPrefix));
       if (foundBackend) {
         enginePath = joinPath([foundBackend.path, "tts_engine.node"], platform);
       }
@@ -1612,7 +1610,14 @@ export function getBionicTtsConfigAndVoices(ctx?: FmContext): {
       const rawJsonl = readTextFileSyncPure(voicesJsonlPath);
       const jsonlMeta = new Map<
         string,
-        { name: string; language: string; description: string }
+        {
+          name: string;
+          language: string;
+          locale: string;
+          gender: string;
+          age: string;
+          description: string;
+        }
       >();
       if (rawJsonl) {
         for (const line of rawJsonl.split(/\r?\n/)) {
@@ -1620,10 +1625,14 @@ export function getBionicTtsConfigAndVoices(ctx?: FmContext): {
           if (!trimmed) continue;
           try {
             const obj = JSON.parse(trimmed);
-            if (obj.uid && obj.name) {
-              jsonlMeta.set(String(obj.uid), {
+            const uid = String(obj.voice_id || obj.uid || obj.id || "").trim();
+            if (uid && obj.name) {
+              jsonlMeta.set(uid, {
                 name: String(obj.name),
                 language: String(obj.language || "en"),
+                locale: String(obj.locale || "en-us"),
+                gender: String(obj.gender || "female"),
+                age: String(obj.age || "Adult"),
                 description: String(
                   obj.description || `${obj.name} (${obj.language || "en"})`,
                 ),
@@ -1652,10 +1661,13 @@ export function getBionicTtsConfigAndVoices(ctx?: FmContext): {
             id: cleanId,
             name: displayName,
             language: meta?.language || "en",
-            country: "us",
+            locale: meta?.locale || "en-us",
+            gender: meta?.gender || "female",
+            age: meta?.age || "Adult",
             description:
               meta?.description ||
               `${displayName} (Phonon 40M Multilingual Voice)`,
+            bundled: true,
           });
         }
       } else if (parsedBundle && typeof parsedBundle.voices === "object") {
@@ -1681,12 +1693,36 @@ export function getBionicTtsConfigAndVoices(ctx?: FmContext): {
             id: cleanId,
             name: displayName,
             language: meta?.language || "en",
-            country: "us",
+            locale: meta?.locale || "en-us",
+            gender: meta?.gender || "female",
+            age: meta?.age || "Adult",
             description:
               meta?.description ||
               `${displayName} (Phonon 40M Multilingual Voice)`,
+            bundled: true,
           });
         }
+      }
+      for (const [uid, meta] of jsonlMeta.entries()) {
+        if (existingIds.has(uid)) continue;
+        if (
+          availableVoices.some(
+            (v) => v.name.toLowerCase() === meta.name.toLowerCase(),
+          )
+        ) {
+          continue;
+        }
+        existingIds.add(uid);
+        availableVoices.push({
+          id: uid,
+          name: meta.name,
+          language: meta.language,
+          locale: meta.locale,
+          gender: meta.gender,
+          age: meta.age,
+          description: meta.description,
+          bundled: false,
+        });
       }
     }
   } catch {}
@@ -1955,6 +1991,11 @@ export async function runBionicSpeech(
           runnableEnginePath = hostTtsCfg.enginePath;
         }
       }
+      const engineVoiceId = matchedVoice.bundled
+        ? matchedVoice.id
+        : matchedVoice.gender === "male"
+          ? "3ZKKapPOvuWFcw9f"
+          : "NbpkqMVS3CJeq2j8";
       let sampleRate = 24000;
       let merged: Float32Array;
       try {
@@ -1981,7 +2022,7 @@ export async function runBionicSpeech(
           for (const chunkText of chunks) {
             await engine.startSegment({
               text: chunkText,
-              voice: matchedVoice.id,
+              voice: engineVoiceId,
               language,
               seed: 42,
             });
@@ -2056,7 +2097,7 @@ export async function runBionicSpeech(
             FM_PTTS_BUNDLE: ttsCfg.bundlePath,
             FM_PTTS_THREADS: String(ttsCfg.selection.cpuThreads || 4),
             FM_PTTS_CHUNKS: JSON.stringify(chunks),
-            FM_PTTS_VOICE: matchedVoice.id,
+            FM_PTTS_VOICE: engineVoiceId,
             FM_PTTS_LANG: language,
           },
         });
