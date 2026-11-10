@@ -62,7 +62,9 @@ interface Entry {
   liveReload: boolean;
   dotfiles: boolean;
   cors: boolean;
+  listing: boolean;
   router: string;
+  phpPath: string;
   startedAt: number;
   status: ServerStatus;
   message: string;
@@ -94,7 +96,9 @@ export interface ServerSummary {
   liveReload: boolean;
   dotfiles: boolean;
   cors: boolean;
+  listing: boolean;
   router: string;
+  phpPath: string;
   clients: number;
   phpVersion: string | null;
   /** The PHP process id (PHP servers), so a leftover process can be found by hand. */
@@ -127,7 +131,9 @@ function summarize(e: Entry): ServerSummary {
     liveReload: e.liveReload,
     dotfiles: e.dotfiles,
     cors: e.cors,
+    listing: e.listing,
     router: e.router,
+    phpPath: e.phpPath,
     clients: e.staticServer?.live?.clientCount ?? 0,
     phpVersion: e.phpVersion,
     pid: e.phpProcess?.pid ?? null,
@@ -236,7 +242,9 @@ export class ServeRegistry {
       liveReload: req.kind === "static" && req.liveReload,
       dotfiles: req.dotfiles,
       cors: req.cors,
+      listing: req.listing,
       router: req.router,
+      phpPath: req.php || "",
       startedAt: Date.now(),
       status: "starting",
       message: "",

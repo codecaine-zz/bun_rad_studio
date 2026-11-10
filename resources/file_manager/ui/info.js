@@ -9,9 +9,9 @@ import { mayHavePhotoDetails, photoStrip } from "./fileinfoPhoto.js";
 import { $, clear, h, iconForEntry } from "./dom.js";
 import { saveSettings, visibleEntries } from "./nav.js";
 import { octalOf, symbolicOf } from "./permsModel.js";
-import { copyNamesOf, copyPathOf } from "./ops.js";
+import { copyNamesOf, copyPathOf, extractSelection } from "./ops.js";
 import { openPower } from "./power.js";
-import { inTrash } from "./pane.js";
+import { activePane, inTrash, isFolderView } from "./pane.js";
 import { selectedEntries } from "./selection.js";
 import { emit, on, state } from "./state.js";
 import { quickMediaBlock } from "./mediaQuick.js";
@@ -23,6 +23,7 @@ import {
   formatDate,
   formatSize,
   isDocumentPackageEntry,
+  isExtractableEntry,
   plural,
 } from "./util.js";
 
@@ -443,6 +444,24 @@ export async function renderInfo() {
             },
             "More info…",
           ),
+      inTrash() || !isFolderView(activePane()) || !isExtractableEntry(e)
+        ? null
+        : h(
+            "button",
+            {
+              type: "button",
+              class: "btn",
+              dataset: { infoAction: "extract" },
+              title:
+                "Unpack this archive or compressed file right here without overwriting anything",
+              onclick: () =>
+                void extractSelection([e], {
+                  mode: "smart",
+                  pane: activePane(),
+                }),
+            },
+            "📦 Extract here",
+          ),
       inTrash() || e.isDir || !(isSqliteFile(e) || e.kind === "sqlite")
         ? null
         : h(
@@ -485,12 +504,12 @@ export async function renderInfo() {
 export function wireInfo() {
   on("selection", renderInfo);
   on("view", renderInfo);
-  on(
-    "settings",
-    (change) =>
-      ("showInfoPanel" in change || Object.keys(change).length === 0) &&
-      renderInfo(),
-  );
+  on("settings", (change = {}) => {
+    const patch = change && typeof change === "object" ? change : {};
+    if ("showInfoPanel" in patch || Object.keys(patch).length === 0) {
+      renderInfo();
+    }
+  });
   on("toggle-info", () =>
     saveSettings({ showInfoPanel: !state.settings.showInfoPanel }),
   );

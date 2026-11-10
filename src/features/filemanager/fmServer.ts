@@ -659,7 +659,8 @@ const operations: Record<string, Handler> = {
       : typeof b.path === "string"
         ? [b.path]
         : [];
-    return await extractItems(ctx, paths, b.dest);
+    const mode = b.mode === "smart" ? "smart" : "subfolder";
+    return await extractItems(ctx, paths, b.dest, undefined, mode);
   },
   async bulkrename(ctx, b) {
     return await bulkRename(ctx, b.folder, b.names, b.spec, b.apply === true);

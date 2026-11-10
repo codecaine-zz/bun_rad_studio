@@ -51,6 +51,9 @@ export function createActions(ctx) {
   const sep = () => state.sep;
   let fileCache = { root: "", hidden: false, files: [] };
   const clips = [];
+  const invalidateFiles = () => {
+    fileCache = { root: "", hidden: false, files: [] };
+  };
 
   async function saveAs(doc = ctx.doc()) {
     if (!doc || doc.kind === "diff") return false;
@@ -82,7 +85,10 @@ export function createActions(ctx) {
         }
       },
     });
-    if (result) explorer.refresh();
+    if (result) {
+      invalidateFiles();
+      explorer.refresh();
+    }
     return !!result;
   }
 
@@ -135,6 +141,7 @@ export function createActions(ctx) {
 
   /** Closes the given documents, asking once about unsaved changes. Returns false when the person cancelled. */
   async function closeDocs(list) {
+    if (!list.length) return true;
     const dirty = list.filter((d) => isDirty(d) && d.kind !== "diff");
     if (dirty.length) {
       const answer = await askUnsaved(dirty.map((d) => d.name));
@@ -142,11 +149,20 @@ export function createActions(ctx) {
       if (answer === "save")
         for (const d of dirty) if (!(await save(d))) return false;
     }
-    for (const d of list) docs.close(d.id);
+    if (typeof docs.closeMany === "function")
+      docs.closeMany(list.map((d) => d.id));
+    else for (const d of list) docs.close(d.id);
     return true;
   }
 
   const closeTab = (doc = ctx.doc()) => (doc ? closeDocs([doc]) : false);
+
+  const closeSaved = () =>
+    closeDocs(
+      docs
+        .list()
+        .filter((d) => d.kind === "file" && Boolean(d.path) && !isDirty(d)),
+    );
 
   async function revert(doc = ctx.doc()) {
     if (!doc?.path) return;
@@ -181,6 +197,7 @@ export function createActions(ctx) {
       submit: (name) => call("rename", { path: doc.path, name }),
     });
     if (!r) return;
+    invalidateFiles();
     docs.pathMoved(r.from, r.to);
     movePresets(r.from, r.to).catch(() => {});
     explorer.refresh();
@@ -206,6 +223,7 @@ export function createActions(ctx) {
           r?.code ?? "UNKNOWN",
           400,
         );
+      invalidateFiles();
       docs.close(doc.id);
       explorer.refresh();
       toast(`${doc.name} is in the Recycle Bin.`, { kind: "success" });
@@ -275,14 +293,22 @@ export function createActions(ctx) {
           note: r.truncated || r.timedOut,
         };
       }
-      palette.setItems([
-        ...recents.filter((x) => x.detail.startsWith(root)),
-        ...fileCache.files.map((rel) => ({
+      const rootPrefix = root.endsWith(sep()) ? root : `${root}${sep()}`;
+      const inRootRecents = recents.filter((x) =>
+        x.value.startsWith(rootPrefix),
+      );
+      const seen = new Set(inRootRecents.map((x) => x.value));
+      const wsItems = [];
+      for (const rel of fileCache.files) {
+        const fullPath = `${rootPrefix}${rel.replaceAll("/", sep())}`;
+        if (seen.has(fullPath)) continue;
+        wsItems.push({
           label: rel.slice(rel.lastIndexOf("/") + 1),
           detail: rel,
-          value: `${root}${sep()}${rel.replaceAll("/", sep())}`,
-        })),
-      ]);
+          value: fullPath,
+        });
+      }
+      palette.setItems([...inRootRecents, ...wsItems]);
     } catch (err) {
       toast(problem(err), { kind: "error" });
     }
@@ -854,10 +880,12 @@ export function createActions(ctx) {
     saveAll,
     closeDocs,
     closeTab,
+    closeSaved,
     revert,
     renameFile,
     deleteFile,
     copyPath,
+    invalidateFiles,
     openByPath,
     quickOpen,
     openRecent,

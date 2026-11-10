@@ -3,11 +3,17 @@
 // things; this page adds addresses, polls for progress while the tab is open, and draws one row per download.
 import { h } from "./dom.js";
 import { ApiError, call } from "./api.js";
+import { readFromClipboard } from "./copyclip.js";
 import { confirmBox } from "./dialogs.js";
 import { toast } from "./menus.js";
-import { currentPath, emit } from "./state.js";
+import { openPath } from "./ops.js";
+import { currentPath, emit, state } from "./state.js";
 import { goTo } from "./nav.js";
-import { registerPowerTab } from "./power.js";
+import {
+  isPowerExpanded,
+  registerPowerTab,
+  setPowerExpanded,
+} from "./power.js";
 import { formatSize } from "./util.js";
 
 const POLL_MS = 600;
@@ -79,14 +85,36 @@ function mount(root) {
     autocomplete: "off",
     placeholder:
       "Paste one or more web addresses, one per line:\nhttps://example.com/big-file.zip",
+    title:
+      "One or more web addresses to download (one per line). Press Ctrl+Enter or Command+Enter to start.",
     "aria-label": "Web addresses to download",
   });
+  const pasteUrlBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "pw-btn",
+      title: "Paste one or more web addresses from your clipboard",
+      onclick: act(async () => {
+        const clip = (await readFromClipboard()).trim();
+        if (!clip) {
+          toast("Your clipboard doesn't have any text yet.", { kind: "info" });
+          return;
+        }
+        urls.value = urls.value.trim() ? `${urls.value.trim()}\n${clip}` : clip;
+        syncBatchFields();
+        urls.focus();
+      }),
+    },
+    "📋 Paste URL",
+  );
   const folder = h("input", {
     type: "text",
     class: "dl-folder",
     spellcheck: "false",
     autocomplete: "off",
     placeholder: "Folder to save into (empty = the download folder below)",
+    title: "Folder to save downloaded files into",
     "aria-label": "Folder to save into",
   });
   const useFolder = h(
@@ -133,9 +161,14 @@ function mount(root) {
     autocomplete: "off",
     placeholder:
       "Header: value (one per line), for a login cookie or a referer",
+    title: "Optional HTTP request headers (one Header: value per line)",
     "aria-label": "Extra request headers",
   });
-  const startNow = h("input", { type: "checkbox", checked: true });
+  const startNow = h("input", {
+    type: "checkbox",
+    checked: true,
+    title: "Start downloading immediately after adding",
+  });
   const info = h(
     "p",
     { class: "pw-hint dl-info", role: "status" },
@@ -153,14 +186,50 @@ function mount(root) {
   );
   const go = h(
     "button",
-    { type: "button", class: "pw-btn primary", onclick: act(addDownloads) },
+    {
+      type: "button",
+      class: "pw-btn primary",
+      title: "Add and start the download (Ctrl+Enter or Command+Enter)",
+      onclick: act(addDownloads),
+    },
     "⬇ Download",
   );
+
+  function syncBatchFields() {
+    const count = urls.value
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l && !l.startsWith("#")).length;
+    const isBatch = count > 1;
+    saveAs.disabled = isBatch;
+    checksum.disabled = isBatch;
+    if (count !== 1) saveAs.placeholder = "Optional: save as…";
+    saveAs.title = isBatch
+      ? "Custom file name applies to a single URL only (batch mode uses each server's file name)."
+      : "Use this file name instead of the server's. Only for a single address.";
+    checksum.title = isBatch
+      ? "Checksum verification applies to a single URL only."
+      : "Checked when the file is finished. Only for a single address.";
+  }
+
+  urls.addEventListener("input", syncBatchFields);
+  urls.addEventListener("keydown", (e) => {
+    if (e.isComposing || e.keyCode === 229) return;
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault();
+      act(addDownloads)();
+    }
+  });
 
   const addCard = h(
     "section",
     { class: "pw-card dl-add", "aria-label": "Add downloads" },
-    h("h3", {}, "Add downloads"),
+    h(
+      "div",
+      { class: "pw-row dl-add-head" },
+      h("h3", {}, "Add downloads"),
+      pasteUrlBtn,
+    ),
     urls,
     h("div", { class: "pw-row" }, folder, useFolder),
     h(
@@ -205,7 +274,11 @@ function mount(root) {
   });
   const limitUnit = h(
     "select",
-    { class: "dl-select", "aria-label": "Speed limit unit" },
+    {
+      class: "dl-select",
+      title: "Speed limit unit (KB/s or MB/s)",
+      "aria-label": "Speed limit unit",
+    },
     SPEED_UNITS.map(([name, v]) => h("option", { value: String(v) }, name)),
   );
   limitUnit.value = String(1024 * 1024);
@@ -219,7 +292,12 @@ function mount(root) {
   });
   const saveSettings = h(
     "button",
-    { type: "button", class: "pw-btn", onclick: act(applySettings) },
+    {
+      type: "button",
+      class: "pw-btn",
+      title: "Save download settings",
+      onclick: act(applySettings),
+    },
     "Save settings",
   );
   const settingsCard = h(
@@ -261,6 +339,7 @@ function mount(root) {
     {
       type: "button",
       class: "pw-btn",
+      title: "Pause all active and queued downloads",
       onclick: act(() => post("dl/pauseAll")),
     },
     "Pause all",
@@ -270,6 +349,7 @@ function mount(root) {
     {
       type: "button",
       class: "pw-btn",
+      title: "Resume all paused or failed downloads",
       onclick: act(() => post("dl/resumeAll")),
     },
     "Resume all",
@@ -371,12 +451,16 @@ function mount(root) {
     if (folder.value.trim()) body.folder = folder.value.trim();
     const h2 = parseHeaders();
     if (Object.keys(h2).length) body.headers = h2;
-    if (saveAs.value.trim()) body.name = saveAs.value.trim();
-    if (checksum.value.trim()) body.checksum = checksum.value.trim();
+    if (!saveAs.disabled && saveAs.value.trim())
+      body.name = saveAs.value.trim();
+    if (!checksum.disabled && checksum.value.trim())
+      body.checksum = checksum.value.trim();
     const r = await post("dl/add", body);
     urls.value = "";
     saveAs.value = "";
+    saveAs.placeholder = "Optional: save as…";
     checksum.value = "";
+    syncBatchFields();
     info.textContent = `${r.added.length === 1 ? "Added." : `Added ${r.added.length} downloads.`}`;
     startPolling();
   }
@@ -521,6 +605,15 @@ function mount(root) {
           "primary",
         ),
       );
+    if (item.state === "done")
+      b.push(
+        button(
+          "▶ Open file",
+          "Open the downloaded file",
+          () => openDownloadedFile(item.id),
+          "primary",
+        ),
+      );
     b.push(
       button(
         "📂 Open folder",
@@ -559,6 +652,15 @@ function mount(root) {
   /** The download as it is right now (the buttons outlive the snapshot they were drawn from). */
   const current = (id) => data.items.find((i) => i.id === id);
 
+  async function openDownloadedFile(id) {
+    const item = current(id);
+    if (!item || !item.path) {
+      toast("That download isn't in the list any more.", { kind: "error" });
+      return;
+    }
+    await openPath(item.path);
+  }
+
   async function openFolder(id) {
     const item = current(id);
     if (!item) {
@@ -570,7 +672,10 @@ function mount(root) {
         select: item.state === "done" ? item.path : null,
       })
     ) {
-      emit("workspace-go", "files");
+      if (isPowerExpanded()) setPowerExpanded(false);
+      if (state.workspace !== "split" && state.workspace !== "dual") {
+        emit("workspace-go", "files");
+      }
       document.getElementById("list")?.focus();
     }
   }

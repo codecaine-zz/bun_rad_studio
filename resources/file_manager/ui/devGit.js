@@ -2,6 +2,7 @@
 // with any password or token already removed by the server.
 import { call } from "./api.js";
 import { h } from "./dom.js";
+import { joinRoot, openInCodeAt } from "./devActions.js";
 import { sparkline } from "./devChart.js";
 import {
   btn,
@@ -9,8 +10,10 @@ import {
   createTable,
   errorText,
   factList,
+  linkButton,
   num,
 } from "./devCore.js";
+import { toast } from "./menus.js";
 import { formatDate, formatSize, plural } from "./util.js";
 
 const when = (iso) => (iso ? formatDate(Date.parse(iso)) : "—");
@@ -45,7 +48,24 @@ export function createGit(env) {
             [
               "Last commit",
               g.lastCommit
-                ? `${g.lastCommit.hash} — ${g.lastCommit.subject} (${g.lastCommit.author}, ${when(g.lastCommit.date)})`
+                ? h(
+                    "span",
+                    {},
+                    `${g.lastCommit.hash} — ${g.lastCommit.subject} (${g.lastCommit.author}, ${when(g.lastCommit.date)}) `,
+                    linkButton(
+                      "📋 Copy hash",
+                      `Copy commit hash ${g.lastCommit.hash} to the clipboard`,
+                      async () => {
+                        try {
+                          const r = await call("copytext", {
+                            text: g.lastCommit.hash,
+                          });
+                          if (r?.copied)
+                            toast("Commit hash copied.", { kind: "success" });
+                        } catch {}
+                      },
+                    ),
+                  )
                 : "none yet",
             ],
             ["First commit", when(g.firstCommitDate)],
@@ -144,8 +164,16 @@ export function createGit(env) {
           { key: "bytes", label: "Size", num: true },
         ],
       });
+      const repoTop = g.toplevel || env.getRoot();
       table.render(
-        g.biggestFiles.map((f) => ({ cells: [f.path, formatSize(f.bytes)] })),
+        g.biggestFiles.map((f) => ({
+          cells: [
+            linkButton(f.path, `Open ${f.path} in the Code editor`, () =>
+              openInCodeAt(joinRoot(repoTop, f.path), 1),
+            ),
+            formatSize(f.bytes),
+          ],
+        })),
       );
       cards.push(
         h(

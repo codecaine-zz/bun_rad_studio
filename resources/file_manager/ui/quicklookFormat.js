@@ -10,7 +10,13 @@ import { openInSqliteStudio } from "./dbFiles.js";
 import { h, iconFor } from "./dom.js";
 import { toast } from "./menus.js";
 import { openPower } from "./power.js";
-import { extensionOf, formatDate, formatSize } from "./util.js";
+import { emit } from "./state.js";
+import {
+  extensionOf,
+  formatDate,
+  formatSize,
+  isExtractableEntry,
+} from "./util.js";
 
 let cachedQuickLookSelection = "";
 const QL_PROGRESS_STORAGE_KEY = "fm.ql.progress.v1";
@@ -328,6 +334,9 @@ export function ensureQuickLookFindBar(hostEl) {
     input.focus();
     input.select?.();
   };
+  bar._refreshSearch = () => {
+    if (!bar.hidden && input.value) runSearch();
+  };
 
   const head = host.querySelector(".ql-fmt-head, .code-md-toolbar");
   if (head && head.parentElement) {
@@ -474,12 +483,21 @@ export function extractQuickLookPreviewText(entry, preview, rootEl = null) {
           .filter(Boolean)
           .join("\n");
       }
-      case "structured":
+      case "structured": {
+        const prettyEl = scope?.querySelector?.(
+          ".ql-pretty-json-pre:not([hidden])",
+        );
+        if (prettyEl) {
+          return rich.data !== undefined
+            ? JSON.stringify(rich.data, null, 2)
+            : prettyEl.textContent || "";
+        }
         return (
           (preview?.type === "text" && preview.text) ||
           rich.formattedText ||
           (rich.data !== undefined ? JSON.stringify(rich.data, null, 2) : "")
         );
+      }
       case "notebook":
         return (rich.cells || [])
           .map((c) =>
@@ -779,6 +797,37 @@ export function buildQuickLookCopyButtons(
     "✂️ Copy Selected",
   );
 
+  let wrapped = helpers.initialWrapped !== false;
+  const wrapBtn =
+    helpers.hasPre === false
+      ? null
+      : h(
+          "button",
+          {
+            type: "button",
+            class: `code-btn code-small ql-wrap-btn${wrapped ? " active" : ""}`,
+            "aria-pressed": String(wrapped),
+            "data-copy-ui": "",
+            title: "Toggle soft line wrapping in this preview",
+            onmousedown: (e) => e.preventDefault(),
+            onclick: () => {
+              wrapped = !wrapped;
+              wrapBtn.classList.toggle("active", wrapped);
+              wrapBtn.setAttribute("aria-pressed", String(wrapped));
+              const host =
+                getContainer?.() ??
+                wrapBtn.closest(".ql-body, .ql-fmt-wrap, .ql");
+              for (const pre of host?.querySelectorAll?.("pre") || []) {
+                pre.classList.toggle("ql-nowrap", !wrapped);
+                if (pre.classList.contains("ql-hex-dump")) {
+                  pre.classList.toggle("ql-wrap-on", wrapped);
+                }
+              }
+            },
+          },
+          "↩ Wrap",
+        );
+
   return h(
     "span",
     {
@@ -787,6 +836,7 @@ export function buildQuickLookCopyButtons(
       "aria-label": "Preview text actions",
       "data-copy-ui": "",
     },
+    wrapBtn,
     findBtn,
     askAiBtn,
     speakSelBtn,
@@ -1092,6 +1142,15 @@ function renderColouredCodeLines(text, langId) {
       lineSpan.append(document.createTextNode("\n"));
     pre.append(lineSpan);
   }
+  if (lines.length > max) {
+    pre.append(
+      h(
+        "span",
+        { class: "ql-code-line code-hint" },
+        `\n… Showing first ${max.toLocaleString("en-US")} of ${lines.length.toLocaleString("en-US")} lines — open in Code Editor to view all.`,
+      ),
+    );
+  }
   return pre;
 }
 
@@ -1105,7 +1164,7 @@ function buildModeSwitcher(modes, initialId, onSelect) {
         class: `code-btn code-small ql-mode-btn${id === active ? " active" : ""}`,
         "aria-pressed": String(id === active),
         title: title || label,
-        onclick: () => {
+        onclick: (ev) => {
           active = id;
           for (const b of btns) {
             const on = b.dataset.modeId === active;
@@ -1113,6 +1172,17 @@ function buildModeSwitcher(modes, initialId, onSelect) {
             b.setAttribute("aria-pressed", String(on));
           }
           onSelect(active);
+          const root = ev.currentTarget?.closest?.(
+            ".ql-body, .ql-fmt-wrap, .ql",
+          );
+          root?.querySelector?.(".ql-find-bar")?._refreshSearch?.();
+          const wrapBtn = root?.querySelector?.(".ql-wrap-btn");
+          if (wrapBtn) {
+            const anyVisiblePre = [
+              ...(root?.querySelectorAll?.("pre") || []),
+            ].some((p) => !p.hidden && !p.closest("[hidden]"));
+            wrapBtn.hidden = !anyVisiblePre;
+          }
         },
         dataset: { modeId: id },
       },
@@ -1700,7 +1770,7 @@ function renderSqliteQuickLook(entry, rich, { onClose } = {}) {
   );
 }
 
-function renderArchiveQuickLook(entry, rich) {
+function renderArchiveQuickLook(entry, rich, helpers = {}) {
   const entries = rich.entries || [];
   const rows = entries.map((e) => [
     e.dir ? `📁 ${e.name}` : e.name,
@@ -1708,6 +1778,27 @@ function renderArchiveQuickLook(entry, rich) {
     e.packed !== undefined && !e.dir ? formatSize(e.packed) : "—",
     e.encrypted ? "🔒 Encrypted" : e.dir ? "Folder" : "File",
   ]);
+  const extractBtn =
+    isExtractableEntry(entry) && helpers.canExtract !== false
+      ? h(
+          "button",
+          {
+            type: "button",
+            class: "code-btn code-small ql-extract-btn",
+            "data-copy-ui": "",
+            title: "Unpack this archive into the current folder",
+            onclick: () => {
+              emit("archive-extract", {
+                entry,
+                mode: "smart",
+                pane: helpers.pane,
+                onSuccess: helpers.onClose,
+              });
+            },
+          },
+          "📦 Extract here",
+        )
+      : null;
   return h(
     "div",
     { class: "ql-card ql-card-wide ql-fmt-wrap" },
@@ -1716,6 +1807,8 @@ function renderArchiveQuickLook(entry, rich) {
       { class: "ql-fmt-head" },
       h("span", { class: "ql-fmt-badge" }, rich.formatLabel),
       metaChips(rich.meta),
+      extractBtn ? h("span", { class: "code-grow" }) : null,
+      extractBtn,
     ),
     rich.innerText
       ? h(
@@ -1864,9 +1957,34 @@ function renderStructuredQuickLook(entry, preview, rich) {
       })
     : null;
 
+  const canPrettyJson =
+    (rich.subkind === "json" || rich.subkind === "geojson") &&
+    rich.data !== undefined;
+  let prettyPre = canPrettyJson
+    ? h("div", { class: "ql-pretty-host", hidden: true })
+    : null;
+  let prettyRendered = false;
+  const ensurePrettyRendered = () => {
+    if (!canPrettyJson || prettyRendered || !prettyPre) return;
+    prettyRendered = true;
+    const built = renderColouredCodeLines(
+      JSON.stringify(rich.data, null, 2),
+      "json",
+    );
+    built.classList.add("ql-pretty-json-pre");
+    const hostRoot = prettyPre.closest(".ql-body, .ql-fmt-wrap, .ql");
+    const wrapBtn = hostRoot?.querySelector?.(".ql-wrap-btn");
+    if (wrapBtn && wrapBtn.getAttribute("aria-pressed") === "false") {
+      built.classList.add("ql-nowrap");
+    }
+    prettyPre.replaceWith(built);
+    prettyPre = built;
+  };
+
   const initialMode = rich.subkind === "jsonl" && tableWrap ? "table" : "tree";
   treeWrap.hidden = initialMode !== "tree";
   if (tableWrap) tableWrap.hidden = initialMode !== "table";
+  if (prettyPre) prettyPre.hidden = initialMode !== "pretty";
   plainPre.hidden = initialMode !== "source";
 
   const modes = [
@@ -1874,11 +1992,14 @@ function renderStructuredQuickLook(entry, preview, rich) {
     ...(tableWrap
       ? [{ id: "table", label: `Table (${rich.table.totalRows})` }]
       : []),
+    ...(prettyPre ? [{ id: "pretty", label: "✨ Pretty JSON" }] : []),
     { id: "source", label: "Source" },
   ];
   const switcher = buildModeSwitcher(modes, initialMode, (m) => {
+    if (m === "pretty") ensurePrettyRendered();
     treeWrap.hidden = m !== "tree";
     if (tableWrap) tableWrap.hidden = m !== "table";
+    if (prettyPre) prettyPre.hidden = m !== "pretty";
     plainPre.hidden = m !== "source";
   });
 
@@ -1899,6 +2020,7 @@ function renderStructuredQuickLook(entry, preview, rich) {
     ),
     treeWrap,
     tableWrap,
+    prettyPre,
     plainPre,
   );
 }
@@ -2653,7 +2775,25 @@ function attachCopyButtonsToRichHead(node, entry, preview, helpers = {}) {
     if (!head.querySelector(".code-grow")) {
       head.append(h("span", { class: "code-grow" }));
     }
-    head.append(buildQuickLookCopyButtons(entry, preview, () => node, helpers));
+    const allPres = [...(node.querySelectorAll?.("pre") || [])];
+    const hasPre =
+      allPres.length > 0 || Boolean(node.querySelector?.(".ql-pretty-host"));
+    const onlyHex =
+      allPres.length > 0 &&
+      allPres.every((p) => p.classList.contains("ql-hex-dump"));
+    const group = buildQuickLookCopyButtons(entry, preview, () => node, {
+      ...helpers,
+      hasPre,
+      initialWrapped: !onlyHex,
+    });
+    const wrapBtn = group.querySelector?.(".ql-wrap-btn");
+    if (wrapBtn) {
+      const anyVisiblePre = allPres.some(
+        (p) => !p.hidden && !p.closest("[hidden]"),
+      );
+      wrapBtn.hidden = !anyVisiblePre;
+    }
+    head.append(group);
   }
   return node;
 }
@@ -2679,7 +2819,7 @@ export function renderRichQuickLook(entry, preview, helpers = {}) {
         node = renderSqliteQuickLook(entry, rich, helpers);
         break;
       case "archive":
-        node = renderArchiveQuickLook(entry, rich);
+        node = renderArchiveQuickLook(entry, rich, helpers);
         break;
       case "font":
         node = renderFontQuickLook(entry, rich);

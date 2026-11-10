@@ -14,8 +14,15 @@ import {
 } from "./dom.js";
 import { wireMarquee } from "./marquee.js";
 import { toast } from "./menus.js";
-import { saveSettings, visibleEntries } from "./nav.js";
-import { commitRename, dropOnto, openEntry } from "./ops.js";
+import { clearSearch, saveSettings, visibleEntries } from "./nav.js";
+import {
+  commitRename,
+  dropOnto,
+  newFolder,
+  newFile,
+  openEntry,
+  paste,
+} from "./ops.js";
 import { inTrash, isFolderView, left, setActivePane } from "./pane.js";
 import {
   clearSelection,
@@ -382,12 +389,11 @@ export function renderList(pane = left) {
   empty.hidden = entries.length > 0 || (pane.side === "left" && state.loading);
   const hasFilter =
     !pane.search &&
-    !trash &&
     Boolean(
-      state.tagFilter ||
+      (!trash && state.tagFilter) ||
       (pane.side !== "right" &&
         ((state.quickFilter && state.quickFilter.trim()) ||
-          (state.kindFilter && state.kindFilter !== "all"))),
+          (!trash && state.kindFilter && state.kindFilter !== "all"))),
     );
   const resetBtn = hasFilter
     ? h(
@@ -406,6 +412,67 @@ export function renderList(pane = left) {
         "Clear active filters",
       )
     : null;
+  const clearSearchBtn = pane.search
+    ? h(
+        "button",
+        {
+          type: "button",
+          class: "btn empty-reset-btn",
+          title: "Clear search query and return to the folder contents",
+          onclick: () =>
+            pane.side === "right" ? emit("dual-search-clear") : clearSearch(),
+        },
+        "Clear search & return to folder",
+      )
+    : null;
+  const emptyActions =
+    !pane.search && !trash && !hasFilter && isFolderView(pane)
+      ? h(
+          "div",
+          { class: "empty-actions" },
+          h(
+            "button",
+            {
+              type: "button",
+              class: "btn",
+              title: "Create a new folder inside this empty folder",
+              onclick: () => {
+                setActivePane(pane.side);
+                void newFolder();
+              },
+            },
+            "📁 New folder",
+          ),
+          h(
+            "button",
+            {
+              type: "button",
+              class: "btn",
+              title: "Create a new blank file inside this empty folder",
+              onclick: () => {
+                setActivePane(pane.side);
+                void newFile();
+              },
+            },
+            "📄 New file",
+          ),
+          state.clipboard?.paths?.length
+            ? h(
+                "button",
+                {
+                  type: "button",
+                  class: "btn primary",
+                  title: "Paste copied or cut items into this folder",
+                  onclick: () => {
+                    setActivePane(pane.side);
+                    void paste();
+                  },
+                },
+                `📋 Paste (${state.clipboard.paths.length})`,
+              )
+            : null,
+        )
+      : null;
   empty.replaceChildren(
     h(
       "div",
@@ -415,6 +482,8 @@ export function renderList(pane = left) {
     h("h2", {}, title),
     h("p", {}, text),
     ...(resetBtn ? [resetBtn] : []),
+    ...(clearSearchBtn ? [clearSearchBtn] : []),
+    ...(emptyActions ? [emptyActions] : []),
   );
   part(pane, "head").hidden =
     state.settings.view !== "details" || entries.length === 0;
@@ -447,6 +516,12 @@ function updateHeaderSort(pane) {
   const where = head.querySelector(".h-where");
   where.hidden = !(pane.search || inTrash(pane));
   where.textContent = inTrash(pane) ? "Was in" : "Folder";
+  const dateHead = head.querySelector(".h-date");
+  if (dateHead) {
+    const wantDateLabel = inTrash(pane) ? "Date deleted" : "Date modified";
+    if (dateHead.textContent !== wantDateLabel)
+      dateHead.textContent = wantDateLabel;
+  }
   const extHead = head.querySelector(".h-ext");
   if (extHead) extHead.hidden = !cols.includes("ext");
   const permsHead = head.querySelector(".h-perms");
@@ -658,7 +733,9 @@ export function wirePane(pane) {
       e.target === container ||
       e.target.closest(`#${pane.ids.empty}`)
     ) {
+      if (e.target instanceof Element && e.target.closest("button")) return;
       mine();
+      container.focus?.({ preventScroll: true });
       clearSelection(pane);
     }
   });

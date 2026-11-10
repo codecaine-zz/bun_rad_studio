@@ -705,4 +705,49 @@ describe("extractArchive and extractItems (universal archive & compressed file e
       "Beta",
     );
   });
+
+  test("smart extract mode unwraps single-root archives and wraps multi-root archives in a clean subfolder", async () => {
+    const { ctx, work } = sandbox();
+    // 1. Single-root archive: my-lib-v2.zip containing my-lib/index.ts & my-lib/package.json
+    put(join(work, "stage", "my-lib", "index.ts"), "export default 1;\n");
+    put(join(work, "stage", "my-lib", "package.json"), '{"name":"my-lib"}\n');
+    const singleZip = await createZip(
+      ctx,
+      [join(work, "stage", "my-lib")],
+      "my-lib-v2.zip",
+    );
+    const outDir = join(work, "unpacked");
+    mkdirSync(outDir);
+    const smartSingle = await extractArchive(
+      ctx,
+      singleZip.zipPath,
+      outDir,
+      "smart",
+    );
+    expect(smartSingle.isFolder).toBe(true);
+    expect(smartSingle.output).toBe(join(outDir, "my-lib"));
+    expect(existsSync(join(outDir, "my-lib-v2"))).toBe(false);
+    expect(readFileSync(join(outDir, "my-lib", "index.ts"), "utf8")).toBe(
+      "export default 1;\n",
+    );
+
+    // 2. Multi-root archive: loose1.txt + loose2.txt inside loose-bundle.zip stays wrapped in outDir/loose-bundle
+    const f1 = put(join(work, "stage", "loose1.txt"), "one");
+    const f2 = put(join(work, "stage", "loose2.txt"), "two");
+    const multiZip = await createZip(ctx, [f1, f2], "loose-bundle.zip");
+    const smartMulti = await extractArchive(
+      ctx,
+      multiZip.zipPath,
+      outDir,
+      "smart",
+    );
+    expect(smartMulti.isFolder).toBe(true);
+    expect(smartMulti.output).toBe(join(outDir, "loose-bundle"));
+    expect(
+      readFileSync(join(outDir, "loose-bundle", "loose1.txt"), "utf8"),
+    ).toBe("one");
+    expect(
+      readFileSync(join(outDir, "loose-bundle", "loose2.txt"), "utf8"),
+    ).toBe("two");
+  });
 });

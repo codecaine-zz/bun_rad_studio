@@ -274,6 +274,15 @@ td.fi-warn {
   margin: 0;
   font-weight: 600;
 }
+.fi-hash-row-match th,
+.fi-hash-row-match td {
+  background: color-mix(in oklab, var(--good) 16%, transparent);
+}
+.fi-hash-row-match th.fi-label::before {
+  content: "✔ ";
+  color: var(--good);
+  font-weight: 700;
+}
 .fi-scan {
   display: flex;
   flex-wrap: wrap;

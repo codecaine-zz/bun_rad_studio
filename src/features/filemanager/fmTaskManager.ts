@@ -1168,7 +1168,20 @@ export function matchesTaskQuery(
   const tokens = q.split(/\s+/).filter(Boolean);
   for (const tok of tokens) {
     if (tok.startsWith(":")) {
-      if (!p.ports.some((port) => port.toLowerCase().includes(tok)))
+      if (tok === ":") {
+        if (p.ports.length === 0) return false;
+        continue;
+      }
+      const portRe = new RegExp(
+        `${tok.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?!\\d)`,
+        "i",
+      );
+      if (
+        !p.ports.some((port) => {
+          const s = String(port);
+          return portRe.test(s.includes(":") ? s : `:${s}`);
+        })
+      )
         return false;
       continue;
     }

@@ -13,7 +13,7 @@ import { showMenu } from "./menus.js";
 import { state, on, emit, currentPath, inTrash } from "./state.js";
 import { goTo, showTrash } from "./nav.js";
 import { copyPathOf, isFavorite, toggleFavorite } from "./ops.js";
-import { setActivePane } from "./pane.js";
+import { hooks, setActivePane } from "./pane.js";
 import { selectKeys } from "./selection.js";
 import { hintOf } from "./keymap.js";
 import { baseName } from "./util.js";
@@ -24,6 +24,12 @@ function cloneLoc(loc) {
   return loc?.kind === "trash"
     ? { kind: "trash" }
     : { kind: "folder", path: loc?.path || state.home || "" };
+}
+
+function cloneSearch(s) {
+  return s && typeof s === "object"
+    ? { ...s, entries: Array.isArray(s.entries) ? [...s.entries] : [] }
+    : null;
 }
 
 function tabLabel(loc) {
@@ -43,6 +49,7 @@ function ensureInitialTab() {
   state.tabs.push({
     id,
     location: cloneLoc(state.location),
+    search: cloneSearch(state.search),
     history: [...state.history],
     future: [...state.future],
     selection: [...state.selection],
@@ -60,6 +67,7 @@ function saveCurrentTabSnapshot() {
     state.tabs.find((t) => t.id === state.activeTabId) ?? state.tabs[0];
   if (!cur) return;
   cur.location = cloneLoc(state.location);
+  cur.search = cloneSearch(state.search);
   cur.history = [...state.history];
   cur.future = [...state.future];
   cur.selection = [...state.selection];
@@ -79,7 +87,19 @@ async function activateTabObject(tab) {
     await showTrash({ push: false });
   } else {
     const target = tab.location?.path || currentPath() || state.home;
-    if (target) await goTo(target, { push: false });
+    const ok = target ? await goTo(target, { push: false }) : false;
+    if (!ok && state.home && target !== state.home) {
+      await goTo(state.home, { push: false });
+    }
+    if (tab.search) {
+      state.search = cloneSearch(tab.search);
+      state.shown = 0;
+      const searchBox = $("#search");
+      if (searchBox) searchBox.value = tab.search.query || "";
+    } else {
+      const searchBox = $("#search");
+      if (searchBox) searchBox.value = "";
+    }
   }
   state.quickFilter = tab.quickFilter || "";
   state.kindFilter = tab.kindFilter || "all";
@@ -143,6 +163,7 @@ export async function duplicateTab(tabId = state.activeTabId) {
   const copy = {
     id,
     location: cloneLoc(src.location),
+    search: cloneSearch(src.search),
     history: [...(src.history ?? [])],
     future: [...(src.future ?? [])],
     selection: [...(src.selection ?? [])],
@@ -172,6 +193,7 @@ export async function closeTab(tabId = state.activeTabId) {
   if (!Array.isArray(state.closedTabs)) state.closedTabs = [];
   state.closedTabs.push({
     location: cloneLoc(closedTab.location),
+    search: cloneSearch(closedTab.search),
     history: [...(closedTab.history ?? [])],
     future: [...(closedTab.future ?? [])],
     selection: [...(closedTab.selection ?? [])],
@@ -205,6 +227,7 @@ export async function closeOtherTabs(keepTabId = state.activeTabId) {
     if (t.id !== keep.id) {
       state.closedTabs.push({
         location: cloneLoc(t.location),
+        search: cloneSearch(t.search),
         history: [...(t.history ?? [])],
         future: [...(t.future ?? [])],
         selection: [...(t.selection ?? [])],
@@ -224,6 +247,40 @@ export async function closeOtherTabs(keepTabId = state.activeTabId) {
     renderTabs();
   }
   announce(`Closed other tabs; kept ${tabLabel(keep.location)}.`);
+}
+
+export async function closeTabsToRight(tabId = state.activeTabId) {
+  ensureInitialTab();
+  const idx = state.tabs.findIndex((t) => t.id === tabId);
+  if (idx < 0 || idx >= state.tabs.length - 1) return;
+  saveCurrentTabSnapshot();
+  if (!Array.isArray(state.closedTabs)) state.closedTabs = [];
+  const removed = state.tabs.slice(idx + 1);
+  for (const t of removed) {
+    state.closedTabs.push({
+      location: cloneLoc(t.location),
+      search: cloneSearch(t.search),
+      history: [...(t.history ?? [])],
+      future: [...(t.future ?? [])],
+      selection: [...(t.selection ?? [])],
+      quickFilter: t.quickFilter || "",
+      kindFilter: t.kindFilter || "all",
+      tagFilter: t.tagFilter || "",
+      scrollTop: t.scrollTop ?? 0,
+    });
+  }
+  if (state.closedTabs.length > 20)
+    state.closedTabs.splice(0, state.closedTabs.length - 20);
+  state.tabs = state.tabs.slice(0, idx + 1);
+  if (!state.tabs.some((t) => t.id === state.activeTabId)) {
+    const keep = state.tabs[state.tabs.length - 1];
+    if (keep) await activateTabObject(keep);
+  } else {
+    renderTabs();
+  }
+  announce(
+    `Closed ${removed.length} tab${removed.length === 1 ? "" : "s"} to the right.`,
+  );
 }
 
 export async function cycleTab(delta = 1) {
@@ -248,6 +305,7 @@ export async function reopenClosedTab() {
   const restored = {
     id,
     location: cloneLoc(popped.location),
+    search: cloneSearch(popped.search),
     history: [...(popped.history ?? [])],
     future: [...(popped.future ?? [])],
     selection: [...(popped.selection ?? [])],
@@ -295,6 +353,7 @@ export function renderTabs() {
           e.preventDefault();
           e.stopPropagation();
           const folderPath = !isTrash ? tab.location?.path || "" : "";
+          const tabIdx = state.tabs.findIndex((t) => t.id === tab.id);
           showMenu(
             [
               {
@@ -310,6 +369,14 @@ export function renderTabs() {
               },
               ...(folderPath
                 ? [
+                    {
+                      label: "Open in Dual Pane (Right)",
+                      icon: "♊",
+                      action: () => {
+                        emit("workspace-go", "dual");
+                        void hooks.loadRight?.(folderPath);
+                      },
+                    },
                     {
                       label: isFavorite(folderPath)
                         ? "Remove from Favorites"
@@ -343,6 +410,12 @@ export function renderTabs() {
                 disabled: state.tabs.length <= 1,
                 action: () => closeOtherTabs(tab.id),
               },
+              {
+                label: "Close tabs to the right",
+                icon: "⇥",
+                disabled: tabIdx < 0 || tabIdx >= state.tabs.length - 1,
+                action: () => closeTabsToRight(tab.id),
+              },
             ],
             { x: e.clientX, y: e.clientY, label: `${label} tab` },
           );
@@ -356,6 +429,9 @@ export function renderTabs() {
           title: tabTitle(tab.location),
           "aria-label": `${label} tab`,
           onclick: () => switchTab(tab.id),
+          onmousedown: (e) => {
+            if (e.button === 1) e.preventDefault();
+          },
           onauxclick: (e) => {
             if (e.button === 1 && state.tabs.length > 1) {
               e.preventDefault();
@@ -428,6 +504,9 @@ export function renderTabs() {
 
 export function wireTabs() {
   const bar = $("#tabbar");
+  bar?.addEventListener("dblclick", (e) => {
+    if (e.target === bar) void openNewTab();
+  });
   bar?.addEventListener("keydown", async (e) => {
     if (e.isComposing || e.keyCode === 229) return;
     const tabEl =

@@ -40,7 +40,20 @@ export function matchesProcessFilter(proc, query, scope) {
   const tokens = q.split(/\s+/).filter(Boolean);
   for (const tok of tokens) {
     if (tok.startsWith(":")) {
-      if (!(proc.ports || []).some((pt) => pt.toLowerCase().includes(tok)))
+      if (tok === ":") {
+        if (!proc.ports || proc.ports.length === 0) return false;
+        continue;
+      }
+      const portRe = new RegExp(
+        `${tok.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?!\\d)`,
+        "i",
+      );
+      if (
+        !(proc.ports || []).some((pt) => {
+          const s = String(pt);
+          return portRe.test(s.includes(":") ? s : `:${s}`);
+        })
+      )
         return false;
       continue;
     }
@@ -195,6 +208,7 @@ export function renderSelectedProcessBar({
   onInspect,
   onOpenFolder,
   onCopyCmd,
+  onCopyPid,
 }) {
   hostEl.replaceChildren();
   if (!proc) {
@@ -222,6 +236,11 @@ export function renderSelectedProcessBar({
     "Inspect parent/child process hierarchy, working folder, executable path, and open file descriptors.",
     () => onInspect(proc.pid),
   );
+  const copyPidBtn = onCopyPid
+    ? btn("Copy PID", "Copy this process ID (PID) to the clipboard.", () =>
+        onCopyPid(proc.pid),
+      )
+    : null;
   const copyBtn = btn(
     "Copy Command",
     "Copy the full command line of this process to the clipboard.",
@@ -250,6 +269,7 @@ export function renderSelectedProcessBar({
       { class: "pw-row tasks-act-row" },
       ...actionBtns,
       inspectBtn,
+      copyPidBtn,
       copyBtn,
     ),
   );

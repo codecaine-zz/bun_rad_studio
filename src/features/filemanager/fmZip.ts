@@ -501,12 +501,20 @@ export async function extractZip(
   const st = await fsp.stat(zipPath);
   if (!st.isFile()) throw new FmError("NOT_A_FILE", "That isn't a zip file.");
   const handle = await fsp.open(zipPath, "r");
-  const taken = new Set(await fsp.readdir(destDir));
+  const existingNames = await fsp.readdir(destDir);
+  const ci = ctx.platform !== "linux";
+  const taken = new Set(existingNames.map((n) => (ci ? n.toLowerCase() : n)));
   const root = p.join(
     destDir,
-    uniqueName(splitName(p.basename(zipPath))[0] || "Extracted", (n) =>
-      taken.has(n),
-    ),
+    uniqueName(splitName(p.basename(zipPath))[0] || "Extracted", (n) => {
+      if (taken.has(ci ? n.toLowerCase() : n)) return true;
+      try {
+        fs.lstatSync(p.join(destDir, n));
+        return true;
+      } catch {
+        return false;
+      }
+    }),
   );
   const result: ZipExtracted = {
     folder: root,
@@ -705,4 +713,5 @@ export {
   type ArchiveExtracted,
   type ExtractBatchResult,
   type ExtractItemResult,
+  type ExtractMode,
 } from "./fmExtract";

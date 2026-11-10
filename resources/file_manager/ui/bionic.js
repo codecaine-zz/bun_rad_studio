@@ -2298,7 +2298,11 @@ function renderSelectedFilesStrip() {
         ? sel
             .slice(0, 6)
             .map((p) =>
-              h("span", { class: "ollama-file-chip" }, p.split("/").pop() || p),
+              h(
+                "span",
+                { class: "ollama-file-chip" },
+                p.split(/[\\/]/).pop() || p,
+              ),
             )
         : [
             h(
@@ -3243,6 +3247,7 @@ function renderAssistantTab() {
           class: "ollama-btn is-primary",
           "data-bionic-action": "ask-smart-router",
           disabled: uiState.loading ? "disabled" : null,
+          title: "Send prompt and automatically route through LM Studio Bionic",
           onclick: () => void runBionicSmartRouter(),
         },
         uiState.loading
@@ -3256,6 +3261,7 @@ function renderAssistantTab() {
           class: "ollama-btn",
           "data-bionic-action": "stream-live-tokens",
           disabled: uiState.loading ? "disabled" : null,
+          title: "Stream live tokens from /api/bionic/stream",
           onclick: () => void runBionicStreamChat(),
         },
         "⚡ Stream Live Tokens (/api/bionic/stream)",
@@ -3274,6 +3280,21 @@ function renderAssistantTab() {
             "⏹ Stop Generation",
           )
         : null,
+      h(
+        "button",
+        {
+          type: "button",
+          class: "ollama-btn",
+          title: "Clear the prompt box without deleting AI output",
+          onclick: () => {
+            uiState.promptText = "";
+            if (promptTextareaEl) promptTextareaEl.value = "";
+            renderBionicPanel();
+            promptTextareaEl?.focus();
+          },
+        },
+        "Clear Prompt",
+      ),
       h(
         "button",
         {
@@ -3347,7 +3368,7 @@ function renderAssistantTab() {
               uiState.reasoningOutput = "";
               renderBionicPanel();
               toast(
-                `Opened ${sel[0].split("/").pop()} in Bionic Markdown Reader`,
+                `Opened ${sel[0].split(/[\\/]/).pop()} in Bionic Markdown Reader`,
               );
             } catch (err) {
               toast(err.message || "Could not read file", { kind: "error" });
@@ -3362,6 +3383,7 @@ function renderAssistantTab() {
             {
               type: "button",
               class: "ollama-btn is-danger",
+              title: "Clear Bionic AI output console",
               onclick: () => clearBionicOutput("assistant"),
             },
             "🧹 Clear Output",

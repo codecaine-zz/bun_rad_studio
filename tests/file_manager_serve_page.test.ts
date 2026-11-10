@@ -881,6 +881,28 @@ describe("polling and tidying up", () => {
     expect(power.powerIsOpen()).toBe(true);
     expect(power.activePowerTab()).toBe("serve");
   });
+
+  test("restarting a server preserves its listing option", async () => {
+    await stopEverything();
+    await openTool(plain);
+    const started = await actions.startServer({
+      root: plain,
+      kind: "static",
+      listing: false,
+      openBrowser: false,
+    });
+    expect(started.listing).toBe(false);
+    const row = await until(() => rows()[0], "the server row");
+    click(button("Restart", row));
+    await until(
+      () =>
+        store.store.servers[0]?.id !== started.id &&
+        store.store.servers[0]?.status === "running",
+      "the restarted server",
+    );
+    expect(store.store.servers[0]?.listing).toBe(false);
+    await stopEverything();
+  });
 });
 
 const realFetch = (u: any, o?: any) => (globalThis as any).fetch(u, o);

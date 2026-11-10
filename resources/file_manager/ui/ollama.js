@@ -1,6 +1,7 @@
 // Built-In Ollama AI Assistant & Full Capability Router UI for Codecaine File Manager.
 import { call, getToken } from "./api.js";
 import { buildBionicMarkdownDom } from "./bionic.js";
+import { confirmBox } from "./dialogs.js";
 import { clear, h } from "./dom.js";
 import { toast } from "./menus.js";
 import { goTo, refresh } from "./nav.js";
@@ -2300,7 +2301,11 @@ function renderSelectedFilesStrip() {
         ? sel
             .slice(0, 6)
             .map((p) =>
-              h("span", { class: "ollama-file-chip" }, p.split("/").pop() || p),
+              h(
+                "span",
+                { class: "ollama-file-chip" },
+                p.split(/[\\/]/).pop() || p,
+              ),
             )
         : [
             h(
@@ -3323,6 +3328,9 @@ function renderAssistantTab() {
           type: "button",
           class: "ollama-btn is-primary",
           "data-ollama-action": "send-auto-route",
+          disabled: uiState.loading ? "disabled" : null,
+          title:
+            "Send prompt and automatically route to the best Ollama capability",
           onclick: () => void runSmartAutoRouter(),
         },
         uiState.loading
@@ -3335,6 +3343,8 @@ function renderAssistantTab() {
           type: "button",
           class: "ollama-btn",
           "data-ollama-action": "stream-live-tokens",
+          disabled: uiState.loading ? "disabled" : null,
+          title: "Stream live tokens from /api/chat",
           onclick: () => void runLiveStreamChat(),
         },
         "Stream Live Tokens (/api/chat)",
@@ -3358,18 +3368,31 @@ function renderAssistantTab() {
         {
           type: "button",
           class: "ollama-btn",
+          title: "Clear the prompt box without deleting AI output",
           onclick: () => {
             uiState.promptText = "";
             if (assistantTextareaEl) assistantTextareaEl.value = "";
-            if (selectedFilePaths().length > 0) {
-              void runSmartAutoRouter("");
-            } else {
-              renderOllamaPanel();
-            }
+            renderOllamaPanel();
+            assistantTextareaEl?.focus();
           },
         },
-        sel.length > 0 ? "Clear & Read Selected File Aloud" : "Clear Prompt",
+        "Clear Prompt",
       ),
+      sel.length > 0
+        ? h(
+            "button",
+            {
+              type: "button",
+              class: "ollama-btn",
+              title:
+                "Read the selected file aloud using the speech synthesizer",
+              onclick: () => {
+                void runSmartAutoRouter("");
+              },
+            },
+            "🔊 Read Selected File Aloud",
+          )
+        : null,
       h(
         "button",
         {
@@ -4413,7 +4436,15 @@ function renderModelsAndAccountTab() {
                 {
                   type: "button",
                   class: "ollama-btn is-danger",
+                  title: `Permanently delete local model ${m.name}`,
                   onclick: async () => {
+                    const ok = await confirmBox({
+                      title: `Delete model "${m.name}"?`,
+                      message: `This removes "${m.name}" from your local Ollama storage. You would need to re-download it to use it again.`,
+                      confirmLabel: "Delete model",
+                      danger: true,
+                    });
+                    if (!ok) return;
                     try {
                       await call("ollama/delete", { model: m.name });
                       toast(`Deleted ${m.name}`);

@@ -328,10 +328,14 @@ function matchSingleQuickToken(entry, rawTok, tags, now, notes) {
     }
   }
 
-  // Plain substring match on filename, kind label, or sticky note text
+  // Plain substring match on filename, kind label, original location, or sticky note text
+  const whereLower = String(
+    entry.where || entry.originalPath || "",
+  ).toLowerCase();
   return (
     name.includes(tok) ||
     label.includes(tok) ||
+    (whereLower.length > 0 && whereLower.includes(tok)) ||
     (entryNoteLower.length > 0 && entryNoteLower.includes(tok))
   );
 }
@@ -463,9 +467,7 @@ export function visibleEntries(pane = left) {
   const kindFilter =
     !isTrash && pane.side !== "right" ? state.kindFilter || "all" : "all";
   const quickFilter =
-    !isTrash && pane.side !== "right"
-      ? (state.quickFilter || "").trim().toLowerCase()
-      : "";
+    pane.side !== "right" ? (state.quickFilter || "").trim().toLowerCase() : "";
   const needMetaDigest =
     Boolean(tagFilter || quickFilter) && sourceList?.length;
   const tagVal =
@@ -501,7 +503,20 @@ export function visibleEntries(pane = left) {
 
   let result;
   if (isTrash) {
-    result = sortEntries(pane.trashItems, {
+    let rawTrash = pane.trashItems;
+    if (quickFilter && pane.side !== "right") {
+      const now = Date.now();
+      rawTrash = rawTrash.filter((e) =>
+        entryMatchesQuickFilter(
+          e,
+          quickFilter,
+          state.settings?.tags,
+          now,
+          state.settings?.notes,
+        ),
+      );
+    }
+    result = sortEntries(rawTrash, {
       by: sortBy === "type" ? "name" : sortBy,
       dir: sortDir,
       foldersFirst,

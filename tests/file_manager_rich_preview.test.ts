@@ -296,6 +296,54 @@ endobj
     }
   });
 
+  test("Tar and Tar+Gzip archives (.tar, .tar.gz) populate rich entry tables for Quick Look", async () => {
+    const makeTarBlock = (name: string, body: string): Buffer => {
+      const data = Buffer.from(body, "utf8");
+      const header = Buffer.alloc(512, 0);
+      header.write(name, 0, 100, "utf8");
+      header.write("0000644\0", 100, 8, "ascii");
+      header.write("0001000\0", 108, 8, "ascii");
+      header.write("0001000\0", 116, 8, "ascii");
+      header.write(
+        `${data.length.toString(8).padStart(11, "0")}\0`,
+        124,
+        12,
+        "ascii",
+      );
+      header.write("14700000000\0", 136, 12, "ascii");
+      header.fill(0x20, 148, 156); // spaces while computing header checksum
+      header[156] = "0".charCodeAt(0);
+      header.write("ustar\0", 257, 6, "ascii");
+      header.write("00", 263, 2, "ascii");
+      let sum = 0;
+      for (let i = 0; i < 512; i++) sum += header[i]!;
+      header.write(`${sum.toString(8).padStart(6, "0")}\0 `, 148, 8, "ascii");
+      const pad = Buffer.alloc((512 - (data.length % 512)) % 512, 0);
+      return Buffer.concat([header, data, pad]);
+    };
+    const tarBuf = Buffer.concat([
+      makeTarBlock("pkg/README.md", "# Hello Tar\n"),
+      makeTarBlock("pkg/src/main.ts", "export const ok = true;\n"),
+      Buffer.alloc(1024, 0),
+    ]);
+    const tarPath = join(root, "release.tar");
+    const tgzPath = join(root, "release.tar.gz");
+    writeFileSync(tarPath, tarBuf);
+    writeFileSync(tgzPath, gzipSync(tarBuf));
+
+    for (const p of [tarPath, tgzPath]) {
+      const prev = await previewFile(ctx, p);
+      expect(prev.rich?.kind).toBe("archive");
+      if (prev.rich?.kind === "archive") {
+        expect(prev.rich.files).toBe(2);
+        expect(prev.rich.entries.map((e) => e.name)).toEqual([
+          "pkg/README.md",
+          "pkg/src/main.ts",
+        ]);
+      }
+    }
+  });
+
   test("Structured data (.yaml, .toml, .ini, .jsonl) parses into trees and tables", async () => {
     const yamlPath = join(root, "config.yaml");
     writeFileSync(yamlPath, "service:\n  name: api-gateway\n  port: 8080\n");

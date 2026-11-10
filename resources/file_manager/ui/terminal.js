@@ -2,7 +2,7 @@
 // It shows and hides without ending the shell, so a running command keeps going while the panel is closed.
 import { FitAddon } from "/vendor/addon-fit.mjs";
 import { Terminal } from "/vendor/xterm.mjs";
-import { terminalUrl } from "./api.js";
+import { call, terminalUrl } from "./api.js";
 import {
   quoteArg,
   quotePathsForTerminal,
@@ -75,6 +75,45 @@ function send(message) {
     socket.send(JSON.stringify(message));
 }
 
+function normTermFolder(p) {
+  if (!p) return "";
+  let s = String(p);
+  if (state.platform === "win32") {
+    s = s.replace(/\//g, "\\").replace(/\\+$/, "") || s;
+    return s.toLowerCase();
+  }
+  s = s.replace(/\/+$/, "") || "/";
+  if (state.platform === "darwin") {
+    if (s === "/private/tmp" || s.startsWith("/private/tmp/")) s = s.slice(8);
+    else if (s === "/private/var" || s.startsWith("/private/var/"))
+      s = s.slice(8);
+  }
+  return s;
+}
+
+function syncTerminalCdButton() {
+  const cdBtn =
+    typeof document === "undefined"
+      ? null
+      : document.getElementById?.("terminal-cd");
+  if (!cdBtn) return;
+  const picked = selectedEntries();
+  const pickedFolder =
+    picked.length === 1 && picked[0].isDir ? picked[0].path : "";
+  const viewFolder =
+    state.location.kind === "folder" && state.location.path
+      ? state.location.path
+      : "";
+  const target = pickedFolder || viewFolder;
+  const differs = Boolean(
+    startedIn && target && normTermFolder(startedIn) !== normTermFolder(target),
+  );
+  cdBtn.classList.toggle("term-btn-attn", differs);
+  cdBtn.title = differs
+    ? `Move the terminal from ${startedIn} to ${target}`
+    : "Move the terminal to the folder you selected, or to the folder you are looking at if none is selected";
+}
+
 function setTitle(reported = false) {
   const title = $("#terminal-title");
   title.textContent = startedIn ? `Terminal · ${startedIn}` : "Terminal";
@@ -83,6 +122,7 @@ function setTitle(reported = false) {
     : startedIn
       ? `Requested terminal folder: ${startedIn}. Waiting for the shell to report its physical folder.`
       : "Terminal";
+  syncTerminalCdButton();
 }
 
 function queueFit() {
@@ -265,6 +305,67 @@ function ensureTerminal() {
   term.loadAddon(fit);
   term.open($("#terminal-host"));
   clipboard = wireTerminalClipboard(term, $("#terminal-host"));
+  if (typeof term.registerLinkProvider === "function") {
+    const FILE_LOC_RE =
+      /((?:\/|\.{1,2}[\\/]|[A-Za-z]:[\\/]|[@\w[\]+-])[\w./\\()[\]+@-]*\.[A-Za-z0-9]*[A-Za-z][A-Za-z0-9]*):(\d+)(?::(\d+))?/g;
+    term.registerLinkProvider({
+      provideLinks(bufferLineNumber, callback) {
+        const lineObj = term.buffer?.active?.getLine?.(bufferLineNumber - 1);
+        const text = lineObj?.translateToString?.(true) ?? "";
+        if (!text || !text.includes(":")) return callback(undefined);
+        const links = [];
+        FILE_LOC_RE.lastIndex = 0;
+        let m;
+        while ((m = FILE_LOC_RE.exec(text)) !== null) {
+          const full = m[0];
+          const filePart = m[1];
+          const ext = filePart.slice(filePart.lastIndexOf(".") + 1);
+          if (!ext || ext.length > 10) continue;
+          if (
+            filePart.startsWith("//") ||
+            /^(?:https?|wss?|ftp|file)$/i.test(filePart)
+          )
+            continue;
+          const before = text.slice(Math.max(0, m.index - 12), m.index);
+          if (
+            /(?:https?|wss?|ftp|file):\/?\/?$/i.test(before) ||
+            (m.index > 0 && /[\w/]/.test(text[m.index - 1]))
+          )
+            continue;
+          const lineNum = Number(m[2]) || 1;
+          const colNum = Number(m[3]) || 1;
+          const startCol = m.index + 1;
+          const endCol = m.index + full.length;
+          links.push({
+            text: full,
+            range: {
+              start: { x: startCol, y: bufferLineNumber },
+              end: { x: endCol, y: bufferLineNumber },
+            },
+            activate(_ev) {
+              call("typedpath", {
+                text: filePart,
+                cwd: startedIn || currentFolder() || undefined,
+              })
+                .then((res) => {
+                  if (res?.exists && !res.isDir) {
+                    emit("code-open-at", {
+                      path: res.path,
+                      line: lineNum,
+                      col: colNum,
+                    });
+                  } else {
+                    toast(`File not found: ${filePart}`, { kind: "info" });
+                  }
+                })
+                .catch(() => {});
+            },
+          });
+        }
+        callback(links.length ? links : undefined);
+      },
+    });
+  }
   term.onData((data) => {
     if (ended && data === "\r") return restart();
     send({ type: "input", data });
@@ -625,7 +726,13 @@ export function wireTerminal() {
       { kind: "info" },
     );
   });
+  $("#terminal-clear")?.addEventListener("click", () => {
+    term?.clear?.();
+    term?.focus?.();
+  });
   $("#terminal-cd").addEventListener("click", () => goToFolder());
+  on("view", () => syncTerminalCdButton());
+  on("selection", () => syncTerminalCdButton());
   $("#terminal-restart").addEventListener("click", () => restart());
   $("#terminal-expand")?.addEventListener("click", () =>
     toggleTerminalExpanded(),

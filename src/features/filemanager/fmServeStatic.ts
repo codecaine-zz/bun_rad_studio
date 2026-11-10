@@ -105,13 +105,51 @@ function formatBytes(n: number): string {
   return `${v >= 100 ? Math.round(v) : Math.round(v * 10) / 10} ${units[i]}`;
 }
 
-/** Returns the first non-internal IPv4 network address of this machine, or `null` if none is active. */
-export function lanAddress(): string | null {
-  for (const list of Object.values(networkInterfaces())) {
-    for (const a of list ?? [])
-      if (a.family === "IPv4" && !a.internal) return a.address;
+const VIRTUAL_IFACE_RE =
+  /^(?:docker\d*|br-[0-9a-f]+|veth\w*|virbr\d*|vboxnet\d*|vmnet\d*|utun\d*|tun\d*|tap\d*|wg\d*|tailscale\d*|zt\w*|lo\d*)$/i;
+const VIRTUAL_DESC_RE =
+  /\b(?:wsl|hyper-v|vethernet|docker|virtualbox|vmware|loopback)\b/i;
+
+function isPrivateLanIpv4(ip: string): boolean {
+  if (ip.startsWith("192.168.") || ip.startsWith("10.")) return true;
+  const m = /^172\.(\d+)\./.exec(ip);
+  if (!m) return false;
+  const second = Number(m[1]);
+  return second >= 16 && second <= 31;
+}
+
+/** Returns the best non-internal physical LAN IPv4 address of this machine, or `null` if none is active. */
+export function lanAddress(
+  ifaces: ReturnType<typeof networkInterfaces> = networkInterfaces(),
+): string | null {
+  let bestIp: string | null = null;
+  let bestScore = -1;
+  for (const [name, list] of Object.entries(ifaces)) {
+    const virtualName =
+      VIRTUAL_IFACE_RE.test(name) || VIRTUAL_DESC_RE.test(name);
+    for (const a of list ?? []) {
+      if (a.family !== "IPv4" || a.internal) continue;
+      const ip = a.address;
+      if (!ip || ip.startsWith("127.")) continue;
+      const linkLocal = ip.startsWith("169.254.");
+      let score = 20;
+      if (linkLocal) score = 1;
+      else if (virtualName) score = 3;
+      else if (isPrivateLanIpv4(ip)) score = 30;
+      if (
+        !virtualName &&
+        !linkLocal &&
+        /^(?:en\d+|eth\d+|wlan\d+|wl\w+|wi-?fi|ethernet)/i.test(name)
+      ) {
+        score += 5;
+      }
+      if (score > bestScore) {
+        bestScore = score;
+        bestIp = ip;
+      }
+    }
   }
-  return null;
+  return bestIp;
 }
 
 /** Parses a Range header against a file size. */

@@ -32,6 +32,22 @@ import {
   sanitizeSettings,
   updateSettings,
 } from "../src/features/filemanager/fmSettings";
+import { extractArchive } from "../src/features/filemanager/fmExtract";
+import {
+  compareHash,
+  normalizeHash,
+} from "../src/features/filemanager/fmInfoTasks";
+import { parseTypedPath } from "../src/features/filemanager/fmPaths";
+import { inspectRichPreview } from "../src/features/filemanager/fmPreview";
+import { lanAddress } from "../src/features/filemanager/fmServeStatic";
+import {
+  matchesTaskQuery,
+  type TaskProcessItem,
+} from "../src/features/filemanager/fmTaskManager";
+import {
+  isSecretEnvEntry,
+  renderEnvPreview,
+} from "../resources/file_manager/ui/codePreview.js";
 import { entryMatchesQuickFilter } from "../resources/file_manager/ui/nav.js";
 import {
   baseName,
@@ -703,6 +719,249 @@ describe("Codecaine File Manager — Wave 2 Flagship Enhancements (Backend + Cro
       }
       server.stop(true);
       rmSync(uiRoot, { recursive: true, force: true });
+    }
+  });
+
+  test("8. QA Hardening: Cross-Platform Paths, Smart Archive Extraction, >64 KiB Gzip/Zstd Preview, Hash Formats, LAN/Port Scoring & .env Secret Masking", async () => {
+    // (A) Simulated win32 context with POSIX host temp dir must never create backslash dirs in cwd
+    const winCtx = createContext({
+      platform: "win32",
+      home: tmpDir,
+      sandboxRoot: tmpDir,
+      dataDir: path.join(tmpDir, ".win-data"),
+    });
+    expect(winCtx.home.startsWith("/")).toBe(true);
+    expect(existsSync(path.join(process.cwd(), "\\var"))).toBe(false);
+
+    // %TEMP% expansion on win32 with non-host Windows home must NOT leak macOS/Linux TMPDIR (/var/folders/...)
+    const winTemp = parseTypedPath(
+      "%TEMP%\\build.log",
+      "C:\\Users\\Alice\\Work",
+      "C:\\Users\\Alice",
+      "win32",
+    );
+    expect(winTemp).toBe("C:\\Users\\Alice\\AppData\\Local\\Temp\\build.log");
+
+    // (B) Case-insensitive collision safety in Smart Archive Extraction (Archive.tar vs existing archive.tar sibling)
+    const stageSingle = path.join(tmpDir, "stage-single", "Bundle");
+    await fsp.mkdir(stageSingle, { recursive: true });
+    await fsp.writeFile(path.join(stageSingle, "Archive.tar"), "inner-payload");
+    const destExtract = path.join(tmpDir, "extract-dest");
+    await fsp.mkdir(destExtract, { recursive: true });
+    await fsp.writeFile(
+      path.join(destExtract, "archive.tar"),
+      "existing-sibling",
+    );
+    const outerTar = path.join(destExtract, "bundle.tar");
+    const tarBuild = Bun.spawnSync(
+      [
+        "/usr/bin/tar",
+        "-cf",
+        outerTar,
+        "-C",
+        path.join(tmpDir, "stage-single"),
+        "Bundle",
+      ],
+      { env: { ...process.env, COPYFILE_DISABLE: "1" } },
+    );
+    if (tarBuild.exitCode === 0) {
+      const extracted = await extractArchive(
+        winCtx,
+        outerTar,
+        destExtract,
+        "smart",
+      );
+      expect(extracted.files + extracted.folders).toBeGreaterThanOrEqual(1);
+      // Existing sibling must remain untouched even on case-insensitive APFS/NTFS
+      expect(
+        await fsp.readFile(path.join(destExtract, "archive.tar"), "utf8"),
+      ).toBe("existing-sibling");
+    }
+
+    // (C) >64 KiB .gz / .zst streaming decompressPrefix preview without ERR_BUFFER_TOO_LARGE
+    const largeText =
+      "Line of log output for streaming preview verification.\n".repeat(2000); // ~110 KiB (>64 KiB)
+    const gzPath = path.join(tmpDir, "large-stream.log.gz");
+    await fsp.writeFile(gzPath, Bun.gzipSync(Buffer.from(largeText, "utf8")));
+    const gzStat = await fsp.stat(gzPath);
+    const gzHandle = await fsp.open(gzPath, "r");
+    try {
+      const head = Buffer.alloc(Math.min(4096, gzStat.size));
+      await gzHandle.read(head, 0, head.length, 0);
+      const rich = await inspectRichPreview(
+        gzHandle,
+        gzPath,
+        gzStat.size,
+        head,
+        null,
+        false,
+      );
+      expect(rich?.kind).toBe("archive");
+      if (rich?.kind === "archive") {
+        expect(rich.innerText).toContain(
+          "Line of log output for streaming preview verification.",
+        );
+      }
+    } finally {
+      await gzHandle.close();
+    }
+
+    // (D) OpenSSL/BSD SHA256(file)=... & multi-line SHA256SUMS compareHash disambiguation
+    const sampleSha =
+      "cf4f73021e54410e41970964878f3c572d4f03436dd2bc013a0b6acc2b82bf09";
+    const otherSha = "a".repeat(64);
+    expect(normalizeHash(`SHA256(app.zip)=${sampleSha}`)).toEqual({
+      hex: sampleSha,
+      named: "sha256",
+    });
+    const multiSums = [
+      `${otherSha}  other-installer.dmg`,
+      `${sampleSha} *target-app.zip`,
+    ].join("\n");
+    const cmp = compareHash(
+      multiSums,
+      [{ id: "sha256", value: sampleSha }],
+      "target-app.zip",
+    );
+    expect(cmp.matched).toBe("sha256");
+
+    // (E) Physical Wi-Fi/Ethernet LAN scoring above virtual utun/docker & 169.254.* link-local
+    const chosenLan = lanAddress({
+      utun0: [
+        {
+          address: "10.8.0.2",
+          netmask: "255.255.255.0",
+          family: "IPv4",
+          mac: "00:00:00:00:00:00",
+          internal: false,
+          cidr: "10.8.0.2/24",
+        },
+      ],
+      docker0: [
+        {
+          address: "172.17.0.1",
+          netmask: "255.255.0.0",
+          family: "IPv4",
+          mac: "02:42:ac:11:00:01",
+          internal: false,
+          cidr: "172.17.0.1/16",
+        },
+      ],
+      en0: [
+        {
+          address: "169.254.12.34",
+          netmask: "255.255.0.0",
+          family: "IPv4",
+          mac: "aa:bb:cc:dd:ee:ff",
+          internal: false,
+          cidr: "169.254.12.34/16",
+        },
+        {
+          address: "192.168.1.42",
+          netmask: "255.255.255.0",
+          family: "IPv4",
+          mac: "aa:bb:cc:dd:ee:ff",
+          internal: false,
+          cidr: "192.168.1.42/24",
+        },
+      ],
+    });
+    expect(chosenLan).toBe("192.168.1.42");
+
+    // (F) Task Manager :port token boundary (:80 matches port 80 / 127.0.0.1:80, NOT :8080)
+    const makeProc = (ports: string[], command: string): TaskProcessItem => ({
+      pid: "1234",
+      ppid: "1",
+      name: "node",
+      command,
+      exePath: "/usr/local/bin/node",
+      user: "dev",
+      state: "R",
+      stateText: "Running",
+      cpu: 1.2,
+      mem: 0.5,
+      rssKb: 51200,
+      rssMb: "50.0 MB",
+      ports,
+      uptime: "5m",
+      isUserApp: false,
+      isDevServer: true,
+      isCritical: false,
+    });
+    expect(
+      matchesTaskQuery(
+        makeProc(["8080"], "node server.js --addr 127.0.0.1:8080"),
+        ":80",
+      ),
+    ).toBe(false);
+    expect(
+      matchesTaskQuery(makeProc(["80"], "nginx -g 0.0.0.0:80"), ":80"),
+    ).toBe(true);
+
+    // (G) .env Secret Masking precision + DOM state persistence across live edits
+    expect(isSecretEnvEntry("PUBLIC_KEY", "pk_live_123")).toBe(false);
+    expect(isSecretEnvEntry("NEXT_PUBLIC_API_TOKEN", "pub_123")).toBe(false);
+    expect(isSecretEnvEntry("PWD", "/Users/dev/app")).toBe(false);
+    expect(isSecretEnvEntry("AUTH_ENABLED", "true")).toBe(false);
+    expect(isSecretEnvEntry("TOKEN_TIMEOUT", "3600")).toBe(false);
+    expect(
+      isSecretEnvEntry(
+        "DATABASE_URL",
+        "postgres://admin:secret@db.internal:5432/app",
+      ),
+    ).toBe(true);
+    expect(isSecretEnvEntry("DB_PWD", "s3cr3t")).toBe(true);
+    expect(
+      isSecretEnvEntry("CUSTOM_ENDPOINT", "redis://user:pass@cache:6379"),
+    ).toBe(true);
+
+    const dom = new JSDOM(
+      "<!doctype html><html><body><div id='pv'></div></body></html>",
+    );
+    const g = globalThis as any;
+    const prevGlobals = {
+      document: g.document,
+      Node: g.Node,
+      Event: g.Event,
+    };
+    g.document = dom.window.document;
+    g.Node = dom.window.Node;
+    g.Event = dom.window.Event;
+    try {
+      const host = dom.window.document.getElementById("pv")!;
+      renderEnvPreview(
+        host,
+        "PUBLIC_KEY=pk_123\nDATABASE_URL=postgres://u:p@h/db\nEMPTY_VAR=\n",
+        { docKey: "/tmp/.env" },
+      );
+      expect(
+        host.querySelector(".code-env-table")?.getAttribute("data-copy"),
+      ).toBe("off");
+      const filterEl = host.querySelector("input.code-in") as HTMLInputElement;
+      filterEl.value = "DATABASE";
+      filterEl.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+      const showBtn = [
+        ...host.querySelectorAll(".code-env-actions button"),
+      ].find((b) => b.textContent?.includes("Show")) as HTMLButtonElement;
+      showBtn.click();
+      // Re-render same docKey after an edit -> filterEl, filter value & reveal state persist!
+      renderEnvPreview(
+        host,
+        "PUBLIC_KEY=pk_123\nDATABASE_URL=postgres://u:p@h/db\nNEW_VAR=42\n",
+        { docKey: "/tmp/.env" },
+      );
+      expect(host.querySelector("input.code-in")).toBe(filterEl);
+      expect(
+        (host.querySelector("input.code-in") as HTMLInputElement).value,
+      ).toBe("DATABASE");
+      expect(
+        host.querySelector(".code-env-table tbody tr td")?.textContent,
+      ).toContain("postgres://u:p@h/db");
+    } finally {
+      for (const [k, v] of Object.entries(prevGlobals)) {
+        if (v === undefined) delete g[k];
+        else g[k] = v;
+      }
     }
   });
 });

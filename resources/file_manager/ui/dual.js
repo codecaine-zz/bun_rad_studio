@@ -33,7 +33,8 @@ import {
 } from "./pane.js";
 import { selectedEntries } from "./selection.js";
 import { emit, on, state } from "./state.js";
-import { collapseCrumbs, parentOf, splitPath } from "./util.js";
+import { openNewTab } from "./tabs.js";
+import { baseName, collapseCrumbs, parentOf, splitPath } from "./util.js";
 
 let built = false;
 let loadNumber = 0;
@@ -41,6 +42,22 @@ let loading = 0;
 let refreshTimer = 0;
 const rightHistory = [];
 const rightFuture = [];
+const dualCopyTimers = new WeakMap();
+
+function flashDualCopyButton(btn) {
+  if (!btn) return;
+  const prev = dualCopyTimers.get(btn);
+  if (prev) clearTimeout(prev.timer);
+  const orig = prev ? prev.orig : btn.textContent || "📋";
+  btn.textContent = "✓";
+  btn.classList.add("copied");
+  const timer = setTimeout(() => {
+    btn.textContent = orig;
+    btn.classList.remove("copied");
+    dualCopyTimers.delete(btn);
+  }, 1200);
+  dualCopyTimers.set(btn, { timer, orig });
+}
 
 const mod = () => (state.platform === "darwin" ? "⌘" : "Ctrl+");
 const byId = (id) => document.getElementById(id);
@@ -212,7 +229,10 @@ function drawRight() {
   emit("right-view");
 }
 
-function openRightAddressEdit() {
+let hideRightAddrTimer = 0;
+
+export function openRightAddressEdit() {
+  clearTimeout(hideRightAddrTimer);
   const crumbs = byId("dual-crumbs");
   const input = byId("dual-address-input");
   if (!crumbs || !input) return;
@@ -223,7 +243,15 @@ function openRightAddressEdit() {
   input.select();
 }
 
+export function focusRightSearch() {
+  const s = byId("dual-search");
+  if (!s) return;
+  s.focus();
+  s.select();
+}
+
 function closeRightAddressEdit() {
+  clearTimeout(hideRightAddrTimer);
   const crumbs = byId("dual-crumbs");
   const input = byId("dual-address-input");
   if (!crumbs || !input) return;
@@ -269,7 +297,10 @@ async function showRightCrumbSiblings(parentPath, currentChildPath, anchor) {
       folders.map((f) => ({
         label: f.name,
         icon: "📁",
-        checked: f.path === currentChildPath,
+        checked:
+          f.path === currentChildPath ||
+          right.location.path === f.path ||
+          (right.location.path || "").startsWith(f.path + state.sep),
         action: () => loadRight(f.path),
       })),
       { anchor, label: "Subfolders" },
@@ -294,6 +325,12 @@ function renderCrumbs() {
         title: c.path,
         "aria-current": last ? "page" : null,
         onclick: () => loadRight(c.path),
+        onauxclick: (e) => {
+          if (e.button === 1) {
+            e.preventDefault();
+            void openNewTab(c.path);
+          }
+        },
         oncontextmenu: (e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -327,13 +364,17 @@ function renderCrumbs() {
     box.append(el);
     if (!last) {
       const nextPart = parts[i + 1];
+      const sepName =
+        c.name && c.name !== "…"
+          ? c.name
+          : baseName(c.path, state.sep) || c.path;
       const sepBtn = h(
         "button",
         {
           type: "button",
           class: "crumb-sep",
-          title: `Show folders inside ${c.name}`,
-          "aria-label": `Show folders inside ${c.name}`,
+          title: `Show folders inside ${sepName}`,
+          "aria-label": `Show folders inside ${sepName}`,
           onclick: (e) => {
             e.stopPropagation();
             showRightCrumbSiblings(c.path, nextPart?.path ?? "", sepBtn);
@@ -355,11 +396,12 @@ function renderCrumbs() {
 /** The buttons under the right pane: which ones make sense for what is selected on each side. */
 function syncButtons() {
   if (!built || !byId("dual-copy-left")) return;
-  const chosen = right.selection.size;
+  const chosen = selectedEntries(right).length;
+  const leftChosen = selectedEntries(left).length;
   for (const id of ["dual-copy-left", "dual-move-left"])
     byId(id).disabled = !chosen || !leftFolder();
   for (const id of ["dual-copy-right", "dual-move-right"])
-    byId(id).disabled = !left.selection.size || !right.location.path;
+    byId(id).disabled = !leftChosen || !right.location.path;
   const trash = byId("dual-trash");
   trash.disabled = !chosen;
   trash.title =
@@ -437,12 +479,18 @@ function build() {
       if (e.key === "Enter") {
         e.preventDefault();
         submitRightAddress();
+        byId("dual-list")?.focus({ preventScroll: true });
       } else if (e.key === "Escape") {
         e.preventDefault();
+        e.stopPropagation();
         closeRightAddressEdit();
+        byId("dual-list")?.focus({ preventScroll: true });
       }
     },
-    onblur: () => closeRightAddressEdit(),
+    onblur: () => {
+      clearTimeout(hideRightAddrTimer);
+      hideRightAddrTimer = setTimeout(closeRightAddressEdit, 120);
+    },
   });
   const searchInput = h("input", {
     id: "dual-search",
@@ -526,9 +574,39 @@ function build() {
           id: "dual-edit-address",
           title: "Type a folder location for the right pane",
           "aria-label": "Type a location in the right pane",
-          onclick: () => openRightAddressEdit(),
+          onmousedown: (e) => {
+            const inp = byId("dual-address-input");
+            if (inp && !inp.hidden) e.preventDefault();
+          },
+          onclick: () => {
+            const inp = byId("dual-address-input");
+            if (inp && !inp.hidden) {
+              closeRightAddressEdit();
+              byId("dual-list")?.focus({ preventScroll: true });
+            } else {
+              openRightAddressEdit();
+            }
+          },
         },
         "✎",
+      ),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "icon-btn",
+          id: "dual-copy-address",
+          title: "Copy current right-pane folder path",
+          "aria-label": "Copy right pane folder path",
+          onclick: async (e) => {
+            const btn = e.currentTarget;
+            if (right.location.path) {
+              const ok = await copyPathOf([{ path: right.location.path }]);
+              if (ok !== false) flashDualCopyButton(btn);
+            }
+          },
+        },
+        "📋",
       ),
       h(
         "div",
@@ -698,6 +776,7 @@ export function wireDual() {
           "columns",
           "groupBy",
           "tags",
+          "notes",
         ].includes(k),
       )
     )

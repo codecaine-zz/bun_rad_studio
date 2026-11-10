@@ -146,6 +146,10 @@ export interface Settings {
   /** The Power tools tab last used in the Tools view, and in the Split view ("" = none yet). */
   activeTool: string;
   splitTool: string;
+  /** Power tool IDs pinned by the user for one-click access in the Tools bar and on Home. */
+  favoriteTools: string[];
+  /** Recently opened Power tool IDs (newest first, up to 8). */
+  recentTools: string[];
   /** The folder shown in the right-hand pane of the Dual view ("" = same as the left). */
   dualPath: string;
   /** Mark files that aren't what their name says, and ask before opening the dangerous ones. */
@@ -844,6 +848,8 @@ export const DEFAULT_SETTINGS: Settings = {
   focusMode: false,
   activeTool: "",
   splitTool: "",
+  favoriteTools: [],
+  recentTools: [],
   dualPath: "",
   typeWarnings: true,
   backspaceDeletes: true,
@@ -956,6 +962,22 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
       favoriteThemes.push(k);
     }
   }
+  const sanitizeToolIdList = (rawList: unknown, max: number): string[] => {
+    const out: string[] = [];
+    for (const id of Array.isArray(rawList) ? rawList : []) {
+      if (
+        typeof id === "string" &&
+        /^[a-z][a-z0-9_-]{0,31}$/.test(id) &&
+        !out.includes(id) &&
+        out.length < max
+      ) {
+        out.push(id);
+      }
+    }
+    return out;
+  };
+  const favoriteTools = sanitizeToolIdList(r.favoriteTools, 24);
+  const recentTools = sanitizeToolIdList(r.recentTools, 8);
   const columns: ExtraColumn[] = [];
   for (const c of Array.isArray(r.columns) ? r.columns : []) {
     if (
@@ -1298,6 +1320,8 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
       typeof r.splitTool === "string" && TOOL_ID.test(r.splitTool)
         ? r.splitTool
         : "",
+    favoriteTools,
+    recentTools,
     dualPath: isPath(r.dualPath) ? p.resolve(r.dualPath) : "",
     typeWarnings:
       typeof r.typeWarnings === "boolean"

@@ -7,11 +7,20 @@ import { announce, h } from "./dom.js";
 import { toast } from "./menus.js";
 import { clock } from "./secretsClock.js";
 import { errorText, registerWiper } from "./secretsState.js";
+import { on } from "./state.js";
 
 export const REVEAL_MS = 15_000;
 export const NOTES_MS = 60_000;
 const CODE_MS = 60_000;
 const MASK = "••••••••";
+
+let activeCopyCleanup = null;
+on("secrets-locked", () => {
+  activeCopyCleanup?.();
+});
+registerWiper(() => {
+  activeCopyCleanup?.();
+});
 
 /** Collects what a rendered view must undo when it is replaced (timers, wipers). */
 export function newScope() {
@@ -27,16 +36,51 @@ export function newScope() {
   };
 }
 
-function flash(button, text, label) {
+function flash(button, text, label, clearsInSeconds = 0) {
+  activeCopyCleanup?.();
+  if (clearsInSeconds > 0) {
+    let left = Math.ceil(clearsInSeconds);
+    button.classList.add("sx-copied");
+    button.textContent = `${text} · ${left}s`;
+    const id = clock.setInterval(() => {
+      left -= 1;
+      if (!button.isConnected || left <= 0) {
+        cleanup();
+        return;
+      }
+      button.textContent = `${text} · ${left}s`;
+    }, 1000);
+    const cleanup = () => {
+      clock.clearInterval(id);
+      if (activeCopyCleanup === cleanup) activeCopyCleanup = null;
+      if (button.isConnected) {
+        button.classList.remove("sx-copied");
+        button.textContent = label;
+      }
+    };
+    activeCopyCleanup = cleanup;
+    return id;
+  }
+  button.classList.add("sx-copied");
   button.textContent = text;
-  return clock.setTimeout(() => (button.textContent = label), 1500);
+  const id = clock.setTimeout(() => cleanup(), 1500);
+  const cleanup = () => {
+    clock.clearTimeout(id);
+    if (activeCopyCleanup === cleanup) activeCopyCleanup = null;
+    if (button.isConnected) {
+      button.classList.remove("sx-copied");
+      button.textContent = label;
+    }
+  };
+  activeCopyCleanup = cleanup;
+  return id;
 }
 
 /** Copies a field through the server. Resolves true when it worked. */
 export async function copyFromServer(id, field, label, button, text = "Copy") {
   try {
     const res = await call("secrets/copy", { id, field });
-    if (button) flash(button, "Copied ✓", text);
+    if (button) flash(button, "Copied ✓", text, res.clearsInSeconds || 0);
     announce(
       res.clearsInSeconds
         ? `${label} copied. The clipboard is cleared in ${res.clearsInSeconds} seconds.`

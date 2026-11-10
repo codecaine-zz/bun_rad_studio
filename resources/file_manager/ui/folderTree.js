@@ -4,6 +4,8 @@ import { attachDropTarget } from "./dnd.js";
 import { activeIconPackStyle, h, iconFor } from "./dom.js";
 import { showMenu } from "./menus.js";
 import { goTo, saveSettings } from "./nav.js";
+import { copyPathOf, isFavorite, toggleFavorite } from "./ops.js";
+import { hooks } from "./pane.js";
 import { emit, state, currentPath } from "./state.js";
 import { openNewTab } from "./tabs.js";
 import { baseName } from "./util.js";
@@ -78,9 +80,8 @@ function renderBranch(folderPath, label, depth, activePath) {
   const isActive = samePath(folderPath, activePath);
   const row = h("div", {
     class: `tree-row${isActive ? " active" : ""}`,
-    dataset: { treePath: folderPath, depth: String(depth) },
+    dataset: { treePath: folderPath, depth: String(Math.min(depth, 8)) },
   });
-  row.style.paddingLeft = `${Math.min(depth, 8) * 12 + 4}px`;
 
   const twist = h(
     "button",
@@ -112,6 +113,12 @@ function renderBranch(folderPath, label, depth, activePath) {
       "aria-label": `Open folder ${label}`,
       "aria-current": isActive ? "page" : null,
       onclick: () => goTo(folderPath),
+      onauxclick: (e) => {
+        if (e.button === 1) {
+          e.preventDefault();
+          void openNewTab(folderPath);
+        }
+      },
     },
     h(
       "span",
@@ -145,6 +152,30 @@ function renderBranch(folderPath, label, depth, activePath) {
           tip: "Open this folder in a new folder tab at the top of the file list",
           action: () => openNewTab(folderPath),
         },
+        {
+          label: "Open in Dual Pane (Right)",
+          icon: "♊",
+          tip: "Switch to Dual-pane view and open this folder in the right pane",
+          action: () => {
+            emit("workspace-go", "dual");
+            void hooks.loadRight?.(folderPath);
+          },
+        },
+        { separator: true },
+        {
+          label: isFavorite(folderPath)
+            ? "Remove from Favorites"
+            : "Add to Favorites",
+          icon: "⭐",
+          tip: "Pin or unpin this folder in the Favorites sidebar",
+          action: () => toggleFavorite(folderPath),
+        },
+        {
+          label: "Copy folder path",
+          icon: "🔗",
+          tip: "Copy this folder's full path to the clipboard",
+          action: () => copyPathOf([{ path: folderPath }]),
+        },
       ],
       { x: e.clientX, y: e.clientY, label: label },
     );
@@ -161,8 +192,14 @@ function renderBranch(folderPath, label, depth, activePath) {
         loadTreeChildren(folderPath).then(() => emit("places"));
       }
     } else if (kids.length === 0) {
-      const emptyRow = h("div", { class: "tree-empty" }, "No subfolders");
-      emptyRow.style.paddingLeft = `${Math.min(depth + 1, 8) * 12 + 24}px`;
+      const emptyRow = h(
+        "div",
+        {
+          class: "tree-empty",
+          dataset: { emptyDepth: String(Math.min(depth + 1, 8)) },
+        },
+        "No subfolders",
+      );
       nodes.push(emptyRow);
     } else {
       for (const child of kids) {

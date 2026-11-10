@@ -62,9 +62,21 @@ export function createTodo(env) {
     { danger: true },
   );
   cancel.hidden = true;
+  const filterInput = h("input", {
+    type: "search",
+    id: "dev-todo-filter",
+    placeholder: "Filter by file or comment…",
+    spellcheck: "false",
+    autocomplete: "off",
+    title: "Filter found markers by file path, tag, or comment text.",
+    oninput: () => {
+      if (last?.result) render(last.result);
+    },
+  });
   const exportRow = h(
     "div",
     { class: "pw-row", hidden: true },
+    field("Filter results", filterInput),
     field(
       "Export as",
       h(
@@ -93,6 +105,7 @@ export function createTodo(env) {
   async function exportList(save) {
     if (!last) return;
     const format = exportRow.querySelector("select").value;
+    const filter = filterInput.value.trim();
     try {
       if (save) {
         const res = await call("dev/export/save", {
@@ -100,15 +113,17 @@ export function createTodo(env) {
           scope: "todo",
           format,
           folder: last.result.root,
+          ...(filter ? { filter } : {}),
         });
         status.set(
-          `Saved ${res.rows} rows as ${res.name} in the scanned folder.`,
+          `Saved ${res.rows}${filter ? " filtered" : ""} rows as ${res.name} in the scanned folder.`,
         );
       } else {
         const res = await call("dev/export", {
           id: last.id,
           scope: "todo",
           format,
+          ...(filter ? { filter } : {}),
         });
         if (res.text.length > 100_000)
           return status.set(
@@ -116,7 +131,7 @@ export function createTodo(env) {
             true,
           );
         await call("copytext", { text: res.text });
-        status.set(`Copied ${res.rows} rows.`);
+        status.set(`Copied ${res.rows}${filter ? " filtered" : ""} rows.`);
       }
     } catch (err) {
       status.set(errorText(err, "That didn't work."), true);
@@ -125,6 +140,15 @@ export function createTodo(env) {
 
   function render(r) {
     const root = r.root;
+    const q = filterInput.value.trim().toLowerCase();
+    const filteredItems = q
+      ? r.items.filter(
+          (i) =>
+            i.path.toLowerCase().includes(q) ||
+            i.tag.toLowerCase().includes(q) ||
+            i.text.toLowerCase().includes(q),
+        )
+      : r.items;
     const chips = h(
       "ul",
       { class: "dev-chips", "aria-label": "Counts per marker" },
@@ -133,7 +157,7 @@ export function createTodo(env) {
       ),
     );
     const groups = r.tags.map((tag) => {
-      const items = r.items.filter((i) => i.tag === tag);
+      const items = filteredItems.filter((i) => i.tag === tag);
       if (!items.length) return null;
       const byFile = new Map();
       for (const i of items)
@@ -195,6 +219,10 @@ export function createTodo(env) {
     );
     if (!r.items.length)
       out.append(h("p", { class: "pw-hint" }, "No markers found."));
+    else if (!filteredItems.length)
+      out.append(
+        h("p", { class: "pw-hint" }, "No markers match the current filter."),
+      );
   }
 
   async function start() {

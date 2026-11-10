@@ -174,6 +174,9 @@ export function createCommands(app) {
   add("File", "closeOthers", "Close the other tabs", () => app.closeOthers(), {
     tip: "Close every tab except this one.",
   });
+  add("File", "closeSaved", "Close saved tabs", () => app.closeSaved(), {
+    tip: "Close every saved file tab that has no unsaved changes.",
+  });
   add("File", "closeAll", "Close all tabs", () => app.closeAll(), {
     tip: "Close every tab (asks first about unsaved changes).",
   });

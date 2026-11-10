@@ -173,6 +173,7 @@
             id="address-input"
             type="text"
             class="address-input"
+            title="Type a folder location and press Enter"
             aria-label="Type a folder location and press Enter"
             spellcheck="false"
             autocomplete="off"
@@ -213,6 +214,7 @@
             type="search"
             class="search-input"
             placeholder="Search"
+            title="Search files and folders"
             autocomplete="off"
             spellcheck="false"
           />
@@ -436,6 +438,15 @@
               aria-label="Tool screen and window options"
             >
               <button
+                id="power-pin"
+                type="button"
+                class="pw-btn power-act"
+                aria-pressed="false"
+                title="Pin or unpin the current tool for quick access"
+              >
+                ☆ Pin
+              </button>
+              <button
                 id="power-compact"
                 type="button"
                 class="pw-btn power-act"
@@ -471,6 +482,13 @@
               </button>
             </div>
           </div>
+          <div
+            id="power-quick-strip"
+            class="power-quick-strip"
+            role="region"
+            aria-label="Pinned and recent tools"
+            hidden
+          ></div>
           <div
             id="power-max-bar"
             class="power-max-bar"
@@ -566,6 +584,14 @@
               title="Select all terminal output, including scrollback (Ctrl+Shift+A or Command+A)"
             >
               Select all
+            </button>
+            <button
+              id="terminal-clear"
+              type="button"
+              class="term-btn"
+              title="Clear terminal scrollback and screen"
+            >
+              Clear
             </button>
             <label
               class="term-follow"

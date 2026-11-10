@@ -116,6 +116,9 @@ async function runTile(tile) {
 
 function tileButton(tile) {
   const disabled = tile.enabled ? !tile.enabled() : false;
+  const toolId = tile.id.startsWith("tool-") ? tile.id.slice(5) : "";
+  const pinned =
+    !!toolId && (state.settings?.favoriteTools ?? []).includes(toolId);
   return h(
     "button",
     {
@@ -125,12 +128,35 @@ function tileButton(tile) {
       title: `${tile.title}: ${tile.text}${disabled && tile.why ? ` (${tile.why})` : ""}`,
       "aria-disabled": disabled ? "true" : null,
       onclick: () => runTile(tile),
+      oncontextmenu: toolId
+        ? (e) => {
+            e.preventDefault();
+            const isPinned = (state.settings?.favoriteTools ?? []).includes(
+              toolId,
+            );
+            showMenu(
+              [
+                {
+                  label: isPinned ? "Unpin tool" : "Pin tool to quick bar",
+                  icon: isPinned ? "☆" : "⭐",
+                  action: () => emit("toggle-favorite-tool", toolId),
+                },
+              ],
+              { x: e.clientX, y: e.clientY, label: tile.title },
+            );
+          }
+        : null,
     },
     h("span", { class: "ht-icon", "aria-hidden": "true" }, tile.icon),
     h(
       "span",
       { class: "ht-body" },
-      h("span", { class: "ht-title" }, tile.title),
+      h(
+        "span",
+        { class: "ht-title" },
+        pinned ? h("span", { "aria-hidden": "true" }, "★ ") : null,
+        tile.title,
+      ),
       h("span", { class: "ht-text" }, tile.text),
     ),
     h("span", { class: "ht-go", "aria-hidden": "true" }, tile.cta ?? "Open →"),
@@ -622,7 +648,76 @@ async function loadHelpers() {
 function fillTiles() {
   const grid = byId("home-grid");
   if (!grid) return;
-  clear(grid).append(...listHomeTiles().map(tileButton));
+  const allTiles = listHomeTiles();
+  clear(grid).append(...allTiles.map(tileButton));
+  const strip = byId("home-tool-strip");
+  if (strip) {
+    const byTool = new Map(
+      allTiles
+        .filter((t) => t.id.startsWith("tool-"))
+        .map((t) => [t.id.slice(5), t]),
+    );
+    const favs = (state.settings?.favoriteTools ?? []).filter((id) =>
+      byTool.has(id),
+    );
+    const recs = (state.settings?.recentTools ?? [])
+      .filter((id) => !favs.includes(id) && byTool.has(id))
+      .slice(0, 5);
+    if (!favs.length && !recs.length) {
+      clear(strip);
+      strip.hidden = true;
+    } else {
+      strip.hidden = false;
+      const nodes = [];
+      const pill = (id, isFav) => {
+        const tile = byTool.get(id);
+        return h(
+          "button",
+          {
+            type: "button",
+            class: "home-tool-pill",
+            title: `${isFav ? "Pinned tool" : "Recent tool"}: ${tile.title}`,
+            onclick: () => runTile(tile),
+            oncontextmenu: (e) => {
+              e.preventDefault();
+              const nowPinned = (state.settings?.favoriteTools ?? []).includes(
+                id,
+              );
+              showMenu(
+                [
+                  {
+                    label: nowPinned ? "Unpin tool" : "Pin tool to quick bar",
+                    icon: nowPinned ? "☆" : "⭐",
+                    action: () => emit("toggle-favorite-tool", id),
+                  },
+                ],
+                { x: e.clientX, y: e.clientY, label: tile.title },
+              );
+            },
+          },
+          h(
+            "span",
+            { "aria-hidden": "true" },
+            `${isFav ? "★ " : ""}${tile.icon} `,
+          ),
+          tile.title,
+        );
+      };
+      if (favs.length) {
+        nodes.push(
+          h("span", { class: "home-tool-strip-label" }, "Pinned tools:"),
+        );
+        for (const id of favs) nodes.push(pill(id, true));
+      }
+      if (recs.length) {
+        nodes.push(
+          h("span", { class: "home-tool-strip-label" }, "Recent tools:"),
+        );
+        for (const id of recs) nodes.push(pill(id, false));
+      }
+      strip.replaceChildren(...nodes);
+    }
+  }
   applyFilter();
 }
 
@@ -760,6 +855,11 @@ function build() {
           "Everything you can do",
         ),
         h("div", {
+          id: "home-tool-strip",
+          class: "home-tool-strip",
+          hidden: true,
+        }),
+        h("div", {
           id: "home-grid",
           class: "home-grid",
           role: "group",
@@ -794,9 +894,12 @@ export function renderHome() {
 
 /** Keeps the lists on the page up to date while it is showing. */
 export function wireHome() {
-  const refresh = () => built && state.workspace === "home" && fillSections();
+  const refresh = () => {
+    if (!built || state.workspace !== "home") return;
+    fillTiles();
+    fillSections();
+  };
   for (const ev of ["places", "settings", "clipboard", "undo"]) on(ev, refresh);
   // The database shortcuts arrive a moment after Home is drawn, and follow the "open in" choice in Settings.
-  for (const ev of ["db-shortcuts", "settings"])
-    on(ev, () => built && state.workspace === "home" && fillTiles());
+  on("db-shortcuts", () => built && state.workspace === "home" && fillTiles());
 }

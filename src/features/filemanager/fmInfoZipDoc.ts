@@ -26,6 +26,13 @@ export interface ArchiveSummary {
   compressed: number;
   encrypted: number;
   top: Array<{ name: string; size: number }>;
+  items?: Array<{
+    name: string;
+    size: number;
+    packed?: number;
+    dir: boolean;
+    encrypted?: boolean;
+  }>;
   partial: boolean;
 }
 
@@ -60,7 +67,14 @@ export function summarizeEntries(
     s.compressed += e.packed ?? 0;
     if (e.encrypted) s.encrypted++;
   }
-  s.top = list
+  s.items = list.slice(0, 400).map((e) => ({
+    name: e.name.slice(0, 300),
+    size: e.size,
+    ...(e.packed !== undefined ? { packed: e.packed } : {}),
+    dir: Boolean(e.dir),
+    ...(e.encrypted ? { encrypted: true } : {}),
+  }));
+  s.top = [...list]
     .filter((e) => !e.dir)
     .sort((a, b) => b.size - a.size)
     .slice(0, 10)
@@ -368,20 +382,71 @@ export function tarName(h: Buffer): string {
     : name;
 }
 
-/** Checks whether a 512-byte buffer is a valid POSIX `ustar` tar header with a matching octal checksum. */
+/** Checks whether a 512-byte buffer is a valid POSIX `ustar` or classic V7 tar header with a matching octal checksum. */
 export function isTarHeader(h: Buffer): boolean {
-  if (h.length < 512 || h.subarray(257, 262).toString("latin1") !== "ustar")
-    return false;
-  let sum = 0;
-  for (let i = 0; i < 512; i++) sum += i >= 148 && i < 156 ? 32 : h[i]!;
+  if (h.length < 512) return false;
+  const magic = h.subarray(257, 262);
+  const isUstar = magic.toString("latin1") === "ustar";
+  const isV7 = magic.every((b) => b === 0) && h[0] !== 0;
+  if (!isUstar && !isV7) return false;
+  const chkRaw = h
+    .subarray(148, 156)
+    .toString("latin1")
+    .replace(/\0.*$/, "")
+    .trim();
+  if (!/^[0-7]+$/.test(chkRaw)) return false;
+  const expected = parseInt(chkRaw, 8);
+  let unsignedSum = 0;
+  let signedSum = 0;
+  for (let i = 0; i < 512; i++) {
+    const b = i >= 148 && i < 156 ? 32 : h[i]!;
+    unsignedSum += b;
+    signedSum += b > 127 ? b - 256 : b;
+  }
+  return expected === unsignedSum || expected === signedSum;
+}
+
+function tarHeaderSize(h: Buffer): number {
+  const first = h[124] ?? 0;
+  if ((first & 0x80) !== 0) {
+    if ((first & 0x40) !== 0) return 0;
+    let val = first & 0x3f;
+    for (let i = 125; i < 136; i++) {
+      val = val * 256 + h[i]!;
+    }
+    return Number.isFinite(val) && val >= 0 ? val : 0;
+  }
   return (
-    sum ===
     parseInt(
-      h.subarray(148, 156).toString("latin1").replace(/\0.*$/, "").trim() ||
-        "-1",
+      h.subarray(124, 136).toString("latin1").replace(/\0.*$/, "").trim() ||
+        "0",
       8,
-    )
+    ) || 0
   );
+}
+
+function parsePaxRecords(payload: Buffer): Record<string, string> {
+  const out: Record<string, string> = {};
+  let pos = 0;
+  while (pos < payload.length) {
+    const sp = payload.indexOf(0x20, pos);
+    if (sp <= pos) break;
+    const len = parseInt(payload.subarray(pos, sp).toString("latin1"), 10);
+    if (
+      !Number.isFinite(len) ||
+      len <= sp - pos + 1 ||
+      pos + len > payload.length
+    ) {
+      break;
+    }
+    const body = payload.subarray(sp + 1, pos + len - 1).toString("utf8");
+    const eq = body.indexOf("=");
+    if (eq > 0) {
+      out[body.slice(0, eq)] = body.slice(eq + 1);
+    }
+    pos += len;
+  }
+  return out;
 }
 
 /** Reads a tar stream header by header, skipping the data. Stops at the limits. */
@@ -396,7 +461,9 @@ export async function walkTar(
     seen = 0,
     partial = false,
     zeroBlocks = 0,
-    longName = "";
+    longName = "",
+    paxPath = "",
+    paxSize: number | null = null;
   outer: for await (const chunk of chunks) {
     seen += chunk.length;
     let buf: Buffer = pending.length ? Buffer.concat([pending, chunk]) : chunk;
@@ -408,8 +475,8 @@ export async function walkTar(
       }
       if (skip > 0 || buf.length < 512) break;
       const h = buf.subarray(0, 512);
-      buf = buf.subarray(512);
       if (h.every((x) => x === 0)) {
+        buf = buf.subarray(512);
         if (++zeroBlocks >= 2) break outer;
         continue;
       }
@@ -418,14 +485,17 @@ export async function walkTar(
         partial = true;
         break outer;
       }
-      const size =
-        parseInt(
-          h.subarray(124, 136).toString("latin1").replace(/\0.*$/, "").trim() ||
-            "0",
-          8,
-        ) || 0;
+      const size = tarHeaderSize(h);
       const type = String.fromCharCode(h[156] || 48);
       const padded = Math.ceil(size / 512) * 512;
+      if (
+        (type === "L" || type === "x") &&
+        padded <= 1024 * 1024 &&
+        buf.length < 512 + padded
+      ) {
+        break;
+      }
+      buf = buf.subarray(512);
       if (type === "L") {
         longName = buf
           .subarray(0, Math.min(buf.length, size))
@@ -434,12 +504,33 @@ export async function walkTar(
         skip = padded;
         continue;
       }
-      if (type !== "x" && type !== "g") {
-        const name = longName || tarName(h);
-        list.push({ name, size, dir: type === "5" || name.endsWith("/") });
-        longName = "";
+      if (type === "K" || type === "g") {
+        skip = padded;
+        continue;
       }
-      skip = padded;
+      if (type === "x") {
+        const pax = parsePaxRecords(
+          buf.subarray(0, Math.min(buf.length, size)),
+        );
+        if (typeof pax.path === "string" && pax.path) paxPath = pax.path;
+        if (typeof pax.size === "string" && /^\d+$/.test(pax.size)) {
+          const n = Number(pax.size);
+          if (Number.isFinite(n) && n >= 0) paxSize = n;
+        }
+        skip = padded;
+        continue;
+      }
+      const effectiveSize = paxSize ?? size;
+      const name = paxPath || longName || tarName(h);
+      longName = "";
+      paxPath = "";
+      paxSize = null;
+      list.push({
+        name,
+        size: effectiveSize,
+        dir: type === "5" || name.endsWith("/"),
+      });
+      skip = Math.ceil(effectiveSize / 512) * 512;
       if (
         list.length >= limits.maxEntries ||
         seen > limits.maxBytes ||
@@ -458,7 +549,7 @@ export async function walkTar(
 export async function tarDocument(
   path: string,
   size: number,
-): Promise<{ groups: InfoGroup[]; kind: string }> {
+): Promise<{ groups: InfoGroup[]; kind: string; summary?: ArchiveSummary }> {
   const rs = createReadStream(path, { highWaterMark: 256 * 1024 });
   try {
     const s = await walkTar(rs, {
@@ -469,6 +560,7 @@ export async function tarDocument(
     return {
       kind: "Tar archive",
       groups: archiveGroups("Tar archive (not compressed)", s, size),
+      summary: s,
     };
   } finally {
     rs.destroy();
@@ -500,7 +592,7 @@ export async function gzipDocument(
   handle: fsp.FileHandle,
   path: string,
   size: number,
-): Promise<{ groups: InfoGroup[]; kind: string }> {
+): Promise<{ groups: InfoGroup[]; kind: string; summary?: ArchiveSummary }> {
   const head = await readBytes(handle, 0, 64 * 1024);
   const rows = new Rows();
   let originalName = "";
@@ -536,23 +628,20 @@ export async function gzipDocument(
   const groups: InfoGroup[] = [];
   const isTar = isTarHeader(await gunzipStart(head, 512));
   let kind = "gzip-compressed file";
+  let tarSummary: ArchiveSummary | undefined;
   if (isTar) {
     kind = "Compressed tar archive (.tar.gz)";
     const rs = createReadStream(path, { highWaterMark: 256 * 1024 });
     const gz = createGunzip();
+    rs.on("error", (err) => gz.destroy(err));
     rs.pipe(gz);
     try {
-      groups.push(
-        ...archiveGroups(
-          kind,
-          await walkTar(gz, {
-            maxEntries: 20_000,
-            maxBytes: 256 * 1024 * 1024,
-            maxMs: 6000,
-          }),
-          size,
-        ),
-      );
+      tarSummary = await walkTar(gz, {
+        maxEntries: 20_000,
+        maxBytes: 256 * 1024 * 1024,
+        maxMs: 6000,
+      });
+      groups.push(...archiveGroups(kind, tarSummary, size));
     } catch {
       groups.push({
         id: "archive",
@@ -567,5 +656,5 @@ export async function gzipDocument(
   }
   const g = rows.group("gzip", "Compressed file");
   if (g) groups.unshift(g);
-  return { groups, kind };
+  return { groups, kind, ...(tarSummary ? { summary: tarSummary } : {}) };
 }

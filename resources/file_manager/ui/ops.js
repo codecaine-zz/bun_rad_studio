@@ -85,10 +85,10 @@ function fail(err) {
 const names = (paths) => paths.map((p) => baseName(p, state.sep));
 const canChangeHere = () => isFolderView();
 
-function needFolder(what) {
-  if (!canChangeHere()) {
+function needFolder(what, pane = activePane()) {
+  if (!isFolderView(pane)) {
     toast(
-      inTrash()
+      inTrash(pane)
         ? `Open a folder first: ${what} isn't possible inside the Recycle Bin.`
         : `Close the search results first: ${what} needs a folder.`,
       { kind: "info" },
@@ -1268,9 +1268,22 @@ export async function unzipEntry(entry) {
   await extractSelection([entry]);
 }
 
-export async function extractSelection(entriesInput) {
-  if (!needFolder("extracting")) return;
-  const pane = activePane();
+on("archive-extract", (req) => {
+  if (req?.entry) {
+    void extractSelection([req.entry], {
+      mode: req.mode || "smart",
+      pane: req.pane,
+      onStart: req.onSuccess,
+    });
+  }
+});
+
+export async function extractSelection(
+  entriesInput,
+  { mode = "smart", pane: paneArg = null, onStart = null } = {},
+) {
+  const pane = paneArg || activePane();
+  if (!needFolder("extracting", pane)) return;
   const raw = Array.isArray(entriesInput)
     ? entriesInput
     : selectedEntries(pane);
@@ -1284,9 +1297,13 @@ export async function extractSelection(entriesInput) {
     );
     return;
   }
+  onStart?.();
   try {
     const r = await busy(() =>
-      call("extract", { paths: items.map((e) => e.path) }),
+      call("extract", {
+        paths: items.map((e) => e.path),
+        mode: mode === "subfolder" ? "subfolder" : "smart",
+      }),
     );
     const results = Array.isArray(r.results) ? r.results : [];
     const createdPaths = results
@@ -1348,11 +1365,22 @@ export async function extractSelection(entriesInput) {
 export const isFavorite = (path) => state.settings.favorites.includes(path);
 
 export async function toggleFavorite(path) {
-  const favorites = isFavorite(path)
+  const wasFav = isFavorite(path);
+  const favorites = wasFav
     ? state.settings.favorites.filter((f) => f !== path)
     : [...state.settings.favorites, path];
+  const patch = { favorites };
+  if (
+    wasFav &&
+    state.settings.favoriteNames &&
+    Object.prototype.hasOwnProperty.call(state.settings.favoriteNames, path)
+  ) {
+    const nextNames = { ...state.settings.favoriteNames };
+    delete nextNames[path];
+    patch.favoriteNames = nextNames;
+  }
   try {
-    await saveSettings({ favorites });
+    await saveSettings(patch);
     toast(
       isFavorite(path)
         ? `Added "${baseName(path, state.sep)}" to Favorites.`
@@ -1489,10 +1517,10 @@ export async function verifyChecksumFile(entryOrPath = null) {
       h(
         "tr",
         {},
-        h("td", { style: "padding: 6px 8px; font-weight: 600;" }, r.name),
+        h("td", { class: "checksum-verify-name" }, r.name),
         h(
           "td",
-          { style: "padding: 6px 8px;" },
+          { class: "checksum-verify-cell" },
           r.status === "ok"
             ? "✅ Match"
             : r.status === "mismatch"
@@ -1501,10 +1529,7 @@ export async function verifyChecksumFile(entryOrPath = null) {
         ),
         h(
           "td",
-          {
-            style:
-              "padding: 6px 8px; font-family: var(--mono, monospace); font-size: 11px; word-break: break-all;",
-          },
+          { class: "checksum-verify-digest" },
           r.status === "ok"
             ? r.actual
             : `Expected: ${r.expected}\nActual:   ${r.actual || "(missing)"}`,
@@ -1520,25 +1545,19 @@ export async function verifyChecksumFile(entryOrPath = null) {
       statusEl,
       h(
         "div",
-        {
-          style:
-            "max-height: 45vh; overflow: auto; border: 1px solid var(--border, #334155); border-radius: 6px;",
-        },
+        { class: "checksum-verify-scroll" },
         h(
           "table",
-          { style: "width: 100%; border-collapse: collapse; font-size: 12px;" },
+          { class: "checksum-verify-table" },
           h(
             "thead",
             {},
             h(
               "tr",
-              {
-                style:
-                  "text-align: left; border-bottom: 1px solid rgba(148,163,184,0.25);",
-              },
-              h("th", { style: "padding: 6px 8px;" }, "File"),
-              h("th", { style: "padding: 6px 8px;" }, "Result"),
-              h("th", { style: "padding: 6px 8px;" }, "Digest"),
+              { class: "checksum-verify-head-row" },
+              h("th", { class: "checksum-verify-cell" }, "File"),
+              h("th", { class: "checksum-verify-cell" }, "Result"),
+              h("th", { class: "checksum-verify-cell" }, "Digest"),
             ),
           ),
           tbody,
@@ -1569,10 +1588,8 @@ export async function showFolderInventoryDialog(folderPath = null) {
   const previewArea = h(
     "pre",
     {
-      class: "preview-text",
+      class: "preview-text inv-preview",
       dataset: { inventoryPreview: "" },
-      style:
-        "max-height: 46vh; min-height: 180px; overflow: auto; margin: 8px 0; padding: 10px; border: 1px solid var(--border, #334155); border-radius: 6px; font-family: var(--mono, monospace); font-size: 12px; white-space: pre;",
     },
     "Loading folder inventory…",
   );
@@ -1607,6 +1624,7 @@ export async function showFolderInventoryDialog(folderPath = null) {
     {
       class: "select",
       dataset: { inventoryFormat: "" },
+      title: "Choose the export format for this folder inventory",
       "aria-label": "Inventory format",
       onchange: () => {
         format = fmtSelect.value;
@@ -1624,6 +1642,7 @@ export async function showFolderInventoryDialog(folderPath = null) {
     {
       class: "select",
       dataset: { inventoryDepth: "" },
+      title: "Choose how many subfolder levels deep to include",
       "aria-label": "Maximum folder depth",
       onchange: () => {
         maxDepth = Number(depthSelect.value) || 3;
@@ -1642,6 +1661,7 @@ export async function showFolderInventoryDialog(folderPath = null) {
   const hiddenChk = h("input", {
     type: "checkbox",
     dataset: { inventoryHidden: "" },
+    title: "Include hidden dotfiles and dot-folders in the inventory",
     onchange: () => {
       includeHidden = hiddenChk.checked;
       refreshPreview();
@@ -1654,6 +1674,7 @@ export async function showFolderInventoryDialog(folderPath = null) {
       type: "button",
       class: "btn primary",
       dataset: { inventorySaveBtn: "" },
+      title: "Save this inventory into a new file inside the folder",
       onclick: async () => {
         try {
           const res = await busy(() =>
@@ -1693,18 +1714,12 @@ export async function showFolderInventoryDialog(folderPath = null) {
     body: [
       h(
         "div",
-        {
-          style:
-            "display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 6px;",
-        },
+        { class: "inv-toolbar" },
         fmtSelect,
         depthSelect,
         h(
           "label",
-          {
-            style:
-              "display: inline-flex; align-items: center; gap: 5px; font-size: 12px; cursor: pointer;",
-          },
+          { class: "inv-dotfile-label" },
           hiddenChk,
           "Include dotfiles",
         ),
@@ -1713,13 +1728,10 @@ export async function showFolderInventoryDialog(folderPath = null) {
       previewArea,
       h(
         "div",
-        {
-          style:
-            "display: flex; gap: 8px; align-items: center; justify-content: space-between;",
-        },
+        { class: "inv-footer" },
         h(
           "div",
-          { style: "display: flex; gap: 8px; align-items: center;" },
+          { class: "inv-actions" },
           copyItemButton({
             label: "the folder inventory",
             getText: () => latestRes?.content || "",

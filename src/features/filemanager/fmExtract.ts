@@ -14,6 +14,7 @@
  * Extraction never overwrites existing items: multi-file archives unpack into a new sibling folder named after the
  * archive (with "(2)" etc. when taken), and single-file compressed streams unpack to a new sibling file.
  */
+import { randomBytes } from "crypto";
 import { lstatSync, promises as fsp, readdirSync } from "fs";
 import * as nodePath from "path";
 import {
@@ -122,6 +123,9 @@ function singleFileTargetName(fileName: string, ext: string): string {
   return `${fileName || "decompressed"}.out`;
 }
 
+/** Extraction folder strategy: `"subfolder"` always wraps in `<ArchiveStem>/`, while `"smart"` unwraps when the archive already contains a single top-level item. */
+export type ExtractMode = "subfolder" | "smart";
+
 /** Summary of a single extracted archive or decompressed stream on disk. */
 export interface ArchiveExtracted {
   /** Path of the extracted folder (or the uncompressed file for single-file formats like .gz/.zst/.br). */
@@ -182,6 +186,25 @@ function pickExternalExtractor(
   );
 }
 
+async function makeNameTakenCheck(
+  destDir: string,
+  p: ReturnType<typeof pathApi>,
+  platform: FmContext["platform"],
+): Promise<(candidate: string) => boolean> {
+  const existing = await fsp.readdir(destDir);
+  const ci = platform !== "linux";
+  const set = new Set(existing.map((n) => (ci ? n.toLowerCase() : n)));
+  return (candidate: string) => {
+    if (set.has(ci ? candidate.toLowerCase() : candidate)) return true;
+    try {
+      lstatSync(p.join(destDir, candidate));
+      return true;
+    } catch {
+      return false;
+    }
+  };
+}
+
 async function extractWithExternalTool(
   ctx: FmContext,
   filePath: string,
@@ -198,10 +221,10 @@ async function extractWithExternalTool(
     maxEntries: limits.maxEntries,
   };
   const stage = new Stage();
-  const taken = new Set(await fsp.readdir(destDir));
+  const isNameTaken = await makeNameTakenCheck(destDir, p, ctx.platform);
   const folderCandidate = p.join(
     destDir,
-    uniqueName(archiveStem(baseName, ext), (n) => taken.has(n)),
+    uniqueName(archiveStem(baseName, ext), isNameTaken),
   );
   const work = siblingTemp(folderCandidate);
 
@@ -305,7 +328,7 @@ async function extractWithExternalTool(
         if (onlyStat.isFile()) {
           const targetName = uniqueName(
             singleFileTargetName(baseName, ext),
-            (n) => taken.has(n),
+            isNameTaken,
           );
           const finalFile = p.join(destDir, targetName);
           publishFile(onlyPath, finalFile);
@@ -364,6 +387,55 @@ async function extractWithExternalTool(
   }
 }
 
+async function unwrapSingleRootIfSmart(
+  destDir: string,
+  extracted: ArchiveExtracted,
+  p: ReturnType<typeof pathApi>,
+  platform: FmContext["platform"],
+): Promise<ArchiveExtracted> {
+  if (!extracted.isFolder) return extracted;
+  let rawNames: string[];
+  try {
+    rawNames = await fsp.readdir(extracted.folder);
+  } catch {
+    return extracted;
+  }
+  const meaningful = rawNames.filter(
+    (n) => n !== "__MACOSX" && n !== ".DS_Store",
+  );
+  const topNames = meaningful.length === 1 ? meaningful : rawNames;
+  if (topNames.length !== 1) return extracted;
+
+  const onlyName = topNames[0]!;
+  const tempDir = p.join(
+    destDir,
+    `.fm-unwrap-${randomBytes(5).toString("hex")}`,
+  );
+  try {
+    await fsp.rename(extracted.folder, tempDir);
+  } catch {
+    return extracted;
+  }
+  try {
+    const isNameTaken = await makeNameTakenCheck(destDir, p, platform);
+    const finalName = uniqueName(onlyName, isNameTaken);
+    const finalPath = p.join(destDir, finalName);
+    await fsp.rename(p.join(tempDir, onlyName), finalPath);
+    await fsp.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+    const st = await fsp.lstat(finalPath);
+    return {
+      ...extracted,
+      folder: finalPath,
+      output: finalPath,
+      isFolder: st.isDirectory(),
+      folders: st.isDirectory() ? Math.max(0, extracted.folders - 1) : 0,
+    };
+  } catch (err) {
+    await fsp.rename(tempDir, extracted.folder).catch(() => {});
+    throw err;
+  }
+}
+
 /**
  * Extracts or uncompresses any supported archive or compressed file into `destInput` (default: beside the file).
  * Never overwrites an existing file or folder.
@@ -372,8 +444,13 @@ export async function extractArchive(
   ctx: FmContext,
   fileInput: unknown,
   destInput?: unknown,
-  limits: ZipLimits = DEFAULT_ZIP_LIMITS,
+  limitsOrMode: ZipLimits | ExtractMode = DEFAULT_ZIP_LIMITS,
+  modeArg: ExtractMode = "subfolder",
 ): Promise<ArchiveExtracted> {
+  const limits: ZipLimits =
+    typeof limitsOrMode === "string" ? DEFAULT_ZIP_LIMITS : limitsOrMode;
+  const mode: ExtractMode =
+    typeof limitsOrMode === "string" ? limitsOrMode : modeArg;
   const filePath = absolutePath(ctx, fileInput);
   const p = pathApi(ctx);
   const destDir =
@@ -389,6 +466,10 @@ export async function extractArchive(
 
   const baseName = p.basename(filePath);
   const ext = archiveExtensionOf(baseName);
+  const finish = async (res: ArchiveExtracted): Promise<ArchiveExtracted> =>
+    mode === "smart"
+      ? await unwrapSingleRootIfSmart(destDir, res, p, ctx.platform)
+      : res;
 
   // 1. Built-in Zip formats (.zip, .cbz, .whl, .jar, .apk, .ipa, .xpi)
   if (BUILTIN_ZIP_EXTS.has(ext) || !ext) {
@@ -399,15 +480,15 @@ export async function extractArchive(
       );
     }
     const r = await extractZip(ctx, filePath, destDir, limits);
-    return { ...r, output: r.folder, isFolder: true };
+    return await finish({ ...r, output: r.folder, isFolder: true });
   }
 
   // 2. Built-in Tar formats (.tar, .tar.gz, .tgz, .tar.zst, .tzst)
   if (BUILTIN_TAR_EXTS.has(ext)) {
-    const taken = new Set(await fsp.readdir(destDir));
+    const isNameTaken = await makeNameTakenCheck(destDir, p, ctx.platform);
     const root = p.join(
       destDir,
-      uniqueName(archiveStem(baseName, ext), (n) => taken.has(n)),
+      uniqueName(archiveStem(baseName, ext), isNameTaken),
     );
     await fsp.mkdir(root);
     try {
@@ -415,7 +496,7 @@ export async function extractArchive(
         maxBytes: limits.maxTotalBytes,
         maxEntries: limits.maxEntries,
       });
-      return {
+      return await finish({
         folder: root,
         output: root,
         isFolder: true,
@@ -423,7 +504,7 @@ export async function extractArchive(
         folders: r.folders,
         bytes: r.bytes,
         skipped: r.skipped,
-      };
+      });
     } catch (err: any) {
       await fsp.rm(root, { recursive: true, force: true }).catch(() => {});
       if (err instanceof FmError) throw err;
@@ -438,9 +519,10 @@ export async function extractArchive(
 
   // 3. Built-in single-file compressed formats (.gz, .svgz, .zst, .br)
   if (BUILTIN_SINGLE_EXTS.has(ext)) {
-    const taken = new Set(await fsp.readdir(destDir));
-    const outName = uniqueName(singleFileTargetName(baseName, ext), (n) =>
-      taken.has(n),
+    const isNameTaken = await makeNameTakenCheck(destDir, p, ctx.platform);
+    const outName = uniqueName(
+      singleFileTargetName(baseName, ext),
+      isNameTaken,
     );
     const outPath = p.join(destDir, outName);
     try {
@@ -489,7 +571,7 @@ export async function extractArchive(
 
   // 5. External multi-file archives (.7z, .rar, .tar.xz, .txz, .tar.bz2, .tbz2, .iso, .cab, .dmg, etc.)
   if (EXTERNAL_ARCHIVE_EXTS.has(ext)) {
-    return await extractWithExternalTool(
+    const extracted = await extractWithExternalTool(
       ctx,
       filePath,
       destDir,
@@ -497,6 +579,7 @@ export async function extractArchive(
       false,
       limits,
     );
+    return await finish(extracted);
   }
 
   throw new FmError(
@@ -513,8 +596,13 @@ export async function extractItems(
   ctx: FmContext,
   pathsInput: unknown,
   destInput?: unknown,
-  limits: ZipLimits = DEFAULT_ZIP_LIMITS,
+  limitsOrMode: ZipLimits | ExtractMode = DEFAULT_ZIP_LIMITS,
+  modeArg: ExtractMode = "subfolder",
 ): Promise<ExtractBatchResult> {
+  const limits: ZipLimits =
+    typeof limitsOrMode === "string" ? DEFAULT_ZIP_LIMITS : limitsOrMode;
+  const mode: ExtractMode =
+    typeof limitsOrMode === "string" ? limitsOrMode : modeArg;
   if (!Array.isArray(pathsInput) || pathsInput.length === 0) {
     throw new FmError("BAD_REQUEST", "Nothing was selected.");
   }
@@ -545,7 +633,13 @@ export async function extractItems(
 
   for (const filePath of candidateFiles) {
     try {
-      const extracted = await extractArchive(ctx, filePath, destInput, limits);
+      const extracted = await extractArchive(
+        ctx,
+        filePath,
+        destInput,
+        limits,
+        mode,
+      );
       results.push({ ...extracted, source: filePath });
     } catch (err: any) {
       firstErr ??= err;

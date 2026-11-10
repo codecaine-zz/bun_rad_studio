@@ -123,7 +123,15 @@ export const seconds = (ms) =>
 export function linkButton(text, title, onclick) {
   return h(
     "button",
-    { type: "button", class: "dev-link", title, onclick },
+    {
+      type: "button",
+      class: "dev-link",
+      title,
+      onclick: (e) => {
+        e.stopPropagation();
+        onclick?.(e);
+      },
+    },
     text,
   );
 }
@@ -216,7 +224,15 @@ export function createTable({ caption, columns, onSort, className = "" }) {
             ),
           ),
         );
-        if (r.onclick) tr.addEventListener("click", () => r.onclick(tr));
+        if (r.onclick)
+          tr.addEventListener("click", (e) => {
+            if (
+              e.target !== tr &&
+              e.target?.closest?.("button, a, input, select, label")
+            )
+              return;
+            r.onclick(tr);
+          });
         if (r.ondblclick)
           tr.addEventListener("dblclick", () => r.ondblclick(tr));
         if (r.onclick || r.ondblclick) {

@@ -30,6 +30,7 @@ import {
   inTrash,
   isFolderView,
   left,
+  setActivePane,
 } from "./pane.js";
 import { openInMediaDeck } from "./playerDeck.js";
 import { canReadWithPhonon } from "./phonon.js";
@@ -44,7 +45,7 @@ import {
   selectSameKindOrExt,
   selectedEntries,
 } from "./selection.js";
-import { on, state } from "./state.js";
+import { emit, on, state } from "./state.js";
 import {
   TAG_DEFS,
   editNoteDialog,
@@ -755,6 +756,7 @@ export function clearQuickFilters({ focusList = false } = {}) {
     state.shown = 0;
     renderList(left);
     renderQuickbar();
+    emit("selection");
   }
   if (focusList) $("#list")?.focus();
 }
@@ -786,6 +788,7 @@ export function setKindFilter(kindId) {
   state.shown = 0;
   renderList(left);
   renderQuickbar();
+  emit("selection");
   const def = KIND_CHIP_DEFS.find((d) => d.id === next);
   if (def)
     announce(
@@ -797,11 +800,17 @@ export function renderQuickbar() {
   const bar = $("#quickbar");
   if (!bar) return;
   const trash = inTrash(left);
-  bar.hidden = trash;
-  if (trash) return;
+  bar.hidden = false;
 
   const input = $("#quick-filter");
   const clearBtn = $("#quick-filter-clear");
+  if (input) {
+    const wantPlaceholder = trash
+      ? "Filter Recycle Bin… (name, original folder, *.ts, size:>1mb)"
+      : "Filter this folder… (name, *.ts, ext:json, size:>1mb, date:today)";
+    if (input.placeholder !== wantPlaceholder)
+      input.placeholder = wantPlaceholder;
+  }
   if (
     input &&
     document.activeElement !== input &&
@@ -811,10 +820,11 @@ export function renderQuickbar() {
   }
   const hasFilter =
     Boolean((state.quickFilter || "").trim()) ||
-    (state.kindFilter && state.kindFilter !== "all");
+    (!trash && state.kindFilter && state.kindFilter !== "all");
   if (clearBtn) clearBtn.hidden = !hasFilter;
   const rawTotal =
-    (left.search ? left.search.entries : left.entries)?.length ?? 0;
+    (trash ? left.trashItems : left.search ? left.search.entries : left.entries)
+      ?.length ?? 0;
   const shownCount = visibleEntries(left).length;
   let countBadge = input?.parentElement?.querySelector(".quickbar-match-count");
   if (!countBadge && input?.parentElement) {
@@ -822,12 +832,32 @@ export function renderQuickbar() {
     input.parentElement.insertBefore(countBadge, clearBtn || null);
   }
   if (countBadge) {
-    const anyFilter = hasFilter || Boolean(state.tagFilter);
+    const anyFilter = hasFilter || (!trash && Boolean(state.tagFilter));
     countBadge.hidden = !anyFilter;
     if (anyFilter) {
       countBadge.textContent = `${shownCount} / ${rawTotal}`;
       countBadge.title = `${shownCount} of ${rawTotal} items match active filter`;
     }
+  }
+
+  const chipsBox = $("#kind-chips");
+  if (chipsBox) chipsBox.hidden = trash;
+  const sizesBtn = $("#qb-sizes-btn");
+  if (sizesBtn) sizesBtn.hidden = trash;
+  const groupBtn = $("#qb-group-btn");
+  if (groupBtn) groupBtn.hidden = trash;
+  const tplBtn = $("#qb-template-btn");
+  if (tplBtn) tplBtn.hidden = trash;
+
+  if (trash) {
+    const densityBtn = $("#qb-density-btn");
+    if (densityBtn) {
+      const d = state.settings.rowDensity || "comfortable";
+      const def =
+        ROW_DENSITY_DEFS.find((x) => x.id === d) ?? ROW_DENSITY_DEFS[1];
+      densityBtn.textContent = `${def.label} ▾`;
+    }
+    return;
   }
 
   // Compute live counts across the current folder's raw entries (after tag filter if any)
@@ -849,7 +879,6 @@ export function renderQuickbar() {
     }
   }
 
-  const chipsBox = $("#kind-chips");
   if (chipsBox) {
     clear(chipsBox);
     const activeKind = state.kindFilter || "all";
@@ -884,7 +913,6 @@ export function renderQuickbar() {
     }
   }
 
-  const groupBtn = $("#qb-group-btn");
   if (groupBtn) {
     const g = state.settings.groupBy || "none";
     const def = GROUP_BY_DEFS.find((d) => d.id === g) ?? GROUP_BY_DEFS[0];
@@ -1096,13 +1124,16 @@ export function renderSelectionBar() {
     () => openPower("bionic", { paths: items.map((x) => x.path) }),
   );
   const archives = extractableEntries(items);
-  if (archives.length > 0 && !left.search) {
+  if (archives.length > 0 && !targetPane.search) {
     addAct(
       "extract",
       "📦",
       "Extract",
       "Extract archive contents into this folder",
-      () => ops.extractSelection(items),
+      () => {
+        setActivePane(targetPane.side);
+        void ops.extractSelection(items);
+      },
     );
   }
   if (canCompareData(items)) {
@@ -1160,13 +1191,16 @@ export function renderSelectionBar() {
       { primary: true },
     );
   }
-  if (items.some((x) => !x.isDir) && !left.search) {
+  if (items.some((x) => !x.isDir) && !targetPane.search) {
     addAct(
       "checksum",
       "🛡️",
       "SHA-256",
       "Generate a .sha256 / SHA256SUMS manifest file in this folder",
-      () => ops.generateChecksumManifest(items, "sha256"),
+      () => {
+        setActivePane(targetPane.side);
+        void ops.generateChecksumManifest(items, "sha256");
+      },
     );
   }
   if (one && one.isDir) {
@@ -1186,22 +1220,31 @@ export function renderSelectionBar() {
     items.length > 1
       ? "Batch rename all selected items with a live preview"
       : "Rename this item (F2)",
-    () => ops.renameSelection(),
+    () => {
+      setActivePane(targetPane.side);
+      void ops.renameSelection();
+    },
   );
-  if (!left.search) {
+  if (!targetPane.search) {
     addAct(
       "folderize",
       "📁",
       "Group into Folder",
       "Create a new folder here and move the selected items into it (Mod+Shift+G)",
-      () => ops.newFolderWithSelection(items),
+      () => {
+        setActivePane(targetPane.side);
+        void ops.newFolderWithSelection(items);
+      },
     );
     addAct(
       "zip",
       "🗜️",
       "Zip",
       "Compress selected items into a .zip archive",
-      () => ops.zipSelection(),
+      () => {
+        setActivePane(targetPane.side);
+        void ops.zipSelection();
+      },
     );
   }
   if (items.some((x) => x.isDir)) {
@@ -1212,7 +1255,7 @@ export function renderSelectionBar() {
       "Calculate total byte size and item counts for the selected folder(s)",
       () =>
         calculateFolderSizes(
-          left,
+          targetPane,
           items.filter((x) => x.isDir).map((x) => x.path),
         ),
     );
@@ -1236,7 +1279,10 @@ export function renderSelectionBar() {
     "🗑️",
     "Delete",
     "Move selected items to the Recycle Bin / Graveyard",
-    () => ops.trashSelection(),
+    () => {
+      setActivePane(targetPane.side);
+      void ops.trashSelection();
+    },
     { danger: true },
   );
   addAct("clear", "✕", "Deselect", "Clear selection (Esc)", () =>
@@ -1259,6 +1305,7 @@ export function wireQuickbar() {
       state.shown = 0;
       renderList(left);
       renderQuickbar();
+      emit("selection");
     });
     input.addEventListener("keydown", (e) => {
       if (e.isComposing || e.keyCode === 229) return;

@@ -324,11 +324,18 @@ export async function renderEditor(host, { id, type, scope, onDone }) {
         : (c.value ?? "")
       : "";
     allInputs.push(labelIn, valIn);
-    secretInputs.push(valIn);
     kindSel.addEventListener("change", () => {
       valIn.type = isSecretKind(kindSel.value) ? "password" : "text";
     });
-    const row = { id: c?.id, labelIn, kindSel, valIn };
+    const row = {
+      id: c?.id,
+      labelIn,
+      kindSel,
+      valIn,
+      initialLabel: labelIn.value,
+      initialKind: kindSel.value,
+      initialVal: valIn.value,
+    };
     const el = h(
       "div",
       { class: "sx-crow" },
@@ -369,10 +376,20 @@ export async function renderEditor(host, { id, type, scope, onDone }) {
     },
     "Save",
   );
+  const initialFavorite = item?.favorite ?? false;
   const dirty = () =>
+    favorite.checked !== initialFavorite ||
     allInputs.some(
       (el) => baseline[el.id] !== undefined && baseline[el.id] !== el.value,
-    ) || customRows.length !== (item?.custom.length ?? 0);
+    ) ||
+    customRows.length !== (item?.custom.length ?? 0) ||
+    customRows.some(
+      (r, idx) =>
+        r.id !== item?.custom?.[idx]?.id ||
+        r.labelIn.value !== r.initialLabel ||
+        r.kindSel.value !== r.initialKind ||
+        r.valIn.value !== r.initialVal,
+    );
 
   async function cancel() {
     if (
@@ -524,6 +541,9 @@ export async function renderEditor(host, { id, type, scope, onDone }) {
     for (const el of secretInputs) {
       if (el instanceof HTMLTextAreaElement) el.classList.add("sx-masked");
       else el.type = "password";
+    }
+    for (const r of customRows) {
+      if (isSecretKind(r.kindSel.value)) r.valIn.type = "password";
     }
     if (!preview.hidden) previewButton.click();
     for (const b of form.querySelectorAll('button[aria-pressed="true"]'))

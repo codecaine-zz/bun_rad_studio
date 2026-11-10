@@ -27,6 +27,9 @@ export function renderTabs(strip, docs, activeId, on) {
             dataset: { id: String(d.id) },
             title: `${d.path || d.name}${dirty ? " — has unsaved changes" : ""}${d.external === "changed" ? " — changed on disk" : d.external === "deleted" ? " — deleted from disk" : ""}`,
             onclick: () => on.activate(d),
+            onmousedown: (e) => {
+              if (e.button === 1) e.preventDefault();
+            },
             onauxclick: (e) => {
               if (e.button === 1) on.close(d);
             },
@@ -39,8 +42,17 @@ export function renderTabs(strip, docs, activeId, on) {
                     label: "Close the other tabs",
                     action: () => on.closeOthers(d),
                   },
+                  {
+                    label: "Close saved tabs",
+                    action: () => on.closeSaved?.(),
+                  },
                   { label: "Close all tabs", action: () => on.closeAll() },
                   { separator: true },
+                  {
+                    label: "Reveal in Explorer",
+                    disabled: !d.path,
+                    action: () => on.reveal?.(d),
+                  },
                   {
                     label: "Copy path",
                     disabled: !d.path,

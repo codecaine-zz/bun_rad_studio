@@ -95,7 +95,11 @@ export const infoOperations: Record<string, FmHandler> = {
     return { cancelled: cancelTask(ctx, b.id) };
   },
   async "info/compare"(_ctx, b) {
-    return compareHash(b.expected, hashRows(b.rows));
+    return compareHash(
+      b.expected,
+      hashRows(b.rows),
+      typeof b.fileName === "string" ? b.fileName : undefined,
+    );
   },
   async "info/strip"(ctx, b) {
     return await withLimit(30_000, () =>

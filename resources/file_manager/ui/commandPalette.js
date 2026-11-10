@@ -1,6 +1,7 @@
 // Universal Command Palette & Quick-Jump Omnibar (Mod+Shift+P / Mod+P / #viewbar-palette).
 // Searches across File Manager actions, Places, Favorites, Drives, Open Tabs, Recent files, current folder entries,
 // all Power Tools & Studios, RAD File Templates, Color Tag filters, and View/Theme settings.
+import { ApiError, call } from "./api.js";
 import { openCalendarDialog } from "./chrome.js";
 import { openFolderInCode } from "./code.js";
 import { canCompareText, showCompareTextFiles } from "./datacompare.js";
@@ -9,16 +10,17 @@ import { $, clear, h, iconForEntry } from "./dom.js";
 import { swapDualPanes } from "./dual.js";
 import { showHelp, showSettings } from "./extras.js";
 import { labelOf } from "./keymap.js";
+import { toast } from "./menus.js";
 import {
   calculateFolderSizes,
-  goTo,
+  goToIn,
   saveSettings,
   showTrash,
   visibleEntries,
 } from "./nav.js";
 import { showOperationHistory } from "./opHistory.js";
 import * as ops from "./ops.js";
-import { activePane, currentPath, left } from "./pane.js";
+import { activePane, currentPath } from "./pane.js";
 import { isPhononSupported } from "./phonon.js";
 import { listPowerTabs, openPower } from "./power.js";
 import {
@@ -48,7 +50,7 @@ import {
 } from "./tabs.js";
 import { TAG_DEFS, editNoteDialog } from "./tags.js";
 import { showToolsDialog } from "./tools.js";
-import { baseName } from "./util.js";
+import { baseName, isDocumentPackageEntry, parentOf } from "./util.js";
 import { lockSelection } from "./vault.js";
 
 export const PALETTE_CATEGORIES = [
@@ -552,7 +554,10 @@ export function buildPaletteCatalog() {
     subtitle:
       "Open CLI Utilities with selected files/folders pre-filled as arguments",
     keywords: "cli run utility selected files args",
-    run: () => openPower("cliutils", { paths: [...(state.selected ?? [])] }),
+    run: () =>
+      openPower("cliutils", {
+        paths: selectedEntries().map((e) => e.path),
+      }),
   });
   add({
     id: "act.cliutils.tokei",
@@ -625,7 +630,10 @@ export function buildPaletteCatalog() {
   }
 
   // 3. Places, Favorites, Drives, Open Tabs, Recent Files & Current Folder Entries
+  const pane = activePane();
+  const seenFolders = new Set();
   for (const favPath of state.settings.favorites ?? []) {
+    seenFolders.add(favPath);
     const customName =
       state.settings.favoriteNames?.[favPath] ||
       baseName(favPath, state.sep) ||
@@ -637,10 +645,12 @@ export function buildPaletteCatalog() {
       title: `Favorite: ${customName}`,
       subtitle: favPath,
       keywords: `favorite pinned star folder ${customName} ${favPath}`,
-      run: () => inFiles(() => goTo(favPath)),
+      openTabPath: favPath,
+      run: () => inFiles(() => goToIn(activePane(), favPath)),
     });
   }
   for (const pl of state.places ?? []) {
+    seenFolders.add(pl.path);
     add({
       id: `place.std.${pl.path}`,
       category: "places",
@@ -648,10 +658,12 @@ export function buildPaletteCatalog() {
       title: `Go to ${pl.name}`,
       subtitle: pl.path,
       keywords: `place folder go ${pl.name} ${pl.path}`,
-      run: () => inFiles(() => goTo(pl.path)),
+      openTabPath: pl.path,
+      run: () => inFiles(() => goToIn(activePane(), pl.path)),
     });
   }
   for (const d of state.drives ?? []) {
+    seenFolders.add(d.path);
     add({
       id: `place.drive.${d.path}`,
       category: "places",
@@ -659,7 +671,8 @@ export function buildPaletteCatalog() {
       title: `Drive: ${d.name}`,
       subtitle: d.path,
       keywords: `drive disk volume ${d.name} ${d.path}`,
-      run: () => inFiles(() => goTo(d.path)),
+      openTabPath: d.path,
+      run: () => inFiles(() => goToIn(activePane(), d.path)),
     });
   }
   add({
@@ -681,9 +694,34 @@ export function buildPaletteCatalog() {
         title: `Switch to Tab: ${name}`,
         subtitle: tab.location.path,
         keywords: `tab switch ${name} ${tab.location.path}`,
+        openTabPath: tab.location.path,
         run: () => inFiles(() => switchTab(tab.id)),
       });
     }
+  }
+  const histFolders = [];
+  for (let i = (state.history?.length ?? 0) - 1; i >= 0; i--) {
+    const loc = state.history[i];
+    const p =
+      loc?.kind === "folder" ? loc.path : typeof loc === "string" ? loc : "";
+    if (p && !seenFolders.has(p) && p !== currentPath(pane)) {
+      seenFolders.add(p);
+      histFolders.push(p);
+      if (histFolders.length >= 10) break;
+    }
+  }
+  for (const histPath of histFolders) {
+    const name = baseName(histPath, state.sep) || histPath;
+    add({
+      id: `place.hist.${histPath}`,
+      category: "places",
+      icon: "↺",
+      title: `Visited folder: ${name}`,
+      subtitle: histPath,
+      keywords: `visited history recent folder ${name} ${histPath}`,
+      openTabPath: histPath,
+      run: () => inFiles(() => goToIn(activePane(), histPath)),
+    });
   }
   for (const rec of (state.settings.recents ?? []).slice(0, 12)) {
     const name = baseName(rec.path, state.sep) || rec.path;
@@ -694,10 +732,11 @@ export function buildPaletteCatalog() {
       title: `Recent: ${name}`,
       subtitle: rec.path,
       keywords: `recent file open ${name} ${rec.path}`,
+      openTabPath: parentOf(rec.path, state.sep) || "",
       run: () => inFiles(() => ops.openPath(rec.path)),
     });
   }
-  for (const entry of visibleEntries(left).slice(0, 60)) {
+  for (const entry of visibleEntries(pane).slice(0, 60)) {
     add({
       id: `entry.${entry.path}`,
       category: "places",
@@ -707,10 +746,12 @@ export function buildPaletteCatalog() {
         : `Open file: ${entry.name}`,
       subtitle: entry.path,
       keywords: `${entry.name} ${entry.label || ""} ${entry.isDir ? "folder directory" : "file"}`,
+      openTabPath: entry.isDir ? entry.path : "",
       run: () =>
         inFiles(() => {
-          if (entry.isDir) return goTo(entry.path);
-          selectOnly(entry.path, left);
+          const curPane = activePane();
+          if (entry.isDir) return goToIn(curPane, entry.path);
+          selectOnly(entry.path, curPane);
           return ops.openEntry(entry);
         }),
     });
@@ -969,6 +1010,39 @@ export function buildPaletteCatalog() {
   return items;
 }
 
+function isSubsequence(needle, hay) {
+  let j = 0;
+  for (let i = 0; i < hay.length && j < needle.length; i++) {
+    if (hay[i] === needle[j]) j++;
+  }
+  return j === needle.length;
+}
+
+function stripTypedPathPrefixAndQuotes(raw) {
+  let s = String(raw || "").trim();
+  if (s.startsWith("@")) s = s.slice(1).trim();
+  if (
+    (s.startsWith('"') && s.endsWith('"') && s.length >= 2) ||
+    (s.startsWith("'") && s.endsWith("'") && s.length >= 2)
+  ) {
+    s = s.slice(1, -1).trim();
+  }
+  return s;
+}
+
+function looksLikeTypedPath(raw) {
+  const s = stripTypedPathPrefixAndQuotes(raw);
+  if (!s) return false;
+  if (s === "~" || /^~[\\/]/.test(s)) return true;
+  if (s === "." || s === ".." || /^\.\.?[\\/]/.test(s)) return true;
+  if (/^[A-Za-z]:[\\/]/.test(s) || /^[A-Za-z]:$/.test(s)) return true;
+  if (/^file:\/\//i.test(s)) return true;
+  if (/^\$[A-Za-z_{]/.test(s) || /^%[A-Za-z_]/.test(s)) return true;
+  if (s.startsWith("/") && s.length >= 2 && !s.startsWith("/ ")) return true;
+  if (!/\s/.test(s) && /[\\/]/.test(s) && !s.startsWith("/")) return true;
+  return false;
+}
+
 /** Scores and filters catalog items for a query and active category tab. */
 export function filterPaletteItems(
   catalog,
@@ -980,7 +1054,10 @@ export function filterPaletteItems(
   if (q.startsWith(">")) {
     forcedCat = "actions";
     q = q.slice(1).trim();
-  } else if (q.startsWith("@") || q.startsWith("/")) {
+  } else if (
+    q.startsWith("@") ||
+    (q.startsWith("/") && !looksLikeTypedPath(q))
+  ) {
     forcedCat = "places";
     q = q.slice(1).trim();
   } else if (q.startsWith("?") || q.startsWith("!")) {
@@ -1007,7 +1084,19 @@ export function filterPaletteItems(
     const kwLower = (item.keywords || "").toLowerCase();
     const hay = `${titleLower} ${subLower} ${kwLower}`;
 
-    if (words.length > 0 && !words.every((w) => hay.includes(w))) continue;
+    let fuzzyOnly = false;
+    if (words.length > 0 && !words.every((w) => hay.includes(w))) {
+      if (
+        words.length === 1 &&
+        words[0].length >= 2 &&
+        words[0].length <= 16 &&
+        isSubsequence(words[0], titleLower)
+      ) {
+        fuzzyOnly = true;
+      } else {
+        continue;
+      }
+    }
 
     let score = 0;
     const recIdx = recentOrder.indexOf(item.id);
@@ -1017,6 +1106,8 @@ export function filterPaletteItems(
       else if (item.category === "tools") score += 15;
       else if (item.category === "templates") score += 12;
       else if (item.category === "places") score += 10;
+    } else if (fuzzyOnly) {
+      score += 6;
     } else {
       const fullQ = words.join(" ");
       if (titleLower === fullQ) score += 200;
@@ -1060,6 +1151,7 @@ export function openCommandPalette(initialQuery = "") {
     type: "search",
     class: "cp-input",
     value: typeof initialQuery === "string" ? initialQuery : "",
+    title: "Search commands, files, places, tools, and templates",
     placeholder:
       "Type a command, file, place, tool, or template… (> actions, @ places, ? tools, + templates)",
     autocomplete: "off",
@@ -1101,6 +1193,7 @@ export function openCommandPalette(initialQuery = "") {
             type: "button",
             role: "tab",
             class: `cp-cat-btn${selected ? " active" : ""}`,
+            title: `Show ${c.label} commands`,
             dataset: { cpCat: c.id },
             "aria-selected": String(selected),
             onclick: () => {
@@ -1134,13 +1227,79 @@ export function openCommandPalette(initialQuery = "") {
 
   let dlg;
 
-  function executeItem(item) {
+  async function navigateTypedPath(rawPath, { inNewTab = false } = {}) {
+    const cleaned = stripTypedPathPrefixAndQuotes(rawPath);
+    try {
+      const r = await call("typedpath", {
+        text: cleaned,
+        cwd: currentPath() || state.home,
+      });
+      if (!r.exists) {
+        toast(`"${cleaned}" doesn't exist.`, { kind: "error" });
+        return false;
+      }
+      const isPkg = isDocumentPackageEntry({
+        name: baseName(r.path, state.sep),
+        isDir: r.isDir,
+      });
+      const treatAsDir = Boolean(r.isDir && !isPkg);
+      if (state.workspace === "home" || state.workspace === "tools") {
+        emit("workspace-go", "files");
+      }
+      if (inNewTab) {
+        const dir = treatAsDir
+          ? r.path
+          : (parentOf(r.path, state.sep) ?? r.path);
+        await openNewTab(dir);
+        if (!treatAsDir) selectOnly(r.path, activePane());
+      } else if (treatAsDir) {
+        await goToIn(activePane(), r.path);
+      } else {
+        await goToIn(activePane(), parentOf(r.path, state.sep) ?? r.path, {
+          select: r.path,
+        });
+      }
+      return true;
+    } catch (err) {
+      toast(
+        err instanceof ApiError ? err.message : "That isn't a valid location.",
+        { kind: "error" },
+      );
+      return false;
+    }
+  }
+
+  function executeItem(item, { inNewTab = false } = {}) {
     if (!item) return;
+    if (item.isTypedPath) {
+      void (async () => {
+        const ok = await (inNewTab && item.runNewTab
+          ? item.runNewTab()
+          : item.run());
+        if (ok !== false) {
+          recordRecentCommand(item.id);
+          dlg?.close(item.id);
+        } else {
+          input.focus();
+          input.select();
+        }
+      })();
+      return;
+    }
     recordRecentCommand(item.id);
     dlg?.close(item.id);
     queueMicrotask(() => {
       try {
-        item.run();
+        if (inNewTab && item.runNewTab) {
+          item.runNewTab();
+        } else if (inNewTab && item.openTabPath) {
+          if (state.workspace === "home" || state.workspace === "tools") {
+            emit("workspace-go", "files");
+          }
+          void openNewTab(item.openTabPath);
+        } else {
+          item.run();
+        }
       } catch (err) {
         console.error("Command Palette action failed", err);
       }
@@ -1148,7 +1307,27 @@ export function openCommandPalette(initialQuery = "") {
   }
 
   function renderResults() {
-    visible = filterPaletteItems(catalog, input.value, activeCat).slice(0, 60);
+    const rawTrimmed = input.value.trim();
+    const cleanedPath = stripTypedPathPrefixAndQuotes(rawTrimmed);
+    const matched = filterPaletteItems(catalog, input.value, activeCat);
+    if (
+      looksLikeTypedPath(rawTrimmed) &&
+      (activeCat === "all" || activeCat === "places")
+    ) {
+      matched.unshift({
+        id: `goto.path.${cleanedPath}`,
+        category: "places",
+        icon: "📂",
+        isTypedPath: true,
+        title: `Go to path: ${cleanedPath}`,
+        subtitle:
+          "Jump directly to this folder or file path (Mod+Enter for new tab)",
+        shortcut: "Enter",
+        run: () => navigateTypedPath(cleanedPath, { inNewTab: false }),
+        runNewTab: () => navigateTypedPath(cleanedPath, { inNewTab: true }),
+      });
+    }
+    visible = matched.slice(0, 60);
     if (activeIndex >= visible.length)
       activeIndex = Math.max(0, visible.length - 1);
     countBadge.textContent = `${visible.length} match${visible.length === 1 ? "" : "es"}`;
@@ -1184,7 +1363,8 @@ export function openCommandPalette(initialQuery = "") {
             activeIndex = idx;
             syncActiveRow();
           },
-          onclick: () => executeItem(item),
+          onclick: (ev) =>
+            executeItem(item, { inNewTab: ev.metaKey || ev.ctrlKey }),
         },
         h(
           "span",
@@ -1251,7 +1431,10 @@ export function openCommandPalette(initialQuery = "") {
     } else if (e.key === "Enter") {
       e.preventDefault();
       e.stopPropagation();
-      if (visible[activeIndex]) executeItem(visible[activeIndex]);
+      if (visible[activeIndex])
+        executeItem(visible[activeIndex], {
+          inNewTab: e.metaKey || e.ctrlKey,
+        });
     }
   });
 
@@ -1273,7 +1456,7 @@ export function openCommandPalette(initialQuery = "") {
     h(
       "div",
       { class: "cp-footer" },
-      h("span", {}, "↑↓ to move · Enter to run · Esc to close"),
+      h("span", {}, "↑↓ move · Enter run · Mod+Enter new tab · Esc close"),
       h("span", {}, "Prefixes: > actions · @ places · ? tools · + templates"),
     ),
   );

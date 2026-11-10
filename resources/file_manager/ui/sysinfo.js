@@ -37,6 +37,7 @@ function mountSysinfo(root) {
   let baseline = null; // { label, data }
   let timer = null;
   let busy = false;
+  let sectionSeq = 0;
 
   const status = createStatus();
   const banner = h("div", {
@@ -207,6 +208,13 @@ function mountSysinfo(root) {
 
   filterInput.addEventListener("input", () => redrawCurrent());
   intervalSelect.addEventListener("change", () => syncTimer());
+  probeParamInput.addEventListener("keydown", (e) => {
+    if (e.isComposing || e.keyCode === 229) return;
+    if (e.key === "Enter") {
+      e.preventDefault();
+      runSelectedProbe();
+    }
+  });
 
   function populateProbeCatalog(items) {
     if (!Array.isArray(items) || items.length === 0 || catalog.length > 0)
@@ -256,36 +264,43 @@ function mountSysinfo(root) {
   async function loadOverviewOnly() {
     if (busy) return;
     busy = true;
+    const targetSection = activeSection;
+    const reqId = ++sectionSeq;
     try {
-      const res = await call("sysinfo/overview", {});
-      overview = res.overview;
-      populateProbeCatalog(res.catalog);
+      const [ovRes, secRes] = await Promise.all([
+        call("sysinfo/overview", {}),
+        call("sysinfo/section", { section: targetSection }),
+      ]);
+      if (reqId !== sectionSeq) return;
+      overview = ovRes.overview;
+      populateProbeCatalog(ovRes.catalog);
+      sectionData = secRes;
       renderSysinfoBanner(banner, overview);
       renderSysinfoKpis(kpiGrid, overview);
-      if (activeSection === "overview" && sectionData) {
-        renderSectionContent(
-          contentHost,
-          sectionData,
-          overview,
-          filterInput.value,
-        );
-      }
+      renderSectionContent(
+        contentHost,
+        sectionData,
+        overview,
+        filterInput.value,
+      );
     } catch {
       // ignore background poll error
     } finally {
-      busy = false;
+      if (reqId === sectionSeq) busy = false;
     }
   }
 
   async function reloadAll() {
-    if (busy) return;
     busy = true;
+    const targetSection = activeSection;
+    const reqId = ++sectionSeq;
     status.set("Collecting hardware and system telemetry…");
     try {
       const [ovRes, secRes] = await Promise.all([
         call("sysinfo/overview", {}),
-        call("sysinfo/section", { section: activeSection }),
+        call("sysinfo/section", { section: targetSection }),
       ]);
+      if (reqId !== sectionSeq) return;
       overview = ovRes.overview;
       populateProbeCatalog(ovRes.catalog);
       sectionData = secRes;
@@ -293,17 +308,19 @@ function mountSysinfo(root) {
       renderSysinfoKpis(kpiGrid, overview);
       redrawCurrent();
       status.set(
-        `Loaded ${SECTIONS.find((s) => s.id === activeSection)?.label || activeSection} telemetry on ${overview.osLabel}.`,
+        `Loaded ${SECTIONS.find((s) => s.id === targetSection)?.label || targetSection} telemetry on ${overview.osLabel}.`,
       );
     } catch (err) {
-      status.set(errorText(err, "Couldn't load system telemetry."), true);
+      if (reqId === sectionSeq)
+        status.set(errorText(err, "Couldn't load system telemetry."), true);
     } finally {
-      busy = false;
+      if (reqId === sectionSeq) busy = false;
     }
   }
 
   async function selectSection(secId) {
     activeSection = secId;
+    const reqId = ++sectionSeq;
     for (const [id, b] of sectionButtons) {
       b.setAttribute("aria-selected", String(id === activeSection));
     }
@@ -311,12 +328,15 @@ function mountSysinfo(root) {
       `Loading ${SECTIONS.find((s) => s.id === secId)?.label || secId}…`,
     );
     try {
-      sectionData = await call("sysinfo/section", { section: secId });
+      const nextSec = await call("sysinfo/section", { section: secId });
+      if (reqId !== sectionSeq) return;
+      sectionData = nextSec;
       redrawCurrent();
       status.set(
         `Showing ${SECTIONS.find((s) => s.id === secId)?.label || secId}.`,
       );
     } catch (err) {
+      if (reqId !== sectionSeq) return;
       status.set(errorText(err, "Couldn't load that section."), true);
     }
   }
@@ -441,6 +461,8 @@ function mountSysinfo(root) {
       syncTimer();
     },
     hide() {
+      ++sectionSeq;
+      busy = false;
       stopTimer();
     },
   };

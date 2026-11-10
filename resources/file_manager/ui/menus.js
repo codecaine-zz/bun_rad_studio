@@ -49,7 +49,7 @@ export function showMenu(items, { x = 0, y = 0, anchor, label = "Menu" } = {}) {
           title: item.tip ?? null,
           onclick: () => {
             closeMenu();
-            item.action?.();
+            (item.action ?? item.run)?.();
           },
         },
         h(

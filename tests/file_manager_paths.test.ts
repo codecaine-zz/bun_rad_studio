@@ -236,6 +236,38 @@ describe("parseTypedPath", () => {
       parseTypedPath("~\\Desktop", "C:\\x", "C:\\Users\\Sam", "win32"),
     ).toBe("C:\\Users\\Sam\\Desktop");
   });
+  test("expands environment variables ($HOME, %USERPROFILE%, %APPDATA%)", () => {
+    expect(parseTypedPath("$HOME/Projects", "/x", "/home/sam", "linux")).toBe(
+      "/home/sam/Projects",
+    );
+    expect(
+      parseTypedPath("${HOME}/Downloads/app", "/x", "/Users/sam", "darwin"),
+    ).toBe("/Users/sam/Downloads/app");
+    expect(
+      parseTypedPath(
+        "%USERPROFILE%\\Documents",
+        "C:\\x",
+        "C:\\Users\\Sam",
+        "win32",
+      ),
+    ).toBe("C:\\Users\\Sam\\Documents");
+    expect(
+      parseTypedPath(
+        "%APPDATA%\\Code\\User",
+        "C:\\x",
+        "C:\\Users\\Sam",
+        "win32",
+      ),
+    ).toBe("C:\\Users\\Sam\\AppData\\Roaming\\Code\\User");
+    expect(
+      parseTypedPath(
+        "%LOCALAPPDATA%\\Programs",
+        "C:\\x",
+        "C:\\Users\\Sam",
+        "win32",
+      ),
+    ).toBe("C:\\Users\\Sam\\AppData\\Local\\Programs");
+  });
   test("refuses empty and null-containing input", () => {
     expect(parseTypedPath("", "/x", "/h", "linux")).toBeNull();
     expect(parseTypedPath("   ", "/x", "/h", "linux")).toBeNull();

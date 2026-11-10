@@ -284,6 +284,26 @@ export function createDocs() {
       api.persist();
     },
 
+    closeMany(ids) {
+      const kill = new Set(ids);
+      if (!kill.size) return;
+      let fallbackIdx = -1;
+      for (let i = docs.length - 1; i >= 0; i--) {
+        if (!kill.has(docs[i].id)) continue;
+        if (docs[i].id === activeId) fallbackIdx = i;
+        const [doc] = docs.splice(i, 1);
+        doc.editor?.destroy();
+        doc.editor = null;
+      }
+      if (fallbackIdx >= 0 && !byId(activeId)) {
+        const clamped = Math.min(fallbackIdx, docs.length - 1);
+        activeId = clamped >= 0 ? docs[clamped].id : 0;
+      }
+      emit("tabs");
+      emit("active");
+      api.persist();
+    },
+
     /** Saves a file opened from disk. `force` writes even if the file changed on disk. Throws ApiError (code CHANGED_ON_DISK, GONE, IS_LINK ...). */
     async save(doc, { force = false, auto = false } = {}) {
       const { text, eol, encoding } = doc;

@@ -179,11 +179,20 @@ export function createFindBar({ getEditor, toast, onClose }) {
     const m = matches[k];
     if (!ed || !m) return;
     current = k;
+    const prevFocus =
+      typeof document !== "undefined" ? document.activeElement : null;
     ed.setSelection(m.index, m.index + m.length);
     const before = ed.getText().slice(0, m.index);
     const line = before.split("\n").length;
     ed.reveal(line, m.index - before.lastIndexOf("\n"));
     if (focus) ed.focus();
+    else if (
+      prevFocus &&
+      bar.contains(prevFocus) &&
+      document.activeElement !== prevFocus
+    ) {
+      prevFocus.focus({ preventScroll: true });
+    }
     mark();
   }
 
@@ -253,8 +262,9 @@ export function createFindBar({ getEditor, toast, onClose }) {
       if (picked && !picked.includes("\n") && picked.length < 200)
         find.value = picked;
     }
-    (replace && find.value ? repl : find).focus();
-    find.select();
+    const target = replace && find.value ? repl : find;
+    target.focus();
+    target.select();
     refresh(true);
   }
 

@@ -12,7 +12,7 @@ import {
   powerIsOpen,
   registerPowerTab,
 } from "./power.js";
-import { state } from "./state.js";
+import { on, state } from "./state.js";
 import {
   commandForEvent,
   computeGutterLineChanges,
@@ -51,6 +51,7 @@ import {
   normalizeMarkdownSlug,
   renderCodeInspectorPreview,
   renderCsvPreview,
+  renderEnvPreview,
   renderJsonPreview,
   renderMarkdown,
   renderNotebookPreview,
@@ -79,6 +80,13 @@ export function openFolderInCode(path) {
 }
 
 registerOpener("code", (path) => openInCode(path));
+on("code-open-at", (target) => {
+  if (target?.path)
+    openInCode(target.path, {
+      line: target.line || 1,
+      col: target.col || 1,
+    });
+});
 
 const MENUS = {
   File: [
@@ -103,6 +111,7 @@ const MENUS = {
     "-",
     "closeTab",
     "closeOthers",
+    "closeSaved",
     "closeAll",
   ],
   Edit: [
@@ -481,16 +490,25 @@ function mount(root) {
   });
   const explorer = createExplorer({
     onOpen: (path) => open(path),
+    onCreated: () => actions.invalidateFiles(),
     onRenamed: (from, to) => {
+      actions.invalidateFiles();
       docs.pathMoved(from, to);
       call("code/presets/move", { from, to }).catch(() => {});
     },
-    onDeleted: (path) =>
+    onDeleted: (path) => {
+      actions.invalidateFiles();
       docs
         .list()
         .filter((d) => d.path === path || d.path.startsWith(path + state.sep))
-        .forEach((d) => docs.close(d.id)),
-    onRootChanged: (r) => docs.setRoot(r),
+        .forEach((d) => docs.close(d.id));
+    },
+    onRootChanged: (r) => {
+      actions?.invalidateFiles?.();
+      docs.setRoot(r);
+    },
+    onToggleHidden: (show) => setSetting("showHidden", show),
+    onRefresh: () => actions?.invalidateFiles?.(),
   });
   const runUi = createRunUi({ getWorkspace: () => explorer.root });
   const aiChat = createCodeAiChat({
@@ -1107,8 +1125,14 @@ function mount(root) {
       },
       close: (d) => actions.closeTab(d),
       closeOthers: (d) => actions.closeDocs(docs.list().filter((x) => x !== d)),
+      closeSaved: () => actions.closeSaved(),
       closeAll: () => actions.closeDocs([...docs.list()]),
       copyPath: (d) => actions.copyPath(d),
+      reveal: (d) => {
+        if (!d.path) return;
+        showPanel("files");
+        explorer.reveal(d.path);
+      },
     });
   }
 
@@ -1551,12 +1575,17 @@ function mount(root) {
     } else if (d.lang === "toml" || /\.toml$/i.test(d.name)) {
       previewTitle.textContent = "TOML Tree Explorer";
       renderStructuredDataPreview(previewBody, d.text, "toml");
+    } else if (/\.env$/i.test(d.name) || /^\.env(\..+)?$/i.test(d.name)) {
+      previewTitle.textContent = "Environment Variables (.env)";
+      renderEnvPreview(previewBody, d.text, {
+        docKey: String(d.id || d.path || d.name),
+        onGoLine: (l, c) => ed()?.goTo(l, c),
+      });
     } else if (
       d.lang === "ini" ||
-      /\.(ini|cfg|conf|env|properties)$/i.test(d.name) ||
-      /^\.env(\..+)?$/i.test(d.name)
+      /\.(ini|cfg|conf|properties)$/i.test(d.name)
     ) {
-      previewTitle.textContent = "Config / Env Explorer";
+      previewTitle.textContent = "Config Explorer";
       renderStructuredDataPreview(previewBody, d.text, "ini");
     } else if (/\.(csv|tsv)$/i.test(d.name)) {
       previewTitle.textContent = "Table preview";
@@ -2178,6 +2207,7 @@ function mount(root) {
           await open(
             opts.open,
             Number.isInteger(opts.line) && opts.line > 0 ? opts.line : 1,
+            Number.isInteger(opts.col) && opts.col > 0 ? opts.col : 1,
           );
           if (opts.frag) jumpToHeadingInDoc(doc(), opts.frag);
         }

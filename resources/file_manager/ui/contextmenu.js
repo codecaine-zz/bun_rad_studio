@@ -47,6 +47,7 @@ import { showOpenWith } from "./openwith.js";
 import { folderServeItems, serveMenuItems } from "./serveActions.js";
 import { showToolsDialog } from "./tools.js";
 import {
+  archiveExtensionOf,
   extensionOf,
   extractableEntries,
   isDocumentPackageEntry,
@@ -593,9 +594,31 @@ function entryItems(entries) {
           icon: "📦",
           shortcut: labelOf("file.extract"),
           disabled: searching,
-          tip: "Unpack the selected compressed files or archives into new folders or files right here, without overwriting anything.",
-          action: () => ops.extractSelection(entries),
+          tip: "Unpack smartly right here (unwraps a single root folder automatically, or creates a subfolder when the archive has multiple top-level items).",
+          action: () => ops.extractSelection(entries, { mode: "smart" }),
         }
+      : null,
+    extractable.length === 1 &&
+    !["gz", "svgz", "zst", "br", "bz2", "xz", "lzma", "lz4", "z"].includes(
+      archiveExtensionOf(extractable[0].name),
+    )
+      ? (() => {
+          const ext = archiveExtensionOf(extractable[0].name);
+          const stem =
+            (ext
+              ? extractable[0].name.slice(
+                  0,
+                  Math.max(0, extractable[0].name.length - ext.length - 1),
+                )
+              : extractable[0].name) || "Extracted";
+          return {
+            label: `Extract to "${stem}/"`,
+            icon: "📂",
+            disabled: searching,
+            tip: `Always unpack into a dedicated "${stem}" subfolder.`,
+            action: () => ops.extractSelection(entries, { mode: "subfolder" }),
+          };
+        })()
       : null,
     one
       ? {

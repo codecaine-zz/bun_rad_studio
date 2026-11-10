@@ -1775,6 +1775,313 @@ function parseSimpleStructured(text, kind) {
   return root;
 }
 
+const SECRET_ENV_KEY_RE =
+  /(?:secret|token|pass(?:word|phrase)?|(?:^|[_-])pwd(?:$|[_-])|api[_-]?key|private[_-]?key|access[_-]?key|client[_-]?secret|signing[_-]?key|master[_-]?key|encryption[_-]?key|auth|credential|jwt|cookie|session|dsn|(?:database|postgres(?:ql)?|mysql|mariadb|mongo(?:db)?|redis|amqp|rabbitmq|kafka)[_-]?(?:url|uri)|connection[_-]?string|webhook|bearer|cert|_key$)/i;
+const PUBLIC_ENV_KEY_RE =
+  /^(?:NEXT_PUBLIC_|VITE_PUBLIC_|EXPO_PUBLIC_|REACT_APP_PUBLIC_|NUXT_PUBLIC_|PUBLIC_KEY$|SSH_PUBLIC_KEY$|PGP_PUBLIC_KEY$|PWD$|OLDPWD$)/i;
+const NON_SECRET_CONFIG_SUFFIX_RE =
+  /(?:_ENABLED|_DISABLED|_MODE|_TIMEOUT|_TTL|_MAX_AGE|_EXPIR(?:Y|ES|ES_IN)|_ALGO(?:RITHM)?|_DOMAIN|_PATH|_SECURE|_SAMESITE|_PORT|_HOST|_REGION|_ISSUER|_AUDIENCE)$/i;
+const CREDENTIAL_URI_RE = /^[a-z][a-z0-9+.-]*:\/\/[^/\s:@]+:[^@\s]+@/i;
+
+export function isSecretEnvEntry(key, value = "") {
+  const k = String(key ?? "").trim();
+  const v = String(value ?? "").trim();
+  if (v && CREDENTIAL_URI_RE.test(v)) return true;
+  if (!k) return false;
+  if (PUBLIC_ENV_KEY_RE.test(k) || NON_SECRET_CONFIG_SUFFIX_RE.test(k))
+    return false;
+  return SECRET_ENV_KEY_RE.test(k);
+}
+
+function parseEnvValue(rawVal) {
+  const s = String(rawVal ?? "").trim();
+  if (!s) return "";
+  const quote = s[0];
+  if (quote === '"' || quote === "'") {
+    let out = "";
+    for (let i = 1; i < s.length; i++) {
+      const ch = s[i];
+      if (quote === '"' && ch === "\\" && i + 1 < s.length) {
+        const next = s[++i];
+        if (next === "n") out += "\n";
+        else if (next === "r") out += "\r";
+        else if (next === "t") out += "\t";
+        else out += next;
+        continue;
+      }
+      if (ch === quote) return out;
+      out += ch;
+    }
+    return out;
+  }
+  if (s.startsWith("#")) return "";
+  const hashMatch = /[ \t]#/.exec(s);
+  return (hashMatch ? s.slice(0, hashMatch.index) : s).trim();
+}
+
+export function parseEnvEntries(text) {
+  const rows = [];
+  const lines = String(text ?? "").split(/\r?\n/);
+  for (let idx = 0; idx < lines.length; idx++) {
+    const trimmed = lines[idx].trim();
+    if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith(";"))
+      continue;
+    const eq = trimmed.indexOf("=");
+    if (eq <= 0) continue;
+    const key = trimmed
+      .slice(0, eq)
+      .trim()
+      .replace(/^export\s+/, "")
+      .trim();
+    if (!key) continue;
+    const value = parseEnvValue(trimmed.slice(eq + 1));
+    rows.push({
+      key,
+      value,
+      line: idx + 1,
+      secret: isSecretEnvEntry(key, value),
+    });
+  }
+  return rows;
+}
+
+/**
+ * Interactive `.env` Environment Variables Inspector for the Code Editor.
+ * Preserves exact string values (leading zeros, URLs, `#` inside quotes), masks secret keys by default,
+ * and offers per-variable reveal and one-click clipboard copy without exposing hidden values on screen.
+ */
+export function renderEnvPreview(
+  container,
+  text,
+  { onGoLine, docKey = "" } = {},
+) {
+  const prevState =
+    docKey &&
+    container._envPreviewState &&
+    container._envPreviewState.docKey === docKey
+      ? container._envPreviewState
+      : null;
+  if (prevState?.filterEl && container.contains(prevState.filterEl)) {
+    prevState.update(text, onGoLine);
+    return;
+  }
+
+  let entries = parseEnvEntries(text);
+  let goLineFn = onGoLine;
+  let revealAll = prevState ? Boolean(prevState.revealAll) : false;
+  const revealedKeys = new Set(prevState?.revealedKeys ?? []);
+
+  const filter = h("input", {
+    type: "search",
+    class: "code-in",
+    placeholder: "Filter variables…",
+    "aria-label": "Filter environment variables",
+    title: "Filter environment variables by key or value",
+  });
+  if (prevState?.filterText) filter.value = prevState.filterText;
+  const revealBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "code-btn code-small",
+      "aria-pressed": String(revealAll),
+      title: "Reveal or mask secret values in this preview",
+      onclick: () => {
+        revealAll = !revealAll;
+        if (!revealAll) revealedKeys.clear();
+        revealBtn.setAttribute("aria-pressed", String(revealAll));
+        revealBtn.textContent = revealAll ? "🙈 Mask secrets" : "👁 Reveal all";
+        syncState();
+        draw();
+      },
+    },
+    revealAll ? "🙈 Mask secrets" : "👁 Reveal all",
+  );
+  const host = h("div", { class: "code-env-host" });
+
+  function syncState() {
+    if (!docKey) return;
+    container._envPreviewState = {
+      docKey,
+      filterText: filter.value,
+      revealAll,
+      revealedKeys: new Set(revealedKeys),
+      filterEl: filter,
+      update(nextText, nextGoLine) {
+        entries = parseEnvEntries(nextText);
+        goLineFn = nextGoLine;
+        const nextHasSecrets = entries.some(
+          (r) => r.secret && r.value.length > 0,
+        );
+        revealBtn.hidden = !nextHasSecrets;
+        draw();
+      },
+    };
+  }
+
+  function draw() {
+    if (!entries.length) {
+      host.replaceChildren(
+        h(
+          "p",
+          { class: "code-hint" },
+          "No KEY=VALUE assignments found in this environment file.",
+        ),
+      );
+      return;
+    }
+    const q = filter.value.trim().toLowerCase();
+    const shown = entries.filter((row) => {
+      if (!q) return true;
+      if (row.key.toLowerCase().includes(q)) return true;
+      const isVisible = !row.secret || revealAll || revealedKeys.has(row.key);
+      return isVisible && row.value.toLowerCase().includes(q);
+    });
+    if (!shown.length) {
+      host.replaceChildren(
+        h("p", { class: "code-hint" }, "No variables match the filter."),
+      );
+      return;
+    }
+    const tbody = h(
+      "tbody",
+      {},
+      ...shown.map((row) => {
+        const masked =
+          row.secret &&
+          row.value.length > 0 &&
+          !revealAll &&
+          !revealedKeys.has(row.key);
+        const keyCell = goLineFn
+          ? h(
+              "button",
+              {
+                type: "button",
+                class: "code-env-key-btn",
+                title: `Jump to ${row.key} on line ${row.line}`,
+                onclick: () => goLineFn(row.line, 1),
+              },
+              row.key,
+            )
+          : h("code", { class: "code-env-key" }, row.key);
+        const valNode = masked
+          ? h(
+              "span",
+              {
+                class: "code-env-masked",
+                title:
+                  "Secret value masked — press Show to reveal or Copy to copy directly",
+              },
+              "••••••••••••",
+            )
+          : row.value
+            ? h("code", { class: "code-env-val" }, row.value)
+            : h("span", { class: "code-hint" }, "(empty)");
+        const toggleBtn =
+          row.secret && row.value.length > 0
+            ? h(
+                "button",
+                {
+                  type: "button",
+                  class: "code-btn code-small",
+                  title: masked
+                    ? `Show value of ${row.key}`
+                    : `Mask value of ${row.key}`,
+                  "aria-label": masked
+                    ? `Show value of ${row.key}`
+                    : `Mask value of ${row.key}`,
+                  onclick: () => {
+                    if (revealAll) {
+                      revealAll = false;
+                      revealBtn.setAttribute("aria-pressed", "false");
+                      revealBtn.textContent = "👁 Reveal all";
+                      for (const item of entries) {
+                        if (item.secret && item.key !== row.key)
+                          revealedKeys.add(item.key);
+                      }
+                    } else if (revealedKeys.has(row.key)) {
+                      revealedKeys.delete(row.key);
+                    } else {
+                      revealedKeys.add(row.key);
+                    }
+                    syncState();
+                    draw();
+                  },
+                },
+                masked ? "👁 Show" : "🙈 Hide",
+              )
+            : null;
+        const copyBtn = h(
+          "button",
+          {
+            type: "button",
+            class: "code-btn code-small",
+            disabled: row.value === "",
+            title:
+              row.value === ""
+                ? `${row.key} has an empty value`
+                : `Copy value of ${row.key}`,
+            "aria-label": `Copy value of ${row.key}`,
+            onclick: async () => {
+              if (
+                await copyToClipboard(row.value, {
+                  what: row.key,
+                  secret: row.secret,
+                })
+              ) {
+                flashCopied(copyBtn, "Copied ✓");
+              }
+            },
+          },
+          "📋 Copy",
+        );
+        return h(
+          "tr",
+          {},
+          h("th", { scope: "row" }, keyCell),
+          h("td", {}, valNode),
+          h("td", { class: "code-env-actions" }, toggleBtn, copyBtn),
+        );
+      }),
+    );
+    host.replaceChildren(
+      h(
+        "div",
+        { class: "code-env-wrap" },
+        h(
+          "table",
+          { class: "code-env-table", "data-copy": "off" },
+          h(
+            "thead",
+            {},
+            h(
+              "tr",
+              {},
+              h("th", { scope: "col" }, "Variable"),
+              h("th", { scope: "col" }, "Value"),
+              h("th", { scope: "col" }, "Actions"),
+            ),
+          ),
+          tbody,
+        ),
+      ),
+    );
+  }
+
+  const hasSecrets = entries.some((r) => r.secret && r.value.length > 0);
+  revealBtn.hidden = !hasSecrets;
+  filter.addEventListener("input", () => {
+    syncState();
+    draw();
+  });
+  draw();
+  container.replaceChildren(
+    h("div", { class: "code-pv-bar" }, filter, revealBtn),
+    host,
+  );
+  syncState();
+}
+
 /** Interactive structured tree explorer for YAML, TOML, INI/.env, and JSONL files in the Code Editor. */
 export function renderStructuredDataPreview(container, text, kind = "yaml") {
   const parsed = parseSimpleStructured(text, kind);
@@ -1783,6 +2090,7 @@ export function renderStructuredDataPreview(container, text, kind = "yaml") {
     class: "code-in",
     placeholder: "Filter keys or values…",
     "aria-label": "Filter keys or values",
+    title: "Filter keys or values in this structured preview",
   });
   const treeHost = h("div", { class: "code-json-tree" });
   const draw = () => {

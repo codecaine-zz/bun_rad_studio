@@ -138,16 +138,26 @@ const isWinHostPath = (s?: string) =>
   typeof s === "string" &&
   (/^[A-Za-z]:[\\/]/.test(s) || s.startsWith("\\"));
 
+const isPosixHostPath = (s?: string) =>
+  process.platform !== "win32" &&
+  typeof s === "string" &&
+  s.startsWith("/") &&
+  !s.startsWith("//");
+
+const pathForSample = (
+  platform: FmContext["platform"],
+  ...samples: Array<string | undefined>
+) => {
+  if (samples.some(isWinHostPath)) return nodePath.win32;
+  if (samples.some(isPosixHostPath)) return nodePath.posix;
+  return platform === "win32" ? nodePath.win32 : nodePath.posix;
+};
+
 /** Creates a new `FmContext` with resolved home/data/trash directories and default or custom subsystem hooks. */
 export function createContext(options: FmContextOptions = {}): FmContext {
   const platform = options.platform ?? platformName();
   const rawHome = options.home ?? homedir();
-  const p =
-    platform === "win32" ||
-    isWinHostPath(rawHome) ||
-    isWinHostPath(options.dataDir)
-      ? nodePath.win32
-      : nodePath.posix;
+  const p = pathForSample(platform, rawHome, options.dataDir);
   const home = p.resolve(rawHome);
   const sandboxRoot = options.sandboxRoot
     ? p.resolve(options.sandboxRoot)
@@ -209,10 +219,7 @@ export function absolutePath(ctx: FmContext, input: unknown): string {
     throw new FmError("BAD_PATH", "No location was given.");
   if (input.includes("\0"))
     throw new FmError("BAD_PATH", "That location isn't valid.");
-  const p =
-    ctx.platform === "win32" || isWinHostPath(input)
-      ? nodePath.win32
-      : nodePath.posix;
+  const p = pathForSample(ctx.platform, input, ctx.home, ctx.dataDir);
   if (!p.isAbsolute(input))
     throw new FmError("BAD_PATH", "That location isn't a full path.");
   return p.resolve(input);
@@ -222,11 +229,7 @@ export function absolutePath(ctx: FmContext, input: unknown): string {
 export function pathApi(
   ctx: Pick<FmContext, "platform"> & { home?: string; dataDir?: string },
 ) {
-  return ctx.platform === "win32" ||
-    isWinHostPath(ctx.home) ||
-    isWinHostPath(ctx.dataDir)
-    ? nodePath.win32
-    : nodePath.posix;
+  return pathForSample(ctx.platform, ctx.home, ctx.dataDir);
 }
 
 function deepestRealPath(target: string): string | null {

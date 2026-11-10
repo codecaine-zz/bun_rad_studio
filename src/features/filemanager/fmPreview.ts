@@ -22,15 +22,14 @@
  *   - Executables & Binary files (PE, ELF, Mach-O, WASM, Java .class, .torrent, raw binary) -> headers + Hex/ASCII + Strings
  */
 import { createHash } from "crypto";
-import { promises as fsp } from "fs";
+import { createReadStream, promises as fsp } from "fs";
 import * as nodePath from "path";
 import {
-  brotliDecompressSync,
+  createBrotliDecompress,
   createGunzip,
-  gunzipSync,
+  createZstdDecompress,
   inflateRawSync,
   inflateSync,
-  zstdDecompressSync,
 } from "zlib";
 import { Database } from "bun:sqlite";
 import { Notes, isObj, toTable, type Value } from "./fmConvCommon";
@@ -59,6 +58,7 @@ import {
 import { decodeEntities, xmlAttr, xmlText } from "./fmInfoMeta";
 import { parsePdf, pdfGroups, pdfString } from "./fmInfoPdf";
 import {
+  archiveGroups,
   gzipDocument,
   isTarHeader,
   tarDocument,
@@ -4340,6 +4340,43 @@ export async function inspectRichPreview(
   }
 
   // 5. TAR, TARGZ, GZIP, ZSTD, BROTLI Archives & Compressed Single Files
+  const decompressPrefix = async (
+    compressed: Buffer,
+    codec: "gzip" | "zstd" | "br",
+    maxOut: number,
+  ): Promise<{ head: Buffer; truncated: boolean }> => {
+    const stream =
+      codec === "gzip"
+        ? createGunzip()
+        : codec === "br"
+          ? createBrotliDecompress()
+          : createZstdDecompress();
+    const got: Buffer[] = [];
+    let total = 0;
+    let truncated = false;
+    try {
+      stream.end(compressed);
+      for await (const chunk of stream) {
+        const b = chunk as Buffer;
+        got.push(b);
+        total += b.length;
+        if (total > maxOut) {
+          truncated = true;
+          break;
+        }
+      }
+    } catch {
+      // Partial compressed window still yields valid initial decompressed bytes.
+    } finally {
+      stream.destroy();
+    }
+    const merged = Buffer.concat(got);
+    return {
+      head: merged.length > maxOut ? merged.subarray(0, maxOut) : merged,
+      truncated: truncated || merged.length > maxOut,
+    };
+  };
+
   if (
     ext === "tar.gz" ||
     lastExt === "tgz" ||
@@ -4349,32 +4386,34 @@ export async function inspectRichPreview(
     const gzDoc = await gzipDocument(handle, path, size).catch(() => ({
       groups: [],
       kind: "Gzip archive",
+      summary: undefined,
     }));
     const meta = flattenGroups(gzDoc.groups);
     let innerText: string | undefined;
-    let innerName = name.replace(/\.(?:gz|tgz)$/i, "");
-    try {
-      const decomp = gunzipSync(
-        head.subarray(0, Math.min(head.length, 64 * 1024)),
-        { maxOutputLength: 64 * 1024 },
-      );
-      if (!isTarHeader(decomp) && !decomp.subarray(0, 4096).includes(0)) {
+    const innerName = name.replace(/\.(?:gz|tgz)$/i, "");
+    if (!gzDoc.summary) {
+      const rawGz = size <= 256 * 1024 ? await src.read(0, size) : head;
+      const { head: decomp } = await decompressPrefix(rawGz, "gzip", 64 * 1024);
+      if (
+        decomp.length > 0 &&
+        !isTarHeader(decomp) &&
+        !decomp.subarray(0, 4096).includes(0)
+      ) {
         innerText = new TextDecoder("utf-8").decode(decomp);
       }
-    } catch {
-      // partial stream: try streaming gunzip via gzipDocument
     }
+    const gzSummary = gzDoc.summary;
     return {
       kind: "archive",
       formatLabel: gzDoc.kind || "Gzip Compressed File",
       meta,
-      totalEntries: 1,
-      files: 1,
-      folders: 0,
-      uncompressed: 0,
+      totalEntries: gzSummary ? gzSummary.entries : 1,
+      files: gzSummary ? gzSummary.files : 1,
+      folders: gzSummary ? gzSummary.folders : 0,
+      uncompressed: gzSummary ? gzSummary.uncompressed : 0,
       compressed: size,
-      encrypted: 0,
-      entries: [],
+      encrypted: gzSummary ? gzSummary.encrypted : 0,
+      entries: gzSummary?.items ?? [],
       ...(innerText ? { innerName, innerText } : {}),
     };
   }
@@ -4382,52 +4421,100 @@ export async function inspectRichPreview(
     const tarDoc = await tarDocument(path, size).catch(() => ({
       groups: [],
       kind: "Tar archive",
+      summary: undefined,
     }));
+    const tarSummary = tarDoc.summary;
     return {
       kind: "archive",
       formatLabel: tarDoc.kind || "TAR Archive",
       meta: flattenGroups(tarDoc.groups),
-      totalEntries: 0,
-      files: 0,
-      folders: 0,
-      uncompressed: size,
+      totalEntries: tarSummary?.entries ?? 0,
+      files: tarSummary?.files ?? 0,
+      folders: tarSummary?.folders ?? 0,
+      uncompressed: tarSummary?.uncompressed ?? size,
       compressed: size,
-      encrypted: 0,
-      entries: [],
+      encrypted: tarSummary?.encrypted ?? 0,
+      entries: tarSummary?.items ?? [],
     };
   }
-  if (lastExt === "zst" || sniff?.kind === "zstd" || lastExt === "br") {
+  if (
+    ext === "tar.zst" ||
+    lastExt === "tzst" ||
+    lastExt === "zst" ||
+    sniff?.kind === "zstd" ||
+    lastExt === "br"
+  ) {
     try {
-      const raw = size <= 512 * 1024 ? await src.read(0, size) : head;
-      const decomp =
-        lastExt === "br"
-          ? brotliDecompressSync(raw, { maxOutputLength: 64 * 1024 })
-          : zstdDecompressSync(raw, { maxOutputLength: 64 * 1024 });
-      const isText = !decomp.subarray(0, 4096).includes(0);
-      return {
-        kind: "archive",
-        formatLabel:
-          lastExt === "br"
-            ? "Brotli Compressed File"
-            : "Zstandard Compressed File (.zst)",
-        meta: [
-          ["Compressed size", humanBytes(size)],
-          ["Decompressed preview", humanBytes(decomp.length)],
-        ],
-        totalEntries: 1,
-        files: 1,
-        folders: 0,
-        uncompressed: decomp.length,
-        compressed: size,
-        encrypted: 0,
-        entries: [],
-        ...(isText
-          ? {
-              innerName: name.replace(/\.(?:zst|br)$/i, ""),
-              innerText: new TextDecoder("utf-8").decode(decomp),
-            }
-          : {}),
-      };
+      const raw = size <= 256 * 1024 ? await src.read(0, size) : head;
+      const { head: decomp, truncated } = await decompressPrefix(
+        raw,
+        lastExt === "br" ? "br" : "zstd",
+        64 * 1024,
+      );
+      if (
+        lastExt !== "br" &&
+        (ext === "tar.zst" || lastExt === "tzst" || isTarHeader(decomp))
+      ) {
+        const rs = createReadStream(path, { highWaterMark: 256 * 1024 });
+        const zs = createZstdDecompress();
+        rs.on("error", (err) => zs.destroy(err));
+        rs.pipe(zs);
+        try {
+          const s = await walkTar(zs, {
+            maxEntries: 20_000,
+            maxBytes: 256 * 1024 * 1024,
+            maxMs: 6000,
+          });
+          const label = "Compressed tar archive (.tar.zst)";
+          return {
+            kind: "archive",
+            formatLabel: label,
+            meta: flattenGroups(archiveGroups(label, s, size)),
+            totalEntries: s.entries,
+            files: s.files,
+            folders: s.folders,
+            uncompressed: s.uncompressed,
+            compressed: size,
+            encrypted: s.encrypted,
+            entries: s.items ?? [],
+          };
+        } finally {
+          rs.destroy();
+          zs.destroy();
+        }
+      }
+      if (decomp.length > 0) {
+        const isText = !decomp.subarray(0, 4096).includes(0);
+        return {
+          kind: "archive",
+          formatLabel:
+            lastExt === "br"
+              ? "Brotli Compressed File"
+              : "Zstandard Compressed File (.zst)",
+          meta: [
+            ["Compressed size", humanBytes(size)],
+            [
+              "Decompressed preview",
+              truncated || size > raw.length
+                ? `First ${humanBytes(decomp.length)}`
+                : humanBytes(decomp.length),
+            ],
+          ],
+          totalEntries: 1,
+          files: 1,
+          folders: 0,
+          uncompressed: decomp.length,
+          compressed: size,
+          encrypted: 0,
+          entries: [],
+          ...(isText
+            ? {
+                innerName: name.replace(/\.(?:zst|br)$/i, ""),
+                innerText: new TextDecoder("utf-8").decode(decomp),
+              }
+            : {}),
+        };
+      }
     } catch {}
   }
 

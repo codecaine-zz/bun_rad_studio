@@ -215,6 +215,11 @@ const ALIASES = new Map<string, string>();
 for (const h of HASH_SPECS)
   for (const name of [h.id, h.label])
     ALIASES.set(name.toLowerCase().replace(/[^a-z0-9]/g, ""), h.id);
+ALIASES.set("sha2256", "sha256");
+ALIASES.set("sha2512", "sha512");
+ALIASES.set("sha2384", "sha384");
+ALIASES.set("sha2224", "sha224");
+ALIASES.set("crc", "crc32");
 
 /** A pasted checksum as plain lower-case hex: spaces, colons, "0x" and a "sha256:" style name in front are ignored. */
 export function normalizeHash(text: string): {
@@ -223,15 +228,24 @@ export function normalizeHash(text: string): {
 } {
   let s = String(text ?? "")
     .trim()
-    .slice(0, 2000);
+    .slice(0, 4000);
   let named: string | null = null;
-  const prefix = /^([a-z][a-z0-9\-/]*)\s*[:=(]?\s*/i.exec(s);
-  const alias = prefix
-    ? ALIASES.get(prefix[1]!.toLowerCase().replace(/[^a-z0-9]/g, ""))
+  const bsdStyle = /^([a-z][a-z0-9\-/]*)\s*\([^)\r\n]*\)\s*=\s*/i.exec(s);
+  const bsdAlias = bsdStyle
+    ? ALIASES.get(bsdStyle[1]!.toLowerCase().replace(/[^a-z0-9]/g, ""))
     : undefined;
-  if (prefix && alias) {
-    named = alias;
-    s = s.slice(prefix[0].length);
+  if (bsdStyle && bsdAlias) {
+    named = bsdAlias;
+    s = s.slice(bsdStyle[0].length);
+  } else {
+    const prefix = /^([a-z][a-z0-9\-/]*)\s*[:=(]?\s*/i.exec(s);
+    const alias = prefix
+      ? ALIASES.get(prefix[1]!.toLowerCase().replace(/[^a-z0-9]/g, ""))
+      : undefined;
+    if (prefix && alias) {
+      named = alias;
+      s = s.slice(prefix[0].length);
+    }
   }
   // "hash  file name" lines (shasum output) and spaced groups: the whole text counts when it is only hex, else the longest checksum-like word.
   const compact = s.replace(/[\s:-]/g, "").replace(/^0x/i, "");
@@ -252,10 +266,44 @@ export function normalizeHash(text: string): {
 export function compareHash(
   expected: unknown,
   rows: Array<{ id: string; value: string }>,
+  fileName?: string,
 ): { matched: string | null; hint: string; normalized: string } {
-  const { hex, named } = normalizeHash(
-    typeof expected === "string" ? expected : "",
-  );
+  const raw = typeof expected === "string" ? expected : "";
+  const lines = raw
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith("#"));
+  let targetText = raw;
+  if (lines.length > 1) {
+    const cleanName = (fileName || "").trim().toLowerCase();
+    const byName = cleanName
+      ? lines.find((l) => {
+          const lower = l.toLowerCase();
+          return (
+            lower.endsWith(` ${cleanName}`) ||
+            lower.endsWith(` *${cleanName}`) ||
+            lower.endsWith(`/${cleanName}`) ||
+            lower.endsWith(`\\${cleanName}`) ||
+            lower.includes(`(${cleanName})`)
+          );
+        })
+      : undefined;
+    if (byName) {
+      targetText = byName;
+    } else {
+      for (const line of lines) {
+        const { hex: lh, named: ln } = normalizeHash(line);
+        if (
+          lh &&
+          rows.some((r) => r.value.toLowerCase() === lh && (!ln || r.id === ln))
+        ) {
+          targetText = line;
+          break;
+        }
+      }
+    }
+  }
+  const { hex, named } = normalizeHash(targetText);
   if (!hex)
     return {
       matched: null,

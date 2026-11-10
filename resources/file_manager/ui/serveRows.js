@@ -106,6 +106,18 @@ function createRow(server, actions) {
     },
     "Copy URL",
   );
+  const copyLanBtn = h(
+    "button",
+    {
+      type: "button",
+      class: "pw-btn",
+      hidden: true,
+      title:
+        "Copy the network (LAN) address so another device on your Wi-Fi can open it",
+      onclick: () => actions.onCopyLan?.(current),
+    },
+    "Copy LAN URL",
+  );
   const restartBtn = h(
     "button",
     {
@@ -185,6 +197,7 @@ function createRow(server, actions) {
         { class: "serve-actions pw-row" },
         openBtn,
         copyBtn,
+        copyLanBtn,
         restartBtn,
         stopBtn,
         logBtn,
@@ -267,6 +280,8 @@ function createRow(server, actions) {
     });
     openBtn.disabled = !on;
     copyBtn.disabled = !on;
+    copyLanBtn.hidden = !s.lan || !s.lanUrl;
+    copyLanBtn.disabled = !on;
     restartBtn.disabled = s.status === "stopping" || s.status === "starting";
     stopBtn.textContent = ended ? "Remove" : "Stop";
     stopBtn.title = ended

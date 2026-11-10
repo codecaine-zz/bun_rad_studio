@@ -47,6 +47,17 @@ function mountTasks(root) {
     title:
       "Filter processes by name, PID, port (:3000), user (user:root), or threshold (cpu>10, mem>5, rss>100).",
   });
+  const clearSearchBtn = btn(
+    "✕ Clear",
+    "Clear the process filter and show all matching processes.",
+    () => {
+      searchInput.value = "";
+      clearSearchBtn.hidden = true;
+      renderTable();
+      searchInput.focus();
+    },
+  );
+  clearSearchBtn.hidden = true;
   const scopeSelect = h(
     "select",
     { title: "Filter which category of processes is shown." },
@@ -85,8 +96,13 @@ function mountTasks(root) {
     class: "tasks-port-input",
     placeholder: "3000",
     title:
-      "Enter a TCP port number (1-65535) to find and stop any process listening on it.",
+      "Enter a TCP port number (1-65535) to inspect or stop any process listening on it.",
   });
+  const findPortBtn = btn(
+    "Find Port",
+    "Filter the process table to show any process listening on the entered TCP port without stopping it.",
+    () => filterByPort(),
+  );
   const killPortBtn = btn(
     "Free Port",
     "Find and terminate the process listening on the entered TCP port.",
@@ -153,6 +169,7 @@ function mountTasks(root) {
           "div",
           { class: "pw-row tasks-filter-row" },
           searchInput,
+          clearSearchBtn,
           field("Scope", scopeSelect),
           field("View", viewSelect),
           field("Refresh", intervalSelect),
@@ -162,6 +179,7 @@ function mountTasks(root) {
           "div",
           { class: "pw-row tasks-tools-row" },
           field("TCP Port", portInput),
+          findPortBtn,
           killPortBtn,
           cleanDevBtn,
           field("Export format", formatSelect),
@@ -175,7 +193,10 @@ function mountTasks(root) {
     ),
   );
 
-  searchInput.addEventListener("input", () => renderTable());
+  searchInput.addEventListener("input", () => {
+    clearSearchBtn.hidden = !searchInput.value;
+    renderTable();
+  });
   scopeSelect.addEventListener("change", () => renderTable());
   viewSelect.addEventListener("change", () => renderTable());
   intervalSelect.addEventListener("change", () => syncTimer());
@@ -183,9 +204,21 @@ function mountTasks(root) {
     if (e.isComposing || e.keyCode === 229) return;
     if (e.key === "Enter") {
       e.preventDefault();
-      killByPort();
+      filterByPort();
     }
   });
+
+  function filterByPort() {
+    const clean = portInput.value.trim().replace(/^:+/, "");
+    if (!clean || !/^\d{1,5}$/.test(clean)) {
+      status.set("Enter a TCP port number (like 3000 or 8080) first.", true);
+      return;
+    }
+    searchInput.value = `:${clean}`;
+    clearSearchBtn.hidden = false;
+    renderTable();
+    status.set(`Filtered process table to listeners on port :${clean}.`);
+  }
 
   function stopTimer() {
     if (timer) {
@@ -322,7 +355,29 @@ function mountTasks(root) {
             h("span", { class: "tasks-proc-name" }, p.name),
           ),
           p.ports?.length
-            ? h("span", { class: "tasks-port-pill" }, p.ports.join(" "))
+            ? h(
+                "span",
+                { class: "tasks-port-list" },
+                ...p.ports.map((pt) =>
+                  h(
+                    "button",
+                    {
+                      type: "button",
+                      class: "tasks-port-pill",
+                      title: `Filter processes listening on ${pt}`,
+                      "aria-label": `Filter processes listening on ${pt}`,
+                      onclick: (e) => {
+                        e.stopPropagation();
+                        const next = searchInput.value.trim() === pt ? "" : pt;
+                        searchInput.value = next;
+                        clearSearchBtn.hidden = !next;
+                        renderTable();
+                      },
+                    },
+                    pt,
+                  ),
+                ),
+              )
             : "—",
           h(
             "span",
@@ -361,12 +416,16 @@ function mountTasks(root) {
       onAction: (pid, action) => executeAction(pid, action),
       onInspect: (pid) => inspectPid(pid),
       onOpenFolder: (targetPath, isFile) => {
-        const folder = isFile ? parentOf(targetPath) : targetPath;
+        const folder = isFile ? parentOf(targetPath, state.sep) : targetPath;
         if (!folder) return;
         closePower();
         goTo(folder);
       },
       onCopyCmd: (cmd) => copyToClipboard(cmd),
+      onCopyPid: (pid) => {
+        copyToClipboard(String(pid));
+        toast(`Copied PID ${pid}`);
+      },
     });
   }
 
@@ -458,7 +517,11 @@ function mountTasks(root) {
 
   async function copySnapshot() {
     try {
-      const res = await call("tasks/export", { format: formatSelect.value });
+      const res = await call("tasks/export", {
+        format: formatSelect.value,
+        query: searchInput.value,
+        scope: scopeSelect.value,
+      });
       await copyToClipboard(res.text);
       status.set(
         `Copied ${res.count} processes as ${res.format.toUpperCase()} to the clipboard.`,
@@ -477,6 +540,8 @@ function mountTasks(root) {
       const res = await call("tasks/save", {
         folder,
         format: formatSelect.value,
+        query: searchInput.value,
+        scope: scopeSelect.value,
       });
       status.set(`Saved ${res.name} (${res.count} processes) in ${folder}.`);
       toast(`Saved ${res.name}`);
@@ -488,7 +553,10 @@ function mountTasks(root) {
 
   return {
     show(opts) {
-      if (opts?.query) searchInput.value = String(opts.query);
+      if (opts?.query) {
+        searchInput.value = String(opts.query);
+        clearSearchBtn.hidden = !searchInput.value;
+      }
       loadSnapshot();
       syncTimer();
     },

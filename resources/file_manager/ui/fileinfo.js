@@ -472,7 +472,7 @@ export function showMoreInfo(paths) {
         await loadOther("info/media", "media", file);
       else await loadOther("info/document", "document", file);
       if (!alive) return;
-      hashes = hashSection(file.path);
+      hashes = hashSection(file.path, { onChange: applySearch });
       custom("hashes", hashes.el, hashes.group);
       if (
         EXIFTOOL_FAMILIES.has(file.family) ||

@@ -12,9 +12,12 @@ const MAX_DEPTH_CLASS = 24;
 
 export function createExplorer({
   onOpen,
+  onCreated,
   onRenamed,
   onDeleted,
   onRootChanged,
+  onToggleHidden,
+  onRefresh,
 }) {
   let root = "";
   let showHidden = false;
@@ -36,12 +39,24 @@ export function createExplorer({
   const hiddenBox = h("input", {
     type: "checkbox",
     id: "code-ex-hidden",
+    title: "Also list files whose names start with a dot",
     onchange: () => {
       showHidden = hiddenBox.checked;
+      onToggleHidden?.(showHidden);
       cache.clear();
       expanded.clear();
       loadRoot();
     },
+  });
+  const filterBox = h("input", {
+    type: "search",
+    class: "code-in code-ex-filter",
+    placeholder: "Filter files…",
+    "aria-label": "Filter files in workspace tree",
+    title: "Filter visible files and folders by name",
+    spellcheck: "false",
+    autocomplete: "off",
+    oninput: () => draw(),
   });
   const iconButton = (label, tip, run) =>
     h(
@@ -87,6 +102,7 @@ export function createExplorer({
       hiddenBox,
       " Show hidden files",
     ),
+    filterBox,
     tree,
   );
 
@@ -115,8 +131,8 @@ export function createExplorer({
     draw();
   }
 
-  function row(entry, depth) {
-    const open = entry.isDir && expanded.has(entry.path);
+  function row(entry, depth, forceOpen = false) {
+    const open = entry.isDir && (forceOpen || expanded.has(entry.path));
     const b = h(
       "button",
       {
@@ -157,11 +173,21 @@ export function createExplorer({
     return b;
   }
 
+  function subtreeMatches(entry, q) {
+    if (entry.name.toLowerCase().includes(q)) return true;
+    if (!entry.isDir) return false;
+    for (const child of cache.get(entry.path) ?? []) {
+      if (subtreeMatches(child, q)) return true;
+    }
+    return false;
+  }
+
   function draw() {
     rootLabel.textContent = root || "No folder";
     rootLabel.title = root;
+    const q = filterBox.value.trim().toLowerCase();
     const rows = [];
-    const walk = (path, depth) => {
+    const walk = (path, depth, ancestorMatched = false) => {
       if (failed.has(path))
         rows.push(
           h(
@@ -173,7 +199,7 @@ export function createExplorer({
             failed.get(path),
           ),
         );
-      else if (cache.has(path) && !cache.get(path).length && depth > 0)
+      else if (!q && cache.has(path) && !cache.get(path).length && depth > 0)
         rows.push(
           h(
             "div",
@@ -185,14 +211,27 @@ export function createExplorer({
           ),
         );
       for (const entry of cache.get(path) ?? []) {
-        rows.push(row(entry, depth));
-        if (entry.isDir && expanded.has(entry.path))
-          walk(entry.path, depth + 1);
+        const selfMatches =
+          !q || ancestorMatched || entry.name.toLowerCase().includes(q);
+        const childMatches =
+          Boolean(q) && !selfMatches && subtreeMatches(entry, q);
+        if (q && !selfMatches && !childMatches) continue;
+        const showChildren =
+          entry.isDir &&
+          (expanded.has(entry.path) || (Boolean(q) && cache.has(entry.path)));
+        rows.push(row(entry, depth, showChildren));
+        if (showChildren) walk(entry.path, depth + 1, selfMatches);
       }
     };
     walk(root, 0);
     if (!rows.length && cache.has(root))
-      rows.push(h("p", { class: "code-hint" }, "This folder is empty."));
+      rows.push(
+        h(
+          "p",
+          { class: "code-hint" },
+          q ? "No matching files in loaded folders." : "This folder is empty.",
+        ),
+      );
     const keep = document.activeElement?.dataset?.path;
     tree.replaceChildren(...rows);
     const first = tree.querySelector("[role=treeitem]");
@@ -218,6 +257,7 @@ export function createExplorer({
   }
 
   async function refresh(path) {
+    if (!path) onRefresh?.();
     const dirs = path ? [path] : [root, ...expanded];
     await Promise.all(dirs.map((d) => load(d)));
     draw();
@@ -235,6 +275,7 @@ export function createExplorer({
     if (!made) return;
     expanded.add(parent);
     await refresh(parent);
+    onCreated?.(made.path, folder);
     if (!folder) onOpen(made.path);
   }
 

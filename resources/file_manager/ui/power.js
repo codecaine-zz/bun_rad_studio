@@ -7,8 +7,8 @@ import { call } from "./api.js";
 import { copyToClipboard } from "./copyclip.js";
 import { $, clear, h } from "./dom.js";
 import { hintOf, matchesAction } from "./keymap.js";
-import { toast } from "./menus.js";
-import { emit, state } from "./state.js";
+import { showMenu, toast } from "./menus.js";
+import { emit, on, state } from "./state.js";
 
 /** The groups the tab strip is arranged in, in this order. A tab can name one with `group`. */
 const GROUPS = [
@@ -445,7 +445,7 @@ function renderTabs() {
       pane.removeAttribute("aria-labelledby");
       pane.setAttribute(
         "aria-label",
-        tabs.find((t) => t.id === activeId).label,
+        tabs.find((t) => t.id === activeId)?.label || "Tool",
       );
     }
   }
@@ -455,6 +455,7 @@ function renderTabs() {
     if (previous !== null && previous !== group)
       strip.append(h("span", { class: "power-sep", "aria-hidden": "true" }));
     previous = group;
+    const pinned = (state.settings?.favoriteTools ?? []).includes(t.id);
     strip.append(
       h(
         "button",
@@ -462,19 +463,176 @@ function renderTabs() {
           type: "button",
           role: "tab",
           id: `power-tab-${t.id}`,
-          class: `power-tab${t.id === activeId ? " active" : ""}`,
+          class: `power-tab${t.id === activeId ? " active" : ""}${pinned ? " is-pinned" : ""}`,
           "aria-selected": String(t.id === activeId),
           "aria-controls": `power-pane-${t.id}`,
           tabindex: t.id === focusId ? "0" : "-1",
           title: `${t.label}: ${t.tip}`,
           onclick: () => selectTab(t.id),
+          oncontextmenu: (e) => {
+            e.preventDefault();
+            const isPinned = (state.settings?.favoriteTools ?? []).includes(
+              t.id,
+            );
+            showMenu(
+              [
+                {
+                  label: isPinned ? "Unpin tool" : "Pin tool to quick bar",
+                  icon: isPinned ? "☆" : "⭐",
+                  action: () => toggleFavoriteTool(t.id),
+                },
+                {
+                  label: "Open in separate window",
+                  icon: "🪟",
+                  action: () => void openToolInWindow(t.id),
+                },
+                {
+                  label: "Open in web browser",
+                  icon: "🌐",
+                  action: () => void openToolInBrowser(t.id),
+                },
+              ],
+              { x: e.clientX, y: e.clientY, label: t.label },
+            );
+          },
         },
         h("span", { class: "pt-icon", "aria-hidden": "true" }, t.icon),
         h("span", { class: "pt-label" }, t.label),
       ),
     );
   }
+  syncPinButton();
+  renderQuickStrip();
   updateScrollButtons();
+}
+
+let toolPrefsRev = 0;
+
+function saveToolPrefs(patch) {
+  if (!state.settings) return;
+  const rev = ++toolPrefsRev;
+  Object.assign(state.settings, patch);
+  emit("settings", patch);
+  call("settings", { set: patch })
+    .then((r) => {
+      if (r?.settings && rev === toolPrefsRev) {
+        state.settings = r.settings;
+        emit("settings", patch);
+      }
+    })
+    .catch(() => {});
+}
+
+export function toggleFavoriteTool(id = activeId) {
+  const target = id || activeId;
+  if (!target || !state.settings) return;
+  const cur = Array.isArray(state.settings.favoriteTools)
+    ? [...state.settings.favoriteTools]
+    : [];
+  const idx = cur.indexOf(target);
+  const pinned = idx < 0;
+  if (pinned) cur.push(target);
+  else cur.splice(idx, 1);
+  saveToolPrefs({ favoriteTools: cur.slice(0, 24) });
+  const label = tabs.find((t) => t.id === target)?.label || target;
+  toast(pinned ? `Pinned ${label} to quick tools.` : `Unpinned ${label}.`);
+  syncPinButton();
+  renderQuickStrip();
+}
+
+function recordRecentTool(id) {
+  if (!id || !state.settings) return;
+  const cur = Array.isArray(state.settings.recentTools)
+    ? state.settings.recentTools
+    : [];
+  if (cur[0] === id) return;
+  const next = [id, ...cur.filter((x) => x !== id)].slice(0, 8);
+  const rev = ++toolPrefsRev;
+  state.settings.recentTools = next;
+  call("settings", { set: { recentTools: next } })
+    .then((r) => {
+      if (r?.settings && rev === toolPrefsRev) {
+        state.settings = r.settings;
+      }
+    })
+    .catch(() => {});
+}
+
+function syncPinButton() {
+  const pinBtn = typeof document === "undefined" ? null : $("#power-pin");
+  if (!pinBtn) return;
+  const pinned =
+    !!activeId && (state.settings?.favoriteTools ?? []).includes(activeId);
+  pinBtn.setAttribute("aria-pressed", String(pinned));
+  pinBtn.textContent = pinned ? "★ Pinned" : "☆ Pin";
+  const label = tabs.find((t) => t.id === activeId)?.label || "current tool";
+  pinBtn.title = pinned
+    ? `Unpin ${label} from your quick tools`
+    : `Pin ${label} to your quick tools bar and Home`;
+}
+
+function renderQuickStrip() {
+  const bar = typeof document === "undefined" ? null : $("#power-quick-strip");
+  if (!bar) return;
+  const favIds = (state.settings?.favoriteTools ?? []).filter((id) =>
+    tabs.some((t) => t.id === id),
+  );
+  const recentIds = (state.settings?.recentTools ?? [])
+    .filter((id) => !favIds.includes(id) && tabs.some((t) => t.id === id))
+    .slice(0, 5);
+  if (!favIds.length && recentIds.length < 2) {
+    clear(bar);
+    bar.hidden = true;
+    return;
+  }
+  bar.hidden = false;
+  const chip = (id, isFav) => {
+    const t = tabs.find((x) => x.id === id);
+    if (!t) return null;
+    return h(
+      "button",
+      {
+        type: "button",
+        class: `power-quick-chip${id === activeId ? " active" : ""}${isFav ? " fav" : ""}`,
+        title: `${isFav ? "Pinned tool" : "Recent tool"}: ${t.label} (${t.tip})`,
+        onclick: () => selectTab(t.id),
+        oncontextmenu: (e) => {
+          e.preventDefault();
+          const nowPinned = (state.settings?.favoriteTools ?? []).includes(
+            t.id,
+          );
+          showMenu(
+            [
+              {
+                label: nowPinned ? "Unpin tool" : "Pin tool to quick bar",
+                icon: nowPinned ? "☆" : "⭐",
+                action: () => toggleFavoriteTool(t.id),
+              },
+            ],
+            { x: e.clientX, y: e.clientY, label: t.label },
+          );
+        },
+      },
+      h("span", { "aria-hidden": "true" }, isFav ? `★ ${t.icon}` : t.icon),
+      ` ${t.label}`,
+    );
+  };
+  const nodes = [];
+  if (favIds.length) {
+    nodes.push(h("span", { class: "power-quick-label" }, "Pinned:"));
+    for (const id of favIds) {
+      const c = chip(id, true);
+      if (c) nodes.push(c);
+    }
+  }
+  if (recentIds.length) {
+    nodes.push(h("span", { class: "power-quick-label" }, "Recent:"));
+    for (const id of recentIds) {
+      const c = chip(id, false);
+      if (c) nodes.push(c);
+    }
+  }
+  bar.replaceChildren(...nodes);
 }
 
 function selectTab(id, opts) {
@@ -516,6 +674,7 @@ function selectTab(id, opts) {
     mounted.set(id, entry);
   }
   entry.root.hidden = false;
+  if (changed) recordRecentTool(id);
   syncExpandButtons(isPowerExpanded());
   renderTabs();
   keepTabInView(id);
@@ -589,7 +748,14 @@ export function wirePower() {
       ? document.querySelector(`.db-studio:not([hidden]) [data-role="${role}"]`)
       : null;
   $("#power-close")?.addEventListener("click", closePower);
+  $("#power-pin")?.addEventListener("click", () =>
+    toggleFavoriteTool(activeId),
+  );
   $("#power-compact")?.addEventListener("click", togglePowerCompact);
+  on("toggle-favorite-tool", (toolId) => toggleFavoriteTool(toolId));
+  on("settings", () => {
+    renderTabs();
+  });
   $("#power-expand")?.addEventListener("click", togglePowerExpanded);
   $("#power-restore")?.addEventListener("click", () => setPowerExpanded(false));
   $("#power-window")?.addEventListener("click", () => {

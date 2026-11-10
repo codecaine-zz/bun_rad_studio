@@ -19,7 +19,7 @@ import { createPlayer } from "./mediaplayer.js";
 import { mediaKindOfName } from "./mediacore.js";
 import { showOpenWith } from "./openwith.js";
 import { showToolsDialog } from "./tools.js";
-import { activePane, inTrash } from "./pane.js";
+import { activePane, inTrash, isFolderView } from "./pane.js";
 import { focusIndex, selectedEntries } from "./selection.js";
 import { emit, on, state } from "./state.js";
 import { parseTable } from "./quicklookTable.js";
@@ -758,6 +758,8 @@ async function renderBody(entry, mine) {
     case "thumb": {
       const richNode = renderRichQuickLook(entry, preview, {
         onClose: closeQuickLook,
+        pane: ql?.pane,
+        canExtract: Boolean(ql?.pane && isFolderView(ql.pane)),
       });
       if (richNode) {
         setRichCopyIfAvailable(entry, preview, richNode);
@@ -788,6 +790,19 @@ async function renderBody(entry, mine) {
         label: "Copy text",
         tip: "Put the whole text of this file on the clipboard",
         run: async () => {
+          const prettyEl = ql?.body?.querySelector?.(
+            ".ql-pretty-json-pre:not([hidden])",
+          );
+          if (prettyEl) {
+            const fullPretty =
+              preview?.rich?.data !== undefined
+                ? JSON.stringify(preview.rich.data, null, 2)
+                : prettyEl.textContent || "";
+            await copyToClipboard(fullPretty, {
+              what: `formatted JSON from ${entry.name}`,
+            });
+            return;
+          }
           const ok = await copyTextFile(entry);
           if (!ok) {
             await copyToClipboard(
@@ -903,6 +918,7 @@ async function renderBody(entry, mine) {
             h("span", { class: "code-grow" }),
             buildQuickLookCopyButtons(entry, preview, () => ql?.body, {
               onClose: closeQuickLook,
+              hasPre: false,
             }),
           );
           return open(
@@ -971,6 +987,8 @@ async function renderBody(entry, mine) {
       }
       const richNode = renderRichQuickLook(entry, preview, {
         onClose: closeQuickLook,
+        pane: ql?.pane,
+        canExtract: Boolean(ql?.pane && isFolderView(ql.pane)),
       });
       if (richNode) {
         if (note) richNode.append(note);
@@ -1006,6 +1024,8 @@ async function renderBody(entry, mine) {
     default: {
       const richNode = renderRichQuickLook(entry, preview, {
         onClose: closeQuickLook,
+        pane: ql?.pane,
+        canExtract: Boolean(ql?.pane && isFolderView(ql.pane)),
       });
       if (richNode) {
         setRichCopyIfAvailable(entry, preview, richNode);

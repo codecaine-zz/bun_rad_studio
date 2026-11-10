@@ -75,6 +75,13 @@ export function wireMarquee(pane = "left") {
 
   wrap.addEventListener("mousedown", (e) => {
     if (e.button !== 0) return;
+    const rect = wrap.getBoundingClientRect();
+    if (
+      e.clientX >= rect.left + wrap.clientWidth ||
+      e.clientY >= rect.top + wrap.clientHeight
+    ) {
+      return;
+    }
     if (
       e.target instanceof Element &&
       e.target.closest(".row, button, input, a, .group-header")
@@ -120,7 +127,12 @@ export function wireMarquee(pane = "left") {
         boxEl.remove();
         boxEl = null;
       }
-      if (dragging) suppressNextClick = true;
+      if (dragging) {
+        suppressNextClick = true;
+        const listEl =
+          side === "right" ? document.getElementById("dual-list") : $("#list");
+        listEl?.focus?.({ preventScroll: true });
+      }
     };
 
     window.addEventListener("mousemove", onMove);

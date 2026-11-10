@@ -77,6 +77,79 @@ function renderTaskExport(
   }
 }
 
+function filterTaskProcesses(
+  procs: TaskProcessItem[],
+  rawQuery: unknown,
+  rawScope: unknown,
+): TaskProcessItem[] {
+  const scope = typeof rawScope === "string" ? rawScope : "all";
+  const q = typeof rawQuery === "string" ? rawQuery.trim().toLowerCase() : "";
+  if (scope === "all" && !q) return procs;
+  const tokens = q ? q.split(/\s+/).filter(Boolean) : [];
+  return procs.filter((proc) => {
+    if (scope === "mine" && !proc.isUserApp) return false;
+    if (scope === "ports" && (!proc.ports || proc.ports.length === 0))
+      return false;
+    if (scope === "dev" && !proc.isDevServer) return false;
+    for (const tok of tokens) {
+      if (tok.startsWith(":")) {
+        const ports = proc.ports || [];
+        if (tok === ":") {
+          if (ports.length === 0) return false;
+          continue;
+        }
+        const portRe = new RegExp(
+          `${tok.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?!\\d)`,
+          "i",
+        );
+        if (
+          !ports.some((pt) => {
+            const s = String(pt);
+            return portRe.test(s.includes(":") ? s : `:${s}`);
+          })
+        )
+          return false;
+        continue;
+      }
+      if (tok.startsWith("pid:")) {
+        if (!String(proc.pid).includes(tok.slice(4))) return false;
+        continue;
+      }
+      if (tok.startsWith("user:")) {
+        if (
+          !String(proc.user || "")
+            .toLowerCase()
+            .includes(tok.slice(5))
+        )
+          return false;
+        continue;
+      }
+      const cmp = /^(cpu|mem|rss)([<>]=?|=)(\d+(?:\.\d+)?)$/.exec(tok);
+      if (cmp) {
+        const metric = cmp[1];
+        const op = cmp[2];
+        const want = parseFloat(cmp[3]!);
+        const actual =
+          metric === "cpu"
+            ? proc.cpu
+            : metric === "mem"
+              ? proc.mem
+              : (proc.rssKb || 0) / 1024;
+        if (op === ">" && !(actual > want)) return false;
+        if (op === ">=" && !(actual >= want)) return false;
+        if (op === "<" && !(actual < want)) return false;
+        if (op === "<=" && !(actual <= want)) return false;
+        if (op === "=" && Math.abs(actual - want) > 0.05) return false;
+        continue;
+      }
+      const hay =
+        `${proc.name} ${proc.pid} ${proc.user} ${(proc.ports || []).join(" ")} ${proc.command} ${proc.windowTitle || ""}`.toLowerCase();
+      if (!hay.includes(tok)) return false;
+    }
+    return true;
+  });
+}
+
 async function writeUniqueReport(
   ctx: FmContext,
   folderInput: unknown,
@@ -422,10 +495,11 @@ export const taskManagerOperations: Record<string, FmHandler> = {
   async "tasks/export"(ctx, b) {
     const format = parseExportFormat(b.format);
     const snap = await collectTaskSnapshot(ctx.platform, ctx.tasks);
-    const text = renderTaskExport(snap.processes, format, ctx.platform);
+    const procs = filterTaskProcesses(snap.processes, b.query, b.scope);
+    const text = renderTaskExport(procs, format, ctx.platform);
     return {
       format,
-      count: snap.processes.length,
+      count: procs.length,
       text,
     };
   },
@@ -433,7 +507,8 @@ export const taskManagerOperations: Record<string, FmHandler> = {
   async "tasks/save"(ctx, b) {
     const format = parseExportFormat(b.format);
     const snap = await collectTaskSnapshot(ctx.platform, ctx.tasks);
-    const text = renderTaskExport(snap.processes, format, ctx.platform);
+    const procs = filterTaskProcesses(snap.processes, b.query, b.scope);
+    const text = renderTaskExport(procs, format, ctx.platform);
     const stamp = new Date().toISOString().slice(0, 10);
     const baseName =
       typeof b.name === "string" && b.name.trim()
@@ -446,6 +521,6 @@ export const taskManagerOperations: Record<string, FmHandler> = {
       format,
       text,
     );
-    return { ...saved, format, count: snap.processes.length };
+    return { ...saved, format, count: procs.length };
   },
 };

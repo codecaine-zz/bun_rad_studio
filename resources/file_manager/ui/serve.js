@@ -78,6 +78,22 @@ function createTool(root) {
         });
       }
     },
+    onCopyLan: async (s) => {
+      if (!s.lanUrl) return;
+      try {
+        const r = await call("copytext", { text: s.lanUrl });
+        toast(
+          r.copied
+            ? "Network (LAN) address copied. You can share or paste it now."
+            : "The network address couldn't be copied.",
+          { kind: r.copied ? "success" : "error" },
+        );
+      } catch (err) {
+        toast(failText(err, "The network address couldn't be copied."), {
+          kind: "error",
+        });
+      }
+    },
     onStop: (s) => stopServer(s.id),
     onRestart: restart,
   });
@@ -115,8 +131,10 @@ function createTool(root) {
       liveReload: s.liveReload,
       dotfiles: s.dotfiles,
       cors: s.cors,
+      listing: s.listing !== false,
       docroot: relativeTo(s.root, s.docroot),
       router: relativeTo(s.root, s.router),
+      phpPath: s.phpPath || "",
       openBrowser: false,
     };
     try {
@@ -247,7 +265,13 @@ function createTool(root) {
   const form = buildServeForm({
     onStart: startFromForm,
     onUseCurrent: () => {
-      if (!currentPath()) return;
+      if (!currentPath()) {
+        form.setMessage(
+          "Open a folder in the file list first, or type its path here.",
+          true,
+        );
+        return;
+      }
       form.setFolder(currentPath());
       detectForm(currentPath());
     },

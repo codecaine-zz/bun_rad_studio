@@ -15,6 +15,8 @@ export function hashSection(path, { onChange } = {}) {
   let timer = 0;
   let stopped = false;
   let kinds = null;
+  let pendingAutoCompare = false;
+  let matchedId = null;
   const ticked = new Set();
 
   const status = h("p", {
@@ -52,15 +54,47 @@ export function hashSection(path, { onChange } = {}) {
       class: "btn",
       disabled: true,
       title: "Check whether the fingerprint you pasted matches this file",
-      onclick: () => check(),
+      onclick: () => void check(),
     },
     "Compare",
   );
+  const pasteVerify = h(
+    "button",
+    {
+      type: "button",
+      class: "btn fi-paste-verify",
+      title:
+        "Paste a checksum from your clipboard and verify it against this file automatically",
+      onclick: async () => {
+        let clip = "";
+        try {
+          clip = (await navigator.clipboard?.readText?.()) || "";
+        } catch {}
+        if (!clip) {
+          try {
+            const res = await call("pastetext", {});
+            clip = res?.text || "";
+          } catch {}
+        }
+        if (!clip.trim()) {
+          compareResult.textContent =
+            "Your clipboard is empty — copy a checksum first, then click Paste & Verify.";
+          compareResult.className = "fi-compare-result fi-warn";
+          return;
+        }
+        input.value = clip.trim();
+        compare.disabled = !input.value.trim();
+        await check();
+      },
+    },
+    "📋 Paste & Verify",
+  );
   const comparer = h(
     "div",
-    { class: "fi-compare", hidden: true },
+    { class: "fi-compare" },
     input,
     compare,
+    pasteVerify,
     compareResult,
   );
   const cancel = h(
@@ -100,15 +134,25 @@ export function hashSection(path, { onChange } = {}) {
     "Calculate fingerprints",
   );
 
-  input.addEventListener(
-    "input",
-    () => (compare.disabled = !input.value.trim() || !rows.length),
-  );
+  input.addEventListener("input", () => {
+    compare.disabled = !input.value.trim();
+    if (!input.value.trim()) {
+      matchedId = null;
+      compareResult.textContent = "";
+      applyMatchedHighlight();
+    }
+  });
+  input.addEventListener("paste", () => {
+    queueMicrotask(() => {
+      compare.disabled = !input.value.trim();
+      if (input.value.trim()) void check();
+    });
+  });
   input.addEventListener("keydown", (e) => {
     if (e.isComposing || e.keyCode === 229) return;
     if (e.key === "Enter" && !compare.disabled) {
       e.preventDefault();
-      check();
+      void check();
     }
   });
 
@@ -144,6 +188,7 @@ export function hashSection(path, { onChange } = {}) {
             .map((k) => {
               const box = h("input", {
                 type: "checkbox",
+                dataset: { kindId: k.id },
                 title: k.hint,
                 onchange: () =>
                   box.checked ? ticked.add(k.id) : ticked.delete(k.id),
@@ -187,10 +232,15 @@ export function hashSection(path, { onChange } = {}) {
       h(
         "tbody",
         {},
-        list.map((r) =>
-          h(
+        list.map((r) => {
+          const isMatch = Boolean(matchedId && r.id === matchedId);
+          return h(
             "tr",
-            { class: "fi-row" },
+            {
+              class: `fi-row${isMatch ? " fi-hash-row-match" : ""}`,
+              dataset: { hashId: r.id },
+              "aria-current": isMatch ? "true" : null,
+            },
             h(
               "th",
               { scope: "row", class: "fi-label", title: r.hint },
@@ -202,8 +252,8 @@ export function hashSection(path, { onChange } = {}) {
               { class: "fi-act" },
               copyButton(r.label, () => r.value),
             ),
-          ),
-        ),
+          );
+        }),
       ),
     );
   }
@@ -245,7 +295,7 @@ export function hashSection(path, { onChange } = {}) {
     progress.hidden = false;
     progress.value = 0;
     status.textContent = "Working it out…";
-    compareResult.textContent = "";
+    if (!pendingAutoCompare) compareResult.textContent = "";
     try {
       taskId = (
         await call("info/hash", {
@@ -288,6 +338,10 @@ export function hashSection(path, { onChange } = {}) {
       compare.disabled = !input.value.trim();
       draw();
       onChange?.();
+      if (pendingAutoCompare && input.value.trim()) {
+        pendingAutoCompare = false;
+        void check();
+      }
     } else
       finish(
         task.state === "cancelled"
@@ -309,20 +363,81 @@ export function hashSection(path, { onChange } = {}) {
 
   function stop() {
     stopped = true;
+    pendingAutoCompare = false;
     if (taskId) call("info/cancel", { id: taskId }).catch(() => {});
     finish("Stopped.");
   }
 
+  function applyMatchedHighlight() {
+    for (const tr of results.querySelectorAll("tr[data-hash-id]")) {
+      const isMatch = Boolean(matchedId && tr.dataset.hashId === matchedId);
+      tr.classList.toggle("fi-hash-row-match", isMatch);
+      if (isMatch) tr.setAttribute("aria-current", "true");
+      else tr.removeAttribute("aria-current");
+      const badge = tr.querySelector(".fi-hash-match-badge");
+      if (badge) badge.hidden = !isMatch;
+    }
+  }
+
+  const PREFIX_ALIASES = {
+    sha2256: "sha256",
+    sha2512: "sha512",
+    sha2384: "sha384",
+    sha2224: "sha224",
+    crc: "crc32",
+  };
+
+  async function ensurePrefixedKindTicked(expectedText) {
+    const prefix = /^([a-z][a-z0-9\-/]*)\s*(?:\([^)\r\n]*\)\s*=|[:=(])/i.exec(
+      String(expectedText || "").trim(),
+    );
+    if (!prefix) return null;
+    await loadKinds();
+    if (!kinds?.kinds) return null;
+    const rawNorm = prefix[1].toLowerCase().replace(/[^a-z0-9]/g, "");
+    const norm = PREFIX_ALIASES[rawNorm] || rawNorm;
+    const hit = kinds.kinds.find(
+      (k) =>
+        k.id.toLowerCase().replace(/[^a-z0-9]/g, "") === norm ||
+        k.label.toLowerCase().replace(/[^a-z0-9]/g, "") === norm,
+    );
+    if (hit) {
+      ticked.add(hit.id);
+      const box = kindsBox.querySelector(`input[data-kind-id="${hit.id}"]`);
+      if (box) box.checked = true;
+      return hit.id;
+    }
+    return null;
+  }
+
   async function check() {
+    if (!input.value.trim()) return;
+    const neededId = await ensurePrefixedKindTicked(input.value);
+    if (!rows.length || (neededId && !rows.some((r) => r.id === neededId))) {
+      pendingAutoCompare = true;
+      compareResult.textContent =
+        "Calculating fingerprints to verify your pasted checksum…";
+      compareResult.className = "fi-compare-result";
+      if (!start.disabled) await begin();
+      return;
+    }
     compareResult.textContent = "";
     try {
+      const fileName = String(path || "")
+        .split(/[\\/]/)
+        .pop();
       const r = await call("info/compare", {
         expected: input.value,
         rows: rows.map(({ id, value }) => ({ id, value })),
+        ...(fileName ? { fileName } : {}),
       });
+      matchedId = r.matched || null;
+      applyMatchedHighlight();
       compareResult.textContent = `${r.matched ? "✔ Match. " : "✖ No match. "}${r.hint}`;
       compareResult.className = `fi-compare-result ${r.matched ? "fi-good" : "fi-warn"}`;
     } catch (err) {
+      matchedId = null;
+      applyMatchedHighlight();
       compareResult.textContent =
         err instanceof ApiError ? err.message : "That didn't work.";
       compareResult.className = "fi-compare-result fi-warn";

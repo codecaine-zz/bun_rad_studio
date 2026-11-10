@@ -1661,4 +1661,49 @@ describe("built-in developer power features in the UI", () => {
     restoreBtn.click();
     expect(mdTa.value).toBe(originalMd);
   });
+
+  test(".env Live Inspector masks secret keys by default, preserves # inside quotes, reveals on demand, and jumps to lines", async () => {
+    writeFileSync(
+      join(work, ".env.local"),
+      [
+        "# App settings",
+        "PORT=8080",
+        'DATABASE_PASSWORD="s3cr3t#with#hashes"',
+        "PUBLIC_URL=https://example.test",
+      ].join("\n"),
+    );
+    await openFile(".env.local");
+    const pvBtn = [...doc.querySelectorAll(".code-toolbar .code-btn")].find(
+      (b: any) => b.textContent.includes("Preview"),
+    ) as any;
+    expect(pvBtn.hidden).toBe(false);
+    pvBtn.click();
+    await sleep(80);
+    const pvPane: any = doc.querySelector(".code-preview-pane");
+    expect(pvPane.hidden).toBe(false);
+    expect(pvPane.querySelectorAll("[style]").length).toBe(0);
+
+    // PORT is plain; DATABASE_PASSWORD is masked by default
+    expect(pvPane.textContent).toContain("8080");
+    expect(pvPane.textContent).not.toContain("s3cr3t#with#hashes");
+
+    // Individual Show button reveals the exact quoted secret with # preserved
+    const showBtn = [...pvPane.querySelectorAll("button")].find((b: any) =>
+      b.textContent.includes("Show"),
+    ) as any;
+    expect(showBtn).toBeTruthy();
+    showBtn.click();
+    expect(pvPane.textContent).toContain("s3cr3t#with#hashes");
+
+    // Clicking variable name jumps editor cursor to line 3
+    const keyBtn = [...pvPane.querySelectorAll(".code-env-key-btn")].find(
+      (b: any) => b.textContent === "DATABASE_PASSWORD",
+    ) as any;
+    keyBtn.click();
+    await sleep(40);
+    expect(status("pos")).toContain("Ln 3");
+
+    pvBtn.click();
+    await sleep(40);
+  });
 });

@@ -234,6 +234,11 @@ function createTool(root, info) {
         targets,
       });
       if (mine !== token) return;
+      const prevSelected = results.selected?.() || "";
+      const keepInputFocus =
+        form.el.contains(document.activeElement) &&
+        (document.activeElement instanceof HTMLInputElement ||
+          document.activeElement instanceof HTMLTextAreaElement);
       stale = false;
       results.setResult(r);
       inspector.clear();
@@ -249,12 +254,19 @@ function createTool(root, info) {
         say(
           `Found ${plural(s.replacements, "match", "matches")}, but replacing them wouldn't change any file.`,
         );
-      else
+      else {
         say(
           `${plural(s.replacements, "replacement")} ready in ${plural(s.filesChanged, "file")}. Click a file to see its changes, untick files you don't want to change, then press Replace.`,
           "ok",
         );
-      results.focusFirst();
+        const kept =
+          prevSelected &&
+          r.files.find((f) => f.path === prevSelected && f.changed);
+        const firstChanged =
+          kept ?? r.files.find((f) => f.changed) ?? r.files[0];
+        if (firstChanged) results.select(firstChanged.path);
+      }
+      if (!keepInputFocus) results.focusFirst();
     } catch (err) {
       if (mine === token) say(problem(err), "bad");
     } finally {

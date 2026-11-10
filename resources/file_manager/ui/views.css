@@ -359,6 +359,7 @@ body:not(.ready) #stage {
 #app.power-max #status,
 #app.power-max #terminal-panel,
 #app.power-max #power-panel > .power-filter,
+#app.power-max #power-panel > .power-quick-strip,
 #app.power-max #power-panel > .power-head,
 #app.power-max .embed-pane > .embed-bar,
 #app.power-max .games-pane.games-mode-play > .games-topbar,
@@ -380,6 +381,7 @@ body:not(.ready) #stage {
 #app.db-studio-max #status,
 #app.db-studio-max #terminal-panel,
 #app.db-studio-max #power-panel > .power-filter,
+#app.db-studio-max #power-panel > .power-quick-strip,
 #app.db-studio-max #power-panel > .power-head,
 #app[data-workspace="split"].db-studio-max #body,
 #app[data-workspace="split"].db-studio-max #splitter,
@@ -1020,6 +1022,55 @@ body:not(.ready) #stage {
   gap: 0.1rem;
   min-width: 0;
   border-radius: 0.35rem;
+  padding-left: 4px;
+}
+.tree-row[data-depth="1"] {
+  padding-left: 16px;
+}
+.tree-row[data-depth="2"] {
+  padding-left: 28px;
+}
+.tree-row[data-depth="3"] {
+  padding-left: 40px;
+}
+.tree-row[data-depth="4"] {
+  padding-left: 52px;
+}
+.tree-row[data-depth="5"] {
+  padding-left: 64px;
+}
+.tree-row[data-depth="6"] {
+  padding-left: 76px;
+}
+.tree-row[data-depth="7"] {
+  padding-left: 88px;
+}
+.tree-row[data-depth="8"] {
+  padding-left: 100px;
+}
+.tree-empty[data-empty-depth="1"] {
+  padding-left: 36px;
+}
+.tree-empty[data-empty-depth="2"] {
+  padding-left: 48px;
+}
+.tree-empty[data-empty-depth="3"] {
+  padding-left: 60px;
+}
+.tree-empty[data-empty-depth="4"] {
+  padding-left: 72px;
+}
+.tree-empty[data-empty-depth="5"] {
+  padding-left: 84px;
+}
+.tree-empty[data-empty-depth="6"] {
+  padding-left: 96px;
+}
+.tree-empty[data-empty-depth="7"] {
+  padding-left: 108px;
+}
+.tree-empty[data-empty-depth="8"] {
+  padding-left: 120px;
 }
 .tree-row:hover {
   background: var(--hover);
@@ -1208,7 +1259,7 @@ body:not(.ready) #stage {
   flex-direction: column;
   background: var(--bg);
   container-type: inline-size;
-  container-name: dualpane;
+  container-name: dualpane files;
 }
 .dual-head {
   display: flex;
@@ -1373,6 +1424,13 @@ body:not(.ready) #stage {
     .row {
     grid-template-columns: 2.2rem minmax(6rem, 1fr) 10rem 6rem;
   }
+  #app[data-workspace="dual"] .list-head:has(.h-where:not([hidden])),
+  #app[data-workspace="dual"] .view-details.searching .row,
+  #app[data-workspace="dual"] .view-details.in-trash .row {
+    grid-template-columns:
+      2.2rem minmax(6rem, 1fr) minmax(5rem, 9rem)
+      8.5rem 5.5rem;
+  }
   #app[data-workspace="dual"] .list-head .h-type,
   #app[data-workspace="dual"] .view-details .c-type,
   #app[data-workspace="dual"] .list-head .h-ext,
@@ -1388,6 +1446,13 @@ body:not(.ready) #stage {
     .view-details:not(.searching):not(.in-trash)
     .row {
     grid-template-columns: 2.2rem minmax(6rem, 1fr) 10rem 6rem;
+  }
+  #app[data-workspace="dual"] .list-head:has(.h-where:not([hidden])),
+  #app[data-workspace="dual"] .view-details.searching .row,
+  #app[data-workspace="dual"] .view-details.in-trash .row {
+    grid-template-columns:
+      2.2rem minmax(6rem, 1fr) minmax(5rem, 9rem)
+      8.5rem 5.5rem;
   }
   #app[data-workspace="dual"] .list-head .h-type,
   #app[data-workspace="dual"] .view-details .c-type,
@@ -1405,6 +1470,11 @@ body:not(.ready) #stage {
     .row {
     grid-template-columns: 2.2rem minmax(5rem, 1fr) 5.5rem;
   }
+  #app[data-workspace="dual"] .list-head:has(.h-where:not([hidden])),
+  #app[data-workspace="dual"] .view-details.searching .row,
+  #app[data-workspace="dual"] .view-details.in-trash .row {
+    grid-template-columns: 2.2rem minmax(5rem, 1fr) minmax(4rem, 7rem) 5.5rem;
+  }
 }
 @container dualpane (max-width: 440px) {
   #app[data-workspace="dual"] .list-head:not(:has(.h-where:not([hidden]))),
@@ -1412,6 +1482,11 @@ body:not(.ready) #stage {
     .view-details:not(.searching):not(.in-trash)
     .row {
     grid-template-columns: 2.2rem minmax(5rem, 1fr) 5.5rem;
+  }
+  #app[data-workspace="dual"] .list-head:has(.h-where:not([hidden])),
+  #app[data-workspace="dual"] .view-details.searching .row,
+  #app[data-workspace="dual"] .view-details.in-trash .row {
+    grid-template-columns: 2.2rem minmax(5rem, 1fr) minmax(4rem, 7rem) 5.5rem;
   }
   #app[data-workspace="dual"] .list-head .h-date,
   #app[data-workspace="dual"] .view-details .c-date {
@@ -1481,13 +1556,13 @@ body:not(.ready) #stage {
   color: var(--accent);
   font-weight: 700;
 }
-.crumb-sep {
+button.crumb-sep {
   cursor: pointer;
   padding: 0.1rem 0.28rem;
   border-radius: 0.25rem;
   user-select: none;
 }
-.crumb-sep:hover {
+button.crumb-sep:hover {
   background: var(--hover);
   color: var(--accent);
 }
@@ -1665,6 +1740,9 @@ body:not(.ready) #stage {
 }
 #app[data-density="compact"] .view-list .row {
   padding: 0.16rem 0.35rem;
+}
+#app[data-density="compact"] .view-icons .row {
+  padding: 0.3rem 0.25rem;
 }
 #app[data-density="spacious"] .view-details .row {
   min-height: 2.75rem;

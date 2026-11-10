@@ -5,6 +5,7 @@
  * Everything here takes the platform as a parameter (default: this machine), so the Windows rules can be tested
  * on macOS or Linux. Nothing here touches the disk except where a function says so.
  */
+import { homedir } from "os";
 import * as nodePath from "path";
 
 /** Normalized operating system platform identifier used across File Manager path and permission rules. */
@@ -14,12 +15,22 @@ export type Platform = "win32" | "darwin" | "linux";
 export const MAX_NAME_LENGTH = 255;
 
 function pathFor(platform: Platform, sample?: string) {
-  return platform === "win32" ||
-    (process.platform === "win32" &&
-      typeof sample === "string" &&
-      (/^[A-Za-z]:[\\/]/.test(sample) || sample.startsWith("\\")))
-    ? nodePath.win32
-    : nodePath.posix;
+  if (
+    process.platform === "win32" &&
+    typeof sample === "string" &&
+    (/^[A-Za-z]:[\\/]/.test(sample) || sample.startsWith("\\"))
+  ) {
+    return nodePath.win32;
+  }
+  if (
+    process.platform !== "win32" &&
+    typeof sample === "string" &&
+    sample.startsWith("/") &&
+    !sample.startsWith("//")
+  ) {
+    return nodePath.posix;
+  }
+  return platform === "win32" ? nodePath.win32 : nodePath.posix;
 }
 
 /** Normalizes a `process.platform` string into one of `"win32"`, `"darwin"`, or `"linux"`. */
@@ -353,7 +364,7 @@ export function parseTypedPath(
   home: string,
   platform: Platform = platformName(),
 ): string | null {
-  const p = pathFor(platform);
+  const p = pathFor(platform, home);
   let text = typeof input === "string" ? input.trim() : "";
   if (!text || text.includes("\0")) return null;
   if (
@@ -364,6 +375,41 @@ export function parseTypedPath(
   if (!text) return null;
   if (/^file:\/\//i.test(text))
     return text.length > 7 ? fileUrlToPath(text, platform) : null;
+  const hostHome = homedir();
+  const isHostHome =
+    (platform === "win32") === (process.platform === "win32") &&
+    Boolean(hostHome) &&
+    (platform === "win32"
+      ? p.resolve(home).toLowerCase() === p.resolve(hostHome).toLowerCase()
+      : p.resolve(home) === p.resolve(hostHome));
+  const appData =
+    (isHostHome ? process.env.APPDATA : undefined) ??
+    p.join(home, "AppData", "Roaming");
+  const localAppData =
+    (isHostHome ? process.env.LOCALAPPDATA : undefined) ??
+    p.join(home, "AppData", "Local");
+  const tempDir =
+    platform === "win32"
+      ? ((isHostHome ? (process.env.TEMP ?? process.env.TMP) : undefined) ??
+        p.join(localAppData, "Temp"))
+      : ((isHostHome
+          ? (process.env.TMPDIR ?? process.env.TMP ?? process.env.TEMP)
+          : undefined) ?? "/tmp");
+  const envLookup = (rawKey: string): string | null => {
+    const key = rawKey.toUpperCase();
+    if (key === "HOME" || key === "USERPROFILE" || key === "HOMEPATH")
+      return home;
+    if (key === "APPDATA") return appData;
+    if (key === "LOCALAPPDATA") return localAppData;
+    if (key === "TMPDIR" || key === "TEMP" || key === "TMP") return tempDir;
+    return null;
+  };
+  text = text
+    .replace(/%([A-Za-z_][A-Za-z0-9_]*)%/g, (m, k) => envLookup(k) ?? m)
+    .replace(
+      /\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)/g,
+      (m, braced, bare) => envLookup(braced || bare) ?? m,
+    );
   if (text === "~") return p.resolve(home);
   if (/^~[\\/]/.test(text)) return p.resolve(home, text.slice(2));
   if (platform === "win32") {

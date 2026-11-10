@@ -51,7 +51,12 @@ import {
   reopenClosedTab,
 } from "./tabs.js";
 import { lockSelection } from "./vault.js";
-import { goRightBack, goRightForward } from "./dual.js";
+import {
+  focusRightSearch,
+  goRightBack,
+  goRightForward,
+  openRightAddressEdit,
+} from "./dual.js";
 
 /** On Windows and Linux, Backspace goes up a folder. Someone on a Mac keyboard pressed their Delete key: say once how to change it. */
 function hintBackspace(action, key) {
@@ -236,7 +241,8 @@ const FILE_ACTIONS = {
     void (activePane().side === "left" ? goForward() : goRightForward()),
   "nav.up": () => void (canGoUpIn(activePane()) ? goUpIn(activePane()) : null),
   "nav.home": () => void (state.home ? goToIn(activePane(), state.home) : null),
-  "nav.address": () => editAddress(),
+  "nav.address": () =>
+    activePane().side === "right" ? openRightAddressEdit() : editAddress(),
   "nav.favorites": () => showFavoritesMenu({ x: 40, y: 90 }),
   "nav.recents": () =>
     showRecentsMenu(document.getElementById("tool-recent") ?? { x: 80, y: 90 }),
@@ -245,7 +251,8 @@ const FILE_ACTIONS = {
   "nav.closeTab": () => void closeTab(),
   "nav.reopenTab": () => void reopenClosedTab(),
   "file.editInCode": () => editInCode(),
-  "nav.search": () => focusSearch(),
+  "nav.search": () =>
+    activePane().side === "right" ? focusRightSearch() : focusSearch(),
   "nav.quickFilter": () => emit("focus-quick-filter"),
   "file.selectAll": () => selectAll(),
   "file.selectByPattern": () => emit("select-pattern-dialog"),
@@ -433,11 +440,10 @@ export function wireKeys() {
       target.closest("button, [role=tab], [role=radio], a[href]")
     )
       return;
-    // The other panes (tools, Home, the Dual view's buttons, the view switcher) have their own keys; the list shortcuts below are for the file lists.
+    // The other panes (tools, Home, the view switcher) have their own keys; Dual pane controls still honor file/nav shortcuts.
     if (
       target instanceof Element &&
-      target.closest("#power-panel, #home, #dual-pane, #viewbar, #splitter") &&
-      !target.closest("#dual-list")
+      target.closest("#power-panel, #home, #viewbar, #splitter")
     ) {
       const inPane = actionFor(e, IN_PANES);
       if (inPane) {
@@ -454,6 +460,14 @@ export function wireKeys() {
       stop();
       hintBackspace(listAction, key);
       return void FILE_ACTIONS[listAction]();
+    }
+
+    if (
+      target instanceof Element &&
+      target.closest("#dual-pane") &&
+      !target.closest("#dual-list")
+    ) {
+      return;
     }
 
     // Choosing and opening

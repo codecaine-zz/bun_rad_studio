@@ -24,7 +24,14 @@ import {
   visibleEntries,
 } from "./nav.js";
 import * as ops from "./ops.js";
-import { activePane, hooks, isFolderView } from "./pane.js";
+import {
+  activePane,
+  hooks,
+  inTrash as paneInTrashOf,
+  isFolderView,
+  left,
+  setActivePane,
+} from "./pane.js";
 import { emit, inTrash, on, state } from "./state.js";
 import { hintOf } from "./keymap.js";
 import { selectAll, selectedEntries } from "./selection.js";
@@ -34,12 +41,29 @@ import { themeMenuItems } from "./themeMenu.js";
 import {
   baseName,
   collapseCrumbs,
+  formatSize,
   parentOf,
   plural,
   splitPath,
 } from "./util.js";
 
 const mod = () => (state.platform === "darwin" ? "⌘" : "Ctrl+");
+const copyFeedbackTimers = new WeakMap();
+
+function flashCopyButton(btn) {
+  if (!btn) return;
+  const prev = copyFeedbackTimers.get(btn);
+  if (prev) clearTimeout(prev.timer);
+  const orig = prev ? prev.orig : btn.textContent || "📋";
+  btn.textContent = "✓";
+  btn.classList.add("copied");
+  const timer = setTimeout(() => {
+    btn.textContent = orig;
+    btn.classList.remove("copied");
+    copyFeedbackTimers.delete(btn);
+  }, 1200);
+  copyFeedbackTimers.set(btn, { timer, orig });
+}
 
 // ---------------------------------------------------------------------------------------------------------------
 // Buttons
@@ -51,6 +75,7 @@ function buttonSpecs() {
   const sel = () => selectedEntries(activePane()).length;
   const folderView = () => isFolderView(activePane());
   const onLeft = () => activePane().side === "left";
+  const paneTrash = () => paneInTrashOf(activePane());
   return [
     [
       {
@@ -110,7 +135,7 @@ function buttonSpecs() {
         },
         run: ops.newFolder,
         enabled: folderView,
-        hide: inTrash,
+        hide: paneTrash,
       },
       {
         id: "newFile",
@@ -121,7 +146,7 @@ function buttonSpecs() {
         },
         run: ops.newFile,
         enabled: folderView,
-        hide: inTrash,
+        hide: paneTrash,
       },
       {
         id: "newSqlite",
@@ -132,7 +157,7 @@ function buttonSpecs() {
         },
         run: ops.newSqlite,
         enabled: folderView,
-        hide: inTrash,
+        hide: paneTrash,
       },
       {
         id: "newTemplate",
@@ -143,7 +168,7 @@ function buttonSpecs() {
         },
         run: () => emit("new-template-dialog"),
         enabled: folderView,
-        hide: inTrash,
+        hide: paneTrash,
       },
     ],
     [
@@ -155,8 +180,8 @@ function buttonSpecs() {
           return `Select every item in this folder${hintOf("file.selectAll")}`;
         },
         run: () => selectAll(),
-        enabled: () => !inTrash() && visibleEntries(activePane()).length > 0,
-        hide: inTrash,
+        enabled: () => !paneTrash() && visibleEntries(activePane()).length > 0,
+        hide: paneTrash,
       },
       {
         id: "toTerminal",
@@ -182,7 +207,7 @@ function buttonSpecs() {
         },
         run: ops.cutSelection,
         enabled: () => sel() > 0,
-        hide: inTrash,
+        hide: paneTrash,
       },
       {
         id: "copy",
@@ -193,7 +218,7 @@ function buttonSpecs() {
         },
         run: ops.copySelection,
         enabled: () => sel() > 0,
-        hide: inTrash,
+        hide: paneTrash,
       },
       {
         id: "paste",
@@ -204,7 +229,7 @@ function buttonSpecs() {
         },
         run: ops.paste,
         enabled: () => !!state.clipboard && folderView(),
-        hide: inTrash,
+        hide: paneTrash,
       },
     ],
     [
@@ -217,7 +242,7 @@ function buttonSpecs() {
         },
         run: ops.renameSelection,
         enabled: () => sel() > 0,
-        hide: inTrash,
+        hide: paneTrash,
       },
       {
         id: "delete",
@@ -228,7 +253,7 @@ function buttonSpecs() {
         },
         run: ops.trashSelection,
         enabled: () => sel() > 0,
-        hide: inTrash,
+        hide: paneTrash,
       },
       {
         id: "restore",
@@ -237,7 +262,7 @@ function buttonSpecs() {
         tip: "Put the selected items back where they were",
         run: ops.restoreFromBin,
         enabled: () => sel() > 0,
-        show: inTrash,
+        show: paneTrash,
         primary: true,
       },
       {
@@ -247,7 +272,7 @@ function buttonSpecs() {
         tip: "Delete the selected items permanently",
         run: ops.trashSelection,
         enabled: () => sel() > 0,
-        show: inTrash,
+        show: paneTrash,
       },
       {
         id: "empty",
@@ -256,7 +281,7 @@ function buttonSpecs() {
         tip: "Delete everything in the Recycle Bin",
         run: ops.emptyBin,
         enabled: () => state.trashCount > 0,
-        show: inTrash,
+        show: paneTrash,
       },
     ],
     [
@@ -640,12 +665,17 @@ export function renderAddress() {
     attachDropTarget(el, { getPath: () => c.path });
     box.append(el);
     if (!last) {
+      const labelForSep =
+        c.name && c.name !== "…"
+          ? c.name
+          : baseName(c.path, state.sep) || c.path;
       const sepEl = h(
-        "span",
+        "button",
         {
+          type: "button",
           class: "crumb-sep",
-          "aria-hidden": "true",
-          title: `Browse folders inside ${c.name || c.path}`,
+          title: `Browse folders inside ${labelForSep}`,
+          "aria-label": `Browse folders inside ${labelForSep}`,
           onclick: (e) => {
             e.stopPropagation();
             void showChildFoldersMenu(c.path, sepEl);
@@ -658,8 +688,11 @@ export function renderAddress() {
   });
 }
 
+let hideAddrTimer = 0;
+
 function showAddressEditor() {
   if (inTrash() || state.search) return;
+  clearTimeout(hideAddrTimer);
   const input = addressInput();
   crumbsEl().hidden = true;
   input.hidden = false;
@@ -669,6 +702,7 @@ function showAddressEditor() {
 }
 
 function hideAddressEditor() {
+  clearTimeout(hideAddrTimer);
   addressInput().hidden = true;
   crumbsEl().hidden = false;
 }
@@ -711,15 +745,32 @@ export function wireAddress() {
       $("#list").focus();
     }
   });
-  input.addEventListener("blur", () => setTimeout(hideAddressEditor, 120));
-  $("#edit-address").addEventListener("click", showAddressEditor);
+  input.addEventListener("blur", () => {
+    clearTimeout(hideAddrTimer);
+    hideAddrTimer = setTimeout(hideAddressEditor, 120);
+  });
+  const editAddrBtn = $("#edit-address");
+  editAddrBtn?.addEventListener("mousedown", (e) => {
+    if (!addressInput().hidden) e.preventDefault();
+  });
+  editAddrBtn?.addEventListener("click", () => {
+    if (!addressInput().hidden) {
+      hideAddressEditor();
+      $("#list")?.focus();
+    } else {
+      showAddressEditor();
+    }
+  });
   $("#pin-folder")?.addEventListener("click", () => {
     if (!inTrash() && state.location.path)
       void ops.toggleFavorite(state.location.path);
   });
-  $("#copy-address")?.addEventListener("click", () => {
-    if (!inTrash() && state.location.path)
-      void ops.copyPathOf([{ path: state.location.path }]);
+  const copyAddrBtn = $("#copy-address");
+  copyAddrBtn?.addEventListener("click", async () => {
+    if (!inTrash() && state.location.path) {
+      const ok = await ops.copyPathOf([{ path: state.location.path }]);
+      if (ok !== false) flashCopyButton(copyAddrBtn);
+    }
   });
 }
 
@@ -745,6 +796,7 @@ export function updateSearchBox() {
     ? "Search isn't available here"
     : `Search in ${name}`;
   input.setAttribute("aria-label", input.placeholder);
+  input.title = input.placeholder;
   if (!state.search && document.activeElement !== input) input.value = "";
 }
 
@@ -793,22 +845,62 @@ export function renderBanner() {
       ),
       h(
         "button",
-        { type: "button", class: "btn", onclick: clearSearch },
+        {
+          type: "button",
+          class: "btn",
+          title: "Exit search results and return to the folder",
+          onclick: clearSearch,
+        },
         "Clear search",
       ),
     ];
   } else if (inTrash()) {
+    const totalBytes = (state.trashItems ?? []).reduce(
+      (sum, it) => sum + (Number(it.size) || 0),
+      0,
+    );
+    const selCount = selectedEntries(left).length;
+    const summaryPrefix = state.trashCount
+      ? `${plural(state.trashCount, "item")} (${formatSize(totalBytes)}) in the Recycle Bin. `
+      : "";
     content = [
       h(
         "span",
         {},
-        "Deleted items stay here until you empty the Recycle Bin. Select an item and press Restore to get it back.",
+        `${summaryPrefix}Deleted items stay here until you empty the Recycle Bin. Select an item and press Restore to get it back.`,
       ),
       state.trashCount
         ? h(
-            "button",
-            { type: "button", class: "btn", onclick: ops.emptyBin },
-            "Empty Recycle Bin",
+            "div",
+            { class: "banner-actions" },
+            selCount > 0
+              ? h(
+                  "button",
+                  {
+                    type: "button",
+                    class: "btn primary",
+                    title:
+                      "Restore the selected items back to their original folders",
+                    onclick: () => {
+                      setActivePane("left");
+                      void ops.restoreFromBin();
+                    },
+                  },
+                  selCount > 1
+                    ? `↩ Restore selected (${selCount})`
+                    : "↩ Restore selected",
+                )
+              : null,
+            h(
+              "button",
+              {
+                type: "button",
+                class: "btn",
+                title: "Permanently delete all items in the Recycle Bin",
+                onclick: ops.emptyBin,
+              },
+              "Empty Recycle Bin",
+            ),
           )
         : null,
     ];
@@ -859,6 +951,7 @@ export function wireToolbar() {
     }
   }
   const refreshAll = () => {
+    if (inTrash()) renderBanner();
     updateToolbar();
   };
   on("selection", refreshAll);

@@ -227,11 +227,20 @@ function exportTable(
   }
   if (scope === "todo" && job.kind === "todo") {
     const r = job.result as TodoReport;
+    const q = typeof b.filter === "string" ? b.filter.trim().toLowerCase() : "";
+    const items = q
+      ? r.items.filter(
+          (i) =>
+            i.path.toLowerCase().includes(q) ||
+            i.tag.toLowerCase().includes(q) ||
+            i.text.toLowerCase().includes(q),
+        )
+      : r.items;
     return {
       title: "TODO and FIXME markers",
       columns: ["Tag", "Path", "Line", "Text"],
-      rows: r.items.map((i) => [i.tag, i.path, i.line, i.text]),
-      meta: { folder: r.root, counts: r.counts },
+      rows: items.map((i) => [i.tag, i.path, i.line, i.text]),
+      meta: { folder: r.root, counts: r.counts, ...(q ? { filter: q } : {}) },
     };
   }
   if (scope === "disk" && job.kind === "disk") {
