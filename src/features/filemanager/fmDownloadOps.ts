@@ -28,9 +28,12 @@ const MAX_URLS_PER_ADD = 200;
 export function downloadsOf(ctx: FmContext): DownloadManager {
   let m = managers.get(ctx);
   if (!m) {
+    const allowPrivate = Boolean(ctx.allowPrivateDownloads);
     m = new DownloadManager({
       file: nodePath.join(ctx.dataDir, "file_manager_downloads.json"),
       defaultFolder: nodePath.join(ctx.home, "Downloads"),
+      allowPrivateNetworks: allowPrivate,
+      allowLoopback: allowPrivate,
     });
     managers.set(ctx, m);
     const own = m;
@@ -75,16 +78,21 @@ export const downloadOperations: Record<string, FmHandler> = {
   },
 
   /** What a server says about an address: its name, size and whether it can be split and resumed. */
-  async "dl/probe"(_ctx, b) {
+  async "dl/probe"(ctx, b) {
     const urls = parseUrlList(b.url);
     if (urls.length !== 1)
       throw new FmError("BAD_REQUEST", "Give one address.");
+    const allowPrivate = Boolean(ctx.allowPrivateDownloads);
     try {
       const r = await probeUrl(
         urls[0]!,
         b.headers && typeof b.headers === "object" ? b.headers : undefined,
         fetch,
         AbortSignal.timeout(15000),
+        {
+          allowPrivateNetworks: allowPrivate,
+          allowLoopback: allowPrivate,
+        },
       );
       return {
         name: r.name,

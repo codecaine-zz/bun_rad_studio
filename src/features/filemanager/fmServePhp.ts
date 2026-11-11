@@ -5,8 +5,16 @@
  * with SIGTERM then SIGKILL, with its helper processes, when the File Manager stops, and as a last resort when
  * this program exits. PHP's own "development server only" warning applies: it is not meant for a network.
  */
-import { promises as fsp, statSync } from "fs";
+import {
+  chmodSync,
+  mkdtempSync,
+  promises as fsp,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "fs";
 import { connect, createServer } from "net";
+import { tmpdir } from "os";
 import * as nodePath from "path";
 import type { Subprocess } from "bun";
 import type { FmContext } from "./fmCore";
@@ -337,6 +345,14 @@ export function killTree(pid: number, signal: "SIGTERM" | "SIGKILL"): void {
   if (!pid || pid <= 0) return;
   if (process.platform === "win32") {
     try {
+      Bun.spawnSync(["taskkill", "/PID", String(pid), "/T", "/F"], {
+        stdout: "ignore",
+        stderr: "ignore",
+        stdin: "ignore",
+        timeout: 3000,
+      });
+    } catch {}
+    try {
       process.kill(pid, signal);
     } catch {}
     return;
@@ -407,7 +423,45 @@ export function explainPhpFailure(
     : `PHP stopped as soon as it started, without saying why. Try running "php -S ${host}:${port}" in a terminal to see the problem.`;
 }
 
-/** A development server shows PHP's errors in the page and the log, whatever the installed php.ini (Linux packages ship with display_errors off). */
+const PHP_HOST_GUARD_SCRIPT = `<?php
+if (PHP_SAPI === 'cli-server') {
+  $__fmAddr = $_SERVER['SERVER_ADDR'] ?? '';
+  if ($__fmAddr === '127.0.0.1' || $__fmAddr === '::1') {
+    $__fmPort = (string)($_SERVER['SERVER_PORT'] ?? '');
+    $__fmHost = strtolower(trim((string)($_SERVER['HTTP_HOST'] ?? '')));
+    $__fmOk = $__fmHost === '127.0.0.1:' . $__fmPort
+      || $__fmHost === 'localhost:' . $__fmPort
+      || $__fmHost === '[::1]:' . $__fmPort
+      || ($__fmPort === '80' && ($__fmHost === '127.0.0.1' || $__fmHost === 'localhost' || $__fmHost === '[::1]'));
+    if (!$__fmOk) {
+      http_response_code(403);
+      header('Content-Type: text/plain; charset=utf-8');
+      echo 'Forbidden: invalid Host header for loopback PHP server.';
+      exit;
+    }
+  }
+  unset($__fmAddr, $__fmPort, $__fmHost, $__fmOk);
+}
+`;
+
+function createPhpHostGuardFile(): string {
+  const dir = mkdtempSync(nodePath.join(tmpdir(), "fm-php-guard-"));
+  try {
+    chmodSync(dir, 0o755);
+  } catch {}
+  const file = nodePath.join(dir, "host_guard.php");
+  writeFileSync(file, PHP_HOST_GUARD_SCRIPT, { mode: 0o444 });
+  process.on("exit", () => {
+    try {
+      rmSync(dir, { recursive: true, force: true });
+    } catch {}
+  });
+  return file;
+}
+
+const PHP_HOST_GUARD_FILE = createPhpHostGuardFile();
+
+/** A development server shows PHP's errors in the page and the log, whatever the installed php.ini (Linux packages ship with display_errors off), and guards loopback `Host` headers against DNS rebinding. */
 export const DEV_INI = [
   "-d",
   "display_errors=1",
@@ -415,6 +469,8 @@ export const DEV_INI = [
   "error_reporting=E_ALL",
   "-d",
   "log_errors=1",
+  "-d",
+  `auto_prepend_file=${PHP_HOST_GUARD_FILE}`,
 ];
 
 /** Spawns `php -S <host>:<port> -t <docroot>`, waits until it accepts connections, and streams output to `o.log`. */
@@ -490,16 +546,10 @@ export async function startPhp(o: PhpStartOptions): Promise<PhpProcess> {
   if (!ready) {
     const died = proc.exitCode !== null;
     if (!died) {
-      if (process.platform === "win32") {
-        try {
-          process.kill(pid);
-        } catch {}
-      } else {
-        killTree(pid, "SIGKILL");
-        try {
-          proc.kill("SIGKILL");
-        } catch {}
-      }
+      killTree(pid, "SIGKILL");
+      try {
+        proc.kill("SIGKILL");
+      } catch {}
     }
     await exited;
     throw new FmError(
@@ -517,9 +567,7 @@ export async function startPhp(o: PhpStartOptions): Promise<PhpProcess> {
     async stop() {
       if (code !== null) return;
       if (process.platform === "win32") {
-        try {
-          process.kill(pid);
-        } catch {}
+        killTree(pid, "SIGKILL");
         await Promise.race([exited, Bun.sleep(1000)]);
         return;
       }
@@ -541,16 +589,12 @@ export async function startPhp(o: PhpStartOptions): Promise<PhpProcess> {
     },
     killNow() {
       if (code !== null) return;
-      if (process.platform === "win32") {
-        try {
-          process.kill(pid);
-        } catch {}
-        return;
-      }
       killTree(pid, "SIGKILL");
-      try {
-        proc.kill("SIGKILL");
-      } catch {}
+      if (process.platform !== "win32") {
+        try {
+          proc.kill("SIGKILL");
+        } catch {}
+      }
     },
   };
 }

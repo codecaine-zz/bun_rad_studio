@@ -6,17 +6,21 @@
 import {
   constants as fsConstants,
   copyFileSync,
-  existsSync,
-  linkSync,
   mkdirSync,
   mkdtempSync,
-  renameSync,
   rmSync,
   symlinkSync,
-  unlinkSync,
   writeFileSync,
 } from "fs";
-import { lstat, readdir, rm, unlink } from "fs/promises";
+import {
+  copyFile,
+  link,
+  lstat,
+  readdir,
+  rename,
+  rm,
+  unlink,
+} from "fs/promises";
 import { tmpdir } from "os";
 import * as nodePath from "path";
 import { randomBytes } from "crypto";
@@ -103,34 +107,39 @@ export function siblingTemp(final: string): string {
  * result appears complete or not at all, and a file that appeared at `final` in the meantime is never replaced
  * (the error code is EEXIST).
  */
-export function publishFile(source: string, final: string): void {
+export async function publishFile(
+  source: string,
+  final: string,
+): Promise<void> {
   const part = nodePath.join(
     nodePath.dirname(final),
     `.fm-part-${randomBytes(5).toString("hex")}`,
   );
-  copyFileSync(source, part, fsConstants.COPYFILE_EXCL);
+  await copyFile(source, part, fsConstants.COPYFILE_EXCL);
   try {
     try {
-      linkSync(part, final);
+      await link(part, final);
     } catch (err: any) {
       if (err?.code === "EEXIST") throw err;
       // Links aren't possible here (some network and FAT disks): check, then rename.
-      if (existsSync(final))
+      const existing = await lstat(final).catch(() => null);
+      if (existing)
         throw Object.assign(new Error("exists"), { code: "EEXIST" });
-      renameSync(part, final);
+      await rename(part, final);
     }
   } finally {
-    try {
-      unlinkSync(part);
-    } catch {}
+    await unlink(part).catch(() => {});
   }
 }
 
 /** Puts a finished folder at `final`; refuses when anything is there already. */
-export function publishFolder(source: string, final: string): void {
-  if (existsSync(final))
-    throw Object.assign(new Error("exists"), { code: "EEXIST" });
-  renameSync(source, final);
+export async function publishFolder(
+  source: string,
+  final: string,
+): Promise<void> {
+  const existing = await lstat(final).catch(() => null);
+  if (existing) throw Object.assign(new Error("exists"), { code: "EEXIST" });
+  await rename(source, final);
 }
 
 // ---------------------------------------------------------------------------------------------------------------

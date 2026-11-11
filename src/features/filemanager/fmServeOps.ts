@@ -51,6 +51,30 @@ const realOr = (p: string) => {
   }
 };
 
+const SENSITIVE_HOME_SUBDIRS = [
+  ".ssh",
+  ".aws",
+  ".gnupg",
+  ".kube",
+  ".docker",
+  ".azure",
+  ".gcloud",
+  ".config",
+  ".local",
+  ".pki",
+  ".mozilla",
+  ".thunderbird",
+  ".netrc",
+  "Library/Keychains",
+  "AppData",
+];
+
+function sensitiveHomeRoots(ctx: FmContext): string[] {
+  const p = pathApi(ctx);
+  const home = p.resolve(ctx.home);
+  return SENSITIVE_HOME_SUBDIRS.map((sub) => p.join(home, ...sub.split("/")));
+}
+
 /** A folder from the page that may be served: it exists, is a real folder, and isn't a place that is too broad or belongs to the system. */
 async function servableFolder(ctx: FmContext, input: unknown): Promise<string> {
   const root = absolutePath(ctx, input);
@@ -84,6 +108,17 @@ async function servableFolder(ctx: FmContext, input: unknown): Promise<string> {
         "PROTECTED",
         "That folder is too broad or belongs to the system to be served. Pick a project folder: not the top of a drive, your home folder or a system folder.",
       );
+    }
+    for (const sensitive of sensitiveHomeRoots(ctx)) {
+      if (
+        isSameOrInside(candidate, sensitive, ctx.platform) ||
+        isSameOrInside(candidate, realOr(sensitive), ctx.platform)
+      ) {
+        throw new FmError(
+          "PROTECTED",
+          "That folder holds private keys, credentials or application secrets and cannot be served over HTTP.",
+        );
+      }
     }
   }
   for (const own of ownFolders(ctx)) {
@@ -223,6 +258,17 @@ async function parseStart(ctx: FmContext, input: Record<string, any>) {
       "The address must be this computer only, or your network.",
     );
   const lan = host === "lan" || host === "0.0.0.0";
+  if (
+    lan &&
+    b.confirmed !== true &&
+    b.confirm !== true &&
+    (ctx.requireServeLanConfirm || b.confirmed === false || b.confirm === false)
+  ) {
+    throw new FmError(
+      "NEEDS_CONFIRM",
+      "Starting a server on your network exposes its files to other devices on the same Wi-Fi or LAN. Confirm to continue.",
+    );
+  }
   let php = "";
   let phpVersion: string | null = null;
   let router = "";

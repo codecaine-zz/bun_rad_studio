@@ -465,7 +465,9 @@ export function parseIni(text: string, infer: boolean, notes: Notes): Value {
     const section = /^\[([^\]]*)\]$/.exec(line);
     if (section) {
       const name = section[1]!.trim();
-      const existing = root[name];
+      const existing = Object.prototype.hasOwnProperty.call(root, name)
+        ? root[name]
+        : undefined;
       if (isObj(existing)) cur = existing;
       else {
         cur = newObj();
@@ -483,7 +485,9 @@ export function parseIni(text: string, infer: boolean, notes: Notes): Value {
     const v: Value = infer ? inferScalar(val) : val;
     if (key.endsWith("[]")) {
       key = key.slice(0, -2);
-      const list = cur[key];
+      const list = Object.prototype.hasOwnProperty.call(cur, key)
+        ? cur[key]
+        : undefined;
       if (Array.isArray(list)) list.push(v);
       else setKey(cur, key, [v]);
     } else {

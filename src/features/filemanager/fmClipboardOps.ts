@@ -6,12 +6,11 @@
  */
 import { spawnSync } from "child_process";
 import { createHash } from "crypto";
-import { existsSync, promises as fsp } from "fs";
+import { existsSync, lstatSync, promises as fsp, realpathSync } from "fs";
 import * as nodePath from "path";
 import {
   absolutePath,
   assertCreatable,
-  assertModifiable,
   pathApi,
   type FmContext,
   type FmHandler,
@@ -25,6 +24,7 @@ import {
   isDocumentPackageName,
   isSameOrInside,
   splitName,
+  validateName,
 } from "./fmPaths";
 import { imagePreviewFor } from "./fmQuickLook";
 
@@ -48,12 +48,66 @@ const IMAGE_MIME: Record<string, string> = {
   heic: "image/heic",
 };
 
+function assertInsideSandboxSync(ctx: FmContext, targetPath: string): void {
+  if (!ctx.sandboxRoot) return;
+  if (!isSameOrInside(targetPath, ctx.sandboxRoot, ctx.platform)) {
+    throw new FmError(
+      "FORBIDDEN",
+      "That location is outside the allowed workspace folder.",
+    );
+  }
+  const realSandbox = (() => {
+    try {
+      return realpathSync(ctx.sandboxRoot!);
+    } catch {
+      return ctx.sandboxRoot!;
+    }
+  })();
+  try {
+    let cur = nodePath.resolve(targetPath);
+    const tail: string[] = [];
+    for (let i = 0; i < 64; i++) {
+      try {
+        const real = realpathSync(cur);
+        const fullReal = tail.length
+          ? nodePath.join(real, ...tail.reverse())
+          : real;
+        if (!isSameOrInside(fullReal, realSandbox, ctx.platform)) {
+          throw new FmError(
+            "FORBIDDEN",
+            "That link points outside the allowed workspace folder.",
+          );
+        }
+        break;
+      } catch (err) {
+        if (err instanceof FmError) throw err;
+        const parent = nodePath.dirname(cur);
+        if (parent === cur) break;
+        tail.push(nodePath.basename(cur));
+        cur = parent;
+      }
+    }
+  } catch (err) {
+    if (err instanceof FmError) throw err;
+  }
+}
+
+function pathOccupiedSync(target: string): boolean {
+  try {
+    lstatSync(target);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function regularFile(
   ctx: FmContext,
   input: unknown,
   what: string,
 ): Promise<{ file: string; size: number }> {
   const file = absolutePath(ctx, input);
+  assertInsideSandboxSync(ctx, file);
   try {
     const st = await fsp.stat(file);
     if (!st.isFile())
@@ -146,17 +200,61 @@ export async function copyTextFileToClipboard(
   };
 }
 
-function nextAvailableFilePath(dir: string, preferredName: string): string {
-  const cleanName =
-    preferredName.replace(/[/\\]/g, "_").trim() || "Clipboard.png";
+function sanitizeLeafFileName(
+  preferredName: string,
+  fallbackName: string,
+  platform: FmContext["platform"] = "linux",
+): string {
+  const cleaned = preferredName
+    .replace(/[\0-\x1f/\\<>:"|?*]/g, "_")
+    .replace(/[. ]+$/, "")
+    .trim();
+  if (!cleaned || cleaned === "." || cleaned === "..") return fallbackName;
+  const bad = validateName(cleaned, platform);
+  return bad === null ? cleaned : fallbackName;
+}
+
+function nextAvailableFilePath(
+  dir: string,
+  preferredName: string,
+  platform: FmContext["platform"] = "linux",
+): string {
+  const cleanName = sanitizeLeafFileName(
+    preferredName,
+    "Clipboard.png",
+    platform,
+  );
   const candidate0 = nodePath.join(dir, cleanName);
-  if (!existsSync(candidate0)) return candidate0;
+  if (!pathOccupiedSync(candidate0)) return candidate0;
   const [stem, ext] = splitName(cleanName);
   for (let i = 2; i < 1000; i++) {
     const cand = nodePath.join(dir, `${stem} (${i})${ext}`);
-    if (!existsSync(cand)) return cand;
+    if (!pathOccupiedSync(cand)) return cand;
   }
   return nodePath.join(dir, `${stem}-${Date.now()}${ext}`);
+}
+
+async function writeNewFileExclusive(
+  dir: string,
+  preferredName: string,
+  data: Buffer | string,
+  platform: FmContext["platform"],
+): Promise<string> {
+  for (let attempt = 0; attempt < 32; attempt++) {
+    const targetPath = nextAvailableFilePath(dir, preferredName, platform);
+    try {
+      if (typeof data === "string") {
+        await fsp.writeFile(targetPath, data, { encoding: "utf8", flag: "wx" });
+      } else {
+        await fsp.writeFile(targetPath, data, { flag: "wx" });
+      }
+      return targetPath;
+    } catch (err: any) {
+      if (err?.code === "EEXIST") continue;
+      throw err;
+    }
+  }
+  throw new FmError("EEXIST", "Could not allocate a unique output file name.");
 }
 
 function resolveDirInput(ctx: FmContext, raw: unknown): string {
@@ -164,10 +262,12 @@ function resolveDirInput(ctx: FmContext, raw: unknown): string {
     typeof raw === "string" && raw.trim()
       ? raw.trim()
       : ctx.sandboxRoot || ctx.home;
-  if (nodePath.isAbsolute(s) || /^[A-Za-z]:[\\/]/.test(s)) {
-    return absolutePath(ctx, s);
-  }
-  return absolutePath(ctx, nodePath.join(ctx.sandboxRoot || ctx.home, s));
+  const resolved =
+    nodePath.isAbsolute(s) || /^[A-Za-z]:[\\/]/.test(s)
+      ? absolutePath(ctx, s)
+      : absolutePath(ctx, nodePath.join(ctx.sandboxRoot || ctx.home, s));
+  assertInsideSandboxSync(ctx, resolved);
+  return resolved;
 }
 
 /** Saves an image from the system clipboard (or provided base64 PNG) as a new .png file in `dirPath`. */
@@ -194,17 +294,34 @@ export async function pasteClipboardImageToFile(
           .trim()
           .replace(/(\.png)?$/i, ".png")
       : `Clipboard-${stamp}.png`;
-  const targetPath = nextAvailableFilePath(dir, defaultName);
 
   if (typeof payload?.base64Png === "string" && payload.base64Png.trim()) {
     const cleanB64 = payload.base64Png
       .trim()
       .replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/i, "");
+    const maxB64Chars = Math.ceil((MAX_CLIP_IMAGE_BYTES * 4) / 3) + 64;
+    if (cleanB64.length > maxB64Chars) {
+      throw new FmError(
+        "TOO_BIG",
+        `That clipboard image exceeds the ${formatSize(MAX_CLIP_IMAGE_BYTES)} limit.`,
+      );
+    }
     const buf = Buffer.from(cleanB64, "base64");
     if (buf.length === 0) {
       throw new FmError("EMPTY_IMAGE", "The clipboard image data was empty.");
     }
-    await fsp.writeFile(targetPath, buf);
+    if (buf.length > MAX_CLIP_IMAGE_BYTES) {
+      throw new FmError(
+        "TOO_BIG",
+        `That clipboard image exceeds the ${formatSize(MAX_CLIP_IMAGE_BYTES)} limit.`,
+      );
+    }
+    const targetPath = await writeNewFileExclusive(
+      dir,
+      defaultName,
+      buf,
+      ctx.platform,
+    );
     const st = await fsp.stat(targetPath);
     return {
       saved: true,
@@ -213,6 +330,8 @@ export async function pasteClipboardImageToFile(
       size: st.size,
     };
   }
+
+  const targetPath = nextAvailableFilePath(dir, defaultName, ctx.platform);
 
   let wrote = false;
   if (ctx.platform === "darwin") {
@@ -523,7 +642,7 @@ export async function tidyFolder(
   const reservedTargets = new Set<string>();
 
   for (const d of dirents) {
-    if (d.name.startsWith(".")) continue;
+    if (d.name.startsWith(".") || d.isSymbolicLink()) continue;
     if (TIDY_CATEGORY_FOLDERS.has(d.name)) continue;
     const isDocPkg = d.isDirectory() && isDocumentPackageName(d.name);
     if (d.isDirectory() && !isDocPkg) continue;
@@ -535,11 +654,11 @@ export async function tidyFolder(
     const categoryDir = nodePath.join(dir, category);
     const fromPath = nodePath.join(dir, d.name);
     let toPath = nodePath.join(categoryDir, d.name);
-    if (existsSync(toPath) || reservedTargets.has(toPath)) {
+    if (pathOccupiedSync(toPath) || reservedTargets.has(toPath)) {
       const [stem, ext] = splitName(d.name);
       for (let i = 2; i < 1000; i++) {
         const cand = nodePath.join(categoryDir, `${stem} (${i})${ext}`);
-        if (!existsSync(cand) && !reservedTargets.has(cand)) {
+        if (!pathOccupiedSync(cand) && !reservedTargets.has(cand)) {
           toPath = cand;
           break;
         }
@@ -563,7 +682,17 @@ export async function tidyFolder(
   const completedMoves: TidyMoveItem[] = [];
   for (const m of plannedMoves) {
     const catDir = nodePath.dirname(m.to);
+    const catStat = await fsp.lstat(catDir).catch(() => null);
+    if (catStat?.isSymbolicLink()) {
+      throw new FmError(
+        "FORBIDDEN",
+        `Refusing to move files through symbolic link folder "${nodePath.basename(catDir)}".`,
+      );
+    }
     await fsp.mkdir(catDir, { recursive: true });
+    if (pathOccupiedSync(m.to)) {
+      continue;
+    }
     await fsp.rename(m.from, m.to);
     completedMoves.push(m);
   }
@@ -663,14 +792,15 @@ export async function generateChecksums(
   const targetFiles: string[] = [];
   for (const raw of rawPaths) {
     const abs = absolutePath(ctx, raw);
-    const st = await fsp.stat(abs).catch(() => null);
-    if (!st) continue;
-    if (st.isFile()) {
+    assertInsideSandboxSync(ctx, abs);
+    const lst = await fsp.lstat(abs).catch(() => null);
+    if (!lst || lst.isSymbolicLink()) continue;
+    if (lst.isFile()) {
       targetFiles.push(abs);
-    } else if (st.isDirectory()) {
+    } else if (lst.isDirectory()) {
       const dirents = await fsp.readdir(abs, { withFileTypes: true });
       for (const d of dirents) {
-        if (d.isFile() && !d.name.startsWith(".")) {
+        if (d.isFile() && !d.isSymbolicLink() && !d.name.startsWith(".")) {
           targetFiles.push(nodePath.join(abs, d.name));
         }
       }
@@ -704,9 +834,13 @@ export async function generateChecksums(
         : items.length === 1
           ? `${items[0]!.name}.${algorithm}`
           : `${algorithm.toUpperCase()}SUMS`;
-    savedPath = nextAvailableFilePath(parentDir, defaultName);
+    savedPath = await writeNewFileExclusive(
+      parentDir,
+      defaultName,
+      manifestText,
+      ctx.platform,
+    );
     savedName = nodePath.basename(savedPath);
-    await fsp.writeFile(savedPath, manifestText, "utf8");
     undo = { action: "delete", paths: [savedPath] };
   }
 
@@ -727,6 +861,7 @@ export async function verifyChecksums(
   results: VerifyItemResult[];
 }> {
   const targetPath = absolutePath(ctx, payload?.path);
+  assertInsideSandboxSync(ctx, targetPath);
   const st = await fsp.stat(targetPath).catch(() => null);
   if (!st || !st.isFile()) {
     throw new FmError(
@@ -881,6 +1016,9 @@ export async function verifyChecksums(
   let missing = 0;
   const p = pathApi(ctx);
   const manifestDir = p.dirname(manifestPath);
+  const realManifestDir = await fsp
+    .realpath(manifestDir)
+    .catch(() => manifestDir);
 
   for (const item of entriesToVerify.slice(0, 200)) {
     const safeRel = item.fileName.replace(/\\/g, "/").replace(/^\/+/, "");
@@ -888,9 +1026,17 @@ export async function verifyChecksums(
       ctx,
       p.join(manifestDir, ...safeRel.split("/")),
     );
+    const candLstat = await fsp.lstat(candidate).catch(() => null);
+    const realCandidate =
+      candLstat && !candLstat.isSymbolicLink()
+        ? await fsp.realpath(candidate).catch(() => null)
+        : null;
     if (
       !isSameOrInside(candidate, manifestDir, ctx.platform) ||
-      !existsSync(candidate)
+      !candLstat ||
+      candLstat.isSymbolicLink() ||
+      !realCandidate ||
+      !isSameOrInside(realCandidate, realManifestDir, ctx.platform)
     ) {
       missing++;
       results.push({
@@ -1005,6 +1151,8 @@ export async function exportFolderInventory(
   let totalBytes = 0;
   let truncated = false;
 
+  const realInventoryRoot = await fsp.realpath(dir).catch(() => dir);
+
   async function walk(
     currentDir: string,
     relPrefix: string,
@@ -1020,7 +1168,10 @@ export async function exportFolderInventory(
       .readdir(currentDir, { withFileTypes: true })
       .catch(() => []);
     const filtered = dirents
-      .filter((d) => includeHidden || !d.name.startsWith("."))
+      .filter(
+        (d) =>
+          !d.isSymbolicLink() && (includeHidden || !d.name.startsWith(".")),
+      )
       .sort((a, b) => {
         if (a.isDirectory() !== b.isDirectory())
           return a.isDirectory() ? -1 : 1;
@@ -1038,8 +1189,16 @@ export async function exportFolderInventory(
       const d = filtered[i]!;
       const isLast = i === filtered.length - 1;
       const fullPath = nodePath.join(currentDir, d.name);
+      const realFull = await fsp.realpath(fullPath).catch(() => null);
+      if (
+        !realFull ||
+        !isSameOrInside(realFull, realInventoryRoot, ctx.platform)
+      ) {
+        continue;
+      }
       const relPath = relPrefix ? `${relPrefix}/${d.name}` : d.name;
-      const itemStat = await fsp.stat(fullPath).catch(() => null);
+      const itemStat = await fsp.lstat(fullPath).catch(() => null);
+      if (!itemStat || itemStat.isSymbolicLink()) continue;
       const isDir = d.isDirectory();
       const size = !isDir && itemStat ? itemStat.size : 0;
       const mtimeIso = itemStat
@@ -1159,9 +1318,13 @@ export async function exportFolderInventory(
       /[^a-zA-Z0-9._-]/g,
       "_",
     );
-    savedPath = nextAvailableFilePath(dir, defaultName);
+    savedPath = await writeNewFileExclusive(
+      dir,
+      defaultName,
+      content,
+      ctx.platform,
+    );
     savedName = nodePath.basename(savedPath);
-    await fsp.writeFile(savedPath, content, "utf8");
     undo = { action: "delete", paths: [savedPath] };
   }
 

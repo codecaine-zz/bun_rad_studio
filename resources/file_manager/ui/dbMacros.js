@@ -1066,6 +1066,7 @@ export async function showMacrosDialog(opts = {}) {
         dryRun,
         transaction: current.transaction,
         confirmWrites,
+        confirmCode: confirmWrites,
       });
       clear(statusBanner);
 

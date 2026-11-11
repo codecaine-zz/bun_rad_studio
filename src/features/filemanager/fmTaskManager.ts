@@ -593,9 +593,19 @@ export function parsePsOutput(
     const mem = parseFloat(parts[3] || "0") || 0;
     const rssKb = parseInt(parts[4] || "0", 10) || 0;
     const state = parts[5] || "?";
-    const user = parts[6] || "";
-    const uptimeSec = parseEtime(parts[7] || "");
-    const command = parts.slice(8).join(" ");
+    let etimeIdx = 7;
+    while (
+      etimeIdx < parts.length - 1 &&
+      !/^(?:\d+-)?(?:\d+:)?\d+:\d+$/.test(parts[etimeIdx] || "")
+    ) {
+      etimeIdx++;
+    }
+    if (!/^(?:\d+-)?(?:\d+:)?\d+:\d+$/.test(parts[etimeIdx] || "")) {
+      etimeIdx = 7;
+    }
+    const user = parts.slice(6, etimeIdx).join(" ");
+    const uptimeSec = parseEtime(parts[etimeIdx] || "");
+    const command = parts.slice(etimeIdx + 1).join(" ");
     const name = extractProcessName(command, platform);
     items.push({
       pid,

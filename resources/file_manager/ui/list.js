@@ -171,10 +171,12 @@ export function makeListHead(id) {
   );
 }
 
-function makeRow(pane, entry, index) {
+function makeRow(pane, entry, index, cutSet = undefined) {
   const cut =
-    state.clipboard?.mode === "cut" &&
-    state.clipboard.paths.includes(entry.path);
+    cutSet !== undefined
+      ? Boolean(cutSet && cutSet.has(entry.path))
+      : state.clipboard?.mode === "cut" &&
+        state.clipboard.paths.includes(entry.path);
   const trash = inTrash(pane);
   const tag = !trash ? tagForPath(entry.path) : null;
   const note = !trash ? noteForPath(entry.path) : "";
@@ -327,6 +329,12 @@ export function renderList(pane = left) {
   pane.shown = Math.min(Math.max(limit, PAGE), entries.length);
   const frag = document.createDocumentFragment();
   const slice = entries.slice(0, pane.shown);
+  const cutSet =
+    state.clipboard?.mode === "cut" &&
+    Array.isArray(state.clipboard.paths) &&
+    state.clipboard.paths.length > 0
+      ? new Set(state.clipboard.paths)
+      : null;
   let lastBucket = null;
   slice.forEach((e, i) => {
     if (groupBy !== "none") {
@@ -346,7 +354,7 @@ export function renderList(pane = left) {
         );
       }
     }
-    frag.append(makeRow(pane, e, i));
+    frag.append(makeRow(pane, e, i, cutSet));
   });
   if (entries.length > pane.shown) {
     frag.append(

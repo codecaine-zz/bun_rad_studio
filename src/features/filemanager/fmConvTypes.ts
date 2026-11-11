@@ -63,6 +63,8 @@ export interface BuildContext {
   tmpCopy(source: string, name: string): string;
   /** What the installed program can do (capability names). */
   caps: string[];
+  /** Optional pre-probed media duration in seconds (populated asynchronously before `argv(c)` runs). */
+  probedDurationSeconds?: number | null;
 }
 
 /** Command-line argument array passed directly to a spawned conversion tool. */

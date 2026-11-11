@@ -11,7 +11,7 @@
  * Local programs running as the same user can still read the page (and so the token): this is a tool for one
  * person's own computer, not a boundary between users.
  */
-import { randomBytes, timingSafeEqual } from "crypto";
+import { createHash, randomBytes, timingSafeEqual } from "crypto";
 import { existsSync, promises as fsp, readFileSync, realpathSync } from "fs";
 import * as nodePath from "path";
 import { gunzip } from "zlib";
@@ -190,6 +190,8 @@ export interface FileManagerServerOptions {
   token?: string;
   /** Folder to open first, instead of the last one used. */
   startPath?: string;
+  /** Terminal CWD polling interval in ms (defaults to `FM_TERMINAL_CWD_POLL_MS` or `1000`). */
+  cwdPollMs?: number;
 }
 
 /** Resolves the filesystem directory containing the File Manager's static HTML, CSS, and JS assets. */
@@ -865,19 +867,125 @@ function failure(err: unknown): Response {
   return json(unexpected ? 500 : 400, { ok: false, error: info });
 }
 
+interface CachedStaticAsset {
+  mtimeMs: number;
+  size: number;
+  etag: string;
+  raw: Uint8Array<ArrayBuffer>;
+  gzip: Uint8Array<ArrayBuffer> | null;
+}
+
+const MAX_STATIC_ASSET_CACHE = 400;
+
+function acceptsGzipEncoding(header: string | null): boolean {
+  if (!header) return false;
+  for (const rawPart of header.split(",")) {
+    const [name = "", ...params] = rawPart.trim().split(";");
+    const lower = name.trim().toLowerCase();
+    if (lower !== "gzip" && lower !== "*") continue;
+    const qParam = params
+      .map((p) => p.trim())
+      .find((p) => p.toLowerCase().startsWith("q="));
+    if (qParam && Number(qParam.slice(2)) === 0) continue;
+    if (lower === "gzip") return true;
+  }
+  return false;
+}
+
+function ifNoneMatchMatches(header: string | null, etag: string): boolean {
+  if (!header) return false;
+  const trimmed = header.trim();
+  if (trimmed === "*") return true;
+  const normalize = (tag: string) => tag.trim().replace(/^W\//i, "");
+  const target = normalize(etag);
+  return trimmed
+    .split(",")
+    .some((candidate) => normalize(candidate) === target);
+}
+
 /** Starts the File Manager local HTTP and WebSocket server on `127.0.0.1` and returns the running server handle. */
 export function startFileManagerServer(options: FileManagerServerOptions = {}) {
-  const ctx = createContext(options.context);
+  const ctx = createContext({
+    ...options.context,
+    requireServeLanConfirm: options.context?.requireServeLanConfirm ?? true,
+  });
   const token = options.token ?? randomBytes(24).toString("base64url");
   const assets = getFileManagerAssetsDir();
 
   const terminals = createTerminalHub(undefined, assets);
+  const terminalCwdPollMs = Math.max(
+    50,
+    options?.cwdPollMs ?? (Number(process.env.FM_TERMINAL_CWD_POLL_MS) || 1000),
+  );
   const primaryHostname = (options.host ?? "127.0.0.1").toLowerCase();
   const startEncoded = options.startPath
     ? encodeURIComponent(nodePath.resolve(options.startPath))
     : "";
   let cachedIndexMtime = -1;
   let cachedIndexTemplate = "";
+  const staticAssetCache = new Map<string, CachedStaticAsset>();
+
+  async function serveStaticAsset(
+    req: Request,
+    file: string,
+    contentType: string,
+    compressible: boolean,
+  ): Promise<Response> {
+    const st = await fsp.stat(file).catch(() => null);
+    if (!st?.isFile()) {
+      return new Response("Not Found", {
+        status: 404,
+        headers: secureHeaders(),
+      });
+    }
+    let entry = staticAssetCache.get(file);
+    if (!entry || entry.mtimeMs !== st.mtimeMs || entry.size !== st.size) {
+      const buf = await fsp.readFile(file);
+      const raw = new Uint8Array(buf.byteLength);
+      raw.set(buf);
+      const etag = `"${createHash("sha256").update(raw).digest("hex").slice(0, 24)}"`;
+      const gzip =
+        compressible && raw.byteLength >= 256
+          ? new Uint8Array(Bun.gzipSync(raw))
+          : null;
+      entry = { mtimeMs: st.mtimeMs, size: st.size, etag, raw, gzip };
+      if (staticAssetCache.size >= MAX_STATIC_ASSET_CACHE) {
+        const oldest = staticAssetCache.keys().next().value;
+        if (oldest !== undefined) staticAssetCache.delete(oldest);
+      }
+      staticAssetCache.set(file, entry);
+    } else {
+      staticAssetCache.delete(file);
+      staticAssetCache.set(file, entry);
+    }
+
+    const baseHeaders: Record<string, string> = {
+      "Content-Security-Policy": CSP,
+      "Cache-Control": "private, no-cache",
+      ETag: entry.etag,
+      Vary: "Accept-Encoding",
+    };
+
+    if (ifNoneMatchMatches(req.headers.get("if-none-match"), entry.etag)) {
+      return new Response(null, {
+        status: 304,
+        headers: secureHeaders(baseHeaders),
+      });
+    }
+
+    const useGzip =
+      entry.gzip !== null &&
+      acceptsGzipEncoding(req.headers.get("accept-encoding"));
+    const headers = secureHeaders({
+      ...baseHeaders,
+      "Content-Type": contentType,
+      ...(useGzip ? { "Content-Encoding": "gzip" } : {}),
+    });
+    if (req.method === "HEAD") {
+      return new Response(null, { status: 200, headers });
+    }
+    return new Response(useGzip ? entry.gzip! : entry.raw, { headers });
+  }
 
   async function serveEmbedded(
     id: string,
@@ -980,6 +1088,7 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
             cwd,
             cols,
             rows,
+            cwdPollMs: terminalCwdPollMs,
             onData: (data) => send({ type: "output", data }),
             onExit: (code) => {
               send({ type: "exit", code });
@@ -1035,7 +1144,7 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
               busy = false;
             }
           };
-          const timer = setInterval(() => void check(), 2500);
+          const timer = setInterval(() => void check(), terminalCwdPollMs);
           timer.unref?.();
           ws.data.watch = {
             check: () => void check(),
@@ -1262,42 +1371,21 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
           /^\/vendor\/(xterm\.mjs|addon-fit\.mjs|xterm\.css|LICENSE-xterm\.txt)$/.exec(
             path,
           );
-        if (req.method === "GET" && vendor) {
+        if ((req.method === "GET" || req.method === "HEAD") && vendor) {
           const file = nodePath.join(assets, "vendor", vendor[1]!);
-          const bf = Bun.file(file);
-          if (!(await bf.exists()))
-            return new Response("Not Found", { status: 404 });
           const type = vendor[1]!.endsWith(".css")
             ? MIME.css!
             : vendor[1]!.endsWith(".txt")
               ? "text/plain; charset=utf-8"
               : MIME.js!;
-          return new Response(bf, {
-            headers: secureHeaders({
-              "Content-Type": type,
-              "Content-Security-Policy": CSP,
-              "Cache-Control": "no-store, no-cache, must-revalidate",
-              Pragma: "no-cache",
-              Expires: "0",
-            }),
-          });
+          return await serveStaticAsset(req, file, type, true);
         }
 
         const ui = /^\/ui\/([\w.-]+\.(js|css|svg|png))$/.exec(path);
-        if (req.method === "GET" && ui) {
+        if ((req.method === "GET" || req.method === "HEAD") && ui) {
           const file = nodePath.join(assets, "ui", ui[1]!);
-          const bf = Bun.file(file);
-          if (!(await bf.exists()))
-            return new Response("Not Found", { status: 404 });
-          return new Response(bf, {
-            headers: secureHeaders({
-              "Content-Type": MIME[ui[2]!]!,
-              "Content-Security-Policy": CSP,
-              "Cache-Control": "no-store, no-cache, must-revalidate",
-              Pragma: "no-cache",
-              Expires: "0",
-            }),
-          });
+          const ext = ui[2]!;
+          return await serveStaticAsset(req, file, MIME[ext]!, ext !== "png");
         }
 
         if (req.method === "GET" && path === "/api/health") {
@@ -1400,7 +1488,7 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
             });
           const audioId = url.searchParams.get("id") ?? "";
           const cached =
-            getCachedBionicAudioFile(audioId) ??
+            getCachedBionicAudioFile(audioId, ctx) ??
             getCachedOllamaAudioFile(audioId);
           if (!cached)
             return json(404, {

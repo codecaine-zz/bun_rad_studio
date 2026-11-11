@@ -88,11 +88,14 @@ const pandoc = (
 ): Engine => ({
   tool: "pandoc",
   argv: (c) => {
-    const a = [...c.inputs, ...args];
-    if (out === "html") a.push("--metadata", `pagetitle=${c.title}`);
-    if (out === "pdf" && c.pdfEngine) a.push(`--pdf-engine=${c.pdfEngine}`);
-    if (c.opts.toc === true) a.push("--toc");
-    return [...a, "-o", c.output];
+    const flags = [...args];
+    if (out === "html") flags.push("--metadata", `pagetitle=${c.title}`);
+    if (out === "pdf" && c.pdfEngine) flags.push(`--pdf-engine=${c.pdfEngine}`);
+    if (c.opts.toc === true) flags.push("--toc");
+    if (c.inputs.some((inp) => inp.startsWith("-"))) {
+      return [...flags, "-o", c.output, "--", ...c.inputs];
+    }
+    return [...c.inputs, ...flags, "-o", c.output];
   },
   accepts: DOC_IN,
   ...extra,
@@ -109,9 +112,23 @@ const pandocFmt = (
   accepts,
   argv: (c) => {
     const reader = READER[extOfPath(c.inputs[0]!)];
+    const input = c.inputs[0]!;
+    if (input.startsWith("-")) {
+      return [
+        ...(reader ? ["-f", reader] : []),
+        ...args,
+        "-t",
+        writer,
+        ...(c.opts.toc === true ? ["--toc"] : []),
+        "-o",
+        c.output,
+        "--",
+        input,
+      ];
+    }
     return [
       ...(reader ? ["-f", reader] : []),
-      c.inputs[0]!,
+      input,
       ...args,
       "-t",
       writer,
@@ -489,9 +506,15 @@ export const DOC_DEFS: ConvDef[] = [
             c.program("libreoffice", "soffice") ??
             c.program("libreoffice", "libreoffice") ??
             "soffice";
-          const pArgs = [...c.inputs];
-          if (c.opts.toc === true) pArgs.push("--toc");
-          pArgs.push("-o", tmpDocx);
+          const pArgs: string[] = [];
+          if (c.inputs.some((inp) => inp.startsWith("-"))) {
+            if (c.opts.toc === true) pArgs.push("--toc");
+            pArgs.push("-o", tmpDocx, "--", ...c.inputs);
+          } else {
+            pArgs.push(...c.inputs);
+            if (c.opts.toc === true) pArgs.push("--toc");
+            pArgs.push("-o", tmpDocx);
+          }
           return [
             [c.exe, ...pArgs],
             [

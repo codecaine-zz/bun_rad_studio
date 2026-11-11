@@ -160,7 +160,7 @@ function rotateBackups(path: string): void {
   renameSync(tmp, backupPath(path, 1));
 }
 
-/** Deletes all rotating backup files (`.1`..`.3`) for `path` and returns how many were removed. */
+/** Deletes all rotating backup files (`.1`..`.3` and any `.bak`) for `path` and returns how many were removed. */
 export function deleteBackups(path: string): number {
   let n = 0;
   for (let i = 1; i <= BACKUPS; i++) {
@@ -170,6 +170,12 @@ export function deleteBackups(path: string): number {
     } catch {
       // not there
     }
+  }
+  try {
+    unlinkSync(`${path}.bak`);
+    n++;
+  } catch {
+    // not there
   }
   return n;
 }

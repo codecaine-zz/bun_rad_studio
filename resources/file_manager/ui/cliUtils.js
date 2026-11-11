@@ -395,6 +395,7 @@ function mount(root) {
         tool: tool.id,
         args: rawArgs,
         cwd: targetCwd || undefined,
+        confirm: true,
       });
       lastRun = res;
       runningToolId = "";

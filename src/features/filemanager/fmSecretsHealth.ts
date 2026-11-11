@@ -242,6 +242,49 @@ export async function breachCheck(
     breached: [],
     failed: 0,
   };
+  const MAX_BREACH_RESPONSE_BYTES = 1024 * 1024;
+  const readBoundedText = async (
+    res: Awaited<ReturnType<SecretsHooks["fetch"]>> & {
+      headers?: { get?: (name: string) => string | null };
+      body?: ReadableStream<Uint8Array> | null;
+    },
+  ): Promise<string> => {
+    const cl = Number(res.headers?.get?.("content-length") ?? NaN);
+    if (Number.isFinite(cl) && cl > MAX_BREACH_RESPONSE_BYTES) {
+      await res.body?.cancel().catch(() => {});
+      throw new Error("too_large");
+    }
+    if (!res.body || typeof res.body.getReader !== "function") {
+      const text = await res.text();
+      if (Buffer.byteLength(text, "utf8") > MAX_BREACH_RESPONSE_BYTES)
+        throw new Error("too_large");
+      return text;
+    }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let total = 0;
+    let out = "";
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) {
+          total += value.byteLength;
+          if (total > MAX_BREACH_RESPONSE_BYTES) {
+            await reader.cancel().catch(() => {});
+            throw new Error("too_large");
+          }
+          out += decoder.decode(value, { stream: true });
+        }
+      }
+      out += decoder.decode();
+      return out;
+    } finally {
+      try {
+        reader.releaseLock();
+      } catch {}
+    }
+  };
   const queue = [...byPrefix.entries()];
   const worker = async () => {
     for (let next = queue.shift(); next; next = queue.shift()) {
@@ -255,7 +298,9 @@ export async function breachCheck(
           signal: AbortSignal.timeout(timeoutMs),
         });
         if (!res.ok) throw new Error("status");
-        const lines = (await res.text()).split(/\r?\n/).filter(Boolean);
+        const lines = (await readBoundedText(res))
+          .split(/\r?\n/)
+          .filter(Boolean);
         if (
           lines.length > 0 &&
           !lines.every((l) => /^[0-9A-F]{35}:\d{1,12}$/i.test(l.trim()))

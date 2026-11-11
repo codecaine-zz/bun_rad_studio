@@ -331,7 +331,7 @@ async function extractWithExternalTool(
             isNameTaken,
           );
           const finalFile = p.join(destDir, targetName);
-          publishFile(onlyPath, finalFile);
+          await publishFile(onlyPath, finalFile);
           await removeQuietly(work);
           return {
             folder: finalFile,
@@ -364,7 +364,7 @@ async function extractWithExternalTool(
       }
     }
 
-    publishFolder(work, folderCandidate);
+    await publishFolder(work, folderCandidate);
     return {
       folder: folderCandidate,
       output: folderCandidate,

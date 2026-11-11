@@ -947,7 +947,11 @@ function buildInteractiveGrid(
 ) {
   let sortCol = -1;
   let sortDesc = false;
-  const colCount = Math.max(headers.length, ...rows.map((r) => r.length), 0);
+  let colCount = headers.length;
+  for (let i = 0; i < rows.length; i++) {
+    const rowLen = rows[i]?.length ?? 0;
+    if (rowLen > colCount) colCount = rowLen;
+  }
   const filter = h("input", {
     type: "search",
     class: "ql-fmt-search",
@@ -1833,6 +1837,9 @@ function renderArchiveQuickLook(entry, rich, helpers = {}) {
   );
 }
 
+const loadedPreviewFonts = new Map();
+const MAX_PREVIEW_FONTS = 8;
+
 function renderFontQuickLook(entry, rich) {
   const fontFamilyId = `fm-ql-font-${Date.now()}`;
   const sampleText = "The quick brown fox jumps over the lazy dog 0123456789";
@@ -1878,7 +1885,16 @@ function renderFontQuickLook(entry, rich) {
       );
       face
         .load()
-        .then((loaded) => document.fonts.add(loaded))
+        .then((loaded) => {
+          while (loadedPreviewFonts.size >= MAX_PREVIEW_FONTS) {
+            const oldestKey = loadedPreviewFonts.keys().next().value;
+            const oldestFace = loadedPreviewFonts.get(oldestKey);
+            loadedPreviewFonts.delete(oldestKey);
+            if (oldestFace) document.fonts.delete?.(oldestFace);
+          }
+          loadedPreviewFonts.set(fontFamilyId, loaded);
+          document.fonts.add(loaded);
+        })
         .catch(() => {});
     } catch {}
   }

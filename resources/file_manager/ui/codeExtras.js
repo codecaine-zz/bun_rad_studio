@@ -1358,6 +1358,133 @@ export function inspectTokenAtCaret(text, start, end) {
 // Unified Line Diff (Compare with saved / Compare with another open tab)
 // ---------------------------------------------------------------------------------------------------------------
 
+function myersMidOps(a, b, start) {
+  const n = a.length;
+  const m = b.length;
+  if (n === 0 && m === 0) return [];
+  if (n === 0) {
+    return b.map((line, j) => ({
+      type: "+",
+      line,
+      oldLine: null,
+      newLine: start + j + 1,
+    }));
+  }
+  if (m === 0) {
+    return a.map((line, i) => ({
+      type: "-",
+      line,
+      oldLine: start + i + 1,
+      newLine: null,
+    }));
+  }
+  const MAX_D = 4000;
+  const maxD = Math.min(n + m, MAX_D);
+  const offset = maxD + 1;
+  const v = new Int32Array(2 * maxD + 3);
+  const trace = [];
+  let solvedD = -1;
+
+  for (let d = 0; d <= maxD; d++) {
+    trace.push(v.slice());
+    for (let k = -d; k <= d; k += 2) {
+      let x;
+      if (k === -d || (k !== d && v[k - 1 + offset] < v[k + 1 + offset])) {
+        x = v[k + 1 + offset];
+      } else {
+        x = v[k - 1 + offset] + 1;
+      }
+      let y = x - k;
+      while (x < n && y < m && a[x] === b[y]) {
+        x++;
+        y++;
+      }
+      v[k + offset] = x;
+      if (x >= n && y >= m) {
+        solvedD = d;
+        break;
+      }
+    }
+    if (solvedD >= 0) break;
+  }
+
+  if (solvedD < 0) {
+    const fallback = [];
+    for (let i = 0; i < n; i++) {
+      fallback.push({
+        type: "-",
+        line: a[i],
+        oldLine: start + i + 1,
+        newLine: null,
+      });
+    }
+    for (let j = 0; j < m; j++) {
+      fallback.push({
+        type: "+",
+        line: b[j],
+        oldLine: null,
+        newLine: start + j + 1,
+      });
+    }
+    return fallback;
+  }
+
+  const rev = [];
+  let x = n;
+  let y = m;
+  for (let d = solvedD; d > 0; d--) {
+    const vd = trace[d];
+    const k = x - y;
+    let prevK;
+    if (k === -d || (k !== d && vd[k - 1 + offset] < vd[k + 1 + offset])) {
+      prevK = k + 1;
+    } else {
+      prevK = k - 1;
+    }
+    const prevX = vd[prevK + offset];
+    const prevY = prevX - prevK;
+    while (x > prevX && y > prevY) {
+      x--;
+      y--;
+      rev.push({
+        type: " ",
+        line: a[x],
+        oldLine: start + x + 1,
+        newLine: start + y + 1,
+      });
+    }
+    if (x === prevX) {
+      y--;
+      rev.push({
+        type: "+",
+        line: b[y],
+        oldLine: null,
+        newLine: start + y + 1,
+      });
+    } else {
+      x--;
+      rev.push({
+        type: "-",
+        line: a[x],
+        oldLine: start + x + 1,
+        newLine: null,
+      });
+    }
+  }
+  while (x > 0 && y > 0) {
+    x--;
+    y--;
+    rev.push({
+      type: " ",
+      line: a[x],
+      oldLine: start + x + 1,
+      newLine: start + y + 1,
+    });
+  }
+  rev.reverse();
+  return rev;
+}
+
 /**
  * Computes a unified diff between `oldText` and `newText` with `context` surrounding lines.
  * Returns { diff, added, removed, identical, hunks, ops }.
@@ -1395,82 +1522,8 @@ export function computeLineDiff(
   for (let i = 0; i < start; i++)
     ops.push({ type: " ", line: a[i], oldLine: i + 1, newLine: i + 1 });
 
-  if (midA.length * midB.length <= 250_000) {
-    // Exact LCS matrix on the changed middle window
-    const m = midA.length;
-    const n = midB.length;
-    const dp = Array.from({ length: m + 1 }, () => new Int32Array(n + 1));
-    for (let i = m - 1; i >= 0; i--) {
-      for (let j = n - 1; j >= 0; j--) {
-        dp[i][j] =
-          midA[i] === midB[j]
-            ? 1 + dp[i + 1][j + 1]
-            : Math.max(dp[i + 1][j], dp[i][j + 1]);
-      }
-    }
-    let i = 0;
-    let j = 0;
-    while (i < m && j < n) {
-      if (midA[i] === midB[j]) {
-        ops.push({
-          type: " ",
-          line: midA[i],
-          oldLine: start + i + 1,
-          newLine: start + j + 1,
-        });
-        i++;
-        j++;
-      } else if (dp[i + 1][j] >= dp[i][j + 1]) {
-        ops.push({
-          type: "-",
-          line: midA[i],
-          oldLine: start + i + 1,
-          newLine: null,
-        });
-        i++;
-      } else {
-        ops.push({
-          type: "+",
-          line: midB[j],
-          oldLine: null,
-          newLine: start + j + 1,
-        });
-        j++;
-      }
-    }
-    while (i < m) {
-      ops.push({
-        type: "-",
-        line: midA[i],
-        oldLine: start + i + 1,
-        newLine: null,
-      });
-      i++;
-    }
-    while (j < n) {
-      ops.push({
-        type: "+",
-        line: midB[j],
-        oldLine: null,
-        newLine: start + j + 1,
-      });
-      j++;
-    }
-  } else {
-    for (let i = 0; i < midA.length; i++)
-      ops.push({
-        type: "-",
-        line: midA[i],
-        oldLine: start + i + 1,
-        newLine: null,
-      });
-    for (let j = 0; j < midB.length; j++)
-      ops.push({
-        type: "+",
-        line: midB[j],
-        oldLine: null,
-        newLine: start + j + 1,
-      });
+  for (const op of myersMidOps(midA, midB, start)) {
+    ops.push(op);
   }
 
   for (let i = endA, j = endB; i < a.length; i++, j++) {

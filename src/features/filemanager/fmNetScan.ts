@@ -3,6 +3,8 @@
  * for progress with `status` and can `cancel`. At most two run at a time, a scan has a total time cap, and
  * cancelling (or stopping the server) closes every socket the task had open.
  */
+import { lookup as dnsLookup } from "node:dns/promises";
+import { isIP } from "node:net";
 import {
   scanResultsToCsv,
   serviceName,
@@ -177,6 +179,33 @@ async function runScan(
     },
     NET_LIMITS.scanTimeCapMs,
   );
+  // Resolve hostname once before fanning out across many ports so `getaddrinfo` isn't called per port.
+  let resolvedTarget = target;
+  const lookupFn =
+    state.dnsLookup ?? (!state.makeSocket ? dnsLookup : undefined);
+  if (lookupFn && ports.length > 1 && isIP(target) === 0) {
+    const t0 = performance.now();
+    try {
+      const resolved = await lookupFn(target);
+      if (resolved?.address) resolvedTarget = resolved.address;
+    } catch (err: any) {
+      stopCap();
+      const code = String(err?.code ?? "ENOTFOUND");
+      const latencyMs = Math.round((performance.now() - t0) * 100) / 100;
+      task.error = describeNetError(code, task.host);
+      addActivity(
+        state,
+        "scan",
+        `${task.host}:${ports[0]!}`,
+        "name not found",
+        latencyMs,
+      );
+      task.stoppedEarly = "unreachable";
+      pushLog(task.log, "error", task.error.message);
+      finish(task, "error");
+      return;
+    }
+  }
   let next = 0;
   let inFlight = 0;
   const problem: { value: NetTask["error"] } = { value: null };
@@ -189,7 +218,7 @@ async function runScan(
       task.peakInFlight = Math.max(task.peakInFlight, inFlight);
       const result = await tcpConnect(
         state,
-        target,
+        resolvedTarget,
         port,
         timeoutMs,
         task.abort.signal,

@@ -21,6 +21,31 @@ export function formatSize(bytes) {
   return `${value >= 100 ? Math.round(value) : Math.round(value * 10) / 10} ${units[i]}`;
 }
 
+const dateFormatCache = new Map();
+
+function getDateFormatters(locale) {
+  const key = locale || "__default__";
+  let pair = dateFormatCache.get(key);
+  if (!pair) {
+    if (dateFormatCache.size >= 16) {
+      dateFormatCache.delete(dateFormatCache.keys().next().value);
+    }
+    pair = {
+      timeFmt: new Intl.DateTimeFormat(locale, {
+        hour: "numeric",
+        minute: "2-digit",
+      }),
+      dateFmt: new Intl.DateTimeFormat(locale, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }),
+    };
+    dateFormatCache.set(key, pair);
+  }
+  return pair;
+}
+
 /**
  * "Today, 3:45 PM", "Yesterday, 9:02 AM", "Mar 3, 2025". Empty for a missing date.
  * @param {number} ms
@@ -34,17 +59,10 @@ export function formatDate(ms, now = Date.now(), locale = undefined) {
   const startOfDay = (x) =>
     new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
   const days = Math.round((startOfDay(today) - startOfDay(d)) / 86_400_000);
-  const time = d.toLocaleTimeString(locale, {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-  if (days === 0) return `Today, ${time}`;
-  if (days === 1) return `Yesterday, ${time}`;
-  return d.toLocaleDateString(locale, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  const { timeFmt, dateFmt } = getDateFormatters(locale);
+  if (days === 0) return `Today, ${timeFmt.format(d)}`;
+  if (days === 1) return `Yesterday, ${timeFmt.format(d)}`;
+  return dateFmt.format(d);
 }
 
 export function plural(n, word, pluralWord = `${word}s`) {

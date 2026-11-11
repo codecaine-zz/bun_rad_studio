@@ -323,6 +323,8 @@ export interface NetState {
   disposed: boolean;
   /** For tests: makes the sockets a check uses, so nothing has to touch a real network. */
   makeSocket?: () => Socket;
+  /** For tests: overrides hostname pre-resolution in multi-port scans. */
+  dnsLookup?: (host: string) => Promise<{ address: string }>;
 }
 
 const states = new WeakMap<FmContext, NetState>();

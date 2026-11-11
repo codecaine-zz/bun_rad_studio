@@ -1849,6 +1849,64 @@ async function runBionicStreamChat() {
     const decoder = new TextDecoder();
     let buffer = "";
 
+    let pendingReasoning = false;
+    let pendingAnswer = false;
+    let streamFrameId = 0;
+    const scheduleFrame =
+      typeof requestAnimationFrame === "function"
+        ? requestAnimationFrame
+        : (cb) => setTimeout(cb, 16);
+    const cancelFrame =
+      typeof cancelAnimationFrame === "function"
+        ? cancelAnimationFrame
+        : clearTimeout;
+    const flushStreamUi = () => {
+      if (streamFrameId) {
+        cancelFrame(streamFrameId);
+        streamFrameId = 0;
+      }
+      if (!pendingReasoning && !pendingAnswer) return;
+      const didReason = pendingReasoning;
+      const didAnswer = pendingAnswer;
+      pendingReasoning = false;
+      pendingAnswer = false;
+      const thinkingBox = rootContainer?.querySelector(".ollama-thinking-box");
+      const outputBox = rootContainer?.querySelector(".ollama-output-box");
+      if (
+        uiState.markdownView ||
+        (didReason && !thinkingBox) ||
+        (didAnswer && !outputBox)
+      ) {
+        renderBionicPanel();
+      } else {
+        if (didReason && thinkingBox) {
+          const stickBottom =
+            thinkingBox.scrollHeight -
+              thinkingBox.scrollTop -
+              thinkingBox.clientHeight <=
+            80;
+          thinkingBox.textContent = uiState.reasoningOutput;
+          if (stickBottom) thinkingBox.scrollTop = thinkingBox.scrollHeight;
+        }
+        if (didAnswer && outputBox) {
+          const stickBottom =
+            outputBox.scrollHeight -
+              outputBox.scrollTop -
+              outputBox.clientHeight <=
+            80;
+          outputBox.textContent = uiState.answerOutput;
+          if (stickBottom) outputBox.scrollTop = outputBox.scrollHeight;
+        }
+      }
+    };
+    const scheduleStreamUi = () => {
+      if (streamFrameId) return;
+      streamFrameId = scheduleFrame(() => {
+        streamFrameId = 0;
+        flushStreamUi();
+      });
+    };
+
     const processSseLine = (line) => {
       const trimmed = line.trim();
       if (!trimmed.startsWith("data:")) return;
@@ -1859,29 +1917,41 @@ async function runBionicStreamChat() {
         const delta = pkt?.choices?.[0]?.delta || {};
         if (delta.reasoning || delta.reasoning_content) {
           uiState.reasoningOutput += delta.reasoning || delta.reasoning_content;
+          pendingReasoning = true;
         }
         if (delta.content) {
           uiState.answerOutput += delta.content;
+          pendingAnswer = true;
         }
       } catch {}
     };
 
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) {
-        buffer += decoder.decode();
-        if (buffer.trim()) {
-          for (const line of buffer.split("\n")) processSseLine(line);
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) {
+          buffer += decoder.decode();
+          if (buffer.trim()) {
+            for (const line of buffer.split("\n")) processSseLine(line);
+          }
+          flushStreamUi();
+          break;
         }
-        break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          processSseLine(line);
+        }
+        if (pendingReasoning || pendingAnswer) {
+          scheduleStreamUi();
+        }
       }
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-      for (const line of lines) {
-        processSseLine(line);
+    } finally {
+      if (streamFrameId) {
+        cancelFrame(streamFrameId);
+        streamFrameId = 0;
       }
-      renderBionicPanel();
     }
   } catch (err) {
     if (

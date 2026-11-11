@@ -10,8 +10,14 @@ import {
   type FmContext,
   type FmHandler,
 } from "./fmCore";
-import { FmError, describeFsError, extensionOf } from "./fmPaths";
+import {
+  FmError,
+  describeFsError,
+  extensionOf,
+  isSameOrInside,
+} from "./fmPaths";
 import { extractReadableDocumentText } from "./fmPreview";
+import { myersOps } from "./fmSdDiff";
 
 /** Maximum file size in bytes accepted when comparing two structured data files. */
 export const COMPARE_MAX_BYTES = 5 * 1024 * 1024;
@@ -207,6 +213,30 @@ export function diffValues(
   };
 }
 
+async function assertCompareSandboxPath(
+  ctx: FmContext,
+  targetPath: string,
+): Promise<string> {
+  if (!ctx.sandboxRoot) return targetPath;
+  if (!isSameOrInside(targetPath, ctx.sandboxRoot, ctx.platform)) {
+    throw new FmError(
+      "FORBIDDEN",
+      "That path is outside the allowed workspace folder.",
+    );
+  }
+  const realSandbox = await fsp
+    .realpath(ctx.sandboxRoot)
+    .catch(() => ctx.sandboxRoot!);
+  const realTarget = await fsp.realpath(targetPath);
+  if (!isSameOrInside(realTarget, realSandbox, ctx.platform)) {
+    throw new FmError(
+      "FORBIDDEN",
+      "That link points outside the allowed workspace folder.",
+    );
+  }
+  return realTarget;
+}
+
 async function load(
   ctx: FmContext,
   input: unknown,
@@ -220,7 +250,8 @@ async function load(
       `"${name}" isn't a JSON, JSON5, YAML or TOML file, so it can't be compared here.`,
     );
   try {
-    const st = await fsp.stat(path);
+    const resolvedPath = await assertCompareSandboxPath(ctx, path);
+    const st = await fsp.stat(resolvedPath);
     if (!st.isFile())
       throw new FmError("NOT_A_FILE", `"${name}" isn't an ordinary file.`);
     if (st.size > COMPARE_MAX_BYTES)
@@ -228,7 +259,7 @@ async function load(
         "TOO_LARGE",
         `"${name}" is bigger than ${COMPARE_MAX_BYTES / 1048576} MB, which is more than can be compared here.`,
       );
-    const bytes = await fsp.readFile(path);
+    const bytes = await fsp.readFile(resolvedPath);
     return {
       name,
       kind,
@@ -314,6 +345,8 @@ export interface TextCompareResult {
   unifiedPatch: string;
 }
 
+const DOC_EXTRACT_COMPARE_MAX_BYTES = 25 * 1024 * 1024;
+
 async function loadReadableTextForCompare(
   ctx: FmContext,
   input: unknown,
@@ -321,9 +354,13 @@ async function loadReadableTextForCompare(
   const path = absolutePath(ctx, input);
   const name = pathApi(ctx).basename(path);
   try {
-    const st = await fsp.stat(path);
+    const resolvedPath = await assertCompareSandboxPath(ctx, path);
+    const st = await fsp.stat(resolvedPath);
     if (st.isDirectory()) {
-      const extracted = await extractReadableDocumentText(path, 200_000);
+      const extracted = await extractReadableDocumentText(
+        resolvedPath,
+        200_000,
+      );
       if (extracted !== null) {
         return {
           name,
@@ -339,9 +376,14 @@ async function loadReadableTextForCompare(
     }
     if (!st.isFile())
       throw new FmError("NOT_A_FILE", `"${name}" isn't an ordinary file.`);
-    const extracted = await extractReadableDocumentText(path, 200_000);
-    if (extracted !== null) {
-      return { name, path, text: extracted, bytes: st.size };
+    if (st.size <= DOC_EXTRACT_COMPARE_MAX_BYTES) {
+      const extracted = await extractReadableDocumentText(
+        resolvedPath,
+        200_000,
+      );
+      if (extracted !== null) {
+        return { name, path, text: extracted, bytes: st.size };
+      }
     }
     if (st.size > TEXT_COMPARE_MAX_BYTES) {
       throw new FmError(
@@ -349,7 +391,7 @@ async function loadReadableTextForCompare(
         `"${name}" is bigger than ${TEXT_COMPARE_MAX_BYTES / 1048576} MB, which is more than can be compared line-by-line.`,
       );
     }
-    const buf = await fsp.readFile(path);
+    const buf = await fsp.readFile(resolvedPath);
     const checkLen = Math.min(buf.length, 4096);
     for (let i = 0; i < checkLen; i++) {
       if (buf[i] === 0) {
@@ -372,7 +414,7 @@ async function loadReadableTextForCompare(
   }
 }
 
-/** Computes line-by-line LCS diff with prefix/suffix trimming for speed. */
+/** Computes line-by-line Myers $O((N+M)D)$ diff with prefix/suffix trimming. */
 export function computeLineDiff(
   leftLines: string[],
   rightLines: string[],
@@ -407,98 +449,39 @@ export function computeLineDiff(
     });
   }
 
-  const midLeft = leftLines.slice(
-    start,
-    Math.min(endLeft + 1, start + maxMidLines),
-  );
-  const midRight = rightLines.slice(
-    start,
-    Math.min(endRight + 1, start + maxMidLines),
-  );
+  const midLeft = leftLines.slice(start, endLeft + 1);
+  const midRight = rightLines.slice(start, endRight + 1);
   const n = midLeft.length;
   const m = midRight.length;
 
-  if (n === 0 && m === 0) {
-    // Only prefix/suffix
-  } else if (n === 0) {
-    for (let j = 0; j < m; j++) {
-      rows.push({ type: "add", rightLine: start + j + 1, text: midRight[j]! });
-    }
-  } else if (m === 0) {
-    for (let i = 0; i < n; i++) {
-      rows.push({ type: "del", leftLine: start + i + 1, text: midLeft[i]! });
-    }
-  } else if (n * m <= 1_200_000) {
-    // Standard 2D LCS matrix using Uint16Array for speed and compact memory
-    const cols = m + 1;
-    const dp = new Uint16Array((n + 1) * cols);
-    for (let i = n - 1; i >= 0; i--) {
-      const a = midLeft[i];
-      const rowOff = i * cols;
-      const nextRowOff = (i + 1) * cols;
-      for (let j = m - 1; j >= 0; j--) {
-        dp[rowOff + j] =
-          a === midRight[j]
-            ? dp[nextRowOff + j + 1]! + 1
-            : Math.max(dp[nextRowOff + j]!, dp[rowOff + j + 1]!);
-      }
-    }
-    let i = 0;
-    let j = 0;
-    while (i < n && j < m) {
-      if (midLeft[i] === midRight[j]) {
+  if (n > 0 || m > 0) {
+    const maxD = Math.min(n + m, Math.max(2000, maxMidLines));
+    const ops = myersOps(midLeft, midRight, maxD) ?? [
+      ...midLeft.map((s) => ({ k: "-" as const, s })),
+      ...midRight.map((s) => ({ k: "+" as const, s })),
+    ];
+    let lLine = start + 1;
+    let rLine = start + 1;
+    for (const op of ops) {
+      if (op.k === " ") {
         rows.push({
           type: "same",
-          leftLine: start + i + 1,
-          rightLine: start + j + 1,
-          text: midLeft[i]!,
+          leftLine: lLine++,
+          rightLine: rLine++,
+          text: op.s,
         });
-        i++;
-        j++;
-      } else if (dp[(i + 1) * cols + j]! >= dp[i * cols + j + 1]!) {
-        rows.push({ type: "del", leftLine: start + i + 1, text: midLeft[i]! });
-        i++;
+      } else if (op.k === "-") {
+        rows.push({
+          type: "del",
+          leftLine: lLine++,
+          text: op.s,
+        });
       } else {
         rows.push({
           type: "add",
-          rightLine: start + j + 1,
-          text: midRight[j]!,
+          rightLine: rLine++,
+          text: op.s,
         });
-        j++;
-      }
-    }
-    while (i < n) {
-      rows.push({ type: "del", leftLine: start + i + 1, text: midLeft[i]! });
-      i++;
-    }
-    while (j < m) {
-      rows.push({ type: "add", rightLine: start + j + 1, text: midRight[j]! });
-      j++;
-    }
-  } else {
-    // Fallback greedy anchor matching for very large middle sections
-    let i = 0;
-    let j = 0;
-    while (i < n || j < m) {
-      if (i < n && j < m && midLeft[i] === midRight[j]) {
-        rows.push({
-          type: "same",
-          leftLine: start + i + 1,
-          rightLine: start + j + 1,
-          text: midLeft[i]!,
-        });
-        i++;
-        j++;
-      } else if (i < n) {
-        rows.push({ type: "del", leftLine: start + i + 1, text: midLeft[i]! });
-        i++;
-      } else if (j < m) {
-        rows.push({
-          type: "add",
-          rightLine: start + j + 1,
-          text: midRight[j]!,
-        });
-        j++;
       }
     }
   }
@@ -534,19 +517,42 @@ function buildUnifiedPatch(
       for (let k = lo; k <= hi; k++) keep[k] = 1;
     }
   }
-  let inHunk = false;
-  for (let i = 0; i < rows.length; i++) {
+  let oldSeen = 0;
+  let newSeen = 0;
+  let i = 0;
+  while (i < rows.length) {
     if (!keep[i]) {
-      inHunk = false;
+      const r = rows[i]!;
+      if (r.type !== "add") oldSeen++;
+      if (r.type !== "del") newSeen++;
+      i++;
       continue;
     }
-    const r = rows[i]!;
-    if (!inHunk) {
-      out.push(`@@ -${r.leftLine ?? 1} +${r.rightLine ?? 1} @@`);
-      inHunk = true;
+    const hunkStart = i;
+    const oldBefore = oldSeen;
+    const newBefore = newSeen;
+    let oldLen = 0;
+    let newLen = 0;
+    while (i < rows.length && keep[i]) {
+      const r = rows[i]!;
+      if (r.type !== "add") {
+        oldLen++;
+        oldSeen++;
+      }
+      if (r.type !== "del") {
+        newLen++;
+        newSeen++;
+      }
+      i++;
     }
-    const prefix = r.type === "add" ? "+" : r.type === "del" ? "-" : " ";
-    out.push(`${prefix}${r.text}`);
+    const oldStart = oldLen === 0 ? oldBefore : oldBefore + 1;
+    const newStart = newLen === 0 ? newBefore : newBefore + 1;
+    out.push(`@@ -${oldStart},${oldLen} +${newStart},${newLen} @@`);
+    for (let k = hunkStart; k < i; k++) {
+      const r = rows[k]!;
+      const prefix = r.type === "add" ? "+" : r.type === "del" ? "-" : " ";
+      out.push(`${prefix}${r.text}`);
+    }
   }
   return out.join("\n") + "\n";
 }

@@ -70,6 +70,7 @@ export type CloneCanonicalType =
 /** Normalized column metadata and canonical type inspected from a source table or view. */
 export interface CloneSourceColumn {
   name: string;
+  sourceName?: string;
   dataType: string;
   canonicalType: CloneCanonicalType;
   length?: number;
@@ -1004,6 +1005,7 @@ async function inspectRedisEndpoint(
               },
               ...[...hashFields].slice(0, 60).map((f) => ({
                 name: sanitizeTargetIdentifier(f, "field"),
+                sourceName: f,
                 dataType: "TEXT",
                 canonicalType: "text" as const,
                 nullable: true,
@@ -2309,12 +2311,14 @@ async function executeRedisToSqlClone(
               const h = rec.hashVal ?? {};
               for (const col of obj.columns) {
                 if (
-                  col.name === "redis_key" ||
-                  col.name === "key_id" ||
-                  col.name === "ttl_ms"
+                  !col.sourceName &&
+                  (col.name === "redis_key" ||
+                    col.name === "key_id" ||
+                    col.name === "ttl_ms")
                 )
                   continue;
-                rowValues[col.name] = h[col.name] ?? null;
+                const rawField = col.sourceName ?? col.name;
+                rowValues[col.name] = h[rawField] ?? null;
               }
             } else {
               rowValues.redis_key = k;

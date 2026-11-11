@@ -142,6 +142,7 @@ export interface OpenTerminalOptions {
   cwd: string;
   cols: number;
   rows: number;
+  cwdPollMs?: number;
   onData: (text: string) => void;
   onExit: (code: number | null) => void;
 }
@@ -397,6 +398,7 @@ export interface TerminalHub {
 export function createTerminalHub(
   limit = MAX_TERMINALS,
   assetsDir = resolve(import.meta.dir, "../../../resources/file_manager"),
+  windowsFactory: typeof openWindowsTerminal = openWindowsTerminal,
 ): TerminalHub {
   const sessions = new Set<TerminalSession>();
 
@@ -413,7 +415,7 @@ export function createTerminalHub(
         throw new Error("That isn't a folder.");
 
       if (ctx.platform === "win32") {
-        const windows = openWindowsTerminal(
+        const windows = windowsFactory(
           ctx,
           {
             ...options,
@@ -431,6 +433,9 @@ export function createTerminalHub(
           },
           get shell() {
             return windows.shell;
+          },
+          get wsl() {
+            return windows.wsl;
           },
           close() {
             sessions.delete(session);

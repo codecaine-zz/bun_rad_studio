@@ -656,8 +656,67 @@ export const MORE_PICTURE_DEFS: ConvDef[] = [
 // Video and sound
 // ---------------------------------------------------------------------------------------------------------------
 
+const FFPROBE_TIMEOUT_MS = 10_000;
+
+/** Asynchronously probes media duration in seconds using `Bun.spawn` (`ffprobe`) with a hard timeout. */
+export async function probeSecondsAsync(
+  bin: string | null,
+  file: string,
+  timeoutMs = FFPROBE_TIMEOUT_MS,
+): Promise<number | null> {
+  if (!bin) return null;
+  let proc: ReturnType<typeof Bun.spawn> | null = null;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  try {
+    proc = Bun.spawn(
+      [
+        bin,
+        "-v",
+        "error",
+        "-show_entries",
+        "format=duration",
+        "-of",
+        "csv=p=0",
+        `file:${file}`,
+      ],
+      { stdin: "ignore", stdout: "pipe", stderr: "ignore" },
+    );
+    const timedOut = new Promise<null>((resolve) => {
+      timer = setTimeout(() => {
+        try {
+          proc?.kill();
+        } catch {}
+        resolve(null);
+      }, timeoutMs);
+      timer.unref?.();
+    });
+    const result = await Promise.race([
+      (async () => {
+        const text = await new Response(
+          proc!.stdout as ReadableStream<Uint8Array>,
+        ).text();
+        await proc!.exited;
+        const n = parseFloat(text);
+        return Number.isFinite(n) && n > 0 ? n : null;
+      })(),
+      timedOut,
+    ]);
+    return result;
+  } catch {
+    return null;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 /** How long a sound or video is, in seconds, using ffprobe (installed with ffmpeg); null when it can't be told. */
 export function probeSeconds(c: BuildContext, file: string): number | null {
+  if (
+    c.probedDurationSeconds !== undefined &&
+    (file === c.inputs[0] || file === c.originals[0])
+  ) {
+    return c.probedDurationSeconds;
+  }
   const bin = c.program("ffmpeg", "ffprobe");
   if (!bin) return null;
   try {
@@ -672,7 +731,7 @@ export function probeSeconds(c: BuildContext, file: string): number | null {
         "csv=p=0",
         `file:${file}`,
       ],
-      { stdout: "pipe", stderr: "ignore" },
+      { stdout: "pipe", stderr: "ignore", timeout: FFPROBE_TIMEOUT_MS },
     );
     const n = parseFloat(r.stdout.toString());
     return Number.isFinite(n) && n > 0 ? n : null;

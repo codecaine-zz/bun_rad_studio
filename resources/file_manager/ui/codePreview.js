@@ -79,7 +79,11 @@ function nodePlainText(node) {
  * Supports a 25%–800% zoom slider, +/- buttons, 100% reset, mouse-wheel zoom, drag-to-pan, and keyboard shortcuts.
  */
 export function openMarkdownImageLightbox(src, altText = "Picture") {
-  document.querySelector(".code-md-lightbox")?.remove();
+  const prevLb = document.querySelector(".code-md-lightbox");
+  if (prevLb) {
+    if (typeof prevLb.__closeLb === "function") prevLb.__closeLb();
+    else prevLb.remove();
+  }
   let lbZoom = 100;
   const lbImg = h("img", {
     class: "code-md-lb-img",
@@ -202,11 +206,29 @@ export function openMarkdownImageLightbox(src, altText = "Picture") {
   lbStage.addEventListener("mouseleave", endPan);
 
   function onKey(e) {
+    if (!overlay.isConnected) {
+      window.removeEventListener("keydown", onKey, true);
+      return;
+    }
     if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
       closeLb();
-    } else if (e.key === "+" || e.key === "=") {
+      return;
+    }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const targetEl = e.target;
+    if (
+      targetEl &&
+      targetEl !== lbRange &&
+      (targetEl.isContentEditable ||
+        targetEl.tagName === "INPUT" ||
+        targetEl.tagName === "TEXTAREA" ||
+        targetEl.tagName === "SELECT")
+    ) {
+      return;
+    }
+    if (e.key === "+" || e.key === "=") {
       e.preventDefault();
       setLbZoom(lbZoom + 25);
     } else if (e.key === "-" || e.key === "_") {
@@ -249,6 +271,7 @@ export function openMarkdownImageLightbox(src, altText = "Picture") {
     bar,
     lbStage,
   );
+  overlay.__closeLb = closeLb;
 
   document.body.append(overlay);
   lbStage.focus();
@@ -1703,8 +1726,10 @@ function parseSimpleStructured(text, kind) {
     }
     return out;
   }
+  const isUnsafeStructuredKey = (k) =>
+    !k || k === "__proto__" || k === "constructor" || k === "prototype";
   if (kind === "ini" || kind === "toml") {
-    const root = {};
+    const root = Object.create(null);
     let cur = root;
     for (const rawLine of String(text ?? "").split(/\r?\n/)) {
       const line = rawLine.trim();
@@ -1712,9 +1737,19 @@ function parseSimpleStructured(text, kind) {
       const sec = /^\[+([^\]]+)\]+$/.exec(line);
       if (sec) {
         const parts = sec[1].trim().split(".");
+        if (parts.some(isUnsafeStructuredKey)) {
+          cur = Object.create(null);
+          continue;
+        }
         cur = root;
         for (const p of parts) {
-          if (!cur[p] || typeof cur[p] !== "object") cur[p] = {};
+          if (
+            !Object.prototype.hasOwnProperty.call(cur, p) ||
+            !cur[p] ||
+            typeof cur[p] !== "object"
+          ) {
+            cur[p] = Object.create(null);
+          }
           cur = cur[p];
         }
         continue;
@@ -1725,6 +1760,7 @@ function parseSimpleStructured(text, kind) {
           .slice(0, eq)
           .trim()
           .replace(/^export\s+/, "");
+        if (isUnsafeStructuredKey(k)) continue;
         const v = line.slice(eq + 1).trim();
         cur[k] = parseScalarValue(v);
       }
@@ -1732,7 +1768,7 @@ function parseSimpleStructured(text, kind) {
     return root;
   }
   // YAML
-  const root = {};
+  const root = Object.create(null);
   const stack = [{ indent: -1, obj: root }];
   for (const rawLine of String(text ?? "").split(/\r?\n/)) {
     if (
@@ -1759,11 +1795,18 @@ function parseSimpleStructured(text, kind) {
         .replace(/^['"]|['"]$/g, "");
       const rest = trimmed.slice(colon + 1).trim();
       if (!rest) {
-        const child = {};
-        if (parent && typeof parent === "object" && !Array.isArray(parent))
+        const child = Object.create(null);
+        if (
+          !isUnsafeStructuredKey(key) &&
+          parent &&
+          typeof parent === "object" &&
+          !Array.isArray(parent)
+        ) {
           parent[key] = child;
+        }
         stack.push({ indent, obj: child });
       } else if (
+        !isUnsafeStructuredKey(key) &&
         parent &&
         typeof parent === "object" &&
         !Array.isArray(parent)

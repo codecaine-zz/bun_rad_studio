@@ -17,8 +17,10 @@
  * Nothing here talks to the page: fmDownloadOps.ts wraps it in API calls.
  */
 import { createHash, randomBytes } from "crypto";
+import { lookup as dnsLookup } from "dns/promises";
 import * as fs from "fs";
 import { promises as fsp } from "fs";
+import { isIP } from "net";
 import * as nodePath from "path";
 
 /** Lifecycle state of a managed download item (`queued`, `probing`, `downloading`, `paused`, `verifying`, `done`, or `error`). */
@@ -91,13 +93,15 @@ export interface DlItem {
   /** true / false after a checksum check, null when none was asked for. */
   verified: boolean | null;
   headers?: Record<string, string>;
+  /** Header names originally supplied on the download (kept even after sensitive header values are scrubbed on disk). */
+  headerNames?: string[];
   etag?: string;
   lastModified?: string;
   mime?: string;
 }
 
 /** What the page sees: the same, without the header values (they can hold secrets). */
-export type DlView = Omit<DlItem, "headers" | "finalUrl"> & {
+export type DlView = Omit<DlItem, "headers" | "finalUrl" | "headerNames"> & {
   headerNames: string[];
 };
 
@@ -105,6 +109,10 @@ export type DlView = Omit<DlItem, "headers" | "finalUrl"> & {
 export const MAX_CONNECTIONS = 32;
 /** Maximum number of files that can be downloaded simultaneously. */
 export const MAX_CONCURRENT = 10;
+/** Maximum number of range chunks tracked in memory/state per download (`16,384`). */
+export const MAX_CHUNKS = 16_384;
+/** Maximum single download size accepted from `Content-Range` / `Content-Length` (`1 TiB`). */
+export const MAX_DOWNLOAD_SIZE = 1024 ** 4;
 const MIN_CHUNK = 512 * 1024;
 const MAX_CHUNK = 16 * 1024 * 1024;
 const STATE_VERSION = 1;
@@ -335,7 +343,202 @@ export interface ProbeResult {
   mime?: string;
 }
 
-const SENSITIVE_HEADERS = /^(authorization|cookie|proxy-authorization)$/i;
+/** SSRF and DNS-resolution options for `probeUrl` and `DownloadManager`. */
+export interface DownloadSecurityOptions {
+  /** Allow RFC1918, link-local, CGNAT, and IPv6 ULA addresses (`false` by default; cloud metadata is always blocked). */
+  allowPrivateNetworks?: boolean;
+  /** Allow direct `127.0.0.1` / `localhost` / `[::1]` URLs (`false` in File Manager API; `true` for standalone local callers unless disabled). */
+  allowLoopback?: boolean;
+  /** Optional custom DNS resolver returning IP strings for `hostname` (for tests). */
+  lookupFn?: (hostname: string) => Promise<string[]>;
+}
+
+const SENSITIVE_HEADERS =
+  /^(authorization|cookie|proxy-authorization|x-api-key|x-auth-token|set-cookie|proxy-authenticate)$/i;
+
+/** Strips sensitive authentication/cookie headers before persisting download metadata to disk. */
+export function stripSensitiveHeaders(
+  headers: Record<string, string> | undefined,
+): Record<string, string> | undefined {
+  if (!headers) return undefined;
+  const kept = Object.entries(headers).filter(
+    ([k]) => !SENSITIVE_HEADERS.test(k),
+  );
+  return kept.length > 0 ? Object.fromEntries(kept) : undefined;
+}
+
+function normalizeHostLiteral(hostname: string): string {
+  const trimmed = hostname.trim().toLowerCase().replace(/\.$/, "");
+  return trimmed.startsWith("[") && trimmed.endsWith("]")
+    ? trimmed.slice(1, -1)
+    : trimmed;
+}
+
+function extractMappedIpv4(ip: string): string | null {
+  const lower = ip.toLowerCase();
+  if (!lower.startsWith("::ffff:")) return null;
+  const tail = lower.slice(7);
+  if (isIP(tail) === 4) return tail;
+  const hex = /^([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(tail);
+  if (!hex) return null;
+  const hi = parseInt(hex[1]!, 16);
+  const lo = parseInt(hex[2]!, 16);
+  return `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
+}
+
+function classifyIpAddress(
+  rawIp: string,
+): "metadata" | "loopback" | "private" | "public" {
+  const ip = normalizeHostLiteral(rawIp.split("%")[0] ?? rawIp);
+  const mapped4 = extractMappedIpv4(ip);
+  if (mapped4) return classifyIpAddress(mapped4);
+  const v = isIP(ip);
+  if (v === 4) {
+    const parts = ip.split(".").map(Number);
+    const [a = 0, b = 0, c = 0, d = 0] = parts;
+    if (a === 0) return "metadata";
+    if (a === 169 && b === 254 && c === 169 && d === 254) return "metadata";
+    if (a === 100 && b === 100 && c === 100 && d === 200) return "metadata";
+    if (a === 127) return "loopback";
+    if (a === 10) return "private";
+    if (a === 172 && b >= 16 && b <= 31) return "private";
+    if (a === 192 && b === 168) return "private";
+    if (a === 169 && b === 254) return "private";
+    if (a === 100 && b >= 64 && b <= 127) return "private";
+    if (a === 198 && (b === 18 || b === 19)) return "private";
+    if (a >= 224) return "private";
+    return "public";
+  }
+  if (v === 6) {
+    const lower = ip.toLowerCase();
+    if (lower === "::" || lower === "0:0:0:0:0:0:0:0") return "metadata";
+    if (lower === "fd00:ec2::254") return "metadata";
+    if (lower === "::1" || lower === "0:0:0:0:0:0:0:1") return "loopback";
+    if (/^fe[89ab][0-9a-f]:/.test(lower)) return "private";
+    if (/^f[cd][0-9a-f]{2}:/.test(lower)) return "private";
+    return "public";
+  }
+  return "public";
+}
+
+function isDirectLoopbackHostname(host: string): boolean {
+  const h = normalizeHostLiteral(host);
+  return (
+    h === "localhost" ||
+    h.endsWith(".localhost") ||
+    classifyIpAddress(h) === "loopback"
+  );
+}
+
+/** Synchronously checks URL hostname against cloud metadata, loopback, and private network SSRF rules. */
+export function assertSafeDownloadUrlSync(
+  rawUrl: string,
+  security?: DownloadSecurityOptions,
+  originUrl?: string,
+): URL {
+  const u = parseWebUrl(rawUrl);
+  const host = normalizeHostLiteral(u.hostname);
+  if (!host) throw new DlError("That address has no host name.");
+  if (
+    host === "metadata.google.internal" ||
+    host === "metadata" ||
+    host === "instance-data"
+  ) {
+    throw new DlError(
+      "Cloud metadata addresses cannot be downloaded for security reasons.",
+    );
+  }
+  const allowPrivate = security?.allowPrivateNetworks === true;
+  const allowLoopback =
+    security?.allowLoopback !== undefined
+      ? security.allowLoopback
+      : allowPrivate || security?.allowPrivateNetworks === undefined;
+  const originIsLoopback = originUrl
+    ? isDirectLoopbackHostname(new URL(originUrl).hostname)
+    : isDirectLoopbackHostname(host);
+
+  if (host === "localhost" || host.endsWith(".localhost")) {
+    if (!allowLoopback || !originIsLoopback) {
+      throw new DlError(
+        "Local loopback addresses are blocked for downloads by default.",
+      );
+    }
+    return u;
+  }
+  if (
+    !allowPrivate &&
+    (host.endsWith(".local") || host.endsWith(".internal"))
+  ) {
+    throw new DlError(
+      "Private or local-network addresses are blocked for downloads by default.",
+    );
+  }
+  if (isIP(host) !== 0) {
+    const kind = classifyIpAddress(host);
+    if (kind === "metadata") {
+      throw new DlError(
+        "Cloud metadata and unspecified IP addresses cannot be downloaded.",
+      );
+    }
+    if (kind === "loopback" && (!allowLoopback || !originIsLoopback)) {
+      throw new DlError(
+        "Local loopback addresses are blocked for downloads by default.",
+      );
+    }
+    if (kind === "private" && !allowPrivate) {
+      throw new DlError(
+        "Private-network IP addresses are blocked for downloads by default.",
+      );
+    }
+  }
+  return u;
+}
+
+async function assertSafeDownloadUrl(
+  rawUrl: string,
+  security?: DownloadSecurityOptions,
+  originUrl?: string,
+): Promise<URL> {
+  const u = assertSafeDownloadUrlSync(rawUrl, security, originUrl);
+  const host = normalizeHostLiteral(u.hostname);
+  if (isIP(host) !== 0 || host === "localhost" || host.endsWith(".localhost")) {
+    return u;
+  }
+  const allowPrivate = security?.allowPrivateNetworks === true;
+  if (allowPrivate && !security?.lookupFn) return u;
+  let addresses: string[];
+  try {
+    if (security?.lookupFn) {
+      addresses = await security.lookupFn(host);
+    } else {
+      const records = await dnsLookup(host, { all: true, verbatim: true });
+      addresses = records.map((r) => r.address);
+    }
+  } catch {
+    // Let fetchFn report unreachable hosts (or handle mocked test domains when lookupFn isn't supplied).
+    if (!security?.lookupFn) return u;
+    throw new DlError(`Couldn't resolve host "${host}".`, false);
+  }
+  for (const addr of addresses) {
+    const kind = classifyIpAddress(addr);
+    if (kind === "metadata") {
+      throw new DlError(
+        "That host resolves to a blocked cloud metadata or unspecified IP address.",
+      );
+    }
+    if (kind === "loopback" && security?.allowPrivateNetworks !== true) {
+      throw new DlError(
+        "That host resolves to a local loopback IP address, which is blocked.",
+      );
+    }
+    if (kind === "private" && !allowPrivate) {
+      throw new DlError(
+        "That host resolves to a private-network IP address, which is blocked.",
+      );
+    }
+  }
+  return u;
+}
 
 /** The request headers for `url`. Logins and cookies were meant for the address that was asked for, so they are not sent to a different site (a CDN or storage host a redirect leads to). */
 function requestHeaders(
@@ -399,9 +602,12 @@ async function fetchWithRedirects(
   extraHeaders: Record<string, string>,
   fetchFn: typeof fetch,
   signal?: AbortSignal,
+  security?: DownloadSecurityOptions,
 ): Promise<{ res: Response; finalUrl: string }> {
   let current = url;
+  const originUrl = originItem.url ?? url;
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    await assertSafeDownloadUrl(current, security, originUrl);
     let res: Response;
     try {
       res = await fetchFn(current, {
@@ -428,6 +634,7 @@ async function fetchWithRedirects(
         throw new DlError(
           "The server redirected to an address that isn't a web address.",
         );
+      await assertSafeDownloadUrl(next.toString(), security, originUrl);
       current = next.toString();
       continue;
     }
@@ -442,8 +649,11 @@ export async function probeUrl(
   headers: Record<string, string> | undefined,
   fetchFn: typeof fetch,
   signal?: AbortSignal,
+  security?: DownloadSecurityOptions,
 ): Promise<ProbeResult> {
-  const { url: clean, auth } = splitCredentials(parseWebUrl(url).toString());
+  const { url: clean, auth } = splitCredentials(
+    assertSafeDownloadUrlSync(url, security).toString(),
+  );
   const safe = cleanHeaders(headers);
   const hasAuth = Object.keys(safe).some(
     (k) => k.toLowerCase() === "authorization",
@@ -458,6 +668,7 @@ export async function probeUrl(
     { Range: "bytes=0-0" },
     fetchFn,
     signal,
+    security,
   );
   const cd = res.headers.get("content-disposition");
   const name = safeFileName(nameFromDisposition(cd) ?? nameFromUrl(finalUrl));
@@ -551,7 +762,21 @@ export function decodeProgress(
   chunkSize: number,
   size: number,
 ): number[] {
+  if (
+    !Number.isFinite(size) ||
+    size < 0 ||
+    size > MAX_DOWNLOAD_SIZE ||
+    !Number.isFinite(chunkSize) ||
+    chunkSize <= 0
+  ) {
+    throw new DlError("Saved download progress has an invalid size.");
+  }
   const count = Math.ceil(size / chunkSize);
+  if (count > MAX_CHUNKS) {
+    throw new DlError(
+      `Download chunk count (${count}) exceeds the safety limit (${MAX_CHUNKS}).`,
+    );
+  }
   const done = new Array<number>(count).fill(0);
   for (const [a, b] of state.complete)
     for (let i = Math.max(0, a); i <= Math.min(count - 1, b); i++)
@@ -565,10 +790,12 @@ export function decodeProgress(
   return done;
 }
 
-/** How big the pieces are: small enough to share out evenly, big enough that requests stay few. */
+/** How big the pieces are: small enough to share out evenly, big enough that requests stay few (capped at `MAX_CHUNKS`). */
 export function chunkSizeFor(size: number, connections: number): number {
+  const minForCap = Math.ceil(size / MAX_CHUNKS / 65536) * 65536;
   return Math.max(
     MIN_CHUNK,
+    minForCap,
     Math.min(MAX_CHUNK, Math.ceil(size / (connections * 6) / 65536) * 65536),
   );
 }
@@ -595,7 +822,7 @@ interface Job {
 }
 
 /** Initialization options and injectable dependencies (`fetchFn`, `lookupFn`) for `DownloadManager`. */
-export interface ManagerOptions {
+export interface ManagerOptions extends DownloadSecurityOptions {
   /** The JSON file the list and the settings are kept in. */
   file: string;
   /** Where files go by default. */
@@ -690,12 +917,27 @@ export class DownloadManager {
       try {
         fs.mkdirSync(nodePath.dirname(this.options.file), { recursive: true });
         const tmp = `${this.options.file}.${process.pid}.tmp`;
+        const persistedItems = [...this.items.values()].map((item) => {
+          const safeHeaders = stripSensitiveHeaders(item.headers);
+          const names = Array.from(
+            new Set([
+              ...(item.headerNames ?? []),
+              ...Object.keys(item.headers ?? {}),
+            ]),
+          );
+          const { headers: _rawHeaders, ...rest } = item;
+          return {
+            ...rest,
+            ...(names.length > 0 ? { headerNames: names } : {}),
+            ...(safeHeaders ? { headers: safeHeaders } : {}),
+          };
+        });
         fs.writeFileSync(
           tmp,
           JSON.stringify({
             v: 1,
             settings: this.settings,
-            items: [...this.items.values()],
+            items: persistedItems,
           }),
           { mode: 0o600 },
         );
@@ -716,10 +958,14 @@ export class DownloadManager {
 
   /** Returns public view models (`DlView[]`) for all tracked downloads with sensitive header values redacted. */
   list(): DlView[] {
-    return [...this.items.values()].map(({ headers, finalUrl, ...rest }) => ({
-      ...rest,
-      headerNames: Object.keys(headers ?? {}),
-    }));
+    return [...this.items.values()].map(
+      ({ headers, finalUrl, headerNames, ...rest }) => ({
+        ...rest,
+        headerNames: Array.from(
+          new Set([...(headerNames ?? []), ...Object.keys(headers ?? {})]),
+        ),
+      }),
+    );
   }
 
   /** Looks up a download item by ID. */
@@ -765,9 +1011,14 @@ export class DownloadManager {
     // Everything is checked before anything is added, so one bad address doesn't leave the others half-added.
     const added: DlItem[] = [];
     for (const req of requests) {
-      const { url: clean, auth } = splitCredentials(
-        parseWebUrl(req.url).toString(),
-      );
+      const checkedUrl =
+        req.start === false
+          ? assertSafeDownloadUrlSync(req.url, {
+              ...this.options,
+              allowLoopback: true,
+            })
+          : assertSafeDownloadUrlSync(req.url, this.options);
+      const { url: clean, auth } = splitCredentials(checkedUrl.toString());
       const folder = req.folder?.trim() || this.settings.folder;
       const name = safeFileName(req.name || nameFromUrl(clean));
       const headers = cleanHeaders(req.headers);
@@ -801,6 +1052,7 @@ export class DownloadManager {
         checksum: parseChecksum(req.checksum),
         verified: null,
         headers,
+        headerNames: Object.keys(headers),
         message:
           req.start === false ? "Added. Press Resume to start." : undefined,
       });
@@ -975,6 +1227,16 @@ export class DownloadManager {
     }
 
     const probe = await this.probeWithRetries(item, signal);
+    if (
+      probe.size !== null &&
+      (!Number.isFinite(probe.size) ||
+        probe.size < 0 ||
+        probe.size > MAX_DOWNLOAD_SIZE)
+    ) {
+      throw new DlError(
+        `The server reported an invalid or oversized file length (${probe.size}).`,
+      );
+    }
     item.finalUrl = probe.finalUrl;
     item.mime = probe.mime;
     item.resumable = probe.ranges;
@@ -995,7 +1257,7 @@ export class DownloadManager {
       probe.size === s.size &&
       Number.isSafeInteger(s.chunkSize) &&
       s.chunkSize >= MIN_CHUNK &&
-      s.chunkSize <= MAX_CHUNK &&
+      Math.ceil(s.size / s.chunkSize) <= MAX_CHUNKS &&
       Array.isArray(s.complete) &&
       Array.isArray(s.partial) &&
       (!s.etag || !probe.etag || s.etag === probe.etag) &&
@@ -1066,7 +1328,13 @@ export class DownloadManager {
   ): Promise<ProbeResult> {
     for (let attempt = 0; ; attempt++) {
       try {
-        return await probeUrl(item.url, item.headers, this.fetchFn, signal);
+        return await probeUrl(
+          item.url,
+          item.headers,
+          this.fetchFn,
+          signal,
+          this.options,
+        );
       } catch (err: any) {
         if (
           isAbort(err) ||
@@ -1187,6 +1455,7 @@ export class DownloadManager {
             { Range: `bytes=${from}-${end}`, ...ifRange(probe) },
             this.fetchFn,
             signal,
+            this.options,
           );
           if (res.status !== 206) {
             res.body?.cancel().catch(() => {});
@@ -1316,6 +1585,7 @@ export class DownloadManager {
           from > 0 ? { Range: `bytes=${from}-`, ...ifRange(probe) } : {},
           this.fetchFn,
           signal,
+          this.options,
         );
         if (from > 0 && res.status === 200) {
           // The server ignored the range: start from the top.
