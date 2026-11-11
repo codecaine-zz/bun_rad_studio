@@ -15,7 +15,14 @@
  *
  * Every call is defensive: it never throws, and says "not possible" (false / null) so the caller can fall back.
  */
-import { dlopen, FFIType, CString, ptr, type Pointer } from "bun:ffi";
+import {
+  dlopen,
+  FFIType,
+  CString,
+  JSCallback,
+  ptr,
+  type Pointer,
+} from "bun:ffi";
 import { spawnSync } from "child_process";
 import type { SizeHint, Webview } from "webview-bun";
 import type { FmScreen, Rect } from "./features/filemanager/fmWindow.ts";
@@ -238,6 +245,18 @@ export function silenceMacKeyBeep(): void {
       );
     }
   });
+}
+
+let macHotKeyGuardInstalled = false;
+const macSignalSources: unknown[] = [];
+
+/**
+ * Saves and disables Mission Control symbolic hotkeys 36 (F11) & 37 (Shift+F11) for an active native macOS window,
+ * restoring them on normal exit and via GCD main-queue signal sources (`SIGINT`/`SIGTERM`) pumped by `[NSApp run]`.
+ */
+function installMacWindowHotKeyGuard(): void {
+  if (macHotKeyGuardInstalled || process.platform !== "darwin") return;
+  macHotKeyGuardInstalled = true;
   ok(() => {
     const cg = dlopen(
       "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
@@ -252,8 +271,6 @@ export function silenceMacKeyBeep(): void {
         },
       },
     ).symbols;
-    // Symbolic hotkeys 36 (F11) & 37 (Shift+F11) are Mission Control "Show Desktop", which swallows F11 before the app receives it.
-    // Save the user's previous hotkey state and restore it when the process exits so system-wide shortcuts are never left disabled.
     const was36 = Boolean(cg.CGSIsSymbolicHotKeyEnabled(36));
     const was37 = Boolean(cg.CGSIsSymbolicHotKeyEnabled(37));
     cg.CGSSetSymbolicHotKeyEnabled(36, false);
@@ -269,11 +286,60 @@ export function silenceMacKeyBeep(): void {
     };
     process.once("exit", restoreHotKeys);
     process.once("beforeExit", restoreHotKeys);
-    for (const sig of ["SIGINT", "SIGTERM"] as const) {
-      process.once(sig, () => {
-        restoreHotKeys();
-        process.kill(process.pid, sig);
-      });
+
+    // Bun's JS process.on("SIGINT"|"SIGTERM") queues onto the JS event loop, which is blocked while Cocoa [NSApp run]
+    // runs the main CFRunLoop. Register GCD signal sources on _dispatch_main_q so CFRunLoop handles SIGINT/SIGTERM immediately.
+    const libsys = dlopen("/usr/lib/libSystem.B.dylib", {
+      dlsym: {
+        args: [FFIType.pointer, FFIType.cstring],
+        returns: FFIType.pointer,
+      },
+      signal: {
+        args: [FFIType.i32, FFIType.pointer],
+        returns: FFIType.pointer,
+      },
+      _exit: { args: [FFIType.i32], returns: FFIType.void },
+      dispatch_source_create: {
+        args: [FFIType.pointer, FFIType.u64, FFIType.u64, FFIType.pointer],
+        returns: FFIType.pointer,
+      },
+      dispatch_source_set_event_handler_f: {
+        args: [FFIType.pointer, FFIType.pointer],
+        returns: FFIType.void,
+      },
+      dispatch_resume: { args: [FFIType.pointer], returns: FFIType.void },
+    }).symbols;
+    const rtldDefault = -2 as unknown as Pointer;
+    const sigType = libsys.dlsym(
+      rtldDefault,
+      Buffer.from("_dispatch_source_type_signal\0"),
+    );
+    const mainQueue = libsys.dlsym(
+      rtldDefault,
+      Buffer.from("_dispatch_main_q\0"),
+    );
+    const sigIgn = 1 as unknown as Pointer;
+    if (sigType && mainQueue) {
+      for (const sigNum of [2, 15] as const) {
+        libsys.signal(sigNum, sigIgn);
+        const src = libsys.dispatch_source_create(
+          sigType,
+          BigInt(sigNum),
+          0n,
+          mainQueue,
+        );
+        if (!src) continue;
+        const cb = new JSCallback(
+          () => {
+            restoreHotKeys();
+            libsys._exit(128 + sigNum);
+          },
+          { args: [FFIType.pointer], returns: FFIType.void },
+        );
+        macSignalSources.push(src, cb);
+        libsys.dispatch_source_set_event_handler_f(src, cb.ptr);
+        libsys.dispatch_resume(src);
+      }
     }
   });
 }
@@ -336,6 +402,7 @@ function enableMacWebviewMediaCapabilities(winPtr: Pointer): void {
 
 function macNative(wv: Webview): WindowNative {
   silenceMacKeyBeep();
+  installMacWindowHotKeyGuard();
   const win = (): Pointer => wv.unsafeWindowHandle as Pointer;
   enableMacWebviewMediaCapabilities(win());
   let screens: FmScreen[] | null = null;
@@ -1001,6 +1068,7 @@ export function configureMacWindowShortcutsNative(wv: Webview): void {
   });
   enableMacWebviewMediaCapabilities(handle);
   silenceMacKeyBeep();
+  installMacWindowHotKeyGuard();
 }
 
 /** Sets or clears always-on-top window stacking on macOS or Windows using cached FFI bindings. */

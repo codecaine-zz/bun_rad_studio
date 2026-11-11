@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterAll, describe, expect, it } from "bun:test";
 import {
   scanWorkspaceApps,
   scanSystemApps,
@@ -15,6 +15,20 @@ import {
 } from "../applications/launcher_studio";
 
 describe("Launcher Studio Pro - Application Auto-Detection", () => {
+  afterAll(() => {
+    for (const id of [
+      "rad_sqlite_studio",
+      "rad_ipinfo_studio",
+      "rad_system_studio",
+      "rad_redis_studio",
+      "rad_rip_studio",
+      "rad_fd_studio",
+    ]) {
+      try {
+        killApplication(id);
+      } catch {}
+    }
+  });
   it("derives app metadata correctly from application script path", () => {
     const meta = deriveAppMetadata("./applications/sqlite_studio.ts");
     expect(meta.name).toBe("sqlite_studio");
@@ -239,7 +253,7 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
     expect(win.getValue("dd_category")).toBe("⭐ Pinned Favorites");
   });
 
-  it("registers double-click auto-launch handlers for both lst_apps and tbl_apps", () => {
+  it("registers double-click auto-launch handlers for both lst_apps and tbl_apps", async () => {
     const win = createLauncherStudio({ fullscreen: false });
     expect(win).toBeDefined();
 
@@ -260,8 +274,12 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
     expect(html).toContain('id="lst_apps"');
 
     // Triggering double click on tbl_apps updates selection
-    tblDblHandler(win, "rad_sqlite_studio");
-    expect(win.getValue("lst_apps")).toContain("SQLite Studio Pro");
+    try {
+      await tblDblHandler(win, "rad_sqlite_studio");
+      expect(win.getValue("lst_apps")).toContain("SQLite Studio Pro");
+    } finally {
+      killApplication("rad_sqlite_studio");
+    }
   });
 
   it("verifies isPidAlive detects active vs terminated PIDs", () => {
@@ -749,7 +767,7 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
     }
   });
 
-  it("triggers auto-launch when Return / Enter key is pressed in lst_apps listbox", () => {
+  it("triggers auto-launch when Return / Enter key is pressed in lst_apps listbox", async () => {
     const win = createLauncherStudio({ fullscreen: false });
     const handlers = (win as any).eventHandlersMap;
     expect(handlers).toBeDefined();
@@ -767,8 +785,12 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
     expect(html).toContain("on_lst_apps_enter");
 
     // Invoking enter handler updates selection
-    enterHandler(win, "rad_sqlite_studio");
-    expect(win.getValue("lst_apps")).toContain("SQLite Studio Pro");
+    try {
+      await enterHandler(win, "rad_sqlite_studio");
+      expect(win.getValue("lst_apps")).toContain("SQLite Studio Pro");
+    } finally {
+      killApplication("rad_sqlite_studio");
+    }
   });
 
   it("ensures every CLI tool in 1-clicks has a corresponding GUI Studio version in 1-clicks", () => {

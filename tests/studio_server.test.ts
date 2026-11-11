@@ -38,14 +38,38 @@ describe("shared static studio server", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  test("serves the generated page on / and /index.html, rendering it per request", async () => {
+  test("serves the generated page on / and /index.html, memoizing static markup by default", async () => {
     const a = await fetch(`${base}/`);
     expect(a.status).toBe(200);
     expect(a.headers.get("content-type")).toContain("text/html");
     const first = await a.text();
     const b = await (await fetch(`${base}/index.html`)).text();
-    expect(first).toContain("render ");
-    expect(b).not.toBe(first);
+    expect(first).toContain("render 1");
+    expect(b).toBe(first);
+    expect(renders).toBe(1);
+  });
+
+  test("re-renders per request when cacheHtml is false", async () => {
+    let dynamicRenders = 0;
+    const dynamicServer = startStaticStudioServer({
+      app: "dynamic_sample_studio",
+      name: "Dynamic Sample Studio",
+      version: "9.9.9",
+      assetsDir: assets,
+      cacheHtml: false,
+      generateHtml: () =>
+        `<!DOCTYPE html><title>Dynamic</title><p>render ${++dynamicRenders}</p>`,
+    });
+    try {
+      const dynBase = `http://127.0.0.1:${dynamicServer.port}`;
+      const first = await (await fetch(`${dynBase}/`)).text();
+      const second = await (await fetch(`${dynBase}/index.html`)).text();
+      expect(first).toContain("render 1");
+      expect(second).toContain("render 2");
+      expect(second).not.toBe(first);
+    } finally {
+      dynamicServer.stop(true);
+    }
   });
 
   test("health reports the configured identity", async () => {

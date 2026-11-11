@@ -74,7 +74,9 @@ describe("the three studio pages carry the shared Columns control and polish", (
       expect(html, name).not.toMatch(
         /<(script|link)[^>]+(src|href)=["']https?:/i,
       );
-      expect(html, name).not.toMatch(/@import|url\(["']?https?:/i);
+      expect(html, name).not.toMatch(
+        /@import\s+(?:url\()?["']?https?:|url\(["']?https?:/i,
+      );
     }
   });
 

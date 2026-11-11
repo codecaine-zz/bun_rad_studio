@@ -49,7 +49,11 @@ describe("workbench mounted in the existing studios", () => {
       /user: cfg\.user,\s*password: cfg\.password/,
     );
     expect(generateMysqlStudioHtml()).toContain("delete p.password");
-    expect(generatePostgresStudioHtml()).toContain('new RegExp("//[^@/]*@")');
+    const pgHtml = generatePostgresStudioHtml();
+    expect(pgHtml).toContain("function stripUrlCredentials(");
+    expect(pgHtml).toContain(
+      'url: stripUrlCredentials(document.getElementById("cfgUrl").value || "")',
+    );
   });
 
   it("legacy studios link to the workbench", () => {
