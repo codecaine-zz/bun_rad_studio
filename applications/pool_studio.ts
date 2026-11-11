@@ -241,7 +241,7 @@ export class PoolStudio {
 export const createPoolApp = createPoolStudio;
 export const startPoolStudioServer = startPoolServer;
 
-if (process.argv.includes("--server")) {
+if (import.meta.main && process.argv.includes("--server")) {
   const port = parseInt(process.env.POOL_PORT || process.env.PORT || "0", 10);
   const srv = startPoolServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);

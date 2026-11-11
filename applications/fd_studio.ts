@@ -2663,18 +2663,6 @@ if (import.meta.main) {
     );
     setInterval(() => {}, 60000);
   } else {
-    try {
-      const preferredPort = Number(process.env.PORT);
-      if (preferredPort) {
-        startFdStudioServer({ port: preferredPort });
-      } else {
-        try {
-          startFdStudioServer({ port: 4610 });
-        } catch {
-          startFdStudioServer({ port: 0 });
-        }
-      }
-    } catch {}
     const win = createFdStudio({ fullscreen: true });
     console.log(
       "⚡ Launching Fd Studio Pro (Native Bun Filesystem Traversal)...",

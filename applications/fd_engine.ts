@@ -292,70 +292,83 @@ class GitignoreMatcher {
  * - `{.}`: path without extension
  * - `{/.}`: basename without extension
  */
-export function interpolateExecCommand(
-  cmdTemplate: string,
-  filePath: string,
-): string {
-  let tmpl = cmdTemplate.trim();
-  if (
-    !tmpl.includes("{}") &&
-    !tmpl.includes("{/}") &&
-    !tmpl.includes("{//}") &&
-    !tmpl.includes("{.}") &&
-    !tmpl.includes("{/.}")
-  ) {
-    tmpl = `${tmpl} {}`;
-  }
+type FdPlaceholderToken = "{//}" | "{/.}" | "{/}" | "{.}" | "{}";
 
-  const base = path.basename(filePath);
-  const dir =
-    filePath.includes("/") && !filePath.includes("\\")
-      ? path.posix.dirname(filePath)
-      : path.dirname(filePath);
-  const ext = path.extname(filePath);
+const FD_PLACEHOLDER_TOKENS: readonly FdPlaceholderToken[] = [
+  "{//}",
+  "{/.}",
+  "{/}",
+  "{.}",
+  "{}",
+];
+
+function matchPlaceholderAt(
+  tmpl: string,
+  idx: number,
+): FdPlaceholderToken | null {
+  if (tmpl[idx] !== "{") return null;
+  for (const tok of FD_PLACEHOLDER_TOKENS) {
+    if (tmpl.startsWith(tok, idx)) return tok;
+  }
+  return null;
+}
+
+function posixSingleQuote(val: string): string {
+  return `'${val.replace(/'/g, "'\\''")}'`;
+}
+
+function posixSafeBareOrQuote(val: string): string {
+  if (
+    val.length > 0 &&
+    !val.startsWith("-") &&
+    /^[A-Za-z0-9_./:@+=,-]+$/.test(val)
+  ) {
+    return val;
+  }
+  return posixSingleQuote(val);
+}
+
+function computePathParts(
+  filePath: string,
+): Record<FdPlaceholderToken, string> {
+  const isPosixStyle = filePath.includes("/") && !filePath.includes("\\");
+  const base = isPosixStyle
+    ? path.posix.basename(filePath)
+    : path.basename(filePath);
+  const dir = isPosixStyle
+    ? path.posix.dirname(filePath)
+    : path.dirname(filePath);
+  const ext = isPosixStyle
+    ? path.posix.extname(filePath)
+    : path.extname(filePath);
   const baseNoExt = base.slice(0, base.length - ext.length);
   const pathNoExt = ext
     ? filePath.slice(0, filePath.length - ext.length)
     : filePath;
-
-  function quoteIfSpaced(val: string): string {
-    if (/[\s"'$`\\;<>|&]/.test(val)) {
-      return `"${val.replace(/(["\\$`])/g, "\\$1")}"`;
-    }
-    return val;
-  }
-
-  function quoteForDouble(val: string): string {
-    return `"${val.replace(/(["\\$`])/g, "\\$1")}"`;
-  }
-
-  function quoteForSingle(val: string): string {
-    return `'${val.replace(/'/g, "'\\''")}'`;
-  }
-
-  return tmpl
-    .replace(/"{}"/g, quoteForDouble(filePath))
-    .replace(/'{}'/g, quoteForSingle(filePath))
-    .replace(/{}/g, quoteIfSpaced(filePath))
-    .replace(/"{\/}"/g, quoteForDouble(base))
-    .replace(/'{\/}'/g, quoteForSingle(base))
-    .replace(/{\/}/g, quoteIfSpaced(base))
-    .replace(/"{\/\/}"/g, quoteForDouble(dir))
-    .replace(/'{\/\/}'/g, quoteForSingle(dir))
-    .replace(/{\/\/}/g, quoteIfSpaced(dir))
-    .replace(/"{\.}"/g, quoteForDouble(pathNoExt))
-    .replace(/'{\.}'/g, quoteForSingle(pathNoExt))
-    .replace(/{\.}/g, quoteIfSpaced(pathNoExt))
-    .replace(/"{\/\.}"/g, quoteForDouble(baseNoExt))
-    .replace(/'{\/\.}'/g, quoteForSingle(baseNoExt))
-    .replace(/{\/\.}/g, quoteIfSpaced(baseNoExt));
+  return {
+    "{}": filePath,
+    "{/}": base,
+    "{//}": dir,
+    "{.}": pathNoExt,
+    "{/.}": baseNoExt,
+  };
 }
 
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function guardLeadingDash(token: FdPlaceholderToken, val: string): string {
+  if (
+    (token === "{}" || token === "{.}" || token === "{//}") &&
+    val.startsWith("-")
+  ) {
+    return `./${val}`;
+  }
+  return val;
 }
 
-function expandBatchExecCommand(
+/**
+ * Single-pass, quote-aware placeholder expander for fd `-x` / `-X` templates.
+ * Prevents second-pass re-substitution and shell metacharacter / `$()` / backtick injection.
+ */
+function expandPlaceholdersSinglePass(
   cmdTemplate: string,
   filePaths: string[],
 ): string {
@@ -370,50 +383,111 @@ function expandBatchExecCommand(
     tmpl = `${tmpl} {}`;
   }
 
-  const stringify = (v: string) =>
-    /[\s"'$`\\;<>|&]/.test(v) ? `"${v.replace(/(["\\$`])/g, "\\$1")}"` : v;
-  const asPathValue = (value: string) => stringify(value);
+  const perFileParts = filePaths.map(computePathParts);
+  let out = "";
+  let quote: "none" | "single" | "double" = "none";
+  let i = 0;
 
-  const replacements = [
-    { token: "{}", value: filePaths.map(asPathValue).join(" ") },
-    {
-      token: "{/}",
-      value: filePaths.map((p) => stringify(path.basename(p))).join(" "),
-    },
-    {
-      token: "{//}",
-      value: filePaths.map((p) => stringify(path.dirname(p))).join(" "),
-    },
-    {
-      token: "{.}",
-      value: filePaths
-        .map((p) => {
-          const base = path.basename(p);
-          const ext = path.extname(p);
-          return stringify(
-            path.join(path.dirname(p), base.slice(0, base.length - ext.length)),
+  while (i < tmpl.length) {
+    const ch = tmpl[i]!;
+
+    if (quote === "none") {
+      if (ch === "\\" && i + 1 < tmpl.length) {
+        out += tmpl.slice(i, i + 2);
+        i += 2;
+        continue;
+      }
+
+      // Direct quote-wrapped placeholder: '{}' or "{}"
+      if (ch === "'" || ch === '"') {
+        const wrappedTok = matchPlaceholderAt(tmpl, i + 1);
+        if (wrappedTok && tmpl[i + 1 + wrappedTok.length] === ch) {
+          const vals = perFileParts.map((parts) =>
+            posixSingleQuote(guardLeadingDash(wrappedTok, parts[wrappedTok])),
           );
-        })
-        .join(" "),
-    },
-    {
-      token: "{/.}",
-      value: filePaths
-        .map((p) => {
-          const base = path.basename(p);
-          const ext = path.extname(p);
-          return stringify(base.slice(0, base.length - ext.length));
-        })
-        .join(" "),
-    },
-  ];
+          out += vals.join(" ");
+          i += 2 + wrappedTok.length;
+          continue;
+        }
+        quote = ch === "'" ? "single" : "double";
+        out += ch;
+        i++;
+        continue;
+      }
 
-  let expanded = tmpl;
-  for (const { token, value } of replacements) {
-    expanded = expanded.replace(new RegExp(escapeRegExp(token), "g"), value);
+      const tok = matchPlaceholderAt(tmpl, i);
+      if (tok) {
+        const vals = perFileParts.map((parts) =>
+          posixSafeBareOrQuote(guardLeadingDash(tok, parts[tok])),
+        );
+        out += vals.join(" ");
+        i += tok.length;
+        continue;
+      }
+
+      out += ch;
+      i++;
+      continue;
+    }
+
+    if (quote === "single") {
+      if (ch === "'") {
+        quote = "none";
+        out += ch;
+        i++;
+        continue;
+      }
+      const tok = matchPlaceholderAt(tmpl, i);
+      if (tok) {
+        const rawJoined = perFileParts.map((parts) => parts[tok]).join(" ");
+        out += rawJoined.replace(/'/g, "'\\''");
+        i += tok.length;
+        continue;
+      }
+      out += ch;
+      i++;
+      continue;
+    }
+
+    // quote === "double"
+    if (ch === "\\" && i + 1 < tmpl.length) {
+      out += tmpl.slice(i, i + 2);
+      i += 2;
+      continue;
+    }
+    if (ch === '"') {
+      quote = "none";
+      out += ch;
+      i++;
+      continue;
+    }
+    const tok = matchPlaceholderAt(tmpl, i);
+    if (tok) {
+      const rawJoined = perFileParts.map((parts) => parts[tok]).join(" ");
+      // Break out of double quotes, emit inert POSIX single-quoted value, and re-enter double quotes
+      out += `"${posixSingleQuote(rawJoined)}"`;
+      i += tok.length;
+      continue;
+    }
+    out += ch;
+    i++;
   }
 
-  return expanded;
+  return out;
+}
+
+export function interpolateExecCommand(
+  cmdTemplate: string,
+  filePath: string,
+): string {
+  return expandPlaceholdersSinglePass(cmdTemplate, [filePath]);
+}
+
+function expandBatchExecCommand(
+  cmdTemplate: string,
+  filePaths: string[],
+): string {
+  return expandPlaceholdersSinglePass(cmdTemplate, filePaths);
 }
 
 /**

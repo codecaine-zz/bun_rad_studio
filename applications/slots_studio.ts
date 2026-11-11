@@ -189,7 +189,7 @@ export const SlotsStudio = createSlotsStudio;
 export const createSlotsApp = createSlotsStudio;
 export const startSlotsStudioServer = startSlotsServer;
 
-if (process.argv.includes("--server")) {
+if (import.meta.main && process.argv.includes("--server")) {
   const port = parseInt(process.env.SLOTS_PORT || process.env.PORT || "0", 10);
   const srv = startSlotsServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);

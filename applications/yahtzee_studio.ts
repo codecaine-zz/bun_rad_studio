@@ -277,11 +277,20 @@ if (import.meta.main) {
   const args = process.argv.slice(2);
   const fullscreen = !args.includes("--windowed") && !args.includes("-w");
   const portFlagIdx = args.indexOf("--port");
-  const port = portFlagIdx !== -1 ? parseInt(args[portFlagIdx + 1]!, 10) : 8998;
+  const parsedCliPort =
+    portFlagIdx !== -1 ? parseInt(args[portFlagIdx + 1]!, 10) : NaN;
+  const parsedEnvPort = process.env.PORT ? parseInt(process.env.PORT, 10) : NaN;
+  const port =
+    Number.isFinite(parsedCliPort) && parsedCliPort > 0
+      ? parsedCliPort
+      : Number.isFinite(parsedEnvPort) && parsedEnvPort > 0
+        ? parsedEnvPort
+        : 0;
   const serverOnly = args.includes("--server") || args.includes("-s");
 
   if (serverOnly) {
     const srv = startYahtzeeServer({ port, host: "127.0.0.1" });
+    console.log(`READY:${srv.port}`);
     console.log(
       `🎲 Yahtzee Royale Deluxe server running at: http://127.0.0.1:${srv.port}/`,
     );

@@ -11,7 +11,7 @@
 
 import type { SizeHint, Webview } from "webview-bun";
 import { resolve, join } from "path";
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, realpathSync, statSync } from "fs";
 import { guardLocalRequest } from "../src/localGuard";
 import { injectGameMasterFx } from "../src/shared/gameMasterFx";
 import {
@@ -218,19 +218,52 @@ export function startConnect4StudioServer(options: Connect4ServerOptions = {}) {
       }
 
       // Fallback: static file in assets directory
-      const sanitized = pathname.replace(/^\/+/, "");
+      let decodedPath: string;
+      try {
+        decodedPath = decodeURIComponent(pathname);
+      } catch {
+        return new Response("Bad Request", {
+          status: 400,
+          headers: corsHeaders,
+        });
+      }
+      if (decodedPath.includes("\0")) {
+        return new Response("Forbidden", { status: 403, headers: corsHeaders });
+      }
+      const sanitized = decodedPath.replace(/^\/+/, "");
       const directCandidate = join(assetsDir, sanitized);
       if (
         directCandidate !== assetsDir &&
         !directCandidate.startsWith(assetsDir + "/") &&
         !directCandidate.startsWith(assetsDir + "\\")
       ) {
-        return new Response("Forbidden", { status: 403 });
+        return new Response("Forbidden", { status: 403, headers: corsHeaders });
       }
       if (existsSync(directCandidate)) {
-        return new Response(Bun.file(directCandidate), {
-          headers: corsHeaders,
-        });
+        try {
+          const realRoot = realpathSync(assetsDir);
+          const realTarget = realpathSync(directCandidate);
+          if (
+            realTarget !== realRoot &&
+            !realTarget.startsWith(realRoot + "/") &&
+            !realTarget.startsWith(realRoot + "\\")
+          ) {
+            return new Response("Forbidden", {
+              status: 403,
+              headers: corsHeaders,
+            });
+          }
+          if (statSync(realTarget).isFile()) {
+            return new Response(Bun.file(realTarget), {
+              headers: corsHeaders,
+            });
+          }
+        } catch {
+          return new Response("Forbidden", {
+            status: 403,
+            headers: corsHeaders,
+          });
+        }
       }
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
@@ -345,8 +378,14 @@ export function createConnect4Studio(
 export const createConnect4App = createConnect4Studio;
 export const createConnect4 = createConnect4Studio;
 
-if (process.argv.includes("--server")) {
-  const port = parseInt(process.env.PORT || "0", 10);
+if (import.meta.main && process.argv.includes("--server")) {
+  const port = (() => {
+    const idx = process.argv.indexOf("--port");
+    const cli = idx !== -1 ? parseInt(process.argv[idx + 1] || "0", 10) : NaN;
+    return Number.isFinite(cli) && cli > 0
+      ? cli
+      : parseInt(process.env.PORT || "0", 10) || 0;
+  })();
   const srv = startConnect4StudioServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
   console.log(

@@ -245,10 +245,11 @@ export function createTokeiStudio(
 
       win.clearConsole("console_tokei");
       if (showFiles) {
-        const breakdownLines = formatFilesBreakdown(reports);
-        for (const line of breakdownLines) {
-          win.appendConsole("console_tokei", line + "\n");
-        }
+        const breakdown = formatFilesBreakdown(reports).replace(
+          /\x1b\[[0-9;]*m/g,
+          "",
+        );
+        win.appendConsole("console_tokei", breakdown + "\n");
       } else {
         const md = formatMarkdownTable(reports);
         win.appendConsole("console_tokei", md + "\n");

@@ -281,7 +281,13 @@ export function createGitStudio(
       "[git pull] Fetching updates from remote...\n",
       1,
     );
-    const [out, code] = Sys.exec("git pull --rebase 2>&1");
+    const proc = Bun.spawnSync(["git", "pull", "--rebase"], {
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
+    });
+    const out = proc.stdout.toString() + proc.stderr.toString();
+    const code = proc.exitCode;
     win.appendConsole(
       "git_console",
       `[git pull] (exit ${code})\n${out}\n`,
@@ -296,7 +302,13 @@ export function createGitStudio(
       "[git push] Pushing commits to remote...\n",
       1,
     );
-    const [out, code] = Sys.exec("git push 2>&1");
+    const proc = Bun.spawnSync(["git", "push"], {
+      stdout: "pipe",
+      stderr: "pipe",
+      env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
+    });
+    const out = proc.stdout.toString() + proc.stderr.toString();
+    const code = proc.exitCode;
     win.appendConsole(
       "git_console",
       `[git push] (exit ${code})\n${out}\n`,

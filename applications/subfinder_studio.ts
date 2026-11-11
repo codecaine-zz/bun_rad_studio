@@ -255,11 +255,12 @@ export function createSubfinderStudio(
       return;
     }
     const hosts = currentResults.map((r) => r.host).join("\n");
+    win.copyToClipboard(hosts);
     win.clearConsole("console_subs");
     win.appendConsole("console_subs", hosts);
     win.setValue(
       "lbl_status_bar",
-      `✓ Copied ${currentResults.length} hostnames to console.`,
+      `✓ Copied ${currentResults.length} hostnames to clipboard and console.`,
     );
   });
 

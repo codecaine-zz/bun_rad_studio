@@ -1494,9 +1494,11 @@ function updateCanvasSvg() {
     const cardOff1 = x2 >= x1 ? 16 : -16;
     const cardOff2 = x2 >= x1 ? -16 : 16;
 
+    const safeJoinKey = escapeHtml(j.key);
+    const safeJoinType = escapeHtml(type);
     svgContent += `
-      <path d="${d}" class="qbe-svg-join-halo" onclick="openJoinPropertiesModal('${j.key}')" title="Click to edit Join Properties (${type} JOIN)"></path>
-      <path d="${d}" class="qbe-svg-join-line" stroke="${stroke}" ${dash} ${markerAttr} onclick="openJoinPropertiesModal('${j.key}')" title="Click to edit Join Properties (${type} JOIN)"></path>
+      <path d="${d}" class="qbe-svg-join-halo" data-join-key="${safeJoinKey}" onclick="openJoinPropertiesModal(this.getAttribute('data-join-key'))" title="Click to edit Join Properties (${safeJoinType} JOIN)"></path>
+      <path d="${d}" class="qbe-svg-join-line" stroke="${stroke}" ${dash} ${markerAttr} data-join-key="${safeJoinKey}" onclick="openJoinPropertiesModal(this.getAttribute('data-join-key'))" title="Click to edit Join Properties (${safeJoinType} JOIN)"></path>
       
       <!-- Cardinality Indicators (1 to ∞) -->
       <foreignObject x="${x1 + cardOff1 - 9}" y="${y1 - 10}" width="18" height="18" style="overflow: visible; pointer-events: none;">
@@ -1511,9 +1513,9 @@ function updateCanvasSvg() {
       </foreignObject>
 
       <foreignObject x="${mx - 50}" y="${my - 13}" width="100" height="26" style="overflow: visible;">
-        <div xmlns="http://www.w3.org/1999/xhtml" class="qbe-svg-join-badge" style="border-color:${stroke}; color:${stroke};" onclick="openJoinPropertiesModal('${j.key}')" title="Join Properties (${type} JOIN): Click to configure">
+        <div xmlns="http://www.w3.org/1999/xhtml" class="qbe-svg-join-badge" style="border-color:${stroke}; color:${stroke};" data-join-key="${safeJoinKey}" onclick="openJoinPropertiesModal(this.getAttribute('data-join-key'))" title="Join Properties (${safeJoinType} JOIN): Click to configure">
           <span>${badgeIcon}</span>
-          <span>${type}</span>
+          <span>${safeJoinType}</span>
         </div>
       </foreignObject>
     `;
@@ -3045,7 +3047,7 @@ function renderQueryDesigner() {
         <div style="padding: 20px;">
           <div class="card" style="border-color: var(--rose);">
             <div class="card-title" style="color: var(--rose);">⚠️ Query Execution Error</div>
-            <div style="font-family: var(--font-mono); font-size: 12px; color: var(--text-main); margin: 8px 0;">${ds.error}</div>
+            <div style="font-family: var(--font-mono); font-size: 12px; color: var(--text-main); margin: 8px 0;">${escapeHtml(ds.error)}</div>
             <button class="btn btn-sm btn-primary" onclick="setDesignerActiveView('design')">Return to Design View</button>
           </div>
         </div>
@@ -3060,7 +3062,7 @@ function renderQueryDesigner() {
             <thead>
               <tr>
                 <th style="width: 40px; text-align: center;">#</th>
-                ${cols.map((c) => `<th>${c}</th>`).join("")}
+                ${cols.map((c) => `<th>${escapeHtml(c)}</th>`).join("")}
               </tr>
             </thead>
             <tbody>
@@ -3139,18 +3141,21 @@ function renderQueryDesigner() {
         const icon = isView ? "👁️" : "🗄️";
         const pos = (queryDesignerState.tablePositions &&
           queryDesignerState.tablePositions[tableName]) || { x: 20, y: 15 };
-        const cardStyle = `position: absolute; left: ${pos.x}px; top: ${pos.y}px; width: 230px;`;
+        const cardStyle = `position: absolute; left: ${Number(pos.x) || 0}px; top: ${Number(pos.y) || 0}px; width: 230px;`;
+        const safeTable = escapeHtml(tableName);
         const columnsHtml = (meta.columns || [])
           .map((c) => {
-            const typeDisplay = formatPgTypeShort(c.type || "ANY");
+            const typeDisplay = escapeHtml(formatPgTypeShort(c.type || "ANY"));
+            const safeCol = escapeHtml(c.name);
+            const safeRawType = escapeHtml(c.type || "ANY");
             return `
-      <div class="qbe-field-row" id="qbeFieldRow_${tableName}_${c.name}" draggable="true" ondragstart="onDesignerFieldDragStart(event, '${tableName}', '${c.name}')" ondragover="onDesignerFieldDragOver(event)" ondragenter="onDesignerFieldDragEnter(event, '${tableName}', '${c.name}')" ondragleave="onDesignerFieldDragLeave(event)" ondrop="onDesignerFieldDrop(event, '${tableName}', '${c.name}')" onclick="addDesignerQbeColumn('${tableName}', '${c.name}')" title="Drag to another field to link, or click to add to QBE Grid (${c.type || "ANY"})">
+      <div class="qbe-field-row" id="qbeFieldRow_${safeTable}_${safeCol}" data-table="${safeTable}" data-col="${safeCol}" draggable="true" ondragstart="onDesignerFieldDragStart(event, this.dataset.table, this.dataset.col)" ondragover="onDesignerFieldDragOver(event)" ondragenter="onDesignerFieldDragEnter(event, this.dataset.table, this.dataset.col)" ondragleave="onDesignerFieldDragLeave(event)" ondrop="onDesignerFieldDrop(event, this.dataset.table, this.dataset.col)" onclick="addDesignerQbeColumn(this.dataset.table, this.dataset.col)" title="Drag to another field to link, or click to add to QBE Grid (${safeRawType})">
         <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;">
           <span class="qbe-field-connector" title="Drag to link this field">●</span>
-          <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${c.pk ? "🔑 " : ""}${c.name}</span>
+          <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${c.pk ? "🔑 " : ""}${safeCol}</span>
         </div>
         <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
-          <span style="font-size: 9px; color: var(--text-dim); max-width: 65px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block;" title="${c.type || "ANY"}">${typeDisplay}</span>
+          <span style="font-size: 9px; color: var(--text-dim); max-width: 65px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block;" title="${safeRawType}">${typeDisplay}</span>
           <span class="qbe-field-add-icon">+</span>
         </div>
       </div>
@@ -3159,10 +3164,10 @@ function renderQueryDesigner() {
           .join("");
 
         return `
-      <div class="qbe-table-card" id="qbeTableCard_${tableName}" style="${cardStyle}">
-        <div class="qbe-table-card-header" onmousedown="onDesignerTableHeaderMouseDown(event, '${tableName}')" title="Drag header to move table on canvas">
-          <span style="pointer-events: none;">${icon} ${tableName}${isView ? ' <span style="font-size: 9px; opacity: 0.7; font-weight: normal;">(view)</span>' : ""}</span>
-          <button class="sidebar-mini-btn" onclick="removeDesignerTable('${tableName}')" title="Remove table">✕</button>
+      <div class="qbe-table-card" id="qbeTableCard_${safeTable}" style="${cardStyle}">
+        <div class="qbe-table-card-header" data-table="${safeTable}" onmousedown="onDesignerTableHeaderMouseDown(event, this.dataset.table)" title="Drag header to move table on canvas">
+          <span style="pointer-events: none;">${icon} ${safeTable}${isView ? ' <span style="font-size: 9px; opacity: 0.7; font-weight: normal;">(view)</span>' : ""}</span>
+          <button class="sidebar-mini-btn" data-table="${safeTable}" onclick="removeDesignerTable(this.dataset.table)" title="Remove table">✕</button>
         </div>
         <div class="qbe-table-card-fields">${columnsHtml}</div>
       </div>
@@ -3209,7 +3214,7 @@ function renderQueryDesigner() {
     } else {
       topologyStatusHtml = `
         <div style="display: inline-flex; align-items: center; gap: 6px; font-size: 10px; color: var(--amber); background: rgba(245, 158, 11, 0.1); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(245, 158, 11, 0.3);">
-          <span>⚠️ ${unconnectedTables.join(", ")} unconnected</span>
+          <span>⚠️ ${unconnectedTables.map(escapeHtml).join(", ")} unconnected</span>
           <button class="btn btn-sm" onclick="autoJoinDesignerTables()" style="padding: 1px 6px; font-size: 9px;">⚡ Auto-Detect Joins</button>
         </div>
       `;
@@ -3243,29 +3248,30 @@ function renderQueryDesigner() {
           { val: "FULL", label: "4: ALL records from BOTH (FULL OUTER)" },
           { val: "CROSS", label: "5: Cartesian product (CROSS)" },
         ];
+        const safeJoinKey = escapeHtml(join.key);
 
         return `
       <div class="qbe-join-badge">
-        <button class="btn btn-sm" onclick="openJoinPropertiesModal('${join.key}')" title="Configure in Join Properties dialog" style="padding: 2px 7px; font-size: 10px; font-weight: 700; color: var(--cyan); border-color: rgba(56, 189, 248, 0.4);">📐 Properties</button>
-        <select class="qbe-select" onchange="updateDesignerJoin('${join.key}', 'type', this.value)" style="font-weight: 600; color: var(--cyan);">
-          ${joinTypes.map((j) => `<option value="${j.val}" ${join.type === j.val ? "selected" : ""}>${j.label}</option>`).join("")}
+        <button class="btn btn-sm" data-join-key="${safeJoinKey}" onclick="openJoinPropertiesModal(this.dataset.joinKey)" title="Configure in Join Properties dialog" style="padding: 2px 7px; font-size: 10px; font-weight: 700; color: var(--cyan); border-color: rgba(56, 189, 248, 0.4);">📐 Properties</button>
+        <select class="qbe-select" data-join-key="${safeJoinKey}" onchange="updateDesignerJoin(this.dataset.joinKey, 'type', this.value)" style="font-weight: 600; color: var(--cyan);">
+          ${joinTypes.map((j) => `<option value="${escapeHtml(j.val)}" ${join.type === j.val ? "selected" : ""}>${escapeHtml(j.label)}</option>`).join("")}
         </select>
-        <select class="qbe-select" onchange="updateDesignerJoinTable('${join.key}', 'leftTable', this.value)" style="font-weight: 700; color: var(--text-main);">
-          ${selectedTables.map((t) => `<option value="${t}" ${join.leftTable === t ? "selected" : ""}>${t}</option>`).join("")}
+        <select class="qbe-select" data-join-key="${safeJoinKey}" onchange="updateDesignerJoinTable(this.dataset.joinKey, 'leftTable', this.value)" style="font-weight: 700; color: var(--text-main);">
+          ${selectedTables.map((t) => `<option value="${escapeHtml(t)}" ${join.leftTable === t ? "selected" : ""}>${escapeHtml(t)}</option>`).join("")}
         </select>
         <span style="color: var(--text-dim); font-weight: bold;">.</span>
-        <select class="qbe-select" onchange="updateDesignerJoin('${join.key}', 'leftField', this.value)">
-          ${leftFields.map((f) => `<option value="${f}" ${join.leftField === f ? "selected" : ""}>${f}</option>`).join("")}
+        <select class="qbe-select" data-join-key="${safeJoinKey}" onchange="updateDesignerJoin(this.dataset.joinKey, 'leftField', this.value)">
+          ${leftFields.map((f) => `<option value="${escapeHtml(f)}" ${join.leftField === f ? "selected" : ""}>${escapeHtml(f)}</option>`).join("")}
         </select>
         <span style="color: var(--cyan); font-weight: bold; margin: 0 4px;">=</span>
-        <select class="qbe-select" onchange="updateDesignerJoinTable('${join.key}', 'rightTable', this.value)" style="font-weight: 700; color: var(--text-main);">
-          ${selectedTables.map((t) => `<option value="${t}" ${join.rightTable === t ? "selected" : ""}>${t}</option>`).join("")}
+        <select class="qbe-select" data-join-key="${safeJoinKey}" onchange="updateDesignerJoinTable(this.dataset.joinKey, 'rightTable', this.value)" style="font-weight: 700; color: var(--text-main);">
+          ${selectedTables.map((t) => `<option value="${escapeHtml(t)}" ${join.rightTable === t ? "selected" : ""}>${escapeHtml(t)}</option>`).join("")}
         </select>
         <span style="color: var(--text-dim); font-weight: bold;">.</span>
-        <select class="qbe-select" onchange="updateDesignerJoin('${join.key}', 'rightField', this.value)">
-          ${rightFields.map((f) => `<option value="${f}" ${join.rightField === f ? "selected" : ""}>${f}</option>`).join("")}
+        <select class="qbe-select" data-join-key="${safeJoinKey}" onchange="updateDesignerJoin(this.dataset.joinKey, 'rightField', this.value)">
+          ${rightFields.map((f) => `<option value="${escapeHtml(f)}" ${join.rightField === f ? "selected" : ""}>${escapeHtml(f)}</option>`).join("")}
         </select>
-        <button class="sidebar-mini-btn" onclick="removeDesignerJoin('${join.key}')" title="Delete join">✕</button>
+        <button class="sidebar-mini-btn" data-join-key="${safeJoinKey}" onclick="removeDesignerJoin(this.dataset.joinKey)" title="Delete join">✕</button>
       </div>
     `;
       })
@@ -3296,11 +3302,12 @@ function renderQueryDesigner() {
             tableMeta && tableMeta.columns
               ? tableMeta.columns.map((c) => c.name)
               : [];
+          const safeColId = escapeHtml(col.id);
           return `
           <td class="qbe-matrix-col-cell">
-            <select onchange="updateDesignerQbeColumn('${col.id}', 'field', this.value)" style="font-weight: 600; color: var(--cyan);">
+            <select data-col-id="${safeColId}" onchange="updateDesignerQbeColumn(this.dataset.colId, 'field', this.value)" style="font-weight: 600; color: var(--cyan);">
               <option value="*" ${col.field === "*" ? "selected" : ""}>* (All Fields)</option>
-              ${fields.map((f) => `<option value="${f}" ${col.field === f ? "selected" : ""}>${f}</option>`).join("")}
+              ${fields.map((f) => `<option value="${escapeHtml(f)}" ${col.field === f ? "selected" : ""}>${escapeHtml(f)}</option>`).join("")}
             </select>
           </td>
         `;
@@ -3317,8 +3324,8 @@ function renderQueryDesigner() {
         .map(
           (col) => `
         <td class="qbe-matrix-col-cell">
-          <select onchange="updateDesignerQbeColumn('${col.id}', 'table', this.value)">
-            ${selectedTables.map((t) => `<option value="${t}" ${col.table === t ? "selected" : ""}>${t}</option>`).join("")}
+          <select data-col-id="${escapeHtml(col.id)}" onchange="updateDesignerQbeColumn(this.dataset.colId, 'table', this.value)">
+            ${selectedTables.map((t) => `<option value="${escapeHtml(t)}" ${col.table === t ? "selected" : ""}>${escapeHtml(t)}</option>`).join("")}
           </select>
         </td>
       `,
@@ -3336,8 +3343,8 @@ function renderQueryDesigner() {
         .map(
           (col) => `
         <td class="qbe-matrix-col-cell">
-          <select onchange="updateDesignerQbeColumn('${col.id}', 'total', this.value)" style="font-weight: 600; color: ${col.total === "GroupBy" ? "var(--cyan)" : ["Sum", "Count", "Avg"].includes(col.total) ? "var(--emerald)" : "var(--text-main)"};">
-            ${totalsList.map((tot) => `<option value="${tot}" ${col.total === tot ? "selected" : ""}>${tot}</option>`).join("")}
+          <select data-col-id="${escapeHtml(col.id)}" onchange="updateDesignerQbeColumn(this.dataset.colId, 'total', this.value)" style="font-weight: 600; color: ${col.total === "GroupBy" ? "var(--cyan)" : ["Sum", "Count", "Avg"].includes(col.total) ? "var(--emerald)" : "var(--text-main)"};">
+            ${totalsList.map((tot) => `<option value="${escapeHtml(tot)}" ${col.total === tot ? "selected" : ""}>${escapeHtml(tot)}</option>`).join("")}
           </select>
         </td>
       `,
@@ -3355,7 +3362,7 @@ function renderQueryDesigner() {
         .map(
           (col) => `
         <td class="qbe-matrix-col-cell">
-          <select onchange="updateDesignerQbeColumn('${col.id}', 'sort', this.value)">
+          <select data-col-id="${escapeHtml(col.id)}" onchange="updateDesignerQbeColumn(this.dataset.colId, 'sort', this.value)">
             <option value="" ${!col.sort ? "selected" : ""}>(not sorted)</option>
             <option value="ASC" ${col.sort === "ASC" ? "selected" : ""}>Ascending</option>
             <option value="DESC" ${col.sort === "DESC" ? "selected" : ""}>Descending</option>
@@ -3375,7 +3382,7 @@ function renderQueryDesigner() {
         .map(
           (col) => `
         <td class="qbe-matrix-col-cell qbe-show-checkbox">
-          <input type="checkbox" ${col.show !== false ? "checked" : ""} onchange="updateDesignerQbeColumn('${col.id}', 'show', this.checked)">
+          <input type="checkbox" ${col.show !== false ? "checked" : ""} data-col-id="${escapeHtml(col.id)}" onchange="updateDesignerQbeColumn(this.dataset.colId, 'show', this.checked)">
         </td>
       `,
         )
@@ -3391,7 +3398,7 @@ function renderQueryDesigner() {
         .map(
           (col) => `
         <td class="qbe-matrix-col-cell">
-          <input value="${(col.criteria || "").replace(/"/g, "&quot;")}" placeholder="e.g. > 100, VIP" onchange="updateDesignerQbeColumn('${col.id}', 'criteria', this.value)">
+          <input value="${escapeHtml(col.criteria || "")}" placeholder="e.g. > 100, VIP" data-col-id="${escapeHtml(col.id)}" onchange="updateDesignerQbeColumn(this.dataset.colId, 'criteria', this.value)">
         </td>
       `,
         )
@@ -3407,7 +3414,7 @@ function renderQueryDesigner() {
         .map(
           (col) => `
         <td class="qbe-matrix-col-cell">
-          <input value="${(col.or1 || "").replace(/"/g, "&quot;")}" placeholder="or condition" onchange="updateDesignerQbeColumn('${col.id}', 'or1', this.value)">
+          <input value="${escapeHtml(col.or1 || "")}" placeholder="or condition" data-col-id="${escapeHtml(col.id)}" onchange="updateDesignerQbeColumn(this.dataset.colId, 'or1', this.value)">
         </td>
       `,
         )
@@ -3423,7 +3430,7 @@ function renderQueryDesigner() {
         .map(
           (col) => `
         <td class="qbe-matrix-col-cell">
-          <input value="${(col.or2 || "").replace(/"/g, "&quot;")}" placeholder="or condition" onchange="updateDesignerQbeColumn('${col.id}', 'or2', this.value)">
+          <input value="${escapeHtml(col.or2 || "")}" placeholder="or condition" data-col-id="${escapeHtml(col.id)}" onchange="updateDesignerQbeColumn(this.dataset.colId, 'or2', this.value)">
         </td>
       `,
         )
@@ -3436,15 +3443,16 @@ function renderQueryDesigner() {
     <tr>
       <td class="qbe-matrix-header-cell" style="color: var(--text-dim); font-size: 10px;">Order / Del:</td>
       ${columns
-        .map(
-          (col, idx) => `
+        .map((col, idx) => {
+          const safeColId = escapeHtml(col.id);
+          return `
         <td class="qbe-matrix-col-cell" style="text-align: center;">
-          <button class="sidebar-mini-btn" onclick="moveDesignerQbeColumn('${col.id}', -1)" ${idx === 0 ? "disabled" : ""} title="Move left">◀</button>
-          <button class="sidebar-mini-btn" onclick="moveDesignerQbeColumn('${col.id}', 1)" ${idx === columns.length - 1 ? "disabled" : ""} title="Move right">▶</button>
-          <button class="sidebar-mini-btn" onclick="removeDesignerQbeColumn('${col.id}')" title="Remove column">✕</button>
+          <button class="sidebar-mini-btn" data-col-id="${safeColId}" onclick="moveDesignerQbeColumn(this.dataset.colId, -1)" ${idx === 0 ? "disabled" : ""} title="Move left">◀</button>
+          <button class="sidebar-mini-btn" data-col-id="${safeColId}" onclick="moveDesignerQbeColumn(this.dataset.colId, 1)" ${idx === columns.length - 1 ? "disabled" : ""} title="Move right">▶</button>
+          <button class="sidebar-mini-btn" data-col-id="${safeColId}" onclick="removeDesignerQbeColumn(this.dataset.colId)" title="Remove column">✕</button>
         </td>
-      `,
-        )
+      `;
+        })
         .join("")}
       <td class="qbe-matrix-col-cell" style="text-align: center;">
         <button class="btn btn-sm btn-primary" onclick="addDesignerQbeColumn()" title="Add column">+ Add</button>

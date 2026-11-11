@@ -39,6 +39,7 @@ export interface SubprocessStage {
   customStdin?: string;
   enabled: boolean;
   stopOnError: boolean;
+  ignoreError?: boolean;
   timeoutMs: number;
   runWithSudo?: boolean;
   sudoElevationMode?: SudoElevationMode;
@@ -616,7 +617,7 @@ export class PipelineLibrary {
     const presets = getDefaultPipelinePresets();
     for (const [key, p] of Object.entries(presets)) {
       const id = `preset_${key.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`;
-      this.pipelines.set(p.name, {
+      this.pipelines.set(id, {
         id,
         name: p.name,
         description: p.description,
@@ -629,22 +630,70 @@ export class PipelineLibrary {
     }
   }
 
-  public savePipeline(pipeline: NamedPipeline, persist = true): void {
-    const key = pipeline.name.trim();
-    if (!key) return;
+  public savePipeline(
+    pipeline: NamedPipeline,
+    persist = true,
+    opts?: { allowDuplicateName?: boolean },
+  ): NamedPipeline | undefined {
+    const cleanName = (pipeline.name || "").trim();
+    if (!cleanName) return undefined;
+    pipeline.name = cleanName;
+
+    let id = (pipeline.id || "").trim();
+    if (!id) {
+      const existingByName = !opts?.allowDuplicateName
+        ? this.findByName(cleanName)
+        : undefined;
+      id =
+        existingByName?.id ||
+        `pipe_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+      pipeline.id = id;
+    } else if (!this.pipelines.has(id) && !opts?.allowDuplicateName) {
+      const existingByName = this.findByName(cleanName);
+      if (existingByName) {
+        this.pipelines.delete(existingByName.id);
+      }
+    }
+
+    if (!pipeline.createdAt) {
+      pipeline.createdAt = new Date().toISOString();
+    }
     pipeline.updatedAt = new Date().toISOString();
-    this.pipelines.set(key, pipeline);
+    this.pipelines.set(id, pipeline);
     if (persist) {
       this.saveToDisk();
     }
+    return pipeline;
   }
 
-  public getPipeline(name: string): NamedPipeline | undefined {
-    return this.pipelines.get(name.trim());
+  private findByName(name: string): NamedPipeline | undefined {
+    const target = name.trim();
+    if (!target) return undefined;
+    for (const p of this.pipelines.values()) {
+      if (p.name === target) return p;
+    }
+    return undefined;
   }
 
-  public hasPipeline(name: string): boolean {
-    return this.pipelines.has(name.trim());
+  private decodeLookupKey(idOrName: string): { raw: string; decoded: string } {
+    const raw = (idOrName || "").trim();
+    let decoded = raw;
+    try {
+      decoded = decodeURIComponent(raw).trim();
+    } catch {}
+    return { raw, decoded };
+  }
+
+  public getPipeline(idOrName: string): NamedPipeline | undefined {
+    const { raw, decoded } = this.decodeLookupKey(idOrName);
+    if (!raw) return undefined;
+    const direct = this.pipelines.get(raw) || this.pipelines.get(decoded);
+    if (direct) return direct;
+    return this.findByName(raw) || this.findByName(decoded);
+  }
+
+  public hasPipeline(idOrName: string): boolean {
+    return this.getPipeline(idOrName) !== undefined;
   }
 
   public listPipelines(): NamedPipeline[] {
@@ -652,12 +701,13 @@ export class PipelineLibrary {
   }
 
   public listNames(): string[] {
-    return Array.from(this.pipelines.keys());
+    return Array.from(this.pipelines.values()).map((p) => p.name);
   }
 
-  public deletePipeline(name: string): boolean {
-    const key = name.trim();
-    const deleted = this.pipelines.delete(key);
+  public deletePipeline(idOrName: string): boolean {
+    const found = this.getPipeline(idOrName);
+    if (!found) return false;
+    const deleted = this.pipelines.delete(found.id);
     if (deleted) {
       this.saveToDisk();
     }
@@ -716,7 +766,7 @@ export class PipelineLibrary {
         if (Array.isArray(list)) {
           for (const p of list) {
             if (p && p.name) {
-              this.pipelines.set(p.name.trim(), p);
+              this.savePipeline(p, false);
             }
           }
           return true;
@@ -1053,7 +1103,7 @@ export async function executePipeline(
     for (let i = 0; i < enabledStages.length; i++) {
       const stage = enabledStages[i]!;
 
-      if (options.abortSignal?.aborted) {
+      if (resolvedOptions.abortSignal?.aborted) {
         pipelineStatus = "aborted";
         stageResults[stage.id] = {
           stageId: stage.id,
@@ -1070,8 +1120,8 @@ export async function executePipeline(
         continue;
       }
 
-      if (options.onStageStart) {
-        options.onStageStart(stage, i);
+      if (resolvedOptions.onStageStart) {
+        resolvedOptions.onStageStart(stage, i);
       }
 
       const stageInput =
@@ -1082,9 +1132,9 @@ export async function executePipeline(
           : resolvedStdin;
 
       const result = await executePipelineStage(stage, stageInput, {
-        abortSignal: options.abortSignal,
+        abortSignal: resolvedOptions.abortSignal,
         elevationMode:
-          options.elevationMode || stage.sudoElevationMode || "auto",
+          resolvedOptions.elevationMode || stage.sudoElevationMode || "auto",
         askpassScriptPath: askpassPath,
         extraEnv,
       });
@@ -1092,14 +1142,16 @@ export async function executePipeline(
       stageResults[stage.id] = result;
       stagesCompleted++;
 
-      if (options.onStageFinish) {
-        options.onStageFinish(stage, result, i);
+      if (resolvedOptions.onStageFinish) {
+        resolvedOptions.onStageFinish(stage, result, i);
       }
 
       if (result.status === "error") {
         errorStageId = stage.id;
         pipelineStatus = "error";
-        if (stage.stopOnError) {
+        const shouldStopOnError =
+          stage.ignoreError === true ? false : stage.stopOnError !== false;
+        if (shouldStopOnError) {
           for (let j = i + 1; j < enabledStages.length; j++) {
             const remStage = enabledStages[j]!;
             stageResults[remStage.id] = {
@@ -1129,8 +1181,12 @@ export async function executePipeline(
   const anyNeedsSudo = enabledStages.some(
     (s) => s.runWithSudo || isSudoRequired(s.command),
   );
-  if (anyNeedsSudo && options.sudoPassword && options.sudoPassword.length > 0) {
-    await withAskpass(options.sudoPassword, (askpassPath, extraEnv) =>
+  if (
+    anyNeedsSudo &&
+    resolvedOptions.sudoPassword &&
+    resolvedOptions.sudoPassword.length > 0
+  ) {
+    await withAskpass(resolvedOptions.sudoPassword, (askpassPath, extraEnv) =>
       runStagesLoop(askpassPath, extraEnv),
     );
   } else {
@@ -1515,17 +1571,20 @@ export class SubprocessPipelineController {
 // =================================================================================================
 
 export function createSubprocessPipeStudio(
-  options: { fullscreen?: boolean; theme?: string } = {},
+  portOrOptions: number | { fullscreen?: boolean; theme?: string } = {},
+  maybeOptions: { fullscreen?: boolean; theme?: string } = {},
 ): SimpleWindow {
+  const resolvedOptions =
+    typeof portOrOptions === "number" ? maybeOptions : portOrOptions;
   const win = newSimpleWindow(
     "Subprocess Pipe Pro -- Shell Process Master & Multi-Stage Stream Pipeline",
     1280,
     1020,
     {
       appId: "subprocess_pipe_studio",
-      theme: options.theme || getSavedTheme() || "midnight",
+      theme: resolvedOptions.theme || getSavedTheme() || "midnight",
       autoSaveState: true,
-      fullscreen: options.fullscreen ?? true,
+      fullscreen: resolvedOptions.fullscreen ?? true,
     },
   );
 
@@ -2735,13 +2794,12 @@ ${stages.map((s, i) => `${i + 1}. [${s.enabled ? "ACTIVE" : "DISABLED"}] ${s.nam
   win.on("btn_save_output_file", "click", () => {
     try {
       const text = win.getValue("txt_inspector_content");
-      const outPath = resolve(
-        process.cwd(),
-        "dist",
-        `pipeline_output_${Date.now()}.txt`,
-      );
+      const fileName = `pipeline_output_${Date.now()}.txt`;
+      const distDir = resolve(process.cwd(), "dist");
+      mkdirSync(distDir, { recursive: true });
+      const outPath = resolve(distDir, fileName);
       writeFileSync(outPath, text, "utf-8");
-      win.toast(`Saved to dist/${outPath}`);
+      win.toast(`Saved to dist/${fileName}`);
       logConsole(`Saved inspector content to ${outPath}`);
     } catch (e: any) {
       win.toast(`Save failed: ${e.message}`);

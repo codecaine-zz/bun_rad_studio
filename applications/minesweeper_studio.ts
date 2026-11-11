@@ -236,8 +236,14 @@ export const createMinesweeperApp = createMinesweeperStudio;
 export const createMinesweeper = createMinesweeperStudio;
 export const startMinesweeperStudioServer = startMinesweeperServer;
 
-if (process.argv.includes("--server")) {
-  const port = parseInt(process.env.PORT || "0", 10);
+if (import.meta.main && process.argv.includes("--server")) {
+  const port = (() => {
+    const idx = process.argv.indexOf("--port");
+    const cli = idx !== -1 ? parseInt(process.argv[idx + 1] || "0", 10) : NaN;
+    return Number.isFinite(cli) && cli > 0
+      ? cli
+      : parseInt(process.env.PORT || "0", 10) || 0;
+  })();
   const srv = startMinesweeperServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
   console.log(

@@ -126,6 +126,25 @@ const KNOWN_ALIASES: Record<string, string[]> = {
   node: ["runtime", "server", "js"],
 };
 
+interface PrecomputedAliasEntry {
+  key: string;
+  normKey: string;
+  aliases: Array<{ raw: string; norm: string }>;
+}
+
+const PRECOMPUTED_ALIASES: PrecomputedAliasEntry[] = Object.entries(
+  KNOWN_ALIASES,
+).map(([key, list]) => ({
+  key,
+  normKey: normalizeTypo(key),
+  aliases: list.map((a) => ({ raw: a, norm: normalizeTypo(a) })),
+}));
+
+const PRECOMPUTED_ALIAS_BY_KEY = new Map<
+  string,
+  Array<{ raw: string; norm: string }>
+>(PRECOMPUTED_ALIASES.map((entry) => [entry.key, entry.aliases]));
+
 export function matchesQuery(proc: ProcessItem, query: string): boolean {
   if (!query) return true;
   const cleanQuery = query.toLowerCase().trim();
@@ -159,6 +178,7 @@ export function matchesQuery(proc: ProcessItem, query: string): boolean {
   // 3. Multi-word search (e.g. "ghosty terminal" or "bun server")
   const words = cleanQuery.split(/\s+/).filter(Boolean);
   if (words.length > 1) {
+    const directAliases = PRECOMPUTED_ALIAS_BY_KEY.get(name);
     const allWordsMatch = words.every((word) => {
       const normWord = normalizeTypo(word);
       if (
@@ -173,10 +193,10 @@ export function matchesQuery(proc: ProcessItem, query: string): boolean {
       if (normName.includes(normWord) || normCmd.includes(normWord)) {
         return true;
       }
-      const aliases = KNOWN_ALIASES[name] || [];
       if (
-        aliases.some(
-          (a) => a.includes(word) || normalizeTypo(a).includes(normWord),
+        directAliases &&
+        directAliases.some(
+          (a) => a.raw.includes(word) || a.norm.includes(normWord),
         )
       ) {
         return true;
@@ -187,14 +207,15 @@ export function matchesQuery(proc: ProcessItem, query: string): boolean {
   }
 
   // 4. Semantic alias matching (e.g. searching "terminal" matches Ghostty / iTerm / Alacritty)
-  for (const [key, aliasList] of Object.entries(KNOWN_ALIASES)) {
-    if (name.includes(key) || normName.includes(normalizeTypo(key))) {
-      if (
-        aliasList.some(
-          (a) => cleanQuery.includes(a) || normQuery.includes(normalizeTypo(a)),
-        )
-      ) {
-        return true;
+  for (let i = 0; i < PRECOMPUTED_ALIASES.length; i++) {
+    const entry = PRECOMPUTED_ALIASES[i]!;
+    if (name.includes(entry.key) || normName.includes(entry.normKey)) {
+      const aliasList = entry.aliases;
+      for (let j = 0; j < aliasList.length; j++) {
+        const a = aliasList[j]!;
+        if (cleanQuery.includes(a.raw) || normQuery.includes(a.norm)) {
+          return true;
+        }
       }
     }
   }
@@ -554,7 +575,8 @@ export function createTaskTracker(
   );
 
   let currentCategory = "all";
-  let activeProcesses = fetchProcesses();
+  let activeProcesses: ProcessItem[] =
+    process.env.SCREENSHOT_MODE === "1" ? fetchProcesses() : [];
   let selectedPid = activeProcesses[0]?.pid || "1";
   let displayed: ProcessItem[] = activeProcesses;
   let tick = 0;
@@ -756,8 +778,16 @@ export function createTaskTracker(
     win.appendConsole("task_console", `[${time}] ${message}\n`, style);
   };
 
+  const ensureProcessesLoaded = () => {
+    if (activeProcesses.length === 0) {
+      activeProcesses = fetchProcesses();
+      displayed = getFilteredProcesses(activeProcesses);
+    }
+  };
+
   /** In grouped mode a row is an app name: select its busiest process. */
   function resolveSelection(val: string): string {
+    ensureProcessesLoaded();
     const v = val.trim();
     if (/^\d+$/.test(v)) return v;
     const hit = activeProcesses
@@ -767,6 +797,7 @@ export function createTaskTracker(
   }
 
   function updateSelectedProcess(pid: string, updateInput = true) {
+    ensureProcessesLoaded();
     selectedPid = pid.trim();
     if (updateInput) {
       win.setValue("txt_target_pid", selectedPid);
@@ -924,6 +955,7 @@ export function createTaskTracker(
     signal: SignalName,
     sigNum: number = SIGNALS[signal],
   ): Promise<boolean> => {
+    ensureProcessesLoaded();
     pid = String(pid || "").trim();
     const proc = activeProcesses.find((p) => p.pid === pid);
     const a = assessSignal(proc, pid, signal, ctx());
@@ -961,6 +993,7 @@ export function createTaskTracker(
     title: string,
     signal: SignalName = "SIGTERM",
   ): Promise<number> => {
+    ensureProcessesLoaded();
     const targets: ProcessItem[] = [];
     for (const pid of pids) {
       const proc = activeProcesses.find((p) => p.pid === pid);
@@ -1140,6 +1173,7 @@ export function createTaskTracker(
   win.onClick("btn_kill_hup", () => sendSignalToPid(targetPid(), "SIGHUP", 1));
 
   win.onClick("btn_kill_tree", async () => {
+    ensureProcessesLoaded();
     const pid = targetPid();
     const proc = activeProcesses.find((p) => p.pid === pid);
     if (!proc) {
@@ -1153,6 +1187,7 @@ export function createTaskTracker(
   });
 
   win.onClick("btn_kill_group", async () => {
+    ensureProcessesLoaded();
     const pid = targetPid();
     const proc = activeProcesses.find((p) => p.pid === pid);
     if (!proc) {
@@ -1166,6 +1201,7 @@ export function createTaskTracker(
   });
 
   win.onClick("btn_renice", () => {
+    ensureProcessesLoaded();
     const pid = targetPid();
     const proc = activeProcesses.find((p) => p.pid === pid);
     const a = assessSignal(proc, pid, "SIGHUP", ctx());
@@ -1197,6 +1233,7 @@ export function createTaskTracker(
   });
 
   win.onClick("btn_inspect", () => {
+    ensureProcessesLoaded();
     const pid = targetPid();
     const proc = activeProcesses.find((p) => p.pid === pid);
     if (!proc) {
@@ -1249,6 +1286,7 @@ export function createTaskTracker(
   });
 
   win.onClick("btn_reveal", () => {
+    ensureProcessesLoaded();
     const pid = targetPid();
     const proc = activeProcesses.find((p) => p.pid === pid);
     const path = proc ? executablePath(proc.command) : null;
@@ -1275,6 +1313,7 @@ export function createTaskTracker(
   });
 
   win.onClick("btn_copy_cmd", () => {
+    ensureProcessesLoaded();
     const pid = targetPid();
     const proc = activeProcesses.find((p) => p.pid === pid);
     if (proc?.command) {
@@ -1285,6 +1324,7 @@ export function createTaskTracker(
   });
 
   win.onClick("btn_copy_table", () => {
+    ensureProcessesLoaded();
     if (displayed.length === 0) {
       win.toast("Nothing to copy.");
       return;
@@ -1294,6 +1334,7 @@ export function createTaskTracker(
   });
 
   win.onClick("btn_export", () => {
+    ensureProcessesLoaded();
     if (displayed.length === 0) {
       win.toast("Nothing to export.");
       return;
@@ -1323,6 +1364,7 @@ export function createTaskTracker(
 
   // Kill Port Process (only processes LISTENing on the port, never clients connected to it)
   win.onClick("btn_kill_port", async () => {
+    ensureProcessesLoaded();
     const port = validPort(win.getValue("txt_port") || "3000");
     if (!port) {
       win.toast(
@@ -1341,7 +1383,21 @@ export function createTaskTracker(
       return;
     }
 
-    const names = pids
+    const signalCtx = ctx();
+    const eligiblePids = pids.filter((p) => {
+      const proc = activeProcesses.find((x) => x.pid === p);
+      return assessSignal(proc, p, "SIGKILL", signalCtx).allowed;
+    });
+    if (eligiblePids.length === 0) {
+      win.toast("Refusing to terminate protected listener process.");
+      logConsole(
+        `[Kill Port :${port}] Refused: listener process is protected.`,
+        3,
+      );
+      return;
+    }
+
+    const names = eligiblePids
       .map(
         (p) =>
           `${activeProcesses.find((x) => x.pid === p)?.name || "unknown"} (${p})`,
@@ -1349,7 +1405,7 @@ export function createTaskTracker(
       .join(", ");
     if (
       !(await win.confirm(
-        `Force-kill ${pids.length} process(es) listening on :${port}?\n\n${names}`,
+        `Force-kill ${eligiblePids.length} process(es) listening on :${port}?\n\n${names}`,
         "Kill port process",
       ))
     ) {
@@ -1358,8 +1414,7 @@ export function createTaskTracker(
     }
 
     let killedCount = 0;
-    for (const p of pids) {
-      if (p === "1" || p === String(process.pid)) continue;
+    for (const p of eligiblePids) {
       const r = sendRawSignal(p, 9);
       if (r.ok) {
         killedCount++;
@@ -1381,6 +1436,7 @@ export function createTaskTracker(
 
   // Clean Rogue Dev Servers: yours, listening or orphaned, never this app's own process chain
   win.onClick("btn_clean_dev", async () => {
+    ensureProcessesLoaded();
     const rogue = findRogueDevServers(activeProcesses, ctx());
 
     if (rogue.length === 0) {
@@ -1538,7 +1594,71 @@ export function createTaskTracker(
           });
         }
 
-        window.applyClientSideTableFilter();
+        function escHtml(v) {
+          return String(v == null ? "" : v)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+        }
+
+        function hydrateFromHttpApi() {
+          fetch("/api/processes")
+            .then(function(r) { return r.ok ? r.json() : null; })
+            .then(function(payload) {
+              if (!payload || !Array.isArray(payload.processes)) return;
+              const table = container.querySelector("table");
+              const tbody = table ? table.querySelector("tbody") : null;
+              if (tbody) {
+                const stateNames = { R: "Running", S: "Sleeping", I: "Idle", U: "Waiting", T: "Stopped", Z: "Zombie" };
+                tbody.innerHTML = payload.processes.map(function(p) {
+                  const st = stateNames[String(p.state || "")[0]] || p.state || "—";
+                  const cells = [
+                    p.pid,
+                    p.name,
+                    Array.isArray(p.ports) && p.ports.length ? p.ports.join(", ") : "—",
+                    Number(p.cpu || 0).toFixed(1) + "%",
+                    Number(p.mem || 0).toFixed(1) + "%",
+                    p.rssMb || "",
+                    p.user || "",
+                    st,
+                    p.uptime || "—",
+                    p.command || ""
+                  ];
+                  return '<tr style="border-bottom:1px solid rgba(128,128,128,0.2);cursor:pointer;" data-pid="' + escHtml(p.pid) + '" onclick="if(window.onTableRowClick)window.onTableRowClick(this)">' +
+                    cells.map(function(c, idx) {
+                      const align = (idx === 3 || idx === 4 || idx === 5) ? "text-align:right;" : "text-align:left;";
+                      const mono = (idx === 0 || idx === 3 || idx === 4 || idx === 5) ? "font-family:monospace;font-variant-numeric:tabular-nums;" : "";
+                      return '<td style="padding:8px 12px;white-space:nowrap;' + align + mono + '">' + escHtml(c) + '</td>';
+                    }).join("") + "</tr>";
+                }).join("");
+                window.__masterTableTbodyHtml = tbody.innerHTML;
+              }
+              if (payload.telemetry) {
+                const tel = payload.telemetry;
+                const elTotal = document.getElementById("lbl_total_procs");
+                if (elTotal) elTotal.textContent = "Total Processes: " + tel.total + " (" + tel.userCount + " User, " + tel.systemCount + " Sys)";
+                const elCpu = document.getElementById("lbl_top_cpu");
+                if (elCpu) elCpu.textContent = "Top CPU: " + ((tel.topCpuProc && tel.topCpuProc.name) || "N/A") + " (" + ((tel.topCpuProc && tel.topCpuProc.cpu) || 0) + "%)";
+                const elPorts = document.getElementById("lbl_ports_active");
+                if (elPorts) elPorts.textContent = "Active Port Listeners: " + tel.portListenersCount + " services";
+              }
+              window.applyClientSideTableFilter();
+            })
+            .catch(function() {});
+        }
+
+        const initialTbody = container.querySelector("tbody");
+        if (!initialTbody || initialTbody.children.length === 0) {
+          if (location.protocol === "http:" || location.protocol === "https:") {
+            hydrateFromHttpApi();
+          } else if (typeof window.on_btn_refresh_click === "function") {
+            window.on_btn_refresh_click("");
+          }
+        } else {
+          window.applyClientSideTableFilter();
+        }
       }
 
       if (document.readyState === "loading") {
@@ -1572,6 +1692,7 @@ export function startTaskManagerServer(options: ServerOptions = {}) {
   const port = options.port ?? 0;
   const hostname = options.host ?? "127.0.0.1";
   const win = createTaskTracker({ fullscreen: false });
+  const shellHtml = win.generateHtml();
 
   const server = Bun.serve({
     port,
@@ -1589,7 +1710,7 @@ export function startTaskManagerServer(options: ServerOptions = {}) {
         return new Response(null, { headers: corsHeaders });
 
       if (url.pathname === "/" || url.pathname === "/index.html") {
-        return new Response(win.generateHtml(), {
+        return new Response(shellHtml, {
           headers: {
             "Content-Type": "text/html; charset=utf-8",
             ...corsHeaders,
@@ -1607,11 +1728,31 @@ export function startTaskManagerServer(options: ServerOptions = {}) {
       }
 
       if (url.pathname === "/api/kill-port" && req.method === "POST") {
-        const body: any = await req.json();
-        const port = validPort(String(body.port || ""));
+        let body: any;
+        try {
+          body = await req.json();
+        } catch {
+          return Response.json(
+            { success: false, killed: 0, error: "Invalid JSON body" },
+            { status: 400, headers: corsHeaders },
+          );
+        }
+        const port = validPort(String(body?.port || ""));
         if (port) {
+          const procs = fetchProcesses();
+          const signalCtx = {
+            selfPid: String(process.pid),
+            parentPid: String(process.ppid),
+            currentUser: currentUserName(),
+          };
           const pids = findListenerPids(port).filter(
-            (p) => p !== "1" && p !== String(process.pid),
+            (p) =>
+              assessSignal(
+                procs.find((x) => x.pid === p),
+                p,
+                "SIGKILL",
+                signalCtx,
+              ).allowed,
           );
           let killed = 0;
           for (const p of pids) {
@@ -1638,20 +1779,17 @@ export function startTaskManagerServer(options: ServerOptions = {}) {
 
 if (import.meta.main) {
   if (process.argv.includes("--server") || process.env.SERVER_MODE) {
-    const specifiedPort = Number(process.env.PORT);
-    let server: any;
-    if (specifiedPort) {
-      server = startTaskManagerServer({
-        port: specifiedPort,
-        host: "127.0.0.1",
-      });
-    } else {
-      try {
-        server = startTaskManagerServer({ port: 4848, host: "127.0.0.1" });
-      } catch {
-        server = startTaskManagerServer({ port: 0, host: "127.0.0.1" });
-      }
-    }
+    const portArgIdx = process.argv.indexOf("--port");
+    const cliPort =
+      portArgIdx !== -1 ? Number(process.argv[portArgIdx + 1]) : NaN;
+    const specifiedPort =
+      Number.isFinite(cliPort) && cliPort > 0
+        ? cliPort
+        : Number(process.env.PORT) || 0;
+    const server = startTaskManagerServer({
+      port: specifiedPort,
+      host: "127.0.0.1",
+    });
     console.log(`READY:${server.port}`);
     console.log(
       `\n⚡ Task Manager Pro Web Workstation Server running at http://127.0.0.1:${server.port}\n`,

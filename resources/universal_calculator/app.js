@@ -2938,33 +2938,329 @@ function parseAndLoadCustomData(rawText) {
 // ============================================================================
 // CALCULUS & EQUATION ANALYSIS STUDIO
 // ============================================================================
-function safeEvalGraphExpression(expression, x) {
-  let sanitized = expression
-    .replace(/\s+/g, "")
-    .replace(/(\d+)([a-zA-Z(])/g, "$1*$2")
-    .replace(/\)([\d(a-zA-Z])/g, ")*$1")
-    .replace(/\^/g, "**")
-    .replace(/pi/gi, "Math.PI")
-    .replace(/e\^/gi, "Math.exp")
-    .replace(/\be\b/gi, "Math.E")
-    .replace(/sin\(/gi, "Math.sin(")
-    .replace(/cos\(/gi, "Math.cos(")
-    .replace(/tan\(/gi, "Math.tan(")
-    .replace(/asin\(/gi, "Math.asin(")
-    .replace(/acos\(/gi, "Math.acos(")
-    .replace(/atan\(/gi, "Math.atan(")
-    .replace(/sqrt\(/gi, "Math.sqrt(")
-    .replace(/cbrt\(/gi, "Math.cbrt(")
-    .replace(/ln\(/gi, "Math.log(")
-    .replace(/log\(/gi, "Math.log10(")
-    .replace(/abs\(/gi, "Math.abs(")
-    .replace(/exp\(/gi, "Math.exp(")
-    .replace(/floor\(/gi, "Math.floor(")
-    .replace(/ceil\(/gi, "Math.ceil(")
-    .replace(/round\(/gi, "Math.round(");
+const GRAPH_MATH_FUNCS = Object.assign(Object.create(null), {
+  sin: Math.sin,
+  cos: Math.cos,
+  tan: Math.tan,
+  asin: Math.asin,
+  acos: Math.acos,
+  atan: Math.atan,
+  atan2: Math.atan2,
+  sinh: Math.sinh,
+  cosh: Math.cosh,
+  tanh: Math.tanh,
+  asinh: Math.asinh,
+  acosh: Math.acosh,
+  atanh: Math.atanh,
+  sqrt: Math.sqrt,
+  cbrt: Math.cbrt,
+  ln: Math.log,
+  log: Math.log10,
+  log10: Math.log10,
+  log2: Math.log2,
+  exp: Math.exp,
+  abs: Math.abs,
+  floor: Math.floor,
+  ceil: Math.ceil,
+  round: Math.round,
+  trunc: Math.trunc,
+  sign: Math.sign,
+  hypot: Math.hypot,
+  min: Math.min,
+  max: Math.max,
+  pow: Math.pow,
+});
 
-  const fn = new Function("x", `"use strict"; return (${sanitized});`);
-  return fn(x);
+const GRAPH_TOKEN_CACHE = new Map();
+
+function tokenizeGraphExpression(expression) {
+  if (typeof expression !== "string") {
+    throw new Error("Expression must be a string");
+  }
+  const src = expression.trim();
+  if (!src || src.length > 2048) {
+    throw new Error("Invalid expression length");
+  }
+  const cached = GRAPH_TOKEN_CACHE.get(src);
+  if (cached) return cached;
+
+  const tokens = [];
+  let i = 0;
+  const n = src.length;
+
+  while (i < n) {
+    const ch = src[i];
+    if (ch === " " || ch === "\t" || ch === "\n" || ch === "\r") {
+      i++;
+      continue;
+    }
+
+    if (
+      (ch >= "0" && ch <= "9") ||
+      (ch === "." && i + 1 < n && src[i + 1] >= "0" && src[i + 1] <= "9")
+    ) {
+      let start = i;
+      let sawDot = ch === ".";
+      i++;
+      while (i < n) {
+        const c = src[i];
+        if (c >= "0" && c <= "9") {
+          i++;
+        } else if (c === "." && !sawDot) {
+          sawDot = true;
+          i++;
+        } else {
+          break;
+        }
+      }
+      // Scientific notation (e.g. 1e-5), only when followed by optional +/- and digits
+      if (i < n && (src[i] === "e" || src[i] === "E")) {
+        let expIdx = i + 1;
+        if (expIdx < n && (src[expIdx] === "+" || src[expIdx] === "-"))
+          expIdx++;
+        if (expIdx < n && src[expIdx] >= "0" && src[expIdx] <= "9") {
+          i = expIdx + 1;
+          while (i < n && src[i] >= "0" && src[i] <= "9") i++;
+        }
+      }
+      const value = Number(src.slice(start, i));
+      if (Number.isNaN(value)) {
+        throw new Error(`Invalid number literal: ${src.slice(start, i)}`);
+      }
+      tokens.push({ type: "num", value });
+      continue;
+    }
+
+    if (
+      (ch >= "a" && ch <= "z") ||
+      (ch >= "A" && ch <= "Z") ||
+      ch === "π" ||
+      ch === "θ"
+    ) {
+      if (ch === "π") {
+        tokens.push({ type: "ident", name: "pi" });
+        i++;
+        continue;
+      }
+      if (ch === "θ") {
+        tokens.push({ type: "ident", name: "theta" });
+        i++;
+        continue;
+      }
+      let start = i;
+      i++;
+      while (i < n) {
+        const c = src[i];
+        if (
+          (c >= "a" && c <= "z") ||
+          (c >= "A" && c <= "Z") ||
+          (c >= "0" && c <= "9") ||
+          c === "_"
+        ) {
+          i++;
+        } else {
+          break;
+        }
+      }
+      const rawIdent = src.slice(start, i).toLowerCase();
+      // Support implicit multiplication like 2x or x followed by known constants if written compactly
+      tokens.push({ type: "ident", name: rawIdent });
+      continue;
+    }
+
+    if (ch === "*" && i + 1 < n && src[i + 1] === "*") {
+      tokens.push({ type: "op", value: "^" });
+      i += 2;
+      continue;
+    }
+
+    if (
+      ch === "+" ||
+      ch === "-" ||
+      ch === "*" ||
+      ch === "/" ||
+      ch === "%" ||
+      ch === "^"
+    ) {
+      tokens.push({ type: "op", value: ch });
+      i++;
+      continue;
+    }
+
+    if (ch === "(" || ch === ")" || ch === ",") {
+      tokens.push({ type: "punct", value: ch });
+      i++;
+      continue;
+    }
+
+    throw new Error(`Unexpected character in expression: ${ch}`);
+  }
+
+  if (tokens.length === 0) {
+    throw new Error("Empty expression");
+  }
+
+  if (GRAPH_TOKEN_CACHE.size >= 64) {
+    const oldest = GRAPH_TOKEN_CACHE.keys().next().value;
+    if (oldest !== undefined) GRAPH_TOKEN_CACHE.delete(oldest);
+  }
+  GRAPH_TOKEN_CACHE.set(src, tokens);
+  return tokens;
+}
+
+function safeEvalGraphExpression(expression, x) {
+  const tokens = tokenizeGraphExpression(expression);
+  const xNum = Number(x);
+  let pos = 0;
+
+  function peek() {
+    return pos < tokens.length ? tokens[pos] : null;
+  }
+
+  function consume() {
+    return tokens[pos++];
+  }
+
+  function canStartImplicitPrimary(tok) {
+    if (!tok) return false;
+    if (tok.type === "num" || tok.type === "ident") return true;
+    if (tok.type === "punct" && tok.value === "(") return true;
+    return false;
+  }
+
+  function parseAddSub(depth) {
+    if (depth > 64) throw new Error("Expression nesting too deep");
+    let left = parseMulDiv(depth + 1);
+    while (true) {
+      const tok = peek();
+      if (
+        tok &&
+        tok.type === "op" &&
+        (tok.value === "+" || tok.value === "-")
+      ) {
+        consume();
+        const right = parseMulDiv(depth + 1);
+        left = tok.value === "+" ? left + right : left - right;
+      } else {
+        break;
+      }
+    }
+    return left;
+  }
+
+  function parseMulDiv(depth) {
+    let left = parseUnary(depth + 1);
+    while (true) {
+      const tok = peek();
+      if (
+        tok &&
+        tok.type === "op" &&
+        (tok.value === "*" || tok.value === "/" || tok.value === "%")
+      ) {
+        consume();
+        const right = parseUnary(depth + 1);
+        if (tok.value === "*") left = left * right;
+        else if (tok.value === "/") left = left / right;
+        else left = left % right;
+      } else if (canStartImplicitPrimary(tok)) {
+        const right = parsePower(depth + 1);
+        left = left * right;
+      } else {
+        break;
+      }
+    }
+    return left;
+  }
+
+  function parseUnary(depth) {
+    if (depth > 64) throw new Error("Expression nesting too deep");
+    const tok = peek();
+    if (tok && tok.type === "op" && (tok.value === "+" || tok.value === "-")) {
+      consume();
+      const val = parseUnary(depth + 1);
+      return tok.value === "-" ? -val : +val;
+    }
+    return parsePower(depth + 1);
+  }
+
+  function parsePower(depth) {
+    let base = parsePrimary(depth + 1);
+    const tok = peek();
+    if (tok && tok.type === "op" && tok.value === "^") {
+      consume();
+      const exp = parseUnary(depth + 1);
+      base = Math.pow(base, exp);
+    }
+    return base;
+  }
+
+  function parsePrimary(depth) {
+    if (depth > 64) throw new Error("Expression nesting too deep");
+    const tok = peek();
+    if (!tok) throw new Error("Unexpected end of expression");
+
+    if (tok.type === "num") {
+      consume();
+      return tok.value;
+    }
+
+    if (tok.type === "punct" && tok.value === "(") {
+      consume();
+      const inner = parseAddSub(depth + 1);
+      const close = peek();
+      if (!close || close.type !== "punct" || close.value !== ")") {
+        throw new Error("Missing closing parenthesis");
+      }
+      consume();
+      return inner;
+    }
+
+    if (tok.type === "ident") {
+      consume();
+      const name = tok.name;
+      const next = peek();
+      const fn = GRAPH_MATH_FUNCS[name];
+      if (fn && next && next.type === "punct" && next.value === "(") {
+        consume(); // '('
+        const args = [];
+        const afterOpen = peek();
+        if (
+          !afterOpen ||
+          !(afterOpen.type === "punct" && afterOpen.value === ")")
+        ) {
+          args.push(parseAddSub(depth + 1));
+          while (peek() && peek().type === "punct" && peek().value === ",") {
+            consume();
+            args.push(parseAddSub(depth + 1));
+          }
+        }
+        const close = peek();
+        if (!close || close.type !== "punct" || close.value !== ")") {
+          throw new Error(`Missing closing parenthesis in ${name}()`);
+        }
+        consume();
+        if (args.length === 0) {
+          throw new Error(`Function ${name}() requires at least 1 argument`);
+        }
+        return fn(...args);
+      }
+
+      if (name === "x" || name === "t" || name === "theta") return xNum;
+      if (name === "pi") return Math.PI;
+      if (name === "e") return Math.E;
+      if (name === "tau") return Math.PI * 2;
+
+      throw new Error(`Unknown identifier: ${name}`);
+    }
+
+    throw new Error(`Unexpected token: ${tok.value ?? tok.type}`);
+  }
+
+  const result = parseAddSub(0);
+  if (pos !== tokens.length) {
+    throw new Error("Unexpected trailing tokens in expression");
+  }
+  return result;
 }
 
 function drawCalculusStudio() {
@@ -2976,11 +3272,13 @@ function drawCalculusStudio() {
   const width = rect.width || 900;
   const height = 400;
 
-  canvas.width = width * dpr;
-  canvas.height = height * dpr;
+  const targetW = Math.round(width * dpr);
+  const targetH = Math.round(height * dpr);
+  if (canvas.width !== targetW) canvas.width = targetW;
+  if (canvas.height !== targetH) canvas.height = targetH;
 
   const ctx = canvas.getContext("2d");
-  ctx.scale(dpr, dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   const isLight = document.documentElement.dataset.theme === "light";
   ctx.clearRect(0, 0, width, height);
@@ -3207,7 +3505,7 @@ function drawCalculusStudio() {
 
     for (let th = 0; th <= maxTheta; th += 0.015) {
       try {
-        const r = safeEvalGraphExpression(polarEqn.replace(/theta/gi, "x"), th);
+        const r = safeEvalGraphExpression(polarEqn, th);
         if (Number.isFinite(r)) {
           const gx = r * Math.cos(th);
           const gy = r * Math.sin(th);
@@ -3236,8 +3534,8 @@ function drawCalculusStudio() {
 
     for (let t = 0; t <= maxT; t += 0.015) {
       try {
-        const gx = safeEvalGraphExpression(xEqn.replace(/t/gi, "x"), t);
-        const gy = safeEvalGraphExpression(yEqn.replace(/t/gi, "x"), t);
+        const gx = safeEvalGraphExpression(xEqn, t);
+        const gy = safeEvalGraphExpression(yEqn, t);
         if (Number.isFinite(gx) && Number.isFinite(gy)) {
           const px = centerX + gx * scale;
           const py = centerY - gy * scale;

@@ -241,7 +241,7 @@ export class DartsStudio {
 export const createDartsApp = createDartsStudio;
 export const startDartsStudioServer = startDartsServer;
 
-if (process.argv.includes("--server")) {
+if (import.meta.main && process.argv.includes("--server")) {
   const port = parseInt(process.env.DARTS_PORT || process.env.PORT || "0", 10);
   const srv = startDartsServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);

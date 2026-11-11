@@ -15,7 +15,7 @@
 
 import type { SizeHint, Webview } from "webview-bun";
 import { resolve, join } from "path";
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, realpathSync, statSync } from "fs";
 import { guardLocalRequest } from "../src/localGuard";
 import { injectGameMasterFx as injectGameMasterFxBase } from "../src/shared/gameMasterFx";
 import {
@@ -165,7 +165,7 @@ const FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"
 export function startChipsChallengeServer(
   options: ChipsChallengeServerOptions = {},
 ) {
-  const port = options.port ?? APP_PORT;
+  const port = options.port ?? 0;
   const host = options.host ?? "127.0.0.1";
   const assetsDir = getChipsChallengeAssetsDir();
 
@@ -223,19 +223,52 @@ export function startChipsChallengeServer(
         );
       }
 
-      const sanitized = pathname.replace(/^\/+/, "");
+      let decodedPath: string;
+      try {
+        decodedPath = decodeURIComponent(pathname);
+      } catch {
+        return new Response("Bad Request", {
+          status: 400,
+          headers: corsHeaders,
+        });
+      }
+      if (decodedPath.includes("\0")) {
+        return new Response("Forbidden", { status: 403, headers: corsHeaders });
+      }
+      const sanitized = decodedPath.replace(/^\/+/, "");
       const directCandidate = join(assetsDir, sanitized);
       if (
         directCandidate !== assetsDir &&
         !directCandidate.startsWith(assetsDir + "/") &&
         !directCandidate.startsWith(assetsDir + "\\")
       ) {
-        return new Response("Forbidden", { status: 403 });
+        return new Response("Forbidden", { status: 403, headers: corsHeaders });
       }
       if (existsSync(directCandidate)) {
-        return new Response(Bun.file(directCandidate), {
-          headers: corsHeaders,
-        });
+        try {
+          const realRoot = realpathSync(assetsDir);
+          const realTarget = realpathSync(directCandidate);
+          if (
+            realTarget !== realRoot &&
+            !realTarget.startsWith(realRoot + "/") &&
+            !realTarget.startsWith(realRoot + "\\")
+          ) {
+            return new Response("Forbidden", {
+              status: 403,
+              headers: corsHeaders,
+            });
+          }
+          if (statSync(realTarget).isFile()) {
+            return new Response(Bun.file(realTarget), {
+              headers: corsHeaders,
+            });
+          }
+        } catch {
+          return new Response("Forbidden", {
+            status: 403,
+            headers: corsHeaders,
+          });
+        }
       }
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
@@ -348,10 +381,16 @@ export class ChipsChallengeStudio {
 export const createChipsChallengeApp = createChipsChallengeStudio;
 export const startChipsChallengeStudioServer = startChipsChallengeServer;
 
-if (process.argv.includes("--server")) {
-  const port = Number(
-    process.env.CHIPS_CHALLENGE_PORT || process.env.PORT || APP_PORT,
-  );
+if (import.meta.main && process.argv.includes("--server")) {
+  const port = (() => {
+    const idx = process.argv.indexOf("--port");
+    const cli = idx !== -1 ? Number(process.argv[idx + 1]) : NaN;
+    if (Number.isFinite(cli) && cli > 0) return cli;
+    const envSpecific = Number(process.env.CHIPS_CHALLENGE_PORT);
+    if (Number.isFinite(envSpecific) && envSpecific > 0) return envSpecific;
+    const envPort = Number(process.env.PORT);
+    return Number.isFinite(envPort) && envPort > 0 ? envPort : 0;
+  })();
   const srv = startChipsChallengeServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
   console.log(

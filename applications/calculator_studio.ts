@@ -20,8 +20,9 @@
 import { injectHelp } from "../src/shared/helpTips";
 import type { Server } from "bun";
 import type { SizeHint, Webview } from "webview-bun";
-import { resolve, join } from "path";
-import { existsSync, readFileSync, statSync } from "fs";
+import { resolve, join, relative, isAbsolute, sep } from "path";
+import { existsSync, readFileSync, statSync, realpathSync } from "fs";
+import { randomBytes, timingSafeEqual } from "crypto";
 import { guardLocalRequest } from "../src/localGuard";
 import {
   setAlwaysOnTopNative,
@@ -47,6 +48,7 @@ export interface CalculatorStudioOptions {
 export interface CalculatorStudioHtmlOptions {
   inline?: boolean;
   port?: number;
+  shutdownToken?: string;
 }
 
 export interface CalculatorStudioInstance {
@@ -148,9 +150,30 @@ function buildCalculatorHtml(
   </script>
   `;
 
+  const serializedShutdownToken = JSON.stringify(
+    options.shutdownToken ?? "",
+  ).replace(/</g, "\\u003c");
+
   const headSecurityShield = `
   <script>
+    window.__CALC_SHUTDOWN_TOKEN__ = ${serializedShutdownToken};
     (function() {
+      var origFetch = window.fetch;
+      if (typeof origFetch === "function") {
+        window.fetch = function(input, init) {
+          var urlStr = typeof input === "string" ? input : (input && input.url ? input.url : "");
+          if (window.__CALC_SHUTDOWN_TOKEN__ && (urlStr === "/api/shutdown" || urlStr === "/api/close" || urlStr.endsWith("/api/shutdown") || urlStr.endsWith("/api/close"))) {
+            var nextInit = Object.assign({}, init || {});
+            var hdrs = new Headers(nextInit.headers || {});
+            if (!hdrs.has("x-calc-token")) {
+              hdrs.set("x-calc-token", window.__CALC_SHUTDOWN_TOKEN__);
+            }
+            nextInit.headers = hdrs;
+            return origFetch.call(this, input, nextInit);
+          }
+          return origFetch.apply(this, arguments);
+        };
+      }
       // 1. Immediately disable context menu across all elements to prevent inspect/reload
       function blockContextMenu(e) {
         e.preventDefault();
@@ -204,8 +227,9 @@ function buildCalculatorHtml(
             } catch(err) {}
             return;
           }
-          try { fetch("/api/shutdown", { method: "POST" }); } catch(err) {}
-          try { fetch("/api/close", { method: "POST" }); } catch(err) {}
+          var shHdrs = window.__CALC_SHUTDOWN_TOKEN__ ? { "x-calc-token": window.__CALC_SHUTDOWN_TOKEN__ } : {};
+          try { fetch("/api/shutdown", { method: "POST", headers: shHdrs }); } catch(err) {}
+          try { fetch("/api/close", { method: "POST", headers: shHdrs }); } catch(err) {}
           try { window.close(); } catch(err) {}
         }
       }, { capture: true });
@@ -229,7 +253,10 @@ function buildCalculatorHtml(
 
   if (options.inline !== false) {
     if (existsSync(stylesPath)) {
-      const css = readFileSync(stylesPath, "utf8");
+      const css = readFileSync(stylesPath, "utf8").replace(
+        /<\/style/gi,
+        "<\\/style",
+      );
       html = html.replace(
         /<link rel="stylesheet" href="styles\.css[^"]*"\s*\/?>/,
         () => `<style>\n${css}\n</style>`,
@@ -237,7 +264,10 @@ function buildCalculatorHtml(
     }
 
     if (existsSync(appPath)) {
-      const js = readFileSync(appPath, "utf8");
+      const js = readFileSync(appPath, "utf8").replace(
+        /<\/(script)/gi,
+        "\\u003c/$1",
+      );
       html = html.replace(
         /<script src="app\.js[^"]*"><\/script>/,
         () => `<script>\n${js}\n</script>`,
@@ -253,14 +283,20 @@ function buildCalculatorHtml(
     if (existsSync(intuitionIndex)) {
       let intuitionHtml = readFileSync(intuitionIndex, "utf8");
       if (existsSync(intuitionCss)) {
-        const cssContent = readFileSync(intuitionCss, "utf8");
+        const cssContent = readFileSync(intuitionCss, "utf8").replace(
+          /<\/style/gi,
+          "<\\/style",
+        );
         intuitionHtml = intuitionHtml.replace(
           /<link rel="stylesheet" href="styles\.css[^"]*"\s*\/?>/,
           () => `<style>\n${cssContent}\n</style>`,
         );
       }
       if (existsSync(intuitionBundle)) {
-        const jsContent = readFileSync(intuitionBundle, "utf8");
+        const jsContent = readFileSync(intuitionBundle, "utf8").replace(
+          /<\/(script)/gi,
+          "\\u003c/$1",
+        );
         intuitionHtml = intuitionHtml.replace(
           /<script src="js\/bundle\.js[^"]*"><\/script>/,
           () => `<script>\n${jsContent}\n</script>`,
@@ -428,6 +464,10 @@ export function startCalculatorStudioServer(
   const port = options.port ?? 0;
   const host = options.host ?? "127.0.0.1";
   const assetsDir = getCalculatorAssetsDir();
+  const realAssetsDir = existsSync(assetsDir)
+    ? realpathSync(assetsDir)
+    : resolve(assetsDir);
+  const shutdownToken = randomBytes(24).toString("hex");
 
   const server = Bun.serve({
     port,
@@ -442,7 +482,7 @@ export function startCalculatorStudioServer(
       const corsHeaders = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Headers": "Content-Type, X-Calc-Token",
       };
 
       if (req.method === "OPTIONS") {
@@ -453,8 +493,11 @@ export function startCalculatorStudioServer(
       if (pathname === "/" || pathname === "/index.html") {
         const indexPath = join(assetsDir, "index.html");
         if (existsSync(indexPath)) {
-          // Serve with desktop shortcuts injected
-          const html = generateCalculatorStudioHtml({ inline: false });
+          // Serve with desktop shortcuts & session shutdown token injected
+          const html = generateCalculatorStudioHtml({
+            inline: false,
+            shutdownToken,
+          });
           return new Response(html, {
             headers: {
               "Content-Type": "text/html; charset=utf-8",
@@ -514,11 +557,32 @@ export function startCalculatorStudioServer(
         );
       }
 
-      // Shutdown / Close Application API
-      if (
-        (pathname === "/api/shutdown" || pathname === "/api/close") &&
-        req.method === "POST"
-      ) {
+      // Shutdown / Close Application API (requires POST + valid per-instance session token)
+      if (pathname === "/api/shutdown" || pathname === "/api/close") {
+        if (req.method !== "POST") {
+          return new Response("Method Not Allowed", {
+            status: 405,
+            headers: corsHeaders,
+          });
+        }
+        const provided =
+          req.headers.get("x-calc-token") ||
+          url.searchParams.get("token") ||
+          "";
+        const expectedBuf = Buffer.from(shutdownToken, "utf8");
+        const providedBuf = Buffer.from(provided, "utf8");
+        if (
+          providedBuf.length !== expectedBuf.length ||
+          !timingSafeEqual(providedBuf, expectedBuf)
+        ) {
+          return Response.json(
+            {
+              status: "error",
+              error: "Forbidden: missing or invalid session token",
+            },
+            { status: 403, headers: corsHeaders },
+          );
+        }
         setTimeout(() => process.exit(0), 100);
         return Response.json(
           {
@@ -530,18 +594,34 @@ export function startCalculatorStudioServer(
         );
       }
 
-      // Fallback: check static file in assets directory
-      const sanitized = pathname.replace(/^\/+/, "");
-      const directCandidate = join(assetsDir, sanitized);
+      // Fallback: check static file in assets directory (enforcing realpath containment)
+      let decodedPath = pathname;
+      try {
+        decodedPath = decodeURIComponent(pathname);
+      } catch {
+        return new Response("Bad Request", { status: 400 });
+      }
+      const sanitized = decodedPath.replace(/^\/+/, "");
+      const directCandidate = resolve(assetsDir, sanitized);
+      const lexRel = relative(resolve(assetsDir), directCandidate);
       if (
-        directCandidate !== assetsDir &&
-        !directCandidate.startsWith(assetsDir + "/") &&
-        !directCandidate.startsWith(assetsDir + "\\")
+        lexRel !== "" &&
+        (lexRel === ".." || lexRel.startsWith(".." + sep) || isAbsolute(lexRel))
       ) {
         return new Response("Forbidden", { status: 403 });
       }
       if (existsSync(directCandidate)) {
         try {
+          const realTarget = realpathSync(directCandidate);
+          const realRel = relative(realAssetsDir, realTarget);
+          if (
+            realRel !== "" &&
+            (realRel === ".." ||
+              realRel.startsWith(".." + sep) ||
+              isAbsolute(realRel))
+          ) {
+            return new Response("Forbidden", { status: 403 });
+          }
           if (statSync(directCandidate).isDirectory()) {
             const nestedIndex = join(directCandidate, "index.html");
             if (existsSync(nestedIndex)) {
@@ -704,8 +784,19 @@ export const createCalculatorStudioPro = createCalculatorStudio;
 // -------------------------------------------------------------------------------------------------
 // Standalone Invocation
 // -------------------------------------------------------------------------------------------------
-if (process.argv.includes("--server")) {
-  const port = parseInt(process.env.PORT || "0", 10);
+if (import.meta.main && process.argv.includes("--server")) {
+  const portIdx = process.argv.indexOf("--port");
+  const port =
+    portIdx !== -1 && process.argv[portIdx + 1]
+      ? parseInt(process.argv[portIdx + 1]!, 10)
+      : (() => {
+          const idx = process.argv.indexOf("--port");
+          const cli =
+            idx !== -1 ? parseInt(process.argv[idx + 1] || "0", 10) : NaN;
+          return Number.isFinite(cli) && cli > 0
+            ? cli
+            : parseInt(process.env.PORT || "0", 10) || 0;
+        })();
   const srv = startCalculatorStudioServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
   console.log(

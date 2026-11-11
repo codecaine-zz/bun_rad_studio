@@ -9,8 +9,15 @@
  */
 
 import type { SizeHint, Webview } from "webview-bun";
-import { resolve, join } from "path";
-import { existsSync, readFileSync, writeFileSync, renameSync } from "fs";
+import { resolve, join, relative, isAbsolute, sep } from "path";
+import {
+  existsSync,
+  readFileSync,
+  writeFileSync,
+  renameSync,
+  realpathSync,
+  statSync,
+} from "fs";
 import { guardLocalRequest } from "../src/localGuard";
 import { injectGameMasterFx } from "../src/shared/gameMasterFx";
 import {
@@ -89,6 +96,49 @@ export function loadWordSearchState(): { settings?: unknown; stats?: unknown } {
   } catch {
     return {};
   }
+}
+
+const MAX_WS_STATE_BYTES = 64 * 1024;
+
+async function readBoundedBodyText(
+  req: Request,
+  maxBytes = MAX_WS_STATE_BYTES,
+): Promise<{ ok: true; text: string } | { ok: false; status: number }> {
+  const cl = req.headers.get("content-length");
+  if (cl !== null) {
+    const parsedLen = Number(cl);
+    if (!Number.isFinite(parsedLen) || parsedLen < 0) {
+      return { ok: false, status: 400 };
+    }
+    if (parsedLen > maxBytes) {
+      return { ok: false, status: 413 };
+    }
+  }
+  if (!req.body) return { ok: true, text: "" };
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      if (value) {
+        total += value.byteLength;
+        if (total > maxBytes) {
+          try {
+            await reader.cancel();
+          } catch {}
+          return { ok: false, status: 413 };
+        }
+        chunks.push(value);
+      }
+    }
+  } finally {
+    try {
+      reader.releaseLock();
+    } catch {}
+  }
+  return { ok: true, text: Buffer.concat(chunks, total).toString("utf8") };
 }
 
 /** Persist settings/statistics atomically. Returns false for malformed or oversized input. */
@@ -177,7 +227,8 @@ export function startWordSearchStudioServer(
   const server = Bun.serve({
     port,
     hostname: host,
-    fetch(req) {
+    maxRequestBodySize: 128 * 1024,
+    async fetch(req) {
       const blocked = guardLocalRequest(req);
       if (blocked) return blocked;
 
@@ -243,33 +294,65 @@ export function startWordSearchStudioServer(
         if (req.method === "GET") return Response.json(loadWordSearchState());
         if (req.method === "POST") {
           const origin = req.headers.get("origin");
-          if (origin && new URL(origin).host !== req.headers.get("host"))
-            return new Response("Forbidden", { status: 403 });
-          return req
-            .text()
-            .then((text) =>
-              saveWordSearchState(text)
-                ? Response.json({ ok: true })
-                : new Response("Bad Request", { status: 400 }),
+          if (origin) {
+            try {
+              if (new URL(origin).host !== req.headers.get("host"))
+                return new Response("Forbidden", { status: 403 });
+            } catch {
+              return new Response("Forbidden", { status: 403 });
+            }
+          }
+          const bounded = await readBoundedBodyText(req, MAX_WS_STATE_BYTES);
+          if (!bounded.ok) {
+            return new Response(
+              bounded.status === 413 ? "Payload Too Large" : "Bad Request",
+              { status: bounded.status },
             );
+          }
+          return saveWordSearchState(bounded.text)
+            ? Response.json({ ok: true })
+            : new Response("Bad Request", { status: 400 });
         }
         return new Response("Method Not Allowed", { status: 405 });
       }
 
-      // Fallback: static file in assets directory
-      const sanitized = pathname.replace(/^\/+/, "");
-      const directCandidate = join(assetsDir, sanitized);
+      // Fallback: static file in assets directory (enforcing realpath containment)
+      let decodedPath = pathname;
+      try {
+        decodedPath = decodeURIComponent(pathname);
+      } catch {
+        return new Response("Bad Request", { status: 400 });
+      }
+      const sanitized = decodedPath.replace(/^\/+/, "");
+      const directCandidate = resolve(assetsDir, sanitized);
+      const lexRel = relative(resolve(assetsDir), directCandidate);
       if (
-        directCandidate !== assetsDir &&
-        !directCandidate.startsWith(assetsDir + "/") &&
-        !directCandidate.startsWith(assetsDir + "\\")
+        lexRel !== "" &&
+        (lexRel === ".." || lexRel.startsWith(".." + sep) || isAbsolute(lexRel))
       ) {
         return new Response("Forbidden", { status: 403 });
       }
       if (existsSync(directCandidate)) {
-        return new Response(Bun.file(directCandidate), {
-          headers: corsHeaders,
-        });
+        try {
+          const realRoot = realpathSync(assetsDir);
+          const realTarget = realpathSync(directCandidate);
+          const realRel = relative(realRoot, realTarget);
+          if (
+            realRel !== "" &&
+            (realRel === ".." ||
+              realRel.startsWith(".." + sep) ||
+              isAbsolute(realRel))
+          ) {
+            return new Response("Forbidden", { status: 403 });
+          }
+          if (statSync(realTarget).isFile()) {
+            return new Response(Bun.file(realTarget), {
+              headers: corsHeaders,
+            });
+          }
+        } catch {
+          return new Response("Forbidden", { status: 403 });
+        }
       }
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
@@ -390,8 +473,19 @@ export function createWordSearchStudio(
 export const createWordSearchApp = createWordSearchStudio;
 export const createWordSearch = createWordSearchStudio;
 
-if (process.argv.includes("--server")) {
-  const port = parseInt(process.env.PORT || "0", 10);
+if (import.meta.main && process.argv.includes("--server")) {
+  const portIdx = process.argv.indexOf("--port");
+  const port =
+    portIdx !== -1 && process.argv[portIdx + 1]
+      ? parseInt(process.argv[portIdx + 1]!, 10)
+      : (() => {
+          const idx = process.argv.indexOf("--port");
+          const cli =
+            idx !== -1 ? parseInt(process.argv[idx + 1] || "0", 10) : NaN;
+          return Number.isFinite(cli) && cli > 0
+            ? cli
+            : parseInt(process.env.PORT || "0", 10) || 0;
+        })();
   const srv = startWordSearchStudioServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
   console.log(

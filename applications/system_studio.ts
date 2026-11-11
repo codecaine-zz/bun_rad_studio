@@ -514,15 +514,48 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
         } catch {}
       }
       return new Promise((resolve) => {
+        let settled = false;
         let handle: any = null;
-        handle = si.observe(query, 500, (data: any) => {
-          if (handle) clearInterval(handle);
-          resolve(data);
-        });
-        setTimeout(
-          () => resolve({ observation: "Observer sample initiated", query }),
-          1000,
-        );
+        let timer: ReturnType<typeof setTimeout> | null = null;
+        const finish = (value: any) => {
+          if (settled) return;
+          settled = true;
+          if (handle) {
+            try {
+              clearInterval(handle);
+            } catch {}
+            handle = null;
+          }
+          if (timer) {
+            clearTimeout(timer);
+            timer = null;
+          }
+          resolve(value);
+        };
+        try {
+          handle = si.observe(query, 500, (data: any) => {
+            finish(data);
+          });
+          if (settled && handle) {
+            try {
+              clearInterval(handle);
+            } catch {}
+            handle = null;
+          }
+        } catch (err: any) {
+          finish({
+            observation: "Observer error",
+            query,
+            error: err?.message || String(err),
+          });
+          return;
+        }
+        if (!settled) {
+          timer = setTimeout(
+            () => finish({ observation: "Observer sample initiated", query }),
+            1000,
+          );
+        }
       });
     },
   },
@@ -1961,7 +1994,7 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
             btn.className = "method-btn" + (m.name === activeMethod ? " active" : "");
             btn.id = "btn_m_" + m.name;
             btn.title = m.name + "() - " + m.description;
-            btn.innerHTML = \`<span class="method-name-text" title="\${m.name}()">\${m.name}</span><span style="font-size: 10px; color: var(--text-dim); flex-shrink: 0; margin-left: 6px;">\${m.acceptsParam ? '⚙️' : ''}</span>\`;
+            btn.innerHTML = \`<span class="method-name-text" title="\${escapeHtml(m.name)}()">\${escapeHtml(m.name)}</span><span style="font-size: 10px; color: var(--text-dim); flex-shrink: 0; margin-left: 6px;">\${m.acceptsParam ? '⚙️' : ''}</span>\`;
             btn.onclick = () => selectMethod(m.name, true);
             items.appendChild(btn);
           });
@@ -2227,22 +2260,22 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
           <div>
             <div style="display: flex; align-items: center; gap: 10px;">
               <span style="font-size: 24px;">💻</span>
-              <span style="font-size: 19px; font-weight: 800; color: #fff; letter-spacing: -0.3px;">\${sys.manufacturer || 'Apple'} \${sys.model || 'Workstation'}</span>
+              <span style="font-size: 19px; font-weight: 800; color: #fff; letter-spacing: -0.3px;">\${escapeHtml(sys.manufacturer || 'Apple')} \${escapeHtml(sys.model || 'Workstation')}</span>
               <span style="font-size: 11px; background: rgba(56, 189, 248, 0.2); color: var(--cyan); border: 1px solid rgba(56, 189, 248, 0.4); padding: 3px 8px; border-radius: 6px; font-weight: 700;">
-                \${badgeLabel}
+                \${escapeHtml(badgeLabel)}
               </span>
             </div>
             <div style="font-size: 12px; color: var(--text-dim); margin-top: 6px; font-family: var(--font-mono);">
-              Hardware Serial: <span style="color: var(--text-main); font-weight: 600;">\${serialStr}</span> • 
-              Hardware UUID: <span style="color: var(--text-main); font-weight: 600;">\${uuidStr}</span>
+              Hardware Serial: <span style="color: var(--text-main); font-weight: 600;">\${escapeHtml(serialStr)}</span> • 
+              Hardware UUID: <span style="color: var(--text-main); font-weight: 600;">\${escapeHtml(uuidStr)}</span>
             </div>
           </div>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
             <span style="font-size: 11px; background: rgba(255, 255, 255, 0.08); padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border-subtle); color: var(--text-muted);">
-              OS: <strong style="color: #fff;">\${osData.distro || osData.platform || 'macOS'} (\${osData.arch || 'arm64'})</strong>
+              OS: <strong style="color: #fff;">\${escapeHtml(osData.distro || osData.platform || 'macOS')} (\${escapeHtml(osData.arch || 'arm64')})</strong>
             </span>
             <span style="font-size: 11px; background: rgba(255, 255, 255, 0.08); padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border-subtle); color: var(--text-muted);">
-              Kernel: <strong style="color: #fff;">\${osData.kernel || osData.release || 'Darwin'}</strong>
+              Kernel: <strong style="color: #fff;">\${escapeHtml(osData.kernel || osData.release || 'Darwin')}</strong>
             </span>
           </div>
         </div>
@@ -2250,26 +2283,26 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-top: 16px;">
           <div style="background: rgba(8, 12, 20, 0.65); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 10px 14px;">
             <div style="font-size: 10px; text-transform: uppercase; color: var(--text-dim); font-weight: 700;">Processor</div>
-            <div style="font-size: 14px; font-weight: 700; color: var(--cyan); margin-top: 3px;">\${cpuBrand}</div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">\${cpu.cores || 1} Cores @ \${cpu.speed || 2.4} GHz</div>
+            <div style="font-size: 14px; font-weight: 700; color: var(--cyan); margin-top: 3px;">\${escapeHtml(cpuBrand)}</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">\${escapeHtml(cpu.cores || 1)} Cores @ \${escapeHtml(cpu.speed || 2.4)} GHz</div>
           </div>
 
           <div style="background: rgba(8, 12, 20, 0.65); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 10px 14px;">
             <div style="font-size: 10px; text-transform: uppercase; color: var(--text-dim); font-weight: 700;">Installed Memory</div>
-            <div style="font-size: 14px; font-weight: 700; color: var(--purple); margin-top: 3px;">\${totalMemGb} GB \${memType}</div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">\${memMfr}</div>
+            <div style="font-size: 14px; font-weight: 700; color: var(--purple); margin-top: 3px;">\${escapeHtml(totalMemGb)} GB \${escapeHtml(memType)}</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">\${escapeHtml(memMfr)}</div>
           </div>
 
           <div style="background: rgba(8, 12, 20, 0.65); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 10px 14px;">
             <div style="font-size: 10px; text-transform: uppercase; color: var(--text-dim); font-weight: 700;">Display & GPU</div>
-            <div style="font-size: 14px; font-weight: 700; color: var(--emerald); margin-top: 3px;">\${dispDesc}</div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">\${mainGpu.model || 'Integrated GPU'} (\${mainGpu.cores ? mainGpu.cores + ' Cores' : 'Unified'})</div>
+            <div style="font-size: 14px; font-weight: 700; color: var(--emerald); margin-top: 3px;">\${escapeHtml(dispDesc)}</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">\${escapeHtml(mainGpu.model || 'Integrated GPU')} (\${escapeHtml(mainGpu.cores ? mainGpu.cores + ' Cores' : 'Unified')})</div>
           </div>
 
           <div style="background: rgba(8, 12, 20, 0.65); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 10px 14px;">
             <div style="font-size: 10px; text-transform: uppercase; color: var(--text-dim); font-weight: 700;">Primary Storage</div>
-            <div style="font-size: 14px; font-weight: 700; color: var(--amber); margin-top: 3px;">\${diskGb} \${mainDisk.type || 'SSD'}</div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">\${mainDisk.name || 'Internal Drive'} • SMART: \${mainDisk.smartStatus || 'OK'}</div>
+            <div style="font-size: 14px; font-weight: 700; color: var(--amber); margin-top: 3px;">\${escapeHtml(diskGb)} \${escapeHtml(mainDisk.type || 'SSD')}</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">\${escapeHtml(mainDisk.name || 'Internal Drive')} • SMART: \${escapeHtml(mainDisk.smartStatus || 'OK')}</div>
           </div>
         </div>
       \`;
@@ -2352,14 +2385,14 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
       ]);
 
       // Domain 7: Audio & Sound Hardware
-      const audioListStr = audios.map(a => (a.out ? '🔊' : '🎤') + ' ' + a.name).slice(0, 3).join('<br>') || "Built-in Audio Controller";
+      const audioListStr = audios.map(a => (a.out ? '🔊' : '🎤') + ' ' + a.name).slice(0, 3).join(' • ') || "Built-in Audio Controller";
       addCard("Audio & Sound Hardware", "🔊", [
         ["Audio Devices", audioListStr],
         ["Total Controllers", audios.length + " sound devices detected"],
       ]);
 
       // Domain 8: Bluetooth Peripherals
-      const btListStr = bts.filter(b => b.connected).map(b => '📶 ' + b.name + ' (Connected)').join('<br>') || (bts[0] ? ('📶 ' + bts[0].name + ' (Paired)') : "Bluetooth Subsystem Active");
+      const btListStr = bts.filter(b => b.connected).map(b => '📶 ' + b.name + ' (Connected)').join(' • ') || (bts[0] ? ('📶 ' + bts[0].name + ' (Paired)') : "Bluetooth Subsystem Active");
       addCard("Bluetooth & Peripheral Bus", "📶", [
         ["Connected Devices", btListStr, "#10b981"],
         ["Total Paired Hardware", bts.length + " devices in registry"],
@@ -2401,7 +2434,7 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
         card.className = "data-card";
         card.innerHTML = \`
           <div class="data-card-header">
-            <span>Process Monitor (\${data.all} Total • \${data.running} Running)</span>
+            <span>Process Monitor (\${escapeHtml(data.all)} Total • \${escapeHtml(data.running)} Running)</span>
             <span>CPU & Memory Breakdown</span>
           </div>
           <div class="table-container">
@@ -2419,12 +2452,12 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
               <tbody>
                 \${data.list.slice(0, 60).map(p => \`
                   <tr>
-                    <td>\${p.pid}</td>
-                    <td style="color: var(--cyan); font-weight: 600;">\${p.name}</td>
-                    <td>\${p.cpu ? p.cpu.toFixed(1) : 0}%</td>
-                    <td>\${p.mem ? p.mem.toFixed(1) : 0}%</td>
-                    <td>\${p.user || 'system'}</td>
-                    <td>\${p.state || 'running'}</td>
+                    <td>\${escapeHtml(p.pid)}</td>
+                    <td style="color: var(--cyan); font-weight: 600;">\${escapeHtml(p.name)}</td>
+                    <td>\${escapeHtml(p.cpu ? Number(p.cpu).toFixed(1) : 0)}%</td>
+                    <td>\${escapeHtml(p.mem ? Number(p.mem).toFixed(1) : 0)}%</td>
+                    <td>\${escapeHtml(p.user || 'system')}</td>
+                    <td>\${escapeHtml(p.state || 'running')}</td>
                   </tr>
                 \`).join('')}
               </tbody>
@@ -2453,16 +2486,16 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
             <div class="data-card-header">
               <span style="display: flex; align-items: center; gap: 8px;">
                 <span style="font-size: 16px;">\${icon}</span>
-                <span style="color: var(--text-main); font-weight: 700;">\${dev.name || 'Audio Controller'}</span>
+                <span style="color: var(--text-main); font-weight: 700;">\${escapeHtml(dev.name || 'Audio Controller')}</span>
               </span>
               \${isDef}
             </div>
             <div class="kv-list">
-              <div class="kv-item"><span class="kv-k">Role:</span><span class="kv-v" style="color: var(--cyan); font-weight: 600;">\${role}</span></div>
-              <div class="kv-item"><span class="kv-k">Manufacturer:</span><span class="kv-v">\${dev.manufacturer || 'System'}</span></div>
-              <div class="kv-item"><span class="kv-k">Channel:</span><span class="kv-v">\${dev.channel || 'Standard'}</span></div>
-              <div class="kv-item"><span class="kv-k">Type:</span><span class="kv-v">\${dev.type || 'Sound Controller'}</span></div>
-              <div class="kv-item"><span class="kv-k">Status:</span><span class="kv-v" style="color: \${stColor}; font-weight: 700;">● \${dev.status || 'Active'}</span></div>
+              <div class="kv-item"><span class="kv-k">Role:</span><span class="kv-v" style="color: var(--cyan); font-weight: 600;">\${escapeHtml(role)}</span></div>
+              <div class="kv-item"><span class="kv-k">Manufacturer:</span><span class="kv-v">\${escapeHtml(dev.manufacturer || 'System')}</span></div>
+              <div class="kv-item"><span class="kv-k">Channel:</span><span class="kv-v">\${escapeHtml(dev.channel || 'Standard')}</span></div>
+              <div class="kv-item"><span class="kv-k">Type:</span><span class="kv-v">\${escapeHtml(dev.type || 'Sound Controller')}</span></div>
+              <div class="kv-item"><span class="kv-k">Status:</span><span class="kv-v" style="color: \${stColor}; font-weight: 700;">● \${escapeHtml(dev.status || 'Active')}</span></div>
             </div>
           \`;
           container.appendChild(card);
@@ -2486,15 +2519,15 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
             <div class="data-card-header">
               <span style="display: flex; align-items: center; gap: 8px;">
                 <span style="font-size: 16px;">\${icon}</span>
-                <span style="color: var(--text-main); font-weight: 700;">\${dev.name || 'Bluetooth Peripheral'}</span>
+                <span style="color: var(--text-main); font-weight: 700;">\${escapeHtml(dev.name || 'Bluetooth Peripheral')}</span>
               </span>
               \${isConn}
             </div>
             <div class="kv-list">
-              <div class="kv-item"><span class="kv-k">Device Type:</span><span class="kv-v" style="color: var(--cyan); font-weight: 600;">\${dev.type || 'Peripheral'}</span></div>
-              <div class="kv-item"><span class="kv-k">Manufacturer:</span><span class="kv-v">\${dev.manufacturer || 'Unknown'}</span></div>
-              <div class="kv-item"><span class="kv-k">Device MAC:</span><span class="kv-v" style="font-family: var(--font-mono); font-size: 10px;">\${dev.macDevice || 'N/A'}</span></div>
-              \${dev.batteryPercent !== null && dev.batteryPercent !== undefined ? \`<div class="kv-item"><span class="kv-k">Battery:</span><span class="kv-v" style="color: #10b981; font-weight: 700;">\${dev.batteryPercent}%</span></div>\` : ''}
+              <div class="kv-item"><span class="kv-k">Device Type:</span><span class="kv-v" style="color: var(--cyan); font-weight: 600;">\${escapeHtml(dev.type || 'Peripheral')}</span></div>
+              <div class="kv-item"><span class="kv-k">Manufacturer:</span><span class="kv-v">\${escapeHtml(dev.manufacturer || 'Unknown')}</span></div>
+              <div class="kv-item"><span class="kv-k">Device MAC:</span><span class="kv-v" style="font-family: var(--font-mono); font-size: 10px;">\${escapeHtml(dev.macDevice || 'N/A')}</span></div>
+              \${dev.batteryPercent !== null && dev.batteryPercent !== undefined ? \`<div class="kv-item"><span class="kv-k">Battery:</span><span class="kv-v" style="color: #10b981; font-weight: 700;">\${escapeHtml(dev.batteryPercent)}%</span></div>\` : ''}
             </div>
           \`;
           container.appendChild(card);
@@ -2550,7 +2583,7 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
           
           if (Array.isArray(v)) {
             const countStr = \`<span style="color: var(--cyan); font-weight: 600;">\${v.length} item\${v.length === 1 ? '' : 's'}</span>\`;
-            kvHtml += \`<div class="kv-item"><span class="kv-k">\${k}:</span><span class="kv-v">\${countStr}</span></div>\`;
+            kvHtml += \`<div class="kv-item"><span class="kv-k">\${escapeHtml(k)}:</span><span class="kv-v">\${countStr}</span></div>\`;
 
             // Render clean structured sub-cards for array items
             if (v.length > 0 && typeof v[0] === "object") {
@@ -2564,7 +2597,7 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
                   const ivStr = typeof iv === "object" ? (Array.isArray(iv) ? \`\${iv.length} items\` : JSON.stringify(iv).slice(0, 40)) : String(iv);
                   subKv += \`<div class="kv-item"><span class="kv-k">\${escapeHtml(ik)}:</span><span class="kv-v">\${escapeHtml(ivStr)}</span></div>\`;
                 });
-                subCard.innerHTML = \`<div class="data-card-header"><span>\${escapeHtml(subTitle)}</span><span>\${k} #\${idx + 1}</span></div><div class="kv-list">\${subKv}</div>\`;
+                subCard.innerHTML = \`<div class="data-card-header"><span>\${escapeHtml(subTitle)}</span><span>\${escapeHtml(k)} #\${idx + 1}</span></div><div class="kv-list">\${subKv}</div>\`;
                 container.appendChild(subCard);
               });
             }
@@ -2577,7 +2610,7 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
               const nvStr = typeof nv === "object" ? (Array.isArray(nv) ? \`\${nv.length} items\` : JSON.stringify(nv).slice(0, 40)) : String(nv);
               nestedKv += \`<div class="kv-item"><span class="kv-k">\${escapeHtml(nk)}:</span><span class="kv-v">\${escapeHtml(nvStr)}</span></div>\`;
             });
-            nestedCard.innerHTML = \`<div class="data-card-header"><span>\${k}</span></div><div class="kv-list">\${nestedKv}</div>\`;
+            nestedCard.innerHTML = \`<div class="data-card-header"><span>\${escapeHtml(k)}</span></div><div class="kv-list">\${nestedKv}</div>\`;
             container.appendChild(nestedCard);
           } else {
             kvHtml += \`<div class="kv-item"><span class="kv-k">\${escapeHtml(k)}:</span><span class="kv-v">\${escapeHtml(v)}</span></div>\`;
@@ -2585,7 +2618,7 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
         });
 
         if (kvHtml) {
-          mainCard.innerHTML = \`<div class="data-card-header"><span>\${friendlyTitle} Overview</span></div><div class="kv-list">\${kvHtml}</div>\`;
+          mainCard.innerHTML = \`<div class="data-card-header"><span>\${escapeHtml(friendlyTitle)} Overview</span></div><div class="kv-list">\${kvHtml}</div>\`;
           container.prepend(mainCard);
         }
         return;

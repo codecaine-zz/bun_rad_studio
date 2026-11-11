@@ -47,11 +47,64 @@ export async function executeCurlRequest(
   opts: CurlOptions = {},
 ): Promise<CurlResponse> {
   const t0 = performance.now();
+  const cleanMethod = String(method || "GET")
+    .trim()
+    .toUpperCase();
+  if (!/^[A-Z]+$/.test(cleanMethod)) {
+    return {
+      ok: false,
+      status: 0,
+      statusText: "Invalid Method",
+      headers: [],
+      body: "[Invalid HTTP Method]",
+      elapsedMs: "0.0",
+      error: "Invalid HTTP method",
+    };
+  }
+
+  const cleanUrl = String(url ?? "").trim();
+  if (!cleanUrl || !/^https?:\/\/[^\u0000-\u0020\u007f]+$/i.test(cleanUrl)) {
+    return {
+      ok: false,
+      status: 0,
+      statusText: "Invalid URL",
+      headers: [],
+      body: "[Invalid or Unsupported URL]",
+      elapsedMs: "0.0",
+      error: "Only valid http:// and https:// URLs are permitted",
+    };
+  }
+  try {
+    const parsedUrl = new URL(cleanUrl);
+    if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+      return {
+        ok: false,
+        status: 0,
+        statusText: "Invalid URL",
+        headers: [],
+        body: "[Invalid or Unsupported URL]",
+        elapsedMs: "0.0",
+        error: "Only valid http:// and https:// URLs are permitted",
+      };
+    }
+  } catch {
+    return {
+      ok: false,
+      status: 0,
+      statusText: "Invalid URL",
+      headers: [],
+      body: "[Invalid or Unsupported URL]",
+      elapsedMs: "0.0",
+      error: "Invalid URL",
+    };
+  }
+
   const timeout =
     opts.timeoutSec && opts.timeoutSec > 0 ? Math.floor(opts.timeoutSec) : 10;
   const args = [
     "curl",
     "-s",
+    "--globoff",
     "-i",
     ...(opts.follow === false ? [] : ["-L"]),
     ...(opts.insecure ? ["-k"] : []),
@@ -64,25 +117,29 @@ export async function executeCurlRequest(
     String(Math.min(4, timeout)),
     "-m",
     String(timeout),
-    ...(method === "HEAD" ? ["-I"] : ["-X", method]),
+    ...(cleanMethod === "HEAD" ? ["-I"] : ["-X", cleanMethod]),
     "-w",
     "\n__BUN_RAD_CURL_METADATA__\n%{http_code}\n%{time_total}\n",
   ];
 
-  for (const [k, v] of Object.entries(headers)) {
-    args.push("-H", `${k}: ${v}`);
+  for (const [k, v] of Object.entries(headers || {})) {
+    const cleanKey = String(k).trim();
+    if (!cleanKey || cleanKey.startsWith("-")) continue;
+    if (!/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(cleanKey)) continue;
+    const cleanVal = String(v ?? "").replace(/[\r\n\0]/g, "");
+    args.push("-H", `${cleanKey}: ${cleanVal}`);
   }
 
   if (
     bodyStr &&
-    method !== "GET" &&
-    method !== "HEAD" &&
-    method !== "OPTIONS"
+    cleanMethod !== "GET" &&
+    cleanMethod !== "HEAD" &&
+    cleanMethod !== "OPTIONS"
   ) {
     args.push("--data-raw", bodyStr);
   }
 
-  args.push(url);
+  args.push("--", cleanUrl);
 
   try {
     const proc = Bun.spawn(args, {

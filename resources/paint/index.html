@@ -3171,21 +3171,57 @@ Studio Paint</textarea>
 
       /**
        * History & State Management
+       * Uses copy-on-write per-layer ImageData snapshots so unmodified layers
+       * share immutable ImageData buffers across history steps, and aliases
+       * state.canvas to the active layer snapshot instead of duplicating it.
        */
-      function saveHistory() {
+      function saveHistory(dirtyScope = "active") {
         if (!drawCtx || !drawCanvas) return;
         if (historyStep < historyStack.length - 1) {
           historyStack.length = historyStep + 1;
         }
 
-        const layerSnapshots = paintLayers.map((l) => ({
-          id: l.id,
-          name: l.name,
-          visible: l.visible,
-          opacity: l.opacity,
-          blendMode: l.blendMode,
-          imageData: l.ctx.getImageData(0, 0, l.canvas.width, l.canvas.height),
-        }));
+        const prevState =
+          historyStep >= 0 && historyStep < historyStack.length
+            ? historyStack[historyStep]
+            : null;
+        const prevLayerMap = new Map();
+        if (
+          prevState &&
+          Array.isArray(prevState.layers) &&
+          prevState.width === bgCanvas.width &&
+          prevState.height === bgCanvas.height
+        ) {
+          for (const snap of prevState.layers) {
+            if (snap && snap.id && snap.imageData) {
+              prevLayerMap.set(snap.id, snap);
+            }
+          }
+        }
+
+        const layerSnapshots = paintLayers.map((l, idx) => {
+          const prevSnap = prevLayerMap.get(l.id);
+          const canReuseImageData =
+            Boolean(prevSnap) &&
+            prevSnap.imageData.width === l.canvas.width &&
+            prevSnap.imageData.height === l.canvas.height &&
+            dirtyScope !== "all" &&
+            !(dirtyScope === "active" && idx === activeLayerIndex);
+
+          return {
+            id: l.id,
+            name: l.name,
+            visible: l.visible,
+            opacity: l.opacity,
+            blendMode: l.blendMode,
+            imageData: canReuseImageData
+              ? prevSnap.imageData
+              : l.ctx.getImageData(0, 0, l.canvas.width, l.canvas.height),
+          };
+        });
+
+        const activeSnap =
+          layerSnapshots[activeLayerIndex] || layerSnapshots[0] || null;
 
         const state = {
           width: bgCanvas.width,
@@ -3195,13 +3231,8 @@ Studio Paint</textarea>
           vectorVisible,
           activeLayerIndex,
           layers: layerSnapshots,
-          // Keep legacy .canvas property pointing to active layer ImageData for backward compatibility
-          canvas: drawCtx.getImageData(
-            0,
-            0,
-            drawCanvas.width,
-            drawCanvas.height,
-          ),
+          // Keep legacy .canvas property pointing to active layer ImageData without a duplicate getImageData read
+          canvas: activeSnap ? activeSnap.imageData : null,
           vector: vectorWrap ? vectorWrap.innerHTML : "",
           art: currentArt,
         };
@@ -3527,7 +3558,7 @@ Studio Paint</textarea>
         activeLayerIndex = Math.max(0, activeLayerIndex - 1);
         syncActiveLayerRefs();
         renderLayersListUI();
-        saveHistory();
+        saveHistory("none");
         showToast(`Deleted ${removed.name}`);
       }
 
@@ -4077,7 +4108,7 @@ Studio Paint</textarea>
               isVectorSwiping = false;
               if (vectorSwipeDidFill) {
                 persistCurrentVectorArtProgress();
-                saveHistory();
+                saveHistory("none");
                 setTimeout(() => {
                   vectorSwipeDidFill = false;
                 }, 0);
@@ -4131,7 +4162,7 @@ Studio Paint</textarea>
             );
             updateColoringProgressUI();
             persistCurrentVectorArtProgress();
-            saveHistory();
+            saveHistory("none");
           });
         }
 
@@ -5272,7 +5303,7 @@ Studio Paint</textarea>
         resizeAllCanvasElements(w, h, true);
         selectionRect = null;
         prevCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-        saveHistory();
+        saveHistory("all");
         showToast(`Cropped canvas to ${w} × ${h} px`);
       }
 
@@ -5874,7 +5905,7 @@ Studio Paint</textarea>
         resizeAllCanvasElements(w, h);
         renderLayersListUI();
         closeCanvasModal();
-        saveHistory();
+        saveHistory("all");
         showToast(`Canvas set to ${w} × ${h} px`);
       }
 
@@ -6619,7 +6650,7 @@ Studio Paint</textarea>
         if (colorByNumberActive) renderColorByNumberOverlay();
         updateColoringProgressUI();
         persistCurrentVectorArtProgress();
-        saveHistory();
+        saveHistory("none");
         showToast(`✨ Auto-Colored "${currentArt.title}"!`);
       }
 
@@ -6647,7 +6678,7 @@ Studio Paint</textarea>
         if (colorByNumberActive) renderColorByNumberOverlay();
         updateColoringProgressUI();
         persistCurrentVectorArtProgress();
-        saveHistory();
+        saveHistory("none");
         showToast(`🎲 Applied surprise ${palKey} palette!`);
       }
 
@@ -6729,7 +6760,7 @@ Studio Paint</textarea>
         vectorWrap.innerHTML = "";
         updateArtworkLabelUI();
         setAppMode("freehand");
-        saveHistory();
+        saveHistory("none");
       }
 
       /**

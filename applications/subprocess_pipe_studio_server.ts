@@ -23,6 +23,8 @@ import {
 export interface ServerOptions {
   port?: number;
   host?: string;
+  libraryPath?: string;
+  storagePath?: string;
 }
 
 /**
@@ -1821,7 +1823,7 @@ export function generateSubprocessPipeStudioHtml(): string {
       document.getElementById("sel_stage_sudo_mode").value = st.sudoElevationMode || "auto";
       document.getElementById("num_stage_timeout").value = st.timeoutMs || 30000;
       document.getElementById("chk_stage_enabled").checked = st.enabled !== false;
-      document.getElementById("chk_stage_ignore_error").checked = !!st.ignoreError;
+      document.getElementById("chk_stage_ignore_error").checked = st.ignoreError !== undefined ? !!st.ignoreError : st.stopOnError === false;
 
       toggleCustomStdinVisibility();
       renderStagesList();
@@ -1848,6 +1850,7 @@ export function generateSubprocessPipeStudioHtml(): string {
       st.timeoutMs = parseInt(document.getElementById("num_stage_timeout").value) || 30000;
       st.enabled = document.getElementById("chk_stage_enabled").checked;
       st.ignoreError = document.getElementById("chk_stage_ignore_error").checked;
+      st.stopOnError = !st.ignoreError;
 
       logMessage(\`[Stage Editor] Saved changes to Stage #\${selectedStageIndex + 1} (\${st.name})\`, "success");
       showToast(\`Updated Stage #\${selectedStageIndex + 1}\`, "success");
@@ -1857,6 +1860,7 @@ export function generateSubprocessPipeStudioHtml(): string {
 
     // Add stage from editor
     function addStageFromEditor() {
+      const ignoreError = document.getElementById("chk_stage_ignore_error").checked;
       const newStage = {
         id: "stage_" + Date.now() + "_" + Math.random().toString(36).substring(2, 6),
         name: document.getElementById("txt_stage_name").value.trim() || "New Stage",
@@ -1868,7 +1872,8 @@ export function generateSubprocessPipeStudioHtml(): string {
         sudoElevationMode: document.getElementById("sel_stage_sudo_mode").value,
         timeoutMs: parseInt(document.getElementById("num_stage_timeout").value) || 30000,
         enabled: document.getElementById("chk_stage_enabled").checked,
-        ignoreError: document.getElementById("chk_stage_ignore_error").checked,
+        ignoreError,
+        stopOnError: !ignoreError,
       };
 
       currentPipeline.stages.push(newStage);
@@ -1887,6 +1892,8 @@ export function generateSubprocessPipeStudioHtml(): string {
         command: "grep -v 'pattern'",
         inputMode: "piped",
         enabled: true,
+        ignoreError: false,
+        stopOnError: true,
         timeoutMs: 30000,
       };
       currentPipeline.stages.push(stage);
@@ -2985,6 +2992,7 @@ export function generateSubprocessPipeStudioHtml(): string {
           st.timeoutMs = parseInt(document.getElementById("num_stage_timeout").value) || 30000;
           st.enabled = document.getElementById("chk_stage_enabled").checked;
           st.ignoreError = document.getElementById("chk_stage_ignore_error").checked;
+          st.stopOnError = !st.ignoreError;
           renderStagesList();
           updateInspector();
         }
@@ -3129,7 +3137,7 @@ export function generateSubprocessPipeStudioHtml(): string {
         }
       });
       document.getElementById("btn_sudo_prompt_macos").addEventListener("click", () => {
-        const st = currentPipeline.stages[currentStageIndex];
+        const st = currentPipeline.stages[selectedStageIndex];
         if (st) {
           st.sudoElevationMode = "macos_prompt";
           const sel = document.getElementById("sel_stage_sudo_mode");
@@ -3272,10 +3280,19 @@ export function generateSubprocessPipeStudioHtml(): string {
 /**
  * Starts the Subprocess Pipe Pro HTTP server.
  */
-export function startSubprocessPipeStudioServer(options: ServerOptions = {}) {
-  const port = options.port ?? 9095;
-  const hostname = options.host ?? "127.0.0.1";
-  const library = new PipelineLibrary();
+export function startSubprocessPipeStudioServer(
+  portOrOptions: number | ServerOptions = {},
+  maybeOptions: ServerOptions = {},
+) {
+  const resolvedOptions: ServerOptions =
+    typeof portOrOptions === "number"
+      ? { ...maybeOptions, port: portOrOptions }
+      : portOrOptions;
+  const port = resolvedOptions.port ?? 9095;
+  const hostname = resolvedOptions.host ?? "127.0.0.1";
+  const library = new PipelineLibrary(
+    resolvedOptions.libraryPath || resolvedOptions.storagePath,
+  );
 
   const server = Bun.serve({
     port,
@@ -3333,9 +3350,18 @@ export function startSubprocessPipeStudioServer(options: ServerOptions = {}) {
         return Response.json(pipelines, { headers: corsHeaders });
       }
 
+      // Export Library JSON (must precede /api/pipelines/:id wildcard)
+      if (pathname === "/api/pipelines/export" && req.method === "GET") {
+        const json = library.exportJson();
+        return Response.json({ json }, { headers: corsHeaders });
+      }
+
       // Load Single Pipeline
       if (pathname.startsWith("/api/pipelines/") && req.method === "GET") {
-        const id = pathname.replace("/api/pipelines/", "");
+        let id = pathname.replace("/api/pipelines/", "");
+        try {
+          id = decodeURIComponent(id);
+        } catch {}
         const pipeline = library.getPipeline(id);
         if (!pipeline) {
           return Response.json(
@@ -3347,11 +3373,23 @@ export function startSubprocessPipeStudioServer(options: ServerOptions = {}) {
       }
 
       // Save Pipeline
-      if (pathname === "/api/pipelines/save" && req.method === "POST") {
+      if (
+        (pathname === "/api/pipelines" || pathname === "/api/pipelines/save") &&
+        req.method === "POST"
+      ) {
         try {
           const body: any = await req.json();
           const saved = library.savePipeline(body);
-          return Response.json(saved, { headers: corsHeaders });
+          if (!saved) {
+            return Response.json(
+              { error: "Pipeline name cannot be empty" },
+              { status: 400, headers: corsHeaders },
+            );
+          }
+          return Response.json(
+            { ...saved, entry: saved, pipeline: saved },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
           return Response.json(
             { error: err.message },
@@ -3364,9 +3402,20 @@ export function startSubprocessPipeStudioServer(options: ServerOptions = {}) {
       if (pathname === "/api/pipelines/save-as" && req.method === "POST") {
         try {
           const body: any = await req.json();
-          if (!body.id) body.id = "pipeline_" + Date.now();
-          library.savePipeline(body);
-          return Response.json(body, { headers: corsHeaders });
+          body.id = `pipeline_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+          const saved = library.savePipeline(body, true, {
+            allowDuplicateName: true,
+          });
+          if (!saved) {
+            return Response.json(
+              { error: "Pipeline name cannot be empty" },
+              { status: 400, headers: corsHeaders },
+            );
+          }
+          return Response.json(
+            { ...saved, entry: saved, pipeline: saved },
+            { headers: corsHeaders },
+          );
         } catch (err: any) {
           return Response.json(
             { error: err.message },
@@ -3377,12 +3426,15 @@ export function startSubprocessPipeStudioServer(options: ServerOptions = {}) {
 
       // Delete Pipeline
       if (pathname.startsWith("/api/pipelines/") && req.method === "DELETE") {
-        const id = pathname.replace("/api/pipelines/", "");
+        let id = pathname.replace("/api/pipelines/", "");
+        try {
+          id = decodeURIComponent(id);
+        } catch {}
         const deleted = library.deletePipeline(id);
         return Response.json({ success: deleted }, { headers: corsHeaders });
       }
 
-      // Export Library JSON
+      // Export Library JSON (non-GET fallback)
       if (pathname === "/api/pipelines/export") {
         const json = library.exportJson();
         return Response.json({ json }, { headers: corsHeaders });

@@ -3312,6 +3312,10 @@ function buildPostgresHtml(): string {
     function switchTab(tabId) {
       activeTab = tabId;
       window.activeTab = tabId;
+      if (tabId !== "activity" && activityTimer) {
+        clearInterval(activityTimer);
+        activityTimer = null;
+      }
       document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
       document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
 
@@ -3364,7 +3368,11 @@ function buildPostgresHtml(): string {
       if (tabId === "types") loadEnumTypes();
       if (tabId === "partitions") loadPartitions();
       if (tabId === "extensions") loadExtensions();
-      if (tabId === "activity") loadActivity();
+      if (tabId === "activity") {
+        loadActivity();
+        const autoChk = document.getElementById("chkAutoRefreshActivity");
+        if (autoChk && autoChk.checked) toggleActivityAutoRefresh(true);
+      }
       if (tabId === "replication") loadReplicationStatus();
       if (tabId === "designer") renderQueryDesigner();
       if (tabId === "macros" && typeof renderMacroDesigner === "function") renderMacroDesigner();
@@ -3441,7 +3449,7 @@ function buildPostgresHtml(): string {
     function renderSchemaDropdown(schemas, active) {
       const sel = document.getElementById("schemaSelect");
       if (!sel) return;
-      sel.innerHTML = schemas.map(s => \`<option value="\${s}" \${s === active ? 'selected' : ''}>\${s}</option>\`).join('');
+      sel.innerHTML = schemas.map(s => \`<option value="\${escapeHtml(s)}" \${s === active ? 'selected' : ''}>\${escapeHtml(s)}</option>\`).join('');
     }
 
     // Switch Schema
@@ -3468,37 +3476,46 @@ function buildPostgresHtml(): string {
       document.getElementById("sidebarMatViewCount").innerText = (currentSchema.matviews || []).length;
 
       // Tables
-      tablesList.innerHTML = (currentSchema.tables || []).map(t => \`
-        <div class="tree-item \${activeTable === t.name ? 'active' : ''}" onclick="selectEntity('\${t.name}', 'table')">
+      tablesList.innerHTML = (currentSchema.tables || []).map(t => {
+        const safeName = escapeHtml(t.name);
+        return \`
+        <div class="tree-item \${activeTable === t.name ? 'active' : ''}" data-entity="\${safeName}" onclick="selectEntity(this.dataset.entity, 'table')">
           <div class="tree-item-name">
             <span>📋</span>
-            <span>\${t.name}</span>
+            <span>\${safeName}</span>
           </div>
-          <span class="tree-item-badge">\${t.rowCount || 0}</span>
+          <span class="tree-item-badge">\${Number(t.rowCount) || 0}</span>
         </div>
-      \`).join('') || '<div style="padding: 10px 8px; font-size: 11px; color: var(--text-dim); text-align: center;">No tables yet.<br><button class="btn btn-sm btn-primary" onclick="openSampleDatabases()" style="margin-top: 6px; width: 100%; font-size: 10px; padding: 4px 6px;">🌱 Seed Sample DB</button></div>';
+      \`;
+      }).join('') || '<div style="padding: 10px 8px; font-size: 11px; color: var(--text-dim); text-align: center;">No tables yet.<br><button class="btn btn-sm btn-primary" onclick="openSampleDatabases()" style="margin-top: 6px; width: 100%; font-size: 10px; padding: 4px 6px;">🌱 Seed Sample DB</button></div>';
 
       // Materialized Views (with 1-click refresh button!)
-      matViewsList.innerHTML = (currentSchema.matviews || []).map(m => \`
-        <div class="tree-item \${activeTable === m.name ? 'active' : ''}" onclick="selectEntity('\${m.name}', 'materialized_view')">
+      matViewsList.innerHTML = (currentSchema.matviews || []).map(m => {
+        const safeName = escapeHtml(m.name);
+        return \`
+        <div class="tree-item \${activeTable === m.name ? 'active' : ''}" data-entity="\${safeName}" onclick="selectEntity(this.dataset.entity, 'materialized_view')">
           <div class="tree-item-name">
             <span style="color: var(--cyan);">⚡</span>
-            <span>\${m.name}</span>
+            <span>\${safeName}</span>
           </div>
-          <button class="matview-refresh-btn" onclick="event.stopPropagation(); refreshMatView('\${m.name}')" title="Refresh Materialized View">🔄</button>
+          <button class="matview-refresh-btn" data-entity="\${safeName}" onclick="event.stopPropagation(); refreshMatView(this.dataset.entity)" title="Refresh Materialized View">🔄</button>
         </div>
-      \`).join('') || '<div style="padding: 4px 8px; font-size: 11px; color: var(--text-dim);">No materialized views</div>';
+      \`;
+      }).join('') || '<div style="padding: 4px 8px; font-size: 11px; color: var(--text-dim);">No materialized views</div>';
 
       // Standard Views
-      viewsList.innerHTML = (currentSchema.views || []).map(v => \`
-        <div class="tree-item \${activeTable === v.name ? 'active' : ''}" onclick="selectEntity('\${v.name}', 'view')">
+      viewsList.innerHTML = (currentSchema.views || []).map(v => {
+        const safeName = escapeHtml(v.name);
+        return \`
+        <div class="tree-item \${activeTable === v.name ? 'active' : ''}" data-entity="\${safeName}" onclick="selectEntity(this.dataset.entity, 'view')">
           <div class="tree-item-name">
             <span>👁️</span>
-            <span>\${v.name}</span>
+            <span>\${safeName}</span>
           </div>
           <span class="tree-item-badge">view</span>
         </div>
-      \`).join('') || '<div style="padding: 4px 8px; font-size: 11px; color: var(--text-dim);">No views</div>';
+      \`;
+      }).join('') || '<div style="padding: 4px 8px; font-size: 11px; color: var(--text-dim);">No views</div>';
 
       // Saved Queries & Macros groups
       const macroGroups = document.getElementById("sidebarMacroGroups");
@@ -3620,7 +3637,7 @@ function buildPostgresHtml(): string {
             if (typeof window.renderAccessFilterCellHtml === "function") {
               return "<th style='padding: 2px 4px; vertical-align: middle;'>" + window.renderAccessFilterCellHtml(c, curVal) + "</th>";
             }
-            return "<th><input type='text' class='access-filter-input' placeholder='Filter " + escapeHtml(c) + "...' value='" + escapeHtml(curVal) + "' oninput='onColumnFilterInput(&quot;" + escapeHtml(c) + "&quot;, this.value)'></th>";
+            return "<th><input type='text' class='access-filter-input' placeholder='Filter " + escapeHtml(c) + "...' value='" + escapeHtml(curVal) + "' data-col='" + escapeHtml(c) + "' oninput='onColumnFilterInput(this.dataset.col, this.value)'></th>";
           }).join('');
         }
       }
@@ -3634,7 +3651,8 @@ function buildPostgresHtml(): string {
         const rowNum = ((page - 1) * pageSize) + idx + 1;
         const cells = columns.map(c => {
           const val = r[c];
-          const dc = " data-col='" + escapeHtml(c) + "'";
+          const safeCol = escapeHtml(c);
+          const dc = " data-col='" + safeCol + "'";
           if (val === null || val === undefined) {
             return "<td" + dc + " class='cell-null'>NULL</td>";
           }
@@ -3643,7 +3661,7 @@ function buildPostgresHtml(): string {
             if (Array.isArray(val)) {
               return "<td" + dc + "><span class='cell-array'>" + escapeHtml(jsonStr) + "</span></td>";
             }
-            return "<td" + dc + "><span class='cell-jsonb' onclick='openJsonbInspector(\\"" + c + "\\", " + escapeHtml(JSON.stringify(jsonStr)) + ")'>{JSON}</span></td>";
+            return "<td" + dc + "><span class='cell-jsonb' data-col='" + safeCol + "' data-json='" + escapeHtml(jsonStr) + "' onclick='openJsonbInspector(this.dataset.col, this.dataset.json)'>{JSON}</span></td>";
           }
           const str = String(val);
           // Check for UUID format
@@ -4228,17 +4246,19 @@ function buildPostgresHtml(): string {
       headerCard.style.padding = "14px 18px";
       headerCard.style.marginBottom = "12px";
 
+      const safeMetaName = escapeHtml(meta.name);
+      const safeMetaType = escapeHtml(meta.type || 'table');
       headerCard.innerHTML = '<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">' +
         '<div style="display: flex; align-items: center; gap: 10px;">' +
         '<span style="font-size: 20px;">📐</span>' +
         '<div>' +
-        '<div style="font-weight: 700; color: var(--cyan); font-size: 15px;">Table Design View: ' + escapeHtml(meta.name) + '</div>' +
-        '<div style="font-size: 11px; color: var(--text-dim);">' + (meta.type || 'table').toUpperCase() + ' · ' + numRows + ' records · ' + (meta.columns || []).length + ' fields · ' + (meta.indices || []).length + ' indexes</div>' +
+        '<div style="font-weight: 700; color: var(--cyan); font-size: 15px;">Table Design View: ' + safeMetaName + '</div>' +
+        '<div style="font-size: 11px; color: var(--text-dim);">' + escapeHtml((meta.type || 'table').toUpperCase()) + ' · ' + numRows + ' records · ' + (meta.columns || []).length + ' fields · ' + (meta.indices || []).length + ' indexes</div>' +
         '</div></div>' +
         '<div style="display: flex; gap: 6px;">' +
-        '<button class="btn btn-sm btn-primary" onclick="selectEntity(&quot;' + escapeHtml(meta.name) + '&quot;, &quot;' + (meta.type || 'table') + '&quot;)">📋 Open Datasheet</button>' +
+        '<button class="btn btn-sm btn-primary" data-entity="' + safeMetaName + '" data-type="' + safeMetaType + '" onclick="selectEntity(this.dataset.entity, this.dataset.type)">📋 Open Datasheet</button>' +
         '<button class="btn btn-sm" onclick="switchGridMode(&quot;form&quot;); switchTab(&quot;grid&quot;);">📑 Open Form View</button>' +
-        '<button class="btn btn-sm" onclick="renderSchemaDesigner(&quot;' + escapeHtml(meta.name) + '&quot;)">🔄 Refresh Design</button>' +
+        '<button class="btn btn-sm" data-entity="' + safeMetaName + '" onclick="renderSchemaDesigner(this.dataset.entity)">🔄 Refresh Design</button>' +
         '</div></div>';
       container.appendChild(headerCard);
 
@@ -4261,14 +4281,15 @@ function buildPostgresHtml(): string {
         '<tbody>';
 
       (meta.columns || []).forEach((c, i) => {
+        const safeColName = escapeHtml(c.name);
         fieldsHtml += '<tr>' +
-          '<td style="text-align: center; color: var(--text-dim);">' + (c.cid ?? (i + 1)) + '</td>' +
-          '<td style="color: var(--cyan); font-weight: 600; font-family: var(--font-mono);">' + escapeHtml(c.name) + '</td>' +
+          '<td style="text-align: center; color: var(--text-dim);">' + escapeHtml(String(c.cid ?? (i + 1))) + '</td>' +
+          '<td style="color: var(--cyan); font-weight: 600; font-family: var(--font-mono);">' + safeColName + '</td>' +
           '<td><span class="access-field-type">' + escapeHtml(c.type || c.data_type || 'text') + '</span></td>' +
           '<td style="text-align: center;">' + (c.pk || c.is_primary ? '<span class="access-field-pk">🔑 YES</span>' : '<span style="color: var(--text-dim);">-</span>') + '</td>' +
           '<td style="text-align: center;">' + (c.notnull || !c.is_nullable ? '<span class="brand-badge" style="background: rgba(244,63,94,0.12); color: var(--rose); font-size: 9px;">NOT NULL</span>' : '<span style="color: var(--text-dim); font-size: 10px;">NULLABLE</span>') + '</td>' +
           '<td style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">' + (c.dflt_value !== null && c.dflt_value !== undefined ? escapeHtml(c.dflt_value) : (c.column_default ? escapeHtml(c.column_default) : '<span style="color: var(--text-dim); font-style: italic;">none</span>')) + '</td>' +
-          '<td style="text-align: center;">' + (isTable ? '<button class="btn btn-sm btn-danger" onclick="executeDropColumn(&quot;' + escapeHtml(meta.name) + '&quot;, &quot;' + escapeHtml(c.name) + '&quot;)" title="Drop Column">🗑️</button>' : '-') + '</td>' +
+          '<td style="text-align: center;">' + (isTable ? '<button class="btn btn-sm btn-danger" data-table="' + safeMetaName + '" data-col="' + safeColName + '" onclick="executeDropColumn(this.dataset.table, this.dataset.col)" title="Drop Column">🗑️</button>' : '-') + '</td>' +
           '</tr>';
       });
       fieldsHtml += '</tbody></table></div>';
@@ -4294,7 +4315,7 @@ function buildPostgresHtml(): string {
           '</select>' +
           '<label style="font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 4px;"><input type="checkbox" id="addColNotNull"> Not Null</label>' +
           '<input type="text" id="addColDefault" placeholder="Default (e.g. NOW(), 0)..." style="font-size: 11px; padding: 5px 8px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle); border-radius: 4px; color: #fff; width: 140px;">' +
-          '<button class="btn btn-sm btn-primary" onclick="executeAddColumn(&quot;' + escapeHtml(meta.name) + '&quot;)">➕ Add Column</button>' +
+          '<button class="btn btn-sm btn-primary" data-table="' + safeMetaName + '" onclick="executeAddColumn(this.dataset.table)">➕ Add Column</button>' +
           '</div></div>';
       }
 
@@ -4322,11 +4343,12 @@ function buildPostgresHtml(): string {
           '<thead><tr><th>Index Name</th><th style="width: 90px; text-align: center;">Unique</th><th>Index Definition (SQL)</th><th style="width: 80px; text-align: center;">Action</th></tr></thead>' +
           '<tbody>';
         meta.indices.forEach(idx => {
+          const safeIdxName = escapeHtml(idx.name);
           idxHtml += '<tr>' +
-            '<td style="font-family: var(--font-mono); color: var(--amber); font-weight: 600;">' + escapeHtml(idx.name) + '</td>' +
+            '<td style="font-family: var(--font-mono); color: var(--amber); font-weight: 600;">' + safeIdxName + '</td>' +
             '<td style="text-align: center;">' + (idx.unique ? '<span class="brand-badge" style="background: rgba(245,158,11,0.2); color: #fbbf24; font-size: 9px;">UNIQUE</span>' : '<span style="color: var(--text-dim);">-</span>') + '</td>' +
             '<td style="font-family: var(--font-mono); font-size: 11px; color: #94a3b8;">' + escapeHtml(idx.indexDef || '-') + '</td>' +
-            '<td style="text-align: center;">' + (!idx.name.endsWith("_pkey") ? '<button class="btn btn-sm btn-danger" onclick="executeDropIndex(&quot;' + escapeHtml(meta.name) + '&quot;, &quot;' + escapeHtml(idx.name) + '&quot;)" title="Drop Index">🗑️</button>' : '<span style="color: var(--text-dim); font-size: 10px;">PK</span>') + '</td>' +
+            '<td style="text-align: center;">' + (!String(idx.name || '').endsWith("_pkey") ? '<button class="btn btn-sm btn-danger" data-table="' + safeMetaName + '" data-idx="' + safeIdxName + '" onclick="executeDropIndex(this.dataset.table, this.dataset.idx)" title="Drop Index">🗑️</button>' : '<span style="color: var(--text-dim); font-size: 10px;">PK</span>') + '</td>' +
             '</tr>';
         });
         idxHtml += '</tbody></table>';
@@ -4336,7 +4358,7 @@ function buildPostgresHtml(): string {
         idxHtml += '<div style="margin-top: 14px; padding: 12px; background: rgba(0,0,0,0.25); border: 1px dashed var(--border-subtle); border-radius: 6px;">' +
           '<div style="font-size: 11px; font-weight: 700; color: var(--amber); margin-bottom: 8px;">➕ Create Table Index (CREATE INDEX ON...)</div>' +
           '<div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">' +
-          '<input type="text" id="addIdxName" placeholder="Index name (e.g. idx_' + meta.name + '_col)..." style="font-size: 11px; padding: 5px 8px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle); border-radius: 4px; color: #fff; width: 200px;">' +
+          '<input type="text" id="addIdxName" placeholder="Index name (e.g. idx_' + safeMetaName + '_col)..." style="font-size: 11px; padding: 5px 8px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle); border-radius: 4px; color: #fff; width: 200px;">' +
           '<select id="addIdxCol" style="font-size: 11px; padding: 4px 20px 4px 8px; width: 140px;">' +
           (meta.columns || []).map(c => '<option value="' + escapeHtml(c.name) + '">' + escapeHtml(c.name) + '</option>').join('') +
           '</select>' +
@@ -4347,7 +4369,7 @@ function buildPostgresHtml(): string {
           '<option value="brin">BRIN</option>' +
           '</select>' +
           '<label style="font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 4px;"><input type="checkbox" id="addIdxUnique"> Unique</label>' +
-          '<button class="btn btn-sm btn-primary" onclick="executeCreateIndex(&quot;' + escapeHtml(meta.name) + '&quot;)">➕ Create Index</button>' +
+          '<button class="btn btn-sm btn-primary" data-table="' + safeMetaName + '" onclick="executeCreateIndex(this.dataset.table)">➕ Create Index</button>' +
           '</div></div>';
       }
 
@@ -4391,13 +4413,14 @@ function buildPostgresHtml(): string {
       const defaultDdl = '-- Schema definition for "' + meta.name + '"\\nCREATE TABLE "' + meta.name + '" (\\n' +
         (meta.columns || []).map(c => '  "' + c.name + '" ' + (c.type || 'text') + (c.pk ? ' PRIMARY KEY' : '') + (c.notnull ? ' NOT NULL' : '') + (c.dflt_value ? ' DEFAULT ' + c.dflt_value : '')).join(',\\n') + '\\n);';
       const ddlContent = meta.sql || meta.definition || defaultDdl;
+      const safeDdlAttr = escapeHtml(ddlContent);
       ddlCard.innerHTML = '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">' +
         '<div class="card-title" style="font-weight: 700; margin-bottom: 0;">DDL Definition (SQL)</div>' +
         '<div style="display: flex; gap: 6px;">' +
-        '<button class="btn btn-sm" onclick="navigator.clipboard.writeText(' + JSON.stringify(ddlContent) + '); showToast(&quot;DDL copied to clipboard!&quot;);">📋 Copy DDL</button>' +
-        '<button class="btn btn-sm btn-primary" onclick="openDdlInSqlEditor(' + JSON.stringify(ddlContent) + ')">⚡ Open in SQL IDE</button>' +
+        '<button class="btn btn-sm" data-ddl="' + safeDdlAttr + '" onclick="navigator.clipboard.writeText(this.dataset.ddl); showToast(&quot;DDL copied to clipboard!&quot;);">📋 Copy DDL</button>' +
+        '<button class="btn btn-sm btn-primary" data-ddl="' + safeDdlAttr + '" onclick="openDdlInSqlEditor(this.dataset.ddl)">⚡ Open in SQL IDE</button>' +
         '</div></div>' +
-        '<div class="code-box" style="height: 140px; overflow-y: auto; font-family: var(--font-mono); font-size: 11px; background: rgba(0,0,0,0.35); padding: 12px; border-radius: 6px; border: 1px solid var(--border-subtle); color: #cbd5e1; white-space: pre-wrap;">' + escapeHtml(ddlContent) + '</div>';
+        '<div class="code-box" style="height: 140px; overflow-y: auto; font-family: var(--font-mono); font-size: 11px; background: rgba(0,0,0,0.35); padding: 12px; border-radius: 6px; border: 1px solid var(--border-subtle); color: #cbd5e1; white-space: pre-wrap;">' + safeDdlAttr + '</div>';
 
       container.appendChild(ddlCard);
     }
@@ -4621,7 +4644,7 @@ function buildPostgresHtml(): string {
           '<td style="font-size: 11px; color: var(--text-muted);">' + escapeHtml(s.category || 'General') + '</td>' +
           '<td><span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.05); color: var(--text-dim);">' + escapeHtml(s.context || 'user') + '</span></td>' +
           '<td style="font-size: 11px; color: var(--text-dim); max-width: 300px;">' + escapeHtml(s.short_desc || '-') + '</td>' +
-          '<td style="text-align: center;"><button class="btn btn-sm" onclick="editGucSetting(&quot;' + escapeHtml(s.name) + '&quot;, &quot;' + escapeHtml(String(s.setting ?? '')) + '&quot;, &quot;' + escapeHtml(s.unit || '') + '&quot;)">✎ Edit</button></td>' +
+          '<td style="text-align: center;"><button class="btn btn-sm" data-name="' + escapeHtml(s.name) + '" data-setting="' + escapeHtml(String(s.setting ?? '')) + '" data-unit="' + escapeHtml(s.unit || '') + '" onclick="editGucSetting(this.dataset.name, this.dataset.setting, this.dataset.unit)">✎ Edit</button></td>' +
           '</tr>';
       }).join('');
     }
@@ -5024,8 +5047,8 @@ function buildPostgresHtml(): string {
           '</div>' +
           '<div style="display:flex; flex-wrap:wrap; gap:6px; margin:8px 0;">' + badges + '</div>' +
           '<div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-subtle); padding-top:8px;">' +
-          '  <button class="btn btn-sm" onclick="promptAddEnumValue(&quot;' + escapeHtml(e.name) + '&quot;)">➕ Add Value</button>' +
-          '  <button class="btn btn-sm btn-danger" onclick="dropEnumType(&quot;' + escapeHtml(e.name) + '&quot;)">🗑️ Drop</button>' +
+          '  <button class="btn btn-sm" data-enum="' + escapeHtml(e.name) + '" onclick="promptAddEnumValue(this.dataset.enum)">➕ Add Value</button>' +
+          '  <button class="btn btn-sm btn-danger" data-enum="' + escapeHtml(e.name) + '" onclick="dropEnumType(this.dataset.enum)">🗑️ Drop</button>' +
           '</div>' +
           '</div>';
       }).join('');
@@ -5137,7 +5160,7 @@ function buildPostgresHtml(): string {
           return '<div class="card" style="margin-bottom:16px;">' +
             '<div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">' +
             '  <span>📦 Table: <strong style="color:var(--cyan);">' + escapeHtml(parent) + '</strong></span>' +
-            '  <span class="brand-badge" style="background:rgba(245,158,11,0.2); color:#fbbf24;">' + strat + ' PARTITIONED</span>' +
+            '  <span class="brand-badge" style="background:rgba(245,158,11,0.2); color:#fbbf24;">' + escapeHtml(strat) + ' PARTITIONED</span>' +
             '</div>' +
             '<table class="data-grid" style="margin-top:10px;">' +
             '  <thead><tr><th>Partition Name</th><th>Partition Bound Expression</th><th>Size</th><th>Estimated Rows</th></tr></thead>' +
@@ -5469,23 +5492,26 @@ function buildPostgresHtml(): string {
         list = list.filter(e => e.name.toLowerCase().includes(q) || (e.comment || "").toLowerCase().includes(q));
       }
 
-      grid.innerHTML = list.map(ext => \`
+      grid.innerHTML = list.map(ext => {
+        const safeExtName = escapeHtml(ext.name);
+        return \`
         <div class="ext-card">
           <div class="ext-card-header">
-            <span class="ext-name">\${ext.name}</span>
+            <span class="ext-name">\${safeExtName}</span>
             <span class="brand-badge" style="\${ext.isInstalled ? 'background: rgba(16, 185, 129, 0.25); color: #34d399; border-color: #10b981;' : 'background: rgba(255,255,255,0.05); color: var(--text-dim);'}">
-              \${ext.isInstalled ? 'v' + ext.installedVersion + ' Installed' : 'Available'}
+              \${ext.isInstalled ? 'v' + escapeHtml(ext.installedVersion) + ' Installed' : 'Available'}
             </span>
           </div>
-          <div class="ext-desc">\${ext.comment || 'No description provided.'}</div>
+          <div class="ext-desc">\${escapeHtml(ext.comment || 'No description provided.')}</div>
           <div class="ext-meta">
-            <span>Default: v\${ext.defaultVersion}</span>
-            <button class="btn btn-sm \${ext.isInstalled ? '' : 'btn-primary'}" onclick="toggleExtension('\${ext.name}', \${!ext.isInstalled})">
+            <span>Default: v\${escapeHtml(ext.defaultVersion)}</span>
+            <button class="btn btn-sm \${ext.isInstalled ? '' : 'btn-primary'}" data-ext="\${safeExtName}" onclick="toggleExtension(this.dataset.ext, \${!ext.isInstalled})">
               \${ext.isInstalled ? '✕ Remove' : '+ Install'}
             </button>
           </div>
         </div>
-      \`).join('') || '<div style="color: var(--text-dim); padding: 20px;">No extensions match criteria</div>';
+      \`;
+      }).join('') || '<div style="color: var(--text-dim); padding: 20px;">No extensions match criteria</div>';
     }
 
     async function toggleExtension(name, enable) {
@@ -5534,14 +5560,16 @@ function buildPostgresHtml(): string {
             '<thead><tr><th>Blocked PID</th><th>Blocked Query</th><th>Blocking PID</th><th>Blocking Query</th><th>Lock Type</th><th>Relation</th><th>Action</th></tr></thead>' +
             '<tbody>';
           blockedLocks.forEach(bl => {
+            const safeWaitPid = Number(bl.blocked_pid) || 0;
+            const safeBlockPid = Number(bl.blocking_pid) || 0;
             alertHtml += '<tr>' +
-              '<td style="font-family: var(--font-mono); color: var(--rose); font-weight: 700;">' + bl.blocked_pid + '</td>' +
+              '<td style="font-family: var(--font-mono); color: var(--rose); font-weight: 700;">' + safeWaitPid + '</td>' +
               '<td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono);">' + escapeHtml(bl.blocked_query || '-') + '</td>' +
-              '<td style="font-family: var(--font-mono); color: var(--amber); font-weight: 700;">' + bl.blocking_pid + '</td>' +
+              '<td style="font-family: var(--font-mono); color: var(--amber); font-weight: 700;">' + safeBlockPid + '</td>' +
               '<td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono);">' + escapeHtml(bl.blocking_query || '-') + '</td>' +
               '<td><span class="brand-badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">' + escapeHtml(bl.lock_type || 'relation') + '</span></td>' +
               '<td>' + escapeHtml(bl.relation || '-') + '</td>' +
-              '<td><button class="btn btn-sm btn-danger" onclick="terminateProcess(' + bl.blocking_pid + ')">⚡ Kill ' + bl.blocking_pid + '</button></td>' +
+              '<td><button class="btn btn-sm btn-danger" onclick="terminateProcess(' + safeBlockPid + ')">⚡ Kill ' + safeBlockPid + '</button></td>' +
               '</tr>';
           });
           alertHtml += '</tbody></table></div>';
@@ -5562,18 +5590,20 @@ function buildPostgresHtml(): string {
       }
 
       tbody.innerHTML = processes.map(p => {
-        const stateClass = p.state === "active" ? "state-active" : (p.state.includes("txn") ? "state-idle-txn" : "state-idle");
+        const stateStr = String(p.state || "");
+        const stateClass = stateStr === "active" ? "state-active" : (stateStr.includes("txn") ? "state-idle-txn" : "state-idle");
+        const safePid = Number(p.pid) || 0;
         return '<tr>' +
-          '<td style="font-family: var(--font-mono); color: var(--cyan);">' + p.pid + '</td>' +
-          '<td>' + (p.usename || 'postgres') + '</td>' +
-          '<td>' + (p.datname || '-') + '</td>' +
-          '<td>' + (p.client_addr || 'local') + '</td>' +
-          '<td><span class="state-badge ' + stateClass + '">' + (p.state || 'active') + '</span></td>' +
-          '<td style="font-family: var(--font-mono); color: var(--amber);">' + (p.duration || '0s') + '</td>' +
+          '<td style="font-family: var(--font-mono); color: var(--cyan);">' + safePid + '</td>' +
+          '<td>' + escapeHtml(p.usename || 'postgres') + '</td>' +
+          '<td>' + escapeHtml(p.datname || '-') + '</td>' +
+          '<td>' + escapeHtml(p.client_addr || 'local') + '</td>' +
+          '<td><span class="state-badge ' + stateClass + '">' + escapeHtml(stateStr || 'idle') + '</span></td>' +
+          '<td style="font-family: var(--font-mono); color: var(--amber);">' + escapeHtml(p.duration || '0s') + '</td>' +
           '<td style="font-family: var(--font-mono); max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + escapeHtml(p.query || '-') + '</td>' +
           '<td style="text-align: center; display: flex; gap: 4px; justify-content: center;">' +
-          '<button class="btn btn-sm" onclick="cancelProcess(' + p.pid + ')" title="Cancel Query (pg_cancel_backend)">🛑 Cancel</button>' +
-          '<button class="btn btn-sm" onclick="terminateProcess(' + p.pid + ')" title="Terminate Connection (pg_terminate_backend)" style="color: var(--rose);">⚡ Kill</button>' +
+          '<button class="btn btn-sm" onclick="cancelProcess(' + safePid + ')" title="Cancel Query (pg_cancel_backend)">🛑 Cancel</button>' +
+          '<button class="btn btn-sm" onclick="terminateProcess(' + safePid + ')" title="Terminate Connection (pg_terminate_backend)" style="color: var(--rose);">⚡ Kill</button>' +
           '</td></tr>';
       }).join('');
     }
@@ -5614,9 +5644,15 @@ function buildPostgresHtml(): string {
     }
 
     function toggleActivityAutoRefresh(enabled) {
-      if (activityTimer) clearInterval(activityTimer);
-      if (enabled) {
-        activityTimer = setInterval(loadActivity, 3000);
+      if (activityTimer) {
+        clearInterval(activityTimer);
+        activityTimer = null;
+      }
+      if (enabled && activeTab === "activity") {
+        activityTimer = setInterval(() => {
+          if (document.hidden || activeTab !== "activity") return;
+          loadActivity();
+        }, 3000);
       }
     }
 
@@ -5781,8 +5817,9 @@ function buildPostgresHtml(): string {
       const s = document.getElementById("cfgSchema").value || "public";
       const tls = document.getElementById("cfgTls").checked;
 
-      const auth = u + (pass ? ":" + pass : "");
-      let url = "postgresql://" + auth + "@" + h + ":" + p + "/" + db + "?schema=" + s;
+      const hostPart = h.includes(":") && !h.startsWith("[") ? "[" + h + "]" : h;
+      const auth = encodeURIComponent(u) + (pass ? ":" + encodeURIComponent(pass) : "");
+      let url = "postgresql://" + auth + "@" + hostPart + ":" + encodeURIComponent(p) + "/" + encodeURIComponent(db) + "?schema=" + encodeURIComponent(s);
       if (tls) url += "&sslmode=require";
       document.getElementById("cfgUrl").value = url;
     }
@@ -5899,16 +5936,19 @@ function buildPostgresHtml(): string {
       list.innerHTML = "<div style='color: var(--text-dim); font-size: 11px;'>Loading databases...</div>";
       const res = await apiRequest("/api/workspace-databases");
       if (res.success && res.databases) {
-        list.innerHTML = res.databases.map(db => \`
+        list.innerHTML = res.databases.map(db => {
+          const safeDbName = escapeHtml(db.name);
+          return \`
           <div class="tree-item" style="padding: 6px 10px; border: 1px solid var(--border-subtle); border-radius: 6px;">
             <div class="tree-item-name">
               <span>🐘</span>
-              <strong style="color: #fff;">\${db.name}</strong>
-              <span style="font-size: 10px; color: var(--text-dim);">(\${db.size})</span>
+              <strong style="color: #fff;">\${safeDbName}</strong>
+              <span style="font-size: 10px; color: var(--text-dim);">(\${escapeHtml(db.size)})</span>
             </div>
-            <button class="btn btn-sm btn-primary" onclick="switchServerDatabase('\${db.name}')">Switch</button>
+            <button class="btn btn-sm btn-primary" data-db="\${safeDbName}" onclick="switchServerDatabase(this.dataset.db)">Switch</button>
           </div>
-        \`).join('') || '<div style="color: var(--text-dim); font-size: 11px;">No databases found</div>';
+        \`;
+        }).join('') || '<div style="color: var(--text-dim); font-size: 11px;">No databases found</div>';
       }
     }
 
@@ -5974,7 +6014,7 @@ function buildPostgresHtml(): string {
           <td style="text-align: right; font-family: var(--font-mono);">\${escapeHtml(String(s.increment_by ?? 1))}</td>
           <td style="text-align: center;">\${s.cycle ? '<span style="color: var(--emerald);">✓</span>' : '<span style="color: var(--text-dim);">✕</span>'}</td>
           <td style="text-align: center;">
-            <button class="btn btn-sm" onclick="restartSequenceModal('\${escapeHtml(s.name)}', \${s.last_value || 1})" style="padding: 1px 7px; font-size: 10px;">🔄 Restart</button>
+            <button class="btn btn-sm" data-seq="\${escapeHtml(s.name)}" data-last="\${Number(s.last_value) || 1}" onclick="restartSequenceModal(this.dataset.seq, Number(this.dataset.last))" style="padding: 1px 7px; font-size: 10px;">🔄 Restart</button>
           </td>
         </tr>
       \`).join('');
@@ -6178,7 +6218,7 @@ function buildPostgresHtml(): string {
             <td style="font-size: 11px; color: var(--text-dim);">\${escapeHtml(s.last_autovacuum ? new Date(s.last_autovacuum).toLocaleString() : 'Never')}</td>
             <td style="font-size: 11px; color: var(--text-dim);">\${escapeHtml(s.last_analyze ? new Date(s.last_analyze).toLocaleString() : 'Never')}</td>
             <td style="text-align: center;">
-              <button class="btn btn-sm" onclick="runTableVacuum('\${escapeHtml(s.table_name)}', '\${escapeHtml(s.schema)}')" style="padding: 1px 7px; font-size: 10px;">🧹 VACUUM</button>
+              <button class="btn btn-sm" data-table="\${escapeHtml(s.table_name)}" data-schema="\${escapeHtml(s.schema)}" onclick="runTableVacuum(this.dataset.table, this.dataset.schema)" style="padding: 1px 7px; font-size: 10px;">🧹 VACUUM</button>
             </td>
           </tr>
         \`;
@@ -6209,12 +6249,35 @@ function buildPostgresHtml(): string {
 
     // Helper: HTML Escaping
     function escapeHtml(str) {
+      if (str === null || str === undefined) return "";
       return String(str)
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+    }
+
+    function stripUrlCredentials(rawUrl) {
+      const str = String(rawUrl || "").trim();
+      if (!str) return "";
+      const schemeMatch = str.match(/^([a-z][a-z0-9+.-]*:[/][/])/i);
+      if (!schemeMatch) return str;
+      const prefix = schemeMatch[1];
+      const afterScheme = str.slice(prefix.length);
+      const qIdx = afterScheme.search(/[?#]/);
+      const head = qIdx === -1 ? afterScheme : afterScheme.slice(0, qIdx);
+      const tail = qIdx === -1 ? "" : afterScheme.slice(qIdx);
+      const atIdx = head.lastIndexOf("@");
+      const stripped = prefix + (atIdx !== -1 ? head.slice(atIdx + 1) : head) + tail;
+      try {
+        const u = new URL(stripped.replace(/^postgres(ql)?:[/][/]/i, "http://"));
+        u.username = "";
+        u.password = "";
+        return prefix + u.href.replace(/^http:[/][/]/i, "");
+      } catch {
+        return stripped;
+      }
     }
 
     function toggleSidebarCollapse() {
@@ -6246,7 +6309,7 @@ function buildPostgresHtml(): string {
         schema: document.getElementById("cfgSchema").value,
         tls: document.getElementById("cfgTls").checked,
         // credentials in a connection URL are never stored in the browser
-        url: String(document.getElementById("cfgUrl").value || "").replace(new RegExp("//[^@/]*@"), "//"),
+        url: stripUrlCredentials(document.getElementById("cfgUrl").value || ""),
       };
       const profiles = JSON.parse(localStorage.getItem("pg_studio_profiles") || "[]");
       profiles.push(config);
@@ -6265,7 +6328,7 @@ function buildPostgresHtml(): string {
         <div class="tree-item" style="padding: 8px 10px; border: 1px solid var(--border-subtle); border-radius: 6px;">
           <div>
             <div style="font-weight: 700; color: #fff;">\${escapeHtml(p.name)}</div>
-            <div style="font-size: 10px; color: var(--text-dim);">\${p.user}@\${p.host}:\${p.port}/\${p.database}</div>
+            <div style="font-size: 10px; color: var(--text-dim);">\${escapeHtml(p.user)}@\${escapeHtml(p.host)}:\${escapeHtml(p.port)}/\${escapeHtml(p.database)}</div>
           </div>
           <div style="display: flex; gap: 4px;">
             <button class="btn btn-sm btn-primary" onclick="loadSavedProfile(\${idx})">Load</button>
@@ -6622,6 +6685,9 @@ export function createPostgresStudio(
         // Start native desktop message loop on main thread
         webview.run();
         try {
+          app.server?.stop(true);
+        } catch {}
+        try {
           app.worker?.terminate();
         } catch {}
         try {
@@ -6632,14 +6698,21 @@ export function createPostgresStudio(
         console.warn(
           `Desktop Webview unavailable (${err?.message || err}). Application running as web workstation at: ${info.url}`,
         );
-      } finally {
-        try {
-          app.worker?.terminate();
-        } catch {}
-        try {
-          serverProc?.kill();
-        } catch {}
-        process.exit(0);
+        const onShutdown = () => {
+          try {
+            app.server?.stop(true);
+          } catch {}
+          try {
+            app.worker?.terminate();
+          } catch {}
+          try {
+            serverProc?.kill();
+          } catch {}
+          process.exit(0);
+        };
+        process.once("SIGINT", onShutdown);
+        process.once("SIGTERM", onShutdown);
+        await new Promise<void>(() => {});
       }
     },
   };
@@ -6651,13 +6724,14 @@ export function createPostgresStudio(
 // Standalone Invocation
 // -------------------------------------------------------------------------------------------------
 
-if (process.argv.includes("--server")) {
+if (import.meta.main && process.argv.includes("--server")) {
   const initialDb = process.env.PG_STUDIO_DB || "mydb";
   const initialSchema = process.env.PG_SCHEMA || "public";
-  const port = parseInt(
-    process.env.PG_STUDIO_PORT || process.env.PORT || "54321",
-    10,
-  );
+  const portIdx = process.argv.indexOf("--port");
+  const port =
+    portIdx !== -1 && process.argv[portIdx + 1]
+      ? parseInt(process.argv[portIdx + 1]!, 10)
+      : parseInt(process.env.PG_STUDIO_PORT || process.env.PORT || "54321", 10);
   const srv = startPostgresStudioServer({
     port,
     host: "127.0.0.1",

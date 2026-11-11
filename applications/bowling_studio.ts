@@ -241,7 +241,7 @@ export class BowlingStudio {
 export const createBowlingApp = createBowlingStudio;
 export const startBowlingStudioServer = startBowlingServer;
 
-if (process.argv.includes("--server")) {
+if (import.meta.main && process.argv.includes("--server")) {
   const port = parseInt(
     process.env.BOWLING_PORT || process.env.PORT || "0",
     10,
