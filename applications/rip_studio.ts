@@ -678,6 +678,15 @@ export function createRipStudio(
         }
       }
 
+      function escapeHtml(val) {
+        return String(val === null || val === undefined ? "" : val)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
       function renderTable(items) {
         const container = getEl("tbl_graveyard");
         if (!container) return;
@@ -718,7 +727,7 @@ export function createRipStudio(
 
         let html = "<thead><tr style='border-bottom:2px solid " + border + ";text-align:left;'>";
         headers.forEach(function(h) {
-          html += "<th style='padding:8px;font-weight:600;color:var(--accent,#38bdf8);'>" + h + "</th>";
+          html += "<th style='padding:8px;font-weight:600;color:var(--accent,#38bdf8);'>" + escapeHtml(h) + "</th>";
         });
         html += "</tr></thead><tbody>";
 
@@ -731,38 +740,58 @@ export function createRipStudio(
             const isSelected = clientSelectedItem && clientSelectedItem.id === it.id;
             const bg = isSelected ? selBg : "";
             const cls = isSelected ? "class='selected-tr'" : "";
-            html += "<tr " + cls + " data-id='" + it.id + "' style='border-bottom:1px solid " + border + ";cursor:pointer;" + (bg ? "background:" + bg + ";" : "") + "'>";
-            html += "<td style='padding:7px 8px;font-family:monospace;'>" + it.id + "</td>";
-            html += "<td style='padding:7px 8px;font-weight:600;'>" + icon + " " + it.name + "</td>";
-            html += "<td style='padding:7px 8px;'>" + it.type + "</td>";
-            html += "<td style='padding:7px 8px;font-family:monospace;'>" + it.humanSize + "</td>";
-            html += "<td style='padding:7px 8px;opacity:0.85;'>" + dateStr + "</td>";
-            html += "<td style='padding:7px 8px;opacity:0.85;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' title='" + (it.originalPath || "") + "'>" + (it.relativePath || it.originalPath) + "</td>";
-            html += "<td style='padding:7px 8px;'><span style='padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:rgba(239,68,68,0.2);color:#f87171;'>" + (it.status || "BURIED").toUpperCase() + "</span></td>";
+            const safeId = escapeHtml(it.id || "");
+            const safeName = escapeHtml(it.name || "");
+            const safeType = escapeHtml(it.type || "");
+            const safeSize = escapeHtml(it.humanSize || "");
+            const safeDate = escapeHtml(dateStr);
+            const safeOrig = escapeHtml(it.originalPath || "");
+            const safeDispPath = escapeHtml(it.relativePath || it.originalPath || "");
+            const safeStatus = escapeHtml((it.status || "BURIED").toUpperCase());
+            html += "<tr " + cls + " data-id='" + safeId + "' style='border-bottom:1px solid " + border + ";cursor:pointer;" + (bg ? "background:" + bg + ";" : "") + "'>";
+            html += "<td style='padding:7px 8px;font-family:monospace;'>" + safeId + "</td>";
+            html += "<td style='padding:7px 8px;font-weight:600;'>" + icon + " " + safeName + "</td>";
+            html += "<td style='padding:7px 8px;'>" + safeType + "</td>";
+            html += "<td style='padding:7px 8px;font-family:monospace;'>" + safeSize + "</td>";
+            html += "<td style='padding:7px 8px;opacity:0.85;'>" + safeDate + "</td>";
+            html += "<td style='padding:7px 8px;opacity:0.85;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' title='" + safeOrig + "'>" + safeDispPath + "</td>";
+            html += "<td style='padding:7px 8px;'><span style='padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:rgba(239,68,68,0.2);color:#f87171;'>" + safeStatus + "</span></td>";
             html += "</tr>";
           });
         }
         html += "</tbody>";
         table.innerHTML = html;
 
-        table.querySelectorAll("tbody tr[data-id]").forEach(function(tr) {
-          tr.onclick = function() {
+        if (!table.dataset.delegatedBound) {
+          table.dataset.delegatedBound = "true";
+          table.addEventListener("click", function(e) {
+            const tr = e.target && e.target.closest ? e.target.closest("tbody tr[data-id]") : null;
+            if (!tr) return;
+            const curLight = document.body.classList.contains("light-theme");
+            const curSelBg = curLight ? "rgba(2,132,199,0.18)" : "rgba(56,189,248,0.22)";
             table.querySelectorAll("tbody tr").forEach(function(r) {
               r.classList.remove("selected-tr");
               r.style.background = "";
             });
             tr.classList.add("selected-tr");
-            tr.style.background = selBg;
+            tr.style.background = curSelBg;
             const id = tr.getAttribute("data-id");
-            selectItemById(id);
-          };
-          tr.onmouseover = function() {
-            if (!tr.classList.contains("selected-tr")) tr.style.background = hoverBg;
-          };
-          tr.onmouseout = function() {
-            if (!tr.classList.contains("selected-tr")) tr.style.background = "";
-          };
-        });
+            if (id) selectItemById(id);
+          });
+          table.addEventListener("mouseover", function(e) {
+            const tr = e.target && e.target.closest ? e.target.closest("tbody tr[data-id]") : null;
+            if (tr && !tr.classList.contains("selected-tr")) {
+              const curLight = document.body.classList.contains("light-theme");
+              tr.style.background = curLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.05)";
+            }
+          });
+          table.addEventListener("mouseout", function(e) {
+            const tr = e.target && e.target.closest ? e.target.closest("tbody tr[data-id]") : null;
+            if (tr && !tr.classList.contains("selected-tr")) {
+              tr.style.background = "";
+            }
+          });
+        }
 
         const statusEl = getEl("lbl_status_msg");
         if (statusEl) statusEl.textContent = "Status: Displaying " + filtered.length + " buried item(s)";
@@ -1434,18 +1463,6 @@ if (import.meta.main) {
     );
     setInterval(() => {}, 60000);
   } else {
-    try {
-      const preferredPort = Number(process.env.PORT);
-      if (preferredPort) {
-        startRipStudioServer({ port: preferredPort });
-      } else {
-        try {
-          startRipStudioServer({ port: 3899 });
-        } catch {
-          startRipStudioServer({ port: 0 });
-        }
-      }
-    } catch {}
     const win = createRipStudio({ fullscreen: true });
     console.log(
       "⚡ Launching Rip Studio Pro (Safe & Ergonomic Alternative to rm)...",

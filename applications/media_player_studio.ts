@@ -17,6 +17,7 @@ import type { SizeHint, Webview } from "webview-bun";
 import { resolve, join, extname, dirname, basename, sep } from "path";
 import {
   existsSync,
+  lstatSync,
   readdirSync,
   readFileSync,
   realpathSync,
@@ -1787,45 +1788,141 @@ function buildMediaPlayerHtml(
 </html>`;
 }
 
+const MAX_PLAYLIST_BODY_BYTES = 1024 * 1024; // 1 MiB cap for playlist JSON payloads
+
+async function readBoundedJsonBody(
+  req: Request,
+  maxBytes: number,
+): Promise<{ ok: true; data: any } | { ok: false; status: number }> {
+  const declaredLen = Number(req.headers.get("content-length") || "0");
+  if (Number.isFinite(declaredLen) && declaredLen > maxBytes) {
+    return { ok: false, status: 413 };
+  }
+  if (!req.body) {
+    return { ok: true, data: {} };
+  }
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) {
+        total += value.byteLength;
+        if (total > maxBytes) {
+          await reader.cancel().catch(() => {});
+          return { ok: false, status: 413 };
+        }
+        chunks.push(value);
+      }
+    }
+  } catch {
+    return { ok: false, status: 400 };
+  }
+  if (total === 0) return { ok: true, data: {} };
+  const text = Buffer.concat(chunks).toString("utf8");
+  try {
+    return { ok: true, data: JSON.parse(text) };
+  } catch {
+    return { ok: true, data: {} };
+  }
+}
+
 export function startMediaPlayerStudioServer(
-  options: { port?: number; host?: string; rootDir?: string } = {},
+  options: {
+    port?: number;
+    host?: string;
+    rootDir?: string;
+    allowedRoots?: string[];
+  } = {},
 ) {
   const port = options.port ?? 0;
   const host = options.host ?? "127.0.0.1";
   const token = randomBytes(16).toString("hex");
   const tokenBuf = Buffer.from(token, "utf8");
   const uiDir = resolve(import.meta.dir, "../resources/file_manager/ui");
-  const canonicalRoot = options.rootDir
-    ? (() => {
-        const r = resolve(options.rootDir);
-        try {
-          return realpathSync(r);
-        } catch {
-          return r;
-        }
-      })()
-    : null;
 
-  const isWithinAllowedRoot = (candidatePath: string): boolean => {
-    if (!canonicalRoot) return true;
+  const canonicalizeRoot = (rawPath: string): string | null => {
+    const r = resolve(rawPath);
+    try {
+      return realpathSync(r);
+    } catch {
+      try {
+        return join(realpathSync(dirname(r)), basename(r));
+      } catch {
+        return null;
+      }
+    }
+  };
+
+  const allowedRoots = new Set<string>();
+  const primaryCandidate = options.rootDir || getDefaultMediaLibraryDir();
+  const primaryCanonical = canonicalizeRoot(primaryCandidate);
+  if (primaryCanonical) {
+    allowedRoots.add(primaryCanonical);
+  }
+  if (Array.isArray(options.allowedRoots)) {
+    for (const extra of options.allowedRoots) {
+      if (extra) {
+        const c = canonicalizeRoot(extra);
+        if (c) allowedRoots.add(c);
+      }
+    }
+  }
+
+  const allowRoot = (dirPath: string): boolean => {
+    const c = canonicalizeRoot(dirPath);
+    if (!c) return false;
+    allowedRoots.add(c);
+    return true;
+  };
+
+  const isWithinAllowedRoot = (
+    candidatePath: string,
+    allowMissingLeaf = false,
+  ): boolean => {
+    if (
+      !candidatePath ||
+      candidatePath.includes("\0") ||
+      allowedRoots.size === 0
+    ) {
+      return false;
+    }
     const resolved = resolve(candidatePath);
-    let real = resolved;
+    let real: string;
     try {
       real = realpathSync(resolved);
     } catch {
+      if (!allowMissingLeaf) {
+        return false;
+      }
+      // For a not-yet-created output file (e.g. playlist.m3u8), ensure it is truly ENOENT (not a dangling symlink)
+      try {
+        lstatSync(resolved);
+        return false;
+      } catch (lstatErr: any) {
+        if (lstatErr?.code !== "ENOENT") return false;
+      }
       try {
         real = join(realpathSync(dirname(resolved)), basename(resolved));
       } catch {
-        real = resolved;
+        return false;
       }
     }
-    return real === canonicalRoot || real.startsWith(canonicalRoot + sep);
+    for (const root of allowedRoots) {
+      const prefix = root === sep ? sep : root + sep;
+      if (real === root || real.startsWith(prefix)) {
+        return true;
+      }
+    }
+    return false;
   };
 
   const verifyOptionalToken = (req: Request, url: URL): boolean => {
     const provided =
       url.searchParams.get("token") ?? req.headers.get("x-media-token");
-    if (provided === null) return true;
+    if (!provided) return false;
     const buf = Buffer.from(provided, "utf8");
     return buf.length === tokenBuf.length && timingSafeEqual(buf, tokenBuf);
   };
@@ -1949,15 +2046,25 @@ export function startMediaPlayerStudioServer(
       }
 
       if (url.pathname === "/api/playlist" && req.method === "POST") {
-        const body = (await req.json().catch(() => ({}))) as any;
-        const folder = resolve(
-          body.folder || options.rootDir || getDefaultMediaLibraryDir(),
+        const parsedBody = await readBoundedJsonBody(
+          req,
+          MAX_PLAYLIST_BODY_BYTES,
         );
-        if (
-          folder.includes("\0") ||
-          !isWithinAllowedRoot(folder) ||
-          !existsSync(folder)
-        ) {
+        if (!parsedBody.ok) {
+          return new Response(
+            parsedBody.status === 413 ? "Payload Too Large" : "Bad Request",
+            { status: parsedBody.status },
+          );
+        }
+        const body = parsedBody.data as any;
+        const rawFolder = String(
+          body?.folder || options.rootDir || getDefaultMediaLibraryDir(),
+        );
+        if (rawFolder.includes("\0")) {
+          return new Response("Forbidden", { status: 403 });
+        }
+        const folder = resolve(rawFolder);
+        if (!isWithinAllowedRoot(folder) || !existsSync(folder)) {
           return new Response("Forbidden", { status: 403 });
         }
         try {
@@ -1989,6 +2096,19 @@ export function startMediaPlayerStudioServer(
                   : undefined,
             }));
           const target = join(folder, "playlist.m3u8");
+          if (!isWithinAllowedRoot(target, true)) {
+            return new Response("Forbidden", { status: 403 });
+          }
+          try {
+            const targetStat = lstatSync(target);
+            if (targetStat.isSymbolicLink() || !targetStat.isFile()) {
+              return new Response("Forbidden", { status: 403 });
+            }
+          } catch (statErr: any) {
+            if (statErr?.code !== "ENOENT") {
+              return new Response("Forbidden", { status: 403 });
+            }
+          }
           const m3u = formatM3u(sanitizedTracks);
           writeFileSync(target, m3u, "utf8");
           return Response.json({ ok: true, path: target });
@@ -2035,7 +2155,7 @@ export function startMediaPlayerStudioServer(
 
   const url = `http://${host}:${server.port}`;
   console.log(`Media Player Studio Pro API Server running at: ${url}/`);
-  return { server, port: server.port, url, token };
+  return { server, port: server.port, url, token, allowRoot };
 }
 
 export function createMediaPlayerStudio(

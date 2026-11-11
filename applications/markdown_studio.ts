@@ -32,18 +32,412 @@ win.run();
 \`\`\`
 `;
 
-/** Removes active content (scripts, inline handlers, javascript: URLs) from rendered HTML. */
-function sanitizeHtml(html: string): string {
-  return html
-    .replace(
-      /<\/?(script|iframe|object|embed|style|link|meta|base|form)\b[^>]*>/gi,
-      "",
-    )
-    .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
-    .replace(
-      /(href|src)\s*=\s*("|')\s*(javascript|data|vbscript):[^"']*\2/gi,
-      '$1="#"',
-    );
+const ALLOWED_TAGS = new Set([
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "p",
+  "br",
+  "hr",
+  "strong",
+  "b",
+  "em",
+  "i",
+  "u",
+  "s",
+  "del",
+  "code",
+  "pre",
+  "blockquote",
+  "ul",
+  "ol",
+  "li",
+  "table",
+  "thead",
+  "tbody",
+  "tr",
+  "th",
+  "td",
+  "a",
+  "img",
+  "span",
+  "div",
+  "sup",
+  "sub",
+  "kbd",
+  "mark",
+  "details",
+  "summary",
+  "input",
+]);
+
+const VOID_TAGS = new Set(["br", "hr", "img", "input"]);
+
+const DROP_SUBTREE_TAGS = new Set([
+  "script",
+  "style",
+  "iframe",
+  "object",
+  "svg",
+  "math",
+  "noscript",
+  "template",
+  "textarea",
+  "title",
+  "xmp",
+]);
+
+function escapeHtmlText(text: string): string {
+  return text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function escapeHtmlAttr(val: string): string {
+  return val
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function decodeHtmlEntities(input: string): string {
+  const named: Record<string, string> = {
+    amp: "&",
+    lt: "<",
+    gt: ">",
+    quot: '"',
+    apos: "'",
+    colon: ":",
+    tab: "\t",
+    newline: "\n",
+    nbsp: " ",
+  };
+  return input
+    .replace(/&#[xX]([0-9a-fA-F]{1,6});?/g, (_m, hex: string) => {
+      const cp = parseInt(hex, 16);
+      return Number.isFinite(cp) && cp >= 0 && cp <= 0x10ffff
+        ? String.fromCodePoint(cp)
+        : "";
+    })
+    .replace(/&#([0-9]{1,7});?/g, (_m, dec: string) => {
+      const cp = parseInt(dec, 10);
+      return Number.isFinite(cp) && cp >= 0 && cp <= 0x10ffff
+        ? String.fromCodePoint(cp)
+        : "";
+    })
+    .replace(/&([a-zA-Z]+);?/g, (full, name: string) => {
+      const lower = name.toLowerCase();
+      return Object.prototype.hasOwnProperty.call(named, lower)
+        ? named[lower]!
+        : full;
+    });
+}
+
+function sanitizeAllowedUri(raw: string, allowMailto: boolean): string | null {
+  // Iteratively decode entities (up to 3 passes) and strip ASCII control + whitespace chars
+  let decoded = raw;
+  for (let pass = 0; pass < 3; pass++) {
+    const next = decodeHtmlEntities(decoded);
+    if (next === decoded) break;
+    decoded = next;
+  }
+  const stripped = decoded.replace(/[\u0000-\u0020\u007f]+/g, "");
+  if (!stripped) return null;
+  if (stripped.startsWith("#")) {
+    return raw.trim();
+  }
+  // Reject protocol-relative URLs (e.g. //host/path which resolves to file:// in local webviews)
+  if (stripped.startsWith("//") || stripped.startsWith("\\\\")) {
+    return null;
+  }
+  const firstDelimiter = stripped.search(/[/?#]/);
+  const colonIdx = stripped.indexOf(":");
+  if (colonIdx !== -1 && (firstDelimiter === -1 || colonIdx < firstDelimiter)) {
+    const scheme = stripped.slice(0, colonIdx).toLowerCase();
+    if (scheme === "http" || scheme === "https") {
+      return raw.trim();
+    }
+    if (allowMailto && scheme === "mailto") {
+      return raw.trim();
+    }
+    return null;
+  }
+  return raw.trim();
+}
+
+function parseTagAttributes(attrSource: string): Map<string, string> {
+  const attrs = new Map<string, string>();
+  let i = 0;
+  const n = attrSource.length;
+  while (i < n) {
+    // Skip whitespace and stray slashes (handles <svg/onload=...> or <img src="x"/>)
+    while (i < n && /[\s/]/.test(attrSource[i]!)) i++;
+    if (i >= n) break;
+
+    const nameStart = i;
+    while (i < n && !/[\s=/>"']/.test(attrSource[i]!)) i++;
+    const rawName = attrSource.slice(nameStart, i).toLowerCase();
+    if (!rawName) {
+      i++;
+      continue;
+    }
+
+    while (i < n && /\s/.test(attrSource[i]!)) i++;
+    let val = "";
+    if (i < n && attrSource[i] === "=") {
+      i++; // consume '='
+      while (i < n && /\s/.test(attrSource[i]!)) i++;
+      if (i < n && (attrSource[i] === '"' || attrSource[i] === "'")) {
+        const q = attrSource[i]!;
+        i++;
+        const valStart = i;
+        while (i < n && attrSource[i] !== q) i++;
+        val = attrSource.slice(valStart, i);
+        if (i < n && attrSource[i] === q) i++;
+      } else {
+        const valStart = i;
+        while (i < n && !/[\s>]/.test(attrSource[i]!)) i++;
+        val = attrSource.slice(valStart, i);
+      }
+    }
+    if (!attrs.has(rawName)) {
+      attrs.set(rawName, val);
+    }
+  }
+  return attrs;
+}
+
+function serializeAllowedStartTag(
+  tag: string,
+  attrs: Map<string, string>,
+): string {
+  if (tag === "input") {
+    const inputType = decodeHtmlEntities(attrs.get("type") || "")
+      .trim()
+      .toLowerCase();
+    if (inputType !== "checkbox") {
+      return "";
+    }
+    const checked = attrs.has("checked") ? ' checked="checked"' : "";
+    return `<input type="checkbox" disabled="disabled"${checked}>`;
+  }
+
+  const parts: string[] = [];
+
+  for (const [name, rawVal] of attrs.entries()) {
+    // Unconditionally reject event handlers and active/style attributes
+    if (
+      name.startsWith("on") ||
+      name === "style" ||
+      name === "srcdoc" ||
+      name === "formaction" ||
+      name === "xlink:href" ||
+      name === "action"
+    ) {
+      continue;
+    }
+
+    if (tag === "a" && name === "href") {
+      const safeHref = sanitizeAllowedUri(rawVal, true);
+      parts.push(`href="${escapeHtmlAttr(safeHref ?? "#")}"`);
+      parts.push(`rel="noopener noreferrer"`);
+      continue;
+    }
+
+    if (tag === "img") {
+      if (name === "src") {
+        const safeSrc = sanitizeAllowedUri(rawVal, false);
+        if (!safeSrc) return "";
+        parts.push(`src="${escapeHtmlAttr(safeSrc)}"`);
+        continue;
+      }
+      if (name === "alt") {
+        parts.push(`alt="${escapeHtmlAttr(decodeHtmlEntities(rawVal))}"`);
+        continue;
+      }
+      if (
+        (name === "width" || name === "height") &&
+        /^\d{1,4}%?$/.test(rawVal.trim())
+      ) {
+        parts.push(`${name}="${rawVal.trim()}"`);
+        continue;
+      }
+    }
+
+    if (tag === "th" || tag === "td") {
+      if (name === "align") {
+        const align = rawVal.trim().toLowerCase();
+        if (align === "left" || align === "center" || align === "right") {
+          parts.push(`align="${align}"`);
+        }
+        continue;
+      }
+      if (
+        (name === "colspan" || name === "rowspan") &&
+        /^\d{1,3}$/.test(rawVal.trim())
+      ) {
+        parts.push(`${name}="${rawVal.trim()}"`);
+        continue;
+      }
+    }
+
+    if (tag === "details" && name === "open") {
+      parts.push(`open="open"`);
+      continue;
+    }
+
+    if (tag === "ol" && name === "start" && /^\d{1,6}$/.test(rawVal.trim())) {
+      parts.push(`start="${rawVal.trim()}"`);
+      continue;
+    }
+
+    if (name === "title") {
+      parts.push(`title="${escapeHtmlAttr(decodeHtmlEntities(rawVal))}"`);
+      continue;
+    }
+
+    if (
+      (tag === "code" || tag === "pre" || tag === "span" || tag === "div") &&
+      name === "class"
+    ) {
+      const cleanCls = rawVal.trim();
+      if (/^[A-Za-z0-9_ -]{1,80}$/.test(cleanCls)) {
+        parts.push(`class="${escapeHtmlAttr(cleanCls)}"`);
+      }
+      continue;
+    }
+  }
+
+  return parts.length > 0 ? `<${tag} ${parts.join(" ")}>` : `<${tag}>`;
+}
+
+/**
+ * Strict state-machine HTML tokenizer and allowlist sanitizer.
+ * Strips disallowed elements (`<script>`, `<style>`, `<iframe>`, `<svg>`, `<math>`, `<object>`, `<embed>`, `<form>`, `<base>`, `<meta>`, `<link>`),
+ * all `on*` / `style` / `srcdoc` / `formaction` attributes, and unsafe URI schemes (even entity-encoded).
+ */
+export function sanitizeHtml(html: string): string {
+  const out: string[] = [];
+  const n = html.length;
+  let i = 0;
+  const droppedTagStack: string[] = [];
+
+  while (i < n) {
+    const lt = html.indexOf("<", i);
+    if (lt === -1) {
+      if (droppedTagStack.length === 0) {
+        out.push(escapeHtmlText(html.slice(i)));
+      }
+      break;
+    }
+
+    if (lt > i && droppedTagStack.length === 0) {
+      out.push(escapeHtmlText(html.slice(i, lt)));
+    }
+
+    // HTML comment: <!-- ... -->
+    if (html.startsWith("<!--", lt)) {
+      const endComment = html.indexOf("-->", lt + 4);
+      i = endComment === -1 ? n : endComment + 3;
+      continue;
+    }
+
+    // Declarations or processing instructions: <!DOCTYPE ...> / <?xml ...?>
+    if (lt + 1 < n && (html[lt + 1] === "!" || html[lt + 1] === "?")) {
+      const closeDecl = html.indexOf(">", lt + 2);
+      i = closeDecl === -1 ? n : closeDecl + 1;
+      continue;
+    }
+
+    // Scan tag until '>' while respecting quoted attribute values
+    let cursor = lt + 1;
+    let isClosing = false;
+    if (cursor < n && html[cursor] === "/") {
+      isClosing = true;
+      cursor++;
+    }
+
+    // Tag name must begin with ASCII letter
+    if (cursor >= n || !/[a-zA-Z]/.test(html[cursor]!)) {
+      if (droppedTagStack.length === 0) {
+        out.push("&lt;");
+      }
+      i = lt + 1;
+      continue;
+    }
+
+    const nameStart = cursor;
+    while (cursor < n && /[a-zA-Z0-9:-]/.test(html[cursor]!)) {
+      cursor++;
+    }
+    const tagName = html.slice(nameStart, cursor).toLowerCase();
+
+    const attrStart = cursor;
+    let quote: '"' | "'" | null = null;
+    while (cursor < n) {
+      const ch = html[cursor]!;
+      if (quote) {
+        if (ch === quote) quote = null;
+      } else if (ch === '"' || ch === "'") {
+        quote = ch;
+      } else if (ch === ">") {
+        break;
+      }
+      cursor++;
+    }
+
+    // Unclosed tag at EOF: never emit raw '<'
+    if (cursor >= n) {
+      break;
+    }
+
+    const rawAttrs = html.slice(attrStart, cursor);
+    const selfClosing = !isClosing && /\/\s*$/.test(rawAttrs);
+    i = cursor + 1;
+
+    if (isClosing) {
+      if (droppedTagStack.length > 0) {
+        const matchIdx = droppedTagStack.lastIndexOf(tagName);
+        if (matchIdx !== -1) {
+          droppedTagStack.length = matchIdx;
+        }
+        continue;
+      }
+      if (ALLOWED_TAGS.has(tagName) && !VOID_TAGS.has(tagName)) {
+        out.push(`</${tagName}>`);
+      }
+      continue;
+    }
+
+    if (droppedTagStack.length > 0) {
+      if (DROP_SUBTREE_TAGS.has(tagName) && !selfClosing) {
+        droppedTagStack.push(tagName);
+      }
+      continue;
+    }
+
+    if (DROP_SUBTREE_TAGS.has(tagName)) {
+      if (!selfClosing) {
+        droppedTagStack.push(tagName);
+      }
+      continue;
+    }
+
+    if (!ALLOWED_TAGS.has(tagName)) {
+      continue;
+    }
+
+    const parsedAttrs = parseTagAttributes(rawAttrs);
+    const serialized = serializeAllowedStartTag(tagName, parsedAttrs);
+    if (serialized) {
+      out.push(serialized);
+    }
+  }
+
+  return out.join("");
 }
 
 const MD_ALERTS: Record<string, [string, string]> = {
@@ -54,7 +448,7 @@ const MD_ALERTS: Record<string, [string, string]> = {
   CAUTION: ["#dc2626", "rgba(220,38,38,0.15)"],
 };
 
-function simpleMarkdownToHtml(md: string): string {
+export function simpleMarkdownToHtml(md: string): string {
   // Full CommonMark + GFM (tables, task lists, strikethrough, autolinks, nested lists) via Bun's native renderer.
   let html = sanitizeHtml((Bun as any).markdown.html(md) as string);
 

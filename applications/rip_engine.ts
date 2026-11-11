@@ -723,7 +723,20 @@ export function buryTargetsSync(
   const cwd = options.cwd ? path.resolve(options.cwd) : process.cwd();
   const graveyardDir = getGraveyardDir(options.graveyardDir);
   const { entriesDir } = ensureGraveyardStructure(graveyardDir);
-  const manifest = loadManifest(graveyardDir);
+  const { manifest, damaged } = loadManifestChecked(graveyardDir);
+  if (damaged) {
+    const errMsg =
+      "Graveyard manifest.json is damaged; refusing to overwrite existing records until repaired.";
+    const failTargets =
+      targets && targets.length > 0 ? targets : ["manifest.json"];
+    return {
+      success: false,
+      buriedItems: [],
+      failed: failTargets.map((target) => ({ target, error: errMsg })),
+      totalBytesBuried: 0,
+      totalHumanSize: formatHumanSize(0),
+    };
+  }
 
   const buriedItems: GraveyardItem[] = [];
   const failed: { target: string; error: string }[] = [];
@@ -842,7 +855,20 @@ export function unburyTargetsSync(
 ): UnburyResult {
   const cwd = options.cwd ? path.resolve(options.cwd) : process.cwd();
   const graveyardDir = getGraveyardDir(options.graveyardDir);
-  const manifest = loadManifest(graveyardDir);
+  const { manifest, damaged } = loadManifestChecked(graveyardDir);
+  if (damaged) {
+    return {
+      success: false,
+      restoredItems: [],
+      failed: [
+        {
+          error:
+            "Graveyard manifest.json is damaged; refusing to modify or overwrite records until repaired.",
+        },
+      ],
+      recreatedDirs: [],
+    };
+  }
 
   const restoredItems: GraveyardItem[] = [];
   const failed: { item?: GraveyardItem; target?: string; error: string }[] = [];
@@ -977,7 +1003,11 @@ export function seanceGraveyard(
 ): GraveyardItem[] {
   const cwd = options.cwd ? path.resolve(options.cwd) : process.cwd();
   const graveyardDir = getGraveyardDir(options.graveyardDir);
-  const manifest = loadManifest(graveyardDir);
+  const { manifest, damaged } = loadManifestChecked(graveyardDir);
+  if (damaged) {
+    return [];
+  }
+  const cwdPrefix = cwd === path.sep ? path.sep : cwd + path.sep;
 
   return manifest.items.filter((item) => {
     if (options.status && item.status !== options.status) {
@@ -987,7 +1017,10 @@ export function seanceGraveyard(
     // If --all is not set, only show items buried from current working directory or subpaths
     if (!options.all) {
       const itemOrigDir = path.dirname(item.originalPath);
-      const isFromCwd = item.cwd === cwd || itemOrigDir.startsWith(cwd);
+      const isFromCwd =
+        item.cwd === cwd ||
+        itemOrigDir === cwd ||
+        itemOrigDir.startsWith(cwdPrefix);
       if (!isFromCwd) return false;
     }
 
@@ -1008,8 +1041,23 @@ export function decomposeGraveyardSync(
   } = {},
 ): DecomposeResult {
   const graveyardDir = getGraveyardDir(options.graveyardDir);
-  const { entriesDir } = ensureGraveyardStructure(graveyardDir);
-  const manifest = loadManifest(graveyardDir);
+  const { entriesDir, manifestPath } = ensureGraveyardStructure(graveyardDir);
+  const entriesPrefix = entriesDir.endsWith(path.sep)
+    ? entriesDir
+    : entriesDir + path.sep;
+  const { manifest, damaged } = loadManifestChecked(graveyardDir);
+  if (damaged) {
+    if (!options.all) {
+      throw new Error(
+        "Graveyard manifest.json is damaged; refusing to overwrite records until repaired.",
+      );
+    }
+    if (fs.existsSync(manifestPath)) {
+      try {
+        fs.copyFileSync(manifestPath, `${manifestPath}.damaged-${Date.now()}`);
+      } catch {}
+    }
+  }
 
   const now = Date.now();
   let deletedCount = 0;
@@ -1045,18 +1093,19 @@ export function decomposeGraveyardSync(
   for (const item of toDecompose) {
     try {
       if (item.graveyardPath) {
-        const itemDir = path.dirname(item.graveyardPath);
+        const resolvedGravePath = path.resolve(item.graveyardPath);
+        const itemDir = path.dirname(resolvedGravePath);
         if (
-          itemDir.startsWith(entriesDir) &&
+          itemDir.startsWith(entriesPrefix) &&
           itemDir !== entriesDir &&
           fs.existsSync(itemDir)
         ) {
           fs.rmSync(itemDir, { recursive: true, force: true });
         } else if (
-          item.graveyardPath.startsWith(entriesDir) &&
-          fs.existsSync(item.graveyardPath)
+          resolvedGravePath.startsWith(entriesPrefix) &&
+          fs.existsSync(resolvedGravePath)
         ) {
-          fs.rmSync(item.graveyardPath, { recursive: true, force: true });
+          fs.rmSync(resolvedGravePath, { recursive: true, force: true });
         }
       }
 
@@ -1084,7 +1133,7 @@ export function decomposeGraveyardSync(
         const entries = fs.readdirSync(entriesDir);
         for (const entryName of entries) {
           const entryPath = path.join(entriesDir, entryName);
-          if (entryPath.startsWith(entriesDir) && entryPath !== entriesDir) {
+          if (entryPath.startsWith(entriesPrefix) && entryPath !== entriesDir) {
             fs.rmSync(entryPath, { recursive: true, force: true });
           }
         }
@@ -1126,9 +1175,10 @@ export function getGraveyardStats(graveyardDir?: string): {
   buriedTodayCount: number;
   oldestItem?: GraveyardItem;
   newestItem?: GraveyardItem;
+  damaged?: boolean;
 } {
   const dir = getGraveyardDir(graveyardDir);
-  const manifest = loadManifest(dir);
+  const { manifest, damaged } = loadManifestChecked(dir);
   const buried = manifest.items.filter((it) => it.status === "buried");
 
   const startOfToday = new Date();
@@ -1160,6 +1210,7 @@ export function getGraveyardStats(graveyardDir?: string): {
     buriedTodayCount: todayCount,
     oldestItem: oldest,
     newestItem: newest,
+    ...(damaged ? { damaged: true } : {}),
   };
 }
 

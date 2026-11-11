@@ -1012,10 +1012,42 @@ export function probeHttpSync(url: string): {
   timings?: HttpTimings;
 } {
   const t0 = performance.now();
+  const cleanUrl = String(url ?? "").trim();
+  if (!cleanUrl || !/^https?:\/\/[^\u0000-\u0020\u007f]+$/i.test(cleanUrl)) {
+    return {
+      success: false,
+      error: "Only valid http:// and https:// URLs are permitted",
+      elapsedMs: "0.00",
+      headers: [],
+    };
+  }
+  try {
+    const parsed = new URL(cleanUrl);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return {
+        success: false,
+        error: "Only valid http:// and https:// URLs are permitted",
+        elapsedMs: "0.00",
+        headers: [],
+      };
+    }
+  } catch {
+    return {
+      success: false,
+      error: "Invalid URL",
+      elapsedMs: "0.00",
+      headers: [],
+    };
+  }
   try {
     const proc = Bun.spawnSync([
       "curl",
       "-s",
+      "--globoff",
+      "--proto",
+      "=http,https",
+      "--proto-redir",
+      "=http,https",
       "-I",
       "-L",
       "--connect-timeout",
@@ -1026,7 +1058,8 @@ export function probeHttpSync(url: string): {
       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
       "-w",
       "\n__RAD_META__\n%{http_code}\n%{time_total}\n%{time_namelookup}\n%{time_connect}\n%{time_appconnect}\n%{time_starttransfer}\n%{num_redirects}\n%{url_effective}\n%{remote_ip}\n",
-      url,
+      "--",
+      cleanUrl,
     ]);
     const elapsedMs = (performance.now() - t0).toFixed(2);
     const out = proc.stdout.toString();

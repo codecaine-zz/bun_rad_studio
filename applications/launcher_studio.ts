@@ -24,6 +24,7 @@ import {
 import { tmpdir } from "os";
 import {
   parseArgs,
+  shellQuote,
   buildShellCommand,
   buildWindowsCommand,
   windowsCmdQuote,
@@ -1282,12 +1283,67 @@ export const NON_APP_MODULES: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * Pre-indexes active JS runtime processes (`bun`, `node`, `deno`, `bunx`) once by script basename
+ * so `scanWorkspaceApps` resolves running status in `O(P + N)` instead of `O(P * N)`.
+ */
+function buildScriptProcessIndex(
+  runningProcs: RunningProcessInfo[],
+): Map<string, RunningProcessInfo[]> {
+  const index = new Map<string, RunningProcessInfo[]>();
+  for (const p of runningProcs) {
+    const cleanComm = p.comm.replace(/\\/g, "/");
+    const exe = (cleanComm.split("/").pop() || "")
+      .toLowerCase()
+      .replace(/\.exe$/, "");
+    const cleanArgs = p.args.replace(/\\/g, "/");
+    const tokens = cleanArgs.split(/\s+/);
+    const firstArg =
+      (tokens[0] || "")
+        .split("/")
+        .pop()
+        ?.toLowerCase()
+        .replace(/\.exe$/, "") || "";
+    if (
+      !/^(bun|node|deno|bunx)$/.test(exe) &&
+      !/^(bun|node|deno)$/.test(firstArg)
+    ) {
+      continue;
+    }
+    const seenBases = new Set<string>();
+    for (const tok of tokens) {
+      if (!tok) continue;
+      const base = (tok.split("/").pop() || "").toLowerCase();
+      if (!base || seenBases.has(base)) continue;
+      seenBases.add(base);
+      let bucket = index.get(base);
+      if (!bucket) {
+        bucket = [];
+        index.set(base, bucket);
+      }
+      bucket.push(p);
+    }
+  }
+  return index;
+}
+
+function findMatchingScriptProcess(
+  procIndex: Map<string, RunningProcessInfo[]>,
+  fileName: string,
+  relPath: string,
+): RunningProcessInfo | undefined {
+  const candidates = procIndex.get(fileName.toLowerCase());
+  if (!candidates) return undefined;
+  return candidates.find((p) => isScriptProcess(p.comm, p.args, relPath));
+}
+
+/**
  * Scans all project applications, CLI tools, and demos
  */
 export function scanWorkspaceApps(): DetectedApp[] {
   const cwd = process.cwd();
   const history = loadHistory();
   const runningProcs = getRunningProcesses();
+  const procIndex = buildScriptProcessIndex(runningProcs);
   const apps: DetectedApp[] = [];
 
   // 1. Scan applications/*.ts
@@ -1325,8 +1381,10 @@ export function scanWorkspaceApps(): DetectedApp[] {
           instanceCount = children.length;
         }
         if (!isRunning) {
-          const matchedProc = runningProcs.find((p) =>
-            isScriptProcess(p.comm, p.args, relPath),
+          const matchedProc = findMatchingScriptProcess(
+            procIndex,
+            file,
+            relPath,
           );
           if (matchedProc) {
             isRunning = true;
@@ -1390,8 +1448,10 @@ export function scanWorkspaceApps(): DetectedApp[] {
           instanceCount = children.length;
         }
         if (!isRunning) {
-          const matchedProc = runningProcs.find((p) =>
-            isScriptProcess(p.comm, p.args, relPath),
+          const matchedProc = findMatchingScriptProcess(
+            procIndex,
+            file,
+            relPath,
           );
           if (matchedProc) {
             isRunning = true;
@@ -1455,8 +1515,10 @@ export function scanWorkspaceApps(): DetectedApp[] {
           instanceCount = children.length;
         }
         if (!isRunning) {
-          const matchedProc = runningProcs.find((p) =>
-            isScriptProcess(p.comm, p.args, relPath),
+          const matchedProc = findMatchingScriptProcess(
+            procIndex,
+            file,
+            relPath,
           );
           if (matchedProc) {
             isRunning = true;
@@ -1656,7 +1718,7 @@ export function getAvailableLinuxTerminal(): {
         "-e",
         "bash",
         "-c",
-        `cd "${cwd.replace(/"/g, '\\"')}" && ${cmd}; exec bash`,
+        `cd -- ${shellQuote(cwd)} && ${cmd}; exec bash`,
       ],
     };
   }
@@ -1705,7 +1767,7 @@ export function getAvailableLinuxTerminal(): {
         "xfce4-terminal",
         `--working-directory=${cwd}`,
         "-e",
-        `bash -c "${cmd.replace(/"/g, '\\"')}; exec bash"`,
+        `bash -c ${shellQuote(`${cmd}; exec bash`)}`,
       ],
     },
     {
@@ -1714,7 +1776,7 @@ export function getAvailableLinuxTerminal(): {
         "mate-terminal",
         `--working-directory=${cwd}`,
         "-e",
-        `bash -c "${cmd.replace(/"/g, '\\"')}; exec bash"`,
+        `bash -c ${shellQuote(`${cmd}; exec bash`)}`,
       ],
     },
     {
@@ -1757,7 +1819,7 @@ export function getAvailableLinuxTerminal(): {
         "terminator",
         `--working-directory=${cwd}`,
         "-e",
-        `bash -c "${cmd.replace(/"/g, '\\"')}; exec bash"`,
+        `bash -c ${shellQuote(`${cmd}; exec bash`)}`,
       ],
     },
     {
@@ -1766,7 +1828,7 @@ export function getAvailableLinuxTerminal(): {
         "tilix",
         `--working-directory=${cwd}`,
         "-e",
-        `bash -c "${cmd.replace(/"/g, '\\"')}; exec bash"`,
+        `bash -c ${shellQuote(`${cmd}; exec bash`)}`,
       ],
     },
     {
@@ -1775,7 +1837,7 @@ export function getAvailableLinuxTerminal(): {
         "lxterminal",
         `--working-directory=${cwd}`,
         "-e",
-        `bash -c "${cmd.replace(/"/g, '\\"')}; exec bash"`,
+        `bash -c ${shellQuote(`${cmd}; exec bash`)}`,
       ],
     },
     {
@@ -1785,7 +1847,7 @@ export function getAvailableLinuxTerminal(): {
         "-e",
         "bash",
         "-c",
-        `cd "${cwd.replace(/"/g, '\\"')}" && ${cmd}; exec bash`,
+        `cd -- ${shellQuote(cwd)} && ${cmd}; exec bash`,
       ],
     },
     {
@@ -1795,7 +1857,7 @@ export function getAvailableLinuxTerminal(): {
         "-e",
         "bash",
         "-c",
-        `cd "${cwd.replace(/"/g, '\\"')}" && ${cmd}; exec bash`,
+        `cd -- ${shellQuote(cwd)} && ${cmd}; exec bash`,
       ],
     },
   ];
@@ -1827,8 +1889,15 @@ export function launchInTerminal(
     }
 
     if (process.platform === "darwin") {
-      const cleanCmd = command.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-      const cleanCwd = cwd.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+      const shellLine = `cd -- ${shellQuote(cwd)} && ${command}`.replace(
+        /\0/g,
+        "",
+      );
+      const appleScriptLiteral = shellLine
+        .replace(/\\/g, "\\\\")
+        .replace(/"/g, '\\"')
+        .replace(/\r/g, "\\r")
+        .replace(/\n/g, "\\n");
 
       // Smart AppleScript:
       // 1. Checks if Terminal.app process is already running.
@@ -1850,9 +1919,9 @@ tell application "Terminal"
   
   set visWindows to (windows whose visible is true)
   if (count of visWindows) > 0 and not (busy of tab 1 of (item 1 of visWindows)) then
-    do script "cd \\"${cleanCwd}\\" && ${cleanCmd}" in (item 1 of visWindows)
+    do script "${appleScriptLiteral}" in (item 1 of visWindows)
   else
-    do script "cd \\"${cleanCwd}\\" && ${cleanCmd}"
+    do script "${appleScriptLiteral}"
   end if
   activate
 end tell`;
@@ -1875,10 +1944,13 @@ end tell`;
         };
       }
     } else if (process.platform === "win32") {
-      const title = (options as any).title || "Bun RAD Studio";
+      const rawTitle = String((options as any).title || "Bun RAD Studio");
+      const safeTitle =
+        rawTitle.replace(/["\r\n\0%&|^<>!]/g, "").trim() || "Bun RAD Studio";
+      const safeWinCmd = command.replace(/[\r\n\0]/g, "");
       const wt = Bun.which("wt.exe") || Bun.which("wt");
       if (wt) {
-        Bun.spawn([wt, "-d", cwd, "cmd.exe", "/k", command], {
+        Bun.spawn([wt, "-d", cwd, "cmd.exe", "/d", "/k", safeWinCmd], {
           cwd,
           detached: true,
         });
@@ -1891,12 +1963,17 @@ end tell`;
       Bun.spawn(
         [
           "cmd.exe",
+          "/d",
+          "/s",
           "/c",
           "start",
-          title,
+          safeTitle,
+          "/d",
+          cwd,
           "cmd.exe",
+          "/d",
           "/k",
-          `cd /d "${cwd}" && ${command}`,
+          safeWinCmd,
         ],
         { cwd, detached: true },
       );
@@ -2086,7 +2163,7 @@ export async function launchApplication(
       // For the terminal, format command line appropriately for current OS
       const fullCmdStr =
         process.platform === "win32"
-          ? buildWindowsCommand(fullCmd)
+          ? buildWindowsCommand(fullCmd).replace(/%/g, "%%")
           : buildShellCommand(fullCmd);
 
       recordLaunch(app.id);
@@ -3867,6 +3944,7 @@ export function createLauncherStudio(
     initialData.apps.map((a) => ({
       id: a.id,
       name: a.displayName,
+      desc: a.description || "",
       cat: a.category,
       icon: a.icon || "⚡",
       sourceLabel: a.sourceLabel,
@@ -3882,11 +3960,20 @@ export function createLauncherStudio(
       used: a.launchCount ? usageLabel(a) : "0× (Never)",
       itemStr: formatItemStr(a),
     })),
-  );
+  ).replace(/</g, "\\u003c");
 
   win.addScript(`
     (function initClientCategoryFilter() {
       const ALL_APPS = ${appsJsonData};
+
+      function escHtml(val) {
+        return String(val === null || val === undefined ? "" : val)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
 
       function matchesCat(appCat, targetChoice) {
         if (!targetChoice || targetChoice.includes("All Categories") || targetChoice.includes("All Tools")) return true;
@@ -4009,15 +4096,15 @@ export function createLauncherStudio(
           const tbody = tbl.querySelector("tbody");
           if (tbody) {
             tbody.innerHTML = matched.map((a, idx) =>
-              '<tr data-pid="' + a.id + '" data-row-index="' + idx + '" class="' + (idx === 0 ? 'selected-tr' : '') + '">' +
-                '<td>' + a.id + '</td>' +
-                '<td>' + a.fav + '</td>' +
-                '<td>' + a.sourceLabel + '</td>' +
-                '<td>' + a.icon + ' ' + a.name + '</td>' +
-                '<td>' + a.cat + '</td>' +
-                '<td>' + a.status + '</td>' +
-                '<td>' + a.used + '</td>' +
-                '<td style="font-family:monospace;font-size:11px;">' + a.cmd + '</td>' +
+              '<tr data-pid="' + escHtml(a.id) + '" data-row-index="' + idx + '" class="' + (idx === 0 ? 'selected-tr' : '') + '">' +
+                '<td>' + escHtml(a.id) + '</td>' +
+                '<td>' + escHtml(a.fav) + '</td>' +
+                '<td>' + escHtml(a.sourceLabel) + '</td>' +
+                '<td>' + escHtml(a.icon) + ' ' + escHtml(a.name) + '</td>' +
+                '<td>' + escHtml(a.cat) + '</td>' +
+                '<td>' + escHtml(a.status) + '</td>' +
+                '<td>' + escHtml(a.used) + '</td>' +
+                '<td style="font-family:monospace;font-size:11px;">' + escHtml(a.cmd) + '</td>' +
               '</tr>'
             ).join('');
           }
@@ -4028,7 +4115,7 @@ export function createLauncherStudio(
         if (lstEl) {
           const sel = lstEl.tagName === "SELECT" ? lstEl : lstEl.querySelector("select");
           if (sel) {
-            sel.innerHTML = matched.map(a => '<option value="' + a.itemStr.replace(/"/g, '&quot;') + '">' + a.itemStr + '</option>').join('');
+            sel.innerHTML = matched.map(a => '<option value="' + escHtml(a.itemStr) + '">' + escHtml(a.itemStr) + '</option>').join('');
             if (matched.length > 0) sel.value = matched[0].itemStr;
           }
         }
@@ -4038,7 +4125,7 @@ export function createLauncherStudio(
         if (ddSelEl) {
           const sel = ddSelEl.tagName === "SELECT" ? ddSelEl : ddSelEl.querySelector("select");
           if (sel) {
-            sel.innerHTML = matched.map(a => '<option value="' + a.itemStr.replace(/"/g, '&quot;') + '">' + a.itemStr + '</option>').join('');
+            sel.innerHTML = matched.map(a => '<option value="' + escHtml(a.itemStr) + '">' + escHtml(a.itemStr) + '</option>').join('');
             if (matched.length > 0) sel.value = matched[0].itemStr;
           }
         }
@@ -4167,10 +4254,11 @@ export function createLauncherStudio(
           selectAppClient(app.id);
           const tbl = document.getElementById("tbl_apps");
           if (tbl) {
-            const row = tbl.querySelector('tr[data-pid="' + app.id + '"]');
-            if (row && row.children[1]) {
-              row.children[1].textContent = app.fav;
-            }
+            tbl.querySelectorAll("tbody tr").forEach(row => {
+              if (row.getAttribute("data-pid") === app.id && row.children[1]) {
+                row.children[1].textContent = app.fav;
+              }
+            });
           }
         }
 
