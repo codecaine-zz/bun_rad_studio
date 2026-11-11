@@ -779,7 +779,12 @@ describe("Digital LED clock, synced LRC lyrics, and M3U8 playlists", () => {
     try {
       const pageRes = await fetch(`${started.url}/`);
       expect(pageRes.status).toBe(200);
-      const libRes = await fetch(`${started.url}/api/library`);
+      const libRes = await fetch(
+        `${started.url}/api/library`,
+        started.token
+          ? { headers: { "x-media-token": started.token } }
+          : undefined,
+      );
       expect(libRes.status).toBe(200);
       const lib = await libRes.json();
       expect(Array.isArray(lib.tracks)).toBe(true);

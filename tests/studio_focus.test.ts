@@ -7,6 +7,7 @@ import { createAdapter } from "../src/db";
 import { provisionTestDb } from "./helpers/testdb";
 import { STUDIO_FOCUS_SCRIPT } from "../src/shared/studioFocus";
 import { rmDir } from "./helpers/rm";
+import { runUiSuiteAsync } from "./helpers/run_ui_suite";
 
 const storeDir = mkdtempSync(join(tmpdir(), "studio-shortcuts-macros-"));
 process.env.STUDIO_MACRO_STORE_DIR = storeDir;
@@ -43,34 +44,17 @@ describe("Focus mode in the page sources", () => {
   });
 });
 
-const node = Bun.which("node");
 async function runUi(base: string, engine: string) {
-  const proc = Bun.spawn(
-    [
-      node!,
-      "--test",
-      "--test-force-exit",
-      "--test-reporter=spec",
-      join(import.meta.dir, "studio_focus.node.mjs"),
-    ],
+  const res = await runUiSuiteAsync(
+    join(import.meta.dir, "studio_focus.node.mjs"),
     {
-      env: {
-        ...process.env,
-        SF_BASE: base,
-        SF_ENGINE: engine,
-        NODE_NO_WARNINGS: "1",
-      },
-      stdout: "pipe",
-      stderr: "pipe",
+      SF_BASE: base,
+      SF_ENGINE: engine,
     },
   );
-  const [out, err, code] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ]);
-  if (code !== 0 || process.env.SC_VERBOSE) console.log(out + err);
-  return code;
+  if (res.code !== 0 || process.env.SC_VERBOSE) console.log(res.combined);
+  expect(res.pass).toBeGreaterThan(0);
+  return res.code;
 }
 const WIDE: Record<string, string> = {
   sqlite:
@@ -83,54 +67,47 @@ const WIDE: Record<string, string> = {
 const ROWS =
   "INSERT INTO wide (id, sku, full_name) VALUES (1,'a','Ann'),(2,'b','Bob'),(3,'c','Cy')";
 
-(node ? describe : describe.skip)(
-  "Focus mode in the page (jsdom under Node against the real server)",
-  () => {
-    it("SQLite studio", async () => {
-      const dir = mkdtempSync(join(tmpdir(), "studio-shortcuts-"));
-      const path = join(dir, "w.db");
-      const db = new Database(path);
-      db.run(WIDE.sqlite!);
-      db.run(ROWS);
-      db.close();
-      const server = startSqliteStudioServer({ port: 0, initialDbPath: path });
+describe("Focus mode in the page (jsdom against the real server)", () => {
+  it("SQLite studio", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "studio-shortcuts-"));
+    const path = join(dir, "w.db");
+    const db = new Database(path);
+    db.run(WIDE.sqlite!);
+    db.run(ROWS);
+    db.close();
+    const server = startSqliteStudioServer({ port: 0, initialDbPath: path });
+    try {
+      expect(await runUi(`http://127.0.0.1:${server.port}`, "sqlite")).toBe(0);
+    } finally {
+      server.stop(true);
+      rmDir(dir);
+    }
+  }, 180_000);
+
+  for (const engine of ["mysql", "postgres"] as const) {
+    it(`${engine === "mysql" ? "MySQL" : "PostgreSQL"} studio (needs a throwaway server)`, async () => {
+      const t = await provisionTestDb(engine);
+      if (!t) return;
+      let server: any;
       try {
-        expect(await runUi(`http://127.0.0.1:${server.port}`, "sqlite")).toBe(
-          0,
-        );
+        const a = createAdapter({
+          engine,
+          ...t.config,
+          allowPublicKeyRetrieval: true,
+        } as any);
+        await a.connect();
+        await a.query(WIDE[engine]!);
+        await a.query(ROWS);
+        await a.close();
+        server =
+          engine === "mysql"
+            ? startMysqlStudioServer({ port: 0, config: t.config as any })
+            : startPostgresStudioServer({ port: 0, config: t.config as any });
+        expect(await runUi(`http://127.0.0.1:${server.port}`, engine)).toBe(0);
       } finally {
-        server.stop(true);
-        rmDir(dir);
+        server?.stop(true);
+        await t.drop();
       }
     }, 180_000);
-
-    for (const engine of ["mysql", "postgres"] as const) {
-      it(`${engine === "mysql" ? "MySQL" : "PostgreSQL"} studio (needs a throwaway server)`, async () => {
-        const t = await provisionTestDb(engine);
-        if (!t) return;
-        let server: any;
-        try {
-          const a = createAdapter({
-            engine,
-            ...t.config,
-            allowPublicKeyRetrieval: true,
-          } as any);
-          await a.connect();
-          await a.query(WIDE[engine]!);
-          await a.query(ROWS);
-          await a.close();
-          server =
-            engine === "mysql"
-              ? startMysqlStudioServer({ port: 0, config: t.config as any })
-              : startPostgresStudioServer({ port: 0, config: t.config as any });
-          expect(await runUi(`http://127.0.0.1:${server.port}`, engine)).toBe(
-            0,
-          );
-        } finally {
-          server?.stop(true);
-          await t.drop();
-        }
-      }, 180_000);
-    }
-  },
-);
+  }
+});

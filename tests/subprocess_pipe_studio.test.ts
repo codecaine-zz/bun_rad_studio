@@ -16,7 +16,14 @@ import {
   type SubprocessStage,
   type NamedPipeline,
 } from "../applications/subprocess_pipe_studio";
-import { existsSync, unlinkSync, mkdirSync, writeFileSync } from "fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  unlinkSync,
+  writeFileSync,
+} from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 
@@ -682,23 +689,32 @@ describe("Subprocess Pipe Pro - Shell Process Master & Multi-Stage Pipelining", 
     });
 
     it("simulates Stdin samples and Export buttons", () => {
-      const win = createSubprocessPipeStudio({ fullscreen: false });
+      const prevCwd = process.cwd();
+      const tempCwd = mkdtempSync(join(tmpdir(), "pipe-studio-export-"));
+      try {
+        process.chdir(tempCwd);
+        const win = createSubprocessPipeStudio({ fullscreen: false });
+        (win as any).copyToClipboard = () => {};
 
-      triggerEvent(win, "btn_clear_stdin", "click");
-      expect(win.getValue("txt_pipeline_stdin")).toBe("");
+        triggerEvent(win, "btn_clear_stdin", "click");
+        expect(win.getValue("txt_pipeline_stdin")).toBe("");
 
-      triggerEvent(win, "btn_load_sample_json", "click");
-      expect(win.getValue("txt_pipeline_stdin")).toContain("services");
+        triggerEvent(win, "btn_load_sample_json", "click");
+        expect(win.getValue("txt_pipeline_stdin")).toContain("services");
 
-      triggerEvent(win, "btn_load_sample_text", "click");
-      expect(win.getValue("txt_pipeline_stdin")).toContain("Bun");
+        triggerEvent(win, "btn_load_sample_text", "click");
+        expect(win.getValue("txt_pipeline_stdin")).toContain("Bun");
 
-      triggerEvent(win, "btn_export_script", "click");
-      triggerEvent(win, "btn_copy_script", "click");
-      triggerEvent(win, "btn_export_library", "click");
-      triggerEvent(win, "btn_copy_library_json", "click");
-      triggerEvent(win, "btn_copy_output", "click");
-      triggerEvent(win, "btn_save_output_file", "click");
+        triggerEvent(win, "btn_export_script", "click");
+        triggerEvent(win, "btn_copy_script", "click");
+        triggerEvent(win, "btn_export_library", "click");
+        triggerEvent(win, "btn_copy_library_json", "click");
+        triggerEvent(win, "btn_copy_output", "click");
+        triggerEvent(win, "btn_save_output_file", "click");
+      } finally {
+        process.chdir(prevCwd);
+        rmSync(tempCwd, { recursive: true, force: true });
+      }
     });
   });
 });

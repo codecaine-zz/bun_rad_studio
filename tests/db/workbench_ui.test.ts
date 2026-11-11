@@ -9,6 +9,7 @@ import { createWorkbenchHandler } from "../../src/db/workbench_http";
 import { generateWorkbenchHtml } from "../../src/db/workbench_ui";
 import { createAdapter } from "../../src/db";
 import { provisionTestDb, type TestDb } from "../helpers/testdb";
+import { runUiSuiteAsync } from "../helpers/run_ui_suite";
 
 describe("workbench page", () => {
   it("the inline script parses and the page has no framework or remote script dependencies", () => {
@@ -116,35 +117,20 @@ describe("workbench UI workflow (jsdom under Node against the real server)", () 
     );
     prod.close();
 
-    // async spawn: the server lives in this process and must keep serving while node runs
+    // async spawn: the server lives in this process and must keep serving while the UI runner executes
     try {
-      const proc = Bun.spawn(
-        [
-          "node",
-          "--test",
-          "--test-reporter=spec",
-          join(import.meta.dir, "workbench_ui.node.mjs"),
-        ],
+      const res = await runUiSuiteAsync(
+        join(import.meta.dir, "workbench_ui.node.mjs"),
         {
-          env: {
-            ...process.env,
-            WB_BASE: `http://127.0.0.1:${server.port}`,
-            WB_TOKEN: handler.token,
-            WB_TARGETS: JSON.stringify(targets),
-            WB_PROD_DB: prodPath,
-            NODE_NO_WARNINGS: "1",
-          },
-          stdout: "pipe",
-          stderr: "pipe",
+          WB_BASE: `http://127.0.0.1:${server.port}`,
+          WB_TOKEN: handler.token,
+          WB_TARGETS: JSON.stringify(targets),
+          WB_PROD_DB: prodPath,
         },
       );
-      const [out, err, code] = await Promise.all([
-        new Response(proc.stdout).text(),
-        new Response(proc.stderr).text(),
-        proc.exited,
-      ]);
-      if (code !== 0 || process.env.WB_VERBOSE) console.log(out + err);
-      expect(code).toBe(0);
+      if (res.code !== 0 || process.env.WB_VERBOSE) console.log(res.combined);
+      expect(res.code).toBe(0);
+      expect(res.pass).toBeGreaterThan(0);
     } finally {
       await service.closeAll();
       for (const t of provisioned) await t.drop();

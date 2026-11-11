@@ -14,6 +14,8 @@
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
+    "incremental": true,
+    "tsBuildInfoFile": ".cache/tsconfig.tsbuildinfo",
 
     // Best practices
     "strict": true,
@@ -27,5 +29,12 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
   },
-  "exclude": ["node_modules", "dist", "release"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "release",
+    "resources/paint/coloring_library.js",
+    "resources/file_manager/ui/themes.js",
+    "resources/universal_calculator/**"
+  ]
 }

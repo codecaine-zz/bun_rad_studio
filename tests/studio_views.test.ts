@@ -8,6 +8,7 @@ import { provisionTestDb, type TestDb } from "./helpers/testdb";
 import { viewTools, viewApi } from "../src/shared/studioViews";
 import { STUDIO_DIALOGS_SCRIPT } from "../src/shared/studioDialogs";
 import { rmDir } from "./helpers/rm";
+import { runUiSuiteAsync } from "./helpers/run_ui_suite";
 
 const storeDir = mkdtempSync(join(tmpdir(), "studio-views-macros-"));
 process.env.STUDIO_MACRO_STORE_DIR = storeDir;
@@ -720,36 +721,19 @@ const pgDb = await provisionTestDb("postgres");
 );
 
 // -------------------------------------------------------------------------------------------------------------
-// The dialogs in the real pages (jsdom under Node, against the real server)
+// The dialogs in the real pages (jsdom against the real server)
 // -------------------------------------------------------------------------------------------------------------
-const node = Bun.which("node");
 async function runUi(base: string, engine: string) {
-  const proc = Bun.spawn(
-    [
-      node!,
-      "--test",
-      "--test-force-exit",
-      "--test-reporter=spec",
-      join(import.meta.dir, "studio_views.node.mjs"),
-    ],
+  const res = await runUiSuiteAsync(
+    join(import.meta.dir, "studio_views.node.mjs"),
     {
-      env: {
-        ...process.env,
-        SV_BASE: base,
-        SV_ENGINE: engine,
-        NODE_NO_WARNINGS: "1",
-      },
-      stdout: "pipe",
-      stderr: "pipe",
+      SV_BASE: base,
+      SV_ENGINE: engine,
     },
   );
-  const [out, err, code] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ]);
-  if (code !== 0 || process.env.SC_VERBOSE) console.log(out + err);
-  return code;
+  if (res.code !== 0 || process.env.SC_VERBOSE) console.log(res.combined);
+  expect(res.pass).toBeGreaterThan(0);
+  return res.code;
 }
 const WIDE: Record<string, string> = {
   sqlite:
@@ -762,57 +746,50 @@ const WIDE: Record<string, string> = {
 const WIDE_ROWS =
   "INSERT INTO wide (id, sku, full_name) VALUES (1,'a','Ann'),(2,'b','Bob'),(3,'c','Cy'),(4,'d','Di'),(5,'e','Ed')";
 
-(node ? describe : describe.skip)(
-  "Create view / Edit / Drop dialogs in the page",
-  () => {
-    it("SQLite studio", async () => {
-      const dir = mkdtempSync(join(tmpdir(), "studio-views-ui-"));
-      const path = join(dir, "w.db");
-      const db = new Database(path);
-      db.run(WIDE.sqlite!);
-      db.run(WIDE_ROWS);
-      db.close();
-      const server = startSqliteStudioServer({ port: 0, initialDbPath: path });
+describe("Create view / Edit / Drop dialogs in the page", () => {
+  it("SQLite studio", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "studio-views-ui-"));
+    const path = join(dir, "w.db");
+    const db = new Database(path);
+    db.run(WIDE.sqlite!);
+    db.run(WIDE_ROWS);
+    db.close();
+    const server = startSqliteStudioServer({ port: 0, initialDbPath: path });
+    try {
+      expect(await runUi(`http://127.0.0.1:${server.port}`, "sqlite")).toBe(0);
+    } finally {
+      server.stop(true);
+      rmDir(dir);
+    }
+  }, 180_000);
+
+  for (const [engine, handle] of [
+    ["mysql", myDb],
+    ["postgres", pgDb],
+  ] as const) {
+    it(`${engine === "mysql" ? "MySQL" : "PostgreSQL"} studio (needs a throwaway server)`, async () => {
+      const t = await provisionTestDb(engine);
+      if (!t) return;
+      let server: any;
       try {
-        expect(await runUi(`http://127.0.0.1:${server.port}`, "sqlite")).toBe(
-          0,
-        );
+        const a = createAdapter({
+          engine,
+          ...t.config,
+          allowPublicKeyRetrieval: true,
+        } as any);
+        await a.connect();
+        await a.query(WIDE[engine]!);
+        await a.query(WIDE_ROWS);
+        await a.close();
+        server =
+          engine === "mysql"
+            ? startMysqlStudioServer({ port: 0, config: t.config as any })
+            : startPostgresStudioServer({ port: 0, config: t.config as any });
+        expect(await runUi(`http://127.0.0.1:${server.port}`, engine)).toBe(0);
       } finally {
-        server.stop(true);
-        rmDir(dir);
+        server?.stop(true);
+        await t.drop();
       }
     }, 180_000);
-
-    for (const [engine, handle] of [
-      ["mysql", myDb],
-      ["postgres", pgDb],
-    ] as const) {
-      it(`${engine === "mysql" ? "MySQL" : "PostgreSQL"} studio (needs a throwaway server)`, async () => {
-        const t = await provisionTestDb(engine);
-        if (!t) return;
-        let server: any;
-        try {
-          const a = createAdapter({
-            engine,
-            ...t.config,
-            allowPublicKeyRetrieval: true,
-          } as any);
-          await a.connect();
-          await a.query(WIDE[engine]!);
-          await a.query(WIDE_ROWS);
-          await a.close();
-          server =
-            engine === "mysql"
-              ? startMysqlStudioServer({ port: 0, config: t.config as any })
-              : startPostgresStudioServer({ port: 0, config: t.config as any });
-          expect(await runUi(`http://127.0.0.1:${server.port}`, engine)).toBe(
-            0,
-          );
-        } finally {
-          server?.stop(true);
-          await t.drop();
-        }
-      }, 180_000);
-    }
-  },
-);
+  }
+});

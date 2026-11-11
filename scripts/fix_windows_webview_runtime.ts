@@ -1,8 +1,10 @@
 import {
+  chmodSync,
   closeSync,
   copyFileSync,
   existsSync,
   mkdirSync,
+  mkdtempSync,
   openSync,
   readSync,
   readdirSync,
@@ -206,11 +208,94 @@ const VC_RUNTIME_DLLS = [
   "vcruntime140_1.dll",
 ] as const;
 
+export const DEFAULT_BUN_WINDOWS_X64_TAG = "bun-v1.4.4";
+export const DEFAULT_WEBVIEW2_NUGET_VERSION = "1.0.2903.40";
+
+/** Creates a private `0o700` staging directory inside `os.tmpdir()` via `mkdtempSync`. */
+export function makePrivateStageDir(prefix: string): string {
+  const dir = mkdtempSync(join(tmpdir(), prefix));
+  try {
+    chmodSync(dir, 0o700);
+  } catch {}
+  return dir;
+}
+
+/** Computes lowercase 64-hex SHA-256 digest of `bytes`. */
+export function sha256Hex(bytes: Uint8Array): string {
+  const hasher = new Bun.CryptoHasher("sha256");
+  hasher.update(bytes);
+  return hasher.digest("hex").toLowerCase();
+}
+
+/** Parses an expected SHA-256 digest for `assetName` from a `SHASUMS256.txt` / `sha256sum.txt` manifest. */
+export function parseSha256SumsFile(
+  manifestText: string,
+  assetName: string,
+): string | null {
+  for (const rawLine of manifestText.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    const m = /^([0-9a-fA-F]{64})\s+\*?(.+)$/.exec(line);
+    if (!m) continue;
+    const digest = m[1]!.toLowerCase();
+    const candidate = m[2]!.trim().replace(/^.*[/\\]/, "");
+    if (candidate === assetName) return digest;
+  }
+  return null;
+}
+
+/** Verifies `bytes` against an expected 64-hex SHA-256 digest; throws on invalid or mismatched hash. */
+export function verifySha256Hex(
+  bytes: Uint8Array,
+  expectedHex: string,
+  label: string,
+): void {
+  const normalized = expectedHex.trim().toLowerCase();
+  if (!/^[0-9a-f]{64}$/.test(normalized)) {
+    throw new Error(`Invalid expected SHA-256 digest for ${label}`);
+  }
+  const actual = sha256Hex(bytes);
+  if (actual !== normalized) {
+    throw new Error(
+      `SHA-256 verification failed for ${label}: expected ${normalized}, got ${actual}`,
+    );
+  }
+}
+
+function isZipArchive(bytes: Uint8Array): boolean {
+  return (
+    bytes.byteLength >= 4 &&
+    bytes[0] === 0x50 &&
+    bytes[1] === 0x4b &&
+    bytes[2] === 0x03 &&
+    bytes[3] === 0x04
+  );
+}
+
+/** Verifies Microsoft Corporation Authenticode signature on extracted Windows DLLs. */
+function verifyMicrosoftAuthenticode(filePath: string): boolean {
+  if (process.platform !== "win32") return true;
+  const escaped = filePath.replace(/'/g, "''");
+  const ps = Bun.spawnSync(
+    [
+      "powershell.exe",
+      "-NoProfile",
+      "-NonInteractive",
+      "-Command",
+      `$sig = Get-AuthenticodeSignature -LiteralPath '${escaped}'; if ($sig -and $sig.Status -eq 'Valid' -and $sig.SignerCertificate.Subject -match 'Microsoft') { exit 0 } else { exit 1 }`,
+    ],
+    { stdout: "ignore", stderr: "ignore" },
+  );
+  return ps.exitCode === 0;
+}
+
 function extractZipOnWindows(zipPath: string, destDir: string): boolean {
-  const tar = Bun.spawnSync(["tar.exe", "-xf", zipPath, "-C", destDir], {
-    stdout: "ignore",
-    stderr: "ignore",
-  });
+  const tar = Bun.spawnSync(
+    ["tar.exe", "--no-same-owner", "-xf", zipPath, "-C", destDir],
+    {
+      stdout: "ignore",
+      stderr: "ignore",
+    },
+  );
   if (tar.exitCode === 0) return true;
   const ps = Bun.spawnSync(
     [
@@ -257,10 +342,9 @@ export async function ensureWindowsX64VcRuntimeAndWebViewLoader(
     (dll) => !isPeX64(join(webviewBuildDir, dll)),
   );
   if (missingVc) {
-    const stageDir = join(tmpdir(), `vc-x64-${process.pid}-${Date.now()}`);
+    const stageDir = makePrivateStageDir("vc-x64-");
     const zipPath = join(stageDir, "vclibs-x64.zip");
     try {
-      mkdirSync(stageDir, { recursive: true });
       console.log(
         "[windows-webview] Provisioning Microsoft x64 Visual C++ Runtime DLLs for native WebView2...",
       );
@@ -268,17 +352,24 @@ export async function ensureWindowsX64VcRuntimeAndWebViewLoader(
         "https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx",
       );
       if (res.ok) {
-        writeFileSync(zipPath, new Uint8Array(await res.arrayBuffer()));
+        const bytes = new Uint8Array(await res.arrayBuffer());
+        if (!isZipArchive(bytes)) {
+          throw new Error("Downloaded VCLibs package is not a valid archive");
+        }
+        if (process.env.VCLIBS_APPX_SHA256) {
+          verifySha256Hex(bytes, process.env.VCLIBS_APPX_SHA256, "VCLibs.appx");
+        }
+        writeFileSync(zipPath, bytes);
         if (extractZipOnWindows(zipPath, stageDir)) {
           for (const dll of VC_RUNTIME_DLLS) {
             const extracted = join(stageDir, dll);
             const dest = join(webviewBuildDir, dll);
-            if (isPeX64(extracted)) {
+            if (isPeX64(extracted) && verifyMicrosoftAuthenticode(extracted)) {
               copyFileSync(extracted, dest);
             }
           }
           console.log(
-            "[windows-webview] Installed x64 msvcp140.dll, vcruntime140.dll, and vcruntime140_1.dll.",
+            "[windows-webview] Installed verified x64 msvcp140.dll, vcruntime140.dll, and vcruntime140_1.dll.",
           );
         }
       }
@@ -294,21 +385,35 @@ export async function ensureWindowsX64VcRuntimeAndWebViewLoader(
   }
 
   // 3. If x64 WebView2Loader.dll was not found locally (e.g. Windows 11 ARM64 with only arm64 Edge installed),
-  //    fetch Microsoft's official Microsoft.Web.WebView2 NuGet package and extract runtimes/win-x64/native/WebView2Loader.dll
+  //    fetch Microsoft's official pinned Microsoft.Web.WebView2 NuGet package and verify PE + Authenticode
   const loaderTarget = join(webviewBuildDir, "WebView2Loader.dll");
   if (!isPeX64(loaderTarget)) {
-    const stageDir = join(tmpdir(), `wv2-x64-${process.pid}-${Date.now()}`);
+    const stageDir = makePrivateStageDir("wv2-x64-");
     const zipPath = join(stageDir, "webview2.zip");
+    const nugetVersion =
+      process.env.WEBVIEW2_NUGET_VERSION || DEFAULT_WEBVIEW2_NUGET_VERSION;
     try {
-      mkdirSync(stageDir, { recursive: true });
       console.log(
-        "[windows-webview] Provisioning Microsoft x64 WebView2Loader.dll...",
+        `[windows-webview] Provisioning Microsoft x64 WebView2Loader.dll (${nugetVersion})...`,
       );
       const res = await fetch(
-        "https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2",
+        `https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/${encodeURIComponent(nugetVersion)}`,
       );
       if (res.ok) {
-        writeFileSync(zipPath, new Uint8Array(await res.arrayBuffer()));
+        const bytes = new Uint8Array(await res.arrayBuffer());
+        if (!isZipArchive(bytes)) {
+          throw new Error(
+            "Downloaded WebView2 NuGet package is not a valid archive",
+          );
+        }
+        if (process.env.WEBVIEW2_NUGET_SHA256) {
+          verifySha256Hex(
+            bytes,
+            process.env.WEBVIEW2_NUGET_SHA256,
+            `Microsoft.Web.WebView2.${nugetVersion}.nupkg`,
+          );
+        }
+        writeFileSync(zipPath, bytes);
         if (extractZipOnWindows(zipPath, stageDir)) {
           const extracted = join(
             stageDir,
@@ -317,9 +422,11 @@ export async function ensureWindowsX64VcRuntimeAndWebViewLoader(
             "native",
             "WebView2Loader.dll",
           );
-          if (isPeX64(extracted)) {
+          if (isPeX64(extracted) && verifyMicrosoftAuthenticode(extracted)) {
             copyFileSync(extracted, loaderTarget);
-            console.log("[windows-webview] Installed x64 WebView2Loader.dll.");
+            console.log(
+              "[windows-webview] Installed verified x64 WebView2Loader.dll.",
+            );
           }
         }
       }
@@ -402,40 +509,41 @@ export async function ensureWindowsX64Bun(): Promise<string | undefined> {
   const baselineExe = join(targetDir, "bun-windows-x64-baseline", "bun.exe");
   const standardExe = join(targetDir, "bun-windows-x64", "bun.exe");
   const altExe = join(targetDir, "bun.exe");
-  const zipPath = join(tmpdir(), `bun-windows-x64-baseline-${process.pid}.zip`);
+  const stageDir = makePrivateStageDir("bun-x64-");
+  const assetName = "bun-windows-x64-baseline.zip";
+  const zipPath = join(stageDir, assetName);
+  const bunTag = process.env.BUN_WINDOWS_X64_TAG || DEFAULT_BUN_WINDOWS_X64_TAG;
+  const baseUrl = `https://github.com/oven-sh/bun/releases/download/${encodeURIComponent(bunTag)}`;
 
   console.log(
-    "[windows-webview] Windows ARM64 detected: setting up x64-baseline Bun runtime for native WebView2 (libwebview.dll is x64)...",
+    `[windows-webview] Windows ARM64 detected: setting up verified x64-baseline Bun runtime (${bunTag}) for native WebView2...`,
   );
   try {
     mkdirSync(targetDir, { recursive: true });
-    const res = await fetch(
-      "https://github.com/oven-sh/bun/releases/latest/download/bun-windows-x64-baseline.zip",
-    );
+    let expectedSha = process.env.BUN_WINDOWS_X64_SHA256?.trim().toLowerCase();
+    if (!expectedSha) {
+      const sumsRes = await fetch(`${baseUrl}/SHASUMS256.txt`);
+      if (!sumsRes.ok) {
+        throw new Error(
+          `Failed to fetch SHASUMS256.txt (HTTP ${sumsRes.status})`,
+        );
+      }
+      expectedSha =
+        parseSha256SumsFile(await sumsRes.text(), assetName) ?? undefined;
+    }
+    if (!expectedSha) {
+      throw new Error(`Missing SHA-256 entry for ${assetName} in ${bunTag}`);
+    }
+
+    const res = await fetch(`${baseUrl}/${assetName}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const bytes = new Uint8Array(await res.arrayBuffer());
+    verifySha256Hex(bytes, expectedSha, assetName);
     writeFileSync(zipPath, bytes);
 
-    // Extract using Windows built-in tar.exe (fast) or PowerShell Expand-Archive as fallback
-    const tar = Bun.spawnSync(["tar.exe", "-xf", zipPath, "-C", targetDir], {
-      stdout: "ignore",
-      stderr: "ignore",
-    });
-    if (tar.exitCode !== 0) {
-      Bun.spawnSync(
-        [
-          "powershell.exe",
-          "-NoProfile",
-          "-NonInteractive",
-          "-Command",
-          `Expand-Archive -Path '${zipPath.replace(/'/g, "''")}' -DestinationPath '${targetDir.replace(/'/g, "''")}' -Force`,
-        ],
-        { stdout: "ignore", stderr: "ignore" },
-      );
+    if (!extractZipOnWindows(zipPath, targetDir)) {
+      throw new Error(`Failed to extract ${assetName}`);
     }
-    try {
-      rmSync(zipPath, { force: true });
-    } catch {}
 
     for (const candidate of [baselineExe, standardExe, altExe]) {
       if (isRunnableWindowsX64Bun(candidate)) {
@@ -450,18 +558,19 @@ export async function ensureWindowsX64Bun(): Promise<string | undefined> {
           } catch {}
         }
         console.log(
-          `[windows-webview] Configured x64-baseline Bun runtime at ${candidate}`,
+          `[windows-webview] Configured verified x64-baseline Bun runtime at ${candidate}`,
         );
         return candidate;
       }
     }
   } catch (err: any) {
-    try {
-      rmSync(zipPath, { force: true });
-    } catch {}
     console.warn(
       `[windows-webview] Automatic x64 Bun setup failed (${err?.message ?? err}).`,
     );
+  } finally {
+    try {
+      rmSync(stageDir, { recursive: true, force: true });
+    } catch {}
   }
 
   return undefined;
@@ -500,7 +609,10 @@ if (import.meta.main) {
     }
   }
   try {
-    const { generateAllWrappers } = await import("./generate_brew_suite.ts");
-    generateAllWrappers();
+    const { areWrappersUpToDate, generateAllWrappers } =
+      await import("./generate_brew_suite.ts");
+    if (!areWrappersUpToDate()) {
+      generateAllWrappers();
+    }
   } catch {}
 }

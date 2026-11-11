@@ -9,6 +9,7 @@ import {
   saveWordSearchState,
   getWordSearchStatePath,
 } from "../applications/word_search_studio";
+import { runUiSuiteSync } from "./helpers/run_ui_suite";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const E = require("../resources/word_search/engine.js");
@@ -403,33 +404,23 @@ describe("server: HTML assembly and state API", () => {
 });
 
 // ---------------------------------------------------------------------------------------------
-// The real page, running in jsdom. jsdom cannot execute page scripts under Bun's vm, so the page
-// tests live in word_search_page.node.mjs and are run by Node (node:test) from here.
+// The real page, running in jsdom via runUiSuiteSync (genuine Node when installed, else Bun 1.4.4+).
 // ---------------------------------------------------------------------------------------------
-const node = Bun.which("node");
-(node ? describe : describe.skip)("page (jsdom, run under node)", () => {
+describe("page (jsdom)", () => {
   test("all page tests pass", () => {
     resetState();
     const baseFile = path.join(tmp, "base.html");
     fs.writeFileSync(baseFile, generateWordSearchStudioHtml());
-    const r = Bun.spawnSync(
-      [
-        node!,
-        "--test",
-        "--test-reporter=spec",
-        path.join(import.meta.dir, "word_search_page.node.mjs"),
-      ],
+    const r = runUiSuiteSync(
+      path.join(import.meta.dir, "word_search_page.node.mjs"),
       {
-        cwd: path.join(import.meta.dir, ".."),
-        env: {
-          ...process.env,
-          WS_BASE_HTML: baseFile,
-          WS_STATE_FILE: stateFile,
-        },
+        WS_BASE_HTML: baseFile,
+        WS_STATE_FILE: stateFile,
       },
+      path.join(import.meta.dir, ".."),
     );
-    const out = r.stdout.toString() + r.stderr.toString();
-    if (r.exitCode !== 0) console.log(out);
-    expect(r.exitCode).toBe(0);
+    if (r.code !== 0) console.log(r.combined);
+    expect(r.code).toBe(0);
+    expect(r.pass).toBeGreaterThan(0);
   }, 60_000);
 });

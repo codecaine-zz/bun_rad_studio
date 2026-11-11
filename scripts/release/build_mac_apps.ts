@@ -121,7 +121,6 @@ export function infoPlist(app: MacApp, iconFile: string): string {
   <key>NSAppTransportSecurity</key>
   <dict>
     <key>NSAllowsLocalNetworking</key><true/>
-    <key>NSAllowsArbitraryLoadsInWebContent</key><true/>
   </dict>
 </dict>
 </plist>
@@ -138,8 +137,8 @@ export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:$HOME/.bun/bin:
 export BUN_BE_BUN=1
 export WEBVIEW_PATH="$RES/lib/libwebview.dylib"
 # Some apps look for ./resources or keep small files in the folder they start in. Give them one that is writable
-# and not inside this app: a folder in your home that links to the app's resources.
-WORK="$HOME/.bun_rad_studio/run"
+# and isolated per app + version so concurrent launches never race on a shared resources symlink.
+WORK="$HOME/.bun_rad_studio/run/${app.id}-${VERSION}"
 mkdir -p "$WORK" && ln -sfn "$RES/resources" "$WORK/resources" && cd "$WORK"
 exec "$RES/runtime/bun" "$RES/app/${app.id}.js" "$@"
 `;

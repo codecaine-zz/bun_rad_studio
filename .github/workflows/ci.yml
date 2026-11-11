@@ -20,8 +20,21 @@ jobs:
         with:
           bun-version: 1.4.4
 
+      - name: Cache Bun packages and TypeScript build info
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            .cache/tsconfig.tsbuildinfo
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock', 'tsconfig.json') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Formatting check
+        run: bun run fmt:check
 
       # Fails only when a file gets more type errors than recorded in scripts/typecheck_baseline.json.
       - name: Type-check ratchet
@@ -37,6 +50,9 @@ jobs:
 
       - name: Documentation links and generated pages
         run: bun run docs:check
+
+      - name: Showcase catalogue is up to date
+        run: bun run showcase:check
 
       # src/ide.html is built from src/ide/; fails when someone edits one without the other.
       - name: Designer page is up to date with its parts
@@ -80,6 +96,16 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.4
+
+      - name: Cache Bun packages and TypeScript build info
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            .cache/tsconfig.tsbuildinfo
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock', 'tsconfig.json') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
 
       # webview-bun needs the WebKitGTK runtime on Linux (its absence made 74 test files fail to load on the first try); xclip is the clipboard tool the Fd Studio test expects.
       - name: System libraries (Linux)

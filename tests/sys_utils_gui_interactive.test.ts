@@ -38,6 +38,7 @@ async function trigger(
 describe("⚡ Interactive GUI Control & Assertion Suite", () => {
   it("1. Controls IpInfo Studio: CIDR calculations, interface discovery, and clearing", async () => {
     const win = createIpInfoStudio();
+    (win as any).copyToClipboard = () => {};
 
     // Test CIDR calculation
     win.setValue("txt_target", "192.168.1.0/24");
@@ -81,24 +82,24 @@ describe("⚡ Interactive GUI Control & Assertion Suite", () => {
     );
     expect(win.getValue("lbl_metric_status")).toContain("Mode: Local Network");
 
-    // Test IP lookup
-    win.setValue("txt_target", "8.8.8.8");
+    // Test IP lookup (offline-safe RFC 1918 Class A address)
+    win.setValue("txt_target", "10.0.0.1");
     await trigger(win, "btn_search");
     const ipRows = win.getValue("tbl_details") as string[][];
     expect(Array.isArray(ipRows)).toBe(true);
     expect(ipRows.length).toBeGreaterThanOrEqual(5);
-    expect(win.getValue("lbl_metric_ip")).toContain("8.8.8.8");
+    expect(win.getValue("lbl_metric_ip")).toContain("10.0.0.1");
     expect(win.getValue("lbl_status_bar")).toContain("✓ Successfully resolved");
 
-    // Test Domain resolution (google.com) via Enter key
-    await trigger(win, "txt_target", "enter", "google.com");
+    // Test Domain resolution (localhost -> 127.0.0.1, offline-safe) via Enter key
+    await trigger(win, "txt_target", "enter", "localhost");
     expect(win.getValue("lbl_status_bar")).toContain("✓ Successfully resolved");
     expect(win.getValue("lbl_metric_ip")).not.toBe("Target IP: -");
-    expect(win.getValue("console_ipinfo")).toContain("google.com");
+    expect(win.getValue("console_ipinfo")).toContain("localhost");
 
     // Test CSV export
     await trigger(win, "btn_copy_csv");
-    expect(win.getValue("console_ipinfo")).toContain("AS15169 Google LLC");
+    expect(win.getValue("console_ipinfo")).toContain("127.0.0.1");
     expect(win.getValue("lbl_status_bar")).toContain("CSV copied to clipboard");
 
     // Test IP changed and looking up a different item (Private IP: 192.168.1.1)
@@ -147,6 +148,7 @@ describe("⚡ Interactive GUI Control & Assertion Suite", () => {
 
   it("2. Controls Doggo Studio: multi-record DNS query, export JSON, and clear", async () => {
     const win = createDoggoStudio();
+    (win as any).copyToClipboard = () => {};
 
     win.setValue("txt_target", "example.com");
     win.setValue("dd_type", "A");
@@ -176,6 +178,7 @@ describe("⚡ Interactive GUI Control & Assertion Suite", () => {
 
   it("3. Controls Tokei Studio: code analysis, markdown generation, and JSON export", async () => {
     const win = createTokeiStudio();
+    (win as any).copyToClipboard = () => {};
 
     win.setValue("txt_path", "./src/features/sd");
     await trigger(win, "btn_analyze");
@@ -207,6 +210,7 @@ describe("⚡ Interactive GUI Control & Assertion Suite", () => {
 
   it("4. Controls Subfinder Studio: domain reconnaissance and list export", async () => {
     const win = createSubfinderStudio();
+    (win as any).copyToClipboard = () => {};
 
     win.setValue("txt_domain", "example.com");
     win.setValue("chk_silent", true);

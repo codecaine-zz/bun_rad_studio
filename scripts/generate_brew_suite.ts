@@ -30,6 +30,16 @@ import {
 const ROOT = resolve(import.meta.dir, "..");
 const BIN_DIR = join(ROOT, "bin");
 
+export function readSuiteVersion(): string {
+  try {
+    const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
+    if (typeof pkg.version === "string" && pkg.version.trim()) {
+      return pkg.version.trim();
+    }
+  } catch {}
+  return "1.5.3";
+}
+
 interface WrapperDefinition {
   binName: string;
   targetScript: string; // relative to ROOT, e.g. "cli_apps/api_cli.ts"
@@ -264,7 +274,7 @@ export function generateAllWrappers(clean = false): {
   // Generate manifest JSON
   const manifest = {
     suite: "Codecaine Utility Suite",
-    version: "1.0.0",
+    version: readSuiteVersion(),
     generatedAt: new Date().toISOString(),
     totalWrappers: wrappers.length,
     commands: wrappers.map((w) => ({
@@ -295,6 +305,21 @@ export function generateAllWrappers(clean = false): {
     writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
 
   return { count: wrappers.length, wrappers };
+}
+
+export function areWrappersUpToDate(): boolean {
+  const manifestPath = join(BIN_DIR, "manifest.json");
+  const primaryBin = join(BIN_DIR, "codecaine");
+  if (!existsSync(manifestPath) || !existsSync(primaryBin)) return false;
+  try {
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+    if (manifest.version !== readSuiteVersion()) return false;
+    const defs = buildWrapperDefinitions();
+    if (manifest.totalWrappers !== defs.length) return false;
+    return defs.every((d) => existsSync(join(BIN_DIR, d.binName)));
+  } catch {
+    return false;
+  }
 }
 
 // -------------------------------------------------------------------------------------------------

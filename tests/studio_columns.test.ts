@@ -14,6 +14,7 @@ import {
   STUDIO_POLISH_STYLE,
 } from "../src/shared/studioPolish";
 import { rmDir } from "./helpers/rm";
+import { runUiSuiteAsync } from "./helpers/run_ui_suite";
 
 const storeDir = mkdtempSync(join(tmpdir(), "studio-cols-macros-"));
 process.env.STUDIO_MACRO_STORE_DIR = storeDir;
@@ -108,100 +109,75 @@ describe("the three studio pages carry the shared Columns control and polish", (
   });
 });
 
-const node = Bun.which("node");
-
 async function runUi(base: string, engine: string) {
-  const proc = Bun.spawn(
-    [
-      node!,
-      "--test",
-      "--test-force-exit",
-      "--test-reporter=spec",
-      join(import.meta.dir, "studio_columns.node.mjs"),
-    ],
+  const res = await runUiSuiteAsync(
+    join(import.meta.dir, "studio_columns.node.mjs"),
     {
-      env: {
-        ...process.env,
-        SC_BASE: base,
-        SC_ENGINE: engine,
-        SC_TABLE: "wide",
-        SC_COLS: JSON.stringify(COLS),
-        NODE_NO_WARNINGS: "1",
-      },
-      stdout: "pipe",
-      stderr: "pipe",
+      SC_BASE: base,
+      SC_ENGINE: engine,
+      SC_TABLE: "wide",
+      SC_COLS: JSON.stringify(COLS),
     },
   );
-  const [out, err, code] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ]);
-  if (code !== 0 || process.env.SC_VERBOSE) console.log(out + err);
-  return code;
+  if (res.code !== 0 || process.env.SC_VERBOSE) console.log(res.combined);
+  expect(res.pass).toBeGreaterThan(0);
+  return res.code;
 }
 
-(node ? describe : describe.skip)(
-  "Columns control in the page (jsdom under Node against the real server)",
-  () => {
-    it("SQLite studio: hide / show / persist / header menu / export rule / keyboard", async () => {
-      const dir = mkdtempSync(join(tmpdir(), "studio-cols-sqlite-"));
-      const path = join(dir, "wide.db");
-      const db = new Database(path);
-      db.run(
-        `CREATE TABLE wide (id INTEGER PRIMARY KEY, sku TEXT NOT NULL, full_name TEXT, email TEXT, country TEXT, balance REAL, qty INTEGER, is_active INTEGER, created_at TEXT, notes TEXT, rating REAL, tags TEXT, city TEXT, postal_code TEXT)`,
-      );
-      db.run("CREATE INDEX idx_wide_sku ON wide(sku)");
-      db.run(INSERT((n) => String(n % 2)));
-      db.close();
-      const server = startSqliteStudioServer({ port: 0, initialDbPath: path });
+describe("Columns control in the page (jsdom against the real server)", () => {
+  it("SQLite studio: hide / show / persist / header menu / export rule / keyboard", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "studio-cols-sqlite-"));
+    const path = join(dir, "wide.db");
+    const db = new Database(path);
+    db.run(
+      `CREATE TABLE wide (id INTEGER PRIMARY KEY, sku TEXT NOT NULL, full_name TEXT, email TEXT, country TEXT, balance REAL, qty INTEGER, is_active INTEGER, created_at TEXT, notes TEXT, rating REAL, tags TEXT, city TEXT, postal_code TEXT)`,
+    );
+    db.run("CREATE INDEX idx_wide_sku ON wide(sku)");
+    db.run(INSERT((n) => String(n % 2)));
+    db.close();
+    const server = startSqliteStudioServer({ port: 0, initialDbPath: path });
+    try {
+      expect(await runUi(`http://127.0.0.1:${server.port}`, "sqlite")).toBe(0);
+    } finally {
+      server.stop(true);
+      rmDir(dir);
+    }
+  }, 180_000);
+
+  for (const engine of ["mysql", "postgres"] as const) {
+    it(`${engine === "mysql" ? "MySQL" : "PostgreSQL"} studio (needs TEST_${engine === "mysql" ? "MYSQL" : "PG"}_URL)`, async () => {
+      const t: TestDb | null = await provisionTestDb(engine);
+      if (!t) return; // skipped: no throwaway server configured, see docs/testing/database-tests.md
+      let server: any;
       try {
-        expect(await runUi(`http://127.0.0.1:${server.port}`, "sqlite")).toBe(
-          0,
+        const a = createAdapter({
+          engine,
+          ...t.config,
+          allowPublicKeyRetrieval: true,
+        } as any);
+        await a.connect();
+        await a.query(
+          engine === "mysql"
+            ? "CREATE TABLE wide (id INT PRIMARY KEY, sku VARCHAR(20) NOT NULL, full_name VARCHAR(200), email VARCHAR(200), country CHAR(2), balance DECIMAL(12,2), qty INT, is_active TINYINT(1), created_at DATETIME, notes TEXT, rating DOUBLE, tags VARCHAR(100), city VARCHAR(60), postal_code VARCHAR(12), INDEX idx_wide_sku (sku))"
+            : "CREATE TABLE wide (id INT PRIMARY KEY, sku VARCHAR(20) NOT NULL, full_name VARCHAR(200), email VARCHAR(200), country CHAR(2), balance NUMERIC(12,2), qty INT, is_active BOOLEAN, created_at TIMESTAMP, notes TEXT, rating DOUBLE PRECISION, tags VARCHAR(100), city VARCHAR(60), postal_code VARCHAR(12))",
         );
+        await a.query(
+          INSERT(
+            engine === "mysql"
+              ? (n) => String(n % 2)
+              : (n) => (n % 2 ? "TRUE" : "FALSE"),
+          ),
+        );
+        await a.close();
+        server =
+          engine === "mysql"
+            ? startMysqlStudioServer({ port: 0, config: t.config as any })
+            : startPostgresStudioServer({ port: 0, config: t.config as any });
+        expect(await runUi(`http://127.0.0.1:${server.port}`, engine)).toBe(0);
       } finally {
-        server.stop(true);
-        rmDir(dir);
+        server?.stop(true);
+        await t.drop();
       }
     }, 180_000);
-
-    for (const engine of ["mysql", "postgres"] as const) {
-      it(`${engine === "mysql" ? "MySQL" : "PostgreSQL"} studio (needs TEST_${engine === "mysql" ? "MYSQL" : "PG"}_URL)`, async () => {
-        const t: TestDb | null = await provisionTestDb(engine);
-        if (!t) return; // skipped: no throwaway server configured, see docs/testing/database-tests.md
-        let server: any;
-        try {
-          const a = createAdapter({
-            engine,
-            ...t.config,
-            allowPublicKeyRetrieval: true,
-          } as any);
-          await a.connect();
-          await a.query(
-            engine === "mysql"
-              ? "CREATE TABLE wide (id INT PRIMARY KEY, sku VARCHAR(20) NOT NULL, full_name VARCHAR(200), email VARCHAR(200), country CHAR(2), balance DECIMAL(12,2), qty INT, is_active TINYINT(1), created_at DATETIME, notes TEXT, rating DOUBLE, tags VARCHAR(100), city VARCHAR(60), postal_code VARCHAR(12), INDEX idx_wide_sku (sku))"
-              : "CREATE TABLE wide (id INT PRIMARY KEY, sku VARCHAR(20) NOT NULL, full_name VARCHAR(200), email VARCHAR(200), country CHAR(2), balance NUMERIC(12,2), qty INT, is_active BOOLEAN, created_at TIMESTAMP, notes TEXT, rating DOUBLE PRECISION, tags VARCHAR(100), city VARCHAR(60), postal_code VARCHAR(12))",
-          );
-          await a.query(
-            INSERT(
-              engine === "mysql"
-                ? (n) => String(n % 2)
-                : (n) => (n % 2 ? "TRUE" : "FALSE"),
-            ),
-          );
-          await a.close();
-          server =
-            engine === "mysql"
-              ? startMysqlStudioServer({ port: 0, config: t.config as any })
-              : startPostgresStudioServer({ port: 0, config: t.config as any });
-          expect(await runUi(`http://127.0.0.1:${server.port}`, engine)).toBe(
-            0,
-          );
-        } finally {
-          server?.stop(true);
-          await t.drop();
-        }
-      }, 180_000);
-    }
-  },
-);
+  }
+});

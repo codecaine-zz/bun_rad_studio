@@ -1,6 +1,6 @@
-// Runs under NODE (jsdom cannot execute page scripts under Bun's vm). Driven by workbench_ui.test.ts, which
+// Driven by workbench_ui.test.ts, which
 // starts the workbench server and creates the fixture databases, then passes their locations via the environment.
-import { describe, test } from "node:test";
+import { describe, test } from "../helpers/ui_harness.mjs";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
 

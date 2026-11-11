@@ -9,6 +9,7 @@ import { startPostgresStudioServer } from "../../applications/postgres_studio_se
 import { makeRig, type Rig } from "../helpers/staging";
 import { generateSqliteStudioHtml } from "../../applications/sqlite_studio";
 import { rmDir } from "../helpers/rm";
+import { runUiSuiteAsync } from "../helpers/run_ui_suite";
 
 const CSV =
   '\uFEFFCustomer ID;Full Name;E-mail Address;Age;Balance;Date joined;Active?;Plan\r\n1;Ann Lee;ann@example.com;30;"1.510,00";01/01/2020;yes;free\r\n2;Bobby Ray;bob@example.com;41;20,00;02/02/2021;no;pro\r\n3;"Cy\nDee";cy@example.com;x;5,5;31/12/2022;y;team\r\n4;Di Fox;ann@example.com;22;5,5;31/12/2022;1;team\r\n5;Ed Mo;ed@example.com;200;1,5;2022-12-31;y;free\r\n6;Fay;fay@example.com;33;"2.000,25";15/03/2023;N;pro\r\n7;Gus;gus@example.com;29;7;not a date;yes;gold\r\n8;short\r\n';
@@ -104,31 +105,16 @@ describe("Import with staging: studio page", () => {
         grantedBase: `http://127.0.0.1:${srv2.port}`,
       });
     }
-    const proc = Bun.spawn(
-      [
-        "node",
-        "--test",
-        "--test-reporter=spec",
-        join(import.meta.dir, "staging_ui.node.mjs"),
-      ],
+    const res = await runUiSuiteAsync(
+      join(import.meta.dir, "staging_ui.node.mjs"),
       {
-        env: {
-          ...process.env,
-          STG_TARGETS: JSON.stringify(targets),
-          STG_CSV: Buffer.from(CSV, "utf8").toString("base64"),
-          NODE_NO_WARNINGS: "1",
-        },
-        stdout: "pipe",
-        stderr: "pipe",
+        STG_TARGETS: JSON.stringify(targets),
+        STG_CSV: Buffer.from(CSV, "utf8").toString("base64"),
       },
     );
-    const [out, err, code] = await Promise.all([
-      new Response(proc.stdout).text(),
-      new Response(proc.stderr).text(),
-      proc.exited,
-    ]);
     for (const r of rigs) await r.close();
-    if (code !== 0 || process.env.STG_VERBOSE) console.log(out + err);
-    expect(code).toBe(0);
+    if (res.code !== 0 || process.env.STG_VERBOSE) console.log(res.combined);
+    expect(res.code).toBe(0);
+    expect(res.pass).toBeGreaterThan(0);
   }, 180_000);
 });

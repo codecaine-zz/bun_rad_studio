@@ -15,15 +15,25 @@
  * It also rewrites release/file-manager/index.html so its buttons download from the release.
  */
 import {
+  closeSync,
+  copyFileSync,
   existsSync,
+  openSync,
   readFileSync,
   readdirSync,
   statSync,
   writeFileSync,
-  copyFileSync,
 } from "fs";
 import { join } from "path";
-import { VERSION, ROOT, log, run, sha256File } from "./release/common";
+import {
+  VERSION,
+  ROOT,
+  listSourceApps,
+  log,
+  run,
+  sha256File,
+} from "./release/common";
+import { listMacApps } from "./release/build_mac_apps";
 
 const RELEASE = join(ROOT, "release");
 const FM = join(RELEASE, "file-manager");
@@ -174,17 +184,21 @@ export function notes(
     "",
     macInstructions,
     "- **Windows:** `x64` for most PCs; `arm64` for Windows 11 on ARM (baseline x64 emulation, no AVX2 required); `baseline` for processors from before 2013. Unzip the whole folder, double-click **install.cmd**, then **Codecaine File Manager.exe**. Setup checks WebView2 and the [Visual C++ 2015-2022 x64 Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe), including on ARM, and offers to install missing prerequisites from Microsoft. No Bun or compiler is needed. If it fails, open **troubleshoot.cmd**.",
-    "- **Linux:** Double-click the `.deb` (`amd64` or `arm64`) in GNOME Software, Ubuntu App Center, KDE Discover, or GDebi for a 1-click GUI install (automatically installs `libgtk-4-1`, `libwebkitgtk-6.0-4`, desktop icon, AppStream metadata, and the Ubuntu 24.04+ AppArmor profile). For the portable `.zip` (`x64` or `arm64`), run `sh install.sh` for a menu entry and executable permissions (needs GTK 4 and WebKitGTK 6.0: `sudo apt install libgtk-4-1 libwebkitgtk-6.0-4` on Ubuntu 24.04+/Debian; `sudo dnf install gtk4 webkitgtk6.0` on Fedora). Run `sh troubleshoot.sh` to see startup errors. On Ubuntu 24.04+ with the portable `.zip`, if startup fails with a bwrap / dbus-proxy permission error, run `sh install.sh --apparmor` (sudo required). This adds an executable-specific AppArmor user-namespace permission without disabling AppArmor or WebKit's sandbox. Rerun after moving the extracted folder; remove with `sh install.sh --uninstall --apparmor`.",
+    "- **Linux:** Double-click the `.deb` (`amd64` or `arm64`) in GNOME Software, Ubuntu App Center, KDE Discover, or GDebi for a 1-click GUI install (automatically installs `libgtk-4-1`, `libwebkitgtk-6.0-4`, desktop icon, and AppStream metadata). For the portable `.zip` (`x64` or `arm64`), run `sh install.sh` for a menu entry and executable permissions (needs GTK 4 and WebKitGTK 6.0: `sudo apt install libgtk-4-1 libwebkitgtk-6.0-4` on Ubuntu 24.04+/Debian; `sudo dnf install gtk4 webkitgtk6.0` on Fedora). Run `sh troubleshoot.sh` to see startup errors. On Ubuntu 24.04+, AppArmor is opt-in: if startup fails with a bwrap / dbus-proxy permission error, run `sh /opt/codecaine-file-manager/install.sh --apparmor` (or `sh install.sh --apparmor` in the portable `.zip`, sudo required). This grants bubblewrap sandbox namespaces only without disabling AppArmor or WebKit's sandbox. Rerun after moving a portable folder; remove with `sh install.sh --uninstall --apparmor`.",
     "- **File Manager startup:** opens in its native desktop window by default on macOS, Windows, and Linux (pass `--browser` or `-b` only if you want to open in your web browser instead). Standalone Windows/Linux downloads record startup errors in `~/.bun_rad_studio/file-manager-startup.log` (Windows: `%USERPROFILE%\\.bun_rad_studio\\file-manager-startup.log`).",
     "",
   );
+  const sourceApps = listSourceApps();
+  const guiAppCount = sourceApps.filter((a) => a.kind === "gui").length;
+  const cliAppCount = sourceApps.filter((a) => a.kind === "cli").length;
+  const macAppCount = listMacApps().length;
   const apps = files.filter((f) => KIND(f.name) === "apps");
   const suite = files.filter((f) => KIND(f.name) === "suite");
   if (apps.length) {
     L.push(
       "## 🍎 Every app as a Mac `.app` (with its own icon)",
       "",
-      "66 desktop apps (games, studios, tools), each a double-click `.app`. Download **all the parts for your Mac** and unzip them into one folder.",
+      `${macAppCount} desktop apps (games, studios, tools), each a double-click \`.app\`. Download **all the parts for your Mac** and unzip them into one folder.`,
       "",
     );
     for (const arch of ["arm64", "x64"]) {
@@ -200,7 +214,7 @@ export function notes(
     L.push(
       "## 📦 The whole suite: every desktop app and command-line tool",
       "",
-      "One download per platform with all 74 desktop apps and 79 command-line tools, each started from its `bin/` folder (see `README.txt` inside).",
+      `One download per platform with all ${guiAppCount} desktop apps and ${cliAppCount} command-line tools, each started from its \`bin/\` folder (see \`README.txt\` inside).`,
       "",
       "| Platform | Download |",
       "|---|---|",
@@ -256,6 +270,75 @@ export function notes(
   return L.join("\n");
 }
 
+export async function resolveGitHubToken(options?: {
+  allowMissing?: boolean;
+  timeoutMs?: number;
+}): Promise<string> {
+  const envTok = (
+    process.env.GH_TOKEN ||
+    process.env.GITHUB_TOKEN ||
+    ""
+  ).trim();
+  if (envTok) return envTok;
+
+  const timeoutMs = options?.timeoutMs ?? 5000;
+  let tok = "";
+  try {
+    const proc = Bun.spawn(["git", "credential", "fill"], {
+      cwd: ROOT,
+      env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
+      stdin: new Blob(["protocol=https\nhost=github.com\n\n"]),
+      stdout: "pipe",
+      stderr: "ignore",
+    });
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      try {
+        proc.kill();
+      } catch {}
+    }, timeoutMs);
+    let out = "";
+    try {
+      const [stdoutText] = await Promise.all([
+        new Response(proc.stdout).text(),
+        proc.exited,
+      ]);
+      if (!timedOut) out = stdoutText;
+    } finally {
+      clearTimeout(timer);
+    }
+    tok =
+      out
+        .split(/\r?\n/)
+        .find((l) => l.startsWith("password="))
+        ?.slice("password=".length)
+        .trim() ?? "";
+  } catch {}
+
+  if (!tok && !options?.allowMissing) {
+    throw new Error(
+      "Neither `gh` CLI nor a GitHub token (`GH_TOKEN`, `GITHUB_TOKEN`, or `git credential fill`) was found.",
+    );
+  }
+  return tok;
+}
+
+export function verifyLocalAssetReadable(filePath: string): number {
+  if (!existsSync(filePath)) {
+    throw new Error(`Release asset missing on disk: ${filePath}`);
+  }
+  const st = statSync(filePath);
+  if (!st.isFile() || st.size <= 0) {
+    throw new Error(
+      `Release asset must be a non-empty regular file: ${filePath}`,
+    );
+  }
+  const fd = openSync(filePath, "r");
+  closeSync(fd);
+  return st.size;
+}
+
 async function main() {
   const repo = await repoSlug();
   const files = collect();
@@ -263,6 +346,7 @@ async function main() {
     throw new Error(
       "No File Manager zips found. Run: bun run release:file-manager",
     );
+  for (const f of files) verifyLocalAssetReadable(f.path);
   const tag = `v${VERSION}`;
   log(
     "📦",
@@ -284,15 +368,18 @@ async function main() {
     bytes: f.bytes,
   }));
   if (update) {
+    const lookupToken = await resolveGitHubToken({ allowMissing: true });
     try {
+      const lookupHeaders: Record<string, string> = {
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      };
+      if (lookupToken) {
+        lookupHeaders.Authorization = `Bearer ${lookupToken}`;
+      }
       const res = await fetch(
         `https://api.github.com/repos/${repo}/releases/tags/${tag}`,
-        {
-          headers: {
-            Accept: "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-          },
-        },
+        { headers: lookupHeaders },
       );
       if (res.ok) {
         const rel = (await res.json()) as {
@@ -333,8 +420,6 @@ async function main() {
     if (h) sums.push(`${h}  ${m.name}`);
   }
 
-  const sumsPath = join(RELEASE, "SHA256SUMS.txt");
-  writeFileSync(sumsPath, sums.join("\n") + "\n");
   const body = notes(
     allMeta,
     repo,
@@ -344,6 +429,15 @@ async function main() {
         : "",
     ),
   );
+
+  if (dry) {
+    log("🧪", "Dry run: nothing was uploaded or written.");
+    console.log("\n" + body);
+    return;
+  }
+
+  const sumsPath = join(RELEASE, "SHA256SUMS.txt");
+  writeFileSync(sumsPath, sums.join("\n") + "\n");
   const notesPath = join(RELEASE, "RELEASE_NOTES.md");
   writeFileSync(notesPath, body);
   await run(
@@ -359,12 +453,6 @@ async function main() {
   );
   copyFileSync(sumsPath, join(FM, "SHA256SUMS.txt"));
 
-  if (dry) {
-    log("🧪", "Dry run: nothing was uploaded.");
-    console.log("\n" + body);
-    return;
-  }
-
   const hasGh =
     Boolean(Bun.which("gh")) &&
     Bun.spawnSync(["gh", "auth", "status"], {
@@ -372,31 +460,6 @@ async function main() {
       stdout: "ignore",
       stderr: "ignore",
     }).exitCode === 0;
-  async function resolveGitHubToken(): Promise<string> {
-    const envTok = (
-      process.env.GH_TOKEN ||
-      process.env.GITHUB_TOKEN ||
-      ""
-    ).trim();
-    if (envTok) return envTok;
-    const proc = Bun.spawn(["git", "credential", "fill"], {
-      cwd: ROOT,
-      stdin: new Blob(["protocol=https\nhost=github.com\n\n"]),
-      stdout: "pipe",
-      stderr: "ignore",
-    });
-    const out = await new Response(proc.stdout).text();
-    const tok = out
-      .split(/\r?\n/)
-      .find((l) => l.startsWith("password="))
-      ?.slice("password=".length)
-      .trim();
-    if (!tok)
-      throw new Error(
-        "Neither `gh` CLI nor a GitHub token (`GH_TOKEN`, `GITHUB_TOKEN`, or `git credential fill`) was found.",
-      );
-    return tok;
-  }
 
   if (!hasGh) {
     const token = await resolveGitHubToken();
@@ -495,22 +558,19 @@ async function main() {
       let ok = false;
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
+          const verifiedBytes = verifyLocalAssetReadable(item.path);
           const existing = remoteAssets.get(item.name);
-          if (existing) {
-            await fetch(
-              `https://api.github.com/repos/${repo}/releases/assets/${existing.id}`,
-              { method: "DELETE", headers },
-            );
-            remoteAssets.delete(item.name);
-          }
+          const uploadName = existing
+            ? `${item.name}.uploading-${Date.now()}`
+            : item.name;
           const upRes = await fetch(
-            `https://uploads.github.com/repos/${repo}/releases/${releaseObj.id}/assets?name=${encodeURIComponent(item.name)}`,
+            `https://uploads.github.com/repos/${repo}/releases/${releaseObj.id}/assets?name=${encodeURIComponent(uploadName)}`,
             {
               method: "POST",
               headers: {
                 ...headers,
                 "Content-Type": "application/octet-stream",
-                "Content-Length": String(item.bytes),
+                "Content-Length": String(verifiedBytes),
               },
               body: Bun.file(item.path),
             },
@@ -520,6 +580,25 @@ async function main() {
               id: number;
               digest?: string;
             };
+            if (existing) {
+              await fetch(
+                `https://api.github.com/repos/${repo}/releases/assets/${existing.id}`,
+                { method: "DELETE", headers },
+              );
+              const renameRes = await fetch(
+                `https://api.github.com/repos/${repo}/releases/assets/${uploaded.id}`,
+                {
+                  method: "PATCH",
+                  headers: { ...headers, "Content-Type": "application/json" },
+                  body: JSON.stringify({ name: item.name }),
+                },
+              );
+              if (!renameRes.ok) {
+                throw new Error(
+                  `Uploaded staging asset ${uploadName} (${uploaded.id}) but failed to rename to ${item.name} (HTTP ${renameRes.status}).`,
+                );
+              }
+            }
             remoteAssets.set(item.name, {
               id: uploaded.id,
               digest: uploaded.digest?.replace(/^sha256:/, ""),

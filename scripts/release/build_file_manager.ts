@@ -185,7 +185,7 @@ function targetOf(d: Download): Target {
 
 /** The program at the root of the Windows and Linux folders: it starts itself as the bundled Bun runtime running the app. */
 export const LAUNCHER_STUB = `// ${APP_TITLE} launcher. Started by a double-click; runs app/${MAIN}.js with this same executable acting as Bun.
-import { appendFileSync, existsSync, mkdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "fs";
+import { appendFileSync, existsSync, mkdirSync, realpathSync, renameSync, rmSync, symlinkSync, writeFileSync } from "fs";
 import { homedir } from "os";
 import { dirname, join } from "path";
 
@@ -230,10 +230,12 @@ if (!env.WEBVIEW_PATH) env.WEBVIEW_PATH = join(dir, "lib", lib);
 let cwd = dir;
 if (process.platform !== "win32") {
   try {
-    const work = join(homedir(), ".bun_rad_studio", "run");
+    const work = join(homedir(), ".bun_rad_studio", "run", "codecaine-file-manager-${VERSION}");
     mkdirSync(work, { recursive: true });
-    rmSync(join(work, "resources"), { recursive: true, force: true });
-    symlinkSync(join(dir, "resources"), join(work, "resources"));
+    const tmpLink = join(work, ".resources-" + process.pid + "-" + Date.now());
+    rmSync(tmpLink, { recursive: true, force: true });
+    symlinkSync(join(dir, "resources"), tmpLink);
+    renameSync(tmpLink, join(work, "resources"));
     cwd = work;
   } catch (error) {
     throw new Error("Could not prepare the writable resources folder: " + String(error));
@@ -694,12 +696,12 @@ ${card("linux", "Linux", "🐧", "Double-click the .deb in your GUI Software Cen
 <div class="how">
 ${macAvailable ? `<div><h3>macOS: first launch</h3><ol><li>Unzip and drag the app to Applications.</li><li>The app is not Developer ID signed or notarized. Right-click Open may not bypass quarantine.</li><li>Only after trusting the source and checking the checksum, run <code>xattr -dr com.apple.quarantine "/Applications/${APP_TITLE}.app"</code> in Terminal, then open the app.</li></ol><p>Do not disable Gatekeeper system-wide.</p></div>` : `<div><h3>macOS: using the full suite</h3><p>Download a macOS full-suite archive from <a href="https://github.com/codecaine-zz/bun_rad_studio/releases/latest">GitHub Releases</a>, then start <code>bin/file-manager-studio</code> from its extracted folder. See the included <code>README.txt</code> for first-launch guidance.</p></div>`}
 <div><h3>Windows: first launch</h3><ol><li>Unzip the whole folder (keep the files together).</li><li>Double-click <b>install.cmd</b>. It checks WebView2 and the <a href="https://aka.ms/vs/17/release/vc_redist.x64.exe">Visual C++ x64 Redistributable</a> (also on ARM), and asks permission to install missing prerequisites from Microsoft.</li><li>Double-click <b>${APP_TITLE}.exe</b>. If it fails, open <b>troubleshoot.cmd</b>.</li></ol><p>No Bun or compiler needed. If SmartScreen warns you, choose <b>More info</b> then <b>Run anyway</b>. ARM requires Windows 11 x64 emulation.</p></div>
-<div><h3>Linux: first launch</h3><ol><li><b>Ubuntu / Debian / Mint (.deb):</b> Double-click the <code>.deb</code> in GNOME Software, Ubuntu App Center, KDE Discover, or run <code>sudo apt install ./codecaine-file-manager_${VERSION}_amd64.deb</code>.</li><li><b>Portable .zip:</b> <code>unzip</code> the download, install GTK 4 and WebKitGTK 6.0 (Ubuntu/Debian: <code>sudo apt install libgtk-4-1 libwebkitgtk-6.0-4</code>; Fedora: <code>sudo dnf install gtk4 webkitgtk6.0</code>), and run <code>sh install.sh</code> for a menu entry or <code>sh troubleshoot.sh</code> to see errors.</li></ol><p>Ubuntu 24.04+: the <code>.deb</code> configures AppArmor automatically. For the portable <code>.zip</code>, if the window crashes with a bwrap / dbus-proxy permission error, run <code>sh install.sh --apparmor</code> (sudo required). This permits sandbox namespaces for this executable only. Rerun after moving the folder.</p><p>Needs a graphical desktop. Not sure of your CPU? <code>uname -m</code> prints x86_64 or aarch64. No desktop? Use <code>./codecaine-file-manager --server</code>.</p></div>
+<div><h3>Linux: first launch</h3><ol><li><b>Ubuntu / Debian / Mint (.deb):</b> Double-click the <code>.deb</code> in GNOME Software, Ubuntu App Center, KDE Discover, or run <code>sudo apt install ./codecaine-file-manager_${VERSION}_amd64.deb</code>.</li><li><b>Portable .zip:</b> <code>unzip</code> the download, install GTK 4 and WebKitGTK 6.0 (Ubuntu/Debian: <code>sudo apt install libgtk-4-1 libwebkitgtk-6.0-4</code>; Fedora: <code>sudo dnf install gtk4 webkitgtk6.0</code>), and run <code>sh install.sh</code> for a menu entry or <code>sh troubleshoot.sh</code> to see errors.</li></ol><p>Ubuntu 24.04+: AppArmor is opt-in so package installation never weakens system-wide namespace hardening. If the window crashes with a bwrap / dbus-proxy permission error, run <code>sh /opt/codecaine-file-manager/install.sh --apparmor</code> (or <code>sh install.sh --apparmor</code> in the portable <code>.zip</code>, sudo required) to grant bubblewrap sandbox namespaces only. Rerun after moving a portable folder.</p><p>Needs a graphical desktop. Not sure of your CPU? <code>uname -m</code> prints x86_64 or aarch64. No desktop? Use <code>./codecaine-file-manager --server</code>.</p></div>
 </div>
 <footer>Check a download: <code>shasum -a 256 -c SHA256SUMS.txt --ignore-missing</code> (the file is next to the zips). Prefer to build it yourself? The source is on <a href="https://github.com/codecaine-zz/bun_rad_studio">GitHub</a>.</footer>
 </main>
 <script>
-const FILES = ${JSON.stringify(data)};
+const FILES = ${JSON.stringify(data).replace(/</g, "\\u003c")};
 (function () {
   const ua = navigator.userAgent || "", plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "";
   const os = /Win/i.test(plat + ua) ? "windows" : /Mac/i.test(plat) && !/iPhone|iPad/i.test(ua) ? "macos" : /Linux|X11|CrOS/i.test(plat + ua) ? "linux" : null;

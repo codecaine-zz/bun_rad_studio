@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Bun RAD Studio - Universal Windows Runner & Launcher
 .DESCRIPTION
@@ -62,8 +62,63 @@ function Write-BrandHeader {
 }
 
 # -------------------------------------------------------------------------------------------------
-# 2. Bun Runtime Detection
+# 2. Bun Runtime & PE Architecture Detection
 # -------------------------------------------------------------------------------------------------
+
+function Test-PeMachineX64 {
+    param([string]$FilePath)
+    if (-not $FilePath -or -not (Test-Path -LiteralPath $FilePath -PathType Leaf)) {
+        return $false
+    }
+    $fs = $null
+    try {
+        $fs = [System.IO.File]::Open(
+            $FilePath,
+            [System.IO.FileMode]::Open,
+            [System.IO.FileAccess]::Read,
+            [System.IO.FileShare]::ReadWrite
+        )
+        if ($fs.Length -lt 64) { return $false }
+        $dos = New-Object byte[] 64
+        if ($fs.Read($dos, 0, 64) -lt 64) { return $false }
+        # DOS 'MZ' magic (0x4D, 0x5A)
+        if ($dos[0] -ne 0x4D -or $dos[1] -ne 0x5A) { return $false }
+        $peOffset = [System.BitConverter]::ToUInt32($dos, 0x3C)
+        if ($peOffset -lt 64 -or ($peOffset + 6) -gt $fs.Length) { return $false }
+        $null = $fs.Seek([long]$peOffset, [System.IO.SeekOrigin]::Begin)
+        $pe = New-Object byte[] 6
+        if ($fs.Read($pe, 0, 6) -lt 6) { return $false }
+        # PE\0\0 signature (0x50, 0x45, 0x00, 0x00) and COFF Machine 0x8664 (x86_64)
+        if ($pe[0] -ne 0x50 -or $pe[1] -ne 0x45 -or $pe[2] -ne 0x00 -or $pe[3] -ne 0x00) {
+            return $false
+        }
+        $machine = [System.BitConverter]::ToUInt16($pe, 4)
+        return ($machine -eq 0x8664)
+    } catch {
+        return $false
+    } finally {
+        if ($fs) { $fs.Dispose() }
+    }
+}
+
+function Get-ExpectedSha256FromSums {
+    param(
+        [string]$SumsContent,
+        [string]$AssetName
+    )
+    if (-not $SumsContent -or -not $AssetName) { return $null }
+    foreach ($line in ($SumsContent -split "`r?`n")) {
+        $trimmed = $line.Trim()
+        if ($trimmed -match '^([0-9a-fA-F]{64})\s+\*?(.+)$') {
+            $hash = $matches[1].ToLowerInvariant()
+            $name = [System.IO.Path]::GetFileName($matches[2].Trim())
+            if ($name -eq $AssetName) {
+                return $hash
+            }
+        }
+    }
+    return $null
+}
 
 function Get-BunX64ForArm64 {
     $userProfile = 'C:\Users\Default'
@@ -73,19 +128,19 @@ function Get-BunX64ForArm64 {
 
     $targetDir = Join-Path $localApp 'bun-x64'
     $baselineExe = Join-Path $targetDir 'bun-windows-x64-baseline\bun.exe'
-    if (Test-Path $baselineExe) { return $baselineExe }
+    if (Test-PeMachineX64 $baselineExe) { return $baselineExe }
 
     $targetExe = Join-Path $targetDir 'bun-windows-x64\bun.exe'
-    if (Test-Path $targetExe) { return $targetExe }
+    if (Test-PeMachineX64 $targetExe) { return $targetExe }
 
     $altExe = Join-Path $targetDir 'bun.exe'
-    if (Test-Path $altExe) { return $altExe }
+    if (Test-PeMachineX64 $altExe) { return $altExe }
 
-    if (Test-Path 'C:\Tools\bun-x64\bun-windows-x64-baseline\bun.exe') {
+    if (Test-PeMachineX64 'C:\Tools\bun-x64\bun-windows-x64-baseline\bun.exe') {
         return 'C:\Tools\bun-x64\bun-windows-x64-baseline\bun.exe'
     }
 
-    if (Test-Path 'C:\Tools\bun-x64\bun-windows-x64\bun.exe') {
+    if (Test-PeMachineX64 'C:\Tools\bun-x64\bun-windows-x64\bun.exe') {
         return 'C:\Tools\bun-x64\bun-windows-x64\bun.exe'
     }
 
@@ -96,33 +151,50 @@ function Get-BunX64ForArm64 {
     Write-Host "    Windows ARM64 runs Bun x64-baseline smoothly via built-in x64 emulation." -ForegroundColor Gray
     Write-Host "[+] Automatically setting up Bun x64-baseline for Windows ARM64 (one-time setup)..." -ForegroundColor Cyan
 
-    $tempDir = 'C:\Temp'
-    if ($env:TEMP) { $tempDir = $env:TEMP }
-    $zipPath = Join-Path $tempDir 'bun-windows-x64-baseline.zip'
+    $bunTag = if ($env:BUN_WINDOWS_X64_TAG) { $env:BUN_WINDOWS_X64_TAG } else { 'bun-v1.4.4' }
+    $assetName = 'bun-windows-x64-baseline.zip'
+    $stageDir = Join-Path ([System.IO.Path]::GetTempPath()) ("bun-x64-stage-" + [System.Guid]::NewGuid().ToString("N"))
+    $zipPath = Join-Path $stageDir $assetName
+    $sumsPath = Join-Path $stageDir 'SHASUMS256.txt'
 
     try {
+        New-Item -ItemType Directory -Force -Path $stageDir | Out-Null
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-        Write-Host "    Downloading bun-windows-x64-baseline from GitHub releases (~25 MB)..." -ForegroundColor DarkGray
-        Invoke-WebRequest -Uri 'https://github.com/oven-sh/bun/releases/latest/download/bun-windows-x64-baseline.zip' -OutFile $zipPath -UseBasicParsing
-        New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
-        Expand-Archive -Path $zipPath -DestinationPath $targetDir -Force
-        Remove-Item $zipPath -ErrorAction SilentlyContinue
+        $baseUrl = "https://github.com/oven-sh/bun/releases/download/$bunTag"
+        Write-Host "    Downloading $assetName ($bunTag) and SHA-256 manifest from GitHub releases..." -ForegroundColor DarkGray
+        $expectedHash = if ($env:BUN_WINDOWS_X64_SHA256) {
+            $env:BUN_WINDOWS_X64_SHA256.Trim().ToLowerInvariant()
+        } else {
+            Invoke-WebRequest -Uri "$baseUrl/SHASUMS256.txt" -OutFile $sumsPath -UseBasicParsing
+            Get-ExpectedSha256FromSums -SumsContent (Get-Content -LiteralPath $sumsPath -Raw) -AssetName $assetName
+        }
+        if (-not $expectedHash -or $expectedHash -notmatch '^[0-9a-f]{64}$') {
+            throw "Could not resolve SHA-256 checksum for $assetName in $bunTag SHASUMS256.txt"
+        }
 
-        if (Test-Path $baselineExe) {
-            Write-Host "[OK] Bun x64-baseline configured at: $baselineExe" -ForegroundColor Green
-            return $baselineExe
+        Invoke-WebRequest -Uri "$baseUrl/$assetName" -OutFile $zipPath -UseBasicParsing
+        $actualHash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($actualHash -ne $expectedHash) {
+            throw "SHA-256 mismatch for $assetName (expected $expectedHash, got $actualHash)"
         }
-        if (Test-Path $targetExe) {
-            Write-Host "[OK] Bun x64 configured at: $targetExe" -ForegroundColor Green
-            return $targetExe
+
+        New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
+        Expand-Archive -LiteralPath $zipPath -DestinationPath $targetDir -Force
+
+        foreach ($candidateExe in @($baselineExe, $targetExe, $altExe)) {
+            if (Test-PeMachineX64 $candidateExe) {
+                Write-Host "[OK] Bun x64 configured at: $candidateExe" -ForegroundColor Green
+                return $candidateExe
+            }
         }
-        if (Test-Path $altExe) {
-            Write-Host "[OK] Bun x64 configured at: $altExe" -ForegroundColor Green
-            return $altExe
-        }
+        throw "Extracted Bun binary did not pass x64 PE (0x8664) verification."
     } catch {
         Write-Host "[!] Automatic download failed: $_" -ForegroundColor Red
-        Write-Host "    You can manually extract bun-windows-x64.zip to $targetDir or C:\Tools\bun-x64" -ForegroundColor Yellow
+        Write-Host "    You can manually extract bun-windows-x64-baseline.zip to $targetDir or C:\Tools\bun-x64" -ForegroundColor Yellow
+    } finally {
+        if (Test-Path -LiteralPath $stageDir) {
+            Remove-Item -LiteralPath $stageDir -Recurse -Force -ErrorAction SilentlyContinue
+        }
     }
 
     return $null
@@ -152,13 +224,15 @@ function Find-BunRuntime {
     # We must use Bun x64 running under Windows built-in emulation.
     if ($isArm64) {
         $x64Candidates = @(
+            'C:\Tools\bun-x64\bun-windows-x64-baseline\bun.exe',
             'C:\Tools\bun-x64\bun-windows-x64\bun.exe',
             'C:\Tools\bun-x64\bun.exe',
+            (Join-Path $localApp 'bun-x64\bun-windows-x64-baseline\bun.exe'),
             (Join-Path $localApp 'bun-x64\bun-windows-x64\bun.exe'),
             (Join-Path $localApp 'bun-x64\bun.exe')
         )
         foreach ($c in $x64Candidates) {
-            if ($c -and (Test-Path $c)) {
+            if ($c -and (Test-PeMachineX64 $c)) {
                 return $c
             }
         }
@@ -177,13 +251,13 @@ function Find-BunRuntime {
     }
 
     $candidates = @(
+        'C:\Tools\bun-x64\bun-windows-x64-baseline\bun.exe',
         'C:\Tools\bun-x64\bun-windows-x64\bun.exe',
         (Join-Path $userProfile '.bun\bin\bun.exe'),
         (Join-Path $localApp 'bun\bin\bun.exe'),
         'C:\Program Files\Bun\bun.exe',
         'C:\Tools\bun-x64\bun.exe',
-        'C:\Tools\bun-arm64\bun.exe',
-        'C:\Users\codecaine\.bun\bin\bun.exe'
+        'C:\Tools\bun-arm64\bun.exe'
     )
 
     foreach ($candidate in $candidates) {
@@ -213,17 +287,40 @@ if (-not $bunExe) {
 # 3. WebView2 Runtime & Loader Verification
 # -------------------------------------------------------------------------------------------------
 
+function Find-X64WebView2LoaderInRoots {
+    param([System.Collections.Generic.List[string]]$Roots)
+    foreach ($root in $Roots) {
+        if (-not $root -or -not (Test-Path -LiteralPath $root)) { continue }
+        try {
+            $hits = Get-ChildItem -LiteralPath $root -Recurse -Filter 'WebView2Loader.dll' -ErrorAction SilentlyContinue |
+                Where-Object { $_.FullName -notmatch '\\(arm64|x86|win32|syswow64|sysarm32)\\' } |
+                Sort-Object @{ Expression = { if ($_.FullName -match '\\x64\\') { 0 } else { 1 } } }, @{ Expression = { $_.FullName }; Descending = $true }
+            foreach ($hit in $hits) {
+                if (Test-PeMachineX64 $hit.FullName) {
+                    return $hit.FullName
+                }
+            }
+        } catch {}
+    }
+    return $null
+}
+
 function Ensure-WebView2Loader {
     param([switch]$Force)
 
     $buildDir = Join-Path $projectRoot 'node_modules\webview-bun\build'
     $targetLoader = Join-Path $buildDir 'WebView2Loader.dll'
 
-    if ((Test-Path $targetLoader) -and (-not $Force)) {
-        return $true
+    if (Test-Path -LiteralPath $targetLoader) {
+        if ((-not $Force) -and (Test-PeMachineX64 $targetLoader)) {
+            return $true
+        }
+        if (-not (Test-PeMachineX64 $targetLoader)) {
+            Remove-Item -LiteralPath $targetLoader -Force -ErrorAction SilentlyContinue
+        }
     }
 
-    Write-Host "[*] Locating WebView2Loader.dll for webview-bun..." -ForegroundColor Yellow
+    Write-Host "[*] Locating x64 WebView2Loader.dll for webview-bun..." -ForegroundColor Yellow
 
     $localApp = ''
     if ($env:LOCALAPPDATA) {
@@ -243,21 +340,8 @@ function Ensure-WebView2Loader {
         $searchRoots.Add((Join-Path $localApp 'Microsoft\EdgeWebView'))
     }
     $searchRoots.Add('C:\Windows\System32')
-    $searchRoots.Add('C:\Windows\SysWOW64')
-    $searchRoots.Add('C:\Windows\Arm64')
 
-    $found = $null
-    foreach ($root in $searchRoots) {
-        if ($root -and (Test-Path $root)) {
-            try {
-                $hits = Get-ChildItem -Path $root -Recurse -Filter 'WebView2Loader.dll' -ErrorAction SilentlyContinue
-                if ($hits -and $hits.Count -gt 0) {
-                    $found = $hits[0].FullName
-                    break
-                }
-            } catch {}
-        }
-    }
+    $found = Find-X64WebView2LoaderInRoots -Roots $searchRoots
 
     if (-not $found) {
         $winget = Get-Command winget -ErrorAction SilentlyContinue
@@ -265,15 +349,7 @@ function Ensure-WebView2Loader {
             Write-Host "[+] Installing Microsoft Edge WebView2 runtime via winget..." -ForegroundColor Cyan
             try {
                 & winget install --id Microsoft.EdgeWebView2Runtime --exact --accept-source-agreements --accept-package-agreements
-                foreach ($root in $searchRoots) {
-                    if ($root -and (Test-Path $root)) {
-                        $hits = Get-ChildItem -Path $root -Recurse -Filter 'WebView2Loader.dll' -ErrorAction SilentlyContinue
-                        if ($hits -and $hits.Count -gt 0) {
-                            $found = $hits[0].FullName
-                            break
-                        }
-                    }
-                }
+                $found = Find-X64WebView2LoaderInRoots -Roots $searchRoots
             } catch {}
         }
     }
@@ -459,14 +535,22 @@ function Get-AppCatalog {
         })
     }
 
-    # 2. Studio Applications
+    # 2. Studio Applications (synced with NON_APP_MODULES in applications/launcher_studio.ts)
+    $nonAppModules = @(
+        'postgres_designer.js',
+        'postgres_studio_designer.ts',
+        'sqlite_studio_macros.ts',
+        'studio_codegen.ts',
+        'system_studio_extras.ts'
+    )
     $appFiles = Get-ChildItem -Path (Join-Path $projectRoot 'applications') -Filter '*.ts' -ErrorAction SilentlyContinue |
         Where-Object {
             $_.Name -notmatch '_server\.ts$' -and
             $_.Name -notmatch '_crud\.ts$' -and
             $_.Name -notmatch '_engine\.ts$' -and
             $_.Name -notmatch '_extras\.ts$' -and
-            $_.Name -notmatch '_ops\.ts$'
+            $_.Name -notmatch '_ops\.ts$' -and
+            ($nonAppModules -notcontains $_.Name)
         } |
         Sort-Object Name
 

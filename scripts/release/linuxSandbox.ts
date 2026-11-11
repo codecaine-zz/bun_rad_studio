@@ -1,8 +1,34 @@
+/**
+ * Builds an executable-specific AppArmor 4.0 profile that denies unprivileged
+ * user namespaces on the BUN_BE_BUN-capable parent runtime while transitioning
+ * WebKitGTK's bubblewrap / xdg-dbus-proxy sandbox helpers into a child profile
+ * that alone holds `userns`.
+ */
+export function appArmorProfileFor(
+  profileName: string,
+  attachmentPath: string,
+): string {
+  return `abi <abi/4.0>,
+include <tunables/global>
+
+profile ${profileName} "${attachmentPath}" flags=(default_allow) {
+  deny userns,
+  /usr/bin/bwrap Cx -> bwrap,
+  /usr/bin/xdg-dbus-proxy Cx -> bwrap,
+
+  profile bwrap flags=(default_allow) {
+    userns,
+  }
+}
+`;
+}
+
 /** Shared by Linux release installers; ROOT must be the extracted archive's physical path. */
 export function linuxSandboxSetup(
   profileName: string,
   executable: string,
 ): string {
+  const profileBody = appArmorProfileFor(profileName, `$ROOT/${executable}`);
   return `PROFILE="/etc/apparmor.d/${profileName}"
 APPARMOR=0
 UNINSTALL=0
@@ -38,17 +64,16 @@ if [ "$APPARMOR" = 1 ]; then
       exit 1
     fi
     TMP_PROFILE="$(mktemp)"
+    if [ -z "$TMP_PROFILE" ] || [ ! -f "$TMP_PROFILE" ]; then
+      echo "Failed to create temporary AppArmor profile." >&2
+      exit 1
+    fi
+    chmod 600 "$TMP_PROFILE"
     trap 'rm -f "$TMP_PROFILE"' EXIT HUP INT TERM
     cat > "$TMP_PROFILE" <<EOF
-abi <abi/4.0>,
-include <tunables/global>
-
-profile ${profileName} "$ROOT/${executable}" flags=(unconfined) {
-  userns,
-}
-EOF
+${profileBody}EOF
     "$PARSER" --skip-kernel-load --skip-cache "$TMP_PROFILE"
-    echo "Installing an executable-specific AppArmor user-namespace permission (sudo required)."
+    echo "Installing an executable-specific AppArmor bubblewrap sandbox permission (sudo required)."
     sudo install -m 644 "$TMP_PROFILE" "$PROFILE"
     sudo "$PARSER" -r "$PROFILE"
     echo "AppArmor profile loaded. Rerun sh install.sh --apparmor if you move this folder."
@@ -69,14 +94,18 @@ fi
 
 /**
  * Single-command Ubuntu/Linux installer for Ollama and starter AI models (Qwen 3.5 + LFM3-Omni).
- * Uses the release archive's bundled Bun binary (with Bun.zstdDecompressSync) so zero sudo,
- * zero curl, and zero external zstd package are required on Ubuntu/Debian/Fedora/Arch.
+ * Streams the pinned GitHub release archive directly to a 0700 staging directory, verifies its
+ * SHA-256 digest against sha256sum.txt before extraction, and extracts with tar --no-same-owner.
  */
 export function linuxOllamaInstallScript(executableRelPath: string): string {
   return `#!/bin/sh
 # Single-step installer for Ollama (~/.local/bin/ollama, no sudo required) and starter AI models
 # (qwen3.5:4b / qwen3.5:latest + lfm3-omni:latest) for Codecaine File Manager on Ubuntu & Linux.
 set -e
+if [ -z "\${HOME:-}" ] || [ "\${HOME}" = "/tmp" ] || [ "\${HOME}" = "/var/tmp" ]; then
+  echo "Refusing to install Ollama without a valid HOME directory." >&2
+  exit 1
+fi
 ROOT="$(cd "$(dirname "$0")" && pwd -P)"
 BUN_BIN="$ROOT/${executableRelPath}"
 if [ ! -x "$BUN_BIN" ]; then
@@ -84,10 +113,15 @@ if [ ! -x "$BUN_BIN" ]; then
 fi
 export PATH="\${HOME}/.local/bin:\${PATH}"
 BUN_BE_BUN=1 exec "$BUN_BIN" -e '
-import { existsSync, mkdirSync, chmodSync, rmSync, readFileSync, appendFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, mkdtempSync, chmodSync, rmSync, readFileSync, appendFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { basename, join } from "node:path";
 
-const home = process.env.HOME || "/tmp";
+const home = (process.env.HOME || "").trim();
+if (!home || !home.startsWith("/") || home === "/tmp" || home === "/var/tmp") {
+  console.error("Refusing to install Ollama without a valid absolute HOME directory.");
+  process.exit(1);
+}
 const localDir = join(home, ".local");
 const binDir = join(localDir, "bin");
 mkdirSync(binDir, { recursive: true });
@@ -102,26 +136,83 @@ try {
 
 console.log("==> Codecaine 1-Step Ollama + AI Models Installer (Linux " + arch + ", " + totalRamGb + " GB RAM)");
 
+function parseExpectedSha256(sumsText: string, candidates: string[]): { file: string; sha256: string } | null {
+  const lines = sumsText.split(/\\r?\\n/);
+  for (const candidate of candidates) {
+    for (const rawLine of lines) {
+      const m = /^\\s*([a-fA-F0-9]{64})\\s+[* ]?(.+?)\\s*$/.exec(rawLine);
+      if (!m) continue;
+      if (basename(m[2].trim()) === candidate) {
+        return { file: candidate, sha256: m[1].toLowerCase() };
+      }
+    }
+  }
+  return null;
+}
+
 let ollamaBin = Bun.which("ollama") || (existsSync(join(binDir, "ollama")) ? join(binDir, "ollama") : "");
 if (!ollamaBin) {
-  const url = "https://ollama.com/download/ollama-linux-" + arch + ".tar.zst";
-  console.log("==> Downloading Ollama for Linux (" + arch + ") into " + localDir + " (no sudo required)...");
-  const res = await fetch(url, { redirect: "follow" });
-  if (!res.ok) {
-    console.error("Failed to download " + url + " (HTTP " + res.status + ")");
+  const version = (process.env.OLLAMA_VERSION || "v0.6.2").trim();
+  if (!/^v\\d+\\.\\d+\\.\\d+(-[A-Za-z0-9._-]+)?$/.test(version)) {
+    console.error("Invalid OLLAMA_VERSION: " + version);
     process.exit(1);
   }
-  const total = Number(res.headers.get("content-length") || 0);
-  const chunks: Uint8Array[] = [];
-  let received = 0;
-  let lastPct = -1;
-  if (res.body) {
+  const baseUrl = "https://github.com/ollama/ollama/releases/download/" + version;
+  const hasZstd = Boolean(Bun.which("zstd"));
+  const candidateFiles = hasZstd
+    ? ["ollama-linux-" + arch + ".tar.zst", "ollama-linux-" + arch + ".tgz"]
+    : ["ollama-linux-" + arch + ".tgz", "ollama-linux-" + arch + ".tar.zst"];
+
+  let archiveFile = candidateFiles[0];
+  let expectedSha256 = (process.env.OLLAMA_SHA256 || "").trim().toLowerCase();
+  if (expectedSha256) {
+    if (!/^[a-f0-9]{64}$/.test(expectedSha256)) {
+      console.error("OLLAMA_SHA256 must be a 64-character hex SHA-256 digest.");
+      process.exit(1);
+    }
+    if (process.env.OLLAMA_ARCHIVE) {
+      archiveFile = basename(process.env.OLLAMA_ARCHIVE.trim());
+    }
+  } else {
+    const sumsUrl = baseUrl + "/sha256sum.txt";
+    console.log("==> Fetching official SHA-256 checksums from " + sumsUrl + "...");
+    const sumsRes = await fetch(sumsUrl, { redirect: "follow" });
+    if (!sumsRes.ok) {
+      console.error("Failed to fetch Ollama SHA-256 checksum manifest (" + sumsUrl + ", HTTP " + sumsRes.status + ").");
+      process.exit(1);
+    }
+    const matched = parseExpectedSha256(await sumsRes.text(), candidateFiles);
+    if (!matched) {
+      console.error("Could not find verified SHA-256 entry for " + candidateFiles.join(" or ") + " in sha256sum.txt.");
+      process.exit(1);
+    }
+    archiveFile = matched.file;
+    expectedSha256 = matched.sha256;
+  }
+
+  const stageDir = mkdtempSync(join(tmpdir(), "ollama-install-"));
+  chmodSync(stageDir, 0o700);
+  try {
+    const archivePath = join(stageDir, archiveFile);
+    const url = baseUrl + "/" + archiveFile;
+    console.log("==> Streaming " + archiveFile + " (" + version + ") to disk with SHA-256 verification...");
+    const res = await fetch(url, { redirect: "follow" });
+    if (!res.ok || !res.body) {
+      console.error("Failed to download " + url + " (HTTP " + res.status + ")");
+      process.exit(1);
+    }
+    const total = Number(res.headers.get("content-length") || 0);
+    const writer = Bun.file(archivePath).writer();
+    const hasher = new Bun.CryptoHasher("sha256");
+    let received = 0;
+    let lastPct = -1;
     const reader = res.body.getReader();
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
-      if (value) {
-        chunks.push(value);
+      if (value && value.byteLength > 0) {
+        writer.write(value);
+        hasher.update(value);
         received += value.byteLength;
         if (total > 0) {
           const pct = Math.floor((received / total) * 100);
@@ -132,20 +223,27 @@ if (!ollamaBin) {
         }
       }
     }
+    await writer.end();
     process.stdout.write("\\n");
+
+    const actualSha256 = hasher.digest("hex").toLowerCase();
+    if (actualSha256 !== expectedSha256) {
+      console.error("SHA-256 verification failed for " + archiveFile + ": expected " + expectedSha256 + ", got " + actualSha256);
+      process.exit(1);
+    }
+    console.log("==> Verified SHA-256 (" + actualSha256.slice(0, 16) + "...); extracting into " + localDir + "...");
+    const tarArgs = archiveFile.endsWith(".zst")
+      ? ["tar", "--no-same-owner", "--zstd", "-xf", archivePath, "-C", localDir]
+      : ["tar", "--no-same-owner", "-xzf", archivePath, "-C", localDir];
+    const tarRes = Bun.spawnSync(tarArgs, { stdout: "inherit", stderr: "inherit" });
+    if (tarRes.exitCode !== 0) {
+      console.error("Failed to extract Ollama archive.");
+      process.exit(1);
+    }
+  } finally {
+    rmSync(stageDir, { recursive: true, force: true });
   }
-  const compressed = new Uint8Array(Buffer.concat(chunks, received));
-  console.log("==> Decompressing ollama-linux-" + arch + ".tar.zst with built-in Zstandard decoder...");
-  const tarBytes = Bun.zstdDecompressSync(compressed);
-  const tmpTar = join(localDir, ".ollama-linux-" + process.pid + ".tar");
-  await Bun.write(tmpTar, tarBytes);
-  console.log("==> Extracting Ollama into " + localDir + "...");
-  const tarRes = Bun.spawnSync(["tar", "-xf", tmpTar, "-C", localDir], { stdout: "inherit", stderr: "inherit" });
-  rmSync(tmpTar, { force: true });
-  if (tarRes.exitCode !== 0) {
-    console.error("Failed to extract Ollama archive.");
-    process.exit(1);
-  }
+
   ollamaBin = join(binDir, "ollama");
   if (existsSync(ollamaBin)) chmodSync(ollamaBin, 0o755);
   console.log("==> Installed Ollama at " + ollamaBin);

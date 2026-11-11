@@ -1,5 +1,5 @@
-// Runs under NODE (jsdom cannot execute page scripts under Bun's vm). Driven by maze_generator_enhancements.test.ts.
-import { describe, test } from "node:test";
+// Driven by maze_generator_enhancements.test.ts (runs under genuine Node or Bun 1.4.4+ via ui_harness.mjs).
+import { describe, test } from "./helpers/ui_harness.mjs";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { JSDOM } from "jsdom";

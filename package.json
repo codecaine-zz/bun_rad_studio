@@ -26,6 +26,7 @@
     "win:list": "powershell -ExecutionPolicy Bypass -File ./run.ps1 -List",
     "win:gui": "powershell -ExecutionPolicy Bypass -File ./run.ps1 -Gui",
     "test": "bun test --timeout 30000",
+    "test:fast": "bun run scripts/test_fast.ts",
     "typecheck": "bun run scripts/typecheck_ratchet.ts",
     "check": "bun check --no-script",
     "fmt": "bun fmt --no-script",

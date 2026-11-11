@@ -1,12 +1,8 @@
-// Runs under NODE (jsdom cannot execute the studio page scripts under Bun's vm). Driven by studio_columns.test.ts, which
-// starts a studio server on a database holding one wide table and passes its address through the environment.
-import { describe, test } from "node:test";
+// Driven by studio_columns.test.ts, which starts a studio server on a database holding one wide table
+// and passes its address through the environment.
+import { describe, test } from "./helpers/ui_harness.mjs";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
-
-// jsdom timers that fire after a window was closed are harmless noise for these tests
-process.on("unhandledRejection", () => {});
-process.on("uncaughtException", () => {});
 
 const BASE = process.env.SC_BASE;
 const TABLE = process.env.SC_TABLE || "wide";
@@ -32,12 +28,18 @@ async function openStudio(storage, expectCols = COLS.length) {
   const html = await (await fetch(BASE + "/")).text();
   const calls = [];
   let inflight = 0;
+  let closed = false;
   const dom = new JSDOM(html, {
     runScripts: "dangerously",
     pretendToBeVisual: true,
     url: BASE + "/",
     beforeParse(win) {
       win.fetch = async (u, o) => {
+        if (closed) {
+          return new Response("{}", {
+            headers: { "content-type": "application/json" },
+          });
+        }
         calls.push({ url: String(u), body: o && o.body ? String(o.body) : "" });
         // the export endpoint writes a file into the server's working directory: the test only needs to see the request
         if (/\/api\/export$/.test(String(u)))
@@ -86,19 +88,25 @@ async function openStudio(storage, expectCols = COLS.length) {
       (d.activeElement || d.body).dispatchEvent(ev);
       return ev;
     },
-    // Windows stay open until the process ends (--test-force-exit): closing one with a request still in flight only makes noise
-    close: () => {},
+    // Mark closed so post-test timers do not trigger network errors when the process winds down
+    close: () => {
+      closed = true;
+    },
   };
   await wait(
     () => w.StudioCols && w.StudioCols.instances.grid,
     "the Columns control",
   );
-  // The sample AutoExec macro shows a welcome box and then opens another table: let it finish before the test picks its own table
+  for (let quiet = 0; quiet < 6;) {
+    await sleep(50);
+    quiet = inflight === 0 ? quiet + 1 : 0;
+  }
+  // The sample AutoExec macro (if enabled) shows a welcome box and then opens another table: let it finish before the test picks its own table
   try {
     const ok = await wait(
       () => s.qa("button").find((b) => b.textContent.trim() === "OK"),
       "the welcome box",
-      6000,
+      600,
     );
     ok.click();
     await wait(

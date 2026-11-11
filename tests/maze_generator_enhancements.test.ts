@@ -9,6 +9,7 @@ import {
   saveMazeState,
   getMazeStatePath,
 } from "../applications/maze_generator_studio";
+import { runUiSuiteSync } from "./helpers/run_ui_suite";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const E = require("../resources/maze_generator/engine.js");
@@ -379,32 +380,23 @@ describe("maze studio server & persistence", () => {
 });
 
 // ---------------------------------------------------------------------------------------------
-// 5. The real page, running in jsdom under Node
+// 5. The real page, running in jsdom (genuine Node when installed, else Bun 1.4.4+)
 // ---------------------------------------------------------------------------------------------
-const node = Bun.which("node");
-(node ? describe : describe.skip)("maze page (jsdom, run under node)", () => {
+describe("maze page (jsdom)", () => {
   test("all page tests pass", () => {
     resetState();
     const baseFile = path.join(tmp, "base.html");
     fs.writeFileSync(baseFile, generateMazeStudioHtml());
-    const r = Bun.spawnSync(
-      [
-        node!,
-        "--test",
-        "--test-reporter=spec",
-        path.join(import.meta.dir, "maze_generator_page.node.mjs"),
-      ],
+    const r = runUiSuiteSync(
+      path.join(import.meta.dir, "maze_generator_page.node.mjs"),
       {
-        cwd: path.join(import.meta.dir, ".."),
-        env: {
-          ...process.env,
-          MAZE_BASE_HTML: baseFile,
-          MAZE_STATE_FILE: stateFile,
-        },
+        MAZE_BASE_HTML: baseFile,
+        MAZE_STATE_FILE: stateFile,
       },
+      path.join(import.meta.dir, ".."),
     );
-    const out = r.stdout.toString() + r.stderr.toString();
-    if (r.exitCode !== 0) console.log(out);
-    expect(r.exitCode).toBe(0);
+    if (r.code !== 0) console.log(r.combined);
+    expect(r.code).toBe(0);
+    expect(r.pass).toBeGreaterThan(0);
   }, 60_000);
 });

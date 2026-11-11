@@ -8,6 +8,41 @@ import { startMediaPlayerStudioServer } from "../applications/media_player_studi
 
 const APPS_DIR = join(import.meta.dir, "..", "applications");
 
+/**
+ * Finds all `Bun.serve(...)` call expressions in TypeScript source text,
+ * including indirect type-cast forms like `(Bun as any).serve(...)`,
+ * `(Bun as unknown as ...).serve(...)`, and `(globalThis as any).Bun.serve(...)`.
+ */
+export function findBunServeCalls(
+  text: string,
+): Array<{ index: number; argsSlice: string }> {
+  const out: Array<{ index: number; argsSlice: string }> = [];
+  const callRe =
+    /(?:\(\s*(?:globalThis\s*\.\s*)?Bun\s+as\s+[^)]+\)|\(\s*globalThis\s+as\s+[^)]+\)\s*\.\s*Bun|(?:globalThis\s*\.\s*)?\bBun)\s*\.\s*serve\b/g;
+  let m: RegExpExecArray | null;
+  while ((m = callRe.exec(text)) !== null) {
+    const start = m.index;
+    const afterServe = start + m[0].length;
+    const open = text.indexOf("(", afterServe);
+    const between = open >= 0 ? text.slice(afterServe, open) : "";
+    if (
+      open < 0 ||
+      open - afterServe > 70 ||
+      !/^\s*(?:<[^>()]+>)?\s*$/.test(between)
+    ) {
+      continue; // `Bun.serve<T>(` is matched; prose is skipped
+    }
+    let depth = 0;
+    let j = open;
+    for (; j < text.length; j++) {
+      if (text[j] === "(") depth++;
+      else if (text[j] === ")" && --depth === 0) break;
+    }
+    out.push({ index: start, argsSlice: text.slice(open, j + 1) });
+  }
+  return out;
+}
+
 describe("Every studio HTTP server is local-only (static rules)", () => {
   const sources = [
     ...readdirSync(APPS_DIR)
@@ -25,7 +60,9 @@ describe("Every studio HTTP server is local-only (static rules)", () => {
   const delegating = sources.filter((s) =>
     s.text.includes("startStaticStudioServer("),
   );
-  const withServer = sources.filter((s) => /\bBun\.serve\(\{/.test(s.text));
+  const withServer = sources.filter(
+    (s) => findBunServeCalls(s.text).length > 0,
+  );
 
   test("the scan finds the servers", () => {
     // Files with their own Bun.serve plus the studios that use the shared server.
@@ -34,6 +71,20 @@ describe("Every studio HTTP server is local-only (static rules)", () => {
     expect(withServer.some((s) => s.file === "../src/studio_server.ts")).toBe(
       true,
     );
+  });
+
+  test("findBunServeCalls detects direct, generic, and cast Bun.serve forms", () => {
+    const snippet = [
+      'Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: () => new Response("ok") });',
+      '(Bun as any).serve({ hostname: "127.0.0.1", port: 0, fetch: () => new Response("ok") });',
+      '(globalThis as any).Bun.serve< { id: string } >({ hostname: "127.0.0.1", port: 0, fetch: () => new Response("ok") });',
+      "// Prose mention of Bun.serve without call parens should be ignored.",
+    ].join("\n");
+    const found = findBunServeCalls(snippet);
+    expect(found).toHaveLength(3);
+    for (const c of found) {
+      expect(c.argsSlice).toContain('hostname: "127.0.0.1"');
+    }
   });
 
   test("every file that starts a Bun.serve server uses guardLocalRequest", () => {
@@ -74,25 +125,11 @@ describe("Every Bun.serve call names the interface it listens on", () => {
     ...filesUnder(join(root, "src")),
   ]) {
     const text = readFileSync(file, "utf8");
-    for (
-      let i = text.indexOf("Bun.serve");
-      i >= 0;
-      i = text.indexOf("Bun.serve", i + 1)
-    ) {
-      const open = text.indexOf("(", i);
-      const between = open >= 0 ? text.slice(i + "Bun.serve".length, open) : "";
-      if (open < 0 || open - i > 70 || !/^\s*(?:<[^>()]+>)?\s*$/.test(between))
-        continue; // `Bun.serve<T>(` is matched; prose is skipped
-      let depth = 0;
-      let j = open;
-      for (; j < text.length; j++) {
-        if (text[j] === "(") depth++;
-        else if (text[j] === ")" && --depth === 0) break;
-      }
+    for (const call of findBunServeCalls(text)) {
       calls++;
-      if (!/\bhostname\b|\bhost\b/.test(text.slice(open, j + 1)))
+      if (!/\bhostname\b|\bhost\b/.test(call.argsSlice))
         missing.push(
-          `${file.slice(root.length + 1)}:${text.slice(0, i).split("\n").length}`,
+          `${file.slice(root.length + 1)}:${text.slice(0, call.index).split("\n").length}`,
         );
     }
   }

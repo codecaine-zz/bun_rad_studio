@@ -132,9 +132,14 @@ if [[ "$MODE" == "doctor" ]]; then
   echo -e "• Bun Version:      v$BUN_VER"
   echo -e "• Suite Root:       $SCRIPT_DIR"
   
-  # Check wrappers in bin
+  # Check wrappers in bin (portable POSIX executable check across macOS BSD and GNU/Linux)
   if [[ -d "$SCRIPT_DIR/bin" ]]; then
-    WRAPPER_COUNT=$(find "$SCRIPT_DIR/bin" -type f -perm +111 2>/dev/null | wc -l | tr -d ' ')
+    WRAPPER_COUNT=0
+    for f in "$SCRIPT_DIR/bin"/*; do
+      if [ -f "$f" ] && [ -x "$f" ]; then
+        WRAPPER_COUNT=$((WRAPPER_COUNT + 1))
+      fi
+    done
     echo -e "• Local Wrappers:   ${GREEN}$WRAPPER_COUNT executable binaries in bin/${RESET}"
   else
     echo -e "• Local Wrappers:   ${YELLOW}Not yet generated (run ./install_homebrew_suite.sh)${RESET}"

@@ -10,25 +10,32 @@ import { generatePacmanStudioHtml } from "../applications/pacman_studio";
 import { generateRodentsRevengeStudioHtml } from "../applications/rodents_revenge_studio";
 import { generateWordSearchStudioHtml } from "../applications/word_search_studio";
 import {
+  chmodSync,
+  copyFileSync,
   existsSync,
   mkdirSync,
-  writeFileSync,
-  copyFileSync,
+  mkdtempSync,
   readFileSync,
+  rmSync,
+  writeFileSync,
 } from "fs";
+import { tmpdir } from "os";
 import { join } from "path";
-import { Sys } from "../src/simplecli/sys";
+import { pathToFileURL } from "url";
 
 const CHROME_BIN =
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const PROJECT_SHOTS_DIR = join(process.cwd(), "screenshots", "apps");
-const ARTIFACT_SHOTS_DIR =
-  "/Users/codecaine/.gemini/antigravity-ide/brain/05dc4d06-ef14-469e-a99c-7da1df4784ad/screenshots";
-const TEMP_DIR = join(process.cwd(), ".temp_screens");
+const ARTIFACT_SHOTS_DIR = process.env.ARTIFACT_SHOTS_DIR || PROJECT_SHOTS_DIR;
+const STAGE_DIR = mkdtempSync(join(tmpdir(), "capture-games-"));
+chmodSync(STAGE_DIR, 0o700);
+const TEMP_DIR = join(STAGE_DIR, "html");
+const PROFILE_DIR = join(STAGE_DIR, "chrome-profile");
 
 mkdirSync(PROJECT_SHOTS_DIR, { recursive: true });
 mkdirSync(ARTIFACT_SHOTS_DIR, { recursive: true });
 mkdirSync(TEMP_DIR, { recursive: true });
+mkdirSync(PROFILE_DIR, { recursive: true });
 
 // Read IntuitionLab HTML directly
 const intuitionLabHtmlPath = join(
@@ -109,30 +116,44 @@ console.log(
 const results: { name: string; title: string; size: string; path: string }[] =
   [];
 
-for (const target of appTargets) {
-  const html = target.getHtml();
-  const tempPath = join(TEMP_DIR, `${target.name}.html`);
-  writeFileSync(tempPath, html, "utf8");
+try {
+  for (const target of appTargets) {
+    const html = target.getHtml();
+    const tempPath = join(TEMP_DIR, `${target.name}.html`);
+    writeFileSync(tempPath, html, "utf8");
 
-  const outProj = join(PROJECT_SHOTS_DIR, `${target.name}_desktop.png`);
-  const outArt = join(ARTIFACT_SHOTS_DIR, `${target.name}_desktop.png`);
+    const outProj = join(PROJECT_SHOTS_DIR, `${target.name}_desktop.png`);
+    const outArt = join(ARTIFACT_SHOTS_DIR, `${target.name}_desktop.png`);
 
-  const cmd = `"${CHROME_BIN}" --headless=new --disable-gpu --no-sandbox --user-data-dir="/tmp/chrome_shot_profile" --window-size=1280,900 --screenshot="${outProj}" "file://${tempPath}" 2>/dev/null`;
-  Sys.exec(cmd);
+    Bun.spawnSync(
+      [
+        CHROME_BIN,
+        "--headless=new",
+        "--disable-gpu",
+        `--user-data-dir=${PROFILE_DIR}`,
+        "--window-size=1280,900",
+        `--screenshot=${outProj}`,
+        pathToFileURL(tempPath).href,
+      ],
+      { stdout: "ignore", stderr: "ignore" },
+    );
 
-  if (existsSync(outProj)) {
-    copyFileSync(outProj, outArt);
-    const size = (Bun.file(outProj).size / 1024).toFixed(1) + " KB";
-    console.log(`✔ [${target.name}] ${target.title}: ${size}`);
-    results.push({
-      name: target.name,
-      title: target.title,
-      size,
-      path: outArt,
-    });
-  } else {
-    console.error(`❌ [${target.name}] Failed to capture screenshot`);
+    if (existsSync(outProj)) {
+      if (outArt !== outProj) copyFileSync(outProj, outArt);
+      const size = (Bun.file(outProj).size / 1024).toFixed(1) + " KB";
+      console.log(`✔ [${target.name}] ${target.title}: ${size}`);
+      results.push({
+        name: target.name,
+        title: target.title,
+        size,
+        path: outArt,
+      });
+    } else {
+      console.error(`❌ [${target.name}] Failed to capture screenshot`);
+    }
   }
+} finally {
+  rmSync(STAGE_DIR, { recursive: true, force: true });
 }
 
 console.log(`\n============================================================`);

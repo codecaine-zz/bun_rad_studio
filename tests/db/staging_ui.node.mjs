@@ -1,6 +1,6 @@
-// Runs under NODE (jsdom cannot execute page scripts under Bun). Driven by staging_ui.test.ts, which starts the real studio
+// Driven by staging_ui.test.ts, which starts the real studio
 // server(s), creates the fixture databases and passes locations through the environment.
-import { after, describe, test } from "node:test";
+import { after, describe, test } from "../helpers/ui_harness.mjs";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
 
