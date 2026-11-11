@@ -731,13 +731,15 @@ describe("Codecaine File Manager — Wave 2 Flagship Enhancements (Backend + Cro
       sandboxRoot: tmpDir,
       dataDir: path.join(tmpDir, ".win-data"),
     });
-    const posixSimWinCtx = createContext({
-      platform: "win32",
-      home: "/var/folders/posix-sim",
-      sandboxRoot: "/var/folders/posix-sim",
-      dataDir: path.join(tmpDir, ".win-sim-data"),
-    });
-    expect(posixSimWinCtx.home).toBe("/var/folders/posix-sim");
+    if (process.platform !== "win32") {
+      const posixSimWinCtx = createContext({
+        platform: "win32",
+        home: "/var/folders/posix-sim",
+        sandboxRoot: "/var/folders/posix-sim",
+        dataDir: path.join(tmpDir, ".win-sim-data"),
+      });
+      expect(posixSimWinCtx.home).toBe("/var/folders/posix-sim");
+    }
     expect(winCtx.home).toBe(path.resolve(tmpDir));
     expect(existsSync(path.join(process.cwd(), "\\var"))).toBe(false);
 
